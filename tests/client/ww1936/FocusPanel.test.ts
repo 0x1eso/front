@@ -302,7 +302,7 @@ describe("<ww-focus-panel> (spec §21.3)", () => {
     );
     // The prerequisites: one of two focuses, neither done.
     const req = m.q("[data-ww-focus-section='requires']")!.textContent!;
-    expect(req).toContain("[ww1936.focusui.requires_any]");
+    expect(req).toContain("[ww1936.focusui.or]");
     expect(req).toContain("[ww1936.focus.deu_moscow_envoy]");
     expect(req).toContain("[ww1936.focus.deu_polish_alignment]");
   });

@@ -1,9 +1,12 @@
-// World War 1936 P3 (spec §21.3): the focus tree drawn on a Canvas 2D at the
-// device's pixel ratio — lines, then cards (state border, dimming, lock,
-// red slash, ✓, "skipped"), each with its white icon, a two-line name and
-// a days chip. One finger pans, two fingers zoom, a double tap returns to
-// 1×, a tap picks a card. It redraws only when the model's key changes or
-// on input, at most once a frame.
+// World War 1936 (spec §21.3): the focus tree drawn on a Canvas 2D at the
+// device's pixel ratio — tinted group bands with headers, routed lines
+// (colour by state, AND solid, OR dashed with a badge, exclusive pairs as a
+// red ⊘), then cards (icon, two-line name, days, badges, progress bar). A
+// tap picks a card and lights its ancestors (gold) and descendants (blue);
+// a tap on empty space clears it. One finger or the mouse pans, two fingers
+// or the wheel zoom, a double tap returns to 1× (on a band header: fits the
+// band), the minimap pans on a tap. It redraws only when the model's key
+// changes or on input, at most once a frame.
 import type { FocusDef } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { assetUrl } from "@openfront/shared/AssetUrls";
 import {
@@ -12,7 +15,8 @@ import {
   cardRect,
   centerOn,
   clampView,
-  edges,
+  fitAll,
+  fitBand,
   FOCUS_BYPASSED,
   FOCUS_CONDITION,
   FOCUS_DONE,
@@ -21,12 +25,15 @@ import {
   FOCUS_PREREQ,
   FOCUS_QUEUED,
   FOCUS_RUNNING,
-  FocusEdge,
+  FocusLayout,
   FocusViewport,
+  HEAD_H,
+  hitBand,
   hitCard,
+  layoutOf,
   Rect,
+  relatives,
   treeSize,
-  ZOOM_MIN,
   zoomAt,
 } from "./FocusLayout";
 
@@ -50,6 +57,14 @@ export interface FocusCanvasModel {
   found?: readonly boolean[];
   /** The recommend star's card, or -1. */
   star?: number;
+  /** Cards the view filters fade out (still tappable). */
+  faded?: readonly boolean[];
+  /** Cards on the historical path (a small ★). */
+  history?: readonly boolean[];
+  /** Band header texts by band key (name and done count). */
+  bandNames?: Readonly<Record<string, string>>;
+  /** Small badge texts. */
+  texts?: { or: string; pick: string };
 }
 
 // ---- Icons: each SVG is read once into an Image and shared ----
@@ -84,21 +99,47 @@ const LINE_PX = 14;
 const LOOK: Readonly<
   Record<number, { border: string; fill: string; alpha: number }>
 > = {
-  [FOCUS_OPEN]: { border: "#fde047", fill: "#1f2937", alpha: 1 },
-  [FOCUS_DONE]: { border: "#10b981", fill: "#022c22", alpha: 1 },
+  [FOCUS_OPEN]: { border: "#ffffff", fill: "#1f2937", alpha: 1 },
+  [FOCUS_DONE]: { border: "#10b981", fill: "#064e3b", alpha: 1 },
   [FOCUS_BYPASSED]: { border: "#6b7280", fill: "#1f2937", alpha: 0.7 },
-  [FOCUS_RUNNING]: { border: "#67e8f9", fill: "#083344", alpha: 1 },
-  [FOCUS_PREREQ]: { border: "#4b5563", fill: "#111827", alpha: 0.5 },
-  [FOCUS_CONDITION]: { border: "#4b5563", fill: "#111827", alpha: 0.5 },
-  [FOCUS_EXCLUSIVE]: { border: "#7f1d1d", fill: "#111827", alpha: 0.6 },
-  [FOCUS_QUEUED]: { border: "#67e8f9", fill: "#1f2937", alpha: 1 },
+  [FOCUS_RUNNING]: { border: "#facc15", fill: "#422006", alpha: 1 },
+  [FOCUS_PREREQ]: { border: "#4b5563", fill: "#111827", alpha: 0.6 },
+  [FOCUS_CONDITION]: { border: "#4b5563", fill: "#111827", alpha: 0.6 },
+  [FOCUS_EXCLUSIVE]: { border: "#7f1d1d", fill: "#111827", alpha: 0.65 },
+  [FOCUS_QUEUED]: { border: "#facc15", fill: "#1f2937", alpha: 1 },
 };
-const LINE_DIM = "rgba(255,255,255,0.28)";
-const LINE_LIT = "rgba(255,255,255,0.85)";
+const C_DIM = "#4b5563";
+const C_OPEN = "#f9fafb";
+const C_DONE = "#34d399";
+const C_UP = "#fbbf24";
+const C_DOWN = "#60a5fa";
 const RED = "#ef4444";
+const BAND_TINTS = [
+  "96,165,250",
+  "52,211,153",
+  "251,191,36",
+  "244,114,182",
+  "167,139,250",
+  "45,212,191",
+  "251,146,60",
+  "163,230,53",
+];
+const FADE = 0.14;
+const MINI_W = 120;
+const MINI_H = 72;
+const MINI_PAD = 8;
 
 /** Done or skipped: a line from it is lit, and it counts as done. */
 const isDone = (s: number) => s === FOCUS_DONE || s === FOCUS_BYPASSED;
+const isNext = (s: number) =>
+  s === FOCUS_OPEN || s === FOCUS_RUNNING || s === FOCUS_QUEUED;
+
+/** A route's colour class by the states at its ends: 2 green, 1 white (the path open now), 0 dim. */
+export function routeLook(from: number, to: number): 0 | 1 | 2 {
+  if (!isDone(from)) return 0;
+  if (isDone(to)) return 2;
+  return isNext(to) ? 1 : 0;
+}
 
 /** `text` cut to lines of at most `width`, the last one ending in "…" when cut. */
 export function wrapLines(
@@ -164,8 +205,12 @@ const DOUBLE_TAP_PX = 28;
 export class FocusCanvas {
   private readonly ctx: CanvasRenderingContext2D | null;
   private model: FocusCanvasModel | null = null;
-  private lines: FocusEdge[] = [];
-  private linesOf: readonly FocusDef[] | null = null;
+  private L: FocusLayout = layoutOf([]);
+  private lit: {
+    sel: number;
+    up: Set<number>;
+    down: Set<number>;
+  } | null = null;
   private view: FocusViewport = { ox: 0, oy: 0, scale: 1 };
   private w = 0;
   private h = 0;
@@ -173,6 +218,7 @@ export class FocusCanvas {
   /** A card to centre once the canvas has a size. */
   private pendingCenter: number | "all" | null = null;
   private readonly pointers = new Map<number, Pointer>();
+  private miniId: number | null = null;
   private drag: {
     x: number;
     y: number;
@@ -199,6 +245,7 @@ export class FocusCanvas {
     private readonly onPick: (pos: number) => void,
   ) {
     this.ctx = canvas.getContext("2d");
+    canvas.style.cursor = "grab";
     canvas.addEventListener("pointerdown", this.down);
     canvas.addEventListener("pointermove", this.move);
     canvas.addEventListener("pointerup", this.up);
@@ -237,12 +284,20 @@ export class FocusCanvas {
     return { ...this.view };
   }
 
+  /** The tree's layout (cached per tree). */
+  layout(): FocusLayout {
+    return this.L;
+  }
+
   setModel(m: FocusCanvasModel): void {
     if (this.model !== null && this.model.key === m.key) return;
     this.model = m;
-    if (this.linesOf !== m.tree) {
-      this.linesOf = m.tree;
-      this.lines = edges(m.tree);
+    this.L = layoutOf(m.tree);
+    if (this.lit?.sel !== m.selected) {
+      this.lit =
+        m.selected >= 0 && m.selected < this.L.n
+          ? { sel: m.selected, ...relatives(this.L, m.selected) }
+          : null;
     }
     this.requestDraw();
   }
@@ -259,13 +314,20 @@ export class FocusCanvas {
     this.applyCenter();
   }
 
+  /** Band `b` fitted to the canvas. */
+  fitBand(b: number): void {
+    if (this.w === 0) return;
+    this.view = fitBand(this.L, b, this.w, this.h);
+    this.requestDraw();
+  }
+
   /** Move to the card at `pos`, keeping the zoom. */
   panTo(pos: number): void {
     if (this.model === null || this.w === 0) {
       this.centerOn(pos);
       return;
     }
-    this.view = centerOn(this.model.tree, pos, this.w, this.h, this.view.scale);
+    this.view = centerOn(this.L, pos, this.w, this.h, this.view.scale);
     this.requestDraw();
   }
 
@@ -274,21 +336,8 @@ export class FocusCanvas {
     if (m === null || this.w === 0 || this.h === 0) return;
     const c = this.pendingCenter;
     this.pendingCenter = null;
-    if (c === "all") {
-      const size = treeSize(m.tree);
-      this.view = clampView(
-        {
-          scale: ZOOM_MIN,
-          ox: (this.w - size.w * ZOOM_MIN) / 2,
-          oy: (this.h - size.h * ZOOM_MIN) / 2,
-        },
-        m.tree,
-        this.w,
-        this.h,
-      );
-    } else if (c !== null) {
-      this.view = centerOn(m.tree, c, this.w, this.h, 1);
-    }
+    if (c === "all") this.view = fitAll(this.L, this.w, this.h);
+    else if (c !== null) this.view = centerOn(this.L, c, this.w, this.h, 1);
     this.requestDraw();
   }
 
@@ -303,7 +352,7 @@ export class FocusCanvas {
     if (this.canvas.height !== ph) this.canvas.height = ph;
     if (this.pendingCenter !== null) this.applyCenter();
     else if (this.model !== null && this.w > 0) {
-      this.view = clampView(this.view, this.model.tree, this.w, this.h);
+      this.view = clampView(this.view, this.L, this.w, this.h);
     }
     this.requestDraw();
   };
@@ -327,13 +376,55 @@ export class FocusCanvas {
 
   private setView(v: FocusViewport): void {
     if (this.model === null) return;
-    this.view = clampView(v, this.model.tree, this.w, this.h);
+    this.view = clampView(v, this.L, this.w, this.h);
     this.requestDraw();
+  }
+
+  /** The minimap's rect on the canvas, or null when the whole tree is in view. */
+  private mini(): (Rect & { k: number }) | null {
+    const size = treeSize(this.L);
+    if (
+      this.w === 0 ||
+      (size.w * this.view.scale <= this.w && size.h * this.view.scale <= this.h)
+    ) {
+      return null;
+    }
+    const k = Math.min(MINI_W / size.w, MINI_H / size.h);
+    const w = size.w * k;
+    const h = size.h * k;
+    return { x: this.w - w - MINI_PAD, y: this.h - h - MINI_PAD, w, h, k };
+  }
+
+  /** A minimap press or drag: centre the view on that tree point. */
+  private miniTo(p: Pointer): void {
+    const mr = this.mini();
+    if (mr === null) return;
+    const tx = (p.x - mr.x) / mr.k;
+    const ty = (p.y - mr.y) / mr.k;
+    this.setView({
+      scale: this.view.scale,
+      ox: this.w / 2 - tx * this.view.scale,
+      oy: this.h / 2 - ty * this.view.scale,
+    });
   }
 
   private readonly down = (e: PointerEvent) => {
     this.canvas.setPointerCapture?.(e.pointerId);
     const p = this.local(e);
+    const mr = this.mini();
+    if (
+      mr !== null &&
+      this.pointers.size === 0 &&
+      p.x >= mr.x - 4 &&
+      p.x <= mr.x + mr.w + 4 &&
+      p.y >= mr.y - 4 &&
+      p.y <= mr.y + mr.h + 4
+    ) {
+      this.miniId = e.pointerId;
+      this.miniTo(p);
+      return;
+    }
+    this.canvas.style.cursor = "grabbing";
     this.pointers.set(e.pointerId, p);
     if (this.pointers.size === 1) {
       this.pinched = false;
@@ -359,6 +450,10 @@ export class FocusCanvas {
   }
 
   private readonly move = (e: PointerEvent) => {
+    if (this.miniId === e.pointerId) {
+      this.miniTo(this.local(e));
+      return;
+    }
     if (!this.pointers.has(e.pointerId)) return;
     const p = this.local(e);
     this.pointers.set(e.pointerId, p);
@@ -388,6 +483,10 @@ export class FocusCanvas {
   };
 
   private readonly up = (e: PointerEvent) => {
+    if (this.miniId === e.pointerId) {
+      this.miniId = null;
+      return;
+    }
     if (!this.pointers.has(e.pointerId)) return;
     const p = this.local(e);
     this.pointers.delete(e.pointerId);
@@ -405,6 +504,7 @@ export class FocusCanvas {
       return;
     }
     if (this.pointers.size > 0) return;
+    this.canvas.style.cursor = "grab";
     this.drag = null;
     this.pinch = null;
     if (this.pinched || d === null || d.moved) return;
@@ -412,8 +512,10 @@ export class FocusCanvas {
   };
 
   private readonly cancel = (e: PointerEvent) => {
+    if (this.miniId === e.pointerId) this.miniId = null;
     this.pointers.delete(e.pointerId);
     if (this.pointers.size === 0) {
+      this.canvas.style.cursor = "grab";
       this.drag = null;
       this.pinch = null;
     }
@@ -427,8 +529,15 @@ export class FocusCanvas {
     this.setView(zoomAt(this.view, this.view.scale * k, p.x, p.y));
   };
 
-  /** A tap at canvas point (x, y): a double tap returns to 1×, a tap picks the card there. */
+  /**
+   * A tap at canvas point (x, y): a double tap returns to 1× (on a band
+   * header: fits the band), a tap picks the card there, a tap on empty
+   * space clears the pick.
+   */
   tap(x: number, y: number, at: number): void {
+    const tx = (x - this.view.ox) / this.view.scale;
+    const ty = (y - this.view.oy) / this.view.scale;
+    const head = hitBand(this.L, tx, ty);
     const last = this.lastTap;
     if (
       last !== null &&
@@ -436,19 +545,21 @@ export class FocusCanvas {
       Math.hypot(x - last.x, y - last.y) < DOUBLE_TAP_PX
     ) {
       this.lastTap = null;
-      this.setView(zoomAt(this.view, 1, x, y));
+      if (head >= 0) this.fitBand(head);
+      else this.setView(zoomAt(this.view, 1, x, y));
       return;
     }
     this.lastTap = { x, y, at };
-    if (this.model === null) return;
-    const pos = hitCard(this.model.tree, x, y, this.view);
+    if (this.model === null || head >= 0) return;
+    const pos = hitCard(this.L, x, y, this.view);
     if (pos >= 0 && this.model.hidden?.[pos] !== true) this.onPick(pos);
+    else if (pos < 0 && this.model.selected >= 0) this.onPick(-1);
   }
 
   // ---- Drawing ----
 
-  private screenRect(f: FocusDef): Rect {
-    const r = cardRect(f, this.view.scale);
+  private screenRect(i: number): Rect {
+    const r = cardRect(this.L, i, this.view.scale);
     return { ...r, x: r.x + this.view.ox, y: r.y + this.view.oy };
   }
 
@@ -460,149 +571,223 @@ export class FocusCanvas {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, this.w, this.h);
     const s = this.view.scale;
-    const rects = m.tree.map((f) => this.screenRect(f));
-    // Lines under the cards.
-    const hid = (i: number) => m.hidden?.[i] === true;
-    for (const e of this.lines) {
-      if (e.kind === "exclusive" || hid(e.from) || hid(e.to)) continue;
-      this.drawPrereq(
-        ctx,
-        rects[e.from],
-        rects[e.to],
-        e.kind === "or",
-        isDone(m.states[e.from] ?? FOCUS_PREREQ),
-        s,
-      );
-    }
-    for (const e of this.lines) {
-      if (e.kind === "exclusive" && !hid(e.from) && !hid(e.to))
-        this.drawExclusive(ctx, rects[e.from], rects[e.to], s);
-    }
     const font =
       getComputedStyle(this.canvas).fontFamily || "system-ui, sans-serif";
-    m.tree.forEach((f, i) => {
-      const r = rects[i];
-      if (hid(i)) return;
+    this.drawBands(ctx, m, s, font);
+    this.drawRoutes(ctx, m, s);
+    this.drawPairs(ctx, m, s, font);
+    const L = this.L;
+    const hid = (i: number) => m.hidden?.[i] === true;
+    for (let i = 0; i < L.n; i++) {
+      if (hid(i)) continue;
+      const r = this.screenRect(i);
       if (r.x > this.w || r.y > this.h || r.x + r.w < 0 || r.y + r.h < 0) {
-        return;
+        continue;
       }
-      this.drawCard(ctx, m, f, i, r, s, font);
-      if (m.found?.[i] === true) {
-        ctx.save();
-        ctx.strokeStyle = "#f472b6";
-        ctx.lineWidth = 3 * s;
-        roundRect(
-          ctx,
-          r.x - 3 * s,
-          r.y - 3 * s,
-          r.w + 6 * s,
-          r.h + 6 * s,
-          8 * s,
-        );
-        ctx.stroke();
-        ctx.restore();
-      }
-      if (m.star === i) {
-        ctx.save();
-        ctx.fillStyle = "#facc15";
-        ctx.font = `700 ${15 * s}px ${font}`;
+      this.drawCard(ctx, m, i, r, s, font);
+    }
+    this.drawMini(ctx, m);
+  }
+
+  /** 0..1 opacity of card `i` against filters and the tap highlight. */
+  private fade(m: FocusCanvasModel, i: number): number {
+    let a = m.faded?.[i] === true ? FADE : 1;
+    const lit = this.lit;
+    if (lit !== null && i !== lit.sel && !lit.up.has(i) && !lit.down.has(i)) {
+      a = Math.min(a, 0.25);
+    }
+    return a;
+  }
+
+  private drawBands(
+    ctx: CanvasRenderingContext2D,
+    m: FocusCanvasModel,
+    s: number,
+    font: string,
+  ): void {
+    const L = this.L;
+    const top = this.view.oy;
+    L.bands.forEach((b, bi) => {
+      const x = b.x * s + this.view.ox;
+      const w = b.w * s;
+      if (x > this.w || x + w < 0) return;
+      const tint = BAND_TINTS[bi % BAND_TINTS.length];
+      const collapsed = b.members.every((i) => m.hidden?.[i] === true);
+      ctx.save();
+      ctx.fillStyle = `rgba(${tint},${collapsed ? 0.03 : 0.07})`;
+      roundRect(ctx, x, top, w, L.height * s, 10 * s);
+      ctx.fill();
+      ctx.fillStyle = `rgba(${tint},0.22)`;
+      roundRect(ctx, x, top, w, HEAD_H * s, 10 * s);
+      ctx.fill();
+      if (s >= 0.3) {
+        ctx.fillStyle = "#f3f4f6";
+        ctx.font = `700 ${Math.max(11, 13 * s)}px ${font}`;
         ctx.textAlign = "left";
-        ctx.textBaseline = "top";
-        ctx.fillText("★", r.x + 3 * s, r.y + 1 * s);
+        ctx.textBaseline = "middle";
+        // Keep the label in view while the band is wider than the canvas.
+        const lx = Math.max(x + 10 * s, Math.min(8, x + w - 120));
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(x, top, w, HEAD_H * s);
+        ctx.clip();
+        ctx.fillText(m.bandNames?.[b.key] ?? b.key, lx, top + (HEAD_H * s) / 2);
         ctx.restore();
       }
+      ctx.restore();
     });
   }
 
-  private drawPrereq(
+  private routePath(
     ctx: CanvasRenderingContext2D,
-    a: Rect,
-    b: Rect,
-    dashed: boolean,
-    lit: boolean,
+    pts: number[],
     s: number,
   ): void {
-    ctx.save();
-    ctx.strokeStyle = lit ? LINE_LIT : LINE_DIM;
-    ctx.lineWidth = 2 * s;
-    ctx.setLineDash(dashed ? [6 * s, 4 * s] : []);
+    const { ox, oy } = this.view;
+    const X = (i: number) => pts[i] * s + ox;
+    const Y = (i: number) => pts[i + 1] * s + oy;
     ctx.beginPath();
-    const ax = a.x + a.w / 2;
-    const bx = b.x + b.w / 2;
-    if (a.y + a.h <= b.y) {
-      // Down from the earlier card, across in the gutter below it, down into the later one.
-      const gy = a.y + a.h + 4 * s;
-      ctx.moveTo(ax, a.y + a.h);
-      ctx.lineTo(ax, gy);
-      ctx.lineTo(bx, gy);
-      ctx.lineTo(bx, b.y);
-    } else {
-      ctx.moveTo(ax, a.y + a.h / 2);
-      ctx.lineTo(bx, b.y + b.h / 2);
+    ctx.moveTo(X(0), Y(0));
+    const R = 8 * s;
+    for (let i = 2; i + 2 < pts.length; i += 2) {
+      const r = Math.min(
+        R,
+        Math.hypot(pts[i] - pts[i - 2], pts[i + 1] - pts[i - 1]) * s * 0.5,
+        Math.hypot(pts[i + 2] - pts[i], pts[i + 3] - pts[i + 1]) * s * 0.5,
+      );
+      ctx.arcTo(X(i), Y(i), X(i + 2), Y(i + 2), r);
     }
-    ctx.stroke();
+    ctx.lineTo(X(pts.length - 2), Y(pts.length - 2));
+  }
+
+  private drawRoutes(
+    ctx: CanvasRenderingContext2D,
+    m: FocusCanvasModel,
+    s: number,
+  ): void {
+    const L = this.L;
+    const lit = this.lit;
+    // Dim first, the open path above it, done on top; the tap highlight last.
+    const rank = (k: number, i: number) => {
+      const e = L.routes[i];
+      if (lit !== null) {
+        const inUp = (j: number) => j === lit.sel || lit.up.has(j);
+        const inDown = (j: number) => j === lit.sel || lit.down.has(j);
+        if (inUp(e.from) && inUp(e.to)) return k === 4 ? 1 : -1;
+        if (inDown(e.from) && inDown(e.to)) return k === 3 ? 1 : -1;
+        return k === 0 ? 1 : -1;
+      }
+      return routeLook(
+        m.states[e.from] ?? FOCUS_PREREQ,
+        m.states[e.to] ?? 0,
+      ) === k
+        ? 1
+        : -1;
+    };
+    const color = [C_DIM, C_OPEN, C_DONE, C_DOWN, C_UP];
+    const passes = lit !== null ? [0, 3, 4] : [0, 1, 2];
+    ctx.save();
+    ctx.lineJoin = "round";
+    for (const k of passes) {
+      ctx.strokeStyle = color[k];
+      ctx.fillStyle = color[k];
+      ctx.lineWidth = (k === 0 ? 1.5 : 2.2) * s;
+      for (let i = 0; i < L.routes.length; i++) {
+        if (rank(k, i) < 0) continue;
+        const e = L.routes[i];
+        if (m.hidden?.[e.from] === true || m.hidden?.[e.to] === true) continue;
+        const faded = m.faded?.[e.from] === true || m.faded?.[e.to] === true;
+        ctx.globalAlpha =
+          lit !== null && k === 0 ? 0.25 : faded ? FADE : k === 0 ? 0.8 : 1;
+        ctx.setLineDash(e.kind === "or" ? [6 * s, 4 * s] : []);
+        this.routePath(ctx, e.pts, s);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        const n = e.pts.length;
+        const ax = e.pts[n - 2] * s + this.view.ox;
+        const ay = e.pts[n - 1] * s + this.view.oy;
+        const a = 5 * s;
+        ctx.beginPath();
+        ctx.moveTo(ax, ay);
+        ctx.lineTo(ax - a, ay - 1.6 * a);
+        ctx.lineTo(ax + a, ay - 1.6 * a);
+        ctx.closePath();
+        ctx.fill();
+      }
+    }
+    // The "or" badge where alternatives merge.
+    if (s >= 0.45 && m.texts !== undefined) {
+      ctx.font = `700 ${9 * s}px system-ui, sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      for (const b of L.orBadges) {
+        if (m.hidden?.[b.to] === true) continue;
+        ctx.globalAlpha = this.fade(m, b.to);
+        const bw = ctx.measureText(m.texts.or).width + 8 * s;
+        const bx = b.x * s + this.view.ox;
+        const by = b.y * s + this.view.oy;
+        ctx.fillStyle = "#111827";
+        ctx.strokeStyle = "#9ca3af";
+        ctx.lineWidth = 1 * s;
+        roundRect(ctx, bx - bw / 2, by - 7 * s, bw, 14 * s, 7 * s);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = "#e5e7eb";
+        ctx.fillText(m.texts.or, bx, by);
+      }
+    }
     ctx.restore();
   }
 
-  private drawExclusive(
+  private drawPairs(
     ctx: CanvasRenderingContext2D,
-    a: Rect,
-    b: Rect,
+    m: FocusCanvasModel,
     s: number,
+    font: string,
   ): void {
-    // Between the facing edges of the two cards, a red double line and ⨯.
-    const acx = a.x + a.w / 2;
-    const acy = a.y + a.h / 2;
-    const bcx = b.x + b.w / 2;
-    const bcy = b.y + b.h / 2;
-    const dx = bcx - acx;
-    const dy = bcy - acy;
-    const len = Math.hypot(dx, dy);
-    if (len === 0) return;
-    const exit = (r: Rect) => {
-      const tx = dx === 0 ? Infinity : r.w / 2 / Math.abs(dx);
-      const ty = dy === 0 ? Infinity : r.h / 2 / Math.abs(dy);
-      return Math.min(tx, ty);
-    };
-    const t0 = exit(a);
-    const t1 = 1 - exit(b);
-    if (t1 <= t0) return;
-    const x0 = acx + dx * t0;
-    const y0 = acy + dy * t0;
-    const x1 = acx + dx * t1;
-    const y1 = acy + dy * t1;
-    const nx = (-dy / len) * 2 * s;
-    const ny = (dx / len) * 2 * s;
-    ctx.save();
-    ctx.strokeStyle = RED;
-    ctx.lineWidth = 1.5 * s;
-    ctx.beginPath();
-    ctx.moveTo(x0 + nx, y0 + ny);
-    ctx.lineTo(x1 + nx, y1 + ny);
-    ctx.moveTo(x0 - nx, y0 - ny);
-    ctx.lineTo(x1 - nx, y1 - ny);
-    ctx.stroke();
-    const mx = (x0 + x1) / 2;
-    const my = (y0 + y1) / 2;
-    const k = 4 * s;
-    ctx.fillStyle = "#111827";
-    ctx.beginPath();
-    ctx.arc(mx, my, 6 * s, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.lineWidth = 2 * s;
-    ctx.beginPath();
-    ctx.moveTo(mx - k, my - k);
-    ctx.lineTo(mx + k, my + k);
-    ctx.moveTo(mx + k, my - k);
-    ctx.lineTo(mx - k, my + k);
-    ctx.stroke();
-    ctx.restore();
+    const { ox, oy } = this.view;
+    for (const p of this.L.pairs) {
+      if (m.hidden?.[p.a] === true || m.hidden?.[p.b] === true) continue;
+      ctx.save();
+      ctx.globalAlpha = Math.min(this.fade(m, p.a), this.fade(m, p.b));
+      ctx.strokeStyle = RED;
+      ctx.lineWidth = 2 * s;
+      ctx.beginPath();
+      ctx.moveTo(p.x0 * s + ox, p.y0 * s + oy);
+      ctx.lineTo(p.x1 * s + ox, p.y1 * s + oy);
+      ctx.stroke();
+      // The ⊘ connector, once per pair, with a "pick one" badge.
+      const mx = p.x * s + ox;
+      const my = p.y * s + oy;
+      const r = 8 * s;
+      ctx.fillStyle = "#111827";
+      ctx.beginPath();
+      ctx.arc(mx, my, r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      const k = r * 0.7;
+      ctx.beginPath();
+      ctx.moveTo(mx - k, my + k);
+      ctx.lineTo(mx + k, my - k);
+      ctx.stroke();
+      if (s >= 0.45 && m.texts !== undefined) {
+        ctx.font = `700 ${9 * s}px ${font}`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        const bw = ctx.measureText(m.texts.pick).width + 8 * s;
+        ctx.fillStyle = "#7f1d1d";
+        roundRect(ctx, mx - bw / 2, my + r + 2 * s, bw, 13 * s, 6.5 * s);
+        ctx.fill();
+        ctx.fillStyle = "#fecaca";
+        ctx.fillText(m.texts.pick, mx, my + r + 8.5 * s);
+      }
+      ctx.restore();
+    }
   }
 
   private drawCard(
     ctx: CanvasRenderingContext2D,
     m: FocusCanvasModel,
-    f: FocusDef,
     i: number,
     r: Rect,
     s: number,
@@ -610,12 +795,13 @@ export class FocusCanvas {
   ): void {
     const state = m.states[i] ?? FOCUS_PREREQ;
     const look = LOOK[state] ?? LOOK[FOCUS_PREREQ];
-    const radius = 6 * s;
+    const f = m.tree[i];
+    const radius = 8 * s;
+    const fade = this.fade(m, i);
     ctx.save();
-    ctx.globalAlpha = look.alpha;
-    // Body and border.
+    ctx.globalAlpha = look.alpha * fade;
     if (state === FOCUS_OPEN) {
-      ctx.shadowColor = "rgba(253,224,71,0.55)";
+      ctx.shadowColor = "rgba(255,255,255,0.35)";
       ctx.shadowBlur = 8 * s;
     }
     ctx.fillStyle = look.fill;
@@ -624,105 +810,190 @@ export class FocusCanvas {
     ctx.shadowBlur = 0;
     ctx.strokeStyle = look.border;
     ctx.lineWidth =
-      (state === FOCUS_OPEN || state === FOCUS_RUNNING ? 2 : 1.5) * s;
+      (state === FOCUS_OPEN || state === FOCUS_RUNNING ? 2.5 : 1.5) * s;
     ctx.setLineDash(state === FOCUS_QUEUED ? [5 * s, 3 * s] : []);
     roundRect(ctx, r.x, r.y, r.w, r.h, radius);
     ctx.stroke();
     ctx.setLineDash([]);
-    // Icon (24 px), with the running ring around it.
-    const ix = r.x + 6 * s;
-    const iy = r.y + 5 * s;
-    const is = 24 * s;
+    if (s < 0.45) {
+      ctx.restore();
+      this.drawRings(ctx, m, i, r, s);
+      return;
+    }
+    // Blocked by an exclusive choice: a red stripe down the left side.
+    if (state === FOCUS_EXCLUSIVE) {
+      ctx.fillStyle = RED;
+      roundRect(ctx, r.x, r.y, 6 * s, r.h, radius);
+      ctx.fill();
+    }
+    // Icon (28 px).
+    const ix = r.x + 10 * s;
+    const iy = r.y + 8 * s;
+    const is = 28 * s;
     const img = iconImage(f.icon);
     if (img !== null) ctx.drawImage(img, ix, iy, is, is);
-    if (state === FOCUS_RUNNING) {
-      ctx.strokeStyle = "rgba(255,255,255,0.15)";
-      ctx.lineWidth = 2.5 * s;
-      ctx.beginPath();
-      ctx.arc(ix + is / 2, iy + is / 2, is / 2 + 3 * s, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.strokeStyle = "#38bdf8";
-      ctx.beginPath();
-      ctx.arc(
-        ix + is / 2,
-        iy + is / 2,
-        is / 2 + 3 * s,
-        -Math.PI / 2,
-        -Math.PI / 2 + Math.PI * 2 * Math.min(1, Math.max(0, m.progress)),
-      );
-      ctx.stroke();
-    }
     // The days chip, or "skipped", at the top right; a mark beside it.
-    ctx.font = `600 ${10 * s}px ${font}`;
+    ctx.font = `600 ${11 * s}px ${font}`;
     ctx.textBaseline = "middle";
     const chip = state === FOCUS_BYPASSED ? m.bypassed : (m.daysChips[i] ?? "");
-    const cw = ctx.measureText(chip).width + 8 * s;
-    const cx = r.x + r.w - cw - 5 * s;
-    const cy = r.y + 5 * s;
+    const cw = ctx.measureText(chip).width + 10 * s;
+    const cx = r.x + r.w - cw - 8 * s;
+    const cy = r.y + 9 * s;
     ctx.fillStyle =
-      state === FOCUS_BYPASSED ? "#4b5563" : "rgba(255,255,255,0.12)";
-    roundRect(ctx, cx, cy, cw, 14 * s, 7 * s);
+      state === FOCUS_BYPASSED ? "#4b5563" : "rgba(255,255,255,0.14)";
+    roundRect(ctx, cx, cy, cw, 16 * s, 8 * s);
     ctx.fill();
-    ctx.fillStyle =
-      state === FOCUS_BYPASSED ? "#e5e7eb" : "rgba(255,255,255,0.8)";
+    ctx.fillStyle = "#e5e7eb";
     ctx.textAlign = "center";
-    ctx.fillText(chip, cx + cw / 2, cy + 7 * s);
-    const markX = cx - 9 * s;
-    const markY = cy + 7 * s;
+    ctx.fillText(chip, cx + cw / 2, cy + 8 * s);
+    // Badges after the icon: ★ history, 택1 for an exclusive choice.
+    let bx = ix + is + 6 * s;
+    const by = r.y + 17 * s;
+    if (m.history?.[i] === true) {
+      ctx.fillStyle = "#facc15";
+      ctx.font = `700 ${13 * s}px ${font}`;
+      ctx.textAlign = "left";
+      ctx.fillText("★", bx, by);
+      bx += 16 * s;
+    }
+    if ((f.exclusive?.length ?? 0) > 0 && m.texts !== undefined) {
+      ctx.font = `700 ${9 * s}px ${font}`;
+      const pw = ctx.measureText(m.texts.pick).width + 8 * s;
+      if (bx + pw < cx - 2 * s) {
+        ctx.fillStyle = "#7f1d1d";
+        roundRect(ctx, bx, by - 6.5 * s, pw, 13 * s, 6.5 * s);
+        ctx.fill();
+        ctx.fillStyle = "#fecaca";
+        ctx.textAlign = "center";
+        ctx.fillText(m.texts.pick, bx + pw / 2, by);
+      }
+    }
+    const markX = r.x + r.w - 14 * s;
+    const markY = r.y + r.h - 14 * s;
     if (state === FOCUS_DONE) {
-      ctx.strokeStyle = "#34d399";
-      ctx.lineWidth = 2.2 * s;
+      ctx.strokeStyle = C_DONE;
+      ctx.lineWidth = 2.4 * s;
       ctx.beginPath();
       ctx.moveTo(markX - 5 * s, markY);
       ctx.lineTo(markX - 1.5 * s, markY + 3.5 * s);
       ctx.lineTo(markX + 5 * s, markY - 4 * s);
       ctx.stroke();
-    } else if (state === FOCUS_CONDITION) {
+    } else if (state === FOCUS_CONDITION || state === FOCUS_PREREQ) {
       drawLock(ctx, markX, markY, s);
     }
-    // The name, two lines of text-xs, cut with an ellipsis.
+    // The name: two lines, cut with an ellipsis.
     ctx.font = `600 ${FONT_PX * s}px ${font}`;
     ctx.fillStyle = "#ffffff";
-    ctx.textAlign = "center";
+    ctx.textAlign = "left";
     ctx.textBaseline = "alphabetic";
     const lines = wrapLines(
       (t) => ctx.measureText(t).width,
       m.names[i] ?? "",
-      CARD_W * s - 8 * s,
+      CARD_W * s - 36 * s,
       2,
     );
-    // Baselines: two lines at 42 and 56 (of 60), one line between them.
-    const top = r.y + (lines.length === 1 ? 49 : 42) * s;
-    lines.forEach((l, li) =>
-      ctx.fillText(l, r.x + r.w / 2, top + li * LINE_PX * s),
-    );
-    ctx.restore();
-    // Blocked by an exclusive choice: a red slash across the card.
-    if (state === FOCUS_EXCLUSIVE) {
-      ctx.save();
-      ctx.strokeStyle = RED;
-      ctx.lineWidth = 2.5 * s;
-      ctx.beginPath();
-      ctx.moveTo(r.x + 4 * s, r.y + r.h - 4 * s);
-      ctx.lineTo(r.x + r.w - 4 * s, r.y + 4 * s);
-      ctx.stroke();
-      ctx.restore();
+    const nx = r.x + 10 * s;
+    const top = r.y + (lines.length === 1 ? 62 : 55) * s;
+    lines.forEach((l, li) => ctx.fillText(l, nx, top + li * LINE_PX * s));
+    // Progress bar of the running focus.
+    if (state === FOCUS_RUNNING) {
+      const bw = r.w - 20 * s;
+      ctx.fillStyle = "rgba(255,255,255,0.18)";
+      roundRect(ctx, r.x + 10 * s, r.y + r.h - 9 * s, bw, 5 * s, 2.5 * s);
+      ctx.fill();
+      ctx.fillStyle = "#facc15";
+      const p = Math.min(1, Math.max(0, m.progress));
+      if (p > 0) {
+        roundRect(
+          ctx,
+          r.x + 10 * s,
+          r.y + r.h - 9 * s,
+          Math.max(5 * s, bw * p),
+          5 * s,
+          2.5 * s,
+        );
+        ctx.fill();
+      }
     }
-    if (i === m.selected) {
+    ctx.restore();
+    this.drawRings(ctx, m, i, r, s);
+  }
+
+  /** Rings over a card: tap highlight (gold ancestors, blue descendants), search match, the pick, the star. */
+  private drawRings(
+    ctx: CanvasRenderingContext2D,
+    m: FocusCanvasModel,
+    i: number,
+    r: Rect,
+    s: number,
+  ): void {
+    const ring = (color: string, width: number, grow: number) => {
       ctx.save();
-      ctx.strokeStyle = "#ffffff";
-      ctx.lineWidth = 2 * s;
+      ctx.strokeStyle = color;
+      ctx.lineWidth = width * s;
       roundRect(
         ctx,
-        r.x - 3 * s,
-        r.y - 3 * s,
-        r.w + 6 * s,
-        r.h + 6 * s,
-        radius + 2 * s,
+        r.x - grow * s,
+        r.y - grow * s,
+        r.w + 2 * grow * s,
+        r.h + 2 * grow * s,
+        (8 + grow) * s,
       );
       ctx.stroke();
       ctx.restore();
+    };
+    const lit = this.lit;
+    if (lit?.up.has(i) === true) ring(C_UP, 3, 2);
+    else if (lit?.down.has(i) === true) ring(C_DOWN, 3, 2);
+    if (m.found?.[i] === true) ring("#f472b6", 3, 5);
+    if (i === m.selected) ring("#ffffff", 3, 3);
+    if (m.star === i) {
+      ctx.save();
+      ctx.fillStyle = "#facc15";
+      ctx.font = `700 ${18 * s}px system-ui, sans-serif`;
+      ctx.textAlign = "left";
+      ctx.textBaseline = "top";
+      ctx.fillText("★", r.x - 4 * s, r.y - 14 * s);
+      ctx.restore();
     }
+  }
+
+  /** The minimap: bands, card dots and the view's frame (a tap pans). */
+  private drawMini(ctx: CanvasRenderingContext2D, m: FocusCanvasModel): void {
+    const mr = this.mini();
+    if (mr === null) return;
+    const L = this.L;
+    ctx.save();
+    ctx.fillStyle = "rgba(17,24,39,0.82)";
+    ctx.strokeStyle = "rgba(255,255,255,0.35)";
+    ctx.lineWidth = 1;
+    roundRect(ctx, mr.x - 3, mr.y - 3, mr.w + 6, mr.h + 6, 6);
+    ctx.fill();
+    ctx.stroke();
+    L.bands.forEach((b, bi) => {
+      ctx.fillStyle = `rgba(${BAND_TINTS[bi % BAND_TINTS.length]},0.28)`;
+      ctx.fillRect(mr.x + b.x * mr.k, mr.y, b.w * mr.k, mr.h);
+    });
+    for (let i = 0; i < L.n; i++) {
+      const st = m.states[i] ?? FOCUS_PREREQ;
+      ctx.fillStyle = isDone(st) ? C_DONE : isNext(st) ? C_OPEN : "#6b7280";
+      ctx.fillRect(
+        mr.x + L.x[i] * mr.k,
+        mr.y + L.y[i] * mr.k,
+        Math.max(1.5, CARD_W * mr.k),
+        Math.max(1.5, CARD_H * mr.k),
+      );
+    }
+    const v = this.view;
+    ctx.strokeStyle = "#facc15";
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(
+      mr.x + (-v.ox / v.scale) * mr.k,
+      mr.y + (-v.oy / v.scale) * mr.k,
+      (this.w / v.scale) * mr.k,
+      (this.h / v.scale) * mr.k,
+    );
+    ctx.restore();
   }
 }
 
@@ -751,9 +1022,8 @@ function drawLock(
   s: number,
 ): void {
   ctx.save();
-  ctx.globalAlpha = 1;
-  ctx.fillStyle = "#e5e7eb";
-  ctx.strokeStyle = "#e5e7eb";
+  ctx.fillStyle = "#9ca3af";
+  ctx.strokeStyle = "#9ca3af";
   ctx.lineWidth = 1.6 * s;
   ctx.beginPath();
   ctx.arc(x, y - 2 * s, 3 * s, Math.PI, 0);

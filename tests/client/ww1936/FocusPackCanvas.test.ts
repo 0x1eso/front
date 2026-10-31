@@ -6,11 +6,7 @@ import {
   isPackFocus,
   packFirst,
 } from "../../../src/client/hud/ww1936/DepthMiscModel";
-import {
-  cardRect,
-  GRID_W,
-  treeSize,
-} from "../../../src/client/hud/ww1936/FocusLayout";
+import { computeLayout } from "../../../src/client/hud/ww1936/FocusLayout";
 
 describe("pack focuses on the focus canvas", () => {
   const tree = [
@@ -23,9 +19,11 @@ describe("pack focuses on the focus canvas", () => {
   it("pack focuses draw in columns 20 to 35", () => {
     expect(PACK_COLUMNS).toEqual([20, 35]);
     expect(tree.map(isPackFocus)).toEqual([false, false, true, true]);
-    // The canvas grows to the 36th column and the cards sit past the generic ones.
-    expect(treeSize(tree).w).toBe(36 * GRID_W);
-    expect(cardRect(tree[2], 1).x).toBeGreaterThan(cardRect(tree[1], 1).x);
+    // Auto layout: every card gets a place, none overlap.
+    const L = computeLayout(
+      tree.map((t, i) => ({ ...t, id: `p${i}`, branch: "army" as const })),
+    );
+    expect(new Set(L.x.map((x, i) => `${x}:${L.y[i]}`)).size).toBe(4);
   });
 
   it("the pack chip pans to the top row's leftmost pack card", () => {

@@ -8171,6 +8171,7 @@
       "usa_c47_transport": "여객기에서 개조된 수송기가 낙하산병과 화물, 부상자를 모든 전역으로 실어 나른다."
     },
     "focusui": {
+      "and": "그리고",
       "cancel": "취소",
       "cancel_tap": "한 번 더 눌러 취소",
       "chip": {
@@ -8190,15 +8191,26 @@
       "duration": "{base}일 → {days}일 · {seconds}초",
       "duration_same": "{days}일 · {seconds}초",
       "effects": "효과",
-      "excludes": "함께 할 수 없음",
+      "excludes": "선택하면 막힘:",
+      "filter_available": "지금 가능한 것만",
+      "filter_hide_done": "완료 숨기기",
+      "filter_history": "역사 경로",
+      "group_collapsed": "▸ {name} {done}/{total}",
+      "group_open": "{name} {done}/{total}",
       "idle": "진행 중인 중점이 없습니다 - 하나 고르세요",
       "left": "{days}일 · {seconds}초 남음",
+      "needs": "필요:",
+      "or": "또는",
+      "pick_one": "택1",
       "queue": "예약",
       "queued": "다음: {focus}",
       "requires": "선행 조건",
       "requires_all": "다음 중점을 모두 끝내야 함:",
       "requires_any": "다음 중점 중 하나:",
       "running": "진행 중",
+      "search": "포커스 검색",
+      "search_next": "{n}/{total} ▶",
+      "search_none": "결과 없음",
       "start": "시작",
       "state": {
         "blocked": "조건 부족",
@@ -8215,13 +8227,9 @@
         "generic": "공통 중점",
         "national": "나라 중점"
       },
+      "unlocks": "완료하면 열림:",
       "unqueue": "예약 빼기",
-      "unqueue_tap": "한 번 더 눌러 예약 빼기",
-      "search": "포커스 검색",
-      "search_none": "결과 없음",
-      "search_next": "{n}/{total} ▶",
-      "group_open": "{name} {done}/{total}",
-      "group_collapsed": "▸ {name} {done}/{total}"
+      "unqueue_tap": "한 번 더 눌러 예약 빼기"
     },
     "fx": {
       "access": "군사 통행 허가 받음: {of}",

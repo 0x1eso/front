@@ -29,6 +29,8 @@ import { DepthMiscModel, packFirst } from "./DepthMiscModel";
 import { blockText } from "./EconomyModel";
 import { FocusCanvas, FocusCanvasModel, focusIconUrl } from "./FocusCanvas";
 import {
+  fadedCards,
+  FocusFilters,
   focusGroups,
   groupLabel,
   hiddenCards,
@@ -48,6 +50,7 @@ import {
   FOCUS_RUNNING,
   FocusChip,
   initialCenter,
+  layoutOf,
 } from "./FocusLayout";
 import { lineText } from "./PoliticsModel";
 import {
@@ -111,6 +114,12 @@ const CHIP_KEYS: Readonly<Record<FocusChip, string>> = {
   army: "ww1936.focusui.chip.army",
   air_navy: "ww1936.focusui.chip.air_navy",
 };
+
+const FILTER_KEYS = {
+  available: "ww1936.focusui.filter_available",
+  history: "ww1936.focusui.filter_history",
+  hideDone: "ww1936.focusui.filter_hide_done",
+} as const;
 
 const BRANCH_KEYS: Readonly<Record<FocusBranch, string>> = {
   politics: "ww1936.focusui.chip.politics",
@@ -231,6 +240,13 @@ export class WwFocusPanel extends LitElement implements Controller {
   @state() private collapsed: ReadonlySet<string> = new Set();
   @state() private query = "";
   @state() private matchAt = 0;
+  @state() private filters: FocusFilters = {
+    available: false,
+    history: false,
+    hideDone: false,
+  };
+  /** One tree array per tree id, so the layout is computed once. */
+  private readonly trees = new Map<string, readonly FocusDef[]>();
   private readonly twoTap = new TwoTap();
   private canvas: FocusCanvas | null = null;
   private model: FocusCanvasModel | null = null;
@@ -358,7 +374,11 @@ export class WwFocusPanel extends LitElement implements Controller {
     const treeId =
       (tag === null ? undefined : CONTENT.countryIdx.get(tag)?.tree) ??
       "generic";
-    const tree = CONTENT.treeFocuses[treeId].map((i) => CONTENT.focuses[i]);
+    let tree = this.trees.get(treeId);
+    if (tree === undefined) {
+      tree = CONTENT.treeFocuses[treeId].map((i) => CONTENT.focuses[i]);
+      this.trees.set(treeId, tree);
+    }
     const cards = new Map(detail.cards.map((c) => [c.idx, c]));
     const states = tree.map((_, i) => cards.get(i)?.state ?? FOCUS_PREREQ);
     const pos = (id: string | null | undefined) =>
@@ -459,6 +479,22 @@ export class WwFocusPanel extends LitElement implements Controller {
                   total: hits.length,
                 })}
           </button>`}
+      ${(["available", "history", "hideDone"] as const).map(
+        (k) =>
+          html`<button
+            type="button"
+            data-ww-focus-filter=${k}
+            aria-pressed=${String(this.filters[k])}
+            class="h-9 shrink-0 rounded-full px-2.5 text-xs font-semibold ${this
+              .filters[k]
+              ? "bg-white text-black"
+              : "bg-white/10"}"
+            @click=${() =>
+              (this.filters = { ...this.filters, [k]: !this.filters[k] })}
+          >
+            ${translateText(FILTER_KEYS[k])}
+          </button>`,
+      )}
       ${grouped || groups.length > 1
         ? groups.map((g) => {
             const off = this.collapsed.has(g.key);
@@ -501,7 +537,7 @@ export class WwFocusPanel extends LitElement implements Controller {
       this.canvas?.showAll();
       return;
     }
-    const pos = chipFirst(c.tree, chip);
+    const pos = chipFirst(layoutOf(c.tree), c.tree, chip);
     if (pos >= 0) this.canvas?.panTo(pos);
   }
 
@@ -558,13 +594,37 @@ export class WwFocusPanel extends LitElement implements Controller {
     const hidden = hiddenCards(c.tree, this.collapsed, keep);
     const found = c.tree.map((_, i) => hits.includes(i));
     const star = recommendedIndex(c.tree, c.states, CONTENT.paths[c.treeId]);
-    const key2 = `${key}|${hidden.map(Number).join("")}|${found.map(Number).join("")}|${star}`;
+    const path = CONTENT.paths[c.treeId];
+    const onPath = new Set(path ?? []);
+    const history = c.tree.map((d) => onPath.has(d.id));
+    const faded = fadedCards(c.tree, c.states, this.filters, path, keep);
+    const groups = focusGroups(c.tree, c.states);
+    const bandNames: Record<string, string> = {};
+    for (const g of groups) {
+      const name = g.key.startsWith("branch:")
+        ? translateText(
+            BRANCH_KEYS[g.key.slice(7) as FocusBranch] ??
+              "ww1936.focusui.chip.all",
+          )
+        : groupLabel(g.key);
+      bandNames[g.key] =
+        `${this.collapsed.has(g.key) ? "▸ " : ""}${name} ${g.done}/${g.members.length}`;
+    }
+    const bandKey = groups.map((g) => g.done).join(",");
+    const key2 = `${key}|${hidden.map(Number).join("")}|${found.map(Number).join("")}|${faded.map(Number).join("")}|${star}|${bandKey}`;
     if (this.model !== null && this.model.key === key2) return this.model;
     this.model = {
       key: key2,
       hidden,
       found,
       star,
+      faded,
+      history,
+      bandNames,
+      texts: {
+        or: translateText("ww1936.focusui.or"),
+        pick: translateText("ww1936.focusui.pick_one"),
+      },
       tree: c.tree,
       states: c.states,
       progress,
@@ -879,8 +939,9 @@ export class WwFocusPanel extends LitElement implements Controller {
       <p class="m-0 mt-1 whitespace-pre-line text-white/80">
         ${translateText(`ww1936.focus_desc.${def.id}`)}
       </p>
-      ${this.renderPrereqs(c, def)} ${this.renderExclusive(c, def)}
-      ${this.renderConditions(def, card)} ${this.renderEffects(def)}
+      ${this.renderPrereqs(c, def)} ${this.renderUnlocks(c)}
+      ${this.renderExclusive(c, def)} ${this.renderConditions(def, card)}
+      ${this.renderEffects(def)}
     `;
   }
 
@@ -1004,45 +1065,91 @@ export class WwFocusPanel extends LitElement implements Controller {
     </section>`;
   }
 
+  /** A tappable chip for a focus: pans to its card and picks it. */
+  private focusChip(c: FocusCtx, id: string, mark = ""): TemplateResult {
+    const i = c.tree.findIndex((f) => f.id === id);
+    const st = c.states[i];
+    return html`<button
+      type="button"
+      data-ww-focus-ref=${id}
+      class="inline-flex min-h-8 max-w-full items-center gap-1 rounded-full bg-white/10 px-2.5 py-1 text-xs font-semibold ${STATE_COLOR[
+        st
+      ] ?? ""}"
+      @click=${() => this.selectFocus(id)}
+    >
+      ${mark}<span class="truncate"
+        >${translateText(`ww1936.focus.${id}`)}</span
+      >
+    </button>`;
+  }
+
+  private joiner(key: string): TemplateResult {
+    return html`<span class="text-[11px] font-bold text-white/60"
+      >${translateText(key)}</span
+    >`;
+  }
+
+  /** "A and B" / "A or B" as chips: groups are ANDed, a group's members ORed. */
   private renderPrereqs(c: FocusCtx, def: FocusDef) {
     const groups = def.prereq ?? [];
+    if (groups.length === 0) return nothing;
     const done = (id: string) => {
       const i = c.tree.findIndex((f) => f.id === id);
       return c.states[i] === FOCUS_DONE || c.states[i] === FOCUS_BYPASSED;
     };
-    const name = (id: string) => translateText(`ww1936.focus.${id}`);
-    const rows: TemplateResult[] = [];
-    const d0 = groups.length > 1 ? 1 : 0;
-    if (groups.length > 1) {
-      rows.push(this.row(0, translateText("ww1936.focusui.requires_all")));
-    }
-    for (const g of groups) {
-      if (g.length === 1) {
-        rows.push(this.row(d0, name(g[0]), this.mark(done(g[0]))));
-        continue;
-      }
-      rows.push(
-        this.row(
-          d0,
-          translateText("ww1936.focusui.requires_any"),
-          this.mark(g.some(done)),
-        ),
+    const chip = (id: string) => this.focusChip(c, id, done(id) ? "✓ " : "");
+    const parts: TemplateResult[] = [];
+    groups.forEach((g, gi) => {
+      if (gi > 0) parts.push(this.joiner("ww1936.focusui.and"));
+      const inner: TemplateResult[] = [];
+      g.forEach((id, k) => {
+        if (k > 0) inner.push(this.joiner("ww1936.focusui.or"));
+        inner.push(chip(id));
+      });
+      parts.push(
+        g.length > 1 && groups.length > 1
+          ? html`<span
+              class="inline-flex flex-wrap items-center gap-1 rounded-full border border-dashed border-white/30 p-0.5"
+              >${inner}</span
+            >`
+          : html`${inner}`,
       );
-      for (const id of g)
-        rows.push(this.row(d0 + 1, name(id), this.mark(done(id))));
-    }
-    return this.section("requires", "ww1936.focusui.requires", rows);
+    });
+    return html`<section data-ww-focus-section="requires" class="mt-2">
+      <h4 class="m-0 text-[11px] font-bold uppercase text-white/60">
+        ${translateText("ww1936.focusui.needs")}
+      </h4>
+      <div class="mt-1 flex flex-wrap items-center gap-1">${parts}</div>
+    </section>`;
   }
 
+  /** What finishing this focus can open up. */
+  private renderUnlocks(c: FocusCtx) {
+    const L = layoutOf(c.tree);
+    const kids = L.children[this.selected] ?? [];
+    if (kids.length === 0) return nothing;
+    return html`<section data-ww-focus-section="unlocks" class="mt-2">
+      <h4 class="m-0 text-[11px] font-bold uppercase text-white/60">
+        ${translateText("ww1936.focusui.unlocks")}
+      </h4>
+      <div class="mt-1 flex flex-wrap items-center gap-1">
+        ${kids.map((k) => this.focusChip(c, c.tree[k].id))}
+      </div>
+    </section>`;
+  }
+
+  /** The choices this one shuts out once taken. */
   private renderExclusive(c: FocusCtx, def: FocusDef) {
-    const rows = (def.exclusive ?? []).map((id) => {
+    const ids = def.exclusive ?? [];
+    if (ids.length === 0) return nothing;
+    const rows = ids.map((id) => {
       const i = c.tree.findIndex((f) => f.id === id);
       const s = c.states[i];
       const taken =
         s === FOCUS_DONE || s === FOCUS_RUNNING || s === FOCUS_QUEUED;
       return this.row(
         0,
-        translateText(`ww1936.focus.${id}`),
+        this.focusChip(c, id),
         taken
           ? html`<span data-ok="false" class="w-3 shrink-0 text-red-300"
               >⨯</span

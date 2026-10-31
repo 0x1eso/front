@@ -1,14 +1,18 @@
 import type { FocusDef } from "@openfront/engine-api/ww1936/PoliticsTypes";
-import { FOCUS_BYPASSED, FOCUS_DONE, FOCUS_OPEN } from "./FocusLayout";
+import {
+  FOCUS_BYPASSED,
+  FOCUS_DONE,
+  FOCUS_OPEN,
+  FOCUS_QUEUED,
+  FOCUS_RUNNING,
+  groupKey,
+} from "./FocusLayout";
+
+export { groupKey };
 
 // World War 1936: the focus screen for trees of ~100 cards. Pure helpers (no
 // DOM): collapse by `group` (else by branch), search by name, and the
 // recommend star. All of it is per-viewer UI state; nothing is sent or hashed.
-
-/** The collapse key of a focus: its `group`, else its branch. */
-export function groupKey(f: Pick<FocusDef, "group" | "branch">): string {
-  return f.group ?? `branch:${f.branch}`;
-}
 
 export interface FocusGroup {
   key: string;
@@ -88,4 +92,41 @@ export function recommendedIndex(
     return s === FOCUS_OPEN ? i : -1;
   }
   return -1;
+}
+
+/** The view filters (per viewer; they only fade cards, nothing is sent). */
+export interface FocusFilters {
+  /** Only what can be started or is running now. */
+  available: boolean;
+  /** Only the historical path. */
+  history: boolean;
+  /** Not the finished ones. */
+  hideDone: boolean;
+}
+
+/** Which cards the filters fade out; `keep` (running, queued, picked) stays lit. */
+export function fadedCards(
+  tree: readonly Pick<FocusDef, "id">[],
+  states: readonly number[],
+  f: FocusFilters,
+  path: readonly string[] | undefined,
+  keep: ReadonlySet<number>,
+): boolean[] {
+  const onPath = new Set(path ?? []);
+  return tree.map((d, i) => {
+    if (keep.has(i)) return false;
+    const s = states[i];
+    const done = s === FOCUS_DONE || s === FOCUS_BYPASSED;
+    if (f.hideDone && done) return true;
+    if (f.history && !onPath.has(d.id)) return true;
+    if (
+      f.available &&
+      s !== FOCUS_OPEN &&
+      s !== FOCUS_RUNNING &&
+      s !== FOCUS_QUEUED
+    ) {
+      return true;
+    }
+    return false;
+  });
 }

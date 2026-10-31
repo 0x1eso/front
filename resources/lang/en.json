@@ -8478,6 +8478,7 @@
       "zaf_steel": "The state steel corporation at Pretoria adds furnaces for war orders."
     },
     "focusui": {
+      "and": "and",
       "cancel": "Cancel",
       "cancel_tap": "Tap again to cancel",
       "chip": {
@@ -8497,11 +8498,17 @@
       "duration": "{base} days → {days} days · {seconds} s",
       "duration_same": "{days} days · {seconds} s",
       "effects": "Effects",
-      "excludes": "Cannot be combined with",
+      "excludes": "Blocked once chosen:",
+      "filter_available": "Available now",
+      "filter_hide_done": "Hide completed",
+      "filter_history": "Historical path",
       "group_collapsed": "▸ {name} {done}/{total}",
       "group_open": "{name} {done}/{total}",
       "idle": "No focus running — pick one",
       "left": "{days, plural, one {# day} other {# days}} · {seconds} s left",
+      "needs": "Needs:",
+      "or": "or",
+      "pick_one": "Pick 1",
       "queue": "Queue",
       "queued": "Next: {focus}",
       "requires": "Requires",
@@ -8527,6 +8534,7 @@
         "generic": "General focuses",
         "national": "National focuses"
       },
+      "unlocks": "Opens when done:",
       "unqueue": "Remove from queue",
       "unqueue_tap": "Tap again to remove"
     },
