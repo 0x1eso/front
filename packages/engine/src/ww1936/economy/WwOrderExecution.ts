@@ -213,7 +213,8 @@ function applyOrder(
       block = econ.ww.air.issue(p.smallID(), order, mg.ticks());
       break;
     // P5 (plan decision 10): the endgame's orders; white peace's
-    // peace_offer and peace_reply (appended after P6's) go there too.
+    // peace_offer and peace_reply (appended after P6's) go there too, and
+    // the line peace's line_peace_offer (appended after the automation's).
     case "peace_submit":
     case "peace_pass":
     case "occupation_law":
@@ -228,6 +229,7 @@ function applyOrder(
     case "army_garrison":
     case "peace_offer":
     case "peace_reply":
+    case "line_peace_offer":
       block = econ.ww.endgame.issue(p.smallID(), order, mg.ticks());
       break;
     case "takeover_pick":

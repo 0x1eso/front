@@ -31,6 +31,7 @@ import { leaveFaction } from "../politics/Factions";
 import { payPp } from "../politics/PayPp";
 import { endWarBetween } from "../politics/Territory";
 import { landRegained } from "./Activate";
+import { applyLinePeace, lineAiAccepts, linePeaceOfferView } from "./LinePeace";
 import {
   aiPeaceTerms,
   applyPeaceTerms,
@@ -100,7 +101,7 @@ function isPuppet(eg: WwEndgame, id: number): boolean {
 }
 
 /** `id`'s puppets fighting on its side of `w` (ascending): its separate peace covers them. */
-function followers(eg: WwEndgame, w: WwWar, id: number): number[] {
+export function followers(eg: WwEndgame, w: WwWar, id: number): number[] {
   const s = eg.sideIndex(w, id);
   if (s < 0) return [];
   return eg
@@ -131,7 +132,7 @@ export function proposerGroup(
 }
 
 /** Pairs [a, b] (a < b) at war under `w`'s record, in key order. */
-function pairsOf(eg: WwEndgame, w: WwWar): [number, number][] {
+export function pairsOf(eg: WwEndgame, w: WwWar): [number, number][] {
   const out: [number, number][] = [];
   for (const [k, v] of eg.pairWar) {
     if (v === w.id) out.push([Math.floor(k / eg.size), k % eg.size]);
@@ -489,6 +490,9 @@ function makePeace(eg: WwEndgame, o: PeaceOffer, tick: number): void {
   // law, so end_war leaves it with it); the rest is status quo ante.
   const terms = hasPeaceTerms(o.terms);
   applyPeaceTerms(eg, o, tick);
+  // Peace on the current line (LinePeace.ts): the occupied regions go to
+  // their occupiers first; end_war gives the rest back.
+  applyLinePeace(eg, o, tick);
   if (o.whole) {
     // Status quo ante: those still in it, and those that capitulated
     // without an exile (their land comes back); every cross pair keeps
@@ -521,7 +525,11 @@ function makePeace(eg: WwEndgame, o: PeaceOffer, tick: number): void {
     pol.markGlobal();
   }
   pol.news(
-    terms ? "news_neg_peace" : "news_white_peace",
+    o.line === true
+      ? "news_line_peace"
+      : terms
+        ? "news_neg_peace"
+        : "news_white_peace",
     countryParams(eg, { a: o.from, b: o.to }),
   );
 }
@@ -678,6 +686,8 @@ export function offerRoll(eg: WwEndgame, o: PeaceOffer): number {
  * is under its chance (aiAcceptPct; 0: never).
  */
 export function aiAccepts(eg: WwEndgame, o: PeaceOffer, day: number): boolean {
+  // Peace on the current line: the line's value (LinePeace.ts).
+  if (o.line === true) return lineAiAccepts(eg, o, day);
   const w = eg.war(o.war);
   if (w === null) return false;
   const f = negPeaceFacts(eg);
@@ -763,6 +773,7 @@ export function peaceOfferView(eg: WwEndgame, o: PeaceOffer): WwPeaceOfferView {
     sentTick: o.sentTick,
     deadlineTick: o.deadlineTick,
     terms: peaceTermsView(eg, o),
+    ...(o.line === true ? { line: linePeaceOfferView(eg, o) } : {}),
   };
   if (w === null) return { ...base, sides: [empty, empty], held: [] };
   const sf = eg.sideIndex(w, o.from);

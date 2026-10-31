@@ -454,6 +454,9 @@ describe("World War 1936 P5: derived endgame fields (Task 19 Step 2)", () => {
     // Negotiated peace: the judge rows' day and the rows last sent.
     "judgeDay",
     "judgeSent",
+    // Peace on the current line: its rows' day and the rows last sent.
+    "lineDay",
+    "lineSent",
   ] as const;
 
   /** A game with some of every index: wars, an exile, subjects, a moved controller, administered regions. */

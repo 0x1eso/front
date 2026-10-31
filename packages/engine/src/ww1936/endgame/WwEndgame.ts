@@ -70,6 +70,7 @@ import {
   volunteerCanEnter,
 } from "./LendLease";
 import { returnLiberated } from "./Liberation";
+import { aiLinePeaceDay, linePeaceData, offerLinePeace } from "./LinePeace";
 import { peaceJudgeData } from "./NegPeace";
 import {
   garrisonOrder,
@@ -273,6 +274,8 @@ const PeaceOfferSchema = z.object({
   deadlineTick: zInt(),
   /** Negotiated peace: the terms (absent: a white peace; older snapshots have none). */
   terms: PeaceTermsSchema.optional(),
+  /** Peace on the current line (LinePeace.ts): true; absent for the other kinds. */
+  line: z.literal(true).optional(),
 });
 export type PeaceOffer = z.infer<typeof PeaceOfferSchema>;
 export const WwEndgameStateSchema = z.object({
@@ -473,6 +476,9 @@ export class WwEndgame {
   /** Negotiated peace (screens only): the day the judge rows were made, and the rows last sent (JSON). */
   judgeDay = -1;
   judgeSent = "";
+  /** Peace on the current line (screens only): the day its rows were made, and the rows last sent (JSON). */
+  lineDay = -1;
+  lineSent = "";
 
   constructor(
     readonly mg: Game,
@@ -602,6 +608,7 @@ export class WwEndgame {
       aiSubjectsDay(this, id, day, tick); // S
       aiAidDay(this, id, day, tick); // A
       aiPeaceDay(this, id, day, tick); // white peace
+      aiLinePeaceDay(this, id, day, tick); // peace on the current line
     }
     this.flushDayNotes(id);
   }
@@ -651,6 +658,8 @@ export class WwEndgame {
         );
       case "peace_reply":
         return replyPeace(this, smallID, order.offer, order.accept, tick);
+      case "line_peace_offer":
+        return offerLinePeace(this, smallID, order.war, order.target, tick);
       default:
         return "bad_index";
     }
@@ -1517,7 +1526,11 @@ export class WwEndgame {
         deadlineTick: c.deadlineTick,
       }));
     }
-    if (first || this.dirtyPeace) {
+    // A pending line offer's card shows the line as it is today.
+    const lineCard =
+      this.lineDay !== this.lastCommonDay &&
+      this.peaceOffers.some((o) => o.line === true);
+    if (first || this.dirtyPeace || lineCard) {
       d.peaceOffers = this.peaceOffers.map((o) => peaceOfferView(this, o));
       d.peaceCooldowns = this.peaceCooldowns.map(
         ([a, b, u]): [number, number, number] => [a, b, u],
@@ -1532,6 +1545,9 @@ export class WwEndgame {
     // composer's hint), once a day and when the wars change; sent on change.
     const judge = peaceJudgeData(this, first);
     if (judge !== null) d.peaceJudge = judge;
+    // Peace on the current line: the humans' possible offers, settled now.
+    const line = linePeaceData(this, first);
+    if (line !== null) d.linePeace = line;
     const empty = Object.keys(d).length === 1 && d.news.length === 0;
     this.endgameNews = [];
     this.firstData = false;
@@ -1908,9 +1924,10 @@ export class WwEndgame {
       mix(o.whole ? 1 : 0);
       mix(o.sentTick);
       mix(o.deadlineTick);
-      // Negotiated peace: the terms, field by field (none: a 0).
+      // Negotiated peace: the terms, field by field (none: a 0; peace on
+      // the current line: a 2 — it carries no terms).
       const t = o.terms;
-      mix(t === undefined ? 0 : 1);
+      mix(t !== undefined ? 1 : o.line === true ? 2 : 0);
       if (t !== undefined) {
         ids(t.give);
         ids(t.take);

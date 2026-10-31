@@ -15,6 +15,7 @@ import {
   COUNTRY_STATES,
   DEMAND_KINDS,
   ENDGAME_ORDER_KINDS,
+  LINE_PEACE_ORDER_KINDS,
   MEMBER_STATES,
   OCCUPATION_LAWS,
   SUBJECT_LEVELS,
@@ -137,9 +138,11 @@ describe("World War 1936 P5 lists", () => {
     const kinds = WwOrderSchema.options.map(
       (o) => (o.shape.kind as { value: string }).value,
     );
-    // The automation lane appends auto_set and army_auto_all after them.
-    expect(kinds.slice(-4, -2)).toEqual([...WHITE_PEACE_ORDER_KINDS]);
-    expect(kinds.slice(-2)).toEqual(["auto_set", "army_auto_all"]);
+    // The automation lane appends auto_set and army_auto_all after them,
+    // and peace on the current line its one after those.
+    expect(kinds.slice(-5, -3)).toEqual([...WHITE_PEACE_ORDER_KINDS]);
+    expect(kinds.slice(-3, -1)).toEqual(["auto_set", "army_auto_all"]);
+    expect(kinds.slice(-1)).toEqual([...LINE_PEACE_ORDER_KINDS]);
     expect(after(ARMY_ORDER_KINDS, "invade")).toEqual(["garrison"]);
     expect(after(SUPPORT_IDS, "signal")).toEqual(["military_police"]);
     expect(after(WW_TECH_IDS, "synthetic_oil_2")[0]).toBe("military_police");

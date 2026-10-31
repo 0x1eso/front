@@ -37,13 +37,15 @@ describe("World War 1936 P6 lists", () => {
       (o) => (o.shape.kind as { value: string }).value,
     );
     expect(DEPTH_ORDER_KINDS).toHaveLength(57);
-    // White peace appends its two after them, then the automation's two.
+    // White peace appends its two after them, then the automation's two,
+    // then peace on the current line its one.
     expect(after(kinds, "army_garrison")).toEqual([
       ...DEPTH_ORDER_KINDS,
       "peace_offer",
       "peace_reply",
       "auto_set",
       "army_auto_all",
+      "line_peace_offer",
     ]);
   });
 

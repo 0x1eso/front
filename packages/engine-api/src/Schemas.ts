@@ -1459,6 +1459,14 @@ export const WwOrderSchema = z.discriminatedUnion("kind", [
     on: z.boolean(),
   }),
   z.object({ kind: z.literal("army_auto_all"), on: z.boolean() }),
+  // Peace on the current line (EndgameTypes.LINE_PEACE_ORDER_KINDS, owner
+  // request 2026-10-31), appended: an offer in one of my wars to the other
+  // side's leader that each side keeps what it holds; answered by peace_reply.
+  z.object({
+    kind: z.literal("line_peace_offer"),
+    war: WwId,
+    target: WwCountry,
+  }),
 ]);
 export type WwOrder = z.infer<typeof WwOrderSchema>;
 /** The land war's orders (P2): what WwLand.issue takes. */

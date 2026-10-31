@@ -77,6 +77,9 @@ export type EndgameOrderKind = (typeof ENDGAME_ORDER_KINDS)[number];
 /** White peace: appended after P6's orders, both to WwEndgame.issue. */
 export const WHITE_PEACE_ORDER_KINDS = ["peace_offer", "peace_reply"] as const;
 export type WhitePeaceOrderKind = (typeof WHITE_PEACE_ORDER_KINDS)[number];
+/** Peace on the current line: appended after the automation's orders, to WwEndgame.issue (answered by peace_reply). */
+export const LINE_PEACE_ORDER_KINDS = ["line_peace_offer"] as const;
+export type LinePeaceOrderKind = (typeof LINE_PEACE_ORDER_KINDS)[number];
 export type LendLeaseItem = EquipmentType | "fuel";
 
 // ---- Constants (spec §2.1, §5–§15; values marked (내 판단) in the spec are final) ----
@@ -485,6 +488,34 @@ export interface WwPeaceOfferView {
   held: [number, number, number][];
   /** Negotiated peace: the terms (null: a white peace); payK/demandK: the factories a day each level is now. */
   terms: (WwPeaceTerms & { payK: number; demandK: number }) | null;
+  /** Peace on the current line: what would change hands now (absent: another kind of offer). */
+  line?: WwLinePeaceSplit;
+}
+/**
+ * Peace on the current line (owner request 2026-10-31): the regions that
+ * change hands, seen from the proposer's side — each occupied region goes
+ * to its occupier with its legal ownership; capitals, Korea, Taiwan (but
+ * to China) and occupation zones go back as in a white peace.
+ */
+export interface WwLinePeaceSplit {
+  /** Regions the proposer's side gets (the other side's legal land it holds), ascending. */
+  gain: number[];
+  /** Regions the other side gets (the proposer's side's legal land it holds), ascending. */
+  lose: number[];
+  /** Their victory points. */
+  gainVp: number;
+  loseVp: number;
+}
+/**
+ * Peace on the current line: what my offer in a war would settle now and
+ * the chance the other side's AI leader takes it (the preview's hint).
+ */
+export interface WwLinePeaceRow extends WwLinePeaceSplit {
+  war: number;
+  from: number;
+  to: number;
+  /** The AI judge's accept chance, percent (NegPeaceRules.negPeaceChance of the line's value). */
+  chance: number;
 }
 /**
  * Negotiated peace: what the AI judge reads of the war for an offer from a
@@ -529,5 +560,7 @@ export interface WwEndgameData {
   truces?: [number, number, number][];
   /** Negotiated peace: the judge's war facts for each human country's possible offer. */
   peaceJudge?: WwPeaceJudgeRow[];
+  /** Peace on the current line: each human country's possible offer, settled now. */
+  linePeace?: WwLinePeaceRow[];
   news: { id: string; params: Record<string, string | number> }[];
 }
