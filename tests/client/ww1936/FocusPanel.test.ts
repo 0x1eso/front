@@ -424,6 +424,31 @@ describe("<ww-focus-panel> (spec §21.3)", () => {
     expect(tall.el.querySelectorAll("[data-ww-focus-chip]")).toHaveLength(7);
   });
 
+  it("landscape: the detail is a right sheet that closes; portrait: a collapsed bottom row", async () => {
+    vi.stubGlobal("innerWidth", 844);
+    vi.stubGlobal("innerHeight", 390);
+    const m = await mount(busyQueued());
+    await m.pick("deu_rome_berlin");
+    const sheet = m.q("[data-ww-focus-detail]")!;
+    expect(sheet.dataset.sheet).toBe("right");
+    expect(sheet.className).toContain("w-[280px]");
+    expect(m.q("[data-ww-focus-body]")!.className).toContain("flex-row");
+    expect(sheet.querySelector("[data-ww-focus-action]")).not.toBeNull();
+    await m.click("[data-ww-focus-detail-close]");
+    expect(m.q("[data-ww-focus-detail]")).toBeNull();
+    expect(m.q("canvas[data-ww-focus-canvas]")).not.toBeNull();
+    document.body.innerHTML = "";
+    vi.stubGlobal("innerWidth", 390);
+    vi.stubGlobal("innerHeight", 844);
+    const p = await mount(busyQueued());
+    await p.pick("deu_rome_berlin");
+    expect(p.q("[data-ww-focus-detail]")!.dataset.open).toBe("false");
+    expect(p.q("[data-ww-focus-section]")).toBeNull();
+    await p.click("[data-ww-focus-card]");
+    expect(p.q("[data-ww-focus-detail]")!.dataset.open).toBe("true");
+    expect(p.q("[data-ww-focus-detail]")!.className).toContain("max-h-[45%]");
+  });
+
   it("explain lines turn codes into names", () => {
     expect(
       lineText({

@@ -231,6 +231,12 @@ export class WwFocusPanel extends LitElement implements Controller {
     bottom: GAP,
   };
   @state() private compact = false;
+  /** Landscape (width > height): the detail is a right-side sheet; else a bottom sheet. */
+  @state() private land = false;
+  /** Portrait: the bottom sheet is expanded (collapsed is one row). */
+  @state() private sheetOpen = false;
+  /** The sheet state the canvas was last told about (to re-fit and keep the card in view). */
+  private sheetKey = "";
   /** The picked card's tree position; -1: none. */
   @state() private selected = -1;
   @state() private chip: FocusChip | "pack" | null = null;
@@ -270,6 +276,8 @@ export class WwFocusPanel extends LitElement implements Controller {
     }
     const compact = window.innerHeight <= COMPACT_MAX_HEIGHT;
     if (compact !== this.compact) this.compact = compact;
+    const land = window.innerWidth > window.innerHeight;
+    if (land !== this.land) this.land = land;
   };
 
   createRenderRoot() {
@@ -566,6 +574,12 @@ export class WwFocusPanel extends LitElement implements Controller {
     const c = this.ctx();
     if (c === null) return;
     this.canvas.setModel(this.canvasModel(c));
+    // The sheet took or gave back room: re-fit the canvas and keep the card in view.
+    const key = `${this.land}|${this.selected >= 0}|${this.sheetOpen}`;
+    if (key !== this.sheetKey) {
+      this.sheetKey = key;
+      if (this.selected >= 0) this.canvas.keepVisible(this.selected);
+    }
     if (this.centerPending !== null) {
       const pos = this.centerPending;
       this.centerPending = null;
@@ -708,23 +722,51 @@ export class WwFocusPanel extends LitElement implements Controller {
                 ${chips}
               </div>`}
         ${c === null ? nothing : this.renderTools(c)} ${this.renderBand()}
-        <div class="relative min-h-0 flex-1">
-          ${c === null
-            ? nothing
-            : html`<canvas
-                data-ww-focus-canvas
-                aria-label=${title}
-                class="absolute inset-0 block h-full w-full touch-none select-none"
-              ></canvas>`}
-        </div>
         <div
-          data-ww-focus-detail
-          class="h-[40%] shrink-0 overflow-y-auto border-t border-white/10 px-2 pb-2 text-xs"
+          data-ww-focus-body
+          data-layout=${this.land ? "land" : "port"}
+          class="flex min-h-0 flex-1 ${this.land ? "flex-row" : "flex-col"}"
         >
-          ${c === null ? nothing : this.renderDetail(c)}
+          <div data-ww-focus-canvas-box class="relative min-h-0 min-w-0 flex-1">
+            ${c === null
+              ? nothing
+              : html`<canvas
+                  data-ww-focus-canvas
+                  aria-label=${title}
+                  class="absolute inset-0 block h-full w-full touch-none select-none"
+                ></canvas>`}
+          </div>
+          ${this.renderSheet(c)}
         </div>
       </aside>
     `;
+  }
+
+  /** The detail: a right-side sheet in landscape (only with a pick), else a compact bottom sheet. */
+  private renderSheet(c: FocusCtx | null): TemplateResult | typeof nothing {
+    const has = c !== null && c.tree[this.selected] !== undefined;
+    if (this.land) {
+      if (!has) return nothing;
+      const w = window.innerWidth >= 1000 ? "w-[320px]" : "w-[280px]";
+      return html`<div
+        data-ww-focus-detail
+        data-sheet="right"
+        class="${w} shrink-0 overflow-y-auto border-l border-white/10 px-2 pb-1 text-[11px]"
+      >
+        ${this.renderDetail(c, true)}
+      </div>`;
+    }
+    const open = has && this.sheetOpen;
+    return html`<div
+      data-ww-focus-detail
+      data-sheet="bottom"
+      data-open=${String(open)}
+      class="shrink-0 overflow-y-auto border-t border-white/10 px-2 pb-1 text-[11px] ${open
+        ? "max-h-[45%]"
+        : ""}"
+    >
+      ${c === null ? nothing : this.renderDetail(c, open)}
+    </div>`;
   }
 
   /** The continuous-focus band over the tree (spec §12). */
@@ -888,12 +930,12 @@ export class WwFocusPanel extends LitElement implements Controller {
     )}`;
   }
 
-  private renderDetail(c: FocusCtx): TemplateResult {
+  private renderDetail(c: FocusCtx, body: boolean): TemplateResult {
     const def = c.tree[this.selected];
     if (def === undefined) {
       return html`<p
         data-ww-focus-empty
-        class="m-0 py-3 text-center text-white/60"
+        class="m-0 py-1 text-center text-white/60"
       >
         ${translateText("ww1936.focusui.detail_empty")}
       </p>`;
@@ -918,6 +960,9 @@ export class WwFocusPanel extends LitElement implements Controller {
         data-ww-focus-card=${def.id}
         data-state=${String(st)}
         class="sticky top-0 z-10 -mx-2 flex items-center gap-2 bg-gray-900/95 px-2 py-1"
+        @click=${() => {
+          if (!this.land) this.sheetOpen = !this.sheetOpen;
+        }}
       >
         ${this.icon(def, "size-6")}
         <div class="flex min-w-0 flex-1 flex-col leading-tight">
@@ -934,14 +979,37 @@ export class WwFocusPanel extends LitElement implements Controller {
             <span data-ww-focus-duration>${duration}</span>
           </span>
         </div>
-        ${this.renderAction(c, def, st)}
+        <div class="flex shrink-0" @click=${(e: Event) => e.stopPropagation()}>
+          ${this.renderAction(c, def, st)}
+        </div>
+        ${this.land
+          ? html`<button
+              type="button"
+              data-ww-focus-detail-close
+              class="size-8 shrink-0 rounded-md hover:bg-white/10"
+              aria-label=${translateText("common.close")}
+              @click=${(e: Event) => {
+                e.stopPropagation();
+                this.selected = -1;
+              }}
+            >
+              ✕
+            </button>`
+          : html`<span
+              data-ww-focus-detail-toggle
+              aria-expanded=${String(body)}
+              class="shrink-0 px-1 text-white/60"
+              >${body ? "▾" : "▴"}</span
+            >`}
       </div>
-      <p class="m-0 mt-1 whitespace-pre-line text-white/80">
-        ${translateText(`ww1936.focus_desc.${def.id}`)}
-      </p>
-      ${this.renderPrereqs(c, def)} ${this.renderUnlocks(c)}
-      ${this.renderExclusive(c, def)} ${this.renderConditions(def, card)}
-      ${this.renderEffects(def)}
+      ${body
+        ? html`<p class="m-0 whitespace-pre-line leading-snug text-white/80">
+              ${translateText(`ww1936.focus_desc.${def.id}`)}
+            </p>
+            ${this.renderPrereqs(c, def)} ${this.renderUnlocks(c)}
+            ${this.renderExclusive(c, def)} ${this.renderConditions(def, card)}
+            ${this.renderEffects(def)}`
+        : nothing}
     `;
   }
 
@@ -958,7 +1026,7 @@ export class WwFocusPanel extends LitElement implements Controller {
         type="button"
         data-ww-focus-action=${action}
         data-armed=${String(armed)}
-        class="h-9 min-w-[4.5rem] shrink-0 rounded-md px-3 text-xs font-bold ${look}"
+        class="h-8 min-w-[3.5rem] shrink-0 rounded-md px-2 text-xs font-bold ${look}"
         @click=${click}
       >
         ${label}
@@ -1042,8 +1110,8 @@ export class WwFocusPanel extends LitElement implements Controller {
     mark: TemplateResult | typeof nothing = nothing,
   ): TemplateResult {
     return html`<li
-      class="flex gap-1 leading-snug"
-      style="padding-left: ${depth * 12}px"
+      class="flex gap-1 leading-tight"
+      style="padding-left: ${depth * 10}px"
     >
       ${mark}<span class="min-w-0">${body}</span>
     </li>`;
@@ -1055,7 +1123,7 @@ export class WwFocusPanel extends LitElement implements Controller {
     rows: TemplateResult[],
   ): TemplateResult | typeof nothing {
     if (rows.length === 0) return nothing;
-    return html`<section data-ww-focus-section=${id} class="mt-2">
+    return html`<section data-ww-focus-section=${id} class="mt-1">
       <h4 class="m-0 text-[11px] font-bold uppercase text-white/60">
         ${translateText(titleKey)}
       </h4>
@@ -1072,7 +1140,7 @@ export class WwFocusPanel extends LitElement implements Controller {
     return html`<button
       type="button"
       data-ww-focus-ref=${id}
-      class="inline-flex min-h-8 max-w-full items-center gap-1 rounded-full bg-white/10 px-2.5 py-1 text-xs font-semibold ${STATE_COLOR[
+      class="inline-flex min-h-6 max-w-full items-center gap-1 rounded-full bg-white/10 px-2 py-0.5 text-[11px] font-semibold ${STATE_COLOR[
         st
       ] ?? ""}"
       @click=${() => this.selectFocus(id)}
@@ -1115,11 +1183,11 @@ export class WwFocusPanel extends LitElement implements Controller {
           : html`${inner}`,
       );
     });
-    return html`<section data-ww-focus-section="requires" class="mt-2">
+    return html`<section data-ww-focus-section="requires" class="mt-1">
       <h4 class="m-0 text-[11px] font-bold uppercase text-white/60">
         ${translateText("ww1936.focusui.needs")}
       </h4>
-      <div class="mt-1 flex flex-wrap items-center gap-1">${parts}</div>
+      <div class="flex flex-wrap items-center gap-1">${parts}</div>
     </section>`;
   }
 
@@ -1128,11 +1196,11 @@ export class WwFocusPanel extends LitElement implements Controller {
     const L = layoutOf(c.tree);
     const kids = L.children[this.selected] ?? [];
     if (kids.length === 0) return nothing;
-    return html`<section data-ww-focus-section="unlocks" class="mt-2">
+    return html`<section data-ww-focus-section="unlocks" class="mt-1">
       <h4 class="m-0 text-[11px] font-bold uppercase text-white/60">
         ${translateText("ww1936.focusui.unlocks")}
       </h4>
-      <div class="mt-1 flex flex-wrap items-center gap-1">
+      <div class="flex flex-wrap items-center gap-1">
         ${kids.map((k) => this.focusChip(c, c.tree[k].id))}
       </div>
     </section>`;

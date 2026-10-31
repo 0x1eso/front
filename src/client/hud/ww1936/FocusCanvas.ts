@@ -331,6 +331,18 @@ export class FocusCanvas {
     this.requestDraw();
   }
 
+  /** Re-measure, then pan only if the card at `pos` is not fully in view. */
+  keepVisible(pos: number): void {
+    this.resize();
+    if (this.model === null || this.w === 0 || pos < 0 || pos >= this.L.n) {
+      return;
+    }
+    const r = cardRect(this.L, pos, this.view.scale);
+    const x = r.x + this.view.ox;
+    const y = r.y + this.view.oy;
+    if (x < 0 || y < 0 || x + r.w > this.w || y + r.h > this.h) this.panTo(pos);
+  }
+
   private applyCenter(): void {
     const m = this.model;
     if (m === null || this.w === 0 || this.h === 0) return;
