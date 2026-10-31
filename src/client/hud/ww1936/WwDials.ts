@@ -32,8 +32,8 @@ import {
   politicsInput,
 } from "./PoliticsModel";
 import { WwAirLayerEvent } from "./SeaAirSelection";
-import { autoMaskOf } from "./WwAutoUi";
 import { prepEndTick, today, wwActive } from "./WorldWarModel";
+import { autoMaskOf } from "./WwAutoUi";
 import {
   OpenWwAirEvent,
   OpenWwDiplomacyEvent,

@@ -1,11 +1,10 @@
 // World War 1936 (spec §21.3): the focus tree drawn on a Canvas 2D at the
-// device's pixel ratio — tinted group bands with headers, routed lines
+// device's pixel ratio — routed lines
 // (colour by state, AND solid, OR dashed with a badge, exclusive pairs as a
 // red ⊘), then cards (icon, two-line name, days, badges, progress bar). A
 // tap picks a card and lights its ancestors (gold) and descendants (blue);
 // a tap on empty space clears it. One finger or the mouse pans, two fingers
-// or the wheel zoom, a double tap returns to 1× (on a band header: fits the
-// band), the minimap pans on a tap. It redraws only when the model's key
+// or the wheel zoom, a double tap returns to 1×, the minimap pans on a tap. It redraws only when the model's key
 // changes or on input, at most once a frame.
 import type { FocusDef } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { assetUrl } from "@openfront/shared/AssetUrls";
@@ -16,7 +15,6 @@ import {
   centerOn,
   clampView,
   fitAll,
-  fitBand,
   FOCUS_BYPASSED,
   FOCUS_CONDITION,
   FOCUS_DONE,
@@ -27,8 +25,7 @@ import {
   FOCUS_RUNNING,
   FocusLayout,
   FocusViewport,
-  HEAD_H,
-  hitBand,
+  GROUP_TINTS,
   hitCard,
   layoutOf,
   Rect,
@@ -61,8 +58,6 @@ export interface FocusCanvasModel {
   faded?: readonly boolean[];
   /** Cards on the historical path (a small ★). */
   history?: readonly boolean[];
-  /** Band header texts by band key (name and done count). */
-  bandNames?: Readonly<Record<string, string>>;
   /** Small badge texts. */
   texts?: { or: string; pick: string };
 }
@@ -114,16 +109,6 @@ const C_DONE = "#34d399";
 const C_UP = "#fbbf24";
 const C_DOWN = "#60a5fa";
 const RED = "#ef4444";
-const BAND_TINTS = [
-  "96,165,250",
-  "52,211,153",
-  "251,191,36",
-  "244,114,182",
-  "167,139,250",
-  "45,212,191",
-  "251,146,60",
-  "163,230,53",
-];
 const FADE = 0.14;
 const MINI_W = 120;
 const MINI_H = 72;
@@ -312,13 +297,6 @@ export class FocusCanvas {
   showAll(): void {
     this.pendingCenter = "all";
     this.applyCenter();
-  }
-
-  /** Band `b` fitted to the canvas. */
-  fitBand(b: number): void {
-    if (this.w === 0) return;
-    this.view = fitBand(this.L, b, this.w, this.h);
-    this.requestDraw();
   }
 
   /** Move to the card at `pos`, keeping the zoom. */
@@ -542,14 +520,10 @@ export class FocusCanvas {
   };
 
   /**
-   * A tap at canvas point (x, y): a double tap returns to 1× (on a band
-   * header: fits the band), a tap picks the card there, a tap on empty
+   * A tap at canvas point (x, y): a double tap returns to 1×, a tap picks the card there, a tap on empty
    * space clears the pick.
    */
   tap(x: number, y: number, at: number): void {
-    const tx = (x - this.view.ox) / this.view.scale;
-    const ty = (y - this.view.oy) / this.view.scale;
-    const head = hitBand(this.L, tx, ty);
     const last = this.lastTap;
     if (
       last !== null &&
@@ -557,12 +531,11 @@ export class FocusCanvas {
       Math.hypot(x - last.x, y - last.y) < DOUBLE_TAP_PX
     ) {
       this.lastTap = null;
-      if (head >= 0) this.fitBand(head);
-      else this.setView(zoomAt(this.view, 1, x, y));
+      this.setView(zoomAt(this.view, 1, x, y));
       return;
     }
     this.lastTap = { x, y, at };
-    if (this.model === null || head >= 0) return;
+    if (this.model === null) return;
     const pos = hitCard(this.L, x, y, this.view);
     if (pos >= 0 && this.model.hidden?.[pos] !== true) this.onPick(pos);
     else if (pos < 0 && this.model.selected >= 0) this.onPick(-1);
@@ -585,7 +558,6 @@ export class FocusCanvas {
     const s = this.view.scale;
     const font =
       getComputedStyle(this.canvas).fontFamily || "system-ui, sans-serif";
-    this.drawBands(ctx, m, s, font);
     this.drawRoutes(ctx, m, s);
     this.drawPairs(ctx, m, s, font);
     const L = this.L;
@@ -609,45 +581,6 @@ export class FocusCanvas {
       a = Math.min(a, 0.25);
     }
     return a;
-  }
-
-  private drawBands(
-    ctx: CanvasRenderingContext2D,
-    m: FocusCanvasModel,
-    s: number,
-    font: string,
-  ): void {
-    const L = this.L;
-    const top = this.view.oy;
-    L.bands.forEach((b, bi) => {
-      const x = b.x * s + this.view.ox;
-      const w = b.w * s;
-      if (x > this.w || x + w < 0) return;
-      const tint = BAND_TINTS[bi % BAND_TINTS.length];
-      const collapsed = b.members.every((i) => m.hidden?.[i] === true);
-      ctx.save();
-      ctx.fillStyle = `rgba(${tint},${collapsed ? 0.03 : 0.07})`;
-      roundRect(ctx, x, top, w, L.height * s, 10 * s);
-      ctx.fill();
-      ctx.fillStyle = `rgba(${tint},0.22)`;
-      roundRect(ctx, x, top, w, HEAD_H * s, 10 * s);
-      ctx.fill();
-      if (s >= 0.3) {
-        ctx.fillStyle = "#f3f4f6";
-        ctx.font = `700 ${Math.max(11, 13 * s)}px ${font}`;
-        ctx.textAlign = "left";
-        ctx.textBaseline = "middle";
-        // Keep the label in view while the band is wider than the canvas.
-        const lx = Math.max(x + 10 * s, Math.min(8, x + w - 120));
-        ctx.save();
-        ctx.beginPath();
-        ctx.rect(x, top, w, HEAD_H * s);
-        ctx.clip();
-        ctx.fillText(m.bandNames?.[b.key] ?? b.key, lx, top + (HEAD_H * s) / 2);
-        ctx.restore();
-      }
-      ctx.restore();
-    });
   }
 
   private routePath(
@@ -838,6 +771,12 @@ export class FocusCanvas {
       roundRect(ctx, r.x, r.y, 6 * s, r.h, radius);
       ctx.fill();
     }
+    // The group tag: a thin stripe in the group's colour along the top.
+    if (state !== FOCUS_EXCLUSIVE) {
+      ctx.fillStyle = `rgb(${GROUP_TINTS[(this.L.group[i] ?? 0) % GROUP_TINTS.length]})`;
+      roundRect(ctx, r.x + 8 * s, r.y, r.w - 16 * s, 3 * s, 1.5 * s);
+      ctx.fill();
+    }
     // Icon (28 px).
     const ix = r.x + 10 * s;
     const iy = r.y + 8 * s;
@@ -970,7 +909,7 @@ export class FocusCanvas {
     }
   }
 
-  /** The minimap: bands, card dots and the view's frame (a tap pans). */
+  /** The minimap: card dots and the view's frame (a tap pans). */
   private drawMini(ctx: CanvasRenderingContext2D, m: FocusCanvasModel): void {
     const mr = this.mini();
     if (mr === null) return;
@@ -982,10 +921,6 @@ export class FocusCanvas {
     roundRect(ctx, mr.x - 3, mr.y - 3, mr.w + 6, mr.h + 6, 6);
     ctx.fill();
     ctx.stroke();
-    L.bands.forEach((b, bi) => {
-      ctx.fillStyle = `rgba(${BAND_TINTS[bi % BAND_TINTS.length]},0.28)`;
-      ctx.fillRect(mr.x + b.x * mr.k, mr.y, b.w * mr.k, mr.h);
-    });
     for (let i = 0; i < L.n; i++) {
       const st = m.states[i] ?? FOCUS_PREREQ;
       ctx.fillStyle = isDone(st) ? C_DONE : isNext(st) ? C_OPEN : "#6b7280";

@@ -112,7 +112,11 @@ describe("<ww-research-panel> (spec §13.4)", () => {
         detail("DEU", {
           slots: [running, null, null],
           savedResearch: [
-            { tech: "support_eq_2", progressMilli: 35_000, totalMilli: 100_000 },
+            {
+              tech: "support_eq_2",
+              progressMilli: 35_000,
+              totalMilli: 100_000,
+            },
           ],
         }),
       ],

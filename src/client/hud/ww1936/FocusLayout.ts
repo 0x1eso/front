@@ -1,10 +1,12 @@
 // World War 1936 (spec §21.3): where the focus tree's cards and lines go on
 // the drawer's canvas. Pure: no DOM, no engine. The layout is automatic and
-// client-only (nothing here is sent or hashed): every `group` (else branch)
-// is a vertical band; inside a band a card's row is its prerequisite depth,
-// the order in a row is chosen by barycenter passes (exclusive siblings
-// side by side) and the authored x/y only break ties. Every prerequisite is
-// an orthogonal route with its own bus lane in the gap under its parent.
+// client-only (nothing here is sent or hashed): ONE tree flowing top to
+// bottom; a card's row is its prerequisite depth over the whole tree (the
+// longest chain from a root), the order in a row is seeded by group and
+// refined by barycenter sweeps (exclusive siblings side by side), the
+// authored x/y only break ties. Every prerequisite is an orthogonal route
+// with its own bus lane in the gap under its parent; routes that skip rows
+// run down the channel between two columns.
 import type {
   FocusBranch,
   FocusDef,
@@ -18,13 +20,23 @@ export const GRID_H = 110;
 export const CARD_W = 140;
 export const CARD_H = 84;
 const PAD_X = (GRID_W - CARD_W) / 2;
-/** Band padding, the gap between bands and the header strip. */
-export const BAND_PAD = 14;
-export const BAND_GAP = 10;
-export const HEAD_H = 34;
+/** Margin left and right of the tree, and above the first row. */
+const MARGIN_X = 20;
+export const TOP_PAD = 24;
 /** Distance between two bus lanes in a row gap. */
-const LANE_STEP = 7;
-const MIN_GAP = GRID_H - CARD_H;
+const LANE_STEP = 8;
+const MIN_GAP = GRID_H - CARD_H + 10;
+/** Group colour tags (r,g,b), by group index. */
+export const GROUP_TINTS = [
+  "96,165,250",
+  "52,211,153",
+  "251,191,36",
+  "244,114,182",
+  "167,139,250",
+  "45,212,191",
+  "251,146,60",
+  "163,230,53",
+];
 /** Zoom limits; a double tap returns to 1. */
 export const ZOOM_MIN = 0.25;
 export const ZOOM_MAX = 1.6;
@@ -98,13 +110,10 @@ export interface ExclusivePair {
   y1: number;
 }
 
-export interface FocusBand {
+export interface FocusGroupSpan {
   key: string;
   /** Tree positions, in tree order. */
   members: number[];
-  x: number;
-  w: number;
-  slots: number;
 }
 
 export interface FocusLayout {
@@ -114,8 +123,9 @@ export interface FocusLayout {
   y: number[];
   row: number[];
   slot: number[];
-  band: number[];
-  bands: FocusBand[];
+  /** Group index by tree position (the colour tag). */
+  group: number[];
+  groups: FocusGroupSpan[];
   routes: RoutedEdge[];
   pairs: ExclusivePair[];
   /** Cards that merge an OR group: the "or" badge sits at (x, y). */
@@ -154,22 +164,22 @@ export function computeLayout(tree: readonly LayoutDef[]): FocusLayout {
       }
     }
   });
-  // Bands in order of first appearance.
-  const bandIdx = new Map<string, number>();
-  const band: number[] = [];
-  const bands: FocusBand[] = [];
+  // Groups in order of first appearance (a colour tag, never a column).
+  const groupIdx = new Map<string, number>();
+  const group: number[] = [];
+  const groups: FocusGroupSpan[] = [];
   tree.forEach((f, i) => {
     const k = groupKey(f);
-    let b = bandIdx.get(k);
+    let b = groupIdx.get(k);
     if (b === undefined) {
-      b = bands.length;
-      bandIdx.set(k, b);
-      bands.push({ key: k, members: [], x: 0, w: 0, slots: 1 });
+      b = groups.length;
+      groupIdx.set(k, b);
+      groups.push({ key: k, members: [] });
     }
-    band[i] = b;
-    bands[b].members.push(i);
+    group[i] = b;
+    groups[b].members.push(i);
   });
-  // Row = longest prerequisite chain inside the band.
+  // Row = longest prerequisite chain over the whole tree.
   const row: number[] = new Array(n).fill(-1);
   const busy = new Array<boolean>(n).fill(false);
   const depth = (i: number): number => {
@@ -177,9 +187,7 @@ export function computeLayout(tree: readonly LayoutDef[]): FocusLayout {
     if (busy[i]) return 0;
     busy[i] = true;
     let d = 0;
-    for (const p of parents[i]) {
-      if (band[p] === band[i]) d = Math.max(d, depth(p) + 1);
-    }
+    for (const p of parents[i]) d = Math.max(d, depth(p) + 1);
     busy[i] = false;
     row[i] = d;
     return d;
@@ -192,83 +200,122 @@ export function computeLayout(tree: readonly LayoutDef[]): FocusLayout {
       .filter((j): j is number => j !== undefined)
       .sort(byNum),
   );
-  // Order inside each band's rows: authored position first, then barycenters.
-  const slot: number[] = new Array(n).fill(0);
-  for (const bd of bands) {
-    const lines: number[][] = [];
-    for (let r = 0; r < rows; r++) lines.push([]);
-    for (const i of bd.members) lines[row[i]].push(i);
-    const ord = new Map<number, number>();
-    const settle = (line: number[]) => {
-      // Exclusive partners sit right next to each other.
-      const out: number[] = [];
-      const seen = new Set<number>();
-      for (const i of line) {
-        if (seen.has(i)) continue;
-        seen.add(i);
-        out.push(i);
-        for (const j of excl[i]) {
-          if (!seen.has(j) && line.includes(j)) {
-            seen.add(j);
-            out.push(j);
-          }
+  // Order inside each row: seeded by group, then authored position; then
+  // barycenter sweeps (down on parents, up on children) over the x of the
+  // neighbours. Exclusive partners stay side by side.
+  const lines: number[][] = [];
+  for (let r = 0; r < rows; r++) lines.push([]);
+  for (let i = 0; i < n; i++) lines[row[i]].push(i);
+  const px: number[] = new Array(n).fill(0);
+  const settle = (line: number[]) => {
+    const out: number[] = [];
+    const seen = new Set<number>();
+    for (const i of line) {
+      if (seen.has(i)) continue;
+      seen.add(i);
+      out.push(i);
+      for (const j of excl[i]) {
+        if (!seen.has(j) && row[j] === row[i]) {
+          seen.add(j);
+          out.push(j);
         }
       }
-      out.forEach((i, k) => ord.set(i, k));
-      return out;
-    };
-    for (let r = 0; r < rows; r++) {
-      lines[r].sort(
-        (a, b) => tree[a].y - tree[b].y || tree[a].x - tree[b].x || a - b,
-      );
-      lines[r] = settle(lines[r]);
     }
-    const sweep = (r: number, nb: number[][]) => {
-      const key = (i: number) => {
-        const ns = nb[i].filter((j) => band[j] === band[i] && row[j] !== r);
-        if (ns.length === 0) return ord.get(i) ?? 0;
-        return ns.reduce((s, j) => s + (ord.get(j) ?? 0), 0) / ns.length;
-      };
-      const k = new Map<number, number>();
-      for (const i of lines[r]) k.set(i, key(i));
-      lines[r] = settle(
-        [...lines[r]].sort(
-          (a, b) =>
-            (k.get(a) ?? 0) - (k.get(b) ?? 0) ||
-            (ord.get(a) ?? 0) - (ord.get(b) ?? 0),
-        ),
+    return out;
+  };
+  const place = (line: number[]) => {
+    line.forEach((i, k) => (px[i] = k));
+  };
+  for (let r = 0; r < rows; r++) {
+    lines[r].sort(
+      (a, b) =>
+        group[a] - group[b] ||
+        tree[a].x - tree[b].x ||
+        tree[a].y - tree[b].y ||
+        a - b,
+    );
+    lines[r] = settle(lines[r]);
+    place(lines[r]);
+  }
+  // Rows differ in width: compare positions relative to the widest row.
+  const widest = lines.reduce((m, l) => Math.max(m, l.length), 1);
+  const norm = (i: number) => px[i] + (widest - lines[row[i]].length) / 2;
+  const sweep = (r: number, nb: number[][]) => {
+    const k = new Map<number, number>();
+    for (const i of lines[r]) {
+      const ns = nb[i];
+      k.set(
+        i,
+        ns.length === 0
+          ? norm(i)
+          : ns.reduce((s, j) => s + norm(j), 0) / ns.length,
       );
-    };
-    for (let pass = 0; pass < 4; pass++) {
-      for (let r = 1; r < rows; r++) sweep(r, parents);
-      for (let r = rows - 2; r >= 0; r--) sweep(r, children);
     }
-    // Slots: under the parents' mean where the row has room.
-    let cols = 1;
-    for (let r = 0; r < rows; r++) {
-      let prev = -1;
-      for (const i of lines[r]) {
-        const ps = parents[i].filter((p) => band[p] === band[i]);
-        const want =
-          ps.length === 0
-            ? prev + 1
-            : Math.round(ps.reduce((s, p) => s + slot[p], 0) / ps.length);
-        slot[i] = Math.max(prev + 1, want);
-        prev = slot[i];
-        cols = Math.max(cols, prev + 1);
+    const before = new Map<number, number>();
+    for (const i of lines[r]) before.set(i, px[i]);
+    lines[r] = settle(
+      [...lines[r]].sort(
+        (a, b) =>
+          (k.get(a) ?? 0) - (k.get(b) ?? 0) ||
+          (before.get(a) ?? 0) - (before.get(b) ?? 0),
+      ),
+    );
+    place(lines[r]);
+  };
+  for (let pass = 0; pass < 6; pass++) {
+    for (let r = 1; r < rows; r++) sweep(r, parents);
+    for (let r = rows - 2; r >= 0; r--) sweep(r, children);
+  }
+  // Slots: parents centred over their children where the row has room.
+  const slot: number[] = new Array(n).fill(0);
+  const pack = (r: number, nb: number[][] | null) => {
+    // Wants are the neighbours' mean; the row keeps its order and a card
+    // apart, at the least squared displacement (pool adjacent violators).
+    const line = lines[r];
+    const blocks: { sum: number; cnt: number }[] = [];
+    line.forEach((i, k) => {
+      const ns = nb === null ? [] : nb[i];
+      const want =
+        ns.length === 0
+          ? slot[i]
+          : ns.reduce((s, j) => s + slot[j], 0) / ns.length;
+      blocks.push({ sum: want - k, cnt: 1 });
+      while (blocks.length > 1) {
+        const b2 = blocks[blocks.length - 1];
+        const b1 = blocks[blocks.length - 2];
+        if (b1.sum / b1.cnt <= b2.sum / b2.cnt) break;
+        blocks.splice(blocks.length - 2, 2, {
+          sum: b1.sum + b2.sum,
+          cnt: b1.cnt + b2.cnt,
+        });
       }
+    });
+    let k = 0;
+    for (const bl of blocks) {
+      const base = Math.round(bl.sum / bl.cnt);
+      for (let q = 0; q < bl.cnt; q++, k++) slot[line[k]] = base + k;
     }
-    bd.slots = cols;
+  };
+  for (let r = 0; r < rows; r++) {
+    lines[r].forEach((i, k) => (slot[i] = k));
+    const shift = Math.floor((widest - lines[r].length) / 2);
+    for (const i of lines[r]) slot[i] += shift;
   }
-  let bx = BAND_GAP;
-  for (const bd of bands) {
-    bd.x = bx;
-    bd.w = BAND_PAD * 2 + bd.slots * GRID_W;
-    bx += bd.w + BAND_GAP;
+  for (let pass = 0; pass < 3; pass++) {
+    for (let r = 1; r < rows; r++) pack(r, parents);
+    for (let r = rows - 2; r >= 0; r--) pack(r, children);
   }
-  const x = tree.map(
-    (_, i) => bands[band[i]].x + BAND_PAD + slot[i] * GRID_W + PAD_X,
-  );
+  for (let r = 1; r < rows; r++) pack(r, parents);
+  let cols = 1;
+  if (n > 0) {
+    const minSlot = Math.min(...slot);
+    for (let i = 0; i < n; i++) {
+      slot[i] -= minSlot;
+      cols = Math.max(cols, slot[i] + 1);
+    }
+  }
+  const x = tree.map((_, i) => MARGIN_X + slot[i] * GRID_W + PAD_X);
+  const width = MARGIN_X * 2 + cols * GRID_W;
   const cx = (i: number) => x[i] + CARD_W / 2;
   // Bus lanes: one per parent (and one per child that long routes enter),
   // in the gap under a row (index g + 1; gap -1 is above row 0).
@@ -288,8 +335,8 @@ export function computeLayout(tree: readonly LayoutDef[]): FocusLayout {
     gapH.push(Math.max(MIN_GAP, (keys.length + 1) * LANE_STEP));
   });
   const rowTop: number[] = [];
-  const gapTop: number[] = [HEAD_H];
-  let yy = HEAD_H;
+  const gapTop: number[] = [TOP_PAD];
+  let yy = TOP_PAD;
   for (let r = 0; r < rows; r++) {
     yy += gapH[r];
     rowTop.push(yy);
@@ -303,9 +350,20 @@ export function computeLayout(tree: readonly LayoutDef[]): FocusLayout {
     return gapTop[g + 1] + (k * gapH[g + 1]) / (m.size + 1);
   };
   const y = tree.map((_, i) => rowTop[row[i]]);
+  // Long edges run down the channel between two slot columns (never through
+  // a card); edges sharing a channel are spread across it.
+  const chanUse = new Map<number, number>();
+  const chanTotal = new Map<number, number>();
+  const chanOf = (p: number, c: number) =>
+    MARGIN_X + (cx(p) < cx(c) ? slot[c] : slot[c] + 1) * GRID_W;
+  for (const [p, c] of order) {
+    if (row[c] === row[p] + 1) continue;
+    const k = chanOf(p, c);
+    chanTotal.set(k, (chanTotal.get(k) ?? 0) + 1);
+  }
   const routes: RoutedEdge[] = [];
   const orTo = new Set<number>();
-  order.forEach(([p, c], ei) => {
+  order.forEach(([p, c]) => {
     const kind = kinds.get(p * n + c) ?? "and";
     if (kind === "or") orTo.add(c);
     const pb = y[p] + CARD_H;
@@ -315,9 +373,11 @@ export function computeLayout(tree: readonly LayoutDef[]): FocusLayout {
     if (row[c] === row[p] + 1) {
       pts = [cx(p), pb, cx(p), lp, cx(c), lp, cx(c), ct];
     } else {
-      const bd = bands[band[c]];
-      const left = bd.x + BAND_PAD + slot[c] * GRID_W;
-      const ch = (cx(p) < cx(c) ? left : left + GRID_W) + ((ei % 5) - 2) * 3;
+      const k = chanOf(p, c);
+      const j = chanUse.get(k) ?? 0;
+      chanUse.set(k, j + 1);
+      const t = chanTotal.get(k) ?? 1;
+      const ch = k + (j - (t - 1) / 2) * Math.min(4, 16 / Math.max(1, t - 1));
       const le = laneY(row[c] - 1, `c${c}`);
       pts = [cx(p), pb, cx(p), lp, ch, lp, ch, le, cx(c), le, cx(c), ct];
     }
@@ -356,8 +416,8 @@ export function computeLayout(tree: readonly LayoutDef[]): FocusLayout {
     y,
     row,
     slot,
-    band,
-    bands,
+    group,
+    groups,
     routes,
     pairs,
     orBadges: [...orTo]
@@ -365,7 +425,7 @@ export function computeLayout(tree: readonly LayoutDef[]): FocusLayout {
       .map((c) => ({ to: c, x: cx(c), y: y[c] - 12 })),
     parents,
     children,
-    width: bx,
+    width,
     height,
   };
 }
@@ -494,12 +554,6 @@ export function hitCard(
   return -1;
 }
 
-/** The band whose header strip holds tree point (tx, ty), or -1. */
-export function hitBand(L: FocusLayout, tx: number, ty: number): number {
-  if (ty < 0 || ty > HEAD_H) return -1;
-  return L.bands.findIndex((b) => tx >= b.x && tx <= b.x + b.w);
-}
-
 const clamp = (v: number, lo: number, hi: number) =>
   Math.min(hi, Math.max(lo, v));
 
@@ -554,32 +608,6 @@ export function fitAll(L: FocusLayout, w: number, h: number): FocusViewport {
       scale,
       ox: (w - L.width * scale) / 2,
       oy: (h - L.height * scale) / 2,
-    },
-    L,
-    w,
-    h,
-  );
-}
-
-/** Band `b` fitted to the canvas (its width, else its height), centred. */
-export function fitBand(
-  L: FocusLayout,
-  b: number,
-  w: number,
-  h: number,
-): FocusViewport {
-  const bd = L.bands[b];
-  if (bd === undefined) return fitAll(L, w, h);
-  const scale = clamp(
-    Math.min(w / (bd.w + 2 * BAND_GAP), h / L.height),
-    ZOOM_MIN,
-    ZOOM_MAX,
-  );
-  return clampView(
-    {
-      scale,
-      ox: w / 2 - (bd.x + bd.w / 2) * scale,
-      oy: 0,
     },
     L,
     w,
@@ -656,5 +684,23 @@ export function chipFirst(
       best = i;
     }
   });
+  return best;
+}
+
+/** A group's first card: the top row's leftmost one; -1 if none. */
+export function groupFirst(
+  L: Pick<FocusLayout, "row" | "x" | "groups">,
+  g: number,
+): number {
+  let best = -1;
+  for (const i of L.groups[g]?.members ?? []) {
+    if (
+      best === -1 ||
+      L.row[i] < L.row[best] ||
+      (L.row[i] === L.row[best] && L.x[i] < L.x[best])
+    ) {
+      best = i;
+    }
+  }
   return best;
 }

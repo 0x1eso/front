@@ -49,6 +49,8 @@ import {
   FOCUS_QUEUED,
   FOCUS_RUNNING,
   FocusChip,
+  GROUP_TINTS,
+  groupFirst,
   initialCenter,
   layoutOf,
 } from "./FocusLayout";
@@ -504,7 +506,7 @@ export class WwFocusPanel extends LitElement implements Controller {
           </button>`,
       )}
       ${grouped || groups.length > 1
-        ? groups.map((g) => {
+        ? groups.map((g, gi) => {
             const off = this.collapsed.has(g.key);
             const name = g.key.startsWith("branch:")
               ? translateText(
@@ -512,25 +514,48 @@ export class WwFocusPanel extends LitElement implements Controller {
                     "ww1936.focusui.chip.all",
                 )
               : groupLabel(g.key);
-            return html`<button
-              type="button"
-              data-ww-focus-group=${g.key}
-              aria-pressed=${String(off)}
-              class="h-9 shrink-0 rounded-full px-2.5 text-xs font-semibold ${off
+            const tint = GROUP_TINTS[gi % GROUP_TINTS.length];
+            return html`<span
+              class="flex h-9 shrink-0 items-center rounded-full ${off
                 ? "bg-white/5 text-white/50"
                 : "bg-white/15 text-white"}"
-              @click=${() => this.toggleGroup(g.key)}
             >
-              ${translateText(
-                off
-                  ? "ww1936.focusui.group_collapsed"
-                  : "ww1936.focusui.group_open",
-                { name, done: g.done, total: g.members.length },
-              )}
-            </button>`;
+              <button
+                type="button"
+                data-ww-focus-group-go=${g.key}
+                aria-label=${name}
+                class="flex size-9 items-center justify-center"
+                @click=${() => this.goGroup(c, gi)}
+              >
+                <span
+                  class="size-3 rounded-full"
+                  style="background: rgb(${tint})"
+                ></span>
+              </button>
+              <button
+                type="button"
+                data-ww-focus-group=${g.key}
+                aria-pressed=${String(off)}
+                class="h-9 pr-2.5 text-xs font-semibold"
+                @click=${() => this.toggleGroup(g.key)}
+              >
+                ${translateText(
+                  off
+                    ? "ww1936.focusui.group_collapsed"
+                    : "ww1936.focusui.group_open",
+                  { name, done: g.done, total: g.members.length },
+                )}
+              </button>
+            </span>`;
           })
         : nothing}
     </div>`;
+  }
+
+  /** A legend dot: pan to the group's first card. */
+  private goGroup(c: FocusCtx, g: number) {
+    const pos = groupFirst(layoutOf(c.tree), g);
+    if (pos >= 0) this.canvas?.panTo(pos);
   }
 
   private pickChip(c: FocusCtx, chip: FocusChip | "pack") {
@@ -583,8 +608,8 @@ export class WwFocusPanel extends LitElement implements Controller {
     if (this.centerPending !== null) {
       const pos = this.centerPending;
       this.centerPending = null;
-      if (pos >= 0) this.canvas.centerOn(pos);
-      else this.canvas.showAll();
+      const top = pos >= 0 ? pos : chipFirst(layoutOf(c.tree), c.tree, "all");
+      this.canvas.centerOn(top);
     }
   }
 
@@ -612,20 +637,7 @@ export class WwFocusPanel extends LitElement implements Controller {
     const onPath = new Set(path ?? []);
     const history = c.tree.map((d) => onPath.has(d.id));
     const faded = fadedCards(c.tree, c.states, this.filters, path, keep);
-    const groups = focusGroups(c.tree, c.states);
-    const bandNames: Record<string, string> = {};
-    for (const g of groups) {
-      const name = g.key.startsWith("branch:")
-        ? translateText(
-            BRANCH_KEYS[g.key.slice(7) as FocusBranch] ??
-              "ww1936.focusui.chip.all",
-          )
-        : groupLabel(g.key);
-      bandNames[g.key] =
-        `${this.collapsed.has(g.key) ? "▸ " : ""}${name} ${g.done}/${g.members.length}`;
-    }
-    const bandKey = groups.map((g) => g.done).join(",");
-    const key2 = `${key}|${hidden.map(Number).join("")}|${found.map(Number).join("")}|${faded.map(Number).join("")}|${star}|${bandKey}`;
+    const key2 = `${key}|${hidden.map(Number).join("")}|${found.map(Number).join("")}|${faded.map(Number).join("")}|${star}`;
     if (this.model !== null && this.model.key === key2) return this.model;
     this.model = {
       key: key2,
@@ -634,7 +646,6 @@ export class WwFocusPanel extends LitElement implements Controller {
       star,
       faded,
       history,
-      bandNames,
       texts: {
         or: translateText("ww1936.focusui.or"),
         pick: translateText("ww1936.focusui.pick_one"),

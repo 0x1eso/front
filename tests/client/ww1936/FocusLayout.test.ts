@@ -15,10 +15,10 @@ import {
   clampView,
   edges,
   GRID_H,
-  HEAD_H,
   hitCard,
   initialCenter,
   layoutOf,
+  TOP_PAD,
   treeSize,
   ZOOM_MAX,
   ZOOM_MIN,
@@ -212,14 +212,14 @@ describe("focus tree layout (spec §21.3)", () => {
     fc.tap(r.x + 10, r.y + 10, 1_000);
     expect(picked).toEqual([3]);
     // Empty space picks nothing while nothing is picked.
-    fc.tap(2, HEAD_H + 3, 5_000);
+    fc.tap(2, TOP_PAD + 3, 5_000);
     expect(picked).toEqual([3]);
     // Twice quickly: back to 1× about that point, nothing more picked.
     (
       fc as unknown as { view: { ox: number; oy: number; scale: number } }
     ).view = { ox: 0, oy: 0, scale: 0.6 };
-    fc.tap(1, HEAD_H * 0.6 + 2, 9_000);
-    fc.tap(2, HEAD_H * 0.6 + 3, 9_200);
+    fc.tap(1, TOP_PAD * 0.6 + 2, 9_000);
+    fc.tap(2, TOP_PAD * 0.6 + 3, 9_200);
     expect(fc.viewport().scale).toBe(1);
     expect(picked).toEqual([3]);
     fc.destroy();

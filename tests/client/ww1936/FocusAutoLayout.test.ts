@@ -1,10 +1,7 @@
 import { CONTENT } from "@openfront/engine-lib/ww1936/content/registry";
 import { describe, expect, it } from "vitest";
 import { routeLook } from "../../../src/client/hud/ww1936/FocusCanvas";
-import {
-  fadedCards,
-  focusGroups,
-} from "../../../src/client/hud/ww1936/FocusGroups";
+import { fadedCards } from "../../../src/client/hud/ww1936/FocusGroups";
 import {
   CARD_H,
   CARD_W,
@@ -18,9 +15,11 @@ import {
 
 const DEU = CONTENT.treeFocuses.DEU.map((i) => CONTENT.focuses[i]);
 const L = computeLayout(DEU);
+/** Recorded crossings of the DEU tree (straight-line model); must not grow. */
+const CROSSING_BOUND = 32;
 
 describe("focus tree auto layout", () => {
-  it("is deterministic, overlap-free and in group order", () => {
+  it("is deterministic, overlap-free and in prerequisite order", () => {
     expect(JSON.stringify(computeLayout(DEU))).toBe(JSON.stringify(L));
     for (let a = 0; a < L.n; a++) {
       for (let b = a + 1; b < L.n; b++) {
@@ -32,26 +31,45 @@ describe("focus tree auto layout", () => {
         expect(apart, `${DEU[a].id} / ${DEU[b].id}`).toBe(true);
       }
     }
-    const groups = focusGroups(
-      DEU,
-      DEU.map(() => 0),
-    ).map((g) => g.key);
-    expect(L.bands.map((b) => b.key)).toEqual(groups);
-    // Bands are columns left to right, and every card sits inside its band.
-    L.bands.forEach((b, i) => {
-      if (i > 0)
-        expect(b.x).toBeGreaterThan(L.bands[i - 1].x + L.bands[i - 1].w - 1);
-      for (const m of b.members) {
-        expect(L.x[m]).toBeGreaterThanOrEqual(b.x);
-        expect(L.x[m] + CARD_W).toBeLessThanOrEqual(b.x + b.w);
-      }
-    });
-    // A prerequisite in the same band sits in an earlier row.
+    // One tree: every child sits in a row below all of its parents.
     DEU.forEach((_, c) => {
-      for (const p of L.parents[c]) {
-        if (L.band[p] === L.band[c]) expect(L.row[p]).toBeLessThan(L.row[c]);
-      }
+      for (const p of L.parents[c]) expect(L.row[p]).toBeLessThan(L.row[c]);
     });
+    // Groups only tag cards; they cover every card once.
+    const tagged = L.groups.flatMap((g) => g.members).sort((a, b) => a - b);
+    expect(tagged).toEqual(DEU.map((_, i) => i));
+  });
+
+  it("keeps every edge and stays within the recorded crossing bound", () => {
+    let edgeCount = 0;
+    DEU.forEach((f) => f.prereq?.forEach((g) => (edgeCount += g.length)));
+    expect(L.routes.length).toBe(edgeCount);
+    const cx = (i: number) => L.x[i] + CARD_W / 2;
+    const segs = L.routes.map((e) => ({
+      ...e,
+      x0: cx(e.from),
+      y0: L.row[e.from],
+      x1: cx(e.to),
+      y1: L.row[e.to],
+    }));
+    let crossings = 0;
+    for (let a = 0; a < segs.length; a++) {
+      for (let b = a + 1; b < segs.length; b++) {
+        const s = segs[a];
+        const t = segs[b];
+        if (s.from === t.from || s.to === t.to) continue;
+        const lo = Math.max(s.y0, t.y0);
+        const hi = Math.min(s.y1, t.y1);
+        if (lo >= hi) continue;
+        const at = (e: typeof s, r: number) =>
+          e.x0 + ((e.x1 - e.x0) * (r - e.y0)) / (e.y1 - e.y0);
+        const d0 = at(s, lo) - at(t, lo);
+        const d1 = at(s, hi) - at(t, hi);
+        if (d0 * d1 < 0) crossings++;
+      }
+    }
+    expect(crossings).toBeLessThanOrEqual(CROSSING_BOUND);
+    expect(crossings).toBeLessThanOrEqual(CROSSING_BOUND);
   });
 
   it("routes every prerequisite from parent to child, one bus lane per parent", () => {
