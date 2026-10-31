@@ -53,4 +53,43 @@ export const SPIRITS_DEU: SpiritDef[] = [
   },
   // deu_machine_tools: efficiency cap +10%
   { id: "deu_standard_tools", icon: "industry", stats: { effCapBp: 1000 } },
+  // w6 expansion
+  { id: "deu_winter_kit", icon: "infantry", stats: { winterPenaltyPct: -15 } },
+  {
+    id: "deu_speer_rationalisation",
+    icon: "industry",
+    stats: { outputPct: 8 },
+  },
+  {
+    id: "deu_goering_works",
+    icon: "steel",
+    stats: { milConstructionPct: 10, outputPct: -5 },
+  },
+  {
+    id: "deu_total_mobilised",
+    icon: "fist",
+    stats: { manpowerGrowthPct: 10, stabilityBp: -500 },
+  },
+  { id: "deu_dispersed_plants", icon: "shield", stats: { airDefensePct: 10 } },
+  { id: "deu_flak_belt", icon: "tower", stats: { airDefensePct: 15 } },
+  {
+    id: "deu_oath_loyalty",
+    icon: "flag",
+    stats: { stabilityBp: 500, coupResistPct: 20 },
+  },
+  {
+    id: "deu_rebuilding",
+    icon: "industry",
+    stats: { stabilityBp: 1000, civConstructionPct: 15 },
+  },
+  {
+    id: "deu_elastic_defence",
+    icon: "fort",
+    stats: { fortConstructionPct: 20, entrenchMax: 10 },
+  },
+  {
+    id: "deu_tank_mass_production",
+    icon: "factory_mil",
+    stats: { outputPct: 10 },
+  },
 ];
