@@ -23,15 +23,12 @@ import {
   INVASION_STATES,
   WW_BEACHHEAD_DAYS,
 } from "@openfront/engine-api/ww1936/NavyTypes";
-import type { ReadonlyScenarioData } from "@openfront/engine-api/ww1936/ScenarioTypes";
 import { dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
 import { divisionConvoys } from "@openfront/engine-lib/ww1936/ConvoyRules";
 import {
   invasionCapacity,
   shoreBombardBp,
 } from "@openfront/engine-lib/ww1936/InvasionRules";
-import { noStrikeRegions } from "@openfront/engine-lib/ww1936/NoStrike";
-import { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
 import { ALL_EDGES, seaPath } from "@openfront/engine-lib/ww1936/SeaGraph";
 import type { Game } from "@openfront/engine/game/Game";
 import { snapshotGame } from "@openfront/engine/snapshot/GameSnapshot";
@@ -50,11 +47,8 @@ import {
   invasionLaunchBlock,
   landInvasion,
   launchInvasion,
-  shoreBombardAt,
 } from "@openfront/engine/ww1936/navy/Invasions";
 import type { Voyage, WwNavy } from "@openfront/engine/ww1936/navy/WwNavy";
-import fs from "fs";
-import path from "path";
 import { diffSnapshots } from "../util/Snapshot";
 import { REGION, SEA, SR, TAG_ID, ZONE } from "./seaFixture";
 import {
@@ -498,22 +492,6 @@ describe("naval invasions", () => {
     expect(navy.landing.has(inf.divisions[0])).toBe(true);
     navy.landing.delete(inf.divisions[0]);
     expect(amphibiousModsFor(navy, REGION.rome, r)).toBeNull();
-  });
-
-  it("no shore bombardment on a no-strike region (Korea, Taiwan)", () => {
-    const dir = path.join(__dirname, "../../resources/maps/world1936");
-    const world = ScenarioIndex.fromFiles(
-      JSON.parse(
-        fs.readFileSync(path.join(dir, "scenario.json"), "utf8"),
-      ) as ReadonlyScenarioData,
-      new Uint8Array(fs.readFileSync(path.join(dir, "regions.bin"))),
-    );
-    // A navy with only the scenario: the refusal comes before anything else is read.
-    const navy = { scenario: world } as unknown as WwNavy;
-    expect(noStrikeRegions(world).size).toBe(12);
-    for (const r of noStrikeRegions(world)) {
-      expect(shoreBombardAt(navy, r, 1)).toBe(0);
-    }
   });
 
   it("shore bombardment cuts the defense", async () => {

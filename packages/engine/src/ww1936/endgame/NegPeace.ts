@@ -33,11 +33,6 @@ import {
   negPeaceWinNeed,
   noPeaceTerms,
 } from "@openfront/engine-lib/ww1936/NegPeaceRules";
-import {
-  peaceSensitivity,
-  PeaceSensitivity,
-  SENSITIVE_EXCLUDED_TAG,
-} from "@openfront/engine-lib/ww1936/PeaceRules";
 import { evictDivisions, transferRegionPeaceful } from "../land/PoliticsBridge";
 import { regionBase } from "./Conference";
 import { endSubject } from "./Subjects";
@@ -102,17 +97,6 @@ export function negPeaceFacts(eg: WwEndgame): NegPeaceFacts {
   };
 }
 
-/** Korea's and Taiwan's rules outside a conference (no claimant, no main victor). */
-export function negPeaceSens(eg: WwEndgame): PeaceSensitivity {
-  const content = eg.ww.politics.content;
-  return peaceSensitivity(
-    (g) => content.groupIdx.get(g)?.regions ?? [],
-    eg.ww.scenario.smallIdOf(SENSITIVE_EXCLUDED_TAG),
-    0,
-    [],
-  );
-}
-
 /** The order's terms as state: ascending, no terms → undefined (a white peace). */
 export function storedTerms(
   t: WwPeaceTerms | undefined,
@@ -136,7 +120,7 @@ export function peaceTermsBlock(
   t: WwPeaceTerms | undefined,
 ): WwOrderBlock | null {
   if (t === undefined || !hasPeaceTerms(t)) return null;
-  return negPeaceTermsBlock(negPeaceFacts(eg), negPeaceSens(eg), t, from, to);
+  return negPeaceTermsBlock(negPeaceFacts(eg), t, from, to);
 }
 
 // ---- The peace ----
@@ -262,7 +246,6 @@ export function aiPeaceTerms(
   const s = si === 0 ? 0 : 1;
   const whole = w.sides[s].leader === id;
   const f = negPeaceFacts(eg);
-  const sens = negPeaceSens(eg);
   const gp = proposerGroup(eg, w, id, whole);
   const gt = sideIds(w, s === 0 ? 1 : 0);
   const inP = (x: number) => gp.includes(x);
@@ -294,7 +277,7 @@ export function aiPeaceTerms(
       const v = vals.get(r)!;
       if (v <= 0 || sum + v > most) continue;
       list.push(r);
-      if (negPeaceTermsBlock(f, sens, t, id, target) !== null) {
+      if (negPeaceTermsBlock(f, t, id, target) !== null) {
         list.pop();
         continue;
       }
@@ -331,7 +314,7 @@ export function aiPeaceTerms(
     fill(t.take, held, (r) => negPeaceRegionValue(f, r, inP), room, room);
   }
   if (!hasPeaceTerms(t)) return null;
-  return negPeaceTermsBlock(f, sens, t, id, target) === null ? t : null;
+  return negPeaceTermsBlock(f, t, id, target) === null ? t : null;
 }
 
 // ---- Screens ----

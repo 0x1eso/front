@@ -11,21 +11,15 @@ import {
 import {
   GENERAL_TRAITS,
   WW_MAX_ARMY_DIVISIONS,
-  WW_TITLED_GENERAL_XP_MILLI,
 } from "@openfront/engine-api/ww1936/LandTypes";
 import type { ScenarioData } from "@openfront/engine-api/ww1936/ScenarioTypes";
-import {
-  GENERALS,
-  rosterOf,
-  titledGeneralId,
-} from "@openfront/engine-lib/ww1936/Generals";
+import { GENERALS, rosterOf } from "@openfront/engine-lib/ww1936/Generals";
 import {
   START_OOB,
   startTemplates,
 } from "@openfront/engine-lib/ww1936/LandStart";
 import { NO_STRIKE_REGION_IDS } from "@openfront/engine-lib/ww1936/NoStrike";
 import { createGameRunner } from "@openfront/engine/GameRunner";
-import { appointGeneral } from "@openfront/engine/ww1936/land/GeneralsRun";
 import { loadMapFiles } from "@openfront/shared/GameMapLoader";
 import fs from "fs";
 import path from "path";
@@ -67,107 +61,6 @@ const MINOR_ROSTERS: readonly CountryTag[] = [
   "HUN",
 ];
 
-/**
- * People this task left out by the roster principle (spec §6.2 and the
- * mode's sensitivity rulings); the Task 10 report gives each reason. Some
- * are in the spec's own table (Manstein, Leeb, Badoglio, Graziani and all
- * five Japanese): the principle wins.
- */
-const EXCLUDED: readonly string[] = [
-  // Germany: IMT, the later Nuremberg trials, other war-crimes courts.
-  "Erich von Manstein",
-  "Wilhelm Ritter von Leeb",
-  "Ewald von Kleist",
-  "Wilhelm List",
-  "Georg von Küchler",
-  "Hermann Hoth",
-  "Georg-Hans Reinhardt",
-  "Hans von Salmuth",
-  "Karl-Adolf Hollidt",
-  "Hubert Lanz",
-  "Lothar Rendulic",
-  "Wilhelm Keitel",
-  "Alfred Jodl",
-  "Albert Kesselring",
-  "Ferdinand Schörner",
-  "Kurt Student",
-  "Nikolaus von Falkenhorst",
-  "Eberhard von Mackensen",
-  "Hasso von Manteuffel",
-  "Hermann Balck",
-  // Germany, in doubt (died or severed before a verdict; crimes investigated).
-  "Johannes Blaskowitz",
-  "Maximilian von Weichs",
-  "Eduard Dietl",
-  // Japan: Korea or Taiwan, or convicted at any war-crimes trial.
-  "Minami Jirō",
-  "Koiso Kuniaki",
-  "Ugaki Kazushige",
-  "Ueda Kenkichi",
-  "Nakamura Kōtarō",
-  "Itagaki Seishirō",
-  "Andō Rikichi",
-  "Terauchi Hisaichi",
-  "Tōjō Hideki",
-  "Umezu Yoshijirō",
-  "Hata Shunroku",
-  "Matsui Iwane",
-  "Kimura Heitarō",
-  "Mutō Akira",
-  "Doihara Kenji",
-  "Araki Sadao",
-  "Yamashita Tomoyuki",
-  "Homma Masaharu",
-  "Imamura Hitoshi",
-  "Adachi Hatazō",
-  "Sakai Takashi",
-  "Yamada Otozō",
-  // Japan, in doubt: the Kempeitai's commandant, an acquittal, Korea and
-  // Nanjing commands.
-  "Tanaka Shizuichi",
-  "Okamura Yasuji",
-  "Hyakutake Harukichi",
-  "Satō Kōtoku",
-  "Ushijima Mitsuru",
-  // Japan shows titles only (controller ruling from P5): the five who
-  // passed the Korea/Taiwan/trial test are out as well.
-  "Kuribayashi Tadamichi",
-  "Anami Korechika",
-  "Nishio Toshizō",
-  "Kawabe Masakazu",
-  "Higuchi Kiichirō",
-  // Italy: poison gas and massacres in Ethiopia and Libya, never tried.
-  "Pietro Badoglio",
-  "Rodolfo Graziani",
-  // Italy, in doubt (occupation and colonial crimes alleged, never tried).
-  "Mario Roatta",
-  "Alessandro Pirzio Biroli",
-  "Vittorio Ambrosio",
-  "Mario Robotti",
-  "Gastone Gambara",
-  // Others: war-crimes or collaboration convictions.
-  "Ion Antonescu",
-  "Nicolae Macici",
-  "Nicolae Ciupercă",
-  "Gusztáv Jány",
-  "Ferenc Szombathelyi",
-  "Jenő Rátz",
-  "Károly Beregfy",
-  "Georgios Tsolakoglou",
-  "Charalambos Katsimitros",
-  "Milan Nedić",
-  "Draža Mihailović",
-  "Henri Dentz",
-  "Philippe Pétain",
-  // Spain: the 1936 terror (Mola's orders), the Badajoz and Seville
-  // killings. China: the Chinese commander in the Korean War (the friends
-  // are Korean, spec mode §1.4).
-  "Emilio Mola",
-  "Juan Yagüe",
-  "Gonzalo Queipo de Llano",
-  "Peng Dehuai",
-];
-
 /** Spec §6.4: divisions per template key. */
 const OOB_TOTALS: Readonly<Record<string, Readonly<Record<string, number>>>> = {
   DEU: { infantry: 36, armored: 3, mountain: 3, cavalry: 1 },
@@ -189,12 +82,6 @@ const OOB_ARMIES: Readonly<Record<string, number>> = {
   SUN: 7,
 };
 
-const norm = (s: string) =>
-  s
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z]/g, "");
 const isIso = (s: string) =>
   /^\d{4}-\d{2}-\d{2}$/.test(s) &&
   new Date(`${s}T00:00:00Z`).toISOString().slice(0, 10) === s;
@@ -257,16 +144,13 @@ describe("the generals roster (spec §6.2)", () => {
     });
   });
 
-  test("Japan has no named general; other majors at most 15, the listed minors 2–5, nobody else any", () => {
+  test("Japan has named generals; majors at most 20, the listed minors 2–5, nobody else any", () => {
     const counts = new Map<CountryTag, number>();
     for (const g of GENERALS) counts.set(g.tag, (counts.get(g.tag) ?? 0) + 1);
-    // Titles only for Japan (controller ruling); titled generals fill any
-    // other major's shortfall, so there is no floor (Italy has 10).
-    expect(counts.get("JPN") ?? 0).toBe(0);
+    expect(counts.get("JPN") ?? 0).toBeGreaterThanOrEqual(4);
     for (const tag of MAJOR_TAGS) {
-      if (tag === "JPN") continue;
       const n = counts.get(tag) ?? 0;
-      expect(n >= 1 && n <= 15, `${tag}: ${n}`).toBe(true);
+      expect(n >= 1 && n <= 20, `${tag}: ${n}`).toBe(true);
     }
     for (const tag of MINOR_ROSTERS) {
       const n = counts.get(tag) ?? 0;
@@ -302,30 +186,20 @@ describe("the generals roster (spec §6.2)", () => {
     expect(def("eisenhower").from).toBe("1941-09-29");
   });
 
-  test("nobody the principle left out is in the roster", () => {
-    const names = new Set(
-      GENERALS.map((g) => norm(en.ww1936.general[g.id] ?? "")),
-    );
+  test("the people the old principle left out are restored, Japan's by real name", () => {
     const ids = new Set(GENERALS.map((g) => g.id));
-    for (const name of EXCLUDED) {
-      expect(names.has(norm(name)), name).toBe(false);
-    }
-    // The spec table's people who fail the principle, by id too.
     for (const id of [
       "manstein",
       "leeb",
-      "badoglio",
       "graziani",
       "kuribayashi",
       "anami",
-      "tanaka",
-      "nishio",
-      "kawabe",
-      "higuchi",
+      "yamashita",
       "mola",
     ]) {
-      expect(ids.has(id), id).toBe(false);
+      expect(ids.has(id), id).toBe(true);
     }
+    expect(en.ww1936.general["yamashita"]).toBe("Yamashita Tomoyuki");
   });
 
   test("every general has an English and a Korean name, different, and nothing else is there", () => {
@@ -430,20 +304,16 @@ describe("the 1936 order of battle (spec §6.4)", () => {
     }
   });
 
-  test("only Japan's Kwantung and home armies start under titled generals", () => {
+  test("no army starts under a titled general; Japan's four stand in Kwantung, Tokyo, Seoul and Taiwan", () => {
     for (const tag of MAJOR_TAGS) {
       const marked = START_OOB[tag]!.map((a) => a.titledGeneral === true);
-      expect(marked, tag).toEqual(
-        tag === "JPN"
-          ? [true, true, false, false]
-          : START_OOB[tag]!.map(() => false),
-      );
+      expect(marked, tag).toEqual(START_OOB[tag]!.map(() => false));
     }
     expect(START_OOB.JPN!.map((a) => index.get(a.regions[0])!.name)).toEqual([
       "Kwantung",
       "Tokyo",
-      "Kwantung",
-      "Kumamoto",
+      "Seoul",
+      "Taiwan",
     ]);
   });
 
@@ -528,36 +398,13 @@ function expectHistoricalOob(runner: Awaited<ReturnType<typeof worldRunner>>) {
     generalId("bock"),
     generalId("kluge"),
   ]);
-  // Japan (titles only): the Kwantung Army and the home islands start under
-  // titled generals No. 1 and 2, the two garrisons moved out of Korea and
-  // Taiwan under none.
+  // Japan: four named generals, one per army (the Chōsen and Taiwan Armies
+  // included), no titled one.
   const jpn = of("JPN");
-  expect(jpn.armies.map((a) => a.general)).toEqual([
-    titledGeneralId(jpn.id, 1),
-    titledGeneralId(jpn.id, 2),
-    0,
-    0,
-  ]);
-  const jgen = l.country(jpn.id)!.generals;
-  expect(jgen.every((x) => x.roster === -1)).toBe(true);
-  expect(
-    jgen.map((x) => [x.titleNo, x.att, x.dfn, x.plan, x.log, x.traits, x.army]),
-  ).toEqual([
-    [1, 1, 1, 1, 1, 0, jpn.armies[0].id],
-    [2, 1, 1, 1, 1, 0, jpn.armies[1].id],
-  ]);
-  expect(l.country(jpn.id)!.nextTitleNo).toBe(3);
-  // A titled general appointed later (spec §6.2) takes the next number
-  // from the same counter: no id collides with the two from the start.
-  const jcl = l.country(jpn.id)!;
-  jcl.armyXpMilli = WW_TITLED_GENERAL_XP_MILLI;
-  expect(appointGeneral(l, jcl)).toBeNull();
-  expect(jgen.map((x) => [x.id, x.titleNo])).toEqual([
-    [titledGeneralId(jpn.id, 1), 1],
-    [titledGeneralId(jpn.id, 2), 2],
-    [titledGeneralId(jpn.id, 3), 3],
-  ]);
-  expect(jgen[2]).toMatchObject({ roster: -1, att: 1, traits: 0, army: 0 });
+  const jgens = jpn.armies.map((a) => a.general);
+  expect(jgens.every((g) => g > 0 && g < 100_000)).toBe(true);
+  expect(new Set(jgens).size).toBe(4);
+  expect(l.country(jpn.id)!.generals.every((x) => x.roster >= 0)).toBe(true);
   expect(rosterOf("SUN")[0]).toBe(generalId("zhukov"));
 }
 

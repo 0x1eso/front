@@ -108,39 +108,6 @@ describe("World War 1936 P6: railway guns (spec §16.5)", () => {
     step(runner);
   }, 60_000);
 
-  it("no railway gun fires on a no-strike region (sensitivity)", async () => {
-    // Warsaw stands in for Korea and Taiwan (P5's region groups).
-    const base = depthFixture();
-    usePoliticsContent(
-      depthFixture({
-        groups: [
-          ...base.groups,
-          {
-            id: "korea_south",
-            regions: [DEEP.region.warsaw],
-            owner1936: "POL",
-          },
-        ],
-      }),
-    );
-    const { runner, g, d, l, deu, ce } = await war();
-    const warsaw = DEEP.region.warsaw;
-    ce.stock[GUN] = 2;
-    const a = placeArmy(g, "DEU", DEEP.region.berlin, 1);
-    placeArmy(g, "POL", warsaw, 1);
-    expect(
-      d.issue(
-        deu,
-        { kind: "railgun_assign", army: a.id, count: 2 },
-        runner.game.ticks(),
-      ),
-    ).toBeNull();
-    for (const id of a.divisions) joinBattle(l, id, warsaw);
-    expect(l.battles.has(warsaw)).toBe(true);
-    expect(d.railGunHits(warsaw, l.sideOf(deu))).toBe(0);
-    expect(d.fortCut(a.id, warsaw)).toBe(0);
-  }, 60_000);
-
   it("rail guns of a destroyed army are lost", async () => {
     const { runner, g, d, l, deu, ce } = await war();
     const berlin = DEEP.region.berlin;

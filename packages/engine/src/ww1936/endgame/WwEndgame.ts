@@ -46,12 +46,7 @@ import { aiAidDay, aiAidEventChoice } from "./AiAid";
 import { aiOccupationDay } from "./AiOccupation";
 import { aiSubjectsDay } from "./AiSubjects";
 import { capitulate } from "./Capitulate";
-import {
-  conferenceView,
-  settleSensitiveZones,
-  stepConferences,
-  submitDemands,
-} from "./Conference";
+import { conferenceView, stepConferences, submitDemands } from "./Conference";
 import { wakePending } from "./Executions";
 import {
   exileEconomy,
@@ -502,28 +497,9 @@ export class WwEndgame {
     this.adminCtrlOf = new Int32Array(this.regionCap);
   }
 
-  /**
-   * Sensitivity guard: Korea (north, south) and Taiwan are never administered,
-   * never hold a core, never integrate (no resistance, no compliance there).
-   * Derived from the content's groups (fallback: their region ids).
-   */
-  neverAdministered = new Set<number>();
-  private buildNeverAdministered(): void {
-    const content = this.ww.politics.content;
-    const s = new Set<number>();
-    for (const g of ["korea_north", "korea_south", "taiwan"]) {
-      for (const r of content.groupIdx.get(g)?.regions ?? []) s.add(r);
-    }
-    if (s.size === 0) {
-      for (const r of NEVER_ADMINISTERED_FALLBACK) s.add(r);
-    }
-    this.neverAdministered = s;
-  }
-
   /** Spec §3.1, §7.1, §9.4: country states, 1936 cores, starting subjects. */
   start(): void {
     const sc = this.ww.scenario;
-    this.buildNeverAdministered();
     for (let id = 1; id < this.size; id++) {
       this.countryStateArr[id] = isDormantTag(sc.countries[id - 1])
         ? CS_DORMANT
@@ -580,7 +556,6 @@ export class WwEndgame {
     this.settleAdmin();
     returnLiberated(this, day, tick); // X: spec §5.3
     this.expireZones(day);
-    settleSensitiveZones(this, tick); // W: Korea/Taiwan zones never go back to Japan
     dailyWarScore(this, day); // W: occupation points (spec §4.5)
     checkWarEnds(this, day, tick); // W: spec §4.4, opens conferences
     stepFronts(this, day); // white peace: the stalemate count
@@ -1089,7 +1064,6 @@ export class WwEndgame {
   /** Spec §7.2: full slots push out the smallest-smallID gone (dormant first) holder; none gone → no add. */
   addCore(id: number, region: number): void {
     if (id <= 0 || region <= 0 || region >= this.regionCap) return;
-    if (this.neverAdministered.has(region)) return;
     if (this.hasCore(id, region)) return;
     let h = this.coreHolders(region);
     if (h.length >= WW_CORE_SLOTS) {
@@ -1116,7 +1090,6 @@ export class WwEndgame {
     );
   }
   private writeCores(region: number, h: number[]): void {
-    if (this.neverAdministered.has(region)) return;
     this.writeCoresRaw(region, h);
     this.dirtyCores.add(region);
     this.markControlChanged(region);
@@ -1134,11 +1107,10 @@ export class WwEndgame {
    * Spec §8.1 (pre-flight §0-3): the controller holds no core there,
    * someone else does, and it is occupied (controller ≠ legal owner) or
    * taken (the legal owner changed since 1936) — never a colony held since
-   * 1936 (the US Philippines), never a region without another core (Korea).
+   * 1936 (the US Philippines), never a region without another core.
    */
   computeAdministered(region: number): boolean {
     const c = this.ww.land.controller[region] ?? 0;
-    if (this.neverAdministered.has(region)) return false;
     if (c === 0 || region <= 0 || region >= this.regionCap) return false;
     let other = false;
     for (let k = 0; k < WW_CORE_SLOTS; k++) {
@@ -1724,7 +1696,6 @@ export class WwEndgame {
     this.exileIdx = new Map(this.exiles.map((e, i) => [e.smallID, i]));
     // Rebuilt on first use (WorldWar restores the endgame before the land war).
     this.adminDirty = true;
-    this.buildNeverAdministered();
   }
 
   /** Spec §21.5: from state only (never the derived administered list). */
@@ -1954,11 +1925,6 @@ export class WwEndgame {
     return h;
   }
 }
-
-/** Korea (north, south) and Taiwan, should the content carry no such groups. */
-const NEVER_ADMINISTERED_FALLBACK = [
-  563, 598, 604, 622, 639, 679, 686, 701, 732, 734, 761, 901,
-];
 
 function byClient(a: [string, number], b: [string, number]): number {
   return a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0;

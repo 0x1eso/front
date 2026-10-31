@@ -469,38 +469,14 @@ describe("World War 1936 P5: Korea, Taiwan and earlier rounds on the card", () =
     return { m, one };
   }
 
-  it("Korea's regions are only ever an occupation zone (zone_only)", () => {
+  it("Korea and Taiwan are ordinary regions: a take, a group and an annexation all pass", () => {
     const { one } = asian();
-    const zoneOnly = { key: peaceBlockKey("zone_only") };
-    expect(one({ kind: "take", region: KOREA }).why).toEqual(zoneOnly);
-    const group = one({ kind: "take_group", group: "korea_north" });
-    expect(group.why).toEqual(zoneOnly);
-    expect(group.refused).toBe(true);
-    // Japan holds Korea legally: never annexed whole.
-    expect(one({ kind: "annex_rest", target: JAP }).why).toEqual(zoneOnly);
-    // The zone itself is open (I control the region).
-    expect(one({ kind: "occupation_zone", region: KOREA }).ok).toBe(true);
-  });
-
-  it("Taiwan goes to its claimant only (claim_only)", () => {
-    const { one } = asian();
-    expect(one({ kind: "take", region: TAIWAN }).why).toEqual({
-      key: peaceBlockKey("claim_only"),
-    });
-    // Handed to China, its claimant, it may go.
-    expect(one({ kind: "take_for", region: TAIWAN, beneficiary: CHN }).ok).toBe(
-      true,
+    expect(one({ kind: "take", region: KOREA }).ok).toBe(true);
+    expect(one({ kind: "take", region: TAIWAN }).ok).toBe(true);
+    expect(one({ kind: "take_group", group: "korea_north" }).refused).toBe(
+      false,
     );
-    // China takes it itself.
-    expect(asian(CHN).one({ kind: "take", region: TAIWAN }).ok).toBe(true);
-    // With China out of the game nobody claims it: only the main victor's
-    // zone (Germany), never a take.
-    const { m } = asian(DEU, false);
-    expect(m.sensitiveBlock(DEU, DEU, "occupation_zone", TAIWAN)).toBeNull();
-    expect(m.sensitiveBlock(DEU, DEU, "take", TAIWAN)).toBe("claim_only");
-    expect(asian().m.sensitiveBlock(DEU, DEU, "occupation_zone", TAIWAN)).toBe(
-      "claim_only",
-    );
+    expect(one({ kind: "annex_rest", target: JAP }).ok).toBe(true);
   });
 
   it("the settled rows come from the view", () => {

@@ -274,7 +274,7 @@ describe("EndgameModel (P5 spec §20.3–§20.7)", () => {
     ]);
   });
 
-  it("the 38th parallel zone reads neutral: no resistance, a grey fill", () => {
+  it("a zone reads neutral: no resistance, a grey fill", () => {
     const korea = CONTENT.groupIdx.get("korea_south")!.regions[0];
     const { game } = fakeEndGame({
       me: "GBR",
@@ -286,7 +286,7 @@ describe("EndgameModel (P5 spec §20.3–§20.7)", () => {
       },
     });
     const line = zoneLine(game, korea)!;
-    expect(line.startsWith("[ww1936.occ.zone_korea] · ")).toBe(true);
+    expect(line.startsWith("[ww1936.occ.zone] · ")).toBe(true);
     expect(line).not.toContain("res");
     expect(zoneLine(game, KRAKOW)!.startsWith("[ww1936.occ.zone] · ")).toBe(
       true,

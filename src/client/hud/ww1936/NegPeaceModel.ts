@@ -17,7 +17,6 @@ import {
   WwPeaceTerms,
   WwWarSummary,
 } from "@openfront/engine-api/ww1936/EndgameTypes";
-import { CONTENT } from "@openfront/engine-lib/ww1936/content/registry";
 import { regionBaseValue } from "@openfront/engine-lib/ww1936/EndgameRules";
 import {
   hasPeaceTerms,
@@ -28,11 +27,6 @@ import {
   negPeaceTermsBlock,
   negPeaceValue,
 } from "@openfront/engine-lib/ww1936/NegPeaceRules";
-import {
-  peaceSensitivity,
-  PeaceSensitivity,
-  SENSITIVE_EXCLUDED_TAG,
-} from "@openfront/engine-lib/ww1936/PeaceRules";
 import {
   PEACE_FREE,
   PEACE_MINE,
@@ -218,17 +212,6 @@ export function negPeaceFactsOf(game: NegPeaceGame): NegPeaceFacts | null {
   };
 }
 
-/** Korea's and Taiwan's rules outside a conference (the engine's negPeaceSens). */
-export function negPeaceSensOf(game: NegPeaceGame): PeaceSensitivity {
-  const sc = game.worldWarScenario();
-  return peaceSensitivity(
-    (g) => CONTENT.groupIdx.get(g)?.regions ?? [],
-    sc?.smallIdOf(SENSITIVE_EXCLUDED_TAG) ?? 0,
-    0,
-    [],
-  );
-}
-
 /** A refusal's text (the order block's). */
 function blockText(block: string): string {
   return translateText(BLOCK_KEYS[block as keyof typeof BLOCK_KEYS] ?? block);
@@ -360,9 +343,7 @@ export function negPeaceComposer(
     );
   }
   const any = hasPeaceTerms(t);
-  const b = any
-    ? negPeaceTermsBlock(f, negPeaceSensOf(game), t, me, target)
-    : null;
+  const b = any ? negPeaceTermsBlock(f, t, me, target) : null;
   // The hint: the engine's facts of the war, my terms' value (engine-lib).
   let hint: string;
   let hintLevel: NegPeaceComposerView["hintLevel"] = null;
@@ -456,17 +437,9 @@ export function negPeaceMapTap(game: NegPeaceGame, region: number): boolean {
     return true;
   }
   list.push(region);
-  const b = negPeaceTermsBlock(
-    f,
-    negPeaceSensOf(game),
-    ui.terms(),
-    me,
-    ui.target,
-  );
+  const b = negPeaceTermsBlock(f, ui.terms(), me, ui.target);
   // Only this region's refusal stops it (not, say, both reparations).
   if (
-    b === "zone_only" ||
-    b === "claim_only" ||
     b === "peace_capital" ||
     b === "peace_too_much" ||
     (b === "peace_bad_terms" && f.isZone(region))

@@ -15,8 +15,6 @@ import {
   expandPeaceDemand,
   type PeaceFacts,
   peacePlanCost,
-  peaceRegionBlock,
-  peaceSensitivity,
   type PeaceTable,
   planPeaceDemand,
 } from "@openfront/engine-lib/ww1936/PeaceRules";
@@ -512,8 +510,6 @@ describe("World War 1936 P5: the demand rules the card shares (engine-lib PeaceR
     topple: [],
     settled: [],
   };
-  /** No Korea or Taiwan here. */
-  const none = peaceSensitivity(() => [], 0, 5, []);
   const free = () => true;
   const d = (o: Partial<Parameters<typeof planPeaceDemand>[3]>) => ({
     kind: "take" as const,
@@ -527,10 +523,9 @@ describe("World War 1936 P5: the demand rules the card shares (engine-lib PeaceR
   const plan = (
     p: number,
     o: Partial<Parameters<typeof planPeaceDemand>[3]>,
-    s = none,
     t = table,
     ok: (r: number) => boolean = free,
-  ) => planPeaceDemand(facts, t, p, d(o), ok, s);
+  ) => planPeaceDemand(facts, t, p, d(o), ok);
 
   it("prices and reasons match the engine's", () => {
     // Control halves, another participant's control doubles.
@@ -549,13 +544,7 @@ describe("World War 1936 P5: the demand rules the card shares (engine-lib PeaceR
       "no_core",
     );
     expect(
-      plan(
-        6,
-        { kind: "occupation_zone", regions: [3] },
-        none,
-        table,
-        (r) => r === 3,
-      ),
+      plan(6, { kind: "occupation_zone", regions: [3] }, table, (r) => r === 3),
     ).toBe("not_adjacent");
     expect(plan(5, { kind: "dismantle", target: 9 })).toBe("no_faction");
     // A quarter of 12 civilian factories: 3 at most.
@@ -568,9 +557,9 @@ describe("World War 1936 P5: the demand rules the card shares (engine-lib PeaceR
       cost: 20,
       receiver: 5,
     });
-    expect(
-      plan(5, { kind: "puppet", target: 9 }, none, table, () => false),
-    ).toBe("no_target");
+    expect(plan(5, { kind: "puppet", target: 9 }, table, () => false)).toBe(
+      "no_target",
+    );
   });
 
   it("a puppet keeps the loser's other regions; a fleet goes over once", () => {
@@ -581,81 +570,13 @@ describe("World War 1936 P5: the demand rules the card shares (engine-lib PeaceR
         { kind: 13, by: 5, target: 9, k: 0, regions: [12] }, // take_navy
       ],
     };
-    expect(plan(5, { regions: [1, 3] }, none, after)).toBe("no_target");
-    expect(
-      plan(5, { kind: "take_navy", target: 9, pct: 50 }, none, after),
-    ).toBe("already_used");
-    expect(
-      plan(6, { kind: "take_navy", target: 9, pct: 50 }, none, after),
-    ).toBe("no_ships");
-  });
-
-  it("Korea is only ever an occupation zone; Taiwan only its claimant's", () => {
-    // Region 1 is "Korea", region 3 "Taiwan"; 7 is "Japan" (excluded).
-    const groups = (g: string) =>
-      g === "korea_north" ? [1] : g === "taiwan" ? [3] : [];
-    const s = peaceSensitivity(groups, 7, 5, []);
-    // 6 holds Taiwan's static claim (CLAIMS).
-    const sClaim = peaceSensitivity(groups, 7, 5, [6]);
-    const rb = (
-      p: number,
-      kind: Parameters<typeof peaceRegionBlock>[4],
-      r: number,
-      sens = s,
-      recv = p,
-      t = table,
-    ) => peaceRegionBlock(sens, t, p, recv, kind, r);
-    // Korea: a zone for anyone but Japan; nothing else, for nobody.
-    expect(rb(5, "occupation_zone", 1)).toBeNull();
-    expect(rb(7, "occupation_zone", 1)).toBe("zone_only");
-    for (const k of [
-      "take",
-      "take_group",
-      "take_for",
-      "annex_rest",
-      "release",
-      "demilitarise",
-    ] as const) {
-      expect(rb(5, k, 1)).toBe("zone_only");
-    }
-    expect(plan(5, { regions: [1] }, s)).toBe("zone_only");
-    expect(plan(5, { kind: "annex_rest", target: 9 }, s)).toBe("zone_only");
-    // Taiwan with a claimant (6): only 6 takes it, by any take; nobody else.
-    expect(rb(6, "take", 3, sClaim)).toBeNull();
-    expect(rb(5, "take_for", 3, sClaim, 6)).toBeNull();
-    expect(rb(5, "take", 3, sClaim)).toBe("claim_only");
-    expect(rb(5, "occupation_zone", 3, sClaim)).toBe("claim_only");
-    expect(plan(5, { regions: [3] }, sClaim)).toBe("claim_only");
-    // Without a claimant: the main victor's (5) zone only; never Japan.
-    expect(rb(5, "occupation_zone", 3)).toBeNull();
-    expect(rb(6, "occupation_zone", 3)).toBe("claim_only");
-    expect(rb(5, "take", 3)).toBe("claim_only");
-    expect(rb(7, "take", 3, peaceSensitivity(groups, 7, 5, [7]))).toBe(
-      "claim_only",
+    expect(plan(5, { regions: [1, 3] }, after)).toBe("no_target");
+    expect(plan(5, { kind: "take_navy", target: 9, pct: 50 }, after)).toBe(
+      "already_used",
     );
-    // A war-goal claim (the conference's claims list) makes no claimant.
-    const goal: PeaceTable = { ...table, claims: [[6, 3]] };
-    expect(rb(6, "take", 3, s, 6, goal)).toBe("claim_only");
-    expect(rb(6, "occupation_zone", 3, s, 6, goal)).toBe("claim_only");
-    // Another region: no rule.
-    expect(rb(5, "take", 2)).toBeNull();
-    // A human's wire demand on Korea is refused (bad_demand), a group skips it.
-    const x = {
-      groupRegions: (g: string) => (g === "g" ? [1, 2] : []),
-      releasable: [] as CountryTag[],
-      smallIdOf: () => 0,
-      hasCore: facts.hasCore,
-      sensitivity: s,
-    };
-    expect(
-      expandPeaceDemand(table, 5, { kind: "take", region: 1 }, x),
-    ).toBeNull();
-    expect(
-      expandPeaceDemand(table, 5, { kind: "take_group", group: "g" }, x),
-    ).toMatchObject({ regions: [2] });
-    expect(
-      expandPeaceDemand(table, 5, { kind: "occupation_zone", region: 1 }, x),
-    ).toMatchObject({ regions: [1] });
+    expect(plan(6, { kind: "take_navy", target: 9, pct: 50 }, after)).toBe(
+      "no_ships",
+    );
   });
 
   it("a wire demand is spelled out or refused as the engine does", () => {
@@ -664,7 +585,6 @@ describe("World War 1936 P5: the demand rules the card shares (engine-lib PeaceR
       releasable: [] as CountryTag[],
       smallIdOf: () => 0,
       hasCore: facts.hasCore,
-      sensitivity: none,
     };
     expect(
       expandPeaceDemand(table, 5, { kind: "take_group", group: "g" }, x),

@@ -10,7 +10,6 @@ import {
   SPECIAL_PROJECTS,
 } from "@openfront/engine-api/ww1936/DepthTypes";
 import {
-  BUILDING_IDS,
   equipKey,
   EQUIPMENT_TYPES,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
@@ -39,19 +38,6 @@ import {
 
 beforeEach(() => usePoliticsContent(depthFixture()));
 afterEach(() => usePoliticsContent(null));
-
-/** Pre-flight §0-11: `regions` in P5's group korea_north (the engine's no-strike set). */
-function withNoStrike(regions: number[]): void {
-  const base = depthFixture();
-  usePoliticsContent(
-    depthFixture({
-      groups: [
-        ...base.groups,
-        { id: "korea_north", regions, owner1936: "FRA" },
-      ],
-    }),
-  );
-}
 
 const BERLIN = DEEP.region.berlin;
 const LYON = DEEP.region.lyon;
@@ -319,52 +305,5 @@ describe("World War 1936 P6: raids (spec §10)", () => {
       Math.abs(t.men[t.rowOf(div)] - Math.round(men / 2)),
     ).toBeLessThanOrEqual(1);
     expect(army.divisions).toContain(div);
-  }, 60_000);
-
-  it("no raid goes in on a no-strike region (pre-flight §0-11)", async () => {
-    withNoStrike([LYON]);
-    const { g, ww, d, deu, run, army, div } = await paraRaid();
-    expect(d.noStrike(LYON)).toBe(true);
-    const t = ww.land.divisions;
-    const men = t.men[t.rowOf(div)];
-    for (const raid of ["raid_para", "raid_commando"] as const) {
-      expect(
-        d.issue(
-          deu,
-          {
-            kind: "raid",
-            raid,
-            unit: div,
-            target: LYON,
-            building: "facility_nuclear",
-          },
-          g.ticks(),
-        ),
-      ).toBe("no_strike_region");
-    }
-    expect(d.raids).toEqual([]);
-    expect(army.divisions).toEqual(expect.arrayContaining([div]));
-    expect(army.divisions).toHaveLength(2);
-    // A raid already prepared (say, before the list held it) is called off:
-    // nothing is hit, the division comes back whole, nobody is told.
-    rigNextRaid(d, true);
-    const day = ww.day(g.ticks());
-    d.raids.push({
-      uid: d.uid(),
-      owner: deu,
-      kind: 0,
-      unit: div,
-      target: LYON,
-      building: BUILDING_IDS.indexOf("facility_nuclear"),
-      readyDay: day,
-    });
-    const msg = vi.spyOn(d, "message");
-    const fx = vi.spyOn(d, "addFx");
-    processRaids(d, day, g.ticks());
-    expect(d.raids).toEqual([]);
-    expect(run.progressMilli).toBe(500_000);
-    expect(t.men[t.rowOf(div)]).toBe(men);
-    expect(msg).not.toHaveBeenCalled();
-    expect(fx).not.toHaveBeenCalled();
   }, 60_000);
 });

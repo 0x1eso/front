@@ -348,7 +348,7 @@ export function integrateBlockOf(
 ): WwOrderBlock | null {
   const sc = eg.ww.scenario;
   const reg = sc.region(region);
-  if (reg === undefined || eg.neverAdministered.has(region)) {
+  if (reg === undefined) {
     return "not_integrable";
   }
   return integrateBlock({

@@ -17,12 +17,6 @@ import {
   WwPeaceTerms,
 } from "@openfront/engine-api/ww1936/EndgameTypes";
 import { AGG_PCT, COST_FACTORS, reparationsCost } from "./EndgameRules";
-import {
-  peaceRegionBlock,
-  PeaceSensitivity,
-  PeaceTable,
-  SensitiveBlock,
-} from "./PeaceRules";
 
 // ---- Values (the peace conference's currency, spec §6.3) ----
 
@@ -96,32 +90,6 @@ export function hasPeaceTerms(t: WwPeaceTerms | null | undefined): boolean {
   );
 }
 
-const NO_TABLE: PeaceTable = {
-  stake: [],
-  base: [],
-  losers: [],
-  parts: [],
-  claims: [],
-  conquer: [],
-  topple: [],
-  settled: [],
-};
-
-/**
- * Korea and Taiwan are never ceded or demanded (the owner's sensitivity
- * rule): P5's peaceRegionBlock for a take with no conference — Korea is
- * zone-only (zone_only), Taiwan goes only to a claimant at a conference
- * (claim_only), and the excluded country (JPN) never receives either.
- * Every other region: null.
- */
-export function negPeaceRegionBlock(
-  s: PeaceSensitivity,
-  receiver: number,
-  region: number,
-): SensitiveBlock | null {
-  return peaceRegionBlock(s, NO_TABLE, receiver, receiver, "take", region);
-}
-
 const levelOk = (n: number) =>
   Number.isInteger(n) && n >= 0 && n <= WW_NEG_REPARATIONS_MAX_LEVEL;
 
@@ -129,13 +97,11 @@ const levelOk = (n: number) =>
  * Why `t` can't be offered by `from` to `to` now (null: it can). Bounded
  * counts, levels 0..3 and not both ways, no region twice; a subject set
  * free is one of the two's; each ceded region legally the giver's, no
- * occupation zone, not Korea or Taiwan (their reasons), not the giver's
- * capital, and at most WW_NEG_PEACE_MAX_VP_PCT of the giver's victory
+ * occupation zone, not the giver's capital, and at most WW_NEG_PEACE_MAX_VP_PCT of the giver's victory
  * points each way.
  */
 export function negPeaceTermsBlock(
   f: NegPeaceFacts,
-  s: PeaceSensitivity,
   t: WwPeaceTerms,
   from: number,
   to: number,
@@ -167,11 +133,9 @@ export function negPeaceTermsBlock(
     [t.give, from, to],
     [t.take, to, from],
   ];
-  for (const [regs, giver, receiver] of ways) {
+  for (const [regs, giver] of ways) {
     let vp = 0;
     for (const r of regs) {
-      const k = negPeaceRegionBlock(s, receiver, r);
-      if (k !== null) return k;
       if (f.legalOwner(r) !== giver || f.isZone(r)) return "peace_bad_terms";
       if (r === f.capital(giver)) return "peace_capital";
       vp += f.vp(r);

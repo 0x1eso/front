@@ -21,7 +21,6 @@ import { DEPTH_BEATS } from "@openfront/engine-lib/ww1936/content/depth/beats";
 import { DEPTH_EVENTS } from "@openfront/engine-lib/ww1936/content/depth/world";
 import { GRAND_COUNCIL_CRISIS } from "@openfront/engine-lib/ww1936/content/events/ita";
 import { WORLD_EVENTS } from "@openfront/engine-lib/ww1936/content/events/world";
-import { NO_STRIKE_REGION_IDS } from "@openfront/engine-lib/ww1936/NoStrike";
 import { loadMapFiles } from "@openfront/shared/GameMapLoader";
 import fs from "fs";
 import path from "path";
@@ -1001,23 +1000,6 @@ const v4Island = (key: string): V4Region =>
 const NO_STRIKE = [563, 598, 604, 622, 639, 679, 686, 701, 732, 734, 761, 901];
 
 describe("the world1936 start bases and harbours (P4 spec §3.5, §6.4, §12.1)", () => {
-  test("no base, coastal fort or anti-air in Korea or Taiwan, whoever holds them (final review B, I1)", () => {
-    expect([...NO_STRIKE_REGION_IDS]).toEqual(NO_STRIKE);
-    for (const id of NO_STRIKE) {
-      const r = v4ById.get(id)!;
-      expect(
-        [r.navalBase, r.airBase, r.aa, r.coastalFort],
-        `${id} ${data.scenario!.region(id)?.name}`,
-      ).toEqual([0, 0, 0, 0]);
-    }
-    // Japan's at the start; Seoul and Taiwan stay ports (P2's, with no base).
-    expect(NO_STRIKE.map((id) => data.scenario!.region(id)?.owner)).toEqual(
-      NO_STRIKE.map(() => "JPN"),
-    );
-    expect(data.scenario!.region(679)?.port).toBe(true);
-    expect(data.scenario!.region(901)?.port).toBe(true);
-  });
-
   test("every region on a sea has the harbour it touches most, the others 0", () => {
     const s = data.scenario!;
     const map = data.gameMap;

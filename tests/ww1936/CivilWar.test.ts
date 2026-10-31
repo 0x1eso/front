@@ -284,36 +284,6 @@ describe("World War 1936 P5: civil wars (spec §15)", () => {
     step(s.runner, 10);
   }, 60_000);
 
-  it("Korea and Taiwan (the sensitivity guard) stay out of a split and keep their legal owner", async () => {
-    // On the test map the guard holds no region: Slovakia stands in for
-    // one (the real map's Korean and Taiwanese regions).
-    const s = await started();
-    const { g, ww, eg } = s;
-    const [csk, cw] = [endId("CSK"), endId("CW1")];
-    const SLOVAKIA = END.region["slovakia"];
-    eg.neverAdministered = new Set([SLOVAKIA]);
-    expect(startCivilWar(eg, csk, "fascist", g.ticks())).toBe(true);
-    const pol = ww.politics;
-    expect(pol.legalOwner[SLOVAKIA]).toBe(csk);
-    expect(ww.land.controller[SLOVAKIA]).toBe(csk);
-    const rebels = ww.scenario.landRegions
-      .filter((r) => pol.legalOwner[r.id] === cw)
-      .map((r) => r.id);
-    expect(rebels.length).toBeGreaterThan(0);
-    // The rebels win: the rest of Czechoslovakia is theirs by law; the
-    // guarded region only by control.
-    const war = eg.warOfPair(cw, csk);
-    const side = eg.sideIndex(eg.war(war)!, cw) as 0 | 1;
-    endCivilWar(eg, war, side, g.ticks());
-    expect(eg.countryState(csk)).toBe("gone");
-    expect(pol.legalOwner[SLOVAKIA]).toBe(csk);
-    expect(ww.land.controller[SLOVAKIA]).toBe(cw);
-    expect(eg.hasCore(cw, SLOVAKIA)).toBe(false);
-    for (const r of [END.region["prague"], END.region["sudetenland"]]) {
-      expect(pol.legalOwner[r]).toBe(cw);
-    }
-  }, 60_000);
-
   it("every rebel region's victory-point tile is the rebel's on the split tick", async () => {
     const s = await started();
     const { g, ww, eg } = s;

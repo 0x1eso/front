@@ -139,7 +139,7 @@ describe("generals (P2 spec §6.2)", () => {
     expect(generalServes(jailed, day("1940-03-22"))).toBe(true);
     // In a game: Rundstedt with those dates (no test general in GENERALS).
     const { l, cl, first, messages } = await germany();
-    const rundstedt = cl.generals[0];
+    const rundstedt = cl.generals.find((x) => x.id === 1)!;
     expect(first.general).toBe(rundstedt.id);
     const dates = (def: GeneralDef) => (gs: typeof rundstedt) =>
       gs.id === rundstedt.id ? def : undefined;

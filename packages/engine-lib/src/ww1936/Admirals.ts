@@ -9,18 +9,12 @@
 // spec's dates (a later first flag command, Kimmel's relief, Orlov's arrest,
 // the French naval chief's change of side) stay.
 //
-// Who is left out (spec §7.4, §16.3, controller rulings):
-// - Japan: every person is shown by office only. The spec's eight
-//   Japanese admirals are eight office cards below, with the spec's skills,
-//   traits and dates; no Japanese person's name appears anywhere. The
-//   spec's own exclusions (governors-general of Korea or Taiwan, anyone
-//   convicted of war crimes or indicted as a Class A suspect) are covered
-//   by that.
-// - Germany: the two convicted naval commanders-in-chief.
-// - France: Jean-Marie Abrial (sentenced in 1946 by the Haute Cour de
-//   justice to ten years' forced labour: en.wikipedia + fr.wikipedia), and
-//   the 1937-42 chief of the naval staff shown by office only (ruling).
-// - Soviet Union: the NKVD officer who headed the navy 1938-39.
+// Names: the old exclusions (Japan by office only, the convicted German
+// naval commanders-in-chief, Korea or Taiwan governors) were abolished
+// 2026-10-31. The eight Japanese office cards below carry real names now
+// (lang files); Raeder and Dönitz are appended at the end of the roster.
+// Still without a card: Abrial, the 1937-42 French chief of the naval
+// staff, and the NKVD officer who headed the Soviet navy 1938-39.
 // `alsoPerson` marks the same person as a navy-chief advisor card
 // (AirChiefs.ts / content/persons/p4.ts): P3 rule "one side at a time",
 // the same way as PersonDef.alsoGeneral.
@@ -191,14 +185,14 @@ export const ADMIRALS: readonly AdmiralDef[] = [
     "JPN",
     [5, 3, 4, 5],
     ["aviation_enthusiast"],
-    "office card: Commander-in-Chief of the Combined Fleet (en.wikipedia Combined Fleet; ja.wikipedia 連合艦隊司令長官), spec §7.4 row 1",
+    "card: Commander-in-Chief of the Combined Fleet (en.wikipedia Combined Fleet; ja.wikipedia 連合艦隊司令長官), spec §7.4 row 1",
   ),
   row(
     "jpn_carrier_division_2",
     "JPN",
     [5, 2, 3, 3],
     ["aviation_enthusiast"],
-    "office card: commander of the 2nd Carrier Division (en.wikipedia Carrier Division 2; ja.wikipedia 第二航空戦隊), spec §7.4 row 2, from 1940",
+    "card: commander of the 2nd Carrier Division (en.wikipedia Carrier Division 2; ja.wikipedia 第二航空戦隊), spec §7.4 row 2, from 1940",
     { from: "1940-01-01" },
   ),
   row(
@@ -206,42 +200,42 @@ export const ADMIRALS: readonly AdmiralDef[] = [
     "JPN",
     [4, 3, 4, 4],
     [],
-    "office card: commander of the Mobile Fleet (en.wikipedia First Mobile Fleet; ja.wikipedia 第一機動艦隊), spec §7.4 row 3",
+    "card: commander of the Mobile Fleet (en.wikipedia First Mobile Fleet; ja.wikipedia 第一機動艦隊), spec §7.4 row 3",
   ),
   row(
     "jpn_second_fleet",
     "JPN",
     [3, 3, 3, 3],
     [],
-    "office card: Commander-in-Chief of the Second Fleet (en.wikipedia Second Fleet (Imperial Japanese Navy); ja.wikipedia 第二艦隊), spec §7.4 row 4",
+    "card: Commander-in-Chief of the Second Fleet (en.wikipedia Second Fleet (Imperial Japanese Navy); ja.wikipedia 第二艦隊), spec §7.4 row 4",
   ),
   row(
     "jpn_first_air_fleet",
     "JPN",
     [3, 3, 2, 3],
     [],
-    "office card: Commander-in-Chief of the First Air Fleet (en.wikipedia First Air Fleet; ja.wikipedia 第一航空艦隊), spec §7.4 row 5",
+    "card: Commander-in-Chief of the First Air Fleet (en.wikipedia First Air Fleet; ja.wikipedia 第一航空艦隊), spec §7.4 row 5",
   ),
   row(
     "jpn_eighth_fleet",
     "JPN",
     [4, 2, 4, 2],
     [],
-    "office card: Commander-in-Chief of the Eighth Fleet (en.wikipedia Eighth Fleet (Imperial Japanese Navy); ja.wikipedia 第八艦隊), spec §7.4 row 6",
+    "card: Commander-in-Chief of the Eighth Fleet (en.wikipedia Eighth Fleet (Imperial Japanese Navy); ja.wikipedia 第八艦隊), spec §7.4 row 6",
   ),
   row(
     "jpn_destroyer_squadron_2",
     "JPN",
     [4, 2, 5, 2],
     [],
-    "office card: commander of Destroyer Squadron 2 (en.wikipedia Destroyer Squadron 2 (Japan); ja.wikipedia 第二水雷戦隊), spec §7.4 row 7",
+    "card: commander of Destroyer Squadron 2 (en.wikipedia Destroyer Squadron 2 (Japan); ja.wikipedia 第二水雷戦隊), spec §7.4 row 7",
   ),
   row(
     "jpn_cruiser_division_7",
     "JPN",
     [3, 3, 3, 2],
     [],
-    "office card: commander of Cruiser Division 7 (en.wikipedia Cruiser Division 7; ja.wikipedia 第七戦隊), spec §7.4 row 8",
+    "card: commander of Cruiser Division 7 (en.wikipedia Cruiser Division 7; ja.wikipedia 第七戦隊), spec §7.4 row 8",
   ),
 
   // ---- Germany ----
@@ -388,6 +382,21 @@ export const ADMIRALS: readonly AdmiralDef[] = [
     [],
     "en.wikipedia Vladimir Mitrofanovich Orlov + Military Wiki list of Soviet naval commanders: head of the Naval Forces 1931 to his arrest 1937-07-10 (Viktorov from August 1937); executed 1938",
     { until: "1937-07-10", alsoPerson: "sun_orlov" },
+  ),
+  // ---- Restored 2026-10-31 (the exclusions were abolished) ----
+  row(
+    "deu_raeder",
+    "DEU",
+    [3, 3, 3, 4],
+    [],
+    "en.wikipedia Erich Raeder: Commander-in-Chief of the Kriegsmarine 1935-43",
+  ),
+  row(
+    "deu_doenitz",
+    "DEU",
+    [4, 3, 4, 3],
+    ["sea_wolf"],
+    "en.wikipedia Karl Dönitz: Befehlshaber der Unterseeboote 1935-43, Commander-in-Chief of the Kriegsmarine from 1943",
   ),
 ];
 

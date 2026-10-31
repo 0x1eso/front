@@ -92,11 +92,7 @@ export type PeaceBlock =
   | "no_factories"
   | "no_faction"
   | "lost_capital"
-  | "already_used"
-  | SensitiveBlock;
-
-/** Why a Korea or Taiwan region can't go this way (`ww1936.peace.why.<block>`). */
-export type SensitiveBlock = "zone_only" | "claim_only";
+  | "already_used";
 
 /** The translation key of a reason (the card shows it). */
 export function peaceBlockKey(block: PeaceBlock): string {
@@ -175,69 +171,6 @@ const pairIn = (
   b: number,
 ) => list.some(([x, y]) => x === a && y === b);
 
-// ---- Korea and Taiwan (spec §6.9, §16.4; owner decision 6; controller ruling) ----
-
-/** Korea's groups: their regions are only ever an occupation zone (control only). */
-export const ZONE_ONLY_GROUPS: readonly string[] = [
-  "korea_north",
-  "korea_south",
-];
-/** Taiwan: only a participant claiming it (CLAIMS: CHN) takes it. */
-export const CLAIM_ONLY_GROUPS: readonly string[] = ["taiwan"];
-/** The country that never takes or zones either again. */
-export const SENSITIVE_EXCLUDED_TAG: CountryTag = "JPN";
-
-/** The fixed conference rules of Korea's and Taiwan's regions for one conference. */
-export interface PeaceSensitivity {
-  /** Korea: only `occupation_zone`; a loser holding one legally is never annexed. */
-  readonly zoneOnly: ReadonlySet<number>;
-  /** Taiwan: taken only by a participant that claims it; with none, only the main victor's zone. */
-  readonly claimOnly: ReadonlySet<number>;
-  /** smallID of SENSITIVE_EXCLUDED_TAG (0: not in the game): never takes or zones either. */
-  readonly excluded: number;
-  /** The participant with the most war score (peaceMainVictor). */
-  readonly mainVictor: number;
-  /**
-   * Taiwan's claimants: countries whose static CLAIMS row names a
-   * CLAIM_ONLY_GROUPS group (CHN, spec §16.4) — never a war goal (spec:
-   * these groups live only in the conference and claims tables).
-   */
-  readonly claimants: ReadonlySet<number>;
-}
-
-/**
- * The rules from the content's groups (`groupRegions`: a group's regions)
- * and Taiwan's claimants (peaceClaimants; pass only countries still playing).
- */
-export function peaceSensitivity(
-  groupRegions: (group: string) => readonly number[],
-  excluded: number,
-  mainVictor: number,
-  claimants: readonly number[],
-): PeaceSensitivity {
-  const of = (groups: readonly string[]) =>
-    new Set(groups.flatMap((g) => [...groupRegions(g)]));
-  return {
-    zoneOnly: of(ZONE_ONLY_GROUPS),
-    claimOnly: of(CLAIM_ONLY_GROUPS),
-    excluded,
-    mainVictor,
-    claimants: new Set(claimants),
-  };
-}
-
-/** The tags whose static CLAIMS row names a CLAIM_ONLY_GROUPS group (content order). */
-export function peaceClaimantTags(
-  claims: readonly {
-    readonly tag: CountryTag;
-    readonly groups: readonly string[];
-  }[],
-): CountryTag[] {
-  return claims
-    .filter((c) => c.groups.some((g) => CLAIM_ONLY_GROUPS.includes(g)))
-    .map((c) => c.tag);
-}
-
 /** The main victor: most war score, ties the smaller smallID (round 1's first turn); 0: none. */
 export function peaceMainVictor(
   parts: readonly { readonly id: number; readonly wsMilli: number }[],
@@ -251,53 +184,6 @@ export function peaceMainVictor(
     }
   }
   return best;
-}
-
-/**
- * Whether `region` may go to `receiver` by participant `p`'s demand of
- * `kind` (null: yes). Korea's regions: an occupation zone only, never for
- * the excluded country (zone_only). Taiwan's: taken (take, take_group,
- * take_for, annex_rest) or zoned only for a participant claiming it; with
- * no claiming participant, only the main victor's occupation zone; never
- * the excluded country (claim_only). A claimant is a participant in
- * `s.claimants` (the static CLAIMS table) — a war-goal claim in `t.claims`
- * does not count. Every other region: null. The engine (submissions,
- * reservations, settling, the AI) and the card ask this.
- */
-export function peaceRegionBlock(
-  s: PeaceSensitivity,
-  t: PeaceTable,
-  p: number,
-  receiver: number,
-  kind: DemandKind,
-  region: number,
-): SensitiveBlock | null {
-  if (s.zoneOnly.has(region)) {
-    return kind === "occupation_zone" && p !== s.excluded ? null : "zone_only";
-  }
-  if (!s.claimOnly.has(region)) return null;
-  if (p === s.excluded || receiver === s.excluded) return "claim_only";
-  const holders = t.parts.map((x) => x.id).filter((x) => s.claimants.has(x));
-  if (holders.length > 0) {
-    const gets =
-      kind === "take" ||
-      kind === "take_group" ||
-      kind === "take_for" ||
-      kind === "annex_rest" ||
-      kind === "occupation_zone";
-    return gets && holders.includes(receiver) ? null : "claim_only";
-  }
-  return kind === "occupation_zone" && p === s.mainVictor ? null : "claim_only";
-}
-
-/** A loser that legally holds a Korea region at stake is never annexed. */
-function holdsZoneOnly(
-  f: PeaceFacts,
-  t: PeaceTable,
-  s: PeaceSensitivity,
-  loser: number,
-): boolean {
-  return t.stake.some((r) => s.zoneOnly.has(r) && f.legalOwner(r) === loser);
 }
 
 /**
@@ -424,11 +310,9 @@ export function peaceReparationsRoom(
  * Spec §6.4 per kind (plan decision 13): what `d` by `p` would settle now
  * and at what price, or why it can't. `free(r)`: the region is at stake,
  * not settled, and not reserved by another participant's control this
- * round (plan decision 15). `s`: Korea's and Taiwan's rules
- * (peaceRegionBlock). A puppet settled on a loser keeps its other regions
- * (HOI4: the puppet keeps what nobody took before) — except Korea's and
- * Taiwan's, whose fixed outcomes stand. Points are the caller's (spent
- * only when it settles).
+ * round (plan decision 15). A puppet settled on a loser keeps its other
+ * regions (HOI4: the puppet keeps what nobody took before). Points are the
+ * caller's (spent only when it settles).
  */
 export function planPeaceDemand(
   f: PeaceFacts,
@@ -436,7 +320,6 @@ export function planPeaceDemand(
   p: number,
   d: PeaceDemandIn,
   free: (r: number) => boolean,
-  s: PeaceSensitivity,
 ): PeacePlan | PeaceBlock {
   const L = d.target;
   const loser = t.losers.includes(L);
@@ -447,19 +330,10 @@ export function planPeaceDemand(
     cost: number,
     receiver = p,
   ): PeacePlan => ({ all: regs, cost, receiver });
-  // The first Korea / Taiwan reason met (a free region the rule refused).
-  let why: SensitiveBlock | null = null;
   const puppeted = (r: number) => peaceSettledOn(t, f.legalOwner(r), "puppet");
-  /** Of `regs`, those free and allowed to go to `receiver` by this kind. */
-  const open = (regs: readonly number[], receiver = p): number[] =>
-    regs.filter((r) => {
-      // Korea's and Taiwan's regions follow their own rule, not the lock.
-      const locked = puppeted(r) && !s.zoneOnly.has(r) && !s.claimOnly.has(r);
-      if (!free(r) || locked) return false;
-      const b = peaceRegionBlock(s, t, p, receiver, d.kind, r);
-      if (b !== null) why ??= b;
-      return b === null;
-    });
+  /** Of `regs`, those free and not locked by a puppet settled on their owner. */
+  const open = (regs: readonly number[]): number[] =>
+    regs.filter((r) => free(r) && !puppeted(r));
   switch (d.kind) {
     case "take":
     case "take_group": {
@@ -467,25 +341,22 @@ export function planPeaceDemand(
         r,
         peaceRegionCost(f, t, r, p, p),
       ]);
-      return each.length > 0 ? { each } : (why ?? "no_target");
+      return each.length > 0 ? { each } : "no_target";
     }
     case "take_for": {
       const b = d.beneficiary;
       if (b === p || !isPart(t, b)) return "bad_demand";
       const cand = d.regions.filter((r) => free(r) && !puppeted(r));
-      const each = open(
-        cand.filter((r) => f.hasCore(b, r)),
-        b,
-      ).map((r): [number, number] => [r, peaceRegionCost(f, t, r, p, b)]);
+      const each = open(cand.filter((r) => f.hasCore(b, r))).map(
+        (r): [number, number] => [r, peaceRegionCost(f, t, r, p, b)],
+      );
       if (each.length > 0) return { each };
-      if (why !== null) return why;
       return cand.length > 0 ? "no_core" : "no_target";
     }
     case "annex_rest": {
       if (!loser || peaceSettledOn(t, L, "puppet")) return "bad_demand";
-      if (holdsZoneOnly(f, t, s, L)) return "zone_only";
       const regs = open(peaceRest(f, t, L, free));
-      if (regs.length === 0) return why ?? "no_target";
+      if (regs.length === 0) return "no_target";
       return all(regs, aggregateCost(costs(regs), AGG_PCT.annex_rest));
     }
     case "occupation_zone": {
@@ -495,7 +366,7 @@ export function planPeaceDemand(
         return all(regs, aggregateCost(costs(regs), AGG_PCT.occupation_zone));
       }
       if (cand.length > 0) return "not_adjacent";
-      return why ?? "no_target";
+      return "no_target";
     }
     case "puppet": {
       if (!loser || peaceSettledOn(t, L, "annex_rest", "puppet")) {
@@ -511,8 +382,8 @@ export function planPeaceDemand(
       if (T <= 0) return "lost_capital";
       const cores = t.stake.filter((r) => f.hasCore(T, r));
       if (cores.length === 0) return "no_core";
-      const regs = open(cores, T);
-      if (regs.length === 0) return why ?? "no_target";
+      const regs = open(cores);
+      if (regs.length === 0) return "no_target";
       const pct = d.kind === "release" ? AGG_PCT.release : AGG_PCT.liberate;
       return all(regs, aggregateCost(costs(regs), pct), T);
     }
@@ -538,16 +409,9 @@ export function planPeaceDemand(
     case "demilitarise": {
       const cand = d.regions.filter((r) => {
         if (!t.stake.includes(r) || !free(r)) return false;
-        if (
-          t.settled.some(
-            (x) => x.kind === KIND_IDX.demilitarise && x.regions.includes(r),
-          )
-        ) {
-          return false;
-        }
-        const b = peaceRegionBlock(s, t, p, p, "demilitarise", r);
-        if (b !== null) why ??= b;
-        return b === null;
+        return !t.settled.some(
+          (x) => x.kind === KIND_IDX.demilitarise && x.regions.includes(r),
+        );
       });
       const each = cand
         .filter((r) => f.neighbours(r).some((n) => f.legalOwner(n) === p))
@@ -562,7 +426,7 @@ export function planPeaceDemand(
         ]);
       if (each.length > 0) return { each };
       if (cand.length > 0) return "not_adjacent";
-      return why ?? "no_target";
+      return "no_target";
     }
     case "reparations": {
       if (!loser || d.k < 1) return "bad_demand";
@@ -614,14 +478,11 @@ export interface PeaceExpandFacts {
   readonly releasable: readonly CountryTag[];
   smallIdOf(tag: CountryTag): number;
   hasCore(smallID: number, region: number): boolean;
-  /** Korea's and Taiwan's rules: a region they refuse is never spelled in. */
-  readonly sensitivity: PeaceSensitivity;
 }
 
 /**
  * Plan decision 11: a wire demand spelled out into regions (groups ∩ the
- * stake, without the Korea / Taiwan regions peaceRegionBlock refuses to
- * `p`), its target, receiver, k and pct; null when it is not a demand this
+ * stake), its target, receiver, k and pct; null when it is not a demand this
  * conference can take from `p` (the engine answers bad_demand).
  */
 export function expandPeaceDemand(
@@ -631,10 +492,8 @@ export function expandPeaceDemand(
   x: PeaceExpandFacts,
 ): PeaceDemandIn | null {
   const inStake = (r: number) => t.stake.includes(r);
-  const allowed = (r: number, receiver = p) =>
-    peaceRegionBlock(x.sensitivity, t, p, receiver, d.kind, r) === null;
   const group = (g: string) => [
-    ...new Set(x.groupRegions(g).filter((r) => inStake(r) && allowed(r))),
+    ...new Set(x.groupRegions(g).filter((r) => inStake(r))),
   ];
   const loser = (id: number) => t.losers.includes(id);
   const out = (
@@ -651,7 +510,7 @@ export function expandPeaceDemand(
   switch (d.kind) {
     case "take":
     case "demilitarise":
-      return inStake(d.region) && allowed(d.region) ? out([d.region]) : null;
+      return inStake(d.region) ? out([d.region]) : null;
     case "take_group": {
       const regs = group(d.group);
       return regs.length > 0 ? out(regs) : null;
@@ -660,7 +519,6 @@ export function expandPeaceDemand(
       const b = d.beneficiary;
       if (b === p || !isPart(t, b)) return null;
       if (!inStake(d.region) || !x.hasCore(b, d.region)) return null;
-      if (!allowed(d.region, b)) return null;
       return out([d.region], { beneficiary: b });
     }
     case "occupation_zone": {
@@ -668,7 +526,7 @@ export function expandPeaceDemand(
       const regs =
         d.group !== undefined
           ? group(d.group)
-          : inStake(d.region!) && allowed(d.region!)
+          : inStake(d.region!)
             ? [d.region!]
             : [];
       return regs.length > 0 ? out(regs) : null;

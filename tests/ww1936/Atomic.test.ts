@@ -4,7 +4,6 @@
 // London. The zone's drop step is called directly with the day it runs.
 import { AIR_MISSIONS, AIR_TYPES } from "@openfront/engine-api/ww1936/AirTypes";
 import { COUNTRIES } from "@openfront/engine-api/ww1936/Countries";
-import { SPECIAL_PROJECTS } from "@openfront/engine-api/ww1936/DepthTypes";
 import {
   BUILDING_IDS,
   equipKey,
@@ -43,24 +42,6 @@ import {
 
 beforeEach(() => usePoliticsContent(depthFixture()));
 afterEach(() => usePoliticsContent(null));
-
-/**
- * Pre-flight §0-11: the test content with `regions` in P5's group
- * korea_north, so the engine's no-strike set (WwDepth.noStrike: the
- * registry's noStrikeRegions) holds them as it holds Korea's on the
- * world map.
- */
-function withNoStrike(regions: number[]): void {
-  const base = depthFixture();
-  usePoliticsContent(
-    depthFixture({
-      groups: [
-        ...base.groups,
-        { id: "korea_north", regions, owner1936: "DEU" },
-      ],
-    }),
-  );
-}
 
 const BERLIN = DEEP.region.berlin;
 const MUNICH = DEEP.region.munich;
@@ -364,60 +345,3 @@ describe("World War 1936 P6: the atomic bomb (spec §9.5)", () => {
   }, 60_000);
 });
 
-describe("World War 1936 P6: no atomic bomb on a no-strike region (pre-flight §0-11)", () => {
-  it("the order, the zone's drop step and the effect refuse it; the blast stops at its border", async () => {
-    withNoStrike([MUNICH]);
-    const { g, ww, d, gbr, deu, ce } = await atomicWar(2, 10);
-    expect(d.noStrike(MUNICH)).toBe(true);
-    expect(d.noStrike(BERLIN)).toBe(false);
-    const econ = ww.economy;
-    const munich = () =>
-      BUILDING_IDS.reduce((s, b) => s + damageOf(econ, MUNICH, b), 0);
-    // Germany's rockets could carry it too: the region is refused first.
-    d.country(gbr)!.proj.done |= 1 << SPECIAL_PROJECTS.indexOf("sp_ballistic");
-    ce.stock[equipKey("ballistic_rocket", 1)] = 1;
-    for (const rocket of [false, true]) {
-      expect(
-        d.issue(gbr, { kind: "nuke_drop", region: MUNICH, rocket }, 1),
-      ).toBe("no_strike_region");
-    }
-    expect(ce.stock[ATOMIC_KEY]).toBe(2);
-    expect(ce.stock[equipKey("ballistic_rocket", 1)]).toBe(1);
-    expect(d.nukeQueue).toEqual([]);
-    // A drop already queued (say, before the list held it) is lost unflown.
-    d.nukeQueue.push({
-      owner: gbr,
-      region: MUNICH,
-      zone: WEST,
-      rocket: false,
-      day: ww.day(g.ticks()),
-    });
-    const news = vi.spyOn(d, "news");
-    processNukeQueue(d, WEST, ww.day(g.ticks()), g.ticks());
-    expect(d.nukeQueue).toEqual([]);
-    // Nor does any caller of the effect strike it.
-    applyNuke(d, gbr, MUNICH, g.ticks());
-    expect(munich()).toBe(0);
-    expect(d.nuked.has(MUNICH)).toBe(false);
-    expect(d.country(deu)!.proj.nukedCount).toBe(0);
-    expect(news).not.toHaveBeenCalled();
-    // Berlin is struck; its no-strike neighbour's divisions are untouched,
-    // its other neighbour's lose 15%.
-    clearLand(g);
-    stockUp(g, "DEU");
-    const inMunich = placeArmy(g, "DEU", MUNICH, 1).divisions[0];
-    const inWarsaw = placeArmy(g, "DEU", DEEP.region.warsaw, 1).divisions[0];
-    const t = ww.land.divisions;
-    const men = (id: number) => t.men[t.rowOf(id)];
-    const before = [men(inMunich), men(inWarsaw)];
-    const org = t.org[t.rowOf(inMunich)];
-    applyNuke(d, gbr, BERLIN, g.ticks());
-    expect(d.nuked.has(BERLIN)).toBe(true);
-    expect(men(inMunich)).toBe(before[0]);
-    expect(t.org[t.rowOf(inMunich)]).toBe(org);
-    expect(munich()).toBe(0);
-    expect(
-      Math.abs(men(inWarsaw) - Math.round(before[1] * 0.85)),
-    ).toBeLessThanOrEqual(1);
-  }, 60_000);
-});

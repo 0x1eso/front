@@ -28,20 +28,14 @@ import {
   expandPeaceDemand,
   type PeaceBlock,
   peaceBlockKey,
-  peaceClaimantTags,
   type PeaceDemandIn,
   type PeaceFacts,
-  peaceRegionBlock,
   peaceRegionCost,
-  type PeaceSensitivity,
-  peaceSensitivity,
   type PeaceSettledRow,
   type PeaceShip,
   type PeaceTable,
   planPeaceDemand,
   REGION_DEMAND_KINDS,
-  SENSITIVE_EXCLUDED_TAG,
-  type SensitiveBlock,
   TAKE_NAVY_PCT_MAX,
   TAKE_NAVY_PCT_MIN,
 } from "@openfront/engine-lib/ww1936/PeaceRules";
@@ -187,8 +181,6 @@ export class PeaceModel {
   readonly table: PeaceTable;
   /** Views made from wire demands the engine would refuse (expandPeaceDemand: null). */
   private readonly refusedViews = new WeakSet<WwDemandView>();
-  /** Korea's and Taiwan's rules for this conference (spec §6.9; PeaceRules). */
-  readonly sens: PeaceSensitivity;
 
   constructor(
     readonly conference: WwConferenceView | null,
@@ -215,29 +207,6 @@ export class PeaceModel {
         regions: x.regions,
       })),
     };
-    // As the engine's peaceSens: Taiwan's claimants from the static
-    // claims table, those still playing.
-    this.sens = peaceSensitivity(
-      (g) => CONTENT.groupIdx.get(g)?.regions ?? [],
-      world.smallIdOf(SENSITIVE_EXCLUDED_TAG),
-      c?.mainVictor ?? 0,
-      peaceClaimantTags(CONTENT.claims)
-        .map((tag) => world.smallIdOf(tag))
-        .filter((id) => id > 0 && world.isActor(id)),
-    );
-  }
-
-  /**
-   * Why `region` can't go to `receiver` by `kind` from `p` (Korea: zone
-   * only; Taiwan: its claimant only — spec §6.9); null: it can.
-   */
-  sensitiveBlock(
-    p: number,
-    receiver: number,
-    kind: DemandKind,
-    region: number,
-  ): SensitiveBlock | null {
-    return peaceRegionBlock(this.sens, this.table, p, receiver, kind, region);
   }
 
   participant(me: number): WwConferenceView["participants"][number] | null {
@@ -325,7 +294,6 @@ export class PeaceModel {
       releasable: this.conference?.releasable ?? [],
       smallIdOf: (tag) => this.world.smallIdOf(tag),
       hasCore: (id, r) => this.world.hasCore(id, r),
-      sensitivity: this.sens,
     });
     const v = blankView(d.kind, slot);
     if (x === null) {
@@ -380,23 +348,9 @@ export class PeaceModel {
         });
       }
       if (refused) {
-        // Korea / Taiwan regions are left out of a demand (expandPeaceDemand):
-        // say why rather than "not possible".
-        const to = view.kind === "take_for" ? view.beneficiary : me;
-        for (const r of view.regions) {
-          const b = this.sensitiveBlock(me, to, view.kind, r);
-          if (b !== null) return fail(blockWhy(b));
-        }
         return fail({ key: WHY.bad });
       }
-      const plan = planPeaceDemand(
-        this.world,
-        table,
-        me,
-        demandIn(view),
-        free,
-        this.sens,
-      );
+      const plan = planPeaceDemand(this.world, table, me, demandIn(view), free);
       if (typeof plan === "string") {
         // "Nothing left" over named regions: say which way they are gone.
         if (plan === "no_target" && view.regions.length > 0) {
@@ -491,7 +445,6 @@ export class PeaceModel {
       me,
       demandIn(v),
       (r) => this.regionBlock(r, me, new Set()) === null,
-      this.sens,
     );
     return typeof plan !== "string";
   }

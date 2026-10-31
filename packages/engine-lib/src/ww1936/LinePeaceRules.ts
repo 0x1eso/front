@@ -4,20 +4,13 @@
 // other passes, legal ownership and control, to its occupier. No core comes
 // with it, so resistance and integration follow as for a conference take.
 // Capitals go back, so does the last region a country needs to stay alive;
-// Korea, Taiwan (but to its Chinese claimant) and occupation zones keep the
-// white peace's rule. No cap: neither the negotiated peace's 12 regions nor
+// occupation zones keep the white peace's rule. No cap: neither the negotiated peace's 12 regions nor
 // its 40% of the victory points. These are the line's rules and its worth
 // to a side as pure functions: the engine settles and judges an offer with
 // them, and the screens show the same split and chance. Integers only;
 // regions by id, countries by smallID.
 import type { WwLinePeaceSplit } from "@openfront/engine-api/ww1936/EndgameTypes";
 import { NEG_PEACE_CONTROLLED_PCT, NegPeaceFacts } from "./NegPeaceRules";
-import {
-  peaceRegionBlock,
-  PeaceSensitivity,
-  PeaceTable,
-  SensitiveBlock,
-} from "./PeaceRules";
 
 // ---- The AI (named thresholds) ----
 
@@ -48,51 +41,17 @@ export interface LinePeaceFacts extends NegPeaceFacts {
 /** One region changing hands: [region, its legal owner (the giver), its occupier (the receiver)]. */
 export type LineMove = readonly [number, number, number];
 
-const NO_TABLE: PeaceTable = {
-  stake: [],
-  base: [],
-  losers: [],
-  parts: [],
-  claims: [],
-  conquer: [],
-  topple: [],
-  settled: [],
-};
-
-/**
- * Korea and Taiwan under the line (the owner's sensitivity rule, P5's
- * peaceRegionBlock for a take with the receiver the only participant):
- * Korea never changes hands (zone_only); Taiwan goes only to a claimant
- * (`s.claimants`: China), never to the excluded country (claim_only).
- * Every other region: null.
- */
-export function linePeaceRegionBlock(
-  s: PeaceSensitivity,
-  receiver: number,
-  region: number,
-): SensitiveBlock | null {
-  return peaceRegionBlock(
-    s,
-    { ...NO_TABLE, parts: [{ id: receiver }] },
-    receiver,
-    receiver,
-    "take",
-    region,
-  );
-}
-
 /**
  * The regions a line peace between groups `a` and `b` hands over, in
  * region order: each one legally owned in one group and controlled by a
  * member of the other goes to its controller — not an occupation zone, not
- * Korea or Taiwan (linePeaceRegionBlock), not its owner's capital. A
+ * its owner's capital. A
  * country left holding nothing (none of its regions kept or coming back)
  * keeps its most valuable one (victory points, then base, then the smaller
  * id): no country is erased.
  */
 export function linePeaceMoves(
   f: LinePeaceFacts,
-  s: PeaceSensitivity,
   a: ReadonlySet<number>,
   b: ReadonlySet<number>,
 ): LineMove[] {
@@ -103,7 +62,7 @@ export function linePeaceMoves(
     const l = f.legalOwner(r);
     const c = f.controller(r);
     if (l <= 0 || c <= 0 || l === c || other(l)?.has(c) !== true) continue;
-    if (f.isZone(r) || linePeaceRegionBlock(s, c, r) !== null) continue;
+    if (f.isZone(r)) continue;
     if (f.capitals(l).includes(r)) continue;
     moves.push([r, l, c]);
   }
