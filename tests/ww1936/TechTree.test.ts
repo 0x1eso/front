@@ -136,7 +136,11 @@ describe("the research tree (research overhaul)", () => {
     };
     expect(researchBlockOf(done, "concentrated_1")).toBe("exclusive");
     expect(researchBlockOf(done, "dispersed_2")).toBeNull();
-    expect(WW_ORDER_BLOCKS.slice(-2)).toEqual(["exclusive", "no_project"]);
+    expect(WW_ORDER_BLOCKS.slice(-3)).toEqual([
+      "exclusive",
+      "no_project",
+      "bonus_held",
+    ]);
   });
 
   it("four techs wait for their special project", () => {

@@ -5,10 +5,13 @@ import { MessageType } from "@openfront/engine-api/game/GameTypes";
 import {
   RESEARCH_LEANS,
   ResearchLean,
+  TechBranch,
+  WW_RESEARCH_GRANT,
   WW_TECH_IDS,
   WwOrderBlock,
   WwTechId,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
+import { WW_MAX_RESEARCH_BONUSES } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import {
   freeResearchSlot,
   researchBlockOf,
@@ -25,6 +28,7 @@ import { techCostMilli, WW_TECHS } from "@openfront/engine-lib/ww1936/WwTechs";
 import type { Player } from "../../game/Game";
 import { sharedResearchPct } from "../depth/FactionRules";
 import type { WwDepth } from "../depth/WwDepth";
+import { payPp } from "../politics/PayPp";
 import type { CountryEconomy, WwEconomy } from "./WwEconomy";
 
 /*
@@ -99,6 +103,33 @@ export function setResearchLean(
 ): WwOrderBlock | null {
   if (!econ.ww.isHumanControlled(ce.smallID)) return "not_controlled";
   ce.researchLean = Math.max(0, RESEARCH_LEANS.indexOf(lean));
+  return null;
+}
+
+/**
+ * research_grant (changes §6 idea 3): WW_RESEARCH_GRANT.pp buys one bonus
+ * on a branch; the next tech of that branch to start takes it. The
+ * sender's own country, while a human controls it; the AI never orders it.
+ * The bonus is a politics ResearchBonus: already snapshotted and hashed.
+ */
+export function grantResearch(
+  econ: WwEconomy,
+  ce: CountryEconomy,
+  branch: TechBranch,
+): WwOrderBlock | null {
+  if (!econ.ww.isHumanControlled(ce.smallID)) return "not_controlled";
+  const pol = econ.ww.politics;
+  const c = pol.country(ce.smallID);
+  if (c === null || branch === "doctrine") return "bad_index";
+  if (c.researchBonuses.some((b) => b.key === branch)) return "bonus_held";
+  if (c.researchBonuses.length >= WW_MAX_RESEARCH_BONUSES) return "queue_full";
+  if (!payPp(pol, ce.smallID, WW_RESEARCH_GRANT.pp)) return "no_pp";
+  c.researchBonuses.push({
+    key: branch,
+    pct: WW_RESEARCH_GRANT.pct,
+    uses: WW_RESEARCH_GRANT.uses,
+  });
+  pol.markCountry(ce.smallID);
   return null;
 }
 

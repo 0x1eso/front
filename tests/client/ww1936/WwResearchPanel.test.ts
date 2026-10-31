@@ -92,65 +92,57 @@ describe("<ww-research-panel> (spec §13.4)", () => {
     ).toBeNull();
   });
 
-  it("the slots open the list; the tabs share the top bar with the close button", async () => {
+  it("the slots sit above the tree; a short screen shows the card list instead", async () => {
     vi.stubGlobal("innerWidth", 800);
-    vi.stubGlobal("innerHeight", 360);
+    vi.stubGlobal("innerHeight", 280);
     const m = await mount({
       summaries: [summary("DEU")],
       details: [detail("DEU", { slots: [running, null, null] })],
     });
-    const head = m.q("[data-ww-drawer-head]")!;
-    expect(head.querySelector("[role='tablist']")).not.toBeNull();
-    expect(head.querySelector("[data-ww-slots]")).toBeNull();
-    const slots = m.q("[data-ww-slots]")!;
-    expect(slots.closest("[data-ww-scroll]")).not.toBeNull();
-    expect(
-      slots.compareDocumentPosition(m.q("[data-ww-cards]")!) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
+    expect(m.q("[data-ww-slots]")!.closest("[data-ww-scroll]")).not.toBeNull();
+    expect(m.q("[data-ww-cards]")).not.toBeNull();
+    expect(m.q("[data-ww-tree]")).toBeNull();
     expect(m.q("[data-ww-slot='0']")).not.toBeNull();
   });
 
-  it("a tech with saved progress shows it on its card", async () => {
+  it("a tech with saved progress shows it on its node and in the sheet", async () => {
     const m = await mount({
       summaries: [summary("DEU")],
       details: [
         detail("DEU", {
           slots: [running, null, null],
           savedResearch: [
-            {
-              tech: "support_eq_2",
-              progressMilli: 35_000,
-              totalMilli: 100_000,
-            },
+            { tech: "support_eq_2", progressMilli: 35_000, totalMilli: 100_000 },
           ],
         }),
       ],
     });
-    const saved = m.q("[data-ww-tech='support_eq_2'] [data-ww-saved]")!;
-    expect(saved.textContent).toContain("[ww1936.econ.saved_progress] n=35");
-    expect(m.q("[data-ww-tech='inf_eq_3'] [data-ww-saved]")).toBeNull();
-    // Still startable: a tap sends research as before.
+    expect(
+      m.q("[data-ww-tech='support_eq_2'] [data-ww-badge='saved']")!.textContent,
+    ).toContain("35%");
+    expect(m.q("[data-ww-tech='inf_eq_3'] [data-ww-badge='saved']")).toBeNull();
     await m.click("[data-ww-tech='support_eq_2']");
-    expect(m.sent).toEqual([{ kind: "research", tech: "support_eq_2" }]);
+    expect(m.q("[data-ww-saved]")!.textContent).toContain("n=35");
   });
 
-  it("tapping an available card sends research", async () => {
+  it("tapping a node chooses it; the pill (second tap) sends research", async () => {
     const m = await mount({
       summaries: [summary("DEU")],
       details: [detail("DEU", { slots: [running, null, null] })],
     });
     const card = m.q("[data-ww-tech='support_eq_2']")!;
-    expect(card.dataset.state).toBe("available");
+    expect(card.dataset.look).toBe("available");
     // 1940, four years early: +400%.
-    expect(card.textContent).toContain("[ww1936.econ.ahead] n=400");
-    expect(card.textContent).toContain("[ww1936.econ.state_available]");
+    expect(card.textContent).toContain("+400%");
     await m.click("[data-ww-tech='support_eq_2']");
+    expect(m.sent).toEqual([]);
+    expect(m.q("[data-ww-start-pill]")!.textContent).toContain("n=2");
+    await m.click("[data-ww-start-pill]");
     expect(m.sent).toEqual([{ kind: "research", tech: "support_eq_2" }]);
     // Done, running and waiting cards don't start anything.
-    expect(m.q("[data-ww-tech='inf_eq_1']")!.disabled).toBe(true);
-    expect(m.q("[data-ww-tech='inf_eq_2']")!.dataset.state).toBe("running");
-    expect(m.q("[data-ww-tech='inf_eq_3']")!.dataset.state).toBe("prereq");
+    expect(m.q("[data-ww-tech='inf_eq_1']")!.dataset.look).toBe("done");
+    expect(m.q("[data-ww-tech='inf_eq_2']")!.dataset.look).toBe("running");
+    expect(m.q("[data-ww-tech='inf_eq_3']")!.dataset.look).toBe("prereq");
     // The slots: one running, two empty.
     expect(m.q("[data-ww-slot='0']")!.textContent).toContain(
       "[ww1936.tech.inf_eq_2]",
@@ -168,13 +160,9 @@ describe("<ww-research-panel> (spec §13.4)", () => {
     });
     const prompt = m.q("[data-ww-pick-prompt]")!;
     expect(prompt.textContent).toContain("[ww1936.econ.pick_prompt] n=2");
-    // Between the slots and the cards.
+    // After the slots.
     expect(
       m.q("[data-ww-slots]")!.compareDocumentPosition(prompt) &
-        Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
-    expect(
-      prompt.compareDocumentPosition(m.q("[data-ww-cards]")!) &
         Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     // Auto research on: the AI fills them, no prompt.
@@ -198,17 +186,16 @@ describe("<ww-research-panel> (spec §13.4)", () => {
     expect(m.q("[data-ww-pick-prompt]")).toBeNull();
   });
 
-  it("a full set of slots says so", async () => {
+  it("a full set of slots says so, and the pill does not start", async () => {
     const m = await mount({
       summaries: [summary("DEU")],
       details: [detail("DEU", { slotCount: 1, slots: [running] })],
     });
     await m.click("[data-ww-tech='support_eq_2']");
+    expect(m.q("[data-ww-start-pill]")!.dataset.free).toBe("false");
+    await m.click("[data-ww-start-pill]");
     expect(m.sent).toEqual([]);
-    expect(
-      m.q("[data-ww-tech='support_eq_2'] [data-ww-block='no_slot']")!
-        .textContent,
-    ).toContain("[ww1936.econ.block.no_slot]");
+    expect(m.q("[data-ww-slots]")!.dataset.flash).toBe("true");
   });
 
   it("two taps cancel a research", async () => {
@@ -227,32 +214,31 @@ describe("<ww-research-panel> (spec §13.4)", () => {
     expect(m.sent).toEqual([{ kind: "cancel_research", slot: 0 }]);
   });
 
-  it("the doctrine tab offers no retired tech (P6 plan decision 25)", async () => {
+  it("the doctrine tab offers no tech, only the mastery summary and a button; no retired tech elsewhere", async () => {
     const m = await mount({
       summaries: [summary("DEU")],
       details: [detail("DEU", { researched: ["mobile_1"] })],
     });
     await m.click("[data-ww-tab='doctrine']");
-    expect(m.q("[data-ww-school]")).toBeNull();
-    expect(m.q("[data-ww-doctrine-moved]")!.textContent).toContain(
-      "ww1936.econ.doctrine_moved",
-    );
-    expect(m.q("[data-ww-tech='mobile_2']")).toBeNull();
+    expect(m.q("[data-ww-tech]")).toBeNull();
+    expect(m.q("[data-ww-open-doctrine]")).not.toBeNull();
     await m.click("[data-ww-tab='naval']");
     expect(m.q("[data-ww-tech='fleet_in_being_1']")).toBeNull();
     expect(m.q("[data-ww-tech]")).not.toBeNull();
   });
 
-  it("the air cards say they only fill the stockpile", async () => {
+  it("an air tech's sheet says it only fills the stockpile", async () => {
     const m = await mount({
       summaries: [summary("DEU")],
       details: [detail("DEU")],
     });
     await m.click("[data-ww-tab='air']");
-    expect(m.q("[data-ww-tech='fighter_2']")!.textContent).toContain(
+    await m.click("[data-ww-tech='fighter_2']");
+    expect(m.q("[data-ww-detail]")!.textContent).toContain(
       "[ww1936.econ.stock_only]",
     );
   });
+
   it("a capitulated country's drawer says the orders can't go", async () => {
     const m = await mount({
       summaries: [summary("DEU")],

@@ -368,6 +368,11 @@ export const RESEARCH_LEANS = [
   "industry",
 ] as const;
 export type ResearchLean = (typeof RESEARCH_LEANS)[number];
+/**
+ * Research grants (changes §6 idea 3): PP for one temporary research
+ * bonus on a branch (a ResearchBonus the next tech of the branch takes).
+ */
+export const WW_RESEARCH_GRANT = { pp: 40, pct: 50, uses: 1 } as const;
 export const DOCTRINE_SCHOOLS = [
   "mobile",
   "firepower",
@@ -859,6 +864,8 @@ export const WW_ORDER_BLOCKS = [
   // follows is not finished.
   "exclusive",
   "no_project",
+  // Research grants, appended: the branch already holds a bonus.
+  "bonus_held",
 ] as const;
 export type WwOrderBlock = (typeof WW_ORDER_BLOCKS)[number];
 
