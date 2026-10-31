@@ -44,6 +44,12 @@ export interface FocusCanvasModel {
   daysChips: readonly string[];
   /** The label of a skipped card ("Skipped"). */
   bypassed: string;
+  /** Cards of a collapsed group (not drawn, not tappable). */
+  hidden?: readonly boolean[];
+  /** Search matches (ringed). */
+  found?: readonly boolean[];
+  /** The recommend star's card, or -1. */
+  star?: number;
 }
 
 // ---- Icons: each SVG is read once into an Image and shared ----
@@ -436,7 +442,7 @@ export class FocusCanvas {
     this.lastTap = { x, y, at };
     if (this.model === null) return;
     const pos = hitCard(this.model.tree, x, y, this.view);
-    if (pos >= 0) this.onPick(pos);
+    if (pos >= 0 && this.model.hidden?.[pos] !== true) this.onPick(pos);
   }
 
   // ---- Drawing ----
@@ -456,8 +462,9 @@ export class FocusCanvas {
     const s = this.view.scale;
     const rects = m.tree.map((f) => this.screenRect(f));
     // Lines under the cards.
+    const hid = (i: number) => m.hidden?.[i] === true;
     for (const e of this.lines) {
-      if (e.kind === "exclusive") continue;
+      if (e.kind === "exclusive" || hid(e.from) || hid(e.to)) continue;
       this.drawPrereq(
         ctx,
         rects[e.from],
@@ -468,17 +475,42 @@ export class FocusCanvas {
       );
     }
     for (const e of this.lines) {
-      if (e.kind === "exclusive")
+      if (e.kind === "exclusive" && !hid(e.from) && !hid(e.to))
         this.drawExclusive(ctx, rects[e.from], rects[e.to], s);
     }
     const font =
       getComputedStyle(this.canvas).fontFamily || "system-ui, sans-serif";
     m.tree.forEach((f, i) => {
       const r = rects[i];
+      if (hid(i)) return;
       if (r.x > this.w || r.y > this.h || r.x + r.w < 0 || r.y + r.h < 0) {
         return;
       }
       this.drawCard(ctx, m, f, i, r, s, font);
+      if (m.found?.[i] === true) {
+        ctx.save();
+        ctx.strokeStyle = "#f472b6";
+        ctx.lineWidth = 3 * s;
+        roundRect(
+          ctx,
+          r.x - 3 * s,
+          r.y - 3 * s,
+          r.w + 6 * s,
+          r.h + 6 * s,
+          8 * s,
+        );
+        ctx.stroke();
+        ctx.restore();
+      }
+      if (m.star === i) {
+        ctx.save();
+        ctx.fillStyle = "#facc15";
+        ctx.font = `700 ${15 * s}px ${font}`;
+        ctx.textAlign = "left";
+        ctx.textBaseline = "top";
+        ctx.fillText("★", r.x + 3 * s, r.y + 1 * s);
+        ctx.restore();
+      }
     });
   }
 

@@ -29,6 +29,13 @@ import { DepthMiscModel, packFirst } from "./DepthMiscModel";
 import { blockText } from "./EconomyModel";
 import { FocusCanvas, FocusCanvasModel, focusIconUrl } from "./FocusCanvas";
 import {
+  focusGroups,
+  groupLabel,
+  hiddenCards,
+  recommendedIndex,
+  searchMatches,
+} from "./FocusGroups";
+import {
   chipFirst,
   FOCUS_BYPASSED,
   FOCUS_CHIPS,
@@ -220,6 +227,10 @@ export class WwFocusPanel extends LitElement implements Controller {
   @state() private chip: FocusChip | "pack" | null = null;
   /** Phone, both slots filled: the chips folded behind a "▾" button, and whether its list is open. */
   @state() private chipMenu = false;
+  /** Per-viewer UI state: collapsed group keys, the search text and its current match. */
+  @state() private collapsed: ReadonlySet<string> = new Set();
+  @state() private query = "";
+  @state() private matchAt = 0;
   private readonly twoTap = new TwoTap();
   private canvas: FocusCanvas | null = null;
   private model: FocusCanvasModel | null = null;
@@ -296,6 +307,7 @@ export class WwFocusPanel extends LitElement implements Controller {
       window.addEventListener("resize", this.refit);
       this.chip = null;
       this.chipMenu = false;
+      this.query = "";
       this.selected = -1;
       this.startPending = true;
       this.pickStart();
@@ -389,6 +401,94 @@ export class WwFocusPanel extends LitElement implements Controller {
     if (this.selected >= 0) this.canvas?.panTo(this.selected);
   }
 
+  private names(c: FocusCtx): string[] {
+    return c.tree.map((d) => translateText(`ww1936.focus.${d.id}`));
+  }
+
+  private toggleGroup(key: string) {
+    const next = new Set(this.collapsed);
+    if (!next.delete(key)) next.add(key);
+    this.collapsed = next;
+  }
+
+  /** Typing searches and jumps to the first match; the arrow goes to the next. */
+  private search(c: FocusCtx, q: string, step: boolean) {
+    this.query = q;
+    const hits = searchMatches(this.names(c), q);
+    this.matchAt =
+      step && hits.length > 0 ? (this.matchAt + 1) % hits.length : 0;
+    const pos = hits[this.matchAt];
+    if (pos === undefined) return;
+    // Open the match's group, then pan once the canvas has redrawn.
+    const g = c.tree[pos].group ?? `branch:${c.tree[pos].branch}`;
+    if (this.collapsed.has(g)) this.toggleGroup(g);
+    this.selected = pos;
+    void this.updateComplete.then(() => this.canvas?.panTo(pos));
+  }
+
+  private renderTools(c: FocusCtx): TemplateResult {
+    const hits = searchMatches(this.names(c), this.query);
+    const groups = focusGroups(c.tree, c.states);
+    const grouped = c.tree.some((d) => d.group !== undefined);
+    return html`<div
+      data-ww-focus-tools
+      class="flex shrink-0 items-center gap-1 overflow-x-auto border-b border-white/10 px-2 py-1"
+    >
+      <input
+        type="search"
+        data-ww-focus-search
+        class="h-9 w-32 shrink-0 rounded-md bg-white/10 px-2 text-xs text-white"
+        placeholder=${translateText("ww1936.focusui.search")}
+        aria-label=${translateText("ww1936.focusui.search")}
+        .value=${this.query}
+        @input=${(e: Event) =>
+          this.search(c, (e.target as HTMLInputElement).value, false)}
+      />
+      ${this.query.trim() === ""
+        ? nothing
+        : html`<button
+            type="button"
+            data-ww-focus-next
+            class="h-9 shrink-0 rounded-full bg-white/10 px-2.5 text-xs font-semibold"
+            @click=${() => this.search(c, this.query, true)}
+          >
+            ${hits.length === 0
+              ? translateText("ww1936.focusui.search_none")
+              : translateText("ww1936.focusui.search_next", {
+                  n: this.matchAt + 1,
+                  total: hits.length,
+                })}
+          </button>`}
+      ${grouped || groups.length > 1
+        ? groups.map((g) => {
+            const off = this.collapsed.has(g.key);
+            const name = g.key.startsWith("branch:")
+              ? translateText(
+                  BRANCH_KEYS[g.key.slice(7) as FocusBranch] ??
+                    "ww1936.focusui.chip.all",
+                )
+              : groupLabel(g.key);
+            return html`<button
+              type="button"
+              data-ww-focus-group=${g.key}
+              aria-pressed=${String(off)}
+              class="h-9 shrink-0 rounded-full px-2.5 text-xs font-semibold ${off
+                ? "bg-white/5 text-white/50"
+                : "bg-white/15 text-white"}"
+              @click=${() => this.toggleGroup(g.key)}
+            >
+              ${translateText(
+                off
+                  ? "ww1936.focusui.group_collapsed"
+                  : "ww1936.focusui.group_open",
+                { name, done: g.done, total: g.members.length },
+              )}
+            </button>`;
+          })
+        : nothing}
+    </div>`;
+  }
+
   private pickChip(c: FocusCtx, chip: FocusChip | "pack") {
     this.chip = chip;
     this.chipMenu = false;
@@ -449,14 +549,27 @@ export class WwFocusPanel extends LitElement implements Controller {
       this.selected,
       c.detail.stats[FOCUS_SPEED] ?? 0,
     ].join("|");
-    if (this.model !== null && this.model.key === key) return this.model;
+    const names = this.names(c);
+    const keep = new Set<number>(
+      [c.running, c.queued, this.selected].filter((i) => i >= 0),
+    );
+    const hits = searchMatches(names, this.query);
+    hits.forEach((i) => keep.add(i));
+    const hidden = hiddenCards(c.tree, this.collapsed, keep);
+    const found = c.tree.map((_, i) => hits.includes(i));
+    const star = recommendedIndex(c.tree, c.states, CONTENT.paths[c.treeId]);
+    const key2 = `${key}|${hidden.map(Number).join("")}|${found.map(Number).join("")}|${star}`;
+    if (this.model !== null && this.model.key === key2) return this.model;
     this.model = {
-      key,
+      key: key2,
+      hidden,
+      found,
+      star,
       tree: c.tree,
       states: c.states,
       progress,
       selected: this.selected,
-      names: c.tree.map((d) => translateText(`ww1936.focus.${d.id}`)),
+      names,
       daysChips: c.tree.map((d) =>
         translateText("ww1936.focusui.days_chip", {
           days: focusDays(d, c.detail),
@@ -534,7 +647,7 @@ export class WwFocusPanel extends LitElement implements Controller {
               >
                 ${chips}
               </div>`}
-        ${this.renderBand()}
+        ${c === null ? nothing : this.renderTools(c)} ${this.renderBand()}
         <div class="relative min-h-0 flex-1">
           ${c === null
             ? nothing
