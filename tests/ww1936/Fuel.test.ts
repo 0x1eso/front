@@ -104,6 +104,16 @@ describe("World War 1936 P4: fuel (spec §15)", () => {
     expect(ce.fuelGainMilli).toBe(fuelGain(oilOf(ce), ce.stats));
   });
 
+  test("synthetic_rubber_1: each refinery makes one more rubber", async () => {
+    const { runner, ww, ce } = await soviets();
+    ww.economy.addBuilding(REGION.kiev, "synthetic_refinery", 2);
+    settleAt(runner, 1);
+    const rubber = ce.totals.produced[2];
+    ce.addTech("synthetic_rubber_1");
+    settleAt(runner, 2);
+    expect(ce.totals.produced[2]).toBe(rubber + 2);
+  });
+
   test("a shortage ratio slows tanks and fleets the next day", async () => {
     const { runner, updates, ww, ce } = await soviets();
     const navy = ww.navy;

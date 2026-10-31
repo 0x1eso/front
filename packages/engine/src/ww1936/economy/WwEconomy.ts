@@ -88,7 +88,12 @@ import type { WorldWar } from "../WorldWar";
 import { aiEconomyTick, aiStartSetup } from "./AiEconomy";
 import { addConvoys, buildingIndex, effectiveBuildings } from "./Buildings";
 import { stepConstruction } from "./Construction";
-import { fuelCapOf, settleFuel, syntheticOilOf } from "./Fuel";
+import {
+  fuelCapOf,
+  settleFuel,
+  syntheticOilOf,
+  syntheticRubberOf,
+} from "./Fuel";
 import { stepManpower } from "./Manpower";
 import { stepNavalLines } from "./NavalLines";
 import { stepProduction } from "./Production";
@@ -862,7 +867,7 @@ export class WwEconomy {
       // rubber again — Germany's planes and trucks had none at war.
       const synth = syntheticOilOf(this, ce, id, cp);
       produced[0] += synth;
-      produced[RUBBER] += synth;
+      produced[RUBBER] += synth + syntheticRubberOf(this, ce, id, cp);
     }
     const exported = zeros();
     const imported = zeros();

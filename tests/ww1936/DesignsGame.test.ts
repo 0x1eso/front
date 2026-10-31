@@ -659,7 +659,7 @@ describe("World War 1936 P6: plane and ship design numbers", () => {
     expect(recommendedShip("ss_2").modules).toEqual(["", "engine_long", ""]);
     expect(recommendedShip("cl_3", ALL).modules).toEqual([
       "",
-      "sec_dp",
+      "aa_3",
       "",
       "radar_adv",
       "floatplane",

@@ -13,7 +13,7 @@ import {
   aheadPct,
   researchProgress,
 } from "@openfront/engine-lib/ww1936/EconomyRules";
-import { techDays, WW_TECHS } from "@openfront/engine-lib/ww1936/WwTechs";
+import { techCostMilli, WW_TECHS } from "@openfront/engine-lib/ww1936/WwTechs";
 import type { Player } from "@openfront/engine/game/Game";
 import type { GameRunner } from "@openfront/engine/GameRunner";
 import { addLine } from "@openfront/engine/ww1936/economy/Production";
@@ -67,7 +67,7 @@ function messages(updates: GameUpdateViewData[]) {
 }
 
 describe("research (spec §9)", () => {
-  test("a 1936 tech takes 120 days", async () => {
+  test("a 1936 tech takes its cost in days (120 x the knob)", async () => {
     const { runner, econ, deu, ce } = await germany();
     // Germany's speed is 0: limited exports, no electronics.
     expect(ce.tech.researchPct + ce.law().researchPct).toBe(0);
@@ -86,11 +86,16 @@ describe("research (spec §9)", () => {
     throughDay(runner, deu, 0);
     expect(ce.slots[0]).toEqual({ tech: "electronics_1", progress: 1000 });
     // The 119th day processed: not yet.
-    throughDay(runner, deu, 118);
-    expect(ce.slots[0]).toEqual({ tech: "electronics_1", progress: 119_000 });
+    const days = techCostMilli("electronics_1") / 1000;
+    expect(days).toBe(156);
+    throughDay(runner, deu, days - 2);
+    expect(ce.slots[0]).toEqual({
+      tech: "electronics_1",
+      progress: (days - 1) * 1000,
+    });
     expect(ce.researched.has("electronics_1")).toBe(false);
     // The 120th: done, the slot is free and the tech counts.
-    throughDay(runner, deu, 119);
+    throughDay(runner, deu, days - 1);
     expect(ce.slots).toEqual([null, null, null]);
     expect(ce.researched.has("electronics_1")).toBe(true);
     expect(ce.tech.researchPct).toBe(3);
@@ -159,7 +164,7 @@ describe("research (spec §9)", () => {
       "tools_2",
     ]);
     // Finished, the slot frees up.
-    ce.slots[0]!.progress = techDays(WW_TECHS.inf_eq_2.year) * 1000 - 1;
+    ce.slots[0]!.progress = techCostMilli("inf_eq_2") - 1;
     throughDay(runner, deu, 0);
     expect(ce.researched.has("inf_eq_2")).toBe(true);
     expect(startResearch(econ, ce, "inf_eq_2")).toBe("researched");
@@ -174,7 +179,7 @@ describe("research (spec §9)", () => {
       addLineBlockOf(ce.researched, ce.lines.length, "infantry_equipment", 2);
     expect(inf2()).toBe("no_tech");
     expect(startResearch(econ, ce, "inf_eq_2")).toBeNull();
-    ce.slots[0]!.progress = techDays(1939) * 1000 - 1;
+    ce.slots[0]!.progress = techCostMilli("inf_eq_2") - 1;
     throughDay(runner, deu, 0);
     expect(ce.researched.has("inf_eq_2")).toBe(true);
     expect(ce.slots[0]).toBeNull();
@@ -193,7 +198,7 @@ describe("research (spec §9)", () => {
     clearStartSetup(econ, ceIta);
     for (const c of [ce, ceIta]) {
       expect(startResearch(econ, c, "electronics_1")).toBeNull();
-      c.slots[0]!.progress = techDays(1936) * 1000 - 1000;
+      c.slots[0]!.progress = techCostMilli("electronics_1") - 1000;
     }
     throughDay(runner, ita, 0);
     expect(ce.researched.has("electronics_1")).toBe(true);
@@ -359,7 +364,7 @@ describe("research (spec §9)", () => {
     const row = researchSlots(detail, 1)[0];
     expect(row.daysLeft).toBe(
       Math.ceil(
-        (techDays(def.year) * 1000 - before) /
+        (techCostMilli("light_tank_2") - before) /
           researchProgress(speed, aheadPct(def.year, 1)),
       ),
     );

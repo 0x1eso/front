@@ -243,6 +243,36 @@ export const TANK_BASE_DEFS: Readonly<Record<string, TankBaseDef>> = {
     { steel: 3, chromium: 1, oil: 1 },
     2,
   ),
+  super_heavy_1: tb(
+    "super_heavy_tank",
+    "heavy",
+    10,
+    7,
+    13,
+    30,
+    130,
+    97,
+    3.5,
+    65,
+    30,
+    { steel: 4, chromium: 2, oil: 2 },
+    2,
+  ),
+  modern_1: tb(
+    "modern_tank_1",
+    "medium",
+    9,
+    7,
+    10,
+    36,
+    80,
+    94,
+    8,
+    86,
+    26,
+    { steel: 3, chromium: 1, oil: 1, tungsten: 1 },
+    2,
+  ),
 };
 /** Slot kinds of a chassis: gun, turret, suspension, armor, engine, special × (1 or 2). */
 export function tankSlots(base: string): string[] {
@@ -308,6 +338,8 @@ const NOT_L1 = [
   "heavy_1",
   "heavy_2",
   "heavy_3",
+  "super_heavy_1",
+  "modern_1",
 ];
 export const TANK_MODULE_DEFS: Readonly<Record<string, TankModDef>> = {
   mg: {
@@ -344,10 +376,26 @@ export const TANK_MODULE_DEFS: Readonly<Record<string, TankModDef>> = {
   gun_heavy: {
     slot: "gun",
     tech: "tank_gun_3",
-    bases: ["medium_2", "medium_3", "heavy_1", "heavy_2", "heavy_3"],
+    bases: [
+      "medium_2",
+      "medium_3",
+      "heavy_1",
+      "heavy_2",
+      "heavy_3",
+      "super_heavy_1",
+      "modern_1",
+    ],
     add: { soft: 12, hard: 20, pierce: 92, brk: 8 },
     costMilli: 4_000,
     extra: { tungsten: 1 },
+  },
+  gun_super: {
+    slot: "gun",
+    tech: "tank_gun_4",
+    bases: ["medium_3", "heavy_2", "heavy_3", "super_heavy_1", "modern_1"],
+    add: { soft: 14, hard: 28, pierce: 125, brk: 10 },
+    costMilli: 5_500,
+    extra: { tungsten: 2 },
   },
   flame: {
     slot: "gun",
@@ -411,6 +459,22 @@ export const TANK_MODULE_DEFS: Readonly<Record<string, TankModDef>> = {
     extra: { chromium: 1 },
   },
   petrol: { slot: "engine" },
+  engine_2: {
+    slot: "engine",
+    tech: "tank_engine_2",
+    pct: { speed: 8 },
+    relPp: 6,
+    fuelPct: -20,
+    costMilli: 500,
+  },
+  engine_3: {
+    slot: "engine",
+    tech: "tank_engine_3",
+    pct: { speed: 15 },
+    relPp: 10,
+    fuelPct: -25,
+    costMilli: 800,
+  },
   diesel: {
     slot: "engine",
     tech: "diesel_engine",
@@ -619,6 +683,20 @@ export const SHIP_MODULE_DEFS: Readonly<Record<string, ShipModDef>> = {
     m: { aaPct: 60, lightPct: -10 },
     costPct: 5,
   },
+  aa_2: {
+    slot: "secondary",
+    classes: ["dd", "cl", "ca", "bc", "bb", "cv"],
+    tech: "naval_aa_1",
+    m: { aaPct: 90, lightPct: -10 },
+    costPct: 8,
+  },
+  aa_3: {
+    slot: "secondary",
+    classes: ["dd", "cl", "ca", "bc", "bb", "cv"],
+    tech: "naval_aa_2",
+    m: { aaPct: 130, lightPct: -10 },
+    costPct: 11,
+  },
   sec_light: {
     slot: "secondary",
     classes: ["ca", "bc", "bb"],
@@ -657,6 +735,13 @@ export const SHIP_MODULE_DEFS: Readonly<Record<string, ShipModDef>> = {
     tech: "fire_control_1",
     m: { hitPct: 6 },
     costPct: 5,
+  },
+  fc_2: {
+    slot: "fire_control",
+    classes: CAP,
+    tech: "fire_control_2",
+    m: { hitPct: 10 },
+    costPct: 8,
   },
   radar_surface: {
     slot: "fire_control",
@@ -956,6 +1041,30 @@ export const PLANE_BASE_DEFS: Readonly<Record<string, PlaneBaseDef>> = {
     { aluminium: 3, rubber: 1 },
     "sp_jet_engine",
   ),
+  jet_2: pb(
+    "jet_airframe_2",
+    "small",
+    50,
+    900,
+    520,
+    16,
+    66,
+    36,
+    { aluminium: 3, rubber: 1 },
+    "sp_jet_engine",
+  ),
+  jet_medium_1: pb(
+    "jet_bomber_1",
+    "medium",
+    28,
+    760,
+    1000,
+    20,
+    64,
+    44,
+    { aluminium: 4, rubber: 1 },
+    "sp_jet_engine",
+  ),
 };
 export function planeSlots(base: string): string[] {
   const s = PLANE_BASE_DEFS[base]?.size;
@@ -1110,6 +1219,13 @@ export const PLANE_MODULE_DEFS: Readonly<Record<string, PlaneModDef>> = {
     costMilli: 1_000,
     flags: DS_CARRIER,
   },
+  radar_2: {
+    group: "special",
+    tech: "air_radar_2",
+    detect: 35,
+    costMilli: 3_000,
+    flags: DS_RADAR,
+  },
   m_engine_boost: { group: "special", speedPct: 8, rangePct: -10, costPct: 10 },
   m_recon_camera: { group: "special", costMilli: 500, flags: DS_RECON },
 };
@@ -1134,7 +1250,8 @@ export function planeType(def: DesignDef): string {
     }
     return cv ? "cv_fighter" : "fighter";
   }
-  if (m.has("w_torpedo") || (m.has("m_radar") && !bombs)) return "naval_bomber";
+  if (m.has("w_torpedo") || ((m.has("m_radar") || m.has("radar_2")) && !bombs))
+    return "naval_bomber";
   if (bombs) return size === "medium" ? "bomber" : "strat_bomber";
   return size === "medium" ? "heavy_fighter" : "strat_bomber";
 }
@@ -1435,7 +1552,7 @@ export function recommendedTank(
       : role === "sp_anti_air"
         ? pick(["aa_auto"], "gun")
         : role === "tank_destroyer"
-          ? pick(["gun_heavy", "gun_hv", "gun_small"], "gun")
+          ? pick(["gun_super", "gun_heavy", "gun_hv", "gun_small"], "gun")
           : base === "light_1"
             ? "auto20"
             : base === "medium_1"
@@ -1443,7 +1560,10 @@ export function recommendedTank(
               : base === "light_2"
                 ? // Spec §5.2.3 (review L12): light II carries the small gun.
                   pick(["gun_small", "auto20"], "gun")
-                : pick(["gun_hv", "gun_cs", "gun_small", "auto20"], "gun");
+                : pick(
+                    ["gun_super", "gun_hv", "gun_cs", "gun_small", "auto20"],
+                    "gun",
+                  );
   const turret =
     role === "sp_artillery" || role === "sp_anti_air"
       ? "turret_open"
@@ -1467,16 +1587,20 @@ export function recommendedTank(
   const armor =
     base === "light_1"
       ? "riveted"
-      : role !== "tank_destroyer" && (w === "heavy" || base === "medium_3")
+      : role !== "tank_destroyer" &&
+          (w === "heavy" || base === "medium_3" || base === "modern_1")
         ? pick(["cast", "welded"], "armor")
         : "welded";
   // Spec §5.2.3 table: a diesel for medium II, medium III and the tank
   // destroyer when it is researched; a petrol engine elsewhere.
   const engine =
-    role === "tank_destroyer" ||
-    (role === "tank" && (base === "medium_2" || base === "medium_3"))
-      ? pick(["diesel", "petrol"], "engine")
-      : "petrol";
+    role === "tank" &&
+    (base === "medium_3" || base === "modern_1" || base === "super_heavy_1")
+      ? pick(["engine_3", "engine_2", "diesel", "petrol"], "engine")
+      : role === "tank_destroyer" ||
+          (role === "tank" && (base === "medium_2" || base === "medium_3"))
+        ? pick(["diesel", "petrol"], "engine")
+        : "petrol";
   const specialsOf = (): string[] => {
     if (base === "light_1") return [];
     if (role === "sp_artillery") return ["aux_mg"];
@@ -1535,10 +1659,11 @@ export function recommendedShip(
     );
   };
   const best: Readonly<Record<string, readonly string[]>> = {
-    secondary: ["sec_dp", "sec_aa"],
+    secondary: ["aa_3", "aa_2", "sec_dp", "sec_aa"],
     fire_control: [
       "radar_microwave",
       "radar_adv",
+      "fc_2",
       "radar_surface",
       "fc_improved",
     ],

@@ -142,10 +142,10 @@ export const COST_BIG = 1250;
 
 /**
  * Research overhaul (changes §2.7): the one global knob on every tech's
- * research days, ‰ (1000 = ×1.0). Phase 3 moves it within 900..1100 to
+ * research days, ‰ (1000 = ×1.0). Phase 3 moved it (1000 -> 1300) to
  * land the majors' 1945 share in 45–60%.
  */
-export const WW_RESEARCH_COST_PM = 1000;
+export const WW_RESEARCH_COST_PM = 1300;
 
 /** A designer part a tech opens (DesignRules reads it; phase 2 wires it). */
 export interface TechDesignPart {
@@ -813,7 +813,7 @@ const BASE_TECHS: Readonly<Record<WwTechId, WwTechDef>> = {
     {
       cost: COST_NORMAL,
       role: "module",
-      design: { designer: "tank", part: "module", id: "gun_hv" },
+      design: { designer: "tank", part: "module", id: "gun_super" },
     },
   ),
   super_heavy_tank: n(

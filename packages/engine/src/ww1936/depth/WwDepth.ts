@@ -1831,7 +1831,7 @@ function designFamily(kind: DesignKind, base: string): number {
   if (kind === "ship") return MIO_KEY.indexOf("naval");
   // Spec §6.1 (lane M review): small and jet airframes are light aircraft.
   return MIO_KEY.indexOf(
-    base.startsWith("small") || base.startsWith("jet")
+    base.startsWith("small") || /^jet_\d/.test(base)
       ? "air_light"
       : "air_heavy",
   );

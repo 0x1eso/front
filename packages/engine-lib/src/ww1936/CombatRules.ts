@@ -363,7 +363,11 @@ export function divisionMods(i: ModInput): ModResult {
   const planBp = planTotal - fmPlanBp;
   push(aAdd, "plan", planBp);
   push(aAdd, "fm_plan", fmPlanBp);
-  push(aAdd, "recon", has(i.flags, TPL_RECON) ? 500 : 0);
+  push(
+    aAdd,
+    "recon",
+    has(i.flags, TPL_RECON) ? 500 + 5 * stat(i.tech, "reconPct") : 0,
+  );
   push(
     aAdd,
     "mountain",
@@ -505,7 +509,11 @@ export function divisionMods(i: ModInput): ModResult {
   push(dAdd, "exp", expBp(i.exp));
   push(dAdd, "plan", planBp);
   push(dAdd, "fm_plan", fmPlanBp);
-  push(dAdd, "recon", has(i.flags, TPL_RECON) ? 500 : 0);
+  push(
+    dAdd,
+    "recon",
+    has(i.flags, TPL_RECON) ? 500 + 5 * stat(i.tech, "reconPct") : 0,
+  );
   // P6 (spec §21.2): engineerMulPct scales the engineers' line.
   push(
     dAdd,

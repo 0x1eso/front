@@ -3941,6 +3941,8 @@
     "base": {
       "plane": {
         "jet_1": "Jet Airframe",
+        "jet_2": "Jet Airframe II",
+        "jet_medium_1": "Jet Bomber Airframe",
         "large_1": "Large Airframe I",
         "large_2": "Large Airframe II",
         "large_3": "Large Airframe III",
@@ -3959,7 +3961,9 @@
         "light_2": "Light Chassis II",
         "medium_1": "Medium Chassis I",
         "medium_2": "Medium Chassis II",
-        "medium_3": "Medium Chassis III"
+        "medium_3": "Medium Chassis III",
+        "modern_1": "Modern Chassis",
+        "super_heavy_1": "Super-Heavy Chassis"
       }
     },
     "battalion": {
@@ -8716,6 +8720,8 @@
       "weather": "Weather"
     },
     "module": {
+      "aa_2": "Improved Naval AA",
+      "aa_3": "Advanced Naval AA",
       "aa_auto": "Anti-Air Autocannon",
       "amphibious": "Deep-Wading Kit",
       "armor_deck": "Armoured Flight Deck",
@@ -8729,8 +8735,11 @@
       "cast": "Cast Hull",
       "christie": "Coil-Spring Suspension",
       "diesel": "Diesel Engine",
+      "engine_2": "Improved Tank Engine",
+      "engine_3": "Advanced Tank Engine",
       "engine_fast": "High-Speed Machinery",
       "engine_long": "Long-Range Machinery",
+      "fc_2": "Advanced Fire Control",
       "fc_improved": "Improved Fire Control",
       "flail": "Mine-Clearing Flail",
       "flame": "Flamethrower",
@@ -8739,6 +8748,7 @@
       "gun_heavy": "88 mm-Class Heavy Gun",
       "gun_hv": "75 mm Long Gun",
       "gun_small": "37–47 mm Gun",
+      "gun_super": "Super-Heavy Tank Gun",
       "hangar_large": "Large Hangar",
       "hangar_small": "Small Hangar",
       "howitzer": "105 mm Howitzer",
@@ -8759,6 +8769,7 @@
       "mine_layer": "Mine Rails",
       "minesweep": "Minesweeping Gear",
       "petrol": "Petrol Engine",
+      "radar_2": "Air Radar II",
       "radar_adv": "Improved Radar",
       "radar_microwave": "Microwave Radar",
       "radar_surface": "Surface Search Radar",

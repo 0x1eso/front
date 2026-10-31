@@ -3642,7 +3642,9 @@
         "medium_3": "중형 기체 III",
         "small_1": "소형 기체 I",
         "small_2": "소형 기체 II",
-        "small_3": "소형 기체 III"
+        "small_3": "소형 기체 III",
+        "jet_2": "제트 기체 II",
+        "jet_medium_1": "제트 폭격기 기체"
       },
       "tank": {
         "heavy_1": "중전차 차대 I",
@@ -3652,7 +3654,9 @@
         "light_2": "경전차 차대 II",
         "medium_1": "중형 차대 I",
         "medium_2": "중형 차대 II",
-        "medium_3": "중형 차대 III"
+        "medium_3": "중형 차대 III",
+        "super_heavy_1": "초중전차 차대",
+        "modern_1": "현대형 차대"
       }
     },
     "battalion": {
@@ -8467,7 +8471,14 @@
       "w_mg4": "기관총 4정",
       "w_rockets": "공대지 로켓",
       "w_torpedo": "항공 어뢰",
-      "welded": "용접 장갑"
+      "welded": "용접 장갑",
+      "engine_2": "개량 전차 엔진",
+      "engine_3": "고출력 전차 엔진",
+      "gun_super": "초중전차포",
+      "aa_2": "개량 함대공 화기",
+      "aa_3": "고성능 함대공 화기",
+      "fc_2": "고급 사격 통제",
+      "radar_2": "항공 레이더 II"
     },
     "module_slot": {
       "plane": {

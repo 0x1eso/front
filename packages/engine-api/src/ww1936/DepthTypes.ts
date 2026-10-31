@@ -176,6 +176,8 @@ export const TANK_BASES = [
   "heavy_1",
   "heavy_2",
   "heavy_3",
+  "super_heavy_1",
+  "modern_1",
 ] as const;
 export type TankBase = (typeof TANK_BASES)[number];
 /** Tank slot kinds; a chassis has gun, turret, suspension, armor, engine, then 1–2 specials. */
@@ -211,6 +213,9 @@ export const TANK_MODULES = [
   "cast",
   "petrol",
   "diesel",
+  "engine_2",
+  "engine_3",
+  "gun_super",
   "radio",
   "sloped",
   "aux_mg",
@@ -265,6 +270,9 @@ export const SHIP_MODULES = [
   "floatplane",
   "snorkel",
   "shbb_hull",
+  "aa_2",
+  "aa_3",
+  "fc_2",
 ] as const;
 export type ShipModule = (typeof SHIP_MODULES)[number];
 export const PLANE_BASES = [
@@ -278,6 +286,8 @@ export const PLANE_BASES = [
   "large_2",
   "large_3",
   "jet_1",
+  "jet_2",
+  "jet_medium_1",
 ] as const;
 export type PlaneBase = (typeof PLANE_BASES)[number];
 export const PLANE_SLOT_KINDS = [
@@ -309,6 +319,7 @@ export const PLANE_MODULES = [
   "m_carrier",
   "m_engine_boost",
   "m_recon_camera",
+  "radar_2",
 ] as const;
 export type PlaneModule = (typeof PLANE_MODULES)[number];
 /** Equipment need groups past EQUIPMENT_TYPES (plan decision 6). */

@@ -74,8 +74,8 @@ export const AI_REDESIGN_DAYS = 365;
 const NEAR_CAP_BP = 500;
 
 const LIGHT_BASES = ["light_2", "light_1"] as const;
-const MEDIUM_BASES = ["medium_3", "medium_2", "medium_1"] as const;
-const HEAVY_BASES = ["heavy_3", "heavy_2", "heavy_1"] as const;
+const MEDIUM_BASES = ["modern_1", "medium_3", "medium_2", "medium_1"] as const;
+const HEAVY_BASES = ["super_heavy_1", "heavy_3", "heavy_2", "heavy_1"] as const;
 
 export function aiDesignsDay(d: WwDepth, id: number, day: number): void {
   // Spec §19.1 / plan decision 39: every day at war, every 10 days at peace.

@@ -277,6 +277,28 @@ describe("World War 1936 P2: land battles (spec §9)", () => {
     expect(t.mode[rowOf(l, a.divisions[0])]).not.toBe(MOVE_ADVANCE);
   }, 60_000);
 
+  test("casualtyReturnPp returns more of the lost men to the manpower pool", async () => {
+    const pool = async (pp: number) => {
+      const { g, l, pol } = await juneWar();
+      const a = placeArmy(g, "DEU", 3, 1);
+      placeArmy(g, "POL", WARSAW, 1);
+      const ce = l.econ.country(pol)!;
+      ce.stats.casualtyReturnPp = pp;
+      const before = ce.manpower;
+      attack(l, a, WARSAW);
+      stepBattles(l, g.ticks());
+      return {
+        back: ce.manpower - before,
+        lost: l.country(pol)!.casualtiesToday,
+      };
+    };
+    const base = await pool(0);
+    const more = await pool(30);
+    expect(more.lost).toBe(base.lost);
+    expect(base.back).toBeGreaterThan(0);
+    expect(more.back).toBeGreaterThan(base.back);
+  }, 60_000);
+
   test("no friendly neighbour means destruction", async () => {
     const { runner, updates, g, l, deu, pol } = await juneWar();
     takeRegion(g, KRAKOW, "DEU");

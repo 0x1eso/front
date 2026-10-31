@@ -61,9 +61,9 @@ describe("World War 1936 P6 lists", () => {
       if (i > 0) expect(SUB_TRACK[i]).toBeGreaterThanOrEqual(SUB_TRACK[i - 1]);
     }
     expect(ARMY_SPIRITS).toHaveLength(21);
-    expect(TANK_MODULES).toHaveLength(30);
-    expect(SHIP_MODULES).toHaveLength(25);
-    expect(PLANE_MODULES).toHaveLength(21);
+    expect(TANK_MODULES).toHaveLength(33);
+    expect(SHIP_MODULES).toHaveLength(28);
+    expect(PLANE_MODULES).toHaveLength(22);
   });
 
   it("techs, refusals, stats, effects and conditions are appended", () => {

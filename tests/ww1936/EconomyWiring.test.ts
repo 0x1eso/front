@@ -204,7 +204,7 @@ describe("economy wiring (spec §6, §14)", () => {
     // a minor's construction group).
     expect(ce.slots.map((x) => x?.tech)).toEqual([
       "construction_1",
-      "fortification_1",
+      "anti_air_1",
     ]);
   });
 

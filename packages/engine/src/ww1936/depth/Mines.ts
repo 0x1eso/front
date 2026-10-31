@@ -95,6 +95,9 @@ interface SideShips {
   sweeper: boolean;
 }
 
+const mineBoost = (v: number, mw2: boolean): number =>
+  mw2 ? Math.floor((v * 3) / 2) : v;
+
 /**
  * The sea region's day (after P4's convoy war): ① a country that joined a
  * faction brings its mines to the faction's key; a faction that is gone
@@ -128,6 +131,10 @@ export function seaRegionDay(d: WwDepth, sr: number, day: number): void {
       }
       const lays = f.mission === MISSION.layMines && working(f);
       const sweeps = f.mission === MISSION.sweepMines && working(f);
+      // Research overhaul (mine_warfare_2): magnetic mines, +50% laid and swept.
+      const mw2 =
+        (lays || sweeps) &&
+        ww.economy.country(f.owner)?.researched.has("mine_warfare_2") === true;
       for (const sid of f.ships) {
         const r = t.rowOf(sid);
         if (r < 0) continue;
@@ -136,10 +143,10 @@ export function seaRegionDay(d: WwDepth, sr: number, day: number): void {
         const flags = shipDesignFlags(d, r);
         const cls = SHIP_CLASSES[t.cls[r]];
         if (lays && (flags & DS_MINE_LAYER) !== 0) {
-          x.lay += MINE_LAY_PER_DAY[cls] ?? 0;
+          x.lay += mineBoost(MINE_LAY_PER_DAY[cls] ?? 0, mw2);
         }
         if (sweeps && (flags & DS_MINESWEEP) !== 0) {
-          x.sweep += MINE_SWEEP_PER_DAY[cls] ?? 0;
+          x.sweep += mineBoost(MINE_SWEEP_PER_DAY[cls] ?? 0, mw2);
           x.sweeper = true;
         }
       }

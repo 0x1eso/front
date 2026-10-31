@@ -186,8 +186,8 @@ const FAMILY_OF: Readonly<Record<string, number>> = {
 export function mioFamilyOf(type: string, planeDesignType?: string): number {
   if (type === "plane_design") {
     if (planeDesignType === undefined) return -1;
-    if (/^(small|jet)_/.test(planeDesignType)) return 3;
-    if (/^(medium|large)_/.test(planeDesignType)) return 4;
+    if (/^(small|jet_\d)/.test(planeDesignType)) return 3;
+    if (/^(medium|large|jet_medium)_/.test(planeDesignType)) return 4;
     const f = FAMILY_OF[planeDesignType];
     return f === 3 || f === 4 ? f : -1;
   }

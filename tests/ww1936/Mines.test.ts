@@ -196,6 +196,24 @@ describe("World War 1936 P6: mines (spec §15.1)", () => {
     expect(minesConvoyLossPm(d, DEEP.sr.approaches, GBR)).toBe(0);
   });
 
+  it("mine_warfare_2 lays and sweeps half again (research overhaul)", async () => {
+    const runner = await atWar();
+    const ww = runner.game.worldWar()!;
+    const d = ww.depth;
+    const day = ww.day(runner.game.ticks());
+    ddDesign(d, ITA, "mine_layer");
+    mission(
+      runner,
+      ITA,
+      fleet(runner, ITA, DEEP.region.rome, 3, 2),
+      "lay_mines",
+    );
+    ww.economy.country(ITA)!.addTech("mine_warfare_2");
+    seaRegionDay(d, CENTRAL, day);
+    // 2 layers x 2000 a day, +50%.
+    expect(ownMinesMilli(d, CENTRAL, ITA)).toBe(2 * 3_000);
+  });
+
   it("sweepers halve mine damage and clear enemy mines", async () => {
     const runner = await atWar();
     const ww = runner.game.worldWar()!;

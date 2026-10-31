@@ -650,7 +650,7 @@ describe("the AI's land war on world1936 (controller ruling 3)", () => {
     // strong Germany attacks Poland in the spring; this seed's goes in
     // September, the case this test is about.
     const runner = await createGameRunner(
-      { ...wwGameStart(), gameID: "WWSIM006" },
+      { ...wwGameStart(), gameID: "WWSIM008" },
       undefined,
       await worldFiles(),
       (gu) => {

@@ -61,9 +61,9 @@ describe("politics stats", () => {
     for (const k of P4_TECH_KEYS) expect(WW_STAT_KEYS).toContain(k);
   });
 
-  it("stat keys are unique: 14 + 20 + 42 + P4's 41 + P5's 7 + P6's 69", () => {
+  it("stat keys are unique: 14 + 20 + 42 + P4's 41 + P5's 7 + P6's 69 + the overhaul's 3", () => {
     expect(new Set(WW_STAT_KEYS).size).toBe(WW_STAT_KEYS.length);
-    expect(WW_STAT_KEYS).toHaveLength(76 + 41 + 7 + 69);
+    expect(WW_STAT_KEYS).toHaveLength(76 + 41 + 7 + 69 + 3);
   });
 
   it("sums add by key; a missing key is 0", () => {
@@ -75,7 +75,7 @@ describe("politics stats", () => {
     addStatsInto(t, { orgPct: 2 }, 3);
     expect(t.orgPct).toBe(6);
     expect(statsArray({ constructionPct: 4 })[0]).toBe(4);
-    expect(statsArray({})).toHaveLength(76 + 41 + 7 + 69);
+    expect(statsArray({})).toHaveLength(76 + 41 + 7 + 69 + 3);
   });
 
   it("the tech totals become the tech stats (the first 34 and P4's 24)", () => {

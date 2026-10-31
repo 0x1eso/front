@@ -483,7 +483,7 @@ export function battalionStatPct(
     return {
       ...ZERO_PCT,
       soft: s("infAttackPct") + mio,
-      hard: s("infAttackPct") + mio,
+      hard: s("infAttackPct") + s("infHardPct") + mio,
       def: s("infDefensePct") + mio,
       speed: bat === "motorized" ? s("motSpeedPct") : 0,
       org: bat === "motorized" ? s("motOrg") : 0,
@@ -516,7 +516,7 @@ export function battalionStatPct(
       soft: mio,
       hard: mio,
       speed:
-        bat === "mot_artillery" || bat === "sp_artillery"
+        bat === "artillery" || bat === "mot_artillery" || bat === "sp_artillery"
           ? s("artSpeedPct")
           : 0,
     };

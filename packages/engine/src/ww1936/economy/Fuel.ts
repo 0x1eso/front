@@ -62,6 +62,21 @@ export function syntheticOilOf(
 }
 
 /**
+ * Research overhaul (synthetic_rubber_1): each working refinery makes one
+ * more rubber on top of the rubber its oil already gives.
+ */
+export function syntheticRubberOf(
+  econ: WwEconomy,
+  ce: CountryEconomy,
+  region: number,
+  controlPct: number,
+): number {
+  if (!ce.researched.has("synthetic_rubber_1")) return 0;
+  const n = effectiveBuildings(econ, region, "synthetic_refinery");
+  return Math.floor((n * controlPct) / 100);
+}
+
+/**
  * Spec §15.3: the country turn's settlement (after research): the day's
  * gain fills the stock up to the capacity (the rest is lost), the ledger's
  * need comes off it, and the share it covered is the ratio every
