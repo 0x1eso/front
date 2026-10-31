@@ -137,17 +137,19 @@ describe("World War 1936 P5 lists", () => {
       // The research overhaul appends its two.
       "exclusive",
       "no_project",
+      // Research grants append theirs.
+      "bonus_held",
     ]);
     const kinds = WwOrderSchema.options.map(
       (o) => (o.shape.kind as { value: string }).value,
     );
     // The automation lane appends auto_set and army_auto_all after them,
     // peace on the current line its one after those, the research
-    // overhaul research_lean last.
-    expect(kinds.slice(-6, -4)).toEqual([...WHITE_PEACE_ORDER_KINDS]);
-    expect(kinds.slice(-4, -2)).toEqual(["auto_set", "army_auto_all"]);
-    expect(kinds.slice(-2, -1)).toEqual([...LINE_PEACE_ORDER_KINDS]);
-    expect(kinds.slice(-1)).toEqual(["research_lean"]);
+    // overhaul research_lean and the research grants research_grant last.
+    expect(kinds.slice(-7, -5)).toEqual([...WHITE_PEACE_ORDER_KINDS]);
+    expect(kinds.slice(-5, -3)).toEqual(["auto_set", "army_auto_all"]);
+    expect(kinds.slice(-3, -2)).toEqual([...LINE_PEACE_ORDER_KINDS]);
+    expect(kinds.slice(-2)).toEqual(["research_lean", "research_grant"]);
     expect(after(ARMY_ORDER_KINDS, "invade")).toEqual(["garrison"]);
     expect(after(SUPPORT_IDS, "signal")).toEqual(["military_police"]);
     expect(after(WW_TECH_IDS, "synthetic_oil_2")[0]).toBe("military_police");
