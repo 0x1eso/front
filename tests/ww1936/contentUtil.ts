@@ -134,7 +134,7 @@ export const CONTENT_TARGETS = {
   // P5 (P5 spec §18, pre-flight §0-12): the four new trees, 46 each.
   ITA: 47,
   JPN: 46,
-  FRA: 47,
+  FRA: 98,
   USA: 46,
   events: 100,
   decisions: 36,
