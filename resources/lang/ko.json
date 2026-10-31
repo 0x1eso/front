@@ -8216,7 +8216,12 @@
         "national": "나라 중점"
       },
       "unqueue": "예약 빼기",
-      "unqueue_tap": "한 번 더 눌러 예약 빼기"
+      "unqueue_tap": "한 번 더 눌러 예약 빼기",
+      "search": "포커스 검색",
+      "search_none": "결과 없음",
+      "search_next": "{n}/{total} ▶",
+      "group_open": "{name} {done}/{total}",
+      "group_collapsed": "▸ {name} {done}/{total}"
     },
     "fx": {
       "access": "군사 통행 허가 받음: {of}",

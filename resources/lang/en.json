@@ -8498,6 +8498,8 @@
       "duration_same": "{days} days · {seconds} s",
       "effects": "Effects",
       "excludes": "Cannot be combined with",
+      "group_collapsed": "▸ {name} {done}/{total}",
+      "group_open": "{name} {done}/{total}",
       "idle": "No focus running — pick one",
       "left": "{days, plural, one {# day} other {# days}} · {seconds} s left",
       "queue": "Queue",
@@ -8506,6 +8508,9 @@
       "requires_all": "All of these focuses:",
       "requires_any": "One of these focuses:",
       "running": "Running",
+      "search": "Search focus",
+      "search_next": "{n}/{total} ▶",
+      "search_none": "No match",
       "start": "Start",
       "state": {
         "blocked": "Conditions not met",
