@@ -17,28 +17,8 @@ const readJson = (rel: string) =>
 const en = readJson("resources/lang/en.json").ww1936;
 const ko = readJson("resources/lang/ko.json").ww1936;
 
-/** Spec §7.4 and §16.3 exclusions and the controller rulings: never a named card. */
-const BANNED_NAMES = [
-  // Germany: convicted naval and air commanders
-  "raeder",
-  "doenitz",
-  "goering",
-  "milch",
-  "kesselring",
-  // Japan: the spec's list (every Japanese person is an office card anyway)
-  "kobayashi",
-  "hasegawa",
-  "shimada",
-  "oka",
-  "nagano",
-  // France: post-war collaboration convictions; the 1937-42 naval chief by office only
-  "abrial",
-  "esteva",
-  "darlan",
-  // Soviet Union: the NKVD navy chief; the June 1937 tribunal member
-  "frinovsky",
-  "alksnis",
-] as const;
+/** The old exclusion list was abolished 2026-10-31; only the two still without a card stay. */
+const BANNED_NAMES = ["abrial", "frinovsky", "alksnis"] as const;
 const DATE = /^19[34]\d-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
 const nameParts = (id: string) => id.split("_");
 
@@ -69,10 +49,10 @@ describe("admirals (spec §7.4)", () => {
     }
   });
 
-  it("Japan's admirals are office cards only (controller ruling)", () => {
+  it("Japan's admirals carry real names, not office titles", () => {
     for (const a of ADMIRALS.filter((x) => x.tag === "JPN")) {
-      expect(en.admiral[a.id], a.id).toMatch(/^Commander/);
-      expect(ko.admiral[a.id], a.id).toMatch(/사령(장)?관$/);
+      expect(en.admiral[a.id], a.id).not.toMatch(/^Commander/);
+      expect(ko.admiral[a.id], a.id).not.toMatch(/사령(장)?관$/);
     }
   });
 

@@ -7,7 +7,6 @@ import { GameMapSize, GameMapType } from "@openfront/engine-api/game/GameTypes";
 import type { MapFiles } from "@openfront/engine-api/game/MapFiles";
 import { WW_WHITE_PEACE_MIN_DAYS } from "@openfront/engine-api/ww1936/EndgameTypes";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
-import { peaceClaimantTags } from "@openfront/engine-lib/ww1936/PeaceRules";
 import { createGameRunner } from "@openfront/engine/GameRunner";
 import {
   lineMovesOf,
@@ -34,7 +33,7 @@ async function worldFiles(): Promise<MapFiles> {
 }
 
 describe("World War 1936: peace on the current line on the world map", () => {
-  it("Korea never changes hands, Taiwan only to China, Japan never receives either", async () => {
+  it("Korea and Taiwan change hands on the line like any other region", async () => {
     const runner = await createGameRunner(
       wwGameStart(),
       undefined,
@@ -53,8 +52,6 @@ describe("World War 1936: peace on the current line on the world map", () => {
     const [sun, jpn, chn, usa] = (["SUN", "JPN", "CHN", "USA"] as const).map(
       (t) => sc.smallIdOf(t),
     );
-    // China is Taiwan's claimant in the content.
-    expect(peaceClaimantTags(pol.content.claims)).toContain("CHN");
     const oldWar = (a: number, b: number) => {
       ww.setWar(a, b, g.ticks(), { kind: "declare" });
       const w = eg.warOfPair(a, b);
@@ -84,7 +81,6 @@ describe("World War 1936: peace on the current line on the world map", () => {
     const home = sc.landRegions.find(
       (r) =>
         pol.legalOwner[r.id] === jpn &&
-        !eg.neverAdministered.has(r.id) &&
         r.id !== eg.capitalRegion(jpn) &&
         land.controller[r.id] === jpn,
     )!.id;
@@ -95,50 +91,22 @@ describe("World War 1936: peace on the current line on the world map", () => {
     for (const r of [...north, ...south, ...taiwan]) {
       expect(eg.isZone(r), `zone ${r}`).toBe(false);
     }
-    // The American line: Japan's home region only — not Taiwan, not Korea,
-    // which go back to Japan as in a white peace.
-    expect(movesOf(wu, usa)).toEqual([[home, jpn, usa]]);
-    accept(wu, usa);
-    expect(pol.legalOwner[home]).toBe(usa);
-    expect(land.controller[home]).toBe(usa);
-    for (const r of [taiwan[0], south[0]]) {
-      expect(pol.legalOwner[r], `owner ${r}`).toBe(jpn);
-      expect(land.controller[r], `ctl ${r}`).toBe(jpn);
-    }
-    // The Soviet line: nothing changes hands; North Korea goes back.
-    expect(movesOf(ws, sun)).toEqual([]);
-    accept(ws, sun);
-    expect(land.controller[north[0]]).toBe(jpn);
-    expect(pol.legalOwner[north[0]]).toBe(jpn);
-    // The Chinese line: Taiwan to China, its claimant; China's region the
-    // Japanese hold to Japan.
-    const chinese = sc.landRegions.find(
-      (r) =>
-        pol.legalOwner[r.id] === chn &&
-        r.id !== eg.capitalRegion(chn) &&
-        land.controller[r.id] === chn,
-    )!.id;
-    land.setController(taiwan[0], chn, g.ticks());
-    land.setController(chinese, jpn, g.ticks());
-    expect(movesOf(wc, chn)).toEqual(
-      [
-        [taiwan[0], jpn, chn],
-        [chinese, chn, jpn],
-      ].sort((a, b) => a[0] - b[0]),
+    // The American line: Japan's home region, Taiwan and South Korea.
+    const ids = (w: number, from: number) =>
+      movesOf(w, from)
+        .map((m) => m[0])
+        .sort((x, y) => x - y);
+    expect(ids(wu, usa)).toEqual(
+      [taiwan[0], south[0], home].sort((x, y) => x - y),
     );
-    accept(wc, chn);
-    expect(pol.legalOwner[taiwan[0]]).toBe(chn);
-    expect(land.controller[taiwan[0]]).toBe(chn);
-    expect(pol.legalOwner[chinese]).toBe(jpn);
-
-    // Japan never receives either: Taiwan (China's by law now) and a Korea
-    // region the USA's by law, both held by Japan in new wars.
-    const wc2 = oldWar(jpn, chn);
-    land.setController(taiwan[0], jpn, g.ticks());
-    expect(movesOf(wc2, jpn)).toEqual([]);
-    const wu2 = oldWar(jpn, usa);
-    pol.setLegalOwner(south[0], usa);
-    expect(land.controller[south[0]]).toBe(jpn);
-    expect(movesOf(wu2, jpn)).toEqual([]);
+    accept(wu, usa);
+    for (const r of [taiwan[0], south[0], home]) {
+      expect(pol.legalOwner[r], `owner ${r}`).toBe(usa);
+      expect(land.controller[r], `ctl ${r}`).toBe(usa);
+    }
+    // The Soviet line: North Korea.
+    expect(ids(ws, sun)).toEqual([north[0]]);
+    accept(ws, sun);
+    expect(pol.legalOwner[north[0]]).toBe(sun);
   }, 600_000);
 });

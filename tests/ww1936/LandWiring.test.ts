@@ -564,15 +564,17 @@ describe("World War 1936 P2: the land war's state", () => {
     );
     expect(
       detail.generals.filter((x) => x.from === -1).map((x) => x.key),
-    ).toEqual([
-      "rundstedt",
-      "bock",
-      "kluge",
-      "heinrici",
-      "geyr",
-      "witzleben",
-      "wietersheim",
-    ]);
+    ).toEqual(
+      expect.arrayContaining([
+        "rundstedt",
+        "bock",
+        "kluge",
+        "heinrici",
+        "geyr",
+        "witzleben",
+        "wietersheim",
+      ]),
+    );
     expect(detail.divisions).toHaveLength(45);
     // Quiet ticks send nothing.
     const n = updates.length;

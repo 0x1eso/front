@@ -1,34 +1,8 @@
 // World War 1936 P3 (plan Global Constraints, last line; spec §8.4, §19.1):
 // the owner's and the host's sensitivity rules, checked on every content
 // table and text. Passes on empty tables.
-import { COUNTRY_TAGS } from "@openfront/engine-api/ww1936/Countries";
-import type { ReadonlyScenarioData } from "@openfront/engine-api/ww1936/ScenarioTypes";
-import { JPN_DECISIONS } from "@openfront/engine-lib/ww1936/content/decisions/jpn";
-import { NUKE_TARGETS } from "@openfront/engine-lib/ww1936/content/depth/projects";
-import { JPN_EVENTS } from "@openfront/engine-lib/ww1936/content/events/jpn";
-import { JPN_FOCUSES } from "@openfront/engine-lib/ww1936/content/focus/jpn";
-import { PERSONS_JPN } from "@openfront/engine-lib/ww1936/content/persons/jpn";
 import { CONTENT } from "@openfront/engine-lib/ww1936/content/registry";
-import { SPIRITS_JPN } from "@openfront/engine-lib/ww1936/content/spirits/jpn";
-import { isNoStrike } from "@openfront/engine-lib/ww1936/NoStrike";
-import {
-  nukeDropBlock,
-  raidBlock,
-  rocketTargetBlock,
-} from "@openfront/engine-lib/ww1936/ProjectRules";
-import { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
-import { scorchBlock } from "@openfront/engine-lib/ww1936/WorldRules";
-import fs from "fs";
-import path from "path";
-import {
-  allEffectLists,
-  BANNED_PERSON_IDS,
-  contentTexts,
-  en,
-  keyIn,
-  ko,
-  walkEffects,
-} from "./contentUtil";
+import { contentTexts, en, keyIn, ko } from "./contentUtil";
 
 /** Words that must not appear in any content text (en or ko): atrocities as content, colonial-rule events, banned symbols. */
 const BANNED_WORDS_EN = [
@@ -58,8 +32,6 @@ const BANNED_WORDS_KO = [
   /대만 총독/,
   /가미카제/,
 ];
-
-const banned = new Set<string>(BANNED_PERSON_IDS);
 
 /** P5 additions (spec §18.1-2; Korean, English, Japanese romaji). */
 const P5_BANNED = [
@@ -255,8 +227,6 @@ function p5Texts(json: unknown): [string, string][] {
   for (const g of P5_KEY_GROUPS) walk(root[g], `ww1936.${g}`);
   return out;
 }
-/** Plan decision 32: the groups only the peace and claim tables may name. */
-const PEACE_ONLY_GROUPS = ["korea_north", "korea_south", "taiwan"];
 /** Spec §18.1, decisions.md: collaborationist governments, led by titles. */
 const COLLABORATION = ["SVK", "HRV", "VIC", "RNG", "MEN", "BRM", "PHL"];
 /** Their real heads, never on the name layer. */
@@ -270,33 +240,8 @@ const COLLABORATOR_NAMES = [
   /ba maw|바모/i,
   /laurel|라우렐/i,
 ];
-const JAPAN_TITLE_FROM = "1936-02-26";
 
 describe("content sensitivity", () => {
-  it("no banned person is in the person table or a leader seat", () => {
-    for (const p of CONTENT.persons) expect(banned.has(p.id), p.id).toBe(false);
-    for (const c of CONTENT.countries) {
-      for (const id of [c.startLeader, ...Object.values(c.leaders)]) {
-        if (id !== undefined)
-          expect(banned.has(id), `${c.tag} ${id}`).toBe(false);
-      }
-    }
-  });
-
-  it(`Japan's leaders after ${JAPAN_TITLE_FROM} are titles`, () => {
-    const jpn = CONTENT.countryIdx.get("JPN");
-    // startLeader (1936-01-01, before the date) may be a person.
-    for (const id of Object.values(jpn?.leaders ?? {})) {
-      expect(id?.startsWith("title:"), `JPN ${id}`).toBe(true);
-    }
-    for (const [at, list] of allEffectLists()) {
-      walkEffects(list, (e) => {
-        if (e.kind !== "set_leader" || e.person.startsWith("title:")) return;
-        expect(CONTENT.personIdx.get(e.person)?.country, at).not.toBe("JPN");
-      });
-    }
-  });
-
   it("no content text holds a banned word", () => {
     for (const [lang, json, words] of [
       ["en", en, BANNED_WORDS_EN],
@@ -309,59 +254,7 @@ describe("content sensitivity", () => {
     }
   });
 
-  it("nothing is about Korea or Taiwan", () => {
-    const bad = /korea|chosen|taiwan|formosa/;
-    // P5 plan decision 32: the three groups of the peace and claim tables.
-    for (const g of CONTENT.groups) {
-      if (PEACE_ONLY_GROUPS.includes(g.id)) continue;
-      expect(bad.test(g.id), g.id).toBe(false);
-    }
-    for (const e of CONTENT.events) expect(bad.test(e.id), e.id).toBe(false);
-    for (const d of CONTENT.decisions) expect(bad.test(d.id), d.id).toBe(false);
-    for (const f of CONTENT.focuses) expect(bad.test(f.id), f.id).toBe(false);
-  });
-
   // ---- P5 (spec §18.1-2, plan decision 32, pre-flight §A U3) ----
-
-  it("Japan's content names no Korean or Taiwanese region", () => {
-    const korea = /"(korea_[a-z_]*|taiwan[a-z_]*)"/;
-    const japanese = [
-      ...JPN_FOCUSES,
-      ...JPN_EVENTS,
-      ...JPN_DECISIONS,
-      ...SPIRITS_JPN,
-      ...CONTENT.focuses.filter((x) => x.id.startsWith("jpn_")),
-      ...CONTENT.events.filter((x) => x.id.startsWith("jpn_")),
-      ...CONTENT.decisions.filter((x) => x.id.startsWith("jpn_")),
-      ...CONTENT.spirits.filter((x) => x.id.startsWith("jpn_")),
-    ];
-    for (const x of japanese) {
-      expect(korea.test(JSON.stringify(x)), x.id).toBe(false);
-    }
-  });
-
-  it("the Korean and Taiwanese groups are used by the peace and claim tables only", () => {
-    const named = new RegExp(`"(${PEACE_ONLY_GROUPS.join("|")})"`);
-    const others: [string, unknown][] = [
-      ["focuses", CONTENT.focuses],
-      ["events", CONTENT.events],
-      ["decisions", CONTENT.decisions],
-      ["spirits", CONTENT.spirits],
-      ["beats", CONTENT.beats],
-      ["countries", CONTENT.countries],
-      ["cores", CONTENT.cores],
-      ["seeds", CONTENT.seeds],
-      ["occupation", CONTENT.occupationDefaults],
-      ["templates", CONTENT.templates],
-    ];
-    for (const [at, table] of others) {
-      expect(named.test(JSON.stringify(table)), at).toBe(false);
-    }
-    // No Korean or Taiwanese country exists to free or to be.
-    for (const t of COUNTRY_TAGS) {
-      expect(/^(KOR|TWN|CHO|FOR)/.test(t), t).toBe(false);
-    }
-  });
 
   it("no content text holds a P5 banned word", () => {
     for (const lang of [en, ko]) {
@@ -405,16 +298,6 @@ describe("content sensitivity", () => {
     }
   });
 
-  it("Japan's persons are titles", () => {
-    // P5 K2's table (P3's leaders.ts keeps its 1936-01-01 start leader).
-    for (const p of PERSONS_JPN) {
-      expect(
-        p.id.startsWith("title") || p.nameKey.startsWith("ww1936.title."),
-        p.id,
-      ).toBe(true);
-    }
-  });
-
   it("collaborationist governments are led by titles", () => {
     for (const c of CONTENT.countries) {
       if (!COLLABORATION.includes(c.tag)) continue;
@@ -438,120 +321,9 @@ describe("content sensitivity", () => {
     }
   });
 
-  it("Laval, Okada and Puyi are shown by title only, never by name (controller ruling on review B M1)", () => {
-    const names = [
-      /laval|라발/i,
-      /okada|오카다|keisuke|게이스케/i,
-      /puyi|pu yi|푸이|溥儀|aisin/i,
-    ];
-    // Nowhere in either language file (the start leaders' lines included).
-    for (const [lang, json] of [
-      ["en", en],
-      ["ko", ko],
-    ] as const) {
-      const text = JSON.stringify(json);
-      for (const n of names) expect(n.test(text), `${lang} ${n}`).toBe(false);
-    }
-    // Their start leader lines are the offices.
-    expect(
-      ["FRA", "JPN", "MCK"].map((t) => keyIn(en, `ww1936.leader.${t}`)),
-    ).toEqual(["President of the Council", "Prime Minister", "Emperor"]);
-    expect(
-      ["FRA", "JPN", "MCK"].map((t) => keyIn(ko, `ww1936.leader.${t}`)),
-    ).toEqual(["각료 회의 의장", "내각 총리대신", "황제"]);
-    // The same offices the title seats use.
-    expect(keyIn(en, "ww1936.title.fra_council_president")).toBe(
-      keyIn(en, "ww1936.leader.FRA"),
-    );
-    expect(keyIn(ko, "ww1936.title.jpn_prime_minister")).toBe(
-      keyIn(ko, "ww1936.leader.JPN"),
-    );
-  });
-
   it("the helpers read the language files", () => {
     expect(keyIn(en, "ww1936.econ.block.no_pp")).toBe(
       "Not enough political power",
     );
-  });
-
-  // ---- P6 (plan decision 33, pre-flight §0-11) ----
-
-  it("P6: Korea and Taiwan hold no coal, uranium, hydro, landmark or dam, and no target", () => {
-    const dir = path.join(__dirname, "../../resources/maps/world1936");
-    const world = ScenarioIndex.fromFiles(
-      JSON.parse(
-        fs.readFileSync(path.join(dir, "scenario.json"), "utf8"),
-      ) as ReadonlyScenarioData,
-      new Uint8Array(fs.readFileSync(path.join(dir, "regions.bin"))),
-    );
-    // KOREA_TAIWAN_REGIONS: the P5 groups korea_north, korea_south, taiwan.
-    const koreaTaiwan = [...CONTENT.noStrikeRegions];
-    expect(koreaTaiwan.length).toBeGreaterThan(0);
-    for (const r of koreaTaiwan) {
-      expect(isNoStrike(world, r), `${r}`).toBe(true);
-      expect(world.coalOf(r), `${r}`).toBe(0);
-      expect(world.uraniumOf(r), `${r}`).toBe(0);
-      expect(world.hydroOf(r), `${r}`).toBe(0);
-      expect(world.landmarksOf(r), `${r}`).toEqual([]);
-      expect(world.damOf(r), `${r}`).toBe(-1);
-    }
-    for (const t of NUKE_TARGETS) {
-      for (const r of t.regions) {
-        expect(koreaTaiwan.includes(r), `${t.attacker}-${t.target} ${r}`).toBe(
-          false,
-        );
-      }
-    }
-    // The pack data names no Korean or Taiwanese region or group.
-    const korea = /"(korea_[a-z_]*|taiwan[a-z_]*)"/;
-    const packs = CONTENT.focuses.filter((f) =>
-      CONTENT.packs.some((p) => p.id === f.tree),
-    );
-    expect(korea.test(JSON.stringify(packs))).toBe(false);
-  });
-
-  it("P6: every strike on a no-strike region is refused for that reason (the judges' first line)", () => {
-    expect(
-      nukeDropBlock({
-        stock: 1,
-        atWar: true,
-        bombersInZone: 50,
-        nukesOn: true,
-        rocket: false,
-        ballisticDone: false,
-        rocketKm: 0,
-        ballisticStock: 0,
-        noStrike: true,
-      }),
-    ).toBe("no_strike_region");
-    expect(
-      raidBlock({
-        kind: "raid_bomb",
-        unitOk: true,
-        targetOk: true,
-        reachOk: true,
-        running: 0,
-        intelClose: true,
-        facilityTarget: false,
-        noStrike: true,
-      }),
-    ).toBe("no_strike_region");
-    expect(
-      scorchBlock({
-        legalOwner: true,
-        controls: true,
-        enemyAdjacent: true,
-        pp: 100,
-        queued: false,
-        noStrike: true,
-      }),
-    ).toBe("no_strike_region");
-    expect(rocketTargetBlock({ km: 10, rangeKm: 250, noStrike: true })).toBe(
-      "no_strike_region",
-    );
-    // The control: elsewhere the reason is never the no-strike one.
-    expect(
-      rocketTargetBlock({ km: 10, rangeKm: 250, noStrike: false }),
-    ).not.toBe("no_strike_region");
   });
 });

@@ -18,7 +18,6 @@ import {
   type WwConferenceView,
   type WwDemandView,
 } from "@openfront/engine-api/ww1936/EndgameTypes";
-import { CONTENT } from "@openfront/engine-lib/ww1936/content/registry";
 import { peaceUiOf } from "../../../src/client/hud/ww1936/PeaceModel";
 import { TWO_TAP_MS } from "../../../src/client/hud/ww1936/WorldWarModel";
 import "../../../src/client/hud/ww1936/WwEventCards";
@@ -290,34 +289,5 @@ describe("<ww-peace-card> (P5 spec §20.1)", () => {
     expect(
       layer.querySelector("[data-ww-event-more]")!.textContent!.trim(),
     ).toBe("[ww1936.eventui.more] n=2");
-  });
-  it("the map band greys Take and Whole group on a Korean region (zone_only)", async () => {
-    const m = await mount("DEU");
-    const korea = CONTENT.groupIdx.get("korea_south")!.regions[0];
-    const base = conference();
-    m.game.wwEndgame().apply({
-      news: [],
-      conference: {
-        ...base,
-        stake: [
-          ...base.stake,
-          { region: korea, base: 20, settledBy: 0, zone: false },
-        ],
-      },
-    });
-    const ui = peaceUiOf(m.game);
-    ui.openMap();
-    ui.pick(korea);
-    m.el.tick();
-    await m.redraw();
-    const band = m.el.mapModeLayer()!;
-    const btn = (k: string) =>
-      band.querySelector<HTMLButtonElement>(`[data-ww-peace-btn='${k}']`)!;
-    for (const k of ["map-take", "map-group"]) {
-      expect(btn(k).disabled).toBe(true);
-      expect(btn(k).textContent).toContain("[ww1936.peace.why.zone_only]");
-    }
-    // The occupation zone is the way Korea goes (not refused for Korea).
-    expect(btn("map-zone").textContent).not.toContain("zone_only");
   });
 });

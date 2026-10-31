@@ -184,13 +184,11 @@ const KEYS = [
   ...DOCTRINE_SCHOOLS.map((s) => `ww1936.school.${s}`),
   ...WW_TECH_IDS.map((t) => `ww1936.tech.${t}`),
   ...EFFECTS.map((e) => `ww1936.effect.${e}`),
-  // Negotiated peace refuses Korea and Taiwan with the conference's own
-  // reasons (EconomyModel.BLOCK_KEYS).
-  ...WW_ORDER_BLOCKS.map((b) =>
-    b === "zone_only" || b === "claim_only"
-      ? `ww1936.peace.why.${b}`
-      : `ww1936.econ.block.${b}`,
-  ),
+  // The abolished no-strike and Korea / Taiwan peace blocks keep their enum
+  // entries (append-only) but no text.
+  ...WW_ORDER_BLOCKS.filter(
+    (b) => b !== "no_strike_region" && b !== "zone_only" && b !== "claim_only",
+  ).map((b) => `ww1936.econ.block.${b}`),
   ...LAW_NEED.map((v) => `ww1936.econ.law_need.${v}`),
   ...ECON.map((e) => `ww1936.econ.${e}`),
   // P2 (plan Task 1 Step 22): the manpower tab's land rows (P3: today's

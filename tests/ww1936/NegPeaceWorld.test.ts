@@ -1,6 +1,5 @@
 // World War 1936: negotiated peace on the real world1936 map and content —
-// Korea and Taiwan are never ceded or demanded (P5 PeaceRules' zone_only
-// and claim_only, whoever gives or asks), Japan's other land may be; and
+// Korea and Taiwan are ceded or demanded like any other region; and
 // the AI ahead demands only land it holds, keeping the target's chance at
 // its aim.
 import { GameMapSize, GameMapType } from "@openfront/engine-api/game/GameTypes";
@@ -47,7 +46,7 @@ const terms = (t: Partial<WwPeaceTerms>): WwPeaceTerms => ({
 });
 
 describe("World War 1936: negotiated peace on the world map", () => {
-  it("never cedes or demands Korea or Taiwan; the AI ahead demands what it holds", async () => {
+  it("cedes or demands Korea and Taiwan like any region; the AI ahead demands what it holds", async () => {
     const runner = await createGameRunner(
       wwGameStart(),
       undefined,
@@ -85,36 +84,15 @@ describe("World War 1936: negotiated peace on the world map", () => {
     expect(eg.war(ws)!.sides[1].leader).toBe(sun);
     expect(eg.war(wc)!.sides[1].leader).toBe(chn);
     const t = g.ticks();
-    // Korea: zone-only — the Soviets can't demand it, Japan can't cede it.
-    expect(offerPeace(eg, sun, ws, jpn, t, terms({ take: [north[0]] }))).toBe(
-      "zone_only",
-    );
-    expect(offerPeace(eg, jpn, ws, sun, t, terms({ give: [south[0]] }))).toBe(
-      "zone_only",
-    );
-    // Taiwan: not even its claimant, China, gets it this way.
-    expect(offerPeace(eg, chn, wc, jpn, t, terms({ take: [taiwan[0]] }))).toBe(
-      "claim_only",
-    );
-    expect(offerPeace(eg, jpn, wc, chn, t, terms({ give: [taiwan[0]] }))).toBe(
-      "claim_only",
-    );
-    // Mixed with another region, the offer is refused as a whole.
-    const other = sc.landRegions.find(
-      (r) =>
-        pol.legalOwner[r.id] === jpn &&
-        !eg.neverAdministered.has(r.id) &&
-        r.id !== eg.capitalRegion(jpn),
-    )!.id;
+    // Korea and Taiwan are ordinary: Japan may cede a Korean region, and a
+    // Chinese demand for Taiwan is a valid offer too.
     expect(
-      offerPeace(eg, jpn, ws, sun, t, terms({ give: [other, north[0]] })),
-    ).toBe("zone_only");
-    expect(eg.peaceOffers).toEqual([]);
-    // Japan's other land may go.
-    expect(
-      offerPeace(eg, jpn, ws, sun, t, terms({ give: [other] })),
+      offerPeace(eg, jpn, ws, sun, t, terms({ give: [south[0]] })),
     ).toBeNull();
-    expect(eg.peaceOffers).toHaveLength(1);
+    expect(
+      offerPeace(eg, chn, wc, jpn, t, terms({ take: [taiwan[0]] })),
+    ).toBeNull();
+    expect(eg.peaceOffers).toHaveLength(2);
 
     // Germany ahead in Poland: it demands only the Polish land it holds,
     // keeping Poland's chance at the aim.

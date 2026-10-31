@@ -22,7 +22,6 @@ import {
   negPeaceWinNeed,
   noPeaceTerms,
 } from "@openfront/engine-lib/ww1936/NegPeaceRules";
-import { peaceSensitivity } from "@openfront/engine-lib/ww1936/PeaceRules";
 
 // Countries: 1 the proposer, 2 the target, 3 Japan (excluded), 4 China, 5
 // a subject of 1. Regions: 1 the proposer's capital, 2..4 its others, 10
@@ -68,12 +67,6 @@ function facts(over: Partial<NegPeaceFacts> = {}): NegPeaceFacts {
   };
 }
 
-const SENS = peaceSensitivity(
-  (g) => (g === "korea_north" ? [20] : g === "taiwan" ? [21] : []),
-  JPN,
-  0,
-  [CHN],
-);
 const t = (x: Partial<WwPeaceTerms>): WwPeaceTerms => ({
   ...noPeaceTerms(),
   ...x,
@@ -87,10 +80,10 @@ describe("negotiated peace rules", () => {
     expect(hasPeaceTerms(t({ free: [SUB] }))).toBe(true);
   });
 
-  it("checks the terms: ownership, capital, 40%, zones, levels, subjects, Korea and Taiwan", () => {
+  it("checks the terms: ownership, capital, 40%, zones, levels, subjects", () => {
     const f = facts();
     const block = (x: Partial<WwPeaceTerms>, from = P, to = T) =>
-      negPeaceTermsBlock(f, SENS, t(x), from, to);
+      negPeaceTermsBlock(f, t(x), from, to);
     expect(block({ give: [2], take: [11], pay: 3 })).toBeNull();
     expect(block({ give: [1] })).toBe("peace_capital");
     expect(block({ take: [10] })).toBe("peace_capital");
@@ -117,20 +110,16 @@ describe("negotiated peace rules", () => {
       vp: big9,
       legalVp: (id) => (id === P ? 21 : 15),
     });
-    expect(negPeaceTermsBlock(big, SENS, t({ give: [2] }), P, T)).toBe(
+    expect(negPeaceTermsBlock(big, t({ give: [2] }), P, T)).toBe(
       "peace_too_much",
     );
     // A subject of one of the two only.
     expect(block({ free: [SUB] })).toBeNull();
     expect(block({ free: [T] })).toBe("peace_bad_terms");
     expect(block({ free: [JPN] })).toBe("peace_bad_terms");
-    // Korea: zone-only, whoever receives it; Taiwan: never by a peace,
-    // even to its claimant China, never to Japan.
-    expect(block({ give: [20] })).toBe("zone_only");
-    expect(block({ give: [20] }, P, CHN)).toBe("zone_only");
-    expect(block({ give: [21] })).toBe("claim_only");
-    expect(block({ give: [21] }, P, CHN)).toBe("claim_only");
-    expect(block({ give: [21] }, P, JPN)).toBe("claim_only");
+    // Korea and Taiwan are ordinary regions (here 20 and 21, Japan's).
+    expect(block({ give: [20] })).toBeNull();
+    expect(block({ give: [21] }, P, CHN)).toBeNull();
   });
 
   it("values the terms in conference points: less for land already held, reparations prorated", () => {

@@ -7,17 +7,12 @@ import {
   equipKey,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
 import type { ReadonlyScenarioData } from "@openfront/engine-api/ww1936/ScenarioTypes";
-import { isNoStrike } from "@openfront/engine-lib/ww1936/NoStrike";
 import { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
 import { EventBus } from "@openfront/shared/EventBus";
 import fs from "fs";
 import path from "path";
 import { describe, expect, it, vi } from "vitest";
 import { WwStrikeFlowEvent } from "../../../src/client/hud/ww1936/DepthEvents";
-import {
-  offered,
-  strikeTargets,
-} from "../../../src/client/hud/ww1936/DepthIndustryModel";
 import { WwNukeFlow } from "../../../src/client/hud/ww1936/WwNukeFlow";
 import { SendWwOrderIntentEvent } from "../../../src/client/Transport";
 import { REGION } from "../../ww1936/seaFixture";
@@ -202,26 +197,6 @@ describe("rocket and raid flows", () => {
 });
 
 describe("the no-strike rule in every strike flow", () => {
-  it("the real map: Korea and Taiwan 901 are greyed out by the engine-lib judge", () => {
-    const dir = path.join(__dirname, "../../../resources/maps/world1936");
-    const world = ScenarioIndex.fromFiles(
-      JSON.parse(
-        fs.readFileSync(path.join(dir, "scenario.json"), "utf8"),
-      ) as ReadonlyScenarioData,
-      new Uint8Array(fs.readFileSync(path.join(dir, "regions.bin"))),
-    );
-    const ids = world.landRegions.map((r) => r.id);
-    const rows = strikeTargets(world, ids, () => true);
-    const seoul = world.landRegions.find((r) => r.name === "Seoul")!;
-    for (const id of [901, seoul.id]) {
-      expect(rows.find((r) => r.region === id)?.noStrike, `${id}`).toBe(true);
-      expect(offered(rows)).not.toContain(id);
-    }
-    // The grey set is exactly the judge's.
-    for (const r of rows) expect(r.noStrike).toBe(isNoStrike(world, r.region));
-    expect(rows.filter((r) => r.noStrike).length).toBe(12);
-  });
-
   it("bomb, rocket, bomber raid, paratrooper and commando flows never offer or take them", () => {
     // Berlin and Rome stand in for Korea and Taiwan: the judge refuses them.
     const names = { [REGION.berlin]: "Taiwan", [REGION.rome]: "Ryanggang" };

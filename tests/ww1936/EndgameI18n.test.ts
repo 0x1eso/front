@@ -111,10 +111,4 @@ describe("P5 endgame translations", () => {
       expect(argNames(o!, "ko"), k).toEqual(argNames(e!, "en"));
     }
   });
-
-  it("the Korea zone text is neutral", () => {
-    const t = keyIn(ko, "ww1936.occ.zone_korea")!;
-    expect(t).toContain("분할 점령");
-    expect(t).not.toMatch(/식민|침략|해방군/);
-  });
 });
