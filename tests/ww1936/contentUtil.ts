@@ -132,9 +132,9 @@ export const CONTENT_TARGETS = {
   GBR: 48,
   SUN: 47,
   // P5 (P5 spec §18, pre-flight §0-12): the four new trees, 46 each.
-  ITA: 46,
+  ITA: 47,
   JPN: 46,
-  FRA: 46,
+  FRA: 47,
   USA: 46,
   events: 100,
   decisions: 36,

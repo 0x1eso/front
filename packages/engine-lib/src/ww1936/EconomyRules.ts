@@ -342,11 +342,13 @@ export function researchProgress(speedPct: number, ahead: number): number {
   return Math.floor((1000 * (100 + speedPct)) / (100 + ahead));
 }
 
-export function researchSlotCount(major: boolean, factories: number): number {
-  return Math.min(
-    WW_MAX_SLOTS,
-    (major ? 3 : 2) + (factories >= 50 ? 1 : 0) + (factories >= 100 ? 1 : 0),
-  );
+/**
+ * Research overhaul (changes §1.1): the start slots plus the slots the
+ * research_slot effects gave, at most WW_MAX_SLOTS. Factories, bombing and
+ * occupation do not count.
+ */
+export function researchSlotCount(start: number, extra: number): number {
+  return Math.max(0, Math.min(WW_MAX_SLOTS, start + extra));
 }
 
 // ---- Stock coverage (spec §10; the screens' stockpile bars) ----

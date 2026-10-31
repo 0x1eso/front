@@ -657,17 +657,27 @@ describe("the World War 1936 economy screens' model (spec §13)", () => {
       support_eq_1: "available",
       support_eq_2: "prereq",
       motorized_1: "available",
-      // P2 (P2 spec §4.6): companies and special forces.
-      engineer_company: "prereq",
-      recon_company: "prereq",
+      // P2 (P2 spec §4.6): special forces (the companies are the support
+      // tab's since the research overhaul).
       mountaineers: "available",
       marines: "available",
-      field_hospital: "prereq",
-      logistics_company: "prereq",
       paratroopers: "prereq",
-      // P5 (P5 spec §8.5): the military police company.
-      military_police: "prereq",
+      // Research overhaul (changes §2.3): the improvements.
+      inf_imp_1: "available",
+      support_imp_1: "prereq",
+      winter_gear_1: "available",
+      motorized_2: "prereq",
+      desert_gear_1: "available",
+      inf_imp_2: "prereq",
+      marines_2: "prereq",
+      inf_at_1: "prereq",
+      para_2: "prereq",
+      motorized_3: "prereq",
+      inf_at_2: "prereq",
+      inf_imp_3: "prereq",
     });
+    expect(Object.keys(states("support"))).toHaveLength(17);
+    expect(states("support").engineer_company).toBe("prereq");
     // P6 plan decision 25: the doctrine techs are retired, none is offered
     // (the grand doctrines take their place).
     expect(states("doctrine")).toEqual({});

@@ -233,6 +233,20 @@ export function startStock(
   return out;
 }
 
+/**
+ * Research overhaul (changes §1.2): the research slots a country starts
+ * with — a major 3, the United States and the Soviet Union 4, any other
+ * country (a dormant slot when it wakes too) 2. Factories no longer add
+ * slots; focuses and the decision do (research_slot).
+ */
+export const START_RESEARCH_SLOTS: Readonly<
+  Partial<Record<CountryTag, number>>
+> = { USA: 4, SUN: 4 };
+
+export function startResearchSlots(tag: CountryTag): number {
+  return START_RESEARCH_SLOTS[tag] ?? (isMajor(tag) ? 3 : 2);
+}
+
 export function isMajor(tag: CountryTag): boolean {
   return COUNTRIES[tag].major;
 }

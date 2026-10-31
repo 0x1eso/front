@@ -3,7 +3,10 @@
 // the same ones; whatever needs engine objects (who is alive, embargoes)
 // the caller works out first and hands in as a value.
 import { AIR_TYPES, AirType } from "@openfront/engine-api/ww1936/AirTypes";
-import { FACILITY_IDS } from "@openfront/engine-api/ww1936/DepthTypes";
+import {
+  FACILITY_IDS,
+  SPECIAL_PROJECTS,
+} from "@openfront/engine-api/ww1936/DepthTypes";
 import {
   BUILDABLE,
   BUILDING_TECH,
@@ -20,6 +23,7 @@ import {
   WW_MAX_LINES,
   WW_MAX_QUEUE,
   WW_MAX_TRADES,
+  WW_TECH_IDS,
   WW_TRADE_UNITS_PER_CIV,
   WwOrderBlock,
   WwTechId,
@@ -377,6 +381,28 @@ export interface ResearchState {
   /** The tech in each slot, null when empty (may be shorter than slotCount). */
   slots: readonly (WwTechId | null)[];
   slotCount: number;
+  /**
+   * Bit i: SPECIAL_PROJECTS[i] finished (research overhaul: a tech that
+   * follows a project waits for it). None: no project finished.
+   */
+  projects?: number;
+}
+
+/**
+ * Research overhaul (changes §2.4): the line of `group` the country has
+ * taken (researched or running), or -1. Lines are exclusive: one is taken
+ * at most.
+ */
+export function exclusiveLineTaken(
+  s: Pick<ResearchState, "researched" | "slots">,
+  group: string,
+): number {
+  for (const id of WW_TECH_IDS) {
+    const x = WW_TECHS[id].exclusive;
+    if (x === undefined || x.group !== group) continue;
+    if (s.researched.has(id) || s.slots.includes(id)) return x.line;
+  }
+  return -1;
 }
 
 /** The first empty slot within the slot count, or -1. */
@@ -401,6 +427,18 @@ export function researchBlockOf(
   // P6 plan decision 25: a retired doctrine tech is never researched again.
   if (def.retired === true) return "no_tech";
   if (def.prereqs.some((p) => !s.researched.has(p))) return "prereq";
+  // Research overhaul (changes §2.4, §2.5): the other line of an either/or
+  // pair, a special project not finished.
+  if (def.exclusive !== undefined) {
+    const line = exclusiveLineTaken(s, def.exclusive.group);
+    if (line >= 0 && line !== def.exclusive.line) return "exclusive";
+  }
+  if (
+    def.project !== undefined &&
+    ((s.projects ?? 0) & (1 << SPECIAL_PROJECTS.indexOf(def.project))) === 0
+  ) {
+    return "no_project";
+  }
   if (def.school !== undefined) {
     // P4 plan decision 23: one school a domain (land, sea, air).
     const running = s.slots.filter((t): t is WwTechId => t !== null);

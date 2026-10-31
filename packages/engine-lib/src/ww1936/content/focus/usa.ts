@@ -593,7 +593,7 @@ export const USA_FOCUSES: FocusDef[] = [
       { kind: "research_slot", amount: 1 },
       { kind: "add_advisor_candidate", person: "usa_bush" },
     ],
-    ai: { base: 10 },
+    ai: { base: 20 },
   },
   {
     id: "usa_radiation_lab",
@@ -605,10 +605,11 @@ export const USA_FOCUSES: FocusDef[] = [
     icon: "radio",
     prereq: [["usa_defense_research"]],
     effects: [
+      { kind: "research_slot", amount: 1 },
       { kind: "research_bonus", branch: "electronics", pct: 100, uses: 1 },
       { kind: "set_flag", flag: "radar_lab" },
     ],
-    ai: { base: 10 },
+    ai: { base: 20 },
   },
   {
     id: "usa_texas_oil",

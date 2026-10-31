@@ -560,7 +560,7 @@ export const SUN_FOCUSES = [
     branch: "research",
     icon: "research",
     effects: [{ kind: "research_slot", amount: 1 }],
-    ai: { base: 10 },
+    ai: { base: 20 },
   },
   {
     id: "sun_design_bureaus",
@@ -572,10 +572,11 @@ export const SUN_FOCUSES = [
     icon: "flask",
     prereq: [["sun_academy"]],
     effects: [
+      { kind: "research_slot", amount: 1 },
       { kind: "add_spirit", id: "sun_design_bureau_system" },
       { kind: "add_advisor_candidate", person: "sun_tupolev" },
     ],
-    ai: { base: 10 },
+    ai: { base: 20 },
   },
 
   // ---- E: the army ----

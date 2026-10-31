@@ -588,7 +588,20 @@ export const ITA_FOCUSES: FocusDef[] = [
       { kind: "research_slot", amount: 1 },
       { kind: "add_advisor_candidate", person: "ita_fermi" },
     ],
-    ai: { base: 10 },
+    ai: { base: 20 },
+  },
+  // Research overhaul (changes §1.3): Italy's second research slot.
+  {
+    id: "ita_university_labs",
+    tree: "ITA",
+    x: 11,
+    y: 2,
+    days: 70,
+    branch: "research",
+    icon: "research",
+    prereq: [["ita_research_council"]],
+    effects: [{ kind: "research_slot", amount: 1 }],
+    ai: { base: 20 },
   },
 
   // ---- E: army ----
@@ -815,6 +828,7 @@ export const ITA_PATH: FocusId[] = [
   "ita_non_belligerence",
   "ita_armoured_divisions",
   "ita_research_council",
+  "ita_university_labs",
   "ita_battleship_programme",
   "ita_submarine_arm",
   "ita_parallel_war",

@@ -12,6 +12,11 @@ import { zPlayerRef } from "@openfront/engine-lib/snapshot/SnapshotType";
 import { z } from "zod";
 import { Execution, Game, Player } from "../../game/Game";
 import { execSnapshotType } from "../../snapshot/ExecutionSnapshot";
+import type {
+  ExecRecord,
+  SnapshotReader,
+  SnapshotWriter,
+} from "../../snapshot/SnapshotContext";
 import {
   armyAutoAll,
   autoArmyNamed,
@@ -19,11 +24,6 @@ import {
   handOverDomain,
   noteArmyHandOver,
 } from "../Automation";
-import type {
-  ExecRecord,
-  SnapshotReader,
-  SnapshotWriter,
-} from "../../snapshot/SnapshotContext";
 import { cancelBuild, moveBuild, queueBuild } from "./Construction";
 import { setLaw } from "./LawsRun";
 import {
@@ -33,7 +33,7 @@ import {
   removeLine,
   setLineFactories,
 } from "./Production";
-import { cancelResearch, startResearch } from "./ResearchRun";
+import { cancelResearch, setResearchLean, startResearch } from "./ResearchRun";
 import { closeTrade, openTrade } from "./Trade";
 import type { WwEconomy } from "./WwEconomy";
 
@@ -243,6 +243,10 @@ function applyOrder(
       break;
     case "army_auto_all":
       block = armyAutoAll(econ.ww, p.smallID(), order.on);
+      break;
+    // Research overhaul (changes §6 idea 1): the sender's own country only.
+    case "research_lean":
+      block = setResearchLean(econ, ce, order.lean);
       break;
   }
   if (block === null) econ.markCountryDirty(ce.smallID);

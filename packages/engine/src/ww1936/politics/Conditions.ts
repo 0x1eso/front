@@ -184,6 +184,8 @@ function evalLeaf(ctx: EffectCtx, c: LeafCondition): boolean {
       return ce?.researched.has(c.tech) ?? false;
     case "factories_ge":
       return ce !== null && ce.totals.civ + ce.totals.mil >= c.count;
+    case "research_slots_ge":
+      return ce !== null && ce.totals.slotCount >= c.count;
     case "divisions_ge":
       return divisionCount(pol, id) >= c.count;
     case "strength_ratio_ge": {

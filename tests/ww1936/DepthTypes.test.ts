@@ -46,6 +46,8 @@ describe("World War 1936 P6 lists", () => {
       "auto_set",
       "army_auto_all",
       "line_peace_offer",
+      // Research overhaul: the auto-research leaning.
+      "research_lean",
     ]);
   });
 
@@ -65,7 +67,9 @@ describe("World War 1936 P6 lists", () => {
   });
 
   it("techs, refusals, stats, effects and conditions are appended", () => {
-    expect(after(WW_TECH_IDS, "military_police")).toHaveLength(33);
+    // P6's 33, then the research overhaul's 108.
+    expect(after(WW_TECH_IDS, "military_police")).toHaveLength(33 + 108);
+    expect(after(WW_TECH_IDS, "rocketry_1")[0]).toBe("inf_imp_1");
     expect(after(WW_TECH_IDS, "military_police")[0]).toBe("heavy_tank_1");
     // 32 (pre-flight §0-6: no_civs and no_xp existed already).
     // White peace appends its five after railgun_limit.
@@ -76,14 +80,16 @@ describe("World War 1936 P6 lists", () => {
     expect(new Set(WW_ORDER_BLOCKS).size).toBe(WW_ORDER_BLOCKS.length);
     // 69 (the brief's 74 less the 5 P4 added at the pre-flight's request).
     const stats = after(WW_STAT_KEYS, "occupationOutputPp");
-    expect(stats).toHaveLength(69);
+    // The research overhaul appends its three after them.
+    expect(stats).toHaveLength(69 + 3);
     expect(stats[0]).toBe("infAttackPct");
     expect(new Set(WW_STAT_KEYS).size).toBe(WW_STAT_KEYS.length);
     // Pre-flight §0-6: after P5's navy_xp; 10 conditions with nukes_on.
     expect(after(EFFECT_KINDS, "navy_xp")).toHaveLength(11);
     expect(after(EFFECT_KINDS, "navy_xp")[0]).toBe("doctrine_mastery");
     // After P5 lane E's borders_group (merged after legitimacy_ge).
-    expect(after(CONDITION_KINDS, "borders_group")).toHaveLength(10);
+    // The research overhaul appends research_slots_ge after them.
+    expect(after(CONDITION_KINDS, "borders_group")).toHaveLength(11);
     expect(after(CONDITION_KINDS, "borders_group")[9]).toBe("nukes_on");
     expect(effectGroup("doctrine_mastery")).toBe("depth");
     expect(effectGroup("cfocus_unlock")).toBe("depth");

@@ -556,7 +556,7 @@ export const DEU_FOCUSES: FocusDef[] = [
     branch: "research",
     icon: "research",
     effects: [{ kind: "research_slot", amount: 1 }],
-    ai: { base: 10 },
+    ai: { base: 20 },
   },
   {
     id: "deu_tech_mobilization",
@@ -567,8 +567,11 @@ export const DEU_FOCUSES: FocusDef[] = [
     branch: "research",
     icon: "radio",
     prereq: [["deu_kwi"], ["deu_machine_tools"]],
-    effects: [{ kind: "add_spirit", id: "deu_tech_drive" }],
-    ai: { base: 10 },
+    effects: [
+      { kind: "research_slot", amount: 1 },
+      { kind: "add_spirit", id: "deu_tech_drive" },
+    ],
+    ai: { base: 20 },
   },
 
   // ---- D: army ----
@@ -670,7 +673,9 @@ export const DEU_FOCUSES: FocusDef[] = [
     prereq: [["deu_wehrmacht"]],
     effects: [
       { kind: "add_spirit", id: "deu_replacement_system" },
-      { kind: "research_bonus", branch: "infantry", pct: 50, uses: 1 },
+      // Research overhaul (changes §2.6): the replacement system is the
+      // support companies' work, so the bonus is the support branch's.
+      { kind: "research_bonus", branch: "support", pct: 50, uses: 1 },
     ],
     ai: { base: 10 },
   },

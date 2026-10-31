@@ -12,10 +12,11 @@ import {
 } from "@openfront/engine-api/ww1936/EconomyTypes";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { dayOfDate, dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
+import { aheadPct } from "@openfront/engine-lib/ww1936/EconomyRules";
 import { navalStartTechs } from "@openfront/engine-lib/ww1936/EconomyStart";
 import {
   isRetiredTech,
-  techDays,
+  techCostMilli,
   WW_TECHS,
 } from "@openfront/engine-lib/ww1936/WwTechs";
 import type { GameRunner } from "@openfront/engine/GameRunner";
@@ -487,14 +488,16 @@ describe("the AI's plan (spec §12, pre-flight R6)", () => {
     for (const tag of ["DEU", "GBR", "JPN", "USA", "ITA"] as const) {
       expect(p4(tag).length, tag).toBeGreaterThan(10);
     }
-    // Germany submarines first, Britain sonar and radar, Japan and the
-    // United States carriers; only the carrier navies research carriers.
-    const firstSea = (tag: CountryTag) =>
-      p4(tag).find((t) => aiTechDomain(t) === "sea");
-    // (P6 plan decision 25: the doctrine techs are retired, none is listed.)
-    expect(firstSea("DEU")).toBe("ss_3");
-    expect(firstSea("GBR")).toBe("sonar_1");
-    expect(firstSea("JPN")).toBe("cv_3");
+    // Research overhaul (changes §5): each one's own sea techs come first
+    // ("look first" +30) — Germany submarines, Britain sonar, Japan
+    // carriers; only the carrier navies research carriers.
+    const before = (tag: CountryTag, a: WwTechId, b: WwTechId) => {
+      const o = aiResearchOrder(tag);
+      return o.indexOf(a) >= 0 && o.indexOf(a) < o.indexOf(b);
+    };
+    expect(before("DEU", "ss_3", "bb_3")).toBe(true);
+    expect(before("GBR", "sonar_2", "ss_3")).toBe(true);
+    expect(before("JPN", "cv_3", "ss_3")).toBe(true);
     for (const tag of ["DEU", "GBR", "JPN", "USA", "ITA", "SUN"] as const) {
       expect(aiResearchOrder(tag).some(isRetiredTech), tag).toBe(false);
     }
@@ -504,9 +507,13 @@ describe("the AI's plan (spec §12, pre-flight R6)", () => {
     for (const tag of ["DEU", "TUR", "HUN"] as const) {
       expect(p4(tag, false).some((t) => aiTechDomain(t) === "sea")).toBe(false);
     }
-    expect(p4("TUR").every((t) => aiTechDomain(t) !== "air")).toBe(true);
-    // (Synthetic oil is industry: the land's.)
-    expect(p4("HUN", false)).toEqual(["synthetic_oil_1", "synthetic_oil_2"]);
+    expect(p4("TUR").every((t) => WW_TECHS[t].tab !== "air")).toBe(true);
+    // (Synthetic oil is industry: the land's; radar is engineering.)
+    expect(
+      p4("HUN", false).every(
+        (t) => aiTechDomain(t) === "land" || t.startsWith("radar"),
+      ),
+    ).toBe(true);
     // Land techs are not starved: of 3 slots Britain keeps 2 for the
     // land, of 5 three; the Soviet Union keeps 3 of 3.
     expect(aiResearchCaps(aiResearchMix("GBR", true), 3)).toEqual({
@@ -603,27 +610,27 @@ describe("the AI's plan (spec §12, pre-flight R6)", () => {
         false,
       );
     }
-    // France opens its rifles first; Germany its tools.
-    const first = (tag: CountryTag) => aiResearchOrder(tag).slice(0, 2);
-    expect(first("FRA")).toEqual(["inf_eq_1", "inf_eq_2"]);
-    expect(first("DEU")).toEqual(["tools_1", "tools_2"]);
-    expect(aiResearchOrder("SUN")[0]).toBe("inf_eq_1");
+    // Research overhaul (changes §5): the leanings move a tech ahead of its
+    // year's others — the Soviet Union its rifles, Germany its tanks.
+    const rank = (tag: CountryTag, t: WwTechId) =>
+      aiResearchOrder(tag).indexOf(t);
+    expect(rank("SUN", "inf_imp_2")).toBeLessThan(rank("DEU", "inf_imp_2"));
+    expect(rank("DEU", "medium_tank_1")).toBeLessThan(
+      rank("SUN", "medium_tank_1"),
+    );
   });
 
-  test("the electronics group takes nuclear physics (final balance: the atomic facility's tech)", () => {
+  test("the electronics leaning takes nuclear physics (final balance: the atomic facility's tech)", () => {
     // Before, it came last of every list and no AI ever built a nuclear
-    // facility. It now follows the electronics group's other techs; the
-    // United States and Britain lean to electronics, so they come to it
-    // well before Germany, which has the group only in its tail.
+    // facility. Every major researches it; the United States and Britain
+    // lean to engineering, so they come to it before Germany.
     for (const tag of ["USA", "GBR", "DEU"] as CountryTag[]) {
       const order = aiResearchOrder(tag);
       const at = order.indexOf("nuclear_physics");
       expect(at, tag).toBeGreaterThan(order.indexOf("computing_1"));
       expect(at, tag).toBeLessThan(order.length - 1);
     }
-    const usa = aiResearchOrder("USA");
-    expect(usa.indexOf("nuclear_physics")).toBeLessThan(usa.length / 3);
-    expect(usa.indexOf("nuclear_physics")).toBeLessThan(
+    expect(aiResearchOrder("USA").indexOf("nuclear_physics")).toBeLessThan(
       aiResearchOrder("DEU").indexOf("nuclear_physics"),
     );
   });
@@ -669,49 +676,45 @@ describe("the AI's plan (spec §12, pre-flight R6)", () => {
         "research",
       ).map((o) => o.tech);
     expect(AI_FALLBACK_AHEAD_PCT).toBe(75);
-    // P4 lane AI: of 3 slots the land keeps 2 (Germany's share 60%) and
-    // the air takes the third; of 5 the land keeps 3 and the sea and the
-    // air take one each.
-    // (A pure plan from this input; the all-AI game starts Germany on its
-    // aiStartPlan slots instead, see "research slots start filled".)
-    expect(deu(0, 3)).toEqual([
-      "naval_bomber_1",
-      "fortification_1",
-      "electronics_1",
-    ]);
-    expect(deu(0, 5)).toEqual([
-      "naval_bomber_1",
-      "fortification_1",
-      "electronics_1",
-      "cryptography_1",
-      "sonar_1",
-    ]);
-    // 1936-04-02: 1937 techs are 74% ahead (rail_1 leads them on
-    // Germany's list, in its construction group) — but 4 slots keep 3
-    // for the land (ceil 60%) and the air takes one: rail_1 waits.
-    expect(deu(dayOfDate("1936-04-02"), 4)).toEqual([
-      "naval_bomber_1",
-      "fortification_1",
-      "electronics_1",
-      "cryptography_1",
-    ]);
-    // Mid-1937: 1938 techs are 50% ahead; tools_2 leads Germany's list.
-    expect(deu(dayOfDate("1937-07-04"), 1)).toEqual(["tools_2"]);
+    // Research overhaul (changes §5): the picks are the best-scored within
+    // the tiers. P4 lane AI: of 3 slots the land keeps 2 (Germany's share
+    // 60%) and the sea and the air the rest; nothing past 75% ahead.
+    const ok = (picks: readonly WwTechId[], day: number, slots: number) => {
+      expect(new Set(picks).size).toBe(picks.length);
+      for (const t of picks) {
+        expect(aheadPct(WW_TECHS[t].year, day), t).toBeLessThanOrEqual(75);
+      }
+      const land = picks.filter((t) => aiTechDomain(t) === "land").length;
+      expect(land).toBeGreaterThanOrEqual(
+        Math.min(picks.length, Math.ceil((slots * 60) / 100)),
+      );
+    };
+    ok(deu(0, 3), 0, 3);
+    expect(deu(0, 3)).toHaveLength(3);
+    ok(deu(0, 5), 0, 5);
+    // 1936-04-02: 1937 techs are 74% ahead, within the fallback.
+    const april = dayOfDate("1936-04-02");
+    ok(deu(april, 4), april, 4);
+    expect(deu(april, 4)).toHaveLength(4);
+    // Mid-1937: 1938 techs are 50% ahead; one slot takes one.
+    const mid = dayOfDate("1937-07-04");
+    expect(deu(mid, 1)).toHaveLength(1);
+    ok(deu(mid, 1), mid, 1);
     // A busy slot is left alone.
-    expect(
-      only(
-        aiPlan(
-          input({
-            tag: "DEU",
-            personality: "aggressor",
-            slots: ["fortification_1", null],
-            slotCount: 2,
-            researched,
-          }),
-        ),
-        "research",
-      ).map((o) => o.tech),
-    ).toEqual(["electronics_1"]);
+    const busy = only(
+      aiPlan(
+        input({
+          tag: "DEU",
+          personality: "aggressor",
+          slots: ["fortification_1", null],
+          slotCount: 2,
+          researched,
+        }),
+      ),
+      "research",
+    ).map((o) => o.tech);
+    expect(busy).toHaveLength(1);
+    expect(busy[0]).not.toBe("fortification_1");
   });
 
   test("laws follow the personality, as far as P3's conditions allow", () => {
@@ -1286,40 +1289,33 @@ describe("the AI economy in a game (spec §12)", () => {
       expect(c.slots).toHaveLength(c.totals.slotCount);
       expect(c.slots.every((s) => s !== null)).toBe(true);
     }
-    expect(ce("DEU").slots.map((s) => s!.tech)).toEqual([
-      "fortification_1",
-      "electronics_1",
-      "cryptography_1",
-    ]);
-    // Poland (a minor: construction first) takes the fort tech next.
-    expect(ce("POL").slots.map((s) => s!.tech)).toEqual([
-      "construction_1",
-      "fortification_1",
-    ]);
+    // Research overhaul (changes §5): the best-scored 1936 techs (none is
+    // ahead on day 0 while one is left), the same after the first day.
+    const deuStart = ce("DEU").slots.map((s) => s!.tech);
+    for (const t of deuStart) expect(WW_TECHS[t].year, t).toBe(1936);
+    for (const t of ce("POL").slots.map((s) => s!.tech)) {
+      expect(aiTechDomain(t), t).toBe("land");
+    }
     throughDay(runner, 0);
-    expect(ce("DEU").slots.map((s) => s!.tech)).toEqual([
-      "fortification_1",
-      "electronics_1",
-      "cryptography_1",
-    ]);
+    expect(ce("DEU").slots.map((s) => s!.tech)).toEqual(deuStart);
     throughDay(runner, dayOfDate("1936-04-02"));
     for (const tag of ["DEU", "ITA", "GBR", "FRA", "SUN", "POL"] as const) {
       const c = ce(tag);
       expect(c.slots).toHaveLength(c.totals.slotCount);
       expect(c.slots.every((s) => s !== null)).toBe(true);
     }
-    // fortification_1 is done on a day that is not a turn of Germany's (its
-    // last day's worth left before it): a new tech starts that same day (not
-    // up to ten days later), and any slot still empty has nothing within
-    // reach. (P6 plan decision 25: mobile_1 is retired.)
+    // A tech is done on a day that is not a turn of Germany's (its last
+    // day's worth left before it): a new tech starts that same day (not up
+    // to ten days later), and any slot still empty has nothing within reach.
     const deu = ce("DEU");
     let day = dayOfDate("1936-04-02") + 1;
     while (isAiTurn(deu.smallID, day, true)) day++;
     stepTo(runner, dayStart(day));
-    const fort = deu.slots.find((s) => s?.tech === "fortification_1")!;
-    fort.progress = techDays(WW_TECHS.fortification_1.year) * 1000 - 1000;
+    const fort = deu.slots.find((s) => s !== null)!;
+    const done = fort.tech;
+    fort.progress = techCostMilli(done) - 1000;
     throughDay(runner, day);
-    expect(deu.researched.has("fortification_1")).toBe(true);
+    expect(deu.researched.has(done)).toBe(true);
     expect(deu.slots.some((s) => s !== null && s.progress === 0)).toBe(true);
     const react = aiReactions(deu);
     expect(

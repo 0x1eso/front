@@ -234,6 +234,12 @@ export const WW_STAT_KEYS = [
   "atPiercePct",
   "artSpeedPct",
   "airRangePct",
+  // Research overhaul (design §3.2), appended: the support branch's research
+  // speed, the infantry battalions' hard attack, the share of casualties
+  // that come back to the manpower pool (percentage points).
+  "rsSupportPct",
+  "infHardPct",
+  "casualtyReturnPp",
 ] as const;
 export type WwStatKey = (typeof WW_STAT_KEYS)[number];
 export type WwStats = Record<WwStatKey, number>;

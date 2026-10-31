@@ -720,9 +720,14 @@ export function applyHpLoss(land: WwLand, row: number, hpMilli: number): void {
     }
   }
   if (lost > 0) {
-    const pct = (flags & TPL_HOSPITAL) !== 0 ? 50 : 20;
-    const back = Math.floor((lost * pct) / 100);
     const ce = land.econ.country(owner);
+    // Research overhaul (hospital_2): casualtyReturnPp adds to the share.
+    const pct = Math.min(
+      100,
+      ((flags & TPL_HOSPITAL) !== 0 ? 50 : 20) +
+        Math.max(0, ce?.stats.casualtyReturnPp ?? 0),
+    );
+    const back = Math.floor((lost * pct) / 100);
     if (ce !== null) returnManpower(ce, back);
     land.noteCasualties(owner, lost, lost - back);
     t.men[row] = men - lost;

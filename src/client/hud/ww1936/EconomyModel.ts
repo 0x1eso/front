@@ -94,7 +94,8 @@ import {
 } from "@openfront/engine-lib/ww1936/WorldRules";
 import { lawEffects } from "@openfront/engine-lib/ww1936/WwLaws";
 import {
-  techDays,
+  techCostDays,
+  techCostMilli,
   TechEffects,
   techTotals,
   WW_TECHS,
@@ -246,6 +247,7 @@ export const BRANCH_KEYS: Readonly<Record<TechBranch, string>> = {
   electronics: "ww1936.branch.electronics",
   doctrine: "ww1936.branch.doctrine",
   naval: "ww1936.branch.naval",
+  support: "ww1936.branch.support",
 };
 
 export const SCHOOL_KEYS: Readonly<Record<DoctrineSchool, string>> = {
@@ -410,6 +412,114 @@ export const TECH_KEYS: Readonly<Record<WwTechId, string>> = {
   cryptography_3: "ww1936.tech.cryptography_3",
   nuclear_physics: "ww1936.tech.nuclear_physics",
   rocketry_1: "ww1936.tech.rocketry_1",
+  inf_imp_1: "ww1936.tech.inf_imp_1",
+  support_imp_1: "ww1936.tech.support_imp_1",
+  winter_gear_1: "ww1936.tech.winter_gear_1",
+  motorized_2: "ww1936.tech.motorized_2",
+  desert_gear_1: "ww1936.tech.desert_gear_1",
+  inf_imp_2: "ww1936.tech.inf_imp_2",
+  marines_2: "ww1936.tech.marines_2",
+  inf_at_1: "ww1936.tech.inf_at_1",
+  para_2: "ww1936.tech.para_2",
+  motorized_3: "ww1936.tech.motorized_3",
+  inf_at_2: "ww1936.tech.inf_at_2",
+  inf_imp_3: "ww1936.tech.inf_imp_3",
+  reinforce_1: "ww1936.tech.reinforce_1",
+  engineer_2: "ww1936.tech.engineer_2",
+  recon_2: "ww1936.tech.recon_2",
+  field_maintenance: "ww1936.tech.field_maintenance",
+  logistics_2: "ww1936.tech.logistics_2",
+  mp_2: "ww1936.tech.mp_2",
+  hospital_2: "ww1936.tech.hospital_2",
+  signal_2: "ww1936.tech.signal_2",
+  engineer_3: "ww1936.tech.engineer_3",
+  recon_3: "ww1936.tech.recon_3",
+  logistics_3: "ww1936.tech.logistics_3",
+  tank_reliability_1: "ww1936.tech.tank_reliability_1",
+  armor_plate_2: "ww1936.tech.armor_plate_2",
+  tank_engine_2: "ww1936.tech.tank_engine_2",
+  armor_coordination: "ww1936.tech.armor_coordination",
+  tank_reliability_2: "ww1936.tech.tank_reliability_2",
+  armor_plate_3: "ww1936.tech.armor_plate_3",
+  tank_engine_3: "ww1936.tech.tank_engine_3",
+  tank_gun_4: "ww1936.tech.tank_gun_4",
+  super_heavy_tank: "ww1936.tech.super_heavy_tank",
+  modern_tank_1: "ww1936.tech.modern_tank_1",
+  art_imp_1: "ww1936.tech.art_imp_1",
+  art_towing: "ww1936.tech.art_towing",
+  at_imp_1: "ww1936.tech.at_imp_1",
+  aa_imp_1: "ww1936.tech.aa_imp_1",
+  art_imp_2: "ww1936.tech.art_imp_2",
+  fire_direction: "ww1936.tech.fire_direction",
+  at_imp_2: "ww1936.tech.at_imp_2",
+  aa_imp_2: "ww1936.tech.aa_imp_2",
+  art_imp_3: "ww1936.tech.art_imp_3",
+  at_imp_3: "ww1936.tech.at_imp_3",
+  aa_imp_3: "ww1936.tech.aa_imp_3",
+  naval_aa_1: "ww1936.tech.naval_aa_1",
+  damage_control_1: "ww1936.tech.damage_control_1",
+  naval_engine_2: "ww1936.tech.naval_engine_2",
+  convoy_escort_1: "ww1936.tech.convoy_escort_1",
+  torpedo_2: "ww1936.tech.torpedo_2",
+  depth_charge_2: "ww1936.tech.depth_charge_2",
+  mine_warfare_2: "ww1936.tech.mine_warfare_2",
+  transport_ship_2: "ww1936.tech.transport_ship_2",
+  fire_control_2: "ww1936.tech.fire_control_2",
+  naval_aa_2: "ww1936.tech.naval_aa_2",
+  damage_control_2: "ww1936.tech.damage_control_2",
+  naval_engine_3: "ww1936.tech.naval_engine_3",
+  hedgehog: "ww1936.tech.hedgehog",
+  convoy_escort_2: "ww1936.tech.convoy_escort_2",
+  carrier_deck_2: "ww1936.tech.carrier_deck_2",
+  torpedo_3: "ww1936.tech.torpedo_3",
+  aero_engine_2: "ww1936.tech.aero_engine_2",
+  air_armor_1: "ww1936.tech.air_armor_1",
+  naval_strike_1: "ww1936.tech.naval_strike_1",
+  long_range_1: "ww1936.tech.long_range_1",
+  transport_plane_2: "ww1936.tech.transport_plane_2",
+  air_ground_control: "ww1936.tech.air_ground_control",
+  carrier_aviation_2: "ww1936.tech.carrier_aviation_2",
+  aero_engine_3: "ww1936.tech.aero_engine_3",
+  bomb_sight_2: "ww1936.tech.bomb_sight_2",
+  naval_strike_2: "ww1936.tech.naval_strike_2",
+  aero_engine_4: "ww1936.tech.aero_engine_4",
+  air_rockets_2: "ww1936.tech.air_rockets_2",
+  air_radar_2: "ww1936.tech.air_radar_2",
+  jet_airframe_2: "ww1936.tech.jet_airframe_2",
+  jet_bomber_1: "ww1936.tech.jet_bomber_1",
+  radio_1: "ww1936.tech.radio_1",
+  encryption_1: "ww1936.tech.encryption_1",
+  radio_2: "ww1936.tech.radio_2",
+  encryption_2: "ww1936.tech.encryption_2",
+  rocketry_2: "ww1936.tech.rocketry_2",
+  operations_research: "ww1936.tech.operations_research",
+  radar_3: "ww1936.tech.radar_3",
+  computing_3: "ww1936.tech.computing_3",
+  electronic_warfare: "ww1936.tech.electronic_warfare",
+  cryptography_4: "ww1936.tech.cryptography_4",
+  computing_4: "ww1936.tech.computing_4",
+  nuclear_reactor: "ww1936.tech.nuclear_reactor",
+  concentrated_1: "ww1936.tech.concentrated_1",
+  dispersed_1: "ww1936.tech.dispersed_1",
+  fuel_storage_1: "ww1936.tech.fuel_storage_1",
+  fuel_refining_1: "ww1936.tech.fuel_refining_1",
+  energy_grid_1: "ww1936.tech.energy_grid_1",
+  dockyard_1: "ww1936.tech.dockyard_1",
+  fortification_2: "ww1936.tech.fortification_2",
+  synthetic_rubber_1: "ww1936.tech.synthetic_rubber_1",
+  concentrated_2: "ww1936.tech.concentrated_2",
+  dispersed_2: "ww1936.tech.dispersed_2",
+  rail_2: "ww1936.tech.rail_2",
+  fuel_refining_2: "ww1936.tech.fuel_refining_2",
+  energy_grid_2: "ww1936.tech.energy_grid_2",
+  dockyard_2: "ww1936.tech.dockyard_2",
+  construction_4: "ww1936.tech.construction_4",
+  excavation_3: "ww1936.tech.excavation_3",
+  fortification_3: "ww1936.tech.fortification_3",
+  concentrated_3: "ww1936.tech.concentrated_3",
+  dispersed_3: "ww1936.tech.dispersed_3",
+  tools_5: "ww1936.tech.tools_5",
+  construction_5: "ww1936.tech.construction_5",
 };
 
 export type EffectKey = keyof TechEffects | "unlock";
@@ -637,6 +747,8 @@ export const BLOCK_KEYS: Readonly<Record<WwOrderBlock, string>> = {
   peace_too_much: "ww1936.econ.block.peace_too_much",
   zone_only: "ww1936.peace.why.zone_only",
   claim_only: "ww1936.peace.why.claim_only",
+  exclusive: "ww1936.econ.block.exclusive",
+  no_project: "ww1936.econ.block.no_project",
 };
 
 // ---- Icons (pre-flight R7.7: emoji, no new image files) ----
@@ -1843,7 +1955,7 @@ export type ResearchCardState =
 export interface ResearchCard {
   id: WwTechId;
   year: number;
-  /** Base days (WwTechs.techDays). */
+  /** Research days at the base speed (WwTechs.techCostDays: year, multiplier, knob). */
   days: number;
   /** Days at today's speed and ahead-of-time penalty (left, when running). */
   etaDays: number;
@@ -1908,6 +2020,7 @@ export function researchBlock(
       researched: new Set(detail.researched),
       slots: slotTechs(detail),
       slotCount: detail.slotCount,
+      projects: detail.projectsDone ?? 0,
     },
     tech,
   );
@@ -1922,13 +2035,14 @@ export function researchCards(
     researched: new Set(detail.researched),
     slots: slotTechs(detail),
     slotCount: detail.slotCount,
+    projects: detail.projectsDone ?? 0,
   };
   // P6 plan decision 25: the retired doctrine techs are never offered.
   return WW_TECH_IDS.filter(
     (id) => WW_TECHS[id].branch === branch && WW_TECHS[id].retired !== true,
   ).map((id) => {
     const def = WW_TECHS[id];
-    const days = techDays(def.year);
+    const days = techCostDays(id);
     const ahead = aheadPct(def.year, day);
     const slot = detail.slots.find((s) => s?.tech === id) ?? null;
     const perDay = researchProgress(
@@ -1941,7 +2055,7 @@ export function researchCards(
         ? Math.max(0, slot.totalMilli - slot.progressMilli)
         : keep !== null
           ? Math.max(0, keep.totalMilli - keep.progressMilli)
-          : days * 1000;
+          : techCostMilli(id);
     const block = researchBlockOf(state, id);
     return {
       id,

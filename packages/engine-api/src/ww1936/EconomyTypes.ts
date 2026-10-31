@@ -333,8 +333,41 @@ export const TECH_BRANCHES = [
   "doctrine",
   // P4 (P4 spec §4.3)
   "naval",
+  // Research overhaul (changes §2.1), appended: the support companies.
+  "support",
 ] as const;
 export type TechBranch = (typeof TECH_BRANCHES)[number];
+/**
+ * Research overhaul (changes §2.1): the research screen's ten tabs, in
+ * screen order. A tech's tab is its branch ("electronics" is shown as
+ * engineering); "doctrine" shows the mastery summary and "projects" the
+ * special projects, neither holds a researchable tech.
+ */
+export const TECH_TABS = [
+  "infantry",
+  "support",
+  "armour",
+  "artillery",
+  "naval",
+  "air",
+  "electronics",
+  "industry",
+  "doctrine",
+  "projects",
+] as const;
+export type TechTab = (typeof TECH_TABS)[number];
+/**
+ * Research overhaul (changes §6 idea 1): the auto-research leanings, one
+ * byte of a human country's state (CountryEconomy.researchLean).
+ */
+export const RESEARCH_LEANS = [
+  "balanced",
+  "army",
+  "navy",
+  "air",
+  "industry",
+] as const;
+export type ResearchLean = (typeof RESEARCH_LEANS)[number];
 export const DOCTRINE_SCHOOLS = [
   "mobile",
   "firepower",
@@ -516,6 +549,116 @@ export const WW_TECH_IDS = [
   "cryptography_3",
   "nuclear_physics",
   "rocketry_1",
+  // Research overhaul (changes §2.3), appended in tab order: infantry,
+  // support, armour, artillery, naval, air, engineering, industry.
+  "inf_imp_1",
+  "support_imp_1",
+  "winter_gear_1",
+  "motorized_2",
+  "desert_gear_1",
+  "inf_imp_2",
+  "marines_2",
+  "inf_at_1",
+  "para_2",
+  "motorized_3",
+  "inf_at_2",
+  "inf_imp_3",
+  "reinforce_1",
+  "engineer_2",
+  "recon_2",
+  "field_maintenance",
+  "logistics_2",
+  "mp_2",
+  "hospital_2",
+  "signal_2",
+  "engineer_3",
+  "recon_3",
+  "logistics_3",
+  "tank_reliability_1",
+  "armor_plate_2",
+  "tank_engine_2",
+  "armor_coordination",
+  "tank_reliability_2",
+  "armor_plate_3",
+  "tank_engine_3",
+  "tank_gun_4",
+  "super_heavy_tank",
+  "modern_tank_1",
+  "art_imp_1",
+  "art_towing",
+  "at_imp_1",
+  "aa_imp_1",
+  "art_imp_2",
+  "fire_direction",
+  "at_imp_2",
+  "aa_imp_2",
+  "art_imp_3",
+  "at_imp_3",
+  "aa_imp_3",
+  "naval_aa_1",
+  "damage_control_1",
+  "naval_engine_2",
+  "convoy_escort_1",
+  "torpedo_2",
+  "depth_charge_2",
+  "mine_warfare_2",
+  "transport_ship_2",
+  "fire_control_2",
+  "naval_aa_2",
+  "damage_control_2",
+  "naval_engine_3",
+  "hedgehog",
+  "convoy_escort_2",
+  "carrier_deck_2",
+  "torpedo_3",
+  "aero_engine_2",
+  "air_armor_1",
+  "naval_strike_1",
+  "long_range_1",
+  "transport_plane_2",
+  "air_ground_control",
+  "carrier_aviation_2",
+  "aero_engine_3",
+  "bomb_sight_2",
+  "naval_strike_2",
+  "aero_engine_4",
+  "air_rockets_2",
+  "air_radar_2",
+  "jet_airframe_2",
+  "jet_bomber_1",
+  "radio_1",
+  "encryption_1",
+  "radio_2",
+  "encryption_2",
+  "rocketry_2",
+  "operations_research",
+  "radar_3",
+  "computing_3",
+  "electronic_warfare",
+  "cryptography_4",
+  "computing_4",
+  "nuclear_reactor",
+  "concentrated_1",
+  "dispersed_1",
+  "fuel_storage_1",
+  "fuel_refining_1",
+  "energy_grid_1",
+  "dockyard_1",
+  "fortification_2",
+  "synthetic_rubber_1",
+  "concentrated_2",
+  "dispersed_2",
+  "rail_2",
+  "fuel_refining_2",
+  "energy_grid_2",
+  "dockyard_2",
+  "construction_4",
+  "excavation_3",
+  "fortification_3",
+  "concentrated_3",
+  "dispersed_3",
+  "tools_5",
+  "construction_5",
 ] as const;
 export type WwTechId = (typeof WW_TECH_IDS)[number];
 
@@ -534,8 +677,10 @@ export const WW_MAX_TRADES = 20;
 export const WW_MAX_TRADE_CIVS = 50;
 export const WW_TRADE_UNITS_PER_CIV = 8;
 /**
- * Research slots (P3 spec §1.4, §26.4-9): factories give at most 5
- * (researchSlotCount); the sixth comes only from the research_slot effect.
+ * Research slots (research overhaul changes §1): a country's start slots
+ * (EconomyStart.startResearchSlots) plus the research_slot effects of its
+ * focuses and decisions, never more than this. The cap also sizes
+ * cancel_research's slot field: changing it moves the zbin layout.
  */
 export const WW_MAX_SLOTS = 6;
 export const WW_LAW_COOLDOWN_DAYS = 30;
@@ -709,6 +854,11 @@ export const WW_ORDER_BLOCKS = [
   "peace_too_much",
   "zone_only",
   "claim_only",
+  // Research overhaul (changes §2.4, §2.5), appended: the other line of an
+  // either/or pair is researched or running; the special project a tech
+  // follows is not finished.
+  "exclusive",
+  "no_project",
 ] as const;
 export type WwOrderBlock = (typeof WW_ORDER_BLOCKS)[number];
 
@@ -790,6 +940,15 @@ export interface WwResourceRow {
   used: number;
 }
 
+/** WwCountryDetail.slotHint: a focus or a decision that gives a research slot. */
+export interface WwSlotHint {
+  kind: "focus" | "decision";
+  /** The FocusId or DecisionId. */
+  id: string;
+  /** It can be started or taken now (the yellow dot); false: the next one, not yet. */
+  ready: boolean;
+}
+
 /** Human countries only, on the days they are processed or ordered. */
 export interface WwCountryDetail {
   smallID: number;
@@ -809,6 +968,28 @@ export interface WwCountryDetail {
   researchBranchPct: number[];
   /** Faction shared research % of techs not yet researched; only non-zero ones. */
   sharedResearch?: [WwTechId, number][];
+  /**
+   * Research overhaul R1: where the slots come from — the start slots and
+   * the research_slot effects of focuses and of decisions (slotCount is
+   * their sum, capped at WW_MAX_SLOTS).
+   */
+  slotSources?: {
+    start: number;
+    focus: number;
+    decision: number;
+    /** The most it can reach: start + its tree's slot focuses + the decision, ≤ WW_MAX_SLOTS. */
+    max: number;
+  };
+  /**
+   * Research overhaul R1 (the slot chip's yellow dot): the next source of
+   * a research slot and whether it can be taken now; absent when the slots
+   * are at the cap or no source is left. Auto-research never takes it.
+   */
+  slotHint?: WwSlotHint;
+  /** RESEARCH_LEANS index of the auto-research leaning; absent: balanced (0). */
+  researchLean?: number;
+  /** Bit i: SPECIAL_PROJECTS[i] finished (the project gate of researchBlockOf). */
+  projectsDone?: number;
   buying: WwTradeData[];
   selling: WwTradeData[];
   /** EQUIP_KEYS order. */

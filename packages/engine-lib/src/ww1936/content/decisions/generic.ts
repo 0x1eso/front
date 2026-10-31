@@ -3,249 +3,23 @@
 // Targeted decisions: in target.among, self = the candidate and from = the
 // decider; in available and the effects, self = the decider and target = the
 // chosen country (plan, content guidance 9).
-import type {
-  Condition,
-  Effect,
-  Selector,
-} from "@openfront/engine-api/ww1936/PoliticsDsl";
+import { WW_MAX_SLOTS } from "@openfront/engine-api/ww1936/EconomyTypes";
+import type { Effect } from "@openfront/engine-api/ww1936/PoliticsDsl";
 import type { DecisionDef } from "@openfront/engine-api/ww1936/PoliticsTypes";
-import { all, any, not } from "../helpers";
+import { all, any, not, techExchange } from "../helpers";
 
 // ---- gen_tech_exchange: "the faction leader has a technology we lack", branch by branch ----
-const LEADER: Selector = { factionLeaderOf: "self" };
-const AHEAD_INFANTRY: Condition = any(
-  all(
-    { kind: "has_tech", who: LEADER, tech: "inf_eq_1" },
-    not({ kind: "has_tech", tech: "inf_eq_1" }),
-  ),
-  all(
-    { kind: "has_tech", who: LEADER, tech: "inf_eq_2" },
-    not({ kind: "has_tech", tech: "inf_eq_2" }),
-  ),
-  all(
-    { kind: "has_tech", who: LEADER, tech: "inf_eq_3" },
-    not({ kind: "has_tech", tech: "inf_eq_3" }),
-  ),
-  all(
-    { kind: "has_tech", who: LEADER, tech: "support_eq_1" },
-    not({ kind: "has_tech", tech: "support_eq_1" }),
-  ),
-  all(
-    { kind: "has_tech", who: LEADER, tech: "support_eq_2" },
-    not({ kind: "has_tech", tech: "support_eq_2" }),
-  ),
-  all(
-    { kind: "has_tech", who: LEADER, tech: "motorized_1" },
-    not({ kind: "has_tech", tech: "motorized_1" }),
-  ),
-);
-const AHEAD_ARTILLERY: Condition = any(
-  all(
-    { kind: "has_tech", who: LEADER, tech: "artillery_1" },
-    not({ kind: "has_tech", tech: "artillery_1" }),
-  ),
-  all(
-    { kind: "has_tech", who: LEADER, tech: "artillery_2" },
-    not({ kind: "has_tech", tech: "artillery_2" }),
-  ),
-  all(
-    { kind: "has_tech", who: LEADER, tech: "artillery_3" },
-    not({ kind: "has_tech", tech: "artillery_3" }),
-  ),
-  all(
-    { kind: "has_tech", who: LEADER, tech: "anti_tank_1" },
-    not({ kind: "has_tech", tech: "anti_tank_1" }),
-  ),
-  all(
-    { kind: "has_tech", who: LEADER, tech: "anti_tank_2" },
-    not({ kind: "has_tech", tech: "anti_tank_2" }),
-  ),
-  all(
-    { kind: "has_tech", who: LEADER, tech: "anti_air_1" },
-    not({ kind: "has_tech", tech: "anti_air_1" }),
-  ),
-  all(
-    { kind: "has_tech", who: LEADER, tech: "anti_air_2" },
-    not({ kind: "has_tech", tech: "anti_air_2" }),
-  ),
-);
-const AHEAD_ARMOUR: Condition = any(
-  all(
-    { kind: "has_tech", who: LEADER, tech: "light_tank_1" },
-    not({ kind: "has_tech", tech: "light_tank_1" }),
-  ),
-  all(
-    { kind: "has_tech", who: LEADER, tech: "light_tank_2" },
-    not({ kind: "has_tech", tech: "light_tank_2" }),
-  ),
-  all(
-    { kind: "has_tech", who: LEADER, tech: "medium_tank_1" },
-    not({ kind: "has_tech", tech: "medium_tank_1" }),
-  ),
-  all(
-    { kind: "has_tech", who: LEADER, tech: "medium_tank_2" },
-    not({ kind: "has_tech", tech: "medium_tank_2" }),
-  ),
-  all(
-    { kind: "has_tech", who: LEADER, tech: "medium_tank_3" },
-    not({ kind: "has_tech", tech: "medium_tank_3" }),
-  ),
-);
-const AHEAD_AIR: Condition = any(
-  all(
-    { kind: "has_tech", who: LEADER, tech: "fighter_1" },
-    not({ kind: "has_tech", tech: "fighter_1" }),
-  ),
-  all(
-    { kind: "has_tech", who: LEADER, tech: "fighter_2" },
-    not({ kind: "has_tech", tech: "fighter_2" }),
-  ),
-  all(
-    { kind: "has_tech", who: LEADER, tech: "fighter_3" },
-    not({ kind: "has_tech", tech: "fighter_3" }),
-  ),
-  all(
-    { kind: "has_tech", who: LEADER, tech: "bomber_1" },
-    not({ kind: "has_tech", tech: "bomber_1" }),
-  ),
-  all(
-    { kind: "has_tech", who: LEADER, tech: "bomber_2" },
-    not({ kind: "has_tech", tech: "bomber_2" }),
-  ),
-);
-const AHEAD_INDUSTRY: Condition = any(
-  all(
-    { kind: "has_tech", who: LEADER, tech: "construction_1" },
-    not({ kind: "has_tech", tech: "construction_1" }),
-  ),
-  all(
-    { kind: "has_tech", who: LEADER, tech: "construction_2" },
-    not({ kind: "has_tech", tech: "construction_2" }),
-  ),
-  all(
-    { kind: "has_tech", who: LEADER, tech: "construction_3" },
-    not({ kind: "has_tech", tech: "construction_3" }),
-  ),
-  all(
-    { kind: "has_tech", who: LEADER, tech: "tools_1" },
-    not({ kind: "has_tech", tech: "tools_1" }),
-  ),
-  all(
-    { kind: "has_tech", who: LEADER, tech: "tools_2" },
-    not({ kind: "has_tech", tech: "tools_2" }),
-  ),
-  all(
-    { kind: "has_tech", who: LEADER, tech: "tools_3" },
-    not({ kind: "has_tech", tech: "tools_3" }),
-  ),
-  all(
-    { kind: "has_tech", who: LEADER, tech: "tools_4" },
-    not({ kind: "has_tech", tech: "tools_4" }),
-  ),
-  all(
-    { kind: "has_tech", who: LEADER, tech: "output_1" },
-    not({ kind: "has_tech", tech: "output_1" }),
-  ),
-  all(
-    { kind: "has_tech", who: LEADER, tech: "output_2" },
-    not({ kind: "has_tech", tech: "output_2" }),
-  ),
-  all(
-    { kind: "has_tech", who: LEADER, tech: "excavation_1" },
-    not({ kind: "has_tech", tech: "excavation_1" }),
-  ),
-  all(
-    { kind: "has_tech", who: LEADER, tech: "excavation_2" },
-    not({ kind: "has_tech", tech: "excavation_2" }),
-  ),
-  all(
-    { kind: "has_tech", who: LEADER, tech: "flexible_line" },
-    not({ kind: "has_tech", tech: "flexible_line" }),
-  ),
-);
-const AHEAD_ELECTRONICS: Condition = any(
-  all(
-    { kind: "has_tech", who: LEADER, tech: "electronics_1" },
-    not({ kind: "has_tech", tech: "electronics_1" }),
-  ),
-  all(
-    { kind: "has_tech", who: LEADER, tech: "computing_1" },
-    not({ kind: "has_tech", tech: "computing_1" }),
-  ),
-  all(
-    { kind: "has_tech", who: LEADER, tech: "computing_2" },
-    not({ kind: "has_tech", tech: "computing_2" }),
-  ),
-);
-/** The first branch (TECH_BRANCHES order) where the leader is ahead gets +100% once (plan: branch chain). */
-const TECH_EXCHANGE: Effect = {
-  kind: "if",
-  cond: AHEAD_INFANTRY,
-  then: [{ kind: "research_bonus", branch: "infantry", pct: 100, uses: 1 }],
-  else: [
-    {
-      kind: "if",
-      cond: AHEAD_ARTILLERY,
-      then: [
-        { kind: "research_bonus", branch: "artillery", pct: 100, uses: 1 },
-      ],
-      else: [
-        {
-          kind: "if",
-          cond: AHEAD_ARMOUR,
-          then: [
-            { kind: "research_bonus", branch: "armour", pct: 100, uses: 1 },
-          ],
-          else: [
-            {
-              kind: "if",
-              cond: AHEAD_AIR,
-              then: [
-                { kind: "research_bonus", branch: "air", pct: 100, uses: 1 },
-              ],
-              else: [
-                {
-                  kind: "if",
-                  cond: AHEAD_INDUSTRY,
-                  then: [
-                    {
-                      kind: "research_bonus",
-                      branch: "industry",
-                      pct: 100,
-                      uses: 1,
-                    },
-                  ],
-                  else: [
-                    {
-                      kind: "if",
-                      cond: AHEAD_ELECTRONICS,
-                      then: [
-                        {
-                          kind: "research_bonus",
-                          branch: "electronics",
-                          pct: 100,
-                          uses: 1,
-                        },
-                      ],
-                      // Doctrine: mastery on land (the old doctrine techs are retired).
-                      else: [
-                        {
-                          kind: "doctrine_mastery",
-                          domain: "land",
-                          amount: 60,
-                        },
-                      ],
-                    },
-                  ],
-                },
-              ],
-            },
-          ],
-        },
-      ],
-    },
-  ],
-};
+// Research overhaul (changes §2.6): every researchable tech of the branch,
+// the new ones and the support branch included (helpers.techExchange).
+const { ahead: AHEAD, effect: TECH_EXCHANGE } = techExchange([
+  "infantry",
+  "support",
+  "artillery",
+  "armour",
+  "air",
+  "industry",
+  "electronics",
+]);
 
 // ---- gen_rally: the ruling party's drift rides on the hidden party-support spirits ----
 const RALLY_DRIFT: Effect = {
@@ -368,6 +142,28 @@ export const GENERIC_DECISIONS: DecisionDef[] = [
     ],
     ai: { base: 15 },
   },
+  // Research overhaul (changes §1.3): a research slot, once a game, when the
+  // war has run half a year or the world is tense (a situation, not a date).
+  {
+    id: "gen_science_mobilisation",
+    category: "economy",
+    for: "any",
+    available: all(
+      { kind: "factories_ge", count: 10 },
+      any({ kind: "war_days_ge", days: 180 }, { kind: "wt_ge", pct: 50 }),
+    ),
+    cost: { pp: 100 },
+    effects: [{ kind: "research_slot", amount: 1 }],
+    ai: {
+      base: 40,
+      mods: [
+        {
+          if: { kind: "research_slots_ge", count: WW_MAX_SLOTS },
+          factor: 0,
+        },
+      ],
+    },
+  },
   // ---- military ----
   {
     id: "gen_emergency_draft",
@@ -412,14 +208,7 @@ export const GENERIC_DECISIONS: DecisionDef[] = [
     available: all(
       { kind: "in_faction" },
       not({ kind: "faction_leader" }),
-      any(
-        AHEAD_INFANTRY,
-        AHEAD_ARTILLERY,
-        AHEAD_ARMOUR,
-        AHEAD_AIR,
-        AHEAD_INDUSTRY,
-        AHEAD_ELECTRONICS,
-      ),
+      any(...AHEAD),
     ),
     cost: { pp: 50 },
     cooldownDays: 365,

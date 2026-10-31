@@ -571,7 +571,7 @@ export const GBR_FOCUSES: FocusDef[] = [
       { kind: "research_slot", amount: 1 },
       { kind: "add_advisor_candidate", person: "gbr_tizard" },
     ],
-    ai: { base: 10 },
+    ai: { base: 20 },
   },
   {
     id: "gbr_university_research",
@@ -582,8 +582,11 @@ export const GBR_FOCUSES: FocusDef[] = [
     branch: "research",
     icon: "research",
     prereq: [["gbr_scientific_committee"]],
-    effects: [{ kind: "add_spirit", id: "gbr_university_drive" }],
-    ai: { base: 10 },
+    effects: [
+      { kind: "research_slot", amount: 1 },
+      { kind: "add_spirit", id: "gbr_university_drive" },
+    ],
+    ai: { base: 20 },
   },
   {
     id: "gbr_radar_chain",

@@ -3,6 +3,8 @@
 // step live here.
 import { MessageType } from "@openfront/engine-api/game/GameTypes";
 import {
+  RESEARCH_LEANS,
+  ResearchLean,
   WW_TECH_IDS,
   WwOrderBlock,
   WwTechId,
@@ -19,15 +21,16 @@ import {
   researchSpeedPct,
   slotResearchSpeedPct,
 } from "@openfront/engine-lib/ww1936/Stats";
-import { techDays, WW_TECHS } from "@openfront/engine-lib/ww1936/WwTechs";
+import { techCostMilli, WW_TECHS } from "@openfront/engine-lib/ww1936/WwTechs";
 import type { Player } from "../../game/Game";
 import { sharedResearchPct } from "../depth/FactionRules";
+import type { WwDepth } from "../depth/WwDepth";
 import type { CountryEconomy, WwEconomy } from "./WwEconomy";
 
 /*
  * Saved research (HOI4: a cancelled or replaced tech keeps its progress in
  * full). The unit is milli-days of work (a slot's `progress`), not a share
- * of the tech: a tech's cost (techDays(year) * 1000) is fixed, and the
+ * of the tech: a tech's cost (techCostMilli) is fixed, and the
  * ahead-of-time penalty only changes how fast a day adds work
  * (researchProgress), never what was done. So the stored number stays
  * correct when the tech resumes in a later year, at another speed or in
@@ -62,6 +65,12 @@ function slotTechs(ce: CountryEconomy): (WwTechId | null)[] {
   return ce.slots.map((s) => s?.tech ?? null);
 }
 
+/** Bit i: SPECIAL_PROJECTS[i] finished by `ce`'s country (0 without the depth systems). */
+export function projectsDone(econ: WwEconomy, ce: CountryEconomy): number {
+  const depth = econ.ww.depth as WwDepth | undefined;
+  return depth?.countries[ce.smallID]?.proj.done ?? 0;
+}
+
 /** Why `ce` may not start `tech` now; null if it may. */
 export function researchBlock(
   econ: WwEconomy,
@@ -73,9 +82,24 @@ export function researchBlock(
       researched: ce.researched,
       slots: slotTechs(ce),
       slotCount: ce.totals.slotCount,
+      projects: projectsDone(econ, ce),
     },
     tech,
   );
+}
+
+/**
+ * research_lean (changes §6 idea 1): the auto-research leaning of the
+ * sender's own country, while a human controls it.
+ */
+export function setResearchLean(
+  econ: WwEconomy,
+  ce: CountryEconomy,
+  lean: ResearchLean,
+): WwOrderBlock | null {
+  if (!econ.ww.isHumanControlled(ce.smallID)) return "not_controlled";
+  ce.researchLean = Math.max(0, RESEARCH_LEANS.indexOf(lean));
+  return null;
 }
 
 /** Puts `tech` in the first empty slot, resuming its saved progress (spec §9.3). */
@@ -175,7 +199,7 @@ export function stepResearch(
       sharedResearchPct(econ.ww.depth, ce.smallID, s.tech),
     );
     s.progress += researchProgress(speed, aheadPct(def.year, day));
-    if (s.progress < techDays(def.year) * 1000) continue;
+    if (s.progress < techCostMilli(s.tech)) continue;
     // Done; what runs over is dropped (§9.2).
     ce.addTech(s.tech);
     ce.slots[i] = null;

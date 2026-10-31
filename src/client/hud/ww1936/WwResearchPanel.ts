@@ -1,7 +1,8 @@
 import {
   DOCTRINE_SCHOOLS,
-  TECH_BRANCHES,
+  TECH_TABS,
   TechBranch,
+  WW_MAX_SLOTS,
   WwCountryDetail,
   WwOrderBlock,
   WwTechId,
@@ -191,7 +192,7 @@ export class WwResearchPanel extends WwDrawerBase {
     const day = today(this.game);
     const rows = researchSlots(d, day);
     const mask = autoMaskOf(this.game, me.smallID());
-    const slots = this.renderSlots(rows);
+    const slots = this.renderSlots(rows, d);
     // Live report 2026-10-30: an empty slot waits for the player's pick
     // (the AI fills it only while auto research is on) — say so.
     const free = rows.filter((s) => s.tech === null && !s.paused).length;
@@ -221,7 +222,7 @@ export class WwResearchPanel extends WwDrawerBase {
           true,
         )}`,
       this.renderTabs(
-        [...TECH_BRANCHES, "projects"] as const,
+        TECH_TABS,
         this.branch,
         (b) =>
           b === "projects"
@@ -238,11 +239,44 @@ export class WwResearchPanel extends WwDrawerBase {
     );
   }
 
-  private renderSlots(slots: SlotRow[]): TemplateResult {
+  /**
+   * Research overhaul R1 (changes §1.7): the slot chip, now / the most this
+   * country can reach; a yellow dot when a focus or the decision that gives
+   * a slot can be taken now (auto-research never takes them).
+   */
+  private renderSlotChip(d: WwCountryDetail): TemplateResult {
+    const ready = d.slotHint?.ready === true;
+    const max = d.slotSources?.max ?? WW_MAX_SLOTS;
+    const label = translateText("ww1936.econ.slot_chip", {
+      n: d.slotCount,
+      max,
+    });
+    const tip = ready
+      ? `${label} · ${translateText("ww1936.econ.slot_ready")}`
+      : label;
+    return html`<div
+      data-ww-slot-chip
+      data-ready=${String(ready)}
+      title=${tip}
+      aria-label=${tip}
+      class="relative flex h-10 shrink-0 items-center rounded-md border border-white/20 bg-black/30 px-2 text-xs font-semibold tabular-nums"
+    >
+      🔬 ${d.slotCount}/${max}
+      ${ready
+        ? html`<span
+            data-ww-slot-dot
+            class="absolute top-0.5 right-0.5 size-2 rounded-full bg-yellow-300"
+          ></span>`
+        : nothing}
+    </div>`;
+  }
+
+  private renderSlots(slots: SlotRow[], d: WwCountryDetail): TemplateResult {
     return html`<div
       data-ww-slots
       class="flex min-w-0 flex-1 gap-1 overflow-x-auto py-1"
     >
+      ${this.renderSlotChip(d)}
       ${slots.map((s) => {
         if (s.tech === null) {
           return html`<div

@@ -41,8 +41,12 @@ import { EffectCtx, makeCtx, resolveSelector } from "./Dispatch";
 import { addSpirit, dmzRegions } from "./Spirits";
 import type { WwPolitics } from "./WwPolitics";
 
-/** Controller ruling R5: the research_slot effect gives at most two slots. */
-export const WW_MAX_EXTRA_RESEARCH_SLOTS = 2;
+/**
+ * Research overhaul (changes §1.1): the research_slot effects give at most
+ * four slots (two focuses and the decision reach 6 from a major's 3; the
+ * slot count itself stays capped at WW_MAX_SLOTS).
+ */
+export const WW_MAX_EXTRA_RESEARCH_SLOTS = 4;
 /** Controller ruling R18: moved factories hold back production this long. */
 export const WW_RELOCATION_DAYS = 60;
 

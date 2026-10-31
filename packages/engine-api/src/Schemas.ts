@@ -81,6 +81,7 @@ import {
   EQUIPMENT_TYPES,
   LAW_KINDS,
   LAW_VALUES,
+  RESEARCH_LEANS,
   RESOURCE_IDS,
   WW_MAX_LINE_FACTORIES,
   WW_MAX_PROJECT_COUNT,
@@ -1466,6 +1467,12 @@ export const WwOrderSchema = z.discriminatedUnion("kind", [
     kind: z.literal("line_peace_offer"),
     war: WwId,
     target: WwCountry,
+  }),
+  // Research overhaul (changes §6 idea 1), appended: the auto-research
+  // leaning of the sender's own country (CountryEconomy.researchLean).
+  z.object({
+    kind: z.literal("research_lean"),
+    lean: z.enum(RESEARCH_LEANS),
   }),
 ]);
 export type WwOrder = z.infer<typeof WwOrderSchema>;

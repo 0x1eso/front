@@ -287,20 +287,25 @@ describe("research (spec §9)", () => {
     expect(gameHash(b)).toBe(gameHash(runner));
   });
 
-  test("a new slot is told once; a lost one pauses", async () => {
+  test("a new slot is told once; a lost one pauses (research overhaul: factories add none)", async () => {
     const { runner, updates, g, econ, deu, ce } = await germany();
     const berlin = g
       .worldWar()!
       .scenario.landRegions.find((r) => r.name === "Berlin")!.id;
+    const pol = g.worldWar()!.politics.country(deu.smallID())!;
     for (const t of ["electronics_1", "tools_2", "inf_eq_2"] as const) {
       expect(startResearch(econ, ce, t)).toBeNull();
     }
     throughDay(runner, deu, 0);
     // Day 0 brings no news: every slot existed from the start.
     expect(messages(updates)).toEqual([]);
-    // 15 factories → 55: a fourth slot the next day.
+    // 15 factories → 55: no slot any more (changes §1.1).
     econ.addBuilding(berlin, "civ", 40);
     throughDay(runner, deu, 1);
+    expect(ce.totals.slotCount).toBe(3);
+    // A research_slot effect: a fourth slot the next day.
+    pol.extraResearchSlots = 1;
+    throughDay(runner, deu, 2);
     expect(ce.totals.slotCount).toBe(4);
     expect(ce.slots).toHaveLength(4);
     expect(ce.slots[3]).toBeNull();
@@ -308,20 +313,21 @@ describe("research (spec §9)", () => {
     expect(messages(updates)).toEqual(told);
     expect(startResearch(econ, ce, "support_eq_2")).toBeNull();
     expect(ce.slots[3]!.tech).toBe("support_eq_2");
-    throughDay(runner, deu, 2);
+    throughDay(runner, deu, 3);
     const paused = ce.slots[3]!.progress;
     expect(paused).toBeGreaterThan(0);
-    // Back to 15 factories: the fourth slot stops, its progress kept.
+    // The effect undone: the fourth slot stops, its progress kept; the
+    // factories lost to bombing would not do it.
     econ.addBuilding(berlin, "civ", -40);
-    throughDay(runner, deu, 4);
+    pol.extraResearchSlots = 0;
+    throughDay(runner, deu, 5);
     expect(ce.totals.slotCount).toBe(3);
     expect(ce.slots[3]).toEqual({ tech: "support_eq_2", progress: paused });
-    expect(ce.slots[0]!.progress).toBe(5000);
     expect(startResearch(econ, ce, "computing_1")).toBe("prereq");
     expect(startResearch(econ, ce, "construction_2")).toBe("no_slot");
     // And again: the slot is back, not new; nothing more is told.
-    econ.addBuilding(berlin, "civ", 40);
-    throughDay(runner, deu, 5);
+    pol.extraResearchSlots = 1;
+    throughDay(runner, deu, 6);
     expect(ce.slots[3]!.progress).toBeGreaterThan(paused);
     expect(messages(updates)).toEqual(told);
   });

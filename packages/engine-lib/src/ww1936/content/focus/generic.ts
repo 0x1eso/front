@@ -262,7 +262,7 @@ export const GENERIC_FOCUSES: FocusDef[] = [
     icon: "research",
     prereq: [["gen_ind_survey"]],
     effects: [{ kind: "research_slot", amount: 1 }],
-    ai: { base: 10 },
+    ai: { base: 20 },
   },
   {
     id: "gen_rs_2",
@@ -277,7 +277,7 @@ export const GENERIC_FOCUSES: FocusDef[] = [
       { kind: "research_slot", amount: 1 },
       { kind: "add_spirit", id: "gen_research_institutes" },
     ],
-    ai: { base: 10 },
+    ai: { base: 20 },
   },
   // ---- army ----
   {

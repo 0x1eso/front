@@ -1,10 +1,13 @@
+import type { SpecialProject } from "@openfront/engine-api/ww1936/DepthTypes";
 import {
   DOCTRINE_DOMAIN,
   DoctrineSchool,
   TechBranch,
+  TechTab,
   WW_TECH_IDS,
   WwTechId,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
+import type { WwStats } from "@openfront/engine-api/ww1936/PoliticsTypes";
 
 export interface TechEffects {
   constructionPct: number;
@@ -108,14 +111,70 @@ export interface TechEffects {
   /** battlefield_support_1: the superiority penalty dealt to the enemy, points (A2). */
   supPenaltyPp: number;
 }
-export type TechTotals = TechEffects;
+/**
+ * The summed effects of researched techs: the P1+P2 keys always, any other
+ * WwStats key a researched tech gives (research overhaul: the new techs'
+ * keys flow into the stats like these).
+ */
+export type TechTotals = TechEffects & Partial<WwStats>;
+
+/**
+ * Research overhaul (design §3.2): what a tech is to the AI's score —
+ * an equipment generation, an improvement of equipment in service, a
+ * designer module, a designer chassis or airframe, a unit or company, an
+ * economy or science tech, a 1945 tech (mostly for the unlimited game).
+ */
+export const TECH_ROLES = [
+  "gen",
+  "imp",
+  "module",
+  "chassis",
+  "unit",
+  "eco",
+  "post",
+] as const;
+export type TechRole = (typeof TECH_ROLES)[number];
+
+/** Research overhaul: the research days multiplier of an improvement, a normal and a big tech, ‰. */
+export const COST_IMP = 750;
+export const COST_NORMAL = 1000;
+export const COST_BIG = 1250;
+
+/**
+ * Research overhaul (changes §2.7): the one global knob on every tech's
+ * research days, ‰ (1000 = ×1.0). Phase 3 moves it within 900..1100 to
+ * land the majors' 1945 share in 45–60%.
+ */
+export const WW_RESEARCH_COST_PM = 1000;
+
+/** A designer part a tech opens (DesignRules reads it; phase 2 wires it). */
+export interface TechDesignPart {
+  designer: "tank" | "ship" | "plane";
+  part: "module" | "chassis";
+  /** The module or chassis / airframe id in DesignRules. */
+  id: string;
+}
 
 export interface WwTechDef {
   id: WwTechId;
   branch: TechBranch;
+  /** The research screen tab (TECH_TABS): the branch's. */
+  tab: TechTab;
   year: number;
   prereqs: readonly WwTechId[];
-  effects: Partial<TechEffects>;
+  effects: Partial<WwStats>;
+  /** Research days multiplier ‰ (COST_IMP / COST_NORMAL / COST_BIG). */
+  costPm: number;
+  role: TechRole;
+  /**
+   * Either/or (changes §2.4): another line of `group` researched or
+   * running blocks this tech ("exclusive"); cancelled, it opens again.
+   */
+  exclusive?: { group: string; line: number };
+  /** The special project that must be finished first ("no_project"). */
+  project?: SpecialProject;
+  /** The designer module, chassis or airframe it opens. */
+  design?: TechDesignPart;
   school?: DoctrineSchool;
   /**
    * P6 (plan decision 25, spec §1.4): an old doctrine tech. Its id stays in
@@ -125,15 +184,82 @@ export interface WwTechDef {
   retired?: true;
 }
 
+/** The support companies (research overhaul changes §2.6: the support tab). */
+const SUPPORT_COMPANIES: ReadonlySet<string> = new Set([
+  "engineer_company",
+  "recon_company",
+  "field_hospital",
+  "logistics_company",
+  "signal_company",
+  "military_police",
+]);
+const GEN_ID =
+  /^(inf_eq|support_eq|artillery|anti_tank|anti_air|light_tank|medium_tank|heavy_tank|fighter|bomber|heavy_fighter|cas|naval_bomber|strat_bomber|dd|cl|ca|bc|bb|cv|ss|transport_plane)_\d$|^motorized_1$/;
+const UNIT_ID =
+  /^(mountaineers|marines|paratroopers|landing_craft_\d|carrier_aviation|railway_gun_1|floating_harbor_1)$/;
+
+/** The role of a tech before the overhaul (its data predates the field). */
+function baseRole(id: string, branch: TechBranch): TechRole {
+  if (branch === "industry" || branch === "electronics") return "eco";
+  if (branch === "support" || UNIT_ID.test(id)) return "unit";
+  if (GEN_ID.test(id)) return "gen";
+  return "module";
+}
+
 function t(
   id: WwTechId,
   branch: TechBranch,
   year: number,
   prereqs: readonly WwTechId[] = [],
-  effects: Partial<TechEffects> = {},
+  effects: Partial<WwStats> = {},
   school?: DoctrineSchool,
 ): WwTechDef {
-  return { id, branch, year, prereqs, effects, ...(school ? { school } : {}) };
+  // Research overhaul (changes §2.6): the six companies move to the
+  // support branch; nothing else of theirs changes.
+  const b: TechBranch = SUPPORT_COMPANIES.has(id) ? "support" : branch;
+  return {
+    id,
+    branch: b,
+    tab: b,
+    year,
+    prereqs,
+    effects,
+    costPm: COST_NORMAL,
+    role: baseRole(id, b),
+    ...(school ? { school } : {}),
+  };
+}
+
+interface NewOpts {
+  cost?: number;
+  role?: TechRole;
+  exclusive?: { group: string; line: number };
+  project?: SpecialProject;
+  design?: TechDesignPart;
+}
+
+/** Research overhaul (changes §2.3): a new tech (cost ‰ default: an improvement). */
+function n(
+  id: WwTechId,
+  branch: TechBranch,
+  year: number,
+  prereqs: readonly WwTechId[],
+  effects: Partial<WwStats>,
+  o: NewOpts = {},
+): WwTechDef {
+  return {
+    id,
+    branch,
+    tab: branch,
+    year,
+    prereqs,
+    effects,
+    costPm: o.cost ?? COST_IMP,
+    role: o.role ?? (year >= 1945 ? "post" : "imp"),
+    ...(o.exclusive ? { exclusive: o.exclusive } : {}),
+    ...(o.project ? { project: o.project } : {}),
+    ...(o.design ? { design: o.design } : {}),
+  };
 }
 
 /**
@@ -155,6 +281,11 @@ function gens(
   });
   return out;
 }
+
+/** Research overhaul (changes §2.4): the one either/or pair, its two lines. */
+export const INDUSTRY_ORG = "industry_org";
+const CONCENTRATED = { group: INDUSTRY_ORG, line: 0 } as const;
+const DISPERSED = { group: INDUSTRY_ORG, line: 1 } as const;
 
 // Spec §9.4.
 const BASE_TECHS: Readonly<Record<WwTechId, WwTechDef>> = {
@@ -461,6 +592,743 @@ const BASE_TECHS: Readonly<Record<WwTechId, WwTechDef>> = {
   cryptography_3: t("cryptography_3", "electronics", 1942, ["cryptography_2"]),
   nuclear_physics: t("nuclear_physics", "electronics", 1940, ["computing_1"]),
   rocketry_1: t("rocketry_1", "electronics", 1939, ["electronics_1"]),
+  // ---- Research overhaul (changes §2.3): 108 new techs, appended ----
+  // Improvements (×0.75 days unless noted) between the generations, the
+  // designer parts, the support companies' upgrades, industry and science.
+  // Effects are WwStats keys; a part the designer opens is `design`.
+  // -- infantry
+  inf_imp_1: n("inf_imp_1", "infantry", 1937, ["inf_eq_1"], {
+    infAttackPct: 3,
+  }),
+  support_imp_1: n("support_imp_1", "infantry", 1938, ["support_eq_1"], {
+    supportCompanyPct: 5,
+  }),
+  winter_gear_1: n("winter_gear_1", "infantry", 1938, ["inf_eq_1"], {
+    winterPenaltyPct: 25,
+  }),
+  motorized_2: n("motorized_2", "infantry", 1939, ["motorized_1"], {
+    motSpeedPct: 10,
+  }),
+  desert_gear_1: n("desert_gear_1", "infantry", 1939, ["inf_eq_1"], {
+    desertAttackPct: 10,
+  }),
+  inf_imp_2: n("inf_imp_2", "infantry", 1940, ["inf_eq_2", "inf_imp_1"], {
+    infAttackPct: 5,
+  }),
+  marines_2: n(
+    "marines_2",
+    "infantry",
+    1940,
+    ["marines"],
+    { invasionPrepPct: -10 },
+    { role: "unit" },
+  ),
+  inf_at_1: n(
+    "inf_at_1",
+    "infantry",
+    1941,
+    ["inf_eq_2", "anti_tank_1"],
+    { infHardPct: 15 },
+    { cost: COST_NORMAL },
+  ),
+  para_2: n(
+    "para_2",
+    "infantry",
+    1941,
+    ["paratroopers", "transport_plane_1"],
+    { paradropPrepPct: -25 },
+    { role: "unit" },
+  ),
+  motorized_3: n(
+    "motorized_3",
+    "infantry",
+    1942,
+    ["motorized_2"],
+    { motOrg: 3, motSpeedPct: 5 },
+    { cost: COST_NORMAL },
+  ),
+  inf_at_2: n(
+    "inf_at_2",
+    "infantry",
+    1943,
+    ["inf_at_1", "rocketry_1"],
+    { infHardPct: 15 },
+    { cost: COST_NORMAL },
+  ),
+  inf_imp_3: n(
+    "inf_imp_3",
+    "infantry",
+    1944,
+    ["inf_eq_3", "inf_imp_2"],
+    { infAttackPct: 5, infDefensePct: 3 },
+    { cost: COST_NORMAL },
+  ),
+  // -- support (the companies' upgrades)
+  reinforce_1: n(
+    "reinforce_1",
+    "support",
+    1938,
+    ["support_eq_1"],
+    { reinforcePct: 10 },
+    { role: "unit" },
+  ),
+  engineer_2: n(
+    "engineer_2",
+    "support",
+    1939,
+    ["engineer_company"],
+    { entrenchSpeedPct: 10, riverPenaltyCutPct: 10 },
+    { role: "unit" },
+  ),
+  recon_2: n(
+    "recon_2",
+    "support",
+    1939,
+    ["recon_company"],
+    { reconPct: 10 },
+    { role: "unit" },
+  ),
+  field_maintenance: n(
+    "field_maintenance",
+    "support",
+    1939,
+    ["support_eq_1"],
+    { capturePct: 5, armorRelPp: 3 },
+    { role: "unit" },
+  ),
+  logistics_2: n(
+    "logistics_2",
+    "support",
+    1940,
+    ["logistics_company", "motorized_1"],
+    { supplyUsePct: -5 },
+    { role: "unit" },
+  ),
+  mp_2: n(
+    "mp_2",
+    "support",
+    1940,
+    ["military_police"],
+    { garrisonNeedPct: -10 },
+    { role: "unit" },
+  ),
+  hospital_2: n(
+    "hospital_2",
+    "support",
+    1941,
+    ["field_hospital"],
+    { casualtyReturnPp: 10 },
+    { role: "unit" },
+  ),
+  signal_2: n(
+    "signal_2",
+    "support",
+    1941,
+    ["signal_company", "radio_1"],
+    { planSpeedPct: 10 },
+    { role: "unit" },
+  ),
+  engineer_3: n(
+    "engineer_3",
+    "support",
+    1942,
+    ["engineer_2"],
+    { fortPenaltyCutPct: 10 },
+    { role: "unit" },
+  ),
+  recon_3: n(
+    "recon_3",
+    "support",
+    1942,
+    ["recon_2", "radio_1"],
+    { reconPct: 10 },
+    { role: "unit" },
+  ),
+  logistics_3: n(
+    "logistics_3",
+    "support",
+    1943,
+    ["logistics_2"],
+    { supplyUsePct: -5 },
+    { role: "unit" },
+  ),
+  // -- armour
+  tank_reliability_1: n(
+    "tank_reliability_1",
+    "armour",
+    1939,
+    ["light_tank_2"],
+    { armorRelPp: 5 },
+  ),
+  armor_plate_2: n("armor_plate_2", "armour", 1940, ["cast_armor"], {
+    armorArmorPct: 5,
+  }),
+  tank_engine_2: n(
+    "tank_engine_2",
+    "armour",
+    1940,
+    ["diesel_engine"],
+    {},
+    {
+      cost: COST_NORMAL,
+      role: "module",
+      design: { designer: "tank", part: "module", id: "engine_2" },
+    },
+  ),
+  armor_coordination: n("armor_coordination", "armour", 1941, ["tank_radio"], {
+    armorBrkPct: 5,
+  }),
+  tank_reliability_2: n(
+    "tank_reliability_2",
+    "armour",
+    1942,
+    ["tank_reliability_1"],
+    { armorRelPp: 5 },
+  ),
+  armor_plate_3: n(
+    "armor_plate_3",
+    "armour",
+    1943,
+    ["armor_plate_2", "sloped_armor"],
+    { armorArmorPct: 5 },
+  ),
+  tank_engine_3: n(
+    "tank_engine_3",
+    "armour",
+    1943,
+    ["tank_engine_2"],
+    {},
+    {
+      cost: COST_NORMAL,
+      role: "module",
+      design: { designer: "tank", part: "module", id: "engine_3" },
+    },
+  ),
+  tank_gun_4: n(
+    "tank_gun_4",
+    "armour",
+    1944,
+    ["tank_gun_3"],
+    {},
+    {
+      cost: COST_NORMAL,
+      role: "module",
+      design: { designer: "tank", part: "module", id: "gun_hv" },
+    },
+  ),
+  super_heavy_tank: n(
+    "super_heavy_tank",
+    "armour",
+    1944,
+    ["heavy_tank_3"],
+    {},
+    {
+      cost: COST_BIG,
+      role: "chassis",
+      design: { designer: "tank", part: "chassis", id: "super_heavy_1" },
+    },
+  ),
+  modern_tank_1: n(
+    "modern_tank_1",
+    "armour",
+    1945,
+    ["medium_tank_3", "tank_gun_4"],
+    {},
+    {
+      cost: COST_BIG,
+      role: "post",
+      design: { designer: "tank", part: "chassis", id: "modern_1" },
+    },
+  ),
+  // -- artillery
+  art_imp_1: n("art_imp_1", "artillery", 1937, ["artillery_1"], {
+    artillerySoftPct: 5,
+  }),
+  art_towing: n(
+    "art_towing",
+    "artillery",
+    1938,
+    ["artillery_1", "motorized_1"],
+    {
+      artSpeedPct: 10,
+    },
+  ),
+  at_imp_1: n("at_imp_1", "artillery", 1938, ["anti_tank_1"], {
+    atPiercePct: 10,
+  }),
+  aa_imp_1: n("aa_imp_1", "artillery", 1938, ["anti_air_1"], { aaPct: 10 }),
+  art_imp_2: n("art_imp_2", "artillery", 1940, ["artillery_2", "art_imp_1"], {
+    artillerySoftPct: 5,
+  }),
+  fire_direction: n(
+    "fire_direction",
+    "artillery",
+    1941,
+    ["artillery_2", "signal_company"],
+    { artillerySoftPct: 5 },
+    { cost: COST_NORMAL },
+  ),
+  at_imp_2: n("at_imp_2", "artillery", 1941, ["anti_tank_2", "at_imp_1"], {
+    atPiercePct: 10,
+    atHardPct: 5,
+  }),
+  aa_imp_2: n("aa_imp_2", "artillery", 1941, ["anti_air_2", "aa_imp_1"], {
+    aaPct: 10,
+  }),
+  art_imp_3: n("art_imp_3", "artillery", 1943, ["artillery_3", "art_imp_2"], {
+    artillerySoftPct: 5,
+  }),
+  at_imp_3: n("at_imp_3", "artillery", 1944, ["at_imp_2"], { atHardPct: 10 }),
+  aa_imp_3: n(
+    "aa_imp_3",
+    "artillery",
+    1944,
+    ["aa_imp_2"],
+    { aaPct: 15 },
+    { project: "sp_proximity_fuze" },
+  ),
+  // -- naval
+  naval_aa_1: n(
+    "naval_aa_1",
+    "naval",
+    1938,
+    ["anti_air_1"],
+    {},
+    {
+      role: "module",
+      design: { designer: "ship", part: "module", id: "aa_2" },
+    },
+  ),
+  damage_control_1: n("damage_control_1", "naval", 1938, [], {
+    navalDamageTakenPct: -5,
+  }),
+  naval_engine_2: n("naval_engine_2", "naval", 1939, [], {
+    navalSpeedPct: 5,
+  }),
+  convoy_escort_1: n("convoy_escort_1", "naval", 1939, ["dd_2"], {
+    convoyEscortPct: 10,
+  }),
+  torpedo_2: n("torpedo_2", "naval", 1940, ["torpedo_1"], { torpedoPct: 10 }),
+  depth_charge_2: n("depth_charge_2", "naval", 1940, ["sonar_1"], {
+    depthChargePct: 15,
+  }),
+  // Magnetic mines and sweeping: the mine rules read the id (phase 2).
+  mine_warfare_2: n("mine_warfare_2", "naval", 1940, ["mine_warfare_1"], {}),
+  transport_ship_2: n("transport_ship_2", "naval", 1940, [], {
+    convoyLossPct: -10,
+  }),
+  fire_control_2: n(
+    "fire_control_2",
+    "naval",
+    1941,
+    ["fire_control_1", "naval_radar_1"],
+    {},
+    {
+      cost: COST_NORMAL,
+      role: "module",
+      design: { designer: "ship", part: "module", id: "fc_2" },
+    },
+  ),
+  naval_aa_2: n(
+    "naval_aa_2",
+    "naval",
+    1941,
+    ["naval_aa_1", "dual_purpose_guns"],
+    {},
+    {
+      role: "module",
+      design: { designer: "ship", part: "module", id: "aa_3" },
+    },
+  ),
+  damage_control_2: n("damage_control_2", "naval", 1941, ["damage_control_1"], {
+    navalDamageTakenPct: -5,
+    repairPct: 10,
+  }),
+  naval_engine_3: n("naval_engine_3", "naval", 1942, ["naval_engine_2"], {
+    navalSpeedPct: 5,
+  }),
+  hedgehog: n("hedgehog", "naval", 1942, ["depth_charge_2", "sonar_2"], {
+    depthChargePct: 15,
+  }),
+  convoy_escort_2: n(
+    "convoy_escort_2",
+    "naval",
+    1942,
+    ["convoy_escort_1", "sonar_2"],
+    { convoyEscortPct: 10 },
+  ),
+  carrier_deck_2: n(
+    "carrier_deck_2",
+    "naval",
+    1942,
+    ["cv_3", "armored_deck"],
+    { carrierDeckPct: 10 },
+    { cost: COST_NORMAL },
+  ),
+  torpedo_3: n(
+    "torpedo_3",
+    "naval",
+    1943,
+    ["torpedo_2", "sonar_2"],
+    { torpedoPct: 10, subTorpedoPct: 10 },
+    { cost: COST_NORMAL },
+  ),
+  // -- air
+  aero_engine_2: n("aero_engine_2", "air", 1939, ["fighter_1"], {
+    airAgilityPct: 5,
+  }),
+  air_armor_1: n("air_armor_1", "air", 1939, ["self_sealing_tanks"], {
+    airLossCutPct: 5,
+  }),
+  naval_strike_1: n("naval_strike_1", "air", 1939, ["naval_bomber_1"], {
+    navalStrikePct: 10,
+  }),
+  long_range_1: n("long_range_1", "air", 1940, ["drop_tanks"], {
+    airRangePct: 10,
+  }),
+  transport_plane_2: n(
+    "transport_plane_2",
+    "air",
+    1941,
+    ["transport_plane_1"],
+    { paradropPrepPct: -15 },
+  ),
+  air_ground_control: n(
+    "air_ground_control",
+    "air",
+    1941,
+    ["radar_1", "signal_company"],
+    { interceptShareBp: 500 },
+    { cost: COST_NORMAL },
+  ),
+  carrier_aviation_2: n(
+    "carrier_aviation_2",
+    "air",
+    1941,
+    ["carrier_aviation"],
+    { sortieEffPct: 10 },
+  ),
+  aero_engine_3: n("aero_engine_3", "air", 1942, ["aero_engine_2"], {
+    airAgilityPct: 5,
+  }),
+  bomb_sight_2: n("bomb_sight_2", "air", 1942, ["bomb_sight_1"], {
+    stratBombPct: 10,
+  }),
+  naval_strike_2: n("naval_strike_2", "air", 1942, ["naval_strike_1"], {
+    navalStrikePct: 10,
+  }),
+  aero_engine_4: n("aero_engine_4", "air", 1944, ["aero_engine_3"], {
+    airAgilityPct: 5,
+  }),
+  air_rockets_2: n("air_rockets_2", "air", 1944, ["air_rockets_1"], {
+    casPct: 10,
+  }),
+  air_radar_2: n(
+    "air_radar_2",
+    "air",
+    1944,
+    ["air_radar_1", "radar_2"],
+    {},
+    {
+      cost: COST_NORMAL,
+      role: "module",
+      design: { designer: "plane", part: "module", id: "radar_2" },
+    },
+  ),
+  jet_airframe_2: n(
+    "jet_airframe_2",
+    "air",
+    1945,
+    ["aero_engine_4"],
+    {},
+    {
+      cost: COST_BIG,
+      role: "post",
+      project: "sp_jet_engine",
+      design: { designer: "plane", part: "chassis", id: "jet_2" },
+    },
+  ),
+  jet_bomber_1: n(
+    "jet_bomber_1",
+    "air",
+    1945,
+    ["strat_bomber_2"],
+    {},
+    {
+      cost: COST_BIG,
+      role: "post",
+      project: "sp_jet_engine",
+      design: { designer: "plane", part: "chassis", id: "jet_medium_1" },
+    },
+  ),
+  // -- engineering (branch electronics)
+  radio_1: n(
+    "radio_1",
+    "electronics",
+    1937,
+    ["electronics_1"],
+    { planSpeedPct: 5 },
+    { role: "eco" },
+  ),
+  encryption_1: n(
+    "encryption_1",
+    "electronics",
+    1938,
+    ["electronics_1"],
+    { encryptPct: 10 },
+    { role: "eco" },
+  ),
+  radio_2: n(
+    "radio_2",
+    "electronics",
+    1940,
+    ["radio_1"],
+    { planMaxBp: 500 },
+    { role: "eco" },
+  ),
+  encryption_2: n(
+    "encryption_2",
+    "electronics",
+    1941,
+    ["encryption_1"],
+    { encryptPct: 10 },
+    { role: "eco" },
+  ),
+  rocketry_2: n(
+    "rocketry_2",
+    "electronics",
+    1942,
+    ["rocketry_1"],
+    { projectSpeedPct: 10 },
+    { cost: COST_NORMAL, role: "eco" },
+  ),
+  operations_research: n(
+    "operations_research",
+    "electronics",
+    1942,
+    ["computing_2"],
+    { supplyUsePct: -3, convoyLossPct: -5 },
+    { cost: COST_NORMAL, role: "eco" },
+  ),
+  radar_3: n(
+    "radar_3",
+    "electronics",
+    1943,
+    ["radar_2"],
+    { airDetectPct: 10, navalDetectPct: 10 },
+    { cost: COST_NORMAL, role: "eco", project: "sp_cavity_magnetron" },
+  ),
+  computing_3: n(
+    "computing_3",
+    "electronics",
+    1943,
+    ["computing_2"],
+    { researchPct: 5 },
+    { cost: COST_NORMAL, role: "eco" },
+  ),
+  electronic_warfare: n(
+    "electronic_warfare",
+    "electronics",
+    1943,
+    ["radar_2"],
+    { nightBombBp: 500, airDetectPct: 5 },
+    { cost: COST_NORMAL, role: "eco" },
+  ),
+  cryptography_4: n(
+    "cryptography_4",
+    "electronics",
+    1944,
+    ["cryptography_3", "computing_2"],
+    { decryptPct: 10 },
+    { cost: COST_NORMAL, role: "eco" },
+  ),
+  computing_4: n(
+    "computing_4",
+    "electronics",
+    1945,
+    ["computing_3"],
+    { researchPct: 3 },
+    { cost: COST_BIG },
+  ),
+  // A power reactor: energy, not a weapon.
+  nuclear_reactor: n(
+    "nuclear_reactor",
+    "electronics",
+    1945,
+    ["nuclear_physics"],
+    { energyPct: 10 },
+    { cost: COST_BIG },
+  ),
+  // -- industry (concentrated ⇄ dispersed: either/or, changes §2.4)
+  concentrated_1: n(
+    "concentrated_1",
+    "industry",
+    1937,
+    ["tools_1"],
+    { outputPct: 5 },
+    { cost: COST_NORMAL, role: "eco", exclusive: CONCENTRATED },
+  ),
+  dispersed_1: n(
+    "dispersed_1",
+    "industry",
+    1937,
+    ["tools_1"],
+    { effCapBp: 300, bombDamageTakenPct: -10 },
+    { cost: COST_NORMAL, role: "eco", exclusive: DISPERSED },
+  ),
+  fuel_storage_1: n(
+    "fuel_storage_1",
+    "industry",
+    1938,
+    [],
+    { fuelCapPct: 10 },
+    { role: "eco" },
+  ),
+  fuel_refining_1: n(
+    "fuel_refining_1",
+    "industry",
+    1938,
+    ["excavation_1"],
+    { fuelPct: 10 },
+    { role: "eco" },
+  ),
+  energy_grid_1: n(
+    "energy_grid_1",
+    "industry",
+    1938,
+    [],
+    { energyPct: 10 },
+    { role: "eco" },
+  ),
+  dockyard_1: n(
+    "dockyard_1",
+    "industry",
+    1938,
+    [],
+    { dockOutputPct: 10 },
+    { role: "eco" },
+  ),
+  fortification_2: n(
+    "fortification_2",
+    "industry",
+    1939,
+    ["fortification_1"],
+    { fortConstructionPct: 33 },
+    { role: "eco" },
+  ),
+  // A refinery also makes rubber: the resource rules read the id (phase 2).
+  synthetic_rubber_1: n(
+    "synthetic_rubber_1",
+    "industry",
+    1939,
+    ["synthetic_oil_1"],
+    {},
+    { cost: COST_NORMAL, role: "eco" },
+  ),
+  concentrated_2: n(
+    "concentrated_2",
+    "industry",
+    1940,
+    ["concentrated_1", "tools_2"],
+    { outputPct: 5 },
+    { cost: COST_NORMAL, role: "eco", exclusive: CONCENTRATED },
+  ),
+  dispersed_2: n(
+    "dispersed_2",
+    "industry",
+    1940,
+    ["dispersed_1", "tools_2"],
+    { effCapBp: 300, bombDamageTakenPct: -10 },
+    { cost: COST_NORMAL, role: "eco", exclusive: DISPERSED },
+  ),
+  rail_2: n(
+    "rail_2",
+    "industry",
+    1940,
+    ["rail_1"],
+    { railConstructionPct: 33, railSpeedPct: 20 },
+    { role: "eco" },
+  ),
+  fuel_refining_2: n(
+    "fuel_refining_2",
+    "industry",
+    1941,
+    ["fuel_refining_1"],
+    { fuelPct: 10 },
+    { role: "eco" },
+  ),
+  energy_grid_2: n(
+    "energy_grid_2",
+    "industry",
+    1941,
+    ["energy_grid_1"],
+    { energyPct: 10 },
+    { role: "eco" },
+  ),
+  dockyard_2: n(
+    "dockyard_2",
+    "industry",
+    1941,
+    ["dockyard_1"],
+    { dockOutputPct: 10 },
+    { role: "eco" },
+  ),
+  construction_4: n(
+    "construction_4",
+    "industry",
+    1942,
+    ["construction_3"],
+    { constructionPct: 10, slotPct: 20 },
+    { cost: COST_NORMAL, role: "eco" },
+  ),
+  excavation_3: n(
+    "excavation_3",
+    "industry",
+    1942,
+    ["excavation_2"],
+    { extractionPct: 10 },
+    { cost: COST_NORMAL, role: "eco" },
+  ),
+  fortification_3: n(
+    "fortification_3",
+    "industry",
+    1942,
+    ["fortification_2"],
+    { fortDefPerLevelBp: 100 },
+    { role: "eco" },
+  ),
+  concentrated_3: n(
+    "concentrated_3",
+    "industry",
+    1943,
+    ["concentrated_2", "tools_3"],
+    { outputPct: 5 },
+    { cost: COST_NORMAL, role: "eco", exclusive: CONCENTRATED },
+  ),
+  dispersed_3: n(
+    "dispersed_3",
+    "industry",
+    1943,
+    ["dispersed_2", "tools_3"],
+    { effCapBp: 300, bombDamageTakenPct: -10 },
+    { cost: COST_NORMAL, role: "eco", exclusive: DISPERSED },
+  ),
+  tools_5: n(
+    "tools_5",
+    "industry",
+    1944,
+    ["tools_4"],
+    { effCapBp: 500 },
+    { cost: COST_NORMAL, role: "eco" },
+  ),
+  construction_5: n(
+    "construction_5",
+    "industry",
+    1945,
+    ["construction_4"],
+    { constructionPct: 10 },
+    { cost: COST_NORMAL },
+  ),
 } as Record<WwTechId, WwTechDef>;
 
 /** P6 (plan decision 25, spec §1.4): the 20 old doctrine techs, retired. */
@@ -505,7 +1373,7 @@ export const WW_TECHS: Readonly<Record<WwTechId, WwTechDef>> =
  * the values its grand doctrine carries on the same stat keys (one source:
  * DoctrineRules.GRAND_DOCTRINE_STATS is built from these).
  */
-export function retiredTechEffects(id: WwTechId): Partial<TechEffects> {
+export function retiredTechEffects(id: WwTechId): Partial<WwStats> {
   return BASE_TECHS[id].effects;
 }
 
@@ -575,22 +1443,47 @@ const ZERO: TechEffects = {
   supPenaltyPp: 0,
 };
 
-/** Summed effects of researched techs (fixed WW_TECH_IDS order). */
+/**
+ * Summed effects of researched techs (fixed WW_TECH_IDS order). The P1+P2
+ * keys are always there; another key only once a researched tech gives it.
+ */
 export function techTotals(researched: ReadonlySet<WwTechId>): TechTotals {
-  const out = { ...ZERO };
+  const out: TechTotals = { ...ZERO };
+  const sum = out as Partial<WwStats>;
   for (const id of WW_TECH_IDS) {
     // P6 plan decision 25: a retired tech adds nothing (its effects are {}).
     if (!researched.has(id) || RETIRED.has(id)) continue;
-    for (const [k, v] of Object.entries(WW_TECHS[id].effects)) {
-      out[k as keyof TechEffects] += v;
+    const fx = WW_TECHS[id].effects;
+    for (const k in fx) {
+      const key = k as keyof WwStats;
+      sum[key] = (sum[key] ?? 0) + fx[key]!;
     }
   }
   return out;
 }
 
-/** Base research days (spec §9.2). */
+/** Base research days of a tech year (spec §9.2). */
 export function techDays(year: number): number {
   return 120 + 15 * (year - 1936);
+}
+
+/**
+ * Research overhaul (changes §2.7): a tech's research cost, milli-days —
+ * techDays(year) × its multiplier × the global knob (both ‰), rounded
+ * down. The engine (stepResearch), the screens' ETA and the saved
+ * progress all use this one function.
+ */
+export function techCostMilli(
+  id: WwTechId,
+  knobPm: number = WW_RESEARCH_COST_PM,
+): number {
+  const d = WW_TECHS[id];
+  return Math.floor((techDays(d.year) * d.costPm * knobPm) / 1000);
+}
+
+/** techCostMilli in whole days, rounded up (the screens). */
+export function techCostDays(id: WwTechId): number {
+  return Math.ceil(techCostMilli(id) / 1000);
 }
 
 /**

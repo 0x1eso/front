@@ -157,6 +157,8 @@ export const RS_STAT_OF_BRANCH: Readonly<Record<TechBranch, WwStatKey>> = {
   electronics: "rsElectronicsPct",
   doctrine: "rsDoctrinePct",
   naval: "rsNavalPct",
+  // Research overhaul (design §3.2): the support companies' own speed.
+  support: "rsSupportPct",
 };
 
 /**

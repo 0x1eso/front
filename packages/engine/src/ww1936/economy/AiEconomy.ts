@@ -15,7 +15,6 @@ import {
   BuildingId,
   CONSCRIPTION_LAWS,
   CountryLaws,
-  DOCTRINE_DOMAIN,
   DoctrineSchool,
   EQUIP_KEYS,
   equipKey,
@@ -70,10 +69,16 @@ import { fuelGain } from "@openfront/engine-lib/ww1936/FuelRules";
 import { navalLineClass } from "@openfront/engine-lib/ww1936/NavalLineRules";
 import { isNoStrike } from "@openfront/engine-lib/ww1936/NoStrike";
 import { lawCost, LawCtx } from "@openfront/engine-lib/ww1936/PoliticsRules";
+import {
+  ResearchScoreInput,
+  researchScores,
+  techDomain,
+} from "@openfront/engine-lib/ww1936/ResearchScore";
 import { shipGenTech } from "@openfront/engine-lib/ww1936/ShipStats";
-import { isRetiredTech, WW_TECHS } from "@openfront/engine-lib/ww1936/WwTechs";
+import { WW_TECHS } from "@openfront/engine-lib/ww1936/WwTechs";
 import type { Player } from "../../game/Game";
 import { designShareType, equipResources } from "../depth/Designs";
+import { sharedResearchPct } from "../depth/FactionRules";
 import type { WwDepth } from "../depth/WwDepth";
 import { capitalRegion } from "../land/LandStartRun";
 import {
@@ -83,12 +88,13 @@ import {
   invasionRouteSrs,
 } from "../navy/AiNavy";
 import { navalPort, navalPortsOf } from "../navy/Ports";
+import type { WwPolitics } from "../politics/WwPolitics";
 import { convoysOf } from "./Buildings";
 import { moveBuild, noStrikeAt, queueBuild, usedSlots } from "./Construction";
 import { fuelCapOf } from "./Fuel";
 import { lawCtxOf, setLaw } from "./LawsRun";
 import { addLine, changeLine, moveLine, setLineFactories } from "./Production";
-import { startResearch } from "./ResearchRun";
+import { projectsDone, startResearch } from "./ResearchRun";
 import { closeTrade, openTrade, tradePartners } from "./Trade";
 import type { CountryEconomy, WwEconomy } from "./WwEconomy";
 
@@ -270,6 +276,9 @@ export interface AiAirShareCtx {
  * bombers). Strategic bombers (Task 10, no dates: the situation): Britain
  * 3 once at war or world tension reaches 50%, the United States 4 at war.
  */
+/** Spec §17.5: the navies that build carriers. */
+const CARRIER_NAVIES: readonly CountryTag[] = ["GBR", "USA", "JPN"];
+
 export function aiAirShares(
   tag: CountryTag,
   ctx: AiAirShareCtx,
@@ -379,184 +388,14 @@ export function aiLineShares(
 
 // ---- Research priorities (spec §12.2, pre-flight R6.8) ----
 
-type TechGroup =
-  | "tools"
-  | "infantry"
-  | "guns"
-  | "armour"
-  | "construction"
-  | "industry"
-  | "electronics"
-  | "air"
-  | "school";
-
-const GROUP_TECHS: Readonly<
-  Record<Exclude<TechGroup, "school">, readonly WwTechId[]>
-> = {
-  tools: ["tools_1", "tools_2", "tools_3", "tools_4"],
-  infantry: [
-    "inf_eq_1",
-    "inf_eq_2",
-    "inf_eq_3",
-    "support_eq_1",
-    "support_eq_2",
-    // P2 land techs (Task 6, pre-flight A1): the support companies.
-    "engineer_company",
-    "recon_company",
-    "field_hospital",
-    "logistics_company",
-  ],
-  guns: [
-    "artillery_1",
-    "artillery_2",
-    "artillery_3",
-    "anti_tank_1",
-    "anti_tank_2",
-    "anti_air_1",
-    "anti_air_2",
-  ],
-  armour: [
-    "motorized_1",
-    "light_tank_1",
-    "light_tank_2",
-    "medium_tank_1",
-    "medium_tank_2",
-    "medium_tank_3",
-  ],
-  construction: [
-    "construction_1",
-    "construction_2",
-    "construction_3",
-    "fortification_1",
-    "rail_1",
-  ],
-  industry: [
-    "output_1",
-    "output_2",
-    "excavation_1",
-    "excavation_2",
-    "flexible_line",
-  ],
-  electronics: [
-    "electronics_1",
-    "computing_1",
-    // Final balance: the atomic facility's tech. It came last of every
-    // list, so no AI ever built a nuclear facility or started sp_atomic.
-    "nuclear_physics",
-    "computing_2",
-    "signal_company",
-  ],
-  air: ["fighter_1", "fighter_2", "fighter_3", "bomber_1", "bomber_2"],
-};
-
-const PERSONALITY_ORDER: Readonly<Record<AiPersonality, readonly TechGroup[]>> =
-  {
-    aggressor: [
-      "tools",
-      "infantry",
-      "guns",
-      "armour",
-      "construction",
-      "school",
-    ],
-    democracy: [
-      "construction",
-      "tools",
-      "infantry",
-      "guns",
-      "electronics",
-      "school",
-    ],
-    minor: ["construction", "infantry", "guns", "school"],
-  };
-
-/**
- * The majors' own leanings (controller guidance): Germany armour and air,
- * the Soviet Union mass infantry and guns, Britain air and industry (no
- * navy in P1), the United States industry, France its battleplan and
- * infantry. Italy and Japan keep the aggressor list.
- */
-const COUNTRY_ORDER: Readonly<
-  Partial<Record<CountryTag, readonly TechGroup[]>>
-> = {
-  // Task 15: the air group second (the Bf 109E): fifth, Germany flew 1936
-  // fighters against Britain's 1940 ones over France in 1939–40 and lost
-  // them at ten to one.
-  DEU: ["tools", "air", "armour", "school", "infantry", "guns", "construction"],
-  SUN: ["infantry", "guns", "school", "tools", "construction", "armour"],
-  GBR: [
-    "construction",
-    "tools",
-    "air",
-    "electronics",
-    "infantry",
-    "guns",
-    "school",
-  ],
-  USA: [
-    "construction",
-    "tools",
-    "industry",
-    "electronics",
-    "infantry",
-    "guns",
-    "school",
-  ],
-  FRA: ["school", "infantry", "guns", "construction", "tools", "electronics"],
-};
-
-/** Every list ends so that no slot idles while anything is left (R6.8). */
-const TAIL: readonly TechGroup[] = ["industry", "electronics", "air"];
-
-/** P2 special troops (Task 6 brief): marines for these, paratroopers for the aggressors. */
-const MARINE_COUNTRIES: readonly CountryTag[] = ["GBR", "USA", "JPN"];
-
-/** Whether `tag`'s AI fields this special troop type at all (no marines for Germany). */
-function wantsTech(tag: CountryTag, t: WwTechId): boolean {
-  if (t === "marines") return MARINE_COUNTRIES.includes(tag);
-  if (t === "paratroopers") return aiPersonality(tag) === "aggressor";
-  return true;
-}
-
-/**
- * A group's techs for `tag` (P2 Task 6, pre-flight A1): the aggressors'
- * infantry adds mountain troops and paratroopers, Britain's, the United
- * States' and Japan's marines.
- */
-function groupTechs(
-  tag: CountryTag,
-  g: Exclude<TechGroup, "school">,
-): readonly WwTechId[] {
-  if (g !== "infantry") return GROUP_TECHS[g];
-  const extra: WwTechId[] = [];
-  if (aiPersonality(tag) === "aggressor") {
-    extra.push("mountaineers", "paratroopers");
-  }
-  if (MARINE_COUNTRIES.includes(tag)) extra.push("marines");
-  return [...GROUP_TECHS[g], ...extra];
-}
-
-const TECH_INDEX: ReadonlyMap<WwTechId, number> = new Map(
-  WW_TECH_IDS.map((t, i) => [t, i]),
-);
-const researchOrders = new Map<string, readonly WwTechId[]>();
-
 // ---- P4 research (Task 10): the sea and air techs by the country's role ----
 
-/** Where a tech's slot counts: land (P1, P2, synthetic oil), sea or air (P4). */
+/** Where a tech's slot counts: land, sea or air (research overhaul: by branch). */
 export type AiTechDomain = "land" | "sea" | "air";
-const LAST_LAND_TECH = WW_TECH_IDS.indexOf("rail_1");
 
+/** Research overhaul (changes §5): the naval branch is the sea, the air branch and radar the air. */
 export function aiTechDomain(t: WwTechId): AiTechDomain {
-  if (TECH_INDEX.get(t)! <= LAST_LAND_TECH) return "land";
-  const d = WW_TECHS[t];
-  const school = d.school === undefined ? null : DOCTRINE_DOMAIN[d.school];
-  if (d.branch === "naval" || school === "sea") return "sea";
-  // Radar is the air war's (detection, the radar station).
-  if (d.branch === "air" || school === "air" || t.startsWith("radar")) {
-    return "air";
-  }
-  return "land";
+  return techDomain(t);
 }
 
 /** Spec §17.5 (내 판단): the sea doctrine each opens (Battle line, Commerce warfare, Carrier striking force). */
@@ -620,138 +459,6 @@ export function aiResearchMix(
   return coastal ? [95, 5, 0] : [100, 0, 0];
 }
 
-/** Spec §17.5: the navies that build carriers, and those that build capital ships too. */
-const CARRIER_NAVIES: readonly CountryTag[] = ["GBR", "USA", "JPN"];
-const BATTLE_NAVIES: readonly CountryTag[] = [
-  "GBR",
-  "USA",
-  "JPN",
-  "DEU",
-  "ITA",
-  "FRA",
-];
-
-/**
- * Spec §17.5: each one's sea and air techs first (Germany submarines and
- * close support, Britain radar and escorts, Japan carriers and torpedoes,
- * the United States carriers and bombers …); the rest of the domain
- * follows in WW_TECH_IDS order.
- */
-const SEA_FOCUS: Readonly<Partial<Record<CountryTag, readonly WwTechId[]>>> = {
-  DEU: ["ss_3", "torpedo_1", "dd_3", "ss_4"],
-  GBR: [
-    "sonar_1",
-    "dd_3",
-    "sonar_2",
-    "naval_radar_1",
-    "cv_3",
-    "landing_craft_1",
-  ],
-  JPN: ["cv_3", "torpedo_1", "dd_3", "landing_craft_1", "cv_4"],
-  USA: ["cv_3", "dd_3", "sonar_1", "landing_craft_1", "naval_radar_1", "cv_4"],
-  ITA: ["bb_3", "cl_3", "ss_3", "torpedo_1"],
-  FRA: ["bb_3", "dd_3", "ss_3"],
-  SUN: ["ss_3", "dd_3"],
-};
-const AIR_FOCUS: Readonly<Partial<Record<CountryTag, readonly WwTechId[]>>> = {
-  DEU: ["cas_2", "heavy_fighter_2", "radar_1", "cas_3"],
-  GBR: [
-    "radar_1",
-    "naval_bomber_2",
-    "strat_bomber_2",
-    "radar_2",
-    "strat_bomber_3",
-  ],
-  JPN: ["naval_bomber_2", "naval_bomber_3"],
-  USA: [
-    "strat_bomber_1",
-    "naval_bomber_2",
-    "strat_bomber_2",
-    "radar_1",
-    "strat_bomber_3",
-  ],
-  SUN: ["cas_2", "cas_3"],
-  ITA: ["naval_bomber_2", "heavy_fighter_2"],
-  FRA: ["heavy_fighter_2", "cas_2"],
-};
-
-/** Whether `tag`'s AI researches P4 tech `t` at all (its navy, its air force, its coast). */
-function wantsP4(tag: CountryTag, t: WwTechId, coastal: boolean): boolean {
-  const def = WW_TECHS[t];
-  const major = COUNTRIES[tag].major;
-  const dom = aiTechDomain(t);
-  if (dom === "sea" && !coastal) return false;
-  if (def.school !== undefined) {
-    return def.school === aiSeaSchool(tag) || def.school === aiAirSchool(tag);
-  }
-  if (dom === "sea") {
-    if (t.startsWith("landing_craft")) return MARINE_COUNTRIES.includes(tag);
-    if (t.startsWith("cv_")) return CARRIER_NAVIES.includes(tag);
-    if (t.startsWith("dd_") || t.startsWith("ss_") || t.startsWith("sonar")) {
-      return true;
-    }
-    if (t === "torpedo_1") return true;
-    return BATTLE_NAVIES.includes(tag);
-  }
-  if (dom === "air") {
-    if (t === "carrier_aviation") return CARRIER_NAVIES.includes(tag);
-    if (t.startsWith("naval_bomber")) return coastal;
-    if (t.startsWith("cas_")) return true;
-    return major;
-  }
-  return true;
-}
-
-/** A P4 domain's list: the country's focus, then the rest in WW_TECH_IDS order. */
-function p4Order(
-  tag: CountryTag,
-  dom: "sea" | "air",
-  coastal: boolean,
-): WwTechId[] {
-  const focus = (dom === "sea" ? SEA_FOCUS : AIR_FOCUS)[tag] ?? [];
-  const out: WwTechId[] = [];
-  const add = (t: WwTechId) => {
-    if (
-      !out.includes(t) &&
-      !isRetiredTech(t) &&
-      aiTechDomain(t) === dom &&
-      wantsP4(tag, t, coastal)
-    ) {
-      out.push(t);
-    }
-  };
-  focus.forEach(add);
-  WW_TECH_IDS.slice(LAST_LAND_TECH + 1).forEach(add);
-  return out;
-}
-
-/**
- * Weighted interleave (a domain is taken when it is furthest behind its
- * share; ties: land, sea, air): a naval power's list mixes its ship and
- * plane techs in among the land ones instead of after them.
- */
-function interleave(
-  lists: readonly (readonly WwTechId[])[],
-  weights: readonly number[],
-): WwTechId[] {
-  const taken = lists.map(() => 0);
-  const out: WwTechId[] = [];
-  for (;;) {
-    let best = -1;
-    for (let d = 0; d < lists.length; d++) {
-      if (weights[d] <= 0 || taken[d] >= lists[d].length) continue;
-      if (
-        best < 0 ||
-        (taken[d] + 1) * weights[best] < (taken[best] + 1) * weights[d]
-      ) {
-        best = d;
-      }
-    }
-    if (best < 0) return out;
-    out.push(lists[best][taken[best]++]);
-  }
-}
-
 /**
  * The most slots the sea and air techs may hold at once (Task 10: no
  * starving the land war): the land keeps its share rounded up, the rest
@@ -777,55 +484,43 @@ export function aiResearchCaps(
 }
 
 /**
- * The tech priority list of `tag`: the land list (its groups, the tail,
- * then every other land tech; each group in WW_TECH_IDS order; other land
- * schools and special troops it does not field left out) interleaved
- * with its sea and air lists by AI_RESEARCH_MIX. P4 Task 10: replaces the
- * foundation's interim filter (no tech after rail_1).
+ * Research overhaul (changes §5): the techs `tag`'s AI would research, best
+ * first, as an untouched country scores them on the first day (no lines,
+ * no bonus, seed 0) — a fixed view of its leanings for tests and tools.
+ * The research turn itself scores the country as it is (researchScores).
  */
 export function aiResearchOrder(
   tag: CountryTag,
   coastal = true,
 ): readonly WwTechId[] {
-  const key = `${tag}:${coastal ? 1 : 0}`;
-  const cached = researchOrders.get(key);
-  if (cached !== undefined) return cached;
-  const school = aiSchool(tag);
-  const groups = [
-    ...(COUNTRY_ORDER[tag] ?? PERSONALITY_ORDER[aiPersonality(tag)]),
-    ...TAIL,
-  ];
-  const seen = new Set<WwTechId>();
-  const land: WwTechId[] = [];
-  const add = (techs: readonly WwTechId[]) => {
-    const sorted = [...techs].sort(
-      (a, b) => TECH_INDEX.get(a)! - TECH_INDEX.get(b)!,
-    );
-    for (const t of sorted) {
-      if (seen.has(t) || isRetiredTech(t) || aiTechDomain(t) !== "land") {
-        continue;
-      }
-      seen.add(t);
-      land.push(t);
-    }
-  };
-  const schoolTechs = WW_TECH_IDS.filter((t) => WW_TECHS[t].school === school);
-  for (const g of groups) {
-    add(g === "school" ? schoolTechs : groupTechs(tag, g));
-  }
-  add(
-    WW_TECH_IDS.filter((t) => {
-      const s = WW_TECHS[t].school;
-      return (s === undefined || s === school) && wantsTech(tag, t);
-    }),
-  );
-  const mix = aiResearchMix(tag, coastal);
-  const out = interleave(
-    [land, p4Order(tag, "sea", coastal), p4Order(tag, "air", coastal)],
-    mix,
-  );
-  researchOrders.set(key, out);
-  return out;
+  const scores = researchScores({
+    seed: 0,
+    smallID: 0,
+    tag,
+    persona: aiPersonality(tag),
+    day: 0,
+    human: false,
+    lean: 0,
+    coastal,
+    lineFactories: COUNTRIES[tag].major
+      ? { fighter: 1, cas: 1, bomber: 1 }
+      : {},
+    navalLines: 0,
+    bonusKeys: [],
+    shared: [],
+    researched: new Set(),
+    running: [],
+  });
+  return rankByScore(scores).map((k) => WW_TECH_IDS[k]);
+}
+
+/** WW_TECH_IDS indexes of the scored techs, best first (ties: WW_TECH_IDS order). */
+function rankByScore(scores: readonly (number | null)[]): number[] {
+  const ks: number[] = [];
+  scores.forEach((v, k) => {
+    if (v !== null) ks.push(k);
+  });
+  return ks.sort((a, b) => scores[b]! - scores[a]! || a - b);
 }
 
 /** Spec §12.2: an AI starts a tech at most this far ahead of its year. */
@@ -964,6 +659,26 @@ export interface AiInput {
    * (AI_MAX_AHEAD_PCT).
    */
   fillSlots?: boolean;
+  /**
+   * Research overhaul (changes §5): what the research score reads beyond
+   * the rest — the game's seed, the country, its naval lines, the research
+   * bonuses it holds, the faction's shared research, the special projects
+   * it finished and a human's leaning. None: seed 0, nothing held.
+   */
+  research?: AiResearchInput;
+}
+
+/** AiInput.research. */
+export interface AiResearchInput {
+  seed: number;
+  smallID: number;
+  navalLines: number;
+  bonusKeys: readonly string[];
+  shared: readonly (readonly [WwTechId, number])[];
+  /** Bit i: SPECIAL_PROJECTS[i] finished. */
+  projects: number;
+  /** RESEARCH_LEANS index (a human's auto-research). */
+  lean: number;
 }
 
 /**
@@ -1480,6 +1195,58 @@ function planConstruction(
 
 // ---- 4. Research ----
 
+/**
+ * Research overhaul (changes §5): a human's land/sea/air shares follow its
+ * leaning (army, navy, air); balanced and industry keep its country's.
+ */
+const LEAN_MIX: readonly (readonly [number, number, number] | null)[] = [
+  null,
+  [80, 10, 10],
+  [40, 45, 15],
+  [45, 10, 45],
+  null,
+];
+
+/** The research score's view of an AI input (researchScores). */
+export function researchScoreInput(
+  i: AiInput,
+  researched: ReadonlySet<WwTechId>,
+  running: readonly (WwTechId | null)[],
+): ResearchScoreInput {
+  const r = i.research;
+  const lineFactories: Partial<Record<EquipmentType, number>> = {};
+  for (const l of i.lines) {
+    const own = EQUIP_KEYS[l.key][0];
+    lineFactories[own] = (lineFactories[own] ?? 0) + l.factories;
+    if (l.as !== undefined && l.as !== own) {
+      lineFactories[l.as] = (lineFactories[l.as] ?? 0) + l.factories;
+    }
+  }
+  return {
+    seed: r?.seed ?? 0,
+    smallID: r?.smallID ?? 0,
+    tag: i.tag,
+    persona: i.personality,
+    day: i.day,
+    human: i.fillSlots === true,
+    lean: r?.lean ?? 0,
+    coastal: i.coastal ?? true,
+    lineFactories,
+    navalLines: r?.navalLines ?? 0,
+    bonusKeys: r?.bonusKeys ?? [],
+    shared: r?.shared ?? [],
+    researched,
+    running,
+  };
+}
+
+/**
+ * The research turn (changes §5): every free slot takes the best-scored
+ * tech (researchScores, shared with a human's auto-research) within the
+ * ahead-of-time tiers — 50% first, then 75%, then the land/sea/air caps
+ * off; a start plan or a human's auto-research then fills what is left
+ * with the least early tech.
+ */
 function planResearch(
   i: AiInput,
   orders: AiOrder[],
@@ -1488,15 +1255,26 @@ function planResearch(
   const researched = new Set(i.researched);
   const slots: (WwTechId | null)[] = [...i.slots];
   while (slots.length < i.slotCount) slots.push(null);
+  if (freeResearchSlot(slots, i.slotCount) < 0) return;
   const coastal = i.coastal ?? true;
-  const list = aiResearchOrder(i.tag, coastal);
+  const lean = i.fillSlots === true ? (i.research?.lean ?? 0) : 0;
+  const mix = LEAN_MIX[lean] ?? aiResearchMix(i.tag, coastal);
   // P4 Task 10: the sea and air techs hold at most their share of the slots.
-  const caps = aiResearchCaps(aiResearchMix(i.tag, coastal), i.slotCount);
+  const caps = aiResearchCaps(mix, i.slotCount);
   const running = { land: 0, sea: 0, air: 0 };
   for (const t of slots) if (t !== null) running[aiTechDomain(t)]++;
   const capped = (t: WwTechId) => {
     const d = aiTechDomain(t);
     return d !== "land" && running[d] >= caps[d];
+  };
+  const ranked = rankByScore(
+    researchScores(researchScoreInput(i, researched, slots)),
+  ).map((k) => WW_TECH_IDS[k]);
+  const state = {
+    researched,
+    slots,
+    slotCount: i.slotCount,
+    projects: i.research?.projects ?? 0,
   };
   const ahead = new Map<number, number>();
   const aheadOf = (year: number) => {
@@ -1508,18 +1286,17 @@ function planResearch(
     return a;
   };
   const pick = (maxAhead: number, withCaps = true) =>
-    list.find(
+    ranked.find(
       (t) =>
         !researched.has(t) &&
         aheadOf(WW_TECHS[t].year) <= maxAhead &&
         !(withCaps && capped(t)) &&
-        researchBlockOf({ researched, slots, slotCount: i.slotCount }, t) ===
-          null,
+        researchBlockOf(state, t) === null,
     );
-  /** The least early one, ties by the list (aiStartPlan's last resort). */
-  const leastAhead = (from: readonly WwTechId[] = list) => {
+  /** The least early one, ties by the score (the start plan's last resort). */
+  const leastAhead = () => {
     let best: WwTechId | undefined;
-    for (const t of from) {
+    for (const t of ranked) {
       if (researched.has(t)) continue;
       if (
         best !== undefined &&
@@ -1527,11 +1304,7 @@ function planResearch(
       ) {
         continue;
       }
-      const block = researchBlockOf(
-        { researched, slots, slotCount: i.slotCount },
-        t,
-      );
-      if (block === null) best = t;
+      if (researchBlockOf(state, t) === null) best = t;
     }
     return best;
   };
@@ -1543,9 +1316,7 @@ function planResearch(
       pick(AI_MAX_AHEAD_PCT) ??
       pick(AI_FALLBACK_AHEAD_PCT) ??
       pick(AI_MAX_AHEAD_PCT, false) ??
-      (fill ? leastAhead() : undefined) ??
-      // Automation: past the AI's own list, any tech the country may start.
-      (i.fillSlots === true ? leastAhead(WW_TECH_IDS) : undefined);
+      (fill ? leastAhead() : undefined);
     if (tech === undefined) return;
     slots[slot] = tech;
     running[aiTechDomain(tech)]++;
@@ -1956,6 +1727,33 @@ export function aiInput(
     dockTarget: aiDockTarget(ce.tag, warDays >= 0),
     fuelOil: fuelOilOf(econ, ce),
     priorityDemand: (econ.ww.depth as WwDepth | undefined)?.priorityDemand(me),
+    research: researchInputOf(econ, ce),
+  };
+}
+
+/** AiInput.research (changes §5): the faction's shared research is read only when a slot is free. */
+function researchInputOf(econ: WwEconomy, ce: CountryEconomy): AiResearchInput {
+  const pol = econ.ww.politics as WwPolitics | undefined;
+  const me = ce.smallID;
+  let shared: [WwTechId, number][] | null = null;
+  return {
+    seed: pol?.seed ?? 0,
+    smallID: me,
+    navalLines: ce.navalLines.length,
+    bonusKeys: pol?.country(me)?.researchBonuses.map((b) => b.key) ?? [],
+    get shared() {
+      if (shared === null) {
+        shared = [];
+        for (const id of WW_TECH_IDS) {
+          if (ce.researched.has(id)) continue;
+          const pct = sharedResearchPct(econ.ww.depth, me, id);
+          if (pct > 0) shared.push([id, pct]);
+        }
+      }
+      return shared;
+    },
+    projects: projectsDone(econ, ce),
+    lean: ce.researchLean,
   };
 }
 

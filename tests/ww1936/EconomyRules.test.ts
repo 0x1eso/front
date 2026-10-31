@@ -252,17 +252,18 @@ describe("research (spec §9)", () => {
     expect(techDays(1942)).toBe(210);
   });
 
-  test("slots: 3 for majors, 2 for others, +1 at 50 and 100 factories", () => {
-    expect(researchSlotCount(true, 48)).toBe(3);
-    expect(researchSlotCount(true, 85)).toBe(4);
-    expect(researchSlotCount(false, 120)).toBe(4);
-    expect(researchSlotCount(true, 300)).toBe(5);
+  test("slots: the start slots plus the effects', at most 6 (research overhaul)", () => {
+    expect(researchSlotCount(3, 0)).toBe(3);
+    expect(researchSlotCount(4, 1)).toBe(5);
+    expect(researchSlotCount(3, 3)).toBe(6);
+    expect(researchSlotCount(4, 4)).toBe(6);
   });
 
-  test("146 techs; prerequisites exist and come no later", () => {
+  test("254 techs; prerequisites exist and come no later", () => {
     // P1's 46, P2's 10 (P2 spec §4.6), P4's 56 (P4 spec §4.3, §12.3),
-    // P5's military police (P5 spec §8.5) and P6's 33 (P6 spec §1.4).
-    expect(WW_TECH_IDS.length).toBe(146);
+    // P5's military police (P5 spec §8.5), P6's 33 (P6 spec §1.4) and the
+    // research overhaul's 108 (changes §2.3).
+    expect(WW_TECH_IDS.length).toBe(254);
     for (const id of WW_TECH_IDS) {
       expect(WW_TECHS[id].id).toBe(id);
       for (const p of WW_TECHS[id].prereqs) {

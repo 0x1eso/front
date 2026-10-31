@@ -59,6 +59,39 @@ describe("<ww-research-panel> (spec §13.4)", () => {
     vi.unstubAllGlobals();
   });
 
+  it("the slot chip: now / the most it can reach, a yellow dot when a slot source is ready (research overhaul R1)", async () => {
+    const m = await mount({
+      summaries: [summary("DEU")],
+      details: [
+        detail("DEU", {
+          slots: [running, null, null],
+          slotSources: { start: 3, focus: 0, decision: 0, max: 6 },
+          slotHint: { kind: "focus", id: "deu_kwi", ready: true },
+        }),
+      ],
+    });
+    const chip = m.q("[data-ww-slot-chip]")!;
+    expect(chip.textContent).toContain("3/6");
+    expect(chip.dataset.ready).toBe("true");
+    expect(chip.querySelector("[data-ww-slot-dot]")).not.toBeNull();
+    const later = await mount({
+      summaries: [summary("DEU")],
+      details: [
+        detail("DEU", {
+          slotHint: {
+            kind: "decision",
+            id: "gen_science_mobilisation",
+            ready: false,
+          },
+        }),
+      ],
+    });
+    const quiet = later.el.querySelectorAll<HTMLElement>("[data-ww-slot-chip]");
+    expect(
+      quiet[quiet.length - 1].querySelector("[data-ww-slot-dot]"),
+    ).toBeNull();
+  });
+
   it("the slots open the list; the tabs share the top bar with the close button", async () => {
     vi.stubGlobal("innerWidth", 800);
     vi.stubGlobal("innerHeight", 360);

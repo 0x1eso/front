@@ -33,6 +33,7 @@ import {
   ResourceId,
   TECH_BRANCHES,
   TechBranch,
+  WW_MAX_SLOTS,
   WW_TECH_IDS,
   WwTechId,
 } from "./EconomyTypes";
@@ -173,6 +174,8 @@ export const CONDITION_KINDS = [
   "bop_range",
   "energy_below",
   "nukes_on",
+  // Research overhaul (changes §1.3), appended: the research slots it has.
+  "research_slots_ge",
 ] as const;
 export type ConditionKind = (typeof CONDITION_KINDS)[number];
 
@@ -261,6 +264,8 @@ export type LeafCondition = W &
     | { kind: "has_atomic"; count?: number }
     | { kind: "congress_above" | "energy_below"; pct: number }
     | { kind: "bop_range"; tag: "CHN" | "JPN" | "FRA"; band: number }
+    // Research overhaul (changes §1.3)
+    | { kind: "research_slots_ge"; count: number }
   );
 export type Condition =
   | { all: Condition[] }
@@ -776,6 +781,8 @@ export const WwConditionSchema: z.ZodType<Condition> = z.lazy(() =>
     ...leaf(["has_atomic"], { count: int.min(1).max(10).optional() }),
     ...leaf(["congress_above", "energy_below"], { pct: int.min(0).max(100) }),
     ...leaf(["bop_range"], { tag: z.enum(BOP_TAGS), band: int.min(0).max(4) }),
+    // Research overhaul (changes §1.3)
+    ...leaf(["research_slots_ge"], { count: int.min(0).max(WW_MAX_SLOTS) }),
   ] as unknown as AnyUnion),
 ) as z.ZodType<Condition>;
 

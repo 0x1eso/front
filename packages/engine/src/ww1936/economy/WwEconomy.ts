@@ -10,12 +10,12 @@ import {
   EQUIP_KEYS,
   equipKey,
   LawKind,
+  RESEARCH_LEANS,
   RESOURCE_COUNT,
   RESOURCE_IDS,
   TECH_BRANCHES,
   TRADE_LAWS,
   WW_DAY_SPLIT,
-  WW_MAX_SLOTS,
   WW_MEN_PER_INF_EQUIPMENT,
   WW_TECH_IDS,
   WW_TRADE_UNITS_PER_CIV,
@@ -50,6 +50,7 @@ import {
   splitStartPlanes,
   startArmy,
   startLaws,
+  startResearchSlots,
   startStock,
   startTechs,
 } from "@openfront/engine-lib/ww1936/EconomyStart";
@@ -72,16 +73,17 @@ import {
 } from "@openfront/engine-lib/ww1936/Stats";
 import { LawEffects, lawEffects } from "@openfront/engine-lib/ww1936/WwLaws";
 import {
-  techDays,
+  techCostMilli,
   TechTotals,
   techTotals,
-  WW_TECHS,
 } from "@openfront/engine-lib/ww1936/WwTechs";
 import { z } from "zod";
 import type { Game, Player } from "../../game/Game";
 import { sharedResearchPct } from "../depth/FactionRules";
 import { regionStatus } from "../depth/World";
 import type { WwDepth } from "../depth/WwDepth";
+import { researchSlotView } from "../politics/ResearchSlots";
+import type { WwPolitics } from "../politics/WwPolitics";
 import type { WorldWar } from "../WorldWar";
 import { aiEconomyTick, aiStartSetup } from "./AiEconomy";
 import { addConvoys, buildingIndex, effectiveBuildings } from "./Buildings";
@@ -91,7 +93,7 @@ import { stepManpower } from "./Manpower";
 import { stepNavalLines } from "./NavalLines";
 import { stepProduction } from "./Production";
 import { repairCostMilli, stepRepairs } from "./Repairs";
-import { stepResearch } from "./ResearchRun";
+import { projectsDone, stepResearch } from "./ResearchRun";
 import {
   tradeDelivery,
   tradePaidCivs,
@@ -266,6 +268,11 @@ export class CountryEconomy {
    * ResearchRun's saveResearch / takeSavedResearch.
    */
   savedResearch: SavedResearch[] = [];
+  /**
+   * Research overhaul (changes §6 idea 1): RESEARCH_LEANS index of the
+   * auto-research leaning a human set (research_lean); 0: balanced.
+   */
+  researchLean = 0;
   /** In WW_TECH_IDS order; add with addTech. */
   researched = new Set<WwTechId>();
   totals: Totals = emptyTotals();
@@ -427,6 +434,13 @@ const CountrySchema = z.object({
   /** Saved partial research: written only when there is some. */
   savedResearch: z
     .array(z.object({ tech: z.enum(WW_TECH_IDS), progress: zInt() }))
+    .optional(),
+  /** Research overhaul: the auto-research leaning, written only when not balanced. */
+  researchLean: z
+    .number()
+    .int()
+    .min(0)
+    .max(RESEARCH_LEANS.length - 1)
     .optional(),
   totals: TotalsSchema,
   // P4 (Task 1 Step 19).
@@ -900,11 +914,11 @@ export class WwEconomy {
     t.paidCivs = paid;
     t.receivedCivs = received;
     t.freeCivMilli = freeCivMilli(civ, t.cgMilli, paid, received);
-    // Factories give at most 5 slots; P3's research_slot effect the sixth.
-    t.slotCount = Math.min(
-      WW_MAX_SLOTS,
-      researchSlotCount(ce.major, civ + mil) +
-        (pol.country(ce.smallID)?.extraResearchSlots ?? 0),
+    // Research overhaul (changes §1.1): the start slots and the research_slot
+    // effects only; factories, bombing and occupation do not count.
+    t.slotCount = researchSlotCount(
+      startResearchSlots(ce.tag),
+      pol.country(ce.smallID)?.extraResearchSlots ?? 0,
     );
     t.warDays = this.warDays(ce.smallID, tick);
     void day;
@@ -1317,6 +1331,22 @@ export class WwEconomy {
     return out.length === 0 ? {} : { sharedResearch: out };
   }
 
+  /** Research overhaul R1: the slot chip's sources and its next source. */
+  private slotViewOf(
+    ce: CountryEconomy,
+  ): Pick<WwCountryDetail, "slotSources" | "slotHint"> {
+    const pol = this.ww.politics as WwPolitics | undefined;
+    const v =
+      pol === undefined
+        ? null
+        : researchSlotView(pol, ce.smallID, ce.totals.slotCount);
+    if (v === null) return {};
+    return {
+      slotSources: v.sources,
+      ...(v.hint === undefined ? {} : { slotHint: v.hint }),
+    };
+  }
+
   private detail(ce: CountryEconomy): WwCountryDetail {
     const t = ce.totals;
     const tradeData = (tr: Trade) => ({
@@ -1362,7 +1392,7 @@ export class WwEconomy {
           : {
               tech: s.tech,
               progressMilli: s.progress,
-              totalMilli: techDays(WW_TECHS[s.tech].year) * 1000,
+              totalMilli: techCostMilli(s.tech),
               ...(s.bonusPct === undefined || s.bonusPct === 0
                 ? {}
                 : { bonusPct: s.bonusPct }),
@@ -1372,6 +1402,9 @@ export class WwEconomy {
         researchSpeedPct(ce.stats, b),
       ),
       ...this.sharedResearchOf(ce),
+      ...this.slotViewOf(ce),
+      ...(ce.researchLean === 0 ? {} : { researchLean: ce.researchLean }),
+      projectsDone: projectsDone(this, ce),
       researched: WW_TECH_IDS.filter((id) => ce.researched.has(id)),
       ...(ce.savedResearch.length === 0
         ? {}
@@ -1379,7 +1412,7 @@ export class WwEconomy {
             savedResearch: ce.savedResearch.map((r) => ({
               tech: r.tech,
               progressMilli: r.progress,
-              totalMilli: techDays(WW_TECHS[r.tech].year) * 1000,
+              totalMilli: techCostMilli(r.tech),
             })),
           }),
       buying: this._trades
@@ -1448,6 +1481,10 @@ export class WwEconomy {
         h =
           (Math.imul(h, 31) + WW_TECH_IDS.indexOf(r.tech) * 131 + r.progress) |
           0;
+      }
+      // Research overhaul: the leaning (nothing while balanced).
+      if (ce.researchLean !== 0) {
+        h = (Math.imul(h, 31) + ce.researchLean * 137 + 11) | 0;
       }
       h = (Math.imul(h, 31) + ce.casualties) | 0;
       // P4: fuel and the naval lines.
@@ -1541,6 +1578,7 @@ export class WwEconomy {
         ...(ce.savedResearch.length === 0
           ? {}
           : { savedResearch: ce.savedResearch.map((r) => ({ ...r })) }),
+        ...(ce.researchLean === 0 ? {} : { researchLean: ce.researchLean }),
         totals: copyTotals(ce.totals),
         fuelMilli: ce.fuelMilli,
         fuelRatioPm: ce.fuelRatioPm,
@@ -1616,6 +1654,7 @@ export class WwEconomy {
       );
       ce.researched = new Set(c.researched);
       ce.savedResearch = (c.savedResearch ?? []).map((r) => ({ ...r }));
+      ce.researchLean = c.researchLean ?? 0;
       ce.totals = copyTotals(c.totals);
       ce.fuelMilli = c.fuelMilli;
       ce.fuelRatioPm = c.fuelRatioPm;

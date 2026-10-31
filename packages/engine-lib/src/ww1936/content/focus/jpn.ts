@@ -586,7 +586,7 @@ export const JPN_FOCUSES: FocusDef[] = [
     branch: "research",
     icon: "research",
     effects: [{ kind: "research_slot", amount: 1 }],
-    ai: { base: 10 },
+    ai: { base: 20 },
   },
   {
     id: "jpn_radio_weapons",
@@ -598,9 +598,10 @@ export const JPN_FOCUSES: FocusDef[] = [
     icon: "radio",
     prereq: [["jpn_science_mobilisation"]],
     effects: [
+      { kind: "research_slot", amount: 1 },
       { kind: "research_bonus", branch: "electronics", pct: 100, uses: 1 },
     ],
-    ai: { base: 10 },
+    ai: { base: 20 },
   },
   {
     id: "jpn_captured_arms",

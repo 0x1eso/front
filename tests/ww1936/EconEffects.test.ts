@@ -307,7 +307,7 @@ describe("economy and military effects", () => {
     ]);
   });
 
-  it("research_bonus (5 at most), add_tech, research_slot (0..2, R5), reserve", async () => {
+  it("research_bonus (5 at most), add_tech, research_slot (0..4), reserve", async () => {
     const { g, p, econ, c, ce, run } = await game();
     for (let i = 1; i <= 6; i++) {
       run([{ kind: "research_bonus", branch: "infantry", pct: i, uses: 1 }]);
@@ -321,15 +321,16 @@ describe("economy and military effects", () => {
     run([{ kind: "add_tech", tech }]);
     expect(ce.researched.has(tech)).toBe(true);
     expect(ce.slots[slot]).toBeNull();
-    // research_slot: at most two more, six in all.
+    // research_slot (research overhaul changes §1.1): at most four more,
+    // six in all.
     econ.refreshTotals(ce, p.day(), g.ticks());
     const base = ce.totals.slotCount;
-    for (let i = 0; i < 3; i++) run([{ kind: "research_slot", amount: 1 }]);
-    expect(c.extraResearchSlots).toBe(2);
+    for (let i = 0; i < 5; i++) run([{ kind: "research_slot", amount: 1 }]);
+    expect(c.extraResearchSlots).toBe(4);
     econ.refreshTotals(ce, p.day(), g.ticks());
-    expect(ce.totals.slotCount).toBe(Math.min(6, base + 2));
+    expect(ce.totals.slotCount).toBe(Math.min(6, base + 4));
     run([{ kind: "research_slot", amount: -1 }]);
-    expect(c.extraResearchSlots).toBe(1);
+    expect(c.extraResearchSlots).toBe(3);
     run([
       { kind: "reserve", key: "radar", amount: 3 },
       { kind: "reserve", key: "radar", amount: 4 },
