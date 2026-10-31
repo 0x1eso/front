@@ -9,7 +9,7 @@ import { addCongressPp, usaIdOf } from "../depth/Congress";
 import { grantDesign } from "../depth/Designs";
 import { applyMasteryEffect } from "../depth/Doctrine";
 import { applyEnergyEffect } from "../depth/Energy";
-import { applyProjectEffect } from "../depth/Projects";
+import { applyProjectEffect, applyStartProjectEffect } from "../depth/Projects";
 import type { WwDepth } from "../depth/WwDepth";
 import type { EffectCtx } from "./Dispatch";
 
@@ -32,6 +32,9 @@ export function applyDepthEffect(
       return;
     case "project_progress":
       applyProjectEffect(ctx, e, actor); // S
+      return;
+    case "start_project":
+      applyStartProjectEffect(ctx, e, actor);
       return;
     case "energy":
       applyEnergyEffect(ctx, e, actor); // W1

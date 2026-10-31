@@ -297,6 +297,7 @@ const SAMPLE_EFFECTS: Record<EffectKind, Effect> = {
   intel_network: { kind: "intel_network", on: DEU, pm: 200 },
   decrypt: { kind: "decrypt", on: DEU, pm: 300 },
   project_progress: { kind: "project_progress", project: "sp_atomic", pct: 10 },
+  start_project: { kind: "start_project", project: "sp_atomic" },
   design_grant: { kind: "design_grant", preset: "test_tank" },
   energy: { kind: "energy", amount: 12 },
   agency: { kind: "agency", upgrade: "ag_ops_1" },

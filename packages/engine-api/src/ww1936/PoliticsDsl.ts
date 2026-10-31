@@ -389,6 +389,7 @@ export const EFFECT_KINDS = [
   "energy",
   "agency",
   "cfocus_unlock",
+  "start_project",
 ] as const;
 export type EffectKind = (typeof EFFECT_KINDS)[number];
 export type EffectGroup =
@@ -604,6 +605,8 @@ export type Effect = W &
     /** ‰ of network (or decryption) on that country. */
     | { kind: "intel_network" | "decrypt"; on: Selector; pm: number }
     | { kind: "project_progress"; project: SpecialProject; pct: number }
+    /** Starts the project at one of our free facilities of its kind (techs waived; no-op if running/done/no facility). */
+    | { kind: "start_project"; project: SpecialProject }
     /** AI_DESIGN_PRESETS id into a free slot, origin "own". */
     | { kind: "design_grant"; preset: string }
     /** Permanent energy supply (pack hydro), stored per country. */
@@ -1044,6 +1047,7 @@ export const WwEffectSchema: z.ZodType<Effect> = z.lazy(() =>
       project: z.enum(SPECIAL_PROJECTS),
       pct: int.min(-100).max(100),
     }),
+    ...leaf(["start_project"], { project: z.enum(SPECIAL_PROJECTS) }),
     ...leaf(["design_grant"], { preset: z.string().max(40) }),
     ...leaf(["energy"], { amount: int.min(-50).max(50) }),
     ...leaf(["agency"], { upgrade: z.enum(AGENCY_UPGRADES).optional() }),

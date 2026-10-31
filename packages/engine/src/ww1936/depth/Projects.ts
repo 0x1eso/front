@@ -408,6 +408,50 @@ export function applyProjectEffect(
   d.markCountry(actor);
 }
 
+/**
+ * The start_project effect: a focus starts the project through the same
+ * judge as project_start, waiving its techs, at the lowest-numbered free
+ * facility of its kind we control. Running, done, locked (nukes off,
+ * predecessor) or no free facility: no-op.
+ */
+export function applyStartProjectEffect(
+  ctx: EffectCtx,
+  e: Extract<Effect, { kind: "start_project" }>,
+  actor: number,
+): void {
+  const d = ctx.pol.ww.depth as WwDepth | undefined;
+  if (d === undefined || d.country(actor) === null) return;
+  const facility = PROJECT_DEFS[e.project].facility;
+  const kind = FACILITY_IDS.indexOf(facility);
+  if (kind < 0) return;
+  for (const region of facilitiesOfKind(d, kind)) {
+    const input = projectStartInputOf(d, actor, e.project, region);
+    if (
+      projectStartBlock({
+        ...input,
+        techs: new Set(PROJECT_DEFS[e.project].techs),
+      }) !== null
+    ) {
+      continue;
+    }
+    const c = d.country(actor);
+    if (c === null) return;
+    const idx = SPECIAL_PROJECTS.indexOf(e.project);
+    const row = c.proj.running.find((r) => r.project === idx);
+    if (row !== undefined) row.facility = region;
+    else {
+      c.proj.running.push({
+        project: idx,
+        facility: region,
+        progressMilli: 0,
+        scientist: -1,
+      });
+    }
+    d.markCountry(actor);
+    return;
+  }
+}
+
 // ---- The view's numbers (review E6) ----
 
 /**

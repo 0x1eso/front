@@ -7887,6 +7887,7 @@
       "popularity": "Support for {ideology} {pp, number, ::sign-always}%p",
       "pp": "Political power {amount, number, ::sign-always}",
       "project_progress": "Project {project} {pct, number, ::sign-always}%",
+      "start_project": "Start project {project}",
       "rail": "Railway {amount, number, ::sign-always}: {where}",
       "random_list": "One of these happens at random:",
       "random_option": "Weight {weight}:",

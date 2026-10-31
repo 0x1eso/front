@@ -63,7 +63,7 @@ function cond(runner: GameRunner, c: Condition, who: number = FRA): boolean {
 }
 
 describe("World War 1936 P6: the depth effects", () => {
-  it("are the eleven after navy_xp", () => {
+  it("are the twelve after navy_xp", () => {
     const first = EFFECT_KINDS.indexOf("doctrine_mastery");
     expect(EFFECT_KINDS.slice(first)).toEqual([
       "doctrine_mastery",
@@ -77,6 +77,7 @@ describe("World War 1936 P6: the depth effects", () => {
       "energy",
       "agency",
       "cfocus_unlock",
+      "start_project",
     ]);
   });
 

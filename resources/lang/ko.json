@@ -7580,6 +7580,7 @@
       "popularity": "{ideology} 지지율 {pp, number, ::sign-always}%p",
       "pp": "정치력 {amount, number, ::sign-always}",
       "project_progress": "프로젝트 {project} {pct, number, ::sign-always}%",
+      "start_project": "프로젝트 {project} 착수",
       "rail": "철도 {amount, number, ::sign-always}단계: {where}",
       "random_list": "다음 중 하나가 무작위로 일어납니다:",
       "random_option": "가중치 {weight}:",

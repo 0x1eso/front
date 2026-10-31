@@ -87,7 +87,7 @@ describe("World War 1936 P6 lists", () => {
     expect(stats[0]).toBe("infAttackPct");
     expect(new Set(WW_STAT_KEYS).size).toBe(WW_STAT_KEYS.length);
     // Pre-flight §0-6: after P5's navy_xp; 10 conditions with nukes_on.
-    expect(after(EFFECT_KINDS, "navy_xp")).toHaveLength(11);
+    expect(after(EFFECT_KINDS, "navy_xp")).toHaveLength(12);
     expect(after(EFFECT_KINDS, "navy_xp")[0]).toBe("doctrine_mastery");
     // After P5 lane E's borders_group (merged after legitimacy_ge).
     // The research overhaul appends research_slots_ge after them.

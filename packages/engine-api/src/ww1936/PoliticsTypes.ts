@@ -573,6 +573,8 @@ export interface FocusDef {
   cancelIf?: Condition;
   effects: readonly Effect[];
   ai?: AiWeight;
+  /** UI only: groups branches so the tree view can collapse them (not state, not hashed). */
+  group?: string;
   /**
    * P6 (plan decision 28): a pack focus only these countries take (absent:
    * every country of the pack).
