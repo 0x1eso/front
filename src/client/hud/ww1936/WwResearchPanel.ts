@@ -395,6 +395,21 @@ export class WwResearchPanel extends WwDrawerBase {
                   : nothing}</span
               >`}
         </span>
+        ${c.saved > 0 && c.state !== "done"
+          ? html`<span data-ww-saved class="flex flex-col gap-0.5">
+              <span class="text-[11px] text-cyan-200"
+                >${translateText("ww1936.econ.saved_progress", {
+                  n: Math.floor(c.saved * 100),
+                })}</span
+              >
+              <span class="h-1 w-full overflow-hidden rounded bg-white/15"
+                ><span
+                  class="block h-full bg-cyan-300"
+                  style="width: ${Math.floor(c.saved * 100)}%"
+                ></span
+              ></span>
+            </span>`
+          : nothing}
         ${refused === null
           ? nothing
           : html`<span data-ww-block=${refused} class="text-xs text-red-300"

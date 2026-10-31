@@ -7,6 +7,7 @@ import { CS_GONE } from "@openfront/engine-api/ww1936/EndgameTypes";
 import type { Effect } from "@openfront/engine-api/ww1936/PoliticsDsl";
 import { receiveStock } from "../depth/DesignCopy";
 import type { WwDepth } from "../depth/WwDepth";
+import { saveResearch } from "../economy/ResearchRun";
 import { offerTakeover } from "../endgame/Exile";
 import { makeSubject } from "../endgame/Subjects";
 import {
@@ -178,6 +179,10 @@ function mergeEconomy(pol: WwPolitics, gone: number, by: number): void {
   from.lines = [];
   // P4: its naval lines end with it (the dockyards change hands with the regions).
   from.navalLines = [];
+  // Its unfinished research is kept for the tech, as a cancel keeps it.
+  for (const sl of from.slots) {
+    if (sl !== null) saveResearch(from, sl.tech, sl.progress);
+  }
   from.slots = from.slots.map(() => null);
   for (const tr of [...econ.trades()]) {
     if (tr.buyer !== gone && tr.seller !== gone) continue;

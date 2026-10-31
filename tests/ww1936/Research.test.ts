@@ -16,15 +16,18 @@ import type { GameRunner } from "@openfront/engine/GameRunner";
 import { addLine } from "@openfront/engine/ww1936/economy/Production";
 import {
   cancelResearch,
+  researchBlock,
   startResearch,
 } from "@openfront/engine/ww1936/economy/ResearchRun";
 import {
   byTag,
   clearStartSetup,
+  gameHash,
   HUMAN,
   stamped,
   step,
   stepTo,
+  wwRestore,
   wwRunnerCapture,
 } from "./util";
 
@@ -200,7 +203,7 @@ describe("research (spec §9)", () => {
     ]);
   });
 
-  test("cancelling frees the slot and drops the progress", async () => {
+  test("cancelling frees the slot", async () => {
     const { runner, econ, deu, ce } = await germany();
     expect(startResearch(econ, ce, "electronics_1")).toBeNull();
     throughDay(runner, deu, 4);
@@ -215,8 +218,69 @@ describe("research (spec §9)", () => {
     expect(ce.researched.has("electronics_1")).toBe(false);
     expect(cancelResearch(econ, ce, 0)).toBe("bad_slot");
     expect(cancelResearch(econ, ce, 3)).toBe("bad_slot");
+    // The progress is kept for the tech (HOI4), and resumes on a restart.
+    expect(ce.savedResearch).toEqual([
+      { tech: "electronics_1", progress: 5000 },
+    ]);
     expect(startResearch(econ, ce, "electronics_1")).toBeNull();
-    expect(ce.slots[0]).toEqual({ tech: "electronics_1", progress: 0 });
+    expect(ce.slots[0]).toEqual({ tech: "electronics_1", progress: 5000 });
+    expect(ce.savedResearch).toEqual([]);
+  });
+
+  test("replacing a slot's tech stores the old one's progress; any slot resumes it", async () => {
+    const { runner, econ, deu, ce } = await germany();
+    expect(startResearch(econ, ce, "electronics_1")).toBeNull();
+    throughDay(runner, deu, 2);
+    const kept = ce.slots[0]!.progress;
+    expect(kept).toBeGreaterThan(0);
+    expect(cancelResearch(econ, ce, 0)).toBeNull();
+    const other = WW_TECH_IDS.find(
+      (t) => t !== "electronics_1" && researchBlock(econ, ce, t) === null,
+    )!;
+    expect(startResearch(econ, ce, other)).toBeNull();
+    expect(ce.slots[0]!.progress).toBe(0);
+    // electronics_1 starts again in the next slot: it resumes there.
+    expect(startResearch(econ, ce, "electronics_1")).toBeNull();
+    expect(ce.slots[1]).toEqual({ tech: "electronics_1", progress: kept });
+    // A sparse list sorted by tech id, whatever the order of the drops.
+    cancelResearch(econ, ce, 1);
+    cancelResearch(econ, ce, 0);
+    const ids = ce.savedResearch.map((r) => WW_TECH_IDS.indexOf(r.tech));
+    expect(ids).toEqual([...ids].sort((a, b) => a - b));
+  });
+
+  test("the saved progress survives a takeover and a snapshot, in lockstep", async () => {
+    const { runner, econ, deu, ce, g } = await germany();
+    expect(startResearch(econ, ce, "electronics_1")).toBeNull();
+    throughDay(runner, deu, 3);
+    cancelResearch(econ, ce, 0);
+    const saved = ce.savedResearch.map((r) => ({ ...r }));
+    expect(saved).toHaveLength(1);
+    const fra = byTag(g, "FRA");
+    const ceFra = econ.country(fra.smallID())!;
+    const fraSaved = [{ tech: "tools_1" as const, progress: 777 }];
+    ceFra.savedResearch = fraSaved.map((r) => ({ ...r }));
+    // The human takes France over: its record stays with it.
+    g.worldWar()!.endgame.setControl(HUMAN, fra.smallID());
+    expect(ceFra.savedResearch).toEqual(fraSaved);
+    expect(ce.savedResearch).toEqual(saved);
+    // A restore carries it, and the two games stay in lockstep.
+    const b = await wwRestore(runner, [{ clientID: HUMAN, country: "DEU" }]);
+    const ceB = b.game.worldWar()!.economy.country(deu.smallID())!;
+    expect(ceB.savedResearch).toEqual(saved);
+    expect(gameHash(b)).toBe(gameHash(runner));
+    // Both resume it, then run on together.
+    expect(startResearch(econ, ce, "electronics_1")).toBeNull();
+    const econB = b.game.worldWar()!.economy;
+    expect(startResearch(econB, ceB, "electronics_1")).toBeNull();
+    expect(ceB.slots[0]!.progress).toBe(ce.slots[0]!.progress);
+    expect(ce.slots[0]!.progress).toBe(saved[0].progress);
+    for (let i = 0; i < 40; i++) {
+      step(runner);
+      step(b);
+      expect(gameHash(b)).toBe(gameHash(runner));
+    }
+    expect(gameHash(b)).toBe(gameHash(runner));
   });
 
   test("a new slot is told once; a lost one pauses", async () => {

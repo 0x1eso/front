@@ -3,6 +3,7 @@
 // step live here.
 import { MessageType } from "@openfront/engine-api/game/GameTypes";
 import {
+  WW_TECH_IDS,
   WwOrderBlock,
   WwTechId,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
@@ -19,6 +20,40 @@ import { techDays, WW_TECHS } from "@openfront/engine-lib/ww1936/WwTechs";
 import type { Player } from "../../game/Game";
 import { sharedResearchPct } from "../depth/FactionRules";
 import type { CountryEconomy, WwEconomy } from "./WwEconomy";
+
+/*
+ * Saved research (HOI4: a cancelled or replaced tech keeps its progress in
+ * full). The unit is milli-days of work (a slot's `progress`), not a share
+ * of the tech: a tech's cost (techDays(year) * 1000) is fixed, and the
+ * ahead-of-time penalty only changes how fast a day adds work
+ * (researchProgress), never what was done. So the stored number stays
+ * correct when the tech resumes in a later year, at another speed or in
+ * another slot, and needs no recalculation. The list is sparse and kept
+ * sorted by WW_TECH_IDS index, so hash and snapshot never depend on the
+ * order techs were dropped in.
+ */
+
+/** Keeps `progress` of an unfinished `tech` (adds to nothing: it replaces). */
+export function saveResearch(
+  ce: CountryEconomy,
+  tech: WwTechId,
+  progress: number,
+): void {
+  const rest = ce.savedResearch.filter((r) => r.tech !== tech);
+  if (progress > 0 && !ce.researched.has(tech)) rest.push({ tech, progress });
+  rest.sort(
+    (a, b) => WW_TECH_IDS.indexOf(a.tech) - WW_TECH_IDS.indexOf(b.tech),
+  );
+  ce.savedResearch = rest;
+}
+
+/** The saved progress of `tech` (0 when none), removed from the record. */
+export function takeSavedResearch(ce: CountryEconomy, tech: WwTechId): number {
+  const r = ce.savedResearch.find((x) => x.tech === tech);
+  if (r === undefined) return 0;
+  ce.savedResearch = ce.savedResearch.filter((x) => x !== r);
+  return r.progress;
+}
 
 function slotTechs(ce: CountryEconomy): (WwTechId | null)[] {
   return ce.slots.map((s) => s?.tech ?? null);
@@ -40,7 +75,7 @@ export function researchBlock(
   );
 }
 
-/** Puts `tech` in the first empty slot, from no progress (spec §9.3). */
+/** Puts `tech` in the first empty slot, resuming its saved progress (spec §9.3). */
 export function startResearch(
   econ: WwEconomy,
   ce: CountryEconomy,
@@ -51,7 +86,11 @@ export function startResearch(
   const i = freeResearchSlot(slotTechs(ce), ce.totals.slotCount);
   while (ce.slots.length <= i) ce.slots.push(null);
   const bonusPct = takeResearchBonus(econ, ce, tech);
-  ce.slots[i] = { tech, progress: 0, ...(bonusPct === 0 ? {} : { bonusPct }) };
+  ce.slots[i] = {
+    tech,
+    progress: takeSavedResearch(ce, tech),
+    ...(bonusPct === 0 ? {} : { bonusPct }),
+  };
   return null;
 }
 
@@ -79,7 +118,7 @@ function takeResearchBonus(
   return b.pct;
 }
 
-/** Empties a slot; its progress is lost (spec §9.3). */
+/** Empties a slot; its progress is saved for the tech (spec §9.3). */
 export function cancelResearch(
   econ: WwEconomy,
   ce: CountryEconomy,
@@ -88,6 +127,8 @@ export function cancelResearch(
   if (slot < 0 || slot >= ce.slots.length || ce.slots[slot] === null) {
     return "bad_slot";
   }
+  const s = ce.slots[slot]!;
+  saveResearch(ce, s.tech, s.progress);
   ce.slots[slot] = null;
   return null;
 }

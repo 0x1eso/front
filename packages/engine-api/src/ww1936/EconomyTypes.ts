@@ -798,6 +798,8 @@ export interface WwCountryDetail {
   slotCount: number;
   slots: (WwSlotData | null)[];
   researched: WwTechId[];
+  /** Partial progress of techs that left a slot unfinished; absent when none. */
+  savedResearch?: WwSlotData[];
   buying: WwTradeData[];
   selling: WwTradeData[];
   /** EQUIP_KEYS order. */

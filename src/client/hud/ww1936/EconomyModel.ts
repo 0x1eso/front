@@ -1849,6 +1849,8 @@ export interface ResearchCard {
   /** researchBlockOf: why a tap would not start it (no_slot: all slots busy). */
   block: WwOrderBlock | null;
   school: DoctrineSchool | null;
+  /** Saved progress of a tech that left a slot unfinished, 0..1; 0 when none. */
+  saved: number;
 }
 
 /** Research speed bonus: electronics and the trade law (spec §9.2). */
@@ -1912,10 +1914,13 @@ export function researchCards(
     const ahead = aheadPct(def.year, day);
     const perDay = researchProgress(speed, ahead);
     const slot = detail.slots.find((s) => s?.tech === id) ?? null;
+    const keep = detail.savedResearch?.find((r) => r.tech === id) ?? null;
     const left =
-      slot === null
-        ? days * 1000
-        : Math.max(0, slot.totalMilli - slot.progressMilli);
+      slot !== null
+        ? Math.max(0, slot.totalMilli - slot.progressMilli)
+        : keep !== null
+          ? Math.max(0, keep.totalMilli - keep.progressMilli)
+          : days * 1000;
     const block = researchBlockOf(state, id);
     return {
       id,
@@ -1926,6 +1931,10 @@ export function researchCards(
       state: cardState(block),
       block,
       school: def.school ?? null,
+      saved:
+        keep === null || slot !== null || keep.totalMilli <= 0
+          ? 0
+          : Math.min(1, keep.progressMilli / keep.totalMilli),
     };
   });
 }

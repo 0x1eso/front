@@ -172,6 +172,12 @@ export interface Slot {
   bonusPct?: number;
 }
 
+/** A tech's saved partial progress (see ResearchRun's savedProgress comment). */
+export interface SavedResearch {
+  tech: WwTechId;
+  progress: number;
+}
+
 export interface Trade {
   id: number;
   buyer: number;
@@ -249,6 +255,12 @@ export class CountryEconomy {
   nextLineId = 1;
   queue: Project[] = [];
   slots: (Slot | null)[] = [];
+  /**
+   * Progress of techs that left a slot unfinished, milli-days, sparse and
+   * sorted by WW_TECH_IDS index (never empty entries). Write it through
+   * ResearchRun's saveResearch / takeSavedResearch.
+   */
+  savedResearch: SavedResearch[] = [];
   /** In WW_TECH_IDS order; add with addTech. */
   researched = new Set<WwTechId>();
   totals: Totals = emptyTotals();
@@ -299,6 +311,8 @@ export class CountryEconomy {
    */
   addTech(id: WwTechId): void {
     if (this.researched.has(id)) return;
+    // A tech got for free (an event, a start) keeps no half-done progress.
+    this.savedResearch = this.savedResearch.filter((r) => r.tech !== id);
     this.researched.add(id);
     this.researched = new Set(
       WW_TECH_IDS.filter((t) => this.researched.has(t)),
@@ -405,6 +419,10 @@ const CountrySchema = z.object({
       .nullable(),
   ),
   researched: z.array(z.enum(WW_TECH_IDS)),
+  /** Saved partial research: written only when there is some. */
+  savedResearch: z
+    .array(z.object({ tech: z.enum(WW_TECH_IDS), progress: zInt() }))
+    .optional(),
   totals: TotalsSchema,
   // P4 (Task 1 Step 19).
   fuelMilli: zInt(),
@@ -1331,6 +1349,15 @@ export class WwEconomy {
             },
       ),
       researched: WW_TECH_IDS.filter((id) => ce.researched.has(id)),
+      ...(ce.savedResearch.length === 0
+        ? {}
+        : {
+            savedResearch: ce.savedResearch.map((r) => ({
+              tech: r.tech,
+              progressMilli: r.progress,
+              totalMilli: techDays(WW_TECHS[r.tech].year) * 1000,
+            })),
+          }),
       buying: this._trades
         .filter((tr) => tr.buyer === ce.smallID)
         .map(tradeData),
@@ -1391,6 +1418,12 @@ export class WwEconomy {
       for (const q of ce.queue) h = (Math.imul(h, 31) + q.progress) | 0;
       for (const sl of ce.slots) {
         h = (Math.imul(h, 31) + (sl === null ? -1 : sl.progress)) | 0;
+      }
+      // Saved research, already in WW_TECH_IDS order (empty: no change).
+      for (const r of ce.savedResearch) {
+        h =
+          (Math.imul(h, 31) + WW_TECH_IDS.indexOf(r.tech) * 131 + r.progress) |
+          0;
       }
       h = (Math.imul(h, 31) + ce.casualties) | 0;
       // P4: fuel and the naval lines.
@@ -1481,6 +1514,9 @@ export class WwEconomy {
               },
         ),
         researched: WW_TECH_IDS.filter((id) => ce.researched.has(id)),
+        ...(ce.savedResearch.length === 0
+          ? {}
+          : { savedResearch: ce.savedResearch.map((r) => ({ ...r })) }),
         totals: copyTotals(ce.totals),
         fuelMilli: ce.fuelMilli,
         fuelRatioPm: ce.fuelRatioPm,
@@ -1550,6 +1586,7 @@ export class WwEconomy {
             },
       );
       ce.researched = new Set(c.researched);
+      ce.savedResearch = (c.savedResearch ?? []).map((r) => ({ ...r }));
       ce.totals = copyTotals(c.totals);
       ce.fuelMilli = c.fuelMilli;
       ce.fuelRatioPm = c.fuelRatioPm;

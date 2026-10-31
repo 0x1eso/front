@@ -78,6 +78,30 @@ describe("<ww-research-panel> (spec §13.4)", () => {
     expect(m.q("[data-ww-slot='0']")).not.toBeNull();
   });
 
+  it("a tech with saved progress shows it on its card", async () => {
+    const m = await mount({
+      summaries: [summary("DEU")],
+      details: [
+        detail("DEU", {
+          slots: [running, null, null],
+          savedResearch: [
+            {
+              tech: "support_eq_2",
+              progressMilli: 35_000,
+              totalMilli: 100_000,
+            },
+          ],
+        }),
+      ],
+    });
+    const saved = m.q("[data-ww-tech='support_eq_2'] [data-ww-saved]")!;
+    expect(saved.textContent).toContain("[ww1936.econ.saved_progress] n=35");
+    expect(m.q("[data-ww-tech='inf_eq_3'] [data-ww-saved]")).toBeNull();
+    // Still startable: a tap sends research as before.
+    await m.click("[data-ww-tech='support_eq_2']");
+    expect(m.sent).toEqual([{ kind: "research", tech: "support_eq_2" }]);
+  });
+
   it("tapping an available card sends research", async () => {
     const m = await mount({
       summaries: [summary("DEU")],
