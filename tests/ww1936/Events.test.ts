@@ -263,7 +263,7 @@ describe("human event cards", () => {
     for (const [i, id] of ["gen_t_choice", "t_card"].entries()) {
       const card = c.pending[i];
       expect(card.firedTick).toBe(t0);
-      expect(card.deadlineTick).toBe(t0 + 200);
+      expect(card.deadlineTick).toBe(t0 + 600);
       expect(card.aiOption).toBe(aiChooseOption(p, id, deu, deu, 0, day));
     }
     const shown = c.pending[1].aiOption;
@@ -277,7 +277,7 @@ describe("human event cards", () => {
       [deu, "t_card", ["a", "b"]],
     ]);
     // Up to the deadline tick nothing happens.
-    stepTo(runner, t0 + 201);
+    stepTo(runner, t0 + 601);
     expect(c.pending).toHaveLength(2);
     expect(c.unlocked.size).toBe(0);
     expect(messages(updates, "ww1936_event_auto_chosen")).toEqual([]);
@@ -342,7 +342,7 @@ describe("human event cards", () => {
     ).toEqual([{ event: "t_card2", option: late.aiOption }]);
   });
 
-  it("a 30-second event waits 300 ticks", async () => {
+  it("a 30-second event waits 900 ticks", async () => {
     const runner = await wwRunner({}, DEU_HUMAN, POL);
     stepTo(runner, WW_PREP_TICKS + 5);
     const g = runner.game;
@@ -351,8 +351,8 @@ describe("human event cards", () => {
     const c = p.country(deu)!;
     const t0 = g.ticks();
     fireNow(p, t0, "t_card_long", deu);
-    expect(c.pending[0].deadlineTick).toBe(t0 + 300);
-    stepTo(runner, t0 + 301);
+    expect(c.pending[0].deadlineTick).toBe(t0 + 900);
+    stepTo(runner, t0 + 901);
     expect(c.pending).toHaveLength(1);
     step(runner);
     expect(c.pending).toEqual([]);

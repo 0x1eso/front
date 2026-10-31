@@ -444,8 +444,8 @@ export const WW_PP_BASE_MILLI = 2000;
 export const WW_FOCUS_QUEUE = 1;
 export const WW_MAX_PENDING_EVENTS = 8;
 export const WW_EVENT_CHAIN_DEPTH = 16;
-export const WW_EVENT_TIMEOUT_TICKS = 200;
-export const WW_EVENT_TIMEOUT_LONG_TICKS = 300;
+export const WW_EVENT_TIMEOUT_TICKS = 600; // 60 s
+export const WW_EVENT_TIMEOUT_LONG_TICKS = 900; // 90 s
 export const WW_TRIGGER_CHECK_DAYS = 5;
 export const WW_WAR_GOAL_DAYS = 365;
 export const WW_JUSTIFY_DAYS = 100;
@@ -854,7 +854,7 @@ export interface WwPolDetail {
   advisors: (string | null)[];
   advisorLockUntil: number[];
   candidates: string[];
-  spirits: { id: SpiritId; untilDay: number }[];
+  spirits: { id: SpiritId; untilDay: number; scaled?: boolean }[];
   decisions: WwDecisionCard[];
   missions: {
     id: DecisionId;

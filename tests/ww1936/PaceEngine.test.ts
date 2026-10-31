@@ -135,8 +135,8 @@ const twoWay = (id: string, extra: Partial<EventDef> = {}): EventDef => ({
 
 describe("decision windows: a quarter of the ticks in the unlimited game", () => {
   test.each([
-    ["timed", 200, 300, TIMED],
-    ["unlimited", 50, 75, UNLIMITED],
+    ["timed", 600, 900, TIMED],
+    ["unlimited", 150, 225, UNLIMITED],
   ])(
     "%s: an event card waits %i ticks (30-second card: %i)",
     async (_name, short, long, config) => {

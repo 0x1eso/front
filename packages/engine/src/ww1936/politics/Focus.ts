@@ -13,6 +13,7 @@ import {
   replacedInTree,
   treePosIn,
 } from "@openfront/engine-lib/ww1936/content/registry";
+import { scaleFocusEffects } from "@openfront/engine-lib/ww1936/FocusScale";
 import { aiPickFocus } from "./AiFocus";
 import { evalCondition, failingLeaves } from "./Conditions";
 import { applyEffects, EffectCtx, makeCtx } from "./Dispatch";
@@ -228,7 +229,7 @@ function runningDay(pol: WwPolitics, c: CountryPol, tick: number): void {
   if (run.progressMilli < f.days * 1000) return;
   c.focus = null;
   markFinished(pol, c, f, 1);
-  applyEffects(ctx, f.effects);
+  applyEffects(ctx, scaleFocusEffects(f.effects));
   pol.message(id, "ww1936_focus_done", { focus: f.id });
 }
 

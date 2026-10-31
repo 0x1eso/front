@@ -159,8 +159,8 @@ describe("national focus", { timeout: 60_000 }, () => {
     expect(deuApplied()).toEqual([]);
     const pp = g.c.ppMilli;
     step(g.runner);
-    // Lane P's pp effect: gen_t_a's 50 PP on top of the day's own gain.
-    expect(g.c.ppMilli - pp).toBe(dailyPpMilli(g.c.stats) + 50_000);
+    // Lane P's pp effect: gen_t_a's 50 PP (x3, a focus) on top of the day's own gain.
+    expect(g.c.ppMilli - pp).toBe(dailyPpMilli(g.c.stats) + 150_000);
     expect(g.c.focus).toBeNull();
     expect(g.c.focusState[pos("gen_t_a")]).toBe(1);
     expect(g.c.focusesDone).toBe(1);

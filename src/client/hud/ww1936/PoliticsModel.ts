@@ -75,6 +75,7 @@ import {
   describeEffects,
   describeStats,
 } from "@openfront/engine-lib/ww1936/Describe";
+import { scaleSpiritStats } from "@openfront/engine-lib/ww1936/FocusScale";
 import { fogCountLabel } from "@openfront/engine-lib/ww1936/IntelRules";
 import { congressNeedBp } from "@openfront/engine-lib/ww1936/MechRules";
 import { historicalAiActive } from "@openfront/engine-lib/ww1936/Pace";
@@ -1516,7 +1517,12 @@ export function spiritTab(i: PoliticsModelInput): SpiritView[] {
         icon: assetUrl(`images/ww1936/focus/${def?.icon ?? "flag"}.svg`),
         name: spiritName(x.id),
         desc: spiritDesc(x.id),
-        effects: def === undefined ? [] : statLines(def.stats),
+        effects:
+          def === undefined
+            ? []
+            : statLines(
+                x.scaled === true ? scaleSpiritStats(def.stats) : def.stats,
+              ),
         left: forever
           ? translateText("ww1936.pol.spirit.permanent")
           : translateText("ww1936.pol.spirit.left", {

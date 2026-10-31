@@ -51,6 +51,7 @@ import {
   type ContentRegistry,
   treePosIn,
 } from "@openfront/engine-lib/ww1936/content/registry";
+import { scaleSpiritStats } from "@openfront/engine-lib/ww1936/FocusScale";
 import {
   dailyPpMilli,
   effectiveSurrenderPct,
@@ -121,6 +122,8 @@ export interface SpiritState {
   id: string;
   untilDay: number;
   addedDay: number;
+  /** Added by a focus: its stat modifiers count FOCUS_EFFECT_SCALE times. */
+  scaled?: boolean;
 }
 export interface Mission {
   id: string;
@@ -323,7 +326,12 @@ const CountryPolSchema = z.object({
   crisisDays: z.array(zInt()),
   crisisCooldownUntil: zInt(),
   spirits: z.array(
-    z.object({ id: zStr(), untilDay: zInt(), addedDay: zInt() }),
+    z.object({
+      id: zStr(),
+      untilDay: zInt(),
+      addedDay: zInt(),
+      scaled: z.boolean().optional(),
+    }),
   ),
   advisors: z.array(zStr().nullable()),
   advisorLockUntil: z.array(zInt()),
@@ -899,7 +907,9 @@ export class WwPolitics {
     if (lawBp !== 0) add(1, { stabilityBp: lawBp });
     for (const s of c.spirits) {
       const d = this.content.spiritIdx.get(s.id);
-      if (d !== undefined) add(2, d.stats);
+      if (d !== undefined) {
+        add(2, s.scaled === true ? scaleSpiritStats(d.stats) : d.stats);
+      }
     }
     const atWar = this.ww.hasWar(c.smallID);
     for (const a of c.advisors) {
@@ -1379,7 +1389,11 @@ export class WwPolitics {
       advisors: [...c.advisors],
       advisorLockUntil: [...c.advisorLockUntil],
       candidates: candidatesFor(this, id, day),
-      spirits: c.spirits.map((s) => ({ id: s.id, untilDay: s.untilDay })),
+      spirits: c.spirits.map((s) => ({
+        id: s.id,
+        untilDay: s.untilDay,
+        ...(s.scaled === true ? { scaled: true } : {}),
+      })),
       decisions: decisionCards(this, id),
       missions: c.missions.map((m) => ({ ...m })),
       justification:

@@ -430,9 +430,9 @@ export type Effect = W &
   (
     | { kind: "pp"; amount: number }
     | { kind: "stability" | "war_support"; pct: number }
-    | { kind: "add_spirit"; id: string; days?: number }
+    | { kind: "add_spirit"; id: string; days?: number; scaled?: boolean }
     | { kind: "remove_spirit"; id: string }
-    | { kind: "swap_spirit"; from: string; to: string }
+    | { kind: "swap_spirit"; from: string; to: string; scaled?: boolean }
     | {
         kind: "popularity";
         ideology: Ideology | "ruling" | "largest_other";

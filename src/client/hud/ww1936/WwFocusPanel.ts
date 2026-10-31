@@ -15,6 +15,10 @@ import {
   describeEffects,
   describeStats,
 } from "@openfront/engine-lib/ww1936/Describe";
+import {
+  scaleFocusEffects,
+  scaleSpiritStats,
+} from "@openfront/engine-lib/ww1936/FocusScale";
 import { EventBus, GameEvent } from "@openfront/shared/EventBus";
 import { html, LitElement, nothing, TemplateResult } from "lit";
 import { customElement, state } from "lit/decorators.js";
@@ -194,7 +198,9 @@ function spiritStatLines(l: DescLine): DescLine[] {
         : undefined;
   const spirit = typeof id === "string" ? CONTENT.spiritIdx.get(id) : undefined;
   if (spirit === undefined) return [];
-  return describeStats(spirit.stats).map((x) => ({
+  return describeStats(
+    l.params.scaled === 1 ? scaleSpiritStats(spirit.stats) : spirit.stats,
+  ).map((x) => ({
     ...x,
     depth: l.depth + 1,
   }));
@@ -1253,7 +1259,7 @@ export class WwFocusPanel extends LitElement implements Controller {
   }
 
   private renderEffects(def: FocusDef) {
-    const rows = describeEffects(def.effects)
+    const rows = describeEffects(scaleFocusEffects(def.effects))
       .filter((l) => !HIDDEN_FX.has(l.key.slice("ww1936.fx.".length)))
       .flatMap((l) => [l, ...spiritStatLines(l)])
       .map((l) => this.row(l.depth, lineText(l)));

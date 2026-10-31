@@ -35,17 +35,24 @@ export function addSpirit(
   spirit: SpiritId,
   days: number | undefined,
   day: number,
+  scaled = false,
 ): void {
   const c = pol.country(id);
   if (c === null) return;
   const until = days === undefined ? -1 : day + days;
   const s = c.spirits.find((x) => x.id === spirit);
   if (s === undefined) {
-    c.spirits.push({ id: spirit, untilDay: until, addedDay: day });
+    c.spirits.push({
+      id: spirit,
+      untilDay: until,
+      addedDay: day,
+      ...(scaled ? { scaled: true } : {}),
+    });
     changed(c);
   } else if (s.untilDay >= 0 && (until < 0 || until > s.untilDay)) {
     s.untilDay = until;
   }
+  if (s !== undefined && scaled) s.scaled = true;
   pol.recomputeStats(id);
 }
 
@@ -73,16 +80,23 @@ export function swapSpirit(
   from: SpiritId,
   to: SpiritId,
   day: number,
+  scaled = false,
 ): void {
   const c = pol.country(id);
   if (c === null) return;
   const i = c.spirits.findIndex((s) => s.id === from);
   if (i < 0) {
-    if (!c.hasSpirit(to)) addSpirit(pol, id, to, undefined, day);
+    if (!c.hasSpirit(to)) addSpirit(pol, id, to, undefined, day, scaled);
     return;
   }
   if (from !== to && c.hasSpirit(to)) c.spirits.splice(i, 1);
-  else c.spirits[i] = { id: to, untilDay: -1, addedDay: day };
+  else
+    c.spirits[i] = {
+      id: to,
+      untilDay: -1,
+      addedDay: day,
+      ...(scaled ? { scaled: true } : {}),
+    };
   changed(c);
   pol.recomputeStats(id);
 }

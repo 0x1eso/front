@@ -50,13 +50,13 @@ export function applyPoliticalEffect(
       c.wsBaseBp = clampBp(c.wsBaseBp + e.pct * 100);
       break;
     case "add_spirit":
-      addSpirit(pol, actor, e.id, e.days, day);
+      addSpirit(pol, actor, e.id, e.days, day, e.scaled === true);
       break;
     case "remove_spirit":
       removeSpirit(pol, actor, e.id);
       break;
     case "swap_spirit":
-      swapSpirit(pol, actor, e.from, e.to, day);
+      swapSpirit(pol, actor, e.from, e.to, day, e.scaled === true);
       break;
     case "popularity": {
       const i = resolveIdeology(pol, actor, e.ideology);

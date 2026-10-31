@@ -473,12 +473,12 @@ describe("World War 1936 snapshots (spec §7.8)", () => {
 // and Taiwan open to strikes and peace terms): three equal runs.
 // Re-pinned after the seven major focus trees grew to ~100 focuses each
 // (new branches, forks and historical paths change the AI): three equal runs.
-const WW1936_DIGEST = "07060c427dd8488b";
+const WW1936_DIGEST = "962c457f08bf48dc";
 /**
  * The same game on Easy (the lobby's default in this mode): the AI
  * handicaps and the slower war planning. Pinned with three equal runs.
  */
-const WW1936_EASY_DIGEST = "b68a91ed6e1da318";
+const WW1936_EASY_DIGEST = "9ecb77411e3505a8";
 
 describe("World War 1936 stays deterministic", () => {
   // An all-AI game on the test map, long enough for the calendar's first
