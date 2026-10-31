@@ -129,13 +129,13 @@ export function allConditions(): [string, Condition | undefined][] {
 export const CONTENT_TARGETS = {
   generic: 31,
   DEU: 100,
-  GBR: 48,
+  GBR: 98,
   SUN: 97,
   // P5 (P5 spec §18, pre-flight §0-12): the four new trees, 46 each.
   ITA: 97,
-  JPN: 46,
+  JPN: 96,
   FRA: 98,
-  USA: 46,
+  USA: 98,
   events: 100,
   decisions: 36,
   spirits: 65,
