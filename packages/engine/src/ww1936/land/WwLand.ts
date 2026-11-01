@@ -355,7 +355,10 @@ export interface Army {
   /** Division ids, ascending. */
   divisions: number[];
   order: ArmyOrder;
+  /** Equals `autoLevel > 0` (every writer keeps both). */
   auto: boolean;
+  /** ww7: 0 off, 1 defend-only auto, 2 full auto (army_auto on = 2). */
+  autoLevel: number;
   planBp: number;
   /** Front regions of the last daily recompute (spec §8.1), in BFS order. */
   front: number[];
@@ -401,6 +404,13 @@ export interface Battle {
   /** Colour of the spread (spec §9.1): widest attacker country, defender = controller. */
   attLead: number;
   defLead: number;
+  /** ww7: the band of the region it is fought in (0: the first). */
+  band: number;
+  /** ww7: LAND_ATTACK_TACTICS / LAND_DEFENSE_TACTICS index in play. */
+  tacticAtt: number;
+  tacticDef: number;
+  /** ww7: rounds into the current 12-hour tactic phase. */
+  phaseRound: number;
   /**
    * P5 (plan decision 21, spec §14): equipment lost in it, milli, by side
    * (the first GROUND_SLOTS the attackers', then the defenders'); written
@@ -542,6 +552,8 @@ const OrderSchema = z.object({
   stance: z.enum(STANCES),
   executing: z.boolean(),
   readyDay: zInt(),
+  /** ww7: written when not empty. */
+  zone: zInts().optional(),
 });
 
 export const WwLandStateSchema = z.object({
@@ -551,6 +563,11 @@ export const WwLandStateSchema = z.object({
   useMilli: zInts(),
   /** P4 (pre-flight A16): Σ use fed by each sea hub (hub region), written when any. */
   seaHubUse: zInts().optional(),
+  // ww7: region arrays, each written only when any entry is not 0.
+  bandProg: zInts().optional(),
+  bandTaker: zInts().optional(),
+  posLevel: zInts().optional(),
+  posDays: zInts().optional(),
   lastCommonDay: zInt(),
   nextDivisionId: zInt(),
   nextArmyId: zInt(),
@@ -565,6 +582,8 @@ export const WwLandStateSchema = z.object({
       divisions: zInts(),
       order: OrderSchema,
       auto: z.boolean(),
+      // ww7: written when not 0 (absent: 2 when `auto`, else 0).
+      autoLevel: zInt().optional(),
       planBp: zInt(),
       front: zInts(),
       path: zInts(),
@@ -592,6 +611,11 @@ export const WwLandStateSchema = z.object({
       lostOrgMilli: zInt(),
       attLead: zInt(),
       defLead: zInt(),
+      // ww7: each written when not 0.
+      band: zInt().optional(),
+      tacticAtt: zInt().optional(),
+      tacticDef: zInt().optional(),
+      phaseRound: zInt().optional(),
       capEq: zInts().optional(),
       dmgBy: z.array(z.tuple([zInt(), zInt()])).optional(),
     }),
@@ -858,6 +882,18 @@ export class WwLand {
    * supply writes it; lane C's supply convoys read it the next day).
    */
   readonly seaHubUse: Int32Array;
+  /**
+   * ww7 (occupation in depth bands): bands of the region already fallen
+   * (0..depth) and the side's smallID taking them. Lane B writes them.
+   */
+  readonly bandProg: Uint8Array;
+  readonly bandTaker: Uint16Array;
+  /**
+   * ww7 (positions): the level (0..3) of the side standing in the region
+   * and the days it has stood there towards the next. Lane B2 writes them.
+   */
+  readonly posLevel: Uint8Array;
+  readonly posDays: Int32Array;
   /** P4 (plan decision 36): what the land war reads from the navy, air and fuel (WorldWar installs it). */
   hooks: LandSeaAirHooks = NEUTRAL_HOOKS;
   /** P6 (pre-flight §0-9): what the land war reads from the depth systems (WorldWar installs it). */
@@ -945,6 +981,10 @@ export class WwLand {
     this.encircled = new Uint8Array(size);
     this.useMilli = new Int32Array(size);
     this.seaHubUse = new Int32Array(size);
+    this.bandProg = new Uint8Array(size);
+    this.bandTaker = new Uint16Array(size);
+    this.posLevel = new Uint8Array(size);
+    this.posDays = new Int32Array(size);
     const owners = sc.ownerByRegion();
     for (const r of sc.landRegions) this.controller[r.id] = owners[r.id];
     this.countryList = [
@@ -1083,6 +1123,7 @@ export class WwLand {
           const a = this.armies.get(order.army);
           if (a !== undefined && a.auto) {
             a.auto = false;
+            a.autoLevel = 0;
             this.dirtyArmies.add(a.id);
           }
         }
@@ -1106,6 +1147,8 @@ export class WwLand {
       case "army_merge":
       case "army_disband":
       case "army_auto":
+      case "army_zone":
+      case "army_auto_level":
       case "paradrop":
         block = issueArmyOrder(this, cl, order, by);
         break;
@@ -1847,6 +1890,7 @@ export class WwLand {
       divisions: [],
       order: idleOrder(),
       auto: false,
+      autoLevel: 0,
       planBp: 0,
       front: [],
       path: [],
@@ -2259,6 +2303,8 @@ export class WwLand {
             paraLastDay: a.paraLastDay,
             railGuns: a.railGuns,
             priority: a.priority,
+            // ww7: sent when set (lanes C and D fill `odds`).
+            ...(a.autoLevel === 0 ? {} : { autoLevel: a.autoLevel }),
           }
         : null,
     };
@@ -2304,7 +2350,7 @@ export class WwLand {
     const directions = Math.max(1, from.size);
     const att = side(b.attackers);
     const def = side(b.defenders);
-    return {
+    const out: BattleSummary = {
       region: b.region,
       attacker: b.attLead,
       defender: b.defLead,
@@ -2324,6 +2370,13 @@ export class WwLand {
       attStrPm: att.strPm,
       defStrPm: def.strPm,
     };
+    // ww7: sent when set (lane A fills winPct … reinfPct, lane B depth).
+    if (b.band !== 0) out.band = b.band;
+    if (b.tacticAtt !== 0 || b.tacticDef !== 0) {
+      out.tacticAtt = b.tacticAtt;
+      out.tacticDef = b.tacticDef;
+    }
+    return out;
   }
 
   regionData(region: number): RegionLandData {
@@ -2335,7 +2388,7 @@ export class WwLand {
     const counts = [...count]
       .sort((a, b) => b[1] - a[1] || a[0] - b[0])
       .slice(0, 3);
-    return {
+    const out: RegionLandData = {
       id: region,
       controller: this.controller[region],
       supplyMilli: this.supplyMilli[region],
@@ -2343,6 +2396,13 @@ export class WwLand {
       encircled: this.encircled[region] !== 0,
       counts,
     };
+    // ww7: sent when set (lane B fills depth, prog and taker; lane B2 pos).
+    if (this.bandProg[region] !== 0) {
+      out.prog = this.bandProg[region];
+      out.taker = this.bandTaker[region];
+    }
+    if (this.posLevel[region] !== 0) out.pos = this.posLevel[region];
+    return out;
   }
 
   countrySummary(cl: CountryLand): CountryLandSummary {
@@ -2548,6 +2608,12 @@ export class WwLand {
     fold(this.supplyMilli);
     fold(this.encircled);
     fold(this.useMilli);
+    // ww7: a new field is folded only when it is not at its default, so a
+    // game that never writes it hashes as it did before the war overhaul.
+    if (anyNonZero(this.bandProg)) fold(this.bandProg);
+    if (anyNonZero(this.bandTaker)) fold(this.bandTaker);
+    if (anyNonZero(this.posLevel)) fold(this.posLevel);
+    if (anyNonZero(this.posDays)) fold(this.posDays);
     mix(this.lastCommonDay);
     for (const a of this.armies.values()) {
       mix(a.id);
@@ -2568,6 +2634,9 @@ export class WwLand {
       mix(a.group);
       mix(a.priority);
       mix(a.medal * 100_000 + a.medalUntil);
+      // ww7: auto is already folded; only a level it does not imply (1) and a zone.
+      if (a.autoLevel !== (a.auto ? 2 : 0)) mix(0x7a1 + a.autoLevel);
+      if (o.zone.length > 0) fold(o.zone);
     }
     for (const b of this.battles.values()) {
       mix(b.sinceTick);
@@ -2578,6 +2647,16 @@ export class WwLand {
       fold(b.defLine);
       mix(b.startOrgMilli);
       mix(b.attLead * 1000 + b.defLead);
+      if (
+        b.band !== 0 ||
+        b.tacticAtt !== 0 ||
+        b.tacticDef !== 0 ||
+        b.phaseRound !== 0
+      ) {
+        mix(b.band);
+        mix(b.tacticAtt * 64 + b.tacticDef);
+        mix(b.phaseRound);
+      }
     }
     for (const s of this.spreads.values()) {
       mix(s.by * 4 + s.kind);
@@ -2646,6 +2725,18 @@ export class WwLand {
       ...(this.seaHubUse.some((v) => v !== 0)
         ? { seaHubUse: Array.from(this.seaHubUse) }
         : {}),
+      ...(anyNonZero(this.bandProg)
+        ? { bandProg: Array.from(this.bandProg) }
+        : {}),
+      ...(anyNonZero(this.bandTaker)
+        ? { bandTaker: Array.from(this.bandTaker) }
+        : {}),
+      ...(anyNonZero(this.posLevel)
+        ? { posLevel: Array.from(this.posLevel) }
+        : {}),
+      ...(anyNonZero(this.posDays)
+        ? { posDays: Array.from(this.posDays) }
+        : {}),
       lastCommonDay: this.lastCommonDay,
       nextDivisionId: this.nextDivisionId,
       nextArmyId: this.nextArmyId,
@@ -2657,8 +2748,9 @@ export class WwLand {
         nameNo: a.nameNo,
         general: a.general,
         divisions: [...a.divisions],
-        order: copyOrder(a.order),
+        order: snapshotOrder(a.order),
         auto: a.auto,
+        ...(a.autoLevel === 0 ? {} : { autoLevel: a.autoLevel }),
         planBp: a.planBp,
         front: [...a.front],
         path: [...a.path],
@@ -2683,6 +2775,10 @@ export class WwLand {
         lostOrgMilli: b.lostOrgMilli,
         attLead: b.attLead,
         defLead: b.defLead,
+        ...(b.band === 0 ? {} : { band: b.band }),
+        ...(b.tacticAtt === 0 ? {} : { tacticAtt: b.tacticAtt }),
+        ...(b.tacticDef === 0 ? {} : { tacticDef: b.tacticDef }),
+        ...(b.phaseRound === 0 ? {} : { phaseRound: b.phaseRound }),
         ...(b.capEq === undefined ? {} : { capEq: [...b.capEq] }),
         ...(b.dmgBy === undefined
           ? {}
@@ -2743,6 +2839,14 @@ export class WwLand {
     this.useMilli.set(s.useMilli);
     this.seaHubUse.fill(0);
     if (s.seaHubUse !== undefined) this.seaHubUse.set(s.seaHubUse);
+    this.bandProg.fill(0);
+    if (s.bandProg !== undefined) this.bandProg.set(s.bandProg);
+    this.bandTaker.fill(0);
+    if (s.bandTaker !== undefined) this.bandTaker.set(s.bandTaker);
+    this.posLevel.fill(0);
+    if (s.posLevel !== undefined) this.posLevel.set(s.posLevel);
+    this.posDays.fill(0);
+    if (s.posDays !== undefined) this.posDays.set(s.posDays);
     this.lastCommonDay = s.lastCommonDay;
     this.nextDivisionId = s.nextDivisionId;
     this.nextArmyId = s.nextArmyId;
@@ -2750,6 +2854,8 @@ export class WwLand {
     this.divisions.restore(s.divisions);
     this.armies.clear();
     for (const a of s.armies) {
+      // ww7: an old snapshot's auto army is on level 2.
+      const autoLevel = a.autoLevel ?? (a.auto ? 2 : 0);
       this.armies.set(a.id, {
         id: a.id,
         owner: a.owner,
@@ -2757,7 +2863,8 @@ export class WwLand {
         general: a.general,
         divisions: [...a.divisions],
         order: copyOrder(a.order),
-        auto: a.auto,
+        auto: autoLevel > 0,
+        autoLevel,
         planBp: a.planBp,
         front: [...a.front],
         path: [...a.path],
@@ -2785,6 +2892,10 @@ export class WwLand {
         lostOrgMilli: b.lostOrgMilli,
         attLead: b.attLead,
         defLead: b.defLead,
+        band: b.band ?? 0,
+        tacticAtt: b.tacticAtt ?? 0,
+        tacticDef: b.tacticDef ?? 0,
+        phaseRound: b.phaseRound ?? 0,
         ...(b.capEq === undefined ? {} : { capEq: [...b.capEq] }),
         ...(b.dmgBy === undefined
           ? {}
@@ -2895,7 +3006,10 @@ export class WwLand {
   }
 }
 
-function copyOrder(o: ArmyOrder): ArmyOrder {
+/** A copy of a stored order; `zone` is absent in an old snapshot. */
+function copyOrder(
+  o: Omit<ArmyOrder, "zone"> & { zone?: number[] },
+): ArmyOrder {
   return {
     kind: o.kind,
     to: o.to,
@@ -2906,7 +3020,22 @@ function copyOrder(o: ArmyOrder): ArmyOrder {
     stance: o.stance,
     executing: o.executing,
     readyDay: o.readyDay,
+    zone: [...(o.zone ?? [])],
   };
+}
+
+/** The snapshot's order: `zone` is written only when not empty. */
+function snapshotOrder(
+  o: ArmyOrder,
+): Omit<ArmyOrder, "zone"> & { zone?: number[] } {
+  const { zone, ...rest } = copyOrder(o);
+  return zone.length > 0 ? { ...rest, zone } : rest;
+}
+
+/** Whether any entry of a typed array is not 0. */
+function anyNonZero(xs: ArrayLike<number>): boolean {
+  for (let i = 0; i < xs.length; i++) if (xs[i] !== 0) return true;
+  return false;
 }
 
 function copyGeneral(

@@ -62,6 +62,10 @@ function wonBattle(gbr: number, fra: number, sun: number): Battle {
     lostOrgMilli: 0,
     attLead: fra,
     defLead: sun,
+    band: 0,
+    tacticAtt: 0,
+    tacticDef: 0,
+    phaseRound: 0,
     capEq,
     dmgBy: [
       [gbr, 300],

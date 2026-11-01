@@ -132,6 +132,10 @@ describe("T1b-L: captured and lend-leased designs go through receiveKey", () => 
       lostOrgMilli: 0,
       attLead: GBR,
       defLead: DEU,
+      band: 0,
+      tacticAtt: 0,
+      tacticDef: 0,
+      phaseRound: 0,
       capEq,
       dmgBy: [[GBR, 100]],
     };

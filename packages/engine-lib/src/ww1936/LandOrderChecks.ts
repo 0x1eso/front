@@ -103,6 +103,8 @@ function armyOrderBlockAs(
       return null;
     case "army_execute":
       return order.on && a.front === false ? "not_adjacent" : null;
+    case "army_zone":
+      return zoneBlock(w, a, order.regions);
     case "army_split":
       return splitBlock(w, a, order.count, order.template);
     case "army_merge":
@@ -114,9 +116,28 @@ function armyOrderBlockAs(
         paradropBlock(w, a, order.region)
       );
     default:
-      // army_halt, army_disband, army_auto, army_general (Task 5's check).
+      // army_halt, army_disband, army_auto, army_auto_level, army_general
+      // (Task 5's check).
       return null;
   }
+}
+
+/**
+ * ww7: an explicit zone is for an army that holds a front or plan order,
+ * and every region in it lies on our side (empty: automatic, always fine).
+ */
+function zoneBlock(
+  w: OrderCheckWorld,
+  a: OrderCheckArmy,
+  regions: readonly number[],
+): WwOrderBlock | null {
+  if (a.front === false) return "not_adjacent";
+  for (const r of regions) {
+    if (!isLand(w, r) || !w.sameSide(w.me, w.controller[r])) {
+      return "bad_region";
+    }
+  }
+  return null;
 }
 
 function isLand(w: FrontWorld, region: number): boolean {

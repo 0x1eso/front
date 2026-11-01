@@ -299,6 +299,7 @@ export function sendVolunteers(
   cancelInvasion(ww.navy, a.id);
   land.setVolunteerFor(a, to);
   a.auto = false;
+  a.autoLevel = 0;
   if (!arr.walk) teleportArmy(land, a, arr.entry);
   // On to the host's front, over the host's side (P2's own move order).
   const front = new Set(hostFront(eg, to));

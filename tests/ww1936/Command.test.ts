@@ -380,6 +380,10 @@ describe("command (spec §4)", () => {
       lostOrgMilli: 0,
       attLead: DEU,
       defLead: POL,
+      band: 0,
+      tacticAtt: 0,
+      tacticDef: 0,
+      phaseRound: 0,
     });
     expect(d.planCutBp(POL, DEEP.region.warsaw)).toBe(0);
     gen.traits |= traitBit("trickster");

@@ -5,6 +5,7 @@ import { FM_TRAITS } from "@openfront/engine-api/ww1936/DepthTypes";
 import {
   BattleCtx,
   BattlePrediction,
+  BattleRange,
   CombatMods,
   LandTerrain,
   ModLine,
@@ -623,6 +624,37 @@ export function predictBattle(
           (dmgDef * att.orgMilli * 1000) / (dmgAtt * Math.max(1, def.orgMilli)),
         );
   return { ratioPm, rounds, days: Math.ceil((rounds * 2) / 15) };
+}
+
+/**
+ * ww7 (C0 stub, lane A replaces the bodies and keeps the signatures): the
+ * attacker's chance to win, percent, for an org-removal ratio ‰ (≥ 1000: the
+ * attacker strips the defender first). Placeholder: monotone, 50 at 1000.
+ */
+export function winPctOf(ratioPm: number): number {
+  if (ratioPm <= 0) return 0;
+  if (ratioPm >= 1_000_000) return 100;
+  return Math.floor((100 * ratioPm) / (ratioPm + 1000));
+}
+
+/**
+ * ww7 (C0 stub): predictBattle with the luck range. Lane A computes low,
+ * mid and high from three expected-value runs; until then all three are the
+ * plain prediction.
+ */
+export function predictBattleRange(
+  att: SideSum,
+  def: SideSum,
+  ctx: BattleCtx,
+): BattleRange {
+  const p = predictBattle(att, def, ctx);
+  return {
+    lowPm: p.ratioPm,
+    midPm: p.ratioPm,
+    highPm: p.ratioPm,
+    winPct: winPctOf(p.ratioPm),
+    days: p.days,
+  };
 }
 
 /** A division's numbers addSide reads. */

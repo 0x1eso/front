@@ -189,7 +189,10 @@ export function issueArmyGroup(
       }
       g.armies = [...g.armies, a.id].sort((x, y) => x - y);
       a.group = g.id;
-      if (g.auto) a.auto = true;
+      if (g.auto) {
+        a.auto = true;
+        if (a.autoLevel === 0) a.autoLevel = 2;
+      }
       land.markArmy(a.id);
       d.markGlobal();
       touchCommand(d);

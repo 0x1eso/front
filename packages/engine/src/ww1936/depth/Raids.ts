@@ -226,6 +226,7 @@ function holdArmy(d: WwDepth, a: Army): void {
   a.order = idleOrder();
   a.path = [];
   a.auto = false;
+  a.autoLevel = 0;
   a.pending = true;
   d.ww.land.markArmy(a.id);
 }

@@ -154,7 +154,13 @@ export function autoArmyNamed(
   smallID: number,
   order: WwOrder,
 ): number {
-  if (order.kind === "army_auto" || !("army" in order)) return 0;
+  if (
+    order.kind === "army_auto" ||
+    order.kind === "army_auto_level" ||
+    !("army" in order)
+  ) {
+    return 0;
+  }
   const id = order.army;
   if (typeof id !== "number" || id <= 0) return 0;
   const a = ww.land.armies.get(id);

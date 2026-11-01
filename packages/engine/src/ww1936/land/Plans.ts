@@ -8,7 +8,10 @@ import {
   traitBit,
   WW_PLAN_DAY_BP,
   WW_PLAN_FIGHT_BP,
+  type BattleCtx,
   type BattlePrediction,
+  type BattleRange,
+  type SideSum,
   type Stance,
 } from "@openfront/engine-api/ww1936/LandTypes";
 import {
@@ -16,6 +19,7 @@ import {
   emptySide,
   planMaxBp,
   predictBattle,
+  predictBattleRange,
 } from "@openfront/engine-lib/ww1936/CombatRules";
 import { joinBattle, modsOf } from "./Battles";
 import { generalOf } from "./GeneralsRun";
@@ -240,6 +244,29 @@ export function predictAttack(
   attackers: readonly number[],
   region: number,
 ): BattlePrediction {
+  const { att, def, ctx } = gatherAttack(land, attackers, region);
+  return predictBattle(att, def, ctx);
+}
+
+/**
+ * ww7: predictAttack with the luck range (low, average, high ratio and the
+ * attacker's win %); the same gathering, then CombatRules.predictBattleRange.
+ */
+export function predictAttackRange(
+  land: WwLand,
+  attackers: readonly number[],
+  region: number,
+): BattleRange {
+  const { att, def, ctx } = gatherAttack(land, attackers, region);
+  return predictBattleRange(att, def, ctx);
+}
+
+/** The two sides' sums and the battle context predictAttack and predictAttackRange read. */
+function gatherAttack(
+  land: WwLand,
+  attackers: readonly number[],
+  region: number,
+): { att: SideSum; def: SideSum; ctx: BattleCtx } {
   const t = land.divisions;
   const att = emptySide();
   const owners: number[] = [];
@@ -269,12 +296,16 @@ export function predictAttack(
   const am =
     attackers.length === 0 ? neutral : modsOf(land, attackers[0], region, true);
   const dm = firstDef < 0 ? neutral : modsOf(land, firstDef, region, false);
-  return predictBattle(att, def, {
-    land: land.scenario.landOf(region),
-    directions: Math.max(1, Math.min(4, from.size)),
-    attackerAttackBp: am.attackBp,
-    attackerBlockBp: am.defenseBp,
-    defenderAttackBp: dm.attackBp,
-    defenderBlockBp: dm.defenseBp,
-  });
+  return {
+    att,
+    def,
+    ctx: {
+      land: land.scenario.landOf(region),
+      directions: Math.max(1, Math.min(4, from.size)),
+      attackerAttackBp: am.attackBp,
+      attackerBlockBp: am.defenseBp,
+      defenderAttackBp: dm.attackBp,
+      defenderBlockBp: dm.defenseBp,
+    },
+  };
 }

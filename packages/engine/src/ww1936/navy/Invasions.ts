@@ -150,6 +150,7 @@ export function issueInvasionOrder(
   // off; the AI's does not.
   if (block === null && by === "player" && a.auto) {
     a.auto = false;
+    a.autoLevel = 0;
     navy.land.markArmy(a.id);
   }
   return block;

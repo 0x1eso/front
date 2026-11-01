@@ -157,6 +157,8 @@ function applyOrder(
     case "army_disband":
     case "army_general":
     case "army_auto":
+    case "army_zone":
+    case "army_auto_level":
     case "paradrop":
     case "appoint_general":
       block = econ.ww.land.issue(p.smallID(), order, "player");

@@ -510,6 +510,10 @@ describe("World War 1936 P2: the land war's state", () => {
       lostOrgMilli: 5,
       attLead: 1,
       defLead: 6,
+      band: 0,
+      tacticAtt: 0,
+      tacticDef: 0,
+      phaseRound: 0,
     });
     expect(l.hash()).not.toBe(base);
     l.endBattle(6);

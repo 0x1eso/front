@@ -137,7 +137,8 @@ export type ArmyOrderKind = (typeof ARMY_ORDER_KINDS)[number];
  * An army's standing order (spec §6.1), flat so it snapshots as one record.
  * move: `to`, `mode` (MOVE_WALK | MOVE_RAIL | MOVE_SEA). front: `anchor`,
  * `enemy` (smallID, 0 = every enemy). plan: front + `targets`, `stance`,
- * `executing`. paradrop: `to`, `readyDay`.
+ * `executing`. paradrop: `to`, `readyDay`. front / plan: `zone`, the player's
+ * explicit zone of our side's border regions (empty: automatic).
  */
 export interface ArmyOrder {
   kind: ArmyOrderKind;
@@ -149,6 +150,8 @@ export interface ArmyOrder {
   stance: Stance;
   executing: boolean;
   readyDay: number;
+  /** ww7: the army's explicit zone (tap order); empty: the engine picks it. */
+  zone: number[];
 }
 export function idleOrder(): ArmyOrder {
   return {
@@ -161,6 +164,7 @@ export function idleOrder(): ArmyOrder {
     stance: "balanced",
     executing: false,
     readyDay: -1,
+    zone: [],
   };
 }
 
@@ -346,6 +350,19 @@ export interface BattlePrediction {
   days: number;
 }
 
+/**
+ * ww7: a battle's expected outcome with luck (CombatRules.predictBattleRange):
+ * the attacker/defender org-removal ratio ‰ at bad, average and good luck,
+ * the attacker's chance to win in percent, and the days it takes.
+ */
+export interface BattleRange {
+  lowPm: number;
+  midPm: number;
+  highPm: number;
+  winPct: number;
+  days: number;
+}
+
 // ---- What the screens read (GameUpdateType.WwLand, spec §16.4) ----
 
 export const ARMY_MOVING = 1 << 0;
@@ -414,6 +431,13 @@ export interface ArmyMineData {
   railGuns?: number;
   /** P6 (lane D, always sent): replacement priority, REINFORCE_PRIORITIES index. */
   priority?: number;
+  /** ww7: 0 off, 1 defend-only auto, 2 full auto (`auto` equals level > 0); sent when set. */
+  autoLevel?: number;
+  /**
+   * ww7: for each zone region of a plan order, [our region, the enemy region
+   * it would attack, win %]; sent for human armies with a plan order.
+   */
+  odds?: [number, number, number][];
 }
 
 export interface BattleSummary {
@@ -434,6 +458,25 @@ export interface BattleSummary {
   defOrgPm: number;
   attStrPm: number;
   defStrPm: number;
+  // ww7 (all optional; sent when set).
+  /** The band of the region the battle is in (0: the first). */
+  band?: number;
+  /** Bands the region has. */
+  depth?: number;
+  /** The attacker's chance to win now, percent. */
+  winPct?: number;
+  /** Org-removal ratio ‰ at bad, average and good luck. */
+  lowPm?: number;
+  midPm?: number;
+  highPm?: number;
+  /** LAND_ATTACK_TACTICS / LAND_DEFENSE_TACTICS indices in play. */
+  tacticAtt?: number;
+  tacticDef?: number;
+  /** Initiative of each side. */
+  initAtt?: number;
+  initDef?: number;
+  /** Chance a reserve division enters the line this round, percent. */
+  reinfPct?: number;
 }
 
 export interface RegionLandData {
@@ -446,6 +489,15 @@ export interface RegionLandData {
   encircled: boolean;
   /** [smallID, divisions] of the three countries with most divisions there. */
   counts: [number, number][];
+  // ww7 (optional; sent when set).
+  /** Bands the region has. */
+  depth?: number;
+  /** Bands already fallen (0..depth). */
+  prog?: number;
+  /** smallID of the side taking the region band by band. */
+  taker?: number;
+  /** Position level (0..3) of the side standing in it. */
+  pos?: number;
 }
 
 export interface CountryLandSummary {
@@ -525,6 +577,8 @@ export interface CountryLandDetail {
   training: TrainingData[];
   generals: GeneralData[];
   divisions: DivisionData[];
+  /** ww7: border regions facing a country at war with us where none of our divisions stands or is headed. */
+  gaps?: number[];
 }
 
 export interface WwLandData {
@@ -572,6 +626,36 @@ export const WW_UPGRADE_PM = 50;
 export const WW_EXP_PER_DAY = 3;
 export const WW_FRONT_DIVS_PER_REGION = 3;
 export const WW_AI_PREWAR_DAYS = 60;
+/** ww7: most regions in an army's explicit zone. */
+export const WW_ZONE_MAX = 60;
+/** ww7: a defend zone is ⌈divisions ÷ 2⌉ regions, an attack zone ⌈divisions ÷ 3⌉. */
+export const WW_ZONE_DIVS_DEFEND = 2;
+export const WW_ZONE_DIVS_ATTACK = 3;
+
+/**
+ * ww7: the tactics a battle phase picks (12 hours a phase). zbin and
+ * snapshots store the indices: append only. Text keys ww1936.tactic.<id>.
+ */
+export const LAND_ATTACK_TACTICS = [
+  "attack",
+  "assault",
+  "shock",
+  "infiltration",
+  "barrage",
+  "blitz",
+  "envelop",
+] as const;
+export type LandAttackTactic = (typeof LAND_ATTACK_TACTICS)[number];
+export const LAND_DEFENSE_TACTICS = [
+  "defend",
+  "ambush",
+  "elastic",
+  "counter",
+  "hold",
+  "depth",
+  "withdraw",
+] as const;
+export type LandDefenseTactic = (typeof LAND_DEFENSE_TACTICS)[number];
 /** First id of a titled general (spec §6.2, plan decision 17; Generals.titledGeneralId). */
 export const WW_TITLED_GENERAL_BASE = 100_000;
 
@@ -597,6 +681,9 @@ export const LAND_ORDER_KINDS = [
   "army_auto",
   "paradrop",
   "appoint_general",
+  // ww7, appended.
+  "army_zone",
+  "army_auto_level",
 ] as const;
 export type LandOrderKind = (typeof LAND_ORDER_KINDS)[number];
 

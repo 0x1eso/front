@@ -310,6 +310,16 @@ const SAMPLE_INTENTS: StampedIntent[] = [
   {
     type: "ww_order",
     clientID: P3,
+    order: { kind: "army_zone", army: 2, regions: [4, 9, 3] },
+  },
+  {
+    type: "ww_order",
+    clientID: P3,
+    order: { kind: "army_auto_level", army: 2, level: 1 },
+  },
+  {
+    type: "ww_order",
+    clientID: P3,
     order: { kind: "paradrop", army: 4, region: 6 },
   },
   {

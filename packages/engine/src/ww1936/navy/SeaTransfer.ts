@@ -118,7 +118,10 @@ export function issueSeaTransfer(
   if (block !== null) return block;
   // P2 issueArmyOrder: a player's order turns auto off; another standing
   // order drops the army's invasion (lane I).
-  if (by === "player") a.auto = false;
+  if (by === "player") {
+    a.auto = false;
+    a.autoLevel = 0;
+  }
   cancelInvasion(navy, a.id);
   if (startVoyage(navy, smallID, a.id, divs, from, to, false, tick) === 0) {
     return "no_convoys";

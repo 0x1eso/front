@@ -110,6 +110,7 @@ import {
   WW_MAX_TARGETS,
   WW_MAX_TRAIN_COUNT,
   WW_TEMPLATE_NAME_MAX,
+  WW_ZONE_MAX,
 } from "./ww1936/LandTypes";
 import {
   ADMIRAL_TRAITS,
@@ -1480,6 +1481,19 @@ export const WwOrderSchema = z.discriminatedUnion("kind", [
   z.object({
     kind: z.literal("research_grant"),
     branch: z.enum(TECH_BRANCHES),
+  }),
+  // War overhaul (ww7), appended: an army's explicit zone (the regions it
+  // holds or attacks from; empty: automatic) and its auto level (0 off,
+  // 1 defend only, 2 full).
+  z.object({
+    kind: z.literal("army_zone"),
+    army: WwArmy,
+    regions: z.array(WwRegionId).max(WW_ZONE_MAX),
+  }),
+  z.object({
+    kind: z.literal("army_auto_level"),
+    army: WwArmy,
+    level: zb.uint({ max: 2 }),
   }),
 ]);
 export type WwOrder = z.infer<typeof WwOrderSchema>;

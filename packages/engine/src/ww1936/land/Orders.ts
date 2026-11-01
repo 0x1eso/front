@@ -47,8 +47,9 @@ const PARA_ORG_PCT = 40;
 
 /**
  * Spec §16.3: one army order (army_* and paradrop). `by` (pre-flight U2):
- * a "player" order of any kind but army_auto turns the army's auto off
- * (spec §8.5), army_general included; an "ai" order does not.
+ * a "player" order of any kind but army_auto and army_auto_level turns the
+ * army's auto off (spec §8.5; autoLevel 0 with it), army_general included;
+ * an "ai" order does not.
  */
 export function issueArmyOrder(
   land: WwLand,
@@ -60,11 +61,20 @@ export function issueArmyOrder(
   if (block !== null) return block;
   if (!("army" in order)) return null;
   const a = land.armies.get(order.army)!;
-  if (by === "player" && order.kind !== "army_auto") a.auto = false;
+  if (
+    by === "player" &&
+    order.kind !== "army_auto" &&
+    order.kind !== "army_auto_level"
+  ) {
+    a.auto = false;
+    a.autoLevel = 0;
+  }
   // P4 spec §11.1 (pre-flight A11): another standing order drops the
   // army's invasion (lane I); the general and auto keep it.
   if (
     order.kind !== "army_auto" &&
+    order.kind !== "army_auto_level" &&
+    order.kind !== "army_zone" &&
     order.kind !== "army_general" &&
     order.kind !== "army_execute"
   ) {
@@ -122,7 +132,13 @@ export function issueArmyOrder(
       }
       break;
     case "army_auto":
-      a.auto = order.on;
+      setAutoLevel(a, order.on ? 2 : 0);
+      break;
+    case "army_auto_level":
+      setAutoLevel(a, order.level);
+      break;
+    case "army_zone":
+      setZone(a, order.regions);
       break;
     case "paradrop": {
       // P4 (spec §14.10, pre-flight A12): paradropPrepPct shortens it.
@@ -144,6 +160,22 @@ export function issueArmyOrder(
   }
   if (land.armies.has(a.id)) land.markArmy(a.id);
   return null;
+}
+
+/** ww7: the army's auto level (0 off, 1 defend only, 2 full); `auto` follows. */
+function setAutoLevel(a: Army, level: number): void {
+  a.autoLevel = level;
+  a.auto = level > 0;
+}
+
+/**
+ * ww7: the player's explicit zone (tap order kept, repeats dropped); the
+ * order block lets only a front or plan army through. Empty: automatic.
+ * The day's zone is recomputed at once (the army is pending).
+ */
+function setZone(a: Army, regions: readonly number[]): void {
+  a.order = { ...a.order, zone: [...new Set(regions)] };
+  if (a.order.kind === "front" || a.order.kind === "plan") a.pending = true;
 }
 
 /** A new standing order that is no front: the front and the readiness go. */

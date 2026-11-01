@@ -132,6 +132,10 @@ export function joinBattle(land: WwLand, div: number, region: number): void {
       lostOrgMilli: 0,
       attLead: owner,
       defLead: land.controller[region],
+      band: 0,
+      tacticAtt: 0,
+      tacticDef: 0,
+      phaseRound: 0,
     };
     land.addBattle(b);
   }
