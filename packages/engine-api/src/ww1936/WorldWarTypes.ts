@@ -9,10 +9,19 @@ export const WW_TRANSFER_TILES_PER_TICK = 20_000;
 /** Starting troops as a percent of max troops (spec §5.3). */
 export const WW_START_TROOPS_PCT = 50;
 /**
- * Daily checks a country must stay at or past its surrender line before it
- * capitulates: the full capitulation gauge (spec §7.5).
+ * The full capitulation gauge (spec §7.5; ww7: 45, was 30 daily checks): at
+ * or past its surrender line the gauge rises each day by
+ * 1 + ⌊(points over the line) ÷ WW_CAPITULATION_OVER_PP⌋, below the line it
+ * falls WW_CAPITULATION_RECOVERY a day; a country capitulates when it fills.
  */
-export const WW_CAPITULATION_DAYS = 30;
+export const WW_CAPITULATION_DAYS = 45;
+/** ww7: percentage points over the surrender line that add one more gauge point a day. */
+export const WW_CAPITULATION_OVER_PP = 5;
+/** ww7: gauge points a day below the surrender line. */
+export const WW_CAPITULATION_RECOVERY = 2;
+/** ww7: points holding its capital adds to a country's surrender line, and the highest the capital may take it to. */
+export const WW_CAPITAL_LINE_PP = 15;
+export const WW_CAPITAL_LINE_MAX = 95;
 /** Victory points a capital adds to its region (spec §7.5). */
 export const WW_CAPITAL_VP = 15;
 

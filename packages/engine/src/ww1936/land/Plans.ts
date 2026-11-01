@@ -21,6 +21,7 @@ import {
   predictBattle,
   predictBattleRange,
 } from "@openfront/engine-lib/ww1936/CombatRules";
+import { effectiveLevel } from "../economy/Buildings";
 import { joinBattle, modsOf } from "./Battles";
 import { generalOf } from "./GeneralsRun";
 import { enemyDivisionsIn, startHopInto } from "./Movement";
@@ -302,6 +303,8 @@ function gatherAttack(
     ctx: {
       land: land.scenario.landOf(region),
       directions: Math.max(1, Math.min(4, from.size)),
+      // ww7: a fort of level 3+ halves the extra width of the directions.
+      fort: effectiveLevel(land.econ, region, "fort"),
       attackerAttackBp: am.attackBp,
       attackerBlockBp: am.defenseBp,
       defenderAttackBp: dm.attackBp,

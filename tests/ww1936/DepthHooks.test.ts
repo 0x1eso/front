@@ -211,10 +211,11 @@ describe("P6 hooks: the land war (stat keys and lane D's per-army values)", () =
       return t.entrench[r];
     };
     expect(t.mode[r]).toBe(MOVE_NONE);
-    expect(days(2)).toBe(0);
-    expect(days(3)).toBe(1);
-    ww.economy.country(id)!.stats.entrenchSpeedPct = 50;
+    // ww7: a level every two days; any speed bonus makes it every day.
+    expect(days(1)).toBe(0);
     expect(days(2)).toBe(1);
+    ww.economy.country(id)!.stats.entrenchSpeedPct = 50;
+    expect(days(1)).toBe(1);
     ww.economy.country(id)!.stats.entrenchSpeedPct = 0;
     const hooks = l.depthHooks;
     l.depthHooks = withHooks(hooks, {
@@ -223,7 +224,7 @@ describe("P6 hooks: the land war (stat keys and lane D's per-army values)", () =
           ? { ...NEUTRAL_ARMY_MODS, entrenchSpeedPct: 50 }
           : NEUTRAL_ARMY_MODS,
     });
-    expect(days(2)).toBe(1);
+    expect(days(1)).toBe(1);
     l.depthHooks = hooks;
   });
 

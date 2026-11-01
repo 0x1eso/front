@@ -276,7 +276,10 @@ describe("World War 1936 P2: land battles (spec §9)", () => {
     attack(l, a, KRAKOW);
     expect(l.battleSummary(l.battles.get(KRAKOW)!).directions).toBe(1);
     let ended = -1;
-    for (let i = 0; i < 225; i++) {
+    // Twenty days: the plan walks into empty Warsaw, and Poland (21 of its
+    // 24 points lost) capitulates after 23 days (ww7: 2 a day towards 45),
+    // which would hand Krakow over.
+    for (let i = 0; i < 150; i++) {
       step(runner);
       if (ended < 0 && !l.battles.has(KRAKOW)) ended = i;
       expect(l.controller[KRAKOW]).toBe(pol);
@@ -745,16 +748,16 @@ describe("World War 1936 ww7 lane A: tactics, luck and reserves in a battle (des
     attack(l, a, WARSAW);
     const b = l.battles.get(WARSAW)!;
     const dr = rowOf(l, d.divisions[0]);
-    l.divisions.entrench[dr] = 4;
+    l.divisions.entrench[dr] = 4; // ww7 B2: +5% a level
     const entrench = () =>
       battleMods(l, b, dr).defenseLines.find((x) => x.id === "entrench")?.bp;
     b.tacticAtt = AT_ATTACK;
     b.tacticDef = DT_DEFEND;
-    expect(entrench()).toBe(1200);
+    expect(entrench()).toBe(2000);
     b.tacticAtt = AT_BLITZ;
-    expect(entrench()).toBe(600);
+    expect(entrench()).toBe(1000);
     b.tacticDef = DT_DEPTH;
-    expect(entrench()).toBe(1200);
+    expect(entrench()).toBe(2000);
     // The attacker's own lines never carry it.
     b.tacticDef = DT_DEFEND;
     const ar = rowOf(l, a.divisions[0]);

@@ -234,15 +234,17 @@ describe("peaceful territory changes (spec §17)", { timeout: 60_000 }, () => {
     expect(heldStartVp(g, ww, deu)).toBe(42);
     addWarGoal(p, fra, deu, "conquer", "", ww.day(g.ticks()));
     declareWar(g, ww, byTag(g, "FRA"), byTag(g, "DEU"), g.ticks());
-    expect(p.surrenderPct(deu)).toBe(80);
-    // Berlin and Munich: 25 of 42 lost, under the 80% line.
+    // ww7: Germany holds Berlin, its capital: 80 + 15.
+    expect(p.surrenderPct(deu)).toBe(95);
+    // Berlin and Munich: 25 of 42 lost, under the 80% line (no capital now).
     takeRegion(g, 3, "FRA");
     takeRegion(g, 4, "FRA");
+    expect(p.surrenderPct(deu)).toBe(80);
     checkCapitulations(g, ww, g.ticks());
     expect(ww.capitulationGauge(deu)).toBe(0);
-    // Vienna too: 40 of 42.
+    // Vienna too: 40 of 42 (95.2%, 15.2 points over): 1 + 3 a day.
     takeRegion(g, 11, "FRA");
     checkCapitulations(g, ww, g.ticks());
-    expect(ww.capitulationGauge(deu)).toBe(1);
+    expect(ww.capitulationGauge(deu)).toBe(4);
   });
 });

@@ -2,6 +2,8 @@ import { MessageType, UnitType } from "@openfront/engine-api/game/GameTypes";
 import {
   CapitulationData,
   WW_CAPITULATION_DAYS,
+  WW_CAPITULATION_OVER_PP,
+  WW_CAPITULATION_RECOVERY,
   WW_TRANSFER_TILES_PER_TICK,
 } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import type { Game, Player } from "../game/Game";
@@ -104,10 +106,46 @@ export function pickVictor(
 }
 
 /**
+ * ww7: whether `smallID` holds its capital: it owns the victory-point tile
+ * of its scenario capital's region (as checkCapitulations counts control); a
+ * country without one (a dormant slot) never does. Holding it raises the
+ * surrender line (PoliticsRules.withCapitalPct).
+ */
+export function holdsCapital(mg: Game, ww: WorldWar, smallID: number): boolean {
+  const tag = ww.scenario.tagOfSmallId(smallID);
+  if (tag === undefined || ww.scenario.capitalTileOrNull(tag) === null) {
+    return false;
+  }
+  const region = ww.scenario.region(ww.capitalRegion(smallID));
+  return (
+    region !== undefined && mg.ownerID(ww.scenario.vpTile(region)) === smallID
+  );
+}
+
+/**
+ * ww7: the gauge rises by this much on a day at or past the line: 1, and
+ * one more for every full WW_CAPITULATION_OVER_PP percentage points the
+ * lost share of its points (`lost` of `line` points) is over the line
+ * (`pct`). Integer: floor(floor(pp over) ÷ 5) is floor(over ÷ (5 × line)).
+ */
+export function capitulationStep(
+  lost: number,
+  line: number,
+  pct: number,
+): number {
+  if (line <= 0) return 1;
+  const over = Math.max(0, lost * 100 - line * pct);
+  return 1 + Math.floor(over / (line * WW_CAPITULATION_OVER_PP));
+}
+
+/**
  * Once a day (WorldWarExecution), spec §7.5: a country at or past its
- * surrender line fills its capitulation gauge by one, and capitulates when
- * the gauge is full (WW_CAPITULATION_DAYS checks); below the line the gauge
- * empties by one. A country at war with nobody has an empty gauge.
+ * surrender line fills its capitulation gauge (ww7: 1 + one more for every
+ * 5 percentage points over the line, see capitulationStep), and capitulates
+ * when the gauge is full (WW_CAPITULATION_DAYS); below the line the gauge
+ * empties by WW_CAPITULATION_RECOVERY. A country at war with nobody has an
+ * empty gauge. Only regions fully taken count: control changes at the last
+ * depth band (lane B).
  */
 export function checkCapitulations(mg: Game, ww: WorldWar, tick: number): void {
   // P3 spec §6.4, §17.1: of each country's legal regions, the points it has
@@ -155,12 +193,19 @@ export function checkCapitulations(mg: Game, ww: WorldWar, tick: number): void {
     if (line === 0) continue;
     const gauge = ww.capitulationGauge(id);
     // P3 spec §6.4: the line moves with stability and war support.
-    if (lost * 100 < line * ww.politics.surrenderPct(id)) {
-      if (gauge > 0) ww.setCapitulationGauge(id, gauge - 1);
+    const pct = ww.politics.surrenderPct(id);
+    if (lost * 100 < line * pct) {
+      if (gauge > 0) {
+        ww.setCapitulationGauge(
+          id,
+          Math.max(0, gauge - WW_CAPITULATION_RECOVERY),
+        );
+      }
       continue;
     }
-    if (gauge + 1 < WW_CAPITULATION_DAYS) {
-      ww.setCapitulationGauge(id, gauge + 1);
+    const next = gauge + capitulationStep(lost, line, pct);
+    if (next < WW_CAPITULATION_DAYS) {
+      ww.setCapitulationGauge(id, next);
       continue;
     }
     capitulate(mg, ww, p, tick);

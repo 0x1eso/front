@@ -380,10 +380,10 @@ describe("combat (P2 spec §9)", () => {
     expect(line(divisionMods(neutral({ fort: 3 })).attackLines, "fort")).toBe(
       -3375,
     );
-    // The defender's entrenchment, engineers and recon.
+    // The defender's entrenchment (ww7: 5% a level, was 3%), engineers and recon.
     expect(
       divisionMods(neutral({ attacking: false, entrench: 4 })).mods.defenseBp,
-    ).toBe(12_200);
+    ).toBe(13_000);
     expect(
       line(divisionMods(neutral({ supplyPm: 500 })).attackLines, "supply"),
     ).toBe(-2500);

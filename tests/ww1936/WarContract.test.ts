@@ -289,6 +289,8 @@ describe("war overhaul C0: the contract", () => {
     });
     const bt = l.battles.get(theirs[0])!;
     const base = l.hash();
+    const pos0 = l.posLevel[r1];
+    const days0 = l.posDays[r1];
     const changes: [string, () => void, () => void][] = [
       ["zone", () => a.order.zone.push(r1), () => a.order.zone.pop()],
       [
@@ -313,8 +315,17 @@ describe("war overhaul C0: the contract", () => {
       ["phaseRound", () => (bt.phaseRound = 1), () => (bt.phaseRound = 0)],
       ["bandProg", () => (l.bandProg[r1] = 1), () => (l.bandProg[r1] = 0)],
       ["bandTaker", () => (l.bandTaker[r1] = 1), () => (l.bandTaker[r1] = 0)],
-      ["posLevel", () => (l.posLevel[r1] = 1), () => (l.posLevel[r1] = 0)],
-      ["posDays", () => (l.posDays[r1] = 1), () => (l.posDays[r1] = 0)],
+      // (The daily step of the positions may have set them already: move them.)
+      [
+        "posLevel",
+        () => (l.posLevel[r1] = pos0 + 1),
+        () => (l.posLevel[r1] = pos0),
+      ],
+      [
+        "posDays",
+        () => (l.posDays[r1] = days0 + 1),
+        () => (l.posDays[r1] = days0),
+      ],
     ];
     for (const [what, change, undo] of changes) {
       change();

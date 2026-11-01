@@ -68,6 +68,7 @@ const MODS = [
   "weather",
   "encircled",
   "entrench",
+  "position",
 ];
 const LAND = [
   "presets",

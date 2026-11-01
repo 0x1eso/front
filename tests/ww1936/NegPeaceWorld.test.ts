@@ -102,7 +102,10 @@ describe("World War 1936: negotiated peace on the world map", () => {
       .filter((r) => pol.legalOwner[r.id] === pl)
       .map((r) => r.id)
       .sort((a, b) => a - b);
-    const held = polish.slice(0, 3);
+    // ww7: holding its capital lifts a country's surrender line by 15 points,
+    // so Germany holds Warsaw among them: Poland is clearly behind.
+    const capital = eg.capitalRegion(pl);
+    const held = [capital, ...polish.filter((r) => r !== capital).slice(0, 2)];
     for (const r of held) ww.land.setController(r, deu, g.ticks());
     const day = ww.day(g.ticks());
     const demand = aiPeaceTerms(eg, rec, deu, pl, day);
