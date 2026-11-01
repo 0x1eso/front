@@ -3,7 +3,6 @@
 // next one); with an army chosen, a tap on a region is an order's first
 // tap (its preview shows on the army card) and a second tap on the same
 // region gives it; a tap anywhere else cancels. Drags move the map.
-import { frontOf, frontSize } from "@openfront/engine-lib/ww1936/FrontRules";
 import {
   EventBus,
   EventConstructor,
@@ -29,12 +28,17 @@ import type { WwLandView } from "../../view/WwLandView";
 import { WwMultiSelectEvent } from "./DepthEvents";
 import {
   borderRegions,
+  groupZone,
   LandSides,
   landSidesOf,
   orderBlock,
+  planOrder,
   tapKind,
   tapOrder,
   toggleTarget,
+  toggleZone,
+  zoneOrder,
+  zoneShown,
 } from "./LandModel";
 import {
   LandMode,
@@ -55,6 +59,8 @@ import { peaceMapTap } from "./PeaceModel";
 import { today, TWO_TAP_MIN_MS, wwActive } from "./WorldWarModel";
 import type { WwSeaAirController } from "./WwSeaAirController";
 
+/** How long a tapped zone stays on screen before the engine's own zone replaces it. */
+const ZONE_DRAFT_MS = 4000;
 /** A finger's reach on the map (spec §15.9), in screen px. */
 export const TAP_RADIUS_PX = 24;
 /** A press that travels this far moved the map (InputHandler's touch slop). */
@@ -149,6 +155,8 @@ export class WwLandController implements Controller {
   /** P6 (spec §20.4): the 500 ms press on one of my tokens, and the tap that ends it. */
   private pressTimer: ReturnType<typeof setTimeout> | null = null;
   private pressed = false;
+  /** When the zone draft (selection.zoneDraft) was last sent. */
+  private zoneDraftAt = 0;
 
   constructor(
     private readonly game: GameView,
@@ -191,11 +199,29 @@ export class WwLandController implements Controller {
     return 250;
   }
 
-  /** The army group colours the token pass draws (synced when the depth view changes). */
+  /** The army group colours the token pass draws (synced when the depth view changes); a tapped zone gives way to the engine's. */
   tick() {
     const view = this.game.wwLand?.() ?? null;
     const depth = this.game.wwDepth?.() ?? null;
     if (view !== null && depth !== null) armyGroupColorsOf(view).sync(depth);
+    this.dropZoneDraft(view);
+  }
+
+  /** The tapped zone shows until the engine's order carries it (or ZONE_DRAFT_MS pass). */
+  private dropZoneDraft(view: WwLandView | null): void {
+    const sel = this.selection;
+    const draft = sel.zoneDraft;
+    if (draft === null || view === null) return;
+    const order =
+      sel.army === null ? undefined : view.armies.get(sel.army)?.mine?.order;
+    const same =
+      order !== undefined &&
+      order.zone.length === draft.length &&
+      order.zone.every((r, i) => r === draft[i]);
+    if (!same && this.deps.now() - this.zoneDraftAt < ZONE_DRAFT_MS) return;
+    sel.zoneDraft = null;
+    sel.version++;
+    this.changed();
   }
 
   private get multi() {
@@ -454,13 +480,34 @@ export class WwLandController implements Controller {
     const sides = this.sides();
     const kind = tapKind(view, me, sel.mode, region, sides);
     if (kind === null) {
-      // A plan's draft survives stray taps: the card's back or cancel ends it.
-      if (sel.mode !== "plan") this.cancel();
+      // A plan's draft and a zone being tapped survive stray taps: the
+      // card's back or cancel ends them.
+      if (sel.mode !== "plan" && sel.mode !== "front") this.cancel();
       return;
     }
     if (kind === "plan") {
-      sel.targets = toggleTarget(sel.targets, region);
+      // ww7: [공격] — a target joins or leaves the plan, which goes to the
+      // engine at once (its zone and odds come back with the next update).
+      const next = toggleTarget(sel.targets, region);
+      // A fourth target changes nothing: nothing to send.
+      const same =
+        next.length === sel.targets.length &&
+        next.every((t, i) => t === sel.targets[i]);
+      sel.targets = next;
       sel.pending = null;
+      if (!same) this.sendPlan(view, army);
+      this.changed();
+      return;
+    }
+    if (kind === "zone") {
+      // ww7: [방어] — a border region joins or leaves the zone (the whole
+      // list goes; empty: the engine picks the zone again).
+      const next = toggleZone(zoneShown(view, sel, army), region);
+      sel.zoneDraft = next;
+      sel.pending = null;
+      sel.version++;
+      this.zoneDraftAt = this.deps.now();
+      this.eventBus.emit(new SendWwOrderIntentEvent(zoneOrder(army, next)));
       this.changed();
       return;
     }
@@ -486,6 +533,23 @@ export class WwLandController implements Controller {
     this.eventBus.emit(new SendWwOrderIntentEvent(order));
     this.modeTo("none");
     this.changed();
+  }
+
+  /**
+   * ww7: sends the chosen targets and stance as the army's plan. A plan
+   * that ran keeps running (army_plan stops it, so execute follows).
+   */
+  private sendPlan(view: WwLandView, army: number): void {
+    const sel = this.selection;
+    const was = view.armies.get(army)?.mine?.order;
+    this.eventBus.emit(
+      new SendWwOrderIntentEvent(planOrder(army, sel.targets, sel.stance)),
+    );
+    if (was?.kind === "plan" && was.executing && sel.targets.length > 0) {
+      this.eventBus.emit(
+        new SendWwOrderIntentEvent({ kind: "army_execute", army, on: true }),
+      );
+    }
   }
 
   /** The selection's mode; leaving plan mode drops the plan's draft. */
@@ -559,16 +623,5 @@ export function groupFront(
   anchor: number,
   divisions: number,
 ): number[] {
-  return frontOf(
-    {
-      scenario: view.scenario,
-      controller: view.controller,
-      sameSide: sides.sameSide,
-      isEnemy: sides.isEnemy,
-    },
-    me,
-    0,
-    anchor,
-    frontSize(divisions),
-  );
+  return groupZone(view, me, sides, anchor, divisions);
 }

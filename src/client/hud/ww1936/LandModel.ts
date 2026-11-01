@@ -28,17 +28,24 @@ import {
   DivisionData,
   DivisionStats,
   GeneralData,
+  LAND_ATTACK_TACTICS,
+  LAND_DEFENSE_TACTICS,
+  LandAttackTactic,
+  LandDefenseTactic,
   LandTerrain,
   ModLine,
   ROLE_ATTACK,
   ROLE_DEFEND,
   SideSum,
+  Stance,
   TemplateData,
   TemplateDef,
   TrainingData,
   Weather,
   WW_MAX_ARMY_DIVISIONS,
   WW_MAX_TARGETS,
+  WW_ZONE_DIVS_DEFEND,
+  WW_ZONE_MAX,
 } from "@openfront/engine-api/ww1936/LandTypes";
 import { BATTALIONS } from "@openfront/engine-lib/ww1936/Battalions";
 import {
@@ -53,8 +60,6 @@ import { designNeedGroup } from "@openfront/engine-lib/ww1936/DesignRules";
 import { unitCostMilli } from "@openfront/engine-lib/ww1936/Equipment";
 import {
   borderRegionsOf,
-  frontOf,
-  frontSize,
   FrontWorld,
 } from "@openfront/engine-lib/ww1936/FrontRules";
 import { landFuelSpeedPm } from "@openfront/engine-lib/ww1936/FuelRules";
@@ -99,6 +104,14 @@ import { weatherAt } from "@openfront/engine-lib/ww1936/Weather";
 import { techTotals, TechTotals } from "@openfront/engine-lib/ww1936/WwTechs";
 import { translateText } from "../../Utils";
 import { LandFrontWorld, type LandWarInputs } from "../../view/LandFrontWorld";
+import {
+  type AutoLevel,
+  autoLevelOf,
+  ODDS_HIGH_PCT,
+  ODDS_MID_PCT,
+  type OddsLevel,
+  oddsLevel,
+} from "../../view/WarBadges";
 import type { WwEconomyView } from "../../view/WwEconomyView";
 import type { WwLandView } from "../../view/WwLandView";
 import { blockText } from "./EconomyModel";
@@ -653,33 +666,42 @@ export function armyStatus(
   return line("idle");
 }
 
+/**
+ * ww7: the card's action row, in the order it draws them — [공격] [방어]
+ * [이동] [자동]: the army's objective orders (plan = attack, front = defend),
+ * a move (rail and sea hang off it) and the auto levels.
+ */
+export const ARMY_ACTIONS = ["plan", "front", "move", "auto"] as const;
 /** The army card's buttons, in the order the card draws them (spec §15.4). */
 export const ARMY_BUTTONS = [
-  "move",
-  "attack",
-  "front",
-  "plan",
+  ...ARMY_ACTIONS,
   "rail",
   "sea",
   "split",
   "merge",
-  "auto",
   "more",
 ] as const;
 export type ArmyButton = (typeof ARMY_BUTTONS)[number];
 
 /**
- * Why a card button is greyed: an order check's refusal, or "split_single"
- * (an army of one division has nothing to split off; its own text).
+ * Why a card button is greyed: an order check's refusal, "split_single"
+ * (an army of one division has nothing to split off; its own text) or
+ * "no_target" ([실행] needs a target first).
  */
-export type CardBlock = WwOrderBlock | "split_single";
+export type CardBlock = WwOrderBlock | "split_single" | "no_target";
 
 /** A card button's refusal, in words. */
 export function cardBlockText(b: CardBlock): string {
   return b === "split_single"
     ? translateText("ww1936.land.block_split_single")
-    : blockText(b);
+    : b === "no_target"
+      ? translateText("ww1936.land.block_no_target")
+      : blockText(b);
 }
+
+/** ww7: the auto levels (army_auto_level): 0 off, 1 defence only, 2 as the AI. */
+export const AUTO_LEVELS: readonly AutoLevel[] = [0, 1, 2];
+export { autoLevelOf, type AutoLevel };
 
 export interface ArmyCardData {
   row: ArmyRowData;
@@ -690,6 +712,18 @@ export interface ArmyCardData {
   /** The general's numbers and traits; null without one. */
   general: GeneralData | null;
   auto: boolean;
+  /** ww7: 0 off, 1 defence-only auto, 2 full auto. */
+  autoLevel: AutoLevel;
+  /** ww7: the offensive stance on show (the plan's, else the default). */
+  stance: Stance;
+  /** ww7: what the army does now — "plan" attacks, "front" defends. */
+  orderKind: string;
+  /** ww7: the zone the army holds today (`mine.front`). */
+  zone: number[];
+  /** ww7: the plan's chosen targets. */
+  targets: number[];
+  /** ww7: border regions facing the war with no one assigned (my country's gaps). */
+  gaps: number;
   /** The plan runs (army_execute on). */
   executing: boolean;
   /** My armies this one can merge into now (army_merge passes the checks). */
@@ -757,6 +791,45 @@ function nearestEnemy(
   return null;
 }
 
+/**
+ * ww7: where [방어] anchors the army's zone — the border region nearest the
+ * army's own region (its region when that is one), over the land graph
+ * (BFS, ids ascending); null with no border (nobody to fight).
+ */
+export function defendAnchor(
+  view: WwLandView,
+  me: number,
+  from: number,
+  sides: LandSides = sidesOf(view),
+): number | null {
+  const border = new Set(borderRegionsOf(frontWorld(view, sides), me, 0));
+  if (border.size === 0) return null;
+  if (border.has(from)) return from;
+  const seen = new Set([from]);
+  let layer = [from];
+  while (layer.length > 0) {
+    const next: number[] = [];
+    for (const r of layer) {
+      for (const e of view.scenario.edgesOf(r)) {
+        if (seen.has(e.to)) continue;
+        seen.add(e.to);
+        next.push(e.to);
+      }
+    }
+    next.sort((x, y) => x - y);
+    const hit = next.find((r) => border.has(r));
+    if (hit !== undefined) return hit;
+    layer = next;
+  }
+  // No path over land (an island): the smallest border region.
+  return Math.min(...border);
+}
+
+/** The stance the card shows: the plan's, else the default (balanced). */
+function planStance(a: ArmySummary): Stance {
+  return a.mine?.order.kind === "plan" ? a.mine.order.stance : "balanced";
+}
+
 /** My armies other than `a` with a division in one of its regions, by id. */
 function sharingArmies(view: WwLandView, me: number, a: ArmySummary): number[] {
   const mine = new Set(orderCheckArmy(view, me, a).regions);
@@ -813,7 +886,8 @@ function buttonBlocks(
   const at = a.region;
   const check = (o: LandOrder | null, none: WwOrderBlock) =>
     o === null ? none : landOrderBlockOf(w, o);
-  const border = borderRegionsOf(frontWorld(view, sides), me, 0)[0] ?? at;
+  // [방어] holds the border around the army: its nearest border region.
+  const border = defendAnchor(view, me, a.region, sides);
   // A sea move needs another port of my side to sail to.
   const port = view.scenario.landRegions.find(
     (r) =>
@@ -823,17 +897,17 @@ function buttonBlocks(
   )?.id;
   const blocks: Record<ArmyButton, CardBlock | null> = {
     move: check({ kind: "army_move", army, region: at }, "no_army"),
-    attack: check(
-      enemy === null ? null : { kind: "army_attack", army, region: enemy },
+    front: check(
+      border === null
+        ? null
+        : { kind: "army_front", army, anchor: border, enemy: 0 },
       "not_at_war",
     ),
-    front: check(
-      { kind: "army_front", army, anchor: border, enemy: 0 },
-      "no_army",
-    ),
     plan: check(
-      { kind: "army_plan", army, targets: [], stance: "balanced" },
-      "no_army",
+      enemy === null
+        ? null
+        : { kind: "army_plan", army, targets: [], stance: "balanced" },
+      "not_at_war",
     ),
     rail: check({ kind: "army_rail", army, region: at }, "no_army"),
     sea:
@@ -857,10 +931,7 @@ function buttonBlocks(
         ? "split_single"
         : check({ kind: "army_split", army, count: 1, template: 0 }, "no_army"),
     merge,
-    auto: check(
-      { kind: "army_auto", army, on: !(a.mine?.auto ?? false) },
-      "no_army",
-    ),
+    auto: check({ kind: "army_auto_level", army, level: 2 }, "no_army"),
     more: null,
   };
   return ARMY_BUTTONS.map((id) => ({ id, block: blocks[id] }));
@@ -892,6 +963,12 @@ export function armyCard(
     buttons: buttonBlocks(w, view, economy, me, a, sides, enemy, merge.block),
     general: generalData(view, me, a.general),
     auto: a.mine?.auto ?? false,
+    autoLevel: a.mine === null ? 0 : autoLevelOf(a.mine),
+    stance: planStance(a),
+    orderKind: a.mine?.order.kind ?? "idle",
+    zone: a.mine?.front ?? [],
+    targets: a.mine?.order.kind === "plan" ? a.mine.order.targets : [],
+    gaps: detailOf(view, me)?.gaps?.length ?? 0,
     executing: a.mine?.order.executing ?? false,
     mergeWith: merge.into,
     paradropBlock:
@@ -910,7 +987,7 @@ export type TapKind =
   | "rail"
   | "sea"
   | "paradrop"
-  | "front"
+  | "zone"
   | "plan";
 
 export function tapKind(
@@ -940,11 +1017,12 @@ export function tapKind(
     case "plan":
       return enemy ? "plan" : null;
     case "front":
-      return borderRegions(view, me, sides).includes(region) ? "front" : null;
+      // ww7: [방어] — a border region of ours joins or leaves the zone.
+      return borderRegions(view, me, sides).includes(region) ? "zone" : null;
   }
 }
 
-/** The order a confirming tap sends; null for a plan target (the card runs plans). */
+/** The order a confirming tap sends; null for a plan target or a zone tap (the controller sends those). */
 export function tapOrder(
   kind: TapKind,
   army: number,
@@ -961,8 +1039,7 @@ export function tapOrder(
       return { kind: "army_sea", army, region };
     case "paradrop":
       return { kind: "paradrop", army, region };
-    case "front":
-      return { kind: "army_front", army, anchor: region, enemy: 0 };
+    case "zone":
     case "plan":
       return null;
   }
@@ -975,6 +1052,102 @@ export function toggleTarget(
 ): number[] {
   if (targets.includes(region)) return targets.filter((t) => t !== region);
   return targets.length >= WW_MAX_TARGETS ? [...targets] : [...targets, region];
+}
+
+// ---- ww7: zones, targets and odds ----
+
+/** ww7: the zone after a tap on `region`: dropped when in, added when out (at most WW_ZONE_MAX). */
+export function toggleZone(zone: readonly number[], region: number): number[] {
+  if (zone.includes(region)) return zone.filter((r) => r !== region);
+  return zone.length >= WW_ZONE_MAX ? [...zone] : [...zone, region];
+}
+
+/**
+ * ww7: the zone on show for `army` — the draft the last tap sent, else the
+ * zone the engine says it holds today (`mine.front`).
+ */
+export function zoneShown(
+  view: WwLandView,
+  sel: { army: number | null; zoneDraft: readonly number[] | null },
+  army: number,
+): readonly number[] {
+  if (sel.army === army && sel.zoneDraft !== null) return sel.zoneDraft;
+  return view.armies.get(army)?.mine?.front ?? [];
+}
+
+/** The order that sets `army`'s explicit zone (empty: the engine picks). */
+export function zoneOrder(army: number, regions: readonly number[]): LandOrder {
+  return { kind: "army_zone", army, regions: [...regions] };
+}
+
+/** The order that sets `army`'s attack targets and stance. */
+export function planOrder(
+  army: number,
+  targets: readonly number[],
+  stance: Stance,
+): LandOrder {
+  return { kind: "army_plan", army, targets: [...targets], stance };
+}
+
+export { ODDS_HIGH_PCT, ODDS_MID_PCT, oddsLevel, type OddsLevel };
+
+/** The chosen army's odds badges: [our region, the enemy region, level]. */
+export function oddsBadges(
+  odds: readonly (readonly [number, number, number])[] | undefined,
+): { region: number; target: number; pct: number; level: OddsLevel }[] {
+  return (odds ?? []).map(([region, target, pct]) => ({
+    region,
+    target,
+    pct,
+    level: oddsLevel(pct),
+  }));
+}
+
+/**
+ * ww7: a group's front around `anchor` — border regions walked along the
+ * border graph (ids ascending), `⌈divisions ÷ 2⌉` of them (the defend
+ * zone's size; ag_front splits them among the group's armies).
+ */
+export function groupZone(
+  view: WwLandView,
+  me: number,
+  sides: LandSides,
+  anchor: number,
+  divisions: number,
+): number[] {
+  const border = new Set(borderRegionsOf(frontWorld(view, sides), me, 0));
+  if (!border.has(anchor)) return [];
+  const want = Math.min(
+    WW_ZONE_MAX,
+    Math.max(1, Math.ceil(divisions / WW_ZONE_DIVS_DEFEND)),
+  );
+  const out = [anchor];
+  const seen = new Set(out);
+  for (let i = 0; i < out.length && out.length < want; i++) {
+    const next = view.scenario
+      .edgesOf(out[i])
+      .map((e) => e.to)
+      .filter((r) => border.has(r) && !seen.has(r))
+      .sort((x, y) => x - y);
+    for (const r of next) {
+      if (out.length >= want) break;
+      seen.add(r);
+      out.push(r);
+    }
+  }
+  return out;
+}
+
+/** The zone of a group: the union of its armies' zones, ascending. */
+export function groupZoneOf(
+  view: WwLandView,
+  armies: readonly number[],
+): number[] {
+  const out = new Set<number>();
+  for (const id of armies) {
+    for (const r of view.armies.get(id)?.mine?.front ?? []) out.add(r);
+  }
+  return [...out].sort((x, y) => x - y);
 }
 
 /** Why an order would be refused now: the engine's own check, on the screens' data. */
@@ -1559,25 +1732,6 @@ export function movePreview(
   return { path, ticks };
 }
 
-/** Spec §8.1: the front an army would hold from `anchor` (front mode's preview). */
-export function frontPreview(
-  view: WwLandView,
-  me: number,
-  army: number,
-  anchor: number,
-  sides: LandSides = sidesOf(view),
-): number[] {
-  const a = myArmy(view, me, army);
-  if (a === null) return [];
-  return frontOf(
-    frontWorld(view, sides),
-    me,
-    0,
-    anchor,
-    frontSize(a.divisions),
-  );
-}
-
 // ---- The battle card (spec §15.6) ----
 
 export interface BattleCardData {
@@ -1721,6 +1875,97 @@ export function battleCard(
     defenseLines: divisionMods(def).defenseLines,
     mine: leave.length > 0,
     leaveArmies: leave,
+  };
+}
+
+// ---- ww7: luck on the battle card (design §2.2, §2.6) ----
+
+/** The defence tactic that cancels each attack tactic (design §2.2); null: none does. */
+export const TACTIC_COUNTER: Readonly<
+  Record<LandAttackTactic, LandDefenseTactic | null>
+> = {
+  attack: null,
+  assault: "ambush",
+  shock: "elastic",
+  infiltration: "hold",
+  barrage: null,
+  blitz: "depth",
+  envelop: "withdraw",
+};
+
+/** Whether the defence tactic (list index) cancels the attack tactic (list index). */
+export function tacticCountered(att: number, def: number): boolean {
+  const a = LAND_ATTACK_TACTICS[att];
+  const d = LAND_DEFENSE_TACTICS[def];
+  return a !== undefined && d !== undefined && TACTIC_COUNTER[a] === d;
+}
+
+/** What the battle card's luck block shows; a field is null where the data (or the fog) has none. */
+export interface BattleLuckView {
+  /** "Band n/d": n counts from 1. */
+  band: { n: number; of: number } | null;
+  /** The attacker's chance to win, percent. */
+  winPct: number | null;
+  /** The odds bar's fill, percent: winPct, or its 20 % step through the fog's "close" band. */
+  barPct: number | null;
+  /** Org-removal ratio at bad, average and good luck, "1.30". */
+  range: { low: string; mid: string; high: string } | null;
+  /** Both tactics (ids) and whether the defence cancels the attack. */
+  tactics: { att: string; def: string; countered: boolean } | null;
+  initiative: { att: number; def: number } | null;
+  /** Chance a reserve division enters the line each round, percent. */
+  reinfPct: number | null;
+}
+
+const ratioText = (pm: number) => (Math.min(pm, 99_000) / 1000).toFixed(2);
+
+/**
+ * Design §2.6: the luck block of a battle, from its summary. `band` is the
+ * fog's army band on the sides I do not command (3: exact, 2: close, less:
+ * hidden — then the odds, ratios, initiative and reserve odds say nothing
+ * about the enemy and go). Absent fields stay null.
+ */
+export function battleLuck(b: BattleSummary, band = 3): BattleLuckView {
+  const exact = band >= 3;
+  const hasRange =
+    b.lowPm !== undefined && b.midPm !== undefined && b.highPm !== undefined;
+  const att =
+    b.tacticAtt === undefined ? undefined : LAND_ATTACK_TACTICS[b.tacticAtt];
+  const def =
+    b.tacticDef === undefined ? undefined : LAND_DEFENSE_TACTICS[b.tacticDef];
+  return {
+    band:
+      b.depth !== undefined && b.depth > 1
+        ? { n: Math.min(b.depth, (b.band ?? 0) + 1), of: b.depth }
+        : null,
+    winPct: exact && b.winPct !== undefined ? b.winPct : null,
+    barPct:
+      b.winPct === undefined || band < 2
+        ? null
+        : exact
+          ? b.winPct
+          : Math.min(100, Math.ceil(b.winPct / 20) * 20),
+    range:
+      exact && hasRange
+        ? {
+            low: ratioText(b.lowPm!),
+            mid: ratioText(b.midPm!),
+            high: ratioText(b.highPm!),
+          }
+        : null,
+    tactics:
+      att !== undefined && def !== undefined
+        ? {
+            att,
+            def,
+            countered: tacticCountered(b.tacticAtt!, b.tacticDef!),
+          }
+        : null,
+    initiative:
+      exact && b.initAtt !== undefined && b.initDef !== undefined
+        ? { att: b.initAtt, def: b.initDef }
+        : null,
+    reinfPct: exact && b.reinfPct !== undefined ? b.reinfPct : null,
   };
 }
 

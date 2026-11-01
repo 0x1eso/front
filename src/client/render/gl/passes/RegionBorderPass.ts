@@ -26,6 +26,7 @@ import { SEA_ZONE_BASE } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { borderRegionsOf } from "@openfront/engine-lib/ww1936/FrontRules";
 import type { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
 import type { WwLandSelection } from "../../../hud/ww1936/LandSelection";
+import { multiSelectOf } from "../../../hud/ww1936/MultiSelect";
 import type { LandFrontWorld } from "../../../view/LandFrontWorld";
 import type { WwLandView } from "../../../view/WwLandView";
 import fragSrc from "../shaders/region-border/region-border.frag.glsl?raw";
@@ -47,7 +48,7 @@ export const REGION_FULL_ZOOM = 3;
 
 /** Side of the region-flag texture: region `id` sits at (id % 200, floor(id / 200)). */
 export const FLAG_TEX_SIZE = 200;
-/** Bit 0: a front region of the chosen army (or of the front preview). */
+/** Bit 0: a zone region of the chosen army (or of the chosen group), painted in the viewer's colour. */
 export const FLAG_FRONT = 1;
 /** Bit 1: an enemy region touching that front. */
 export const FLAG_ENEMY = 2;
@@ -57,6 +58,11 @@ export const FLAG_ENCIRCLED = 4;
 export const FLAG_PICKABLE = 8;
 /** Bit 4 (P4): a region of the viewer's bombed lately (air layer hatching). */
 export const FLAG_BOMBED = 16;
+/**
+ * Bit 5 (ww7): a gap — a border region of the viewer's facing the war that
+ * no division of the viewer's side holds or is headed to; it blinks red.
+ */
+export const FLAG_GAP = 32;
 
 /** Tile code bit: the tile's right or lower neighbour is another land region. */
 export const TILE_EDGE_BIT = 0x8000;
@@ -181,19 +187,20 @@ export function addBombedFlags(
 /**
  * The flag byte of every region id (spec §15.2), as the pass uploads it,
  * with the engine's front rules over `world` (LandFrontWorld: WwLand's
- * sides and enemies): bit 0 the chosen army's front regions
- * (`frontPreview` instead while the front mode previews one), bit 1 the
- * regions facing them (FrontRules.facesFront against the army's front
- * enemy — a named enemy counts before the war, spec §14.1), bit 2 the
- * encircled regions of the viewer's side, bit 3 in front mode the border
- * regions a front can be given to (FrontRules.borderRegionsOf, any enemy).
- * Only the viewer's own chosen army counts. `out` is reused when given.
+ * sides and enemies): bit 0 the chosen army's zone (ww7: the tapped
+ * `selection.zoneDraft` until the engine's own `mine.front` replaces it;
+ * the chosen army group's armies' zones together), bit 1 the regions facing
+ * them (FrontRules.facesFront against the army's front enemy — a named
+ * enemy counts before the war, spec §14.1), bit 2 the encircled regions of
+ * the viewer's side, bit 3 in the zone mode the border regions a tap may
+ * add (FrontRules.borderRegionsOf, any enemy), bit 5 (ww7) the viewer's
+ * gaps (CountryLandDetail.gaps). Only the viewer's own armies count. `out`
+ * is reused when given.
  */
 export function regionFlagBytes(
   view: WwLandView,
   selection: WwLandSelection,
   me: number,
-  frontPreview: readonly number[],
   world: LandFrontWorld,
   out: Uint8Array = new Uint8Array(FLAG_TEX_SIZE * FLAG_TEX_SIZE),
 ): Uint8Array {
@@ -205,27 +212,42 @@ export function regionFlagBytes(
       setFlag(out, r.id, FLAG_ENCIRCLED);
     }
   }
+  const gaps = view.details.get(me)?.gaps;
+  if (gaps !== undefined) {
+    for (let i = 0; i < gaps.length; i++) setFlag(out, gaps[i], FLAG_GAP);
+  }
 
+  const mark = (front: readonly number[], enemy: number) => {
+    for (let i = 0; i < front.length; i++) {
+      const f = front[i];
+      setFlag(out, f, FLAG_FRONT);
+      const edges = sc.edgesOf(f);
+      for (let j = 0; j < edges.length; j++) {
+        const to = edges[j].to;
+        if (world.facesFront(me, enemy, ctl[to])) setFlag(out, to, FLAG_ENEMY);
+      }
+    }
+  };
   const army =
     selection.army === null ? undefined : view.armies.get(selection.army);
   const mine = army !== undefined && army.owner === me ? army.mine : null;
-  if (mine === null) return out;
-
-  const preview = frontPreview.length > 0;
-  const front = preview ? frontPreview : mine.front;
-  const ordered = mine.order.kind === "front" || mine.order.kind === "plan";
-  const enemy = !preview && ordered ? mine.order.enemy : 0;
-  for (let i = 0; i < front.length; i++) {
-    const f = front[i];
-    setFlag(out, f, FLAG_FRONT);
-    const edges = sc.edgesOf(f);
-    for (let j = 0; j < edges.length; j++) {
-      const to = edges[j].to;
-      if (world.facesFront(me, enemy, ctl[to])) setFlag(out, to, FLAG_ENEMY);
+  if (mine !== null) {
+    const ordered = mine.order.kind === "front" || mine.order.kind === "plan";
+    mark(selection.zoneDraft ?? mine.front, ordered ? mine.order.enemy : 0);
+  }
+  // The chosen army group's zone is its armies' zones together.
+  const multi = multiSelectOf(selection);
+  if (multi.active) {
+    for (const id of multi.armies) {
+      const a = view.armies.get(id);
+      if (a === undefined || a.owner !== me || a.mine === null) continue;
+      const ordered =
+        a.mine.order.kind === "front" || a.mine.order.kind === "plan";
+      mark(a.mine.front, ordered ? a.mine.order.enemy : 0);
     }
   }
 
-  if (selection.mode === "front") {
+  if (mine !== null && selection.mode === "front") {
     for (const r of borderRegionsOf(world, me, 0)) {
       setFlag(out, r, FLAG_PICKABLE);
     }

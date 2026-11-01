@@ -3,6 +3,7 @@
 // plan's stance and execute button, the previews, its place by a drawer.
 import type { LandOrder, WwOrder } from "@openfront/engine-api/Schemas";
 import {
+  ARMY_AUTO,
   ARMY_EXECUTING,
   idleOrder,
 } from "@openfront/engine-api/ww1936/LandTypes";
@@ -118,14 +119,27 @@ describe("<ww-army-card> (spec §15.4)", () => {
       "[ww1936.land.state_idle]",
     );
     expect(card.className).toContain("max-h-[25vh]");
-    // Tablet rules: no hover-only titles; every button at least 36 px.
+    // Phone rules: no hover-only titles; every button at least 40 px.
     expect(m.el.querySelectorAll("[title]")).toHaveLength(0);
     const buttons = [...m.el.querySelectorAll("button")];
-    // Ten orders, the fold toggle and ✕.
-    expect(buttons).toHaveLength(12);
+    // The action row (4), the stance switch (3), rail, sea, split, merge
+    // and more (5), the fold toggle and ✕.
+    expect(buttons).toHaveLength(14);
     for (const b of buttons) {
-      expect(b.className).toMatch(/\b(h-9|size-9)\b/);
+      expect(b.className).toMatch(/\b(h-10|h-11|size-10)\b/);
     }
+    // The action row: [공격] [방어] [이동] [자동], in that order.
+    expect(
+      [...m.el.querySelectorAll("[data-ww-action-row] button")].map(
+        (b) => (b as HTMLElement).dataset.wwArmyBtn,
+      ),
+    ).toEqual(["plan", "front", "move", "auto"]);
+    expect(
+      m.q("[data-ww-action-row] [data-ww-army-btn='plan']")!.textContent,
+    ).toContain("[ww1936.land.btn_attack]");
+    expect(
+      m.q("[data-ww-action-row] [data-ww-army-btn='front']")!.textContent,
+    ).toContain("[ww1936.land.btn_defend]");
     // No text smaller than text-xs on the card.
     expect(m.el.innerHTML).not.toMatch(/text-\[1[01]px\]/);
     // ✕ lets the army go: the card is gone.
@@ -208,15 +222,36 @@ describe("<ww-army-card> (spec §15.4)", () => {
     ).not.toBeNull();
   });
 
-  it("splits in half, toggles auto, disbands only on a second tap", async () => {
+  it("splits in half, picks an auto level, disbands only on a second tap", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(100_000);
     const m = await mount();
     await m.click(m.btn("split"));
+    // [자동] offers off and the two levels; the pressed one is sent.
     await m.click(m.btn("auto"));
+    expect(m.q("[data-ww-card-buttons='auto']")).not.toBeNull();
+    expect(
+      [...m.el.querySelectorAll("[data-ww-card-buttons='auto'] button")].map(
+        (b) => (b as HTMLElement).dataset.wwArmyBtn,
+      ),
+    ).toEqual(["auto_0", "auto_1", "auto_2", "back"]);
+    expect(m.q(m.btn("auto_1"))!.textContent).toContain(
+      "[ww1936.auto.level_1]",
+    );
+    expect(m.q(m.btn("auto_2"))!.textContent).toContain(
+      "[ww1936.auto.level_2]",
+    );
+    await m.click(m.btn("auto_1"));
+    expect(m.q("[data-ww-card-buttons='main']")).not.toBeNull();
+    await m.click(m.btn("auto"));
+    await m.click(m.btn("auto_2"));
+    await m.click(m.btn("auto"));
+    await m.click(m.btn("auto_0"));
     expect(m.sent).toEqual([
       { kind: "army_split", army: 1, count: 1, template: 0 },
-      { kind: "army_auto", army: 1, on: true },
+      { kind: "army_auto_level", army: 1, level: 1 },
+      { kind: "army_auto_level", army: 1, level: 2 },
+      { kind: "army_auto_level", army: 1, level: 0 },
     ]);
     m.sent.length = 0;
     await m.click(m.btn("more"));
@@ -236,39 +271,16 @@ describe("<ww-army-card> (spec §15.4)", () => {
     expect(opened.map((e) => e.tab)).toEqual(["generals"]);
   });
 
-  it("plan mode: the stance, then execute on the second press, stop on the next", async () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(100_000);
-    const m = await mount();
-    await m.click(m.btn("plan"));
-    m.sel.targets = [6];
-    // The strip carries [execute]; the stance needs the whole card.
-    expect(m.q(m.btn("execute"))).not.toBeNull();
-    await m.click("[data-ww-card-fold='open']");
-    await m.click(m.btn("stance_aggressive"));
-    await m.click(m.btn("execute"));
-    expect(m.sent).toEqual([
-      { kind: "army_plan", army: 1, targets: [6], stance: "aggressive" },
-    ]);
-    vi.setSystemTime(101_000);
-    await m.click(m.btn("execute"));
-    expect(m.sent[1]).toEqual({ kind: "army_execute", army: 1, on: true });
-    // Sent: plan mode ends and its draft with it.
-    expect(m.sel.mode).toBe("none");
-    expect(m.sel.targets).toEqual([]);
-    await m.click(m.btn("plan"));
-    // Running: one press stops it.
+  /** Feeds the view one update with army 1 (DEU, Berlin) and this `mine`. */
+  const feed = (
+    m: Awaited<ReturnType<typeof mount>>,
+    mineData: ReturnType<typeof mine>,
+    over: { state?: number } = {},
+    tick = 701,
+  ) =>
     m.land.apply(
       {
-        armies: [
-          army(1, "DEU", 3, {
-            general: 1,
-            state: ARMY_EXECUTING,
-            mine: mine({
-              order: { ...idleOrder(), kind: "plan", executing: true },
-            }),
-          }),
-        ],
+        armies: [army(1, "DEU", 3, { general: 1, mine: mineData, ...over })],
         removedArmies: [],
         battles: [],
         endedBattles: [],
@@ -276,12 +288,170 @@ describe("<ww-army-card> (spec §15.4)", () => {
         countries: [],
         details: [],
       },
-      701,
+      tick,
+    );
+
+  it("[공격]: targets drawn by taps are the plan; [실행] runs it, [중지] stops it", async () => {
+    const m = await mount();
+    await m.click(m.btn("plan"));
+    expect(m.sel.mode).toBe("plan");
+    // The strip carries [실행]: greyed, with its reason, until a target is chosen.
+    expect(m.q(m.btn("execute"))!.getAttribute("aria-disabled")).toBe("true");
+    await m.click(m.btn("execute"));
+    expect(m.q("[data-ww-block='no_target']")).not.toBeNull();
+    expect(m.sent).toEqual([]);
+    // The controller's tap sent the plan; the engine's order caught up.
+    m.sel.targets = [6];
+    m.sel.stance = "aggressive";
+    m.sel.version++;
+    const plan = {
+      ...idleOrder(),
+      kind: "plan" as const,
+      targets: [6],
+      stance: "aggressive" as const,
+    };
+    feed(m, mine({ order: plan }));
+    m.el.tick();
+    await m.el.updateComplete;
+    // One press: execute on (the plan is not sent again), and the mode ends.
+    await m.click(m.btn("execute"));
+    expect(m.sent).toEqual([{ kind: "army_execute", army: 1, on: true }]);
+    expect(m.sel.mode).toBe("none");
+    expect(m.sel.targets).toEqual([]);
+    // Running: [중지] beside the stance switch, one press stops it.
+    feed(
+      m,
+      mine({ order: { ...plan, executing: true } }),
+      { state: ARMY_EXECUTING },
+      702,
     );
     m.el.tick();
     await m.el.updateComplete;
+    expect(m.q("[data-ww-order='plan']")!.textContent).toContain(
+      "[ww1936.land.order_attack_running] targets=Warsaw",
+    );
+    await m.click(m.btn("stop"));
+    expect(m.sent[1]).toEqual({ kind: "army_execute", army: 1, on: false });
+  });
+
+  it("[실행] sends the plan first when the engine's differs from the draft", async () => {
+    const m = await mount();
+    await m.click(m.btn("plan"));
+    m.sel.targets = [6, 7];
+    m.sel.version++;
+    m.el.tick();
+    await m.el.updateComplete;
     await m.click(m.btn("execute"));
-    expect(m.sent[2]).toEqual({ kind: "army_execute", army: 1, on: false });
+    expect(m.sent).toEqual([
+      { kind: "army_plan", army: 1, targets: [6, 7], stance: "balanced" },
+      { kind: "army_execute", army: 1, on: true },
+    ]);
+  });
+
+  it("the stance switch: 신중 / 보통 / 과감, default 보통; a change resends the plan's targets", async () => {
+    const m = await mount();
+    const pressed = () =>
+      [...m.el.querySelectorAll("[data-ww-stance] button")]
+        .filter((b) => b.getAttribute("aria-pressed") === "true")
+        .map((b) => (b as HTMLElement).dataset.wwArmyBtn);
+    expect(
+      [...m.el.querySelectorAll("[data-ww-stance] button")].map(
+        (b) => (b as HTMLElement).dataset.wwArmyBtn,
+      ),
+    ).toEqual(["stance_careful", "stance_balanced", "stance_aggressive"]);
+    expect(pressed()).toEqual(["stance_balanced"]);
+    // No plan yet: the choice waits for the plan, nothing is sent.
+    await m.click(m.btn("stance_careful"));
+    expect(m.sent).toEqual([]);
+    expect(pressed()).toEqual(["stance_careful"]);
+    // A plan that runs keeps running with the new stance.
+    const plan = {
+      ...idleOrder(),
+      kind: "plan" as const,
+      targets: [6, 7],
+      stance: "balanced" as const,
+      executing: true,
+    };
+    feed(m, mine({ order: plan }), { state: ARMY_EXECUTING });
+    m.el.tick();
+    await m.el.updateComplete;
+    expect(pressed()).toEqual(["stance_balanced"]);
+    await m.click(m.btn("stance_aggressive"));
+    expect(m.sent).toEqual([
+      { kind: "army_plan", army: 1, targets: [6, 7], stance: "aggressive" },
+      { kind: "army_execute", army: 1, on: true },
+    ]);
+  });
+
+  it("[방어]: army_front for the border around the army once; then the zone mode", async () => {
+    const m = await mount();
+    await m.click(m.btn("front"));
+    expect(m.sent).toEqual([
+      { kind: "army_front", army: 1, anchor: 3, enemy: 0 },
+    ]);
+    expect(m.sel.mode).toBe("front");
+    // The strip: the zone hint and [구역 자동]; done ends the mode only.
+    expect(m.q("[data-ww-hint='front']")!.textContent).toContain(
+      "[ww1936.land.hint_defend] n=0",
+    );
+    await m.click(m.btn("zone_auto"));
+    expect(m.sent[1]).toEqual({ kind: "army_zone", army: 1, regions: [] });
+    await m.click(m.btn("cancel"));
+    expect(m.sel.mode).toBe("none");
+    expect(m.sent).toHaveLength(2);
+    // Already defending: the explicit zone stays, no new army_front.
+    const front = { ...idleOrder(), kind: "front" as const, zone: [3, 4] };
+    feed(m, mine({ order: front, front: [3, 4] }));
+    m.sent.length = 0;
+    m.el.tick();
+    await m.el.updateComplete;
+    expect(m.q("[data-ww-order='front']")!.textContent).toContain(
+      "[ww1936.land.order_defend] n=2",
+    );
+    await m.click(m.btn("front"));
+    expect(m.sent).toEqual([]);
+    expect(m.sel.mode).toBe("front");
+    expect(m.q("[data-ww-hint='front']")!.textContent).toContain("n=2");
+    // The unfolded card offers [구역 자동] and [완료]; done ends the mode.
+    await m.click("[data-ww-card-fold='open']");
+    expect(
+      m.q("[data-ww-card-buttons='main'] " + m.btn("zone_auto")),
+    ).not.toBeNull();
+    await m.click(m.btn("back"));
+    expect(m.sel.mode).toBe("none");
+    // And [방어] again on the plain card presses the mode off.
+    await m.click(m.btn("front"));
+    expect(m.sel.mode).toBe("front");
+  });
+
+  it("the card names the army's auto level and the country's gaps", async () => {
+    const m = await mount({
+      armies: [
+        army(1, "DEU", 3, {
+          state: ARMY_AUTO,
+          mine: mine({ auto: true, autoLevel: 1 }),
+        }),
+      ],
+      landDetails: [
+        landDetail("DEU", {
+          divisions: [division(1, 1, 3)],
+          gaps: [3, 4],
+        }),
+      ],
+    });
+    expect(m.q("[data-ww-auto-level='1']")!.textContent).toContain(
+      "[ww1936.auto.level_1]",
+    );
+    expect(m.q("[data-ww-gaps='2']")!.textContent).toContain(
+      "[ww1936.land.gaps] n=2",
+    );
+    // The action row's [자동] wears the level.
+    expect(m.q(m.btn("auto") + " [data-ww-btn-badge]")!.textContent).toBe("1");
+    await m.click(m.btn("auto"));
+    expect(m.q(m.btn("auto_1"))!.getAttribute("aria-pressed")).toBe("true");
+    expect(m.q("[data-ww-auto-hint]")!.textContent).toContain(
+      "[ww1936.auto.level_hint_1]",
+    );
   });
 
   it("previews a pending tap: the move's days, then 'tap again'", async () => {

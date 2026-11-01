@@ -54,19 +54,32 @@ import {
   armyName,
   armyRows,
   attackPreview,
+  autoLevelOf,
   battleCard,
+  battleLuck,
+  defendAnchor,
   designer,
   enemySideAt,
-  frontPreview,
   generalRows,
+  groupZone,
+  groupZoneOf,
+  landSidesOf,
   levelBoxes,
   levelDots,
   movePreview,
+  oddsBadges,
+  oddsLevel,
+  planOrder,
   regionLandLines,
   rowGeneralName,
   shortTypes,
+  tacticCountered,
   tapKind,
+  tapOrder,
   toggleTarget,
+  toggleZone,
+  zoneOrder,
+  zoneShown,
 } from "../../../src/client/hud/ww1936/LandModel";
 import { detail, region } from "./EconomyFixture";
 import {
@@ -203,16 +216,16 @@ describe("LandModel (spec §15)", () => {
     });
     const card = armyCard(land, view, DEU, 1, DAY)!;
     const block = (id: string) => card.buttons.find((b) => b.id === id)!.block;
+    // ww7: the action row [공격] [방어] [이동] [자동], then the rest.
     expect(card.buttons.map((b) => b.id)).toEqual([
-      "move",
-      "attack",
-      "front",
       "plan",
+      "front",
+      "move",
+      "auto",
       "rail",
       "sea",
       "split",
       "merge",
-      "auto",
       "more",
     ]);
     expect(block("rail")).toBe("no_rail");
@@ -224,8 +237,19 @@ describe("LandModel (spec §15)", () => {
     const asked = checks.mock.calls.map(([, o]) => o);
     expect(asked).toContainEqual({ kind: "army_rail", army: 1, region: 4 });
     expect(asked.some((o) => o.kind === "army_sea")).toBe(false);
-    // The nearest enemy region for an attack: Warsaw (Munich–Warsaw edge).
-    expect(asked).toContainEqual({ kind: "army_attack", army: 1, region: 6 });
+    // [방어] asks for the border region around the army: Munich itself
+    // (Munich–Warsaw edge); [자동] for a level.
+    expect(asked).toContainEqual({
+      kind: "army_front",
+      army: 1,
+      anchor: 4,
+      enemy: 0,
+    });
+    expect(asked).toContainEqual({
+      kind: "army_auto_level",
+      army: 1,
+      level: 2,
+    });
     const w = checks.mock.calls[0][0];
     expect([
       w.me,
@@ -247,13 +271,11 @@ describe("LandModel (spec §15)", () => {
       templates: [1, 1],
       front: false,
     });
-    // At peace: nobody to attack.
+    // At peace: nobody to attack or defend against.
     const peace = game({ armies: [army(1, "DEU", 4)] });
-    expect(
-      armyCard(peace.land, peace.view, DEU, 1, DAY)!.buttons.find(
-        (b) => b.id === "attack",
-      )!.block,
-    ).toBe("not_at_war");
+    const buttons = armyCard(peace.land, peace.view, DEU, 1, DAY)!.buttons;
+    expect(buttons.find((b) => b.id === "plan")!.block).toBe("not_at_war");
+    expect(buttons.find((b) => b.id === "front")!.block).toBe("not_at_war");
   });
 
   it("the card's searches are reused until the views or the wars move on", () => {
@@ -527,6 +549,15 @@ describe("LandModel (spec §15)", () => {
     expect(kind("move", 6)).toBeNull();
     expect(kind("plan", 7)).toBe("plan");
     expect(kind("plan", 3)).toBeNull();
+    // ww7: [방어] — a border region of ours joins or leaves the zone;
+    // an inner or an enemy region does nothing (the mode stays).
+    expect(kind("front", 3)).toBe("zone");
+    expect(kind("front", 4)).toBe("zone");
+    // Rome (Italy, our side) touches Krakow: a border region too.
+    expect(kind("front", 5)).toBe("zone");
+    expect(kind("front", 6)).toBeNull();
+    expect(kind("front", 10)).toBeNull();
+    expect(tapOrder("zone", 1, 3)).toBeNull();
     expect(kind("none", 0)).toBeNull();
     // The preparation minute: nobody to fight yet.
     const prep = game({ ticks: 100, wars: [["DEU", "POL"]] });
@@ -537,12 +568,173 @@ describe("LandModel (spec §15)", () => {
     expect(toggleTarget([6, 7, 8], 7)).toEqual([6, 8]);
   });
 
-  it("Task 3's front: from the anchor along the border", () => {
+  it("ww7: [방어] anchors at the border region nearest the army", () => {
+    const g = game({
+      ...AT_WAR,
+      armies: [army(1, "DEU", 5, { divisions: 6 })],
+    });
+    // Berlin, Munich and Rome (Italy, ours) face Poland: a border region
+    // anchors itself; elsewhere the nearest one over the land graph, the
+    // smallest id of the nearest layer.
+    expect(defendAnchor(g.land, DEU, 3)).toBe(3);
+    expect(defendAnchor(g.land, DEU, 5)).toBe(5);
+    expect([3, 4, 5]).toContain(defendAnchor(g.land, DEU, 1));
+    // Nobody at war: no border, no anchor.
+    const peace = game({ armies: [army(1, "DEU", 5)] });
+    expect(defendAnchor(peace.land, DEU, 5)).toBeNull();
+  });
+
+  it("ww7: the zone toggles in and out, the shown zone is the draft or the engine's", () => {
+    expect(toggleZone([3], 4)).toEqual([3, 4]);
+    expect(toggleZone([3, 4], 3)).toEqual([4]);
+    expect(toggleZone([4], 4)).toEqual([]);
+    expect(
+      toggleZone(
+        Array.from({ length: 60 }, (_, i) => i + 1),
+        99,
+      ),
+    ).toHaveLength(60);
     const { land } = game({
       ...AT_WAR,
-      armies: [army(1, "DEU", 3, { divisions: 6 })],
+      armies: [army(1, "DEU", 3, { mine: mine({ front: [3, 4] }) })],
     });
-    expect(frontPreview(land, DEU, 1, 3)).toEqual([3, 4]);
+    const sel = { army: 1, zoneDraft: null as number[] | null };
+    expect(zoneShown(land, sel, 1)).toEqual([3, 4]);
+    sel.zoneDraft = [4];
+    expect(zoneShown(land, sel, 1)).toEqual([4]);
+    // The draft belongs to the chosen army only.
+    expect(zoneShown(land, sel, 2)).toEqual([]);
+    expect(zoneOrder(1, [3])).toEqual({
+      kind: "army_zone",
+      army: 1,
+      regions: [3],
+    });
+    expect(planOrder(1, [6], "aggressive")).toEqual({
+      kind: "army_plan",
+      army: 1,
+      targets: [6],
+      stance: "aggressive",
+    });
+  });
+
+  it("ww7: odds read low under 40, medium 40–64, high from 65", () => {
+    expect([0, 39, 40, 64, 65, 100].map(oddsLevel)).toEqual([
+      "low",
+      "low",
+      "mid",
+      "mid",
+      "high",
+      "high",
+    ]);
+    expect(
+      oddsBadges([
+        [3, 6, 20],
+        [4, 7, 72],
+      ]),
+    ).toEqual([
+      { region: 3, target: 6, pct: 20, level: "low" },
+      { region: 4, target: 7, pct: 72, level: "high" },
+    ]);
+    expect(oddsBadges(undefined)).toEqual([]);
+  });
+
+  it("ww7: the auto level, with the old flag read as full auto", () => {
+    expect(autoLevelOf({ auto: false })).toBe(0);
+    expect(autoLevelOf({ auto: true })).toBe(2);
+    expect(autoLevelOf({ auto: true, autoLevel: 1 })).toBe(1);
+    expect(autoLevelOf({ auto: false, autoLevel: 0 })).toBe(0);
+    const { land, view } = game({
+      ...AT_WAR,
+      armies: [army(1, "DEU", 3, { mine: mine({ auto: true, autoLevel: 1 }) })],
+    });
+    expect(armyCard(land, view, DEU, 1, DAY)!.autoLevel).toBe(1);
+  });
+
+  it("ww7: a group's front walks the border from the tapped region; its zone is its armies' zones", () => {
+    const g = game({
+      ...AT_WAR,
+      armies: [
+        army(1, "DEU", 3, { mine: mine({ front: [3, 4] }) }),
+        army(2, "DEU", 4, { mine: mine({ front: [4] }) }),
+      ],
+    });
+    const sides = landSidesOf(g.game as never);
+    // Berlin, Munich and Rome face Poland: a region per two divisions,
+    // walked along the border from the tapped one; none from a region
+    // that is no border.
+    expect(groupZone(g.land, DEU, sides, 3, 2)).toEqual([3]);
+    expect(groupZone(g.land, DEU, sides, 3, 4)).toEqual([3, 4]);
+    expect(groupZone(g.land, DEU, sides, 3, 6)).toEqual([3, 4, 5]);
+    expect(groupZone(g.land, DEU, sides, 3, 24)).toEqual([3, 4, 5]);
+    expect(groupZone(g.land, DEU, sides, 1, 6)).toEqual([]);
+    expect(groupZoneOf(g.land, [1, 2])).toEqual([3, 4]);
+    expect(groupZoneOf(g.land, [2])).toEqual([4]);
+  });
+
+  it("ww7: the battle card's luck block shows what the engine sent, and only that", () => {
+    const base = battle(7, "DEU", "POL");
+    // An engine without the fields: nothing to show.
+    expect(battleLuck(base)).toEqual({
+      band: null,
+      winPct: null,
+      barPct: null,
+      range: null,
+      tactics: null,
+      initiative: null,
+      reinfPct: null,
+    });
+    const full = battle(7, "DEU", "POL", {
+      band: 1,
+      depth: 3,
+      winPct: 72,
+      lowPm: 1300,
+      midPm: 1800,
+      highPm: 2600,
+      tacticAtt: 1,
+      tacticDef: 1,
+      initAtt: 61,
+      initDef: 38,
+      reinfPct: 40,
+    });
+    expect(battleLuck(full)).toEqual({
+      band: { n: 2, of: 3 },
+      winPct: 72,
+      barPct: 72,
+      range: { low: "1.30", mid: "1.80", high: "2.60" },
+      tactics: { att: "assault", def: "ambush", countered: true },
+      initiative: { att: 61, def: 38 },
+      reinfPct: 40,
+    });
+    // A one-band region has no band to show; an uncancelled tactic pair.
+    expect(battleLuck({ ...full, depth: 1, tacticDef: 0 })).toMatchObject({
+      band: null,
+      tactics: { att: "assault", def: "defend", countered: false },
+    });
+    // The fog's close band: the bar in steps of 20, no numbers; below: no bar.
+    expect(battleLuck(full, 2)).toMatchObject({
+      winPct: null,
+      barPct: 80,
+      range: null,
+      initiative: null,
+      reinfPct: null,
+    });
+    expect(battleLuck(full, 1)).toMatchObject({ barPct: null, winPct: null });
+    // Design §2.2: every counter pair cancels, nothing else does.
+    const pairs = [
+      [1, 1],
+      [2, 2],
+      [3, 4],
+      [5, 5],
+      [6, 6],
+    ];
+    for (let a = 0; a < 7; a++) {
+      for (let d = 0; d < 7; d++) {
+        expect(tacticCountered(a, d)).toBe(
+          pairs.some(([x, y]) => x === a && y === d),
+        );
+      }
+    }
+    expect(tacticCountered(9, 1)).toBe(false);
   });
 
   it("the generals tab: who serves, who comes later", () => {

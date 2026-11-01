@@ -43,7 +43,7 @@ import { ArmyTokenPass } from "../../../src/client/render/gl/passes/ArmyTokenPas
 import { SendWwOrderIntentEvent } from "../../../src/client/Transport";
 import { TokenLayoutCache } from "../../../src/client/view/LandTokenLayout";
 import { detail, fakeEconGame, ID, summary } from "./EconomyFixture";
-import { army, fakeLandGame, landDetail } from "./LandFixture";
+import { army, fakeLandGame, landDetail, mine } from "./LandFixture";
 import { seaGame, SID } from "./SeaAirFixture";
 
 type Game = ReturnType<typeof fakeEconGame>["game"];
@@ -278,5 +278,63 @@ describe("the A mark on my auto armies' tokens", () => {
     );
     expect(states.get(ID("DEU"))! & ARMY_AUTO).toBe(ARMY_AUTO);
     expect(states.get(ID("POL"))! & ARMY_AUTO).toBe(0);
+  });
+
+  it("ww7: the token carries the auto level of my armies — 1 defence, 2 full (the old flag reads as 2)", () => {
+    const written: Float32Array[] = [];
+    const gl = new Proxy(
+      {},
+      {
+        get: (_t, prop) => {
+          if (typeof prop === "string" && /^[A-Z0-9_]+$/.test(prop)) return 0;
+          if (prop === "bufferSubData") {
+            return (
+              _t: number,
+              _o: number,
+              d: Float32Array,
+              _s: number,
+              n: number,
+            ) => written.push(d.slice(0, n));
+          }
+          if (prop === "getProgramParameter") return () => true;
+          if (prop === "getShaderParameter") return () => true;
+          return () => ({});
+        },
+      },
+    ) as WebGL2RenderingContext;
+    const g = fakeLandGame({
+      armies: [
+        army(1, "DEU", 3, {
+          divisions: 1,
+          state: ARMY_AUTO,
+          mine: mine({ auto: true, autoLevel: 1 }),
+        }),
+        army(2, "DEU", 4, {
+          divisions: 2,
+          state: ARMY_AUTO,
+          mine: mine({ auto: true }),
+        }),
+        army(3, "DEU", 5, { divisions: 3, mine: mine() }),
+        army(4, "POL", 6, { divisions: 4, state: ARMY_AUTO }),
+      ],
+    });
+    const tex = {} as WebGLTexture;
+    const pass = new ArmyTokenPass(gl, tex, tex);
+    const layout = new TokenLayoutCache();
+    const changed = layout.update(g.land, 0, 4);
+    pass.update(g.land, layout, changed, new WwLandSelection(), ID("DEU"));
+    const f = written[written.length - 1];
+    // Tokens only (kind 0); the army's region says which one it is.
+    const levels = new Map<number, number>();
+    for (let o = 0; o + 12 <= f.length; o += 12) {
+      if (f[o + 2] === 0)
+        levels.set(f[o + 3] * 100 + Math.round(f[o + 5]), f[o + 10]);
+    }
+    const level = (owner: string, divisions: number) =>
+      levels.get(ID(owner as "DEU") * 100 + divisions);
+    // Each army has its own division count: 1 defence-auto, 2 old-flag auto,
+    // 3 manual, and Poland's auto flag never shows.
+    expect([1, 2, 3].map((n) => level("DEU", n))).toEqual([1, 2, 0]);
+    expect(level("POL", 4)).toBe(0);
   });
 });

@@ -13,10 +13,10 @@
 
 import type { MapLayer } from "@openfront/engine-api/game/MapFiles";
 import type { Config } from "@openfront/engine-lib/configuration/Config";
-import { frontOf, frontSize } from "@openfront/engine-lib/ww1936/FrontRules";
 import type { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
 import { fogOfLand, fogOfNavy } from "../../hud/ww1936/FogModel";
 import type { WwLandSelection } from "../../hud/ww1936/LandSelection";
+import { multiSelectOf } from "../../hud/ww1936/MultiSelect";
 import type { SeaAirSelection } from "../../hud/ww1936/SeaAirSelection";
 import { translateText } from "../../Utils";
 import {
@@ -291,6 +291,8 @@ export class GPURenderer {
   private landFlagsStale = true;
   private landFlagsVersion = -1;
   private landFlagsSelection = -1;
+  /** ww7: the chosen army group's version (its zones are painted too). */
+  private landFlagsMulti = -1;
   private landFlagsMe = -1;
   /** The game tick tokens glide from (spec §15.2). */
   private landClock: LandTickClock = new LandTickClock(100);
@@ -2109,7 +2111,12 @@ export class GPURenderer {
     this.landClock.reset(war?.ticks() ?? 0, performance.now());
     // P6 (final review C I1): the name plates' troop rows through the fog.
     this.namePass.setTroopFog(() => fogOfLand(view));
-    const atlas = new LandAtlas(this.gl);
+    // ww7: the odds badges' words come from the language in use.
+    const atlas = new LandAtlas(this.gl, undefined, {
+      low: translateText("ww1936.land.odds_low"),
+      mid: translateText("ww1936.land.odds_mid"),
+      high: translateText("ww1936.land.odds_high"),
+    });
     this.wwPasses = {
       atlas,
       tokens: new ArmyTokenPass(this.gl, this.paletteTex, atlas.texture),
@@ -2153,6 +2160,7 @@ export class GPURenderer {
       !this.landFlagsStale &&
       land.view.version === this.landFlagsVersion &&
       sel.version === this.landFlagsSelection &&
+      multiSelectOf(sel).version === this.landFlagsMulti &&
       me === this.landFlagsMe &&
       airKey === this.landFlagsAir &&
       this.seaAirGlowVersion === this.landFlagsGlow
@@ -2162,16 +2170,10 @@ export class GPURenderer {
     this.landFlagsGlow = this.seaAirGlowVersion;
     this.landFlagsVersion = land.view.version;
     this.landFlagsSelection = sel.version;
+    this.landFlagsMulti = multiSelectOf(sel).version;
     this.landFlagsMe = me;
     this.landFlagsAir = airKey;
-    regionFlagBytes(
-      land.view,
-      sel,
-      me,
-      this.frontPreview(me),
-      land.world,
-      this.landFlags,
-    );
+    regionFlagBytes(land.view, sel, me, land.world, this.landFlags);
     if (air !== null && air.detail !== null) {
       addBombedFlags(this.landFlags, air.detail.bombedRegions);
     }
@@ -2190,18 +2192,6 @@ export class GPURenderer {
     pass.setRegionFlags(this.landFlags);
   }
 
-  /** Front mode's first tap (spec §15.3-4): the front it would give (FrontRules.frontOf). */
-  private frontPreview(me: number): readonly number[] {
-    const land = this.wwLand!;
-    const sel = land.selection;
-    if (sel.mode !== "front" || sel.pending === null || sel.army === null) {
-      return [];
-    }
-    const army = land.view.armies.get(sel.army);
-    if (army === undefined || army.owner !== me) return [];
-    return frontOf(land.world, me, 0, sel.pending, frontSize(army.divisions));
-  }
-
   /** Battle markers, then plan arrows, then the tokens on top (spec §15.2). */
   private drawWwLand(cam: Float32Array, now: number): void {
     const land = this.wwLand;
@@ -2213,7 +2203,7 @@ export class GPURenderer {
     const me = land.me();
     const view = land.view;
     const changed = this.tokenLayout.update(view, this.landClock.at(now), zoom);
-    passes.battles.update(view, tokenLod(zoom));
+    passes.battles.update(view, tokenLod(zoom), land.selection, me);
     passes.arrows.update(view, land.selection, me, tilesPerPx, land.world);
     passes.tokens.update(view, this.tokenLayout, changed, land.selection, me);
 

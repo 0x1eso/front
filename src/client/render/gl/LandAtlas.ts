@@ -24,6 +24,11 @@ export const CELL_QUESTION = 41;
 export const CELL_TILDE = 42;
 /** Automation: "A" on an auto army's token (the AI commands it, P2 spec §8.5). */
 export const CELL_AUTO = 43;
+/**
+ * ww7: the odds badges' words, one cell each — cell ODDS_CELL0 + 0 low,
+ * +1 medium, +2 high (the text comes from the language in use).
+ */
+export const ODDS_CELL0 = 53;
 export const ICON_MOVE = 48;
 export const ICON_BATTLE = 49;
 export const ICON_RAIL = 50;
@@ -229,8 +234,23 @@ function drawIcon(ctx: Ctx, cell: number): void {
   }
 }
 
+/** The odds badges' words (ww7), low / medium / high. */
+export interface LandAtlasLabels {
+  low: string;
+  mid: string;
+  high: string;
+}
+export const DEFAULT_LABELS: LandAtlasLabels = {
+  low: "Low",
+  mid: "Medium",
+  high: "High",
+};
+
 /** Draws the whole atlas into a 2D context of ATLAS_COLS × ATLAS_ROWS cells. */
-export function drawLandAtlas(ctx: Ctx): void {
+export function drawLandAtlas(
+  ctx: Ctx,
+  labels: LandAtlasLabels = DEFAULT_LABELS,
+): void {
   ctx.clearRect(0, 0, ATLAS_COLS * ATLAS_CELL, ATLAS_ROWS * ATLAS_CELL);
   BATTALION_IDS.forEach((id, i) => {
     const [x, y] = cellOrigin(i);
@@ -263,6 +283,17 @@ export function drawLandAtlas(ctx: Ctx): void {
     ctx.fillStyle = WHITE;
     ctx.fillText(ch, x + 32, y + 34, 60);
   }
+  // The odds words: white on a clear cell (the badge pill is the shader's),
+  // squeezed to fit when a language runs long.
+  ctx.font = "bold 30px sans-serif";
+  [labels.low, labels.mid, labels.high].forEach((text, i) => {
+    const [x, y] = cellOrigin(ODDS_CELL0 + i);
+    ctx.strokeStyle = OUTLINE;
+    ctx.lineWidth = 6;
+    ctx.strokeText(text, x + 32, y + 34, 60);
+    ctx.fillStyle = WHITE;
+    ctx.fillText(text, x + 32, y + 34, 60);
+  });
   for (const cell of [ICON_MOVE, ICON_BATTLE, ICON_RAIL, ICON_SEA, ICON_PARA]) {
     const [x, y] = cellOrigin(cell);
     ctx.save();
@@ -300,6 +331,7 @@ export class LandAtlas {
   constructor(
     private gl: WebGL2RenderingContext,
     makeCanvas: CanvasFactory = domCanvas,
+    labels: LandAtlasLabels = DEFAULT_LABELS,
   ) {
     const tex = gl.createTexture()!;
     gl.bindTexture(gl.TEXTURE_2D, tex);
@@ -308,7 +340,7 @@ export class LandAtlas {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
     const made = makeCanvas(ATLAS_COLS * ATLAS_CELL, ATLAS_ROWS * ATLAS_CELL);
     if (made !== null) {
-      drawLandAtlas(made.ctx);
+      drawLandAtlas(made.ctx, labels);
       gl.texImage2D(
         gl.TEXTURE_2D,
         0,

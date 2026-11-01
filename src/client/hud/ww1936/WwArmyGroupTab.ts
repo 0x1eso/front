@@ -8,7 +8,7 @@ import { html, nothing, TemplateResult } from "lit";
 import { translateText } from "../../Utils";
 import type { WwLandView } from "../../view/WwLandView";
 import { DoctrineModel, GroupRow } from "./DoctrineModel";
-import { armyName, armyStatus } from "./LandModel";
+import { armyName, armyStatus, groupZoneOf } from "./LandModel";
 import { landSelectionOf } from "./LandSelection";
 import { groupColor, multiSelectOf } from "./MultiSelect";
 import type { WwGame } from "./WorldWarModel";
@@ -26,7 +26,7 @@ export interface GroupTabCtx {
 }
 
 const BTN =
-  "min-h-9 rounded-md border border-white/15 bg-white/10 px-2 text-xs font-semibold hover:bg-white/20";
+  "min-h-10 rounded-md border border-white/15 bg-white/10 px-2 text-xs font-semibold hover:bg-white/20";
 
 function renderGroup(c: GroupTabCtx, g: GroupRow): TemplateResult {
   const armies = g.armies
@@ -36,6 +36,8 @@ function renderGroup(c: GroupTabCtx, g: GroupRow): TemplateResult {
   const exec = `agx${g.id}`;
   const disband = `agd${g.id}`;
   const divisions = armies.reduce((n, a) => n + a.divisions, 0);
+  // ww7: the group's front is the union of its armies' zones.
+  const zone = groupZoneOf(c.view, g.armies);
   return html`<div
     data-ww-group=${g.id}
     class="rounded-md border border-white/10 bg-white/5 p-1.5 text-xs"
@@ -52,6 +54,9 @@ function renderGroup(c: GroupTabCtx, g: GroupRow): TemplateResult {
       <span class="ml-auto text-white/60"
         >${translateText("ww1936.land.band_divisions", { n: divisions })}</span
       >
+    </div>
+    <div data-ww-group-zone=${zone.length} class="mt-1 text-white/80">
+      ${translateText("ww1936.ag.zone", { n: zone.length })}
     </div>
     <div class="mt-1" data-ww-group-fm>
       <span class="font-semibold">${g.fmName}</span>
@@ -78,11 +83,18 @@ function renderGroup(c: GroupTabCtx, g: GroupRow): TemplateResult {
           <span class="ml-auto min-w-0 truncate text-white/70"
             >${translateText(st.key, st.params)}</span
           >
+          ${(a.mine?.front.length ?? 0) > 0
+            ? html`<span
+                data-ww-group-army-zone=${a.mine!.front.length}
+                class="shrink-0 tabular-nums text-sky-300"
+                >🛡${a.mine!.front.length}</span
+              >`
+            : nothing}
           <button
             type="button"
             data-ww-group-remove=${a.id}
             aria-label=${translateText("ww1936.ag.remove")}
-            class="size-9 shrink-0 rounded hover:bg-white/10"
+            class="size-10 shrink-0 rounded hover:bg-white/10"
             @click=${() =>
               c.send({ kind: "ag_remove", group: g.id, army: a.id })}
           >

@@ -1,6 +1,7 @@
 // World War 1936 P6 (spec §8.9, §25.3): the fog must not leak. A hidden
 // enemy's numbers never reach a card's text, a tooltip or a token's data,
 // and no card reads the enemy's counts without the fog model.
+import type { BattleSummary } from "@openfront/engine-api/ww1936/LandTypes";
 import { renderTroops } from "@openfront/engine-lib/Format";
 import { EventBus } from "@openfront/shared/EventBus";
 import fs from "fs";
@@ -82,7 +83,7 @@ const LINE = 137;
 const RESERVE = 241;
 const WIDTH = 389;
 
-async function battleCard(level: number) {
+async function battleCard(level: number, extra: Partial<BattleSummary> = {}) {
   const g = fogGame({
     level,
     armies: [army(3, "POL", NEAR, { divisions: 173 })],
@@ -94,6 +95,7 @@ async function battleCard(level: number) {
         defOrgPm: 777,
         defStrPm: 641,
         width: 457,
+        ...extra,
       }),
     ],
   });
@@ -562,6 +564,61 @@ describe("fog leaks (spec §8.9)", () => {
     expect(cache.count).toBe(3);
   });
 
+  it("ww7: the battle forecast follows the fog — exact, five steps, none", async () => {
+    const luck = {
+      band: 0,
+      depth: 3,
+      winPct: 73,
+      lowPm: 1311,
+      midPm: 1777,
+      highPm: 2641,
+      tacticAtt: 2,
+      tacticDef: 0,
+      initAtt: 58,
+      initDef: 37,
+      reinfPct: 49,
+    };
+    const exact = (await battleCard(80, luck)).el;
+    expect(exact.querySelector("[data-ww-odds-text]")!.textContent).toContain(
+      "pct=73",
+    );
+    expect(exact.querySelector("[data-ww-range]")!.textContent).toContain(
+      "high=2.64",
+    );
+    expect(exact.querySelector("[data-ww-initiative]")).not.toBeNull();
+    // Close: the bar in steps of 20, no number anywhere.
+    const close = (await battleCard(50, luck)).el;
+    expect(
+      close.querySelector("[data-ww-odds] > div")!.getAttribute("style"),
+    ).toContain("width: 80%");
+    for (const sel of [
+      "[data-ww-odds-text]",
+      "[data-ww-range]",
+      "[data-ww-initiative]",
+      "[data-ww-reinforce]",
+    ]) {
+      expect(close.querySelector(sel), sel).toBeNull();
+    }
+    expect(close.innerHTML).not.toContain("73");
+    // Blind: no forecast, only the tactics and the band (nothing of the enemy's).
+    const blind = (await battleCard(0, luck)).el;
+    expect(blind.querySelector("[data-ww-odds]")).toBeNull();
+    expect(blind.querySelector("[data-ww-tactics]")).not.toBeNull();
+    expect(blind.querySelector("[data-ww-battle-band]")).not.toBeNull();
+    for (const n of [
+      "73",
+      "1311",
+      "1.31",
+      "1777",
+      "1.78",
+      "2.64",
+      "58",
+      "49",
+    ]) {
+      expect(blind.textContent).not.toContain(n);
+    }
+  });
+
   it("draws the enemy bars in five steps at the close band", async () => {
     const { el } = await battleCard(50);
     const html = el.querySelector(
@@ -846,6 +903,9 @@ describe("fog leaks (spec §8.9)", () => {
       // T1b review: my divisions, my groups and the armies I picked.
       "hud/ww1936/WwTopBand.ts",
       "render/gl/Renderer.ts",
+      // ww7: the chosen army's odds badges (mine only; battle markers go
+      // through the fog's landBattleVisible).
+      "render/gl/passes/BattleMarkerPass.ts",
       "render/gl/passes/PlanArrowPass.ts",
       "render/gl/passes/RegionBorderPass.ts",
       // P6 U1/U4/U5 (batch P6-2): my own armies, groups, deployments,

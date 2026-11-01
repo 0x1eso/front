@@ -454,8 +454,125 @@ describe("BattleMarkerPass", () => {
     pass.update(v, 0);
     pass.draw(cam, 0.25);
     expect(pass.instanceCount).toBe(2);
-    expect(counts.uploads).toEqual([2 * 8]);
+    expect(counts.uploads).toEqual([2 * 12]);
     expect(counts.instanced).toBe(1);
+  });
+
+  /** The instances written by the last update: [x, y, att, def, progress, lod, kind, odds, depth, filled, fighting, -]. */
+  function rows(written: Float32Array[]): number[][] {
+    const f = written[written.length - 1];
+    return Array.from({ length: f.length / 12 }, (_, i) =>
+      Array.from(f.subarray(i * 12, i * 12 + 12)),
+    );
+  }
+  function recorder() {
+    const { gl } = countingGL();
+    const written: Float32Array[] = [];
+    const spy = new Proxy(gl, {
+      get: (t, prop) =>
+        prop === "bufferSubData"
+          ? (_t: number, _o: number, d: Float32Array, _s: number, n: number) =>
+              written.push(d.slice(0, n))
+          : (t as unknown as Record<string | symbol, unknown>)[prop],
+    }) as WebGL2RenderingContext;
+    return { gl: spy, written };
+  }
+
+  test("ww7: a battle marker carries the band bar's depth and the bands fallen", () => {
+    const { gl, written } = recorder();
+    const pass = new BattleMarkerPass(gl, tex, tex);
+    const v = viewWith({
+      battles: [battle(WARSAW, { depth: 3, band: 1 }), battle(KRAKOW)],
+      regions: [
+        {
+          id: KRAKOW,
+          controller: POL,
+          supplyMilli: 0,
+          useMilli: 0,
+          encircled: false,
+          counts: [],
+          depth: 2,
+          prog: 1,
+        },
+      ],
+    });
+    pass.update(v, 0);
+    const [warsaw, krakow] = rows(written);
+    expect(warsaw.slice(6, 7)).toEqual([0]);
+    // depth 3, one band fallen, the next one fought.
+    expect(warsaw.slice(8, 11)).toEqual([3, 1, 1]);
+    // No band on the battle: the region's, else none at all.
+    expect(krakow.slice(8, 11)).toEqual([2, 1, 1]);
+    const bare = viewWith({ battles: [battle(WARSAW)] });
+    pass.update(bare, 0);
+    expect(rows(written)[0].slice(8, 11)).toEqual([0, 0, 1]);
+  });
+
+  test("ww7: a region taken band by band shows a chip outside a battle, not when finished or fought", () => {
+    const { gl, written } = recorder();
+    const pass = new BattleMarkerPass(gl, tex, tex);
+    const region = (id: number, over: object) => ({
+      id,
+      controller: POL,
+      supplyMilli: 0,
+      useMilli: 0,
+      encircled: false,
+      counts: [],
+      ...over,
+    });
+    const v = viewWith({
+      battles: [battle(KRAKOW)],
+      regions: [
+        region(WARSAW, { depth: 4, prog: 2, taker: DEU }),
+        region(KRAKOW, { depth: 3, prog: 1, taker: DEU }), // in battle: no chip
+        region(BERLIN, { depth: 3, prog: 3, taker: DEU }), // all bands gone
+        region(MUNICH, { depth: 3, prog: 0, taker: DEU }), // untouched
+        region(5, { depth: 1, prog: 0 }),
+      ],
+    });
+    pass.update(v, 0);
+    const kinds = rows(written).map((r) => [r[0], r[1], r[6], r[8], r[9]]);
+    expect(kinds).toEqual([
+      [105, 75, 0, 3, 1], // Krakow's battle marker
+      [105, 25, 1, 4, 2], // Warsaw's chip: depth 4, two fallen
+    ]);
+    // Zoomed far out (a point) the chip is dropped.
+    pass.update(v, 2);
+    expect(rows(written).map((r) => r[6])).toEqual([0]);
+  });
+
+  test("ww7: the chosen army's odds badges, by the win % thresholds; mine only", () => {
+    const { gl, written } = recorder();
+    const pass = new BattleMarkerPass(gl, tex, tex);
+    const odds: [number, number, number][] = [
+      [BERLIN, WARSAW, 20],
+      [MUNICH, KRAKOW, 40],
+      [5, KRAKOW, 65],
+    ];
+    const v = viewWith({
+      armies: [
+        army({ id: 1, mine: mine({ odds }) }),
+        army({ id: 2, owner: POL, region: WARSAW, mine: mine({ odds }) }),
+      ],
+    });
+    const sel = new WwLandSelection();
+    pass.update(v, 0, sel, DEU);
+    expect(pass.instanceCount).toBe(0);
+    sel.select(2); // not the viewer's
+    pass.update(v, 0, sel, DEU);
+    expect(pass.instanceCount).toBe(0);
+    sel.select(1);
+    pass.update(v, 0, sel, DEU);
+    const badges = rows(written).filter((r) => r[6] === 2);
+    expect(badges.map((r) => [r[0], r[1], r[7]])).toEqual([
+      [65, 17, 0], // Berlin: 20 % = low
+      [65, 52, 1], // Munich: 40 % = medium
+      [65, 85, 2], // Rome: 65 % = high
+    ]);
+    // The same view, the same choice: nothing rewritten.
+    const n = written.length;
+    pass.update(v, 0, sel, DEU);
+    expect(written).toHaveLength(n);
   });
 });
 
@@ -508,8 +625,13 @@ describe("PlanArrowPass", () => {
     expect(ofStyle(f, STYLE_HEAD)).toHaveLength(2);
     expect(ofStyle(f, STYLE_FLOW).length).toBeGreaterThan(20);
     expect(ofStyle(f, STYLE_BAND)).toHaveLength(0);
-    // The band starts in the middle of the front: Berlin (65, 17), Munich (65, 52).
-    expect(rowsOf(f)[0].slice(0, 2)).toEqual([65, 34.5]);
+    // ww7: each arrow starts at the zone region nearest its target: Berlin
+    // (65, 17) for Warsaw (105, 25), Munich (65, 52) for Krakow (105, 75).
+    const starts = rowsOf(f).filter((r) => r[4] === 0 && r[6] === STYLE_FLOW);
+    expect(starts.map((r) => r.slice(0, 2))).toEqual([
+      [65, 17],
+      [65, 52],
+    ]);
     pass.update(v, sel, DEU, TPP, new LandFrontWorld(v)); // nothing changed: no upload
     pass.draw(cam, TPP, 0, 65, 17);
     expect(counts.instanced).toBe(1);

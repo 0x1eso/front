@@ -4,7 +4,11 @@
 import { Stance } from "@openfront/engine-api/ww1936/LandTypes";
 import { GameEvent } from "@openfront/shared/EventBus";
 
-/** What a map tap means now (spec §15.3). */
+/**
+ * What a map tap means now (spec §15.3). ww7: "plan" is the [공격] mode (tap
+ * 1-3 enemy regions), "front" the [방어] mode (tap our border regions into or
+ * out of the army's zone); "attack" is the plain one-region attack.
+ */
 export type LandMode =
   | "none"
   | "move"
@@ -31,6 +35,11 @@ export class WwLandSelection {
   /** Plan draft (spec §15.3-5). */
   targets: number[] = [];
   stance: Stance = "balanced";
+  /**
+   * ww7: the zone the last tap sent (army_zone), shown until the engine's
+   * update carries it; null: the army's own (`mine.front`).
+   */
+  zoneDraft: number[] | null = null;
   version = 0;
 
   select(army: number | null): void {
@@ -38,12 +47,15 @@ export class WwLandSelection {
     this.mode = "none";
     this.pending = null;
     this.targets = [];
+    this.stance = "balanced";
+    this.zoneDraft = null;
     this.version++;
   }
 
   setMode(mode: LandMode): void {
     this.mode = mode;
     this.pending = null;
+    this.zoneDraft = null;
     this.version++;
   }
 }

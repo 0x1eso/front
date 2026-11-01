@@ -1,6 +1,9 @@
 import { COUNTRIES } from "@openfront/engine-api/ww1936/Countries";
 import { ID_ARMY } from "@openfront/engine-api/ww1936/DepthTypes";
-import type { ModLine } from "@openfront/engine-api/ww1936/LandTypes";
+import type {
+  BattleSummary,
+  ModLine,
+} from "@openfront/engine-api/ww1936/LandTypes";
 import { assetUrl } from "@openfront/shared/AssetUrls";
 import { EventBus } from "@openfront/shared/EventBus";
 import { html, LitElement, nothing, TemplateResult } from "lit";
@@ -14,6 +17,8 @@ import { fogModelOf } from "./FogModel";
 import {
   battleCard,
   BattleCardData,
+  battleLuck,
+  BattleLuckView,
   landSidesOf,
   regionName,
 } from "./LandModel";
@@ -157,7 +162,7 @@ export class WwBattleCard extends LitElement implements Controller {
         <button
           type="button"
           data-ww-battle-close
-          class="ml-auto size-9 shrink-0 rounded-md hover:bg-white/10"
+          class="ml-auto size-10 shrink-0 rounded-md hover:bg-white/10"
           aria-label=${translateText("common.close")}
           @click=${() => this.show(null)}
         >
@@ -173,6 +178,7 @@ export class WwBattleCard extends LitElement implements Controller {
           style="width: ${Math.max(0, Math.min(1000, b.progressPm)) / 10}%"
         ></div>
       </div>
+      ${this.renderLuck(battleLuck(b, this.luckBand(b)))}
       <div class="grid grid-cols-2 gap-2">
         ${this.renderSide(
           "attacker",
@@ -201,7 +207,7 @@ export class WwBattleCard extends LitElement implements Controller {
         ? html`<button
             type="button"
             data-ww-leave-battle
-            class="h-9 rounded-md border border-red-400/60 bg-red-900/50 px-3 font-semibold hover:bg-red-800/60"
+            class="h-10 rounded-md border border-red-400/60 bg-red-900/50 px-3 font-semibold hover:bg-red-800/60"
             @click=${() => {
               for (const army of d.leaveArmies) {
                 this.eventBus.emit(
@@ -218,6 +224,134 @@ export class WwBattleCard extends LitElement implements Controller {
           </button>`
         : nothing}
     </section>`;
+  }
+
+  /**
+   * The fog's army band on the sides I do not command (3 when the fog is
+   * off): the luck numbers are the engine's exact forecast of both armies,
+   * so they follow what the screen may show of the enemy.
+   */
+  private luckBand(b: BattleSummary): number {
+    const fog = fogModelOf(this.game);
+    if (fog.fogOff()) return 3;
+    const me = this.game.myPlayer()?.smallID() ?? 0;
+    let band = 3;
+    for (const side of [b.attacker, b.defender]) {
+      if (side !== me) band = Math.min(band, fog.bandOf(side, ID_ARMY));
+    }
+    return band;
+  }
+
+  /**
+   * ww7 (design §2.6): the band the fight is in, the attacker's odds, the
+   * ratio at bad / average / good luck, the phase's tactics (and whether the
+   * defence cancels the attack), the initiative and the reserve odds. What
+   * the engine did not send (or the fog hides) is not drawn.
+   */
+  private renderLuck(l: BattleLuckView): TemplateResult | typeof nothing {
+    const tactic = l.tactics;
+    if (
+      l.band === null &&
+      l.barPct === null &&
+      l.range === null &&
+      tactic === null &&
+      l.initiative === null &&
+      l.reinfPct === null
+    ) {
+      return nothing;
+    }
+    return html`<div data-ww-luck class="flex flex-col gap-0.5">
+      ${l.band === null
+        ? nothing
+        : html`<div
+            data-ww-battle-band=${l.band.n}
+            class="flex items-center gap-1.5 text-white/80"
+          >
+            <span class="tabular-nums"
+              >${translateText("ww1936.land.battle_band", {
+                n: l.band.n,
+                d: l.band.of,
+              })}</span
+            >
+            <span class="flex flex-1 gap-0.5">
+              ${Array.from(
+                { length: l.band.of },
+                (_, i) =>
+                  html`<span
+                    class="h-1.5 flex-1 rounded-sm ${i < l.band!.n - 1
+                      ? "bg-amber-400"
+                      : i === l.band!.n - 1
+                        ? "bg-amber-200"
+                        : "bg-white/15"}"
+                  ></span>`,
+              )}
+            </span>
+          </div>`}
+      ${l.barPct === null
+        ? nothing
+        : html`<div class="flex items-center gap-1.5">
+            <div
+              data-ww-odds=${l.winPct ?? ""}
+              class="h-2 flex-1 rounded bg-red-900/70"
+            >
+              <div
+                class="h-2 rounded bg-emerald-400"
+                style="width: ${l.barPct}%"
+              ></div>
+            </div>
+            ${l.winPct === null
+              ? nothing
+              : html`<span data-ww-odds-text class="font-semibold tabular-nums"
+                  >${translateText("ww1936.land.battle_odds", {
+                    pct: l.winPct,
+                  })}</span
+                >`}
+          </div>`}
+      ${l.range === null
+        ? nothing
+        : html`<div data-ww-range class="tabular-nums text-white/80">
+            ${translateText("ww1936.land.battle_range", {
+              low: l.range.low,
+              mid: l.range.mid,
+              high: l.range.high,
+            })}
+          </div>`}
+      ${tactic === null
+        ? nothing
+        : html`<div data-ww-tactics class="flex flex-wrap gap-x-1.5">
+            <span data-ww-tactic-att=${tactic.att}
+              >${translateText(`ww1936.tactic.${tactic.att}`)}</span
+            >
+            <span aria-hidden="true">↔</span>
+            <span data-ww-tactic-def=${tactic.def}
+              >${translateText(`ww1936.tactic.${tactic.def}`)}</span
+            >
+            ${tactic.countered
+              ? html`<span data-ww-tactic-cancel class="text-amber-300"
+                  >${translateText("ww1936.land.battle_tactic_cancel")}</span
+                >`
+              : nothing}
+          </div>`}
+      ${l.initiative === null && l.reinfPct === null
+        ? nothing
+        : html`<div class="flex flex-wrap gap-x-3 tabular-nums text-white/80">
+            ${l.initiative === null
+              ? nothing
+              : html`<span data-ww-initiative
+                  >${translateText("ww1936.land.battle_initiative", {
+                    att: l.initiative.att,
+                    def: l.initiative.def,
+                  })}</span
+                >`}
+            ${l.reinfPct === null
+              ? nothing
+              : html`<span data-ww-reinforce
+                  >${translateText("ww1936.land.battle_reinforce", {
+                    pct: l.reinfPct,
+                  })}</span
+                >`}
+          </div>`}
+    </div>`;
   }
 
   private renderSide(

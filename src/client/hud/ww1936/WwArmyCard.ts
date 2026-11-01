@@ -8,6 +8,7 @@ import type { WwOrderBlock } from "@openfront/engine-api/ww1936/EconomyTypes";
 import {
   GENERAL_TRAITS,
   GeneralTrait,
+  type Stance,
   STANCES,
   traitBit,
   WW_MAX_ARMY_DIVISIONS,
@@ -30,22 +31,28 @@ import { blockText } from "./EconomyModel";
 import { garrisonScopes, myOccRows } from "./EndgameModel";
 import { fogModelOf } from "./FogModel";
 import {
+  ARMY_ACTIONS,
   ARMY_BUTTONS,
   ArmyButton,
   armyCard,
   ArmyCardData,
   armyName,
   attackPreview,
+  AUTO_LEVELS,
+  AutoLevel,
   CardBlock,
   cardBlockText,
   daysOf,
-  frontPreview,
+  defendAnchor,
   landSidesOf,
   movePreview,
   orderBlock,
+  planOrder,
   regionName,
   tapKind,
   tapOrder,
+  zoneOrder,
+  zoneShown,
 } from "./LandModel";
 import {
   LandMode,
@@ -104,40 +111,50 @@ function prepRing(done: number, of: number): TemplateResult {
   </svg>`;
 }
 
+/** ww7: [공격] is the plan (targets), [방어] the front (zone). */
 const BUTTON_KEYS: Readonly<Record<ArmyButton, string>> = {
+  plan: "ww1936.land.btn_attack",
+  front: "ww1936.land.btn_defend",
   move: "ww1936.land.btn_move",
-  attack: "ww1936.land.btn_attack",
-  front: "ww1936.land.btn_front",
-  plan: "ww1936.land.btn_plan",
+  auto: "ww1936.land.btn_auto",
   rail: "ww1936.land.btn_rail",
   sea: "ww1936.land.btn_sea",
   split: "ww1936.land.btn_split",
   merge: "ww1936.land.btn_merge",
-  auto: "ww1936.land.btn_auto",
   more: "ww1936.land.btn_more",
 };
 
 const BUTTON_ICONS: Readonly<Record<ArmyButton, string>> = {
+  plan: "⚔",
+  front: "🛡",
   move: "➜",
-  attack: "⚔",
-  front: "▬",
-  plan: "➹",
+  auto: "🤖",
   rail: "🚂",
   sea: "⚓",
   split: "✂",
   merge: "⊕",
-  auto: "🤖",
   more: "⋯",
 };
 
 /** The buttons that set what the next map tap means (spec §15.3). */
 const BUTTON_MODES: Readonly<Partial<Record<ArmyButton, LandMode>>> = {
-  move: "move",
-  attack: "attack",
-  front: "front",
   plan: "plan",
+  front: "front",
+  move: "move",
   rail: "rail",
   sea: "sea",
+};
+
+/** ww7: the auto level buttons' text. */
+const AUTO_LEVEL_KEYS: Readonly<Record<AutoLevel, string>> = {
+  0: "ww1936.auto.level_0",
+  1: "ww1936.auto.level_1",
+  2: "ww1936.auto.level_2",
+};
+const AUTO_LEVEL_HINTS: Readonly<Record<AutoLevel, string>> = {
+  0: "ww1936.auto.level_hint_0",
+  1: "ww1936.auto.level_hint_1",
+  2: "ww1936.auto.level_hint_2",
 };
 
 /** The general's traits as small icons (pre-flight R7.7: emoji, no new images). */
@@ -202,8 +219,8 @@ export interface CardPlace {
 }
 
 const GAP = 8;
-/** Two rows of 36 px buttons and the padding: a card is never shorter. */
-export const CARD_MIN_PX = 88;
+/** Two rows of 40 px buttons and the padding: a card is never shorter. */
+export const CARD_MIN_PX = 96;
 /** P4: beside the risen dials a card needs at least this much width. */
 export const CARD_MIN_WIDTH_PX = 300;
 
@@ -303,7 +320,8 @@ export class WwArmyCard extends LitElement implements Controller {
     | "merge"
     | "garrison"
     | "raid"
-    | "medal" = "main";
+    | "medal"
+    | "auto" = "main";
   /** The raid kind on show in the raid picker. */
   private raidKind: RaidKind = "raid_para";
   @state() private place: CardPlace = {
@@ -467,6 +485,10 @@ export class WwArmyCard extends LitElement implements Controller {
     this.refused = null;
     const army = c.card.row.id;
     const mode = BUTTON_MODES[id];
+    if (id === "front") {
+      this.tapDefend(c, army);
+      return;
+    }
     if (mode !== undefined) {
       // A second press puts the map back to plain taps.
       this.setMode(c.sel.mode === mode ? "none" : mode);
@@ -495,12 +517,53 @@ export class WwArmyCard extends LitElement implements Controller {
         }
         return;
       case "auto":
-        this.send({ kind: "army_auto", army, on: !c.card.auto });
+        this.panel = this.panel === "auto" ? "main" : "auto";
         return;
       case "more":
         this.panel = "more";
         return;
     }
+  }
+
+  /**
+   * ww7: [방어] — the army holds the border around it (army_front, unless it
+   * already defends: its explicit zone stays), then a tap on one of our
+   * border regions adds it to the zone or drops it. A second press ends the
+   * zone mode.
+   */
+  private tapDefend(c: Ctx, army: number) {
+    if (c.sel.mode === "front") {
+      this.setMode("none");
+      return;
+    }
+    if (c.card.orderKind !== "front") {
+      const anchor = defendAnchor(
+        c.view,
+        c.me,
+        c.view.armies.get(army)?.region ?? 0,
+        landSidesOf(this.game),
+      );
+      if (anchor === null) return;
+      this.send({ kind: "army_front", army, anchor, enemy: 0 });
+    }
+    this.setMode("front");
+  }
+
+  /** ww7: the offensive stance. A plan that ran keeps running with it. */
+  private setStance(c: Ctx, stance: Stance) {
+    const sel = c.sel;
+    const order = c.view.armies.get(c.card.row.id)?.mine?.order;
+    sel.stance = stance;
+    sel.version++;
+    if (order?.kind === "plan") {
+      const army = c.card.row.id;
+      const targets = sel.mode === "plan" ? sel.targets : order.targets;
+      this.send(planOrder(army, targets, stance));
+      if (order.executing && targets.length > 0) {
+        this.send({ kind: "army_execute", army, on: true });
+      }
+    }
+    this.requestUpdate();
   }
 
   private merge(army: number, into: number) {
@@ -572,23 +635,34 @@ export class WwArmyCard extends LitElement implements Controller {
             : translateText(c.card.status.key, c.card.status.params)}
       </span>
       ${c.sel.mode === "plan" ? this.executeButton(c, false) : nothing}
+      ${c.sel.mode === "front" ? this.zoneAutoButton(c) : nothing}
       ${ordering
-        ? this.button("cancel", translateText("common.cancel"), "✕", () => {
-            if (this.invading(c.sel)) this.setInvade(false, 0);
-            else this.setMode("none");
-          })
+        ? this.button(
+            "cancel",
+            // The attack and defend modes keep what the taps sent: "done".
+            translateText(
+              c.sel.mode === "plan" || c.sel.mode === "front"
+                ? "ww1936.land.btn_done"
+                : "common.cancel",
+            ),
+            c.sel.mode === "plan" || c.sel.mode === "front" ? "✓" : "✕",
+            () => {
+              if (this.invading(c.sel)) this.setInvade(false, 0);
+              else this.setMode("none");
+            },
+          )
         : nothing}
       ${this.foldButton(c, true)} ${this.closeButton()}
     </section>`;
   }
 
-  /** Fold to the strip, or open the whole card (36 px). */
+  /** Fold to the strip, or open the whole card (40 px). */
   private foldButton(c: Ctx, folded: boolean): TemplateResult {
     const ordering = this.isOrdering(c.sel);
     return html`<button
       type="button"
       data-ww-card-fold=${folded ? "open" : "fold"}
-      class="size-9 shrink-0 rounded-md border border-white/10 hover:bg-white/10"
+      class="size-10 shrink-0 rounded-md border border-white/10 hover:bg-white/10"
       aria-label=${translateText(
         folded ? "ww1936.land.card_expand" : "ww1936.land.card_collapse",
       )}
@@ -605,7 +679,7 @@ export class WwArmyCard extends LitElement implements Controller {
     return html`<button
       type="button"
       data-ww-card-close
-      class="size-9 shrink-0 rounded-md border border-white/10 hover:bg-white/10"
+      class="size-10 shrink-0 rounded-md border border-white/10 hover:bg-white/10"
       aria-label=${translateText("common.close")}
       @click=${() => this.eventBus.emit(new WwSelectArmyEvent(null))}
     >
@@ -625,8 +699,10 @@ export class WwArmyCard extends LitElement implements Controller {
       @contextmenu=${(e: Event) => e.preventDefault()}
     >
       <div class="flex min-w-0 flex-1 flex-col gap-0.5">
-        <div class="flex min-w-0 items-baseline gap-1.5">
-          <span class="shrink-0 text-sm font-bold">${armyName(r.nameNo)}</span>
+        <div class="flex min-w-0 items-center gap-1.5">
+          <span class="min-w-0 truncate text-sm font-bold"
+            >${armyName(r.nameNo)}</span
+          >
           <span
             data-ww-army-divisions
             class="shrink-0 tabular-nums text-white/70"
@@ -635,9 +711,12 @@ export class WwArmyCard extends LitElement implements Controller {
               max: WW_MAX_ARMY_DIVISIONS,
             })}</span
           >
-          ${this.renderGeneral(c)}
+          <!-- ww7: on the header's right, so the buttons keep the card's width. -->
+          <div class="ml-auto flex shrink-0 gap-1">
+            ${this.foldButton(c, false)} ${this.closeButton()}
+          </div>
         </div>
-        ${this.renderBars(r.strengthPm, r.orgPm)}
+        ${this.renderGeneral(c)} ${this.renderBars(r.strengthPm, r.orgPm)}
         ${line !== nothing && this.place.maxHeight <= CARD_MIN_PX
           ? // No room for both (a landscape phone): the tap's preview first.
             nothing
@@ -664,33 +743,36 @@ export class WwArmyCard extends LitElement implements Controller {
               >
               ${this.renderInvasion(c)}
             </div>`}
-        ${this.renderAutoCommand(c)} ${line}
+        ${this.renderOrderLine(c)} ${line}
       </div>
       <div
         data-ww-card-buttons=${this.panel}
-        class="grid shrink-0 grid-cols-5 content-start gap-1"
+        class="${this.panel === "main" || this.panel === "auto"
+          ? "flex flex-col"
+          : "grid grid-cols-5 content-start"} shrink-0 gap-1"
       >
-        ${c.sel.mode === "plan" && this.panel === "main"
-          ? this.renderPlan(c)
-          : this.panel === "more"
-            ? this.renderMore(c)
-            : this.panel === "merge"
-              ? this.renderMerge(c)
-              : this.panel === "garrison"
-                ? this.renderGarrison(c)
-                : this.panel === "raid"
-                  ? this.renderRaid(c)
-                  : this.panel === "medal"
-                    ? this.renderMedals(c)
-                    : this.renderButtons(c)}
-      </div>
-      <div class="flex shrink-0 flex-col gap-1">
-        ${this.foldButton(c, false)} ${this.closeButton()}
+        ${this.panel === "main"
+          ? c.sel.mode === "plan"
+            ? this.renderPlan(c)
+            : c.sel.mode === "front"
+              ? this.renderZone(c)
+              : this.renderButtons(c)
+          : this.panel === "auto"
+            ? this.renderAutoLevels(c)
+            : this.panel === "more"
+              ? this.renderMore(c)
+              : this.panel === "merge"
+                ? this.renderMerge(c)
+                : this.panel === "garrison"
+                  ? this.renderGarrison(c)
+                  : this.panel === "raid"
+                    ? this.renderRaid(c)
+                    : this.renderMedals(c)}
       </div>
     </section>`;
   }
 
-  /** The general on the name's row: name, the four skills, the traits. */
+  /** The general under the name's row: name, the four skills, the traits. */
   private renderGeneral(c: Ctx): TemplateResult | typeof nothing {
     const g = c.card.general;
     if (g === null) return nothing;
@@ -761,7 +843,9 @@ export class WwArmyCard extends LitElement implements Controller {
             max: WW_MAX_TARGETS,
           })
         : sel.mode === "front"
-          ? translateText("ww1936.land.hint_front")
+          ? translateText("ww1936.land.hint_defend", {
+              n: zoneShown(c.view, sel, c.card.row.id).length,
+            })
           : sel.mode === "attack" || sel.mode === "paradrop"
             ? translateText("ww1936.land.hint_enemy")
             : translateText("ww1936.land.hint_region");
@@ -965,14 +1049,6 @@ export class WwArmyCard extends LitElement implements Controller {
         (n, owner) => fog.previewEnemyValue(n, owner),
       );
       if (p !== null) body = this.renderAttack(name, p, compact);
-    } else if (kind === "front") {
-      const front = frontPreview(c.view, c.me, army, region, sides);
-      body = html`<span data-ww-front
-        >▬
-        ${(front.length > 0 ? front : [region])
-          .map((r) => regionName(c.view.scenario, r))
-          .join(", ")}</span
-      >`;
     }
     return html`<span
       data-ww-preview=${kind ?? ""}
@@ -1049,6 +1125,11 @@ export class WwArmyCard extends LitElement implements Controller {
       pressed?: boolean;
       danger?: boolean;
       wide?: boolean;
+      /** The action row's: taller (44 px), the green "on" look for an auto level. */
+      tall?: boolean;
+      on?: boolean;
+      /** A small mark on the button (the auto level). */
+      badge?: string;
     } = {},
   ): TemplateResult {
     return html`<button
@@ -1058,7 +1139,9 @@ export class WwArmyCard extends LitElement implements Controller {
       aria-pressed=${opts.pressed === undefined
         ? nothing
         : String(opts.pressed)}
-      class="flex h-9 min-w-9 flex-col items-center justify-center rounded-md border px-1 leading-none ${opts.wide
+      class="relative flex ${opts.tall
+        ? "h-11 min-w-11"
+        : "h-10 min-w-10"} flex-col items-center justify-center rounded-md border px-1 leading-none ${opts.wide
         ? "col-span-2"
         : ""} ${opts.grey
         ? "border-white/5 bg-white/5 text-white/35"
@@ -1066,11 +1149,20 @@ export class WwArmyCard extends LitElement implements Controller {
           ? "border-red-400 bg-red-900/60"
           : opts.pressed
             ? "border-amber-300 bg-amber-700/50"
-            : "border-white/15 bg-white/10 hover:bg-white/20"}"
+            : opts.on
+              ? "border-emerald-400/70 bg-emerald-900/50 text-emerald-100"
+              : "border-white/15 bg-white/10 hover:bg-white/20"}"
       @click=${act}
     >
       <span aria-hidden="true" class="text-sm">${icon}</span>
       <span class="max-w-14 truncate text-xs">${label}</span>
+      ${opts.badge === undefined
+        ? nothing
+        : html`<span
+            data-ww-btn-badge
+            class="absolute right-0.5 top-0.5 rounded bg-emerald-500 px-1 text-xs font-bold leading-none text-black"
+            >${opts.badge}</span
+          >`}
     </button>`;
   }
 
@@ -1119,72 +1211,211 @@ export class WwArmyCard extends LitElement implements Controller {
   }
 
   /**
-   * Automation (owner brief 2026-10-30): [자동 지휘] — the AI holds the
-   * army's front and attacks (army_auto, P2 spec §8.5), as a clear on/off
-   * switch with its one-line hint, in place of the grid's 🤖 button.
+   * ww7: what the army does — defending a zone (its size), attacking
+   * (the targets, running or not) — its auto level (owner brief 2026-10-30
+   * made the AI's command a switch; now two levels) and the country's
+   * uncovered border regions.
    */
-  private renderAutoCommand(c: Ctx): TemplateResult {
-    const on = c.card.auto;
-    const block = c.card.buttons.find((b) => b.id === "auto")?.block ?? null;
-    const state = translateText(on ? "ww1936.auto.on" : "ww1936.auto.off");
-    return html`<div class="flex min-w-0 items-center gap-1.5">
-      <button
-        type="button"
-        role="switch"
-        data-ww-army-btn="auto"
-        aria-checked=${String(on)}
-        class="flex h-9 shrink-0 items-center gap-1 rounded-md border px-1.5 font-semibold ${on
-          ? "border-emerald-400/70 bg-emerald-900/50 text-emerald-100"
-          : "border-white/15 bg-white/5 hover:bg-white/10"} ${block === null
-          ? ""
-          : "opacity-40"}"
-        @click=${() => this.tapButton(c, "auto", block)}
-      >
-        🤖 ${translateText("ww1936.auto.army")}
-        <span
-          aria-hidden="true"
-          class="relative inline-block h-3.5 w-6 rounded-full ${on
-            ? "bg-emerald-400"
-            : "bg-white/25"}"
-          ><span
-            class="absolute top-0.5 size-2.5 rounded-full bg-white ${on
-              ? "left-3"
-              : "left-0.5"}"
-          ></span
-        ></span>
-        ${state}
-      </button>
-      <span class="min-w-0 truncate text-xs text-white/60"
-        >${translateText("ww1936.auto.army_hint")}</span
-      >
+  private renderOrderLine(c: Ctx): TemplateResult | typeof nothing {
+    if (this.place.maxHeight <= CARD_MIN_PX) return nothing;
+    const k = c.card.orderKind;
+    const names = c.card.targets
+      .map((t) => regionName(c.view.scenario, t))
+      .join(", ");
+    return html`<div
+      data-ww-order-line
+      class="flex min-w-0 flex-wrap gap-x-2 text-white/80"
+    >
+      ${k === "front"
+        ? html`<span data-ww-order="front" class="text-sky-300"
+            >🛡
+            ${translateText("ww1936.land.order_defend", {
+              n: c.card.zone.length,
+            })}</span
+          >`
+        : k === "plan"
+          ? html`<span data-ww-order="plan" class="text-amber-200"
+              >⚔
+              ${translateText(
+                c.card.executing
+                  ? "ww1936.land.order_attack_running"
+                  : "ww1936.land.order_attack",
+                { targets: names },
+              )}</span
+            >`
+          : nothing}
+      ${c.card.autoLevel > 0
+        ? html`<span
+            data-ww-auto-level=${c.card.autoLevel}
+            class="text-emerald-300"
+            >🤖 ${translateText(AUTO_LEVEL_KEYS[c.card.autoLevel])}</span
+          >`
+        : nothing}
+      ${c.card.gaps > 0
+        ? html`<span data-ww-gaps=${c.card.gaps} class="text-red-300"
+            >${translateText("ww1936.land.gaps", { n: c.card.gaps })}</span
+          >`
+        : nothing}
     </div>`;
   }
 
+  /** The action row [공격] [방어] [이동] [자동], the stance switch, and the rest. */
   private renderButtons(c: Ctx): TemplateResult[] {
     // An easy invasion sails by itself: no [Launch] (spec §11's keep it).
     const inv = c.navy === null ? null : invasionOf(c.navy, c.card.row.id);
     const landing = inv !== null && inv.easy !== true;
-    // [자동 지휘] has its own switch row (renderAutoCommand).
-    return ARMY_BUTTONS.filter((id) => id !== "auto").map((id) => {
+    const one = (id: ArmyButton, tall = false) => {
       // A landing in preparation takes the sea move's place.
       if (id === "sea" && landing) return this.launchButton(c);
       const block = c.card.buttons.find((b) => b.id === id)?.block ?? null;
       const mode = BUTTON_MODES[id];
-      const pressed = mode !== undefined ? c.sel.mode === mode : undefined;
+      const level = id === "auto" ? c.card.autoLevel : 0;
+      const pressed =
+        mode !== undefined
+          ? c.sel.mode === mode
+          : id === "auto"
+            ? this.panel === "auto"
+            : undefined;
       return this.button(
         id,
         translateText(BUTTON_KEYS[id]),
         BUTTON_ICONS[id],
         () => this.tapButton(c, id, block),
-        { grey: block !== null, pressed },
+        {
+          grey: block !== null,
+          pressed,
+          tall,
+          on: level > 0,
+          badge: level > 0 ? String(level) : undefined,
+        },
       );
-    });
+    };
+    const rest = ARMY_BUTTONS.filter(
+      (id) => !(ARMY_ACTIONS as readonly string[]).includes(id),
+    );
+    return [
+      html`<div data-ww-action-row class="grid grid-cols-4 gap-1">
+        ${ARMY_ACTIONS.map((id) => one(id, true))}
+      </div>`,
+      this.renderStance(c),
+      html`<div class="grid grid-cols-5 gap-1">
+        ${rest.map((id) => one(id))}
+      </div>`,
+    ];
   }
 
   /**
-   * The plan's big button (spec §15.3-5): the first press sends the drawn
-   * plan, the second within 3 s runs it (and leaves plan mode); while it
-   * runs, one press stops it.
+   * ww7: the offensive stance switch 신중 / 보통 / 과감 (default 보통); a
+   * running attack gets its [중지] beside it.
+   */
+  private renderStance(c: Ctx): TemplateResult {
+    const stance = c.card.orderKind === "plan" ? c.card.stance : c.sel.stance;
+    const army = c.card.row.id;
+    return html`<div
+      data-ww-stance
+      role="radiogroup"
+      aria-label=${translateText("ww1936.land.stance_label")}
+      class="grid ${c.card.executing ? "grid-cols-4" : "grid-cols-3"} gap-1"
+    >
+      ${STANCES.map((s) =>
+        this.button(
+          `stance_${s}`,
+          translateText(STANCE_KEYS[s]),
+          s === "careful" ? "🛡" : s === "balanced" ? "⚖" : "🔥",
+          () => this.setStance(c, s),
+          { pressed: stance === s },
+        ),
+      )}
+      ${c.card.executing
+        ? this.button(
+            "stop",
+            translateText("ww1936.land.btn_stop"),
+            "■",
+            () => this.send({ kind: "army_execute", army, on: false }),
+            { danger: true },
+          )
+        : nothing}
+    </div>`;
+  }
+
+  /** ww7: [자동]'s choices — off, 수비 자동 (level 1), 공세 자동 (level 2) — and what the pressed one means. */
+  private renderAutoLevels(c: Ctx): TemplateResult[] {
+    const army = c.card.row.id;
+    return [
+      html`<div class="grid grid-cols-3 gap-1">
+        ${AUTO_LEVELS.map((level) =>
+          this.levelButton(
+            `auto_${level}`,
+            translateText(AUTO_LEVEL_KEYS[level]),
+            () => {
+              this.send({ kind: "army_auto_level", army, level });
+              this.panel = "main";
+            },
+            c.card.autoLevel === level,
+          ),
+        )}
+      </div>`,
+      html`<span data-ww-auto-hint class="max-w-56 text-xs text-white/70"
+        >${translateText(AUTO_LEVEL_HINTS[c.card.autoLevel])}</span
+      >`,
+      this.button("back", translateText("common.back"), "←", () => {
+        this.panel = "main";
+      }),
+    ];
+  }
+
+  /** A text-only choice button (the auto levels): 44 px, the words wrap. */
+  private levelButton(
+    id: string,
+    label: string,
+    act: () => void,
+    on: boolean,
+  ): TemplateResult {
+    return html`<button
+      type="button"
+      data-ww-army-btn=${id}
+      aria-pressed=${String(on)}
+      class="flex h-11 min-w-16 items-center justify-center rounded-md border px-1 text-center text-xs font-semibold leading-tight ${on
+        ? "border-emerald-400/70 bg-emerald-900/50 text-emerald-100"
+        : "border-white/15 bg-white/10 hover:bg-white/20"}"
+      @click=${act}
+    >
+      ${label}
+    </button>`;
+  }
+
+  /** ww7: [방어] mode on the unfolded card: back to the automatic zone, done. */
+  private renderZone(c: Ctx): TemplateResult[] {
+    return [
+      html`<div class="grid grid-cols-3 gap-1">
+        ${this.zoneAutoButton(c, true)}
+        ${this.button("back", translateText("ww1936.land.btn_done"), "✓", () =>
+          this.setMode("none"),
+        )}
+      </div>`,
+    ];
+  }
+
+  /** [구역 자동]: the explicit zone goes (army_zone with no regions) and the engine picks it. */
+  private zoneAutoButton(c: Ctx, wide = false): TemplateResult {
+    const army = c.card.row.id;
+    return this.button(
+      "zone_auto",
+      translateText("ww1936.land.btn_zone_auto"),
+      "↺",
+      () => {
+        c.sel.zoneDraft = [];
+        c.sel.version++;
+        this.send(zoneOrder(army, []));
+      },
+      { wide },
+    );
+  }
+
+  /**
+   * ww7: [실행] — the plan the taps drew runs (army_execute on; the plan is
+   * sent again first only if the engine's differs); while it runs, one
+   * press stops it. Greyed until a target is chosen.
    */
   private executeButton(c: Ctx, wide: boolean): TemplateResult {
     const army = c.card.row.id;
@@ -1200,27 +1431,23 @@ export class WwArmyCard extends LitElement implements Controller {
         { danger: true, wide },
       );
     }
-    const plan: LandOrder = {
-      kind: "army_plan",
-      army,
-      targets: [...c.sel.targets],
-      stance: c.sel.stance,
-    };
-    const block = orderBlock(
-      c.view,
-      c.economy,
-      c.me,
-      c.day,
-      plan,
-      landSidesOf(this.game),
-    );
-    const key = `execute:${army}`;
-    const armed = this.armed(key);
+    const targets = [...c.sel.targets];
+    const stance = c.sel.stance;
+    const plan = planOrder(army, targets, stance);
+    const block: CardBlock | null =
+      targets.length === 0
+        ? "no_target"
+        : orderBlock(
+            c.view,
+            c.economy,
+            c.me,
+            c.day,
+            plan,
+            landSidesOf(this.game),
+          );
     return this.button(
       "execute",
-      translateText(
-        armed ? "ww1936.land.tap_again" : "ww1936.land.btn_execute",
-      ),
+      translateText("ww1936.land.btn_execute"),
       "▶",
       () => {
         if (block !== null) {
@@ -1228,38 +1455,39 @@ export class WwArmyCard extends LitElement implements Controller {
           return;
         }
         this.refused = null;
-        this.confirmTap(key, () => {
-          this.send({ kind: "army_execute", army, on: true });
-          // The plan is the army's now: the draft goes with the mode.
-          this.setMode("none");
-        });
-        if (this.armed(key)) this.send(plan);
+        const order = c.view.armies.get(army)?.mine?.order;
+        const same =
+          order?.kind === "plan" &&
+          order.stance === stance &&
+          order.targets.length === targets.length &&
+          order.targets.every((t, i) => t === targets[i]);
+        if (!same) this.send(plan);
+        this.send({ kind: "army_execute", army, on: true });
+        // The plan is the army's now: the draft goes with the mode.
+        this.setMode("none");
       },
-      { grey: block !== null, pressed: armed, wide },
+      { grey: block !== null, wide },
     );
   }
 
-  /** Plan mode (spec §15.3-5): the stance, and the big execute button. */
+  /** [공격] mode on the unfolded card: the stance, [실행], back. */
   private renderPlan(c: Ctx): TemplateResult[] {
-    const stances = STANCES.map((s) =>
-      this.button(
-        `stance_${s}`,
-        translateText(STANCE_KEYS[s]),
-        s === "careful" ? "🛡" : s === "balanced" ? "⚖" : "🔥",
-        () => {
-          c.sel.stance = s;
-          c.sel.version++;
-          this.requestUpdate();
-        },
-        { pressed: c.sel.stance === s },
-      ),
-    );
     return [
-      ...stances,
-      this.executeButton(c, true),
-      this.button("back", translateText("common.back"), "←", () =>
-        this.setMode("none"),
-      ),
+      html`<div data-ww-plan-panel class="grid grid-cols-3 gap-1">
+        ${STANCES.map((s) =>
+          this.button(
+            `stance_${s}`,
+            translateText(STANCE_KEYS[s]),
+            s === "careful" ? "🛡" : s === "balanced" ? "⚖" : "🔥",
+            () => this.setStance(c, s),
+            { pressed: c.sel.stance === s },
+          ),
+        )}
+        ${this.executeButton(c, true)}
+        ${this.button("back", translateText("common.back"), "←", () =>
+          this.setMode("none"),
+        )}
+      </div>`,
     ];
   }
 

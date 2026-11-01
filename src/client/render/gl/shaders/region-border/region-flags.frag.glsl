@@ -5,6 +5,9 @@ precision highp usampler2D;
 
 // World War 1936 P2 region flags (spec §15.2), drawn over the territory at
 // any zoom:
+//   bit 0 (ww7, zone): the chosen army's zone, a soft fill in the viewer's
+//     colour with a rim;
+//   bit 5 (ww7, gap): a border region nobody covers, blinking red;
 //   bit 1 (enemy) next to bit 0 (front): a thick ribbon in the viewer's
 //     colour on the enemy's side of the boundary, between dark rims;
 //   bit 2: red hatching (an encircled region of the viewer's side);
@@ -27,6 +30,14 @@ out vec4 fragColor;
 const vec3 HATCH = vec3(0.86, 0.1, 0.08);
 const vec3 GLOW = vec3(1.0, 0.93, 0.6);
 const vec3 BOMBED = vec3(0.96, 0.55, 0.1);
+const vec3 GAP = vec3(0.95, 0.12, 0.1);
+
+// The viewer's colour, a little livelier than the territory fill.
+vec3 viewerColor() {
+  vec3 c = texelFetch(uPalette, ivec2(uMe, 0), 0).rgb;
+  float l = dot(c, vec3(0.299, 0.587, 0.114));
+  return clamp(mix(vec3(l), c, 1.3), 0.0, 1.0);
+}
 
 uint regionAt(vec2 w) {
   ivec2 tc = clamp(ivec2(floor(w)), ivec2(0), ivec2(MAP_W - 1, MAP_H - 1));
@@ -58,8 +69,25 @@ void main() {
   vec2 w = vUV * vec2(float(MAP_W), float(MAP_H));
   uint id = regionAt(w);
   uint f = flagsOf(id);
-  if ((f & 30u) == 0u) discard; // bits 1-4: only those regions draw
+  if ((f & 63u) == 0u) discard; // bits 0-5: only those regions draw
   vec4 col = vec4(0.0);
+
+  if ((f & 1u) != 0u) {
+    // The zone: a fill in the army's colour (lightened: the territory is
+    // already that colour), its outline stronger.
+    float r = 1.5 * uTilesPerPx;
+    bool rim = regionAt(w + vec2(r, 0.0)) != id || regionAt(w - vec2(r, 0.0)) != id ||
+      regionAt(w + vec2(0.0, r)) != id || regionAt(w - vec2(0.0, r)) != id;
+    col = over(col, mix(viewerColor(), vec3(1.0), 0.4), rim ? 0.85 : 0.34);
+  }
+
+  if ((f & 32u) != 0u) {
+    // A gap: red fill breathing fast, with stripes, so it is not missed.
+    float pulse = 0.5 + 0.5 * sin(uTime * 5.0);
+    float s = (w.x + w.y) / uTilesPerPx;
+    float stripe = 1.0 - step(3.0, mod(s, 10.0));
+    col = over(col, GAP, 0.12 + 0.28 * pulse + 0.2 * stripe * pulse);
+  }
 
   if ((f & 4u) != 0u) {
     float s = (w.x + w.y) / uTilesPerPx;
@@ -89,9 +117,7 @@ void main() {
     float rim = max(1.2 * uTilesPerPx, 0.12);
     float wide = max(7.0 * uTilesPerPx, 0.9);
     if (frontAround(w, wide)) {
-      vec3 c = texelFetch(uPalette, ivec2(uMe, 0), 0).rgb;
-      float l = dot(c, vec3(0.299, 0.587, 0.114));
-      vec3 mine = clamp(mix(vec3(l), c, 1.3), 0.0, 1.0);
+      vec3 mine = viewerColor();
       bool edge = frontAround(w, rim) || !frontAround(w, wide - rim);
       col = over(col, edge ? vec3(0.05) : mine, 0.95);
     }

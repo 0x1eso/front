@@ -170,6 +170,14 @@ void main() {
       vec4 tAuto = atlas(float(CELL_AUTO), (p - autoC) / 12.0 + 0.5);
       col = over(col, vec3(0.06, 0.45, 0.30), 0.95 * cover(dAuto));
       col = overTexel(col, tAuto, cover(dAuto));
+      // ww7: its level (1 defence, 2 full) in a smaller badge beside it.
+      if (vC.z > 0.5) {
+        vec2 lvC = vec2(-8.0, -11.0);
+        float dLv = length(p - lvC) - 5.0;
+        vec4 tLv = atlas(float(NUMBER_CELL0) + floor(vC.z + 0.5), (p - lvC) / 10.0 + 0.5);
+        col = over(col, vec3(0.06, 0.45, 0.30), 0.95 * cover(dLv));
+        col = overTexel(col, tLv, cover(dLv));
+      }
     }
   } else if (kind < 1.5) {
     // Number chip.

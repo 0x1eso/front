@@ -16,6 +16,7 @@
  * without armies.
  */
 
+import { ARMY_AUTO } from "@openfront/engine-api/ww1936/LandTypes";
 import {
   type FogArmyView,
   type FogGhost,
@@ -27,9 +28,9 @@ import {
   multiSelectOf,
 } from "../../../hud/ww1936/MultiSelect";
 import type { TokenLayoutCache } from "../../../view/LandTokenLayout";
+import { autoLevelOf } from "../../../view/WarBadges";
 import type { WwLandView } from "../../../view/WwLandView";
 import { DynamicInstanceBuffer } from "../DynamicBuffer";
-import { ARMY_AUTO } from "@openfront/engine-api/ww1936/LandTypes";
 import {
   ATLAS_COLS,
   ATLAS_ROWS,
@@ -43,6 +44,7 @@ import {
   ICON_SEA,
   MAX_NUMBER,
   NUMBER_CELL0,
+  ODDS_CELL0,
 } from "../LandAtlas";
 import fragSrc from "../shaders/army-token/army-token.frag.glsl?raw";
 import vertSrc from "../shaders/army-token/army-token.vert.glsl?raw";
@@ -63,6 +65,7 @@ export const ATLAS_DEFINES: Record<string, number> = {
   ATLAS_ROWS,
   NUMBER_CELL0,
   MAX_NUMBER,
+  ODDS_CELL0,
   ICON_MOVE,
   ICON_BATTLE,
   ICON_RAIL,
@@ -280,7 +283,12 @@ export class ArmyTokenPass {
     // Automation: the "A" mark shows on the viewer's own auto armies only.
     f[o + 8] = a.owner === me ? a.state : a.state & ~ARMY_AUTO;
     f[o + 9] = chosen ? 1 : 0;
-    f[o + 10] = 0;
+    // ww7: the auto level (1 defence, 2 full) of the viewer's own armies,
+    // shown beside the "A".
+    f[o + 10] =
+      a.owner === me && a.mine !== null && (a.state & ARMY_AUTO) !== 0
+        ? Math.max(1, autoLevelOf(a.mine))
+        : 0;
     // Fog bits (FOG_*) and, above them, the army group's palette colour
     // (1..8, 0 none: a thin band under the token; U1 and U3 share the float).
     f[o + 11] =

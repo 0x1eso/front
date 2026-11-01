@@ -2,6 +2,7 @@
 // the test map — choose a token, preview with a first tap, order with a
 // second, cancel elsewhere — with a fake token layout (the render lane's).
 import type { WwOrder } from "@openfront/engine-api/Schemas";
+import { idleOrder } from "@openfront/engine-api/ww1936/LandTypes";
 import { EventBus } from "@openfront/shared/EventBus";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -16,7 +17,7 @@ vi.mock("../../../src/client/Utils", async (importOriginal) => ({
 }));
 
 // The fronts are Task 3's (stubs here): border regions are my side's
-// regions with an enemy neighbour, a front is its anchor.
+// regions with an enemy neighbour.
 vi.mock("@openfront/engine-lib/ww1936/FrontRules", async (orig) => {
   const real =
     await orig<typeof import("@openfront/engine-lib/ww1936/FrontRules")>();
@@ -68,6 +69,7 @@ import {
   fakeLandGame,
   landDetail,
   LandOptions,
+  mine,
   scenario,
 } from "./LandFixture";
 
@@ -180,9 +182,9 @@ describe("WwLandController (spec §15.3)", () => {
     document.body.innerHTML = "";
   });
 
-  it("select, front, confirm in four taps", async () => {
+  it("select, [방어], then border taps grow and shrink the zone", async () => {
     const m = setup();
-    // The card the second tap presses.
+    // The card the button press comes from.
     const card = document.createElement("ww-army-card") as WwArmyCard;
     card.game = m.game as never;
     card.eventBus = m.bus;
@@ -193,23 +195,60 @@ describe("WwLandController (spec §15.3)", () => {
     expect(m.sel.army).toBe(1);
     card.tick();
     await card.updateComplete;
-    // 2. [Front] on the card.
-    m.countTap();
+    // 2. [방어] on the card: the army holds the border around it at once.
     card
       .querySelector<HTMLButtonElement>("[data-ww-army-btn='front']")!
       .click();
     expect(m.sel.mode).toBe("front");
-    // 3. A border region (Berlin touches Warsaw): its preview.
-    m.tapRegion(3);
-    expect(m.sel.pending).toBe(3);
-    expect(m.sent).toEqual([]);
-    // 4. The same region: the order.
-    m.tapRegion(3);
     expect(m.sent).toEqual([
       { kind: "army_front", army: 1, anchor: 3, enemy: 0 },
     ]);
-    expect(m.taps()).toBeLessThanOrEqual(4);
-    expect(m.sel).toMatchObject({ army: 1, mode: "none", pending: null });
+    // 3. Our border regions: Berlin joins the zone, Munich too, Berlin leaves.
+    m.sent.length = 0;
+    m.tapRegion(3);
+    m.tapRegion(4);
+    m.tapRegion(3);
+    expect(m.sent).toEqual([
+      { kind: "army_zone", army: 1, regions: [3] },
+      { kind: "army_zone", army: 1, regions: [3, 4] },
+      { kind: "army_zone", army: 1, regions: [4] },
+    ]);
+    expect(m.sel.zoneDraft).toEqual([4]);
+    // Stray taps (the enemy's region, the sea) keep the mode and the zone.
+    m.tapRegion(6);
+    m.tap(150, 110);
+    expect(m.sel).toMatchObject({ army: 1, mode: "front", zoneDraft: [4] });
+    expect(m.sent).toHaveLength(3);
+  });
+
+  it("the engine's own zone replaces the tapped one once it carries it", () => {
+    const m = setup();
+    m.tap(...center(3));
+    m.bus.emit(new WwLandModeEvent("front"));
+    m.tapRegion(4);
+    expect(m.sel.zoneDraft).toEqual([4]);
+    // The next update: the order holds the zone.
+    const order = { ...idleOrder(), kind: "front" as const, zone: [4] };
+    m.land.apply(
+      {
+        armies: [army(1, "DEU", 3, { mine: mine({ order, front: [4] }) })],
+        removedArmies: [],
+        battles: [],
+        endedBattles: [],
+        regions: [],
+        countries: [],
+        details: [],
+      },
+      701,
+    );
+    m.controller.tick();
+    expect(m.sel.zoneDraft).toBeNull();
+    // A zone the engine never carried gives way after a while.
+    m.tapRegion(3);
+    expect(m.sel.zoneDraft).toEqual([4, 3]);
+    m.advance(5000);
+    m.controller.tick();
+    expect(m.sel.zoneDraft).toBeNull();
   });
 
   it("a second tap on the same region confirms; elsewhere cancels", () => {
@@ -274,7 +313,7 @@ describe("WwLandController (spec §15.3)", () => {
     expect(seen).toEqual([1, 2, 3, 1]);
   });
 
-  it("plan targets toggle up to three", () => {
+  it("[공격]: targets toggle up to three and each change goes to the engine as the plan", () => {
     const m = setup({
       wars: [
         ["DEU", "POL"],
@@ -285,18 +324,55 @@ describe("WwLandController (spec §15.3)", () => {
     m.bus.emit(new WwLandModeEvent("plan"));
     for (const r of [6, 7, 8, 9]) m.tapRegion(r);
     expect(m.sel.targets).toEqual([6, 7, 8]);
+    // The fourth changed nothing: nothing sent.
+    expect(m.sent).toEqual([
+      { kind: "army_plan", army: 1, targets: [6], stance: "balanced" },
+      { kind: "army_plan", army: 1, targets: [6, 7], stance: "balanced" },
+      { kind: "army_plan", army: 1, targets: [6, 7, 8], stance: "balanced" },
+    ]);
     m.tapRegion(7);
     expect(m.sel.targets).toEqual([6, 8]);
-    // Targets only: the card's execute button sends the plan.
-    expect(m.sent).toEqual([]);
+    expect(m.sent[3]).toEqual({
+      kind: "army_plan",
+      army: 1,
+      targets: [6, 8],
+      stance: "balanced",
+    });
     // Stray taps (my own region, the sea) keep the mode and the draft.
     m.tapRegion(4);
     m.tap(150, 110);
     expect(m.sel.mode).toBe("plan");
     expect(m.sel.targets).toEqual([6, 8]);
-    // Leaving plan mode (the card's back or cancel) drops the draft.
+    expect(m.sent).toHaveLength(4);
+    // Leaving plan mode (the card's back or done) drops the draft.
     m.bus.emit(new WwLandModeEvent("none"));
     expect(m.sel.targets).toEqual([]);
+  });
+
+  it("[공격]: a running plan keeps running with new targets; the stance rides along", () => {
+    const order = {
+      ...idleOrder(),
+      kind: "plan" as const,
+      targets: [6],
+      stance: "aggressive" as const,
+      executing: true,
+    };
+    const m = setup({
+      wars: [
+        ["DEU", "POL"],
+        ["DEU", "SUN"],
+      ],
+      armies: [army(1, "DEU", 3, { mine: mine({ order }) })],
+    });
+    m.tap(...center(3));
+    m.bus.emit(new WwLandModeEvent("plan"));
+    // The plan's own targets and stance start the draft.
+    expect(m.sel).toMatchObject({ targets: [6], stance: "aggressive" });
+    m.tapRegion(7);
+    expect(m.sent).toEqual([
+      { kind: "army_plan", army: 1, targets: [6, 7], stance: "aggressive" },
+      { kind: "army_execute", army: 1, on: true },
+    ]);
   });
 
   it("in an order mode another army's token stands for its region", () => {

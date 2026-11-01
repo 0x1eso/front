@@ -374,7 +374,7 @@ export async function runWwClientPerf(): Promise<void> {
     parts.navalBattles.end(rec);
 
     parts.landFlags.begin();
-    regionFlagBytes(land, sel, me, [], world, flags);
+    regionFlagBytes(land, sel, me, world, flags);
     parts.landFlags.end(rec);
 
     // The occupation map mode on while I administer regions, the

@@ -2,9 +2,10 @@
  * PlanArrowPass — World War 1936 P2 (spec §15.2, §15.3): the viewer's chosen
  * army's intentions, as curved bands of instanced pieces.
  *
- * - Its plan: from the middle of its front regions' centers to each target's
- *   center, a quadratic Bézier band with a head; light stripes flow along it
- *   while the plan executes (a time uniform, nothing rebuilt).
+ * - Its plan: from its zone's region nearest to each target (ww7: the
+ *   zone is `mine.front`) to the target's center, a quadratic Bézier band
+ *   with a head; light stripes flow along it while the plan executes (a
+ *   time uniform, nothing rebuilt).
  * - Its move order's remaining path (`mine.path`): a dotted line from the
  *   token (which glides, so the first leg follows it each frame) through the
  *   path's region centers.
@@ -166,33 +167,37 @@ export class PlanArrowPass {
     const cx = (r: number) => sc.centerTile(r) % w;
     const cy = (r: number) => Math.floor(sc.centerTile(r) / w);
 
-    // Plans start from the middle of the front, else from the army.
-    let sx = cx(army.region);
-    let sy = cy(army.region);
-    if (mine.front.length > 0) {
-      sx = 0;
-      sy = 0;
-      for (const f of mine.front) {
-        sx += cx(f);
-        sy += cy(f);
+    // ww7: a plan's arrows start from the zone region nearest the target,
+    // else from the army's own region.
+    const zone = mine.front;
+    const fromZone = (tx: number, ty: number, style: number, alpha: number) => {
+      let sx = cx(army.region);
+      let sy = cy(army.region);
+      let best = Infinity;
+      for (let i = 0; i < zone.length; i++) {
+        const x = cx(zone[i]);
+        const y = cy(zone[i]);
+        const d = (x - tx) * (x - tx) + (y - ty) * (y - ty);
+        if (d < best) {
+          best = d;
+          sx = x;
+          sy = y;
+        }
       }
-      sx /= mine.front.length;
-      sy /= mine.front.length;
-    }
+      this.arrow(sx, sy, tx, ty, style, alpha);
+    };
 
     const plan = mine.order.kind === "plan";
     if (plan) {
       const style = mine.order.executing ? STYLE_FLOW : STYLE_BAND;
-      for (const t of mine.order.targets) {
-        this.arrow(sx, sy, cx(t), cy(t), style, 0.95);
-      }
+      for (const t of mine.order.targets) fromZone(cx(t), cy(t), style, 0.95);
     }
 
     if (mine.path.length > 0) this.dots(view, army.region, mine.path, 0.95);
 
     for (const t of sel.targets) {
       if (plan && mine.order.targets.includes(t)) continue;
-      this.arrow(sx, sy, cx(t), cy(t), STYLE_BAND, 0.45);
+      fromZone(cx(t), cy(t), STYLE_BAND, 0.45);
     }
 
     const p = sel.pending;

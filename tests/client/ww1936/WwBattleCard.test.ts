@@ -87,7 +87,77 @@ describe("<ww-battle-card> (spec §15.6)", () => {
     // Not mine: no "leave this battle"; no title anywhere.
     expect(m.q("[data-ww-leave-battle]")).toBeNull();
     expect(m.el.querySelectorAll("[title]")).toHaveLength(0);
-    expect(m.q("[data-ww-battle-close]")!.className).toContain("size-9");
+    expect(m.q("[data-ww-battle-close]")!.className).toContain("size-10");
+    // An engine that sends no forecast fields: no luck block at all.
+    expect(m.q("[data-ww-luck]")).toBeNull();
+  });
+
+  it("ww7: the luck block — band, odds, ratio range, tactics (cancelled), initiative, reserve", async () => {
+    const m = await mount({
+      battles: [
+        battle(7, "DEU", "POL", {
+          band: 1,
+          depth: 3,
+          winPct: 72,
+          lowPm: 1300,
+          midPm: 1800,
+          highPm: 2600,
+          tacticAtt: 1,
+          tacticDef: 1,
+          initAtt: 61,
+          initDef: 38,
+          reinfPct: 40,
+        }),
+      ],
+    });
+    expect(m.q("[data-ww-battle-band]")!.textContent).toContain(
+      "[ww1936.land.battle_band] n=2,d=3",
+    );
+    expect(m.q("[data-ww-odds]")!.getAttribute("data-ww-odds")).toBe("72");
+    expect(m.q("[data-ww-odds] > div")!.getAttribute("style")).toContain(
+      "width: 72%",
+    );
+    expect(m.q("[data-ww-odds-text]")!.textContent).toBe(
+      "[ww1936.land.battle_odds] pct=72",
+    );
+    expect(m.q("[data-ww-range]")!.textContent).toContain(
+      "[ww1936.land.battle_range] low=1.30,mid=1.80,high=2.60",
+    );
+    const tactics = m.q("[data-ww-tactics]")!;
+    expect(tactics.textContent).toContain("[ww1936.tactic.assault]");
+    expect(tactics.textContent).toContain("[ww1936.tactic.ambush]");
+    expect(tactics.querySelector("[data-ww-tactic-cancel]")).not.toBeNull();
+    expect(m.q("[data-ww-initiative]")!.textContent).toBe(
+      "[ww1936.land.battle_initiative] att=61,def=38",
+    );
+    expect(m.q("[data-ww-reinforce]")!.textContent).toBe(
+      "[ww1936.land.battle_reinforce] pct=40",
+    );
+  });
+
+  it("ww7: each field of the luck block shows only when the engine sent it", async () => {
+    // Tactics that do not cancel, nothing else.
+    const m = await mount({
+      battles: [battle(7, "DEU", "POL", { tacticAtt: 0, tacticDef: 0 })],
+    });
+    expect(m.q("[data-ww-tactics]")).not.toBeNull();
+    expect(m.q("[data-ww-tactic-cancel]")).toBeNull();
+    for (const sel of [
+      "[data-ww-battle-band]",
+      "[data-ww-odds]",
+      "[data-ww-range]",
+      "[data-ww-initiative]",
+      "[data-ww-reinforce]",
+    ]) {
+      expect(m.q(sel), sel).toBeNull();
+    }
+    // The odds alone: a bar and its number, no range.
+    const odds = await mount({
+      battles: [battle(7, "DEU", "POL", { winPct: 35 })],
+    });
+    expect(odds.q("[data-ww-odds-text]")).not.toBeNull();
+    expect(odds.q("[data-ww-range]")).toBeNull();
+    expect(odds.q("[data-ww-tactics]")).toBeNull();
   });
 
   it("my attacking army can leave the battle; choosing an army closes the card", async () => {
@@ -100,7 +170,7 @@ describe("<ww-battle-card> (spec §15.6)", () => {
       ],
     });
     const leave = m.q("[data-ww-leave-battle]")!;
-    expect(leave.className).toContain("h-9");
+    expect(leave.className).toContain("h-10");
     leave.click();
     expect(m.sent).toEqual([{ kind: "army_execute", army: 1, on: false }]);
     m.bus.emit(new WwSelectArmyEvent(1));

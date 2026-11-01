@@ -18,12 +18,14 @@ import fs from "fs";
 import path from "path";
 import { describe, expect, test, vi } from "vitest";
 import { WwLandSelection } from "../../../src/client/hud/ww1936/LandSelection";
+import { multiSelectOf } from "../../../src/client/hud/ww1936/MultiSelect";
 import { LandAtlas } from "../../../src/client/render/gl/LandAtlas";
 import { MapRenderer } from "../../../src/client/render/gl/MapRenderer";
 import {
   FLAG_ENCIRCLED,
   FLAG_ENEMY,
   FLAG_FRONT,
+  FLAG_GAP,
   FLAG_PICKABLE,
   FLAG_TEX_SIZE,
   flagIndex,
@@ -186,7 +188,7 @@ describe("regionFlagBytes (spec §15.2)", () => {
   test("the chosen army's front regions, and the enemy regions across them", () => {
     const v = viewWith({ armies: [army({ mine: mineWith([3, 4]) })] });
     const w = worldOf(v, [[DEU, POL]]);
-    const flags = regionFlagBytes(v, chosen(1), DEU, [], w);
+    const flags = regionFlagBytes(v, chosen(1), DEU, w);
     expect(flags.length).toBe(FLAG_TEX_SIZE * FLAG_TEX_SIZE);
     expect(withBit(flags, FLAG_FRONT)).toEqual([3, 4]);
     // Berlin–Warsaw, Munich–Warsaw, Munich–Krakow; not Paris (France is
@@ -203,11 +205,11 @@ describe("regionFlagBytes (spec §15.2)", () => {
       [DEU, POL],
       [FRA, DEU],
     ]);
-    expect(
-      withBit(regionFlagBytes(v, chosen(1), DEU, [], w), FLAG_ENEMY),
-    ).toEqual([6, 7]);
+    expect(withBit(regionFlagBytes(v, chosen(1), DEU, w), FLAG_ENEMY)).toEqual([
+      6, 7,
+    ]);
     front.order.enemy = 0;
-    const all = regionFlagBytes(v, chosen(1), DEU, [], w);
+    const all = regionFlagBytes(v, chosen(1), DEU, w);
     expect(withBit(all, FLAG_ENEMY)).toEqual([1, 2, 6, 7]);
   });
 
@@ -217,21 +219,78 @@ describe("regionFlagBytes (spec §15.2)", () => {
     const v = viewWith({ armies: [army({ mine: front })] });
     const peace = worldOf(v, [[DEU, POL]]);
     expect(
-      withBit(regionFlagBytes(v, chosen(1), DEU, [], peace), FLAG_ENEMY),
+      withBit(regionFlagBytes(v, chosen(1), DEU, peace), FLAG_ENEMY),
     ).toEqual([1, 2]);
     front.order.enemy = 0;
     const prep = worldOf(v, [[DEU, POL]], 100);
     expect(
-      withBit(regionFlagBytes(v, chosen(1), DEU, [], prep), FLAG_ENEMY),
+      withBit(regionFlagBytes(v, chosen(1), DEU, prep), FLAG_ENEMY),
     ).toEqual([]);
   });
 
-  test("the front preview replaces the army's front while front mode previews one", () => {
+  test("ww7: the zone just tapped replaces the engine's zone until its update arrives", () => {
     const v = viewWith({ armies: [army({ mine: mineWith([3, 4]) })] });
     const w = worldOf(v, [[DEU, POL]]);
-    const flags = regionFlagBytes(v, chosen(1, "front"), DEU, [3], w);
+    const sel = chosen(1, "front");
+    sel.zoneDraft = [3];
+    const flags = regionFlagBytes(v, sel, DEU, w);
     expect(withBit(flags, FLAG_FRONT)).toEqual([3]);
     expect(withBit(flags, FLAG_ENEMY)).toEqual([6]);
+    // The draft gone: the zone the engine says it holds.
+    sel.zoneDraft = null;
+    expect(withBit(regionFlagBytes(v, sel, DEU, w), FLAG_FRONT)).toEqual([
+      3, 4,
+    ]);
+  });
+
+  test("ww7: the chosen army group's zones are painted together", () => {
+    const v = viewWith({
+      armies: [
+        army({ id: 1, region: 3, mine: mineWith([3]) }),
+        army({ id: 2, region: 4, mine: mineWith([4]) }),
+        army({ id: 3, owner: POL, region: 6, mine: mineWith([6]) }),
+      ],
+    });
+    const w = worldOf(v, [[DEU, POL]]);
+    const sel = chosen(null);
+    multiSelectOf(sel).start(1);
+    multiSelectOf(sel).toggle(2);
+    multiSelectOf(sel).toggle(3);
+    const flags = regionFlagBytes(v, sel, DEU, w);
+    // Poland's army is no army of mine: only the two German zones.
+    expect(withBit(flags, FLAG_FRONT)).toEqual([3, 4]);
+    expect(withBit(flags, FLAG_ENEMY)).toEqual([6, 7]);
+  });
+
+  test("ww7: my gaps blink; nobody else's do, and they need no chosen army", () => {
+    const v = viewWith({
+      details: [
+        {
+          smallID: DEU,
+          armyXpMilli: 0,
+          templates: [],
+          training: [],
+          generals: [],
+          divisions: [],
+          gaps: [3, 4],
+        },
+        {
+          smallID: POL,
+          armyXpMilli: 0,
+          templates: [],
+          training: [],
+          generals: [],
+          divisions: [],
+          gaps: [6],
+        },
+      ],
+    });
+    const w = worldOf(v, [[DEU, POL]]);
+    const flags = regionFlagBytes(v, chosen(null), DEU, w);
+    expect(withBit(flags, FLAG_GAP)).toEqual([3, 4]);
+    // Without the field (an engine that does not send gaps): none.
+    const none = regionFlagBytes(viewWith({}), chosen(null), DEU, w);
+    expect(withBit(none, FLAG_GAP)).toEqual([]);
   });
 
   test("encircled regions of the viewer's side, its faction included", () => {
@@ -243,16 +302,16 @@ describe("regionFlagBytes (spec §15.2)", () => {
       ],
     });
     const w = worldOf(v, [[DEU, POL]]);
-    const flags = regionFlagBytes(v, chosen(null), DEU, [], w);
+    const flags = regionFlagBytes(v, chosen(null), DEU, w);
     expect(withBit(flags, FLAG_ENCIRCLED)).toEqual([4, 5]);
   });
 
   test("front mode lights FrontRules' border regions, nothing else", () => {
     const v = viewWith({ armies: [army({ mine: mineWith([]) })] });
     const w = worldOf(v, [[DEU, POL]]);
-    const flags = regionFlagBytes(v, chosen(1, "front"), DEU, [], w);
+    const flags = regionFlagBytes(v, chosen(1, "front"), DEU, w);
     expect(withBit(flags, FLAG_PICKABLE)).toEqual(borderRegionsOf(w, DEU, 0));
-    const none = regionFlagBytes(v, chosen(1, "plan"), DEU, [], w);
+    const none = regionFlagBytes(v, chosen(1, "plan"), DEU, w);
     expect(withBit(none, FLAG_PICKABLE)).toEqual([]);
   });
 
@@ -262,7 +321,7 @@ describe("regionFlagBytes (spec §15.2)", () => {
     () => {
       const v = viewWith({ armies: [army({ mine: mineWith([]) })] });
       const w = worldOf(v, [[DEU, POL]]);
-      const flags = regionFlagBytes(v, chosen(1, "front"), DEU, [], w);
+      const flags = regionFlagBytes(v, chosen(1, "front"), DEU, w);
       // Berlin and Munich touch Warsaw/Krakow; Italy's Rome touches Krakow.
       expect(withBit(flags, FLAG_PICKABLE)).toEqual([3, 4, 5]);
     },
@@ -274,7 +333,7 @@ describe("regionFlagBytes (spec §15.2)", () => {
       regions: [region(3, { encircled: true })],
     });
     const w = worldOf(v, [[DEU, POL]]);
-    const flags = regionFlagBytes(v, chosen(1, "front"), DEU, [], w);
+    const flags = regionFlagBytes(v, chosen(1, "front"), DEU, w);
     expect(withBit(flags, FLAG_FRONT | FLAG_ENEMY | FLAG_PICKABLE)).toEqual([]);
     expect(withBit(flags, FLAG_ENCIRCLED)).toEqual([3]);
   });
@@ -284,7 +343,7 @@ describe("regionFlagBytes (spec §15.2)", () => {
     const v = viewWith({ armies: [army({ mine: mineWith([3]) })] });
     const out = new Uint8Array(FLAG_TEX_SIZE * FLAG_TEX_SIZE).fill(255);
     const w = worldOf(v, [[DEU, POL]]);
-    expect(regionFlagBytes(v, chosen(1), DEU, [], w, out)).toBe(out);
+    expect(regionFlagBytes(v, chosen(1), DEU, w, out)).toBe(out);
     expect(withBit(out, FLAG_FRONT)).toEqual([3]);
     expect(out[flagIndex(9)]).toBe(0);
   });
