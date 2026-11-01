@@ -45,13 +45,17 @@ const STANCE_ORG_PCT: Readonly<Record<Stance, number>> = {
 /** ww7 §1-4: an attacker below this org (% of max) leaves the attack. */
 const ATTACK_LEAVE_PCT = 30;
 
-/** The preview figure a stance judges by. */
+/**
+ * The preview figure a stance judges by. Aggressive attacks at any odds
+ * (as before ww7): it is the player's own [공격] (army_attack) and the
+ * 과감 switch, an order to go in whatever the preview says.
+ */
 function stancePm(range: BattleRange, stance: Stance): number {
   return stance === "careful"
     ? range.lowPm
     : stance === "balanced"
       ? range.midPm
-      : range.highPm;
+      : STANCE_MIN_PM;
 }
 
 /** Live rows of an army's divisions, in row (= id) order. */

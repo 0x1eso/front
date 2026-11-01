@@ -229,18 +229,34 @@ describe("ww7 lane C: rotation", () => {
 
 describe("ww7 lane C: the attack", () => {
   test("a stance attacks only when the range clears 1000 permille", async () => {
-    // An aggressive plan no longer attacks at any odds: 1 against 12 holds.
+    // A balanced plan waits for its odds: 1 against 12 holds.
     const hold = await atWar();
     placeArmy(hold.g, "POL", WARSAW, 12);
     const weak = placeArmy(hold.g, "DEU", BERLIN, 1);
     expect(
       hold.l.issue(hold.deu, {
-        kind: "army_attack",
+        kind: "army_plan",
         army: weak.id,
+        targets: [WARSAW],
+        stance: "balanced",
+      }),
+    ).toBe(null);
+    expect(
+      hold.l.issue(hold.deu, { kind: "army_execute", army: weak.id, on: true }),
+    ).toBe(null);
+    expect(battleSeen(hold, WARSAW, 40)).toBe(false);
+    // The player's own attack (aggressive) goes in at any odds.
+    const order = await atWar();
+    placeArmy(order.g, "POL", WARSAW, 12);
+    const brave = placeArmy(order.g, "DEU", BERLIN, 1);
+    expect(
+      order.l.issue(order.deu, {
+        kind: "army_attack",
+        army: brave.id,
         region: WARSAW,
       }),
     ).toBe(null);
-    expect(battleSeen(hold, WARSAW, 40)).toBe(false);
+    expect(battleSeen(order, WARSAW, 40)).toBe(true);
     // 12 against 1 clears every stance's bar.
     const go = await atWar();
     placeArmy(go.g, "POL", WARSAW, 1);
