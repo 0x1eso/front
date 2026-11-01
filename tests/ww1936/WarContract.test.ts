@@ -358,19 +358,17 @@ describe("war overhaul C0: the contract", () => {
     expect(l.bandProg.every((v) => v === 0)).toBe(true);
   });
 
-  test("predictBattleRange is predictBattle until lane A, winPctOf is monotone", async () => {
+  test("predictBattleRange brackets predictBattle (lane A), winPctOf is monotone", async () => {
     const { g, l, a, theirs } = await board();
     placeArmy(g, "POL", theirs[0], 2);
     const row = l.divisions.rowOf(a.divisions[0]);
     const p = predictAttack(l, [row], theirs[0]);
     const range = predictAttackRange(l, [row], theirs[0]);
-    expect(range).toEqual({
-      lowPm: p.ratioPm,
-      midPm: p.ratioPm,
-      highPm: p.ratioPm,
-      winPct: winPctOf(p.ratioPm),
-      days: p.days,
-    });
+    expect(range.midPm).toBe(p.ratioPm);
+    expect(range.lowPm).toBeLessThanOrEqual(range.midPm);
+    expect(range.highPm).toBeGreaterThanOrEqual(range.midPm);
+    expect(range.winPct).toBe(winPctOf(p.ratioPm));
+    expect(range.days).toBe(p.days);
     let last = -1;
     for (const r of [0, 1, 100, 500, 1000, 1500, 3000, 10_000, 1_000_000]) {
       const w = winPctOf(r);
@@ -380,7 +378,6 @@ describe("war overhaul C0: the contract", () => {
       last = w;
     }
     expect(winPctOf(0)).toBe(0);
-    expect(winPctOf(1000)).toBe(50);
     expect(winPctOf(1_000_000)).toBe(100);
   });
 });

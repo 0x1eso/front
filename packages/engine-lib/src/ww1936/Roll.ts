@@ -52,6 +52,10 @@ export const P_AI_NAVY = idHash("ai_navy");
 export const P_PEACE = idHash("peace");
 /** P5 (pre-flight §0-8): the general peace AI's seeded value jitter. */
 export const P_PEACE_JITTER = idHash("peace_jitter");
+/** ww7 lane A (TacticRules): a land battle's tactic picks, daily luck and reserve entries. */
+export const P_LAND_TACTIC = idHash("land_tactic");
+export const P_LAND_LUCK = idHash("land_luck");
+export const P_LAND_REINF = idHash("land_reinf");
 
 /**
  * Spec §12.4, §18.5: weight = base × Π factor/100 (floor each step) over

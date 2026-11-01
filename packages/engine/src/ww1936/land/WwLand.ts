@@ -81,7 +81,12 @@ import type { WwEconomy } from "../economy/WwEconomy";
 import { type LandSeaAirHooks, NEUTRAL_HOOKS } from "../navy/NavyAirHooks";
 import type { WorldWar } from "../WorldWar";
 import { aiLandTick } from "./AiLand";
-import { dailyEntrench, stepBattles, stepRecovery } from "./Battles";
+import {
+  battleExtras,
+  dailyEntrench,
+  stepBattles,
+  stepRecovery,
+} from "./Battles";
 import { type LandDepthHooks, NEUTRAL_DEPTH_HOOKS } from "./DepthHooks";
 import { dailyFronts } from "./Fronts";
 import { appointGeneral, assignGeneral, GENERAL_XP_CENTI } from "./GeneralsRun";
@@ -2376,6 +2381,8 @@ export class WwLand {
       out.tacticAtt = b.tacticAtt;
       out.tacticDef = b.tacticDef;
     }
+    // ww7 lane A: the odds, initiative and reserve chance (battleExtras).
+    battleExtras(this, b, out);
     return out;
   }
 

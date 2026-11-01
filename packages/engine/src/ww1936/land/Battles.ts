@@ -1,13 +1,17 @@
 // World War 1936 P2: battles, retreats, overruns, org recovery and
 // entrenchment (P2 spec §9, §5.5). One battle a defending region; every
 // tick one round of every battle, in region order (spec §2.2-5). Integer
-// arithmetic only, no randomness (plan decision 6).
+// arithmetic only. ww7 lane A adds the luck of a battle (design ww6 §2):
+// tactics every four rounds, initiative, daily luck on each side's attack and
+// the reserves' entry rolls, all stateless wwRoll draws (TacticRules).
 import {
   KeyStatsTable,
   KS,
   KS_FIELDS,
 } from "@openfront/engine-api/ww1936/DepthTypes";
 import {
+  BattleCtx,
+  BattleSummary,
   CombatMods,
   DivisionStats,
   GROUND_SLOTS,
@@ -26,27 +30,45 @@ import {
   TemplateDef,
   TPL_ENGINEER,
   TPL_HOSPITAL,
+  TPL_RECON,
   TPL_SIGNAL,
   traitBit,
   WW_ROUND_HOUR_MILLI,
 } from "@openfront/engine-api/ww1936/LandTypes";
 import type { WwStatKey } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import {
+  addToSide,
   applyBp,
   attackValue,
   combatWidth,
   divisionMods,
+  emptySide,
   entrenchMax,
   excessWidthBp,
   ModInput,
   ModResult,
   planMaxBp,
+  predictBattleRange,
   roundDamage,
   roundHits,
 } from "@openfront/engine-lib/ww1936/CombatRules";
 import { reliabilityLossBp } from "@openfront/engine-lib/ww1936/DesignRules";
 import { fuelCombatBp } from "@openfront/engine-lib/ww1936/FuelRules";
 import { coastalFortBp } from "@openfront/engine-lib/ww1936/InvasionRules";
+import {
+  initiativeOf,
+  luckBp,
+  newTacticFx,
+  newTacticSide,
+  pickTactics,
+  reinfPctOf,
+  reinfRoll,
+  TACTIC_PHASE_ROUNDS,
+  tacticFx,
+  type TacticFx,
+  type TacticPick,
+  type TacticSide,
+} from "@openfront/engine-lib/ww1936/TacticRules";
 import { techTotals } from "@openfront/engine-lib/ww1936/WwTechs";
 import { effectiveLevel } from "../economy/Buildings";
 import { returnManpower } from "../economy/Stock";
@@ -236,8 +258,16 @@ function fight(land: WwLand, b: Battle, tick: number): void {
     land.scenario.landOf(R),
     Math.min(4, Math.max(1, dirs)),
   );
-  const att = lineUp(land, b.attackers, b.attLine, width, b.round === 1);
-  const def = lineUp(land, b.defenders, b.defLine, width, b.round === 1);
+  // ww7 lane A (design §2): this round's tactics (a new pair every
+  // TACTIC_PHASE_ROUNDS rounds, from last round's lines), the daily luck of
+  // both sides, and the reserves' entry rolls inside lineUp. Everything is a
+  // pure function of the battle's state and the game seed.
+  const rc = beginRound(land, b, tick, dirs);
+  if (b.phaseRound === 0) pickPhase(rc);
+  b.phaseRound = (b.phaseRound + 1) % TACTIC_PHASE_ROUNDS;
+  const fx = tacticFx(b.tacticAtt, b.tacticDef, rc.fx);
+  const att = lineUp(land, b.attackers, b.attLine, width, b.round === 1, 0);
+  const def = lineUp(land, b.defenders, b.defLine, width, b.round === 1, 1);
   b.attLine = att.line;
   b.defLine = def.line;
   // Pre-flight C4: the attackers' colour is the widest country in line.
@@ -261,6 +291,12 @@ function fight(land: WwLand, b: Battle, tick: number): void {
   const stats = new Map<number, DivisionStats>();
   for (const r of att.active) stats.set(r, land.statsOf(r));
   for (const r of def.active) stats.set(r, land.statsOf(r));
+  // ww7 lane A: each side's attack × tactic × daily luck, barrage's soft
+  // attack and hold's block value, as bp multipliers (10,000 is ×1).
+  const attMul = mulBp(10_000 + fx.attAtkBp, 10_000 + rc.luckAtt);
+  const defMul = mulBp(10_000 + fx.defAtkBp, 10_000 + rc.luckDef);
+  const softMul = 10_000 + fx.attSoftBp;
+  const blockMul = 10_000 + fx.defBlockBp;
   const hit = (
     from: number,
     fromMods: CombatMods,
@@ -271,11 +307,16 @@ function fight(land: WwLand, b: Battle, tick: number): void {
   ) => {
     const s = stats.get(from)!;
     const ts = stats.get(to)!;
+    const soft = toDefends ? applyBp(s.soft, softMul) : s.soft;
     const a = applyBp(
-      applyBp(attackValue(s.soft, s.hard, ts.hardnessPm), fromMods.attackBp),
-      10_000 + excess,
+      applyBp(
+        applyBp(attackValue(soft, s.hard, ts.hardnessPm), fromMods.attackBp),
+        10_000 + excess,
+      ),
+      toDefends ? attMul : defMul,
     );
-    const d = applyBp(toDefends ? ts.def : ts.brk, toMods.defenseBp);
+    const d0 = applyBp(toDefends ? ts.def : ts.brk, toMods.defenseBp);
+    const d = toDefends ? applyBp(d0, blockMul) : d0;
     const dmg = roundDamage(roundHits(a, d), ts.armor > s.pierce);
     org.set(to, (org.get(to) ?? 0) + dmg.orgMilli);
     hp.set(to, (hp.get(to) ?? 0) + dmg.hpMilli);
@@ -283,7 +324,10 @@ function fight(land: WwLand, b: Battle, tick: number): void {
   };
   const mods = new Map<number, CombatMods>();
   for (const r of att.active) mods.set(r, modsOf(land, r, R, true));
-  for (const r of def.active) mods.set(r, modsOf(land, r, R, false));
+  // (A landed blitz halves the defenders' entrenchment bonus.)
+  for (const r of def.active) {
+    mods.set(r, modsOf(land, r, R, false, fx.halveEntrench));
+  }
   if (def.active.length > 0) {
     att.active.forEach((r, i) => {
       const target = def.active[(i + b.round) % def.active.length];
@@ -333,14 +377,22 @@ function fight(land: WwLand, b: Battle, tick: number): void {
   const destroyed: DestroyedSink = { battle: b, counts: new Map() };
   sink = destroyed;
   try {
-    for (const [r, o] of [...org].sort((x, y) => x[0] - y[0])) {
+    for (const [r, o0] of [...org].sort((x, y) => x[0] - y[0])) {
       const was = t.org[r];
+      // ww7 lane A: what a side takes is cut or raised by the tactics
+      // (assault's price, elastic and withdraw); every source of damage.
+      const defending = t.role[r] === ROLE_DEFEND;
+      const o = applyBp(o0, 10_000 + (defending ? fx.defOrgBp : fx.attOrgBp));
       t.org[r] = Math.max(0, was - o);
-      if (t.role[r] === ROLE_DEFEND) b.lostOrgMilli += was - t.org[r];
+      if (defending) b.lostOrgMilli += was - t.org[r];
       land.markArmy(t.army[r]);
       const menBefore = t.men[r];
       const against = t.owner[r];
-      applyHpLoss(land, r, hp.get(r) ?? 0);
+      applyHpLoss(
+        land,
+        r,
+        applyBp(hp.get(r) ?? 0, 10_000 + (defending ? fx.defHpBp : fx.attHpBp)),
+      );
       const lost = t.id[r] === 0 ? menBefore : menBefore - t.men[r];
       if (lost > 0) noteBattleDamage(land, b, dealt.get(r), against, lost);
     }
@@ -380,6 +432,251 @@ function fight(land: WwLand, b: Battle, tick: number): void {
   }
 }
 
+// ---- ww7 lane A: the luck of a battle round (design ww6 §2) ----
+
+/** x × bp ÷ 10,000, floored (both sides' multipliers are bp around 10,000). */
+function mulBp(x: number, bp: number): number {
+  return Math.floor((x * bp) / 10_000);
+}
+
+/**
+ * What one round of one battle derives from its state: the seed and the
+ * battle's roll keys, the tactics' effects, both sides' luck, and each
+ * side's profile and initiative (read off last round's line the first time
+ * a pick or a reserve roll needs them). One object, reused: a round
+ * allocates nothing for it. Rebuilt from the battle every round, so nothing
+ * of it is snapshotted and a restored game rolls the same.
+ */
+interface RoundCtx {
+  land: WwLand;
+  b: Battle | null;
+  seed: number;
+  region: number;
+  since: number;
+  round: number;
+  directions: number;
+  fx: TacticFx;
+  luckAtt: number;
+  luckDef: number;
+  /** Profiles of the sides (valid when have[side]) and their initiative (-1: not computed). */
+  side: [TacticSide, TacticSide];
+  have: [boolean, boolean];
+  init: [number, number];
+}
+
+const RC: RoundCtx = {
+  land: null as unknown as WwLand,
+  b: null,
+  seed: 0,
+  region: 0,
+  since: 0,
+  round: 0,
+  directions: 1,
+  fx: newTacticFx(),
+  luckAtt: 0,
+  luckDef: 0,
+  side: [newTacticSide(), newTacticSide()],
+  have: [false, false],
+  init: [-1, -1],
+};
+const PICK: TacticPick = { att: 0, def: 0 };
+const FX_SCRATCH: TacticFx = newTacticFx();
+
+function beginRound(
+  land: WwLand,
+  b: Battle,
+  tick: number,
+  directions: number,
+): RoundCtx {
+  const rc = RC;
+  rc.land = land;
+  rc.b = b;
+  rc.seed = land.ww.politics.seed;
+  rc.region = b.region;
+  rc.since = b.sinceTick;
+  rc.round = b.round;
+  rc.directions = directions;
+  rc.have[0] = rc.have[1] = false;
+  rc.init[0] = rc.init[1] = -1;
+  // The luck of the battle's day: one draw pair a side a game day.
+  const day = land.ww.day(tick);
+  rc.luckAtt = luckBp(rc.seed, b.region, b.sinceTick, day, 0);
+  rc.luckDef = luckBp(rc.seed, b.region, b.sinceTick, day, 1);
+  return rc;
+}
+
+/** Side `s`'s profile for this round (from the previous round's line), once. */
+function profile(rc: RoundCtx, s: number): TacticSide {
+  const out = rc.side[s];
+  if (rc.have[s]) return out;
+  rc.have[s] = true;
+  const b = rc.b!;
+  const defending = s === 1;
+  sideProfileOf(
+    rc.land,
+    defending ? b.defLine : b.attLine,
+    defending ? b.defenders : b.attackers,
+    defending,
+    out,
+  );
+  if (defending) out.fort = effectiveLevel(rc.land.econ, b.region, "fort");
+  else out.directions = rc.directions;
+  return out;
+}
+
+function initiative(rc: RoundCtx, s: number): number {
+  if (rc.init[s] < 0) rc.init[s] = initiativeOf(profile(rc, s), s === 1);
+  return rc.init[s];
+}
+
+/** A new tactic pair, picked from both sides' profiles by pickTactics' rolls. */
+function pickPhase(rc: RoundCtx): void {
+  const b = rc.b!;
+  pickTactics(
+    rc.seed,
+    rc.region,
+    rc.since,
+    rc.round,
+    profile(rc, 0),
+    profile(rc, 1),
+    PICK,
+  );
+  b.tacticAtt = PICK.att;
+  b.tacticDef = PICK.def;
+}
+
+/** Whether reserve `row` of side `side` rolls its way into the line this round. */
+function reserveEnters(land: WwLand, row: number, side: number): boolean {
+  const rc = RC;
+  const pct = reinfPctOf(
+    initiative(rc, side),
+    (land.flagsOf(row) & TPL_SIGNAL) !== 0,
+    side === 0 ? rc.fx.attReinfPp : rc.fx.defReinfPp,
+  );
+  return (
+    reinfRoll(rc.seed, rc.region, rc.since, rc.round, land.divisions.id[row]) <
+    pct
+  );
+}
+
+// The armies a profile counts (scratch: army id, divisions, first row).
+const PA_ID: number[] = [];
+const PA_N: number[] = [];
+const PA_ROW: number[] = [];
+
+/** Battalion counts of a template: [all, artillery, armour + motorized], cached per def. */
+const COMPOSITION = new WeakMap<
+  TemplateDef,
+  readonly [number, number, number]
+>();
+const ARTILLERY_BN: ReadonlySet<string> = new Set([
+  "artillery",
+  "mot_artillery",
+  "sp_artillery",
+]);
+const MOBILE_BN: ReadonlySet<string> = new Set([
+  "motorized",
+  "light_armor",
+  "medium_armor",
+  "heavy_armor",
+]);
+const NO_COMPOSITION: readonly [number, number, number] = [0, 0, 0];
+
+function compositionOf(
+  land: WwLand,
+  row: number,
+): readonly [number, number, number] {
+  const t = land.divisions;
+  const def = land.country(t.owner[row])?.template(t.template[row])?.def;
+  if (def === undefined) return NO_COMPOSITION;
+  let c = COMPOSITION.get(def);
+  if (c === undefined) {
+    let art = 0;
+    let mobile = 0;
+    for (const id of def.battalions) {
+      if (ARTILLERY_BN.has(id)) art++;
+      else if (MOBILE_BN.has(id)) mobile++;
+    }
+    c = [def.battalions.length, art, mobile];
+    COMPOSITION.set(def, c);
+  }
+  return c;
+}
+
+/**
+ * A side's TacticSide: composition, experience, entrenchment and company
+ * flags over its divisions (`line` if it has one, else every `all`), the
+ * general and research of the army with the most of them (ties: the smaller
+ * army id). Pure in the state it reads.
+ */
+function sideProfileOf(
+  land: WwLand,
+  line: readonly number[],
+  all: readonly number[],
+  defending: boolean,
+  out: TacticSide,
+): void {
+  const t = land.divisions;
+  const ids = line.length > 0 ? line : all;
+  PA_ID.length = 0;
+  PA_N.length = 0;
+  PA_ROW.length = 0;
+  let n = 0;
+  let battalions = 0;
+  let art = 0;
+  let mobile = 0;
+  let exp = 0;
+  let entrench = 0;
+  let signal = false;
+  let recon = false;
+  for (const id of ids) {
+    const r = t.rowOf(id);
+    if (r < 0) continue;
+    n++;
+    const k = PA_ID.indexOf(t.army[r]);
+    if (k < 0) {
+      PA_ID.push(t.army[r]);
+      PA_N.push(1);
+      PA_ROW.push(r);
+    } else PA_N[k]++;
+    const flags = land.flagsOf(r);
+    if ((flags & TPL_SIGNAL) !== 0) signal = true;
+    if ((flags & TPL_RECON) !== 0) recon = true;
+    exp += t.exp[r];
+    entrench += t.entrench[r];
+    const c = compositionOf(land, r);
+    battalions += c[0];
+    art += c[1];
+    mobile += c[2];
+  }
+  let lead = -1;
+  for (let k = 0; k < PA_ID.length; k++) {
+    if (
+      lead < 0 ||
+      PA_N[k] > PA_N[lead] ||
+      (PA_N[k] === PA_N[lead] && PA_ID[k] < PA_ID[lead])
+    ) {
+      lead = k;
+    }
+  }
+  const a = lead < 0 ? undefined : land.armies.get(PA_ID[lead]);
+  const g = a === undefined ? null : generalOf(land, a);
+  out.traits = g?.traits ?? 0;
+  out.skill = g === null ? 0 : defending ? g.dfn : g.att;
+  out.level = g?.level ?? 0;
+  out.signal = signal;
+  out.recon = recon;
+  const ce = lead < 0 ? null : land.econ.country(t.owner[PA_ROW[lead]]);
+  out.doctrine = Math.min(10, Math.floor((ce?.stats.reconPct ?? 0) / 5));
+  const mean = n === 0 ? 0 : Math.floor(exp / n);
+  out.expTier = mean < 250 ? 0 : mean < 500 ? 1 : mean < 750 ? 2 : 3;
+  out.artPm = battalions === 0 ? 0 : Math.floor((art * 1000) / battalions);
+  out.mechPm = battalions === 0 ? 0 : Math.floor((mobile * 1000) / battalions);
+  out.entrench = n === 0 ? 0 : Math.floor(entrench / n);
+  out.fort = 0;
+  out.directions = 1;
+}
+
 interface LineUp {
   /** Ids in line, in line order. */
   line: number[];
@@ -396,6 +693,11 @@ interface LineUp {
  * is left (the side pays the excess); the rest wait. A newcomer to the
  * line fights from the next round (with a signal company at once); in the
  * first round every one in line fights.
+ *
+ * ww7 lane A (design §2.4): after the first round a reserve that would fit
+ * enters only on its roll (25 % + initiative ÷ 4 + a signal company 10 +
+ * infiltration, at most 70 %); one that fails waits for the next round and
+ * the next reserve is tried. `side` is 0 for the attackers, 1 for the defenders.
  */
 function lineUp(
   land: WwLand,
@@ -403,6 +705,7 @@ function lineUp(
   previous: readonly number[],
   width: number,
   first: boolean,
+  side: number,
 ): LineUp {
   const t = land.divisions;
   const prev = new Set(previous);
@@ -420,14 +723,21 @@ function lineUp(
     if (!prev.has(id) && able(r)) reserves.push(r);
   }
   reserves.sort((a, b) => t.org[b] - t.org[a] || t.id[a] - t.id[b]);
+  const inLine = cands.length;
   cands.push(...reserves);
   const line: number[] = [];
   const active: number[] = [];
   let used = 0;
-  for (const r of cands) {
+  for (let i = 0; i < cands.length; i++) {
+    const r = cands[i];
     const w = land.widthOf(r);
     const over = used + w > width;
-    if (!over || (width - used) * 3 >= w) {
+    const fits = !over || (width - used) * 3 >= w;
+    // A reserve that would fit still has to roll its way in.
+    if (fits && i >= inLine && !first && !reserveEnters(land, r, side)) {
+      continue;
+    }
+    if (fits) {
       line.push(t.id[r]);
       used += w;
       if (first || prev.has(t.id[r]) || (land.flagsOf(r) & TPL_SIGNAL) !== 0) {
@@ -863,9 +1173,79 @@ export function dailyEntrench(land: WwLand, smallID: number): void {
  * so the battle card shows the very lines the engine fights with.
  */
 export function battleMods(land: WwLand, b: Battle, row: number): ModResult {
-  return divisionMods(
-    modInputOf(land, row, b.region, land.divisions.role[row] === ROLE_ATTACK),
-  );
+  const attacking = land.divisions.role[row] === ROLE_ATTACK;
+  const input = modInputOf(land, row, b.region, attacking);
+  // ww7 lane A: a landed blitz halves the defenders' entrenchment.
+  if (!attacking) {
+    input.halfEntrench = tacticFx(
+      b.tacticAtt,
+      b.tacticDef,
+      FX_SCRATCH,
+    ).halveEntrench;
+  }
+  return divisionMods(input);
+}
+
+const SUMMARY_SIDES: [TacticSide, TacticSide] = [
+  newTacticSide(),
+  newTacticSide(),
+];
+
+/**
+ * ww7 lane A (design §2.6): what the battle card shows of the battle's odds,
+ * written into its summary: the attacker's win % and the low, average and
+ * high org-removal ratio (predictBattleRange over every division in the
+ * battle, with the modifiers the battle fights with), each side's
+ * initiative, and the attacker's chance for a reserve to enter. The tactics
+ * in play are the summary's own fields (WwLand.battleSummary). Nothing is
+ * written for a battle with a side missing.
+ */
+export function battleExtras(
+  land: WwLand,
+  b: Battle,
+  out: BattleSummary,
+): void {
+  const t = land.divisions;
+  const att = emptySide();
+  const def = emptySide();
+  let firstAtt = -1;
+  let firstDef = -1;
+  for (const id of b.attLine.length > 0 ? b.attLine : b.attackers) {
+    if (t.rowOf(id) >= 0 && firstAtt < 0) firstAtt = t.rowOf(id);
+  }
+  for (const id of b.defLine.length > 0 ? b.defLine : b.defenders) {
+    if (t.rowOf(id) >= 0 && firstDef < 0) firstDef = t.rowOf(id);
+  }
+  if (firstAtt < 0 || firstDef < 0) return;
+  for (const id of b.attackers) {
+    const r = t.rowOf(id);
+    if (r >= 0) addToSide(att, land.statsOf(r), t.org[r]);
+  }
+  for (const id of b.defenders) {
+    const r = t.rowOf(id);
+    if (r >= 0) addToSide(def, land.statsOf(r), t.org[r]);
+  }
+  const fx = tacticFx(b.tacticAtt, b.tacticDef, FX_SCRATCH);
+  const am = modsOf(land, firstAtt, b.region, true);
+  const dm = modsOf(land, firstDef, b.region, false, fx.halveEntrench);
+  const ctx: BattleCtx = {
+    land: land.scenario.landOf(b.region),
+    directions: Math.max(1, Math.min(4, out.directions)),
+    attackerAttackBp: am.attackBp,
+    attackerBlockBp: am.defenseBp,
+    defenderAttackBp: dm.attackBp,
+    defenderBlockBp: dm.defenseBp,
+  };
+  const range = predictBattleRange(att, def, ctx);
+  out.winPct = range.winPct;
+  out.lowPm = range.lowPm;
+  out.midPm = range.midPm;
+  out.highPm = range.highPm;
+  sideProfileOf(land, b.attLine, b.attackers, false, SUMMARY_SIDES[0]);
+  sideProfileOf(land, b.defLine, b.defenders, true, SUMMARY_SIDES[1]);
+  out.initAtt = initiativeOf(SUMMARY_SIDES[0], false);
+  out.initDef = initiativeOf(SUMMARY_SIDES[1], true);
+  out.reinfPct = reinfPctOf(out.initAtt, false, fx.attReinfPp);
 }
 
 /**
@@ -881,8 +1261,11 @@ export function modsOf(
   row: number,
   region: number,
   attacking: boolean,
+  halfEntrench = false,
 ): CombatMods {
   const input = modInputOf(land, row, region, attacking);
+  // ww7 lane A (design §2.2 blitz): the defender's entrenchment counts half.
+  if (halfEntrench) input.halfEntrench = true;
   let kept = modsCaches.get(land);
   // A rebuild (restore, factions) starts the cache over.
   if (kept === undefined || kept.epoch !== land.derivedEpoch) {
@@ -1035,6 +1418,7 @@ export function modInputOf(
     designFlags: base.designFlags,
     artSoftPm: artSoftPmOf(base),
     fmPlanBp,
+    halfEntrench: false,
   };
 }
 
