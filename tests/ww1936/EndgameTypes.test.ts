@@ -145,11 +145,13 @@ describe("World War 1936 P5 lists", () => {
     );
     // The automation lane appends auto_set and army_auto_all after them,
     // peace on the current line its one after those, the research
-    // overhaul research_lean and the research grants research_grant last.
-    expect(kinds.slice(-7, -5)).toEqual([...WHITE_PEACE_ORDER_KINDS]);
-    expect(kinds.slice(-5, -3)).toEqual(["auto_set", "army_auto_all"]);
-    expect(kinds.slice(-3, -2)).toEqual([...LINE_PEACE_ORDER_KINDS]);
-    expect(kinds.slice(-2)).toEqual(["research_lean", "research_grant"]);
+    // overhaul research_lean and the research grants research_grant, then
+    // the war overhaul (ww7) army_zone and army_auto_level last.
+    expect(kinds.slice(-9, -7)).toEqual([...WHITE_PEACE_ORDER_KINDS]);
+    expect(kinds.slice(-7, -5)).toEqual(["auto_set", "army_auto_all"]);
+    expect(kinds.slice(-5, -4)).toEqual([...LINE_PEACE_ORDER_KINDS]);
+    expect(kinds.slice(-4, -2)).toEqual(["research_lean", "research_grant"]);
+    expect(kinds.slice(-2)).toEqual(["army_zone", "army_auto_level"]);
     expect(after(ARMY_ORDER_KINDS, "invade")).toEqual(["garrison"]);
     expect(after(SUPPORT_IDS, "signal")).toEqual(["military_police"]);
     expect(after(WW_TECH_IDS, "synthetic_oil_2")[0]).toBe("military_police");

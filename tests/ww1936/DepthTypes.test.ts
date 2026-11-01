@@ -50,6 +50,9 @@ describe("World War 1936 P6 lists", () => {
       "research_lean",
       // Research grants.
       "research_grant",
+      // The war overhaul (ww7): zones and auto levels.
+      "army_zone",
+      "army_auto_level",
     ]);
   });
 

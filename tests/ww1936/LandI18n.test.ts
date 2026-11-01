@@ -103,8 +103,6 @@ const LAND = [
   "state_para",
   "btn_move",
   "btn_attack",
-  "btn_front",
-  "btn_plan",
   "btn_rail",
   "btn_sea",
   "btn_split",
