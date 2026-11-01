@@ -12,6 +12,7 @@ import {
 import {
   OCCUPATION_LAWS,
   type OccupationLaw,
+  WW_AUTO_INTEGRATE_DAYS,
   WW_INTEGRATE_COMP_BP,
   WW_OCC_DAMAGE_RES_BP,
   WW_OCC_LAW_COST_PP,
@@ -166,6 +167,7 @@ export function stepOccupation(
   // A copy: an uprising takes a region off the list.
   for (const r of [...admin]) {
     if (eg.occSince[r] === 0) eg.occSince[r] = day + 1;
+    if (stepAutoIntegrate(eg, c, r, day)) continue;
     const h = holdersOf(eg, c, r);
     const law = eg.occupationLawOf(c, pol.legalOwner[r] ?? 0);
     const need = needOf(eg, c, r);
@@ -206,6 +208,43 @@ export function stepOccupation(
   // Spec §20.8: one line a day, "Garrison shortage: n regions" (lane T's
   // key takes {n}; the day-note batch would send {items}).
   if (short > 0) eg.message(c, "ww1936_garrison_short", { n: short });
+}
+
+/**
+ * Owner's rule: land the controller owns legally but holds no core on
+ * becomes its core after WW_AUTO_INTEGRATE_DAYS (90) without an uprising. Wartime
+ * occupation (controller is not the legal owner) never counts. Any change
+ * of owner or controller, or an uprising, restarts the clock. True when
+ * the region integrated (it left the administered list).
+ */
+function stepAutoIntegrate(
+  eg: WwEndgame,
+  c: number,
+  r: number,
+  day: number,
+): boolean {
+  if (eg.ww.politics.legalOwner[r] !== c) {
+    if (eg.autoOwner[r] !== 0) {
+      eg.autoOwner[r] = 0;
+      eg.autoSince[r] = 0;
+      eg.dirtyOcc.add(r);
+    }
+    return false;
+  }
+  if (eg.autoOwner[r] !== c) {
+    eg.autoOwner[r] = c;
+    eg.autoSince[r] = day;
+    eg.dirtyOcc.add(r);
+    return false;
+  }
+  if (day - eg.autoSince[r] < WW_AUTO_INTEGRATE_DAYS) return false;
+  eg.ww.politics.markCountry(c);
+  eg.addCore(c, r);
+  eg.autoOwner[r] = 0;
+  eg.autoSince[r] = 0;
+  eg.dirtyOcc.add(r);
+  eg.message(c, "ww1936_annex_integrated", { region: r });
+  return true;
 }
 
 /**
@@ -437,6 +476,8 @@ export function uprisingNow(eg: WwEndgame, region: number, tick: number): void {
     eg.resBp[region] = UPRISING_FAILED_RES_BP;
   }
   eg.uprDays[region] = 0;
+  eg.autoOwner[region] = 0;
+  eg.autoSince[region] = 0;
   eg.dirtyOcc.add(region);
   eg.news("news_uprising", { region });
   eg.message(c, "ww1936_uprising", { region });

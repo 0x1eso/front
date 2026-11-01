@@ -1553,6 +1553,7 @@
     "ww1936_advisor_left": "{person} has left your advisors",
     "ww1936_air_raid": "Air raid by {attacker}{others, plural, =0 {} other { and # more}} on {region}{more, plural, =0 {} other { and # other places}}: {kind, select, 2 {{s, plural, one {# ship damaged} other {# ships damaged}}} 3 {{f, plural, one {# factory} other {# factories}} stopped, {s, plural, one {# ship damaged} other {# ships damaged}}} other {{f, plural, one {# factory stopped} other {# factories stopped}}}}",
     "ww1936_air_superiority": "Air control over {zone} {dir, select, up {gained} other {lost}} ({pct}%)",
+    "ww1936_annex_integrated": "{region} was integrated automatically and is now a core",
     "ww1936_annexed": "{country} has been annexed",
     "ww1936_auto_army_off": "You gave {army} an order yourself, so its auto command is off",
     "ww1936_auto_off_air": "You placed air wings yourself, so auto air deployment is off",
@@ -9854,6 +9855,8 @@
       "preview": "Of {factories} factories, {destroyed} destroyed, {stopped} stopped · divisions {divisions} · interception risk {pct}%"
     },
     "occ": {
+      "annexed": "Annexed (non-core)",
+      "auto_in": "Auto-integration in {days, plural, one {# day} other {# days}}",
       "chip": "Occupation {n} · resistance {pct}%",
       "compliance": "Compliance",
       "cores_held": "Our core held by others",

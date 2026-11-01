@@ -1567,7 +1567,8 @@
     "ww1936_war_joined": "{actor}이(가) {enemy}와(과)의 전쟁에 참전했습니다",
     "ww1936_wpeace_accepted": "{target} 측이 평화 제안을 수락했습니다",
     "ww1936_wpeace_refused": "{target} 측이 평화 제안을 거절했습니다 — {days} 일 뒤 다시 제안할 수 있습니다",
-    "ww1936_wpeace_lapsed": "{target} 측에 보낸 평화 제안이 무효가 되었습니다 (전쟁 상황 변화)"
+    "ww1936_wpeace_lapsed": "{target} 측에 보낸 평화 제안이 무효가 되었습니다 (전쟁 상황 변화)",
+    "ww1936_annex_integrated": "{region}이(가) 자동 통합되어 코어가 되었습니다"
   },
   "featured_stream": {
     "expand": "펼치기",
@@ -9532,7 +9533,9 @@
         "no_pp": "정치력이 모자랍니다",
         "not_integrable": "편입할 수 없는 주입니다"
       },
-      "zone": "점령 지구"
+      "zone": "점령 지구",
+      "annexed": "합병지 (비코어)",
+      "auto_in": "자동 통합까지 {days}일"
     },
     "occ_law": {
       "occ_civil": "민정 위임",

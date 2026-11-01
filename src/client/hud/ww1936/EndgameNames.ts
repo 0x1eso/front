@@ -183,6 +183,7 @@ export const ENDGAME_NOTICES: ReadonlySet<string> = new Set([
   "events_display.ww1936_occ_law",
   "events_display.ww1936_garrison_short",
   "events_display.ww1936_uprising",
+  "events_display.ww1936_annex_integrated",
   "events_display.ww1936_ll_arrived",
   "events_display.ww1936_volunteers_arrived",
   "events_display.ww1936_volunteers_recalled",

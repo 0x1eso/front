@@ -1,4 +1,5 @@
 import type { WwOrder } from "@openfront/engine-api/Schemas";
+import { WW_AUTO_INTEGRATE_DAYS } from "@openfront/engine-api/ww1936/EndgameTypes";
 import { EventBus } from "@openfront/shared/EventBus";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -70,6 +71,31 @@ async function mount(o: EndOptions) {
       .map((li) => Number(li.dataset.wwOccOwner));
   return { el, game, sent, toggle, open };
 }
+
+describe("<ww-occupation-tab> annexed land", () => {
+  afterEach(() => {
+    document.body.innerHTML = "";
+  });
+
+  it("labels annexed regions and counts down to auto-integration", async () => {
+    const { el, game, toggle } = await mount(
+      occupation({
+        occupation: [
+          occ(WARSAW, "DEU", { autoSinceDay: 0 }),
+          occ(KRAKOW, "DEU", { autoSinceDay: -1 }),
+        ],
+      }),
+    );
+    await toggle(ID("POL"));
+    const tag = (r: number) =>
+      el.querySelector(`[data-ww-occ-region="${r}"] [data-ww-occ-annexed]`);
+    expect(tag(WARSAW)?.textContent).toContain("ww1936.occ.annexed");
+    expect(tag(WARSAW)?.textContent).toContain(
+      `days=${Math.max(0, WW_AUTO_INTEGRATE_DAYS - today(game))}`,
+    );
+    expect(tag(KRAKOW)).toBeNull();
+  });
+});
 
 describe("<ww-occupation-tab> (P5 spec §20.4)", () => {
   afterEach(() => {

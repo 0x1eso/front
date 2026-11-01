@@ -111,6 +111,8 @@ export const WW_UPRISING_COVER_PCT = 50;
 export const WW_UPRISING_DIVISIONS = 2;
 export const WW_INTEGRATE_COMP_BP = 9000;
 export const WW_INTEGRATE_DAYS = 180;
+/** Days a legally owned, own-controlled, core-less region goes without an uprising before it becomes core by itself. */
+export const WW_AUTO_INTEGRATE_DAYS = 90;
 export const WW_OCC_LAW_LOCK_DAYS = 30;
 export const WW_OCC_LAW_COST_PP = 25;
 export const WW_SUBJECT_START_AUT_BP = 2000;
@@ -414,6 +416,11 @@ export interface WwOccView {
    * by WwEndgame.takeData.
    */
   compHighDays?: number;
+  /**
+   * The day the owner's auto-integration clock started (legal owner
+   * = controller, no core); -1 when the region is a wartime occupation.
+   */
+  autoSinceDay?: number;
 }
 export interface WwSubjectView {
   subject: number;

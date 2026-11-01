@@ -286,6 +286,16 @@ export class WwOccupationTab extends LitElement {
                       @click=${() => this.goTo(r.region)}
                     >
                       <span class="min-w-0 flex-1 truncate">${r.name}</span>
+                      ${r.autoLeftDays !== null
+                        ? html`<span
+                            data-ww-occ-annexed
+                            class="shrink-0 text-sky-300"
+                            >${translateText("ww1936.occ.annexed")} ·
+                            ${translateText("ww1936.occ.auto_in", {
+                              days: r.autoLeftDays,
+                            })}</span
+                          >`
+                        : nothing}
                       ${r.uprising
                         ? html`<span class="shrink-0 text-red-300"
                             >${translateText("ww1936.occ.uprising_soon")}</span

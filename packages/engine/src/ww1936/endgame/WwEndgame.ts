@@ -304,9 +304,19 @@ export const WwEndgameStateSchema = z.object({
   ),
   /** [region, holder1, holder2, holder3] for every region with a holder. */
   cores: z.array(z.tuple([zInt(), zInt(), zInt(), zInt()])),
-  /** [region, resBp, compBp, sinceDay, compHighDays, uprisingDays, supDeci] where any is non-zero. */
+  /** [region, resBp, compBp, sinceDay, compHighDays, uprisingDays, supDeci, autoOwner, autoSinceDay] where any is non-zero. */
   occ: z.array(
-    z.tuple([zInt(), zInt(), zInt(), zInt(), zInt(), zInt(), zInt()]),
+    z.tuple([
+      zInt(),
+      zInt(),
+      zInt(),
+      zInt(),
+      zInt(),
+      zInt(),
+      zInt(),
+      zInt(),
+      zInt(),
+    ]),
   ),
   occLaw: z.array(
     z.object({ by: zInt(), of: zInt(), law: zInt(), lockUntilDay: zInt() }),
@@ -395,6 +405,9 @@ export class WwEndgame {
   resBp: Int16Array;
   compBp: Int16Array;
   occSince: Int32Array;
+  /** Auto-integration clock: the owner it runs for (0: none) and the day it started. */
+  autoOwner: Int32Array;
+  autoSince: Int32Array;
   compHigh: Uint16Array;
   uprDays: Uint8Array;
   supDeci: Int32Array;
@@ -491,6 +504,8 @@ export class WwEndgame {
     this.resBp = new Int16Array(this.regionCap);
     this.compBp = new Int16Array(this.regionCap);
     this.occSince = new Int32Array(this.regionCap);
+    this.autoOwner = new Int32Array(this.regionCap);
+    this.autoSince = new Int32Array(this.regionCap);
     this.compHigh = new Uint16Array(this.regionCap);
     this.uprDays = new Uint8Array(this.regionCap);
     this.supDeci = new Int32Array(this.regionCap);
@@ -1185,6 +1200,7 @@ export class WwEndgame {
       if (this.adminSet.has(r)) continue;
       if (
         this.occSince[r] !== 0 ||
+        this.autoOwner[r] !== 0 ||
         this.resBp[r] !== 0 ||
         this.compBp[r] !== 0 ||
         this.compHigh[r] !== 0 ||
@@ -1199,6 +1215,8 @@ export class WwEndgame {
     this.resBp[region] = 0;
     this.compBp[region] = 0;
     this.occSince[region] = 0;
+    this.autoOwner[region] = 0;
+    this.autoSince[region] = 0;
     this.compHigh[region] = 0;
     this.uprDays[region] = 0;
     this.supDeci[region] = 0;
@@ -1432,6 +1450,7 @@ export class WwEndgame {
       d.occupation = shown.map((r) => ({
         ...occView(this, r),
         compHighDays: this.compHigh[r],
+        autoSinceDay: this.autoOwner[r] === 0 ? -1 : this.autoSince[r],
       }));
       // A changed region without a row now: the screens drop its old one.
       if (!first) {
@@ -1555,12 +1574,23 @@ export class WwEndgame {
       const h = this.coreHolders(r);
       if (h.length > 0) cores.push([r, h[0] ?? 0, h[1] ?? 0, h[2] ?? 0]);
     }
-    const occ: [number, number, number, number, number, number, number][] = [];
+    const occ: [
+      number,
+      number,
+      number,
+      number,
+      number,
+      number,
+      number,
+      number,
+      number,
+    ][] = [];
     for (let r = 1; r < this.regionCap; r++) {
       if (
         this.resBp[r] !== 0 ||
         this.compBp[r] !== 0 ||
         this.occSince[r] !== 0 ||
+        this.autoOwner[r] !== 0 ||
         this.compHigh[r] !== 0 ||
         this.uprDays[r] !== 0 ||
         this.supDeci[r] !== 0
@@ -1573,6 +1603,8 @@ export class WwEndgame {
           this.compHigh[r],
           this.uprDays[r],
           this.supDeci[r],
+          this.autoOwner[r],
+          this.autoSince[r],
         ]);
       }
     }
@@ -1649,19 +1681,23 @@ export class WwEndgame {
       this.resBp,
       this.compBp,
       this.occSince,
+      this.autoOwner,
+      this.autoSince,
       this.compHigh,
       this.uprDays,
       this.supDeci,
     ]) {
       arr.fill(0);
     }
-    for (const [r, res, comp, since, high, upr, sup] of c.occ) {
+    for (const [r, res, comp, since, high, upr, sup, ao, as] of c.occ) {
       this.resBp[r] = res;
       this.compBp[r] = comp;
       this.occSince[r] = since;
       this.compHigh[r] = high;
       this.uprDays[r] = upr;
       this.supDeci[r] = sup;
+      this.autoOwner[r] = ao;
+      this.autoSince[r] = as;
     }
     this.occLaw = c.occLaw;
     this.zones = c.zones;
@@ -1839,7 +1875,8 @@ export class WwEndgame {
         this.compBp[r] === 0 &&
         this.compHigh[r] === 0 &&
         this.uprDays[r] === 0 &&
-        this.occSince[r] === 0
+        this.occSince[r] === 0 &&
+        this.autoOwner[r] === 0
       ) {
         continue;
       }
@@ -1849,6 +1886,8 @@ export class WwEndgame {
       mix(this.compHigh[r]);
       mix(this.uprDays[r]);
       mix(this.occSince[r]);
+      mix(this.autoOwner[r]);
+      mix(this.autoSince[r]);
     }
     for (const l of this.occLaw) {
       mix(l.by * 131 + l.of);

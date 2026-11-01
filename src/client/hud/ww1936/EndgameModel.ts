@@ -21,6 +21,7 @@ import {
   type WarKind,
   WW_AIR_VOLUNTEER_MAX,
   WW_AIR_VOLUNTEER_PCT,
+  WW_AUTO_INTEGRATE_DAYS,
   WW_LL_TENSION_DEMOCRACY_PCT,
   WW_LL_TENSION_RECEIVER_PCT,
   WW_UPRISING_RES_BP,
@@ -263,6 +264,17 @@ export interface OccRow {
   short: boolean;
   /** Resistance at the uprising mark (the map's blinking rim). */
   uprising: boolean;
+  /** Owned and held by its legal owner without a core: auto-integrates. */
+  annexed: boolean;
+  /** Days until it becomes core by itself (null: not annexed). */
+  autoLeftDays: number | null;
+}
+
+/** Days until an annexed region integrates by itself; null for a wartime occupation. */
+export function autoLeftDaysOf(game: EndgameGame, o: WwOccView): number | null {
+  const since = o.autoSinceDay ?? -1;
+  if (since < 0) return null;
+  return Math.max(0, WW_AUTO_INTEGRATE_DAYS - (today(game) - since));
 }
 
 function occRow(game: EndgameGame, o: WwOccView): OccRow {
@@ -275,6 +287,8 @@ function occRow(game: EndgameGame, o: WwOccView): OccRow {
     coveredPct: coveragePct(o.supDeci, o.needDeci),
     short: o.supDeci < o.needDeci,
     uprising: o.resBp >= WW_UPRISING_RES_BP,
+    annexed: (o.autoSinceDay ?? -1) >= 0,
+    autoLeftDays: autoLeftDaysOf(game, o),
   };
 }
 
@@ -509,19 +523,33 @@ export function occRegionLine(
   // observer's army band on the occupier, its coverage only when exact.
   const hidden =
     fog !== undefined && fog.bandOf(o.controller, ID_ARMY) < 3 ? fog : null;
-  return translateText("ww1936.occ.region_line", {
-    res: pctOf(o.resBp),
-    target: pctOf(o.targetBp),
-    comp: pctOf(o.compBp),
-    have:
-      hidden === null
-        ? deciText(o.supDeci)
-        : hidden.countLabel(o.controller, Math.round(o.supDeci / 10), ID_ARMY),
-    need: deciText(o.needDeci),
-    pct: hidden === null ? coveragePct(o.supDeci, o.needDeci) : "?",
-    share: o.factoryPct,
-    law: occLawName(lawFor(game, o.controller, legalOwnerOf(game, region)).law),
-  });
+  const left = autoLeftDaysOf(game, o);
+  const annex =
+    left === null
+      ? ""
+      : `${translateText("ww1936.occ.annexed")} · ${translateText("ww1936.occ.auto_in", { days: left })} · `;
+  return (
+    annex +
+    translateText("ww1936.occ.region_line", {
+      res: pctOf(o.resBp),
+      target: pctOf(o.targetBp),
+      comp: pctOf(o.compBp),
+      have:
+        hidden === null
+          ? deciText(o.supDeci)
+          : hidden.countLabel(
+              o.controller,
+              Math.round(o.supDeci / 10),
+              ID_ARMY,
+            ),
+      need: deciText(o.needDeci),
+      pct: hidden === null ? coveragePct(o.supDeci, o.needDeci) : "?",
+      share: o.factoryPct,
+      law: occLawName(
+        lawFor(game, o.controller, legalOwnerOf(game, region)).law,
+      ),
+    })
+  );
 }
 
 /** The region card's neutral zone line ("Occupation zone · USA"); null outside a zone. */
