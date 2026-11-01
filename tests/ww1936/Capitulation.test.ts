@@ -87,7 +87,7 @@ describe("victory points and capitulation (spec §7.5)", () => {
     expect(ww.startVp(byTag(g, "POL").smallID())).toBe(24);
   });
 
-  test("a country 80% of whose points are held for 30 days capitulates", async () => {
+  test("a country far past its line capitulates in nine days (ww7: +5 a day, 45 to fill)", async () => {
     // Both humans: no AI takes a point back meanwhile.
     const { runner, updates } = await wwRunnerCapture({}, HUMAN_DEU_POL);
     const g = runner.game;
@@ -100,16 +100,16 @@ describe("victory points and capitulation (spec §7.5)", () => {
     // 3 of 24 lost: below the line.
     expect(ww.capitulationGauge(pol.smallID())).toBe(0);
     control(g, "Warsaw", deu);
-    // Held briefly, then for 29 days: the gauge fills, no capitulation yet.
-    for (let day = 1; day < WW_CAPITULATION_DAYS; day++) {
+    // All 24 of 24 points lost against a line of 80: 20 points over, so the
+    // gauge fills 1 + ⌊20 ÷ 5⌋ = 5 a day; no capitulation until it is full.
+    expect(WW_CAPITULATION_DAYS).toBe(45);
+    for (let day = 1; day * 5 < WW_CAPITULATION_DAYS; day++) {
       nextDay(runner);
-      expect(ww.capitulationGauge(pol.smallID())).toBe(day);
+      expect(ww.capitulationGauge(pol.smallID())).toBe(5 * day);
       expect(ww.isCapitulated(pol.smallID())).toBe(false);
     }
-    expect(ww.data().gauges).toEqual([
-      { smallID: pol.smallID(), days: WW_CAPITULATION_DAYS - 1 },
-    ]);
-    // The 30th day in a row past the line.
+    expect(ww.data().gauges).toEqual([{ smallID: pol.smallID(), days: 40 }]);
+    // The ninth day in a row past the line fills it.
     nextDay(runner);
     expect(ww.isCapitulated(pol.smallID())).toBe(true);
     expect(ww.capitulationGauge(pol.smallID())).toBe(0);
@@ -175,19 +175,21 @@ describe("victory points and capitulation (spec §7.5)", () => {
     ww.setWar(deu.smallID(), pol.smallID(), g.ticks());
     const warsaw = vpTileOf(g, "Warsaw");
     deu.conquer(warsaw);
+    // Warsaw is 21 of 24 points: 87.5% lost against a line of 80, 7.5 points
+    // over: 1 + ⌊7.5 ÷ 5⌋ = 2 a day.
     for (let day = 0; day < 5; day++) nextDay(runner);
-    expect(ww.capitulationGauge(pol.smallID())).toBe(5);
-    // Poland takes Warsaw back: one day off per day.
+    expect(ww.capitulationGauge(pol.smallID())).toBe(10);
+    // Poland takes Warsaw back: two days off per day (ww7).
     pol.conquer(warsaw);
     nextDay(runner);
-    expect(ww.capitulationGauge(pol.smallID())).toBe(4);
+    expect(ww.capitulationGauge(pol.smallID())).toBe(8);
     nextDay(runner);
-    expect(ww.capitulationGauge(pol.smallID())).toBe(3);
+    expect(ww.capitulationGauge(pol.smallID())).toBe(6);
     // Lost again: it fills from there.
     deu.conquer(warsaw);
     nextDay(runner);
-    expect(ww.capitulationGauge(pol.smallID())).toBe(4);
-    expect(ww.data().gauges).toEqual([{ smallID: pol.smallID(), days: 4 }]);
+    expect(ww.capitulationGauge(pol.smallID())).toBe(8);
+    expect(ww.data().gauges).toEqual([{ smallID: pol.smallID(), days: 8 }]);
     // Its only war ends (as Germany's capitulation would end it).
     ww.endWarsOf(deu.smallID());
     nextDay(runner);

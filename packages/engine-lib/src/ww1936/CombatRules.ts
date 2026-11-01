@@ -135,10 +135,37 @@ export const RIVER_ATTACK_BP: readonly [number, number, number] = [
  */
 export const FORT_ATTACK_BP = -1500;
 
-/** Spec §9.2: base width plus one step for every direction after the first (1..4). */
-export function combatWidth(land: LandTerrain, directions: number): number {
+/** ww7: defence per entrenchment level, bp (was 300; ww6 design §5). */
+export const ENTRENCH_DEF_BP = 500;
+/** ww7: defence per position level (Positions.ts), bp. */
+export const POSITION_DEF_BP = 500;
+/** ww7: a defended region with a fort of this level or more halves the extra width of the attack directions. */
+export const FORT_HALF_WIDTH_FROM = 3;
+/** ww7: the share of org damage the defenders of an urban region take, percent (street fighting: −15%). */
+export const URBAN_DEFENDER_ORG_PCT = 85;
+
+/**
+ * Spec §9.2: base width plus one step for every direction after the first
+ * (1..4). ww7: against a fort of level FORT_HALF_WIDTH_FROM or more (`fort`,
+ * the defended region's) those extra steps count half (floor).
+ */
+export function combatWidth(
+  land: LandTerrain,
+  directions: number,
+  fort = 0,
+): number {
   const t = TERRAIN[land];
-  return t.width + t.perDirection * (Math.max(1, Math.min(4, directions)) - 1);
+  const extra = t.perDirection * (Math.max(1, Math.min(4, directions)) - 1);
+  return (
+    t.width + (fort >= FORT_HALF_WIDTH_FROM ? Math.floor(extra / 2) : extra)
+  );
+}
+
+/** ww7: org damage (milli) a defender of a `land` region takes; urban −15%. */
+export function defenderOrgDamage(land: LandTerrain, orgMilli: number): number {
+  return land === "urban"
+    ? Math.floor((orgMilli * URBAN_DEFENDER_ORG_PCT) / 100)
+    : orgMilli;
 }
 
 export function applyBp(x: number, bp: number): number {
@@ -235,6 +262,11 @@ export interface ModInput {
   fort: number;
   /** Defender only: its own entrenchment level. */
   entrench: number;
+  /**
+   * ww7, defender only: the level (0..3) of the position its side has built
+   * in the region (Positions.ts). Absent (the screens' inputs): 0.
+   */
+  posLevel?: number;
   /** Its side's excess-width penalty, bp ≤ 0. */
   excessBp: number;
   supplyPm: number;
@@ -503,7 +535,8 @@ export function divisionMods(i: ModInput): ModResult {
       i.tech.defensePct * 100 +
         (i.land === "forest" ? i.tech.forestDefensePct * 100 : 0),
     );
-    push(dAdd, "entrench", i.entrench * 300);
+    push(dAdd, "entrench", i.entrench * ENTRENCH_DEF_BP);
+    push(dAdd, "position", (i.posLevel ?? 0) * POSITION_DEF_BP);
     // P6 (spec §21.2): the fort's defence per level (its own region's fort).
     push(dAdd, "fort_def", i.fort * stat(i.tech, "fortDefPerLevelBp"));
   }
@@ -583,7 +616,7 @@ export function predictBattle(
 ): BattlePrediction {
   if (att.divisions === 0) return { ratioPm: 0, rounds: 0, days: 0 };
   if (def.divisions === 0) return { ratioPm: 1_000_000, rounds: 0, days: 0 };
-  const width = combatWidth(ctx.land, ctx.directions);
+  const width = combatWidth(ctx.land, ctx.directions, ctx.fort);
   // Divisions in line ×1000: the share of each side the width holds.
   const lineA = Math.min(
     1000 * att.divisions,
@@ -612,7 +645,11 @@ export function predictBattle(
     ctx.defenderAttackBp,
   );
   const dA = applyBp(per(att.brk, att.divisions), ctx.attackerBlockBp);
-  const toDef = roundDamage(roundHits(aA, dD), def.armor > att.pierce).orgMilli;
+  // ww7: the defenders of an urban region take 15% less org damage.
+  const toDef = defenderOrgDamage(
+    ctx.land,
+    roundDamage(roundHits(aA, dD), def.armor > att.pierce).orgMilli,
+  );
   const toAtt = roundDamage(roundHits(aD, dA), att.armor > def.pierce).orgMilli;
   const dmgDef = Math.floor((toDef * lineA) / 1000);
   const dmgAtt = Math.floor((toAtt * lineD) / 1000);

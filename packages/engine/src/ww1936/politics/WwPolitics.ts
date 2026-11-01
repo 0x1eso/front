@@ -58,6 +58,7 @@ import {
   LAW_STABILITY_BP,
   stabilityEffects,
   warSupportEffects,
+  withCapitalPct,
 } from "@openfront/engine-lib/ww1936/PoliticsRules";
 import {
   idHash,
@@ -76,6 +77,7 @@ import {
 } from "@openfront/engine-lib/ww1936/Stats";
 import { z } from "zod";
 import type { Game, Player } from "../../game/Game";
+import { holdsCapital } from "../Capitulation";
 import type { WwDepth } from "../depth/WwDepth";
 import type { WorldWar } from "../WorldWar";
 import { candidatesFor, fireAdvisor, hireAdvisor } from "./Advisors";
@@ -968,16 +970,22 @@ export class WwPolitics {
   /** Spec §6.4: today's surrender line, percent of the legal victory points. */
   surrenderPct(smallID: number): number {
     const c = this.countries[smallID];
-    const base = COUNTRIES[this.tagOf(smallID)].surrenderPct;
+    const def = COUNTRIES[this.tagOf(smallID)];
+    const base = def.surrenderPct;
     if (c === null || c === undefined) return base;
     // P6 hook (I, S): collaboration and atomic bombs lower the line.
     const cut =
       (this.ww.depth as WwDepth | undefined)?.surrenderCutPp(smallID) ?? 0;
-    return effectiveSurrenderPct(
-      base,
-      c.stabBp,
-      c.wsBp,
-      c.stats.surrenderPp - cut,
+    // ww7: France's own floor; holding the capital raises the line.
+    return withCapitalPct(
+      effectiveSurrenderPct(
+        base,
+        c.stabBp,
+        c.wsBp,
+        c.stats.surrenderPp - cut,
+        def.surrenderFloorPct,
+      ),
+      holdsCapital(this.mg, this.ww, smallID),
     );
   }
 

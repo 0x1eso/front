@@ -173,10 +173,17 @@ export interface CountryDef {
   readonly major: boolean;
   /** Share of its starting victory points (percent) lost at which it capitulates. */
   readonly surrenderPct: number;
+  /**
+   * ww7: the lowest its surrender line falls to (percent), when not the
+   * default (PoliticsRules.effectiveSurrenderPct: 50, or ten under its base).
+   */
+  readonly surrenderFloorPct?: number;
   readonly group: CountryGroup;
 }
 
-type Extra = Partial<Pick<CountryDef, "faction" | "major" | "surrenderPct">>;
+type Extra = Partial<
+  Pick<CountryDef, "faction" | "major" | "surrenderPct" | "surrenderFloorPct">
+>;
 
 function def(
   name: string,
@@ -193,6 +200,9 @@ function def(
     faction: extra.faction ?? null,
     major: extra.major ?? false,
     surrenderPct: extra.surrenderPct ?? 80,
+    ...(extra.surrenderFloorPct === undefined
+      ? {}
+      : { surrenderFloorPct: extra.surrenderFloorPct }),
   };
 }
 
@@ -219,6 +229,8 @@ export const COUNTRIES: Readonly<Record<CountryTag, CountryDef>> = {
     ...ALLIES,
     major: true,
     surrenderPct: 31,
+    // ww7: the floor is 25 (was 21, ten under its base).
+    surrenderFloorPct: 25,
   }),
   USA: def("United States", "us", [75, 120, 175], "americas", { major: true }),
   SUN: def("Soviet Union", "ussr", [150, 30, 30], "europe", {

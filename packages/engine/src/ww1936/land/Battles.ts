@@ -35,6 +35,7 @@ import {
   applyBp,
   attackValue,
   combatWidth,
+  defenderOrgDamage,
   divisionMods,
   entrenchMax,
   excessWidthBp,
@@ -232,9 +233,12 @@ function fight(land: WwLand, b: Battle, tick: number): void {
   b.round++;
   // 3. Width and the lines (spec §9.2).
   const dirs = new Set(b.attackers.map((id) => t.region[t.rowOf(id)])).size;
+  const terrain = land.scenario.landOf(R);
+  // ww7: a fort of level 3+ halves the extra width of the extra directions.
   const width = combatWidth(
-    land.scenario.landOf(R),
+    terrain,
     Math.min(4, Math.max(1, dirs)),
+    effectiveLevel(land.econ, R, "fort"),
   );
   const att = lineUp(land, b.attackers, b.attLine, width, b.round === 1);
   const def = lineUp(land, b.defenders, b.defLine, width, b.round === 1);
@@ -335,8 +339,14 @@ function fight(land: WwLand, b: Battle, tick: number): void {
   try {
     for (const [r, o] of [...org].sort((x, y) => x[0] - y[0])) {
       const was = t.org[r];
-      t.org[r] = Math.max(0, was - o);
-      if (t.role[r] === ROLE_DEFEND) b.lostOrgMilli += was - t.org[r];
+      // ww7 (street fighting): the defenders of an urban region take 15%
+      // less org damage, whatever dealt it (hits, air support, guns).
+      const defends = t.role[r] === ROLE_DEFEND;
+      t.org[r] = Math.max(
+        0,
+        was - (defends ? defenderOrgDamage(terrain, o) : o),
+      );
+      if (defends) b.lostOrgMilli += was - t.org[r];
       land.markArmy(t.army[r]);
       const menBefore = t.men[r];
       const against = t.owner[r];
@@ -811,8 +821,9 @@ export function stepRecovery(land: WwLand): void {
 
 /**
  * Spec §9.8, the country's day: a division that stood still all day
- * entrenches a level every three days (two with a defensive general), up
- * to entrenchMax; a moving one has none (arrive zeroes both too).
+ * entrenches a level every two days (ww7: was three; two levels with a
+ * defensive general), up to entrenchMax; a moving one has none (arrive
+ * zeroes both too). A level is worth ENTRENCH_DEF_BP (ww7: 5%, was 3%).
  */
 export function dailyEntrench(land: WwLand, smallID: number): void {
   const t = land.divisions;
@@ -820,8 +831,9 @@ export function dailyEntrench(land: WwLand, smallID: number): void {
   if (ce === null) return;
   const ePct =
     (ce.stats as Partial<Record<WwStatKey, number>>).entrenchSpeedPct ?? 0;
-  // P6 (spec §21.2): entrenchSpeedPct shortens the three days a level
-  // (whole days: an approximation, recorded); review L4: plus the army's
+  // P6 (spec §21.2): entrenchSpeedPct shortens the days a level takes
+  // (whole days: an approximation, recorded; ww7: the base is two days, so
+  // any speed bonus makes it a level a day); review L4: plus the army's
   // field marshal (lane D).
   const everyOf = new Map<number, number>();
   const stepOf = new Map<number, number>();
@@ -841,7 +853,7 @@ export function dailyEntrench(land: WwLand, smallID: number): void {
           ? land.depthHooks.armyMods(smallID, army).entrenchSpeedPct
           : 0);
       entrenchEvery =
-        pct === 0 ? 3 : Math.max(1, Math.floor(300 / Math.max(10, 100 + pct)));
+        pct === 0 ? 2 : Math.max(1, Math.floor(200 / Math.max(10, 100 + pct)));
       everyOf.set(army, entrenchEvery);
     }
     if (t.stillDays[r] % entrenchEvery !== 0) continue;
@@ -1016,6 +1028,8 @@ export function modInputOf(
     // §21.2 fortDefPerLevelBp): the defender reads its own region's fort.
     fort: effectiveLevel(land.econ, region, "fort"),
     entrench: attacking ? 0 : t.entrench[row],
+    // ww7: the position its side built in the region (Positions.ts).
+    posLevel: attacking ? 0 : land.posLevel[region],
     excessBp: 0,
     supplyPm: t.supply[row],
     encircled: t.encircled[row] !== 0,

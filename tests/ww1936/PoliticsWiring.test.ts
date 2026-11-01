@@ -145,13 +145,14 @@ describe("politics wiring", () => {
     const ww = g.worldWar()!;
     const [deu, pl] = [byTag(g, "DEU"), byTag(g, "POL")];
     const c = ww.politics.country(pl.smallID())!;
-    expect(ww.politics.surrenderPct(pl.smallID())).toBe(80);
+    // ww7: Poland holds Warsaw, its capital: 15 points on the line (80 → 95).
+    expect(ww.politics.surrenderPct(pl.smallID())).toBe(95);
     c.stabBp = 10_000;
     c.wsBp = 10_000;
     expect(ww.politics.surrenderPct(pl.smallID())).toBe(95);
     c.wsBp = 0;
     c.stabBp = 0;
-    expect(ww.politics.surrenderPct(pl.smallID())).toBe(65);
+    expect(ww.politics.surrenderPct(pl.smallID())).toBe(80);
     // Warsaw is 21 of Poland's 24 points (87%): past 80%, short of 95%.
     stepTo(runner, WW_PREP_TICKS + 1);
     ww.setWar(deu.smallID(), pl.smallID(), g.ticks());
@@ -162,8 +163,11 @@ describe("politics wiring", () => {
     expect(ww.capitulationGauge(pl.smallID())).toBe(0);
     c.stabBp = 5000;
     c.wsBp = 5000;
+    // The capital is gone: the line is its 80 again. 7.5 points over it:
+    // the gauge rises 1 + ⌊7.5 ÷ 5⌋ = 2 a day.
+    expect(ww.politics.surrenderPct(pl.smallID())).toBe(80);
     checkCapitulations(g, ww, g.ticks());
-    expect(ww.capitulationGauge(pl.smallID())).toBe(1);
+    expect(ww.capitulationGauge(pl.smallID())).toBe(2);
   });
 
   it("factions are state: the start members, factionOf and sameFaction", async () => {

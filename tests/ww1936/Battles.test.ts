@@ -237,7 +237,10 @@ describe("World War 1936 P2: land battles (spec §9)", () => {
     attack(l, a, KRAKOW);
     expect(l.battleSummary(l.battles.get(KRAKOW)!).directions).toBe(1);
     let ended = -1;
-    for (let i = 0; i < 225; i++) {
+    // Twenty days: the plan walks into empty Warsaw, and Poland (21 of its
+    // 24 points lost) capitulates after 23 days (ww7: 2 a day towards 45),
+    // which would hand Krakow over.
+    for (let i = 0; i < 150; i++) {
       step(runner);
       if (ended < 0 && !l.battles.has(KRAKOW)) ended = i;
       expect(l.controller[KRAKOW]).toBe(pol);

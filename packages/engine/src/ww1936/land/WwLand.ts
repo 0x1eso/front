@@ -77,6 +77,7 @@ import { weatherAt } from "@openfront/engine-lib/ww1936/Weather";
 import { techTotals } from "@openfront/engine-lib/ww1936/WwTechs";
 import { z } from "zod";
 import type { Game, Player } from "../../game/Game";
+import { effectiveLevel } from "../economy/Buildings";
 import type { WwEconomy } from "../economy/WwEconomy";
 import { type LandSeaAirHooks, NEUTRAL_HOOKS } from "../navy/NavyAirHooks";
 import type { WorldWar } from "../WorldWar";
@@ -91,6 +92,7 @@ import { nextStepOf, stepMovement } from "./Movement";
 import { stepSpread } from "./Occupation";
 import { applyArmyOrders, issueArmyOrder } from "./Orders";
 import { dmzBlocks } from "./PoliticsBridge";
+import { dailyPositions, resetPosition } from "./Positions";
 import { autoAddPresets } from "./Presets";
 import { dailySupply } from "./Supply";
 import { dailySustain } from "./Sustain";
@@ -1066,6 +1068,8 @@ export class WwLand {
     dailyFronts(this, id, day);
     dailySustain(this, id, day);
     dailyEntrench(this, id);
+    // ww7: the positions of the regions it controls.
+    dailyPositions(this, id);
     autoAddPresets(this, cl);
     // P5 plan decision 7: the AI runs a country no human controls now.
     // Automation: a human's auto armies, and its training when handed over.
@@ -1258,6 +1262,10 @@ export class WwLand {
     if (old === by) return;
     this.controller[region] = by;
     this.controlChanges++;
+    // ww7: the position it held goes with the old hands.
+    if (this.posLevel[region] !== 0 || this.posDays[region] !== 0) {
+      resetPosition(this, region);
+    }
     const r = this.scenario.region(region)!;
     const vpTile = this.scenario.vpTile(r);
     const p = this.mg.playerBySmallID(by);
@@ -2358,7 +2366,11 @@ export class WwLand {
       attReserve: Math.max(0, b.attackers.length - b.attLine.length),
       defLine: b.defLine.length,
       defReserve: Math.max(0, b.defenders.length - b.defLine.length),
-      width: combatWidth(this.scenario.landOf(b.region), directions),
+      width: combatWidth(
+        this.scenario.landOf(b.region),
+        directions,
+        effectiveLevel(this.econ, b.region, "fort"),
+      ),
       attWidth: lineWidth(b.attLine),
       defWidth: lineWidth(b.defLine),
       directions,

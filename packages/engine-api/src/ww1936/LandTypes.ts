@@ -336,6 +336,8 @@ export interface SideSum {
 export interface BattleCtx {
   land: LandTerrain;
   directions: number;
+  /** ww7: the defended region's fort level (3+ halves the extra width of the directions); absent: 0. */
+  fort?: number;
   /** Combined modifiers of each side (combineMods), bp. */
   attackerAttackBp: number;
   attackerBlockBp: number;

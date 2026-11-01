@@ -10,7 +10,10 @@ import {
   EQUIPMENT_TYPES,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
 import { P_NUKE_INTERCEPT } from "@openfront/engine-lib/ww1936/DepthRules";
-import { effectiveSurrenderPct } from "@openfront/engine-lib/ww1936/PoliticsRules";
+import {
+  effectiveSurrenderPct,
+  withCapitalPct,
+} from "@openfront/engine-lib/ww1936/PoliticsRules";
 import {
   nukeDropBlock,
   nukeInterceptPm,
@@ -311,11 +314,15 @@ describe("World War 1936 P6: the atomic bomb (spec §9.5)", () => {
     const { g, ww, d, gbr, deu } = await atomicWar(0, 10);
     const pc = ww.politics.country(deu)!;
     const line = (k: number) =>
-      effectiveSurrenderPct(
-        COUNTRIES.DEU.surrenderPct,
-        pc.stabBp,
-        pc.wsBp,
-        pc.stats.surrenderPp - Math.min(30, 10 * k),
+      // ww7: Germany holds its capital.
+      withCapitalPct(
+        effectiveSurrenderPct(
+          COUNTRIES.DEU.surrenderPct,
+          pc.stabBp,
+          pc.wsBp,
+          pc.stats.surrenderPp - Math.min(30, 10 * k),
+        ),
+        true,
       );
     const seen = [ww.politics.surrenderPct(deu)];
     const cuts: number[] = [];
@@ -344,4 +351,3 @@ describe("World War 1936 P6: the atomic bomb (spec §9.5)", () => {
     void g;
   }, 60_000);
 });
-

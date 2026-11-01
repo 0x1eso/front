@@ -156,7 +156,7 @@ describe("World War 1936 P2: org recovery and entrenchment (spec §9.8)", () => 
     ]);
   }, 60_000);
 
-  test("entrenchment grows every three days up to the cap", async () => {
+  test("entrenchment grows every two days up to the cap", async () => {
     const { g, l, deu, pol } = await board();
     const t = l.divisions;
     // Poland's infantry: no engineers, a cap of 5.
@@ -164,11 +164,11 @@ describe("World War 1936 P2: org recovery and entrenchment (spec §9.8)", () => 
     const days = (id: number, n: number) => {
       for (let i = 0; i < n; i++) dailyEntrench(l, id);
     };
-    days(pol, 2);
-    expect([t.stillDays[p], t.entrench[p]]).toEqual([2, 0]);
+    days(pol, 1);
+    expect([t.stillDays[p], t.entrench[p]]).toEqual([1, 0]);
     days(pol, 1);
     expect(t.entrench[p]).toBe(1);
-    days(pol, 12);
+    days(pol, 8);
     expect(t.entrench[p]).toBe(5);
     days(pol, 15);
     expect(t.entrench[p]).toBe(5);
@@ -178,13 +178,13 @@ describe("World War 1936 P2: org recovery and entrenchment (spec §9.8)", () => 
     expect(t.entrench[d]).toBe(10);
     days(deu, 30);
     expect(t.entrench[d]).toBe(10);
-    // A defensive general: two levels every three days.
+    // A defensive general: two levels every two days.
     const a = placeArmy(g, "DEU", BERLIN, 1);
     const gen = l.country(deu)!.generals[1];
     gen.traits |= traitBit("defensive_doctrine");
     a.general = gen.id;
     gen.army = a.id;
-    days(deu, 3);
+    days(deu, 2);
     expect(t.entrench[first(l, a)]).toBe(2);
     // On the move: none.
     startHopInto(l, d, 4, MOVE_WALK);

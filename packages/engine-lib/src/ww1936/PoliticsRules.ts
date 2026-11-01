@@ -16,6 +16,10 @@ import {
   WW_PP_CAP,
   WwStats,
 } from "@openfront/engine-api/ww1936/PoliticsTypes";
+import {
+  WW_CAPITAL_LINE_MAX,
+  WW_CAPITAL_LINE_PP,
+} from "@openfront/engine-api/ww1936/WorldWarTypes";
 
 // ---- Political power (spec §4.1) ----
 
@@ -129,11 +133,25 @@ export function effectiveSurrenderPct(
   stabBp: number,
   wsBp: number,
   surrenderPp: number,
+  /** ww7: the country's own floor (France 25), else the rule above. */
+  floorPct: number = Math.min(50, basePct - 10),
 ): number {
   const ws = Math.max(-10, Math.min(10, Math.floor((wsBp - 5000) / 500)));
   const st = Math.max(-5, Math.min(5, Math.floor((stabBp - 5000) / 1000)));
-  const floor = Math.min(50, basePct - 10);
-  return Math.max(floor, Math.min(98, basePct + ws + st + surrenderPp));
+  return Math.max(floorPct, Math.min(98, basePct + ws + st + surrenderPp));
+}
+
+/**
+ * ww7: a country holding its capital has a surrender line WW_CAPITAL_LINE_PP
+ * points higher, at most WW_CAPITAL_LINE_MAX (a line already above that stays).
+ */
+export function withCapitalPct(linePct: number, holdsCapital: boolean): number {
+  return holdsCapital
+    ? Math.max(
+        linePct,
+        Math.min(WW_CAPITAL_LINE_MAX, linePct + WW_CAPITAL_LINE_PP),
+      )
+    : linePct;
 }
 
 /** Spec §6.1: war-weariness line, bp (≤ 0). */
