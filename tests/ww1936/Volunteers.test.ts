@@ -111,10 +111,12 @@ describe("World War 1936 P5: volunteers", () => {
     const ce = ww.economy.country(sun)!;
     ce.manpower += 100_000;
     const def = placeArmy(x.g, "SUN", KIEV, 1);
-    step(runner, 2, [
-      order(C_ITA, { kind: "volunteers_send", army: a.id, to: pl }),
-    ]);
+    sendAndArrive(x);
     expect(a.volunteerFor).toBe(pl);
+    // ww7: an aggressive attack waits for odds (the range's good-luck side
+    // must clear 1000 permille): the Soviet division is worn down.
+    const dr = l.divisions.rowOf(def.divisions[0]);
+    l.divisions.org[dr] = Math.floor(l.orgMaxOf(dr) / 20);
     expect(eg.volunteers.map((v) => [v.army, v.from, v.to])).toEqual([
       [a.id, ita, pl],
     ]);

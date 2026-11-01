@@ -29,7 +29,7 @@ import { resolveParadrop } from "../air/Paradrop";
 import { cancelInvasion } from "../navy/Invasions";
 import { navalPort } from "../navy/Ports";
 import { joinBattle } from "./Battles";
-import { assignFront, nearestBorder, type TargetDist } from "./Fronts";
+import { applyFront, nearestBorder } from "./Fronts";
 import {
   enemyDivisionsIn,
   findPath,
@@ -38,7 +38,7 @@ import {
   stopDivision,
 } from "./Movement";
 import { capture } from "./Occupation";
-import { armyRows, planDay } from "./Plans";
+import { armyRows } from "./Plans";
 import { disbandDivision } from "./Sustain";
 import type { Army, CountryLand, WwLand } from "./WwLand";
 
@@ -363,6 +363,7 @@ function applyOrder(land: WwLand, a: Army, tick: number, day: number): void {
   const o = a.order;
   const rows = armyRows(land, a);
   const me = land.ownerForSides(a);
+  if (o.kind !== "front" && o.kind !== "plan") a.odds = undefined;
   switch (o.kind) {
     case "idle":
       for (const r of rows) {
@@ -405,12 +406,9 @@ function applyOrder(land: WwLand, a: Army, tick: number, day: number): void {
           }
         }
       }
-      {
-        const dist: TargetDist = { value: null };
-        if (assignFront(land, a, tick, undefined, dist) && day >= 0) {
-          planDay(land, a, day, dist.value ?? undefined);
-        }
-      }
+      // ww7: the zone, the gaps, the divisions and (executing) the attack,
+      // now: the screen sees the new order within a tick.
+      applyFront(land, a, tick, day);
       break;
     case "paradrop":
       // Spec §7.6: ten days of preparation where they stand.

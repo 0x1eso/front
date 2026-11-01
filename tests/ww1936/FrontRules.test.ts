@@ -3,11 +3,17 @@
 // largest-remainder split the engine and the screens share.
 import { COUNTRIES } from "@openfront/engine-api/ww1936/Countries";
 import { ScenarioDataSchema } from "@openfront/engine-api/ww1936/ScenarioTypes";
+import { splitFront } from "@openfront/engine-lib/ww1936/CommandRules";
 import {
+  borderChain,
+  borderGraphOf,
+  borderLinks,
   borderRegionsOf,
   frontOf,
   frontSize,
   splitByWeight,
+  zoneFrom,
+  zoneSize,
   type FrontWorld,
 } from "@openfront/engine-lib/ww1936/FrontRules";
 import { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
@@ -64,6 +70,16 @@ describe("World War 1936 P2: front rules (P2 spec §8.1)", () => {
     expect(frontSize(0)).toBe(1);
   });
 
+  test("zoneSize: a defend zone is half the divisions, an attack zone a third", () => {
+    expect([1, 2, 3, 4, 5, 24].map((n) => zoneSize(n, false))).toEqual([
+      1, 1, 2, 2, 3, 12,
+    ]);
+    expect([1, 3, 4, 6, 7, 24].map((n) => zoneSize(n, true))).toEqual([
+      1, 1, 2, 2, 3, 8,
+    ]);
+    expect([zoneSize(0, false), zoneSize(0, true)]).toEqual([1, 1]);
+  });
+
   test("border regions are our side's, against one country or every enemy", () => {
     const deu = id("DEU");
     const pol = id("POL");
@@ -97,6 +113,28 @@ describe("World War 1936 P2: front rules (P2 spec §8.1)", () => {
     expect(frontOf(w, deu, pol, 3, 0)).toEqual([]);
   });
 
+  test("zoneFrom over a border graph is frontOf, and the links are ascending", () => {
+    const deu = id("DEU");
+    const pol = id("POL");
+    const w = world();
+    const g = borderGraphOf(w, deu, pol);
+    expect(g.list).toEqual([3, 4, 5]);
+    expect(borderLinks(w, g, 4)).toEqual([3, 5]);
+    expect(borderLinks(w, g, 3)).toEqual([4]);
+    for (const [anchor, count] of [
+      [3, 1],
+      [3, 2],
+      [5, 3],
+      [4, 8],
+      [6, 2],
+      [3, 0],
+    ]) {
+      expect(zoneFrom(w, g, anchor, count)).toEqual(
+        frontOf(w, deu, pol, anchor, count),
+      );
+    }
+  });
+
   test("two border regions facing the same enemy region are linked", () => {
     // France holds Munich: Berlin and Rome share no edge, but both face it.
     const deu = id("DEU");
@@ -105,5 +143,48 @@ describe("World War 1936 P2: front rules (P2 spec §8.1)", () => {
     expect(borderRegionsOf(w, deu, fra)).toEqual([3, 5]);
     expect(frontOf(w, deu, fra, 3, 2)).toEqual([3, 5]);
     expect(frontOf(w, deu, fra, 5, 2)).toEqual([5, 3]);
+  });
+});
+
+describe("ww7: the border chain and the army-group split", () => {
+  // A stub world: six regions in a line 1 - 4 - 2 - 6 - 3 - 5 (by edge),
+  // all one side's, with an enemy region 7 next to nobody.
+  const line = [1, 4, 2, 6, 3, 5];
+  const adj = new Map<number, number[]>();
+  line.forEach((r, i) => {
+    adj.set(
+      r,
+      [line[i - 1], line[i + 1]].filter((x) => x !== undefined),
+    );
+  });
+  const stub = {
+    scenario: {
+      edgesOf: (r: number) => (adj.get(r) ?? []).map((to) => ({ to })),
+      regionKm: (a: number, b: number) => Math.abs(a - b) * 10,
+    },
+    controller: [0, 1, 1, 1, 1, 1, 1, 2],
+    sameSide: (a: number, b: number) => a > 0 && b > 0 && a === b,
+    isEnemy: () => false,
+  } as unknown as FrontWorld;
+
+  test("the chain follows the border, not the ids", () => {
+    const chain = borderChain(stub, 1, 2, [5, 3, 6, 2, 4, 1]);
+    expect(chain).toEqual(line);
+    // A part of the line is still a run of it; duplicates go.
+    expect(borderChain(stub, 1, 2, [6, 4, 2, 4])).toEqual([4, 2, 6]);
+    // Fewer than three: ascending.
+    expect(borderChain(stub, 1, 2, [6, 1])).toEqual([1, 6]);
+  });
+
+  test("regions with no link in between jump to the nearest by distance", () => {
+    // 1 and 5 touch nothing of the chosen set but each other's neighbours.
+    expect(borderChain(stub, 1, 2, [1, 5, 4, 3])).toEqual([1, 4, 3, 5]);
+  });
+
+  test("splitFront cuts the chain into runs in the given order", () => {
+    const chain = borderChain(stub, 1, 2, line);
+    expect(splitFront(chain, [1, 2, 3])).toEqual([[1], [4, 2], [6, 3, 5]]);
+    // Not sorted by id: the order given is the order cut.
+    expect(splitFront([5, 3, 6], [1, 1, 1])).toEqual([[5], [3], [6]]);
   });
 });

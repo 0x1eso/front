@@ -83,13 +83,14 @@ import type { WorldWar } from "../WorldWar";
 import { aiLandTick } from "./AiLand";
 import { dailyEntrench, stepBattles, stepRecovery } from "./Battles";
 import { type LandDepthHooks, NEUTRAL_DEPTH_HOOKS } from "./DepthHooks";
-import { dailyFronts } from "./Fronts";
+import { dailyFronts, gapsOf } from "./Fronts";
 import { appointGeneral, assignGeneral, GENERAL_XP_CENTI } from "./GeneralsRun";
 import { noteLandFuel } from "./LandFuel";
 import { startLand } from "./LandStartRun";
 import { nextStepOf, stepMovement } from "./Movement";
 import { stepSpread } from "./Occupation";
 import { applyArmyOrders, issueArmyOrder } from "./Orders";
+import { oddsOf } from "./Plans";
 import { dmzBlocks } from "./PoliticsBridge";
 import { autoAddPresets } from "./Presets";
 import { dailySupply } from "./Supply";
@@ -360,8 +361,17 @@ export interface Army {
   /** ww7: 0 off, 1 defend-only auto, 2 full auto (army_auto on = 2). */
   autoLevel: number;
   planBp: number;
-  /** Front regions of the last daily recompute (spec §8.1), in BFS order. */
+  /**
+   * The zone the army holds (ww7), gap fills included: recomputed daily and
+   * on every order apply (spec §8.1), in the order Fronts draws it.
+   */
   front: number[];
+  /**
+   * ww7: a human plan army's odds for the screen, [from, to, winPct] per zone
+   * region (Plans.oddsOf). Derived: not snapshotted or hashed; recomputed
+   * daily and on order apply, and when a summary finds it missing.
+   */
+  odds?: [number, number, number][];
   /** Remaining regions of a move order's path. */
   path: number[];
   /** Its order changed: applyArmyOrders turns it into destinations this tick. */
@@ -2278,6 +2288,15 @@ export class WwLand {
         : BATTALION_IDS.indexOf(counts[0][0] as BattalionId);
     const p = this.mg.playerBySmallID(a.owner);
     const human = p.isPlayer() && this.ww.isHumanControlled(a.owner);
+    // ww7: a human plan army's odds (derived: recomputed daily and on order
+    // apply; here when a restore left them out).
+    let oddsOut: { odds?: [number, number, number][] } = {};
+    if (human && a.order.kind === "plan") {
+      a.odds ??= oddsOf(this, a);
+      if (a.odds.length > 0) {
+        oddsOut = { odds: a.odds.map((x) => [x[0], x[1], x[2]]) };
+      }
+    }
     const out: ArmySummary = {
       id: a.id,
       owner: a.owner,
@@ -2293,7 +2312,11 @@ export class WwLand {
       symbol,
       mine: human
         ? {
-            order: { ...a.order, targets: [...a.order.targets] },
+            order: {
+              ...a.order,
+              targets: [...a.order.targets],
+              zone: [...a.order.zone],
+            },
             front: [...a.front],
             planBp: a.planBp,
             auto: a.auto,
@@ -2303,8 +2326,9 @@ export class WwLand {
             paraLastDay: a.paraLastDay,
             railGuns: a.railGuns,
             priority: a.priority,
-            // ww7: sent when set (lanes C and D fill `odds`).
+            // ww7: sent when set.
             ...(a.autoLevel === 0 ? {} : { autoLevel: a.autoLevel }),
+            ...oddsOut,
           }
         : null,
     };
@@ -2527,6 +2551,9 @@ export class WwLand {
         fmTraits: g.fmTraits,
       };
     });
+    // ww7: border regions facing a country at war with us where none of our
+    // side's divisions stands or is headed (the details go to humans only).
+    const gaps = gapsOf(this, id);
     return {
       smallID: id,
       armyXpMilli: cl.armyXpMilli,
@@ -2541,6 +2568,7 @@ export class WwLand {
       training,
       generals,
       divisions,
+      ...(gaps.length > 0 ? { gaps } : {}),
     };
   }
 

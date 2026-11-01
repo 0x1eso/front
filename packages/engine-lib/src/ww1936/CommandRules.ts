@@ -302,16 +302,18 @@ export function fmArmyStats(
 }
 
 /**
- * Spec §4.3 ag_front (deterministic): the front regions in ascending
- * order, cut from the front into one stretch per army — army i (in the
- * group's army order) gets floor(n × div_i / Σdiv) regions, the remainder
- * one each from the first army on. An army may get an empty stretch.
+ * Spec §4.3 ag_front (deterministic): the front regions in the order given
+ * (ww7: along the border, FrontRules.borderChain — not by id), cut from the
+ * front into one stretch per army — army i (in the group's army order)
+ * gets floor(n × div_i / Σdiv) regions, the remainder one each from the
+ * first army on. Every stretch is a run of the chain. An army may get an
+ * empty stretch.
  */
 export function splitFront(
   front: readonly number[],
   divisions: readonly number[],
 ): number[][] {
-  const regions = [...new Set(front)].sort((a, b) => a - b);
+  const regions = [...new Set(front)];
   const n = regions.length;
   const k = divisions.length;
   if (k === 0) return [];

@@ -4,6 +4,7 @@
 import { WW_DAY_SPLIT } from "@openfront/engine-api/ww1936/EconomyTypes";
 import { dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
 import { splitFront } from "@openfront/engine-lib/ww1936/CommandRules";
+import { borderChain } from "@openfront/engine-lib/ww1936/FrontRules";
 import type { GameRunner } from "@openfront/engine/GameRunner";
 import { dailyArmyGroups } from "@openfront/engine/ww1936/depth/ArmyGroups";
 import { makeMarshal } from "@openfront/engine/ww1936/depth/Command";
@@ -55,22 +56,33 @@ function afterTurn(runner: GameRunner, day: number): number {
 describe("army groups (spec §4.3)", () => {
   it("field marshal army group front assignment splits the front deterministically", async () => {
     // Three armies of 10/20/30 divisions on a 12-region front: 2/4/6
-    // regions, in ascending order, one stretch after the other.
+    // regions, one stretch after the other in the order given (ww7: the
+    // border chain's, not the ids').
     const front = [9, 3, 12, 1, 7, 5, 11, 2, 8, 4, 10, 6];
     const parts = splitFront(front, [10, 20, 30]);
     expect(parts).toEqual([
+      [9, 3],
+      [12, 1, 7, 5],
+      [11, 2, 8, 4, 10, 6],
+    ]);
+    expect(
+      splitFront(
+        [...front].sort((a, b) => a - b),
+        [10, 20, 30],
+      ),
+    ).toEqual([
       [1, 2],
       [3, 4, 5, 6],
       [7, 8, 9, 10, 11, 12],
     ]);
-    expect(splitFront([...front].reverse(), [10, 20, 30])).toEqual(parts);
     // The remainder goes one each from the first army.
     expect(splitFront([1, 2, 3, 4, 5], [1, 1, 1])).toEqual([
       [1, 2],
       [3, 4],
       [5],
     ]);
-    // In a game: P2's front order per army, anchored on its stretch.
+    // In a game: P2's front order per army, anchored on its stretch, with
+    // the stretch as its explicit zone.
     const { runner, d, land, fm } = await germany();
     const a = placeArmy(runner.game, "DEU", DEEP.region.berlin, 2);
     const b = placeArmy(runner.game, "DEU", DEEP.region.munich, 2);
@@ -93,16 +105,25 @@ describe("army groups (spec §4.3)", () => {
           tick,
         ),
       ).toBeNull();
-      return [a, b].map((x) => [x.order.kind, x.order.anchor, x.order.enemy]);
+      return [a, b].map((x) => [
+        x.order.kind,
+        x.order.anchor,
+        x.order.enemy,
+        x.order.zone,
+      ]);
     };
     const first = run();
-    // Two divisions each: one region each, ascending in army order.
+    // Two divisions each: one region each, along the border (Berlin, Munich).
+    const chain = borderChain(land, DEU, POL, front2);
+    expect(chain).toEqual([DEEP.region.berlin, DEEP.region.munich]);
     const want = splitFront(
-      front2,
+      chain,
       g.armies.map((id) => land.armies.get(id)!.divisions.length),
     );
     g.armies.forEach((id, i) => {
-      expect(land.armies.get(id)!.order.anchor).toBe(want[i][0]);
+      const o = land.armies.get(id)!.order;
+      expect(o.anchor).toBe(want[i][0]);
+      expect(o.zone).toEqual(want[i]);
     });
     expect(run()).toEqual(first);
     expect(first.every((x) => x[0] === "front" && x[2] === POL)).toBe(true);

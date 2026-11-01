@@ -1,9 +1,12 @@
 // World War 1936 P2: battle plans and planning (P2 spec §8.2, §8.3).
+// ww7: an Attack (a plan order) attacks from the axis of its zone.
 import {
+  idleOrder,
   MOVE_ADVANCE,
   MOVE_NONE,
   MOVE_RETREAT,
   MOVE_WALK,
+  ROLE_ATTACK,
   TPL_SIGNAL,
   traitBit,
   WW_PLAN_DAY_BP,
@@ -27,17 +30,28 @@ import { enemyDivisionsIn, startHopInto } from "./Movement";
 import { leaveAttack } from "./Orders";
 import type { Army, WwLand } from "./WwLand";
 
-/** Spec §8.2: the ratio a stance attacks at (‰) and the org it attacks with (% of max). */
-const STANCE_RATIO_PM: Readonly<Record<Stance, number>> = {
-  careful: 1500,
-  balanced: 1000,
-  aggressive: 0,
-};
+/**
+ * ww7 §1-5: the range a stance attacks at, ‰ of the org-removal ratio the
+ * preview must clear (careful on bad luck, balanced on the average,
+ * aggressive on good luck); and the org it attacks with (% of max).
+ */
+const STANCE_MIN_PM = 1000;
 const STANCE_ORG_PCT: Readonly<Record<Stance, number>> = {
   careful: 80,
   balanced: 60,
   aggressive: 30,
 };
+/** ww7 §1-4: an attacker below this org (% of max) leaves the attack. */
+const ATTACK_LEAVE_PCT = 30;
+
+/** The preview figure a stance judges by. */
+function stancePm(range: BattleRange, stance: Stance): number {
+  return stance === "careful"
+    ? range.lowPm
+    : stance === "balanced"
+      ? range.midPm
+      : range.highPm;
+}
 
 /** Live rows of an army's divisions, in row (= id) order. */
 export function armyRows(land: WwLand, army: Army): number[] {
@@ -82,6 +96,51 @@ export function targetDistances(land: WwLand, army: Army): Int32Array {
   return dist;
 }
 
+/**
+ * ww7 §1-3: the zone regions nearest the plan's targets, where the spare
+ * divisions gather and the attack goes in. Without target distances (a plan
+ * with no targets, the whole front advancing) every zone region.
+ */
+export function axisOf(
+  zone: readonly number[],
+  dist: Int32Array | null,
+): Set<number> {
+  const out = new Set<number>();
+  if (dist === null) {
+    for (const f of zone) out.add(f);
+    return out;
+  }
+  let min = Infinity;
+  for (const f of zone) min = Math.min(min, dist[f]);
+  for (const f of zone) if (dist[f] === min) out.add(f);
+  return out;
+}
+
+/**
+ * ww7 §1-5: a plan whose targets are all ours is done: the army turns to
+ * Defend (a front order, automatic zone, anchored on its token region, not
+ * executing; its readiness stays) and leaves the attacks. True when it did.
+ */
+export function finishPlan(land: WwLand, army: Army): boolean {
+  const o = army.order;
+  if (o.kind !== "plan" || o.targets.length === 0) return false;
+  // P5 lane A: a volunteer army judges by its host's side.
+  const me = land.ownerForSides(army);
+  if (!o.targets.every((r) => land.sameSide(me, land.controller[r]))) {
+    return false;
+  }
+  for (const r of armyRows(land, army)) leaveAttack(land, r);
+  army.order = {
+    ...idleOrder(),
+    kind: "front",
+    anchor: land.armyRegion(army),
+    enemy: o.enemy,
+  };
+  army.odds = undefined;
+  land.markArmy(army.id);
+  return true;
+}
+
 /** Enemy divisions' defence in `region` (the plan's "weaker first"). */
 function enemyStrength(land: WwLand, me: number, region: number): number {
   const t = land.divisions;
@@ -95,11 +154,54 @@ function enemyStrength(land: WwLand, me: number, region: number): number {
 }
 
 /**
- * Spec §8.2: one day of an executing plan, front region by front region
- * (front order): the enemy region next to it no farther from the targets
- * (nearest the targets, then the weaker, then the smaller id) is walked
- * into when empty, or attacked when the preview clears the stance's ratio.
- * The plan ends when our side holds every target.
+ * Spec §8.2: the enemy region next to `f` no farther from the targets
+ * (nearest the targets, then the weaker, then the smaller id); -1 when
+ * none. `emptyOnly`: among the regions nobody defends.
+ */
+function attackTarget(
+  land: WwLand,
+  army: Army,
+  me: number,
+  f: number,
+  dist: Int32Array,
+  emptyOnly: boolean,
+): number {
+  const o = army.order;
+  let best = -1;
+  let bestD = 0;
+  let bestS = 0;
+  for (const e of land.scenario.edgesOf(f)) {
+    const c = land.controller[e.to];
+    if (!land.isEnemy(me, c)) continue;
+    // A front against one country attacks it (and the plan's targets).
+    if (o.enemy !== 0 && c !== o.enemy && !o.targets.includes(e.to)) continue;
+    const d = dist[e.to];
+    if (d > dist[f]) continue;
+    if (emptyOnly && enemyDivisionsIn(land, me, e.to) !== 0) continue;
+    const s = enemyStrength(land, me, e.to);
+    if (
+      best < 0 ||
+      d < bestD ||
+      (d === bestD && (s < bestS || (s === bestS && e.to < best)))
+    ) {
+      best = e.to;
+      bestD = d;
+      bestS = s;
+    }
+  }
+  return best;
+}
+
+/**
+ * Spec §8.2, ww7 §1-5: one day of an executing plan, zone region by zone
+ * region (front order). Attackers below 30 % org leave their attack (a
+ * fresher division of the axis joins below). The axis regions: the enemy
+ * region next to it no farther from the targets (nearest the targets, then
+ * the weaker, then the smaller id) is walked into when empty, or attacked
+ * when the preview's range clears the stance (careful low, balanced
+ * average, aggressive high ≥ 1000). The other zone regions hold, but walk
+ * into an empty enemy region no farther from the targets, and only with a
+ * division to spare. The plan ends (Defend) when our side holds every target.
  */
 export function planDay(
   land: WwLand,
@@ -107,57 +209,41 @@ export function planDay(
   day: number,
   /** targetDistances(land, army) when the caller has it (this tick, nothing moved since). */
   targetDist?: Int32Array,
+  /** The zone's axis (axisOf) when the caller has it. */
+  axis?: ReadonlySet<number>,
 ): void {
   const o = army.order;
   if (o.kind !== "plan" || !o.executing) return;
+  if (finishPlan(land, army)) return;
   // P5 lane A: a volunteer army attacks its host's enemies.
   const me = land.ownerForSides(army);
-  if (
-    o.targets.length > 0 &&
-    o.targets.every((r) => land.sameSide(me, land.controller[r]))
-  ) {
-    // Done: the army holds its front, out of any attack.
-    o.executing = false;
-    for (const r of armyRows(land, army)) leaveAttack(land, r);
-    land.markArmy(army.id);
-    return;
-  }
-  const sc = land.scenario;
   const t = land.divisions;
   const dist = targetDist ?? targetDistances(land, army);
   const rows = armyRows(land, army);
+  const ax = axis ?? axisOf(army.front, o.targets.length > 0 ? dist : null);
+  // Enemy region -> the divisions of the axis regions that go for it.
+  const strikes = new Map<number, number[]>();
   for (const f of army.front) {
     const here = rows.filter(
       (r) => t.region[r] === f && t.mode[r] === MOVE_NONE,
     );
     if (here.length === 0) continue;
-    let best = -1;
-    let bestD = 0;
-    let bestS = 0;
-    for (const e of sc.edgesOf(f)) {
-      const c = land.controller[e.to];
-      if (!land.isEnemy(me, c)) continue;
-      // A front against one country attacks it (and the plan's targets).
-      if (o.enemy !== 0 && c !== o.enemy && !o.targets.includes(e.to)) {
-        continue;
-      }
-      const d = dist[e.to];
-      if (d > dist[f]) continue;
-      const s = enemyStrength(land, me, e.to);
+    for (const r of here) {
       if (
-        best < 0 ||
-        d < bestD ||
-        (d === bestD && (s < bestS || (s === bestS && e.to < best)))
+        t.role[r] === ROLE_ATTACK &&
+        t.org[r] * 100 < land.orgMaxOf(r) * ATTACK_LEAVE_PCT
       ) {
-        best = e.to;
-        bestD = d;
-        bestS = s;
+        leaveAttack(land, r);
       }
     }
+    const onAxis = ax.has(f);
+    const best = attackTarget(land, army, me, f, dist, !onAxis);
     if (best < 0) continue;
     if (enemyDivisionsIn(land, me, best) === 0) {
       // Spec §7.7: walk into an empty enemy region, one division (the
-      // fastest, then the smaller id), unless one is on its way already.
+      // fastest, then the smaller id), unless one is on its way already. A
+      // region off the axis keeps its last division.
+      if (!onAxis && here.length < 2) continue;
       if (rows.some((r) => t.mode[r] === MOVE_WALK && t.next[r] === best)) {
         continue;
       }
@@ -174,19 +260,78 @@ export function planDay(
       if (pick >= 0) startHopInto(land, pick, best, MOVE_WALK);
       continue;
     }
-    // The preview: the divisions free to attack or attacking it already.
+    if (!onAxis) continue;
+    // The divisions free to attack it or attacking it already.
     const side = here.filter((r) => t.battle[r] === 0 || t.battle[r] === best);
     if (side.length === 0) continue;
-    const p = predictAttack(land, side, best);
-    if (p.ratioPm < STANCE_RATIO_PM[o.stance]) continue;
-    const pct = STANCE_ORG_PCT[o.stance];
+    const known = strikes.get(best);
+    if (known === undefined) strikes.set(best, side);
+    else known.push(...side);
+  }
+  // The preview, per enemy region: every axis region that goes for it
+  // attacks together (one direction each).
+  const pct = STANCE_ORG_PCT[o.stance];
+  for (const [best, side] of strikes) {
+    const p = predictAttackRange(land, side, best);
+    if (stancePm(p, o.stance) < STANCE_MIN_PM) continue;
     const ids: number[] = [];
-    for (const r of here) {
+    for (const r of side) {
       if (t.battle[r] !== 0) continue;
       if (t.org[r] * 100 >= land.orgMaxOf(r) * pct) ids.push(t.id[r]);
     }
     for (const id of ids) joinBattle(land, id, best);
   }
+}
+
+/**
+ * ww7 §1-8: for a plan army, each zone region's enemy region it would
+ * attack and the attacker's win % ([from, to, winPct]); 100 into an empty
+ * region. The attackers are the army's divisions standing there, else the
+ * ones headed there; the axis regions that go for the same enemy region
+ * attack it together. A region with none, or with no enemy next to it, has
+ * no entry.
+ */
+export function oddsOf(
+  land: WwLand,
+  army: Army,
+  targetDist?: Int32Array,
+): [number, number, number][] {
+  const o = army.order;
+  if (o.kind !== "plan") return [];
+  const me = land.ownerForSides(army);
+  const t = land.divisions;
+  const dist = targetDist ?? targetDistances(land, army);
+  const ax = axisOf(army.front, o.targets.length > 0 ? dist : null);
+  const rows = armyRows(land, army);
+  // Per zone region: where it would attack and with whom.
+  const legs: { f: number; to: number; side: number[] }[] = [];
+  // Enemy region -> the divisions of all the axis regions that go for it.
+  const together = new Map<number, number[]>();
+  for (const f of army.front) {
+    const to = attackTarget(land, army, me, f, dist, false);
+    if (to < 0) continue;
+    let side = rows.filter(
+      (r) =>
+        t.region[r] === f &&
+        t.mode[r] !== MOVE_ADVANCE &&
+        t.mode[r] !== MOVE_RETREAT,
+    );
+    if (side.length === 0) side = rows.filter((r) => t.dest[r] === f);
+    if (side.length === 0) continue;
+    legs.push({ f, to, side });
+    if (!ax.has(f)) continue;
+    const known = together.get(to);
+    if (known === undefined) together.set(to, [...side]);
+    else known.push(...side);
+  }
+  return legs.map(({ f, to, side }) => [
+    f,
+    to,
+    enemyDivisionsIn(land, me, to) === 0
+      ? 100
+      : predictAttackRange(land, ax.has(f) ? together.get(to)! : side, to)
+          .winPct,
+  ]);
 }
 
 /**

@@ -1,6 +1,7 @@
 // World War 1936 P2 (plan Task 3 Step 5): front assignment on the test map
-// (P2 spec §8.1) — divisions spread by the threat they face, the front
-// follows an advance, yesterday's assignment holds within one.
+// (P2 spec §8.1; ww7: a Defend zone of ceil(divisions / 2) regions) —
+// divisions spread by the threat they face, the front follows an advance,
+// yesterday's assignment holds within one.
 import { WW_DAY_SPLIT } from "@openfront/engine-api/ww1936/EconomyTypes";
 import { MOVE_NONE } from "@openfront/engine-api/ww1936/LandTypes";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
@@ -81,21 +82,23 @@ describe("World War 1936 P2: fronts (P2 spec §8.1)", () => {
       l.issue(deu, { kind: "army_front", army: a.id, anchor: 3, enemy: pol }),
     ).toBe(null);
     step(runner);
-    // Six divisions: two regions. Weights 2 + 8 (Warsaw) each: 3 and 3,
-    // the three highest ids off to Munich.
-    expect(a.front).toEqual([3, 4]);
-    expect(byDest(g, a)).toEqual(
-      new Map([
-        [3, ids.slice(0, 3)],
-        [4, ids.slice(3)],
-      ]),
-    );
+    // Six divisions: three regions, one each first. Then the other three by
+    // weight: 2 + 8 (Warsaw) for Berlin and Munich, 2 for Rome (Krakow is
+    // empty): Berlin gets two more, Munich one, Rome none.
+    expect(a.front).toEqual([3, 4, 5]);
+    const posts = byDest(g, a);
+    expect([...posts.keys()].sort()).toEqual([3, 4, 5]);
+    expect([3, 4, 5].map((r) => posts.get(r)!.length)).toEqual([3, 2, 1]);
+    // Berlin keeps the lowest ids (the highest go to the regions short).
+    expect(posts.get(3)).toEqual(ids.slice(0, 3));
     settle(runner, a);
     const where = a.divisions.map(
       (id) => l.divisions.region[l.divisions.rowOf(id)],
     );
-    expect(where).toEqual([3, 3, 3, 4, 4, 4]);
-  });
+    expect([3, 4, 5].map((r) => where.filter((w) => w === r).length)).toEqual([
+      3, 2, 1,
+    ]);
+  }, 60_000);
 
   test("the front follows an advance", async () => {
     const { runner, g, l, deu, pol } = await atWar();
@@ -120,7 +123,7 @@ describe("World War 1936 P2: fronts (P2 spec §8.1)", () => {
     finishDay(runner, today(g) + 1);
     expect(a.order.kind).toBe("idle");
     expect(a.front).toEqual([]);
-  });
+  }, 60_000);
 
   test("yesterday's assignment holds within one", async () => {
     const { runner, g, l, deu, pol } = await atWar();
@@ -133,26 +136,21 @@ describe("World War 1936 P2: fronts (P2 spec §8.1)", () => {
     settle(runner, a);
     finishDay(runner, today(g) + 1);
     const before = byDest(g, a);
-    expect(before.get(3)).toHaveLength(3);
-    expect(before.get(4)).toHaveLength(3);
-    // Warsaw empties, two Polish divisions in Krakow: weights 2 and 4,
-    // shares 2 and 4 — one off each: nobody moves.
+    expect([3, 4, 5].map((r) => before.get(r)!.length)).toEqual([3, 2, 1]);
+    // Warsaw empties, two Polish divisions in Krakow: weights 2, 4 and 4,
+    // shares 2, 2 and 2 — every count within one: nobody moves.
     for (const id of [...warsaw.divisions]) {
       l.killDivision(l.divisions.rowOf(id), false);
     }
     placeArmy(g, "POL", 7, 2);
     finishDay(runner, today(g) + 1);
     expect(byDest(g, a)).toEqual(before);
-    // Four more in Krakow: weights 2 and 8, shares 1 and 5. Berlin is two
-    // over: its two highest ids go to Munich.
-    placeArmy(g, "POL", 7, 4);
+    // Twelve more in Krakow: weights 2, 16 and 16, shares 1, 3 and 2.
+    // Berlin is two over: its two highest ids go to Munich and Rome.
+    placeArmy(g, "POL", 7, 12);
     finishDay(runner, today(g) + 1);
     const berlin = before.get(3)!;
-    expect(byDest(g, a)).toEqual(
-      new Map([
-        [3, berlin.slice(0, 1)],
-        [4, [...before.get(4)!, ...berlin.slice(1)].sort((x, y) => x - y)],
-      ]),
-    );
-  });
+    expect(byDest(g, a).get(3)).toEqual(berlin.slice(0, 1));
+    expect([4, 5].map((r) => byDest(g, a).get(r)!.length)).toEqual([3, 2]);
+  }, 60_000);
 });
