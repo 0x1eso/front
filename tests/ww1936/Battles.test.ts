@@ -3,7 +3,10 @@
 // its divisions. Battles start on 1936-06-01, a clear day in Warsaw and
 // Krakow (the tests read the weather where it matters). Rounds the tests
 // count run stepBattles directly, so no move, supply or order step comes
-// between them; the advances run the game.
+// between them; the advances run the game. ww7 lane A: a battle's rounds now
+// carry tactics, daily luck and reserve rolls (all seeded); a test that
+// counts a round's hits sets `phaseRound` to 1 first (no new tactic pair) and
+// reads the luck through TacticRules.luckBp.
 import { GameUpdateType } from "@openfront/engine-api/game/GameUpdates";
 import {
   equipKey,
@@ -26,6 +29,24 @@ import {
   roundHits,
 } from "@openfront/engine-lib/ww1936/CombatRules";
 import { landCombatShare } from "@openfront/engine-lib/ww1936/DoctrineRules";
+import {
+  AT_ASSAULT,
+  AT_ATTACK,
+  AT_BARRAGE,
+  AT_BLITZ,
+  AT_ENVELOP,
+  AT_SHOCK,
+  DT_AMBUSH,
+  DT_COUNTER,
+  DT_DEFEND,
+  DT_DEPTH,
+  DT_ELASTIC,
+  DT_HOLD,
+  DT_WITHDRAW,
+  luckBp,
+  newTacticFx,
+  tacticFx,
+} from "@openfront/engine-lib/ww1936/TacticRules";
 import { weatherAt } from "@openfront/engine-lib/ww1936/Weather";
 import type { Game } from "@openfront/engine/game/Game";
 import {
@@ -42,14 +63,17 @@ import {
   byTag,
   clearLand,
   dropPact,
+  gameHash,
   HUMAN,
   land,
+  MINI,
   placeArmy,
   stamped,
   step,
   stepTo,
   takeRegion,
   WwHuman,
+  wwRestore,
   wwRunnerCapture,
 } from "./util";
 
@@ -93,9 +117,9 @@ function specInfantry(l: WwLand, deu: number): number {
   return id;
 }
 
-/** Germany at war with Poland from 1936-06-01, the board cleared. */
-async function juneWar() {
-  const { runner, updates } = await wwRunnerCapture({}, DEU_POL);
+/** Germany at war with Poland from 1936-06-01, the board cleared (`gameID` seeds the rolls). */
+async function juneWar(gameID?: string) {
+  const { runner, updates } = await wwRunnerCapture({}, DEU_POL, MINI, gameID);
   const g = runner.game;
   dropPact(g, "DEU", "POL");
   stepTo(runner, dayStartTick(JUNE_1, WW_PREP_TICKS));
@@ -165,14 +189,29 @@ describe("World War 1936 P2: land battles (spec §9)", () => {
     const def0 = l.divisions.org[rowOf(l, d.divisions[0])];
     // Plains, clear, no modifiers: Germany's 92 against Poland's defence
     // 198 is 9.2 hits an hour; Poland's 54 against the breakthrough 33 is
-    // 11.7. A round is 1.829 hours, 0.13 org a hit.
+    // 11.7. A round is 1.829 hours, 0.13 org a hit. (No tactic pair yet,
+    // only the day's luck on each side's attack.)
+    const b = l.battles.get(WARSAW)!;
+    b.phaseRound = 1;
+    const luck = (side: number) =>
+      10_000 +
+      luckBp(
+        l.ww.politics.seed,
+        WARSAW,
+        b.sinceTick,
+        l.ww.day(g.ticks()),
+        side,
+      );
     stepBattles(l, g.ticks());
     expect(def0 - l.divisions.org[rowOf(l, d.divisions[0])]).toBe(
-      roundDamage(920, false).orgMilli,
+      roundDamage(roundHits(applyBp(9200, luck(0)), 19_800), false).orgMilli,
     );
     expect(att0 - l.divisions.org[rowOf(l, a.divisions[0])]).toBe(
-      roundDamage(1170, false).orgMilli,
+      roundDamage(roundHits(applyBp(5400, luck(1)), 3300), false).orgMilli,
     );
+    // Without the luck they are the spec's 920 and 1170 hits.
+    expect(roundHits(9200, 19_800)).toBe(920);
+    expect(roundHits(5400, 3300)).toBe(1170);
     let rounds = 1;
     while (l.battles.has(WARSAW)) {
       stepBattles(l, g.ticks());
@@ -496,11 +535,19 @@ describe("World War 1936 P2: land battles (spec §9)", () => {
     const tankMods = battleMods(l, b, tr).mods;
     const polMods = battleMods(l, b, pr).mods;
     const before = l.divisions.org[tr];
+    // (No new tactic pair; the defender's luck of the day is its attack.)
+    b.phaseRound = 1;
+    const luck =
+      10_000 +
+      luckBp(l.ww.politics.seed, WARSAW, b.sinceTick, l.ww.day(g.ticks()), 1);
     stepBattles(l, g.ticks());
     const lost = before - l.divisions.org[tr];
     // The same hits, with and without the armour.
     const hits = roundHits(
-      applyBp(attackValue(ps.soft, ps.hard, ts.hardnessPm), polMods.attackBp),
+      applyBp(
+        applyBp(attackValue(ps.soft, ps.hard, ts.hardnessPm), polMods.attackBp),
+        luck,
+      ),
       applyBp(ts.brk, tankMods.defenseBp),
     );
     expect(hits).toBeGreaterThan(0);
@@ -529,11 +576,17 @@ describe("World War 1936 P2: land battles (spec §9)", () => {
     // The reserve keeps waiting while the line holds.
     stepBattles(l, g.ticks());
     expect(fresh.some((id) => b.attLine.includes(id))).toBe(false);
-    // One of the line goes: the first reserve steps in the next round,
-    // but strikes (and is struck) only from the round after.
+    // One of the line goes: the first reserve is let in by its roll (ww7:
+    // 25 % + initiative ÷ 4 …, at most 70 % a round, not for sure as before),
+    // some round soon, and strikes (and is struck) only from the round after.
     l.killDivision(rowOf(l, b.attLine[0]), false);
-    stepBattles(l, g.ticks());
-    expect(b.attLine).toContain(fresh[0]);
+    let entered = -1;
+    for (let i = 0; i < 40 && entered < 0; i++) {
+      stepBattles(l, g.ticks());
+      if (b.attLine.includes(fresh[0])) entered = i;
+      else expect(l.divisions.org[rowOf(l, fresh[0])]).toBe(full[0]);
+    }
+    expect(entered).toBeGreaterThanOrEqual(0);
     expect(b.attLine).not.toContain(fresh[1]);
     expect(l.divisions.org[rowOf(l, fresh[0])]).toBe(full[0]);
     stepBattles(l, g.ticks());
@@ -597,4 +650,218 @@ describe("World War 1936 P6: the doctrine tally (plan decision 12)", () => {
     stepBattles(l, g.ticks());
     expect(d.dayTally).toEqual(once);
   });
+});
+
+describe("World War 1936 ww7 lane A: tactics, luck and reserves in a battle (design ww6 §2)", () => {
+  test("each tactic pair does what the table says to a round's hits and damage", async () => {
+    const { g, l, inf72 } = await juneWar();
+    const a = placeArmy(g, "DEU", 3, 1, inf72);
+    const d = placeArmy(g, "POL", WARSAW, 1);
+    attack(l, a, WARSAW);
+    const b = l.battles.get(WARSAW)!;
+    const ar = rowOf(l, a.divisions[0]);
+    const dr = rowOf(l, d.divisions[0]);
+    const t = l.divisions;
+    const seed = l.ww.politics.seed;
+    const pairs: [number, number][] = [
+      [AT_ATTACK, DT_DEFEND],
+      [AT_ASSAULT, DT_DEFEND],
+      [AT_ASSAULT, DT_AMBUSH],
+      [AT_SHOCK, DT_ELASTIC],
+      [AT_BARRAGE, DT_HOLD],
+      [AT_ATTACK, DT_COUNTER],
+      [AT_BLITZ, DT_DEPTH],
+      [AT_ENVELOP, DT_WITHDRAW],
+    ];
+    const f = newTacticFx();
+    for (const [ta, td] of pairs) {
+      // The same two divisions again at full org, the pair forced for the
+      // round (phaseRound 1: no new pick).
+      t.org[ar] = l.orgMaxOf(ar);
+      t.org[dr] = l.orgMaxOf(dr);
+      b.tacticAtt = ta;
+      b.tacticDef = td;
+      b.phaseRound = 1;
+      const fx = tacticFx(ta, td, f);
+      const day = l.ww.day(g.ticks());
+      const mulA = Math.floor(
+        ((10_000 + fx.attAtkBp) *
+          (10_000 + luckBp(seed, WARSAW, b.sinceTick, day, 0))) /
+          10_000,
+      );
+      const mulD = Math.floor(
+        ((10_000 + fx.defAtkBp) *
+          (10_000 + luckBp(seed, WARSAW, b.sinceTick, day, 1))) /
+          10_000,
+      );
+      const as = l.statsOf(ar);
+      const ds = l.statsOf(dr);
+      const am = battleMods(l, b, ar).mods;
+      const dm = battleMods(l, b, dr).mods;
+      const hitsOnDef = roundHits(
+        applyBp(
+          applyBp(
+            attackValue(
+              applyBp(as.soft, 10_000 + fx.attSoftBp),
+              as.hard,
+              ds.hardnessPm,
+            ),
+            am.attackBp,
+          ),
+          mulA,
+        ),
+        applyBp(applyBp(ds.def, dm.defenseBp), 10_000 + fx.defBlockBp),
+      );
+      const hitsOnAtt = roundHits(
+        applyBp(
+          applyBp(attackValue(ds.soft, ds.hard, as.hardnessPm), dm.attackBp),
+          mulD,
+        ),
+        applyBp(as.brk, am.defenseBp),
+      );
+      const wantDef = applyBp(
+        roundDamage(hitsOnDef, ds.armor > as.pierce).orgMilli,
+        10_000 + fx.defOrgBp,
+      );
+      const wantAtt = applyBp(
+        roundDamage(hitsOnAtt, as.armor > ds.pierce).orgMilli,
+        10_000 + fx.attOrgBp,
+      );
+      const [ao, dorg] = [t.org[ar], t.org[dr]];
+      stepBattles(l, g.ticks());
+      const label = `${ta}:${td}`;
+      expect(dorg - t.org[dr], label).toBe(wantDef);
+      expect(ao - t.org[ar], label).toBe(wantAtt);
+      // The pair stays on the battle for the rest of the phase.
+      expect([b.tacticAtt, b.tacticDef], label).toEqual([ta, td]);
+      expect(b.phaseRound, label).toBe(2);
+    }
+  }, 120_000);
+
+  test("a landed blitz halves the defender's entrenchment line, depth stops it", async () => {
+    const { g, l, inf72 } = await juneWar();
+    const a = placeArmy(g, "DEU", 3, 1, inf72);
+    const d = placeArmy(g, "POL", WARSAW, 1);
+    attack(l, a, WARSAW);
+    const b = l.battles.get(WARSAW)!;
+    const dr = rowOf(l, d.divisions[0]);
+    l.divisions.entrench[dr] = 4;
+    const entrench = () =>
+      battleMods(l, b, dr).defenseLines.find((x) => x.id === "entrench")?.bp;
+    b.tacticAtt = AT_ATTACK;
+    b.tacticDef = DT_DEFEND;
+    expect(entrench()).toBe(1200);
+    b.tacticAtt = AT_BLITZ;
+    expect(entrench()).toBe(600);
+    b.tacticDef = DT_DEPTH;
+    expect(entrench()).toBe(1200);
+    // The attacker's own lines never carry it.
+    b.tacticDef = DT_DEFEND;
+    const ar = rowOf(l, a.divisions[0]);
+    expect(
+      battleMods(l, b, ar).defenseLines.find((x) => x.id === "entrench"),
+    ).toBeUndefined();
+  }, 60_000);
+
+  test("the same seed fights the same battle, another seed another one", async () => {
+    /** Seven against five from two directions, to the end; what it leaves. */
+    async function duel(gameID: string) {
+      const { g, l, inf72 } = await juneWar(gameID);
+      const north = placeArmy(g, "DEU", 3, 4, inf72);
+      const south = placeArmy(g, "DEU", 4, 3, inf72);
+      const d = placeArmy(g, "POL", WARSAW, 5);
+      attack(l, north, WARSAW);
+      attack(l, south, WARSAW);
+      const b = l.battles.get(WARSAW)!;
+      const picks: number[] = [];
+      let rounds = 0;
+      while (l.battles.has(WARSAW) && rounds < 200) {
+        stepBattles(l, g.ticks());
+        rounds++;
+        if (b.phaseRound === 1) picks.push(b.tacticAtt * 10 + b.tacticDef);
+      }
+      const orgOf = (ids: readonly number[]) =>
+        ids.map((id) => {
+          const r = rowOf(l, id);
+          return r < 0 ? -1 : l.divisions.org[r];
+        });
+      return {
+        rounds,
+        picks,
+        att: orgOf([...north.divisions, ...south.divisions]),
+        def: orgOf(d.divisions),
+      };
+    }
+    const first = await duel("LUCKSEED01");
+    const again = await duel("LUCKSEED01");
+    expect(again).toEqual(first);
+    expect(first.rounds).toBeGreaterThan(8);
+    expect(first.picks.length).toBeGreaterThan(1);
+    const others = [await duel("LUCKSEED02"), await duel("LUCKSEED03")];
+    const key = (r: typeof first) => JSON.stringify([r.rounds, r.att, r.def]);
+    // Luck makes the same fight different from seed to seed.
+    expect(new Set([first, ...others].map(key)).size).toBeGreaterThanOrEqual(2);
+  }, 240_000);
+
+  test("a snapshot in the middle of a tactic phase continues tick for tick", async () => {
+    const { runner, g, l, inf72 } = await juneWar("PHASEGAME1");
+    const a = placeArmy(g, "DEU", 3, 5, inf72);
+    placeArmy(g, "POL", WARSAW, 5);
+    attack(l, a, WARSAW);
+    const b = l.battles.get(WARSAW)!;
+    step(runner, 6);
+    // Mid-phase: a pair is in play and the phase has rounds to go.
+    expect(l.battles.has(WARSAW)).toBe(true);
+    expect(b.round).toBeGreaterThanOrEqual(5);
+    expect(b.phaseRound).toBeGreaterThan(0);
+    expect(b.phaseRound).toBeLessThan(4);
+    const copy = await wwRestore(runner, DEU_POL);
+    const l2 = land(copy.game);
+    const b2 = l2.battles.get(WARSAW)!;
+    expect([b2.round, b2.phaseRound, b2.tacticAtt, b2.tacticDef]).toEqual([
+      b.round,
+      b.phaseRound,
+      b.tacticAtt,
+      b.tacticDef,
+    ]);
+    expect(gameHash(copy)).toBe(gameHash(runner));
+    for (let i = 0; i < 14; i++) {
+      step(runner);
+      step(copy);
+      expect(gameHash(copy), `tick +${i + 1}`).toBe(gameHash(runner));
+    }
+    const live = l.battles.get(WARSAW);
+    const back = l2.battles.get(WARSAW);
+    expect(back === undefined).toBe(live === undefined);
+    if (live !== undefined && back !== undefined) {
+      expect(l2.battleSummary(back)).toEqual(l.battleSummary(live));
+      expect(back.phaseRound).toBe(live.phaseRound);
+    }
+  }, 120_000);
+
+  test("the battle card gets the odds, the range, the tactics and the initiative", async () => {
+    const { g, l, inf72 } = await juneWar();
+    const a = placeArmy(g, "DEU", 3, 6, inf72);
+    placeArmy(g, "POL", WARSAW, 4);
+    attack(l, a, WARSAW);
+    const b = l.battles.get(WARSAW)!;
+    for (let i = 0; i < 6; i++) stepBattles(l, g.ticks());
+    const s = l.battleSummary(b);
+    expect(s.lowPm!).toBeLessThanOrEqual(s.midPm!);
+    expect(s.midPm!).toBeLessThanOrEqual(s.highPm!);
+    expect(s.winPct!).toBeGreaterThanOrEqual(0);
+    expect(s.winPct!).toBeLessThanOrEqual(100);
+    for (const v of [s.initAtt!, s.initDef!]) {
+      expect(v).toBeGreaterThanOrEqual(0);
+      expect(v).toBeLessThanOrEqual(100);
+    }
+    // No general, no companies: 20 + the experience and research of the line.
+    expect(s.initAtt!).toBeGreaterThanOrEqual(20);
+    expect(s.reinfPct!).toBeGreaterThanOrEqual(25 + Math.floor(s.initAtt! / 4));
+    expect(s.tacticAtt ?? 0).toBe(b.tacticAtt);
+    expect(s.tacticDef ?? 0).toBe(b.tacticDef);
+    // A battle with a side missing says nothing of the odds.
+    const empty = l.battleSummary({ ...b, attackers: [], attLine: [] });
+    expect(empty.winPct).toBeUndefined();
+  }, 60_000);
 });

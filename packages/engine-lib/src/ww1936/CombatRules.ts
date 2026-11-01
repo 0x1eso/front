@@ -35,6 +35,11 @@ import type {
   WwStats,
 } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { FM_TRAIT_STATS } from "./CommandRules";
+import {
+  LUCK_MAX_BP,
+  RANGE_HIGH_ATT_ATK_BP,
+  RANGE_LOW_DEF_ATK_BP,
+} from "./TacticRules";
 import { WEATHER } from "./Weather";
 import { TechTotals } from "./WwTechs";
 
@@ -276,6 +281,12 @@ export interface ModInput {
    * ≥ 0 (planBp holds the rest). Shown as its own line, "fm_plan".
    */
   fmPlanBp: number;
+  /**
+   * ww7 lane A (design §2.2 blitz): the defender's entrenchment counts half
+   * (the attacker's blitz is in play and not countered). Always set by
+   * modInputOf so the mods cache sees it.
+   */
+  halfEntrench?: boolean;
 }
 
 export interface ModResult {
@@ -535,6 +546,14 @@ export function divisionMods(i: ModInput): ModResult {
   push(dCut, "air", i.airBp);
   push(dCut, "fuel", i.fuelBp);
   if (!i.attacking) push(dCut, "shore_bombard", i.shoreBp);
+  // ww7 lane A (design §2.2): blitz halves the defender's entrenchment
+  // bonus. Lane B2: a new entrenchment-like line (positions) joins
+  // ENTRENCH_LINE_IDS to be halved too.
+  if (i.halfEntrench === true && !i.attacking) {
+    for (const l of dAdd) {
+      if (ENTRENCH_LINE_IDS.includes(l.id)) l.bp = Math.floor(l.bp / 2);
+    }
+  }
   const sum = (l: ModLine[]) => l.map((x) => x.bp);
   return {
     mods: {
@@ -545,6 +564,9 @@ export function divisionMods(i: ModInput): ModResult {
     defenseLines: [...dAdd, ...dCut],
   };
 }
+
+/** ww7 lane A: the defence lines a blitz halves (ModInput.halfEntrench). */
+const ENTRENCH_LINE_IDS: readonly string[] = ["entrench"];
 
 /** P6: a negative bp kept at pct% (toward zero). */
 function cutBy(bp: number, pct: number): number {
@@ -627,33 +649,105 @@ export function predictBattle(
 }
 
 /**
- * ww7 (C0 stub, lane A replaces the bodies and keeps the signatures): the
- * attacker's chance to win, percent, for an org-removal ratio ‰ (≥ 1000: the
- * attacker strips the defender first). Placeholder: monotone, 50 at 1000.
+ * ww7 lane A (design §2.6): the attacker's chance to win, percent, read from
+ * the org-removal ratio ‰ of predictBattle / predictBattleRange (≥ 1000: on
+ * average the attacker strips the defender first). The ratio is only the
+ * expected value: the tactics, the daily luck and the reserves of a real
+ * battle (TacticRules) spread the outcomes around it, and this table is how
+ * often the attacker really wins at that ratio.
+ *
+ * WIN_PCT_AT[k] is the win percent at the ratio WIN_RATIO_AT_PM[k], the
+ * quarter-octaves 1000 × 2^(k/4) ‰ for k = -16…16 (1/16 … 16); between two
+ * entries the percent is interpolated in the ratio, outside them it is the
+ * end entry, and a ratio of 0 or less is 0 and of 1,000,000 or more 100.
+ *
+ * To refit (after a change to the battle rules: tactics, luck, widths, the
+ * damage tables…): `npx tsx scripts/ww1936/duel-fit.ts` plays 2,000 seeded
+ * duels through the engine's real `fight` (varied sizes, templates, terrain,
+ * rivers, forts, entrenchment, one or two directions), buckets them by the
+ * predicted ratio's log, fits a monotone curve (pool adjacent violators) and
+ * prints WIN_PCT_AT; paste it here. The fit is deterministic (seed 1). The
+ * current table: 2,000 duels, the attacker won 44.8 %; the even fight (ratio
+ * 1.0) is won 60 % of the time, 1.2 nearly always, 0.7 nearly never.
  */
+export const WIN_RATIO_AT_PM: readonly number[] = [
+  63, 74, 88, 105, 125, 149, 177, 210, 250, 297, 354, 420, 500, 595, 707, 841,
+  1000, 1189, 1414, 1682, 2000, 2378, 2828, 3364, 4000, 4757, 5657, 6727, 8000,
+  9514, 11314, 13454, 16000,
+];
+export const WIN_PCT_AT: readonly number[] = [
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 9, 20, 60, 90, 100, 100, 100, 100,
+  100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100,
+];
+
 export function winPctOf(ratioPm: number): number {
   if (ratioPm <= 0) return 0;
   if (ratioPm >= 1_000_000) return 100;
-  return Math.floor((100 * ratioPm) / (ratioPm + 1000));
+  const e = WIN_RATIO_AT_PM;
+  const w = WIN_PCT_AT;
+  const last = e.length - 1;
+  if (ratioPm <= e[0]) return w[0];
+  if (ratioPm >= e[last]) return w[last];
+  let k = 1;
+  while (ratioPm > e[k]) k++;
+  return (
+    w[k - 1] +
+    Math.floor(((w[k] - w[k - 1]) * (ratioPm - e[k - 1])) / (e[k] - e[k - 1]))
+  );
+}
+
+/** x × bp ÷ 10,000 for a combined modifier (floor). */
+function scaleBp(x: number, bp: number): number {
+  return Math.floor((x * bp) / 10_000);
 }
 
 /**
- * ww7 (C0 stub): predictBattle with the luck range. Lane A computes low,
- * mid and high from three expected-value runs; until then all three are the
- * plain prediction.
+ * ww7 lane A (design §2.6): predictBattle with the luck around it, three
+ * expected-value runs (no sampling):
+ * - low: the attacker's daily luck at −10 %, its tactic countered (no effect)
+ *   and the defender on its commonest counter, ambush (+15 % attack);
+ * - mid: predictBattle as it is;
+ * - high: luck at +10 % and the attacker's tactic in full, shock (+30 %)
+ *   against a plain defence.
+ * low ≤ mid ≤ high; winPct is the attacker's chance at the mid ratio
+ * (winPctOf), days those of the mid run.
  */
 export function predictBattleRange(
   att: SideSum,
   def: SideSum,
   ctx: BattleCtx,
 ): BattleRange {
-  const p = predictBattle(att, def, ctx);
+  const mid = predictBattle(att, def, ctx);
+  if (att.divisions === 0 || def.divisions === 0) {
+    return {
+      lowPm: mid.ratioPm,
+      midPm: mid.ratioPm,
+      highPm: mid.ratioPm,
+      winPct: winPctOf(mid.ratioPm),
+      days: mid.days,
+    };
+  }
+  const low = predictBattle(att, def, {
+    ...ctx,
+    attackerAttackBp: scaleBp(ctx.attackerAttackBp, 10_000 - LUCK_MAX_BP),
+    defenderAttackBp: scaleBp(
+      ctx.defenderAttackBp,
+      10_000 + RANGE_LOW_DEF_ATK_BP,
+    ),
+  });
+  const high = predictBattle(att, def, {
+    ...ctx,
+    attackerAttackBp: scaleBp(
+      scaleBp(ctx.attackerAttackBp, 10_000 + LUCK_MAX_BP),
+      10_000 + RANGE_HIGH_ATT_ATK_BP,
+    ),
+  });
   return {
-    lowPm: p.ratioPm,
-    midPm: p.ratioPm,
-    highPm: p.ratioPm,
-    winPct: winPctOf(p.ratioPm),
-    days: p.days,
+    lowPm: low.ratioPm,
+    midPm: mid.ratioPm,
+    highPm: high.ratioPm,
+    winPct: winPctOf(mid.ratioPm),
+    days: mid.days,
   };
 }
 
