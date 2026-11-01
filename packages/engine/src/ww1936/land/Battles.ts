@@ -16,6 +16,8 @@ import {
   DivisionStats,
   GROUND_SLOTS,
   GROUND_STATIC_SLOTS,
+  LAND_ATTACK_TACTICS,
+  LAND_DEFENSE_TACTICS,
   MOVE_ADVANCE,
   MOVE_NONE,
   MOVE_RAIL,
@@ -36,6 +38,10 @@ import {
   WW_ROUND_HOUR_MILLI,
 } from "@openfront/engine-api/ww1936/LandTypes";
 import type { WwStatKey } from "@openfront/engine-api/ww1936/PoliticsTypes";
+import {
+  EVICT_ORG_PCT,
+  EVICT_ORG_PCT_ENVELOP,
+} from "@openfront/engine-lib/ww1936/BandRules";
 import {
   addToSide,
   applyBp,
@@ -75,6 +81,16 @@ import { effectiveLevel } from "../economy/Buildings";
 import { returnManpower } from "../economy/Stock";
 import { captureOnBattleEnd, captureOnEncircled } from "../endgame/Capture";
 import { noteDamage } from "../endgame/Wars";
+import {
+  BAND_WAIT,
+  BAND_WON,
+  bandPhase,
+  defenceIn,
+  depthOf,
+  pushBack,
+  retreatInBand,
+  walkThrough,
+} from "./Bands";
 import { generalOf } from "./GeneralsRun";
 import { startHopInto, stopDivision } from "./Movement";
 import { capture } from "./Occupation";
@@ -155,7 +171,7 @@ export function joinBattle(land: WwLand, div: number, region: number): void {
       lostOrgMilli: 0,
       attLead: owner,
       defLead: land.controller[region],
-      band: 0,
+      band: land.bandProg[region],
       tacticAtt: 0,
       tacticDef: 0,
       phaseRound: 0,
@@ -251,7 +267,11 @@ function fight(land: WwLand, b: Battle, tick: number): void {
   }
   b.defenders = defenders;
   if (b.attackers.length === 0) return endDefended(land, b);
-  if (b.defenders.length === 0) return won(land, b, tick);
+  // ww7 (lane B, bands): a round, a hold while the defenders step back to
+  // the next band (or an empty band is walked through), or the band falls.
+  const phase = bandPhase(land, b, tick);
+  if (phase === BAND_WON) return won(land, b, tick);
+  if (phase === BAND_WAIT) return;
   b.round++;
   // 3. Width and the lines (spec §9.2).
   const dirs = new Set(b.attackers.map((id) => t.region[t.rowOf(id)])).size;
@@ -419,9 +439,12 @@ function fight(land: WwLand, b: Battle, tick: number): void {
       }
     }
     // 5. Zero org: defenders retreat (or die), attackers drop out (spec §9.3-7).
+    // ww7 (lane B): with a band left a broken defender stays put, out of the
+    // fight, and steps back to the next band when this one falls (won).
+    const lastBand = land.bandProg[R] + 1 >= depthOf(land, R);
     for (const id of [...b.defenders]) {
       const r = t.rowOf(id);
-      if (r >= 0 && t.org[r] === 0) retreatDivision(land, r);
+      if (r >= 0 && t.org[r] === 0 && lastBand) retreatDivision(land, r);
     }
   } finally {
     sink = null;
@@ -434,7 +457,7 @@ function fight(land: WwLand, b: Battle, tick: number): void {
   if (
     b.defenders.every((id) => {
       const r = t.rowOf(id);
-      return r < 0 || t.mode[r] === MOVE_RETREAT;
+      return r < 0 || t.mode[r] === MOVE_RETREAT || t.org[r] === 0;
     })
   ) {
     won(land, b, tick);
@@ -878,24 +901,34 @@ function endDefended(land: WwLand, b: Battle): void {
   if (s !== undefined && s.by !== land.controller[b.region]) {
     s.kind = SPREAD_REVERT;
   }
+  const fought = b.round > 0;
   closeBattle(land, b.region);
+  // ww7 (lane B, bands): the defenders won this band; the occupation
+  // recedes one band, the occupiers inside step back (at band 0 they leave).
+  if (fought) pushBack(land, b.region);
 }
 
 /**
- * Spec §9.7: the defence is gone. Attackers with org left whose army runs
- * a plan (army_attack is one) advance into R; a paradropped one inside R
- * takes it on the spot.
+ * Spec §9.7: the defence is gone. With bands left the band falls (ww7
+ * bands): the region stays the defenders', its broken defenders step back
+ * to the next band inside it, and the attackers with org left move in
+ * ("occupying": the plan's from next door, the ones inside stay) for the
+ * next battle. On the last band it is spec §9.7 as before: attackers with
+ * org left whose army runs a plan (army_attack is one) advance into R; one
+ * inside R (a paradrop, an occupier) takes it on the spot.
  */
 function won(land: WwLand, b: Battle, tick: number): void {
   const t = land.divisions;
   const R = b.region;
-  let inside = -1;
+  const depth = depthOf(land, R);
+  const prog = land.bandProg[R];
+  const inside: number[] = [];
   const advancers: number[] = [];
   for (const id of b.attackers) {
     const r = t.rowOf(id);
     if (r < 0 || t.org[r] <= 0 || t.mode[r] === MOVE_RETREAT) continue;
     if (t.region[r] === R) {
-      if (inside < 0) inside = r;
+      inside.push(r);
       continue;
     }
     const a = land.armies.get(t.army[r]);
@@ -905,13 +938,90 @@ function won(land: WwLand, b: Battle, tick: number): void {
   }
   // P5 hook (A, spec §14): the attackers took the field.
   captureOnBattleEnd(land.ww.endgame, b, 0);
-  closeBattle(land, R);
-  if (inside >= 0) {
-    // P5 (plan decision 20): a volunteer takes it for the country it serves.
-    capture(land, R, land.fightOwner(inside), tick);
+  if (prog + 1 >= depth) {
+    // ww7: an enveloping win (not met by a withdrawal) overruns more.
+    const envelop =
+      LAND_ATTACK_TACTICS[b.tacticAtt] === "envelop" &&
+      LAND_DEFENSE_TACTICS[b.tacticDef] !== "withdraw";
+    closeBattle(land, R);
+    if (inside.length > 0) {
+      // P5 (plan decision 20): a volunteer takes it for the country it serves.
+      capture(
+        land,
+        R,
+        land.fightOwner(inside[0]),
+        tick,
+        envelop ? EVICT_ORG_PCT_ENVELOP : EVICT_ORG_PCT,
+      );
+      return;
+    }
+    for (const r of advancers) startHopInto(land, r, R, MOVE_ADVANCE);
     return;
   }
-  for (const r of advancers) startHopInto(land, r, R, MOVE_ADVANCE);
+  if (b.attackers.length === 0) {
+    closeBattle(land, R);
+    return;
+  }
+  // A band falls; R is the defenders' until the last one does.
+  land.bandProg[R] = prog + 1;
+  land.bandTaker[R] = b.attLead;
+  land.bandDue[R] = 0;
+  land.markRegion(R);
+  const withdraw = LAND_DEFENSE_TACTICS[b.tacticDef] === "withdraw";
+  for (const id of b.defenders) {
+    const r = t.rowOf(id);
+    if (
+      r >= 0 &&
+      t.region[r] === R &&
+      t.org[r] === 0 &&
+      t.mode[r] !== MOVE_RETREAT
+    ) {
+      retreatInBand(land, r, withdraw);
+    }
+  }
+  for (const r of advancers) enterBand(land, r);
+  for (const id of [...b.attackers]) {
+    const r = t.rowOf(id);
+    if (r >= 0 && t.region[r] !== R) leaveBattle(land, r);
+  }
+  if (b.attackers.length === 0) {
+    closeBattle(land, R);
+    return;
+  }
+  // The next band's battle: a new round count, lines, tactics and ledger.
+  b.band = prog + 1;
+  b.round = 0;
+  b.attLine = [];
+  b.defLine = [];
+  b.defenders = [];
+  b.startOrgMilli = 0;
+  b.lostOrgMilli = 0;
+  b.sinceTick = tick;
+  b.tacticAtt = 0;
+  b.tacticDef = 0;
+  b.phaseRound = 0;
+  delete b.capEq;
+  delete b.dmgBy;
+  // An empty band is walked through at a band's pace.
+  if (!defenceIn(land, R, b.attLead)) {
+    walkThrough(
+      land,
+      R,
+      b.attackers.map((id) => t.rowOf(id)).filter((r) => r >= 0),
+      tick,
+    );
+  }
+}
+
+/** ww7: an attacker of the plan steps into the region whose band just fell; it stays in the battle. */
+function enterBand(land: WwLand, row: number): void {
+  const t = land.divisions;
+  const R = t.battle[row];
+  stopDivision(land, row);
+  land.setDivisionRegion(row, R);
+  t.dest[row] = R;
+  t.stillDays[row] = 0;
+  t.entrench[row] = 0;
 }
 
 /**
@@ -1087,7 +1197,10 @@ export function stepRecovery(land: WwLand): void {
     const encircled = t.encircled[r] !== 0;
     if (encircled && t.army[r] <= 0) continue;
     const m = t.mode[r];
-    if (m !== MOVE_NONE && m !== MOVE_WALK) continue;
+    // ww7 (bands): a division stepping back to the next band of its own
+    // region recovers at half the rate, as one walking does.
+    const stepping = m === MOVE_RETREAT && t.next[r] === t.region[r];
+    if (m !== MOVE_NONE && m !== MOVE_WALK && !stepping) continue;
     const was = t.org[r];
     const max = land.orgMaxAt(r, epochs[t.owner[r]]);
     if (was >= max) continue;
@@ -1118,7 +1231,7 @@ export function stepRecovery(land: WwLand): void {
     let gain = Math.floor(
       (Math.floor((base * (pct + signal)) / 100) * supply) / 1000,
     );
-    if (m === MOVE_WALK) gain = Math.floor(gain / 2);
+    if (m === MOVE_WALK || stepping) gain = Math.floor(gain / 2);
     if (gain <= 0) continue;
     const now = Math.min(max, was + gain);
     t.org[r] = now;

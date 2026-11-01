@@ -82,6 +82,7 @@ import type { WwEconomy } from "../economy/WwEconomy";
 import { type LandSeaAirHooks, NEUTRAL_HOOKS } from "../navy/NavyAirHooks";
 import type { WorldWar } from "../WorldWar";
 import { aiLandTick } from "./AiLand";
+import { dailyBands, depthOf } from "./Bands";
 import {
   battleExtras,
   dailyEntrench,
@@ -573,6 +574,8 @@ export const WwLandStateSchema = z.object({
   // ww7: region arrays, each written only when any entry is not 0.
   bandProg: zInts().optional(),
   bandTaker: zInts().optional(),
+  /** The tick the next band of a region with no defenders left falls (lane B). */
+  bandDue: zInts().optional(),
   posLevel: zInts().optional(),
   posDays: zInts().optional(),
   lastCommonDay: zInt(),
@@ -895,6 +898,8 @@ export class WwLand {
    */
   readonly bandProg: Uint8Array;
   readonly bandTaker: Uint16Array;
+  /** The tick the next band falls in a region its taker walks through (no defenders left); 0: none. */
+  readonly bandDue: Int32Array;
   /**
    * ww7 (positions): the level (0..3) of the side standing in the region
    * and the days it has stood there towards the next. Lane B2 writes them.
@@ -990,6 +995,7 @@ export class WwLand {
     this.seaHubUse = new Int32Array(size);
     this.bandProg = new Uint8Array(size);
     this.bandTaker = new Uint16Array(size);
+    this.bandDue = new Int32Array(size);
     this.posLevel = new Uint8Array(size);
     this.posDays = new Int32Array(size);
     const owners = sc.ownerByRegion();
@@ -1053,6 +1059,7 @@ export class WwLand {
   private dailyCommon(): void {
     if (this.divisions.compact()) this.regionRowsDirty = true;
     for (const cl of this.countries()) cl.casualtiesToday = 0;
+    dailyBands(this);
   }
 
   private dailyCountry(id: number, day: number): void {
@@ -1270,6 +1277,13 @@ export class WwLand {
     // ww7: the position it held goes with the old hands.
     if (this.posLevel[region] !== 0 || this.posDays[region] !== 0) {
       resetPosition(this, region);
+    }
+    // ww7: whoever takes it, the band progress ends here (a capture, a
+    // capitulation, a peace deal, a takeover or a liberation alike).
+    if (this.bandProg[region] !== 0 || this.bandDue[region] !== 0) {
+      this.bandProg[region] = 0;
+      this.bandTaker[region] = 0;
+      this.bandDue[region] = 0;
     }
     const r = this.scenario.region(region)!;
     const vpTile = this.scenario.vpTile(r);
@@ -2389,6 +2403,8 @@ export class WwLand {
     };
     // ww7: sent when set (lane A fills winPct … reinfPct, lane B depth).
     if (b.band !== 0) out.band = b.band;
+    const depth = depthOf(this, b.region);
+    if (depth > 1) out.depth = depth;
     if (b.tacticAtt !== 0 || b.tacticDef !== 0) {
       out.tacticAtt = b.tacticAtt;
       out.tacticDef = b.tacticDef;
@@ -2417,6 +2433,7 @@ export class WwLand {
     };
     // ww7: sent when set (lane B fills depth, prog and taker; lane B2 pos).
     if (this.bandProg[region] !== 0) {
+      out.depth = depthOf(this, region);
       out.prog = this.bandProg[region];
       out.taker = this.bandTaker[region];
     }
@@ -2631,6 +2648,7 @@ export class WwLand {
     // game that never writes it hashes as it did before the war overhaul.
     if (anyNonZero(this.bandProg)) fold(this.bandProg);
     if (anyNonZero(this.bandTaker)) fold(this.bandTaker);
+    if (anyNonZero(this.bandDue)) fold(this.bandDue);
     if (anyNonZero(this.posLevel)) fold(this.posLevel);
     if (anyNonZero(this.posDays)) fold(this.posDays);
     mix(this.lastCommonDay);
@@ -2750,6 +2768,9 @@ export class WwLand {
       ...(anyNonZero(this.bandTaker)
         ? { bandTaker: Array.from(this.bandTaker) }
         : {}),
+      ...(anyNonZero(this.bandDue)
+        ? { bandDue: Array.from(this.bandDue) }
+        : {}),
       ...(anyNonZero(this.posLevel)
         ? { posLevel: Array.from(this.posLevel) }
         : {}),
@@ -2862,6 +2883,8 @@ export class WwLand {
     if (s.bandProg !== undefined) this.bandProg.set(s.bandProg);
     this.bandTaker.fill(0);
     if (s.bandTaker !== undefined) this.bandTaker.set(s.bandTaker);
+    this.bandDue.fill(0);
+    if (s.bandDue !== undefined) this.bandDue.set(s.bandDue);
     this.posLevel.fill(0);
     if (s.posLevel !== undefined) this.posLevel.set(s.posLevel);
     this.posDays.fill(0);

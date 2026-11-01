@@ -36,6 +36,7 @@ import {
   occView,
   uprisingNow,
 } from "@openfront/engine/ww1936/endgame/Occupation";
+import { depthOf } from "@openfront/engine/ww1936/land/Bands";
 import { joinBattle } from "@openfront/engine/ww1936/land/Battles";
 import {
   enemyDivisionsIn,
@@ -194,9 +195,11 @@ describe("World War 1936 P2: occupation and the spread (spec §12)", () => {
       }
       if (ww.isCapitulated(pol)) seen.add("capitulation");
     }
-    // Not a quiet board.
+    // Not a quiet board. (ww7: the attackers step into a region band by
+    // band, and the last band takes it from inside: the only advance left
+    // is a plan's last hop into an emptied band, not always met.)
+    seen.delete("advance");
     expect([...seen].sort()).toEqual([
-      "advance",
       "battle",
       "battle spread",
       "capitulation",
@@ -218,10 +221,13 @@ describe("World War 1936 P2: occupation and the spread (spec §12)", () => {
     step(runner);
     const n = g.worldWar()!.scenario.regionTiles(WARSAW).length - 1;
     expect(n).toBe(1499);
-    const ceiling = Math.floor((n * 400) / 1000);
+    // ww7: Warsaw has 4 bands, the first battle's spread is 40% of one.
+    const depth = depthOf(l, WARSAW);
+    expect(depth).toBe(4);
+    const ceiling = Math.floor((n * 400) / 1000 / depth);
     const daily = Math.floor((n * 200) / 1000);
-    // Show the defence nearly gone (the progress at its top) so both
-    // limits bind: 20% a day, 40% in all.
+    // Show the defence nearly gone (the progress at its top) so the
+    // limit binds: 40% of the band (and 20% of the tiles a day).
     const b = l.battles.get(WARSAW)!;
     let most = 0;
     let firstDay = -1;

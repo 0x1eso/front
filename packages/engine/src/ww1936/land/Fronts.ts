@@ -171,6 +171,13 @@ function busy(land: WwLand, r: number): boolean {
   const m = t.mode[r];
   if (t.battle[r] !== 0) return true;
   if (m === MOVE_RETREAT || m === MOVE_ADVANCE) return true;
+  // ww7 (bands): standing in an enemy region is occupying it, not holding a front.
+  if (
+    m === MOVE_NONE &&
+    land.isEnemy(land.fightOwner(r), land.controller[t.region[r]])
+  ) {
+    return true;
+  }
   if (m === MOVE_RAIL || m === MOVE_SEA) return true;
   return (
     m === MOVE_WALK &&

@@ -18,6 +18,7 @@ import {
   traitBit,
   WW_SUPPLY_RANGE,
 } from "@openfront/engine-api/ww1936/LandTypes";
+import { BAND_OCCUPY_SUPPLY_PCT } from "@openfront/engine-lib/ww1936/BandRules";
 import { RegionHeap } from "@openfront/engine-lib/ww1936/RegionHeap";
 import {
   HUB_BUILT,
@@ -523,6 +524,32 @@ function sideCache(
 }
 
 /**
+ * ww7 (bands): a division standing in an enemy region (occupying it, or
+ * dropped into it) draws 80% of the best supply rate of the friendly
+ * region next door; the region itself stays in the enemy's network until
+ * its control changes, so no pocket forms from one region. 0 elsewhere.
+ */
+function occupierRate(
+  land: WwLand,
+  row: number,
+  ours: Uint8Array,
+  reached: Uint8Array,
+  use: Int32Array,
+): number {
+  const t = land.divisions;
+  const r = t.region[row];
+  if (!land.isEnemy(land.fightOwner(row), land.controller[r])) return 0;
+  let best = 0;
+  for (const e of land.scenario.edgesOf(r)) {
+    const n = e.to;
+    if (ours[n] !== 1 || reached[n] === 0) continue;
+    const rate = supplyRatePm(land.supplyMilli[n], use[n]);
+    if (rate > best) best = rate;
+  }
+  return Math.floor((best * BAND_OCCUPY_SUPPLY_PCT) / 100);
+}
+
+/**
  * Spec §11.3 and pre-flight S2: a region's use is the sum over the side's
  * divisions standing there (not moving); every division of the side in
  * that region gets its rate, 0 when encircled, and 0 in a region the side
@@ -592,7 +619,11 @@ function divisionRates(
     const r = t.region[row];
     const held = ours[r] === 1;
     const cut = held && reached[r] === 0;
-    const rate = !held || cut ? 0 : supplyRatePm(land.supplyMilli[r], use[r]);
+    const rate = !held
+      ? occupierRate(land, row, ours, reached, use)
+      : cut
+        ? 0
+        : supplyRatePm(land.supplyMilli[r], use[r]);
     const enc = cut ? 1 : 0;
     const army = t.army[row];
     if (t.encircled[row] === 1) before.add(army);
