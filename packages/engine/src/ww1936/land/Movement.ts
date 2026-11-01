@@ -25,6 +25,7 @@ import {
   shortestPath,
 } from "@openfront/engine-lib/ww1936/MoveRules";
 import { navalPort } from "../navy/Ports";
+import { attachOccupiers, depthOf } from "./Bands";
 import { joinBattle, retreatDivision } from "./Battles";
 import { generalOf } from "./GeneralsRun";
 import { capture } from "./Occupation";
@@ -146,6 +147,9 @@ export function arrive(land: WwLand, r: number, tick: number): void {
   t.role[r] = 0;
   t.battle[r] = 0;
   if (mode !== MOVE_RETREAT && t.dest[r] !== to) startNextHop(land, r, tick);
+  // ww7 (bands): one coming into (or settling in) a region in progress: the
+  // occupiers fit to fight attack the band it holds.
+  if (land.bandProg[to] !== 0) attachOccupiers(land, to);
 }
 
 /** P6 (spec §4.2): swamp_expert's bit. */
@@ -362,7 +366,7 @@ export function pathTicks(
 }
 
 /** What division `r` would walk in a tick into region `to` today (stepOf for a walk there). */
-function walkStepInto(land: WwLand, r: number, to: number): number {
+export function walkStepInto(land: WwLand, r: number, to: number): number {
   const t = land.divisions;
   const ce = land.econ.country(t.owner[r]);
   const w = land.weatherOn(to, land.day());
@@ -484,6 +488,18 @@ export function startHopInto(
   t.step[row] = 0;
   t.mode[row] = mode;
   t.dest[row] = region;
-  t.need[row] = moveNeed(land.scenario.edge(e), land.scenario.landOf(region));
+  let need = moveNeed(land.scenario.edge(e), land.scenario.landOf(region));
+  // ww7 (bands): into an enemy region in progress, the bands left are all
+  // that is walked (a band takes the edge time ÷ depth); none fallen: the edge.
+  const prog = land.bandProg[region];
+  if (
+    prog > 0 &&
+    (mode === MOVE_WALK || mode === MOVE_ADVANCE) &&
+    !land.sameSide(land.fightOwner(row), land.controller[region])
+  ) {
+    const d = depthOf(land, region);
+    need = Math.max(1, Math.floor((need * Math.max(1, d - prog)) / d));
+  }
+  t.need[row] = need;
   land.markArmy(t.army[row]);
 }

@@ -14,8 +14,13 @@ import {
   WW_SPREAD_DAY_PM,
   WW_SPREAD_TILES_PER_TICK,
 } from "@openfront/engine-api/ww1936/LandTypes";
+import {
+  bandSpreadTiles,
+  EVICT_ORG_PCT,
+} from "@openfront/engine-lib/ww1936/BandRules";
 import type { Player } from "../../game/Game";
 import { captureOnEncircled } from "../endgame/Capture";
+import { depthOf } from "./Bands";
 import { closeBattle, leaveBattle, refugeOf, retreatDivision } from "./Battles";
 import { stopDivision } from "./Movement";
 import { disbandDivision } from "./Sustain";
@@ -26,19 +31,24 @@ import {
   type WwLand,
 } from "./WwLand";
 
-/** Spec §7.7, §9.6, §9.7, §12.1: `by` takes `region` now. */
+/**
+ * Spec §7.7, §9.6, §9.7, §12.1: `by` takes `region` now (ww7: its last band
+ * has fallen; the band progress ends with the change of control).
+ * `evictOrgPct`: the org percent under which a standing enemy is overrun.
+ */
 export function capture(
   land: WwLand,
   region: number,
   by: number,
   tick: number,
+  evictOrgPct: number = EVICT_ORG_PCT,
 ): void {
   const sources = land.scenario
     .edgesOf(region)
     .map((e) => e.to)
     .filter((n) => land.controller[n] === by);
   land.setController(region, by, tick); // the victory-point tile goes with it
-  evict(land, region, by);
+  evict(land, region, by, evictOrgPct);
   closeBattle(land, region);
   const old = land.spreads.get(region);
   land.setSpread({
@@ -61,7 +71,12 @@ export function capture(
  * out goes on, the rest retreat. Spec §9.1: one not at war with `by` is
  * pushed to its side's nearest region (or disbanded when it has none).
  */
-function evict(land: WwLand, region: number, by: number): void {
+function evict(
+  land: WwLand,
+  region: number,
+  by: number,
+  orgPct: number = EVICT_ORG_PCT,
+): void {
   const t = land.divisions;
   const destroyed = new Map<number, number>();
   for (const r of [...land.rowsIn(region)]) {
@@ -79,7 +94,7 @@ function evict(land: WwLand, region: number, by: number): void {
       const leaving =
         retreating || m === MOVE_WALK || m === MOVE_ADVANCE || m === MOVE_RAIL;
       const halfway = retreating && t.prog[r] * 2 < t.need[r];
-      const broken = !leaving && t.org[r] * 10 < land.orgMaxOf(r);
+      const broken = !leaving && t.org[r] * 100 < land.orgMaxOf(r) * orgPct;
       if (halfway || broken || !hasRefuge(land, r)) {
         // P5 hook (A, spec §14): destroyed in a pocket, its equipment is taken.
         if (t.encircled[r] !== 0) captureOnEncircled(land.ww.endgame, r, by);
@@ -283,9 +298,14 @@ function targetOf(
   const R = s.region;
   if (land.controller[R] === s.by) return n;
   const b = land.battles.get(R);
-  if (b !== undefined && land.sameSide(b.attLead, s.by)) {
+  // ww7 (bands): the bands already fallen show as tiles whether or not a
+  // battle is open; the open battle adds its part of the next band.
+  const prog = land.bandProg[R];
+  const taken = prog > 0 && land.sameSide(land.bandTaker[R], s.by);
+  const fighting = b !== undefined && land.sameSide(b.attLead, s.by);
+  if (fighting || taken) {
     const pm =
-      b.startOrgMilli <= 0
+      !fighting || b.startOrgMilli <= 0
         ? 0
         : Math.max(
             0,
@@ -294,7 +314,13 @@ function targetOf(
               Math.floor((b.lostOrgMilli * 1000) / b.startOrgMilli),
             ),
           );
-    const want = Math.floor((n * WW_SPREAD_BATTLE_PM * pm) / 1_000_000);
+    const want = bandSpreadTiles(
+      n,
+      taken ? prog : 0,
+      depthOf(land, R),
+      fighting ? WW_SPREAD_BATTLE_PM : 0,
+      pm,
+    );
     if (s.dayNo !== day) {
       s.dayNo = day;
       s.dayBase = s.done;

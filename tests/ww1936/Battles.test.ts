@@ -38,6 +38,7 @@ import {
 } from "@openfront/engine/ww1936/land/Battles";
 import { startHopInto } from "@openfront/engine/ww1936/land/Movement";
 import type { Army, WwLand } from "@openfront/engine/ww1936/land/WwLand";
+import { lastBand } from "./bandUtil";
 import {
   byTag,
   clearLand,
@@ -195,6 +196,8 @@ describe("World War 1936 P2: land battles (spec §9)", () => {
 
   test("two directions break the defence", async () => {
     const { runner, g, l, deu, pol, inf72 } = await juneWar();
+    // The last of Warsaw's bands (bands: Bands.test.ts).
+    lastBand(l, WARSAW, deu);
     const north = placeArmy(g, "DEU", 3, 4, inf72);
     const south = placeArmy(g, "DEU", 4, 3, inf72);
     const d = placeArmy(g, "POL", WARSAW, 5);
@@ -258,7 +261,8 @@ describe("World War 1936 P2: land battles (spec §9)", () => {
   }, 60_000);
 
   test("a defender at zero org retreats to the best neighbour", async () => {
-    const { g, l } = await juneWar();
+    const { g, l, deu } = await juneWar();
+    lastBand(l, WARSAW, deu);
     const a = placeArmy(g, "DEU", 3, 1);
     const d = placeArmy(g, "POL", WARSAW, 1);
     const r = rowOf(l, d.divisions[0]);
@@ -301,6 +305,7 @@ describe("World War 1936 P2: land battles (spec §9)", () => {
 
   test("no friendly neighbour means destruction", async () => {
     const { runner, updates, g, l, deu, pol } = await juneWar();
+    lastBand(l, WARSAW, deu);
     takeRegion(g, KRAKOW, "DEU");
     const a = placeArmy(g, "DEU", 3, 1);
     const d = placeArmy(g, "POL", WARSAW, 1);
@@ -458,7 +463,8 @@ describe("World War 1936 P2: land battles (spec §9)", () => {
   }, 60_000);
 
   test("encircled divisions at zero org are destroyed", async () => {
-    const { g, l } = await juneWar();
+    const { g, l, deu } = await juneWar();
+    lastBand(l, WARSAW, deu);
     // Two attackers: each strikes one of the two defenders this round.
     const a = placeArmy(g, "DEU", 3, 2);
     const [pocket, free] = placeArmy(g, "POL", WARSAW, 2).divisions;
@@ -542,6 +548,7 @@ describe("World War 1936 P2: land battles (spec §9)", () => {
 
   test("a paradropped attacker fights inside the region", async () => {
     const { g, l, deu } = await juneWar();
+    lastBand(l, WARSAW, deu);
     const a = placeArmy(g, "DEU", 3, 1);
     const d = placeArmy(g, "POL", WARSAW, 1);
     const r = rowOf(l, a.divisions[0]);
