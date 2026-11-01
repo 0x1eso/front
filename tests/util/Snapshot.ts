@@ -197,6 +197,9 @@ export const DERIVED_FIELDS = new Set<string>([
   "regionRowsDirty",
   "spreadOrders",
   "spreadScratch",
+  // ww7: a human plan army's odds for the screen (Plans.oddsOf): worked out
+  // again daily, on an order and when a summary finds them missing.
+  "odds",
   "dirtyArmies",
   "dirtyBattles",
   "dirtyLandRegions",

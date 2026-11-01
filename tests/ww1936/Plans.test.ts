@@ -186,11 +186,15 @@ describe("World War 1936 P2: battle plans (P2 spec §8.2)", () => {
     expect(a.order.executing).toBe(true);
     step(runner);
     expect(a.order.executing).toBe(true);
+    a.planBp = 700;
     takeRegion(g, 6, "DEU");
     finishDay(runner, today(g) + 1);
-    expect(a.order.kind).toBe("plan");
+    // ww7: done, the army turns to Defend (an automatic zone, its readiness
+    // kept) and holds its (new) front.
+    expect(a.order.kind).toBe("front");
     expect(a.order.executing).toBe(false);
-    // The army holds its (new) front.
+    expect([a.order.targets, a.order.zone]).toEqual([[], []]);
+    expect(a.planBp).toBeGreaterThanOrEqual(700);
     expect(a.front.length).toBeGreaterThan(0);
   });
 

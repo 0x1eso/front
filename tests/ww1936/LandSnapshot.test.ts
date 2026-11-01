@@ -103,8 +103,11 @@ function germany(g: Game): StampedIntent[] {
   }
   if (!ww.isAtWar(deu, pol) || kOf(g) !== 4) return [];
   const day = ww.day(t);
-  // Krakow first, then Warsaw (the hand takes Warsaw four days in).
-  const target = l.controller[7] !== deu ? 7 : 6;
+  // ww7: Warsaw first (its defenders stand there, next to Berlin and
+  // Munich: the attack goes in at once; an attack on empty Krakow would
+  // walk in with one division), then Krakow (the hand takes Warsaw four
+  // days in).
+  const target = l.controller[6] !== deu ? 6 : 7;
   const out: StampedIntent[] = [];
   for (const a of l.armiesOf(deu)) {
     if (a.divisions.length === 0) continue;

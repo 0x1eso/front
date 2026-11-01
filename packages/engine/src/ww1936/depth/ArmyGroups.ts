@@ -13,6 +13,10 @@ import {
   groupArmyCap,
   splitFront,
 } from "@openfront/engine-lib/ww1936/CommandRules";
+import {
+  borderChain,
+  borderRegionsOf,
+} from "@openfront/engine-lib/ww1936/FrontRules";
 import { levelUp } from "../land/GeneralsRun";
 import { foughtTest } from "../land/Sustain";
 import type { CountryLand, GeneralState } from "../land/WwLand";
@@ -289,12 +293,13 @@ export function createGroup(
 }
 
 /**
- * ag_front (spec §4.3, deterministic): CommandRules.splitFront cuts the
- * front regions (ascending) into one stretch per army in proportion to
- * its divisions; each army with a stretch gets P2's front order anchored
- * on the stretch's first region against `enemy` (0: every enemy). An
- * army whose stretch is empty keeps its order. Taken when one army took
- * it.
+ * ag_front (spec §4.3, deterministic; ww7): the front regions on our side's
+ * border against `enemy` (0: every enemy), in geographic order along the
+ * border (FrontRules.borderChain), cut by CommandRules.splitFront into one
+ * stretch per army in proportion to its divisions; each army with a stretch
+ * gets Defend (P2's front order anchored on the stretch's first region)
+ * with that stretch as its explicit zone. An army whose stretch is empty
+ * keeps its order. Taken when one army took it.
  */
 function groupFront(
   d: WwDepth,
@@ -306,22 +311,33 @@ function groupFront(
   const land = d.ww.land;
   const armies = g.armies.filter((aid) => land.armies.has(aid));
   if (armies.length === 0) return "no_army";
+  const border = new Set(borderRegionsOf(land, id, enemy));
+  const chain = borderChain(
+    land,
+    id,
+    enemy,
+    front.filter((r) => border.has(r)),
+  );
   const parts = splitFront(
-    front,
+    chain,
     armies.map((aid) => land.armies.get(aid)!.divisions.length),
   );
   let taken = false;
-  let block: WwOrderBlock | null = "bad_region";
+  let block: WwOrderBlock | null = "not_adjacent";
   armies.forEach((aid, i) => {
     const part = parts[i];
     if (part.length === 0) return;
-    const r = land.issue(
-      id,
-      { kind: "army_front", army: aid, anchor: part[0], enemy },
-      sourceOf(d, id),
-    );
+    const source = sourceOf(d, id);
+    // The front order's block when it is refused, else the zone order's.
+    const r =
+      land.issue(
+        id,
+        { kind: "army_front", army: aid, anchor: part[0], enemy },
+        source,
+      ) ??
+      land.issue(id, { kind: "army_zone", army: aid, regions: part }, source);
     if (r === null) taken = true;
-    else if (block === "bad_region") block = r;
+    else if (block === "not_adjacent") block = r;
   });
   return taken ? null : block;
 }
