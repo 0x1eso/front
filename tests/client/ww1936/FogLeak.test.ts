@@ -848,7 +848,11 @@ describe("fog leaks (spec §8.9)", () => {
     // leaderboard's columns and the rest of the HUD layers show every
     // country too.
     walk(path.join(root, "hud/layers"));
-    for (const f of ["FleetTokenLayout.ts", "LandTokenLayout.ts"]) {
+    for (const f of [
+      "FleetTokenLayout.ts",
+      "LandTokenLayout.ts",
+      "WingTokenLayout.ts",
+    ]) {
       files.push(path.join(root, "view", f));
     }
     // Final review C (M7): another country's men (troops) and ship counts,
@@ -873,6 +877,9 @@ describe("fog leaks (spec §8.9)", () => {
       "render/gl/LandFrame.ts": "armyView",
       "view/FleetTokenLayout.ts": "fleetView",
       "view/LandTokenLayout.ts": "armyView",
+      // ww8: wing tokens and flights ask the fog (a hidden wing has no slot).
+      "view/WingTokenLayout.ts": "wingView",
+      "render/gl/passes/WingTokenPass.ts": "fightVisible",
       // T1b (pre-flight A18): the P5 swaps and the P5 screens' review.
       // The army card's attack preview (the defenders' count).
       "hud/ww1936/WwArmyCard.ts": "previewEnemyValue",

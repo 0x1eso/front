@@ -24,6 +24,7 @@
 // made again only when a ghost came or went. The stamp still moves at every
 // rebuild. tests/client/ww1936/FogEquivalence.test.ts replays games against
 // the old full rebuild (FogModelReference.ts) tick by tick.
+import type { WingBrief } from "@openfront/engine-api/ww1936/AirTypes";
 import {
   ID_AIR,
   ID_ARMY,
@@ -34,7 +35,10 @@ import {
   ARMY_BATTLE,
   type ArmySummary,
 } from "@openfront/engine-api/ww1936/LandTypes";
-import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
+import {
+  SEA_ZONE_BASE,
+  WW_PREP_TICKS,
+} from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { renderTroops } from "@openfront/engine-lib/Format";
 import { dayIndex } from "@openfront/engine-lib/ww1936/Calendar";
 import {
@@ -81,6 +85,11 @@ export type FogFleetView =
       template: boolean;
       composition: boolean;
     };
+
+/** ww8: what a wing token may show; `planes` is the count (or a band's top). */
+export type FogWingView =
+  | { visible: false }
+  | { visible: true; planes: number; approx: boolean };
 
 export interface FogRegionView {
   buildings: "hidden" | "range" | "exact";
@@ -160,6 +169,7 @@ const REGION_BY_BAND: readonly FogRegionView[] = [
 ];
 const HIDDEN_ARMY: FogArmyView = { visible: false };
 const HIDDEN_FLEET: FogFleetView = { visible: false };
+const HIDDEN_WING: FogWingView = { visible: false };
 
 interface Seen {
   owner: number;
@@ -207,6 +217,8 @@ class FogMemo {
   readonly band = new MemoTable();
   readonly region = new MemoTable();
   readonly zone = new MemoTable();
+  /** ww8: land zones that show to my wings' fog (zone, plus my radar). */
+  readonly wingZone = new MemoTable();
   /** Fleet ids my side spotted (the fleets pass: 1). */
   readonly spotted = new MemoTable();
 
@@ -927,6 +939,100 @@ export class FogModel {
     if (band >= 3) return planes;
     if (band <= 0) return 0;
     return Math.max(1, shownAt(planes, band));
+  }
+
+  // ---- ww8 wings ------------------------------------------------------
+
+  /** Is `b` my side's wing (or is the fog off): shown exactly. */
+  private wingIsMine(b: WingBrief): boolean {
+    if (this.fogOff()) return true;
+    const me = this.me();
+    return this.sameSide(me, b.owner) || this.sideOf(me) === b.side;
+  }
+
+  /** The land zone `sr` shows to me now: my superiority or recon over it, or my radar. */
+  private zoneShown(sr: number): boolean {
+    if (sr <= 0) return false;
+    const m = this.memo;
+    if (m.has(m.wingZone, sr)) return m.wingZone.val[sr] === 1;
+    let seen = this.zoneSeenNow(sr);
+    if (!seen) {
+      const radar = this.view.wwDepth?.()?.detail(this.me())?.intel.radarSr;
+      seen = radar?.includes(sr) === true;
+    }
+    m.put(m.wingZone, sr, seen ? 1 : 0);
+    return seen;
+  }
+
+  /** Does the base of `b` (a region, or a carrier's ship as a negative number) show to me? */
+  private wingBaseShown(b: WingBrief, mySide: number): boolean {
+    if (this.bandOf(b.owner, ID_AIR) >= 2) return true;
+    if (b.base > 0) {
+      const land = this.view.wwLand?.();
+      return land !== null && land !== undefined
+        ? this.regionSeen(land, b.base, mySide)
+        : false;
+    }
+    if (b.base === 0) return false;
+    const navy = this.view.wwNavy?.();
+    if (navy === null || navy === undefined) return false;
+    for (const f of navy.fleets.values()) {
+      for (const s of f.ships) {
+        if (s.id === -b.base) return this.fleets.has(f.id);
+      }
+    }
+    return false;
+  }
+
+  /**
+   * ww8: a wing at its base, as a token. Mine: exact. Another side's: only
+   * when its base shows (the air-intel band 2 or better, an army-visible
+   * region, a fleet I see); its planes go through the air band. A hidden
+   * wing has no position the screen may keep.
+   */
+  wingView(b: WingBrief): FogWingView {
+    this.ensure();
+    if (this.wingIsMine(b))
+      return { visible: true, planes: b.planes, approx: false };
+    if (!this.wingBaseShown(b, this.sideM(this.me()))) return HIDDEN_WING;
+    const planes = this.planesSeen(b.owner, b.planes);
+    return { visible: true, planes, approx: planes !== b.planes };
+  }
+
+  /**
+   * ww8: a wing in the air shows when it is mine, when the zone it flies
+   * over shows (superiority, recon, radar), when it heads for land of mine
+   * or when its base shows (band 2).
+   */
+  wingFlightVisible(b: WingBrief): boolean {
+    this.ensure();
+    if (this.wingIsMine(b)) return true;
+    if (this.bandOf(b.owner, ID_AIR) >= 2) return true;
+    const land = this.view.wwLand?.();
+    if (
+      land !== null &&
+      land !== undefined &&
+      b.hit > 0 &&
+      b.hit < SEA_ZONE_BASE
+    ) {
+      const c = land.controller[b.hit];
+      if (
+        c !== undefined &&
+        c !== 0 &&
+        this.sideM(c) === this.sideM(this.me())
+      ) {
+        return true;
+      }
+    }
+    return this.zoneShown(b.flySr);
+  }
+
+  /** ww8: an air battle's icon shows when my side flew in it or its zone shows. */
+  fightVisible(sr: number, side: number): boolean {
+    this.ensure();
+    if (this.fogOff()) return true;
+    if (side === this.sideOf(this.me())) return true;
+    return this.zoneShown(sr);
   }
 
   /** A land battle's marker shows when my side fights in it or one of its armies shows. */

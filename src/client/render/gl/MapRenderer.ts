@@ -17,6 +17,7 @@ import type { WwLandSelection } from "../../hud/ww1936/LandSelection";
 import type { SeaAirSelection } from "../../hud/ww1936/SeaAirSelection";
 import type { SeaAirGlowSource } from "../../view/AirZoneColors";
 import type { LandWarInputs } from "../../view/LandFrontWorld";
+import type { WingFocus, WingSlot } from "../../view/WingTokenLayout";
 import type { WwAirView } from "../../view/WwAirView";
 import type { WwDepthView } from "../../view/WwDepthView";
 import type { WwEndgameView } from "../../view/WwEndgameView";
@@ -61,6 +62,7 @@ export class MapRenderer {
   /** World War 1936 P4 inputs, re-applied after a context restore. */
   private storedWwNavy: WwNavyView | null = null;
   private storedWwAir: WwAirView | null = null;
+  private storedWingFocus: WingFocus | null = null;
   private storedSeaAirSelection: SeaAirSelection | null = null;
   private storedSeaAirGlow: SeaAirGlowSource | null = null;
   /** P5 (plan Task 1 Step 14): the endgame view (lane U1 draws the conference map mode). */
@@ -184,6 +186,9 @@ export class MapRenderer {
     }
     if (this.storedWwNavy !== null) this.renderer?.setWwNavy(this.storedWwNavy);
     if (this.storedWwAir !== null) this.renderer?.setWwAir(this.storedWwAir);
+    if (this.storedWingFocus !== null) {
+      this.renderer?.setWingFocus(this.storedWingFocus);
+    }
     // P6: the depth view (U5's mine pattern, U4's strike effects and sound).
     if (this.storedWwDepth !== null) {
       this.renderer?.setWwDepth(
@@ -455,6 +460,17 @@ export class MapRenderer {
   setWwAir(view: WwAirView): void {
     this.storedWwAir = view;
     this.renderer?.setWwAir(view);
+  }
+
+  /** ww8: the wings picked, the bases fanned open and the range ellipse (the wing controller). */
+  setWingFocus(focus: WingFocus): void {
+    this.storedWingFocus = focus;
+    this.renderer?.setWingFocus(focus);
+  }
+
+  /** ww8: the wing token or chip under tile (tx, ty), null for none (what a tap hits). */
+  pickWing(tx: number, ty: number): WingSlot | null {
+    return this.renderer?.pickWing(tx, ty) ?? null;
   }
 
   /**

@@ -14,7 +14,7 @@
 import type { MapLayer } from "@openfront/engine-api/game/MapFiles";
 import type { Config } from "@openfront/engine-lib/configuration/Config";
 import type { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
-import { fogOfLand, fogOfNavy } from "../../hud/ww1936/FogModel";
+import { fogOfAir, fogOfLand, fogOfNavy } from "../../hud/ww1936/FogModel";
 import type { WwLandSelection } from "../../hud/ww1936/LandSelection";
 import { multiSelectOf } from "../../hud/ww1936/MultiSelect";
 import type { SeaAirSelection } from "../../hud/ww1936/SeaAirSelection";
@@ -22,6 +22,7 @@ import { translateText } from "../../Utils";
 import {
   addGlowFlags,
   airLayerColors,
+  airLayerFlags,
   LAYER_TABLE_SIZE,
   seaLayerColors,
   seaLayerFlags,
@@ -30,6 +31,13 @@ import {
 import { FleetLayoutCache, fleetLod } from "../../view/FleetTokenLayout";
 import { LandFrontWorld, type LandWarInputs } from "../../view/LandFrontWorld";
 import { TokenLayoutCache, tokenLod } from "../../view/LandTokenLayout";
+import {
+  NO_WING_FOCUS,
+  pickWingSlot,
+  rangeEllipseTiles,
+  type WingFocus,
+  type WingSlot,
+} from "../../view/WingTokenLayout";
 import type { WwAirView } from "../../view/WwAirView";
 import type { WwDepthView } from "../../view/WwDepthView";
 import type { WwLandView } from "../../view/WwLandView";
@@ -123,6 +131,7 @@ import { TrailPass } from "./passes/TrailPass";
 import { UnitPass } from "./passes/UnitPass";
 import { VictoryProjectPass } from "./passes/VictoryProjectPass";
 import { WarfareRingPass, type Ring } from "./passes/WarfareRingPass";
+import { WingTokenPass } from "./passes/WingTokenPass";
 import { WorldTextPass } from "./passes/WorldTextPass";
 import { WwMinePass } from "./passes/WwMinePass";
 import {
@@ -211,6 +220,7 @@ interface WwSeaPasses {
   convoys: ConvoyFxPass;
   invasions: InvasionArrowPass;
   sorties: AirSortiePass;
+  wings: WingTokenPass;
 }
 
 export class GPURenderer {
@@ -312,6 +322,9 @@ export class GPURenderer {
   private landFlagsGlow = -1;
   private layerGlowSent = -1;
   private seaPasses: WwSeaPasses | null = null;
+  /** ww8: the wing controller's choice, and the game's ms a tick (a wing leg's shortest draw). */
+  private wingFocus: WingFocus = NO_WING_FOCUS;
+  private msPerTick = 100;
   /** World War 1936 P6 (U4): the strike effects' scheduler and its host hooks. */
   private strikeFx: WwStrikeFxPass | null = null;
   private strikeSound: ((loud: boolean) => void) | null = null;
@@ -411,6 +424,7 @@ export class GPURenderer {
     this.settings = settings;
     this.raf = raf;
     this.caf = caf;
+    this.msPerTick = config.msPerTick();
     this.landClock = new LandTickClock(config.msPerTick());
 
     // Demand a GPU-accelerated context. A software (SwiftShader) or missing
@@ -2278,6 +2292,44 @@ export class GPURenderer {
     this.seaAirGlowVersion++;
   }
 
+  /** ww8: the wings picked, the bases fanned open, the range ellipse. */
+  setWingFocus(focus: WingFocus): void {
+    this.wingFocus = focus;
+  }
+
+  /** ww8: the wing token or chip a tap at tile (tx, ty) hits. */
+  pickWing(tx: number, ty: number): WingSlot | null {
+    const p = this.seaPasses;
+    if (p === null) return null;
+    return pickWingSlot(p.wings.placed, tx, ty, this.camera.zoom / renderDpr());
+  }
+
+  /** ww8: sets the range ellipse around the focus base (null clears it). */
+  private syncWingRange(air: WwAirView | null): void {
+    const r = this.wingFocus.range;
+    if (r === null || air === null || !air.live) {
+      this.rangeCirclePass.setEllipse(null);
+      return;
+    }
+    const sc = air.scenario;
+    if (sc.region(r.base) === undefined) {
+      this.rangeCirclePass.setEllipse(null);
+      return;
+    }
+    const t = sc.centerTile(r.base);
+    const x = t % sc.width;
+    const y = Math.floor(t / sc.width);
+    const e = rangeEllipseTiles(sc, x, y, r.rangeKm);
+    this.rangeCirclePass.setEllipse({
+      x,
+      y,
+      rx: e.rx,
+      ry: e.ry,
+      mapW: sc.width,
+      warning: r.warning,
+    });
+  }
+
   private ensureSeaPasses(): void {
     if (this.seaPasses !== null) return;
     const gl = this.gl;
@@ -2317,6 +2369,7 @@ export class GPURenderer {
       convoys: new ConvoyFxPass(gl, sprites),
       invasions: new InvasionArrowPass(gl, sprites),
       sorties,
+      wings: new WingTokenPass(gl, sprites),
     };
     this.layerKindSent = -1;
   }
@@ -2329,6 +2382,7 @@ export class GPURenderer {
     p.convoys.dispose();
     p.invasions.dispose();
     p.sorties.dispose();
+    p.wings.dispose();
     p.sprites.dispose();
     p.atlas.dispose();
     this.seaPasses = null;
@@ -2366,7 +2420,8 @@ export class GPURenderer {
       kind === LAYER_SEA
         ? navy!.version
         : kind === LAYER_AIR
-          ? air!.version
+          ? // ww8: the air battle flags fade by the clock, with no new update.
+            air!.version * 1024 + air!.activeFights(performance.now())
           : -1;
     if (
       kind === this.layerKindSent &&
@@ -2390,7 +2445,13 @@ export class GPURenderer {
       if (seaGlow !== null) addGlowFlags(sc, seaGlow.ids, this.layerFlags);
     } else {
       airLayerColors(air!, this.layerColors);
-      this.layerFlags.fill(0);
+      const airFog = fogOfAir(air!);
+      airLayerFlags(
+        air!,
+        performance.now(),
+        (sr, side) => airFog?.fightVisible(sr, side) ?? true,
+        this.layerFlags,
+      );
     }
     let same = !kindChanged;
     for (let i = 0; same && i < this.layerColors.length; i++) {
@@ -2430,6 +2491,9 @@ export class GPURenderer {
     }
     const air = this.wwAir;
     if (air !== null) {
+      this.syncWingRange(air);
+      const tickF = this.landClock.at(now);
+      passes.sorties.setFlightClock(tickF, this.msPerTick, navy);
       passes.sorties.update(air, navy, now, zoom);
       passes.sorties.draw(
         cam,
@@ -2440,6 +2504,18 @@ export class GPURenderer {
         air,
         layer === "air",
       );
+      // ww8: the wing tokens and the base chips, over the planes.
+      passes.wings.update(
+        air,
+        navy,
+        tickF,
+        zoom,
+        layer === "air",
+        this.wingFocus.chosen,
+        this.wingFocus.expanded,
+        now,
+      );
+      passes.wings.draw(cam, tilesPerPx, timeSec);
     }
   }
 
