@@ -23,9 +23,9 @@ import {
   AI_SEA_MAX_KM,
   aiBorderDemand,
   aiFrontPlan,
+  aiGatePm,
   AiRole,
   aiTargets,
-  aiThresholdPm,
   AiTrainInput,
   aiTrainPlan,
 } from "@openfront/engine/ww1936/land/AiLand";
@@ -152,9 +152,10 @@ describe("the AI's land decisions (spec §14, pure)", () => {
   });
 
   test("thresholds by personality", () => {
-    expect(aiThresholdPm("aggressor")).toBe(1100);
-    expect(aiThresholdPm("democracy")).toBe(1500);
-    expect(aiThresholdPm("minor")).toBe(1300);
+    // ww7 lane D: the bars of the combined range replace the single ratio.
+    expect(aiGatePm("aggressor")).toEqual({ midPm: 1300, lowPm: 900 });
+    expect(aiGatePm("democracy")).toEqual({ midPm: 1600, lowPm: 1100 });
+    expect(aiGatePm("minor")).toEqual({ midPm: 1450, lowPm: 1000 });
   });
 
   test("front plan splits armies by demand", () => {

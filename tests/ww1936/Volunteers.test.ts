@@ -107,10 +107,11 @@ describe("World War 1936 P5: volunteers", () => {
   it("volunteers fight the target's enemies without a war with them", async () => {
     const x = await game();
     const { runner, updates, ww, l, eg, ita, pl, sun, a } = x;
-    // A Soviet division holds Kiev.
+    // Soviet divisions hold Kiev. (ww7 lane D: two: the AI's zone is the whole
+    // border, Moscow and Kiev, and a lone division would cover Moscow first.)
     const ce = ww.economy.country(sun)!;
     ce.manpower += 100_000;
-    const def = placeArmy(x.g, "SUN", KIEV, 1);
+    const def = placeArmy(x.g, "SUN", KIEV, 2);
     sendAndArrive(x);
     expect(a.volunteerFor).toBe(pl);
     // ww7: an aggressive attack waits for odds (the range's good-luck side
