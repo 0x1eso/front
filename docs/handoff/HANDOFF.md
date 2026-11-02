@@ -2,6 +2,31 @@
 
 다른 컴퓨터·다른 계정의 Claude Code 세션이 이어서 작업하기 위한 문서다. 시작할 때 이 파일을 먼저 읽고, 필요할 때 같은 폴더의 설계 문서를 읽는다. 저장소 규칙은 루트의 `CLAUDE.md`에 있다.
 
+## 0. 지금 할 일 (2026-11-02 갱신 — 전쟁 개편 중간 인계)
+
+다른 컴퓨터(Windows) 세션에서 5장의 전쟁 개편을 진행하다 멈췄다. **이 장이 5장보다 우선이다.** 갈래 지침과 결정은 `docs/handoff/ww7-war-brief.md`(구속력 있음, 끝에 "Status at hand-off"와 D·F 지침).
+
+- 브랜치(둘 다 GitHub에 푸시됨, `atlas-home`·`main`에는 **아직 안 합침**, 서버 배포 안 함):
+  - `w7-war` — 통합 브랜치. C0·A·B·B2·C·E 갈래가 모두 합쳐져 있다.
+  - `w7-D` — `w7-war` 위에 D(AI·자동 지휘) 시작분 커밋 1개(WIP).
+- 이어서 하기: `git fetch && git checkout w7-war && git merge origin/w7-D`(또는 D 갈래 브랜치로 작업) → `npm run inst` → 지침서 "Lane D" 진행 → 합치기 → 게임 화면 확인 → F(균형·다이제스트 고정) → "배포해" 받으면 `atlas-home`에 ff 후 푸시·배포.
+- 끝난 것:
+  - C0 계약(구역 `order.zone`, 자동 단계 `autoLevel`, 띠·진지·전술 상태, 의도 `army_zone`·`army_auto_level`)
+  - A 전투(전술·상쇄, 주도권, 하루 운, 예비 투입 굴림, 승산 범위·승산표 `WIN_PCT_AT`, `scripts/ww1936/duel-fit.ts`)
+  - B 깊이 띠(`BandRules`·`land/Bands.ts`, 띠마다 재전투, 띠 안 후퇴, 점령 중 보급 80%, `bandDue` 상태 추가)
+  - B2 방어·항복(참호 +5%·2일, `land/Positions.ts` 진지, 요새 3+ 폭 반감, 시가전 −15%, 게이지 45·수도 +15%p·프랑스 25%)
+  - C 군 목표 명령(구역·덮기 우선·공격 축·교대·군 사이 빈칸·`gaps`·`odds`·집단군 지리 순서 분할)
+  - E 화면([공격][방어][이동][자동], 군 색 구역, 승산 배지, 빈칸 깜빡임, 띠 막대, 전투 카드)
+- 조율자가 정한 것(이유):
+  - "과감"과 단발 [공격](`army_attack`)은 승산과 상관없이 공격한다. 사람이 직접 내린 공격이 승산 때문에 안 나가면 안 되기 때문.
+  - 진지 해석(B2): 5일 서 있어야 시작, 그 뒤 5일마다 1단계(강 뒤 지역은 5일에 1단계, 방어 구역은 두 배 속도, 최대 3).
+- 알려진 실패(갈래 단위 테스트는 통과):
+  - `WorldWarSnapshot` 다이제스트 2개(일반·Easy) — 의도된 변화, F에서 다시 고정.
+  - `WorldWarSnapshot` "all-AI war: Poland falls"와 `AiLand` "Japan holds on in China until 1939"(450 vs 488) — AI가 군 하나 단위 승산(~0.7)으로 판단해 공세를 안 연다. D에서 고친다.
+  - `TranslationSystem` 안 쓰는 키 4개(`ww1936.econ.doctrine_moved`, `ww1936.focusui.requires*`) — 이번 작업 전부터 있던 실패.
+  - 속도·5초 제한 테스트는 바쁠 때 떨어짐(`--testTimeout=120000`로 다시).
+- 주의: `npm run typecheck`는 `NODE_OPTIONS=--max-old-space-size=8192`가 있어야 메모리 부족 없이 돈다. 지도 셰이더(구역 칠·깜빡임·배지)는 **실제 화면에서 아직 한 번도 확인 안 했다.**
+
 ## 1. 프로젝트 한 줄
 
 OpenFront.io 포크 "Statecraft"(친구 전용, 자체 호스팅). HOI4식 모드 **World War 1936**(게임 키 `worldWar1936`)이 주 작업 대상이다. 코드: `packages/engine/src/ww1936`, `packages/engine-lib/src/ww1936`, `packages/engine-api/src/ww1936`, 화면 `src/client/hud/ww1936`.
