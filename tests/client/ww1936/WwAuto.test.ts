@@ -101,7 +101,7 @@ describe("automation on the screens", () => {
     });
   });
 
-  it("the economy drawer's 자동 운영 row: five switches with labels", async () => {
+  it("the economy drawer's 자동 운영 row: six switches with labels", async () => {
     const { game, bus, sent } = econ();
     setMask(game, wwAutoBit("training"));
     const el = wire<WwIndustryPanel>("ww-industry-panel", game, bus);
@@ -118,11 +118,13 @@ describe("automation on the screens", () => {
       "training",
       "air",
       "navy",
+      "thought",
     ]);
     expect(switches.map((b) => b.getAttribute("aria-checked"))).toEqual([
       "false",
       "false",
       "true",
+      "false",
       "false",
       "false",
     ]);

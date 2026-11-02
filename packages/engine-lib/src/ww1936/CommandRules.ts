@@ -60,6 +60,24 @@ export const NEW_GENERAL_TRAITS: Readonly<
   },
 };
 export const TERRAIN_TRAIT_DAYS = 60;
+
+// ---- ww9 command-power removal (design §12): the XP prices and automation.
+// Lane C switches the code from cp to these; until then nothing reads them.
+/** Experience (whole XP) a trait costs: basic, advanced, top (the old command power x2). */
+export const TRAIT_XP_BASIC = 30;
+export const TRAIT_XP_ADVANCED = 40;
+export const TRAIT_XP_TOP = 50;
+/** A field marshal's extra trait: army XP. An admiral's assigned trait: navy XP. */
+export const FM_EXTRA_TRAIT_XP = 40;
+export const ADMIRAL_ASSIGN_XP = 30;
+/** Free automatic trait: battle days per trait already held, plus one (generals); usage days likewise (admirals). */
+export const AUTO_TRAIT_BATTLE_DAYS = 60;
+export const AUTO_ADMIRAL_DAYS = 60;
+/** Automatic medals: days between awards, and the most held at once. */
+export const MEDAL_AUTO_EVERY_DAYS = 30;
+export const MEDAL_MAX_ACTIVE = 6;
+/** The AI keeps this much XP for organisation changes and designs before buying a trait. */
+export const AI_TRAIT_RESERVE_XP = 60;
 export const FM_EXTRA_TRAIT_CP = 20;
 export const FM_TRAIT_LEVELS: readonly number[] = [3, 5];
 export const ADMIRAL_ASSIGN_CP = 15;
@@ -151,6 +169,21 @@ export function traitCost(trait: string, admiral: boolean): number {
   }
   const def = NEW_GENERAL_TRAITS[trait as GeneralTrait];
   return def?.kind === "assign" ? def.cp : 0;
+}
+
+/** ww9 (design §12.1): the XP a trait_assign costs (0: not bought); same tiers as traitCost, x2. */
+export function traitXpCost(trait: string, admiral: boolean): number {
+  const cp = traitCost(trait, admiral);
+  if (cp === 0) return 0;
+  if (admiral) return ADMIRAL_ASSIGN_XP;
+  if ((FM_TRAITS as readonly string[]).includes(trait)) {
+    return FM_EXTRA_TRAIT_XP;
+  }
+  return cp >= 25
+    ? TRAIT_XP_TOP
+    : cp >= 20
+      ? TRAIT_XP_ADVANCED
+      : TRAIT_XP_BASIC;
 }
 
 /**

@@ -105,13 +105,14 @@ const filled = (g: Game, id: number) =>
     .slots.filter((s) => s !== null).length;
 
 describe("World War 1936 automation: the switches", () => {
-  it("auto_set is a ww_order: five domains, an on/off, nothing else", () => {
+  it("auto_set is a ww_order: six domains, an on/off, nothing else", () => {
     expect(WW_AUTO_DOMAINS).toEqual([
       "production",
       "research",
       "training",
       "air",
       "navy",
+      "thought",
     ]);
     expect(
       WwOrderSchema.safeParse({ kind: "auto_set", domain: "air", on: true })
@@ -325,7 +326,10 @@ describe("World War 1936 automation: the switches", () => {
       }),
     ]);
     expect(ww.autoMask(deu)).toBe(
-      wwAutoBit("training") | wwAutoBit("air") | wwAutoBit("navy"),
+      wwAutoBit("training") |
+        wwAutoBit("air") |
+        wwAutoBit("navy") |
+        wwAutoBit("thought"),
     );
   }, 120_000);
 

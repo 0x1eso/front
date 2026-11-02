@@ -77,7 +77,8 @@ export interface CapitulationGaugeData {
  * slot; training: the AI's division training; air: the AI's air wings and
  * their missions in every zone; navy (appended): the AI's fleets — their sea
  * regions, missions and rules, the mine fleets, home when damaged — never an
- * invasion or the fleets supporting one under way.
+ * invasion or the fleets supporting one under way; thought (appended, default
+ * off): the AI's judgement of the nine military thought sliders.
  */
 export const WW_AUTO_DOMAINS = [
   "production",
@@ -85,6 +86,7 @@ export const WW_AUTO_DOMAINS = [
   "training",
   "air",
   "navy",
+  "thought",
 ] as const;
 export type WwAutoDomain = (typeof WW_AUTO_DOMAINS)[number];
 

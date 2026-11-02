@@ -129,6 +129,7 @@ import {
   PolOrderKind,
   WAR_GOAL_TYPES,
 } from "./ww1936/PoliticsTypes";
+import { ThoughtPos, ThoughtSliderEnum } from "./ww1936/ThoughtTypes";
 import { SEA_ZONE_BASE, WW_AUTO_DOMAINS } from "./ww1936/WorldWarTypes";
 
 export type GameID = string;
@@ -1524,6 +1525,13 @@ export const WwOrderSchema = z.discriminatedUnion("kind", [
     kind: z.literal("army_air_priority"),
     army: WwArmy,
     on: z.boolean(),
+  }),
+  // Military thought sliders (ww9, ThoughtTypes), appended: one slider's
+  // target notch for the sender's own country.
+  z.object({
+    kind: z.literal("thought_set"),
+    slider: ThoughtSliderEnum,
+    pos: ThoughtPos,
   }),
 ]);
 export type WwOrder = z.infer<typeof WwOrderSchema>;

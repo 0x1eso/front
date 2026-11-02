@@ -1560,6 +1560,7 @@
     "ww1936_auto_off_navy": "You gave a fleet an order yourself, so the auto navy is off",
     "ww1936_auto_off_production": "You changed production yourself, so auto production is off",
     "ww1936_auto_off_research": "You picked research yourself, so auto research is off",
+    "ww1936_auto_off_thought": "You changed a military thought slider yourself, so the auto thought is off",
     "ww1936_auto_off_training": "You changed training yourself, so auto training is off",
     "ww1936_autonomy_request": "{tag} demands more autonomy",
     "ww1936_built": "{count, plural, one {# building completed} other {# buildings completed}}",
@@ -3948,6 +3949,7 @@
       "production": "Production",
       "research": "Research",
       "switch_label": "Auto {domain}: {state}",
+      "thought": "Military thought",
       "title": "Auto management",
       "training": "Training"
     },

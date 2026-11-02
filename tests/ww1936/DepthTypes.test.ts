@@ -60,6 +60,8 @@ describe("World War 1936 P6 lists", () => {
       "wing_disband",
       "air_field",
       "army_air_priority",
+      // Military thought sliders (ww9).
+      "thought_set",
     ]);
   });
 

@@ -64,6 +64,7 @@ export const AUTO_ORDER_DOMAIN: Readonly<
   fleet_split: "navy",
   fleet_merge: "navy",
   fleet_port_strike: "navy",
+  thought_set: "thought",
 };
 
 /** The hand-over notice of each domain (full keys: the translation check reads them). */
@@ -73,6 +74,7 @@ export const AUTO_OFF_NOTICE: Readonly<Record<WwAutoDomain, string>> = {
   training: "events_display.ww1936_auto_off_training",
   air: "events_display.ww1936_auto_off_air",
   navy: "events_display.ww1936_auto_off_navy",
+  thought: "events_display.ww1936_auto_off_thought",
 };
 
 /** An army's auto command went off by its owner's order. */
