@@ -19,8 +19,10 @@ import {
   ACE_SPAWN_PM,
   ACE_STATS,
   aceCallNo,
+  WING_ACE_SPAWN_PM,
   WW_MAX_ACES,
 } from "@openfront/engine-lib/ww1936/SeaAirRules";
+import { xpTier } from "@openfront/engine-lib/ww1936/WingRules";
 import { type AirFlight, zoneFlights } from "../air/AirCombat";
 import { isCarrierWing } from "../air/Deploy";
 import type { Wing } from "../air/WwAir";
@@ -88,6 +90,7 @@ function inAirCombat(
 export function dailyAces(d: WwDepth, sr: number, day: number): void {
   const ww = d.ww;
   const air = ww.air;
+  if (air.wingsLive) return; // the wing model: aceOnFight and aceOnWingGone
   const idx = ww.scenario.srIdxOf(sr);
   if (idx < 0) return;
   const seed = ww.politics.seed;
@@ -173,8 +176,116 @@ export function dailyAces(d: WwDepth, sr: number, day: number): void {
   }
 }
 
-/** ww8: a wing is going (disband, wiped out): its ace moves on or retires (design §6). Lane D. */
+// ---- ww8: aces on wings (design §6) ----
+
+const aceOf = (d: WwDepth, w: Wing) =>
+  w.ace === 0 ? undefined : d.sea.aces.find((a) => a.id === w.ace);
+
+function dropAce(d: WwDepth, id: number): void {
+  d.sea.aces = d.sea.aces.filter((x) => x.id !== id);
+  d.markGlobal();
+}
+
+/**
+ * The wing met the enemy this pulse (noteWingFight). An ace is lost on a
+ * 0.5% roll, per day; a fighter wing of veteran or better whose kills crossed
+ * a multiple of ACE_KILLS since its last roll gets an ace on a 15% roll.
+ */
+export function aceOnFight(d: WwDepth, w: Wing, day: number): void {
+  const seed = d.ww.politics.seed;
+  const air = d.ww.air;
+  const ace = aceOf(d, w);
+  if (ace !== undefined) {
+    if (wwRoll(seed, P_ACE_DEATH, ace.id, day) % 1000 < ACE_DEATH_PM) {
+      dropAce(d, ace.id);
+      w.ace = 0;
+      air.markWing(w.id);
+      d.message(ace.owner, "ww1936_wing_ace", {
+        callsign: ace.callNo,
+        state: "lost",
+      });
+    }
+    return;
+  }
+  if (w.ace !== 0) {
+    w.ace = 0; // a stale id: no such ace
+    air.markWing(w.id);
+  }
+  const mult = Math.floor(w.kills / ACE_KILLS);
+  if (mult <= w.aceMark) return;
+  w.aceMark = mult;
+  if (!ACE_TYPES.has(w.type) && AIR_TYPES[w.type] !== "cv_fighter") return;
+  if (xpTier(w.xpMilli) < 2) return;
+  let have = 0;
+  for (const a of d.sea.aces) if (a.owner === w.owner) have++;
+  if (have >= WW_MAX_ACES) return;
+  if (wwRoll(seed, P_ACE_SPAWN, w.id, mult) % 1000 >= WING_ACE_SPAWN_PM) {
+    return;
+  }
+  const born = {
+    id: d.uid(),
+    owner: w.owner,
+    deployment: w.id,
+    sinceDay: day,
+    callNo: aceCallNo(w.id),
+  };
+  d.sea.aces = [...d.sea.aces, born];
+  w.ace = born.id;
+  air.markWing(w.id);
+  d.markGlobal();
+  d.message(w.owner, "ww1936_wing_ace", {
+    callsign: born.callNo,
+    state: "rise",
+  });
+}
+
+/** A wing that changed hands cannot keep its country's ace (from noteWingRest). */
+export function aceRetireIfForeign(d: WwDepth, w: Wing): void {
+  const ace = aceOf(d, w);
+  if (ace === undefined || ace.owner === w.owner) return;
+  dropAce(d, ace.id);
+  w.ace = 0;
+  d.ww.air.markWing(w.id);
+}
+
+/**
+ * A wing is going (disband, wiped out): its ace moves to the owner's wing of
+ * the same type with the most planes and no ace (ties: the smaller id), or
+ * retires when there is none. Called before the wing leaves `air.wings`.
+ */
 export function aceOnWingGone(d: WwDepth, w: Wing): void {
-  void d;
-  void w;
+  const ace = aceOf(d, w);
+  if (ace === undefined) {
+    w.ace = 0;
+    return;
+  }
+  const air = d.ww.air;
+  let best: Wing | null = null;
+  let bestN = 0;
+  if (ace.owner === w.owner) {
+    for (const o of air.wings.values()) {
+      if (o.id === w.id || o.owner !== w.owner || o.type !== w.type) continue;
+      if (o.ace !== 0) continue;
+      const n = planesOf(o);
+      if (n > bestN) {
+        best = o;
+        bestN = n;
+      }
+    }
+  }
+  w.ace = 0;
+  if (best === null) {
+    dropAce(d, ace.id);
+    d.message(ace.owner, "ww1936_wing_ace", {
+      callsign: ace.callNo,
+      state: "retired",
+    });
+    return;
+  }
+  d.sea.aces = d.sea.aces.map((a) =>
+    a.id === ace.id ? { ...a, deployment: best.id } : a,
+  );
+  best.ace = ace.id;
+  air.markWing(best.id);
+  d.markGlobal();
 }

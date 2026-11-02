@@ -62,6 +62,8 @@ export function nightLossBp(
 }
 export const ACE_KILLS = 20;
 export const ACE_SPAWN_PM = 20;
+/** ww8: a wing's roll when its kills cross a multiple of ACE_KILLS (the old ACE_SPAWN_PM stays for the old model). */
+export const WING_ACE_SPAWN_PM = 150;
 export const ACE_DEATH_PM = 5;
 export const WW_MAX_ACES = 5;
 export const ACE_STATS = { attackPct: 10, agilityPct: 5 } as const;
