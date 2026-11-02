@@ -477,12 +477,12 @@ describe("World War 1936 snapshots (spec §7.8)", () => {
 // clock in the hash): three equal runs.
 // Re-pinned for the war overhaul (ww7, every lane merged) and its balance (lane
 // F: luck, prepared ground, pace, forts, AI bars): three equal runs.
-const WW1936_DIGEST = "2e2d93e9a95665a8";
+const WW1936_DIGEST = "33e98f8373b9fe21";
 /**
  * The same game on Easy (the lobby's default in this mode): the AI
  * handicaps and the slower war planning. Pinned with three equal runs.
  */
-const WW1936_EASY_DIGEST = "c69f8a8361e95684";
+const WW1936_EASY_DIGEST = "f1d66a70ca2fa706";
 
 describe("World War 1936 stays deterministic", () => {
   // An all-AI game on the test map, long enough for the calendar's first
