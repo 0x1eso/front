@@ -41,6 +41,7 @@ import {
 } from "@openfront/engine-api/ww1936/LandTypes";
 import { recruitableMen } from "@openfront/engine-lib/ww1936/EconomyRules";
 import { wwRealTicks } from "@openfront/engine-lib/ww1936/Pace";
+import { formWings } from "../air/Wings";
 import { returnDivisionEquip, returnEquip } from "../economy/Stock";
 import { leaveBattle } from "../land/Battles";
 import { capitalRegion } from "../land/LandStartRun";
@@ -394,6 +395,11 @@ function exilePlanes(
 ): void {
   const ww = eg.ww;
   const air = ww.air;
+  if (air.wingsLive) {
+    // ww8: the exile's remaining planes form wings at its host's bases.
+    formWings(air, loser, ww.day(tick));
+    return;
+  }
   const levels = ww.economy.buildingArray("air_base");
   let base = 0;
   let room = 0;

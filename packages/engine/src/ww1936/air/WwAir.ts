@@ -21,6 +21,7 @@ import {
   WingFlightRow,
   WingOrder,
   WW_AIR_BASE_CAPACITY,
+  WW_FIELD_STRIP_PLANES,
   WW_WINGS_LIVE,
   WwAirData,
 } from "@openfront/engine-api/ww1936/AirTypes";
@@ -711,10 +712,20 @@ export class WwAir {
     const dmg =
       econ.damage[region * BUILDING_IDS.length + buildingIndex("air_base")] ??
       0;
-    return Math.max(
+    const cap = Math.max(
       0,
       Math.floor((WW_AIR_BASE_CAPACITY * (level * 1000 - dmg)) / 1000),
     );
+    if (this.strips.size === 0) return cap;
+    const ready = this.strips.get(region);
+    return ready !== undefined && this.mg.ticks() >= ready
+      ? cap + WW_FIELD_STRIP_PLANES
+      : cap;
+  }
+
+  /** ww8: the wing ids based at a region, ascending (a ferrying wing counts at its destination). */
+  wingsAtBase(region: number): readonly number[] {
+    return this.wingsByBase.get(region) ?? NO_IDS;
   }
 
   /** A base's bomb damage per level, ‰ (0 with no air_base). */
@@ -983,7 +994,10 @@ export class WwAir {
     void victor;
     for (const d of this.wingsOf(loser)) this.removeWing(d.id, false);
     const c = this.country(loser);
-    if (c !== null) c.autoZones = [];
+    if (c !== null) {
+      c.autoZones = [];
+      c.priorityArmies = [];
+    }
   }
 
   /**
@@ -995,7 +1009,10 @@ export class WwAir {
     void mode;
     for (const d of this.wingsOf(from)) this.removeWing(d.id, true);
     const c = this.country(from);
-    if (c !== null) c.autoZones = [];
+    if (c !== null) {
+      c.autoZones = [];
+      c.priorityArmies = [];
+    }
   }
 
   // ---- Screens (spec §19.4) ----

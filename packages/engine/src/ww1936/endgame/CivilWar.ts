@@ -35,6 +35,7 @@ import { addPopularity } from "@openfront/engine-lib/ww1936/PoliticsRules";
 import type { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
 import { seaPath } from "@openfront/engine-lib/ww1936/SeaGraph";
 import { SHIP_BASE } from "@openfront/engine-lib/ww1936/ShipStats";
+import { handOverWing } from "../air/Wings";
 import { wingPlanes } from "../air/WwAir";
 import { receiveKey } from "../depth/DesignCopy";
 import {
@@ -639,13 +640,20 @@ function splitPlanes(
       re.planesDeployed[k2] += n;
     });
     d.dcounts = dcounts;
+    if (air.wingsLive) {
+      // ww8: the wing keeps its experience and lands under the rebels.
+      handOverWing(air, d, R);
+      continue;
+    }
     air.setWingOwner(d, R);
     d.auto = false;
     const sum = wingPlanes(d);
     groupSum.set(keyOf(d), (groupSum.get(keyOf(d)) ?? 0) + sum);
     air.markWing(d.id);
   }
-  for (const d of moving) d.goalCount = groupSum.get(keyOf(d)) ?? 0;
+  if (!air.wingsLive) {
+    for (const d of moving) d.goalCount = groupSum.get(keyOf(d)) ?? 0;
+  }
   air.markCountry(X);
   air.markCountry(R);
 }

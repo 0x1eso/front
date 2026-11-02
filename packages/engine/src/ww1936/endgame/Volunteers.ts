@@ -44,7 +44,8 @@ import {
 } from "@openfront/engine-lib/ww1936/EndgameRules";
 import { borderRegionsOf } from "@openfront/engine-lib/ww1936/FrontRules";
 import { allNoStrikeZone, basesInRange, isCarrierWing } from "../air/Deploy";
-import type { WwAir } from "../air/WwAir";
+import { formVolunteerWings } from "../air/Wings";
+import { wingPlanes, type WwAir } from "../air/WwAir";
 import { leaveBattle } from "../land/Battles";
 import { nearestBorder } from "../land/Fronts";
 import { stopDivision } from "../land/Movement";
@@ -498,6 +499,10 @@ export function airVolunteersOut(eg: WwEndgame, from: number): number {
   let n = 0;
   for (const d of eg.ww.air.wingsOf(from)) {
     if (d.volunteerFor <= 0 || isCarrierWing(d)) continue;
+    if (eg.ww.air.wingsLive) {
+      n += wingPlanes(d);
+      continue;
+    }
     const key = `${d.sr}:${d.type}:${d.mission}:${d.volunteerFor}`;
     if (seen.has(key)) continue;
     seen.add(key);
@@ -561,6 +566,14 @@ export function sendAirVolunteers(
   const mission = missionFor(plane, s.kind);
   if (mission < 0) return "bad_air_mission";
   const air = ww.air;
+  if (air.wingsLive) {
+    const b = formVolunteerWings(air, from, to, zone, plane, count);
+    if (b === null) {
+      air.markCountry(from);
+      markAid(eg, from, to);
+    }
+    return b;
+  }
   const type = AIR_TYPES.indexOf(plane);
   const group = air
     .wingsOf(from)
