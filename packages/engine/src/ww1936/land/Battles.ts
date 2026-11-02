@@ -341,7 +341,10 @@ function fight(land: WwLand, b: Battle, tick: number): void {
     );
     const d0 = applyBp(toDefends ? ts.def : ts.brk, toMods.defenseBp);
     const d = toDefends ? applyBp(d0, blockMul) : d0;
-    const dmg = roundDamage(roundHits(a, d), ts.armor > s.pierce);
+    const dmg = roundDamage(
+      roundHits(a, d, toDefends ? (toMods.prepBp ?? 0) + fx.defBlockBp : 0),
+      ts.armor > s.pierce,
+    );
     org.set(to, (org.get(to) ?? 0) + dmg.orgMilli);
     hp.set(to, (hp.get(to) ?? 0) + dmg.hpMilli);
     deal(to, land.fightOwner(from), dmg.hpMilli);
@@ -1359,6 +1362,7 @@ export function battleExtras(
     attackerBlockBp: am.defenseBp,
     defenderAttackBp: dm.attackBp,
     defenderBlockBp: dm.defenseBp,
+    defenderPrepBp: dm.prepBp ?? 0,
   };
   const range = predictBattleRange(att, def, ctx);
   out.winPct = range.winPct;

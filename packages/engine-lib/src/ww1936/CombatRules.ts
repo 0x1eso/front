@@ -36,9 +36,9 @@ import type {
 } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { FM_TRAIT_STATS } from "./CommandRules";
 import {
-  LUCK_MAX_BP,
   RANGE_HIGH_ATT_ATK_BP,
   RANGE_LOW_DEF_ATK_BP,
+  RANGE_LUCK_BP,
 } from "./TacticRules";
 import { WEATHER } from "./Weather";
 import { TechTotals } from "./WwTechs";
@@ -136,9 +136,10 @@ export const RIVER_ATTACK_BP: readonly [number, number, number] = [
  * region (engineers take a quarter off). Task 11 (내 판단): −15% a level
  * (was −12%): with −12% ten 1940 German divisions broke three entrenched
  * French divisions behind a level-5 fort in two days (spec §19.3 wants
- * the Maginot to hold); −75% at level 5, −56% with engineers.
+ * the Maginot to hold). ww7 lane F: −17% (was −15%): design §5's 50 % only
+ * at 5:1 with guns and engineers; −85% at level 5, −64% with engineers.
  */
-export const FORT_ATTACK_BP = -1500;
+export const FORT_ATTACK_BP = -1700;
 
 /** ww7: defence per entrenchment level, bp (was 300; ww6 design §5). */
 export const ENTRENCH_DEF_BP = 500;
@@ -187,24 +188,49 @@ export function attackValue(
   return Math.floor((soft * (1000 - h) + hard * h) / 1000);
 }
 
-/** Spec §9.3-4: hits an hour, centi: 10% of the attack within the block value, 40% of the rest. */
-export function roundHits(attack: number, block: number): number {
+/**
+ * Spec §9.3-4: hits an hour, centi: 10% of the attack within the block value,
+ * 40% of the rest. ww7 lane F: `prepBp` is the defender's prepared ground
+ * (entrenchment and positions, +5 % a level, and the hold tactic): the hits
+ * inside the block land ÷ (1 + prep). A division's attack rarely passes its
+ * target's block (1936 infantry: 138 against 261), and then a bigger block
+ * alone would change nothing: an entrenched line took what an open one did.
+ */
+export function roundHits(attack: number, block: number, prepBp = 0): number {
   const a = Math.max(0, attack);
   const d = Math.max(0, block);
-  return Math.floor((10 * Math.min(a, d) + 40 * Math.max(0, a - d)) / 100);
+  const inside = 10 * Math.min(a, d);
+  return Math.floor(
+    ((prepBp > 0 ? Math.floor((inside * 10_000) / (10_000 + prepBp)) : inside) +
+      40 * Math.max(0, a - d)) /
+      100,
+  );
 }
 
 /**
+ * ww7 lane F: org and HP a hit takes, thousandths (spec §9.3-6: 130 and 90).
+ * At the spec's numbers a 2:1 attack on a prepared line was over in two days
+ * (design §5 wants 4–7) and a whole band in one or two; both are cut alike,
+ * so what a battle costs in men is what it was and only the pace changes.
+ */
+export const ORG_PER_HIT_E3 = 52;
+export const HP_PER_HIT_E3 = 36;
+
+/**
  * Spec §9.3-6: one round (1.829 HOI4 hours) of damage from `hitsCenti`:
- * 0.13 org and 0.09 HP a hit, halved when the target's armour beats the
- * attacker's pierce (spec §9.3-5).
+ * ORG_PER_HIT_E3 org and HP_PER_HIT_E3 HP a hit, halved when the target's
+ * armour beats the attacker's pierce (spec §9.3-5).
  */
 export function roundDamage(
   hitsCenti: number,
   armorHalved: boolean,
 ): { orgMilli: number; hpMilli: number } {
-  let org = Math.floor((hitsCenti * WW_ROUND_HOUR_MILLI * 13) / 10_000);
-  let hp = Math.floor((hitsCenti * WW_ROUND_HOUR_MILLI * 9) / 10_000);
+  let org = Math.floor(
+    (hitsCenti * WW_ROUND_HOUR_MILLI * ORG_PER_HIT_E3) / 100_000,
+  );
+  let hp = Math.floor(
+    (hitsCenti * WW_ROUND_HOUR_MILLI * HP_PER_HIT_E3) / 100_000,
+  );
   if (armorHalved) {
     org = Math.floor(org / 2);
     hp = Math.floor(hp / 2);
@@ -588,10 +614,15 @@ export function divisionMods(i: ModInput): ModResult {
     }
   }
   const sum = (l: ModLine[]) => l.map((x) => x.bp);
+  let prepBp = 0;
+  for (const l of dAdd) {
+    if (PREP_LINE_IDS.includes(l.id)) prepBp += l.bp;
+  }
   return {
     mods: {
       attackBp: combineMods(sum(aAdd), sum(aCut)),
       defenseBp: combineMods(sum(dAdd), sum(dCut)),
+      prepBp,
     },
     attackLines: [...aAdd, ...aCut],
     defenseLines: [...dAdd, ...dCut],
@@ -600,6 +631,8 @@ export function divisionMods(i: ModInput): ModResult {
 
 /** ww7 lane A: the defence lines a blitz halves (ModInput.halfEntrench). */
 const ENTRENCH_LINE_IDS: readonly string[] = ["entrench"];
+/** ww7 lane F: the defence lines that are prepared ground (roundHits). */
+const PREP_LINE_IDS: readonly string[] = ["entrench", "position"];
 
 /** P6: a negative bp kept at pct% (toward zero). */
 function cutBy(bp: number, pct: number): number {
@@ -670,7 +703,10 @@ export function predictBattle(
   // ww7: the defenders of an urban region take 15% less org damage.
   const toDef = defenderOrgDamage(
     ctx.land,
-    roundDamage(roundHits(aA, dD), def.armor > att.pierce).orgMilli,
+    roundDamage(
+      roundHits(aA, dD, ctx.defenderPrepBp ?? 0),
+      def.armor > att.pierce,
+    ).orgMilli,
   );
   const toAtt = roundDamage(roundHits(aD, dA), att.armor > def.pierce).orgMilli;
   const dmgDef = Math.floor((toDef * lineA) / 1000);
@@ -704,8 +740,9 @@ export function predictBattle(
  * rivers, forts, entrenchment, one or two directions), buckets them by the
  * predicted ratio's log, fits a monotone curve (pool adjacent violators) and
  * prints WIN_PCT_AT; paste it here. The fit is deterministic (seed 1). The
- * current table: 2,000 duels, the attacker won 44.8 %; the even fight (ratio
- * 1.0) is won 60 % of the time, 1.2 nearly always, 0.7 nearly never.
+ * current table (ww7 lane F, `--duels 6000`), the attacker won 40.3 %: the
+ * even fight is won half the time, 1.2 seven in ten, 1.4 six in seven, 2
+ * nearly always, 0.7 one in seven.
  */
 export const WIN_RATIO_AT_PM: readonly number[] = [
   63, 74, 88, 105, 125, 149, 177, 210, 250, 297, 354, 420, 500, 595, 707, 841,
@@ -713,7 +750,7 @@ export const WIN_RATIO_AT_PM: readonly number[] = [
   9514, 11314, 13454, 16000,
 ];
 export const WIN_PCT_AT: readonly number[] = [
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 9, 20, 60, 90, 100, 100, 100, 100,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 8, 14, 29, 52, 70, 85, 96, 98, 100,
   100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100,
 ];
 
@@ -741,11 +778,11 @@ function scaleBp(x: number, bp: number): number {
 /**
  * ww7 lane A (design §2.6): predictBattle with the luck around it, three
  * expected-value runs (no sampling):
- * - low: the attacker's daily luck at −10 %, its tactic countered (no effect)
- *   and the defender on its commonest counter, ambush (+15 % attack);
+ * - low: the attacker's luck at −RANGE_LUCK_BP, its tactic countered (no
+ *   effect) and the defender on its commonest counter, ambush (+15 % attack);
  * - mid: predictBattle as it is;
- * - high: luck at +10 % and the attacker's tactic in full, shock (+30 %)
- *   against a plain defence.
+ * - high: luck at +RANGE_LUCK_BP and the attacker's tactic in full, shock
+ *   (+30 %) against a plain defence.
  * low ≤ mid ≤ high; winPct is the attacker's chance at the mid ratio
  * (winPctOf), days those of the mid run.
  */
@@ -766,7 +803,7 @@ export function predictBattleRange(
   }
   const low = predictBattle(att, def, {
     ...ctx,
-    attackerAttackBp: scaleBp(ctx.attackerAttackBp, 10_000 - LUCK_MAX_BP),
+    attackerAttackBp: scaleBp(ctx.attackerAttackBp, 10_000 - RANGE_LUCK_BP),
     defenderAttackBp: scaleBp(
       ctx.defenderAttackBp,
       10_000 + RANGE_LOW_DEF_ATK_BP,
@@ -775,7 +812,7 @@ export function predictBattleRange(
   const high = predictBattle(att, def, {
     ...ctx,
     attackerAttackBp: scaleBp(
-      scaleBp(ctx.attackerAttackBp, 10_000 + LUCK_MAX_BP),
+      scaleBp(ctx.attackerAttackBp, 10_000 + RANGE_LUCK_BP),
       10_000 + RANGE_HIGH_ATT_ATK_BP,
     ),
   });

@@ -11,6 +11,7 @@ import {
   traitBit,
 } from "@openfront/engine-api/ww1936/LandTypes";
 import {
+  P_LAND_FORTUNE,
   P_LAND_LUCK,
   P_LAND_REINF,
   P_LAND_TACTIC,
@@ -20,6 +21,21 @@ import {
 
 /** Rounds a tactic pair stays in play (about half a day: 1 tick = 1 round). */
 export const TACTIC_PHASE_ROUNDS = 4;
+
+/**
+ * ww7 lane F: the luck of a side's attack, bp around 0, two parts: the day's,
+ * rolled again every game day, and the battle's, rolled once per band and
+ * kept. Both triangular (each the sum of two rolls). The days alone average
+ * out over a battle and the win table stays a step at ρ 1 (at ±10 % a day:
+ * ρ 1.0 wins 60 %, 1.2 wins 90 %, 1.4 always); the battle's part is what
+ * widens it (ρ 1.0: 52 %, 1.2: 70 %, 1.4: 85 %, 2: 98 %). The tactics' sizes
+ * barely move the table, so they stay as in design §2.2. Refit WIN_PCT_AT
+ * after changing these (scripts/ww1936/duel-fit.ts).
+ */
+export const LUCK_DAY_BP = 2000;
+export const LUCK_BATTLE_BP = 3000;
+/** The attack of a side is multiplied by 1 + luck, luck within ± this many bp. */
+export const LUCK_MAX_BP = LUCK_DAY_BP + LUCK_BATTLE_BP;
 
 const atk = (id: (typeof LAND_ATTACK_TACTICS)[number]) =>
   LAND_ATTACK_TACTICS.indexOf(id);
@@ -396,12 +412,10 @@ export function pickTactics(
 
 // ---- Daily luck (design §2.1) ----
 
-/** The attack of a side is multiplied by 1 + luck, luck within ± this many bp. */
-export const LUCK_MAX_BP = 1000;
-
 /**
- * A side's luck for a day of the battle, bp in −1000..+1000: the sum of two
- * rolls, so triangular around 0 (side 0: the attacker, 1: the defender).
+ * A side's luck for a day of the battle, bp within ±LUCK_MAX_BP (side 0: the
+ * attacker, 1: the defender): the day's two rolls and the band's two, the
+ * band's keyed only by the battle's start tick (`since`, new for each band).
  */
 export function luckBp(
   seed: number,
@@ -411,9 +425,12 @@ export function luckBp(
   side: number,
 ): number {
   const k = day * 4 + side * 2;
-  const a = wwRoll(seed, P_LAND_LUCK, region, since, k) % (LUCK_MAX_BP + 1);
-  const b = wwRoll(seed, P_LAND_LUCK, region, since, k + 1) % (LUCK_MAX_BP + 1);
-  return a + b - LUCK_MAX_BP;
+  const a = wwRoll(seed, P_LAND_LUCK, region, since, k) % (LUCK_DAY_BP + 1);
+  const b = wwRoll(seed, P_LAND_LUCK, region, since, k + 1) % (LUCK_DAY_BP + 1);
+  const m = LUCK_BATTLE_BP + 1;
+  const c = wwRoll(seed, P_LAND_FORTUNE, region, since, side * 2) % m;
+  const d = wwRoll(seed, P_LAND_FORTUNE, region, since, side * 2 + 1) % m;
+  return a + b - LUCK_DAY_BP + c + d - LUCK_BATTLE_BP;
 }
 
 // ---- Reserves (design §2.4) ----
@@ -456,6 +473,11 @@ export function reinfRoll(
 
 // ---- predictBattleRange's two bounds (design §2.6) ----
 
+/**
+ * ww7 lane F: the luck the two bounds assume, about one in six battles' (the
+ * real spread is LUCK_MAX_BP's triangle, its tails are rare).
+ */
+export const RANGE_LUCK_BP = 2000;
 /**
  * Bad case: our tactic is countered (no effect) and the defender takes the
  * counter that countered it most often, ambush (its own +15 % attack).

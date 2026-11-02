@@ -353,8 +353,26 @@ describe("combat (P2 spec §9)", () => {
   test("hits and damage (spec §9.10)", () => {
     expect(roundHits(9200, 19_800)).toBe(920);
     expect(roundHits(5400, 3300)).toBe(1170);
-    expect(roundDamage(920, false)).toEqual({ orgMilli: 2187, hpMilli: 1514 });
-    expect(roundDamage(920, true)).toEqual({ orgMilli: 1093, hpMilli: 757 });
+    // ww7 lane F: 0.052 org and 0.036 HP a hit (the spec's 0.13 and 0.09 × 0.4).
+    expect(roundDamage(920, false)).toEqual({ orgMilli: 874, hpMilli: 605 });
+    expect(roundDamage(920, true)).toEqual({ orgMilli: 437, hpMilli: 302 });
+  });
+
+  test("ww7 lane F: prepared ground softens the hits inside the block", () => {
+    // Inside the block ÷ 1.4; a bigger block alone would change nothing here.
+    expect(roundHits(9200, 19_800, 4000)).toBe(657);
+    expect(roundHits(9200, 30_000)).toBe(920);
+    // What passes the block lands in full.
+    expect(roundHits(5400, 3300, 4000)).toBe(
+      Math.floor((Math.floor(33_000 / 1.4) + 40 * 2100) / 100),
+    );
+    // Entrenchment and positions count, a blitz halves the entrenchment.
+    const input = neutral({ attacking: false, entrench: 5, posLevel: 3 });
+    expect(divisionMods(input).mods.prepBp).toBe(4000);
+    expect(divisionMods({ ...input, halfEntrench: true }).mods.prepBp).toBe(
+      2750,
+    );
+    expect(divisionMods(neutral({})).mods.prepBp).toBe(0);
   });
 
   test("modifiers combine as adds × cuts, cuts stop at −90%", () => {
@@ -376,9 +394,9 @@ describe("combat (P2 spec §9)", () => {
       -500,
     );
     expect(RIVER_MOVE_PCT).toEqual([0, 15, 50]);
-    // Fort 3, −15% a level (Task 11), engineers take a quarter off.
+    // Fort 3, −17% a level (ww7 lane F), engineers take a quarter off.
     expect(line(divisionMods(neutral({ fort: 3 })).attackLines, "fort")).toBe(
-      -3375,
+      -3825,
     );
     // The defender's entrenchment (ww7: 5% a level, was 3%), engineers and recon.
     expect(
@@ -413,12 +431,13 @@ describe("combat (P2 spec §9)", () => {
     const one = predictBattle(side(INF72, 1), side(POL9, 1), ctx(1));
     expect(one.ratioPm).toBeGreaterThanOrEqual(550);
     expect(one.ratioPm).toBeLessThanOrEqual(700);
-    // Seven against five, from two directions: the attacker wins in ~20 rounds.
+    // Seven against five, from two directions: the attacker wins in ~51 rounds
+    // (ww7 lane F: a hit takes 0.4 of the spec's org, which said ~20).
     const seven = predictBattle(side(INF72, 7), side(POL9, 5), ctx(2));
     expect(seven.ratioPm).toBeGreaterThanOrEqual(1100);
     expect(seven.ratioPm).toBeLessThanOrEqual(1200);
-    expect(seven.rounds).toBeGreaterThanOrEqual(20);
-    expect(seven.rounds).toBeLessThanOrEqual(21);
+    expect(seven.rounds).toBeGreaterThanOrEqual(50);
+    expect(seven.rounds).toBeLessThanOrEqual(53);
     expect(predictBattle(emptySide(), side(POL9, 1), ctx(1)).ratioPm).toBe(0);
     expect(predictBattle(side(POL9, 1), emptySide(), ctx(1)).ratioPm).toBe(
       1_000_000,

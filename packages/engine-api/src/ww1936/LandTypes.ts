@@ -309,6 +309,8 @@ export interface DivisionStats {
 export interface CombatMods {
   attackBp: number;
   defenseBp: number;
+  /** ww7 lane F: a defender's prepared ground (entrenchment + positions), bp; absent: 0 (CombatRules.roundHits). */
+  prepBp?: number;
 }
 
 /** One modifier line for the battle card (key ww1936.mod.<id>). */
@@ -343,6 +345,8 @@ export interface BattleCtx {
   attackerBlockBp: number;
   defenderAttackBp: number;
   defenderBlockBp: number;
+  /** ww7 lane F: the defenders' prepared ground, bp (CombatRules.roundHits); absent: 0. */
+  defenderPrepBp?: number;
 }
 
 export interface BattlePrediction {

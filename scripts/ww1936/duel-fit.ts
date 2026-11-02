@@ -21,6 +21,13 @@
  * violators (weighted by the duels in a bucket) and printed as the
  * `WIN_PCT_AT` array of engine-lib CombatRules.ts, to paste there. Refit
  * after any change to the battle rules (tactics, luck, widths, damage).
+ *
+ *   npx tsx scripts/ww1936/duel-fit.ts --targets [--duels 300]
+ *
+ * instead plays the design's duel targets (design ww6 §5, lane F) with the
+ * same harness: `--duels` battles for each row of TARGETS, and prints each
+ * row's attacker win %, the table's win % at its predicted ratio, the mean
+ * days of a won battle and the ratios.
  */
 import { EQUIP_KEYS } from "@openfront/engine-api/ww1936/EconomyTypes";
 import {
@@ -35,6 +42,7 @@ import {
   WIN_RATIO_AT_PM,
   winPctOf,
 } from "@openfront/engine-lib/ww1936/CombatRules";
+import { clearBands } from "@openfront/engine/ww1936/land/Bands";
 import {
   closeBattle,
   joinBattle,
@@ -61,10 +69,11 @@ interface Options {
   duels: number;
   seed: number;
   out: string;
+  targets: boolean;
 }
 
 function parseArgs(argv: string[]): Options {
-  const o: Options = { duels: 2000, seed: 1, out: "" };
+  const o: Options = { duels: 2000, seed: 1, out: "", targets: false };
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
     const next = () => {
@@ -75,6 +84,7 @@ function parseArgs(argv: string[]): Options {
     if (arg === "--duels") o.duels = parseInt(next(), 10);
     else if (arg === "--seed") o.seed = parseInt(next(), 10);
     else if (arg === "--out") o.out = next();
+    else if (arg === "--targets") o.targets = true;
     else throw new Error(`unknown argument: ${arg}`);
   }
   return o;
@@ -253,6 +263,76 @@ interface Outcome {
   rounds: number;
 }
 
+/** A duel of the design's target table, played `--duels` times with new rolls. */
+interface Target {
+  name: string;
+  att: TemplateKey;
+  def: TemplateKey;
+  nAtt: number;
+  nDef: number;
+  ways: 1 | 2;
+  land: LandTerrain;
+  fort: number;
+  entrench: number;
+  pos: number;
+}
+
+const row = (
+  name: string,
+  att: TemplateKey,
+  nAtt: number,
+  nDef: number,
+  ways: 1 | 2,
+  fort: number,
+  entrench: number,
+  pos: number,
+  def: TemplateKey = "inf72",
+): Target => ({
+  name,
+  att,
+  def,
+  nAtt,
+  nDef,
+  ways,
+  land: "plains",
+  fort,
+  entrench,
+  pos,
+});
+
+/** Design §5: 1:1 < 20 %; 2:1 ~50 % in 4-7 days; 3:1 ≥ 80 %; the Maginot's 50 % only at 5:1 with guns and engineers. */
+const TARGETS: readonly Target[] = [
+  row("1:1 plains entrench 5 (want <20)", "inf72", 3, 3, 1, 0, 5, 0),
+  row("1:1 plains entrench 5, 2 ways (want <20)", "inf72", 4, 4, 2, 0, 5, 0),
+  row("1:1 plains no entrench", "inf72", 3, 3, 1, 0, 0, 0),
+  row("2:1 entrench 5 pos 3 (want ~50, 4-7 d)", "inf72", 4, 2, 1, 0, 5, 3),
+  row("2:1 entrench 5 pos 3, 2 ways (~50)", "inf72", 6, 3, 2, 0, 5, 3),
+  row("2:1 entrench 3 pos 1 (~50)", "inf72", 4, 2, 1, 0, 3, 1),
+  row("3:1 plains no entrench (want ≥80)", "inf72", 6, 2, 1, 0, 0, 0),
+  row("3:1 plains entrench 5 pos 3 (want ≥80)", "inf72", 6, 2, 2, 0, 5, 3),
+  row("3:1 plains, 2 ways, entrench 5 (want ≥80)", "inf72", 9, 3, 2, 0, 5, 0),
+  row("fort 5 entrench 5, 5:1 guns+eng 3v15 (~50)", "inf93", 15, 3, 2, 5, 5, 0),
+  row("fort 5 entrench 5, 5:1 guns+eng 2v10 (~50)", "inf93", 10, 2, 2, 5, 5, 0),
+  row("fort 5 entrench 5, 5:1 guns+eng 4v20 (~50)", "inf93", 20, 4, 2, 5, 5, 0),
+  row("fort 5 entrench 5, 4:1 guns+eng 3v12 (<50)", "inf93", 12, 3, 2, 5, 5, 0),
+  row("fort 5 entrench 5, 3:1 guns+eng 3v9 (<50)", "inf93", 9, 3, 2, 5, 5, 0),
+  row("fort 5 entrench 5, 5:1 infantry 3v15 (<50)", "inf9", 15, 3, 2, 5, 5, 0),
+  row(
+    "fort 5 entrench 5, 5:1 guns no eng 3v15 (<50)",
+    "guns",
+    15,
+    3,
+    2,
+    5,
+    5,
+    0,
+  ),
+];
+
+function pctStr(a: number, b: number): string {
+  return b === 0 ? "-" : ((100 * a) / b).toFixed(0);
+}
+
 async function main(): Promise<void> {
   const o = parseArgs(process.argv.slice(2));
   const runner = await wwRunner({}, [
@@ -281,10 +361,10 @@ async function main(): Promise<void> {
 
   const t0 = Date.now();
   const out: Outcome[] = [];
-  for (let i = 0; i < o.duels; i++) {
-    const d = drawDuel(i, o.seed);
-    const tA = Date.now();
+  const play = (d: Duel, pos: number): Outcome => {
     clearLand(g);
+    clearBands(l, WARSAW);
+    l.posLevel[WARSAW] = pos;
     for (const id of [deu, pol]) {
       const ce = l.econ.country(id)!;
       for (let k = 0; k < ce.stock.length; k++) {
@@ -329,7 +409,6 @@ async function main(): Promise<void> {
       }
     };
     pin();
-    const tB = Date.now();
     const range = predictAttackRange(
       l,
       attIds.map((id) => t.rowOf(id)),
@@ -344,11 +423,6 @@ async function main(): Promise<void> {
       stepBattles(l, d.tick0 + rounds);
       rounds++;
     }
-    if (process.env.DUEL_FIT_TIMES) {
-      console.error(
-        `duel ${i}: ${d.nAtt} v ${d.nDef} ${d.land}: place ${tB - tA} ms, fight ${Date.now() - tB} ms, ${rounds} rounds`,
-      );
-    }
     const standing = (ids: readonly number[], at: (r: number) => boolean) =>
       ids.filter((id) => {
         const r = t.rowOf(id);
@@ -358,13 +432,49 @@ async function main(): Promise<void> {
     const defLeft = standing(defIds, (r) => t.region[r] === WARSAW);
     const won = !l.battles.has(WARSAW) && defLeft === 0 && attLeft > 0;
     if (l.battles.has(WARSAW)) closeBattle(l, WARSAW);
-    out.push({
+    return {
       mid: range.midPm,
       low: range.lowPm,
       high: range.highPm,
       win: won,
       rounds,
-    });
+    };
+  };
+  if (o.targets) {
+    const n = o.duels === 2000 ? 300 : o.duels;
+    for (const target of TARGETS) {
+      const rs: Outcome[] = [];
+      for (let i = 0; i < n; i++) {
+        const rnd = prng(
+          Math.imul(o.seed, 0x9e3779b1) ^ Math.imul(i + 1, 0x85ebca6b),
+        );
+        rs.push(
+          play(
+            {
+              ...target,
+              river: 0,
+              since: 1 + Math.floor(rnd() * 1_000_000),
+              tick0: 1000 + Math.floor(rnd() * 3000),
+            },
+            target.pos,
+          ),
+        );
+      }
+      const wins = rs.filter((r) => r.win);
+      const mean = (xs: number[]) =>
+        xs.length === 0 ? 0 : xs.reduce((a, b) => a + b, 0) / xs.length;
+      console.log(
+        `${target.name.padEnd(50)} win ${pctStr(wins.length, n).padStart(3)}%  ` +
+          `table ${String(winPctOf(rs[0].mid)).padStart(3)}%  ` +
+          `won in ${(mean(wins.map((r) => r.rounds)) / 7.5).toFixed(1)} d  ` +
+          `all ${(mean(rs.map((r) => r.rounds)) / 7.5).toFixed(1)} d  ` +
+          `ratio ${rs[0].low} / ${rs[0].mid} / ${rs[0].high}`,
+      );
+    }
+    return;
+  }
+  for (let i = 0; i < o.duels; i++) {
+    out.push(play(drawDuel(i, o.seed), 0));
     if ((i + 1) % 250 === 0) {
       console.error(
         `${i + 1}/${o.duels} duels, ${((Date.now() - t0) / 1000).toFixed(0)} s`,

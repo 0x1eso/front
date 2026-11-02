@@ -56,6 +56,8 @@ export const P_PEACE_JITTER = idHash("peace_jitter");
 export const P_LAND_TACTIC = idHash("land_tactic");
 export const P_LAND_LUCK = idHash("land_luck");
 export const P_LAND_REINF = idHash("land_reinf");
+/** ww7 lane F (TacticRules.luckBp): the part of a side's luck that lasts the whole band. */
+export const P_LAND_FORTUNE = idHash("land_fortune");
 
 /**
  * Spec §12.4, §18.5: weight = base × Π factor/100 (floor each step) over

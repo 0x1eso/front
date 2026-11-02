@@ -38,6 +38,7 @@ import {
   effectiveSurrenderPct,
   withCapitalPct,
 } from "@openfront/engine-lib/ww1936/PoliticsRules";
+import { luckBp } from "@openfront/engine-lib/ww1936/TacticRules";
 import { techTotals } from "@openfront/engine-lib/ww1936/WwTechs";
 import type { Game } from "@openfront/engine/game/Game";
 import { createGameRunner } from "@openfront/engine/GameRunner";
@@ -505,13 +506,21 @@ describe("ww7 B2: forts and cities in battle", () => {
     const sd = l.statsOf(dr);
     const am = modsOf(l, ar, WARSAW, true);
     const dm = modsOf(l, dr, WARSAW, false);
+    // This round's luck on both sides (no tactic pair yet: the next phase's).
+    const b = l.battles.get(WARSAW)!;
+    b.phaseRound = 1;
+    const seed = l.ww.politics.seed;
+    const day = l.ww.day(g.ticks());
+    const lucky = (side: number) =>
+      10_000 + luckBp(seed, WARSAW, b.sinceTick, day, side);
     const toDef = roundDamage(
       roundHits(
         applyBp(
           applyBp(attackValue(sa.soft, sa.hard, sd.hardnessPm), am.attackBp),
-          10_000,
+          lucky(0),
         ),
         applyBp(sd.def, dm.defenseBp),
+        dm.prepBp ?? 0,
       ),
       sd.armor > sa.pierce,
     ).orgMilli;
@@ -519,7 +528,7 @@ describe("ww7 B2: forts and cities in battle", () => {
       roundHits(
         applyBp(
           applyBp(attackValue(sd.soft, sd.hard, sa.hardnessPm), dm.attackBp),
-          10_000,
+          lucky(1),
         ),
         applyBp(sa.brk, am.defenseBp),
       ),
@@ -528,15 +537,13 @@ describe("ww7 B2: forts and cities in battle", () => {
     expect(toDef).toBeGreaterThan(100);
     const [a0, d0] = [t.org[ar], t.org[dr]];
     stepBattles(l, g.ticks());
-    // ww7 lane A's tactics and daily luck move both sides' damage by a few
-    // percent (deterministic for this seed): the 15% cut shows as the
-    // defenders' share near 85% of the plain round, the attackers' near 100%.
+    // The 15% cut: the defenders take 85% of the plain round, the attackers all.
     const defPm = Math.floor(((d0 - t.org[dr]) * 1000) / toDef);
     const attPm = Math.floor(((a0 - t.org[ar]) * 1000) / toAtt);
-    expect(defPm).toBeGreaterThanOrEqual(800);
-    expect(defPm).toBeLessThanOrEqual(900);
-    // The attackers get no such cut (this seed's defence tactic even adds to it).
-    expect(attPm).toBeGreaterThanOrEqual(940);
+    expect(defPm).toBeGreaterThanOrEqual(845);
+    expect(defPm).toBeLessThanOrEqual(855);
+    expect(attPm).toBeGreaterThanOrEqual(995);
+    expect(attPm).toBeLessThanOrEqual(1005);
   }, 60_000);
 });
 

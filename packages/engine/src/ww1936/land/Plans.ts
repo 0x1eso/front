@@ -14,6 +14,7 @@ import {
   type BattleCtx,
   type BattlePrediction,
   type BattleRange,
+  type CombatMods,
   type SideSum,
   type Stance,
 } from "@openfront/engine-api/ww1936/LandTypes";
@@ -452,7 +453,7 @@ function gatherAttack(
     if (firstDef < 0) firstDef = r;
     addToSide(def, land.statsOf(r), t.org[r]);
   }
-  const neutral = { attackBp: 10_000, defenseBp: 10_000 };
+  const neutral: CombatMods = { attackBp: 10_000, defenseBp: 10_000 };
   const am =
     attackers.length === 0 ? neutral : modsOf(land, attackers[0], region, true);
   const dm = firstDef < 0 ? neutral : modsOf(land, firstDef, region, false);
@@ -468,6 +469,7 @@ function gatherAttack(
       attackerBlockBp: am.defenseBp,
       defenderAttackBp: dm.attackBp,
       defenderBlockBp: dm.defenseBp,
+      defenderPrepBp: dm.prepBp ?? 0,
     },
   };
 }

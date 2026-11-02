@@ -41,6 +41,8 @@ import {
   DT_WITHDRAW,
   initiativeOf,
   isCountered,
+  LUCK_BATTLE_BP,
+  LUCK_DAY_BP,
   LUCK_MAX_BP,
   luckBp,
   newTacticFx,
@@ -384,22 +386,43 @@ describe("daily luck (design §2.1)", () => {
     let inner = 0;
     const N = 10_000;
     for (let i = 0; i < N; i++) {
-      const v = luckBp(77, 1 + (i % 9), 300 + (i % 31), i, i & 1);
+      const v = luckBp(77, 1 + (i % 9), 300 + i, i, i & 1);
       sum += v;
       min = Math.min(min, v);
       max = Math.max(max, v);
       if (Math.abs(v) <= LUCK_MAX_BP / 2) inner++;
     }
-    expect(LUCK_MAX_BP).toBe(1000);
-    expect(min).toBeGreaterThanOrEqual(-1000);
-    expect(max).toBeLessThanOrEqual(1000);
-    // Both ends are nearly reached, the mean is 0 (σ ≈ 408 bp: ±25 is 6 s.e.).
-    expect(min).toBeLessThan(-850);
-    expect(max).toBeGreaterThan(850);
-    expect(Math.abs(sum / N)).toBeLessThan(25);
-    // Triangular on −1000…1000: 75 % lies within ±500 (a flat spread: 50 %).
-    expect(inner / N).toBeGreaterThan(0.72);
-    expect(inner / N).toBeLessThan(0.78);
+    // ww7 lane F: the day's ±20 % and the band's ±30 %.
+    expect(LUCK_MAX_BP).toBe(LUCK_DAY_BP + LUCK_BATTLE_BP);
+    expect(min).toBeGreaterThanOrEqual(-LUCK_MAX_BP);
+    expect(max).toBeLessThanOrEqual(LUCK_MAX_BP);
+    // The tails are thin, the mean is 0 (σ ≈ 1,470 bp: ±90 is 6 s.e.).
+    expect(min).toBeLessThan(-3000);
+    expect(max).toBeGreaterThan(3000);
+    expect(Math.abs(sum / N)).toBeLessThan(90);
+    // Most of it in the middle half (a flat spread: 50 %).
+    expect(inner / N).toBeGreaterThan(0.85);
+  });
+
+  test("ww7 lane F: the band's part lasts the band, the day's changes daily", () => {
+    const spread = (since: number) => {
+      let lo = Infinity;
+      let hi = -Infinity;
+      for (let day = 0; day < 400; day++) {
+        const v = luckBp(77, 6, since, day, 0);
+        lo = Math.min(lo, v);
+        hi = Math.max(hi, v);
+      }
+      return { lo, hi, mid: (lo + hi) / 2 };
+    };
+    // One band: the days move it by no more than the day's part.
+    const a = spread(100);
+    expect(a.hi - a.lo).toBeLessThanOrEqual(2 * LUCK_DAY_BP);
+    expect(a.hi - a.lo).toBeGreaterThan(LUCK_DAY_BP);
+    // Another band (a new start tick) rolls its own.
+    const mids = [100, 101, 102, 103, 104, 105].map((x) => spread(x).mid);
+    expect(new Set(mids).size).toBeGreaterThan(3);
+    expect(Math.max(...mids) - Math.min(...mids)).toBeGreaterThan(500);
   });
 });
 
@@ -560,5 +583,11 @@ describe("predictBattleRange and winPctOf (design §2.6)", () => {
     expect(winPctOf(8000)).toBeGreaterThan(90);
     expect(winPctOf(1000)).toBeGreaterThan(25);
     expect(winPctOf(1000)).toBeLessThan(75);
+    // ww7 lane F: wide, not a step at 1 (it was 60, 90, 100 at 1, 1.2, 1.4).
+    expect(winPctOf(1189)).toBeLessThan(88);
+    expect(winPctOf(1414)).toBeLessThan(95);
+    expect(winPctOf(707)).toBeGreaterThan(8);
+    expect(winPctOf(2000)).toBeGreaterThanOrEqual(90);
+    expect(winPctOf(354)).toBeLessThan(5);
   });
 });
