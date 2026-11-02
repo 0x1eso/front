@@ -345,7 +345,11 @@ function openDay(
   const attack = o.kind === "plan";
   const dist = attack && o.targets.length > 0 ? targetDistances(land, a) : null;
   let zone: number[] = [];
-  const explicit = [...new Set(o.zone)].filter((r) => g.set.has(r));
+  // ww7 lane D: a Defend zone may also name our own interior regions (the
+  // AI's shortened front holds a fallback line behind the border).
+  const explicit = [...new Set(o.zone)].filter(
+    (r) => g.set.has(r) || (!attack && land.sameSide(me, land.controller[r])),
+  );
   if (explicit.length > 0) {
     zone = explicit.slice(0, WW_ZONE_MAX);
   } else {

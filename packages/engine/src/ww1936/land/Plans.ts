@@ -76,9 +76,13 @@ export const FAR = 1 << 30;
  * country may enter (ours, our side's, an enemy's), by BFS; FAR where
  * none reaches. No targets: 0 everywhere (an advance on the whole front).
  */
-export function targetDistances(land: WwLand, army: Army): Int32Array {
+export function targetDistances(
+  land: WwLand,
+  army: Army,
+  /** ww7 lane D: hypothetical targets (the AI's gate), default the order's. */
+  targets: readonly number[] = army.order.targets,
+): Int32Array {
   const sc = land.scenario;
-  const targets = army.order.targets;
   const dist = new Int32Array(sc.maxRegionId() + 1).fill(
     targets.length === 0 ? 0 : FAR,
   );
@@ -163,15 +167,16 @@ function enemyStrength(land: WwLand, me: number, region: number): number {
  * (nearest the targets, then the weaker, then the smaller id); -1 when
  * none. `emptyOnly`: among the regions nobody defends.
  */
-function attackTarget(
+export function attackTarget(
   land: WwLand,
   army: Army,
   me: number,
   f: number,
   dist: Int32Array,
   emptyOnly: boolean,
+  /** ww7 lane D: hypothetical enemy and targets (the AI's gate). */
+  o: { enemy: number; targets: readonly number[] } = army.order,
 ): number {
-  const o = army.order;
   let best = -1;
   let bestD = 0;
   let bestS = 0;
