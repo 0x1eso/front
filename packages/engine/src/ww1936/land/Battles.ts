@@ -46,6 +46,7 @@ import {
   addToSide,
   applyBp,
   attackValue,
+  casCutHits,
   combatWidth,
   defenderOrgDamage,
   divisionMods,
@@ -374,10 +375,7 @@ function fight(land: WwLand, b: Battle, tick: number): void {
     if (hits <= 0 || targets.length === 0) return;
     const to = targets[b.round % targets.length];
     const aa = effectiveLevel(land.econ, R, "anti_air");
-    let h = Math.floor(
-      (hits * (100 - Math.min(60, stats.get(to)!.airAtk))) / 100,
-    );
-    h = Math.floor((h * Math.max(0, 100 - 5 * aa)) / 100);
+    const h = casCutHits(hits, stats.get(to)!.airAtk, aa);
     const dmg = roundDamage(h, false);
     org.set(to, (org.get(to) ?? 0) + dmg.orgMilli);
     hp.set(to, (hp.get(to) ?? 0) + dmg.hpMilli);
@@ -1344,6 +1342,13 @@ export function battleExtras(
   out: BattleSummary,
 ): void {
   const t = land.divisions;
+  // ww8: the wings on station, on the card whatever the lines are doing.
+  const attSide = land.sideOf(b.attLead);
+  const defSide = land.sideOf(b.defLead);
+  const wingsA = land.hooks.casWingsNow(b.region, attSide);
+  const wingsD = land.hooks.casWingsNow(b.region, defSide);
+  if (wingsA > 0) out.casAtt = wingsA;
+  if (wingsD > 0) out.casDef = wingsD;
   const att = emptySide();
   const def = emptySide();
   let firstAtt = -1;
@@ -1375,6 +1380,14 @@ export function battleExtras(
     defenderBlockBp: dm.defenseBp,
     defenderPrepBp: dm.prepBp ?? 0,
   };
+  // ww8: the wings on station count in the odds.
+  const casA = land.hooks.casNowCenti(b.region, attSide);
+  const casD = land.hooks.casNowCenti(b.region, defSide);
+  if (casA > 0 || casD > 0) {
+    const aa = effectiveLevel(land.econ, b.region, "anti_air");
+    ctx.casAttCenti = casCutHits(casA, land.statsOf(firstDef).airAtk, aa);
+    ctx.casDefCenti = casCutHits(casD, land.statsOf(firstAtt).airAtk, aa);
+  }
   const range = predictBattleRange(att, def, ctx);
   out.winPct = range.winPct;
   out.lowPm = range.lowPm;

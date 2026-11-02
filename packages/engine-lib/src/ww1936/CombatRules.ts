@@ -660,6 +660,19 @@ export function entrenchMax(flags: number, tech: TechTotals): number {
 }
 
 /**
+ * P4 spec §14.7: a round's close air support hits, centi, after the target's
+ * anti-air (1% a point, at most 60%) and the region's AA (5% a level).
+ */
+export function casCutHits(
+  hits: number,
+  targetAirAtk: number,
+  aaLevel: number,
+): number {
+  const h = Math.floor((hits * (100 - Math.min(60, targetAirAtk))) / 100);
+  return Math.floor((h * Math.max(0, 100 - 5 * aaLevel)) / 100);
+}
+
+/**
  * Spec §9.9: how fast each side strips the other's org, from side sums.
  * The engine's plan step (§8.2), the AI (§14.4) and the attack preview
  * (§15.3) all call it; the screen passes the army summaries' sums.
@@ -709,8 +722,17 @@ export function predictBattle(
     ).orgMilli,
   );
   const toAtt = roundDamage(roundHits(aD, dA), att.armor > def.pierce).orgMilli;
-  const dmgDef = Math.floor((toDef * lineA) / 1000);
-  const dmgAtt = Math.floor((toAtt * lineD) / 1000);
+  // ww8: close air support, a round's hits on one division with no block value.
+  const casDef = ctx.casAttCenti ?? 0;
+  const casAtt = ctx.casDefCenti ?? 0;
+  const dmgDef =
+    Math.floor((toDef * lineA) / 1000) +
+    (casDef > 0
+      ? defenderOrgDamage(ctx.land, roundDamage(casDef, false).orgMilli)
+      : 0);
+  const dmgAtt =
+    Math.floor((toAtt * lineD) / 1000) +
+    (casAtt > 0 ? roundDamage(casAtt, false).orgMilli : 0);
   const rounds = dmgDef <= 0 ? 999_999 : Math.ceil(def.orgMilli / dmgDef);
   const ratioPm =
     dmgAtt <= 0

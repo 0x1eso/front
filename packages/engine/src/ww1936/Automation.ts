@@ -149,6 +149,26 @@ export function handOverDomain(
   notify(mg, ww, smallID, AUTO_OFF_NOTICE[domain]);
 }
 
+/**
+ * ww8 (owner decision 4): a human's direct order, once it took effect, pins
+ * the wings it named; the country's other wings stay under [auto]. The AI's
+ * own orders go straight to WwAir.issue and pin nothing.
+ */
+export function pinOrderedWings(
+  ww: WorldWar,
+  smallID: number,
+  order: WwOrder,
+): void {
+  if (order.kind !== "wing_mission" && order.kind !== "wing_base") return;
+  for (const id of order.wings) {
+    const w = ww.air.wings.get(id);
+    if (w !== undefined && w.owner === smallID && w.auto) {
+      w.auto = false;
+      ww.air.markWing(id);
+    }
+  }
+}
+
 /** The sender's auto army the order names (its `army`), or 0. */
 export function autoArmyNamed(
   ww: WorldWar,

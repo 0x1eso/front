@@ -20,6 +20,7 @@ import {
 } from "@openfront/engine-api/ww1936/LandTypes";
 import {
   addToSide,
+  casCutHits,
   emptySide,
   planMaxBp,
   predictBattle,
@@ -457,19 +458,30 @@ function gatherAttack(
   const am =
     attackers.length === 0 ? neutral : modsOf(land, attackers[0], region, true);
   const dm = firstDef < 0 ? neutral : modsOf(land, firstDef, region, false);
-  return {
-    att,
-    def,
-    ctx: {
-      land: land.scenario.landOf(region),
-      directions: Math.max(1, Math.min(4, from.size)),
-      // ww7: a fort of level 3+ halves the extra width of the directions.
-      fort: effectiveLevel(land.econ, region, "fort"),
-      attackerAttackBp: am.attackBp,
-      attackerBlockBp: am.defenseBp,
-      defenderAttackBp: dm.attackBp,
-      defenderBlockBp: dm.defenseBp,
-      defenderPrepBp: dm.prepBp ?? 0,
-    },
+  const ctx: BattleCtx = {
+    land: land.scenario.landOf(region),
+    directions: Math.max(1, Math.min(4, from.size)),
+    // ww7: a fort of level 3+ halves the extra width of the directions.
+    fort: effectiveLevel(land.econ, region, "fort"),
+    attackerAttackBp: am.attackBp,
+    attackerBlockBp: am.defenseBp,
+    defenderAttackBp: dm.attackBp,
+    defenderBlockBp: dm.defenseBp,
+    defenderPrepBp: dm.prepBp ?? 0,
   };
+  // ww8: the wings on station over a battle already there count in the odds.
+  if (firstDef >= 0 && attackers.length > 0 && land.battles.has(region)) {
+    const aa = effectiveLevel(land.econ, region, "anti_air");
+    ctx.casAttCenti = casCutHits(
+      land.hooks.casNowCenti(region, land.sideOf(owners[0])),
+      land.statsOf(firstDef).airAtk,
+      aa,
+    );
+    ctx.casDefCenti = casCutHits(
+      land.hooks.casNowCenti(region, land.sideOf(land.controller[region] ?? 0)),
+      land.statsOf(attackers[0]).airAtk,
+      aa,
+    );
+  }
+  return { att, def, ctx };
 }

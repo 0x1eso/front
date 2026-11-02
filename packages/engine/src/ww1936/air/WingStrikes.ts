@@ -28,3 +28,23 @@ export function accrueStation(air: WwAir, w: Wing, tick: number): void {
   void w;
   void tick;
 }
+
+/**
+ * The planes a raid lost to the defence, onto its report's `lost`. Lane C
+ * (w8-C commit cee7a54d0 has the real one; take that file at the merge).
+ */
+export function noteRaidLost(
+  air: WwAir,
+  attacker: number,
+  victim: number,
+  region: number,
+  cls: number,
+  n: number,
+): void {
+  void air;
+  void attacker;
+  void victim;
+  void region;
+  void cls;
+  void n;
+}

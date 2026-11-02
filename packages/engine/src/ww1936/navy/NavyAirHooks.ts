@@ -10,6 +10,7 @@ import {
   hubCapacityMilli,
 } from "@openfront/engine-lib/ww1936/SupplyRules";
 import { airSupplyAt, casHitsFor } from "../air/AirEffects";
+import { casWingsAt } from "../air/Sorties";
 import type { WwAir } from "../air/WwAir";
 import { harborLevelOf } from "../depth/Harbors";
 import type { WwDepth } from "../depth/WwDepth";
@@ -26,6 +27,10 @@ export interface LandSeaAirHooks {
   airPenaltyBp(region: number, side: number, divAirAtk: number): number;
   /** Spec §14.7: `side`'s close air support hits a round in that battle, centi. */
   casHits(battleRegion: number, side: number): number;
+  /** ww8: the same hits for the battle's odds: the wings on station now; 0 in the old air model. */
+  casNowCenti(battleRegion: number, side: number): number;
+  /** ww8: the wings giving that battle close air support now; 0 in the old air model. */
+  casWingsNow(battleRegion: number, side: number): number;
   /** Spec §14.6: movement of `side` into `region`, ‰. */
   airMoveFactorPm(region: number, side: number): number;
   /** Spec §15.4: yesterday's fuel ratio of `owner`, ‰. */
@@ -49,6 +54,8 @@ export interface LandSeaAirHooks {
 export const NEUTRAL_HOOKS: LandSeaAirHooks = {
   airPenaltyBp: () => 0,
   casHits: () => 0,
+  casNowCenti: () => 0,
+  casWingsNow: () => 0,
   airMoveFactorPm: () => 1000,
   fuelFactorPm: () => 1000,
   seaHubCapacity: () => hubCapacityMilli(HUB_SEA, 0),
@@ -69,6 +76,12 @@ export class NavyAirHooks implements LandSeaAirHooks {
   }
   casHits(battleRegion: number, side: number): number {
     return casHitsFor(this.air, battleRegion, side); // A2
+  }
+  casNowCenti(battleRegion: number, side: number): number {
+    return this.air.wingsLive ? casHitsFor(this.air, battleRegion, side) : 0;
+  }
+  casWingsNow(battleRegion: number, side: number): number {
+    return this.air.wingsLive ? casWingsAt(this.air, battleRegion, side) : 0;
   }
   airMoveFactorPm(region: number, side: number): number {
     return this.air.airMoveFactorPm(region, side); // A1

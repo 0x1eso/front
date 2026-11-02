@@ -23,6 +23,7 @@ import {
   autoSet,
   handOverDomain,
   noteArmyHandOver,
+  pinOrderedWings,
 } from "../Automation";
 import { cancelBuild, moveBuild, queueBuild } from "./Construction";
 import { setLaw } from "./LawsRun";
@@ -64,6 +65,7 @@ export function applyWwOrder(
   const army = ww.isActor(id) ? autoArmyNamed(ww, id, order) : 0;
   if (ww.isActor(id)) handOverDomain(mg, ww, id, order);
   const block = applyOrder(mg, econ, p, order, day);
+  if (block === null) pinOrderedWings(ww, id, order);
   noteArmyHandOver(mg, ww, id, army);
   econ.ww.settleOrder(mg.ticks());
   return block;

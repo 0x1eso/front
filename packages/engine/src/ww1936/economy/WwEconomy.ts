@@ -554,6 +554,8 @@ export class WwEconomy {
   railPortVer = 0;
   /** Derived (DERIVED_FIELDS): bumped at every building change (afterBuildingChange). */
   buildVer = 0;
+  /** ww8 (derived): moves when a radar's count or damage changes (the air pulses' coverage memo). */
+  radarVer = 0;
   /** Derived (DERIVED_FIELDS): bumped when the country graph is rebuilt (rebuildDerived). */
   graphVer = 0;
   private _trades: Trade[] = [];
@@ -1089,6 +1091,7 @@ export class WwEconomy {
   afterBuildingChange(region: number, b: BuildingId): void {
     this.dirtyRegions.add(region);
     this.buildVer++;
+    if (b === "radar") this.radarVer++;
     if (b === "rail" || b === "naval_base") this.railPortVer++;
     if (b === "infra") {
       this.infraEff[region] = effectiveBuildings(this, region, "infra");
@@ -1723,6 +1726,7 @@ export class WwEconomy {
   private rebuildDerived(): void {
     this.railPortVer++;
     this.buildVer++;
+    this.radarVer++;
     this.graphVer++;
     const g = countryGraph(
       this.scenario,
