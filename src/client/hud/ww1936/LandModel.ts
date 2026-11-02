@@ -1571,6 +1571,7 @@ export function attackPreview(
     attackerBlockBp: att.defenseBp,
     defenderAttackBp: dm.attackBp,
     defenderBlockBp: dm.defenseBp,
+    defenderPrepBp: dm.prepBp ?? 0,
   });
   return {
     ratioPm: p.ratioPm,

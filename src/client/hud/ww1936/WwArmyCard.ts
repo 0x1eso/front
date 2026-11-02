@@ -564,7 +564,17 @@ export class WwArmyCard extends LitElement implements Controller {
       const targets = (
         sel.mode === "plan" ? sel.targets : order.targets
       ).filter((t) => sides.isEnemy(c.me, c.view.controller[t]));
-      this.send(planOrder(army, targets, stance));
+      const plan = planOrder(army, targets, stance);
+      // The engine's refusal never comes back to the client, so the same
+      // rule check the buttons use says why the stance did not take.
+      const block = orderBlock(c.view, c.economy, c.me, c.day, plan, sides);
+      if (block !== null) {
+        this.refused = { id: `stance_${stance}`, block };
+        this.requestUpdate();
+        return;
+      }
+      this.refused = null;
+      this.send(plan);
       if (order.executing && targets.length > 0) {
         this.send({ kind: "army_execute", army, on: true });
       }
