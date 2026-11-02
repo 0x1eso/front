@@ -204,6 +204,7 @@ export const DEPTH_NOTICE_KEYS: readonly string[] = [
   "events_display.ww1936_dam_destroyed",
   "events_display.ww1936_scorched",
   "events_display.ww1936_ace",
+  "events_display.ww1936_wing_ace",
   "events_display.ww1936_energy_shortage",
   "events_display.ww1936_congress_threshold",
   "events_display.ww1936_faction_goal",

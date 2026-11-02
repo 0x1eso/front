@@ -42,6 +42,7 @@ import {
 import { fogModelOf } from "./FogModel";
 import { NavyGame } from "./NavyModel";
 import { WwAirZoneSelectedEvent } from "./SeaAirSelection";
+import { missionOf } from "./WingModel";
 import { isCapitulated, WW_BAND_PX } from "./WorldWarModel";
 import {
   CARD_MIN_PX,
@@ -291,18 +292,20 @@ export class WwAirZoneCard extends LitElement implements Controller {
             })}</span
           >
           ${this.renderSup(d)}
-          <button
-            type="button"
-            data-ww-air-auto
-            aria-pressed=${String(d.auto)}
-            class="h-9 shrink-0 rounded-md border px-1.5 ${d.auto
-              ? "border-sky-300 bg-sky-800/60"
-              : "border-white/15 bg-white/5 hover:bg-white/10"}"
-            @click=${() =>
-              this.send({ kind: "air_auto", sr: d.sr, on: !d.auto })}
-          >
-            🤖 ${translateText("ww1936.air.btn_auto")}
-          </button>
+          ${this.live()
+            ? nothing
+            : html`<button
+                type="button"
+                data-ww-air-auto
+                aria-pressed=${String(d.auto)}
+                class="h-9 shrink-0 rounded-md border px-1.5 ${d.auto
+                  ? "border-sky-300 bg-sky-800/60"
+                  : "border-white/15 bg-white/5 hover:bg-white/10"}"
+                @click=${() =>
+                  this.send({ kind: "air_auto", sr: d.sr, on: !d.auto })}
+              >
+                🤖 ${translateText("ww1936.air.btn_auto")}
+              </button>`}
           <button
             type="button"
             data-ww-card-fold=${this.collapsed ? "open" : "fold"}
@@ -328,6 +331,42 @@ export class WwAirZoneCard extends LitElement implements Controller {
         </div>
         ${this.collapsed ? nothing : this.renderBody(c)}
       </section>`;
+  }
+
+  /** ww8: the wing model runs; zones show who flies there, and orders go to wings. */
+  private live(): boolean {
+    return this.game.wwAir?.()?.live === true;
+  }
+
+  /** ww8: my wings flying over a zone, by mission. */
+  private renderWingsOver(c: {
+    ctx: AirCtx;
+    card: ZoneCardData;
+  }): TemplateResult {
+    const by = new Map<number, number>();
+    for (const w of c.ctx.air.wings.values()) {
+      if (w.owner !== c.ctx.me || w.flySr !== c.card.sr || w.flyMission < 0) {
+        continue;
+      }
+      by.set(w.flyMission, (by.get(w.flyMission) ?? 0) + w.planes);
+    }
+    const rows = [...by.entries()].sort(([x], [y]) => x - y);
+    return html`<ul
+      data-ww-zone-rows
+      class="m-0 flex min-h-0 flex-1 list-none flex-col gap-1 overflow-y-auto p-0"
+    >
+      ${rows.length === 0
+        ? html`<li class="text-white/60">
+            ${translateText("ww1936.wing.zone_none")}
+          </li>`
+        : rows.map(
+            ([m, n]) =>
+              html`<li data-ww-zone-wings=${m}>
+                ${AIR_MISSION_ICONS[missionOf(m)]}
+                ${airMissionName(missionOf(m))} · ${n}
+              </li>`,
+          )}
+    </ul>`;
   }
 
   private renderSup(d: ZoneCardData): TemplateResult {
@@ -384,16 +423,18 @@ export class WwAirZoneCard extends LitElement implements Controller {
             >`
           : nothing}
       </div>
-      <ul
-        data-ww-zone-rows
-        class="m-0 flex min-h-0 flex-1 list-none flex-col gap-1 overflow-y-auto p-0"
-      >
-        ${d.rows.length === 0
-          ? html`<li class="text-white/60">
-              ${translateText("ww1936.air.rows_none")}
-            </li>`
-          : d.rows.map((r) => this.renderRow(c, r))}
-      </ul>
+      ${this.live()
+        ? this.renderWingsOver(c)
+        : html`<ul
+            data-ww-zone-rows
+            class="m-0 flex min-h-0 flex-1 list-none flex-col gap-1 overflow-y-auto p-0"
+          >
+            ${d.rows.length === 0
+              ? html`<li class="text-white/60">
+                  ${translateText("ww1936.air.rows_none")}
+                </li>`
+              : d.rows.map((r) => this.renderRow(c, r))}
+          </ul>`}
       ${this.renderStrike(c)} ${this.renderResult(d)}`;
   }
 
@@ -406,13 +447,25 @@ export class WwAirZoneCard extends LitElement implements Controller {
     const sr = c.card.sr;
     const block = model.nukeStartBlock(sr);
     const active = st.step !== "idle";
-    const bomber = [...(this.game.wwAir?.()?.deployments.values() ?? [])].find(
-      (d) =>
-        d.owner === c.ctx.me &&
-        d.sr === sr &&
-        d.mission === "strategic_bombing" &&
-        offered(model.zoneTargets(sr)).length > 0,
-    );
+    // ww8: in the wing model the raid rides a bomber wing of mine whose order aims into this zone.
+    const air = this.game.wwAir?.();
+    const bomber =
+      air?.live === true
+        ? [...air.wings.values()].find(
+            (w) =>
+              w.owner === c.ctx.me &&
+              w.sr === sr &&
+              w.mission >= 0 &&
+              missionOf(w.mission) === "strategic_bombing" &&
+              offered(model.zoneTargets(sr)).length > 0,
+          )
+        : [...(air?.deployments.values() ?? [])].find(
+            (d) =>
+              d.owner === c.ctx.me &&
+              d.sr === sr &&
+              d.mission === "strategic_bombing" &&
+              offered(model.zoneTargets(sr)).length > 0,
+          );
     const prev = flow.preview();
     return html`<div
       data-ww-strike

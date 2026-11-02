@@ -82,6 +82,8 @@ export interface LandTapDeps {
   hit: typeof hitToken;
   markers: typeof battleMarkers;
   now: () => number;
+  /** ww8 (lane G): the wing orders' target taps, asked first; true when it took the tap. */
+  wing: ((wx: number, wy: number, radius: number) => boolean) | null;
   /** P4 (plan decision 40): the navy's and the air war's taps; null: none. */
   seaAir: Pick<
     WwSeaAirController,
@@ -169,6 +171,7 @@ export class WwLandController implements Controller {
       hit: hitToken,
       markers: battleMarkers,
       now: () => Date.now(),
+      wing: null,
       seaAir: null,
       ...deps,
     };
@@ -393,6 +396,8 @@ export class WwLandController implements Controller {
     // Peace on the current line: its map names the tapped region.
     if (linePeaceMapTap(this.game, this.regionAt(view, w.x, w.y))) return true;
     const radius = TAP_RADIUS_PX / zoom;
+    // ww8: a wing order waiting for its target takes the tap before any token.
+    if (this.deps.wing?.(w.x, w.y, radius) === true) return true;
     if (this.multi.active || this.multi.frontGroup !== null) {
       return this.multiTap(view, me, w, zoom);
     }

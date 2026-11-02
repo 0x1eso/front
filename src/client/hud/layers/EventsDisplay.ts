@@ -24,6 +24,7 @@ import { unsafeHTML, UnsafeHTMLDirective } from "lit/directives/unsafe-html.js";
 import { Controller } from "../../Controller";
 import { SendAllianceRequestIntentEvent } from "../../Transport";
 import { UserSettings } from "../../UserSettings";
+import { wingNoticeParams } from "../ww1936/WingModel";
 
 import { GoToPlayerEvent, GoToUnitEvent } from "../../TransformHandler";
 import { GameView, PlayerView, UnitView } from "../../view";
@@ -373,6 +374,12 @@ export class EventsDisplay extends LitElement implements Controller {
       }
       // P6 (spec §20.11): content ids of the depth notices.
       params = depthNoticeParams(event.message, params);
+      // ww8: a wing notice names its wing.
+      params = wingNoticeParams(
+        event.message,
+        params,
+        this.game?.wwAir?.()?.wings ?? null,
+      );
       // P4 (spec §18.10): sea regions, ports, ship classes, ships, fleets.
       if (scenario !== null) {
         params = navyNoticeParams(

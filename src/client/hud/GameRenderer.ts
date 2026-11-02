@@ -65,6 +65,8 @@ import { setLandSeaAir } from "./ww1936/LandSeaAir";
 import { landSelectionOf } from "./ww1936/LandSelection";
 import { linePeaceMapSource } from "./ww1936/LinePeaceModel";
 import { seaAirFacts } from "./ww1936/NavyModel";
+import { wingUiOf } from "./ww1936/WingUi";
+import { WwAirLegend } from "./ww1936/WwAirLegend";
 import { WwAirPanel } from "./ww1936/WwAirPanel";
 import { WwAirZoneCard } from "./ww1936/WwAirZoneCard";
 import { WwArmyCard } from "./ww1936/WwArmyCard";
@@ -95,6 +97,13 @@ import {
 import { WwTakeoverCard } from "./ww1936/WwTakeoverCard";
 import { WwTopBand } from "./ww1936/WwTopBand";
 import { WwWhitePeaceCard } from "./ww1936/WwWhitePeaceCard";
+import { WwWingCard } from "./ww1936/WwWingCard";
+import {
+  WingFocusLike,
+  wingGlow,
+  WingSlotLike,
+  WwWingController,
+} from "./ww1936/WwWingController";
 
 export function createRenderer(
   inputEl: HTMLElement,
@@ -495,6 +504,18 @@ export function createRenderer(
   } else {
     console.error("ww air zone card not found");
   }
+  const wwAirLegend = document.querySelector("ww-air-legend");
+  if (wwAirLegend instanceof WwAirLegend) {
+    wwAirLegend.game = game;
+    wwAirLegend.eventBus = eventBus;
+  }
+  const wwWingCard = document.querySelector("ww-wing-card");
+  if (wwWingCard instanceof WwWingCard) {
+    wwWingCard.game = game;
+    wwWingCard.eventBus = eventBus;
+  } else {
+    console.error("ww wing card not found");
+  }
 
   // P3 (spec §21): the politics drawer, the event cards above the dials,
   // the world news under the band.
@@ -608,6 +629,8 @@ export function createRenderer(
   let landController: WwLandController | null = null;
   // P4 (plan decision 40): the navy's and the air war's taps, asked by the land flow.
   let seaAirController: WwSeaAirController | null = null;
+  // ww8 (lane G): the wing orders' map taps, asked by the land flow first.
+  let wingController: WwWingController | null = null;
   // P6 (U4): the bomb, rocket and raid flow takes a map tap before the navy and air.
   let nukeFlow: WwNukeFlow | null = null;
   if (wwScenario !== null) {
@@ -644,6 +667,19 @@ export function createRenderer(
       // zone) and what a map tap may aim at glows (spec §18.3).
       view.setSeaAirSelection(seaAirController.selection);
       nukeFlow = new WwNukeFlow(game, eventBus);
+      const wingRender = view as unknown as {
+        pickWing?: (x: number, y: number) => WingSlotLike | null;
+        setWingFocus?: (f: WingFocusLike) => void;
+      };
+      wingController = new WwWingController(
+        game,
+        eventBus,
+        () => transformHandler.scale,
+        () => Date.now(),
+        // Lane F's renderer calls (w8-F); absent on a branch without it.
+        (x, y) => wingRender.pickWing?.(x, y) ?? null,
+        (f) => wingRender.setWingFocus?.(f),
+      );
       const sa = seaAirOf(game);
       view.setSeaAirGlow({
         key: (out) => {
@@ -652,9 +688,11 @@ export function createRenderer(
             sa.selection.version,
             wwNavy.version,
             strikeFlowOf(game).version,
+            wingUiOf(game).version,
+            wwAir.version,
           );
         },
-        glow: () => nukeFlow?.glow() ?? seaAirGlow(game),
+        glow: () => nukeFlow?.glow() ?? wingGlow(game) ?? seaAirGlow(game),
       });
       // The land cards' P4 battle lines and order checks (pre-flight ruling 3).
       if (wwLand !== null) {
@@ -663,6 +701,10 @@ export function createRenderer(
     }
     if (wwLand !== null) {
       landController = new WwLandController(game, eventBus, transformHandler, {
+        wing:
+          wingController === null
+            ? null
+            : (x, y, r) => wingController!.handleTap(x, y, r),
         seaAir:
           seaAirController === null
             ? null
@@ -699,6 +741,7 @@ export function createRenderer(
     // touch fallback (the radial menu) skips a tap the land flow took.
     ...(landController === null ? [] : [landController]),
     ...(seaAirController === null ? [] : [seaAirController]),
+    ...(wingController === null ? [] : [wingController]),
     ...(nukeFlow === null ? [] : [nukeFlow]),
     new WarshipSelectionController(
       game,
@@ -756,6 +799,8 @@ export function createRenderer(
     ...(wwDesigner instanceof WwDesigner ? [wwDesigner] : []),
     ...(wwFleetCard instanceof WwFleetCard ? [wwFleetCard] : []),
     ...(wwAirZoneCard instanceof WwAirZoneCard ? [wwAirZoneCard] : []),
+    ...(wwWingCard instanceof WwWingCard ? [wwWingCard] : []),
+    ...(wwAirLegend instanceof WwAirLegend ? [wwAirLegend] : []),
     ...(wwPoliticsPanel instanceof WwPoliticsPanel ? [wwPoliticsPanel] : []),
     ...(wwTakeoverCard instanceof WwTakeoverCard ? [wwTakeoverCard] : []),
     ...(wwWhitePeaceCard instanceof WwWhitePeaceCard ? [wwWhitePeaceCard] : []),

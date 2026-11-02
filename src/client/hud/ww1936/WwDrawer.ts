@@ -107,12 +107,27 @@ export const WW_NAVY_TABS: readonly WwNavyTab[] = [
 ];
 
 /** P4 spec §18.7: the air drawer's four tabs. */
-export type WwAirTab = "zones" | "planes" | "bases" | "record";
+export type WwAirTab =
+  | "zones"
+  | "planes"
+  | "bases"
+  | "record"
+  // ww8: the wing model's two tabs (wings replaces zones, reports record).
+  | "wings"
+  | "reports";
 export const WW_AIR_TABS: readonly WwAirTab[] = [
   "zones",
   "planes",
   "bases",
   "record",
+];
+
+/** ww8 (design §8.7): the air drawer's tabs in the wing model. */
+export const WW_AIR_TABS_LIVE: readonly WwAirTab[] = [
+  "wings",
+  "bases",
+  "planes",
+  "reports",
 ];
 
 /**
