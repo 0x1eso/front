@@ -281,8 +281,7 @@ describe("DepthMiscModel", () => {
 
   it("notice params: each id arg of the manifest is translated, other args pass", () => {
     const args: [string, string, string][] = [
-      ["ww1936_mastery_level", "domain", "[ww1936.doctrine.tab_land]"],
-      ["ww1936_mastery_level", "track", "[ww1936.track.armor]"],
+      ["ww1936_design_saved", "domain", "[ww1936.doctrine.tab_land]"],
       ["ww1936_mio_size", "mio", "[ww1936.mio_family.tank]"],
       ["ww1936_market_sale", "item", "[ww1936.equip.infantry]"],
       ["ww1936_operation_done", "op", "[ww1936.op.coup]"],
@@ -292,7 +291,6 @@ describe("DepthMiscModel", () => {
     ];
     const ids: Record<string, string> = {
       domain: "land",
-      track: "armor",
       mio: "tank",
       item: "infantry",
       op: "coup",

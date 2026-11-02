@@ -514,8 +514,7 @@ export class WwTopBand extends LitElement implements Controller {
   }
 
   /**
-   * P6 (spec §20.1): "🎖 3.4" command power (opens the doctrine drawer's
-   * command tab), "⚡ 92%" under full energy (orange), "🏛 의회 34%" for
+   * P6 (spec §20.1): "⚡ 92%" under full energy (orange), "🏛 의회 34%" for
    * the US, "☢ 2" my atomic bombs. Icon and number only on a short screen.
    */
   private depthChip(
@@ -539,15 +538,6 @@ export class WwTopBand extends LitElement implements Controller {
   private depthChips(rowOnly: boolean | null) {
     const d = this.depth;
     if (d === null) return nothing;
-    const cmd = html`${this.depthChip(
-      "cp",
-      `🎖 ${d.cpText}`,
-      translateText("ww1936.command.band_cp", { cp: d.cpText }),
-      () =>
-        this.eventBus.emit(
-          new WwDepthOpenEvent("doctrine", { tab: "command" }),
-        ),
-    )}`;
     const congress =
       d.congressPct === null
         ? nothing
@@ -576,9 +566,9 @@ export class WwTopBand extends LitElement implements Controller {
             translateText("ww1936.nuke.band", { n: d.nukes }),
             () => this.eventBus.emit(new WwDepthOpenEvent("projects")),
           );
-    if (rowOnly === true) return html`${cmd} ${congress}`;
+    if (rowOnly === true) return html`${congress}`;
     if (rowOnly === false) return html`${energy} ${nukes}`;
-    return html`${cmd} ${congress} ${energy} ${nukes}`;
+    return html`${congress} ${energy} ${nukes}`;
   }
 
   private renderDepth(step: number) {

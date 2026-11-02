@@ -14,7 +14,7 @@ import {
 import { COMPACT_MAX_HEIGHT } from "../domestic/DomesticPanel";
 import { airDial, AirDialModel } from "./AirModel";
 import { WwDepthOpenEvent } from "./DepthEvents";
-import { DoctrineDial, DoctrineModel, IntelDial } from "./DoctrineModel";
+import { DoctrineModel, IntelDial, ThoughtDial } from "./DoctrineModel";
 import {
   IndustryDial,
   industryDial,
@@ -100,7 +100,7 @@ export interface WwDialsModel {
   navy: NavyDialModel | null;
   air: AirDialModel | null;
   /** P6 (spec §20.2); null before my depth data. */
-  doctrine: DoctrineDial | null;
+  doctrine: ThoughtDial | null;
   intel: IntelDial | null;
   /** The air layer is on (the ✈ dial is pressed). */
   airLayer: boolean;
@@ -306,7 +306,7 @@ export class WwDials extends LitElement implements Controller {
           ? null
           : navyDial(ctx, dayStartTick(ctx.day, prepEndTick(this.game))),
       air: ctx === null ? null : airDial(ctx),
-      doctrine: new DoctrineModel(this.game).dial(),
+      doctrine: new DoctrineModel(this.game).thoughtDial(),
       intel: new DoctrineModel(this.game).intelDial(),
       airLayer: seaAirOf(this.game).selection.layer === "air",
       seaLayer: seaAirOf(this.game).selection.layer === "sea",
@@ -458,11 +458,10 @@ export class WwDials extends LitElement implements Controller {
   }
 
   /**
-   * P6 (spec §20.2): 🎖 doctrine — the ring is the lowest army track's way
-   * to its next level; the badge glows with unpicked doctrines, else counts
-   * the trait slots you could fill. 🕵 intel — the running upgrade; a red
-   * badge for captured operatives, else the idle ones. The intel drawer is
-   * lane U3's: the dial only asks for it.
+   * ww9: ⚖ thought (the sliders) has no badge and no glow, only a thin ring
+   * while a slider is moving. 🕵 intel — the running upgrade; a red badge
+   * for captured operatives, else the idle ones. The intel drawer is lane
+   * U3's: the dial only asks for it.
    */
   private renderDepth(m: WwDialsModel): TemplateResult {
     const d = m.doctrine;
@@ -471,26 +470,12 @@ export class WwDials extends LitElement implements Controller {
       ? nothing
       : this.renderDial(
           "doctrine",
-          d.glow ? "unpicked" : "idle",
-          translateText("ww1936.doctrine.dial"),
-          progressBar(d.progress, "science"),
-          "🎖",
-          d.glow ? "victory" : null,
-          d.badge === null
-            ? nothing
-            : this.badge(
-                d.badge.kind,
-                d.badge.n,
-                d.badge.kind === "unpicked"
-                  ? "bg-yellow-300 text-gray-900"
-                  : "bg-amber-400 text-gray-900",
-                translateText(
-                  d.badge.kind === "unpicked"
-                    ? "ww1936.doctrine.badge_unpicked"
-                    : "ww1936.doctrine.badge_points",
-                  { n: d.badge.n },
-                ),
-              ),
+          d.moving > 0 ? "moving" : "idle",
+          translateText("ww1936.thought.dial"),
+          d.moving > 0 ? progressBar(d.progress, "grey") : html``,
+          "⚖",
+          null,
+          nothing,
           () => this.eventBus.emit(new WwDepthOpenEvent("doctrine")),
         )}
     ${i === null

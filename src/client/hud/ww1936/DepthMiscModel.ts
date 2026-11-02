@@ -183,8 +183,8 @@ const FACILITY_BUILDINGS: ReadonlySet<BuildingId> = new Set(FACILITY_IDS);
  * looks for (as P5's ENDGAME_NOTICES do).
  */
 export const DEPTH_NOTICE_KEYS: readonly string[] = [
-  "events_display.ww1936_mastery_level",
   "events_display.ww1936_design_saved",
+  "events_display.ww1936_medal_auto",
   "events_display.ww1936_mio_size",
   "events_display.ww1936_licence_granted",
   "events_display.ww1936_licence_denied",
@@ -233,7 +233,6 @@ export function isWorldNewsNotice(message: string): boolean {
  */
 export const NOTICE_ID_PARAMS: Readonly<Record<string, string>> = {
   domain: "ww1936.doctrine.tab",
-  track: "ww1936.track",
   mio: "ww1936.mio_family",
   item: "ww1936.equip",
   op: "ww1936.op",

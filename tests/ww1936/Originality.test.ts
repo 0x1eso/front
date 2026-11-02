@@ -88,11 +88,9 @@ const NAMED_GROUPS = [
   "school",
   "tech",
   "trait",
-  // P6 (K5b): the grand doctrines, sub-doctrines, tracks, army spirits,
-  // modules and arsenal traits, whose names are HOI4's most coined.
-  "gd",
-  "subdoc",
-  "track",
+  // P6 (K5b): the thought sliders (ww9), army spirits, modules and
+  // arsenal traits, whose names are HOI4's most coined.
+  "thought",
   "army_spirit",
   "module",
   "mio_trait",
