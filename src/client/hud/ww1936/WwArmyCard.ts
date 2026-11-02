@@ -558,7 +558,12 @@ export class WwArmyCard extends LitElement implements Controller {
     sel.version++;
     if (order?.kind === "plan") {
       const army = c.card.row.id;
-      const targets = sel.mode === "plan" ? sel.targets : order.targets;
+      // Targets taken since are ours now: the engine refuses a plan that
+      // names one (not_at_war), so only the enemy's go back.
+      const sides = landSidesOf(this.game);
+      const targets = (
+        sel.mode === "plan" ? sel.targets : order.targets
+      ).filter((t) => sides.isEnemy(c.me, c.view.controller[t]));
       this.send(planOrder(army, targets, stance));
       if (order.executing && targets.length > 0) {
         this.send({ kind: "army_execute", army, on: true });
