@@ -23,7 +23,7 @@ import {
 } from "@openfront/engine-lib/ww1936/SeaAirRules";
 import { type AirFlight, zoneFlights } from "../air/AirCombat";
 import { isCarrierWing } from "../air/Deploy";
-import type { Deployment } from "../air/WwAir";
+import type { Wing } from "../air/WwAir";
 import { sidesAtWar } from "./Mines";
 import type { WwDepth } from "./WwDepth";
 
@@ -42,7 +42,7 @@ export function aceMods(
   d: WwDepth,
   deploymentId: number,
 ): { attackPct: number; agilityPct: number } {
-  const dep = d.ww.air.deployments.get(deploymentId);
+  const dep = d.ww.air.wings.get(deploymentId);
   if (
     dep === undefined ||
     dep.ace === 0 ||
@@ -54,7 +54,7 @@ export function aceMods(
 }
 
 /** The planes of a record (its generations and its design slots). */
-function planesOf(dep: Deployment): number {
+function planesOf(dep: Wing): number {
   let n = 0;
   for (const c of dep.counts) n += c;
   for (const c of dep.dcounts) n += c;
@@ -64,7 +64,7 @@ function planesOf(dep: Deployment): number {
 /** The record fought in the air today: it shot at an enemy here, or an enemy's fighters shot at it. */
 function inAirCombat(
   d: WwDepth,
-  dep: Deployment,
+  dep: Wing,
   flights: readonly AirFlight[],
 ): boolean {
   const own = flights.find((f) => f.id === dep.id);
@@ -94,14 +94,14 @@ export function dailyAces(d: WwDepth, sr: number, day: number): void {
   // Retired with their record (recalled, merged away, lost with the country).
   if (d.sea.aces.length > 0) {
     const kept = d.sea.aces.filter((a) => {
-      const dep = air.deployments.get(a.deployment);
+      const dep = air.wings.get(a.deployment);
       if (dep !== undefined && dep.owner === a.owner && dep.ace === a.id) {
         return true;
       }
       // Retired: a record still here (another owner now) can earn a new one.
       if (dep !== undefined && dep.ace === a.id) {
         dep.ace = 0;
-        air.markDeployment(dep.id);
+        air.markWing(dep.id);
       }
       return false;
     });
@@ -113,12 +113,12 @@ export function dailyAces(d: WwDepth, sr: number, day: number): void {
   const flights = zoneFlights(air, sr);
   // Lost in the air.
   for (const a of [...d.sea.aces]) {
-    const dep = air.deployments.get(a.deployment)!;
+    const dep = air.wings.get(a.deployment)!;
     if (dep.sr !== sr || !inAirCombat(d, dep, flights)) continue;
     if (wwRoll(seed, P_ACE_DEATH, a.id, day) % 1000 >= ACE_DEATH_PM) continue;
     d.sea.aces = d.sea.aces.filter((x) => x.id !== a.id);
     dep.ace = 0;
-    air.markDeployment(dep.id);
+    air.markWing(dep.id);
     d.markGlobal();
     d.message(a.owner, "ww1936_ace", { callsign: a.callNo, state: "lost" });
   }
@@ -138,10 +138,10 @@ export function dailyAces(d: WwDepth, sr: number, day: number): void {
       continue;
     }
     if (wwRoll(seed, P_ACE_SPAWN, c, day, sr) % 1000 >= ACE_SPAWN_PM) continue;
-    let best: Deployment | null = null;
+    let best: Wing | null = null;
     let bestN = 0;
-    for (const id of air.deploymentsIn(sr)) {
-      const dep = air.deployments.get(id);
+    for (const id of air.wingsIn(sr)) {
+      const dep = air.wings.get(id);
       if (
         dep === undefined ||
         dep.owner !== c ||
@@ -167,8 +167,14 @@ export function dailyAces(d: WwDepth, sr: number, day: number): void {
     };
     d.sea.aces = [...d.sea.aces, ace];
     best.ace = ace.id;
-    air.markDeployment(best.id);
+    air.markWing(best.id);
     d.markGlobal();
     d.message(c, "ww1936_ace", { callsign: ace.callNo, state: "rise" });
   }
+}
+
+/** ww8: a wing is going (disband, wiped out): its ace moves on or retires (design §6). Lane D. */
+export function aceOnWingGone(d: WwDepth, w: Wing): void {
+  void d;
+  void w;
 }

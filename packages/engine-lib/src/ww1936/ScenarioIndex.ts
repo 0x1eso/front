@@ -186,6 +186,8 @@ export class ScenarioIndex {
   } | null = null;
   /** srKm by region × 2000 + strategic id. */
   private srKmMemo = new Map<number, number>();
+  /** targetKm by base × 65536 + target. */
+  private targetKmMemo = new Map<number, number>();
 
   constructor(data: ReadonlyScenarioData, regionIds: Uint16Array) {
     this.data = data;
@@ -695,6 +697,31 @@ export class ScenarioIndex {
       this.srKmMemo.set(key, km);
     }
     return km;
+  }
+
+  /**
+   * ww8: km from a base region's center to a target's center: a region, or a
+   * sea zone (ids above SEA_ZONE_BASE). A wing's reach is judged by this, not
+   * by the zone's center (srKm). Memoised like srKm.
+   */
+  targetKm(base: number, target: number): number {
+    const key = base * 65_536 + target;
+    let km = this.targetKmMemo.get(key);
+    if (km === undefined) {
+      const to =
+        target > SEA_ZONE_BASE
+          ? this.zoneCenter(target)
+          : this.centerTile(target);
+      km = this.kmBetween(this.centerTile(base), to);
+      this.targetKmMemo.set(key, km);
+    }
+    return km;
+  }
+
+  /** ww8: the zone (strategic id) of a target: a region or a sea zone; 0 with none. */
+  targetSr(target: number): number {
+    if (target > SEA_ZONE_BASE) return this.zoneSr(target);
+    return target > 0 ? this.regionSr(target) : 0;
   }
 
   private seaGraph(): SeaGraphData {

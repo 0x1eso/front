@@ -87,9 +87,9 @@ function spyIssue(g: Game) {
   }[] = [];
   const issue = l.issue.bind(l);
   l.issue = (smallID, order, by = "player") => {
-    const org = "army" in order ? orgPm(g, order.army) : -1;
-    const planBp =
-      "army" in order ? (l.armies.get(order.army)?.planBp ?? -1) : -1;
+    const army = "army" in order ? order.army : undefined;
+    const org = army !== undefined ? orgPm(g, army) : -1;
+    const planBp = army !== undefined ? (l.armies.get(army)?.planBp ?? -1) : -1;
     calls.push({ smallID, order, by, orgPm: org, planBp });
     return issue(smallID, order, by);
   };

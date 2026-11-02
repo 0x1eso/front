@@ -868,6 +868,11 @@ export const WW_ORDER_BLOCKS = [
   "no_project",
   // Research grants, appended: the branch already holds a bonus.
   "bonus_held",
+  // Air overhaul (ww8), appended: a country at its wing limit; a bomb class
+  // with nothing to hit in the region; an escort's target beyond its range.
+  "too_many_wings",
+  "no_bomb_target",
+  "escort_out_of_range",
 ] as const;
 export type WwOrderBlock = (typeof WW_ORDER_BLOCKS)[number];
 

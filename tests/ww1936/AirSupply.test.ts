@@ -38,6 +38,7 @@ import {
   WwHuman,
   wwRunner,
 } from "./util";
+import { giveWing } from "./wingUtil";
 
 withTestPolitics();
 
@@ -59,13 +60,13 @@ function deployTransports(g: Game, n: number): void {
   const deu = byTag(g, "DEU").smallID();
   const ce = ww.economy.country(deu)!;
   ce.stock[equipKey("transport_plane", 1)] = n;
-  ww.air.addDeployment({
+  giveWing(ww.air, {
     owner: deu,
     sr: SR.eastLand,
     type: AIR_TYPES.indexOf("transport_plane"),
     mission: AIR_MISSIONS.indexOf("air_supply"),
     counts: drawPlanes(ce, "transport_plane", n),
-    target: n,
+    goalCount: n,
     base: REGION.berlin,
     lossRest: 0,
     auto: false,
@@ -129,8 +130,8 @@ describe("World War 1936 P4: air supply (spec §14.10)", () => {
     // With 400 transports Kiev gets what it lacks, Warsaw the rest.
     const z = air.zoneState[ww.scenario.srIdxOf(SR.eastLand)];
     expect(z.airSupply).toEqual([[REGION.kiev, side, 2000]]);
-    for (const id of [...air.deploymentsIn(SR.eastLand)]) {
-      air.removeDeployment(id, true);
+    for (const id of [...air.wingsIn(SR.eastLand)]) {
+      air.removeWing(id, true);
     }
     deployTransports(g, 400);
     const warsawShort =

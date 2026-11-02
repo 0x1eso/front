@@ -718,7 +718,7 @@ async function playGame(
   // and killer since the last trace line.
   const tracedLoss = new Map<string, number>();
   air.shootDown = (id, counts, by) => {
-    const d = air.deployments.get(id);
+    const d = air.wings.get(id);
     const n = shootDown(id, counts, by);
     if (d !== undefined && n > 0) {
       bump(res.airLost, tagOf(d.owner), n);
@@ -909,7 +909,7 @@ async function playGame(
           );
         }
         const deps = air
-          .deploymentsOf(id)
+          .wingsOf(id)
           .map(
             (d) =>
               `${AIR_TYPES[d.type]}/${AIR_MISSIONS[d.mission]}@${srName(d.sr)}:${d.counts.reduce((a, b) => a + b, 0)}`,
@@ -1128,7 +1128,7 @@ async function playGame(
             n += ce.stock[equipKey(ty, gen)] ?? 0;
           }
         }
-        for (const d of air.deploymentsOf(idOf(tg))) {
+        for (const d of air.wingsOf(idOf(tg))) {
           const ty = AIR_TYPES[d.type];
           if (ty === "fighter" || ty === "heavy_fighter") {
             n += d.counts.reduce((a, b) => a + b, 0);
@@ -1748,7 +1748,7 @@ async function airDuels(): Promise<void> {
     const before = air.planesLostTotal;
     const lostBy = (id: number) =>
       air
-        .deploymentsOf(id)
+        .wingsOf(id)
         .reduce((n, d) => n + d.counts.reduce((a, b) => a + b, 0), 0);
     const g0 = lostBy(TAG_ID.GBR);
     const i0 = lostBy(TAG_ID.ITA);

@@ -42,6 +42,7 @@ import {
   warAfterPrep,
   wwRunner,
 } from "./util";
+import { giveWing } from "./wingUtil";
 
 beforeEach(() => usePoliticsContent(depthFixture()));
 afterEach(() => usePoliticsContent(null));
@@ -84,13 +85,13 @@ async function atomicWar(
   const ce = ww.economy.country(gbr)!;
   ce.stock[ATOMIC_KEY] = bombs;
   ce.stock[equipKey("strat_bomber", 1)] = bombers;
-  ww.air.addDeployment({
+  giveWing(ww.air, {
     owner: gbr,
     sr: WEST,
     type: STRAT,
     mission: M_STRAT,
     counts: drawPlanes(ce, "strat_bomber", bombers),
-    target: bombers,
+    goalCount: bombers,
     base: LONDON,
     lossRest: 0,
     auto: false,
@@ -104,7 +105,7 @@ async function atomicWar(
 function strategicBombers(g: Game, owner: number): number {
   const air = g.worldWar()!.air;
   let n = 0;
-  for (const dep of air.deploymentsOf(owner)) {
+  for (const dep of air.wingsOf(owner)) {
     if (dep.type === STRAT) for (const c of dep.counts) n += c;
   }
   return n;

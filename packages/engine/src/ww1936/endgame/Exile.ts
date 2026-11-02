@@ -348,11 +348,11 @@ function exileForces(
   // Planes: every deployment back to the stock (each type remembers the
   // mission of its biggest group), then half of them stay.
   const missions = new Map<number, [number, number]>();
-  for (const d of ww.air.deploymentsOf(loser)) {
+  for (const d of ww.air.wingsOf(loser)) {
     const n = d.counts.reduce((a, b) => a + b, 0);
     if (n > (missions.get(d.type)?.[1] ?? 0))
       missions.set(d.type, [d.mission, n]);
-    ww.air.removeDeployment(d.id, true);
+    ww.air.removeWing(d.id, true);
   }
   if (ceL !== null) {
     EQUIP_KEYS.forEach(([type], k) => {
@@ -661,7 +661,7 @@ function disbandExile(
   land.removeCountryForces(id);
   // Still an exile here: P4's hook leaves its fleets to P4, which removes them.
   ww.navy.onCapitulation(id, host);
-  for (const d of ww.air.deploymentsOf(id)) ww.air.removeDeployment(d.id, true);
+  for (const d of ww.air.wingsOf(id)) ww.air.removeWing(d.id, true);
   ww.air.onCapitulation(id, host);
   if (ce !== null) {
     if (ceH !== null) {

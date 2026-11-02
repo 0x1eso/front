@@ -53,6 +53,13 @@ describe("World War 1936 P6 lists", () => {
       // The war overhaul (ww7): zones and auto levels.
       "army_zone",
       "army_auto_level",
+      // The air overhaul (ww8): the wing orders.
+      "wing_mission",
+      "wing_base",
+      "wing_auto",
+      "wing_disband",
+      "air_field",
+      "army_air_priority",
     ]);
   });
 

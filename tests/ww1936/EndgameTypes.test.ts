@@ -1,6 +1,7 @@
 // World War 1936 P5 (plan Task 1 Step 16): the appended lists keep their
 // order (wire, snapshot and content enums: append only).
 import { WwOrderSchema } from "@openfront/engine-api/Schemas";
+import { WING_ORDER_KINDS } from "@openfront/engine-api/ww1936/AirTypes";
 import {
   COUNTRY_TAGS,
   DORMANT_TAGS,
@@ -139,6 +140,10 @@ describe("World War 1936 P5 lists", () => {
       "no_project",
       // Research grants append theirs.
       "bonus_held",
+      // The air overhaul (ww8) appends its three.
+      "too_many_wings",
+      "no_bomb_target",
+      "escort_out_of_range",
     ]);
     const kinds = WwOrderSchema.options.map(
       (o) => (o.shape.kind as { value: string }).value,
@@ -146,12 +151,14 @@ describe("World War 1936 P5 lists", () => {
     // The automation lane appends auto_set and army_auto_all after them,
     // peace on the current line its one after those, the research
     // overhaul research_lean and the research grants research_grant, then
-    // the war overhaul (ww7) army_zone and army_auto_level last.
-    expect(kinds.slice(-9, -7)).toEqual([...WHITE_PEACE_ORDER_KINDS]);
-    expect(kinds.slice(-7, -5)).toEqual(["auto_set", "army_auto_all"]);
-    expect(kinds.slice(-5, -4)).toEqual([...LINE_PEACE_ORDER_KINDS]);
-    expect(kinds.slice(-4, -2)).toEqual(["research_lean", "research_grant"]);
-    expect(kinds.slice(-2)).toEqual(["army_zone", "army_auto_level"]);
+    // the war overhaul (ww7) army_zone and army_auto_level, then the air
+    // overhaul's (ww8) six wing orders last.
+    expect(kinds.slice(-15, -13)).toEqual([...WHITE_PEACE_ORDER_KINDS]);
+    expect(kinds.slice(-13, -11)).toEqual(["auto_set", "army_auto_all"]);
+    expect(kinds.slice(-11, -10)).toEqual([...LINE_PEACE_ORDER_KINDS]);
+    expect(kinds.slice(-10, -8)).toEqual(["research_lean", "research_grant"]);
+    expect(kinds.slice(-8, -6)).toEqual(["army_zone", "army_auto_level"]);
+    expect(kinds.slice(-6)).toEqual([...WING_ORDER_KINDS]);
     expect(after(ARMY_ORDER_KINDS, "invade")).toEqual(["garrison"]);
     expect(after(SUPPORT_IDS, "signal")).toEqual(["military_police"]);
     expect(after(WW_TECH_IDS, "synthetic_oil_2")[0]).toBe("military_police");

@@ -19,7 +19,7 @@ import {
 } from "@openfront/engine-lib/ww1936/SeaAirRules";
 import { zoneFlights } from "../air/AirCombat";
 import { isCarrierWing } from "../air/Deploy";
-import type { Deployment } from "../air/WwAir";
+import type { Wing } from "../air/WwAir";
 import { dailyAces } from "./Aces";
 import { sideKeyOf } from "./Mines";
 import type { WwDepth } from "./WwDepth";
@@ -100,11 +100,11 @@ function reconDay(d: WwDepth, sr: number): void {
 }
 
 /** The records of a deployment's group (owner, zone, type, mission, volunteer host), land-based. */
-function groupRecords(d: WwDepth, dep: Deployment): Deployment[] {
+function groupRecords(d: WwDepth, dep: Wing): Wing[] {
   const air = d.ww.air;
-  const out: Deployment[] = [];
-  for (const id of air.deploymentsIn(dep.sr)) {
-    const x = air.deployments.get(id);
+  const out: Wing[] = [];
+  for (const id of air.wingsIn(dep.sr)) {
+    const x = air.wings.get(id);
     if (
       x !== undefined &&
       x.owner === dep.owner &&
@@ -121,25 +121,25 @@ function groupRecords(d: WwDepth, dep: Deployment): Deployment[] {
 
 /**
  * A group's records share the night flag: a record P4 adds to a night
- * group (a new base) takes it (P4's addDeployment gives a new record the
+ * group (a new base) takes it (P4's addWing gives a new record the
  * day default).
  */
 function syncNightGroups(d: WwDepth, sr: number): void {
   const air = d.ww.air;
-  for (const id of air.deploymentsIn(sr)) {
-    const dep = air.deployments.get(id);
+  for (const id of air.wingsIn(sr)) {
+    const dep = air.wings.get(id);
     if (dep === undefined || !dep.night || dep.mission !== M_BOMB) continue;
     for (const x of groupRecords(d, dep)) {
       if (!x.night) {
         x.night = true;
-        air.markDeployment(x.id);
+        air.markWing(x.id);
       }
     }
   }
 }
 
 /** A strategic bombing record that flies at night (its own flag or its group's). */
-export function fliesAtNight(d: WwDepth, dep: Deployment): boolean {
+export function fliesAtNight(d: WwDepth, dep: Wing): boolean {
   if (dep.mission !== M_BOMB || isCarrierWing(dep)) return false;
   if (dep.night) return true;
   return groupRecords(d, dep).some((x) => x.night);
@@ -164,7 +164,7 @@ export function issueSeaAir(
   void tick;
   if (o.kind !== "air_night") return "bad_index";
   const air = d.ww.air;
-  const dep = air.deployments.get(o.deployment);
+  const dep = air.wings.get(o.deployment);
   if (dep === undefined) return "bad_index";
   if (dep.owner !== id) return "not_controlled";
   if (dep.mission !== M_BOMB || isCarrierWing(dep)) return "bad_air_mission";
@@ -174,7 +174,7 @@ export function issueSeaAir(
   for (const x of groupRecords(d, dep)) {
     if (x.night !== o.on) {
       x.night = o.on;
-      air.markDeployment(x.id);
+      air.markWing(x.id);
     }
   }
   air.markCountry(id);
@@ -249,14 +249,14 @@ export function nightMods(
   shooters?: readonly number[],
 ): { lossBp: number; bombBp: number } {
   const air = d.ww.air;
-  const dep = air.deployments.get(deploymentId);
+  const dep = air.wings.get(deploymentId);
   if (dep === undefined || !fliesAtNight(d, dep)) return { ...NEUTRAL_NIGHT };
   const st = d.ww.economy.country(dep.owner)?.stats;
   const bombBp = nightBombBp(st?.nightBombBp ?? 0);
   let all = 0;
   let radar = 0;
   for (const id of shooters ?? []) {
-    const s = air.deployments.get(id);
+    const s = air.wings.get(id);
     if (s === undefined) continue;
     all += sum(s.counts);
     s.dcounts.forEach((n, i) => {

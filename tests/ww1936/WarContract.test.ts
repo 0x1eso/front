@@ -76,7 +76,8 @@ describe("war overhaul C0: the contract", () => {
       "army_auto_level",
     ]);
     const kinds = WwOrderSchema.options.map((o) => o.shape.kind.value);
-    expect(kinds.slice(-2)).toEqual(["army_zone", "army_auto_level"]);
+    // The air overhaul (ww8) appends its six after them.
+    expect(kinds.slice(-8, -6)).toEqual(["army_zone", "army_auto_level"]);
   });
 
   test("army_zone and army_auto_level go through land.issue", async () => {

@@ -24,7 +24,7 @@ import {
 } from "@openfront/engine-lib/ww1936/SeaAirRules";
 import type { GameRunner } from "@openfront/engine/GameRunner";
 import { zoneFlights } from "@openfront/engine/ww1936/air/AirCombat";
-import type { Deployment } from "@openfront/engine/ww1936/air/WwAir";
+import type { Wing } from "@openfront/engine/ww1936/air/WwAir";
 import {
   aiSeaAirDay,
   isDepthDeployment,
@@ -41,6 +41,7 @@ import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSou
 import { DEEP } from "./deepFixture";
 import { depthFixture } from "./depthFixture";
 import { grantDoctrineStats, stepTo, wwRunner } from "./util";
+import { giveWing } from "./wingUtil";
 
 beforeEach(() => usePoliticsContent(depthFixture()));
 afterEach(() => usePoliticsContent(null));
@@ -71,17 +72,17 @@ function deploy(
   planes: number,
   dcounts: [number, number][] = [],
   sr: number = WEST,
-): Deployment {
+): Wing {
   const air = runner.game.worldWar()!.air;
   const counts = new Array<number>(EQUIPMENT_GENS[type]).fill(0);
   counts[0] = planes;
-  const dep = air.addDeployment({
+  const dep = giveWing(air, {
     owner,
     sr,
     type: AIR_TYPES.indexOf(type),
     mission: AIR_MISSIONS.indexOf(mission),
     counts,
-    target: planes,
+    goalCount: planes,
     base: 0,
     lossRest: 0,
     auto: false,
@@ -177,10 +178,8 @@ describe("World War 1936 P6: night bombing (spec §15.3)", () => {
     // The flag is the deployment's snapshot field.
     expect(night(runner, GBR, bombers.id, true)).toBeNull();
     const snap = ww.snapshot();
-    expect(snap.air!.deployments.find((x) => x.id === bombers.id)!.night).toBe(
-      true,
-    );
-    expect(air.deployments.get(more.id)!.night).toBe(true);
+    expect(snap.air!.wings.find((x) => x.id === bombers.id)!.night).toBe(true);
+    expect(air.wings.get(more.id)!.night).toBe(true);
     // The screens' deployment summary carries the flag (lane U4's toggle);
     // a day record keeps P4's shape.
     const view = air.takeData()!.deployments;
@@ -326,8 +325,8 @@ describe("World War 1936 P6: the AI's night bombing and recon (spec §19.7)", ()
     let day = start + 10;
     while (day % 10 !== GBR % 10) day++;
     aiSeaAirDay(d, GBR, day);
-    expect(
-      air.deploymentsOf(GBR).some((x) => x.mission === recon.mission),
-    ).toBe(false);
+    expect(air.wingsOf(GBR).some((x) => x.mission === recon.mission)).toBe(
+      false,
+    );
   });
 });

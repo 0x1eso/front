@@ -23,7 +23,7 @@ import {
   WW_PORT_STRIKE_HIT_PM,
 } from "@openfront/engine/ww1936/air/AirEffects";
 import { apportion } from "@openfront/engine/ww1936/air/Bombing";
-import type { Deployment } from "@openfront/engine/ww1936/air/WwAir";
+import type { Wing } from "@openfront/engine/ww1936/air/WwAir";
 import { drawPlanes } from "@openfront/engine/ww1936/economy/Buildings";
 import { REGION, SEA, SR, ZONE } from "./seaFixture";
 import {
@@ -36,6 +36,7 @@ import {
   WwHuman,
   wwRunner,
 } from "./util";
+import { giveWing } from "./wingUtil";
 
 withTestPolitics();
 
@@ -83,18 +84,18 @@ async function seaWar() {
 function deployNavalBombers(
   g: Game,
   mission: "naval_strike" | "port_strike",
-): Deployment {
+): Wing {
   const ww = g.worldWar()!;
   const gbr = byTag(g, "GBR").smallID();
   const ce = ww.economy.country(gbr)!;
   ce.stock[equipKey("naval_bomber", 1)] = 100;
-  return ww.air.addDeployment({
+  return giveWing(ww.air, {
     owner: gbr,
     sr: SR.central,
     type: AIR_TYPES.indexOf("naval_bomber"),
     mission: AIR_MISSIONS.indexOf(mission),
     counts: drawPlanes(ce, "naval_bomber", 100),
-    target: 100,
+    goalCount: 100,
     base: REGION.london,
     lossRest: 0,
     auto: false,

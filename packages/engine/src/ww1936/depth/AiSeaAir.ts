@@ -29,7 +29,7 @@ import {
 import { dayOfDate } from "@openfront/engine-lib/ww1936/Calendar";
 import { RECON_SORTIES } from "@openfront/engine-lib/ww1936/SeaAirRules";
 import { isCarrierWing } from "../air/Deploy";
-import type { Deployment } from "../air/WwAir";
+import type { Wing } from "../air/WwAir";
 import { capitalRegion } from "../land/LandStartRun";
 import { aiAtWar, invasionBoundFleets, invasionRouteSrs } from "../navy/AiNavy";
 import { FST, MISSION } from "../navy/Missions";
@@ -65,7 +65,7 @@ export function isDepthFleet(f: Fleet): boolean {
 }
 
 /** T1b (P4 AiAir input): a recon deployment, the depth AI's to command. */
-export function isDepthDeployment(dep: Deployment): boolean {
+export function isDepthDeployment(dep: Wing): boolean {
   return dep.mission === M_RECON;
 }
 
@@ -247,8 +247,8 @@ function aiNight(d: WwDepth, id: number, day: number): void {
   const ww = d.ww;
   const air = ww.air;
   // The deployments map is in id order (ids only rise).
-  const bombers: Deployment[] = [];
-  for (const x of air.deployments.values()) {
+  const bombers: Wing[] = [];
+  for (const x of air.wings.values()) {
     if (x.owner === id && x.mission === M_BOMB && !isCarrierWing(x)) {
       bombers.push(x);
     }
@@ -289,7 +289,7 @@ function fightersOf(d: WwDepth, id: number): number {
   for (let g = 1; g <= EQUIPMENT_GENS.fighter; g++) {
     n += ce.stock[equipKey("fighter", g)] ?? 0;
   }
-  for (const dep of d.ww.air.deploymentsOf(id)) {
+  for (const dep of d.ww.air.wingsOf(id)) {
     if (dep.type !== T_FIGHTER || isCarrierWing(dep)) continue;
     for (const c of dep.counts) n += c;
   }
@@ -299,9 +299,9 @@ function fightersOf(d: WwDepth, id: number): number {
 /** The recon groups' targets by zone (fighters). */
 function reconTargets(d: WwDepth, id: number): Map<number, number> {
   const now = new Map<number, number>();
-  for (const dep of d.ww.air.deploymentsOf(id)) {
+  for (const dep of d.ww.air.wingsOf(id)) {
     if (dep.mission === M_RECON && dep.type === T_FIGHTER) {
-      now.set(dep.sr, dep.target);
+      now.set(dep.sr, dep.goalCount);
     }
   }
   return now;

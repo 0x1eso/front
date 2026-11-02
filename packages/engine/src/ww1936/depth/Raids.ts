@@ -66,8 +66,8 @@ const FACILITIES: ReadonlySet<BuildingId> = new Set(FACILITY_IDS);
 export function raidBombersIn(d: WwDepth, id: number, sr: number): number {
   const air = d.ww.air;
   let n = 0;
-  for (const depId of air.deploymentsIn(sr)) {
-    const dep = air.deployments.get(depId);
+  for (const depId of air.wingsIn(sr)) {
+    const dep = air.wings.get(depId);
     if (dep === undefined || dep.owner !== id) continue;
     if (!BOMBER_TYPES.includes(dep.type)) continue;
     for (const c of dep.counts) n += c;
@@ -164,7 +164,7 @@ export function raidAskOf(
   let from = 0;
   let commando = false;
   if (kind === "raid_bomb") {
-    const dep = ww.air.deployments.get(unit);
+    const dep = ww.air.wings.get(unit);
     const sr = sc.regionSr(target);
     unitOk =
       dep !== undefined &&
@@ -355,7 +355,7 @@ function resolveRaid(d: WwDepth, raid: Raid, day: number, tick: number): void {
     !ask.input.targetOk ||
     (division
       ? land.divisions.rowOf(raid.unit) < 0
-      : ww.air.deployments.get(raid.unit)?.owner !== owner)
+      : ww.air.wings.get(raid.unit)?.owner !== owner)
   ) {
     if (division) rejoin(d, owner, raid.unit);
     return;
@@ -455,7 +455,7 @@ function raidHit(
 /** Spec §10: a failed precision raid costs the deployment a tenth of its planes. */
 function loseBombers(d: WwDepth, depId: number, by: number): void {
   const air = d.ww.air;
-  const dep = air.deployments.get(depId);
+  const dep = air.wings.get(depId);
   if (dep === undefined) return;
   let total = 0;
   for (const c of dep.counts) total += c;

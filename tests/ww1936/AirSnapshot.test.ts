@@ -91,11 +91,11 @@ describe("the air war restores exactly (spec §19.5)", () => {
     }
     const g: Game = r.game;
     const air = g.worldWar()!.air;
-    const d = air.deployments.values().next().value!;
+    const d = air.wings.values().next().value!;
     const z = air.zoneState.find((x) => x.sorties.size > 0)!;
     expect(z).toBeDefined();
     const changes: [string, () => void][] = [
-      ["a deployment's target", () => (d.target += 1)],
+      ["a deployment's target", () => (d.goalCount += 1)],
       ["a deployment's base", () => (d.base += 1)],
       ["a deployment's loss remainder", () => (d.lossRest += 1)],
       ["a deployment's counts", () => (d.counts[0] += 1)],
@@ -108,7 +108,7 @@ describe("the air war restores exactly (spec §19.5)", () => {
         () => (air.countries()[0].airXpMilli += 1),
       ],
       ["a country's auto zones", () => air.countries()[0].autoZones.push(1)],
-      ["the next deployment id", () => (air.nextDeploymentId += 1)],
+      ["the next deployment id", () => (air.nextWingId += 1)],
     ];
     for (const [what, change] of changes) {
       const h = air.hash();

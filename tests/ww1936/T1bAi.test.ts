@@ -13,7 +13,7 @@ import {
 } from "@openfront/engine-api/ww1936/NavyTypes";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { aiAir, aiAirInput } from "@openfront/engine/ww1936/air/AiAir";
-import { deploymentPlanes } from "@openfront/engine/ww1936/air/WwAir";
+import { wingPlanes } from "@openfront/engine/ww1936/air/WwAir";
 import {
   aiSeaAirDay,
   homeSeaRegions,
@@ -25,6 +25,7 @@ import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSou
 import { DEEP } from "./deepFixture";
 import { depthFixture } from "./depthFixture";
 import { stepTo, wwRunner } from "./util";
+import { giveWing } from "./wingUtil";
 
 beforeEach(() => usePoliticsContent(depthFixture()));
 afterEach(() => usePoliticsContent(null));
@@ -94,13 +95,13 @@ describe("T1b: P4's AI leaves the depth AI's fleets and groups alone", () => {
     const fighter = AIR_TYPES.indexOf("fighter");
     const counts = new Array<number>(EQUIPMENT_GENS.fighter).fill(0);
     counts[0] = 24;
-    const recon = air.addDeployment({
+    const recon = giveWing(air, {
       owner: GBR,
       sr: DEEP.sr.westLand,
       type: fighter,
       mission: AIR_MISSIONS.indexOf("recon"),
       counts,
-      target: 24,
+      goalCount: 24,
       base: DEEP.region.london,
       lossRest: 0,
       auto: false,
@@ -115,16 +116,16 @@ describe("T1b: P4's AI leaves the depth AI's fleets and groups alone", () => {
     for (let g = 1; g <= EQUIPMENT_GENS.fighter; g++) {
       pool += ce.stock[equipKey("fighter", g)] ?? 0;
     }
-    for (const x of air.deploymentsOf(GBR)) {
+    for (const x of air.wingsOf(GBR)) {
       if (x.type === fighter && x.base >= 0 && x.id !== recon.id) {
-        pool += deploymentPlanes(x);
+        pool += wingPlanes(x);
       }
     }
     expect(input.planes[fighter]).toBe(pool);
     // P4's AI plans its day: the group flies on, whole.
     aiAir(air, GBR, day);
     aiAir(air, GBR, day + 1);
-    const x = air.deployments.get(recon.id);
+    const x = air.wings.get(recon.id);
     expect(x?.mission).toBe(AIR_MISSIONS.indexOf("recon"));
     expect(x?.counts[0]).toBe(24);
   });

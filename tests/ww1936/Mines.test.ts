@@ -33,6 +33,7 @@ import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSou
 import { DEEP } from "./deepFixture";
 import { depthFixture } from "./depthFixture";
 import { step, stepTo, takeRegion, wwRunner } from "./util";
+import { giveWing } from "./wingUtil";
 
 beforeEach(() => usePoliticsContent(depthFixture()));
 afterEach(() => usePoliticsContent(null));
@@ -381,13 +382,13 @@ describe("World War 1936 P6: mines (spec §15.1)", () => {
     moved();
     // The air war's hash: a deployment's night flag and its ace.
     const counts = [10, 0, 0];
-    const dep = air.addDeployment({
+    const dep = giveWing(air, {
       owner: GBR,
       sr: DEEP.sr.westLand,
       type: AIR_TYPES.indexOf("strat_bomber"),
       mission: AIR_MISSIONS.indexOf("strategic_bombing"),
       counts,
-      target: 10,
+      goalCount: 10,
       base: 0,
       lossRest: 0,
       auto: false,

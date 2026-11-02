@@ -43,6 +43,8 @@ import {
 import {
   AIR_MISSIONS,
   AIR_TYPES,
+  WING_MAX_PER_ORDER,
+  WW_BOMB_CLASSES,
   WW_MAX_DEPLOY_COUNT,
 } from "./ww1936/AirTypes";
 import { COUNTRY_TAGS } from "./ww1936/Countries";
@@ -1494,6 +1496,34 @@ export const WwOrderSchema = z.discriminatedUnion("kind", [
     kind: z.literal("army_auto_level"),
     army: WwArmy,
     level: zb.uint({ max: 2 }),
+  }),
+  // Air overhaul (ww8, AirTypes.WING_ORDER_KINDS), appended. Target: a region,
+  // a sea zone, or 0 with no army and no escort: stand down.
+  z.object({
+    kind: z.literal("wing_mission"),
+    wings: z.array(WwId).min(1).max(WING_MAX_PER_ORDER),
+    mission: z.enum(AIR_MISSIONS),
+    target: zb.uint({ max: 65_535 }),
+    army: WwArmy.optional(),
+    escort: WwId.optional(),
+    cls: z.enum(WW_BOMB_CLASSES).optional(),
+  }),
+  z.object({
+    kind: z.literal("wing_base"),
+    wings: z.array(WwId).min(1).max(WING_MAX_PER_ORDER),
+    base: WwRegionId,
+  }),
+  z.object({
+    kind: z.literal("wing_auto"),
+    wings: z.array(WwId).min(1).max(WING_MAX_PER_ORDER),
+    on: z.boolean(),
+  }),
+  z.object({ kind: z.literal("wing_disband"), wing: WwId }),
+  z.object({ kind: z.literal("air_field"), region: WwRegionId }),
+  z.object({
+    kind: z.literal("army_air_priority"),
+    army: WwArmy,
+    on: z.boolean(),
   }),
 ]);
 export type WwOrder = z.infer<typeof WwOrderSchema>;

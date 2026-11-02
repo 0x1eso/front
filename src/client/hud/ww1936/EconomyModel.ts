@@ -752,6 +752,9 @@ export const BLOCK_KEYS: Readonly<Record<WwOrderBlock, string>> = {
   exclusive: "ww1936.econ.block.exclusive",
   no_project: "ww1936.econ.block.no_project",
   bonus_held: "ww1936.econ.block.bonus_held",
+  too_many_wings: "ww1936.econ.block.too_many_wings",
+  no_bomb_target: "ww1936.econ.block.no_bomb_target",
+  escort_out_of_range: "ww1936.econ.block.escort_out_of_range",
 };
 
 // ---- Icons (pre-flight R7.7: emoji, no new image files) ----

@@ -72,7 +72,7 @@ const HOI4_PHRASES = [
   "Secret Weapons",
   "Special Forces Effort",
   "Strategic Destruction",
-  "Streamlined Deployment",
+  "Streamlined Wing",
   "Superior Firepower",
   "Torpedo Primacy",
   "Torpedo Swarm Tactics",

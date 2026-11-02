@@ -35,7 +35,7 @@ import { addPopularity } from "@openfront/engine-lib/ww1936/PoliticsRules";
 import type { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
 import { seaPath } from "@openfront/engine-lib/ww1936/SeaGraph";
 import { SHIP_BASE } from "@openfront/engine-lib/ww1936/ShipStats";
-import { deploymentPlanes } from "../air/WwAir";
+import { wingPlanes } from "../air/WwAir";
 import { receiveKey } from "../depth/DesignCopy";
 import {
   evictDivisions,
@@ -605,7 +605,7 @@ function splitPlanes(
   const re = econ.country(R);
   if (xe === null || re === null) return;
   const moving = air
-    .deploymentsOf(X)
+    .wingsOf(X)
     .filter((d) => d.base > 0 && d.volunteerFor === 0 && rebel.has(d.base))
     .sort((a, b) => a.id - b.id);
   if (moving.length === 0) return;
@@ -639,13 +639,13 @@ function splitPlanes(
       re.planesDeployed[k2] += n;
     });
     d.dcounts = dcounts;
-    air.setDeploymentOwner(d, R);
+    air.setWingOwner(d, R);
     d.auto = false;
-    const sum = deploymentPlanes(d);
+    const sum = wingPlanes(d);
     groupSum.set(keyOf(d), (groupSum.get(keyOf(d)) ?? 0) + sum);
-    air.markDeployment(d.id);
+    air.markWing(d.id);
   }
-  for (const d of moving) d.target = groupSum.get(keyOf(d)) ?? 0;
+  for (const d of moving) d.goalCount = groupSum.get(keyOf(d)) ?? 0;
   air.markCountry(X);
   air.markCountry(R);
 }

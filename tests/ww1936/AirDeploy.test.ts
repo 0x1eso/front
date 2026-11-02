@@ -14,7 +14,7 @@ import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { rangeEffPm } from "@openfront/engine-lib/ww1936/AirRules";
 import { dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
 import type { GameRunner } from "@openfront/engine/GameRunner";
-import type { Deployment } from "@openfront/engine/ww1936/air/WwAir";
+import type { Wing } from "@openfront/engine/ww1936/air/WwAir";
 import {
   damageBuilding,
   drawPlanes,
@@ -63,14 +63,14 @@ function deployedOf(ww: WorldWar, id: number, type: AirType): number {
   return n;
 }
 
-function records(ww: WorldWar, sr: number, owner: number): Deployment[] {
+function records(ww: WorldWar, sr: number, owner: number): Wing[] {
   return ww.air
-    .deploymentsIn(sr)
-    .map((id) => ww.air.deployments.get(id)!)
+    .wingsIn(sr)
+    .map((id) => ww.air.wings.get(id)!)
     .filter((d) => d.owner === owner);
 }
 
-const total = (d: Deployment) => d.counts.reduce((a, b) => a + b, 0);
+const total = (d: Wing) => d.counts.reduce((a, b) => a + b, 0);
 
 /** Runs through tick k of `day` (zones first, then countries, spec §2.2). */
 function runThrough(runner: GameRunner, day: number, k: number): void {
@@ -108,7 +108,7 @@ describe("air deployments (spec §13)", () => {
       AIR_KM.londonToCentral,
     );
     let rs = records(ww, SR.central, gbr);
-    expect(rs.map((d) => [d.base, total(d), d.target])).toEqual([
+    expect(rs.map((d) => [d.base, total(d), d.goalCount])).toEqual([
       [REGION.london, 400, 600],
     ]);
     expect(stockOf(ww, gbr, "fighter")).toEqual([200, 0, 0]);
@@ -116,7 +116,7 @@ describe("air deployments (spec §13)", () => {
     ww.economy.addBuilding(REGION.malta, "air_base", 1);
     runThrough(runner, today(runner) + 1, TAG_ID.GBR % 7);
     rs = records(ww, SR.central, gbr);
-    expect(rs.map((d) => [d.base, total(d), d.target])).toEqual([
+    expect(rs.map((d) => [d.base, total(d), d.goalCount])).toEqual([
       [REGION.london, 400, 600],
       [REGION.malta, 200, 600],
     ]);
@@ -167,7 +167,7 @@ describe("air deployments (spec §13)", () => {
     ww.economy.addBuilding(REGION.rome, "air_base", -1);
     setStock(ww, deu, "cas", [100, 0, 0]);
     expect(deploy(50)).toBe("no_air_base");
-    expect(ww.air.deployments.size).toBe(0);
+    expect(ww.air.wings.size).toBe(0);
     // The 1940 model reaches 540 km: only it goes, the 1936 ones wait.
     setStock(ww, deu, "cas", [100, 100, 0]);
     expect(rangeEffPm(532, ww.air.planeStatsOf(deu, "cas", 2).rangeKm)).toBe(
@@ -175,7 +175,7 @@ describe("air deployments (spec §13)", () => {
     );
     expect(deploy(200)).toBeNull();
     const rs = records(ww, SR.eastern, deu);
-    expect(rs.map((d) => [d.base, d.counts, d.target])).toEqual([
+    expect(rs.map((d) => [d.base, d.counts, d.goalCount])).toEqual([
       [REGION.berlin, [0, 100, 0], 200],
     ]);
     expect(stockOf(ww, deu, "cas")).toEqual([100, 0, 0]);
@@ -237,7 +237,7 @@ describe("air deployments (spec §13)", () => {
     const ledgerMatches = () => {
       for (const id of [gbr, ita]) {
         let land = 0;
-        for (const d of ww.air.deployments.values()) {
+        for (const d of ww.air.wings.values()) {
           if (d.owner === id && d.base >= 0) land += total(d);
         }
         const deck = deckOf();
@@ -318,7 +318,7 @@ describe("air deployments (spec §13)", () => {
       ),
     ).toBeNull();
     const at = () =>
-      records(ww, SR.central, gbr).map((d) => [d.base, total(d), d.target]);
+      records(ww, SR.central, gbr).map((d) => [d.base, total(d), d.goalCount]);
     expect(at()).toEqual([
       [REGION.malta, 200, 300],
       [REGION.london, 100, 300],

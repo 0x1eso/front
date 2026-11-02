@@ -16,6 +16,7 @@ import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSou
 import { DEEP } from "./deepFixture";
 import { depthFixture } from "./depthFixture";
 import { HUMAN, stepTo, warAfterPrep, wwRunner } from "./util";
+import { giveWing } from "./wingUtil";
 
 afterEach(() => usePoliticsContent(null));
 
@@ -44,13 +45,13 @@ async function britishBomb(bombers = 10): Promise<GameRunner> {
   const ce = ww.economy.country(GBR)!;
   ce.stock[equipKey("atomic_bomb", 1)] = 1;
   ce.stock[equipKey("strat_bomber", 1)] = bombers;
-  ww.air.addDeployment({
+  giveWing(ww.air, {
     owner: GBR,
     sr: DEEP.sr.westLand,
     type: AIR_TYPES.indexOf("strat_bomber"),
     mission: AIR_MISSIONS.indexOf("strategic_bombing"),
     counts: drawPlanes(ce, "strat_bomber", bombers),
-    target: bombers,
+    goalCount: bombers,
     base: LONDON,
     lossRest: 0,
     auto: false,

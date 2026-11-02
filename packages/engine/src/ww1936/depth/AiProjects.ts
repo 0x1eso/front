@@ -565,8 +565,8 @@ function aiRaid(d: WwDepth, id: number, tick: number): void {
           : (econ.buildingArray(building)[target] ?? 0) > 0;
       if (!stands) continue;
       const tries: [RaidInput["kind"], number][] = [];
-      for (const depId of ww.air.deploymentsIn(sc.regionSr(target))) {
-        if (ww.air.deployments.get(depId)?.owner === id) {
+      for (const depId of ww.air.wingsIn(sc.regionSr(target))) {
+        if (ww.air.wings.get(depId)?.owner === id) {
           tries.push(["raid_bomb", depId]);
         }
       }

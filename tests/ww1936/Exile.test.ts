@@ -112,8 +112,8 @@ describe("World War 1936 P5: governments in exile", () => {
     const cl = ww.land.country(pl)!;
     cl.training = [];
     cl.trainees = [];
-    for (const d of ww.air.deploymentsOf(pl)) {
-      ww.air.removeDeployment(d.id, true);
+    for (const d of ww.air.wingsOf(pl)) {
+      ww.air.removeWing(d.id, true);
     }
     const ceL = ww.economy.country(pl)!;
     const ceR = ww.economy.country(deu)!;
@@ -157,7 +157,7 @@ describe("World War 1936 P5: governments in exile", () => {
     // disbanded divisions' equipment; a quarter of the men. (Half the
     // planes too, part of them now flying from the host's bases.)
     const flying = new Array<number>(EQUIP_KEYS.length).fill(0);
-    for (const d of ww.air.deploymentsOf(pl)) {
+    for (const d of ww.air.wingsOf(pl)) {
       d.counts.forEach((n, i) => {
         flying[equipKey(AIR_TYPES[d.type], i + 1)] += n;
       });
@@ -184,16 +184,16 @@ describe("World War 1936 P5: governments in exile", () => {
       ww.setWar(deu, gbr, tick, { kind: "into", warId: eg.warOfPair(deu, pl) });
       // Poland: 100 fighters, 40 of them over Warsaw; London's air base.
       const ce = ww.economy.country(pl)!;
-      for (const d of ww.air.deploymentsOf(pl)) {
-        ww.air.removeDeployment(d.id, false);
+      for (const d of ww.air.wingsOf(pl)) {
+        ww.air.removeWing(d.id, false);
       }
       EQUIP_KEYS.forEach(([type], k) => {
         if (AIR.has(type)) ce.stock[k] = 0;
       });
       ce.stock[FIGHTER] = 100;
       const bases = ww.economy.buildingArray("air_base");
-      for (const d of ww.air.deploymentsOf(gbr)) {
-        ww.air.removeDeployment(d.id, true);
+      for (const d of ww.air.wingsOf(gbr)) {
+        ww.air.removeWing(d.id, true);
       }
       for (let r = 1; r < bases.length; r++) {
         if (ww.land.controller[r] === gbr) bases[r] = 0;
@@ -217,7 +217,7 @@ describe("World War 1936 P5: governments in exile", () => {
       ww.addCapitulation(pl, deu, tick);
       expect(formExile(eg, pl, deu, tick)).toBe(true);
       capitulationForces(eg, pl, deu, gbr, tick);
-      const deps = ww.air.deploymentsOf(pl);
+      const deps = ww.air.wingsOf(pl);
       if (!hostBase) {
         expect(deps).toEqual([]);
         expect(ce.stock[FIGHTER]).toBe(50);

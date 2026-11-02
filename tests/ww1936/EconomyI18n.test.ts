@@ -222,8 +222,11 @@ describe("World War 1936 P1 economy strings", () => {
     // the no-strike rule (P6 pre-flight), then P5's 15 (P5 plan decision 36),
     // then P6's 32 (P6 spec §21.4; no_civs and no_xp existed).
     // White peace: 5 more; easy invasions 1; negotiated peace 5; the
-    // research overhaul 3 (exclusive, no_project, bonus_held).
-    expect(WW_ORDER_BLOCKS.length).toBe(43 + 24 + 28 + 15 + 32 + 5 + 1 + 5 + 3);
+    // research overhaul 3 (exclusive, no_project, bonus_held); the air
+    // overhaul 3 (too_many_wings, no_bomb_target, escort_out_of_range).
+    expect(WW_ORDER_BLOCKS.length).toBe(
+      43 + 24 + 28 + 15 + 32 + 5 + 1 + 5 + 3 + 3,
+    );
   });
 
   it.each(KEYS)("%s exists in en and ko with matching placeholders", (key) => {

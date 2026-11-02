@@ -35,6 +35,7 @@ import {
   warAfterPrep,
   wwRunner,
 } from "./util";
+import { giveWing } from "./wingUtil";
 
 beforeEach(() => usePoliticsContent(depthFixture()));
 afterEach(() => usePoliticsContent(null));
@@ -243,13 +244,13 @@ describe("World War 1936 P6: raids (spec §10)", () => {
     stockUp(g, "GBR");
     const ce = ww.economy.country(gbr)!;
     const deploy = (n: number) =>
-      ww.air.addDeployment({
+      giveWing(ww.air, {
         owner: gbr,
         sr: DEEP.sr.westLand,
         type: AIR_TYPES.indexOf("strat_bomber"),
         mission: AIR_MISSIONS.indexOf("strategic_bombing"),
         counts: drawPlanes(ce, "strat_bomber", n),
-        target: n,
+        goalCount: n,
         base: DEEP.region.london,
         lossRest: 0,
         auto: false,

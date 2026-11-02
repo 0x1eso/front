@@ -287,7 +287,7 @@ export function designHeld(
       if ((x.equip[j] ?? 0) > 0) return true;
     }
   } else {
-    for (const dep of d.ww.air.deployments.values()) {
+    for (const dep of d.ww.air.wings.values()) {
       if (dep.owner === id && (dep.dcounts[slot - 1] ?? 0) > 0) return true;
     }
     const t = d.ww.navy.ships;
@@ -922,7 +922,7 @@ export function planeDesignSlotsOf(
  * Takes up to `n` design planes of P4 `type` from the stock onto the
  * deployed ledger (P1's drawPlanes for design slots), newest first;
  * returns the planes taken per design slot (WW_PLANE_DESIGN_SLOTS long,
- * a Deployment.dcounts / deckD shape).
+ * a Wing.dcounts / deckD shape).
  */
 export function drawDesignPlanes(
   d: WwDepth,

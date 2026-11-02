@@ -117,7 +117,7 @@ test("2,000 ships, 20 battles and 300 deployments stay within budget", async () 
       if (block === null) made++;
     }
   }
-  expect(air.deployments.size).toBeGreaterThan(250);
+  expect(air.wings.size).toBeGreaterThan(250);
 
   type ThreadCpu = (prev?: NodeJS.CpuUsage) => NodeJS.CpuUsage;
   const threadCpu = (
@@ -149,7 +149,7 @@ test("2,000 ships, 20 battles and 300 deployments stay within budget", async () 
   step(runner, TICKS);
   const mean = p4 / TICKS;
   console.log(
-    `P4 at war scale: ${mean.toFixed(3)} ms/tick (ships ${navy.ships.count()}, fleets ${navy.fleets.size}, deployments ${air.deployments.size})`,
+    `P4 at war scale: ${mean.toFixed(3)} ms/tick (ships ${navy.ships.count()}, fleets ${navy.fleets.size}, deployments ${air.wings.size})`,
   );
   expect(mean).toBeLessThan(MEAN_MS);
 }, 900_000);

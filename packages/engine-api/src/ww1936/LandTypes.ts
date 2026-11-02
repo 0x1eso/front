@@ -475,6 +475,9 @@ export interface BattleSummary {
   lowPm?: number;
   midPm?: number;
   highPm?: number;
+  /** ww8: wings giving close air support now, to the attacker and the defender. */
+  casAtt?: number;
+  casDef?: number;
   /** LAND_ATTACK_TACTICS / LAND_DEFENSE_TACTICS indices in play. */
   tacticAtt?: number;
   tacticDef?: number;

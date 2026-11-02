@@ -50,7 +50,7 @@ import {
   RADAR_PATROL_PCT,
   withFuze,
 } from "./ProjectEffects";
-import { deploymentPlanes, deploymentSide, WwAir, ZoneAirState } from "./WwAir";
+import { wingPlanes, wingSide, WwAir, ZoneAirState } from "./WwAir";
 
 /** One group of planes in a duel: its numbers and how many fly, milli planes. */
 export interface DuelPlanes {
@@ -81,7 +81,7 @@ export interface AirFlight {
   /** The deployment's id. */
   id: number;
   owner: number;
-  /** deploymentSide: the volunteer host's side, else the owner's. */
+  /** wingSide: the volunteer host's side, else the owner's. */
   side: number;
   /** AIR_TYPES index. */
   type: number;
@@ -180,7 +180,7 @@ function flightsOf(
   day: number,
   burnFuel: boolean,
 ): AirFlight[] {
-  const ids = air.deploymentsIn(sr);
+  const ids = air.wingsIn(sr);
   if (ids.length === 0) return [];
   const sc = air.ww.scenario;
   const z = air.zoneState[sc.srIdxOf(sr)];
@@ -188,7 +188,7 @@ function flightsOf(
   const econ = air.econ;
   const out: AirFlight[] = [];
   for (const id of ids) {
-    const d = air.deployments.get(id)!;
+    const d = air.wings.get(id)!;
     let counts: readonly number[] = d.counts;
     let dcounts: readonly number[] = d.dcounts;
     if (isCarrierWing(d)) {
@@ -203,8 +203,8 @@ function flightsOf(
         d.counts = [...deck];
         if (deckD !== null) d.dcounts = [...deckD];
         else d.dcounts.fill(0);
-        d.target = sum(deck) + (deckD === null ? 0 : sum(deckD));
-        air.markDeployment(d.id);
+        d.goalCount = sum(deck) + (deckD === null ? 0 : sum(deckD));
+        air.markWing(d.id);
       }
       counts = deck ?? [];
       dcounts = deckD ?? [];
@@ -213,7 +213,7 @@ function flightsOf(
     if (sum(counts) + designs === 0) continue;
     const ce = econ.country(d.owner);
     if (ce === null) continue;
-    const side = deploymentSide(air, d);
+    const side = wingSide(air, d);
     const type = AIR_TYPES[d.type];
     const km = d.base > 0 ? sc.srKm(d.base, sr) : 0;
     const level =
@@ -405,7 +405,7 @@ function addLoss(
  * +10% and agility +5% (aceMods); any other record keeps P4's numbers.
  */
 function aceStats(air: WwAir, id: number, st: PlaneStats): PlaneStats {
-  if ((air.deployments.get(id)?.ace ?? 0) === 0) return st;
+  if ((air.wings.get(id)?.ace ?? 0) === 0) return st;
   const a = aceMods(air.ww.depth, id);
   if (a.attackPct === 0 && a.agilityPct === 0) return st;
   return {
@@ -438,7 +438,7 @@ function nightLossBp(
  */
 function nightIn(air: WwAir, flights: readonly AirFlight[]): boolean {
   for (const f of flights) {
-    if (f.mission === M_BOMB && air.deployments.get(f.id)?.night === true) {
+    if (f.mission === M_BOMB && air.wings.get(f.id)?.night === true) {
       return true;
     }
   }
@@ -748,7 +748,7 @@ function takeLosses(
 ): void {
   const ids = [...pending.keys()].sort((a, b) => a - b);
   for (const id of ids) {
-    const d = air.deployments.get(id);
+    const d = air.wings.get(id);
     const p = pending.get(id)!;
     if (d === undefined) continue;
     // P6 (spec §5.4.2, lane E): design planes' reliability, by count.
@@ -756,7 +756,7 @@ function takeLosses(
       (p.milli * planesLossBp(air.ww.depth, d.owner, d.counts, d.dcounts)) /
         10_000,
     );
-    air.markDeployment(id);
+    air.markWing(id);
     const whole = Math.floor(d.lossRest / 1000);
     if (whole <= 0) continue;
     // The oldest first (P6: the design slots at their year).
@@ -785,7 +785,7 @@ function takeLosses(
     );
     if (n <= 0) continue;
     d.lossRest -= n * 1000;
-    if (deploymentPlanes(d) === 0) d.lossRest = 0;
+    if (wingPlanes(d) === 0) d.lossRest = 0;
     if (isCarrierWing(d)) takeOffDeck(air, d, took, tookD);
     air.planesLostTotal += n;
     lost.set(d.owner, (lost.get(d.owner) ?? 0) + n);

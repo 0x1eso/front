@@ -593,7 +593,7 @@ export function seaAirMoments(): Moment[] {
       when: (g) => {
         const a = airOf(g);
         let flying = 0;
-        for (const d of a.deployments.values()) {
+        for (const d of a.wings.values()) {
           if (d.counts.some((c) => c > 0)) flying++;
         }
         return flying >= 2 && a.planesLostTotal > 0;

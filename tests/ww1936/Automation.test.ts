@@ -262,10 +262,10 @@ describe("World War 1936 automation: the switches", () => {
     warAfterPrep(runner, HUMAN, "POL");
     const d0 = today(g);
     finishDay(runner, d0 + 6);
-    expect(ww.air.deploymentsOf(deu)).toEqual([]);
+    expect(ww.air.wingsOf(deu)).toEqual([]);
     setAuto(runner, "air", true);
     finishDay(runner, d0 + 12);
-    const placed = ww.air.deploymentsOf(deu);
+    const placed = ww.air.wingsOf(deu);
     expect(placed.length).toBeGreaterThan(0);
     // The AI's own paradrops (raising paratroopers) stay out of it.
     expect(land(g).country(deu)!.training).toEqual([]);
@@ -275,9 +275,9 @@ describe("World War 1936 automation: the switches", () => {
     for (const d of placed) {
       step(runner, 1, [order(HUMAN, { kind: "air_recall", sr: d.sr })]);
     }
-    expect(ww.air.deploymentsOf(deu)).toEqual([]);
+    expect(ww.air.wingsOf(deu)).toEqual([]);
     finishDay(runner, d0 + 30);
-    expect(ww.air.deploymentsOf(deu)).toEqual([]);
+    expect(ww.air.wingsOf(deu)).toEqual([]);
     expect(ids.length).toBeGreaterThan(0);
   }, 120_000);
 

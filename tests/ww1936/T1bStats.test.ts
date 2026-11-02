@@ -24,7 +24,7 @@ import {
   dailyAirZone,
   zoneFlights,
 } from "@openfront/engine/ww1936/air/AirCombat";
-import type { Deployment } from "@openfront/engine/ww1936/air/WwAir";
+import type { Wing } from "@openfront/engine/ww1936/air/WwAir";
 import { deckSize } from "@openfront/engine/ww1936/navy/Carriers";
 import {
   convoyLossPmOf,
@@ -42,6 +42,7 @@ import { DEEP } from "./deepFixture";
 import { depthFixture } from "./depthFixture";
 import { REGION, SR, TAG_ID, ZONE } from "./seaFixture";
 import { grantDoctrineStats, stepTo, wwRunner } from "./util";
+import { giveWing } from "./wingUtil";
 
 const GBR = TAG_ID.GBR;
 const ITA = TAG_ID.ITA;
@@ -252,8 +253,8 @@ describe("T1b: the new stat keys in the air", () => {
     for (const id of [GBR, ITA]) ww.economy.country(id)!.fuelMilli = 1e12;
     // Only the test's planes fly here.
     for (const sr of [WEST, DEEP.sr.approaches]) {
-      for (const id of [...ww.air.deploymentsIn(sr)]) {
-        ww.air.removeDeployment(id, true);
+      for (const id of [...ww.air.wingsIn(sr)]) {
+        ww.air.removeWing(id, true);
       }
     }
     return { runner, ww, day: ww.day(runner.game.ticks()) };
@@ -266,16 +267,16 @@ describe("T1b: the new stat keys in the air", () => {
     mission: AirMission,
     planes: number,
     sr: number = WEST,
-  ): Deployment {
+  ): Wing {
     const counts = new Array<number>(EQUIPMENT_GENS[type]).fill(0);
     counts[0] = planes;
-    return ww.air.addDeployment({
+    return giveWing(ww.air, {
       owner,
       sr,
       type: AIR_TYPES.indexOf(type),
       mission: AIR_MISSIONS.indexOf(mission),
       counts,
-      target: planes,
+      goalCount: planes,
       base: 0,
       lossRest: 0,
       auto: false,

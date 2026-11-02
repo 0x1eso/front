@@ -17,12 +17,14 @@ import {
   AirMission,
   AirOrder,
   AirType,
+  Wing,
   WW_MAX_DEPLOY_COUNT,
 } from "@openfront/engine-api/ww1936/AirTypes";
 import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
 import {
   equipKey,
   EQUIPMENT_GENS,
+  WwOrderBlock,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
 import { TPL_PARA_ANY } from "@openfront/engine-api/ww1936/LandTypes";
 import { paradropBlockOf } from "@openfront/engine-lib/ww1936/AirRules";
@@ -41,7 +43,7 @@ import {
   beatWindow,
 } from "../navy/AiNavy";
 import { paradropAskOf } from "./Paradrop";
-import { deploymentPlanes, type WwAir } from "./WwAir";
+import { wingPlanes, type WwAir } from "./WwAir";
 
 /** Spec §17.3-2: the share of each type's planes put on the demands. */
 export const AI_AIR_USE_PCT = 90;
@@ -522,12 +524,12 @@ export function aiAirInput(
   });
   const current: AiAirTarget[] = [];
   const deployedIn = new Map<number, number>();
-  for (const d of air.deploymentsOf(smallID)) {
+  for (const d of air.wingsOf(smallID)) {
     // P6 (spec §19.7): the recon groups are the depth AI's (AiSeaAir): no
     // recall, and their planes are not P4's to place.
     if (d.base < 0 || !commanded(d.sr) || isDepthDeployment(d)) continue;
     // P6 (lane E): a record's design planes fly with its static ones.
-    const n = deploymentPlanes(d);
+    const n = wingPlanes(d);
     planes[d.type] += n;
     deployedIn.set(d.sr, (deployedIn.get(d.sr) ?? 0) + n);
     // Every record of a group carries the group's target: count it once.
@@ -538,13 +540,13 @@ export function aiAirInput(
         (c) => c.sr === d.sr && c.type === type && c.mission === mission,
       )
     ) {
-      current.push({ sr: d.sr, type, mission, count: d.target });
+      current.push({ sr: d.sr, type, mission, count: d.goalCount });
     }
   }
   // Lane A1's rule (Deploy.bestRange): generation 1's range, or the best
   // of the generations it has in the stock or out.
   const has = new Set<number>();
-  for (const d of air.deploymentsOf(smallID)) {
+  for (const d of air.wingsOf(smallID)) {
     d.counts.forEach((c, g) => {
       if (c > 0) has.add(d.type * 8 + g + 1);
     });
@@ -652,7 +654,7 @@ function hasPlanes(air: WwAir, smallID: number): boolean {
       if ((ce.stock[equipKey(type, g)] ?? 0) > 0) return true;
     }
   }
-  return air.deploymentsOf(smallID).some((d) => d.counts.some((c) => c > 0));
+  return air.wingsOf(smallID).some((d) => d.counts.some((c) => c > 0));
 }
 
 /**
@@ -857,4 +859,41 @@ export function aiParadrops(
       break;
     }
   }
+}
+
+// ---- ww8 air overhaul (design §7), lane E. Stubs from W0. ----
+
+/** The AI's (and a human's [auto]) wing plan for the country's turn. Lane E. */
+export function aiWings(air: WwAir, smallID: number, day: number): void {
+  void air;
+  void smallID;
+  void day;
+}
+
+/** wing_auto (the sender's own wings). Lane E. */
+export function issueWingAuto(
+  air: WwAir,
+  smallID: number,
+  wings: readonly Wing[],
+  on: boolean,
+): WwOrderBlock | null {
+  void air;
+  void smallID;
+  void wings;
+  void on;
+  return "bad_index";
+}
+
+/** army_air_priority (CountryAir.priorityArmies). Lane E. */
+export function issueArmyAirPriority(
+  air: WwAir,
+  smallID: number,
+  army: number,
+  on: boolean,
+): WwOrderBlock | null {
+  void air;
+  void smallID;
+  void army;
+  void on;
+  return "bad_index";
 }

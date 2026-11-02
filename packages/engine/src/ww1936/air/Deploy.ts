@@ -34,7 +34,7 @@ import {
   oldestFirst,
   planeSources,
 } from "./DesignPlanes";
-import { Deployment, deploymentPlanes, deploymentSide, WwAir } from "./WwAir";
+import { Wing, wingPlanes, wingSide, WwAir } from "./WwAir";
 
 const MISSION_SUP = AIR_MISSIONS.indexOf("air_superiority");
 const MISSION_STRIKE = AIR_MISSIONS.indexOf("naval_strike");
@@ -47,16 +47,16 @@ const FLYING_STATES: ReadonlySet<number> = new Set(
   ),
 );
 
-// P6 hook (W2, E): the depth fields take WwAir.addDeployment's defaults.
-type GroupProto = Omit<
-  Deployment,
-  "id" | "counts" | "base" | "lossRest" | "dcounts" | "night" | "ace"
+// P6 hook (W2, E): the depth fields take WwAir.addWing's defaults.
+type GroupProto = Pick<
+  Wing,
+  "owner" | "sr" | "type" | "mission" | "goalCount" | "auto" | "volunteerFor"
 >;
 
 const sum = (a: readonly number[]) => a.reduce((x, y) => x + y, 0);
 
 /** A carrier wing's record (spec §13.4): its base is −(ship id). */
-export function isCarrierWing(d: Deployment): boolean {
+export function isCarrierWing(d: Wing): boolean {
   return d.base < 0;
 }
 
@@ -70,7 +70,7 @@ export function deckSlotOf(type: number): number {
  * type while the carrier is out on its mission in the wing's zone, else
  * null (sunk, docked, moving or gone elsewhere).
  */
-export function carrierWingDeck(air: WwAir, d: Deployment): number[] | null {
+export function carrierWingDeck(air: WwAir, d: Wing): number[] | null {
   const navy = air.navy;
   const r = navy.ships.rowOf(-d.base);
   const slot = deckSlotOf(d.type);
@@ -93,7 +93,7 @@ export function carrierWingDeck(air: WwAir, d: Deployment): number[] | null {
  * slot (the deck's design planes of its type): null when its carrier does
  * not fly (carrierWingDeck) or carries none.
  */
-export function carrierWingDeckD(air: WwAir, d: Deployment): number[] | null {
+export function carrierWingDeckD(air: WwAir, d: Wing): number[] | null {
   const r = air.navy.ships.rowOf(-d.base);
   if (r < 0 || carrierWingDeck(air, d) === null) return null;
   return deckDesignCounts(air.ww.depth, d.owner, r, AIR_TYPES[d.type]);
@@ -106,7 +106,7 @@ export function carrierWingDeckD(air: WwAir, d: Deployment): number[] | null {
  */
 export function takeOffDeck(
   air: WwAir,
-  d: Deployment,
+  d: Wing,
   gens: readonly number[],
   slots: readonly number[] | null,
 ): void {
@@ -163,10 +163,10 @@ function groupOf(
   type: number,
   mission: number,
   volunteerFor: number,
-): Deployment[] {
-  const out: Deployment[] = [];
-  for (const id of air.deploymentsIn(sr)) {
-    const d = air.deployments.get(id)!;
+): Wing[] {
+  const out: Wing[] = [];
+  for (const id of air.wingsIn(sr)) {
+    const d = air.wings.get(id)!;
     if (
       d.owner === owner &&
       d.type === type &&
@@ -183,7 +183,7 @@ function groupOf(
 /** The land-based records of a country (WW_MAX_DEPLOYMENTS counts these). */
 function recordsUsed(air: WwAir, owner: number): number {
   let n = 0;
-  for (const d of air.deployments.values()) {
+  for (const d of air.wings.values()) {
     if (d.owner === owner && !isCarrierWing(d)) n++;
   }
   return n;
@@ -240,7 +240,7 @@ function bestRange(
   owner: number,
   ce: CountryEconomy,
   type: number,
-  group: readonly Deployment[],
+  group: readonly Wing[],
 ): number {
   const t = AIR_TYPES[type];
   let best = air.planeStatsOf(owner, t, 1).rangeKm;
@@ -263,20 +263,20 @@ function bestRange(
 /** The group's record at `base`, or a new one (null at the record cap). */
 function recordAt(
   air: WwAir,
-  group: Deployment[],
+  group: Wing[],
   proto: GroupProto,
   base: number,
-): Deployment | null {
+): Wing | null {
   const hit = group.find((d) => d.base === base);
   if (hit !== undefined) return hit;
   // An empty record waiting on base 0 takes the first base it finds.
-  const waiting = group.find((d) => d.base === 0 && deploymentPlanes(d) === 0);
+  const waiting = group.find((d) => d.base === 0 && wingPlanes(d) === 0);
   if (waiting !== undefined) {
-    air.setDeploymentBase(waiting, base);
+    air.setWingBase(waiting, base);
     return waiting;
   }
   if (recordsUsed(air, proto.owner) >= WW_MAX_DEPLOYMENTS) return null;
-  const d = air.addDeployment({
+  const d = air.addWing({
     ...proto,
     counts: new Array<number>(EQUIPMENT_GENS[AIR_TYPES[proto.type]]).fill(0),
     base,
@@ -308,7 +308,7 @@ function sourceRange(
 function placeFromStock(
   air: WwAir,
   ce: CountryEconomy,
-  group: Deployment[],
+  group: Wing[],
   proto: GroupProto,
   side: number,
   need: number,
@@ -337,7 +337,7 @@ function placeFromStock(
         d.dcounts[x.slot - 1] += got;
         need -= got;
       }
-      air.markDeployment(d.id);
+      air.markWing(d.id);
     }
   }
 }
@@ -346,7 +346,7 @@ function placeFromStock(
 function returnToStock(
   air: WwAir,
   ce: CountryEconomy,
-  group: readonly Deployment[],
+  group: readonly Wing[],
   n: number,
 ): void {
   if (group.length === 0 || n <= 0) return;
@@ -354,7 +354,7 @@ function returnToStock(
   const owner = group[0].owner;
   const depth = air.ww.depth;
   const sc = air.ww.scenario;
-  const km = (d: Deployment) => (d.base > 0 ? sc.srKm(d.base, d.sr) : 0);
+  const km = (d: Wing) => (d.base > 0 ? sc.srKm(d.base, d.sr) : 0);
   const order = [...group].sort(
     (a, b) => km(b) - km(a) || b.base - a.base || a.id - b.id,
   );
@@ -388,7 +388,7 @@ function returnToStock(
         returnDesignPlanes(depth, owner, back);
         n -= take;
       }
-      air.markDeployment(d.id);
+      air.markWing(d.id);
       if (n <= 0) break;
     }
   }
@@ -398,22 +398,22 @@ function returnToStock(
  * Sets the group's target on every record and drops its empty records,
  * keeping one (on base 0) while the target is above 0.
  */
-function settleGroup(air: WwAir, group: Deployment[], target: number): void {
+function settleGroup(air: WwAir, group: Wing[], target: number): void {
   for (const d of group) {
-    if (d.target !== target) {
-      d.target = target;
-      air.markDeployment(d.id);
+    if (d.goalCount !== target) {
+      d.goalCount = target;
+      air.markWing(d.id);
     }
   }
-  const empty = group.filter((d) => deploymentPlanes(d) === 0);
+  const empty = group.filter((d) => wingPlanes(d) === 0);
   const keep = target > 0 && empty.length === group.length ? empty[0] : null;
   for (const d of empty) {
     if (d === keep) {
-      air.setDeploymentBase(d, 0);
+      air.setWingBase(d, 0);
       continue;
     }
     // Empty: removing it moves no plane.
-    air.removeDeployment(d.id, true);
+    air.removeWing(d.id, true);
   }
 }
 
@@ -434,17 +434,17 @@ function setGroupTarget(
     sr,
     type,
     mission,
-    target,
+    goalCount: target,
     auto: false,
     volunteerFor: 0,
   };
   let now = 0;
-  for (const d of group) now += deploymentPlanes(d);
+  for (const d of group) now += wingPlanes(d);
   if (now < target) {
     if (group.length === 0 && recordsUsed(air, owner) < WW_MAX_DEPLOYMENTS) {
       // The record that holds the target while it waits for room.
       group.push(
-        air.addDeployment({
+        air.addWing({
           ...proto,
           counts: new Array<number>(EQUIPMENT_GENS[AIR_TYPES[type]]).fill(0),
           base: 0,
@@ -495,7 +495,7 @@ export function issueAirOrder(
       const group = groupOf(air, smallID, order.sr, type, mission, 0);
       // P6 (lane E): the designs flying as the type count, in stock or out.
       let have = stockOf(air, ce, smallID, type);
-      for (const d of group) have += deploymentPlanes(d);
+      for (const d of group) have += wingPlanes(d);
       const range = bestRange(air, smallID, ce, type, group);
       const block = airDeployBlock({
         sr: order.sr,
@@ -518,9 +518,9 @@ export function issueAirOrder(
     case "air_recall": {
       const type =
         order.type === undefined ? -1 : AIR_TYPES.indexOf(order.type);
-      const groups = new Map<number, Deployment>();
-      for (const id of air.deploymentsIn(order.sr)) {
-        const d = air.deployments.get(id)!;
+      const groups = new Map<number, Wing>();
+      for (const id of air.wingsIn(order.sr)) {
+        const d = air.wings.get(id)!;
         if (d.owner !== smallID || d.volunteerFor !== 0 || isCarrierWing(d)) {
           continue;
         }
@@ -552,14 +552,12 @@ export function issueAirOrder(
 function rebase(air: WwAir, owner: number, ce: CountryEconomy): void {
   const land = air.land;
   const depth = air.ww.depth;
-  const own = air
-    .deploymentsOf(owner)
-    .filter((d) => d.base > 0 && deploymentPlanes(d) > 0);
+  const own = air.wingsOf(owner).filter((d) => d.base > 0 && wingPlanes(d) > 0);
   for (const d of own) {
     const base = d.base;
     const c = land.controller[base] ?? 0;
-    const lost = c === 0 || land.sideOf(c) !== deploymentSide(air, d);
-    const all = deploymentPlanes(d);
+    const lost = c === 0 || land.sideOf(c) !== wingSide(air, d);
+    const all = wingPlanes(d);
     const over = lost
       ? all
       : Math.min(all, air.baseUse(base) - air.baseCapacity(base));
@@ -572,18 +570,18 @@ function rebase(air: WwAir, owner: number, ce: CountryEconomy): void {
     leaving.forEach((n, i) => (d.counts[i] -= n));
     const leavingD = out.slots;
     leavingD?.forEach((n, s) => (d.dcounts[s] -= n));
-    air.markDeployment(d.id);
+    air.markWing(d.id);
     const group = groupOf(air, owner, d.sr, d.type, d.mission, d.volunteerFor);
     const proto: GroupProto = {
       owner,
       sr: d.sr,
       type: d.type,
       mission: d.mission,
-      target: d.target,
+      goalCount: d.goalCount,
       auto: d.auto,
       volunteerFor: d.volunteerFor,
     };
-    const side = deploymentSide(air, d);
+    const side = wingSide(air, d);
     const back = new Array<number>(d.counts.length).fill(0);
     const backD = new Array<number>(WW_PLANE_DESIGN_SLOTS).fill(0);
     // Newest first, each source in its own range (P4: generation by generation).
@@ -606,7 +604,7 @@ function rebase(air: WwAir, owner: number, ce: CountryEconomy): void {
         if (to === null) continue;
         if (x.slot === 0) to.counts[x.gen - 1] += put;
         else to.dcounts[x.slot - 1] += put;
-        air.markDeployment(to.id);
+        air.markWing(to.id);
         n -= put;
       }
       if (x.slot === 0) back[x.gen - 1] = n;
@@ -618,22 +616,22 @@ function rebase(air: WwAir, owner: number, ce: CountryEconomy): void {
     });
     if (sum(back) > 0) returnPlanes(ce, t, back);
     if (sum(backD) > 0) returnDesignPlanes(depth, owner, backD);
-    settleGroup(air, group, d.target);
+    settleGroup(air, group, d.goalCount);
   }
 }
 
 /** Spec §13.2 "매일 채우기": every group short of its target draws from the stock. */
 function refill(air: WwAir, owner: number, ce: CountryEconomy): void {
   const seen = new Set<string>();
-  for (const d of air.deploymentsOf(owner)) {
+  for (const d of air.wingsOf(owner)) {
     if (isCarrierWing(d)) continue;
     const key = `${d.sr}:${d.type}:${d.mission}:${d.volunteerFor}`;
     if (seen.has(key)) continue;
     seen.add(key);
     const group = groupOf(air, owner, d.sr, d.type, d.mission, d.volunteerFor);
     let now = 0;
-    for (const x of group) now += deploymentPlanes(x);
-    if (now >= d.target) continue;
+    for (const x of group) now += wingPlanes(x);
+    if (now >= d.goalCount) continue;
     // P6 (lane E): the designs flying as the type refill it too.
     if (stockOf(air, ce, owner, d.type) === 0) continue;
     const proto: GroupProto = {
@@ -641,19 +639,12 @@ function refill(air: WwAir, owner: number, ce: CountryEconomy): void {
       sr: d.sr,
       type: d.type,
       mission: d.mission,
-      target: d.target,
+      goalCount: d.goalCount,
       auto: d.auto,
       volunteerFor: d.volunteerFor,
     };
-    placeFromStock(
-      air,
-      ce,
-      group,
-      proto,
-      deploymentSide(air, d),
-      d.target - now,
-    );
-    settleGroup(air, group, d.target);
+    placeFromStock(air, ce, group, proto, wingSide(air, d), d.goalCount - now);
+    settleGroup(air, group, d.goalCount);
   }
 }
 
@@ -724,7 +715,7 @@ function carrierWings(air: WwAir, owner: number): void {
       });
     }
   }
-  for (const d of air.deploymentsOf(owner)) {
+  for (const d of air.wingsOf(owner)) {
     if (!isCarrierWing(d)) continue;
     const key = `${-d.base}:${d.type}`;
     const w = want.get(key);
@@ -732,7 +723,7 @@ function carrierWings(air: WwAir, owner: number): void {
       // The deck keeps its planes: the record goes without touching the stock.
       d.counts.fill(0);
       d.dcounts.fill(0);
-      air.removeDeployment(d.id, true);
+      air.removeWing(d.id, true);
       continue;
     }
     want.delete(key);
@@ -746,21 +737,21 @@ function carrierWings(air: WwAir, owner: number): void {
       d.counts = [...w.counts];
       if (wd !== null) d.dcounts = [...wd];
       else d.dcounts.fill(0);
-      d.target = sum(w.counts) + (wd === null ? 0 : sum(wd));
-      air.markDeployment(d.id);
+      d.goalCount = sum(w.counts) + (wd === null ? 0 : sum(wd));
+      air.markWing(d.id);
     }
   }
   const rest = [...want.values()].sort(
     (a, b) => a.ship - b.ship || a.type - b.type,
   );
   for (const w of rest) {
-    air.addDeployment({
+    air.addWing({
       owner,
       sr: w.sr,
       type: w.type,
       mission: w.mission,
       counts: w.counts,
-      target: sum(w.counts) + (w.dcounts === null ? 0 : sum(w.dcounts)),
+      goalCount: sum(w.counts) + (w.dcounts === null ? 0 : sum(w.dcounts)),
       base: -w.ship,
       lossRest: 0,
       auto: false,

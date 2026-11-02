@@ -29,6 +29,7 @@ import { TEST_TANK } from "./depthFixture";
 import { END, endId } from "./endFixture";
 import { endgameFixture } from "./endgameFixture";
 import { END_MAP, gameHash, step, stepTo, wwRestore, wwRunner } from "./util";
+import { giveWing } from "./wingUtil";
 
 /** The test content's civil war (the Soviet Union rules communist in 1936). */
 const CW_EVENT: EventDef = {
@@ -131,13 +132,13 @@ describe("World War 1936 P5: civil wars (spec §15)", () => {
     ce.stock[k] += 40;
     const counts = drawPlanes(ce, "fighter", 12);
     const deployed0 = ce.planesDeployed[k];
-    const d = ww.air.addDeployment({
+    const d = giveWing(ww.air, {
       owner: sun,
       sr: ww.scenario.regionSr(KIEV),
       type: AIR_TYPES.indexOf("fighter"),
       mission: 0,
       counts,
-      target: 12,
+      goalCount: 12,
       base: KIEV,
       lossRest: 0,
       auto: true,
@@ -259,13 +260,13 @@ describe("World War 1936 P5: civil wars (spec §15)", () => {
     const [sun, cw] = [endId("SUN"), endId("CW1")];
     const ce = ww.economy.country(sun)!;
     ce.stock[equipKey("fighter", 1)] += 40;
-    const d = ww.air.addDeployment({
+    const d = giveWing(ww.air, {
       owner: sun,
       sr: ww.scenario.regionSr(KIEV),
       type: AIR_TYPES.indexOf("fighter"),
       mission: 0,
       counts: drawPlanes(ce, "fighter", 12),
-      target: 12,
+      goalCount: 12,
       base: KIEV,
       lossRest: 0,
       auto: true,
@@ -273,13 +274,13 @@ describe("World War 1936 P5: civil wars (spec §15)", () => {
     });
     sovietSplit(s);
     expect(d.owner).toBe(cw);
-    expect(ww.air.deploymentsOf(cw)).toEqual([d]);
-    expect(ww.air.deploymentsOf(sun)).not.toContain(d);
+    expect(ww.air.wingsOf(cw)).toEqual([d]);
+    expect(ww.air.wingsOf(sun)).not.toContain(d);
     // Its end leaves no row behind under either owner (the old index kept
-    // the id and deploymentsOf returned undefined: a crash in rebase).
-    ww.air.removeDeployment(d.id, true);
-    expect(ww.air.deploymentsOf(cw)).toEqual([]);
-    for (const x of ww.air.deploymentsOf(sun)) expect(x).toBeDefined();
+    // the id and wingsOf returned undefined: a crash in rebase).
+    ww.air.removeWing(d.id, true);
+    expect(ww.air.wingsOf(cw)).toEqual([]);
+    for (const x of ww.air.wingsOf(sun)) expect(x).toBeDefined();
     // A day of every country's air turn runs.
     step(s.runner, 10);
   }, 60_000);

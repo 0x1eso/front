@@ -23,13 +23,14 @@ import {
 } from "@openfront/engine/ww1936/air/AirCombat";
 import { airMissionEffects } from "@openfront/engine/ww1936/air/AirEffects";
 import { radarPmAt } from "@openfront/engine/ww1936/air/AirSuperiority";
-import type { Deployment } from "@openfront/engine/ww1936/air/WwAir";
+import type { Wing } from "@openfront/engine/ww1936/air/WwAir";
 import { carrierPortStrike } from "@openfront/engine/ww1936/navy/Carriers";
 import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSource";
 import type { WorldWar } from "@openfront/engine/ww1936/WorldWar";
 import { DEEP } from "./deepFixture";
 import { depthFixture } from "./depthFixture";
 import { stepTo, wwRunner } from "./util";
+import { giveWing } from "./wingUtil";
 
 beforeEach(() => usePoliticsContent(depthFixture()));
 afterEach(() => usePoliticsContent(null));
@@ -55,8 +56,8 @@ async function atWar() {
   ww.setWar(GBR, ITA, runner.game.ticks());
   for (const id of [GBR, ITA]) ww.economy.country(id)!.fuelMilli = 1e12;
   for (const sr of [WEST, DEEP.sr.approaches, DEEP.sr.central]) {
-    for (const id of [...ww.air.deploymentsIn(sr)]) {
-      ww.air.removeDeployment(id, true);
+    for (const id of [...ww.air.wingsIn(sr)]) {
+      ww.air.removeWing(id, true);
     }
   }
   return { runner, ww, day: ww.day(runner.game.ticks()) };
@@ -73,16 +74,16 @@ function deploy(
   mission: AirMission,
   planes: number,
   sr: number = WEST,
-): Deployment {
+): Wing {
   const counts = new Array<number>(EQUIPMENT_GENS[type]).fill(0);
   counts[0] = planes;
-  return ww.air.addDeployment({
+  return giveWing(ww.air, {
     owner,
     sr,
     type: AIR_TYPES.indexOf(type),
     mission: AIR_MISSIONS.indexOf(mission),
     counts,
-    target: planes,
+    goalCount: planes,
     base: 0,
     lossRest: 0,
     auto: false,
@@ -90,7 +91,7 @@ function deploy(
   });
 }
 
-const lossMilli = (d: Deployment, start: number) =>
+const lossMilli = (d: Wing, start: number) =>
   (start - d.counts.reduce((a, b) => a + b, 0)) * 1000 + d.lossRest;
 
 function setAa(ww: WorldWar, region: number, level: number): void {

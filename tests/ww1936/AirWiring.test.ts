@@ -1,7 +1,7 @@
 // World War 1936 P4 (plan Task 1 Step 25): the air war wired into the game
 // on ww1936sea, and the stock ledger of planes out on deployments.
 import { equipKey } from "@openfront/engine-api/ww1936/EconomyTypes";
-import { deploymentSide } from "@openfront/engine/ww1936/air/WwAir";
+import { wingSide } from "@openfront/engine/ww1936/air/WwAir";
 import {
   damageBuilding,
   drawPlanes,
@@ -10,6 +10,7 @@ import {
 } from "@openfront/engine/ww1936/economy/Buildings";
 import { AIR_BASE, REGION, SEA, TAG_ID } from "./seaFixture";
 import { HUMAN, withTestPolitics, wwRunner } from "./util";
+import { giveWing } from "./wingUtil";
 
 withTestPolitics();
 
@@ -20,7 +21,7 @@ describe("air wiring", () => {
     const runner = await wwRunner({}, HUMANS, SEA.map);
     const ww = runner.game.worldWar()!;
     expect(ww.air.zoneState).toHaveLength(ww.scenario.strategicList().length);
-    expect(ww.air.deployments.size).toBe(0);
+    expect(ww.air.wings.size).toBe(0);
   });
 
   it("drawPlanes takes the newest generation first and returnPlanes restores it", async () => {
@@ -51,13 +52,13 @@ describe("air wiring", () => {
     const ce = ww.economy.country(TAG_ID.DEU)!;
     ce.stock[equipKey("fighter", 1)] = 50;
     const counts = drawPlanes(ce, "fighter", 30);
-    const d = ww.air.addDeployment({
+    const d = giveWing(ww.air, {
       owner: TAG_ID.DEU,
       sr: 2,
       type: 0,
       mission: 0,
       counts,
-      target: 30,
+      goalCount: 30,
       base: REGION.berlin,
       lossRest: 0,
       auto: false,
@@ -80,15 +81,14 @@ describe("air wiring", () => {
       type: 0,
       mission: 0,
       counts: [0, 0, 0],
-      target: 0,
       base: REGION.rome,
       lossRest: 0,
       auto: false,
     };
-    const own = ww.air.addDeployment({ ...base, volunteerFor: 0 });
-    const vol = ww.air.addDeployment({ ...base, volunteerFor: TAG_ID.DEU });
-    expect(deploymentSide(ww.air, own)).toBe(ww.land.sideOf(TAG_ID.ITA));
-    expect(deploymentSide(ww.air, vol)).toBe(ww.land.sideOf(TAG_ID.DEU));
+    const own = giveWing(ww.air, { ...base, volunteerFor: 0 });
+    const vol = giveWing(ww.air, { ...base, volunteerFor: TAG_ID.DEU });
+    expect(wingSide(ww.air, own)).toBe(ww.land.sideOf(TAG_ID.ITA));
+    expect(wingSide(ww.air, vol)).toBe(ww.land.sideOf(TAG_ID.DEU));
   });
 
   it("base capacity is level × 200 less damage", async () => {

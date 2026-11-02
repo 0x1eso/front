@@ -41,6 +41,7 @@ import {
   WwHuman,
   wwRunnerCapture,
 } from "./util";
+import { giveWing } from "./wingUtil";
 
 withTestPolitics();
 
@@ -105,13 +106,13 @@ function deployBombers(g: Game, n: number): void {
   const gbr = byTag(g, "GBR").smallID();
   const ce = ww.economy.country(gbr)!;
   ce.stock[equipKey("strat_bomber", 1)] = n;
-  ww.air.addDeployment({
+  giveWing(ww.air, {
     owner: gbr,
     sr: SR.westLand,
     type: STRAT,
     mission: M_STRAT,
     counts: drawPlanes(ce, "strat_bomber", n),
-    target: n,
+    goalCount: n,
     base: REGION.london,
     lossRest: 0,
     auto: false,

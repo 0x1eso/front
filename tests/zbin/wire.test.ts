@@ -317,6 +317,65 @@ const SAMPLE_INTENTS: StampedIntent[] = [
     clientID: P3,
     order: { kind: "army_auto_level", army: 2, level: 1 },
   },
+  // The air overhaul (ww8, AirTypes.WING_ORDER_KINDS).
+  {
+    type: "ww_order",
+    clientID: P1,
+    order: {
+      kind: "wing_mission",
+      wings: [3, 5, 8],
+      mission: "strategic_bombing",
+      target: 412,
+      cls: "rail",
+    },
+  },
+  {
+    type: "ww_order",
+    clientID: P1,
+    order: {
+      kind: "wing_mission",
+      wings: [3],
+      mission: "cas",
+      target: 0,
+      army: 7,
+    },
+  },
+  {
+    type: "ww_order",
+    clientID: P2,
+    order: {
+      kind: "wing_mission",
+      wings: [4],
+      mission: "escort",
+      target: 0,
+      escort: 3,
+    },
+  },
+  {
+    type: "ww_order",
+    clientID: P2,
+    order: { kind: "wing_base", wings: [1, 2], base: 44 },
+  },
+  {
+    type: "ww_order",
+    clientID: P3,
+    order: { kind: "wing_auto", wings: [9], on: true },
+  },
+  {
+    type: "ww_order",
+    clientID: P3,
+    order: { kind: "wing_disband", wing: 9 },
+  },
+  {
+    type: "ww_order",
+    clientID: P1,
+    order: { kind: "air_field", region: 12 },
+  },
+  {
+    type: "ww_order",
+    clientID: P1,
+    order: { kind: "army_air_priority", army: 2, on: false },
+  },
   {
     type: "ww_order",
     clientID: P3,

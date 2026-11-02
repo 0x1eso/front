@@ -235,17 +235,26 @@ export const DERIVED_FIELDS = new Set<string>([
   "removedFleetIds",
   "endedBattleZones",
   "sunkThisTick",
-  "deploysBySr",
-  "deploysByBase",
-  "deploysByOwner",
+  "wingsBySr",
+  "wingsByBase",
+  "wingsByOwner",
   "planeStatsMemo",
   // WwAir's air-raid notice memory: messages only, never hashed
   // (RaidNotes). Not "raids": that is WwDepth's raid state.
   "raidNotes",
   "airDirtyZones",
-  "airDirtyDeployments",
+  "airDirtyWings",
   "airDirtyCountries",
-  "removedDeploymentIds",
+  "removedWingIds",
+  // ww8 (air overhaul): the screens' rows of the tick; lane B's memos (the
+  // wings' stats, the zones' rosters on station, interception's reach); a
+  // km memo on the ScenarioIndex.
+  "flightsOut",
+  "fightsOut",
+  "wingStatsMemo",
+  "stationBySr",
+  "interceptReach",
+  "targetKmMemo",
   "hooks",
   "seaGraphData",
   "strategicData",

@@ -370,8 +370,8 @@ function airOf(
   }
   const naval = new Map<number, number>();
   const planes = new Map<number, number>();
-  for (const id of air.deploymentsIn(sr)) {
-    const d = air.deployments.get(id);
+  for (const id of air.wingsIn(sr)) {
+    const d = air.wings.get(id);
     if (d === undefined || d.mission !== NAVAL_STRIKE) continue;
     const ce = navy.econ.country(d.owner);
     const type = AIR_TYPES[d.type];

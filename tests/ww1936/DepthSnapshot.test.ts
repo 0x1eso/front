@@ -75,6 +75,7 @@ import {
   wwRestore,
   wwRunner,
 } from "./util";
+import { giveWing } from "./wingUtil";
 
 beforeEach(() => usePoliticsContent(depthFixture()));
 afterEach(() => usePoliticsContent(null));
@@ -211,13 +212,13 @@ function deploy(
 ) {
   const ww = g.worldWar()!;
   const ce = ww.economy.country(owner)!;
-  return ww.air.addDeployment({
+  return giveWing(ww.air, {
     owner,
     sr,
     type: AIR_TYPES.indexOf(type),
     mission: AIR_MISSIONS.indexOf(mission),
     counts: drawPlanes(ce, type, n),
-    target: n,
+    goalCount: n,
     base,
     lossRest: 0,
     auto: false,
@@ -698,7 +699,7 @@ describe("World War 1936 P6: the depth snapshot oracle (Review Focus 4)", () => 
     };
     d.sea.aces = [...d.sea.aces, ace];
     big.ace = ace.id;
-    ww.air.markDeployment(big.id);
+    ww.air.markWing(big.id);
     const o = new Oracle(a, humans);
     stepTo(a, turnTick(a, GBR, dayOf(a) + 3) - 1);
     await o.restore();

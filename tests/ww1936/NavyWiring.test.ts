@@ -48,6 +48,7 @@ import {
   wwRestore,
   wwRunner,
 } from "./util";
+import { giveWing } from "./wingUtil";
 
 withTestPolitics();
 
@@ -252,13 +253,13 @@ describe("navy wiring", () => {
     const id = ww.navy.createFleet(pl, REGION.krakow, [["dd", 1, 2]]);
     // At sea, so the lost port does not send it home first.
     ww.navy.fleets.get(id)!.docked = 0;
-    ww.air.addDeployment({
+    giveWing(ww.air, {
       owner: pl,
       sr: 2,
       type: 0,
       mission: 0,
       counts: [5, 0, 0],
-      target: 5,
+      goalCount: 5,
       base: REGION.warsaw,
       lossRest: 0,
       auto: false,
@@ -274,7 +275,7 @@ describe("navy wiring", () => {
     expect(ww.isCapitulated(pl)).toBe(true);
     expect(ww.navy.fleetsOf(pl)).toEqual([]);
     expect(ww.navy.ships.count()).toBe(0);
-    expect(ww.air.deploymentsOf(pl)).toEqual([]);
+    expect(ww.air.wingsOf(pl)).toEqual([]);
     // Removed, not sunk: no loss counted (P5's war score sees none).
     expect(ww.navy.country(pl)?.shipsLostToday ?? 0).toBe(0);
     expect(ce.smallID).toBe(pl);
@@ -346,13 +347,13 @@ describe("navy wiring", () => {
     // and a beachhead.
     const tick = a.game.ticks();
     const side = (id: number) => ww.land.sideOf(id);
-    ww.air.addDeployment({
+    giveWing(ww.air, {
       owner: TAG_ID.DEU,
       sr: 2,
       type: 0,
       mission: 1,
       counts: [3, 0, 0],
-      target: 3,
+      goalCount: 3,
       base: REGION.berlin,
       lossRest: 250,
       auto: true,
@@ -438,7 +439,7 @@ describe("navy wiring", () => {
     expect(
       b.game
         .worldWar()!
-        .air.deploymentsOf(TAG_ID.DEU)
+        .air.wingsOf(TAG_ID.DEU)
         .some((d) => d.sr === 2 && d.lossRest === 250),
     ).toBe(true);
     expect(b.game.worldWar()!.economy.damage).toEqual(ww.economy.damage);

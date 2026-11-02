@@ -44,7 +44,7 @@ import {
 } from "@openfront/engine-lib/ww1936/EndgameRules";
 import { borderRegionsOf } from "@openfront/engine-lib/ww1936/FrontRules";
 import { allNoStrikeZone, basesInRange, isCarrierWing } from "../air/Deploy";
-import type { Deployment } from "../air/WwAir";
+import type { WwAir } from "../air/WwAir";
 import { leaveBattle } from "../land/Battles";
 import { nearestBorder } from "../land/Fronts";
 import { stopDivision } from "../land/Movement";
@@ -430,14 +430,14 @@ export function dailyVolunteers(eg: WwEndgame, day: number): void {
     eg.volunteers = keep;
   }
   const air = ww.air;
-  for (const d of [...air.deployments.values()]) {
+  for (const d of [...air.wings.values()]) {
     if (d.volunteerFor <= 0) continue;
     if (
       !eg.isActor(d.owner) ||
       joinedHostsWar(eg, d.owner, d.volunteerFor) ||
       mustReturn(eg, d.owner, d.volunteerFor)
     ) {
-      air.removeDeployment(d.id, true);
+      air.removeWing(d.id, true);
       air.markCountry(d.owner);
       markAid(eg, d.owner, d.volunteerFor);
     }
@@ -496,12 +496,12 @@ export function airVolunteerCap(eg: WwEndgame, from: number): number {
 export function airVolunteersOut(eg: WwEndgame, from: number): number {
   const seen = new Set<string>();
   let n = 0;
-  for (const d of eg.ww.air.deploymentsOf(from)) {
+  for (const d of eg.ww.air.wingsOf(from)) {
     if (d.volunteerFor <= 0 || isCarrierWing(d)) continue;
     const key = `${d.sr}:${d.type}:${d.mission}:${d.volunteerFor}`;
     if (seen.has(key)) continue;
     seen.add(key);
-    n += d.target;
+    n += d.goalCount;
   }
   return n;
 }
@@ -529,7 +529,7 @@ function planesInStock(eg: WwEndgame, from: number, plane: AirType): number {
 /**
  * air_volunteers (spec §12.4): a volunteer group of `count` `plane` over
  * `zone` from air bases of the host's side; P4's daily refill draws the
- * planes (Deploy.refill: the group's side is the host's, deploymentSide).
+ * planes (Deploy.refill: the group's side is the host's, wingSide).
  */
 export function sendAirVolunteers(
   eg: WwEndgame,
@@ -563,7 +563,7 @@ export function sendAirVolunteers(
   const air = ww.air;
   const type = AIR_TYPES.indexOf(plane);
   const group = air
-    .deploymentsOf(from)
+    .wingsOf(from)
     .filter(
       (d) =>
         d.sr === zone &&
@@ -576,7 +576,7 @@ export function sendAirVolunteers(
   for (let g = 1; g <= EQUIPMENT_GENS[plane]; g++) {
     range = Math.max(range, air.planeStatsOf(from, plane, g).rangeKm);
   }
-  const used = air.deploymentsOf(from).filter((d) => !isCarrierWing(d)).length;
+  const used = air.wingsOf(from).filter((d) => !isCarrierWing(d)).length;
   const b = airDeployBlock({
     sr: zone,
     srKind: s.kind,
@@ -591,26 +591,26 @@ export function sendAirVolunteers(
   });
   if (b !== null) return b;
   if (group.length > 0) {
-    const target = group[0].target + count;
+    const target = group[0].goalCount + count;
     for (const d of group) {
-      d.target = target;
-      air.markDeployment(d.id);
+      d.goalCount = target;
+      air.markWing(d.id);
     }
   } else {
     // P6's per-deployment design counts, night flag and ace start neutral.
-    const d: Omit<Deployment, "id" | "dcounts" | "night" | "ace"> = {
+    const d: Parameters<WwAir["addWing"]>[0] = {
       owner: from,
       sr: zone,
       type,
       mission,
       counts: new Array<number>(EQUIPMENT_GENS[plane]).fill(0),
-      target: count,
+      goalCount: count,
       base: 0,
       lossRest: 0,
       auto: false,
       volunteerFor: to,
     };
-    air.addDeployment(d);
+    air.addWing(d);
   }
   air.markCountry(from);
   markAid(eg, from, to);

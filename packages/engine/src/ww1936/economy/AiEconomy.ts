@@ -2161,10 +2161,10 @@ function aiP4Builds(econ: WwEconomy, ce: CountryEconomy, day: number): void {
     const air = ww.air;
     const short = new Set<number>();
     const groups = new Map<number, { target: number; have: number }>();
-    for (const d of air.deploymentsOf(me)) {
+    for (const d of air.wingsOf(me)) {
       if (d.base < 0) continue;
       const k = d.sr * 1000 + d.type * 20 + d.mission;
-      const g = groups.get(k) ?? { target: d.target, have: 0 };
+      const g = groups.get(k) ?? { target: d.goalCount, have: 0 };
       g.have += d.counts.reduce((x, y) => x + y, 0);
       groups.set(k, g);
     }

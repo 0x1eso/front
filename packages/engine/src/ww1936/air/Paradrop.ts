@@ -200,7 +200,7 @@ export function paradropLosses(
   let side = 0;
   for (const f of zoneFlights(air, sr)) {
     if (f.mission !== M_SUP && f.mission !== M_INT) continue;
-    const d = air.deployments.get(f.id);
+    const d = air.wings.get(f.id);
     if (d === undefined) continue;
     if (
       !land.isEnemy(a.owner, d.volunteerFor !== 0 ? d.volunteerFor : d.owner)

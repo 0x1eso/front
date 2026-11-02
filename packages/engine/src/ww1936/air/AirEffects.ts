@@ -33,7 +33,7 @@ import { apportion, sideMembersOf, strategicBombing } from "./Bombing";
 import { isCarrierWing, takeOffDeck } from "./Deploy";
 import { oldestFirst } from "./DesignPlanes";
 import { withFuze } from "./ProjectEffects";
-import type { Deployment, WwAir, ZoneAirState } from "./WwAir";
+import type { Wing, WwAir, ZoneAirState } from "./WwAir";
 
 /** Spec §14.9: the hit chance of a naval strike (ships at sea) and a port strike (docked), ‰. */
 export const WW_NAVAL_STRIKE_HIT_PM = 100;
@@ -58,8 +58,8 @@ const EFFECT_MISSIONS: readonly AirMission[] = [
 
 /** One generation of a deployment flying today. */
 export interface Sortie {
-  d: Deployment;
-  /** The side it fights for (deploymentSide). */
+  d: Wing;
+  /** The side it fights for (wingSide). */
   side: number;
   /** Generation, 1-based. */
   gen: number;
@@ -106,7 +106,7 @@ export function airMissionEffects(air: WwAir, sr: number, day: number): void {
   // The sorties A1's zone day flew this tick (before its losses).
   for (const f of zoneFlights(air, sr)) {
     const bySide = groups.get(AIR_MISSIONS[f.mission]);
-    const d = air.deployments.get(f.id);
+    const d = air.wings.get(f.id);
     if (bySide === undefined || d === undefined) continue;
     f.milli.forEach((milli, g) => {
       if (milli <= 0) return;
@@ -530,14 +530,14 @@ function takeLosses(
     ids.map((id) => flown.get(id)!),
   );
   ids.forEach((id, i) => {
-    const d = air.deployments.get(id);
+    const d = air.wings.get(id);
     if (d === undefined || parts[i] <= 0) return;
     // P6 (spec §5.4.2, lane E): design planes' reliability, by count.
     const depth = air.ww.depth;
     d.lossRest += Math.floor(
       (parts[i] * planesLossBp(depth, d.owner, d.counts, d.dcounts)) / 10_000,
     );
-    air.markDeployment(id);
+    air.markWing(id);
     const n = Math.floor(d.lossRest / 1000);
     if (n <= 0) return;
     d.lossRest -= n * 1000;

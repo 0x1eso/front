@@ -21,12 +21,13 @@ import {
   WW_MAX_ACES,
 } from "@openfront/engine-lib/ww1936/SeaAirRules";
 import type { GameRunner } from "@openfront/engine/GameRunner";
-import type { Deployment } from "@openfront/engine/ww1936/air/WwAir";
+import type { Wing } from "@openfront/engine/ww1936/air/WwAir";
 import { aceMods, dailyAces } from "@openfront/engine/ww1936/depth/Aces";
 import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSource";
 import { DEEP } from "./deepFixture";
 import { depthFixture } from "./depthFixture";
 import { stepTo, wwRunner } from "./util";
+import { giveWing } from "./wingUtil";
 
 beforeEach(() => usePoliticsContent(depthFixture()));
 afterEach(() => usePoliticsContent(null));
@@ -52,17 +53,17 @@ function deploy(
   type: AirType,
   mission: AirMission,
   planes: number,
-): Deployment {
+): Wing {
   const air = runner.game.worldWar()!.air;
   const counts = new Array<number>(EQUIPMENT_GENS[type]).fill(0);
   counts[0] = planes;
-  return air.addDeployment({
+  return giveWing(air, {
     owner,
     sr: WEST,
     type: AIR_TYPES.indexOf(type),
     mission: AIR_MISSIONS.indexOf(mission),
     counts,
-    target: planes,
+    goalCount: planes,
     base: 0,
     lossRest: 0,
     auto: false,
@@ -141,7 +142,7 @@ describe("World War 1936 P6: aces (spec §15.2)", () => {
     dailyAces(d, WEST, lives);
     expect(d.sea.aces.some((a) => a.id === ace.id)).toBe(true);
     // No enemy in the sky: no air combat, no loss.
-    air.removeDeployment(enemy.id, true);
+    air.removeWing(enemy.id, true);
     dailyAces(d, WEST, dies);
     expect(d.sea.aces.some((a) => a.id === ace.id)).toBe(true);
     deploy(runner, ITA, "fighter", "air_superiority", 30);
@@ -156,12 +157,12 @@ describe("World War 1936 P6: aces (spec §15.2)", () => {
     });
     // A recalled record retires its ace.
     const other = d.sea.aces.find((a) => a.deployment === small.id)!;
-    air.removeDeployment(small.id, true);
+    air.removeWing(small.id, true);
     dailyAces(d, WEST, lives);
     expect(d.sea.aces.some((a) => a.id === other.id)).toBe(false);
     // A record that changed hands: its ace retires and it may earn another.
     const third = d.sea.aces[0];
-    const rec = air.deployments.get(third.deployment)!;
+    const rec = air.wings.get(third.deployment)!;
     rec.owner = ITA;
     dailyAces(d, WEST, lives);
     expect(d.sea.aces.some((a) => a.id === third.id)).toBe(false);

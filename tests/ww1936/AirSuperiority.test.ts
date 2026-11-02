@@ -154,8 +154,8 @@ describe("air superiority (spec §14.5)", () => {
     // Britain's day puts the deck in the air; the zone flies it the next day.
     through(runner, day + 1, 6);
     const wing = ww.air
-      .deploymentsIn(SR.central)
-      .map((id) => ww.air.deployments.get(id)!)
+      .wingsIn(SR.central)
+      .map((id) => ww.air.wings.get(id)!)
       .find((d) => d.owner === gbr)!;
     expect(wing.base).toBe(-ship);
     expect(wing.sr).toBe(SR.central);
@@ -186,8 +186,8 @@ describe("air superiority (spec §14.5)", () => {
     through(runner, day + 2, 6);
     expect(
       ww.air
-        .deploymentsIn(SR.central)
-        .map((id) => ww.air.deployments.get(id)!)
+        .wingsIn(SR.central)
+        .map((id) => ww.air.wings.get(id)!)
         .filter((d) => d.owner === gbr),
     ).toEqual([]);
   }, 60_000);

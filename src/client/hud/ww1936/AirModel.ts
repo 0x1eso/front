@@ -56,6 +56,8 @@ export const AIR_MISSION_ICONS: Readonly<Record<AirMission, string>> = {
   air_supply: "📦",
   // P6 (spec §15.3).
   recon: "📷",
+  // ww8 (design §3.4).
+  escort: "🛩",
 };
 
 /** Spec §13.1: a zone's weather — a land zone's center region, a sea zone's center zone (flat). */

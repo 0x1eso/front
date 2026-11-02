@@ -34,7 +34,7 @@ import {
 import { airMissionEffects } from "@openfront/engine/ww1936/air/AirEffects";
 import { radarPmAt } from "@openfront/engine/ww1936/air/AirSuperiority";
 import { dailyAirCountry } from "@openfront/engine/ww1936/air/Deploy";
-import { deploymentPlanes } from "@openfront/engine/ww1936/air/WwAir";
+import { wingPlanes } from "@openfront/engine/ww1936/air/WwAir";
 import {
   designPlaneP4,
   planesLossBp,
@@ -46,6 +46,7 @@ import type { WorldWar } from "@openfront/engine/ww1936/WorldWar";
 import { DEEP } from "./deepFixture";
 import { depthFixture } from "./depthFixture";
 import { clearStartSetup, gameHash, step, stepTo, wwRunner } from "./util";
+import { giveWing } from "./wingUtil";
 
 beforeEach(() => usePoliticsContent(depthFixture()));
 afterEach(() => usePoliticsContent(null));
@@ -118,7 +119,7 @@ describe("T1b: plane designs in P4's air war (lane E's sites)", () => {
     ce.stock[KEY] += 120;
     // ② A deployment draws the design planes (no static fighter left).
     noStaticFighters(ww, GBR);
-    for (const d of air.deploymentsOf(GBR)) air.removeDeployment(d.id, true);
+    for (const d of air.wingsOf(GBR)) air.removeWing(d.id, true);
     const have = ce.stock[KEY];
     const deployed0 = ce.planesDeployed[KEY];
     expect(
@@ -135,8 +136,8 @@ describe("T1b: plane designs in P4's air war (lane E's sites)", () => {
       ),
     ).toBeNull();
     const recs = air
-      .deploymentsIn(WEST)
-      .map((id) => air.deployments.get(id)!)
+      .wingsIn(WEST)
+      .map((id) => air.wings.get(id)!)
       .filter((d) => d.owner === GBR && d.type === FIGHTER);
     const out = recs.reduce((n, d) => n + d.dcounts[0], 0);
     expect(out).toBe(have);
@@ -151,25 +152,25 @@ describe("T1b: plane designs in P4's air war (lane E's sites)", () => {
       rec.dcounts[0],
     );
     // ③ It flies with the design's numbers (after the generations).
-    const ita = air.addDeployment({
+    const ita = giveWing(air, {
       owner: ITA,
       sr: WEST,
       type: FIGHTER,
       mission: AIR_MISSIONS.indexOf("air_superiority"),
       counts: [150, 0, 0],
-      target: 150,
+      goalCount: 150,
       base: 0,
       lossRest: 0,
       auto: false,
       volunteerFor: 0,
     });
     // Only these two over the zone (the AI's own wings would share the duel).
-    for (const id of [...air.deploymentsIn(WEST)]) {
-      const x = air.deployments.get(id)!;
-      if (x.id !== ita.id && x.owner !== GBR) air.removeDeployment(id, true);
+    for (const id of [...air.wingsIn(WEST)]) {
+      const x = air.wings.get(id)!;
+      if (x.id !== ita.id && x.owner !== GBR) air.removeWing(id, true);
     }
     const h0 = gameHash(runner);
-    const start = deploymentPlanes(rec);
+    const start = wingPlanes(rec);
     const day = ww.day(runner.game.ticks());
     dailyAirZone(air, WEST, day);
     const f = zoneFlights(air, WEST).find((x) => x.id === rec.id)!;
@@ -339,8 +340,8 @@ describe("T1b: plane designs in P4's air war (lane E's sites)", () => {
     const day = ww.day(runner.game.ticks());
     dailyAirCountry(air, GBR, day);
     const wing = air
-      .deploymentsIn(sr)
-      .map((id) => air.deployments.get(id)!)
+      .wingsIn(sr)
+      .map((id) => air.wings.get(id)!)
       .find((x) => x.owner === GBR && x.base === -cv.ships[0])!;
     expect(AIR_MISSIONS[wing.mission]).toBe("naval_strike");
     expect(wing.dcounts[0]).toBe(onDeck);

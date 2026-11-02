@@ -27,7 +27,7 @@ import {
   airDuelMilli,
   zoneWeather,
 } from "@openfront/engine/ww1936/air/AirCombat";
-import type { Deployment } from "@openfront/engine/ww1936/air/WwAir";
+import type { Wing } from "@openfront/engine/ww1936/air/WwAir";
 import { joinBattle } from "@openfront/engine/ww1936/land/Battles";
 import type { WorldWar } from "@openfront/engine/ww1936/WorldWar";
 import { diffSnapshots } from "../util/Snapshot";
@@ -84,13 +84,13 @@ function deploy(
 
 function recordsOf(ww: WorldWar, sr: number, owner: number, type: AirType) {
   return ww.air
-    .deploymentsIn(sr)
-    .map((id) => ww.air.deployments.get(id)!)
+    .wingsIn(sr)
+    .map((id) => ww.air.wings.get(id)!)
     .filter((d) => d.owner === owner && d.type === AIR_TYPES.indexOf(type));
 }
 
 /** Losses taken so far, milli: whole planes gone plus the remainder. */
-const lossMilli = (d: Deployment, start: number) =>
+const lossMilli = (d: Wing, start: number) =>
   (start - d.counts.reduce((a, b) => a + b, 0)) * 1000 + d.lossRest;
 
 /** The first day from `from` on that is clear over zone `sr`. */

@@ -43,6 +43,7 @@ import {
   WwHuman,
   wwRunner,
 } from "./util";
+import { giveWing } from "./wingUtil";
 
 withTestPolitics();
 
@@ -85,13 +86,13 @@ function deployCas(g: Game, n: number): void {
   const deu = byTag(g, "DEU").smallID();
   const ce = ww.economy.country(deu)!;
   ce.stock[equipKey("cas", 1)] = n;
-  ww.air.addDeployment({
+  giveWing(ww.air, {
     owner: deu,
     sr: SR.eastLand,
     type: CAS,
     mission: M_CAS,
     counts: drawPlanes(ce, "cas", n),
-    target: n,
+    goalCount: n,
     base: REGION.berlin,
     lossRest: 0,
     auto: false,

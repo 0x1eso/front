@@ -20,7 +20,7 @@ import {
   nukeOutcome,
 } from "@openfront/engine-lib/ww1936/ProjectRules";
 import { wwRoll } from "@openfront/engine-lib/ww1936/Roll";
-import { deploymentPlanes, deploymentSide } from "../air/WwAir";
+import { wingPlanes, wingSide } from "../air/WwAir";
 import { damageBuilding, effectiveLevel } from "../economy/Buildings";
 import { damageDivisions } from "../land/SeaLift";
 import { addTension } from "../politics/Tension";
@@ -53,12 +53,12 @@ function nukeBomberDeployments(d: WwDepth, owner: number, sr: number) {
   const air = d.ww.air;
   const side = d.ww.land.sideOf(owner);
   const out = [];
-  for (const id of air.deploymentsIn(sr)) {
-    const dep = air.deployments.get(id);
+  for (const id of air.wingsIn(sr)) {
+    const dep = air.wings.get(id);
     if (dep === undefined || dep.type !== STRAT || dep.mission !== M_STRAT) {
       continue;
     }
-    if (deploymentSide(air, dep) !== side) continue;
+    if (wingSide(air, dep) !== side) continue;
     out.push(dep);
   }
   return out.sort(
@@ -71,7 +71,7 @@ function nukeBomberDeployments(d: WwDepth, owner: number, sr: number) {
 export function nukeBombersIn(d: WwDepth, owner: number, sr: number): number {
   let n = 0;
   for (const dep of nukeBomberDeployments(d, owner, sr)) {
-    n += deploymentPlanes(dep);
+    n += wingPlanes(dep);
   }
   return n;
 }

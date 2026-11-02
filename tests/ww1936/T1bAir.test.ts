@@ -21,12 +21,13 @@ import {
 import { airMissionEffects } from "@openfront/engine/ww1936/air/AirEffects";
 import { radarPmAt } from "@openfront/engine/ww1936/air/AirSuperiority";
 import { bombableRegions } from "@openfront/engine/ww1936/air/Bombing";
-import type { Deployment } from "@openfront/engine/ww1936/air/WwAir";
+import type { Wing } from "@openfront/engine/ww1936/air/WwAir";
 import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSource";
 import type { WorldWar } from "@openfront/engine/ww1936/WorldWar";
 import { DEEP } from "./deepFixture";
 import { depthFixture } from "./depthFixture";
 import { stepTo, wwRunner } from "./util";
+import { giveWing } from "./wingUtil";
 
 beforeEach(() => usePoliticsContent(depthFixture()));
 afterEach(() => usePoliticsContent(null));
@@ -60,16 +61,16 @@ function deploy(
   type: AirType,
   mission: AirMission,
   planes: number,
-): Deployment {
+): Wing {
   const counts = new Array<number>(EQUIPMENT_GENS[type]).fill(0);
   counts[0] = planes;
-  return ww.air.addDeployment({
+  return giveWing(ww.air, {
     owner,
     sr: WEST,
     type: AIR_TYPES.indexOf(type),
     mission: AIR_MISSIONS.indexOf(mission),
     counts,
-    target: planes,
+    goalCount: planes,
     base: 0,
     lossRest: 0,
     auto: false,
@@ -78,7 +79,7 @@ function deploy(
 }
 
 /** Losses taken today, milli: whole planes gone and the remainder. */
-const lossMilli = (d: Deployment, start: number) =>
+const lossMilli = (d: Wing, start: number) =>
   (start - d.counts.reduce((a, b) => a + b, 0)) * 1000 + d.lossRest;
 
 function setAa(ww: WorldWar, region: number, level: number): void {
