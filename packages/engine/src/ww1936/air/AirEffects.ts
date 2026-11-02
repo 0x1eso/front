@@ -233,6 +233,14 @@ export function casHitsFor(
   const i = sc.srIdxOf(sc.regionSr(battleRegion));
   if (i < 0) return 0;
   const z = air.zoneState[i];
+  if (air.wingsLive) {
+    // ww8: the wings on station now (the pulses keep the rows).
+    const rows = z.casNow;
+    for (let k = 0; k < rows.length; k++) {
+      if (rows[k][0] === battleRegion && rows[k][1] === side) return rows[k][2];
+    }
+    return 0;
+  }
   const pool = z.cas.get(side) ?? 0;
   if (pool <= 0) return 0;
   for (const [r, sd, pm] of z.casShare) {

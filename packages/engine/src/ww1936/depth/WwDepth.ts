@@ -1944,7 +1944,7 @@ function noteAir(
   if (owner <= 0 || owner >= d.cap || d.dayTally.length === 0) return;
   const m = AIR_MISSIONS[mission];
   const track =
-    m === "air_superiority" || m === "interception"
+    m === "air_superiority" || m === "interception" || m === "escort"
       ? 6
       : m === "cas" || m === "strategic_bombing"
         ? 7

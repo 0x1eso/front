@@ -18,6 +18,8 @@ import {
   raidPowerCenti,
 } from "@openfront/engine-lib/ww1936/ConvoyRules";
 import { planeStats } from "@openfront/engine-lib/ww1936/PlaneStats";
+import { wingStats } from "../air/Sorties";
+import { wingPlanes } from "../air/WwAir";
 import { exploiting } from "../depth/Crypto";
 import { designPlaneP4 } from "../depth/Designs";
 import { minesConvoyLossPm } from "../depth/Mines";
@@ -354,7 +356,7 @@ function hurtSubs(
  * milli-sorties over its planes there), centi; per country its naval
  * patrol planes flying (anti-submarine milli-sorties / 1000).
  */
-function airOf(
+export function airOf(
   navy: WwNavy,
   sr: number,
   idx: number,
@@ -373,6 +375,15 @@ function airOf(
   for (const id of air.wingsIn(sr)) {
     const d = air.wings.get(id);
     if (d === undefined || d.mission !== NAVAL_STRIKE) continue;
+    if (air.wingsLive) {
+      // ww8: the wing's own mix (yesterday's sorties below say how many flew).
+      const n = wingPlanes(d);
+      if (n > 0) {
+        add(naval, d.owner, n * wingStats(air, d).naval);
+        add(planes, d.owner, n);
+      }
+      continue;
+    }
     const ce = navy.econ.country(d.owner);
     const type = AIR_TYPES[d.type];
     if (ce === null || type === undefined) continue;

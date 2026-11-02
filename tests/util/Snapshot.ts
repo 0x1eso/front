@@ -265,6 +265,7 @@ export const DERIVED_FIELDS = new Set<string>([
   // P4 Task 15 (perf): the building-change counter caches key on.
   "railPortVer",
   "buildVer",
+  "radarVer",
   "graphVer",
   "warVer",
   // World War 1936 P5 (plan Task 1 Step 9): the endgame's human index,

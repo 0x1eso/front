@@ -69,10 +69,10 @@ const M_PORT = AIR_MISSIONS.indexOf("port_strike");
 const M_PATROL = AIR_MISSIONS.indexOf("naval_patrol");
 const T_NAVAL_BOMBER = AIR_TYPES.indexOf("naval_bomber");
 /** Spec §14.3 target weights, in hundredths (so a mix of the two missions stays whole). */
-const W_SUP_FIGHTER = 200;
-const W_SUP_OTHER = 100;
-const W_INT_FIGHTER = 100;
-const W_INT_OTHER = 300;
+export const W_SUP_FIGHTER = 200;
+export const W_SUP_OTHER = 100;
+export const W_INT_FIGHTER = 100;
+export const W_INT_OTHER = 300;
 /** The alert's spacing per zone and country, days (spec §18.10). */
 const SUP_ALERT_DAYS = 7;
 
@@ -134,7 +134,7 @@ function radarPatrolExtra(air: WwAir, f: AirFlight): number {
 }
 
 /** P6 (spec §21.2, T1b): a sortie rate ‰ × (100 + sortieEffPct)%, at most one sortie a day. */
-function effWith(pct: number, pm: number): number {
+export function effWith(pct: number, pm: number): number {
   return pct === 0
     ? pm
     : Math.min(1000, Math.floor((pm * Math.max(0, 100 + pct)) / 100));
@@ -338,6 +338,24 @@ export function airDuelMilli(
     agiB += x * d.stats.agility;
   }
   if (w === 0) return 0;
+  return duelSumsMilli(atk, kp, agiA, w, def, agiB, detPm);
+}
+
+/**
+ * airDuelMilli over its running sums (ww8: a pulse keeps these per side
+ * instead of building two arrays): the shooters' sorties, kill power and
+ * sorties × agility; the targets' weighted sorties, × defense and × agility.
+ */
+export function duelSumsMilli(
+  atk: number,
+  kp: number,
+  agiA: number,
+  w: number,
+  def: number,
+  agiB: number,
+  detPm: number,
+): number {
+  if (atk === 0 || kp === 0 || w === 0) return 0;
   const factor = agilityFactorPm(Math.floor(agiA / atk), Math.floor(agiB / w));
   return airLossesMilli(
     Math.floor((kp * factor) / 1000),
@@ -446,7 +464,7 @@ function nightIn(air: WwAir, flights: readonly AirFlight[]): boolean {
 }
 
 /** Whether two sides are at war (some member of one with some member of the other). */
-function sidesAtWar(air: WwAir, a: number, b: number): boolean {
+export function sidesAtWar(air: WwAir, a: number, b: number): boolean {
   if (a === b) return false;
   const land = air.land;
   for (const x of land.sideMembers(a)) {
@@ -806,14 +824,14 @@ function takeLosses(
  * side and zone. The days are state (ZoneAirState.alertDay, snapshotted
  * and hashed), so a restored game repeats or skips none.
  */
-function superiorityAlerts(
+export function superiorityAlerts(
   air: WwAir,
   z: ZoneAirState,
   sr: number,
   day: number,
   before: ReadonlyMap<number, number>,
   after: ReadonlyMap<number, number>,
-  flights: readonly AirFlight[],
+  flights: readonly { readonly owner: number }[],
 ): void {
   const sc = air.ww.scenario;
   const s = sc.sr(sr)!;
@@ -914,7 +932,7 @@ function zoneIsEmpty(z: ZoneAirState): boolean {
  * a quiet zone with an old alert is empty (Task 15: it was cleared and
  * sent to the screens again every day until the alert aged out).
  */
-function pruneAlerts(z: ZoneAirState, day: number): void {
+export function pruneAlerts(z: ZoneAirState, day: number): void {
   if (z.alertDay.size === 0) return;
   for (const [side, last] of [...z.alertDay]) {
     if (day - last >= SUP_ALERT_DAYS) z.alertDay.delete(side);
@@ -922,7 +940,7 @@ function pruneAlerts(z: ZoneAirState, day: number): void {
 }
 
 /** Puts a key-ordered copy of `m` (non-zero values only). */
-function sortedMap(m: ReadonlyMap<number, number>): Map<number, number> {
+export function sortedMap(m: ReadonlyMap<number, number>): Map<number, number> {
   const out = new Map<number, number>();
   for (const [k, v] of [...m].sort((a, b) => a[0] - b[0])) {
     if (v !== 0) out.set(k, v);

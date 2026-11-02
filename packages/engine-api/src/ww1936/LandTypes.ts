@@ -347,6 +347,9 @@ export interface BattleCtx {
   defenderBlockBp: number;
   /** ww7 lane F: the defenders' prepared ground, bp (CombatRules.roundHits); absent: 0. */
   defenderPrepBp?: number;
+  /** ww8: close air support a round now, after the anti-air cut (casCutHits), centi; absent: 0. */
+  casAttCenti?: number;
+  casDefCenti?: number;
 }
 
 export interface BattlePrediction {

@@ -8,8 +8,12 @@ import {
   PlaneStats,
   WING_INTERCEPT_MAX_STATION,
   WING_RTB_PCT,
+  WING_STAGGER_TICKS,
   WW_AIR_FUEL_TICKS,
+  WW_AIR_LUCK_MAX_PM,
+  WW_AIR_LUCK_MIN_PM,
   WW_BOMB_CLASSES,
+  WW_ESCORT_CUT_MAX_PM,
   WW_ROOKIE_XP,
   WW_WING_MAX_PLANES,
   WwBombClass,
@@ -18,12 +22,14 @@ import type {
   BuildingId,
   WwOrderBlock,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
+import { casPoolCenti, casRoundHits } from "./AirRules";
 import { PLANE_BASE } from "./PlaneStats";
-import { idHash } from "./Roll";
+import { idHash, wwRoll } from "./Roll";
 
-/** wwRoll purposes: a zone's day luck on air losses; one bomb run's luck. */
+/** wwRoll purposes: a zone's day luck on air losses; one bomb run's luck; who gets a kill. */
 export const P_AIR_LUCK = idHash("air_luck");
 export const P_AIR_BOMB = idHash("air_bomb");
+export const P_AIR_KILL = idHash("air_kill");
 
 // ---- The sortie cycle (design §3.5) ----
 
@@ -105,6 +111,69 @@ export function sortieFuelMilli(
 ): number {
   const perSortie = Math.floor((flyMilli * fuelPerSortieMilli) / 1000);
   return Math.floor((perSortie * (2 * leg + station)) / WW_AIR_FUEL_TICKS);
+}
+
+/**
+ * A first take-off's wait: wing id × WING_STAGGER_TICKS inside its cycle, so
+ * that wings ordered together fly in waves and the zone stays covered.
+ */
+export function wingStaggerTicks(
+  id: number,
+  type: AirType,
+  mission: AirMission,
+): number {
+  return (id * WING_STAGGER_TICKS) % refCycle(type, mission);
+}
+
+/**
+ * Close air support a tick on station, centi-hits (design §3.6): the daily
+ * pool shared over the day's ticks on station, so a day at the reference
+ * distance hits what one daily sortie used to.
+ */
+export function casTickCenti(
+  flyMilli: number,
+  groundCenti: number,
+  casPct: number,
+  type: AirType,
+): number {
+  const c = stationCentiPerDay(type, "cas");
+  if (c <= 0) return 0;
+  return casRoundHits(
+    Math.floor((casPoolCenti(flyMilli, groundCenti, casPct) * 750) / c),
+  );
+}
+
+/**
+ * What a bomber keeps of its air losses under escort, ‰ (design §3.7):
+ * sweeping fighters over the zone count once, its own escort twice, against
+ * the bombers on station; at parity the cut is at its most.
+ */
+export function escortKeepPm(
+  coverMilli: number,
+  directMilli: number,
+  bomberMilli: number,
+): number {
+  if (bomberMilli <= 0) return 1000;
+  const ratioPm = Math.floor(
+    ((coverMilli + 2 * directMilli) * 1000) / bomberMilli,
+  );
+  return (
+    1000 -
+    Math.min(
+      WW_ESCORT_CUT_MAX_PM,
+      Math.floor((WW_ESCORT_CUT_MAX_PM * ratioPm) / 1000),
+    )
+  );
+}
+
+/** A zone's luck on air losses for a day, ‰ (design §3.6): two rolls, so a triangle around 1000. */
+export function airLuckPm(seed: number, sr: number, day: number): number {
+  const half = Math.floor((WW_AIR_LUCK_MAX_PM - WW_AIR_LUCK_MIN_PM) / 2) + 1;
+  return (
+    WW_AIR_LUCK_MIN_PM +
+    (wwRoll(seed, P_AIR_LUCK, sr, day, 0) % half) +
+    (wwRoll(seed, P_AIR_LUCK, sr, day, 1) % half)
+  );
 }
 
 /** A wing's full strength. */

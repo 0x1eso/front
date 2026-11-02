@@ -200,6 +200,8 @@ export interface ZoneToday {
   fightersSup: Map<number, number>;
   airSupply: [number, number, number][];
   recon: Map<number, number>;
+  /** owner × 16 + AIR_MISSIONS index → milli-sorties today, for the air doctrine at the close. */
+  flown: Map<number, number>;
 }
 
 function emptyToday(): ZoneToday {
@@ -212,6 +214,7 @@ function emptyToday(): ZoneToday {
     fightersSup: new Map(),
     airSupply: [],
     recon: new Map(),
+    flown: new Map(),
   };
 }
 
@@ -313,6 +316,7 @@ const ZoneTodaySchema = z.object({
   fightersSup: pairs(),
   airSupply: triples(),
   recon: pairs(),
+  flown: pairs(),
 });
 const ZoneSchema = z.object({
   sup: pairs(),
@@ -1351,6 +1355,7 @@ export class WwAir {
             x[2],
           ]),
           recon: arr(z.today.recon),
+          flown: arr(z.today.flown),
         },
       })),
       countries: this.countries().map((c) => ({
@@ -1433,6 +1438,7 @@ export class WwAir {
           y[2],
         ]),
         recon: mapOf(x.today.recon),
+        flown: mapOf(x.today.flown),
       };
     });
     this.countries().forEach((c, i) => {
@@ -1622,6 +1628,7 @@ export class WwAir {
       }
       if (t.fightersSup.size > 0) pairs(t.fightersSup);
       if (t.recon.size > 0) pairs(t.recon);
+      if (t.flown.size > 0) pairs(t.flown);
       for (const [r, s, v] of t.airSupply) {
         mix(r);
         mix(s);
