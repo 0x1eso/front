@@ -9391,6 +9391,7 @@
       "region_air_zone": "공역: {zone}",
       "region_anti_air": "대공포 {n}단계",
       "region_bomb_damage": "공장 {n}개 멈춤, 수리 중 {pct}%",
+      "region_bomb_damage_fuzzy": "공장 {n}개 멈춤, 수리 중 {pct}%",
       "region_coastal_fort": "해안 요새 {n}단계",
       "region_docked": "정박: {fleet} {n}척",
       "region_naval_base": "해군 기지 {n}단계",

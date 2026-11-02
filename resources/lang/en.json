@@ -9715,6 +9715,7 @@
       "region_air_zone": "Air zone: {zone}",
       "region_anti_air": "Anti-air {n}",
       "region_bomb_damage": "{n, plural, one {# factory stopped} other {# factories stopped}}, repairing {pct}%",
+      "region_bomb_damage_fuzzy": "{n} factories stopped, repairing {pct}%",
       "region_coastal_fort": "Coastal fort {n}",
       "region_docked": "In port: {fleet} ({n} ships)",
       "region_naval_base": "Naval base {n}",

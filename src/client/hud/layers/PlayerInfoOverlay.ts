@@ -1122,6 +1122,20 @@ export class PlayerInfoOverlay extends LitElement implements Controller {
   }
 
   /**
+   * The bomb damage line. The fog may hand the count over as a range ("0~6"),
+   * which the plural form would read as NaN: a range gets the plain wording.
+   */
+  private bombDamageText(count: string, pct: number): string {
+    const exact = /^\d+$/.test(count);
+    return translateText(
+      exact
+        ? "ww1936.navy.region_bomb_damage"
+        : "ww1936.navy.region_bomb_damage_fuzzy",
+      { n: exact ? Number(count) : count, pct },
+    );
+  }
+
+  /**
    * World War 1936 P4 (spec §18.9): the region's naval base, air base,
    * anti-air, radar and coastal fort levels, its bomb damage, the fleets in
    * its port, its harbor zone and sea region, its land air zone.
@@ -1163,10 +1177,7 @@ export class PlayerInfoOverlay extends LitElement implements Controller {
       ${l.bombed === null || seen.buildings === "hidden"
         ? ""
         : html`<span data-ww-region-bombed class="text-red-300"
-            >${translateText("ww1936.navy.region_bomb_damage", {
-              n: seen.label(l.bombed.stopped),
-              pct: l.bombed.repairPct,
-            })}</span
+            >${this.bombDamageText(seen.label(l.bombed.stopped), l.bombed.repairPct)}</span
           >`}
       ${docked.map(
         (d) =>
