@@ -10,6 +10,7 @@ import {
   WING_RTB_PCT,
   WW_AIR_FUEL_TICKS,
   WW_BOMB_CLASSES,
+  WW_ROOKIE_XP,
   WW_WING_MAX_PLANES,
   WwBombClass,
 } from "@openfront/engine-api/ww1936/AirTypes";
@@ -264,44 +265,74 @@ export function wingOrderBlock(
 
 // ---- Stubs: lane D (experience, design §6) ----
 
-/** 0 rookie, 1 regular, 2 veteran, 3 elite. Lane D. */
+/** Experience tiers (design §6): the lower bounds of regular, veteran and elite, ‰. */
+export const WING_XP_TIER_FROM = [200, 500, 800] as const;
+export const WING_XP_MAX = 1000;
+/** Per tier (rookie, regular, veteran, elite): air attack %, agility %, load %, air-combat loss ‰. */
+const XP_ATK_PCT = [-15, 0, 10, 20] as const;
+const XP_AGI_PCT = [-10, 0, 5, 10] as const;
+const XP_LOAD_PCT = [-10, 0, 10, 20] as const;
+const XP_LOSS_PM = [1100, 1000, 950, 900] as const;
+/** An ace's bonus on top of the tier (SeaAirRules.ACE_STATS, same numbers). */
+const ACE_ATK_PCT = 10;
+const ACE_AGI_PCT = 5;
+/** Experience gained (milli), start values: lane H tunes them. */
+export const WING_XP_FIGHT_BASE = 2;
+export const WING_XP_FIGHT_KILL_MILLI = 300;
+export const WING_XP_CAS = 1;
+export const WING_XP_DELIVERY = 6;
+export const WING_XP_STATION = 1;
+/** Resting at the rear lifts it to this at most, +1 every WING_XP_REST_DAYS days. */
+export const WING_XP_REST_CAP = 300;
+export const WING_XP_REST_DAYS = 5;
+
+/** 0 rookie, 1 regular, 2 veteran, 3 elite. */
 export function xpTier(xpMilli: number): number {
-  void xpMilli;
-  return 1;
+  return xpMilli >= WING_XP_TIER_FROM[2]
+    ? 3
+    : xpMilli >= WING_XP_TIER_FROM[1]
+      ? 2
+      : xpMilli >= WING_XP_TIER_FROM[0]
+        ? 1
+        : 0;
 }
 
-/** Stats with the experience and the ace applied. Lane D; neutral until then. */
+/** Stats with the experience and the ace applied (attack and agility only; the rest is untouched). */
 export function wingXpStats(
   stats: PlaneStats,
   xpMilli: number,
   ace: boolean,
 ): PlaneStats {
-  void xpMilli;
-  void ace;
-  return stats;
+  const t = xpTier(xpMilli);
+  const atk = XP_ATK_PCT[t] + (ace ? ACE_ATK_PCT : 0);
+  const agi = XP_AGI_PCT[t] + (ace ? ACE_AGI_PCT : 0);
+  if (atk === 0 && agi === 0) return stats;
+  return {
+    ...stats,
+    airAtk: Math.floor((stats.airAtk * (100 + atk)) / 100),
+    agility: Math.floor((stats.agility * (100 + agi)) / 100),
+  };
 }
 
-/** Load (bombs, CAS, naval) with the experience applied, ‰. Lane D. */
+/** Load (bombs, CAS, naval) with the experience applied, ‰. */
 export function wingXpLoadPm(xpMilli: number): number {
-  void xpMilli;
-  return 1000;
+  return 1000 + XP_LOAD_PCT[xpTier(xpMilli)] * 10;
 }
 
-/** Air-combat losses taken with the experience applied, ‰. Lane D. */
+/** Air-combat losses taken with the experience applied, ‰. */
 export function wingXpLossPm(xpMilli: number): number {
-  void xpMilli;
-  return 1000;
+  return XP_LOSS_PM[xpTier(xpMilli)];
 }
 
-/** Experience after a refill dilutes it (kept and added planes). Lane D. */
+/** Experience after a refill dilutes it: the kept planes keep theirs, the added ones are rookies. */
 export function xpAfterRefill(
   xpMilli: number,
   kept: number,
   added: number,
 ): number {
-  void kept;
-  void added;
-  return xpMilli;
+  const n = kept + added;
+  if (added <= 0 || n <= 0) return xpMilli;
+  return Math.floor((xpMilli * kept + WW_ROOKIE_XP * added) / n);
 }
 
 // ---- Stubs: lane C (the raid report's effect lines, design §5.2) ----

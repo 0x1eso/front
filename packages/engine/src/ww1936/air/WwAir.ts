@@ -301,6 +301,7 @@ const WingSchema = z.object({
   dayLost: zInt(),
   prevKills: zInt(),
   prevLost: zInt(),
+  aceMark: zInt(),
 });
 const ZoneTodaySchema = z.object({
   sorties: z.array(z.tuple([zInt(), zInts()])),
@@ -807,6 +808,7 @@ export class WwAir {
       dayLost: d.dayLost ?? n.dayLost,
       prevKills: d.prevKills ?? n.prevKills,
       prevLost: d.prevLost ?? n.prevLost,
+      aceMark: d.aceMark ?? n.aceMark,
     };
     this.wings.set(full.id, full);
     this.indexWing(full);

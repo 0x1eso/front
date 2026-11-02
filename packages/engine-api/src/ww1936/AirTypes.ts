@@ -355,6 +355,8 @@ export interface Wing {
   dayLost: number;
   prevKills: number;
   prevLost: number;
+  /** The highest multiple of ACE_KILLS of `kills` an ace roll was made at (lane D). */
+  aceMark: number;
 }
 
 /** A wing's new fields at rest. The hash only reads a wing that left them. */
@@ -379,6 +381,7 @@ export const WING_NEW_FIELD_DEFAULTS = {
   dayLost: 0,
   prevKills: 0,
   prevLost: 0,
+  aceMark: 0,
 } as const;
 
 /** One raid report row (design §5.2), kept by both countries. */
