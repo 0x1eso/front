@@ -6,7 +6,7 @@
 // facility 15% of its project, a dam is destroyed), the raiders lose
 // strength. A no-strike region is never a target.
 import type { DepthOrder } from "@openfront/engine-api/Schemas";
-import { AIR_TYPES } from "@openfront/engine-api/ww1936/AirTypes";
+import { AIR_TYPES, WP_FERRY } from "@openfront/engine-api/ww1936/AirTypes";
 import {
   FACILITY_IDS,
   RAID_KINDS,
@@ -70,6 +70,8 @@ export function raidBombersIn(d: WwDepth, id: number, sr: number): number {
     const dep = air.wings.get(depId);
     if (dep === undefined || dep.owner !== id) continue;
     if (!BOMBER_TYPES.includes(dep.type)) continue;
+    // ww8: a wing on its way to another base is not at hand.
+    if (air.wingsLive && dep.phase === WP_FERRY) continue;
     for (const c of dep.counts) n += c;
     for (const c of dep.dcounts) n += c;
   }
@@ -170,7 +172,8 @@ export function raidAskOf(
       dep !== undefined &&
       dep.owner === id &&
       dep.sr === sr &&
-      BOMBER_TYPES.includes(dep.type);
+      BOMBER_TYPES.includes(dep.type) &&
+      !(ww.air.wingsLive && dep.phase === WP_FERRY);
     reachOk = sr > 0 && raidBombersIn(d, id, sr) >= RAID_MIN_BOMBERS;
     from = dep?.base ?? 0;
   } else {

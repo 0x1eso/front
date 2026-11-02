@@ -304,7 +304,7 @@ export function xpAfterRefill(
   return xpMilli;
 }
 
-// ---- Stubs: lane C (the raid report's effect lines, design §5.2) ----
+// ---- Lane C: the raid report's effect lines (design §5.2) ----
 
 /** What raidEffectLines reads now, besides the report. Absent: not known to this viewer. */
 export interface RaidEffectNow {
@@ -322,12 +322,62 @@ export interface RaidEffectLine {
   params: Record<string, string | number>;
 }
 
-/** The report's effect lines for its card. Lane C; empty until then. */
+/**
+ * The report's effect lines for its card (design §5.2): translation keys
+ * `ww1936.raid_effect.*` with parameters, the ones that fit the bomb class
+ * and are known to the viewer (`now` leaves a value out when not).
+ */
 export function raidEffectLines(
   report: AirRaidReport,
   now: RaidEffectNow,
 ): RaidEffectLine[] {
-  void report;
-  void now;
-  return [];
+  const out: RaidEffectLine[] = [];
+  const cls = WW_BOMB_CLASSES[report.cls] ?? "auto";
+  const add = (key: string, params: Record<string, string | number>) =>
+    out.push({ key: `ww1936.raid_effect.${key}`, params });
+  if (
+    (cls === "auto" || cls === "factories") &&
+    now.factoriesStopped !== undefined &&
+    now.factoriesStopped > 0
+  ) {
+    add("factories", { n: now.factoriesStopped });
+  }
+  if (cls === "rail") {
+    if (
+      now.railLevel !== undefined &&
+      now.railEffLevel !== undefined &&
+      now.railEffLevel < now.railLevel
+    ) {
+      add("rail_levels", { from: now.railLevel, to: now.railEffLevel });
+    }
+    if (now.hubCapacityPct !== undefined && now.hubCapacityPct < 100) {
+      add("hub_capacity", { pct: 100 - now.hubCapacityPct });
+    }
+    if (now.railMovePct !== undefined && now.railMovePct < 100) {
+      add("rail_move", { pct: 100 - now.railMovePct });
+    }
+  }
+  if ((cls === "port" || report.shipsHit > 0) && report.shipsHit > 0) {
+    add("ships", { n: report.shipsHit });
+  }
+  if (cls === "fuel" && report.fuelMilli > 0) {
+    add("fuel", { n: Math.floor(report.fuelMilli / 1000) });
+  }
+  if (cls === "city" && report.wsBp > 0) {
+    add("war_support", { pct: Math.max(1, Math.round(report.wsBp / 100)) });
+  }
+  if (cls === "airfield" && report.groundPlanes > 0) {
+    add("ground_planes", { n: report.groundPlanes });
+  }
+  if (report.repairDays > 0) add("repair", { days: report.repairDays });
+  return out;
+}
+
+/**
+ * Days to mend a raid at today's repair pace: the cost (industry milli)
+ * over what a day's repair gives, at least 1 when there is damage.
+ */
+export function raidRepairDays(costMilli: number, perDayMilli: number): number {
+  if (costMilli <= 0) return 0;
+  return Math.min(999, Math.ceil(costMilli / Math.max(1, perDayMilli)));
 }

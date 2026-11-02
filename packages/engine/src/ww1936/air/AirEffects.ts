@@ -80,7 +80,7 @@ export interface EffectTally {
   sunk: Map<number, number>;
 }
 
-function newTally(): EffectTally {
+export function newTally(): EffectTally {
   return { cas: new Map(), bomb: new Map(), naval: new Map(), sunk: new Map() };
 }
 
@@ -246,10 +246,45 @@ export function casHitsFor(
 // ---- Naval and port strikes (spec §14.9, §14.4) ----
 
 /** Is country `c` at war with a member of `side`? */
-function enemyOfSide(air: WwAir, side: number, c: number): boolean {
+export function enemyOfSide(air: WwAir, side: number, c: number): boolean {
   if (c === 0) return false;
   const land = air.land;
   return sideMembersOf(land, side).some((m) => land.isEnemy(m, c));
+}
+
+/**
+ * The ship ids (ascending by fleet) of the enemy fleets `side` may strike at
+ * sea in the sea zone `s`: the ones it has spotted (N1) and the ones in a
+ * naval battle there. `only`: just that sea zone of its members (ww8).
+ */
+export function seaShipsFor(
+  air: WwAir,
+  s: StrategicRegion,
+  side: number,
+  only = 0,
+): number[] {
+  const navy = air.navy;
+  const fleets = new Set<number>();
+  for (const zone of s.members) {
+    if (only !== 0 && zone !== only) continue;
+    for (const id of navy.fleetsIn(zone)) {
+      const f = navy.fleets.get(id);
+      if (f === undefined || f.docked !== 0) continue;
+      if (!enemyOfSide(air, side, f.owner)) continue;
+      if (navy.spotted(side, id)) fleets.add(id);
+    }
+    const b = navy.battles.get(zone);
+    if (b === undefined) continue;
+    for (const id of [...b.fleets[0], ...b.fleets[1]]) {
+      const f = navy.fleets.get(id);
+      if (f !== undefined && enemyOfSide(air, side, f.owner)) fleets.add(id);
+    }
+  }
+  const ships: number[] = [];
+  for (const id of [...fleets].sort((a, b) => a - b)) {
+    ships.push(...navy.fleets.get(id)!.ships);
+  }
+  return ships;
 }
 
 /**
@@ -264,27 +299,8 @@ function navalStrikes(
   tick: number,
 ): void {
   if (s.kind !== "sea" || bySide.size === 0) return;
-  const navy = air.navy;
   for (const side of [...bySide.keys()].sort((a, b) => a - b)) {
-    const fleets = new Set<number>();
-    for (const zone of s.members) {
-      for (const id of navy.fleetsIn(zone)) {
-        const f = navy.fleets.get(id);
-        if (f === undefined || f.docked !== 0) continue;
-        if (!enemyOfSide(air, side, f.owner)) continue;
-        if (navy.spotted(side, id)) fleets.add(id);
-      }
-      const b = navy.battles.get(zone);
-      if (b === undefined) continue;
-      for (const id of [...b.fleets[0], ...b.fleets[1]]) {
-        const f = navy.fleets.get(id);
-        if (f !== undefined && enemyOfSide(air, side, f.owner)) fleets.add(id);
-      }
-    }
-    const ships: number[] = [];
-    for (const id of [...fleets].sort((a, b) => a - b)) {
-      ships.push(...navy.fleets.get(id)!.ships);
-    }
+    const ships = seaShipsFor(air, s, side);
     strike(
       air,
       bySide.get(side)!,
@@ -296,6 +312,55 @@ function navalStrikes(
       tick,
     );
   }
+}
+
+/** The ports of a zone: a land zone's member ports, a sea zone's ports whose harbor zone is in it. */
+export function portsOf(air: WwAir, s: StrategicRegion): number[] {
+  const sc = air.ww.scenario;
+  return s.kind === "land"
+    ? s.members.filter((r) => sc.harborOf(r) !== 0)
+    : sc.landRegions
+        .map((r) => r.id)
+        .filter((r) => s.members.includes(sc.harborOf(r)));
+}
+
+/** The enemy ships docked at `ports` (never a no-strike region's), their port, and the ports' anti-air, milli. */
+export function portShipsFor(
+  air: WwAir,
+  side: number,
+  ports: readonly number[],
+): {
+  ships: number[];
+  portOf: Map<number, number>;
+  baseAaMilli: number;
+} {
+  const sc = air.ww.scenario;
+  const navy = air.navy;
+  const ships: number[] = [];
+  const portOf = new Map<number, number>();
+  let baseAaMilli = 0;
+  for (const port of ports) {
+    if (isNoStrike(sc, port)) continue;
+    let any = false;
+    for (const id of navy.fleetsIn(sc.harborOf(port))) {
+      const f = navy.fleets.get(id);
+      if (f === undefined || f.docked !== port) continue;
+      if (!enemyOfSide(air, side, f.owner)) continue;
+      ships.push(...f.ships);
+      for (const sh of f.ships) portOf.set(sh, port);
+      any = true;
+    }
+    if (any) {
+      // P6 (spec §9.3, T1b): the port's holder's proximity fuze.
+      baseAaMilli += withFuze(
+        air.ww.depth,
+        air.land.controller[port] ?? 0,
+        effectiveLevel(air.econ, port, "anti_air") * PORT_AA_LOSS_MILLI,
+      );
+    }
+  }
+  ships.sort((a, b) => a - b);
+  return { ships, portOf, baseAaMilli };
 }
 
 /**
@@ -311,39 +376,9 @@ function portStrikes(
   tick: number,
 ): void {
   if (bySide.size === 0) return;
-  const sc = air.ww.scenario;
-  const navy = air.navy;
-  const ports =
-    s.kind === "land"
-      ? s.members.filter((r) => sc.harborOf(r) !== 0)
-      : sc.landRegions
-          .map((r) => r.id)
-          .filter((r) => s.members.includes(sc.harborOf(r)));
+  const ports = portsOf(air, s);
   for (const side of [...bySide.keys()].sort((a, b) => a - b)) {
-    const ships: number[] = [];
-    const portOf = new Map<number, number>();
-    let baseAaMilli = 0;
-    for (const port of ports) {
-      if (isNoStrike(sc, port)) continue;
-      let any = false;
-      for (const id of navy.fleetsIn(sc.harborOf(port))) {
-        const f = navy.fleets.get(id);
-        if (f === undefined || f.docked !== port) continue;
-        if (!enemyOfSide(air, side, f.owner)) continue;
-        ships.push(...f.ships);
-        for (const sh of f.ships) portOf.set(sh, port);
-        any = true;
-      }
-      if (any) {
-        // P6 (spec §9.3, T1b): the port's holder's proximity fuze.
-        baseAaMilli += withFuze(
-          air.ww.depth,
-          air.land.controller[port] ?? 0,
-          effectiveLevel(air.econ, port, "anti_air") * PORT_AA_LOSS_MILLI,
-        );
-      }
-    }
-    ships.sort((a, b) => a - b);
+    const { ships, portOf, baseAaMilli } = portShipsFor(air, side, ports);
     strike(
       air,
       bySide.get(side)!,
@@ -377,7 +412,7 @@ interface Target {
  * overflow on to the next; half by visibility. Then the anti-air's losses
  * (spec §14.4) on the side's strike deployments.
  */
-function strike(
+export function strike(
   air: WwAir,
   sorties: readonly Sortie[],
   shipIds: readonly number[],
@@ -387,6 +422,8 @@ function strike(
   fx: EffectTally,
   tick: number,
   portOf?: ReadonlyMap<number, number>,
+  /** ww8: the anti-air's losses × this/100 (a delivery is several days of sorties). */
+  aaScaleCenti = 100,
 ): void {
   if (shipIds.length === 0) return;
   const navy = air.navy;
@@ -489,7 +526,12 @@ function strike(
     addTo(fx.naval, owner, Math.floor((total * c) / attack));
   }
   addTo(fx.sunk, by, sunk);
-  takeLosses(air, sorties, aaMilli, topKey(aaByOwner));
+  takeLosses(
+    air,
+    sorties,
+    aaScaleCenti === 100 ? aaMilli : Math.floor((aaMilli * aaScaleCenti) / 100),
+    topKey(aaByOwner),
+  );
 }
 
 /** The key with the largest value (ties: the smaller key); 0 when empty. */

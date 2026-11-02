@@ -61,7 +61,14 @@ function reconDay(d: WwDepth, sr: number): void {
   const air = ww.air;
   const s = ww.scenario.sr(sr)!;
   const bySide = new Map<number, number>();
-  if (s.kind === "land") {
+  if (air.wingsLive) {
+    // ww8: the recon wings' stations added up in the zone's day (WingStrikes.accrueStation).
+    const t = air.zoneState[ww.scenario.srIdxOf(sr)]?.today.recon;
+    if (t !== undefined && s.kind === "land") {
+      for (const [side, m] of t) bySide.set(side, m);
+      t.clear();
+    }
+  } else if (s.kind === "land") {
     for (const f of zoneFlights(air, sr)) {
       if (f.mission !== M_RECON || f.total <= 0) continue;
       let milli = f.total;
@@ -126,6 +133,8 @@ function groupRecords(d: WwDepth, dep: Wing): Wing[] {
  */
 function syncNightGroups(d: WwDepth, sr: number): void {
   const air = d.ww.air;
+  // ww8: a wing flies by night on its own flag, with no group to sync.
+  if (air.wingsLive) return;
   for (const id of air.wingsIn(sr)) {
     const dep = air.wings.get(id);
     if (dep === undefined || !dep.night || dep.mission !== M_BOMB) continue;
@@ -142,6 +151,7 @@ function syncNightGroups(d: WwDepth, sr: number): void {
 export function fliesAtNight(d: WwDepth, dep: Wing): boolean {
   if (dep.mission !== M_BOMB || isCarrierWing(dep)) return false;
   if (dep.night) return true;
+  if (d.ww.air.wingsLive) return false;
   return groupRecords(d, dep).some((x) => x.night);
 }
 
@@ -171,7 +181,8 @@ export function issueSeaAir(
   // Sensitivity (decisions.md, pre-flight §0-11): no night raid where every
   // region the zone could bomb is a no-strike region (Korea, Taiwan).
   if (o.on && nightNoStrike(d, dep.sr)) return "no_strike_region";
-  for (const x of groupRecords(d, dep)) {
+  // ww8: the wing alone (air_night's id is a wing); the old model: its group.
+  for (const x of air.wingsLive ? [dep] : groupRecords(d, dep)) {
     if (x.night !== o.on) {
       x.night = o.on;
       air.markWing(x.id);

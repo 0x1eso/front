@@ -94,7 +94,16 @@ function stepOf(land: WwLand, r: number, mode: number): number {
   const t = land.divisions;
   if (mode === MOVE_SEA) return 1000; // need is in milli-ticks
   const ce = land.econ.country(t.owner[r])!;
-  if (mode === MOVE_RAIL) return railStep(ce.stats.railSpeedPct);
+  if (mode === MOVE_RAIL) {
+    const step = railStep(ce.stats.railSpeedPct);
+    if (!land.ww.air.wingsLive) return step;
+    // ww8: bomb damage slows the railway into the next region (design §4.3).
+    const next = t.next[r];
+    const have = land.econ.rail[next];
+    return have <= 0
+      ? step
+      : Math.floor((step * land.econ.railEff[next]) / have);
+  }
   const to = t.next[r];
   const w = land.weatherOn(to, land.day());
   const s = land.baseStatsOf(r);
@@ -293,7 +302,9 @@ function trimPath(land: WwLand, army: Army): void {
 }
 
 function railed(land: WwLand, region: number): boolean {
-  return land.econ.rail[region] >= 1;
+  return (
+    (land.ww.air.wingsLive ? land.econ.railEff : land.econ.rail)[region] >= 1
+  );
 }
 
 /**
