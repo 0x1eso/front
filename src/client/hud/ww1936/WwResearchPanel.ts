@@ -19,7 +19,6 @@ import { translateText } from "../../Utils";
 import { ringSvg } from "../domestic/Dial";
 import { WwDepthOpenEvent } from "./DepthEvents";
 import { DepthIndustryModel } from "./DepthIndustryModel";
-import { DoctrineModel } from "./DoctrineModel";
 import {
   blockText,
   branchName,
@@ -419,7 +418,7 @@ export class WwResearchPanel extends WwDrawerBase {
       data-ww-rail
       class="flex w-11 shrink-0 flex-col gap-0.5 overflow-y-auto"
     >
-      ${TECH_TABS.map(
+      ${TECH_TABS.filter((t) => t !== "doctrine").map(
         (t) =>
           html`<button
             type="button"
@@ -453,11 +452,9 @@ export class WwResearchPanel extends WwDrawerBase {
 
   private renderMain(d: WwCountryDetail, day: number): TemplateResult {
     const tab = this.branch;
-    if (tab === "projects" || tab === "doctrine") {
+    if (tab === "projects") {
       return html`<div class="min-w-0 flex-1 overflow-y-auto px-1">
-        ${tab === "projects"
-          ? this.renderProjects()
-          : this.renderDoctrine(d, day)}
+        ${this.renderProjects()}
       </div>`;
     }
     const bonuses = this.bonuses();
@@ -919,41 +916,6 @@ export class WwResearchPanel extends WwDrawerBase {
       </div>`;
   }
 
-  /** The doctrine tab: the mastery summary and a button to the doctrine screen. */
-  private renderDoctrine(d: WwCountryDetail, day: number): TemplateResult {
-    void d;
-    void day;
-    const model = new DoctrineModel(this.game);
-    const domains = model.ready() ? model.domains() : [];
-    return html`<div data-ww-doctrine class="mt-1 flex flex-col gap-2">
-      ${domains.map((v) => {
-        const gd = v.chips.find((c) => c.picked);
-        return html`<div
-          data-ww-mastery=${v.id}
-          class="rounded-md border border-white/15 bg-black/30 p-2 text-xs"
-        >
-          <div class="font-bold">
-            ${translateText(`ww1936.doctrine.tab_${v.id}`)} ·
-            ${gd === undefined
-              ? translateText("ww1936.rtree.doctrine_none")
-              : translateText(`ww1936.gd.${gd.id}`)}
-          </div>
-          <div class="text-white/70">
-            ${translateText("ww1936.rtree.doctrine_level", { n: v.levelSum })}
-          </div>
-        </div>`;
-      })}
-      <button
-        type="button"
-        data-ww-open-doctrine
-        class="min-h-10 rounded-md border border-sky-300 bg-sky-800/60 px-3 font-bold"
-        @click=${() => this.eventBus.emit(new WwDepthOpenEvent("doctrine"))}
-      >
-        ${translateText("ww1936.rtree.doctrine_open")}
-      </button>
-    </div>`;
-  }
-
   /** "Next" (changes §6 idea 2): a small card with the best next pick and a one-tap start. */
   private renderNext(d: WwCountryDetail): TemplateResult | typeof nothing {
     const t = this.nextPick;
@@ -1001,33 +963,31 @@ export class WwResearchPanel extends WwDrawerBase {
       <div class="min-w-0 flex-1 overflow-y-auto">
         ${tab === "projects"
           ? this.renderProjects()
-          : tab === "doctrine"
-            ? this.renderDoctrine(d, day)
-            : html`<ul
-                data-ww-cards
-                class="m-0 flex list-none flex-col gap-1.5 p-0"
-              >
-                ${researchCards(d, tab, day).map(
-                  (c) =>
-                    html`<li>
-                      <button
-                        type="button"
-                        data-ww-card=${c.id}
-                        ?disabled=${c.state !== "available"}
-                        class="min-h-11 w-full rounded-md border p-2 text-left ${CARD_LOOK[
-                          c.state
-                        ]}"
-                        @click=${() => {
-                          this.selected = c.id;
-                          if (researchBlock(d, c.id) === null) this.send(c.id);
-                        }}
-                      >
-                        <span class="font-bold">${techName(c.id)}</span>
-                        <span class="text-white/60"> ${c.year}</span>
-                      </button>
-                    </li>`,
-                )}
-              </ul>`}
+          : html`<ul
+              data-ww-cards
+              class="m-0 flex list-none flex-col gap-1.5 p-0"
+            >
+              ${researchCards(d, tab, day).map(
+                (c) =>
+                  html`<li>
+                    <button
+                      type="button"
+                      data-ww-card=${c.id}
+                      ?disabled=${c.state !== "available"}
+                      class="min-h-11 w-full rounded-md border p-2 text-left ${CARD_LOOK[
+                        c.state
+                      ]}"
+                      @click=${() => {
+                        this.selected = c.id;
+                        if (researchBlock(d, c.id) === null) this.send(c.id);
+                      }}
+                    >
+                      <span class="font-bold">${techName(c.id)}</span>
+                      <span class="text-white/60"> ${c.year}</span>
+                    </button>
+                  </li>`,
+              )}
+            </ul>`}
       </div>
     </div>`;
   }

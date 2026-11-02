@@ -1,4 +1,3 @@
-import { SUB_SWITCH_XP } from "@openfront/engine-api/ww1936/DepthTypes";
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("../../../src/client/Utils", async (importOriginal) => ({
@@ -15,49 +14,99 @@ const base = {
   details: [detail("DEU")],
   landDetails: [landDetail("DEU", { armyXpMilli: 150_000 })],
 };
+const zeros = () => new Array<number>(9).fill(0);
 
-describe("DoctrineModel (spec §20.2, §20.3)", () => {
-  it("track rows show level, next reward and days", () => {
-    // Track 0 at 350 000 milli (level 2), +5.0 a day: 50 days to 600 000.
-    const g = doctrineGame({
-      ...base,
-      detail: {
-        doctrine: {
-          gd: [0, -1, -1],
-          sub: [0, -1, -1, -1, -1, -1, -1, -1, -1],
-          masteryMilli: [350_000, 0, 0, 0, 0, 0, 0, 0, 0],
-          gainMilli: [5_000, 0, 0, 0, 0, 0, 0, 0, 0],
-        },
-      },
-    });
-    const m = new DoctrineModel(g.game as never);
-    const rows = m.trackRows(0);
-    expect(rows).toHaveLength(3);
-    expect(rows[0].level).toBe(2);
-    expect(rows[0].sub).toBe(0);
-    expect(rows[0].next?.level).toBe(3);
-    expect(rows[0].days).toBe(50);
-    expect(m.daysToNext(0)).toBe(50);
-    expect(m.nextReward(0)?.level).toBe(3);
-    expect(rows[0].gainText).toBe("5.00");
-    // No sub-doctrine picked: no reward line; no gain: no days.
-    expect(rows[1].next).toBeNull();
-    expect(rows[1].days).toBeNull();
-    expect(m.domains()[0].tracks.map((t) => t.id)).toEqual([
-      "infantry",
-      "armor",
-      "support",
+describe("DoctrineModel thought sliders (ww9 design §11)", () => {
+  it("shows each service's three sliders with the actual position, the target and the days", () => {
+    const target = zeros();
+    const curMilli = zeros();
+    target[0] = -4;
+    curMilli[0] = -1_000;
+    const m = new DoctrineModel(
+      doctrineGame({ ...base, detail: { thought: { target, curMilli } } })
+        .game as never,
+    );
+    expect(m.sliders(0).map((s) => s.id)).toEqual([
+      "off_def",
+      "mob_fire",
+      "quant_qual",
     ]);
+    expect(m.sliders(1)).toHaveLength(3);
+    expect(m.sliders(2)).toHaveLength(3);
+    const s = m.sliders(0)[0];
+    expect(s).toMatchObject({ target: -4, notch: -1, moving: true });
+    // 3000 milli at 100 a day.
+    expect(s.days).toBe(30);
+    // Offence is the left end: it shows the actual value and the target's.
+    expect(s.left.lines[0].goal).not.toBe("");
+    expect(s.left.star.lit).toBe(false);
+    // Resting sliders show one value and no days.
+    const rest = m.sliders(0)[1];
+    expect(rest.moving).toBe(false);
+    expect(rest.days).toBe(0);
+    expect(rest.left.lines[0].goal).toBe("");
   });
 
-  it("command screens judge with lane D's rules: traits, marshals, spirits, medals, air xp", () => {
+  it("a star lights at nine notches, and a drag previews the target", () => {
+    const curMilli = zeros();
+    curMilli[1] = 9_000;
+    const m = new DoctrineModel(
+      doctrineGame({
+        ...base,
+        detail: { thought: { curMilli, target: [0, 9, 0, 0, 0, 0, 0, 0, 0] } },
+      }).game as never,
+    );
+    const s = m.sliders(0)[1];
+    expect(s.right.star.lit).toBe(true);
+    expect(s.left.star.lit).toBe(false);
+    const dragged = m.sliders(0, new Map([[1, 3]]))[1];
+    expect(dragged.target).toBe(3);
+    expect(dragged.moving).toBe(true);
+    expect(dragged.days).toBe(60);
+    expect(m.thoughtOrder(1, 3)).toEqual({
+      kind: "thought_set",
+      slider: "mob_fire",
+      pos: 3,
+    });
+  });
+
+  it("the dock ring shows only while a slider moves, and there is no badge", () => {
+    const rest = new DoctrineModel(doctrineGame(base).game as never);
+    expect(rest.thoughtDial()).toEqual({ moving: 0, progress: 0 });
+    const target = zeros();
+    target[4] = 5;
+    const moving = new DoctrineModel(
+      doctrineGame({ ...base, detail: { thought: { target } } }).game as never,
+    ).thoughtDial()!;
+    expect(moving.moving).toBe(1);
+    expect(moving.progress).toBeGreaterThan(0);
+    expect(Object.keys(moving).sort()).toEqual(["moving", "progress"]);
+  });
+
+  it("the band carries no command power chip", () => {
+    const g = doctrineGame({
+      ...base,
+      summary: { energyPm: 920, atomicStock: 2 },
+    });
+    const b = new DoctrineModel(g.game as never).band()!;
+    expect(b).not.toHaveProperty("cpText");
+    expect(b.energyPct).toBe(92);
+    expect(b.nukes).toBe(2);
+    expect(b.congressPct).toBeNull();
+    const full = new DoctrineModel(doctrineGame(base).game as never).band()!;
+    expect(full.energyPct).toBeNull();
+    expect(full.nukes).toBeNull();
+  });
+});
+
+describe("DoctrineModel command screen (design §12)", () => {
+  it("traits are paid in army or navy XP; marshals and spirits use the engine's rules", () => {
     const g = doctrineGame({
       details: [detail("DEU")],
       landDetails: [
         landDetail("DEU", {
           armyXpMilli: 150_000,
           generals: [
-            // A level-3 general with free slots; a marshal (army -1).
             general(1, { key: "bock", level: 3 }),
             general(2, {
               key: "kluge",
@@ -71,95 +120,34 @@ describe("DoctrineModel (spec §20.2, §20.3)", () => {
       ],
       detail: {
         doctrine: { xp: [150, 40, 7] },
-        command: { cpMilli: 34_000, medalCooldown: [[5, 40]] },
+        command: { medalCooldown: [[5, 40]] },
       },
     });
     const m = new DoctrineModel(g.game as never);
     const people = m.commandPeople();
-    // The marshal is no general in the trait list (traitAssignBlock).
     expect(people.map((p) => p.id)).toEqual([1]);
     const trickster = people[0].candidates.find((c) => c.trait === "trickster");
-    expect(trickster).toEqual({ trait: "trickster", cp: 20, block: null });
-    // A marshal's own traits: cost 20 command power, he holds one.
+    expect(trickster).toEqual({ trait: "trickster", xp: 40, block: null });
     expect(m.fmTraitBlock(2, "fm_thorough")).toBe(null);
     expect(m.fmTraitBlock(1, "fm_thorough")).toBe("no_slot");
-    // Officer corps from spiritPickBlock with the air experience of the detail.
     expect(m.spiritBlock(0, 0)).toBe(null);
     expect(m.spiritBlock(0, 5)).toBe("bad_index");
-    expect(m.domains()[2].xp).toBe(7);
-    // Medal cooldown: army 5 waits until day 40.
-    expect(m.medalDaysLeft(5)).toBeGreaterThan(0);
-    expect(m.medalDaysLeft(6)).toBe(0);
+    expect(m.medalRows().every((r) => r.days > 0)).toBe(true);
   });
 
-  it("a switch shows the xp cost and the lock", () => {
+  it("a trait the army cannot pay for says no_xp", () => {
     const g = doctrineGame({
-      ...base,
-      detail: {
-        doctrine: {
-          gd: [0, -1, -1],
-          gdLock: [800, -1, -1],
-          sub: [0, -1, -1, -1, -1, -1, -1, -1, -1],
-        },
-      },
+      details: [detail("DEU")],
+      landDetails: [
+        landDetail("DEU", {
+          generals: [general(1, { key: "bock", level: 3 })],
+        }),
+      ],
+      detail: { doctrine: { xp: [10, 40, 7] } },
     });
-    const m = new DoctrineModel(g.game as never);
-    // A first pick costs nothing.
-    const first = m.pickBlock({ domain: 1, gd: 4 });
-    expect(first).toMatchObject({ block: null, xpCost: 0, switching: false });
-    // Switching the land doctrine costs 100 xp (the army has 150), locked until day 800.
-    const sw = m.pickBlock({ domain: 0, gd: 1 });
-    expect(sw.switching).toBe(true);
-    expect(sw.xpCost).toBe(100);
-    expect(sw.block).toBe("doctrine_locked");
-    expect(sw.lockDays).toBeGreaterThan(0);
-    // A sub-doctrine switch costs 25 xp.
-    const sub = m.pickBlock({ track: 0, sub: 1 });
-    expect(sub.xpCost).toBe(SUB_SWITCH_XP);
-    expect(sub.block).toBeNull();
-    // Not enough xp.
-    const poor = doctrineGame({
-      details: base.details,
-      landDetails: [landDetail("DEU", { armyXpMilli: 10_000 })],
-      detail: { doctrine: { gd: [0, -1, -1], gdLock: [-1, -1, -1] } },
-    });
-    expect(
-      new DoctrineModel(poor.game as never).pickBlock({ domain: 0, gd: 1 })
-        .block,
-    ).toBe("no_xp");
-  });
-
-  it("the doctrine dial glows when a grand doctrine is unpicked", () => {
-    const none = new DoctrineModel(doctrineGame(base).game as never).dial()!;
-    expect(none.glow).toBe(true);
-    expect(none.badge?.kind).toBe("unpicked");
-    const all = doctrineGame({
-      ...base,
-      detail: {
-        doctrine: {
-          gd: [0, 4, 7],
-          sub: [0, 3, 6, 9, 11, 13, 15, 17, 19],
-        },
-        command: { cpMilli: 0 },
-      },
-    });
-    const done = new DoctrineModel(all.game as never).dial()!;
-    expect(done.glow).toBe(false);
-    expect(done.badge).toBeNull();
-  });
-
-  it("the band shows command power, and energy and congress only when they apply", () => {
-    const g = doctrineGame({
-      ...base,
-      summary: { energyPm: 920, atomicStock: 2 },
-    });
-    const b = new DoctrineModel(g.game as never).band()!;
-    expect(b.cpText).toBe("34.0");
-    expect(b.energyPct).toBe(92);
-    expect(b.nukes).toBe(2);
-    expect(b.congressPct).toBeNull();
-    const full = new DoctrineModel(doctrineGame(base).game as never).band()!;
-    expect(full.energyPct).toBeNull();
-    expect(full.nukes).toBeNull();
+    const c = new DoctrineModel(g.game as never)
+      .commandPeople()[0]
+      .candidates.find((x) => x.trait === "trickster");
+    expect(c?.block).toBe("no_xp");
   });
 });

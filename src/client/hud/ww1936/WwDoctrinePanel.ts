@@ -1,11 +1,7 @@
 import type { WwOrder } from "@openfront/engine-api/Schemas";
-import {
-  FM_TRAITS,
-  type GrandDoctrine,
-  MEDALS,
-} from "@openfront/engine-api/ww1936/DepthTypes";
+import { FM_TRAITS } from "@openfront/engine-api/ww1936/DepthTypes";
 import { GENERAL_TRAITS } from "@openfront/engine-api/ww1936/LandTypes";
-import { GRAND_DOCTRINE_STATS } from "@openfront/engine-lib/ww1936/DoctrineRules";
+import { THOUGHT_MAX_STEP } from "@openfront/engine-api/ww1936/ThoughtTypes";
 import { html, nothing, TemplateResult } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import { SendWwOrderIntentEvent } from "../../Transport";
@@ -15,12 +11,12 @@ import {
   DOCTRINE_BLOCK_KEYS,
   DoctrineBlock,
   DoctrineModel,
-  DomainView,
-  TrackRow,
+  ThoughtEnd,
+  ThoughtSliderView,
 } from "./DoctrineModel";
 import { armyName, armyRows } from "./LandModel";
-import { statLines } from "./PoliticsModel";
 import { TWO_TAP_MS, TwoTap, wwActive } from "./WorldWarModel";
+import { autoMaskOf, renderAutoSwitch } from "./WwAutoUi";
 import { WwDrawerBase } from "./WwDrawer";
 
 export type WwDoctrineTab = "land" | "naval" | "air" | "officers" | "command";
@@ -39,36 +35,67 @@ const TAB_KEYS: Readonly<Record<WwDoctrineTab, string>> = {
   command: "ww1936.doctrine.tab_command",
 };
 const DOMAIN_TAB: readonly WwDoctrineTab[] = ["land", "naval", "air"];
-const XP_KEYS = [
-  "ww1936.doctrine.xp_land",
-  "ww1936.doctrine.xp_naval",
-  "ww1936.doctrine.xp_air",
-] as const;
 
 const HEADING =
   "mb-1 mt-2 text-xs font-bold uppercase tracking-wide text-white/70";
 const BTN =
   "min-h-9 rounded-md border border-white/15 bg-white/10 px-2 text-xs font-semibold hover:bg-white/20 disabled:opacity-40";
 const CARD = "rounded-md border border-white/10 bg-white/5 p-1.5 text-xs";
+/** How long a dragged value stays on screen while the engine takes the order. */
+const PENDING_MS = 1500;
+
+/** The slider: a hollow 28px handle you drag (the target); the track and the actual-position dot are drawn under it. */
+const SLIDER_STYLE = html`<style>
+  .ww-thought-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 44px;
+    margin: 0;
+    background: transparent;
+    touch-action: pan-y;
+  }
+  .ww-thought-slider::-webkit-slider-runnable-track {
+    height: 44px;
+    background: transparent;
+  }
+  .ww-thought-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 28px;
+    height: 28px;
+    margin-top: 8px;
+    border-radius: 9999px;
+    background: rgb(56 189 248 / 0.25);
+    border: 3px solid rgb(56 189 248);
+  }
+  .ww-thought-slider::-moz-range-track {
+    height: 44px;
+    background: transparent;
+  }
+  .ww-thought-slider::-moz-range-thumb {
+    width: 22px;
+    height: 22px;
+    border-radius: 9999px;
+    background: rgb(56 189 248 / 0.25);
+    border: 3px solid rgb(56 189 248);
+  }
+</style>`;
 
 /**
- * World War 1936 P6 (spec §20.3): the doctrine drawer — land, naval and air
- * tabs (grand doctrine chips, effect cards, three mastery tracks with their
- * sub-doctrines), the officer corps, and command (command power, trait
- * purchases, field marshals, medals). Three taps to a first pick: the dial,
- * a chip, [Pick]; a switch costs experience and needs a second tap.
+ * World War 1936: the thought drawer (ww9 design §11.1) — land, naval and air
+ * tabs hold three sliders each; dragging one is the whole interaction (no
+ * confirmation, no cost, nothing is ever required). Then the officer corps
+ * and command (trait purchases for army or navy XP, field marshals, medals,
+ * which are awarded by themselves).
  */
 @customElement("ww-doctrine-panel")
 export class WwDoctrinePanel extends WwDrawerBase {
   protected readonly drawerId = "doctrine" as const;
   @state() private tab: WwDoctrineTab = "land";
-  /** The chip (GRAND_DOCTRINES index) and the track whose cards are open. */
-  @state() private chip: number | null = null;
-  @state() private track: number | null = null;
   @state() private person: string | null = null;
   @state() private promoting: number | null = null;
   @state() private marshalTrait: number | null = null;
-  @state() private medal: string | null = null;
+  /** Values dragged but not yet in the view, by THOUGHT_SLIDERS index. */
+  private readonly drag = new Map<number, number>();
   private model: DoctrineModel | null = null;
   private readonly twoTap = new TwoTap();
   private redrawKey = "";
@@ -83,7 +110,6 @@ export class WwDoctrinePanel extends WwDrawerBase {
         return;
       }
       if (tab !== null && DOCTRINE_TABS.includes(tab)) this.tab = tab;
-      this.chip = this.track = null;
       this.setOpen(true);
     });
   }
@@ -123,264 +149,173 @@ export class WwDoctrinePanel extends WwDrawerBase {
   render() {
     if (!this.open) return null;
     if ((this.game?.worldWarScenario() ?? null) === null) return null;
-    const label = translateText("ww1936.doctrine.title");
-    const head = html`<span aria-hidden="true">🎖</span>
-      <h3 class="m-0 min-w-0 flex-1 truncate text-sm font-bold">${label}</h3>`;
+    const label = translateText("ww1936.thought.title");
     const me = this.game.myPlayer();
+    const head = html`<span aria-hidden="true">⚖</span>
+      <h3 class="m-0 min-w-0 flex-1 truncate text-sm font-bold">${label}</h3>
+      ${me === null
+        ? nothing
+        : renderAutoSwitch(
+            "thought",
+            autoMaskOf(this.game, me.smallID()),
+            (o) => this.send(o),
+            true,
+          )}`;
     if (me === null || !wwActive(this.game, me.smallID())) {
       return this.renderFrame(label, head, nothing, html``);
     }
     const model = this.m();
-    const domains = model.domains();
     const tabs = this.renderTabs(
       DOCTRINE_TABS,
       this.tab,
-      (t) => {
-        const i = DOMAIN_TAB.indexOf(t);
-        const glow = i >= 0 && domains[i]?.unpicked;
-        return `${translateText(TAB_KEYS[t])}${glow ? " ●" : ""}`;
-      },
+      (t) => translateText(TAB_KEYS[t]),
       (t) => {
         this.tab = t;
-        this.chip = this.track = null;
       },
     );
     let body: TemplateResult;
     if (!model.ready()) body = html``;
     else if (this.tab === "officers") body = this.renderOfficers(model);
     else if (this.tab === "command") body = this.renderCommand(model);
-    else body = this.renderDomain(model, domains[DOMAIN_TAB.indexOf(this.tab)]);
+    else body = this.renderThought(model, DOMAIN_TAB.indexOf(this.tab));
     return this.renderFrame(label, head, tabs, body);
   }
 
-  // ---- Land / naval / air ----
+  // ---- Land / naval / air: the sliders ----
 
-  private renderDomain(model: DoctrineModel, d: DomainView): TemplateResult {
-    const open = this.chip ?? (d.picked >= 0 ? d.picked : null);
-    return html`<div data-ww-domain=${d.id}>
-      <div class="${HEADING} flex items-center gap-2">
-        <span>${translateText("ww1936.doctrine.grand_title")}</span>
-        ${d.xp === null
+  private renderThought(model: DoctrineModel, domain: number): TemplateResult {
+    const sliders = model.sliders(domain, this.drag);
+    for (const s of sliders) {
+      if (this.drag.get(s.index) === s.target) this.drag.delete(s.index);
+    }
+    return html`${SLIDER_STYLE}
+      <div
+        data-ww-domain=${DOMAIN_TAB[domain]}
+        class="flex flex-col gap-1.5 pt-2"
+      >
+        ${sliders.map((s) => this.renderSlider(model, s))}
+      </div>`;
+  }
+
+  private renderEnd(s: ThoughtSliderView, e: ThoughtEnd): TemplateResult {
+    const right = e.end === 1;
+    const toward = right ? s.target > 0 : s.target < 0;
+    return html`<div
+      data-ww-thought-end=${e.id}
+      class="min-w-0 ${right ? "text-right" : "text-left"} ${right
+        ? "order-2 min-[700px]:order-3"
+        : "order-1"}"
+    >
+      <div class="font-bold ${toward ? "text-sky-300" : "text-white/80"}">
+        ${translateText(`ww1936.thought.${right ? "right" : "left"}.${s.id}`)}
+      </div>
+      ${e.lines.map((l) =>
+        l.now === "" && l.goal === ""
           ? nothing
-          : html`<span class="ml-auto normal-case text-white/60"
-              >${translateText(XP_KEYS[d.domain], { xp: d.xp })}</span
-            >`}
-      </div>
-      ${d.unpicked
-        ? html`<p
-            data-ww-pick-prompt
-            class="m-0 mb-1 animate-pulse text-xs font-bold text-amber-300"
-          >
-            ${translateText("ww1936.doctrine.choose_prompt")}
-          </p>`
-        : nothing}
-      <div class="flex flex-wrap gap-1">
-        ${d.chips.map(
-          (c) =>
-            html`<button
-              type="button"
-              data-ww-gd=${c.id}
-              aria-pressed=${String(c.picked)}
-              class="min-h-9 rounded-md border px-2 text-xs font-semibold ${c.picked
-                ? "border-emerald-300 bg-emerald-500/20"
-                : open === c.index
-                  ? "border-white/60 bg-white/15"
-                  : "border-white/15 bg-white/5 hover:bg-white/10"} ${d.unpicked
-                ? "animate-pulse"
-                : ""}"
-              @click=${() => (this.chip = c.index)}
-            >
-              ${translateText(`ww1936.gd.${c.id}`)}
-            </button>`,
-        )}
-      </div>
-      ${open === null ? nothing : this.renderGdCard(model, d, open)}
-      <div class=${HEADING}>${translateText("ww1936.doctrine.tracks")}</div>
-      <div class="flex flex-col gap-1">
-        ${d.tracks.map((t) => this.renderTrack(model, t))}
+          : html`<div class="text-white/80">
+              ${l.now}${l.goal !== "" && l.goal !== l.now
+                ? html`<span class="text-sky-300"> → ${l.goal}</span>`
+                : nothing}
+            </div>`,
+      )}
+      <div
+        data-ww-thought-star=${e.star.lit ? "lit" : "dim"}
+        class="${e.star.lit
+          ? "text-amber-300"
+          : e.star.goalLit
+            ? "text-amber-300/60"
+            : "text-white/40"}"
+      >
+        ★ ${translateText(`ww1936.thought.edge.${e.id}`)}
+        <span class="${e.star.lit ? "text-amber-100" : ""}"
+          >${e.star.lines.join(", ")}</span
+        >
       </div>
     </div>`;
   }
 
-  private renderGdCard(
+  private renderSlider(
     model: DoctrineModel,
-    d: DomainView,
-    gd: number,
+    s: ThoughtSliderView,
   ): TemplateResult {
-    const chip = d.chips.find((c) => c.index === gd);
-    if (chip === undefined) return html``;
-    const pick = model.pickBlock({ domain: d.domain, gd });
-    const key = `gd${gd}`;
-    const stats = (i: 0 | 1) => statLines(grandStats(chip.id)[i]);
-    return html`<div data-ww-gd-card=${chip.id} class="${CARD} mt-1">
-      <div class="font-bold">${translateText(`ww1936.gd.${chip.id}`)}</div>
-      <div class="text-white/60">
-        ${translateText(`ww1936.gd_desc.${chip.id}`)}
+    const span = 2 * THOUGHT_MAX_STEP;
+    const at = (milli: number) =>
+      Math.max(
+        0,
+        Math.min(100, ((milli + THOUGHT_MAX_STEP * 1000) / span / 1000) * 100),
+      );
+    const cur = at(s.curMilli);
+    const goal = at(s.target * 1000);
+    const band = { from: Math.min(cur, goal), to: Math.max(cur, goal) };
+    return html`<div
+      data-ww-thought=${s.id}
+      data-moving=${String(s.moving)}
+      class="${CARD} grid grid-cols-2 gap-x-3 gap-y-1 min-[700px]:grid-cols-[1fr_1.5fr_1fr]"
+    >
+      ${this.renderEnd(s, s.left)} ${this.renderEnd(s, s.right)}
+      <div
+        class="order-3 col-span-2 min-w-0 min-[700px]:order-2 min-[700px]:col-span-1"
+      >
+        <div class="relative mx-[14px] h-11">
+          <div
+            class="pointer-events-none absolute inset-x-0 top-1/2 h-1.5 -translate-y-1/2 rounded bg-white/15"
+          ></div>
+          <div
+            class="pointer-events-none absolute top-1/2 h-3 w-0.5 -translate-y-1/2 bg-white/40"
+            style="left: 50%"
+          ></div>
+          <div
+            class="pointer-events-none absolute top-1/2 h-1.5 -translate-y-1/2 rounded bg-sky-400/60"
+            style="left: ${band.from}%; width: ${band.to - band.from}%"
+          ></div>
+          <div
+            data-ww-thought-now
+            class="pointer-events-none absolute top-1/2 size-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white"
+            style="left: ${cur}%"
+          ></div>
+          <input
+            type="range"
+            data-ww-thought-slider=${s.id}
+            class="ww-thought-slider absolute -left-[14px] top-0 w-[calc(100%+28px)]"
+            min=${-THOUGHT_MAX_STEP}
+            max=${THOUGHT_MAX_STEP}
+            step="1"
+            .value=${String(s.target)}
+            aria-label=${`${translateText(`ww1936.thought.left.${s.id}`)} / ${translateText(`ww1936.thought.right.${s.id}`)}`}
+            @input=${(e: Event) => this.preview(s.index, e)}
+            @change=${(e: Event) => this.commit(model, s.index, e)}
+          />
+        </div>
+        <div
+          data-ww-thought-status
+          class="text-center text-[11px] ${s.moving
+            ? "text-sky-300"
+            : "text-white/50"}"
+        >
+          ${s.moving
+            ? translateText("ww1936.thought.moving_days", { days: s.days })
+            : translateText("ww1936.thought.arrived")}
+        </div>
       </div>
-      <div class="mt-1 font-semibold">
-        ${translateText("ww1936.doctrine.base_effect")}
-      </div>
-      <ul class="m-0 list-none p-0">
-        ${stats(0).map((l) => html`<li>${l}</li>`)}
-      </ul>
-      <div class="mt-1 font-semibold">
-        ${translateText("ww1936.doctrine.full_effect")}
-      </div>
-      <ul class="m-0 list-none p-0">
-        ${stats(1).map((l) => html`<li>${l}</li>`)}
-      </ul>
-      ${chip.picked
-        ? html`<div class="mt-1 text-emerald-300">
-            ✓ ${translateText("ww1936.doctrine.chosen")}
-          </div>`
-        : this.pickButton(key, pick, d.xp, () =>
-            this.send(model.gdOrder(d.domain, gd)),
-          )}
     </div>`;
   }
 
-  /** [Pick] (one tap) or [Switch — xp, halves mastery] (two taps), with why it cannot. */
-  private pickButton(
-    key: string,
-    pick: ReturnType<DoctrineModel["pickBlock"]>,
-    _xp: number | null,
-    act: () => void,
-    sub = false,
-  ): TemplateResult {
-    const blocked = pick.block !== null;
-    const label = !pick.switching
-      ? translateText("ww1936.doctrine.choose")
-      : this.armed(key)
-        ? translateText("ww1936.doctrine.tap_again")
-        : translateText(
-            sub ? "ww1936.doctrine.switch_sub" : "ww1936.doctrine.switch",
-            { xp: pick.xpCost },
-          );
-    return html`<button
-        type="button"
-        data-ww-pick=${key}
-        data-state=${pick.switching ? "switch" : "pick"}
-        ?disabled=${blocked}
-        class="${BTN} mt-1 w-full ${this.armed(key)
-          ? "border-amber-300 bg-amber-500/30"
-          : ""}"
-        @click=${() => (pick.switching ? this.confirmTap(key, act) : act())}
-      >
-        ${label}
-      </button>
-      ${blocked
-        ? html`<p data-ww-block class="m-0 mt-0.5 text-red-300">
-            🔒 ${this.blockText(pick.block!, pick.lockDays)}
-          </p>`
-        : nothing}`;
+  /** While dragging only the screen follows; nothing is sent. */
+  private preview(index: number, e: Event) {
+    this.drag.set(index, Number((e.target as HTMLInputElement).value));
+    this.requestUpdate();
   }
 
-  private renderTrack(model: DoctrineModel, t: TrackRow): TemplateResult {
-    const open = this.track === t.track;
-    const sub = t.subs.find((s) => s.picked);
-    const next = t.next;
-    return html`<div data-ww-track=${t.id} class=${CARD}>
-      <button
-        type="button"
-        class="flex min-h-9 w-full flex-col gap-0.5 text-left"
-        aria-expanded=${String(open)}
-        @click=${() => (this.track = open ? null : t.track)}
-      >
-        <span class="flex w-full items-center gap-1.5">
-          <span class="font-bold"
-            >${translateText(`ww1936.track.${t.id}`)}</span
-          >
-          <span class="min-w-0 flex-1 truncate text-white/70"
-            >${sub === undefined
-              ? translateText("ww1936.doctrine.sub_none")
-              : translateText(`ww1936.subdoc.${sub.id}`)}</span
-          >
-          <span data-ww-level class="font-black tabular-nums"
-            >${translateText("ww1936.doctrine.level_short", {
-              level: t.level,
-            })}</span
-          >
-        </span>
-        <span class="flex w-full gap-0.5" data-ww-ticks=${t.level}>
-          ${[1, 2, 3, 4, 5].map(
-            (i) =>
-              html`<span class="h-1.5 flex-1 rounded bg-white/10"
-                ><span
-                  class="block h-1.5 rounded ${i <= t.level
-                    ? "bg-emerald-400"
-                    : "bg-sky-400"}"
-                  style="width: ${i <= t.level
-                    ? 100
-                    : i === t.level + 1
-                      ? Math.floor(t.fill * 100)
-                      : 0}%"
-                ></span
-              ></span>`,
-          )}
-        </span>
-        <span class="flex w-full gap-2 text-white/70">
-          ${next === null
-            ? html`<span class="min-w-0 flex-1"
-                >${t.level === 5
-                  ? translateText("ww1936.doctrine.next_done")
-                  : ""}</span
-              >`
-            : html`<span data-ww-next class="min-w-0 flex-1 truncate"
-                >${translateText("ww1936.doctrine.next", {
-                  level: next.level,
-                  reward: statLines(next.stats).join(", "),
-                })}${t.days === null
-                  ? ""
-                  : ` · ${translateText("ww1936.doctrine.days", { days: t.days })}`}</span
-              >`}
-          ${t.gainText === ""
-            ? nothing
-            : html`<span data-ww-gain class="shrink-0 tabular-nums"
-                >${translateText("ww1936.doctrine.per_day", {
-                  x: t.gainText,
-                })}</span
-              >`}
-        </span>
-      </button>
-      ${open
-        ? html`<div class="mt-1 flex flex-col gap-1">
-            ${t.subs.map((s) => {
-              const pick = model.pickBlock({ track: t.track, sub: s.index });
-              return html`<div
-                data-ww-sub=${s.id}
-                class="${CARD} ${s.picked ? "border-emerald-300" : ""}"
-              >
-                <div class="font-bold">
-                  ${translateText(`ww1936.subdoc.${s.id}`)}
-                </div>
-                <div class="text-white/60">
-                  ${translateText(`ww1936.subdoc_desc.${s.id}`)}
-                </div>
-                <ul class="m-0 mt-1 list-none p-0">
-                  ${s.rewards.map(
-                    (r, i) =>
-                      html`<li class=${i < t.level ? "text-emerald-300" : ""}>
-                        ${translateText("ww1936.doctrine.level_short", {
-                          level: i + 1,
-                        })}
-                        ${statLines(r).join(", ")}
-                      </li>`,
-                  )}
-                </ul>
-                ${s.picked
-                  ? nothing
-                  : this.pickButton(
-                      `sub${s.index}`,
-                      pick,
-                      null,
-                      () => this.send(model.subOrder(t.track, s.index)),
-                      true,
-                    )}
-              </div>`;
-            })}
-          </div>`
-        : nothing}
-    </div>`;
+  /** Letting go sends the one order; there is nothing to confirm and dragging back undoes it. */
+  private commit(model: DoctrineModel, index: number, e: Event) {
+    const pos = Number((e.target as HTMLInputElement).value);
+    this.drag.set(index, pos);
+    this.send(model.thoughtOrder(index, pos));
+    this.requestUpdate();
+    setTimeout(() => {
+      if (this.drag.get(index) === pos) this.drag.delete(index);
+      this.requestUpdate();
+    }, PENDING_MS);
   }
 
   // ---- Officer corps ----
@@ -471,37 +406,12 @@ export class WwDoctrinePanel extends WwDrawerBase {
   }
 
   private renderCommand(model: DoctrineModel): TemplateResult {
-    const bar = model.cpBar();
+    const bar = model.marshalCap();
     if (bar === null) return html``;
     const people = model.commandPeople();
     const marshals = model.marshalRows();
     const promo = model.promoteCandidates();
     return html`<div data-ww-command class="flex flex-col gap-1 pt-2">
-      <div data-ww-cp class=${CARD}>
-        <div class="flex items-center gap-2">
-          <span class="font-bold"
-            >🎖 ${translateText("ww1936.command.cp")}</span
-          >
-          <span class="ml-auto font-black tabular-nums"
-            >${bar.cpText} / ${bar.max}</span
-          >
-        </div>
-        <div class="mt-1 h-2 rounded bg-white/10">
-          <div
-            class="h-2 rounded bg-amber-400"
-            style="width: ${bar.pct}%"
-          ></div>
-        </div>
-        <div class="mt-1 text-white/70">
-          ${translateText("ww1936.command.cp_gain", {
-            gain: (bar.gainMilli / 1000).toFixed(2),
-          })}
-          ${bar.upkeepMilli > 0
-            ? `· ${translateText("ww1936.command.upkeep", { n: (bar.upkeepMilli / 1000).toFixed(2) })}`
-            : ""}
-        </div>
-      </div>
-
       <div class=${HEADING}>${translateText("ww1936.command.generals")}</div>
       ${people.length === 0
         ? html`<p class="m-0 text-xs text-white/60">
@@ -534,84 +444,37 @@ export class WwDoctrinePanel extends WwDrawerBase {
                 .map((t) => translateText(`ww1936.fm_trait.${t}`))
                 .join(", ")}
             </div>
-            ${this.renderMarshalTraits(model, f.id, f.traits, bar.cp)}
+            ${this.renderMarshalTraits(model, f.id, f.traits)}
           </div>`,
       )}
       ${promo.map((g) => this.renderPromote(model, g))}
 
       <div class=${HEADING}>${translateText("ww1936.command.medals")}</div>
-      <div class="flex flex-col gap-1">
-        ${model.medalCards().map(
-          (c) =>
-            html`<div data-ww-medal=${c.id} class=${CARD}>
-              <div class="flex items-center gap-2">
-                <span class="font-bold"
-                  >${translateText(`ww1936.medal.${c.id}`)}</span
-                >
-                <button
-                  type="button"
-                  data-ww-medal-award=${c.id}
-                  ?disabled=${c.block !== null}
-                  class="${BTN} ml-auto"
-                  @click=${() =>
-                    (this.medal = this.medal === c.id ? null : c.id)}
-                >
-                  ${translateText("ww1936.command.award", { cp: c.cp })}
-                </button>
-              </div>
-              ${c.block === null
-                ? nothing
-                : html`<p class="m-0 text-red-300">
-                    🔒 ${this.blockText(c.block)}
-                  </p>`}
-              ${this.medal === c.id
-                ? this.renderMedalArmies(model, c.id)
-                : nothing}
-            </div>`,
-        )}
-      </div>
+      <p class="m-0 text-xs text-white/60">
+        ${translateText("ww1936.command.medals_auto")}
+      </p>
+      ${this.renderMedalWaits(model)}
     </div>`;
   }
 
-  private renderMedalArmies(
-    model: DoctrineModel,
-    medal: string,
-  ): TemplateResult {
+  /** The armies still waiting out their medal cooldown (medals are awarded by themselves). */
+  private renderMedalWaits(model: DoctrineModel): TemplateResult {
     const land = this.game.wwLand?.() ?? null;
     const me = this.game.myPlayer()!.smallID();
     const rows = land === null ? [] : armyRows(land, me);
-    return html`<div class="mt-1 flex flex-col gap-1">
-      <div class="text-white/70">
-        ${translateText("ww1936.command.award_pick")}
-      </div>
-      ${rows.map((r) => {
-        // Lane D: an army waits out its medal cooldown.
-        const wait = model.medalDaysLeft(r.id);
-        return html`<button
-          type="button"
-          data-ww-medal-army=${r.id}
-          ?disabled=${wait > 0}
-          class=${BTN}
-          @click=${() => {
-            this.send({
-              kind: "medal_award",
-              army: r.id,
-              medal: medal as (typeof MEDALS)[number],
-            });
-            this.medal = null;
-          }}
+    return html`${model.medalRows().map((m) => {
+      const r = rows.find((x) => x.id === m.army);
+      return html`<div data-ww-medal-wait=${m.army} class="${CARD} flex gap-2">
+        <span class="min-w-0 flex-1 truncate font-bold"
+          >${r === undefined ? `#${m.army}` : armyName(r.nameNo)}</span
         >
-          ${armyName(r.nameNo)}
-          ${wait > 0
-            ? html`<span class="text-white/60"
-                >${translateText("ww1936.doctrine.locked_days", {
-                  days: wait,
-                })}</span
-              >`
-            : nothing}
-        </button>`;
-      })}
-    </div>`;
+        <span class="shrink-0 text-white/60"
+          >${translateText("ww1936.doctrine.locked_days", {
+            days: m.days,
+          })}</span
+        >
+      </div>`;
+    })}`;
   }
 
   private renderPerson(
@@ -669,7 +532,7 @@ export class WwDoctrinePanel extends WwDrawerBase {
                     @click=${() =>
                       this.send(model.traitOrder(p.id, c.trait, p.admiral))}
                   >
-                    ${translateText("ww1936.command.trait_cost", { cp: c.cp })}
+                    ${translateText("ww1936.command.trait_cost", { xp: c.xp })}
                   </button>
                   ${c.block === null
                     ? nothing
@@ -687,7 +550,6 @@ export class WwDoctrinePanel extends WwDrawerBase {
     model: DoctrineModel,
     id: number,
     held: readonly string[],
-    cp: number,
   ): TemplateResult {
     const open = this.marshalTrait === id;
     const free = FM_TRAITS.filter((t) => !held.includes(t));
@@ -718,7 +580,7 @@ export class WwDoctrinePanel extends WwDrawerBase {
                     @click=${() => this.send(model.traitOrder(id, t, false))}
                   >
                     ${translateText("ww1936.command.trait_cost", {
-                      cp: model.fmTraitCp,
+                      xp: model.fmTraitXp,
                     })}
                   </button>
                 </div>`,
@@ -777,9 +639,6 @@ export class WwDoctrinePanel extends WwDrawerBase {
   }
 }
 
-function grandStats(id: GrandDoctrine) {
-  return GRAND_DOCTRINE_STATS[id];
-}
 function isGeneralTrait(t: string): boolean {
   return (GENERAL_TRAITS as readonly string[]).includes(t);
 }

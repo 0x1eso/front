@@ -39,44 +39,38 @@ async function mountPanel(o: DoctrineOptions, tab: string) {
   return { el, bus, sent, click, g };
 }
 
-describe("<ww-doctrine-panel> orders (spec §20.3)", () => {
+describe("<ww-doctrine-panel> orders (ww9 design §11)", () => {
   afterEach(() => {
     document.body.innerHTML = "";
     vi.useRealTimers();
   });
 
-  it("the first pick is one tap and sends once", async () => {
+  it("dragging a slider sends one thought_set on letting go, with no confirmation", async () => {
     const m = await mountPanel({}, "land");
-    await m.click("[data-ww-gd='gd_mobile']");
-    await m.click("[data-ww-pick='gd0']");
+    const input = m.el.querySelector<HTMLInputElement>(
+      "[data-ww-thought-slider='off_def']",
+    )!;
+    input.value = "-6";
+    input.dispatchEvent(new Event("input"));
+    await m.el.updateComplete;
+    // Only the preview so far.
+    expect(m.sent).toHaveLength(0);
+    input.dispatchEvent(new Event("change"));
+    await m.el.updateComplete;
     expect(m.sent).toEqual([
-      { kind: "doctrine_pick", domain: "land", id: "gd_mobile" },
+      { kind: "thought_set", slider: "off_def", pos: -6 },
     ]);
   });
 
-  it("a switch needs two taps: arm, send once, a third tap arms again", async () => {
-    vi.useFakeTimers();
-    const m = await mountPanel(
-      { detail: { doctrine: { gd: [0, -1, -1] } } },
-      "land",
+  it("the land tab holds three sliders and no pick buttons, badges or prompts", async () => {
+    const m = await mountPanel({}, "land");
+    expect(m.el.querySelectorAll("[data-ww-thought]")).toHaveLength(3);
+    expect(m.el.querySelector("[data-ww-pick-prompt]")).toBeNull();
+    expect(m.el.querySelector("[data-ww-pick]")).toBeNull();
+    const air = await mountPanel({}, "air");
+    expect(air.el.querySelectorAll("[data-ww-thought]").length).toBeGreaterThan(
+      0,
     );
-    await m.click("[data-ww-gd='gd_firepower']");
-    await m.click("[data-ww-pick='gd1']");
-    expect(m.sent).toHaveLength(0);
-    // A hurried second tap is no confirmation.
-    vi.advanceTimersByTime(50);
-    await m.click("[data-ww-pick='gd1']");
-    expect(m.sent).toHaveLength(0);
-    vi.advanceTimersByTime(500);
-    await m.click("[data-ww-pick='gd1']");
-    expect(m.sent).toHaveLength(1);
-    expect(m.sent[0]).toMatchObject({
-      kind: "doctrine_pick",
-      id: "gd_firepower",
-    });
-    vi.advanceTimersByTime(500);
-    await m.click("[data-ww-pick='gd1']");
-    expect(m.sent).toHaveLength(1);
   });
 
   it("promote needs two taps on a trait and sends once", async () => {
@@ -89,7 +83,6 @@ describe("<ww-doctrine-panel> orders (spec §20.3)", () => {
             armyXpMilli: 0,
           }),
         ],
-        detail: { command: { cpMilli: 50_000 } },
       },
       "command",
     );

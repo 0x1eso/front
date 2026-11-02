@@ -5,7 +5,6 @@ import {
   ARMY_SPIRITS,
   CODENAME_COUNT,
   DAMS,
-  DOCTRINE_TRACKS,
   FM_TRAITS,
   GD_DOMAIN,
   GRAND_DOCTRINES,
@@ -35,7 +34,7 @@ const DATE = /^19[34]\d-\d\d-\d\d$/;
 const ALL_TECHS = new Set(WW_TECH_IDS);
 const ALL_PROJECTS = (1 << SPECIAL_PROJECTS.length) - 1;
 /** K5's keys are in the language files (Phase B): the name checks run. */
-const K5_KEYS = hasKey("ww1936.gd.gd_mobile");
+const K5_KEYS = hasKey("ww1936.army_spirit.as_air_college");
 
 describe("depth data", () => {
   it("the nine <damId>_destroyed flags are declared (pre-flight §C5, review L3)", () => {
@@ -140,9 +139,6 @@ describe("depth data", () => {
           { length: CODENAME_COUNT },
           (_, n) => `ww1936.codename.c${n}`,
         ),
-        ...GRAND_DOCTRINES.map((g) => `ww1936.gd.${g}`),
-        ...SUBDOCTRINES.map((s) => `ww1936.subdoc.${s}`),
-        ...DOCTRINE_TRACKS.map((t) => `ww1936.track.${t}`),
         ...ARMY_SPIRITS.map((s) => `ww1936.army_spirit.${s}`),
         ...FM_TRAITS.map((t) => `ww1936.fm_trait.${t}`),
         ...[...TANK_MODULES, ...SHIP_MODULES, ...PLANE_MODULES].map(

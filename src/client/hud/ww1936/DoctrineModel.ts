@@ -1,26 +1,9 @@
-// World War 1936 P6 lane U1 (plan Task 10, spec §20.1–§20.4): the doctrine
-// and command screens' data — the dials, the band chips, the drawer's tabs
-// and the army group tab. Pure over the views (WwDepthView, WwLandView,
-// WwNavyView); the client reads and sends intents, never the engine.
 import type { WwOrder } from "@openfront/engine-api/Schemas";
 import {
   ARMY_SPIRIT_CATEGORIES,
   ARMY_SPIRITS,
-  CP_FM_UPKEEP_MILLI,
-  CP_MAX_MILLI,
-  DOCTRINE_DOMAINS,
-  DOCTRINE_TRACKS,
   FM_TRAITS,
-  GD_DOMAIN,
-  GD_SWITCH_XP,
-  GRAND_DOCTRINES,
-  MASTERY_LEVELS_MILLI,
-  MEDAL_CP,
-  MEDALS,
   SPIRIT_CAT_DOMAIN,
-  SUB_SWITCH_XP,
-  SUB_TRACK,
-  SUBDOCTRINES,
   type WwArmyGroupData,
   type WwDepthDetail,
   type WwDepthSummary,
@@ -38,28 +21,41 @@ import {
   WW_ADMIRAL_TRAIT_MAX,
 } from "@openfront/engine-api/ww1936/NavyTypes";
 import type { WwStats } from "@openfront/engine-api/ww1936/PoliticsTypes";
-import { dayOfDate } from "@openfront/engine-lib/ww1936/Calendar";
+import {
+  THOUGHT_EDGE_IDS,
+  THOUGHT_MAX_STEP,
+  THOUGHT_SLIDER_COUNT,
+  THOUGHT_SLIDER_DOMAIN,
+  THOUGHT_SLIDERS,
+  type ThoughtEdgeId,
+} from "@openfront/engine-api/ww1936/ThoughtTypes";
+import { dateOfDay, dayOfDate } from "@openfront/engine-lib/ww1936/Calendar";
 import {
   ASSIGNABLE_ADMIRAL_TRAITS,
   fieldMarshalCap,
-  FM_EXTRA_TRAIT_CP,
+  FM_EXTRA_TRAIT_XP,
   fmEligible,
   promoteFmBlock,
   spiritCost,
   spiritPickBlock,
   traitAssignBlock,
-  traitCost,
+  type TraitAssignInput,
   traitSlots,
+  traitXpCost,
 } from "@openfront/engine-lib/ww1936/CommandRules";
 import { CONTENT } from "@openfront/engine-lib/ww1936/content/registry";
 import {
-  doctrinePickBlock,
-  masteryLevel,
-  SUBDOCTRINE_REWARDS,
-} from "@openfront/engine-lib/ww1936/DoctrineRules";
+  THOUGHT_ENDS,
+  thoughtDaysToGo,
+  thoughtEdgeLit,
+  thoughtNotch,
+  thoughtTermValue,
+  thoughtYearPct,
+} from "@openfront/engine-lib/ww1936/ThoughtRules";
 import type { GameView } from "../../view/GameView";
 import { generalName, rosterName } from "./LandModel";
 import { admiralDef, admiralName, admiralTraits } from "./NavyModel";
+import { statLines } from "./PoliticsModel";
 import { today } from "./WorldWarModel";
 
 /** Whole experience points of the domains (air: not in the views, null). */
@@ -69,7 +65,6 @@ export type DoctrineBlock =
   | "doctrine_locked"
   | "no_xp"
   | "bad_index"
-  | "no_cp"
   | "no_pp"
   | "no_slot"
   | "fm_cap"
@@ -79,62 +74,43 @@ export const DOCTRINE_BLOCK_KEYS: Readonly<Record<DoctrineBlock, string>> = {
   doctrine_locked: "ww1936.econ.block.doctrine_locked",
   no_xp: "ww1936.econ.block.no_xp",
   bad_index: "ww1936.econ.block.bad_index",
-  no_cp: "ww1936.econ.block.no_cp",
   no_pp: "ww1936.econ.block.no_pp",
   no_slot: "ww1936.econ.block.trait_unavailable",
   fm_cap: "ww1936.econ.block.fm_limit",
   not_ready: "ww1936.econ.block.general_unavailable",
 };
 
-const MAX_LEVEL = 5;
+/** One line of an end: what it gives at the actual position, and at the target while moving. */
+export interface ThoughtLine {
+  now: string;
+  goal: string;
+}
 
-export interface GdChip {
-  /** GRAND_DOCTRINES index. */
+export interface ThoughtEnd {
+  id: ThoughtEdgeId;
+  /** 0 left (negative notches), 1 right. */
+  end: 0 | 1;
+  lines: ThoughtLine[];
+  /** The star bonus lines; lit once the actual position is at the end's edge. */
+  star: { lines: string[]; lit: boolean; goalLit: boolean };
+}
+
+export interface ThoughtSliderView {
+  /** THOUGHT_SLIDERS index. */
   index: number;
-  id: (typeof GRAND_DOCTRINES)[number];
-  picked: boolean;
-}
-
-export interface SubCard {
-  /** SUBDOCTRINES index. */
-  index: number;
-  id: (typeof SUBDOCTRINES)[number];
-  picked: boolean;
-  /** L1..L5 rewards. */
-  rewards: readonly Partial<WwStats>[];
-}
-
-export interface TrackRow {
-  /** DOCTRINE_TRACKS index. */
-  track: number;
-  id: (typeof DOCTRINE_TRACKS)[number];
-  /** SUBDOCTRINES index, -1 none. */
-  sub: number;
-  level: number;
-  milli: number;
-  /** Fill of the stretch to the next level, 0..1. */
-  fill: number;
-  next: { level: number; stats: Partial<WwStats> } | null;
-  days: number | null;
-  /** Yesterday's gain, "0.84"; "" when none. */
-  gainText: string;
-  subs: SubCard[];
-}
-
-export interface DomainView {
+  id: (typeof THOUGHT_SLIDERS)[number];
+  /** 0 land, 1 naval, 2 air. */
   domain: number;
-  id: (typeof DOCTRINE_DOMAINS)[number];
-  /** GRAND_DOCTRINES index, -1 none. */
-  picked: number;
-  /** No grand doctrine yet: the tab glows "pick one". */
-  unpicked: boolean;
-  chips: GdChip[];
-  /** Whole experience of the domain; null when the screens cannot know it. */
-  xp: number | null;
-  switchXp: number;
-  lockDays: number;
-  levelSum: number;
-  tracks: TrackRow[];
+  /** The notch asked for (-10..10). */
+  target: number;
+  /** The actual position's notch, and in milli-notches. */
+  notch: number;
+  curMilli: number;
+  moving: boolean;
+  /** Days until the actual position reaches the target; 0 when there. */
+  days: number;
+  left: ThoughtEnd;
+  right: ThoughtEnd;
 }
 
 export interface SpiritCard {
@@ -154,7 +130,7 @@ export interface SpiritCard {
 
 export interface TraitCandidate {
   trait: string;
-  cp: number;
+  xp: number;
   block: DoctrineBlock | null;
 }
 
@@ -177,24 +153,16 @@ export interface MarshalRow {
   group: number;
 }
 
-export interface CpBar {
-  cp: number;
-  cpText: string;
-  max: number;
-  pct: number;
-  gainMilli: number;
-  upkeepMilli: number;
+export interface MarshalCap {
   marshals: number;
   cap: number;
 }
 
-export interface DoctrineDial {
-  /** The lowest army track's way to its next level, 0..1. */
+/** The dock's thought dial: no badge; a thin ring only while a slider moves. */
+export interface ThoughtDial {
+  moving: number;
+  /** 0 when nothing moves; else how far the slowest slider has come, 0.05..1. */
   progress: number;
-  unpicked: number;
-  points: number;
-  glow: boolean;
-  badge: { kind: "unpicked" | "points"; n: number } | null;
 }
 
 export interface IntelDial {
@@ -205,7 +173,6 @@ export interface IntelDial {
 }
 
 export interface BandDepth {
-  cpText: string;
   energyPct: number | null;
   congressPct: number | null;
   nukes: number | null;
@@ -217,20 +184,6 @@ export interface GroupRow {
   fmName: string;
   fmTraits: string[];
   armies: number[];
-}
-
-function tenth(milli: number): string {
-  const t = Math.trunc(milli / 100);
-  return `${Math.trunc(t / 10)}.${Math.abs(t % 10)}`;
-}
-
-/** The level a mastery reached and the fill of the stretch to the next. */
-export function levelFill(milli: number): { level: number; fill: number } {
-  const level = masteryLevel(milli);
-  if (level === 5) return { level, fill: 1 };
-  const lo = level === 0 ? 0 : MASTERY_LEVELS_MILLI[level - 1];
-  const hi = MASTERY_LEVELS_MILLI[level];
-  return { level, fill: Math.max(0, Math.min(1, (milli - lo) / (hi - lo))) };
 }
 
 export function generalTraitIds(mask: number): GeneralTrait[] {
@@ -284,11 +237,25 @@ interface Ctx {
   sum: WwDepthSummary | undefined;
 }
 
+/**
+ * The engine's traitAssignBlock with the price taken out (any amount of XP):
+ * null when the person could take the trait if only he could pay.
+ */
+function openTraitBlock(
+  i: Omit<TraitAssignInput, "cpMilli">,
+): ReturnType<typeof traitAssignBlock> {
+  return traitAssignBlock({
+    ...i,
+    cpMilli: Number.MAX_SAFE_INTEGER,
+    xp: Number.MAX_SAFE_INTEGER,
+  } as TraitAssignInput);
+}
+
 export class DoctrineModel {
   constructor(readonly view: GameView) {}
 
-  /** Command power an extra marshal trait costs (spec §4.2). */
-  readonly fmTraitCp = FM_EXTRA_TRAIT_CP;
+  /** Army XP an extra marshal trait costs (design §12.1). */
+  readonly fmTraitXp = FM_EXTRA_TRAIT_XP;
 
   private ctx(): Ctx | null {
     const depth = this.view.wwDepth?.() ?? null;
@@ -335,187 +302,116 @@ export class DoctrineModel {
     return s === undefined || s === null ? null : Math.floor(s.ppMilli / 1000);
   }
 
-  // ---- The doctrine tabs (spec §20.3 tabs 1–3) ----
+  // ---- The thought sliders (design §11.1) ----
 
-  domains(): DomainView[] {
-    const c = this.ctx();
-    if (c === null) return [];
-    return DOCTRINE_DOMAINS.map((_, d) => this.domainOf(c, d));
-  }
-
-  private domainOf(c: Ctx, domain: number): DomainView {
-    const doc = c.detail.doctrine;
-    const picked = doc.gd[domain] ?? -1;
-    const chips: GdChip[] = [];
-    GRAND_DOCTRINES.forEach((id, index) => {
-      if (GD_DOMAIN[index] === domain) {
-        chips.push({ index, id, picked: index === picked });
-      }
-    });
-    const tracks = this.trackRowsOf(c, domain);
-    const lock = doc.gdLock[domain] ?? -1;
+  /** The detail's thought state; before the engine sends it, every slider rests in the middle. */
+  private thoughtOf(c: Ctx): {
+    target: number[];
+    curMilli: number[];
+    rateMilli: number;
+  } {
+    const t = c.detail.thought;
     return {
-      domain,
-      id: DOCTRINE_DOMAINS[domain],
-      picked,
-      unpicked: picked < 0,
-      chips,
-      xp: this.xp(c)[domain],
-      switchXp: GD_SWITCH_XP[domain],
-      lockDays: lock > c.day ? lock - c.day : 0,
-      levelSum: tracks.reduce((a, t) => a + t.level, 0),
-      tracks,
+      target: t?.target ?? [],
+      curMilli: t?.curMilli ?? [],
+      rateMilli: t?.rateMilli ?? 100,
     };
-  }
-
-  /** The domain's three track rows: level, next reward and days. */
-  trackRows(domain: number): TrackRow[] {
-    const c = this.ctx();
-    return c === null ? [] : this.trackRowsOf(c, domain);
-  }
-
-  private trackRowsOf(c: Ctx, domain: number): TrackRow[] {
-    const doc = c.detail.doctrine;
-    const rows: TrackRow[] = [];
-    for (let track = domain * 3; track < domain * 3 + 3; track++) {
-      const milli = doc.masteryMilli[track] ?? 0;
-      const { level, fill } = levelFill(milli);
-      const sub = doc.sub[track] ?? -1;
-      const gain = doc.gainMilli[track] ?? 0;
-      const subs: SubCard[] = [];
-      SUBDOCTRINES.forEach((id, index) => {
-        if (SUB_TRACK[index] === track) {
-          subs.push({
-            index,
-            id,
-            picked: index === sub,
-            rewards: SUBDOCTRINE_REWARDS[id],
-          });
-        }
-      });
-      rows.push({
-        track,
-        id: DOCTRINE_TRACKS[track],
-        sub,
-        level,
-        milli,
-        fill,
-        next: this.rewardOf(sub, level),
-        days: this.daysOf(milli, gain),
-        gainText: gain > 0 ? (gain / 1000).toFixed(2) : "",
-        subs,
-      });
-    }
-    return rows;
-  }
-
-  private rewardOf(
-    sub: number,
-    level: number,
-  ): { level: number; stats: Partial<WwStats> } | null {
-    if (sub < 0 || level >= MAX_LEVEL) return null;
-    return {
-      level: level + 1,
-      stats: SUBDOCTRINE_REWARDS[SUBDOCTRINES[sub]][level] ?? {},
-    };
-  }
-
-  private daysOf(milli: number, gain: number): number | null {
-    const level = masteryLevel(milli);
-    if (level === 5 || gain <= 0) return null;
-    return Math.ceil((MASTERY_LEVELS_MILLI[level] - milli) / gain);
-  }
-
-  /** The reward the track's next level gives (null at the top or with no sub-doctrine). */
-  nextReward(track: number): { level: number; stats: Partial<WwStats> } | null {
-    const c = this.ctx();
-    if (c === null) return null;
-    return this.rewardOf(
-      c.detail.doctrine.sub[track] ?? -1,
-      masteryLevel(c.detail.doctrine.masteryMilli[track] ?? 0),
-    );
-  }
-
-  /** Days to the next level at yesterday's gain; null when it does not grow or is full. */
-  daysToNext(track: number): number | null {
-    const c = this.ctx();
-    if (c === null) return null;
-    return this.daysOf(
-      c.detail.doctrine.masteryMilli[track] ?? 0,
-      c.detail.doctrine.gainMilli[track] ?? 0,
-    );
   }
 
   /**
-   * Why a grand doctrine (`{domain, gd}`) or sub-doctrine (`{track, sub}`)
-   * cannot be picked now (the engine's own check), the xp it costs and how
-   * many days it stays locked. `switching`: it replaces another pick.
+   * Sliders of a service (0 land, 1 naval, 2 air), in THOUGHT_SLIDERS order.
+   * `preview`: targets being dragged (by slider index) that stand in for the
+   * view's own until the engine has taken the order.
    */
-  pickBlock(
-    what: { domain: number; gd: number } | { track: number; sub: number },
-  ): {
-    block: "doctrine_locked" | "no_xp" | "bad_index" | null;
-    xpCost: number;
-    lockDays: number;
-    switching: boolean;
-  } {
+  sliders(
+    domain: number,
+    preview: ReadonlyMap<number, number> = new Map(),
+  ): ThoughtSliderView[] {
     const c = this.ctx();
-    if (c === null) {
-      return { block: null, xpCost: 0, lockDays: 0, switching: false };
-    }
-    const doc = c.detail.doctrine;
-    const xp = this.xp(c);
-    if ("gd" in what) {
-      const current = doc.gd[what.domain] ?? -1;
-      const lock = doc.gdLock[what.domain] ?? -1;
-      return {
-        block: doctrinePickBlock({
-          domain: what.domain,
-          gd: what.gd,
-          current,
-          lockUntil: lock,
-          day: c.day,
-          xp: xp[what.domain] ?? Number.MAX_SAFE_INTEGER,
-        }),
-        xpCost: current >= 0 ? GD_SWITCH_XP[what.domain] : 0,
-        lockDays: current >= 0 && lock > c.day ? lock - c.day : 0,
-        switching: current >= 0,
-      };
-    }
-    const domain = Math.floor(what.track / 3);
-    const current = doc.sub[what.track] ?? -1;
-    const lock = doc.subLock[what.track] ?? -1;
-    return {
-      block: doctrinePickBlock({
+    if (c === null) return [];
+    const t = this.thoughtOf(c);
+    const yearPct = thoughtYearPct(
+      this.view.worldWarScenario() ? dateOfDay(c.day).year : 1936,
+    );
+    const out: ThoughtSliderView[] = [];
+    for (let s = 0; s < THOUGHT_SLIDER_COUNT; s++) {
+      if (THOUGHT_SLIDER_DOMAIN[s] !== domain) continue;
+      const cur = t.curMilli[s] ?? 0;
+      const target = preview.get(s) ?? t.target[s] ?? 0;
+      const notch = thoughtNotch(cur);
+      const moving = cur !== target * 1000;
+      out.push({
+        index: s,
+        id: THOUGHT_SLIDERS[s],
         domain,
-        gd: -1,
-        current: -1,
-        lockUntil: lock,
-        day: c.day,
-        xp: xp[domain] ?? Number.MAX_SAFE_INTEGER,
-        track: what.track,
-        sub: what.sub,
-        currentSub: current,
-      }),
-      xpCost: current >= 0 ? SUB_SWITCH_XP : 0,
-      lockDays: current >= 0 && lock > c.day ? lock - c.day : 0,
-      switching: current >= 0,
+        target,
+        notch,
+        curMilli: cur,
+        moving,
+        days: moving ? thoughtDaysToGo(cur, target, t.rateMilli) : 0,
+        left: this.endOf(s, 0, notch, target, moving, yearPct),
+        right: this.endOf(s, 1, notch, target, moving, yearPct),
+      });
+    }
+    return out;
+  }
+
+  private endOf(
+    s: number,
+    end: 0 | 1,
+    notch: number,
+    target: number,
+    moving: boolean,
+    yearPct: number,
+  ): ThoughtEnd {
+    const def = THOUGHT_ENDS[2 * s + end];
+    const line = (key: string, v: number): string =>
+      v === 0 ? "" : (statLines({ [key]: v } as Partial<WwStats>)[0] ?? "");
+    return {
+      id: THOUGHT_EDGE_IDS[2 * s + end],
+      end,
+      lines: def.terms.map((term) => ({
+        now: line(term.key, thoughtTermValue(term, notch, end, yearPct)),
+        goal: moving
+          ? line(term.key, thoughtTermValue(term, target, end, yearPct))
+          : "",
+      })),
+      star: {
+        lines: statLines(def.edge),
+        lit: thoughtEdgeLit(notch, end),
+        goalLit: thoughtEdgeLit(target, end),
+      },
     };
   }
 
-  gdOrder(domain: number, gd: number): WwOrder {
+  /** A drag lands on notch `pos` of slider `slider`. */
+  thoughtOrder(slider: number, pos: number): WwOrder {
     return {
-      kind: "doctrine_pick",
-      domain: DOCTRINE_DOMAINS[domain],
-      id: GRAND_DOCTRINES[gd],
+      kind: "thought_set",
+      slider: THOUGHT_SLIDERS[slider],
+      pos: Math.max(-THOUGHT_MAX_STEP, Math.min(THOUGHT_MAX_STEP, pos)),
     };
   }
 
-  subOrder(track: number, sub: number): WwOrder {
+  /** Whether any slider is moving (the dock's ring). */
+  thoughtDial(): ThoughtDial | null {
+    const c = this.ctx();
+    if (c === null) return null;
+    const t = this.thoughtOf(c);
+    let moving = 0;
+    let far = 0;
+    for (let s = 0; s < THOUGHT_SLIDER_COUNT; s++) {
+      const gap = Math.abs((t.target[s] ?? 0) * 1000 - (t.curMilli[s] ?? 0));
+      if (gap === 0) continue;
+      moving++;
+      far = Math.max(far, gap);
+    }
     return {
-      kind: "subdoctrine_pick",
-      track: DOCTRINE_TRACKS[track],
-      id: SUBDOCTRINES[sub],
+      moving,
+      progress:
+        moving === 0
+          ? 0
+          : Math.max(0.05, 1 - far / (2 * THOUGHT_MAX_STEP * 1000)),
     };
   }
 
@@ -570,20 +466,13 @@ export class DoctrineModel {
 
   // ---- Command (tab 5) ----
 
-  cpBar(): CpBar | null {
+  /** The field marshals I have and may have (design §12.4: no command power bar any more). */
+  marshalCap(): MarshalCap | null {
     const c = this.ctx();
     if (c === null) return null;
     const land = c.game.wwLand?.()?.countries.get(c.me);
-    const marshals = c.sum?.fieldMarshals ?? 0;
-    const cp = c.detail.command.cpMilli;
     return {
-      cp: Math.floor(cp / 1000),
-      cpText: tenth(cp),
-      max: CP_MAX_MILLI / 1000,
-      pct: Math.max(0, Math.min(100, Math.floor((cp * 100) / CP_MAX_MILLI))),
-      gainMilli: c.detail.command.cpGainMilli,
-      upkeepMilli: CP_FM_UPKEEP_MILLI * marshals,
-      marshals,
+      marshals: c.sum?.fieldMarshals ?? 0,
       cap: fieldMarshalCap(land?.divisions ?? 0),
     };
   }
@@ -642,9 +531,10 @@ export class DoctrineModel {
   }
 
   /**
-   * The traits lane D's traitAssignBlock lets this person take once there
-   * is room and command power, each with why not now: "no_cp", or
-   * "no_slot" when only the slots refuse it.
+   * The traits traitAssignBlock lets this person take once there is room and
+   * XP, each with why not now: "no_xp", or "no_slot" when only the slots
+   * refuse it. The engine's own judge decides openness (given unlimited XP);
+   * the price is the army's (navy's for an admiral) experience.
    */
   private candidatesOf(
     c: Ctx,
@@ -658,25 +548,26 @@ export class DoctrineModel {
       fmTraits: readonly string[];
     },
   ): TraitCandidate[] {
+    const have = this.xp(c)[admiral ? 1 : 0] ?? Number.MAX_SAFE_INTEGER;
     const out: TraitCandidate[] = [];
     for (const t of pool) {
-      const judge = (cpMilli: number, slots: number) =>
-        traitAssignBlock({ ...base, admiral, trait: t, cpMilli, slots });
-      // Room and power aside, the trait must be open to him.
+      const judge = (slots: number) =>
+        openTraitBlock({ ...base, admiral, trait: t, slots });
+      // Room and XP aside, the trait must be open to him.
       const open = admiral
         ? base.level >= 2 && !base.traits.includes(t)
-        : judge(Number.MAX_SAFE_INTEGER, Number.MAX_SAFE_INTEGER) === null;
+        : judge(Number.MAX_SAFE_INTEGER) === null;
       if (!open) continue;
-      const real = judge(c.detail.command.cpMilli, base.slots);
+      const xp = traitXpCost(t, admiral);
       out.push({
         trait: t,
-        cp: traitCost(t, admiral),
+        xp,
         block:
-          real === null
-            ? null
-            : real === "no_cp"
-              ? "no_cp"
-              : ("no_slot" as const),
+          judge(base.slots) !== null
+            ? ("no_slot" as const)
+            : have < xp
+              ? ("no_xp" as const)
+              : null,
       });
     }
     return out;
@@ -715,17 +606,18 @@ export class DoctrineModel {
       ?.details.get(c.me)
       ?.generals.find((x) => x.id === marshal);
     if (g === undefined) return "not_ready";
-    const b = traitAssignBlock({
+    const b = openTraitBlock({
       admiral: false,
       level: g.level,
       traits: generalTraitIds(g.traits),
       slots: traitSlots(g.level),
       trait,
-      cpMilli: c.detail.command.cpMilli,
       isFm: isMarshal(g),
       fmTraits: marshalTraitIds(g),
     });
-    return b === null ? null : b === "no_cp" ? "no_cp" : "no_slot";
+    if (b !== null) return "no_slot";
+    const xp = traitXpCost(trait, false);
+    return (this.xp(c)[0] ?? Number.MAX_SAFE_INTEGER) < xp ? "no_xp" : null;
   }
 
   traitOrder(general: number, trait: string, admiral: boolean): WwOrder {
@@ -770,7 +662,7 @@ export class DoctrineModel {
     block: DoctrineBlock | null;
   }[] {
     const c = this.ctx();
-    const bar = this.cpBar();
+    const bar = this.marshalCap();
     if (c === null || bar === null) return [];
     const pp = this.pp(c);
     const land = c.game.wwLand?.()?.details.get(c.me);
@@ -779,7 +671,7 @@ export class DoctrineModel {
     return (land?.generals ?? [])
       .filter((g) => !isMarshal(g) && promotable(g, tag, c.day))
       .map((g) => {
-        // Lane D's promoteFmBlock (serving is the engine's to judge).
+        // The engine's promoteFmBlock (serving is the engine's to judge); only PP is paid.
         const b = promoteFmBlock({
           isFm: false,
           serves: true,
@@ -788,9 +680,9 @@ export class DoctrineModel {
           listed: listedMarshal(tag, g, c.day),
           fieldMarshals: bar.marshals,
           divisions,
-          cpMilli: c.detail.command.cpMilli,
+          cpMilli: Number.MAX_SAFE_INTEGER,
           pp: pp ?? Number.MAX_SAFE_INTEGER,
-        });
+        } as Parameters<typeof promoteFmBlock>[0]);
         return {
           id: g.id,
           name: rosterName(g),
@@ -800,76 +692,28 @@ export class DoctrineModel {
               ? null
               : b === "fm_limit"
                 ? ("fm_cap" as const)
-                : b === "no_cp" || b === "no_pp"
+                : b === "no_pp"
                   ? b
                   : ("not_ready" as const),
         };
       });
   }
 
-  /** Days until `army` may get a medal again (lane D's detail.command.medalCooldown); 0: now. */
-  medalDaysLeft(army: number): number {
+  /** Armies still waiting out their medal cooldown (medals are awarded by themselves): army id and days left. */
+  medalRows(): { army: number; days: number }[] {
     const c = this.ctx();
-    if (c === null) return 0;
-    const row = (c.detail.command.medalCooldown ?? []).find(
-      (m) => m[0] === army,
-    );
-    return row === undefined ? 0 : Math.max(0, row[1] - c.day);
+    if (c === null) return [];
+    return (c.detail.command.medalCooldown ?? [])
+      .map((m) => ({ army: m[0], days: Math.max(0, m[1] - c.day) }))
+      .filter((m) => m.days > 0)
+      .sort((a, b) => a.army - b.army);
   }
 
   promoteOrder(general: number, trait: string): WwOrder {
     return { kind: "promote_fm", general, trait: trait as never };
   }
 
-  medalCards(): {
-    id: (typeof MEDALS)[number];
-    cp: number;
-    block: DoctrineBlock | null;
-  }[] {
-    const c = this.ctx();
-    return MEDALS.map((id) => ({
-      id,
-      cp: MEDAL_CP,
-      block:
-        c === null
-          ? ("not_ready" as const)
-          : c.detail.command.cpMilli < MEDAL_CP * 1000
-            ? ("no_cp" as const)
-            : null,
-    }));
-  }
-
   // ---- The dials and the band (spec §20.1, §20.2) ----
-
-  /** 🎖: the lowest land track's ring; a glowing badge for unpicked doctrines, else the slots you could fill. */
-  dial(): DoctrineDial | null {
-    const c = this.ctx();
-    if (c === null) return null;
-    const doc = c.detail.doctrine;
-    let unpicked = 0;
-    for (let d = 0; d < 3; d++) if ((doc.gd[d] ?? -1) < 0) unpicked++;
-    for (let t = 0; t < 9; t++) if ((doc.sub[t] ?? -1) < 0) unpicked++;
-    const lowest = Math.min(
-      doc.masteryMilli[0] ?? 0,
-      doc.masteryMilli[1] ?? 0,
-      doc.masteryMilli[2] ?? 0,
-    );
-    const points = this.commandPeople().filter((p) =>
-      p.candidates.some((t) => t.block === null),
-    ).length;
-    return {
-      progress: levelFill(lowest).fill,
-      unpicked,
-      points,
-      glow: unpicked > 0,
-      badge:
-        unpicked > 0
-          ? { kind: "unpicked", n: unpicked }
-          : points > 0
-            ? { kind: "points", n: points }
-            : null,
-    };
-  }
 
   /** 🕵: the running upgrade's ring; a red badge for captured operatives, else the idle ones. */
   intelDial(): IntelDial | null {
@@ -896,14 +740,13 @@ export class DoctrineModel {
     };
   }
 
-  /** The band's chips: 🎖 command power, ⚡ energy under 100%, 🏛 US congress, ☢ my atomic bombs. */
+  /** The band's chips: ⚡ energy under 100%, 🏛 US congress, ☢ my atomic bombs. */
   band(): BandDepth | null {
     const c = this.ctx();
     const me = this.view.myPlayer();
     if (c === null || me === null) return null;
     const e = c.sum?.energyPm;
     return {
-      cpText: tenth(c.detail.command.cpMilli),
       energyPct: e !== undefined && e < 1000 ? Math.floor(e / 10) : null,
       congressPct:
         me.countryTag?.() === "USA"

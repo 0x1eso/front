@@ -1,5 +1,5 @@
 // World War 1936 P6 lane U1: a land game with a depth view — my country's
-// doctrine and command detail, army groups — for the doctrine screens' tests.
+// thought and command detail, army groups — for the doctrine screens' tests.
 import type {
   WwArmyGroupData,
   WwDepthDetail,
@@ -12,23 +12,20 @@ export function depthDetail(
   smallID: number,
   over: {
     doctrine?: Partial<WwDepthDetail["doctrine"]>;
+    thought?: Partial<NonNullable<WwDepthDetail["thought"]>>;
     command?: Partial<WwDepthDetail["command"]>;
   } = {},
 ): WwDepthDetail {
   return {
     smallID,
-    doctrine: {
-      gd: [-1, -1, -1],
-      gdLock: [-1, -1, -1],
-      sub: new Array<number>(9).fill(-1),
-      subLock: new Array<number>(9).fill(-1),
-      masteryMilli: new Array<number>(9).fill(0),
-      gainMilli: new Array<number>(9).fill(0),
-      ...over.doctrine,
+    doctrine: { ...over.doctrine },
+    thought: {
+      target: new Array<number>(9).fill(0),
+      curMilli: new Array<number>(9).fill(0),
+      rateMilli: 100,
+      ...over.thought,
     },
     command: {
-      cpMilli: 34_000,
-      cpGainMilli: 400,
       spirits: new Array<number>(7).fill(-1),
       spiritLock: new Array<number>(7).fill(-1),
       medalReady: [],
@@ -59,7 +56,6 @@ export function depthSummary(
     smallID,
     gd: [-1, -1, -1],
     levels: new Array<number>(9).fill(0),
-    cpMilli: 34_000,
     energyPm: 1000,
     mioSize: [],
     fieldMarshals: 0,
@@ -67,7 +63,7 @@ export function depthSummary(
     atomicStock: 0,
     agency: false,
     ...over,
-  };
+  } as WwDepthSummary;
 }
 
 export interface DoctrineOptions extends LandOptions {

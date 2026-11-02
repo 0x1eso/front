@@ -218,14 +218,13 @@ describe("<ww-research-panel> (spec §13.4)", () => {
     expect(m.sent).toEqual([{ kind: "cancel_research", slot: 0 }]);
   });
 
-  it("the doctrine tab offers no tech, only the mastery summary and a button; no retired tech elsewhere", async () => {
+  it("the rail has no doctrine tab (the sliders live in the dock); no retired tech elsewhere", async () => {
     const m = await mount({
       summaries: [summary("DEU")],
       details: [detail("DEU", { researched: ["mobile_1"] })],
     });
-    await m.click("[data-ww-tab='doctrine']");
-    expect(m.q("[data-ww-tech]")).toBeNull();
-    expect(m.q("[data-ww-open-doctrine]")).not.toBeNull();
+    expect(m.q("[data-ww-tab='doctrine']")).toBeNull();
+    expect(m.q("[data-ww-tab='naval']")).not.toBeNull();
     await m.click("[data-ww-tab='naval']");
     expect(m.q("[data-ww-tech='fleet_in_being_1']")).toBeNull();
     expect(m.q("[data-ww-tech]")).not.toBeNull();
