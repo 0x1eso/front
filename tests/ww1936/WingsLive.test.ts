@@ -575,12 +575,17 @@ test("a real game on wings: every mission, base moves, 400 days, in lockstep", a
     }
     if (t === T(40)) {
       // A field strip where an army stands, and a small wing moves in.
-      seen.strip = lands.find(
+      // ww9: one away from the front (every neighbour is Germany's), so the
+      // strip is not overrun before its wing has flown in and been measured.
+      const strips = lands.filter(
         (x) =>
           land.controller[x] === deu &&
           econ.buildingArray("air_base")[x] === 0 &&
           land.rowsIn(x).some((row) => land.divisions.owner[row] === deu),
-      )!;
+      );
+      seen.strip = (strips.find((x) =>
+        sc.regionNeighbours(x).every((n) => land.controller[n] === deu),
+      ) ?? strips[0])!;
       out.push(order(HUMAN, { kind: "air_field", region: seen.strip }));
     }
     if (t === T(40 + WW_FIELD_STRIP_DAYS) + 2) {
@@ -882,6 +887,7 @@ test("a real game on wings: every mission, base moves, 400 days, in lockstep", a
   // Base moves: a ferry that flew on, a strip, a stand-down, a disband, a
   // followed army out of reach, a base taken.
   expect(seen.moved.flewAfter).toBe(true);
+  if (seen.stripEff !== WW_FIELD_STRIP_EFF_PM) throw new Error(JSON.stringify([(globalThis as any).__sc, seen.strip]));
   expect(seen.stripEff).toBe(WW_FIELD_STRIP_EFF_PM);
   expect(seen.standDown.ok).toBe(true);
   expect(seen.disband.ok).toBe(true);

@@ -244,8 +244,9 @@ describe("World War 1936 P5: volunteers", () => {
     expect(send(a.id)).toBeNull();
     expect(volunteerRoom(eg, ita, pl)).toBe(0);
     // Poland grows to 9 divisions: a third of it is 3, one more fits.
+    // (It starts with 5 since its volunteer conscription, balance fff0c4c33.)
     x.ww.economy.country(pl)!.manpower += 100_000;
-    placeArmy(g, "POL", WARSAW, 1);
+    placeArmy(g, "POL", WARSAW, 4);
     expect(volunteerRoom(eg, ita, pl)).toBe(1);
     // Fewer than 10 divisions send none (Poland to Italy's war).
     x.ww.setWar(ita, endId("FRA"), g.ticks(), { kind: "declare" });

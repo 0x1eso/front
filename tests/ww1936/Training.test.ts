@@ -343,6 +343,8 @@ describe("training (P2 spec §5.1)", () => {
 describe("templates (P2 spec §4.4)", () => {
   test("editing a template refits its divisions and refunds the removed battalions", async () => {
     const { l, id, cl, ce, issue, nextDay } = await germany(false);
+    // ww9: Germany's start sliders give reinforcePct +4; this pins the base rate.
+    (ce.stats as { reinforcePct?: number }).reinforcePct = 0;
     cl.armyXpMilli = 40_000;
     const t = l.divisions;
     const rows = () => {
