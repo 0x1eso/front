@@ -20,20 +20,32 @@ import {
   WW_WING_MAX_PLANES,
   WwBombClass,
 } from "@openfront/engine-api/ww1936/AirTypes";
-import type { WwOrderBlock } from "@openfront/engine-api/ww1936/EconomyTypes";
+import type {
+  BuildingId,
+  WwOrderBlock,
+} from "@openfront/engine-api/ww1936/EconomyTypes";
 import { RESOURCE_IDS } from "@openfront/engine-api/ww1936/EconomyTypes";
 import { SEA_ZONE_BASE } from "@openfront/engine-api/ww1936/WorldWarTypes";
+import {
+  HUB_BUILT,
+  HUB_CAPITAL,
+  HUB_CITY,
+  HUB_CITY_VP,
+  hubCapacityMilli,
+} from "@openfront/engine-lib/ww1936/SupplyRules";
 import {
   bombClassHits,
   legTicks,
   RaidEffectLine,
   raidEffectLines,
+  RaidEffectNow,
   WING_CYCLE,
   WingBaseAsk,
   WingMissionAsk,
   wingOrderBlock,
 } from "@openfront/engine-lib/ww1936/WingRules";
 import { translateText } from "../../Utils";
+import { fogOfAir } from "./FogModel";
 import { armyName, regionName } from "./LandModel";
 import { airBpOf, landSeaAirOf } from "./LandSeaAir";
 import { NavyCtx, srName, zoneName } from "./NavyModel";
@@ -488,8 +500,63 @@ export function reportRows(ctx: NavyCtx): ReportRow[] {
   return rows.map((r) => ({
     report: r,
     hit: r.victim === ctx.me,
-    lines: raidEffectLines(r, {}),
+    lines: raidEffectLines(r, raidNowOf(ctx, r)),
   }));
+}
+
+/** The buildings a raid's "factories stopped" line counts (the engine's Bombing.FACTORIES). */
+const RAID_FACTORIES: readonly BuildingId[] = [
+  "civ",
+  "mil",
+  "dock",
+  "synthetic_refinery",
+];
+
+/**
+ * What a report's card reads of the target now. The victim sees all of it
+ * (design §5.2). The raider sees it when the fog shows the region's buildings
+ * exactly; otherwise it keeps the raid's own numbers and these stay absent.
+ */
+export function raidNowOf(ctx: NavyCtx, r: AirRaidReport): RaidEffectNow {
+  const e = ctx.economy;
+  const at = r.region;
+  if (e.scenario.region(at) === undefined) return {};
+  if (r.victim !== ctx.me) {
+    const seen = fogOfAir(ctx.air)?.regionView(at).buildings ?? "exact";
+    if (seen !== "exact") return {};
+  }
+  let factoriesStopped = 0;
+  for (const b of RAID_FACTORIES) {
+    factoriesStopped += e.buildingCount(b, at) - e.effectiveBuildings(b, at);
+  }
+  const now: RaidEffectNow = { factoriesStopped };
+  const rail = e.buildingCount("rail", at);
+  if (rail > 0) {
+    const eff = e.effectiveBuildings("rail", at);
+    now.railLevel = rail;
+    now.railEffLevel = eff;
+    // Movement.stepOf: the railway into a region runs at this share.
+    now.railMovePct = Math.floor((eff * 100) / rail);
+    // The hub there, as Supply.ts sizes it: a capital's, a big city's or a built one.
+    const sc = e.scenario;
+    const tag = sc.countries[(ctx.land?.controller[at] ?? 0) - 1];
+    const tile = tag === undefined ? null : sc.capitalTileOrNull(tag);
+    const kind =
+      tile !== null && sc.regionAt(tile) === at
+        ? HUB_CAPITAL
+        : (sc.region(at)?.vp ?? 0) >= HUB_CITY_VP
+          ? HUB_CITY
+          : HUB_BUILT;
+    if (kind !== HUB_BUILT || e.buildingCount("supply_hub", at) > 0) {
+      const whole = hubCapacityMilli(kind, rail);
+      const working =
+        kind !== HUB_BUILT || e.effectiveBuildings("supply_hub", at) > 0;
+      now.hubCapacityPct = working
+        ? Math.floor((hubCapacityMilli(kind, eff) * 100) / whole)
+        : 0;
+    }
+  }
+  return now;
 }
 
 export const reportPlace = (ctx: NavyCtx, r: AirRaidReport): string =>

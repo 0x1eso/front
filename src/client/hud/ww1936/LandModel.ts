@@ -1564,6 +1564,9 @@ export function attackPreview(
     excessBp: excessWidthBp(def.width, width),
     encircled: view.regions.get(region)?.encircled ?? false,
   }).mods;
+  // ww8: the wings on station over a battle already there, as the engine's
+  // odds count them (Plans): ours if our side is the one attacking.
+  const battle = view.battles.get(region);
   const p = predictBattle(a.sum, def, {
     land,
     directions,
@@ -1572,6 +1575,11 @@ export function attackPreview(
     defenderAttackBp: dm.attackBp,
     defenderBlockBp: dm.defenseBp,
     defenderPrepBp: dm.prepBp ?? 0,
+    casAttCenti:
+      battle !== undefined && sides.sameSide(me, battle.attacker)
+        ? (battle.casAttCenti ?? 0)
+        : 0,
+    casDefCenti: battle?.casDefCenti ?? 0,
   });
   return {
     ratioPm: p.ratioPm,

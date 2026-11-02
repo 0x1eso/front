@@ -13,6 +13,7 @@ import { registerBackClosable } from "../../BackGuard";
 import { Controller } from "../../Controller";
 import { SendWwOrderIntentEvent } from "../../Transport";
 import { hitToken, layoutTokens } from "../../view/LandTokenLayout";
+import type { WingFocus, WingSlot } from "../../view/WingTokenLayout";
 import { landSelectionOf, WwSelectArmyEvent } from "./LandSelection";
 import { NavyCtx, navyCtx, NavyGame } from "./NavyModel";
 import {
@@ -53,27 +54,12 @@ export function wingGlow(game: NavyGame): SeaAirGlow | null {
   return null;
 }
 
-/** What the render lane draws of the choice: picked wings, opened fans, the range ellipse. */
-export interface WingFocusLike {
-  chosen: ReadonlySet<number>;
-  expanded: ReadonlySet<number>;
-  range: { base: number; rangeKm: number; warning?: boolean } | null;
-}
-
-/** The slot a map tap hit (the render lane's pickWing). */
-export interface WingSlotLike {
-  kind: number;
-  wing: number;
-  base: number;
-  owner: number;
-}
-
-export function wingFocus(game: NavyGame): WingFocusLike {
+export function wingFocus(game: NavyGame): WingFocus {
   const ui = wingUiOf(game);
   const ctx = navyCtx(game);
   const wings = ctx === null ? [] : chosenWings(ctx, ui);
   const first = wings[0];
-  let range: WingFocusLike["range"] = null;
+  let range: WingFocus["range"] = null;
   if (first !== undefined && first.rangeKm > 0) {
     if (ui.mode === "base" && ui.pending !== 0) {
       range = { base: ui.pending, rangeKm: first.rangeKm };
@@ -92,11 +78,11 @@ export class WwWingController implements Controller {
     private readonly eventBus: EventBus,
     private readonly zoom: () => number = () => 1,
     private readonly now: () => number = () => Date.now(),
-    /** The render lane's pickWing and setWingFocus (absent until it is merged). */
+    /** The renderer's pickWing and setWingFocus. */
     private readonly pick:
-      | ((x: number, y: number) => WingSlotLike | null)
+      | ((x: number, y: number) => WingSlot | null)
       | null = null,
-    private readonly setFocus: ((f: WingFocusLike) => void) | null = null,
+    private readonly setFocus: ((f: WingFocus) => void) | null = null,
   ) {}
 
   get ui(): WingUi {

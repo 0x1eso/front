@@ -332,6 +332,26 @@ describe("LandModel (spec §15)", () => {
     expect(block("sea")).toBe("no_port");
   });
 
+  it("ww8: the attack preview counts the wings over a battle already there", () => {
+    const pol = army(5, "POL", 6, { divisions: 2 });
+    const odds = (cas: Parameters<typeof battle>[3]) => {
+      const { land, view } = game({
+        ...AT_WAR,
+        battles: [battle(6, "DEU", "POL", cas)],
+        armies: [army(1, "DEU", 3), pol],
+        landDetails: [
+          landDetail("DEU", {
+            divisions: [division(1, 1, 3), division(2, 1, 3)],
+          }),
+        ],
+      });
+      return attackPreview(land, view, DEU, 1, 6, DAY)!.ratioPm;
+    };
+    const none = odds({});
+    expect(odds({ casAttCenti: 800 })).toBeGreaterThan(none);
+    expect(odds({ casDefCenti: 800 })).toBeLessThan(none);
+  });
+
   it("previews an attack with predictBattle on both sides' sums", () => {
     const pol = army(5, "POL", 6, { divisions: 2 });
     const { land, view } = game({

@@ -90,6 +90,7 @@ import {
   W_SUP_OTHER,
   zoneWeather,
 } from "./AirCombat";
+import { bombTableOf, tableWeight } from "./Bombing";
 import {
   basesInRange,
   carrierWingDeck,
@@ -144,6 +145,8 @@ const sortieOf = (w: Wing) => AIR_MISSIONS[w.flyMission];
 const isBombing = (m: number) => m === M_BOMB || m === M_PORT;
 const isShooter = (m: number) => m === M_SUP || m === M_INT || m === M_ESCORT;
 const flying = (w: Wing) => w.phase === WP_OUT || w.phase === WP_STATION;
+/** The bomb class of the sortie in the air: a port strike's report row is always the port class's. */
+const raidCls = (w: Wing) => (w.flyMission === M_PORT ? CLS_PORT : w.cls);
 
 /** What 2 ticks on station fly: WingRules.pulseMilli off the table. */
 function pulseOf(w: Wing): number {
@@ -387,7 +390,9 @@ function gatherGuards(air: WwAir, tick: number): void {
   guardsAir = air;
   for (let i = 0; i < guardSideCount; i++) guardLists[i].length = 0;
   guardSideCount = 0;
-  for (const w of air.wings.values()) {
+  const wings = air.wingArray();
+  for (let i = 0; i < wings.length; i++) {
+    const w = wings[i];
     if (w.mission !== M_INT || w.phase !== WP_GROUND || w.base <= 0) continue;
     const side = wingSide(air, w);
     let at = 0;
@@ -513,8 +518,32 @@ function bombTargetOk(air: WwAir, w: Wing, side: number, r: number): boolean {
   );
 }
 
+/**
+ * Something of the class still works in the zone (the delivery spreads over the
+ * zone's regions): with all of it bombed out, the wing has no work (design §3.5).
+ */
+function zoneStillBombable(air: WwAir, w: Wing, side: number): boolean {
+  if (w.mission === M_PORT || WW_BOMB_CLASSES[w.cls] === "auto") return true;
+  const land = air.land;
+  const sc = air.ww.scenario;
+  const s = sc.sr(w.target !== 0 ? sc.targetSr(w.target) : w.sr);
+  if (s === undefined) return false;
+  for (let i = 0; i < s.members.length; i++) {
+    const r = s.members[i];
+    if (!isEnemyOfSide(air, side, land.controller[r] ?? 0)) continue;
+    const oil = (sc.region(r)?.res[OIL] ?? 0) > 0;
+    if (
+      tableWeight(air.econ, r, bombTableOf(WW_BOMB_CLASSES[w.cls], oil)) > 0
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
+
 /** The target of a bombing order, or for a whole-zone order its first region with something to hit. */
 function bombTarget(air: WwAir, w: Wing, side: number): number {
+  if (!zoneStillBombable(air, w, side)) return 0;
   if (w.target !== 0) {
     return bombTargetOk(air, w, side, w.target) ? w.target : 0;
   }
@@ -641,7 +670,9 @@ export function stepWings(air: WwAir, tick: number): void {
   const day = air.ww.day(tick);
   const parity = tick % AIR_PULSE_TICKS;
   clearRosters(air.zoneState.length);
-  for (const w of air.wings.values()) {
+  const wings = air.wingArray();
+  for (let k = 0; k < wings.length; k++) {
+    const w = wings[k];
     if (w.until <= tick && (w.phase !== WP_GROUND || w.mission >= 0)) {
       stepWing(air, w, tick, day);
     }
@@ -887,13 +918,23 @@ function leaveStation(air: WwAir, w: Wing, tick: number, day: number): void {
   if (m === M_BOMB || m === M_PORT || m === M_STRIKE || m === M_SUPPLY) {
     if (w.flyMilli > 0 && wingPlanes(w) > 0) {
       const load = loadCenti(AIR_TYPES[w.type], AIR_MISSIONS[m]);
+      const had = wingPlanes(w);
       // Land guns on the bombers here; ships' anti-air is inside the delivery.
-      const lost = isBombing(m) ? dropAntiAir(air, w, load, day) : 0;
+      if (isBombing(m)) dropAntiAir(air, w, load, day);
       // The victim as the bombs fall: the delivery can't change who holds it.
       const victim = air.land.controller[w.hit] ?? 0;
       noteFlown(air, w, Math.floor((w.flyMilli * load) / 100));
       deliverSortie(air, w, load, tick);
-      if (lost > 0) noteRaidLost(air, w.owner, victim, w.hit, w.cls, lost);
+      if (isBombing(m)) {
+        noteRaidLost(
+          air,
+          w.owner,
+          victim,
+          w.hit,
+          raidCls(w),
+          had - wingPlanes(w),
+        );
+      }
       noteWingDelivery(air, w);
     }
   } else if (m === M_PATROL || m === M_RECON) {
@@ -1636,10 +1677,10 @@ function settleLosses(
     rSlot[i].lost += n;
     const by = rCause[i];
     if (by !== null) by.kills += n;
-    // A raid's losses on station go on its report, once a raid on that target has one.
+    // A raid's losses on station go on its report.
     if (isBombing(w.flyMission)) {
       const victim = air.land.controller[w.hit] ?? 0;
-      noteRaidLost(air, w.owner, victim, w.hit, w.cls, n);
+      noteRaidLost(air, w.owner, victim, w.hit, raidCls(w), n);
     }
   }
 }

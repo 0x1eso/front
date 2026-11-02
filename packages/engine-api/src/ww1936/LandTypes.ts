@@ -481,6 +481,9 @@ export interface BattleSummary {
   /** ww8: wings giving close air support now, to the attacker and the defender. */
   casAtt?: number;
   casDef?: number;
+  /** ww8: their hits a round after the anti-air cut, centi (BattleCtx.casAttCenti); the attack preview reads them. */
+  casAttCenti?: number;
+  casDefCenti?: number;
   /** LAND_ATTACK_TACTICS / LAND_DEFENSE_TACTICS indices in play. */
   tacticAtt?: number;
   tacticDef?: number;

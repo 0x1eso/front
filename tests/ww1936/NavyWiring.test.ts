@@ -29,6 +29,7 @@ import {
   stepScripted,
 } from "../util/ScriptedGame";
 import { diffGraphs, diffSnapshots } from "../util/Snapshot";
+import "./oldAirModel";
 import {
   NAVAL_BASE,
   REGION,

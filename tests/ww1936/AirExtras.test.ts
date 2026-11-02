@@ -40,6 +40,7 @@ import type { WwDepth } from "@openfront/engine/ww1936/depth/WwDepth";
 import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSource";
 import { DEEP } from "./deepFixture";
 import { depthFixture } from "./depthFixture";
+import "./oldAirModel";
 import { grantDoctrineStats, stepTo, wwRunner } from "./util";
 import { giveWing } from "./wingUtil";
 

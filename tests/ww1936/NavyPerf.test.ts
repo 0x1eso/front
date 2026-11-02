@@ -17,6 +17,7 @@ import { loadMapFiles } from "@openfront/shared/GameMapLoader";
 import path from "path";
 import { fileURLToPath } from "url";
 import { NodeGameMapLoader } from "../perf/fullgame/NodeGameMapLoader";
+import "./oldAirModel";
 import { stepTo, wwGameStart } from "./util";
 
 /**

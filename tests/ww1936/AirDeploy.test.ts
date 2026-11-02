@@ -20,6 +20,7 @@ import {
   drawPlanes,
 } from "@openfront/engine/ww1936/economy/Buildings";
 import type { WorldWar } from "@openfront/engine/ww1936/WorldWar";
+import "./oldAirModel";
 import { AIR_KM, REGION, SEA, SR, TAG_ID, ZONE } from "./seaFixture";
 import {
   clearStartSetup,

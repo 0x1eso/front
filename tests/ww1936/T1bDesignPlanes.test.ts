@@ -9,8 +9,12 @@ import {
   AIR_MISSIONS,
   AIR_TYPES,
   CARRIER_AIR_TYPES,
+  WING_UPGRADE_PER_REARM,
 } from "@openfront/engine-api/ww1936/AirTypes";
-import type { PlaneDesignStats } from "@openfront/engine-api/ww1936/DepthTypes";
+import {
+  type PlaneDesignStats,
+  WW_PLANE_DESIGN_SLOTS,
+} from "@openfront/engine-api/ww1936/DepthTypes";
 import {
   equipKey,
   EQUIPMENT_GENS,
@@ -34,6 +38,7 @@ import {
 import { airMissionEffects } from "@openfront/engine/ww1936/air/AirEffects";
 import { radarPmAt } from "@openfront/engine/ww1936/air/AirSuperiority";
 import { dailyAirCountry } from "@openfront/engine/ww1936/air/Deploy";
+import { rearmWing } from "@openfront/engine/ww1936/air/Wings";
 import { wingPlanes } from "@openfront/engine/ww1936/air/WwAir";
 import {
   designPlaneP4,
@@ -45,6 +50,7 @@ import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSou
 import type { WorldWar } from "@openfront/engine/ww1936/WorldWar";
 import { DEEP } from "./deepFixture";
 import { depthFixture } from "./depthFixture";
+import "./oldAirModel";
 import { clearStartSetup, gameHash, step, stepTo, wwRunner } from "./util";
 import { giveWing } from "./wingUtil";
 
@@ -103,6 +109,30 @@ function noStaticFighters(ww: WorldWar, id: number): void {
 }
 
 describe("T1b: plane designs in P4's air war (lane E's sites)", () => {
+  it("ww8: a rearm swaps design planes too, the oldest for a newer one in stock", async () => {
+    const { runner, ww } = await atWar();
+    const ce = ww.economy.country(GBR)!;
+    saveFighter(ww, runner);
+    noStaticFighters(ww, GBR);
+    const newest = equipKey("fighter", EQUIPMENT_GENS.fighter);
+    const w = giveWing(ww.air, {
+      owner: GBR,
+      type: "fighter",
+      counts: [0, 0, 0],
+      dcounts: [150, ...new Array<number>(WW_PLANE_DESIGN_SLOTS - 1).fill(0)],
+      base: DEEP.region.london,
+    });
+    ce.planesDeployed[KEY] = 150;
+    ce.stock[KEY] = 0;
+    ce.stock[newest] = 20;
+    rearmWing(ww.air, w, runner.game.ticks());
+    expect(w.dcounts[0]).toBe(150 - WING_UPGRADE_PER_REARM);
+    expect(w.counts[EQUIPMENT_GENS.fighter - 1]).toBe(WING_UPGRADE_PER_REARM);
+    expect(ce.stock[KEY]).toBe(WING_UPGRADE_PER_REARM);
+    expect(ce.planesDeployed[KEY]).toBe(150 - WING_UPGRADE_PER_REARM);
+    expect(ce.stock[newest]).toBe(20 - WING_UPGRADE_PER_REARM);
+  });
+
   it("a design line fills the stock, a deployment draws it, it flies and its losses come off the design", async () => {
     const { runner, ww } = await atWar();
     const air = ww.air;

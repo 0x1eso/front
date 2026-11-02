@@ -31,6 +31,7 @@ import {
 } from "@openfront/engine/ww1936/economy/AiEconomy";
 import { removeLine } from "@openfront/engine/ww1936/economy/Production";
 import { cancelResearch } from "@openfront/engine/ww1936/economy/ResearchRun";
+import "./oldAirModel";
 import {
   byTag,
   gameHash,

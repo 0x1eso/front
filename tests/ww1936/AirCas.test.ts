@@ -28,6 +28,7 @@ import { apportion } from "@openfront/engine/ww1936/air/Bombing";
 import { drawPlanes } from "@openfront/engine/ww1936/economy/Buildings";
 import { joinBattle, stepBattles } from "@openfront/engine/ww1936/land/Battles";
 import type { Army, WwLand } from "@openfront/engine/ww1936/land/WwLand";
+import "./oldAirModel";
 import { REGION, SEA, SR } from "./seaFixture";
 import {
   byTag,

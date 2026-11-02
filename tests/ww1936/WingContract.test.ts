@@ -37,6 +37,7 @@ import {
 import { snapshotGame } from "@openfront/engine/snapshot/GameSnapshot";
 import { WwAirView } from "../../src/client/view/WwAirView";
 import { diffGraphs, diffSnapshots } from "../util/Snapshot";
+import "./oldAirModel";
 import { REGION, SEA, SR, TAG_ID, ZONE } from "./seaFixture";
 import {
   gameHash,
@@ -240,10 +241,10 @@ describe("the order judge (design §3.3)", () => {
 });
 
 describe("the game", () => {
-  test("a new game: the old model, air auto off (owner decision 5), wing orders refused", async () => {
+  test("the switch on for real games; off (oldAirModel): air auto off (owner decision 5), wing orders refused", async () => {
     const runner = await wwRunner({}, HUMANS, SEA.map);
     const ww = runner.game.worldWar()!;
-    expect(WW_WINGS_LIVE).toBe(false);
+    expect(WW_WINGS_LIVE).toBe(true);
     expect(ww.air.wingsLive).toBe(false);
     expect(ww.autoOn(DEU, "air")).toBe(false);
     expect(ww.autoMask(DEU)).toBe(0);

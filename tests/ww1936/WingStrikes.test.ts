@@ -16,6 +16,7 @@ import {
   deliverSortie,
 } from "@openfront/engine/ww1936/air/WingStrikes";
 import { damageOf } from "@openfront/engine/ww1936/economy/Buildings";
+import "./oldAirModel";
 import { REGION, SEA, SR } from "./seaFixture";
 import {
   byTag,

@@ -1387,6 +1387,8 @@ export function battleExtras(
     const aa = effectiveLevel(land.econ, b.region, "anti_air");
     ctx.casAttCenti = casCutHits(casA, land.statsOf(firstDef).airAtk, aa);
     ctx.casDefCenti = casCutHits(casD, land.statsOf(firstAtt).airAtk, aa);
+    if (ctx.casAttCenti > 0) out.casAttCenti = ctx.casAttCenti;
+    if (ctx.casDefCenti > 0) out.casDefCenti = ctx.casDefCenti;
   }
   const range = predictBattleRange(att, def, ctx);
   out.winPct = range.winPct;

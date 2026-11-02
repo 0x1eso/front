@@ -98,12 +98,7 @@ import { WwTakeoverCard } from "./ww1936/WwTakeoverCard";
 import { WwTopBand } from "./ww1936/WwTopBand";
 import { WwWhitePeaceCard } from "./ww1936/WwWhitePeaceCard";
 import { WwWingCard } from "./ww1936/WwWingCard";
-import {
-  WingFocusLike,
-  wingGlow,
-  WingSlotLike,
-  WwWingController,
-} from "./ww1936/WwWingController";
+import { wingGlow, WwWingController } from "./ww1936/WwWingController";
 
 export function createRenderer(
   inputEl: HTMLElement,
@@ -667,18 +662,13 @@ export function createRenderer(
       // zone) and what a map tap may aim at glows (spec §18.3).
       view.setSeaAirSelection(seaAirController.selection);
       nukeFlow = new WwNukeFlow(game, eventBus);
-      const wingRender = view as unknown as {
-        pickWing?: (x: number, y: number) => WingSlotLike | null;
-        setWingFocus?: (f: WingFocusLike) => void;
-      };
       wingController = new WwWingController(
         game,
         eventBus,
         () => transformHandler.scale,
         () => Date.now(),
-        // Lane F's renderer calls (w8-F); absent on a branch without it.
-        (x, y) => wingRender.pickWing?.(x, y) ?? null,
-        (f) => wingRender.setWingFocus?.(f),
+        (x, y) => view.pickWing(x, y),
+        (f) => view.setWingFocus(f),
       );
       const sa = seaAirOf(game);
       view.setSeaAirGlow({

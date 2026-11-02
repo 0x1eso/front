@@ -44,6 +44,7 @@ import {
 import { WwAirView } from "../../src/client/view/WwAirView";
 import { WwEconomyView } from "../../src/client/view/WwEconomyView";
 import { WwNavyView } from "../../src/client/view/WwNavyView";
+import "./oldAirModel";
 import { REGION, SEA, SR, TAG_ID, ZONE } from "./seaFixture";
 import {
   byTag,

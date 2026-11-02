@@ -31,6 +31,7 @@ import type { Wing } from "@openfront/engine/ww1936/air/WwAir";
 import { joinBattle } from "@openfront/engine/ww1936/land/Battles";
 import type { WorldWar } from "@openfront/engine/ww1936/WorldWar";
 import { diffSnapshots } from "../util/Snapshot";
+import "./oldAirModel";
 import { AIR_KM, REGION, SEA, SR, TAG_ID } from "./seaFixture";
 import {
   clearLand,

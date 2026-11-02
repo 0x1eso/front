@@ -4,6 +4,7 @@
 import {
   AIR_TYPES,
   WING_FERRY_REST,
+  WING_FORM_FRONT_KM,
   WING_NO_MISSION,
   WING_OVERRUN_LOSS_PCT,
   WING_REFORM_COOLDOWN_DAYS,
@@ -31,12 +32,14 @@ import {
   equipKey,
   type WwOrderBlock,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
+import { borderRegionsOf } from "@openfront/engine-lib/ww1936/FrontRules";
 import {
   ferryTicks,
   wingMaxPlanes,
   wingOrderBlock,
   xpAfterRefill,
 } from "@openfront/engine-lib/ww1936/WingRules";
+import { returnDesignPlanes } from "../depth/Designs";
 import { damageBuilding, damageOf, returnPlanes } from "../economy/Buildings";
 import type { CountryEconomy } from "../economy/WwEconomy";
 import { fillDecks } from "../navy/Carriers";
@@ -48,7 +51,7 @@ import {
   isCarrierWing,
   stockOf,
 } from "./Deploy";
-import { planeSources } from "./DesignPlanes";
+import { designSlotsFor, planeSources } from "./DesignPlanes";
 import { noteWingRest } from "./WingXp";
 import { deploymentStats, wingPlanes, wingSide, type WwAir } from "./WwAir";
 
@@ -124,6 +127,54 @@ function pickBase(
   return { base: 0, take: 0 };
 }
 
+const capitalKm = (air: WwAir, owner: number) => {
+  const capital = air.ww.capitalRegion(owner);
+  return (region: number) =>
+    capital > 0 ? air.ww.scenario.regionKm(capital, region) : 0;
+};
+
+/**
+ * Km from a base to where the country's war is: its side's regions touching an
+ * enemy, or with no land front (an island at war) the enemy's own regions. Only
+ * those within WING_FORM_FRONT_KM of the capital count, or with none the nearest
+ * to it, so an ally's war on another continent doesn't draw the wing away. Null
+ * in peace.
+ */
+function frontKm(
+  air: WwAir,
+  owner: number,
+): ((region: number) => number) | null {
+  const land = air.land;
+  const sc = air.ww.scenario;
+  let front = borderRegionsOf(land, owner, 0);
+  if (front.length === 0) {
+    front = sc.landRegions
+      .map((r) => r.id)
+      .filter((r) => land.isEnemy(owner, land.controller[r] ?? 0));
+  }
+  if (front.length === 0) return null;
+  const capital = air.ww.capitalRegion(owner);
+  if (capital > 0) {
+    const near = front.filter(
+      (f) => sc.regionKm(capital, f) <= WING_FORM_FRONT_KM,
+    );
+    if (near.length > 0) {
+      front = near;
+    } else {
+      let best = front[0];
+      for (const f of front) {
+        if (sc.regionKm(capital, f) < sc.regionKm(capital, best)) best = f;
+      }
+      front = [best];
+    }
+  }
+  return (region) => {
+    let best = Number.MAX_SAFE_INTEGER;
+    for (const f of front) best = Math.min(best, sc.regionKm(region, f));
+    return best;
+  };
+}
+
 /**
  * The base a wing leaving `from` goes to: the nearest base of its side with
  * room for all its planes (ties: the smaller region), 0 with none.
@@ -177,24 +228,66 @@ function drawInto(air: WwAir, ce: CountryEconomy, w: Wing, n: number): number {
   return n - left;
 }
 
-/** Swaps up to `n` old-generation planes of the wing for newer ones in stock; returns the planes swapped. */
+/** A newer plane than the wing's oldest may be in stock (cheap: swapOld then looks properly). */
+function mayUpgrade(
+  depth: WwAir["ww"]["depth"],
+  ce: CountryEconomy,
+  w: Wing,
+  t: (typeof AIR_TYPES)[number],
+): boolean {
+  if (designSlotsFor(depth, w.owner, t).length > 0) return true;
+  let g = 1;
+  while (g <= w.counts.length && w.counts[g - 1] <= 0) g++;
+  for (let h = g + 1; h <= w.counts.length; h++) {
+    if (ce.stock[equipKey(t, h)] > 0) return true;
+  }
+  return false;
+}
+
+/**
+ * Swaps up to `n` of the wing's oldest planes for newer ones in stock,
+ * generations and design planes alike (planeSources' order, by year); returns
+ * the planes swapped.
+ */
 function swapOld(air: WwAir, ce: CountryEconomy, w: Wing, n: number): number {
   const t = AIR_TYPES[w.type];
-  const gens = w.counts.length;
+  const depth = air.ww.depth;
+  // Most rearms have nothing to swap: no planes of an older source, or no newer stock.
+  if (!mayUpgrade(depth, ce, w, t)) return 0;
+  const src = planeSources(depth, w.owner, t);
   let left = n;
   let swapped = 0;
-  for (let g = 1; g < gens && left > 0; g++) {
-    for (let h = gens; h > g && left > 0 && w.counts[g - 1] > 0; h--) {
-      const k = equipKey(t, h);
-      const take = Math.min(left, w.counts[g - 1], ce.stock[k]);
-      if (take <= 0) continue;
-      const back = new Array<number>(gens).fill(0);
-      back[g - 1] = take;
-      w.counts[g - 1] -= take;
-      returnPlanes(ce, t, back);
-      ce.stock[k] -= take;
-      ce.planesDeployed[k] += take;
-      w.counts[h - 1] += take;
+  for (let old = src.length - 1; old > 0 && left > 0; old--) {
+    const o = src[old];
+    for (let at = 0; at < old && left > 0; at++) {
+      const have = o.slot === 0 ? w.counts[o.gen - 1] : w.dcounts[o.slot - 1];
+      if (have <= 0) break;
+      const x = src[at];
+      const want = Math.min(left, have);
+      let take: number;
+      if (x.slot === 0) {
+        const k = equipKey(t, x.gen);
+        take = Math.min(want, ce.stock[k]);
+        if (take <= 0) continue;
+        ce.stock[k] -= take;
+        ce.planesDeployed[k] += take;
+        w.counts[x.gen - 1] += take;
+      } else {
+        take = drawDesignSlot(ce, x.slot, want);
+        if (take <= 0) continue;
+        w.dcounts[x.slot - 1] += take;
+      }
+      if (o.slot === 0) {
+        const back = new Array<number>(w.counts.length).fill(0);
+        back[o.gen - 1] = take;
+        w.counts[o.gen - 1] -= take;
+        returnPlanes(ce, t, back);
+      } else {
+        const back = new Array<number>(w.dcounts.length).fill(0);
+        back[o.slot - 1] = take;
+        w.dcounts[o.slot - 1] -= take;
+        returnDesignPlanes(depth, w.owner, back);
+      }
       left -= take;
       swapped += take;
     }
@@ -223,18 +316,18 @@ function refillWing(
  * Forms the country's new wings (design §3.1): per land type, while the
  * stock above the reserve (10 %, at least 50) fills a wing, or, for a type
  * with no wing at all, holds WW_WING_FORM_MIN. A disbanded type waits out
- * WING_REFORM_COOLDOWN_DAYS. A new wing goes to the base nearest the
- * capital that has room.
+ * WING_REFORM_COOLDOWN_DAYS. A new wing goes to the base with room nearest
+ * the front, and in peace nearest the capital: the country's own bases first,
+ * then its side's.
  */
 export function formWings(air: WwAir, owner: number, day: number): void {
   const c = air.country(owner);
   const ce = air.econ.country(owner);
   if (c === null || ce === null) return;
   const side = air.land.sideOf(owner);
-  const capital = air.ww.capitalRegion(owner);
-  const nearCapital = (r: number) =>
-    capital > 0 ? air.ww.scenario.regionKm(capital, r) : 0;
   let bases: number[] | null = null;
+  let own: number[] | null = null;
+  let near: ((region: number) => number) | null = null;
   let count = 0;
   for (const w of air.wingsOf(owner)) if (!isCarrierWing(w)) count++;
   for (let ti = 0; ti < AIR_TYPES.length && count < WW_MAX_WINGS; ti++) {
@@ -259,7 +352,21 @@ export function formWings(air: WwAir, owner: number, day: number): void {
         free >= max ? max : !has && free >= WW_WING_FORM_MIN ? free : 0;
       if (need < WW_WING_FORM_MIN) break;
       bases ??= sideBases(air, side);
-      const { base, take } = pickBase(air, bases, need, nearCapital);
+      near ??= frontKm(air, owner) ?? capitalKm(air, owner);
+      own ??= bases.filter((r) => air.land.controller[r] === owner);
+      let { base, take } = pickBase(air, own, need, near);
+      if (take < need) {
+        // An ally's base only near the war (or with no base of its own: an exile).
+        const allied = pickBase(
+          air,
+          own.length === 0
+            ? bases
+            : bases.filter((r) => near!(r) <= WING_FORM_FRONT_KM),
+          need,
+          near,
+        );
+        if (allied.take > take) ({ base, take } = allied);
+      }
       if (base === 0) break;
       const no = c.nextWingNo[ti];
       const w = air.addWing({
@@ -391,6 +498,8 @@ function startFerry(air: WwAir, w: Wing, to: number, tick: number): void {
   w.lastFerryDay = air.ww.day(tick);
   air.setWingBase(w, to);
   air.markWing(w.id);
+  // The row's target is the wing's hit, as on any flight: here the base it
+  // left. Where it goes is the wing's base.
   air.noteFlight([
     w.id,
     WP_FERRY,
@@ -398,7 +507,7 @@ function startFerry(air: WwAir, w: Wing, to: number, tick: number): void {
     ticks,
     0,
     WING_FERRY_REST,
-    to,
+    from,
     wingPlanes(w),
   ]);
 }

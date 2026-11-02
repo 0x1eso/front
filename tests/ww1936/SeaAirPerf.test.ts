@@ -21,6 +21,7 @@ import { loadMapFiles } from "@openfront/shared/GameMapLoader";
 import path from "path";
 import { fileURLToPath } from "url";
 import { NodeGameMapLoader } from "../perf/fullgame/NodeGameMapLoader";
+import "./oldAirModel";
 import { step, stepTo, wwGameStart } from "./util";
 
 /** Spec §20.1's P4 mean (0.6 ms) × 3 (§20.2), × 2 for a loaded CI machine. */
