@@ -543,6 +543,13 @@ export class WwEconomy {
    * damage, so equal after a restore.
    */
   readonly infraEff: Uint8Array;
+  /**
+   * ww8 (derived, DERIVED_FIELDS): the railway and the supply hub less the
+   * whole buildings bombed out. Supply and movement read them only in the
+   * wing model (air.wingsLive): the old model never damages either.
+   */
+  readonly railEff: Uint8Array;
+  readonly hubEff: Uint8Array;
   /** Derived (DERIVED_FIELDS): bumped when a region's naval base starts or stops working (navalPort). */
   portVer = 0;
   /**
@@ -602,6 +609,8 @@ export class WwEconomy {
     this.damage = new Int32Array(size * BUILDING_IDS.length);
     this.repair = new Int32Array(size * BUILDING_IDS.length);
     this.infraEff = new Uint8Array(size);
+    this.railEff = new Uint8Array(size);
+    this.hubEff = new Uint8Array(size);
     const owners = scenario.ownerByRegion();
     for (const r of regions) {
       this.civ[r.id] = r.civ;
@@ -635,7 +644,11 @@ export class WwEconomy {
         }
       }
     }
-    for (const r of regions) this.infraEff[r.id] = this.infra[r.id];
+    for (const r of regions) {
+      this.infraEff[r.id] = this.infra[r.id];
+      this.railEff[r.id] = this.rail[r.id];
+      this.hubEff[r.id] = this.hub[r.id];
+    }
     this.portBits = new Uint8Array(size);
     this.countryList = [null];
     scenario.countries.forEach((tag, i) => {
@@ -1092,6 +1105,12 @@ export class WwEconomy {
     if (b === "rail" || b === "naval_base") this.railPortVer++;
     if (b === "infra") {
       this.infraEff[region] = effectiveBuildings(this, region, "infra");
+    }
+    if (b === "rail") {
+      this.railEff[region] = effectiveBuildings(this, region, "rail");
+    }
+    if (b === "supply_hub") {
+      this.hubEff[region] = effectiveBuildings(this, region, "supply_hub");
     }
     if (b === "naval_base") {
       const port = effectiveBuildings(this, region, "naval_base") >= 1;
@@ -1735,6 +1754,8 @@ export class WwEconomy {
     // P4: the effective infrastructure and naval-port bits from the levels and the damage.
     for (const r of this.scenario.landRegions) {
       this.infraEff[r.id] = effectiveBuildings(this, r.id, "infra");
+      this.railEff[r.id] = effectiveBuildings(this, r.id, "rail");
+      this.hubEff[r.id] = effectiveBuildings(this, r.id, "supply_hub");
       this.portBits[r.id] =
         effectiveBuildings(this, r.id, "naval_base") >= 1 ? 1 : 0;
     }

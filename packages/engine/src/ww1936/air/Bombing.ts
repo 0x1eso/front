@@ -9,10 +9,18 @@
 import {
   WW_BOMB_WS_DIV,
   WW_BOMB_WS_MAX_BP,
+  type WwBombClass,
 } from "@openfront/engine-api/ww1936/AirTypes";
-import type { BuildingId } from "@openfront/engine-api/ww1936/EconomyTypes";
+import {
+  BUILDING_IDS,
+  type BuildingId,
+} from "@openfront/engine-api/ww1936/EconomyTypes";
 import { bombDamageMilli } from "@openfront/engine-lib/ww1936/AirRules";
 import { isNoStrike } from "@openfront/engine-lib/ww1936/NoStrike";
+import {
+  BOMB_CLASS_WEIGHTS,
+  BOMB_FUEL_OIL_INFRA,
+} from "@openfront/engine-lib/ww1936/WingRules";
 import { nightMods } from "../depth/AirExtras";
 import type { WwDepth } from "../depth/WwDepth";
 import {
@@ -118,7 +126,8 @@ export function apportion(
  * infrastructure level, 1 for each naval base, air base, anti-air and
  * radar level (the spec's halves). BUILDING_IDS order (the tie order).
  */
-const BOMB_WEIGHTS: readonly (readonly [BuildingId, number])[] = [
+export type BombTable = readonly (readonly [BuildingId, number])[];
+const BOMB_WEIGHTS: BombTable = [
   ["civ", 2],
   ["mil", 2],
   ["dock", 2],
@@ -129,6 +138,30 @@ const BOMB_WEIGHTS: readonly (readonly [BuildingId, number])[] = [
   ["radar", 1],
   ["synthetic_refinery", 2],
 ];
+/**
+ * ww8: a bomb class's table (BUILDING_IDS order, the tie order); "auto" is
+ * the old one. Fuel also weighs infrastructure where there is oil.
+ */
+export function bombTableOf(cls: WwBombClass, hasOil: boolean): BombTable {
+  if (cls === "auto") return BOMB_WEIGHTS;
+  const w: Partial<Record<BuildingId, number>> = { ...BOMB_CLASS_WEIGHTS[cls] };
+  if (cls === "fuel" && hasOil) w.infra = BOMB_FUEL_OIL_INFRA;
+  return BUILDING_IDS.filter((b) => (w[b] ?? 0) > 0).map(
+    (b) => [b, w[b]!] as const,
+  );
+}
+
+/** A region's weight under a table (working buildings × weight). */
+export function tableWeight(
+  econ: WwEconomy,
+  region: number,
+  table: BombTable,
+): number {
+  let w = 0;
+  for (const [b, k] of table) w += effectiveBuildings(econ, region, b) * k;
+  return w;
+}
+
 /** The "factories" the message counts (the buildings that produce). */
 const FACTORIES: readonly BuildingId[] = [
   "civ",
@@ -157,16 +190,15 @@ export function damageRegion(
   econ: WwEconomy,
   region: number,
   milli: number,
+  table: BombTable = BOMB_WEIGHTS,
 ): number {
   if (milli <= 0) return 0;
-  const working = BOMB_WEIGHTS.map(([b]) =>
-    effectiveBuildings(econ, region, b),
-  );
-  const weights = BOMB_WEIGHTS.map(([, k], i) => working[i] * k);
+  const working = table.map(([b]) => effectiveBuildings(econ, region, b));
+  const weights = table.map(([, k], i) => working[i] * k);
   const whole = apportion(Math.floor(milli / 1000), weights, working);
   const rest = apportion(milli % 1000, weights);
   let done = 0;
-  BOMB_WEIGHTS.forEach(([b], i) => {
+  table.forEach(([b], i) => {
     const m = whole[i] * 1000 + rest[i];
     if (m > 0) done += damageBuilding(econ, region, b, m);
   });

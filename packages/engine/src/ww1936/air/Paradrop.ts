@@ -3,7 +3,14 @@
 // cooldown); this file adds the air war's conditions (the pure judge is
 // engine-lib AirRules.paradropBlockOf, the army card's too) and the
 // transports' losses at the drop, which the dropping divisions share.
-import { AIR_MISSIONS } from "@openfront/engine-api/ww1936/AirTypes";
+import {
+  AIR_MISSIONS,
+  AIR_TYPES,
+  type PlaneStats,
+  WP_GROUND,
+  WP_REARM,
+  WP_STATION,
+} from "@openfront/engine-api/ww1936/AirTypes";
 import {
   equipKey,
   EQUIPMENT_GENS,
@@ -26,7 +33,8 @@ import type { Army } from "../land/WwLand";
 import { onPlanesLost } from "../navy/EndgameHooks";
 import { airDuelMilli, type DuelPlanes, zoneFlights } from "./AirCombat";
 import { radarPmAt } from "./AirSuperiority";
-import type { WwAir } from "./WwAir";
+import { wingStats } from "./Sorties";
+import { type Wing, wingPlanes, wingSide, type WwAir } from "./WwAir";
 
 const M_SUP = AIR_MISSIONS.indexOf("air_superiority");
 const M_INT = AIR_MISSIONS.indexOf("interception");
@@ -49,7 +57,21 @@ export function transportStock(air: WwAir, smallID: number): number {
   for (let g = 1; g <= EQUIPMENT_GENS[TRANSPORT]; g++) {
     n += ce.stock[equipKey(TRANSPORT, g)];
   }
+  // ww8: the transports of the country's wings waiting on the ground count too.
+  if (air.wingsLive) {
+    for (const w of idleTransportWings(air, smallID)) n += wingPlanes(w);
+  }
   return n;
+}
+
+/** ww8: the owner's transport wings that are not flying (ground or rearm), in id order. */
+function idleTransportWings(air: WwAir, owner: number): Wing[] {
+  const out: Wing[] = [];
+  for (const w of air.wingsOf(owner)) {
+    if (AIR_TYPES[w.type] !== TRANSPORT) continue;
+    if (w.phase === WP_GROUND || w.phase === WP_REARM) out.push(w);
+  }
+  return out;
 }
 
 /** Spec §14.10: the transports the army's divisions need (20 a weight point, 10 a paratrooper battalion). */
@@ -157,6 +179,34 @@ export function paradropBlockFor(
   return paradropBlockOf(paradropAskOf(air, a, target));
 }
 
+interface ZoneFighter {
+  id: number;
+  mission: number;
+  side: number;
+  milli: number[];
+  stats: PlaneStats[];
+}
+
+/**
+ * ww8: the wings on station over `sr` now (sweeping or intercepting), one
+ * row each: their flying strength, not a day's sorties.
+ */
+function wingFightersOver(air: WwAir, sr: number): ZoneFighter[] {
+  const out: ZoneFighter[] = [];
+  for (const w of air.wings.values()) {
+    if (w.phase !== WP_STATION || w.flySr !== sr) continue;
+    if (w.flyMission !== M_SUP && w.flyMission !== M_INT) continue;
+    out.push({
+      id: w.id,
+      mission: w.flyMission,
+      side: wingSide(air, w),
+      milli: [w.flyMilli],
+      stats: [wingStats(air, w)],
+    });
+  }
+  return out;
+}
+
 /** A drop's transport losses: how many flew, the milli planes lost, the ‰ and the killer. */
 export interface ParadropLoss {
   planes: number;
@@ -198,7 +248,16 @@ export function paradropLosses(
   const flown = new Map<number, number>();
   let interceptors = false;
   let side = 0;
-  for (const f of zoneFlights(air, sr)) {
+  const fighters: ZoneFighter[] = air.wingsLive
+    ? wingFightersOver(air, sr)
+    : zoneFlights(air, sr).map((f) => ({
+        id: f.id,
+        mission: f.mission,
+        side: f.side,
+        milli: f.milli,
+        stats: f.stats,
+      }));
+  for (const f of fighters) {
     if (f.mission !== M_SUP && f.mission !== M_INT) continue;
     const d = air.wings.get(f.id);
     if (d === undefined) continue;
@@ -282,6 +341,22 @@ export function resolveParadrop(air: WwAir, army: number, tick: number): void {
       ce.stock[k] -= take;
       left -= take;
       gone += take;
+    }
+    // ww8: what the stock lacks comes off the idle transport wings.
+    if (air.wingsLive) {
+      for (const w of idleTransportWings(air, a.owner)) {
+        if (left <= 0) break;
+        const take: number[] = [];
+        let want = left;
+        for (const c of w.counts) {
+          const t = Math.min(want, c);
+          take.push(t);
+          want -= t;
+        }
+        const got = air.shootDown(w.id, take, loss.by);
+        left -= got;
+        air.planesLostTotal += got;
+      }
     }
     if (gone > 0) {
       onPlanesLost(air, a.owner, loss.by, TRANSPORT, gone);
