@@ -30,10 +30,18 @@ import {
   type AirZoneData,
   type AirZoneResult,
   type CountryAirDetail,
+  WP_FERRY,
 } from "@openfront/engine-api/ww1936/AirTypes";
 import { carpetBombPoints } from "@openfront/engine-lib/warfare/Warfare";
 import { assetUrl } from "@openfront/shared/AssetUrls";
 import { fogOfAir, fogOfNavy } from "../../../hud/ww1936/FogModel";
+import {
+  drawnPlanes,
+  flightPose,
+  targetTile,
+  wingBaseXY,
+  type WingPose,
+} from "../../../view/WingTokenLayout";
 import type { WwAirView } from "../../../view/WwAirView";
 import type { WwNavyView } from "../../../view/WwNavyView";
 import {
@@ -60,6 +68,7 @@ import {
   type ShipSpriteProgram,
   TEXT_DARK,
   TEXT_MAX_GLYPHS,
+  TEXT_RED,
 } from "./FleetTokenPass";
 
 const planeAtlasUrl = assetUrl("atlases/plane-atlas.png");
@@ -80,6 +89,11 @@ const LEG_MS_MAX = 4000;
 const STAGGER_MS = 700;
 /** Tiles around the zone center the planes turn back at. */
 const TURN_JITTER = 6;
+/** ww8: how long an air battle's icon and loss number stay (ms), and how far the number rises (tiles). */
+export const FIGHT_FX_MS = 2500;
+const FIGHT_RISE_TILES = 6;
+/** ww8: a wing's leg is drawn at least this long (ms), screen only. */
+export const LEG_MIN_DRAW_MS = 400;
 /** Below this zoom (screen px per tile) no plane is drawn or launched. */
 export const SORTIE_MIN_ZOOM = 0.6;
 
@@ -197,6 +211,29 @@ export class AirSortiePass {
   private readonly chipSum = new Map<number, number>();
   private readonly glyphs: number[] = new Array(TEXT_MAX_GLYPHS).fill(0);
 
+  // ww8: the wing model's flights (drawn from the schedule rows each frame)
+  // and the air battles' icons.
+  private readonly pose: WingPose = {
+    x: 0,
+    y: 0,
+    heading: 0,
+    progress: 0,
+    flown: 0,
+    loiter: false,
+  };
+  private readonly baseXY: [number, number] = [0, 0];
+  private readonly targetXY: [number, number] = [0, 0];
+  private flightTick = 0;
+  private flightMinLeg = 0;
+  private flightAir: WwAirView | null = null;
+  private flightNavy: WwNavyView | null = null;
+  /** Air battle icons: zone -> start ms, planes lost, tile. */
+  private readonly fightFx = new Map<
+    number,
+    { start: number; lost: number; x: number; y: number }
+  >();
+  private fx: ShipSpriteBatch;
+
   private onBomb:
     | ((fromX: number, fromY: number, x: number, y: number) => void)
     | null = null;
@@ -312,6 +349,7 @@ export class AirSortiePass {
       });
     }
     this.chips = new ShipSpriteBatch(gl);
+    this.fx = new ShipSpriteBatch(gl);
   }
 
   private setAtlasParams(): void {
@@ -388,6 +426,7 @@ export class AirSortiePass {
         if (!first) changed.add(sr);
       }
     }
+    if (air.live && !first) this.noteFights(air, nowMs);
     const detail = air.detail;
     if (detail !== this.seenDetail) {
       this.seenDetail = detail;
@@ -456,8 +495,9 @@ export class AirSortiePass {
         }
       }
     }
-    // The viewer's losses: wrecks over the zone.
-    for (const sr of changed) {
+    // The viewer's losses: wrecks over the zone (the wing model drops
+    // them as the fights happen instead: noteFights).
+    for (const sr of air.live ? [] : changed) {
       const zone = air.zones.get(sr)!;
       const res = resultOf(zone, me);
       if (res === null || res.lost <= 0) continue;
@@ -470,6 +510,143 @@ export class AirSortiePass {
         this.spawnWreck(x, y, this.jitter() * Math.PI, 0, me, 16, nowMs);
       }
     }
+  }
+
+  /**
+   * ww8: this update's air battles (the fog decides which show): an icon
+   * with the planes lost rising off it, and wrecks falling over the zone.
+   */
+  private noteFights(air: WwAirView, nowMs: number): void {
+    const sc = air.scenario;
+    const W = sc.width;
+    const fog = fogOfAir(air);
+    const mySide = air.mySide();
+    for (const [sr, side, lost] of air.fights) {
+      if (fog !== undefined && !fog.fightVisible(sr, side)) continue;
+      const z = sc.sr(sr);
+      if (z === undefined) continue;
+      const x = z.center % W;
+      const y = Math.floor(z.center / W);
+      const old = this.fightFx.get(sr);
+      this.fightFx.set(sr, {
+        start: nowMs,
+        lost:
+          (old !== undefined && nowMs - old.start < FIGHT_FX_MS
+            ? old.lost
+            : 0) + lost,
+        x,
+        y,
+      });
+      const n = Math.min(3, Math.ceil(lost / 5));
+      for (let i = 0; i < n; i++) {
+        this.spawnWreck(
+          x + this.jitter() * TURN_JITTER,
+          y + this.jitter() * TURN_JITTER,
+          this.jitter() * Math.PI,
+          0,
+          side === mySide ? air.mySmallID() : side < 100_000 ? side : 0,
+          16,
+          nowMs,
+        );
+      }
+    }
+  }
+
+  /**
+   * ww8: the clock the wing flights are drawn at: the fractional game tick
+   * and the shortest leg the screen shows (LEG_MIN_DRAW_MS in ticks).
+   */
+  setFlightClock(
+    tickF: number,
+    msPerTick: number,
+    navy: WwNavyView | null,
+  ): void {
+    this.flightTick = tickF;
+    this.flightMinLeg = LEG_MIN_DRAW_MS / Math.max(1, msPerTick);
+    this.flightNavy = navy;
+  }
+
+  /**
+   * ww8: writes the wings' planes into the instance floats from `n` on
+   * (at most SORTIE_CAP in all); returns the new count. A wing the fog
+   * hides in flight draws nothing, and nor does one whose carrier it hides.
+   */
+  private fillWings(air: WwAirView, f: Float32Array, n: number): number {
+    const sc = air.scenario;
+    const W = sc.width;
+    const fog = fogOfAir(air);
+    const navy = this.flightNavy;
+    const pose = this.pose;
+    const base = this.baseXY;
+    const target = this.targetXY;
+    const me = air.mySmallID();
+    for (const [id, row] of air.flights) {
+      if (n >= SORTIE_CAP) break;
+      const b = air.wingBriefs.get(id);
+      if (b === undefined) continue;
+      const mine = b.owner === me;
+      if (!mine && fog !== undefined && !fog.wingFlightVisible(b)) continue;
+      if (!wingBaseXY(air, navy, b.base, base)) continue;
+      // Another owner's carrier launches only from a fleet the fog shows.
+      if (!mine && b.base < 0 && navy !== null) {
+        let hidden = false;
+        for (const fl of navy.fleets.values()) {
+          for (const sh of fl.ships) {
+            if (
+              sh.id === -b.base &&
+              fogOfNavy(navy)?.fleetView(fl.id).visible === false
+            ) {
+              hidden = true;
+            }
+          }
+        }
+        if (hidden) continue;
+      }
+      if (row[1] === WP_FERRY) {
+        // A ferry flies from the base it left (the brief's hit) to its base.
+        if (!wingBaseXY(air, navy, b.hit, target)) continue;
+      } else {
+        const t = targetTile(sc, row[6], b.flySr);
+        if (t < 0) continue;
+        target[0] = t % W;
+        target[1] = Math.floor(t / W);
+      }
+      if (
+        !flightPose(
+          W,
+          base,
+          target,
+          row,
+          this.flightTick,
+          this.flightMinLeg,
+          pose,
+        )
+      ) {
+        continue;
+      }
+      const seen = mine
+        ? b.planes
+        : (fog?.planesSeen(b.owner, b.planes) ?? b.planes);
+      const k = drawnPlanes(seen);
+      const look = LOOK.get(AIR_TYPES[b.type])!;
+      const scale = flightScale(UT_BOMBER, pose.progress);
+      const px = -Math.sin(pose.heading);
+      const py = Math.cos(pose.heading);
+      for (let i = 0; i < k && n < SORTIE_CAP; i++) {
+        const off = (i - (k - 1) / 2) * 3;
+        const o = n * FLOATS;
+        f[o] = pose.x + px * off + 0.5;
+        f[o + 1] = pose.y + py * off + 0.5;
+        f[o + 2] = pose.heading;
+        f[o + 3] = look.size * scale;
+        f[o + 4] = look.col;
+        f[o + 5] = b.owner;
+        f[o + 6] = 1;
+        f[o + 7] = contrailLength(pose.flown, scale) * 0.5;
+        n++;
+      }
+    }
+    return n;
   }
 
   /**
@@ -653,7 +830,7 @@ export class AirSortiePass {
   }
 
   /** Writes this frame's planes and wrecks; returns the planes (contrails) count. */
-  private fill(nowMs: number): number {
+  private fill(nowMs: number, air: WwAirView): number {
     const f = this.buf.float32;
     const p = this.point;
     let n = 0;
@@ -690,6 +867,7 @@ export class AirSortiePass {
       f[o + 7] = contrailLength(flown, scale) * 0.5;
       n++;
     }
+    if (air.live) n = this.fillWings(air, f, n);
     const planes = n;
     for (const w of this.wrecks) {
       if (!w.active) continue;
@@ -718,6 +896,34 @@ export class AirSortiePass {
       gl.bufferSubData(gl.ARRAY_BUFFER, 0, f, 0, n * FLOATS);
     }
     return planes;
+  }
+
+  /** ww8: the air battles' crossed-swords icons with the planes lost rising off them. */
+  private updateFightFx(nowMs: number): void {
+    const b = this.fx;
+    if (this.fightFx.size === 0 && b.drawn === 0) return;
+    b.begin(this.fightFx.size * 2);
+    for (const [sr, e] of this.fightFx) {
+      const age = nowMs - e.start;
+      if (age >= FIGHT_FX_MS) {
+        this.fightFx.delete(sr);
+        continue;
+      }
+      const t = age / FIGHT_FX_MS;
+      b.putSprite(e.x + 0.5, e.y + 0.5, SHIP_CELL.battle, 1, 1 - t * t, 44);
+      if (e.lost > 0) {
+        const k = numberGlyphs(SHIP_CELL.cross, e.lost, this.glyphs);
+        b.putText(
+          e.x + 0.5,
+          e.y + 0.5 - t * FIGHT_RISE_TILES,
+          0,
+          this.glyphs,
+          k,
+          TEXT_RED,
+        );
+      }
+    }
+    b.upload();
   }
 
   /** The air layer's "✈N" chips: the viewer's planes deployed over each zone. */
@@ -767,7 +973,7 @@ export class AirSortiePass {
   ): void {
     const gl = this.gl;
     if (zoom >= SORTIE_MIN_ZOOM) {
-      const planes = this.fill(nowMs);
+      const planes = this.fill(nowMs, air);
       if (this.planesDrawn > 0) {
         gl.bindVertexArray(this.vao);
         if (planes > 0) {
@@ -796,10 +1002,15 @@ export class AirSortiePass {
         if (s.active && nowMs >= s.start + 2 * s.legMs) this.land(s, i);
       }
     }
+    this.updateFightFx(nowMs);
     this.updateChips(air, airLayer);
     if (this.chips.drawn > 0) {
       this.sprites.bind(cam, tilesPerPx, timeSec);
       this.chips.draw();
+    }
+    if (this.fx.drawn > 0) {
+      this.sprites.bind(cam, tilesPerPx, timeSec);
+      this.fx.draw();
     }
   }
 
@@ -813,5 +1024,6 @@ export class AirSortiePass {
     gl.deleteVertexArray(this.vao);
     gl.deleteTexture(this.atlasTex);
     this.chips.dispose();
+    this.fx.dispose();
   }
 }

@@ -14,6 +14,8 @@ export const LAYER_FILL_ALPHA = 110;
 export const LAYER_FLAG_CONVOY_LOSS = 1;
 /** Flag bit (lane U, spec §18.3-1): a sea region a mission may take now (it glows). */
 export const LAYER_FLAG_GLOW = 2;
+/** Flag bit (ww8): an air battle was fought here a moment ago (a faint blink). */
+export const LAYER_FLAG_FIGHT = 4;
 
 /**
  * What glows for a map tap (spec §18.3): the sea regions a fleet's mission
@@ -116,6 +118,41 @@ export function airLayerColors(
   }
   return out;
 }
+
+/**
+ * ww8: air layer flags by air zone index (246 zones, 256 bytes):
+ * LAYER_FLAG_FIGHT where a battle the fog shows was fought in the last
+ * FIGHT_SHOW_MS. `fogged(sr, sides)` says whether the viewer may see it
+ * (FogModel.fightVisible for any side). `out` is cleared and reused.
+ */
+export function airLayerFlags(
+  view: WwAirView,
+  nowMs: number,
+  fightShown: (sr: number, side: number) => boolean,
+  out: Uint8Array = new Uint8Array(LAYER_TABLE_SIZE),
+): Uint8Array {
+  out.fill(0);
+  view.eachFight(nowMs, (sr, sides) => {
+    let shown = false;
+    for (let i = 0; i < sides.length; i++) {
+      if (fightShown(sr, sides[i])) shown = true;
+    }
+    if (!shown) return;
+    const idx = view.scenario.srIdxOf(sr);
+    if (idx >= 0 && idx < LAYER_TABLE_SIZE) out[idx] |= LAYER_FLAG_FIGHT;
+  });
+  return out;
+}
+
+/** ww8: the air layer's legend: ours, contested, theirs (the ramp's ends and middle). */
+export const AIR_LEGEND: readonly {
+  key: "mine" | "contested" | "enemy";
+  rgb: Rgb;
+}[] = [
+  { key: "mine", rgb: RAMP_AIR_MINE },
+  { key: "contested", rgb: RAMP_CONTESTED },
+  { key: "enemy", rgb: RAMP_ENEMY },
+];
 
 /**
  * Sea layer flags by strategic-region index (256 bytes):

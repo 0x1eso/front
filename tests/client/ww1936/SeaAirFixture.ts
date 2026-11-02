@@ -4,8 +4,12 @@
 import { PlayerType } from "@openfront/engine-api/game/GameTypes";
 import type {
   AirDeploySummary,
+  AirFightRow,
   AirZoneData,
   CountryAirDetail,
+  WingBrief,
+  WingDetail,
+  WingFlightRow,
 } from "@openfront/engine-api/ww1936/AirTypes";
 import {
   COUNTRIES,
@@ -226,6 +230,25 @@ export function navyDetail(
   };
 }
 
+/** ww8: a wing's brief on the ground at `base` (test map). */
+export function wingBrief(
+  over: Partial<WingBrief> & { id: number },
+): WingBrief {
+  return {
+    owner: 0,
+    side: 0,
+    type: 0,
+    base: 0,
+    planes: 100,
+    phase: 0,
+    until: 0,
+    flySr: 0,
+    hit: 0,
+    flyMission: -1,
+    ...over,
+  };
+}
+
 export function airDetail(
   tag: CountryTag,
   over: Partial<CountryAirDetail> = {},
@@ -255,6 +278,13 @@ export interface SeaOptions {
   air?: CountryAirDetail;
   zones?: AirZoneData[];
   deployments?: AirDeploySummary[];
+  /** ww8: the wing model's updates (any of them turns the air view live). */
+  wings?: WingBrief[];
+  wingDetails?: WingDetail[];
+  flights?: WingFlightRow[];
+  fights?: AirFightRow[];
+  /** ww8: when the air battle rows arrived (client ms). */
+  fightsAtMs?: number;
   armies?: ArmySummary[];
   landDetails?: CountryLandDetail[];
 }
@@ -335,12 +365,26 @@ export function seaGame(o: SeaOptions = {}) {
     ticks,
   );
   const air = new WwAirView(sea, myId, () => side(myId()));
-  air.apply({
-    zones: o.zones ?? [],
-    deployments: o.deployments ?? [],
-    removedDeployments: [],
-    details: [o.air ?? airDetail(me)],
-  });
+  air.apply(
+    {
+      zones: o.zones ?? [],
+      deployments: o.deployments ?? [],
+      removedDeployments: [],
+      details: [o.air ?? airDetail(me)],
+      ...(o.wings !== undefined ||
+      o.flights !== undefined ||
+      o.fights !== undefined
+        ? {
+            live: true as const,
+            briefs: o.wings ?? [],
+            wings: o.wingDetails ?? [],
+            flights: o.flights ?? [],
+            fights: o.fights ?? [],
+          }
+        : {}),
+    },
+    o.fightsAtMs ?? 0,
+  );
   const players = sea.countries.map((tag) => ({
     id: () => `P${SID(tag)}`,
     smallID: () => SID(tag),

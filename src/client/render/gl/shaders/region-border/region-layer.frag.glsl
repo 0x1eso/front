@@ -60,6 +60,11 @@ void main() {
     float pulse = 0.5 + 0.5 * sin(uTime * 3.0);
     col = over(col, GLOW, 0.22 + 0.22 * pulse);
   }
+  // Bit 2 (ww8): an air battle was fought here a moment ago — a faint blink.
+  if ((flags & 4) != 0) {
+    float pulse = 0.5 + 0.5 * sin(uTime * 7.0);
+    col = over(col, vec3(1.0, 0.92, 0.55), 0.08 + 0.2 * pulse);
+  }
   bool chosen = s == uSel;
   if (chosen) col = over(col, vec3(1.0), 0.12);
 
