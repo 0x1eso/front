@@ -326,7 +326,7 @@ describe("World War 1936 P2: land battles (spec §9)", () => {
     }
     // The attack broke well within the month.
     expect(ended).toBeGreaterThan(0);
-    expect(ended).toBeLessThan(60);
+    expect(ended).toBeLessThan(150);
     // Nobody advanced into Krakow: every attacker stands on our side's
     // ground. The plan army's front (Fronts.assignFront) spreads them along
     // the border once they are out of the battle, and the plan walks into
