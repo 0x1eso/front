@@ -105,7 +105,8 @@ export function armyAutoAll(
   let first: WwOrderBlock | null = "bad_index";
   let any = false;
   for (const a of [...land.armiesOf(smallID)].sort((x, y) => x.id - y.id)) {
-    if (a.auto === on) {
+    // ww7: on means the full level (a defend-only army goes up to it).
+    if (on ? a.autoLevel === 2 : !a.auto) {
       any = true;
       continue;
     }

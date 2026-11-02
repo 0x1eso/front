@@ -518,6 +518,28 @@ function fillGaps(
   }
 }
 
+/** The mean width of `rows`' divisions (at least 1). */
+export function meanWidthOf(land: WwLand, rows: readonly number[]): number {
+  let widths = 0;
+  for (const r of rows) widths += land.baseStatsOf(r).width;
+  return Math.max(1, Math.floor(widths / Math.max(1, rows.length)));
+}
+
+/**
+ * ww7 item 3: the divisions a zone region takes at most: 1.5 × its combat
+ * width for `dirs` enemy directions, in divisions `mean` wide (the layout,
+ * the AI's gate).
+ */
+export function zoneCap(
+  land: WwLand,
+  region: number,
+  dirs: number,
+  mean: number,
+): number {
+  const width = combatWidth(land.scenario.landOf(region), Math.max(1, dirs));
+  return Math.max(1, Math.floor((3 * width) / (2 * mean)));
+}
+
 /** Spare divisions into `share` by `weight`, never above `cap`; what fits nowhere is left over. */
 function spread(
   spare: number,
@@ -585,17 +607,8 @@ function layout(land: WwLand, d: ArmyDay, tick: number): void {
   const covered = new Array<boolean>(k).fill(false);
   for (let j = 0; j < coverN; j++) covered[prio[j]] = true;
   // 1.5 × the combat width, in divisions of this army's mean width.
-  let widths = 0;
-  for (const r of rows) widths += land.baseStatsOf(r).width;
-  const mean = Math.max(1, Math.floor(widths / n));
-  const cap = regions.map((f, i) =>
-    Math.max(
-      1,
-      Math.floor(
-        (3 * combatWidth(sc.landOf(f), Math.max(1, dirs[i]))) / (2 * mean),
-      ),
-    ),
-  );
+  const mean = meanWidthOf(land, rows);
+  const cap = regions.map((f, i) => zoneCap(land, f, dirs[i], mean));
   // The shares: one for the covered, then the spare.
   const share = covered.map((c) => (c ? 1 : 0));
   const spare = n - coverN;

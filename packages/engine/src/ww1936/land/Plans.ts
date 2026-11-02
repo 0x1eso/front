@@ -411,8 +411,13 @@ export function predictAttackRange(
   land: WwLand,
   attackers: readonly number[],
   region: number,
+  /** ww7 lane D: the AI's gate counts divisions still on their way: the directions they will attack from. */
+  directions?: number,
 ): BattleRange {
   const { att, def, ctx } = gatherAttack(land, attackers, region);
+  if (directions !== undefined) {
+    ctx.directions = Math.max(1, Math.min(4, directions));
+  }
   return predictBattleRange(att, def, ctx);
 }
 
