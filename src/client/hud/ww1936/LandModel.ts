@@ -30,8 +30,6 @@ import {
   GeneralData,
   LAND_ATTACK_TACTICS,
   LAND_DEFENSE_TACTICS,
-  LandAttackTactic,
-  LandDefenseTactic,
   LandTerrain,
   ModLine,
   ROLE_ATTACK,
@@ -79,6 +77,7 @@ import {
   OrderCheckWorld,
 } from "@openfront/engine-lib/ww1936/LandOrderChecks";
 import { startTemplates } from "@openfront/engine-lib/ww1936/LandStart";
+import { isCountered } from "@openfront/engine-lib/ww1936/TacticRules";
 import {
   edgeTicks,
   moveNeed,
@@ -1880,24 +1879,9 @@ export function battleCard(
 
 // ---- ww7: luck on the battle card (design §2.2, §2.6) ----
 
-/** The defence tactic that cancels each attack tactic (design §2.2); null: none does. */
-export const TACTIC_COUNTER: Readonly<
-  Record<LandAttackTactic, LandDefenseTactic | null>
-> = {
-  attack: null,
-  assault: "ambush",
-  shock: "elastic",
-  infiltration: "hold",
-  barrage: null,
-  blitz: "depth",
-  envelop: "withdraw",
-};
-
-/** Whether the defence tactic (list index) cancels the attack tactic (list index). */
+/** Whether the defence tactic (list index) cancels the attack tactic (list index): the engine's own table. */
 export function tacticCountered(att: number, def: number): boolean {
-  const a = LAND_ATTACK_TACTICS[att];
-  const d = LAND_DEFENSE_TACTICS[def];
-  return a !== undefined && d !== undefined && TACTIC_COUNTER[a] === d;
+  return isCountered(att, def);
 }
 
 /** What the battle card's luck block shows; a field is null where the data (or the fog) has none. */
