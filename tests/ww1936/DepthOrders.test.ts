@@ -33,7 +33,7 @@ const D_ANSWER: Readonly<Record<string, string | null>> = {
   subdoctrine_pick: null,
   army_spirit_pick: "no_xp",
   trait_assign: "trait_unavailable",
-  promote_fm: "no_cp",
+  promote_fm: "no_pp",
   ag_create: "general_unavailable",
   ag_add: "bad_index",
   ag_remove: "bad_index",
@@ -41,7 +41,7 @@ const D_ANSWER: Readonly<Record<string, string | null>> = {
   ag_front: "bad_index",
   ag_execute: "bad_index",
   ag_auto: "bad_index",
-  medal_award: "no_cp",
+  medal_award: "bad_index",
   army_priority: null,
 };
 

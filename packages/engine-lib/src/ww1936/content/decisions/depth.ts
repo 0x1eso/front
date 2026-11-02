@@ -2,7 +2,7 @@
 // ww1936.decision.<id>, ww1936.decision_desc.<id>.
 //
 // - gen_expand_staff_college (spec §4.1): any country, 50 PP, the spirit
-//   gen_staff_college (command power gain +25%) for 180 days, once a year.
+//   gen_staff_college (army experience +0.1 a day) for 180 days, once a year.
 // - usa_* (spec §13.1, the "Congress" tab): congress {pp} moves the support
 //   of Congress in percentage points.
 // - chn_*, jpn_*, fra_* (spec §13.2): bop {amount} moves the balance in ‰

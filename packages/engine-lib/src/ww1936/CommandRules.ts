@@ -5,9 +5,6 @@
 // both call (spiritPickBlock, promoteFmBlock) and the army group front split.
 import {
   ArmySpirit,
-  CP_DAY_MILLI,
-  CP_FM_UPKEEP_MILLI,
-  FM_PROMOTE_CP,
   FM_PROMOTE_PP,
   FM_TRAITS,
   SPIRIT_PICK_XP,
@@ -28,6 +25,7 @@ export interface GeneralTraitDef {
   kind: "terrain" | "assign";
   level: number;
   needs?: GeneralTrait;
+  /** Price tier (the old command-power value); traitXpCost maps it to XP. */
   cp: number;
   /** P2 terrainDays index (entries 4.. are forest+jungle, urban, marsh). */
   terrainIdx?: number;
@@ -62,7 +60,6 @@ export const NEW_GENERAL_TRAITS: Readonly<
 export const TERRAIN_TRAIT_DAYS = 60;
 
 // ---- ww9 command-power removal (design §12): the XP prices and automation.
-// Lane C switches the code from cp to these; until then nothing reads them.
 /** Experience (whole XP) a trait costs: basic, advanced, top (the old command power x2). */
 export const TRAIT_XP_BASIC = 30;
 export const TRAIT_XP_ADVANCED = 40;
@@ -78,9 +75,9 @@ export const MEDAL_AUTO_EVERY_DAYS = 30;
 export const MEDAL_MAX_ACTIVE = 6;
 /** The AI keeps this much XP for organisation changes and designs before buying a trait. */
 export const AI_TRAIT_RESERVE_XP = 60;
-export const FM_EXTRA_TRAIT_CP = 20;
+const FM_EXTRA_TRAIT_CP = 20;
 export const FM_TRAIT_LEVELS: readonly number[] = [3, 5];
-export const ADMIRAL_ASSIGN_CP = 15;
+const ADMIRAL_ASSIGN_CP = 15;
 export const ADMIRAL_ASSIGN_LEVEL = 2;
 
 export function traitSlots(level: number): number {
@@ -90,14 +87,6 @@ export function traitSlots(level: number): number {
 /** Spec §4.3: field marshals a country may have. */
 export function fieldMarshalCap(divisions: number): number {
   return Math.min(WW_MAX_FIELD_MARSHALS, 1 + Math.floor(divisions / 72));
-}
-
-/** Spec §4.1: a day's command power, milli (can be negative with upkeep). */
-export function cpDayMilli(cpGainPct: number, fieldMarshals: number): number {
-  return (
-    Math.floor((CP_DAY_MILLI * (100 + cpGainPct)) / 100) -
-    CP_FM_UPKEEP_MILLI * fieldMarshals
-  );
 }
 
 /** Spec §4.3 / plan decision 14: a field marshal's share in bp of a division modifier. */
@@ -139,7 +128,8 @@ export interface TraitAssignInput {
   traits: readonly string[];
   slots: number;
   trait: string;
-  cpMilli: number;
+  /** Whole XP of the officer's domain (army for generals, navy for admirals). */
+  xp: number;
   isFm: boolean;
   fmTraits: readonly string[];
 }
@@ -157,7 +147,7 @@ export function fmTraitAllowance(level: number): number {
   return 1 + FM_TRAIT_LEVELS.filter((l) => level >= l).length;
 }
 
-/** Spec §4.2: the command power a trait_assign costs (0: not bought). */
+/** The price tier of a trait_assign (the old command-power value; 0: not bought). traitXpCost is the XP price. */
 export function traitCost(trait: string, admiral: boolean): number {
   if (admiral) {
     return (ASSIGNABLE_ADMIRAL_TRAITS as readonly string[]).includes(trait)
@@ -196,7 +186,7 @@ export function traitXpCost(trait: string, admiral: boolean): number {
  */
 export function traitAssignBlock(
   i: TraitAssignInput,
-): "no_cp" | "trait_unavailable" | null {
+): "no_xp" | "trait_unavailable" | null {
   if (i.traits.includes(i.trait) || i.fmTraits.includes(i.trait)) {
     return "trait_unavailable";
   }
@@ -224,7 +214,7 @@ export function traitAssignBlock(
       return "trait_unavailable";
     }
   }
-  return i.cpMilli < cp * 1000 ? "no_cp" : null;
+  return i.xp < traitXpCost(i.trait, i.admiral) ? "no_xp" : null;
 }
 
 /** Spec §4.4: the experience an officer corps pick costs (a switch more). */
@@ -276,25 +266,17 @@ export interface PromoteInput {
   listed: boolean;
   fieldMarshals: number;
   divisions: number;
-  cpMilli: number;
   /** Whole political power. */
   pp: number;
 }
 
-/** Refusal of promote_fm (spec §4.3): who, the marshal cap, the condition, 30 command power and 25 PP. */
+/** Refusal of promote_fm (spec §4.3): who, the marshal cap, the condition and 25 PP (no command power since ww9). */
 export function promoteFmBlock(
   i: PromoteInput,
-):
-  | "general_unavailable"
-  | "fm_limit"
-  | "trait_unavailable"
-  | "no_cp"
-  | "no_pp"
-  | null {
+): "general_unavailable" | "fm_limit" | "trait_unavailable" | "no_pp" | null {
   if (i.isFm || !i.serves) return "general_unavailable";
   if (i.fieldMarshals >= fieldMarshalCap(i.divisions)) return "fm_limit";
   if (!fmEligible(i.level, i.skillSum, i.listed)) return "trait_unavailable";
-  if (i.cpMilli < FM_PROMOTE_CP * 1000) return "no_cp";
   return i.pp < FM_PROMOTE_PP ? "no_pp" : null;
 }
 

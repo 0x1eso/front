@@ -8,33 +8,30 @@ import {
   ARMY_SPIRIT_CATEGORIES,
   ARMY_SPIRITS,
   ArmySpirit,
-  FM_PROMOTE_CP,
   FM_PROMOTE_PP,
   FM_TRAITS,
   FmTrait,
   GRAND_DOCTRINES,
   GrandDoctrine,
-  MEDAL_CP,
-  MEDALS,
   SPIRIT_CAT_DOMAIN,
   SUBDOCTRINES,
 } from "@openfront/engine-api/ww1936/DepthTypes";
 import {
   GENERAL_TRAITS,
   GeneralTrait,
-  ROLE_ATTACK,
   traitBit,
 } from "@openfront/engine-api/ww1936/LandTypes";
 import { dayOfDate } from "@openfront/engine-lib/ww1936/Calendar";
 import {
+  AI_TRAIT_RESERVE_XP,
   fieldMarshalCap,
   fmEligible,
   groupArmyCap,
   NEW_GENERAL_TRAITS,
   spiritCost,
   traitAssignBlock,
-  traitCost,
   traitSlots,
+  traitXpCost,
 } from "@openfront/engine-lib/ww1936/CommandRules";
 import {
   P_START_DOCTRINE,
@@ -63,10 +60,6 @@ import {
 } from "./Command";
 import type { Domain, WwDepth } from "./WwDepth";
 
-/** Spec §19.2: command power the AI keeps above a trait's price. */
-const AI_TRAIT_RESERVE_CP = 20;
-/** Spec §19.2: command power before the AI awards a medal. */
-const AI_MEDAL_CP = 40;
 /** Spec §19.2: armies before the AI wants a field marshal. */
 const AI_FM_ARMIES = 4;
 /** Spec §4.3: a titled field marshal's every skill (Japan's, Italy's office). */
@@ -146,7 +139,6 @@ export function aiCommandDay(d: WwDepth, id: number, day: number): void {
   aiMarshals(d, id, day);
   aiGroups(d, id);
   aiTraits(d, id);
-  aiMedal(d, id, day);
 }
 
 /**
@@ -285,7 +277,7 @@ function fmTraitFor(d: WwDepth, id: number, have: number): number {
  * whose day has come is promoted (an office's is a new titled general,
  * every skill 2); with 4 armies or more, one marshal per front bundle (at
  * least one) up to the cap — the listed general first, then the highest
- * skill sum. Each costs 30 command power and 25 PP: the AI waits for them.
+ * skill sum. Each costs 25 PP: the AI waits for them.
  */
 function aiMarshals(d: WwDepth, id: number, day: number): void {
   const land = d.ww.land;
@@ -341,7 +333,7 @@ function aiMarshals(d: WwDepth, id: number, day: number): void {
   promoteMarshal(d, id, best.id, fmTraitFor(d, id, 0), day);
 }
 
-/** K5's titled marshal (an office): a new titled general, every skill 2, made a field marshal; the cap, 30 CP and 25 PP. */
+/** K5's titled marshal (an office): a new titled general, every skill 2, made a field marshal; the cap and 25 PP. */
 function promoteTitled(
   d: WwDepth,
   id: number,
@@ -349,16 +341,12 @@ function promoteTitled(
   trait: number,
 ): boolean {
   const land = d.ww.land;
-  const c = d.country(id)!;
   if (land.fieldMarshalCount(id) >= fieldMarshalCap(land.rowsOf(id).length)) {
     return false;
   }
   const pp = d.ww.politics.country(id)?.ppMilli ?? 0;
-  if (c.cmd.cpMilli < FM_PROMOTE_CP * 1000 || pp < FM_PROMOTE_PP * 1000) {
-    return false;
-  }
+  if (pp < FM_PROMOTE_PP * 1000) return false;
   if (!payPp(d.ww.politics, id, FM_PROMOTE_PP)) return false;
-  c.cmd.cpMilli -= FM_PROMOTE_CP * 1000;
   const g = newTitledGeneralState(id, cl.nextTitleNo++);
   g.att = TITLED_FM_SKILL;
   g.dfn = TITLED_FM_SKILL;
@@ -436,17 +424,18 @@ function aiGroups(d: WwDepth, id: number): void {
 }
 
 /**
- * Spec §19.2 traits: one a day, when the command power is the trait's
- * price + 20 — the generals of front armies first (the bigger army
+ * Spec §19.2 traits (ww9: paid with army XP): one a day, when the XP is
+ * the trait's price + AI_TRAIT_RESERVE_XP (what the organisation and
+ * designs need stays) — the generals of front armies first (the bigger army
  * first), then the other army generals, in TRAIT_PLAN order; then a field
  * marshal's next trait (levels 3 and 5).
  */
 function aiTraits(d: WwDepth, id: number): void {
   const land = d.ww.land;
   const cl = land.country(id)!;
-  const c = d.country(id)!;
-  // The cheapest trait (15) plus the reserve: nothing to buy below it.
-  if (c.cmd.cpMilli < (15 + AI_TRAIT_RESERVE_CP) * 1000) return;
+  const xp = d.xpOf(id, 0);
+  // The cheapest trait plus the reserve: nothing to buy below it.
+  if (xp < traitXpCost("skirmisher", false) + AI_TRAIT_RESERVE_XP) return;
   const armies = land
     .armiesOf(id)
     .filter((a) => a.general !== 0)
@@ -461,14 +450,14 @@ function aiTraits(d: WwDepth, id: number): void {
     const held = GENERAL_TRAITS.filter((t) => (g.traits & traitBit(t)) !== 0);
     for (const t of TRAIT_PLAN) {
       if (
-        c.cmd.cpMilli < (traitCost(t, false) + AI_TRAIT_RESERVE_CP) * 1000 ||
+        xp < traitXpCost(t, false) + AI_TRAIT_RESERVE_XP ||
         traitAssignBlock({
           admiral: false,
           level: g.level,
           traits: held,
           slots: traitSlots(g.level),
           trait: t,
-          cpMilli: c.cmd.cpMilli,
+          xp,
           isFm: false,
           fmTraits: [],
         }) !== null
@@ -483,55 +472,7 @@ function aiTraits(d: WwDepth, id: number): void {
     const b = fmTraitFor(d, id, g.fmTraits);
     if (b < 0) continue;
     const t = FM_TRAITS[b];
-    if (c.cmd.cpMilli < (traitCost(t, false) + AI_TRAIT_RESERVE_CP) * 1000) {
-      return;
-    }
+    if (d.xpOf(id, 0) < traitXpCost(t, false) + AI_TRAIT_RESERVE_XP) return;
     if (assignGeneralTrait(d, id, g.id, t) === null) return;
   }
-}
-
-/**
- * Spec §19.2 medals: with 40 command power, the biggest army in battle
- * whose medal time has come — valour when it attacks, defence when it
- * defends.
- */
-function aiMedal(d: WwDepth, id: number, day: number): void {
-  const c = d.country(id)!;
-  if (c.cmd.cpMilli < Math.max(AI_MEDAL_CP, MEDAL_CP) * 1000) return;
-  const land = d.ww.land;
-  const t = land.divisions;
-  let best: Army | null = null;
-  let bestN = 0;
-  let attack = false;
-  for (const a of land.armiesOf(id)) {
-    if (a.medal > 0) continue;
-    const ready = c.cmd.medalReady.find((x) => x[0] === a.id);
-    if (ready !== undefined && ready[1] > day) continue;
-    let fighting = 0;
-    let att = 0;
-    for (const div of a.divisions) {
-      const r = t.rowOf(div);
-      if (r < 0 || t.battle[r] === 0) continue;
-      fighting++;
-      if (t.role[r] === ROLE_ATTACK) att++;
-    }
-    if (fighting === 0) continue;
-    const n = a.divisions.length;
-    if (best === null || n > bestN || (n === bestN && a.id < best.id)) {
-      best = a;
-      bestN = n;
-      attack = att * 2 >= fighting;
-    }
-  }
-  if (best === null) return;
-  issueCommand(
-    d,
-    id,
-    {
-      kind: "medal_award",
-      army: best.id,
-      medal: MEDALS[attack ? 0 : 1],
-    },
-    tickOf(d),
-  );
 }

@@ -1,7 +1,6 @@
 // World War 1936 P6 (plan decision 27, Task 1 Step 11): the depth effects.
 // The foundation writes the dispatch (each kind to the lane that owns its
 // state); P6 lane W3 fills applyMechEffect (plan Task 9).
-import { CP_MAX_MILLI } from "@openfront/engine-api/ww1936/DepthTypes";
 import type { Effect } from "@openfront/engine-api/ww1936/PoliticsDsl";
 import { applyIntelEffect } from "../depth/Agency";
 import { addBop } from "../depth/BalanceOfPower";
@@ -46,8 +45,8 @@ export function applyDepthEffect(
 
 /**
  * P6 lane W3 (plan Task 9 Step 6): congress (the US only, ± points), bop
- * (while the actor's mechanism is on), cp (D's cmd.cpMilli, ± whole
- * points, kept in 0..CP_MAX_MILLI), cfocus_unlock.
+ * (while the actor's mechanism is on), cp (ww9: ± whole points of
+ * army experience, kept at 0 or more; no content uses it), cfocus_unlock.
  */
 export function applyMechEffect(
   ctx: EffectCtx,
@@ -66,11 +65,13 @@ export function applyMechEffect(
       addBop(d, actor, e.amount, ctx.day);
       return;
     case "cp":
-      c.cmd.cpMilli = Math.max(
-        0,
-        Math.min(CP_MAX_MILLI, c.cmd.cpMilli + e.amount * 1000),
-      );
-      d.markCountry(actor);
+      {
+        const cl = d.ww.land.country(actor);
+        if (cl !== null) {
+          cl.armyXpMilli = Math.max(0, cl.armyXpMilli + e.amount * 1000);
+          d.markCountry(actor);
+        }
+      }
       return;
     case "cfocus_unlock":
       if (!c.mech.cfocusOpen) {

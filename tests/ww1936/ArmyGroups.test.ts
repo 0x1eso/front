@@ -214,17 +214,15 @@ describe("army groups (spec §4.3)", () => {
     const a = placeArmy(runner.game, "DEU", DEEP.region.berlin, 2);
     const tick = runner.game.ticks();
     const c = d.country(DEU)!;
-    c.cmd.cpMilli = 50_000;
     expect(
       d.issue(DEU, { kind: "ag_create", fm: fm.id, armies: [a.id] }, tick),
     ).toBeNull();
-    expect(
-      d.issue(
-        DEU,
-        { kind: "medal_award", army: a.id, medal: "medal_valor" },
-        tick,
-      ),
-    ).toBeNull();
+    // A medal won in battle (ww9: automatic) and its candidate survive too.
+    d.onBattleEnd(0, a.divisions, [], false);
+    c.cmd.medalDay = 3;
+    a.medal = 1;
+    a.medalUntil = 190;
+    c.cmd.medalReady.push([a.id, 120]);
     expect(
       d.issue(DEU, { kind: "army_priority", army: a.id, value: 2 }, tick),
     ).toBeNull();

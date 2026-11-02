@@ -80,12 +80,7 @@ export const SUB_SWITCH_LOCK_DAYS = 90;
 export const MASTERY_PER_RESEARCH_BONUS = 60;
 
 // ---- Command (spec §4) ----
-export const CP_MAX_MILLI = 100_000;
-export const CP_DAY_MILLI = 400;
-export const CP_FM_UPKEEP_MILLI = 50;
-export const FM_PROMOTE_CP = 30;
 export const FM_PROMOTE_PP = 25;
-export const MEDAL_CP = 10;
 export const MEDAL_COOLDOWN_DAYS = 120;
 export const MEDAL_DAYS = 180;
 export const WW_MAX_FIELD_MARSHALS = 4;
@@ -877,7 +872,6 @@ export interface WwDepthSummary {
   gd: number[];
   /** Mastery level per track (9). */
   levels: number[];
-  cpMilli: number;
   energyPm: number;
   mioSize: number[];
   fieldMarshals: number;
@@ -936,11 +930,13 @@ export interface WwDepthDetail {
     xp?: number[];
   };
   command: {
-    cpMilli: number;
-    cpGainMilli: number;
     spirits: number[];
     spiritLock: number[];
     medalReady: number[];
+    /** ww9: the automatic medal's candidate [army id, MEDALS index, score], absent when none. */
+    medalWin?: [number, number, number];
+    /** ww9: the day of the last automatic medal, absent before the first. */
+    medalDay?: number;
     /** Lane D (wave B): [army id, the day it may get a medal again], by army id (always sent). */
     medalCooldown?: [number, number][];
   };

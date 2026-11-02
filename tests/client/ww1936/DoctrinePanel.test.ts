@@ -89,7 +89,7 @@ describe("<ww-doctrine-panel> orders (spec §20.3)", () => {
             armyXpMilli: 0,
           }),
         ],
-        detail: { command: { cpMilli: 50_000 } },
+        detail: { doctrine: { xp: [50, 0, 0] } },
       },
       "command",
     );

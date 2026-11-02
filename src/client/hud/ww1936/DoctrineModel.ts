@@ -6,8 +6,6 @@ import type { WwOrder } from "@openfront/engine-api/Schemas";
 import {
   ARMY_SPIRIT_CATEGORIES,
   ARMY_SPIRITS,
-  CP_FM_UPKEEP_MILLI,
-  CP_MAX_MILLI,
   DOCTRINE_DOMAINS,
   DOCTRINE_TRACKS,
   FM_TRAITS,
@@ -15,7 +13,6 @@ import {
   GD_SWITCH_XP,
   GRAND_DOCTRINES,
   MASTERY_LEVELS_MILLI,
-  MEDAL_CP,
   MEDALS,
   SPIRIT_CAT_DOMAIN,
   SUB_SWITCH_XP,
@@ -42,7 +39,7 @@ import { dayOfDate } from "@openfront/engine-lib/ww1936/Calendar";
 import {
   ASSIGNABLE_ADMIRAL_TRAITS,
   fieldMarshalCap,
-  FM_EXTRA_TRAIT_CP,
+  FM_EXTRA_TRAIT_XP,
   fmEligible,
   promoteFmBlock,
   spiritCost,
@@ -288,7 +285,7 @@ export class DoctrineModel {
   constructor(readonly view: GameView) {}
 
   /** Command power an extra marshal trait costs (spec §4.2). */
-  readonly fmTraitCp = FM_EXTRA_TRAIT_CP;
+  readonly fmTraitCp = FM_EXTRA_TRAIT_XP;
 
   private ctx(): Ctx | null {
     const depth = this.view.wwDepth?.() ?? null;
@@ -575,14 +572,14 @@ export class DoctrineModel {
     if (c === null) return null;
     const land = c.game.wwLand?.()?.countries.get(c.me);
     const marshals = c.sum?.fieldMarshals ?? 0;
-    const cp = c.detail.command.cpMilli;
+    // ww9: command power is gone (lane U removes the bar); the XP is the army's.
     return {
-      cp: Math.floor(cp / 1000),
-      cpText: tenth(cp),
-      max: CP_MAX_MILLI / 1000,
-      pct: Math.max(0, Math.min(100, Math.floor((cp * 100) / CP_MAX_MILLI))),
-      gainMilli: c.detail.command.cpGainMilli,
-      upkeepMilli: CP_FM_UPKEEP_MILLI * marshals,
+      cp: 0,
+      cpText: tenth(0),
+      max: 100,
+      pct: 0,
+      gainMilli: 0,
+      upkeepMilli: 0,
       marshals,
       cap: fieldMarshalCap(land?.divisions ?? 0),
     };
@@ -661,20 +658,23 @@ export class DoctrineModel {
     const out: TraitCandidate[] = [];
     for (const t of pool) {
       const judge = (cpMilli: number, slots: number) =>
-        traitAssignBlock({ ...base, admiral, trait: t, cpMilli, slots });
+        traitAssignBlock({ ...base, admiral, trait: t, xp: cpMilli, slots });
       // Room and power aside, the trait must be open to him.
       const open = admiral
         ? base.level >= 2 && !base.traits.includes(t)
         : judge(Number.MAX_SAFE_INTEGER, Number.MAX_SAFE_INTEGER) === null;
       if (!open) continue;
-      const real = judge(c.detail.command.cpMilli, base.slots);
+      const real = judge(
+        c.detail.doctrine.xp?.[admiral ? 1 : 0] ?? 0,
+        base.slots,
+      );
       out.push({
         trait: t,
         cp: traitCost(t, admiral),
         block:
           real === null
             ? null
-            : real === "no_cp"
+            : real === "no_xp"
               ? "no_cp"
               : ("no_slot" as const),
       });
@@ -721,11 +721,11 @@ export class DoctrineModel {
       traits: generalTraitIds(g.traits),
       slots: traitSlots(g.level),
       trait,
-      cpMilli: c.detail.command.cpMilli,
+      xp: c.detail.doctrine.xp?.[0] ?? 0,
       isFm: isMarshal(g),
       fmTraits: marshalTraitIds(g),
     });
-    return b === null ? null : b === "no_cp" ? "no_cp" : "no_slot";
+    return b === null ? null : b === "no_xp" ? "no_cp" : "no_slot";
   }
 
   traitOrder(general: number, trait: string, admiral: boolean): WwOrder {
@@ -788,7 +788,6 @@ export class DoctrineModel {
           listed: listedMarshal(tag, g, c.day),
           fieldMarshals: bar.marshals,
           divisions,
-          cpMilli: c.detail.command.cpMilli,
           pp: pp ?? Number.MAX_SAFE_INTEGER,
         });
         return {
@@ -800,7 +799,7 @@ export class DoctrineModel {
               ? null
               : b === "fm_limit"
                 ? ("fm_cap" as const)
-                : b === "no_cp" || b === "no_pp"
+                : b === "no_pp"
                   ? b
                   : ("not_ready" as const),
         };
@@ -829,13 +828,8 @@ export class DoctrineModel {
     const c = this.ctx();
     return MEDALS.map((id) => ({
       id,
-      cp: MEDAL_CP,
-      block:
-        c === null
-          ? ("not_ready" as const)
-          : c.detail.command.cpMilli < MEDAL_CP * 1000
-            ? ("no_cp" as const)
-            : null,
+      cp: 0,
+      block: c === null ? ("not_ready" as const) : null,
     }));
   }
 
@@ -903,7 +897,7 @@ export class DoctrineModel {
     if (c === null || me === null) return null;
     const e = c.sum?.energyPm;
     return {
-      cpText: tenth(c.detail.command.cpMilli),
+      cpText: tenth(0),
       energyPct: e !== undefined && e < 1000 ? Math.floor(e / 10) : null,
       congressPct:
         me.countryTag?.() === "USA"

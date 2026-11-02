@@ -16,7 +16,6 @@ export function depthSummary(
     smallID: SID(tag),
     gd: [-1, -1, -1],
     levels: new Array<number>(9).fill(0),
-    cpMilli: 0,
     energyPm: 1000,
     mioSize: [0, 0, 0, 0, 0, 0],
     fieldMarshals: 0,
@@ -42,8 +41,6 @@ export function depthDetail(
       gainMilli: [],
     },
     command: {
-      cpMilli: 0,
-      cpGainMilli: 0,
       spirits: [],
       spiritLock: [],
       medalReady: [],

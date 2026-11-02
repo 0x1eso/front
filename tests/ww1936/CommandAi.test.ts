@@ -165,7 +165,6 @@ describe("the AI's doctrines and command (spec §19.2)", () => {
     while (land.armiesOf(DEU).length < 4) {
       placeArmy(g, "DEU", DEEP.region.berlin, 5);
     }
-    ww.depth.country(DEU)!.cmd.cpMilli = 60_000;
     ww.politics.country(DEU)!.ppMilli = 200_000;
     const day = 1;
     const sum = (x: { att: number; dfn: number; plan: number; log: number }) =>
