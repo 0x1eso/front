@@ -477,12 +477,14 @@ describe("World War 1936 snapshots (spec §7.8)", () => {
 // clock in the hash): three equal runs.
 // Re-pinned for the war overhaul (ww7, every lane merged) and its balance (lane
 // F: luck, prepared ground, pace, forts, AI bars): three equal runs.
-const WW1936_DIGEST = "33e98f8373b9fe21";
+// Re-pinned for the combined release (ww8 wings live, ww9 thought sliders, German
+// tungsten, volunteer Poland, full-organisation start): three equal runs.
+const WW1936_DIGEST = "2e2aeddb1306fec5";
 /**
  * The same game on Easy (the lobby's default in this mode): the AI
  * handicaps and the slower war planning. Pinned with three equal runs.
  */
-const WW1936_EASY_DIGEST = "f1d66a70ca2fa706";
+const WW1936_EASY_DIGEST = "eaea38cad2068983";
 
 describe("World War 1936 stays deterministic", () => {
   // An all-AI game on the test map, long enough for the calendar's first
@@ -517,33 +519,29 @@ describe("World War 1936 stays deterministic", () => {
   // the democracies' liberation-only offensives).
   // ww7 lane F had marked this `fails` (Germany's gate never cleared); the
   // w7-bal patch (German tungsten, Polish volunteer law) made it pass again.
-  test(
-    "an all-AI test-map war: Poland falls in the autumn of 1939, the majors stand",
-    async () => {
-      const runner = await wwRunner();
-      const g = runner.game;
-      const ww = g.worldWar()!;
-      const pol = byTag(g, "POL");
-      let war = -1;
-      let fell = -1;
-      while (g.ticks() < 13_000) {
-        step(runner);
-        if (war < 0 && ww.hasWar(pol.smallID())) war = ww.day(g.ticks());
-        if (fell < 0 && (!pol.isAlive() || ww.isCapitulated(pol.smallID()))) {
-          fell = ww.day(g.ticks());
-        }
+  test("an all-AI test-map war: Poland falls in the autumn of 1939, the majors stand", async () => {
+    const runner = await wwRunner();
+    const g = runner.game;
+    const ww = g.worldWar()!;
+    const pol = byTag(g, "POL");
+    let war = -1;
+    let fell = -1;
+    while (g.ticks() < 13_000) {
+      step(runner);
+      if (war < 0 && ww.hasWar(pol.smallID())) war = ww.day(g.ticks());
+      if (fell < 0 && (!pol.isAlive() || ww.isCapitulated(pol.smallID()))) {
+        fell = ww.day(g.ticks());
       }
-      expect(war).toBeGreaterThanOrEqual(dayOfDate("1939-09-01"));
-      // The test map's Poland is two regions: it falls within weeks of the
-      // war, in the autumn (the real map's 25 to 75 days are land-sim's).
-      expect(fell - war).toBeGreaterThanOrEqual(10);
-      expect(fell).toBeLessThanOrEqual(dayOfDate("1939-11-30"));
-      expect(fallen(g)).toBe(1);
-      for (const tag of ["DEU", "FRA", "SUN", "GBR", "ITA"] as const) {
-        expect(byTag(g, tag).isAlive()).toBe(true);
-        expect(ww.isCapitulated(byTag(g, tag).smallID())).toBe(false);
-      }
-    },
-    120_000,
-  );
+    }
+    expect(war).toBeGreaterThanOrEqual(dayOfDate("1939-09-01"));
+    // The test map's Poland is two regions: it falls within weeks of the
+    // war, in the autumn (the real map's 25 to 75 days are land-sim's).
+    expect(fell - war).toBeGreaterThanOrEqual(10);
+    expect(fell).toBeLessThanOrEqual(dayOfDate("1939-11-30"));
+    expect(fallen(g)).toBe(1);
+    for (const tag of ["DEU", "FRA", "SUN", "GBR", "ITA"] as const) {
+      expect(byTag(g, tag).isAlive()).toBe(true);
+      expect(ww.isCapitulated(byTag(g, tag).smallID())).toBe(false);
+    }
+  }, 120_000);
 });
