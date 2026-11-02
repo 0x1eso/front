@@ -121,6 +121,7 @@ async function main() {
   const cov: CovRec[] = [];
   const kills: { day: number; tag: string; enc: boolean }[] = [];
   const wars: { day: number; a: string; b: string; kind: string }[] = [];
+  const orphans = new Map<string, number>();
   let ctx: SimContext | undefined;
   let land: WwLand;
   const open = new Map<number, BattleRec>();
@@ -351,7 +352,11 @@ async function main() {
             else if (zoned.has(reg.id)) inZone++;
             else if (behind) ring++;
             else if (borderDivsShort) few++;
-            else orphan++;
+            else {
+              orphan++;
+              const key = `${tag} ${reg.name}`;
+              orphans.set(key, (orphans.get(key) ?? 0) + 1);
+            }
           } else if (n === 1) one++;
         }
         let inFront = 0;
@@ -415,6 +420,8 @@ async function main() {
     `${seed}: ${res.seconds.toFixed(0)}s, caps ${res.caps.map((x) => `${x.tag}@${iso(x.day)}`).join(" ")}`,
   );
   summary(battles, caps, cov);
+  const top = [...orphans].sort((a, b) => b[1] - a[1]).slice(0, 12);
+  console.log(`  orphans: ${top.map(([k, v]) => `${k} ${v}d`).join(", ")}`);
   // The seeded deviations from history (WwPolitics.branchDeviations), major by major.
   const dev = [...ctx!.ww.politics.branchDeviations]
     .filter(

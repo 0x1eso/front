@@ -212,6 +212,14 @@ export const AI_LINE_SHARES: Readonly<
  */
 export const AI_SUPPORT_RESERVE = 400;
 export const AI_SUPPORT_SHORT_PTS = 5;
+/**
+ * ww7 lane F: the same for the guns (about ten divisions' worth). Mobile
+ * warfare's lean artillery line, with no tungsten at all, left Germany none in
+ * stock from 1939, the 50% fill gate shut its training, and it stood at 125
+ * divisions for three years on 76,000 spare rifles and 3 million men.
+ */
+export const AI_ARTILLERY_RESERVE = 400;
+export const AI_ARTILLERY_SHORT_PTS = 10;
 
 /**
  * A major's lines lean towards its doctrine (percentage points on top of
@@ -339,6 +347,7 @@ export function aiLineShares(
   infSurplus: boolean,
   supportShort = false,
   ctx: AiAirShareCtx = { atWar: false, wtBp: 0 },
+  artilleryShort = false,
 ): Record<EquipmentType, number> {
   const out = Object.fromEntries(EQUIPMENT_TYPES.map((t) => [t, 0])) as Record<
     EquipmentType,
@@ -381,6 +390,12 @@ export function aiLineShares(
     const pts = Math.min(AI_SUPPORT_SHORT_PTS, out.infantry_equipment);
     out.infantry_equipment -= pts;
     out.support_equipment += pts;
+  }
+  // ww7 lane F: the guns too.
+  if (major && artilleryShort) {
+    const pts = Math.min(AI_ARTILLERY_SHORT_PTS, out.infantry_equipment);
+    out.infantry_equipment -= pts;
+    out.artillery += pts;
   }
   for (const t of EQUIPMENT_TYPES) out[t] = Math.max(0, out[t]);
   return out;
@@ -607,6 +622,8 @@ export interface AiInput {
   infStock: number;
   /** Support equipment in stock, every generation (P2 Task 11; none: plenty). */
   supStock?: number;
+  /** Artillery in stock, every generation (ww7 lane F; none: plenty). */
+  artStock?: number;
   freeCivMilli: number;
   /** Working military factories. */
   mil: number;
@@ -925,6 +942,7 @@ function planLines(i: AiInput, retool = true): PlannedLines {
     i.infStock * 10 > i.manpower,
     (i.supStock ?? AI_SUPPORT_RESERVE) < AI_SUPPORT_RESERVE,
     { atWar: i.warDays >= 0, wtBp: i.wtBp },
+    (i.artStock ?? AI_ARTILLERY_RESERVE) < AI_ARTILLERY_RESERVE,
   );
   // Once medium tanks are researched the tank share is theirs, and the light
   // tank lines (which keep their factories, R6.5) count against it: else a
@@ -944,7 +962,11 @@ function planLines(i: AiInput, retool = true): PlannedLines {
   // would run new factories at the 20% floor: none go there until a deal
   // or a mine brings some (the lines keep what they have).
   const starved = new Set<EquipmentType>();
+  // ww7 lane F: not the guns while they run short: the floor is what there is
+  // (no tungsten, Germany's case), and the fill gate waits for them.
+  const gunsShort = (i.artStock ?? AI_ARTILLERY_RESERVE) < AI_ARTILLERY_RESERVE;
   for (const t of hasLine) {
+    if (t === "artillery" && gunsShort) continue;
     const working = i.lines.filter((l) => lineType(l) === t && l.active > 0);
     if (working.length > 0 && working.every((l) => l.fill === 0)) {
       starved.add(t);
@@ -996,6 +1018,31 @@ function planLines(i: AiInput, retool = true): PlannedLines {
       const gen = newestGen(t, researched);
       orders.push({ kind: "add_line", equipment: t, gen, factories: n });
       work(equipKey(t, gen), n);
+    }
+  }
+  // ww7 lane F: every factory on a line and no guns: one a day leaves the
+  // rifles while they are over their share and the guns under theirs. Tomorrow
+  // the idle factory goes to the biggest gap (R6.4 above), the guns'.
+  if (
+    i.major &&
+    i.idleMil === 0 &&
+    gunsShort &&
+    shares.artillery * i.mil > 100 * (assigned.get("artillery") ?? 0) &&
+    shares.infantry_equipment * i.mil <
+      100 * (assigned.get("infantry_equipment") ?? 0)
+  ) {
+    let rifles: AiLine | null = null;
+    for (const l of i.lines) {
+      if (lineType(l) !== "infantry_equipment" || l.factories < 2) continue;
+      if (rifles === null || l.factories > rifles.factories) rifles = l;
+    }
+    if (rifles !== null) {
+      orders.push({
+        kind: "set_line_factories",
+        line: rifles.id,
+        factories: rifles.factories - 1,
+      });
+      work(rifles.key, -1);
     }
   }
   // R6.7: one line a turn moves to a newer generation once it is nearly
@@ -1675,6 +1722,10 @@ export function aiInput(
     infStock: ce.infStock(),
     supStock: EQUIP_KEYS.reduce(
       (n, [t], k) => (t === "support_equipment" ? n + ce.stock[k] : n),
+      0,
+    ),
+    artStock: EQUIP_KEYS.reduce(
+      (n, [t], k) => (t === "artillery" ? n + ce.stock[k] : n),
       0,
     ),
     freeCivMilli: t.freeCivMilli,

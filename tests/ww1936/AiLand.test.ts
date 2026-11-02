@@ -15,6 +15,7 @@ import { createGameRunner, GameRunner } from "@openfront/engine/GameRunner";
 import { declareWar } from "@openfront/engine/ww1936/Diplomacy";
 import {
   AI_ATTACK_ORG_PM,
+  AI_DEMOCRACY_PEACE_TRAIN,
   AI_HOLD_DIV_WIDTH,
   AI_HOLD_FORT_PCT,
   AI_HOLD_WIDTHS,
@@ -153,7 +154,7 @@ describe("the AI's land decisions (spec §14, pure)", () => {
 
   test("thresholds by personality", () => {
     // ww7 lane D: the bars of the combined range replace the single ratio.
-    expect(aiGatePm("aggressor")).toEqual({ midPm: 1300, lowPm: 900 });
+    expect(aiGatePm("aggressor")).toEqual({ midPm: 1100, lowPm: 750 });
     expect(aiGatePm("democracy")).toEqual({ midPm: 1600, lowPm: 1100 });
     expect(aiGatePm("minor")).toEqual({ midPm: 1450, lowPm: 1000 });
   });
@@ -318,6 +319,13 @@ describe("the AI's land decisions (spec §14, pure)", () => {
     // Up to the target: a major trains 10 at once, a minor 3.
     expect(aiTrainPlan({ ...base, training: 9 })).toEqual([2]);
     expect(aiTrainPlan({ ...base, training: 10 })).toEqual([]);
+    // ww7 lane F: a democracy at peace keeps two in training, at war the rest.
+    const peace = { ...base, personality: "democracy" as const, atPeace: true };
+    expect(aiTrainPlan(peace)).toHaveLength(AI_DEMOCRACY_PEACE_TRAIN);
+    expect(aiTrainPlan({ ...peace, training: 1 })).toHaveLength(1);
+    expect(aiTrainPlan({ ...peace, training: 2 })).toEqual([]);
+    expect(aiTrainPlan({ ...peace, atPeace: false })).toHaveLength(3);
+    expect(aiTrainPlan({ ...base, atPeace: true })).toEqual([2, 2, 2]);
     expect(
       aiTrainPlan({
         ...base,

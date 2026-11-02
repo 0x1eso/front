@@ -167,8 +167,12 @@ export const AI_PURSUIT_RATIO_PM = 2000;
  */
 export const AI_LIBERATION_END_DAY = dayOfDate("1942-01-01");
 export const AI_LIBERATION_LIFT_RATIO_PM = 3000;
-/** The strength ratio lifts it only after this many days of that war (the Phoney War's eight months). */
-export const AI_LIBERATION_LIFT_WAR_DAYS = 240;
+/**
+ * The strength ratio lifts it only after this many days of that war. ww7 lane
+ * F: 540 (was 240, the Phoney War's eight months): 1940's Allies, 300
+ * divisions against Germany's 130, took it apart the month the rule lifted.
+ */
+export const AI_LIBERATION_LIFT_WAR_DAYS = 540;
 /**
  * ww7 lane D item 3: the AI's offensives go in aggressive once decided. The
  * plan step judges a stance per region, with what stands there today; the
@@ -192,6 +196,12 @@ const RATIO_FREE_PM = 10_000;
  * share of the power of the armies on it, %.
  */
 export const AI_OUTNUMBERED_PCT = 150;
+/**
+ * ww7 lane F: the mid ratio from which an outnumbered front still attacks, ‰:
+ * at the wide win table's 94 % a local chance is worth taking whatever the
+ * whole front looks like (it was the pursuit bar, 2.0).
+ */
+export const AI_OUTNUMBERED_ATTACK_PM = 1600;
 const AI_FACING_EDGES = 2;
 /** ww7 lane D item 2: a fallback line lies at most this many layers behind the border. */
 export const AI_SHORTEN_LAYERS = 3;
@@ -205,9 +215,19 @@ const AI_SHORTEN_BACK_PCT = 120;
 const AI_GATE_GIVE_UP_PCT = 80;
 /** (내 판단) An army's sector stays while it is within this factor of its share of the line by divisions (and one region). */
 const AI_ZONE_SLACK = 2;
+/** ww7 lane F: for a front with nobody on it, a division more in an army counts as this many km farther: the smallest that can go. */
+const AI_COVER_RANK_PER_DIVISION = 100_000;
 /** Spec §14.5. */
 const TRAIN_TARGET_MAJOR = 10;
 const TRAIN_TARGET_MINOR = 3;
+/**
+ * ww7 lane F: a democracy at peace with no war in sight keeps this many in
+ * training (else the major's or minor's target): the three years of peace gave
+ * Britain 95 divisions and France 118 by 1939 against Germany's 127, and no
+ * attack can pass a line that deep (the width holds the attackers, the org of
+ * everyone behind counts). Their factories fill the stock for the day war comes.
+ */
+export const AI_DEMOCRACY_PEACE_TRAIN = 2;
 const TRAIN_PER_DAY = 3;
 const TRAIN_MEN_FACTOR = 2;
 const TRAIN_FILL_PM = 500;
@@ -278,7 +298,9 @@ export interface AiGate {
 export function aiGatePm(personality: AiPersonality): AiGate {
   switch (personality) {
     case "aggressor":
-      return { midPm: 1300, lowPm: 900 };
+      // ww7 lane F: 1100 / 750 (design: 1300 / 900). On the wide win table
+      // 1.1 is won six times in ten.
+      return { midPm: 1100, lowPm: 750 };
     case "democracy":
       return { midPm: 1600, lowPm: 1100 };
     case "minor":
@@ -535,6 +557,8 @@ export interface AiTrainInput {
   counts: Readonly<Record<AiRole, number>>;
   /** The country's templates, its first (infantry) one first. */
   templates: readonly AiTrainTemplate[];
+  /** At peace with no war in sight (trainTarget). */
+  atPeace?: boolean;
 }
 
 /** Spec §14.5: the role shares, %. */
@@ -565,6 +589,19 @@ function roleShares(i: AiTrainInput): Record<AiRole, number> {
   return s;
 }
 
+/** How many divisions an AI keeps in training. */
+function trainTarget(
+  major: boolean,
+  personality: AiPersonality,
+  atPeace: boolean,
+): number {
+  return atPeace && personality === "democracy"
+    ? AI_DEMOCRACY_PEACE_TRAIN
+    : major
+      ? TRAIN_TARGET_MAJOR
+      : TRAIN_TARGET_MINOR;
+}
+
 /**
  * Spec §14.5: the templates to queue today (at most 3): while fewer than
  * the target train (major 10, minor 3), the role furthest below its share
@@ -572,7 +609,7 @@ function roleShares(i: AiTrainInput): Record<AiRole, number> {
  * half a division's equipment in stock.
  */
 export function aiTrainPlan(i: AiTrainInput): number[] {
-  const target = i.major ? TRAIN_TARGET_MAJOR : TRAIN_TARGET_MINOR;
+  const target = trainTarget(i.major, i.personality, i.atPeace === true);
   const shares = roleShares(i);
   const counts = { ...i.counts };
   let manpower = i.manpower;
@@ -1576,7 +1613,11 @@ class AiDay {
    * each of its regions and stay clear of being outnumbered itself. The demand
    * plan knows only tenths of demand, and its armies stay where they are:
    * Germany's last armies chased Poland's remnant while the Allies massed in
-   * the west. Worst front first (ties: the earlier).
+   * the west. Worst front first (ties: the earlier). ww7 lane F (item 1: no
+   * uncovered border with divisions to spare): a front with nobody on it takes
+   * the smallest army another front can spare, however that front stands. With
+   * every front outnumbered nobody could give: Germany's border with the
+   * Netherlands stood unmanned for 954 days beside 80 divisions in one region.
    */
   private balanceFronts(fronts: readonly Front[], assigned: Army[][]): void {
     const land = this.land;
@@ -1612,10 +1653,14 @@ class AiDay {
           if (j === i || g.comp !== fronts[i].comp || !war[j]) return;
           for (const a of assigned[j]) {
             if (divs[j] - a.divisions.length < g.border.length) continue;
-            if (!clear(j, power[j] - this.armyPower(a))) continue;
+            const empty = divs[i] === 0;
+            if (!empty && !clear(j, power[j] - this.armyPower(a))) continue;
             const busy = a.order.kind === "plan" && a.order.executing;
             const km = sc.regionKm(land.armyRegion(a), to);
-            const rank = km + (busy ? 1 << 24 : 0);
+            const rank =
+              km +
+              (empty ? a.divisions.length * AI_COVER_RANK_PER_DIVISION : 0) +
+              (busy ? 1 << 24 : 0);
             if (rank < pickRank) {
               from = j;
               pick = a;
@@ -1635,6 +1680,20 @@ class AiDay {
       }
     }
     for (const list of assigned) list.sort((a, b) => a.id - b.id);
+  }
+
+  /**
+   * An executing army an outnumbered front lets go on: one running over a
+   * broken enemy, or (ww7 lane F) one in a battle: the stop rules judge that,
+   * and calling it off because the ratio dipped under the pursuit bar threw
+   * away battles nearly won (41 against 18, the defenders' line at 21 %).
+   */
+  private pressing(a: Army): boolean {
+    if (this.strikeRatio(a) >= AI_PURSUIT_RATIO_PM) return true;
+    const t = this.land.divisions;
+    return armyRows(this.land, a).some(
+      (r) => t.battle[r] !== 0 && t.role[r] === ROLE_ATTACK,
+    );
   }
 
   /**
@@ -1662,7 +1721,7 @@ class AiDay {
       divisions += a.divisions.length;
       if (a.order.kind === "plan" && a.order.executing) {
         attacking = true;
-        if (this.strikeRatio(a) >= AI_PURSUIT_RATIO_PM) pursuing = true;
+        if (this.pressing(a)) pursuing = true;
       }
     }
     // An offensive of ours gives no ground while it is not outnumbered, and
@@ -1681,11 +1740,7 @@ class AiDay {
         ring !== null ||
         this.defendOnly(a) ||
         (outnumbered &&
-          !(
-            a.order.kind === "plan" &&
-            a.order.executing &&
-            this.strikeRatio(a) >= AI_PURSUIT_RATIO_PM
-          ));
+          !(a.order.kind === "plan" && a.order.executing && this.pressing(a)));
       this.giveZone(a, f, zones.get(a.id)!, defend);
     }
   }
@@ -2493,7 +2548,7 @@ class AiDay {
     const gate = aiGatePm(this.personality);
     if (!this.ripe(s.a, enemy, r.midPm)) return false;
     return (
-      r.midPm >= (hold ? AI_PURSUIT_RATIO_PM : gate.midPm) &&
+      r.midPm >= (hold ? AI_OUTNUMBERED_ATTACK_PM : gate.midPm) &&
       r.lowPm >= gate.lowPm
     );
   }
@@ -2903,7 +2958,8 @@ class AiDay {
     const cl = this.cl;
     let training = cl.trainees.length;
     for (const e of cl.training) training += e.remaining;
-    if (training >= (this.major ? TRAIN_TARGET_MAJOR : TRAIN_TARGET_MINOR)) {
+    const atPeace = this.atWar.length === 0 && this.imminent.length === 0;
+    if (training >= trainTarget(this.major, this.personality, atPeace)) {
       return;
     }
     const keyOf = new Map(cl.templates.map((t) => [t.id, t.key]));
@@ -2973,6 +3029,7 @@ class AiDay {
         .regionsOf(this.me)
         .some((r) => land.scenario.landOf(r) === "mountain"),
       training,
+      atPeace,
       manpower: this.ce.manpower,
       counts,
       templates,

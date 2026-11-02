@@ -21,6 +21,7 @@ import {
 } from "@openfront/engine-lib/ww1936/WwTechs";
 import type { GameRunner } from "@openfront/engine/GameRunner";
 import {
+  AI_ARTILLERY_SHORT_PTS,
   AI_FALLBACK_AHEAD_PCT,
   AI_FUEL_OIL_MAX,
   AI_SUPPORT_RESERVE,
@@ -473,6 +474,18 @@ describe("the AI's plan (spec §12, pre-flight R6)", () => {
       aiLineShares("POL", false, light, false),
     );
     expect([AI_SUPPORT_RESERVE, AI_SUPPORT_SHORT_PTS]).toEqual([400, 5]);
+    // ww7 lane F: the guns the same way, or the fill gate shuts training.
+    const ctx = { atWar: false, wtBp: 0 };
+    const guns = aiLineShares("DEU", true, light, false, false, ctx, true);
+    const none = aiLineShares("DEU", true, light, false, false, ctx);
+    expect(guns.artillery).toBe(none.artillery + AI_ARTILLERY_SHORT_PTS);
+    expect(guns.infantry_equipment).toBe(
+      none.infantry_equipment - AI_ARTILLERY_SHORT_PTS,
+    );
+    expect(Object.values(guns).reduce((a, b) => a + b, 0)).toBe(100);
+    expect(aiLineShares("POL", false, light, false, false, ctx, true)).toEqual(
+      aiLineShares("POL", false, light, false, false, ctx),
+    );
   });
 
   test("P4 lane AI: the sea and air techs by role; none at sea for a landlocked country", () => {

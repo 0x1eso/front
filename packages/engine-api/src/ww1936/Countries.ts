@@ -178,11 +178,25 @@ export interface CountryDef {
    * default (PoliticsRules.effectiveSurrenderPct: 50, or ten under its base).
    */
   readonly surrenderFloorPct?: number;
+  /**
+   * ww7 lane F: the highest its line goes before the capital's points
+   * (absent: no limit of its own). France's home land is 38 % of its points,
+   * the rest its empire: with war support and stability on top of its 31 %
+   * it could lose all of metropolitan France and fight on.
+   */
+  readonly surrenderCeilPct?: number;
   readonly group: CountryGroup;
 }
 
 type Extra = Partial<
-  Pick<CountryDef, "faction" | "major" | "surrenderPct" | "surrenderFloorPct">
+  Pick<
+    CountryDef,
+    | "faction"
+    | "major"
+    | "surrenderPct"
+    | "surrenderFloorPct"
+    | "surrenderCeilPct"
+  >
 >;
 
 function def(
@@ -203,6 +217,9 @@ function def(
     ...(extra.surrenderFloorPct === undefined
       ? {}
       : { surrenderFloorPct: extra.surrenderFloorPct }),
+    ...(extra.surrenderCeilPct === undefined
+      ? {}
+      : { surrenderCeilPct: extra.surrenderCeilPct }),
   };
 }
 
@@ -231,6 +248,7 @@ export const COUNTRIES: Readonly<Record<CountryTag, CountryDef>> = {
     surrenderPct: 31,
     // ww7: the floor is 25 (was 21, ten under its base).
     surrenderFloorPct: 25,
+    surrenderCeilPct: 33,
   }),
   USA: def("United States", "us", [75, 120, 175], "americas", { major: true }),
   SUN: def("Soviet Union", "ussr", [150, 30, 30], "europe", {

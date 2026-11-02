@@ -11,6 +11,7 @@ import type { Game } from "@openfront/engine/game/Game";
 import { createGameRunner, GameRunner } from "@openfront/engine/GameRunner";
 import { armyAutoAll } from "@openfront/engine/ww1936/Automation";
 import { aiBestRing } from "@openfront/engine/ww1936/land/AiLand";
+import { joinBattle } from "@openfront/engine/ww1936/land/Battles";
 import type { Army } from "@openfront/engine/ww1936/land/WwLand";
 import { loadMapFiles } from "@openfront/shared/GameMapLoader";
 import path from "path";
@@ -104,6 +105,44 @@ describe("ww7 lane D: the AI's army objective orders", () => {
       if (t.mode[r] === 0) standing.add(t.region[r]);
     }
     for (const r of [BERLIN, MUNICH, ROME]) expect(standing.has(r)).toBe(true);
+  }, 120_000);
+
+  test("ww7 lane F: an outnumbered front's battle under way is not called off", async () => {
+    const c = await atWar();
+    const a = autoArmy(c, BERLIN, 3, 2);
+    placeArmy(c.g, "POL", WARSAW, 2);
+    // Far more than Germany's within two edges: the front is outnumbered.
+    placeArmy(c.g, "POL", KRAKOW, 30);
+    a.order = {
+      ...a.order,
+      kind: "plan",
+      anchor: BERLIN,
+      enemy: c.pol,
+      targets: [WARSAW],
+      stance: "aggressive",
+      executing: true,
+    };
+    for (const id of a.divisions) joinBattle(c.l, id, WARSAW);
+    expect(c.l.battles.get(WARSAW)!.attackers).toHaveLength(3);
+    c.days(1);
+    // The ratio is under the pursuit bar, and the stop rules are not met.
+    expect(a.order.kind).toBe("plan");
+    expect(a.order.executing).toBe(true);
+    expect(c.l.battles.get(WARSAW)?.attackers.length ?? 0).toBeGreaterThan(0);
+  }, 120_000);
+
+  test("ww7 lane F: a front with nobody on it takes the smallest army, even from an outnumbered front", async () => {
+    const c = await atWar();
+    const big = autoArmy(c, BERLIN, 10, 1);
+    const small = autoArmy(c, MUNICH, 2, 1);
+    // Poland far stronger; France at war too, with nobody standing.
+    placeArmy(c.g, "POL", WARSAW, 30);
+    const fra = byTag(c.g, "FRA").smallID();
+    c.g.worldWar()!.setWar(c.deu, fra, c.g.ticks());
+    c.days(2);
+    expect(big.order.enemy).toBe(c.pol);
+    expect(small.order.kind).toBe("front");
+    expect(small.order.enemy).toBe(fra);
   }, 120_000);
 
   test("too few divisions under a stronger enemy: a shorter ring behind the border", async () => {

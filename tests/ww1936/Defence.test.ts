@@ -621,5 +621,12 @@ describe("ww7 B2: capitulation", () => {
     expect(ww.politics.surrenderPct(fra.smallID())).toBe(40);
     ww.land.setController(1, deu.smallID(), g.ticks());
     expect(ww.politics.surrenderPct(fra.smallID())).toBe(25);
+    // ww7 lane F: at its highest the line stops at 33 (its home land is 38 %
+    // of its points), 48 with Paris.
+    fc.stabBp = 10_000;
+    fc.wsBp = 10_000;
+    expect(ww.politics.surrenderPct(fra.smallID())).toBe(33);
+    ww.land.setController(1, fra.smallID(), g.ticks());
+    expect(ww.politics.surrenderPct(fra.smallID())).toBe(48);
   }, 60_000);
 });

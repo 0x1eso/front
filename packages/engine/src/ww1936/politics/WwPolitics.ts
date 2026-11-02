@@ -978,12 +978,15 @@ export class WwPolitics {
       (this.ww.depth as WwDepth | undefined)?.surrenderCutPp(smallID) ?? 0;
     // ww7: France's own floor; holding the capital raises the line.
     return withCapitalPct(
-      effectiveSurrenderPct(
-        base,
-        c.stabBp,
-        c.wsBp,
-        c.stats.surrenderPp - cut,
-        def.surrenderFloorPct,
+      Math.min(
+        def.surrenderCeilPct ?? 100,
+        effectiveSurrenderPct(
+          base,
+          c.stabBp,
+          c.wsBp,
+          c.stats.surrenderPp - cut,
+          def.surrenderFloorPct,
+        ),
       ),
       holdsCapital(this.mg, this.ww, smallID),
     );
