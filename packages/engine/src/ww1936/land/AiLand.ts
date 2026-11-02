@@ -1616,8 +1616,8 @@ class AiDay {
    * the west. Worst front first (ties: the earlier). ww7 lane F (item 1: no
    * uncovered border with divisions to spare): a front with nobody on it takes
    * the smallest army another front can spare, however that front stands. With
-   * every front outnumbered nobody could give: Germany's border with the
-   * Netherlands stood unmanned for 954 days beside 80 divisions in one region.
+   * every front outnumbered nobody could give: Niedersachsen and
+   * Nordrhein-Westfalen stood unmanned for 954 days on one seed.
    */
   private balanceFronts(fronts: readonly Front[], assigned: Army[][]): void {
     const land = this.land;
