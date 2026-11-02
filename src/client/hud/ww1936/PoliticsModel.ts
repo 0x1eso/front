@@ -93,6 +93,7 @@ import {
 } from "@openfront/engine-lib/ww1936/PoliticsRules";
 import { shipNameKey } from "@openfront/engine-lib/ww1936/ShipNames";
 import { emptyStats } from "@openfront/engine-lib/ww1936/Stats";
+import { masteryXpMilli } from "@openfront/engine-lib/ww1936/ThoughtRules";
 import { LawEffects, lawEffects } from "@openfront/engine-lib/ww1936/WwLaws";
 import { assetUrl } from "@openfront/shared/AssetUrls";
 import { translateText } from "../../Utils";
@@ -575,7 +576,12 @@ function paramText(
   v: string | number,
   params: Record<string, string | number>,
 ): string | number {
-  if (typeof v === "number") return v;
+  if (typeof v === "number") {
+    // The engine converts this one to experience: show what is given.
+    return kind === "doctrine_mastery" && k === "amount"
+      ? Math.trunc(masteryXpMilli(v) / 1000)
+      : v;
+  }
   switch (k) {
     case "on":
     case "of":

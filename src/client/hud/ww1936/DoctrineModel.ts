@@ -242,13 +242,9 @@ interface Ctx {
  * null when the person could take the trait if only he could pay.
  */
 function openTraitBlock(
-  i: Omit<TraitAssignInput, "cpMilli">,
+  i: Omit<TraitAssignInput, "xp">,
 ): ReturnType<typeof traitAssignBlock> {
-  return traitAssignBlock({
-    ...i,
-    cpMilli: Number.MAX_SAFE_INTEGER,
-    xp: Number.MAX_SAFE_INTEGER,
-  } as TraitAssignInput);
+  return traitAssignBlock({ ...i, xp: Number.MAX_SAFE_INTEGER });
 }
 
 export class DoctrineModel {
@@ -680,9 +676,8 @@ export class DoctrineModel {
           listed: listedMarshal(tag, g, c.day),
           fieldMarshals: bar.marshals,
           divisions,
-          cpMilli: Number.MAX_SAFE_INTEGER,
           pp: pp ?? Number.MAX_SAFE_INTEGER,
-        } as Parameters<typeof promoteFmBlock>[0]);
+        });
         return {
           id: g.id,
           name: rosterName(g),

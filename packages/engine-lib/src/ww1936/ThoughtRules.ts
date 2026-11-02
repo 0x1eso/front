@@ -6,6 +6,7 @@ import type {
   WwStats,
 } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import {
+  MASTERY_TO_XP_PCT,
   StartThoughtDef,
   THOUGHT_DRIFT_MILLI,
   THOUGHT_EDGE_STEP,
@@ -274,6 +275,11 @@ export function thoughtStats(
 
 /** The start roll's purpose. */
 export const P_START_THOUGHT = idHash("start_thought");
+
+/** Design §3: the experience (milli) a doctrine_mastery effect of `amount` gives; 60 -> 40.2, 120 -> 80.4. */
+export function masteryXpMilli(amount: number): number {
+  return Math.trunc((amount * 1000 * MASTERY_TO_XP_PCT) / 100);
+}
 
 export type ThoughtPersonality = "aggressor" | "democracy" | "minor";
 

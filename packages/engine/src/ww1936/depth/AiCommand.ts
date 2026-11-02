@@ -1,9 +1,10 @@
 // P6 lane D (plan Task 2): the AI's doctrine and command choices (spec
 // §19.1–§19.2). Daily at war, every 10 days in peace (day % 10 ===
 // smallID % 10, plan decision 39), through the same orders a player gives.
-// History is flavour (owner, 2026-10-21): the officer corps follow the
-// grand doctrine's row with a seeded chance of another choice, and the
-// real field marshals come on their day only with the historical AI.
+// History is flavour (owner, 2026-10-21): the officer corps follow the row
+// of the country's start position on the thought sliders with a seeded
+// chance of another choice, and the real field marshals come on their day
+// only with the historical AI.
 import {
   ARMY_SPIRIT_CATEGORIES,
   ARMY_SPIRITS,
@@ -30,12 +31,9 @@ import {
   traitSlots,
   traitXpCost,
 } from "@openfront/engine-lib/ww1936/CommandRules";
-import { START_THOUGHTS } from "@openfront/engine-lib/ww1936/content/depth/thought";
 import { GENERALS } from "@openfront/engine-lib/ww1936/Generals";
 import { historicalAiActive } from "@openfront/engine-lib/ww1936/Pace";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
-import { thoughtStartPos } from "@openfront/engine-lib/ww1936/ThoughtRules";
-import { aiPersonality } from "../economy/AiEconomy";
 import { canServe } from "../land/GeneralsRun";
 import { newTitledGeneralState } from "../land/LandStartRun";
 import type { Army, CountryLand, GeneralState } from "../land/WwLand";
@@ -53,6 +51,7 @@ import {
   makeMarshal,
   promoteMarshal,
 } from "./Command";
+import { startPosOf } from "./Thought";
 import type { Domain, WwDepth } from "./WwDepth";
 
 /** Spec §19.2: armies before the AI wants a field marshal. */
@@ -61,10 +60,10 @@ const AI_FM_ARMIES = 4;
 const TITLED_FM_SKILL = 2;
 /** Roll purpose of the officer-corps deviation. */
 const P_SPIRIT_PLAN = idHash("ai_spirit_plan");
-/** Chance of another officer-corps choice than the doctrine's row, percent (history as flavour). */
+/** Chance of another officer-corps choice than the start position's row, percent (history as flavour). */
 const AI_SPIRIT_DEVIATION_PCT = 25;
 
-/** Spec §19.2: the land officer corps of each grand doctrine (recruitment, command, formation). */
+/** Spec §19.2: the land officer corps of each start-position row, landRowOf (recruitment, command, formation). */
 const LAND_SPIRITS: Readonly<
   Record<string, readonly [ArmySpirit, ArmySpirit, ArmySpirit]>
 > = {
@@ -73,7 +72,7 @@ const LAND_SPIRITS: Readonly<
   gd_firepower: ["as_reserve", "as_central_command", "as_combined_arms"],
   gd_battleplan: ["as_professional", "as_central_command", "as_elite_units"],
 };
-/** Spec §19.2 "해·공도 표": the naval officer corps (training, operations) by grand doctrine; "" none. */
+/** Spec §19.2 "해·공도 표": the naval officer corps (training, operations) by navalRowOf; "" no leaning. */
 const NAVAL_SPIRITS: Readonly<
   Record<string, readonly [ArmySpirit, ArmySpirit]>
 > = {
@@ -82,7 +81,7 @@ const NAVAL_SPIRITS: Readonly<
   gd_base_strike: ["as_fleet_drill", "as_joint_ops"],
   "": ["as_damage_control", "as_fleet_preservation"],
 };
-/** The air officer corps (personnel, command) by grand doctrine; "" none. */
+/** The air officer corps (personnel, command) by airRowOf; "" no leaning. */
 const AIR_SPIRITS: Readonly<Record<string, readonly [ArmySpirit, ArmySpirit]>> =
   {
     gd_strategic_destruction: ["as_air_college", "as_independent_air"],
@@ -90,7 +89,7 @@ const AIR_SPIRITS: Readonly<Record<string, readonly [ArmySpirit, ArmySpirit]>> =
     gd_operational_integrity: ["as_pilot_school", "as_escort_first"],
     "": ["as_pilot_school", "as_army_cooperation"],
   };
-/** A field marshal's traits by the land grand doctrine, first choice first. */
+/** A field marshal's traits by landRowOf, first choice first. */
 const FM_TRAIT_PLAN: Readonly<Record<string, readonly FmTrait[]>> = {
   gd_mobile: ["fm_offensive", "fm_fast_planner", "fm_logistics"],
   gd_mass: ["fm_inspiring", "fm_logistics", "fm_offensive"],
@@ -119,7 +118,7 @@ const TRAIT_PLAN: readonly GeneralTrait[] = [
 /**
  * Spec §19.1–§19.2, an AI country's depth day: at war daily and in peace
  * every 10 days, the officer corps, the armies' reinforcement priority, field marshals and
- * army groups, a trait, a medal.
+ * army groups, a trait.
  */
 export function aiCommandDay(d: WwDepth, id: number, day: number): void {
   const c = d.country(id);
@@ -158,20 +157,7 @@ export function airRowOf(pos: readonly number[]): string {
   return "";
 }
 
-/** The country's own start position on the nine sliders (pure; a woken slot or a taken-over country has the same). */
-export function startPosOf(d: WwDepth, id: number): number[] {
-  const tag = d.ww.tagOf(id);
-  return thoughtStartPos({
-    table: START_THOUGHTS,
-    tag,
-    personality: aiPersonality(tag),
-    historical: d.ww.historicalAiNow(),
-    seed: d.ww.politics.seed,
-    id,
-  });
-}
-
-/** The officer corps each category would take: the doctrine's row, or (seeded, AI_SPIRIT_DEVIATION_PCT) another of the three. */
+/** The officer corps each category would take: the start position's row, or (seeded, AI_SPIRIT_DEVIATION_PCT) another of the three. */
 export function aiSpiritPlan(d: WwDepth, id: number): number[] {
   const pos = startPosOf(d, id);
   const land = LAND_SPIRITS[landRowOf(pos)];
@@ -248,7 +234,7 @@ function frontBundles(d: WwDepth, id: number): Map<number, Army[]> {
 
 const skillSum = (g: GeneralState) => g.att + g.dfn + g.plan + g.log;
 
-/** The land doctrine's preferred field marshal trait the general lacks (FM_TRAITS index), -1 none. */
+/** The start position's preferred field marshal trait the general lacks (FM_TRAITS index), -1 none. */
 function fmTraitFor(d: WwDepth, id: number, have: number): number {
   const plan = FM_TRAIT_PLAN[landRowOf(startPosOf(d, id))];
   for (const t of [...plan, ...FM_TRAITS]) {

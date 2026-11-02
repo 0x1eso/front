@@ -5,8 +5,8 @@ import {
   airRowOf,
   landRowOf,
   navalRowOf,
-  startPosOf,
 } from "@openfront/engine/ww1936/depth/AiCommand";
+import { startPosOf } from "@openfront/engine/ww1936/depth/Thought";
 import { aiThoughtTargets } from "@openfront/engine/ww1936/depth/ThoughtAi";
 import type { WwDepth } from "@openfront/engine/ww1936/depth/WwDepth";
 import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSource";
@@ -19,9 +19,8 @@ afterEach(() => usePoliticsContent(null));
 
 const DEU = DEEP.tag.DEU;
 
-/** T1 owns `th` on the country; until it merges the test plants one. */
 function setTarget(d: WwDepth, id: number, target: number[]): void {
-  (d.country(id) as unknown as { th: unknown }).th = {
+  d.country(id)!.th = {
     target,
     curMilli: target.map((t) => t * 1000),
     started: true,

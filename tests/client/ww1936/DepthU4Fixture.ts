@@ -14,8 +14,6 @@ export function depthSummary(
 ): WwDepthSummary {
   return {
     smallID: SID(tag),
-    gd: [-1, -1, -1],
-    levels: new Array<number>(9).fill(0),
     energyPm: 1000,
     mioSize: [0, 0, 0, 0, 0, 0],
     fieldMarshals: 0,
@@ -32,14 +30,12 @@ export function depthDetail(
 ): WwDepthDetail {
   return {
     smallID: SID(tag),
-    doctrine: {
-      gd: [-1, -1, -1],
-      gdLock: [],
-      sub: [],
-      subLock: [],
-      masteryMilli: [],
-      gainMilli: [],
+    thought: {
+      target: new Array<number>(9).fill(0),
+      curMilli: new Array<number>(9).fill(0),
+      rateMilli: 100,
     },
+    doctrine: {},
     command: {
       spirits: [],
       spiritLock: [],

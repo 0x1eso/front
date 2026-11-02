@@ -54,8 +54,6 @@ export function depthSummary(
 ): WwDepthSummary {
   return {
     smallID,
-    gd: [-1, -1, -1],
-    levels: new Array<number>(9).fill(0),
     energyPm: 1000,
     mioSize: [],
     fieldMarshals: 0,
@@ -63,7 +61,7 @@ export function depthSummary(
     atomicStock: 0,
     agency: false,
     ...over,
-  } as WwDepthSummary;
+  };
 }
 
 export interface DoctrineOptions extends LandOptions {

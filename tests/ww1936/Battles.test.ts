@@ -632,21 +632,25 @@ describe("World War 1936 P2: land battles (spec §9)", () => {
     // The reserve keeps waiting while the line holds.
     stepBattles(l, g.ticks());
     expect(fresh.some((id) => b.attLine.includes(id))).toBe(false);
-    // One of the line goes: the first reserve is let in by its roll (ww7:
-    // 25 % + initiative ÷ 4 …, at most 70 % a round, not for sure as before),
-    // some round soon, and strikes (and is struck) only from the round after.
+    // One of the line goes: a reserve is let in by its own roll, per division
+    // (ww7: 25 % + initiative ÷ 4 …, at most 70 % a round, not for sure as
+    // before), so either may be first. Only one fits, some round soon, and it
+    // strikes (and is struck) only from the round after.
     l.killDivision(rowOf(l, b.attLine[0]), false);
+    const unhurt = () =>
+      expect(fresh.map((id) => l.divisions.org[rowOf(l, id)])).toEqual(full);
     let entered = -1;
     for (let i = 0; i < 40 && entered < 0; i++) {
       stepBattles(l, g.ticks());
-      if (b.attLine.includes(fresh[0])) entered = i;
-      else expect(l.divisions.org[rowOf(l, fresh[0])]).toBe(full[0]);
+      entered = fresh.findIndex((id) => b.attLine.includes(id));
+      unhurt();
     }
     expect(entered).toBeGreaterThanOrEqual(0);
-    expect(b.attLine).not.toContain(fresh[1]);
-    expect(l.divisions.org[rowOf(l, fresh[0])]).toBe(full[0]);
+    expect(b.attLine).not.toContain(fresh[1 - entered]);
     stepBattles(l, g.ticks());
-    expect(l.divisions.org[rowOf(l, fresh[0])]).toBeLessThan(full[0]);
+    expect(l.divisions.org[rowOf(l, fresh[entered])]).toBeLessThan(
+      full[entered],
+    );
   }, 60_000);
 
   test("a paradropped attacker fights inside the region", async () => {

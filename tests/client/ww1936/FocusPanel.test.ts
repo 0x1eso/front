@@ -449,6 +449,18 @@ describe("<ww-focus-panel> (spec §21.3)", () => {
     expect(p.q("[data-ww-focus-detail]")!.className).toContain("max-h-[45%]");
   });
 
+  it("doctrine_mastery shows the experience the engine really gives", () => {
+    const text = (amount: number) =>
+      lineText({
+        key: "ww1936.fx.doctrine_mastery",
+        params: { domain: "land", amount, who: "@self" },
+        depth: 0,
+        leaf: -1,
+      });
+    expect(text(60)).toContain("amount=40");
+    expect(text(120)).toContain("amount=80");
+  });
+
   it("explain lines turn codes into names", () => {
     expect(
       lineText({

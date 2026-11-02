@@ -16,7 +16,6 @@ import {
   THOUGHT_MAX_STEP,
   THOUGHT_SLIDER_COUNT,
 } from "@openfront/engine-api/ww1936/ThoughtTypes";
-import { START_THOUGHTS } from "@openfront/engine-lib/ww1936/content/depth/thought";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { thoughtStartPos } from "@openfront/engine-lib/ww1936/ThoughtRules";
 import { AI_FIGHTER_HOLD_SUP_PM } from "../air/AiAir";
@@ -197,17 +196,13 @@ export function aiThoughtTargets(
 ): number[] | null {
   const n = d.ww.hasWar(id) ? THOUGHT_AI_WAR_DAYS : THOUGHT_AI_PEACE_DAYS;
   if (day % n !== id % n) return null;
-  const th = (
-    d.country(id) as unknown as {
-      th?: { target?: number[]; started?: boolean };
-    } | null
-  )?.th;
-  const cur = th?.target;
-  if (cur === undefined || th?.started === false) return null;
+  const c = d.country(id);
+  if (c === null || !c.th.started) return null;
+  const cur = c.th.target;
   const historical = d.ww.historicalAiNow();
   const tag = d.ww.tagOf(id);
   const start = thoughtStartPos({
-    table: START_THOUGHTS,
+    table: d.ww.politics.content.startThoughts,
     tag,
     personality: aiPersonality(tag),
     historical,

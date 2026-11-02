@@ -114,7 +114,10 @@ const LANE_BLOCK = (k: number): string | null =>
                         ? "harbor_conditions"
                         : k === 55
                           ? "scorch_conditions"
-                          : "bad_index";
+                          : k === 56
+                            ? // Wings are live: deployment 1 is Germany's own wing, and no bomber.
+                              "bad_air_mission"
+                            : "bad_index";
 
 describe("World War 1936 P6: the depth orders", () => {
   it("every kind is valid on the wire and goes to its lane", async () => {

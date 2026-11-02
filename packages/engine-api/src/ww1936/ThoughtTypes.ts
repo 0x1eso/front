@@ -71,6 +71,8 @@ export const THOUGHT_EDGE_PTS = [6, 4, 4] as const;
 export const THOUGHT_AI_WAR_DAYS = 30;
 export const THOUGHT_AI_PEACE_DAYS = 90;
 export const THOUGHT_AI_HISTORICAL_PCT = 50;
+/** Design §3: the old doctrine_mastery effect's points become experience of the same domain, percent. */
+export const MASTERY_TO_XP_PCT = 67;
 export const THOUGHT_AI_MIN_CHANGE = 2;
 
 /** The thought orders, at the end of WwOrderSchema after the wing orders (not a depth order: DEPTH_ORDER_KINDS is the 57 after army_garrison). Append only. */

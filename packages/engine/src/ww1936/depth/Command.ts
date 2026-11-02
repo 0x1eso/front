@@ -724,6 +724,7 @@ function autoMedal(d: WwDepth, id: number, day: number): void {
   c.cmd.medalWin = undefined;
   land.markArmy(a.id);
   touchCommand(d);
+  d.message(id, "ww1936_medal_auto", { army: a.nameNo });
 }
 
 // ---- what the land war reads ----

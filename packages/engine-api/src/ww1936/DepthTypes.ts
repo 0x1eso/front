@@ -919,12 +919,6 @@ export interface WwDepthDetail {
     /** Lane D (wave B): whole experience per domain — army, navy, air (always sent). */
     xp?: number[];
   };
-  /**
-   * ww9 (lane T1 sends it; lane U reads it): the thought sliders, THOUGHT_SLIDERS
-   * order. `target`: notches asked for; `curMilli`: the actual position in
-   * milli-notches; `rateMilli`: milli-notches the actual position moves a day.
-   */
-  thought?: { target: number[]; curMilli: number[]; rateMilli: number };
   command: {
     spirits: number[];
     spiritLock: number[];

@@ -21,6 +21,7 @@ import {
   airXpDayMilli,
 } from "@openfront/engine-lib/ww1936/DoctrineRules";
 import {
+  masteryXpMilli,
   thoughtNotch,
   thoughtRateMilli,
   thoughtSetBlock,
@@ -33,9 +34,6 @@ import { aiPersonality } from "../economy/AiEconomy";
 import type { EffectCtx } from "../politics/Dispatch";
 import { aiThoughtTargets } from "./ThoughtAi";
 import type { CountryDepth, Domain, WwDepth } from "./WwDepth";
-
-/** Design §3: the old mastery effect's points become experience of the same domain, percent. */
-export const MASTERY_TO_XP_PCT = 67;
 
 /** The year multiplier (percent) the stats use today, from the common day. */
 export function thoughtYearPctOf(d: WwDepth): number {
@@ -51,23 +49,31 @@ function rsDoctrinePct(d: WwDepth, id: number): number {
 }
 
 /**
- * Design §8: the start position of a country that has none yet (the first
- * clock, a woken slot's first day). An empty content table starts nothing.
+ * Design §5.5: the nine notches the country starts from. Pure, so nothing
+ * stores it; the lobby's historical AI setting decides the row, so it stays
+ * the same past V-J Day and the AI's officer corps stay keyed by it.
  */
-export function startThought(d: WwDepth, id: number): void {
-  const c = d.country(id);
-  if (c === null || c.th.started) return;
-  const content = d.ww.politics.content;
-  if (content.startThoughts.length === 0) return;
+export function startPosOf(d: WwDepth, id: number): number[] {
   const tag = d.ww.tagOf(id);
-  const pos = thoughtStartPos({
-    table: content.startThoughts,
+  return thoughtStartPos({
+    table: d.ww.politics.content.startThoughts,
     tag,
     personality: aiPersonality(tag),
     historical: d.mg.config().historicalAi() === true,
     seed: d.ww.politics.seed,
     id,
   });
+}
+
+/**
+ * Design §8: the start position of a country that has none yet (the first
+ * clock, a woken slot's first day). An empty content table starts nothing.
+ */
+export function startThought(d: WwDepth, id: number): void {
+  const c = d.country(id);
+  if (c === null || c.th.started) return;
+  if (d.ww.politics.content.startThoughts.length === 0) return;
+  const pos = startPosOf(d, id);
   for (let s = 0; s < THOUGHT_SLIDER_COUNT; s++) {
     c.th.target[s] = pos[s];
     c.th.curMilli[s] = pos[s] * 1000;
@@ -178,7 +184,7 @@ export function issueThought(
 
 /**
  * The doctrine_mastery effect (design §3): the old mastery points are now
- * experience of the same domain, MASTERY_TO_XP_PCT percent.
+ * experience of the same domain, ThoughtRules.masteryXpMilli.
  */
 export function applyMasteryEffect(
   ctx: EffectCtx,
@@ -189,8 +195,7 @@ export function applyMasteryEffect(
   if (d === undefined || d.country(actor) === null) return;
   const domain = ["land", "naval", "air"].indexOf(e.domain);
   if (domain < 0) return;
-  const milli = Math.trunc((e.amount * 1000 * MASTERY_TO_XP_PCT) / 100);
-  d.addXpMilli(actor, domain as Domain, milli);
+  d.addXpMilli(actor, domain as Domain, masteryXpMilli(e.amount));
   d.markCountry(actor);
 }
 
