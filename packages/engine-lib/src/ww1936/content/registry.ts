@@ -38,6 +38,7 @@ import {
   TraitDef,
   TraitId,
 } from "@openfront/engine-api/ww1936/PoliticsTypes";
+import type { StartThoughtDef } from "@openfront/engine-api/ww1936/ThoughtTypes";
 import { dayOfDate } from "../Calendar";
 import { idHash } from "../Roll";
 import { TRAITS } from "./advisors";
@@ -63,6 +64,7 @@ import { REGION_GROUPS_P6 } from "./depth/groups";
 import { AGENCY_STARTS } from "./depth/intel";
 import { DEPTH_SPIRITS } from "./depth/mech";
 import { NUKE_TARGETS, SCIENTISTS } from "./depth/projects";
+import { START_THOUGHTS } from "./depth/thought";
 import { DEPTH_EVENTS } from "./depth/world";
 import { BEATS_P5 } from "./endgame/beats";
 import { CLAIMS_P5 } from "./endgame/claims";
@@ -198,6 +200,7 @@ export interface ContentParts {
   // content needs none; buildRegistry fills [] / 0.
   packs?: readonly FocusPackDef[];
   startDoctrines?: readonly StartDoctrineDef[];
+  startThoughts?: readonly StartThoughtDef[];
   startFieldMarshals?: readonly StartFmDef[];
   scientists?: readonly ScientistDef[];
   aiDesignPresets?: readonly AiDesignPreset[];
@@ -243,6 +246,7 @@ export interface ContentRegistry extends ContentParts {
   // P6 (pre-flight §0-1, plan decision 28): composite pack trees.
   packs: readonly FocusPackDef[];
   startDoctrines: readonly StartDoctrineDef[];
+  startThoughts: readonly StartThoughtDef[];
   startFieldMarshals: readonly StartFmDef[];
   scientists: readonly ScientistDef[];
   aiDesignPresets: readonly AiDesignPreset[];
@@ -371,6 +375,7 @@ export function buildRegistry(p: ContentParts): ContentRegistry {
     ...p,
     packs,
     startDoctrines: p.startDoctrines ?? [],
+    startThoughts: p.startThoughts ?? [],
     startFieldMarshals: p.startFieldMarshals ?? [],
     scientists: p.scientists ?? [],
     aiDesignPresets: p.aiDesignPresets ?? [],
@@ -619,6 +624,7 @@ export const CONTENT_PARTS: ContentParts = {
   // P6 (plan Task 1 Step 20).
   packs: PACKS,
   startDoctrines: START_DOCTRINES,
+  startThoughts: START_THOUGHTS,
   startFieldMarshals: START_FIELD_MARSHALS,
   scientists: SCIENTISTS,
   aiDesignPresets: AI_DESIGN_PRESETS,

@@ -28,7 +28,7 @@ import {
   roundDamage,
   roundHits,
 } from "@openfront/engine-lib/ww1936/CombatRules";
-import { landCombatShare } from "@openfront/engine-lib/ww1936/DoctrineRules";
+import { CONTENT } from "@openfront/engine-lib/ww1936/content/registry";
 import {
   AT_ASSAULT,
   AT_ATTACK,
@@ -60,6 +60,7 @@ import {
 } from "@openfront/engine/ww1936/land/Battles";
 import { startHopInto } from "@openfront/engine/ww1936/land/Movement";
 import type { Army, WwLand } from "@openfront/engine/ww1936/land/WwLand";
+import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSource";
 import { lastBand } from "./bandUtil";
 import {
   byTag,
@@ -147,6 +148,13 @@ async function juneWar(gameID?: string) {
   };
 }
 
+/** ww9: the exact numbers below are the base stats'; no start slider position. */
+function noStartThoughts(): void {
+  usePoliticsContent({ ...CONTENT, startThoughts: [] });
+}
+
+afterEach(() => usePoliticsContent(null));
+
 const rowOf = (l: WwLand, id: number) => l.divisions.rowOf(id);
 
 /** Every division of `a` attacks `region`. */
@@ -182,6 +190,7 @@ function weatherOf(g: Game, region: number): string {
 
 describe("World War 1936 P2: land battles (spec §9)", () => {
   test("one division attacking alone breaks first (spec §9.10)", async () => {
+    noStartThoughts();
     const { g, l, pol, inf72 } = await juneWar();
     expect(weatherOf(g, WARSAW)).toBe("clear");
     const a = placeArmy(g, "DEU", 3, 1, inf72);
@@ -603,6 +612,7 @@ describe("World War 1936 P2: land battles (spec §9)", () => {
   }, 60_000);
 
   test("the line holds its width and reserves wait a round", async () => {
+    noStartThoughts();
     const { g, l } = await juneWar();
     const a = placeArmy(g, "DEU", 3, 6);
     placeArmy(g, "POL", WARSAW, 5);
@@ -670,33 +680,6 @@ describe("World War 1936 P2: land battles (spec §9)", () => {
     expect(g.ownerID(sc.vpTile(sc.region(WARSAW)!))).toBe(deu);
     expect(l.battles.has(WARSAW)).toBe(false);
   }, 60_000);
-});
-
-describe("World War 1936 P6: the doctrine tally (plan decision 12)", () => {
-  test("each fighting division adds its track share to its owner's tally once a day", async () => {
-    const { g, l, deu, pol, inf72 } = await juneWar();
-    const d = g.worldWar()!.depth;
-    const a = placeArmy(g, "DEU", 3, 2, inf72);
-    placeArmy(g, "POL", WARSAW, 1);
-    attack(l, a, WARSAW);
-    d.dayTally.fill(0);
-    stepBattles(l, g.ticks());
-    // Infantry 7 · artillery 2: 14 infantry halves, 4 support halves, per division.
-    const [inf, arm, sup] = landCombatShare(14, 0, 4);
-    expect(d.dayTally.slice(deu * 9, deu * 9 + 3)).toEqual([
-      2 * inf,
-      2 * arm,
-      2 * sup,
-    ]);
-    expect(d.dayTally.slice(pol * 9, pol * 9 + 3).some((v) => v > 0)).toBe(
-      true,
-    );
-    // More rounds the same day add nothing.
-    const once = [...d.dayTally];
-    stepBattles(l, g.ticks());
-    stepBattles(l, g.ticks());
-    expect(d.dayTally).toEqual(once);
-  });
 });
 
 describe("World War 1936 ww7 lane A: tactics, luck and reserves in a battle (design ww6 §2)", () => {

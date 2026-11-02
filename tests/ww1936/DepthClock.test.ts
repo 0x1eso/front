@@ -42,8 +42,6 @@ describe("World War 1936 P6: the depth clock", () => {
           ww.isActor(id) ? [id % WW_DAY_SPLIT] : undefined,
         );
       }
-      // No battle: the stub doctrine day empties each tally it reads.
-      expect(d.dayTally.every((v) => v === 0)).toBe(true);
     }
     spy.mockRestore();
     common.mockRestore();

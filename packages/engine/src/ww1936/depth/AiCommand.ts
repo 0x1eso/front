@@ -17,7 +17,6 @@ import {
   MEDAL_CP,
   MEDALS,
   SPIRIT_CAT_DOMAIN,
-  SUBDOCTRINES,
 } from "@openfront/engine-api/ww1936/DepthTypes";
 import {
   GENERAL_TRAITS,
@@ -36,14 +35,10 @@ import {
   traitCost,
   traitSlots,
 } from "@openfront/engine-lib/ww1936/CommandRules";
-import {
-  P_START_DOCTRINE,
-  startDoctrinePick,
-} from "@openfront/engine-lib/ww1936/DoctrineRules";
+import { P_START_DOCTRINE } from "@openfront/engine-lib/ww1936/DoctrineRules";
 import { GENERALS } from "@openfront/engine-lib/ww1936/Generals";
 import { historicalAiActive } from "@openfront/engine-lib/ww1936/Pace";
 import { wwRoll } from "@openfront/engine-lib/ww1936/Roll";
-import { aiPersonality } from "../economy/AiEconomy";
 import { canServe } from "../land/GeneralsRun";
 import { newTitledGeneralState } from "../land/LandStartRun";
 import type { Army, CountryLand, GeneralState } from "../land/WwLand";
@@ -139,7 +134,6 @@ const gdId = (g: number): GrandDoctrine | "" =>
 export function aiCommandDay(d: WwDepth, id: number, day: number): void {
   const c = d.country(id);
   if (c === null || d.ww.land.country(id) === null) return;
-  if (c.doc.gd.every((g) => g < 0)) startDoctrineFor(d, id);
   if (!d.ww.hasWar(id) && day % 10 !== id % 10) return;
   aiSpirits(d, id);
   aiPriorities(d, id);
@@ -149,55 +143,17 @@ export function aiCommandDay(d: WwDepth, id: number, day: number): void {
   aiMedal(d, id, day);
 }
 
-/**
- * Coordinator ruling (T1a re-review): a country with no doctrine — a P5
- * dormant or civil-war slot woken after day 0, or a country handed to the
- * AI — takes the same seeded start pick as WwDepth.startAiDoctrines'
- * (its K5 row or its personality's, the naval rule, the 25% deviation).
- */
-export function startDoctrineFor(d: WwDepth, id: number): void {
-  const c = d.country(id);
-  if (c === null) return;
-  const econ = d.ww.economy;
-  const ce = econ.country(id);
-  const tag = d.ww.tagOf(id);
-  const pick = startDoctrinePick({
-    table: d.ww.politics.content.startDoctrines,
-    tag,
-    personality: aiPersonality(tag),
-    // In play (a slot woken or a country handed over at any day): from
-    // V-J Day the free AI's pick (Pace).
-    historical: d.ww.historicalAiNow(),
-    navy:
-      ce !== null &&
-      ce.totals.dock >= 3 &&
-      econ.regionsOf(id).some((r) => d.ww.scenario.harborOf(r) !== 0),
-    seed: d.ww.politics.seed,
-    id,
-  });
-  let changed = false;
-  pick.gd.forEach((g, dom) => {
-    if (g === null) return;
-    c.doc.gd[dom] = GRAND_DOCTRINES.indexOf(g);
-    changed = true;
-  });
-  pick.sub.forEach((s, t) => {
-    if (s === null || t >= 9) return;
-    c.doc.sub[t] = SUBDOCTRINES.indexOf(s);
-    changed = true;
-  });
-  if (changed) {
-    d.markStats(id);
-    d.markCountry(id);
-  }
-}
-
 /** The officer corps each category would take: the doctrine's row, or (seeded, AI_SPIRIT_DEVIATION_PCT) another of the three. */
 export function aiSpiritPlan(d: WwDepth, id: number): number[] {
-  const c = d.country(id)!;
-  const land = LAND_SPIRITS[gdId(c.doc.gd[0])] ?? LAND_SPIRITS.gd_mass;
-  const naval = NAVAL_SPIRITS[gdId(c.doc.gd[1])] ?? NAVAL_SPIRITS[""];
-  const air = AIR_SPIRITS[gdId(c.doc.gd[2])] ?? AIR_SPIRITS[""];
+  const land =
+    LAND_SPIRITS[gdId(-1 /* T1 bridge: T2 keys these by start position */)] ??
+    LAND_SPIRITS.gd_mass;
+  const naval =
+    NAVAL_SPIRITS[gdId(-1 /* T1 bridge: T2 keys these by start position */)] ??
+    NAVAL_SPIRITS[""];
+  const air =
+    AIR_SPIRITS[gdId(-1 /* T1 bridge: T2 keys these by start position */)] ??
+    AIR_SPIRITS[""];
   const rows = [...land, ...naval, ...air];
   const seed = d.ww.politics.seed;
   return ARMY_SPIRIT_CATEGORIES.map((_, cat) => {
@@ -271,8 +227,9 @@ const skillSum = (g: GeneralState) => g.att + g.dfn + g.plan + g.log;
 
 /** The land doctrine's preferred field marshal trait the general lacks (FM_TRAITS index), -1 none. */
 function fmTraitFor(d: WwDepth, id: number, have: number): number {
-  const c = d.country(id)!;
-  const plan = FM_TRAIT_PLAN[gdId(c.doc.gd[0])] ?? FM_TRAIT_PLAN[""];
+  const plan =
+    FM_TRAIT_PLAN[gdId(-1 /* T1 bridge: T2 keys these by start position */)] ??
+    FM_TRAIT_PLAN[""];
   for (const t of [...plan, ...FM_TRAITS]) {
     const b = FM_TRAITS.indexOf(t);
     if ((have & (1 << b)) === 0) return b;

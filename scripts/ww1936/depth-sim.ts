@@ -38,14 +38,17 @@ import {
 } from "@openfront/engine-api/ww1936/EconomyTypes";
 import { dateOfDay, dayOfDate } from "@openfront/engine-lib/ww1936/Calendar";
 import { mioSize } from "@openfront/engine-lib/ww1936/MioRules";
+import { thoughtNotch } from "@openfront/engine-lib/ww1936/ThoughtRules";
 import {
   decryptedOwn,
   exploiting,
 } from "@openfront/engine/ww1936/depth/Crypto";
-import { trackLevels } from "@openfront/engine/ww1936/depth/Doctrine";
 import { mioFundsOf } from "@openfront/engine/ww1936/depth/Mio";
 import { projectEta } from "@openfront/engine/ww1936/depth/Projects";
-import type { WwDepth } from "@openfront/engine/ww1936/depth/WwDepth";
+import type {
+  CountryDepth,
+  WwDepth,
+} from "@openfront/engine/ww1936/depth/WwDepth";
 import fs from "fs";
 import os from "os";
 import path from "path";
@@ -66,6 +69,9 @@ import {
   SimExtension,
   stat,
 } from "./endgame-sim";
+
+/** ww9: the nine slider notches (the doctrine track levels they replaced). */
+const trackLevels = (c: CountryDepth) => c.th.curMilli.map(thoughtNotch);
 
 const SELF = fileURLToPath(import.meta.url);
 const ROOT = path.resolve(path.dirname(SELF), "../..");
@@ -543,8 +549,6 @@ function timeDepth(d: WwDepth, a: PerfAcc): void {
     "railGunHits",
     "planCutBp",
     "fortCut",
-    "noteLandCombat",
-    "noteNavalCombat",
     "noteSorties",
     "supplyPm",
     "moveCutPct",

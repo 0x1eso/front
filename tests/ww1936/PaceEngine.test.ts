@@ -4,14 +4,7 @@
 // (1945-09-02, day 3,532), and the doctrine tally days hold any day.
 import type { GameConfig } from "@openfront/engine-api/Schemas";
 import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
-import {
-  equipKey,
-  EQUIPMENT_TYPES,
-} from "@openfront/engine-api/ww1936/EconomyTypes";
-import {
-  FLEET_STATES,
-  ShipClass,
-} from "@openfront/engine-api/ww1936/NavyTypes";
+import { equipKey } from "@openfront/engine-api/ww1936/EconomyTypes";
 import type {
   EventDef,
   HistoryBeat,
@@ -38,18 +31,6 @@ import {
 import { offerTakeover } from "@openfront/engine/ww1936/endgame/Exile";
 import { addWarScore } from "@openfront/engine/ww1936/endgame/Wars";
 import type { Conference } from "@openfront/engine/ww1936/endgame/WwEndgame";
-import { joinBattle, stepBattles } from "@openfront/engine/ww1936/land/Battles";
-import { DivisionTable } from "@openfront/engine/ww1936/land/WwLand";
-import {
-  startNavalBattle,
-  stepNavalBattles,
-} from "@openfront/engine/ww1936/navy/NavalBattles";
-import {
-  dailySeaRegion,
-  type Fleet,
-  ShipTable,
-  type WwNavy,
-} from "@openfront/engine/ww1936/navy/WwNavy";
 import { reserveForBeats } from "@openfront/engine/ww1936/politics/AiPolitics";
 import { evalCondition } from "@openfront/engine/ww1936/politics/Conditions";
 import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSource";
@@ -64,18 +45,13 @@ import { depthFixture, TEST_TANK } from "./depthFixture";
 import { END, endId } from "./endFixture";
 import { endgameFixture } from "./endgameFixture";
 import { politicsFixture } from "./politicsFixture";
-import { REGION, SEA, TAG_ID, ZONE } from "./seaFixture";
 import {
   byTag,
-  clearLand,
   END_MAP,
   gameHash,
   HUMAN,
-  land,
-  placeArmy,
   POL,
   stepTo,
-  warAfterPrep,
   type WwHuman,
   wwRestore,
   wwRunner,
@@ -454,101 +430,5 @@ describe("the historical AI plays free from 1945-09-02 (day 3,532)", () => {
     const before = p.beats.map((s) => ({ ...s }));
     runBeats(p, END_DAY, g.ticks());
     expect(p.beats).toEqual(before);
-  });
-});
-
-// ---- Tally days past 32,767 ----
-
-describe("the doctrine tally days are 32-bit", () => {
-  const DAY = 40_000;
-  const WARSAW = 6;
-
-  test("a division's tally day holds day 40,000 and counts once that day", async () => {
-    const runner = await wwRunner({}, [
-      { clientID: HUMAN, country: "DEU" },
-      { clientID: "HUMAN002", country: "POL" },
-    ]);
-    warAfterPrep(runner, HUMAN, "POL");
-    const g = runner.game;
-    clearLand(g);
-    for (const tag of ["DEU", "POL"] as const) {
-      const ce = land(g).econ.country(byTag(g, tag).smallID())!;
-      for (const t of EQUIPMENT_TYPES) ce.stock[equipKey(t, 1)] += 100_000;
-      ce.manpower += 1_000_000;
-    }
-    const l = land(g);
-    const d = g.worldWar()!.depth;
-    const deu = byTag(g, "DEU").smallID();
-    const a = placeArmy(g, "DEU", 3, 2);
-    placeArmy(g, "POL", WARSAW, 1);
-    for (const id of a.divisions) joinBattle(l, id, WARSAW);
-    vi.spyOn(l, "day").mockReturnValue(DAY);
-    d.dayTally.fill(0);
-    stepBattles(l, g.ticks());
-    const r = l.divisions.rowOf(a.divisions[0]);
-    expect(l.divisions.tallyDay[r]).toBe(DAY);
-    expect(d.dayTally.slice(deu * 9, deu * 9 + 3).some((v) => v > 0)).toBe(
-      true,
-    );
-    // The same day again: the guard skips it.
-    expect(l.battles.has(WARSAW)).toBe(true);
-    const once = [...d.dayTally];
-    stepBattles(l, g.ticks());
-    expect(d.dayTally).toEqual(once);
-    // A snapshot restore keeps the day.
-    const back = new DivisionTable();
-    back.restore(l.divisions.snapshot());
-    expect(back.tallyDay[r]).toBe(DAY);
-  });
-
-  test("a ship's tally day holds day 40,000 and counts once that day", async () => {
-    usePoliticsContent(politicsFixture());
-    const GBR_H = "HUMAN001";
-    const runner = await wwRunner(
-      {},
-      [
-        { clientID: GBR_H, country: "GBR" },
-        { clientID: "HUMAN002", country: "ITA" },
-      ],
-      SEA.map,
-    );
-    warAfterPrep(runner, GBR_H, "ITA");
-    const navy: WwNavy = runner.game.worldWar()!.navy;
-    const tick = runner.game.ticks();
-    const port: Record<number, number> = {
-      [TAG_ID.GBR]: REGION.london,
-      [TAG_ID.ITA]: REGION.rome,
-    };
-    const atSea = (
-      owner: number,
-      comp: readonly (readonly [ShipClass, number, number])[],
-    ): Fleet => {
-      const f = navy.fleets.get(navy.createFleet(owner, port[owner], comp))!;
-      f.docked = 0;
-      f.state = FLEET_STATES.indexOf("on_station");
-      navy.setFleetZone(f, ZONE.west);
-      return f;
-    };
-    const gb = atSea(TAG_ID.GBR, [["bb", 1, 1]]);
-    const it = atSea(TAG_ID.ITA, [["bb", 1, 1]]);
-    startNavalBattle(navy, ZONE.west, navy.sideOf(TAG_ID.GBR), it.id, tick);
-    // The first round puts both fleets in the battle state.
-    stepNavalBattles(navy, tick);
-    const battle = FLEET_STATES.indexOf("battle");
-    expect([gb.state, it.state]).toEqual([battle, battle]);
-    const note = vi.spyOn(navy.ww.depth, "noteNavalCombat");
-    const inBattle = () => note.mock.calls.filter((c) => c[2]).length;
-    const sr = navy.scenario.zoneSr(ZONE.west);
-    dailySeaRegion(navy, sr, DAY, tick);
-    expect(inBattle()).toBe(2);
-    const r = navy.ships.rowOf(gb.ships[0]);
-    expect(navy.ships.tallyDay[r]).toBe(DAY);
-    // The same day again: the guard skips it.
-    dailySeaRegion(navy, sr, DAY, tick);
-    expect(inBattle()).toBe(2);
-    // A snapshot restore keeps the day.
-    const back = new ShipTable();
-    back.restore(navy.ships.snapshot());
-    expect(back.tallyDay[r]).toBe(DAY);
   });
 });

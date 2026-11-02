@@ -7,9 +7,9 @@ import { applyIntelEffect } from "../depth/Agency";
 import { addBop } from "../depth/BalanceOfPower";
 import { addCongressPp, usaIdOf } from "../depth/Congress";
 import { grantDesign } from "../depth/Designs";
-import { applyMasteryEffect } from "../depth/Doctrine";
 import { applyEnergyEffect } from "../depth/Energy";
 import { applyProjectEffect, applyStartProjectEffect } from "../depth/Projects";
+import { applyMasteryEffect } from "../depth/Thought";
 import type { WwDepth } from "../depth/WwDepth";
 import type { EffectCtx } from "./Dispatch";
 

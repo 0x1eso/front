@@ -9,7 +9,6 @@ import {
   type WwStats,
 } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
-import { doctrineStats } from "@openfront/engine-lib/ww1936/DoctrineRules";
 import { mioStats } from "@openfront/engine-lib/ww1936/MioRules";
 import {
   addSparseInto,
@@ -19,10 +18,14 @@ import {
   emptyStats,
 } from "@openfront/engine-lib/ww1936/Stats";
 import {
-  doctrineStatsOf,
-  trackLevels,
-} from "@openfront/engine/ww1936/depth/Doctrine";
+  thoughtNotch,
+  thoughtStats,
+} from "@openfront/engine-lib/ww1936/ThoughtRules";
 import { mioStatsOf } from "@openfront/engine/ww1936/depth/Mio";
+import {
+  thoughtStatsOf,
+  thoughtYearPctOf,
+} from "@openfront/engine/ww1936/depth/Thought";
 import type { WwDepth } from "@openfront/engine/ww1936/depth/WwDepth";
 import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSource";
 import type { WorldWar } from "@openfront/engine/ww1936/WorldWar";
@@ -54,10 +57,14 @@ function objectSum(ww: WorldWar, id: number): WwStats {
   return clampStats(total);
 }
 
-/** The P6 part as an object sum of fresh (unremembered) parts. */
-function freshDoctrine(d: WwDepth, id: number): Partial<WwStats> {
+/** The thought part as a fresh (unremembered) answer. */
+function freshThought(d: WwDepth, id: number): Partial<WwStats> {
   const c = d.country(id)!;
-  return doctrineStats({ gd: c.doc.gd, sub: c.doc.sub }, trackLevels(c));
+  if (!c.th.started) return {};
+  return thoughtStats(
+    c.th.curMilli.map((m) => thoughtNotch(m)),
+    thoughtYearPctOf(d),
+  );
 }
 
 function freshMio(d: WwDepth, id: number): Partial<WwStats> {
@@ -113,37 +120,32 @@ describe("final perf lane: the stats sums give the same numbers", () => {
     expect(n).toBeGreaterThan(3);
   });
 
-  test("doctrines, mastery, MIO traits and army spirits: the remembered parts follow every change", async () => {
+  test("thought sliders, MIO traits and army spirits: the remembered parts follow every change", async () => {
     const ww = await deepGame();
     const d = ww.depth;
     const pol = ww.politics;
     const c = d.country(DEU)!;
     const check = () => {
-      sameNumbers(doctrineStatsOf(d, DEU), freshDoctrine(d, DEU));
+      sameNumbers(thoughtStatsOf(d, DEU), freshThought(d, DEU));
       sameNumbers(mioStatsOf(d, DEU), freshMio(d, DEU));
       pol.recomputeStats(DEU);
       expect(pol.country(DEU)!.stats).toEqual(objectSum(ww, DEU));
     };
     check();
-    // A grand doctrine for each domain and the sub-doctrines.
-    c.doc.gd[0] = 0;
-    c.doc.gd[1] = 4;
-    c.doc.gd[2] = 7;
-    c.doc.sub[0] = 0;
-    c.doc.sub[3] = 3;
+    // The sliders start, move inside a notch (the same object back), then
+    // across notches and an end star.
+    c.th.started = true;
+    d.markStats(DEU);
     check();
-    const before = doctrineStatsOf(d, DEU);
-    // Mastery inside a level: the same answer (the same object back).
-    c.doc.masteryMilli[0] = 150_000;
+    const before = thoughtStatsOf(d, DEU);
+    c.th.curMilli[0] = 300;
     check();
-    c.doc.masteryMilli[0] = 160_000;
-    expect(doctrineStatsOf(d, DEU)).toBe(doctrineStatsOf(d, DEU));
-    // Up two levels on the infantry track: the rewards come in.
-    c.doc.masteryMilli[0] = 700_000;
+    expect(thoughtStatsOf(d, DEU)).toBe(before);
+    c.th.curMilli[0] = -9_000;
+    c.th.curMilli[4] = 7_000;
     check();
-    expect(doctrineStatsOf(d, DEU)).not.toEqual(before);
-    // A switch back (the grand doctrine off) drops them.
-    c.doc.gd[0] = -1;
+    expect(thoughtStatsOf(d, DEU)).not.toEqual(before);
+    c.th.curMilli[0] = 0;
     check();
     // MIOs: an archetype, then traits on and off, then another archetype.
     const arm = MIO_FAMILIES.indexOf("mio_armor");

@@ -84,7 +84,7 @@ import {
   easyWait,
   issueInvasionOrder,
 } from "./Invasions";
-import { engageRegion, FST } from "./Missions";
+import { engageRegion } from "./Missions";
 import { stepNavalBattles } from "./NavalBattles";
 import { startNavy } from "./NavyStartRun";
 import { bestNavalBase, navalPort, navalPortsOf } from "./Ports";
@@ -883,7 +883,6 @@ export class WwNavy {
     dailyVoyages(this, id, day); // C (pre-flight §0-8)
     dailyInvasions(this, id, day, tick); // I
     dailyNavyXp(this, id, day); // N2
-    noteNavalMissions(this, id); // P6 hook (D, plan decision 12)
     // P5 plan decision 7: the AI runs a country no human controls now.
     // A human's auto fleets, or (automation) its whole navy; aiInvasions
     // never acts for a human (its invasions stay the human's own).
@@ -2565,9 +2564,6 @@ export function dailySeaRegion(
   // P6 hook (W2, plan decision 3): mines laid, swept, struck.
   navy.ww.depth.seaRegionDay(sr, day);
   engageRegion(navy, sr, tick); // N1 → N2
-  // P6 hook (D, plan decision 12): ships in battle here today feed their
-  // owners' naval doctrine tracks once a day (ShipTable.tallyDay).
-  noteNavalBattles(navy, sr, day);
   // Port strikes of the fleets in the region, zone by zone, then by id.
   const strikers: Fleet[] = [];
   for (const z of navy.scenario.sr(sr)?.members ?? NO_IDS) {
@@ -2586,36 +2582,3 @@ export function dailySeaRegion(
 }
 
 const NO_IDS: readonly number[] = [];
-
-/** P6 (plan decision 12): each ship of a fleet in battle in the region, once a day. */
-function noteNavalBattles(navy: WwNavy, sr: number, day: number): void {
-  const t = navy.ships;
-  for (const z of navy.scenario.sr(sr)?.members ?? NO_IDS) {
-    for (const id of navy.fleetsIn(z)) {
-      const f = navy.fleets.get(id);
-      if (f === undefined || f.state !== FST.battle) continue;
-      for (const sid of f.ships) {
-        const r = t.rowOf(sid);
-        if (r < 0 || t.tallyDay[r] === day) continue;
-        t.tallyDay[r] = day;
-        navy.ww.depth.noteNavalCombat(t.owner[r], t.cls[r], true);
-      }
-    }
-  }
-}
-
-/** P6 (plan decision 12): the ships of the country's fleets on a mission, the country's day. */
-function noteNavalMissions(navy: WwNavy, id: number): void {
-  const t = navy.ships;
-  const perCls = new Array<number>(SHIP_CLASSES.length).fill(0);
-  for (const f of navy.fleetsOf(id)) {
-    if (f.state !== FST.onStation) continue;
-    for (const sid of f.ships) {
-      const r = t.rowOf(sid);
-      if (r >= 0) perCls[t.cls[r]]++;
-    }
-  }
-  perCls.forEach((n, cls) => {
-    if (n > 0) navy.ww.depth.noteNavalCombat(id, cls, false, n);
-  });
-}

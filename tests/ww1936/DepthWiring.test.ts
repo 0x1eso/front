@@ -4,6 +4,7 @@ import { SPECIAL_PROJECTS } from "@openfront/engine-api/ww1936/DepthTypes";
 import { RESOURCE_IDS } from "@openfront/engine-api/ww1936/EconomyTypes";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { lineOutputMilli } from "@openfront/engine-lib/ww1936/EconomyRules";
+import { thoughtStats } from "@openfront/engine-lib/ww1936/ThoughtRules";
 import { stepProduction } from "@openfront/engine/ww1936/economy/Production";
 import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSource";
 import { DEEP } from "./deepFixture";
@@ -32,21 +33,26 @@ describe("World War 1936 P6: wiring", () => {
     const d = ww.depth;
     const ce = ww.economy.country(DEEP.tag.DEU)!;
     const before = { ...ce.stats };
-    // A grand doctrine picked (lane D): mobile warfare's base effect, every
-    // division's speed +10% (the retired mobile_1's), and nothing else.
-    d.country(DEEP.tag.DEU)!.doc.gd[0] = 0;
+    // A thought slider (ww9): offence all the way, and nothing else (the
+    // test content has no start row, so the sliders were not started).
+    const th = d.country(DEEP.tag.DEU)!.th;
+    th.started = true;
+    th.curMilli[0] = -10_000;
     d.markStats(DEEP.tag.DEU);
     step(runner);
-    expect({ ...ce.stats }).toEqual({
-      ...before,
-      speedPct: before.speedPct + 10,
-    });
+    const add = thoughtStats([-10, 0, 0, 0, 0, 0, 0, 0, 0], 100);
+    const expected: Record<string, number> = { ...before };
+    for (const [k, v] of Object.entries(add)) {
+      expected[k] = (expected[k] ?? 0) + (v as number);
+    }
+    expect({ ...ce.stats }).toEqual(expected);
+    const mid = ce.stats.artillerySoftPct;
     // The foundation's own line: the proximity fuze's artillery +5%.
     d.country(DEEP.tag.DEU)!.proj.done |=
       1 << SPECIAL_PROJECTS.indexOf("sp_proximity_fuze");
     d.markStats(DEEP.tag.DEU);
     step(runner);
-    expect(ce.stats.artillerySoftPct).toBe(before.artillerySoftPct + 5);
+    expect(ce.stats.artillerySoftPct).toBe(mid + 5);
   });
 
   it("energy penalty reaches output", async () => {

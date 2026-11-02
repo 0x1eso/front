@@ -46,7 +46,8 @@ describe("World War 1936 P6: the depth state in a snapshot", () => {
       savedDay: 0,
     };
     d.markDesign(DEEP.tag.DEU, "tank", 1);
-    deu.doc.masteryMilli[1] = 123_456;
+    deu.th.curMilli[1] = 3_456;
+    deu.th.target[1] = 4;
     d.setNetMilli(DEEP.tag.GBR, DEEP.tag.DEU, 250_000);
     setEmbargo(d, DEEP.tag.GBR, DEEP.tag.ITA, true);
     d.markNuked(DEEP.region.berlin, 400);

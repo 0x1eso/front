@@ -5,9 +5,7 @@
 // here; their numbers are those lanes' tests.
 import {
   CP_MAX_MILLI,
-  GRAND_DOCTRINES,
   SPECIAL_PROJECTS,
-  SUBDOCTRINES,
 } from "@openfront/engine-api/ww1936/DepthTypes";
 import { equipKey } from "@openfront/engine-api/ww1936/EconomyTypes";
 import {
@@ -132,22 +130,12 @@ describe("World War 1936 P6: the depth conditions", () => {
     const ww = runner.game.worldWar()!;
     const d = ww.depth;
     const c = d.country(FRA)!;
-    // has_doctrine: a grand doctrine (its domain) or a sub-doctrine (its track).
-    const gd = { kind: "has_doctrine", doctrine: "gd_firepower" } as const;
-    expect(cond(runner, gd)).toBe(false);
-    c.doc.gd[0] = GRAND_DOCTRINES.indexOf("gd_firepower");
-    expect(cond(runner, gd)).toBe(true);
-    c.doc.sub[1] = SUBDOCTRINES.indexOf("arm_mech");
-    expect(cond(runner, { kind: "has_doctrine", doctrine: "arm_mech" })).toBe(
-      true,
-    );
-    // mastery_level: the track's level.
-    c.doc.masteryMilli[1] = 300_000;
+    // has_doctrine and mastery_level: retired (ww9), never true.
     expect(
-      cond(runner, { kind: "mastery_level", track: "armor", level: 2 }),
-    ).toBe(true);
+      cond(runner, { kind: "has_doctrine", doctrine: "gd_firepower" }),
+    ).toBe(false);
     expect(
-      cond(runner, { kind: "mastery_level", track: "armor", level: 3 }),
+      cond(runner, { kind: "mastery_level", track: "armor", level: 1 }),
     ).toBe(false);
     // has_agency.
     expect(cond(runner, { kind: "has_agency" })).toBe(false);

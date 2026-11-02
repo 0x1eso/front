@@ -266,9 +266,9 @@ function applyOrder(
     case "research_grant":
       block = grantResearch(econ, ce, order.branch);
       break;
-    // Military thought sliders (ww9): lane T1 routes this to WwDepth.
+    // Military thought sliders (ww9).
     case "thought_set":
-      block = "bad_index";
+      block = econ.ww.depth.issueThought(p.smallID(), order, mg.ticks());
       break;
   }
   if (block === null) econ.markCountryDirty(ce.smallID);

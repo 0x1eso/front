@@ -34,13 +34,6 @@ export interface LandDepthHooks {
   fortCut(armyId: number, region: number): number;
   /** Centi-hits of railway guns for `side` at `region` this round (beside close air support). */
   railGunHits(region: number, side: number): number;
-  /** One division's day of combat (half battalions by track group). */
-  noteLandCombat(
-    owner: number,
-    infHalf: number,
-    armorHalf: number,
-    supportHalf: number,
-  ): void;
   /** The reinforcement order of the country's division ids; null: P2's. */
   reinforceOrder(id: number): number[] | null;
   /** A medal's division experience gain on the army, percent. */
@@ -95,7 +88,6 @@ export const NEUTRAL_DEPTH_HOOKS: LandDepthHooks = {
   planCutBp: () => 0,
   fortCut: () => 0,
   railGunHits: () => 0,
-  noteLandCombat: () => {},
   reinforceOrder: () => null,
   medalXpPct: () => 0,
   supplyPm: () => 1000,

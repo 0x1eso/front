@@ -5,7 +5,6 @@
 // routing, the queries every lane shares, the screens' data, the snapshot
 // and the hash. Lanes fill the stub files this one calls.
 import type { DepthOrder, WwOrder } from "@openfront/engine-api/Schemas";
-import { AIR_MISSIONS } from "@openfront/engine-api/ww1936/AirTypes";
 import {
   ATOMIC_MILESTONES_PM,
   DEPTH_ORDER_KINDS,
@@ -17,13 +16,11 @@ import {
   DesignStats,
   FACILITY_IDS,
   FM_TRAITS,
-  GRAND_DOCTRINES,
   INTEL_MISSIONS as INTEL_MISSION_IDS,
   INTEL_OPERATIONS as INTEL_OPERATION_IDS,
   KeyStatsTable,
   MIO_FAMILIES,
   SPECIAL_PROJECTS,
-  SUBDOCTRINES,
   TREATY_END_DATE,
   WW_PLANE_DESIGN_SLOTS,
   WW_SHIP_DESIGN_SLOTS,
@@ -57,13 +54,6 @@ import {
   SHIP_MODULE_DEFS,
   TANK_MODULE_DEFS,
 } from "@openfront/engine-lib/ww1936/DesignRules";
-import {
-  AIR_SHARE_MICRO_PER_SORTIE,
-  landCombatShare,
-  masteryLevel,
-  NAVAL_SHARE_MICRO,
-  startDoctrinePick,
-} from "@openfront/engine-lib/ww1936/DoctrineRules";
 import { energyPenaltyPct } from "@openfront/engine-lib/ww1936/EnergyRules";
 import { BOP_DEFS, bopBand } from "@openfront/engine-lib/ww1936/MechRules";
 import { mioSize } from "@openfront/engine-lib/ww1936/MioRules";
@@ -72,7 +62,6 @@ import { addSparseInto } from "@openfront/engine-lib/ww1936/Stats";
 import { STATIC_KEY_STATS } from "@openfront/engine-lib/ww1936/TemplateStats";
 import { z } from "zod";
 import type { Game } from "../../game/Game";
-import { aiPersonality } from "../economy/AiEconomy";
 import type { LandDepthHooks } from "../land/DepthHooks";
 import type { WorldWar } from "../WorldWar";
 import { dailyIntel, dayCommonIntel, issueIntel, mixIntel } from "./Agency";
@@ -105,12 +94,6 @@ import {
   fillDesignRows,
   issueDesign,
 } from "./Designs";
-import {
-  dailyDoctrine,
-  doctrineGainMilli,
-  doctrineStatsOf,
-  issueDoctrine,
-} from "./Doctrine";
 import { coalDemand, dailyEnergy, energyView } from "./Energy";
 import { computeIntelRow, intelDetailOf } from "./IntelLevels";
 import { landmarkStatsOf } from "./Landmarks";
@@ -139,6 +122,14 @@ import {
 import { processRaids } from "./Raids";
 import { railGunFortCut, railGunHits, railGunsOfRemovedArmy } from "./RailGuns";
 import { processRockets } from "./Rockets";
+import {
+  countsForAirXp,
+  dailyThought,
+  issueThought,
+  startThought,
+  thoughtStatsOf,
+  thoughtView,
+} from "./Thought";
 import {
   dayCommonWorld,
   issueWorld,
@@ -175,17 +166,14 @@ const OperativeSchema = z.object({
 });
 export type Operative = z.infer<typeof OperativeSchema>;
 const CountryDepthSchema = z.object({
-  doc: z.object({
-    gd: zIds(),
-    gdLock: zIds(),
-    sub: zIds(),
-    subLock: zIds(),
-    masteryMilli: zIds(),
-    /** Lane D: the mastery level per track the owner was told of. */
-    announced: zIds(),
-    /** Lane D: each track's gain on the country's last depth day, milli (screens). */
-    gain: zIds(),
-  }),
+  /** ww9: the military thought sliders (optional: older snapshots have none). */
+  th: z
+    .object({
+      target: zIds(),
+      curMilli: zIds(),
+      started: z.boolean(),
+    })
+    .optional(),
   cmd: z.object({
     cpMilli: zInt(),
     spirits: zIds(),
@@ -253,14 +241,16 @@ const CountryDepthSchema = z.object({
     xpTank: zInt(),
   }),
 });
-export type CountryDepth = z.infer<typeof CountryDepthSchema>;
+export type CountryDepth = Omit<z.infer<typeof CountryDepthSchema>, "th"> & {
+  th: { target: number[]; curMilli: number[]; started: boolean };
+};
 
 export const WwDepthStateSchema = z.object({
   lastCommonDay: zInt(),
   nextUid: zInt(),
   countries: z.array(CountryDepthSchema.nullable()),
-  /** Plan decision 12: N × 9 micro-mastery since each country's last turn. */
-  dayTally: zIds(),
+  /** ww9: sorties flown since each country's last turn (the air experience). */
+  airSorties: zIds().optional(),
   groups: z.array(
     z.object({
       id: zInt(),
@@ -496,7 +486,8 @@ export class WwDepth implements LandDepthHooks {
   lastCommonDay = -1;
   nextUid = 1;
   countries: (CountryDepth | null)[] = [];
-  dayTally: number[] = [];
+  /** ww9: per country, the sorties flown since its last depth day. */
+  airSorties: number[] = [];
   groups: WwDepthState["groups"] = [];
   market: WwDepthState["market"] = {
     listings: [],
@@ -601,7 +592,7 @@ export class WwDepth implements LandDepthHooks {
     this.countries = Array.from({ length: this.cap }, (_, id) =>
       id === 0 ? null : emptyCountry(),
     );
-    this.dayTally = new Array<number>(this.cap * 9).fill(0);
+    this.airSorties = new Array<number>(this.cap).fill(0);
     this.intelLevels = new Uint8Array(this.cap * this.cap * 4);
     // Review E12: no fog until lane I computes the rows (the stub's 100).
     this.intelLevels.fill(100);
@@ -623,13 +614,17 @@ export class WwDepth implements LandDepthHooks {
   // ---- clock (plan decision 3) ----
 
   clock(ticks: number): void {
-    if (this.ww.inPrep(ticks)) return;
+    // ww9: the thought sliders start on the first clock, before the
+    // preparation check (politics.seed is set by then).
+    if (this.ww.inPrep(ticks)) {
+      this.startThoughts();
+      return;
+    }
     const day = this.ww.day(ticks);
     if (day !== this.lastCommonDay) {
       this.lastCommonDay = day;
       // Pre-flight §0-9: the seeded start choices on day 0's common step
       // (politics.seed is set by then).
-      if (day === 0) this.startAiDoctrines();
       this.dayCommon(day, ticks);
     }
     // The P1 WwEconomy.tick split.
@@ -644,39 +639,18 @@ export class WwDepth implements LandDepthHooks {
     this.flushStats();
   }
 
-  /**
-   * Spec §3.5 / §19.2 (review E3): every AI country's grand doctrines and
-   * sub-doctrines, once, on day 0 (DoctrineRules.startDoctrinePick). A
-   * human picks for themselves.
-   */
-  private startAiDoctrines(): void {
-    const content = this.ww.politics.content;
-    // Day 0, once: the lobby setting as is (not historicalAiNow; Pace).
-    const historical = this.mg.config().historicalAi() === true;
-    const econ = this.ww.economy;
+  /** ww9: every actor without a start position takes one (idempotent; a woken slot starts on its first day). */
+  private startThoughts(): void {
     for (let id = 1; id < this.cap; id++) {
       const c = this.countries[id];
-      if (c === null || c === undefined) continue;
-      if (isDormant(this, id) || !this.ww.isActor(id)) continue;
-      if (this.ww.isHumanControlled(id)) continue;
-      const tag = this.ww.tagOf(id);
-      const ce = econ.country(id);
-      const navy =
-        ce !== null &&
-        ce.totals.dock >= 3 &&
-        econ.regionsOf(id).some((r) => this.ww.scenario.harborOf(r) !== 0);
-      const pick = startDoctrinePick({
-        table: content.startDoctrines,
-        tag,
-        personality: aiPersonality(tag),
-        historical,
-        navy,
-        seed: this.ww.politics.seed,
-        id,
-      });
-      applyStartDoctrine(c, pick.gd, pick.sub);
-      this.markStats(id);
-      this.depthDirty.add(id);
+      if (
+        c !== null &&
+        c !== undefined &&
+        !c.th.started &&
+        this.ww.isActor(id)
+      ) {
+        startThought(this, id);
+      }
     }
   }
 
@@ -692,7 +666,7 @@ export class WwDepth implements LandDepthHooks {
   countryTurn(id: number, day: number, tick: number): void {
     if (this.countries[id] === null || this.countries[id] === undefined) return;
     dailyEnergy(this, id, day); // W1
-    dailyDoctrine(this, id, day); // D (reads and clears dayTally)
+    dailyThought(this, id, day); // T (ww9)
     dailyCommand(this, id, day); // D
     dailyArmyGroups(this, id, day); // D
     dailyDesigns(this, id, day); // E
@@ -839,34 +813,16 @@ export class WwDepth implements LandDepthHooks {
     if (owner > 0) this.markCountry(owner);
   }
 
-  /** Plan decision 12: one division's day of land combat. */
-  noteLandCombat(
-    owner: number,
-    infHalf: number,
-    armorHalf: number,
-    supportHalf: number,
-  ): void {
-    if (owner <= 0 || owner >= this.cap || this.dayTally.length === 0) return;
-    const [a, b, c] = landCombatShare(infHalf, armorHalf, supportHalf);
-    const o = owner * 9;
-    this.dayTally[o] += a;
-    this.dayTally[o + 1] += b;
-    this.dayTally[o + 2] += c;
-  }
-
-  /** Plan decision 12: ships in a naval battle (once a day each) or on a mission (the fleet's day). */
-  noteNavalCombat(
-    owner: number,
-    cls: number,
-    battle: boolean,
-    ships = 1,
-  ): void {
-    noteNaval(this, owner, cls, battle, ships);
-  }
-
   /** Plan decision 12: a zone's sorties of a mission (AIR_MISSIONS index). */
   noteSorties(owner: number, mission: number, sorties: number): void {
-    noteAir(this, owner, mission, sorties);
+    if (owner <= 0 || owner >= this.cap || this.airSorties.length === 0) return;
+    if (!countsForAirXp(mission)) return;
+    this.airSorties[owner] += Math.max(0, sorties);
+  }
+
+  /** Experience of a domain, milli (a decision's or an effect's grant). */
+  addXpMilli(id: number, domain: Domain, milli: number): void {
+    addXpMilli(this.ww, id, domain, milli);
   }
 
   // ---- economy hooks (plan decisions 22, 23) ----
@@ -1114,7 +1070,7 @@ export class WwDepth implements LandDepthHooks {
     if (this.countries[id] === null || this.countries[id] === undefined) {
       return out;
     }
-    addSparseInto(out, doctrineStatsOf(this, id));
+    addSparseInto(out, thoughtStatsOf(this, id));
     addSparseInto(out, spiritStatsOf(this, id));
     addSparseInto(out, mioStatsOf(this, id));
     addSparseInto(out, mechStatsOf(this, id));
@@ -1161,7 +1117,8 @@ export class WwDepth implements LandDepthHooks {
     // trade, 31–39 intel, 40–46 projects, 47–51 mechanisms, 52–55 world,
     // 56 sea/air.
     let r: WwOrderBlock | null;
-    if (k <= 1) r = issueDoctrine(this, id, d, tick);
+    if (k <= 1)
+      r = "bad_index"; // doctrine_pick, subdoctrine_pick: retired (ww9)
     else if (k <= 4 || k === 12 || k === 13)
       r = issueCommand(this, id, d, tick);
     else if (k <= 11) r = issueArmyGroup(this, id, d, tick);
@@ -1174,6 +1131,20 @@ export class WwDepth implements LandDepthHooks {
     else if (k <= 55) r = issueWorld(this, id, d, tick);
     else r = issueSeaAir(this, id, d, tick);
     // A refusal changes nothing (review E1): only a taken order flushes.
+    if (r === null) {
+      this.depthDirty.add(id);
+      this.flushStats();
+    }
+    return r;
+  }
+
+  /** ww9: thought_set (not a DEPTH_ORDER_KINDS kind, so it does not go through issue). */
+  issueThought(
+    id: number,
+    o: Extract<WwOrder, { kind: "thought_set" }>,
+    tick: number,
+  ): WwOrderBlock | null {
+    const r = issueThought(this, id, o, tick);
     if (r === null) {
       this.depthDirty.add(id);
       this.flushStats();
@@ -1329,7 +1300,7 @@ export class WwDepth implements LandDepthHooks {
       countries: this.countries.map((c) =>
         c === null ? null : structuredCloneJson(c),
       ),
-      dayTally: [...this.dayTally],
+      airSorties: [...this.airSorties],
       groups: this.groups.map((g) => ({ ...g, armies: [...g.armies] })),
       market: structuredCloneJson(this.market),
       intelNet: [...this.intelNet.entries()].sort((a, b) => a[0] - b[0]),
@@ -1365,7 +1336,8 @@ export class WwDepth implements LandDepthHooks {
     while (this.countries.length < this.cap) {
       this.countries.push(this.countries.length === 0 ? null : emptyCountry());
     }
-    this.dayTally = [...s.dayTally];
+    this.airSorties = [...(s.airSorties ?? [])];
+    while (this.airSorties.length < this.cap) this.airSorties.push(0);
     this.groups = structuredCloneJson(s.groups);
     this.market = structuredCloneJson(s.market);
     this.intelNet = new Map(s.intelNet);
@@ -1410,7 +1382,7 @@ export class WwDepth implements LandDepthHooks {
     for (let id = 1; id < this.cap; id++) {
       const c = this.countries[id];
       if (c === null || c === undefined) continue;
-      mix(c.doc.masteryMilli.reduce((a, b) => a + b, 0));
+      mix(c.th.curMilli.reduce((a, b) => a + b, 0));
       mix(c.cmd.cpMilli);
       mix(
         DESIGN_KINDS.reduce(
@@ -1425,13 +1397,8 @@ export class WwDepth implements LandDepthHooks {
       // Lane D (review 3): every doctrine and command field, in index order;
       // the tuple lists by their first number.
       for (const xs of [
-        c.doc.gd,
-        c.doc.gdLock,
-        c.doc.sub,
-        c.doc.subLock,
-        c.doc.masteryMilli,
-        c.doc.announced,
-        c.doc.gain,
+        c.th.target,
+        c.th.curMilli,
         c.cmd.spirits,
         c.cmd.spiritLock,
       ]) {
@@ -1665,8 +1632,8 @@ function mixRestHash(d: WwDepth, mix: (v: number) => void): void {
   );
   rows([...d.nuked.entries()]);
   // The day's tallies and one-line batches.
-  mix(d.dayTally.length);
-  for (const v of d.dayTally) mix(v);
+  mix(d.airSorties.length);
+  for (const v of d.airSorties) mix(v);
   rows(d.dayNotes);
 }
 
@@ -1715,14 +1682,10 @@ const EMPTY: ReadonlySet<unknown> = new Set();
 export function emptyCountry(): CountryDepth {
   const nul = <T>(n: number) => new Array<T | null>(n).fill(null);
   return {
-    doc: {
-      gd: [-1, -1, -1],
-      gdLock: [-1, -1, -1],
-      sub: new Array<number>(9).fill(-1),
-      subLock: new Array<number>(9).fill(-1),
-      masteryMilli: new Array<number>(9).fill(0),
-      announced: new Array<number>(9).fill(0),
-      gain: new Array<number>(9).fill(0),
+    th: {
+      target: new Array<number>(9).fill(0),
+      curMilli: new Array<number>(9).fill(0),
+      started: false,
     },
     cmd: {
       cpMilli: 0,
@@ -1790,19 +1753,17 @@ const KNOWN_MODULES: Readonly<
 };
 
 /** Plan decision 10, spec §21.6: an unknown module id restores as "" (the base fitting); short arrays fill up. */
-function normalizeCountry(c: CountryDepth): CountryDepth {
+function normalizeCountry(
+  c: Omit<CountryDepth, "th"> & { th?: CountryDepth["th"] },
+): CountryDepth {
   const e = emptyCountry();
   const pad = <T>(a: T[], b: readonly T[]) => {
     while (a.length < b.length) a.push(b[a.length]);
     return a;
   };
-  pad(c.doc.gd, e.doc.gd);
-  pad(c.doc.gdLock, e.doc.gdLock);
-  pad(c.doc.sub, e.doc.sub);
-  pad(c.doc.subLock, e.doc.subLock);
-  pad(c.doc.masteryMilli, e.doc.masteryMilli);
-  pad(c.doc.announced, e.doc.announced);
-  pad(c.doc.gain, e.doc.gain);
+  const th = (c.th ??= e.th);
+  pad(th.target, e.th.target);
+  pad(th.curMilli, e.th.curMilli);
   pad(c.cmd.spirits, e.cmd.spirits);
   pad(c.cmd.spiritLock, e.cmd.spiritLock);
   for (const kind of DESIGN_KINDS) {
@@ -1819,7 +1780,7 @@ function normalizeCountry(c: CountryDepth): CountryDepth {
   pad(c.mio.traits, e.mio.traits);
   pad(c.mio.investReady, e.mio.investReady);
   pad(c.mio.sizeSeen, e.mio.sizeSeen);
-  return c;
+  return c as CountryDepth;
 }
 
 /** The stat-key suffix of each MIO_FAMILIES entry (MioRules' keys). */
@@ -1907,55 +1868,6 @@ function civFlow(d: WwDepth, id: number): { in: number; out: number } {
   return { in: inn, out };
 }
 
-/** Spec §3.4 rows 2: ships in battle or on missions → micro-mastery of the naval tracks. */
-function noteNaval(
-  d: WwDepth,
-  owner: number,
-  cls: number,
-  battle: boolean,
-  ships: number,
-): void {
-  if (owner <= 0 || owner >= d.cap || d.dayTally.length === 0) return;
-  // SHIP_CLASSES: dd cl ca bc bb cv ss.
-  const surface = cls === 2 || cls === 3 || cls === 4;
-  const carrier = cls === 5;
-  const track = surface ? 3 : carrier ? 5 : 4;
-  const micro = surface
-    ? battle
-      ? NAVAL_SHARE_MICRO.surfaceBattle
-      : NAVAL_SHARE_MICRO.surfaceMission
-    : carrier
-      ? battle
-        ? NAVAL_SHARE_MICRO.carrierBattle
-        : NAVAL_SHARE_MICRO.carrierMission
-      : battle
-        ? NAVAL_SHARE_MICRO.escortBattle
-        : NAVAL_SHARE_MICRO.escortMission;
-  d.dayTally[owner * 9 + track] += micro * Math.max(0, ships);
-}
-
-/** Spec §3.4 row 3: sorties → micro-mastery of the air tracks. */
-function noteAir(
-  d: WwDepth,
-  owner: number,
-  mission: number,
-  sorties: number,
-): void {
-  if (owner <= 0 || owner >= d.cap || d.dayTally.length === 0) return;
-  const m = AIR_MISSIONS[mission];
-  const track =
-    m === "air_superiority" || m === "interception" || m === "escort"
-      ? 6
-      : m === "cas" || m === "strategic_bombing"
-        ? 7
-        : m === "naval_strike" || m === "naval_patrol" || m === "port_strike"
-          ? 8
-          : -1;
-  if (track < 0) return;
-  d.dayTally[owner * 9 + track] +=
-    AIR_SHARE_MICRO_PER_SORTIE * Math.max(0, sorties);
-}
-
 /** P2 army, P4 navy and air experience, milli. */
 function xpMilliOf(ww: WorldWar, id: number, domain: Domain): number {
   if (domain === 0) return ww.land.country(id)?.armyXpMilli ?? 0;
@@ -2039,26 +1951,6 @@ function addScientist(c: CountryDepth, spec: number, skill: number): void {
   });
 }
 
-function applyStartDoctrine(
-  c: CountryDepth,
-  gd: readonly (string | null)[],
-  sub: readonly (string | null)[],
-): void {
-  gd.forEach((g, dom) => {
-    if (g !== null) c.doc.gd[dom] = GRAND_DOCTRINE_INDEX.get(g) ?? -1;
-  });
-  sub.forEach((s, t) => {
-    if (s !== null && t < 9) c.doc.sub[t] = SUBDOCTRINE_INDEX.get(s) ?? -1;
-  });
-}
-
-const GRAND_DOCTRINE_INDEX = new Map<string, number>(
-  GRAND_DOCTRINES.map((g, i) => [g, i]),
-);
-const SUBDOCTRINE_INDEX = new Map<string, number>(
-  SUBDOCTRINES.map((s, i) => [s, i]),
-);
-
 // ---- screens (plan decision 36, spec §21.5) ----
 
 function mioSizes(c: CountryDepth): number[] {
@@ -2083,8 +1975,6 @@ function summaryOf(d: WwDepth, id: number): WwDepthSummary {
   const c = d.countries[id]!;
   return {
     smallID: id,
-    gd: [...c.doc.gd],
-    levels: c.doc.masteryMilli.map((m) => masteryLevel(m)),
     cpMilli: c.cmd.cpMilli,
     energyPm: c.mech.energyPm,
     mioSize: mioSizes(c),
@@ -2120,13 +2010,8 @@ function detailOf(d: WwDepth, id: number): WwDepthDetail {
   }
   return {
     smallID: id,
+    thought: thoughtView(d, id),
     doctrine: {
-      gd: [...c.doc.gd],
-      gdLock: [...c.doc.gdLock],
-      sub: [...c.doc.sub],
-      subLock: [...c.doc.subLock],
-      masteryMilli: [...c.doc.masteryMilli],
-      gainMilli: doctrineGainMilli(d, id),
       xp: [d.xpOf(id, 0), d.xpOf(id, 1), d.xpOf(id, 2)],
     },
     command: {

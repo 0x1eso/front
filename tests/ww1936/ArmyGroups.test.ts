@@ -236,7 +236,7 @@ describe("army groups (spec §4.3)", () => {
     const d2 = ww2.depth;
     expect(d2.groups).toEqual(d.groups);
     expect(d2.country(DEU)!.cmd).toEqual(c.cmd);
-    expect(d2.country(DEU)!.doc).toEqual(c.doc);
+    expect(d2.country(DEU)!.th).toEqual(c.th);
     const a2 = ww2.land.armies.get(a.id)!;
     expect([a2.group, a2.priority, a2.medal, a2.medalUntil]).toEqual([
       a.group,

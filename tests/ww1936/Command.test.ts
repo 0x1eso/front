@@ -445,14 +445,10 @@ describe("command (spec §4)", () => {
       const after = hashes();
       expect(after[2], label).not.toBe(before[2]);
     };
-    const doc = c.doc;
+    const th = c.th;
     const cmd = c.cmd;
-    moves("gd", () => (doc.gd[2] = 7));
-    moves("gdLock", () => (doc.gdLock[0] = 33));
-    moves("sub", () => (doc.sub[5] = 13));
-    moves("subLock", () => (doc.subLock[3] = 44));
-    moves("announced", () => (doc.announced[4] = 2));
-    moves("gain", () => (doc.gain[7] = 345));
+    moves("thought target", () => (th.target[2] = 7));
+    moves("thought position", () => (th.curMilli[4] = 3_500));
     moves("spirits", () => (cmd.spirits[6] = 19));
     moves("spiritLock", () => (cmd.spiritLock[1] = 55));
     moves("medalReady", () => cmd.medalReady.push([a.id, 66]));

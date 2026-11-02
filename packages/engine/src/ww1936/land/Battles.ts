@@ -426,18 +426,10 @@ function fight(land: WwLand, b: Battle, tick: number): void {
       const lost = t.id[r] === 0 ? menBefore : menBefore - t.men[r];
       if (lost > 0) noteBattleDamage(land, b, dealt.get(r), against, lost);
     }
-    const today = land.day();
     for (const r of [...att.active, ...def.active]) {
       // The tick of the round (Task 11): each country's day counts the
       // rounds since its previous day (Sustain.foughtTest).
       if (t.id[r] !== 0) t.lastFight[r] = tick;
-      // P6 hook (D, plan decision 12): once a day, its share of combat to
-      // its owner's doctrine tracks.
-      if (t.id[r] !== 0 && t.tallyDay[r] !== today) {
-        t.tallyDay[r] = today;
-        const h = trackHalvesOf(land, r);
-        land.depthHooks.noteLandCombat(t.owner[r], h[0], h[1], h[2]);
-      }
     }
     // 5. Zero org: defenders retreat (or die), attackers drop out (spec §9.3-7).
     // ww7 (lane B): with a band left a broken defender stays put, out of the
@@ -1592,55 +1584,6 @@ export function designLossMilli(
   return rel <= 0
     ? milli
     : Math.floor((milli * reliabilityLossBp(rel)) / 10_000);
-}
-
-/** Spec §3.4 row 1: battalions in each doctrine track group. */
-const INF_TRACK: ReadonlySet<string> = new Set([
-  "infantry",
-  "cavalry",
-  "mountain",
-  "marine",
-  "paratrooper",
-  "motorized",
-]);
-const ARMOR_TRACK: ReadonlySet<string> = new Set([
-  "light_armor",
-  "medium_armor",
-  "heavy_armor",
-  "tank_destroyer",
-]);
-const TRACK_HALVES = new WeakMap<
-  TemplateDef,
-  readonly [number, number, number]
->();
-const NO_HALVES: readonly [number, number, number] = [0, 0, 0];
-
-/**
- * P6 (plan decision 12, spec §3.4): a division's battalions as half
- * battalions in the infantry, armour and support tracks (a support
- * company counts half), cached per template def (replaced, never written).
- */
-function trackHalvesOf(
-  land: WwLand,
-  r: number,
-): readonly [number, number, number] {
-  const t = land.divisions;
-  const def = land.country(t.owner[r])?.template(t.template[r])?.def;
-  if (def === undefined) return NO_HALVES;
-  let h = TRACK_HALVES.get(def);
-  if (h === undefined) {
-    let inf = 0;
-    let arm = 0;
-    let sup = def.support.length;
-    for (const id of def.battalions) {
-      if (INF_TRACK.has(id)) inf += 2;
-      else if (ARMOR_TRACK.has(id)) arm += 2;
-      else sup += 2;
-    }
-    h = [inf, arm, sup];
-    TRACK_HALVES.set(def, h);
-  }
-  return h;
 }
 
 /** NEED_GROUPS of the artillery-like parts (artillery_officer's share). */

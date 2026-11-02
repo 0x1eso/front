@@ -3,11 +3,7 @@
 // and to dead countries.
 import type { WwOrder } from "@openfront/engine-api/Schemas";
 import { WwOrderSchema } from "@openfront/engine-api/Schemas";
-import {
-  DEPTH_ORDER_KINDS,
-  GRAND_DOCTRINES,
-  SUBDOCTRINES,
-} from "@openfront/engine-api/ww1936/DepthTypes";
+import { DEPTH_ORDER_KINDS } from "@openfront/engine-api/ww1936/DepthTypes";
 import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSource";
 import { vi } from "vitest";
 import { DEEP } from "./deepFixture";
@@ -29,8 +25,8 @@ const OWN_TESTS = (k: number): boolean => k >= 20 && k <= 30;
  * minute: no doctrine yet, no experience, no command power, no group).
  */
 const D_ANSWER: Readonly<Record<string, string | null>> = {
-  doctrine_pick: null,
-  subdoctrine_pick: null,
+  doctrine_pick: "bad_index", // retired (ww9)
+  subdoctrine_pick: "bad_index",
   army_spirit_pick: "no_xp",
   trait_assign: "trait_unavailable",
   promote_fm: "no_cp",
@@ -146,12 +142,7 @@ describe("World War 1936 P6: the depth orders", () => {
     const pending = (ww.depth as unknown as { depthDirtyStats: Set<number> })
       .depthDirtyStats;
     ww.depth.markStats(DEEP.tag.GBR);
-    // Lane D: the samples would be taken by a Germany without doctrines
-    // (the first picks are free) — it holds them already, and army 1's
-    // priority is the sample's.
-    const doc = ww.depth.country(DEEP.tag.DEU)!.doc;
-    doc.gd[0] = GRAND_DOCTRINES.indexOf("gd_mobile");
-    doc.sub[0] = SUBDOCTRINES.indexOf("inf_elastic");
+    // Army 1's priority is the sample's.
     ww.land.armies.get(1)!.priority = 2;
     const before = gameHash(runner);
     const snap = JSON.stringify(ww.depth.snapshot());

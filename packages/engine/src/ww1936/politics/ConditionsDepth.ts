@@ -3,17 +3,11 @@
 // state the lanes keep. (nukes_on is the foundation's, in Conditions.ts.)
 // The subject is `who` (or self), alive — evalLeaf checked it.
 import {
-  DOCTRINE_TRACKS,
-  GD_DOMAIN,
-  GRAND_DOCTRINES,
   INTEL_DOMAINS,
   SPECIAL_PROJECTS,
-  SUB_TRACK,
-  SUBDOCTRINES,
 } from "@openfront/engine-api/ww1936/DepthTypes";
 import { equipKey } from "@openfront/engine-api/ww1936/EconomyTypes";
 import type { LeafCondition } from "@openfront/engine-api/ww1936/PoliticsDsl";
-import { masteryLevel } from "@openfront/engine-lib/ww1936/DoctrineRules";
 import { bopBandOf } from "../depth/BalanceOfPower";
 import type { WwDepth } from "../depth/WwDepth";
 import { EffectCtx, resolveSelector } from "./Dispatch";
@@ -28,16 +22,10 @@ export function evalDepthCondition(ctx: EffectCtx, c: LeafCondition): boolean {
   const dc = d.country(id);
   if (dc === null) return false;
   switch (c.kind) {
-    case "has_doctrine": {
-      const g = (GRAND_DOCTRINES as readonly string[]).indexOf(c.doctrine);
-      if (g >= 0) return dc.doc.gd[GD_DOMAIN[g]] === g;
-      const s = (SUBDOCTRINES as readonly string[]).indexOf(c.doctrine);
-      return s >= 0 && dc.doc.sub[SUB_TRACK[s]] === s;
-    }
-    case "mastery_level": {
-      const t = DOCTRINE_TRACKS.indexOf(c.track);
-      return t >= 0 && masteryLevel(dc.doc.masteryMilli[t] ?? 0) >= c.level;
-    }
+    // ww9: the doctrine system is retired; its conditions are never true.
+    case "has_doctrine":
+    case "mastery_level":
+      return false;
     case "has_agency":
       return dc.intel.agency;
     case "intel_level": {

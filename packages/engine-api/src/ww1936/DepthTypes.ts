@@ -76,8 +76,6 @@ export const GD_SWITCH_XP = [100, 75, 75] as const; // land, naval, air experien
 export const GD_SWITCH_LOCK_DAYS = 180;
 export const SUB_SWITCH_XP = 25;
 export const SUB_SWITCH_LOCK_DAYS = 90;
-/** doctrine_mastery effect: one "research bonus +100%" of P3/P5 content = +60 mastery (spec §1.4). */
-export const MASTERY_PER_RESEARCH_BONUS = 60;
 
 // ---- Command (spec §4) ----
 export const CP_MAX_MILLI = 100_000;
@@ -873,10 +871,6 @@ export interface AgencyStartDef {
 // ---- What the screens read (GameUpdateType.WwDepth, spec §21.5) ----
 export interface WwDepthSummary {
   smallID: number;
-  /** GRAND_DOCTRINES index per domain, -1 none. */
-  gd: number[];
-  /** Mastery level per track (9). */
-  levels: number[];
   cpMilli: number;
   energyPm: number;
   mioSize: number[];
@@ -925,13 +919,9 @@ export interface WwProjectData6 {
 }
 export interface WwDepthDetail {
   smallID: number;
+  /** ww9: the military thought sliders. target: notches; curMilli: actual positions; rateMilli: today's move per day. */
+  thought: { target: number[]; curMilli: number[]; rateMilli: number };
   doctrine: {
-    gd: number[];
-    gdLock: number[];
-    sub: number[];
-    subLock: number[];
-    masteryMilli: number[];
-    gainMilli: number[];
     /** Lane D (wave B): whole experience per domain — army, navy, air (always sent). */
     xp?: number[];
   };
