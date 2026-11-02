@@ -1574,7 +1574,9 @@
     "ww1936_wpeace_refused": "{target} 측이 평화 제안을 거절했습니다 — {days} 일 뒤 다시 제안할 수 있습니다",
     "ww1936_wpeace_lapsed": "{target} 측에 보낸 평화 제안이 무효가 되었습니다 (전쟁 상황 변화)",
     "ww1936_annex_integrated": "{region}이(가) 자동 통합되어 코어가 되었습니다",
-    "ww1936_medal_auto": "{army} 에 훈장이 수여되었습니다"
+    "ww1936_medal_auto": "{army} 에 훈장이 수여되었습니다",
+    "ww1936_congress_dissolved": "미국에서 의회가 해산되었다.",
+    "ww1936_congress_restored": "미국 의회가 다시 열렸다."
   },
   "featured_stream": {
     "expand": "펼치기",
@@ -3926,7 +3928,8 @@
       "pending": "아직",
       "support": "지지 {pct}%",
       "tab": "의회",
-      "threshold": "문턱 {pct}%"
+      "threshold": "문턱 {pct}%",
+      "suspended": "의회 정지"
     },
     "convoy_use": {
       "idle": "놀고 있음",
@@ -7198,7 +7201,34 @@
       "usa_trinity_test": "트리니티 시험",
       "usa_jet_bell": "벨 제트 계획",
       "usa_p51_escort": "장거리 호위 머스탱",
-      "usa_c47_transport": "C-47 수송기"
+      "usa_c47_transport": "C-47 수송기",
+      "usa_share_wealth": "재산 서약",
+      "usa_radio_priest": "라디오 설교단",
+      "usa_silver_shirts": "은색 군단 행진",
+      "usa_veterans_league": "재향군인 연맹",
+      "usa_business_backers": "자유 연맹의 자금",
+      "usa_legal_path": "합법의 길",
+      "usa_coup_path": "재계의 거사",
+      "usa_emergency_powers": "비상권한법",
+      "usa_court_neutered": "길들여진 대법원",
+      "usa_suspend_congress": "의회 정지",
+      "usa_seize_washington": "워싱턴 진군",
+      "usa_federal_guard": "연방 방위군",
+      "usa_press_control": "정보국",
+      "usa_industrial_control": "산업 총국",
+      "usa_total_conscription": "전 국민 병역",
+      "usa_new_officer_corps": "새 장교단",
+      "usa_national_reunification": "국가 재통합",
+      "usa_war_economy_order": "전시경제령",
+      "usa_fleet_programme": "양대양 함대 계획",
+      "usa_axis_pact": "베를린-도쿄 협약",
+      "usa_pacific_division": "태평양 분할 협정",
+      "usa_atlantic_exchange": "대서양 기술 교류",
+      "usa_hemisphere_fortress": "반구 요새",
+      "usa_monroe_reborn": "되살아난 먼로 독트린",
+      "usa_northern_claim": "북방 영유 주장",
+      "usa_southern_claim": "남방 영유 주장",
+      "usa_caribbean_sea": "카리브해 내해화"
     },
     "focus_desc": {
       "alb_reforms": "새 법전과 학교, 도로로 젊은 왕국의 기틀을 다진다.",
@@ -8171,7 +8201,34 @@
       "usa_trinity_test": "뉴멕시코 사막의 철탑 위에서 플루토늄 장치의 첫 시험이 이루어진다.",
       "usa_jet_bell": "벨이 영국의 제트 엔진 설계를 받아 그것을 중심으로 미국 최초의 제트 전투기를 만든다.",
       "usa_p51_escort": "머린 엔진과 보조 연료 탱크를 단 P-51은 폭격기와 함께 베를린까지 날아갈 수 있다.",
-      "usa_c47_transport": "여객기에서 개조된 수송기가 낙하산병과 화물, 부상자를 모든 전역으로 실어 나른다."
+      "usa_c47_transport": "여객기에서 개조된 수송기가 낙하산병과 화물, 부상자를 모든 전역으로 실어 나른다.",
+      "usa_share_wealth": "롱의 클럽을 하나의 전국 운동으로 묶는다. 요구는 하나, 거대한 재산을 쪼개 모든 가구에 나누라는 것이다. 기성 정당은 충성 지지층을 잃고, 운동의 우두머리는 더 이상 이것을 항의라고 부르지 않는다.",
+      "usa_radio_priest": "매주 방송이 수천만 가정의 부엌에 닿는다. 은행가와 워싱턴을 향한 설교자의 분노는 청취자를 자루째 편지를 보내는 추종 세력으로 바꾼다.",
+      "usa_silver_shirts": "제복 차림의 대열이 질서와 민족 재건의 깃발 아래 소도시 큰길을 행진한다. 정부는 그들이 커 가는 것을 지켜보면서 금지해야 할지 협상해야 할지 알지 못한다.",
+      "usa_veterans_league": "참호에서 돌아와 배급 줄에 선 사람들이 자기들만의 연맹으로 모인다. 그들은 훈련과 규율, 그리고 수도에 대한 불만 목록을 가져온다.",
+      "usa_business_backers": "뉴딜을 미워하는 은행가와 기업가가 새 운동에 돈을 대기 시작한다. 그 돈은 신문과 집회장, 그리고 모든 주에 닿는 조직을 산다.",
+      "usa_legal_path": "운동은 규칙 안에서 이기기로 한다. 투표와 법령, 이미 법전에 있는 비상 조항을 이용하고, 낡은 제도가 스스로 속이 비도록 둔다.",
+      "usa_coup_path": "금융가와 재향군인, 예비역 장성 몇 명이 대통령을 밀어내려 수도로 진군하는 일을 타진한다. 그들에게 필요한 것은 다수가 아니라 알맞은 곳의 충분한 소총이다.",
+      "usa_emergency_powers": "위기를 구실로 의회에 은행과 물가, 집회에 대한 광범위한 권한을 행정부에 넘기라고 요구한다. 연장될 때마다 임시라고 불린다.",
+      "usa_court_neutered": "대법관 수를 늘리고 은퇴시키고 다시 채워, 대법원이 길을 막지 않을 때까지 손본다. 한때 정책을 뒤엎던 판결이 이제는 그것을 축복한다.",
+      "usa_suspend_congress": "법원이 잠잠하고 거리가 조직되자 의회는 기일 없이 휴회한다. 워싱턴은 포고령으로 다스려지고, 각 주의 반대 세력은 이에 맞서 무기를 든다.",
+      "usa_seize_washington": "재향군인과 주방위군 종대가 하룻밤에 수도로 들어간다. 대통령은 연금되고 의회는 닫히며, 나라는 환호하는 이들과 무기를 드는 이들로 갈라진다.",
+      "usa_federal_guard": "주 방위군이 주지사의 손에서 떠나 하나의 지휘 아래 놓인다. 하룻밤 사이에 나라는 원하는 곳으로 옮길 수 있는 상비 예비군을 갖게 된다.",
+      "usa_press_control": "신문과 방송국에 국가의 노선이 무엇인지 통보된다. 반대 의견은 확성기를 잃고, 여론은 정부와 전쟁 준비를 중심으로 안정된다.",
+      "usa_industrial_control": "대기업들이 생산량과 가격, 임금을 위에서 정하는 총국에 묶인다. 자동차를 만들던 공장이 이제 국가가 주문하는 것을 만든다.",
+      "usa_total_conscription": "건강한 남자는 누구나 국가에 복무 기간을 빚지며, 연령 제한은 양쪽으로 넓어진다. 모병은 더 이상 설득의 문제가 아니다.",
+      "usa_new_officer_corps": "낡은 참모진은 물러나고 더 젊고 정치적으로 믿을 만한 장교단이 그 자리를 채운다. 진급은 충성과 성과를 따르며, 기동에 관한 새 구상이 곧바로 시험된다.",
+      "usa_national_reunification": "분리된 주들이 꺾이거나 매수되자 정부는 나라가 다시 하나라고 선포한다. 거리에 질서가 돌아오고 분열의 긴장이 가라앉기 시작한다.",
+      "usa_war_economy_order": "민수 생산이 포고령으로 전시 체제로 전환된다. 배급과 할당, 쿼터가 모든 핵심 산업에서 시장을 대신한다.",
+      "usa_fleet_programme": "하나의 계획이 양 해안의 조선소에 어떤 예산 다툼보다 오래가는 주문을 준다. 해군은 두 대양을 동시에 마주할 수 있도록 키워진다.",
+      "usa_axis_pact": "워싱턴이 수정주의 열강과 서명하고 그들의 진영에 자리를 잡는다. 대서양 건너의 옛 우정은 끝나고, 세 개의 거대 블록으로 이루어진 새 질서가 선포된다.",
+      "usa_pacific_division": "두 열강이 대양에 선을 긋고 넘지 않기로 합의한다. 태평양 함대는 다른 곳으로 눈을 돌릴 수 있고, 일본과의 교역은 국가가 정한 조건으로 재개된다.",
+      "usa_atlantic_exchange": "기술자와 설계자가 대양을 양방향으로 오간다. 독일의 기갑과 항공 기술이 미국 공장으로 흘러들고, 미국의 대량 생산 방식이 되돌아간다.",
+      "usa_hemisphere_fortress": "나라는 아메리카로 시선을 돌려 이 반구를 닫힌 세력권으로 선언한다. 남쪽 공화국들에는 새 협약이 제시되고, 구세계 열강에는 접근하지 말라는 경고가 간다.",
+      "usa_monroe_reborn": "낡은 독트린이 반구 전체를 관리할 의무로 다시 쓰인다. 큰 공화국들에 초청장이 나가고, 군은 국경 남쪽의 작전을 준비한다.",
+      "usa_northern_claim": "지도가 한 깃발 아래의 대륙으로 다시 그려진다. 정부는 캐나다에 대한 영유권을 주장하고 국경 수비대에 대기를 명한다.",
+      "usa_southern_claim": "리오그란데와 잃어버린 땅을 둘러싼 오랜 불만이 다시 꺼내진다. 워싱턴은 멕시코에 대한 영유권을 주장하고 국경을 전쟁에 맞춰 준비하기 시작한다.",
+      "usa_caribbean_sea": "섬들의 고리가 나라의 내해로 선언된다. 쿠바에 대한 영유권이 주장되고, 멕시코만 연안에 새 부두가 놓이며, 함대는 항로를 장악하라는 명을 받는다."
     },
     "focusui": {
       "and": "그리고",
@@ -8339,7 +8396,8 @@
       "uprising": "{group} 봉기",
       "volunteers": "{to}에 의용군",
       "war_goal": "{on}에 대한 전쟁 목표: {type}{group, select, none {} other { ({group})}}",
-      "war_support": "전쟁지지도 {pct, number, ::sign-always}%p"
+      "war_support": "전쟁지지도 {pct, number, ::sign-always}%p",
+      "congress_dissolve": "의회가 해산된다"
     },
     "gen": {
       "1": "I",

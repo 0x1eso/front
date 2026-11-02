@@ -62,6 +62,8 @@ import { countryName, dateLabel, enemiesOf, today } from "./WorldWarModel";
 export interface CongressBar {
   bp: number;
   pct: number;
+  /** The congress is dissolved: the screens show "suspended", no thresholds. */
+  suspended: boolean;
   /** The three thresholds (50 / 60 / 70) and whether the support has reached each. */
   marks: { pct: number; passed: boolean; gate: string }[];
 }
@@ -207,6 +209,8 @@ export const DEPTH_NOTICE_KEYS: readonly string[] = [
   "events_display.ww1936_wing_ace",
   "events_display.ww1936_energy_shortage",
   "events_display.ww1936_congress_threshold",
+  "events_display.ww1936_congress_dissolved",
+  "events_display.ww1936_congress_restored",
   "events_display.ww1936_faction_goal",
   "events_display.ww1936_trait_unlocked",
   "events_display.ww1936_fm_promoted",
@@ -352,6 +356,7 @@ export class DepthMiscModel {
     return {
       bp,
       pct: Math.floor(bp / 100),
+      suspended: d.congressDissolved === true,
       marks: gates.map(([v, gate]) => ({
         pct: Math.floor(v / 100),
         passed: bp >= v,

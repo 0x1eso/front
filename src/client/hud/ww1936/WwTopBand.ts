@@ -543,8 +543,12 @@ export class WwTopBand extends LitElement implements Controller {
         ? nothing
         : this.depthChip(
             "congress",
-            `🏛 ${d.congressPct}%`,
-            translateText("ww1936.congress.band", { pct: d.congressPct }),
+            d.congressSuspended === true
+              ? `🏛 ${translateText("ww1936.congress.suspended")}`
+              : `🏛 ${d.congressPct}%`,
+            d.congressSuspended === true
+              ? translateText("ww1936.congress.suspended")
+              : translateText("ww1936.congress.band", { pct: d.congressPct }),
             () => this.eventBus.emit(new OpenWwPoliticsEvent("decisions")),
           );
     const energy =

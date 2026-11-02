@@ -14,7 +14,7 @@
 // - AI weights follow spec §13.2 "AI(역사)": China toward the centre, Japan
 //   toward the army until 1940 and back to the balance from 1941, France to
 //   the right from 1938.
-import { after, all, any, before, not } from "../helpers";
+import { after, all, any, before, flag, not } from "../helpers";
 import type { DecisionDef } from "../types";
 
 export const DEPTH_DECISIONS: readonly DecisionDef[] = [
@@ -35,6 +35,8 @@ export const DEPTH_DECISIONS: readonly DecisionDef[] = [
     id: "usa_lobby_congress",
     category: "political",
     for: ["USA"],
+    // Not offered while the fascist path has dissolved the congress.
+    available: not(flag("usa_congress_gone")),
     cost: { pp: 25 },
     cooldownDays: 60,
     effects: [{ kind: "congress", pp: 8 }],
@@ -50,6 +52,8 @@ export const DEPTH_DECISIONS: readonly DecisionDef[] = [
     id: "usa_fireside_chat",
     category: "political",
     for: ["USA"],
+    // Not offered while the fascist path has dissolved the congress.
+    available: not(flag("usa_congress_gone")),
     cost: { pp: 50 },
     cooldownDays: 120,
     effects: [
@@ -68,6 +72,8 @@ export const DEPTH_DECISIONS: readonly DecisionDef[] = [
     id: "usa_defense_bill",
     category: "economy",
     for: ["USA"],
+    // Not offered while the fascist path has dissolved the congress.
+    available: not(flag("usa_congress_gone")),
     cost: { pp: 75 },
     cooldownDays: 365,
     effects: [

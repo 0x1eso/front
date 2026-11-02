@@ -48,6 +48,7 @@ export function mixMechanismsHash(h: number, d: WwDepth): number {
   mix(m.congressFull);
   mix(m.attackedUntil);
   mix(m.isolationCleared ? 1 : 0);
+  if (m.congressDissolved === true) mix(0x434f4e); // only when set: older hashes stay
   mix(m.bop.length);
   for (const b of [...m.bop].sort((x, y) => x[0] - y[0])) {
     mix(b[0]);

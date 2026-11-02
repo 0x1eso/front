@@ -371,6 +371,7 @@ export const WwDepthStateSchema = z.object({
     congressFull: zInt(),
     attackedUntil: zInt(),
     isolationCleared: z.boolean(),
+    congressDissolved: z.boolean().optional(),
     bop: z.array(z.tuple([zInt(), zInt(), zInt()])),
     treaty: z.object({
       members: zIds(),
@@ -2227,6 +2228,7 @@ function globalDataOf(d: WwDepth): Partial<WwDepthData> {
     world,
     congressBp: d.mech.congressBp,
     congressLl,
+    ...(d.mech.congressDissolved === true ? { congressDissolved: true } : {}),
     bop: d.mech.bop.map((b) => [b[0], b[1]]),
     treaty: {
       members: [...d.mech.treaty.members],

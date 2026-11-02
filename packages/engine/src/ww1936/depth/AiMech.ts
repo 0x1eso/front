@@ -94,7 +94,7 @@ function takeMechDecision(d: WwDepth, id: number, decision: string): boolean {
 
 /** Spec §19.7: under the faction threshold and tension ≥ 40% → lobbying, then a fireside chat. */
 function aiCongress(d: WwDepth, id: number): void {
-  if (id !== usaIdOf(d)) return;
+  if (id !== usaIdOf(d) || d.mech.congressDissolved === true) return;
   if (d.ww.politics.wtBp < AI_CONGRESS_TENSION_BP) return;
   if (d.mech.congressBp >= CONGRESS.faction) return;
   if (!takeMechDecision(d, id, "usa_lobby_congress")) {

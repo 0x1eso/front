@@ -17,7 +17,7 @@ describe("USA focus tree", () => {
     }
     const added = USA_FOCUSES.filter((f) => f.group);
     expect(added.length).toBeGreaterThanOrEqual(50);
-    expect(new Set(added.map((f) => f.group)).size).toBe(6);
+    expect(new Set(added.map((f) => f.group)).size).toBe(10);
     for (const b of USA_BRANCHES) {
       expect(byId.has(b.historical)).toBe(true);
       for (const a of b.alternatives) {

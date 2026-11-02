@@ -41,7 +41,9 @@ export function evalDepthCondition(ctx: EffectCtx, c: LeafCondition): boolean {
         (d.ww.economy.country(id)?.stock[ATOMIC_KEY] ?? 0) >= (c.count ?? 1)
       );
     case "congress_above":
-      return d.mech.congressBp >= c.pct * 100;
+      return (
+        d.mech.congressDissolved === true || d.mech.congressBp >= c.pct * 100
+      );
     case "bop_range":
       return bopBandOf(d, c.tag) === c.band;
     case "energy_below":

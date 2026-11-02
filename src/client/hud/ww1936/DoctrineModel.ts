@@ -175,6 +175,8 @@ export interface IntelDial {
 export interface BandDepth {
   energyPct: number | null;
   congressPct: number | null;
+  /** The US congress is dissolved: the chip reads "suspended" in place of the percentage. */
+  congressSuspended?: boolean;
   nukes: number | null;
 }
 
@@ -747,6 +749,9 @@ export class DoctrineModel {
         me.countryTag?.() === "USA"
           ? Math.floor(this.view.wwDepth!()!.congressBp / 100)
           : null,
+      congressSuspended:
+        me.countryTag?.() === "USA" &&
+        this.view.wwDepth!()!.congressDissolved === true,
       nukes:
         c.sum !== undefined && c.sum.atomicStock > 0 ? c.sum.atomicStock : null,
     };

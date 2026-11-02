@@ -556,7 +556,8 @@ export interface FocusDef {
   id: FocusId;
   tree: FocusTreeId;
   /**
-   * Grid cell: column 0..19 (P6: a pack's own focuses 20..35), row 0..14;
+   * Grid cell: column 0..19 (P6: a pack's own focuses 20..35), row 0..14 (the US
+   * fascist path runs further down, to row 30);
    * unique within a country's combined tree.
    */
   x: number;

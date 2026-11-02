@@ -4,7 +4,7 @@
 import type { Effect } from "@openfront/engine-api/ww1936/PoliticsDsl";
 import { applyIntelEffect } from "../depth/Agency";
 import { addBop } from "../depth/BalanceOfPower";
-import { addCongressPp, usaIdOf } from "../depth/Congress";
+import { addCongressPp, dissolveCongress, usaIdOf } from "../depth/Congress";
 import { grantDesign } from "../depth/Designs";
 import { applyEnergyEffect } from "../depth/Energy";
 import { applyProjectEffect, applyStartProjectEffect } from "../depth/Projects";
@@ -60,6 +60,9 @@ export function applyMechEffect(
   switch (e.kind) {
     case "congress":
       if (actor === usaIdOf(d)) addCongressPp(d, actor, e.pp);
+      return;
+    case "congress_dissolve":
+      if (actor === usaIdOf(d)) dissolveCongress(d, actor);
       return;
     case "bop":
       addBop(d, actor, e.amount, ctx.day);

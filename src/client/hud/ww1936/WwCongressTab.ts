@@ -4,6 +4,13 @@ import type { CongressBar } from "./DepthMiscModel";
 
 /** P6 (spec §13.1): the US congress support bar with its 50 / 60 / 70 marks. */
 export function renderCongressBar(bar: CongressBar): TemplateResult {
+  if (bar.suspended) {
+    return html`<section data-ww-congress class="mt-2">
+      <div class="text-xs font-bold" data-ww-congress-suspended>
+        ${translateText("ww1936.congress.suspended")}
+      </div>
+    </section>`;
+  }
   return html`<section data-ww-congress class="mt-2">
     <div class="flex justify-between text-xs font-bold">
       <span data-ww-congress-pct

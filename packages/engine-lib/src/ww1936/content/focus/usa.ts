@@ -9,6 +9,7 @@ import type {
   FocusId,
 } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { T, after, all, any, done, flag, not } from "../helpers";
+import { USA_FASCIST_FOCUSES, USA_OPEN_DEMOCRACY } from "./usa_fascist";
 
 // The 1936 depression spirit may already have been eased by the P3 event
 // usa_recession_1937; swap whichever one is there, never add a new one.
@@ -70,6 +71,7 @@ export const USA_FOCUSES: FocusDef[] = [
     days: 70,
     branch: "politics",
     icon: "document",
+    available: USA_OPEN_DEMOCRACY,
     effects: [
       ...RECOVERY,
       { kind: "build", where: { best: 2 }, building: "civ", count: 2 },
@@ -143,6 +145,7 @@ export const USA_FOCUSES: FocusDef[] = [
     branch: "politics",
     icon: "shield",
     prereq: [["usa_recession_response"]],
+    exclusive: ["usa_share_wealth"],
     available: { kind: "wt_ge", pct: 30 },
     effects: [
       { kind: "add_spirit", id: "usa_preparedness_spirit" },
@@ -959,6 +962,7 @@ export const USA_FOCUSES: FocusDef[] = [
     group: "usa_domestic",
     prereq: [["usa_second_new_deal"]],
     exclusive: ["usa_court_accept"],
+    available: USA_OPEN_DEMOCRACY,
     effects: [
       { kind: "stability", pct: -5 },
       { kind: "popularity", ideology: "democratic", pp: 3 },
@@ -976,6 +980,7 @@ export const USA_FOCUSES: FocusDef[] = [
     group: "usa_domestic",
     prereq: [["usa_second_new_deal"]],
     exclusive: ["usa_court_packing"],
+    available: USA_OPEN_DEMOCRACY,
     effects: [{ kind: "stability", pct: 3 }],
     ai: { base: 10 },
   },
@@ -989,6 +994,7 @@ export const USA_FOCUSES: FocusDef[] = [
     icon: "flag",
     group: "usa_domestic",
     prereq: [["usa_social_security"]],
+    available: USA_OPEN_DEMOCRACY,
     effects: [
       { kind: "stability", pct: 5 },
       { kind: "manpower", recruitablePct: 2 },
@@ -1006,6 +1012,7 @@ export const USA_FOCUSES: FocusDef[] = [
     group: "usa_domestic",
     prereq: [["usa_second_new_deal"]],
     exclusive: ["usa_southern_democrats"],
+    available: USA_OPEN_DEMOCRACY,
     effects: [
       { kind: "popularity", ideology: "democratic", pp: 5 },
       { kind: "pp", amount: -15 },
@@ -1024,6 +1031,7 @@ export const USA_FOCUSES: FocusDef[] = [
     group: "usa_domestic",
     prereq: [["usa_second_new_deal"]],
     exclusive: ["usa_wallace_progressive"],
+    available: USA_OPEN_DEMOCRACY,
     effects: [
       { kind: "stability", pct: 5 },
       { kind: "popularity", ideology: "neutral", pp: 3 },
@@ -1041,6 +1049,7 @@ export const USA_FOCUSES: FocusDef[] = [
     group: "usa_domestic",
     prereq: [["usa_preparedness"]],
     exclusive: ["usa_washington_precedent"],
+    available: USA_OPEN_DEMOCRACY,
     effects: [
       { kind: "stability", pct: 3 },
       { kind: "popularity", ideology: "ruling", pp: 5 },
@@ -1058,6 +1067,7 @@ export const USA_FOCUSES: FocusDef[] = [
     group: "usa_domestic",
     prereq: [["usa_preparedness"]],
     exclusive: ["usa_third_term"],
+    available: USA_OPEN_DEMOCRACY,
     effects: [{ kind: "elections" }],
     ai: { base: 4 },
   },
@@ -1872,6 +1882,7 @@ export const USA_FOCUSES: FocusDef[] = [
     ],
     ai: { base: 8 },
   },
+  ...USA_FASCIST_FOCUSES,
 ];
 
 /** Spec §18.5 "역사 경로", in order (the alternatives are not on it). */

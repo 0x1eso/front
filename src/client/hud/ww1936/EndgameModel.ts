@@ -1040,6 +1040,7 @@ export function llInputs(
     usa &&
     depth !== null &&
     depth.congressLl === true &&
+    depth.congressDissolved !== true &&
     depth.congressBp < CONGRESS.lendLease;
   const flag =
     usFlag ||

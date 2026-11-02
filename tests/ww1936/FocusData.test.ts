@@ -27,6 +27,12 @@ const packPrefixes = (t: FocusPack) => [
 const sameTreeOk = (from: string, to: string) =>
   from === to || (isPack(from) && to === "generic");
 
+/**
+ * Rows 0..14 are the first screen; the US fascist path continues below it
+ * (the focus view pans and zooms, so a tree may run further down).
+ */
+const MAX_ROW = 30;
+
 /** Task 7 draws the icons; until it merges a missing file is fine. */
 const ICONS_PENDING = false;
 
@@ -84,7 +90,7 @@ describe("focus data", () => {
         const f = focuses[i];
         // P6 (spec §11.1): a pack's own focuses in columns 20..35.
         const [x0, x1] = isPack(f.tree) ? [20, 35] : [0, 19];
-        expect(f.x >= x0 && f.x <= x1 && f.y >= 0 && f.y <= 14, f.id).toBe(
+        expect(f.x >= x0 && f.x <= x1 && f.y >= 0 && f.y <= MAX_ROW, f.id).toBe(
           true,
         );
         expect(seen.has(`${f.x},${f.y}`), f.id).toBe(false);

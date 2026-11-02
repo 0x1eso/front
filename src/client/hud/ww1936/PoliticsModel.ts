@@ -1412,7 +1412,9 @@ export function lawTab(i: PoliticsModelInput): LawLadderView[] | null {
   // from "partial_mobilization" (LawsRun.lawBlockNow); null: not the US.
   const depth = i.game.wwDepth?.() ?? null;
   const congressBp =
-    depth !== null && i.game.worldWarScenario()?.tagOfSmallId(i.me) === "USA"
+    depth !== null &&
+    depth.congressDissolved !== true &&
+    i.game.worldWarScenario()?.tagOfSmallId(i.me) === "USA"
       ? depth.congressBp
       : null;
   const needBp = congressNeedBp("law");
@@ -1856,6 +1858,7 @@ function ruleBlock(i: PoliticsModelInput, country: number): string | null {
   const needBp = congressNeedBp("faction");
   if (
     depth !== null &&
+    depth.congressDissolved !== true &&
     i.game.worldWarScenario()?.tagOfSmallId(country) === "USA" &&
     depth.congressBp < needBp
   ) {

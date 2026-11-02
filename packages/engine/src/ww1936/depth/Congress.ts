@@ -6,6 +6,7 @@
 // The US needs 60% to declare war, 50% for lend-lease and the high laws,
 // 70% for a faction. The test map has no US: the tests call the *For
 // functions with a stand-in smallID; the public ones pass the US's.
+import { IDEO_DEM } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import {
   CONGRESS,
   congressNeedBp,
@@ -14,6 +15,9 @@ import {
 } from "@openfront/engine-lib/ww1936/MechRules";
 import { removeSpirit } from "../politics/Spirits";
 import type { WwDepth } from "./WwDepth";
+
+/** Set by the fascist path's final focuses: the congress decisions are not offered. */
+export const CONGRESS_GONE_FLAG = "usa_congress_gone";
 
 export type CongressAction = "declare" | "lend_lease" | "law" | "faction";
 
@@ -50,6 +54,8 @@ export function congressBlockFor(
   target?: number,
 ): boolean {
   if (usaId <= 0 || id !== usaId || d.countries.length === 0) return false;
+  // The congress is dissolved: nothing is held back.
+  if (d.mech.congressDissolved === true) return false;
   if (d.mech.congressBp >= congressNeedBp(action)) return false;
   if (action === "declare") {
     return !(
@@ -117,6 +123,17 @@ export function congressDay(
   if (usaId <= 0 || d.countries[usaId] === null) return;
   const pol = d.ww.politics;
   const m = d.mech;
+  // A dissolved congress sits again once the US is democratic (a peace
+  // deal, or the fascists overthrown); the value resumes where it froze.
+  // This runs on the US turn, a day after the focus that dissolved it.
+  if (m.congressDissolved === true && pol.country(usaId)?.ruling === IDEO_DEM) {
+    m.congressDissolved = false;
+    // The focuses' flag that hides the lobbying decisions goes with it.
+    pol.country(usaId)?.flags.delete(CONGRESS_GONE_FLAG);
+    d.markGlobal();
+    d.markCountry(usaId);
+    d.message(usaId, "ww1936_congress_restored", {});
+  }
   for (let x = 1; x < d.cap; x++) {
     const cx = pol.country(x);
     if (x === usaId || cx === null || cx.declaredOn.length === 0) continue;
@@ -134,22 +151,26 @@ export function congressDay(
       }
     }
   }
-  const next =
-    m.congressFull >= day
-      ? 10_000
-      : congressStep(
-          m.congressBp,
-          congressTargetBp(pol.wtBp, m.attackedUntil >= day),
-        );
-  setCongressBp(d, usaId, next);
+  // The drift is frozen while the congress is dissolved.
+  if (m.congressDissolved !== true) {
+    const next =
+      m.congressFull >= day
+        ? 10_000
+        : congressStep(
+            m.congressBp,
+            congressTargetBp(pol.wtBp, m.attackedUntil >= day),
+          );
+    setCongressBp(d, usaId, next);
+  }
   // T1b: the screens' congress-allows-lend-lease (the flag can change
   // with no move of support): the global data again when it differs.
   const ll = !congressBlockFor(d, usaId, usaId, "lend_lease");
   if (d.congressLlSent !== null && ll !== d.congressLlSent) d.markGlobal();
 }
 
-/** A `congress {pp}` effect on the US: ± percentage points. */
+/** A `congress {pp}` effect on the US: ± percentage points (nothing while dissolved). */
 export function addCongressPp(d: WwDepth, usaId: number, pp: number): void {
+  if (d.mech.congressDissolved === true) return;
   setCongressBp(d, usaId, d.mech.congressBp + pp * 100);
 }
 
@@ -182,4 +203,24 @@ export function setCongressBp(d: WwDepth, usaId: number, bp: number): void {
     }
     d.markGlobal();
   }
+}
+
+/**
+ * The `congress_dissolve` effect: the US congress is shut down. The
+ * isolation spirits go with it, and the value stays frozen until a
+ * democratic government sits again (congressDay).
+ */
+export function dissolveCongress(d: WwDepth, usaId: number): void {
+  const m = d.mech;
+  if (usaId <= 0 || m.congressDissolved === true) return;
+  m.congressDissolved = true;
+  m.isolationCleared = true;
+  const pol = d.ww.politics;
+  const c = pol.country(usaId);
+  for (const s of ISOLATION_SPIRITS) {
+    if (c?.hasSpirit(s) === true) removeSpirit(pol, usaId, s);
+  }
+  d.markGlobal();
+  d.markCountry(usaId);
+  d.message(usaId, "ww1936_congress_dissolved", {});
 }
