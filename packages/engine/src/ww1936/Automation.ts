@@ -3,8 +3,8 @@
 // switches, one per domain (WW_AUTO_DOMAINS), let the AI routines of that
 // domain run for a human's country on the AI's own cadence: production
 // (AiEconomy's line planner and naval lines), research (AiEconomy's
-// research), training (AiLand's division training), air (AiAir's wings
-// and missions) and navy (AiNavy's fleets and the depth AI's mine fleets;
+// research), training (AiLand's division training), air (AiAir's wing planner:
+// a direct order pins that wing alone) and navy (AiNavy's fleets and the depth AI's mine fleets;
 // never an invasion, nor the fleets supporting one under way). Each system
 // asks WorldWar.autoOn where it runs its AI for an AI country; nothing else
 // is handed over (no laws, building, trade, focus, decisions, events,
@@ -89,6 +89,15 @@ export function autoSet(
 ): WwOrderBlock | null {
   if (!ww.isHumanControlled(smallID)) return "not_controlled";
   ww.setAuto(smallID, domain, on);
+  // ww8 (design §7): [auto] takes every wing, off leaves each on its orders.
+  if (domain === "air" && ww.air.wingsLive) {
+    for (const w of ww.air.wingsOf(smallID)) {
+      if (w.base >= 0 && w.auto !== on) {
+        w.auto = on;
+        ww.air.markWing(w.id);
+      }
+    }
+  }
   return null;
 }
 
@@ -147,6 +156,9 @@ export function handOverDomain(
 ): void {
   const domain = AUTO_ORDER_DOMAIN[order.kind];
   if (domain === undefined || !ww.autoOn(smallID, domain)) return;
+  // ww8: air_deploy and air_recall are refused in the wing model; a direct wing
+  // order pins that wing alone (pinOrderedWings), the switch stays on.
+  if (domain === "air" && ww.air.wingsLive) return;
   ww.setAuto(smallID, domain, false);
   notify(mg, ww, smallID, AUTO_OFF_NOTICE[domain]);
 }
@@ -161,8 +173,12 @@ export function pinOrderedWings(
   smallID: number,
   order: WwOrder,
 ): void {
-  if (order.kind !== "wing_mission" && order.kind !== "wing_base") return;
-  for (const id of order.wings) {
+  let ids: readonly number[];
+  if (order.kind === "air_night") ids = [order.deployment];
+  else if (order.kind === "wing_mission" || order.kind === "wing_base") {
+    ids = order.wings;
+  } else return;
+  for (const id of ids) {
     const w = ww.air.wings.get(id);
     if (w !== undefined && w.owner === smallID && w.auto) {
       w.auto = false;

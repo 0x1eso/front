@@ -29,7 +29,7 @@ import {
 import { dayOfDate } from "@openfront/engine-lib/ww1936/Calendar";
 import { RECON_SORTIES } from "@openfront/engine-lib/ww1936/SeaAirRules";
 import { isCarrierWing } from "../air/Deploy";
-import type { Wing } from "../air/WwAir";
+import { wingPlanes, wingSide, type Wing } from "../air/WwAir";
 import { capitalRegion } from "../land/LandStartRun";
 import { aiAtWar, invasionBoundFleets, invasionRouteSrs } from "../navy/AiNavy";
 import { FST, MISSION } from "../navy/Missions";
@@ -47,6 +47,8 @@ export const AI_NIGHT_GBR_DATE = "1940-09-01";
 /** 내 판단: by night under an enemy sky this strong over the zone, ‰; back by day below the second. */
 export const AI_NIGHT_ON_PM = 500;
 export const AI_NIGHT_OFF_PM = 300;
+/** ww8 (내 판단): a bombing wing that lost this ‰ of its planes yesterday goes by night. */
+export const AI_NIGHT_LOSS_PM = 50;
 /** Spec §19.7: recon takes up to this share of the fighters, %. */
 export const AI_RECON_PCT = 10;
 /** 내 판단: a recon group's planes (≥ 20 sorties at a usual sortie rate). */
@@ -77,6 +79,8 @@ export function aiSeaAirDay(d: WwDepth, id: number, day: number): void {
     return;
   }
   aiMines(d, id);
+  // ww8: night and recon are the wing planner's (aiWings), a human's [auto] too.
+  if (ww.air.wingsLive) return;
   aiNight(d, id, day);
   if ((day + id) % 5 === 0) aiRecon(d, id);
 }
@@ -281,6 +285,39 @@ function aiNight(d: WwDepth, id: number, day: number): void {
   }
 }
 
+/**
+ * ww8 (design §7.9): each bombing wing by night or by day, wing by wing (a
+ * human's pinned wing keeps its own): by night under an enemy sky, or when the
+ * day's raids cost it dear. No date rule.
+ */
+export function aiNightWings(d: WwDepth, id: number, human: boolean): void {
+  const air = d.ww.air;
+  for (const w of air.wingsOf(id)) {
+    if (w.mission !== M_BOMB || isCarrierWing(w) || (human && !w.auto)) {
+      continue;
+    }
+    const idx = d.ww.scenario.srIdxOf(w.sr);
+    if (idx < 0) continue;
+    const enemySup = air.zoneState[idx].enemySup.get(wingSide(air, w)) ?? 0;
+    const costly =
+      w.prevLost > 0 && w.prevLost * 1000 >= wingPlanes(w) * AI_NIGHT_LOSS_PM;
+    const want =
+      enemySup >= AI_NIGHT_ON_PM || costly
+        ? true
+        : enemySup < AI_NIGHT_OFF_PM && w.prevLost === 0
+          ? false
+          : w.night;
+    if (want !== w.night) {
+      issueSeaAir(
+        d,
+        id,
+        { kind: "air_night", deployment: w.id, on: want },
+        d.mg.ticks(),
+      );
+    }
+  }
+}
+
 /** The country's fighters: in the stock and deployed (carrier wings aside). */
 function fightersOf(d: WwDepth, id: number): number {
   const ce = d.ww.economy.country(id);
@@ -357,6 +394,7 @@ function aiRecon(d: WwDepth, id: number): void {
 /** At peace: the mine fleets come home, the recon groups land. */
 function aiPeace(d: WwDepth, id: number): void {
   minesHome(d, id);
+  if (d.ww.air.wingsLive) return;
   if (reconTargets(d, id).size > 0) setRecon(d, id, new Map());
 }
 

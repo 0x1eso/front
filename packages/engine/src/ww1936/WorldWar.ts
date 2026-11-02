@@ -420,6 +420,13 @@ export class WorldWar {
     if (this._auto[smallID] === 0) return;
     this._auto[smallID] = 0;
     this.dataDirty = true;
+    // ww8: no switch, no wing under [auto].
+    for (const w of this.air.wingsOf(smallID)) {
+      if (w.auto) {
+        w.auto = false;
+        this.air.markWing(w.id);
+      }
+    }
   }
 
   /**

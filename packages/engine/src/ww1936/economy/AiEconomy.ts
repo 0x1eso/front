@@ -77,6 +77,7 @@ import {
 import { shipGenTech } from "@openfront/engine-lib/ww1936/ShipStats";
 import { WW_TECHS } from "@openfront/engine-lib/ww1936/WwTechs";
 import type { Player } from "../../game/Game";
+import { baseThreatened, wingBaseWants } from "../air/AiAir";
 import { designShareType, equipResources } from "../depth/Designs";
 import { sharedResearchPct } from "../depth/FactionRules";
 import type { WwDepth } from "../depth/WwDepth";
@@ -2126,6 +2127,34 @@ function aiP4Builds(econ: WwEconomy, ce: CountryEconomy, day: number): void {
     for (const r of list) if (build(r, b)) return true;
     return false;
   };
+  /**
+   * ww8 (design §7.6): where the wings can't reach their targets, then (planes
+   * waiting in the stock with no room to form) anywhere of ours that isn't
+   * under the enemy's guns. Two queued at a time.
+   */
+  const wingBases = (): number[] => {
+    const air = ww.air;
+    if (ce.queue.filter((q) => q.building === "air_base").length >= 2) {
+      return [];
+    }
+    const want = wingBaseWants(air, me);
+    if (want.srs.size === 0 && !want.idle) return [];
+    return regions
+      .filter(
+        (r) =>
+          level(r, "air_base") < AI_AIR_BASE_MAX &&
+          (want.idle || want.srs.has(sc.regionSr(r))) &&
+          !baseThreatened(air, me, r),
+      )
+      .sort(
+        (a, b) =>
+          Number(want.srs.has(sc.regionSr(b))) -
+            Number(want.srs.has(sc.regionSr(a))) ||
+          level(b, "air_base") - level(a, "air_base") ||
+          vp(b) - vp(a) ||
+          a - b,
+      );
+  };
   if (atWar) {
     const navy = ww.navy;
     // Naval bases: our ports on a sea where an enemy holds a port, or on
@@ -2160,25 +2189,32 @@ function aiP4Builds(econ: WwEconomy, ce: CountryEconomy, day: number): void {
     // Air bases where the deployments find no room.
     const air = ww.air;
     const short = new Set<number>();
-    const groups = new Map<number, { target: number; have: number }>();
-    for (const d of air.wingsOf(me)) {
-      if (d.base < 0) continue;
-      const k = d.sr * 1000 + d.type * 20 + d.mission;
-      const g = groups.get(k) ?? { target: d.goalCount, have: 0 };
-      g.have += d.counts.reduce((x, y) => x + y, 0);
-      groups.set(k, g);
+    if (!air.wingsLive) {
+      const groups = new Map<number, { target: number; have: number }>();
+      for (const d of air.wingsOf(me)) {
+        if (d.base < 0) continue;
+        const k = d.sr * 1000 + d.type * 20 + d.mission;
+        const g = groups.get(k) ?? { target: d.goalCount, have: 0 };
+        g.have += d.counts.reduce((x, y) => x + y, 0);
+        groups.set(k, g);
+      }
+      for (const [k, g] of groups)
+        if (g.have < g.target) short.add(Math.floor(k / 1000));
     }
-    for (const [k, g] of groups)
-      if (g.have < g.target) short.add(Math.floor(k / 1000));
-    const airBases = regions
-      .filter(
-        (r) =>
-          short.has(sc.regionSr(r)) && level(r, "air_base") < AI_AIR_BASE_MAX,
-      )
-      .sort(
-        (a, b) =>
-          level(b, "air_base") - level(a, "air_base") || vp(b) - vp(a) || a - b,
-      );
+    const airBases = air.wingsLive
+      ? wingBases()
+      : regions
+          .filter(
+            (r) =>
+              short.has(sc.regionSr(r)) &&
+              level(r, "air_base") < AI_AIR_BASE_MAX,
+          )
+          .sort(
+            (a, b) =>
+              level(b, "air_base") - level(a, "air_base") ||
+              vp(b) - vp(a) ||
+              a - b,
+          );
     first(airBases, "air_base");
     // What the enemy flies and sails.
     let stratBombers = false;
@@ -2290,6 +2326,11 @@ function aiP4Builds(econ: WwEconomy, ce: CountryEconomy, day: number): void {
     !anyQueued("fuel_silo")
   ) {
     first(slotRegions(), "fuel_silo");
+  }
+  // ww8: at peace too (every plane now wants a place on a base, flying or
+  // not), behind what the economy has under way.
+  if (!atWar && ww.air.wingsLive && ce.queue.length <= 1) {
+    first(wingBases(), "air_base");
   }
 }
 
