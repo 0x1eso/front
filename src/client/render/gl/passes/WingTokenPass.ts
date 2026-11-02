@@ -21,7 +21,6 @@ import {
 import { fogOfAir } from "../../../hud/ww1936/FogModel";
 import {
   layoutWings,
-  SLOT_GROUP,
   SLOT_TOKEN,
   wingPhase,
   type WingSlot,
@@ -30,7 +29,6 @@ import {
 import type { WwAirView } from "../../../view/WwAirView";
 import type { WwNavyView } from "../../../view/WwNavyView";
 import {
-  KIND_CHIP,
   KIND_TOKEN,
   numberGlyphs,
   SHIP_CELL,
@@ -161,23 +159,8 @@ export class WingTokenPass {
     const b = this.batch;
     const x = s.x + 0.5;
     const y = s.y + 0.5;
-    if (s.kind === SLOT_GROUP) {
-      // A group chip: the plane silhouette and how many wings it holds.
-      b.putToken(
-        x,
-        y,
-        KIND_CHIP,
-        s.owner,
-        SHIP_CELL.plane,
-        s.wings,
-        -1,
-        -1,
-        -1,
-        0,
-        0,
-      );
-      return;
-    }
+    // A group chip reads like a base chip: the plane silhouette and the planes it holds
+    // (a count chip alone looks like an army's).
     if (s.kind !== SLOT_TOKEN || s.lod > 0) {
       let k = 1;
       if (s.kind !== SLOT_TOKEN || s.lod === 1) {

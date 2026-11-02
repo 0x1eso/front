@@ -8,6 +8,7 @@ import { Controller } from "../../Controller";
 import { translateText } from "../../Utils";
 import type { GameView } from "../../view";
 import { AIR_LEGEND } from "../../view/AirZoneColors";
+import { WwAirLayerEvent } from "./SeaAirSelection";
 import { WW_BAND_PX } from "./WorldWarModel";
 import { seaAirOf } from "./WwSeaAirController";
 
@@ -21,7 +22,12 @@ export class WwAirLegend extends LitElement implements Controller {
     return this;
   }
 
-  init() {}
+  init() {
+    // tick() does not run while the game is paused: follow the layer switch too.
+    this.eventBus.on(WwAirLayerEvent, () => {
+      void Promise.resolve().then(() => this.tick());
+    });
+  }
 
   getTickIntervalMs() {
     return 500;

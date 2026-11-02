@@ -56,6 +56,7 @@ import {
 } from "./MultiSelect";
 import { negPeaceMapTap } from "./NegPeaceModel";
 import { peaceMapTap } from "./PeaceModel";
+import { wingUiOf, WwWingChangedEvent } from "./WingUi";
 import { today, TWO_TAP_MIN_MS, wwActive } from "./WorldWarModel";
 import type { WwSeaAirController } from "./WwSeaAirController";
 
@@ -585,6 +586,12 @@ export class WwLandController implements Controller {
     if (army !== null) {
       this.deps.seaAir?.selectFleet(0);
       this.deps.seaAir?.selectZone(0);
+      // ...and the wing card (a token tap does not go through WwSelectArmyEvent).
+      const wings = wingUiOf(this.game);
+      if (wings.ids.length > 0 || wings.mode !== "none") {
+        wings.clear();
+        this.eventBus.emit(new WwWingChangedEvent());
+      }
     }
     this.unregisterBack?.();
     this.unregisterBack = null;

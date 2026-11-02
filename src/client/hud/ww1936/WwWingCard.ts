@@ -80,7 +80,11 @@ export class WwWingCard extends LitElement implements Controller {
   }
 
   init() {
-    this.eventBus.on(WwWingChangedEvent, () => this.requestUpdate());
+    this.eventBus.on(WwWingChangedEvent, () => {
+      // The place is also fitted here: tick() does not run while paused.
+      this.refit();
+      this.requestUpdate();
+    });
     this.eventBus.on(WwDrawerEvent, () => {
       void this.updateComplete.then(() =>
         requestAnimationFrame(() => this.refit()),
@@ -153,6 +157,8 @@ export class WwWingCard extends LitElement implements Controller {
   }
 
   render() {
+    // Lit renders the element before the renderer hands it the game.
+    if (this.game === undefined) return nothing;
     const ui = wingUiOf(this.game);
     const ctx = this.ctx();
     if (ctx === null) return nothing;
@@ -175,7 +181,7 @@ export class WwWingCard extends LitElement implements Controller {
       aria-label=${many
         ? translateText("ww1936.wing.many", { n: wings.length })
         : wingName(first)}
-      class="fixed z-[1001] flex flex-col gap-1 overflow-hidden rounded-lg border border-white/15 bg-gray-900/92 p-1.5 text-xs text-white shadow-xl"
+      class="fixed z-[1001] flex flex-col gap-1 overflow-y-auto rounded-lg border border-white/15 bg-gray-900/92 p-1.5 text-xs text-white shadow-xl"
       style=${placeStyle(this.place)}
       @contextmenu=${(e: Event) => e.preventDefault()}
     >
@@ -545,11 +551,13 @@ export class WwWingCard extends LitElement implements Controller {
             ${translateText("ww1936.wing.many_note", { n: wings.length })}
           </div>`
         : html`<div class="flex flex-wrap gap-x-3 gap-y-0.5 text-white/80">
-            <span data-ww-wing-eff
-              >${translateText("ww1936.wing.eff", {
-                pct: Math.floor(n.effPm / 10),
-              })}</span
-            >
+            ${n.effPm <= 0
+              ? nothing
+              : html`<span data-ww-wing-eff
+                  >${translateText("ww1936.wing.eff", {
+                    pct: Math.floor(n.effPm / 10),
+                  })}</span
+                >`}
             ${weather === null
               ? nothing
               : html`<span

@@ -157,12 +157,9 @@ export class WwWingController implements Controller {
     radius = 24 / Math.max(1e-6, this.zoom()),
   ): boolean {
     const ui = this.ui;
-    if (
-      ui.mode === "none" ||
-      ui.ids.length + (ui.mode === "field" ? 1 : 0) === 0
-    ) {
-      return false;
-    }
+    // No order mode: a tap on one of my wing tokens (or a base chip) chooses it.
+    if (ui.mode === "none") return this.tokenTap(x, y);
+    if (ui.ids.length + (ui.mode === "field" ? 1 : 0) === 0) return false;
     const ctx = navyCtx(this.game);
     if (ctx === null) return false;
     const wings = chosenWings(ctx, ui);
