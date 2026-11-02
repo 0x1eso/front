@@ -72,6 +72,7 @@ import {
   NavyGame,
   srName,
 } from "./NavyModel";
+import { armyPriority, wingsFollowing } from "./WingModel";
 import { today, TWO_TAP_MS, TwoTap, wwActive } from "./WorldWarModel";
 import { WwDrawerEvent } from "./WwDrawer";
 import { WwLandChangedEvent } from "./WwLandController";
@@ -672,6 +673,36 @@ export class WwArmyCard extends LitElement implements Controller {
     </section>`;
   }
 
+  /** ww8 (design §8.6): [✈ priority] and how many wings give this army close support. */
+  private renderAirPriority(c: Ctx): TemplateResult | typeof nothing {
+    if (this.game.wwAir?.()?.live !== true || c.navy === null) return nothing;
+    const army = c.card.row.id;
+    const on = armyPriority(c.navy, army);
+    return html`<button
+        type="button"
+        data-ww-air-priority
+        aria-pressed=${String(on)}
+        class="h-8 shrink-0 rounded-md border px-2 ${on
+          ? "border-sky-300 bg-sky-800/60"
+          : "border-white/15 bg-white/10 hover:bg-white/20"}"
+        @click=${() =>
+          this.eventBus.emit(
+            new SendWwOrderIntentEvent({
+              kind: "army_air_priority",
+              army,
+              on: !on,
+            }),
+          )}
+      >
+        ✈ ${translateText("ww1936.wing.btn_priority")}
+      </button>
+      <span data-ww-air-cover class="self-center text-white/80"
+        >${translateText("ww1936.wing.cover", {
+          n: wingsFollowing(c.navy, army),
+        })}</span
+      >`;
+  }
+
   /** Fold to the strip, or open the whole card (40 px). */
   private foldButton(c: Ctx, folded: boolean): TemplateResult {
     const ordering = this.isOrdering(c.sel);
@@ -762,7 +793,7 @@ export class WwArmyCard extends LitElement implements Controller {
                   pct: Math.floor(c.card.supplyPm / 10),
                 })}</span
               >
-              ${this.renderInvasion(c)}
+              ${this.renderInvasion(c)} ${this.renderAirPriority(c)}
             </div>`}
         ${this.renderOrderLine(c)} ${line}
       </div>

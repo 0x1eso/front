@@ -23,6 +23,8 @@ import {
   regionName,
 } from "./LandModel";
 import { landSelectionOf, OpenWwBattleEvent } from "./LandSelection";
+import { navyCtx, NavyGame } from "./NavyModel";
+import { armyPriority, battleAirLine } from "./WingModel";
 import { countryName, today } from "./WorldWarModel";
 import {
   bpText,
@@ -110,7 +112,12 @@ export class WwBattleCard extends LitElement implements Controller {
     if (this.region === null) return;
     this.refit();
     const view = this.game.wwLand?.() ?? null;
-    const key = [view?.version, this.game.wwEconomy?.()?.version, this.region];
+    const key = [
+      view?.version,
+      this.game.wwEconomy?.()?.version,
+      this.game.wwAir?.()?.version,
+      this.region,
+    ];
     if (key.some((v, i) => v !== this.redrawKey[i])) {
       this.redrawKey = key;
       // The battle ended: the card goes with it.
@@ -178,7 +185,7 @@ export class WwBattleCard extends LitElement implements Controller {
           style="width: ${Math.max(0, Math.min(1000, b.progressPm)) / 10}%"
         ></div>
       </div>
-      ${this.renderLuck(battleLuck(b, this.luckBand(b)))}
+      ${this.renderAir(d)} ${this.renderLuck(battleLuck(b, this.luckBand(b)))}
       <div class="grid grid-cols-2 gap-2">
         ${this.renderSide(
           "attacker",
@@ -224,6 +231,70 @@ export class WwBattleCard extends LitElement implements Controller {
           </button>`
         : nothing}
     </section>`;
+  }
+
+  /**
+   * ww8 (design §8.6): the enemy's air control over the battle and what it
+   * costs me, the wings giving close support to each side, and [✈ priority]
+   * for my armies attacking there.
+   */
+  private renderAir(d: BattleCardData): TemplateResult | typeof nothing {
+    const air = this.game.wwAir?.();
+    if (air?.live !== true) return nothing;
+    const ctx = navyCtx(this.game as unknown as NavyGame);
+    if (ctx === null) return nothing;
+    const b = d.summary;
+    const line = battleAirLine(ctx, b.region);
+    const cover = (b.casAtt ?? 0) + (b.casDef ?? 0) > 0;
+    const on =
+      d.leaveArmies.length > 0 &&
+      d.leaveArmies.every((a) => armyPriority(ctx, a));
+    if (line === null && !cover && !d.mine) return nothing;
+    return html`<div
+      data-ww-battle-air
+      class="flex flex-wrap items-center gap-x-2 gap-y-1"
+    >
+      ${line === null
+        ? nothing
+        : html`<span data-ww-battle-sky class="text-amber-300"
+            >✈
+            ${translateText("ww1936.wing.battle_sky", {
+              pct: Math.floor(line.supPm / 10),
+              cost: line.penaltyPct,
+            })}</span
+          >`}
+      ${cover
+        ? html`<span data-ww-battle-cover class="text-sky-300"
+            >${translateText("ww1936.wing.battle_cover", {
+              att: b.casAtt ?? 0,
+              def: b.casDef ?? 0,
+            })}</span
+          >`
+        : nothing}
+      ${d.mine
+        ? html`<button
+            type="button"
+            data-ww-air-priority
+            aria-pressed=${String(on)}
+            class="ml-auto h-8 rounded-md border px-2 ${on
+              ? "border-sky-300 bg-sky-800/60"
+              : "border-white/15 bg-white/10 hover:bg-white/20"}"
+            @click=${() => {
+              for (const army of d.leaveArmies) {
+                this.eventBus.emit(
+                  new SendWwOrderIntentEvent({
+                    kind: "army_air_priority",
+                    army,
+                    on: !on,
+                  }),
+                );
+              }
+            }}
+          >
+            ✈ ${translateText("ww1936.wing.btn_priority")}
+          </button>`
+        : nothing}
+    </div>`;
   }
 
   /**
