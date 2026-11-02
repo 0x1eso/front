@@ -131,7 +131,11 @@ export function takeOffDeck(
 const designKey = (slot: number) => equipKey("plane_design", slot);
 
 /** P6 (lane E): moves up to `n` planes of design slot `slot` from the stock onto the deployed ledger. */
-function drawDesignSlot(ce: CountryEconomy, slot: number, n: number): number {
+export function drawDesignSlot(
+  ce: CountryEconomy,
+  slot: number,
+  n: number,
+): number {
   const k = designKey(slot);
   const take = Math.max(0, Math.min(n, ce.stock[k]));
   ce.stock[k] -= take;
@@ -140,7 +144,7 @@ function drawDesignSlot(ce: CountryEconomy, slot: number, n: number): number {
 }
 
 /** The planes of P4 type `type` in `owner`'s stock: its generations and (P6) its designs flying as it. */
-function stockOf(
+export function stockOf(
   air: WwAir,
   ce: CountryEconomy,
   owner: number,
@@ -196,7 +200,7 @@ function recordsUsed(air: WwAir, owner: number): number {
  */
 const baseRegionsMemo = new WeakMap<WwAir, { ver: number; list: number[] }>();
 
-function airBaseRegions(air: WwAir): readonly number[] {
+export function airBaseRegions(air: WwAir): readonly number[] {
   const ver = air.econ.buildVer;
   const hit = baseRegionsMemo.get(air);
   if (hit !== undefined && hit.ver === ver) return hit.list;
@@ -669,7 +673,7 @@ function spottedEnemyIn(air: WwAir, owner: number, sr: number): boolean {
  * superiority, the others on naval strike when our side has spotted an
  * enemy fleet there, else on naval patrol. The records mirror the decks.
  */
-function carrierWings(air: WwAir, owner: number): void {
+export function carrierWings(air: WwAir, owner: number): void {
   const navy = air.navy;
   const t = navy.ships;
   const sc = air.ww.scenario;
