@@ -31,6 +31,12 @@ const vec3 HATCH = vec3(0.86, 0.1, 0.08);
 const vec3 GLOW = vec3(1.0, 0.93, 0.6);
 const vec3 BOMBED = vec3(0.96, 0.55, 0.1);
 const vec3 GAP = vec3(0.95, 0.12, 0.1);
+// An army's zone colours (cyan, magenta, yellow, lime): far from red (gaps)
+// and each other, and from the territory fills.
+const vec3 ZONE_HUES[4] = vec3[4](
+  vec3(0.1, 0.85, 0.95), vec3(0.95, 0.25, 0.85),
+  vec3(1.0, 0.9, 0.1), vec3(0.55, 1.0, 0.2)
+);
 
 // The viewer's colour, a little livelier than the territory fill.
 vec3 viewerColor() {
@@ -69,16 +75,16 @@ void main() {
   vec2 w = vUV * vec2(float(MAP_W), float(MAP_H));
   uint id = regionAt(w);
   uint f = flagsOf(id);
-  if ((f & 63u) == 0u) discard; // bits 0-5: only those regions draw
+  if ((f & 63u) == 0u) discard; // bits 0-5 (6-7: the zone hue): only those regions draw
   vec4 col = vec4(0.0);
 
   if ((f & 1u) != 0u) {
-    // The zone: a fill in the army's colour (lightened: the territory is
-    // already that colour), its outline stronger.
-    float r = 1.5 * uTilesPerPx;
+    // The zone: the army's own colour (one of four, by army id), a clear fill
+    // that lets the country colours show through, and a strong rim.
+    float r = 2.0 * uTilesPerPx;
     bool rim = regionAt(w + vec2(r, 0.0)) != id || regionAt(w - vec2(r, 0.0)) != id ||
       regionAt(w + vec2(0.0, r)) != id || regionAt(w - vec2(0.0, r)) != id;
-    col = over(col, mix(viewerColor(), vec3(1.0), 0.4), rim ? 0.85 : 0.34);
+    col = over(col, ZONE_HUES[int((f >> 6u) & 3u)], rim ? 0.95 : 0.42);
   }
 
   if ((f & 32u) != 0u) {

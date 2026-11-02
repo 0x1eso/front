@@ -23,6 +23,7 @@ import { Controller } from "../../Controller";
 import { SendWwOrderIntentEvent } from "../../Transport";
 import { translateText } from "../../Utils";
 import type { GameView } from "../../view";
+import { zoneHueCss } from "../../view/WarBadges";
 import type { WwEconomyView } from "../../view/WwEconomyView";
 import type { WwLandView } from "../../view/WwLandView";
 import { WwStrikeFlowEvent } from "./DepthEvents";
@@ -699,8 +700,13 @@ export class WwArmyCard extends LitElement implements Controller {
       @contextmenu=${(e: Event) => e.preventDefault()}
     >
       <div class="flex min-w-0 flex-1 flex-col gap-0.5">
-        <div class="flex min-w-0 items-center gap-1.5">
-          <span class="min-w-0 truncate text-sm font-bold"
+        <div class="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-0.5">
+          <span
+            data-ww-zone-dot
+            class="size-2.5 shrink-0 rounded-full"
+            style="background: ${zoneHueCss(r.id)}"
+          ></span>
+          <span class="max-w-full shrink-0 truncate text-sm font-bold"
             >${armyName(r.nameNo)}</span
           >
           <span
@@ -1259,8 +1265,26 @@ export class WwArmyCard extends LitElement implements Controller {
     </div>`;
   }
 
+  /** ww7: why a running attack stands still (every odds Low) and the one tap that changes it. */
+  private renderWait(c: Ctx): TemplateResult | typeof nothing {
+    if (!c.card.waitingLowOdds) return nothing;
+    return html`<span
+      data-ww-wait-odds
+      class="flex items-center gap-1.5 text-amber-300"
+      >${translateText("ww1936.land.wait_low_odds")}
+      <button
+        type="button"
+        data-ww-wait-aggressive
+        class="h-7 rounded-md border border-amber-300/60 bg-amber-900/40 px-2 font-semibold hover:bg-amber-800/60"
+        @click=${() => this.setStance(c, "aggressive")}
+      >
+        🔥 ${translateText("ww1936.land.wait_go_aggressive")}
+      </button></span
+    >`;
+  }
+
   /** The action row [공격] [방어] [이동] [자동], the stance switch, and the rest. */
-  private renderButtons(c: Ctx): TemplateResult[] {
+  private renderButtons(c: Ctx): (TemplateResult | typeof nothing)[] {
     // An easy invasion sails by itself: no [Launch] (spec §11's keep it).
     const inv = c.navy === null ? null : invasionOf(c.navy, c.card.row.id);
     const landing = inv !== null && inv.easy !== true;
@@ -1294,6 +1318,7 @@ export class WwArmyCard extends LitElement implements Controller {
       (id) => !(ARMY_ACTIONS as readonly string[]).includes(id),
     );
     return [
+      this.renderWait(c),
       html`<div data-ww-action-row class="grid grid-cols-4 gap-1">
         ${ARMY_ACTIONS.map((id) => one(id, true))}
       </div>`,

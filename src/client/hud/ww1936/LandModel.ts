@@ -77,7 +77,6 @@ import {
   OrderCheckWorld,
 } from "@openfront/engine-lib/ww1936/LandOrderChecks";
 import { startTemplates } from "@openfront/engine-lib/ww1936/LandStart";
-import { isCountered } from "@openfront/engine-lib/ww1936/TacticRules";
 import {
   edgeTicks,
   moveNeed,
@@ -87,6 +86,7 @@ import {
   shortestPath,
 } from "@openfront/engine-lib/ww1936/MoveRules";
 import type { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
+import { isCountered } from "@openfront/engine-lib/ww1936/TacticRules";
 import {
   presetStatus,
   presetsUsing,
@@ -725,6 +725,11 @@ export interface ArmyCardData {
   gaps: number;
   /** The plan runs (army_execute on). */
   executing: boolean;
+  /**
+   * ww7: the plan runs but every odds the engine gave is Low and the stance is
+   * not 과감 (aggressive): the army waits for better odds (nothing in battle).
+   */
+  waitingLowOdds: boolean;
   /** My armies this one can merge into now (army_merge passes the checks). */
   mergeWith: number[];
   /** The "⋯" panel's paradrop button (to the nearest enemy region). */
@@ -969,6 +974,7 @@ export function armyCard(
     targets: a.mine?.order.kind === "plan" ? a.mine.order.targets : [],
     gaps: detailOf(view, me)?.gaps?.length ?? 0,
     executing: a.mine?.order.executing ?? false,
+    waitingLowOdds: waitingForOdds(a),
     mergeWith: merge.into,
     paradropBlock:
       enemy === null
@@ -1089,6 +1095,22 @@ export function planOrder(
 }
 
 export { ODDS_HIGH_PCT, ODDS_MID_PCT, oddsLevel, type OddsLevel };
+
+/**
+ * ww7: a running attack that holds back for its odds — the stance is not
+ * aggressive, nothing is in battle, and every odds badge of the zone is Low
+ * (the engine's careful / balanced stances wait for a better range).
+ */
+export function waitingForOdds(a: ArmySummary): boolean {
+  const m = a.mine;
+  if (m === null || m === undefined) return false;
+  if (m.order.kind !== "plan" || !m.order.executing) return false;
+  if (m.order.stance === "aggressive" || (a.state & ARMY_BATTLE) !== 0) {
+    return false;
+  }
+  const odds = m.odds ?? [];
+  return odds.length > 0 && odds.every((o) => oddsLevel(o[2]) === "low");
+}
 
 /** The chosen army's odds badges: [our region, the enemy region, level]. */
 export function oddsBadges(

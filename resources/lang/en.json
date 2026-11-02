@@ -9130,6 +9130,8 @@
       "train_plus": "+{n}",
       "training_men": "In training",
       "upgrade_old_new": "Old → New",
+      "wait_go_aggressive": "Go aggressive",
+      "wait_low_odds": "Waiting: the odds are Low",
       "waiting_equipment": "Waiting for equipment {pct}%",
       "waiting_manpower": "Waiting for manpower"
     },

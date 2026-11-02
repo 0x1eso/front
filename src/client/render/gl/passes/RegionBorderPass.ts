@@ -28,6 +28,7 @@ import type { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
 import type { WwLandSelection } from "../../../hud/ww1936/LandSelection";
 import { multiSelectOf } from "../../../hud/ww1936/MultiSelect";
 import type { LandFrontWorld } from "../../../view/LandFrontWorld";
+import { ZONE_HUE_COUNT } from "../../../view/WarBadges";
 import type { WwLandView } from "../../../view/WwLandView";
 import fragSrc from "../shaders/region-border/region-border.frag.glsl?raw";
 import vertSrc from "../shaders/region-border/region-border.vert.glsl?raw";
@@ -63,6 +64,8 @@ export const FLAG_BOMBED = 16;
  * no division of the viewer's side holds or is headed to; it blinks red.
  */
 export const FLAG_GAP = 32;
+/** Bits 6-7 (ww7): which of ZONE_HUES an army's zone is painted in (armyId % 4). */
+export const ZONE_HUE_SHIFT = 6;
 
 /** Tile code bit: the tile's right or lower neighbour is another land region. */
 export const TILE_EDGE_BIT = 0x8000;
@@ -217,10 +220,11 @@ export function regionFlagBytes(
     for (let i = 0; i < gaps.length; i++) setFlag(out, gaps[i], FLAG_GAP);
   }
 
-  const mark = (front: readonly number[], enemy: number) => {
+  const mark = (front: readonly number[], enemy: number, armyId = 0) => {
+    const hue = (armyId % ZONE_HUE_COUNT) << ZONE_HUE_SHIFT;
     for (let i = 0; i < front.length; i++) {
       const f = front[i];
-      setFlag(out, f, FLAG_FRONT);
+      setFlag(out, f, FLAG_FRONT | hue);
       const edges = sc.edgesOf(f);
       for (let j = 0; j < edges.length; j++) {
         const to = edges[j].to;
@@ -233,7 +237,11 @@ export function regionFlagBytes(
   const mine = army !== undefined && army.owner === me ? army.mine : null;
   if (mine !== null) {
     const ordered = mine.order.kind === "front" || mine.order.kind === "plan";
-    mark(selection.zoneDraft ?? mine.front, ordered ? mine.order.enemy : 0);
+    mark(
+      selection.zoneDraft ?? mine.front,
+      ordered ? mine.order.enemy : 0,
+      selection.army ?? 0,
+    );
   }
   // The chosen army group's zone is its armies' zones together.
   const multi = multiSelectOf(selection);
@@ -243,7 +251,7 @@ export function regionFlagBytes(
       if (a === undefined || a.owner !== me || a.mine === null) continue;
       const ordered =
         a.mine.order.kind === "front" || a.mine.order.kind === "plan";
-      mark(a.mine.front, ordered ? a.mine.order.enemy : 0);
+      mark(a.mine.front, ordered ? a.mine.order.enemy : 0, a.id);
     }
   }
 
