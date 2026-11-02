@@ -90,3 +90,30 @@ Each lane works in its own worktree and branch from the C0 commit. Stay inside y
 | E screens | `w7-E` | `src/client/**`, `resources/lang/en.json` + `ko.json` |
 | D AI (after C) | `w7-D` | engine `AiLand.ts`, `depth/AiCommand.ts`, army auto levels |
 | F balance (last) | coordinator | `scripts/ww1936/*`, constants, digests |
+
+## Status at hand-off (2026-11-02)
+- `w7-war`: C0, A, B, B2, C, E merged and their lane tests pass. `w7-D`: one WIP commit (Defend zones may name our interior regions — `Fronts.openDay`; `targetDistances`/`attackTarget` take hypothetical targets for an AI gate).
+- Coordinator fixes after merging: tactics × urban org cut combined in `fight`; aggressive stance = any odds; order-list pins (`DepthTypes`, `EndgameTypes`) extended with the two new orders; dead anchor-front text keys removed.
+- Open items carried to D/F/coordinator:
+  - Win table (lane A) is narrow: ρ 1.0 → 60 %, 1.2 → 90 %, ≥ 1.4 → 100 %. F widens it (luck/tactic sizes at the top of `TacticRules.ts`, then refit with `duel-fit.ts`).
+  - The client keeps its own tactic counter table in `LandModel.ts` (lane E); point it at engine-lib `TacticRules` (client may import engine-lib).
+  - B: no envelop evict line on the d = 1 advance-then-capture path; halted (non-plan) occupiers do not re-attack on their own.
+  - B2: AI width heuristics in `AiLand` and the client battle-card inputs ignore fort/entrench/position; any `entrenchSpeedPct` > 0 now means a level a day (base 2).
+  - E: never seen in a browser (shaders are the risk); `InventoryModal`/`LobbyPlayerView` client tests unverified under load.
+
+## Lane D spec (AI and auto command) — resume from `w7-D`
+Own: `land/AiLand.ts`, `depth/AiCommand.ts`, army auto levels; small edits to lane C's `Fronts.ts`/`Plans.ts`/`FrontRules.ts` allowed. Design `ww6-war-design.md` §7, adapted to army objective orders.
+1. AI fronts as orders: per enemy front (`buildFronts`), walk `borderChain`, split it geographically among the front's armies by divisions; each gets `army_front` + explicit `army_zone`; no uncovered border region when divisions ≥ regions. Re-issue only when the split changes (keep `planBp`).
+2. Shortening when divisions < border regions: the ring 1–3 layers back with the smallest (regions − terrain score: river/fort/mountain/urban) minus VP given up; hold it as a Defend zone of interior regions (the WIP commit allows that).
+3. Offensives: `aiTargets` (VP ÷ distance, capital × 2), 1–3 per army, `army_plan` + `army_execute`, stance aggressive once decided. Gate on the **combined** range of every division the side would commit against the target (converging armies), not per army: aggressor `mid ≥ 1300 && low ≥ 900`, democracy `mid ≥ 1600 && low ≥ 1100`, minors between; personality risk moves the low bar. Keep regroup 40 %, re-attack 85 %, readiness, pursuit; revisit `RATIO_FREE_PM`.
+4. Enemy ÷ ours > 1.5 on a front: prefer Defend and early shortening (positions build twice as fast in Defend zones).
+5. Humans: `autoLevel` 1 = 1, 2, 4 only (never attacks); 2 = all. `army_auto {on}` = level 2.
+6. Acceptance: `WorldWarSnapshot` "all-AI war: Poland falls" and `AiLand*` pass (Japan-in-China test: fix by better AI or adjust with a reason), `OccupationAi`, `ArmyGroups`, `Zones`, `Plans`, `Fronts`, `LayerBoundaries`, typecheck. New lean tests: geographic split covers the border; shortening picks a shorter ring; combined gate attacks/holds; level 1 never attacks, level 2 does. Then one `npx tsx scripts/ww1936/war-diag.ts --seed WWSIM002 --until 1940-07-01` run (empty border regions, captures by battle vs walk, early collapses).
+
+## Lane F (balance, last)
+- Widen the win table (above), refit `WIN_PCT_AT`.
+- Duel targets (design §5): 1:1 plains entrench 5 → attack < 20 %; 2:1 with entrench + positions → ~50 % in 4–7 days; 3:1 plains → ≥ 80 %; Maginot (fort 5) + entrench → 50 % only at 5:1 with artillery and engineers.
+- war-diag + depth-sim, 5 seeds to 1942-12: France falls before 1941-06 in 40–80 %; Germany capitulates before 1942 in ≤ 20 %; no major loses > 30 % VP within 60 days of war at < 2:1 strength.
+- LandPerf with 2,000 divisions within +10 % of the base.
+- Re-pin `WW1936_DIGEST`/`WW1936_EASY_DIGEST` (three equal runs, reason in a comment); `VanillaDigest` must not change.
+- In-game check of lane E's screens on a phone-width viewport (`.claude/skills/run-openfront`).
