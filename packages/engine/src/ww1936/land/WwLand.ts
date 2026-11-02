@@ -1353,6 +1353,13 @@ export class WwLand {
 
   // ---- Divisions ----
 
+  /** Every division of `smallID` to its full organisation (the start's stats settling). */
+  fillOrg(smallID: number): void {
+    for (const r of this.rowsOf(smallID)) {
+      this.divisions.org[r] = this.orgMaxOf(r);
+    }
+  }
+
   /**
    * A new division in `army` at `region` (spec §5.1, §6.4). Men and
    * equipment come with it: the caller drew them (Stock.ts).

@@ -100,7 +100,7 @@ describe("the economy's day (spec §2)", () => {
     expect(d.laws).toEqual({
       economy: "civilian",
       trade: "export_focus",
-      conscription: "limited",
+      conscription: "volunteer", // balance fff0c4c33: Poland is volunteer
     });
     expect(d.researched).toEqual([
       "inf_eq_1",

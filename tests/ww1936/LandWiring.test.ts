@@ -163,7 +163,7 @@ describe("World War 1936 P2: the land war's wiring", () => {
     const divisions = (tag: Parameters<typeof id>[0]) =>
       l.countrySummary(l.country(id(tag))!).divisions;
     expect(divisions("DEU")).toBe(45);
-    expect(divisions("POL")).toBe(8);
+    expect(divisions("POL")).toBe(4); // volunteer Poland (balance fff0c4c33)
     expect(divisions("ITA")).toBe(50);
     expect(divisions("FRA")).toBe(50);
     expect(divisions("SUN")).toBe(50);
@@ -191,7 +191,7 @@ describe("World War 1936 P2: the land war's wiring", () => {
     const pol = l.armiesOf(id("POL"));
     expect(
       pol.map((a) => [a.divisions.length, l.armyRegion(a), a.general]),
-    ).toEqual([[8, 6, GENERALS.findIndex((x) => x.id === "sosnkowski") + 1]]);
+    ).toEqual([[4, 6, GENERALS.findIndex((x) => x.id === "sosnkowski") + 1]]);
     // Germany's men and rifles came from its pool and stock.
     const ce = l.econ.country(id("DEU"))!;
     expect(ce.manpower).toBe(1_675_000 - 45 * 10_500);

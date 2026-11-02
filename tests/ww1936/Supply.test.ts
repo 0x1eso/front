@@ -124,6 +124,7 @@ describe("supply (P2 spec §11)", () => {
     const side = l.sideOf(id(g, "DEU"));
     // A built hub in Munich, on the Berlin–Munich railway: alive.
     l.econ.hub[MUNICH] = 1;
+    l.econ.hubEff[MUNICH] = 1; // wings live: supply reads the effective level
     expect(liveHubs(l, side)).toContainEqual({
       region: MUNICH,
       kind: HUB_BUILT,
@@ -131,6 +132,7 @@ describe("supply (P2 spec §11)", () => {
     });
     // Without Munich's rail it is cut from the capital: no hub.
     l.econ.rail[MUNICH] = 0;
+    l.econ.railEff[MUNICH] = 0; // wings live: supply reads the effective level
     expect(liveHubs(l, side).some((h) => h.region === MUNICH)).toBe(false);
     // A taken city of 10 victory points or more (Warsaw, 21) is a hub while
     // its railway reaches Berlin.
@@ -141,6 +143,7 @@ describe("supply (P2 spec §11)", () => {
       cap: hubCapacityMilli(HUB_CITY, 1),
     });
     l.econ.rail[WARSAW] = 0;
+    l.econ.railEff[WARSAW] = 0; // wings live: supply reads the effective level
     expect(liveHubs(l, side).some((h) => h.region === WARSAW)).toBe(false);
   });
 
@@ -300,12 +303,14 @@ describe("supply (P2 spec §11)", () => {
     // Warsaw's rail goes: the runs that read it run again, as a new game
     // with that rail would compute.
     l.econ.rail[WARSAW] = 0;
+    l.econ.railEff[WARSAW] = 0; // wings live: supply reads the effective level
     dailySupply(l, side);
     const after = Array.from(l.supplyMilli);
     expect(after[WARSAW]).toBeLessThan(first[WARSAW]);
     const fresh = await germany();
     takeRegion(fresh.g, WARSAW, "DEU");
     fresh.l.econ.rail[WARSAW] = 0;
+    fresh.l.econ.railEff[WARSAW] = 0; // wings live: supply reads the effective level
     dailySupply(fresh.l, side);
     for (const r of l.scenario.landRegions) {
       if (l.sideOf(l.controller[r.id]) !== side) continue;

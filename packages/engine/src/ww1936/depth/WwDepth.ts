@@ -621,6 +621,14 @@ export class WwDepth implements LandDepthHooks {
     // preparation check (politics.seed is set by then).
     if (this.ww.inPrep(ticks)) {
       this.startThoughts();
+      // The 1936 divisions were fielded before the sliders took their start
+      // positions; now that the stats follow them, bring each division to its
+      // (new) full organisation rather than starting at 95% of it.
+      if (this.depthDirtyStats.size > 0) {
+        const ids = [...this.depthDirtyStats].sort((a, b) => a - b);
+        this.flushStats();
+        for (const id of ids) this.ww.land.fillOrg(id);
+      }
       return;
     }
     const day = this.ww.day(ticks);

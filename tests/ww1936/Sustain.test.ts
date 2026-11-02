@@ -62,6 +62,9 @@ async function oneDivision(tag: CountryTag = "DEU", region = BERLIN) {
   const ce = l.econ.country(id)!;
   clearStartSetup(l.econ, ce);
   clearLand(g);
+  // ww9: the thought sliders' start positions give Germany reinforcePct +4;
+  // these tests pin the base rule, so they start from none.
+  (ce.stats as { reinforcePct?: number }).reinforcePct = 0;
   ce.manpower = 100_000;
   ce.stock[INF1] = 10_000;
   ce.stock[ART1] = 1_000;
@@ -126,6 +129,7 @@ describe("sustaining divisions (P2 spec §5.3, §5.4)", () => {
     expect(t.exp[r]).toBe(495);
     // The same division with a field hospital: half the cut.
     ce.addTech("field_hospital");
+    (ce.stats as { reinforcePct?: number }).reinforcePct = 0; // addTech recomputes the stats
     cl.armyXpMilli = 100_000;
     expect(
       l.issue(id, {

@@ -61,10 +61,11 @@ describe("manpower (spec §6; P2 spec §13.2)", () => {
   test("manpower regrows a tenth a year and stops at the ceiling", async () => {
     const { runner, ww, deu, ce } = await germany();
     ce.manpower = 0;
+    // ww9: the thought sliders' start positions give Germany recruitablePct +1 (1,675,000 -> 1,691,750).
     finishDay(runner, 0);
-    expect(ce.totals.recruitable).toBe(1_675_000);
+    expect(ce.totals.recruitable).toBe(1_691_750);
     expect(ce.manpower).toBe(Math.floor(ce.totals.recruitable / 3650));
-    expect(ce.manpower).toBe(458);
+    expect(ce.manpower).toBe(463);
     ce.manpower = ce.totals.recruitable;
     finishDay(runner, 1);
     // P2 Task 5: after the economy's step the land's day reinforces the
@@ -75,7 +76,7 @@ describe("manpower (spec §6; P2 spec §13.2)", () => {
     const winter = ww.land.country(deu.smallID())!.casualtiesToday;
     expect(winter).toBeGreaterThanOrEqual(0);
     expect(ce.manpower).toBe(ce.totals.recruitable - deu.troops() - winter);
-    expect(ce.manpower).toBe(1_202_500 - winter);
+    expect(ce.manpower).toBe(1_219_250 - winter);
   });
 
   test("a continental winter takes men even at rest: Poland in January (Task 11)", async () => {
@@ -93,7 +94,7 @@ describe("manpower (spec §6; P2 spec §13.2)", () => {
     const { runner, ww, econ, deu, ce } = await germany();
     finishDay(runner, 0);
     const pool = ce.totals.recruitable;
-    expect(pool).toBe(1_675_000);
+    expect(pool).toBe(1_691_750);
     // P2 Task 5: the day's winter attrition killed some already.
     const cl = ww.land.country(deu.smallID())!;
     const winter = cl.casualtiesToday;
