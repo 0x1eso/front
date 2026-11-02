@@ -7,7 +7,7 @@ import { en, hasKey, keyIn, ko } from "./contentUtil";
 
 // The screen namespaces lane T owns (under "ww1936.").
 const SCREEN_NS = [
-  "doctrine",
+  // "doctrine" went with the thought sliders (ww9): no screen reads it.
   "command",
   "ag",
   "design",
@@ -33,7 +33,7 @@ const SCREEN_NS = [
 
 // Decision 35: the 27 notification keys, and the three world-news keys.
 const EVENTS = [
-  "mastery_level",
+  // "mastery_level" went with the doctrine (ww9).
   "design_saved",
   "mio_size",
   "licence_granted",
@@ -204,7 +204,7 @@ describe("P6 depth screen texts", () => {
     const k = ownKeys(KOK).sort();
     expect(k).toEqual(e);
     // 316 after batch P6-2 dropped the keys no screen reads (was 437).
-    expect(e.length).toBeGreaterThanOrEqual(316);
+    expect(e.length).toBeGreaterThanOrEqual(283); // ww9 dropped the doctrine keys
   });
 
   it("has every text non-empty, and ko actually translated", () => {
@@ -237,16 +237,14 @@ describe("P6 depth screen texts", () => {
   });
 
   it("has the brief's verbatim frames", () => {
-    expect(keyIn(ko, "ww1936.doctrine.days")).toBe("약 {days}일");
-    expect(keyIn(ko, "ww1936.doctrine.per_day")).toBe("+{x}/일");
-    expect(keyIn(ko, "ww1936.doctrine.next")).toMatch(/^다음: /);
+    // The doctrine frames went with the doctrine (ww9 thought sliders).
     expect(keyIn(en, "ww1936.design.auto")).toBe("{base} {role}");
     expect(keyIn(ko, "ww1936.design.auto")).toBe("{base} {role}");
     expect(keyIn(ko, "ww1936.design.auto_gun")).toBe("{base} {gun}형");
   });
 
   it("has the 27 notification keys and the world news in both languages", () => {
-    expect(EVENTS).toHaveLength(27);
+    expect(EVENTS).toHaveLength(26); // 27 less mastery_level (ww9)
     for (const key of [...EVENTS, ...NEWS]) {
       expect(hasKey(key), key).toBe(true);
     }
