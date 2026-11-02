@@ -367,7 +367,7 @@ describe("the AI's laws wait for their PP (spec §7.3, R10)", () => {
     ww.setWar(pl, byTag(g, "SUN").smallID(), g.ticks());
     expect(ce.laws).toMatchObject({
       economy: "civilian",
-      conscription: "limited",
+      conscription: "volunteer" // balance fff0c4c33: Poland is volunteer,
     });
     // A minor at war: partial mobilization first (100 PP).
     expect(aiLawTarget(ww.economy, ce, p.day())).toEqual({
@@ -386,7 +386,7 @@ describe("the AI's laws wait for their PP (spec §7.3, R10)", () => {
     // Neither the 100-PP economy law nor the conscription law after it.
     expect(ce.laws).toMatchObject({
       economy: "civilian",
-      conscription: "limited",
+      conscription: "volunteer" // balance fff0c4c33: Poland is volunteer,
     });
     c.ppMilli = 300_000;
     stepTo(runner, dayStartTick(turn(first + 1) + 1, WW_PREP_TICKS));

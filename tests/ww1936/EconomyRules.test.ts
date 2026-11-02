@@ -346,7 +346,8 @@ describe("start values (spec §11)", () => {
       trade: "limited_exports",
       conscription: "limited",
     });
-    expect(startLaws("POL").conscription).toBe("limited");
+    // Poland moved to volunteer conscription (balance fff0c4c33, 25 -> 15 permille).
+    expect(startLaws("POL").conscription).toBe("volunteer");
     expect(startLaws("CAN").conscription).toBe("volunteer");
     expect(startArmy("SUN", 0)).toBe(1_300_000);
     expect(startArmy("POL", 200_000)).toBe(60_000);

@@ -191,15 +191,16 @@ describe("economy wiring (spec §6, §14)", () => {
     const g = runner.game;
     const pol = byTag(g, "POL");
     const ce = g.worldWar()!.economy.country(pol.smallID())!;
+    // Balance fff0c4c33: Poland on volunteer conscription (15 permille, 60% of the old 850,000).
     // Warsaw and Krakow: 34 million, 2.5%; the army is 30% of that,
     // 255,000 men, and Poland (dev 1) fields 30% of it in 9,000-man
-    // divisions: 8 (P2 spec §6.4).
-    expect(ce.totals.recruitable).toBe(850_000);
-    expect(pol.troops()).toBe(72_000);
-    expect(ce.manpower).toBe(850_000 - 72_000);
-    // 2,550 in reserve and the army's 25,500 rifles, less 8 × 900.
-    expect(ce.infStock()).toBe(2_550 + 25_500 - 7_200);
-    expect(g.config().maxTroops(pol)).toBe(72_000);
+    // divisions: 8 (P2 spec §6.4); with the volunteer law 5 (45,000 men).
+    expect(ce.totals.recruitable).toBe(510_000);
+    expect(pol.troops()).toBe(45_000);
+    expect(ce.manpower).toBe(510_000 - 45_000);
+    // 1,530 in reserve and the army's 15,300 rifles, less 5 × 900.
+    expect(ce.infStock()).toBe(1_530 + 15_300 - 4_500);
+    expect(g.config().maxTroops(pol)).toBe(45_000);
     // Two slots, both at work from the start (P2 Task 6: the fort tech in
     // a minor's construction group).
     expect(ce.slots.map((x) => x?.tech)).toEqual([
