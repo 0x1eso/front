@@ -1134,5 +1134,21 @@
     "lon": 20.25,
     "lat": 41.5,
     "note": "Bulqize"
+  },
+  {
+    "tag": "DEU",
+    "res": "tungsten",
+    "amount": 24,
+    "lon": 13.2,
+    "lat": 50.6,
+    "note": "Erzgebirge (Zinnwald, Sachsen)"
+  },
+  {
+    "tag": "DEU",
+    "res": "tungsten",
+    "amount": 16,
+    "lon": 11.0,
+    "lat": 50.7,
+    "note": "Thueringen (balance fff0c4c33)"
   }
 ]

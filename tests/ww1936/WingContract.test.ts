@@ -74,7 +74,9 @@ describe("the lists are appended, never reordered", () => {
       "escort_out_of_range",
     ]);
     const kinds = WwOrderSchema.options.map((o) => o.shape.kind.value);
-    expect(kinds.slice(-6)).toEqual([...WING_ORDER_KINDS]);
+    // ww9 appends thought_set after the wing orders.
+    expect(kinds.slice(-7, -1)).toEqual([...WING_ORDER_KINDS]);
+    expect(kinds.slice(-1)).toEqual(["thought_set"]);
   });
 
   test("the wire: at most 20 wings, no empty list, no wing id 0", () => {
