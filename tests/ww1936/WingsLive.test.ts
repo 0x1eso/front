@@ -583,9 +583,17 @@ test("a real game on wings: every mission, base moves, 400 days, in lockstep", a
           econ.buildingArray("air_base")[x] === 0 &&
           land.rowsIn(x).some((row) => land.divisions.owner[row] === deu),
       );
-      seen.strip = (strips.find((x) =>
-        sc.regionNeighbours(x).every((n) => land.controller[n] === deu),
-      ) ?? strips[0])!;
+      // (the one farthest from any region of the other side).
+      const foes = lands.filter(
+        (x) =>
+          land.controller[x] !== 0 &&
+          land.sideOf(land.controller[x]) !== land.sideOf(deu),
+      );
+      const away = (x: number) =>
+        Math.min(...foes.map((f) => sc.regionKm(x, f)), 1e9);
+      seen.strip = strips.reduce((best, x) =>
+        away(x) > away(best) ? x : best,
+      );
       out.push(order(HUMAN, { kind: "air_field", region: seen.strip }));
     }
     if (t === T(40 + WW_FIELD_STRIP_DAYS) + 2) {
@@ -887,7 +895,6 @@ test("a real game on wings: every mission, base moves, 400 days, in lockstep", a
   // Base moves: a ferry that flew on, a strip, a stand-down, a disband, a
   // followed army out of reach, a base taken.
   expect(seen.moved.flewAfter).toBe(true);
-  if (seen.stripEff !== WW_FIELD_STRIP_EFF_PM) throw new Error(JSON.stringify([(globalThis as any).__sc, seen.strip]));
   expect(seen.stripEff).toBe(WW_FIELD_STRIP_EFF_PM);
   expect(seen.standDown.ok).toBe(true);
   expect(seen.disband.ok).toBe(true);
