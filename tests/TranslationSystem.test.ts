@@ -42,6 +42,9 @@ const DYNAMIC_KEY_PATTERNS: RegExp[] = [
   /^ww1936\.mio_(?:family|arch)\.[^.]+$/,
   /^ww1936\.mio_trait\.[^.]+\.[^.]+$/,
   /^ww1936\.scientist\.[^.]+$/,
+  // ww8 wings: WingModel builds `ww1936.wing.chip_${mission}` and
+  // `ww1936.wing.state_${phase}` from lists the scan cannot follow.
+  /^ww1936\.wing\.(?:chip|state)_[a-z_]+$/,
 ];
 
 /**
