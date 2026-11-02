@@ -312,7 +312,7 @@ async function main() {
           return false;
         };
         for (const r of zoned) if (!isBorder(r)) behind = true;
-        let borderDivsShort = false;
+        let borderDivsShort: boolean;
         let nBorder = 0;
         for (const reg of sc.landRegions) {
           if (land.controller[reg.id] === id && isBorder(reg.id)) nBorder++;

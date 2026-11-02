@@ -53,6 +53,7 @@ export function giveWing(air: WwAir, o: GiveWing): Wing {
     ce.stock[k] = Math.max(ce.stock[k], n);
     counts = drawPlanes(ce, name, n);
   }
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { planes: _p, flying, ...rest } = o;
   const w = air.addWing({
     ...rest,

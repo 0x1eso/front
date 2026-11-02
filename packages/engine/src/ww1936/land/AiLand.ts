@@ -1706,7 +1706,6 @@ class AiDay {
    * division for every region no border region stays uncovered.
    */
   private holdFront(f: Front, armies: readonly Army[]): void {
-    const land = this.land;
     const atWar = this.atWar.includes(f.enemy);
     let ours = 0;
     for (const a of armies) ours += this.armyPower(a);
