@@ -45,7 +45,6 @@ import type {
 } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { zInt } from "@openfront/engine-lib/snapshot/SnapshotType";
 import { dayOfDate, dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
-import { cpDayMilli } from "@openfront/engine-lib/ww1936/CommandRules";
 import { bytesOfHex, hexOf } from "@openfront/engine-lib/ww1936/DepthRules";
 import {
   DesignCtx,
@@ -81,6 +80,7 @@ import {
   dailyCommand,
   issueCommand,
   medalXpPct,
+  onBattleEnd,
   reinforceOrder,
   spiritStatsOf,
   tricksterCutBp,
@@ -175,12 +175,15 @@ const CountryDepthSchema = z.object({
     })
     .optional(),
   cmd: z.object({
-    cpMilli: zInt(),
     spirits: zIds(),
     spiritLock: zIds(),
     medalReady: z.array(z.tuple([zInt(), zInt()])),
     /** Lane D: [general id, the P6 terrain-trait bits the owner was told of], by general id. */
     traitsSeen: z.array(z.tuple([zInt(), zInt()])),
+    /** ww9: the automatic medal's candidate [army id, MEDALS index, score]. */
+    medalWin: z.tuple([zInt(), zInt(), zInt()]).optional(),
+    /** ww9: the day of the last automatic medal. */
+    medalDay: zInt().optional(),
   }),
   des: z.object({
     tank: z.array(DesignSlotSchema.nullable()),
@@ -756,6 +759,14 @@ export class WwDepth implements LandDepthHooks {
 
   medalXpPct(armyId: number): number {
     return medalXpPct(this, armyId);
+  }
+  onBattleEnd(
+    winnerSide: 0 | 1,
+    attackers: readonly number[],
+    defenders: readonly number[],
+    defeat: boolean,
+  ): void {
+    onBattleEnd(this, winnerSide, attackers, defenders, defeat);
   }
 
   /** W1's region status: the supply multiplier, ‰. */
@@ -1383,7 +1394,9 @@ export class WwDepth implements LandDepthHooks {
       const c = this.countries[id];
       if (c === null || c === undefined) continue;
       mix(c.th.curMilli.reduce((a, b) => a + b, 0));
-      mix(c.cmd.cpMilli);
+      mix(c.cmd.medalDay ?? -1);
+      mix(c.cmd.medalWin?.[0] ?? 0);
+      mix(c.cmd.medalWin?.[2] ?? 0);
       mix(
         DESIGN_KINDS.reduce(
           (a, k) => a + c.des[k].filter((x) => x !== null).length,
@@ -1688,7 +1701,6 @@ export function emptyCountry(): CountryDepth {
       started: false,
     },
     cmd: {
-      cpMilli: 0,
       spirits: new Array<number>(7).fill(-1),
       spiritLock: new Array<number>(7).fill(-1),
       medalReady: [],
@@ -1975,7 +1987,6 @@ function summaryOf(d: WwDepth, id: number): WwDepthSummary {
   const c = d.countries[id]!;
   return {
     smallID: id,
-    cpMilli: c.cmd.cpMilli,
     energyPm: c.mech.energyPm,
     mioSize: mioSizes(c),
     fieldMarshals: d.ww.land.fieldMarshalCount(id),
@@ -1987,12 +1998,6 @@ function summaryOf(d: WwDepth, id: number): WwDepthSummary {
 
 function detailOf(d: WwDepth, id: number): WwDepthDetail {
   const c = d.countries[id]!;
-  const ce = d.ww.economy.country(id);
-  const cpGain = cpDayMilli(
-    (ce?.stats as Partial<Record<WwStatKey, number>> | undefined)?.cpGainPct ??
-      0,
-    d.ww.land.fieldMarshalCount(id),
-  );
   const designs: WwDepthDetail["designs"] = [];
   for (const kind of DESIGN_KINDS) {
     c.des[kind].forEach((s, i) => {
@@ -2015,12 +2020,14 @@ function detailOf(d: WwDepth, id: number): WwDepthDetail {
       xp: [d.xpOf(id, 0), d.xpOf(id, 1), d.xpOf(id, 2)],
     },
     command: {
-      cpMilli: c.cmd.cpMilli,
-      cpGainMilli: cpGain,
       spirits: [...c.cmd.spirits],
       spiritLock: [...c.cmd.spiritLock],
       medalReady: c.cmd.medalReady.map((m) => m[1]),
       medalCooldown: c.cmd.medalReady.map((m) => [m[0], m[1]]),
+      ...(c.cmd.medalWin !== undefined
+        ? { medalWin: [...c.cmd.medalWin] as [number, number, number] }
+        : {}),
+      ...(c.cmd.medalDay !== undefined ? { medalDay: c.cmd.medalDay } : {}),
     },
     designs,
     // Lane M review glue 1: one value per family (the current archetype's

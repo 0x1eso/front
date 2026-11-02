@@ -1,12 +1,7 @@
-// World War 1936 P6 lane D (plan Task 2, spec §4): command power, traits,
+// World War 1936 P6 lane D (plan Task 2, spec §4): XP-paid and automatic traits,
 // field marshals, medals and the reinforcement order, on the deep map with
 // a human Germany (plan decision 30).
-import {
-  CP_DAY_MILLI,
-  CP_FM_UPKEEP_MILLI,
-  MEDAL_COOLDOWN_DAYS,
-  MEDAL_DAYS,
-} from "@openfront/engine-api/ww1936/DepthTypes";
+import { MEDAL_DAYS } from "@openfront/engine-api/ww1936/DepthTypes";
 import {
   equipKey,
   WW_DAY_SPLIT,
@@ -19,7 +14,10 @@ import {
 import { admiralTraitBit } from "@openfront/engine-api/ww1936/NavyTypes";
 import { dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
 import { divisionMods } from "@openfront/engine-lib/ww1936/CombatRules";
-import { traitSlots } from "@openfront/engine-lib/ww1936/CommandRules";
+import {
+  MEDAL_AUTO_EVERY_DAYS,
+  traitSlots,
+} from "@openfront/engine-lib/ww1936/CommandRules";
 import type { GameRunner } from "@openfront/engine/GameRunner";
 import { FM_ARMY } from "@openfront/engine/ww1936/depth/ArmyGroups";
 import {
@@ -69,30 +67,8 @@ function afterTurn(runner: GameRunner, day: number): number {
 }
 
 describe("command (spec §4)", () => {
-  it("command power grows 0.4 a day and pays marshal upkeep", async () => {
-    const { runner, c, land, d } = await germany();
-    stepTo(runner, afterTurn(runner, 0));
-    expect(c.cmd.cpMilli).toBe(CP_DAY_MILLI);
-    stepTo(runner, afterTurn(runner, 9));
-    expect(c.cmd.cpMilli).toBe(10 * CP_DAY_MILLI);
-    // A field marshal costs 0.05 a day.
-    const g = land
-      .country(DEU)!
-      .generals.find((x) => x.army === 0 && canServe(land, x, 9))!;
-    makeMarshal(d, DEU, g, 0);
-    expect(land.fieldMarshalCount(DEU)).toBe(1);
-    stepTo(runner, afterTurn(runner, 10));
-    expect(c.cmd.cpMilli).toBe(
-      10 * CP_DAY_MILLI + CP_DAY_MILLI - CP_FM_UPKEEP_MILLI,
-    );
-    // Never past 100.
-    c.cmd.cpMilli = 99_900;
-    stepTo(runner, afterTurn(runner, 11));
-    expect(c.cmd.cpMilli).toBe(100_000);
-  });
-
-  it("assigning a trait spends command power and respects slots", async () => {
-    const { runner, ww, c, land, d } = await germany();
+  it("assigning a trait spends XP and respects slots", async () => {
+    const { runner, ww, land, d } = await germany();
     const tick = runner.game.ticks();
     const g = land.country(DEU)!.generals.find((x) => x.army === 0)!;
     const assign = (trait: string, general = g.id, admiral = false) =>
@@ -101,11 +77,12 @@ describe("command (spec §4)", () => {
         { kind: "trait_assign", general, trait, admiral } as never,
         tick,
       );
-    c.cmd.cpMilli = 10_000;
-    expect(assign("artillery_officer")).toBe("no_cp");
-    c.cmd.cpMilli = 50_000;
+    const cl = land.country(DEU)!;
+    cl.armyXpMilli = 10_000;
+    expect(assign("artillery_officer")).toBe("no_xp");
+    cl.armyXpMilli = 100_000;
     expect(assign("artillery_officer")).toBeNull();
-    expect(c.cmd.cpMilli).toBe(35_000);
+    expect(cl.armyXpMilli).toBe(100_000 - 30_000);
     expect(g.traits & traitBit("artillery_officer")).not.toBe(0);
     // Level 1: a level-2 trait, a terrain trait, one held: refused.
     expect(assign("engineer_officer")).toBe("trait_unavailable");
@@ -118,21 +95,22 @@ describe("command (spec §4)", () => {
     expect(traitSlots(2)).toBe(4);
     for (const t of ["engineer_officer", "commando", "skirmisher"]) {
       if (held >= traitSlots(2)) break;
-      c.cmd.cpMilli = 50_000;
+      cl.armyXpMilli = 100_000;
       expect(assign(t), t).toBeNull();
       held++;
     }
-    c.cmd.cpMilli = 50_000;
+    cl.armyXpMilli = 100_000;
     expect(assign("guerrilla_fighter")).toBe("trait_unavailable");
-    // A field marshal's traits: one more at levels 3 and 5, 20 each.
+    // A field marshal's traits: one more at levels 3 and 5, 40 army XP each.
     makeMarshal(d, DEU, g, 0);
     g.level = 2;
     expect(assign("fm_logistics")).toBe("trait_unavailable");
     g.level = 3;
+    cl.armyXpMilli = 100_000;
     expect(assign("fm_logistics")).toBeNull();
-    expect(c.cmd.cpMilli).toBe(30_000);
+    expect(cl.armyXpMilli).toBe(60_000);
     expect(assign("fm_thorough")).toBe("trait_unavailable");
-    // An admiral: level 2, 15, at most three traits.
+    // An admiral: level 2, 30 navy XP, at most three traits.
     const navy = ww.navy;
     navy.admirals.set(99_001, {
       id: 99_001,
@@ -144,9 +122,12 @@ describe("command (spec §4)", () => {
       fleet: 0,
       usage: [0, 0, 0, 0],
     });
-    c.cmd.cpMilli = 50_000;
+    const cn = ww.navy.country(DEU)!;
+    cn.navyXpMilli = 10_000;
+    expect(assign("convoy_master", 99_001, true)).toBe("no_xp");
+    cn.navyXpMilli = 100_000;
     expect(assign("convoy_master", 99_001, true)).toBeNull();
-    expect(c.cmd.cpMilli).toBe(35_000);
+    expect(cn.navyXpMilli).toBe(70_000);
     expect(assign("night_fighter", 99_001, true)).toBeNull();
     expect(assign("fleet_tactician", 99_001, true)).toBe("trait_unavailable");
     expect(assign("convoy_master", 99_001 + 1, true)).toBe(
@@ -181,8 +162,8 @@ describe("command (spec §4)", () => {
     spy.mockRestore();
   });
 
-  it("promoting a field marshal costs 30 CP and 25 PP and frees his army", async () => {
-    const { runner, ww, c, land, d } = await germany();
+  it("promoting a field marshal costs 25 PP only and frees his army", async () => {
+    const { runner, ww, land, d } = await germany();
     const cl = land.country(DEU)!;
     const g = cl.generals.find(
       (x) => x.army > 0 && x.att + x.dfn + x.plan + x.log >= 12,
@@ -190,7 +171,6 @@ describe("command (spec §4)", () => {
     const army = land.armies.get(g.army)!;
     const pol = ww.politics.country(DEU)!;
     pol.ppMilli = 100_000;
-    c.cmd.cpMilli = 40_000;
     const tick = runner.game.ticks();
     const promote = (general: number) =>
       d.issue(DEU, { kind: "promote_fm", general, trait: "fm_thorough" }, tick);
@@ -206,14 +186,12 @@ describe("command (spec §4)", () => {
     expect(
       land.issue(DEU, { kind: "army_general", army: army.id, general: g.id }),
     ).toBe("general_unavailable");
-    expect(c.cmd.cpMilli).toBe(10_000);
     expect(pol.ppMilli).toBe(75_000);
     expect(g.fm).toBe(true);
     expect(g.fmTraits).toBe(1 << 3);
     expect(army.general).toBe(0);
     expect(g.army).toBe(FM_ARMY);
     // One marshal up to 71 divisions (spec §4.3).
-    c.cmd.cpMilli = 40_000;
     const day = ww.day(tick);
     const other = cl.generals.find(
       (x) =>
@@ -288,34 +266,63 @@ describe("command (spec §4)", () => {
     void ww;
   });
 
-  it("medal gives +3% attack for 180 days and blocks the army for 120", async () => {
+  it("a won battle names a medal candidate and the medal comes automatically, 30 days apart", async () => {
     const { runner, ww, c, land, d } = await germany();
-    const [a] = land.armiesOf(DEU);
+    const [a, b] = land.armiesOf(DEU);
     const day = ww.day(runner.game.ticks());
     const tickOf = (x: number) => dayStartTick(x, ww.prepEndTick());
-    const award = (x: number, medal = "medal_valor") =>
+    // The order is refused since ww9.
+    expect(
       d.issue(
         DEU,
-        { kind: "medal_award", army: a.id, medal } as never,
-        tickOf(x),
-      );
-    expect(award(day)).toBe("no_cp");
-    c.cmd.cpMilli = 30_000;
-    expect(award(day)).toBeNull();
-    expect(c.cmd.cpMilli).toBe(20_000);
+        { kind: "medal_award", army: a.id, medal: "medal_valor" } as never,
+        tickOf(day),
+      ),
+    ).toBe("bad_index");
+    const div = (x: typeof a) => x.divisions.slice(0, 1);
+    // An attack won: valour; a defence won: defence; a lost field: service.
+    d.onBattleEnd(0, div(a), [], false);
+    expect(c.cmd.medalWin).toEqual([a.id, 0, 1]);
+    // A bigger win replaces it; a defeat never does.
+    d.onBattleEnd(1, [], b.divisions, false);
+    expect(c.cmd.medalWin).toEqual([b.id, 1, b.divisions.length]);
+    d.onBattleEnd(0, [], [], false);
+    d.onBattleEnd(1, div(a), div(a), true);
+    expect(c.cmd.medalWin![1]).toBe(1);
+    dailyCommand(d, DEU, day);
+    expect(land.armies.get(b.id)!.medal).toBe(2);
+    expect(c.cmd.medalWin).toBeUndefined();
+    expect(d.armyMods(DEU, b.id).cmdDefBp).toBe(300);
+    expect(d.medalXpPct(b.id)).toBe(10);
+    // The next one waits MEDAL_AUTO_EVERY_DAYS.
+    d.onBattleEnd(0, div(a), [], false);
+    dailyCommand(d, DEU, day + MEDAL_AUTO_EVERY_DAYS - 1);
+    expect(land.armies.get(a.id)!.medal).toBe(0);
+    dailyCommand(d, DEU, day + MEDAL_AUTO_EVERY_DAYS);
+    expect(land.armies.get(a.id)!.medal).toBe(1);
     expect(d.armyMods(DEU, a.id).cmdAttBp).toBe(300);
-    expect(d.armyMods(DEU, a.id).cmdDefBp).toBe(0);
-    expect(d.medalXpPct(a.id)).toBe(10);
-    expect(award(day + MEDAL_COOLDOWN_DAYS - 1)).toBe("doctrine_locked");
     // 180 days of effect.
-    dailyCommand(d, DEU, day + MEDAL_DAYS - 1);
-    expect(d.armyMods(DEU, a.id).cmdAttBp).toBe(300);
     dailyCommand(d, DEU, day + MEDAL_DAYS);
-    expect(d.armyMods(DEU, a.id).cmdAttBp).toBe(0);
-    expect(d.medalXpPct(a.id)).toBe(0);
-    // After 120 days the army may get another.
-    expect(award(day + MEDAL_DAYS, "medal_defense")).toBeNull();
-    expect(d.armyMods(DEU, a.id).cmdDefBp).toBe(300);
+    expect(land.armies.get(b.id)!.medal).toBe(0);
+  });
+
+  it("a general with 60 battle days takes a free trait by his service", async () => {
+    const { runner, land, d } = await germany();
+    const g = land.country(DEU)!.generals.find((x) => x.army === 0 && !x.fm)!;
+    g.level = 3;
+    g.use = [50, 0, 0, 0];
+    dailyCommand(d, DEU, 1);
+    expect(g.traits & traitBit("trickster")).toBe(0);
+    g.use = [60, 0, 0, 0];
+    dailyCommand(d, DEU, 2);
+    // Attack days point to the trickster (list order puts the others at 0).
+    expect(g.traits & traitBit("trickster")).not.toBe(0);
+    // The second needs 120 days.
+    g.use = [100, 0, 0, 0];
+    const before = g.traits;
+    dailyCommand(d, DEU, 3);
+    expect(g.traits).toBe(before);
+    void runner;
   });
 
   it("reinforcement follows army priority", async () => {

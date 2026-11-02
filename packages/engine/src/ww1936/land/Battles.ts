@@ -890,6 +890,7 @@ export function closeBattle(land: WwLand, region: number): void {
 function endDefended(land: WwLand, b: Battle): void {
   // P5 hook (A, spec §14): the defenders held the field.
   captureOnBattleEnd(land.ww.endgame, b, 1);
+  land.depthHooks.onBattleEnd(1, b.attackers, b.defenders, false);
   const s = land.spreads.get(b.region);
   if (s !== undefined && s.by !== land.controller[b.region]) {
     s.kind = SPREAD_REVERT;
@@ -931,6 +932,7 @@ function won(land: WwLand, b: Battle, tick: number): void {
   }
   // P5 hook (A, spec §14): the attackers took the field.
   captureOnBattleEnd(land.ww.endgame, b, 0);
+  land.depthHooks.onBattleEnd(0, b.attackers, b.defenders, true);
   if (prog + 1 >= depth) {
     // ww7: an enveloping win (not met by a withdrawal) overruns more.
     const envelop =

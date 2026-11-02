@@ -96,7 +96,7 @@ export const TRAITS: readonly TraitDef[] = [
     id: "chief_organizer",
     branch: "army_chief",
     generic: true,
-    stats: { orgPct: 5, armyXpMilli: 50, cpGainPct: 10 },
+    stats: { orgPct: 5, armyXpMilli: 90 },
   },
   {
     id: "staff_planner",

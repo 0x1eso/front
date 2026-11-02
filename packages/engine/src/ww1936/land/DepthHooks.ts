@@ -38,6 +38,17 @@ export interface LandDepthHooks {
   reinforceOrder(id: number): number[] | null;
   /** A medal's division experience gain on the army, percent. */
   medalXpPct(armyId: number): number;
+  /**
+   * ww9: a battle ended (the winner's side 0 attackers / 1 defenders); the
+   * lists are the division ids still in it; `defeat`: the other side lost
+   * the field (a defended battle only ends, it is not a defeat).
+   */
+  onBattleEnd(
+    winnerSide: 0 | 1,
+    attackers: readonly number[],
+    defenders: readonly number[],
+    defeat: boolean,
+  ): void;
   /** Supply into the region, ‰ (flood, scorch, nuke). */
   supplyPm(region: number): number;
   /** Movement into the region slowed, percent. */
@@ -90,6 +101,7 @@ export const NEUTRAL_DEPTH_HOOKS: LandDepthHooks = {
   railGunHits: () => 0,
   reinforceOrder: () => null,
   medalXpPct: () => 0,
+  onBattleEnd: () => {},
   supplyPm: () => 1000,
   moveCutPct: () => 0,
   onRegionControl: () => {},

@@ -27,8 +27,6 @@ export function depthDetail(
       ...over.doctrine,
     },
     command: {
-      cpMilli: 34_000,
-      cpGainMilli: 400,
       spirits: new Array<number>(7).fill(-1),
       spiritLock: new Array<number>(7).fill(-1),
       medalReady: [],
@@ -59,7 +57,6 @@ export function depthSummary(
     smallID,
     gd: [-1, -1, -1],
     levels: new Array<number>(9).fill(0),
-    cpMilli: 34_000,
     energyPm: 1000,
     mioSize: [],
     fieldMarshals: 0,

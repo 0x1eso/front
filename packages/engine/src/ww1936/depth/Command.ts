@@ -5,12 +5,9 @@ import type { DepthOrder } from "@openfront/engine-api/Schemas";
 import {
   ARMY_SPIRIT_CATEGORIES,
   ARMY_SPIRITS,
-  CP_MAX_MILLI,
-  FM_PROMOTE_CP,
   FM_PROMOTE_PP,
   FM_TRAITS,
   MEDAL_COOLDOWN_DAYS,
-  MEDAL_CP,
   MEDAL_DAYS,
   MEDALS,
   SPIRIT_CAT_DOMAIN,
@@ -20,6 +17,11 @@ import type { WwOrderBlock } from "@openfront/engine-api/ww1936/EconomyTypes";
 import {
   GENERAL_TRAITS,
   GeneralTrait,
+  TPL_ARMOR_ANY,
+  TPL_INFANTRY_DIV,
+  TPL_MARINE_ANY,
+  TPL_MOUNTAIN_ANY,
+  TPL_PARA_ANY,
   traitBit,
 } from "@openfront/engine-api/ww1936/LandTypes";
 import {
@@ -28,29 +30,32 @@ import {
   admiralTraitBit,
   WW_ADMIRAL_TRAIT_MAX,
 } from "@openfront/engine-api/ww1936/NavyTypes";
-import type {
-  WwStatKey,
-  WwStats,
-} from "@openfront/engine-api/ww1936/PoliticsTypes";
+import type { WwStats } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { dayOfDate } from "@openfront/engine-lib/ww1936/Calendar";
 import {
   ARMY_SPIRIT_STATS,
-  cpDayMilli,
+  ASSIGNABLE_ADMIRAL_TRAITS,
+  AUTO_ADMIRAL_DAYS,
+  AUTO_TRAIT_BATTLE_DAYS,
   fmArmyStats,
+  fmTraitAllowance,
+  MEDAL_AUTO_EVERY_DAYS,
+  MEDAL_MAX_ACTIVE,
   MEDAL_STATS,
+  NEW_GENERAL_TRAITS,
   promoteFmBlock,
   spiritCost,
   spiritPickBlock,
   TERRAIN_TRAIT_DAYS,
   traitAssignBlock,
-  traitCost,
   traitSlots,
+  traitXpCost,
 } from "@openfront/engine-lib/ww1936/CommandRules";
 import { GENERALS } from "@openfront/engine-lib/ww1936/Generals";
 import { historicalAiActive } from "@openfront/engine-lib/ww1936/Pace";
 import { addSparseInto } from "@openfront/engine-lib/ww1936/Stats";
 import { canServe, TERRAIN_TRAITS } from "../land/GeneralsRun";
-import type { Army, CountryLand, GeneralState } from "../land/WwLand";
+import type { Army, CountryLand, GeneralState, WwLand } from "../land/WwLand";
 import { payPp } from "../politics/PayPp";
 import {
   commandVer,
@@ -85,12 +90,6 @@ type MedalStats = {
   recoveryPct?: number;
 };
 
-function statsOf(d: WwDepth, id: number): Partial<Record<WwStatKey, number>> {
-  return (d.ww.economy.country(id)?.stats ?? {}) as Partial<
-    Record<WwStatKey, number>
-  >;
-}
-
 /** The K5 START_FIELD_MARSHALS rows naming `g` of country `tag` whose window holds `day`. */
 export function listedFm(
   d: WwDepth,
@@ -113,13 +112,13 @@ export function listedFm(
 // ---- the country's day ----
 
 /**
- * Spec §4.1–§4.5, the country's depth day: command power (+0.4 a day ×
- * cpGainPct, −0.05 per field marshal, 0..100); field marshals keep no army
+ * Spec §4.1–§4.5, the country's depth day (ww9: no command power): field marshals keep no army
  * and stop being one when they can no longer serve (roster dates, purges,
  * advisors) or their K5 row's last day comes; the P6 terrain traits (60
  * battle days in forest or jungle, urban, marsh; P2's day learns them for
- * the generals of armies, this one for the rest) and their notice; medals
- * that ran out.
+ * the generals of armies, this one for the rest) and their notice; the free
+ * automatic traits (design §12.2); medals that ran out and the automatic
+ * medal (design §12.3).
  */
 export function dailyCommand(d: WwDepth, id: number, day: number): void {
   const c = d.country(id);
@@ -127,19 +126,13 @@ export function dailyCommand(d: WwDepth, id: number, day: number): void {
   const cl = land.country(id);
   if (c === null || cl === null) return;
   const cmd = c.cmd;
-  cmd.cpMilli = Math.max(
-    0,
-    Math.min(
-      CP_MAX_MILLI,
-      cmd.cpMilli +
-        cpDayMilli(statsOf(d, id).cpGainPct ?? 0, land.fieldMarshalCount(id)),
-    ),
-  );
   let changed = false;
   for (const g of cl.generals) {
     if (g.fm) changed = keepMarshal(d, id, g, day) || changed;
     changed = terrainTraits(d, id, g) || changed;
+    changed = autoGeneralTrait(d, id, g) || changed;
   }
+  autoAdmiralTraits(d, id);
   // Medals over (the last day was yesterday) and cooldowns passed.
   for (const a of land.armiesOf(id)) {
     if (a.medal > 0 && a.medalUntil < day) {
@@ -152,6 +145,7 @@ export function dailyCommand(d: WwDepth, id: number, day: number): void {
   cmd.medalReady = cmd.medalReady.filter(
     ([army, ready]) => ready > day && land.armies.get(army)?.owner === id,
   );
+  autoMedal(d, id, day);
   if (changed) {
     land.markCountry(id);
     touchCommand(d);
@@ -273,7 +267,7 @@ function setSeenBits(
 
 // ---- orders ----
 
-/** army_spirit_pick, trait_assign, promote_fm, medal_award, army_priority. */
+/** army_spirit_pick, trait_assign, promote_fm, army_priority (medal_award is refused since ww9). */
 export function issueCommand(
   d: WwDepth,
   id: number,
@@ -311,24 +305,9 @@ export function issueCommand(
         : assignGeneralTrait(d, id, o.general, o.trait);
     case "promote_fm":
       return promoteMarshal(d, id, o.general, FM_TRAITS.indexOf(o.trait), day);
-    case "medal_award": {
-      const a = land.armies.get(o.army);
-      if (a === undefined || a.owner !== id) return "no_army";
-      const ready = c.cmd.medalReady.find((x) => x[0] === a.id);
-      if (ready !== undefined && ready[1] > day) return "doctrine_locked";
-      if (c.cmd.cpMilli < MEDAL_CP * 1000) return "no_cp";
-      c.cmd.cpMilli -= MEDAL_CP * 1000;
-      a.medal = MEDALS.indexOf(o.medal) + 1;
-      touchCommand(d);
-      a.medalUntil = day + MEDAL_DAYS - 1;
-      if (ready !== undefined) ready[1] = day + MEDAL_COOLDOWN_DAYS;
-      else {
-        c.cmd.medalReady.push([a.id, day + MEDAL_COOLDOWN_DAYS]);
-        c.cmd.medalReady.sort((x, y) => x[0] - y[0]);
-      }
-      land.markArmy(a.id);
-      return null;
-    }
+    // ww9: medals are awarded automatically after won battles (autoMedal).
+    case "medal_award":
+      return "bad_index";
     case "army_priority": {
       const a = land.armies.get(o.army);
       if (a === undefined || a.owner !== id) return "no_army";
@@ -358,7 +337,6 @@ export function assignGeneralTrait(
   general: number,
   trait: string,
 ): WwOrderBlock | null {
-  const c = d.country(id)!;
   const land = d.ww.land;
   const cl = land.country(id);
   const g = cl === null ? null : generalById(cl, general);
@@ -369,12 +347,12 @@ export function assignGeneralTrait(
     traits: generalTraitIds(g.traits),
     slots: traitSlots(g.level),
     trait,
-    cpMilli: c.cmd.cpMilli,
+    xp: d.xpOf(id, 0),
     isFm: g.fm,
     fmTraits: fmTraitIds(g.fmTraits),
   });
   if (block !== null) return block;
-  c.cmd.cpMilli -= traitCost(trait, false) * 1000;
+  if (!d.spendXp(id, 0, traitXpCost(trait, false))) return "no_xp";
   const fmBit = FM_TRAITS.indexOf(trait as (typeof FM_TRAITS)[number]);
   if (fmBit >= 0) g.fmTraits |= 1 << fmBit;
   else g.traits |= traitBit(trait as GeneralTrait);
@@ -384,14 +362,13 @@ export function assignGeneralTrait(
   return null;
 }
 
-/** trait_assign for an admiral (spec §4.2: level 2, 15, at most WW_ADMIRAL_TRAIT_MAX). */
+/** trait_assign for an admiral (spec §4.2: level 2, ADMIRAL_ASSIGN_XP navy XP, at most WW_ADMIRAL_TRAIT_MAX). */
 function assignAdmiralTrait(
   d: WwDepth,
   id: number,
   admiral: number,
   trait: string,
 ): WwOrderBlock | null {
-  const c = d.country(id)!;
   const a = d.ww.navy.admirals.get(admiral);
   if (a === undefined || a.owner !== id) return "admiral_unavailable";
   const block = traitAssignBlock({
@@ -400,20 +377,20 @@ function assignAdmiralTrait(
     traits: ADMIRAL_TRAITS.filter((t) => (a.traits & admiralTraitBit(t)) !== 0),
     slots: WW_ADMIRAL_TRAIT_MAX,
     trait,
-    cpMilli: c.cmd.cpMilli,
+    xp: d.xpOf(id, 1),
     isFm: false,
     fmTraits: [],
   });
   if (block !== null) return block;
-  c.cmd.cpMilli -= traitCost(trait, true) * 1000;
+  if (!d.spendXp(id, 1, traitXpCost(trait, true))) return "no_xp";
   a.traits |= admiralTraitBit(trait as AdmiralTrait);
   d.ww.navy.markCountry(id);
   return null;
 }
 
 /**
- * promote_fm (spec §4.3; CommandRules.promoteFmBlock judges): 30 command
- * power and 25 PP; the general keeps no army (it is left without one) and
+ * promote_fm (spec §4.3; CommandRules.promoteFmBlock judges): 25 PP only
+ * (ww9); the general keeps no army (it is left without one) and
  * takes one field marshal trait (FM_TRAITS index).
  */
 export function promoteMarshal(
@@ -423,7 +400,6 @@ export function promoteMarshal(
   trait: number,
   day: number,
 ): WwOrderBlock | null {
-  const c = d.country(id)!;
   const land = d.ww.land;
   const cl = land.country(id);
   const g = cl === null ? null : generalById(cl, general);
@@ -437,12 +413,10 @@ export function promoteMarshal(
     listed: listedFm(d, id, g, day),
     fieldMarshals: land.fieldMarshalCount(id),
     divisions: land.rowsOf(id).length,
-    cpMilli: c.cmd.cpMilli,
     pp: pol === null ? 0 : Math.floor(pol.ppMilli / 1000),
   });
   if (block !== null) return block;
   if (!payPp(d.ww.politics, id, FM_PROMOTE_PP)) return "no_pp";
-  c.cmd.cpMilli -= FM_PROMOTE_CP * 1000;
   makeMarshal(d, id, g, trait);
   return null;
 }
@@ -466,6 +440,290 @@ export function makeMarshal(
   touchCommand(d);
   land.markCountry(id);
   d.message(id, "ww1936_fm_promoted", { general: g.id });
+}
+
+// ---- ww9: automatic traits and medals (design §12.2, §12.3) ----
+
+const popcount = (m: number): number => {
+  let n = 0;
+  for (let x = m >>> 0; x !== 0; x &= x - 1) n++;
+  return n;
+};
+/** XP that no price reaches: the automatic pick ignores the price. */
+const FREE = Number.MAX_SAFE_INTEGER;
+
+/** The assigned traits (NEW_GENERAL_TRAITS kind "assign"), in list order. */
+const ASSIGN_TRAITS: readonly GeneralTrait[] = GENERAL_TRAITS.filter(
+  (t) => NEW_GENERAL_TRAITS[t]?.kind === "assign",
+);
+
+/** The share of the army's divisions whose template flags hit `mask`, per mille. */
+function flagShare(land: WwLand, a: Army | undefined, mask: number): number {
+  if (a === undefined || a.divisions.length === 0) return 0;
+  const t = land.divisions;
+  let n = 0;
+  for (const div of a.divisions) {
+    const r = t.rowOf(div);
+    if (r >= 0 && (land.flagsOf(r) & mask) !== 0) n++;
+  }
+  return Math.floor((n * 1000) / a.divisions.length);
+}
+
+/** A general's score for each assignable trait (design §12.2 table). */
+function traitScore(
+  land: WwLand,
+  g: GeneralState,
+  a: Army | undefined,
+  trait: GeneralTrait,
+): number {
+  switch (trait) {
+    case "armor_expert":
+      return flagShare(land, a, TPL_ARMOR_ANY);
+    case "infantry_expert":
+      return flagShare(land, a, TPL_INFANTRY_DIV);
+    // The army's artillery is not a template flag: half the infantry share.
+    case "artillery_officer":
+      return flagShare(land, a, TPL_INFANTRY_DIV) >> 1;
+    case "commando":
+      return flagShare(
+        land,
+        a,
+        TPL_MOUNTAIN_ANY | TPL_MARINE_ANY | TPL_PARA_ANY,
+      );
+    case "engineer_officer":
+      return g.terrainDays[3] ?? 0;
+    case "guerrilla_fighter":
+      return g.use[3] ?? 0;
+    case "trickster":
+    case "skirmisher":
+      return g.use[0] ?? 0;
+    case "ambusher":
+      return g.use[1] ?? 0;
+    default:
+      return 0;
+  }
+}
+
+/**
+ * Design §12.2: a general with a free slot and battle days (attack +
+ * defence) of AUTO_TRAIT_BATTLE_DAYS per assigned trait held plus one takes
+ * the allowed trait his service scores highest (list order on a tie); a
+ * field marshal with room takes the marshal trait his service points to.
+ * Free of XP. True when it changed something.
+ */
+function autoGeneralTrait(d: WwDepth, id: number, g: GeneralState): boolean {
+  const land = d.ww.land;
+  const days = (g.use[0] ?? 0) + (g.use[1] ?? 0);
+  if (g.fm) {
+    if (popcount(g.fmTraits) >= fmTraitAllowance(g.level)) return false;
+    // Attack, defence, short of supply, preparing; none: the strategist.
+    const order: [number, (typeof FM_TRAITS)[number]][] = [
+      [g.use[0] ?? 0, "fm_offensive"],
+      [g.use[1] ?? 0, "fm_defensive"],
+      [g.use[3] ?? 0, "fm_logistics"],
+      [g.use[2] ?? 0, "fm_thorough"],
+    ];
+    let pick: (typeof FM_TRAITS)[number] = "fm_strategist";
+    let best = 0;
+    for (const [v, t] of order) {
+      if (v > best && (g.fmTraits & (1 << FM_TRAITS.indexOf(t))) === 0) {
+        best = v;
+        pick = t;
+      }
+    }
+    if ((g.fmTraits & (1 << FM_TRAITS.indexOf(pick))) !== 0) {
+      const free = FM_TRAITS.find(
+        (t) => (g.fmTraits & (1 << FM_TRAITS.indexOf(t))) === 0,
+      );
+      if (free === undefined) return false;
+      pick = free;
+    }
+    return grantGeneralTrait(d, id, g, pick);
+  }
+  if (days <= 0) return false;
+  const held = generalTraitIds(g.traits);
+  const assigned = held.filter((t) =>
+    ASSIGN_TRAITS.includes(t as GeneralTrait),
+  ).length;
+  if (days < AUTO_TRAIT_BATTLE_DAYS * (assigned + 1)) return false;
+  const slots = traitSlots(g.level);
+  if (held.length >= slots) return false;
+  const a = g.army > 0 ? land.armies.get(g.army) : undefined;
+  let pick: GeneralTrait | null = null;
+  let best = -1;
+  for (const t of ASSIGN_TRAITS) {
+    if (
+      traitAssignBlock({
+        admiral: false,
+        level: g.level,
+        traits: held,
+        slots,
+        trait: t,
+        xp: FREE,
+        isFm: false,
+        fmTraits: [],
+      }) !== null
+    ) {
+      continue;
+    }
+    const sc = traitScore(land, g, a, t);
+    if (sc > best) {
+      best = sc;
+      pick = t;
+    }
+  }
+  return pick === null ? false : grantGeneralTrait(d, id, g, pick);
+}
+
+/** Gives the trait for free and tells the owner. */
+function grantGeneralTrait(
+  d: WwDepth,
+  id: number,
+  g: GeneralState,
+  trait: string,
+): boolean {
+  const land = d.ww.land;
+  const fmBit = FM_TRAITS.indexOf(trait as (typeof FM_TRAITS)[number]);
+  if (fmBit >= 0) g.fmTraits |= 1 << fmBit;
+  else g.traits |= traitBit(trait as GeneralTrait);
+  if (g.army > 0) land.markArmy(g.army);
+  d.message(id, "ww1936_trait_unlocked", { general: g.id, trait });
+  return true;
+}
+
+/** Design §12.2 admirals: level 2 and usage days of AUTO_ADMIRAL_DAYS per assigned trait held plus one. */
+function autoAdmiralTraits(d: WwDepth, id: number): void {
+  const navy = d.ww.navy;
+  for (const a of navy.admirals.values()) {
+    if (a.owner !== id) continue;
+    const total = a.usage[0] + a.usage[1] + a.usage[2] + a.usage[3];
+    const held = ADMIRAL_TRAITS.filter(
+      (t) => (a.traits & admiralTraitBit(t)) !== 0,
+    );
+    const assigned = held.filter((t) =>
+      ASSIGNABLE_ADMIRAL_TRAITS.includes(t),
+    ).length;
+    if (total < AUTO_ADMIRAL_DAYS * (assigned + 1)) continue;
+    // Escort and carriers, battle, mission, battle damage.
+    const plan: [number, AdmiralTrait][] = [
+      [a.usage[3], "convoy_master"],
+      [a.usage[0], "fleet_tactician"],
+      [a.usage[2], "night_fighter"],
+      [a.usage[1], "blockade_runner"],
+    ];
+    let pick: AdmiralTrait | null = null;
+    let best = -1;
+    for (const [v, t] of plan) {
+      if (
+        v > best &&
+        traitAssignBlock({
+          admiral: true,
+          level: a.level,
+          traits: held,
+          slots: WW_ADMIRAL_TRAIT_MAX,
+          trait: t,
+          xp: FREE,
+          isFm: false,
+          fmTraits: [],
+        }) === null
+      ) {
+        best = v;
+        pick = t;
+      }
+    }
+    if (pick === null) continue;
+    a.traits |= admiralTraitBit(pick);
+    navy.markCountry(id);
+    d.message(id, "ww1936_trait_unlocked", { general: a.id, trait: pick });
+  }
+}
+
+/**
+ * Design §12.3: a battle ended. Per country with armies on the winning
+ * side, its biggest army there is the medal candidate (valour for an
+ * attack, defence for a defence; the loser's biggest army, when the field
+ * was lost, is a low-ranked service medal). A bigger candidate replaces
+ * the held one; any win outranks any defeat.
+ */
+export function onBattleEnd(
+  d: WwDepth,
+  winnerSide: 0 | 1,
+  attackers: readonly number[],
+  defenders: readonly number[],
+  defeat: boolean,
+): void {
+  const win = winnerSide === 0 ? attackers : defenders;
+  noteCandidates(d, win, winnerSide === 0 ? 0 : 1, 0);
+  if (defeat)
+    noteCandidates(d, winnerSide === 0 ? defenders : attackers, 2, -1000);
+}
+
+function noteCandidates(
+  d: WwDepth,
+  divs: readonly number[],
+  medal: number,
+  offset: number,
+): void {
+  const land = d.ww.land;
+  const t = land.divisions;
+  const per = new Map<number, number>();
+  for (const div of divs) {
+    const r = t.rowOf(div);
+    if (r < 0) continue;
+    const army = t.army[r];
+    if (army > 0) per.set(army, (per.get(army) ?? 0) + 1);
+  }
+  const best = new Map<number, [number, number]>();
+  for (const [army, n] of per) {
+    const a = land.armies.get(army);
+    if (a === undefined) continue;
+    const cur = best.get(a.owner);
+    if (cur === undefined || n > cur[1] || (n === cur[1] && army < cur[0])) {
+      best.set(a.owner, [army, n]);
+    }
+  }
+  for (const [owner, [army, n]] of best) {
+    const c = d.country(owner);
+    if (c === null) continue;
+    const score = n + offset;
+    const w = c.cmd.medalWin;
+    if (w === undefined || score > w[2]) c.cmd.medalWin = [army, medal, score];
+  }
+}
+
+/** Design §12.3: every MEDAL_AUTO_EVERY_DAYS the candidate gets its medal, if the cooldown is over and fewer than MEDAL_MAX_ACTIVE are held. */
+function autoMedal(d: WwDepth, id: number, day: number): void {
+  const c = d.country(id)!;
+  const land = d.ww.land;
+  const w = c.cmd.medalWin;
+  if (w === undefined) return;
+  const a = land.armies.get(w[0]);
+  if (a === undefined || a.owner !== id || a.medal > 0) {
+    c.cmd.medalWin = undefined;
+    return;
+  }
+  if (
+    c.cmd.medalDay !== undefined &&
+    day - c.cmd.medalDay < MEDAL_AUTO_EVERY_DAYS
+  ) {
+    return;
+  }
+  const ready = c.cmd.medalReady.find((x) => x[0] === a.id);
+  if (ready !== undefined && ready[1] > day) return;
+  let active = 0;
+  for (const x of land.armiesOf(id)) if (x.medal > 0) active++;
+  if (active >= MEDAL_MAX_ACTIVE) return;
+  a.medal = w[1] + 1;
+  a.medalUntil = day + MEDAL_DAYS - 1;
+  if (ready !== undefined) ready[1] = day + MEDAL_COOLDOWN_DAYS;
+  else {
+    c.cmd.medalReady.push([a.id, day + MEDAL_COOLDOWN_DAYS]);
+    c.cmd.medalReady.sort((x, y) => x[0] - y[0]);
+  }
+  c.cmd.medalDay = day;
+  c.cmd.medalWin = undefined;
+  land.markArmy(a.id);
+  touchCommand(d);
 }
 
 // ---- what the land war reads ----

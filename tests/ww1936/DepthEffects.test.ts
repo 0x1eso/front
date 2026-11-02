@@ -3,10 +3,7 @@
 // dispatcher on the deep test map (France human). The effects whose
 // bodies other lanes own (D, E, I, S, W1) are checked for their routing
 // here; their numbers are those lanes' tests.
-import {
-  CP_MAX_MILLI,
-  SPECIAL_PROJECTS,
-} from "@openfront/engine-api/ww1936/DepthTypes";
+import { SPECIAL_PROJECTS } from "@openfront/engine-api/ww1936/DepthTypes";
 import { equipKey } from "@openfront/engine-api/ww1936/EconomyTypes";
 import {
   type Condition,
@@ -104,16 +101,13 @@ describe("World War 1936 P6: the depth effects", () => {
     expect(bopValue(d, "FRA")).toBe(v + 100);
     fx(runner, { kind: "bop", amount: 100 }, DEU); // no mechanism: nothing
     expect(bopValue(d, "FRA")).toBe(v + 100);
-    // cp: whole points of command power, kept in range. (Lane D's daily
-    // gain has run since the start: count from what France holds now.)
-    const cp = c.cmd.cpMilli;
+    // cp: whole points of army experience (ww9), kept at 0 or more.
+    const ww = runner.game.worldWar()!;
+    const xp = ww.land.country(FRA)!.armyXpMilli;
     fx(runner, { kind: "cp", amount: 5 });
-    expect(c.cmd.cpMilli).toBe(cp + 5_000);
+    expect(ww.land.country(FRA)!.armyXpMilli).toBe(xp + 5_000);
     fx(runner, { kind: "cp", amount: -100 });
-    expect(c.cmd.cpMilli).toBe(0);
-    c.cmd.cpMilli = CP_MAX_MILLI - 1_000;
-    fx(runner, { kind: "cp", amount: 100 });
-    expect(c.cmd.cpMilli).toBe(CP_MAX_MILLI);
+    expect(ww.land.country(FRA)!.armyXpMilli).toBe(0);
     // cfocus_unlock: the continuous focuses open in 1936.
     expect(c.mech.cfocusOpen).toBe(false);
     fx(runner, { kind: "cfocus_unlock" });

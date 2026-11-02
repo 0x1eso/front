@@ -71,7 +71,7 @@ describe("DoctrineModel (spec §20.2, §20.3)", () => {
       ],
       detail: {
         doctrine: { xp: [150, 40, 7] },
-        command: { cpMilli: 34_000, medalCooldown: [[5, 40]] },
+        command: { medalCooldown: [[5, 40]] },
       },
     });
     const m = new DoctrineModel(g.game as never);
@@ -140,7 +140,7 @@ describe("DoctrineModel (spec §20.2, §20.3)", () => {
           gd: [0, 4, 7],
           sub: [0, 3, 6, 9, 11, 13, 15, 17, 19],
         },
-        command: { cpMilli: 0 },
+        command: {},
       },
     });
     const done = new DoctrineModel(all.game as never).dial()!;
@@ -154,7 +154,6 @@ describe("DoctrineModel (spec §20.2, §20.3)", () => {
       summary: { energyPm: 920, atomicStock: 2 },
     });
     const b = new DoctrineModel(g.game as never).band()!;
-    expect(b.cpText).toBe("34.0");
     expect(b.energyPct).toBe(92);
     expect(b.nukes).toBe(2);
     expect(b.congressPct).toBeNull();
