@@ -761,7 +761,12 @@ test("a real game on wings: every mission, base moves, 400 days, in lockstep", a
       if (m.sawFerry && mw.phase === WP_STATION) m.flewAfter = true;
     }
     const sw = air.wings.get(seen.stripWing);
-    if (sw?.base === seen.strip && sw.phase !== WP_FERRY) {
+    // (ww9: only while it is still a strip; the economy builds a base there later.)
+    if (
+      sw?.base === seen.strip &&
+      sw.phase !== WP_FERRY &&
+      econ.buildingArray("air_base")[seen.strip] === 0
+    ) {
       seen.stripEff = wingBaseEffPm(air, sw);
     }
     if (t > T(121) && air.wings.get(seen.moveUp.id)?.base !== seen.moveUp.far) {
