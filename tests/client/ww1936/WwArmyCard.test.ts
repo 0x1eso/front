@@ -383,6 +383,23 @@ describe("<ww-army-card> (spec §15.4)", () => {
     ]);
   });
 
+  it("a stance the rules refuse sends nothing and shows the reason", async () => {
+    const m = await mount();
+    feed(
+      m,
+      mine({
+        order: { ...idleOrder(), kind: "plan" as const, targets: [6, 7] },
+      }),
+      {},
+    );
+    m.el.tick();
+    await m.el.updateComplete;
+    checks.mockReturnValue("not_at_war");
+    await m.click(m.btn("stance_aggressive"));
+    expect(m.sent).toEqual([]);
+    expect(m.q("[data-ww-block='not_at_war']")).not.toBeNull();
+  });
+
   it("[방어]: army_front for the border around the army once; then the zone mode", async () => {
     const m = await mount();
     await m.click(m.btn("front"));

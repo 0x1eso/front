@@ -179,6 +179,8 @@ const VOLUNTEER: ReadonlySet<CountryTag> = new Set<CountryTag>([
   "ZAF",
   "RAJ",
   "IRL",
+  // Balance patch (w7-bal): Poland fields 60 % of its recruits (25 -> 15 permille).
+  "POL",
 ]);
 
 /** A minor with this many civilian factories counts as developed (§11.3). */
