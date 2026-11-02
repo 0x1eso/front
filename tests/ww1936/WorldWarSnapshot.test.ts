@@ -515,11 +515,9 @@ describe("World War 1936 stays deterministic", () => {
   // fills) in the autumn of 1939, and the majors stand into 1940 (France's
   // two regions behind Paris's fort and fifty divisions, the Phoney War of
   // the democracies' liberation-only offensives).
-  // ww7 lane F, a known gap for the owner: with prepared ground counting (a
-  // line entrenched and in position takes 1/1.55 of the hits) Germany's gate
-  // never clears on this map: war from 1939-09, no battle to 1943. `fails`: it
-  // goes red the day Poland falls again, and then this mark comes off.
-  test.fails(
+  // ww7 lane F had marked this `fails` (Germany's gate never cleared); the
+  // w7-bal patch (German tungsten, Polish volunteer law) made it pass again.
+  test(
     "an all-AI test-map war: Poland falls in the autumn of 1939, the majors stand",
     async () => {
       const runner = await wwRunner();
