@@ -280,6 +280,33 @@ describe("World War 1936 P2: land battles (spec §9)", () => {
     }
   }, 60_000);
 
+  test("ww7 lane F: a defender broken before the battle does not keep the attackers out", async () => {
+    const { runner, g, l, deu, inf72 } = await juneWar();
+    lastBand(l, WARSAW, deu);
+    const a = placeArmy(g, "DEU", 3, 2, inf72);
+    const d = placeArmy(g, "POL", WARSAW, 1);
+    const t = l.divisions;
+    // No org, and (in a pocket, within the day) none coming back.
+    const row = () => rowOf(l, d.divisions[0]);
+    const broken = () => {
+      if (row() >= 0) t.org[row()] = 0;
+    };
+    broken();
+    attackPlan(l, a, WARSAW);
+    attack(l, a, WARSAW);
+    for (let i = 0; i < 3; i++) {
+      broken();
+      step(runner);
+    }
+    // It goes at once. Before, it stood: the battle opened and closed every tick.
+    expect(row() < 0 || t.mode[row()] === MOVE_RETREAT).toBe(true);
+    const until = g.ticks() + 75;
+    while (l.controller[WARSAW] !== deu) {
+      expect(g.ticks()).toBeLessThan(until);
+      step(runner);
+    }
+  }, 60_000);
+
   test("hills and one direction hold", async () => {
     const { runner, g, l, deu, pol, inf72 } = await juneWar();
     expect(g.worldWar()!.scenario.landOf(KRAKOW)).toBe("hills");

@@ -946,6 +946,17 @@ function won(land: WwLand, b: Battle, tick: number): void {
     const envelop =
       LAND_ATTACK_TACTICS[b.tacticAtt] === "envelop" &&
       LAND_DEFENSE_TACTICS[b.tacticDef] !== "withdraw";
+    // ww7 lane F: a defender broken before any round (bandPhase comes here at
+    // once: no org and, in a pocket, no way to get it back) retreats or dies
+    // as one broken in a round does. Left standing it kept the attackers out
+    // for good: a walker stops at any enemy division and joins the battle,
+    // which it wins at once, every tick (Murcia held so for four years).
+    for (const id of [...b.defenders]) {
+      const r = t.rowOf(id);
+      if (r >= 0 && t.org[r] === 0 && t.mode[r] !== MOVE_RETREAT) {
+        retreatDivision(land, r);
+      }
+    }
     closeBattle(land, R);
     if (inside.length > 0) {
       // P5 (plan decision 20): a volunteer takes it for the country it serves.
