@@ -967,7 +967,7 @@ export class WwResearchPanel extends WwDrawerBase {
       data-ww-next
       class="${this.open
         ? ""
-        : "fixed bottom-24 left-1/2 -translate-x-1/2 "}z-[1003] flex items-center gap-2 rounded-lg border border-emerald-300/70 bg-gray-900/95 p-2 text-xs text-white shadow-lg"
+        : "fixed bottom-24 left-1/2 -translate-x-1/2 [@media(max-height:420px)]:top-12 [@media(max-height:420px)]:bottom-auto "}z-[1003] flex items-center gap-2 rounded-lg border border-emerald-300/70 bg-gray-900/95 p-2 text-xs text-white shadow-lg"
     >
       <span>${translateText("ww1936.rtree.next_title")}</span>
       <button
