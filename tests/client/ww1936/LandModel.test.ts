@@ -78,6 +78,7 @@ import {
   tapOrder,
   toggleTarget,
   toggleZone,
+  waitingForOdds,
   zoneOrder,
   zoneShown,
 } from "../../../src/client/hud/ww1936/LandModel";
@@ -615,6 +616,34 @@ describe("LandModel (spec §15)", () => {
       targets: [6],
       stance: "aggressive",
     });
+  });
+
+  it("ww7: a running balanced attack whose odds are all Low is waiting; 과감 or a battle is not", () => {
+    const order = (stance: "balanced" | "aggressive") => ({
+      ...idleOrder(),
+      kind: "plan" as const,
+      targets: [6],
+      stance,
+      executing: true,
+    });
+    const low = [[5, 6, 10]] as [number, number, number][];
+    const mk = (stance: "balanced" | "aggressive", odds = low, state = 0) =>
+      army(1, "DEU", 5, {
+        state,
+        mine: mine({ order: order(stance), odds }),
+      });
+    expect(waitingForOdds(mk("balanced"))).toBe(true);
+    expect(waitingForOdds(mk("aggressive"))).toBe(false);
+    expect(
+      waitingForOdds(
+        mk("balanced", [
+          [5, 6, 10],
+          [4, 6, 80],
+        ]),
+      ),
+    ).toBe(false);
+    expect(waitingForOdds(mk("balanced", low, 2))).toBe(false);
+    expect(waitingForOdds(mk("balanced", []))).toBe(false);
   });
 
   it("ww7: odds read low under 40, medium 40–64, high from 65", () => {

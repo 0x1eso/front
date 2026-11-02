@@ -34,3 +34,17 @@ export function autoLevelOf(mine: {
   const l = mine.autoLevel ?? (mine.auto ? 2 : 0);
   return l >= 2 ? 2 : l === 1 ? 1 : 0;
 }
+
+/** ww7: how many colours an army's zone is painted in (the flags shader's ZONE_HUES). */
+export const ZONE_HUE_COUNT = 4;
+/** The zone colours as CSS, in the shader's order (cyan, magenta, yellow, lime). */
+export const ZONE_HUES_CSS: readonly string[] = [
+  "rgb(26 217 242)",
+  "rgb(242 64 217)",
+  "rgb(255 230 26)",
+  "rgb(140 255 51)",
+];
+/** The CSS colour of an army's zone. */
+export function zoneHueCss(armyId: number): string {
+  return ZONE_HUES_CSS[armyId % ZONE_HUE_COUNT];
+}

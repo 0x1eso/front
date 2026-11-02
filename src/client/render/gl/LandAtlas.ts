@@ -283,16 +283,15 @@ export function drawLandAtlas(
     ctx.fillStyle = WHITE;
     ctx.fillText(ch, x + 32, y + 34, 60);
   }
-  // The odds words: white on a clear cell (the badge pill is the shader's),
-  // squeezed to fit when a language runs long.
-  ctx.font = "bold 30px sans-serif";
+  // The odds words: plain white on a clear cell (the badge pill is the
+  // shader's). The shader maps a 64 px cell to 44 px on screen and the pill
+  // is 13 px tall, so the word is small and has no outline (a dark outline
+  // would cover the pill's colour); squeezed to fit when a language runs long.
+  ctx.font = "bold 17px sans-serif";
   [labels.low, labels.mid, labels.high].forEach((text, i) => {
     const [x, y] = cellOrigin(ODDS_CELL0 + i);
-    ctx.strokeStyle = OUTLINE;
-    ctx.lineWidth = 6;
-    ctx.strokeText(text, x + 32, y + 34, 60);
     ctx.fillStyle = WHITE;
-    ctx.fillText(text, x + 32, y + 34, 60);
+    ctx.fillText(text, x + 32, y + 32, 56);
   });
   for (const cell of [ICON_MOVE, ICON_BATTLE, ICON_RAIL, ICON_SEA, ICON_PARA]) {
     const [x, y] = cellOrigin(cell);
