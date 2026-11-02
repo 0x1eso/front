@@ -29,7 +29,7 @@ function afterTurn(runner: GameRunner, id: number, day: number): number {
 }
 
 describe("the AI's doctrines and command (spec §19.2)", () => {
-  it("the AI's officer corps follow its grand doctrine", async () => {
+  it("the AI's officer corps follow its start position", async () => {
     const runner = await wwRunner({}, HUMAN_ITA, DEEP.map);
     stepTo(runner, WW_PREP_TICKS + 1);
     const ww = runner.game.worldWar()!;

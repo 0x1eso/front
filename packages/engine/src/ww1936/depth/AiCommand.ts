@@ -11,8 +11,6 @@ import {
   FM_PROMOTE_PP,
   FM_TRAITS,
   FmTrait,
-  GRAND_DOCTRINES,
-  GrandDoctrine,
   SPIRIT_CAT_DOMAIN,
 } from "@openfront/engine-api/ww1936/DepthTypes";
 import {
@@ -32,10 +30,12 @@ import {
   traitSlots,
   traitXpCost,
 } from "@openfront/engine-lib/ww1936/CommandRules";
-import { P_START_DOCTRINE } from "@openfront/engine-lib/ww1936/DoctrineRules";
+import { START_THOUGHTS } from "@openfront/engine-lib/ww1936/content/depth/thought";
 import { GENERALS } from "@openfront/engine-lib/ww1936/Generals";
 import { historicalAiActive } from "@openfront/engine-lib/ww1936/Pace";
-import { wwRoll } from "@openfront/engine-lib/ww1936/Roll";
+import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
+import { thoughtStartPos } from "@openfront/engine-lib/ww1936/ThoughtRules";
+import { aiPersonality } from "../economy/AiEconomy";
 import { canServe } from "../land/GeneralsRun";
 import { newTitledGeneralState } from "../land/LandStartRun";
 import type { Army, CountryLand, GeneralState } from "../land/WwLand";
@@ -59,6 +59,8 @@ import type { Domain, WwDepth } from "./WwDepth";
 const AI_FM_ARMIES = 4;
 /** Spec §4.3: a titled field marshal's every skill (Japan's, Italy's office). */
 const TITLED_FM_SKILL = 2;
+/** Roll purpose of the officer-corps deviation. */
+const P_SPIRIT_PLAN = idHash("ai_spirit_plan");
 /** Chance of another officer-corps choice than the doctrine's row, percent (history as flavour). */
 const AI_SPIRIT_DEVIATION_PCT = 25;
 
@@ -114,14 +116,9 @@ const TRAIT_PLAN: readonly GeneralTrait[] = [
   ),
 ];
 
-const gdId = (g: number): GrandDoctrine | "" =>
-  g >= 0 ? (GRAND_DOCTRINES[g] ?? "") : "";
-
 /**
- * Spec §19.1–§19.2, an AI country's depth day: a country with no grand
- * doctrine (a woken slot, a country the AI took over) takes its start
- * doctrines first; then, at war daily and in peace every 10 days, the
- * officer corps, the armies' reinforcement priority, field marshals and
+ * Spec §19.1–§19.2, an AI country's depth day: at war daily and in peace
+ * every 10 days, the officer corps, the armies' reinforcement priority, field marshals and
  * army groups, a trait, a medal.
  */
 export function aiCommandDay(d: WwDepth, id: number, day: number): void {
@@ -135,29 +132,63 @@ export function aiCommandDay(d: WwDepth, id: number, day: number): void {
   aiTraits(d, id);
 }
 
+/**
+ * The land row key (an officer corps and marshal table) of a start
+ * position: mass leaning first, then mobility, then firepower, else the
+ * battle plan (design §9). Notches: negative = left end.
+ */
+export function landRowOf(pos: readonly number[]): string {
+  if (pos[2] <= -4) return "gd_mass";
+  if (pos[1] <= -3) return "gd_mobile";
+  if (pos[1] >= 3) return "gd_firepower";
+  return "gd_battleplan";
+}
+/** The naval row key: raid -> trade interdiction, carrier -> base strike, patrol -> fleet in being, else "". */
+export function navalRowOf(pos: readonly number[]): string {
+  if (pos[4] <= -3) return "gd_trade_interdiction";
+  if (pos[3] >= 3) return "gd_base_strike";
+  if (pos[5] >= 3) return "gd_fleet_in_being";
+  return "";
+}
+/** The air row key: strategic -> destruction, close support -> battlefield support, air escort -> operational integrity, else "". */
+export function airRowOf(pos: readonly number[]): string {
+  if (pos[7] <= -3) return "gd_strategic_destruction";
+  if (pos[7] >= 3) return "gd_battlefield_support";
+  if (pos[6] >= 3) return "gd_operational_integrity";
+  return "";
+}
+
+/** The country's own start position on the nine sliders (pure; a woken slot or a taken-over country has the same). */
+export function startPosOf(d: WwDepth, id: number): number[] {
+  const tag = d.ww.tagOf(id);
+  return thoughtStartPos({
+    table: START_THOUGHTS,
+    tag,
+    personality: aiPersonality(tag),
+    historical: d.ww.historicalAiNow(),
+    seed: d.ww.politics.seed,
+    id,
+  });
+}
+
 /** The officer corps each category would take: the doctrine's row, or (seeded, AI_SPIRIT_DEVIATION_PCT) another of the three. */
 export function aiSpiritPlan(d: WwDepth, id: number): number[] {
-  const land =
-    LAND_SPIRITS[gdId(-1 /* T1 bridge: T2 keys these by start position */)] ??
-    LAND_SPIRITS.gd_mass;
-  const naval =
-    NAVAL_SPIRITS[gdId(-1 /* T1 bridge: T2 keys these by start position */)] ??
-    NAVAL_SPIRITS[""];
-  const air =
-    AIR_SPIRITS[gdId(-1 /* T1 bridge: T2 keys these by start position */)] ??
-    AIR_SPIRITS[""];
+  const pos = startPosOf(d, id);
+  const land = LAND_SPIRITS[landRowOf(pos)];
+  const naval = NAVAL_SPIRITS[navalRowOf(pos)];
+  const air = AIR_SPIRITS[airRowOf(pos)];
   const rows = [...land, ...naval, ...air];
   const seed = d.ww.politics.seed;
   return ARMY_SPIRIT_CATEGORIES.map((_, cat) => {
     const row = ARMY_SPIRITS.indexOf(rows[cat]);
     if (
-      wwRoll(seed, P_START_DOCTRINE, id, 100 + cat) % 100 >=
+      wwRoll(seed, P_SPIRIT_PLAN, id, 100 + cat) % 100 >=
       AI_SPIRIT_DEVIATION_PCT
     ) {
       return row;
     }
     const others = [0, 1, 2].map((k) => cat * 3 + k).filter((s) => s !== row);
-    return others[wwRoll(seed, P_START_DOCTRINE, id, 110 + cat) % 2];
+    return others[wwRoll(seed, P_SPIRIT_PLAN, id, 110 + cat) % 2];
   });
 }
 
@@ -219,9 +250,7 @@ const skillSum = (g: GeneralState) => g.att + g.dfn + g.plan + g.log;
 
 /** The land doctrine's preferred field marshal trait the general lacks (FM_TRAITS index), -1 none. */
 function fmTraitFor(d: WwDepth, id: number, have: number): number {
-  const plan =
-    FM_TRAIT_PLAN[gdId(-1 /* T1 bridge: T2 keys these by start position */)] ??
-    FM_TRAIT_PLAN[""];
+  const plan = FM_TRAIT_PLAN[landRowOf(startPosOf(d, id))];
   for (const t of [...plan, ...FM_TRAITS]) {
     const b = FM_TRAITS.indexOf(t);
     if ((have & (1 << b)) === 0) return b;
