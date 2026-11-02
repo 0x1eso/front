@@ -63,6 +63,7 @@ import { DERIVED_FIELDS, diffGraphs, diffSnapshots } from "../util/Snapshot";
 import { DEEP, findRoll, setInfra } from "./deepFixture";
 import { depthFixture, TEST_TANK } from "./depthFixture";
 import { valueDiffs } from "./lockstep";
+import "./oldAirModel";
 import {
   gameHash,
   HUMAN,

@@ -186,7 +186,7 @@ export function flightPose(
   minLegTicks: number,
   out: WingPose,
 ): boolean {
-  const [, phase, until, leg, station] = row;
+  const [, phase, until, leg, station, rearm] = row;
   const eff = Math.max(1, leg, minLegTicks);
   let from = base;
   let to = target;
@@ -219,10 +219,11 @@ export function flightPose(
       return true;
     }
   } else if (phase === WP_FERRY) {
-    // The row's `target` is the base it left; `base` is where it goes.
+    // The row's `target` is the base it left; `base` is where it goes. Its
+    // `until` holds the rest after landing (the row's R), on the ground.
     from = target;
     to = base;
-    t0 = until - leg;
+    t0 = until - rearm - leg;
     if (tickF < t0) return false;
   } else {
     return false;

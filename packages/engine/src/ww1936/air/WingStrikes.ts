@@ -708,6 +708,32 @@ function repairDaysOf(air: WwAir, h: RunHit): number {
   return raidRepairDays(cost, constructionProgress(given, speed));
 }
 
+function emptyReport(
+  day: number,
+  attacker: number,
+  victim: number,
+  region: number,
+  cls: number,
+): AirRaidReport {
+  return {
+    day,
+    attacker,
+    victim,
+    region,
+    cls,
+    raids: 0,
+    planes: 0,
+    lost: 0,
+    points: 0,
+    stopped: [],
+    fuelMilli: 0,
+    shipsHit: 0,
+    groundPlanes: 0,
+    wsBp: 0,
+    repairDays: 0,
+  };
+}
+
 /** A raid report row in both countries' lists, merged into a same-target row inside the window. */
 function writeReport(
   air: WwAir,
@@ -736,23 +762,7 @@ function writeReport(
     const r: AirRaidReport =
       i >= 0
         ? rows.splice(i, 1)[0]
-        : {
-            day,
-            attacker: w.owner,
-            victim: h.victim,
-            region: h.region,
-            cls,
-            raids: 0,
-            planes: 0,
-            lost: 0,
-            points: 0,
-            stopped: [],
-            fuelMilli: 0,
-            shipsHit: 0,
-            groundPlanes: 0,
-            wsBp: 0,
-            repairDays: 0,
-          };
+        : emptyReport(day, w.owner, h.victim, h.region, cls);
     r.day = day;
     r.raids += 1;
     r.planes += wingPlanes(w);
@@ -772,8 +782,10 @@ function writeReport(
 }
 
 /**
- * Planes a raid lost to the defence (lane B's anti-air over the target),
- * added to the newest matching report row's `lost`. Call after deliverSortie.
+ * Planes a raid lost to the defence: on station, to the guns at the drop and
+ * to the ships in a port. They go on the report row of that target inside the
+ * merge window. A raid shot up before its first drop opens the row itself
+ * (raids 0), and the drop merges into it.
  */
 export function noteRaidLost(
   air: WwAir,
@@ -783,42 +795,30 @@ export function noteRaidLost(
   cls: number,
   n: number,
 ): void {
-  if (n <= 0) return;
-  for (const owner of attacker === victim ? [attacker] : [attacker, victim]) {
+  if (n <= 0 || victim === 0 || attacker === victim) return;
+  const day = air.ww.day(air.mg.ticks());
+  for (const owner of [attacker, victim]) {
     const c = air.country(owner);
     if (c === null) continue;
-    for (let i = c.reports.length - 1; i >= 0; i--) {
+    let row: AirRaidReport | undefined;
+    for (let i = c.reports.length - 1; i >= 0 && row === undefined; i--) {
       const r = c.reports[i];
       if (
         r.attacker === attacker &&
         r.victim === victim &&
         r.region === region &&
-        r.cls === cls
+        r.cls === cls &&
+        day - r.day < WW_AIR_REPORT_MERGE_DAYS
       ) {
-        r.lost += n;
-        air.markCountry(owner);
-        break;
+        row = r;
       }
     }
+    if (row === undefined) {
+      row = emptyReport(day, attacker, victim, region, cls);
+      c.reports.push(row);
+      while (c.reports.length > WW_AIR_REPORT_ROWS) c.reports.shift();
+    }
+    row.lost += n;
+    air.markCountry(owner);
   }
-}
-
-/**
- * The planes a raid lost to the defence, onto its report's `lost`. Lane C
- * (w8-C commit cee7a54d0 has the real one; take that file at the merge).
- */
-export function noteRaidLost(
-  air: WwAir,
-  attacker: number,
-  victim: number,
-  region: number,
-  cls: number,
-  n: number,
-): void {
-  void air;
-  void attacker;
-  void victim;
-  void region;
-  void cls;
-  void n;
 }

@@ -34,6 +34,7 @@ import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSou
 import { joinFaction } from "@openfront/engine/ww1936/politics/Factions";
 import { END, endId } from "./endFixture";
 import { endgameFixture } from "./endgameFixture";
+import "./oldAirModel";
 import {
   clearLand,
   END_MAP,

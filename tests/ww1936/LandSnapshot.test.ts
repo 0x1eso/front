@@ -25,6 +25,7 @@ import {
 import { loadMapFiles } from "@openfront/shared/GameMapLoader";
 import { TestDataMapLoader } from "../util/ScriptedGame";
 import { type Moment, runLockstep } from "./lockstep";
+import "./oldAirModel";
 import {
   byTag,
   dropPact,

@@ -28,6 +28,7 @@ import { diffGraphs, diffSnapshots } from "../util/Snapshot";
 import { TEST_TANK } from "./depthFixture";
 import { END, endId } from "./endFixture";
 import { endgameFixture } from "./endgameFixture";
+import "./oldAirModel";
 import { END_MAP, gameHash, step, stepTo, wwRestore, wwRunner } from "./util";
 import { giveWing } from "./wingUtil";
 

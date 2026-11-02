@@ -19,6 +19,7 @@ import {
   seaAirMoments,
   tick,
 } from "./lockstep";
+import "./oldAirModel";
 import {
   seaAirHand,
   seaAirIntents,

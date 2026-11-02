@@ -4,6 +4,7 @@
 import type { WwOrder } from "@openfront/engine-api/Schemas";
 import { EventBus } from "@openfront/shared/EventBus";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import "../../ww1936/oldAirModel";
 
 vi.mock("../../../src/client/Utils", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../../src/client/Utils")>()),

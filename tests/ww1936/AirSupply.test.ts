@@ -22,6 +22,7 @@ import {
   drawPlanes,
 } from "@openfront/engine/ww1936/economy/Buildings";
 import { dailySupply } from "@openfront/engine/ww1936/land/Supply";
+import "./oldAirModel";
 import { REGION, SEA, SR } from "./seaFixture";
 import {
   byTag,

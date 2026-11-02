@@ -2,20 +2,27 @@
 import {
   AIR_MISSIONS,
   AIR_TYPES,
+  type AirRaidReport,
   WING_PHASES,
-  WW_BOMB_CLASSES,
   WingDetail,
+  WW_BOMB_CLASSES,
 } from "@openfront/engine-api/ww1936/AirTypes";
+import { BUILDING_IDS } from "@openfront/engine-api/ww1936/EconomyTypes";
 import IntlMessageFormat from "intl-messageformat";
 import { describe, expect, it } from "vitest";
+import { navyCtx, NavyGame } from "../../../src/client/hud/ww1936/NavyModel";
 import {
   groupChips,
   groupsFor,
   phaseNow,
+  raidNowOf,
+  reportRows,
   wingNoticeParams,
 } from "../../../src/client/hud/ww1936/WingModel";
 import { WingUi } from "../../../src/client/hud/ww1936/WingUi";
 import { en, keyIn, ko } from "../../ww1936/contentUtil";
+import { REGION } from "../../ww1936/seaFixture";
+import { airDetail, seaGame, seaRegion, SID } from "./SeaAirFixture";
 
 const wing = (type: string): WingDetail =>
   ({ id: 1, type: AIR_TYPES.indexOf(type as never) }) as WingDetail;
@@ -31,6 +38,49 @@ describe("wing chips", () => {
       6,
     );
     expect(bomb.some((c) => c.mission === "port_strike")).toBe(true);
+  });
+});
+
+describe("reportRows", () => {
+  const report = (over: Partial<AirRaidReport>): AirRaidReport => ({
+    day: 1,
+    attacker: SID("DEU"),
+    victim: SID("GBR"),
+    region: REGION.london,
+    cls: WW_BOMB_CLASSES.indexOf("rail"),
+    raids: 2,
+    planes: 100,
+    lost: 3,
+    points: 500,
+    stopped: [],
+    fuelMilli: 0,
+    shipsHit: 0,
+    groundPlanes: 0,
+    wsBp: 0,
+    repairDays: 0,
+    ...over,
+  });
+  const damage = BUILDING_IDS.map((b) => (b === "rail" ? 2000 : 0));
+  const hit = seaRegion(REGION.london, { rail: 3, damage });
+
+  it("the victim's card reads the target as it is now", () => {
+    const g = seaGame({
+      regions: [hit],
+      air: airDetail("GBR", { reports: [report({})] }),
+    });
+    const ctx = navyCtx(g.game as unknown as NavyGame)!;
+    const [row] = reportRows(ctx);
+    expect(row.hit).toBe(true);
+    expect(raidNowOf(ctx, row.report)).toMatchObject({
+      railLevel: 3,
+      railEffLevel: 1,
+      railMovePct: 33,
+      factoriesStopped: 0,
+    });
+    const keys = row.lines.map((l) => l.key);
+    expect(keys).toContain("ww1936.raid_effect.rail_levels");
+    expect(keys).toContain("ww1936.raid_effect.rail_move");
+    expect(row.lines[0].params).toEqual({ from: 3, to: 1 });
   });
 });
 

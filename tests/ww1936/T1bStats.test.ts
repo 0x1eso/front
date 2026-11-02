@@ -40,6 +40,7 @@ import type { WorldWar } from "@openfront/engine/ww1936/WorldWar";
 import { seaGame, war } from "./convoyUtil";
 import { DEEP } from "./deepFixture";
 import { depthFixture } from "./depthFixture";
+import "./oldAirModel";
 import { REGION, SR, TAG_ID, ZONE } from "./seaFixture";
 import { grantDoctrineStats, stepTo, wwRunner } from "./util";
 import { giveWing } from "./wingUtil";

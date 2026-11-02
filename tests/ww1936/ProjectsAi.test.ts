@@ -15,6 +15,7 @@ import { drawPlanes } from "@openfront/engine/ww1936/economy/Buildings";
 import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSource";
 import { DEEP } from "./deepFixture";
 import { depthFixture } from "./depthFixture";
+import "./oldAirModel";
 import { HUMAN, stepTo, warAfterPrep, wwRunner } from "./util";
 import { giveWing } from "./wingUtil";
 

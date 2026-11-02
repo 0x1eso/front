@@ -29,6 +29,7 @@ import {
 } from "@openfront/engine/ww1936/economy/Buildings";
 import { computeStability } from "@openfront/engine/ww1936/politics/Stability";
 import { vi } from "vitest";
+import "./oldAirModel";
 import { REGION, SEA, SR } from "./seaFixture";
 import {
   byTag,

@@ -83,8 +83,9 @@ export type { Wing } from "@openfront/engine-api/ww1936/AirTypes";
 /** P6 (plan decision 9): every plane of a deployment, static generations then design slots. */
 export function wingPlanes(d: Wing): number {
   let n = 0;
-  for (const c of d.counts) n += c;
-  for (const c of d.dcounts) n += c;
+  const { counts, dcounts } = d;
+  for (let i = 0; i < counts.length; i++) n += counts[i];
+  for (let i = 0; i < dcounts.length; i++) n += dcounts[i];
   return n;
 }
 
@@ -384,6 +385,13 @@ const mapOf = <V>(e: readonly (readonly [number, V])[]): Map<number, V> =>
   new Map(e.map(([k, v]) => [k, v]));
 
 /**
+ * The air model a new game starts on: WW_WINGS_LIVE in every real game. Only
+ * the old model's tests write it (tests/ww1936/oldAirModel.ts), and it goes
+ * with the old model.
+ */
+export const newGameAirModel = { wingsLive: WW_WINGS_LIVE };
+
+/**
  * World War 1936 P4 air war (spec §19.1). Lives in WorldWar (plan decision
  * 2); ticks after the navy (spec §2.2-7).
  */
@@ -401,11 +409,13 @@ export class WwAir {
    * ww8: which air model runs this game (AirTypes.WW_WINGS_LIVE). State: a
    * test turns one game on before it runs, and a restored copy must follow.
    */
-  wingsLive: boolean = WW_WINGS_LIVE;
+  wingsLive: boolean = newGameAirModel.wingsLive;
   /** ww8: field strips, region → the tick it opens, ascending (setStrip keeps the order). */
   strips = new Map<number, number>();
   private countryList: (CountryAir | null)[];
   // Derived (DERIVED_FIELDS).
+  /** `wings` in id order, as an array (the air steps walk it every tick); null: stale. */
+  private wingList: Wing[] | null = null;
   private wingsBySr = new Map<number, number[]>();
   private wingsByBase = new Map<number, number[]>();
   /** Task 15 (perf): deployment ids by owner, ascending (wingsOf). */
@@ -728,6 +738,11 @@ export class WwAir {
       : cap;
   }
 
+  /** ww8: every wing in id order. Don't add or remove wings while walking it. */
+  wingArray(): readonly Wing[] {
+    return (this.wingList ??= [...this.wings.values()]);
+  }
+
   /** ww8: the wing ids based at a region, ascending (a ferrying wing counts at its destination). */
   wingsAtBase(region: number): readonly number[] {
     return this.wingsByBase.get(region) ?? NO_IDS;
@@ -826,6 +841,7 @@ export class WwAir {
       aceMark: d.aceMark ?? n.aceMark,
     };
     this.wings.set(full.id, full);
+    this.wingList = null;
     this.indexWing(full);
     this.markWing(full.id);
     return full;
@@ -854,6 +870,7 @@ export class WwAir {
       else loseDesignPlanes(this.ww.depth, d.owner, d.dcounts);
     }
     this.wings.delete(id);
+    this.wingList = null;
     this.unindexWing(d);
     this.airDirtyWings.delete(id);
     this.removedWingIds.push(id);
@@ -1475,6 +1492,7 @@ export class WwAir {
     this.wingsBySr = new Map();
     this.wingsByBase = new Map();
     this.wingsByOwner = new Map();
+    this.wingList = null;
     for (const d of this.wings.values()) this.indexWing(d);
   }
 

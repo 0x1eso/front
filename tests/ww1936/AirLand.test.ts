@@ -21,6 +21,7 @@ import {
   modInputOf,
 } from "@openfront/engine/ww1936/land/Battles";
 import { WwAirView } from "../../src/client/view/WwAirView";
+import "./oldAirModel";
 import { REGION, SEA, SR, TAG_ID } from "./seaFixture";
 import {
   clearLand,

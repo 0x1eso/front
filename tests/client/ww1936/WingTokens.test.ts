@@ -199,6 +199,16 @@ describe("wing flights from schedule rows", () => {
     expect(flightPose(W, base, target, row(20), 95, 0, pose)).toBe(false);
   });
 
+  it("a ferry flies from the base it left, then rests on the ground", () => {
+    // Takes off at 25, lands at 45, rests until 60; `target` is the base it left.
+    const f: WingFlightRow = [1, WP_FERRY, 60, 20, 0, 15, 5, 100];
+    expect(flightPose(W, base, target, f, 24, 0, pose)).toBe(false);
+    expect(flightPose(W, base, target, f, 35, 0, pose)).toBe(true);
+    expect(pose.x).toBeCloseTo(200);
+    expect(Math.abs(pose.heading)).toBeCloseTo(Math.PI);
+    expect(flightPose(W, base, target, f, 46, 0, pose)).toBe(false);
+  });
+
   it("draws a short leg at least as long as the minimum, on screen only", () => {
     // A 2-tick leg shown over 4 ticks: half way at 2 ticks in.
     expect(flightPose(W, base, target, row(2), 60, 4, pose)).toBe(true);

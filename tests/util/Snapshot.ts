@@ -252,6 +252,7 @@ export const DERIVED_FIELDS = new Set<string>([
   "flightsOut",
   "fightsOut",
   "wingStatsMemo",
+  "wingList",
   "stationBySr",
   "interceptReach",
   "targetKmMemo",

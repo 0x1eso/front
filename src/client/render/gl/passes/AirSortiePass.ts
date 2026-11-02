@@ -603,8 +603,8 @@ export class AirSortiePass {
         if (hidden) continue;
       }
       if (row[1] === WP_FERRY) {
-        // A ferry flies from the base it left (the brief's hit) to its base.
-        if (!wingBaseXY(air, navy, b.hit, target)) continue;
+        // A ferry flies from the base it left (the row's target) to its base.
+        if (!wingBaseXY(air, navy, row[6], target)) continue;
       } else {
         const t = targetTile(sc, row[6], b.flySr);
         if (t < 0) continue;

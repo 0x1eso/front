@@ -10,6 +10,7 @@ import {
   repairDayMilli,
 } from "@openfront/engine/ww1936/navy/Repair";
 import { describe, expect, it } from "vitest";
+import "./oldAirModel";
 import { REGION, SEA, SR, TAG_ID } from "./seaFixture";
 import { HUMAN, step, warAfterPrep, withTestPolitics, wwRunner } from "./util";
 

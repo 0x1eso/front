@@ -11,6 +11,7 @@ import {
   WP_REARM,
   WP_STATION,
   WW_RADAR_WARN_TICKS,
+  WW_WING_START_XP,
 } from "@openfront/engine-api/ww1936/AirTypes";
 import {
   equipKey,
@@ -43,6 +44,7 @@ import { damageBuilding } from "@openfront/engine/ww1936/economy/Buildings";
 import { joinBattle, stepBattles } from "@openfront/engine/ww1936/land/Battles";
 import { fillDecks } from "@openfront/engine/ww1936/navy/Carriers";
 import { airOf } from "@openfront/engine/ww1936/navy/ConvoyWar";
+import "./oldAirModel";
 import { REGION, SEA, SR, TAG_ID, ZONE } from "./seaFixture";
 import {
   clearLand,
@@ -399,9 +401,12 @@ describe("the pulses (design §3.6)", () => {
     const ends = tick + days * 8;
     let pulses = 0;
     for (let t = tick; t < ends; t++) {
+      // The invariant is at the start experience: what experience adds is lane D's.
+      a.xpMilli = b.xpMilli = WW_WING_START_XP;
       pulseZones(air, t);
       if (t % 2 === air.ww.scenario.srIdxOf(SR.central) % 2) pulses++;
     }
+    a.xpMilli = b.xpMilli = WW_WING_START_XP;
     const lost = (w: Wing) => (150 - wingPlanes(w)) * 1000 + w.lossRest;
     const st = wingStats(air, a);
     const pm = pulseMilli(150_000, "fighter", "air_superiority");

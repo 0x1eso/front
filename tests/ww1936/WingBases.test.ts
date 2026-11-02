@@ -10,6 +10,7 @@ import {
   WW_FIELD_STRIP_PLANES,
 } from "@openfront/engine-api/ww1936/AirTypes";
 import { equipKey } from "@openfront/engine-api/ww1936/EconomyTypes";
+import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import {
   baseUsesOf,
   dailyWingCountry,
@@ -23,10 +24,12 @@ import {
   wingBaseEffPm,
 } from "@openfront/engine/ww1936/air/Wings";
 import type { WwAir } from "@openfront/engine/ww1936/air/WwAir";
+import "./oldAirModel";
 import { REGION, SEA, TAG_ID } from "./seaFixture";
 import {
   clearLand,
   placeArmy,
+  stepTo,
   takeRegion,
   withTestPolitics,
   wwRunner,
@@ -62,6 +65,20 @@ const fighters = (air: WwAir) =>
   air.wingsOf(DEU).filter((w) => w.type === FIGHTER);
 
 describe("forming", () => {
+  test("at war a new wing goes to the base near the front, not the capital's", async () => {
+    const { air, ww, ce, runner } = await setup();
+    // Munich borders Rome; Berlin, the capital, doesn't. Both have room.
+    ww.economy.addBuilding(REGION.munich, "air_base", 2);
+    stepTo(runner, WW_PREP_TICKS + 1);
+    ww.setWar(DEU, TAG_ID.ITA, runner.game.ticks());
+    ce.stock[equipKey("fighter", 1)] = 400;
+    formWings(air, DEU, 5);
+    expect(fighters(air).map((w) => w.base)).toEqual([
+      REGION.munich,
+      REGION.munich,
+    ]);
+  });
+
   test("full wings above a reserve, numbered, at a base with room", async () => {
     const { air, ce } = await setup();
     ce.stock[equipKey("fighter", 1)] = 400;
@@ -227,6 +244,11 @@ describe("wing_base and air_field", () => {
     expect(w.phase).toBe(WP_FERRY);
     expect(w.hit).toBe(REGION.berlin);
     expect(w.until).toBeGreaterThanOrEqual(tick + 1 + WING_FERRY_REST);
+    // The screens' row: the target is the base it left, as w.hit.
+    const row = air.takeData()!.flights!.find((f) => f[0] === w.id)!;
+    expect(row[1]).toBe(WP_FERRY);
+    expect(row[5]).toBe(WING_FERRY_REST);
+    expect(row[6]).toBe(REGION.berlin);
     expect(w.flyMilli).toBe(0);
     expect(air.baseUse(REGION.munich)).toBe(100);
     // 100 planes fill the strip; another wing no longer fits.

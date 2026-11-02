@@ -13,6 +13,7 @@ import {
   aiParadropScore,
   isParaArmy,
 } from "@openfront/engine/ww1936/air/AiAir";
+import "./oldAirModel";
 import { REGION, SEA, TAG_ID } from "./seaFixture";
 import {
   clearLand,

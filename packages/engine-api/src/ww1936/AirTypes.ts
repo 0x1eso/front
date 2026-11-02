@@ -235,14 +235,13 @@ export type AirOrder = Extract<
 // ---- ww8 air overhaul: wings (design ww8-air-design.md §3). Append only. ----
 
 /**
- * The switch between the two air models. false: the old daily deployment
- * model runs, and the wing orders are refused. true: the wing model runs
- * and the old orders are refused. Every game starts with this value
- * (WwAir.wingsLive; tests turn one game on with tests/ww1936/wingUtil.ts
- * liveWings). It flips to true once, with the lane that also removes the
- * old model.
+ * The switch between the two air models. true: the wing model runs and the
+ * old orders are refused. false: the old daily deployment model runs, and the
+ * wing orders are refused. Every real game starts with this value
+ * (WwAir.wingsLive). The old model stays in the tree, off, until a later
+ * cleanup; its tests run on it through tests/ww1936/oldAirModel.ts.
  */
-export const WW_WINGS_LIVE = false;
+export const WW_WINGS_LIVE = true;
 
 /** Wing.phase. Stored by position: append only. */
 export const WING_PHASES = [
@@ -455,7 +454,9 @@ export interface WingDetail extends WingBrief {
 /**
  * A wing's schedule, one row per take-off (design §10.3): id, phase, the
  * tick that phase ends, L, S, R, target, planes. The client works out every
- * later phase from it.
+ * later phase from it. The target is the wing's hit. On a ferry row that is the
+ * base it left (it flies to its new `base`), `until` holds the rest after
+ * landing, and R is that rest.
  */
 export type WingFlightRow = [
   id: number,
@@ -498,6 +499,8 @@ export const WW_WING_REFILL_PCT = 25;
 export const WING_REFORM_COOLDOWN_DAYS = 30;
 /** One rearm swaps up to this many old planes for newer stock. */
 export const WING_UPGRADE_PER_REARM = 5;
+/** A forming wing goes near the fronts within this of the capital (Wings.frontKm). */
+export const WING_FORM_FRONT_KM = 1500;
 /** Ticks of rest after a ferry. */
 export const WING_FERRY_REST = 15;
 /** [auto] ferries a wing at most this often, days. */

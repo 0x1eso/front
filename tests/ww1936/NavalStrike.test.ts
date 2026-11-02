@@ -25,6 +25,7 @@ import {
 import { apportion } from "@openfront/engine/ww1936/air/Bombing";
 import type { Wing } from "@openfront/engine/ww1936/air/WwAir";
 import { drawPlanes } from "@openfront/engine/ww1936/economy/Buildings";
+import "./oldAirModel";
 import { REGION, SEA, SR, ZONE } from "./seaFixture";
 import {
   byTag,

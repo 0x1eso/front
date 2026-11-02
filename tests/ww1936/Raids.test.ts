@@ -27,6 +27,7 @@ import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSou
 import { vi } from "vitest";
 import { DEEP, findRoll } from "./deepFixture";
 import { depthFixture } from "./depthFixture";
+import "./oldAirModel";
 import {
   byTag,
   clearLand,
