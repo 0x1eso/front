@@ -1705,6 +1705,10 @@ export function emptyCountry(): CountryDepth {
       spiritLock: new Array<number>(7).fill(-1),
       medalReady: [],
       traitsSeen: [],
+      // Both keys always exist, in this order, so a restored country and a
+      // live one list them alike whatever the order they were set in.
+      medalWin: undefined,
+      medalDay: undefined,
     },
     des: {
       tank: nul(WW_TANK_DESIGN_SLOTS),
@@ -1776,6 +1780,14 @@ function normalizeCountry(
   const th = (c.th ??= e.th);
   pad(th.target, e.th.target);
   pad(th.curMilli, e.th.curMilli);
+  c.cmd = {
+    spirits: c.cmd.spirits,
+    spiritLock: c.cmd.spiritLock,
+    medalReady: c.cmd.medalReady,
+    traitsSeen: c.cmd.traitsSeen,
+    medalWin: c.cmd.medalWin,
+    medalDay: c.cmd.medalDay,
+  };
   pad(c.cmd.spirits, e.cmd.spirits);
   pad(c.cmd.spiritLock, e.cmd.spiritLock);
   for (const kind of DESIGN_KINDS) {
