@@ -143,15 +143,22 @@ export function effCapBp(tech: TechTotals): number {
   return Math.min(10_000, EFF_BASE_CAP_BP + tech.effCapBp);
 }
 
+/** Owner request 2026-11-03: production lines gain efficiency twice as fast. */
+export const EFF_GROWTH_MULT = 2;
+
 /**
- * One day of HOI4 efficiency growth: +0.001 × cap² / eff (fractions), in bp
- * rounded to the nearest point. Flooring would lose half a point a day:
- * 10% → 50% would take 512 days instead of HOI4's 480 (rounded: 482).
+ * One day of efficiency growth: +0.001 × EFF_GROWTH_MULT × cap² / eff
+ * (fractions), in bp rounded to the nearest point. At ×2, 10% → 50% takes
+ * about 240 days (it was 482).
  */
 export function efficiencyGrowth(effBp: number, capBp: number): number {
   if (effBp >= capBp) return capBp;
   const e = Math.max(1, effBp);
-  const gain = Math.max(1, Math.floor((capBp * capBp + 500 * e) / (1000 * e)));
+  const per = 1000 * e;
+  const gain = Math.max(
+    1,
+    Math.floor((capBp * capBp * EFF_GROWTH_MULT + Math.floor(per / 2)) / per),
+  );
   return Math.min(capBp, effBp + gain);
 }
 

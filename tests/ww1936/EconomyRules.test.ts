@@ -52,15 +52,15 @@ import {
 } from "@openfront/engine-lib/ww1936/WwTechs";
 
 describe("production efficiency (spec §8.3)", () => {
-  test("10% reaches the 50% cap in about 480 days", () => {
+  test("10% reaches the 50% cap in about 240 days", () => {
     let e = EFF_FLOOR_BP;
     let days = 0;
     while (e < 5000) {
       e = efficiencyGrowth(e, 5000);
       days++;
     }
-    expect(days).toBeGreaterThanOrEqual(470);
-    expect(days).toBeLessThanOrEqual(490);
+    expect(days).toBeGreaterThanOrEqual(235);
+    expect(days).toBeLessThanOrEqual(245);
     expect(efficiencyGrowth(5000, 5000)).toBe(5000);
   });
 
