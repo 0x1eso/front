@@ -189,6 +189,8 @@ export const TECH_RULE_LINES: Readonly<
   fire_control_1: [["fire_control", { n: 10 }]],
   synthetic_oil_2: [["synthetic_oil_2"]],
   synthetic_rubber_1: [["synthetic_rubber"]],
+  metal_substitute_1: [["metal_1"]],
+  metal_substitute_2: [["metal_2"]],
   mine_warfare_2: [["mines", { n: 50 }]],
   cryptography_1: [["cipher", { c: 40, d: 15 }]],
   cryptography_2: [["cipher", { c: 40, d: 15 }]],

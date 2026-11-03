@@ -755,6 +755,8 @@ export const ENERGY_PER_COAL = 3;
 export const ENERGY_PER_HYDRO = 2;
 export const ENERGY_PER_PLANT = 6;
 export const COAL_PER_REFINERY = 2;
+/** w28: energy demand of each working alloy plant or smelter (one power plant's output; a refinery's 2 coal equal 6). */
+export const ENERGY_PER_METAL_BUILDING = 6;
 
 // ---- Orders (spec §21.4; plan decision 4: after "army_garrison", this order) ----
 export const DEPTH_ORDER_KINDS = [

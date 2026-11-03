@@ -3698,6 +3698,7 @@
     },
     "building": {
       "air_base": "공군 기지",
+      "alloy_plant": "합금 공장",
       "anti_air": "대공포",
       "civ": "민간 공장",
       "coastal_fort": "해안 요새",
@@ -3710,11 +3711,13 @@
       "fuel_silo": "연료 저장고",
       "infra": "인프라",
       "mil": "군수 공장",
+      "mine": "광산",
       "naval_base": "해군 기지",
       "power_plant": "발전소",
       "radar": "레이더",
       "rail": "철도",
       "rocket_site": "로켓 발사장",
+      "smelter": "제련소",
       "supply_hub": "보급 허브",
       "synthetic_refinery": "합성 정유소"
     },
@@ -4597,7 +4600,8 @@
         "peace_too_much": "승점의 40% 넘게는 넘겨줄 수 없습니다",
         "exclusive": "둘 중 하나만 고를 수 있는 다른 줄을 이미 골랐습니다",
         "no_project": "필요한 특수 프로젝트가 아직 끝나지 않았습니다",
-        "bonus_held": "이 갈래에는 이미 연구 보너스가 있습니다"
+        "bonus_held": "이 갈래에는 이미 연구 보너스가 있습니다",
+        "no_deposit": "이 지역에는 매장지가 없습니다"
       },
       "build_here": "여기 짓기",
       "buy": "사기",
@@ -4687,7 +4691,12 @@
       "stock_no_line": "생산 라인 없음",
       "stock_unused": "사단이 쓰지 않음",
       "stock_show_rest": "나머지 보기 ({n})",
-      "stock_hide_rest": "나머지 접기"
+      "stock_hide_rest": "나머지 접기",
+      "tip": {
+        "alloy_plant": "하루에 텅스텐 {n}, 크롬 {n}을 생산합니다(대체 금속 공법 II 이후 각 {m}). 건물 칸을 하나 차지합니다. 에너지를 {e} 사용합니다.",
+        "mine": "레벨마다 이 지역의 여섯 자원 산출이 {a} % 늘어납니다(1~3레벨에서 {a}, {b}, {c} %). 도로와 지배력 보정 전에 적용되며 합성·합금·제련 생산은 늘지 않습니다. 매장지가 있어야 하고 칸은 차지하지 않습니다.",
+        "smelter": "하루에 강철 {n}, 알루미늄 {n}을 생산합니다(대체 금속 공법 II 이후 각 {m}). 건물 칸을 하나 차지합니다. 에너지를 {e} 사용합니다."
+      }
     },
     "effect": {
       "aaPct": "지상 대공포가 적 항공기에 주는 피해 +{n}%",
@@ -12376,7 +12385,9 @@
       "concentrated_3": "집중 산업 III",
       "dispersed_3": "분산 산업 III",
       "tools_5": "공작 기계 V",
-      "construction_5": "건설 기술 V"
+      "construction_5": "건설 기술 V",
+      "metal_substitute_1": "대체 금속 공법 I",
+      "metal_substitute_2": "대체 금속 공법 II"
     },
     "terrain": {
       "desert": "사막",
@@ -13045,6 +13056,8 @@
       "r_landing_capacity": "상륙 한 번에 수송하는 사단 수 +{n}",
       "r_landing_cut": "상륙 공격이 받는 감점 −{n}%p",
       "r_landing_prep": "상륙 준비 시간 −{n}%",
+      "r_metal_1": "합금 공장(하루 텅스텐 2, 크롬 2)과 제련소(하루 강철 2, 알루미늄 2) 해금",
+      "r_metal_2": "합금 공장과 제련소가 하루에 각 자원을 3씩 생산",
       "r_mines": "기뢰 부설·소해량 +{n}%",
       "r_naval_radar": "함선 수상 탐지 +{n}%, 해전 명중 +{hit}%",
       "r_radar_level": "레이더 3단계 건설 가능",

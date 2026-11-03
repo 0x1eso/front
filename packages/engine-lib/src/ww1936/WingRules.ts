@@ -197,7 +197,7 @@ export const BOMB_CLASS_WEIGHTS: Readonly<
   Record<WwBombClass, Readonly<Partial<Record<BuildingId, number>>>>
 > = {
   auto: {},
-  factories: { civ: 2, mil: 3, dock: 2 },
+  factories: { civ: 2, mil: 3, dock: 2, alloy_plant: 2, smelter: 2, mine: 1 },
   rail: { rail: 3, supply_hub: 2, infra: 1 },
   port: { naval_base: 3, coastal_fort: 1 },
   fuel: { synthetic_refinery: 3, fuel_silo: 2 },

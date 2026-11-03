@@ -359,6 +359,10 @@ describe("the economy restores exactly (P1 plan Task 9)", () => {
         powerPlant: ww.economy.buildingArray("power_plant")[r.id],
         dam: dam + 1,
         damLevel: dam < 0 ? 0 : ww.depth.world.damLevel[dam],
+        // w28.
+        alloy: ww.economy.buildingArray("alloy_plant")[r.id],
+        smelter: ww.economy.buildingArray("smelter")[r.id],
+        mine: ww.economy.buildingArray("mine")[r.id],
       });
     }
   }, 60_000);

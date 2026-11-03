@@ -102,8 +102,8 @@ describe("P4 lists (plan decisions 3, 14, 23, 24, 25)", () => {
       "rail",
       "supply_hub",
     ]);
-    // P6 (spec §9.1, §16) appends six.
-    expect(BUILDING_IDS).toHaveLength(20);
+    // P6 (spec §9.1, §16) appends six, w28 three.
+    expect(BUILDING_IDS).toHaveLength(23);
     // P5 appends military_police after P4's 56.
     const p4 = WW_TECH_IDS.indexOf("dd_2");
     expect(WW_TECH_IDS[p4 + 55]).toBe("synthetic_oil_2");

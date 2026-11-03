@@ -307,6 +307,15 @@ const industryTable: IndustryTable = JSON.parse(
 );
 const MAJORS = ["DEU", "ITA", "JPN", "GBR", "FRA", "USA", "SUN"] as const;
 
+/** w28: the resources whose deposits were raised by half (oil stays). */
+const SCALED_1_5: readonly string[] = [
+  "aluminium",
+  "rubber",
+  "tungsten",
+  "steel",
+  "chromium",
+];
+
 describe("the world1936 economy (P1 spec §3)", () => {
   const regionsOf = (tag: CountryTag) =>
     data.scenario!.landRegions.filter((r) => r.owner === tag);
@@ -392,23 +401,34 @@ describe("the world1936 economy (P1 spec §3)", () => {
       const rs = regionsOf(tag);
       // P1's six (P6's uranium and coal come from the v5 region fields).
       RESOURCE_IDS.slice(0, 6).forEach((res, k) => {
-        expect(
-          total(rs, (r) => r.res[k]),
-          `${tag} ${res}`,
-        ).toBe(want.get(`${tag} ${res}`) ?? 0);
+        const sites = want.get(`${tag} ${res}`) ?? 0;
+        const got = total(rs, (r) => r.res[k]);
+        if (SCALED_1_5.includes(res)) {
+          // w28: each region's deposit x 1.5 rounded up, so a country's
+          // total lies between 1.5 x its sites and that plus one a region.
+          const exact = sites * 1.5;
+          expect(got, `${tag} ${res}`).toBeGreaterThanOrEqual(
+            Math.floor(exact),
+          );
+          expect(got, `${tag} ${res}`).toBeLessThanOrEqual(
+            Math.ceil(exact) + rs.length,
+          );
+        } else {
+          expect(got, `${tag} ${res}`).toBe(sites);
+        }
       });
     }
     const oil = RESOURCE_IDS.indexOf("oil");
     const tungsten = RESOURCE_IDS.indexOf("tungsten");
     const rubber = RESOURCE_IDS.indexOf("rubber");
     expect(total(regionsOf("USA"), (r) => r.res[oil])).toBe(153);
-    // Task 9: tungsten and chromium sites at twice their first scale, so
+    // Task 9: tungsten and chromium sites at twice their first scale (w28: then x 1.5 again, per region rounded up), so
     // the world's supply covers the lines that need them (spec §16 record).
-    expect(total(regionsOf("CHN"), (r) => r.res[tungsten])).toBe(60);
+    expect(total(regionsOf("CHN"), (r) => r.res[tungsten])).toBe(90);
     expect(
       total(regionsOf("TUR"), (r) => r.res[RESOURCE_IDS.indexOf("chromium")]),
-    ).toBe(20);
-    expect(total(regionsOf("GBR"), (r) => r.res[rubber])).toBe(54);
+    ).toBe(30);
+    expect(total(regionsOf("GBR"), (r) => r.res[rubber])).toBe(81);
     // Germany has steel and little else (spec §3.5).
     expect(regionsOf("DEU").filter((r) => r.res[rubber] > 0)).toEqual([]);
   });

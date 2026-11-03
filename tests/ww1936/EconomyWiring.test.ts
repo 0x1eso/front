@@ -335,6 +335,9 @@ describe("economy wiring (spec §6, §14)", () => {
       uranium: 0,
       hydro: 0,
       damLevel: 0,
+      alloy: 0,
+      smelter: 0,
+      mine: 0,
     });
     expect(view.troopCap(byTag(g, "DEU").smallID())).toBe(
       ww.land.fieldMen(byTag(g, "DEU").smallID()),

@@ -56,7 +56,7 @@ it("300 wings: nothing to swap, nothing old, everything to swap", async () => {
   ).toBeNull();
   const key = equipKey("plane_design", 1);
   const newest = equipKey("fighter", 3);
-  const wings = [];
+  const wings: ReturnType<typeof giveWing>[] = [];
   for (let i = 0; i < WINGS; i++) {
     const w = giveWing(ww.air, {
       owner: GBR,

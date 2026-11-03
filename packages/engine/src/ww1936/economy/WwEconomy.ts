@@ -89,8 +89,10 @@ import { aiEconomyTick, aiStartSetup } from "./AiEconomy";
 import { addConvoys, buildingIndex, effectiveBuildings } from "./Buildings";
 import { stepConstruction } from "./Construction";
 import {
+  alloyOf,
   fuelCapOf,
   settleFuel,
+  smelterOf,
   syntheticOilOf,
   syntheticRubberOf,
 } from "./Fuel";
@@ -137,7 +139,10 @@ type P4BuildingId =
   | "facility_science"
   | "rocket_site"
   | "power_plant"
-  | "dam";
+  | "dam"
+  | "alloy_plant"
+  | "smelter"
+  | "mine";
 
 /** P4 spec §5.2: a naval line on dockyards (lane E runs it; the foundation holds it). */
 export interface NavalLine {
@@ -227,6 +232,10 @@ export interface Totals {
 
 const zeros = () => new Array<number>(RESOURCE_COUNT).fill(0);
 const RUBBER = RESOURCE_IDS.indexOf("rubber");
+const TUNGSTEN = RESOURCE_IDS.indexOf("tungsten");
+const CHROMIUM = RESOURCE_IDS.indexOf("chromium");
+const ALUMINIUM = RESOURCE_IDS.indexOf("aluminium");
+const STEEL = RESOURCE_IDS.indexOf("steel");
 
 function emptyTotals(): Totals {
   return {
@@ -523,6 +532,10 @@ export const WwEconomyStateSchema = z.object({
   rocket_site: z.array(zInt()).optional(),
   power_plant: z.array(zInt()).optional(),
   dam: z.array(zInt()).optional(),
+  // w28: written only when any is built; absent reads 0.
+  alloy_plant: z.array(zInt()).optional(),
+  smelter: z.array(zInt()).optional(),
+  mine: z.array(zInt()).optional(),
   damage: z.array(zInt()),
   repair: z.array(zInt()),
 });
@@ -628,6 +641,9 @@ export class WwEconomy {
       rocket_site: new Uint8Array(size),
       power_plant: new Uint8Array(size),
       dam: new Uint8Array(size),
+      alloy_plant: new Uint8Array(size),
+      smelter: new Uint8Array(size),
+      mine: new Uint8Array(size),
     };
     this.damage = new Int32Array(size * BUILDING_IDS.length);
     this.repair = new Int32Array(size * BUILDING_IDS.length);
@@ -885,6 +901,8 @@ export class WwEconomy {
       // P6 hook (W1): scorched earth halves a region's resources for a while.
       const rsPct =
         depth === undefined ? 0 : regionStatus(depth, id).resourcePct;
+      const mineLvl =
+        this.p4Levels.mine[id] === 0 ? 0 : effectiveBuildings(this, id, "mine");
       for (let k = 0; k < RESOURCE_COUNT; k++) {
         const deposit = r.res[k] + this.resBonus[id * RESOURCE_COUNT + k];
         if (deposit <= 0) continue;
@@ -893,6 +911,7 @@ export class WwEconomy {
           this.infraEff[id],
           rp,
           ce.stats.extractionPct,
+          mineLvl,
         );
         produced[k] +=
           rsPct === 0
@@ -905,6 +924,13 @@ export class WwEconomy {
       const synth = syntheticOilOf(this, ce, id, cp);
       produced[0] += synth;
       produced[RUBBER] += synth + syntheticRubberOf(this, ce, id, cp);
+      // w28: the alloy plants' tungsten and chromium, also after the factor.
+      const alloy = alloyOf(this, ce, id, cp);
+      produced[TUNGSTEN] += alloy;
+      produced[CHROMIUM] += alloy;
+      const smelt = smelterOf(this, ce, id, cp);
+      produced[STEEL] += smelt;
+      produced[ALUMINIUM] += smelt;
     }
     const exported = zeros();
     const imported = zeros();
@@ -1106,6 +1132,9 @@ export class WwEconomy {
       case "rocket_site":
       case "power_plant":
       case "dam":
+      case "alloy_plant":
+      case "smelter":
+      case "mine":
         return this.p4Levels[b];
     }
   }
@@ -1286,6 +1315,9 @@ export class WwEconomy {
     powerPlant: number;
     dam: number;
     damLevel: number;
+    alloy: number;
+    smelter: number;
+    mine: number;
   } {
     const sc = this.scenario;
     const p = this.p4Levels;
@@ -1308,6 +1340,9 @@ export class WwEconomy {
       powerPlant: p.power_plant[id],
       dam: dam < 0 ? 0 : dam + 1,
       damLevel: dam < 0 ? 0 : (depth?.world.damLevel[dam] ?? 0),
+      alloy: p.alloy_plant[id],
+      smelter: p.smelter[id],
+      mine: p.mine[id],
     };
   }
 
@@ -1591,7 +1626,11 @@ export class WwEconomy {
         p.facility_science[id] * 31 +
         p.rocket_site[id] * 37 +
         p.power_plant[id] * 41 +
-        p.dam[id] * 43;
+        p.dam[id] * 43 +
+        // w28 (zero in every game without them).
+        p.alloy_plant[id] * 47 +
+        p.smelter[id] * 59 +
+        p.mine[id] * 53;
       if (v !== 0) h = (Math.imul(h, 31) + id + v) | 0;
     }
     for (let i = 0; i < this.damage.length; i++) {
@@ -1677,6 +1716,15 @@ export class WwEconomy {
       rocket_site: Array.from(this.p4Levels.rocket_site),
       power_plant: Array.from(this.p4Levels.power_plant),
       dam: Array.from(this.p4Levels.dam),
+      ...(this.p4Levels.alloy_plant.some((v) => v !== 0)
+        ? { alloy_plant: Array.from(this.p4Levels.alloy_plant) }
+        : {}),
+      ...(this.p4Levels.smelter.some((v) => v !== 0)
+        ? { smelter: Array.from(this.p4Levels.smelter) }
+        : {}),
+      ...(this.p4Levels.mine.some((v) => v !== 0)
+        ? { mine: Array.from(this.p4Levels.mine) }
+        : {}),
       damage: Array.from(this.damage),
       repair: Array.from(this.repair),
     };
@@ -1763,13 +1811,34 @@ export class WwEconomy {
       "rocket_site",
       "power_plant",
       "dam",
+      "alloy_plant",
+      "smelter",
+      "mine",
     ] as const) {
       this.p4Levels[b].fill(0);
       const a = s[b];
       if (a !== undefined) this.p4Levels[b].set(a);
     }
-    this.damage.set(s.damage);
-    this.repair.set(s.repair);
+    // w28 appended two building ids: a save with fewer per region is spread
+    // over the new stride (the new ids start undamaged).
+    const size = this.civ.length;
+    const oldStride = size === 0 ? 0 : Math.floor(s.damage.length / size);
+    if (oldStride === BUILDING_IDS.length || oldStride === 0) {
+      this.damage.set(s.damage);
+      this.repair.set(s.repair);
+    } else {
+      this.damage.fill(0);
+      this.repair.fill(0);
+      const keep = Math.min(oldStride, BUILDING_IDS.length);
+      for (let r = 0; r < size; r++) {
+        for (let i = 0; i < keep; i++) {
+          this.damage[r * BUILDING_IDS.length + i] =
+            s.damage[r * oldStride + i];
+          this.repair[r * BUILDING_IDS.length + i] =
+            s.repair[r * oldStride + i];
+        }
+      }
+    }
     this._trades = s.trades.map((t) => ({ ...t }));
     this.nextTradeId = s.nextTradeId;
     this.lastCommonDay = s.lastCommonDay;

@@ -7,9 +7,13 @@ import {
   COAL_PER_REFINERY,
   ENERGY_PER_COAL,
   ENERGY_PER_HYDRO,
+  ENERGY_PER_METAL_BUILDING,
   ENERGY_PER_PLANT,
 } from "@openfront/engine-api/ww1936/DepthTypes";
-import { RESOURCE_IDS } from "@openfront/engine-api/ww1936/EconomyTypes";
+import {
+  EQUIP_KEYS,
+  RESOURCE_IDS,
+} from "@openfront/engine-api/ww1936/EconomyTypes";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { lineOutputMilli } from "@openfront/engine-lib/ww1936/EconomyRules";
 import {
@@ -20,6 +24,7 @@ import {
   energyRatioPm,
   energySupply,
 } from "@openfront/engine-lib/ww1936/EnergyRules";
+import { EQUIPMENT } from "@openfront/engine-lib/ww1936/Equipment";
 import { createGameRunner } from "@openfront/engine/GameRunner";
 import {
   applyEnergyEffect,
@@ -30,6 +35,7 @@ import {
   energyParts,
   energyView,
 } from "@openfront/engine/ww1936/depth/Energy";
+import { aiP4Builds } from "@openfront/engine/ww1936/economy/AiEconomy";
 import { damageBuilding } from "@openfront/engine/ww1936/economy/Buildings";
 import { stepProduction } from "@openfront/engine/ww1936/economy/Production";
 import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSource";
@@ -246,6 +252,92 @@ describe("World War 1936 P6: coal and energy (spec §16.2)", () => {
     // A plant bombed out works no more (P4's effective count).
     damageBuilding(ww.economy, DEEP.region.rome, "power_plant", 1_000);
     expect(energyParts(d, id, day).supply).toBe(before.supply);
+  }, 60_000);
+
+  it("w28: each working alloy plant or smelter adds 6 to the demand, a bombed-out one none", async () => {
+    const { runner, ww, id } = await deep("ITA");
+    const d = ww.depth;
+    const econ = ww.economy;
+    const day = ww.day(runner.game.ticks());
+    const base = energyDemand(d, id);
+    econ.addBuilding(DEEP.region.rome, "alloy_plant", 2);
+    econ.addBuilding(DEEP.region.rome, "smelter", 1);
+    expect(energyDemand(d, id)).toBe(base + 3 * ENERGY_PER_METAL_BUILDING);
+    expect(ENERGY_PER_METAL_BUILDING).toBe(6);
+    // The screen's block and the coal the energy wants follow the same demand.
+    expect(energyView(d, id).demand).toBe(base + 18);
+    const p = energyParts(d, id, day);
+    expect(p.demand).toBe(base + 18);
+    expect(coalDemand(d, id)).toBe(
+      coalWanted(
+        p.demand,
+        p.hydro,
+        p.plants,
+        p.dams,
+        p.extra,
+        p.refineries,
+        p.base,
+        p.pct,
+      ),
+    );
+    // Under-supplied: the ratio falls by the added demand, and the penalty with it.
+    const supply = p.supply;
+    dailyEnergy(d, id, day);
+    expect(d.country(id)!.mech.energyPm).toBe(energyRatioPm(base + 18, supply));
+    expect(energyRatioPm(base + 18, supply)).toBeLessThan(
+      energyRatioPm(base, supply),
+    );
+    // Bombed out: no demand.
+    damageBuilding(econ, DEEP.region.rome, "alloy_plant", 2_000);
+    damageBuilding(econ, DEEP.region.rome, "smelter", 1_000);
+    expect(energyDemand(d, id)).toBe(base);
+  }, 60_000);
+
+  it("w28: the AI builds the metal buildings only with its energy in hand", async () => {
+    const { ww, id } = await deep("ITA");
+    const econ = ww.economy;
+    const ce = econ.country(id)!;
+    ce.addTech("metal_substitute_1");
+    const key = EQUIP_KEYS.findIndex(
+      ([type]) =>
+        EQUIPMENT[type].resources[RESOURCE_IDS.indexOf("tungsten")] > 0,
+    );
+    const short = () => {
+      ce.lines = [
+        {
+          id: 90,
+          key,
+          factories: 4,
+          active: 4,
+          effBp: 10000,
+          progress: 0,
+          fill: 1000,
+          lastOutput: 0,
+          convertFrom: -1,
+        },
+      ];
+      ce.totals.produced = ce.totals.produced.map(() => 0);
+      ce.totals.exported = ce.totals.exported.map(() => 0);
+      ce.totals.imported = ce.totals.imported.map(() => 0);
+      ce.queue = [];
+    };
+    // Room in Rome, so a missing slot is not what stops it.
+    econ.addBuilding(DEEP.region.rome, "civ", -3);
+    const c = ww.depth.country(id)!;
+    c.mech.energyPm = 700;
+    short();
+    aiP4Builds(econ, ce, 5);
+    expect(ce.queue.some((q) => q.building === "alloy_plant")).toBe(false);
+    expect(ce.queue.some((q) => q.building === "smelter")).toBe(false);
+    c.mech.energyPm = 1000;
+    short();
+    aiP4Builds(econ, ce, 5);
+    aiP4Builds(econ, ce, 5);
+    expect(
+      ce.queue.some(
+        (q) => q.building === "alloy_plant" || q.building === "smelter",
+      ),
+    ).toBe(true);
   }, 60_000);
 
   it("the energy effect adds for good; the screen's block", async () => {

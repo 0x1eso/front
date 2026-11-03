@@ -134,6 +134,7 @@ export interface QueuedInRegion {
   dam: number;
   power_plant: number;
   facility: number;
+  mine: number;
 }
 
 /** Factories and the levels of each level building a queue still adds to `region`. */
@@ -156,6 +157,7 @@ export function queuedInRegion(
     dam: 0,
     power_plant: 0,
     facility: 0,
+    mine: 0,
   };
   for (const q of queue) {
     if (q.region !== region) continue;
@@ -171,6 +173,7 @@ export function queuedInRegion(
       case "coastal_fort":
       case "rocket_site":
       case "dam":
+      case "mine":
         out[q.building] += q.count;
         break;
       case "power_plant":
@@ -206,6 +209,7 @@ export function queuedLevels(q: QueuedInRegion, building: BuildingId): number {
     case "coastal_fort":
     case "rocket_site":
     case "dam":
+    case "mine":
       return q[building];
     default:
       return 0;
@@ -245,6 +249,8 @@ export interface BuildCheck {
    * engine-lib isNoStrike), where nothing is built. Absent: not one.
    */
   noStrike?: boolean;
+  /** w28: the region has a deposit of any resource (a mine needs one). Absent: no deposit. */
+  hasDeposit?: boolean;
 }
 
 /** P6: the buildings whose rules live in WorldRules.depthBuildBlock. */
@@ -270,6 +276,7 @@ export function buildBlockOf(c: BuildCheck): WwOrderBlock | null {
     if (c.depthBlock === undefined) return "not_buildable";
     if (c.depthBlock !== null) return c.depthBlock;
   }
+  if (c.building === "mine" && c.hasDeposit !== true) return "no_deposit";
   const tech = BUILDING_TECH[c.building];
   if (tech !== undefined && !c.researched.has(tech)) return "no_tech";
   if (

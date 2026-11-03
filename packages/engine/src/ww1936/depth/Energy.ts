@@ -19,6 +19,7 @@ import {
   COAL_PER_REFINERY,
   DAM_ENERGY,
   DAMS,
+  ENERGY_PER_METAL_BUILDING,
 } from "@openfront/engine-api/ww1936/DepthTypes";
 import { RESOURCE_IDS } from "@openfront/engine-api/ww1936/EconomyTypes";
 import type { Effect } from "@openfront/engine-api/ww1936/PoliticsDsl";
@@ -214,7 +215,27 @@ export function energyDemand(d: WwDepth, id: number): number {
   const t = ce.totals;
   const eg = d.ww.endgame;
   const virtual = eg.isExile(id) ? eg.econAdjust(id).virtualMil : 0;
-  return Math.max(0, t.civ + t.mil - virtual + t.dock);
+  return Math.max(0, t.civ + t.mil - virtual + t.dock + metalDemand(d, id));
+}
+
+/**
+ * w28: the energy the working alloy plants and smelters use (6 each). Like
+ * the factories, a bombed-out one counts no more and an occupied region's
+ * share is half.
+ */
+export function metalDemand(d: WwDepth, id: number): number {
+  const econ = d.ww.economy;
+  const alloy = econ.buildingArray("alloy_plant");
+  const smelter = econ.buildingArray("smelter");
+  let n = 0;
+  for (const r of econ.regionsOf(id)) {
+    if ((alloy[r] ?? 0) === 0 && (smelter[r] ?? 0) === 0) continue;
+    const working =
+      effectiveBuildings(econ, r, "alloy_plant") +
+      effectiveBuildings(econ, r, "smelter");
+    n += econ.isOccupied(r) ? Math.floor(working / 2) : working;
+  }
+  return n * ENERGY_PER_METAL_BUILDING;
 }
 
 export interface EnergyView {

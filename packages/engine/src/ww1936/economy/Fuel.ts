@@ -2,7 +2,11 @@
 // land war, the navy and the air war write, the settlement on the country
 // turn, the capacity, the synthetic refineries' oil and the navy's day of
 // fuel at sea.
-import { WW_DAY_SPLIT } from "@openfront/engine-api/ww1936/EconomyTypes";
+import {
+  METAL_PER_BUILDING,
+  METAL_PER_BUILDING_2,
+  WW_DAY_SPLIT,
+} from "@openfront/engine-api/ww1936/EconomyTypes";
 import { dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
 import {
   fuelCap,
@@ -74,6 +78,50 @@ export function syntheticRubberOf(
   if (!ce.researched.has("synthetic_rubber_1")) return 0;
   const n = effectiveBuildings(econ, region, "synthetic_refinery");
   return Math.floor((n * controlPct) / 100);
+}
+
+/**
+ * w28: a region's output of one of the metal buildings, units of each of its
+ * two resources: every working building makes METAL_PER_BUILDING
+ * (metal_substitute_2: more), at the region's controlPct (occupied 50%).
+ * Added after the infrastructure factor, like the refinery's oil, so a mine
+ * never multiplies it.
+ */
+function metalOf(
+  econ: WwEconomy,
+  ce: CountryEconomy,
+  region: number,
+  controlPct: number,
+  b: "alloy_plant" | "smelter",
+): number {
+  // Most regions have none: skip the damage lookup.
+  if ((econ.buildingArray(b)[region] ?? 0) === 0) return 0;
+  const n = effectiveBuildings(econ, region, b);
+  if (n === 0) return 0;
+  const per = ce.researched.has("metal_substitute_2")
+    ? METAL_PER_BUILDING_2
+    : METAL_PER_BUILDING;
+  return Math.floor((n * per * controlPct) / 100);
+}
+
+/** Each of tungsten and chromium the region's alloy plants make. */
+export function alloyOf(
+  econ: WwEconomy,
+  ce: CountryEconomy,
+  region: number,
+  controlPct: number,
+): number {
+  return metalOf(econ, ce, region, controlPct, "alloy_plant");
+}
+
+/** Each of steel and aluminium the region's smelters make. */
+export function smelterOf(
+  econ: WwEconomy,
+  ce: CountryEconomy,
+  region: number,
+  controlPct: number,
+): number {
+  return metalOf(econ, ce, region, controlPct, "smelter");
 }
 
 /**

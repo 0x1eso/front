@@ -2148,6 +2148,14 @@ export const AI_COASTAL_FORT_MAX = 3;
 export const AI_RADAR_REGIONS = 4;
 /** Spec §17.5: a fuel shortage below this ratio builds a synthetic refinery. */
 export const AI_SYNTH_RATIO_PM = 800;
+/** w28: the AI keeps at most this many alloy plants, and this many mine levels, a country. */
+export const AI_ALLOY_MAX = 5;
+/** w28: smelters: at most this many, and only when steel or aluminium falls this far (percent of the lines' need) short, not at the first dip. */
+export const AI_SMELTER_MAX = 4;
+/** w28: these buildings use 6 energy each: the AI builds them only while its energy ratio is at least this (‰), so a new one never starts a large penalty (the power plants follow demand, AiWorld). */
+export const AI_METAL_ENERGY_PM = 960;
+export const AI_SMELTER_FILL_PCT = 85;
+export const AI_MINE_MAX = 6;
 /** Spec §17.5: fuel at its cap this long builds a silo (no shortage since). */
 export const AI_SILO_FULL_DAYS = 60;
 
@@ -2161,7 +2169,11 @@ export const AI_SILO_FULL_DAYS = 60;
  * refinery when fuel runs short (synthetic_oil_1), a silo when it
  * overflows. At most two entries a turn at war, one at peace.
  */
-function aiP4Builds(econ: WwEconomy, ce: CountryEconomy, day: number): void {
+export function aiP4Builds(
+  econ: WwEconomy,
+  ce: CountryEconomy,
+  day: number,
+): void {
   const ww = econ.ww;
   const sc = econ.scenario;
   const land = ww.land;
@@ -2370,19 +2382,73 @@ function aiP4Builds(econ: WwEconomy, ce: CountryEconomy, day: number): void {
       .map((x) => x.r);
   const anyQueued = (b: BuildingId) => ce.queue.some((q) => q.building === b);
   // Task 15: a refinery makes rubber too — built when the lines lack it.
-  let rubberNeed = 0;
-  for (const l of ce.lines) {
-    rubberNeed += EQUIPMENT[typeOf(l.key)].resources[RUBBER] * l.active;
-  }
   const t = ce.totals;
-  const rubberShort =
-    rubberNeed > t.produced[RUBBER] - t.exported[RUBBER] + t.imported[RUBBER];
+  /** w28: what the lines want of resource k, and whether the country's units fall short of it. */
+  const lineNeed = (k: number) => {
+    let need = 0;
+    for (const l of ce.lines) {
+      need += EQUIPMENT[typeOf(l.key)].resources[k] * l.active;
+    }
+    return need;
+  };
+  const resShort = (k: number) =>
+    lineNeed(k) > t.produced[k] - t.exported[k] + t.imported[k];
+  const rubberShort = resShort(RUBBER);
   if (
     (ce.fuelRatioPm < AI_SYNTH_RATIO_PM || rubberShort) &&
     ce.researched.has("synthetic_oil_1") &&
     !anyQueued("synthetic_refinery")
   ) {
     first(slotRegions(), "synthetic_refinery");
+  }
+  // w28: an alloy plant when the lines lack tungsten or chromium (a few, one
+  // at a time), a mine level where a short resource lies in the ground.
+  const energyOk =
+    ((econ.ww.depth as WwDepth | undefined)?.country(me)?.mech.energyPm ??
+      1000) >= AI_METAL_ENERGY_PM;
+  const tungstenShort = resShort(RESOURCE_IDS.indexOf("tungsten"));
+  const chromiumShort = resShort(RESOURCE_IDS.indexOf("chromium"));
+  if (
+    energyOk &&
+    (tungstenShort || chromiumShort) &&
+    ce.researched.has("metal_substitute_1") &&
+    !anyQueued("alloy_plant") &&
+    econ.countryBuildings(me, "alloy_plant") < AI_ALLOY_MAX
+  ) {
+    first(slotRegions(), "alloy_plant");
+  }
+  const steelIdx = RESOURCE_IDS.indexOf("steel");
+  const alumIdx = RESOURCE_IDS.indexOf("aluminium");
+  const deepShort = (k: number) =>
+    lineNeed(k) * AI_SMELTER_FILL_PCT >
+    (t.produced[k] - t.exported[k] + t.imported[k]) * 100;
+  if (
+    energyOk &&
+    (deepShort(steelIdx) || deepShort(alumIdx)) &&
+    ce.researched.has("metal_substitute_1") &&
+    !anyQueued("smelter") &&
+    econ.countryBuildings(me, "smelter") < AI_SMELTER_MAX
+  ) {
+    first(slotRegions(), "smelter");
+  }
+  if (!anyQueued("mine") && budget > 0) {
+    const shortRes: number[] = [];
+    for (let k = 0; k < RESOURCE_COUNT; k++) if (resShort(k)) shortRes.push(k);
+    let mineLevels = 0;
+    for (const r of econ.regionsOf(me)) mineLevels += level(r, "mine");
+    if (shortRes.length > 0 && mineLevels < AI_MINE_MAX) {
+      const dep = (r: number) =>
+        shortRes.reduce((a, k) => a + (econ.deposits(r)[k] ?? 0), 0);
+      const sites = regions
+        .filter(
+          (r) => !econ.isOccupied(r) && level(r, "mine") < 3 && dep(r) > 0,
+        )
+        .sort(
+          (a, b) =>
+            dep(b) - dep(a) || level(a, "mine") - level(b, "mine") || a - b,
+        );
+      first(sites, "mine");
+    }
   }
   if (
     ce.fuelMilli >= fuelCapOf(econ, ce) &&

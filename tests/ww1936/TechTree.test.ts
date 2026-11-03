@@ -27,9 +27,9 @@ const NEW = WW_TECH_IDS.slice(146);
 const LIVE = WW_TECH_IDS.filter((t) => WW_TECHS[t].retired !== true);
 
 describe("the research tree (research overhaul)", () => {
-  it("108 new techs: a def, a tab, a cost, en/ko names, valid prerequisites", () => {
-    expect(NEW).toHaveLength(108);
-    expect(LIVE).toHaveLength(234);
+  it("110 new techs: a def, a tab, a cost, en/ko names, valid prerequisites", () => {
+    expect(NEW).toHaveLength(110);
+    expect(LIVE).toHaveLength(236);
     const stats = new Set<string>(WW_STAT_KEYS);
     for (const id of WW_TECH_IDS) {
       const d = WW_TECHS[id];
@@ -84,17 +84,17 @@ describe("the research tree (research overhaul)", () => {
       naval: 49,
       air: 41,
       electronics: 22,
-      industry: 37,
+      industry: 39,
     });
     const years: Record<number, number> = {};
     for (const t of NEW)
       years[WW_TECHS[t].year] = (years[WW_TECHS[t].year] ?? 0) + 1;
     expect(years).toEqual({
       1937: 5,
-      1938: 13,
+      1938: 14,
       1939: 13,
       1940: 16,
-      1941: 18,
+      1941: 19,
       1942: 16,
       1943: 11,
       1944: 10,
@@ -105,7 +105,7 @@ describe("the research tree (research overhaul)", () => {
       (n, t) => n + techCostMilli(t),
       0,
     );
-    expect(Math.round(milli / 1000)).toBe(30_747);
+    expect(Math.round(milli / 1000)).toBe(31_023);
   });
 
   it("research days: the year's days × the multiplier × the knob", () => {
@@ -136,8 +136,8 @@ describe("the research tree (research overhaul)", () => {
     };
     expect(researchBlockOf(done, "concentrated_1")).toBe("exclusive");
     expect(researchBlockOf(done, "dispersed_2")).toBeNull();
-    // The air overhaul (ww8) appended three blocks after these, the focus queue two, the research queues three.
-    expect(WW_ORDER_BLOCKS.slice(-11, -8)).toEqual([
+    // The air overhaul (ww8) appended three blocks after these, the focus queue two, the research queues three, w28 one.
+    expect(WW_ORDER_BLOCKS.slice(-12, -9)).toEqual([
       "exclusive",
       "no_project",
       "bonus_held",
