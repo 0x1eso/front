@@ -135,8 +135,11 @@ export class Executor {
       case "donate_gold":
         return new DonateGoldExecution(player, intent.recipient, intent.gold);
       case "embargo":
+        // World War 1936 has its own embargo list (the ww_order embargo).
+        if (this.mg.worldWar() !== null) return new NoOpExecution();
         return new EmbargoExecution(player, intent.targetID, intent.action);
       case "embargo_all":
+        if (this.mg.worldWar() !== null) return new NoOpExecution();
         return new EmbargoAllExecution(player, intent.action);
       case "build_unit":
         return new ConstructionExecution(

@@ -828,6 +828,14 @@ export class PlayerPanel extends LitElement implements Controller {
     `;
   }
 
+  /** They stopped trading with me: the mode's list in World War 1936, else the base game's. */
+  private theyStoppedTrade(other: PlayerView, my: PlayerView): boolean {
+    if (this.g.worldWarScenario() === null) return other.hasEmbargoAgainst(my);
+    return (this.g.wwDepth?.()?.marketData.embargoes ?? []).some(
+      ([by, on]) => by === other.smallID() && on === my.smallID(),
+    );
+  }
+
   private renderStats(other: PlayerView, my: PlayerView) {
     return html`
       <!-- Betrayals -->
@@ -854,7 +862,7 @@ export class PlayerPanel extends LitElement implements Controller {
         <div
           class="flex items-center justify-end gap-2 text-[14px] font-semibold"
         >
-          ${other.hasEmbargoAgainst(my)
+          ${this.theyStoppedTrade(other, my)
             ? html`<span class="text-amber-400"
                 >${translateText("player_panel.stopped")}</span
               >`
@@ -1025,6 +1033,7 @@ export class PlayerPanel extends LitElement implements Controller {
       armed,
       a.twoTap,
       (e: MouseEvent) => this.handleWwAction(e, a, other),
+      a.hint,
     );
   }
 
@@ -1037,6 +1046,7 @@ export class PlayerPanel extends LitElement implements Controller {
     armed: boolean,
     red: boolean,
     onClick: (e: MouseEvent) => void,
+    hint?: string,
   ) {
     return html`<div class="flex flex-col">
       <button
@@ -1061,6 +1071,11 @@ export class PlayerPanel extends LitElement implements Controller {
         ? ""
         : html`<span data-ww-act-block class="text-xs text-red-300"
             >${block}</span
+          >`}
+      ${hint === undefined
+        ? ""
+        : html`<span data-ww-act-hint class="text-xs text-white/50"
+            >${hint}</span
           >`}
       ${this.wwSent === id
         ? html`<span data-ww-sent class="text-xs text-emerald-300"
@@ -1179,6 +1194,10 @@ export class PlayerPanel extends LitElement implements Controller {
         : html`<p data-ww-relations class="m-0 text-xs text-white/70">
             ${m.relations}
           </p>`}
+      ${(m.notes ?? []).map(
+        (n) =>
+          html`<p data-ww-note class="m-0 text-xs text-amber-300">${n}</p>`,
+      )}
       ${m.actions.map((a) =>
         a.id === "declare"
           ? this.renderDeclareWar(other, a.fix)

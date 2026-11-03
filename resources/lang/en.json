@@ -4629,6 +4629,10 @@
         "coup": "Back a coup",
         "declare_goal": "Declare war (war goal: {type})",
         "declare_no_goal": "Declare war without a reason — stability −15%, war support −10%, tension +{tension}%",
+        "embargo": "Embargo",
+        "embargo_hint": "Stops trade, licences and market deals with that country.",
+        "embargo_lift": "Lift embargo",
+        "embargo_lift_hint": "Trade, licences and market deals can start again.",
         "faction_invite": "Invite to my faction",
         "faction_request": "Ask to join their faction",
         "guarantee": "Guarantee independence",
@@ -4643,6 +4647,7 @@
         "sent": "Request sent",
         "support_party": "Support {ideology}"
       },
+      "embargo_theirs": "This country has an embargo on you: no trade, licences or market deals.",
       "faction": {
         "create": "Found a faction",
         "dissolve": "Dissolve",

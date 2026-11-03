@@ -12,6 +12,8 @@ import {
 import { equipKey } from "@openfront/engine-api/ww1936/EconomyTypes";
 import { IDEO_DEM } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
+import { Executor } from "@openfront/engine/execution/ExecutionManager";
+import { NoOpExecution } from "@openfront/engine/execution/NoOpExecution";
 import { snapshotGame } from "@openfront/engine/snapshot/GameSnapshot";
 import { grantLicence } from "@openfront/engine/ww1936/depth/Licences";
 import {
@@ -26,6 +28,10 @@ import {
   partnerJudge,
 } from "@openfront/engine/ww1936/economy/Trade";
 import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSource";
+import {
+  applyEffect,
+  makeCtx,
+} from "@openfront/engine/ww1936/politics/Dispatch";
 import { vi } from "vitest";
 import { diffSnapshots } from "../util/Snapshot";
 import { DEEP } from "./deepFixture";
@@ -377,6 +383,55 @@ describe("World War 1936 P6: the arms market", () => {
     expect(d.issue(FRA, { kind: "embargo", target: FRA }, tick)).toBe(
       "bad_target",
     );
+  });
+
+  it("the base game's embargo intents do nothing in this mode", async () => {
+    const { runner } = await deep();
+    const em = new Executor(runner.game, "g", undefined);
+    const deu = runner.game.playerBySmallID(DEU);
+    if (!deu.isPlayer()) throw new Error("no DEU");
+    const a = em.createExec({
+      clientID: "HUMANFRA",
+      type: "embargo",
+      targetID: deu.id(),
+      action: "start",
+    });
+    const b = em.createExec({
+      clientID: "HUMANFRA",
+      type: "embargo_all",
+      action: "start",
+    });
+    expect(a).toBeInstanceOf(NoOpExecution);
+    expect(b).toBeInstanceOf(NoOpExecution);
+  });
+
+  it("the embargo effect goes through the mode's list: it closes deals, shows up, and the order lifts it", async () => {
+    const { runner, ww, d, tick } = await deep();
+    const econ = ww.economy;
+    econ.addTrade(FRA, DEU, 0, 1);
+    const pairTrades = () =>
+      econ.trades().filter((t) => t.buyer === FRA && t.seller === DEU).length;
+    expect(pairTrades()).toBe(1);
+    const ctx = makeCtx(ww.politics, FRA, 0, DEU, tick);
+    applyEffect(ctx, { kind: "embargo", on: "target" });
+    expect(d.market.embargoes).toEqual([[FRA, DEU]]);
+    expect(d.embargoed(DEU, FRA)).toBe(true);
+    expect(pairTrades()).toBe(0);
+    // Not the base game's list.
+    const fra = runner.game.playerBySmallID(FRA);
+    expect(
+      fra.isPlayer() &&
+        fra.hasEmbargoAgainst(runner.game.playerBySmallID(DEU) as never),
+    ).toBe(false);
+    // The order lifts it, free.
+    expect(
+      d.issue(FRA, { kind: "embargo_lift", target: DEU }, tick),
+    ).toBeNull();
+    expect(d.market.embargoes).toEqual([]);
+    // end_embargo lifts one the order set.
+    expect(d.issue(FRA, { kind: "embargo", target: DEU }, tick)).toBeNull();
+    applyEffect(ctx, { kind: "end_embargo", on: "target" });
+    expect(d.market.embargoes).toEqual([]);
   });
 
   it("a buyer that can no longer pay ends its newest deal", async () => {

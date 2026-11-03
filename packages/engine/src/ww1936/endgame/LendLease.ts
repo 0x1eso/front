@@ -804,7 +804,7 @@ export function volunteerCanEnter(
 
 // ---- Effects (spec §16.4) ----
 
-/** lend_lease / volunteers / transfer_ships / scuttle_fleet / embargo / end_embargo. */
+/** lend_lease / volunteers / transfer_ships / scuttle_fleet (embargo and end_embargo go to depth/Embargo's setEmbargo, in EffectsEndgame). */
 export function applyAidEffect(ctx: EffectCtx, e: Effect, actor: number): void {
   const eg = ctx.pol.ww.endgame;
   switch (e.kind) {
@@ -850,20 +850,6 @@ export function applyAidEffect(ctx: EffectCtx, e: Effect, actor: number): void {
     case "scuttle_fleet":
       scuttleFleet(eg, actor, e.pct, ctx.tick);
       return;
-    case "embargo":
-    case "end_embargo": {
-      // P1 §7.4's embargo is the player's (Trade.partnerJudge reads the
-      // seller's hasEmbargoAgainst): the actor stops selling to `on`.
-      const on = resolveSelector(ctx, e.on);
-      if (!validId(eg, on) || on === actor) return;
-      const me = eg.mg.playerBySmallID(actor);
-      const them = eg.mg.playerBySmallID(on);
-      if (!me.isPlayer() || !them.isPlayer()) return;
-      if (e.kind === "embargo") me.addEmbargo(them, false);
-      else if (me.hasEmbargoAgainst(them)) me.stopEmbargo(them);
-      eg.ww.economy.markCountryDirty(actor);
-      return;
-    }
     default:
       return;
   }
