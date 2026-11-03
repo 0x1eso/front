@@ -10,9 +10,9 @@ describe("SUN focus tree", () => {
     SUN_FOCUSES.map((f) => [f.id, f]),
   );
 
-  it("has about 100 focuses and every new focus has a group", () => {
-    expect(SUN_FOCUSES.length).toBe(106);
-    expect(SUN_FOCUSES.filter((f) => "group" in f).length).toBe(59);
+  it("has about 120 focuses and every new focus has a group", () => {
+    expect(SUN_FOCUSES.length).toBe(123);
+    expect(SUN_FOCUSES.filter((f) => "group" in f).length).toBe(76);
   });
 
   it("branch points are real, and their forks are exclusive both ways", () => {

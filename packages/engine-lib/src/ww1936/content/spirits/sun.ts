@@ -251,4 +251,103 @@ export const SPIRITS_SUN = [
     icon: "rail",
     stats: { milConstructionPct: 10 },
   },
+  // The Red Bonaparte's programme: written numbers, a focus counts them x3.
+  // The army's gains come with a cost in the same spirit.
+  {
+    id: "sun_security_split",
+    icon: "chain_broken",
+    stats: { intelPct: -10, researchPct: 3, ppGainPct: 2 },
+  },
+  {
+    id: "sun_command_unity",
+    icon: "star_plain",
+    stats: { orgPct: 4, planSpeedPct: 4, reinforcePct: 3 },
+  },
+  {
+    id: "sun_deep_ops_doctrine",
+    icon: "compass",
+    stats: {
+      attackPct: 4,
+      planSpeedPct: 6,
+      breakthroughPct: 4,
+      advanceSpeedPct: 3,
+    },
+  },
+  {
+    id: "sun_armoured_spearhead",
+    icon: "tank",
+    stats: { armorAttackPct: 5, armorBrkPct: 5, rsArmorPct: 8 },
+  },
+  {
+    id: "sun_army_air_arm",
+    icon: "plane",
+    stats: { airAttackPct: 4, casPct: 6, rsAirPct: 8, stratBombPct: -10 },
+  },
+  {
+    id: "sun_restored_officers",
+    icon: "medal",
+    stats: { generalXpPct: 12, orgPct: 3, divXpGainPct: 5 },
+  },
+  {
+    id: "sun_general_staff_rule",
+    icon: "map",
+    stats: { planMaxBp: 600, supplyUsePct: -3, reinforcePct: 3, ppGainPct: -3 },
+  },
+  {
+    id: "sun_party_liaison",
+    icon: "handshake",
+    stats: { stabilityWeeklyBp: 5, advisorCostPct: -10 },
+  },
+  {
+    id: "sun_grain_deal",
+    icon: "wheat",
+    stats: { manpowerGrowthPct: 4, consumerGoodsPp: 2 },
+  },
+  {
+    id: "sun_republic_charters",
+    icon: "flag",
+    stats: {
+      garrisonNeedPct: -10,
+      complianceGainPct: 10,
+      nonCoreManpowerPp: 3,
+    },
+  },
+  // Timed: the answers to the junta's cards.
+  {
+    id: "sun_eased_quotas",
+    icon: "wheat",
+    stats: { manpowerGrowthPct: 3, consumerGoodsPp: 2 },
+  },
+  // The military-rule exit.
+  {
+    id: "sun_garrison_regime",
+    icon: "fort",
+    stats: { recruitablePct: 2, trainPct: 6, consumerGoodsPp: 2 },
+  },
+  {
+    id: "sun_marshals_rule",
+    icon: "star_plain",
+    stats: { coupResistPct: 15, advisorCostPct: -15, decisionCostPct: -10 },
+  },
+  {
+    id: "sun_army_industry",
+    icon: "factory_mil",
+    stats: { milConstructionPct: 8, consumerGoodsPp: 2 },
+  },
+  // The return to the NEP.
+  {
+    id: "sun_amnesty",
+    icon: "dove",
+    stats: { researchPct: 3, outputPct: 2 },
+  },
+  {
+    id: "sun_party_state",
+    icon: "ballot",
+    stats: { ppGainPct: 3, coupResistPct: 10 },
+  },
+  {
+    id: "sun_market_plan",
+    icon: "industry",
+    stats: { outputPct: 3, tradeCostPct: -10, consumerGoodsPp: -1 },
+  },
 ] satisfies SpiritDef[];

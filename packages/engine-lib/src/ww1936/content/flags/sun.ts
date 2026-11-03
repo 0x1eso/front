@@ -4,4 +4,9 @@
 export const FLAGS_SUN: readonly string[] = [
   // Set by sun_tupolev_arrest, cleared by sun_tupolev_released.
   "sun_tupolev_held",
+  // The Red Bonaparte: the army holds the state (sun_red_bonaparte), the army
+  // handed it back (sun_bukharin_nep), the party took its seats (sun_party_returns).
+  "sun_army_rule",
+  "sun_junta_returned",
+  "sun_party_restored",
 ];

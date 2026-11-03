@@ -61,8 +61,11 @@ export const PERSONS_SUN = [
     id: "sun_bukharin",
     nameKey: "ww1936.person.sun_bukharin",
     country: "SUN",
-    roles: ["advisor"],
+    // Also the party's head when the army hands the state back
+    // (sun_bukharin_nep), a road the historical game never takes.
+    roles: ["advisor", "leader"],
     advisor: { slot: "political", traits: ["labour_organizer"] },
+    leaderTraits: ["reformer"],
     source:
       "en/ru.wikipedia Nikolai Bukharin: arrested 1937-02-27 (event sun_bukharin_arrest)",
   },

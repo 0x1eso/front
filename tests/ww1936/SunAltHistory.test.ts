@@ -6,7 +6,7 @@ import { CIVIL_WAR_SLOTS } from "@openfront/engine-api/ww1936/Countries";
 import { BUILDING_IDS } from "@openfront/engine-api/ww1936/EconomyTypes";
 import { CS_GONE } from "@openfront/engine-api/ww1936/EndgameTypes";
 import type { EventDef } from "@openfront/engine-api/ww1936/PoliticsTypes";
-import { IDEO_NEU } from "@openfront/engine-api/ww1936/PoliticsTypes";
+import { IDEO_COM, IDEO_NEU } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { SUN_EVENTS } from "@openfront/engine-lib/ww1936/content/events/sun";
 import { SUN_FOCUSES } from "@openfront/engine-lib/ww1936/content/focus/sun";
 import { treePosIn } from "@openfront/engine-lib/ww1936/content/registry";
@@ -173,7 +173,7 @@ describe("Soviet purge: stages, control focuses, ending, troubles", () => {
       "sun_red_bonaparte",
     );
     expect(ids.get("sun_bukharin_nep")!.prereq).toEqual([
-      ["sun_moderate_economy", "sun_barracks_order"],
+      ["sun_moderate_economy", "sun_party_concordat"],
     ]);
 
     // Slots full and a shaky regime: the card offers only the civil war, which cannot start.
@@ -246,5 +246,82 @@ describe("Soviet purge: stages, control focuses, ending, troubles", () => {
         expect(have.has(s) || s === "sun_five_year_plans", s).toBe(true);
     }
     expect(BUILDING_IDS).toContain("rail");
+  });
+
+  it("Red Bonaparte path: Stalin's men lose their posts, the army's programme stands, the NEP hands the state back under Bukharin", async () => {
+    const r = await sunGame();
+    const p = pol(r.game);
+    const c = me(r);
+    mark(r, ["sun_army_reformers"]);
+    runFocus(r, "sun_red_bonaparte");
+    // The defence commissar sits in his seat when the old circle is dismissed.
+    c.advisors[3] = "sun_voroshilov";
+    runFocus(r, "sun_old_guard_dismissed");
+    expect(c.advisors).not.toContain("sun_voroshilov");
+    expect(c.dismissed).toEqual(
+      expect.arrayContaining(["sun_voroshilov", "sun_molotov", "sun_zhdanov"]),
+    );
+    expect(c.candidates).toContain("sun_yegorov");
+    expect(p.generalRemoved("budyonny")).toBe(true);
+    runFocus(r, "sun_party_out_of_army");
+    runFocus(r, "sun_deep_ops_revived");
+    // A focus-added spirit counts x3: 4% attack written, 12% in play.
+    expect(c.hasSpirit("sun_deep_ops_doctrine")).toBe(true);
+    expect(c.stats.attackPct).toBeGreaterThanOrEqual(12);
+    // The return: the follow-ups wait for the flag the army regime's NEP sets.
+    mark(r, ["sun_barracks_order", "sun_party_concordat"]);
+    const nepFollow = SUN_FOCUSES.find((f) => f.id === "sun_nep_amnesty")!;
+    expect(
+      evalCondition(
+        makeCtx(p, p.idOfTag("SUN"), p.idOfTag("SUN"), 0, r.game.ticks()),
+        nepFollow.available!,
+      ),
+    ).toBe(false);
+    runFocus(r, "sun_bukharin_nep");
+    expect(c.ruling).toBe(IDEO_COM);
+    expect(c.leader).toBe("sun_bukharin");
+    expect(c.hasFlag("sun_junta_returned", dayOf(r))).toBe(true);
+    expect(c.hasFlag("sun_army_rule", dayOf(r))).toBe(false);
+    runFocus(r, "sun_nep_amnesty");
+    expect(c.hasSpirit("sun_amnesty")).toBe(true);
+    // Military rule is closed behind the NEP.
+    expect(
+      SUN_FOCUSES.find((f) => f.id === "sun_military_rule")!.exclusive,
+    ).toContain("sun_bukharin_nep");
+  }, 600_000);
+
+  it("the Red Bonaparte tree: 20 focuses, three or more follow-ups behind each exit, nothing the exits wait on is missing", () => {
+    const byId = new Map(SUN_FOCUSES.map((f) => [f.id, f]));
+    const rb = SUN_FOCUSES.filter((f) => (f.group ?? "").startsWith("sun_rb_"));
+    const own = SUN_FOCUSES.filter((f) => f.group === "sun_red_bonaparte");
+    expect(rb.length + own.length).toBe(20);
+    const behind = (exit: string) =>
+      SUN_FOCUSES.filter((f) => f.prereq?.flat().includes(exit));
+    expect(behind("sun_military_rule").length).toBeGreaterThanOrEqual(2);
+    expect(behind("sun_bukharin_nep").length).toBeGreaterThanOrEqual(1);
+    expect(
+      SUN_FOCUSES.filter((f) => f.group === "sun_rb_return").length,
+    ).toBeGreaterThanOrEqual(3);
+    // The army regime keeps the anti-fascist front through a door of its own.
+    expect(byId.get("sun_antifascist_front")!.prereq).toEqual([
+      ["sun_collective_leadership", "sun_red_bonaparte"],
+    ]);
+    // Only the army regime's NEP opens the return; the military road needs the broken hardliners.
+    expect(JSON.stringify(byId.get("sun_nep_amnesty")!.available)).toContain(
+      "sun_junta_returned",
+    );
+    expect(byId.get("sun_military_rule")!.prereq).toEqual([
+      ["sun_barracks_order"],
+      ["sun_nkvd_broken"],
+      ["sun_party_out_of_army"],
+    ]);
+    // Every card the politics focuses fire exists, with two options.
+    for (const id of [
+      "sun_party_delegation",
+      "sun_peasant_petition",
+      "sun_nationalities_petition",
+    ]) {
+      expect(eventDef(id).options).toHaveLength(2);
+    }
   });
 });

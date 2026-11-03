@@ -13,6 +13,7 @@ import type {
   FocusId,
 } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { after, any, done, fire, flag, gflag, not, T } from "../helpers";
+import { SUN_BONAPARTE_FOCUSES } from "./sun_bonaparte";
 
 /** Every spirit the purge gives: the three stages and the eight control focuses'. */
 export const PURGE_CLEAR: Effect[] = [
@@ -300,7 +301,8 @@ export const SUN_FOCUSES = [
     days: 70,
     branch: "diplomacy",
     icon: "fist",
-    prereq: [["sun_collective_leadership"]],
+    // The army regime keeps the anti-fascist front too (a door of its own).
+    prereq: [["sun_collective_leadership", "sun_red_bonaparte"]],
     effects: [
       { kind: "guarantee", of: T("CSK") },
       { kind: "guarantee", of: T("POL") },
@@ -313,7 +315,8 @@ export const SUN_FOCUSES = [
   // ---- B2: the army takes the state (a road out of the reformers) ----
   // The focus only takes power; the hardliners of the party and the security
   // service rise by the event sun_hardliner_unrest. Two ways out: military
-  // rule, or the return to the NEP (sun_bukharin_nep).
+  // rule, or the return to the NEP (sun_bukharin_nep). What the army does
+  // with its power is in sun_bonaparte.ts (appended at the end of this list).
   {
     id: "sun_red_bonaparte",
     tree: "SUN",
@@ -359,7 +362,13 @@ export const SUN_FOCUSES = [
     branch: "politics",
     icon: "flag",
     group: "sun_red_bonaparte",
-    prereq: [["sun_barracks_order"]],
+    // The hardliners are broken first: the security service and the party's
+    // grip on the army.
+    prereq: [
+      ["sun_barracks_order"],
+      ["sun_nkvd_broken"],
+      ["sun_party_out_of_army"],
+    ],
     exclusive: ["sun_bukharin_nep"],
     effects: [
       { kind: "swap_spirit", from: "sun_army_regime", to: "sun_junta_rule" },
@@ -1083,8 +1092,9 @@ export const SUN_FOCUSES = [
     branch: "industry",
     icon: "wheat",
     group: "sun_party_line",
-    // Also the army regime's way home (the collective road stays closed to it).
-    prereq: [["sun_moderate_economy", "sun_barracks_order"]],
+    // Also the army regime's way home (the collective road stays closed to
+    // it): through a concordat with the party.
+    prereq: [["sun_moderate_economy", "sun_party_concordat"]],
     exclusive: ["sun_forced_industrialise", "sun_military_rule"],
     effects: [
       { kind: "add_spirit", id: "sun_consumer_line" },
@@ -1094,8 +1104,12 @@ export const SUN_FOCUSES = [
         cond: flag("sun_army_rule"),
         then: [
           { kind: "set_government", ideology: "communist" },
+          // The party takes the state back from the generals, but not under
+          // the old General Secretary: Bukharin heads it.
+          { kind: "set_leader", person: "sun_bukharin" },
           { kind: "remove_spirit", id: "sun_army_regime" },
           { kind: "clear_flag", flag: "sun_army_rule" },
+          { kind: "set_flag", flag: "sun_junta_returned" },
         ],
       },
     ],
@@ -1848,6 +1862,8 @@ export const SUN_FOCUSES = [
     ],
     ai: { base: 10 },
   },
+  // The Red Bonaparte's road (appended: tree positions are append-only).
+  ...SUN_BONAPARTE_FOCUSES,
 ] satisfies FocusDef[];
 
 /** Spec §19.5 "역사 경로": the AI's historical order (42 of 47). */

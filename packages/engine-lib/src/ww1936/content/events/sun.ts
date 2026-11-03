@@ -751,4 +751,77 @@ export const SUN_EVENTS = [
       },
     ],
   },
+  // ---- Red Bonaparte: the junta and the country (fired by the politics group's focuses) ----
+  {
+    id: "sun_party_delegation",
+    kind: "country",
+    picture: "table",
+    options: [
+      {
+        id: "a",
+        ai: { base: 60 },
+        effects: [
+          { kind: "stability", pct: 5 },
+          { kind: "popularity", ideology: "communist", pp: 6 },
+          { kind: "war_support", pct: -2 },
+        ],
+      },
+      {
+        id: "b",
+        ai: { base: 40 },
+        effects: [
+          { kind: "stability", pct: -3 },
+          { kind: "popularity", ideology: "communist", pp: -6 },
+          { kind: "army_xp", amount: 15 },
+        ],
+      },
+    ],
+  },
+  {
+    id: "sun_peasant_petition",
+    kind: "country",
+    picture: "crowd",
+    options: [
+      {
+        id: "a",
+        ai: { base: 60 },
+        effects: [
+          { kind: "stability", pct: 4 },
+          { kind: "add_spirit", id: "sun_eased_quotas", days: 180 },
+        ],
+      },
+      {
+        id: "b",
+        ai: { base: 40 },
+        effects: [
+          { kind: "stability", pct: -4 },
+          { kind: "pp", amount: 40 },
+        ],
+      },
+    ],
+  },
+  {
+    id: "sun_nationalities_petition",
+    kind: "country",
+    picture: "document",
+    options: [
+      {
+        id: "a",
+        ai: { base: 60 },
+        effects: [
+          { kind: "stability", pct: 3 },
+          { kind: "war_support", pct: -2 },
+        ],
+      },
+      {
+        id: "b",
+        ai: { base: 40 },
+        effects: [
+          { kind: "stability", pct: -3 },
+          { kind: "war_support", pct: 3 },
+          { kind: "pp", amount: 20 },
+        ],
+      },
+    ],
+  },
 ] satisfies EventDef[];

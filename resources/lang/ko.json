@@ -5047,7 +5047,10 @@
       "usa_democratic_uprising": "수도 밖에서는 쫓겨난 정당이 여전히 수백만의 충성을 쥐고 있다. 주지사들은 명령을 거부하고 방위군은 흩어지며 군중이 광장을 메운다. 정권이 충분히 안정되어 있다면 힘으로 운동을 꺾을 수 있지만, 그렇지 못하면 나라가 갈라진다.",
       "jpn_service_revolt": "해군과 통제파는 여전히 관청과 항구, 참모부 절반의 충성을 쥐고 있다. 명령은 무시되고 함선은 항구에 묶이며, 기성 세력은 자기들의 정부를 선언한다. 정권이 충분히 안정되어 있다면 힘으로 운동을 꺾을 수 있지만, 그렇지 못하면 나라가 갈라진다.",
       "jpn_kwantung_break": "만주의 장군들은 자율을 약속받았지만 실제로는 거의 누리지 못했다. 이제 그들은 도쿄의 전문에 답하지 않는다. 정권이 충분히 안정되어 있다면 이들을 소환할 수 있지만, 그렇지 못하면 만주국과 조차지를 데리고 떠난다.",
-      "jpn_manchukuo_defiance": "관동군 장군들이 고삐를 끊었고 만주국은 이들의 것이 되었다. 만주국은 묶여 있던 진영을 떠나, 옛 주인에게 무기를 든다."
+      "jpn_manchukuo_defiance": "관동군 장군들이 고삐를 끊었고 만주국은 이들의 것이 되었다. 만주국은 묶여 있던 진영을 떠나, 옛 주인에게 무기를 든다.",
+      "sun_party_delegation": "당 원로 대표단이 국가 위원회의 자리를 요구한다. 의견을 들어 주면 충성을 약속하고, 거절하면 아무것도 약속하지 않겠다고 한다.",
+      "sun_peasant_petition": "농촌 대표들이 청원서를 들고 온다. 곡물 할당량이 들판이 감당할 수 있는 수준을 넘었다는 것이다. 장군들은 할당량을 낮추어 줄 수도 있고, 버티면서 곡창을 채울 수도 있다.",
+      "sun_nationalities_petition": "연방 공화국의 지도자들이 새 정부에 자국의 언어와 학교, 경계를 지금 그대로 유지해 달라고 요청한다. 장군들은 하나의 군대와 하나의 지휘 계통을 선호한다."
     },
     "event_opt": {
       "aus_curtin_appeal": {
@@ -5916,6 +5919,18 @@
       "sun_hardliner_unrest": {
         "a": "운동을 꺾는다",
         "b": "내전"
+      },
+      "sun_party_delegation": {
+        "a": "자리를 내준다",
+        "b": "돌려보낸다"
+      },
+      "sun_peasant_petition": {
+        "a": "할당량을 낮춘다",
+        "b": "할당량을 유지한다"
+      },
+      "sun_nationalities_petition": {
+        "a": "권리를 확인해 준다",
+        "b": "하나의 군대, 하나의 지휘"
       }
     },
     "event_title": {
@@ -6170,7 +6185,10 @@
       "usa_democratic_uprising": "민주 세력의 봉기",
       "jpn_service_revolt": "제독과 참모들의 반발",
       "jpn_kwantung_break": "관동군이 고삐를 끊는다",
-      "jpn_manchukuo_defiance": "만주국이 도쿄에 맞선다"
+      "jpn_manchukuo_defiance": "만주국이 도쿄에 맞선다",
+      "sun_party_delegation": "당 원로들의 방문",
+      "sun_peasant_petition": "농촌 대표단의 청원",
+      "sun_nationalities_petition": "공화국들의 요구"
     },
     "eventui": {
       "annex_warning": "경고: 이 선택을 하면 우리나라가 {country}에 합병됩니다",
@@ -7409,7 +7427,24 @@
       "jpn_far_east_offensive": "극동 공세",
       "jpn_amur_railways": "아무르 철도",
       "jpn_new_york_credit": "뉴욕의 신용",
-      "jpn_china_priority": "중국 우선"
+      "jpn_china_priority": "중국 우선",
+      "sun_old_guard_dismissed": "측근 세력 해임",
+      "sun_nkvd_broken": "내무기관 해체",
+      "sun_party_out_of_army": "병영에서 당을 내보내다",
+      "sun_deep_ops_revived": "종심 작전의 부활",
+      "sun_armoured_force": "기갑 전력 건설",
+      "sun_air_arm_rebuilt": "군 항공대 재편",
+      "sun_officers_restored": "장교단의 복권",
+      "sun_general_staff_authority": "실권을 쥔 총참모부",
+      "sun_party_concordat": "당과의 협약",
+      "sun_peasant_relief": "농촌 구제",
+      "sun_nationalities_charter": "공화국 헌장",
+      "sun_garrison_state": "병영 국가",
+      "sun_marshals_council": "원수 평의회",
+      "sun_defence_industries": "군 관리 군수 산업",
+      "sun_nep_amnesty": "사면과 화해",
+      "sun_party_returns": "당의 복귀",
+      "sun_mixed_economy": "계획과 시장"
     },
     "focus_desc": {
       "alb_reforms": "새 법전과 학교, 도로로 젊은 왕국의 기틀을 다진다.",
@@ -8484,7 +8519,24 @@
       "jpn_far_east_offensive": "전차와 보병 사단이 아무르와 우수리 강변에 집결한다. 만주의 새 병기창은 겨울에도 쉬지 않고 가동하라는 명령을 받는다.",
       "jpn_amur_railways": "국경 하천까지 전략 철도가 놓이고, 군단 전체가 닿을 수 있는 측선이 깔린다. 공세는 더 이상 철도 종점에서 굶지 않는다.",
       "jpn_new_york_credit": "미국 은행이 새 협정을 담보로 자금을 빌려주고, 미국산 석유가 다시 일본에 팔린다. 자금은 공장을 사고, 공장은 시간을 번다.",
-      "jpn_china_priority": "태평양이 잠잠해지자 여유 있는 모든 사단과 자금이 대륙으로 향한다. 중국에서의 전쟁은 관리하는 것이 아니라 끝내야 할 것이 된다."
+      "jpn_china_priority": "태평양이 잠잠해지자 여유 있는 모든 사단과 자금이 대륙으로 향한다. 중국에서의 전쟁은 관리하는 것이 아니라 끝내야 할 것이 된다.",
+      "sun_old_guard_dismissed": "서기장 곁을 지키던 인물들이 하나둘 자리에서 물러난다. 국방 인민위원, 정부 수반, 당의 수석 이념가가 해임되고, 구체제가 놀려 두었던 참모 장교들이 그 빈자리로 불려 온다.",
+      "sun_nkvd_broken": "보안기관이 잘게 쪼개져 군 장교들 밑으로 들어간다. 문서고와 수용소, 밀고망은 더 이상 강경파의 명령을 따르지 않는다. 그 대신 국가는 눈과 귀를 많이 잃는다.",
+      "sun_party_out_of_army": "정치위원은 명령에 부서할 권한을 잃고 연대의 당 세포는 문을 닫는다. 지휘관이 지휘하고, 군 안에 있던 당의 눈은 어두워진다.",
+      "sun_deep_ops_revived": "적의 종심 전체를 한꺼번에 타격한다는 이론이 그 입안자들과 함께 다시 가르쳐진다. 훈련은 옛 학파가 원하던 규모로 재개된다.",
+      "sun_armoured_force": "전차군단이 예정보다 몇 해 앞서 창설되고 독자적인 교리를 받는다. 공장과 연료가 새 기계화 병과에 먼저 돌아가고, 나머지 군은 기다려야 한다.",
+      "sun_air_arm_rebuilt": "항공대가 지상전을 위해 날도록 육군 지휘관 밑으로 재편된다. 전투기와 지상 공격 비행대가 우선이고, 장거리 폭격을 주장하던 이들은 예산을 잃는다.",
+      "sun_officers_restored": "장교들은 숙청되는 대신 제자리를 지키고 실적에 따라 승진한다. 새 지휘관 두 명이 임명되고, 간부들은 다시 참모부를 신뢰한다.",
+      "sun_general_staff_authority": "총참모부가 전쟁과 예산을 스스로의 권한으로 계획하고, 민간 부서는 요청할 수 있을 뿐이다. 군은 더 잘 조직되지만 국가는 군에 더 크게 의존한다.",
+      "sun_party_concordat": "장군들과 당 원로들이 조건에 합의한다. 당은 경제와 도시의 위원회를 유지하고, 군은 병영을 유지한다.",
+      "sun_peasant_relief": "곡물 징발량이 줄고 가장 가혹한 할당이 취소된다. 굶는 마을이 줄어들고, 들판에서 돌아오는 아들들이 늘어난다.",
+      "sun_nationalities_charter": "연방 공화국들이 언어와 학교, 지방 관청을 명문화한 헌장을 받는다. 공화국들은 군부에 빚진 것이 거의 없고, 군부에 기대하는 것은 많다.",
+      "sun_garrison_state": "나라 전체가 하나의 거대한 주둔지처럼 운영된다. 예비군이 소집되고 보급소가 채워지며, 모든 관할 구역마다 책임 장교가 있다.",
+      "sun_marshals_council": "원수들이 상설 평의회로 모여, 한 장군이 홀로 결정할 수 없는 일을 정한다. 경쟁은 병영이 아니라 회의장에서 정리된다.",
+      "sun_defence_industries": "군수 공장이 독자적인 할당량을 가진 군 관리자들 밑에 들어간다. 생산은 늘고, 민간 시장은 남는 것을 받는다.",
+      "sun_nep_amnesty": "구체제의 수감자들이 풀려나고 망명자들은 귀국을 권유받는다. 장군들은 나라가 명령만으로 다스려지지 않는다는 점을 인정한다.",
+      "sun_party_returns": "당이 옛 서기장에게 빚이 없는 지도자 아래서 정부의 자리를 되찾는다. 군은 예우를 받으며 병영으로 돌아간다.",
+      "sun_mixed_economy": "농민과 장인은 계획을 채우고 남은 것을 팔 수 있다. 공장에는 새 관리자가 오고, 가게에는 물건이 들어온다."
     },
     "focusui": {
       "and": "그리고",
@@ -9815,7 +9867,8 @@
       "ww1936_ship_sunk_named": "{country}의 {cls} {ship}이(가) {sr}에서 격침되었다.",
       "news_white_peace": "{a} 측과 {b} 측이 백지 평화에 합의했습니다",
       "news_neg_peace": "{a} 측과 {b} 측이 조건부 평화 조약을 맺었습니다",
-      "news_line_peace": "{a} 측과 {b} 측이 현 점령선에서 평화에 합의했습니다"
+      "news_line_peace": "{a} 측과 {b} 측이 현 점령선에서 평화에 합의했습니다",
+      "sun_news_old_guard": "모스크바 소식: 국방 인민위원과 정부 수반, 당의 수석 이념가가 모두 자리에서 물러났다."
     },
     "nuke": {
       "band": "원자탄 {n}",
@@ -11415,7 +11468,24 @@
       "jpn_total_resistance": "총저항 체제",
       "jpn_showa_restoration": "쇼와 유신",
       "jpn_levied_combines": "징발된 재벌",
-      "jpn_washington_credit": "워싱턴의 신용"
+      "jpn_washington_credit": "워싱턴의 신용",
+      "sun_security_split": "분할된 보안기관",
+      "sun_command_unity": "지휘 일원화",
+      "sun_armoured_spearhead": "기갑 선봉",
+      "sun_army_air_arm": "육군 항공",
+      "sun_restored_officers": "신뢰받는 장교단",
+      "sun_general_staff_rule": "총참모부의 지배",
+      "sun_party_liaison": "당과의 연락 창구",
+      "sun_grain_deal": "곡물 타협",
+      "sun_republic_charters": "공화국 헌장",
+      "sun_eased_quotas": "완화된 할당량",
+      "sun_amnesty": "사면",
+      "sun_party_state": "복원된 당 국가",
+      "sun_market_plan": "계획과 시장",
+      "sun_deep_ops_doctrine": "종심 작전 교리",
+      "sun_garrison_regime": "병영 국가",
+      "sun_marshals_rule": "원수 평의회",
+      "sun_army_industry": "군이 관리하는 산업"
     },
     "spirit_desc": {
       "arg_neutral_course": "아르헨티나는 모든 편과 교역하되 누구의 전쟁에도 끼지 않는다.",
@@ -11701,7 +11771,24 @@
       "jpn_total_resistance": "온 국민을 본토 방어에 동원하며 사회 질서의 대가가 크다.",
       "jpn_showa_restoration": "천황이 직접 통치하고 청년 장교들이 그의 이름으로 말한다. 결정은 빠르고, 나라의 분위기는 정권에 고정된다.",
       "jpn_levied_combines": "거대 재벌이 국가가 정한 값으로 국가를 위해 일한다. 생산은 늘었고, 소유주들은 편치 못하다.",
-      "jpn_washington_credit": "미국의 자금과 워싱턴과의 양해가 교역비를 낮추고 긴장을 누그러뜨린다."
+      "jpn_washington_credit": "미국의 자금과 워싱턴과의 양해가 교역비를 낮추고 긴장을 누그러뜨린다.",
+      "sun_security_split": "보안기관이 쪼개져 밀고자는 줄고, 기술자들의 숨통은 약간 트인다.",
+      "sun_command_unity": "명령은 지휘관만 내리며, 전선은 더 빠르게 반응한다.",
+      "sun_armoured_spearhead": "일찍 키운 기계화 병과로 전차 공격이 강해지고 기갑 연구가 빨라진다.",
+      "sun_army_air_arm": "항공 전력이 지상전을 위해 쓰인다. 공중 공격과 근접 지원은 강해지고 전략 폭격은 약해진다.",
+      "sun_restored_officers": "장교들이 자리를 지키며 경험을 쌓는다. 장군의 경험치와 조직력이 오른다.",
+      "sun_general_staff_rule": "참모부가 더 멀리 계획하고 낭비를 줄이지만, 정부의 원활한 운영은 희생된다.",
+      "sun_party_liaison": "당 원로들과의 상설 창구가 열려, 안정도가 서서히 회복되고 고문 비용이 줄어든다.",
+      "sun_grain_deal": "할당량이 가벼워져 군에 갈 사람이 늘고 식탁의 빵도 늘어난다.",
+      "sun_republic_charters": "공화국의 권리가 명문화되어 주둔 필요가 줄고 복종이 빨라지며, 비핵심 지역에서 인력을 조금 더 얻는다.",
+      "sun_eased_quotas": "한동안 농촌이 숨을 돌린다. 인력이 늘고 민생에 돌아가는 물자도 늘어난다.",
+      "sun_amnesty": "풀려난 전문가들이 일터로 돌아와 연구가 빨라지고 생산이 조금 늘어난다.",
+      "sun_party_state": "당의 조직이 다시 정부를 위해 움직여 정치력이 늘고 통치가 안정된다.",
+      "sun_market_plan": "혼합 경제로 생산이 오르고 무역 비용이 줄며 필요한 소비재도 줄어든다.",
+      "sun_deep_ops_doctrine": "옛 학파의 공세 교리가 돌아와 계획은 빨라지고 돌파는 날카로워진다.",
+      "sun_garrison_regime": "예비군이 훈련을 마치고 대기하지만, 민수품이 그 대가를 치른다.",
+      "sun_marshals_rule": "통치 평의회 덕에 쿠데타는 어려워지고 결정에 드는 비용은 줄어든다.",
+      "sun_army_industry": "군 관리자들이 맡은 군수 공장이 더 빨리 지어지고, 그 비용은 민간이 치른다."
     },
     "stance": {
       "aggressive": "과감",
