@@ -4,6 +4,7 @@ import {
   FocusBranch,
   FocusDef,
   FocusTreeId,
+  WW_FOCUS_QUEUE,
   WW_STAT_KEYS,
   WwFocusCard,
   WwPolDetail,
@@ -217,7 +218,8 @@ interface FocusCtx {
   states: number[];
   cards: Map<number, WwFocusCard>;
   running: number;
-  queued: number;
+  /** The reserved focuses' tree positions, in order. */
+  queue: number[];
   /** The engine refuses every order (gone or capitulated). */
   dead: boolean;
 }
@@ -250,6 +252,8 @@ export class WwFocusPanel extends LitElement implements Controller {
   @state() private chip: FocusChip | "pack" | null = null;
   /** Phone, both slots filled: the chips folded behind a "▾" button, and whether its list is open. */
   @state() private chipMenu = false;
+  /** The queue list beside the tree is shown (per-viewer; open while anything is queued). */
+  @state() private queueOpen = true;
   /** Per-viewer UI state: collapsed group keys, the search text and its current match. */
   @state() private collapsed: ReadonlySet<string> = new Set();
   @state() private query = "";
@@ -407,7 +411,7 @@ export class WwFocusPanel extends LitElement implements Controller {
       states,
       cards,
       running: pos(detail.focus?.id),
-      queued: pos(detail.queued),
+      queue: detail.queue.map((q) => pos(q)).filter((i) => i >= 0),
       // P5 pre-flight §0-1: an exile still runs its focus.
       dead: !wwActive(this.game, me),
     };
@@ -597,10 +601,7 @@ export class WwFocusPanel extends LitElement implements Controller {
     }
     if (this.canvas?.canvas !== el) {
       this.dropCanvas();
-      this.canvas = new FocusCanvas(el, (pos) => {
-        this.selected = pos;
-        this.chipMenu = false;
-      });
+      this.canvas = new FocusCanvas(el, (pos) => this.pick(pos));
     }
     const c = this.ctx();
     if (c === null) return;
@@ -626,13 +627,17 @@ export class WwFocusPanel extends LitElement implements Controller {
     const key = [
       c.treeId,
       c.states.join(""),
+      c.queue.join(","),
+      c.states
+        .map((_, i) => (c.cards.get(i)?.reserve === true ? 1 : 0))
+        .join(""),
       progress.toFixed(3),
       this.selected,
       c.detail.stats[FOCUS_SPEED] ?? 0,
     ].join("|");
     const names = this.names(c);
     const keep = new Set<number>(
-      [c.running, c.queued, this.selected].filter((i) => i >= 0),
+      [c.running, ...c.queue, this.selected].filter((i) => i >= 0),
     );
     const hits = searchMatches(names, this.query);
     hits.forEach((i) => keep.add(i));
@@ -658,6 +663,8 @@ export class WwFocusPanel extends LitElement implements Controller {
       },
       tree: c.tree,
       states: c.states,
+      queueNo: c.tree.map((_, i) => c.queue.indexOf(i) + 1),
+      reserve: c.tree.map((_, i) => c.cards.get(i)?.reserve === true),
       progress,
       selected: this.selected,
       names,
@@ -690,7 +697,7 @@ export class WwFocusPanel extends LitElement implements Controller {
     const chips = c === null ? nothing : this.renderChips(c, false);
     // A phone with the running and the queued slot: the chips would get
     // about 100 px, so they fold behind one "▾" button.
-    const folded = this.compact && c !== null && c.queued >= 0;
+    const folded = this.compact && c !== null && c.queue.length > 0;
     return html`
       <aside
         data-ww-drawer="focus"
@@ -744,6 +751,9 @@ export class WwFocusPanel extends LitElement implements Controller {
           data-layout=${this.land ? "land" : "port"}
           class="flex min-h-0 flex-1 ${this.land ? "flex-row" : "flex-col"}"
         >
+          ${c !== null && this.queueOpen && c.queue.length > 0
+            ? this.renderQueue(c)
+            : nothing}
           <div data-ww-focus-canvas-box class="relative min-h-0 min-w-0 flex-1">
             ${c === null
               ? nothing
@@ -757,6 +767,87 @@ export class WwFocusPanel extends LitElement implements Controller {
         </div>
       </aside>
     `;
+  }
+
+  /**
+   * The reserved focuses in order, beside the tree (a column on the left in
+   * landscape, a strip above it in portrait): number, name, a remove button
+   * (40 px) each, and "Queue n/20" with a clear-all on top.
+   */
+  private renderQueue(c: FocusCtx): TemplateResult {
+    const clearKey = "focus_unqueue:all";
+    const clearArmed = this.armed(clearKey);
+    return html`<div
+      data-ww-focus-queue
+      class="flex shrink-0 gap-1 border-white/10 p-1 ${this.land
+        ? "w-[148px] flex-col overflow-y-auto border-r"
+        : "max-h-24 flex-col overflow-y-auto border-b"}"
+    >
+      <div class="flex items-center gap-1">
+        <span
+          data-ww-focus-queue-count
+          class="min-w-0 flex-1 truncate text-xs font-semibold text-cyan-100"
+          >${translateText("ww1936.focusui.queue_count", {
+            n: c.queue.length,
+            max: WW_FOCUS_QUEUE,
+          })}</span
+        >
+        <button
+          type="button"
+          data-ww-focus-queue-clear
+          data-armed=${String(clearArmed)}
+          ?disabled=${c.dead}
+          class="h-10 shrink-0 rounded-md px-2 text-[11px] font-semibold ${clearArmed
+            ? "bg-red-600 text-white"
+            : "bg-white/10 text-white/80"}"
+          @click=${() =>
+            this.confirmTap(clearKey, () =>
+              this.send({ kind: "focus_unqueue" }),
+            )}
+        >
+          ${translateText(
+            clearArmed
+              ? "ww1936.focusui.unqueue_tap"
+              : "ww1936.focusui.queue_clear",
+          )}
+        </button>
+      </div>
+      ${c.queue.map((pos, n) => {
+        const def = c.tree[pos];
+        const name = translateText(`ww1936.focus.${def.id}`);
+        return html`<div
+          data-ww-focus-queue-item=${def.id}
+          class="flex min-h-10 items-center gap-1 rounded-md bg-white/5 pl-1"
+        >
+          <span
+            class="grid size-5 shrink-0 place-items-center rounded-full bg-cyan-500 text-[11px] font-bold text-gray-900"
+            >${n + 1}</span
+          >
+          <button
+            type="button"
+            class="h-10 min-w-0 flex-1 truncate text-left text-[11px] leading-tight"
+            @click=${() => {
+              this.selected = pos;
+              this.canvas?.panTo(pos);
+            }}
+          >
+            ${name}
+          </button>
+          <button
+            type="button"
+            data-ww-focus-queue-remove=${def.id}
+            ?disabled=${c.dead}
+            aria-label=${translateText("ww1936.focusui.queue_remove", {
+              focus: name,
+            })}
+            class="grid size-10 shrink-0 place-items-center rounded-md text-base hover:bg-white/10"
+            @click=${() => this.send({ kind: "focus_unqueue", focus: def.id })}
+          >
+            ✕
+          </button>
+        </div>`;
+      })}
+    </div>`;
   }
 
   /** The detail: a right-side sheet in landscape (only with a pick), else a compact bottom sheet. */
@@ -862,29 +953,24 @@ export class WwFocusPanel extends LitElement implements Controller {
         </span>
       </button>`;
     }
-    const q = c.queued >= 0 ? c.tree[c.queued] : null;
     let queued: TemplateResult | typeof nothing = nothing;
-    if (q !== null) {
-      const key = `focus_unqueue:${q.id}`;
-      const armed = this.armed(key);
+    if (c.queue.length > 0) {
       queued = html`<button
         type="button"
         data-ww-focus-queued
-        data-armed=${String(armed)}
-        ?disabled=${c.dead}
-        class="flex h-10 min-w-0 shrink items-center gap-1.5 rounded-md border border-dashed px-1.5 text-left text-xs ${armed
-          ? "border-red-400 bg-red-950/60 text-red-200"
+        aria-pressed=${String(this.queueOpen)}
+        class="flex h-10 min-w-10 shrink-0 items-center gap-1.5 rounded-md border border-dashed px-2 text-left text-xs ${this
+          .queueOpen
+          ? "border-cyan-200 bg-cyan-950/60 text-cyan-50"
           : "border-cyan-300/60 text-cyan-100"}"
-        @click=${() =>
-          this.confirmTap(key, () => this.send({ kind: "focus_unqueue" }))}
+        @click=${() => (this.queueOpen = !this.queueOpen)}
       >
-        ${this.icon(q, "size-4")}
-        <span class="truncate"
-          >${armed
-            ? translateText("ww1936.focusui.unqueue_tap")
-            : translateText("ww1936.focusui.queued", {
-                focus: translateText(`ww1936.focus.${q.id}`),
-              })}</span
+        ${this.icon(c.tree[c.queue[0]], "size-4")}
+        <span class="truncate whitespace-nowrap"
+          >${translateText("ww1936.focusui.queue_count", {
+            n: c.queue.length,
+            max: WW_FOCUS_QUEUE,
+          })}</span
         >
       </button>`;
     }
@@ -1069,7 +1155,7 @@ export class WwFocusPanel extends LitElement implements Controller {
         armed,
       );
     }
-    if (this.selected === c.queued || st === FOCUS_QUEUED) {
+    if (st === FOCUS_QUEUED) {
       const key = `focus_unqueue:${def.id}`;
       const armed = this.armed(key);
       return btn(
@@ -1078,7 +1164,10 @@ export class WwFocusPanel extends LitElement implements Controller {
           armed ? "ww1936.focusui.unqueue_tap" : "ww1936.focusui.unqueue",
         ),
         armed ? "bg-red-600 text-white" : "bg-gray-700 text-white",
-        () => this.confirmTap(key, () => this.send({ kind: "focus_unqueue" })),
+        () =>
+          this.confirmTap(key, () =>
+            this.send({ kind: "focus_unqueue", focus: def.id }),
+          ),
         armed,
       );
     }
@@ -1091,8 +1180,9 @@ export class WwFocusPanel extends LitElement implements Controller {
         () => this.send({ kind: "focus_start", focus: def.id }),
       );
     }
-    // A busy tree queues: a prerequisite the running focus will meet counts (spec §11.2).
-    if (st === FOCUS_OPEN || (st === FOCUS_PREREQ && this.queueable(c, def))) {
+    // A busy tree queues: a prerequisite that is running or queued counts.
+    if (st === FOCUS_OPEN || this.reservable(c, st)) {
+      if (c.queue.length >= WW_FOCUS_QUEUE) return reason("focus_queue_full");
       return btn(
         "queue",
         translateText("ww1936.focusui.queue"),
@@ -1103,14 +1193,24 @@ export class WwFocusPanel extends LitElement implements Controller {
     return reason(STATE_BLOCK[st] ?? "focus_prereq");
   }
 
-  /** Every prerequisite group has a done, skipped or running member. */
-  private queueable(c: FocusCtx, def: FocusDef): boolean {
-    const met = (id: string) => {
-      const i = c.tree.findIndex((f) => f.id === id);
-      const s = c.states[i];
-      return s === FOCUS_DONE || s === FOCUS_BYPASSED || i === c.running;
-    };
-    return (def.prereq ?? []).every((g) => g.some(met));
+  /** A locked card whose missing prerequisites are running or queued (the engine's `reserve`). */
+  private reservable(c: FocusCtx, st: number): boolean {
+    return st === FOCUS_PREREQ && c.cards.get(this.selected)?.reserve === true;
+  }
+
+  /** A tap on the tree: pick the card, and with a focus running reserve it (open, or locked behind a reserved one). */
+  private pick(pos: number) {
+    this.selected = pos;
+    this.chipMenu = false;
+    const c = this.ctx();
+    if (c === null || pos < 0 || c.dead || c.running < 0) return;
+    const st = c.states[pos];
+    if (
+      (st === FOCUS_OPEN || this.reservable(c, st)) &&
+      c.queue.length < WW_FOCUS_QUEUE
+    ) {
+      this.send({ kind: "focus_queue", focus: c.tree[pos].id });
+    }
   }
 
   private mark(ok: boolean): TemplateResult {

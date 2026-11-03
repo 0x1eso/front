@@ -31,6 +31,7 @@ import {
   POL,
   step,
   stepTo,
+  wwRestore,
   wwRunnerCapture,
 } from "./util";
 
@@ -85,6 +86,8 @@ const TEST_FOCUSES: FocusDef[] = [
     available: { any: [flag("t_open"), { kind: "always", value: true }] },
   }),
   root("gen_t_needs_c", { prereq: [["gen_t_c"]] }),
+  root("gen_t_after_b", { days: 35, prereq: [["gen_t_b"]] }),
+  root("gen_t_after_av", { days: 35, prereq: [["gen_t_av"]] }),
 ].map((f) => ({ ...f, x: col++, y: 3 }));
 
 const DEU_HUMAN = [{ clientID: HUMAN, country: "DEU" as const }];
@@ -227,12 +230,12 @@ describe("national focus", { timeout: 60_000 }, () => {
     expect(startFocus(p, g.id, "gen_t_any", t())).toBeNull();
     expect(queueFocus(p, g.id, "gen_t_b")).toBeNull();
     expect(g.c.queued).toBe("gen_t_b");
-    // Spec §11.2: a new queue replaces the old one, its exclusive partner too.
-    expect(queueFocus(p, g.id, "gen_t_c")).toBeNull();
-    expect(g.c.queued).toBe("gen_t_c");
+    // Its exclusive partner cannot be queued behind it.
+    expect(queueFocus(p, g.id, "gen_t_c")).toBe("focus_exclusive");
+    expect(g.c.queued).toBe("gen_t_b");
     // With nothing running, a start is refused by the queued partner.
     g.c.focus = null;
-    expect(startFocus(p, g.id, "gen_t_b", t())).toBe("focus_exclusive");
+    expect(startFocus(p, g.id, "gen_t_c", t())).toBe("focus_exclusive");
     // Completed: gen_t_c is closed for good, and the other way round.
     g.c.focus = null;
     g.c.queued = null;
@@ -298,9 +301,9 @@ describe("national focus", { timeout: 60_000 }, () => {
     expect(focusBlock(pol0(), g.id, "gen_t_b", false)).toBe("focus_busy");
     send(g, { kind: "focus_queue", focus: "gen_t_b" });
     expect(g.c.queued).toBe("gen_t_b");
-    // A new queue replaces the old one; unqueue empties it.
+    // A new one goes to the end; unqueue empties it.
     send(g, { kind: "focus_queue", focus: "gen_t_any" });
-    expect(g.c.queued).toBe("gen_t_any");
+    expect(g.c.queue).toEqual(["gen_t_b", "gen_t_any"]);
     send(g, { kind: "focus_unqueue" });
     expect(g.c.queued).toBeNull();
     send(g, { kind: "focus_queue", focus: "gen_t_b" });
@@ -340,6 +343,85 @@ describe("national focus", { timeout: 60_000 }, () => {
     stepFocus(pol0(), g.id, day, g.runner.game.ticks());
     expect(g.c.focus).toEqual({ id: "gen_t_a", progressMilli: 1 });
     expect(focusDaysMilli(pol0(), g.id, "gen_t_a")).toBe(70_000 * 1000);
+  });
+
+  it("a queued chain runs in order, one entry the day the last ends", async () => {
+    const g = (current = await game());
+    afterSlot(g, 4);
+    send(g, { kind: "focus_start", focus: "gen_t_a" });
+    // after_b needs b, which is only queued: it can be reserved behind it.
+    expect(focusBlock(pol0(), g.id, "gen_t_after_b", true)).toBe(
+      "focus_prereq",
+    );
+    send(g, { kind: "focus_queue", focus: "gen_t_b" });
+    send(g, { kind: "focus_queue", focus: "gen_t_after_b" });
+    // Queued twice: the second is refused.
+    send(g, { kind: "focus_queue", focus: "gen_t_b" });
+    expect(g.c.queue).toEqual(["gen_t_b", "gen_t_after_b"]);
+    const card = (id: string) => focusCards(pol0(), g.id)[pos(id)];
+    expect(card("gen_t_b").state).toBe(7);
+    expect(card("gen_t_needs_c").state).toBe(4);
+    afterSlot(g, 4 + 70);
+    expect(g.c.focus).toEqual({ id: "gen_t_b", progressMilli: 0 });
+    expect(g.c.queue).toEqual(["gen_t_after_b"]);
+    afterSlot(g, 4 + 70 + 35);
+    expect(g.c.focus).toEqual({ id: "gen_t_after_b", progressMilli: 0 });
+    expect(g.c.queue).toEqual([]);
+    expect(g.c.focusesDone).toBe(2);
+  });
+
+  it("an exclusive of a done, running or queued focus is refused; so is a full queue", async () => {
+    const g = (current = await game());
+    afterSlot(g, 4);
+    send(g, { kind: "focus_start", focus: "gen_t_a" });
+    send(g, { kind: "focus_queue", focus: "gen_t_b" });
+    expect(queueFocus(pol0(), g.id, "gen_t_c")).toBe("focus_exclusive");
+    expect(focusCards(pol0(), g.id)[pos("gen_t_c")].state).toBe(6);
+    // Taking the entry out frees its partner (and what only it opened).
+    send(g, { kind: "focus_queue", focus: "gen_t_after_b" });
+    send(g, { kind: "focus_unqueue", focus: "gen_t_b" });
+    expect(g.c.queue).toEqual([]);
+    send(g, { kind: "focus_queue", focus: "gen_t_c" });
+    send(g, { kind: "focus_queue", focus: "gen_t_needs_c" });
+    expect(g.c.queue).toEqual(["gen_t_c", "gen_t_needs_c"]);
+    g.c.queue = Array.from({ length: 20 }, (_, i) => `gen_t_fill${i}`);
+    expect(queueFocus(pol0(), g.id, "gen_t_any")).toBe("focus_queue_full");
+  });
+
+  it("a dropped entry takes the ones that need it, with one notice", async () => {
+    const g = (current = await game());
+    afterSlot(g, 4);
+    send(g, { kind: "focus_start", focus: "gen_t_a" });
+    // gen_t_av waits on flags that never come; after_av needs it.
+    send(g, { kind: "focus_queue", focus: "gen_t_av" });
+    send(g, { kind: "focus_queue", focus: "gen_t_after_av" });
+    send(g, { kind: "focus_queue", focus: "gen_t_any" });
+    expect(g.c.queue).toEqual(["gen_t_av", "gen_t_after_av", "gen_t_any"]);
+    afterSlot(g, 4 + 70);
+    // The same day the next entry that can start does.
+    expect(g.c.focus).toEqual({ id: "gen_t_any", progressMilli: 0 });
+    expect(g.c.queue).toEqual([]);
+    const failed = g.updates
+      .flatMap((u) => u.updates[GameUpdateType.DisplayEvent])
+      .filter((m) => m.message === "events_display.ww1936_focus_queue_failed");
+    expect(failed.map((m) => m.params)).toEqual([{ focus: "gen_t_av" }]);
+  });
+
+  it("a full queue survives a snapshot with the same hash; short queues add nothing to it", async () => {
+    const g = (current = await game());
+    afterSlot(g, 4);
+    const key = (): string => JSON.stringify(pol0().snapshot().countries);
+    expect(g.c.queue).toEqual([]);
+    expect(key()).not.toContain("queuedMore");
+    g.c.queued = "gen_t_b";
+    expect(key()).not.toContain("queuedMore");
+    g.c.queue = Array.from({ length: 20 }, (_, i) => `gen_t_x${i}`);
+    expect(key()).toContain("queuedMore");
+    const before = pol0().hash();
+    const copy = await wwRestore(g.runner, DEU_HUMAN, POL);
+    const c2 = pol(copy.game).country(g.id)!;
+    expect(c2.queue).toEqual(g.c.queue);
+    expect(pol(copy.game).hash()).toBe(before);
   });
 
   it("a failed queue tells the owner", async () => {

@@ -40,6 +40,10 @@ export interface FocusCanvasModel {
   tree: readonly FocusDef[];
   /** Card state by tree position (WwFocusCard.state). */
   states: readonly number[];
+  /** Queue place (1-based) by tree position; 0: not queued. */
+  queueNo?: readonly number[];
+  /** Locked cards that can be reserved behind a running or queued focus. */
+  reserve?: readonly boolean[];
   /** The running card's progress, 0..1. */
   progress: number;
   /** The picked card's tree position, or -1. */
@@ -749,14 +753,15 @@ export class FocusCanvas {
       ctx.shadowColor = "rgba(255,255,255,0.35)";
       ctx.shadowBlur = 8 * s;
     }
+    const reservable = m.reserve?.[i] === true;
     ctx.fillStyle = look.fill;
     roundRect(ctx, r.x, r.y, r.w, r.h, radius);
     ctx.fill();
     ctx.shadowBlur = 0;
-    ctx.strokeStyle = look.border;
+    ctx.strokeStyle = reservable ? "#67e8f9" : look.border;
     ctx.lineWidth =
       (state === FOCUS_OPEN || state === FOCUS_RUNNING ? 2.5 : 1.5) * s;
-    ctx.setLineDash(state === FOCUS_QUEUED ? [5 * s, 3 * s] : []);
+    ctx.setLineDash(state === FOCUS_QUEUED || reservable ? [5 * s, 3 * s] : []);
     roundRect(ctx, r.x, r.y, r.w, r.h, radius);
     ctx.stroke();
     ctx.setLineDash([]);
@@ -829,7 +834,21 @@ export class FocusCanvas {
       ctx.lineTo(markX - 1.5 * s, markY + 3.5 * s);
       ctx.lineTo(markX + 5 * s, markY - 4 * s);
       ctx.stroke();
-    } else if (state === FOCUS_CONDITION || state === FOCUS_PREREQ) {
+    } else if (state === FOCUS_QUEUED && (m.queueNo?.[i] ?? 0) > 0) {
+      // Its place in the queue.
+      ctx.fillStyle = "#22d3ee";
+      ctx.beginPath();
+      ctx.arc(markX, markY, 10 * s, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#111827";
+      ctx.font = `800 ${12 * s}px ${font}`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(String(m.queueNo?.[i]), markX, markY + s);
+    } else if (
+      !reservable &&
+      (state === FOCUS_CONDITION || state === FOCUS_PREREQ)
+    ) {
       drawLock(ctx, markX, markY, s);
     }
     // The name: two lines, cut with an ellipsis.

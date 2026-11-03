@@ -441,7 +441,8 @@ export type PolOrderKind = (typeof POL_ORDER_KINDS)[number];
 
 export const WW_PP_CAP = 1500;
 export const WW_PP_BASE_MILLI = 2000;
-export const WW_FOCUS_QUEUE = 1;
+/** Focuses a country may reserve behind the running one (chained, in order). */
+export const WW_FOCUS_QUEUE = 20;
 export const WW_MAX_PENDING_EVENTS = 8;
 export const WW_EVENT_CHAIN_DEPTH = 16;
 export const WW_EVENT_TIMEOUT_TICKS = 600; // 60 s
@@ -819,6 +820,11 @@ export interface WwFocusCard {
   state: number;
   /** conditionLeaves() numbers of the failing `available` leaves. */
   failing: number[];
+  /**
+   * State 4 only: every missing prerequisite is running or queued, so the
+   * focus can be reserved behind it.
+   */
+  reserve?: boolean;
 }
 export interface WwDecisionCard {
   id: DecisionId;
@@ -850,7 +856,8 @@ export interface WwPolDetail {
   smallID: number;
   ppGainMilli: number;
   focus: { id: FocusId; progressMilli: number; daysMilli: number } | null;
-  queued: FocusId | null;
+  /** The reserved focuses in order (at most WW_FOCUS_QUEUE). */
+  queue: FocusId[];
   cards: WwFocusCard[];
   advisors: (string | null)[];
   advisorLockUntil: number[];

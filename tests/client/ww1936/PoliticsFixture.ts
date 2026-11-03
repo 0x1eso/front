@@ -43,7 +43,7 @@ export function polDetail(
     smallID: ID(tag),
     ppGainMilli: 2_300,
     focus: null,
-    queued: null,
+    queue: [],
     cards: [],
     advisors: [null, null, null, null, null, null, null, null],
     advisorLockUntil: [-1, -1, -1, -1, -1, -1, -1, -1],

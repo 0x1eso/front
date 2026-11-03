@@ -100,7 +100,7 @@ export function annexCountry(
   if (c !== null) {
     c.pending = [];
     c.focus = null;
-    c.queued = null;
+    c.queue = [];
     c.missions = [];
   }
   // P5 hooks (S, X): its subjects become `by`'s; it is gone; its human
