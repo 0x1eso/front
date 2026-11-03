@@ -87,8 +87,8 @@ export const CFOCUS_STATS: Readonly<Record<ContinuousFocus, Partial<WwStats>>> =
     cf_political: { ppMilli: 250 },
     cf_stability: { stabilityWeeklyBp: 50 },
     cf_war_effort: { warSupportWeeklyBp: 50 },
-    cf_army: { armyXpMilli: 150, rsDoctrinePct: 10 },
-    cf_navy_air: { navyXpMilli: 100, airXpMilli: 100 },
+    cf_army: { divXpGainPct: 15, rsDoctrinePct: 10 },
+    cf_navy_air: { repairPct: 10, airLossCutPct: 2 },
   };
 
 export interface CfocusInput {

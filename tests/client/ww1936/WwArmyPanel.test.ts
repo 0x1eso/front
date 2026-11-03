@@ -258,7 +258,6 @@ describe("<ww-army-panel> (spec §15.5)", () => {
     // One who can't serve yet is not given.
     await m.click("[data-ww-general='2']");
     expect(m.sent).toHaveLength(1);
-    await m.click("[data-ww-appoint]");
-    expect(m.sent[1]).toEqual({ kind: "appoint_general" });
+    expect(m.q("[data-ww-appoint]")).toBeNull();
   });
 });

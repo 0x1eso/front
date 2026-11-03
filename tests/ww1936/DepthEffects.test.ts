@@ -103,13 +103,13 @@ describe("World War 1936 P6: the depth effects", () => {
     expect(bopValue(d, "FRA")).toBe(v + 100);
     fx(runner, { kind: "bop", amount: 100 }, DEU); // no mechanism: nothing
     expect(bopValue(d, "FRA")).toBe(v + 100);
-    // cp: whole points of army experience (ww9), kept at 0 or more.
-    const ww = runner.game.worldWar()!;
-    const xp = ww.land.country(FRA)!.armyXpMilli;
-    fx(runner, { kind: "cp", amount: 5 });
-    expect(ww.land.country(FRA)!.armyXpMilli).toBe(xp + 5_000);
+    // cp: the permanent division experience bonus (ww15), kept at 0 or more.
+    fx(runner, { kind: "cp", amount: 100 });
+    // (doctrine_mastery 60 above gave 2; cp 100 gives 5.)
+    expect(c.cmd.permXp).toEqual([7, 0]);
     fx(runner, { kind: "cp", amount: -100 });
-    expect(ww.land.country(FRA)!.armyXpMilli).toBe(0);
+    fx(runner, { kind: "cp", amount: -100 });
+    expect(c.cmd.permXp).toBeUndefined();
     // cfocus_unlock: the continuous focuses open in 1936.
     expect(c.mech.cfocusOpen).toBe(false);
     fx(runner, { kind: "cfocus_unlock" });

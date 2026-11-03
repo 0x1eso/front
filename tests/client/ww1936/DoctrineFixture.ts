@@ -11,14 +11,12 @@ import { ID, LandOptions, fakeLandGame } from "./LandFixture";
 export function depthDetail(
   smallID: number,
   over: {
-    doctrine?: Partial<WwDepthDetail["doctrine"]>;
     thought?: Partial<NonNullable<WwDepthDetail["thought"]>>;
     command?: Partial<WwDepthDetail["command"]>;
   } = {},
 ): WwDepthDetail {
   return {
     smallID,
-    doctrine: { ...over.doctrine },
     thought: {
       target: new Array<number>(9).fill(0),
       curMilli: new Array<number>(9).fill(0),

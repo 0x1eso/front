@@ -1,7 +1,7 @@
 // World War 1936: what a library entry can do in the game right now, and the
 // auto-creator that sends the ready ones. The checks are the designers' own
 // engine-lib functions (designBlock through DesignerModel.checkNew,
-// templateBlock, templateXpCost), so an entry the engine would refuse is
+// templateBlock), so an entry the engine would refuse is
 // shown with the reason and never sent.
 import type { WwOrder } from "@openfront/engine-api/Schemas";
 import {
@@ -22,10 +22,7 @@ import {
 } from "@openfront/engine-api/ww1936/LandTypes";
 import { BATTALIONS, SUPPORTS } from "@openfront/engine-lib/ww1936/Battalions";
 import { DESIGN_ONLY_GROUP } from "@openfront/engine-lib/ww1936/TemplatePresets";
-import {
-  templateBlock,
-  templateXpCost,
-} from "@openfront/engine-lib/ww1936/TemplateStats";
+import { templateBlock } from "@openfront/engine-lib/ww1936/TemplateStats";
 import { translateText } from "../../Utils";
 import type { GameView } from "../../view/GameView";
 import { autoNameOf, DesignerGame, DesignerModel } from "./DesignerModel";
@@ -65,14 +62,6 @@ function needsText(
     ...projects.map((p) => translateText(`ww1936.project.${p}`)),
   ];
   return translateText("ww1936.library.needs", { list: names.join(", ") });
-}
-
-function xpText(cost: number, have: number | null, kindKey: string): string {
-  return translateText("ww1936.library.needs_xp", {
-    kind: translateText(kindKey),
-    cost,
-    have: have === null ? "?" : Math.floor(have / 1000),
-  });
 }
 
 /** The designs and templates the game already has, as content keys (obsolete designs count). */
@@ -133,7 +122,7 @@ function designStatus(
   if (c.block === null) {
     return {
       state: "ready",
-      reason: translateText("ww1936.library.ready", { cost: c.xpCost }),
+      reason: translateText("ww1936.library.ready"),
       order: { kind: "design_save", def } as WwOrder,
     };
   }
@@ -146,9 +135,6 @@ function designStatus(
     return blocked(needsText(c.techs, c.projects));
   }
   if (c.block === "bad_base" || c.block === "module_bad_slot") return stale();
-  if (c.block === "no_xp") {
-    return blocked(xpText(c.xpCost, c.xpHave, `ww1936.design.tab_${def.kind}`));
-  }
   return blocked(blockText(c.block));
 }
 
@@ -223,17 +209,9 @@ function templateStatus(
         .join(" · "),
     );
   }
-  const cost = templateXpCost(null, def);
-  if (cost > land.armyXpMilli) {
-    return blocked(
-      xpText(Math.ceil(cost / 1000), land.armyXpMilli, "ww1936.library.army"),
-    );
-  }
   return {
     state: "ready",
-    reason: translateText("ww1936.library.ready", {
-      cost: Math.ceil(cost / 1000),
-    }),
+    reason: translateText("ww1936.library.ready"),
     order: {
       kind: "template_save",
       template: 0,

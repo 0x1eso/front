@@ -81,26 +81,6 @@ describe("DesignerModel", () => {
     expect(m.save()).toBeNull();
   });
 
-  it("an experience shortfall refuses the save", () => {
-    const m = new DesignerModel(designerGame({ armyXp: 0 }));
-    m.open("tank");
-    m.setBase("light_1");
-    expect(m.block()).toBe("no_xp");
-  });
-
-  it("a plane design reads the air force's experience (lane D's detail.doctrine.xp)", () => {
-    const m = new DesignerModel(designerGame({ airXp: 0 }));
-    m.open("plane");
-    m.setBase("small_2");
-    expect(m.xpHave()).toBe(0);
-    expect(m.block()).toBe("no_xp");
-    const rich = new DesignerModel(designerGame({ airXp: 500 }));
-    rich.open("plane");
-    rich.setBase("small_2");
-    expect(rich.xpHave()).toBe(500_000);
-    expect(rich.block()).not.toBe("no_xp");
-  });
-
   it("an automatic name is drawn at display time", () => {
     const m = new DesignerModel(designerGame());
     m.open("tank");

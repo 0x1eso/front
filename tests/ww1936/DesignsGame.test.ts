@@ -28,7 +28,6 @@ import {
   convertCost,
   designBlock,
   planeStats as designPlaneStats,
-  designXpCost,
   licenceCostPct,
   planeType,
   recommendedPlane,
@@ -132,13 +131,10 @@ async function game(
   return { runner, ww, d: ww.depth };
 }
 
-/** The test's techs and plenty of every experience. */
+/** The test's techs. */
 function prepare(ww: WorldWar, id: number, techs: WwTechId[]): void {
   const ce = ww.economy.country(id)!;
   for (const t of techs) ce.addTech(t);
-  ww.land.country(id)!.armyXpMilli = 900_000;
-  ww.navy.country(id)!.navyXpMilli = 400_000;
-  ww.air.country(id)!.airXpMilli = 400_000;
 }
 
 const TANK_TECHS: WwTechId[] = [
@@ -190,7 +186,6 @@ describe("World War 1936 P6: designs in the game", () => {
   it("a saved tank design is produced, trained into a heavy armor battalion and fights with its stats", async () => {
     const { runner, ww, d } = await game();
     prepare(ww, GBR, TANK_TECHS);
-    const xp0 = d.xpOf(GBR, 0);
     const shown = vi.spyOn(runner.game, "displayMessage");
     expect(
       d.issue(GBR, { kind: "design_save", def: HEAVY }, runner.game.ticks()),
@@ -203,7 +198,6 @@ describe("World War 1936 P6: designs in the game", () => {
       ["events_display.ww1936_design_saved", { name: "Heavy" }],
     ]);
     shown.mockRestore();
-    expect(d.xpOf(GBR, 0)).toBe(xp0 - designXpCost(null, HEAVY));
     const slot = d.designSlot(GBR, "tank", 1)!;
     expect(slot.origin).toBe("own");
     expect(slot.def.name).toBe("Heavy");
@@ -503,7 +497,6 @@ describe("World War 1936 P6: designs in the game", () => {
         ),
       ).toBeNull();
     }
-    const xp = d.xpOf(GBR, 0);
     expect(d.issue(GBR, { kind: "design_save", def: MED2 }, tick)).toBe(
       "design_slots_full",
     );
@@ -513,8 +506,6 @@ describe("World War 1936 P6: designs in the game", () => {
     expect(
       d.issue(GBR, { kind: "design_copy", from: 1, def: MED2 }, tick),
     ).toBe("design_slots_full");
-    // A refusal costs nothing.
-    expect(d.xpOf(GBR, 0)).toBe(xp);
     // Obsolete slots still count until the day frees them (as the designer shows).
     d.issue(GBR, { kind: "design_obsolete", design: "tank", slot: 4 }, tick);
     expect(d.issue(GBR, { kind: "design_save", def: MED2 }, tick)).toBe(

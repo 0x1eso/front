@@ -649,35 +649,6 @@ export function strengthPmAt(
   return Math.min(eq, mp);
 }
 
-function multisetChanges<K extends string>(
-  a: readonly K[],
-  b: readonly K[],
-): number {
-  const count = new Map<K, number>();
-  for (const x of a) count.set(x, (count.get(x) ?? 0) + 1);
-  let added = 0;
-  for (const x of b) {
-    const c = count.get(x) ?? 0;
-    if (c > 0) count.set(x, c - 1);
-    else added++;
-  }
-  let removed = 0;
-  for (const c of count.values()) removed += c;
-  return Math.max(added, removed);
-}
-
-/** Spec §4.4: 5 per battalion added, removed or swapped, 10 per company; the name is free. Army XP milli. */
-export function templateXpCost(
-  before: TemplateDef | null,
-  after: TemplateDef,
-): number {
-  const b = before ?? { name: "", battalions: [], support: [] };
-  return (
-    5_000 * multisetChanges(b.battalions, after.battalions) +
-    10_000 * multisetChanges(b.support, after.support)
-  );
-}
-
 const NAME_RE = /^[^\s\p{Cc}](?:[^\p{Cc}]*[^\s\p{Cc}])?$/u;
 
 /**

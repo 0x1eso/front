@@ -35,7 +35,6 @@ export function depthDetail(
       curMilli: new Array<number>(9).fill(0),
       rateMilli: 100,
     },
-    doctrine: {},
     command: {
       spirits: [],
       spiritLock: [],

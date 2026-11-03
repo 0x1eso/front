@@ -280,7 +280,6 @@ describe("World War 1936 P6: design copies", () => {
       const g = await game();
       const { runner, ww, d } = g;
       techs(ww, TUR, ["medium_tank_1", "heavy_tank_1"]);
-      ww.land.country(TUR)!.armyXpMilli = 500_000;
       expect(saveDesign(d, TUR, HEAVY, 0, "own", 0, 0, 0)).toBe(1);
       expect(saveDesign(d, TUR, AA_DD, 0, "own", 0, 0, 0)).toBe(1);
       const ce = ww.economy.country(TUR)!;

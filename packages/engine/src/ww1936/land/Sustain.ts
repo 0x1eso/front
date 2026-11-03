@@ -8,7 +8,6 @@ import {
   MOVE_NONE,
   TPL_HOSPITAL,
   traitBit,
-  WW_ARMY_XP_MAX_MILLI,
   WW_EXP_PER_DAY,
   WW_UPGRADE_PM,
 } from "@openfront/engine-api/ww1936/LandTypes";
@@ -44,11 +43,6 @@ export const ATTRITION_CUT_PPM = 10_000;
  * in full supply takes this share of the day's weather attrition, %.
  */
 export const WEATHER_ATTRITION_IDLE_PCT = 25;
-/** Spec §5.4: army experience a day, milli (a major twice), and per division that fought (at most 5 a day). */
-export const ARMY_XP_DAY_MILLI = 100;
-export const ARMY_XP_FIGHT_MILLI = 50;
-export const ARMY_XP_FIGHT_MAX_MILLI = 5_000;
-
 /**
  * Whether a division fought since its country's last day (spec §5.4
  * "전투에 참가한 날"): lastFight is the tick of its last round. The
@@ -85,7 +79,6 @@ export function dailySustain(land: WwLand, smallID: number, day: number): void {
   // Spec §5.3, §5.4: the divisions in id order (the oldest fill first).
   const fought = foughtTest(smallID, day, land.ww.prepEndTick());
   const t = land.divisions;
-  let foughtN = 0;
   // (No division is added or removed below: the country's row list holds.)
   // P6 hook (D, spec §4.6): the armies' reinforcement priority first; the
   // rest of the day (attrition, experience) touches no stock, so it may run
@@ -115,18 +108,8 @@ export function dailySustain(land: WwLand, smallID: number, day: number): void {
           ? WW_EXP_PER_DAY
           : Math.max(0, Math.floor((WW_EXP_PER_DAY * (100 + pct)) / 100));
       t.exp[r] = Math.min(1000, t.exp[r] + add);
-      foughtN++;
     }
   }
-  // Spec §5.4: army experience.
-  const gain =
-    (ce.major ? 2 : 1) * ARMY_XP_DAY_MILLI +
-    Math.min(ARMY_XP_FIGHT_MAX_MILLI, ARMY_XP_FIGHT_MILLI * foughtN) +
-    ce.stats.armyXpMilli;
-  cl.armyXpMilli = Math.max(
-    0,
-    Math.min(WW_ARMY_XP_MAX_MILLI, cl.armyXpMilli + gain),
-  );
   // Spec §6.2: the generals' dates and experience.
   dailyGenerals(land, cl, ce, day, fought);
 }

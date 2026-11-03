@@ -1,94 +1,34 @@
 // P6 lane D (plan Task 2): the AI's doctrine and command choices (spec
 // §19.1–§19.2). Daily at war, every 10 days in peace (day % 10 ===
 // smallID % 10, plan decision 39), through the same orders a player gives.
-// History is flavour (owner, 2026-10-21): the officer corps follow the row
-// of the country's start position on the thought sliders with a seeded
-// chance of another choice, and the real field marshals come on their day
-// only with the historical AI.
+// History is flavour (owner, 2026-10-21): the real field marshals come on
+// their day only with the historical AI.
 import {
-  ARMY_SPIRIT_CATEGORIES,
-  ARMY_SPIRITS,
-  ArmySpirit,
   FM_PROMOTE_PP,
   FM_TRAITS,
   FmTrait,
-  SPIRIT_CAT_DOMAIN,
 } from "@openfront/engine-api/ww1936/DepthTypes";
-import {
-  GENERAL_TRAITS,
-  GeneralTrait,
-  traitBit,
-} from "@openfront/engine-api/ww1936/LandTypes";
 import { dayOfDate } from "@openfront/engine-lib/ww1936/Calendar";
 import {
-  AI_TRAIT_RESERVE_XP,
   fieldMarshalCap,
   fmEligible,
   groupArmyCap,
-  NEW_GENERAL_TRAITS,
-  spiritCost,
-  traitAssignBlock,
-  traitSlots,
-  traitXpCost,
 } from "@openfront/engine-lib/ww1936/CommandRules";
 import { GENERALS } from "@openfront/engine-lib/ww1936/Generals";
 import { historicalAiActive } from "@openfront/engine-lib/ww1936/Pace";
-import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { canServe } from "../land/GeneralsRun";
 import { newTitledGeneralState } from "../land/LandStartRun";
 import type { Army, CountryLand, GeneralState } from "../land/WwLand";
 import { payPp } from "../politics/PayPp";
-import {
-  createGroup,
-  FM_ARMY,
-  generalById,
-  issueArmyGroup,
-} from "./ArmyGroups";
-import {
-  assignGeneralTrait,
-  issueCommand,
-  listedFm,
-  makeMarshal,
-  promoteMarshal,
-} from "./Command";
+import { createGroup, FM_ARMY, issueArmyGroup } from "./ArmyGroups";
+import { issueCommand, listedFm, makeMarshal, promoteMarshal } from "./Command";
 import { startPosOf } from "./Thought";
-import type { Domain, WwDepth } from "./WwDepth";
+import type { WwDepth } from "./WwDepth";
 
 /** Spec §19.2: armies before the AI wants a field marshal. */
 const AI_FM_ARMIES = 4;
 /** Spec §4.3: a titled field marshal's every skill (Japan's, Italy's office). */
 const TITLED_FM_SKILL = 2;
-/** Roll purpose of the officer-corps deviation. */
-const P_SPIRIT_PLAN = idHash("ai_spirit_plan");
-/** Chance of another officer-corps choice than the start position's row, percent (history as flavour). */
-const AI_SPIRIT_DEVIATION_PCT = 25;
-
-/** Spec §19.2: the land officer corps of each start-position row, landRowOf (recruitment, command, formation). */
-const LAND_SPIRITS: Readonly<
-  Record<string, readonly [ArmySpirit, ArmySpirit, ArmySpirit]>
-> = {
-  gd_mobile: ["as_professional", "as_mission_command", "as_combined_arms"],
-  gd_mass: ["as_conscript", "as_political_officers", "as_mass_formation"],
-  gd_firepower: ["as_reserve", "as_central_command", "as_combined_arms"],
-  gd_battleplan: ["as_professional", "as_central_command", "as_elite_units"],
-};
-/** Spec §19.2 "해·공도 표": the naval officer corps (training, operations) by navalRowOf; "" no leaning. */
-const NAVAL_SPIRITS: Readonly<
-  Record<string, readonly [ArmySpirit, ArmySpirit]>
-> = {
-  gd_fleet_in_being: ["as_fleet_drill", "as_aggressive_fleet"],
-  gd_trade_interdiction: ["as_night_training", "as_aggressive_fleet"],
-  gd_base_strike: ["as_fleet_drill", "as_joint_ops"],
-  "": ["as_damage_control", "as_fleet_preservation"],
-};
-/** The air officer corps (personnel, command) by airRowOf; "" no leaning. */
-const AIR_SPIRITS: Readonly<Record<string, readonly [ArmySpirit, ArmySpirit]>> =
-  {
-    gd_strategic_destruction: ["as_air_college", "as_independent_air"],
-    gd_battlefield_support: ["as_ground_crew", "as_army_cooperation"],
-    gd_operational_integrity: ["as_pilot_school", "as_escort_first"],
-    "": ["as_pilot_school", "as_army_cooperation"],
-  };
 /** A field marshal's traits by landRowOf, first choice first. */
 const FM_TRAIT_PLAN: Readonly<Record<string, readonly FmTrait[]>> = {
   gd_mobile: ["fm_offensive", "fm_fast_planner", "fm_logistics"],
@@ -97,38 +37,19 @@ const FM_TRAIT_PLAN: Readonly<Record<string, readonly FmTrait[]>> = {
   gd_battleplan: ["fm_thorough", "fm_defensive", "fm_strategist"],
   "": ["fm_strategist", "fm_logistics", "fm_defensive"],
 };
-/** Spec §19.2: the order the AI buys general traits in (armour first for a panzer leader — its prerequisite). */
-const TRAIT_PLAN: readonly GeneralTrait[] = [
-  "armor_expert",
-  "infantry_expert",
-  "artillery_officer",
-  "engineer_officer",
-  ...GENERAL_TRAITS.filter(
-    (t) =>
-      NEW_GENERAL_TRAITS[t]?.kind === "assign" &&
-      ![
-        "armor_expert",
-        "infantry_expert",
-        "artillery_officer",
-        "engineer_officer",
-      ].includes(t),
-  ),
-];
-
 /**
  * Spec §19.1–§19.2, an AI country's depth day: at war daily and in peace
- * every 10 days, the officer corps, the armies' reinforcement priority, field marshals and
- * army groups, a trait.
+ * every 10 days, the armies' reinforcement priority, field marshals and
+ * army groups (traits and the officer corps are gone: traits come by
+ * themselves, Command.dailyCommand).
  */
 export function aiCommandDay(d: WwDepth, id: number, day: number): void {
   const c = d.country(id);
   if (c === null || d.ww.land.country(id) === null) return;
   if (!d.ww.hasWar(id) && day % 10 !== id % 10) return;
-  aiSpirits(d, id);
   aiPriorities(d, id);
   aiMarshals(d, id, day);
   aiGroups(d, id);
-  aiTraits(d, id);
 }
 
 /**
@@ -155,45 +76,6 @@ export function airRowOf(pos: readonly number[]): string {
   if (pos[7] >= 3) return "gd_battlefield_support";
   if (pos[6] >= 3) return "gd_operational_integrity";
   return "";
-}
-
-/** The officer corps each category would take: the start position's row, or (seeded, AI_SPIRIT_DEVIATION_PCT) another of the three. */
-export function aiSpiritPlan(d: WwDepth, id: number): number[] {
-  const pos = startPosOf(d, id);
-  const land = LAND_SPIRITS[landRowOf(pos)];
-  const naval = NAVAL_SPIRITS[navalRowOf(pos)];
-  const air = AIR_SPIRITS[airRowOf(pos)];
-  const rows = [...land, ...naval, ...air];
-  const seed = d.ww.politics.seed;
-  return ARMY_SPIRIT_CATEGORIES.map((_, cat) => {
-    const row = ARMY_SPIRITS.indexOf(rows[cat]);
-    if (
-      wwRoll(seed, P_SPIRIT_PLAN, id, 100 + cat) % 100 >=
-      AI_SPIRIT_DEVIATION_PCT
-    ) {
-      return row;
-    }
-    const others = [0, 1, 2].map((k) => cat * 3 + k).filter((s) => s !== row);
-    return others[wwRoll(seed, P_SPIRIT_PLAN, id, 110 + cat) % 2];
-  });
-}
-
-/** Spec §19.2 officer corps: each category's plan once the domain has the experience; never switched. */
-function aiSpirits(d: WwDepth, id: number): void {
-  const c = d.country(id)!;
-  if (c.cmd.spirits.every((s) => s >= 0)) return;
-  const plan = aiSpiritPlan(d, id);
-  ARMY_SPIRIT_CATEGORIES.forEach((category, cat) => {
-    if (c.cmd.spirits[cat] >= 0) return;
-    const domain = SPIRIT_CAT_DOMAIN[cat] as Domain;
-    if (d.xpOf(id, domain) < spiritCost(-1)) return;
-    issueCommand(
-      d,
-      id,
-      { kind: "army_spirit_pick", category, id: ARMY_SPIRITS[plan[cat]] },
-      tickOf(d),
-    );
-  });
 }
 
 /** Spec §4.6 / §19.2: front armies high, P5 garrisons low, the rest normal. */
@@ -392,59 +274,5 @@ function aiGroups(d: WwDepth, id: number): void {
     if (fm === undefined) continue;
     const take = free.slice(0, groupArmyCap(fm.fmTraits)).map((a) => a.id);
     createGroup(d, id, fm.id, take);
-  }
-}
-
-/**
- * Spec §19.2 traits (ww9: paid with army XP): one a day, when the XP is
- * the trait's price + AI_TRAIT_RESERVE_XP (what the organisation and
- * designs need stays) — the generals of front armies first (the bigger army
- * first), then the other army generals, in TRAIT_PLAN order; then a field
- * marshal's next trait (levels 3 and 5).
- */
-function aiTraits(d: WwDepth, id: number): void {
-  const land = d.ww.land;
-  const cl = land.country(id)!;
-  const xp = d.xpOf(id, 0);
-  // The cheapest trait plus the reserve: nothing to buy below it.
-  if (xp < traitXpCost("skirmisher", false) + AI_TRAIT_RESERVE_XP) return;
-  const armies = land
-    .armiesOf(id)
-    .filter((a) => a.general !== 0)
-    .sort((a, b) => {
-      const fa = a.order.kind === "front" || a.order.kind === "plan" ? 0 : 1;
-      const fb = b.order.kind === "front" || b.order.kind === "plan" ? 0 : 1;
-      return fa - fb || b.divisions.length - a.divisions.length || a.id - b.id;
-    });
-  for (const a of armies) {
-    const g = generalById(cl, a.general);
-    if (g === null || g.fm) continue;
-    const held = GENERAL_TRAITS.filter((t) => (g.traits & traitBit(t)) !== 0);
-    for (const t of TRAIT_PLAN) {
-      if (
-        xp < traitXpCost(t, false) + AI_TRAIT_RESERVE_XP ||
-        traitAssignBlock({
-          admiral: false,
-          level: g.level,
-          traits: held,
-          slots: traitSlots(g.level),
-          trait: t,
-          xp,
-          isFm: false,
-          fmTraits: [],
-        }) !== null
-      ) {
-        continue;
-      }
-      if (assignGeneralTrait(d, id, g.id, t) === null) return;
-    }
-  }
-  for (const g of cl.generals) {
-    if (!g.fm) continue;
-    const b = fmTraitFor(d, id, g.fmTraits);
-    if (b < 0) continue;
-    const t = FM_TRAITS[b];
-    if (d.xpOf(id, 0) < traitXpCost(t, false) + AI_TRAIT_RESERVE_XP) return;
-    if (assignGeneralTrait(d, id, g.id, t) === null) return;
   }
 }

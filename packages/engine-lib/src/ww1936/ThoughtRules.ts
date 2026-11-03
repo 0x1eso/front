@@ -281,6 +281,23 @@ export function masteryXpMilli(amount: number): number {
   return Math.trunc((amount * 1000 * MASTERY_TO_XP_PCT) / 100);
 }
 
+/**
+ * ww15: experience grants (army_xp, navy_xp, doctrine_mastery, cp) are a
+ * permanent percent now: +1% per PERM_XP_PER_PCT experience, rounded to the
+ * nearest whole percent (halves up; a negative grant lowers it the same).
+ * Scaled down from 10 to 20 so that no country's whole tree passes +60%.
+ */
+export const PERM_XP_PER_PCT = 20;
+export function permPctOfXp(xp: number): number {
+  return permPctOfMilli(xp * 1000);
+}
+export function permPctOfMilli(milli: number): number {
+  const p = Math.floor(
+    (Math.abs(milli) + PERM_XP_PER_PCT * 500) / (PERM_XP_PER_PCT * 1000),
+  );
+  return milli < 0 ? -p : p;
+}
+
 export type ThoughtPersonality = "aggressor" | "democracy" | "minor";
 
 export interface StartThoughtInput {

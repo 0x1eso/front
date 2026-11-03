@@ -104,10 +104,6 @@ describe("the air war restores exactly (spec §19.5)", () => {
       ["a zone's enemy superiority", () => z.enemySup.set(999, 1)],
       ["a zone's naval search", () => z.navalSearch.set(999, 1)],
       ["a zone's day", () => (z.lastDay += 1)],
-      [
-        "a country's air experience",
-        () => (air.countries()[0].airXpMilli += 1),
-      ],
       ["a country's auto zones", () => air.countries()[0].autoZones.push(1)],
       ["the next deployment id", () => (air.nextWingId += 1)],
     ];

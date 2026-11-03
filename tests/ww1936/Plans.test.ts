@@ -86,7 +86,8 @@ describe("World War 1936 P2: readiness (P2 spec §8.3)", () => {
     expect(ce.tech.planSpeedPct).toBe(0);
     expect(a.planBp).toBe(0);
     finishDay(runner, d0 + 10);
-    expect(a.planBp).toBe(1000);
+    // ww15: the army gets a free titled general (planning skill 1: +30%).
+    expect(a.planBp).toBe(1300);
     finishDay(runner, d0 + 40);
     expect(a.planBp).toBe(3000);
     finishDay(runner, d0 + 45);

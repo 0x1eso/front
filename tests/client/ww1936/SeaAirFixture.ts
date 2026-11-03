@@ -221,7 +221,6 @@ export function navyDetail(
     routes: [],
     invasions: [],
     admirals: [],
-    navyXpMilli: 0,
     convoyLoss30: new Array<number>(30).fill(0),
     fuelMilli: 0,
     fuelCapMilli: 0,

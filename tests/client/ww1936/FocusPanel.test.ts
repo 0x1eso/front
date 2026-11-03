@@ -462,7 +462,7 @@ describe("<ww-focus-panel> (spec §21.3)", () => {
     expect(p.q("[data-ww-focus-detail]")!.className).toContain("max-h-[45%]");
   });
 
-  it("doctrine_mastery shows the experience the engine really gives", () => {
+  it("doctrine_mastery shows the permanent percent the engine really gives", () => {
     const text = (amount: number) =>
       lineText({
         key: "ww1936.fx.doctrine_mastery",
@@ -470,8 +470,9 @@ describe("<ww-focus-panel> (spec §21.3)", () => {
         depth: 0,
         leaf: -1,
       });
-    expect(text(60)).toContain("amount=40");
-    expect(text(120)).toContain("amount=80");
+    // 40.2 and 80.4 experience, 1% per 20, halves up.
+    expect(text(60)).toContain("amount=2");
+    expect(text(120)).toContain("amount=4");
   });
 
   it("explain lines turn codes into names", () => {

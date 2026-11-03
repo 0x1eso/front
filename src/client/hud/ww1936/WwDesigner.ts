@@ -550,9 +550,7 @@ export class WwDesigner extends WwDrawerBase {
     const block = m.block();
     // Final review D (D1): a name the order's schema refuses never saves.
     const badName = d !== null && !m.nameOk();
-    const have = m.xpHave();
     const armed = m.isSaveArmed(performance.now());
-    const cost = m.xpCost();
     return html`<div
       data-ww-designer-bottom
       class="flex shrink-0 flex-col gap-0.5 border-t border-white/10 px-2 py-1"
@@ -564,17 +562,6 @@ export class WwDesigner extends WwDrawerBase {
         style="height: 24px"
       >
         ${d !== null && d.kind === "tank" ? this.renderSteppers(m) : nothing}
-        ${d === null
-          ? nothing
-          : html`<span
-              data-ww-design-xp
-              class=${have !== null && cost * 1000 > have ? "text-red-300" : ""}
-              >${translateText("ww1936.design.xp_cost", {
-                kind: translateText(m.xpKey()),
-                cost,
-                have: have === null ? "?" : Math.floor(have / 1000),
-              })}</span
-            >`}
         ${this.lockedTip !== null
           ? html`<span
               data-ww-locked-tip
@@ -582,10 +569,7 @@ export class WwDesigner extends WwDrawerBase {
               >🔒 ${this.lockedTip}</span
             >`
           : nothing}
-        ${this.lockedTip === null &&
-        block !== null &&
-        block !== "no_xp" &&
-        d !== null
+        ${this.lockedTip === null && block !== null && d !== null
           ? html`<span
               data-ww-block=${block}
               class="min-w-0 truncate text-amber-300"
@@ -634,9 +618,7 @@ export class WwDesigner extends WwDrawerBase {
           class="${BTN} h-10"
           ?disabled=${d === null ||
           badName ||
-          (block !== null &&
-            block !== "no_xp" &&
-            block !== "design_slots_full")}
+          (block !== null && block !== "design_slots_full")}
           @click=${() => this.saveToLibrary(m)}
         >
           ${translateText("ww1936.library.save")}

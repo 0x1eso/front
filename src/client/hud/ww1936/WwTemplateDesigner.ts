@@ -245,12 +245,11 @@ export class WwTemplateDesigner extends LitElement {
   render() {
     const me = this.me();
     const economy = this.game?.wwEconomy?.() ?? null;
-    const land = this.game?.wwLand?.()?.details.get(me) ?? null;
-    if (economy === null || land === null) return nothing;
+    if (economy === null) return nothing;
     const researched = researchedOf(economy, me);
     const tech = techOf(economy, me);
     const after = { ...this.draft, name: this.saveName() };
-    const d = designer(this.saved, after, tech, researched, land.armyXpMilli);
+    const d = designer(after, tech, researched);
     const beforeStats =
       this.saved === null ? null : templateStats(this.saved, tech, GEN1);
     const isNew = this.editing === 0;
@@ -273,17 +272,6 @@ export class WwTemplateDesigner extends LitElement {
         </button>
         ${this.renderName()}
       </div>
-      <div
-        data-ww-designer-xp
-        class="text-xs ${d.xpCost > land.armyXpMilli
-          ? "text-red-300"
-          : "text-white/80"}"
-      >
-        ${translateText("ww1936.land.designer_xp", {
-          cost: Math.ceil(d.xpCost / 1000),
-          have: Math.floor(land.armyXpMilli / 1000),
-        })}
-      </div>
       ${this.renderToolbar(researched)} ${this.renderPresets(researched)}
       ${this.renderGrid()} ${this.renderPicker(researched)}
       ${this.renderStats(d.stats, beforeStats, d.factoryDays)}
@@ -295,7 +283,7 @@ export class WwTemplateDesigner extends LitElement {
           >
             🔒 ${blockText(this.refused)}
           </p>`}
-      ${this.renderActions(block, d.xpCost)} ${this.renderLibraryRow()}
+      ${this.renderActions(block)} ${this.renderLibraryRow()}
     </div>`;
   }
 
@@ -732,35 +720,26 @@ export class WwTemplateDesigner extends LitElement {
     </div>`;
   }
 
-  private renderActions(
-    block: WwOrderBlock | null,
-    xpCost: number,
-  ): TemplateResult {
+  private renderActions(block: WwOrderBlock | null): TemplateResult {
     const id = this.editing;
     const t = this.template(id);
-    const saveKey = `save:${id}:${this.copyOf}`;
     const deleteKey = `delete:${id}`;
     const save = () => {
       if (block !== null) {
         this.refused = block;
         return;
       }
-      const send = () => {
-        this.eventBus.emit(
-          new SendWwOrderIntentEvent({
-            kind: "template_save",
-            template: id,
-            base: id === 0 ? this.copyOf : 0,
-            name: this.saveName(),
-            battalions: [...this.draft.battalions],
-            support: [...this.draft.support],
-          }),
-        );
-        this.close();
-      };
-      // Spending army experience takes a second tap (spec §15.5).
-      if (xpCost > 0) this.confirmTap(saveKey, send);
-      else send();
+      this.eventBus.emit(
+        new SendWwOrderIntentEvent({
+          kind: "template_save",
+          template: id,
+          base: id === 0 ? this.copyOf : 0,
+          name: this.saveName(),
+          battalions: [...this.draft.battalions],
+          support: [...this.draft.support],
+        }),
+      );
+      this.close();
     };
     const del = () => {
       if (t === null) return;
@@ -777,32 +756,26 @@ export class WwTemplateDesigner extends LitElement {
     };
     const copy = () => {
       if (t === null) return;
-      // A new template from this one: saving it costs only what then changes.
+      // A new template from this one.
       this.copyOf = t.id;
       this.editing = 0;
       const name = `${this.draft.name} 2`.slice(0, WW_TEMPLATE_NAME_MAX);
       this.draft = { ...this.draft, name };
       this.refused = null;
     };
-    const saveArmed = this.armed(saveKey);
     const deleteArmed = this.armed(deleteKey);
     const cls = "h-9 flex-1 rounded-md border px-2 text-xs font-semibold";
     return html`<div class="flex gap-1">
       <button
         type="button"
         data-ww-designer-save
-        data-armed=${String(saveArmed)}
         aria-disabled=${String(block !== null)}
         class="${cls} ${block !== null
           ? "border-white/5 bg-white/5 text-white/40"
-          : saveArmed
-            ? "border-amber-300 bg-amber-700/60"
-            : "border-emerald-400/60 bg-emerald-800/50"}"
+          : "border-emerald-400/60 bg-emerald-800/50"}"
         @click=${save}
       >
-        ${translateText(
-          saveArmed ? "ww1936.land.tap_again" : "ww1936.land.designer_save",
-        )}
+        ${translateText("ww1936.land.designer_save")}
       </button>
       ${t === null
         ? nothing

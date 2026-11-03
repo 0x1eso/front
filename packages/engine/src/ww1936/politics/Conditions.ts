@@ -152,7 +152,7 @@ function evalLeaf(ctx: EffectCtx, c: LeafCondition): boolean {
     case "pp_ge":
       return p.ppMilli >= c.amount * 1000;
     case "army_xp_ge":
-      return (pol.land.country(id)?.armyXpMilli ?? 0) >= c.amount * 1000;
+      return false; // ww15: the army experience pool is gone (kind kept, append-only)
     case "has_spirit":
       return p.hasSpirit(c.id);
     case "focus_done": {

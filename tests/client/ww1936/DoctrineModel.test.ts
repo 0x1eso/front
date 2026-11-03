@@ -12,7 +12,7 @@ import { general, landDetail } from "./LandFixture";
 
 const base = {
   details: [detail("DEU")],
-  landDetails: [landDetail("DEU", { armyXpMilli: 150_000 })],
+  landDetails: [landDetail("DEU")],
 };
 const zeros = () => new Array<number>(9).fill(0);
 
@@ -99,13 +99,12 @@ describe("DoctrineModel thought sliders (ww9 design §11)", () => {
   });
 });
 
-describe("DoctrineModel command screen (design §12)", () => {
-  it("traits are paid in army or navy XP; marshals and spirits use the engine's rules", () => {
+describe("DoctrineModel command screen (ww15)", () => {
+  it("lists generals with their traits and nothing to buy; marshals are rows of their own", () => {
     const g = doctrineGame({
       details: [detail("DEU")],
       landDetails: [
         landDetail("DEU", {
-          armyXpMilli: 150_000,
           generals: [
             general(1, { key: "bock", level: 3 }),
             general(2, {
@@ -119,35 +118,14 @@ describe("DoctrineModel command screen (design §12)", () => {
         }),
       ],
       detail: {
-        doctrine: { xp: [150, 40, 7] },
         command: { medalCooldown: [[5, 40]] },
       },
     });
     const m = new DoctrineModel(g.game as never);
     const people = m.commandPeople();
     expect(people.map((p) => p.id)).toEqual([1]);
-    const trickster = people[0].candidates.find((c) => c.trait === "trickster");
-    expect(trickster).toEqual({ trait: "trickster", xp: 40, block: null });
-    expect(m.fmTraitBlock(2, "fm_thorough")).toBe(null);
-    expect(m.fmTraitBlock(1, "fm_thorough")).toBe("no_slot");
-    expect(m.spiritBlock(0, 0)).toBe(null);
-    expect(m.spiritBlock(0, 5)).toBe("bad_index");
+    expect(people[0]).not.toHaveProperty("candidates");
+    expect(m.marshalRows().map((r) => r.id)).toEqual([2]);
     expect(m.medalRows().every((r) => r.days > 0)).toBe(true);
-  });
-
-  it("a trait the army cannot pay for says no_xp", () => {
-    const g = doctrineGame({
-      details: [detail("DEU")],
-      landDetails: [
-        landDetail("DEU", {
-          generals: [general(1, { key: "bock", level: 3 })],
-        }),
-      ],
-      detail: { doctrine: { xp: [10, 40, 7] } },
-    });
-    const c = new DoctrineModel(g.game as never)
-      .commandPeople()[0]
-      .candidates.find((x) => x.trait === "trickster");
-    expect(c?.block).toBe("no_xp");
   });
 });

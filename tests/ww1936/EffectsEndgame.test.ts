@@ -388,10 +388,10 @@ describe("World War 1936 P5: endgame effects", { timeout: 60_000 }, () => {
     expect(eg.reparations).toEqual([
       { from: csk, to: deu, k: 4, untilDay: day + 730 },
     ]);
-    const before = ww.navy.country(gbr)!.navyXpMilli;
-    run(gbr, [{ kind: "navy_xp", amount: 20 }]);
-    expect(ww.navy.country(gbr)!.navyXpMilli).toBe(before + 20_000);
+    // navy_xp: a permanent repair speed bonus (1% per 20), never below 0.
+    run(gbr, [{ kind: "navy_xp", amount: 60 }]);
+    expect(ww.depth.country(gbr)!.cmd.permXp).toEqual([0, 3]);
     run(gbr, [{ kind: "navy_xp", amount: -1000 }]);
-    expect(ww.navy.country(gbr)!.navyXpMilli).toBe(0);
+    expect(ww.depth.country(gbr)!.cmd.permXp).toBeUndefined();
   });
 });

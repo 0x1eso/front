@@ -849,8 +849,6 @@ describe("the sky (design §3.8)", () => {
     z.today.navalAsw.set(DEU, 12);
     z.today.navalStrike.set(DEU, 13);
     z.today.airSupply.push([REGION.berlin, 5, 7]);
-    const tally = () => ww.depth.airSorties[DEU];
-    const before = tally();
     closeAirZone(air, sr, day, tick);
     // pm × 8 pulses × 2 wings in sorties.
     const sum = Math.floor(row[0] / 1000);
@@ -860,8 +858,6 @@ describe("the sky (design §3.8)", () => {
     expect(z.navalStrike.get(DEU)).toBe(13);
     expect(z.airSupply).toEqual([[REGION.berlin, 5, 7]]);
     expect(z.fightersSup.get(DEU)).toBeGreaterThan(0);
-    // Sweep and escort both count toward the air experience.
-    expect(tally()).toBeGreaterThan(before);
     expect(z.today.recon.get(5)).toBe(20);
     expect(z.today.sorties.size).toBe(0);
     expect(z.today.navalSearch.size).toBe(0);

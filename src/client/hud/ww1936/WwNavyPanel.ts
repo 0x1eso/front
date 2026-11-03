@@ -8,7 +8,6 @@ import {
   ShipClass,
   WW_MAX_DOCKS_PER_LINE,
   WW_MAX_LINE_COUNT,
-  WW_TITLED_ADMIRAL_XP_MILLI,
 } from "@openfront/engine-api/ww1936/NavyTypes";
 import { EventBus } from "@openfront/shared/EventBus";
 import { html, LitElement, nothing, TemplateResult } from "lit";
@@ -728,28 +727,7 @@ export class WwNavyPanel extends WwDrawerBase {
 
   private renderAdmirals(ctx: NavyCtx): TemplateResult {
     const rows = admiralRows(ctx);
-    const xp = ctx.navy.detail?.navyXpMilli ?? 0;
-    const cost = WW_TITLED_ADMIRAL_XP_MILLI;
     return html`
-      <p data-ww-navy-xp class="m-0 mt-2 text-xs text-white/80">
-        ${translateText("ww1936.navy.navy_xp", { n: Math.floor(xp / 1000) })}
-      </p>
-      <button
-        type="button"
-        data-ww-appoint-admiral
-        class="${BUTTON} mt-1 w-full"
-        aria-disabled=${String(xp < cost)}
-        @click=${() => {
-          if (xp >= cost) this.send({ kind: "appoint_admiral" });
-        }}
-      >
-        ${translateText("ww1936.navy.appoint_admiral", { cost: cost / 1000 })}
-      </button>
-      ${xp < cost
-        ? html`<p data-ww-block="no_xp" class="m-0 mt-1 text-xs text-red-300">
-            🔒 ${blockText("no_xp")}
-          </p>`
-        : nothing}
       ${rows.length === 0
         ? html`<p class="m-0 mt-2 text-xs text-white/60">
             ${translateText("ww1936.navy.admirals_none")}

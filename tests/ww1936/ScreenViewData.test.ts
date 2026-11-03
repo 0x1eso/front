@@ -7,6 +7,7 @@ import { FLEET_STATES } from "@openfront/engine-api/ww1936/NavyTypes";
 import { repairCostMilli } from "@openfront/engine/ww1936/economy/Repairs";
 import {
   fleetRepairDays,
+  newTitledAdmiral,
   repairDayMilli,
 } from "@openfront/engine/ww1936/navy/Repair";
 import { describe, expect, it } from "vitest";
@@ -64,11 +65,7 @@ describe("the screens' view data (lane U)", () => {
 
   it("my admirals' skills now and my auto air zones", async () => {
     const { runner, g, ww } = await game();
-    const cn = ww.navy.country(TAG_ID.GBR)!;
-    cn.navyXpMilli = 50_000;
-    expect(
-      ww.navy.issue(TAG_ID.GBR, { kind: "appoint_admiral" }, g.ticks()),
-    ).toBeNull();
+    expect(newTitledAdmiral(ww.navy, TAG_ID.GBR)).not.toBeNull();
     // The game's own tick sends (and clears) the updates: ask again.
     step(runner);
     ww.navy.markCountry(TAG_ID.GBR);

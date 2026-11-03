@@ -300,7 +300,6 @@ function detail(invasions: InvasionData[]): CountryNavyDetail {
     routes: [],
     invasions,
     admirals: [],
-    navyXpMilli: 0,
     convoyLoss30: [],
     fuelMilli: 0,
     fuelCapMilli: 0,

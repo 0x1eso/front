@@ -113,7 +113,6 @@ const navyData = () =>
       [1, 7],
       [2, 0],
     ],
-    navyXpMilli: 4_000,
     convoyLoss30: Array.from({ length: 30 }, (_, i) => (i === 29 ? 2000 : 0)),
   });
 
@@ -207,7 +206,7 @@ describe("<ww-navy-panel> (spec §18.5)", () => {
     ).toBe("true");
   });
 
-  it("admirals: the roster; appointing needs navy experience", async () => {
+  it("admirals: the roster; nothing to buy", async () => {
     const m = await mount<WwNavyPanel>("ww-navy-panel", {
       fleets: [fleet({ id: 7, ships: [ship(1, "dd")] })],
       navy: navyData(),
@@ -218,9 +217,8 @@ describe("<ww-navy-panel> (spec §18.5)", () => {
     expect(m.q("[data-ww-admiral='1']")!.textContent).toContain(
       "[ww1936.navy.admiral_commands]",
     );
-    expect(m.q("[data-ww-block='no_xp']")).not.toBeNull();
-    await m.click("[data-ww-appoint-admiral]");
-    expect(m.sent).toEqual([]);
+    expect(m.q("[data-ww-appoint-admiral]")).toBeNull();
+    expect(m.q("[data-ww-navy-xp]")).toBeNull();
   });
 });
 

@@ -9,7 +9,6 @@ import {
   ROLE_ATTACK,
   ROLE_DEFEND,
   traitBit,
-  WW_TITLED_GENERAL_XP_MILLI,
 } from "@openfront/engine-api/ww1936/LandTypes";
 import { planMaxBp } from "@openfront/engine-lib/ww1936/CombatRules";
 import { traitSlots } from "@openfront/engine-lib/ww1936/CommandRules";
@@ -113,20 +112,29 @@ function freeGeneral(land: WwLand, cl: CountryLand, a: Army): void {
 }
 
 /**
- * Spec §6.2: a titled general ("Commander No. n", every skill 1) for 10
- * army experience. Numbered from the country's `nextTitleNo`, the counter
- * LandStartRun's 1936 titled generals (Japan's) take theirs from, so ids
- * never collide.
+ * An army with no general gets one, free, on its country's day (armies in
+ * id order): the best free general who serves (highest skills, then id),
+ * else a new titled one ("Commander No. n", every skill 1, numbered from the
+ * country's `nextTitleNo`, the counter LandStartRun's 1936 titled generals
+ * take theirs from).
  */
-export function appointGeneral(
-  land: WwLand,
-  cl: CountryLand,
-): WwOrderBlock | null {
-  if (cl.armyXpMilli < WW_TITLED_GENERAL_XP_MILLI) return "no_xp";
-  cl.armyXpMilli -= WW_TITLED_GENERAL_XP_MILLI;
-  cl.generals.push(newTitledGeneralState(cl.smallID, cl.nextTitleNo++));
-  land.markCountry(cl.smallID);
-  return null;
+function autoGenerals(land: WwLand, cl: CountryLand, day: number): void {
+  const bare = land
+    .armiesOf(cl.smallID)
+    .filter((a) => a.general === 0 && a.divisions.length > 0);
+  if (bare.length === 0) return;
+  const sum = (g: GeneralState) => g.att + g.dfn + g.plan + g.log;
+  const free = cl.generals
+    .filter((g) => g.army === 0 && !g.fm && canServe(land, g, day))
+    .sort((a, b) => sum(b) - sum(a) || a.id - b.id);
+  for (const a of bare) {
+    let g = free.shift();
+    if (g === undefined) {
+      g = newTitledGeneralState(cl.smallID, cl.nextTitleNo++);
+      cl.generals.push(g);
+    }
+    assignGeneral(land, cl, a.id, g.id);
+  }
 }
 
 /** Spec §6.2: the general of an army, null when none. */
@@ -199,6 +207,7 @@ export function dailyGenerals(
   fought: (lastFight: number) => boolean,
 ): void {
   applyGeneralDates(land, cl, day);
+  autoGenerals(land, cl, day);
   const t = land.divisions;
   const sc = land.scenario;
   for (const a of land.armiesOf(cl.smallID)) {

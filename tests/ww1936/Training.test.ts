@@ -345,7 +345,6 @@ describe("templates (P2 spec §4.4)", () => {
     const { l, id, cl, ce, issue, nextDay } = await germany(false);
     // ww9: Germany's start sliders give reinforcePct +4; this pins the base rate.
     (ce.stats as { reinforcePct?: number }).reinforcePct = 0;
-    cl.armyXpMilli = 40_000;
     const t = l.divisions;
     const rows = () => {
       const out: number[] = [];
@@ -367,13 +366,12 @@ describe("templates (P2 spec §4.4)", () => {
     const stockGuns = typeTotal(ce.stock, "artillery");
     const manpower = ce.manpower;
     const men = rows().reduce((n, r) => n + t.men[r], 0);
-    // Without the two artillery battalions: 2 × 5 army experience.
+    // Without the two artillery battalions (free).
     expect(
       issue(
         save(INFANTRY, [["infantry", 9]], ["engineer", "recon"], "Infanterie"),
       ),
     ).toBeNull();
-    expect(cl.armyXpMilli).toBe(30_000);
     const tpl = cl.template(INFANTRY)!;
     expect(tpl.def.name).toBe("Infanterie");
     expect(tpl.key).toBe("");
@@ -401,7 +399,6 @@ describe("templates (P2 spec §4.4)", () => {
         ),
       ),
     ).toBeNull();
-    expect(cl.armyXpMilli).toBe(10_000);
     const r0 = rows()[0];
     expect(l.baseStatsOf(r0).orgMilli).toBe(Math.floor((9 * 60_000) / 13));
     for (const r of rows()) expect(t.org[r]).toBe(l.orgMaxOf(r));
@@ -426,12 +423,10 @@ describe("templates (P2 spec §4.4)", () => {
         ),
       ),
     ).toBeNull();
-    expect(cl.armyXpMilli).toBe(10_000 + 200);
   });
 
-  test("not enough army XP refuses the edit", async () => {
+  test("template edits and copies cost nothing, whatever they change", async () => {
     const { cl, issue } = await germany(false);
-    cl.armyXpMilli = 4_999;
     const def = cl.template(INFANTRY)!.def;
     expect(
       issue(
@@ -444,25 +439,8 @@ describe("templates (P2 spec §4.4)", () => {
           ["engineer", "recon"],
         ),
       ),
-    ).toBe("no_xp");
-    expect(cl.template(INFANTRY)!.def).toBe(def);
-    expect(cl.armyXpMilli).toBe(4_999);
-    // A copy is free; what it changes is not.
-    expect(
-      issue(
-        save(
-          0,
-          [
-            ["infantry", 9],
-            ["artillery", 2],
-          ],
-          ["engineer", "recon"],
-          "Copy",
-          INFANTRY,
-        ),
-      ),
     ).toBeNull();
-    expect(cl.templates).toHaveLength(7);
+    expect(cl.template(INFANTRY)!.def).not.toBe(def);
     expect(
       issue(
         save(
@@ -476,16 +454,14 @@ describe("templates (P2 spec §4.4)", () => {
           INFANTRY,
         ),
       ),
-    ).toBe("no_xp");
-    // From nothing every battalion is a change.
-    cl.armyXpMilli = 10_000;
+    ).toBeNull();
+    // From nothing every battalion is a change; still free.
     expect(issue(save(0, [["infantry", 2]], [], "Two"))).toBeNull();
-    expect(cl.armyXpMilli).toBe(0);
+    expect(cl.templates).toHaveLength(8);
   });
 
   test("template and training orders refuse what the rules refuse", async () => {
     const { l, id, g, cl, issue } = await germany(false);
-    cl.armyXpMilli = 500_000;
     // The rules (templateBlock): width, techs.
     expect(issue(save(0, [["artillery", 14]], [], "Wide", INFANTRY))).toBe(
       "bad_template",

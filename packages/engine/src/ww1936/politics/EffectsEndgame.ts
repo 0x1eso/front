@@ -9,15 +9,16 @@ import {
   CS_ACTIVE,
   MemberState,
 } from "@openfront/engine-api/ww1936/EndgameTypes";
-import { WW_NAVY_XP_MAX_MILLI } from "@openfront/engine-api/ww1936/NavyTypes";
 import type {
   Effect,
   Selector,
 } from "@openfront/engine-api/ww1936/PoliticsDsl";
 import { complianceCap } from "@openfront/engine-lib/ww1936/EndgameRules";
+import { permPctOfXp } from "@openfront/engine-lib/ww1936/ThoughtRules";
 import { capitulate } from "../Capitulation";
 import { declareWarBlock } from "../Diplomacy";
 import { setEmbargo } from "../depth/Embargo";
+import type { WwDepth } from "../depth/WwDepth";
 import { applyActivationEffect } from "../endgame/Activate";
 import { applyAidEffect } from "../endgame/LendLease";
 import { uprisingNow } from "../endgame/Occupation";
@@ -178,18 +179,14 @@ export function applyOtherEndgameEffect(
         eg.dirtyOcc.add(r);
       }
       return;
-    case "navy_xp": {
-      const navy = pol.ww.navy;
-      const cn = navy.country(actor);
-      if (cn === null) return;
-      cn.navyXpMilli = clamp(
-        cn.navyXpMilli + e.amount * 1000,
-        0,
-        WW_NAVY_XP_MAX_MILLI,
+    case "navy_xp":
+      // ww15: a permanent repair speed bonus (permPctOfXp).
+      (pol.ww.depth as WwDepth | undefined)?.addPermPct(
+        actor,
+        1,
+        permPctOfXp(e.amount),
       );
-      navy.markCountry(actor);
       return;
-    }
     default:
       return;
   }

@@ -1,9 +1,8 @@
 // World War 1936 military thought sliders (design §5, §8): the state of
 // the nine sliders, their daily drift toward the target, the stats they
-// give, the thought_set order, and the air experience from sorties.
+// give, the thought_set order.
 // Replaces the doctrine system (Doctrine.ts).
 import type { WwOrder } from "@openfront/engine-api/Schemas";
-import { AIR_MISSIONS } from "@openfront/engine-api/ww1936/AirTypes";
 import type { WwOrderBlock } from "@openfront/engine-api/ww1936/EconomyTypes";
 import type { Effect } from "@openfront/engine-api/ww1936/PoliticsDsl";
 import type {
@@ -17,11 +16,8 @@ import {
 } from "@openfront/engine-api/ww1936/ThoughtTypes";
 import { dateOfDay } from "@openfront/engine-lib/ww1936/Calendar";
 import {
-  AIR_XP_MAX_MILLI,
-  airXpDayMilli,
-} from "@openfront/engine-lib/ww1936/DoctrineRules";
-import {
   masteryXpMilli,
+  permPctOfMilli,
   thoughtNotch,
   thoughtRateMilli,
   thoughtSetBlock,
@@ -33,7 +29,7 @@ import {
 import { aiPersonality } from "../economy/AiEconomy";
 import type { EffectCtx } from "../politics/Dispatch";
 import { aiThoughtTargets } from "./ThoughtAi";
-import type { CountryDepth, Domain, WwDepth } from "./WwDepth";
+import type { CountryDepth, WwDepth } from "./WwDepth";
 
 /** The year multiplier (percent) the stats use today, from the common day. */
 export function thoughtYearPctOf(d: WwDepth): number {
@@ -91,7 +87,6 @@ export function startThought(d: WwDepth, id: number): void {
 export function dailyThought(d: WwDepth, id: number, day: number): void {
   const c = d.country(id);
   if (c === null) return;
-  dailyAirXp(d, id);
   startThought(d, id);
   if (!c.th.started) return;
   if (!d.ww.isHumanControlled(id) || d.ww.autoOn(id, "thought")) {
@@ -183,8 +178,10 @@ export function issueThought(
 }
 
 /**
- * The doctrine_mastery effect (design §3): the old mastery points are now
- * experience of the same domain, ThoughtRules.masteryXpMilli.
+ * The doctrine_mastery effect (ww15): the old mastery points are a
+ * permanent bonus now: the experience masteryXpMilli gives, as a percent
+ * (ThoughtRules.permPctOfMilli; naval: repair speed, the rest: division
+ * experience).
  */
 export function applyMasteryEffect(
   ctx: EffectCtx,
@@ -195,45 +192,11 @@ export function applyMasteryEffect(
   if (d === undefined || d.country(actor) === null) return;
   const domain = ["land", "naval", "air"].indexOf(e.domain);
   if (domain < 0) return;
-  d.addXpMilli(actor, domain as Domain, masteryXpMilli(e.amount));
-  d.markCountry(actor);
-}
-
-/** A mission that counts toward the air experience (the old air tracks' missions). */
-export function countsForAirXp(mission: number): boolean {
-  const m = AIR_MISSIONS[mission];
-  return (
-    m === "air_superiority" ||
-    m === "interception" ||
-    m === "escort" ||
-    m === "cas" ||
-    m === "strategic_bombing" ||
-    m === "naval_strike" ||
-    m === "naval_patrol" ||
-    m === "port_strike"
+  d.addPermPct(
+    actor,
+    domain === 1 ? 1 : 0,
+    permPctOfMilli(masteryXpMilli(e.amount)),
   );
-}
-
-/**
- * Lane D (review 11): the day's air experience from the country's sorties
- * and the airXpMilli stat — DoctrineRules.airXpDayMilli. The counter
- * empties.
- */
-function dailyAirXp(d: WwDepth, id: number): void {
-  const sorties = d.airSorties[id] ?? 0;
-  d.airSorties[id] = 0;
-  const ca = d.ww.air.country(id);
-  if (ca === null) return;
-  const s = d.ww.economy.country(id)?.stats as
-    | Partial<Record<WwStatKey, number>>
-    | undefined;
-  const gain = airXpDayMilli(sorties, s?.airXpMilli ?? 0);
-  if (gain === 0) return;
-  const next = Math.max(0, Math.min(AIR_XP_MAX_MILLI, ca.airXpMilli + gain));
-  if (next !== ca.airXpMilli) {
-    ca.airXpMilli = next;
-    d.ww.air.markCountry(id);
-  }
 }
 
 /** The screens' view of the sliders (design §8). */

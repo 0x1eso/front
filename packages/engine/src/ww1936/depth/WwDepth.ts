@@ -82,7 +82,6 @@ import {
   medalXpPct,
   onBattleEnd,
   reinforceOrder,
-  spiritStatsOf,
   tricksterCutBp,
 } from "./Command";
 import { congressBlockFor, usaIdOf } from "./Congress";
@@ -123,7 +122,6 @@ import { processRaids } from "./Raids";
 import { railGunFortCut, railGunHits, railGunsOfRemovedArmy } from "./RailGuns";
 import { processRockets } from "./Rockets";
 import {
-  countsForAirXp,
   dailyThought,
   issueThought,
   startThought,
@@ -184,6 +182,8 @@ const CountryDepthSchema = z.object({
     medalWin: z.tuple([zInt(), zInt(), zInt()]).optional(),
     /** ww9: the day of the last automatic medal. */
     medalDay: zInt().optional(),
+    /** ww15: the permanent experience bonus in percent, [divXpGainPct, repairPct]. */
+    permXp: z.tuple([zInt(), zInt()]).optional(),
   }),
   des: z.object({
     tank: z.array(DesignSlotSchema.nullable()),
@@ -252,8 +252,6 @@ export const WwDepthStateSchema = z.object({
   lastCommonDay: zInt(),
   nextUid: zInt(),
   countries: z.array(CountryDepthSchema.nullable()),
-  /** ww9: sorties flown since each country's last turn (the air experience). */
-  airSorties: zIds().optional(),
   groups: z.array(
     z.object({
       id: zInt(),
@@ -491,7 +489,6 @@ export class WwDepth implements LandDepthHooks {
   nextUid = 1;
   countries: (CountryDepth | null)[] = [];
   /** ww9: per country, the sorties flown since its last depth day. */
-  airSorties: number[] = [];
   groups: WwDepthState["groups"] = [];
   market: WwDepthState["market"] = {
     listings: [],
@@ -596,7 +593,6 @@ export class WwDepth implements LandDepthHooks {
     this.countries = Array.from({ length: this.cap }, (_, id) =>
       id === 0 ? null : emptyCountry(),
     );
-    this.airSorties = new Array<number>(this.cap).fill(0);
     this.intelLevels = new Uint8Array(this.cap * this.cap * 4);
     // Review E12: no fog until lane I computes the rows (the stub's 100).
     this.intelLevels.fill(100);
@@ -833,16 +829,21 @@ export class WwDepth implements LandDepthHooks {
     if (owner > 0) this.markCountry(owner);
   }
 
-  /** Plan decision 12: a zone's sorties of a mission (AIR_MISSIONS index). */
-  noteSorties(owner: number, mission: number, sorties: number): void {
-    if (owner <= 0 || owner >= this.cap || this.airSorties.length === 0) return;
-    if (!countsForAirXp(mission)) return;
-    this.airSorties[owner] += Math.max(0, sorties);
-  }
-
-  /** Experience of a domain, milli (a decision's or an effect's grant). */
-  addXpMilli(id: number, domain: Domain, milli: number): void {
-    addXpMilli(this.ww, id, domain, milli);
+  /**
+   * The permanent experience bonus (ww15): `pct` more (or fewer) percent of
+   * divXpGainPct (domain 0) or repairPct (domain 1); statsPart adds it. A
+   * grant of N experience is Math.trunc(N / 10) percent. Never below 0.
+   */
+  addPermPct(id: number, domain: 0 | 1, pct: number): void {
+    const c = this.countries[id];
+    if (c === null || c === undefined || pct === 0) return;
+    const cur = c.cmd.permXp ?? [0, 0];
+    const next: [number, number] = [cur[0], cur[1]];
+    next[domain] = Math.max(0, next[domain] + pct);
+    if (next[domain] === cur[domain]) return;
+    c.cmd.permXp = next[0] === 0 && next[1] === 0 ? undefined : next;
+    this.markStats(id);
+    this.markCountry(id);
   }
 
   // ---- economy hooks (plan decisions 22, 23) ----
@@ -986,17 +987,6 @@ export class WwDepth implements LandDepthHooks {
     return this.nextUid++;
   }
 
-  /** Plan decision 13 / spec §5.1: the experience of a domain (P2 army, P4 navy and air), whole points. */
-  xpOf(id: number, domain: Domain): number {
-    return Math.floor(xpMilliOf(this.ww, id, domain) / 1000);
-  }
-
-  spendXp(id: number, domain: Domain, points: number): boolean {
-    if (this.xpOf(id, domain) < points) return false;
-    addXpMilli(this.ww, id, domain, -points * 1000);
-    return true;
-  }
-
   /** Spec §20.11 notification to one country's controllers (P3 pol.message). */
   message(
     to: number,
@@ -1091,10 +1081,16 @@ export class WwDepth implements LandDepthHooks {
       return out;
     }
     addSparseInto(out, thoughtStatsOf(this, id));
-    addSparseInto(out, spiritStatsOf(this, id));
     addSparseInto(out, mioStatsOf(this, id));
     addSparseInto(out, mechStatsOf(this, id));
     addSparseInto(out, landmarkStatsOf(this, id));
+    const px = this.countries[id]?.cmd.permXp;
+    if (px !== undefined) {
+      addSparseInto(out, {
+        divXpGainPct: px[0],
+        repairPct: px[1],
+      });
+    }
     // Spec §9.6: the proximity fuze's artillery soft attack +5% (the
     // battalion step reads artillerySoftPct).
     if (this.projectDone(id, PROXIMITY_FUZE)) {
@@ -1320,7 +1316,6 @@ export class WwDepth implements LandDepthHooks {
       countries: this.countries.map((c) =>
         c === null ? null : structuredCloneJson(c),
       ),
-      airSorties: [...this.airSorties],
       groups: this.groups.map((g) => ({ ...g, armies: [...g.armies] })),
       market: structuredCloneJson(this.market),
       intelNet: [...this.intelNet.entries()].sort((a, b) => a[0] - b[0]),
@@ -1356,8 +1351,6 @@ export class WwDepth implements LandDepthHooks {
     while (this.countries.length < this.cap) {
       this.countries.push(this.countries.length === 0 ? null : emptyCountry());
     }
-    this.airSorties = [...(s.airSorties ?? [])];
-    while (this.airSorties.length < this.cap) this.airSorties.push(0);
     this.groups = structuredCloneJson(s.groups);
     this.market = structuredCloneJson(s.market);
     this.intelNet = new Map(s.intelNet);
@@ -1406,6 +1399,10 @@ export class WwDepth implements LandDepthHooks {
       mix(c.cmd.medalDay ?? -1);
       mix(c.cmd.medalWin?.[0] ?? 0);
       mix(c.cmd.medalWin?.[2] ?? 0);
+      if (c.cmd.permXp !== undefined) {
+        mix(c.cmd.permXp[0]);
+        mix(c.cmd.permXp[1]);
+      }
       mix(
         DESIGN_KINDS.reduce(
           (a, k) => a + c.des[k].filter((x) => x !== null).length,
@@ -1654,8 +1651,6 @@ function mixRestHash(d: WwDepth, mix: (v: number) => void): void {
   );
   rows([...d.nuked.entries()]);
   // The day's tallies and one-line batches.
-  mix(d.airSorties.length);
-  for (const v of d.airSorties) mix(v);
   rows(d.dayNotes);
 }
 
@@ -1718,6 +1713,7 @@ export function emptyCountry(): CountryDepth {
       // live one list them alike whatever the order they were set in.
       medalWin: undefined,
       medalDay: undefined,
+      permXp: undefined,
     },
     des: {
       tank: nul(WW_TANK_DESIGN_SLOTS),
@@ -1796,6 +1792,7 @@ function normalizeCountry(
     traitsSeen: c.cmd.traitsSeen,
     medalWin: c.cmd.medalWin,
     medalDay: c.cmd.medalDay,
+    permXp: c.cmd.permXp,
   };
   pad(c.cmd.spirits, e.cmd.spirits);
   pad(c.cmd.spiritLock, e.cmd.spiritLock);
@@ -1899,31 +1896,6 @@ function civFlow(d: WwDepth, id: number): { in: number; out: number } {
   const c = d.countries[id];
   if (c !== null && c !== undefined && c.intel.upId >= 0) out += 2;
   return { in: inn, out };
-}
-
-/** P2 army, P4 navy and air experience, milli. */
-function xpMilliOf(ww: WorldWar, id: number, domain: Domain): number {
-  if (domain === 0) return ww.land.country(id)?.armyXpMilli ?? 0;
-  if (domain === 1) return ww.navy.country(id)?.navyXpMilli ?? 0;
-  return ww.air.country(id)?.airXpMilli ?? 0;
-}
-
-function addXpMilli(
-  ww: WorldWar,
-  id: number,
-  domain: Domain,
-  milli: number,
-): void {
-  if (domain === 0) {
-    const c = ww.land.country(id);
-    if (c !== null) c.armyXpMilli = Math.max(0, c.armyXpMilli + milli);
-  } else if (domain === 1) {
-    const c = ww.navy.country(id);
-    if (c !== null) c.navyXpMilli = Math.max(0, c.navyXpMilli + milli);
-  } else {
-    const c = ww.air.country(id);
-    if (c !== null) c.airXpMilli = Math.max(0, c.airXpMilli + milli);
-  }
 }
 
 /** P1 stock of atomic bombs (plan decision 20). */
@@ -2037,9 +2009,6 @@ function detailOf(d: WwDepth, id: number): WwDepthDetail {
   return {
     smallID: id,
     thought: thoughtView(d, id),
-    doctrine: {
-      xp: [d.xpOf(id, 0), d.xpOf(id, 1), d.xpOf(id, 2)],
-    },
     command: {
       spirits: [...c.cmd.spirits],
       spiritLock: [...c.cmd.spiritLock],
@@ -2049,6 +2018,7 @@ function detailOf(d: WwDepth, id: number): WwDepthDetail {
         ? { medalWin: [...c.cmd.medalWin] as [number, number, number] }
         : {}),
       ...(c.cmd.medalDay !== undefined ? { medalDay: c.cmd.medalDay } : {}),
+      ...(c.cmd.permXp !== undefined ? { permXp: [...c.cmd.permXp] } : {}),
     },
     designs,
     // Lane M review glue 1: one value per family (the current archetype's

@@ -7,7 +7,6 @@ import {
   ROLE_ATTACK,
   ROLE_DEFEND,
   traitBit,
-  WW_TITLED_GENERAL_XP_MILLI,
 } from "@openfront/engine-api/ww1936/LandTypes";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { dayOfDate, dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
@@ -24,6 +23,7 @@ import { weatherAt } from "@openfront/engine-lib/ww1936/Weather";
 import {
   applyGeneralDates,
   assignGeneral,
+  dailyGenerals,
   GENERAL_XP_CENTI,
 } from "@openfront/engine/ww1936/land/GeneralsRun";
 import { dailySustain } from "@openfront/engine/ww1936/land/Sustain";
@@ -158,39 +158,42 @@ describe("generals (P2 spec §6.2)", () => {
     expect(back[0].params).toEqual({ general: rundstedt.id });
   });
 
-  test("titled generals cost 10 army XP", async () => {
-    const { l, id, cl, second } = await germany();
-    cl.armyXpMilli = WW_TITLED_GENERAL_XP_MILLI + 5_000;
+  test("an army with no general gets one free on the country's day; appoint_general is refused", async () => {
+    const { runner, l, id, cl, first, second } = await germany();
     const n = cl.generals.length;
-    expect(l.issue(id, { kind: "appoint_general" })).toBeNull();
-    expect(cl.armyXpMilli).toBe(5_000);
-    expect(cl.generals).toHaveLength(n + 1);
-    const t = cl.generals[n];
-    expect(t).toMatchObject({
-      id: titledGeneralId(id, 1),
-      roster: -1,
-      titleNo: 1,
-      att: 1,
-      dfn: 1,
-      plan: 1,
-      log: 1,
-      traits: 0,
-      level: 1,
-      army: 0,
-    });
-    expect(t.id).toBe(100_000 + 1 * 1000 + id);
-    expect(isTitledGeneral(t.id)).toBe(true);
-    expect(titleNoOfGeneral(t.id)).toBe(1);
-    expect(l.issue(id, { kind: "appoint_general" })).toBe("no_xp");
-    expect(cl.generals).toHaveLength(n + 1);
-    // A titled general can lead an army.
-    expect(
-      l.issue(id, { kind: "army_general", army: second.id, general: t.id }),
-    ).toBeNull();
-    expect(second.general).toBe(t.id);
-    cl.armyXpMilli = WW_TITLED_GENERAL_XP_MILLI;
-    expect(l.issue(id, { kind: "appoint_general" })).toBeNull();
-    expect(cl.generals[n + 1].id).toBe(titledGeneralId(id, 2));
+    expect(l.issue(id, { kind: "appoint_general" })).toBe("bad_index");
+    expect(cl.generals).toHaveLength(n);
+    // The second army loses its general; a free serving general takes it.
+    const bock = cl.generals.find((x) => x.id === second.general)!;
+    expect(assignGeneral(l, cl, second.id, 0)).toBeNull();
+    expect(bock.army).toBe(0);
+    dailyGenerals(l, cl, l.econ.country(id)!, 5, () => false);
+    expect(second.general).toBe(bock.id);
+    expect(cl.generals).toHaveLength(n);
+    // With every general busy, a titled one is made: "Commander No. 1".
+    for (const g of cl.generals)
+      if (g.id !== first.general && g.id !== second.general) g.army = -1;
+    expect(assignGeneral(l, cl, second.id, 0)).toBeNull();
+    dailyGenerals(l, cl, l.econ.country(id)!, 6, () => false);
+    expect(second.general).not.toBe(0);
+    const t = cl.generals.find((x) => x.id === second.general)!;
+    expect(t.army).toBe(second.id);
+    if (t.roster < 0) {
+      expect(t).toMatchObject({
+        id: titledGeneralId(id, 1),
+        titleNo: 1,
+        att: 1,
+        dfn: 1,
+        plan: 1,
+        log: 1,
+        traits: 0,
+        level: 1,
+      });
+      expect(isTitledGeneral(t.id)).toBe(true);
+      expect(titleNoOfGeneral(t.id)).toBe(1);
+      expect(cl.generals).toHaveLength(n + 1);
+    }
+    void runner;
   });
 
   test("levels raise the most used skill", async () => {

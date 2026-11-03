@@ -124,7 +124,6 @@ const LAND = [
   "waiting_equipment",
   "manpower_pool",
   "equipment_short",
-  "designer_xp",
   "designer_save",
   "designer_copy",
   "designer_delete",

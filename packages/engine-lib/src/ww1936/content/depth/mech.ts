@@ -12,7 +12,7 @@
 import type { SpiritDef } from "@openfront/engine-api/ww1936/PoliticsTypes";
 
 export const DEPTH_SPIRITS: readonly SpiritDef[] = [
-  { id: "gen_staff_college", icon: "compass", stats: { armyXpMilli: 100 } },
+  { id: "gen_staff_college", icon: "compass", stats: { divXpGainPct: 10 } },
 
   // ---- China: central government ↔ regional powers ----
   {

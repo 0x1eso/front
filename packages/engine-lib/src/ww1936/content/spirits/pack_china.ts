@@ -38,7 +38,7 @@ export const SPIRITS_PACK_CHINA: SpiritDef[] = [
   // chn_war_tax: political power +10%.
   { id: "chn_war_finance", icon: "scales", stats: { ppGainPct: 10 } },
   // chn_officer_academy: army experience +0.1 a day.
-  { id: "chn_officer_corps", icon: "medal", stats: { armyXpMilli: 100 } },
+  { id: "chn_officer_corps", icon: "medal", stats: { divXpGainPct: 10 } },
 
   // ---- ccp ----
   // ccp_party_school: political power +10%.

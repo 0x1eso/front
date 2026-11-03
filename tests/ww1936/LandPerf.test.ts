@@ -445,7 +445,6 @@ describe("the land caches follow every input (P2 Task 11, at the P3 merge)", () 
     checkCaches(l);
     const pol = byTag(g, "POL").smallID();
     const cl = l.country(pol)!;
-    cl.armyXpMilli = 1_000_000;
     expect(
       l.issue(pol, {
         kind: "template_save",

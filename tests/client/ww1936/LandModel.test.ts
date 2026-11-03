@@ -26,7 +26,6 @@ import { startTemplates } from "@openfront/engine-lib/ww1936/LandStart";
 import {
   GEN1,
   templateStats,
-  templateXpCost,
 } from "@openfront/engine-lib/ww1936/TemplateStats";
 import { weatherAt } from "@openfront/engine-lib/ww1936/Weather";
 import { techTotals } from "@openfront/engine-lib/ww1936/WwTechs";
@@ -436,7 +435,7 @@ describe("LandModel (spec §15)", () => {
     expect(movePreview(land, view, DEU, 1, 4, "move", snow)!.ticks).toBe(29);
   });
 
-  it("the designer's numbers are templateStats' and its cost templateXpCost's", () => {
+  it("the designer's numbers are templateStats' and a change costs nothing", () => {
     const before = startTemplates("DEU", 5)[0].def;
     const after: TemplateDef = {
       name: "Heavy",
@@ -445,26 +444,21 @@ describe("LandModel (spec §15)", () => {
     };
     const all = new Set<WwTechId>(WW_TECH_IDS);
     const tech = techTotals(all);
-    const d = designer(before, after, tech, all, 20_000);
+    const d = designer(after, tech, all);
     expect(d.stats).toEqual(templateStats(after, tech, GEN1));
-    expect(d.xpCost).toBe(templateXpCost(before, after));
-    expect(d.xpCost).toBe(5_000);
     expect(d.block).toBeNull();
     // Infantry equipment: 900 (8 battalions + support), 1 factory makes 4.5
     // units a day of a 500-milli unit → 100 days.
     expect(d.factoryDays[0]).toBe(Math.ceil((d.stats.need[0] * 500) / 4_500));
-    // Not enough army experience; a battalion without its tech.
-    expect(designer(before, after, tech, all, 4_000).block).toBe("no_xp");
+    // A battalion without its tech.
     const noTanks = new Set(
       WW_TECH_IDS.filter((t) => t !== "medium_tank_1"),
     ) as Set<WwTechId>;
     expect(
       designer(
-        null,
         { name: "T", battalions: ["medium_armor"], support: [] },
         tech,
         noTanks,
-        100_000,
       ).block,
     ).toBe("no_tech");
   });

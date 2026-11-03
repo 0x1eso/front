@@ -1,13 +1,10 @@
 // World War 1936 P6 lane D (plan Task 2, spec §3.5, §19.2): the AI's
-// command — officer corps, field
-// marshals and army groups. One AI country at a time, the seed fixed by
+// command — field marshals and army groups. One AI country at a time, the seed fixed by
 // the game (plan decision 30).
-import { ARMY_SPIRIT_CATEGORIES } from "@openfront/engine-api/ww1936/DepthTypes";
 import { WW_DAY_SPLIT } from "@openfront/engine-api/ww1936/EconomyTypes";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
 import type { GameRunner } from "@openfront/engine/GameRunner";
-import { aiSpiritPlan } from "@openfront/engine/ww1936/depth/AiCommand";
 import { FM_ARMY } from "@openfront/engine/ww1936/depth/ArmyGroups";
 import { makeMarshal } from "@openfront/engine/ww1936/depth/Command";
 import { aiLandTick } from "@openfront/engine/ww1936/land/AiLand";
@@ -29,24 +26,6 @@ function afterTurn(runner: GameRunner, id: number, day: number): number {
 }
 
 describe("the AI's doctrines and command (spec §19.2)", () => {
-  it("the AI's officer corps follow its start position", async () => {
-    const runner = await wwRunner({}, HUMAN_ITA, DEEP.map);
-    stepTo(runner, WW_PREP_TICKS + 1);
-    const ww = runner.game.worldWar()!;
-    const d = ww.depth;
-    ww.land.country(DEU)!.armyXpMilli = 100_000;
-    // Germany's peacetime AI day: day % 10 === smallID % 10.
-    stepTo(runner, afterTurn(runner, DEU, 1));
-    const plan = aiSpiritPlan(d, DEU);
-    const spirits = d.country(DEU)!.cmd.spirits;
-    // The three land categories, 25 experience each.
-    expect(spirits.slice(0, 3)).toEqual(plan.slice(0, 3));
-    expect(d.xpOf(DEU, 0)).toBeLessThanOrEqual(100 - 75 + 1);
-    ARMY_SPIRIT_CATEGORIES.forEach((_, cat) => {
-      expect(Math.floor(plan[cat] / 3)).toBe(cat);
-    });
-  });
-
   it("AI promotes a marshal when it has four armies", async () => {
     const runner = await wwRunner({}, HUMAN_ITA, DEEP.map);
     const g = runner.game;

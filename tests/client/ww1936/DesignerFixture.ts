@@ -11,12 +11,9 @@ import type { DesignerGame } from "../../../src/client/hud/ww1936/DesignerModel"
 
 export interface DesignerFake {
   techs?: readonly WwTechId[];
-  armyXp?: number;
   designs?: WwDesignSlotData[];
   /** Licence requests waiting (from, to). */
   pendingLicences?: { from: number; to: number }[];
-  /** Air force experience, whole points (lane D's detail.doctrine.xp[2]). */
-  airXp?: number;
 }
 
 export function designerGame(o: DesignerFake = {}) {
@@ -35,13 +32,8 @@ export function designerGame(o: DesignerFake = {}) {
       detail: () => ({
         designs,
         projects: { done: 0 },
-        doctrine: { xp: [42, 30, o.airXp ?? 200] },
       }),
     }),
-    wwLand: () => ({
-      details: new Map([[1, { armyXpMilli: o.armyXp ?? 42_000 }]]),
-    }),
-    wwNavy: () => ({ detail: { navyXpMilli: 30_000 } }),
     wwPolitics: () => ({ detail: () => null }),
   };
   return game as unknown as DesignerGame;

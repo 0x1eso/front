@@ -80,16 +80,15 @@ describe("thought sliders and no command power, together on world1936", () => {
     const rows = new Set(MAJORS.map((t) => landRowOf(startPosOf(d, idOf(t)))));
     expect(rows.size).toBeGreaterThanOrEqual(3);
 
-    // Command power: gone from state, the medal order refused, marshal PP only, traits XP.
+    // Command power: gone from state, the medal order refused, marshal PP only, traits not bought.
     expect(d.country(ITA)!.cmd).not.toHaveProperty("cpMilli");
     const tick = () => runner.game.ticks();
     expect(d.issue(ITA, SAMPLES.medal_award as never, tick())).toBe(
       "bad_index",
     );
     const cl = ww.land.country(ITA)!;
-    cl.armyXpMilli = 100_000;
-    const bought = cl.generals.find(
-      (g) =>
+    for (const g of cl.generals) {
+      expect(
         d.issue(
           ITA,
           {
@@ -99,10 +98,9 @@ describe("thought sliders and no command power, together on world1936", () => {
             admiral: false,
           },
           tick(),
-        ) === null,
-    );
-    expect(bought).toBeDefined();
-    expect(cl.armyXpMilli).toBe(70_000);
+        ),
+      ).toBe("bad_index");
+    }
     const pol = ww.politics.country(ITA)!;
     pol.ppMilli = 100_000;
     const fm = cl.generals.find((g) => g.army !== 0) ?? cl.generals[0];
@@ -115,7 +113,6 @@ describe("thought sliders and no command power, together on world1936", () => {
       ),
     ).toBeNull();
     expect(pol.ppMilli).toBe(75_000);
-    expect(cl.armyXpMilli).toBe(70_000);
 
     // A human drags off_def: the target jumps, the position does not.
     const from = th.curMilli[0];

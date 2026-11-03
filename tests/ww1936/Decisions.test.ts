@@ -32,7 +32,6 @@ import { politicsFixture } from "./politicsFixture";
 import {
   byTag,
   HUMAN,
-  land,
   order,
   pol,
   POL,
@@ -61,7 +60,7 @@ const TEST_DECISIONS: DecisionDef[] = [
   dec({ id: "t_once", effects: [mark("t_once_done")] }),
   dec({
     id: "t_costly",
-    cost: { manpower: 1000, armyXp: 5, equipment: ["infantry_equipment", 100] },
+    cost: { manpower: 1000, equipment: ["infantry_equipment", 100] },
     effects: [],
   }),
   dec({
@@ -190,11 +189,10 @@ describe("decisions", () => {
     expect(decisionBlock(p, deu, "t_costly", 0)).toBe("no_pp");
   });
 
-  it("manpower, army experience and equipment are paid, newest equipment first", async () => {
+  it("manpower and equipment are paid, newest equipment first", async () => {
     const { runner, p, deu } = await game();
     const ww = runner.game.worldWar()!;
     const ce = ww.economy.country(deu)!;
-    const cl = land(runner.game).country(deu)!;
     const [g1, g2, g3] = [1, 2, 3].map((gen) =>
       equipKey("infantry_equipment", gen),
     );
@@ -202,19 +200,14 @@ describe("decisions", () => {
     ce.stock[g2] = 50;
     ce.stock[g3] = 0;
     ce.manpower = 999;
-    cl.armyXpMilli = 5000;
     expect(decisionBlock(p, deu, "t_costly", 0)).toBe("decision_unavailable");
     ce.manpower = 1500;
     expect(decisionBlock(p, deu, "t_costly", 0)).toBeNull();
-    cl.armyXpMilli = 4999;
-    expect(decisionBlock(p, deu, "t_costly", 0)).toBe("decision_unavailable");
-    cl.armyXpMilli = 6000;
     ce.stock[g1] = 49;
     expect(decisionBlock(p, deu, "t_costly", 0)).toBe("decision_unavailable");
     ce.stock[g1] = 80;
     expect(take(runner, p, deu, "t_costly")).toBeNull();
     expect(ce.manpower).toBe(500);
-    expect(cl.armyXpMilli).toBe(1000);
     expect([ce.stock[g1], ce.stock[g2], ce.stock[g3]]).toEqual([30, 0, 0]);
   });
 

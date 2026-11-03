@@ -242,7 +242,6 @@ function emptyZone(): ZoneAirState {
 }
 
 export class CountryAir {
-  airXpMilli = 0;
   /** 30-day ring of bomb points taken after AA, by day % 30 (spec §14.8 war support). */
   bombTaken = new Array<number>(30).fill(0);
   /** 30-day ring tallies by day % 30: shot down, lost, bombs given, ships sunk, convoys sunk. */
@@ -357,7 +356,6 @@ const RaidReportSchema = z.object({
   repairDays: zInt(),
 });
 const CountryAirSchema = z.object({
-  airXpMilli: zInt(),
   bombTaken: zInts(),
   tally: z.array(zInts()),
   autoZones: zInts(),
@@ -483,10 +481,8 @@ export class WwAir {
           // A1/A2 mark the zone (setAirSup, markZone) when it changed.
           dailyAirZone(this, s.id, day); // A1
           airMissionEffects(this, s.id, day); // A2
-          // P6 hooks (D, W2, S; plan decisions 3, 12): the zone's sorties
-          // to the air doctrine tracks, then the depth's zone day (mines'
-          // air side, night, aces, recon, then the atomic drops).
-          this.noteZoneSorties(s.id);
+          // P6 hooks (D, W2, S; plan decisions 3, 12): the depth's zone day
+          // (mines' air side, night, aces, recon, then the atomic drops).
           this.ww.depth.airZoneDay(s.id, day, ticks);
         }
         if (k === WW_DAY_SPLIT - 1) this.raidNotes.flush(this, day);
@@ -524,16 +520,6 @@ export class WwAir {
         aiWings(this, id, day); // lane E
       }
       this.airDirtyCountries.add(id);
-    }
-  }
-
-  /** P6 (plan decision 12): every deployment over the zone flies its planes once today. */
-  private noteZoneSorties(sr: number): void {
-    for (const id of this.wingsBySr.get(sr) ?? []) {
-      const d = this.wings.get(id);
-      if (d === undefined) continue;
-      const n = wingPlanes(d);
-      if (n > 0) this.ww.depth.noteSorties(d.owner, d.mission, n);
     }
   }
 
@@ -1376,7 +1362,6 @@ export class WwAir {
         },
       })),
       countries: this.countries().map((c) => ({
-        airXpMilli: c.airXpMilli,
         bombTaken: [...c.bombTaken],
         tally: c.tally.map((t) => [...t]),
         autoZones: [...c.autoZones],
@@ -1461,7 +1446,6 @@ export class WwAir {
     this.countries().forEach((c, i) => {
       const x = s.countries[i];
       if (x === undefined) return;
-      c.airXpMilli = x.airXpMilli;
       c.bombTaken = [...x.bombTaken];
       c.tally = x.tally.map((t) => [...t]);
       c.autoZones = [...x.autoZones];
@@ -1654,7 +1638,6 @@ export class WwAir {
       }
     }
     for (const c of this.countries()) {
-      mix(c.airXpMilli);
       fold(c.autoZones);
       for (const r of c.reports) {
         for (const k of REPORT_FIELDS) mix(r[k]);

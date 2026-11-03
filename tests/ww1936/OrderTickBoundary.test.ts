@@ -131,13 +131,11 @@ describe("World War 1936: an order's pending work never crosses the tick boundar
     stepTo(a, WW_PREP_TICKS + 2);
     const ww = a.game.worldWar()!;
     const ita = DEEP.tag.ITA;
-    const before = ww.land.country(ita)!.armyXpMilli;
     step(a, 1, [
       order(C_ITA, { kind: "decision_take", decision: "t_mastery", target: 0 }),
     ]);
-    const after = ww.land.country(ita)!.armyXpMilli;
-    // doctrine_mastery 900 is now experience, 67 percent of it.
-    expect(after - before).toBeGreaterThanOrEqual(600_000);
+    // doctrine_mastery 900 is now a permanent division experience bonus: 603 experience, 30%.
+    expect(ww.depth.country(ita)!.cmd.permXp).toEqual([30, 0]);
     nothingPending(ww);
     const b = await wwRestore(a, HUMANS, DEEP.map);
     lockstep(a, b, 60);

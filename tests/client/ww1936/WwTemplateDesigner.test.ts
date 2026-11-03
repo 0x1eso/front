@@ -37,7 +37,7 @@ const RESEARCHED = [
 async function mount(templateId: number, o: LandOptions = {}) {
   const g = fakeLandGame({
     details: [detail("DEU", { researched: [...RESEARCHED] })],
-    landDetails: [landDetail("DEU", { armyXpMilli: 62_000 })],
+    landDetails: [landDetail("DEU")],
     ...o,
   });
   const bus = new EventBus();
@@ -70,7 +70,7 @@ describe("<ww-template-designer> (spec §15.5)", () => {
     vi.useRealTimers();
   });
 
-  it("edits the grid: the changed cell turns yellow, the numbers and the cost follow", async () => {
+  it("edits the grid: the changed cell turns yellow, the numbers follow, and saving is one tap", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(100_000);
     const m = await mount(1);
@@ -81,9 +81,7 @@ describe("<ww-template-designer> (spec §15.5)", () => {
     expect(
       m.el.querySelectorAll("[data-ww-slot-kind='battalion']"),
     ).toHaveLength(12);
-    expect(m.q("[data-ww-designer-xp]")!.textContent).toContain(
-      "[ww1936.land.designer_xp] cost=0,have=62",
-    );
+    expect(m.q("[data-ww-designer-xp]")).toBeNull();
     // The empty cell: the battalion list; tanks need their tech.
     await m.click(slot("battalion", 11));
     expect(m.q("[data-ww-pick='medium_armor']")!.dataset.locked).toBe("true");
@@ -103,15 +101,10 @@ describe("<ww-template-designer> (spec §15.5)", () => {
     expect(
       m.q("[data-ww-stat='width'] td:last-child")!.textContent!.trim(),
     ).toBe("27");
-    expect(m.q("[data-ww-designer-xp]")!.textContent).toContain("cost=5");
     expect(m.q("[data-ww-need='artillery']")!.textContent).toContain(
       "[ww1936.land.factory_days]",
     );
-    // Saving spends army experience: two taps.
-    await m.click("[data-ww-designer-save]");
-    expect(m.sent).toEqual([]);
-    expect(m.q("[data-ww-designer-save]")!.dataset.armed).toBe("true");
-    vi.setSystemTime(101_000);
+    // Saving costs nothing: one tap.
     await m.click("[data-ww-designer-save]");
     const t = startTemplate("DEU");
     expect(m.sent).toEqual([
@@ -176,9 +169,9 @@ describe("<ww-template-designer> (spec §15.5)", () => {
     expect(used.sent).toEqual([]);
   });
 
-  it("a new template needs a name and its experience; no title attributes", async () => {
+  it("a new template needs a name; no title attributes", async () => {
     const m = await mount(0, {
-      landDetails: [landDetail("DEU", { armyXpMilli: 4_000 })],
+      landDetails: [landDetail("DEU")],
     });
     await m.click(slot("battalion", 0));
     await m.click("[data-ww-pick='infantry']");
@@ -190,10 +183,10 @@ describe("<ww-template-designer> (spec §15.5)", () => {
     input.dispatchEvent(new Event("input"));
     input.dispatchEvent(new Event("blur"));
     await m.el.updateComplete;
-    // 5 experience for the battalion, 4 in hand.
     await m.click("[data-ww-designer-save]");
-    expect(m.q("[data-ww-block='no_xp']")).not.toBeNull();
-    expect(m.sent).toEqual([]);
+    expect(m.sent).toEqual([
+      expect.objectContaining({ kind: "template_save", name: "Garrison" }),
+    ]);
     expect(m.el.querySelectorAll("[title]")).toHaveLength(0);
     for (const b of m.el.querySelectorAll("button")) {
       expect(b.className).toMatch(/\b(h-9|h-10|size-9|min-h-9)\b/);

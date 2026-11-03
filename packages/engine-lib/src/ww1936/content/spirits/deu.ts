@@ -49,7 +49,7 @@ export const SPIRITS_DEU: SpiritDef[] = [
   {
     id: "deu_generals_doubt",
     icon: "medal",
-    stats: { stabilityBp: -500, armyXpMilli: 100 },
+    stats: { stabilityBp: -500, divXpGainPct: 10 },
   },
   // deu_machine_tools: efficiency cap +10%
   { id: "deu_standard_tools", icon: "industry", stats: { effCapBp: 1000 } },

@@ -15,7 +15,7 @@ export const SPIRITS_GEN: SpiritDef[] = [
   { id: "gen_research_institutes", stats: { researchPct: 3 }, icon: "flask" },
   {
     id: "gen_staff_training",
-    stats: { planSpeedPct: 10, armyXpMilli: 100 },
+    stats: { planSpeedPct: 10, divXpGainPct: 10 },
     icon: "compass",
   },
   { id: "gen_efficient_government", stats: { ppGainPct: 10 }, icon: "scales" },

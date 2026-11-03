@@ -7,10 +7,7 @@ import {
   equipKey,
   RESOURCE_IDS,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
-import {
-  WW_ARMY_XP_MAX_MILLI,
-  WW_MAX_TEMPLATES,
-} from "@openfront/engine-api/ww1936/LandTypes";
+import { WW_MAX_TEMPLATES } from "@openfront/engine-api/ww1936/LandTypes";
 import type {
   Effect,
   RegionPick,
@@ -341,22 +338,20 @@ describe("economy and military effects", () => {
     expect(c.reserved[RESERVE_KEYS.indexOf("radar")]).toBe(7);
   });
 
-  it("army_xp within P2's cap", async () => {
-    const { land, deu, run } = await game();
-    const cl = land.country(deu)!;
-    const xp = cl.armyXpMilli;
+  it("army_xp is a permanent division experience bonus, 1% per 20, never below 0", async () => {
+    const { ww, deu, run } = await game();
+    const cmd = ww.depth.country(deu)!.cmd;
     run([{ kind: "army_xp", amount: 10 }]);
-    expect(cl.armyXpMilli).toBe(xp + 10_000);
-    run([{ kind: "army_xp", amount: 1000 }]);
-    expect(cl.armyXpMilli).toBe(WW_ARMY_XP_MAX_MILLI);
+    expect(cmd.permXp).toEqual([1, 0]);
+    run([{ kind: "army_xp", amount: 30 }]);
+    expect(cmd.permXp).toEqual([3, 0]);
     run([{ kind: "army_xp", amount: -1000 }]);
-    expect(cl.armyXpMilli).toBe(0);
+    expect(cmd.permXp).toBeUndefined();
   });
 
   it("unlock_template: P2's checks, its key as the name, no army experience (R17)", async () => {
     const { land, deu, ce, run } = await game();
     const cl = land.country(deu)!;
-    cl.armyXpMilli = 0;
     const n = cl.templates.length;
     run([{ kind: "unlock_template", template: "t_inf" }]);
     expect(cl.templates).toHaveLength(n + 1);
@@ -379,13 +374,11 @@ describe("economy and military effects", () => {
     ce.addTech("medium_tank_1");
     run([{ kind: "unlock_template", template: "t_heavy" }]);
     expect(cl.templates).toHaveLength(WW_MAX_TEMPLATES);
-    expect(cl.armyXpMilli).toBe(0);
   });
 
   it("add_general, remove_general, restore_general", async () => {
     const { p, land, deu, run } = await game();
     const cl = land.country(deu)!;
-    cl.armyXpMilli = 0;
     const n = cl.generals.length;
     const no = cl.nextTitleNo;
     // A titled general for nothing (R17: no army experience).
@@ -396,7 +389,6 @@ describe("economy and military effects", () => {
       roster: -1,
       army: 0,
     });
-    expect(cl.armyXpMilli).toBe(0);
     // A named one leaves the army it leads and serves nowhere.
     const roster = GENERALS.findIndex((x) => x.id === "rundstedt");
     const led = cl.generals.find((x) => x.roster === roster)!;

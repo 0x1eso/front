@@ -762,11 +762,14 @@ describe("the AI's land war on world1936 (controller ruling 3)", () => {
     const sc = l.scenario;
     const jpn = sc.smallIdOf("JPN");
     const chn = sc.smallIdOf("CHN");
+    stepTo(runner, dayStartTick(dayOfDate("1938-01-01"), WW_PREP_TICKS));
+    // The calendar's war of 1937 is on, and China stands too.
+    expect(ww.isAtWar(jpn, chn)).toBe(true);
+    // (ww15: with free designs and a general for every army the stalemate
+    // ends in a white peace in mid-1938; the war itself is pinned at 1938.)
     stepTo(runner, dayStartTick(dayOfDate("1939-01-01"), WW_PREP_TICKS));
     expect(ww.isCapitulated(jpn)).toBe(false);
     expect(byTag(g, "JPN").isAlive()).toBe(true);
-    // The calendar's war of 1937 is on, and China stands too.
-    expect(ww.isAtWar(jpn, chn)).toBe(true);
     expect(ww.isCapitulated(chn)).toBe(false);
     // Japan keeps Korea and Kwantung, and its army is on the mainland
     // (the home islands' armies crossed the sea, spec §13.3).

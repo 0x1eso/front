@@ -71,7 +71,6 @@ async function game(presets: AiDesignPreset[]) {
   );
   stepTo(runner, WW_PREP_TICKS + 2);
   const ww = runner.game.worldWar()!;
-  ww.land.country(DEU)!.armyXpMilli = 300_000;
   return { runner, ww, d: ww.depth };
 }
 
@@ -97,12 +96,10 @@ describe("World War 1936 P6: the AI's designs", () => {
     ).toBe(true);
     // The medium chassis arrives: its recommended design within ten days.
     ce.addTech("medium_tank_1");
-    const xp = d.xpOf(DEU, 0);
     step(runner, 12 * 15);
     list = tanks(d, DEU);
     expect(list.map((s) => s.def.base)).toEqual(["light_1", "medium_1"]);
     expect(list[1].def.name).toBe("@rec_medium_1");
-    expect(d.xpOf(DEU, 0)).toBeLessThan(xp);
     // Nothing more while the techs stay: one design a chassis.
     step(runner, 30 * 15);
     expect(tanks(d, DEU)).toHaveLength(2);
@@ -199,7 +196,6 @@ describe("World War 1936 P6: the AI's designs", () => {
     const { ww, d } = await game([]);
     const GBR = DEEP.tag.GBR;
     const ce = ww.economy.country(GBR)!;
-    ww.navy.country(GBR)!.navyXpMilli = 400_000;
     for (const t of ["dual_purpose_guns", "naval_radar_1"] as const) {
       ce.addTech(t);
     }
@@ -242,7 +238,6 @@ describe("World War 1936 P6: the AI's designs", () => {
   it("design_grant hands out a preset for free (spec §18.3)", async () => {
     const { runner, ww, d } = await game([PRESET]);
     const GBR = DEEP.tag.GBR;
-    const xp = d.xpOf(GBR, 0);
     const ctx = makeCtx(ww.politics, GBR, GBR, GBR, runner.game.ticks());
     grantDesign(ctx, { kind: "design_grant", preset: "preset_medium_1" }, GBR);
     grantDesign(ctx, { kind: "design_grant", preset: "no_such_preset" }, GBR);
@@ -251,7 +246,6 @@ describe("World War 1936 P6: the AI's designs", () => {
     expect(list[0].def.name).toBe("@preset_medium_1");
     expect(list[0].def.modules).toEqual(PRESET.def.modules);
     expect(list[0].origin).toBe("own");
-    expect(d.xpOf(GBR, 0)).toBe(xp);
   });
 
   it("an AI treaty member's battleship line never takes a granted shbb_hull design", async () => {
@@ -261,8 +255,6 @@ describe("World War 1936 P6: the AI's designs", () => {
     for (const t of ["bb_2", "bb_3", "super_heavy_battleship"] as const) {
       ce.addTech(t);
     }
-    // No navy experience: the AI cannot save its own fit.
-    ww.navy.country(FRA)!.navyXpMilli = 0;
     const shbb = {
       kind: "ship" as const,
       base: "bb_3",
@@ -289,12 +281,10 @@ describe("World War 1936 P6: the AI's designs", () => {
     let day = AI_TD_DAY;
     while (day % 10 !== FRA % 10) day++;
     aiDesignsDay(d, FRA, day);
-    expect(line.design).toBe(0);
-    // A legal design of the hull is taken.
-    const std = { ...shbb, modules: ["", "sec_aa", "", "", "", "floatplane"] };
-    expect(saveDesign(d, FRA, std, 0, "own", 0, 0, 0)).toBe(2);
-    aiDesignsDay(d, FRA, day + 10);
-    expect(line.design).toBe(2);
+    // Designs are free now: the AI makes a legal fit of its own and takes
+    // that, never the granted shbb_hull design (slot 1).
+    expect(line.design).not.toBe(0);
+    expect(line.design).not.toBe(1);
   });
 
   it("a design line counts against its static share: no extra medium line (review E4)", async () => {

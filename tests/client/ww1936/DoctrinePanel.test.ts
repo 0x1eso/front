@@ -19,7 +19,7 @@ import { general, landDetail } from "./LandFixture";
 async function mountPanel(o: DoctrineOptions, tab: string) {
   const g = doctrineGame({
     details: [detail("DEU")],
-    landDetails: [landDetail("DEU", { armyXpMilli: 150_000 })],
+    landDetails: [landDetail("DEU")],
     ...o,
   });
   const bus = new EventBus();
@@ -80,7 +80,6 @@ describe("<ww-doctrine-panel> orders (ww9 design §11)", () => {
         landDetails: [
           landDetail("DEU", {
             generals: [general(5, { level: 4, army: 0 })],
-            armyXpMilli: 0,
           }),
         ],
       },

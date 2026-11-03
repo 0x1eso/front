@@ -48,13 +48,11 @@ function gameWith(
     techs?: readonly string[];
     designs?: ReturnType<typeof saved>[];
     templates?: { battalions: string[]; support: string[] }[];
-    armyXp?: number;
   } = {},
 ) {
   const base = designerGame({
     techs: o.techs as never,
     designs: o.designs,
-    armyXp: o.armyXp,
   }) as unknown as Record<string, unknown>;
   return {
     ...base,
@@ -62,9 +60,7 @@ function gameWith(
     worldWarScenario: () => ({}),
     wwLand: () => ({
       version: 1,
-      details: new Map([
-        [1, { armyXpMilli: o.armyXp ?? 42_000, templates: o.templates ?? [] }],
-      ]),
+      details: new Map([[1, { templates: o.templates ?? [] }]]),
     }),
   } as never;
 }
@@ -117,7 +113,7 @@ describe("design library", () => {
   });
 
   it("a blocked entry says why, offers no order, and a stale one is unusable", () => {
-    const poor = gameWith({ techs: [], armyXp: 0 });
+    const poor = gameWith({ techs: [] });
     const s = new LibraryStore(() => memory());
     s.add({ type: "design", def: { ...TANK, base: "medium_1" } });
     s.add({
@@ -133,10 +129,9 @@ describe("design library", () => {
     expect(tank.order).toBeNull();
     expect(line.state).toBe("blocked");
     expect(line.reason).toContain("inf_eq_1");
-    const broke = gameWith({ techs: WW_TECH_IDS, armyXp: 0 });
-    expect(entryStatus(s.entries[1], broke).reason).toContain(
-      "ww1936.library.needs_xp",
-    );
+    // Nothing costs experience any more: a rich game says ready.
+    const rich = gameWith({ techs: WW_TECH_IDS });
+    expect(entryStatus(s.entries[1], rich).state).toBe("ready");
     expect(gone.state).toBe("stale");
     expect(gone.order).toBeNull();
   });

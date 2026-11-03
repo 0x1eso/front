@@ -27,8 +27,8 @@ const OWN_TESTS = (k: number): boolean => k >= 20 && k <= 30;
 const D_ANSWER: Readonly<Record<string, string | null>> = {
   doctrine_pick: "bad_index", // retired (ww9)
   subdoctrine_pick: "bad_index",
-  army_spirit_pick: "no_xp",
-  trait_assign: "trait_unavailable",
+  army_spirit_pick: "bad_index", // retired (ww15)
+  trait_assign: "bad_index", // retired (ww15)
   promote_fm: "no_pp",
   ag_create: "general_unavailable",
   ag_add: "bad_index",

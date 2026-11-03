@@ -549,7 +549,6 @@ function timeDepth(d: WwDepth, a: PerfAcc): void {
     "railGunHits",
     "planCutBp",
     "fortCut",
-    "noteSorties",
     "supplyPm",
     "moveCutPct",
   ] as const) {

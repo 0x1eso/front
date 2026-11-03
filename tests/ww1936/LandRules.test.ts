@@ -63,7 +63,6 @@ import {
   strengthPm,
   templateBlock,
   templateStats,
-  templateXpCost,
 } from "@openfront/engine-lib/ww1936/TemplateStats";
 import {
   hash32,
@@ -252,27 +251,6 @@ describe("templates (P2 spec §4.3, §4.4)", () => {
     expect(half.hpMilli).toBe(88_100);
     expect(strengthPm(s, slots, 8500)).toBe(926);
     expect(strengthPm(s, fullSlots(INF72), 8500)).toBe(1000);
-  });
-
-  test("templateXpCost", () => {
-    const base = def([["infantry", 9]]);
-    expect(templateXpCost(base, def([["infantry", 10]]))).toBe(5_000);
-    expect(
-      templateXpCost(
-        base,
-        def([
-          ["infantry", 8],
-          ["artillery", 1],
-        ]),
-      ),
-    ).toBe(5_000);
-    expect(templateXpCost(base, def([["infantry", 9]], ["engineer"]))).toBe(
-      10_000,
-    );
-    expect(templateXpCost(base, def([["infantry", 9]], [], "Rifles"))).toBe(0);
-    expect(templateXpCost(null, def([["infantry", 9]], ["engineer"]))).toBe(
-      55_000,
-    );
   });
 
   test("templateBlock (pre-flight U1, U18: 25 battalions, width 40)", () => {

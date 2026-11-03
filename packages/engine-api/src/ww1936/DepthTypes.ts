@@ -93,8 +93,6 @@ export const ARMY_SPIRIT_CATEGORIES = [
   "air_command",
 ] as const;
 export type ArmySpiritCategory = (typeof ARMY_SPIRIT_CATEGORIES)[number];
-/** DOCTRINE_DOMAINS index of each category. */
-export const SPIRIT_CAT_DOMAIN: readonly number[] = [0, 0, 0, 1, 1, 2, 2];
 /** Three per category, in ARMY_SPIRIT_CATEGORIES order: spirit s belongs to category floor(s / 3). */
 export const ARMY_SPIRITS = [
   "as_conscript",
@@ -120,9 +118,6 @@ export const ARMY_SPIRITS = [
   "as_army_cooperation",
 ] as const;
 export type ArmySpirit = (typeof ARMY_SPIRITS)[number];
-export const SPIRIT_PICK_XP = 25;
-export const SPIRIT_SWITCH_XP = 50;
-export const SPIRIT_LOCK_DAYS = 90;
 export const FM_TRAITS = [
   "fm_offensive",
   "fm_defensive",
@@ -915,10 +910,6 @@ export interface WwDepthDetail {
   smallID: number;
   /** ww9: the military thought sliders. target: notches; curMilli: actual positions; rateMilli: today's move per day. */
   thought: { target: number[]; curMilli: number[]; rateMilli: number };
-  doctrine: {
-    /** Lane D (wave B): whole experience per domain — army, navy, air (always sent). */
-    xp?: number[];
-  };
   command: {
     spirits: number[];
     spiritLock: number[];
@@ -927,6 +918,8 @@ export interface WwDepthDetail {
     medalWin?: [number, number, number];
     /** ww9: the day of the last automatic medal, absent before the first. */
     medalDay?: number;
+    /** ww15: the permanent experience bonus in percent [divXpGainPct, repairPct]. Absent at 0. */
+    permXp?: number[];
     /** Lane D (wave B): [army id, the day it may get a medal again], by army id (always sent). */
     medalCooldown?: [number, number][];
   };

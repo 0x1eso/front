@@ -1,6 +1,6 @@
 // World War 1936 P6 lane U2 (plan Task 11, spec §20.5): the tank, ship and
 // plane designer's model. Every number comes from the engine-lib functions
-// the engine itself uses (designStats, designBlock, designXpCost; Review
+// the engine itself uses (designStats, designBlock; Review
 // Focus 2), so the preview is the engine's. The model holds the draft and
 // the screen's open slot; the screens (WwDesigner, WwDesignSheet,
 // WwDesignList) only draw what it returns.
@@ -35,7 +35,6 @@ import {
   DesignBlockCtx,
   DesignCtx,
   designStats,
-  designXpCost,
   PLANE_BASE_DEFS,
   PLANE_MODULE_DEFS,
   planeSlotTakes,
@@ -237,7 +236,7 @@ export class DesignerModel {
   /** The design being edited; null before a base is picked. */
   draft: DesignDef | null = null;
   kind: DesignKind = "tank";
-  /** The saved design it was opened from (the xp cost is a copy's). */
+  /** The saved design it was opened from (a copy's base). */
   private base: DesignDef | null = null;
   /** The slot whose module sheet is open; null when closed. */
   openSlot: number | null = null;
@@ -399,40 +398,16 @@ export class DesignerModel {
       : designStats(this.draft, this.ctx(this.draft));
   }
 
-  /** Why the draft cannot be saved (engine-lib designBlock, then xp and slots); null when it can. */
+  /** Why the draft cannot be saved (engine-lib designBlock, then slots); null when it can. */
   block(): WwOrderBlock | null {
     const d = this.draft;
     if (d === null) return "bad_base";
     const b = designBlock(d, this.blockCtx());
     if (b !== null) return b;
-    const have = this.xpHave();
-    if (have !== null && this.xpCost() * 1000 > have) return "no_xp";
     if (this.designsOf(d.kind).length >= DESIGN_SLOTS[d.kind]) {
       return "design_slots_full";
     }
     return null;
-  }
-
-  xpCost(): number {
-    return this.draft === null ? 0 : designXpCost(this.base, this.draft);
-  }
-
-  /**
-   * The experience in hand in milli; null when the view does not carry it.
-   * The air force's comes from lane D's detail.doctrine.xp[2] (whole points).
-   */
-  xpHave(): number | null {
-    return this.xpHaveOf(this.draft?.kind ?? this.kind);
-  }
-
-  /** The experience in hand for a design kind (see xpHave). */
-  xpHaveOf(kind: DesignKind): number | null {
-    if (kind === "tank") {
-      return this.view.wwLand?.()?.details.get(this.me())?.armyXpMilli ?? 0;
-    }
-    if (kind === "ship") return this.view.wwNavy?.()?.detail?.navyXpMilli ?? 0;
-    const air = this.view.wwDepth?.()?.detail(this.me())?.doctrine.xp?.[2];
-    return air === undefined ? null : air * 1000;
   }
 
   /**
@@ -444,8 +419,6 @@ export class DesignerModel {
     block: WwOrderBlock | null;
     techs: WwTechId[];
     projects: SpecialProject[];
-    xpCost: number;
-    xpHave: number | null;
   } {
     const techs: WwTechId[] = [];
     const projects: SpecialProject[] = [];
@@ -474,24 +447,14 @@ export class DesignerModel {
       need(PLANE_BASE_DEFS[def.base]?.tech, PLANE_BASE_DEFS[def.base]?.project);
       for (const m of def.modules) need(PLANE_MODULE_DEFS[m]?.tech);
     }
-    const xpCost = designXpCost(null, def);
-    const xpHave = this.xpHaveOf(def.kind);
     let block = designBlock(def, this.blockCtx());
-    if (block === null && xpHave !== null && xpCost * 1000 > xpHave) {
-      block = "no_xp";
-    }
     if (
       block === null &&
       this.designsOf(def.kind).length >= DESIGN_SLOTS[def.kind]
     ) {
       block = "design_slots_full";
     }
-    return { block, techs, projects, xpCost, xpHave };
-  }
-
-  /** The experience kind's name (ww1936.design.tab_<kind>) for xp_cost. */
-  xpKey(): string {
-    return `ww1936.design.tab_${this.draft?.kind ?? this.kind}`;
+    return { block, techs, projects };
   }
 
   /** The base chips of the kind (locked ones dimmed with their tech). */
@@ -1063,7 +1026,7 @@ export const DESIGNER_STATS_W = 180;
 export const DESIGNER_PAD = 12;
 /** Rows of the top bar, the base chips and the bottom bar. */
 export const DESIGNER_BAR_H = 32;
-/** The xp row (24, with the tank steppers) and the button row (32), plus padding. */
+/** The status row (24, with the tank steppers) and the button row (32), plus padding. */
 export const DESIGNER_BOTTOM_H = 74;
 
 export interface DesignerLayout {

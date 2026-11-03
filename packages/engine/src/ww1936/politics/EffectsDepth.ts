@@ -2,6 +2,7 @@
 // The foundation writes the dispatch (each kind to the lane that owns its
 // state); P6 lane W3 fills applyMechEffect (plan Task 9).
 import type { Effect } from "@openfront/engine-api/ww1936/PoliticsDsl";
+import { permPctOfXp } from "@openfront/engine-lib/ww1936/ThoughtRules";
 import { applyIntelEffect } from "../depth/Agency";
 import { addBop } from "../depth/BalanceOfPower";
 import { addCongressPp, dissolveCongress, usaIdOf } from "../depth/Congress";
@@ -79,13 +80,8 @@ export function applyMechEffect(
       addBop(d, actor, e.amount, ctx.day);
       return;
     case "cp":
-      {
-        const cl = d.ww.land.country(actor);
-        if (cl !== null) {
-          cl.armyXpMilli = Math.max(0, cl.armyXpMilli + e.amount * 1000);
-          d.markCountry(actor);
-        }
-      }
+      // ww15: the old command power is the army's permanent bonus (army_xp's).
+      d.addPermPct(actor, 0, permPctOfXp(e.amount));
       return;
     case "cfocus_unlock":
       if (!c.mech.cfocusOpen) {

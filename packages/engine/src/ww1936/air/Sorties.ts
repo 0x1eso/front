@@ -1921,7 +1921,7 @@ function zoneDayQuiet(z: ZoneAirState): boolean {
 
 /**
  * A zone's daily close (design §3.8): today's sums move to the fields the
- * others read, depth.noteSorties. Recon stays in `today`: depth.airZoneDay
+ * others read. Recon stays in `today`: depth.airZoneDay
  * reads and clears it right after. The superiority alerts go out from the
  * pulse that crosses 50% (no state to compare a whole day against).
  */
@@ -1940,16 +1940,6 @@ export function closeAirZone(
   if (!quiet) {
     const t = z.today;
     if (t.flown.size > 0) {
-      for (const [k, milli] of [...t.flown].sort((a, b) => a[0] - b[0])) {
-        const sorties = Math.floor(milli / 1000);
-        if (sorties > 0) {
-          air.ww.depth.noteSorties(
-            Math.floor(k / FLOWN_KEY),
-            k % FLOWN_KEY,
-            sorties,
-          );
-        }
-      }
       t.flown = new Map();
     }
     const sorties = new Map<number, number[]>();

@@ -16,7 +16,6 @@ import {
   designBlock,
   DesignCtx,
   designStats,
-  designXpCost,
   licenceCostPct,
   planeType,
   recommendedTank,
@@ -247,22 +246,7 @@ describe("design rules", () => {
     expect(jet.kind === "plane" && jet.fuelPct).toBe(60);
   });
 
-  it("experience, conversion, licences, reliability", () => {
-    const blank = tank("medium_2", ["", "", "", "", "", "", ""]);
-    expect(designXpCost(null, blank)).toBe(10);
-    const one = {
-      ...blank,
-      modules: ["gun_hv", "", "", "", "", "", ""],
-      armorLevel: 1,
-      engineLevel: 1,
-    };
-    expect(designXpCost(null, one)).toBe(10 + 3 + 2);
-    expect(
-      designXpCost(one, {
-        ...one,
-        modules: ["gun_cs", ...one.modules.slice(1)],
-      }),
-    ).toBe(5);
+  it("conversion, licences, reliability", () => {
     expect(convertCost(19_550, 8_200)).toBe(14_630);
     expect([0, 2, 6].map(licenceCostPct)).toEqual([10, 30, 60]);
     expect(reliabilityLossBp(800)).toBe(10_000);

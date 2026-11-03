@@ -3,15 +3,11 @@
 // The judges are engine-lib CommandRules' (the screens call them too).
 import type { DepthOrder } from "@openfront/engine-api/Schemas";
 import {
-  ARMY_SPIRIT_CATEGORIES,
-  ARMY_SPIRITS,
   FM_PROMOTE_PP,
   FM_TRAITS,
   MEDAL_COOLDOWN_DAYS,
   MEDAL_DAYS,
   MEDALS,
-  SPIRIT_CAT_DOMAIN,
-  SPIRIT_LOCK_DAYS,
 } from "@openfront/engine-api/ww1936/DepthTypes";
 import type { WwOrderBlock } from "@openfront/engine-api/ww1936/EconomyTypes";
 import {
@@ -30,10 +26,8 @@ import {
   admiralTraitBit,
   WW_ADMIRAL_TRAIT_MAX,
 } from "@openfront/engine-api/ww1936/NavyTypes";
-import type { WwStats } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { dayOfDate } from "@openfront/engine-lib/ww1936/Calendar";
 import {
-  ARMY_SPIRIT_STATS,
   ASSIGNABLE_ADMIRAL_TRAITS,
   AUTO_ADMIRAL_DAYS,
   AUTO_TRAIT_BATTLE_DAYS,
@@ -44,16 +38,12 @@ import {
   MEDAL_STATS,
   NEW_GENERAL_TRAITS,
   promoteFmBlock,
-  spiritCost,
-  spiritPickBlock,
   TERRAIN_TRAIT_DAYS,
   traitAssignBlock,
   traitSlots,
-  traitXpCost,
 } from "@openfront/engine-lib/ww1936/CommandRules";
 import { GENERALS } from "@openfront/engine-lib/ww1936/Generals";
 import { historicalAiActive } from "@openfront/engine-lib/ww1936/Pace";
-import { addSparseInto } from "@openfront/engine-lib/ww1936/Stats";
 import { canServe, TERRAIN_TRAITS } from "../land/GeneralsRun";
 import type { Army, CountryLand, GeneralState, WwLand } from "../land/WwLand";
 import { payPp } from "../politics/PayPp";
@@ -67,7 +57,6 @@ import {
 import { cryptoModsVs } from "./Crypto";
 import {
   ArmyDepthMods,
-  type Domain,
   LandModQuery,
   NEUTRAL_ARMY_MODS,
   WwDepth,
@@ -267,7 +256,7 @@ function setSeenBits(
 
 // ---- orders ----
 
-/** army_spirit_pick, trait_assign, promote_fm, army_priority (medal_award is refused since ww9). */
+/** promote_fm, army_priority (army_spirit_pick, trait_assign and medal_award are refused). */
 export function issueCommand(
   d: WwDepth,
   id: number,
@@ -279,30 +268,11 @@ export function issueCommand(
   const day = d.ww.day(tick);
   const land = d.ww.land;
   switch (o.kind) {
-    case "army_spirit_pick": {
-      const category = ARMY_SPIRIT_CATEGORIES.indexOf(o.category);
-      const spirit = ARMY_SPIRITS.indexOf(o.id);
-      const domain = SPIRIT_CAT_DOMAIN[category] as Domain;
-      const current = c.cmd.spirits[category] ?? -1;
-      const block = spiritPickBlock({
-        category,
-        spirit,
-        current,
-        lockUntil: c.cmd.spiritLock[category] ?? -1,
-        day,
-        xp: d.xpOf(id, domain),
-      });
-      if (block !== null) return block;
-      if (!d.spendXp(id, domain, spiritCost(current))) return "no_xp";
-      c.cmd.spirits[category] = spirit;
-      c.cmd.spiritLock[category] = day + SPIRIT_LOCK_DAYS;
-      d.markStats(id);
-      return null;
-    }
+    // ww15: the officer corps and bought traits are gone; the orders stay
+    // in the schema (append-only) and are refused.
+    case "army_spirit_pick":
     case "trait_assign":
-      return o.admiral
-        ? assignAdmiralTrait(d, id, o.general, o.trait)
-        : assignGeneralTrait(d, id, o.general, o.trait);
+      return "bad_index";
     case "promote_fm":
       return promoteMarshal(d, id, o.general, FM_TRAITS.indexOf(o.trait), day);
     // ww9: medals are awarded automatically after won battles (autoMedal).
@@ -324,68 +294,6 @@ export function issueCommand(
 
 function generalTraitIds(mask: number): string[] {
   return GENERAL_TRAITS.filter((t) => (mask & traitBit(t)) !== 0);
-}
-
-function fmTraitIds(mask: number): string[] {
-  return FM_TRAITS.filter((_, b) => (mask & (1 << b)) !== 0);
-}
-
-/** trait_assign for a general or a field marshal (spec §4.2). */
-export function assignGeneralTrait(
-  d: WwDepth,
-  id: number,
-  general: number,
-  trait: string,
-): WwOrderBlock | null {
-  const land = d.ww.land;
-  const cl = land.country(id);
-  const g = cl === null ? null : generalById(cl, general);
-  if (g === null) return "general_unavailable";
-  const block = traitAssignBlock({
-    admiral: false,
-    level: g.level,
-    traits: generalTraitIds(g.traits),
-    slots: traitSlots(g.level),
-    trait,
-    xp: d.xpOf(id, 0),
-    isFm: g.fm,
-    fmTraits: fmTraitIds(g.fmTraits),
-  });
-  if (block !== null) return block;
-  if (!d.spendXp(id, 0, traitXpCost(trait, false))) return "no_xp";
-  const fmBit = FM_TRAITS.indexOf(trait as (typeof FM_TRAITS)[number]);
-  if (fmBit >= 0) g.fmTraits |= 1 << fmBit;
-  else g.traits |= traitBit(trait as GeneralTrait);
-  touchCommand(d);
-  if (g.army > 0) land.markArmy(g.army);
-  land.markCountry(id);
-  return null;
-}
-
-/** trait_assign for an admiral (spec §4.2: level 2, ADMIRAL_ASSIGN_XP navy XP, at most WW_ADMIRAL_TRAIT_MAX). */
-function assignAdmiralTrait(
-  d: WwDepth,
-  id: number,
-  admiral: number,
-  trait: string,
-): WwOrderBlock | null {
-  const a = d.ww.navy.admirals.get(admiral);
-  if (a === undefined || a.owner !== id) return "admiral_unavailable";
-  const block = traitAssignBlock({
-    admiral: true,
-    level: a.level,
-    traits: ADMIRAL_TRAITS.filter((t) => (a.traits & admiralTraitBit(t)) !== 0),
-    slots: WW_ADMIRAL_TRAIT_MAX,
-    trait,
-    xp: d.xpOf(id, 1),
-    isFm: false,
-    fmTraits: [],
-  });
-  if (block !== null) return block;
-  if (!d.spendXp(id, 1, traitXpCost(trait, true))) return "no_xp";
-  a.traits |= admiralTraitBit(trait as AdmiralTrait);
-  d.ww.navy.markCountry(id);
-  return null;
 }
 
 /**
@@ -449,9 +357,6 @@ const popcount = (m: number): number => {
   for (let x = m >>> 0; x !== 0; x &= x - 1) n++;
   return n;
 };
-/** XP that no price reaches: the automatic pick ignores the price. */
-const FREE = Number.MAX_SAFE_INTEGER;
-
 /** The assigned traits (NEW_GENERAL_TRAITS kind "assign"), in list order. */
 const ASSIGN_TRAITS: readonly GeneralTrait[] = GENERAL_TRAITS.filter(
   (t) => NEW_GENERAL_TRAITS[t]?.kind === "assign",
@@ -559,7 +464,6 @@ function autoGeneralTrait(d: WwDepth, id: number, g: GeneralState): boolean {
         traits: held,
         slots,
         trait: t,
-        xp: FREE,
         isFm: false,
         fmTraits: [],
       }) !== null
@@ -622,7 +526,6 @@ function autoAdmiralTraits(d: WwDepth, id: number): void {
           traits: held,
           slots: WW_ADMIRAL_TRAIT_MAX,
           trait: t,
-          xp: FREE,
           isFm: false,
           fmTraits: [],
         }) === null
@@ -946,20 +849,6 @@ export function reinforceOrder(d: WwDepth, id: number): number[] {
     byPrio[2 - Math.max(0, Math.min(2, p))].push(t.id[r]);
   }
   return [...byPrio[0], ...byPrio[1], ...byPrio[2]];
-}
-
-/** Spec §4.4: the officer corps' stats. */
-export function spiritStatsOf(d: WwDepth, id: number): Partial<WwStats> {
-  const c = d.country(id);
-  if (c === null || c.cmd.spirits.every((s) => s < 0)) return {};
-  // Final perf lane: a sparse sum (statsPart adds only the keys set).
-  const out: Partial<WwStats> = {};
-  for (const s of c.cmd.spirits) {
-    if (s >= 0 && s < ARMY_SPIRITS.length) {
-      addSparseInto(out, ARMY_SPIRIT_STATS[ARMY_SPIRITS[s]]);
-    }
-  }
-  return out;
 }
 
 /**

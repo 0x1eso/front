@@ -181,7 +181,6 @@ export function landDetail(
 ): CountryLandDetail {
   return {
     smallID: ID(tag),
-    armyXpMilli: 20_000,
     templates: [startTemplate(tag)],
     training: [],
     generals: [],

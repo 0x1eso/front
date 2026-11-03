@@ -639,7 +639,6 @@ export interface EventDef {
 export interface DecisionCost {
   pp?: number;
   manpower?: number;
-  armyXp?: number;
   equipment?: readonly [EquipmentType, number];
 }
 export interface DecisionDef {

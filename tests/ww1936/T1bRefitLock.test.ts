@@ -36,7 +36,6 @@ describe("T1b: a refitting ship holds its fleet in port", () => {
     const ww = runner.game.worldWar()!;
     const navy = ww.navy;
     const d = ww.depth;
-    navy.country(GBR)!.navyXpMilli = 400_000;
     expect(
       d.issue(GBR, { kind: "design_save", def: AA_DD }, runner.game.ticks()),
     ).toBeNull();

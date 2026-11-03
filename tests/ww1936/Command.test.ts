@@ -11,13 +11,9 @@ import {
   groundSlotOf,
   traitBit,
 } from "@openfront/engine-api/ww1936/LandTypes";
-import { admiralTraitBit } from "@openfront/engine-api/ww1936/NavyTypes";
 import { dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
 import { divisionMods } from "@openfront/engine-lib/ww1936/CombatRules";
-import {
-  MEDAL_AUTO_EVERY_DAYS,
-  traitSlots,
-} from "@openfront/engine-lib/ww1936/CommandRules";
+import { MEDAL_AUTO_EVERY_DAYS } from "@openfront/engine-lib/ww1936/CommandRules";
 import type { GameRunner } from "@openfront/engine/GameRunner";
 import { FM_ARMY } from "@openfront/engine/ww1936/depth/ArmyGroups";
 import {
@@ -67,72 +63,38 @@ function afterTurn(runner: GameRunner, day: number): number {
 }
 
 describe("command (spec §4)", () => {
-  it("assigning a trait spends XP and respects slots", async () => {
-    const { runner, ww, land, d } = await germany();
+  it("bought traits and officer corps picks are refused and change nothing", async () => {
+    const { runner, ww, c, land, d } = await germany();
     const tick = runner.game.ticks();
     const g = land.country(DEU)!.generals.find((x) => x.army === 0)!;
+    const traits = g.traits;
+    const stats = JSON.stringify(ww.economy.country(DEU)!.stats);
     const assign = (trait: string, general = g.id, admiral = false) =>
       d.issue(
         DEU,
         { kind: "trait_assign", general, trait, admiral } as never,
         tick,
       );
-    const cl = land.country(DEU)!;
-    cl.armyXpMilli = 10_000;
-    expect(assign("artillery_officer")).toBe("no_xp");
-    cl.armyXpMilli = 100_000;
-    expect(assign("artillery_officer")).toBeNull();
-    expect(cl.armyXpMilli).toBe(100_000 - 30_000);
-    expect(g.traits & traitBit("artillery_officer")).not.toBe(0);
-    // Level 1: a level-2 trait, a terrain trait, one held: refused.
-    expect(assign("engineer_officer")).toBe("trait_unavailable");
-    expect(assign("forest_expert")).toBe("trait_unavailable");
-    expect(assign("artillery_officer")).toBe("trait_unavailable");
-    // Three slots at level 1, every trait held counts.
-    g.level = 2;
-    let held = 0;
-    for (let b = 0; b < 23; b++) if ((g.traits & (1 << b)) !== 0) held++;
-    expect(traitSlots(2)).toBe(4);
-    for (const t of ["engineer_officer", "commando", "skirmisher"]) {
-      if (held >= traitSlots(2)) break;
-      cl.armyXpMilli = 100_000;
-      expect(assign(t), t).toBeNull();
-      held++;
-    }
-    cl.armyXpMilli = 100_000;
-    expect(assign("guerrilla_fighter")).toBe("trait_unavailable");
-    // A field marshal's traits: one more at levels 3 and 5, 40 army XP each.
+    expect(assign("artillery_officer")).toBe("bad_index");
+    // A field marshal's trait and an admiral's are refused too.
     makeMarshal(d, DEU, g, 0);
-    g.level = 2;
-    expect(assign("fm_logistics")).toBe("trait_unavailable");
     g.level = 3;
-    cl.armyXpMilli = 100_000;
-    expect(assign("fm_logistics")).toBeNull();
-    expect(cl.armyXpMilli).toBe(60_000);
-    expect(assign("fm_thorough")).toBe("trait_unavailable");
-    // An admiral: level 2, 30 navy XP, at most three traits.
-    const navy = ww.navy;
-    navy.admirals.set(99_001, {
-      id: 99_001,
-      owner: DEU,
-      xpMilli: 0,
-      level: 2,
-      skills: [1, 1, 1, 1],
-      traits: admiralTraitBit("sea_wolf"),
-      fleet: 0,
-      usage: [0, 0, 0, 0],
-    });
-    const cn = ww.navy.country(DEU)!;
-    cn.navyXpMilli = 10_000;
-    expect(assign("convoy_master", 99_001, true)).toBe("no_xp");
-    cn.navyXpMilli = 100_000;
-    expect(assign("convoy_master", 99_001, true)).toBeNull();
-    expect(cn.navyXpMilli).toBe(70_000);
-    expect(assign("night_fighter", 99_001, true)).toBeNull();
-    expect(assign("fleet_tactician", 99_001, true)).toBe("trait_unavailable");
-    expect(assign("convoy_master", 99_001 + 1, true)).toBe(
-      "admiral_unavailable",
-    );
+    const fm = g.fmTraits;
+    expect(assign("fm_logistics")).toBe("bad_index");
+    expect(g.fmTraits).toBe(fm);
+    expect(assign("convoy_master", 99_001, true)).toBe("bad_index");
+    for (const id of ["as_reserve", "as_conscript"]) {
+      expect(
+        d.issue(
+          DEU,
+          { kind: "army_spirit_pick", category: "land_recruit", id } as never,
+          tick,
+        ),
+      ).toBe("bad_index");
+    }
+    expect(c.cmd.spirits[0]).toBe(-1);
+    expect(g.traits).toBe(traits);
+    expect(JSON.stringify(ww.economy.country(DEU)!.stats)).toBe(stats);
   });
 
   it("a terrain trait arrives after 60 forest battle days", async () => {
@@ -306,19 +268,19 @@ describe("command (spec §4)", () => {
     expect(land.armies.get(b.id)!.medal).toBe(0);
   });
 
-  it("a general with 60 battle days takes a free trait by his service", async () => {
+  it("a general with 20 battle days takes a free trait by his service", async () => {
     const { runner, land, d } = await germany();
     const g = land.country(DEU)!.generals.find((x) => x.army === 0 && !x.fm)!;
     g.level = 3;
-    g.use = [50, 0, 0, 0];
+    g.use = [19, 0, 0, 0];
     dailyCommand(d, DEU, 1);
     expect(g.traits & traitBit("trickster")).toBe(0);
-    g.use = [60, 0, 0, 0];
+    g.use = [20, 0, 0, 0];
     dailyCommand(d, DEU, 2);
     // Attack days point to the trickster (list order puts the others at 0).
     expect(g.traits & traitBit("trickster")).not.toBe(0);
-    // The second needs 120 days.
-    g.use = [100, 0, 0, 0];
+    // The second needs 40 days.
+    g.use = [30, 0, 0, 0];
     const before = g.traits;
     dailyCommand(d, DEU, 3);
     expect(g.traits).toBe(before);
@@ -414,31 +376,6 @@ describe("command (spec §4)", () => {
           ].includes(land.divisions.region[r]),
         ),
     );
-  });
-
-  it("an officer corps pick costs 25 experience, a switch 50, then 90 days locked", async () => {
-    const { runner, ww, c, land, d } = await germany();
-    const ce = ww.economy.country(DEU)!;
-    land.country(DEU)!.armyXpMilli = 100_000;
-    const tick = runner.game.ticks();
-    const day = ww.day(tick);
-    const pick = (id: string, at = tick) =>
-      d.issue(
-        DEU,
-        { kind: "army_spirit_pick", category: "land_recruit", id } as never,
-        at,
-      );
-    const before = ce.stats.reinforcePct;
-    expect(pick("as_mission_command")).toBe("bad_index");
-    expect(pick("as_reserve")).toBeNull();
-    expect(d.xpOf(DEU, 0)).toBe(75);
-    expect(ce.stats.reinforcePct).toBe(before + 25);
-    expect(pick("as_conscript")).toBe("doctrine_locked");
-    const later = dayStartTick(day + 90, ww.prepEndTick());
-    expect(pick("as_conscript", later)).toBeNull();
-    expect(d.xpOf(DEU, 0)).toBe(25);
-    expect(ce.stats.reinforcePct).toBe(before);
-    expect(c.cmd.spirits[0]).toBe(0);
   });
 
   it("every lane-D field moves the hashes", async () => {

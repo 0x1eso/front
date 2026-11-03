@@ -50,7 +50,6 @@ import {
   convertCost,
   designBlock,
   designRetentionBp,
-  designXpCost,
   licenceCostPct,
   PLANE_BASE_DEFS,
   planeType,
@@ -78,14 +77,7 @@ import type { EffectCtx } from "../politics/Dispatch";
 import { licenceCostPctFor } from "./Licences";
 import { treatyEscalated, treatyMember } from "./NavalTreaty";
 import { dailyRefits, startRefit } from "./Refit";
-import type { DesignSlot, Domain, WwDepth } from "./WwDepth";
-
-/** Spec §5.1: the experience domain of each design kind (army, navy, air). */
-export const DESIGN_DOMAIN: Readonly<Record<DesignKind, Domain>> = {
-  tank: 0,
-  ship: 1,
-  plane: 2,
-};
+import type { DesignSlot, WwDepth } from "./WwDepth";
 
 /**
  * Spec §5.5: the airframe size a static P4 type flies on (line conversion).
@@ -204,12 +196,8 @@ function saveOrder(
   } else if (freeSlot(d, id, kind) === 0) {
     return "design_slots_full";
   }
-  const cost = designXpCost(before, def);
-  if (d.xpOf(id, DESIGN_DOMAIN[kind]) < cost) return "no_xp";
-  // Review E5: the save first, the experience once it stands.
   const got = saveDesign(d, id, def, slot, "own", 0, 0, day);
   if (typeof got !== "number") return got;
-  d.spendXp(id, DESIGN_DOMAIN[kind], cost);
   d.message(id, "ww1936_design_saved", { name: def.name });
   return null;
 }

@@ -97,7 +97,6 @@ import {
   templateBlock,
   templateCounts,
   templateStats,
-  templateXpCost,
 } from "@openfront/engine-lib/ww1936/TemplateStats";
 import { weatherAt } from "@openfront/engine-lib/ww1936/Weather";
 import { techTotals, TechTotals } from "@openfront/engine-lib/ww1936/WwTechs";
@@ -2069,7 +2068,6 @@ export function levelDots(level: number, max = 5): string {
 
 export interface DesignerData {
   stats: DivisionStats;
-  xpCost: number;
   block: WwOrderBlock | null;
   factoryDays: number[];
 }
@@ -2087,18 +2085,13 @@ export function factoryDaysOf(stats: DivisionStats): number[] {
 }
 
 export function designer(
-  before: TemplateDef | null,
   after: TemplateDef,
   tech: TechTotals,
   researched: ReadonlySet<WwTechId>,
-  xpMilli: number,
 ): DesignerData {
   const stats = templateStats(after, tech, GEN1);
-  const xpCost = templateXpCost(before, after);
-  const block =
-    templateBlock(after, researched, Infinity) ??
-    (xpCost > xpMilli ? "no_xp" : null);
-  return { stats, xpCost, block, factoryDays: factoryDaysOf(stats) };
+  const block = templateBlock(after, researched, Infinity);
+  return { stats, block, factoryDays: factoryDaysOf(stats) };
 }
 
 /** "Infantry ×9 · Artillery ×2": a template's battalions, most first. */

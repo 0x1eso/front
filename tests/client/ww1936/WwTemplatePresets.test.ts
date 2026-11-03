@@ -31,7 +31,7 @@ async function mount(researched: string[]) {
         ] as never,
       }),
     ],
-    landDetails: [landDetail("DEU", { armyXpMilli: 500_000 })],
+    landDetails: [landDetail("DEU")],
   });
   const el = document.createElement(
     "ww-template-designer",

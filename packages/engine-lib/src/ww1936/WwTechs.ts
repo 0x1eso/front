@@ -47,7 +47,7 @@ export interface TechEffects {
   entrenchMax: number;
   /** Supply use, percent (positive: more). */
   supplyUsePct: number;
-  /** Daily army experience, milli. */
+  /** Daily army experience, milli (no tech grants it any more; the key keeps the stat list's order). */
   armyXpMilli: number;
   /** General experience gain, percent. */
   generalXpPct: number;

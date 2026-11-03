@@ -1,19 +1,17 @@
 // World War 1936 P4: repairs, organisation, navy experience and admirals
 // (P4 spec §5.4, §7.1, §7.4, §7.5), lane N2 (Task 4). All on the
 // country's day (WwNavy.dailyCountry).
-import type { WwOrderBlock } from "@openfront/engine-api/ww1936/EconomyTypes";
 import {
   FLEET_MISSIONS,
   FLEET_STATES,
   SHIP_CLASSES,
   SHIP_ROLE,
-  WW_NAVY_XP_MAX_MILLI,
   WW_TITLED_ADMIRAL_BASE,
-  WW_TITLED_ADMIRAL_XP_MILLI,
 } from "@openfront/engine-api/ww1936/NavyTypes";
 import { refitHolds } from "../depth/Refit";
 import { effectiveLevel } from "../economy/Buildings";
 import { lendDocks } from "../economy/NavalLines";
+import { autoAdmirals } from "./Fleets";
 import type { AdmiralState, Fleet, WwNavy } from "./WwNavy";
 
 const HOLD = FLEET_MISSIONS.indexOf("hold");
@@ -28,11 +26,6 @@ const CV = SHIP_CLASSES.indexOf("cv");
 /** Spec §7.1: organisation a day, % of the maximum (docked, at sea). */
 const ORG_PORT_PCT = 10;
 const ORG_SEA_PCT = 2;
-/** Spec §7.5: navy experience a day, milli (majors double); a ship in a battle that day, capped. */
-const NAVY_XP_DAY_MILLI = 100;
-const NAVY_XP_DAY_MAJOR_MILLI = 200;
-const NAVY_XP_BATTLE_SHIP_MILLI = 20;
-const NAVY_XP_BATTLE_CAP_MILLI = 3_000;
 /** Spec §7.4: admiral experience a battle day and a mission day, milli; 100 a level. */
 const ADMIRAL_BATTLE_XP_MILLI = 2_000;
 const ADMIRAL_MISSION_XP_MILLI = 200;
@@ -78,7 +71,6 @@ export function repairDayMilli(
  * N1's keepToOrders sails a docked mission fleet to its region).
  */
 export function dailyRepair(navy: WwNavy, smallID: number, day: number): void {
-  void day;
   const ce = navy.econ.country(smallID);
   if (ce === null) return;
   const t = navy.ships;
@@ -222,32 +214,17 @@ function levelUp(a: AdmiralState): void {
 }
 
 /**
- * The country's day of navy experience (spec §7.5): +0.1 a day (majors
- * +0.2) + stats.navyXpMilli + 0.02 per ship in a battle now (at most +3),
- * up to 500. Its admirals (spec §7.4): +2 for a fleet in a battle, +0.2
+ * The country's admirals' day (spec §7.4; the country's own navy experience
+ * pool is gone): +2 for a fleet in a battle, +0.2
  * for one on its mission; then the level-up. "In a battle that day" is
  * read on the country's day tick (the battle records end with the battle).
  */
 export function dailyNavyXp(navy: WwNavy, smallID: number, day: number): void {
-  void day;
   const cn = navy.country(smallID);
-  const ce = navy.econ.country(smallID);
-  if (cn === null || ce === null) return;
+  if (cn === null) return;
+  autoAdmirals(navy, smallID, day);
   const t = navy.ships;
   const fighting = fleetsInBattle(navy);
-  let ships = 0;
-  for (const f of navy.fleetsOf(smallID)) {
-    if (fighting.has(f.id)) ships += f.ships.length;
-  }
-  const gain =
-    (ce.major ? NAVY_XP_DAY_MAJOR_MILLI : NAVY_XP_DAY_MILLI) +
-    ce.stats.navyXpMilli +
-    Math.min(NAVY_XP_BATTLE_CAP_MILLI, ships * NAVY_XP_BATTLE_SHIP_MILLI);
-  cn.navyXpMilli = Math.max(
-    0,
-    Math.min(WW_NAVY_XP_MAX_MILLI, cn.navyXpMilli + gain),
-  );
-  navy.markCountry(smallID);
   for (const a of navy.admirals.values()) {
     if (a.owner !== smallID || a.fleet === 0) continue;
     const f = navy.fleets.get(a.fleet);
@@ -270,18 +247,15 @@ export function dailyNavyXp(navy: WwNavy, smallID: number, day: number): void {
 }
 
 /**
- * appoint_admiral (spec §7.4): a titled admiral (every skill 1, no trait)
- * for 10 navy experience; its id 200_000 + smallID × 100 + n.
+ * A titled admiral (every skill 1, no trait), free; its id 200_000 +
+ * smallID × 100 + n. Null when the country's 99 titles are used.
  */
-export function appointAdmiral(
+export function newTitledAdmiral(
   navy: WwNavy,
   smallID: number,
-): WwOrderBlock | null {
+): AdmiralState | null {
   const cn = navy.country(smallID);
-  if (cn === null) return "dead";
-  if (cn.navyXpMilli < WW_TITLED_ADMIRAL_XP_MILLI) return "no_xp";
-  if (cn.titledAdmirals >= MAX_TITLED) return "admiral_unavailable";
-  cn.navyXpMilli -= WW_TITLED_ADMIRAL_XP_MILLI;
+  if (cn === null || cn.titledAdmirals >= MAX_TITLED) return null;
   cn.titledAdmirals++;
   const id = WW_TITLED_ADMIRAL_BASE + smallID * 100 + cn.titledAdmirals;
   const m = navy.admirals;
@@ -304,5 +278,5 @@ export function appointAdmiral(
     for (const [k, v] of all) m.set(k, v);
   }
   navy.markCountry(smallID);
-  return null;
+  return m.get(id) ?? null;
 }

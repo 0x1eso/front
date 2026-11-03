@@ -40,7 +40,6 @@ import {
   WW_MAX_ARMY_DIVISIONS,
   WW_MAX_SUPPORT,
   WW_MAX_TARGETS,
-  WW_TITLED_GENERAL_XP_MILLI,
   WW_ZONE_MAX,
 } from "@openfront/engine-api/ww1936/LandTypes";
 import { WW_INVASION_MAX_KM } from "@openfront/engine-api/ww1936/NavyTypes";
@@ -65,7 +64,6 @@ import {
   groupStock,
   specialCap,
   templateStats,
-  templateXpCost,
 } from "@openfront/engine-lib/ww1936/TemplateStats";
 import { type AiPersonality, aiPersonality } from "../economy/AiEconomy";
 import { convoysOf, effectiveLevel } from "../economy/Buildings";
@@ -233,8 +231,6 @@ const TRAIN_MEN_FACTOR = 2;
 const TRAIN_FILL_PM = 500;
 /** Spec §14.5: the template refit comes every 180 days. */
 export const AI_REFIT_DAYS = 180;
-/** Spec §14.2: a titled general from this much army experience, milli. */
-const APPOINT_XP_MILLI = 30_000;
 /** Spec §14.2: armies of 1–3 divisions join a bigger one in their region; armies under 4 on one front merge. */
 const SMALL_ARMY = 3;
 const FRONT_MERGE_UNDER = 4;
@@ -1348,13 +1344,6 @@ class AiDay {
         army: armies[i].id,
         general: free[i].id,
       });
-    }
-    if (
-      free.length === 0 &&
-      cl.armyXpMilli >= Math.max(APPOINT_XP_MILLI, WW_TITLED_GENERAL_XP_MILLI)
-    ) {
-      // The new general takes an army on the next AI day.
-      this.issue({ kind: "appoint_general" });
     }
   }
 
@@ -3125,7 +3114,7 @@ class AiDay {
 
   /**
    * template_save of an edit with the automatic name (the 1936 key stays),
-   * when the experience allows and (내 판단) the stock already holds what
+   * when (내 판단) the stock already holds what
    * the edit adds for every division of the template, in the field and in
    * training: an edit the stock cannot fill would only leave the divisions
    * short and stop the training (it waits for half the equipment).
@@ -3138,7 +3127,6 @@ class AiDay {
     const tpl = this.cl.template(id);
     if (tpl === null) return;
     const def = { name: "", battalions, support };
-    if (templateXpCost(tpl.def, def) > this.cl.armyXpMilli) return;
     const t = this.land.divisions;
     let n = this.cl.trainees.filter((x) => x.template === id).length;
     for (const e of this.cl.training) if (e.template === id) n += e.remaining;

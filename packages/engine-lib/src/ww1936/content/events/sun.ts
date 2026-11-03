@@ -588,7 +588,7 @@ export const SUN_EVENTS = [
         id: "a",
         ai: { base: 60 },
         effects: [
-          { kind: "army_xp", amount: -30 },
+          { kind: "pp", amount: -25 },
           { kind: "stability", pct: -3 },
         ],
       },

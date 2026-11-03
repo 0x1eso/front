@@ -27,18 +27,18 @@ export const SPIRITS_PACK_WORLD: SpiritDef[] = [
   {
     id: "bra_feb_veterans",
     icon: "medal",
-    stats: { armyXpMilli: 100, generalXpPct: 10 },
+    stats: { divXpGainPct: 10, generalXpPct: 10 },
   },
   // mex_volunteer_squadron (365 days)
   {
     id: "mex_squadron_201",
     icon: "plane",
-    stats: { airAttackPct: 5, airXpMilli: 100 },
+    stats: { airAttackPct: 5, airLossCutPct: 2 },
   },
 
   // ---- Dominions ----
-  // dom_air_training (100 days): 0.3 air experience a day = +30
-  { id: "dom_air_training_scheme", icon: "plane", stats: { airXpMilli: 300 } },
+  // dom_air_training (100 days): trained crews lose fewer aircraft
+  { id: "dom_air_training_scheme", icon: "plane", stats: { airLossCutPct: 6 } },
   // dom_war_economy: "산출 +5%"
   { id: "dom_wartime_output", icon: "factory", stats: { outputPct: 5 } },
   // dom_minerals: "채굴 +10%"

@@ -267,7 +267,6 @@ describe("regionFlagBytes (spec §15.2)", () => {
       details: [
         {
           smallID: DEU,
-          armyXpMilli: 0,
           templates: [],
           training: [],
           generals: [],
@@ -276,7 +275,6 @@ describe("regionFlagBytes (spec §15.2)", () => {
         },
         {
           smallID: POL,
-          armyXpMilli: 0,
           templates: [],
           training: [],
           generals: [],

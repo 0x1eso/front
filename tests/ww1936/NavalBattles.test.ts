@@ -15,7 +15,10 @@ import {
   startNavalBattle,
   stepNavalBattles,
 } from "@openfront/engine/ww1936/navy/NavalBattles";
-import { dailyRepair } from "@openfront/engine/ww1936/navy/Repair";
+import {
+  dailyRepair,
+  newTitledAdmiral,
+} from "@openfront/engine/ww1936/navy/Repair";
 import type { Fleet, WwNavy } from "@openfront/engine/ww1936/navy/WwNavy";
 import { REGION, SEA, SR, TAG_ID, ZONE } from "./seaFixture";
 import {
@@ -110,12 +113,7 @@ describe("naval battles (spec §9)", () => {
       ["dd", 1, 12],
     ]);
     // A titled admiral: coordination 1 (+50‰) fills the screen (positioning 990‰).
-    const cn = navy.country(GBR)!;
-    cn.navyXpMilli = 10_000;
-    expect(navy.issue(GBR, { kind: "appoint_admiral" }, tick)).toBeNull();
-    const adm = [...navy.admirals.values()].find(
-      (a) => a.owner === GBR && a.level === 1 && a.skills.every((s) => s === 1),
-    )!;
+    const adm = newTitledAdmiral(navy, GBR)!;
     g.admiral = adm.id;
     adm.fleet = g.id;
     const i = atSea(navy, ITA, ZONE.west, [["dd", 1, 12]]);

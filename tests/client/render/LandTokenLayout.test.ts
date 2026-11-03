@@ -404,7 +404,6 @@ describe("ArmyTokenPass", () => {
       details: [
         {
           smallID: DEU,
-          armyXpMilli: 0,
           templates: [],
           training: [],
           generals: [],

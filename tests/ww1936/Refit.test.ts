@@ -51,7 +51,6 @@ async function game() {
   );
   stepTo(runner, WW_PREP_TICKS + 2);
   const ww = runner.game.worldWar()!;
-  ww.navy.country(GBR)!.navyXpMilli = 400_000;
   const d = ww.depth;
   expect(
     d.issue(GBR, { kind: "design_save", def: AA_DD }, runner.game.ticks()),

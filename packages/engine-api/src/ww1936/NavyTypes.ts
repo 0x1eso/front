@@ -342,7 +342,6 @@ export interface CountryNavyDetail {
   routes: ConvoyRouteData[];
   invasions: InvasionData[];
   admirals: [number, number][];
-  navyXpMilli: number;
   /** Convoys lost per day, last 30 days, oldest first. */
   convoyLoss30: number[];
   fuelMilli: number;
@@ -441,9 +440,7 @@ export const WW_ESCORT_CUT_MAX_PM = 850;
  */
 export const WW_ASW_K_PM = 10;
 export const WW_ISLAND_REGION_BASE = 1343;
-export const WW_NAVY_XP_MAX_MILLI = 500_000;
 export const WW_TITLED_ADMIRAL_BASE = 200_000;
-export const WW_TITLED_ADMIRAL_XP_MILLI = 10_000;
 /** Deck slots per ship row: 3 carrier types × 3 generations (plan decision 15). */
 export const DECK_SLOTS = 9;
 /** Strategic region ids: land 1..999, sea 1001.. (spec §3.4). */

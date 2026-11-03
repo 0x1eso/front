@@ -36,7 +36,6 @@ import { dayOfDate } from "@openfront/engine-lib/ww1936/Calendar";
 import {
   designBlock,
   designNeedGroup,
-  designXpCost,
   projectBit,
   recommendedShip,
   recommendedTank,
@@ -53,7 +52,6 @@ import { aiPersonality } from "../economy/AiEconomy";
 import { changeLine } from "../economy/Production";
 import type { CountryEconomy } from "../economy/WwEconomy";
 import {
-  DESIGN_DOMAIN,
   navalLineDesignBlock,
   presetName,
   sameDesign,
@@ -263,9 +261,6 @@ function aiSave(
     return 0;
   }
   if (c.des[def.kind].indexOf(null) < 0) return 0;
-  if (!d.spendXp(id, DESIGN_DOMAIN[def.kind], designXpCost(before, def))) {
-    return 0;
-  }
   const s = saveDesign(d, id, def, 0, "own", 0, 0, day);
   return typeof s === "number" ? s : 0;
 }

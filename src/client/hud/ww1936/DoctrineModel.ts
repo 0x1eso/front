@@ -1,9 +1,6 @@
 import type { WwOrder } from "@openfront/engine-api/Schemas";
 import {
-  ARMY_SPIRIT_CATEGORIES,
-  ARMY_SPIRITS,
   FM_TRAITS,
-  SPIRIT_CAT_DOMAIN,
   type WwArmyGroupData,
   type WwDepthDetail,
   type WwDepthSummary,
@@ -31,17 +28,10 @@ import {
 } from "@openfront/engine-api/ww1936/ThoughtTypes";
 import { dateOfDay, dayOfDate } from "@openfront/engine-lib/ww1936/Calendar";
 import {
-  ASSIGNABLE_ADMIRAL_TRAITS,
   fieldMarshalCap,
-  FM_EXTRA_TRAIT_XP,
   fmEligible,
   promoteFmBlock,
-  spiritCost,
-  spiritPickBlock,
-  traitAssignBlock,
-  type TraitAssignInput,
   traitSlots,
-  traitXpCost,
 } from "@openfront/engine-lib/ww1936/CommandRules";
 import { CONTENT } from "@openfront/engine-lib/ww1936/content/registry";
 import {
@@ -58,12 +48,8 @@ import { admiralDef, admiralName, admiralTraits } from "./NavyModel";
 import { statLines } from "./PoliticsModel";
 import { today } from "./WorldWarModel";
 
-/** Whole experience points of the domains (air: not in the views, null). */
-export type DomainXp = readonly [number, number, number | null];
-
 export type DoctrineBlock =
   | "doctrine_locked"
-  | "no_xp"
   | "bad_index"
   | "no_pp"
   | "no_slot"
@@ -72,7 +58,6 @@ export type DoctrineBlock =
 
 export const DOCTRINE_BLOCK_KEYS: Readonly<Record<DoctrineBlock, string>> = {
   doctrine_locked: "ww1936.econ.block.doctrine_locked",
-  no_xp: "ww1936.econ.block.no_xp",
   bad_index: "ww1936.econ.block.bad_index",
   no_pp: "ww1936.econ.block.no_pp",
   no_slot: "ww1936.econ.block.trait_unavailable",
@@ -113,27 +98,6 @@ export interface ThoughtSliderView {
   right: ThoughtEnd;
 }
 
-export interface SpiritCard {
-  category: number;
-  id: (typeof ARMY_SPIRIT_CATEGORIES)[number];
-  domain: number;
-  /** ARMY_SPIRITS index, -1 none. */
-  picked: number;
-  options: {
-    index: number;
-    id: (typeof ARMY_SPIRITS)[number];
-    picked: boolean;
-  }[];
-  cost: number;
-  lockDays: number;
-}
-
-export interface TraitCandidate {
-  trait: string;
-  xp: number;
-  block: DoctrineBlock | null;
-}
-
 export interface CommandPerson {
   id: number;
   admiral: boolean;
@@ -142,7 +106,6 @@ export interface CommandPerson {
   slots: number;
   used: number;
   traits: string[];
-  candidates: TraitCandidate[];
 }
 
 export interface MarshalRow {
@@ -239,21 +202,8 @@ interface Ctx {
   sum: WwDepthSummary | undefined;
 }
 
-/**
- * The engine's traitAssignBlock with the price taken out (any amount of XP):
- * null when the person could take the trait if only he could pay.
- */
-function openTraitBlock(
-  i: Omit<TraitAssignInput, "xp">,
-): ReturnType<typeof traitAssignBlock> {
-  return traitAssignBlock({ ...i, xp: Number.MAX_SAFE_INTEGER });
-}
-
 export class DoctrineModel {
   constructor(readonly view: GameView) {}
-
-  /** Army XP an extra marshal trait costs (design §12.1). */
-  readonly fmTraitXp = FM_EXTRA_TRAIT_XP;
 
   private ctx(): Ctx | null {
     const depth = this.view.wwDepth?.() ?? null;
@@ -284,15 +234,6 @@ export class DoctrineModel {
       g.wwPolitics?.()?.version,
       this.view.worldWarScenario() ? today(this.view) : 0,
     ].join("|");
-  }
-
-  /** Lane D's detail.doctrine.xp (army, navy, air), whole points. */
-  private xp(c: Ctx): DomainXp {
-    const x = c.detail.doctrine.xp;
-    if (x !== undefined) return [x[0] ?? 0, x[1] ?? 0, x[2] ?? 0];
-    const land = c.game.wwLand?.()?.details.get(c.me)?.armyXpMilli ?? 0;
-    const navy = c.game.wwNavy?.()?.detail?.navyXpMilli ?? 0;
-    return [Math.floor(land / 1000), Math.floor(navy / 1000), null];
   }
 
   private pp(c: Ctx): number | null {
@@ -413,55 +354,6 @@ export class DoctrineModel {
     };
   }
 
-  // ---- Officer corps (tab 4) ----
-
-  spiritCards(): SpiritCard[] {
-    const c = this.ctx();
-    if (c === null) return [];
-    return ARMY_SPIRIT_CATEGORIES.map((id, category) => {
-      const picked = c.detail.command.spirits[category] ?? -1;
-      const lock = c.detail.command.spiritLock[category] ?? -1;
-      return {
-        category,
-        id,
-        domain: SPIRIT_CAT_DOMAIN[category],
-        picked,
-        options: [0, 1, 2].map((k) => ({
-          index: category * 3 + k,
-          id: ARMY_SPIRITS[category * 3 + k],
-          picked: category * 3 + k === picked,
-        })),
-        cost: spiritCost(picked),
-        lockDays: picked >= 0 && lock > c.day ? lock - c.day : 0,
-      };
-    });
-  }
-
-  /** Lane D's spiritPickBlock (the engine's own check). */
-  spiritBlock(category: number, index: number): DoctrineBlock | null {
-    const c = this.ctx();
-    if (c === null) return "not_ready";
-    const card = this.spiritCards()[category];
-    if (card === undefined) return "bad_index";
-    const have = this.xp(c)[card.domain];
-    return spiritPickBlock({
-      category,
-      spirit: index,
-      current: card.picked,
-      lockUntil: c.detail.command.spiritLock[category] ?? -1,
-      day: c.day,
-      xp: have ?? Number.MAX_SAFE_INTEGER,
-    });
-  }
-
-  spiritOrder(category: number, index: number): WwOrder {
-    return {
-      kind: "army_spirit_pick",
-      category: ARMY_SPIRIT_CATEGORIES[category],
-      id: ARMY_SPIRITS[index],
-    };
-  }
-
   // ---- Command (tab 5) ----
 
   /** The field marshals I have and may have (design §12.4: no command power bar any more). */
@@ -475,7 +367,7 @@ export class DoctrineModel {
     };
   }
 
-  /** Generals and admirals; those with something to buy first. */
+  /** Generals, then admirals (traits come by themselves). */
   commandPeople(): CommandPerson[] {
     const c = this.ctx();
     if (c === null) return [];
@@ -492,7 +384,6 @@ export class DoctrineModel {
         slots: traitSlots(g.level),
         used: traits.length,
         traits,
-        candidates: this.generalCandidates(c, g),
       });
     }
     const navy = c.game.wwNavy?.()?.detail;
@@ -511,115 +402,11 @@ export class DoctrineModel {
         slots: WW_ADMIRAL_TRAIT_MAX,
         used: traits.length,
         traits,
-        candidates: this.admiralCandidates(c, level, traits),
       });
     }
-    const rank = (p: CommandPerson) =>
-      p.candidates.some((t) => t.block === null) ? 0 : 1;
-    return out.sort((a, b) => rank(a) - rank(b) || a.id - b.id);
-  }
-
-  /** The traits a general (or an admiral) could be given: those whose conditions hold, each with why not now. */
-  traitCandidates(general: number, admiral = false): TraitCandidate[] {
-    return (
-      this.commandPeople().find(
-        (p) => p.id === general && p.admiral === admiral,
-      )?.candidates ?? []
+    return out.sort(
+      (a, b) => Number(a.admiral) - Number(b.admiral) || a.id - b.id,
     );
-  }
-
-  /**
-   * The traits traitAssignBlock lets this person take once there is room and
-   * XP, each with why not now: "no_xp", or "no_slot" when only the slots
-   * refuse it. The engine's own judge decides openness (given unlimited XP);
-   * the price is the army's (navy's for an admiral) experience.
-   */
-  private candidatesOf(
-    c: Ctx,
-    admiral: boolean,
-    pool: readonly string[],
-    base: {
-      level: number;
-      traits: readonly string[];
-      slots: number;
-      isFm: boolean;
-      fmTraits: readonly string[];
-    },
-  ): TraitCandidate[] {
-    const have = this.xp(c)[admiral ? 1 : 0] ?? Number.MAX_SAFE_INTEGER;
-    const out: TraitCandidate[] = [];
-    for (const t of pool) {
-      const judge = (slots: number) =>
-        openTraitBlock({ ...base, admiral, trait: t, slots });
-      // Room and XP aside, the trait must be open to him.
-      const open = admiral
-        ? base.level >= 2 && !base.traits.includes(t)
-        : judge(Number.MAX_SAFE_INTEGER) === null;
-      if (!open) continue;
-      const xp = traitXpCost(t, admiral);
-      out.push({
-        trait: t,
-        xp,
-        block:
-          judge(base.slots) !== null
-            ? ("no_slot" as const)
-            : have < xp
-              ? ("no_xp" as const)
-              : null,
-      });
-    }
-    return out;
-  }
-
-  private generalCandidates(c: Ctx, g: GeneralData): TraitCandidate[] {
-    return this.candidatesOf(c, false, GENERAL_TRAITS, {
-      level: g.level,
-      traits: generalTraitIds(g.traits),
-      slots: traitSlots(g.level),
-      isFm: isMarshal(g),
-      fmTraits: marshalTraitIds(g),
-    });
-  }
-
-  private admiralCandidates(
-    c: Ctx,
-    level: number,
-    held: readonly AdmiralTrait[],
-  ): TraitCandidate[] {
-    return this.candidatesOf(c, true, ASSIGNABLE_ADMIRAL_TRAITS, {
-      level,
-      traits: held,
-      slots: WW_ADMIRAL_TRAIT_MAX,
-      isFm: false,
-      fmTraits: [],
-    });
-  }
-
-  /** Why a marshal cannot take field marshal trait `trait` now (lane D's traitAssignBlock); null: he can. */
-  fmTraitBlock(marshal: number, trait: string): DoctrineBlock | null {
-    const c = this.ctx();
-    if (c === null) return "not_ready";
-    const g = c.game
-      .wwLand?.()
-      ?.details.get(c.me)
-      ?.generals.find((x) => x.id === marshal);
-    if (g === undefined) return "not_ready";
-    const b = openTraitBlock({
-      admiral: false,
-      level: g.level,
-      traits: generalTraitIds(g.traits),
-      slots: traitSlots(g.level),
-      trait,
-      isFm: isMarshal(g),
-      fmTraits: marshalTraitIds(g),
-    });
-    if (b !== null) return "no_slot";
-    const xp = traitXpCost(trait, false);
-    return (this.xp(c)[0] ?? Number.MAX_SAFE_INTEGER) < xp ? "no_xp" : null;
-  }
-
-  traitOrder(general: number, trait: string, admiral: boolean): WwOrder {
-    return { kind: "trait_assign", general, trait: trait as never, admiral };
   }
 
   /** My field marshals: the record's flag, plus those leading a group. */

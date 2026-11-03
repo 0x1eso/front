@@ -13,7 +13,6 @@ import {
   MOVE_NONE,
   MOVE_WALK,
   traitBit,
-  WW_ARMY_XP_MAX_MILLI,
 } from "@openfront/engine-api/ww1936/LandTypes";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { dayOfDate, dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
@@ -130,7 +129,6 @@ describe("sustaining divisions (P2 spec §5.3, §5.4)", () => {
     // The same division with a field hospital: half the cut.
     ce.addTech("field_hospital");
     (ce.stats as { reinforcePct?: number }).reinforcePct = 0; // addTech recomputes the stats
-    cl.armyXpMilli = 100_000;
     expect(
       l.issue(id, {
         kind: "template_save",
@@ -307,24 +305,6 @@ describe("sustaining divisions (P2 spec §5.3, §5.4)", () => {
     }
     // Never fought.
     expect(foughtTest(1, 3, P)(-1)).toBe(false);
-  });
-
-  test("army XP grows 0.1 a day (0.2 for a major)", async () => {
-    const deu = await oneDivision("DEU");
-    deu.cl.armyXpMilli = 0;
-    dailySustain(deu.l, deu.id, SUMMER);
-    expect(deu.cl.armyXpMilli).toBe(200);
-    // A division that fought: +0.05.
-    deu.l.divisions.lastFight[deu.r] = fightOn(SUMMER + 1);
-    dailySustain(deu.l, deu.id, SUMMER + 1);
-    expect(deu.cl.armyXpMilli).toBe(200 + 200 + 50);
-    deu.cl.armyXpMilli = WW_ARMY_XP_MAX_MILLI - 10;
-    dailySustain(deu.l, deu.id, SUMMER + 2);
-    expect(deu.cl.armyXpMilli).toBe(WW_ARMY_XP_MAX_MILLI);
-    const pol = await oneDivision("POL", 6);
-    pol.cl.armyXpMilli = 0;
-    dailySustain(pol.l, pol.id, SUMMER);
-    expect(pol.cl.armyXpMilli).toBe(100);
   });
 });
 

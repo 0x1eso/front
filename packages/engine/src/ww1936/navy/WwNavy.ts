@@ -88,12 +88,7 @@ import { engageRegion } from "./Missions";
 import { stepNavalBattles } from "./NavalBattles";
 import { startNavy } from "./NavyStartRun";
 import { bestNavalBase, navalPort, navalPortsOf } from "./Ports";
-import {
-  appointAdmiral,
-  dailyNavyXp,
-  dailyRepair,
-  fleetRepairDays,
-} from "./Repair";
+import { dailyNavyXp, dailyRepair, fleetRepairDays } from "./Repair";
 import { stepFleets } from "./SeaMove";
 import { dailyVoyages, issueSeaTransfer, stepSeaVoyages } from "./SeaTransfer";
 import { spotRegion } from "./Spotting";
@@ -486,7 +481,6 @@ export interface AdmiralState {
 
 /** One country's navy bookkeeping. */
 export class CountryNavy {
-  navyXpMilli = 0;
   titledAdmirals = 0;
   nextFleetNum = 1;
   /** 30 daily convoy losses, milli, by day % 30 (screen + AI). */
@@ -683,7 +677,6 @@ const SrSchema = z.object({
   lastDay: zInt(),
 });
 const CountryNavySchema = z.object({
-  navyXpMilli: zInt(),
   titledAdmirals: zInt(),
   nextFleetNum: zInt(),
   convoyLoss: zInts(),
@@ -955,7 +948,8 @@ export class WwNavy {
         if (block === null) this.econ.markCountryDirty(smallID);
         break;
       case "appoint_admiral":
-        block = appointAdmiral(this, smallID); // N2
+        // The titled admirals are free and automatic now: the order stays in the schema.
+        block = "bad_index";
         break;
       case "army_sea":
         block = issueSeaTransfer(this, smallID, order, tick, by); // C (decision 34)
@@ -2040,7 +2034,6 @@ export class WwNavy {
       admirals: [...this.admirals.values()]
         .filter((a) => a.owner === id)
         .map((a): [number, number] => [a.id, a.fleet]),
-      navyXpMilli: cn.navyXpMilli,
       convoyLoss30: Array.from(
         { length: 30 },
         (_, i) => cn.convoyLoss[(((day + 1 + i) % 30) + 30) % 30],
@@ -2130,7 +2123,6 @@ export class WwNavy {
         lastDay: s.lastDay,
       })),
       countries: this.countries().map((c) => ({
-        navyXpMilli: c.navyXpMilli,
         titledAdmirals: c.titledAdmirals,
         nextFleetNum: c.nextFleetNum,
         convoyLoss: [...c.convoyLoss],
@@ -2221,7 +2213,6 @@ export class WwNavy {
     this.countries().forEach((c, i) => {
       const x = s.countries[i];
       if (x === undefined) return;
-      c.navyXpMilli = x.navyXpMilli;
       c.titledAdmirals = x.titledAdmirals;
       c.nextFleetNum = x.nextFleetNum;
       c.convoyLoss = [...x.convoyLoss];
@@ -2371,7 +2362,7 @@ export class WwNavy {
       for (const v of a.usage) h = (Math.imul(h, 31) + v) >>> 0;
     }
     for (const c of this.countries()) {
-      h = (Math.imul(h, 31) + c.navyXpMilli) >>> 0;
+      h = (Math.imul(h, 31) + c.titledAdmirals) >>> 0;
     }
     h = (Math.imul(h, 31) + this.convoysSunkTotal) >>> 0;
     for (const x of this.invasions.values()) {

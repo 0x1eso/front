@@ -14,7 +14,6 @@ import {
 import {
   GROUND_SLOTS,
   TemplateDef,
-  WW_ARMY_XP_MAX_MILLI,
   WW_MAX_TEMPLATES,
 } from "@openfront/engine-api/ww1936/LandTypes";
 import type {
@@ -30,6 +29,7 @@ import {
   templateBlock,
   templateStats,
 } from "@openfront/engine-lib/ww1936/TemplateStats";
+import { permPctOfXp } from "@openfront/engine-lib/ww1936/ThoughtRules";
 import { receiveKey } from "../depth/DesignCopy";
 import type { WwDepth } from "../depth/WwDepth";
 import { noStrikeAt, usedSlots } from "../economy/Construction";
@@ -453,16 +453,14 @@ export function applyEconEffect(
     case "reserve":
       c.reserved[RESERVE_KEYS.indexOf(e.key)] += e.amount;
       break;
-    case "army_xp": {
-      const cl = land.country(actor);
-      if (cl === null) return;
-      cl.armyXpMilli = Math.max(
+    case "army_xp":
+      // ww15: a permanent division experience bonus (permPctOfXp).
+      (pol.ww.depth as WwDepth | undefined)?.addPermPct(
+        actor,
         0,
-        Math.min(WW_ARMY_XP_MAX_MILLI, cl.armyXpMilli + e.amount * 1000),
+        permPctOfXp(e.amount),
       );
-      land.markCountry(actor);
       break;
-    }
     case "unlock_template":
       unlockTemplate(pol, actor, e.template);
       break;

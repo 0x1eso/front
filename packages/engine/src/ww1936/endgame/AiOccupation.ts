@@ -25,7 +25,6 @@ import {
   integrateCostPp,
 } from "@openfront/engine-lib/ww1936/EndgameRules";
 import { historicalAiActive } from "@openfront/engine-lib/ww1936/Pace";
-import { templateXpCost } from "@openfront/engine-lib/ww1936/TemplateStats";
 import { aiPersonality } from "../economy/AiEconomy";
 import { aiBorderDemand } from "../land/AiLand";
 import { enemyDivisionsIn } from "../land/Movement";
@@ -347,10 +346,9 @@ function garrisonTemplate(eg: WwEndgame, id: number): number {
     GARRISON_BATTALIONS,
   ).fill("infantry");
   const support: SupportId[] = mp ? ["military_police"] : [];
-  const def: TemplateDef = { name: "", battalions, support };
   let tpl = cl.templates.find((x) => isGarrisonDef(x.def));
   if (tpl !== undefined && mp && !tpl.def.support.includes("military_police")) {
-    // The tech came: the garrison division gets its company (army XP allowing).
+    // The tech came: the garrison division gets its company (free).
     land.issue(
       id,
       {
@@ -365,18 +363,12 @@ function garrisonTemplate(eg: WwEndgame, id: number): number {
     );
   }
   if (tpl === undefined) {
-    const first = cl.templates[0];
-    const base =
-      first !== undefined &&
-      templateXpCost(first.def, def) < templateXpCost(null, def)
-        ? first.id
-        : 0;
     land.issue(
       id,
       {
         kind: "template_save",
         template: 0,
-        base,
+        base: 0,
         name: "",
         battalions,
         support,

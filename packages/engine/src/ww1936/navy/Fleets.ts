@@ -26,6 +26,7 @@ import { fleetMissionBlock } from "@openfront/engine-lib/ww1936/NavalRules";
 import { ALL_EDGES, seaPath } from "@openfront/engine-lib/ww1936/SeaGraph";
 import { refitHolds } from "../depth/Refit";
 import { belowReturnAt, FST, MISSION, MISSION_ENGAGE } from "./Missions";
+import { newTitledAdmiral } from "./Repair";
 import {
   battleFleetIds,
   dockIfHome,
@@ -357,6 +358,30 @@ function admiralServes(navy: WwNavy, a: AdmiralState, day: number): boolean {
   const person = def.alsoPerson;
   if (person === undefined) return true;
   return !navy.ww.politics.list().some((c) => c.advisors.includes(person));
+}
+
+/**
+ * A fleet with no admiral gets one, free, on its country's day (fleets in
+ * id order): the best free admiral who serves (highest skills, then id),
+ * else a new titled one.
+ */
+export function autoAdmirals(navy: WwNavy, owner: number, day: number): void {
+  const bare = navy
+    .fleetsOf(owner)
+    .filter((f) => f.admiral === 0 && f.ships.length > 0);
+  if (bare.length === 0) return;
+  const sum = (a: AdmiralState) =>
+    a.skills[0] + a.skills[1] + a.skills[2] + a.skills[3];
+  const free = [...navy.admirals.values()]
+    .filter(
+      (a) => a.owner === owner && a.fleet === 0 && admiralServes(navy, a, day),
+    )
+    .sort((a, b) => sum(b) - sum(a) || a.id - b.id);
+  for (const f of bare) {
+    const a = free.shift() ?? newTitledAdmiral(navy, owner);
+    if (a === null) return;
+    assignAdmiral(navy, f, a.id, day);
+  }
 }
 
 /** Spec §7.4: `admiral` (0: none) takes the fleet; from another fleet, that one is left without. */

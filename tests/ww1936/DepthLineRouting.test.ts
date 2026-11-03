@@ -44,7 +44,6 @@ async function germany() {
   const ww = runner.game.worldWar()!;
   const ce = ww.economy.country(DEU)!;
   ce.addTech("medium_tank_1");
-  ww.land.country(DEU)!.armyXpMilli = 900_000;
   const save = {
     kind: "design_save",
     def: {

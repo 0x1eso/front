@@ -91,7 +91,7 @@ import {
 } from "./Battles";
 import { type LandDepthHooks, NEUTRAL_DEPTH_HOOKS } from "./DepthHooks";
 import { dailyFronts, gapsOf } from "./Fronts";
-import { appointGeneral, assignGeneral, GENERAL_XP_CENTI } from "./GeneralsRun";
+import { assignGeneral, GENERAL_XP_CENTI } from "./GeneralsRun";
 import { noteLandFuel } from "./LandFuel";
 import { startLand } from "./LandStartRun";
 import { nextStepOf, stepMovement } from "./Movement";
@@ -520,7 +520,6 @@ export class CountryLand {
   training: TrainingEntry[] = [];
   trainees: Trainee[] = [];
   nextEntryId = 1;
-  armyXpMilli = 0;
   generals: GeneralState[] = [];
   nextArmyNo = 1;
   nextTitleNo = 1;
@@ -684,7 +683,6 @@ export const WwLandStateSchema = z.object({
         }),
       ),
       nextEntryId: zInt(),
-      armyXpMilli: zInt(),
       generals: z.array(
         z.object({
           id: zInt(),
@@ -1155,7 +1153,8 @@ export class WwLand {
         }
         break;
       case "appoint_general":
-        block = appointGeneral(this, cl);
+        // Free and automatic now: the order stays in the schema.
+        block = "bad_index";
         break;
       case "army_sea":
         // P4 plan decision 34 (pre-flight §0-6): the navy carries it, the
@@ -2599,7 +2598,6 @@ export class WwLand {
     const gaps = gapsOf(this, id);
     return {
       smallID: id,
-      armyXpMilli: cl.armyXpMilli,
       templates: cl.templates.map((tpl) => ({
         id: tpl.id,
         name: tpl.def.name,
@@ -2762,7 +2760,6 @@ export class WwLand {
         mix(x.days);
       }
       mix(cl.nextEntryId);
-      mix(cl.armyXpMilli);
       for (const g of cl.generals) {
         mix(g.id);
         mix(g.roster);
@@ -2894,7 +2891,6 @@ export class WwLand {
           days: x.days,
         })),
         nextEntryId: cl.nextEntryId,
-        armyXpMilli: cl.armyXpMilli,
         generals: cl.generals.map(copyGeneral),
         nextArmyNo: cl.nextArmyNo,
         nextTitleNo: cl.nextTitleNo,
@@ -3020,7 +3016,6 @@ export class WwLand {
         days: x.days,
       }));
       cl.nextEntryId = c.nextEntryId;
-      cl.armyXpMilli = c.armyXpMilli;
       cl.generals = c.generals.map(copyGeneral);
       cl.nextArmyNo = c.nextArmyNo;
       cl.nextTitleNo = c.nextTitleNo;

@@ -8,7 +8,6 @@ import {
   WW_MAX_TEMPLATES,
   WW_MAX_TRAINING,
   WW_TEMPLATE_NAME_MAX,
-  WW_TITLED_GENERAL_XP_MILLI,
 } from "@openfront/engine-api/ww1936/LandTypes";
 import { dateOfDay } from "@openfront/engine-lib/ww1936/Calendar";
 import { presetDef } from "@openfront/engine-lib/ww1936/TemplatePresets";
@@ -682,13 +681,7 @@ export class WwArmyPanel extends WwDrawerBase {
       const block =
         c.land.templates.length >= WW_MAX_TEMPLATES
           ? "too_many_templates"
-          : designer(
-              null,
-              def,
-              techTotals(researched),
-              researched,
-              c.land.armyXpMilli,
-            ).block;
+          : designer(def, techTotals(researched), researched).block;
       if (block !== null) {
         this.refused = { key: "idle", text: blockText(block) };
         return;
@@ -740,143 +733,115 @@ export class WwArmyPanel extends WwDrawerBase {
       c.army !== null && c.view.armies.get(c.army)?.owner === c.me
         ? c.view.armies.get(c.army)!
         : null;
-    const xp = c.land.armyXpMilli;
-    const appoint = () => {
-      if (xp < WW_TITLED_GENERAL_XP_MILLI) {
-        this.refused = { key: "appoint", text: blockText("no_xp") };
-        return;
-      }
-      this.refused = null;
-      this.send({ kind: "appoint_general" });
-    };
     return html`${army === null
-        ? nothing
-        : html`<p data-ww-assign-hint class="m-0 mt-2 text-xs text-amber-200">
-            ${translateText("ww1936.land.assign_hint", {
-              army: armyName(army.nameNo),
-            })}
-          </p>`}
-      ${rows.length === 0
-        ? this.empty("ww1936.land.no_generals")
-        : html`<ul
-            data-ww-generals
-            class="m-0 mt-2 flex list-none flex-col gap-1 p-0"
-          >
-            ${rows.map((r) => {
-              const g = r.data;
-              const commands =
-                g.army === 0 ? undefined : c.view.armies.get(g.army);
-              const open = this.expanded === g.id;
-              const tap = () => {
-                if (army !== null && r.serving) {
-                  this.send({
-                    kind: "army_general",
-                    army: army.id,
-                    general: g.id,
-                  });
-                  return;
-                }
-                this.expanded = open ? null : g.id;
-              };
-              return html`<li>
-                <button
-                  type="button"
-                  data-ww-general=${g.id}
-                  data-serving=${String(r.serving)}
-                  class="flex min-h-11 w-full flex-col gap-0.5 rounded-md border border-white/10 bg-white/5 p-1.5 text-left text-xs hover:bg-white/10 ${r.serving
-                    ? ""
-                    : "opacity-50"}"
-                  @click=${tap}
-                >
-                  <span class="flex w-full items-center gap-1.5">
-                    <span class="min-w-0 flex-1 truncate text-sm font-bold"
-                      >${rosterName(g)}</span
-                    >
-                    ${traitsOf(g.traits).map(
-                      (t) =>
-                        html`<span
-                          role="img"
-                          aria-label=${translateText(`ww1936.trait.${t}`)}
-                          >${TRAIT_ICONS[t]}</span
-                        >`,
-                    )}
-                  </span>
-                  <span class="flex w-full flex-wrap gap-x-2 text-white/70">
-                    <span class="tabular-nums"
-                      >${translateText("ww1936.land.general_skills", {
-                        a: g.att,
-                        d: g.def,
-                        p: g.plan,
-                        l: g.log,
-                      })}</span
-                    >
-                    <span
-                      >${translateText("ww1936.land.general_level", {
-                        n: g.level,
-                      })}</span
-                    >
-                    ${commands === undefined
-                      ? nothing
-                      : html`<span class="text-sky-300"
-                          >${translateText("ww1936.land.serving", {
-                            army: armyName(commands.nameNo),
-                          })}</span
-                        >`}
-                    ${r.serving
-                      ? nothing
-                      : html`<span data-ww-unavailable class="text-amber-300"
-                          >${g.from >= 0 && c.day < g.from
-                            ? translateText("ww1936.land.general_from", {
-                                year: dateOfDay(g.from).year,
-                              })
-                            : translateText("ww1936.land.general_until", {
-                                date: dateLabel(g.until),
-                              })}</span
-                        >`}
-                  </span>
-                  <span class="block h-1 w-full rounded bg-white/10">
-                    <span
-                      class="block h-1 rounded bg-amber-400"
-                      style="width: ${Math.min(
-                        100,
-                        (g.xp * 100) / Math.max(1, 100 * g.level),
-                      )}%"
-                    ></span>
-                  </span>
-                  ${open
-                    ? html`<span data-ww-traits class="flex flex-col gap-0.5">
-                        ${traitsOf(g.traits).map(
-                          (t) =>
-                            html`<span
-                              >${TRAIT_ICONS[t]}
-                              <b>${translateText(`ww1936.trait.${t}`)}</b>:
-                              ${translateText(`ww1936.trait_desc.${t}`)}</span
-                            >`,
-                        )}
-                      </span>`
-                    : nothing}
-                </button>
-              </li>`;
-            })}
-          </ul>`}
-      <button
-        type="button"
-        data-ww-appoint
-        aria-disabled=${String(xp < WW_TITLED_GENERAL_XP_MILLI)}
-        class="mt-2 h-9 w-full rounded-md border text-xs font-semibold ${xp <
-        WW_TITLED_GENERAL_XP_MILLI
-          ? "border-white/5 bg-white/5 text-white/40"
-          : "border-amber-300/60 bg-amber-800/40 hover:bg-amber-700/50"}"
-        @click=${appoint}
-      >
-        ${translateText("ww1936.land.appoint_general", {
-          cost: WW_TITLED_GENERAL_XP_MILLI / 1000,
-        })}
-      </button>
-      ${this.refused?.key === "appoint"
-        ? html`<p data-ww-block class="m-0 mt-1 text-xs text-red-300">
-            🔒 ${this.refused.text}
-          </p>`
-        : nothing}`;
+      ? nothing
+      : html`<p data-ww-assign-hint class="m-0 mt-2 text-xs text-amber-200">
+          ${translateText("ww1936.land.assign_hint", {
+            army: armyName(army.nameNo),
+          })}
+        </p>`}
+    ${rows.length === 0
+      ? this.empty("ww1936.land.no_generals")
+      : html`<ul
+          data-ww-generals
+          class="m-0 mt-2 flex list-none flex-col gap-1 p-0"
+        >
+          ${rows.map((r) => {
+            const g = r.data;
+            const commands =
+              g.army === 0 ? undefined : c.view.armies.get(g.army);
+            const open = this.expanded === g.id;
+            const tap = () => {
+              if (army !== null && r.serving) {
+                this.send({
+                  kind: "army_general",
+                  army: army.id,
+                  general: g.id,
+                });
+                return;
+              }
+              this.expanded = open ? null : g.id;
+            };
+            return html`<li>
+              <button
+                type="button"
+                data-ww-general=${g.id}
+                data-serving=${String(r.serving)}
+                class="flex min-h-11 w-full flex-col gap-0.5 rounded-md border border-white/10 bg-white/5 p-1.5 text-left text-xs hover:bg-white/10 ${r.serving
+                  ? ""
+                  : "opacity-50"}"
+                @click=${tap}
+              >
+                <span class="flex w-full items-center gap-1.5">
+                  <span class="min-w-0 flex-1 truncate text-sm font-bold"
+                    >${rosterName(g)}</span
+                  >
+                  ${traitsOf(g.traits).map(
+                    (t) =>
+                      html`<span
+                        role="img"
+                        aria-label=${translateText(`ww1936.trait.${t}`)}
+                        >${TRAIT_ICONS[t]}</span
+                      >`,
+                  )}
+                </span>
+                <span class="flex w-full flex-wrap gap-x-2 text-white/70">
+                  <span class="tabular-nums"
+                    >${translateText("ww1936.land.general_skills", {
+                      a: g.att,
+                      d: g.def,
+                      p: g.plan,
+                      l: g.log,
+                    })}</span
+                  >
+                  <span
+                    >${translateText("ww1936.land.general_level", {
+                      n: g.level,
+                    })}</span
+                  >
+                  ${commands === undefined
+                    ? nothing
+                    : html`<span class="text-sky-300"
+                        >${translateText("ww1936.land.serving", {
+                          army: armyName(commands.nameNo),
+                        })}</span
+                      >`}
+                  ${r.serving
+                    ? nothing
+                    : html`<span data-ww-unavailable class="text-amber-300"
+                        >${g.from >= 0 && c.day < g.from
+                          ? translateText("ww1936.land.general_from", {
+                              year: dateOfDay(g.from).year,
+                            })
+                          : translateText("ww1936.land.general_until", {
+                              date: dateLabel(g.until),
+                            })}</span
+                      >`}
+                </span>
+                <span class="block h-1 w-full rounded bg-white/10">
+                  <span
+                    class="block h-1 rounded bg-amber-400"
+                    style="width: ${Math.min(
+                      100,
+                      (g.xp * 100) / Math.max(1, 100 * g.level),
+                    )}%"
+                  ></span>
+                </span>
+                ${open
+                  ? html`<span data-ww-traits class="flex flex-col gap-0.5">
+                      ${traitsOf(g.traits).map(
+                        (t) =>
+                          html`<span
+                            >${TRAIT_ICONS[t]}
+                            <b>${translateText(`ww1936.trait.${t}`)}</b>:
+                            ${translateText(`ww1936.trait_desc.${t}`)}</span
+                          >`,
+                      )}
+                    </span>`
+                  : nothing}
+              </button>
+            </li>`;
+          })}
+        </ul>`}`;
   }
 }

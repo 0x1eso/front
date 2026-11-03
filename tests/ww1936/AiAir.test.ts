@@ -309,7 +309,6 @@ describe("the AI's paradrops (lane AI review; spec §14.10, §17.6)", () => {
       ce.addTech(t);
     }
     const cl = land.country(deu)!;
-    cl.armyXpMilli = 1_000_000_000;
     const tpl = cl.nextTemplateId;
     expect(
       land.issue(
@@ -358,7 +357,6 @@ describe("the AI's paradrops (lane AI review; spec §14.10, §17.6)", () => {
     ce.addTech("mountaineers");
     ce.addTech("paratroopers");
     const cl = ww.land.country(deu)!;
-    cl.armyXpMilli = 1_000_000_000;
     // Crete, not skipped, no delay (the beats are rolled on the first tick).
     step(runner);
     const i = NAVAL_BEATS.findIndex((b) => b.id === "deu_crete");

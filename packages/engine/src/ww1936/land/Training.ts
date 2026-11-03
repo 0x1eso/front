@@ -27,7 +27,6 @@ import {
   specialCap,
   STATIC_KEY_STATS,
   templateBlock,
-  templateXpCost,
 } from "@openfront/engine-lib/ww1936/TemplateStats";
 import {
   drawManpower,
@@ -102,7 +101,7 @@ export function saveTemplate(
   if (old === null && cl.templates.length >= WW_MAX_TEMPLATES) {
     return "too_many_templates";
   }
-  // A new template copies `base` (free) and pays for what it changes.
+  // A new template copies `base`; every change is free.
   const base = old ?? (o.base === 0 ? null : cl.template(o.base));
   if (old === null && o.base !== 0 && base === null) return "bad_template";
   const def: TemplateDef = {
@@ -112,9 +111,6 @@ export function saveTemplate(
   };
   const block = templateBlock(def, ce.researched, Infinity);
   if (block !== null) return block;
-  const cost = templateXpCost(base?.def ?? null, def);
-  if (cost > cl.armyXpMilli) return "no_xp";
-  cl.armyXpMilli -= cost;
   if (old === null) {
     cl.templates.push({ id: cl.nextTemplateId++, key: "", def });
   } else {

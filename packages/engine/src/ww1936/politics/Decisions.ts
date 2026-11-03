@@ -83,10 +83,6 @@ function otherCostsMet(pol: WwPolitics, id: number, d: DecisionDef): boolean {
     const ce = pol.econ.country(id);
     if (ce === null || ce.manpower < cost.manpower!) return false;
   }
-  if ((cost.armyXp ?? 0) > 0) {
-    const xp = pol.land.country(id)?.armyXpMilli ?? 0;
-    if (xp < cost.armyXp! * 1000) return false;
-  }
   return equipmentHeld(pol, id, d);
 }
 
@@ -181,11 +177,6 @@ function payCosts(pol: WwPolitics, id: number, d: DecisionDef): void {
       }
     }
     pol.econ.markCountryDirty(id);
-  }
-  const cl = pol.land.country(id);
-  if ((cost.armyXp ?? 0) > 0 && cl !== null) {
-    cl.armyXpMilli -= cost.armyXp! * 1000;
-    pol.land.markCountry(id);
   }
 }
 

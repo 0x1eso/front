@@ -83,7 +83,6 @@ async function atWar(): Promise<{ runner: GameRunner; ww: WorldWar }> {
 /** Britain saves a fighter design in slot 1 by the player's order. */
 function saveFighter(ww: WorldWar, runner: GameRunner): PlaneDesignStats {
   const d = ww.depth;
-  ww.air.country(GBR)!.airXpMilli = 400_000;
   const def = {
     ...recommendedPlane("small_1", new Set(WW_TECH_IDS)),
     name: "Spit",
@@ -279,7 +278,6 @@ describe("T1b: plane designs in P4's air war (lane E's sites)", () => {
     const d = ww.depth;
     const navy = ww.navy;
     const ce = ww.economy.country(GBR)!;
-    ww.air.country(GBR)!.airXpMilli = 400_000;
     for (const t of WW_TECH_IDS) ce.addTech(t);
     const def = {
       kind: "plane",
@@ -325,7 +323,6 @@ describe("T1b: plane designs in P4's air war (lane E's sites)", () => {
     const navy = ww.navy;
     const air = ww.air;
     const ce = ww.economy.country(GBR)!;
-    ww.air.country(GBR)!.airXpMilli = 400_000;
     for (const t of WW_TECH_IDS) ce.addTech(t);
     // A small torpedo plane with the carrier gear: a carrier naval bomber.
     const def = {

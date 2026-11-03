@@ -204,7 +204,7 @@ describe("P6 depth screen texts", () => {
     const k = ownKeys(KOK).sort();
     expect(k).toEqual(e);
     // 316 after batch P6-2 dropped the keys no screen reads (was 437).
-    expect(e.length).toBeGreaterThanOrEqual(283); // ww9 dropped the doctrine keys
+    expect(e.length).toBeGreaterThanOrEqual(281); // ww9 dropped the doctrine keys
   });
 
   it("has every text non-empty, and ko actually translated", () => {

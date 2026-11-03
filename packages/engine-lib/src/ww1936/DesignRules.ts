@@ -5,7 +5,6 @@
 // the designer screen call the same functions (Review Focus 2).
 import {
   DesignDef,
-  DesignKind,
   DS_AMPHIBIOUS,
   DS_CARGO,
   DS_CARRIER,
@@ -1442,40 +1441,6 @@ export function designBlock(
     if (!has(d.tech)) return "module_locked";
   }
   return null;
-}
-const XP_COST: Readonly<Record<DesignKind, readonly [number, number, number]>> =
-  {
-    tank: [10, 3, 1],
-    ship: [15, 5, 0],
-    plane: [10, 3, 0],
-  };
-/** Spec §5.1 cost table: a new design, or a copy (changed modules and levels, at least 5). */
-export function designXpCost(
-  before: DesignDef | null,
-  after: DesignDef,
-): number {
-  const [base, perMod, perLvl] = XP_COST[after.kind];
-  const lv = (d: DesignDef) => [d.armorLevel ?? 0, d.engineLevel ?? 0];
-  if (
-    before === null ||
-    before.base !== after.base ||
-    before.kind !== after.kind
-  ) {
-    const m = resolvedModules(after);
-    const nonDefault = m.filter(
-      (id, i) =>
-        id !== "" &&
-        (after.kind !== "tank" || id !== tankDefault(after.base, i)),
-    ).length;
-    return base + perMod * nonDefault + perLvl * (lv(after)[0] + lv(after)[1]);
-  }
-  const a = resolvedModules(before);
-  const b = resolvedModules(after);
-  const changed = b.filter((id, i) => id !== a[i]).length;
-  const lvl =
-    Math.abs(lv(after)[0] - lv(before)[0]) +
-    Math.abs(lv(after)[1] - lv(before)[1]);
-  return Math.max(5, perMod * changed + perLvl * lvl);
 }
 /** Spec §5.5. */
 export function convertCost(

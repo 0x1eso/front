@@ -1,7 +1,6 @@
 // World War 1936 P6 (plan Task 1 Steps 12–15; review E4/E5, L4): the
 // foundation's hook bodies in P1–P5, each driven through its seam with a
 // stand-in lane value, and neutral when the lanes give nothing.
-import { AIR_MISSIONS } from "@openfront/engine-api/ww1936/AirTypes";
 import { KS, KS_FIELDS } from "@openfront/engine-api/ww1936/DepthTypes";
 import {
   equipKey,
@@ -396,22 +395,5 @@ describe("P6: the sparse indexes (review E16, W2)", () => {
     expect(d.reconAt(faction, DEEP.sr.central - 1024)).toBe(-1);
     expect(d.regionStatusIndex.get(DEEP.region.paris)).toBe(0);
     expect(d.resistBoostIndex.get(DEEP.region.warsaw)).toBe(0);
-  });
-});
-
-describe("ww9: the air experience counter", () => {
-  it("counts the sorties of the experience missions per country", async () => {
-    const { ww, id } = await deep("GBR");
-    const d = ww.depth;
-    d.airSorties.fill(0);
-    const sorties = (m: (typeof AIR_MISSIONS)[number], n: number) =>
-      d.noteSorties(id, AIR_MISSIONS.indexOf(m), n);
-    sorties("air_superiority", 2);
-    sorties("cas", 4);
-    sorties("port_strike", 3);
-    sorties("air_supply", 5);
-    sorties("recon", 5);
-    expect(d.airSorties[id]).toBe(9);
-    expect(d.airSorties[DEEP.tag.FRA]).toBe(0);
   });
 });

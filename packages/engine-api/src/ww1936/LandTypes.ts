@@ -587,7 +587,6 @@ export interface DivisionData {
 
 export interface CountryLandDetail {
   smallID: number;
-  armyXpMilli: number;
   templates: TemplateData[];
   training: TrainingData[];
   generals: GeneralData[];
@@ -627,8 +626,6 @@ export const WW_SUPPLY_RANGE = 600;
 export const WW_PLAN_MAX_BP = 3000;
 export const WW_PLAN_DAY_BP = 100;
 export const WW_PLAN_FIGHT_BP = 50;
-export const WW_ARMY_XP_MAX_MILLI = 500_000;
-export const WW_TITLED_GENERAL_XP_MILLI = 10_000;
 export const WW_PARA_RANGE_KM = 600;
 export const WW_PARA_PREP_DAYS = 10;
 export const WW_PARA_COOLDOWN_DAYS = 30;

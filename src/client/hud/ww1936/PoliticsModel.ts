@@ -93,7 +93,11 @@ import {
 } from "@openfront/engine-lib/ww1936/PoliticsRules";
 import { shipNameKey } from "@openfront/engine-lib/ww1936/ShipNames";
 import { emptyStats } from "@openfront/engine-lib/ww1936/Stats";
-import { masteryXpMilli } from "@openfront/engine-lib/ww1936/ThoughtRules";
+import {
+  masteryXpMilli,
+  permPctOfMilli,
+  permPctOfXp,
+} from "@openfront/engine-lib/ww1936/ThoughtRules";
 import { LawEffects, lawEffects } from "@openfront/engine-lib/ww1936/WwLaws";
 import { assetUrl } from "@openfront/shared/AssetUrls";
 import { translateText } from "../../Utils";
@@ -577,9 +581,13 @@ function paramText(
   params: Record<string, string | number>,
 ): string | number {
   if (typeof v === "number") {
-    // The engine converts this one to experience: show what is given.
-    return kind === "doctrine_mastery" && k === "amount"
-      ? Math.trunc(masteryXpMilli(v) / 1000)
+    // The engine turns these experience grants into a permanent percent: show it.
+    if (k !== "amount") return v;
+    if (kind === "doctrine_mastery") {
+      return permPctOfMilli(masteryXpMilli(v));
+    }
+    return kind === "army_xp" || kind === "navy_xp" || kind === "cp"
+      ? permPctOfXp(v)
       : v;
   }
   switch (k) {
@@ -1618,9 +1626,6 @@ export function decisionCostText(id: string, costPp: number): string | null {
         recruitablePct: 0,
       }),
     );
-  }
-  if (c?.armyXp !== undefined && c.armyXp > 0) {
-    parts.push(translateText("ww1936.fx.army_xp", { amount: -c.armyXp }));
   }
   return parts.length === 0 ? null : parts.join(" · ");
 }
