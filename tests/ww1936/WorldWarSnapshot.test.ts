@@ -484,12 +484,13 @@ describe("World War 1936 snapshots (spec §7.8)", () => {
 // Re-pinned for 30 % faster construction and the Red Bonaparte: three equal runs.
 // Re-pinned for the free military (no national XP, spirits or bought traits, free
 // commanders) with faster construction and efficiency: three equal runs.
-const WW1936_DIGEST = "edc35b663ba5c527";
+// Re-pinned for faster research (cost 1300 -> 800 permille): three equal runs.
+const WW1936_DIGEST = "6ceb422b7c6c6ed5";
 /**
  * The same game on Easy (the lobby's default in this mode): the AI
  * handicaps and the slower war planning. Pinned with three equal runs.
  */
-const WW1936_EASY_DIGEST = "70f0e22c0b34f6b4";
+const WW1936_EASY_DIGEST = "edd674fd6527e3bc";
 
 describe("World War 1936 stays deterministic", () => {
   // An all-AI game on the test map, long enough for the calendar's first
