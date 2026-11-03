@@ -6,7 +6,7 @@ import { Controller } from "../../Controller";
 import { translateText } from "../../Utils";
 import type { GameView } from "../../view";
 import { flagUrl, newsTag, newsText } from "./PoliticsModel";
-import { WW_BAND_PX } from "./WorldWarModel";
+import { WW_BAND_PX, WW_STRIP_EXTRA } from "./WorldWarModel";
 import { OpenWwDiplomacyEvent } from "./WwDrawer";
 
 /** Spec §21.7: a news line stays this long, ms. */
@@ -82,7 +82,7 @@ export class WwNewsTicker extends LitElement implements Controller {
       data-ww-news
       aria-label=${`${translateText("ww1936.eventui.news")}: ${line.text}`}
       class="fixed left-1/2 z-[960] flex max-w-[min(90vw,560px)] -translate-x-1/2 items-center gap-2 rounded-md border border-white/15 bg-gray-900/90 px-3 py-1 text-xs text-white shadow-lg min-h-9"
-      style="top: ${WW_BAND_PX + 4}px"
+      style="top: calc(${WW_BAND_PX + 4}px + ${WW_STRIP_EXTRA})"
       @click=${() => this.eventBus.emit(new OpenWwDiplomacyEvent("world"))}
       @contextmenu=${(e: Event) => e.preventDefault()}
     >

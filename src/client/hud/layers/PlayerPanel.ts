@@ -1473,7 +1473,7 @@ export class PlayerPanel extends LitElement implements Controller {
                   <div class="sticky top-0 z-20 flex justify-end p-2">
                     <button
                       @click=${this.handleClose}
-                      class="absolute right-3 top-3 z-20 flex h-7 w-7 items-center justify-center rounded-full bg-zinc-700 text-white shadow-sm hover:bg-red-500 transition-colors"
+                      class="absolute right-3 top-3 z-20 flex h-7 w-7 max-sm:h-10 max-sm:w-10 items-center justify-center rounded-full bg-zinc-700 text-white shadow-sm hover:bg-red-500 transition-colors"
                       aria-label=${translateText("common.close") || "Close"}
                       title=${translateText("common.close") || "Close"}
                     >

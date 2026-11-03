@@ -124,6 +124,8 @@ const HEAD = 22;
 /** Below this height the tree gives way to the card list. */
 const LIST_MAX_HEIGHT = 300;
 const SHEET_PHONE = 280;
+/** Below this width the detail replaces the tree instead of sitting beside it. */
+const NARROW_PX = 600;
 const SHEET_TABLET = 320;
 type Tab = (typeof TECH_TABS)[number];
 
@@ -479,7 +481,26 @@ export class WwResearchPanel extends WwDrawerBase {
     const layout = treeLayout(d, tab, day, bonuses);
     const sel = layout.nodes.find((n) => n.card.id === this.selected) ?? null;
     const tablet = !this.compact;
-    return html`<div class="flex min-w-0 flex-1 flex-col">
+    // A narrow screen (a phone upright): the detail takes the tree's place
+    // with its own back button; the tree and its toolbar wait behind it
+    // (hidden, not removed, so the scroll position survives).
+    const narrow = window.innerWidth < NARROW_PX;
+    const detailOnly = narrow && sel !== null;
+    return html`<div
+        class="flex min-w-0 flex-1 flex-col ${detailOnly ? "hidden" : ""}"
+      >
+        ${narrow
+          ? html`<div
+              data-ww-summary
+              class="shrink-0 pb-1 text-xs text-white/70"
+            >
+              ${this.tabName(tab)} ·
+              ${translateText(
+                "ww1936.rtree.summary",
+                this.summaryParams(layout),
+              )}
+            </div>`
+          : nothing}
         <div class="flex shrink-0 items-center gap-1 pb-1 text-xs">
           <button
             type="button"
@@ -518,9 +539,38 @@ export class WwResearchPanel extends WwDrawerBase {
         </div>
         ${this.renderCanvas(d, layout, day)}
       </div>
-      ${tablet || sel !== null
-        ? this.renderSheet(d, layout, sel, tablet)
-        : nothing}`;
+      ${detailOnly && sel !== null
+        ? this.renderNarrowDetail(d, sel)
+        : (tablet && !narrow) || sel !== null
+          ? this.renderSheet(d, layout, sel, tablet)
+          : nothing}`;
+  }
+
+  /** The tech's detail alone, under a back button that closes it (a narrow screen). */
+  private renderNarrowDetail(
+    d: WwCountryDetail,
+    sel: TreeNode,
+  ): TemplateResult {
+    return html`<div
+      data-ww-narrow-detail
+      class="flex min-w-0 flex-1 flex-col gap-1 overflow-hidden"
+    >
+      <button
+        type="button"
+        data-ww-detail-back
+        class="flex h-10 shrink-0 items-center gap-1 self-start rounded-md border border-white/20 px-3 text-sm font-semibold"
+        @click=${() => (this.selected = null)}
+      >
+        ← ${translateText("ww1936.rtree.back_to_tree")}
+      </button>
+      <aside
+        data-ww-sheet
+        data-width="full"
+        class="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto rounded-md border border-white/10 bg-black/30 p-2 text-xs"
+      >
+        ${this.renderDetail(d, sel)}
+      </aside>
+    </div>`;
   }
 
   private renderCanvas(
@@ -736,21 +786,24 @@ export class WwResearchPanel extends WwDrawerBase {
     </aside>`;
   }
 
+  private summaryParams(layout: TreeLayout) {
+    const s = tabSummary(layout, this.bonuses(), this.branch);
+    return {
+      done: s.done,
+      total: s.total,
+      running: s.running,
+      bonuses: s.bonuses,
+    };
+  }
+
   private renderSummary(
     d: WwCountryDetail,
     layout: TreeLayout,
   ): TemplateResult {
-    const bonuses = this.bonuses();
-    const s = tabSummary(layout, bonuses, this.branch);
     return html`<div data-ww-summary class="flex flex-col gap-1">
       <div class="text-sm font-bold">${this.tabName(this.branch)}</div>
       <div>
-        ${translateText("ww1936.rtree.summary", {
-          done: s.done,
-          total: s.total,
-          running: s.running,
-          bonuses: s.bonuses,
-        })}
+        ${translateText("ww1936.rtree.summary", this.summaryParams(layout))}
       </div>
       <div class="text-white/60">${translateText("ww1936.rtree.tap_hint")}</div>
       ${this.renderGrant(d, this.branch as TechBranch)}

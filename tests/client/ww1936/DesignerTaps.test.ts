@@ -9,8 +9,11 @@ vi.mock("../../../src/client/Utils", async (importOriginal) => ({
 }));
 
 import {
+  designerBarH,
+  designerBottomH,
   designerLayout,
   DesignerModel,
+  designerStatusH,
 } from "../../../src/client/hud/ww1936/DesignerModel";
 import { designerGame } from "./DesignerFixture";
 
@@ -62,6 +65,24 @@ describe("designer taps", () => {
       expect(l.gridH).toBeLessThanOrEqual(l.middleH);
       expect(l.sheetH).toBe(Math.floor(l.drawerH * 0.55));
     }
+  });
+});
+
+describe("the designer's rows hold 40 px buttons on a narrow phone", () => {
+  it("bars and the status row grow below 640 px only", () => {
+    expect(designerBarH(390)).toBe(40);
+    expect(designerStatusH(390)).toBe(40);
+    expect(designerBottomH(390)).toBeGreaterThanOrEqual(
+      designerStatusH(390) + 40,
+    );
+    // Wider screens keep their sizes; the layout follows the same rows.
+    expect([
+      designerBarH(844),
+      designerStatusH(844),
+      designerBottomH(844),
+    ]).toEqual([32, 24, 74]);
+    const narrow = designerLayout(390, 844, 6);
+    expect(narrow.middleH).toBe(narrow.drawerH - 2 * 40 - designerBottomH(390));
   });
 });
 

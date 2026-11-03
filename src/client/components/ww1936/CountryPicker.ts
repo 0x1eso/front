@@ -105,7 +105,7 @@ export class CountryPicker extends LitElement {
       aria-pressed=${mine}
       ?disabled=${holder !== null}
       @click=${() => this.onPick(tag)}
-      class="flex items-center gap-2 rounded-lg border px-2 py-1.5 text-left text-xs ${mine
+      class="flex items-center gap-2 rounded-lg border px-2 py-1.5 text-left text-xs max-sm:min-h-10 ${mine
         ? "border-amber-400 bg-amber-400/15"
         : "border-white/10 bg-white/5 hover:bg-white/10"} ${holder !== null
         ? "opacity-40"

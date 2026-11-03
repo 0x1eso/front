@@ -12880,6 +12880,7 @@
       "region_none": "{region}: 그대로"
     },
     "rtree": {
+      "back_to_tree": "기술 트리로",
       "start": "▶ 시작",
       "start_slot": "▶ 시작 (칸 {n})",
       "no_slot": "칸 없음",

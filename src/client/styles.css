@@ -832,3 +832,38 @@ unit-display .tutorial-highlight::after {
   border: 3px solid white;
   background: var(--color-aquarius);
 }
+
+/* World War 1936 at phone width: every control in a panel or card is a
+   finger target, 40 px tall and 32 px wide at least (a row of steppers may
+   stay narrow, a text button is wider anyway). One rule for all of them;
+   the tree's nodes and the band's chips size themselves.
+   A new panel belongs on this list. */
+@media (max-width: 639px) {
+  :is(
+      [data-ww-drawer],
+      [data-ww-diplomacy],
+      [data-ww-lobby-prep],
+      ww-army-card,
+      ww-battle-card,
+      ww-fleet-card,
+      ww-air-zone-card,
+      ww-wing-card,
+      ww-event-cards,
+      ww-peace-card,
+      ww-white-peace-card,
+      ww-takeover-card,
+      ww-news-ticker,
+      ww-exile-band
+    )
+    :is(
+      button,
+      select,
+      input[type="text"],
+      input[type="search"],
+      input[type="number"]
+    ):not([data-ww-tree-scroll] *),
+  [data-ww-act] {
+    min-height: 40px;
+    min-width: 32px;
+  }
+}

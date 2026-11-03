@@ -10,6 +10,7 @@ import { getTranslatedPlayerTeamLabel, translateText } from "../../Utils";
 import type { GameView } from "../../view";
 import { COMPACT_MAX_HEIGHT } from "../domestic/DomesticPanel";
 import { peaceUiOf } from "../ww1936/PeaceModel";
+import { WW_STRIP_BOTTOM } from "../ww1936/WorldWarModel";
 import { WwDrawerEvent, type WwDrawerId } from "../ww1936/WwDrawer";
 import { ImmunityBarVisibleEvent } from "./ImmunityTimer";
 import "./PlayerStats";
@@ -196,7 +197,7 @@ export class GameLeftSidebar extends LitElement implements Controller {
         class=${`fixed top-0 left-0 z-900 flex flex-col max-h-[calc(100vh-80px)] overflow-y-auto p-2 bg-gray-800/92 backdrop-blur-sm shadow-xs rounded-br-lg transition-all duration-300 ease-out transform ${
           this.isVisible ? "translate-x-0" : "hidden"
         }`}
-        style="margin-top: ${this.barOffset}px;"
+        style="margin-top: calc(${this.barOffset}px + ${WW_STRIP_BOTTOM});"
       >
         <div class="flex items-center gap-4 xl:gap-6 text-white">
           <div

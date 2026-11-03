@@ -9,7 +9,7 @@ import { translateText } from "../../Utils";
 import type { GameView } from "../../view";
 import { AIR_LEGEND } from "../../view/AirZoneColors";
 import { WwAirLayerEvent } from "./SeaAirSelection";
-import { WW_BAND_PX } from "./WorldWarModel";
+import { WW_BAND_PX, WW_STRIP_EXTRA } from "./WorldWarModel";
 import { seaAirOf } from "./WwSeaAirController";
 
 @customElement("ww-air-legend")
@@ -46,7 +46,7 @@ export class WwAirLegend extends LitElement implements Controller {
     return html`<div
       data-ww-air-legend
       class="pointer-events-none fixed left-2 z-[1000] flex gap-1 text-xs text-white"
-      style="top: ${WW_BAND_PX + 8}px"
+      style="top: calc(${WW_BAND_PX + 8}px + ${WW_STRIP_EXTRA})"
     >
       ${AIR_LEGEND.map(
         ({ key, rgb }) =>

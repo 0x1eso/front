@@ -156,6 +156,34 @@ describe("the lines come from the rule tables", () => {
     }
   });
 
+  it("a rule line that names a building is its unlock: no second buildings line", () => {
+    for (const lang of ["ko", "en"] as const) {
+      LANG = lang;
+      // Metal substitutes: the rule line carries the rates and the names.
+      const lines = effectLines("metal_substitute_1");
+      expect(
+        lines.filter((l) => /합금 공장|alloy plant/i.test(l)),
+      ).toHaveLength(1);
+      expect(
+        lines.some((l) =>
+          l.startsWith(TEXT[lang]["ww1936.techfx.buildings"].split("{")[0]),
+        ),
+      ).toBe(false);
+      // No tech's buildings line repeats a building its rule lines name.
+      const prefix = TEXT[lang]["ww1936.techfx.buildings"].split("{")[0];
+      for (const id of shown) {
+        const buildingsLine = effectLines(id).find((l) => l.startsWith(prefix));
+        if (buildingsLine === undefined) continue;
+        for (const [rule] of TECH_RULE_LINES[id] ?? []) {
+          const text = TEXT[lang][`ww1936.techfx.r_${rule}`].toLowerCase();
+          for (const name of buildingsLine.slice(prefix.length).split(", ")) {
+            expect(text, `${id}: ${name}`).not.toContain(name.toLowerCase());
+          }
+        }
+      }
+    }
+  });
+
   it("special projects and buildings are named", () => {
     LANG = "ko";
     expect(unlocksOf("nuclear_physics")).toContain(

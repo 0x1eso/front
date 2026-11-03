@@ -11176,6 +11176,7 @@
       "waiting": "Waiting on prerequisite"
     },
     "rtree": {
+      "back_to_tree": "Back to the tree",
       "base_days": "{n} days at base speed",
       "exclusive_note": "Either/or: taking this line locks the other one.",
       "grant_btn": "Research grant: {pp} PP for +{pct}% on {branch}, once",

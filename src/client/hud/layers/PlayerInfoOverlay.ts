@@ -70,6 +70,7 @@ import {
   today,
   TWO_TAP_MS,
   WW_BAND_PX,
+  WW_STRIP_EXTRA,
 } from "../ww1936/WorldWarModel";
 import {
   OpenWwIndustryEvent,
@@ -1418,7 +1419,10 @@ export class PlayerInfoOverlay extends LitElement implements Controller {
         class="fixed top-0 left-0 ${leftHalf
           ? "right-auto"
           : "right-0 sm:left-1/2 sm:right-auto sm:-translate-x-1/2"} z-[1001]"
-        style="margin-top: ${this.barOffset}px;${leftHalf
+        style="margin-top: calc(${this
+          .barOffset}px + ${this.game?.worldWarScenario()
+          ? WW_STRIP_EXTRA
+          : "0px"});${leftHalf
           ? ` width: min(${this.showShortcutButtons() ? 598 : 500}px, calc(50vw - 8px));`
           : ""}"
         @click=${() => this.hide()}

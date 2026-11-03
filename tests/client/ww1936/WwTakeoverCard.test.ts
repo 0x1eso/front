@@ -284,7 +284,9 @@ describe("<ww-exile-band> (spec §20.6)", () => {
       "[ww1936.exile.band] host=London,pct=54,trend=0.12,n=5,capital=Berlin",
     );
     // Below the top band and the news line.
-    expect(band.style.top).toBe(`${EXILE_BAND_TOP}px`);
+    expect(band.style.top).toBe(
+      `calc(${EXILE_BAND_TOP}px + var(--ww-strip-extra, 0px))`,
+    );
     band.click();
     expect(opened).toEqual(["government"]);
   });

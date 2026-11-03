@@ -1507,6 +1507,21 @@ export const DESIGNER_PAD = 12;
 export const DESIGNER_BAR_H = 32;
 /** The status row (24, with the tank steppers) and the button row (32), plus padding. */
 export const DESIGNER_BOTTOM_H = 74;
+/** A phone's width: its rows hold 40 px buttons (the status row holds the tank steppers, the button row the save buttons). */
+export const DESIGNER_TOUCH_W = 640;
+export const DESIGNER_BAR_H_TOUCH = 40;
+export const DESIGNER_STATUS_H_TOUCH = 40;
+export const DESIGNER_BOTTOM_H_TOUCH = 92;
+
+/** The height of the top bar and the base chips for a viewport width. */
+export const designerBarH = (vw: number): number =>
+  vw < DESIGNER_TOUCH_W ? DESIGNER_BAR_H_TOUCH : DESIGNER_BAR_H;
+/** The height of the status row above the buttons. */
+export const designerStatusH = (vw: number): number =>
+  vw < DESIGNER_TOUCH_W ? DESIGNER_STATUS_H_TOUCH : 24;
+/** The height of the bottom bar. */
+export const designerBottomH = (vw: number): number =>
+  vw < DESIGNER_TOUCH_W ? DESIGNER_BOTTOM_H_TOUCH : DESIGNER_BOTTOM_H;
 
 export interface DesignerLayout {
   drawerW: number;
@@ -1533,7 +1548,7 @@ export function designerLayout(
   const rows = Math.ceil(slots / 2);
   const gridW = 2 * DESIGNER_CARD_W + DESIGNER_GAP;
   const gridH = rows * DESIGNER_CARD_H + (rows - 1) * DESIGNER_GAP;
-  const middleH = drawerH - 2 * DESIGNER_BAR_H - DESIGNER_BOTTOM_H;
+  const middleH = drawerH - 2 * designerBarH(vw) - designerBottomH(vw);
   return {
     drawerW,
     drawerH,
