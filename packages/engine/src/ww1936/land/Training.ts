@@ -38,6 +38,7 @@ import {
 } from "../economy/Stock";
 import type { CountryEconomy } from "../economy/WwEconomy";
 import { capitalRegion } from "./LandStartRun";
+import { noteStartBudget, reformStartDivisions } from "./StartReform";
 import type {
   Army,
   CountryLand,
@@ -111,6 +112,8 @@ export function saveTemplate(
   };
   const block = templateBlock(def, ce.researched, Infinity);
   if (block !== null) return block;
+  // The preparation minute: a human's start template re-forms its divisions.
+  const reform = old !== null && noteStartBudget(land, cl, ce, old);
   if (old === null) {
     cl.templates.push({ id: cl.nextTemplateId++, key: "", def });
   } else {
@@ -118,6 +121,7 @@ export function saveTemplate(
     old.def = def;
     // A player's own name replaces the 1936 default's translated one.
     if (def.name !== "") old.key = "";
+    if (reform) reformStartDivisions(land, cl, ce, old);
     refitTemplate(land, cl, ce, old.id);
   }
   land.markCountry(cl.smallID);

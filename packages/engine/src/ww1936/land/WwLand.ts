@@ -534,6 +534,12 @@ export class CountryLand {
    * (P2 Task 6, controller ruling 2).
    */
   peakDivisions = 0;
+  /**
+   * Preparation minute only: the start templates a human edited, with the
+   * division count and men budget (count x men) they had when first saved.
+   * Empty otherwise; cleared when preparation ends.
+   */
+  startReform: { template: number; count: number; budget: number }[] = [];
 
   constructor(
     readonly smallID: number,
@@ -710,6 +716,10 @@ export const WwLandStateSchema = z.object({
       readyToday: zInt(),
       warnedTileAttack: z.boolean(),
       peakDivisions: zInt(),
+      /** Written only in the preparation minute, after a start template's save. */
+      startReform: z
+        .array(z.object({ template: zInt(), count: zInt(), budget: zInt() }))
+        .optional(),
     }),
   ),
 });
@@ -1055,6 +1065,7 @@ export class WwLand {
         }
       }
     }
+    if (!prep) this.clearStartReform();
     applyArmyOrders(this, ticks);
     stepMovement(this, ticks);
     if (!prep) stepBattles(this, ticks);
@@ -1062,6 +1073,15 @@ export class WwLand {
     noteLandFuel(this, ticks);
     stepRecovery(this);
     if (!prep) stepSpread(this);
+  }
+
+  /** Preparation is over: the start templates' budgets are gone (the old refit rule applies). */
+  private clearStartReform(): void {
+    for (const cl of this.countryList) {
+      if (cl !== null && cl !== undefined && cl.startReform.length > 0) {
+        cl.startReform = [];
+      }
+    }
   }
 
   private dailyCommon(): void {
@@ -2781,6 +2801,12 @@ export class WwLand {
       mix(cl.readyToday);
       mix(cl.warnedTileAttack ? 1 : 0);
       mix(cl.peakDivisions);
+      // Folded only when set (the preparation minute after a human's save).
+      for (const e of cl.startReform) {
+        mix(0x5e1f + e.template);
+        mix(e.count);
+        mix(e.budget);
+      }
     }
     return h;
   }
@@ -2899,6 +2925,9 @@ export class WwLand {
         readyToday: cl.readyToday,
         warnedTileAttack: cl.warnedTileAttack,
         peakDivisions: cl.peakDivisions,
+        ...(cl.startReform.length === 0
+          ? {}
+          : { startReform: cl.startReform.map((e) => ({ ...e })) }),
       })),
     };
   }
@@ -3024,6 +3053,7 @@ export class WwLand {
       cl.readyToday = c.readyToday;
       cl.warnedTileAttack = c.warnedTileAttack;
       cl.peakDivisions = c.peakDivisions;
+      cl.startReform = (c.startReform ?? []).map((e) => ({ ...e }));
     }
     this.rebuildDerived();
     // A restored game's screens have seen nothing yet.
