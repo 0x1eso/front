@@ -106,7 +106,7 @@ function movePlanes(d: WwDepth, id: number, from: From, slot: number): void {
       const r = t.rowOf(sid);
       if (r < 0) continue;
       const dd = t.deckDOf(r);
-      let n = 0;
+      let n: number;
       if (isStatic) {
         if (ty < 0) continue;
         const deck = t.deckOf(r);
