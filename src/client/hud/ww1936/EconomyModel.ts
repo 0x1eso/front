@@ -44,19 +44,16 @@ import {
   WwTradeData,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
 import {
-  BATTALION_IDS,
   GROUND_EQUIP_KEYS,
   GROUND_STATIC_SLOTS,
   NEED_GROUP_COUNT,
   NEED_GROUPS,
-  SUPPORT_IDS,
 } from "@openfront/engine-api/ww1936/LandTypes";
 import {
   WW_STAT_KEYS,
   WwStatKey,
 } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { renderNumber } from "@openfront/engine-lib/Format";
-import { BATTALIONS, SUPPORTS } from "@openfront/engine-lib/ww1936/Battalions";
 import { dayIndex } from "@openfront/engine-lib/ww1936/Calendar";
 import { designNeedGroup } from "@openfront/engine-lib/ww1936/DesignRules";
 import {
@@ -84,7 +81,7 @@ import {
   regionSlots,
   researchProgress,
 } from "@openfront/engine-lib/ww1936/EconomyRules";
-import { EQUIPMENT, genTech } from "@openfront/engine-lib/ww1936/Equipment";
+import { EQUIPMENT } from "@openfront/engine-lib/ww1936/Equipment";
 import { isNoStrike } from "@openfront/engine-lib/ww1936/NoStrike";
 import {
   lawBlock,

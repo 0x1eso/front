@@ -741,7 +741,7 @@ describe("the World War 1936 economy screens' model (spec §13)", () => {
       "[ww1936.effect.unlock] equipment=[ww1936.equip.medium_tank],gen=[ww1936.gen.2]",
       "[ww1936.techfx.tank_chassis] list=[ww1936.base.tank.medium_2]",
     ]);
-    expect(effectLines("tools_1").at(-1)).toContain("[ww1936.techfx.opens]");
+    expect(effectLines("tools_1")[1]).toContain("[ww1936.techfx.opens]");
   });
 
   it("the stock status sentence picks its branch from short, stock and output", () => {

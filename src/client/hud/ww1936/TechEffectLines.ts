@@ -17,7 +17,10 @@ import {
   BATTALION_IDS,
   SUPPORT_IDS,
 } from "@openfront/engine-api/ww1936/LandTypes";
-import { SHIP_CLASSES, SHIP_GENS } from "@openfront/engine-api/ww1936/NavyTypes";
+import {
+  SHIP_CLASSES,
+  SHIP_GENS,
+} from "@openfront/engine-api/ww1936/NavyTypes";
 import { WW_STAT_KEYS } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { BATTALIONS, SUPPORTS } from "@openfront/engine-lib/ww1936/Battalions";
 import {
@@ -27,7 +30,7 @@ import {
   TANK_BASE_DEFS,
   TANK_MODULE_DEFS,
 } from "@openfront/engine-lib/ww1936/DesignRules";
-import { EQUIPMENT, genTech } from "@openfront/engine-lib/ww1936/Equipment";
+import { genTech } from "@openfront/engine-lib/ww1936/Equipment";
 import { PROJECT_DEFS } from "@openfront/engine-lib/ww1936/ProjectRules";
 import { WW_TECHS } from "@openfront/engine-lib/ww1936/WwTechs";
 import { translateText } from "../../Utils";
@@ -141,7 +144,12 @@ export function techBuildings(tech: WwTechId): string[] {
 
 /** Special projects a tech is a condition of (PROJECT_DEFS). */
 export function techProjects(tech: WwTechId): SpecialProject[] {
-  return (Object.entries(PROJECT_DEFS) as [SpecialProject, { techs: readonly WwTechId[] }][])
+  return (
+    Object.entries(PROJECT_DEFS) as [
+      SpecialProject,
+      { techs: readonly WwTechId[] },
+    ][]
+  )
     .filter(([, d]) => d.techs.includes(tech))
     .map(([p]) => p);
 }
@@ -149,7 +157,8 @@ export function techProjects(tech: WwTechId): SpecialProject[] {
 /** The researchable techs that list `tech` as a prerequisite. */
 export function techOpens(tech: WwTechId): WwTechId[] {
   return WW_TECH_IDS.filter(
-    (id) => WW_TECHS[id].retired !== true && WW_TECHS[id].prereqs.includes(tech),
+    (id) =>
+      WW_TECHS[id].retired !== true && WW_TECHS[id].prereqs.includes(tech),
   );
 }
 
@@ -160,7 +169,9 @@ export function techOpens(tech: WwTechId): WwTechId[] {
  * ids real; the rule tests keep the numbers.
  */
 export const TECH_RULE_LINES: Readonly<
-  Partial<Record<WwTechId, readonly (readonly [string, Record<string, number>?])[]>>
+  Partial<
+    Record<WwTechId, readonly (readonly [string, Record<string, number>?])[]>
+  >
 > = {
   landing_craft_1: [
     ["landing_capacity", { n: 5 }],
