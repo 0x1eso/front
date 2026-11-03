@@ -10950,8 +10950,8 @@
       "who_prefix": "{who}: "
     },
     "prep": {
-      "approximate": "approximate: the stock is not known yet",
       "applied": "Start templates applied: {n}",
+      "approximate": "approximate: the edited templates share one stock",
       "button": "Prepare templates and designs",
       "designs_intro": "Create and edit tank, plane and ship designs and division entries. The ones switched to auto are made when the game starts; any that need parts this country has not researched are skipped.",
       "draft_note": "Draft mode: no research lock, and numbers shown without country modifiers.",
@@ -10963,6 +10963,7 @@
       "minor_note": "This country's start templates depend on its development, which is not known here. Only its main template can be changed.",
       "new_division": "New division",
       "preview": "With this template: {n} start divisions (was {was})",
+      "preview_limited": "With this template: {n} start divisions (was {was}), limited by {equipment}",
       "preview_unknown": "The division count cannot be previewed for this country.",
       "reset": "Reset",
       "skipped": "Start template {name} skipped: {reason}",

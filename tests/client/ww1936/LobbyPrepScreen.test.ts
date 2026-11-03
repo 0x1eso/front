@@ -84,7 +84,8 @@ describe("the lobby preparation screen", () => {
     expect(q(card, "[data-ww-prep-preview]").textContent).toContain(
       "ww1936.prep.preview",
     );
-    expect(q(card, "[data-ww-prep-preview]").textContent).toContain(
+    // One edited template: the number is not a forecast.
+    expect(q(card, "[data-ww-prep-preview]").textContent).not.toContain(
       "ww1936.prep.approximate",
     );
     expect(prepPlanOf("DEU")).toHaveLength(1);

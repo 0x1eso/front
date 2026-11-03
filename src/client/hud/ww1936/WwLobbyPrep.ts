@@ -25,6 +25,7 @@ import { SendWwOrderIntentEvent } from "../../Transport";
 import { translateText } from "../../Utils";
 import { WwDepthOpenEvent } from "./DepthEvents";
 import { LibEntry, libraryStore } from "./DesignLibrary";
+import { equipmentName } from "./EconomyModel";
 import { battalionSummary } from "./LandModel";
 import {
   LIB_DRAFT_ID,
@@ -32,7 +33,7 @@ import {
   lobbyResearched,
   lobbyStartTemplates,
   planProblem,
-  startPreview,
+  startPreviews,
 } from "./LobbyPrep";
 import "./WwDesigner";
 import type { WwDesigner } from "./WwDesigner";
@@ -162,6 +163,10 @@ export class WwLobbyPrep extends LitElement {
   private renderStart(): TemplateResult {
     const researched = lobbyResearched(this.tag);
     const list = lobbyStartTemplates(this.tag);
+    const previews = startPreviews(this.tag, this.plan);
+    // Several edited templates share one stock: the plan's order decides who
+    // gets it first, which the lobby follows, but it is a forecast.
+    const shared = previews.size > 1;
     const library = libraryStore().entries.filter((e) => e.type === "template");
     const minor = !isMajor(this.tag);
     return html`<div data-ww-prep-start class="flex flex-col gap-2">
@@ -185,8 +190,7 @@ export class WwLobbyPrep extends LitElement {
               };
         const problem =
           p === undefined ? null : planProblem(def, researched, new Set());
-        const prev =
-          p === undefined ? null : startPreview(this.tag, st.key, st.def, def);
+        const prev = previews.get(st.key) ?? null;
         const fits = library.filter(
           (e) =>
             e.type === "template" &&
@@ -235,13 +239,21 @@ export class WwLobbyPrep extends LitElement {
                   ${translateText("ww1936.prep.preview_unknown")}
                 </div>`
             : html`<div data-ww-prep-preview class="text-emerald-300">
-                ${translateText("ww1936.prep.preview", {
-                  n: prev.count,
-                  was: prev.original,
-                })}
-                <span class="text-white/60"
-                  >${translateText("ww1936.prep.approximate")}</span
-                >
+                ${prev.limitedBy === null
+                  ? translateText("ww1936.prep.preview", {
+                      n: prev.count,
+                      was: prev.original,
+                    })
+                  : translateText("ww1936.prep.preview_limited", {
+                      n: prev.count,
+                      was: prev.original,
+                      equipment: equipmentName(prev.limitedBy),
+                    })}
+                ${shared
+                  ? html`<span class="text-white/60"
+                      >${translateText("ww1936.prep.approximate")}</span
+                    >`
+                  : nothing}
               </div>`}
           <div class="flex flex-wrap gap-1">
             <button

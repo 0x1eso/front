@@ -5,24 +5,38 @@
 import type { WwOrder } from "@openfront/engine-api/Schemas";
 import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
 import {
+  equipKey,
+  EquipmentType,
+  WW_MEN_PER_INF_EQUIPMENT,
   WW_TECH_IDS,
   WwTechId,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
 import {
   BattalionId,
   GROUND_SLOTS,
+  NEED_GROUPS,
   SupportId,
   TemplateData,
   TemplateDef,
 } from "@openfront/engine-api/ww1936/LandTypes";
-import { isMajor, startTechs } from "@openfront/engine-lib/ww1936/EconomyStart";
+import {
+  isMajor,
+  startArmy,
+  startStock,
+  startTechs,
+} from "@openfront/engine-lib/ww1936/EconomyStart";
 import {
   landStartTechs,
   START_OOB,
   StartTemplate,
   startTemplates,
 } from "@openfront/engine-lib/ww1936/LandStart";
-import { startReformCount } from "@openfront/engine-lib/ww1936/StartReform";
+import {
+  groupStockOf,
+  previewReforms,
+  ReformEdit,
+  StartKind,
+} from "@openfront/engine-lib/ww1936/StartReform";
 import { DESIGN_ONLY_GROUP } from "@openfront/engine-lib/ww1936/TemplatePresets";
 import {
   genMixOf,
@@ -85,47 +99,96 @@ export function planProblem(
 }
 
 export interface StartPreview {
-  /** Start divisions with this template (the stock is not known: approximate). */
+  /** Start divisions with this template. */
   count: number;
   /** The 1936 count of the original template. */
   original: number;
+  /** The equipment that cut the count (a shortage in the stock), or null. */
+  limitedBy: EquipmentType | null;
 }
 
-function menOf(def: TemplateDef, researched: ReadonlySet<WwTechId>): number {
+function statsOf(def: TemplateDef, researched: ReadonlySet<WwTechId>) {
   return templateStats(
     def,
     techTotals(researched),
     genMixOf(new Array<number>(GROUND_SLOTS).fill(0)),
-  ).men;
+  );
 }
 
 /**
- * The same rule the engine uses (startReformCount), with a stock that is not
- * limiting. Null where the 1936 count is not known to the lobby (a minor's
- * comes from its scenario data) or the template holds no divisions.
+ * The start divisions each edited template of a major would make, by the
+ * engine's own pure rule: the start's stock (startStock and the army's
+ * rifles), the 1936 order of battle fielded in order with the shortages it
+ * brings, then each edit in the plan's order (the order the sender uses)
+ * giving back what its divisions hold and drawing it again. Men are not
+ * modelled (the pool is far larger than the army). Exact for one edited
+ * template, in step with the engine for several. Empty for a minor: its
+ * 1936 count comes from scenario data the lobby has not got.
  */
-export function startPreview(
+export function startPreviews(
   tag: CountryTag,
-  key: string,
-  original: TemplateDef,
-  edited: TemplateDef,
-): StartPreview | null {
+  plan: readonly PrepTemplate[],
+): Map<string, StartPreview> {
+  const out = new Map<string, StartPreview>();
   const oob = START_OOB[tag];
-  if (oob === undefined) return null;
-  let count = 0;
-  // (The 1936 order of battle table, not a game's data.)
-  for (const { divisions } of oob) {
-    for (const [k, n] of divisions) if (k === key) count += n;
-  }
-  if (count === 0) return null;
+  if (oob === undefined) return out;
   const researched = lobbyResearched(tag);
-  const oldMen = menOf(original, researched);
-  const men = menOf(edited, researched);
-  if (oldMen <= 0 || men <= 0) return null;
-  return {
-    count: startReformCount(count * oldMen, count, men, Infinity),
-    original: count,
-  };
+  const originals = new Map(
+    lobbyStartTemplates(tag).map((t) => [t.key, t.def]),
+  );
+  const counts = new Map<string, number>();
+  const field: StartKind[] = [];
+  const need = new Map<string, readonly number[]>();
+  for (const { divisions } of oob) {
+    for (const [key, n] of divisions) {
+      const def = originals.get(key);
+      if (def === undefined) continue;
+      if (!need.has(key)) need.set(key, statsOf(def, researched).need);
+      counts.set(key, (counts.get(key) ?? 0) + n);
+      for (let i = 0; i < n; i++) field.push({ key, need: need.get(key)! });
+    }
+  }
+  const army = startArmy(tag, 0);
+  const stock = startStock(tag, army, 0, 0);
+  stock[equipKey("infantry_equipment", 1)] += Math.ceil(
+    army / WW_MEN_PER_INF_EQUIPMENT,
+  );
+  const edits: ReformEdit[] = [];
+  const keys: string[] = [];
+  for (const p of plan) {
+    const def = originals.get(p.key);
+    const n = counts.get(p.key);
+    if (def === undefined || n === undefined) continue;
+    const old = statsOf(def, researched);
+    const now = statsOf(
+      {
+        name: p.name,
+        battalions: p.battalions as BattalionId[],
+        support: p.support as SupportId[],
+      },
+      researched,
+    );
+    if (old.men <= 0 || now.men <= 0) continue;
+    keys.push(p.key);
+    edits.push({
+      key: p.key,
+      need: now.need,
+      men: now.men,
+      originalCount: n,
+      budget: n * old.men,
+    });
+  }
+  const res = previewReforms(groupStockOf(stock), field, edits);
+  res.forEach((r, i) => {
+    const group = r.limitedBy < 0 ? null : NEED_GROUPS[r.limitedBy];
+    out.set(keys[i], {
+      count: r.count,
+      original: edits[i].originalCount,
+      limitedBy:
+        group === null || group === undefined ? null : (group as EquipmentType),
+    });
+  });
+  return out;
 }
 
 export type LobbyMode = "start" | "library";

@@ -3,16 +3,21 @@
 // engine-lib's startReformCount. Germany is human (the test map has no
 // historical order of battle, so it takes genericDivisions of template 1).
 import type { LandOrder } from "@openfront/engine-api/Schemas";
+import { equipKey } from "@openfront/engine-api/ww1936/EconomyTypes";
 import {
   BattalionId,
   GROUND_EQUIP_KEYS,
   GROUND_SLOTS,
   idleOrder,
+  NEED_GROUPS,
   WW_MAX_ARMY_DIVISIONS,
 } from "@openfront/engine-api/ww1936/LandTypes";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import {
   apportion,
+  groupStockOf,
+  previewReforms,
+  startHoldings,
   startReformCount,
 } from "@openfront/engine-lib/ww1936/StartReform";
 import type { WwLand } from "@openfront/engine/ww1936/land/WwLand";
@@ -325,5 +330,106 @@ describe("start division re-forming (preparation)", () => {
     // The same divisions, men above the new need back in the pool.
     expect(divisionsOf(a.l, a.id, INFANTRY)).toHaveLength(count);
     expect(a.ce.manpower).toBeGreaterThan(pool);
+  });
+});
+
+describe("the preview's stock model against the engine", () => {
+  const edits: [string, (b: BattalionId[]) => BattalionId[]][] = [
+    ["smaller", (b) => b.slice(0, b.length - 3)],
+    ["bigger", (b) => [...b, "infantry", "infantry"]],
+    [
+      "gunnery",
+      (b) => [...b.slice(0, 6), ...new Array<BattalionId>(6).fill("artillery")],
+    ],
+    [
+      "heavy on guns",
+      (b) => [...b.slice(0, 9), ...new Array<BattalionId>(6).fill("artillery")],
+    ],
+  ];
+
+  test.each(edits)(
+    "%s: the same count, and the stock left agrees",
+    async (_n, edit) => {
+      const { l, id, ce, cl } = await prepGame();
+      const rows = divisionsOf(l, id, INFANTRY);
+      const count = rows.length;
+      // The stock the start had: what is left plus what the divisions hold.
+      const init = Array.from(ce.stock);
+      for (const r of l.rowsOf(id)) {
+        const e = l.divisions.equipOf(r);
+        for (let j = 0; j < GROUND_SLOTS; j++)
+          init[GROUND_EQUIP_KEYS[j]] += e[j];
+      }
+      const old = l.templateStatsOf(id, INFANTRY)!;
+      const field = rows.map(() => ({ key: "i", need: old.need }));
+      // The start's own draw: what is left agrees with the model.
+      expect(
+        startHoldings(groupStockOf(init), field).left.map((x) => x),
+      ).toEqual(groupStockOf(ce.stock));
+      const order = saveOf(l, id, INFANTRY, edit);
+      expect(l.issue(id, order)).toBeNull();
+      const now = l.templateStatsOf(id, INFANTRY)!;
+      const [p] = previewReforms(groupStockOf(init), field, [
+        {
+          key: "i",
+          need: now.need,
+          men: now.men,
+          originalCount: count,
+          budget: count * old.men,
+        },
+      ]);
+      const actual = divisionsOf(l, id, INFANTRY).length;
+      expect(p.count).toBe(actual);
+      void cl;
+    },
+  );
+
+  test("a thin stock cuts the count, and the model names the equipment", async () => {
+    const { l, id, ce } = await prepGame();
+    const rows = divisionsOf(l, id, INFANTRY);
+    const art = equipKey("artillery", 1);
+    ce.stock[art] = 2; // the divisions keep what they hold; the pool is thin
+    const init = Array.from(ce.stock);
+    for (const r of l.rowsOf(id)) {
+      const e = l.divisions.equipOf(r);
+      for (let j = 0; j < GROUND_SLOTS; j++) init[GROUND_EQUIP_KEYS[j]] += e[j];
+    }
+    const old = l.templateStatsOf(id, INFANTRY)!;
+    const order = saveOf(l, id, INFANTRY, (b) => [
+      ...b.slice(0, 9),
+      ...new Array<BattalionId>(6).fill("artillery"),
+    ]);
+    expect(l.issue(id, order)).toBeNull();
+    const now = l.templateStatsOf(id, INFANTRY)!;
+    const [p] = previewReforms(
+      groupStockOf(init),
+      rows.map(() => ({ key: "i", need: old.need })),
+      [
+        {
+          key: "i",
+          need: now.need,
+          men: now.men,
+          originalCount: rows.length,
+          budget: rows.length * old.men,
+        },
+      ],
+    );
+    expect(divisionsOf(l, id, INFANTRY).length).toBe(p.count);
+    expect(NEED_GROUPS[p.limitedBy]).toBe("artillery");
+  });
+
+  test("a shortage names the group that cut the count", () => {
+    const need = new Array<number>(groupStockOf([]).length).fill(0);
+    need[0] = 10;
+    need[1] = 10;
+    const [r] = previewReforms(
+      [
+        1000, 55, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+      ].slice(0, need.length),
+      [],
+      [{ key: "a", need, men: 1, originalCount: 100, budget: 100 }],
+    );
+    expect(r.count).toBe(5);
+    expect(r.limitedBy).toBe(1);
   });
 });

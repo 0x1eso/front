@@ -11,8 +11,6 @@ vi.mock("../../../src/client/Utils", async (importOriginal) => ({
       : `[${key}]`,
 }));
 
-import { START_OOB } from "@openfront/engine-lib/ww1936/LandStart";
-import { startReformCount } from "@openfront/engine-lib/ww1936/StartReform";
 import {
   prepSentFor,
   setPrepTemplate,
@@ -25,7 +23,7 @@ import {
   planProblem,
   START_WINDOW_TICKS,
   StartPrep,
-  startPreview,
+  startPreviews,
 } from "../../../src/client/hud/ww1936/LobbyPrep";
 
 beforeEach(() => localStorage.clear());
@@ -125,42 +123,66 @@ describe("the start templates of the lobby", () => {
 });
 
 describe("the preview", () => {
-  it("is the engine's rule with the stock not limiting", () => {
-    const st = lobbyStartTemplates("DEU").find((t) => t.key === "infantry")!;
-    const edited = {
-      name: "Big",
-      battalions: [...st.def.battalions, "infantry" as const],
-      support: st.def.support,
+  const infantry = () =>
+    lobbyStartTemplates("DEU").find((t) => t.key === "infantry")!;
+  const plus = (extra: "infantry" | "artillery", n = 1) => ({
+    key: "infantry",
+    name: "Big",
+    battalions: [
+      ...infantry().def.battalions,
+      ...new Array<string>(n).fill(extra),
+    ],
+    support: [...infantry().def.support],
+  });
+
+  it("Germany with one more infantry battalion: the stock, not the budget, sets the count", () => {
+    const p = startPreviews("DEU", [plus("infantry")]).get("infantry")!;
+    expect(p.original).toBe(36);
+    // The started game made 18 (browser, 2026-11-03), cut by the stock.
+    expect(p.count).toBe(18);
+    expect(p.limitedBy).not.toBeNull();
+  });
+
+  it("an unedited template has no preview; a smaller one is cut by the budget, not the stock", () => {
+    expect(startPreviews("DEU", []).size).toBe(0);
+    const small = {
+      ...plus("infantry"),
+      battalions: infantry().def.battalions.slice(0, 6),
     };
-    const p = startPreview("DEU", "infantry", st.def, edited)!;
-    const original = START_OOB.DEU!.reduce(
-      (n, a) =>
-        n +
-        a.divisions
-          .filter(([k]) => k === "infantry")
-          .reduce((m, [, k]) => m + k, 0),
-      0,
-    );
-    expect(p.original).toBe(original);
+    const p = startPreviews("DEU", [small]).get("infantry")!;
     expect(p.count).toBeGreaterThan(0);
-    expect(p.count).toBeLessThanOrEqual(2 * original);
-    // A bigger division makes fewer of them from the same men.
-    expect(p.count).toBeLessThan(original);
-    expect(p.count).toBe(
-      startReformCount(
-        p.count === 0 ? 0 : p.count * 1e9,
-        original,
-        1e9,
-        Infinity,
-      ),
+    expect(p.count).toBeLessThanOrEqual(72);
+  });
+
+  it("several edits share the stock in the plan's order", () => {
+    const mountain = lobbyStartTemplates("DEU").find(
+      (t) => t.key === "mountain",
+    )!;
+    const m = {
+      key: "mountain",
+      name: "M",
+      battalions: [...mountain.def.battalions, "mountain"],
+      support: [...mountain.def.support],
+    };
+    const both = startPreviews("DEU", [plus("infantry"), m]);
+    expect(both.size).toBe(2);
+    expect(both.get("infantry")!.count).toBe(
+      startPreviews("DEU", [plus("infantry")]).get("infantry")!.count,
     );
   });
 
   it("is unknown where the lobby has no 1936 count (a minor, a template nobody uses)", () => {
     const st = lobbyStartTemplates("POL")[0];
-    expect(startPreview("POL", st.key, st.def, st.def)).toBeNull();
-    const deu = lobbyStartTemplates("DEU")[0];
-    expect(startPreview("DEU", "no_such", deu.def, deu.def)).toBeNull();
+    expect(
+      startPreviews("POL", [
+        { key: st.key, name: "x", battalions: ["infantry"], support: [] },
+      ]).size,
+    ).toBe(0);
+    expect(
+      startPreviews("DEU", [
+        { key: "no_such", name: "x", battalions: ["infantry"], support: [] },
+      ]).size,
+    ).toBe(0);
   });
 });
 
