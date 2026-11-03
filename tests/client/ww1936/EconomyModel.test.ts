@@ -728,17 +728,20 @@ describe("the World War 1936 economy screens' model (spec §13)", () => {
   });
 
   it("effect lines name each bonus and what a tech opens", () => {
-    expect(effectLines("tools_1")).toEqual(["[ww1936.effect.effCapBp] n=10"]);
-    expect(effectLines("construction_1")).toEqual([
+    // One line per effect; the last line lists what the tech leads to.
+    const own = (id: Parameters<typeof effectLines>[0]) =>
+      effectLines(id).filter((l) => !l.startsWith("[ww1936.techfx.opens"));
+    expect(own("tools_1")).toEqual(["[ww1936.effect.effCapBp] n=10"]);
+    expect(own("construction_1")).toEqual([
       "[ww1936.effect.constructionPct] n=10",
       "[ww1936.effect.slotPct] n=20",
     ]);
-    expect(effectLines("flexible_line")).toEqual([
-      "[ww1936.effect.retentionBp] n=10",
-    ]);
-    expect(effectLines("medium_tank_2")).toEqual([
+    expect(own("flexible_line")).toEqual(["[ww1936.effect.retentionBp] n=10"]);
+    expect(own("medium_tank_2")).toEqual([
       "[ww1936.effect.unlock] equipment=[ww1936.equip.medium_tank],gen=[ww1936.gen.2]",
+      "[ww1936.techfx.tank_chassis] list=[ww1936.base.tank.medium_2]",
     ]);
+    expect(effectLines("tools_1")[1]).toContain("[ww1936.techfx.opens]");
   });
 
   it("the stock status sentence picks its branch from short, stock and output", () => {

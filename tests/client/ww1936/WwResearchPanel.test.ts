@@ -230,16 +230,22 @@ describe("<ww-research-panel> (spec §13.4)", () => {
     expect(m.q("[data-ww-tech]")).not.toBeNull();
   });
 
-  it("an air tech's sheet says it only fills the stockpile", async () => {
+  it("a tech's sheet lists each effect on its own line (no stale stockpile note)", async () => {
     const m = await mount({
       summaries: [summary("DEU")],
       details: [detail("DEU")],
     });
     await m.click("[data-ww-tab='air']");
     await m.click("[data-ww-tech='fighter_2']");
-    expect(m.q("[data-ww-detail]")!.textContent).toContain(
-      "[ww1936.econ.stock_only]",
+    const text = m.q("[data-ww-detail]")!.textContent;
+    expect(text).not.toContain("[ww1936.econ.stock_only]");
+    const lines = [...m.el.querySelectorAll("[data-ww-effect]")].map(
+      (e) => e.textContent,
     );
+    expect(lines.length).toBeGreaterThan(1);
+    expect(lines[0]).toContain("[ww1936.effect.unlock]");
+    expect(lines.join("|")).toContain("[ww1936.techfx.plane_chassis]");
+    expect(text).not.toContain(" · [ww1936.effect");
   });
 
   it("a capitulated country's drawer says the orders can't go", async () => {
