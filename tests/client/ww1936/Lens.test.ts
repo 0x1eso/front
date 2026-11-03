@@ -25,8 +25,10 @@ import {
 } from "../../../src/client/hud/ww1936/LensModel";
 import { SeaAirSelection } from "../../../src/client/hud/ww1936/SeaAirSelection";
 import { today } from "../../../src/client/hud/ww1936/WorldWarModel";
+import { WwDrawerEvent } from "../../../src/client/hud/ww1936/WwDrawer";
 import "../../../src/client/hud/ww1936/WwLens";
 import type { WwLens } from "../../../src/client/hud/ww1936/WwLens";
+import { WwPanelMinimizedEvent } from "../../../src/client/hud/ww1936/WwPanelMode";
 import { seaAirOf } from "../../../src/client/hud/ww1936/WwSeaAirController";
 import { ID, region, scenario } from "./EconomyFixture";
 import { fogGame } from "./FogFixture";
@@ -149,5 +151,34 @@ describe("map lenses (w14)", () => {
     expect(s.layer).toBe("none");
     expect(s.regionLens).toBe("none");
     expect(ID("DEU")).toBeGreaterThan(0);
+  });
+
+  it("steps aside while a full-screen panel covers the map, and comes back", async () => {
+    const g = fogGame({ level: 100 });
+    const bus = new EventBus();
+    const el = document.createElement("ww-lens") as WwLens;
+    el.game = g.game as never;
+    el.eventBus = bus;
+    el.init();
+    document.body.appendChild(el);
+    const shown = async () => {
+      await el.updateComplete;
+      return el.querySelector("[data-ww-lens-button]") !== null;
+    };
+    expect(await shown()).toBe(true);
+
+    bus.emit(new WwDrawerEvent("research", true));
+    expect(await shown()).toBe(false);
+    // Opening the next panel closes the last one after it says so.
+    bus.emit(new WwDrawerEvent("focus", true));
+    bus.emit(new WwDrawerEvent("research", false));
+    expect(await shown()).toBe(false);
+    // A map flow sets the panel aside: the map is back, so is the button.
+    bus.emit(new WwPanelMinimizedEvent(true));
+    expect(await shown()).toBe(true);
+    bus.emit(new WwPanelMinimizedEvent(false));
+    expect(await shown()).toBe(false);
+    bus.emit(new WwDrawerEvent("focus", false));
+    expect(await shown()).toBe(true);
   });
 });

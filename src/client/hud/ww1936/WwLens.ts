@@ -26,6 +26,8 @@ import {
   type LensResource,
   type RegionLens,
 } from "./SeaAirSelection";
+import { WwDrawerEvent, type WwDrawerId } from "./WwDrawer";
+import { WwPanelMinimizedEvent } from "./WwPanelMode";
 import { seaAirOf } from "./WwSeaAirController";
 
 const LIST: readonly (RegionLens | "sea" | "air")[] = [
@@ -57,6 +59,10 @@ export class WwLens extends LitElement implements Controller {
   @state() private legend: LensLegend | null = null;
   @state() private active: RegionLens | "sea" | "air" | "none" = "none";
   @state() private blocked: ReadonlySet<string> = new Set();
+  /** The full-screen panels open now: they cover the map, so the lens steps aside. */
+  @state() private drawers: ReadonlySet<WwDrawerId> = new Set();
+  /** A map flow set the open panel aside: the map shows again. */
+  @state() private minimized = false;
   private shown = "";
 
   createRenderRoot() {
@@ -64,7 +70,19 @@ export class WwLens extends LitElement implements Controller {
   }
 
   init() {
-    // Everything is polled in tick(): the selection is shared state.
+    // Everything else is polled in tick(): the selection is shared state.
+    this.eventBus.on(WwDrawerEvent, (e) => {
+      // A set: opening one drawer closes the last one after it says so.
+      const open = new Set(this.drawers);
+      if (e.open) open.add(e.drawer);
+      else open.delete(e.drawer);
+      this.drawers = open;
+      if (open.size === 0) this.minimized = false;
+      else if (e.open) this.open = false;
+    });
+    this.eventBus.on(WwPanelMinimizedEvent, (e) => {
+      this.minimized = e.minimized;
+    });
   }
 
   getTickIntervalMs() {
@@ -242,6 +260,7 @@ export class WwLens extends LitElement implements Controller {
 
   render() {
     if ((this.game?.worldWarScenario() ?? null) === null) return nothing;
+    if (this.drawers.size > 0 && !this.minimized) return nothing;
     const on = this.active !== "none";
     const g = this.legend;
     return html`
