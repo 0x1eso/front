@@ -71,15 +71,16 @@ async function board() {
 
 describe("war overhaul C0: the contract", () => {
   test("the new kinds are appended at the end of the lists", () => {
-    expect(LAND_ORDER_KINDS.slice(-2)).toEqual([
+    expect(LAND_ORDER_KINDS.slice(-3)).toEqual([
       "army_zone",
       "army_auto_level",
+      "train_army",
     ]);
     const kinds = WwOrderSchema.options.map((o) => o.shape.kind.value);
     // The air overhaul (ww8) appends its six after them, then the thought
     // sliders (ww9) thought_set, then the research queue's three and
     // the per-slot research leaning.
-    expect(kinds.slice(-13, -11)).toEqual(["army_zone", "army_auto_level"]);
+    expect(kinds.slice(-14, -12)).toEqual(["army_zone", "army_auto_level"]);
   });
 
   test("army_zone and army_auto_level go through land.issue", async () => {

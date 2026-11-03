@@ -545,6 +545,8 @@ export interface TrainingData {
   region: number;
   /** "manpower" | "equipment" | "" */
   waiting: string;
+  /** Set on the entries of one train_army order (the group id). */
+  group?: number;
 }
 
 export interface GeneralData {
@@ -612,7 +614,7 @@ export const WW_ROUND_HOUR_MILLI = 1829;
 export const WW_SPREAD_TILES_PER_TICK = 2000;
 export const WW_MAX_ARMY_DIVISIONS = 24;
 export const WW_MAX_TEMPLATES = 20;
-export const WW_MAX_TRAINING = 20;
+export const WW_MAX_TRAINING = 60;
 export const WW_MAX_TRAIN_COUNT = 10;
 export const WW_MAX_ARMIES = 40;
 /** HOI4's designer: 5 columns × 5 rows (pre-flight U1). */
@@ -696,6 +698,8 @@ export const LAND_ORDER_KINDS = [
   // ww7, appended.
   "army_zone",
   "army_auto_level",
+  // Army templates, appended at the end of the order union.
+  "train_army",
 ] as const;
 export type LandOrderKind = (typeof LAND_ORDER_KINDS)[number];
 
@@ -718,5 +722,6 @@ export const LAND_MESSAGE_KEYS = [
   "events_display.ww1936_general_lost",
   "events_display.ww1936_no_tile_attacks",
   "events_display.ww1936_template_added",
+  "events_display.ww1936_army_scattered",
 ] as const;
 export type LandMessageKey = (typeof LAND_MESSAGE_KEYS)[number];

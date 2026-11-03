@@ -17,6 +17,7 @@ import {
   groundSlotOf,
   TemplateDef,
   WW_DEPLOY_MIN_FILL_PM,
+  WW_MAX_ARMIES,
   WW_MAX_ARMY_DIVISIONS,
   WW_MAX_TEMPLATES,
   WW_MAX_TRAINING,
@@ -296,20 +297,84 @@ export function queueTraining(
   return null;
 }
 
+/**
+ * An army template: every item becomes one entry of one group; the whole
+ * order is refused when any part fails, so nothing is half queued.
+ */
+export function queueArmyTraining(
+  land: WwLand,
+  cl: CountryLand,
+  o: Extract<LandOrder, { kind: "train_army" }>,
+): WwOrderBlock | null {
+  const disarmed = land.ww.endgame.disarmBlock(cl.smallID, "train");
+  if (disarmed !== null) return disarmed;
+  let divisions = 0;
+  for (const it of o.items) divisions += it.count;
+  if (divisions > WW_MAX_ARMY_DIVISIONS) return "army_full";
+  if (cl.training.length + o.items.length > WW_MAX_TRAINING) {
+    return "queue_full";
+  }
+  if (land.armiesOf(cl.smallID).length >= WW_MAX_ARMIES) {
+    return "too_many_armies";
+  }
+  let battalions = 0;
+  let special = 0;
+  for (const it of o.items) {
+    const s = land.templateStatsOf(cl.smallID, it.template);
+    if (s === null) return "bad_template";
+    battalions += it.count * s.battalions;
+    special += it.count * s.special;
+  }
+  // The special cap counts every item of the order together.
+  if (special > 0) {
+    const used = battalionsInUse(land, cl);
+    if (used.special + special > specialCap(used.total + battalions)) {
+      return "special_cap";
+    }
+  }
+  if (
+    o.region !== 0 &&
+    (land.scenario.region(o.region) === undefined ||
+      !land.sameSide(land.controller[o.region], cl.smallID))
+  ) {
+    return "bad_region";
+  }
+  const group = cl.nextEntryId;
+  for (const it of o.items) {
+    cl.training.push({
+      id: cl.nextEntryId++,
+      template: it.template,
+      remaining: it.count,
+      army: 0,
+      region: o.region,
+      group,
+    });
+  }
+  land.markCountry(cl.smallID);
+  return null;
+}
+
 export function cancelTraining(
   land: WwLand,
   cl: CountryLand,
   entry: number,
 ): WwOrderBlock | null {
-  if (!cl.training.some((e) => e.id === entry)) return "bad_index";
+  const first = cl.training.find((e) => e.id === entry);
+  if (first === undefined) return "bad_index";
+  // A group entry cancels the whole group.
+  const ids = new Set(
+    first.group === undefined
+      ? [entry]
+      : cl.training.filter((e) => e.group === first.group).map((e) => e.id),
+  );
   const ce = land.econ.country(cl.smallID);
   if (ce !== null) {
     for (const x of cl.trainees) {
-      if (x.entry === entry) returnDivisionEquip(ce, x.equip, x.men);
+      if (ids.has(x.entry)) returnDivisionEquip(ce, x.equip, x.men);
     }
   }
-  cl.trainees = cl.trainees.filter((x) => x.entry !== entry);
-  cl.training = cl.training.filter((e) => e.id !== entry);
+  cl.trainees = cl.trainees.filter((x) => !ids.has(x.entry));
+  cl.training = cl.training.filter((e) => !ids.has(e.id));
   land.markCountry(cl.smallID);
   return null;
 }
@@ -332,6 +397,9 @@ export function deployNow(
   entry: number,
 ): WwOrderBlock | null {
   const e = cl.training.find((x) => x.id === entry);
+  if (e !== undefined && e.group !== undefined) {
+    return deployGroupNow(land, cl, e);
+  }
   const i = cl.trainees.findIndex((x) => x.entry === entry);
   if (e === undefined || i < 0) return "bad_index";
   const x = cl.trainees[i];
@@ -375,6 +443,8 @@ export function dailyTraining(
       continue;
     }
     x.days++;
+    const grouped =
+      cl.training.find((en) => en.id === x.entry)?.group !== undefined;
     // In training the missing equipment comes at the reinforcement rate;
     // trained and only waiting for it, all there is (as at the start).
     const trained = x.days >= trainDaysOf(ce, s);
@@ -390,6 +460,11 @@ export function dailyTraining(
       lowestFillPm(s, x.equip, land.keyStatsOf(cl.smallID)) >=
         WW_DEPLOY_MIN_FILL_PM
     ) {
+      // A group's trainees wait for the rest of the group (below).
+      if (grouped) {
+        keep.push(x);
+        continue;
+      }
       const e = cl.training.find((en) => en.id === x.entry);
       const region = deployRegion(land, cl.smallID, e?.region ?? 0);
       const army = region === 0 ? null : deployArmy(land, cl, e, region);
@@ -402,6 +477,7 @@ export function dailyTraining(
     keep.push(x);
   }
   cl.trainees = keep;
+  ready += deployReadyGroups(land, cl);
   for (const e of cl.training) {
     const s = land.templateStatsOf(cl.smallID, e.template);
     if (s === null) continue;
@@ -499,4 +575,129 @@ function spawnTrainee(
   );
   const row = land.divisions.rowOf(id);
   land.divisions.org[row] = org(land.orgMaxOf(row));
+}
+
+// ---- Army templates: a group deploys as one ----
+
+/** True once the trainee has trained and every needed type is filled enough. */
+function isReady(
+  land: WwLand,
+  cl: CountryLand,
+  ce: CountryEconomy,
+  x: Trainee,
+) {
+  const s = land.templateStatsOf(cl.smallID, x.template);
+  return (
+    s !== null &&
+    x.days >= trainDaysOf(ce, s) &&
+    lowestFillPm(s, x.equip, land.keyStatsOf(cl.smallID)) >=
+      WW_DEPLOY_MIN_FILL_PM
+  );
+}
+
+/**
+ * The groups whose every division has trained and passes the fill rule
+ * (an item not started for lack of men counts as not ready) deploy now.
+ */
+function deployReadyGroups(land: WwLand, cl: CountryLand): number {
+  const ce = land.econ.country(cl.smallID);
+  if (ce === null) return 0;
+  let deployed = 0;
+  const done = new Set<number>();
+  for (const e of [...cl.training]) {
+    if (e.group === undefined || done.has(e.group)) continue;
+    done.add(e.group);
+    const members = cl.training.filter((en) => en.group === e.group);
+    if (members.some((en) => en.remaining > 0)) continue;
+    const ids = new Set(members.map((en) => en.id));
+    const xs = cl.trainees.filter((x) => ids.has(x.entry));
+    if (xs.length === 0 || !xs.every((x) => isReady(land, cl, ce, x))) continue;
+    if (deployGroup(land, cl, members, xs, () => (max) => max)) {
+      deployed += xs.length;
+    }
+  }
+  return deployed;
+}
+
+/**
+ * deploy_now on a group entry: every trainee of the group deploys now with
+ * org = maximum x days done / days needed (as a single one does); the
+ * entries not started are cancelled (nothing was drawn for them).
+ */
+function deployGroupNow(
+  land: WwLand,
+  cl: CountryLand,
+  e: TrainingEntry,
+): WwOrderBlock | null {
+  const members = cl.training.filter((en) => en.group === e.group);
+  const ids = new Set(members.map((en) => en.id));
+  const xs = cl.trainees.filter((x) => ids.has(x.entry));
+  if (xs.length === 0) return "bad_index";
+  const ce = land.econ.country(cl.smallID);
+  const orgOf = (x: Trainee) => {
+    const s = land.templateStatsOf(cl.smallID, x.template);
+    if (s === null) return (max: number) => max;
+    const total = trainDaysOf(ce, s);
+    const days = Math.min(x.days, total);
+    return (max: number) => Math.floor((max * days) / total);
+  };
+  if (
+    members.some((en) => land.templateStatsOf(cl.smallID, en.template) === null)
+  ) {
+    return "bad_template";
+  }
+  if (!deployGroup(land, cl, members, xs, orgOf)) return "too_many_armies";
+  return null;
+}
+
+/**
+ * Places the trainees (in order) in one new army in the group's region; with
+ * 40 armies already, in non-full armies as deployArmy does, and the player
+ * is told. False (nothing changed) when there is no room at all.
+ */
+function deployGroup(
+  land: WwLand,
+  cl: CountryLand,
+  members: TrainingEntry[],
+  xs: Trainee[],
+  orgOf: (x: Trainee) => (max: number) => number,
+): boolean {
+  const region = deployRegion(land, cl.smallID, members[0].region);
+  if (region === 0) return false;
+  const targets: Army[] = [];
+  let scattered = false;
+  const fresh = land.newArmy(cl.smallID);
+  if (fresh !== null) {
+    for (let i = 0; i < xs.length; i++) targets.push(fresh);
+  } else {
+    scattered = true;
+    // Armies in the region first, then the others, each up to its limit.
+    const open = land
+      .armiesOf(cl.smallID)
+      .filter((a) => a.divisions.length < WW_MAX_ARMY_DIVISIONS);
+    const near = open.filter((a) => land.armyRegion(a) === region);
+    for (const a of [...near, ...open.filter((a) => !near.includes(a))]) {
+      for (
+        let room = WW_MAX_ARMY_DIVISIONS - a.divisions.length;
+        room > 0 && targets.length < xs.length;
+        room--
+      ) {
+        targets.push(a);
+      }
+    }
+    if (targets.length < xs.length) return false;
+  }
+  xs.forEach((x, i) => {
+    spawnTrainee(land, cl, x, region, targets[i], orgOf(x));
+  });
+  const ids = new Set(members.map((en) => en.id));
+  cl.trainees = cl.trainees.filter((x) => !xs.includes(x));
+  cl.training = cl.training.filter((en) => !ids.has(en.id));
+  if (scattered) {
+    land.message(cl.smallID, "events_display.ww1936_army_scattered", {
+      count: xs.length,
+    });
+  }
+  land.markCountry(cl.smallID);
+  return true;
 }

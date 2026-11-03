@@ -108,6 +108,7 @@ import {
   deleteTemplate,
   deployNow,
   lowestFillPm,
+  queueArmyTraining,
   queueTraining,
   saveTemplate,
 } from "./Training";
@@ -475,6 +476,8 @@ export interface TrainingEntry {
   army: number;
   /** 0: the capital region. */
   region: number;
+  /** Set on the entries of one train_army order: they deploy together. */
+  group?: number;
 }
 
 export interface Trainee {
@@ -671,6 +674,7 @@ export const WwLandStateSchema = z.object({
           remaining: zInt(),
           army: zInt(),
           region: zInt(),
+          group: zInt().optional(),
         }),
       ),
       trainees: z.array(
@@ -1133,6 +1137,9 @@ export class WwLand {
         break;
       case "train":
         block = queueTraining(this, cl, order);
+        break;
+      case "train_army":
+        block = queueArmyTraining(this, cl, order);
         break;
       case "cancel_train":
         block = cancelTraining(this, cl, order.entry);
@@ -2570,6 +2577,7 @@ export class WwLand {
         army: e.army,
         region: e.region,
         waiting,
+        ...(e.group === undefined ? {} : { group: e.group }),
       };
     });
     const generals: GeneralData[] = cl.generals.map((g) => {
@@ -2751,6 +2759,7 @@ export class WwLand {
         mix(e.remaining);
         mix(e.army);
         mix(e.region);
+        if (e.group !== undefined) mix(e.group);
       }
       for (const x of cl.trainees) {
         mix(x.entry);
@@ -2882,6 +2891,7 @@ export class WwLand {
           remaining: e.remaining,
           army: e.army,
           region: e.region,
+          ...(e.group === undefined ? {} : { group: e.group }),
         })),
         trainees: cl.trainees.map((x) => ({
           entry: x.entry,
@@ -3007,6 +3017,7 @@ export class WwLand {
         remaining: e.remaining,
         army: e.army,
         region: e.region,
+        ...(e.group === undefined ? {} : { group: e.group }),
       }));
       cl.trainees = c.trainees.map((x) => ({
         entry: x.entry,

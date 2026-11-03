@@ -20,7 +20,17 @@ import { translateText } from "../../Utils";
 import type { WwEconomyView } from "../../view/WwEconomyView";
 import type { WwLandView } from "../../view/WwLandView";
 import { COMPACT_MAX_HEIGHT } from "../domestic/DomesticPanel";
+import {
+  armyEntries,
+  ArmyEntry,
+  compositionOf,
+  groupRows,
+  planTrain,
+  trainDaysFor,
+  trainOrder,
+} from "./ArmyTemplates";
 import { designButton } from "./DesignButton";
+import { libraryStore } from "./DesignLibrary";
 import { blockText, equipmentName, menText } from "./EconomyModel";
 import {
   armyName,
@@ -56,6 +66,11 @@ import {
 } from "./WorldWarModel";
 import { TRAIT_ICONS, traitsOf } from "./WwArmyCard";
 import { renderGroupTab } from "./WwArmyGroupTab";
+import {
+  ArmyEdit,
+  renderArmyTemplates,
+  renderGroupRow,
+} from "./WwArmyTemplateUi";
 import { autoMaskOf, renderAutoSwitch } from "./WwAutoUi";
 import { WwDrawerBase } from "./WwDrawer";
 import { WwLandChangedEvent } from "./WwLandController";
@@ -117,6 +132,15 @@ export class WwArmyPanel extends WwDrawerBase {
   /** The general whose traits are spelled out. */
   @state() private expanded: number | null = null;
   @state() private refused: { key: string; text: string } | null = null;
+  /** The army template being edited (a new one when its id is null). */
+  @state() private armyEdit: ArmyEdit | null = null;
+  @state() private armyNotice = "";
+  /** A train waiting for the templates it just asked for. */
+  private pendingTrain: {
+    entry: ArmyEntry;
+    region: number;
+    until: number;
+  } | null = null;
   private readonly twoTap = new TwoTap();
   private redrawKey: readonly unknown[] = [];
 
@@ -135,6 +159,9 @@ export class WwArmyPanel extends WwDrawerBase {
     this.eventBus.on(WwLandChangedEvent, () => {
       if (this.open) this.requestUpdate();
     });
+    libraryStore().subscribe(() => {
+      if (this.open) this.requestUpdate();
+    });
   }
 
   protected setOpen(open: boolean) {
@@ -144,6 +171,7 @@ export class WwArmyPanel extends WwDrawerBase {
 
   tick() {
     this.refitIfOpen();
+    this.finishPendingTrain();
     if (!this.open) return;
     const key = [
       this.game.wwLand?.()?.version,
@@ -177,6 +205,73 @@ export class WwArmyPanel extends WwDrawerBase {
       land,
       army: landSelectionOf(this.game).army,
     };
+  }
+
+  /** The army template's divisions were made first; once they exist, the whole army is ordered. */
+  private finishPendingTrain() {
+    const p = this.pendingTrain;
+    if (p === null) return;
+    const land = this.ctx()?.land;
+    const order =
+      land === undefined ? null : trainOrder(p.entry, land, p.region);
+    if (order !== null) {
+      this.pendingTrain = null;
+      this.send(order);
+    } else if (Date.now() > p.until) {
+      this.pendingTrain = null;
+      this.refused = {
+        key: `army:${p.entry.id}`,
+        text: translateText("ww1936.army_tpl.timeout"),
+      };
+      this.requestUpdate();
+    }
+  }
+
+  private trainArmy(c: Ctx, e: ArmyEntry) {
+    const plan = planTrain(e, this.game, c.land, translateText);
+    if (!plan.ok) {
+      this.refused = { key: `army:${e.id}`, text: plan.reason };
+      return;
+    }
+    this.refused = null;
+    const region = trainTarget(c.view, c.me, c.army)?.region ?? 0;
+    if (plan.saves.length === 0) {
+      const order = trainOrder(e, c.land, region);
+      if (order !== null) this.send(order);
+      return;
+    }
+    for (const o of plan.saves) this.send(o);
+    this.pendingTrain = { entry: e, region, until: Date.now() + 15_000 };
+  }
+
+  private saveArmyEdit() {
+    const ed = this.armyEdit;
+    if (ed === null) return;
+    const store = libraryStore();
+    if (ed.id !== null) store.remove(ed.id);
+    const r = store.add({
+      type: "army",
+      name: ed.name.trim().slice(0, 40),
+      items: ed.items,
+    });
+    this.armyEdit = null;
+    this.armyNotice = r === "full" ? translateText("ww1936.library.full") : "";
+  }
+
+  private editArmyTemplate(e: ArmyEntry | null) {
+    this.armyNotice = "";
+    this.armyEdit =
+      e === null
+        ? { id: null, name: "", items: [] }
+        : {
+            id: e.id,
+            name: e.name,
+            items: e.items.map((i) => ({
+              ...i,
+              battalions: [...i.battalions],
+              support: [...i.support],
+            })),
+          };
   }
 
   private send(order: WwOrder) {
@@ -379,8 +474,41 @@ export class WwArmyPanel extends WwDrawerBase {
             >
               ${translateText("ww1936.land.show_divisions")}
             </button>
-            ${this.showDivisions ? this.renderDivisions(c, chosen) : nothing}`
+            ${this.showDivisions ? this.renderDivisions(c, chosen) : nothing}
+            <button
+              type="button"
+              data-ww-save-composition
+              class="mt-1 h-10 w-full rounded-md border border-white/15 bg-white/10 text-xs font-semibold hover:bg-white/20"
+              @click=${() => this.saveComposition(c, chosen)}
+            >
+              ${translateText("ww1936.army_tpl.save_composition")}
+            </button>
+            ${this.armyNotice === ""
+              ? nothing
+              : html`<p
+                  data-ww-army-tpl-notice
+                  class="m-0 mt-1 text-xs text-sky-200"
+                >
+                  ${this.armyNotice}
+                </p>`}`
         : nothing}`;
+  }
+
+  /** [save this composition]: the army's divisions as a new army template. */
+  private saveComposition(c: Ctx, army: number) {
+    const a = c.view.armies.get(army);
+    const content = compositionOf(
+      c.land,
+      army,
+      a === undefined ? "" : armyName(a.nameNo),
+    );
+    if (content === null) return;
+    const r = libraryStore().add(content);
+    this.armyNotice =
+      r === "full"
+        ? translateText("ww1936.library.full")
+        : translateText("ww1936.army_tpl.saved", { name: content.name });
+    this.requestUpdate();
   }
 
   private renderDivisions(c: Ctx, army: number): TemplateResult {
@@ -475,6 +603,28 @@ export class WwArmyPanel extends WwDrawerBase {
               })}
         </div>
       </div>
+      ${renderArmyTemplates({
+        land: c.land,
+        entries: armyEntries(libraryStore().entries),
+        editing: this.armyEdit,
+        regionText:
+          target === null
+            ? translateText("ww1936.army_tpl.region_capital")
+            : translateText("ww1936.army_tpl.region", {
+                region: regionName(c.view.scenario, target.region),
+              }),
+        refused: this.refused?.key.startsWith("army:") ? this.refused.text : "",
+        notice: this.armyNotice,
+        train: (e) => this.trainArmy(c, e),
+        edit: (e) => this.editArmyTemplate(e),
+        change: (next) => (this.armyEdit = next),
+        save: () => this.saveArmyEdit(),
+        del: (e) =>
+          this.confirmTap(`army_tpl_del:${e.id}`, () =>
+            libraryStore().remove(e.id),
+          ),
+        armed: (e) => this.armed(`army_tpl_del:${e.id}`),
+      })}
       <ul
         data-ww-train-templates
         class="m-0 mt-1 flex list-none flex-col gap-1 p-0"
@@ -511,7 +661,23 @@ export class WwArmyPanel extends WwDrawerBase {
       ${c.land.training.length === 0
         ? this.empty("ww1936.land.no_training")
         : html`<ul data-ww-queue class="m-0 flex list-none flex-col gap-1 p-0">
-            ${trainingRows(c.view, c.me).map((r) => this.renderEntry(c, r))}
+            ${groupRows(c.view, c.me, trainDaysFor(c.economy, c.me)).map((g) =>
+              renderGroupRow(
+                {
+                  armed: (x) => this.armed(`cancel_group:${x.group}`),
+                  deploy: (x) =>
+                    this.send({ kind: "deploy_now", entry: x.entry }),
+                  cancel: (x) =>
+                    this.confirmTap(`cancel_group:${x.group}`, () =>
+                      this.send({ kind: "cancel_train", entry: x.entry }),
+                    ),
+                },
+                g,
+              ),
+            )}
+            ${trainingRows(c.view, c.me)
+              .filter((r) => r.data.group === undefined)
+              .map((r) => this.renderEntry(c, r))}
           </ul>`}`;
   }
 

@@ -16,6 +16,7 @@ vi.mock("../../../src/client/Utils", async (importOriginal) => ({
       : `[${key}]`,
 }));
 
+import { libraryStore } from "../../../src/client/hud/ww1936/DesignLibrary";
 import {
   landSelectionOf,
   OpenWwArmyEvent,
@@ -37,6 +38,7 @@ import {
   landDetail,
   LandOptions,
   scenario,
+  startTemplate,
   training,
 } from "./LandFixture";
 
@@ -88,6 +90,7 @@ describe("<ww-army-panel> (spec §15.5)", () => {
     document.body.innerHTML = "";
     vi.useRealTimers();
     vi.unstubAllGlobals();
+    libraryStore().entries = [];
   });
 
   it("five tabs; one drawer at a time; no title, finger-sized buttons", async () => {
@@ -107,7 +110,7 @@ describe("<ww-army-panel> (spec §15.5)", () => {
       );
       expect(m.el.querySelectorAll("[title]")).toHaveLength(0);
       for (const b of m.el.querySelectorAll("button")) {
-        expect(b.className).toMatch(/\b(h-9|size-9|min-h-9|min-h-11)\b/);
+        expect(b.className).toMatch(/\b(h-9|h-10|size-9|min-h-9|min-h-11)\b/);
       }
     }
     // Another drawer opening shuts this one.
@@ -259,5 +262,129 @@ describe("<ww-army-panel> (spec §15.5)", () => {
     await m.click("[data-ww-general='2']");
     expect(m.sent).toHaveLength(1);
     expect(m.q("[data-ww-appoint]")).toBeNull();
+  });
+
+  describe("army templates", () => {
+    const tpl = () => {
+      const t = startTemplate("DEU");
+      return {
+        name: "Infantry",
+        battalions: t.battalions,
+        support: t.support,
+      };
+    };
+
+    it("one tap on [train] sends one train_army order; the region follows the chosen army", async () => {
+      libraryStore().add({
+        type: "army",
+        name: "Line",
+        items: [{ ...tpl(), count: 10 }],
+      });
+      const m = await mount({}, "training");
+      const id = libraryStore().entries[0].id;
+      await m.click(`[data-ww-army-tpl-train='${id}']`);
+      expect(m.sent).toEqual([
+        { kind: "train_army", items: [{ template: 1, count: 10 }], region: 0 },
+      ]);
+      m.bus.emit(new WwSelectArmyEvent(2));
+      await m.el.updateComplete;
+      await m.click(`[data-ww-army-tpl-train='${id}']`);
+      expect(m.sent[1]).toEqual({
+        kind: "train_army",
+        items: [{ template: 1, count: 10 }],
+        region: 4,
+      });
+    });
+
+    it("a part the country lacks is named and nothing is sent", async () => {
+      libraryStore().add({
+        type: "army",
+        name: "Odd",
+        items: [
+          { ...tpl(), count: 2 },
+          {
+            name: "Strange",
+            battalions: ["infantry", "nonsense"],
+            support: [],
+            count: 1,
+          },
+        ],
+      });
+      const m = await mount({}, "training");
+      await m.click(
+        `[data-ww-army-tpl-train='${libraryStore().entries[0].id}']`,
+      );
+      expect(m.sent).toEqual([]);
+      expect(m.q("[data-ww-army-tpl-block]")!.textContent).toContain(
+        "[ww1936.army_tpl.part_missing] name=Strange",
+      );
+    });
+
+    it("the editor builds a template; [save this composition] reads an army", async () => {
+      const m = await mount({}, "training");
+      await m.click("[data-ww-army-tpl-new]");
+      const name = m.q("[data-ww-army-tpl-name]") as HTMLInputElement;
+      name.value = "Mine";
+      name.dispatchEvent(new Event("input"));
+      await m.el.updateComplete;
+      const add = m.q("[data-ww-army-tpl-add]") as HTMLSelectElement;
+      add.value = "1";
+      add.dispatchEvent(new Event("change"));
+      await m.el.updateComplete;
+      await m.click("[data-ww-army-tpl-plus='0']");
+      expect(m.q("[data-ww-army-tpl-total]")!.textContent).toContain("n=2");
+      await m.click("[data-ww-army-tpl-save]");
+      const [e] = libraryStore().entries;
+      expect(e).toMatchObject({ type: "army", name: "Mine" });
+      expect((e as { items: { count: number }[] }).items[0].count).toBe(2);
+      // An existing army (the 2nd, one division of template 1).
+      await m.click("[data-ww-tab='armies']");
+      await m.click("[data-ww-army-row='2']");
+      await m.click("[data-ww-save-composition]");
+      expect(libraryStore().entries).toHaveLength(2);
+      expect(
+        (libraryStore().entries[1] as { items: { count: number }[] }).items,
+      ).toMatchObject([{ count: 1 }]);
+    });
+
+    it("the queue shows one row per group with deploy now and cancel", async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(100_000);
+      const m = await mount(
+        {
+          landDetails: [
+            landDetail("DEU", {
+              training: [
+                training(7, {
+                  group: 7,
+                  remaining: 1,
+                  waiting: "manpower",
+                  trainees: [{ days: 30, need: 45, fillPm: 900 }],
+                }),
+                training(8, {
+                  group: 7,
+                  remaining: 0,
+                  trainees: [{ days: 45, need: 45, fillPm: 1000 }],
+                }),
+                training(9),
+              ],
+            }),
+          ],
+        },
+        "training",
+      );
+      expect(m.el.querySelectorAll("[data-ww-group]")).toHaveLength(1);
+      expect(m.el.querySelectorAll("[data-ww-entry]")).toHaveLength(1);
+      const row = m.q("[data-ww-group='7']")!.textContent!;
+      expect(row).toContain("[ww1936.army_tpl.progress] done=1,total=3");
+      expect(row).toContain("[ww1936.army_tpl.days_left] n=45");
+      expect(row).toContain("[ww1936.land.waiting_manpower]");
+      await m.click("[data-ww-group-deploy='7']");
+      await m.click("[data-ww-group-cancel='7']");
+      expect(m.sent).toEqual([{ kind: "deploy_now", entry: 7 }]);
+      vi.setSystemTime(101_000);
+      await m.click("[data-ww-group-cancel='7']");
+      expect(m.sent[1]).toEqual({ kind: "cancel_train", entry: 7 });
+    });
   });
 });

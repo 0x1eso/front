@@ -188,4 +188,64 @@ describe("design library", () => {
     expect(other.entries[0].auto).toBe(false);
     expect(LIBRARY_KEY).toBeTruthy();
   });
+
+  it("army templates: round trip, share code, same contents renamed, old data loads", () => {
+    const mem = memory();
+    // A file written before army templates existed still loads.
+    mem.setItem(
+      LIBRARY_KEY,
+      JSON.stringify({
+        v: 1,
+        entries: [
+          {
+            id: "old",
+            auto: false,
+            type: "template",
+            name: "Old",
+            battalions: ["infantry"],
+            support: [],
+          },
+          { id: "future", type: "from-a-later-version" },
+        ],
+      }),
+    );
+    const s = new LibraryStore(() => mem);
+    expect(s.entries.map((e) => e.id)).toEqual(["old"]);
+    const army = {
+      type: "army" as const,
+      name: "Armoured",
+      items: [
+        { name: "Inf", battalions: ["infantry"], support: [], count: 10 },
+        { name: "Tank", battalions: ["light_armor"], support: [], count: 4 },
+      ],
+    };
+    expect(s.add(army)).toBe("added");
+    // The same contents in another order and name: renamed, not duplicated.
+    expect(
+      s.add({
+        ...army,
+        name: "Again",
+        items: [army.items[1], army.items[0]],
+      }),
+    ).toBe("renamed");
+    expect(s.entries).toHaveLength(2);
+    const back = new LibraryStore(() => mem);
+    expect(back.entries[1]).toMatchObject({ type: "army", name: "Again" });
+    // The status card needs no game: an army template is not loaded here.
+    expect(
+      entryStatus(back.entries[1], {} as never, new Set()).order,
+    ).toBeNull();
+    // Share code round trip; more than 24 divisions in a code are refused.
+    const other = new LibraryStore(() => memory());
+    expect(other.importCode(s.exportCode([s.entries[1].id]))).toMatchObject({
+      ok: true,
+      added: 1,
+    });
+    expect(other.entries[0]).toMatchObject({ type: "army", name: "Again" });
+    const big = JSON.stringify({
+      v: 1,
+      e: [{ ...army, items: [{ ...army.items[0], count: 25 }] }],
+    });
+    expect(other.importCode("WW36L1:" + btoa(big)).ok).toBe(false);
+  });
 });
