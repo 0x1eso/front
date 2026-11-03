@@ -27,6 +27,9 @@ import {
 } from "@openfront/engine-api/ww1936/EconomyTypes";
 import {
   BattalionId,
+  GROUND_EQUIP_KEYS,
+  GROUND_SLOTS,
+  GROUND_STATIC_SLOTS,
   NG_HEAVY,
   NG_TD,
   WW_MAX_BATTALIONS,
@@ -47,10 +50,15 @@ import {
   tankRole,
 } from "@openfront/engine-lib/ww1936/DesignRules";
 import { effCapBp } from "@openfront/engine-lib/ww1936/EconomyRules";
-import { WW_TECHS } from "@openfront/engine-lib/ww1936/WwTechs";
+import { EQUIPMENT } from "@openfront/engine-lib/ww1936/Equipment";
+import {
+  isTankGroup,
+  oldInfoOf,
+} from "@openfront/engine-lib/ww1936/TemplateStats";
 import { aiPersonality } from "../economy/AiEconomy";
 import { changeLine } from "../economy/Production";
 import type { CountryEconomy } from "../economy/WwEconomy";
+import { saveTankCell } from "./DesignCells";
 import {
   navalLineDesignBlock,
   presetName,
@@ -260,6 +268,11 @@ function aiSave(
   ) {
     return 0;
   }
+  // A tank goes through the cell rule (one design per role and chassis).
+  if (def.kind === "tank") {
+    const got = saveTankCell(d, id, def, day);
+    return typeof got === "number" ? got : 0;
+  }
   if (c.des[def.kind].indexOf(null) < 0) return 0;
   const s = saveDesign(d, id, def, 0, "own", 0, 0, day);
   return typeof s === "number" ? s : 0;
@@ -269,8 +282,8 @@ function aiSave(
  * Spec §19.3: a design of every wanted (base, role) — saved the design
  * day its chassis tech is there (when the experience allows) — and a
  * reworked one once a year when a newly opened module changes the fit.
- * A design no line builds that a newer one of its group replaced goes
- * obsolete (its slot frees once nothing holds it).
+ * The save goes through the cell rule, so a rework upgrades every tank of
+ * the cell at once; an old design nothing holds frees its slot by itself.
  */
 function aiTankDesigns(
   d: WwDepth,
@@ -296,17 +309,6 @@ function aiTankDesigns(
       aiSave(d, id, ce, fit, latest.def, day);
     }
   }
-  const newest = newestOfGroups(d, id);
-  const c = d.country(id)!;
-  c.des.tank.forEach((s, i) => {
-    if (s === null || s.obsolete || s.origin !== "own") return;
-    const g = groupKey(s.def);
-    if (newest.get(g) === i + 1) return;
-    const key = equipKey("tank_design", i + 1);
-    if (ce.lines.some((l) => l.key === key)) return;
-    s.obsolete = true;
-    d.markDesign(id, "tank", i + 1);
-  });
 }
 
 /** The line group of a tank design: its need group (light, medium, heavy, tank destroyer…). */
@@ -314,37 +316,56 @@ function groupKey(def: DesignDef): number {
   return designNeedGroup(def);
 }
 
-/** Need group → the newest usable tank design slot (newest chassis year, then the latest saved, then the lower slot). */
-function newestOfGroups(d: WwDepth, id: number): Map<number, number> {
-  const best = new Map<number, [number, DesignSlot]>();
-  for (const [slot, s] of usable(d, id, "tank")) {
-    const g = groupKey(s.def);
-    const was = best.get(g);
-    const year = WW_TECHS[TANK_BASE_DEFS[s.def.base].tech].year;
-    if (was !== undefined) {
-      const wy = WW_TECHS[TANK_BASE_DEFS[was[1].def.base].tech].year;
-      if (wy > year || (wy === year && was[1].savedDay >= s.savedDay)) {
-        continue;
-      }
+/**
+ * Need group → the EQUIP_KEYS index of its best key to build: the highest
+ * score (ties: the smaller slot) among the static tanks whose tech the
+ * country has and its usable designs (own or licensed, not obsolete).
+ */
+function bestOfGroups(
+  d: WwDepth,
+  id: number,
+  ce: CountryEconomy,
+): Map<number, number> {
+  const ks = d.keyStats(id);
+  const usableSlots = new Set(usable(d, id, "tank").map(([slot]) => slot));
+  const best = new Map<number, number>();
+  for (let j = 0; j < GROUND_SLOTS; j++) {
+    const g = ks.group[j];
+    if (g < 0 || !isTankGroup(g)) continue;
+    const key = GROUND_EQUIP_KEYS[j];
+    if (j < GROUND_STATIC_SLOTS) {
+      const [type, gen] = EQUIP_KEYS[key];
+      const tech = EQUIPMENT[type].techs[gen - 1];
+      if (tech === undefined || !ce.researched.has(tech)) continue;
+    } else if (!usableSlots.has(j - GROUND_STATIC_SLOTS + 1)) {
+      continue;
     }
-    best.set(g, [slot, s]);
+    const was = best.get(g);
+    if (
+      was === undefined ||
+      ks.score[j] > ks.score[GROUND_EQUIP_KEYS.indexOf(was)]
+    ) {
+      best.set(g, key);
+    }
   }
-  return new Map([...best].map(([g, [slot]]) => [g, slot]));
+  return best;
 }
 
 const LIGHT_G = EQUIPMENT_TYPES.indexOf("light_tank");
 const MEDIUM_G = EQUIPMENT_TYPES.indexOf("medium_tank");
 
 /**
- * Spec §19.3: one tank line a design day moves to the newest design of
- * its group (a static light or medium tank line to its weight's design)
- * when it is near its efficiency cap (P1 R6.7) or its design went
- * obsolete. An aggressor major also turns its smallest medium tank line
- * into a tank destroyer line (1940) and another into a heavy tank line
- * (1942), keeping one medium line at least.
+ * Spec §19.3 (by score now): one tank line a design day moves to the best
+ * key of its need group (the highest performance score, not the newest)
+ * when it is near its efficiency cap (P1 R6.7) or its key is old. An
+ * aggressor major also turns its smallest medium tank line into a tank
+ * destroyer line (1940) and another into a heavy tank line (1942), keeping
+ * one medium line at least.
  */
 function aiTankLines(d: WwDepth, id: number, ce: CountryEconomy): void {
-  const newest = newestOfGroups(d, id);
+  const best = bestOfGroups(d, id, ce);
+  const ks = d.keyStats(id);
+  const info = oldInfoOf(ks, ce.researched);
   const cap = effCapBp(ce.stats);
   const des = d.country(id)!.des.tank;
   const groupOfLine = (key: number): number => {
@@ -355,30 +376,32 @@ function aiTankLines(d: WwDepth, id: number, ce: CountryEconomy): void {
     const s = des[g - 1];
     return s === null ? -1 : groupKey(s.def);
   };
+  const retool = (lineId: number, key: number) => {
+    const [t, g] = EQUIP_KEYS[key];
+    return changeLine(d.ww.economy, ce, lineId, t, g) === null;
+  };
   for (const g of [NG_TD, NG_HEAVY]) {
-    const slot = newest.get(g);
-    if (slot === undefined) continue;
+    const key = best.get(g);
+    if (key === undefined) continue;
     if (ce.lines.some((l) => groupOfLine(l.key) === g)) continue;
     const mediums = ce.lines.filter((l) => groupOfLine(l.key) === MEDIUM_G);
     if (mediums.length < 2) continue;
     const pick = [...mediums].sort(
       (a, b) => a.factories - b.factories || b.id - a.id,
     )[0];
-    if (changeLine(d.ww.economy, ce, pick.id, "tank_design", slot) === null) {
-      return;
-    }
+    if (retool(pick.id, key)) return;
   }
   for (const l of ce.lines) {
     const g = groupOfLine(l.key);
     if (g < 0) continue;
-    const slot = newest.get(g);
-    if (slot === undefined || equipKey("tank_design", slot) === l.key) continue;
-    const [t, s] = EQUIP_KEYS[l.key];
-    const obsolete = t === "tank_design" && des[s - 1]?.obsolete === true;
-    if (!obsolete && l.effBp < cap - NEAR_CAP_BP) continue;
-    if (changeLine(d.ww.economy, ce, l.id, "tank_design", slot) === null) {
-      return;
+    const key = best.get(g);
+    if (key === undefined || key === l.key) continue;
+    const j = GROUND_EQUIP_KEYS.indexOf(l.key);
+    if (j >= 0 && ks.score[j] >= ks.score[GROUND_EQUIP_KEYS.indexOf(key)]) {
+      continue;
     }
+    if (info.old[j] !== 1 && l.effBp < cap - NEAR_CAP_BP) continue;
+    if (retool(l.id, key)) return;
   }
 }
 

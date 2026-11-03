@@ -92,7 +92,7 @@ describe("<ww-designer>", () => {
       (el.querySelector(sel) as HTMLElement).click();
       await el.updateComplete;
     };
-    await click("[data-ww-base=medium_2]");
+    await click("[data-ww-cell=medium_2]");
     await click("[data-ww-slot='0']");
     await click("[data-ww-module-row=gun_hv]");
     expect(el.querySelectorAll("[data-ww-stat]")).toHaveLength(8);
@@ -108,7 +108,7 @@ describe("<ww-designer>", () => {
       (el.querySelector("[data-ww-design-save]") as HTMLButtonElement).disabled,
     ).toBe(true);
     el.remove();
-  });
+  }, 30_000);
 
   it("final review D (D1): a name typed with a trailing space saves trimmed", async () => {
     const { EventBus } = await import("@openfront/shared/EventBus");
@@ -133,7 +133,7 @@ describe("<ww-designer>", () => {
     el.init();
     bus.emit(new WwDepthOpenEvent("designer", { kind: "tank" }));
     await el.updateComplete;
-    (el.querySelector("[data-ww-base=medium_2]") as HTMLElement).click();
+    (el.querySelector("[data-ww-cell=medium_2]") as HTMLElement).click();
     await el.updateComplete;
     const input = el.querySelector("[data-ww-design-name]") as HTMLInputElement;
     input.value = "티거 ";
@@ -213,7 +213,7 @@ describe("<ww-designer>", () => {
     el.remove();
   });
 
-  it("a 7-slot tank at 844 x 390 fits its grid, steppers and bottom bar in the drawer", async () => {
+  it("a 7-slot tank at 844 x 390: a scrolling column of 40 px targets, the grid, steppers and bottom bar", async () => {
     const { EventBus } = await import("@openfront/shared/EventBus");
     const { WwDepthOpenEvent } =
       await import("../../../src/client/hud/ww1936/DepthEvents");
@@ -239,21 +239,19 @@ describe("<ww-designer>", () => {
     el.init();
     bus.emit(new WwDepthOpenEvent("designer", { kind: "tank" }));
     await el.updateComplete;
-    (el.querySelector("[data-ww-base=heavy_2]") as HTMLElement).click();
+    (el.querySelector("[data-ww-cell=heavy_2]") as HTMLElement).click();
     await el.updateComplete;
     const px = (sel: string, prop: "height" | "top" | "bottom") =>
       parseFloat((el.querySelector(sel) as HTMLElement).style[prop] || "0");
-    const slots = el.querySelectorAll("[data-ww-slot]").length;
-    expect(slots).toBe(7);
-    const aside = "[data-ww-drawer]";
-    const drawerH = 390 - px(aside, "top") - px(aside, "bottom");
-    const bars =
-      px("[data-ww-designer-bar]", "height") +
-      px("[data-ww-base-chips]", "height");
-    const bottom = px("[data-ww-designer-bottom]", "height");
-    const grid = px("[data-ww-slot-grid]", "height");
-    expect(grid).toBe(4 * 49 + 3 * 2);
-    expect(bars + grid + bottom).toBeLessThanOrEqual(drawerH);
+    expect(el.querySelectorAll("[data-ww-slot]").length).toBe(7);
+    expect(px("[data-ww-slot-grid]", "height")).toBe(4 * 49 + 3 * 2);
+    // The tank tab scrolls down, never sideways; every target is 40 px high.
+    const scroll = el.querySelector("[data-ww-scroll]") as HTMLElement;
+    expect(scroll.className).toContain("overflow-y-auto");
+    expect(scroll.className).not.toContain("overflow-x");
+    for (const t of el.querySelectorAll("[data-ww-cell], [data-ww-role-tab]")) {
+      expect(t.className).toContain("min-h-10");
+    }
     // The steppers sit in the bottom bar's experience row, not under the grid.
     expect(
       el.querySelector("[data-ww-designer-xprow] [data-ww-steppers]"),

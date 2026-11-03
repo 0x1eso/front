@@ -484,6 +484,8 @@ export const KS_FIELDS = 13;
 export interface KeyStatsTable {
   group: Int8Array;
   year: Int16Array;
+  /** Draw rank of each slot: the performance score for the tank groups, the year elsewhere (TemplateStats.rowScore). */
+  score: Int32Array;
   stats: Int32Array;
 }
 

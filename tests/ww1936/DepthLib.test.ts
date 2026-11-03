@@ -54,6 +54,7 @@ import {
   GEN1,
   genMixOf,
   groupDrawSlots,
+  rowScore,
   STATIC_KEY_STATS,
   templateStats,
 } from "@openfront/engine-lib/ww1936/TemplateStats";
@@ -261,6 +262,7 @@ function oneDesign(
 ): KeyStatsTable {
   const group = new Int8Array(STATIC_KEY_STATS.group);
   const years = new Int16Array(STATIC_KEY_STATS.year);
+  const score = new Int32Array(STATIC_KEY_STATS.score);
   const stats = new Int32Array(STATIC_KEY_STATS.stats);
   const j = GROUND_STATIC_SLOTS;
   group[j] = NEED_GROUPS.indexOf("medium_tank");
@@ -268,7 +270,8 @@ function oneDesign(
   for (const [k, v] of Object.entries(row)) {
     stats[j * KS_FIELDS + KS[k as keyof typeof KS]] = v!;
   }
-  return { group, year: years, stats };
+  score[j] = rowScore(stats, j, group[j], year);
+  return { group, year: years, score, stats };
 }
 const tpl = (bns: BattalionId[], support: string[] = []): TemplateDef =>
   ({ name: "", battalions: bns, support }) as TemplateDef;
@@ -301,12 +304,20 @@ describe("templates with designs (TemplateStats, plan decisions 6, 7)", () => {
     e[DES] = 4;
     expect(equipByType(e, ks)[NEED_GROUPS.indexOf("medium_tank")]).toBe(7);
     expect(equipByType(e)[NEED_GROUPS.indexOf("medium_tank")]).toBe(3);
-    // Newest year first, then the smaller slot: a 1950 design before every
-    // static medium, a 1900 one after them.
+    // Highest score first, then the smaller slot (the year no longer ranks):
+    // a design of big numbers before every static medium, an empty one after
+    // them, whatever its year.
     const g = NEED_GROUPS.indexOf("medium_tank");
-    expect(groupDrawSlots(oneDesign({}, 1950), g)[0]).toBe(DES);
-    const old = groupDrawSlots(oneDesign({}, 1900), g);
-    expect(old[old.length - 1]).toBe(DES);
+    const big = {
+      soft: 9000,
+      hard: 9000,
+      brk: 9000,
+      pierce: 9000,
+      armor: 9000,
+    };
+    expect(groupDrawSlots(oneDesign(big, 1900), g)[0]).toBe(DES);
+    const weak = groupDrawSlots(oneDesign({}, 1950), g);
+    expect(weak[weak.length - 1]).toBe(DES);
   });
 
   it("battalion and support company percentages", () => {

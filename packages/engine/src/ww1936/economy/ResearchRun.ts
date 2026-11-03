@@ -26,6 +26,7 @@ import {
 } from "@openfront/engine-lib/ww1936/Stats";
 import { techCostMilli, WW_TECHS } from "@openfront/engine-lib/ww1936/WwTechs";
 import type { Player } from "../../game/Game";
+import { noteNewChassis } from "../depth/DesignCells";
 import { sharedResearchPct } from "../depth/FactionRules";
 import type { WwDepth } from "../depth/WwDepth";
 import { payPp } from "../politics/PayPp";
@@ -306,6 +307,9 @@ export function stepResearch(
         undefined,
         { tech: s.tech },
       );
+      // A chassis for the roles of a design the player saved (personal notice).
+      const depth = econ.ww.depth as WwDepth | undefined;
+      if (depth !== undefined) noteNewChassis(depth, ce.smallID, s.tech);
     }
   }
 }

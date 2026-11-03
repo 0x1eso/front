@@ -44,6 +44,8 @@ test("a refused retooling tries the next line near its cap", async () => {
   deu.lines = [near(101, "infantry_equipment"), near(102, "artillery")];
   deu.nextLineId = 103;
   refused.add(101);
+  // (The AI's first tank design moved the light tank lines into it: those calls are not under test.)
+  vi.mocked(Production.changeLine).mockClear();
   // Germany's turn (day 9: (9 + 1) % 10 === 0).
   aiEconomyTick(econ, deu, p, 9, g.ticks());
   expect(vi.mocked(Production.changeLine).mock.calls.map((c) => c[2])).toEqual([

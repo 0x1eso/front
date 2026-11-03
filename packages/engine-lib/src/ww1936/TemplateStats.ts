@@ -26,6 +26,10 @@ import {
   NEED_GROUP_COUNT,
   NEED_GROUPS,
   NeedGroup,
+  NG_HEAVY,
+  NG_SPA,
+  NG_SPAA,
+  NG_TD,
   TemplateDef,
   TPL_AMPHIBIOUS,
   TPL_ARMOR_ANY,
@@ -112,13 +116,185 @@ function staticYear(j: number): number {
 function staticKeyStats(): KeyStatsTable {
   const group = new Int8Array(GROUND_SLOTS).fill(-1);
   const year = new Int16Array(GROUND_SLOTS);
+  const score = new Int32Array(GROUND_SLOTS);
   const stats = new Int32Array(GROUND_SLOTS * KS_FIELDS);
   for (let j = 0; j < GROUND_STATIC_SLOTS; j++) {
     group[j] = SLOT_TYPE[j];
     year[j] = staticYear(j);
     fillStaticRow(stats, j);
+    score[j] = rowScore(stats, j, group[j], year[j]);
   }
-  return { group, year, stats };
+  return { group, year, score, stats };
+}
+
+/** The need groups whose slots are ranked by performance score (the tanks). */
+const LIGHT_G = TYPE_INDEX.get("light_tank")!;
+const MEDIUM_G = TYPE_INDEX.get("medium_tank")!;
+
+/** A need group of tanks (light, medium, heavy, tank destroyer, SP artillery, SP anti-air). */
+export function isTankGroup(g: number): boolean {
+  return (
+    g === LIGHT_G ||
+    g === MEDIUM_G ||
+    g === NG_HEAVY ||
+    g === NG_TD ||
+    g === NG_SPA ||
+    g === NG_SPAA
+  );
+}
+
+/**
+ * Score weights, percent, in KS order (soft, hard, def, brk, pierce, armor,
+ * aa). The score reads a KeyStatsTable row, the very numbers a battalion
+ * blends in (templateStats), so a static tank (the battalion's numbers at
+ * its generation) and a design stand on one scale. Cost is not in it.
+ */
+const W_TANK = [20, 25, 10, 15, 15, 15, 0];
+const W_TD = [0, 30, 10, 0, 50, 10, 0];
+const W_SPA = [60, 10, 10, 20, 0, 0, 0];
+const W_SPAA = [10, 0, 10, 10, 0, 0, 70];
+const W_FIELDS = [KS.soft, KS.hard, KS.def, KS.brk, KS.pierce, KS.armor, KS.aa];
+
+/**
+ * The performance score of a KeyStatsTable row (integers only): weighted by
+ * the group's role — tank: soft, hard, breakthrough, defence, armour,
+ * pierce; tank destroyer: mainly pierce and hard; SP artillery: mainly
+ * soft; SP anti-air: mainly anti-air. Groups that are no tanks rank by
+ * `year` (their generation), as before.
+ */
+export function rowScore(
+  stats: ArrayLike<number>,
+  j: number,
+  group: number,
+  year: number,
+): number {
+  if (!isTankGroup(group)) return year;
+  const w =
+    group === NG_TD
+      ? W_TD
+      : group === NG_SPA
+        ? W_SPA
+        : group === NG_SPAA
+          ? W_SPAA
+          : W_TANK;
+  const o = j * KS_FIELDS;
+  let sum = 0;
+  for (let i = 0; i < W_FIELDS.length; i++) {
+    if (w[i] !== 0) sum += stats[o + W_FIELDS[i]] * w[i];
+  }
+  return Math.floor(sum / 100);
+}
+
+/** Percent below the group's best score from which a key is old (Rule 5). */
+export const TANK_OLD_PCT = 15;
+
+/** `score` is old against `best` (more than TANK_OLD_PCT below it), integers only. */
+export function isOldScore(score: number, best: number): boolean {
+  return score * 100 < best * (100 - TANK_OLD_PCT);
+}
+
+/** The tech a static slot's equipment needs (undefined: none). */
+function staticTech(j: number): WwTechId | undefined {
+  const [type, gen] = EQUIP_KEYS[GROUND_EQUIP_KEYS[j]];
+  return EQUIPMENT[type].techs[gen - 1];
+}
+
+/** Which division slots are old, and the best score per need group. */
+export interface OldInfo {
+  /** Best score among the keys the country can field, per NEED_GROUPS index (0: none). */
+  best: Int32Array;
+  /** 1 for an old slot (a tank group's slot more than TANK_OLD_PCT below its group's best). */
+  old: Uint8Array;
+}
+
+/**
+ * The screens' KeyStatsTable: the static rows with the given tank designs
+ * (slot is 1-based) written into the design rows, scores included — the
+ * engine's own table (WwDepth.fillDesignRows) holds the same numbers.
+ */
+export function keyStatsWithDesigns(
+  designs: ReadonlyArray<{
+    slot: number;
+    stats: {
+      group: number;
+      year: number;
+      soft: number;
+      hard: number;
+      def: number;
+      brk: number;
+      pierce: number;
+      armor: number;
+      aa: number;
+    };
+  }>,
+): KeyStatsTable {
+  const t: KeyStatsTable = {
+    group: STATIC_KEY_STATS.group.slice(),
+    year: STATIC_KEY_STATS.year.slice(),
+    score: STATIC_KEY_STATS.score.slice(),
+    stats: STATIC_KEY_STATS.stats.slice(),
+  };
+  for (const { slot, stats: s } of designs) {
+    const j = GROUND_STATIC_SLOTS + slot - 1;
+    if (j < GROUND_STATIC_SLOTS || j >= GROUND_SLOTS) continue;
+    const o = j * KS_FIELDS;
+    t.group[j] = s.group;
+    t.year[j] = s.year;
+    t.stats[o + KS.soft] = s.soft;
+    t.stats[o + KS.hard] = s.hard;
+    t.stats[o + KS.def] = s.def;
+    t.stats[o + KS.brk] = s.brk;
+    t.stats[o + KS.pierce] = s.pierce;
+    t.stats[o + KS.armor] = s.armor;
+    t.stats[o + KS.aa] = s.aa;
+    t.score[j] = rowScore(t.stats, j, s.group, s.year);
+  }
+  return t;
+}
+
+const OLD_MEMO = new WeakMap<
+  KeyStatsTable,
+  { res: ReadonlySet<WwTechId>; size: number; info: OldInfo }
+>();
+
+/**
+ * Rule 5: a slot is old when its score is more than TANK_OLD_PCT below the
+ * best score of its need group among the keys the country can field — its
+ * designs and the static tanks whose tech it has. Only the tank groups
+ * have old slots. Memoised per table and tech set (a table is replaced
+ * whenever a design changes).
+ */
+export function oldInfoOf(
+  ks: KeyStatsTable,
+  researched: ReadonlySet<WwTechId>,
+): OldInfo {
+  const hit = OLD_MEMO.get(ks);
+  if (
+    hit !== undefined &&
+    hit.res === researched &&
+    hit.size === researched.size
+  ) {
+    return hit.info;
+  }
+  const best = new Int32Array(NEED_GROUP_COUNT);
+  const old = new Uint8Array(GROUND_SLOTS);
+  for (let j = 0; j < GROUND_SLOTS; j++) {
+    const g = slotGroup(ks, j);
+    if (g < 0 || !isTankGroup(g)) continue;
+    if (j < GROUND_STATIC_SLOTS) {
+      const tech = staticTech(j);
+      if (tech !== undefined && !researched.has(tech)) continue;
+    }
+    if (ks.score[j] > best[g]) best[g] = ks.score[j];
+  }
+  for (let j = 0; j < GROUND_SLOTS; j++) {
+    const g = slotGroup(ks, j);
+    if (g < 0 || !isTankGroup(g)) continue;
+    if (isOldScore(ks.score[j], best[g])) old[j] = 1;
+  }
+  const info = { best, old };
+  OLD_MEMO.set(ks, { res: researched, size: researched.size, info });
+  return info;
 }
 
 /** The numbers of the first battalion whose main equipment is the slot's type, at its generation. */
@@ -152,15 +328,15 @@ export function slotGroup(ks: KeyStatsTable, j: number): number {
 }
 
 /**
- * P6 plan decision 7, spec §5.2.4: the division slots of a need group in
- * draw order — the newest year first, then the smaller key. With static
- * generations only it is P2's order (newest generation first).
+ * The division slots of a need group in draw order — the highest score
+ * first (tanks: the performance score; elsewhere the year, so P2's newest
+ * generation first), then the smaller key.
  */
 export function groupDrawSlots(ks: KeyStatsTable, g: number): number[] {
   const out: number[] = [];
   for (let j = 0; j < GROUND_SLOTS; j++)
     if (slotGroup(ks, j) === g) out.push(j);
-  return out.sort((a, b) => ks.year[b] - ks.year[a] || a - b);
+  return out.sort((a, b) => ks.score[b] - ks.score[a] || a - b);
 }
 
 /** Owner, 2026-11-03: training takes half the time of the battalion tables. */

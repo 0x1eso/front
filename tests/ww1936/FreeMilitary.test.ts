@@ -51,7 +51,11 @@ describe("ww15: free designs and a permanent experience reward", () => {
         tick,
       ),
     ).toBeNull();
-    expect(d.country(GBR)!.des.tank.filter((x) => x !== null)).toHaveLength(2);
+    // The cell rule: a copy into the same cell overwrites it in place.
+    expect(d.country(GBR)!.des.tank.filter((x) => x !== null)).toHaveLength(1);
+    expect(
+      (d.designSlot(GBR, "tank", 1)!.def as { armorLevel: number }).armorLevel,
+    ).toBe(0);
   });
 
   it("a focus's army_xp stacks as a permanent bonus that survives days and a restore", async () => {

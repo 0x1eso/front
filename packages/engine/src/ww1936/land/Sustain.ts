@@ -4,8 +4,10 @@
 // is the foundation's (one path for the equipment back to the stock).
 import { WW_DAY_SPLIT } from "@openfront/engine-api/ww1936/EconomyTypes";
 import {
+  GROUND_EQUIP_KEYS,
   GROUND_SLOTS,
   MOVE_NONE,
+  NEED_GROUP_COUNT,
   TPL_HOSPITAL,
   traitBit,
   WW_EXP_PER_DAY,
@@ -13,10 +15,15 @@ import {
 } from "@openfront/engine-api/ww1936/LandTypes";
 import type { WwStatKey } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
+import {
+  isTankGroup,
+  oldInfoOf,
+} from "@openfront/engine-lib/ww1936/TemplateStats";
 import { WEATHER } from "@openfront/engine-lib/ww1936/Weather";
 import {
   drawEquip,
   drawManpower,
+  drawOrderOf,
   drawTemplateEquip,
   returnDivisionEquip,
   returnEquip,
@@ -84,12 +91,16 @@ export function dailySustain(land: WwLand, smallID: number, day: number): void {
   // rest of the day (attrition, experience) touches no stock, so it may run
   // in row order after.
   const order = land.depthHooks.reinforceOrder(smallID);
+  // The generation swap's plan, once for the country's day (null: nothing
+  // old is held where better stock waits; no division row is touched).
+  const plan = swapPlanOf(land, ce, smallID);
   if (order !== null) {
     for (const id of order) {
       const r = t.rowOf(id);
       if (r < 0 || t.owner[r] !== smallID || t.encircled[r] !== 0) continue;
       reinforce(land, ce, r);
       upgrade(land, ce, r);
+      if (plan !== null) swapOld(land, ce, r, plan);
     }
   }
   // P6 (spec §21.2, §4.5): division experience gain and the army's medal.
@@ -99,6 +110,7 @@ export function dailySustain(land: WwLand, smallID: number, day: number): void {
     if (order === null && t.encircled[r] === 0) {
       reinforce(land, ce, r);
       upgrade(land, ce, r);
+      if (plan !== null) swapOld(land, ce, r, plan);
     }
     attrition(land, r, day);
     if (fought(t.lastFight[r])) {
@@ -128,12 +140,7 @@ export function reinforce(land: WwLand, ce: CountryEconomy, r: number): void {
   if (supply <= 0) return;
   // Men, need and flags read only the template def and the stats.
   const s = land.templateNumbersOf(r);
-  // P6 (spec §21.2): reinforcePct speeds the day's share.
-  const rPct =
-    (ce.stats as Partial<Record<WwStatKey, number>>).reinforcePct ?? 0;
-  const cap = reinforceCap(
-    rPct === 0 ? supply : Math.floor((supply * Math.max(0, 100 + rPct)) / 100),
-  );
+  const cap = dayCap(ce, supply);
   const men = t.men[r];
   const add = Math.min(s.men - men, cap(s.men), ce.manpower);
   if (add > 0 && drawManpower(ce, add)) {
@@ -148,6 +155,97 @@ export function reinforce(land: WwLand, ce: CountryEconomy, r: number): void {
   // P6 (plan decision 7): need groups, the country's slot numbers.
   drawTemplateEquip(ce, slots, s.need, land.keyStatsOf(t.owner[r]), cap);
   applySlots(land, r, slots);
+}
+
+/** The day's reinforcement cap of a division at `supply` (reinforcePct included). */
+function dayCap(ce: CountryEconomy, supply: number): (need: number) => number {
+  // P6 (spec §21.2): reinforcePct speeds the day's share.
+  const rPct =
+    (ce.stats as Partial<Record<WwStatKey, number>>).reinforcePct ?? 0;
+  return reinforceCap(
+    rPct === 0 ? supply : Math.floor((supply * Math.max(0, 100 + rPct)) / 100),
+  );
+}
+
+/** A tank need group where old equipment may be swapped: its old slots (lowest score first) and the non-old slots. */
+interface SwapGroup {
+  group: number;
+  old: number[];
+  fresh: number[];
+}
+
+/**
+ * The generation swap's plan for a country's day: the tank need groups
+ * with an old key (more than TANK_OLD_PCT below the group's best) and
+ * non-old stock to swap it for. Null when there is none — the common day —
+ * and then nothing else is done (no division row is read).
+ */
+export function swapPlanOf(
+  land: WwLand,
+  ce: CountryEconomy,
+  smallID: number,
+): SwapGroup[] | null {
+  const ks = land.keyStatsOf(smallID);
+  const info = oldInfoOf(ks, ce.researched);
+  let out: SwapGroup[] | null = null;
+  const order = drawOrderOf(ks);
+  for (let g = 0; g < NEED_GROUP_COUNT; g++) {
+    if (!isTankGroup(g)) continue;
+    const list = order[g];
+    let hasOld = false;
+    for (let k = 0; k < list.length && !hasOld; k++) {
+      hasOld = info.old[list[k]] === 1;
+    }
+    if (!hasOld) continue;
+    const fresh = list.filter(
+      (j) => info.old[j] === 0 && ce.stock[GROUND_EQUIP_KEYS[j]] > 0,
+    );
+    if (fresh.length === 0) continue;
+    // (The draw order, lowest score first for the old ones.)
+    const old = list.filter((j) => info.old[j] === 1).reverse();
+    (out ??= []).push({ group: g, old, fresh });
+  }
+  return out;
+}
+
+/**
+ * The automatic generation swap (reinforcement's pace, per need group): a
+ * division holding old equipment takes non-old equipment from the stock,
+ * the best first, and the old goes back to the stock. Skipped at sea and
+ * without supply, as reinforcement is; a battle does not stop it. Non-old
+ * equipment is never swapped for slightly better.
+ */
+export function swapOld(
+  land: WwLand,
+  ce: CountryEconomy,
+  r: number,
+  plan: readonly SwapGroup[],
+): void {
+  if (atSea(land, r)) return;
+  const t = land.divisions;
+  const supply = t.supply[r];
+  if (supply <= 0) return;
+  const s = land.templateNumbersOf(r);
+  const cap = dayCap(ce, supply);
+  const base = r * GROUND_SLOTS;
+  for (const p of plan) {
+    const need = s.need[p.group];
+    if (need <= 0) continue;
+    let budget = cap(need);
+    for (const jo of p.old) {
+      if (budget <= 0) break;
+      for (const jf of p.fresh) {
+        const want = Math.min(budget, t.equip[base + jo]);
+        if (want <= 0) break;
+        const got = drawEquip(ce, GROUND_EQUIP_KEYS[jf], want);
+        if (got <= 0) continue;
+        land.addEquip(r, jf, got);
+        returnEquip(ce, GROUND_EQUIP_KEYS[jo], got);
+        land.addEquip(r, jo, -got);
+        budget -= got;
+      }
+    }
+  }
 }
 
 /** reinforce's copy of a division's slots (filled before each use). */
@@ -166,6 +264,8 @@ export function upgrade(land: WwLand, ce: CountryEconomy, r: number): void {
   const s = land.templateNumbersOf(r);
   const base = r * GROUND_SLOTS;
   TYPE_SLOTS.forEach((list, i) => {
+    // The tanks change generation by score, in swapOld (not by year here).
+    if (isTankGroup(i)) return;
     if (s.need[i] <= 0 || list.length < 2) return;
     let budget = Math.ceil((s.need[i] * WW_UPGRADE_PM) / 1000);
     for (let hi = list.length - 1; hi >= 1 && budget > 0; hi--) {
