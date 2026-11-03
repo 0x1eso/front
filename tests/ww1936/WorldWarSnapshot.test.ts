@@ -525,26 +525,22 @@ describe("World War 1936 stays deterministic", () => {
   // the democracies' liberation-only offensives).
   // ww7 lane F had marked this `fails` (Germany's gate never cleared); the
   // w7-bal patch (German tungsten, Polish volunteer law) made it pass again.
-  test("an all-AI test-map war: Poland falls in the autumn of 1939, the majors stand", async () => {
+  test("an all-AI test-map war: it starts on the calendar, the majors stand", async () => {
     const runner = await wwRunner();
     const g = runner.game;
     const ww = g.worldWar()!;
     const pol = byTag(g, "POL");
     let war = -1;
-    let fell = -1;
     while (g.ticks() < 13_000) {
       step(runner);
       if (war < 0 && ww.hasWar(pol.smallID())) war = ww.day(g.ticks());
-      if (fell < 0 && (!pol.isAlive() || ww.isCapitulated(pol.smallID()))) {
-        fell = ww.day(g.ticks());
-      }
     }
     expect(war).toBeGreaterThanOrEqual(dayOfDate("1939-09-01"));
-    // The test map's Poland is two regions: it falls within weeks of the
-    // war, in the autumn (the real map's 25 to 75 days are land-sim's).
-    expect(fell - war).toBeGreaterThanOrEqual(10);
-    expect(fell).toBeLessThanOrEqual(dayOfDate("1939-11-30"));
-    expect(fallen(g)).toBe(1);
+    // Owner, 2026-11-03: history is a loose guide, so no fall date is pinned.
+    // With training at half time this map's two-region Poland held until
+    // August 1942; the world map's fell in May 1940. A capitulation itself is
+    // covered by "restored mid-gauge".
+    expect(fallen(g)).toBeLessThanOrEqual(1);
     for (const tag of ["DEU", "FRA", "SUN", "GBR", "ITA"] as const) {
       expect(byTag(g, tag).isAlive()).toBe(true);
       expect(ww.isCapitulated(byTag(g, tag).smallID())).toBe(false);
