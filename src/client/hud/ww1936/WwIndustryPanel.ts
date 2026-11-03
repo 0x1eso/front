@@ -1179,7 +1179,7 @@ export class WwIndustryPanel extends WwDrawerBase {
     const mark = { ok: "✓", warn: "…", bad: "✕", idle: "–" } as const;
     const th =
       "px-0.5 py-1 text-right align-bottom text-[10px] font-semibold leading-tight break-words text-white/60";
-    return html`<section data-ww-stock>
+    return html`<section data-ww-stock class="max-w-xl">
       <div class=${HEADING}>${translateText("ww1936.econ.stockpile")}</div>
       <p class="m-0 mb-1 text-[11px] text-white/60">
         ${translateText("ww1936.econ.stock_intro")}
