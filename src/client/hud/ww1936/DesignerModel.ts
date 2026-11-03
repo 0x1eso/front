@@ -422,13 +422,71 @@ export class DesignerModel {
    * The air force's comes from lane D's detail.doctrine.xp[2] (whole points).
    */
   xpHave(): number | null {
-    const kind = this.draft?.kind ?? this.kind;
+    return this.xpHaveOf(this.draft?.kind ?? this.kind);
+  }
+
+  /** The experience in hand for a design kind (see xpHave). */
+  xpHaveOf(kind: DesignKind): number | null {
     if (kind === "tank") {
       return this.view.wwLand?.()?.details.get(this.me())?.armyXpMilli ?? 0;
     }
     if (kind === "ship") return this.view.wwNavy?.()?.detail?.navyXpMilli ?? 0;
     const air = this.view.wwDepth?.()?.detail(this.me())?.doctrine.xp?.[2];
     return air === undefined ? null : air * 1000;
+  }
+
+  /**
+   * For the personal library: why `def` cannot be saved as a new design now
+   * (the same checks as block(), in the same order), with the technologies
+   * and projects it still lacks. Touches no draft.
+   */
+  checkNew(def: DesignDef): {
+    block: WwOrderBlock | null;
+    techs: WwTechId[];
+    projects: SpecialProject[];
+    xpCost: number;
+    xpHave: number | null;
+  } {
+    const techs: WwTechId[] = [];
+    const projects: SpecialProject[] = [];
+    const have = this.techs();
+    const done = this.projects();
+    const need = (t?: WwTechId, p?: SpecialProject) => {
+      if (t !== undefined && !have.has(t) && !techs.includes(t)) techs.push(t);
+      if (
+        p !== undefined &&
+        (done & (1 << SPECIAL_PROJECTS.indexOf(p))) === 0 &&
+        !projects.includes(p)
+      ) {
+        projects.push(p);
+      }
+    };
+    if (def.kind === "tank") {
+      need(TANK_BASE_DEFS[def.base]?.tech);
+      for (const m of def.modules) need(TANK_MODULE_DEFS[m]?.tech);
+    } else if (def.kind === "ship") {
+      const sb = shipBase(def.base);
+      if (sb !== null && sb.gen > 1) need(`${sb.cls}_${sb.gen}` as WwTechId);
+      for (const m of def.modules) {
+        need(SHIP_MODULE_DEFS[m]?.tech, SHIP_MODULE_DEFS[m]?.project);
+      }
+    } else {
+      need(PLANE_BASE_DEFS[def.base]?.tech, PLANE_BASE_DEFS[def.base]?.project);
+      for (const m of def.modules) need(PLANE_MODULE_DEFS[m]?.tech);
+    }
+    const xpCost = designXpCost(null, def);
+    const xpHave = this.xpHaveOf(def.kind);
+    let block = designBlock(def, this.blockCtx());
+    if (block === null && xpHave !== null && xpCost * 1000 > xpHave) {
+      block = "no_xp";
+    }
+    if (
+      block === null &&
+      this.designsOf(def.kind).length >= DESIGN_SLOTS[def.kind]
+    ) {
+      block = "design_slots_full";
+    }
+    return { block, techs, projects, xpCost, xpHave };
   }
 
   /** The experience kind's name (ww1936.design.tab_<kind>) for xp_cost. */
@@ -999,14 +1057,14 @@ export function autoNameOf(def: DesignDef): string {
 
 /** Spec §20.5 sizes, CSS px. */
 export const DESIGNER_CARD_W = 150;
-export const DESIGNER_CARD_H = 52;
+export const DESIGNER_CARD_H = 49;
 export const DESIGNER_GAP = 2;
 export const DESIGNER_STATS_W = 180;
 export const DESIGNER_PAD = 12;
 /** Rows of the top bar, the base chips and the bottom bar. */
 export const DESIGNER_BAR_H = 32;
 /** The xp row (24, with the tank steppers) and the button row (32), plus padding. */
-export const DESIGNER_BOTTOM_H = 64;
+export const DESIGNER_BOTTOM_H = 74;
 
 export interface DesignerLayout {
   drawerW: number;

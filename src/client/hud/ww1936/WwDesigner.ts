@@ -12,6 +12,8 @@ import { customElement, state } from "lit/decorators.js";
 import { SendWwOrderIntentEvent } from "../../Transport";
 import { translateText } from "../../Utils";
 import { WwDepthOpenEvent } from "./DepthEvents";
+import { libraryStore } from "./DesignLibrary";
+import { entryName, LibraryAuto } from "./DesignLibraryStatus";
 import {
   DESIGNER_BAR_H,
   DESIGNER_BOTTOM_H,
@@ -24,6 +26,7 @@ import {
 } from "./DesignerModel";
 import { blockText as orderBlockText } from "./EconomyModel";
 import { countryName, TwoTap } from "./WorldWarModel";
+import { LibraryUi, renderLibrary } from "./WwDesignLibrary";
 import { renderDesignList } from "./WwDesignList";
 import {
   chipClass,
@@ -34,7 +37,7 @@ import {
 import { OpenWwIndustryEvent, WwDrawerBase } from "./WwDrawer";
 import { wwPanelStyle } from "./WwPanelMode";
 
-type DesignerTab = "design" | "list";
+type DesignerTab = "design" | "list" | "library";
 
 const BTN =
   "h-7 shrink-0 rounded-md border border-white/15 bg-white/5 px-2 text-xs font-semibold hover:bg-white/10 disabled:opacity-40";
@@ -58,13 +61,35 @@ export class WwDesigner extends WwDrawerBase {
   private lockedTipTimer: ReturnType<typeof setTimeout> | null = null;
   private readonly retireTap = new TwoTap();
   private armed = "";
+  private readonly store = libraryStore();
+  private readonly libTap = new TwoTap();
+  private auto: LibraryAuto | null = null;
+  private noticeTimer: ReturnType<typeof setTimeout> | null = null;
+  /** A short line when the library made something (shown even with the drawer shut). */
+  @state() private notice: string | null = null;
+  @state() private libUi: LibraryUi = {
+    armed: "",
+    message: "",
+    code: "",
+    importText: "",
+  };
 
   init() {
     super.init();
+    this.auto = new LibraryAuto(
+      this.store,
+      (o) => this.eventBus.emit(new SendWwOrderIntentEvent(o)),
+      (text) => this.showNotice(text),
+    );
+    this.store.subscribe(() => this.requestUpdate());
     this.eventBus.on(WwDepthOpenEvent, (e) => {
       if (e.kind !== "designer" && e.kind !== "designs") return;
       const m = this.ensureModel();
-      if (e.kind === "designs") {
+      if (e.kind === "designs" && e.arg?.tab === "library") {
+        if (this.open && this.tab === "library") return this.setOpen(false);
+        this.store.reload();
+        this.tab = "library";
+      } else if (e.kind === "designs") {
         if (this.open && this.tab === "list") return this.setOpen(false);
         this.tab = "list";
       } else {
@@ -94,8 +119,18 @@ export class WwDesigner extends WwDrawerBase {
 
   private seen = { depth: -1, econ: -1, pol: -1, rev: -1, tab: "", armed: "" };
 
+  private showNotice(text: string): void {
+    this.notice = text;
+    if (this.noticeTimer !== null) clearTimeout(this.noticeTimer);
+    this.noticeTimer = setTimeout(() => {
+      this.notice = null;
+      this.noticeTimer = null;
+    }, 4000);
+  }
+
   tick() {
     this.refitIfOpen();
+    this.auto?.tick(this.game);
     if (!this.open) return;
     const m = this.ensureModel();
     const g = this.game;
@@ -122,7 +157,17 @@ export class WwDesigner extends WwDrawerBase {
   }
 
   render() {
-    if (!this.open) return null;
+    if (!this.open) {
+      return this.notice === null
+        ? null
+        : html`<div
+            data-ww-lib-notice
+            role="status"
+            class="pointer-events-none fixed top-12 left-1/2 z-[1003] -translate-x-1/2 rounded-md border border-emerald-400/50 bg-gray-900/95 px-3 py-2 text-xs font-semibold text-emerald-200"
+          >
+            ${this.notice}
+          </div>`;
+    }
     const m = this.ensureModel();
     return html`<aside
       data-ww-drawer="designer"
@@ -132,7 +177,20 @@ export class WwDesigner extends WwDrawerBase {
       @contextmenu=${(e: Event) => e.preventDefault()}
     >
       ${this.renderBar(m)}
-      ${this.tab === "design" ? this.renderDesign(m) : this.renderList(m)}
+      ${this.tab === "design"
+        ? this.renderDesign(m)
+        : this.tab === "list"
+          ? this.renderList(m)
+          : this.renderLibraryTab()}
+      ${this.notice === null
+        ? nothing
+        : html`<div
+            data-ww-lib-notice
+            role="status"
+            class="pointer-events-none absolute top-10 left-1/2 z-20 -translate-x-1/2 rounded-md border border-emerald-400/50 bg-gray-900/95 px-3 py-2 text-xs font-semibold text-emerald-200"
+          >
+            ${this.notice}
+          </div>`}
     </aside>`;
   }
 
@@ -175,6 +233,21 @@ export class WwDesigner extends WwDrawerBase {
           @click=${() => (this.tab = "list")}
         >
           ${translateText("ww1936.design.tab_designs")}
+        </button>
+        <button
+          type="button"
+          role="tab"
+          data-ww-design-tab-library
+          aria-selected=${String(this.tab === "library")}
+          class="${BTN} ${this.tab === "library"
+            ? "border-sky-400/60 bg-sky-500/20"
+            : ""}"
+          @click=${() => {
+            this.store.reload();
+            this.tab = "library";
+          }}
+        >
+          ${translateText("ww1936.library.tab")}
         </button>
       </div>
       <button
@@ -557,6 +630,19 @@ export class WwDesigner extends WwDrawerBase {
         </button>
         <button
           type="button"
+          data-ww-lib-save
+          class="${BTN} h-10"
+          ?disabled=${d === null ||
+          badName ||
+          (block !== null &&
+            block !== "no_xp" &&
+            block !== "design_slots_full")}
+          @click=${() => this.saveToLibrary(m)}
+        >
+          ${translateText("ww1936.library.save")}
+        </button>
+        <button
+          type="button"
           data-ww-design-save
           class="${BTN} h-8 ${armed
             ? "border-amber-400/70 bg-amber-500/20"
@@ -569,6 +655,90 @@ export class WwDesigner extends WwDrawerBase {
           )}
         </button>
       </div>
+    </div>`;
+  }
+
+  private saveToLibrary(m: DesignerModel): void {
+    const d = m.draft;
+    if (d === null || !m.nameOk()) return;
+    const r = this.store.add({
+      type: "design",
+      def: { ...d, modules: [...d.modules] },
+    });
+    this.showNotice(
+      translateText(
+        r === "full"
+          ? "ww1936.library.full"
+          : r === "renamed"
+            ? "ww1936.library.renamed"
+            : "ww1936.library.saved",
+        { name: m.displayName(d) },
+      ),
+    );
+  }
+
+  private renderLibraryTab(): TemplateResult {
+    const ui = this.libUi;
+    const set = (p: Partial<LibraryUi>) =>
+      (this.libUi = { ...this.libUi, ...p });
+    return html`<div data-ww-scroll class="min-h-0 flex-1 overflow-y-auto p-2">
+      ${renderLibrary({
+        store: this.store,
+        game: this.game as never,
+        ui,
+        load: (e, s) => {
+          if (s.order === null) return;
+          this.eventBus.emit(new SendWwOrderIntentEvent(s.order));
+          set({
+            message: translateText("ww1936.library.sent", {
+              name: entryName(e),
+            }),
+          });
+        },
+        del: (e) => {
+          const key = `del:${e.id}`;
+          if (!this.libTap.tap(key, performance.now())) {
+            set({ armed: key });
+            setTimeout(() => {
+              if (this.libUi.armed === key) set({ armed: "" });
+            }, 3000);
+            return;
+          }
+          set({ armed: "" });
+          this.store.remove(e.id);
+        },
+        toggleAuto: (e) => this.store.setAuto(e.id, !e.auto),
+        share: (ids) => set({ code: this.store.exportCode(ids) }),
+        copy: () => {
+          const code = this.libUi.code;
+          const done = navigator.clipboard?.writeText(code);
+          if (done === undefined) {
+            set({ message: translateText("ww1936.library.copy_failed") });
+            return;
+          }
+          done.then(
+            () => set({ message: translateText("ww1936.library.copied") }),
+            () => set({ message: translateText("ww1936.library.copy_failed") }),
+          );
+        },
+        setImportText: (t) => set({ importText: t }),
+        doImport: () => {
+          const r = this.store.importCode(this.libUi.importText);
+          if (!r.ok) {
+            set({
+              message: translateText(`ww1936.library.import_${r.reason}`),
+            });
+            return;
+          }
+          set({
+            importText: "",
+            message: translateText("ww1936.library.imported", {
+              added: r.added,
+              known: r.known,
+            }),
+          });
+        },
+      })}
     </div>`;
   }
 

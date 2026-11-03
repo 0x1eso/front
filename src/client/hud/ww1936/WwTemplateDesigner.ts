@@ -33,6 +33,8 @@ import { customElement, property, state } from "lit/decorators.js";
 import { SendWwOrderIntentEvent } from "../../Transport";
 import { translateText } from "../../Utils";
 import type { GameView } from "../../view";
+import { WwDepthOpenEvent } from "./DepthEvents";
+import { libraryStore } from "./DesignLibrary";
 import {
   blockText,
   EQUIPMENT_ICONS,
@@ -153,6 +155,8 @@ export class WwTemplateDesigner extends LitElement {
   @state() private editingName = false;
   @state() private presetsOpen = false;
   @state() private refused: WwOrderBlock | null = null;
+  /** The line after [save to library]. */
+  @state() private libNote = "";
   /** The template this one copies on save (its id), once [Copy] was pressed. */
   private copyOf = 0;
   private editing = 0;
@@ -196,6 +200,7 @@ export class WwTemplateDesigner extends LitElement {
     this.picking = null;
     this.editingName = false;
     this.refused = null;
+    this.libNote = "";
   }
 
   private armed(key: string): boolean {
@@ -290,7 +295,7 @@ export class WwTemplateDesigner extends LitElement {
           >
             🔒 ${blockText(this.refused)}
           </p>`}
-      ${this.renderActions(block, d.xpCost)}
+      ${this.renderActions(block, d.xpCost)} ${this.renderLibraryRow()}
     </div>`;
   }
 
@@ -670,6 +675,61 @@ export class WwTemplateDesigner extends LitElement {
         )}
       </tbody>
     </table>`;
+  }
+
+  /** [save to library] and [library]: the draft's contents go to this device's library. */
+  private renderLibraryRow(): TemplateResult {
+    const cls =
+      "h-10 min-w-10 flex-1 rounded-md border border-white/15 bg-white/10 px-2 text-xs font-semibold";
+    const empty = this.draft.battalions.length === 0;
+    return html`<div class="flex flex-col gap-1">
+      <div class="flex gap-1">
+        <button
+          type="button"
+          data-ww-lib-save
+          aria-disabled=${String(empty)}
+          class="${cls} ${empty ? "opacity-40" : ""}"
+          @click=${() => {
+            if (empty) return;
+            const name =
+              this.saveName() ||
+              translateText("ww1936.library.unnamed_division");
+            const r = libraryStore().add({
+              type: "template",
+              name,
+              battalions: [...this.draft.battalions],
+              support: [...this.draft.support],
+            });
+            this.libNote = translateText(
+              r === "full"
+                ? "ww1936.library.full"
+                : r === "renamed"
+                  ? "ww1936.library.renamed"
+                  : "ww1936.library.saved",
+              { name },
+            );
+          }}
+        >
+          ${translateText("ww1936.library.save")}
+        </button>
+        <button
+          type="button"
+          data-ww-lib-open
+          class="${cls}"
+          @click=${() =>
+            this.eventBus.emit(
+              new WwDepthOpenEvent("designs", { tab: "library" }),
+            )}
+        >
+          ${translateText("ww1936.library.tab")}
+        </button>
+      </div>
+      ${this.libNote === ""
+        ? nothing
+        : html`<p data-ww-lib-note class="m-0 text-xs text-emerald-300">
+            ${this.libNote}
+          </p>`}
+    </div>`;
   }
 
   private renderActions(

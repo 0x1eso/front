@@ -252,7 +252,7 @@ describe("<ww-designer>", () => {
       px("[data-ww-base-chips]", "height");
     const bottom = px("[data-ww-designer-bottom]", "height");
     const grid = px("[data-ww-slot-grid]", "height");
-    expect(grid).toBe(4 * 52 + 3 * 2);
+    expect(grid).toBe(4 * 49 + 3 * 2);
     expect(bars + grid + bottom).toBeLessThanOrEqual(drawerH);
     // The steppers sit in the bottom bar's experience row, not under the grid.
     expect(

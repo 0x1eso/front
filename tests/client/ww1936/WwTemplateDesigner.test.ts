@@ -196,7 +196,7 @@ describe("<ww-template-designer> (spec §15.5)", () => {
     expect(m.sent).toEqual([]);
     expect(m.el.querySelectorAll("[title]")).toHaveLength(0);
     for (const b of m.el.querySelectorAll("button")) {
-      expect(b.className).toMatch(/\b(h-9|size-9|min-h-9)\b/);
+      expect(b.className).toMatch(/\b(h-9|h-10|size-9|min-h-9)\b/);
     }
   });
 });
