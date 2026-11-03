@@ -35,17 +35,19 @@ function polDetail(
   states: Record<string, number>,
   over: Partial<WwPolDetail> = {},
   failing: Record<string, number[]> = {},
+  reserve: string[] = [],
 ): WwPolDetail {
   const cards: WwFocusCard[] = DEU_TREE.map((f, idx) => ({
     idx,
     state: states[f.id] ?? 4,
     failing: failing[f.id] ?? [],
+    ...(reserve.includes(f.id) ? { reserve: true } : {}),
   }));
   return {
     smallID: ID("DEU"),
     ppGainMilli: 2_000,
     focus: null,
-    queued: null,
+    queue: [],
     cards,
     advisors: [],
     advisorLockUntil: [],
@@ -208,6 +210,8 @@ describe("<ww-focus-panel> (spec §21.3)", () => {
             daysMilli: 70_000,
           },
         },
+        {},
+        ["deu_anti_comintern"],
       ),
     );
     await busy.pick("deu_four_year_plan");
@@ -236,7 +240,7 @@ describe("<ww-focus-panel> (spec §21.3)", () => {
             progressMilli: 10_000,
             daysMilli: 70_000,
           },
-          queued: "deu_four_year_plan",
+          queue: ["deu_four_year_plan"],
         },
       ),
     );
@@ -248,17 +252,22 @@ describe("<ww-focus-panel> (spec §21.3)", () => {
     vi.advanceTimersByTime(400);
     await m.click("[data-ww-focus-running]");
     expect(m.sent).toEqual([{ kind: "focus_cancel" }]);
-    // The queued one, likewise: once arms, twice takes it out.
+    // The queue list: its count, and a remove button per entry (one tap).
     expect(m.q("[data-ww-focus-queued]")!.textContent).toContain(
-      "[ww1936.focusui.queued] focus=[ww1936.focus.deu_four_year_plan]",
+      "[ww1936.focusui.queue_count] n=1,max=20",
     );
-    await m.click("[data-ww-focus-queued]");
-    expect(m.sent).toHaveLength(1);
-    expect(m.q("[data-ww-focus-queued]")!.textContent).toContain(
-      "[ww1936.focusui.unqueue_tap]",
-    );
+    const rm = m.q("[data-ww-focus-queue-remove='deu_four_year_plan']")!;
+    expect(rm).not.toBeNull();
+    await m.click("[data-ww-focus-queue-remove='deu_four_year_plan']");
+    expect(m.sent[m.sent.length - 1]).toEqual({
+      kind: "focus_unqueue",
+      focus: "deu_four_year_plan",
+    });
+    // Clear all takes two taps and sends no focus.
+    await m.click("[data-ww-focus-queue-clear]");
+    expect(m.sent).toHaveLength(2);
     vi.advanceTimersByTime(400);
-    await m.click("[data-ww-focus-queued]");
+    await m.click("[data-ww-focus-queue-clear]");
     expect(m.sent[m.sent.length - 1]).toEqual({ kind: "focus_unqueue" });
     // Three seconds later the arming is gone.
     await m.click("[data-ww-focus-running]");
@@ -323,7 +332,7 @@ describe("<ww-focus-panel> (spec §21.3)", () => {
           progressMilli: 10_000,
           daysMilli: 70_000,
         },
-        queued: "deu_austria_question",
+        queue: ["deu_austria_question"],
       },
     );
 
@@ -379,7 +388,9 @@ describe("<ww-focus-panel> (spec §21.3)", () => {
     expect(m.sent).toEqual([]);
     vi.advanceTimersByTime(300);
     await m.click(sel);
-    expect(m.sent).toEqual([{ kind: "focus_unqueue" }]);
+    expect(m.sent).toEqual([
+      { kind: "focus_unqueue", focus: "deu_austria_question" },
+    ]);
   });
 
   it("on a phone with both slots the chips fold behind ▾", async () => {

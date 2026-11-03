@@ -1031,7 +1031,12 @@ export const WwOrderSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("focus_start"), focus: WwContentRef }),
   z.object({ kind: z.literal("focus_queue"), focus: WwContentRef }),
   z.object({ kind: z.literal("focus_cancel") }),
-  z.object({ kind: z.literal("focus_unqueue") }),
+  // Focus queue: with a focus, takes that entry and the ones behind it that
+  // need it out; without one, clears the whole queue (older orders stay valid).
+  z.object({
+    kind: z.literal("focus_unqueue"),
+    focus: WwContentRef.optional(),
+  }),
   z.object({
     kind: z.literal("advisor_hire"),
     slot: zb.uint({ max: ADVISOR_SLOTS.length - 1 }),

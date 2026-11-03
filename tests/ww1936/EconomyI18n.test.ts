@@ -223,9 +223,9 @@ describe("World War 1936 P1 economy strings", () => {
     // then P6's 32 (P6 spec §21.4; no_civs and no_xp existed).
     // White peace: 5 more; easy invasions 1; negotiated peace 5; the
     // research overhaul 3 (exclusive, no_project, bonus_held); the air
-    // overhaul 3 (too_many_wings, no_bomb_target, escort_out_of_range).
+    // overhaul 3 (too_many_wings, no_bomb_target, escort_out_of_range); the focus queue 2 (focus_queued, focus_queue_full).
     expect(WW_ORDER_BLOCKS.length).toBe(
-      43 + 24 + 28 + 15 + 32 + 5 + 1 + 5 + 3 + 3,
+      43 + 24 + 28 + 15 + 32 + 5 + 1 + 5 + 3 + 3 + 2,
     );
   });
 

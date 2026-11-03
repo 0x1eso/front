@@ -256,7 +256,15 @@ export class CountryPol {
   /** person_trait, in the order given. */
   personTraits: [string, TraitId][] = [];
   focus: { id: FocusId; progressMilli: number } | null = null;
-  queued: FocusId | null = null;
+  /** Reserved focuses in order (the chain behind the running one). */
+  queue: FocusId[] = [];
+  /** The first reserved focus (the one that starts next); setting it replaces the queue. */
+  get queued(): FocusId | null {
+    return this.queue[0] ?? null;
+  }
+  set queued(id: FocusId | null) {
+    this.queue = id === null ? [] : [id];
+  }
   /** By tree position: 0 open, 1 done, 2 bypassed. */
   focusState: Uint8Array = new Uint8Array(0);
   focusesDone = 0;
@@ -342,6 +350,8 @@ const CountryPolSchema = z.object({
   personTraits: z.array(z.tuple([zStr(), zStr()])),
   focus: z.object({ id: zStr(), progressMilli: zInt() }).nullable(),
   queued: zStr().nullable(),
+  /** The second reserved focus on, in order; absent with fewer than two. */
+  queuedMore: z.array(zStr()).optional(),
   done: z.array(zStr()),
   bypassed: z.array(zStr()),
   focusesDone: zInt(),
@@ -783,7 +793,7 @@ export class WwPolitics {
         block = cancelFocus(this, smallID);
         break;
       case "focus_unqueue":
-        block = unqueueFocus(this, smallID);
+        block = unqueueFocus(this, smallID, o.focus);
         break;
       case "advisor_hire":
         block = hireAdvisor(this, smallID, o.slot, o.advisor, this.day());
@@ -1261,7 +1271,7 @@ export class WwPolitics {
     if (c !== null && c !== undefined) {
       c.pending = [];
       c.focus = null;
-      c.queued = null;
+      c.queue = [];
       c.justification = null;
       this.markCountry(loser);
     }
@@ -1395,7 +1405,7 @@ export class WwPolitics {
       smallID: id,
       ppGainMilli: this.dailyGainMilli(id),
       focus,
-      queued: c.queued,
+      queue: [...c.queue],
       cards: focusCards(this, id),
       advisors: [...c.advisors],
       advisorLockUntil: [...c.advisorLockUntil],
@@ -1546,7 +1556,8 @@ export class WwPolitics {
       dismissed: [...c.dismissed],
       personTraits: c.personTraits.map(([p, t]) => [p, t]),
       focus: c.focus === null ? null : { ...c.focus },
-      queued: c.queued,
+      queued: c.queue[0] ?? null,
+      ...(c.queue.length > 1 ? { queuedMore: c.queue.slice(1) } : {}),
       done,
       bypassed,
       focusesDone: c.focusesDone,
@@ -1599,7 +1610,7 @@ export class WwPolitics {
       c.dismissed = [...x.dismissed];
       c.personTraits = x.personTraits.map(([p, t]) => [p, t as TraitId]);
       c.focus = x.focus === null ? null : { ...x.focus };
-      c.queued = x.queued;
+      c.queue = x.queued === null ? [] : [x.queued, ...(x.queuedMore ?? [])];
       // Spec §22.5: by id; an id no longer in this tree is dropped.
       c.focusState = new Uint8Array(this.content.treeFocuses[c.tree].length);
       // P6 (pre-flight §0-1): the position in the country's tree (a pack's too).

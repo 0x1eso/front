@@ -207,7 +207,7 @@ export function forceFocusNext(
     return;
   }
   // The queue it replaces does not block it (an exclusive partner there).
-  const old = c.queued;
-  c.queued = null;
-  c.queued = focusBlock(pol, id, focus, true) === null ? focus : old;
+  const old = c.queue;
+  c.queue = [];
+  c.queue = focusBlock(pol, id, focus, true) === null ? [focus] : old;
 }

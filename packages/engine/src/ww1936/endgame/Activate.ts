@@ -336,7 +336,7 @@ function startPolitics(eg: WwEndgame, id: number, revived: boolean): void {
     c.tree = "generic";
     c.focusState = new Uint8Array(pol.content.treeFocuses.generic.length);
     c.focus = null;
-    c.queued = null;
+    c.queue = [];
     c.ppMilli = 100_000;
   }
   pol.recomputeStats(id);

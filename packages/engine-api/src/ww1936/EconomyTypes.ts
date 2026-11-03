@@ -873,6 +873,10 @@ export const WW_ORDER_BLOCKS = [
   "too_many_wings",
   "no_bomb_target",
   "escort_out_of_range",
+  // Focus queue (owner request 2026-11-03), appended: already reserved; all
+  // WW_FOCUS_QUEUE places taken.
+  "focus_queued",
+  "focus_queue_full",
 ] as const;
 export type WwOrderBlock = (typeof WW_ORDER_BLOCKS)[number];
 

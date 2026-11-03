@@ -657,6 +657,8 @@ export const BLOCK_KEYS: Readonly<Record<WwOrderBlock, string>> = {
   tension_gate: "ww1936.econ.block.tension_gate",
   bad_target: "ww1936.econ.block.bad_target",
   focus_none: "ww1936.econ.block.focus_none",
+  focus_queued: "ww1936.econ.block.focus_queued",
+  focus_queue_full: "ww1936.econ.block.focus_queue_full",
   no_fleet: "ww1936.econ.block.no_fleet",
   fleet_busy: "ww1936.econ.block.fleet_busy",
   fleet_full: "ww1936.econ.block.fleet_full",

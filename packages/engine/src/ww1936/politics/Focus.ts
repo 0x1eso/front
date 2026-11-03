@@ -3,10 +3,11 @@
 // screens' cards. The same rules for humans and the AI (AiFocus picks).
 import type { WwOrderBlock } from "@openfront/engine-api/ww1936/EconomyTypes";
 import type { Condition } from "@openfront/engine-api/ww1936/PoliticsDsl";
-import type {
-  FocusDef,
-  FocusId,
-  WwFocusCard,
+import {
+  WW_FOCUS_QUEUE,
+  type FocusDef,
+  type FocusId,
+  type WwFocusCard,
 } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import {
   inTree,
@@ -53,10 +54,11 @@ export function focusCompleted(
 
 /**
  * Why `focus` cannot start now for `id` (shared by orders, the AI and the
- * cards); null if it can. Spec §11.2 start rules. asQueued: the running
- * focus counts as finished for prerequisites, `available` waits for the
- * start (the queue is tried again the day the running one ends), and the
- * focus queued now does not block it: a new queue replaces the old one.
+ * cards); null if it can. Spec §11.2 start rules. asQueued: reserving a
+ * place in the queue. The running focus and the focuses queued earlier
+ * count as finished for prerequisites (the queue is a chain, in order); a
+ * focus exclusive with one done, running or queued is refused; `available`
+ * waits for the start (each entry is tried the day its turn comes).
  */
 export function focusBlock(
   pol: WwPolitics,
@@ -79,21 +81,22 @@ export function focusBlock(
   if (focusFinished(pol, c, focus)) return "focus_done";
   if (c.focus?.id === focus) return "focus_busy";
   if (!asQueued && c.focus !== null) return "focus_busy";
+  if (asQueued && c.queue.includes(focus)) return "focus_queued";
+  if (asQueued && c.queue.length >= WW_FOCUS_QUEUE) return "focus_queue_full";
   const running = asQueued ? (c.focus?.id ?? null) : null;
   for (const group of f.prereq ?? []) {
-    if (!group.some((p) => p === running || focusFinished(pol, c, p))) {
+    if (
+      !group.some(
+        (p) =>
+          p === running ||
+          focusFinished(pol, c, p) ||
+          (asQueued && c.queue.includes(p)),
+      )
+    ) {
       return "focus_prereq";
     }
   }
-  for (const x of f.exclusive ?? []) {
-    if (
-      focusCompleted(pol, c, x) ||
-      c.focus?.id === x ||
-      (!asQueued && c.queued === x)
-    ) {
-      return "focus_exclusive";
-    }
-  }
+  if (exclusiveHeld(pol, c, f, asQueued)) return "focus_exclusive";
   if (
     !asQueued &&
     !evalCondition(makeCtx(pol, id, id, 0, pol.mg.ticks()), f.available)
@@ -101,6 +104,26 @@ export function focusBlock(
     return "focus_unavailable";
   }
   return null;
+}
+
+/**
+ * An exclusive partner is done, running or reserved. Reserving also looks
+ * the other way: a focus ahead in the queue that names this one as its
+ * exclusive partner (the lists are not always written on both sides).
+ */
+function exclusiveHeld(
+  pol: WwPolitics,
+  c: CountryPol,
+  f: FocusDef,
+  asQueued: boolean,
+): boolean {
+  for (const x of f.exclusive ?? []) {
+    if (focusCompleted(pol, c, x) || c.focus?.id === x || c.queue.includes(x)) {
+      return true;
+    }
+  }
+  if (!asQueued) return false;
+  return c.queue.some((q) => focusDef(pol, q)?.exclusive?.includes(f.id));
 }
 
 function markFinished(
@@ -137,7 +160,8 @@ export function startFocus(
   const c = pol.country(id)!;
   const f = focusDef(pol, focus)!;
   // Started, it is no longer waiting in the queue (no failed-queue notice later).
-  if (c.queued === focus) c.queued = null;
+  const at = c.queue.indexOf(focus);
+  if (at >= 0) c.queue.splice(at, 1);
   if (holds(makeCtx(pol, id, id, 0, tick), f.bypass)) {
     markFinished(pol, c, f, 2);
     return null;
@@ -147,7 +171,10 @@ export function startFocus(
   return null;
 }
 
-/** Spec §11.2: one queued focus; with nothing running it starts now. A new queue replaces the old one. */
+/**
+ * Spec §11.2: with nothing running it starts now; else it is reserved at
+ * the end of the queue (at most WW_FOCUS_QUEUE, a chain: see focusBlock).
+ */
 export function queueFocus(
   pol: WwPolitics,
   id: number,
@@ -157,7 +184,7 @@ export function queueFocus(
   if (c.focus === null) return startFocus(pol, id, focus, pol.mg.ticks());
   const block = focusBlock(pol, id, focus, true);
   if (block !== null) return block;
-  c.queued = focus;
+  c.queue.push(focus);
   return null;
 }
 
@@ -170,20 +197,74 @@ export function cancelFocus(pol: WwPolitics, id: number): WwOrderBlock | null {
   return null;
 }
 
-export function unqueueFocus(pol: WwPolitics, id: number): WwOrderBlock | null {
+/**
+ * The queue entries from `from` on, minus the ones that lost a prerequisite
+ * they only had through an entry that is gone: an entry stays when each of
+ * its prerequisite groups has a member finished, running, or kept before it.
+ */
+function keepChained(
+  pol: WwPolitics,
+  c: CountryPol,
+  queue: readonly FocusId[],
+  from: number,
+): FocusId[] {
+  const kept = queue.slice(0, from);
+  const running = c.focus?.id ?? null;
+  for (const q of queue.slice(from)) {
+    const f = focusDef(pol, q);
+    const ok = (f?.prereq ?? []).every((group) =>
+      group.some(
+        (p) => p === running || focusFinished(pol, c, p) || kept.includes(p),
+      ),
+    );
+    if (f !== undefined && ok) kept.push(q);
+  }
+  return kept;
+}
+
+/**
+ * Takes `focus` out of the queue with the entries behind it that need it;
+ * with no focus, empties the queue.
+ */
+export function unqueueFocus(
+  pol: WwPolitics,
+  id: number,
+  focus?: FocusId,
+): WwOrderBlock | null {
   const c = pol.country(id)!;
-  if (c.queued === null) return "focus_none";
-  c.queued = null;
+  if (c.queue.length === 0) return "focus_none";
+  if (focus === undefined) {
+    c.queue = [];
+    return null;
+  }
+  const at = c.queue.indexOf(focus);
+  if (at < 0) return "focus_none";
+  c.queue = keepChained(
+    pol,
+    c,
+    c.queue.filter((_, i) => i !== at),
+    at,
+  );
   return null;
 }
 
-/** The queued focus tries to start; a refusal clears it and tells the owner. */
+/**
+ * With nothing running, the queue's entries are tried in turn: one that
+ * cannot start is dropped with one notice (it names the entry) and so are
+ * the entries that needed it; the next is tried the same day. A skipped
+ * (bypassed) focus finishes at once, so the next one is tried too.
+ */
 function startQueued(pol: WwPolitics, c: CountryPol, tick: number): void {
-  const q = c.queued;
-  if (q === null) return;
-  c.queued = null;
-  if (startFocus(pol, c.smallID, q, tick) !== null) {
-    pol.message(c.smallID, "ww1936_focus_queue_failed", { focus: q });
+  while (c.focus === null && c.queue.length > 0) {
+    const [head, ...rest] = c.queue;
+    // The entries behind it do not block it (an exclusive partner there).
+    c.queue = [];
+    if (startFocus(pol, c.smallID, head, tick) === null) {
+      c.queue = rest;
+    } else {
+      pol.message(c.smallID, "ww1936_focus_queue_failed", { focus: head });
+      c.queue = keepChained(pol, c, rest, 0);
+    }
   }
 }
 
@@ -247,37 +328,40 @@ export function focusDaysMilli(
 
 /**
  * Spec §21.3 card states, tree order (WwFocusCard.state numbers): 1 done,
- * 2 bypassed, 3 running, 7 queued, 4 needs a prerequisite, 6 an exclusive
- * partner done or running, or queued while nothing runs (controller ruling
- * R21: then a start is refused; with a focus running, queueing replaces
- * the queue), 5 `available` false (with its failing leaves), 0 open.
+ * 2 bypassed, 3 running, 7 queued, 4 needs a prerequisite (reserve: it is
+ * running or queued, so the focus can be queued behind it), 6 an exclusive
+ * partner done, running or queued, 5 `available` false (with its failing
+ * leaves), 0 open.
  */
 export function focusCards(pol: WwPolitics, id: number): WwFocusCard[] {
   const c = pol.country(id)!;
   const ctx = makeCtx(pol, id, id, 0, pol.mg.ticks());
+  const running = c.focus?.id ?? null;
   return pol.content.treeFocuses[c.tree].map((fi, idx) => {
     const f = pol.content.focuses[fi];
     const st = c.focusState[idx];
     if (st !== 0) return { idx, state: st, failing: [] };
     if (c.focus?.id === f.id) return { idx, state: 3, failing: [] };
-    if (c.queued === f.id) return { idx, state: 7, failing: [] };
-    if (
-      (f.prereq ?? []).some((g) => !g.some((p) => focusFinished(pol, c, p)))
-    ) {
-      return { idx, state: 4, failing: [] };
+    if (c.queue.includes(f.id)) return { idx, state: 7, failing: [] };
+    // 4 when a group has no finished member; reserve: each such group has a
+    // running or queued one (the focus can be queued behind it).
+    let missing = false;
+    let reserve = true;
+    for (const g of f.prereq ?? []) {
+      if (g.some((p) => focusFinished(pol, c, p))) continue;
+      missing = true;
+      if (!g.some((p) => p === running || c.queue.includes(p))) reserve = false;
     }
-    if (
-      (f.exclusive ?? []).some(
-        (x) =>
-          focusCompleted(pol, c, x) ||
-          c.focus?.id === x ||
-          (c.focus === null && c.queued === x),
-      )
-    ) {
-      return { idx, state: 6, failing: [] };
-    }
+    if (missing && !reserve) return { idx, state: 4, failing: [] };
+    if (exclusiveHeld(pol, c, f, true)) return { idx, state: 6, failing: [] };
     // A satisfied any/not is open even when one of its leaves is false.
-    if (evalCondition(ctx, f.available)) return { idx, state: 0, failing: [] };
+    const open = evalCondition(ctx, f.available);
+    if (missing) {
+      return open
+        ? { idx, state: 4, failing: [], reserve: true }
+        : { idx, state: 5, failing: failingLeaves(ctx, f.available) };
+    }
+    if (open) return { idx, state: 0, failing: [] };
     return { idx, state: 5, failing: failingLeaves(ctx, f.available) };
   });
 }
