@@ -1,6 +1,7 @@
 import type { WwOrder } from "@openfront/engine-api/Schemas";
 import { AIR_TYPES } from "@openfront/engine-api/ww1936/AirTypes";
 import { COUNTRIES } from "@openfront/engine-api/ww1936/Countries";
+import type { WwDesignSlotData } from "@openfront/engine-api/ww1936/DepthTypes";
 import {
   BUILDABLE,
   BuildingId,
@@ -16,6 +17,8 @@ import {
   WwTradeData,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
 import { renderNumber } from "@openfront/engine-lib/Format";
+import type { LineDepthCtx } from "@openfront/engine-lib/ww1936/EconomyChecks";
+import { isDesignType } from "@openfront/engine-lib/ww1936/Equipment";
 import type { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
 import { assetUrl } from "@openfront/shared/AssetUrls";
 import { html, nothing, TemplateResult } from "lit";
@@ -48,6 +51,8 @@ import {
   genName,
   idleMilOf,
   infraDots,
+  lineDepthOf,
+  lineItemName,
   LineRow,
   lineRows,
   maxBuildCount,
@@ -70,6 +75,7 @@ import {
   switchPreview,
   TradeOffer,
   tradeOffers,
+  usableDesigns,
 } from "./EconomyModel";
 import { conscriptionLaw } from "./PoliticsModel";
 import {
@@ -140,6 +146,10 @@ interface Ctx {
   endgame: WwEndgameView | null;
   /** P6: the depth rules' inputs of the build menu (buildDepthInputs). */
   depth: BuildDepthInputs;
+  /** The line judge's depth context (designs, licences, projects); undefined before the depth detail. */
+  lineDepth: LineDepthCtx | undefined;
+  /** My saved designs, for the pickers and the line names. */
+  designs: readonly WwDesignSlotData[];
   /** Gone or capitulated: the engine refuses every order ("dead"). */
   dead: boolean;
 }
@@ -253,6 +263,8 @@ export class WwIndustryPanel extends WwDrawerBase {
       fighting: fightingFn(game),
       endgame: game.wwEndgame?.() ?? null,
       depth: buildDepthInputs(game, id),
+      lineDepth: lineDepthOf(game, id),
+      designs: game.wwDepth?.()?.detail(id)?.designs ?? [],
       // P5 pre-flight §0-1: an exile still builds.
       dead: !wwActive(game, id),
     };
@@ -270,6 +282,8 @@ export class WwIndustryPanel extends WwDrawerBase {
       view?.summary(id) ?? null,
       this.game?.worldWarScenario() ? today(this.game) : 0,
       this.game?.worldWarData() ?? null,
+      // Designs, licences and projects move the line pickers.
+      this.tab === "production" ? (this.game?.wwDepth?.()?.version ?? 0) : 0,
       this.tab === "trade" ? (view?.version ?? 0) : 0,
       // P2: the manpower rows read the land war's country summary.
       this.game?.wwLand?.()?.countries.get(id) ?? null,
@@ -973,7 +987,7 @@ export class WwIndustryPanel extends WwDrawerBase {
       <div class="flex items-center gap-1.5">
         <span aria-hidden="true">${EQUIPMENT_ICONS[r.equipment]}</span>
         <span class="min-w-0 flex-1 truncate font-semibold"
-          >${equipmentName(r.equipment)} ${genName(r.gen)}</span
+          >${lineItemName(r.equipment, r.gen, c.designs)}</span
         >
         ${oldLine === null || !oldLine.old
           ? nothing
@@ -1102,7 +1116,8 @@ export class WwIndustryPanel extends WwDrawerBase {
   ): TemplateResult {
     return this.renderEquipmentPicker(
       "switch",
-      (type, gen) => changeLineBlock(c.detail, type, gen),
+      (type, gen) => changeLineBlock(c.detail, type, gen, c.lineDepth),
+      c.designs,
       (type, gen) => type === line.equipment && gen === line.gen,
       (type, gen) =>
         translateText("ww1936.econ.after_switch", {
@@ -1123,27 +1138,33 @@ export class WwIndustryPanel extends WwDrawerBase {
   private renderEquipmentPicker(
     dataKey: string,
     blockOf: (type: EquipmentType, gen: number) => WwOrderBlock | null,
+    designs: readonly WwDesignSlotData[],
     current: (type: EquipmentType, gen: number) => boolean,
     note: ((type: EquipmentType, gen: number) => string) | null,
     pick: (type: EquipmentType, gen: number) => void,
   ): TemplateResult {
+    const gensOf = (t: EquipmentType) =>
+      isDesignType(t)
+        ? []
+        : Array.from({ length: EQUIPMENT_GENS[t] }, (_, i) => i + 1);
     const locked = EQUIPMENT_TYPES.some((t) =>
-      Array.from({ length: EQUIPMENT_GENS[t] }, (_, i) => i + 1).some(
-        (g) => blockOf(t, g) === "no_tech",
-      ),
+      gensOf(t).some((g) => blockOf(t, g) === "no_tech"),
+    );
+    const projectLocked = EQUIPMENT_TYPES.some((t) =>
+      gensOf(t).some((g) => blockOf(t, g) === "project_locked"),
     );
     return html`<div
       data-ww-picker=${dataKey}
       class="mt-1.5 flex flex-col gap-1 rounded-md border border-white/10 bg-gray-900/80 p-1.5"
     >
-      ${EQUIPMENT_TYPES.map(
-        (type) =>
-          html`<div class="flex flex-wrap items-center gap-1">
-            <span class="min-w-28 flex-1 truncate text-xs"
-              >${EQUIPMENT_ICONS[type]} ${equipmentName(type)}</span
-            >
-            ${Array.from({ length: EQUIPMENT_GENS[type] }, (_, i) => i + 1).map(
-              (gen) => {
+      ${EQUIPMENT_TYPES.map((type) =>
+        isDesignType(type)
+          ? this.renderDesignRow(dataKey, type, designs, blockOf, current, pick)
+          : html`<div class="flex flex-wrap items-center gap-1">
+              <span class="min-w-28 flex-1 truncate text-xs"
+                >${EQUIPMENT_ICONS[type]} ${equipmentName(type)}</span
+              >
+              ${gensOf(type).map((gen) => {
                 const block = blockOf(type, gen);
                 return html`<button
                   type="button"
@@ -1153,7 +1174,9 @@ export class WwIndustryPanel extends WwDrawerBase {
                   @click=${() => pick(type, gen)}
                 >
                   <span
-                    >${block === "no_tech" ? "🔒 " : ""}${genName(gen)}</span
+                    >${block === "no_tech" || block === "project_locked"
+                      ? "🔒 "
+                      : ""}${genName(gen)}</span
                   >
                   ${note === null || block !== null || current(type, gen)
                     ? nothing
@@ -1161,15 +1184,63 @@ export class WwIndustryPanel extends WwDrawerBase {
                         >${note(type, gen)}</span
                       >`}
                 </button>`;
-              },
-            )}
-          </div>`,
+              })}
+            </div>`,
       )}
       ${locked
         ? html`<p class="m-0 text-[11px] text-white/60">
             🔒 ${blockText("no_tech")}
           </p>`
         : nothing}
+      ${projectLocked
+        ? html`<p class="m-0 text-[11px] text-white/60">
+            🔒 ${blockText("project_locked")}
+          </p>`
+        : nothing}
+    </div>`;
+  }
+
+  /**
+   * The row of one design kind: only my usable designs, each by its name,
+   * or a hint to the design screen when there is none.
+   */
+  private renderDesignRow(
+    dataKey: string,
+    type: EquipmentType,
+    designs: readonly WwDesignSlotData[],
+    blockOf: (type: EquipmentType, gen: number) => WwOrderBlock | null,
+    current: (type: EquipmentType, gen: number) => boolean,
+    pick: (type: EquipmentType, gen: number) => void,
+  ): TemplateResult {
+    const rows = usableDesigns(
+      designs,
+      type === "tank_design" ? "tank" : "plane",
+    );
+    return html`<div
+      data-ww-design-row=${`${dataKey}:${type}`}
+      class="flex flex-wrap items-center gap-1"
+    >
+      <span class="min-w-28 flex-1 text-xs break-words"
+        >${EQUIPMENT_ICONS[type]} ${equipmentName(type)}</span
+      >
+      ${rows.length === 0
+        ? html`<span
+            data-ww-design-hint=${type}
+            class="basis-full text-[11px] text-white/60"
+            >${translateText("ww1936.econ.no_design_hint")}</span
+          >`
+        : rows.map((r) => {
+            const block = blockOf(type, r.slot);
+            return html`<button
+              type="button"
+              data-ww-pick=${`${dataKey}:${type}:${r.slot}`}
+              class="${BUTTON} h-auto min-h-10 max-w-full break-words py-1 text-left"
+              ?disabled=${block !== null || current(type, r.slot)}
+              @click=${() => pick(type, r.slot)}
+            >
+              ${r.name}
+            </button>`;
+          })}
     </div>`;
   }
 
@@ -1195,7 +1266,8 @@ export class WwIndustryPanel extends WwDrawerBase {
       ${this.addingLine && !linesFull
         ? this.renderEquipmentPicker(
             "add",
-            (type, gen) => addLineBlock(d, type, gen),
+            (type, gen) => addLineBlock(d, type, gen, c.lineDepth),
+            c.designs,
             () => false,
             null,
             (type, gen) => {

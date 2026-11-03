@@ -21,7 +21,10 @@ import {
 } from "@openfront/engine-api/ww1936/EconomyTypes";
 import { NON_TRANSFERABLE } from "@openfront/engine-lib/ww1936/DepthRules";
 import { licenceCostPct } from "@openfront/engine-lib/ww1936/DesignRules";
-import { payableCivs } from "@openfront/engine-lib/ww1936/EconomyChecks";
+import {
+  licenceKeysOf,
+  payableCivs,
+} from "@openfront/engine-lib/ww1936/EconomyChecks";
 import {
   equipmentBuildable,
   isDesignType,
@@ -571,16 +574,5 @@ export function licenceCostPctFor(d: WwDepth, id: number, key: number): number {
 
 /** The EQUIP_KEYS indices the country holds a licence for (a design licence by its own slot), ascending. */
 export function licenceKeys(d: WwDepth, id: number): number[] {
-  const out = new Set<number>();
-  for (const l of d.market.licences) {
-    if (l.to !== id || l.ship > 0) continue;
-    const k = EQUIP_KEYS[l.key];
-    if (k === undefined) continue;
-    if (isDesignType(k[0])) {
-      if (l.slot > 0) out.add(equipKey(k[0], l.slot));
-    } else {
-      out.add(l.key);
-    }
-  }
-  return [...out].filter((k) => k >= 0).sort((a, b) => a - b);
+  return licenceKeysOf(d.market.licences, id);
 }

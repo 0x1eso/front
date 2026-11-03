@@ -66,6 +66,8 @@ import {
   BuildCheck,
   equipmentTechBlock,
   lawBlockOf,
+  type LineDepthCtx,
+  lineDepthCtxOf,
   openTradeBlockOf,
   payableCivs,
   QueuedInRegion,
@@ -1694,12 +1696,14 @@ export function addLineBlock(
   detail: WwCountryDetail,
   equipment: EquipmentType,
   gen: number,
+  depth?: LineDepthCtx,
 ): WwOrderBlock | null {
   return addLineBlockOf(
     new Set(detail.researched),
     detail.lines.length,
     equipment,
     gen,
+    depth,
   );
 }
 
@@ -1707,8 +1711,61 @@ export function changeLineBlock(
   detail: WwCountryDetail,
   equipment: EquipmentType,
   gen: number,
+  depth?: LineDepthCtx,
 ): WwOrderBlock | null {
-  return equipmentTechBlock(new Set(detail.researched), equipment, gen);
+  return equipmentTechBlock(new Set(detail.researched), equipment, gen, depth);
+}
+
+/**
+ * The line judge's depth context of `me` (designs, licences, finished
+ * projects), built by the engine's own lineDepthCtxOf from my own country's
+ * depth detail (fog-safe). Undefined before the detail arrives, as in the
+ * engine.
+ */
+export function lineDepthOf(
+  game: Partial<Pick<GameView, "wwDepth">>,
+  me: number,
+): LineDepthCtx | undefined {
+  const view = game.wwDepth?.();
+  const d = view?.detail(me);
+  if (view == null || d === undefined) return undefined;
+  return lineDepthCtxOf(
+    (kind, slot) =>
+      d.designs.find((x) => x.kind === kind && x.slot === slot) ?? null,
+    view.marketData.licences,
+    me,
+    d.projects.done,
+  );
+}
+
+/** The name of a line's equipment: a design by its own name, else "Type Gen". */
+export function lineItemName(
+  type: EquipmentType,
+  gen: number,
+  designs: readonly WwDesignSlotData[],
+): string {
+  if (type === "tank_design" || type === "plane_design") {
+    const kind = type === "tank_design" ? "tank" : "plane";
+    const d = designs.find((x) => x.kind === kind && x.slot === gen);
+    if (d !== undefined) return designDisplayName(d.def);
+  }
+  return `${equipmentName(type)} ${genName(gen)}`;
+}
+
+/** My designs a line may make: saved, own or licensed, not obsolete, in slot order. */
+export function usableDesigns(
+  designs: readonly WwDesignSlotData[],
+  kind: "tank" | "plane",
+): { slot: number; name: string }[] {
+  return designs
+    .filter(
+      (d) =>
+        d.kind === kind &&
+        !d.obsolete &&
+        (d.origin === "own" || d.origin === "licensed"),
+    )
+    .sort((a, b) => a.slot - b.slot)
+    .map((d) => ({ slot: d.slot, name: designDisplayName(d.def) }));
 }
 
 /** Units a line makes in a day; the line rows and the stock table both read it. */
@@ -1795,13 +1852,8 @@ export function stockTable(
     const d = designOf("tank", slot);
     return d === null || d.def.kind !== "tank" ? -1 : designNeedGroup(d.def);
   };
-  const keyName = (type: EquipmentType, gen: number): string => {
-    if (type === "tank_design" || type === "plane_design") {
-      const d = designOf(type === "tank_design" ? "tank" : "plane", gen);
-      if (d !== null) return designDisplayName(d.def);
-    }
-    return `${equipmentName(type)} ${genName(gen)}`;
-  };
+  const keyName = (type: EquipmentType, gen: number): string =>
+    lineItemName(type, gen, designs);
   const perKey = new Map<number, number>();
   for (const l of detail.lines) {
     const k = equipKey(l.equipment, l.gen);

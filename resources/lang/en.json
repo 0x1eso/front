@@ -4952,6 +4952,7 @@
       "new_build": "New construction",
       "new_line": "New line",
       "no_civs_assigned": "Waiting for factories",
+      "no_design_hint": "No saved design to produce yet. Make one on the Designs screen.",
       "not_partner_embargo": "Embargo on us",
       "not_partner_route": "No trade route",
       "not_partner_war": "At war with us",

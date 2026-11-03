@@ -1,4 +1,5 @@
 import type { WwOrder } from "@openfront/engine-api/Schemas";
+import { SPECIAL_PROJECTS } from "@openfront/engine-api/ww1936/DepthTypes";
 import {
   EQUIP_KEY_COUNT,
   equipKey,
@@ -145,6 +146,118 @@ describe("<ww-industry-panel> (spec §13.3)", () => {
     expect(full.q("[data-ww-block='lines_full']")!.textContent).toContain(
       "ww1936.econ.block.lines_full",
     );
+  });
+
+  it("the line pickers offer my usable designs by name, finished projects and licences", async () => {
+    const mkDef = (name: string) => ({
+      kind: "tank" as const,
+      base: "medium_1",
+      modules: [],
+      armorLevel: 0,
+      engineLevel: 0,
+      name,
+    });
+    const slotOf = (
+      kind: "tank" | "plane",
+      slot: number,
+      name: string,
+      o: { origin?: string; obsolete?: boolean } = {},
+    ) => ({
+      kind,
+      slot,
+      def: mkDef(name),
+      origin: o.origin ?? "own",
+      from: 0,
+      obsolete: o.obsolete ?? false,
+      inUse: 0,
+    });
+    const depth = new WwDepthView();
+    depth.apply({
+      fx: [],
+      news: [],
+      details: [
+        {
+          smallID: ID("DEU"),
+          designs: [
+            slotOf("tank", 2, "Panzer Alpha"),
+            slotOf("tank", 3, "Old Panzer", { obsolete: true }),
+            slotOf("tank", 4, "Captured", { origin: "captured" }),
+            slotOf("plane", 1, "Stuka"),
+          ],
+          projects: { done: 1 << SPECIAL_PROJECTS.indexOf("sp_flying_bomb") },
+        } as never,
+      ],
+      market: {
+        listings: [],
+        deals: [],
+        embargoes: [],
+        pendingLicences: [],
+        licences: [
+          {
+            id: 1,
+            from: 0,
+            to: ID("DEU"),
+            key: equipKey("artillery", 2),
+            ship: false,
+            slot: 0,
+            sinceDay: 0,
+          },
+        ],
+      },
+    });
+    const m = mount({
+      summaries: [summary("DEU", { mil: 4, idleMil: 4 })],
+      details: [
+        detail("DEU", {
+          lines: [
+            {
+              ...line(1, 1),
+              equipment: "tank_design",
+              gen: 2,
+            },
+          ],
+        }),
+      ],
+    });
+    (m.game as { wwDepth?: unknown }).wwDepth = () => depth;
+    await m.open("production");
+    // The line row and the picker show the design's name, not a numeral.
+    expect(m.q("[data-ww-line='1']")!.textContent).toContain("Panzer Alpha");
+    await m.click("[data-ww-new-line]");
+    const tank = m.q("[data-ww-pick='add:tank_design:2']")!;
+    expect(tank.textContent).toContain("Panzer Alpha");
+    expect(tank.disabled).toBe(false);
+    // Obsolete, captured and empty slots are not offered.
+    for (const slot of [1, 3, 4, 5]) {
+      expect(m.q(`[data-ww-pick='add:tank_design:${slot}']`)).toBeNull();
+    }
+    expect(m.q("[data-ww-pick='add:plane_design:1']")!.disabled).toBe(false);
+    // A finished project and a licence are open; an unfinished project is not.
+    expect(m.q("[data-ww-pick='add:flying_bomb:1']")!.disabled).toBe(false);
+    expect(m.q("[data-ww-pick='add:artillery:2']")!.disabled).toBe(false);
+    expect(m.q("[data-ww-pick='add:ballistic_rocket:1']")!.disabled).toBe(true);
+    expect(m.q("[data-ww-picker='add']")!.textContent).toContain(
+      "ww1936.econ.block.project_locked",
+    );
+    await m.click("[data-ww-pick='add:tank_design:2']");
+    expect(m.sent).toEqual([
+      { kind: "add_line", equipment: "tank_design", gen: 2, factories: 3 },
+    ]);
+    // Change line: the design the line already makes is the current one.
+    await m.click("[data-ww-change-line='1']");
+    expect(m.q("[data-ww-pick='switch:tank_design:2']")!.disabled).toBe(true);
+    expect(m.q("[data-ww-pick='switch:plane_design:1']")!.disabled).toBe(false);
+  });
+
+  it("with no usable design the pickers point to the design screen", async () => {
+    const m = mount({
+      summaries: [summary("DEU", { mil: 4, idleMil: 4 })],
+      details: [detail("DEU")],
+    });
+    await m.open("production");
+    await m.click("[data-ww-new-line]");
+    expect(m.q("[data-ww-design-hint='tank_design']")).not.toBeNull();
+    expect(m.q("[data-ww-pick^='add:tank_design']")).toBeNull();
   });
 
   it("the stock table folds the idle rows and opens a row's keys", async () => {

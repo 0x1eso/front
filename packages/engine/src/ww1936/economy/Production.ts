@@ -14,6 +14,7 @@ import {
   addLineBlockOf,
   equipmentTechBlock,
   LineDepthCtx,
+  lineDepthCtxOf,
 } from "@openfront/engine-lib/ww1936/EconomyChecks";
 import {
   allocateResources,
@@ -32,7 +33,6 @@ import {
   equipResources,
   lineRetentionBp,
 } from "../depth/Designs";
-import { licenceKeys } from "../depth/Licences";
 import { mioFamilyOfKey } from "../depth/Mio";
 import type { WwDepth } from "../depth/WwDepth";
 import { navalLineDemand } from "./NavalLines";
@@ -310,23 +310,10 @@ export function lineDepthCtx(
   if (depth === undefined || depth.country(ce.smallID) === null) {
     return undefined;
   }
-  return {
-    designUsable: (type, slot) => {
-      const kind =
-        type === "tank_design"
-          ? "tank"
-          : type === "plane_design"
-            ? "plane"
-            : null;
-      if (kind === null) return false;
-      const s = depth.designSlot(ce.smallID, kind, slot);
-      return (
-        s !== null &&
-        !s.obsolete &&
-        (s.origin === "own" || s.origin === "licensed")
-      );
-    },
-    licensed: new Set(licenceKeys(depth, ce.smallID)),
-    projectsDone: depth.country(ce.smallID)?.proj.done ?? 0,
-  };
+  return lineDepthCtxOf(
+    (kind, slot) => depth.designSlot(ce.smallID, kind, slot),
+    depth.market.licences,
+    ce.smallID,
+    depth.country(ce.smallID)?.proj.done ?? 0,
+  );
 }

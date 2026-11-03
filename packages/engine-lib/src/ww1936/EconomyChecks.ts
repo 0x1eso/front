@@ -14,6 +14,7 @@ import {
   COASTAL_BUILDINGS,
   CountryLaws,
   DOCTRINE_DOMAIN,
+  EQUIP_KEYS,
   equipKey,
   EquipmentType,
   LAW_LADDERS,
@@ -332,6 +333,70 @@ export interface LineDepthCtx {
   licensed: ReadonlySet<number>;
   /** SPECIAL_PROJECTS bits done. */
   projectsDone: number;
+}
+
+/** The part of a licence record the line judge reads (engine WwLicence, client WwLicenceData). */
+export interface LicenceLike {
+  to: number;
+  ship: boolean | number;
+  key: number;
+  slot: number;
+}
+
+/** The EQUIP_KEYS indices `id` holds a licence for (a design licence by its own slot), ascending. */
+export function licenceKeysOf(
+  licences: Iterable<LicenceLike>,
+  id: number,
+): number[] {
+  const out = new Set<number>();
+  for (const l of licences) {
+    if (l.to !== id || Number(l.ship) > 0) continue;
+    const k = EQUIP_KEYS[l.key];
+    if (k === undefined) continue;
+    if (isDesignType(k[0])) {
+      if (l.slot > 0) out.add(equipKey(k[0], l.slot));
+    } else {
+      out.add(l.key);
+    }
+  }
+  return [...out].filter((k) => k >= 0).sort((a, b) => a - b);
+}
+
+/** The design slot facts the line judge reads. */
+export interface DesignSlotLike {
+  origin: string;
+  obsolete: boolean;
+}
+
+/**
+ * The line judge's depth context, built the same way on the engine (from
+ * WwDepth) and on a screen (from WwDepthView), so the two never disagree.
+ */
+export function lineDepthCtxOf(
+  designSlot: (kind: "tank" | "plane", slot: number) => DesignSlotLike | null,
+  licences: Iterable<LicenceLike>,
+  id: number,
+  projectsDone: number,
+): LineDepthCtx {
+  return {
+    designUsable: (type, slot) => {
+      const kind =
+        type === "tank_design"
+          ? "tank"
+          : type === "plane_design"
+            ? "plane"
+            : null;
+      if (kind === null) return false;
+      const s = designSlot(kind, slot);
+      return (
+        s !== null &&
+        !s.obsolete &&
+        (s.origin === "own" || s.origin === "licensed")
+      );
+    },
+    licensed: new Set(licenceKeysOf(licences, id)),
+    projectsDone,
+  };
 }
 
 /**

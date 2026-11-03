@@ -4645,6 +4645,7 @@
       "new_build": "새로 짓기",
       "new_line": "새 라인",
       "no_civs_assigned": "공장을 기다리는 중",
+      "no_design_hint": "생산할 설계가 아직 없습니다. 설계 화면에서 먼저 만드세요.",
       "not_partner_embargo": "우리에게 금수 조치",
       "not_partner_route": "무역로 없음",
       "not_partner_war": "우리와 전쟁 중",
