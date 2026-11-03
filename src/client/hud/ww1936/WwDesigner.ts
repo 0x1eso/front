@@ -13,8 +13,6 @@ import { customElement, state } from "lit/decorators.js";
 import { SendWwOrderIntentEvent } from "../../Transport";
 import { translateText } from "../../Utils";
 import { WwDepthOpenEvent } from "./DepthEvents";
-import { libraryStore } from "./DesignLibrary";
-import { entryName, LibraryAuto } from "./DesignLibraryStatus";
 import {
   DESIGNER_BAR_H,
   DESIGNER_BOTTOM_H,
@@ -29,7 +27,10 @@ import {
   TANK_ROLES_LIST,
   TankCell,
 } from "./DesignerModel";
+import { LibEntry, libraryStore } from "./DesignLibrary";
+import { entryName, LibraryAuto } from "./DesignLibraryStatus";
 import { blockText as orderBlockText } from "./EconomyModel";
+import { StartPrep } from "./LobbyPrep";
 import { countryName, TwoTap } from "./WorldWarModel";
 import { LibraryUi, renderLibrary } from "./WwDesignLibrary";
 import { renderDesignList } from "./WwDesignList";
@@ -81,6 +82,13 @@ export class WwDesigner extends WwDrawerBase {
   private readonly store = libraryStore();
   private readonly libTap = new TwoTap();
   private auto: LibraryAuto | null = null;
+  private startPrep: StartPrep | null = null;
+  /**
+   * The lobby's preparation screen hosts this designer on its own adapter
+   * game: always a draft (no research lock), no in-game list or save, and a
+   * library card edits instead of loads.
+   */
+  public lobby = false;
   private noticeTimer: ReturnType<typeof setTimeout> | null = null;
   /** A short line when the library made something (shown even with the drawer shut). */
   @state() private notice: string | null = null;
@@ -98,6 +106,12 @@ export class WwDesigner extends WwDrawerBase {
       (o) => this.eventBus.emit(new SendWwOrderIntentEvent(o)),
       (text) => this.showNotice(text),
     );
+    this.startPrep = this.lobby
+      ? null
+      : new StartPrep(
+          (o) => this.eventBus.emit(new SendWwOrderIntentEvent(o)),
+          (text) => this.showNotice(text),
+        );
     this.store.subscribe(() => this.requestUpdate());
     this.eventBus.on(WwDepthOpenEvent, (e) => {
       if (e.kind !== "designer" && e.kind !== "designs") return;
@@ -130,6 +144,7 @@ export class WwDesigner extends WwDrawerBase {
     if (this.model === null) {
       this.model = new DesignerModel(this.game as unknown as DesignerGame);
       this.model.onChange = () => this.requestUpdate();
+      if (this.lobby) this.model.draftMode = true;
     }
     return this.model;
   }
@@ -147,6 +162,8 @@ export class WwDesigner extends WwDrawerBase {
 
   tick() {
     this.refitIfOpen();
+    // Before the auto-creator: see LobbyPrep.StartPrep.
+    this.startPrep?.tick(this.game);
     this.auto?.tick(this.game);
     if (!this.open) return;
     const m = this.ensureModel();
@@ -239,18 +256,20 @@ export class WwDesigner extends WwDrawerBase {
               ${translateText(KIND_KEYS[k])}
             </button>`,
         )}
-        <button
-          type="button"
-          role="tab"
-          data-ww-design-tab-list
-          aria-selected=${String(this.tab === "list")}
-          class="${BTN} ${this.tab === "list"
-            ? "border-sky-400/60 bg-sky-500/20"
-            : ""}"
-          @click=${() => (this.tab = "list")}
-        >
-          ${translateText("ww1936.design.tab_designs")}
-        </button>
+        ${this.lobby
+          ? nothing
+          : html`<button
+              type="button"
+              role="tab"
+              data-ww-design-tab-list
+              aria-selected=${String(this.tab === "list")}
+              class="${BTN} ${this.tab === "list"
+                ? "border-sky-400/60 bg-sky-500/20"
+                : ""}"
+              @click=${() => (this.tab = "list")}
+            >
+              ${translateText("ww1936.design.tab_designs")}
+            </button>`}
         <button
           type="button"
           role="tab"
@@ -764,18 +783,20 @@ export class WwDesigner extends WwDrawerBase {
             m.setName((e.target as HTMLInputElement).value);
           }}
         />
-        <button
-          type="button"
-          data-ww-draft-toggle
-          role="switch"
-          aria-checked=${String(draft)}
-          class="${BTN} h-10 min-w-10 ${draft
-            ? "border-amber-400/70 bg-amber-500/20"
-            : ""}"
-          @click=${() => m.setDraftMode(!draft)}
-        >
-          ${translateText("ww1936.library.draft")}
-        </button>
+        ${this.lobby
+          ? nothing
+          : html`<button
+              type="button"
+              data-ww-draft-toggle
+              role="switch"
+              aria-checked=${String(draft)}
+              class="${BTN} h-10 min-w-10 ${draft
+                ? "border-amber-400/70 bg-amber-500/20"
+                : ""}"
+              @click=${() => m.setDraftMode(!draft)}
+            >
+              ${translateText("ww1936.library.draft")}
+            </button>`}
         <button
           type="button"
           data-ww-recommend
@@ -796,31 +817,33 @@ export class WwDesigner extends WwDrawerBase {
         >
           ${translateText("ww1936.library.save")}
         </button>
-        <button
-          type="button"
-          data-ww-design-save
-          class="${BTN} h-10 max-w-40 whitespace-normal leading-tight ${armed
-            ? "border-amber-400/70 bg-amber-500/20"
-            : ""}"
-          ?disabled=${d === null ||
-          draft ||
-          block !== null ||
-          badName ||
-          m.roleMismatch()}
-          @click=${() => this.onSave(m)}
-        >
-          ${translateText(
-            saveLabel(
-              d !== null &&
-                ((d.kind === "tank" &&
-                  m.cellDesign(d.base, m.tankRoleSel) !== null) ||
-                  (d.kind === "plane" &&
-                    m.planeCellDesign(d.base, m.planeTypeSel) !== null)),
-              armed,
-              d !== null && d.kind === "plane",
-            ),
-          )}
-        </button>
+        ${this.lobby
+          ? nothing
+          : html`<button
+              type="button"
+              data-ww-design-save
+              class="${BTN} h-10 max-w-40 whitespace-normal leading-tight ${armed
+                ? "border-amber-400/70 bg-amber-500/20"
+                : ""}"
+              ?disabled=${d === null ||
+              draft ||
+              block !== null ||
+              badName ||
+              m.roleMismatch()}
+              @click=${() => this.onSave(m)}
+            >
+              ${translateText(
+                saveLabel(
+                  d !== null &&
+                    ((d.kind === "tank" &&
+                      m.cellDesign(d.base, m.tankRoleSel) !== null) ||
+                      (d.kind === "plane" &&
+                        m.planeCellDesign(d.base, m.planeTypeSel) !== null)),
+                  armed,
+                  d !== null && d.kind === "plane",
+                ),
+              )}
+            </button>`}
       </div>
     </div>`;
   }
@@ -855,6 +878,7 @@ export class WwDesigner extends WwDrawerBase {
         store: this.store,
         game: this.game as never,
         ui,
+        edit: this.lobby ? (e) => this.editEntry(e) : undefined,
         load: (e, s) => {
           if (s.order === null) return;
           this.eventBus.emit(new SendWwOrderIntentEvent(s.order));
@@ -918,6 +942,23 @@ export class WwDesigner extends WwDrawerBase {
         },
       })}
     </div>`;
+  }
+
+  /** Lobby: a library card opens as a draft (a design here, a division on the screen). */
+  private editEntry(e: LibEntry): void {
+    if (e.type === "design") {
+      this.tab = "design";
+      this.ensureModel().open(e.def.kind, { ...e.def } as never);
+    } else if (e.type === "template") {
+      this.setOpen(false);
+      this.dispatchEvent(
+        new CustomEvent("ww-lobby-edit-template", {
+          detail: e,
+          bubbles: true,
+          composed: true,
+        }),
+      );
+    }
   }
 
   private onSave(m: DesignerModel) {

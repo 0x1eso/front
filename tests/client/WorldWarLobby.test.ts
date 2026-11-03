@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
 vi.mock("../../src/client/Cosmetics", () => ({
   getPlayerCosmetics: vi.fn(async () => ({})),
@@ -382,6 +382,9 @@ describe("solo World War 1936 on a phone on its side", () => {
 
   // jsdom has no matchMedia; the IntersectionObserver stub above must stay.
   const originalMatchMedia = window.matchMedia;
+  // The screen is a separate chunk, loaded on the first tap.
+  beforeAll(() => import("../../src/client/hud/ww1936/WwLobbyPrep"), 60_000);
+
   afterEach(() => {
     window.matchMedia = originalMatchMedia;
   });
@@ -690,5 +693,63 @@ describe("the lobby summary", () => {
         value: `ww1936.lobby.difficulty_${level}`,
       });
     }
+  });
+});
+
+describe("the preparation screen from each lobby", () => {
+  const prepButton = (root: ParentNode) =>
+    root.querySelector<HTMLButtonElement>("button[data-ww-prep-open]");
+
+  afterEach(() =>
+    document.querySelectorAll("ww-lobby-prep").forEach((e) => e.remove()),
+  );
+
+  async function opens(root: HTMLElement, tag: string) {
+    await root.querySelector<CountryPicker>("ww-country-picker")
+      ?.updateComplete;
+    const b = prepButton(root)!;
+    expect(b).not.toBeNull();
+    b.click();
+    await vi.waitFor(() =>
+      expect(document.querySelector("ww-lobby-prep")).not.toBeNull(),
+    );
+    expect((document.querySelector("ww-lobby-prep") as any).tag).toBe(tag);
+  }
+
+  it("is offered only once a country is picked", async () => {
+    const el = await picker();
+    expect(prepButton(el)).toBeNull();
+    el.selected = "GBR";
+    await el.updateComplete;
+    expect(prepButton(el)).not.toBeNull();
+  });
+
+  it("opens from solo", async () => {
+    const modal = document.createElement("single-player-modal") as any;
+    modal.handleConfigOptionToggleChanged(
+      toggle("game_settings.world_war_1936", true),
+    );
+    modal.country = "GBR";
+    await opens(await body(modal), "GBR");
+  });
+
+  it("opens from the host's lobby", async () => {
+    const modal = new HostLobbyModal() as any;
+    modal.lobbyCreatorClientID = "HOST0000";
+    modal.worldWar1936 = true;
+    modal.countryPicks = [{ clientID: "HOST0000", tag: "FRA" }];
+    await opens(await body(modal), "FRA");
+  });
+
+  it("opens from a joined lobby", async () => {
+    const modal = new JoinLobbyModal() as any;
+    modal.eventBus = new EventBus();
+    modal.currentLobbyId = "ABCD1234";
+    modal.isConnecting = false;
+    modal.currentClientID = "AMY00000";
+    modal.gameConfig = testGameConfig({ worldWar1936: true });
+    modal.players = [{ clientID: "AMY00000", username: "amy", clanTag: null }];
+    modal.countryPicks = [{ clientID: "AMY00000", tag: "JPN" }];
+    await opens(await body(modal), "JPN");
   });
 });
