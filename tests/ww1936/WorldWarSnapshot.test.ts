@@ -482,12 +482,14 @@ describe("World War 1936 snapshots (spec §7.8)", () => {
 // Re-pinned for the alt-history branches (the Soviet purge rebuilt, new UK, Japan
 // and US focuses and events): three equal runs.
 // Re-pinned for 30 % faster construction and the Red Bonaparte: three equal runs.
-const WW1936_DIGEST = "52ade5881baa6f03";
+// Re-pinned for the free military (no national XP, spirits or bought traits, free
+// commanders) with faster construction and efficiency: three equal runs.
+const WW1936_DIGEST = "edc35b663ba5c527";
 /**
  * The same game on Easy (the lobby's default in this mode): the AI
  * handicaps and the slower war planning. Pinned with three equal runs.
  */
-const WW1936_EASY_DIGEST = "0f30d4562198b8a5";
+const WW1936_EASY_DIGEST = "70f0e22c0b34f6b4";
 
 describe("World War 1936 stays deterministic", () => {
   // An all-AI game on the test map, long enough for the calendar's first

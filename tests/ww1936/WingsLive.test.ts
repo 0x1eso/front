@@ -492,6 +492,11 @@ test("a real game on wings: every mission, base moves, 400 days, in lockstep", a
           cls: "rail",
         },
       );
+      // A second raid on the same line: since the free-military change one
+      // wing's load no longer takes a whole rail level here.
+      give(g, "GBR", "strat_bomber", "strategic_bombing", [railRaid.target], {
+        cls: "rail",
+      });
       seen.railHit = railRaid.target;
       seen.railBefore = econ.rail[railRaid.target];
       give(g, "DEU", "fighter", "interception", [railRaid.target]);

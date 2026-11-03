@@ -62,6 +62,10 @@ describe("World War 1936 P6 lists", () => {
       "army_air_priority",
       // Military thought sliders (ww9).
       "thought_set",
+      // The per-slot research queue.
+      "research_reserve",
+      "research_unreserve",
+      "research_reorder",
     ]);
   });
 
