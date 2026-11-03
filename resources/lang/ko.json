@@ -4657,7 +4657,6 @@
       "state_done": "완료",
       "state_prereq": "선행 필요",
       "state_running": "연구 중",
-      "stock_only": "비축만 됩니다(항공전은 뒤 단계)",
       "stockpile": "비축",
       "switch_best": "최신 성능으로 전환",
       "tab_construction": "건설",

@@ -93,7 +93,6 @@ const ECON = [
   "factories",
   "export_room",
   "region_buildings",
-  "stock_only",
 ];
 const EFFECTS = [
   "constructionPct",

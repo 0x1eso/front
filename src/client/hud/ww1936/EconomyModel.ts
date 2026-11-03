@@ -880,11 +880,6 @@ export {
   UNLOCK_UNIT_KEY,
 } from "./TechEffectLines";
 
-/** Fighters and bombers only fill the stockpile until the air war (P4). */
-export function stockOnly(equipment: EquipmentType): boolean {
-  return EQUIPMENT[equipment].family === "aircraft";
-}
-
 // ---- Who is in the fight (spec §4.4, §7.4) ----
 
 /**

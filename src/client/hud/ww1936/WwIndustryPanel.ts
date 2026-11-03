@@ -63,7 +63,6 @@ import {
   retentionBpOf,
   signedText,
   slotPctOf,
-  stockOnly,
   stockRowIdle,
   stockTable,
   switchPreview,
@@ -1080,11 +1079,6 @@ export class WwIndustryPanel extends WwDrawerBase {
           ${translateText("ww1936.econ.change_line")}
         </button>
       </div>
-      ${stockOnly(r.equipment)
-        ? html`<p class="m-0 mt-1 text-xs text-sky-300">
-            ${translateText("ww1936.econ.stock_only")}
-          </p>`
-        : nothing}
       ${this.switching === r.id
         ? this.renderSwitchPicker(c, line, retention)
         : nothing}
