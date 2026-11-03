@@ -481,12 +481,13 @@ describe("World War 1936 snapshots (spec §7.8)", () => {
 // tungsten, volunteer Poland, full-organisation start): three equal runs.
 // Re-pinned for the alt-history branches (the Soviet purge rebuilt, new UK, Japan
 // and US focuses and events): three equal runs.
-const WW1936_DIGEST = "120a193c72219997";
+// Re-pinned for 30 % faster construction and the Red Bonaparte: three equal runs.
+const WW1936_DIGEST = "52ade5881baa6f03";
 /**
  * The same game on Easy (the lobby's default in this mode): the AI
  * handicaps and the slower war planning. Pinned with three equal runs.
  */
-const WW1936_EASY_DIGEST = "eaf03264a935897d";
+const WW1936_EASY_DIGEST = "0f30d4562198b8a5";
 
 describe("World War 1936 stays deterministic", () => {
   // An all-AI game on the test map, long enough for the calendar's first

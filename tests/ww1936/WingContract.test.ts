@@ -68,7 +68,8 @@ describe("the lists are appended, never reordered", () => {
       "ferry",
     ]);
     expect(WW_BOMB_CLASSES[0]).toBe("auto");
-    expect(WW_ORDER_BLOCKS.slice(-3)).toEqual([
+    // The focus queue appended two after these.
+    expect(WW_ORDER_BLOCKS.slice(-5, -2)).toEqual([
       "too_many_wings",
       "no_bomb_target",
       "escort_out_of_range",

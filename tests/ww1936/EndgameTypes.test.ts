@@ -144,6 +144,9 @@ describe("World War 1936 P5 lists", () => {
       "too_many_wings",
       "no_bomb_target",
       "escort_out_of_range",
+      // The focus queue appends its two.
+      "focus_queued",
+      "focus_queue_full",
     ]);
     const kinds = WwOrderSchema.options.map(
       (o) => (o.shape.kind as { value: string }).value,
