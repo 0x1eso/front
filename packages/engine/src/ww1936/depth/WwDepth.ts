@@ -1869,6 +1869,7 @@ function buildKeyStats(d: WwDepth, id: number): KeyStatsTable {
   const t: KeyStatsTable = {
     group: STATIC_KEY_STATS.group.slice(),
     year: STATIC_KEY_STATS.year.slice(),
+    score: STATIC_KEY_STATS.score.slice(),
     stats: STATIC_KEY_STATS.stats.slice(),
   };
   if (d.countries[id] !== null && d.countries[id] !== undefined) {

@@ -63,6 +63,7 @@ import {
   EQUIPMENT,
   unitCostMilli,
 } from "@openfront/engine-lib/ww1936/Equipment";
+import { rowScore } from "@openfront/engine-lib/ww1936/TemplateStats";
 import { mioFamilyOf } from "@openfront/engine-lib/ww1936/MioRules";
 import {
   lineCostMilli,
@@ -332,6 +333,7 @@ export function fillDesignRows(d: WwDepth, id: number, t: KeyStatsTable): void {
     t.stats[o + KS.fuelPct] = ds.fuelPct;
     t.stats[o + KS.orgAdd] = ds.orgAdd;
     t.stats[o + KS.flags] = ds.flags;
+    t.score[j] = rowScore(t.stats, j, ds.group, ds.year);
   }
 }
 
