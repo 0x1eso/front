@@ -105,14 +105,14 @@ describe("the research tree (research overhaul)", () => {
       (n, t) => n + techCostMilli(t),
       0,
     );
-    expect(Math.round(milli / 1000)).toBe(34_975);
+    expect(Math.round(milli / 1000)).toBe(30_747);
   });
 
   it("research days: the year's days × the multiplier × the knob", () => {
-    expect(WW_RESEARCH_COST_PM).toBe(910);
-    expect(techCostMilli("inf_eq_2")).toBe(techDays(1939) * 910);
-    expect(techCostMilli("art_imp_2")).toBe(122_850);
-    expect(techCostMilli("modern_tank_1")).toBe(290_062);
+    expect(WW_RESEARCH_COST_PM).toBe(800);
+    expect(techCostMilli("inf_eq_2")).toBe(techDays(1939) * 800);
+    expect(techCostMilli("art_imp_2")).toBe(108_000);
+    expect(techCostMilli("modern_tank_1")).toBe(255_000);
     expect(techCostMilli("inf_eq_2", 1100)).toBe(techDays(1939) * 1100);
     expect(techCostMilli("art_imp_2", 900)).toBe(121_500);
   });
