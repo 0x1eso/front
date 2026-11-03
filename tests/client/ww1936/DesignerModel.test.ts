@@ -61,12 +61,15 @@ describe("DesignerModel", () => {
     const rows = m.statRows();
     expect(rows.find((r) => r.id === "piercing")?.sign).toBe(1);
     expect(rows.find((r) => r.id === "piercing")?.diffText).toMatch(/^\+/);
-    // A newer saved design of the same role becomes the target.
+    // The cell's saved design becomes the target (the cell loads it): a
+    // weaker draft of the same cell is marked worse against it.
     const better: DesignDef = { ...m.draft!, name: "x", armorLevel: 10 };
     const m2 = new DesignerModel(designerGame({ designs: [saved(better, 1)] }));
     m2.open("tank");
     m2.setBase("medium_2");
     expect(m2.compareIsSaved()).toBe(true);
+    expect(m2.statRows().some((r) => r.sign !== 0)).toBe(false);
+    m2.setLevel(0, 0);
     expect(m2.statRows().some((r) => r.sign === -1)).toBe(true);
   });
 
@@ -154,18 +157,44 @@ describe("DesignerModel", () => {
     expect(m.block()).toBeNull();
   });
 
-  it("a copy is refused when every slot holds a design", () => {
-    const def = {
-      kind: "tank",
-      base: "light_1",
-      modules: ["", "", "", "", "", ""],
-      armorLevel: 0,
-      engineLevel: 0,
-      name: "x",
-    } as DesignDef;
-    const full = Array.from({ length: 12 }, (_, i) => saved(def, i + 1));
+  it("a tank in a new cell is refused when the pool is full; a taken cell still saves", () => {
+    const bases = [
+      "light_1",
+      "light_2",
+      "medium_1",
+      "medium_2",
+      "medium_3",
+      "heavy_1",
+      "heavy_2",
+      "heavy_3",
+      "super_heavy_1",
+      "modern_1",
+    ];
+    const mk = (base: string, gun: string): DesignDef =>
+      ({
+        kind: "tank",
+        base,
+        modules: [gun, "", "", "", "", "", ""].slice(
+          0,
+          base === "light_1" ? 6 : 7,
+        ),
+        armorLevel: 0,
+        engineLevel: 0,
+        name: "x",
+      }) as DesignDef;
+    const full = [
+      ...bases.map((b) => mk(b, "")),
+      mk("light_1", "howitzer"),
+      mk("light_2", "howitzer"),
+    ].map((d, i) => saved(d, i + 1));
     const m = new DesignerModel(designerGame({ designs: full }));
-    m.open("tank", def);
+    // A new cell (light I as a tank destroyer): no slot.
+    m.setRole("tank_destroyer");
+    m.setBase("light_1");
     expect(m.block()).toBe("design_slots_full");
+    // A taken cell (light I as a tank): the save overwrites it.
+    m.setRole("tank");
+    m.setBase("light_1");
+    expect(m.block()).toBeNull();
   });
 });

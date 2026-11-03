@@ -23,6 +23,8 @@ import {
   DESIGNER_STATS_W,
   DesignerGame,
   DesignerModel,
+  TANK_ROLES_LIST,
+  TankCell,
 } from "./DesignerModel";
 import { blockText as orderBlockText } from "./EconomyModel";
 import { countryName, TwoTap } from "./WorldWarModel";
@@ -46,6 +48,16 @@ const KIND_KEYS: Readonly<Record<DesignKind, string>> = {
   ship: "ww1936.design.tab_ship",
   plane: "ww1936.design.tab_plane",
 };
+
+/** The save button's text: a tank saved over a cell's design says every tank of the cell changes. */
+function saveLabel(overwrites: boolean, armed: boolean): string {
+  if (overwrites) {
+    return armed
+      ? "ww1936.design.save_cell_confirm"
+      : "ww1936.design.save_cell";
+  }
+  return armed ? "ww1936.design.save_confirm" : "ww1936.design.save";
+}
 
 @customElement("ww-designer")
 export class WwDesigner extends WwDrawerBase {
@@ -304,6 +316,7 @@ export class WwDesigner extends WwDrawerBase {
   }
 
   private renderDesign(m: DesignerModel): TemplateResult {
+    if (m.kind === "tank") return this.renderTankDesign(m);
     const chips = m.baseChips();
     return html`
       <div
@@ -364,6 +377,108 @@ export class WwDesigner extends WwDrawerBase {
       </div>
       ${this.renderBottom(m)}
     `;
+  }
+
+  /**
+   * The tank tab: a role selector, the chassis cells of that role (locked /
+   * not designed / my design with its score and the old mark), then the
+   * draft of the chosen cell. One scrolling column, so a phone needs no
+   * sideways scroll; every target is at least 40 px.
+   */
+  private renderTankDesign(m: DesignerModel): TemplateResult {
+    const cells = m.cells();
+    return html`
+      <div data-ww-scroll class="min-h-0 flex-1 overflow-y-auto px-2 pb-1">
+        <div data-ww-role-row role="tablist" class="flex flex-wrap gap-1 py-1">
+          ${TANK_ROLES_LIST.map(
+            (r) =>
+              html`<button
+                type="button"
+                role="tab"
+                data-ww-role-tab=${r}
+                aria-selected=${String(m.tankRoleSel === r)}
+                class="${BTN} min-h-10 flex-1 ${m.tankRoleSel === r
+                  ? "border-sky-400/60 bg-sky-500/20"
+                  : ""}"
+                @click=${() => m.setRole(r)}
+              >
+                ${translateText(`ww1936.role.${r}`)}
+              </button>`,
+          )}
+        </div>
+        <div data-ww-cells class="grid grid-cols-2 gap-1 sm:grid-cols-3">
+          ${cells.map((c) => this.renderCell(m, c))}
+        </div>
+        <div class="mt-2 flex min-h-0 gap-2">
+          <div class="relative flex min-w-0 flex-1 flex-col gap-1">
+            ${m.draft === null
+              ? html`<p class="m-0 text-xs text-white/60">
+                  ${translateText("ww1936.design.pick_cell")}
+                </p>`
+              : this.renderGrid(m)}
+            ${m.openSlot !== null
+              ? renderDesignSheet(
+                  m,
+                  m.openSlot,
+                  Math.floor((this.sheetBase() * 55) / 100),
+                  (id) => m.setModule(m.openSlot ?? 0, id),
+                  () => m.selectSlot(m.openSlot),
+                )
+              : nothing}
+          </div>
+          ${this.renderStats(m)}
+        </div>
+      </div>
+      ${this.renderBottom(m)}
+    `;
+  }
+
+  private renderCell(m: DesignerModel, c: TankCell): TemplateResult {
+    return html`<button
+      type="button"
+      data-ww-cell=${c.base}
+      data-locked=${c.locked ? "true" : nothing}
+      data-old=${c.old ? "true" : nothing}
+      class="flex min-h-10 min-w-0 flex-col justify-center overflow-hidden rounded-md border px-2 py-0.5 text-left text-xs ${c.selected
+        ? "border-sky-400/70 bg-sky-500/20"
+        : "border-white/15 bg-white/5 hover:bg-white/10"} ${c.locked
+        ? "opacity-50"
+        : ""}"
+      @click=${() => {
+        if (!c.locked || m.draftMode) m.setBase(c.base);
+        if (c.locked && c.tech !== null) {
+          this.showLockedTip(
+            translateText("ww1936.design.module_locked", {
+              tech: translateText(`ww1936.tech.${c.tech}`),
+              year: c.year,
+            }),
+          );
+        }
+      }}
+    >
+      <span class="truncate font-semibold"
+        >${c.locked ? "🔒 " : ""}${translateText(c.nameKey)}</span
+      >
+      <span class="flex items-center gap-1 truncate text-[11px] text-white/70">
+        ${c.saved !== null
+          ? html`<span data-ww-cell-name class="truncate"
+                >${m.displayName(c.saved.def)}</span
+              ><span data-ww-cell-score class="shrink-0"
+                >${translateText("ww1936.design.cell_score", {
+                  n: c.score,
+                })}</span
+              >${c.old
+                ? html`<span
+                    data-ww-old
+                    class="shrink-0 rounded bg-amber-500/30 px-1 text-amber-200"
+                    >${translateText("ww1936.design.old")}</span
+                  >`
+                : nothing}`
+          : c.locked
+            ? translateText("ww1936.design.cell_locked")
+            : translateText("ww1936.design.cell_unsaved")}
+      </span>
+    </button>`;
   }
 
   /** The country asking me for a licence (the first request), or null. */
@@ -578,19 +693,31 @@ export class WwDesigner extends WwDrawerBase {
               class="min-w-0 truncate text-amber-300"
               >🔒
               ${translateText("ww1936.design.save_blocked", {
-                reason: orderBlockText(block),
+                reason:
+                  block === "design_slots_full" && d.kind === "tank"
+                    ? translateText("ww1936.design.pool_full")
+                    : orderBlockText(block),
               })}</span
             >`
-          : this.lockedTip === null && badName
+          : this.lockedTip === null && d !== null && m.roleMismatch()
             ? html`<span
-                data-ww-block="bad_name"
+                data-ww-block="role"
                 class="min-w-0 truncate text-amber-300"
                 >🔒
                 ${translateText("ww1936.design.save_blocked", {
-                  reason: translateText("ww1936.design.bad_name"),
+                  reason: translateText("ww1936.design.role_mismatch"),
                 })}</span
               >`
-            : nothing}
+            : this.lockedTip === null && badName
+              ? html`<span
+                  data-ww-block="bad_name"
+                  class="min-w-0 truncate text-amber-300"
+                  >🔒
+                  ${translateText("ww1936.design.save_blocked", {
+                    reason: translateText("ww1936.design.bad_name"),
+                  })}</span
+                >`
+              : nothing}
       </div>
       <div class="flex items-center gap-1">
         <input
@@ -641,14 +768,23 @@ export class WwDesigner extends WwDrawerBase {
         <button
           type="button"
           data-ww-design-save
-          class="${BTN} h-8 ${armed
+          class="${BTN} h-10 max-w-40 whitespace-normal leading-tight ${armed
             ? "border-amber-400/70 bg-amber-500/20"
             : ""}"
-          ?disabled=${d === null || draft || block !== null || badName}
+          ?disabled=${d === null ||
+          draft ||
+          block !== null ||
+          badName ||
+          m.roleMismatch()}
           @click=${() => this.onSave(m)}
         >
           ${translateText(
-            armed ? "ww1936.design.save_confirm" : "ww1936.design.save",
+            saveLabel(
+              d !== null &&
+                d.kind === "tank" &&
+                m.cellDesign(d.base, m.tankRoleSel) !== null,
+              armed,
+            ),
           )}
         </button>
       </div>
@@ -706,7 +842,16 @@ export class WwDesigner extends WwDrawerBase {
           set({ armed: "" });
           this.store.remove(e.id);
         },
-        toggleAuto: (e) => this.store.setAuto(e.id, !e.auto),
+        toggleAuto: (e) => {
+          const off = this.store.setAuto(e.id, !e.auto);
+          if (off.length > 0) {
+            this.showNotice(
+              translateText("ww1936.library.auto_cell_off", {
+                name: entryName(off[0]),
+              }),
+            );
+          }
+        },
         share: (ids) => set({ code: this.store.exportCode(ids) }),
         copy: () => {
           const code = this.libUi.code;

@@ -18,14 +18,25 @@ import {
   SpecialProject,
   TANK_BASES,
   TankDesignStats,
+  TankRole,
+  WW_TANK_DESIGN_SLOTS,
   WwDesignSlotData,
 } from "@openfront/engine-api/ww1936/DepthTypes";
 import {
+  EQUIP_KEYS,
+  equipKey,
+  EquipmentType,
   RESOURCE_IDS,
   WW_TECH_IDS,
   WwOrderBlock,
   WwTechId,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
+import {
+  GROUND_EQUIP_KEYS,
+  GROUND_SLOTS,
+  GROUND_STATIC_SLOTS,
+  groundSlotOf,
+} from "@openfront/engine-api/ww1936/LandTypes";
 import {
   SHIP_CLASSES,
   SHIP_GENS,
@@ -52,10 +63,16 @@ import {
   tankDefault,
   tankRole,
 } from "@openfront/engine-lib/ww1936/DesignRules";
+import { EQUIPMENT } from "@openfront/engine-lib/ww1936/Equipment";
 import {
   lineResources,
   shipStats,
 } from "@openfront/engine-lib/ww1936/ShipStats";
+import {
+  isTankGroup,
+  keyStatsWithDesigns,
+  oldInfoOf,
+} from "@openfront/engine-lib/ww1936/TemplateStats";
 import { WW_TECHS } from "@openfront/engine-lib/ww1936/WwTechs";
 import { translateText } from "../../Utils";
 import type { GameView } from "../../view/GameView";
@@ -96,6 +113,30 @@ export interface BaseChip {
   year: number;
   selected: boolean;
 }
+
+/** One cell of the tank tab: a role x a chassis. */
+export interface TankCell {
+  base: string;
+  role: TankRole;
+  nameKey: string;
+  locked: boolean;
+  tech: WwTechId | null;
+  year: number;
+  selected: boolean;
+  /** My own design in the cell; null when nothing is saved there. */
+  saved: WwDesignSlotData | null;
+  /** The saved design's performance score (0 without one). */
+  score: number;
+  /** The saved design is old: more than 15 % below the best of its group. */
+  old: boolean;
+}
+
+export const TANK_ROLES_LIST: readonly TankRole[] = [
+  "tank",
+  "tank_destroyer",
+  "sp_artillery",
+  "sp_anti_air",
+];
 
 export interface SlotCard {
   index: number;
@@ -245,6 +286,8 @@ export class DesignerModel {
   /** The design being edited; null before a base is picked. */
   draft: DesignDef | null = null;
   kind: DesignKind = "tank";
+  /** The tank tab's role: the cells list is of this role, and the draft keeps it. */
+  tankRoleSel: TankRole = "tank";
   /** The saved design it was opened from (a copy's base). */
   private base: DesignDef | null = null;
   /** The slot whose module sheet is open; null when closed. */
@@ -288,7 +331,19 @@ export class DesignerModel {
     else if (base !== undefined) {
       this.draft = { ...base, modules: [...base.modules] };
       this.base = base;
+      if (base.kind === "tank") this.tankRoleSel = tankRole(base);
     }
+    this.bump();
+  }
+
+  /** The tank tab's role selector: the cells of that role; the draft is dropped. */
+  setRole(role: TankRole): void {
+    if (role === this.tankRoleSel) return;
+    this.taps++;
+    this.tankRoleSel = role;
+    this.base = null;
+    this.openSlot = null;
+    this.draft = null;
     this.bump();
   }
 
@@ -311,12 +366,19 @@ export class DesignerModel {
     this.bump();
   }
 
-  /** A base chip: a fresh draft on it, the saved design forgotten. */
+  /**
+   * A base chip (plane, ship) or a cell (tank): a fresh draft on it. A tank
+   * cell loads its design, or the recommended fit of the role.
+   */
   setBase(id: string): void {
     this.taps++;
-    this.base = null;
     this.openSlot = null;
-    this.draft = this.fresh(this.kind, id);
+    const saved = this.kind === "tank" ? this.cellDesign(id) : null;
+    this.base = saved === null ? null : saved.def;
+    this.draft =
+      saved === null
+        ? this.fresh(this.kind, id)
+        : { ...saved.def, modules: [...saved.def.modules] };
     this.bump();
   }
 
@@ -397,6 +459,7 @@ export class DesignerModel {
       this.draftMode ||
       this.draft === null ||
       this.block() !== null ||
+      this.roleMismatch() ||
       !this.nameOk()
     ) {
       return null;
@@ -415,6 +478,7 @@ export class DesignerModel {
       this.draftMode ||
       this.draft === null ||
       this.block() !== null ||
+      this.roleMismatch() ||
       !this.nameOk()
     ) {
       return null;
@@ -437,10 +501,155 @@ export class DesignerModel {
     if (d === null) return "bad_base";
     const b = designBlock(d, this.blockCtx());
     if (b !== null) return b;
-    if (this.designsOf(d.kind).length >= DESIGN_SLOTS[d.kind]) {
-      return "design_slots_full";
+    if (this.slotsFull(d)) return "design_slots_full";
+    return null;
+  }
+
+  /**
+   * No slot for this draft: a ship or plane list is full, or the tank pool
+   * is full and the draft's cell has no design of mine to overwrite.
+   */
+  private slotsFull(d: DesignDef): boolean {
+    if (d.kind !== "tank") {
+      return this.designsOf(d.kind).length >= DESIGN_SLOTS[d.kind];
+    }
+    return (
+      this.designsOf("tank").length >= WW_TANK_DESIGN_SLOTS &&
+      this.cellDesign(d.base, tankRole(d)) === null
+    );
+  }
+
+  /** A tank draft whose role is no more the cell's: it cannot be saved. */
+  roleMismatch(): boolean {
+    const d = this.draft;
+    return d !== null && d.kind === "tank" && tankRole(d) !== this.tankRoleSel;
+  }
+
+  /** My own design in the cell (base x role); the lowest slot when an old snapshot holds several. */
+  cellDesign(
+    base: string,
+    role: TankRole = this.tankRoleSel,
+  ): WwDesignSlotData | null {
+    for (const r of this.designsOf("tank")) {
+      if (
+        r.origin === "own" &&
+        r.def.base === base &&
+        tankRole(r.def) === role
+      ) {
+        return r;
+      }
     }
     return null;
+  }
+
+  /** The chassis cells of the tank tab's role. */
+  cells(): TankCell[] {
+    const techs = this.techs();
+    const sel = this.draft?.base ?? "";
+    const info = this.tankInfo();
+    const out: TankCell[] = [];
+    for (const base of TANK_BASES) {
+      const tech = TANK_BASE_DEFS[base].tech;
+      const saved = this.cellDesign(base);
+      let score = 0;
+      let old = false;
+      if (saved !== null && info !== null) {
+        const j = GROUND_STATIC_SLOTS + saved.slot - 1;
+        score = info.ks.score[j];
+        old = info.old.old[j] === 1;
+      }
+      out.push({
+        base,
+        role: this.tankRoleSel,
+        nameKey: `ww1936.base.tank.${base}`,
+        locked: !techs.has(tech),
+        tech,
+        year: techYear(tech),
+        selected: base === sel,
+        saved,
+        score,
+        old,
+      });
+    }
+    return out;
+  }
+
+  /**
+   * The production screen's mark on a line: the line's tank key is old, and
+   * the best key of its need group to switch to (the highest score among the
+   * static tanks my techs open and my own or licensed designs). Null for a
+   * key that is no tank's.
+   */
+  lineOld(
+    equipment: EquipmentType,
+    gen: number,
+  ): {
+    old: boolean;
+    best: { equipment: EquipmentType; gen: number } | null;
+  } | null {
+    const j = groundSlotOf(equipKey(equipment, gen));
+    const info = this.tankInfo();
+    if (j < 0 || info === null || !isTankGroup(info.ks.group[j])) return null;
+    if (info.old.old[j] !== 1) return { old: false, best: null };
+    const g = info.ks.group[j];
+    const techs = this.techs();
+    const usable = new Set(
+      this.designsOf("tank")
+        .filter(
+          (r) => !r.obsolete && (r.origin === "own" || r.origin === "licensed"),
+        )
+        .map((r) => r.slot),
+    );
+    let best = -1;
+    for (let k = 0; k < GROUND_SLOTS; k++) {
+      if (info.ks.group[k] !== g) continue;
+      if (k < GROUND_STATIC_SLOTS) {
+        const [t, n] = EQUIP_KEYS[GROUND_EQUIP_KEYS[k]];
+        const tech = EQUIPMENT[t].techs[n - 1];
+        if (tech === undefined || !techs.has(tech)) continue;
+      } else if (!usable.has(k - GROUND_STATIC_SLOTS + 1)) {
+        continue;
+      }
+      if (best < 0 || info.ks.score[k] > info.ks.score[best]) best = k;
+    }
+    if (best < 0 || best === j) return { old: true, best: null };
+    const [t, n] = EQUIP_KEYS[GROUND_EQUIP_KEYS[best]];
+    return { old: true, best: { equipment: t, gen: n } };
+  }
+
+  /** Score and old flag of a saved tank design (slot 1-based). */
+  tankScore(slot: number): { score: number; old: boolean } {
+    const info = this.tankInfo();
+    if (info === null) return { score: 0, old: false };
+    const j = GROUND_STATIC_SLOTS + slot - 1;
+    return { score: info.ks.score[j], old: info.old.old[j] === 1 };
+  }
+
+  private tankMemo: {
+    env: number;
+    info: {
+      ks: ReturnType<typeof keyStatsWithDesigns>;
+      old: ReturnType<typeof oldInfoOf>;
+    };
+  } | null = null;
+
+  /** The scores of the static tanks and my designs (engine-lib's table) and which are old. */
+  private tankInfo() {
+    const env =
+      (this.view.wwEconomy?.()?.version ?? 0) * 16_777_216 +
+      (this.view.wwDepth?.()?.version ?? 0) * 4096 +
+      (this.view.wwPolitics?.()?.version ?? 0);
+    if (this.tankMemo !== null && this.tankMemo.env === env) {
+      return this.tankMemo.info;
+    }
+    const rows = this.designsOf("tank").map((r) => ({
+      slot: r.slot,
+      stats: designStats(r.def, this.ctx(r.def)) as TankDesignStats,
+    }));
+    const ks = keyStatsWithDesigns(rows);
+    const info = { ks, old: oldInfoOf(ks, this.techs()) };
+    this.tankMemo = { env, info };
+    return info;
   }
 
   /**
@@ -493,12 +702,7 @@ export class DesignerModel {
       for (const m of def.modules) need(PLANE_MODULE_DEFS[m]?.tech);
     }
     let block = designBlock(def, this.blockCtx());
-    if (
-      block === null &&
-      this.designsOf(def.kind).length >= DESIGN_SLOTS[def.kind]
-    ) {
-      block = "design_slots_full";
-    }
+    if (block === null && this.slotsFull(def)) block = "design_slots_full";
     return { block, techs, projects };
   }
 
@@ -789,14 +993,19 @@ export class DesignerModel {
   }
 
   private fresh(kind: DesignKind, base: string): DesignDef {
+    if (kind === "tank") {
+      // A cell without a design starts on the recommended fit of its role.
+      return {
+        ...recommendedTank(base, this.techs(), this.tankRoleSel),
+        name: "@",
+      };
+    }
     const modules = slotKinds({ kind, base }).map(() => "");
     // The weapon slot cannot stay empty (designBlock).
     if (kind === "plane") {
       modules[0] = recommendedPlane(base, this.techs()).modules[0];
     }
-    return kind === "tank"
-      ? { kind, base, modules, armorLevel: 0, engineLevel: 0, name: "@" }
-      : { kind, base, modules, name: "@" };
+    return { kind, base, modules, name: "@" } as DesignDef;
   }
 
   private candidateIds(d: DesignDef, slotKind: string): string[] {
@@ -807,6 +1016,8 @@ export class DesignerModel {
         if (m.slot !== slotKind) continue;
         if (m.weights !== undefined && !m.weights.includes(w)) continue;
         if (m.bases !== undefined && !m.bases.includes(d.base)) continue;
+        // Only modules that keep the cell's role.
+        if (!this.keepsRole(d, slotKind, id)) continue;
         out.push(id);
       }
       if (slotKind === "special") out.push("");
@@ -830,6 +1041,15 @@ export class DesignerModel {
       }
     }
     return out;
+  }
+
+  /** The draft with `id` in the (first) slot of `slotKind` still has the cell's role. */
+  private keepsRole(d: DesignDef, slotKind: string, id: string): boolean {
+    if (slotKind !== "gun" && slotKind !== "turret") return true;
+    const i = slotKinds(d).indexOf(slotKind);
+    const modules = [...d.modules];
+    modules[i] = id;
+    return tankRole({ ...d, modules }) === this.tankRoleSel;
   }
 
   private moduleBlock(

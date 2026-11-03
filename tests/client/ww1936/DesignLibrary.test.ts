@@ -188,4 +188,62 @@ describe("design library", () => {
     expect(other.entries[0].auto).toBe(false);
     expect(LIBRARY_KEY).toBeTruthy();
   });
+
+  it("one auto entry per cell: turning one on turns the others off; an old file is trimmed", () => {
+    const disk = memory();
+    const s = new LibraryStore(() => disk);
+    s.add({ type: "design", def: { ...TANK, name: "A" } });
+    s.add({ type: "design", def: { ...TANK, armorLevel: 2, name: "B" } });
+    // A tank destroyer on the same chassis is another cell.
+    s.add({
+      type: "design",
+      def: {
+        ...TANK,
+        modules: ["gun_small", "turret_none", "", "", "", ""],
+        name: "TD",
+      },
+    });
+    const [a, b, td] = s.entries.map((e) => e.id);
+    expect(s.setAuto(a, true)).toEqual([]);
+    expect(s.setAuto(td, true)).toEqual([]);
+    const off = s.setAuto(b, true);
+    expect(off.map((e) => e.id)).toEqual([a]);
+    expect(s.entries.map((e) => e.auto)).toEqual([false, true, true]);
+    // A file with two autos in one cell loads with the first kept.
+    const raw = JSON.parse(disk.data.get(LIBRARY_KEY)!);
+    raw.entries[0].auto = true;
+    disk.data.set(LIBRARY_KEY, JSON.stringify(raw));
+    const again = new LibraryStore(() => disk);
+    expect(again.entries.map((e) => e.auto)).toEqual([true, false, true]);
+  });
+
+  it("auto-create leaves a cell alone that already has a design of mine", () => {
+    const s = new LibraryStore(() => memory());
+    s.add({ type: "design", def: { ...TANK, armorLevel: 3, name: "Auto" } });
+    s.setAuto(s.entries[0].id, true);
+    const sent: unknown[] = [];
+    const auto = new LibraryAuto(
+      s,
+      (o) => sent.push(o),
+      () => undefined,
+      () => 0,
+    );
+    // My own light I design (another fit) sits in the cell: the entry is not sent.
+    auto.tick(
+      gameWith({
+        techs: WW_TECH_IDS,
+        designs: [saved({ ...TANK, armorLevel: 0, name: "Mine" }, 1)],
+      }),
+    );
+    expect(sent).toHaveLength(0);
+    // An empty cell: sent.
+    const auto2 = new LibraryAuto(
+      s,
+      (o) => sent.push(o),
+      () => undefined,
+      () => 0,
+    );
+    auto2.tick(gameWith({ techs: WW_TECH_IDS }));
+    expect(sent).toHaveLength(1);
+  });
 });

@@ -53,6 +53,11 @@ function renderCard(env: DesignListEnv, row: WwDesignSlotData): TemplateResult {
   const use = designUse(model, row);
   const name = def.name.startsWith("@") ? autoNameOf(def) : def.name;
   const key = `obsolete:${row.kind}:${row.slot}`;
+  // A tank design is a cell's: no slot management, no retiring, no copying
+  // of my own (the designer's cell list edits it); a foreign one can still
+  // be adapted into my own cell.
+  const tank = row.kind === "tank";
+  const tankScore = tank ? model.tankScore(row.slot) : null;
   const origin = ORIGIN_KEYS[row.origin as keyof typeof ORIGIN_KEYS] ?? "";
   return html`<li
     data-ww-design-card=${`${row.kind}:${row.slot}`}
@@ -62,6 +67,21 @@ function renderCard(env: DesignListEnv, row: WwDesignSlotData): TemplateResult {
   >
     <div class="flex items-center gap-1">
       <span class="min-w-0 flex-1 truncate font-bold">${name}</span>
+      ${tankScore === null
+        ? nothing
+        : html`<span
+              data-ww-design-score
+              class="shrink-0 text-[11px] text-white/70"
+              >${translateText("ww1936.design.cell_score", {
+                n: tankScore.score,
+              })}</span
+            >${tankScore.old
+              ? html`<span
+                  data-ww-old
+                  class="shrink-0 rounded bg-amber-500/30 px-1 text-[11px] text-amber-200"
+                  >${translateText("ww1936.design.old")}</span
+                >`
+              : nothing}`}
       ${origin === ""
         ? nothing
         : html`<span
@@ -96,7 +116,11 @@ function renderCard(env: DesignListEnv, row: WwDesignSlotData): TemplateResult {
         class="h-9 min-w-24 flex-1 rounded-md border border-white/15 bg-white/5 px-2 font-semibold hover:bg-white/10"
         @click=${() => env.copy(row)}
       >
-        ${translateText("ww1936.design.edit_new")}
+        ${translateText(
+          tank && row.origin === "own"
+            ? "ww1936.design.edit_cell"
+            : "ww1936.design.edit_new",
+        )}
       </button>
       ${row.kind === "ship" || row.obsolete
         ? nothing
@@ -108,7 +132,7 @@ function renderCard(env: DesignListEnv, row: WwDesignSlotData): TemplateResult {
           >
             ${translateText("ww1936.design.make_line")}
           </button>`}
-      ${row.obsolete
+      ${row.obsolete || tank
         ? nothing
         : html`<button
             type="button"

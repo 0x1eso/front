@@ -89,6 +89,7 @@ import {
 // P4 (spec §18.8): the shipyards view is the navy drawer's <ww-shipyards>.
 import { WwDepthOpenEvent } from "./DepthEvents";
 import { DepthIndustryModel } from "./DepthIndustryModel";
+import { DesignerGame, DesignerModel } from "./DesignerModel";
 import { autoMaskOf, renderAutoRow } from "./WwAutoUi";
 import { renderMarketTab } from "./WwMarketTab";
 import { renderMioTab } from "./WwMioTab";
@@ -410,6 +411,16 @@ export class WwIndustryPanel extends WwDrawerBase {
       case "market":
         return renderMarketTab(this.depthModel(), this.tabUi(c));
     }
+  }
+
+  private tankModelMemo: DesignerModel | null = null;
+
+  /** The designer's model, for the old mark on a tank line (its tank table is memoised). */
+  private tankModel(): DesignerModel {
+    this.tankModelMemo ??= new DesignerModel(
+      this.game as unknown as DesignerGame,
+    );
+    return this.tankModelMemo;
   }
 
   private depthModel(): DepthIndustryModel {
@@ -938,6 +949,12 @@ export class WwIndustryPanel extends WwDrawerBase {
     const factories = this.factoriesOf(line);
     const shown =
       r.active < factories ? `${r.active}/${factories}` : `${factories}`;
+    const oldLine =
+      r.equipment === "light_tank" ||
+      r.equipment === "medium_tank" ||
+      r.equipment === "tank_design"
+        ? this.tankModel().lineOld(r.equipment, r.gen)
+        : null;
     return html`<li
       data-ww-line=${r.id}
       class="rounded-md border border-white/10 bg-white/5 p-2"
@@ -947,6 +964,13 @@ export class WwIndustryPanel extends WwDrawerBase {
         <span class="min-w-0 flex-1 truncate font-semibold"
           >${equipmentName(r.equipment)} ${genName(r.gen)}</span
         >
+        ${oldLine === null || !oldLine.old
+          ? nothing
+          : html`<span
+              data-ww-old
+              class="shrink-0 rounded bg-amber-500/30 px-1 text-xs text-amber-200"
+              >${translateText("ww1936.design.old")}</span
+            >`}
         <button
           type="button"
           data-ww-move-line="up"
@@ -1025,6 +1049,22 @@ export class WwIndustryPanel extends WwDrawerBase {
             cap: Math.round(r.cap * 100),
           })}</span
         >
+        ${oldLine === null || oldLine.best === null
+          ? nothing
+          : html`<button
+              type="button"
+              data-ww-switch-best=${r.id}
+              class="${BUTTON} min-h-10"
+              @click=${() =>
+                this.send({
+                  kind: "change_line",
+                  line: r.id,
+                  equipment: oldLine.best!.equipment,
+                  gen: oldLine.best!.gen,
+                })}
+            >
+              ${translateText("ww1936.econ.switch_best")}
+            </button>`}
         <button
           type="button"
           data-ww-change-line=${r.id}

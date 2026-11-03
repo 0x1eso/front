@@ -576,6 +576,39 @@ describe("<ww-industry-panel> (spec §13.3)", () => {
     expect(m.q("[data-ww-add-build]")).toBeNull();
   });
 
+  it("a line making an old tank key is marked and one tap switches it to the best key", async () => {
+    const m = mount({
+      summaries: [summary("DEU")],
+      details: [
+        detail("DEU", {
+          researched: [
+            "inf_eq_1",
+            "support_eq_1",
+            "artillery_1",
+            "motorized_1",
+            "light_tank_1",
+            "light_tank_2",
+            "fighter_1",
+            "bomber_1",
+          ],
+          lines: [
+            { ...line(1, 2), equipment: "light_tank" },
+            { ...line(2, 2), equipment: "light_tank", gen: 2 },
+          ],
+        }),
+      ],
+    });
+    await m.open("production");
+    // Light I is old against light II (a score more than 15 % behind).
+    expect(m.q("[data-ww-line='1'] [data-ww-old]")).not.toBeNull();
+    expect(m.q("[data-ww-line='2'] [data-ww-old]")).toBeNull();
+    expect(m.q("[data-ww-line='2'] [data-ww-switch-best]")).toBeNull();
+    await m.click("[data-ww-line='1'] [data-ww-switch-best]");
+    expect(m.sent).toEqual([
+      { kind: "change_line", line: 1, equipment: "light_tank", gen: 2 },
+    ]);
+  });
+
   it("icon-only buttons have names; a deficit has a real minus", async () => {
     const m = mount({
       summaries: [summary("DEU")],

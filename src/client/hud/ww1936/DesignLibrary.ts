@@ -5,7 +5,11 @@
 // module or battalion removed in a later version must show as "unusable",
 // never make the whole library fail to load. DesignLibraryStatus.ts checks
 // an entry against the game with the engine-lib functions the designers use.
-import { DESIGN_KINDS } from "@openfront/engine-api/ww1936/DepthTypes";
+import {
+  DESIGN_KINDS,
+  DesignDef,
+} from "@openfront/engine-api/ww1936/DepthTypes";
+import { tankRole } from "@openfront/engine-lib/ww1936/DesignRules";
 import { z } from "zod";
 
 export const LIBRARY_KEY = "ww1936-library-v1";
@@ -75,6 +79,19 @@ export function templateKey(
   return `t|${[...battalions].sort().join(",")}|${[...support].sort().join(",")}`;
 }
 
+/**
+ * The cell a tank design entry saves into (its role x its chassis), or null
+ * for a ship, plane or template entry (or one too broken to tell).
+ */
+export function cellOf(c: LibContent): string | null {
+  if (c.type !== "design" || c.def.kind !== "tank") return null;
+  try {
+    return `${tankRole(c.def as DesignDef)}|${c.def.base}`;
+  } catch {
+    return null;
+  }
+}
+
 export interface KeyValueStorage {
   getItem(k: string): string | null;
   setItem(k: string, v: string): void;
@@ -122,6 +139,16 @@ export class LibraryStore {
         this.entries.push(p.data as LibEntry);
         if (this.entries.length >= LIBRARY_MAX_ENTRIES) break;
       }
+      // At most one auto entry per cell (an older file may hold several: the
+      // first stays on, or the auto-creator would swap them for ever).
+      const taken = new Set<string>();
+      this.entries = this.entries.map((e) => {
+        const cell = cellOf(e);
+        if (!e.auto || cell === null) return e;
+        if (taken.has(cell)) return { ...e, auto: false } as LibEntry;
+        taken.add(cell);
+        return e;
+      });
     } catch {
       this.entries = [];
     }
@@ -165,11 +192,25 @@ export class LibraryStore {
     this.persist();
   }
 
-  setAuto(id: string, on: boolean): void {
-    this.entries = this.entries.map((e) =>
-      e.id === id ? ({ ...e, auto: on } as LibEntry) : e,
-    );
+  /**
+   * Turns an entry's auto-create on or off. A tank entry turning on turns
+   * off the others of its cell (one design a cell); returns those.
+   */
+  setAuto(id: string, on: boolean): LibEntry[] {
+    const me = this.entries.find((e) => e.id === id);
+    const cell = me === undefined || !on ? null : cellOf(me);
+    const off: LibEntry[] = [];
+    this.entries = this.entries.map((e) => {
+      if (e.id === id) return { ...e, auto: on } as LibEntry;
+      if (cell !== null && e.auto && cellOf(e) === cell) {
+        const next = { ...e, auto: false } as LibEntry;
+        off.push(next);
+        return next;
+      }
+      return e;
+    });
     this.persist();
+    return off;
   }
 
   /** The share code of the whole library (`ids` omitted) or of some entries. */

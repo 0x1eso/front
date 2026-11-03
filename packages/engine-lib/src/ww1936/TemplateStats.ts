@@ -207,6 +207,51 @@ export interface OldInfo {
   old: Uint8Array;
 }
 
+/**
+ * The screens' KeyStatsTable: the static rows with the given tank designs
+ * (slot is 1-based) written into the design rows, scores included — the
+ * engine's own table (WwDepth.fillDesignRows) holds the same numbers.
+ */
+export function keyStatsWithDesigns(
+  designs: ReadonlyArray<{
+    slot: number;
+    stats: {
+      group: number;
+      year: number;
+      soft: number;
+      hard: number;
+      def: number;
+      brk: number;
+      pierce: number;
+      armor: number;
+      aa: number;
+    };
+  }>,
+): KeyStatsTable {
+  const t: KeyStatsTable = {
+    group: STATIC_KEY_STATS.group.slice(),
+    year: STATIC_KEY_STATS.year.slice(),
+    score: STATIC_KEY_STATS.score.slice(),
+    stats: STATIC_KEY_STATS.stats.slice(),
+  };
+  for (const { slot, stats: s } of designs) {
+    const j = GROUND_STATIC_SLOTS + slot - 1;
+    if (j < GROUND_STATIC_SLOTS || j >= GROUND_SLOTS) continue;
+    const o = j * KS_FIELDS;
+    t.group[j] = s.group;
+    t.year[j] = s.year;
+    t.stats[o + KS.soft] = s.soft;
+    t.stats[o + KS.hard] = s.hard;
+    t.stats[o + KS.def] = s.def;
+    t.stats[o + KS.brk] = s.brk;
+    t.stats[o + KS.pierce] = s.pierce;
+    t.stats[o + KS.armor] = s.armor;
+    t.stats[o + KS.aa] = s.aa;
+    t.score[j] = rowScore(t.stats, j, s.group, s.year);
+  }
+  return t;
+}
+
 const OLD_MEMO = new WeakMap<
   KeyStatsTable,
   { res: ReadonlySet<WwTechId>; size: number; info: OldInfo }

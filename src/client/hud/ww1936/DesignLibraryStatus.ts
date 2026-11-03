@@ -27,6 +27,7 @@ import { translateText } from "../../Utils";
 import type { GameView } from "../../view/GameView";
 import { autoNameOf, DesignerGame, DesignerModel } from "./DesignerModel";
 import {
+  cellOf,
   contentKey,
   LibEntry,
   LibraryStore,
@@ -86,6 +87,18 @@ export function existingKeys(game: StatusGame): Set<string> {
     out.add(templateKey(t.battalions, t.support));
   }
   return out;
+}
+
+/** My own tank design already sits in the cell (role x chassis) of `cell` (DesignLibrary.cellOf). */
+export function cellTaken(game: StatusGame, cell: string): boolean {
+  const me = game.myPlayer()?.smallID() ?? 0;
+  const designs = game.wwDepth?.()?.detail(me)?.designs ?? [];
+  return designs.some(
+    (d) =>
+      d.kind === "tank" &&
+      d.origin === "own" &&
+      cellOf({ type: "design", def: d.def }) === cell,
+  );
 }
 
 /** What `e` can do now. Never throws: a broken entry is "stale". */
@@ -271,6 +284,11 @@ export class LibraryAuto {
       if (!e.auto) continue;
       const hold = this.sentAt.get(e.id);
       if (hold !== undefined && t - hold < AUTO_SENT_HOLD_MS) continue;
+      // A cell that already has a design of mine is left alone: the
+      // auto-creator opens a game with the player's designs, it never
+      // overwrites what the player made since (loading by hand does).
+      const cell = cellOf(e);
+      if (cell !== null && cellTaken(game, cell)) continue;
       const s = entryStatus(e, game, have);
       if (s.state !== "ready" || s.order === null) continue;
       this.sentAt.set(e.id, t);
