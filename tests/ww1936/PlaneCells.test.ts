@@ -294,16 +294,14 @@ describe("saving into a cell", () => {
     // Fill with foreign designs to the pool's size.
     const des = g.d.country(GBR)!.des.plane;
     for (let i = 0; i < des.length; i++) {
-      if (des[i] === null) {
-        des[i] = {
-          def: weak("small_1", "x") as never,
-          origin: "received",
-          from: ITA,
-          fromSlot: 1,
-          obsolete: false,
-          savedDay: 0,
-        };
-      }
+      des[i] ??= {
+        def: weak("small_1", "x") as never,
+        origin: "received",
+        from: ITA,
+        fromSlot: 1,
+        obsolete: false,
+        savedDay: 0,
+      };
     }
     expect(des.every((s) => s !== null)).toBe(true);
     expect(n).toBeLessThan(WW_PLANE_DESIGN_SLOTS + 1);

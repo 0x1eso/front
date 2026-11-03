@@ -398,7 +398,13 @@ export class WwDesigner extends WwDrawerBase {
     const cur: string = plane ? m.planeTypeSel : m.tankRoleSel;
     return html`
       <div data-ww-scroll class="min-h-0 flex-1 overflow-y-auto px-2 pb-1">
-        <div data-ww-role-row role="tablist" class="flex flex-wrap gap-1 py-1">
+        <div
+          data-ww-role-row
+          role="tablist"
+          class=${plane
+            ? "grid grid-cols-2 gap-1 py-1 sm:grid-cols-5"
+            : "flex flex-wrap gap-1 py-1"}
+        >
           ${types.map(
             (r) =>
               html`<button
@@ -406,7 +412,9 @@ export class WwDesigner extends WwDrawerBase {
                 role="tab"
                 data-ww-role-tab=${r}
                 aria-selected=${String(cur === r)}
-                class="${BTN} min-h-10 flex-1 ${cur === r
+                class="${BTN} min-h-10 min-w-0 ${plane
+                  ? ""
+                  : "flex-1"} ${cur === r
                   ? "border-sky-400/60 bg-sky-500/20"
                   : ""}"
                 @click=${() =>
