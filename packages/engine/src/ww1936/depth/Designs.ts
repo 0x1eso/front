@@ -200,14 +200,22 @@ function saveOrder(
     // The cell rule: one design per role x chassis; the slot asked for is ignored.
     const got = saveTankCell(d, id, def, day);
     if (typeof got !== "number") return got;
-    d.message(id, "ww1936_design_saved", { name: def.name });
+    d.message(id, "ww1936_design_saved", {
+      name: def.name,
+      kind: def.kind,
+      slot: got,
+    });
     return null;
   }
   if (kind === "plane") {
     // The cell rule again: one design per plane type x airframe.
     const got = savePlaneCell(d, id, def, day);
     if (typeof got !== "number") return got;
-    d.message(id, "ww1936_design_saved", { name: def.name });
+    d.message(id, "ww1936_design_saved", {
+      name: def.name,
+      kind: def.kind,
+      slot: got,
+    });
     return null;
   }
   if (slot !== 0) {
@@ -219,7 +227,11 @@ function saveOrder(
   }
   const got = saveDesign(d, id, def, slot, "own", 0, 0, day);
   if (typeof got !== "number") return got;
-  d.message(id, "ww1936_design_saved", { name: def.name });
+  d.message(id, "ww1936_design_saved", {
+    name: def.name,
+    kind: def.kind,
+    slot: got,
+  });
   return null;
 }
 

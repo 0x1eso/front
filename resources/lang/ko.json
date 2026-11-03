@@ -550,7 +550,7 @@
     "band": {
       "active": "🚨 {kind} vs {name} — {goal} · {time}",
       "available": "🚨 {name}: {kind} — 긴급 회의를 소집할 수 있습니다",
-      "available_target": "🚨 다른 나라가 당신에 대한 {kind}를 소집할 수 있습니다",
+      "available_target": "🚨 다른 나라가 당신에 대한 {kind}을(를) 소집할 수 있습니다",
       "convene": "소집 · 🗳{cost}",
       "member": "참전 중",
       "target": "당신이 대상입니다",
@@ -560,7 +560,7 @@
     "banned_reason": "의회 결의로 지금은 금지됩니다",
     "block": {
       "friendly": "동맹에게는 소집할 수 없습니다",
-      "influence": "영향력 {cost}가 필요합니다",
+      "influence": "영향력 {cost}이(가) 필요합니다",
       "sanctioned": "제재 중에는 소집할 수 없습니다",
       "seat": "의석이 있는 나라만 소집할 수 있습니다",
       "target": "당신이 대상입니다",
@@ -1133,10 +1133,10 @@
     "law_cooldown": "{seconds}초 후 선포 가능",
     "law_next_cost": "다음 법: 정치력 {cost}",
     "locked_requires": "{tech} 연구 필요",
-    "pay_with_gold": "금 {gold}으로 연구",
+    "pay_with_gold": "금 {gold}(으)로 연구",
     "per_sec": "+{value}/초",
     "political": "정치력",
-    "proclaim_with_gold": "금 {gold}으로 선포",
+    "proclaim_with_gold": "금 {gold}(으)로 선포",
     "proclaimed": "선포됨",
     "project": {
       "political": {
@@ -1364,14 +1364,14 @@
     "turnstile_error": "인증 오류: {code}. 새로고침한 후 다시 시도해 주세요."
   },
   "events_display": {
-    "about_to_expire": "{name}와(과)의 동맹이 곧 만료됩니다!",
+    "about_to_expire": "{name}과(와)의 동맹이 곧 만료됩니다!",
     "accept_alliance": "수락",
     "alliance_accepted": "수락",
-    "alliance_expired": "{name}와(과)의 동맹이 만료되었습니다",
-    "alliance_nukes_destroyed_incoming": "{count, plural, one {#개의 {name}가 발사한 핵이 동맹에 의해 파괴되었습니다} other {#개의 {name}가 발사한 핵이 동맹에 의해 파괴되었습니다}}",
-    "alliance_nukes_destroyed_outgoing": "{count, plural, one {#개의 핵이 동맹으로 인해 {name}을 향해 발사되었으나 파괴되었습니다} other {#개의 핵이 동맹으로 인해 {name}을 향해 발사되었으나 파괴되었습니다}}",
+    "alliance_expired": "{name}과(와)의 동맹이 만료되었습니다",
+    "alliance_nukes_destroyed_incoming": "{count, plural, one {#개의 {name}이(가) 발사한 핵이 동맹에 의해 파괴되었습니다} other {#개의 {name}이(가) 발사한 핵이 동맹에 의해 파괴되었습니다}}",
+    "alliance_nukes_destroyed_outgoing": "{count, plural, one {#개의 핵이 동맹으로 인해 {name}을(를) 향해 발사되었으나 파괴되었습니다} other {#개의 핵이 동맹으로 인해 {name}을(를) 향해 발사되었으나 파괴되었습니다}}",
     "alliance_rejected": "거부",
-    "alliance_renewed": "{name}와(과)의 동맹이 갱신되었습니다",
+    "alliance_renewed": "{name}과(와)의 동맹이 갱신되었습니다",
     "alliance_request_sent": "{name}님에게 동맹 요청을 보냈습니다.",
     "alliance_request_status": "{name}이(가) 당신의 동맹 요청을 {status}했습니다",
     "atom_bomb_detonated": "{name} - 원자폭탄 폭발",
@@ -1380,7 +1380,7 @@
     "attack_request": "{name}이(가) 당신에게 {target}을(를) 공격해 달라고 요청했습니다",
     "barrage_inbound": "{name} - 해안 포격이 날아옵니다",
     "betrayal_debuff_ends": "배신 디버프가 끝나기까지 {time}초 남았습니다",
-    "betrayal_description": "{name}와의 동맹을 파기했습니다. 당신은 이제 배신자입니다. (방어력 {malusPercent}% 감소, 지속 시간: {durationText})",
+    "betrayal_description": "{name}과(와)의 동맹을 파기했습니다. 당신은 이제 배신자입니다. (방어력 {malusPercent}% 감소, 지속 시간: {durationText})",
     "betrayed_you": "{name}이(가) 당신과의 동맹을 파기했습니다",
     "bomber_evaded": "폭격기가 SAM을 피했습니다",
     "bomber_inbound": "{name} - 폭격기가 날아옵니다",
@@ -1399,7 +1399,7 @@
     "congress_tied": "🏛 동점 부결: {resolution} ({a} : {b})",
     "congress_tied_pair": "🏛 동점 부결: {name} ↔ {target} {resolution} ({a} : {b})",
     "congress_tied_target": "🏛 동점 부결: {name} {resolution} ({a} : {b})",
-    "congress_truce_blocked": "🕊 {name}와(과) 휴전 중",
+    "congress_truce_blocked": "🕊 {name}과(와) 휴전 중",
     "conquered_no_gold": "{name} 정복 (플레이하지 않음, 금 미지급)",
     "conventional_missile_hit": "{name}의 미사일이 건물을 맞혔습니다",
     "conventional_missile_inbound": "{name} - 미사일이 날아옵니다",
@@ -1535,7 +1535,7 @@
     "ww1936_no_tile_attacks": "이 모드는 군으로 싸웁니다: ⚔ 군을 여세요",
     "ww1936_research_queue_failed": "예약한 연구를 시작할 수 없어 뒤따르는 연구와 함께 예약에서 뺐습니다: {tech}",
     "ww1936_template_added": "새 사단 편성 ‘{template}’이 추가됐습니다",
-    "ww1936_not_at_war": "{name}와(과) 전쟁 중이 아님",
+    "ww1936_not_at_war": "{name}과(와) 전쟁 중이 아님",
     "ww1936_nuke_dropped": "{country}, {region} 지역에 원자탄 투하",
     "ww1936_nuke_intercepted": "{region} 지역을 노린 원자탄 요격",
     "ww1936_occ_law": "점령법이 바뀌었습니다: {law}",
@@ -1569,7 +1569,7 @@
     "ww1936_volunteers_recalled": "{fromTag}의 의용군이 돌아갔습니다",
     "ww1936_war_declared": "{attacker}이(가) {target}에 선전포고했습니다{allies, plural, =0 {} other { (동맹 #개국 참전)}}",
     "ww1936_war_goal_expired": "전쟁 목표의 유효 기간이 끝났습니다",
-    "ww1936_war_joined": "{actor}이(가) {enemy}와(과)의 전쟁에 참전했습니다",
+    "ww1936_war_joined": "{actor}이(가) {enemy}과(와)의 전쟁에 참전했습니다",
     "ww1936_wing_ace": "{callsign} {state, select, rise {등장} retired {은퇴} other {전사}}",
     "ww1936_wing_army_gone": "{wing}: 지원하던 군이 사라져 대기합니다",
     "ww1936_wing_base_lost": "{region} 의 공군 기지를 잃었습니다. 해당 비행단이 다른 기지로 이동합니다.",
@@ -2835,7 +2835,7 @@
     "confirm_downgrade": "{tier}(으)로 다운그레이드하시겠습니까? 현재 플랜의 미사용분에 해당하는 계정 크레딧이 지급됩니다.",
     "confirm_purchase_body": "{item}을(를) {amount, number} {currency}에 구매하시겠습니까?",
     "confirm_purchase_title": "구매 확인",
-    "confirm_subscribe_over_grant": "지금 유료 {tier} 구독을 시작하시겠습니까? 무료 이용은 즉시 종료되며 남은 {days, plural, other {#일}}은 환불되지 않고 유료 기간에 추가되지 않습니다.",
+    "confirm_subscribe_over_grant": "지금 유료 {tier} 구독을 시작하시겠습니까? 무료 이용은 즉시 종료되며 남은 {days, plural, other {#일}}은(는) 환불되지 않고 유료 기간에 추가되지 않습니다.",
     "confirm_subscribe_over_grant_no_days": "지금 유료 {tier} 구독을 시작하시겠습니까? 무료 이용은 즉시 종료되며 남은 기간은 환불되지 않고 유료 기간에 추가되지 않습니다.",
     "confirm_tier_change_steam": "지금 {tier}에 구독하시겠습니까? 새 등급은 정가로 즉시 시작되며, 이번 달 남은 기간은 환불되지 않습니다.",
     "confirm_upgrade": "{tier}(으)로 업그레이드하시겠습니까? 지금 일할 계산된 차액이 청구됩니다.",
@@ -3218,7 +3218,7 @@
     "help_messages_label": "도움말 메시지",
     "highlight_glow_strength_label": "강조 강도",
     "highlight_small_players_desc": "작은 플레이어를 쉽게 찾을 수 있도록 발광 효과를 추가합니다.",
-    "keybind_conflict_error": "키 {key}는 이미 다른 동작에 바인딩되어 있습니다.",
+    "keybind_conflict_error": "키 {key}은(는) 이미 다른 동작에 바인딩되어 있습니다.",
     "keybinds_hint": "변경할 키를 클릭하세요. 단일 키 또는 Shift + 키 조합을 지정할 수 있습니다.",
     "left_click_desc": "켜짐 상태에서는 마우스 왼쪽 클릭 시 메뉴가 열리고 검 버튼 공격이 활성화됩니다. 꺼짐 상태에서는 마우스 왼쪽 클릭 시 바로 공격이 활성화됩니다.",
     "left_click_label": "좌클릭으로 메뉴 열기",
@@ -4320,7 +4320,8 @@
       "tab_plane": "항공기",
       "tab_ship": "함선",
       "tab_tank": "전차",
-      "title": "설계기"
+      "title": "설계기",
+      "unnamed": "설계"
     },
     "diplo": {
       "act": {
@@ -4693,9 +4694,9 @@
       "stock_show_rest": "나머지 보기 ({n})",
       "stock_hide_rest": "나머지 접기",
       "tip": {
-        "alloy_plant": "하루에 텅스텐 {n}, 크롬 {n}을 생산합니다(대체 금속 공법 II 이후 각 {m}). 건물 칸을 하나 차지합니다. 에너지를 {e} 사용합니다.",
+        "alloy_plant": "하루에 텅스텐 {n}, 크롬 {n}을(를) 생산합니다(대체 금속 공법 II 이후 각 {m}). 건물 칸을 하나 차지합니다. 에너지를 {e} 사용합니다.",
         "mine": "레벨마다 이 지역의 여섯 자원 산출이 {a} % 늘어납니다(1~3레벨에서 {a}, {b}, {c} %). 도로와 지배력 보정 전에 적용되며 합성·합금·제련 생산은 늘지 않습니다. 매장지가 있어야 하고 칸은 차지하지 않습니다.",
-        "smelter": "하루에 강철 {n}, 알루미늄 {n}을 생산합니다(대체 금속 공법 II 이후 각 {m}). 건물 칸을 하나 차지합니다. 에너지를 {e} 사용합니다."
+        "smelter": "하루에 강철 {n}, 알루미늄 {n}을(를) 생산합니다(대체 금속 공법 II 이후 각 {m}). 건물 칸을 하나 차지합니다. 에너지를 {e} 사용합니다."
       }
     },
     "effect": {
@@ -10509,7 +10510,7 @@
         "acquired": "새로 얻은 주 {n}개",
         "best": "가장 좋은 주 {n}개",
         "best_of": "{group}에서 가장 좋은 주 {n}개",
-        "border": "{who}와(과) 맞닿은 주 {n}개",
+        "border": "{who}과(와) 맞닿은 주 {n}개",
         "border_threat": "가장 큰 긴장을 만든 이웃과 맞닿은 주 {n}개",
         "capital": "수도 주",
         "coastal": "해안 주 {n}개",
@@ -10525,7 +10526,7 @@
         "leader_of": "{who}의 진영 지도국",
         "owner_of": "{group} 지역의 소유국",
         "self": "우리나라",
-        "target": "대상 나라"
+        "target": "상대국"
       },
       "source": {
         "advisors": "고문",
@@ -12906,7 +12907,7 @@
       "lean_air": "공군",
       "lean_industry": "산업",
       "lean_slot": "슬롯 성향",
-      "grant_btn": "연구 지원금: 정치력 {pp}로 {branch} +{pct}% (1회)"
+      "grant_btn": "연구 지원금: 정치력 {pp}(으)로 {branch} +{pct}% (1회)"
     },
     "thought": {
       "arrived": "도착",

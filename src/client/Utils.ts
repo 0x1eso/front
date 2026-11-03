@@ -15,6 +15,7 @@ import { DoomsdayClockSpeed } from "@openfront/engine-lib/game/DoomsdayClock";
 import { stripVersionPrefix } from "@openfront/shared/ServerList";
 import IntlMessageFormat from "intl-messageformat";
 import { ClientEnv } from "./ClientEnv";
+import { applyJosa } from "./Josa";
 import type { LangSelector } from "./LangSelector";
 import { pagePin } from "./PagePin";
 import { Platform } from "./Platform";
@@ -488,7 +489,9 @@ export const translateText = (
     resolvedParams === EMPTY_TRANSLATION_PARAMS &&
     message.indexOf("{") === -1
   ) {
-    return message;
+    return langSelector.currentLang === "ko" && hasPrimaryTranslation
+      ? applyJosa(message)
+      : message;
   }
 
   try {
@@ -504,7 +507,8 @@ export const translateText = (
       self.formatterCache.set(cacheKey, formatter);
     }
 
-    return formatter.format(resolvedParams) as string;
+    const out = formatter.format(resolvedParams) as string;
+    return locale === "ko" ? applyJosa(out) : out;
   } catch (e) {
     console.warn("ICU format error", e);
     return message;

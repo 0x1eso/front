@@ -26,7 +26,7 @@ import { DESIGN_ONLY_GROUP } from "@openfront/engine-lib/ww1936/TemplatePresets"
 import { templateBlock } from "@openfront/engine-lib/ww1936/TemplateStats";
 import { translateText } from "../../Utils";
 import type { GameView } from "../../view/GameView";
-import { autoNameOf, DesignerGame, DesignerModel } from "./DesignerModel";
+import { DesignerGame, DesignerModel } from "./DesignerModel";
 import {
   cellOf,
   contentKey,
@@ -34,6 +34,7 @@ import {
   LibraryStore,
   templateKey,
 } from "./DesignLibrary";
+import { designDisplayName } from "./DesignName";
 import { blockText } from "./EconomyModel";
 import { designGroupsOf, researchedOf } from "./LandModel";
 
@@ -322,10 +323,5 @@ export class LibraryAuto {
 /** The name an entry shows (an automatic design name is drawn as the designer draws it). */
 export function entryName(e: LibEntry): string {
   if (e.type === "template" || e.type === "army") return e.name;
-  if (!e.def.name.startsWith("@")) return e.def.name;
-  try {
-    return autoNameOf(e.def as DesignDef);
-  } catch {
-    return e.def.base;
-  }
+  return designDisplayName(e.def as DesignDef);
 }

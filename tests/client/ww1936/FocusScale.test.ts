@@ -106,7 +106,7 @@ describe("focus effect scale", () => {
     const text = describeEffects(
       scaleFocusEffects([{ kind: "pp", amount: 20 }]),
     )
-      .map(lineText)
+      .map((l) => lineText(l))
       .join("|");
     expect(text).toContain(`amount=${20 * S}`);
   });

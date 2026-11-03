@@ -4,6 +4,7 @@
 // data and text from the views: no Lit, no engine. The screens render it.
 import type { WwOrder } from "@openfront/engine-api/Schemas";
 import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
+import type { DesignDef } from "@openfront/engine-api/ww1936/DepthTypes";
 import {
   BOP_TAGS,
   CFOCUS_LOCK_DAYS,
@@ -47,6 +48,8 @@ import {
 } from "@openfront/engine-lib/ww1936/WorldRules";
 import { translateText } from "../../Utils";
 import type { GameView } from "../../view/GameView";
+import { designDisplayName, designNameOr } from "./DesignName";
+import { equipmentName, genName } from "./EconomyModel";
 import { fogModelOf } from "./FogModel";
 import {
   canAct,
@@ -265,9 +268,24 @@ function traitKey(id: string): string {
 export function depthNoticeParams(
   message: string,
   params: Record<string, string | number>,
+  designs: readonly { kind: string; slot: number; def: DesignDef }[] = [],
 ): Record<string, string | number> {
   if (!DEPTH_NOTICE_KEYS.includes(message)) return params;
   let out = params;
+  // An unnamed design is "@" in the engine: the saved one is found by its
+  // kind and slot (it is mine); a foreign one falls back to the equipment.
+  if (typeof params.name === "string" && params.name.startsWith("@")) {
+    const row = designs.find(
+      (d) => d.kind === params.kind && d.slot === params.slot,
+    );
+    out = {
+      ...out,
+      name:
+        row !== undefined
+          ? designDisplayName(row.def)
+          : designNameOr(params.name, translateText("ww1936.design.unnamed")),
+    };
+  }
   for (const [k, prefix] of Object.entries(NOTICE_ID_PARAMS)) {
     const v = params[k];
     if (typeof v === "string" && ID_LIKE.test(v)) {
@@ -295,6 +313,19 @@ export function depthNoticeParams(
     ID_LIKE.test(params.item)
   ) {
     out = { ...out, design: translateText(`ww1936.equip.${params.item}`) };
+  }
+  if (
+    typeof params.design === "string" &&
+    params.design.startsWith("@") &&
+    typeof out.design === "string" &&
+    out.design === params.design
+  ) {
+    const type = params.item;
+    const fallback =
+      typeof type === "string" && typeof params.gen === "number"
+        ? `${equipmentName(type as never)} ${genName(params.gen)}`
+        : translateText("ww1936.design.unnamed");
+    out = { ...out, design: designNameOr(params.design, fallback) };
   }
   if (typeof params.callsign === "number") {
     out = {

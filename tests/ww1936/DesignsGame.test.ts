@@ -196,7 +196,10 @@ describe("World War 1936 P6: designs in the game", () => {
       String(c[0]).includes("ww1936_design_saved"),
     );
     expect(notes.map((c) => [c[0], c[4]])).toEqual([
-      ["events_display.ww1936_design_saved", { name: "Heavy" }],
+      [
+        "events_display.ww1936_design_saved",
+        { name: "Heavy", kind: "tank", slot: 1 },
+      ],
     ]);
     shown.mockRestore();
     const slot = d.designSlot(GBR, "tank", 1)!;

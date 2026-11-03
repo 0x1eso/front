@@ -55,6 +55,7 @@ import { translateText } from "../../Utils";
 import type { GameView } from "../../view/GameView";
 import type { WwDepthView } from "../../view/WwDepthView";
 import { airCtx, deployedHere, zoneCard } from "./AirModel";
+import { designDisplayName } from "./DesignName";
 import {
   equipmentName,
   genName,
@@ -380,7 +381,7 @@ export class DepthIndustryModel {
 
   /** "Light tank II" for a stock key, or the design's own name. */
   keyName(key: number, design: DesignDef | null = null): string {
-    if (design !== null) return design.name;
+    if (design !== null) return designDisplayName(design);
     const { type, gen } = this.keyRow(key);
     return type === null ? "?" : `${equipmentName(type)} ${genName(gen)}`;
   }

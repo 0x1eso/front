@@ -135,7 +135,7 @@ describe("<ww-event-cards> (P3 spec §21.6)", () => {
     // An option's effects: the first two lines of describeEffects.
     const a = c.querySelector("[data-ww-option='a']")!.textContent!;
     expect(a).toContain("[ww1936.fx.nap]");
-    expect(a).toContain("of=[ww1936.pol.sel.from]");
+    expect(a).toContain("of=[ww1936.country.FRA]");
     document.body.innerHTML = "";
     // A human default wins over the AI's pick at the deadline (spec §12.5).
     const ultimatum = await mount(

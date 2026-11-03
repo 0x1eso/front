@@ -470,24 +470,34 @@ const NONE_PARAMS = [
   "group",
 ];
 
+/** The countries "from" and "target" stand for, where a line belongs to an event that has them. */
+export interface SelectorWho {
+  from?: CountryTag | null;
+  target?: CountryTag | null;
+}
+
 /**
  * A selector as a describe line carries it (Describe.selectorCode for the
  * object forms; "self", "from" and "target" as written) as text.
  */
-export function selectorText(code: string): string {
+export function selectorText(code: string, who?: SelectorWho): string {
   if (code === "@self" || code === "self") {
     return translateText("ww1936.pol.sel.self");
   }
   if (code === "@from" || code === "from") {
-    return translateText("ww1936.pol.sel.from");
+    return who?.from !== undefined && who.from !== null
+      ? countryName(who.from)
+      : translateText("ww1936.pol.sel.from");
   }
   if (code === "@target" || code === "target") {
-    return translateText("ww1936.pol.sel.target");
+    return who?.target !== undefined && who.target !== null
+      ? countryName(who.target)
+      : translateText("ww1936.pol.sel.target");
   }
   if (code === "all") return translateText("ww1936.pol.sel.all");
   if (code.startsWith("@leader:")) {
     return translateText("ww1936.pol.sel.leader_of", {
-      who: selectorText(code.slice("@leader:".length)),
+      who: selectorText(code.slice("@leader:".length), who),
     });
   }
   if (code.startsWith("@owner:")) {
@@ -581,6 +591,7 @@ function paramText(
   k: string,
   v: string | number,
   params: Record<string, string | number>,
+  who?: SelectorWho,
 ): string | number {
   if (typeof v === "number") {
     // The engine turns these experience grants into a permanent percent: show it.
@@ -597,14 +608,14 @@ function paramText(
     case "of":
     case "vs":
     case "target":
-      return selectorText(v);
+      return selectorText(v, who);
     case "where":
       return pickText(v);
     case "from":
     case "to":
       if (kind === "move_buildings") return pickText(v);
       if (kind === "swap_spirit") return spiritName(v);
-      return selectorText(v);
+      return selectorText(v, who);
     case "tag":
       return isCountryTag(v) ? countryName(v) : v;
     case "id":
@@ -655,7 +666,7 @@ function paramText(
  * the key table's defaults for their absent optional params; a stat line
  * has only its value. The one renderer of the politics and focus screens.
  */
-export function lineText(l: DescLine): string {
+export function lineText(l: DescLine, ctx?: SelectorWho): string {
   const kind = l.key.slice(l.key.lastIndexOf(".") + 1);
   const stat = l.key.startsWith("ww1936.stat.");
   const p: Record<string, string | number> = {};
@@ -665,7 +676,7 @@ export function lineText(l: DescLine): string {
   }
   for (const [k, v] of Object.entries(l.params)) {
     if (k === "who") continue;
-    p[k] = paramText(kind, k, v, l.params);
+    p[k] = paramText(kind, k, v, l.params, ctx);
   }
   let text: string;
   if (l.key.startsWith(FX)) text = translateText(`ww1936.fx.${kind}`, p);
@@ -675,7 +686,8 @@ export function lineText(l: DescLine): string {
   const who = l.params.who;
   if (typeof who === "string" && who !== "@self" && who !== "self" && !stat) {
     return (
-      translateText("ww1936.pol.who_prefix", { who: selectorText(who) }) + text
+      translateText("ww1936.pol.who_prefix", { who: selectorText(who, ctx) }) +
+      text
     );
   }
   return text;
@@ -689,16 +701,17 @@ export interface TextLine {
 /** The effects a player reads (bookkeeping lines left out). */
 export function effectLines(
   effects: readonly Effect[] | undefined,
+  ctx?: SelectorWho,
 ): TextLine[] {
   if (effects === undefined) return [];
   return describeEffects(effects)
     .filter((l) => !HIDDEN_FX.has(l.key))
-    .map((l) => ({ text: lineText(l), depth: l.depth }));
+    .map((l) => ({ text: lineText(l, ctx), depth: l.depth }));
 }
 
 /** One line per non-zero stat. */
 export function statLines(s: Partial<WwStats>): string[] {
-  return describeStats(s).map(lineText);
+  return describeStats(s).map((l) => lineText(l));
 }
 
 // ---- The top band (spec §21.1) ----
@@ -1661,7 +1674,7 @@ function failingLines(def: DecisionDef | null, failing: number[]): string[] {
   const want = new Set(failing);
   return describeCondition(def.available)
     .filter((l) => l.leaf >= 0 && want.has(l.leaf))
-    .map(lineText);
+    .map((l) => lineText(l));
 }
 
 export function decisionTab(i: PoliticsModelInput): DecisionTab {
@@ -2973,6 +2986,11 @@ export function eventCardModel(
   const fromTag =
     card.from > 0 && card.from !== i.me ? tagOf(i.game, card.from) : null;
   const pic = def.picture ?? null;
+  // "target" and "from" in the option lines are this card's countries.
+  const cardWho: SelectorWho = {
+    from: fromTag,
+    target: card.target > 0 ? tagOf(i.game, card.target) : null,
+  };
   return {
     uid: card.uid,
     eventId: card.eventId,
@@ -2994,7 +3012,7 @@ export function eventCardModel(
       return {
         id: o.id,
         label: optionName(def.id, o.id),
-        effects: effectLines(o.effects)
+        effects: effectLines(o.effects, cardWho)
           .slice(0, 2)
           .map((l) => l.text),
         open: open.has(o.id),

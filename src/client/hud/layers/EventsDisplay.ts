@@ -373,7 +373,12 @@ export class EventsDisplay extends LitElement implements Controller {
         params = { ...params, army: armyName(params.army) };
       }
       // P6 (spec §20.11): content ids of the depth notices.
-      params = depthNoticeParams(event.message, params);
+      params = depthNoticeParams(
+        event.message,
+        params,
+        this.game?.wwDepth?.()?.detail(this.game.myPlayer()?.smallID() ?? -1)
+          ?.designs,
+      );
       // ww8: a wing notice names its wing.
       params = wingNoticeParams(
         event.message,

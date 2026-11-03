@@ -122,6 +122,7 @@ import type { GameView } from "../../view";
 import type { WwEconomyView } from "../../view/WwEconomyView";
 import type { WwEndgameView } from "../../view/WwEndgameView";
 import type { WwPoliticsView } from "../../view/WwPoliticsView";
+import { designDisplayName } from "./DesignName";
 import { today, wwActive, type WwGame } from "./WorldWarModel";
 
 /** What the economy screens read from the game (a fake in tests). */
@@ -919,7 +920,6 @@ export function buildingTip(b: BuildingId): string | null {
       return null;
   }
 }
-
 
 // ---- Who is in the fight (spec §4.4, §7.4) ----
 
@@ -1798,7 +1798,7 @@ export function stockTable(
   const keyName = (type: EquipmentType, gen: number): string => {
     if (type === "tank_design" || type === "plane_design") {
       const d = designOf(type === "tank_design" ? "tank" : "plane", gen);
-      if (d !== null) return d.def.name;
+      if (d !== null) return designDisplayName(d.def);
     }
     return `${equipmentName(type)} ${genName(gen)}`;
   };

@@ -87,8 +87,11 @@ import {
 import { WW_TECHS } from "@openfront/engine-lib/ww1936/WwTechs";
 import { translateText } from "../../Utils";
 import type { GameView } from "../../view/GameView";
+import { autoNameOf, designDisplayName } from "./DesignName";
 import { statsFromArray } from "./LandSeaAir";
 import { TwoTap } from "./WorldWarModel";
+
+export { autoNameOf };
 
 /** What the model reads from the game (a fake in tests). */
 export type DesignerGame = Pick<
@@ -1121,7 +1124,7 @@ export class DesignerModel {
   /** The name the screen shows: a stored name starting with "@" is drawn as the automatic one. */
   displayName(def: DesignDef | null = this.draft): string {
     if (def === null) return "";
-    return def.name.startsWith("@") ? autoNameOf(def) : def.name;
+    return designDisplayName(def);
   }
 
   /** The saved designs of a kind. */
@@ -1492,42 +1495,6 @@ function roleKeyOf(def: DesignDef, ctx: DesignCtx): string {
     return `ww1936.ship_class.${shipBase(def.base)?.cls ?? "dd"}`;
   }
   return `ww1936.equip.${(designStats(def, ctx) as PlaneDesignStats).type}`;
-}
-
-/** The automatic name of a design (spec §5.1). */
-export function autoNameOf(def: DesignDef): string {
-  if (def.kind === "tank") {
-    const role = tankRole(def);
-    const base = translateText(`ww1936.base.tank.${def.base}`);
-    const gun = resolvedModules(def)[0];
-    if (role === "tank" && gun !== tankDefault(def.base, 0) && gun !== "") {
-      return translateText("ww1936.design.auto_gun", {
-        base,
-        gun: translateText(`ww1936.module.${gun}`),
-      });
-    }
-    return translateText("ww1936.design.auto", {
-      base,
-      role: translateText(`ww1936.role.${role}`),
-    });
-  }
-  if (def.kind === "ship") {
-    const sb = shipBase(def.base);
-    return translateText("ww1936.design.auto", {
-      base: translateText(`ww1936.ship_gen.${sb?.gen ?? 1}`),
-      role: translateText(`ww1936.ship_class.${sb?.cls ?? "dd"}`),
-    });
-  }
-  const plane = designStats(def, {
-    techs: new Set(),
-    projects: 0,
-    relPp: 0,
-    costPct: 0,
-  }) as PlaneDesignStats;
-  return translateText("ww1936.design.auto", {
-    base: translateText(`ww1936.base.plane.${def.base}`),
-    role: translateText(`ww1936.equip.${plane.type}`),
-  });
 }
 
 /** Spec §20.5 sizes, CSS px. */

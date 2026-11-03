@@ -6,7 +6,8 @@ import { WwDesignSlotData } from "@openfront/engine-api/ww1936/DepthTypes";
 import { equipKey } from "@openfront/engine-api/ww1936/EconomyTypes";
 import { html, nothing, TemplateResult } from "lit";
 import { translateText } from "../../Utils";
-import { autoNameOf, DesignerModel, numText } from "./DesignerModel";
+import { DesignerModel, numText } from "./DesignerModel";
+import { designDisplayName } from "./DesignName";
 
 export interface DesignListEnv {
   model: DesignerModel;
@@ -51,7 +52,7 @@ function renderCard(env: DesignListEnv, row: WwDesignSlotData): TemplateResult {
   const def = row.def;
   const stats = model.statsOf(def);
   const use = designUse(model, row);
-  const name = def.name.startsWith("@") ? autoNameOf(def) : def.name;
+  const name = designDisplayName(def);
   const key = `obsolete:${row.kind}:${row.slot}`;
   // A tank design is a cell's: no slot management, no retiring, no copying
   // of my own (the designer's cell list edits it); a foreign one can still

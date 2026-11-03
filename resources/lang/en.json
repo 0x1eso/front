@@ -4627,7 +4627,8 @@
       "tab_plane": "Aircraft",
       "tab_ship": "Ships",
       "tab_tank": "Tanks",
-      "title": "Designer"
+      "title": "Designer",
+      "unnamed": "Design"
     },
     "diplo": {
       "act": {
