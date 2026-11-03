@@ -875,67 +875,13 @@ export function milliText(milli: number): string {
   return (milli / 1000).toFixed(1);
 }
 
-/** The equipment generation a tech opens, if it opens one. */
-export function techUnlock(
-  tech: WwTechId,
-): { equipment: EquipmentType; gen: number } | null {
-  for (const equipment of EQUIPMENT_TYPES) {
-    for (let gen = 1; gen <= EQUIPMENT_GENS[equipment]; gen++) {
-      if (genTech(equipment, gen) === tech) return { equipment, gen };
-    }
-  }
-  return null;
-}
-
-/** P2 (pre-flight T-b): the line of a land tech that opens a battalion or a company. */
-export const UNLOCK_UNIT_KEY = "ww1936.effect.unlock_unit";
-
-/**
- * The battalions and support companies a tech that opens no equipment
- * generation lets templates use (P2's land techs: mountaineers, marines,
- * paratroopers and the companies), as their names.
- */
-export function techUnits(tech: WwTechId): string[] {
-  if (techUnlock(tech) !== null) return [];
-  return [
-    ...BATTALION_IDS.filter((id) => BATTALIONS[id].techs.includes(tech)).map(
-      (id) => translateText(`ww1936.battalion.${id}`),
-    ),
-    ...SUPPORT_IDS.filter((id) => SUPPORTS[id].techs.includes(tech)).map((id) =>
-      translateText(`ww1936.support.${id}`),
-    ),
-  ];
-}
-
-/** A research card's effect lines: each bonus, or the generation or unit it opens. */
-export function effectLines(tech: WwTechId): string[] {
-  const out: string[] = [];
-  const unlock = techUnlock(tech);
-  if (unlock !== null) {
-    out.push(
-      translateText(EFFECT_KEYS.unlock, {
-        equipment: equipmentName(unlock.equipment),
-        gen: genName(unlock.gen),
-      }),
-    );
-  }
-  for (const unit of techUnits(tech)) {
-    out.push(translateText(UNLOCK_UNIT_KEY, { unit }));
-  }
-  const effects = WW_TECHS[tech].effects;
-  for (const k of Object.keys(effects) as (keyof TechEffects)[]) {
-    const v = effects[k] ?? 0;
-    // Basis points show as percent, milli as units.
-    const n =
-      k === "effCapBp" || k === "retentionBp" || k === "planMaxBp"
-        ? v / 100
-        : k === "armyXpMilli"
-          ? v / 1000
-          : v;
-    out.push(translateText(EFFECT_KEYS[k], { n }));
-  }
-  return out;
-}
+// The research card's effect lines live in TechEffectLines.ts.
+export {
+  effectLines,
+  techUnits,
+  techUnlock,
+  UNLOCK_UNIT_KEY,
+} from "./TechEffectLines";
 
 /** Fighters and bombers only fill the stockpile until the air war (P4). */
 export function stockOnly(equipment: EquipmentType): boolean {

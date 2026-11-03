@@ -401,13 +401,14 @@ describe("World War 1936 P2 in the HUD", () => {
   });
 
   it("research cards name the battalion or company a land tech opens", () => {
-    expect(effectLines("paratroopers")).toEqual([
+    expect(effectLines("paratroopers")[0]).toBe(
       "[ww1936.effect.unlock_unit] unit=[ww1936.battalion.paratrooper]",
-    ]);
-    expect(effectLines("engineer_company")).toEqual([
+    );
+    expect(effectLines("engineer_company")[0]).toBe(
       "[ww1936.effect.unlock_unit] unit=[ww1936.support.engineer]",
-    ]);
-    // An equipment generation keeps its own line only.
-    expect(effectLines("artillery_1")).toHaveLength(1);
+    );
+    // An equipment generation gets its own line, not a unit line.
+    expect(effectLines("artillery_1")[0]).toContain("[ww1936.effect.unlock]");
+    expect(effectLines("artillery_1").join("")).not.toContain("unlock_unit");
   });
 });

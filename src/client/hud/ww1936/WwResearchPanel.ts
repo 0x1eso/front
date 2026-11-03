@@ -33,9 +33,7 @@ import {
   researchSlots,
   reserveBlock,
   SlotRow,
-  stockOnly,
   techName,
-  techUnlock,
 } from "./EconomyModel";
 import {
   baseSpeedPct,
@@ -799,7 +797,6 @@ export class WwResearchPanel extends WwDrawerBase {
     const held = bonusFor(bonuses, c.id);
     const joint = jointPct(d, c.id);
     const base = baseSpeedPct(d, c.id);
-    const unlock = techUnlock(c.id);
     const block = c.block;
     const status = block === null || block === "no_slot" ? null : block;
     return html`<div data-ww-detail=${c.id} class="flex flex-col gap-1">
@@ -867,24 +864,14 @@ export class WwResearchPanel extends WwDrawerBase {
             })}
           </div>`
         : nothing}
-      <div data-ww-effects class="text-white/80">
-        ${effectLines(c.id).join(" · ")}
-      </div>
-      ${unlock !== null && stockOnly(unlock.equipment)
-        ? html`<div class="text-sky-300">
-            ${translateText("ww1936.econ.stock_only")}
-          </div>`
-        : nothing}
-      ${def.design === undefined
-        ? nothing
-        : html`<div>
-            ${translateText("ww1936.rtree.design", {
-              designer: translateText(
-                `ww1936.rtree.designer_${def.design.designer}`,
-              ),
-              part: translateText(`ww1936.rtree.part_${def.design.part}`),
-            })}
-          </div>`}
+      <ul
+        data-ww-effects
+        class="m-0 flex list-none flex-col gap-0.5 p-0 text-white/80"
+      >
+        ${effectLines(c.id).map(
+          (line) => html`<li data-ww-effect class="break-words">${line}</li>`,
+        )}
+      </ul>
       ${def.prereqs.length === 0
         ? nothing
         : html`<div data-ww-prereqs>
