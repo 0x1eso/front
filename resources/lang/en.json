@@ -4004,6 +4004,7 @@
     },
     "building": {
       "air_base": "Air Base",
+      "alloy_plant": "Alloy plant",
       "anti_air": "Anti-Air",
       "civ": "Civilian factory",
       "coastal_fort": "Coastal Fort",
@@ -4016,11 +4017,13 @@
       "fuel_silo": "Fuel Silo",
       "infra": "Infrastructure",
       "mil": "Military factory",
+      "mine": "Mine",
       "naval_base": "Naval Base",
       "power_plant": "Power Plant",
       "radar": "Radar",
       "rail": "Railway",
       "rocket_site": "Rocket Launch Site",
+      "smelter": "Smelter",
       "supply_hub": "Supply Hub",
       "synthetic_refinery": "Synthetic Refinery"
     },
@@ -4820,6 +4823,7 @@
         "no_convoys": "Not enough convoys",
         "no_cp": "Not enough command power",
         "no_crypto_target": "Choose a code to break first",
+        "no_deposit": "No deposit in this region",
         "no_dock": "No free dockyard",
         "no_event": "No such event",
         "no_facility": "No suitable facility",
@@ -4986,7 +4990,12 @@
       "tab_trade": "Resources & trade",
       "trade_civs": "Trade {n}",
       "troops": "Army",
-      "used": "Used"
+      "used": "Used",
+      "tip": {
+        "alloy_plant": "Makes {n} tungsten and {n} chromium a day ({m} each with Metal substitutes II). Takes a building slot. Uses {e} energy.",
+        "mine": "Each level adds {a} % to this region's output of all six resources ({a}, {b} and {c} % at levels 1 to 3), before roads and control; synthetic, alloy and smelter output are not raised. Needs a deposit, no slot.",
+        "smelter": "Makes {n} steel and {n} aluminium a day ({m} each with Metal substitutes II). Takes a building slot. Uses {e} energy."
+      }
     },
     "effect": {
       "airDetectPct": "Air detection +{n}%",
@@ -5020,6 +5029,8 @@
       "infTrainCutPct": "Infantry training time −{n}%",
       "mechBreakPct": "Mechanized breakthrough +{n}%",
       "mechOrg": "Mechanized organization +{n}",
+      "metal_substitute_1": "Unlocks the alloy plant (2 tungsten and 2 chromium a day) and the smelter (2 steel and 2 aluminium a day)",
+      "metal_substitute_2": "Alloy plants and smelters make 3 of each of their two resources a day",
       "navalBomberPct": "Naval bomber naval attack +{n}%",
       "navalDetectPct": "Naval detection +{n}%",
       "orgPct": "Organization +{n}%",
@@ -12725,6 +12736,8 @@
       "medium_tank_1": "Medium tank I",
       "medium_tank_2": "Medium tank II",
       "medium_tank_3": "Medium tank III",
+      "metal_substitute_1": "Metal substitutes",
+      "metal_substitute_2": "Metal substitutes II",
       "military_police": "Military Police",
       "mine_warfare_1": "Mine Warfare",
       "mine_warfare_2": "Magnetic mines and sweeping",

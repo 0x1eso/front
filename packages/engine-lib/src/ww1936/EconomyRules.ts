@@ -7,6 +7,7 @@ import {
   CATEGORY_SLOTS,
   EQUIP_KEYS,
   EquipmentType,
+  MINE_PCT_PER_LEVEL,
   RESOURCE_COUNT,
   RegionCategory,
   WW_CIV_OUTPUT,
@@ -293,13 +294,23 @@ export function allocateResources(
 
 // ---- Resources (spec §7.1) ----
 
+/**
+ * w28 order: the deposit grows by the mines (+MINE_PCT_PER_LEVEL a working
+ * level), then the infrastructure factor (one floor for both), then
+ * control, then the extraction tech; each step rounds down. Synthetic
+ * and alloy output are added after this, so no mine touches them.
+ */
 export function extraction(
   deposit: number,
   infra: number,
   controlPct: number,
   extractionPct: number,
+  mineLevel = 0,
 ): number {
-  const a = Math.floor((deposit * (75 + 5 * infra)) / 100);
+  const a = Math.floor(
+    (deposit * (75 + 5 * infra) * (100 + MINE_PCT_PER_LEVEL * mineLevel)) /
+      10000,
+  );
   const b = Math.floor((a * controlPct) / 100);
   return Math.floor((b * (100 + extractionPct)) / 100);
 }

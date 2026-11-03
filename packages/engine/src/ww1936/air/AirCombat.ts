@@ -617,7 +617,14 @@ function industryWeight2(air: WwAir, r: number): number {
   const n = (b: BuildingId) => effectiveBuildings(e, r, b);
   return (
     2 *
-      (n("civ") + n("mil") + n("dock") + n("synthetic_refinery") + n("infra")) +
+      (n("civ") +
+        n("mil") +
+        n("dock") +
+        n("synthetic_refinery") +
+        n("alloy_plant") +
+        n("smelter") +
+        n("infra")) +
+    n("mine") +
     n("naval_base") +
     n("air_base") +
     n("anti_air") +

@@ -37,6 +37,7 @@ import {
   buildDepthInputs,
   BUILDING_ICONS,
   buildingName,
+  buildingTip,
   changeLineBlock,
   ConstructionRow,
   constructionRows,
@@ -750,6 +751,11 @@ export class WwIndustryPanel extends WwDrawerBase {
             </button>`,
         )}
       </div>
+      ${buildingTip(this.building) === null
+        ? ""
+        : html`<p data-ww-building-tip class="mt-1 text-xs text-slate-300">
+            ${buildingTip(this.building)}
+          </p>`}
       ${this.renderAuto(c, slotPct)}
       ${region === null
         ? // No region takes it: say why rather than show nothing.

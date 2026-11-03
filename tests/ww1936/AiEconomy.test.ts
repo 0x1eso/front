@@ -1170,8 +1170,11 @@ describe("the AI economy in a game (spec §12)", () => {
     throughDay(runner, 0);
     const ita = ce("ITA");
     expect(ita.queue.length).toBeGreaterThan(0);
+    // (w28: a mine where a resource runs short is the other thing it may queue.)
     expect(
-      ita.queue.every((q) => q.region === 5 && q.building === "infra"),
+      ita.queue
+        .filter((q) => q.building !== "mine")
+        .every((q) => q.region === 5 && q.building === "infra"),
     ).toBe(true);
   });
 

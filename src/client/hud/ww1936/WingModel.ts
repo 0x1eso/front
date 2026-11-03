@@ -510,6 +510,8 @@ const RAID_FACTORIES: readonly BuildingId[] = [
   "mil",
   "dock",
   "synthetic_refinery",
+  "alloy_plant",
+  "smelter",
 ];
 
 /**

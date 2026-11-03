@@ -296,6 +296,8 @@ function freeSlotsOf(c: Ctx, id: number): number {
     econ.dock[id] +
     econ.refinery[id] +
     econ.silo[id] +
+    econ.alloy[id] +
+    econ.smelter[id] +
     (econ.facility[id] !== 0 ? 1 : 0) +
     econ.powerPlant[id];
   return Math.max(0, regionSlots(r.cat, slotPctOfCountry(econ, c.me)) - used);

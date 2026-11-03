@@ -1330,6 +1330,23 @@ const BASE_TECHS: Readonly<Record<WwTechId, WwTechDef>> = {
     { constructionPct: 10 },
     { cost: COST_NORMAL },
   ),
+  // w28: a working alloy plant makes tungsten and chromium (the economy reads the ids).
+  metal_substitute_1: n(
+    "metal_substitute_1",
+    "industry",
+    1938,
+    ["excavation_1"],
+    {},
+    { cost: COST_NORMAL, role: "eco" },
+  ),
+  metal_substitute_2: n(
+    "metal_substitute_2",
+    "industry",
+    1941,
+    ["metal_substitute_1", "excavation_2"],
+    {},
+    { cost: COST_NORMAL, role: "eco" },
+  ),
 } as Record<WwTechId, WwTechDef>;
 
 /** P6 (plan decision 25, spec §1.4): the 20 old doctrine techs, retired. */

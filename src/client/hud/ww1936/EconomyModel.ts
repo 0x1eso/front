@@ -8,6 +8,7 @@ import type { TileRef } from "@openfront/engine-api/game/GameMap";
 import { UnitType } from "@openfront/engine-api/game/GameTypes";
 import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
 import {
+  ENERGY_PER_METAL_BUILDING,
   SPECIAL_PROJECTS,
   type WwDesignSlotData,
 } from "@openfront/engine-api/ww1936/DepthTypes";
@@ -25,6 +26,9 @@ import {
   LawValue,
   LEVEL_MAX,
   MAX_INFRA,
+  METAL_PER_BUILDING,
+  METAL_PER_BUILDING_2,
+  MINE_PCT_PER_LEVEL,
   RegionCategory,
   RESOURCE_IDS,
   ResourceId,
@@ -151,6 +155,10 @@ export const BUILDING_KEYS: Readonly<Record<BuildingId, string>> = {
   rocket_site: "ww1936.building.rocket_site",
   power_plant: "ww1936.building.power_plant",
   dam: "ww1936.building.dam",
+  // w28.
+  alloy_plant: "ww1936.building.alloy_plant",
+  smelter: "ww1936.building.smelter",
+  mine: "ww1936.building.mine",
 };
 
 export const RESOURCE_KEYS: Readonly<Record<ResourceId, string>> = {
@@ -392,6 +400,8 @@ export const TECH_KEYS: Readonly<Record<WwTechId, string>> = {
   radar_2: "ww1936.tech.radar_2",
   synthetic_oil_1: "ww1936.tech.synthetic_oil_1",
   synthetic_oil_2: "ww1936.tech.synthetic_oil_2",
+  metal_substitute_1: "ww1936.tech.metal_substitute_1",
+  metal_substitute_2: "ww1936.tech.metal_substitute_2",
   // P5 (spec §8.5).
   military_police: "ww1936.tech.military_police",
   // P6 (spec §5.2.5, §5.7).
@@ -776,6 +786,7 @@ export const BLOCK_KEYS: Readonly<Record<WwOrderBlock, string>> = {
   research_queued: "ww1936.econ.block.research_queued",
   research_queue_full: "ww1936.econ.block.research_queue_full",
   queue_order: "ww1936.econ.block.queue_order",
+  no_deposit: "ww1936.econ.block.no_deposit",
 };
 
 // ---- Icons (pre-flight R7.7: emoji, no new image files) ----
@@ -812,6 +823,9 @@ export const BUILDING_ICONS: Readonly<Record<BuildingId, string>> = {
   rocket_site: "🎆",
   power_plant: "⚡",
   dam: "🌊",
+  alloy_plant: "🔩",
+  smelter: "🏗️",
+  mine: "⛏️",
 };
 
 export const EQUIPMENT_ICONS: Readonly<Record<EquipmentType, string>> = {
@@ -907,6 +921,38 @@ export function techUnits(tech: WwTechId): string[] {
   ];
 }
 
+/** w28: techs whose effect is a rule of the economy, not a stat: their card line (keys spelled out for the translation test). */
+const TECH_NOTE_KEYS: Readonly<Partial<Record<WwTechId, string>>> = {
+  metal_substitute_1: "ww1936.effect.metal_substitute_1",
+  metal_substitute_2: "ww1936.effect.metal_substitute_2",
+};
+
+/** w28: the tooltip of a building button that has numbers to tell. */
+export function buildingTip(b: BuildingId): string | null {
+  switch (b) {
+    case "alloy_plant":
+      return translateText("ww1936.econ.tip.alloy_plant", {
+        e: ENERGY_PER_METAL_BUILDING,
+        n: METAL_PER_BUILDING,
+        m: METAL_PER_BUILDING_2,
+      });
+    case "smelter":
+      return translateText("ww1936.econ.tip.smelter", {
+        e: ENERGY_PER_METAL_BUILDING,
+        n: METAL_PER_BUILDING,
+        m: METAL_PER_BUILDING_2,
+      });
+    case "mine":
+      return translateText("ww1936.econ.tip.mine", {
+        a: MINE_PCT_PER_LEVEL,
+        b: MINE_PCT_PER_LEVEL * 2,
+        c: MINE_PCT_PER_LEVEL * 3,
+      });
+    default:
+      return null;
+  }
+}
+
 /** A research card's effect lines: each bonus, or the generation or unit it opens. */
 export function effectLines(tech: WwTechId): string[] {
   const out: string[] = [];
@@ -922,6 +968,8 @@ export function effectLines(tech: WwTechId): string[] {
   for (const unit of techUnits(tech)) {
     out.push(translateText(UNLOCK_UNIT_KEY, { unit }));
   }
+  const note = TECH_NOTE_KEYS[tech];
+  if (note !== undefined) out.push(translateText(note));
   const effects = WW_TECHS[tech].effects;
   for (const k of Object.keys(effects) as (keyof TechEffects)[]) {
     const v = effects[k] ?? 0;
@@ -1238,6 +1286,9 @@ export function buildCheck(
           view.dock[region] +
           view.refinery[region] +
           view.silo[region] +
+          // w28: an alloy plant holds a slot (a mine is a level).
+          view.alloy[region] +
+          view.smelter[region] +
           // P6 (spec §9.1, §16.2): a facility and the power plants hold
           // shared slots too (Construction.slotBuildings).
           (view.facility[region] !== 0 ? 1 : 0) +
@@ -1247,6 +1298,10 @@ export function buildCheck(
     // P4 (P4 spec §5.1, §12.1): the coast, the harbor zone, the techs.
     coastal: r?.coastal ?? false,
     harbor: scenario.harborOf(region) !== 0,
+    // w28: a mine needs a deposit (the scenario's or the bonus the view holds).
+    hasDeposit:
+      r !== undefined &&
+      r.res.some((v, k) => v + (view.region(region).res?.[k] ?? 0) > 0),
     researched: new Set(view.detail(me)?.researched ?? []),
     // Final review B, I1: nothing is built in Korea or Taiwan, so the build
     // menu and the region card grey it out (the engine refused silently).
@@ -1334,6 +1389,7 @@ function levelOf(
     case "radar":
     case "coastal_fort":
     case "rocket_site":
+    case "mine":
       // P6 (spec §9.1): the rocket site's level too. A dam's level is the
       // depth state's; the engine's count of it stays 0, as here.
       return view.buildingCount(building, region);

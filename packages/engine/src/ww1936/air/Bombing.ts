@@ -137,6 +137,10 @@ const BOMB_WEIGHTS: BombTable = [
   ["anti_air", 1],
   ["radar", 1],
   ["synthetic_refinery", 2],
+  // w28, appended: the alloy plants like the refinery, the mines a level each.
+  ["alloy_plant", 2],
+  ["smelter", 2],
+  ["mine", 1],
 ];
 /**
  * ww8: a bomb class's table (BUILDING_IDS order, the tie order); "auto" is
@@ -168,6 +172,8 @@ const FACTORIES: readonly BuildingId[] = [
   "mil",
   "dock",
   "synthetic_refinery",
+  "alloy_plant",
+  "smelter",
 ];
 
 /** A region's industry weight (×2) from its working buildings. */

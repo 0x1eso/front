@@ -45,6 +45,9 @@ export function slotBuildings(econ: WwEconomy, region: number): number {
     econ.dock[region] +
     econ.buildingArray("synthetic_refinery")[region] +
     econ.buildingArray("fuel_silo")[region] +
+    // w28: an alloy plant takes a slot (a mine is a level, no slot).
+    econ.buildingArray("alloy_plant")[region] +
+    econ.buildingArray("smelter")[region] +
     // P6 (spec §9.1, §16.2): facilities and power plants share the slots.
     econ.buildingArray("facility_nuclear")[region] +
     econ.buildingArray("facility_rocket")[region] +
@@ -117,6 +120,13 @@ export function noStrikeAt(econ: WwEconomy, region: number): boolean {
     : d.noStrike(region);
 }
 
+/** w28: the region has a deposit (scenario or the P3 bonus) of any resource. */
+export function hasDeposit(econ: WwEconomy, region: number): boolean {
+  return econ.scenario.region(region) !== undefined
+    ? econ.deposits(region).some((v) => v > 0)
+    : false;
+}
+
 export function buildBlock(
   econ: WwEconomy,
   ce: CountryEconomy,
@@ -160,6 +170,8 @@ export function buildBlock(
     // coastal fort on a harbor zone, the techs.
     coastal: econ.scenario.region(region)?.coastal ?? false,
     harbor: econ.scenario.harborOf(region) !== 0,
+    // w28: a mine needs a deposit of any of the six resources.
+    hasDeposit: hasDeposit(econ, region),
     researched: ce.researched,
     // P6 hook: the P6 buildings' own rules.
     depthBlock: depthBlockOf(econ, ce, region, building, count),

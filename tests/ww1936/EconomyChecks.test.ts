@@ -128,6 +128,7 @@ describe("shared judgements (plan decision 3)", () => {
       dam: 0,
       power_plant: 0,
       facility: 0,
+      mine: 0,
     });
   });
 

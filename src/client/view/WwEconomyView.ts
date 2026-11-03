@@ -36,6 +36,9 @@ export class WwEconomyView {
   readonly coastalFort: Uint8Array;
   readonly refinery: Uint8Array;
   readonly silo: Uint8Array;
+  readonly alloy: Uint8Array;
+  readonly smelter: Uint8Array;
+  readonly mine: Uint8Array;
   /** P6 (spec §9.1, §16.2, §16.4): FACILITY_IDS index + 1, rocket site level, power plants, the dam's level. */
   readonly facility: Uint8Array;
   readonly rocketSite: Uint8Array;
@@ -67,6 +70,9 @@ export class WwEconomyView {
     this.coastalFort = new Uint8Array(size);
     this.refinery = new Uint8Array(size);
     this.silo = new Uint8Array(size);
+    this.alloy = new Uint8Array(size);
+    this.smelter = new Uint8Array(size);
+    this.mine = new Uint8Array(size);
     this.facility = new Uint8Array(size);
     this.rocketSite = new Uint8Array(size);
     this.powerPlant = new Uint8Array(size);
@@ -111,6 +117,9 @@ export class WwEconomyView {
       this.coastalFort[r.id] = r.coastalFort;
       this.refinery[r.id] = r.refinery;
       this.silo[r.id] = r.silo;
+      this.alloy[r.id] = r.alloy;
+      this.smelter[r.id] = r.smelter;
+      this.mine[r.id] = r.mine;
       this.facility[r.id] = r.facility;
       this.rocketSite[r.id] = r.rocketSite;
       this.powerPlant[r.id] = r.powerPlant;
@@ -154,6 +163,9 @@ export class WwEconomyView {
       coastalFort: this.coastalFort[id],
       refinery: this.refinery[id],
       silo: this.silo[id],
+      alloy: this.alloy[id],
+      smelter: this.smelter[id],
+      mine: this.mine[id],
       damage: [...(this.damage.get(id) ?? [])],
       // P6 (scenario v5): the deposits come from scenario.json.
       coal: this.scenario.coalOf(id),
@@ -212,6 +224,12 @@ export class WwEconomyView {
         return this.powerPlant[region];
       case "dam":
         return this.damLevel[region];
+      case "alloy_plant":
+        return this.alloy[region];
+      case "smelter":
+        return this.smelter[region];
+      case "mine":
+        return this.mine[region];
     }
   }
 

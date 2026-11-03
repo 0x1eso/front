@@ -65,6 +65,11 @@ export const BUILDING_IDS = [
   "rocket_site",
   "power_plant",
   "dam",
+  // w28 resources, appended: alloy plant (tungsten and chromium), smelter
+  // (steel and aluminium), mine (+25 % a level).
+  "alloy_plant",
+  "smelter",
+  "mine",
 ] as const;
 export type BuildingId = (typeof BUILDING_IDS)[number];
 /** Construction points per building (spec §4.1; P2 spec §11.7). */
@@ -90,6 +95,10 @@ export const BUILDING_COST: Readonly<Record<BuildingId, number>> = {
   power_plant: 5_000,
   // P6 spec §16.4: a dam is only ever repaired (scenario dams at level 0).
   dam: 6_000,
+  // w28: the plant costs a refinery's; a mine is cheaper, no slot.
+  alloy_plant: 12_000,
+  smelter: 12_000,
+  mine: 8_000,
 };
 /** What can be built (P4 spec §5.1: dockyards from now on). */
 export const BUILDABLE: readonly BuildingId[] = [
@@ -114,6 +123,9 @@ export const BUILDABLE: readonly BuildingId[] = [
   "rocket_site",
   "power_plant",
   "dam",
+  "alloy_plant",
+  "smelter",
+  "mine",
 ];
 export const MAX_INFRA = 5;
 /** Buildings that are a level of the region, not a slot (P2 plan decision 10). */
@@ -131,6 +143,8 @@ export const LEVEL_BUILDINGS: readonly BuildingId[] = [
   // P6 (spec §9.1, §16.4): no slot.
   "rocket_site",
   "dam",
+  // w28: a mine is a level of the region, no slot.
+  "mine",
 ];
 /** Highest level of each level building. */
 export const LEVEL_MAX: Readonly<Partial<Record<BuildingId, number>>> = {
@@ -146,7 +160,13 @@ export const LEVEL_MAX: Readonly<Partial<Record<BuildingId, number>>> = {
   // P6 (spec §9.1, §16.4).
   rocket_site: 3,
   dam: 1,
+  mine: 3,
 };
+/** w28: a working mine level adds this much percent to the region's deposits (before infrastructure and control). */
+export const MINE_PCT_PER_LEVEL = 25;
+/** w28: units a working alloy plant (tungsten, chromium) or smelter (steel, aluminium) makes of each a day; metal_substitute_2 raises it. */
+export const METAL_PER_BUILDING = 2;
+export const METAL_PER_BUILDING_2 = 3;
 /**
  * P6 (spec §9.1, §16.2): slot buildings with a cap per region (a power
  * plant takes one shared slot a level, at most 3; a facility one, at most 1).
@@ -172,6 +192,8 @@ export const BUILDING_TECH: Readonly<Partial<Record<BuildingId, WwTechId>>> = {
   anti_air: "anti_air_1",
   radar: "radar_1",
   synthetic_refinery: "synthetic_oil_1",
+  alloy_plant: "metal_substitute_1",
+  smelter: "metal_substitute_1",
   // P6 (spec §9.1).
   facility_nuclear: "nuclear_physics",
   facility_rocket: "rocketry_1",
@@ -664,6 +686,8 @@ export const WW_TECH_IDS = [
   "dispersed_3",
   "tools_5",
   "construction_5",
+  "metal_substitute_1",
+  "metal_substitute_2",
 ] as const;
 export type WwTechId = (typeof WW_TECH_IDS)[number];
 
@@ -885,6 +909,8 @@ export const WW_ORDER_BLOCKS = [
   "research_queued",
   "research_queue_full",
   "queue_order",
+  // w28: a mine needs a deposit in its region.
+  "no_deposit",
 ] as const;
 export type WwOrderBlock = (typeof WW_ORDER_BLOCKS)[number];
 
@@ -1094,6 +1120,10 @@ export interface WwRegionData {
   /** DAMS index + 1 of the region's dam, 0: none. */
   dam: number;
   damLevel: number;
+  /** w28: alloy plants, smelters and mine levels. */
+  alloy: number;
+  smelter: number;
+  mine: number;
   /**
    * P4 lane U: the repair of the building being mended (the first damaged
    * one, BUILDING_IDS order), ‰ of its next whole building; absent when

@@ -155,6 +155,9 @@ export function seaRegion(
     powerPlant: 0,
     dam: 0,
     damLevel: 0,
+    alloy: 0,
+    smelter: 0,
+    mine: 0,
     ...over,
   };
 }
