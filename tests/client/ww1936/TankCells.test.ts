@@ -120,4 +120,15 @@ describe("tank cells", () => {
     // Not a tank key.
     expect(m.lineOld("artillery", 1)).toBeNull();
   });
+
+  it("a tank destroyer cell of a late chassis still starts on a tank destroyer", () => {
+    const m = new DesignerModel(designerGame());
+    m.open("tank");
+    m.setRole("tank_destroyer");
+    for (const base of ["medium_3", "heavy_2", "super_heavy_1", "modern_1"]) {
+      m.setBase(base);
+      expect(m.roleMismatch(), base).toBe(false);
+      expect(m.save(), base).not.toBeNull();
+    }
+  });
 });

@@ -995,10 +995,27 @@ export class DesignerModel {
   private fresh(kind: DesignKind, base: string): DesignDef {
     if (kind === "tank") {
       // A cell without a design starts on the recommended fit of its role.
-      return {
-        ...recommendedTank(base, this.techs(), this.tankRoleSel),
-        name: "@",
-      };
+      let def: DesignDef = recommendedTank(
+        base,
+        this.techs(),
+        this.tankRoleSel,
+      );
+      if (tankRole(def) !== this.tankRoleSel) {
+        // (The recommended tank destroyer of a late chassis carries the super
+        // gun, which makes it a tank: take the best gun that keeps the role.)
+        const have = this.techs();
+        for (const gun of ["gun_heavy", "gun_hv", "gun_small", "howitzer"]) {
+          const t = TANK_MODULE_DEFS[gun]?.tech;
+          if (t !== undefined && !have.has(t)) continue;
+          const modules = [...def.modules];
+          modules[0] = gun;
+          if (tankRole({ ...def, modules }) === this.tankRoleSel) {
+            def = { ...def, modules };
+            break;
+          }
+        }
+      }
+      return { ...def, name: "@" };
     }
     const modules = slotKinds({ kind, base }).map(() => "");
     // The weapon slot cannot stay empty (designBlock).
