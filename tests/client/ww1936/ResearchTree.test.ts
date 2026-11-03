@@ -145,6 +145,29 @@ describe("research tree", () => {
     expect(m.q("[data-ww-tree-scroll]")!.dataset.zoom).toBe("0.6");
   });
 
+  it("a narrow phone: a tech's detail replaces the tree and its toolbar, a back button returns", async () => {
+    vi.stubGlobal("innerWidth", 390);
+    vi.stubGlobal("innerHeight", 844);
+    const m = await mount({
+      summaries: [summary("DEU")],
+      details: [detail("DEU")],
+    });
+    // Nothing open: the tree with its toolbar, no sheet beside it.
+    expect(m.q("[data-ww-sheet]")).toBeNull();
+    const toolbar = () => m.q("[data-ww-today]")!.closest(".flex.flex-col")!;
+    expect(toolbar().classList.contains("hidden")).toBe(false);
+    await m.click("[data-ww-tech='support_eq_2']");
+    expect(
+      m.q("[data-ww-narrow-detail] [data-ww-detail='support_eq_2']"),
+    ).not.toBeNull();
+    expect(m.q("[data-ww-sheet]")!.dataset.width).toBe("full");
+    // The tree and its toolbar wait hidden behind it.
+    expect(toolbar().classList.contains("hidden")).toBe(true);
+    await m.click("[data-ww-detail-back]");
+    expect(m.q("[data-ww-narrow-detail]")).toBeNull();
+    expect(toolbar().classList.contains("hidden")).toBe(false);
+  });
+
   it("two taps start; a second tap on the node deselects; the sheet button starts too", async () => {
     const m = await mount({
       summaries: [summary("DEU")],

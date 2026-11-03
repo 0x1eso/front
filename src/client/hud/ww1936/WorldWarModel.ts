@@ -30,6 +30,22 @@ import type { GameView, PlayerView } from "../../view";
 
 /** Height of the top band in px; the hover card moves down by it. */
 export const WW_BAND_PX = 32;
+/**
+ * What the phone's stat strip (WwTopBand) adds under the band: the cards
+ * that hang below the band add this CSS length to their top offset, 0 px
+ * without a strip. WwTopBand sets both variables on <html>.
+ */
+export const WW_STRIP_EXTRA = "var(--ww-strip-extra, 0px)";
+/** The strip's bottom edge, for what starts at the screen's top (the leaderboard). */
+export const WW_STRIP_BOTTOM = "var(--ww-strip-bottom, 0px)";
+/** The lowest y the band and the strip reach, in px (cards stack below it). */
+export function wwTopClear(): number {
+  const strip = document.querySelector("[data-ww-strip]");
+  return Math.max(
+    WW_BAND_PX,
+    strip === null ? 0 : Math.ceil(strip.getBoundingClientRect().bottom),
+  );
+}
 /** A second tap within this many ms confirms an irreversible action (§14d). */
 export const TWO_TAP_MS = 3000;
 /**

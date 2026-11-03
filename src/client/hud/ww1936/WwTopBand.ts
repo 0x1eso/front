@@ -2,7 +2,7 @@ import { COUNTRIES } from "@openfront/engine-api/ww1936/Countries";
 import { renderNumber } from "@openfront/engine-lib/Format";
 import { assetUrl } from "@openfront/shared/AssetUrls";
 import { EventBus, GameEvent } from "@openfront/shared/EventBus";
-import { html, LitElement, nothing } from "lit";
+import { html, LitElement, nothing, type TemplateResult } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import { factionDotClass } from "../../components/ww1936/FactionDot";
 import { Controller } from "../../Controller";
@@ -27,6 +27,7 @@ import {
   bandModel,
   countryName,
   enemiesOf,
+  WW_BAND_PX,
   wwActive,
 } from "./WorldWarModel";
 import {
@@ -36,6 +37,10 @@ import {
 } from "./WwDrawer";
 
 export class ToggleWwDiplomacyEvent implements GameEvent {}
+
+/** The strip's bottom edge, and how far it reaches below the band (WorldWarModel's WW_STRIP_BOTTOM, WW_STRIP_EXTRA). */
+const STRIP_BOTTOM_VAR = "--ww-strip-bottom";
+const STRIP_EXTRA_VAR = "--ww-strip-extra";
 
 /** Space between the band and the top-right HUD stack, in CSS px. */
 const BAND_GAP = 8;
@@ -229,6 +234,14 @@ export class WwTopBand extends LitElement implements Controller {
    * overflowing (updated); reset whenever the room or the chip changes.
    */
   @state() private chipShrink = 0;
+  /**
+   * Phone width: the bottom edge of the stat strip (the chips that no longer
+   * fit beside the date), 0 without one. The leaderboard starts below it
+   * (CSS variable STRIP_BOTTOM_VAR).
+   */
+  @state() private stripBottom = 0;
+  /** Where the strip starts: just below the top-right stack. */
+  @state() private stripTop = WW_BAND_PX;
   /** The top-right stack being watched; null until it is found. */
   private stack: Element | null = null;
   private stackObserver: ResizeObserver | null = null;
@@ -241,6 +254,10 @@ export class WwTopBand extends LitElement implements Controller {
       BAND_MIN_PX + (this.economy === null ? 0 : CHIP_FULL_PX),
     );
     const prev = this.placement;
+    const stackBottom =
+      this.stack?.getBoundingClientRect().bottom ?? WW_BAND_PX;
+    const top = Math.max(WW_BAND_PX, Math.ceil(stackBottom)) + 2;
+    if (top !== this.stripTop) this.stripTop = top;
     // A new object would re-render the band even when nothing moved.
     if (prev?.maxWidth !== next.maxWidth || prev.right !== next.right) {
       this.placement = next;
@@ -261,7 +278,27 @@ export class WwTopBand extends LitElement implements Controller {
     return CHIP_MODES[Math.min(this.step(maxWidth), CHIP_MODES.length - 1)];
   }
 
+  /** The stats sit in their own strip under the stack: the band is too narrow for any chip. */
+  private stripMode(maxWidth: number): boolean {
+    return (
+      chipMode(maxWidth) === "none" &&
+      (this.economy !== null ||
+        this.politics !== null ||
+        this.fuel !== null ||
+        this.occ !== null ||
+        this.depth !== null)
+    );
+  }
+
   protected updated() {
+    // The leaderboard starts below the strip.
+    const strip = this.querySelector<HTMLElement>("[data-ww-strip]");
+    const bottom =
+      strip === null ? 0 : Math.ceil(strip.getBoundingClientRect().bottom);
+    if (bottom !== this.stripBottom) this.stripBottom = bottom;
+    const root = document.documentElement.style;
+    root.setProperty(STRIP_BOTTOM_VAR, `${bottom}px`);
+    root.setProperty(STRIP_EXTRA_VAR, `${Math.max(0, bottom - WW_BAND_PX)}px`);
     // Longer text than CHIP_*_PX allow for: shed a step at a time until
     // the band fits its room.
     const band = this.querySelector<HTMLElement>("[data-ww-band]");
@@ -269,6 +306,7 @@ export class WwTopBand extends LitElement implements Controller {
       return;
     }
     const { maxWidth } = this.placement ?? bandPlacement();
+    if (this.stripMode(maxWidth)) return;
     // The country name shortens first, but never to nothing.
     const name = band.querySelector<HTMLElement>("[data-ww-name]");
     const squeezed =
@@ -298,6 +336,8 @@ export class WwTopBand extends LitElement implements Controller {
     this.stackObserver?.disconnect();
     this.stackObserver = null;
     this.stack = null;
+    document.documentElement.style.removeProperty(STRIP_BOTTOM_VAR);
+    document.documentElement.style.removeProperty(STRIP_EXTRA_VAR);
   }
 
   /**
@@ -435,6 +475,14 @@ export class WwTopBand extends LitElement implements Controller {
     if (!this.game?.worldWarScenario()) return null;
     const m = this.model ?? bandModel(this.game);
     const { maxWidth, right } = this.placement ?? bandPlacement();
+    const strip = this.stripMode(maxWidth);
+    // In the strip every chip is whole: it wraps instead of shedding.
+    const step = strip ? 0 : this.step(maxWidth);
+    const polStep = polMode(step, window.innerHeight <= COMPACT_MAX_HEIGHT);
+    const chips = html`${this.renderEconomy(CHIP_MODES[Math.min(step, 2)])}
+    ${this.renderFuel(CHIP_MODES[Math.min(step, 2)])}
+    ${this.renderOccupation(polStep)} ${this.renderPolitics(polStep)}
+    ${this.renderDepth(step)}`;
     return html`
       <div
         data-ww-band
@@ -481,25 +529,24 @@ export class WwTopBand extends LitElement implements Controller {
         >
           ${translateText("ww1936.band.wars", { n: m.wars })}
         </button>
-        ${this.renderEconomy(this.chip(maxWidth))}
-        ${this.renderFuel(this.chip(maxWidth))}
-        ${this.renderOccupation(
-          polMode(
-            this.step(maxWidth),
-            window.innerHeight <= COMPACT_MAX_HEIGHT,
-          ),
-        )}
-        ${this.renderPolitics(
-          polMode(
-            this.step(maxWidth),
-            window.innerHeight <= COMPACT_MAX_HEIGHT,
-          ),
-        )}
-        ${this.renderDepth(this.step(maxWidth))}
+        ${strip ? nothing : chips}
       </div>
-      ${this.renderDepthRow(this.step(maxWidth), maxWidth, right)}
+      ${strip ? this.renderStrip(chips) : nothing}
+      ${this.renderDepthRow(step, maxWidth, right)}
       ${this.renderMultiBar(maxWidth, right)}
     `;
+  }
+
+  /** The phone's stat strip: every chip, wrapped, under the top-right stack. */
+  private renderStrip(chips: TemplateResult) {
+    return html`<div
+      data-ww-strip
+      class="fixed left-2 right-2 z-[1002] flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg bg-gray-900/85 px-2 py-1 text-sm text-white shadow-md"
+      style="top: ${this.stripTop}px"
+      @contextmenu=${(e: Event) => e.preventDefault()}
+    >
+      ${chips}
+    </div>`;
   }
 
   /** Whether the band is too full for command power and congress inline (a later shed step). */
@@ -631,7 +678,9 @@ export class WwTopBand extends LitElement implements Controller {
         : ""} z-[1002] flex flex-col gap-1 rounded-lg bg-gray-900/92 px-2 py-1 text-xs text-white shadow-md"
       style="max-width: ${maxWidth}px;${right === null
         ? ""
-        : ` right: ${right}px;`}"
+        : ` right: ${right}px;`}${this.stripBottom > 0
+        ? ` top: ${this.stripBottom + 4}px;`
+        : ""}"
     >
       <div class="flex flex-wrap items-center gap-2">
         <span data-ww-multi-count class="shrink-0 font-bold"

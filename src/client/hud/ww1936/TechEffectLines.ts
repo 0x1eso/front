@@ -253,6 +253,13 @@ const withProject = (name: string, project?: SpecialProject) =>
         project: translateText(`ww1936.project.${project}`),
       });
 
+/** The hard-coded rule lines of a tech (TECH_RULE_LINES), in text. */
+function ruleLines(tech: WwTechId): string[] {
+  return (TECH_RULE_LINES[tech] ?? []).map(([name, params]) =>
+    translateText(`ww1936.techfx.r_${name}`, params),
+  );
+}
+
 /** What a tech opens or lets one do, by name, one line each. */
 export function unlockLines(tech: WwTechId): string[] {
   const out: string[] = [];
@@ -276,12 +283,15 @@ export function unlockLines(tech: WwTechId): string[] {
   for (const unit of techUnits(tech)) {
     out.push(translateText(UNLOCK_UNIT_KEY, { unit }));
   }
-  const buildings = techBuildings(tech);
+  // A rule line that already names a building (its rates, say) is the
+  // unlock: the buildings line would only say it twice.
+  const rules = ruleLines(tech).join("\n").toLowerCase();
+  const buildings = techBuildings(tech)
+    .map((b) => translateText(`ww1936.building.${b}`))
+    .filter((name) => !rules.includes(name.toLowerCase()));
   if (buildings.length > 0) {
     out.push(
-      translateText("ww1936.techfx.buildings", {
-        list: list(buildings.map((b) => translateText(`ww1936.building.${b}`))),
-      }),
+      translateText("ww1936.techfx.buildings", { list: list(buildings) }),
     );
   }
   const p = techParts(tech);
@@ -364,13 +374,7 @@ export function leadLines(tech: WwTechId): string[] {
 
 /** The lines of what a tech does itself: its unlocks, hard-coded rules and stat effects. */
 export function ownEffectLines(tech: WwTechId): string[] {
-  return [
-    ...unlockLines(tech),
-    ...(TECH_RULE_LINES[tech] ?? []).map(([name, params]) =>
-      translateText(`ww1936.techfx.r_${name}`, params),
-    ),
-    ...statEffectLines(tech),
-  ];
+  return [...unlockLines(tech), ...ruleLines(tech), ...statEffectLines(tech)];
 }
 
 /**

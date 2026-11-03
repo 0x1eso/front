@@ -14,14 +14,15 @@ import { SendWwOrderIntentEvent } from "../../Transport";
 import { translateText } from "../../Utils";
 import { WwDepthOpenEvent } from "./DepthEvents";
 import {
-  DESIGNER_BAR_H,
-  DESIGNER_BOTTOM_H,
   DESIGNER_CARD_H,
   DESIGNER_CARD_W,
   DESIGNER_GAP,
   DESIGNER_STATS_W,
+  designerBarH,
+  designerBottomH,
   DesignerGame,
   DesignerModel,
+  designerStatusH,
   PLANE_TYPES_LIST,
   PlaneCell,
   TANK_ROLES_LIST,
@@ -232,7 +233,7 @@ export class WwDesigner extends WwDrawerBase {
     return html`<div
       data-ww-designer-bar
       class="flex shrink-0 items-center gap-1 border-b border-white/10 px-1"
-      style="height: ${DESIGNER_BAR_H}px"
+      style="height: ${designerBarH(window.innerWidth)}px"
     >
       <span class="shrink-0 pl-2 text-sm font-bold"
         >${translateText("ww1936.design.title")}</span
@@ -347,7 +348,7 @@ export class WwDesigner extends WwDrawerBase {
       <div
         data-ww-base-chips
         class="flex shrink-0 items-center gap-1 overflow-x-auto border-b border-white/10 px-1"
-        style="height: ${DESIGNER_BAR_H}px"
+        style="height: ${designerBarH(window.innerWidth)}px"
       >
         ${chips.map(
           (c) =>
@@ -718,12 +719,12 @@ export class WwDesigner extends WwDrawerBase {
     return html`<div
       data-ww-designer-bottom
       class="flex shrink-0 flex-col gap-0.5 border-t border-white/10 px-2 py-1"
-      style="height: ${DESIGNER_BOTTOM_H}px"
+      style="height: ${designerBottomH(window.innerWidth)}px"
     >
       <div
         data-ww-designer-xprow
         class="flex items-center gap-2 text-xs"
-        style="height: 24px"
+        style="height: ${designerStatusH(window.innerWidth)}px"
       >
         ${d !== null && d.kind === "tank" ? this.renderSteppers(m) : nothing}
         ${this.lockedTip !== null

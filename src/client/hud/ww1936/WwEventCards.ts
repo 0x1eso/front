@@ -17,10 +17,10 @@ import {
 import {
   TWO_TAP_MS,
   TwoTap,
-  WW_BAND_PX,
-  type WwPaceGame,
   wwSeconds,
+  wwTopClear,
   wwWindowTicks,
+  type WwPaceGame,
 } from "./WorldWarModel";
 
 /** Spec §21.6: at most this many cards open at once; the rest wait behind "+N". */
@@ -184,7 +184,7 @@ export class WwEventCards extends LitElement implements Controller {
     const room = (r: DOMRect) =>
       Math.max(
         peace > 0 ? 48 : 96,
-        Math.floor(r.bottom - WW_BAND_PX - TOP_GAP - peace),
+        Math.floor(r.bottom - wwTopClear() - TOP_GAP - peace),
       );
     const before = slot.getBoundingClientRect();
     stack.style.maxHeight = `${room(before)}px`;

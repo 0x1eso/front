@@ -297,9 +297,17 @@ describe("<ww-dials> and the band's economy chip (spec §13.1, §13.2)", () => {
     expect(narrow.chip()!.querySelector("[data-ww-manpower]")).toBeNull();
     expect(narrow.chip()!.textContent).toContain("🏭 9 / 6");
     document.body.innerHTML = "";
-    // 540 px: no chip (the 🏭 dial still opens the drawer).
+    // 540 px: no room beside the date, so the chips move whole into a strip
+    // under the top-right stack (the phone's stats), not into the band.
     const tiny = await bandAt(540, 225);
-    expect(tiny.chip()).toBeNull();
+    expect(tiny.box().querySelector("[data-ww-economy]")).toBeNull();
+    const strip = tiny.band.querySelector<HTMLElement>("[data-ww-strip]")!;
+    expect(strip.style.top).toBe("50px");
+    expect(
+      strip.querySelector<HTMLElement>("[data-ww-economy]")!.dataset.wwEconomy,
+    ).toBe("full");
+    expect(strip.querySelector("[data-ww-manpower]")).not.toBeNull();
+    expect(strip.querySelector("[data-ww-politics]")).not.toBeNull();
   });
 
   it("the band measures itself and sheds the chip when its text runs long", async () => {
