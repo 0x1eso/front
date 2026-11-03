@@ -409,8 +409,8 @@ export class WwDesigner extends WwDrawerBase {
         <div data-ww-cells class="grid grid-cols-2 gap-1 sm:grid-cols-3">
           ${cells.map((c) => this.renderCell(m, c))}
         </div>
-        <div class="mt-2 flex min-h-0 gap-2">
-          <div class="relative flex min-w-0 flex-1 flex-col gap-1">
+        <div class="mt-2 flex flex-wrap gap-2">
+          <div class="relative flex min-w-[302px] flex-1 flex-col gap-1">
             ${m.draft === null
               ? html`<p class="m-0 text-xs text-white/60">
                   ${translateText("ww1936.design.pick_cell")}
