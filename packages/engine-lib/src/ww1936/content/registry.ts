@@ -115,6 +115,7 @@ import { DEU_BRANCHES, DEU_FOCUSES, DEU_PATH } from "./focus/deu";
 import { DOM_BRANCHES, DOM_FOCUSES, DOM_PATH } from "./focus/dom";
 import { FRA_BRANCHES, FRA_FOCUSES, FRA_PATH } from "./focus/fra";
 import { GBR_BRANCHES, GBR_FOCUSES, GBR_PATH } from "./focus/gbr";
+import { REGION_GROUPS_GBR } from "./focus/gbr_royalist";
 import {
   GENERIC_BRANCHES,
   GENERIC_FOCUSES,
@@ -579,7 +580,12 @@ export const CONTENT_PARTS: ContentParts = {
   // P6 (plan Task 1 Step 20): the depth beats after P5's.
   beats: [...HISTORY_BEATS, ...BEATS_P5, ...DEPTH_BEATS],
   // P6 (Phase B): the focus packs' groups after P5's.
-  groups: [...REGION_GROUPS, ...REGION_GROUPS_P5, ...REGION_GROUPS_P6],
+  groups: [
+    ...REGION_GROUPS,
+    ...REGION_GROUPS_P5,
+    ...REGION_GROUPS_P6,
+    ...REGION_GROUPS_GBR,
+  ],
   countries: [...COUNTRY_POLITICS, ...DORMANT_POLITICS],
   claims: mergeClaims(CLAIMS, CLAIMS_P5),
   factionNames: FACTION_NAMES,

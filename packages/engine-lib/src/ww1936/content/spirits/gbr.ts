@@ -117,4 +117,31 @@ export const SPIRITS_GBR: SpiritDef[] = [
     icon: "wheat",
     stats: { consumerGoodsPp: -3, stabilityBp: -300 },
   },
+  // The crown rule over an annexed dominion (gbr_<d>_annex). Stats are raw: a
+  // focus-added spirit is x3 in play (stability bp -60/-90/-150/-210/-450, RAJ also recruitable -45%, output -9%).
+  {
+    id: "gbr_nzl_crown_rule",
+    icon: "crown",
+    stats: { stabilityBp: -20 },
+  },
+  {
+    id: "gbr_aus_crown_rule",
+    icon: "crown",
+    stats: { stabilityBp: -30 },
+  },
+  {
+    id: "gbr_zaf_crown_rule",
+    icon: "crown",
+    stats: { stabilityBp: -50 },
+  },
+  {
+    id: "gbr_can_crown_rule",
+    icon: "crown",
+    stats: { stabilityBp: -70 },
+  },
+  {
+    id: "gbr_raj_crown_rule",
+    icon: "crown",
+    stats: { stabilityBp: -150, recruitablePct: -15, outputPct: -3 },
+  },
 ];

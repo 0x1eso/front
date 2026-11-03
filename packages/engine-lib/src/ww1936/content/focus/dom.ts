@@ -10,17 +10,19 @@ import type {
   FocusDef,
   FocusId,
 } from "@openfront/engine-api/ww1936/PoliticsTypes";
-import { T } from "../helpers";
+import { T, all, flag, not } from "../helpers";
+import { CROWN_CONTROL_FLAG } from "./gbr_royalist";
 
-// Autonomy changes only for a subject (P5 `autonomy`).
+// Autonomy changes only for a subject (P5 `autonomy`), and not once the UK's
+// governor holds the dominion (gbr_<d>_governor sets CROWN_CONTROL_FLAG).
 const AUTONOMY_10: Effect = {
   kind: "if",
-  cond: { kind: "is_subject" },
+  cond: all({ kind: "is_subject" }, not(flag(CROWN_CONTROL_FLAG))),
   then: [{ kind: "autonomy", pct: 10 }],
 };
 const AUTONOMY_15: Effect = {
   kind: "if",
-  cond: { kind: "is_subject" },
+  cond: all({ kind: "is_subject" }, not(flag(CROWN_CONTROL_FLAG))),
   then: [{ kind: "autonomy", pct: 15 }],
 };
 

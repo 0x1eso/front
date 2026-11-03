@@ -4,7 +4,61 @@
 // is a history beat (K5); their triggers fire them for a human Britain, or
 // with historical AI off, on or after the historical day. Data only.
 import type { EventDef } from "@openfront/engine-api/ww1936/PoliticsTypes";
+import {
+  DOMINIONS,
+  GBR_UPRISING_COOLDOWN_DAYS,
+  GBR_UPRISING_MTTH_DAYS,
+  GBR_UPRISING_POP_PCT,
+  GBR_UPRISING_STABILITY,
+} from "../focus/gbr_royalist";
+import { NO_CIVIL_WAR } from "../focus/usa_fascist";
 import { T, after, all, any, flag, not } from "../helpers";
+
+const STABLE = { kind: "stability_ge", pct: GBR_UPRISING_STABILITY } as const;
+
+/** The unrest in an annexed dominion: it is put down, or bought off; it never leaves. */
+const DOMINION_UNREST: EventDef[] = DOMINIONS.map((d) => ({
+  id: `gbr_${d.key}_unrest`,
+  kind: "country",
+  receivers: ["GBR"],
+  trigger: all(flag(`gbr_${d.key}_annexed`), {
+    not: {
+      kind: "days_since_flag_ge",
+      flag: `gbr_${d.key}_annexed`,
+      days: d.unrestWindow,
+    },
+  }),
+  mtthDays: d.unrestMtth,
+  once: "never",
+  cooldownDays: d.unrestCooldown,
+  picture: "crowd",
+  options: [
+    {
+      // Troops and curfews: the rising is broken (the land's resistance falls back,
+      // buildings are hurt, and the integration clock starts again).
+      id: "a",
+      effects: [
+        { kind: "uprising", group: `gbr_${d.key}_heart` },
+        {
+          kind: "stability",
+          pct: d.tag === "RAJ" ? -5 : d.tag === "CAN" ? -3 : -2,
+        },
+        { kind: "war_support", pct: -2 },
+      ],
+      ai: { base: 100 },
+    },
+    {
+      id: "b",
+      available: { kind: "pp_ge", amount: d.tag === "RAJ" ? 60 : 30 },
+      effects: [
+        { kind: "pp", amount: d.tag === "RAJ" ? -60 : -30 },
+        { kind: "compliance", group: `gbr_${d.key}_heart`, pct: 15 },
+        { kind: "stability", pct: -1 },
+      ],
+      ai: { base: 20 },
+    },
+  ],
+}));
 
 export const GBR_EVENTS: EventDef[] = [
   // 1936-01-20: George V dies, Edward VIII succeeds.
@@ -52,10 +106,72 @@ export const GBR_EVENTS: EventDef[] = [
           { kind: "set_leader", person: "gbr_churchill" },
           { kind: "add_spirit", id: "gbr_kings_party", days: 365 },
           { kind: "set_flag", flag: "kings_party" },
+          // The royalist path opens (gbr_kings_friends); the crown focus's
+          // world flag still comes, as it does after an abdication.
+          { kind: "fire_event", id: "gbr_kings_party_settled", days: 30 },
         ],
       },
     ],
   },
+  // 30 days after the King is stood by: the same world flag, a different tone.
+  {
+    id: "gbr_kings_party_settled",
+    kind: "country",
+    picture: "crowd",
+    options: [
+      {
+        id: "a",
+        ai: { base: 10 },
+        effects: [{ kind: "set_gflag", flag: "abdication_resolved" }],
+      },
+    ],
+  },
+  // The royalist regime meets the old parliament's voters.
+  {
+    id: "gbr_democratic_uprising",
+    kind: "country",
+    receivers: ["GBR"],
+    trigger: all(
+      flag("gbr_regime_seized"),
+      { kind: "ruling", ideology: "fascist" },
+      { kind: "pop_ge", ideology: "democratic", pct: GBR_UPRISING_POP_PCT },
+      NO_CIVIL_WAR,
+    ),
+    mtthDays: GBR_UPRISING_MTTH_DAYS,
+    once: "never",
+    // A card waits for its answer for about 70 days: no second one meanwhile.
+    cooldownDays: GBR_UPRISING_COOLDOWN_DAYS,
+    picture: "crowd",
+    options: [
+      {
+        // Exactly one option stands at any time.
+        id: "a",
+        available: STABLE,
+        effects: [
+          { kind: "popularity", ideology: "democratic", pp: -15 },
+          { kind: "stability", pct: -15 },
+          { kind: "war_support", pct: -5 },
+        ],
+        ai: { base: 100 },
+      },
+      {
+        id: "b",
+        available: not(STABLE),
+        effects: [
+          { kind: "civil_war", ideology: "democratic" },
+          // A failed split falls back to a democratic government: put
+          // fascism back (a no-op when it already rules).
+          {
+            kind: "if",
+            cond: not({ kind: "ruling", ideology: "fascist" }),
+            then: [{ kind: "set_government", ideology: "fascist" }],
+          },
+        ],
+        ai: { base: 100 },
+      },
+    ],
+  },
+  ...DOMINION_UNREST,
   // 30 days after the abdication: the world flag the crown focus needs.
   {
     id: "gbr_abdication_settled",

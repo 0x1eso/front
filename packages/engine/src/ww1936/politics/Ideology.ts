@@ -106,6 +106,8 @@ export function dailyIdeology(
   }
   // The US fascist regime has its own uprising event (usa_democratic_uprising).
   if (c.tag === "USA" && c.hasFlag("usa_regime_seized", day)) fire = -1;
+  // So does the British royalist regime (gbr_democratic_uprising).
+  if (c.tag === "GBR" && c.hasFlag("gbr_regime_seized", day)) fire = -1;
   if (fire >= 0 && day >= c.crisisCooldownUntil) {
     c.crisisDays[fire] = 0;
     c.crisisCooldownUntil = day + WW_CRISIS_COOLDOWN_DAYS;
