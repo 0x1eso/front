@@ -94,6 +94,8 @@ function metalOf(
   controlPct: number,
   b: "alloy_plant" | "smelter",
 ): number {
+  // Most regions have none: skip the damage lookup.
+  if ((econ.buildingArray(b)[region] ?? 0) === 0) return 0;
   const n = effectiveBuildings(econ, region, b);
   if (n === 0) return 0;
   const per = ce.researched.has("metal_substitute_2")

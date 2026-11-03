@@ -901,7 +901,8 @@ export class WwEconomy {
       // P6 hook (W1): scorched earth halves a region's resources for a while.
       const rsPct =
         depth === undefined ? 0 : regionStatus(depth, id).resourcePct;
-      const mineLvl = effectiveBuildings(this, id, "mine");
+      const mineLvl =
+        this.p4Levels.mine[id] === 0 ? 0 : effectiveBuildings(this, id, "mine");
       for (let k = 0; k < RESOURCE_COUNT; k++) {
         const deposit = r.res[k] + this.resBonus[id * RESOURCE_COUNT + k];
         if (deposit <= 0) continue;
@@ -1314,6 +1315,9 @@ export class WwEconomy {
     powerPlant: number;
     dam: number;
     damLevel: number;
+    alloy: number;
+    smelter: number;
+    mine: number;
   } {
     const sc = this.scenario;
     const p = this.p4Levels;

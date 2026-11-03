@@ -151,6 +151,8 @@ describe("World War 1936 P5 lists", () => {
       "research_queued",
       "research_queue_full",
       "queue_order",
+      // w28: a mine needs a deposit.
+      "no_deposit",
     ]);
     const kinds = WwOrderSchema.options.map(
       (o) => (o.shape.kind as { value: string }).value,

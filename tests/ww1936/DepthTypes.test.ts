@@ -89,8 +89,8 @@ describe("World War 1936 P6 lists", () => {
   });
 
   it("techs, refusals, stats, effects and conditions are appended", () => {
-    // P6's 33, then the research overhaul's 108.
-    expect(after(WW_TECH_IDS, "military_police")).toHaveLength(33 + 108);
+    // P6's 33, then the research overhaul's 108, w28's 2.
+    expect(after(WW_TECH_IDS, "military_police")).toHaveLength(33 + 108 + 2);
     expect(after(WW_TECH_IDS, "rocketry_1")[0]).toBe("inf_imp_1");
     expect(after(WW_TECH_IDS, "military_police")[0]).toBe("heavy_tank_1");
     // 32 (pre-flight §0-6: no_civs and no_xp existed already).
@@ -148,6 +148,10 @@ describe("World War 1936 P6 lists", () => {
       "rocket_site",
       "power_plant",
       "dam",
+      // w28 appends the alloy plant, the smelter and the mine.
+      "alloy_plant",
+      "smelter",
+      "mine",
     ]);
   });
 });
