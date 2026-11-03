@@ -225,6 +225,8 @@ export const REGION_GROUPS_P5: RegionGroupDef[] = [
     ],
     owner1936: "JPN",
   },
+  // regions: Hiroshima, Nagasaki (the navy yards at Kure and Sasebo; the old guard's seed in a Showa civil war)
+  { id: "jpn_navy_yards", regions: [757, 1369], owner1936: "JPN" },
   // regions: South Sakhalin
   { id: "south_sakhalin", regions: [383], owner1936: "JPN" },
   // regions: Northern Kurils, Southern Kurils

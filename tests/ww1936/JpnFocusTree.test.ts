@@ -4,8 +4,8 @@ import { CONTENT } from "@openfront/engine-lib/ww1936/content/registry";
 describe("JPN focus tree", () => {
   const jpn = CONTENT.focuses.filter((f) => f.tree === "JPN");
 
-  it("has about 96 focuses, each in a group", () => {
-    expect(jpn.length).toBe(96);
+  it("has about 123 focuses, each in a group", () => {
+    expect(jpn.length).toBe(123);
     for (const f of jpn) expect(f.group, f.id).toBeTruthy();
   });
 
