@@ -7,12 +7,9 @@
 // suspended, annexation. A dominion played by a human is never forced: those
 // steps are closed for it and the UK has to take it by war. Data only
 // (ContentPurity).
-import type {
-  Condition,
-  Effect,
-} from "@openfront/engine-api/ww1936/PoliticsDsl";
+import type { Effect } from "@openfront/engine-api/ww1936/PoliticsDsl";
 import type { FocusDef } from "@openfront/engine-api/ww1936/PoliticsTypes";
-import { T, any, done, flag, not } from "../helpers";
+import { T, flag } from "../helpers";
 import type { RegionGroupDef } from "../types";
 
 /** The seizure is done: either final focus has been taken. */
@@ -170,102 +167,6 @@ export const REGION_GROUPS_GBR: RegionGroupDef[] = [
 
 /** The dominion's own politics cannot undo the governor: the dominion tree reads this flag. */
 export const CROWN_CONTROL_FLAG = "gbr_crown_control";
-
-const annexedFlag = (d: DominionRow) => `gbr_${d.key}_annexed`;
-const human = (d: DominionRow): Condition => ({
-  kind: "is_human",
-  who: T(d.tag),
-});
-const atWar = (d: DominionRow): Condition => ({
-  kind: "at_war",
-  who: T(d.tag),
-});
-const subject = (d: DominionRow): Condition => ({
-  kind: "subject_of",
-  who: T(d.tag),
-  of: "self",
-});
-/** The dominion is dealt with: annexed, or not ours to force (a human plays it, or it is no longer our subject). */
-const settled = (d: DominionRow): Condition =>
-  any(done(`gbr_${d.key}_annex`), human(d), not(subject(d)));
-/** A dominion's steps are closed while a human plays it. */
-const FORCEABLE = (d: DominionRow): Condition => not(human(d));
-
-/** The three steps of one dominion. Steps 1 and 2 are columns of the same x. */
-function dominionSteps(d: DominionRow, i: number): FocusDef[] {
-  const prev = i === 0 ? undefined : DOMINIONS[i - 1];
-  const k = d.key;
-  const first: Condition =
-    prev === undefined ? FORCEABLE(d) : { all: [FORCEABLE(d), settled(prev)] };
-  return [
-    {
-      id: `gbr_${k}_governor`,
-      tree: "GBR",
-      x: d.x,
-      y: 23,
-      days: d.days[0],
-      branch: "politics",
-      icon: "flag",
-      group: "gbr_integration",
-      prereq: [["gbr_imperial_unity"]],
-      available: first,
-      effects: [
-        { kind: "autonomy", who: T(d.tag), pct: -d.governor },
-        { kind: "set_flag", who: T(d.tag), flag: CROWN_CONTROL_FLAG },
-        { kind: "opinion", who: T(d.tag), of: "self", value: -5, days: 365 },
-        { kind: "stability", pct: d.stab[0] },
-      ],
-      ai: { base: 2 },
-    },
-    {
-      id: `gbr_${k}_parliament`,
-      tree: "GBR",
-      x: d.x,
-      y: 24,
-      days: d.days[1],
-      branch: "politics",
-      icon: "ballot",
-      group: "gbr_integration",
-      prereq: [[`gbr_${k}_governor`]],
-      available: FORCEABLE(d),
-      effects: [
-        { kind: "autonomy", who: T(d.tag), pct: -d.suspend },
-        { kind: "set_flag", who: T(d.tag), flag: `gbr_${k}_suspended` },
-        { kind: "war_support", who: T(d.tag), pct: -3 },
-        { kind: "stability", pct: d.stab[1] },
-      ],
-      ai: { base: 2 },
-    },
-    {
-      id: `gbr_${k}_annex`,
-      tree: "GBR",
-      x: d.x,
-      y: 25,
-      days: d.days[2],
-      branch: "politics",
-      icon: "crown",
-      group: "gbr_integration",
-      prereq: [[`gbr_${k}_parliament`]],
-      available: { all: [FORCEABLE(d), subject(d), not(atWar(d))] },
-      // The annexation needs a dominion at peace and nobody's player.
-      cancelIf: any(human(d), atWar(d)),
-      effects: [
-        {
-          kind: "if",
-          cond: { all: [FORCEABLE(d), subject(d), not(atWar(d))] },
-          then: [
-            { kind: "annex", target: T(d.tag), units: d.units },
-            { kind: "set_flag", flag: annexedFlag(d) },
-            { kind: "resistance", group: `gbr_${k}_heart`, pct: d.res },
-            { kind: "add_spirit", id: d.spirit },
-          ],
-        },
-        { kind: "stability", pct: d.stab[2] },
-      ],
-      ai: { base: 2 },
-    },
-  ];
-}
 
 export const GBR_ROYALIST_FOCUSES: FocusDef[] = [
   // ---- gbr_royalist: the King's friends (rows 12-13) ----
@@ -577,7 +478,490 @@ export const GBR_ROYALIST_FOCUSES: FocusDef[] = [
     ai: { base: 3 },
   },
   // ---- gbr_integration: the five dominions, three steps each (rows 23-25) ----
-  ...DOMINIONS.flatMap((d, i) => dominionSteps(d, i)),
+  {
+    id: "gbr_nzl_governor",
+    tree: "GBR",
+    x: 0,
+    y: 23,
+    days: 35,
+    branch: "politics",
+    icon: "flag",
+    group: "gbr_integration",
+    prereq: [["gbr_imperial_unity"]],
+    available: { not: { kind: "is_human", who: { tag: "NZL" } } },
+    effects: [
+      { kind: "autonomy", who: { tag: "NZL" }, pct: -15 },
+      { kind: "set_flag", who: { tag: "NZL" }, flag: "gbr_crown_control" },
+      {
+        kind: "opinion",
+        who: { tag: "NZL" },
+        of: "self",
+        value: -5,
+        days: 365,
+      },
+      { kind: "stability", pct: 0 },
+    ],
+    ai: { base: 2 },
+  },
+  {
+    id: "gbr_nzl_parliament",
+    tree: "GBR",
+    x: 0,
+    y: 24,
+    days: 35,
+    branch: "politics",
+    icon: "ballot",
+    group: "gbr_integration",
+    prereq: [["gbr_nzl_governor"]],
+    available: { not: { kind: "is_human", who: { tag: "NZL" } } },
+    effects: [
+      { kind: "autonomy", who: { tag: "NZL" }, pct: -25 },
+      { kind: "set_flag", who: { tag: "NZL" }, flag: "gbr_nzl_suspended" },
+      { kind: "war_support", who: { tag: "NZL" }, pct: -3 },
+      { kind: "stability", pct: 0 },
+    ],
+    ai: { base: 2 },
+  },
+  {
+    id: "gbr_nzl_annex",
+    tree: "GBR",
+    x: 0,
+    y: 25,
+    days: 70,
+    branch: "politics",
+    icon: "crown",
+    group: "gbr_integration",
+    prereq: [["gbr_nzl_parliament"]],
+    available: {
+      all: [
+        { not: { kind: "is_human", who: { tag: "NZL" } } },
+        { kind: "subject_of", who: { tag: "NZL" }, of: "self" },
+        { not: { kind: "at_war", who: { tag: "NZL" } } },
+      ],
+    },
+    cancelIf: {
+      any: [
+        { kind: "is_human", who: { tag: "NZL" } },
+        { kind: "at_war", who: { tag: "NZL" } },
+      ],
+    },
+    effects: [
+      {
+        kind: "if",
+        cond: {
+          all: [
+            { not: { kind: "is_human", who: { tag: "NZL" } } },
+            { kind: "subject_of", who: { tag: "NZL" }, of: "self" },
+            { not: { kind: "at_war", who: { tag: "NZL" } } },
+          ],
+        },
+        then: [
+          { kind: "annex", target: { tag: "NZL" }, units: "transfer" },
+          { kind: "set_flag", flag: "gbr_nzl_annexed" },
+          { kind: "resistance", group: "gbr_nzl_heart", pct: 5 },
+          { kind: "add_spirit", id: "gbr_nzl_crown_rule" },
+        ],
+      },
+      { kind: "stability", pct: -1 },
+    ],
+    ai: { base: 2 },
+  },
+  {
+    id: "gbr_aus_governor",
+    tree: "GBR",
+    x: 2,
+    y: 23,
+    days: 35,
+    branch: "politics",
+    icon: "flag",
+    group: "gbr_integration",
+    prereq: [["gbr_imperial_unity"]],
+    available: {
+      all: [
+        { not: { kind: "is_human", who: { tag: "AUS" } } },
+        {
+          any: [
+            { kind: "focus_done", id: "gbr_nzl_annex" },
+            { kind: "is_human", who: { tag: "NZL" } },
+            { not: { kind: "subject_of", who: { tag: "NZL" }, of: "self" } },
+          ],
+        },
+      ],
+    },
+    effects: [
+      { kind: "autonomy", who: { tag: "AUS" }, pct: -15 },
+      { kind: "set_flag", who: { tag: "AUS" }, flag: "gbr_crown_control" },
+      {
+        kind: "opinion",
+        who: { tag: "AUS" },
+        of: "self",
+        value: -5,
+        days: 365,
+      },
+      { kind: "stability", pct: 0 },
+    ],
+    ai: { base: 2 },
+  },
+  {
+    id: "gbr_aus_parliament",
+    tree: "GBR",
+    x: 2,
+    y: 24,
+    days: 35,
+    branch: "politics",
+    icon: "ballot",
+    group: "gbr_integration",
+    prereq: [["gbr_aus_governor"]],
+    available: { not: { kind: "is_human", who: { tag: "AUS" } } },
+    effects: [
+      { kind: "autonomy", who: { tag: "AUS" }, pct: -25 },
+      { kind: "set_flag", who: { tag: "AUS" }, flag: "gbr_aus_suspended" },
+      { kind: "war_support", who: { tag: "AUS" }, pct: -3 },
+      { kind: "stability", pct: 0 },
+    ],
+    ai: { base: 2 },
+  },
+  {
+    id: "gbr_aus_annex",
+    tree: "GBR",
+    x: 2,
+    y: 25,
+    days: 70,
+    branch: "politics",
+    icon: "crown",
+    group: "gbr_integration",
+    prereq: [["gbr_aus_parliament"]],
+    available: {
+      all: [
+        { not: { kind: "is_human", who: { tag: "AUS" } } },
+        { kind: "subject_of", who: { tag: "AUS" }, of: "self" },
+        { not: { kind: "at_war", who: { tag: "AUS" } } },
+      ],
+    },
+    cancelIf: {
+      any: [
+        { kind: "is_human", who: { tag: "AUS" } },
+        { kind: "at_war", who: { tag: "AUS" } },
+      ],
+    },
+    effects: [
+      {
+        kind: "if",
+        cond: {
+          all: [
+            { not: { kind: "is_human", who: { tag: "AUS" } } },
+            { kind: "subject_of", who: { tag: "AUS" }, of: "self" },
+            { not: { kind: "at_war", who: { tag: "AUS" } } },
+          ],
+        },
+        then: [
+          { kind: "annex", target: { tag: "AUS" }, units: "transfer" },
+          { kind: "set_flag", flag: "gbr_aus_annexed" },
+          { kind: "resistance", group: "gbr_aus_heart", pct: 10 },
+          { kind: "add_spirit", id: "gbr_aus_crown_rule" },
+        ],
+      },
+      { kind: "stability", pct: -1 },
+    ],
+    ai: { base: 2 },
+  },
+  {
+    id: "gbr_zaf_governor",
+    tree: "GBR",
+    x: 4,
+    y: 23,
+    days: 35,
+    branch: "politics",
+    icon: "flag",
+    group: "gbr_integration",
+    prereq: [["gbr_imperial_unity"]],
+    available: {
+      all: [
+        { not: { kind: "is_human", who: { tag: "ZAF" } } },
+        {
+          any: [
+            { kind: "focus_done", id: "gbr_aus_annex" },
+            { kind: "is_human", who: { tag: "AUS" } },
+            { not: { kind: "subject_of", who: { tag: "AUS" }, of: "self" } },
+          ],
+        },
+      ],
+    },
+    effects: [
+      { kind: "autonomy", who: { tag: "ZAF" }, pct: -20 },
+      { kind: "set_flag", who: { tag: "ZAF" }, flag: "gbr_crown_control" },
+      {
+        kind: "opinion",
+        who: { tag: "ZAF" },
+        of: "self",
+        value: -5,
+        days: 365,
+      },
+      { kind: "stability", pct: 0 },
+    ],
+    ai: { base: 2 },
+  },
+  {
+    id: "gbr_zaf_parliament",
+    tree: "GBR",
+    x: 4,
+    y: 24,
+    days: 70,
+    branch: "politics",
+    icon: "ballot",
+    group: "gbr_integration",
+    prereq: [["gbr_zaf_governor"]],
+    available: { not: { kind: "is_human", who: { tag: "ZAF" } } },
+    effects: [
+      { kind: "autonomy", who: { tag: "ZAF" }, pct: -30 },
+      { kind: "set_flag", who: { tag: "ZAF" }, flag: "gbr_zaf_suspended" },
+      { kind: "war_support", who: { tag: "ZAF" }, pct: -3 },
+      { kind: "stability", pct: -1 },
+    ],
+    ai: { base: 2 },
+  },
+  {
+    id: "gbr_zaf_annex",
+    tree: "GBR",
+    x: 4,
+    y: 25,
+    days: 70,
+    branch: "politics",
+    icon: "crown",
+    group: "gbr_integration",
+    prereq: [["gbr_zaf_parliament"]],
+    available: {
+      all: [
+        { not: { kind: "is_human", who: { tag: "ZAF" } } },
+        { kind: "subject_of", who: { tag: "ZAF" }, of: "self" },
+        { not: { kind: "at_war", who: { tag: "ZAF" } } },
+      ],
+    },
+    cancelIf: {
+      any: [
+        { kind: "is_human", who: { tag: "ZAF" } },
+        { kind: "at_war", who: { tag: "ZAF" } },
+      ],
+    },
+    effects: [
+      {
+        kind: "if",
+        cond: {
+          all: [
+            { not: { kind: "is_human", who: { tag: "ZAF" } } },
+            { kind: "subject_of", who: { tag: "ZAF" }, of: "self" },
+            { not: { kind: "at_war", who: { tag: "ZAF" } } },
+          ],
+        },
+        then: [
+          { kind: "annex", target: { tag: "ZAF" }, units: "transfer" },
+          { kind: "set_flag", flag: "gbr_zaf_annexed" },
+          { kind: "resistance", group: "gbr_zaf_heart", pct: 15 },
+          { kind: "add_spirit", id: "gbr_zaf_crown_rule" },
+        ],
+      },
+      { kind: "stability", pct: -1 },
+    ],
+    ai: { base: 2 },
+  },
+  {
+    id: "gbr_can_governor",
+    tree: "GBR",
+    x: 6,
+    y: 23,
+    days: 70,
+    branch: "politics",
+    icon: "flag",
+    group: "gbr_integration",
+    prereq: [["gbr_imperial_unity"]],
+    available: {
+      all: [
+        { not: { kind: "is_human", who: { tag: "CAN" } } },
+        {
+          any: [
+            { kind: "focus_done", id: "gbr_zaf_annex" },
+            { kind: "is_human", who: { tag: "ZAF" } },
+            { not: { kind: "subject_of", who: { tag: "ZAF" }, of: "self" } },
+          ],
+        },
+      ],
+    },
+    effects: [
+      { kind: "autonomy", who: { tag: "CAN" }, pct: -20 },
+      { kind: "set_flag", who: { tag: "CAN" }, flag: "gbr_crown_control" },
+      {
+        kind: "opinion",
+        who: { tag: "CAN" },
+        of: "self",
+        value: -5,
+        days: 365,
+      },
+      { kind: "stability", pct: 0 },
+    ],
+    ai: { base: 2 },
+  },
+  {
+    id: "gbr_can_parliament",
+    tree: "GBR",
+    x: 6,
+    y: 24,
+    days: 70,
+    branch: "politics",
+    icon: "ballot",
+    group: "gbr_integration",
+    prereq: [["gbr_can_governor"]],
+    available: { not: { kind: "is_human", who: { tag: "CAN" } } },
+    effects: [
+      { kind: "autonomy", who: { tag: "CAN" }, pct: -30 },
+      { kind: "set_flag", who: { tag: "CAN" }, flag: "gbr_can_suspended" },
+      { kind: "war_support", who: { tag: "CAN" }, pct: -3 },
+      { kind: "stability", pct: -1 },
+    ],
+    ai: { base: 2 },
+  },
+  {
+    id: "gbr_can_annex",
+    tree: "GBR",
+    x: 6,
+    y: 25,
+    days: 70,
+    branch: "politics",
+    icon: "crown",
+    group: "gbr_integration",
+    prereq: [["gbr_can_parliament"]],
+    available: {
+      all: [
+        { not: { kind: "is_human", who: { tag: "CAN" } } },
+        { kind: "subject_of", who: { tag: "CAN" }, of: "self" },
+        { not: { kind: "at_war", who: { tag: "CAN" } } },
+      ],
+    },
+    cancelIf: {
+      any: [
+        { kind: "is_human", who: { tag: "CAN" } },
+        { kind: "at_war", who: { tag: "CAN" } },
+      ],
+    },
+    effects: [
+      {
+        kind: "if",
+        cond: {
+          all: [
+            { not: { kind: "is_human", who: { tag: "CAN" } } },
+            { kind: "subject_of", who: { tag: "CAN" }, of: "self" },
+            { not: { kind: "at_war", who: { tag: "CAN" } } },
+          ],
+        },
+        then: [
+          { kind: "annex", target: { tag: "CAN" }, units: "transfer" },
+          { kind: "set_flag", flag: "gbr_can_annexed" },
+          { kind: "resistance", group: "gbr_can_heart", pct: 20 },
+          { kind: "add_spirit", id: "gbr_can_crown_rule" },
+        ],
+      },
+      { kind: "stability", pct: -1 },
+    ],
+    ai: { base: 2 },
+  },
+  {
+    id: "gbr_raj_governor",
+    tree: "GBR",
+    x: 8,
+    y: 23,
+    days: 70,
+    branch: "politics",
+    icon: "flag",
+    group: "gbr_integration",
+    prereq: [["gbr_imperial_unity"]],
+    available: {
+      all: [
+        { not: { kind: "is_human", who: { tag: "RAJ" } } },
+        {
+          any: [
+            { kind: "focus_done", id: "gbr_can_annex" },
+            { kind: "is_human", who: { tag: "CAN" } },
+            { not: { kind: "subject_of", who: { tag: "CAN" }, of: "self" } },
+          ],
+        },
+      ],
+    },
+    effects: [
+      { kind: "autonomy", who: { tag: "RAJ" }, pct: -25 },
+      { kind: "set_flag", who: { tag: "RAJ" }, flag: "gbr_crown_control" },
+      {
+        kind: "opinion",
+        who: { tag: "RAJ" },
+        of: "self",
+        value: -5,
+        days: 365,
+      },
+      { kind: "stability", pct: -1 },
+    ],
+    ai: { base: 2 },
+  },
+  {
+    id: "gbr_raj_parliament",
+    tree: "GBR",
+    x: 8,
+    y: 24,
+    days: 105,
+    branch: "politics",
+    icon: "ballot",
+    group: "gbr_integration",
+    prereq: [["gbr_raj_governor"]],
+    available: { not: { kind: "is_human", who: { tag: "RAJ" } } },
+    effects: [
+      { kind: "autonomy", who: { tag: "RAJ" }, pct: -35 },
+      { kind: "set_flag", who: { tag: "RAJ" }, flag: "gbr_raj_suspended" },
+      { kind: "war_support", who: { tag: "RAJ" }, pct: -3 },
+      { kind: "stability", pct: -1 },
+    ],
+    ai: { base: 2 },
+  },
+  {
+    id: "gbr_raj_annex",
+    tree: "GBR",
+    x: 8,
+    y: 25,
+    days: 105,
+    branch: "politics",
+    icon: "crown",
+    group: "gbr_integration",
+    prereq: [["gbr_raj_parliament"]],
+    available: {
+      all: [
+        { not: { kind: "is_human", who: { tag: "RAJ" } } },
+        { kind: "subject_of", who: { tag: "RAJ" }, of: "self" },
+        { not: { kind: "at_war", who: { tag: "RAJ" } } },
+      ],
+    },
+    cancelIf: {
+      any: [
+        { kind: "is_human", who: { tag: "RAJ" } },
+        { kind: "at_war", who: { tag: "RAJ" } },
+      ],
+    },
+    effects: [
+      {
+        kind: "if",
+        cond: {
+          all: [
+            { not: { kind: "is_human", who: { tag: "RAJ" } } },
+            { kind: "subject_of", who: { tag: "RAJ" }, of: "self" },
+            { not: { kind: "at_war", who: { tag: "RAJ" } } },
+          ],
+        },
+        then: [
+          { kind: "annex", target: { tag: "RAJ" }, units: "disband" },
+          { kind: "set_flag", flag: "gbr_raj_annexed" },
+          { kind: "resistance", group: "gbr_raj_heart", pct: 35 },
+          { kind: "add_spirit", id: "gbr_raj_crown_rule" },
+        ],
+      },
+      { kind: "stability", pct: -2 },
+    ],
+    ai: { base: 2 },
+  },
 
   // ---- gbr_empire_fate: the last fork (rows 27-29) ----
   {
@@ -590,10 +974,82 @@ export const GBR_ROYALIST_FOCUSES: FocusDef[] = [
     icon: "handshake",
     group: "gbr_empire_fate",
     prereq: [["gbr_raj_annex", "gbr_imperial_unity"]],
-    available: DOMINIONS.map(settled).reduce<Condition>(
-      (a, c) => ({ all: [a, c] }),
-      { kind: "always", value: true },
-    ),
+    available: {
+      all: [
+        {
+          all: [
+            {
+              all: [
+                {
+                  all: [
+                    {
+                      all: [
+                        { kind: "always", value: true },
+                        {
+                          any: [
+                            { kind: "focus_done", id: "gbr_nzl_annex" },
+                            { kind: "is_human", who: { tag: "NZL" } },
+                            {
+                              not: {
+                                kind: "subject_of",
+                                who: { tag: "NZL" },
+                                of: "self",
+                              },
+                            },
+                          ],
+                        },
+                      ],
+                    },
+                    {
+                      any: [
+                        { kind: "focus_done", id: "gbr_aus_annex" },
+                        { kind: "is_human", who: { tag: "AUS" } },
+                        {
+                          not: {
+                            kind: "subject_of",
+                            who: { tag: "AUS" },
+                            of: "self",
+                          },
+                        },
+                      ],
+                    },
+                  ],
+                },
+                {
+                  any: [
+                    { kind: "focus_done", id: "gbr_zaf_annex" },
+                    { kind: "is_human", who: { tag: "ZAF" } },
+                    {
+                      not: {
+                        kind: "subject_of",
+                        who: { tag: "ZAF" },
+                        of: "self",
+                      },
+                    },
+                  ],
+                },
+              ],
+            },
+            {
+              any: [
+                { kind: "focus_done", id: "gbr_can_annex" },
+                { kind: "is_human", who: { tag: "CAN" } },
+                {
+                  not: { kind: "subject_of", who: { tag: "CAN" }, of: "self" },
+                },
+              ],
+            },
+          ],
+        },
+        {
+          any: [
+            { kind: "focus_done", id: "gbr_raj_annex" },
+            { kind: "is_human", who: { tag: "RAJ" } },
+            { not: { kind: "subject_of", who: { tag: "RAJ" }, of: "self" } },
+          ],
+        },
+      ],
+    },
     exclusive: ["gbr_empire_stand"],
     effects: [
       { kind: "nap", of: T("DEU") },
@@ -646,10 +1102,82 @@ export const GBR_ROYALIST_FOCUSES: FocusDef[] = [
     icon: "shield",
     group: "gbr_empire_fate",
     prereq: [["gbr_raj_annex", "gbr_imperial_unity"]],
-    available: DOMINIONS.map(settled).reduce<Condition>(
-      (a, c) => ({ all: [a, c] }),
-      { kind: "always", value: true },
-    ),
+    available: {
+      all: [
+        {
+          all: [
+            {
+              all: [
+                {
+                  all: [
+                    {
+                      all: [
+                        { kind: "always", value: true },
+                        {
+                          any: [
+                            { kind: "focus_done", id: "gbr_nzl_annex" },
+                            { kind: "is_human", who: { tag: "NZL" } },
+                            {
+                              not: {
+                                kind: "subject_of",
+                                who: { tag: "NZL" },
+                                of: "self",
+                              },
+                            },
+                          ],
+                        },
+                      ],
+                    },
+                    {
+                      any: [
+                        { kind: "focus_done", id: "gbr_aus_annex" },
+                        { kind: "is_human", who: { tag: "AUS" } },
+                        {
+                          not: {
+                            kind: "subject_of",
+                            who: { tag: "AUS" },
+                            of: "self",
+                          },
+                        },
+                      ],
+                    },
+                  ],
+                },
+                {
+                  any: [
+                    { kind: "focus_done", id: "gbr_zaf_annex" },
+                    { kind: "is_human", who: { tag: "ZAF" } },
+                    {
+                      not: {
+                        kind: "subject_of",
+                        who: { tag: "ZAF" },
+                        of: "self",
+                      },
+                    },
+                  ],
+                },
+              ],
+            },
+            {
+              any: [
+                { kind: "focus_done", id: "gbr_can_annex" },
+                { kind: "is_human", who: { tag: "CAN" } },
+                {
+                  not: { kind: "subject_of", who: { tag: "CAN" }, of: "self" },
+                },
+              ],
+            },
+          ],
+        },
+        {
+          any: [
+            { kind: "focus_done", id: "gbr_raj_annex" },
+            { kind: "is_human", who: { tag: "RAJ" } },
+            { not: { kind: "subject_of", who: { tag: "RAJ" }, of: "self" } },
+          ],
+        },
+      ],
+    },
     exclusive: ["gbr_berlin_accord"],
     effects: [
       { kind: "war_support", pct: 8 },

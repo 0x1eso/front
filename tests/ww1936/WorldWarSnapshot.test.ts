@@ -479,12 +479,14 @@ describe("World War 1936 snapshots (spec §7.8)", () => {
 // F: luck, prepared ground, pace, forts, AI bars): three equal runs.
 // Re-pinned for the combined release (ww8 wings live, ww9 thought sliders, German
 // tungsten, volunteer Poland, full-organisation start): three equal runs.
-const WW1936_DIGEST = "2e2aeddb1306fec5";
+// Re-pinned for the alt-history branches (the Soviet purge rebuilt, new UK, Japan
+// and US focuses and events): three equal runs.
+const WW1936_DIGEST = "120a193c72219997";
 /**
  * The same game on Easy (the lobby's default in this mode): the AI
  * handicaps and the slower war planning. Pinned with three equal runs.
  */
-const WW1936_EASY_DIGEST = "eaea38cad2068983";
+const WW1936_EASY_DIGEST = "eaf03264a935897d";
 
 describe("World War 1936 stays deterministic", () => {
   // An all-AI game on the test map, long enough for the calendar's first

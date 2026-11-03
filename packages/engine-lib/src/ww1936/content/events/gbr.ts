@@ -5,7 +5,6 @@
 // with historical AI off, on or after the historical day. Data only.
 import type { EventDef } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import {
-  DOMINIONS,
   GBR_UPRISING_COOLDOWN_DAYS,
   GBR_UPRISING_MTTH_DAYS,
   GBR_UPRISING_POP_PCT,
@@ -17,48 +16,218 @@ import { T, after, all, any, flag, not } from "../helpers";
 const STABLE = { kind: "stability_ge", pct: GBR_UPRISING_STABILITY } as const;
 
 /** The unrest in an annexed dominion: it is put down, or bought off; it never leaves. */
-const DOMINION_UNREST: EventDef[] = DOMINIONS.map((d) => ({
-  id: `gbr_${d.key}_unrest`,
-  kind: "country",
-  receivers: ["GBR"],
-  trigger: all(flag(`gbr_${d.key}_annexed`), {
-    not: {
-      kind: "days_since_flag_ge",
-      flag: `gbr_${d.key}_annexed`,
-      days: d.unrestWindow,
-    },
-  }),
-  mtthDays: d.unrestMtth,
-  once: "never",
-  cooldownDays: d.unrestCooldown,
-  picture: "crowd",
-  options: [
-    {
-      // Troops and curfews: the rising is broken (the land's resistance falls back,
-      // buildings are hurt, and the integration clock starts again).
-      id: "a",
-      effects: [
-        { kind: "uprising", group: `gbr_${d.key}_heart` },
+const DOMINION_UNREST: EventDef[] = [
+  {
+    id: "gbr_nzl_unrest",
+    kind: "country",
+    receivers: ["GBR"],
+    trigger: {
+      all: [
+        { kind: "flag", flag: "gbr_nzl_annexed" },
         {
-          kind: "stability",
-          pct: d.tag === "RAJ" ? -5 : d.tag === "CAN" ? -3 : -2,
+          not: {
+            kind: "days_since_flag_ge",
+            flag: "gbr_nzl_annexed",
+            days: 300,
+          },
         },
-        { kind: "war_support", pct: -2 },
       ],
-      ai: { base: 100 },
     },
-    {
-      id: "b",
-      available: { kind: "pp_ge", amount: d.tag === "RAJ" ? 60 : 30 },
-      effects: [
-        { kind: "pp", amount: d.tag === "RAJ" ? -60 : -30 },
-        { kind: "compliance", group: `gbr_${d.key}_heart`, pct: 15 },
-        { kind: "stability", pct: -1 },
+    mtthDays: 120,
+    once: "never",
+    cooldownDays: 90,
+    picture: "crowd",
+    options: [
+      {
+        id: "a",
+        effects: [
+          { kind: "uprising", group: "gbr_nzl_heart" },
+          { kind: "stability", pct: -2 },
+          { kind: "war_support", pct: -2 },
+        ],
+        ai: { base: 100 },
+      },
+      {
+        id: "b",
+        available: { kind: "pp_ge", amount: 30 },
+        effects: [
+          { kind: "pp", amount: -30 },
+          { kind: "compliance", group: "gbr_nzl_heart", pct: 15 },
+          { kind: "stability", pct: -1 },
+        ],
+        ai: { base: 20 },
+      },
+    ],
+  },
+  {
+    id: "gbr_aus_unrest",
+    kind: "country",
+    receivers: ["GBR"],
+    trigger: {
+      all: [
+        { kind: "flag", flag: "gbr_aus_annexed" },
+        {
+          not: {
+            kind: "days_since_flag_ge",
+            flag: "gbr_aus_annexed",
+            days: 400,
+          },
+        },
       ],
-      ai: { base: 20 },
     },
-  ],
-}));
+    mtthDays: 100,
+    once: "never",
+    cooldownDays: 90,
+    picture: "crowd",
+    options: [
+      {
+        id: "a",
+        effects: [
+          { kind: "uprising", group: "gbr_aus_heart" },
+          { kind: "stability", pct: -2 },
+          { kind: "war_support", pct: -2 },
+        ],
+        ai: { base: 100 },
+      },
+      {
+        id: "b",
+        available: { kind: "pp_ge", amount: 30 },
+        effects: [
+          { kind: "pp", amount: -30 },
+          { kind: "compliance", group: "gbr_aus_heart", pct: 15 },
+          { kind: "stability", pct: -1 },
+        ],
+        ai: { base: 20 },
+      },
+    ],
+  },
+  {
+    id: "gbr_zaf_unrest",
+    kind: "country",
+    receivers: ["GBR"],
+    trigger: {
+      all: [
+        { kind: "flag", flag: "gbr_zaf_annexed" },
+        {
+          not: {
+            kind: "days_since_flag_ge",
+            flag: "gbr_zaf_annexed",
+            days: 500,
+          },
+        },
+      ],
+    },
+    mtthDays: 90,
+    once: "never",
+    cooldownDays: 90,
+    picture: "crowd",
+    options: [
+      {
+        id: "a",
+        effects: [
+          { kind: "uprising", group: "gbr_zaf_heart" },
+          { kind: "stability", pct: -2 },
+          { kind: "war_support", pct: -2 },
+        ],
+        ai: { base: 100 },
+      },
+      {
+        id: "b",
+        available: { kind: "pp_ge", amount: 30 },
+        effects: [
+          { kind: "pp", amount: -30 },
+          { kind: "compliance", group: "gbr_zaf_heart", pct: 15 },
+          { kind: "stability", pct: -1 },
+        ],
+        ai: { base: 20 },
+      },
+    ],
+  },
+  {
+    id: "gbr_can_unrest",
+    kind: "country",
+    receivers: ["GBR"],
+    trigger: {
+      all: [
+        { kind: "flag", flag: "gbr_can_annexed" },
+        {
+          not: {
+            kind: "days_since_flag_ge",
+            flag: "gbr_can_annexed",
+            days: 600,
+          },
+        },
+      ],
+    },
+    mtthDays: 80,
+    once: "never",
+    cooldownDays: 90,
+    picture: "crowd",
+    options: [
+      {
+        id: "a",
+        effects: [
+          { kind: "uprising", group: "gbr_can_heart" },
+          { kind: "stability", pct: -3 },
+          { kind: "war_support", pct: -2 },
+        ],
+        ai: { base: 100 },
+      },
+      {
+        id: "b",
+        available: { kind: "pp_ge", amount: 30 },
+        effects: [
+          { kind: "pp", amount: -30 },
+          { kind: "compliance", group: "gbr_can_heart", pct: 15 },
+          { kind: "stability", pct: -1 },
+        ],
+        ai: { base: 20 },
+      },
+    ],
+  },
+  {
+    id: "gbr_raj_unrest",
+    kind: "country",
+    receivers: ["GBR"],
+    trigger: {
+      all: [
+        { kind: "flag", flag: "gbr_raj_annexed" },
+        {
+          not: {
+            kind: "days_since_flag_ge",
+            flag: "gbr_raj_annexed",
+            days: 1000,
+          },
+        },
+      ],
+    },
+    mtthDays: 45,
+    once: "never",
+    cooldownDays: 60,
+    picture: "crowd",
+    options: [
+      {
+        id: "a",
+        effects: [
+          { kind: "uprising", group: "gbr_raj_heart" },
+          { kind: "stability", pct: -5 },
+          { kind: "war_support", pct: -2 },
+        ],
+        ai: { base: 100 },
+      },
+      {
+        id: "b",
+        available: { kind: "pp_ge", amount: 60 },
+        effects: [
+          { kind: "pp", amount: -60 },
+          { kind: "compliance", group: "gbr_raj_heart", pct: 15 },
+          { kind: "stability", pct: -1 },
+        ],
+        ai: { base: 20 },
+      },
+    ],
+  },
+];
 
 export const GBR_EVENTS: EventDef[] = [
   // 1936-01-20: George V dies, Edward VIII succeeds.
