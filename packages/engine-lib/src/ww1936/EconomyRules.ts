@@ -143,13 +143,13 @@ export function effCapBp(tech: TechTotals): number {
   return Math.min(10_000, EFF_BASE_CAP_BP + tech.effCapBp);
 }
 
-/** Owner request 2026-11-03: production lines gain efficiency 2.6 times as fast (13 / 5). */
-export const EFF_GROWTH_NUM = 13;
-export const EFF_GROWTH_DEN = 5;
+/** Owner request 2026-11-03: production lines reach their cap in 35 % of the old time (20 / 7). */
+export const EFF_GROWTH_NUM = 20;
+export const EFF_GROWTH_DEN = 7;
 
 /**
- * One day of efficiency growth: +0.001 × 2.6 × cap² / eff (fractions), in bp
- * rounded to the nearest point. 10% → 50% takes about 185 days (it was 482).
+ * One day of efficiency growth: +0.001 × (20 / 7) × cap² / eff (fractions), in
+ * bp rounded to the nearest point. 10% → 50% takes about 168 days (it was 482).
  */
 export function efficiencyGrowth(effBp: number, capBp: number): number {
   if (effBp >= capBp) return capBp;
