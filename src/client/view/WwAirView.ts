@@ -11,6 +11,22 @@ import {
 } from "@openfront/engine-api/ww1936/AirTypes";
 import { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
 
+/**
+ * Every plane of a deployment: the static generations in `counts` and the
+ * design planes in `dcounts` (absent with none). A design save moves the
+ * static planes of its cell into `dcounts`, so a sum of `counts` alone
+ * reads zero for them.
+ */
+export function deploymentPlanes(d: {
+  counts: readonly number[];
+  dcounts?: readonly number[];
+}): number {
+  let n = 0;
+  for (const c of d.counts) n += c;
+  for (const c of d.dcounts ?? []) n += c;
+  return n;
+}
+
 /** ww8: how long (client ms) a zone keeps its air-battle flag after the last row. */
 export const FIGHT_SHOW_MS = 2500;
 
@@ -118,7 +134,7 @@ export class WwAirView {
     let n = 0;
     for (const d of this.deployments.values()) {
       if (d.sr !== sr || d.type !== type) continue;
-      for (const c of d.counts) n += c;
+      n += deploymentPlanes(d);
     }
     return n;
   }

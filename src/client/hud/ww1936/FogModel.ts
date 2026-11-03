@@ -47,7 +47,7 @@ import {
   intelBand,
 } from "@openfront/engine-lib/ww1936/IntelRules";
 import type { GameView } from "../../view/GameView";
-import type { WwAirView } from "../../view/WwAirView";
+import { deploymentPlanes, type WwAirView } from "../../view/WwAirView";
 import type { WwLandView } from "../../view/WwLandView";
 import type { WwNavyView } from "../../view/WwNavyView";
 
@@ -708,7 +708,7 @@ export class FogModel {
     let recon = 0;
     for (const d of air.deployments.values()) {
       if (d.sr !== sr || d.mission !== "recon") continue;
-      for (const c of d.counts) recon += c;
+      recon += deploymentPlanes(d);
     }
     return recon >= RECON_SEEN;
   }
