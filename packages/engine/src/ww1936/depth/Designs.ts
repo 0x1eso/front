@@ -63,7 +63,6 @@ import {
   EQUIPMENT,
   unitCostMilli,
 } from "@openfront/engine-lib/ww1936/Equipment";
-import { rowScore } from "@openfront/engine-lib/ww1936/TemplateStats";
 import { mioFamilyOf } from "@openfront/engine-lib/ww1936/MioRules";
 import {
   lineCostMilli,
@@ -74,7 +73,9 @@ import {
   HEAVY_AIR_TYPES,
   PLANE_BASE,
 } from "@openfront/engine-lib/ww1936/PlaneStats";
+import { rowScore } from "@openfront/engine-lib/ww1936/TemplateStats";
 import type { EffectCtx } from "../politics/Dispatch";
+import { designIsOld, saveTankCell, sweepStaticStock } from "./DesignCells";
 import { licenceCostPctFor } from "./Licences";
 import { treatyEscalated, treatyMember } from "./NavalTreaty";
 import { dailyRefits, startRefit } from "./Refit";
@@ -190,6 +191,13 @@ function saveOrder(
   });
   if (block !== null) return block;
   const kind = def.kind;
+  if (kind === "tank") {
+    // The cell rule: one design per role x chassis; the slot asked for is ignored.
+    const got = saveTankCell(d, id, def, day);
+    if (typeof got !== "number") return got;
+    d.message(id, "ww1936_design_saved", { name: def.name });
+    return null;
+  }
   if (slot !== 0) {
     // (Review E7: "design_in_use" here reads "the slot is taken".)
     if (slot > DESIGN_SLOTS[kind]) return "bad_index";
@@ -213,15 +221,29 @@ export function freeSlot(d: WwDepth, id: number, kind: DesignKind): number {
 
 export function dailyDesigns(d: WwDepth, id: number, day: number): void {
   dailyRefits(d, id, day);
-  // Spec §5.1: an obsolete slot nothing holds any more is freed (every 10 days).
-  if (day % 10 !== id % 10) return;
   const c = d.country(id);
   if (c === null) return;
+  // Tank cells: static tanks that arrived after the first save join the design.
+  if (c.des.tank.some((s) => s !== null)) sweepStaticStock(d, id);
+  // Spec §5.1: an obsolete slot nothing holds any more is freed (every 10
+  // days); so is an old tank design nothing holds (its score is more than
+  // TANK_OLD_PCT below the best of its need group; saved 10 days ago at least).
+  if (day % 10 !== id % 10) return;
   for (const kind of ["tank", "plane", "ship"] as const) {
     const slots = c.des[kind];
     for (let i = 0; i < slots.length; i++) {
       const s = slots[i];
-      if (s === null || !s.obsolete) continue;
+      if (s === null) continue;
+      if (
+        !s.obsolete &&
+        !(
+          kind === "tank" &&
+          day - s.savedDay >= 10 &&
+          designIsOld(d, id, i + 1)
+        )
+      ) {
+        continue;
+      }
       if (designHeld(d, id, kind, i + 1)) continue;
       slots[i] = null;
       d.markDesign(id, kind, i + 1);
@@ -846,7 +868,8 @@ export function grantDesign(
     treatyEscalated: true,
   });
   if (bad !== null) return;
-  saveDesign(d, actor, def, 0, "own", 0, 0, ctx.day);
+  if (def.kind === "tank") saveTankCell(d, actor, def, ctx.day);
+  else saveDesign(d, actor, def, 0, "own", 0, 0, ctx.day);
 }
 
 /**

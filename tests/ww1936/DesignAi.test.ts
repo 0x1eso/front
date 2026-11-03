@@ -103,13 +103,14 @@ describe("World War 1936 P6: the AI's designs", () => {
     // Nothing more while the techs stay: one design a chassis.
     step(runner, 30 * 15);
     expect(tanks(d, DEU)).toHaveLength(2);
-    // The light tank line moves to the light design near its cap.
-    const line = ce.lines.find((l) => l.key === equipKey("light_tank", 1))!;
+    // The cell rule: the light tank line moved into the light design when it
+    // was first saved (the static light I is absorbed), keeping 60 % of its
+    // efficiency at most.
+    expect(ce.lines.some((l) => l.key === equipKey("light_tank", 1))).toBe(
+      false,
+    );
+    const line = ce.lines.find((l) => l.key === equipKey("tank_design", 1))!;
     expect(line).toBeDefined();
-    line.effBp = 10_000;
-    step(runner, 12 * 15);
-    expect(line.key).toBe(equipKey("tank_design", 1));
-    // Same chassis weight, another key: 60% of its efficiency kept.
     expect(line.effBp).toBeLessThanOrEqual(6_000 + 100);
   });
 

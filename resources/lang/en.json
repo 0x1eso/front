@@ -1632,6 +1632,7 @@
     "ww1936_naval_battle": "Battle of the {sr} — we lost {ours}, the enemy {theirs}",
     "ww1936_naval_line_done": "Naval line finished: {name}",
     "ww1936_naval_line_stalled": "Naval line stalled: {name}",
+    "ww1936_new_chassis": "A new chassis is available: {chassis}",
     "ww1936_no_tile_attacks": "Armies fight in this mode: open ⚔ Armies",
     "ww1936_not_at_war": "Not at war with {name}",
     "ww1936_nuke_dropped": "{country} has dropped an atomic bomb on {region}",

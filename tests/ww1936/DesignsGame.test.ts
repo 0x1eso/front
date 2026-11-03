@@ -32,6 +32,7 @@ import {
   planeType,
   recommendedPlane,
   recommendedShip,
+  recommendedTank,
   reliabilityLossBp,
 } from "@openfront/engine-lib/ww1936/DesignRules";
 import { lineUnitCost } from "@openfront/engine-lib/ww1936/ShipStats";
@@ -484,33 +485,59 @@ describe("World War 1936 P6: designs in the game", () => {
     expect(line.convertFrom).toBe(-1);
   });
 
-  it("full design slots refuse a new save", async () => {
+  it("full design slots refuse a new cell (the cell rule: one design per role and chassis)", async () => {
     const { runner, ww, d } = await game();
-    prepare(ww, GBR, TANK_TECHS);
+    prepare(ww, GBR, [...WW_TECH_IDS]);
     const tick = runner.game.ticks();
-    for (let i = 1; i <= 12; i++) {
-      expect(
-        d.issue(
-          GBR,
-          { kind: "design_save", def: { ...MED1, name: `M${i}` } },
-          tick,
-        ),
-      ).toBeNull();
+    const all = new Set<WwTechId>(WW_TECH_IDS);
+    const cell = (
+      base: string,
+      role: "tank" | "tank_destroyer" | "sp_artillery",
+      name: string,
+    ) => ({ ...recommendedTank(base, all, role), name }) as Def;
+    let n = 0;
+    for (const role of ["tank", "tank_destroyer", "sp_artillery"] as const) {
+      for (const base of ["light_1", "light_2", "medium_1", "medium_2"]) {
+        n++;
+        expect(
+          d.issue(
+            GBR,
+            { kind: "design_save", def: cell(base, role, `C${n}`) },
+            tick,
+          ),
+        ).toBeNull();
+      }
     }
-    expect(d.issue(GBR, { kind: "design_save", def: MED2 }, tick)).toBe(
-      "design_slots_full",
-    );
+    // A thirteenth cell is refused; a save into a taken cell is not (it overwrites).
     expect(
-      d.issue(GBR, { kind: "design_save", def: MED2, slot: 3 }, tick),
-    ).toBe("design_in_use");
-    expect(
-      d.issue(GBR, { kind: "design_copy", from: 1, def: MED2 }, tick),
+      d.issue(
+        GBR,
+        { kind: "design_save", def: cell("heavy_1", "tank", "H") },
+        tick,
+      ),
     ).toBe("design_slots_full");
-    // Obsolete slots still count until the day frees them (as the designer shows).
-    d.issue(GBR, { kind: "design_obsolete", design: "tank", slot: 4 }, tick);
-    expect(d.issue(GBR, { kind: "design_save", def: MED2 }, tick)).toBe(
-      "design_slots_full",
-    );
+    expect(
+      d.issue(
+        GBR,
+        { kind: "design_save", def: cell("medium_2", "tank", "Again") },
+        tick,
+      ),
+    ).toBeNull();
+    // The slot asked for does not matter for a tank (the old design_in_use is gone).
+    expect(
+      d.issue(
+        GBR,
+        { kind: "design_save", def: cell("medium_2", "tank", "Slot"), slot: 3 },
+        tick,
+      ),
+    ).toBeNull();
+    expect(
+      d.issue(
+        GBR,
+        { kind: "design_copy", from: 1, def: cell("heavy_1", "tank", "Copy") },
+        tick,
+      ),
+    ).toBe("design_slots_full");
   });
 
   it("a captured design cannot be put on a line", async () => {
