@@ -10,4 +10,9 @@ export const FLAGS_JPN: FlagId[] = [
   "jpn_indochina_north",
   // jpn_demand_indochina_access taken twice (south, 1941): no third time.
   "jpn_indochina_south",
+  // The Showa Restoration (focus/jpn_showa.ts).
+  "jpn_showa_plot",
+  "jpn_regime_seized",
+  "jpn_kwantung_settled",
+  "jpn_washington_accord",
 ];

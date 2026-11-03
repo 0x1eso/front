@@ -104,8 +104,17 @@ export function dailyIdeology(
     c.crisisDays[x] = c.pop[x] >= 6000 ? c.crisisDays[x] + 1 : 0;
     if (c.crisisDays[x] >= WW_CRISIS_DAYS && fire < 0) fire = x;
   }
-  // The US fascist regime has its own uprising event (usa_democratic_uprising).
+  // The US fascist regime has its own uprising event (usa_democratic_uprising),
+  // and Japan's Showa Restoration has two (jpn_service_revolt, jpn_kwantung_break):
+  // the plot (jpn_showa_plot) and the regime (jpn_regime_seized) keep the
+  // generic crisis from handing the country over before or after the seizure.
   if (c.tag === "USA" && c.hasFlag("usa_regime_seized", day)) fire = -1;
+  if (
+    c.tag === "JPN" &&
+    (c.hasFlag("jpn_regime_seized", day) || c.hasFlag("jpn_showa_plot", day))
+  ) {
+    fire = -1;
+  }
   if (fire >= 0 && day >= c.crisisCooldownUntil) {
     c.crisisDays[fire] = 0;
     c.crisisCooldownUntil = day + WW_CRISIS_COOLDOWN_DAYS;

@@ -5024,7 +5024,10 @@
       "yug_rump_serbia": "강화는 우리에게 독일에 매인 세르비아 본토만을 남겼다. 남슬라브인의 왕국이라는 이름은 베오그라드만 다스리는 나라에 더는 맞지 않는다며, 내각은 나라 이름을 세르비아로 하자고 제안한다.",
       "yug_tripartite": "베를린이 베오그라드에 삼국 동맹에 들어오라고 압박한다. 그리스를 뺀 이웃 나라들은 모두 서명했고, 섭정은 추축국 군대가 유고슬라비아 땅을 지나지 않는다는 약속을 받았다. 많은 장교와 세르비아 정치인들은 거세게 반대한다.",
       "zaf_parliament_vote": "영국이 독일에 선전포고하자 남아프리카 의회가 둘로 갈렸다. 총리는 중립을 지키자고 하고, 부총리 얀 스뮈츠는 영국과 함께 싸우자고 한다. 이제 의회의 표결이 나라가 갈 길을 정한다.",
-      "usa_democratic_uprising": "수도 밖에서는 쫓겨난 정당이 여전히 수백만의 충성을 쥐고 있다. 주지사들은 명령을 거부하고 방위군은 흩어지며 군중이 광장을 메운다. 정권이 충분히 안정되어 있다면 힘으로 운동을 꺾을 수 있지만, 그렇지 못하면 나라가 갈라진다."
+      "usa_democratic_uprising": "수도 밖에서는 쫓겨난 정당이 여전히 수백만의 충성을 쥐고 있다. 주지사들은 명령을 거부하고 방위군은 흩어지며 군중이 광장을 메운다. 정권이 충분히 안정되어 있다면 힘으로 운동을 꺾을 수 있지만, 그렇지 못하면 나라가 갈라진다.",
+      "jpn_service_revolt": "해군과 통제파는 여전히 관청과 항구, 참모부 절반의 충성을 쥐고 있다. 명령은 무시되고 함선은 항구에 묶이며, 기성 세력은 자기들의 정부를 선언한다. 정권이 충분히 안정되어 있다면 힘으로 운동을 꺾을 수 있지만, 그렇지 못하면 나라가 갈라진다.",
+      "jpn_kwantung_break": "만주의 장군들은 자율을 약속받았지만 실제로는 거의 누리지 못했다. 이제 그들은 도쿄의 전문에 답하지 않는다. 정권이 충분히 안정되어 있다면 이들을 소환할 수 있지만, 그렇지 못하면 만주국과 조차지를 데리고 떠난다.",
+      "jpn_manchukuo_defiance": "관동군 장군들이 고삐를 끊었고 만주국은 이들의 것이 되었다. 만주국은 묶여 있던 진영을 떠나, 옛 주인에게 무기를 든다."
     },
     "event_opt": {
       "aus_curtin_appeal": {
@@ -5839,6 +5842,17 @@
       "usa_democratic_uprising": {
         "a": "운동을 꺾는다",
         "b": "나라가 갈라진다"
+      },
+      "jpn_service_revolt": {
+        "a": "운동을 꺾는다",
+        "b": "나라가 갈라진다"
+      },
+      "jpn_kwantung_break": {
+        "a": "장군들을 불러들인다",
+        "b": "그들을 떠나보낸다"
+      },
+      "jpn_manchukuo_defiance": {
+        "a": "무기를 든다"
       }
     },
     "event_title": {
@@ -6070,7 +6084,10 @@
       "yug_rump_serbia": "세르비아",
       "yug_tripartite": "삼국 동맹 가입",
       "zaf_parliament_vote": "의회의 표결",
-      "usa_democratic_uprising": "민주 세력의 봉기"
+      "usa_democratic_uprising": "민주 세력의 봉기",
+      "jpn_service_revolt": "제독과 참모들의 반발",
+      "jpn_kwantung_break": "관동군이 고삐를 끊는다",
+      "jpn_manchukuo_defiance": "만주국이 도쿄에 맞선다"
     },
     "eventui": {
       "annex_warning": "경고: 이 선택을 하면 우리나라가 {country}에 합병됩니다",
@@ -7234,7 +7251,34 @@
       "usa_monroe_reborn": "되살아난 먼로 독트린",
       "usa_northern_claim": "북방 영유 주장",
       "usa_southern_claim": "남방 영유 주장",
-      "usa_caribbean_sea": "카리브해 내해화"
+      "usa_caribbean_sea": "카리브해 내해화",
+      "jpn_young_officers": "청년 장교의 맹세",
+      "jpn_regiment_circles": "연대 연구 모임",
+      "jpn_agrarian_cause": "농촌의 청원",
+      "jpn_patriotic_leagues": "애국 단체 연합",
+      "jpn_court_friends": "궁중의 벗들",
+      "jpn_kwantung_backing": "대륙 주둔군의 지지",
+      "jpn_edict_route": "칙령을 구하는 길",
+      "jpn_rising_route": "거병의 길",
+      "jpn_emergency_decree": "긴급 칙령",
+      "jpn_cabinet_purge": "내각 일소",
+      "jpn_imperial_rule": "천황 친정",
+      "jpn_capital_rising": "도쿄의 새벽",
+      "jpn_young_cabinet": "청년 장교 내각",
+      "jpn_zaibatsu_levy": "재벌 압박",
+      "jpn_military_police": "헌병대 확충",
+      "jpn_fleet_compact": "함대 협정",
+      "jpn_kwantung_settlement": "관동군 타협",
+      "jpn_rural_relief": "농촌 구제",
+      "jpn_national_service": "국민 병역",
+      "jpn_state_plan": "국가 계획",
+      "jpn_service_reconciliation": "군 내부 화해",
+      "jpn_northern_crusade": "북방 원정",
+      "jpn_washington_accord": "워싱턴 협정",
+      "jpn_far_east_offensive": "극동 공세",
+      "jpn_amur_railways": "아무르 철도",
+      "jpn_new_york_credit": "뉴욕의 신용",
+      "jpn_china_priority": "중국 우선"
     },
     "focus_desc": {
       "alb_reforms": "새 법전과 학교, 도로로 젊은 왕국의 기틀을 다진다.",
@@ -8234,7 +8278,34 @@
       "usa_monroe_reborn": "낡은 독트린이 반구 전체를 관리할 의무로 다시 쓰인다. 큰 공화국들에 초청장이 나가고, 군은 국경 남쪽의 작전을 준비한다.",
       "usa_northern_claim": "지도가 한 깃발 아래의 대륙으로 다시 그려진다. 정부는 캐나다에 대한 영유권을 주장하고 국경 수비대에 대기를 명한다.",
       "usa_southern_claim": "리오그란데와 잃어버린 땅을 둘러싼 오랜 불만이 다시 꺼내진다. 워싱턴은 멕시코에 대한 영유권을 주장하고 국경을 전쟁에 맞춰 준비하기 시작한다.",
-      "usa_caribbean_sea": "섬들의 고리가 나라의 내해로 선언된다. 쿠바에 대한 영유권이 주장되고, 멕시코만 연안에 새 부두가 놓이며, 함대는 항로를 장악하라는 명을 받는다."
+      "usa_caribbean_sea": "섬들의 고리가 나라의 내해로 선언된다. 쿠바에 대한 영유권이 주장되고, 멕시코만 연안에 새 부두가 놓이며, 함대는 항로를 장악하라는 명을 받는다.",
+      "jpn_young_officers": "황도파 청년 장교들이 함께 행동하기로 맹세한다. 파벌은 혁신을 이야기하는 데서 그치지 않고 이를 위한 조직을 꾸리기 시작한다.",
+      "jpn_regiment_circles": "연대마다 독서 모임이 조직으로 바뀐다. 같은 불만을 품은 대위와 중위들이 이제는 같은 계획을 나눈다.",
+      "jpn_agrarian_cause": "병사들은 고향 가족이 굶주린다는 편지를 받는다. 농촌은 옥좌에 청원을 올리고, 장교들이 그 편지를 대신 들고 나선다.",
+      "jpn_patriotic_leagues": "흩어진 국가주의 단체들이 하나의 깃발 아래 모인다. 집회는 회관을 메우고 전단은 열차 안을 채운다.",
+      "jpn_court_friends": "옥좌 가까운 몇몇이 음모자들의 말을 듣고도 대신들에게는 입을 다문다. 기성 세력은 조용한 후원 일부를 잃는다.",
+      "jpn_kwantung_backing": "만주의 참모들이 거사에 따르겠다고 약속한다. 제국에서 가장 강한 주둔군이지만, 그 대가를 반드시 요구할 것이다.",
+      "jpn_edict_route": "거사 대신 칙령을 통해 천황의 이름으로 통치하는 길을 택한다. 느리지만 실제 지지 기반이 필요하다.",
+      "jpn_rising_route": "내각이 움직이기 전에 먼저 일어나기로 한다. 부대가 하룻밤에 관청가를 장악한다.",
+      "jpn_emergency_decree": "칙령 한 장으로 내각의 평소 운영이 멈춘다. 반대하는 대신들은 자리가 사라졌음을 알게 된다.",
+      "jpn_cabinet_purge": "원로 대신과 고위 고문들이 물러나고, 그 자리는 황도파 인사들이 채운다.",
+      "jpn_imperial_rule": "내각이 해산되고 천황 친정이 선포되며 청년 장교들이 그의 대신이 된다. 해군과 참모부는 지켜보며 때를 기다린다.",
+      "jpn_capital_rising": "동트기 전 연대들이 관청과 전화 교환국, 궁성 진입로를 막는다. 저녁이면 음모자들이 수도를 쥐고, 제국은 숨을 죽인다.",
+      "jpn_young_cabinet": "소령과 대령들이 대신 자리를 맡는다. 경험은 없지만 표류의 시대는 끝났다고 국민에게 선포한다.",
+      "jpn_zaibatsu_levy": "거대 상사들은 이윤을 내놓고 국가의 지시를 따르라는 통보를 받는다. 어떤 곳은 웃으며 따르고, 어떤 곳은 변호사를 부른다.",
+      "jpn_military_police": "헌병대에 새 초소와 권한, 새 서류가 주어진다. 말이 지나친 참모와 제독들은 감시받고 있음을 알게 된다.",
+      "jpn_fleet_compact": "해군성은 건함 계획 전체를 약속받는다. 제독들은 침묵의 대가로 함선을 얻는다.",
+      "jpn_kwantung_settlement": "관동군은 독자 예산과 국경 공사, 소환하지 않겠다는 약속을 받는다. 더는 위협할 이유가 없어진다.",
+      "jpn_rural_relief": "부채가 유예되고 쌀은 적정 가격에 사들여진다. 농촌은 정권의 기반이며, 정권은 이들에게 가장 먼저 대가를 치른다.",
+      "jpn_national_service": "병역이 징집 연령의 모든 장정에게 확대되고, 육군의 연간 입영 인원이 두 배가 된다.",
+      "jpn_state_plan": "기획원이 철강과 석유, 해운의 생산 목표를 정하고 재벌이 이를 채운다. 경제는 명령에 따라 전시 체제로 전환된다.",
+      "jpn_service_reconciliation": "육군과 해군, 참모부와 정권이 한 탁자에 앉는다. 거사 이후의 불화는 일단 접어 둔다. 분리 전쟁이 없을 때만 열린다.",
+      "jpn_northern_crusade": "황도파의 오랜 구상을 꺼내 든다. 소련이 준비되기 전에 극동을 차지한다는 계획이다. 남방 진출은 포기한다.",
+      "jpn_washington_accord": "정권은 워싱턴에 타협을 제안한다. 남방 진출을 포기하고 미국 자본에 시장을 열며, 그 대가로 중국 문제에는 간섭하지 않는다는 것이다. 태평양 계획은 영구히 접힌다.",
+      "jpn_far_east_offensive": "전차와 보병 사단이 아무르와 우수리 강변에 집결한다. 만주의 새 병기창은 겨울에도 쉬지 않고 가동하라는 명령을 받는다.",
+      "jpn_amur_railways": "국경 하천까지 전략 철도가 놓이고, 군단 전체가 닿을 수 있는 측선이 깔린다. 공세는 더 이상 철도 종점에서 굶지 않는다.",
+      "jpn_new_york_credit": "미국 은행이 새 협정을 담보로 자금을 빌려주고, 미국산 석유가 다시 일본에 팔린다. 자금은 공장을 사고, 공장은 시간을 번다.",
+      "jpn_china_priority": "태평양이 잠잠해지자 여유 있는 모든 사단과 자금이 대륙으로 향한다. 중국에서의 전쟁은 관리하는 것이 아니라 끝내야 할 것이 된다."
     },
     "focusui": {
       "and": "그리고",
@@ -8583,7 +8654,7 @@
       "JPN": {
         "communist": "일본 공산당 정부",
         "democratic": "정당 내각",
-        "fascist": "대정익찬회",
+        "fascist": "쇼와 유신 정부",
         "neutral": "내각 정부"
       },
       "MEN": {
@@ -11129,7 +11200,10 @@
       "jpn_special_attack": "특공 전술",
       "jpn_spirit_doctrine": "정신력 중시",
       "jpn_state_economy": "국가 배급 경제",
-      "jpn_total_resistance": "총저항 체제"
+      "jpn_total_resistance": "총저항 체제",
+      "jpn_showa_restoration": "쇼와 유신",
+      "jpn_levied_combines": "징발된 재벌",
+      "jpn_washington_credit": "워싱턴의 신용"
     },
     "spirit_desc": {
       "arg_neutral_course": "아르헨티나는 모든 편과 교역하되 누구의 전쟁에도 끼지 않는다.",
@@ -11389,7 +11463,10 @@
       "jpn_special_attack": "충돌 공격이 승무원을 함선과 맞바꾸고 사기와 숙련 조종사를 닳게 한다.",
       "jpn_spirit_doctrine": "투지가 화력과 훈련을 대신한다.",
       "jpn_state_economy": "내각이 노동과 자재를 배정하고 민수품은 줄어든다.",
-      "jpn_total_resistance": "온 국민을 본토 방어에 동원하며 사회 질서의 대가가 크다."
+      "jpn_total_resistance": "온 국민을 본토 방어에 동원하며 사회 질서의 대가가 크다.",
+      "jpn_showa_restoration": "천황이 직접 통치하고 청년 장교들이 그의 이름으로 말한다. 결정은 빠르고, 나라의 분위기는 정권에 고정된다.",
+      "jpn_levied_combines": "거대 재벌이 국가가 정한 값으로 국가를 위해 일한다. 생산은 늘었고, 소유주들은 편치 못하다.",
+      "jpn_washington_credit": "미국의 자금과 워싱턴과의 양해가 교역비를 낮추고 긴장을 누그러뜨린다."
     },
     "stance": {
       "aggressive": "과감",

@@ -131,4 +131,23 @@ export const SPIRITS_JPN: SpiritDef[] = [
     icon: "oil",
     stats: { fuelUsePct: -10, stabilityBp: -200 },
   },
+  // jpn_imperial_rule / jpn_capital_rising (the Showa Restoration): a focus-added
+  // spirit, so the numbers play three times as written.
+  {
+    id: "jpn_showa_restoration",
+    icon: "crown",
+    stats: { ppGainPct: 4, warSupportBp: 300, stabilityBp: -100 },
+  },
+  // jpn_zaibatsu_levy
+  {
+    id: "jpn_levied_combines",
+    icon: "factory",
+    stats: { outputPct: 3, ppGainPct: 1 },
+  },
+  // jpn_washington_accord
+  {
+    id: "jpn_washington_credit",
+    icon: "handshake",
+    stats: { tradeCostPct: -5, tensionPct: -5 },
+  },
 ];

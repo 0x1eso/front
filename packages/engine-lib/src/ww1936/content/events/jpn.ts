@@ -11,6 +11,16 @@
 // same event once.
 // Data only (tests/ww1936/ContentPurity): the helpers come from ../helpers.
 import type { EventDef } from "@openfront/engine-api/ww1936/PoliticsTypes";
+import {
+  JPN_KWANTUNG_COOLDOWN_DAYS,
+  JPN_KWANTUNG_MTTH_DAYS,
+  JPN_KWANTUNG_STABILITY,
+  JPN_REVOLT_COOLDOWN_DAYS,
+  JPN_REVOLT_MTTH_DAYS,
+  JPN_REVOLT_POP_PCT,
+  JPN_REVOLT_STABILITY,
+  NO_CIVIL_WAR,
+} from "../focus/jpn_showa";
 import { after, all, any, flag, not, T } from "../helpers";
 
 export const JPN_EVENTS: EventDef[] = [
@@ -233,6 +243,112 @@ export const JPN_EVENTS: EventDef[] = [
         id: "a",
         ai: { base: 1 },
         effects: [{ kind: "surrender", to: T("USA") }],
+      },
+    ],
+  },
+  // ---- The Showa Restoration's opposition (focus/jpn_showa.ts) ----
+  {
+    // The navy and the Control Faction: the old establishment still holds a
+    // following (neutral popularity). Steady enough, the regime breaks the
+    // movement; not, the country divides. The generic regime crisis is not
+    // queued for Japan while the regime holds (Ideology.dailyIdeology).
+    id: "jpn_service_revolt",
+    kind: "country",
+    receivers: ["JPN"],
+    trigger: all(
+      flag("jpn_regime_seized"),
+      { kind: "ruling", ideology: "fascist" },
+      { kind: "pop_ge", ideology: "neutral", pct: JPN_REVOLT_POP_PCT },
+      NO_CIVIL_WAR,
+    ),
+    mtthDays: JPN_REVOLT_MTTH_DAYS,
+    once: "never",
+    // A card waits for its answer for about 70 days: no second one meanwhile.
+    cooldownDays: JPN_REVOLT_COOLDOWN_DAYS,
+    picture: "crowd",
+    options: [
+      {
+        // Exactly one option stands at any time.
+        id: "a",
+        available: { kind: "stability_ge", pct: JPN_REVOLT_STABILITY },
+        effects: [
+          { kind: "popularity", ideology: "neutral", pp: -15 },
+          { kind: "stability", pct: -15 },
+          { kind: "war_support", pct: -5 },
+        ],
+        ai: { base: 100 },
+      },
+      {
+        id: "b",
+        available: not({ kind: "stability_ge", pct: JPN_REVOLT_STABILITY }),
+        effects: [
+          { kind: "civil_war", ideology: "neutral" },
+          // A failed split falls back to a neutral government: put the
+          // restoration back (a no-op when it already rules).
+          {
+            kind: "if",
+            cond: not({ kind: "ruling", ideology: "fascist" }),
+            then: [{ kind: "set_government", ideology: "fascist" }],
+          },
+        ],
+        ai: { base: 100 },
+      },
+    ],
+  },
+  {
+    // The Kwantung Army: a Japan that gave it autonomy (jpn_kwantung_autonomy)
+    // and has not settled with it (jpn_kwantung_settlement) may lose
+    // Manchukuo. Steady enough, the generals are brought to heel; not, they
+    // cut the leash and Manchukuo, with the leased territory, goes with them.
+    id: "jpn_kwantung_break",
+    kind: "country",
+    receivers: ["JPN"],
+    trigger: all(
+      flag("jpn_regime_seized"),
+      { kind: "focus_done", id: "jpn_kwantung_autonomy" },
+      not(flag("jpn_kwantung_settled")),
+      { kind: "subject_of", who: T("MCK"), of: "self" },
+    ),
+    mtthDays: JPN_KWANTUNG_MTTH_DAYS,
+    once: "never",
+    cooldownDays: JPN_KWANTUNG_COOLDOWN_DAYS,
+    picture: "map",
+    options: [
+      {
+        id: "a",
+        available: { kind: "stability_ge", pct: JPN_KWANTUNG_STABILITY },
+        effects: [
+          { kind: "stability", pct: -5 },
+          { kind: "war_support", pct: -3 },
+        ],
+        ai: { base: 100 },
+      },
+      {
+        id: "b",
+        available: not({ kind: "stability_ge", pct: JPN_KWANTUNG_STABILITY }),
+        effects: [
+          { kind: "end_subject", target: T("MCK") },
+          { kind: "transfer_regions", group: "kwantung", to: T("MCK") },
+          { kind: "stability", pct: -5 },
+          { kind: "fire_event", id: "jpn_manchukuo_defiance", to: T("MCK") },
+        ],
+        ai: { base: 100 },
+      },
+    ],
+  },
+  {
+    // The other side of the break: Manchukuo leaves the camp and fights.
+    id: "jpn_manchukuo_defiance",
+    kind: "country",
+    picture: "border",
+    options: [
+      {
+        id: "a",
+        effects: [
+          { kind: "leave_faction" },
+          { kind: "declare_war", on: T("JPN") },
+        ],
+        ai: { base: 100 },
       },
     ],
   },

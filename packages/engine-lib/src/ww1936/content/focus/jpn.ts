@@ -14,6 +14,7 @@ import type {
   FocusId,
 } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { after, all, any, done, fire, flag, gflag, not, T } from "../helpers";
+import { JPN_SHOWA_FOCUSES, JPN_SHOWA_RULE } from "./jpn_showa";
 
 export const JPN_FOCUSES: FocusDef[] = [
   // ---- A: politics (historical) ----
@@ -170,6 +171,8 @@ export const JPN_FOCUSES: FocusDef[] = [
     icon: "ballot",
     prereq: [["jpn_after_february"]],
     exclusive: ["jpn_military_ministers"],
+    // The Showa Restoration closes the party road (jpn_showa.ts).
+    available: not(JPN_SHOWA_RULE),
     effects: [
       { kind: "popularity", ideology: "democratic", pp: 15 },
       { kind: "stability", pct: -5 },
@@ -367,6 +370,10 @@ export const JPN_FOCUSES: FocusDef[] = [
     icon: "oil",
     prereq: [["jpn_north_china_question"]],
     exclusive: ["jpn_strike_north"],
+    // The Showa Restoration's last fork closes the southern advance for good.
+    available: not(
+      any(done("jpn_northern_crusade"), done("jpn_washington_accord")),
+    ),
     effects: [
       {
         kind: "war_goal",
@@ -437,7 +444,7 @@ export const JPN_FOCUSES: FocusDef[] = [
     group: "jpn_southern_advance",
     icon: "carrier",
     prereq: [["jpn_indochina_bases"], ["jpn_tripartite"]],
-    available: after("1941-07-01"),
+    available: all(after("1941-07-01"), not(done("jpn_washington_accord"))),
     effects: [
       { kind: "war_goal", on: T("USA"), type: "conquer" },
       { kind: "add_spirit", id: "jpn_surprise_prep", days: 90 },
@@ -918,6 +925,9 @@ export const JPN_FOCUSES: FocusDef[] = [
       { kind: "popularity", ideology: "fascist", pp: 10 },
       { kind: "stability", pct: -5 },
       { kind: "war_support", pct: 5 },
+      // The Imperial Way's own road: while the plot is alive the generic
+      // regime crisis does not hand the country over (Ideology.dailyIdeology).
+      { kind: "set_flag", flag: "jpn_showa_plot" },
     ],
     ai: { base: 3 },
   },
@@ -951,6 +961,7 @@ export const JPN_FOCUSES: FocusDef[] = [
     icon: "ballot",
     prereq: [["jpn_party_cabinet"]],
     exclusive: ["jpn_taisei_yokusankai"],
+    available: not(JPN_SHOWA_RULE),
     effects: [
       { kind: "elections" },
       { kind: "popularity", ideology: "democratic", pp: 10 },
@@ -1784,6 +1795,8 @@ export const JPN_FOCUSES: FocusDef[] = [
     ],
     ai: { base: 10 },
   },
+  // The Showa Restoration (jpn_showa.ts).
+  ...JPN_SHOWA_FOCUSES,
 ];
 
 /** Spec §18.3 history path (with the two renamed ids). */
