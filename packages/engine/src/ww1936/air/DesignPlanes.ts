@@ -4,20 +4,24 @@
 // design slot (`dcounts`, `deckDOf`); a design slot's planes fly as the P4
 // type its design is judged to be (DesignRules.planeType). These helpers
 // give the one order every draw, return and loss follows (spec §5.2.4: the
-// newest year first; P4 spec §13.2 and §14.3: losses and returns the
+// best score first; P4 spec §13.2 and §14.3: losses and returns the
 // oldest first), so a country without plane designs keeps P4's behaviour.
+import type { AirType } from "@openfront/engine-api/ww1936/AirTypes";
 import {
   type PlaneDesignStats,
   WW_PLANE_DESIGN_SLOTS,
 } from "@openfront/engine-api/ww1936/DepthTypes";
 import {
+  equipKey,
   EQUIPMENT_GENS,
   type EquipmentType,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
-import { genTech } from "@openfront/engine-lib/ww1936/Equipment";
-import { WW_TECHS } from "@openfront/engine-lib/ww1936/WwTechs";
-import { planeDesignSlotsOf } from "../depth/Designs";
+import { staticPlaneScore } from "@openfront/engine-lib/ww1936/PlaneScore";
+import { planeGenTechs } from "@openfront/engine-lib/ww1936/PlaneStats";
+import { isOldScore } from "@openfront/engine-lib/ww1936/TemplateStats";
+import { planeDesignScore, planeDesignSlotsOf } from "../depth/Designs";
 import type { WwDepth } from "../depth/WwDepth";
+import type { CountryEconomy } from "../economy/WwEconomy";
 
 /** One source of a type's planes: a static generation (slot 0) or a design slot (gen 0). */
 export interface PlaneSource {
@@ -48,42 +52,188 @@ export function designSlotsFor(
     : [];
 }
 
-/** The year of a static generation of a P4 type (its tech's; 1936 without one). */
-function genYear(type: string, gen: number): number {
-  const tech = genTech(type as EquipmentType, gen);
-  return tech === undefined ? 1936 : (WW_TECHS[tech]?.year ?? 1936);
+/** The sources of one plane type, best score first, and which are old. */
+export interface PlaneRank {
+  sources: PlaneSource[];
+  scores: number[];
+  /** Aligned with `sources`: more than TANK_OLD_PCT below the best fieldable score of the type. */
+  old: boolean[];
+  anyOld: boolean;
+}
+
+interface RankStamp {
+  seq: number;
+  res: ReadonlySet<unknown>;
+  size: number;
+  types: Map<string, PlaneRank>;
+}
+const RANK_MEMO = new WeakMap<WwDepth, Map<number, RankStamp>>();
+
+/**
+ * The country's sources of P4 type `type` ranked by performance score
+ * (best first; ties: a static before a design, the newer generation, the
+ * lower design slot) with the old ones marked: a source is old when its
+ * score is more than TANK_OLD_PCT below the best among what the country
+ * can field (the static generations whose techs it holds, and its designs
+ * flying as the type). Memoised until a design or the tech set changes.
+ */
+export function planeRankOf(
+  depth: WwDepth,
+  owner: number,
+  type: string,
+): PlaneRank {
+  const ce = depth.ww.economy.country(owner);
+  // (Reading a design refreshes the depth's caches when a tech landed.)
+  depth.designStatsOf(owner, "plane", 1);
+  let per = RANK_MEMO.get(depth);
+  if (per === undefined) RANK_MEMO.set(depth, (per = new Map()));
+  let st = per.get(owner);
+  const res = ce?.researched ?? EMPTY_RES;
+  if (
+    st === undefined ||
+    st.seq !== depth.keyStatsSeq ||
+    st.res !== res ||
+    st.size !== res.size
+  ) {
+    st = { seq: depth.keyStatsSeq, res, size: res.size, types: new Map() };
+    per.set(owner, st);
+  }
+  const hit = st.types.get(type);
+  if (hit !== undefined) return hit;
+  const gens = EQUIPMENT_GENS[type as EquipmentType] ?? 0;
+  const rows: {
+    src: PlaneSource;
+    score: number;
+    kind: number;
+    fieldable: boolean;
+  }[] = [];
+  for (let g = gens; g >= 1; g--) {
+    rows.push({
+      src: { gen: g, slot: 0 },
+      score: staticPlaneScore(type as AirType, g),
+      kind: 0,
+      fieldable: planeGenTechs(type as AirType, g).every((t) => res.has(t)),
+    });
+  }
+  if (anyPlaneDesign(depth, owner)) {
+    for (let s = 1; s <= WW_PLANE_DESIGN_SLOTS; s++) {
+      const ds = depth.designStatsOf(
+        owner,
+        "plane",
+        s,
+      ) as PlaneDesignStats | null;
+      if (ds === null || ds.type !== type) continue;
+      rows.push({
+        src: { gen: 0, slot: s },
+        score: planeDesignScore(ds),
+        kind: 1,
+        fieldable: true,
+      });
+    }
+  }
+  rows.sort(
+    (a, b) =>
+      b.score - a.score ||
+      a.kind - b.kind ||
+      b.src.gen - a.src.gen ||
+      a.src.slot - b.src.slot,
+  );
+  let best = 0;
+  for (const r of rows) if (r.fieldable && r.score > best) best = r.score;
+  const old = rows.map((r) => best > 0 && isOldScore(r.score, best));
+  const rank: PlaneRank = {
+    sources: rows.map((r) => r.src),
+    scores: rows.map((r) => r.score),
+    old,
+    anyOld: old.some((o) => o),
+  };
+  st.types.set(type, rank);
+  return rank;
+}
+
+const EMPTY_RES: ReadonlySet<unknown> = new Set();
+
+/** Whether plane design slot `slot` (1-based) is old against its type's best. */
+export function planeDesignIsOld(
+  depth: WwDepth,
+  owner: number,
+  slot: number,
+): boolean {
+  const ds = depth.designStatsOf(
+    owner,
+    "plane",
+    slot,
+  ) as PlaneDesignStats | null;
+  if (ds === null) return false;
+  const rank = planeRankOf(depth, owner, ds.type);
+  const i = rank.sources.findIndex((x) => x.slot === slot);
+  return i >= 0 && rank.old[i];
 }
 
 /**
  * The sources of `owner`'s planes of P4 type `type` (an AIR_TYPES name),
- * newest year first (spec §5.2.4's draw order): the static generations
+ * best performance score first (the draw order): the static generations
  * and the design slots flying as the type; ties: the static generation
- * first (the smaller key), the newer generation, the designs in lane E's
- * draw order (planeDesignSlotsOf). Without a plane design: the static
- * generations, newest first — P4's order.
+ * first, the newer generation, the lower design slot. Without a plane
+ * design: the static generations, newest first — P4's order. A fresh
+ * array (callers reverse it).
  */
 export function planeSources(
   depth: WwDepth,
   owner: number,
   type: string,
 ): PlaneSource[] {
-  const gens = EQUIPMENT_GENS[type as EquipmentType] ?? 0;
-  const rows: [number, number, number, PlaneSource][] = [];
-  for (let g = gens; g >= 1; g--) {
-    rows.push([genYear(type, g), 0, gens - g, { gen: g, slot: 0 }]);
+  return planeRankOf(depth, owner, type).sources.slice();
+}
+
+/**
+ * The generation swap on one holder of planes (a wing, a deck): up to `n`
+ * planes of old sources (lowest score first) become planes of non-old
+ * sources with stock (the best first), the old going back to the stock.
+ * `held` reads how many the holder has of a source, `add` changes that by
+ * `k` (the caller's arrays); the ledger moves here. Nothing happens, and
+ * nothing is read from the holder, when the type has no old source.
+ */
+export function swapOldPlanes(
+  depth: WwDepth,
+  ce: CountryEconomy,
+  owner: number,
+  type: string,
+  n: number,
+  held: (x: PlaneSource) => number,
+  add: (x: PlaneSource, k: number) => void,
+): number {
+  const rank = planeRankOf(depth, owner, type);
+  if (!rank.anyOld) return 0;
+  const src = rank.sources;
+  const keyOf = (x: PlaneSource) =>
+    x.slot === 0
+      ? equipKey(type as EquipmentType, x.gen)
+      : equipKey("plane_design", x.slot);
+  let left = n;
+  let swapped = 0;
+  for (let o = src.length - 1; o >= 0 && left > 0; o--) {
+    if (!rank.old[o]) continue;
+    for (let a = 0; a < src.length && left > 0; a++) {
+      if (rank.old[a]) continue;
+      const have = held(src[o]);
+      if (have <= 0) break;
+      const ka = keyOf(src[a]);
+      const take = Math.min(left, have, ce.stock[ka]);
+      if (take <= 0) continue;
+      const ko = keyOf(src[o]);
+      ce.stock[ka] -= take;
+      ce.planesDeployed[ka] += take;
+      add(src[a], take);
+      const back = Math.min(take, ce.planesDeployed[ko]);
+      ce.planesDeployed[ko] -= back;
+      ce.stock[ko] += back;
+      add(src[o], -take);
+      left -= take;
+      swapped += take;
+    }
   }
-  const slots = designSlotsFor(depth, owner, type);
-  for (let i = 0; i < slots.length; i++) {
-    const st = depth.designStatsOf(
-      owner,
-      "plane",
-      slots[i],
-    ) as PlaneDesignStats | null;
-    if (st !== null) rows.push([st.year, 1, i, { gen: 0, slot: slots[i] }]);
-  }
-  if (slots.length === 0) return rows.map((r) => r[3]);
-  rows.sort((a, b) => b[0] - a[0] || a[1] - b[1] || a[2] - b[2]);
-  return rows.map((r) => r[3]);
+  return swapped;
 }
 
 /**

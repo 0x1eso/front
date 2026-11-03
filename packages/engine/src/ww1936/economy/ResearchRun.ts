@@ -28,6 +28,7 @@ import { techCostMilli, WW_TECHS } from "@openfront/engine-lib/ww1936/WwTechs";
 import type { Player } from "../../game/Game";
 import { noteNewChassis } from "../depth/DesignCells";
 import { sharedResearchPct } from "../depth/FactionRules";
+import { noteNewAirframe } from "../depth/PlaneCells";
 import type { WwDepth } from "../depth/WwDepth";
 import { payPp } from "../politics/PayPp";
 import type { CountryEconomy, WwEconomy } from "./WwEconomy";
@@ -309,7 +310,10 @@ export function stepResearch(
       );
       // A chassis for the roles of a design the player saved (personal notice).
       const depth = econ.ww.depth as WwDepth | undefined;
-      if (depth !== undefined) noteNewChassis(depth, ce.smallID, s.tech);
+      if (depth !== undefined) {
+        noteNewChassis(depth, ce.smallID, s.tech);
+        noteNewAirframe(depth, ce.smallID, s.tech);
+      }
     }
   }
 }

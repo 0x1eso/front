@@ -1530,6 +1530,7 @@
     "ww1936_naval_battle": "{sr} 해전 — 아군 {ours}척, 적 {theirs}척 상실",
     "ww1936_naval_line_done": "해군 라인 완료: {name}",
     "ww1936_naval_line_stalled": "해군 라인 중단: {name}",
+    "ww1936_new_airframe": "새 기체를 쓸 수 있습니다: {airframe}",
     "ww1936_new_chassis": "새 차체를 쓸 수 있습니다: {chassis}",
     "ww1936_no_tile_attacks": "이 모드는 군으로 싸웁니다: ⚔ 군을 여세요",
     "ww1936_research_queue_failed": "예약한 연구를 시작할 수 없어 뒤따르는 연구와 함께 예약에서 뺐습니다: {tech}",

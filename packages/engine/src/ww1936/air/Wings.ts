@@ -39,8 +39,7 @@ import {
   wingOrderBlock,
   xpAfterRefill,
 } from "@openfront/engine-lib/ww1936/WingRules";
-import { returnDesignPlanes } from "../depth/Designs";
-import { damageBuilding, damageOf, returnPlanes } from "../economy/Buildings";
+import { damageBuilding, damageOf } from "../economy/Buildings";
 import type { CountryEconomy } from "../economy/WwEconomy";
 import { fillDecks } from "../navy/Carriers";
 import {
@@ -51,7 +50,7 @@ import {
   isCarrierWing,
   stockOf,
 } from "./Deploy";
-import { designSlotsFor, planeSources } from "./DesignPlanes";
+import { planeSources, swapOldPlanes } from "./DesignPlanes";
 import { noteWingRest } from "./WingXp";
 import { deploymentStats, wingPlanes, wingSide, type WwAir } from "./WwAir";
 
@@ -228,70 +227,26 @@ function drawInto(air: WwAir, ce: CountryEconomy, w: Wing, n: number): number {
   return n - left;
 }
 
-/** A newer plane than the wing's oldest may be in stock (cheap: swapOld then looks properly). */
-function mayUpgrade(
-  depth: WwAir["ww"]["depth"],
-  ce: CountryEconomy,
-  w: Wing,
-  t: (typeof AIR_TYPES)[number],
-): boolean {
-  if (designSlotsFor(depth, w.owner, t).length > 0) return true;
-  let g = 1;
-  while (g <= w.counts.length && w.counts[g - 1] <= 0) g++;
-  for (let h = g + 1; h <= w.counts.length; h++) {
-    if (ce.stock[equipKey(t, h)] > 0) return true;
-  }
-  return false;
-}
-
 /**
- * Swaps up to `n` of the wing's oldest planes for newer ones in stock,
- * generations and design planes alike (planeSources' order, by year); returns
- * the planes swapped.
+ * Swaps up to `n` of the wing's old planes (more than TANK_OLD_PCT below
+ * the best score of the type the country can field) for non-old planes in
+ * stock, generations and design planes alike (planeRankOf), the old going
+ * back to the stock; returns the planes swapped. A type with no old source
+ * costs one memo read.
  */
 function swapOld(air: WwAir, ce: CountryEconomy, w: Wing, n: number): number {
-  const t = AIR_TYPES[w.type];
-  const depth = air.ww.depth;
-  // Most rearms have nothing to swap: no planes of an older source, or no newer stock.
-  if (!mayUpgrade(depth, ce, w, t)) return 0;
-  const src = planeSources(depth, w.owner, t);
-  let left = n;
-  let swapped = 0;
-  for (let old = src.length - 1; old > 0 && left > 0; old--) {
-    const o = src[old];
-    for (let at = 0; at < old && left > 0; at++) {
-      const have = o.slot === 0 ? w.counts[o.gen - 1] : w.dcounts[o.slot - 1];
-      if (have <= 0) break;
-      const x = src[at];
-      const want = Math.min(left, have);
-      let take: number;
-      if (x.slot === 0) {
-        const k = equipKey(t, x.gen);
-        take = Math.min(want, ce.stock[k]);
-        if (take <= 0) continue;
-        ce.stock[k] -= take;
-        ce.planesDeployed[k] += take;
-        w.counts[x.gen - 1] += take;
-      } else {
-        take = drawDesignSlot(ce, x.slot, want);
-        if (take <= 0) continue;
-        w.dcounts[x.slot - 1] += take;
-      }
-      if (o.slot === 0) {
-        const back = new Array<number>(w.counts.length).fill(0);
-        back[o.gen - 1] = take;
-        w.counts[o.gen - 1] -= take;
-        returnPlanes(ce, t, back);
-      } else {
-        const back = new Array<number>(w.dcounts.length).fill(0);
-        back[o.slot - 1] = take;
-        w.dcounts[o.slot - 1] -= take;
-        returnDesignPlanes(depth, w.owner, back);
-      }
-      left -= take;
-      swapped += take;
-    }
-  }
+  const swapped = swapOldPlanes(
+    air.ww.depth,
+    ce,
+    w.owner,
+    AIR_TYPES[w.type],
+    n,
+    (x) => (x.slot === 0 ? w.counts[x.gen - 1] : w.dcounts[x.slot - 1]) ?? 0,
+    (x, k) => {
+      if (x.slot === 0) w.counts[x.gen - 1] += k;
+      else w.dcounts[x.slot - 1] += k;
+    },
+  );
   if (swapped > 0) air.markWing(w.id);
   return swapped;
 }

@@ -163,6 +163,8 @@ describe("refills and efficiency", () => {
     });
     ce.planesDeployed[equipKey("fighter", 1)] = 150;
     ce.stock[equipKey("fighter", 2)] = 40;
+    // Generation 1 is old once the second generation is researched.
+    ce.addTech("fighter_2");
     rearmWing(air, w, tick);
     expect(w.counts).toEqual([145, 5, 0]);
     expect(ce.stock[equipKey("fighter", 1)]).toBe(5);

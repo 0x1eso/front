@@ -187,6 +187,7 @@ const FACILITY_BUILDINGS: ReadonlySet<BuildingId> = new Set(FACILITY_IDS);
 export const DEPTH_NOTICE_KEYS: readonly string[] = [
   "events_display.ww1936_design_saved",
   "events_display.ww1936_new_chassis",
+  "events_display.ww1936_new_airframe",
   "events_display.ww1936_medal_auto",
   "events_display.ww1936_mio_size",
   "events_display.ww1936_licence_granted",
@@ -244,6 +245,7 @@ export const NOTICE_ID_PARAMS: Readonly<Record<string, string>> = {
   project: "ww1936.project",
   goal: "ww1936.faction_goal",
   chassis: "ww1936.base.tank",
+  airframe: "ww1936.base.plane",
 };
 
 const ID_LIKE = /^[a-z][a-z0-9_]*$/;
