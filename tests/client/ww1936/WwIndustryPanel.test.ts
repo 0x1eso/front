@@ -655,6 +655,28 @@ describe("<ww-industry-panel> (spec §13.3)", () => {
     ]);
   });
 
+  it("a line making an old plane is marked and one tap switches it to the best generation", async () => {
+    const m = mount({
+      summaries: [summary("DEU")],
+      details: [
+        detail("DEU", {
+          researched: ["inf_eq_1", "fighter_1", "fighter_2", "bomber_1"],
+          lines: [
+            { ...line(1, 2), equipment: "fighter" },
+            { ...line(2, 2), equipment: "fighter", gen: 2 },
+          ],
+        }),
+      ],
+    });
+    await m.open("production");
+    expect(m.q("[data-ww-line='1'] [data-ww-old]")).not.toBeNull();
+    expect(m.q("[data-ww-line='2'] [data-ww-old]")).toBeNull();
+    await m.click("[data-ww-line='1'] [data-ww-switch-best]");
+    expect(m.sent).toEqual([
+      { kind: "change_line", line: 1, equipment: "fighter", gen: 2 },
+    ]);
+  });
+
   it("icon-only buttons have names; a deficit has a real minus", async () => {
     const m = mount({
       summaries: [summary("DEU")],

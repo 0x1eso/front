@@ -150,9 +150,9 @@ describe("plane cells", () => {
   it("the library keeps one auto entry per plane cell", () => {
     const mem = new Map<string, string>();
     const s = new LibraryStore(() => ({
-      getItem: (k) => mem.get(k) ?? null,
-      setItem: (k, v) => void mem.set(k, v),
-      removeItem: (k) => void mem.delete(k),
+      getItem: (k: string) => mem.get(k) ?? null,
+      setItem: (k: string, v: string) => void mem.set(k, v),
+      removeItem: (k: string) => void mem.delete(k),
     }));
     s.add({ type: "design", def: { ...fit("small_2", "fighter"), name: "A" } });
     s.add({ type: "design", def: { ...weak("small_2"), name: "B" } });
