@@ -68,6 +68,8 @@ describe("World War 1936 P6 lists", () => {
       "research_reorder",
       // The per-slot research leaning.
       "research_lean_slot",
+      // Army templates: a whole army at once.
+      "train_army",
     ]);
   });
 
