@@ -245,4 +245,20 @@ describe("Showa Restoration on the real map", () => {
     expect(c.ruling).toBe(IDEO_FAS);
     expect(c.hasSpirit("gen_civil_strife")).toBe(true);
   }, 600_000);
+
+  it("only a Japan through the door is guarded from the generic regime crisis: the Imperial Way faction alone is not", async () => {
+    const r = await jpnGame();
+    const c = me(r);
+    mark(r, ["jpn_after_february"]);
+    crisis = 0;
+    runFocus(r, "jpn_kodoha_faction");
+    expect(c.hasFlag("jpn_showa_plot", 0)).toBe(false);
+    // 63% fascist under a neutral government: the generic crisis comes.
+    run(r, 2500);
+    expect(crisis).toBeGreaterThan(0);
+    // The door sets the flag (the weeks of the door itself are guarded too).
+    runFocus(r, "jpn_young_officers");
+    expect(c.hasFlag("jpn_showa_plot", 0)).toBe(true);
+    crisis = 0;
+  }, 600_000);
 });

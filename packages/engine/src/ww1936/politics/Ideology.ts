@@ -111,9 +111,13 @@ export function dailyIdeology(
   if (c.tag === "USA" && c.hasFlag("usa_regime_seized", day)) fire = -1;
   // So does the British royalist regime (gbr_democratic_uprising).
   if (c.tag === "GBR" && c.hasFlag("gbr_regime_seized", day)) fire = -1;
+  // The plot flag comes with the door (jpn_young_officers), not with the
+  // Imperial Way faction alone; the door's own weeks are covered too.
   if (
     c.tag === "JPN" &&
-    (c.hasFlag("jpn_regime_seized", day) || c.hasFlag("jpn_showa_plot", day))
+    (c.hasFlag("jpn_regime_seized", day) ||
+      c.hasFlag("jpn_showa_plot", day) ||
+      c.focus?.id === "jpn_young_officers")
   ) {
     fire = -1;
   }

@@ -66,7 +66,8 @@ const ANY_PLOT = [
 const EITHER_END = [["jpn_imperial_rule", "jpn_capital_rising"]] as const;
 
 export const JPN_SHOWA_FOCUSES: FocusDef[] = [
-  // (jpn_kodoha_faction sets the flag jpn_showa_plot)
+  // (jpn_young_officers sets the flag jpn_showa_plot: only a Japan that went
+  // through the door is guarded from the generic regime crisis.)
   // ---- jpn_showa_plot: the Imperial Way takes the initiative (rows 10-11) ----
   {
     // The door: the Imperial Way's young officers stop waiting.
@@ -83,6 +84,9 @@ export const JPN_SHOWA_FOCUSES: FocusDef[] = [
       { kind: "popularity", ideology: "fascist", pp: 1 },
       { kind: "stability", pct: -1 },
       { kind: "army_xp", amount: 5 },
+      // Through the door: while the plot is alive the generic regime crisis
+      // does not hand the country over (Ideology.dailyIdeology).
+      { kind: "set_flag", flag: "jpn_showa_plot" },
     ],
     ai: { base: 1 },
   },
@@ -254,7 +258,7 @@ export const JPN_SHOWA_FOCUSES: FocusDef[] = [
     group: "jpn_showa_seizure",
     prereq: [["jpn_cabinet_purge"]],
     available: { kind: "pop_ge", ideology: "fascist", pct: 35 },
-    effects: [...SEIZURE, { kind: "stability", pct: -2 }],
+    effects: [...SEIZURE, { kind: "stability", pct: -1 }],
     ai: { base: 10 },
   },
   {
@@ -268,7 +272,7 @@ export const JPN_SHOWA_FOCUSES: FocusDef[] = [
     icon: "flag",
     group: "jpn_showa_seizure",
     prereq: [["jpn_rising_route"]],
-    effects: [...SEIZURE, { kind: "stability", pct: -5 }],
+    effects: [...SEIZURE, { kind: "stability", pct: -3 }],
     ai: { base: 10 },
   },
 

@@ -925,9 +925,6 @@ export const JPN_FOCUSES: FocusDef[] = [
       { kind: "popularity", ideology: "fascist", pp: 10 },
       { kind: "stability", pct: -5 },
       { kind: "war_support", pct: 5 },
-      // The Imperial Way's own road: while the plot is alive the generic
-      // regime crisis does not hand the country over (Ideology.dailyIdeology).
-      { kind: "set_flag", flag: "jpn_showa_plot" },
     ],
     ai: { base: 3 },
   },
