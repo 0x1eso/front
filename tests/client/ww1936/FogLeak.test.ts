@@ -78,6 +78,10 @@ import {
 } from "./LandFixture";
 import { fleet, sea, seaGame, ship, SID } from "./SeaAirFixture";
 
+/** Lit writes random digits into its comment markers; a leak check reads the markup without them. */
+const noMarkers = (el: Element): string =>
+  el.innerHTML.replace(/<!--[\s\S]*?-->/g, "");
+
 // Numbers no label may contain by accident.
 const LINE = 137;
 const RESERVE = 241;
@@ -235,7 +239,7 @@ describe("fog leaks (spec §8.9)", () => {
     expect(side.textContent).toContain("n=?");
     // The whole card, text and markup (bar widths are in style attributes).
     for (const n of [LINE, RESERVE, WIDTH, "77.7", "64.1", "width: 80%"]) {
-      expect(side.innerHTML).not.toContain(String(n));
+      expect(noMarkers(side)).not.toContain(String(n));
     }
     expect(side.innerHTML).toContain("bg-gray-500");
     expect(el.querySelectorAll("[data-ww-mods='defender'] li")).toHaveLength(0);
@@ -599,7 +603,7 @@ describe("fog leaks (spec §8.9)", () => {
     ]) {
       expect(close.querySelector(sel), sel).toBeNull();
     }
-    expect(close.innerHTML).not.toContain("73");
+    expect(noMarkers(close)).not.toContain("73");
     // Blind: no forecast, only the tactics and the band (nothing of the enemy's).
     const blind = (await battleCard(0, luck)).el;
     expect(blind.querySelector("[data-ww-odds]")).toBeNull();
@@ -728,11 +732,11 @@ describe("fog leaks (spec §8.9)", () => {
     expect(box.querySelector("[data-ww-region-divisions]")!.textContent).toBe(
       "[ww1936.land.region_divisions] ours=0,theirs=?",
     );
-    expect(box.innerHTML).not.toContain("173");
-    expect(box.innerHTML).not.toContain("■■■");
+    expect(noMarkers(box)).not.toContain("173");
+    expect(noMarkers(box)).not.toContain("■■■");
     const econ = document.createElement("div");
     render(o.renderRegionEconomy(tileOf(NEAR)), econ);
-    for (const n of ["137", "241"]) expect(econ.innerHTML).not.toContain(n);
+    for (const n of ["137", "241"]) expect(noMarkers(econ)).not.toContain(n);
     expect(econ.textContent).toContain("civ=?,mil=?,dock=?");
     // The troop bar: Poland's men are hidden, mine are not.
     const pol = g.game.playerBySmallID(ID("POL"));

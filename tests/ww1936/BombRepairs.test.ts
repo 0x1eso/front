@@ -4,8 +4,8 @@ import { BUILDING_IDS } from "@openfront/engine-api/ww1936/EconomyTypes";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
 import {
-  constructionProgress,
   projectSpeedPct,
+  repairProgress,
 } from "@openfront/engine-lib/ww1936/EconomyRules";
 import type { GameRunner } from "@openfront/engine/GameRunner";
 import {
@@ -61,7 +61,7 @@ describe("World War 1936 P4: bomb damage repairs (spec §14.8)", () => {
     const q = ce.queue[0];
     const freeBefore = ce.totals.freeCivMilli + 15_000;
     expect(freeBefore).toBeGreaterThan(15_000);
-    expect(econ.repair[i]).toBe(constructionProgress(15_000, speed));
+    expect(econ.repair[i]).toBe(repairProgress(15_000, speed));
     expect(q.lastAssigned).toBe(Math.min(15_000, freeBefore - 15_000));
     expect(econ.damage[i]).toBe(2500);
     // The cost reached: the top 1,000 is mended, the rest rolls on.

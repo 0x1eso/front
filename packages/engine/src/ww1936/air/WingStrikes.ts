@@ -28,8 +28,8 @@ import {
 import { SEA_ZONE_BASE } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { bombDamageMilli } from "@openfront/engine-lib/ww1936/AirRules";
 import {
-  constructionProgress,
   projectSpeedPct,
+  repairProgress,
 } from "@openfront/engine-lib/ww1936/EconomyRules";
 import { wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { RECON_CAMERA_X } from "@openfront/engine-lib/ww1936/SeaAirRules";
@@ -705,7 +705,7 @@ function repairDaysOf(air: WwAir, h: RunHit): number {
     law: ce.law(),
     buildingPct: buildingSpeedPct(ce, b),
   });
-  return raidRepairDays(cost, constructionProgress(given, speed));
+  return raidRepairDays(cost, repairProgress(given, speed));
 }
 
 function emptyReport(

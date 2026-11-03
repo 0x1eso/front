@@ -85,8 +85,31 @@ export function projectSpeedPct(i: SpeedInput): number {
   );
 }
 
+/**
+ * Buildings take 30% less time: the construction rate is 100 / 70 of the
+ * old one (integer maths). The cost table (BUILDING_COST) stays as it is,
+ * because repairs and bomb damage read it; repairs keep the old rate
+ * (repairProgress).
+ */
+export const BUILD_RATE_NUM = 10;
+export const BUILD_RATE_DEN = 7;
+
 /** Construction milli-points a day for `assignedMilli` milli-factories. */
 export function constructionProgress(
+  assignedMilli: number,
+  speedPct: number,
+): number {
+  return Math.floor(
+    (assignedMilli *
+      WW_CIV_OUTPUT *
+      Math.max(0, 100 + speedPct) *
+      BUILD_RATE_NUM) /
+      (100 * BUILD_RATE_DEN),
+  );
+}
+
+/** Repair milli-points a day: the construction rate before the 30% cut. */
+export function repairProgress(
   assignedMilli: number,
   speedPct: number,
 ): number {

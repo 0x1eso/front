@@ -99,11 +99,13 @@ describe("production efficiency (spec §8.3)", () => {
 });
 
 describe("construction (spec §4.3)", () => {
-  test("15 civilian factories build a civilian factory in 144 days", () => {
+  // Buildings take 30% less time (was 144 civilian / 96 military days).
+  test("15 civilian factories build a civilian factory in 101 days, a military one in 68", () => {
     const perDay = constructionProgress(15_000, 0);
-    expect(Math.ceil((BUILDING_COST.civ * 1000) / perDay)).toBe(144);
+    expect(Math.ceil((BUILDING_COST.civ * 1000) / perDay)).toBe(101);
+    expect(Math.ceil((BUILDING_COST.mil * 1000) / perDay)).toBe(68);
     expect(constructionDaysLeft(BUILDING_COST.civ * 1000, 0, 1, perDay)).toBe(
-      144,
+      101,
     );
     expect(constructionDaysLeft(BUILDING_COST.civ * 1000, 0, 1, 0)).toBe(-1);
   });

@@ -99,7 +99,7 @@ describe("construction (spec §4)", () => {
     expect(q.progress).toBe(
       constructionProgress(Math.min(15_000, ce.totals.freeCivMilli), speed),
     );
-    expect(q.progress).toBe(39_375);
+    expect(q.progress).toBe(56_250);
   });
 
   test("the building appears when the cost is reached, the rest rolls on", async () => {
@@ -112,7 +112,7 @@ describe("construction (spec §4)", () => {
     expect(econ.civ[munich.id]).toBe(civ + 1);
     expect(ce.queue).toHaveLength(1);
     expect(ce.queue[0].count).toBe(1);
-    expect(ce.queue[0].progress).toBe(before + 39_375 - 10_800_000);
+    expect(ce.queue[0].progress).toBe(before + 56_250 - 10_800_000);
     // The owner hears of it, once for the day.
     const built = updates
       .flatMap((u) => u.updates[GameUpdateType.DisplayEvent])

@@ -9,8 +9,8 @@ import {
   WW_MAX_CIVS_PER_PROJECT,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
 import {
-  constructionProgress,
   projectSpeedPct,
+  repairProgress,
 } from "@openfront/engine-lib/ww1936/EconomyRules";
 import { repairBuilding } from "./Buildings";
 import { buildingSpeedPct } from "./Construction";
@@ -59,7 +59,7 @@ export function stepRepairs(
         law,
         buildingPct: buildingSpeedPct(ce, b),
       });
-      econ.repair[i] += constructionProgress(given, speed);
+      econ.repair[i] += repairProgress(given, speed);
       // Lane U: the region card shows the repair's progress.
       econ.markRegionDirty(r);
       // The top 1,000 first: a whole building works again soonest.

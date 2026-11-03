@@ -10392,7 +10392,13 @@
         "yangtze_estuary": "양쯔강 하구",
         "yunnan": "윈난",
         "zaolzie": "자올지에",
-        "zealand": "셸란"
+        "zealand": "셸란",
+        "jpn_navy_yards": "일본 해군 공창 지역(히로시마, 나가사키)",
+        "gbr_nzl_heart": "뉴질랜드 중심 지역",
+        "gbr_aus_heart": "호주 중심 지역",
+        "gbr_zaf_heart": "남아프리카 중심 지역",
+        "gbr_can_heart": "캐나다 중심 지역",
+        "gbr_raj_heart": "인도 중심 지역"
       },
       "ideo_largest_other": "가장 큰 야당 이념",
       "ideo_ruling": "집권 이념",

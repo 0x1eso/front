@@ -190,7 +190,8 @@ describe("the World War 1936 economy screens' model (spec §13)", () => {
       civs: 15,
       daysLeft: constructionDaysLeft(10_800_000, 4_000, 2, perDay),
     });
-    expect(a.daysLeft).toBe(192);
+    // 30% faster building: was 192 days.
+    expect(a.daysLeft).toBe(135);
     expect(a.progress).toBeCloseTo(4_000 / 10_800_000);
     // No factories yet: no estimate.
     expect(b.daysLeft).toBe(-1);
