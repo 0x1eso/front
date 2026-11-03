@@ -8,7 +8,8 @@ import type {
   FocusDef,
   FocusId,
 } from "@openfront/engine-api/ww1936/PoliticsTypes";
-import { T, after, any, gflag } from "../helpers";
+import { T, after, any, flag, gflag, not } from "../helpers";
+import { GBR_ROYALIST_FOCUSES } from "./gbr_royalist";
 
 // "Each Dominion" effects (spec §19.4 `who`): Canada, Australia,
 // New Zealand, South Africa and British India, in that order.
@@ -911,6 +912,7 @@ export const GBR_FOCUSES: FocusDef[] = [
     icon: "globe",
     group: "gbr_empire",
     prereq: [["gbr_imperial_conference", "gbr_dominion_call"]],
+    available: not(flag("gbr_forced_integration")),
     effects: [...OPINION_20],
     ai: { base: 10 },
   },
@@ -963,6 +965,7 @@ export const GBR_FOCUSES: FocusDef[] = [
     icon: "ballot",
     group: "gbr_empire",
     prereq: [["gbr_indian_question"]],
+    available: not(flag("gbr_forced_integration")),
     exclusive: ["gbr_india_hold"],
     effects: [
       { kind: "autonomy", who: T("RAJ"), pct: 20 },
@@ -1060,6 +1063,7 @@ export const GBR_FOCUSES: FocusDef[] = [
     icon: "crown",
     group: "gbr_empire",
     prereq: [["gbr_india_reform", "gbr_statute_commonwealth"]],
+    available: not(flag("gbr_forced_integration")),
     effects: [{ kind: "add_spirit", id: "gbr_federal_council" }, ...OPINION_15],
     ai: { base: 10 },
   },
@@ -1764,6 +1768,7 @@ export const GBR_FOCUSES: FocusDef[] = [
     ],
     ai: { base: 10 },
   },
+  ...GBR_ROYALIST_FOCUSES,
 ];
 
 /** Spec §19.4 history path (40 focuses). */
