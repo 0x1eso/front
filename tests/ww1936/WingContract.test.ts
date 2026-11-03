@@ -76,16 +76,18 @@ describe("the lists are appended, never reordered", () => {
     ]);
     const kinds = WwOrderSchema.options.map((o) => o.shape.kind.value);
     // ww9 appends thought_set after the wing orders.
-    expect(kinds.slice(-11, -5)).toEqual([...WING_ORDER_KINDS]);
-    expect(kinds.slice(-5, -4)).toEqual(["thought_set"]);
+    expect(kinds.slice(-12, -6)).toEqual([...WING_ORDER_KINDS]);
+    expect(kinds.slice(-6, -5)).toEqual(["thought_set"]);
     // The research queues append their three after it, the per-slot
     // leaning one more.
-    expect(kinds.slice(-4)).toEqual([
+    expect(kinds.slice(-5, -1)).toEqual([
       "research_reserve",
       "research_unreserve",
       "research_reorder",
       "research_lean_slot",
     ]);
+    // Army templates append train_army last.
+    expect(kinds.slice(-1)).toEqual(["train_army"]);
   });
 
   test("the wire: at most 20 wings, no empty list, no wing id 0", () => {

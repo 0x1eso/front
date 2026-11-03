@@ -174,6 +174,7 @@ const NOTICES = [
   "ww1936_general_lost",
   "ww1936_no_tile_attacks",
   "ww1936_template_added",
+  "ww1936_army_scattered",
 ];
 
 const KEYS = [

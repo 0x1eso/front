@@ -917,6 +917,8 @@ describe("fog leaks (spec §8.9)", () => {
       "hud/ww1936/LandSeaAir.ts",
       "hud/ww1936/WwAirPanel.ts",
       "hud/ww1936/WwArmyPanel.ts",
+      // Army templates: the composition of my own army and my own queue.
+      "hud/ww1936/ArmyTemplates.ts",
       // ww8 lane G: my own wings (view.wings holds mine only) and my armies.
       "hud/ww1936/WingModel.ts",
       "hud/ww1936/WwWingCard.ts",

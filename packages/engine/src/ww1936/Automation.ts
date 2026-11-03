@@ -53,6 +53,7 @@ export const AUTO_ORDER_DOMAIN: Readonly<
   research: "research",
   cancel_research: "research",
   train: "training",
+  train_army: "training",
   cancel_train: "training",
   deploy_now: "training",
   air_deploy: "air",

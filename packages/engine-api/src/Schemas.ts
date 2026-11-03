@@ -1563,6 +1563,21 @@ export const WwOrderSchema = z.discriminatedUnion("kind", [
     slot: zb.uint({ max: WW_MAX_SLOTS - 1 }),
     lean: z.enum(RESEARCH_LEANS),
   }),
+  // Army templates, appended: a whole army trained at once. The divisions
+  // deploy together into one new army in the region (0: the capital).
+  z.object({
+    kind: z.literal("train_army"),
+    items: z
+      .array(
+        z.object({
+          template: WwTemplateId,
+          count: zb.uint({ min: 1, max: WW_MAX_ARMY_DIVISIONS }),
+        }),
+      )
+      .min(1)
+      .max(WW_MAX_ARMY_DIVISIONS),
+    region: zb.uint({ max: SEA_ZONE_BASE - 1 }),
+  }),
 ]);
 export type WwOrder = z.infer<typeof WwOrderSchema>;
 /** The land war's orders (P2): what WwLand.issue takes. */

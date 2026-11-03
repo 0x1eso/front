@@ -6,6 +6,7 @@
 // never make the whole library fail to load. DesignLibraryStatus.ts checks
 // an entry against the game with the engine-lib functions the designers use.
 import { DESIGN_KINDS } from "@openfront/engine-api/ww1936/DepthTypes";
+import { WW_MAX_ARMY_DIVISIONS } from "@openfront/engine-api/ww1936/LandTypes";
 import { z } from "zod";
 
 export const LIBRARY_KEY = "ww1936-library-v1";
@@ -38,7 +39,28 @@ const TemplateContent = z.object({
   support: z.array(z.string().max(40)).max(10),
 });
 
-const Content = z.discriminatedUnion("type", [DesignContent, TemplateContent]);
+/** Army template: a list of division contents and counts, at most 24 in all. */
+const ArmyContent = z.object({
+  type: z.literal("army"),
+  name: Name,
+  items: z
+    .array(
+      z.object({
+        name: Name,
+        battalions: z.array(z.string().max(40)).max(40),
+        support: z.array(z.string().max(40)).max(10),
+        count: z.number().int().min(1).max(WW_MAX_ARMY_DIVISIONS),
+      }),
+    )
+    .min(1)
+    .max(WW_MAX_ARMY_DIVISIONS),
+});
+
+const Content = z.discriminatedUnion("type", [
+  DesignContent,
+  TemplateContent,
+  ArmyContent,
+]);
 
 export type LibContent = z.infer<typeof Content>;
 export type LibEntry = LibContent & { id: string; auto: boolean };
@@ -63,6 +85,13 @@ export function contentKey(c: LibContent): string {
     const m = [...d.modules];
     while (m.length > 0 && m[m.length - 1] === "") m.pop();
     return `d|${d.kind}|${d.base}|${m.join(",")}|${d.armorLevel ?? 0}|${d.engineLevel ?? 0}`;
+  }
+  if (c.type === "army") {
+    // The order of the items does not matter; the name does not either.
+    const parts = c.items
+      .map((i) => `${templateKey(i.battalions, i.support)}x${i.count}`)
+      .sort();
+    return `a|${parts.join(";")}`;
   }
   return templateKey(c.battalions, c.support);
 }
@@ -179,12 +208,14 @@ export class LibraryStore {
       .map((e) =>
         e.type === "design"
           ? { type: e.type, def: e.def }
-          : {
-              type: e.type,
-              name: e.name,
-              battalions: e.battalions,
-              support: e.support,
-            },
+          : e.type === "army"
+            ? { type: e.type, name: e.name, items: e.items }
+            : {
+                type: e.type,
+                name: e.name,
+                battalions: e.battalions,
+                support: e.support,
+              },
       );
     const json = JSON.stringify({ v: LIBRARY_VERSION, e: list });
     return CODE_PREFIX + toBase64(json);

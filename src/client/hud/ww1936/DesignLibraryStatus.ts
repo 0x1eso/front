@@ -15,6 +15,7 @@ import {
   SUPPORT_IDS,
   SupportId,
   TemplateDef,
+  WW_MAX_ARMY_DIVISIONS,
   WW_MAX_BATTALIONS,
   WW_MAX_SUPPORT,
   WW_MAX_TEMPLATES,
@@ -95,12 +96,27 @@ export function entryStatus(
   have: ReadonlySet<string> = existingKeys(game),
 ): EntryStatus {
   try {
+    // An army template is used from the army panel, not loaded here.
+    if (e.type === "army") return armyCardStatus(e);
     return e.type === "design"
       ? designStatus(e, game, have)
       : templateStatus(e, game, have);
   } catch {
     return stale();
   }
+}
+
+function armyCardStatus(e: Extract<LibEntry, { type: "army" }>): EntryStatus {
+  let n = 0;
+  for (const i of e.items) n += i.count;
+  return {
+    state: "have",
+    reason: translateText("ww1936.army_tpl.total", {
+      n,
+      max: WW_MAX_ARMY_DIVISIONS,
+    }),
+    order: null,
+  };
 }
 
 const HAVE = (): EntryStatus => ({
@@ -287,7 +303,7 @@ export class LibraryAuto {
 
 /** The name an entry shows (an automatic design name is drawn as the designer draws it). */
 export function entryName(e: LibEntry): string {
-  if (e.type === "template") return e.name;
+  if (e.type === "template" || e.type === "army") return e.name;
   if (!e.def.name.startsWith("@")) return e.def.name;
   try {
     return autoNameOf(e.def as DesignDef);

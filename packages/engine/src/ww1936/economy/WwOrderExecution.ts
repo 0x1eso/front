@@ -159,6 +159,7 @@ function applyOrder(
     case "template_save":
     case "template_delete":
     case "train":
+    case "train_army":
     case "cancel_train":
     case "deploy_now":
     case "army_move":

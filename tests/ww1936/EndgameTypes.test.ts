@@ -161,19 +161,20 @@ describe("World War 1936 P5 lists", () => {
     // the war overhaul (ww7) army_zone and army_auto_level, then the air
     // overhaul's (ww8) six wing orders, thought_set (ww9), and the research
     // queues' three, the per-slot leaning one last.
-    expect(kinds.slice(-20, -18)).toEqual([...WHITE_PEACE_ORDER_KINDS]);
-    expect(kinds.slice(-18, -16)).toEqual(["auto_set", "army_auto_all"]);
-    expect(kinds.slice(-16, -15)).toEqual([...LINE_PEACE_ORDER_KINDS]);
-    expect(kinds.slice(-15, -13)).toEqual(["research_lean", "research_grant"]);
-    expect(kinds.slice(-13, -11)).toEqual(["army_zone", "army_auto_level"]);
-    expect(kinds.slice(-11, -5)).toEqual([...WING_ORDER_KINDS]);
-    expect(kinds.slice(-5, -4)).toEqual(["thought_set"]);
-    expect(kinds.slice(-4)).toEqual([
+    expect(kinds.slice(-21, -19)).toEqual([...WHITE_PEACE_ORDER_KINDS]);
+    expect(kinds.slice(-19, -17)).toEqual(["auto_set", "army_auto_all"]);
+    expect(kinds.slice(-17, -16)).toEqual([...LINE_PEACE_ORDER_KINDS]);
+    expect(kinds.slice(-16, -14)).toEqual(["research_lean", "research_grant"]);
+    expect(kinds.slice(-14, -12)).toEqual(["army_zone", "army_auto_level"]);
+    expect(kinds.slice(-12, -6)).toEqual([...WING_ORDER_KINDS]);
+    expect(kinds.slice(-6, -5)).toEqual(["thought_set"]);
+    expect(kinds.slice(-5, -1)).toEqual([
       "research_reserve",
       "research_unreserve",
       "research_reorder",
       "research_lean_slot",
     ]);
+    expect(kinds.slice(-1)).toEqual(["train_army"]);
     expect(after(ARMY_ORDER_KINDS, "invade")).toEqual(["garrison"]);
     expect(after(SUPPORT_IDS, "signal")).toEqual(["military_police"]);
     expect(after(WW_TECH_IDS, "synthetic_oil_2")[0]).toBe("military_police");

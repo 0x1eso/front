@@ -67,6 +67,11 @@ const GROUPS: readonly {
     key: "ww1936.library.group_division",
     match: (e) => e.type === "template",
   },
+  {
+    id: "army",
+    key: "ww1936.army_tpl.group",
+    match: (e) => e.type === "army",
+  },
 ];
 
 const BTN =
@@ -75,6 +80,9 @@ const BTN =
 function summary(e: LibEntry, s: EntryStatus, model: DesignerModel): string {
   if (s.state === "stale") {
     return e.type === "design" ? `${e.def.kind} · ${e.def.base}` : "";
+  }
+  if (e.type === "army") {
+    return e.items.map((i) => `${i.name} ×${i.count}`).join(" · ");
   }
   if (e.type === "template") {
     return battalionSummary({
@@ -129,35 +137,37 @@ function renderCard(
       ${s.state === "ready" ? "" : s.state === "have" ? "" : "🔒 "}${s.reason}
     </div>
     <div class="flex flex-wrap gap-1">
-      <button
-        type="button"
-        data-ww-lib-load
-        aria-disabled=${String(s.order === null)}
-        class="${BTN} flex-1 ${s.order === null
-          ? "opacity-40"
-          : "border-emerald-400/60 bg-emerald-800/50"}"
-        @click=${() => {
-          if (s.order !== null) env.load(e, s);
-        }}
-      >
-        ${translateText("ww1936.library.load")}
-      </button>
-      <button
-        type="button"
-        role="switch"
-        data-ww-lib-auto
-        aria-checked=${String(e.auto)}
-        aria-disabled=${String(s.state === "stale")}
-        class="${BTN} flex items-center gap-1 ${e.auto
-          ? "border-emerald-400/70 bg-emerald-900/50"
-          : ""} ${s.state === "stale" ? "opacity-40" : ""}"
-        @click=${() => {
-          if (s.state !== "stale") env.toggleAuto(e);
-        }}
-      >
-        ${translateText("ww1936.library.auto")}
-        ${translateText(e.auto ? "ww1936.auto.on" : "ww1936.auto.off")}
-      </button>
+      ${e.type === "army"
+        ? nothing
+        : html` <button
+              type="button"
+              data-ww-lib-load
+              aria-disabled=${String(s.order === null)}
+              class="${BTN} flex-1 ${s.order === null
+                ? "opacity-40"
+                : "border-emerald-400/60 bg-emerald-800/50"}"
+              @click=${() => {
+                if (s.order !== null) env.load(e, s);
+              }}
+            >
+              ${translateText("ww1936.library.load")}
+            </button>
+            <button
+              type="button"
+              role="switch"
+              data-ww-lib-auto
+              aria-checked=${String(e.auto)}
+              aria-disabled=${String(s.state === "stale")}
+              class="${BTN} flex items-center gap-1 ${e.auto
+                ? "border-emerald-400/70 bg-emerald-900/50"
+                : ""} ${s.state === "stale" ? "opacity-40" : ""}"
+              @click=${() => {
+                if (s.state !== "stale") env.toggleAuto(e);
+              }}
+            >
+              ${translateText("ww1936.library.auto")}
+              ${translateText(e.auto ? "ww1936.auto.on" : "ww1936.auto.off")}
+            </button>`}
       <button
         type="button"
         data-ww-lib-share
