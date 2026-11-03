@@ -10,7 +10,7 @@ import {
   DesignDef,
 } from "@openfront/engine-api/ww1936/DepthTypes";
 import { WW_MAX_ARMY_DIVISIONS } from "@openfront/engine-api/ww1936/LandTypes";
-import { tankRole } from "@openfront/engine-lib/ww1936/DesignRules";
+import { planeType, tankRole } from "@openfront/engine-lib/ww1936/DesignRules";
 import { z } from "zod";
 
 export const LIBRARY_KEY = "ww1936-library-v1";
@@ -109,13 +109,20 @@ export function templateKey(
 }
 
 /**
- * The cell a tank design entry saves into (its role x its chassis), or null
- * for a ship, plane or template entry (or one too broken to tell).
+ * The cell a tank or plane design entry saves into (a tank's role x its
+ * chassis, a plane's type x its airframe), or null for a ship or template
+ * entry (or one too broken to tell).
  */
 export function cellOf(c: LibContent): string | null {
-  if (c.type !== "design" || c.def.kind !== "tank") return null;
+  if (c.type !== "design") return null;
   try {
-    return `${tankRole(c.def as DesignDef)}|${c.def.base}`;
+    if (c.def.kind === "tank") {
+      return `${tankRole(c.def as DesignDef)}|${c.def.base}`;
+    }
+    if (c.def.kind === "plane") {
+      return `plane:${planeType(c.def as DesignDef)}|${c.def.base}`;
+    }
+    return null;
   } catch {
     return null;
   }

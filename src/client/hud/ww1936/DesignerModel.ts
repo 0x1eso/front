@@ -5,6 +5,7 @@
 // the screen's open slot; the screens (WwDesigner, WwDesignSheet,
 // WwDesignList) only draw what it returns.
 import type { WwOrder } from "@openfront/engine-api/Schemas";
+import { AIR_TYPES, type AirType } from "@openfront/engine-api/ww1936/AirTypes";
 import {
   DESIGN_NAME_MAX,
   DESIGN_SLOTS,
@@ -19,6 +20,7 @@ import {
   TANK_BASES,
   TankDesignStats,
   TankRole,
+  WW_PLANE_DESIGN_SLOTS,
   WW_TANK_DESIGN_SLOTS,
   WwDesignSlotData,
 } from "@openfront/engine-api/ww1936/DepthTypes";
@@ -50,6 +52,7 @@ import {
   PLANE_BASE_DEFS,
   PLANE_MODULE_DEFS,
   planeSlotTakes,
+  planeType,
   recommendedPlane,
   recommendedShip,
   recommendedTank,
@@ -65,10 +68,18 @@ import {
 } from "@openfront/engine-lib/ww1936/DesignRules";
 import { EQUIPMENT } from "@openfront/engine-lib/ww1936/Equipment";
 import {
+  PLANE_CELL_TYPES,
+  planeScore,
+  planeTypeOnSize,
+  staticPlaneScore,
+} from "@openfront/engine-lib/ww1936/PlaneScore";
+import { planeGenTechs } from "@openfront/engine-lib/ww1936/PlaneStats";
+import {
   lineResources,
   shipStats,
 } from "@openfront/engine-lib/ww1936/ShipStats";
 import {
+  isOldScore,
   isTankGroup,
   keyStatsWithDesigns,
   oldInfoOf,
@@ -130,6 +141,12 @@ export interface TankCell {
   /** The saved design is old: more than 15 % below the best of its group. */
   old: boolean;
 }
+
+/** One cell of the plane tab: a plane type x an airframe (the same shape as a tank cell). */
+export type PlaneCell = Omit<TankCell, "role"> & { role: string };
+
+/** The plane types of the designer's type row. */
+export const PLANE_TYPES_LIST: readonly string[] = PLANE_CELL_TYPES;
 
 export const TANK_ROLES_LIST: readonly TankRole[] = [
   "tank",
@@ -288,6 +305,8 @@ export class DesignerModel {
   kind: DesignKind = "tank";
   /** The tank tab's role: the cells list is of this role, and the draft keeps it. */
   tankRoleSel: TankRole = "tank";
+  /** The plane tab's type: the cells list is of this type, and the draft keeps it. */
+  planeTypeSel = "fighter";
   /** The saved design it was opened from (a copy's base). */
   private base: DesignDef | null = null;
   /** The slot whose module sheet is open; null when closed. */
@@ -332,6 +351,7 @@ export class DesignerModel {
       this.draft = { ...base, modules: [...base.modules] };
       this.base = base;
       if (base.kind === "tank") this.tankRoleSel = tankRole(base);
+      if (base.kind === "plane") this.planeTypeSel = planeType(base);
     }
     this.bump();
   }
@@ -341,6 +361,17 @@ export class DesignerModel {
     if (role === this.tankRoleSel) return;
     this.taps++;
     this.tankRoleSel = role;
+    this.base = null;
+    this.openSlot = null;
+    this.draft = null;
+    this.bump();
+  }
+
+  /** The plane tab's type selector: the cells of that type; the draft is dropped. */
+  setPlaneType(type: string): void {
+    if (type === this.planeTypeSel) return;
+    this.taps++;
+    this.planeTypeSel = type;
     this.base = null;
     this.openSlot = null;
     this.draft = null;
@@ -373,7 +404,12 @@ export class DesignerModel {
   setBase(id: string): void {
     this.taps++;
     this.openSlot = null;
-    const saved = this.kind === "tank" ? this.cellDesign(id) : null;
+    const saved =
+      this.kind === "tank"
+        ? this.cellDesign(id)
+        : this.kind === "plane"
+          ? this.planeCellDesign(id)
+          : null;
     this.base = saved === null ? null : saved.def;
     this.draft =
       saved === null
@@ -444,7 +480,7 @@ export class DesignerModel {
         ? recommendedTank(d.base, techs, tankRole(d))
         : d.kind === "ship"
           ? recommendedShip(d.base)
-          : recommendedPlane(d.base, techs);
+          : this.planeFit(d.base, this.planeTypeSel);
     this.draft = { ...r, name: d.name };
     this.openSlot = null;
     this.bump();
@@ -510,6 +546,12 @@ export class DesignerModel {
    * is full and the draft's cell has no design of mine to overwrite.
    */
   private slotsFull(d: DesignDef): boolean {
+    if (d.kind === "plane") {
+      return (
+        this.designsOf("plane").length >= WW_PLANE_DESIGN_SLOTS &&
+        this.planeCellDesign(d.base, planeType(d)) === null
+      );
+    }
     if (d.kind !== "tank") {
       return this.designsOf(d.kind).length >= DESIGN_SLOTS[d.kind];
     }
@@ -519,10 +561,123 @@ export class DesignerModel {
     );
   }
 
-  /** A tank draft whose role is no more the cell's: it cannot be saved. */
+  /** A tank (plane) draft whose role (type) is no more the cell's: it cannot be saved. */
   roleMismatch(): boolean {
     const d = this.draft;
-    return d !== null && d.kind === "tank" && tankRole(d) !== this.tankRoleSel;
+    if (d === null) return false;
+    if (d.kind === "plane") return planeType(d) !== this.planeTypeSel;
+    return d.kind === "tank" && tankRole(d) !== this.tankRoleSel;
+  }
+
+  /** My own design in the plane cell (airframe x type); the lowest slot when an old snapshot holds several. */
+  planeCellDesign(
+    base: string,
+    type: string = this.planeTypeSel,
+  ): WwDesignSlotData | null {
+    for (const r of this.designsOf("plane")) {
+      if (
+        r.origin === "own" &&
+        r.def.base === base &&
+        planeType(r.def) === type
+      ) {
+        return r;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * The recommended fit of a plane cell: the airframe's fit for the type's
+   * family, the carrier forms with the carrier hook in the last (special) slot.
+   */
+  planeFit(base: string, type: string): DesignDef {
+    const cv = type.startsWith("cv_");
+    const fam = cv ? type.slice(3) : type;
+    let def = recommendedPlane(base, this.techs(), fam);
+    if (cv) {
+      const modules = [...def.modules];
+      modules[modules.length - 1] = "m_carrier";
+      def = { ...def, modules };
+    }
+    return def;
+  }
+
+  /** The score of a plane design on the static planes' scale (engine-lib's PlaneScore). */
+  planeScoreOf(def: DesignDef): number {
+    const st = designStats(def, this.ctx(def)) as PlaneDesignStats;
+    return planeScore(st.type, {
+      airAtk: st.airAttack,
+      airDef: st.airDefense,
+      agility: st.agility,
+      speed: st.speed,
+      range: st.range,
+      ground: st.ground,
+      strat: st.strategic,
+      naval: st.naval,
+    });
+  }
+
+  /** The best score of a plane type among the static generations my techs open and my designs. */
+  private planeBest(type: string): number {
+    const techs = this.techs();
+    let best = 0;
+    for (let g = 1; g <= 3; g++) {
+      if (!planeGenTechs(type as AirType, g).every((t) => techs.has(t))) {
+        continue;
+      }
+      if (
+        g > 1 &&
+        EQUIPMENT[type as EquipmentType].techs[g - 1] === undefined
+      ) {
+        continue;
+      }
+      best = Math.max(best, staticPlaneScore(type as AirType, g));
+    }
+    for (const r of this.designsOf("plane")) {
+      if (planeType(r.def) === type) {
+        best = Math.max(best, this.planeScoreOf(r.def));
+      }
+    }
+    return best;
+  }
+
+  /** Score and old flag of a saved plane design. */
+  planeScoreInfo(def: DesignDef): { score: number; old: boolean } {
+    const score = this.planeScoreOf(def);
+    return {
+      score,
+      old: isOldScore(score, this.planeBest(planeType(def))),
+    };
+  }
+
+  /** The airframe cells of the plane tab's type. */
+  planeCells(): PlaneCell[] {
+    const techs = this.techs();
+    const proj = this.projects();
+    const sel = this.draft?.base ?? "";
+    const out: PlaneCell[] = [];
+    for (const base of PLANE_BASES) {
+      const b = PLANE_BASE_DEFS[base];
+      if (!planeTypeOnSize(this.planeTypeSel, b.size)) continue;
+      const projectOk =
+        b.project === undefined ||
+        (proj & (1 << SPECIAL_PROJECTS.indexOf(b.project))) !== 0;
+      const saved = this.planeCellDesign(base);
+      const info = saved === null ? null : this.planeScoreInfo(saved.def);
+      out.push({
+        base,
+        role: this.planeTypeSel,
+        nameKey: `ww1936.base.plane.${base}`,
+        locked: (b.tech !== undefined && !techs.has(b.tech)) || !projectOk,
+        tech: b.tech ?? null,
+        year: techYear(b.tech),
+        selected: base === sel,
+        saved,
+        score: info?.score ?? 0,
+        old: info?.old ?? false,
+      });
+    }
+    return out;
   }
 
   /** My own design in the cell (base x role); the lowest slot when an old snapshot holds several. */
@@ -587,6 +742,12 @@ export class DesignerModel {
     old: boolean;
     best: { equipment: EquipmentType; gen: number } | null;
   } | null {
+    if (
+      equipment === "plane_design" ||
+      (AIR_TYPES as readonly string[]).includes(equipment)
+    ) {
+      return this.planeLineOld(equipment, gen);
+    }
     const j = groundSlotOf(equipKey(equipment, gen));
     const info = this.tankInfo();
     if (j < 0 || info === null || !isTankGroup(info.ks.group[j])) return null;
@@ -615,6 +776,62 @@ export class DesignerModel {
     if (best < 0 || best === j) return { old: true, best: null };
     const [t, n] = EQUIP_KEYS[GROUND_EQUIP_KEYS[best]];
     return { old: true, best: { equipment: t, gen: n } };
+  }
+
+  /** lineOld for a plane line: a static generation or a plane design of a type. */
+  private planeLineOld(
+    equipment: EquipmentType,
+    gen: number,
+  ): {
+    old: boolean;
+    best: { equipment: EquipmentType; gen: number } | null;
+  } | null {
+    let type: string;
+    let score: number;
+    if (equipment === "plane_design") {
+      const row = this.designsOf("plane").find((r) => r.slot === gen);
+      if (row === undefined) return null;
+      type = planeType(row.def);
+      score = this.planeScoreOf(row.def);
+    } else {
+      type = equipment;
+      score = staticPlaneScore(equipment as AirType, gen);
+    }
+    const best = this.planeBest(type);
+    if (!isOldScore(score, best)) return { old: false, best: null };
+    // The best key to switch to: the highest score among my techs' statics
+    // and my own or licensed designs of the type.
+    const techs = this.techs();
+    let pick: { equipment: EquipmentType; gen: number } | null = null;
+    let top = -1;
+    for (let g = 1; g <= 3; g++) {
+      if (!planeGenTechs(type as AirType, g).every((t) => techs.has(t))) {
+        continue;
+      }
+      const sc = staticPlaneScore(type as AirType, g);
+      if (sc > top) {
+        top = sc;
+        pick = { equipment: type as EquipmentType, gen: g };
+      }
+    }
+    for (const r of this.designsOf("plane")) {
+      if (
+        r.obsolete ||
+        (r.origin !== "own" && r.origin !== "licensed") ||
+        planeType(r.def) !== type
+      ) {
+        continue;
+      }
+      const sc = this.planeScoreOf(r.def);
+      if (sc > top) {
+        top = sc;
+        pick = { equipment: "plane_design", gen: r.slot };
+      }
+    }
+    if (pick === null || (pick.equipment === equipment && pick.gen === gen)) {
+      return { old: true, best: null };
+    }
+    return { old: true, best: pick };
   }
 
   /** Score and old flag of a saved tank design (slot 1-based). */
@@ -802,7 +1019,7 @@ export class DesignerModel {
     const nowId = resolvedModules(d)[slot] ?? "";
     const before = this.numbers(d);
     const rows: ModuleRow[] = [];
-    for (const id of this.candidateIds(d, slotKind)) {
+    for (const id of this.candidateIds(d, slotKind, slot)) {
       const mods = [...d.modules];
       mods[slot] = id;
       const after = this.numbers({ ...d, modules: mods });
@@ -1017,15 +1234,15 @@ export class DesignerModel {
       }
       return { ...def, name: "@" };
     }
-    const modules = slotKinds({ kind, base }).map(() => "");
-    // The weapon slot cannot stay empty (designBlock).
     if (kind === "plane") {
-      modules[0] = recommendedPlane(base, this.techs()).modules[0];
+      // A plane cell starts on the recommended fit of its type.
+      return { ...this.planeFit(base, this.planeTypeSel), name: "@" };
     }
+    const modules = slotKinds({ kind, base }).map(() => "");
     return { kind, base, modules, name: "@" } as DesignDef;
   }
 
-  private candidateIds(d: DesignDef, slotKind: string): string[] {
+  private candidateIds(d: DesignDef, slotKind: string, slot = -1): string[] {
     const out: string[] = [];
     if (d.kind === "tank") {
       const w = TANK_BASE_DEFS[d.base].weight;
@@ -1049,15 +1266,26 @@ export class DesignerModel {
       }
     } else {
       const size = PLANE_BASE_DEFS[d.base].size;
-      if (slotKind !== "weapon") out.push("");
+      if (slotKind !== "weapon" && (slot < 0 || this.keepsType(d, slot, ""))) {
+        out.push("");
+      }
       for (const [id, m] of Object.entries(PLANE_MODULE_DEFS)) {
         if (!planeSlotTakes(slotKind, id)) continue;
         if (m.sizes !== undefined && !m.sizes.includes(size)) continue;
         if (m.bases !== undefined && !m.bases.includes(d.base)) continue;
+        // Only modules that keep the cell's plane type.
+        if (slot >= 0 && !this.keepsType(d, slot, id)) continue;
         out.push(id);
       }
     }
     return out;
+  }
+
+  /** The plane draft with `id` in slot `slot` still has the cell's type. */
+  private keepsType(d: DesignDef, slot: number, id: string): boolean {
+    const modules = [...d.modules];
+    modules[slot] = id;
+    return planeType({ ...d, modules }) === this.planeTypeSel;
   }
 
   /** The draft with `id` in the (first) slot of `slotKind` still has the cell's role. */

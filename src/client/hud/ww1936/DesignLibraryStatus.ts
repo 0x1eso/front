@@ -90,13 +90,13 @@ export function existingKeys(game: StatusGame): Set<string> {
   return out;
 }
 
-/** My own tank design already sits in the cell (role x chassis) of `cell` (DesignLibrary.cellOf). */
+/** My own tank or plane design already sits in `cell` (DesignLibrary.cellOf). */
 export function cellTaken(game: StatusGame, cell: string): boolean {
   const me = game.myPlayer()?.smallID() ?? 0;
   const designs = game.wwDepth?.()?.detail(me)?.designs ?? [];
   return designs.some(
     (d) =>
-      d.kind === "tank" &&
+      d.kind !== "ship" &&
       d.origin === "own" &&
       cellOf({ type: "design", def: d.def }) === cell,
   );
