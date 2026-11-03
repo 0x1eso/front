@@ -1,6 +1,8 @@
+import type { WwDesignSlotData } from "@openfront/engine-api/ww1936/DepthTypes";
 import {
   BUILDING_IDS,
   DOCTRINE_SCHOOLS,
+  EQUIP_KEY_COUNT,
   equipKey,
   EQUIPMENT_TYPES,
   LAW_KINDS,
@@ -13,6 +15,11 @@ import {
   WwCountryDetail,
   WwLineData,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
+import {
+  NEED_GROUP_COUNT,
+  NEED_GROUPS,
+  NG_HEAVY,
+} from "@openfront/engine-api/ww1936/LandTypes";
 import { dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
 import {
   allocateResources,
@@ -73,7 +80,9 @@ import {
   SCHOOL_KEYS,
   signedText,
   slotPctOf,
-  stockRows,
+  stockRowIdle,
+  stockStatus,
+  stockTable,
   switchPreview,
   TECH_KEYS,
   topBandEconomy,
@@ -732,16 +741,101 @@ describe("the World War 1936 economy screens' model (spec §13)", () => {
     ]);
   });
 
-  it("the stockpile counts each generation and the coverage", () => {
-    const stock = new Array<number>(23).fill(0);
-    stock[equipKey("artillery", 1)] = 1_000;
-    stock[equipKey("artillery", 2)] = 920;
-    const rows = stockRows(detail("DEU", { stock }), 480_000);
-    const art = rows.find((r) => r.equipment === "artillery")!;
-    expect(art.gens).toEqual([1_000, 920, 0]);
-    // 1,920 guns for 480,000 men at 400 per 100,000: full.
-    expect(art.coverage).toBe(1);
-    expect(rows.find((r) => r.equipment === "fighter")!.coverage).toBeNull();
+  it("the stock status sentence picks its branch from short, stock and output", () => {
+    expect(stockStatus(null, 5, 2).kind).toBe("unused");
+    expect(stockStatus(0, 0, 0).kind).toBe("enough");
+    expect(stockStatus(100, 100, 0).kind).toBe("from_stock");
+    expect(stockStatus(100, 400, 0).kind).toBe("from_stock");
+    const days = stockStatus(500, 100, 3);
+    expect(days).toMatchObject({ kind: "days", days: 134, tone: "warn" });
+    const none = stockStatus(500, 100, 0);
+    expect(none).toMatchObject({ kind: "no_line", tone: "bad" });
+  });
+
+  it("the stock table sums a group's keys, orders the short first and folds the idle", () => {
+    const g = (name: string) => NEED_GROUPS.indexOf(name as never);
+    const stock = new Array<number>(EQUIP_KEY_COUNT).fill(0);
+    stock[equipKey("artillery", 1)] = 60;
+    stock[equipKey("artillery", 2)] = 40;
+    stock[equipKey("infantry_equipment", 1)] = 1_000;
+    stock[equipKey("fighter", 1)] = 7;
+    stock[equipKey("tank_design", 1)] = 30;
+    const line = (
+      equipment: "artillery" | "fighter",
+      gen: number,
+    ): WwLineData => ({
+      id: 1,
+      equipment,
+      gen,
+      factories: 2,
+      active: 2,
+      effBp: 5_000,
+      progressMilli: 0,
+      costMilli: 1_000,
+      fill: 0,
+      outputMilli: 2_000,
+    });
+    const d = detail("DEU", {
+      stock,
+      lines: [line("artillery", 1), line("fighter", 1)],
+    });
+    const short = new Array<number>(NEED_GROUP_COUNT).fill(0);
+    short[g("artillery")] = 500;
+    short[g("infantry_equipment")] = 100;
+    short[NG_HEAVY] = 20;
+    const heavy: WwDesignSlotData = {
+      kind: "tank",
+      slot: 1,
+      def: {
+        kind: "tank",
+        base: "heavy_1",
+        modules: [
+          "gun_cs",
+          "turret_3",
+          "bogie",
+          "welded",
+          "petrol",
+          "radio",
+          "",
+        ],
+        armorLevel: 0,
+        engineLevel: 0,
+        name: "Panzer",
+      },
+      origin: "own",
+      from: 0,
+      obsolete: false,
+      inUse: 0,
+    };
+    const rows = stockTable(d, short, [heavy]);
+    // Biggest shortage first, then the others in type order.
+    expect(rows.slice(0, 3).map((r) => r.id)).toEqual([
+      "artillery",
+      "infantry_equipment",
+      "heavy_tank_g",
+    ]);
+    const art = rows[0];
+    expect(art).toMatchObject({ stock: 100, short: 500, perDay: 2 });
+    // (500 - 100) / 2 a day.
+    expect(art.status).toMatchObject({ kind: "days", days: 200 });
+    // The same number the production row shows.
+    expect(art.perDay).toBe(lineRows(d)[0].perDay);
+    expect(art.parts.map((p) => p.count)).toEqual([60, 40]);
+    expect(rows[1].status.kind).toBe("from_stock");
+    // A design key sits in its design's group, named by the design.
+    expect(rows[2]).toMatchObject({ stock: 30, short: 20 });
+    expect(rows[2].status.kind).toBe("from_stock");
+    expect(rows[2].parts).toEqual([{ name: "Panzer", count: 30 }]);
+    // Planes: stock and output, no shortage.
+    const fighter = rows.find((r) => r.id === "fighter")!;
+    expect(fighter).toMatchObject({ stock: 7, short: null, perDay: 2 });
+    expect(fighter.status.kind).toBe("unused");
+    // No stock, nothing short, no output: folds away.
+    expect(rows.some(stockRowIdle)).toBe(true);
+    expect(stockRowIdle(rows.find((r) => r.id === "convoy")!)).toBe(true);
+    expect(stockRowIdle(fighter)).toBe(false);
+    // Without the land war's report nothing is claimed short.
+    expect(stockTable(d, null).every((r) => r.short === null)).toBe(true);
   });
 
   it("law ladder locks by condition and cooldown", () => {

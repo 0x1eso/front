@@ -64,7 +64,8 @@ import {
   signedText,
   slotPctOf,
   stockOnly,
-  stockRows,
+  stockRowIdle,
+  stockTable,
   switchPreview,
   TradeOffer,
   tradeOffers,
@@ -169,6 +170,8 @@ export class WwIndustryPanel extends WwDrawerBase {
   /** The line whose equipment picker is open. */
   @state() private switching: number | null = null;
   @state() private addingLine = false;
+  @state() private stockRest = false;
+  @state() private stockOpen: ReadonlySet<string> = new Set();
   /** P4 (spec §18.8): the production tab shows munitions or shipyards. */
   @state() private prodView: WwProductionView = "munitions";
   private readonly twoTap = new TwoTap();
@@ -1162,49 +1165,144 @@ export class WwIndustryPanel extends WwDrawerBase {
   }
 
   private renderStock(c: Ctx): TemplateResult {
-    // P2 (pre-flight N1): the army the stock must cover is the men in the
-    // field and in training, once the land war reports them.
-    const land = this.game?.wwLand?.()?.countries.get(c.id) ?? null;
-    const rows = stockRows(
-      c.detail,
-      land === null ? armyMenOf(c.me) : land.fieldMen + land.trainingMen,
-    );
+    const short = this.game?.wwLand?.()?.details.get(c.id)?.equipShort ?? null;
+    const designs = this.game?.wwDepth?.()?.detail(c.id)?.designs ?? [];
+    const all = stockTable(c.detail, short, designs);
+    const folded = all.filter(stockRowIdle);
+    const shown = this.stockRest ? all : all.filter((r) => !stockRowIdle(r));
+    const tone = {
+      ok: "text-emerald-300",
+      warn: "text-amber-300",
+      bad: "text-red-300",
+      idle: "text-white/60",
+    } as const;
+    const mark = { ok: "✓", warn: "…", bad: "✕", idle: "–" } as const;
+    const th =
+      "px-0.5 py-1 text-right align-bottom text-[10px] font-semibold leading-tight break-words text-white/60";
     return html`<section data-ww-stock>
       <div class=${HEADING}>${translateText("ww1936.econ.stockpile")}</div>
-      <ul class="m-0 flex list-none flex-col gap-1 p-0 text-xs">
-        ${rows.map(
-          (r) =>
-            html`<li data-ww-stock-row=${r.equipment}>
-              <div class="flex items-center gap-2">
-                <span class="min-w-0 flex-1 truncate"
-                  >${EQUIPMENT_ICONS[r.equipment]}
-                  ${equipmentName(r.equipment)}</span
+      <p class="m-0 mb-1 text-[11px] text-white/60">
+        ${translateText("ww1936.econ.stock_intro")}
+      </p>
+      <table class="w-full table-fixed text-xs tabular-nums">
+        <colgroup>
+          <col class="w-[40%]" />
+        </colgroup>
+        <thead>
+          <tr>
+            <th class="${th} text-left">
+              ${translateText("ww1936.econ.stock_col_name")}
+            </th>
+            <th class=${th}>${translateText("ww1936.econ.stock_col_stock")}</th>
+            <th class=${th}>${translateText("ww1936.econ.stock_col_short")}</th>
+            <th class=${th}>${translateText("ww1936.econ.stock_col_day")}</th>
+          </tr>
+        </thead>
+        ${shown.map((r) => {
+          const open = this.stockOpen.has(r.id);
+          const text = {
+            enough: translateText("ww1936.econ.stock_enough"),
+            from_stock: translateText("ww1936.econ.stock_from_stock"),
+            days: translateText("ww1936.econ.stock_days", { n: r.status.days }),
+            no_line: translateText("ww1936.econ.stock_no_line"),
+            unused: translateText("ww1936.econ.stock_unused"),
+            unknown: "-",
+          }[r.status.kind];
+          return html`<tbody
+            data-ww-stock-row=${r.id}
+            class="border-t border-white/10"
+          >
+            <tr
+              class="cursor-pointer ${open ? "bg-white/10" : ""}"
+              @click=${() => this.toggleStock(r.id)}
+            >
+              <td class="py-0.5">
+                <button
+                  type="button"
+                  aria-expanded=${String(open)}
+                  class="flex min-h-10 w-full items-center gap-1 text-left"
                 >
-                <span class="tabular-nums text-white/80"
-                  >${r.gens
-                    .map((n, i) => `${genName(i + 1)} ${renderNumber(n)}`)
-                    .join(" · ")}</span
-                >
-              </div>
-              ${r.coverage === null
-                ? nothing
-                : html`<div class="flex items-center gap-2">
-                    <div class="h-1 flex-1 rounded bg-white/10">
-                      <div
-                        class="h-1 rounded bg-sky-400"
-                        style="width: ${Math.round(r.coverage * 100)}%"
-                      ></div>
-                    </div>
-                    <span class="text-[11px] text-white/70"
-                      >${translateText("ww1936.econ.coverage", {
-                        n: Math.round(r.coverage * 100),
-                      })}</span
-                    >
-                  </div>`}
-            </li>`,
-        )}
-      </ul>
+                  <span aria-hidden="true"
+                    >${EQUIPMENT_ICONS[r.equipment]}</span
+                  >
+                  <span class="min-w-0 truncate">${r.name}</span>
+                </button>
+              </td>
+              <td class="px-0.5 text-right" data-ww-stock-have>
+                ${renderNumber(r.stock)}
+              </td>
+              <td
+                class="px-0.5 text-right ${(r.short ?? 0) > 0
+                  ? "font-semibold text-amber-300"
+                  : ""}"
+                data-ww-stock-short
+              >
+                ${r.short === null ? "-" : renderNumber(r.short)}
+              </td>
+              <td class="px-0.5 text-right" data-ww-stock-day>
+                ${r.perDay.toFixed(1)}
+              </td>
+            </tr>
+            <tr
+              class="cursor-pointer ${open ? "bg-white/10" : ""}"
+              @click=${() => this.toggleStock(r.id)}
+            >
+              <td
+                colspan="4"
+                data-ww-stock-status=${r.status.kind}
+                class="pb-1 pl-5 pr-1 text-[11px] leading-snug ${tone[
+                  r.status.tone
+                ]}"
+              >
+                <span aria-hidden="true">${mark[r.status.tone]}</span> ${text}
+              </td>
+            </tr>
+            ${open
+              ? html`<tr data-ww-stock-parts>
+                  <td
+                    colspan="4"
+                    class="pb-1.5 pl-5 pr-1 text-[11px] text-white/80"
+                  >
+                    ${r.parts.length === 0
+                      ? "-"
+                      : r.parts.map(
+                          (p) =>
+                            html`<div class="flex justify-between gap-2">
+                              <span class="min-w-0 truncate">${p.name}</span>
+                              <span>${renderNumber(p.count)}</span>
+                            </div>`,
+                        )}
+                  </td>
+                </tr>`
+              : nothing}
+          </tbody>`;
+        })}
+      </table>
+      ${folded.length === 0
+        ? nothing
+        : html`<button
+            type="button"
+            data-ww-stock-rest
+            aria-expanded=${String(this.stockRest)}
+            class="mt-1 min-h-10 w-full rounded-md border border-white/10 bg-white/5 text-xs"
+            @click=${() => {
+              this.stockRest = !this.stockRest;
+            }}
+          >
+            ${translateText(
+              this.stockRest
+                ? "ww1936.econ.stock_hide_rest"
+                : "ww1936.econ.stock_show_rest",
+              { n: folded.length },
+            )}
+          </button>`}
     </section>`;
+  }
+
+  private toggleStock(id: string): void {
+    const next = new Set(this.stockOpen);
+    if (!next.delete(id)) next.add(id);
+    this.stockOpen = next;
   }
 
   // ---- Resources and trade ----

@@ -1,8 +1,14 @@
 import type { WwOrder } from "@openfront/engine-api/Schemas";
 import {
+  EQUIP_KEY_COUNT,
+  equipKey,
   RESOURCE_IDS,
   type WwLineData,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
+import {
+  NEED_GROUP_COUNT,
+  NEED_GROUPS,
+} from "@openfront/engine-api/ww1936/LandTypes";
 import { EventBus } from "@openfront/shared/EventBus";
 import { render } from "lit";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -47,7 +53,7 @@ import {
 } from "./EconomyFixture";
 
 function mount(o: FakeOptions = {}) {
-  const { game, view } = fakeEconGame(o);
+  const { game, view, land } = fakeEconGame(o);
   const bus = new EventBus();
   const sent: WwOrder[] = [];
   bus.on(SendWwOrderIntentEvent, (e) => sent.push(e.order));
@@ -72,7 +78,7 @@ function mount(o: FakeOptions = {}) {
     b.click();
     await el.updateComplete;
   };
-  return { el, bus, sent, view, game, open, q, click };
+  return { el, bus, sent, view, game, land, open, q, click };
 }
 
 const project = {
@@ -138,6 +144,46 @@ describe("<ww-industry-panel> (spec §13.3)", () => {
     expect(full.q("[data-ww-block='lines_full']")!.textContent).toContain(
       "ww1936.econ.block.lines_full",
     );
+  });
+
+  it("the stock table folds the idle rows and opens a row's keys", async () => {
+    const stock = new Array<number>(EQUIP_KEY_COUNT).fill(0);
+    stock[equipKey("artillery", 1)] = 60;
+    stock[equipKey("artillery", 2)] = 40;
+    const m = mount({
+      summaries: [summary("DEU")],
+      details: [detail("DEU", { stock })],
+    });
+    const short = new Array<number>(NEED_GROUP_COUNT).fill(0);
+    short[NEED_GROUPS.indexOf("artillery")] = 500;
+    m.land.details.set(ID("DEU"), {
+      smallID: ID("DEU"),
+      templates: [],
+      training: [],
+      generals: [],
+      divisions: [],
+      equipShort: short,
+    });
+    await m.open("production");
+    const rows = () =>
+      [...m.el.querySelectorAll("[data-ww-stock-row]")].map((r) =>
+        r.getAttribute("data-ww-stock-row"),
+      );
+    // The short row first; the idle convoy folded away.
+    expect(rows()[0]).toBe("artillery");
+    expect(rows()).not.toContain("convoy");
+    expect(
+      m.q("[data-ww-stock-row='artillery'] [data-ww-stock-status]")!
+        .textContent,
+    ).toContain("ww1936.econ.stock_no_line");
+    await m.click("[data-ww-stock-rest]");
+    expect(rows()).toContain("convoy");
+    await m.click("[data-ww-stock-rest]");
+    expect(rows()).not.toContain("convoy");
+    // A tap on the row lists its keys with their counts.
+    expect(m.q("[data-ww-stock-parts]")).toBeNull();
+    await m.click("[data-ww-stock-row='artillery'] button");
+    expect(m.q("[data-ww-stock-parts]")!.textContent).toMatch(/60[\s\S]*40/);
   });
 
   it("two taps cancel a project, one does not", async () => {

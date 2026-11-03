@@ -380,18 +380,3 @@ export function researchProgress(speedPct: number, ahead: number): number {
 export function researchSlotCount(start: number, extra: number): number {
   return Math.max(0, Math.min(WW_MAX_SLOTS, start + extra));
 }
-
-// ---- Stock coverage (spec §10; the screens' stockpile bars) ----
-
-/** Per mille of full coverage (stock against men × need per 100,000). */
-export function coveragePermille(
-  stock: number,
-  troops: number,
-  needPer100k: number,
-): number {
-  if (troops <= 0 || needPer100k <= 0) return 0;
-  return Math.min(
-    1000,
-    Math.floor((stock * 100_000_000) / (troops * needPer100k)),
-  );
-}
