@@ -15,14 +15,12 @@ import {
   EQUIPMENT_TYPES,
   type EquipmentType,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
-import type { WwCountryView } from "@openfront/engine-api/ww1936/EndgameTypes";
 import { GROUND_EQUIP_KEYS } from "@openfront/engine-api/ww1936/LandTypes";
 import { renderNumber } from "@openfront/engine-lib/Format";
 import { assetUrl } from "@openfront/shared/AssetUrls";
-import IntlMessageFormat from "intl-messageformat";
-import en from "../../../../resources/lang/en.json";
 import { translateText } from "../../Utils";
 import type { GameView, PlayerView } from "../../view";
+import type { WwEndgameView } from "../../view/WwEndgameView";
 import { EQUIPMENT_KEYS } from "./EconomyModel";
 import { regionName } from "./LandModel";
 import { countryName, wwActive, type WwGame } from "./WorldWarModel";
@@ -31,41 +29,19 @@ import { countryName, wwActive, type WwGame } from "./WorldWarModel";
 export type NameGame = WwGame & Partial<Pick<GameView, "myClientID">>;
 
 /**
- * The English text of a translation key. The map labels are English
- * country names (mode spec §5.4: the map font draws Latin letters only),
- * so a civil-war slot's label is formatted from en.json whatever the UI
- * language; the screens use translateText.
+ * Spec §3.5: the map label of a country, in the name the screens show (the
+ * UI language's; the map font draws Hangul and other letters through
+ * DynamicGlyphs): the endgame's for a civil-war slot ("Free Spain") or a
+ * renamed country ("Serbia"), P0's country name otherwise. Null outside
+ * World War 1936 (`tag` null): the PlayerInfo name stays.
  */
-export function englishText(
-  key: string,
-  params: Record<string, string> = {},
-): string {
-  let node: unknown = en;
-  for (const part of key.split(".")) {
-    if (typeof node !== "object" || node === null) return key;
-    node = (node as Record<string, unknown>)[part];
-  }
-  if (typeof node !== "string") return key;
-  try {
-    return new IntlMessageFormat(node, "en").format(params) as string;
-  } catch {
-    return node;
-  }
-}
-
-/**
- * Spec §3.5: the map label of a country the endgame names — a civil-war
- * slot ("Free Spain") or a renamed one ("Serbia") — in English, like every
- * map label; null when the endgame gives it no name (its PlayerInfo name,
- * the English country name, stays).
- */
-export function wwMapName(c: WwCountryView | undefined): string | null {
-  if (c === undefined || !c.nameKey) return null;
-  const arg = c.nameArg;
-  return englishText(
-    c.nameKey,
-    arg && isCountryTag(arg) ? { country: COUNTRIES[arg].name } : {},
-  );
+export function wwMapName(
+  tag: CountryTag | null,
+  smallID: number,
+  eg: Pick<WwEndgameView, "displayName"> | null,
+): string | null {
+  if (tag === null) return null;
+  return eg === null ? countryName(tag) : eg.displayName(smallID, () => tag);
 }
 
 function tagOf(game: WwGame, id: number): CountryTag | null {

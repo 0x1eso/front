@@ -805,11 +805,12 @@ export class WebGLFrameBuilder {
 
 /**
  * The name a player is labelled with on the map: its display name (which
- * honors Anonymous Names) — or, in World War 1936 P5, the endgame's English
- * name for a civil-war slot or a renamed country (spec §3.5).
+ * honors Anonymous Names) — or, in World War 1936, the name the screens use
+ * for its country (the translated country name, or the endgame's for a
+ * civil-war slot or a renamed country, spec §3.5).
  */
 function mapName(p: PlayerView, ww: WwEndgameView | null): string {
-  return wwMapName(ww?.countries.get(p.smallID())) ?? p.displayName();
+  return wwMapName(p.countryTag(), p.smallID(), ww) ?? p.displayName();
 }
 
 /** The World War 1936 endgame view; optional call: test doubles of the game predate it. */

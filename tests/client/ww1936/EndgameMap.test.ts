@@ -1,11 +1,12 @@
 // @vitest-environment jsdom
 // World War 1936 P5 (lane U3): the endgame on the map — a civil-war slot's
-// English label and flag pushed once, nothing pushed in a vanilla game, and
+// label and flag pushed once, nothing pushed in a vanilla game, and
 // the six civil-war slots' distinct colours.
 import { COUNTRIES } from "@openfront/engine-api/ww1936/Countries";
 import type { WwCountryView } from "@openfront/engine-api/ww1936/EndgameTypes";
 import { colord } from "colord";
 import { describe, expect, it } from "vitest";
+import { translateText } from "../../../src/client/Utils";
 import { WebGLFrameBuilder } from "../../../src/client/WebGLFrameBuilder";
 import { GameView } from "../../../src/client/view/GameView";
 import { WwEndgameView } from "../../../src/client/view/WwEndgameView";
@@ -40,6 +41,7 @@ function setup(ww: WwEndgameView | null | undefined) {
     isPlayer: () => true,
     id: () => "p7",
     smallID: () => SID,
+    countryTag: () => "CW1",
     displayName: () => "Breakaway State 1",
     static: { id: "p7", smallID: SID },
     cosmetics: {},
@@ -55,13 +57,19 @@ function setup(ww: WwEndgameView | null | undefined) {
 }
 
 describe("endgame names on the map", () => {
-  it("a civil war slot gets its English label and flag once", () => {
+  it("a civil war slot gets its label (the screens' name) and flag once", () => {
     const ww = new WwEndgameView();
     ww.countries.set(SID, cw1());
     const { builder, game, names, uploads } = setup(ww);
     builder.syncWwCountries(game);
     expect(names).toHaveLength(1);
-    expect(names[0].get("p7")).toBe("Free Poland");
+    // The map draws the name the screens show, in the UI language (Hangul
+    // through the name pass's dynamic glyphs), not the English one.
+    expect(names[0].get("p7")).toBe(
+      translateText("ww1936.cw_name.democratic", {
+        country: translateText("ww1936.country.POL"),
+      }),
+    );
     expect(uploads).toHaveLength(1);
     expect(uploads[0][0].flag).toMatch(/ww_cw_democratic\.svg$/);
     // The same view again pushes nothing.

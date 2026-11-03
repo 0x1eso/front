@@ -7,7 +7,7 @@ import type { GlyphTables } from "./AtlasData";
 import { CHAR_RANGE, MAX_CHARS } from "./Types";
 
 export interface LayoutResult {
-  charCodes: Uint8Array; // char code per slot (MAX_CHARS, zero-padded)
+  charCodes: Uint8Array | Uint16Array; // char code per slot (MAX_CHARS, zero-padded)
   cursors: Float32Array; // centered cursor X per slot (MAX_CHARS)
   halfWidth: number; // visual half-width in font units
 }
@@ -16,21 +16,26 @@ export interface LayoutResult {
  * Lay out a string: encode char codes, compute advance-based cursor X
  * positions, then center on visual bounds.
  *
- * Writes into caller-provided buffers to avoid allocation.
+ * Writes into caller-provided buffers to avoid allocation. `mapChar` turns a
+ * UTF-16 code unit into a glyph id (a name pass draws Hangul and other
+ * letters the atlas lacks through DynamicGlyphs); without it the unit is
+ * the id.
  */
 export function layoutString(
   text: string,
   glyph: GlyphTables,
   kernTable: Int8Array,
-  charCodes: Uint8Array,
+  charCodes: Uint8Array | Uint16Array,
   cursors: Float32Array,
+  mapChar?: (unit: number) => number,
 ): number {
   charCodes.fill(0);
   cursors.fill(0);
   const len = Math.min(text.length, MAX_CHARS);
 
   for (let i = 0; i < len; i++) {
-    charCodes[i] = text.charCodeAt(i);
+    const unit = text.charCodeAt(i);
+    charCodes[i] = mapChar === undefined ? unit : mapChar(unit);
   }
 
   // Advance-based cursor positions
@@ -40,7 +45,7 @@ export function layoutString(
     const code = charCodes[i];
     cursors[i] = cumulative;
     let adv = glyph.advance[code];
-    if (i > 0) {
+    if (i > 0 && prevCode < CHAR_RANGE && code < CHAR_RANGE) {
       adv += kernTable[prevCode * CHAR_RANGE + code];
     }
     cumulative += adv;

@@ -11,6 +11,7 @@ import type { RenderSettings } from "../../RenderSettings";
 import nameFragSrc from "../../shaders/name/name.frag.glsl?raw";
 import nameVertSrc from "../../shaders/name/name.vert.glsl?raw";
 import { createProgram, shaderSrc } from "../../utils/GlUtils";
+import type { PendingCell } from "./DynamicGlyphs";
 import type { ParsedAtlas } from "./Types";
 import { LINES_PER_PLAYER, MAX_CHARS } from "./Types";
 
@@ -58,6 +59,8 @@ export class TextProgram {
     gl: WebGL2RenderingContext,
     atlas: ParsedAtlas,
     textures: TextProgramTextures,
+    /** Atlas pixels of extra height below the baked image (DynamicGlyphs). */
+    private readonly extraHeight = 0,
   ) {
     this.gl = gl;
     this.textures = textures;
@@ -158,11 +161,63 @@ export class TextProgram {
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
+      if (this.extraHeight === 0) {
+        gl.texImage2D(
+          gl.TEXTURE_2D,
+          0,
+          gl.RGBA,
+          gl.RGBA,
+          gl.UNSIGNED_BYTE,
+          img,
+        );
+      } else {
+        // The baked image on top, spare cells for DynamicGlyphs below it.
+        gl.texImage2D(
+          gl.TEXTURE_2D,
+          0,
+          gl.RGBA,
+          img.width,
+          img.height + this.extraHeight,
+          0,
+          gl.RGBA,
+          gl.UNSIGNED_BYTE,
+          null,
+        );
+        gl.texSubImage2D(
+          gl.TEXTURE_2D,
+          0,
+          0,
+          0,
+          gl.RGBA,
+          gl.UNSIGNED_BYTE,
+          img,
+        );
+      }
       this.atlasTex = tex;
       this.atlasReady = true;
     };
     img.src = atlasUrl;
+  }
+
+  /** Write dynamic glyph cells into the atlas texture; false until it loads. */
+  uploadCells(cells: PendingCell[], cellSize: number): boolean {
+    if (!this.atlasReady) return false;
+    const gl = this.gl;
+    gl.bindTexture(gl.TEXTURE_2D, this.atlasTex);
+    for (const c of cells) {
+      gl.texSubImage2D(
+        gl.TEXTURE_2D,
+        0,
+        c.x,
+        c.y,
+        cellSize,
+        cellSize,
+        gl.RGBA,
+        gl.UNSIGNED_BYTE,
+        c.pixels,
+      );
+    }
+    return true;
   }
 
   draw(
