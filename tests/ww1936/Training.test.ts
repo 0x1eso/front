@@ -154,7 +154,7 @@ describe("training (P2 spec §5.1)", () => {
     expect(ce.manpower).toBe(500);
   });
 
-  test("below 50% equipment it waits; at 90 days it deploys", async () => {
+  test("below 50% equipment it waits; at 45 days it deploys", async () => {
     const { runner, updates, l, id, cl, ce, issue, nextDay } = await germany();
     ce.manpower = 50_000;
     setStock(ce, "infantry_equipment", 5_000);
@@ -163,15 +163,15 @@ describe("training (P2 spec §5.1)", () => {
     setStock(ce, "artillery", 0);
     expect(issue(train(INFANTRY))).toBeNull();
     const s = l.templateStatsOf(id, INFANTRY)!;
-    expect(s.trainDays).toBe(90);
+    expect(s.trainDays).toBe(45);
     nextDay(); // starts
-    nextDay(s.trainDays); // 90 days of training
+    nextDay(s.trainDays); // 45 days of training
     expect(cl.trainees).toHaveLength(1);
-    expect(cl.trainees[0].days).toBe(90);
+    expect(cl.trainees[0].days).toBe(45);
     expect(l.armiesOf(id)).toHaveLength(0);
     expect(l.countryDetail(cl).training[0].trainees[0]).toMatchObject({
-      days: 90,
-      need: 90,
+      days: 45,
+      need: 45,
     });
     // The screen says why: the guns, the lowest fill the engine deploys on,
     // though the cost-weighted bar is above half.
@@ -242,15 +242,15 @@ describe("training (P2 spec §5.1)", () => {
     expect(issue(train(INFANTRY))).toBeNull();
     const entry = cl.training[0].id;
     nextDay(); // starts
-    nextDay(45);
-    expect(cl.trainees[0].days).toBe(45);
+    nextDay(22);
+    expect(cl.trainees[0].days).toBe(22);
     expect(issue({ kind: "deploy_now", entry: 999 })).toBe("bad_index");
     expect(issue({ kind: "deploy_now", entry })).toBeNull();
     expect(cl.trainees).toHaveLength(0);
     expect(cl.training).toHaveLength(0);
     const [a] = l.armiesOf(id);
     const r = l.divisions.rowOf(a.divisions[0]);
-    expect(l.divisions.org[r]).toBe(Math.floor((l.orgMaxOf(r) * 45) / 90));
+    expect(l.divisions.org[r]).toBe(Math.floor((l.orgMaxOf(r) * 22) / 45));
     expect(issue({ kind: "deploy_now", entry })).toBe("bad_index");
   });
 

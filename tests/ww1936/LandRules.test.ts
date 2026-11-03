@@ -179,7 +179,7 @@ describe("templates (P2 spec §4.3, §4.4)", () => {
       hardnessPm: 0,
       speedCenti: 400,
       supplyMilli: 890,
-      trainDays: 90,
+      trainDays: 45,
     });
     // EQUIPMENT_TYPES order: infantry, support, artillery, ...
     expect(s.need.slice(0, 3)).toEqual([700, 35, 24]);
@@ -239,7 +239,7 @@ describe("templates (P2 spec §4.3, §4.4)", () => {
     expect(templateStats(armour, gd("gd_mobile", true), GEN1).orgMilli).toBe(
       base + 5_000,
     );
-    expect(templateStats(inf, gd("gd_mass", false), GEN1).trainDays).toBe(60);
+    expect(templateStats(inf, gd("gd_mass", false), GEN1).trainDays).toBe(30);
   });
 
   test("divisionStats and strength follow equipment and men", () => {

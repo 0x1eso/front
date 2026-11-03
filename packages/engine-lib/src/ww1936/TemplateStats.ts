@@ -163,6 +163,9 @@ export function groupDrawSlots(ks: KeyStatsTable, g: number): number[] {
   return out.sort((a, b) => ks.year[b] - ks.year[a] || a - b);
 }
 
+/** Owner, 2026-11-03: training takes half the time of the battalion tables. */
+export const WW_TRAIN_TIME_PCT = 50;
+
 const clampGen = (g: number) => Math.max(100, Math.min(300, g));
 /** Attack, defence, breakthrough and HP: 100 / 125 / 150 % at gen 1 / 2 / 3. */
 export function genStatPct(g: number): number {
@@ -483,7 +486,7 @@ export function templateStats(
     hardnessPm: n === 0 ? 0 : Math.floor(hardSum / n),
     speedCenti: n === 0 ? 0 : speed,
     supplyMilli: supply,
-    trainDays: train,
+    trainDays: Math.floor((train * WW_TRAIN_TIME_PCT) / 100),
     need,
     parts,
     flags,
