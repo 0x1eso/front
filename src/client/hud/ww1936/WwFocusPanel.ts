@@ -1198,19 +1198,10 @@ export class WwFocusPanel extends LitElement implements Controller {
     return st === FOCUS_PREREQ && c.cards.get(this.selected)?.reserve === true;
   }
 
-  /** A tap on the tree: pick the card, and with a focus running reserve it (open, or locked behind a reserved one). */
+  /** A tap on the tree only picks the card; reserving takes the card's queue button. */
   private pick(pos: number) {
     this.selected = pos;
     this.chipMenu = false;
-    const c = this.ctx();
-    if (c === null || pos < 0 || c.dead || c.running < 0) return;
-    const st = c.states[pos];
-    if (
-      (st === FOCUS_OPEN || this.reservable(c, st)) &&
-      c.queue.length < WW_FOCUS_QUEUE
-    ) {
-      this.send({ kind: "focus_queue", focus: c.tree[pos].id });
-    }
   }
 
   private mark(ok: boolean): TemplateResult {

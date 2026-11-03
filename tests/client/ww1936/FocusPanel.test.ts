@@ -215,6 +215,8 @@ describe("<ww-focus-panel> (spec §21.3)", () => {
       ),
     );
     await busy.pick("deu_four_year_plan");
+    // Picking a card alone reserves nothing: that takes the button.
+    expect(busy.sent).toEqual([]);
     await busy.click("[data-ww-focus-action='queue']");
     // Anti-Comintern needs only the running focus: it can be queued too.
     await busy.pick("deu_anti_comintern");
