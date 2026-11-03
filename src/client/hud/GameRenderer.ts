@@ -58,11 +58,11 @@ import { TutorialPanel } from "./layers/TutorialPanel";
 import { UnitDisplay } from "./layers/UnitDisplay";
 import { WinModal } from "./layers/WinModal";
 import { loadAllSprites } from "./SpriteLoader";
-import { occupationMapSource } from "./ww1936/EndgameModel";
 import { fogModelOf } from "./ww1936/FogModel";
 import { landSidesOf, landWarInputsOf, setLandSides } from "./ww1936/LandModel";
 import { setLandSeaAir } from "./ww1936/LandSeaAir";
 import { landSelectionOf } from "./ww1936/LandSelection";
+import { lensMapSource } from "./ww1936/LensModel";
 import { linePeaceMapSource } from "./ww1936/LinePeaceModel";
 import { seaAirFacts } from "./ww1936/NavyModel";
 import { wingUiOf } from "./ww1936/WingUi";
@@ -83,6 +83,7 @@ import { WwFocusPanel } from "./ww1936/WwFocusPanel";
 import { WwIndustryPanel } from "./ww1936/WwIndustryPanel";
 import { WwIntelPanel } from "./ww1936/WwIntelPanel";
 import { LandTapBus, WwLandController } from "./ww1936/WwLandController";
+import { WwLens } from "./ww1936/WwLens";
 import { WwNavyPanel } from "./ww1936/WwNavyPanel";
 import { WwNewsTicker } from "./ww1936/WwNewsTicker";
 import { strikeFlowOf, WwNukeFlow } from "./ww1936/WwNukeFlow";
@@ -504,6 +505,12 @@ export function createRenderer(
     wwAirLegend.game = game;
     wwAirLegend.eventBus = eventBus;
   }
+  // World War 1936 w14: the map lens button, its list and legend.
+  const wwLens = document.querySelector("ww-lens");
+  if (wwLens instanceof WwLens) {
+    wwLens.game = game;
+    wwLens.eventBus = eventBus;
+  }
   const wwWingCard = document.querySelector("ww-wing-card");
   if (wwWingCard instanceof WwWingCard) {
     wwWingCard.game = game;
@@ -713,7 +720,8 @@ export function createRenderer(
     if (wwEndgame !== null) {
       view.setWwEndgame(wwEndgame);
       // P5 (spec §20.2–§20.3): the occupation and peace conference map modes.
-      view.setOccupationMap(occupationMapSource(game));
+      // w14: the lenses ride the same pass (the occupation lens is this mode).
+      view.setOccupationMap(lensMapSource(game, seaAirOf(game).selection));
       // …the negotiated peace's pick mode and the line peace's map over it.
       view.setPeaceMap(linePeaceMapSource(game));
     }
@@ -777,6 +785,7 @@ export function createRenderer(
     wwTopBand,
     wwDiplomacyPanel,
     ...(wwDials instanceof WwDials ? [wwDials] : []),
+    ...(wwLens instanceof WwLens ? [wwLens] : []),
     ...(wwIndustryPanel instanceof WwIndustryPanel ? [wwIndustryPanel] : []),
     ...(wwResearchPanel instanceof WwResearchPanel ? [wwResearchPanel] : []),
     ...(wwArmyPanel instanceof WwArmyPanel ? [wwArmyPanel] : []),

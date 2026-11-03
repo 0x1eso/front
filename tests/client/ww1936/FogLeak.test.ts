@@ -38,10 +38,18 @@ import {
   OpenWwBattleEvent,
 } from "../../../src/client/hud/ww1936/LandSelection";
 import {
+  lensCells,
+  lensReadout,
+  UNKNOWN,
+} from "../../../src/client/hud/ww1936/LensModel";
+import {
   playerActions,
   politicsInput,
 } from "../../../src/client/hud/ww1936/PoliticsModel";
-import { WwFleetSelectedEvent } from "../../../src/client/hud/ww1936/SeaAirSelection";
+import {
+  SeaAirSelection,
+  WwFleetSelectedEvent,
+} from "../../../src/client/hud/ww1936/SeaAirSelection";
 import { today } from "../../../src/client/hud/ww1936/WorldWarModel";
 import "../../../src/client/hud/ww1936/WwArmyCard";
 import type { WwArmyCard } from "../../../src/client/hud/ww1936/WwArmyCard";
@@ -56,6 +64,7 @@ import { ShipSpriteProgram } from "../../../src/client/render/gl/passes/FleetTok
 import { preloadAtlasData } from "../../../src/client/render/gl/passes/name-pass/AtlasData";
 import { NamePass } from "../../../src/client/render/gl/passes/name-pass/index";
 import { LINES_PER_PLAYER } from "../../../src/client/render/gl/passes/name-pass/Types";
+import { packOccupationTable } from "../../../src/client/render/gl/passes/OccupationPass";
 import { createRenderSettings } from "../../../src/client/render/gl/RenderSettings";
 import {
   hitToken,
@@ -1007,6 +1016,53 @@ describe("fog leaks (spec §8.9)", () => {
     ]) {
       expect(fs.existsSync(path.join(root, r)), r).toBe(true);
     }
+  });
+
+  it("w14: the lenses draw an enemy region's factories, forts and supply only as the fog allows", () => {
+    // Poland's Warsaw (NEAR) is built up: 5 civilian, 7 military, 3 docks, fort 4.
+    const built = region(NEAR, { civ: 5, mil: 7, dock: 3, fort: 4 });
+    const lensGame = (level: number) =>
+      fogGame({ level, regions: [built], landRegions: undefined });
+    const cellOf = (g: ReturnType<typeof fogGame>, lens: string, id: number) =>
+      lensCells(
+        g.game as never,
+        Object.assign(new SeaAirSelection(), { regionLens: lens }),
+      ).find((c) => c.region === id);
+    for (const lens of ["industry", "defence"]) {
+      // No intel: the cell is the flat "unknown" colour, the same as a region
+      // with nothing in it, and the packed GPU bytes of both are equal.
+      const hidden = lensGame(0);
+      const a = cellOf(hidden, lens, NEAR)!;
+      const b = cellOf(hidden, lens, FAR)!;
+      expect(a.rgb, lens).toEqual(UNKNOWN);
+      expect(a.rgb, lens).toEqual(b.rgb);
+      expect(a.level).toBe(b.level);
+      const table = packOccupationTable([a]);
+      const other = packOccupationTable([{ ...a, region: FAR }]);
+      expect(table.reduce((n, x) => n + x, 0)).toBe(
+        other.reduce((n, x) => n + x, 0),
+      );
+      // Exact intel: the colour tells the buildings.
+      const exact = lensGame(100);
+      expect(cellOf(exact, lens, NEAR)!.rgb, lens).not.toEqual(UNKNOWN);
+    }
+    // Enemy supply never gets a cell, with or without intel.
+    expect(cellOf(lensGame(100), "supply", NEAR)).toBeUndefined();
+    // The readout: "?" and ranges, never the exact counts.
+    const g0 = lensGame(0);
+    const sel = (regionLens: string) =>
+      Object.assign(new SeaAirSelection(), { regionLens });
+    const ind = lensReadout(g0.game as never, sel("industry"), NEAR)!;
+    expect(ind.lines.join("|")).toContain("mil=?");
+    const def = lensReadout(g0.game as never, sel("defence"), NEAR)!;
+    expect(def.lines.join("|")).toContain("pos=?");
+    expect(def.lines.join("|")).not.toContain("■");
+    const exact = lensReadout(
+      lensGame(100).game as never,
+      sel("industry"),
+      NEAR,
+    )!;
+    expect(exact.lines.join("|")).toContain("mil=7");
   });
 
   it("fogs the fleet layout, the air deployments and the paradrop flights", () => {

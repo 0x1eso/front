@@ -31,7 +31,6 @@ import {
   politicsDial,
   politicsInput,
 } from "./PoliticsModel";
-import { WwAirLayerEvent } from "./SeaAirSelection";
 import { prepEndTick, today, wwActive } from "./WorldWarModel";
 import { autoMaskOf } from "./WwAutoUi";
 import {
@@ -448,7 +447,8 @@ export class WwDials extends LitElement implements Controller {
           this.held = false;
           return;
         }
-        this.eventBus.emit(new WwAirLayerEvent(!m.airLayer));
+        // w14: the air layer is a lens now (the lens button); a tap opens the air drawer.
+        this.eventBus.emit(new OpenWwAirEvent());
       },
       m.airLayer,
       () => this.holdStart(),

@@ -60,6 +60,7 @@ import {
   levelDots,
   regionLandLines,
 } from "../ww1936/LandModel";
+import { LENS_NAME_KEYS, lensReadout } from "../ww1936/LensModel";
 import { fleetName, regionSeaAirLines } from "../ww1936/NavyModel";
 import {
   countryName,
@@ -76,6 +77,7 @@ import {
   WwDrawerId,
 } from "../ww1936/WwDrawer";
 import { landTookTap } from "../ww1936/WwLandController";
+import { seaAirOf } from "../ww1936/WwSeaAirController";
 import { ShowPlayerChatEvent } from "./ChatModal";
 import { ShowPlayerEmojiMenuEvent } from "./EmojiTable";
 import { ImmunityBarVisibleEvent } from "./ImmunityTimer";
@@ -1021,9 +1023,32 @@ export class PlayerInfoOverlay extends LitElement implements Controller {
               })}</span
             >`}
       </div>
-      ${this.renderRegionOccupation(tile)} ${this.renderRegionEconomy(tile)}
-      ${this.renderRegionLand(tile)} ${this.renderRegionSeaAir(tile)}
-      ${this.renderRegionDepth(tile)}`;
+      ${this.renderRegionLens(tile)} ${this.renderRegionOccupation(tile)}
+      ${this.renderRegionEconomy(tile)} ${this.renderRegionLand(tile)}
+      ${this.renderRegionSeaAir(tile)} ${this.renderRegionDepth(tile)}`;
+  }
+
+  /**
+   * World War 1936 w14: while a map lens is on, the region's value under
+   * that lens (the fog's rules are the lens model's). Like the rest of this
+   * card it shows only for taps the land flow did not take.
+   */
+  private renderRegionLens(tile: TileRef) {
+    const sel = seaAirOf(this.game).selection;
+    if (sel.regionLens === "none") return "";
+    const s = this.game.worldWarScenario();
+    if (s === null) return "";
+    const r = lensReadout(this.game, sel, s.regionAt(tile));
+    if (r === null || r.lines.length === 0) return "";
+    return html`<div
+      data-ww-region-lens=${sel.regionLens}
+      class="border-t border-amber-300/40 bg-amber-900/30 px-3 py-1.5 text-sm"
+    >
+      <div class="font-semibold text-amber-300">
+        ${translateText(LENS_NAME_KEYS[sel.regionLens])}
+      </div>
+      ${r.lines.map((l) => html`<div class="text-white/90">${l}</div>`)}
+    </div>`;
   }
 
   /**
@@ -1177,7 +1202,10 @@ export class PlayerInfoOverlay extends LitElement implements Controller {
       ${l.bombed === null || seen.buildings === "hidden"
         ? ""
         : html`<span data-ww-region-bombed class="text-red-300"
-            >${this.bombDamageText(seen.label(l.bombed.stopped), l.bombed.repairPct)}</span
+            >${this.bombDamageText(
+              seen.label(l.bombed.stopped),
+              l.bombed.repairPct,
+            )}</span
           >`}
       ${docked.map(
         (d) =>
@@ -1379,7 +1407,11 @@ export class PlayerInfoOverlay extends LitElement implements Controller {
       ? "opacity-100 visible"
       : "opacity-0 invisible pointer-events-none";
 
-    const leftHalf = this.wwDrawers.size > 0;
+    // w14: a map lens keeps its legend in the right half, as a drawer does.
+    const leftHalf =
+      this.wwDrawers.size > 0 ||
+      (this.game.worldWarScenario() !== null &&
+        seaAirOf(this.game).selection.regionLens !== "none");
     return html`
       <div
         data-info-card-left=${String(leftHalf)}
