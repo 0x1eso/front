@@ -1728,7 +1728,7 @@ export function lineDepthOf(
 ): LineDepthCtx | undefined {
   const view = game.wwDepth?.();
   const d = view?.detail(me);
-  if (view == null || d === undefined) return undefined;
+  if (view === undefined || view === null || d === undefined) return undefined;
   return lineDepthCtxOf(
     (kind, slot) =>
       d.designs.find((x) => x.kind === kind && x.slot === slot) ?? null,
