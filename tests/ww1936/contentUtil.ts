@@ -130,8 +130,6 @@ export const CONTENT_TARGETS = {
   generic: 31,
   DEU: 100,
   GBR: 137,
-  SUN: 97,
-  GBR: 98,
   SUN: 106,
   // P5 (P5 spec §18, pre-flight §0-12): the four new trees, 46 each.
   ITA: 97,
