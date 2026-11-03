@@ -42,7 +42,7 @@ import {
   wingBaseXY,
   type WingPose,
 } from "../../../view/WingTokenLayout";
-import type { WwAirView } from "../../../view/WwAirView";
+import { deploymentPlanes, type WwAirView } from "../../../view/WwAirView";
 import type { WwNavyView } from "../../../view/WwNavyView";
 import {
   contrailLength,
@@ -360,6 +360,17 @@ export class AirSortiePass {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
   }
 
+  /**
+   * The plane atlas loads on first need. Every path that draws a plane asks
+   * (a sortie, a wreck, a wing in flight): the wing model draws no sortie
+   * and a quiet sky no wreck, and the planes were blank without the atlas.
+   */
+  private requestAtlas(): void {
+    if (this.atlasRequested) return;
+    this.atlasRequested = true;
+    void this.loadAtlas();
+  }
+
   private async loadAtlas(): Promise<void> {
     if (typeof Image === "undefined") return;
     try {
@@ -448,9 +459,7 @@ export class AirSortiePass {
     for (const d of air.deployments.values()) {
       if (d.owner !== me) continue;
       const key = d.sr * 16 + AIR_TYPES.indexOf(d.type);
-      let n = 0;
-      for (const c of d.counts) n += c;
-      mine.set(key, (mine.get(key) ?? 0) + n);
+      mine.set(key, (mine.get(key) ?? 0) + deploymentPlanes(d));
     }
     for (const d of air.deployments.values()) {
       if (!changed.has(d.sr)) continue;
@@ -628,6 +637,7 @@ export class AirSortiePass {
         ? b.planes
         : (fog?.planesSeen(b.owner, b.planes) ?? b.planes);
       const k = drawnPlanes(seen);
+      if (k > 0) this.requestAtlas();
       const look = LOOK.get(AIR_TYPES[b.type])!;
       const scale = flightScale(UT_BOMBER, pose.progress);
       const px = -Math.sin(pose.heading);
@@ -660,8 +670,7 @@ export class AirSortiePass {
     d: AirDeploySummary,
     me: number,
   ): number {
-    let planes = 0;
-    for (const c of d.counts) planes += c;
+    const planes = deploymentPlanes(d);
     if (d.owner !== me) return planes;
     const side = air.mySide();
     const ti = AIR_TYPES.indexOf(d.type);
@@ -745,10 +754,7 @@ export class AirSortiePass {
     s.track.setLine(bx, by, cx, cy, 0, start);
     s.track.jumpTo(0, start);
     s.track.glideTo(len, start, s.legMs);
-    if (!this.atlasRequested) {
-      this.atlasRequested = true;
-      void this.loadAtlas();
-    }
+    this.requestAtlas();
     return true;
   }
 
@@ -803,10 +809,7 @@ export class AirSortiePass {
     pick.owner = owner;
     pick.size = size;
     this.onWreck?.(x, y);
-    if (!this.atlasRequested) {
-      this.atlasRequested = true;
-      void this.loadAtlas();
-    }
+    this.requestAtlas();
   }
 
   /** A carpet of bombs over `region`, flown from (fromX, fromY) (-1: from the west). */
@@ -939,9 +942,7 @@ export class AirSortiePass {
       sum.clear();
       for (const d of air.deployments.values()) {
         if (d.owner !== me) continue;
-        let n = 0;
-        for (const c of d.counts) n += c;
-        sum.set(d.sr, (sum.get(d.sr) ?? 0) + n);
+        sum.set(d.sr, (sum.get(d.sr) ?? 0) + deploymentPlanes(d));
       }
       const sc = air.scenario;
       const W = sc.width;
