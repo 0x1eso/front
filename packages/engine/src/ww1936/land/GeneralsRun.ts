@@ -118,10 +118,20 @@ function freeGeneral(land: WwLand, cl: CountryLand, a: Army): void {
  * country's `nextTitleNo`, the counter LandStartRun's 1936 titled generals
  * take theirs from).
  */
-function autoGenerals(land: WwLand, cl: CountryLand, day: number): void {
+export function autoGenerals(
+  land: WwLand,
+  cl: CountryLand,
+  day: number,
+  only?: ReadonlySet<number>,
+): void {
   const bare = land
     .armiesOf(cl.smallID)
-    .filter((a) => a.general === 0 && a.divisions.length > 0);
+    .filter(
+      (a) =>
+        a.general === 0 &&
+        a.divisions.length > 0 &&
+        (only === undefined || only.has(a.id)),
+    );
   if (bare.length === 0) return;
   const sum = (g: GeneralState) => g.att + g.dfn + g.plan + g.log;
   const free = cl.generals
