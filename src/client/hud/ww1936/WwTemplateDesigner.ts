@@ -145,6 +145,8 @@ export class WwTemplateDesigner extends LitElement {
   @property({ attribute: false }) templateId = 0;
   /** The template a new one copies (0: none). */
   @property({ attribute: false }) baseId = 0;
+  /** The lobby's preparation screen: no copy or delete (the templates are not a game's). */
+  @property({ type: Boolean }) lobby = false;
   @state() private draft: TemplateDef = {
     name: "",
     battalions: [],
@@ -792,7 +794,7 @@ export class WwTemplateDesigner extends LitElement {
       >
         ${translateText("ww1936.land.designer_save")}
       </button>
-      ${t === null
+      ${t === null || this.lobby
         ? nothing
         : html`<button
               type="button"

@@ -34,6 +34,8 @@ export interface LibraryEnv {
   game: DesignerGame & Parameters<typeof existingKeys>[0];
   ui: LibraryUi;
   load: (e: LibEntry, s: EntryStatus) => void;
+  /** The lobby's preparation screen: a card edits as a draft instead of loading into a game. */
+  edit?: (e: LibEntry) => void;
   del: (e: LibEntry) => void;
   toggleAuto: (e: LibEntry) => void;
   share: (ids?: readonly string[]) => void;
@@ -139,19 +141,28 @@ function renderCard(
     <div class="flex flex-wrap gap-1">
       ${e.type === "army"
         ? nothing
-        : html` <button
-              type="button"
-              data-ww-lib-load
-              aria-disabled=${String(s.order === null)}
-              class="${BTN} flex-1 ${s.order === null
-                ? "opacity-40"
-                : "border-emerald-400/60 bg-emerald-800/50"}"
-              @click=${() => {
-                if (s.order !== null) env.load(e, s);
-              }}
-            >
-              ${translateText("ww1936.library.load")}
-            </button>
+        : html`${env.edit
+              ? html`<button
+                  type="button"
+                  data-ww-lib-edit
+                  class="${BTN} flex-1 border-sky-400/60 bg-sky-800/40"
+                  @click=${() => env.edit?.(e)}
+                >
+                  ${translateText("ww1936.prep.edit_entry")}
+                </button>`
+              : html`<button
+                  type="button"
+                  data-ww-lib-load
+                  aria-disabled=${String(s.order === null)}
+                  class="${BTN} flex-1 ${s.order === null
+                    ? "opacity-40"
+                    : "border-emerald-400/60 bg-emerald-800/50"}"
+                  @click=${() => {
+                    if (s.order !== null) env.load(e, s);
+                  }}
+                >
+                  ${translateText("ww1936.library.load")}
+                </button>`}
             <button
               type="button"
               role="switch"

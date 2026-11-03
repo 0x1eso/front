@@ -10949,6 +10949,28 @@
       "value_signed": "{v, number, ::sign-always}",
       "who_prefix": "{who}: "
     },
+    "prep": {
+      "approximate": "approximate: the stock is not known yet",
+      "applied": "Start templates applied: {n}",
+      "button": "Prepare templates and designs",
+      "designs_intro": "Create and edit tank, plane and ship designs and division entries. The ones switched to auto are made when the game starts; any that need parts this country has not researched are skipped.",
+      "draft_note": "Draft mode: no research lock, and numbers shown without country modifiers.",
+      "edit": "Edit",
+      "edit_entry": "Edit",
+      "edited": "edited",
+      "from_library": "From library",
+      "library_none": "No library division fits this country's 1936 research.",
+      "minor_note": "This country's start templates depend on its development, which is not known here. Only its main template can be changed.",
+      "new_division": "New division",
+      "preview": "With this template: {n} start divisions (was {was})",
+      "preview_unknown": "The division count cannot be previewed for this country.",
+      "reset": "Reset",
+      "skipped": "Start template {name} skipped: {reason}",
+      "start_intro": "Change the start templates of your country. When the game starts, the edited ones are applied and the start divisions are re-formed from the same men.",
+      "tab_designs": "Designs",
+      "tab_templates": "Start templates",
+      "title": "Preparation"
+    },
     "project": {
       "sp_atomic": "Atomic Bomb Project",
       "sp_ballistic": "Ballistic Rocket",

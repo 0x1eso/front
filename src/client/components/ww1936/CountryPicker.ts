@@ -121,12 +121,34 @@ export class CountryPicker extends LitElement {
     </button>`;
   }
 
+  /** Opens the preparation screen of the picked country (loaded on demand: it carries the designers). */
+  private async openPrep() {
+    const tag = this.selected;
+    if (tag === null || document.querySelector("ww-lobby-prep") !== null) {
+      return;
+    }
+    await import("../../hud/ww1936/WwLobbyPrep");
+    const el = document.createElement("ww-lobby-prep");
+    el.tag = tag;
+    document.body.appendChild(el);
+  }
+
   render() {
     return html`
       <div class="space-y-4">
         <p class="text-sm text-white/70">
           ${translateText("ww1936.lobby.pick_hint")}
         </p>
+        ${this.selected === null
+          ? nothing
+          : html`<button
+              type="button"
+              data-ww-prep-open
+              class="min-h-11 w-full rounded-xl border border-sky-400/60 bg-sky-500/20 px-4 py-2 text-sm font-bold text-white hover:bg-sky-500/30"
+              @click=${() => void this.openPrep()}
+            >
+              ${translateText("ww1936.prep.button")}
+            </button>`}
         <div class="grid grid-cols-2 gap-2 md:grid-cols-4">
           ${MAJOR_TAGS.map((t) => this.card(t))}
         </div>
