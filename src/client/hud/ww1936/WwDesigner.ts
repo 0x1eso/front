@@ -325,6 +325,7 @@ export class WwDesigner extends WwDrawerBase {
                   m.setBase(c.id);
                   return;
                 }
+                if (m.draftMode) m.setBase(c.id);
                 if (c.tech !== null) {
                   this.showLockedTip(
                     translateText("ww1936.design.module_locked", {
@@ -547,7 +548,9 @@ export class WwDesigner extends WwDrawerBase {
 
   private renderBottom(m: DesignerModel): TemplateResult {
     const d = m.draft;
-    const block = m.block();
+    const draft = m.draftMode;
+    // Draft mode: only the library's checks count (research lock lifted).
+    const block = draft ? m.libraryBlock() : m.block();
     // Final review D (D1): a name the order's schema refuses never saves.
     const badName = d !== null && !m.nameOk();
     const armed = m.isSaveArmed(performance.now());
@@ -605,6 +608,18 @@ export class WwDesigner extends WwDrawerBase {
         />
         <button
           type="button"
+          data-ww-draft-toggle
+          role="switch"
+          aria-checked=${String(draft)}
+          class="${BTN} h-10 min-w-10 ${draft
+            ? "border-amber-400/70 bg-amber-500/20"
+            : ""}"
+          @click=${() => m.setDraftMode(!draft)}
+        >
+          ${translateText("ww1936.library.draft")}
+        </button>
+        <button
+          type="button"
           data-ww-recommend
           class="${BTN} h-8"
           ?disabled=${d === null}
@@ -629,7 +644,7 @@ export class WwDesigner extends WwDrawerBase {
           class="${BTN} h-8 ${armed
             ? "border-amber-400/70 bg-amber-500/20"
             : ""}"
-          ?disabled=${d === null || block !== null || badName}
+          ?disabled=${d === null || draft || block !== null || badName}
           @click=${() => this.onSave(m)}
         >
           ${translateText(
@@ -643,6 +658,8 @@ export class WwDesigner extends WwDrawerBase {
   private saveToLibrary(m: DesignerModel): void {
     const d = m.draft;
     if (d === null || !m.nameOk()) return;
+    const lb = m.draftMode ? m.libraryBlock() : m.block();
+    if (lb !== null && lb !== "design_slots_full") return;
     const r = this.store.add({
       type: "design",
       def: { ...d, modules: [...d.modules] },

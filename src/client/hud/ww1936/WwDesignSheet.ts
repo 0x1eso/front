@@ -63,14 +63,14 @@ function renderRow(
     type="button"
     data-ww-module-row=${r.id}
     data-ww-blocked=${r.block === null ? nothing : "true"}
-    aria-disabled=${r.block === null ? "false" : "true"}
+    aria-disabled=${r.block === null || r.draftable ? "false" : "true"}
     class="flex min-h-11 w-full shrink-0 flex-col gap-0.5 rounded-md border px-2 py-1 text-left text-xs ${r.current
       ? "border-sky-400/60 bg-sky-500/10"
-      : "border-white/10 bg-white/5"} ${r.block === null
+      : "border-white/10 bg-white/5"} ${r.block === null || r.draftable
       ? "hover:bg-white/10"
-      : "opacity-50"}"
+      : "opacity-50"} ${r.draftable ? "opacity-70" : ""}"
     @click=${() => {
-      if (r.block === null) pick(r.id);
+      if (r.block === null || r.draftable) pick(r.id);
     }}
   >
     <span class="flex items-center gap-1">
@@ -88,13 +88,16 @@ function renderRow(
             })}</span
           >`}
     </span>
-    ${r.block === null
+    ${r.block === null || r.draftable
       ? html`<span class="flex flex-wrap gap-1"
           >${r.chips.map(renderChip)}</span
         >`
-      : html`<span class="text-[11px] text-amber-300"
+      : nothing}
+    ${r.block !== null
+      ? html`<span class="text-[11px] text-amber-300"
           >${blockText(r.block)}</span
-        >`}
+        >`
+      : nothing}
   </button>`;
 }
 

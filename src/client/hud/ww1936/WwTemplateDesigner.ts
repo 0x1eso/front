@@ -157,6 +157,8 @@ export class WwTemplateDesigner extends LitElement {
   @state() private refused: WwOrderBlock | null = null;
   /** The line after [save to library]. */
   @state() private libNote = "";
+  /** "Draft for the library": locked parts can be picked; only the library save is open. */
+  @state() private draftMode = false;
   /** The template this one copies on save (its id), once [Copy] was pressed. */
   private copyOf = 0;
   private editing = 0;
@@ -548,13 +550,13 @@ export class WwTemplateDesigner extends LitElement {
           data-ww-pick=${id}
           data-locked=${String(missing !== undefined)}
           data-design-only=${String(designOnly)}
-          aria-disabled=${String(missing !== undefined)}
+          aria-disabled=${String(missing !== undefined && !this.draftMode)}
           class="flex min-h-9 w-full items-center gap-2 rounded-md border px-2 py-1 text-left text-xs ${missing ===
           undefined
             ? "border-white/15 bg-white/5 hover:bg-white/15"
             : "border-white/5 bg-gray-900/60 text-white/45"}"
           @click=${() => {
-            if (missing === undefined) pick();
+            if (missing === undefined || this.draftMode) pick();
           }}
         >
           <span aria-hidden="true" class="w-5 text-center">${icon}</span>
@@ -702,6 +704,18 @@ export class WwTemplateDesigner extends LitElement {
         </button>
         <button
           type="button"
+          data-ww-draft-toggle
+          role="switch"
+          aria-checked=${String(this.draftMode)}
+          class="${cls} ${this.draftMode
+            ? "border-amber-400/70 bg-amber-500/20"
+            : ""}"
+          @click=${() => (this.draftMode = !this.draftMode)}
+        >
+          ${translateText("ww1936.library.draft")}
+        </button>
+        <button
+          type="button"
           data-ww-lib-open
           class="${cls}"
           @click=${() =>
@@ -725,6 +739,7 @@ export class WwTemplateDesigner extends LitElement {
     const t = this.template(id);
     const deleteKey = `delete:${id}`;
     const save = () => {
+      if (this.draftMode) return;
       if (block !== null) {
         this.refused = block;
         return;
@@ -769,8 +784,8 @@ export class WwTemplateDesigner extends LitElement {
       <button
         type="button"
         data-ww-designer-save
-        aria-disabled=${String(block !== null)}
-        class="${cls} ${block !== null
+        aria-disabled=${String(block !== null || this.draftMode)}
+        class="${cls} ${block !== null || this.draftMode
           ? "border-white/5 bg-white/5 text-white/40"
           : "border-emerald-400/60 bg-emerald-800/50"}"
         @click=${save}

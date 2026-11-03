@@ -22,6 +22,7 @@ import {
 } from "@openfront/engine-api/ww1936/DepthTypes";
 import {
   RESOURCE_IDS,
+  WW_TECH_IDS,
   WwOrderBlock,
   WwTechId,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
@@ -77,6 +78,12 @@ export interface StatChip {
   sign: StatSign;
 }
 
+/** Draft mode: every technology and project counted as done (engine-lib checks only). */
+const ALL_RESEARCH: Pick<DesignBlockCtx, "techs" | "projects"> = {
+  techs: new Set<WwTechId>(WW_TECH_IDS),
+  projects: (1 << SPECIAL_PROJECTS.length) - 1,
+};
+
 export interface BaseChip {
   id: string;
   /** Translation key of the chip's name (a ship base has a class and a type). */
@@ -120,6 +127,8 @@ export interface ModuleRow {
   costDiff: number;
   /** Why it cannot be taken; null when it can. */
   block: ModuleBlock | null;
+  /** Draft mode: the only thing in the way is the research lock, so it can be drafted. */
+  draftable: boolean;
 }
 
 export interface StatRow {
@@ -247,6 +256,12 @@ export class DesignerModel {
   /** The screen redraws through this on a change. */
   onChange: (() => void) | null = null;
   private readonly saveTap = new TwoTap();
+  /**
+   * "Draft for the library": locked chassis, modules and projects can be
+   * picked, but the only save is the library's. The game's own checks
+   * (`block()`, `save()`) never look at this flag.
+   */
+  draftMode = false;
   private techMemo: { src: unknown; set: ReadonlySet<WwTechId> } | null = null;
   private memo: { key: string; env: number; n: Numbers | null } | null = null;
 
@@ -274,6 +289,14 @@ export class DesignerModel {
       this.draft = { ...base, modules: [...base.modules] };
       this.base = base;
     }
+    this.bump();
+  }
+
+  /** The draft-for-the-library switch. */
+  setDraftMode(on: boolean): void {
+    if (on === this.draftMode) return;
+    this.taps++;
+    this.draftMode = on;
     this.bump();
   }
 
@@ -370,7 +393,12 @@ export class DesignerModel {
    * returns the order, or null while armed or when the draft is refused.
    */
   tapSave(nowMs: number): WwOrder | null {
-    if (this.draft === null || this.block() !== null || !this.nameOk()) {
+    if (
+      this.draftMode ||
+      this.draft === null ||
+      this.block() !== null ||
+      !this.nameOk()
+    ) {
       return null;
     }
     this.taps++;
@@ -383,7 +411,12 @@ export class DesignerModel {
   }
 
   save(): WwOrder | null {
-    if (this.draft === null || this.block() !== null || !this.nameOk()) {
+    if (
+      this.draftMode ||
+      this.draft === null ||
+      this.block() !== null ||
+      !this.nameOk()
+    ) {
       return null;
     }
     return { kind: "design_save", def: this.draft } as WwOrder;
@@ -408,6 +441,18 @@ export class DesignerModel {
       return "design_slots_full";
     }
     return null;
+  }
+
+  /**
+   * Draft mode: why the draft cannot go to the library. The same engine-lib
+   * checks as block() with the research lock lifted (every technology and
+   * project counted as done); shape and slot checks still apply, and the
+   * full design list does not matter for a library entry.
+   */
+  libraryBlock(): WwOrderBlock | null {
+    const d = this.draft;
+    if (d === null) return "bad_base";
+    return designBlock(d, { ...this.blockCtx(), ...ALL_RESEARCH });
   }
 
   /**
@@ -559,6 +604,7 @@ export class DesignerModel {
       const after = this.numbers({ ...d, modules: mods });
       const asId =
         d.kind === "tank" && id === "" ? tankDefault(d.base, slot) : id;
+      const block = this.moduleBlock(d, slot, id, techs, proj);
       rows.push({
         id,
         current: asId === nowId,
@@ -567,7 +613,8 @@ export class DesignerModel {
           before === null || after === null
             ? 0
             : (after.cost - before.cost) / after.costDiv,
-        block: this.moduleBlock(d, slot, id, techs, proj),
+        block,
+        draftable: this.draftMode && block !== null && !block.duplicate,
       });
     }
     return rows;

@@ -9635,6 +9635,7 @@
       "copy": "Copy",
       "copy_failed": "Could not copy. Select the code and copy it by hand.",
       "delete": "Delete",
+      "draft": "Draft",
       "empty": "Your library is empty. Save a design or a division from its designer and it will be here in every game.",
       "export_all": "Export all",
       "full": "The library is full. Delete an entry first.",
