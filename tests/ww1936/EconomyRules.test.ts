@@ -14,7 +14,6 @@ import {
   constructionDaysLeft,
   constructionProgress,
   consumerGoodsMilli,
-  coveragePermille,
   EFF_FLOOR_BP,
   effAfterAdding,
   effAfterSwitch,
@@ -332,15 +331,6 @@ describe("research (spec §9)", () => {
   });
 });
 
-describe("stock coverage (spec §10; the stockpile bars)", () => {
-  test("coverage of the army", () => {
-    expect(coveragePermille(400, 100_000, 400)).toBe(1000);
-    expect(coveragePermille(200, 100_000, 400)).toBe(500);
-    expect(coveragePermille(5, 0, 400)).toBe(0);
-    expect(coveragePermille(5, 100, 0)).toBe(0);
-  });
-});
-
 describe("start values (spec §11)", () => {
   test("majors use their table, the others the formula", () => {
     expect(startLaws("DEU")).toEqual({
@@ -373,12 +363,8 @@ describe("start values (spec §11)", () => {
     const pol = startStock("POL", 60_000, 4, 2);
     expect(pol[equipKey("infantry_equipment", 1)]).toBe(600);
     // 30% artillery and 20% support coverage of 60,000 men.
-    expect(coveragePermille(pol[equipKey("artillery", 1)], 60_000, 400)).toBe(
-      300,
-    );
-    expect(
-      coveragePermille(pol[equipKey("support_equipment", 1)], 60_000, 300),
-    ).toBe(200);
+    expect(pol[equipKey("artillery", 1)]).toBe(72);
+    expect(pol[equipKey("support_equipment", 1)]).toBe(36);
     expect(pol[equipKey("fighter", 1)]).toBe(60);
   });
 });

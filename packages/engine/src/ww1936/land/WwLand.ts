@@ -40,6 +40,7 @@ import {
   MOVE_RAIL,
   MOVE_RETREAT,
   MOVE_SEA,
+  NEED_GROUP_COUNT,
   RegionLandData,
   STANCES,
   SupportId,
@@ -64,6 +65,7 @@ import { GENERALS } from "@openfront/engine-lib/ww1936/Generals";
 import { idHash } from "@openfront/engine-lib/ww1936/Roll";
 import {
   divisionStatsAt,
+  equipByType,
   equipFill,
   equipFillPm,
   genMixInto,
@@ -2501,6 +2503,12 @@ export class WwLand {
     const ce = this.econ.country(id);
     const inUse = new Map<number, number>();
     const divisions: DivisionData[] = [];
+    const equipShort = new Array<number>(NEED_GROUP_COUNT).fill(0);
+    const addShort = (need: readonly number[], held: readonly number[]) => {
+      for (let g = 0; g < need.length; g++) {
+        if (need[g] > held[g]) equipShort[g] += need[g] - held[g];
+      }
+    };
     for (const r of this.rowsOf(id)) {
       inUse.set(t.template[r], (inUse.get(t.template[r]) ?? 0) + 1);
       const orgMax = this.orgMaxOf(r);
@@ -2510,6 +2518,10 @@ export class WwLand {
         this.keyStatsOf(t.owner[r]),
       );
       const need = this.baseStatsOf(r).need;
+      addShort(
+        need,
+        equipByType(t.equipOf(r), this.keyStatsOf(t.owner[r])),
+      );
       let equipPm = 1000;
       fill.forEach((f, i) => {
         if (need[i] > 0) equipPm = Math.min(equipPm, f);
@@ -2534,6 +2546,9 @@ export class WwLand {
         .filter((x) => x.entry === e.id)
         .map((x) => {
           const ts = this.templateStatsOf(id, x.template);
+          if (ts !== null) {
+            addShort(ts.need, equipByType(x.equip, this.keyStatsOf(id)));
+          }
           return {
             days: x.days,
             need: ts?.trainDays ?? 0,
@@ -2609,6 +2624,7 @@ export class WwLand {
       training,
       generals,
       divisions,
+      equipShort,
       ...(gaps.length > 0 ? { gaps } : {}),
     };
   }

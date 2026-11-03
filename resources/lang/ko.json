@@ -4566,7 +4566,6 @@
       "close_trade": "다시 누르면 닫기",
       "consumer_goods": "소비재 {n}",
       "cooldown": "{n}일 기다려야 함",
-      "coverage": "충족 {n}%",
       "days_left": "{n}일",
       "efficiency": "효율 {n}% (상한 {cap}%)",
       "export_room": "하루 {n} 판매 가능",
@@ -4633,7 +4632,19 @@
       "troops": "병력",
       "used": "사용",
       "slot_chip": "연구 칸 {n}/{max}",
-      "slot_ready": "지금 중점이나 결정으로 연구 칸을 늘릴 수 있습니다"
+      "slot_ready": "지금 중점이나 결정으로 연구 칸을 늘릴 수 있습니다",
+      "stock_intro": "부족은 보유 사단과 훈련 중인 병력이 편제대로 다 갖추기까지 아직 모자란 수량입니다.",
+      "stock_col_name": "장비",
+      "stock_col_stock": "재고",
+      "stock_col_short": "부족",
+      "stock_col_day": "하루 생산",
+      "stock_enough": "넉넉함",
+      "stock_from_stock": "비축분으로 채우는 중",
+      "stock_days": "지금 생산량으로 약 {n} 일",
+      "stock_no_line": "생산 라인 없음",
+      "stock_unused": "사단이 쓰지 않음",
+      "stock_show_rest": "나머지 보기 ({n})",
+      "stock_hide_rest": "나머지 접기"
     },
     "effect": {
       "airDetectPct": "공중 탐지 +{n}%",

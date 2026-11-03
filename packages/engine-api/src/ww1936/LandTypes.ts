@@ -591,6 +591,13 @@ export interface CountryLandDetail {
   training: TrainingData[];
   generals: GeneralData[];
   divisions: DivisionData[];
+  /**
+   * Units still missing per need group (NEED_GROUPS order) to bring every
+   * division and trainee to its template's full need: the sum of
+   * max(0, need - held), so a surplus in one division never cancels a
+   * shortage in another. Derived when the detail is built; not state.
+   */
+  equipShort?: number[];
   /** ww7: border regions facing a country at war with us where none of our divisions stands or is headed. */
   gaps?: number[];
 }

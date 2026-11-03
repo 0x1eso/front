@@ -7,11 +7,15 @@
 import type { TileRef } from "@openfront/engine-api/game/GameMap";
 import { UnitType } from "@openfront/engine-api/game/GameTypes";
 import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
-import { SPECIAL_PROJECTS } from "@openfront/engine-api/ww1936/DepthTypes";
+import {
+  SPECIAL_PROJECTS,
+  type WwDesignSlotData,
+} from "@openfront/engine-api/ww1936/DepthTypes";
 import {
   BuildingId,
   DoctrineSchool,
   EconomyLaw,
+  EQUIP_KEYS,
   equipKey,
   EQUIPMENT_GENS,
   EQUIPMENT_TYPES,
@@ -41,6 +45,10 @@ import {
 } from "@openfront/engine-api/ww1936/EconomyTypes";
 import {
   BATTALION_IDS,
+  GROUND_EQUIP_KEYS,
+  GROUND_STATIC_SLOTS,
+  NEED_GROUP_COUNT,
+  NEED_GROUPS,
   SUPPORT_IDS,
 } from "@openfront/engine-api/ww1936/LandTypes";
 import {
@@ -50,6 +58,7 @@ import {
 import { renderNumber } from "@openfront/engine-lib/Format";
 import { BATTALIONS, SUPPORTS } from "@openfront/engine-lib/ww1936/Battalions";
 import { dayIndex } from "@openfront/engine-lib/ww1936/Calendar";
+import { designNeedGroup } from "@openfront/engine-lib/ww1936/DesignRules";
 import {
   addLineBlockOf,
   buildBlockOf,
@@ -70,7 +79,6 @@ import {
   constructionDaysLeft,
   constructionProgress,
   consumerGoodsMilli,
-  coveragePermille,
   effAfterSwitch,
   exportCapacity,
   regionSlots,
@@ -92,6 +100,10 @@ import {
   emptyStats,
   slotResearchSpeedPct,
 } from "@openfront/engine-lib/ww1936/Stats";
+import {
+  slotGroup,
+  STATIC_KEY_STATS,
+} from "@openfront/engine-lib/ww1936/TemplateStats";
 import {
   DEPTH_BUILDINGS,
   depthBuildBlock,
@@ -1664,7 +1676,7 @@ export function lineRows(detail: WwCountryDetail): LineRow[] {
     active: l.active,
     eff: l.effBp / 10_000,
     cap: detail.effCapBp / 10_000,
-    perDay: l.costMilli > 0 ? l.outputMilli / l.costMilli : 0,
+    perDay: linePerDay(l),
     shortage: shortages[index],
   }));
 }
@@ -1712,32 +1724,189 @@ export function changeLineBlock(
   return equipmentTechBlock(new Set(detail.researched), equipment, gen);
 }
 
-export interface StockRow {
-  equipment: EquipmentType;
-  /** Units by generation − 1. */
-  gens: number[];
-  total: number;
-  /** 0..1 against the army; null for a type with no P1 combat role. */
-  coverage: number | null;
+/** Units a line makes in a day; the line rows and the stock table both read it. */
+export function linePerDay(l: WwLineData): number {
+  return l.costMilli > 0 ? l.outputMilli / l.costMilli : 0;
 }
 
-/** Spec §13.3: the stockpile by type and generation, with its coverage. */
-/** `men`: the army as the engine counts it (armyMenOf). */
-export function stockRows(detail: WwCountryDetail, men: number): StockRow[] {
-  return EQUIPMENT_TYPES.map((equipment) => {
-    const gens: number[] = [];
-    for (let gen = 1; gen <= EQUIPMENT_GENS[equipment]; gen++) {
-      gens.push(detail.stock[equipKey(equipment, gen)] ?? 0);
-    }
-    const total = gens.reduce((a, b) => a + b, 0);
-    const need = EQUIPMENT[equipment].needPer100k;
+export type StockStatusKind =
+  | "enough"
+  | "from_stock"
+  | "days"
+  | "no_line"
+  | "unused"
+  | "unknown";
+
+export interface StockStatus {
+  kind: StockStatusKind;
+  /** Days at the current output (kind "days"). */
+  days: number;
+  /** The colour family: green, amber, red or grey. */
+  tone: "ok" | "warn" | "bad" | "idle";
+}
+
+export interface StockPart {
+  name: string;
+  count: number;
+}
+
+export interface StockTableRow {
+  /** The need group's name (ground equipment) or the equipment type. */
+  id: string;
+  /** The type whose icon and name the row wears. */
+  equipment: EquipmentType;
+  name: string;
+  stock: number;
+  /** Units missing across divisions and trainees; null: not a division's equipment. */
+  short: number | null;
+  perDay: number;
+  status: StockStatus;
+  parts: StockPart[];
+}
+
+/** The status sentence's branch (spec of the stock table). */
+export function stockStatus(
+  short: number | null,
+  stock: number,
+  perDay: number,
+): StockStatus {
+  if (short === null) return { kind: "unused", days: 0, tone: "idle" };
+  if (short <= 0) return { kind: "enough", days: 0, tone: "ok" };
+  if (stock >= short) return { kind: "from_stock", days: 0, tone: "ok" };
+  if (perDay > 0) {
     return {
-      equipment,
-      gens,
-      total,
-      coverage: need > 0 ? coveragePermille(total, men, need) / 1000 : null,
+      kind: "days",
+      days: Math.max(1, Math.ceil((short - stock) / perDay - 1e-9)),
+      tone: "warn",
     };
+  }
+  return { kind: "no_line", days: 0, tone: "bad" };
+}
+
+/** The need group a stock key feeds for a country: static slots by type, design slots by their design. */
+function keyGroupOf(j: number, designGroup: (slot: number) => number): number {
+  return j < GROUND_STATIC_SLOTS
+    ? slotGroup(STATIC_KEY_STATS, j)
+    : designGroup(j - GROUND_STATIC_SLOTS + 1);
+}
+
+/**
+ * The stock table: one row per need group of the ground equipment (a tank
+ * design counts in its design's group) and one per other equipment type.
+ * `short`: engine-summed per group (CountryLandDetail.equipShort), null
+ * when the land war has not reported. Rows short of something come first,
+ * the biggest shortage first; the rest keep the type order.
+ */
+export function stockTable(
+  detail: WwCountryDetail,
+  equipShort: readonly number[] | null,
+  designs: readonly WwDesignSlotData[] = [],
+): StockTableRow[] {
+  const designOf = (kind: string, slot: number) =>
+    designs.find((d) => d.kind === kind && d.slot === slot) ?? null;
+  const designGroup = (slot: number) => {
+    const d = designOf("tank", slot);
+    return d === null || d.def.kind !== "tank" ? -1 : designNeedGroup(d.def);
+  };
+  const keyName = (type: EquipmentType, gen: number): string => {
+    if (type === "tank_design" || type === "plane_design") {
+      const d = designOf(type === "tank_design" ? "tank" : "plane", gen);
+      if (d !== null) return d.def.name;
+    }
+    return `${equipmentName(type)} ${genName(gen)}`;
+  };
+  const perKey = new Map<number, number>();
+  for (const l of detail.lines) {
+    const k = equipKey(l.equipment, l.gen);
+    perKey.set(k, (perKey.get(k) ?? 0) + linePerDay(l));
+  }
+  const slotsOf: number[][] = NEED_GROUPS.map(() => []);
+  GROUND_EQUIP_KEYS.forEach((_, j) => {
+    const g = keyGroupOf(j, designGroup);
+    if (g >= 0) slotsOf[g].push(j);
   });
+  const rows: StockTableRow[] = [];
+  const groupRow = (g: number): void => {
+    const type = g < EQUIPMENT_TYPES.length ? EQUIPMENT_TYPES[g] : null;
+    const extra = [
+      "heavy_armor",
+      "tank_destroyer",
+      "sp_artillery",
+      "sp_anti_air",
+    ];
+    const parts: StockPart[] = [];
+    let stock = 0;
+    let perDay = 0;
+    for (const j of slotsOf[g]) {
+      const key = GROUND_EQUIP_KEYS[j];
+      const n = detail.stock[key] ?? 0;
+      stock += n;
+      perDay += perKey.get(key) ?? 0;
+      if (n > 0)
+        parts.push({
+          name: keyName(EQUIP_KEYS[key][0], EQUIP_KEYS[key][1]),
+          count: n,
+        });
+    }
+    const short = equipShort === null ? null : (equipShort[g] ?? 0);
+    rows.push({
+      id: NEED_GROUPS[g],
+      equipment: type ?? "medium_tank",
+      name:
+        type !== null
+          ? equipmentName(type)
+          : translateText(
+              `ww1936.battalion.${extra[g - EQUIPMENT_TYPES.length]}`,
+            ),
+      stock,
+      short,
+      perDay,
+      status:
+        short === null
+          ? { kind: "unknown", days: 0, tone: "idle" }
+          : stockStatus(short, stock, perDay),
+      parts,
+    });
+  };
+  const typeRow = (type: EquipmentType): void => {
+    const parts: StockPart[] = [];
+    let stock = 0;
+    let perDay = 0;
+    for (let gen = 1; gen <= EQUIPMENT_GENS[type]; gen++) {
+      const key = equipKey(type, gen);
+      const n = detail.stock[key] ?? 0;
+      stock += n;
+      perDay += perKey.get(key) ?? 0;
+      if (n > 0) parts.push({ name: keyName(type, gen), count: n });
+    }
+    rows.push({
+      id: type,
+      equipment: type,
+      name: equipmentName(type),
+      stock,
+      short: null,
+      perDay,
+      status: stockStatus(null, stock, perDay),
+      parts,
+    });
+  };
+  EQUIPMENT_TYPES.forEach((type, i) => {
+    if (type === "tank_design") return;
+    if (slotsOf[i].length > 0) groupRow(i);
+    else typeRow(type);
+  });
+  for (let g = EQUIPMENT_TYPES.length; g < NEED_GROUP_COUNT; g++) {
+    if (slotsOf[g].length > 0 || (equipShort?.[g] ?? 0) > 0) groupRow(g);
+  }
+  // Stable: ties keep the type order.
+  const missing = rows.filter((r) => (r.short ?? 0) > 0);
+  missing.sort((a, b) => (b.short ?? 0) - (a.short ?? 0));
+  return [...missing, ...rows.filter((r) => (r.short ?? 0) <= 0)];
+}
+
+/** Nothing in stock, nothing short and nothing made: folds under "show the rest". */
+export function stockRowIdle(r: StockTableRow): boolean {
+  return r.stock === 0 && (r.short ?? 0) === 0 && r.perDay === 0;
 }
 
 // ---- Resources and trade (spec §7, §13.3 tab 3) ----
