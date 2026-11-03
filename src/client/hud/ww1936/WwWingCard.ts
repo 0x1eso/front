@@ -307,7 +307,7 @@ export class WwWingCard extends LitElement implements Controller {
       const chips = groupChips(group, wings);
       return html`<div
         data-ww-wing-chips=${group}
-        class="flex shrink-0 items-center gap-1 overflow-x-auto"
+        class="flex shrink-0 flex-wrap items-center gap-1"
       >
         <button
           type="button"
@@ -337,7 +337,7 @@ export class WwWingCard extends LitElement implements Controller {
     const auto = wings.every((w) => w.auto);
     return html`<div
       data-ww-wing-buttons
-      class="flex shrink-0 items-center gap-1 overflow-x-auto"
+      class="flex shrink-0 flex-wrap items-center gap-1"
     >
       ${groupsFor(wings).map(
         (g) =>
@@ -425,7 +425,7 @@ export class WwWingCard extends LitElement implements Controller {
     );
     return html`<div
       data-ww-wing-escort
-      class="flex shrink-0 items-center gap-1 overflow-x-auto"
+      class="flex shrink-0 flex-wrap items-center gap-1"
     >
       <button
         type="button"

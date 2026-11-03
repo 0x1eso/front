@@ -357,10 +357,7 @@ export abstract class WwDrawerBase extends LitElement implements Controller {
     label: (t: T) => string,
     pick: (t: T) => void,
   ): TemplateResult {
-    return html`<div
-      role="tablist"
-      class="flex min-w-0 flex-1 gap-1 overflow-x-auto"
-    >
+    return html`<div role="tablist" class="flex min-w-0 flex-1 flex-wrap gap-1">
       ${tabs.map(
         (t) =>
           html`<button

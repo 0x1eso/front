@@ -435,7 +435,7 @@ export class WwResearchPanel extends WwDrawerBase {
     const now = every ? leans[0] : -1;
     return html`<div
       data-ww-lean-row
-      class="flex items-center gap-1 overflow-x-auto pb-1 text-xs"
+      class="flex flex-wrap items-center gap-1 pb-1 text-xs"
     >
       <span class="shrink-0 text-white/60"
         >${translateText("ww1936.rtree.lean_label")}</span
@@ -875,15 +875,18 @@ export class WwResearchPanel extends WwDrawerBase {
     const joint = jointPct(d, c.id);
     const base = baseSpeedPct(d, c.id);
     const block = c.block;
-    const status = block === null || block === "no_slot" ? null : block;
+    const status =
+      block === null || block === "no_slot" || c.state === "done"
+        ? null
+        : block;
     return html`<div data-ww-detail=${c.id} class="flex flex-col gap-1">
       <div class="text-sm font-bold">${techName(c.id)}</div>
       <div class="text-white/70">
         ${c.year} · ${translateText("ww1936.rtree.base_days", { n: c.days })}
       </div>
       ${c.state === "done"
-        ? html`<div class="text-emerald-300">
-            ${translateText(STATE_KEYS.done)}
+        ? html`<div data-ww-done class="font-semibold text-emerald-300">
+            ✓ ${translateText(STATE_KEYS.done)}
           </div>`
         : html`<div data-ww-eta>
             ${translateText("ww1936.rtree.speed_days", {
@@ -896,17 +899,19 @@ export class WwResearchPanel extends WwDrawerBase {
               : nothing}
           </div>`}
       ${this.renderReserve(d, n)}
-      <button
-        type="button"
-        data-ww-sheet-start
-        ?disabled=${block !== null}
-        class="min-h-10 rounded-md border border-emerald-300 bg-emerald-700 px-2 font-bold disabled:opacity-40"
-        @click=${() => this.startSelected(d)}
-      >
-        ${block === "no_slot"
-          ? translateText("ww1936.rtree.no_slot")
-          : translateText("ww1936.rtree.start")}
-      </button>
+      ${c.state === "done"
+        ? nothing
+        : html`<button
+            type="button"
+            data-ww-sheet-start
+            ?disabled=${block !== null}
+            class="min-h-10 rounded-md border border-emerald-300 bg-emerald-700 px-2 font-bold disabled:opacity-40"
+            @click=${() => this.startSelected(d)}
+          >
+            ${block === "no_slot"
+              ? translateText("ww1936.rtree.no_slot")
+              : translateText("ww1936.rtree.start")}
+          </button>`}
       ${block === "no_slot"
         ? html`<div class="text-white/60">
             ${translateText("ww1936.rtree.no_slot_hint")}
@@ -1054,7 +1059,7 @@ export class WwResearchPanel extends WwDrawerBase {
           ${translateText("ww1936.rq.reserve_btn", { n: slot + 1 })}
         </button>
       </div>
-      ${why === null
+      ${why === null || why === c.block
         ? nothing
         : html`<div data-ww-block=${why} class="text-red-300">
             🔒 ${blockText(why)}
@@ -1230,7 +1235,7 @@ export class WwResearchPanel extends WwDrawerBase {
       data-ww-next
       class="${this.open
         ? ""
-        : "fixed bottom-[calc(var(--ww-dock-h,0px)+env(safe-area-inset-bottom)+8px)] right-3 max-w-[calc(100vw-24px)] max-sm:left-1/2 max-sm:right-auto max-sm:-translate-x-1/2 [@media(max-height:420px)]:top-12 [@media(max-height:420px)]:bottom-auto "}z-[1003] flex items-center gap-2 break-keep rounded-lg border border-emerald-300/70 bg-gray-900/95 p-2 text-xs text-white shadow-lg"
+        : "fixed bottom-[calc(var(--ww-dock-h,0px)+env(safe-area-inset-bottom)+8px)] right-3 max-w-[calc(100vw-24px)] max-sm:bottom-[calc(var(--ww-dock-above,0px)+var(--ww-dock-h,0px)+env(safe-area-inset-bottom)+8px)] max-sm:left-1/2 max-sm:right-auto max-sm:-translate-x-1/2 [@media(max-height:420px)]:top-12 [@media(max-height:420px)]:bottom-auto "}z-[1003] flex items-center gap-2 break-keep rounded-lg border border-emerald-300/70 bg-gray-900/95 p-2 text-xs text-white shadow-lg"
     >
       <span>${translateText("ww1936.rtree.next_title")}</span>
       <button
@@ -1333,14 +1338,14 @@ export class WwResearchPanel extends WwDrawerBase {
     return html`<div
       data-ww-slots
       data-flash=${String(this.flash)}
-      class="flex min-w-0 flex-1 gap-1 overflow-x-auto py-1 ${this.flash
+      class="flex min-w-0 flex-1 flex-wrap gap-1 py-1 ${this.flash
         ? "animate-pulse rounded-md ring-1 ring-yellow-300"
         : ""}"
     >
       ${this.renderSlotChip(d)}
       ${slots.map(
         (s) =>
-          html`<div class="flex w-36 shrink-0 flex-col gap-0.5">
+          html`<div class="flex w-36 shrink-0 grow flex-col gap-0.5">
             ${this.renderSlot(s, queues[s.index])}${this.renderQueueButton(
               s,
               queues[s.index],

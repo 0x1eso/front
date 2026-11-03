@@ -211,6 +211,7 @@ export class WwDials extends LitElement implements Controller {
     this.rowsObserver?.disconnect();
     this.rowsObserver = null;
     document.documentElement.style.removeProperty("--ww-dock-h");
+    document.documentElement.style.removeProperty("--ww-dock-above");
   }
 
   /**
@@ -223,16 +224,19 @@ export class WwDials extends LitElement implements Controller {
     const root = document.documentElement.style;
     if (m === null) {
       root.removeProperty("--ww-dock-h");
+      root.removeProperty("--ww-dock-above");
       return;
     }
     root.setProperty("--ww-dock-h", `${dockHeightPx(m.compact)}px`);
     const rows = document.querySelector("[data-bottom-hud-rows]");
     const top = rows?.getBoundingClientRect().top ?? 0;
     const above = rows === null || top <= 0 ? 0 : window.innerHeight - top;
+    // The dock's own offset from the foot: what sits just above it (the
+    // research "next" card) adds it to the dock's height.
+    const lift = this.shown !== null ? 0 : Math.max(0, above);
+    root.setProperty("--ww-dock-above", `${lift}px`);
     this.style.bottom =
-      this.shown !== null
-        ? "env(safe-area-inset-bottom)"
-        : `${Math.max(0, above)}px`;
+      this.shown !== null ? "env(safe-area-inset-bottom)" : `${lift}px`;
   }
 
   updated() {

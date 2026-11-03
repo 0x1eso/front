@@ -472,7 +472,7 @@ export class WwFocusPanel extends LitElement implements Controller {
     const grouped = c.tree.some((d) => d.group !== undefined);
     return html`<div
       data-ww-focus-tools
-      class="flex shrink-0 items-center gap-1 overflow-x-auto border-b border-white/10 px-2 py-1"
+      class="flex shrink-0 flex-wrap items-center gap-1 border-b border-white/10 px-2 py-1"
     >
       <input
         type="search"
@@ -715,7 +715,7 @@ export class WwFocusPanel extends LitElement implements Controller {
               ${slots}
               ${folded && c !== null
                 ? this.renderChipMenu(c)
-                : html`<div class="flex min-w-0 flex-1 gap-1 overflow-x-auto">
+                : html`<div class="flex min-w-0 flex-1 flex-wrap gap-1">
                     ${chips}
                   </div>`}
               ${close}
@@ -741,7 +741,7 @@ export class WwFocusPanel extends LitElement implements Controller {
               </div>
               <div class="flex shrink-0 gap-1 px-2 pt-1">${slots}</div>
               <div
-                class="flex shrink-0 gap-1 overflow-x-auto border-b border-white/10 px-2 py-1"
+                class="flex shrink-0 flex-wrap gap-1 border-b border-white/10 px-2 py-1"
               >
                 ${chips}
               </div>`}

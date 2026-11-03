@@ -41,11 +41,25 @@ function numberBatchim(digits: string): Batchim {
   return DIGIT_BATCHIM[digits.charCodeAt(digits.length - 1) - 48];
 }
 
-/** A Latin letter's reading at the end of a word, a fair guess: m n l ng and stops have one. */
+/**
+ * The final sound of a Latin word. An all-capital word (UK, USSR) is read
+ * letter by letter, so the last letter's Korean name decides: 엘 엠 엔 알 end
+ * in a consonant (L M N R, and L and R in ㄹ), every other letter name ends
+ * in a vowel. Any other word is a fair guess by its spelling: m n l ng and
+ * stops have a final sound.
+ */
 function latinBatchim(word: string): Batchim {
-  const c = word[word.length - 1].toLowerCase();
-  if (c === "l") return "rieul";
-  return "mnkptbdgcx".includes(c) ? "other" : "none";
+  let start = word.length;
+  while (start > 0 && /[A-Za-z]/.test(word[start - 1])) start--;
+  const run = word.slice(start);
+  const c = run[run.length - 1];
+  if (run === run.toUpperCase()) {
+    if (c === "L" || c === "R") return "rieul";
+    return c === "M" || c === "N" ? "other" : "none";
+  }
+  const l = c.toLowerCase();
+  if (l === "l") return "rieul";
+  return "mnkptbdgcx".includes(l) ? "other" : "none";
 }
 
 /** The final sound of the word that ends `before`, or null when there is no word. */

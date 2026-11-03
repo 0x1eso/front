@@ -1105,7 +1105,7 @@ export class PlayerInfoOverlay extends LitElement implements Controller {
             type="button"
             data-ww-scorch
             ?disabled=${act.scorchBlock !== null}
-            class="h-9 rounded-md bg-red-800 px-3 text-xs font-semibold text-white hover:bg-red-700"
+            class="h-9 max-sm:h-10 rounded-md bg-red-800 px-3 text-xs font-semibold text-white hover:bg-red-700"
             @click=${(e: Event) => {
               e.stopPropagation();
               if (!armed) {
@@ -1135,7 +1135,7 @@ export class PlayerInfoOverlay extends LitElement implements Controller {
             type="button"
             data-ww-rocket
             ?disabled=${act.rocketBlock !== null}
-            class="h-9 rounded-md bg-amber-700 px-3 text-xs font-semibold text-white hover:bg-amber-600"
+            class="h-9 max-sm:h-10 rounded-md bg-amber-700 px-3 text-xs font-semibold text-white hover:bg-amber-600"
             @click=${(e: Event) => {
               e.stopPropagation();
               this.eventBus.emit(new WwStrikeFlowEvent("rocket", region));
@@ -1387,7 +1387,7 @@ export class PlayerInfoOverlay extends LitElement implements Controller {
           html`<button
             type="button"
             data-ww-build-here
-            class="h-9 rounded-md bg-amber-700 px-3 text-xs font-semibold text-white hover:bg-amber-600"
+            class="h-9 max-sm:h-10 rounded-md bg-amber-700 px-3 text-xs font-semibold text-white hover:bg-amber-600"
             @click=${() =>
               this.eventBus.emit(
                 new OpenWwIndustryEvent("construction", card.id),

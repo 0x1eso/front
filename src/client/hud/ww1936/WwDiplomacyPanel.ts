@@ -280,7 +280,7 @@ export class WwDiplomacyPanel extends LitElement implements Controller {
     const i = politicsInput(this.game);
     const tabs = html`<div
       role="tablist"
-      class="flex min-w-0 flex-1 gap-1 overflow-x-auto"
+      class="flex min-w-0 flex-1 flex-wrap gap-1"
     >
       ${DIPLO_DRAWER_TABS.map(
         (t) =>

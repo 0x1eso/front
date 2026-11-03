@@ -12,7 +12,7 @@ export function renderContinuousBand(
     data-open=${String(band.open)}
     class="flex shrink-0 flex-col gap-0.5 border-b border-white/10 px-2 py-1"
   >
-    <div class="flex gap-1 overflow-x-auto ${band.open ? "" : "opacity-40"}">
+    <div class="flex flex-wrap gap-1 ${band.open ? "" : "opacity-40"}">
       ${band.chips.map(
         (c) =>
           html`<button

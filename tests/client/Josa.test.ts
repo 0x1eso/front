@@ -58,6 +58,22 @@ describe("applyJosa", () => {
     );
   });
 
+  it("reads an all-capital word letter by letter", () => {
+    // 엘 엠 엔 알 end in a consonant, the other letter names in a vowel.
+    expect(
+      applyJosa("USSR이(가) UK이(가) NATO이(가) ALL이(가) GDM이(가)"),
+    ).toBe("USSR이 UK가 NATO가 ALL이 GDM이");
+    expect(applyJosa("USSR을(를) UK을(를) UK과(와) USSR과(와)")).toBe(
+      "USSR을 UK를 UK와 USSR과",
+    );
+    // 로 after a vowel and after ㄹ (L, R), 으로 after M and N.
+    expect(applyJosa("UK(으)로 USSR(으)로 ALL(으)로 GDM(으)로 USN(으)로")).toBe(
+      "UK로 USSR로 ALL로 GDM으로 USN으로",
+    );
+    // A mixed-case word is not spelled out.
+    expect(applyJosa("Paul이(가) Italy이(가)")).toBe("Paul이 Italy가");
+  });
+
   it("leaves a marker with no word before it", () => {
     expect(applyJosa("이(가) 있다")).toBe("이(가) 있다");
     expect(applyJosa("독일 이(가)")).toBe("독일 이(가)");

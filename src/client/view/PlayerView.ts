@@ -32,6 +32,7 @@ import { PlayerCosmetics } from "@openfront/shared/WireSchemas";
 import { Colord, colord } from "colord";
 import { base64url } from "jose";
 import { UserSettings } from "../UserSettings";
+import { wwMapName } from "../hud/ww1936/EndgameNames";
 import { PlayerState, PlayerStatic, PlayerTypeEnum } from "../render/types";
 import { themeProvider } from "../theme/ThemeProvider";
 import { type CosmeticOwner, visibleCosmetics } from "./CosmeticVisibility";
@@ -428,9 +429,21 @@ export class PlayerView implements PlayerLike {
       : this.static.name;
   }
   displayName(): string {
-    return this.anonymousName !== null && userSettings.anonymousNames()
-      ? this.anonymousName
-      : this.static.displayName;
+    if (this.anonymousName !== null && userSettings.anonymousNames()) {
+      return this.anonymousName;
+    }
+    // World War 1936: a country nobody plays is named as the screens and
+    // the map name it (the UI language's), never by the engine's Latin name.
+    if (this.static.clientID === null) {
+      const tag = this.countryTag();
+      if (tag !== null) {
+        return (
+          wwMapName(tag, this.smallID(), this.game.wwEndgame()) ??
+          this.static.displayName
+        );
+      }
+    }
+    return this.static.displayName;
   }
   clanTag(): string | null {
     return this.anonymousName !== null && userSettings.anonymousNames()

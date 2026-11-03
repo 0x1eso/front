@@ -347,8 +347,8 @@ export class WwDesigner extends WwDrawerBase {
     return html`
       <div
         data-ww-base-chips
-        class="flex shrink-0 items-center gap-1 overflow-x-auto border-b border-white/10 px-1"
-        style="height: ${designerBarH(window.innerWidth)}px"
+        class="flex max-h-[45vh] shrink-0 flex-wrap content-start items-center gap-1 overflow-y-auto border-b border-white/10 px-1"
+        style="min-height: ${designerBarH(window.innerWidth)}px"
       >
         ${chips.map(
           (c) =>

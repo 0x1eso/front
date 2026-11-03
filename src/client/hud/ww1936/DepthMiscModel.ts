@@ -268,21 +268,25 @@ function traitKey(id: string): string {
 export function depthNoticeParams(
   message: string,
   params: Record<string, string | number>,
-  designs: readonly { kind: string; slot: number; def: DesignDef }[] = [],
+  designs:
+    | readonly { kind: string; slot: number; def: DesignDef }[]
+    | ((kind: string, slot: number) => DesignDef | undefined) = [],
 ): Record<string, string | number> {
   if (!DEPTH_NOTICE_KEYS.includes(message)) return params;
   let out = params;
   // An unnamed design is "@" in the engine: the saved one is found by its
   // kind and slot (it is mine); a foreign one falls back to the equipment.
   if (typeof params.name === "string" && params.name.startsWith("@")) {
-    const row = designs.find(
-      (d) => d.kind === params.kind && d.slot === params.slot,
-    );
+    const def =
+      typeof designs === "function"
+        ? designs(String(params.kind), Number(params.slot))
+        : designs.find((d) => d.kind === params.kind && d.slot === params.slot)
+            ?.def;
     out = {
       ...out,
       name:
-        row !== undefined
-          ? designDisplayName(row.def)
+        def !== undefined
+          ? designDisplayName(def)
           : designNameOr(params.name, translateText("ww1936.design.unnamed")),
     };
   }

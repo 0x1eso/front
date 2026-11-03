@@ -15,6 +15,10 @@ import {
   TargetPlayerUpdate,
   UnitIncomingUpdate,
 } from "@openfront/engine-api/game/GameUpdates";
+import type {
+  DesignDef,
+  DesignKind,
+} from "@openfront/engine-api/ww1936/DepthTypes";
 import { ADMIRAL_TRAITS } from "@openfront/engine-api/ww1936/NavyTypes";
 import { EventBus } from "@openfront/shared/EventBus";
 import { html, LitElement } from "lit";
@@ -127,6 +131,8 @@ export class EventsDisplay extends LitElement implements Controller {
 
   private active: boolean = false;
   private events: GameEvent[] = [];
+  /** Notices waiting for the data they name (see designPending). */
+  private waiting: { event: DisplayMessageUpdate; tick: number }[] = [];
   private userSettings = new UserSettings();
 
   @state() private _isVisible: boolean = false;
@@ -267,6 +273,7 @@ export class EventsDisplay extends LitElement implements Controller {
         updates[ut]?.forEach(fn as (event: unknown) => void);
       }
     }
+    this.flushWaitingNotices();
 
     let remainingEvents = this.events.filter((event) => {
       const age = this.game.ticks() - event.createdAt;
@@ -373,11 +380,8 @@ export class EventsDisplay extends LitElement implements Controller {
         params = { ...params, army: armyName(params.army) };
       }
       // P6 (spec §20.11): content ids of the depth notices.
-      params = depthNoticeParams(
-        event.message,
-        params,
-        this.game?.wwDepth?.()?.detail(this.game.myPlayer()?.smallID() ?? -1)
-          ?.designs,
+      params = depthNoticeParams(event.message, params, (kind, slot) =>
+        this.savedDesign(kind, slot),
       );
       // ww8: a wing notice names its wing.
       params = wingNoticeParams(
@@ -461,6 +465,49 @@ export class EventsDisplay extends LitElement implements Controller {
     return tag === null ? p.displayName() : countryName(tag);
   }
 
+  /** My saved design of a kind and slot, from the design view or the country detail. */
+  private savedDesign(kind: string, slot: number): DesignDef | undefined {
+    const depth = this.game?.wwDepth?.() ?? null;
+    const mine = this.game?.myPlayer()?.smallID() ?? -1;
+    return (
+      depth?.designOf(mine, kind as DesignKind, slot) ??
+      depth
+        ?.detail(mine)
+        ?.designs.find((d) => d.kind === kind && d.slot === slot)?.def
+    );
+  }
+
+  /**
+   * A "design saved" notice reaches the client a tick before the design
+   * does (the world-war step hands its views over before the intent that
+   * saved it ran), so it waits for the design, a few ticks at most.
+   */
+  private designPending(event: DisplayMessageUpdate): boolean {
+    const p = event.params;
+    return (
+      event.message === "events_display.ww1936_design_saved" &&
+      p !== undefined &&
+      typeof p.name === "string" &&
+      p.name.startsWith("@") &&
+      this.savedDesign(String(p.kind), Number(p.slot)) === undefined
+    );
+  }
+
+  private flushWaitingNotices(): void {
+    if (this.waiting.length === 0) return;
+    const now = this.game.ticks();
+    const waiting = this.waiting;
+    this.waiting = [];
+    for (const w of waiting) {
+      if (
+        now - w.tick >= 1 &&
+        (!this.designPending(w.event) || now - w.tick >= 5)
+      ) {
+        this.showDisplayMessage(w.event);
+      } else this.waiting.push(w);
+    }
+  }
+
   onDisplayMessageEvent(event: DisplayMessageUpdate) {
     const myPlayer = this.game.myPlayer();
     if (
@@ -482,6 +529,14 @@ export class EventsDisplay extends LitElement implements Controller {
       return;
     }
 
+    if (this.designPending(event)) {
+      this.waiting.push({ event, tick: this.game.ticks() });
+      return;
+    }
+    this.showDisplayMessage(event);
+  }
+
+  private showDisplayMessage(event: DisplayMessageUpdate) {
     let description: string = event.message;
     if (event.message.startsWith("events_display.")) {
       description = translateText(event.message, this.resolveParams(event));
