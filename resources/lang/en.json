@@ -5303,6 +5303,7 @@
       "tur_montreux_signed": "At Montreux the powers have agreed on a new regime for the Bosporus and the Dardanelles. Merchant ships keep free passage, but Turkey regains control of the Straits and may fortify them again. Warships of the Black Sea states and of outside navies face new limits.",
       "tur_neutrality_pressure": "In Cairo the British foreign secretary asks the Turkish foreign minister for air bases in Anatolia and for Turkey's entry into the war. Moscow is pressing London for the same. Ankara answers that its army lacks modern arms and that a German attack would follow at once.",
       "usa_atlantic_charter": "Meeting aboard warships off Newfoundland, the President and the British Prime Minister have set out common aims for the world after the war: no territorial gains, self-determination, open trade and freedom from fear and want.",
+      "usa_democratic_uprising": "Outside the capital the deposed party still holds the loyalty of millions. Governors refuse orders, guardsmen drift home and crowds fill the squares. The regime can break the movement by force if it is steady enough, or the country divides.",
       "usa_destroyers_for_bases": "London asks for fifty old American destroyers to guard its convoys. In return Britain offers ninety-nine-year leases on bases from Newfoundland to British Guiana. The deal would bypass Congress and stretch neutrality to its limit.",
       "usa_election_1936": "Americans choose between Franklin D. Roosevelt's New Deal and the Republican Alf Landon, who promises to balance the budget. Relief programmes, union rights and Social Security are on the ballot as much as the man in the White House.",
       "usa_election_1940": "With war in Europe, Roosevelt breaks tradition and runs for a third term against Wendell Willkie. Both men promise to help Britain while keeping America out of the fighting; the voters must decide whom they trust in a crisis.",
@@ -6036,6 +6037,10 @@
       "usa_atlantic_charter": {
         "a": "Publish the charter"
       },
+      "usa_democratic_uprising": {
+        "a": "Break the movement",
+        "b": "The country divides"
+      },
       "usa_destroyers_for_bases": {
         "a": "Make the exchange",
         "b": "Stay neutral"
@@ -6344,6 +6349,7 @@
       "tur_montreux_signed": "The Montreux Convention",
       "tur_neutrality_pressure": "Pressure in Cairo",
       "usa_atlantic_charter": "The Atlantic Charter",
+      "usa_democratic_uprising": "The Democrats Rise",
       "usa_destroyers_for_bases": "Destroyers for Bases",
       "usa_election_1936": "The 1936 Presidential Election",
       "usa_election_1940": "The 1940 Presidential Election",

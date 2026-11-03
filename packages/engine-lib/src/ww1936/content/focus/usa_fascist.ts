@@ -19,27 +19,35 @@ export const USA_OPEN_DEMOCRACY: Condition = not(USA_FASCIST_RULE);
 
 /**
  * The seizure's effects, in this order. No civil war is started here: the
- * flag usa_regime_seized is what a later uprising keys on. The congress
- * flag hides the congress decisions while it is dissolved; the engine
- * clears it when the congress sits again. `between` runs after the
- * dissolution.
+ * flag usa_regime_seized is what the uprising event keys on. The congress
+ * flag hides the congress decisions while it is dissolved; the engine clears
+ * both when the congress sits again.
  */
-function seizure(between: Effect[]): Effect[] {
-  return [
-    { kind: "set_government", ideology: "fascist" },
-    { kind: "congress_dissolve" },
-    { kind: "set_flag", flag: "usa_congress_gone" },
-    { kind: "set_flag", flag: "usa_regime_seized" },
-    ...between,
-  ];
-}
+const SEIZURE: Effect[] = [
+  { kind: "set_government", ideology: "fascist" },
+  { kind: "congress_dissolve" },
+  { kind: "set_flag", flag: "usa_congress_gone" },
+  { kind: "set_flag", flag: "usa_regime_seized" },
+];
+
+/** The uprising: democratic popularity at or over this share (percent) ... */
+export const USA_UPRISING_POP_PCT = 20;
+/** ... mean days to the event once the trigger holds ... */
+export const USA_UPRISING_MTTH_DAYS = 60;
+/** ... at least this many days between two of them ... */
+export const USA_UPRISING_COOLDOWN_DAYS = 90;
+/** ... and at this stability or more the regime can suppress it; below, civil war. */
+export const USA_UPRISING_STABILITY = 25;
 
 /** No civil war against a breakaway state is running. */
-const NO_CIVIL_WAR: Condition = not(
+export const NO_CIVIL_WAR: Condition = not(
   any(
-    ...(["CW1", "CW2", "CW3", "CW4", "CW5", "CW6"] as const).map(
-      (t): Condition => ({ kind: "at_war_with", of: T(t) }),
-    ),
+    { kind: "at_war_with", of: T("CW1") },
+    { kind: "at_war_with", of: T("CW2") },
+    { kind: "at_war_with", of: T("CW3") },
+    { kind: "at_war_with", of: T("CW4") },
+    { kind: "at_war_with", of: T("CW5") },
+    { kind: "at_war_with", of: T("CW6") },
   ),
 );
 
@@ -67,8 +75,8 @@ export const USA_FASCIST_FOCUSES: FocusDef[] = [
     prereq: [["usa_long_populism"]],
     exclusive: ["usa_preparedness"],
     effects: [
-      { kind: "popularity", ideology: "fascist", pp: 4 },
-      { kind: "popularity", ideology: "democratic", pp: -3 },
+      { kind: "popularity", ideology: "fascist", pp: 2 },
+      { kind: "popularity", ideology: "democratic", pp: -2 },
       { kind: "stability", pct: -1 },
     ],
     ai: { base: 1 },
@@ -84,8 +92,8 @@ export const USA_FASCIST_FOCUSES: FocusDef[] = [
     group: "usa_strongman",
     prereq: [["usa_share_wealth"]],
     effects: [
-      { kind: "popularity", ideology: "fascist", pp: 3 },
-      { kind: "popularity", ideology: "democratic", pp: -2 },
+      { kind: "popularity", ideology: "fascist", pp: 2 },
+      { kind: "popularity", ideology: "democratic", pp: -1 },
       { kind: "stability", pct: -1 },
     ],
     ai: { base: 10 },
@@ -101,8 +109,8 @@ export const USA_FASCIST_FOCUSES: FocusDef[] = [
     group: "usa_strongman",
     prereq: [["usa_share_wealth"]],
     effects: [
-      { kind: "popularity", ideology: "fascist", pp: 3 },
-      { kind: "popularity", ideology: "democratic", pp: -2 },
+      { kind: "popularity", ideology: "fascist", pp: 2 },
+      { kind: "popularity", ideology: "democratic", pp: -1 },
       { kind: "stability", pct: -1 },
     ],
     ai: { base: 10 },
@@ -118,8 +126,8 @@ export const USA_FASCIST_FOCUSES: FocusDef[] = [
     group: "usa_strongman",
     prereq: [["usa_share_wealth"]],
     effects: [
-      { kind: "popularity", ideology: "fascist", pp: 3 },
-      { kind: "popularity", ideology: "democratic", pp: -2 },
+      { kind: "popularity", ideology: "fascist", pp: 2 },
+      { kind: "popularity", ideology: "democratic", pp: -1 },
       { kind: "stability", pct: -1 },
       { kind: "army_xp", amount: 10 },
     ],
@@ -136,8 +144,8 @@ export const USA_FASCIST_FOCUSES: FocusDef[] = [
     group: "usa_strongman",
     prereq: [["usa_share_wealth"]],
     effects: [
-      { kind: "popularity", ideology: "fascist", pp: 3 },
-      { kind: "popularity", ideology: "democratic", pp: -2 },
+      { kind: "popularity", ideology: "fascist", pp: 2 },
+      { kind: "popularity", ideology: "democratic", pp: -1 },
       { kind: "stability", pct: -1 },
       { kind: "pp", amount: 15 },
     ],
@@ -157,7 +165,7 @@ export const USA_FASCIST_FOCUSES: FocusDef[] = [
     prereq: ANY_STRONGMAN,
     exclusive: ["usa_coup_path"],
     effects: [
-      { kind: "popularity", ideology: "fascist", pp: 2 },
+      { kind: "popularity", ideology: "fascist", pp: 1 },
       { kind: "popularity", ideology: "democratic", pp: -3 },
     ],
     ai: { base: 10 },
@@ -191,7 +199,7 @@ export const USA_FASCIST_FOCUSES: FocusDef[] = [
     prereq: [["usa_legal_path"]],
     effects: [
       { kind: "popularity", ideology: "democratic", pp: -4 },
-      { kind: "popularity", ideology: "fascist", pp: 2 },
+      { kind: "popularity", ideology: "fascist", pp: 1 },
       { kind: "stability", pct: -1 },
     ],
     ai: { base: 10 },
@@ -208,7 +216,7 @@ export const USA_FASCIST_FOCUSES: FocusDef[] = [
     prereq: [["usa_emergency_powers"]],
     effects: [
       { kind: "popularity", ideology: "democratic", pp: -4 },
-      { kind: "popularity", ideology: "fascist", pp: 2 },
+      { kind: "popularity", ideology: "fascist", pp: 1 },
       { kind: "stability", pct: -1 },
     ],
     ai: { base: 10 },
@@ -225,7 +233,7 @@ export const USA_FASCIST_FOCUSES: FocusDef[] = [
     group: "usa_seizure",
     prereq: [["usa_court_neutered"]],
     available: { kind: "pop_ge", ideology: "fascist", pct: 35 },
-    effects: [...seizure([]), { kind: "stability", pct: -2 }],
+    effects: [...SEIZURE, { kind: "stability", pct: -2 }],
     ai: { base: 10 },
   },
   {
@@ -239,7 +247,7 @@ export const USA_FASCIST_FOCUSES: FocusDef[] = [
     icon: "flag",
     group: "usa_seizure",
     prereq: [["usa_coup_path"]],
-    effects: [...seizure([]), { kind: "stability", pct: -5 }],
+    effects: [...SEIZURE, { kind: "stability", pct: -5 }],
     ai: { base: 10 },
   },
 

@@ -130,6 +130,7 @@ export function congressDay(
     m.congressDissolved = false;
     // The focuses' flag that hides the lobbying decisions goes with it.
     pol.country(usaId)?.flags.delete(CONGRESS_GONE_FLAG);
+    pol.country(usaId)?.flags.delete("usa_regime_seized");
     d.markGlobal();
     d.markCountry(usaId);
     d.message(usaId, "ww1936_congress_restored", {});

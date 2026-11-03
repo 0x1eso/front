@@ -104,6 +104,8 @@ export function dailyIdeology(
     c.crisisDays[x] = c.pop[x] >= 6000 ? c.crisisDays[x] + 1 : 0;
     if (c.crisisDays[x] >= WW_CRISIS_DAYS && fire < 0) fire = x;
   }
+  // The US fascist regime has its own uprising event (usa_democratic_uprising).
+  if (c.tag === "USA" && c.hasFlag("usa_regime_seized", day)) fire = -1;
   if (fire >= 0 && day >= c.crisisCooldownUntil) {
     c.crisisDays[fire] = 0;
     c.crisisCooldownUntil = day + WW_CRISIS_COOLDOWN_DAYS;
