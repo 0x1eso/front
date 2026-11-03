@@ -83,6 +83,10 @@ import {
   lawCost,
   LawCtx,
 } from "@openfront/engine-lib/ww1936/PoliticsRules";
+import {
+  QueueState,
+  reserveBlockOf,
+} from "@openfront/engine-lib/ww1936/ResearchQueueRules";
 import type { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
 import {
   emptyStats,
@@ -757,6 +761,9 @@ export const BLOCK_KEYS: Readonly<Record<WwOrderBlock, string>> = {
   too_many_wings: "ww1936.econ.block.too_many_wings",
   no_bomb_target: "ww1936.econ.block.no_bomb_target",
   escort_out_of_range: "ww1936.econ.block.escort_out_of_range",
+  research_queued: "ww1936.econ.block.research_queued",
+  research_queue_full: "ww1936.econ.block.research_queue_full",
+  queue_order: "ww1936.econ.block.queue_order",
 };
 
 // ---- Icons (pre-flight R7.7: emoji, no new image files) ----
@@ -2048,38 +2055,162 @@ export function researchCards(
   // P6 plan decision 25: the retired doctrine techs are never offered.
   return WW_TECH_IDS.filter(
     (id) => WW_TECHS[id].branch === branch && WW_TECHS[id].retired !== true,
-  ).map((id) => {
-    const def = WW_TECHS[id];
-    const days = techCostDays(id);
-    const ahead = aheadPct(def.year, day);
-    const slot = detail.slots.find((s) => s?.tech === id) ?? null;
-    const perDay = researchProgress(
-      researchSpeedPct(detail, id, slot?.bonusPct ?? 0),
-      ahead,
-    );
-    const keep = detail.savedResearch?.find((r) => r.tech === id) ?? null;
-    const left =
-      slot !== null
-        ? Math.max(0, slot.totalMilli - slot.progressMilli)
-        : keep !== null
-          ? Math.max(0, keep.totalMilli - keep.progressMilli)
-          : techCostMilli(id);
-    const block = researchBlockOf(state, id);
-    return {
-      id,
-      year: def.year,
-      days,
-      etaDays: perDay > 0 ? Math.ceil(left / perDay) : 0,
-      ahead,
-      state: cardState(block),
-      block,
-      school: def.school ?? null,
-      saved:
-        keep === null || slot !== null || keep.totalMilli <= 0
-          ? 0
-          : Math.min(1, keep.progressMilli / keep.totalMilli),
-    };
-  });
+  ).map((id) => cardOf(detail, state, id, day));
+}
+
+/** One tech's card: its days at today's speed and penalty, state and saved progress. */
+function cardOf(
+  detail: WwCountryDetail,
+  state: Parameters<typeof researchBlockOf>[0],
+  id: WwTechId,
+  day: number,
+): ResearchCard {
+  const def = WW_TECHS[id];
+  const days = techCostDays(id);
+  const ahead = aheadPct(def.year, day);
+  const slot = detail.slots.find((s) => s?.tech === id) ?? null;
+  const perDay = researchProgress(
+    researchSpeedPct(detail, id, slot?.bonusPct ?? 0),
+    ahead,
+  );
+  const keep = detail.savedResearch?.find((r) => r.tech === id) ?? null;
+  const left =
+    slot !== null
+      ? Math.max(0, slot.totalMilli - slot.progressMilli)
+      : keep !== null
+        ? Math.max(0, keep.totalMilli - keep.progressMilli)
+        : techCostMilli(id);
+  const block = researchBlockOf(state, id);
+  return {
+    id,
+    year: def.year,
+    days,
+    etaDays: perDay > 0 ? Math.ceil(left / perDay) : 0,
+    ahead,
+    state: cardState(block),
+    block,
+    school: def.school ?? null,
+    saved:
+      keep === null || slot !== null || keep.totalMilli <= 0
+        ? 0
+        : Math.min(1, keep.progressMilli / keep.totalMilli),
+  };
+}
+
+// ---- Research queues (one per slot) ----
+
+function queueState(detail: WwCountryDetail): QueueState {
+  return {
+    researched: new Set(detail.researched),
+    running: detail.slots.flatMap((s) => (s === null ? [] : [s.tech])),
+    slotCount: detail.slotCount,
+    projects: detail.projectsDone ?? 0,
+    queues: (detail.slotQueues ?? []).map((q) => q.techs),
+  };
+}
+
+/** Why `tech` cannot be reserved at the end of `slot`'s queue; null when it can. */
+export function reserveBlock(
+  detail: WwCountryDetail,
+  tech: WwTechId,
+  slot: number,
+): WwOrderBlock | null {
+  return reserveBlockOf(queueState(detail), tech, slot);
+}
+
+/** Where `tech` is queued (slot index, 1-based place), or null. */
+export function queuedAt(
+  detail: WwCountryDetail,
+  tech: WwTechId,
+): { slot: number; pos: number } | null {
+  const qs = detail.slotQueues ?? [];
+  for (let slot = 0; slot < qs.length; slot++) {
+    const i = qs[slot].techs.indexOf(tech);
+    if (i >= 0) return { slot, pos: i + 1 };
+  }
+  return null;
+}
+
+/** The slot a reservation should default to: the shortest queue (a running slot counts one), the lowest on a tie. */
+export function defaultReserveSlot(detail: WwCountryDetail): number {
+  let best = 0;
+  let bestLoad = Infinity;
+  for (let i = 0; i < detail.slotCount; i++) {
+    const load =
+      (detail.slotQueues?.[i]?.techs.length ?? 0) +
+      ((detail.slots[i] ?? null) === null ? 0 : 1);
+    if (load < bestLoad) {
+      best = i;
+      bestLoad = load;
+    }
+  }
+  return best;
+}
+
+export interface QueueEntryRow {
+  tech: WwTechId;
+  /** 1-based place. */
+  pos: number;
+  /** Rough days from today until it finishes (waiting for its prerequisite included). */
+  finishDays: number;
+  /** The ahead-of-time penalty today, percent (the tree's number). */
+  ahead: number;
+}
+
+export interface QueueRow {
+  index: number;
+  entries: QueueEntryRow[];
+  /** Empty slot whose first entry waits for this prerequisite. */
+  waitingOn: WwTechId | null;
+}
+
+/**
+ * Each slot's queue with a rough finish estimate: the running tech's days
+ * left, then each entry's days at today's speed (the tree's etaDays), an
+ * entry whose prerequisite is still to finish starting after it.
+ */
+export function queueRows(detail: WwCountryDetail, day: number): QueueRow[] {
+  const state = {
+    researched: new Set(detail.researched),
+    slots: detail.slots.map((s) => s?.tech ?? null),
+    slotCount: detail.slotCount,
+    projects: detail.projectsDone ?? 0,
+  };
+  const rows = researchSlots(detail, day);
+  const finish = new Map<WwTechId, number>();
+  for (const r of rows) if (r.tech !== null) finish.set(r.tech, r.daysLeft);
+  const qs = detail.slotQueues ?? [];
+  const cards = new Map<WwTechId, ResearchCard>();
+  for (const q of qs) {
+    for (const t of q.techs) cards.set(t, cardOf(detail, state, t, day));
+  }
+  // A few passes settle chains across slots.
+  for (let pass = 0; pass < 4; pass++) {
+    qs.forEach((q, i) => {
+      let at = rows.find((r) => r.index === i)?.daysLeft ?? 0;
+      for (const t of q.techs) {
+        const wait = Math.max(
+          0,
+          ...WW_TECHS[t].prereqs.map((p) => finish.get(p) ?? 0),
+        );
+        at = Math.max(at, wait) + (cards.get(t)?.etaDays ?? 0);
+        finish.set(t, at);
+      }
+    });
+  }
+  return Array.from(
+    { length: Math.max(detail.slotCount, qs.length) },
+    (_, index) => ({
+      index,
+      waitingOn: qs[index]?.waitingOn ?? null,
+      entries: (qs[index]?.techs ?? []).map((tech, k) => ({
+        tech,
+        pos: k + 1,
+        finishDays: finish.get(tech) ?? 0,
+        ahead: cards.get(tech)?.ahead ?? 0,
+      })),
+    }),
+  );
 }
 
 export interface SlotRow {

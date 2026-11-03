@@ -415,6 +415,21 @@ const SAMPLE_INTENTS: StampedIntent[] = [
   {
     type: "ww_order",
     clientID: P2,
+    order: { kind: "research_reserve", tech: "inf_eq_3", slot: 5 },
+  },
+  {
+    type: "ww_order",
+    clientID: P3,
+    order: { kind: "research_unreserve", tech: "inf_eq_3" },
+  },
+  {
+    type: "ww_order",
+    clientID: P1,
+    order: { kind: "research_reorder", tech: "inf_eq_3", move: "top" },
+  },
+  {
+    type: "ww_order",
+    clientID: P2,
     order: { kind: "advisor_hire", slot: 7, advisor: "title:rs_aircraft" },
   },
   {

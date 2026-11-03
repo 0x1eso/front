@@ -51,6 +51,7 @@ import {
 import { dayOfDate } from "@openfront/engine-lib/ww1936/Calendar";
 import {
   dealUnitsOf,
+  exclusiveLineTaken,
   exportRoomOf,
   freeResearchSlot,
   lawBlockOf,
@@ -95,6 +96,7 @@ import { moveBuild, noStrikeAt, queueBuild, usedSlots } from "./Construction";
 import { fuelCapOf } from "./Fuel";
 import { lawCtxOf, setLaw } from "./LawsRun";
 import { addLine, changeLine, moveLine, setLineFactories } from "./Production";
+import { hasQueues, queueHolds } from "./ResearchQueue";
 import { projectsDone, startResearch } from "./ResearchRun";
 import { closeTrade, openTrade, tradePartners } from "./Trade";
 import type { CountryEconomy, WwEconomy } from "./WwEconomy";
@@ -677,6 +679,11 @@ export interface AiInput {
    * (AI_MAX_AHEAD_PCT).
    */
   fillSlots?: boolean;
+  /**
+   * Research queues (a human's automation only): the first entry of each
+   * slot's queue holds that slot, and no queued tech is picked or opposed.
+   */
+  queueHolds?: { held: (WwTechId | null)[]; queued: WwTechId[] };
   /**
    * Research overhaul (changes §5): what the research score reads beyond
    * the rest — the game's seed, the country, its naval lines, the research
@@ -1303,7 +1310,23 @@ function planResearch(
   const researched = new Set(i.researched);
   const slots: (WwTechId | null)[] = [...i.slots];
   while (slots.length < i.slotCount) slots.push(null);
+  const holds = i.queueHolds;
+  holds?.held.forEach((h, k) => {
+    if (h !== null && (slots[k] ?? null) === null) slots[k] = h;
+  });
   if (freeResearchSlot(slots, i.slotCount) < 0) return;
+  const queuedSet = new Set(holds?.queued ?? []);
+  const queuedBlock = (t: WwTechId) => {
+    if (queuedSet.size === 0) return false;
+    if (queuedSet.has(t)) return true;
+    const x = WW_TECHS[t].exclusive;
+    if (x === undefined) return false;
+    const line = exclusiveLineTaken(
+      { researched: queuedSet, slots: [] },
+      x.group,
+    );
+    return line >= 0 && line !== x.line;
+  };
   const coastal = i.coastal ?? true;
   const lean = i.fillSlots === true ? (i.research?.lean ?? 0) : 0;
   const mix = LEAN_MIX[lean] ?? aiResearchMix(i.tag, coastal);
@@ -1339,13 +1362,14 @@ function planResearch(
         !researched.has(t) &&
         aheadOf(WW_TECHS[t].year) <= maxAhead &&
         !(withCaps && capped(t)) &&
+        !queuedBlock(t) &&
         researchBlockOf(state, t) === null,
     );
   /** The least early one, ties by the score (the start plan's last resort). */
   const leastAhead = () => {
     let best: WwTechId | undefined;
     for (const t of ranked) {
-      if (researched.has(t)) continue;
+      if (researched.has(t) || queuedBlock(t)) continue;
       if (
         best !== undefined &&
         aheadOf(WW_TECHS[t].year) >= aheadOf(WW_TECHS[best].year)
@@ -1937,7 +1961,7 @@ export function aiReactions(ce: CountryEconomy): AiReact {
   const t = ce.totals;
   let emptySlot = ce.slots.length < t.slotCount;
   for (let s = 0; s < t.slotCount && !emptySlot; s++) {
-    emptySlot = ce.slots[s] === null;
+    emptySlot = ce.slots[s] === null && (ce.rq[s]?.length ?? 0) === 0;
   }
   return {
     research: emptySlot,
@@ -1992,7 +2016,10 @@ export function aiEconomyTick(
   // Set on the object: a spread would read its lazy `partners`.
   const input = (): AiInput => {
     const i = aiInput(econ, ce, day, tick);
-    if (only?.research === true) i.fillSlots = true;
+    if (only?.research === true) {
+      i.fillSlots = true;
+      if (hasQueues(ce)) i.queueHolds = queueHolds(ce);
+    }
     return i;
   };
   let plan: AiPlan;

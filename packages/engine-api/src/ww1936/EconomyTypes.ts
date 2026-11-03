@@ -688,6 +688,8 @@ export const WW_TRADE_UNITS_PER_CIV = 8;
  * cancel_research's slot field: changing it moves the zbin layout.
  */
 export const WW_MAX_SLOTS = 6;
+/** Entries one research slot's queue holds. */
+export const WW_RESEARCH_QUEUE = 10;
 export const WW_LAW_COOLDOWN_DAYS = 30;
 export const WW_AI_PERIOD_DAYS = 10;
 export const WW_MEN_PER_INF_EQUIPMENT = 10;
@@ -877,6 +879,12 @@ export const WW_ORDER_BLOCKS = [
   // WW_FOCUS_QUEUE places taken.
   "focus_queued",
   "focus_queue_full",
+  // Research queues (owner request 2026-11-03), appended: the tech is already
+  // in a slot's queue; that slot's queue holds WW_RESEARCH_QUEUE; a move
+  // that would make an entry wait for one behind it.
+  "research_queued",
+  "research_queue_full",
+  "queue_order",
 ] as const;
 export type WwOrderBlock = (typeof WW_ORDER_BLOCKS)[number];
 
@@ -941,6 +949,17 @@ export interface WwSlotData {
   bonusPct?: number;
 }
 
+/** One research slot's queue, as the screens read it. */
+export interface WwSlotQueue {
+  /** The entries in order; the first starts when the slot is free. */
+  techs: WwTechId[];
+  /**
+   * The slot is empty and its first entry waits for this prerequisite,
+   * which runs in (or is queued for) another slot; absent: not waiting.
+   */
+  waitingOn?: WwTechId;
+}
+
 export interface WwTradeData {
   id: number;
   buyer: number;
@@ -979,6 +998,8 @@ export interface WwCountryDetail {
   researched: WwTechId[];
   /** Partial progress of techs that left a slot unfinished; absent when none. */
   savedResearch?: WwSlotData[];
+  /** The research queues per slot index; absent while every queue is empty. */
+  slotQueues?: WwSlotQueue[];
   /**
    * Research speed % from the country's stats per TECH_BRANCHES order
    * (researchPct + the branch's rs*Pct: techs, spirits, advisors, focus).
