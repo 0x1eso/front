@@ -66,6 +66,8 @@ describe("World War 1936 P6 lists", () => {
       "research_reserve",
       "research_unreserve",
       "research_reorder",
+      // The per-slot research leaning.
+      "research_lean_slot",
     ]);
   });
 

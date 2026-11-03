@@ -284,6 +284,23 @@ const LEAN_AREA: readonly Partial<Record<TechTab, number>>[] = [
   { industry: 50, electronics: 25 },
 ];
 
+/**
+ * The tabs a strict slot of each leaning takes techs from (RESEARCH_LEANS
+ * order); balanced: none, the slot is not strict.
+ */
+const LEAN_TABS: readonly (readonly TechTab[])[] = [
+  [],
+  ["infantry", "support", "armour", "artillery"],
+  ["naval"],
+  ["air"],
+  ["industry", "electronics"],
+];
+
+/** Whether `tab` is in the area of leaning `lean` (a RESEARCH_LEANS index). */
+export function leanHasTab(lean: number, tab: TechTab): boolean {
+  return (LEAN_TABS[lean] ?? []).includes(tab);
+}
+
 /** Special troops an AI fields (the old wantsTech / wantsP4): the rest it never researches. */
 const MARINE_COUNTRIES: readonly CountryTag[] = ["GBR", "USA", "JPN"];
 const CARRIER_NAVIES: readonly CountryTag[] = ["GBR", "USA", "JPN"];

@@ -43,6 +43,7 @@ import {
   cancelResearch,
   grantResearch,
   setResearchLean,
+  setSlotLean,
   startResearch,
 } from "./ResearchRun";
 import { closeTrade, openTrade } from "./Trade";
@@ -276,6 +277,9 @@ function applyOrder(
     // Research overhaul (changes §6 idea 1): the sender's own country only.
     case "research_lean":
       block = setResearchLean(econ, ce, order.lean);
+      break;
+    case "research_lean_slot":
+      block = setSlotLean(econ, ce, order.slot, order.lean);
       break;
     case "research_grant":
       block = grantResearch(econ, ce, order.branch);

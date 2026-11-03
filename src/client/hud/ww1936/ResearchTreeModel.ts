@@ -9,7 +9,10 @@ import {
   WwTechId,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
 import { aheadPct } from "@openfront/engine-lib/ww1936/EconomyRules";
-import { researchScores } from "@openfront/engine-lib/ww1936/ResearchScore";
+import {
+  leanHasTab,
+  researchScores,
+} from "@openfront/engine-lib/ww1936/ResearchScore";
 import { WW_TECHS } from "@openfront/engine-lib/ww1936/WwTechs";
 import {
   queuedAt,
@@ -254,6 +257,9 @@ export function recommendNext(
     equip[l.equipment] = (equip[l.equipment] ?? 0) + l.factories;
   const researched = new Set(d.researched);
   const running = d.slots.map((s) => s?.tech ?? null);
+  // The card names what the next free slot would take.
+  const slot = freeSlotNumber(d) - 1;
+  const lean = slot < 0 ? 0 : (d.slotLeans?.[slot] ?? 0);
   const scores = researchScores({
     seed: i.seed ?? 0,
     smallID: i.smallID,
@@ -261,7 +267,7 @@ export function recommendNext(
     persona: "democracy",
     day: i.day,
     human: true,
-    lean: d.researchLean ?? 0,
+    lean,
     coastal: i.coastal ?? true,
     lineFactories: equip,
     navalLines: 0,
@@ -274,8 +280,11 @@ export function recommendNext(
     .filter((x): x is { id: WwTechId; s: number } => x.s !== null)
     .sort((a, b) => b.s - a.s);
   const open = ranked.filter((x) => researchBlock(d, x.id) === null);
+  // A strict slot takes its area only, any tech when the area is empty.
+  const inArea = open.filter((x) => leanHasTab(lean, WW_TECHS[x.id].tab));
+  const pool = lean !== 0 && inArea.length > 0 ? inArea : open;
   for (const cap of [50, 75, Infinity]) {
-    const hit = open.find((x) => aheadPct(WW_TECHS[x.id].year, i.day) <= cap);
+    const hit = pool.find((x) => aheadPct(WW_TECHS[x.id].year, i.day) <= cap);
     if (hit !== undefined) return hit.id;
   }
   return null;

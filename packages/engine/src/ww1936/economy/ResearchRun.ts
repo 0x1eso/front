@@ -92,9 +92,21 @@ export function researchBlock(
   );
 }
 
+/** RESEARCH_LEANS index of slot `k`'s leaning (balanced: 0 for a slot it never set). */
+export function slotLeanOf(ce: CountryEconomy, k: number): number {
+  return k < ce.totals.slotCount ? (ce.slotLeans[k] ?? 0) : 0;
+}
+
+/** Stores the leanings in their canonical form: no trailing balanced entries. */
+function storeLeans(ce: CountryEconomy, leans: number[]): void {
+  while (leans.length > 0 && leans[leans.length - 1] === 0) leans.pop();
+  ce.slotLeans = leans;
+}
+
 /**
- * research_lean (changes §6 idea 1): the auto-research leaning of the
- * sender's own country, while a human controls it.
+ * research_lean (changes §6 idea 1): every current slot of the sender's own
+ * country takes this leaning, while a human controls it. A slot that
+ * appears later starts balanced.
  */
 export function setResearchLean(
   econ: WwEconomy,
@@ -102,7 +114,24 @@ export function setResearchLean(
   lean: ResearchLean,
 ): WwOrderBlock | null {
   if (!econ.ww.isHumanControlled(ce.smallID)) return "not_controlled";
-  ce.researchLean = Math.max(0, RESEARCH_LEANS.indexOf(lean));
+  const ix = Math.max(0, RESEARCH_LEANS.indexOf(lean));
+  storeLeans(ce, new Array<number>(ce.totals.slotCount).fill(ix));
+  return null;
+}
+
+/** research_lean_slot: slot `slot`'s auto-research leaning, while a human controls it. */
+export function setSlotLean(
+  econ: WwEconomy,
+  ce: CountryEconomy,
+  slot: number,
+  lean: ResearchLean,
+): WwOrderBlock | null {
+  if (!econ.ww.isHumanControlled(ce.smallID)) return "not_controlled";
+  if (slot < 0 || slot >= ce.totals.slotCount) return "bad_slot";
+  const leans: number[] = [];
+  for (let k = 0; k < ce.totals.slotCount; k++) leans.push(slotLeanOf(ce, k));
+  leans[slot] = Math.max(0, RESEARCH_LEANS.indexOf(lean));
+  storeLeans(ce, leans);
   return null;
 }
 
@@ -142,10 +171,21 @@ export function startResearch(
   econ: WwEconomy,
   ce: CountryEconomy,
   tech: WwTechId,
+  slot?: number,
 ): WwOrderBlock | null {
   const block = researchBlock(econ, ce, tech);
   if (block !== null) return block;
   const techs = slotTechs(ce);
+  // The automatic research names the slot whose leaning chose the tech.
+  if (
+    slot !== undefined &&
+    slot >= 0 &&
+    slot < ce.totals.slotCount &&
+    (techs[slot] ?? null) === null
+  ) {
+    placeResearch(econ, ce, tech, slot);
+    return null;
+  }
   let i = -1;
   for (let k = 0; k < ce.totals.slotCount && i < 0; k++) {
     if ((techs[k] ?? null) === null && (ce.rq[k]?.length ?? 0) === 0) i = k;
@@ -234,6 +274,11 @@ export function stepResearch(
       MessageType.WORLD_WAR,
       p.id(),
     );
+  }
+  // A slot that goes away takes its leaning with it.
+  if (ce.slotLeans.length > ce.totals.slotCount) {
+    ce.slotLeans.length = ce.totals.slotCount;
+    storeLeans(ce, ce.slotLeans);
   }
   const lawPct = ce.law().researchPct;
   for (let i = 0; i < ce.slots.length && i < ce.totals.slotCount; i++) {

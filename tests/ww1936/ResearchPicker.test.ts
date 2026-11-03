@@ -132,7 +132,7 @@ describe("the research score (research overhaul)", () => {
     const day = ww.day(g.ticks());
     deu.slots = deu.slots.map(() => null);
     const pick = (lean: number) => {
-      deu.researchLean = lean;
+      deu.slotLeans = new Array<number>(deu.totals.slotCount).fill(lean);
       const i = aiInput(econ, deu, day, g.ticks());
       i.fillSlots = true;
       const react = { research: true, lines: false, construction: false };
@@ -163,13 +163,13 @@ describe("the research score (research overhaul)", () => {
       (t) => scores[at(t)] !== null && ok(t),
     ).sort((a, b) => scores[at(b)]! - scores[at(a)]! || at(a) - at(b));
     expect(picks[0]).toBe(ranked[0]);
-    // Navy leaning: more of the slots go to the sea.
+    // Navy leaning: every slot is strict, so all of them go to the sea.
     const sea = (ts: readonly WwTechId[]) =>
       ts.filter((t) => WW_TECHS[t].branch === "naval").length;
-    expect(
-      sea(pick(RESEARCH_LEANS.indexOf("navy")).picks),
-    ).toBeGreaterThanOrEqual(sea(picks));
-    deu.researchLean = 0;
+    expect(sea(pick(RESEARCH_LEANS.indexOf("navy")).picks)).toBeGreaterThan(
+      sea(picks),
+    );
+    deu.slotLeans = [];
     // The order: the sender's own country, a human's only.
     const pol = econ.country(byTag(g, "POL").smallID())!;
     expect(setResearchLean(econ, pol, "air")).toBe("not_controlled");
@@ -177,8 +177,11 @@ describe("the research score (research overhaul)", () => {
     step(runner, 1, [
       order(HUMAN, { kind: "research_lean", lean: "industry" }),
     ]);
-    expect(deu.researchLean).toBe(RESEARCH_LEANS.indexOf("industry"));
-    expect(pol.researchLean).toBe(0);
+    const industry = RESEARCH_LEANS.indexOf("industry");
+    expect(deu.slotLeans).toEqual(
+      new Array<number>(deu.totals.slotCount).fill(industry),
+    );
+    expect(pol.slotLeans).toEqual([]);
     expect(gameHash(runner)).not.toBe(h0);
     const back = await wwRestore(
       runner,
@@ -186,7 +189,7 @@ describe("the research score (research overhaul)", () => {
       POL,
     );
     const deu2 = back.game.worldWar()!.economy.country(deu.smallID)!;
-    expect(deu2.researchLean).toBe(RESEARCH_LEANS.indexOf("industry"));
+    expect(deu2.slotLeans).toEqual(deu.slotLeans);
     expect(gameHash(back)).toBe(gameHash(runner));
   });
 });

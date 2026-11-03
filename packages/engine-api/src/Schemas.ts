@@ -1479,7 +1479,7 @@ export const WwOrderSchema = z.discriminatedUnion("kind", [
     target: WwCountry,
   }),
   // Research overhaul (changes §6 idea 1), appended: the auto-research
-  // leaning of the sender's own country (CountryEconomy.researchLean).
+  // leaning of every current slot of the sender's own country.
   z.object({
     kind: z.literal("research_lean"),
     lean: z.enum(RESEARCH_LEANS),
@@ -1555,6 +1555,13 @@ export const WwOrderSchema = z.discriminatedUnion("kind", [
     kind: z.literal("research_reorder"),
     tech: z.enum(WW_TECH_IDS),
     move: z.enum(["up", "down", "top"]),
+  }),
+  // Per-slot auto-research leaning (owner request 2026-11-03), appended: one
+  // slot's leaning. A slot not balanced takes only techs of that area.
+  z.object({
+    kind: z.literal("research_lean_slot"),
+    slot: zb.uint({ max: WW_MAX_SLOTS - 1 }),
+    lean: z.enum(RESEARCH_LEANS),
   }),
 ]);
 export type WwOrder = z.infer<typeof WwOrderSchema>;

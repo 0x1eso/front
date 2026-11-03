@@ -12770,12 +12770,13 @@
       "project_note": "특수 프로젝트가 끝나야 열립니다.",
       "opens_after": "끝나면 열리는 기술: {techs}",
       "next_title": "연구 완료. 다음은?",
-      "lean_label": "자동 방향",
+      "lean_label": "전체 적용",
       "lean_balanced": "균형",
       "lean_army": "육군",
       "lean_navy": "해군",
       "lean_air": "공군",
       "lean_industry": "산업",
+      "lean_slot": "슬롯 성향",
       "grant_btn": "연구 지원금: 정치력 {pp}로 {branch} +{pct}% (1회)"
     },
     "thought": {

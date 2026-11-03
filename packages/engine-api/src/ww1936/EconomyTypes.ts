@@ -358,7 +358,7 @@ export const TECH_TABS = [
 export type TechTab = (typeof TECH_TABS)[number];
 /**
  * Research overhaul (changes §6 idea 1): the auto-research leanings, one
- * byte of a human country's state (CountryEconomy.researchLean).
+ * byte per research slot of a human country (CountryEconomy.slotLeans).
  */
 export const RESEARCH_LEANS = [
   "balanced",
@@ -1025,8 +1025,11 @@ export interface WwCountryDetail {
    * are at the cap or no source is left. Auto-research never takes it.
    */
   slotHint?: WwSlotHint;
-  /** RESEARCH_LEANS index of the auto-research leaning; absent: balanced (0). */
-  researchLean?: number;
+  /**
+   * RESEARCH_LEANS index of each research slot's auto-research leaning,
+   * trailing balanced ones left out; absent: every slot balanced.
+   */
+  slotLeans?: number[];
   /** Bit i: SPECIAL_PROJECTS[i] finished (the project gate of researchBlockOf). */
   projectsDone?: number;
   buying: WwTradeData[];

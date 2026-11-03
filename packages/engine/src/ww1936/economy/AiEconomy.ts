@@ -71,6 +71,7 @@ import { navalLineClass } from "@openfront/engine-lib/ww1936/NavalLineRules";
 import { isNoStrike } from "@openfront/engine-lib/ww1936/NoStrike";
 import { lawCost, LawCtx } from "@openfront/engine-lib/ww1936/PoliticsRules";
 import {
+  leanHasTab,
   ResearchScoreInput,
   researchScores,
   techDomain,
@@ -702,8 +703,8 @@ export interface AiResearchInput {
   shared: readonly (readonly [WwTechId, number])[];
   /** Bit i: SPECIAL_PROJECTS[i] finished. */
   projects: number;
-  /** RESEARCH_LEANS index (a human's auto-research). */
-  lean: number;
+  /** RESEARCH_LEANS index of each slot (a human's auto-research); a missing slot: balanced. */
+  leans: readonly number[];
 }
 
 /**
@@ -749,7 +750,6 @@ type AiPlainOrder = Extract<
       | "add_line"
       | "change_line"
       | "set_line_factories"
-      | "research"
       | "close_trade";
   }
 >;
@@ -761,6 +761,9 @@ type AiPlainOrder = Extract<
  */
 export type AiOrder =
   | AiPlainOrder
+  // `slot`: a human's automatic research starts the tech in the slot whose
+  // leaning chose it (startResearch would take the first empty one).
+  | { kind: "research"; tech: WwTechId; slot?: number }
   | { kind: "open_trade"; seller: number; resource: ResourceId; civs: number }
   | { kind: "military_first" };
 
@@ -1250,23 +1253,12 @@ function planConstruction(
 
 // ---- 4. Research ----
 
-/**
- * Research overhaul (changes §5): a human's land/sea/air shares follow its
- * leaning (army, navy, air); balanced and industry keep its country's.
- */
-const LEAN_MIX: readonly (readonly [number, number, number] | null)[] = [
-  null,
-  [80, 10, 10],
-  [40, 45, 15],
-  [45, 10, 45],
-  null,
-];
-
 /** The research score's view of an AI input (researchScores). */
 export function researchScoreInput(
   i: AiInput,
   researched: ReadonlySet<WwTechId>,
   running: readonly (WwTechId | null)[],
+  lean = 0,
 ): ResearchScoreInput {
   const r = i.research;
   const lineFactories: Partial<Record<EquipmentType, number>> = {};
@@ -1284,7 +1276,7 @@ export function researchScoreInput(
     persona: i.personality,
     day: i.day,
     human: i.fillSlots === true,
-    lean: r?.lean ?? 0,
+    lean,
     coastal: i.coastal ?? true,
     lineFactories,
     navalLines: r?.navalLines ?? 0,
@@ -1328,19 +1320,31 @@ function planResearch(
     return line >= 0 && line !== x.line;
   };
   const coastal = i.coastal ?? true;
-  const lean = i.fillSlots === true ? (i.research?.lean ?? 0) : 0;
-  const mix = LEAN_MIX[lean] ?? aiResearchMix(i.tag, coastal);
-  // P4 Task 10: the sea and air techs hold at most their share of the slots.
-  const caps = aiResearchCaps(mix, i.slotCount);
+  // A human's slot with a leaning is strict (its area only); the others are
+  // balanced and pick as a country without leanings does.
+  const leanOf = (k: number) =>
+    i.fillSlots === true ? (i.research?.leans[k] ?? 0) : 0;
+  let strict = 0;
+  for (let k = 0; k < i.slotCount; k++) if (leanOf(k) !== 0) strict++;
+  const mix = aiResearchMix(i.tag, coastal);
+  // P4 Task 10: the sea and air techs hold at most their share of the
+  // balanced slots. A strict slot takes no part: it neither counts in the
+  // caps' slot count nor in `running`, so a dedicated navy or air slot
+  // leaves the balanced slots' mix as it is.
+  const caps = aiResearchCaps(mix, i.slotCount - strict);
   const running = { land: 0, sea: 0, air: 0 };
-  for (const t of slots) if (t !== null) running[aiTechDomain(t)]++;
+  slots.forEach((t, k) => {
+    if (t !== null && leanOf(k) === 0) running[aiTechDomain(t)]++;
+  });
   const capped = (t: WwTechId) => {
     const d = aiTechDomain(t);
     return d !== "land" && running[d] >= caps[d];
   };
-  const ranked = rankByScore(
-    researchScores(researchScoreInput(i, researched, slots)),
-  ).map((k) => WW_TECH_IDS[k]);
+  const rankedBy = (lean: number) =>
+    rankByScore(
+      researchScores(researchScoreInput(i, researched, slots, lean)),
+    ).map((k) => WW_TECH_IDS[k]);
+  const ranked = rankedBy(0);
   const state = {
     researched,
     slots,
@@ -1356,20 +1360,30 @@ function planResearch(
     }
     return a;
   };
-  const pick = (maxAhead: number, withCaps = true) =>
-    ranked.find(
+  const pick = (
+    list: readonly WwTechId[],
+    maxAhead: number,
+    withCaps = true,
+    area?: (t: WwTechId) => boolean,
+  ) =>
+    list.find(
       (t) =>
         !researched.has(t) &&
+        (area === undefined || area(t)) &&
         aheadOf(WW_TECHS[t].year) <= maxAhead &&
         !(withCaps && capped(t)) &&
         !queuedBlock(t) &&
         researchBlockOf(state, t) === null,
     );
   /** The least early one, ties by the score (the start plan's last resort). */
-  const leastAhead = () => {
+  const leastAhead = (
+    list: readonly WwTechId[],
+    area?: (t: WwTechId) => boolean,
+  ) => {
     let best: WwTechId | undefined;
-    for (const t of ranked) {
+    for (const t of list) {
       if (researched.has(t) || queuedBlock(t)) continue;
+      if (area !== undefined && !area(t)) continue;
       if (
         best !== undefined &&
         aheadOf(WW_TECHS[t].year) >= aheadOf(WW_TECHS[best].year)
@@ -1380,19 +1394,42 @@ function planResearch(
     }
     return best;
   };
+  const rankedByLean = new Map<number, readonly WwTechId[]>();
   for (;;) {
     const slot = freeResearchSlot(slots, i.slotCount);
     if (slot < 0) return;
-    // The shares first; a slot with nothing else close takes any (R6.8).
-    const tech =
-      pick(AI_MAX_AHEAD_PCT) ??
-      pick(AI_FALLBACK_AHEAD_PCT) ??
-      pick(AI_MAX_AHEAD_PCT, false) ??
-      (fill ? leastAhead() : undefined);
+    const lean = leanOf(slot);
+    let tech: WwTechId | undefined;
+    if (lean === 0) {
+      // The shares first; a slot with nothing else close takes any (R6.8).
+      tech =
+        pick(ranked, AI_MAX_AHEAD_PCT) ??
+        pick(ranked, AI_FALLBACK_AHEAD_PCT) ??
+        pick(ranked, AI_MAX_AHEAD_PCT, false) ??
+        (fill ? leastAhead(ranked) : undefined);
+    } else {
+      // Strict: its area only, no shares; when the area has nothing left
+      // the slot takes any tech rather than sit empty.
+      let list = rankedByLean.get(lean);
+      if (list === undefined) {
+        list = rankedBy(lean);
+        rankedByLean.set(lean, list);
+      }
+      const area = (t: WwTechId) => leanHasTab(lean, WW_TECHS[t].tab);
+      tech =
+        pick(list, AI_MAX_AHEAD_PCT, false, area) ??
+        pick(list, AI_FALLBACK_AHEAD_PCT, false, area) ??
+        leastAhead(list, area) ??
+        leastAhead(list);
+    }
     if (tech === undefined) return;
     slots[slot] = tech;
-    running[aiTechDomain(tech)]++;
-    orders.push({ kind: "research", tech });
+    if (lean === 0) running[aiTechDomain(tech)]++;
+    orders.push(
+      i.fillSlots === true
+        ? { kind: "research", tech, slot }
+        : { kind: "research", tech },
+    );
   }
 }
 
@@ -1829,7 +1866,7 @@ function researchInputOf(econ: WwEconomy, ce: CountryEconomy): AiResearchInput {
       return shared;
     },
     projects: projectsDone(econ, ce),
-    lean: ce.researchLean,
+    leans: ce.slotLeans,
   };
 }
 
@@ -1861,7 +1898,7 @@ function applyAiOrder(
     case "change_line":
       return changeLine(econ, ce, o.line, o.equipment, o.gen);
     case "research":
-      return startResearch(econ, ce, o.tech);
+      return startResearch(econ, ce, o.tech, o.slot);
     case "open_trade":
       return openTrade(
         econ,

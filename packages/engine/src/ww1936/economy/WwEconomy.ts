@@ -275,10 +275,12 @@ export class CountryEconomy {
    */
   savedResearch: SavedResearch[] = [];
   /**
-   * Research overhaul (changes §6 idea 1): RESEARCH_LEANS index of the
-   * auto-research leaning a human set (research_lean); 0: balanced.
+   * Per-slot auto-research leaning (changes §6 idea 1, owner request
+   * 2026-11-03): RESEARCH_LEANS index for each slot index, set by a human
+   * (research_lean, research_lean_slot); a missing entry: balanced. Never
+   * ends in a 0. Write through ResearchRun.
    */
-  researchLean = 0;
+  slotLeans: number[] = [];
   /**
    * Research queues (owner request 2026-11-03): the techs reserved for each
    * slot index, in order; empty for the AI and for a human who reserved none.
@@ -447,7 +449,17 @@ const CountrySchema = z.object({
   savedResearch: z
     .array(z.object({ tech: z.enum(WW_TECH_IDS), progress: zInt() }))
     .optional(),
-  /** Research overhaul: the auto-research leaning, written only when not balanced. */
+  /** Per-slot auto-research leaning, written only when some slot is not balanced. */
+  slotLeans: z
+    .array(
+      z
+        .number()
+        .int()
+        .min(0)
+        .max(RESEARCH_LEANS.length - 1),
+    )
+    .optional(),
+  /** Saves before the per-slot leaning: one leaning for every slot it had. Read only. */
   researchLean: z
     .number()
     .int()
@@ -1440,7 +1452,7 @@ export class WwEconomy {
       ),
       ...this.sharedResearchOf(ce),
       ...this.slotViewOf(ce),
-      ...(ce.researchLean === 0 ? {} : { researchLean: ce.researchLean }),
+      ...(ce.slotLeans.length === 0 ? {} : { slotLeans: [...ce.slotLeans] }),
       ...(hasQueues(ce) ? { slotQueues: queueView(this, ce) } : {}),
       projectsDone: projectsDone(this, ce),
       researched: WW_TECH_IDS.filter((id) => ce.researched.has(id)),
@@ -1520,10 +1532,11 @@ export class WwEconomy {
           (Math.imul(h, 31) + WW_TECH_IDS.indexOf(r.tech) * 131 + r.progress) |
           0;
       }
-      // Research overhaul: the leaning (nothing while balanced).
-      if (ce.researchLean !== 0) {
-        h = (Math.imul(h, 31) + ce.researchLean * 137 + 11) | 0;
-      }
+      // Research overhaul: the leaning of each slot (nothing while all balanced).
+      ce.slotLeans.forEach((l, slot) => {
+        if (l === 0) return;
+        h = (Math.imul(h, 31) + (slot * 7 + l) * 137 + 11) | 0;
+      });
       // Research queues (nothing while every queue is empty).
       ce.rq.forEach((q, slot) => {
         if (q.length === 0) return;
@@ -1622,7 +1635,7 @@ export class WwEconomy {
         ...(ce.savedResearch.length === 0
           ? {}
           : { savedResearch: ce.savedResearch.map((r) => ({ ...r })) }),
-        ...(ce.researchLean === 0 ? {} : { researchLean: ce.researchLean }),
+        ...(ce.slotLeans.length === 0 ? {} : { slotLeans: [...ce.slotLeans] }),
         ...(hasQueues(ce) ? { researchQueues: ce.rq.map((q) => [...q]) } : {}),
         totals: copyTotals(ce.totals),
         fuelMilli: ce.fuelMilli,
@@ -1699,7 +1712,18 @@ export class WwEconomy {
       );
       ce.researched = new Set(c.researched);
       ce.savedResearch = (c.savedResearch ?? []).map((r) => ({ ...r }));
-      ce.researchLean = c.researchLean ?? 0;
+      ce.slotLeans =
+        c.slotLeans !== undefined
+          ? [...c.slotLeans]
+          : new Array<number>(
+              c.researchLean === undefined ? 0 : c.totals.slotCount,
+            ).fill(c.researchLean ?? 0);
+      while (
+        ce.slotLeans.length > 0 &&
+        ce.slotLeans[ce.slotLeans.length - 1] === 0
+      ) {
+        ce.slotLeans.pop();
+      }
       ce.rq = (c.researchQueues ?? []).map((q) => [...q]);
       ce.totals = copyTotals(c.totals);
       ce.fuelMilli = c.fuelMilli;

@@ -402,7 +402,13 @@ export class WwResearchPanel extends WwDrawerBase {
 
   /** Auto-research leaning (changes §6 idea 1): five presets next to the auto switch. */
   private renderLean(d: WwCountryDetail): TemplateResult {
-    const now = d.researchLean ?? 0;
+    // A choice shows as picked only when every slot has it.
+    const leans = Array.from(
+      { length: d.slotCount },
+      (_, k) => d.slotLeans?.[k] ?? 0,
+    );
+    const every = leans.length > 0 && leans.every((l) => l === leans[0]);
+    const now = every ? leans[0] : -1;
     return html`<div
       data-ww-lean-row
       class="flex items-center gap-1 overflow-x-auto pb-1 text-xs"
@@ -1274,10 +1280,37 @@ export class WwResearchPanel extends WwDrawerBase {
             ${this.renderSlot(s, queues[s.index])}${this.renderQueueButton(
               s,
               queues[s.index],
-            )}
+            )}${this.renderSlotLean(s, d)}
           </div>`,
       )}
     </div>`;
+  }
+
+  /** The leaning of one slot: its auto-research takes only techs of that area. */
+  private renderSlotLean(s: SlotRow, d: WwCountryDetail): TemplateResult {
+    const now = d.slotLeans?.[s.index] ?? 0;
+    return html`<select
+      data-ww-slot-lean=${s.index}
+      aria-label=${translateText("ww1936.rtree.lean_slot")}
+      class="h-10 w-full rounded-md border border-white/20 bg-black/30 px-1 text-xs ${now ===
+      0
+        ? "text-white/70"
+        : "border-sky-300 bg-sky-800/70 font-bold"}"
+      @change=${(e: Event) => {
+        const lean =
+          RESEARCH_LEANS[(e.target as HTMLSelectElement).selectedIndex];
+        if (lean !== undefined) {
+          this.sendOrder({ kind: "research_lean_slot", slot: s.index, lean });
+        }
+      }}
+    >
+      ${RESEARCH_LEANS.map(
+        (lean, i) =>
+          html`<option value=${lean} ?selected=${i === now}>
+            ${translateText(LEAN_KEYS[lean])}
+          </option>`,
+      )}
+    </select>`;
   }
 
   /** The button under a slot: how many are reserved and the first one; it opens the queue. */

@@ -174,13 +174,31 @@ describe("research tree", () => {
   it("lean presets and grants send orders; the grant explains why it is off", async () => {
     const m = await mount({
       summaries: [summary("DEU")],
-      details: [detail("DEU", { researchLean: 2 })],
+      details: [detail("DEU", { slotCount: 2, slotLeans: [2, 2] })],
     });
     expect(m.q("[data-ww-lean='navy']")!.getAttribute("aria-pressed")).toBe(
       "true",
     );
     await m.click("[data-ww-lean='air']");
     expect(m.sent).toEqual([{ kind: "research_lean", lean: "air" }]);
+    // One slot different: no choice shows as picked for all; a slot's
+    // selector sends its own order and never taps the slot.
+    const mixed = await mount({
+      summaries: [summary("DEU")],
+      details: [detail("DEU", { slotCount: 2, slotLeans: [2] })],
+    });
+    expect(mixed.q("[data-ww-lean='navy']")!.getAttribute("aria-pressed")).toBe(
+      "false",
+    );
+    const sel = mixed.q("[data-ww-slot-lean='1']") as HTMLSelectElement;
+    expect(
+      (mixed.q("[data-ww-slot-lean='0']") as HTMLSelectElement).value,
+    ).toBe("navy");
+    sel.value = "industry";
+    sel.dispatchEvent(new Event("change", { bubbles: true }));
+    expect(mixed.sent).toEqual([
+      { kind: "research_lean_slot", slot: 1, lean: "industry" },
+    ]);
     await m.click("[data-ww-grant-btn='infantry']");
     expect(m.sent[1]).toEqual({ kind: "research_grant", branch: "infantry" });
     const held = await mount(
