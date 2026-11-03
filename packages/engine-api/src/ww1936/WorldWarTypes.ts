@@ -78,7 +78,10 @@ export interface CapitulationGaugeData {
  * their missions in every zone; navy (appended): the AI's fleets — their sea
  * regions, missions and rules, the mine fleets, home when damaged — never an
  * invasion or the fleets supporting one under way; thought (appended, default
- * off): the AI's judgement of the nine military thought sliders.
+ * off): the AI's judgement of the nine military thought sliders; intel
+ * (appended, default off): the AI's intelligence agency — founding (at
+ * AI_MINOR_FOUND_PP), upgrades, operatives, operations and cryptology — never
+ * a coup.
  */
 export const WW_AUTO_DOMAINS = [
   "production",
@@ -87,6 +90,7 @@ export const WW_AUTO_DOMAINS = [
   "air",
   "navy",
   "thought",
+  "intel",
 ] as const;
 export type WwAutoDomain = (typeof WW_AUTO_DOMAINS)[number];
 

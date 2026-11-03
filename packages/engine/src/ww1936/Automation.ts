@@ -33,6 +33,8 @@ import type { WorldWar } from "./WorldWar";
  * where a fleet goes and what it does there (the orders AiNavy gives, and a
  * move or a new home port). A fleet's admiral, its carriers' deck mix, its
  * own auto switch and the invasions are no deployment: they stay the human's.
+ * Intel: every order of the intelligence screen (founding, upgrades,
+ * operatives, operations, cryptology).
  */
 export const AUTO_ORDER_DOMAIN: Readonly<
   Partial<Record<WwOrder["kind"], WwAutoDomain>>
@@ -65,6 +67,15 @@ export const AUTO_ORDER_DOMAIN: Readonly<
   fleet_merge: "navy",
   fleet_port_strike: "navy",
   thought_set: "thought",
+  intel_found: "intel",
+  intel_upgrade: "intel",
+  operative_recruit: "intel",
+  operative_assign: "intel",
+  operative_recall: "intel",
+  operation_start: "intel",
+  operation_cancel: "intel",
+  crypto_target: "intel",
+  crypto_activate: "intel",
 };
 
 /** The hand-over notice of each domain (full keys: the translation check reads them). */
@@ -75,6 +86,7 @@ export const AUTO_OFF_NOTICE: Readonly<Record<WwAutoDomain, string>> = {
   air: "events_display.ww1936_auto_off_air",
   navy: "events_display.ww1936_auto_off_navy",
   thought: "events_display.ww1936_auto_off_thought",
+  intel: "events_display.ww1936_auto_off_intel",
 };
 
 /** An army's auto command went off by its owner's order. */

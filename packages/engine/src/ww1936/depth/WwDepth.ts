@@ -693,9 +693,12 @@ export class WwDepth implements LandDepthHooks {
       aiWorldDay(this, id, day);
       aiSeaAirDay(this, id, day);
       aiMechDay(this, id, day);
-    } else if (this.ww.autoOn(id, "navy")) {
+    } else {
+      // Automation (intel switch): a human's agency, at the AI's own point of
+      // the day and rhythm (no coup; founding at once, see aiFound).
+      if (this.ww.autoOn(id, "intel")) aiIntelDay(this, id, day);
       // Automation (navy switch): a human's mine fleets.
-      aiSeaMines(this, id, day);
+      if (this.ww.autoOn(id, "navy")) aiSeaMines(this, id, day);
     }
     this.depthDirty.add(id);
   }
