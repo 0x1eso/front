@@ -64,7 +64,6 @@ const ECON = [
   "after_switch",
   "per_day",
   "stockpile",
-  "coverage",
   "produced",
   "exported",
   "imported",
