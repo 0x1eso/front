@@ -403,7 +403,7 @@ export function applyEconEffect(
     }
     case "equipment": {
       const key = equipKey(e.type, e.gen);
-      if (key >= 0) ce.stock[key] += e.count;
+      if (key >= 0) ce.stock[key] = Math.max(0, ce.stock[key] + e.count);
       break;
     }
     case "send_equipment": {

@@ -106,6 +106,8 @@ export function dailyIdeology(
   }
   // The US fascist regime has its own uprising event (usa_democratic_uprising).
   if (c.tag === "USA" && c.hasFlag("usa_regime_seized", day)) fire = -1;
+  // The Soviet army regime likewise: the hardliners rise by sun_hardliner_unrest.
+  if (c.tag === "SUN" && c.hasFlag("sun_army_rule", day)) fire = -1;
   if (fire >= 0 && day >= c.crisisCooldownUntil) {
     c.crisisDays[fire] = 0;
     c.crisisCooldownUntil = day + WW_CRISIS_COOLDOWN_DAYS;

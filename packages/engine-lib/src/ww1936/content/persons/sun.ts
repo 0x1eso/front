@@ -166,8 +166,11 @@ export const PERSONS_SUN = [
     id: "sun_tukhachevsky",
     nameKey: "ww1936.person.sun_tukhachevsky",
     country: "SUN",
-    roles: ["advisor"],
+    // Also the head of the army regime (sun_red_bonaparte), a road the
+    // historical game never takes.
+    roles: ["advisor", "leader"],
     advisor: { slot: "staff", traits: ["theorist_land"] },
+    leaderTraits: ["generalissimo"],
     alsoGeneral: "tukhachevsky",
     source:
       "en.wikipedia Mikhail Tukhachevsky, ru.wikipedia Дело военных: arrested 1937-05-22, tried 1937-06-11",
