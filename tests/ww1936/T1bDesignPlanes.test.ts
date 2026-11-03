@@ -81,11 +81,17 @@ async function atWar(): Promise<{ runner: GameRunner; ww: WorldWar }> {
 }
 
 /** Britain saves a fighter design in slot 1 by the player's order. */
-function saveFighter(ww: WorldWar, runner: GameRunner): PlaneDesignStats {
+function saveFighter(
+  ww: WorldWar,
+  runner: GameRunner,
+  weak = false,
+): PlaneDesignStats {
   const d = ww.depth;
   const def = {
     ...recommendedPlane("small_1", new Set(WW_TECH_IDS)),
     name: "Spit",
+    // (A weak weapon: the design is old against the newest static fighter.)
+    ...(weak ? { modules: ["w_mg2", "", "", ""] } : {}),
   } as Def;
   // The techs the fit asks for (the test's, plan decision 30).
   const ce = ww.economy.country(GBR)!;
@@ -111,7 +117,8 @@ describe("T1b: plane designs in P4's air war (lane E's sites)", () => {
   it("ww8: a rearm swaps design planes too, the oldest for a newer one in stock", async () => {
     const { runner, ww } = await atWar();
     const ce = ww.economy.country(GBR)!;
-    saveFighter(ww, runner);
+    // (The first save absorbs the static fighters of generation 1: save a weak design.)
+    saveFighter(ww, runner, true);
     noStaticFighters(ww, GBR);
     const newest = equipKey("fighter", EQUIPMENT_GENS.fighter);
     const w = giveWing(ww.air, {
@@ -136,6 +143,8 @@ describe("T1b: plane designs in P4's air war (lane E's sites)", () => {
     const { runner, ww } = await atWar();
     const air = ww.air;
     const ce = ww.economy.country(GBR)!;
+    // (The first save absorbs the static generation-1 fighters: none left first.)
+    noStaticFighters(ww, GBR);
     const st = saveFighter(ww, runner);
     // ① The plane design line fills the stock.
     clearStartSetup(ww.economy, ce);

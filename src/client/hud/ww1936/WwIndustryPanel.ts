@@ -1,4 +1,5 @@
 import type { WwOrder } from "@openfront/engine-api/Schemas";
+import { AIR_TYPES } from "@openfront/engine-api/ww1936/AirTypes";
 import { COUNTRIES } from "@openfront/engine-api/ww1936/Countries";
 import {
   BUILDABLE,
@@ -954,7 +955,9 @@ export class WwIndustryPanel extends WwDrawerBase {
     const oldLine =
       r.equipment === "light_tank" ||
       r.equipment === "medium_tank" ||
-      r.equipment === "tank_design"
+      r.equipment === "tank_design" ||
+      r.equipment === "plane_design" ||
+      (AIR_TYPES as readonly string[]).includes(r.equipment)
         ? this.tankModel().lineOld(r.equipment, r.gen)
         : null;
     return html`<li

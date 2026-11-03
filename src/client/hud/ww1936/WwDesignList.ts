@@ -56,8 +56,13 @@ function renderCard(env: DesignListEnv, row: WwDesignSlotData): TemplateResult {
   // A tank design is a cell's: no slot management, no retiring, no copying
   // of my own (the designer's cell list edits it); a foreign one can still
   // be adapted into my own cell.
-  const tank = row.kind === "tank";
-  const tankScore = tank ? model.tankScore(row.slot) : null;
+  const tank = row.kind !== "ship";
+  const tankScore =
+    row.kind === "tank"
+      ? model.tankScore(row.slot)
+      : row.kind === "plane"
+        ? model.planeScoreInfo(row.def)
+        : null;
   const origin = ORIGIN_KEYS[row.origin as keyof typeof ORIGIN_KEYS] ?? "";
   return html`<li
     data-ww-design-card=${`${row.kind}:${row.slot}`}

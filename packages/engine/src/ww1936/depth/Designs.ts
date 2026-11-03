@@ -69,6 +69,10 @@ import {
   NavalLineLike,
 } from "@openfront/engine-lib/ww1936/NavalLineRules";
 import {
+  type PlaneNumbers,
+  planeScore,
+} from "@openfront/engine-lib/ww1936/PlaneScore";
+import {
   BOMBER_TYPES,
   HEAVY_AIR_TYPES,
   PLANE_BASE,
@@ -78,6 +82,7 @@ import type { EffectCtx } from "../politics/Dispatch";
 import { designIsOld, saveTankCell, sweepStaticStock } from "./DesignCells";
 import { licenceCostPctFor } from "./Licences";
 import { treatyEscalated, treatyMember } from "./NavalTreaty";
+import { planeDesignOld, savePlaneCell, sweepStaticPlanes } from "./PlaneCells";
 import { dailyRefits, startRefit } from "./Refit";
 import type { DesignSlot, WwDepth } from "./WwDepth";
 
@@ -198,6 +203,13 @@ function saveOrder(
     d.message(id, "ww1936_design_saved", { name: def.name });
     return null;
   }
+  if (kind === "plane") {
+    // The cell rule again: one design per plane type x airframe.
+    const got = savePlaneCell(d, id, def, day);
+    if (typeof got !== "number") return got;
+    d.message(id, "ww1936_design_saved", { name: def.name });
+    return null;
+  }
   if (slot !== 0) {
     // (Review E7: "design_in_use" here reads "the slot is taken".)
     if (slot > DESIGN_SLOTS[kind]) return "bad_index";
@@ -225,6 +237,7 @@ export function dailyDesigns(d: WwDepth, id: number, day: number): void {
   if (c === null) return;
   // Tank cells: static tanks that arrived after the first save join the design.
   if (c.des.tank.some((s) => s !== null)) sweepStaticStock(d, id);
+  if (c.des.plane.some((s) => s !== null)) sweepStaticPlanes(d, id);
   // Spec §5.1: an obsolete slot nothing holds any more is freed (every 10
   // days); so is an old tank design nothing holds (its score is more than
   // TANK_OLD_PCT below the best of its need group; saved 10 days ago at least).
@@ -237,9 +250,11 @@ export function dailyDesigns(d: WwDepth, id: number, day: number): void {
       if (
         !s.obsolete &&
         !(
-          kind === "tank" &&
+          kind !== "ship" &&
           day - s.savedDay >= 10 &&
-          designIsOld(d, id, i + 1)
+          (kind === "tank"
+            ? designIsOld(d, id, i + 1)
+            : planeDesignOld(d, id, i + 1))
         )
       ) {
         continue;
@@ -869,6 +884,7 @@ export function grantDesign(
   });
   if (bad !== null) return;
   if (def.kind === "tank") saveTankCell(d, actor, def, ctx.day);
+  else if (def.kind === "plane") savePlaneCell(d, actor, def, ctx.day);
   else saveDesign(d, actor, def, 0, "own", 0, 0, ctx.day);
 }
 
@@ -915,7 +931,7 @@ export function designInUse(
 
 /**
  * The plane design slots (1-based) whose design flies as P4 `type`, in
- * the draw order (spec §5.4.2: the newest year first, then the lower
+ * the draw order (the best performance score first, then the lower
  * slot). Captured and received designs fly too; obsolete ones still do.
  */
 export function planeDesignSlotsOf(
@@ -926,9 +942,26 @@ export function planeDesignSlotsOf(
   const out: [number, number][] = [];
   for (let s = 1; s <= WW_PLANE_DESIGN_SLOTS; s++) {
     const st = d.designStatsOf(owner, "plane", s) as PlaneDesignStats | null;
-    if (st !== null && st.type === type) out.push([s, st.year]);
+    if (st !== null && st.type === type) {
+      out.push([s, planeDesignScore(st)]);
+    }
   }
   return out.sort((a, b) => b[1] - a[1] || a[0] - b[0]).map(([s]) => s);
+}
+
+/** A plane design's performance score (its base numbers, on the scale of the static planes). */
+export function planeDesignScore(st: PlaneDesignStats): number {
+  const n: PlaneNumbers = {
+    airAtk: st.airAttack,
+    airDef: st.airDefense,
+    agility: st.agility,
+    speed: st.speed,
+    range: st.range,
+    ground: st.ground,
+    strat: st.strategic,
+    naval: st.naval,
+  };
+  return planeScore(st.type, n);
 }
 
 /**

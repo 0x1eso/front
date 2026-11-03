@@ -6,6 +6,7 @@
 import {
   DESIGN_KINDS,
   DesignKind,
+  TankRole,
 } from "@openfront/engine-api/ww1936/DepthTypes";
 import { html, nothing, TemplateResult } from "lit";
 import { customElement, state } from "lit/decorators.js";
@@ -23,6 +24,8 @@ import {
   DESIGNER_STATS_W,
   DesignerGame,
   DesignerModel,
+  PLANE_TYPES_LIST,
+  PlaneCell,
   TANK_ROLES_LIST,
   TankCell,
 } from "./DesignerModel";
@@ -50,10 +53,12 @@ const KIND_KEYS: Readonly<Record<DesignKind, string>> = {
 };
 
 /** The save button's text: a tank saved over a cell's design says every tank of the cell changes. */
-function saveLabel(overwrites: boolean, armed: boolean): string {
+function saveLabel(overwrites: boolean, armed: boolean, plane = false): string {
   if (overwrites) {
     return armed
-      ? "ww1936.design.save_cell_confirm"
+      ? plane
+        ? "ww1936.design.save_cell_confirm_plane"
+        : "ww1936.design.save_cell_confirm"
       : "ww1936.design.save_cell";
   }
   return armed ? "ww1936.design.save_confirm" : "ww1936.design.save";
@@ -317,6 +322,7 @@ export class WwDesigner extends WwDrawerBase {
 
   private renderDesign(m: DesignerModel): TemplateResult {
     if (m.kind === "tank") return this.renderTankDesign(m);
+    if (m.kind === "plane") return this.renderTankDesign(m);
     const chips = m.baseChips();
     return html`
       <div
@@ -386,23 +392,37 @@ export class WwDesigner extends WwDrawerBase {
    * sideways scroll; every target is at least 40 px.
    */
   private renderTankDesign(m: DesignerModel): TemplateResult {
-    const cells = m.cells();
+    const plane = m.kind === "plane";
+    const cells = plane ? m.planeCells() : m.cells();
+    const types: readonly string[] = plane ? PLANE_TYPES_LIST : TANK_ROLES_LIST;
+    const cur: string = plane ? m.planeTypeSel : m.tankRoleSel;
     return html`
       <div data-ww-scroll class="min-h-0 flex-1 overflow-y-auto px-2 pb-1">
-        <div data-ww-role-row role="tablist" class="flex flex-wrap gap-1 py-1">
-          ${TANK_ROLES_LIST.map(
+        <div
+          data-ww-role-row
+          role="tablist"
+          class=${plane
+            ? "grid grid-cols-2 gap-1 py-1 sm:grid-cols-5"
+            : "flex flex-wrap gap-1 py-1"}
+        >
+          ${types.map(
             (r) =>
               html`<button
                 type="button"
                 role="tab"
                 data-ww-role-tab=${r}
-                aria-selected=${String(m.tankRoleSel === r)}
-                class="${BTN} min-h-10 flex-1 ${m.tankRoleSel === r
+                aria-selected=${String(cur === r)}
+                class="${BTN} min-h-10 min-w-0 ${plane
+                  ? ""
+                  : "flex-1"} ${cur === r
                   ? "border-sky-400/60 bg-sky-500/20"
                   : ""}"
-                @click=${() => m.setRole(r)}
+                @click=${() =>
+                  plane ? m.setPlaneType(r) : m.setRole(r as TankRole)}
               >
-                ${translateText(`ww1936.role.${r}`)}
+                ${translateText(
+                  plane ? `ww1936.equip.${r}` : `ww1936.role.${r}`,
+                )}
               </button>`,
           )}
         </div>
@@ -413,7 +433,11 @@ export class WwDesigner extends WwDrawerBase {
           <div class="relative flex min-w-[302px] flex-1 flex-col gap-1">
             ${m.draft === null
               ? html`<p class="m-0 text-xs text-white/60">
-                  ${translateText("ww1936.design.pick_cell")}
+                  ${translateText(
+                    plane
+                      ? "ww1936.design.pick_cell_plane"
+                      : "ww1936.design.pick_cell",
+                  )}
                 </p>`
               : this.renderGrid(m)}
             ${m.openSlot !== null
@@ -433,7 +457,10 @@ export class WwDesigner extends WwDrawerBase {
     `;
   }
 
-  private renderCell(m: DesignerModel, c: TankCell): TemplateResult {
+  private renderCell(
+    m: DesignerModel,
+    c: TankCell | PlaneCell,
+  ): TemplateResult {
     return html`<button
       type="button"
       data-ww-cell=${c.base}
@@ -694,8 +721,12 @@ export class WwDesigner extends WwDrawerBase {
               >🔒
               ${translateText("ww1936.design.save_blocked", {
                 reason:
-                  block === "design_slots_full" && d.kind === "tank"
-                    ? translateText("ww1936.design.pool_full")
+                  block === "design_slots_full" && d.kind !== "ship"
+                    ? translateText(
+                        d.kind === "plane"
+                          ? "ww1936.design.pool_full_plane"
+                          : "ww1936.design.pool_full",
+                      )
                     : orderBlockText(block),
               })}</span
             >`
@@ -781,9 +812,12 @@ export class WwDesigner extends WwDrawerBase {
           ${translateText(
             saveLabel(
               d !== null &&
-                d.kind === "tank" &&
-                m.cellDesign(d.base, m.tankRoleSel) !== null,
+                ((d.kind === "tank" &&
+                  m.cellDesign(d.base, m.tankRoleSel) !== null) ||
+                  (d.kind === "plane" &&
+                    m.planeCellDesign(d.base, m.planeTypeSel) !== null)),
               armed,
+              d !== null && d.kind === "plane",
             ),
           )}
         </button>

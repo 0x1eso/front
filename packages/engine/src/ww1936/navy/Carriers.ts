@@ -3,7 +3,10 @@
 // ship row: (cv_fighter, cv_cas, cv_naval_bomber) × generations 1..3; its
 // planes are on the deployed ledger (drawPlanes / returnPlanes), so stock
 // + deployed only falls by the planes lost.
-import { CARRIER_AIR_TYPES } from "@openfront/engine-api/ww1936/AirTypes";
+import {
+  CARRIER_AIR_TYPES,
+  WING_UPGRADE_PER_REARM,
+} from "@openfront/engine-api/ww1936/AirTypes";
 import {
   type PlaneDesignStats,
   WW_PLANE_DESIGN_SLOTS,
@@ -32,6 +35,7 @@ import {
   designSlotsFor,
   oldestFirst,
   planeSources,
+  swapOldPlanes,
 } from "../air/DesignPlanes";
 import { withFuze } from "../air/ProjectEffects";
 import {
@@ -224,6 +228,21 @@ export function fillDecks(navy: WwNavy, smallID: number): void {
           changed = true;
         }
       }
+      // The generation swap (the wing rule at its pace): old deck planes
+      // for non-old stock; nothing is read of the deck without an old source.
+      const swapped = swapOldPlanes(
+        depth,
+        ce,
+        smallID,
+        type,
+        WING_UPGRADE_PER_REARM,
+        (x) => (x.slot === 0 ? d[ty * 3 + x.gen - 1] : dd[x.slot - 1]) ?? 0,
+        (x, k) => {
+          if (x.slot === 0) d[ty * 3 + x.gen - 1] += k;
+          else dd[x.slot - 1] += k;
+        },
+      );
+      if (swapped > 0) changed = true;
     });
     if (changed) navy.markFleet(f.id);
   }
