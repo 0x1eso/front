@@ -10,7 +10,9 @@ import { applyEnergyEffect } from "../depth/Energy";
 import { applyProjectEffect, applyStartProjectEffect } from "../depth/Projects";
 import { applyMasteryEffect } from "../depth/Thought";
 import type { WwDepth } from "../depth/WwDepth";
+import { damageBuilding } from "../economy/Buildings";
 import type { EffectCtx } from "./Dispatch";
+import { pickRegions } from "./EffectsEcon";
 
 export function applyDepthEffect(
   ctx: EffectCtx,
@@ -64,6 +66,15 @@ export function applyMechEffect(
     case "congress_dissolve":
       if (actor === usaIdOf(d)) dissolveCongress(d, actor);
       return;
+    case "damage_buildings": {
+      // Region picks as `build` does; the damage is capped by what stands.
+      const econ = d.ww.economy;
+      for (const r of pickRegions(ctx.pol, actor, e.where, undefined, ctx)) {
+        damageBuilding(econ, r, e.building, e.milli);
+      }
+      econ.markCountryDirty(actor);
+      return;
+    }
     case "bop":
       addBop(d, actor, e.amount, ctx.day);
       return;

@@ -303,6 +303,12 @@ const SAMPLE_EFFECTS: Record<EffectKind, Effect> = {
   agency: { kind: "agency", upgrade: "ag_ops_1" },
   cfocus_unlock: { kind: "cfocus_unlock" },
   congress_dissolve: { kind: "congress_dissolve" },
+  damage_buildings: {
+    kind: "damage_buildings",
+    where: { best: 2 },
+    building: "mil",
+    milli: 2000,
+  },
 };
 
 /** The optional fields of each kind (besides `who`, optional everywhere). */

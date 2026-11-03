@@ -2,8 +2,12 @@
 // 10, 17, 26, 28, 40, 41, 45, 49, 67, 74; lane K4). The purge chain runs
 // only on the purge path (flag purge_path from sun_great_purge) and stops
 // once sun_purge_ends is done. Its texts state the trials as history; no
-// option turns a sentence or a camp into a choice or a reward.
+// option turns a sentence or a camp into a choice or a reward. After three
+// years of the purge the troubles begin (small notices, three cards), after
+// five they come twice as often, and they stop when the purge ends. The Red
+// Bonaparte's hardliners rise by sun_hardliner_unrest.
 import type { EventDef } from "@openfront/engine-api/ww1936/PoliticsTypes";
+import { NO_CIVIL_WAR } from "../focus/usa_fascist";
 import {
   after,
   all,
@@ -51,6 +55,36 @@ const PURGE_DAYS_360 = {
   kind: "days_since_flag_ge",
   flag: "purge_path",
   days: 360,
+} as const;
+const PURGE_DAYS_1095 = {
+  kind: "days_since_flag_ge",
+  flag: "purge_path",
+  days: 1095,
+} as const;
+const PURGE_DAYS_1825 = {
+  kind: "days_since_flag_ge",
+  flag: "purge_path",
+  days: 1825,
+} as const;
+/** Troubles: from the purge's third year ... */
+const TROUBLE_A = all(PURGE_ON, PURGE_DAYS_1095);
+/** ... and the extra ones from its fifth. */
+const TROUBLE_B = all(PURGE_ON, PURGE_DAYS_1825);
+/**
+ * Rates (mean days per event): the five small and three big troubles of
+ * year 3 add up to one in 60 days (5 / 450 + 3 / 540 = 1 / 60); the four of
+ * year 5 add another 1 / 60, so one in 30 days in all.
+ */
+const SMALL_MTTH = 450;
+const BIG_MTTH = 540;
+const LATE_MTTH = 240;
+/** A card stays open about 70 days for a human: no second one meanwhile. */
+const BIG_COOLDOWN = 90;
+/** The army regime's hardliners: a steady regime suppresses them, else civil war. */
+const HARDLINER_STABILITY = 25;
+const HARDLINER_STEADY = {
+  kind: "stability_ge",
+  pct: HARDLINER_STABILITY,
 } as const;
 const NOT_AT_WAR_WITH_JAPAN = not({ kind: "at_war_with", of: T("JPN") });
 
@@ -410,6 +444,310 @@ export const SUN_EVENTS = [
           { kind: "add_advisor_candidate", person: "sun_tupolev" },
           { kind: "clear_flag", flag: "sun_tupolev_held" },
         ],
+      },
+    ],
+  },
+
+  // ---- Troubles of a long purge (year 3 on; they stop when it ends) ----
+  // Notices: no choice, the effects apply at once.
+  {
+    id: "sun_factory_sabotage",
+    kind: "news",
+    receivers: ["SUN"],
+    trigger: TROUBLE_A,
+    mtthDays: SMALL_MTTH,
+    once: "never",
+    picture: "factory",
+    options: [
+      {
+        id: "a",
+        ai: { base: 10 },
+        effects: [
+          {
+            kind: "damage_buildings",
+            where: { best: 3 },
+            building: "mil",
+            milli: 2000,
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: "sun_rail_accident",
+    kind: "news",
+    receivers: ["SUN"],
+    trigger: TROUBLE_A,
+    mtthDays: SMALL_MTTH,
+    once: "never",
+    picture: "column",
+    options: [
+      {
+        id: "a",
+        ai: { base: 10 },
+        effects: [
+          {
+            kind: "damage_buildings",
+            where: { best: 3 },
+            building: "rail",
+            milli: 1000,
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: "sun_depot_explosion",
+    kind: "news",
+    receivers: ["SUN"],
+    trigger: TROUBLE_A,
+    mtthDays: SMALL_MTTH,
+    once: "never",
+    picture: "document",
+    options: [
+      {
+        id: "a",
+        ai: { base: 10 },
+        effects: [
+          {
+            kind: "equipment",
+            type: "infantry_equipment",
+            gen: 1,
+            count: -4000,
+          },
+          { kind: "equipment", type: "artillery", gen: 1, count: -200 },
+        ],
+      },
+    ],
+  },
+  {
+    id: "sun_security_infighting",
+    kind: "news",
+    receivers: ["SUN"],
+    trigger: TROUBLE_A,
+    mtthDays: SMALL_MTTH,
+    once: "never",
+    picture: "table",
+    options: [
+      { id: "a", ai: { base: 10 }, effects: [{ kind: "pp", amount: -40 }] },
+    ],
+  },
+  {
+    id: "sun_denunciation_cascade",
+    kind: "news",
+    receivers: ["SUN"],
+    trigger: TROUBLE_A,
+    mtthDays: SMALL_MTTH,
+    once: "never",
+    picture: "newspaper",
+    options: [
+      {
+        id: "a",
+        ai: { base: 10 },
+        effects: [{ kind: "add_spirit", id: "sun_denunciations", days: 60 }],
+      },
+    ],
+  },
+  // Cards: the three big ones.
+  {
+    id: "sun_camp_uprising",
+    kind: "country",
+    receivers: ["SUN"],
+    trigger: TROUBLE_A,
+    mtthDays: BIG_MTTH,
+    cooldownDays: BIG_COOLDOWN,
+    once: "never",
+    picture: "crowd",
+    options: [
+      {
+        id: "a",
+        ai: { base: 60 },
+        effects: [
+          { kind: "manpower", amount: -6000, recruitablePct: 0 },
+          { kind: "stability", pct: -3 },
+        ],
+      },
+      {
+        id: "b",
+        ai: { base: 40 },
+        effects: [{ kind: "add_spirit", id: "sun_camp_unrest", days: 120 }],
+      },
+    ],
+  },
+  {
+    id: "sun_officers_flee",
+    kind: "country",
+    receivers: ["SUN"],
+    trigger: TROUBLE_A,
+    mtthDays: BIG_MTTH,
+    cooldownDays: BIG_COOLDOWN,
+    once: "never",
+    picture: "border",
+    options: [
+      {
+        id: "a",
+        ai: { base: 60 },
+        effects: [
+          { kind: "army_xp", amount: -30 },
+          { kind: "stability", pct: -3 },
+        ],
+      },
+      {
+        id: "b",
+        ai: { base: 40 },
+        effects: [{ kind: "add_spirit", id: "sun_defections", days: 150 }],
+      },
+    ],
+  },
+  {
+    id: "sun_hunger_riots",
+    kind: "country",
+    receivers: ["SUN"],
+    trigger: TROUBLE_A,
+    mtthDays: BIG_MTTH,
+    cooldownDays: BIG_COOLDOWN,
+    once: "never",
+    picture: "crowd",
+    options: [
+      {
+        id: "a",
+        ai: { base: 50 },
+        effects: [{ kind: "add_spirit", id: "sun_bread_lines", days: 120 }],
+      },
+      {
+        id: "b",
+        ai: { base: 50 },
+        effects: [
+          { kind: "stability", pct: -8 },
+          { kind: "war_support", pct: -3 },
+        ],
+      },
+    ],
+  },
+  // From year 5 on, four more notices.
+  {
+    id: "sun_foundry_halt",
+    kind: "news",
+    receivers: ["SUN"],
+    trigger: TROUBLE_B,
+    mtthDays: LATE_MTTH,
+    once: "never",
+    picture: "factory",
+    options: [
+      {
+        id: "a",
+        ai: { base: 10 },
+        effects: [
+          {
+            kind: "damage_buildings",
+            where: { best: 2 },
+            building: "civ",
+            milli: 3000,
+          },
+        ],
+      },
+    ],
+  },
+  {
+    id: "sun_mine_flooding",
+    kind: "news",
+    receivers: ["SUN"],
+    trigger: TROUBLE_B,
+    mtthDays: LATE_MTTH,
+    once: "never",
+    picture: "map",
+    options: [
+      {
+        id: "a",
+        ai: { base: 10 },
+        effects: [{ kind: "add_spirit", id: "sun_flooded_mines", days: 60 }],
+      },
+    ],
+  },
+  {
+    id: "sun_arsenal_fire",
+    kind: "news",
+    receivers: ["SUN"],
+    trigger: TROUBLE_B,
+    mtthDays: LATE_MTTH,
+    once: "never",
+    picture: "document",
+    options: [
+      {
+        id: "a",
+        ai: { base: 10 },
+        effects: [
+          {
+            kind: "equipment",
+            type: "infantry_equipment",
+            gen: 1,
+            count: -8000,
+          },
+          { kind: "equipment", type: "artillery", gen: 1, count: -400 },
+        ],
+      },
+    ],
+  },
+  {
+    id: "sun_false_reports",
+    kind: "news",
+    receivers: ["SUN"],
+    trigger: TROUBLE_B,
+    mtthDays: LATE_MTTH,
+    once: "never",
+    picture: "newspaper",
+    options: [
+      {
+        id: "a",
+        ai: { base: 10 },
+        effects: [{ kind: "add_spirit", id: "sun_false_figures", days: 60 }],
+      },
+    ],
+  },
+
+  // ---- Red Bonaparte: the hardliners of the party and the security service ----
+  {
+    id: "sun_hardliner_unrest",
+    kind: "country",
+    receivers: ["SUN"],
+    trigger: all(
+      flag("sun_army_rule"),
+      { kind: "ruling", ideology: "neutral" },
+      { kind: "pop_ge", ideology: "communist", pct: 20 },
+      not(done("sun_military_rule")),
+      not(done("sun_bukharin_nep")),
+      NO_CIVIL_WAR,
+    ),
+    mtthDays: 60,
+    once: "never",
+    cooldownDays: 90,
+    picture: "crowd",
+    options: [
+      {
+        // Exactly one option stands: this one while the regime is steady.
+        id: "a",
+        available: HARDLINER_STEADY,
+        effects: [
+          { kind: "popularity", ideology: "communist", pp: -12 },
+          { kind: "stability", pct: -10 },
+          { kind: "war_support", pct: -5 },
+        ],
+        ai: { base: 100 },
+      },
+      {
+        id: "b",
+        available: not(HARDLINER_STEADY),
+        effects: [
+          { kind: "civil_war", ideology: "communist" },
+          // A failed split falls back to a communist government: put the
+          // army back (a no-op when it already rules).
+          {
+            kind: "if",
+            cond: not({ kind: "ruling", ideology: "neutral" }),
+            then: [{ kind: "set_government", ideology: "neutral" }],
+          },
+        ],
+        ai: { base: 100 },
       },
     ],
   },

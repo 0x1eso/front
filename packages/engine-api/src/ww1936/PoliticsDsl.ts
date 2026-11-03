@@ -392,6 +392,8 @@ export const EFFECT_KINDS = [
   "start_project",
   // The US focus tree's fascist path, appended: Congress is dissolved.
   "congress_dissolve",
+  // The Soviet trouble events: working buildings stop for a while (bomb damage).
+  "damage_buildings",
 ] as const;
 export type EffectKind = (typeof EFFECT_KINDS)[number];
 export type EffectGroup =
@@ -611,6 +613,13 @@ export type Effect = W &
     | { kind: "start_project"; project: SpecialProject }
     /** The US congress is dissolved (no parameters; the US only). */
     | { kind: "congress_dissolve" }
+    /** Sabotage at home: the picked regions' buildings take this much damage (milli, 1,000 = one stopped; repaired like bomb damage). */
+    | {
+        kind: "damage_buildings";
+        where: RegionPick;
+        building: BuildingId;
+        milli: number;
+      }
     /** AI_DESIGN_PRESETS id into a free slot, origin "own". */
     | { kind: "design_grant"; preset: string }
     /** Permanent energy supply (pack hydro), stored per country. */
@@ -867,7 +876,8 @@ export const WwEffectSchema: z.ZodType<Effect> = z.lazy(() =>
     ...leaf(["equipment"], {
       type: z.enum(EQUIPMENT_TYPES),
       gen: pos.max(3),
-      count: pos,
+      // Negative: a loss (the stock never goes below 0).
+      count: int,
     }),
     ...leaf(["send_equipment"], {
       to: SelectorSchema,
@@ -1053,6 +1063,11 @@ export const WwEffectSchema: z.ZodType<Effect> = z.lazy(() =>
     }),
     ...leaf(["start_project"], { project: z.enum(SPECIAL_PROJECTS) }),
     ...leaf(["congress_dissolve"], {}),
+    ...leaf(["damage_buildings"], {
+      where: RegionPickSchema,
+      building: z.enum(BUILDING_IDS),
+      milli: pos.max(10_000),
+    }),
     ...leaf(["design_grant"], { preset: z.string().max(40) }),
     ...leaf(["energy"], { amount: int.min(-50).max(50) }),
     ...leaf(["agency"], { upgrade: z.enum(AGENCY_UPGRADES).optional() }),

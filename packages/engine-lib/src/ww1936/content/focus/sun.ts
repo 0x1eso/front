@@ -4,11 +4,43 @@
 // D industry and research (x 10..15), E the army (x 16..18), F air and
 // navy (x 19). Data only (ContentPurity.test.ts).
 import type {
+  Condition,
+  Effect,
+} from "@openfront/engine-api/ww1936/PoliticsDsl";
+import type {
   BranchPoint,
   FocusDef,
   FocusId,
 } from "@openfront/engine-api/ww1936/PoliticsTypes";
-import { after, any, fire, flag, gflag, not, T } from "../helpers";
+import { after, any, done, fire, flag, gflag, not, T } from "../helpers";
+
+/** Every spirit the purge gives: the three stages and the eight control focuses'. */
+export const PURGE_CLEAR: Effect[] = [
+  { kind: "remove_spirit", id: "sun_purge_1" },
+  { kind: "remove_spirit", id: "sun_purge_2" },
+  { kind: "remove_spirit", id: "sun_purge_3" },
+  { kind: "remove_spirit", id: "sun_ctl_nkvd" },
+  { kind: "remove_spirit", id: "sun_ctl_trials" },
+  { kind: "remove_spirit", id: "sun_ctl_informers" },
+  { kind: "remove_spirit", id: "sun_ctl_commissars" },
+  { kind: "remove_spirit", id: "sun_ctl_bureaus" },
+  { kind: "remove_spirit", id: "sun_ctl_camps" },
+  { kind: "remove_spirit", id: "sun_ctl_personnel" },
+  { kind: "remove_spirit", id: "sun_ctl_dictator" },
+];
+/** Purge length at its end: two years or more, one year or more. */
+const PURGE_LONG: Condition = {
+  kind: "days_since_flag_ge",
+  flag: "purge_path",
+  days: 730,
+};
+const PURGE_MID: Condition = {
+  kind: "days_since_flag_ge",
+  flag: "purge_path",
+  days: 365,
+};
+/** The control focuses are for as long as the purge runs. */
+const PURGE_RUNS: Condition = not(done("sun_purge_ends"));
 
 export const SUN_FOCUSES = [
   // ---- A: politics and diplomacy (historical) ----
@@ -39,9 +71,9 @@ export const SUN_FOCUSES = [
       { kind: "add_spirit", id: "sun_purge_1" },
       { kind: "set_flag", flag: "purge_path" },
     ],
-    // Controller ruling on final review B M7: it pays nothing, so the AI
-    // that picks by weight no longer prefers it to the reformers (5); the
-    // historical AI still takes it as its branch point's history.
+    // The purge pays and costs at once (spirits sun_purge_1..3); the control
+    // focuses below it shrink the costs and grow the gains. The historical AI
+    // still takes it as its branch point's history, and ends it on its path.
     ai: { base: 5 },
   },
   {
@@ -53,12 +85,24 @@ export const SUN_FOCUSES = [
     branch: "politics",
     icon: "chain_broken",
     prereq: [["sun_great_purge"]],
-    available: after("1938-11-01"),
+    // No date: the player decides when. Everything the stages and the control
+    // focuses gave goes, costs and gains alike; only an aftermath stays, by
+    // how long the purge ran (up to a year, up to two, longer).
     effects: [
-      // Whatever stage the purge reached, only the aftermath stays.
-      { kind: "remove_spirit", id: "sun_purge_1" },
-      { kind: "remove_spirit", id: "sun_purge_2" },
-      { kind: "swap_spirit", from: "sun_purge_3", to: "sun_purge_aftermath" },
+      ...PURGE_CLEAR,
+      {
+        kind: "if",
+        cond: PURGE_LONG,
+        then: [{ kind: "add_spirit", id: "sun_purge_aftermath_3" }],
+        else: [
+          {
+            kind: "if",
+            cond: PURGE_MID,
+            then: [{ kind: "add_spirit", id: "sun_purge_aftermath_2" }],
+            else: [{ kind: "add_spirit", id: "sun_purge_aftermath" }],
+          },
+        ],
+      },
     ],
     ai: { base: 10 },
   },
@@ -223,6 +267,8 @@ export const SUN_FOCUSES = [
     branch: "politics",
     icon: "ballot",
     prereq: [["sun_army_reformers"]],
+    // The other road out of the reformers: the army itself takes the state.
+    exclusive: ["sun_red_bonaparte"],
     effects: [
       { kind: "stability", pct: 10 },
       { kind: "add_spirit", id: "sun_collective_rule" },
@@ -262,6 +308,63 @@ export const SUN_FOCUSES = [
       fire("gen_diplo_nap", T("FRA")),
     ],
     ai: { base: 5 },
+  },
+
+  // ---- B2: the army takes the state (a road out of the reformers) ----
+  // The focus only takes power; the hardliners of the party and the security
+  // service rise by the event sun_hardliner_unrest. Two ways out: military
+  // rule, or the return to the NEP (sun_bukharin_nep).
+  {
+    id: "sun_red_bonaparte",
+    tree: "SUN",
+    x: 6,
+    y: 1,
+    days: 70,
+    branch: "politics",
+    icon: "sword",
+    group: "sun_red_bonaparte",
+    prereq: [["sun_army_reformers"]],
+    exclusive: ["sun_collective_leadership"],
+    effects: [
+      { kind: "set_government", ideology: "neutral" },
+      { kind: "set_leader", person: "sun_tukhachevsky" },
+      { kind: "add_spirit", id: "sun_army_regime" },
+      { kind: "set_flag", flag: "sun_army_rule" },
+    ],
+    // A door the historical path never opens, and one fork among many.
+    ai: { base: 1 },
+  },
+  {
+    id: "sun_barracks_order",
+    tree: "SUN",
+    x: 6,
+    y: 4,
+    days: 70,
+    branch: "politics",
+    icon: "fort",
+    group: "sun_red_bonaparte",
+    prereq: [["sun_red_bonaparte"]],
+    effects: [
+      { kind: "stability", pct: 3 },
+      { kind: "army_xp", amount: 15 },
+    ],
+    ai: { base: 1 },
+  },
+  {
+    id: "sun_military_rule",
+    tree: "SUN",
+    x: 6,
+    y: 6,
+    days: 70,
+    branch: "politics",
+    icon: "flag",
+    group: "sun_red_bonaparte",
+    prereq: [["sun_barracks_order"]],
+    exclusive: ["sun_bukharin_nep"],
+    effects: [
+      { kind: "swap_spirit", from: "sun_army_regime", to: "sun_junta_rule" },
+    ],
+    ai: { base: 1 },
   },
 
   // ---- C: the Far East and solidarity abroad ----
@@ -651,11 +754,11 @@ export const SUN_FOCUSES = [
     prereq: [["sun_purge_ends", "sun_army_reformers"]],
     available: flag("winter_war_fought"),
     effects: [
-      {
-        kind: "swap_spirit",
-        from: "sun_purge_aftermath",
-        to: "sun_war_lessons",
-      },
+      // Whichever aftermath is on (or none, on the reformers' road) goes.
+      { kind: "remove_spirit", id: "sun_purge_aftermath" },
+      { kind: "remove_spirit", id: "sun_purge_aftermath_2" },
+      { kind: "remove_spirit", id: "sun_purge_aftermath_3" },
+      { kind: "add_spirit", id: "sun_war_lessons" },
     ],
     ai: { base: 10 },
   },
@@ -826,22 +929,6 @@ export const SUN_FOCUSES = [
     ai: { base: 10 },
   },
   {
-    id: "sun_show_trials",
-    tree: "SUN",
-    x: 4,
-    y: 1,
-    days: 35,
-    branch: "politics",
-    icon: "scales",
-    group: "sun_party_line",
-    prereq: [["sun_great_purge"]],
-    effects: [
-      { kind: "stability", pct: -5 },
-      { kind: "army_xp", amount: -10 },
-    ],
-    ai: { base: 10 },
-  },
-  {
     id: "sun_nkvd_control",
     tree: "SUN",
     x: 3,
@@ -849,13 +936,109 @@ export const SUN_FOCUSES = [
     days: 70,
     branch: "politics",
     icon: "fist",
-    group: "sun_party_line",
+    group: "sun_purge_control",
     prereq: [["sun_great_purge"]],
     exclusive: ["sun_party_collective"],
-    effects: [
-      { kind: "pp", amount: 40 },
-      { kind: "stability", pct: 3 },
-    ],
+    available: PURGE_RUNS,
+    effects: [{ kind: "add_spirit", id: "sun_ctl_nkvd" }],
+    ai: { base: 10 },
+  },
+  {
+    id: "sun_show_trials",
+    tree: "SUN",
+    x: 3,
+    y: 10,
+    days: 35,
+    branch: "politics",
+    icon: "scales",
+    group: "sun_purge_control",
+    prereq: [["sun_nkvd_control"]],
+    available: PURGE_RUNS,
+    effects: [{ kind: "add_spirit", id: "sun_ctl_trials" }],
+    ai: { base: 10 },
+  },
+  {
+    id: "sun_informer_network",
+    tree: "SUN",
+    x: 3,
+    y: 11,
+    days: 35,
+    branch: "politics",
+    icon: "megaphone",
+    group: "sun_purge_control",
+    prereq: [["sun_show_trials"]],
+    available: PURGE_RUNS,
+    effects: [{ kind: "add_spirit", id: "sun_ctl_informers" }],
+    ai: { base: 10 },
+  },
+  {
+    id: "sun_political_commissars",
+    tree: "SUN",
+    x: 3,
+    y: 12,
+    days: 70,
+    branch: "politics",
+    icon: "star_plain",
+    group: "sun_purge_control",
+    prereq: [["sun_informer_network"]],
+    available: PURGE_RUNS,
+    effects: [{ kind: "add_spirit", id: "sun_ctl_commissars" }],
+    ai: { base: 10 },
+  },
+  {
+    id: "sun_special_bureaus",
+    tree: "SUN",
+    x: 3,
+    y: 13,
+    days: 70,
+    branch: "politics",
+    icon: "flask",
+    group: "sun_purge_control",
+    prereq: [["sun_political_commissars"]],
+    available: PURGE_RUNS,
+    effects: [{ kind: "add_spirit", id: "sun_ctl_bureaus" }],
+    ai: { base: 10 },
+  },
+  {
+    id: "sun_camp_administration",
+    tree: "SUN",
+    x: 3,
+    y: 14,
+    days: 70,
+    branch: "politics",
+    icon: "factory_mil",
+    group: "sun_purge_control",
+    prereq: [["sun_special_bureaus"]],
+    available: PURGE_RUNS,
+    effects: [{ kind: "add_spirit", id: "sun_ctl_camps" }],
+    ai: { base: 10 },
+  },
+  {
+    id: "sun_personnel_control",
+    tree: "SUN",
+    x: 3,
+    y: 15,
+    days: 70,
+    branch: "politics",
+    icon: "document",
+    group: "sun_purge_control",
+    prereq: [["sun_camp_administration"]],
+    available: PURGE_RUNS,
+    effects: [{ kind: "add_spirit", id: "sun_ctl_personnel" }],
+    ai: { base: 10 },
+  },
+  {
+    id: "sun_general_secretary",
+    tree: "SUN",
+    x: 3,
+    y: 16,
+    days: 105,
+    branch: "politics",
+    icon: "flag",
+    group: "sun_purge_control",
+    prereq: [["sun_personnel_control"]],
+    available: PURGE_RUNS,
+    effects: [{ kind: "add_spirit", id: "sun_ctl_dictator" }],
     ai: { base: 10 },
   },
   {
@@ -895,16 +1078,26 @@ export const SUN_FOCUSES = [
     id: "sun_bukharin_nep",
     tree: "SUN",
     x: 5,
-    y: 3,
+    y: 6,
     days: 70,
     branch: "industry",
     icon: "wheat",
     group: "sun_party_line",
-    prereq: [["sun_moderate_economy"]],
-    exclusive: ["sun_forced_industrialise"],
+    // Also the army regime's way home (the collective road stays closed to it).
+    prereq: [["sun_moderate_economy", "sun_barracks_order"]],
+    exclusive: ["sun_forced_industrialise", "sun_military_rule"],
     effects: [
       { kind: "add_spirit", id: "sun_consumer_line" },
       { kind: "stability", pct: 5 },
+      {
+        kind: "if",
+        cond: flag("sun_army_rule"),
+        then: [
+          { kind: "set_government", ideology: "communist" },
+          { kind: "remove_spirit", id: "sun_army_regime" },
+          { kind: "clear_flag", flag: "sun_army_rule" },
+        ],
+      },
     ],
     ai: { base: 10 },
   },
@@ -1702,8 +1895,6 @@ export const SUN_PATH: readonly FocusId[] = [
   "sun_submarines",
   "sun_manchurian_plan",
   "sun_socialism_one_country",
-  "sun_nkvd_control",
-  "sun_show_trials",
   "sun_forced_industrialise",
   "sun_poland_partition",
   "sun_bessarabia_demand",
