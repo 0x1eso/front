@@ -105,7 +105,11 @@ function aiFound(d: WwDepth, id: number, day: number): boolean {
   const pc = ww.politics.country(id);
   if (ce === null || pc === null) return false;
   const pp = Math.floor(pc.ppMilli / 1000);
-  if (ce.major) {
+  if (d.ww.isHumanControlled(id)) {
+    // Automation (intel switch): a human's agency is founded as soon as the
+    // PP allow it (150 covers the 50 PP it costs), no date, no development.
+    if (pp < AI_MINOR_FOUND_PP) return false;
+  } else if (ce.major) {
     if (day < foundDay(d, id)) return false;
   } else {
     const dev = ww.scenario.devOf(ce.tag, ce.totals.civ);
@@ -358,7 +362,8 @@ function aiOperation(d: WwDepth, id: number, free: Operative[]): void {
     const leader = techLeader(d, id);
     if (leader > 0) tries.push(["op_steal_blueprints", leader]);
     // Spec §19.5: never with historical AI (no regime change history lacks).
-    if (!ww.historicalAiNow()) {
+    // A human's auto never changes another country's government.
+    if (!ww.historicalAiNow() && !ww.isHumanControlled(id)) {
       const me = ww.politics.country(id);
       for (const t of [topThreat(d, id), leader]) {
         const tc = ww.politics.country(t);

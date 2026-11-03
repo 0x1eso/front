@@ -106,7 +106,7 @@ const filled = (g: Game, id: number) =>
     .slots.filter((s) => s !== null).length;
 
 describe("World War 1936 automation: the switches", () => {
-  it("auto_set is a ww_order: six domains, an on/off, nothing else", () => {
+  it("auto_set is a ww_order: seven domains, an on/off, nothing else", () => {
     expect(WW_AUTO_DOMAINS).toEqual([
       "production",
       "research",
@@ -114,6 +114,7 @@ describe("World War 1936 automation: the switches", () => {
       "air",
       "navy",
       "thought",
+      "intel",
     ]);
     expect(
       WwOrderSchema.safeParse({ kind: "auto_set", domain: "air", on: true })
@@ -330,15 +331,19 @@ describe("World War 1936 automation: the switches", () => {
       wwAutoBit("training") |
         wwAutoBit("air") |
         wwAutoBit("navy") |
-        wwAutoBit("thought"),
+        wwAutoBit("thought") |
+        wwAutoBit("intel"),
     );
   }, 120_000);
 
   it("automation never declares war, joins a faction, picks a focus or spends political power", async () => {
     const off = await human();
     const on = await human();
-    for (const d of WW_AUTO_DOMAINS) setAuto(on.runner, d, true);
-    step(off.runner, WW_AUTO_DOMAINS.length);
+    // Not intel: founding the agency costs political power (IntelAutomation.test).
+    for (const d of WW_AUTO_DOMAINS) {
+      if (d !== "intel") setAuto(on.runner, d, true);
+    }
+    step(off.runner, WW_AUTO_DOMAINS.length - 1);
     const d0 = today(on.g);
     for (let d = d0; d <= d0 + 60; d++) {
       finishDay(on.runner, d);
@@ -347,7 +352,7 @@ describe("World War 1936 automation: the switches", () => {
     const deu = on.deu;
     const a = pol(on.g).country(deu)!;
     const b = pol(off.g).country(deu)!;
-    expect(on.ww.autoMask(deu)).toBe(ALL);
+    expect(on.ww.autoMask(deu)).toBe(ALL & ~wwAutoBit("intel"));
     // The AI did run the human's economy...
     expect(gameHash(on.runner)).not.toBe(gameHash(off.runner));
     // ...but nothing of politics moved.

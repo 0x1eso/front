@@ -19,6 +19,7 @@ vi.mock("../../../src/client/Utils", async (importOriginal) => ({
       : `[${key}]`,
 }));
 
+import { WwDepthOpenEvent } from "../../../src/client/hud/ww1936/DepthEvents";
 import { WwLandSelection } from "../../../src/client/hud/ww1936/LandSelection";
 import "../../../src/client/hud/ww1936/WwArmyPanel";
 import type { WwArmyPanel } from "../../../src/client/hud/ww1936/WwArmyPanel";
@@ -35,6 +36,8 @@ import {
 } from "../../../src/client/hud/ww1936/WwDrawer";
 import "../../../src/client/hud/ww1936/WwIndustryPanel";
 import type { WwIndustryPanel } from "../../../src/client/hud/ww1936/WwIndustryPanel";
+import "../../../src/client/hud/ww1936/WwIntelPanel";
+import type { WwIntelPanel } from "../../../src/client/hud/ww1936/WwIntelPanel";
 import "../../../src/client/hud/ww1936/WwNavyPanel";
 import type { WwNavyPanel } from "../../../src/client/hud/ww1936/WwNavyPanel";
 import "../../../src/client/hud/ww1936/WwResearchPanel";
@@ -42,6 +45,7 @@ import type { WwResearchPanel } from "../../../src/client/hud/ww1936/WwResearchP
 import { ArmyTokenPass } from "../../../src/client/render/gl/passes/ArmyTokenPass";
 import { SendWwOrderIntentEvent } from "../../../src/client/Transport";
 import { TokenLayoutCache } from "../../../src/client/view/LandTokenLayout";
+import { doctrineGame } from "./DoctrineFixture";
 import { detail, fakeEconGame, ID, summary } from "./EconomyFixture";
 import { army, fakeLandGame, landDetail, mine } from "./LandFixture";
 import { seaGame, SID } from "./SeaAirFixture";
@@ -101,7 +105,7 @@ describe("automation on the screens", () => {
     });
   });
 
-  it("the economy drawer's 자동 운영 row: six switches with labels", async () => {
+  it("the economy drawer's 자동 운영 row: seven switches with labels", async () => {
     const { game, bus, sent } = econ();
     setMask(game, wwAutoBit("training"));
     const el = wire<WwIndustryPanel>("ww-industry-panel", game, bus);
@@ -119,11 +123,13 @@ describe("automation on the screens", () => {
       "air",
       "navy",
       "thought",
+      "intel",
     ]);
     expect(switches.map((b) => b.getAttribute("aria-checked"))).toEqual([
       "false",
       "false",
       "true",
+      "false",
       "false",
       "false",
       "false",
@@ -152,6 +158,32 @@ describe("automation on the screens", () => {
     expect(sw.getAttribute("aria-checked")).toBe("true");
     sw.click();
     expect(sent).toEqual([{ kind: "auto_set", domain: "research", on: false }]);
+  });
+
+  it("the intelligence drawer shows its switch in the head before the agency exists", async () => {
+    const g = doctrineGame({
+      details: [detail("DEU")],
+      landDetails: [landDetail("DEU")],
+    });
+    const bus = new EventBus();
+    const sent: WwOrder[] = [];
+    bus.on(SendWwOrderIntentEvent, (e) => sent.push(e.order));
+    const el = wire<WwIntelPanel>("ww-intel-panel", g.game, bus);
+    bus.emit(new WwDepthOpenEvent("intel"));
+    await el.updateComplete;
+    const sw = () =>
+      el
+        .querySelector("[data-ww-drawer-head]")!
+        .querySelector<HTMLButtonElement>("[data-ww-auto]")!;
+    expect(el.querySelector("[data-ww-found]")).not.toBeNull();
+    expect(sw().dataset.wwAuto).toBe("intel");
+    expect(sw().getAttribute("aria-checked")).toBe("false");
+    sw().click();
+    expect(sent).toEqual([{ kind: "auto_set", domain: "intel", on: true }]);
+    setMask(g.game as never, wwAutoBit("intel"));
+    (el as unknown as { tick(): void }).tick();
+    await el.updateComplete;
+    expect(sw().getAttribute("aria-checked")).toBe("true");
   });
 
   it("the navy drawer shows the navy switch in its head", async () => {

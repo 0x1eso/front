@@ -19,6 +19,7 @@ import { translateText } from "../../Utils";
 import { WwDepthOpenEvent } from "./DepthEvents";
 import { AgencyCard, IntelModel, OperativeCard, TargetRow } from "./IntelModel";
 import { TwoTap } from "./WorldWarModel";
+import { autoMaskOf, renderAutoSwitch } from "./WwAutoUi";
 import { WwDrawerBase } from "./WwDrawer";
 
 export type WwIntelTab = "agency" | "operatives" | "intel" | "crypto";
@@ -95,6 +96,7 @@ export class WwIntelPanel extends WwDrawerBase {
     const key = [
       this.game?.wwDepth?.()?.version,
       this.game?.wwPolitics?.()?.version,
+      autoMaskOf(this.game, this.game?.myPlayer()?.smallID() ?? 0),
       this.tab,
       this.flow?.operative,
       this.flow?.target,
@@ -124,12 +126,21 @@ export class WwIntelPanel extends WwDrawerBase {
 
   render() {
     if (!this.open) return null;
+    const me = this.game?.myPlayer() ?? null;
     return this.renderFrame(
       translateText("ww1936.intel.title"),
       html`<span aria-hidden="true">🕵</span>
         <h3 class="m-0 min-w-0 flex-1 truncate text-sm font-bold">
           ${translateText("ww1936.intel.title")}
-        </h3>`,
+        </h3>
+        ${me === null
+          ? nothing
+          : renderAutoSwitch(
+              "intel",
+              autoMaskOf(this.game, me.smallID()),
+              (o) => this.send(o),
+              true,
+            )}`,
       this.renderTabs(
         WW_INTEL_TABS,
         this.tab,
