@@ -426,23 +426,20 @@ describe("<ww-dials> P4: ⚓ and ✈ (spec §18.1)", () => {
     expect(opened).toHaveLength(1);
   });
 
-  it("✈: a tap switches the air layer, a long press opens the air drawer", async () => {
+  it("✈: a tap opens the air drawer (w14: the layer is a lens now); a long press does too", async () => {
     vi.useFakeTimers();
     const m = await mountSea();
-    const air = m.dial("air")!;
-    air.click();
-    expect(m.controller.selection.layer).toBe("air");
-    m.el.tick();
-    await m.el.updateComplete;
-    expect(m.dial("air")!.getAttribute("aria-pressed")).toBe("true");
     const opened: unknown[] = [];
     m.bus.on(OpenWwAirEvent, (e) => opened.push(e));
+    m.dial("air")!.click();
+    expect(opened).toHaveLength(1);
+    expect(m.controller.selection.layer).toBe("none");
+    opened.length = 0;
     m.dial("air")!.dispatchEvent(new Event("pointerdown"));
     vi.advanceTimersByTime(WW_DIAL_HOLD_MS + 10);
     m.dial("air")!.dispatchEvent(new Event("pointerup"));
     m.dial("air")!.click();
     expect(opened).toHaveLength(1);
-    // The long press didn't switch the layer back off.
-    expect(m.controller.selection.layer).toBe("air");
+    expect(m.controller.selection.layer).toBe("none");
   });
 });

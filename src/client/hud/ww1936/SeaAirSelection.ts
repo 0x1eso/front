@@ -4,6 +4,33 @@
 
 /** Which map layer shows (spec §18.2). */
 export type SeaAirLayer = "none" | "sea" | "air";
+/** The map lenses that colour land regions (the lens button's list). */
+export const REGION_LENSES = [
+  "terrain",
+  "vp",
+  "weather",
+  "supply",
+  "defence",
+  "resources",
+  "industry",
+  "occupation",
+  "diplomacy",
+] as const;
+export type RegionLens = (typeof REGION_LENSES)[number];
+/** Resource chip of the resources lens: "" shows every resource. */
+export type LensResource = "" | (typeof LENS_RESOURCES)[number];
+export const LENS_RESOURCES = [
+  "oil",
+  "aluminium",
+  "rubber",
+  "tungsten",
+  "steel",
+  "chromium",
+  "uranium",
+  "coal",
+] as const;
+/** What the diplomacy lens colours by. */
+export type LensDiplo = "faction" | "ideology";
 /** What the next map tap means (spec §18.3). */
 export type SeaAirTapMode =
   | "mission"
@@ -32,6 +59,10 @@ export class SeaAirSelection {
   fleet = 0;
   sr = 0;
   layer: SeaAirLayer = "none";
+  /** The land-region lens on ("none": off). Sea and air (`layer`) exclude it. */
+  regionLens: RegionLens | "none" = "none";
+  lensResource: LensResource = "";
+  lensDiplo: LensDiplo = "faction";
   tapMode: SeaAirTapMode = "mission";
   /** Bumped on every change; screens redraw when it moves. */
   version = 0;
@@ -46,6 +77,23 @@ export class SeaAirSelection {
   }
   setLayer(layer: SeaAirLayer): void {
     this.layer = layer;
+    if (layer !== "none") this.regionLens = "none";
+    this.version++;
+  }
+  /** One lens at a time: a region lens switches the sea and air layers off. */
+  setRegionLens(lens: RegionLens | "none"): void {
+    if (lens === this.regionLens && (lens !== "none" || this.layer === "none"))
+      return;
+    this.regionLens = lens;
+    this.layer = "none";
+    this.version++;
+  }
+  setLensResource(r: LensResource): void {
+    this.lensResource = r;
+    this.version++;
+  }
+  setLensDiplo(d: LensDiplo): void {
+    this.lensDiplo = d;
     this.version++;
   }
   setTapMode(mode: SeaAirTapMode): void {
