@@ -86,8 +86,8 @@ describe("research (spec §9)", () => {
     throughDay(runner, deu, 0);
     expect(ce.slots[0]).toEqual({ tech: "electronics_1", progress: 1000 });
     // The 119th day processed: not yet.
-    const days = techCostMilli("electronics_1") / 1000;
-    expect(days).toBe(156);
+    const days = Math.ceil(techCostMilli("electronics_1") / 1000);
+    expect(days).toBe(96);
     throughDay(runner, deu, days - 2);
     expect(ce.slots[0]).toEqual({
       tech: "electronics_1",

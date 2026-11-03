@@ -143,9 +143,10 @@ export const COST_BIG = 1250;
 /**
  * Research overhaul (changes §2.7): the one global knob on every tech's
  * research days, ‰ (1000 = ×1.0). Phase 3 moved it (1000 -> 1300) to
- * land the majors' 1945 share in 45–60%.
+ * land the majors' 1945 share in 45–60%. Owner request 2026-11-03: faster
+ * (1300 -> 800); that share has not been measured since.
  */
-export const WW_RESEARCH_COST_PM = 1300;
+export const WW_RESEARCH_COST_PM = 800;
 
 /** A designer part a tech opens (DesignRules reads it; phase 2 wires it). */
 export interface TechDesignPart {

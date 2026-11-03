@@ -682,8 +682,8 @@ describe("the World War 1936 economy screens' model (spec §13)", () => {
     const cards = researchCards(d, "infantry", 0);
     // 1936: 120 days; 1939 three years early: +300%, a quarter of the speed.
     expect(cards.find((c) => c.id === "support_eq_1")).toMatchObject({
-      days: 156,
-      etaDays: 156,
+      days: 96,
+      etaDays: 96,
       ahead: 0,
     });
     expect(cards.find((c) => c.id === "inf_eq_2")).toMatchObject({
@@ -701,7 +701,7 @@ describe("the World War 1936 economy screens' model (spec §13)", () => {
     expect(
       researchCards(free, "infantry", 0).find((c) => c.id === "support_eq_2")!
         .etaDays,
-    ).toBe(Math.ceil(234_000 / Math.floor((1000 * 105) / (100 + 400))));
+    ).toBe(Math.ceil(144_000 / Math.floor((1000 * 105) / (100 + 400))));
     // The slots: one running, two empty; the dial follows.
     const slots = researchSlots(d, 0);
     expect(slots.map((s) => s.tech)).toEqual(["inf_eq_2", null, null]);
