@@ -12,6 +12,8 @@ import {
   isCountryTag,
 } from "@openfront/engine-api/ww1936/Countries";
 import {
+  EMBARGO_DEMOCRACY_THREAT_BP,
+  EMBARGO_PP,
   FACTION_RULES,
   ID_CIVIL,
 } from "@openfront/engine-api/ww1936/DepthTypes";
@@ -2330,6 +2332,8 @@ export interface PlayerAction {
   costPp: number;
   block: string | null;
   twoTap: boolean;
+  /** One short line under the button: what it does. */
+  hint?: string;
   /** What it sends; "declare" is P0's declare_war intent; "justify" opens the goal picker. */
   order: WwOrder | "declare" | "justify";
   /**
@@ -2344,6 +2348,8 @@ export interface PlayerActions {
   info: string | null;
   /** "Relations +35": their view of me (spec §16.4's base, see relationBase). */
   relations: string | null;
+  /** Info lines beside the relations (they have an embargo on me). */
+  notes?: string[];
   actions: PlayerAction[];
 }
 
@@ -2803,6 +2809,36 @@ export function playerActions(
       { kind: "improve_relations", target: other },
     );
   }
+  // Embargoes (spec §7.3): the mode's one list, in the market data.
+  const embargoes = i.game.wwDepth?.()?.marketData.embargoes ?? [];
+  const notes: string[] = [];
+  if (embargoes.some(([by, on]) => by === other && on === i.me)) {
+    notes.push(translateText("ww1936.diplo.embargo_theirs"));
+  }
+  if (embargoes.some(([by, on]) => by === i.me && on === other)) {
+    const idx = actions.length;
+    push("embargo_lift", translateText("ww1936.diplo.act.embargo_lift"), null, {
+      kind: "embargo_lift",
+      target: other,
+    });
+    actions[idx].hint = translateText("ww1936.diplo.act.embargo_lift_hint");
+  } else {
+    // A democracy needs the target's share of the tension (embargoTensionOk).
+    const threat = (g?.threat ?? []).find(([id]) => id === other)?.[1] ?? 0;
+    const block: WwOrderBlock | null =
+      s?.ruling === IDEO_DEM && threat < EMBARGO_DEMOCRACY_THREAT_BP
+        ? "tension_gate"
+        : null;
+    const idx = actions.length;
+    push(
+      "embargo",
+      translateText("ww1936.diplo.act.embargo"),
+      costGate(s, EMBARGO_PP, block),
+      { kind: "embargo", target: other },
+      true,
+    );
+    actions[idx].hint = translateText("ww1936.diplo.act.embargo_hint");
+  }
   // Party support and coups (spec §16.5: targeted decisions).
   const party = targetedCard(d, "gen_party_support_", other);
   if (party !== undefined && s !== null) {
@@ -2838,7 +2874,7 @@ export function playerActions(
       true,
     );
   }
-  return { info, relations, actions };
+  return { info, relations, notes, actions };
 }
 
 // ---- Event cards (spec §21.6, §12.5) ----

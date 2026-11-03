@@ -12,6 +12,7 @@ import {
 import { EventBus } from "@openfront/shared/EventBus";
 import { render } from "lit";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { WwDepthView } from "../../../src/client/view/WwDepthView";
 
 vi.mock("../../../src/client/Utils", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../../src/client/Utils")>()),
@@ -478,6 +479,28 @@ describe("<ww-industry-panel> (spec §13.3)", () => {
       [ID("FRA"), "embargo"],
       [ID("POL"), "war"],
     ]);
+  });
+
+  it("an embargo from the mode's market list says why a seller won't sell", async () => {
+    const m = mount({
+      summaries: [
+        summary("DEU"),
+        summary("FRA", { exportRoom: [0, 0, 0, 0, 24, 0] }),
+      ],
+      details: [detail("DEU")],
+    });
+    const depth = new WwDepthView();
+    depth.marketData = {
+      ...depth.marketData,
+      embargoes: [[ID("FRA"), ID("DEU")]],
+    };
+    (m.game as { wwDepth?: unknown }).wwDepth = () => depth;
+    await m.open("trade");
+    await m.click("[data-ww-resource='steel'] button");
+    const reasons = [
+      ...m.el.querySelectorAll<HTMLElement>("[data-ww-not-partner]"),
+    ].map((li) => [Number(li.dataset.wwNotPartner), li.dataset.reason]);
+    expect(reasons).toEqual([[ID("FRA"), "embargo"]]);
   });
 
   it("only one World War drawer is open at a time", async () => {

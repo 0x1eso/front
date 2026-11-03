@@ -535,6 +535,8 @@ export const WW_MAX_LISTINGS = 6;
 export const WW_MARKET_MAX_COUNT = 1_000_000;
 export const MARKET_DAYS = 30;
 export const EMBARGO_PP = 25;
+/** Spec §7.3: a democracy embargoes only a country that made at least this share of the tension (bp). */
+export const EMBARGO_DEMOCRACY_THREAT_BP = 500;
 export const LICENCE_CARD_TICKS = 200; // 20 s at 10 ticks a second
 
 // ---- Intelligence (spec §8) ----

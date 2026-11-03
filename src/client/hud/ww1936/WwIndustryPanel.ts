@@ -1490,6 +1490,17 @@ export class WwIndustryPanel extends WwDrawerBase {
       resource,
       c.fighting,
       (seller) => {
+        // The mode's embargo list (either way round), then the base game's
+        // (an attack's temporary embargo).
+        const modeList = this.game.wwDepth?.()?.marketData.embargoes ?? [];
+        if (
+          modeList.some(
+            ([a, b]) =>
+              (a === seller && b === c.id) || (a === c.id && b === seller),
+          )
+        ) {
+          return true;
+        }
         const p = this.game.playerBySmallID(seller);
         return p.isPlayer() && p.hasEmbargoAgainst(c.me);
       },

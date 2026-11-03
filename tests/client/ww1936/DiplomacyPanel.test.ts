@@ -31,6 +31,7 @@ import {
   SendDeclareWarIntentEvent,
   SendWwOrderIntentEvent,
 } from "../../../src/client/Transport";
+import { WwDepthView } from "../../../src/client/view/WwDepthView";
 import { ID } from "./EconomyFixture";
 import {
   fakePolGame,
@@ -303,8 +304,13 @@ describe("the player panel's diplomacy (P3 spec §21.5)", () => {
     vi.useRealTimers();
   });
 
-  function panel(o: PolOptions) {
+  function panel(o: PolOptions, embargoes?: [number, number][]) {
     const { game, pol } = fakePolGame(o);
+    if (embargoes !== undefined) {
+      const depth = new WwDepthView();
+      depth.marketData = { ...depth.marketData, embargoes };
+      (game as { wwDepth?: unknown }).wwDepth = () => depth;
+    }
     const p = document.createElement("player-panel") as PlayerPanel;
     p.g = game as never;
     p.eventBus = new EventBus();
@@ -415,6 +421,90 @@ describe("the player panel's diplomacy (P3 spec §21.5)", () => {
     m.draw();
     m.act("nap_break")!.click();
     expect(m.sent).toEqual([{ kind: "nap_break", target: ID("POL") }]);
+  });
+
+  it("embargo: two taps send the order, with its cost and what it does", () => {
+    vi.useFakeTimers({ toFake: ["Date", "setTimeout"] });
+    vi.setSystemTime(10_000);
+    const m = panel({
+      me: "DEU",
+      polSummaries: [
+        polSummary("DEU", { ruling: 2, ppMilli: 500_000 }),
+        polSummary("POL"),
+      ],
+      polDetails: [polDetail("DEU")],
+    });
+    const btn = m.act("embargo")!;
+    expect(btn.textContent).toContain("[ww1936.pol.pp_amount] pp=25");
+    expect(btn.disabled).toBe(false);
+    expect(m.div.querySelector("[data-ww-act-hint]")!.textContent).toContain(
+      "[ww1936.diplo.act.embargo_hint]",
+    );
+    expect(m.act("embargo_lift")).toBeNull();
+    btn.click();
+    expect(m.sent).toEqual([]);
+    vi.setSystemTime(10_500);
+    m.draw();
+    m.act("embargo")!.click();
+    expect(m.sent).toEqual([{ kind: "embargo", target: ID("POL") }]);
+  });
+
+  it("embargo: blocked without PP, and a democracy below 5 % of the tension", () => {
+    const poor = panel({
+      me: "DEU",
+      polSummaries: [
+        polSummary("DEU", { ruling: 2, ppMilli: 10_000 }),
+        polSummary("POL"),
+      ],
+      polDetails: [polDetail("DEU")],
+    });
+    expect(poor.act("embargo")!.disabled).toBe(true);
+    expect(poor.div.textContent).toContain("[ww1936.econ.block.no_pp]");
+    const dem = panel({
+      me: "DEU",
+      polSummaries: [
+        polSummary("DEU", { ruling: 0, ppMilli: 500_000 }),
+        polSummary("POL"),
+      ],
+      polDetails: [polDetail("DEU")],
+      global: { threat: [[ID("POL"), 499]] },
+    });
+    expect(dem.act("embargo")!.disabled).toBe(true);
+    expect(dem.div.textContent).toContain("[ww1936.econ.block.tension_gate]");
+    const enough = panel({
+      me: "DEU",
+      polSummaries: [
+        polSummary("DEU", { ruling: 0, ppMilli: 500_000 }),
+        polSummary("POL"),
+      ],
+      polDetails: [polDetail("DEU")],
+      global: { threat: [[ID("POL"), 500]] },
+    });
+    expect(enough.act("embargo")!.disabled).toBe(false);
+  });
+
+  it("embargo: mine shows a free lift button; theirs shows an info line", () => {
+    const o: PolOptions = {
+      me: "DEU",
+      polSummaries: [
+        polSummary("DEU", { ruling: 2, ppMilli: 0 }),
+        polSummary("POL"),
+      ],
+      polDetails: [polDetail("DEU")],
+    };
+    const mine = panel(o, [[ID("DEU"), ID("POL")]]);
+    expect(mine.act("embargo")).toBeNull();
+    const lift = mine.act("embargo_lift")!;
+    expect(lift.disabled).toBe(false);
+    expect(lift.textContent).not.toContain("pp_amount");
+    lift.click();
+    expect(mine.sent).toEqual([{ kind: "embargo_lift", target: ID("POL") }]);
+    expect(mine.div.querySelector("[data-ww-note]")).toBeNull();
+    const theirs = panel(o, [[ID("POL"), ID("DEU")]]);
+    expect(theirs.div.querySelector("[data-ww-note]")!.textContent).toContain(
+      "[ww1936.diplo.embargo_theirs]",
+    );
+    expect(theirs.act("embargo")).not.toBeNull();
   });
 
   it("a democracy without a goal sees why it can't declare", () => {

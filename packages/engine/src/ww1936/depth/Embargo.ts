@@ -3,7 +3,10 @@
 // `embargo` effect read it; an embargo closes the two countries' P1 trade
 // deals that day and ends their licences, requests and market deals.
 import type { DepthOrder } from "@openfront/engine-api/Schemas";
-import { EMBARGO_PP } from "@openfront/engine-api/ww1936/DepthTypes";
+import {
+  EMBARGO_DEMOCRACY_THREAT_BP,
+  EMBARGO_PP,
+} from "@openfront/engine-api/ww1936/DepthTypes";
 import type { WwOrderBlock } from "@openfront/engine-api/ww1936/EconomyTypes";
 import { IDEO_DEM } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { closeTrade } from "../economy/Trade";
@@ -12,8 +15,7 @@ import { endLicencesBetween } from "./Licences";
 import { endDealsBetween } from "./Market";
 import type { WwDepth } from "./WwDepth";
 
-/** Spec §7.3: a democracy embargoes only a country that made at least 5% of the tension (bp). */
-export const EMBARGO_DEMOCRACY_THREAT_BP = 500;
+export { EMBARGO_DEMOCRACY_THREAT_BP };
 
 /** Spec §7.3: a democratic government needs the target's share of the tension. */
 export function embargoTensionOk(d: WwDepth, by: number, on: number): boolean {
