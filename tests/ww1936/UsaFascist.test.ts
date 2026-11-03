@@ -60,9 +60,14 @@ describe("USA fascist path: the tree", () => {
         for (const p of g) expect(byId.has(p), `${f.id} needs ${p}`).toBe(true);
       }
     }
-    expect(byId.get("usa_preparedness")?.exclusive).toContain(
+    // The war branches behind preparedness stay open on this path: no exclusive.
+    expect(byId.get("usa_preparedness")?.exclusive ?? []).not.toContain(
       "usa_share_wealth",
     );
+    expect(byId.get("usa_share_wealth")?.exclusive ?? []).toEqual([]);
+    expect(byId.get("usa_share_wealth")?.available).toEqual({
+      not: { kind: "focus_done", id: "usa_preparedness" },
+    });
     expect(USA_BRANCHES.length).toBe(10);
   });
 

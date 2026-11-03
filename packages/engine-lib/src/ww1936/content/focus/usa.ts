@@ -145,7 +145,6 @@ export const USA_FOCUSES: FocusDef[] = [
     branch: "politics",
     icon: "shield",
     prereq: [["usa_recession_response"]],
-    exclusive: ["usa_share_wealth"],
     available: { kind: "wt_ge", pct: 30 },
     effects: [
       { kind: "add_spirit", id: "usa_preparedness_spirit" },

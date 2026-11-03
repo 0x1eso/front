@@ -73,7 +73,9 @@ export const USA_FASCIST_FOCUSES: FocusDef[] = [
     icon: "megaphone",
     group: "usa_strongman",
     prereq: [["usa_long_populism"]],
-    exclusive: ["usa_preparedness"],
+    // Taking preparedness first closes this door; after it, the war branches
+    // behind preparedness stay reachable, so no exclusive.
+    available: not(done("usa_preparedness")),
     effects: [
       { kind: "popularity", ideology: "fascist", pp: 2 },
       { kind: "popularity", ideology: "democratic", pp: -2 },
