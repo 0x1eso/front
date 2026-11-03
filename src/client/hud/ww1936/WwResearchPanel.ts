@@ -7,6 +7,7 @@ import {
   TechBranch,
   WW_MAX_SLOTS,
   WW_RESEARCH_GRANT,
+  WW_RESEARCH_QUEUE,
   WW_TECH_IDS,
   WwCountryDetail,
   WwTechId,
@@ -22,11 +23,15 @@ import { DepthIndustryModel } from "./DepthIndustryModel";
 import {
   blockText,
   branchName,
+  defaultReserveSlot,
   effectLines,
+  QueueRow,
+  queueRows,
   researchBlock,
   researchCards,
   ResearchCardState,
   researchSlots,
+  reserveBlock,
   SlotRow,
   stockOnly,
   techName,
@@ -137,6 +142,10 @@ export class WwResearchPanel extends WwDrawerBase {
   /** The node chosen by the first tap. */
   @state() private selected: WwTechId | null = null;
   @state() private zoom = 1;
+  /** The slot whose queue is open (replaces the tree), or null. */
+  @state() private queueSlot: number | null = null;
+  /** The slot a reservation goes to; null: the shortest queue. */
+  @state() private reserveSlot: number | null = null;
   /** The slot row blinks (a start found no free slot). */
   @state() private flash = false;
   /** The "next" card's pick after a research finished. */
@@ -350,6 +359,7 @@ export class WwResearchPanel extends WwDrawerBase {
     }
     const day = today(this.game);
     const rows = researchSlots(d, day);
+    const queues = queueRows(d, day);
     const mask = autoMaskOf(this.game, me.smallID());
     // Live report 2026-10-30: an empty slot waits for the player's pick
     // (the AI fills it only while auto research is on) — say so.
@@ -374,13 +384,17 @@ export class WwResearchPanel extends WwDrawerBase {
       nothing,
       html`<div data-ww-research class="flex h-full min-h-0 flex-col gap-1">
         <div class="shrink-0">
-          ${this.renderSlots(rows, d)}${prompt}${this.renderLean(d)}
+          ${this.renderSlots(rows, d, queues)}${prompt}${this.queueSlot === null
+            ? this.renderLean(d)
+            : nothing}
         </div>
-        ${list
-          ? this.renderList(d, day)
-          : html`<div class="flex min-h-0 flex-1">
-              ${this.renderRail()}${this.renderMain(d, day)}
-            </div>`}
+        ${this.queueSlot !== null
+          ? this.renderQueuePane(queues[this.queueSlot])
+          : list
+            ? this.renderList(d, day)
+            : html`<div class="flex min-h-0 flex-1">
+                ${this.renderRail()}${this.renderMain(d, day)}
+              </div>`}
         ${this.renderNext(d)}
       </div>`,
     );
@@ -604,6 +618,7 @@ export class WwResearchPanel extends WwDrawerBase {
     const bd = n.badges;
     const locked = n.look === "prereq" || n.look === "exclusive";
     const startable = sel && (c.block === null || c.block === "no_slot");
+    const q = n.queued;
     return html`<div
       class="absolute"
       style="left:${n.x}px;top:${n.y +
@@ -619,7 +634,9 @@ export class WwResearchPanel extends WwDrawerBase {
         aria-label=${techName(c.id)}
         class="relative size-full overflow-hidden rounded-md border p-1 text-left leading-tight ${NODE_LOOK[
           n.look
-        ]} ${sel ? "ring-2 ring-white" : ""}"
+        ]} ${q === null ? "" : "border-dashed border-cyan-300"} ${sel
+          ? "ring-2 ring-white"
+          : ""}"
         style=${n.look === "exclusive"
           ? "background-image:linear-gradient(to top right,transparent 47%,rgba(248,113,113,.8) 50%,transparent 53%)"
           : ""}
@@ -664,6 +681,18 @@ export class WwResearchPanel extends WwDrawerBase {
               >↖ ${techName(n.crossTab)}</span
             >`}
       </button>
+      ${q === null
+        ? nothing
+        : html`<span
+            data-ww-queue-badge=${q.pos}
+            data-slot=${q.slot}
+            title=${translateText("ww1936.rq.reserved_at", {
+              slot: q.slot + 1,
+              pos: q.pos,
+            })}
+            class="pointer-events-none absolute -top-2 -right-1.5 z-10 flex h-5 min-w-5 items-center justify-center rounded-full bg-cyan-400 px-1 text-[10px] font-bold text-black tabular-nums"
+            >${q.slot + 1}·${q.pos}</span
+          >`}
       ${startable
         ? html`<button
             type="button"
@@ -786,6 +815,23 @@ export class WwResearchPanel extends WwDrawerBase {
                   >`
               : nothing}
           </div>`}
+      ${this.renderReserve(d, n)}
+      <button
+        type="button"
+        data-ww-sheet-start
+        ?disabled=${block !== null}
+        class="min-h-10 rounded-md border border-emerald-300 bg-emerald-700 px-2 font-bold disabled:opacity-40"
+        @click=${() => this.startSelected(d)}
+      >
+        ${block === "no_slot"
+          ? translateText("ww1936.rtree.no_slot")
+          : translateText("ww1936.rtree.start")}
+      </button>
+      ${block === "no_slot"
+        ? html`<div class="text-white/60">
+            ${translateText("ww1936.rtree.no_slot_hint")}
+          </div>`
+        : nothing}
       <div data-ww-sources class="flex flex-col gap-0.5">
         ${base !== 0
           ? html`<div data-ww-src="base">
@@ -868,23 +914,208 @@ export class WwResearchPanel extends WwDrawerBase {
         : html`<div data-ww-block=${status} class="text-red-300">
             🔒 ${blockText(status)}
           </div>`}
-      <button
-        type="button"
-        data-ww-sheet-start
-        ?disabled=${block !== null}
-        class="min-h-10 rounded-md border border-emerald-300 bg-emerald-700 px-2 font-bold disabled:opacity-40"
-        @click=${() => this.startSelected(d)}
-      >
-        ${block === "no_slot"
-          ? translateText("ww1936.rtree.no_slot")
-          : translateText("ww1936.rtree.start")}
-      </button>
-      ${block === "no_slot"
-        ? html`<div class="text-white/60">
-            ${translateText("ww1936.rtree.no_slot_hint")}
-          </div>`
-        : nothing}
       ${def.branch === "doctrine" ? nothing : this.renderGrant(d, def.branch)}
+    </div>`;
+  }
+
+  /**
+   * Reserving takes a button: the tech's details choose a slot and reserve
+   * (or show where it is reserved, with a remove button). A tap on the node
+   * only selects it.
+   */
+  private renderReserve(d: WwCountryDetail, n: TreeNode): TemplateResult {
+    const c = n.card;
+    if (c.state === "done" || c.state === "running") return html`${nothing}`;
+    if (WW_TECHS[c.id].retired === true) return html`${nothing}`;
+    const q = n.queued;
+    if (q !== null) {
+      return html`<div data-ww-reserved class="flex items-center gap-1">
+        <div class="min-w-0 flex-1 text-cyan-200">
+          ${translateText("ww1936.rq.reserved_at", {
+            slot: q.slot + 1,
+            pos: q.pos,
+          })}
+        </div>
+        <button
+          type="button"
+          data-ww-unreserve
+          class="h-10 shrink-0 rounded-md border border-red-300/60 bg-red-900/40 px-2"
+          @click=${() =>
+            this.sendOrder({ kind: "research_unreserve", tech: c.id })}
+        >
+          ${translateText("ww1936.rq.remove")}
+        </button>
+      </div>`;
+    }
+    const slot =
+      this.reserveSlot !== null && this.reserveSlot < d.slotCount
+        ? this.reserveSlot
+        : defaultReserveSlot(d);
+    const why = reserveBlock(d, c.id, slot);
+    return html`<div data-ww-reserve class="flex flex-col gap-1">
+      <div class="flex flex-wrap items-center gap-1" role="group">
+        ${Array.from({ length: d.slotCount }, (_, i) => {
+          const len = d.slotQueues?.[i]?.techs.length ?? 0;
+          return html`<button
+            type="button"
+            data-ww-reserve-slot=${i}
+            aria-pressed=${String(i === slot)}
+            aria-label=${translateText("ww1936.rq.slot_n", { n: i + 1 })}
+            class="flex h-10 min-w-10 flex-col items-center justify-center rounded-md border px-1 leading-tight ${i ===
+            slot
+              ? "border-cyan-300 bg-cyan-900/60"
+              : "border-white/20 bg-black/30"}"
+            @click=${() => (this.reserveSlot = i)}
+          >
+            <span class="font-bold">${i + 1}</span>
+            <span class="text-[9px] text-white/60"
+              >${len}/${WW_RESEARCH_QUEUE}</span
+            >
+          </button>`;
+        })}
+        <button
+          type="button"
+          data-ww-reserve-btn
+          ?disabled=${why !== null}
+          class="h-10 min-w-0 flex-1 truncate rounded-md border border-cyan-300 bg-cyan-800 px-2 font-bold disabled:opacity-40"
+          @click=${() =>
+            this.sendOrder({ kind: "research_reserve", tech: c.id, slot })}
+        >
+          ${translateText("ww1936.rq.reserve_btn", { n: slot + 1 })}
+        </button>
+      </div>
+      ${why === null
+        ? nothing
+        : html`<div data-ww-block=${why} class="text-red-300">
+            🔒 ${blockText(why)}
+          </div>`}
+    </div>`;
+  }
+
+  /** One slot's queue: place, name, rough finish and penalty, up, down, to the top, remove. */
+  private renderQueuePane(q: QueueRow | undefined) {
+    if (q === undefined) {
+      this.queueSlot = null;
+      return nothing;
+    }
+    const last = q.entries.length;
+    const btn =
+      "flex size-10 shrink-0 items-center justify-center rounded-md border border-white/20 bg-black/30 disabled:opacity-30";
+    return html`<div
+      data-ww-queue-pane=${q.index}
+      class="flex min-h-0 flex-1 flex-col gap-1 rounded-md bg-black/30 p-1"
+    >
+      <div class="flex shrink-0 items-center gap-2 text-sm font-bold">
+        <span class="min-w-0 flex-1 truncate"
+          >${translateText("ww1936.rq.title", { n: q.index + 1 })}
+          <span class="text-xs font-normal text-white/60"
+            >${last}/${WW_RESEARCH_QUEUE}</span
+          ></span
+        >
+        <button
+          type="button"
+          data-ww-queue-close
+          aria-label=${translateText("common.close")}
+          class="${btn}"
+          @click=${() => (this.queueSlot = null)}
+        >
+          ✕
+        </button>
+      </div>
+      ${last === 0
+        ? html`<p data-ww-queue-empty class="m-0 text-xs text-white/60">
+            ${translateText("ww1936.rq.empty")}
+          </p>`
+        : html`<ol
+            class="m-0 flex min-h-0 flex-1 list-none flex-col gap-1 overflow-y-auto p-0"
+          >
+            ${q.entries.map((e) => {
+              const go = (move: "up" | "down" | "top") =>
+                this.sendOrder({
+                  kind: "research_reorder",
+                  tech: e.tech,
+                  move,
+                });
+              return html`<li
+                data-ww-queue-entry=${e.tech}
+                class="flex min-h-11 shrink-0 items-center gap-1 rounded-md border border-white/10 bg-gray-900/60 pl-1"
+              >
+                <span class="w-5 shrink-0 text-center text-xs tabular-nums"
+                  >${e.pos}</span
+                >
+                <button
+                  type="button"
+                  data-ww-queue-pick
+                  class="min-h-10 min-w-0 flex-1 text-left leading-tight"
+                  @click=${() => {
+                    this.queueSlot = null;
+                    this.goTo(e.tech);
+                  }}
+                >
+                  <span class="block truncate text-xs font-semibold"
+                    >${techName(e.tech)}</span
+                  >
+                  <span class="block truncate text-[10px] text-white/70"
+                    ><span data-ww-queue-eta
+                      >${translateText("ww1936.rq.eta", {
+                        n: e.finishDays,
+                      })}</span
+                    >${e.ahead > 0
+                      ? html` ·
+                          <span data-ww-ahead class="text-amber-300"
+                            >${translateText("ww1936.econ.ahead", {
+                              n: e.ahead,
+                            })}</span
+                          >`
+                      : nothing}</span
+                  >
+                </button>
+                <button
+                  type="button"
+                  data-ww-queue-up
+                  aria-label=${translateText("ww1936.rq.up")}
+                  ?disabled=${e.pos === 1}
+                  class="${btn}"
+                  @click=${() => go("up")}
+                >
+                  ▲
+                </button>
+                <button
+                  type="button"
+                  data-ww-queue-down
+                  aria-label=${translateText("ww1936.rq.down")}
+                  ?disabled=${e.pos === last}
+                  class="${btn}"
+                  @click=${() => go("down")}
+                >
+                  ▼
+                </button>
+                <button
+                  type="button"
+                  data-ww-queue-top
+                  aria-label=${translateText("ww1936.rq.top")}
+                  ?disabled=${e.pos === 1}
+                  class="${btn}"
+                  @click=${() => go("top")}
+                >
+                  ⤒
+                </button>
+                <button
+                  type="button"
+                  data-ww-queue-remove
+                  aria-label=${translateText("ww1936.rq.remove")}
+                  class="${btn} border-red-300/50"
+                  @click=${() =>
+                    this.sendOrder({
+                      kind: "research_unreserve",
+                      tech: e.tech,
+                    })}
+                >
+                  🗑
+                </button>
+              </li>`;
+            })}
+          </ol>`}
     </div>`;
   }
 
@@ -1024,7 +1255,11 @@ export class WwResearchPanel extends WwDrawerBase {
     </div>`;
   }
 
-  private renderSlots(slots: SlotRow[], d: WwCountryDetail): TemplateResult {
+  private renderSlots(
+    slots: SlotRow[],
+    d: WwCountryDetail,
+    queues: QueueRow[],
+  ): TemplateResult {
     return html`<div
       data-ww-slots
       data-flash=${String(this.flash)}
@@ -1033,62 +1268,113 @@ export class WwResearchPanel extends WwDrawerBase {
         : ""}"
     >
       ${this.renderSlotChip(d)}
-      ${slots.map((s) => {
-        if (s.tech === null) {
-          return html`<div
-            data-ww-slot=${s.index}
-            data-empty
-            class="flex h-10 w-24 shrink-0 items-center justify-center rounded-md border border-dashed border-white/25 px-1 text-xs text-white/50"
-          >
-            <span class="truncate"
-              >${translateText("ww1936.econ.slot_empty")}</span
-            >
-          </div>`;
-        }
-        const key = `cancel_research:${s.index}:${s.tech}`;
-        const armed = this.twoTap.isArmed(key, Date.now());
-        return html`<button
-          type="button"
+      ${slots.map(
+        (s) =>
+          html`<div class="flex w-36 shrink-0 flex-col gap-0.5">
+            ${this.renderSlot(s, queues[s.index])}${this.renderQueueButton(
+              s,
+              queues[s.index],
+            )}
+          </div>`,
+      )}
+    </div>`;
+  }
+
+  /** The button under a slot: how many are reserved and the first one; it opens the queue. */
+  private renderQueueButton(
+    s: SlotRow,
+    q: QueueRow | undefined,
+  ): TemplateResult {
+    const first = q?.entries[0]?.tech ?? null;
+    const open = this.queueSlot === s.index;
+    return html`<button
+      type="button"
+      data-ww-queue-btn=${s.index}
+      aria-pressed=${String(open)}
+      class="flex h-10 w-full items-center gap-1 rounded-md border px-1.5 text-left text-xs ${open
+        ? "border-cyan-300 bg-cyan-900/60"
+        : "border-white/20 bg-black/30"}"
+      @click=${() => (this.queueSlot = open ? null : s.index)}
+    >
+      <span class="shrink-0 tabular-nums"
+        >▤ ${q?.entries.length ?? 0}/${WW_RESEARCH_QUEUE}</span
+      >
+      <span class="min-w-0 flex-1 truncate text-white/70"
+        >${first === null
+          ? translateText("ww1936.rq.queue_none")
+          : techName(first)}</span
+      >
+    </button>`;
+  }
+
+  private renderSlot(s: SlotRow, q: QueueRow | undefined): TemplateResult {
+    if (s.tech === null) {
+      const waiting = q?.waitingOn ?? null;
+      if (waiting !== null) {
+        // The slot keeps its place for a queued tech whose prerequisite
+        // still runs in (or is queued for) another slot.
+        return html`<div
           data-ww-slot=${s.index}
-          data-armed=${String(armed)}
-          aria-label=${`${techName(s.tech)} · ${translateText(
-            armed ? "ww1936.econ.cancel_tap" : "ww1936.econ.cancel_research",
-          )}`}
-          class="flex h-10 w-36 shrink-0 items-center gap-1 rounded-md border px-1 text-left ${armed
-            ? "border-red-400 bg-red-900/60"
-            : "border-sky-400/40 bg-sky-950/40"} ${s.paused
-            ? "opacity-50"
-            : ""}"
-          @click=${() => this.tapSlot(s)}
+          data-waiting=${waiting}
+          class="flex h-10 w-full items-center gap-1 rounded-md border border-dashed border-amber-300/70 bg-amber-950/30 px-1 text-left leading-tight"
         >
-          <span class="relative size-8 shrink-0">
-            ${ringSvg(s.progress, s.paused ? "grey" : "science")}
-            <span
-              class="relative flex size-full items-center justify-center text-[10px] font-bold tabular-nums"
-              >${Math.floor(s.progress * 100)}%</span
-            >
-          </span>
-          <span class="min-w-0 flex-1 leading-tight">
-            <span class="block truncate text-xs font-semibold"
-              >${armed
-                ? translateText("ww1936.econ.cancel_tap")
-                : techName(s.tech)}</span
+          <span aria-hidden="true">⏳</span>
+          <span class="min-w-0 flex-1">
+            <span class="block truncate text-xs font-semibold text-amber-200"
+              >${translateText("ww1936.rq.waiting")}</span
             >
             <span class="block truncate text-[10px] text-white/70"
-              >${translateText("ww1936.econ.days_left", {
-                n: s.daysLeft,
-              })}${s.ahead > 0
-                ? html` ·
-                    <span data-ww-ahead class="text-amber-300"
-                      >${translateText("ww1936.econ.ahead", {
-                        n: s.ahead,
-                      })}</span
-                    >`
-                : nothing}</span
+              >${techName(waiting)}</span
             >
           </span>
-        </button>`;
-      })}
-    </div>`;
+        </div>`;
+      }
+      return html`<div
+        data-ww-slot=${s.index}
+        data-empty
+        class="flex h-10 w-full items-center justify-center rounded-md border border-dashed border-white/25 px-1 text-xs text-white/50"
+      >
+        <span class="truncate">${translateText("ww1936.econ.slot_empty")}</span>
+      </div>`;
+    }
+    const key = `cancel_research:${s.index}:${s.tech}`;
+    const armed = this.twoTap.isArmed(key, Date.now());
+    return html`<button
+      type="button"
+      data-ww-slot=${s.index}
+      data-armed=${String(armed)}
+      aria-label=${`${techName(s.tech)} · ${translateText(
+        armed ? "ww1936.econ.cancel_tap" : "ww1936.econ.cancel_research",
+      )}`}
+      class="flex h-10 w-full items-center gap-1 rounded-md border px-1 text-left ${armed
+        ? "border-red-400 bg-red-900/60"
+        : "border-sky-400/40 bg-sky-950/40"} ${s.paused ? "opacity-50" : ""}"
+      @click=${() => this.tapSlot(s)}
+    >
+      <span class="relative size-8 shrink-0">
+        ${ringSvg(s.progress, s.paused ? "grey" : "science")}
+        <span
+          class="relative flex size-full items-center justify-center text-[10px] font-bold tabular-nums"
+          >${Math.floor(s.progress * 100)}%</span
+        >
+      </span>
+      <span class="min-w-0 flex-1 leading-tight">
+        <span class="block truncate text-xs font-semibold"
+          >${armed
+            ? translateText("ww1936.econ.cancel_tap")
+            : techName(s.tech)}</span
+        >
+        <span class="block truncate text-[10px] text-white/70"
+          >${translateText("ww1936.econ.days_left", {
+            n: s.daysLeft,
+          })}${s.ahead > 0
+            ? html` ·
+                <span data-ww-ahead class="text-amber-300"
+                  >${translateText("ww1936.econ.ahead", { n: s.ahead })}</span
+                >`
+            : nothing}</span
+        >
+      </span>
+    </button>`;
   }
 }

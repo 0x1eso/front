@@ -1538,6 +1538,24 @@ export const WwOrderSchema = z.discriminatedUnion("kind", [
     slider: ThoughtSliderEnum,
     pos: ThoughtPos,
   }),
+  // Research queues (owner request 2026-11-03), appended. Reserve puts a tech
+  // at the end of one slot's queue; unreserve takes it out with the entries
+  // that need it; reorder moves it inside its queue. None turns the auto
+  // research off.
+  z.object({
+    kind: z.literal("research_reserve"),
+    tech: z.enum(WW_TECH_IDS),
+    slot: zb.uint({ max: WW_MAX_SLOTS - 1 }),
+  }),
+  z.object({
+    kind: z.literal("research_unreserve"),
+    tech: z.enum(WW_TECH_IDS),
+  }),
+  z.object({
+    kind: z.literal("research_reorder"),
+    tech: z.enum(WW_TECH_IDS),
+    move: z.enum(["up", "down", "top"]),
+  }),
 ]);
 export type WwOrder = z.infer<typeof WwOrderSchema>;
 /** The land war's orders (P2): what WwLand.issue takes. */

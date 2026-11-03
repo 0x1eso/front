@@ -98,6 +98,7 @@ import { stepManpower } from "./Manpower";
 import { stepNavalLines } from "./NavalLines";
 import { stepProduction } from "./Production";
 import { repairCostMilli, stepRepairs } from "./Repairs";
+import { hasQueues, queueView, stepQueues } from "./ResearchQueue";
 import { projectsDone, stepResearch } from "./ResearchRun";
 import {
   tradeDelivery,
@@ -278,6 +279,12 @@ export class CountryEconomy {
    * auto-research leaning a human set (research_lean); 0: balanced.
    */
   researchLean = 0;
+  /**
+   * Research queues (owner request 2026-11-03): the techs reserved for each
+   * slot index, in order; empty for the AI and for a human who reserved none.
+   * Write through ResearchQueue.
+   */
+  rq: WwTechId[][] = [];
   /** In WW_TECH_IDS order; add with addTech. */
   researched = new Set<WwTechId>();
   totals: Totals = emptyTotals();
@@ -447,6 +454,8 @@ const CountrySchema = z.object({
     .min(0)
     .max(RESEARCH_LEANS.length - 1)
     .optional(),
+  /** Research queues: written only when some slot has an entry. */
+  researchQueues: z.array(z.array(z.enum(WW_TECH_IDS))).optional(),
   totals: TotalsSchema,
   // P4 (Task 1 Step 19).
   fuelMilli: zInt(),
@@ -769,6 +778,7 @@ export class WwEconomy {
     stepRepairs(this, ce, day);
     stepConstruction(this, ce, p);
     stepResearch(this, ce, p, day);
+    stepQueues(this, ce, p);
     settleFuel(this, ce, day);
     // Its turn every WW_AI_PERIOD_DAYS days, and between turns what fell
     // free (aiEconomyTick decides which).
@@ -1431,6 +1441,7 @@ export class WwEconomy {
       ...this.sharedResearchOf(ce),
       ...this.slotViewOf(ce),
       ...(ce.researchLean === 0 ? {} : { researchLean: ce.researchLean }),
+      ...(hasQueues(ce) ? { slotQueues: queueView(this, ce) } : {}),
       projectsDone: projectsDone(this, ce),
       researched: WW_TECH_IDS.filter((id) => ce.researched.has(id)),
       ...(ce.savedResearch.length === 0
@@ -1513,6 +1524,12 @@ export class WwEconomy {
       if (ce.researchLean !== 0) {
         h = (Math.imul(h, 31) + ce.researchLean * 137 + 11) | 0;
       }
+      // Research queues (nothing while every queue is empty).
+      ce.rq.forEach((q, slot) => {
+        if (q.length === 0) return;
+        h = (Math.imul(h, 31) + slot * 977 + 29) | 0;
+        for (const t of q) h = (Math.imul(h, 31) + WW_TECH_IDS.indexOf(t)) | 0;
+      });
       h = (Math.imul(h, 31) + ce.casualties) | 0;
       // P4: fuel and the naval lines.
       h = (Math.imul(h, 31) + ce.fuelMilli) | 0;
@@ -1606,6 +1623,7 @@ export class WwEconomy {
           ? {}
           : { savedResearch: ce.savedResearch.map((r) => ({ ...r })) }),
         ...(ce.researchLean === 0 ? {} : { researchLean: ce.researchLean }),
+        ...(hasQueues(ce) ? { researchQueues: ce.rq.map((q) => [...q]) } : {}),
         totals: copyTotals(ce.totals),
         fuelMilli: ce.fuelMilli,
         fuelRatioPm: ce.fuelRatioPm,
@@ -1682,6 +1700,7 @@ export class WwEconomy {
       ce.researched = new Set(c.researched);
       ce.savedResearch = (c.savedResearch ?? []).map((r) => ({ ...r }));
       ce.researchLean = c.researchLean ?? 0;
+      ce.rq = (c.researchQueues ?? []).map((q) => [...q]);
       ce.totals = copyTotals(c.totals);
       ce.fuelMilli = c.fuelMilli;
       ce.fuelRatioPm = c.fuelRatioPm;

@@ -133,7 +133,11 @@ export function grantResearch(
   return null;
 }
 
-/** Puts `tech` in the first empty slot, resuming its saved progress (spec §9.3). */
+/**
+ * Puts `tech` in the first empty slot, resuming its saved progress (spec
+ * §9.3). A slot whose queue has an entry waiting is passed over while
+ * another is free; it is taken only when none else is.
+ */
 export function startResearch(
   econ: WwEconomy,
   ce: CountryEconomy,
@@ -141,7 +145,23 @@ export function startResearch(
 ): WwOrderBlock | null {
   const block = researchBlock(econ, ce, tech);
   if (block !== null) return block;
-  const i = freeResearchSlot(slotTechs(ce), ce.totals.slotCount);
+  const techs = slotTechs(ce);
+  let i = -1;
+  for (let k = 0; k < ce.totals.slotCount && i < 0; k++) {
+    if ((techs[k] ?? null) === null && (ce.rq[k]?.length ?? 0) === 0) i = k;
+  }
+  if (i < 0) i = freeResearchSlot(techs, ce.totals.slotCount);
+  placeResearch(econ, ce, tech, i);
+  return null;
+}
+
+/** Starts `tech` in the empty slot `i`, resuming its saved progress and taking a bonus. */
+export function placeResearch(
+  econ: WwEconomy,
+  ce: CountryEconomy,
+  tech: WwTechId,
+  i: number,
+): void {
   while (ce.slots.length <= i) ce.slots.push(null);
   const bonusPct = takeResearchBonus(econ, ce, tech);
   ce.slots[i] = {
@@ -149,7 +169,6 @@ export function startResearch(
     progress: takeSavedResearch(ce, tech),
     ...(bonusPct === 0 ? {} : { bonusPct }),
   };
-  return null;
 }
 
 /**

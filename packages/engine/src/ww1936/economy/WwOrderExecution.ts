@@ -35,6 +35,11 @@ import {
   setLineFactories,
 } from "./Production";
 import {
+  reorderResearch,
+  reserveResearch,
+  unreserveResearch,
+} from "./ResearchQueue";
+import {
   cancelResearch,
   grantResearch,
   setResearchLean,
@@ -138,6 +143,15 @@ function applyOrder(
       break;
     case "cancel_research":
       block = cancelResearch(econ, ce, order.slot);
+      break;
+    case "research_reserve":
+      block = reserveResearch(econ, ce, order.tech, order.slot);
+      break;
+    case "research_unreserve":
+      block = unreserveResearch(econ, ce, order.tech);
+      break;
+    case "research_reorder":
+      block = reorderResearch(econ, ce, order.tech, order.move);
       break;
     // P2 (plan decision 2): the land war's orders, a player's (P4 plan
     // decision 34: WwLand.issue hands army_sea to the navy).

@@ -147,6 +147,10 @@ describe("World War 1936 P5 lists", () => {
       // The focus queue appends its two.
       "focus_queued",
       "focus_queue_full",
+      // The research queues append their three.
+      "research_queued",
+      "research_queue_full",
+      "queue_order",
     ]);
     const kinds = WwOrderSchema.options.map(
       (o) => (o.shape.kind as { value: string }).value,
@@ -155,15 +159,20 @@ describe("World War 1936 P5 lists", () => {
     // peace on the current line its one after those, the research
     // overhaul research_lean and the research grants research_grant, then
     // the war overhaul (ww7) army_zone and army_auto_level, then the air
-    // overhaul's (ww8) six wing orders last.
-    expect(kinds.slice(-16, -14)).toEqual([...WHITE_PEACE_ORDER_KINDS]);
-    expect(kinds.slice(-14, -12)).toEqual(["auto_set", "army_auto_all"]);
-    expect(kinds.slice(-12, -11)).toEqual([...LINE_PEACE_ORDER_KINDS]);
-    expect(kinds.slice(-11, -9)).toEqual(["research_lean", "research_grant"]);
-    expect(kinds.slice(-9, -7)).toEqual(["army_zone", "army_auto_level"]);
-    expect(kinds.slice(-7, -1)).toEqual([...WING_ORDER_KINDS]);
-    // The thought sliders (ww9) append thought_set after the wing orders.
-    expect(kinds.slice(-1)).toEqual(["thought_set"]);
+    // overhaul's (ww8) six wing orders, thought_set (ww9), and the research
+    // queues' three last.
+    expect(kinds.slice(-19, -17)).toEqual([...WHITE_PEACE_ORDER_KINDS]);
+    expect(kinds.slice(-17, -15)).toEqual(["auto_set", "army_auto_all"]);
+    expect(kinds.slice(-15, -14)).toEqual([...LINE_PEACE_ORDER_KINDS]);
+    expect(kinds.slice(-14, -12)).toEqual(["research_lean", "research_grant"]);
+    expect(kinds.slice(-12, -10)).toEqual(["army_zone", "army_auto_level"]);
+    expect(kinds.slice(-10, -4)).toEqual([...WING_ORDER_KINDS]);
+    expect(kinds.slice(-4, -3)).toEqual(["thought_set"]);
+    expect(kinds.slice(-3)).toEqual([
+      "research_reserve",
+      "research_unreserve",
+      "research_reorder",
+    ]);
     expect(after(ARMY_ORDER_KINDS, "invade")).toEqual(["garrison"]);
     expect(after(SUPPORT_IDS, "signal")).toEqual(["military_police"]);
     expect(after(WW_TECH_IDS, "synthetic_oil_2")[0]).toBe("military_police");

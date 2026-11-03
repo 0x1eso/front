@@ -68,16 +68,22 @@ describe("the lists are appended, never reordered", () => {
       "ferry",
     ]);
     expect(WW_BOMB_CLASSES[0]).toBe("auto");
-    // The focus queue appended two after these.
-    expect(WW_ORDER_BLOCKS.slice(-5, -2)).toEqual([
+    // The focus queue appended two after these, the research queues three.
+    expect(WW_ORDER_BLOCKS.slice(-8, -5)).toEqual([
       "too_many_wings",
       "no_bomb_target",
       "escort_out_of_range",
     ]);
     const kinds = WwOrderSchema.options.map((o) => o.shape.kind.value);
     // ww9 appends thought_set after the wing orders.
-    expect(kinds.slice(-7, -1)).toEqual([...WING_ORDER_KINDS]);
-    expect(kinds.slice(-1)).toEqual(["thought_set"]);
+    expect(kinds.slice(-10, -4)).toEqual([...WING_ORDER_KINDS]);
+    expect(kinds.slice(-4, -3)).toEqual(["thought_set"]);
+    // The research queues append their three after it.
+    expect(kinds.slice(-3)).toEqual([
+      "research_reserve",
+      "research_unreserve",
+      "research_reorder",
+    ]);
   });
 
   test("the wire: at most 20 wings, no empty list, no wing id 0", () => {

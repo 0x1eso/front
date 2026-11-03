@@ -12,6 +12,7 @@ import { aheadPct } from "@openfront/engine-lib/ww1936/EconomyRules";
 import { researchScores } from "@openfront/engine-lib/ww1936/ResearchScore";
 import { WW_TECHS } from "@openfront/engine-lib/ww1936/WwTechs";
 import {
+  queuedAt,
   researchBlock,
   ResearchCard,
   researchCards,
@@ -71,6 +72,8 @@ export interface TreeNode {
   y: number;
   /** A prerequisite on another tab (the node's "↖" tag), or null. */
   crossTab: WwTechId | null;
+  /** Reserved in a slot's queue (slot index, 1-based place), or null. */
+  queued: { slot: number; pos: number } | null;
 }
 
 export interface TreeEdge {
@@ -180,6 +183,7 @@ export function treeLayout(
       x: PAD + col * COL_W,
       y: PAD + row * ROW_H,
       crossTab: cross,
+      queued: queuedAt(d, card.id),
     });
   }
   return {
