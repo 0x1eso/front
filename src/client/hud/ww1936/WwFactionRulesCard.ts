@@ -12,6 +12,28 @@ export interface RulesCtx {
   send: (order: WwOrder) => void;
 }
 
+/** What each goal the leader can still pick needs and pays, once for all the open slots. */
+function renderGoalLegend(goals: readonly GoalSlot[]): TemplateResult {
+  const open = goals.find((g) => g.canPick);
+  if (open === undefined || open.options.length === 0) return html`${nothing}`;
+  return html`<div data-ww-goal-legend class="mt-2 text-xs">
+    <div class="mb-1 font-bold text-white/70">
+      ${translateText("ww1936.faction_ui.goal_legend")}
+    </div>
+    <ul class="m-0 flex list-none flex-col gap-1 p-0">
+      ${open.options.map(
+        (o) =>
+          html`<li data-ww-goal-desc=${o}>
+            <b>${translateText(`ww1936.faction_goal.${o}`)}</b>
+            <span class="block text-white/60"
+              >${translateText(`ww1936.faction_goal_desc.${o}`)}</span
+            >
+          </li>`,
+      )}
+    </ul>
+  </div>`;
+}
+
 /** P6 (spec §14): the faction's three rules (the leader toggles: two taps) and goal slots. */
 export function renderFactionRules(
   rules: readonly FactionRuleRow[],
@@ -19,7 +41,7 @@ export function renderFactionRules(
   ctx: RulesCtx,
 ): TemplateResult {
   if (rules.length === 0) return html`${nothing}`;
-  return html`<section data-ww-faction-rules class="mt-2">
+  return html`<section data-ww-faction-rules class="mt-2 break-keep">
     <div class="mb-1 text-xs font-bold uppercase text-white/70">
       ${translateText("ww1936.faction_ui.rules_title")}
     </div>
@@ -64,39 +86,60 @@ export function renderFactionRules(
     <div class="mb-1 mt-2 text-xs font-bold uppercase text-white/70">
       ${translateText("ww1936.faction_ui.goals_title")}
     </div>
-    <ul class="m-0 flex list-none flex-col gap-1 p-0 text-xs">
+    <p data-ww-goal-hint class="m-0 mb-1 text-xs text-white/60">
+      ${translateText("ww1936.faction_ui.goal_hint")}
+    </p>
+    <ul class="m-0 flex list-none flex-col gap-1.5 p-0 text-xs">
       ${goals.map(
         (g) =>
-          html`<li data-ww-goal-slot=${g.slot} class="flex flex-wrap gap-1">
-            ${g.goal !== null
-              ? html`<span class=${g.achieved ? "text-emerald-300" : ""}
-                  >${g.achieved ? "✓ " : ""}${translateText(
-                    `ww1936.faction_goal.${g.goal}`,
-                  )}</span
-                >`
-              : g.canPick
-                ? g.options.map(
-                    (o) =>
-                      html`<button
-                        type="button"
-                        data-ww-goal-pick=${o}
-                        class=${BUTTON}
-                        @click=${() =>
-                          ctx.send({
-                            kind: "faction_goal",
-                            slot: g.slot,
-                            goal: o,
-                          })}
-                      >
-                        ${translateText(`ww1936.faction_goal.${o}`)}
-                      </button>`,
-                  )
-                : html`<span class="text-white/50"
-                    >${translateText("ww1936.faction_ui.goal_empty")}</span
-                  >`}
+          html`<li data-ww-goal-slot=${g.slot} class="flex gap-2">
+            <b class="w-14 shrink-0 text-white/70"
+              >${translateText("ww1936.faction_ui.goal_slot", {
+                n: g.slot + 1,
+              })}</b
+            >
+            <div class="flex min-w-0 flex-1 flex-wrap gap-1">
+              ${g.goal !== null
+                ? html`<span class="w-full">
+                    <span class=${g.achieved ? "text-emerald-300" : ""}
+                      >${g.achieved ? "✓ " : ""}${translateText(
+                        `ww1936.faction_goal.${g.goal}`,
+                      )}</span
+                    >
+                    <span class="block text-white/60"
+                      >${translateText(
+                        `ww1936.faction_goal_desc.${g.goal}`,
+                      )}</span
+                    >
+                  </span>`
+                : g.canPick
+                  ? g.options.map(
+                      (o) =>
+                        html`<button
+                          type="button"
+                          data-ww-goal-pick=${o}
+                          title=${translateText(
+                            `ww1936.faction_goal_desc.${o}`,
+                          )}
+                          class=${BUTTON}
+                          @click=${() =>
+                            ctx.send({
+                              kind: "faction_goal",
+                              slot: g.slot,
+                              goal: o,
+                            })}
+                        >
+                          ${translateText(`ww1936.faction_goal.${o}`)}
+                        </button>`,
+                    )
+                  : html`<span class="text-white/50"
+                      >${translateText("ww1936.faction_ui.goal_empty")}</span
+                    >`}
+            </div>
           </li>`,
       )}
     </ul>
+    ${renderGoalLegend(goals)}
   </section>`;
 }
 

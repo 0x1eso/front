@@ -45,6 +45,15 @@ import {
   PLAYER_DATA_COLS,
 } from "./DataTextures";
 import { DebugProgram } from "./DebugProgram";
+import {
+  canvasRasterizer,
+  DYN_CELL,
+  DYN_HEIGHT,
+  DynamicGlyphs,
+  NAME_CHAR_RANGE,
+  type GlyphMetrics,
+  type PendingCell,
+} from "./DynamicGlyphs";
 import { FlagAtlasArray } from "./FlagAtlasArray";
 import { IconProgram } from "./IconProgram";
 import { StatusIconProgram } from "./StatusIconProgram";
@@ -104,14 +113,16 @@ export class NamePass {
 
   // CPU-side mirrors — batched upload in draw()
   private cpuPlayerData: Float32Array;
-  private cpuStringData: Uint8Array;
+  private cpuStringData: Uint16Array;
   private cpuCursorData: Float32Array;
+  private dynGlyphs: DynamicGlyphs;
+  private pendingCells: PendingCell[] = [];
   private playerDataDirty = false;
   private stringDataDirty = false;
   private cursorDataDirty = false;
 
   // Reusable buffers for text layout
-  private stringRow: Uint8Array;
+  private stringRow: Uint16Array;
   private cursorRow: Float32Array;
 
   /** Slots refreshed per updateNames call: index % UPDATE_SLICES === phase. */
@@ -147,7 +158,17 @@ export class NamePass {
     const atlas = parseAtlasData();
     this.fontSize = atlas.fontSize;
     this.fontBase = atlas.base;
-    this.glyph = buildGlyphTables(atlas.chars);
+    this.glyph = buildGlyphTables(atlas.chars, NAME_CHAR_RANGE);
+    // Hangul and other letters the baked atlas lacks: spare cells below it.
+    const nameAtlas = { ...atlas, scaleH: atlas.scaleH + DYN_HEIGHT };
+    this.dynGlyphs = new DynamicGlyphs(
+      this.glyph,
+      atlas.scaleW,
+      atlas.scaleH,
+      nameAtlas.scaleH,
+      (m) => this.writeGlyphMetrics(m),
+      canvasRasterizer(),
+    );
     this.kernTable = buildKernTable(atlas.kernings);
     this.emojiCharToIndex = buildEmojiLookup();
 
@@ -202,27 +223,32 @@ export class NamePass {
     this.cpuPlayerData = new Float32Array(
       PLAYER_DATA_COLS * this.maxPlayers * 4,
     );
-    this.cpuStringData = new Uint8Array(MAX_CHARS * textRows);
+    this.cpuStringData = new Uint16Array(MAX_CHARS * textRows);
     this.cpuCursorData = new Float32Array(MAX_CHARS * textRows);
-    this.stringRow = new Uint8Array(MAX_CHARS);
+    this.stringRow = new Uint16Array(MAX_CHARS);
     this.cursorRow = new Float32Array(MAX_CHARS);
 
     // Shared VAO (unit [0,1]² quad)
     this.vao = createFullscreenQuad(gl);
 
     // Data textures
-    this.glyphMetricsTex = buildGlyphMetricsTex(gl, atlas);
+    this.glyphMetricsTex = buildGlyphMetricsTex(gl, nameAtlas, NAME_CHAR_RANGE);
     this.cursorTex = buildCursorTex(gl, this.maxPlayers);
     this.stringTex = buildStringTex(gl, this.maxPlayers);
     this.playerDataTex = buildPlayerDataTex(gl, this.maxPlayers);
 
     // Sub-programs
-    this.textProgram = new TextProgram(gl, atlas, {
-      glyphMetrics: this.glyphMetricsTex,
-      cursor: this.cursorTex,
-      strings: this.stringTex,
-      playerData: this.playerDataTex,
-    });
+    this.textProgram = new TextProgram(
+      gl,
+      nameAtlas,
+      {
+        glyphMetrics: this.glyphMetricsTex,
+        cursor: this.cursorTex,
+        strings: this.stringTex,
+        playerData: this.playerDataTex,
+      },
+      DYN_HEIGHT,
+    );
     this.iconProgram = new IconProgram(
       gl,
       atlas,
@@ -639,6 +665,7 @@ export class NamePass {
       this.kernTable,
       this.stringRow,
       this.cursorRow,
+      this.mapGlyph,
     );
 
     const off = row * MAX_CHARS;
@@ -648,6 +675,29 @@ export class NamePass {
     this.cursorDataDirty = true;
 
     return halfWidth;
+  }
+
+  private readonly mapGlyph = (unit: number): number =>
+    this.dynGlyphs.idFor(unit);
+
+  /** A new dynamic glyph's two metrics texels (see buildGlyphMetricsTex). */
+  private writeGlyphMetrics(m: GlyphMetrics): void {
+    const gl = this.gl;
+    gl.bindTexture(gl.TEXTURE_2D, this.glyphMetricsTex);
+    const put = (row: number, v: number[]): void =>
+      gl.texSubImage2D(
+        gl.TEXTURE_2D,
+        0,
+        m.id,
+        row,
+        1,
+        1,
+        gl.RGBA,
+        gl.FLOAT,
+        new Float32Array(v),
+      );
+    put(0, [m.advance, m.xOffset, m.yOffset, m.width]);
+    put(1, [m.height, m.u0, m.v0, m.u1]);
   }
 
   /** Pack player data into the CPU buffer (flushed to GPU in draw). */
@@ -816,6 +866,19 @@ export class NamePass {
     if (this.slots.size === 0) return;
 
     const gl = this.gl;
+    // Dynamic glyph cells made since the last frame (kept until the atlas
+    // texture has loaded).
+    if (this.pendingCells.length === 0) {
+      this.pendingCells = this.dynGlyphs.takePending();
+    } else {
+      this.pendingCells.push(...this.dynGlyphs.takePending());
+    }
+    if (
+      this.pendingCells.length > 0 &&
+      this.textProgram.uploadCells(this.pendingCells, DYN_CELL)
+    ) {
+      this.pendingCells = [];
+    }
     if (this.stringDataDirty) {
       gl.bindTexture(gl.TEXTURE_2D, this.stringTex);
       gl.texSubImage2D(
@@ -826,7 +889,7 @@ export class NamePass {
         MAX_CHARS,
         this.maxPlayers * LINES_PER_PLAYER,
         gl.RED_INTEGER,
-        gl.UNSIGNED_BYTE,
+        gl.UNSIGNED_SHORT,
         this.cpuStringData,
       );
       this.stringDataDirty = false;

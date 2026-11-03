@@ -11,8 +11,9 @@ import { CHAR_RANGE, LINES_PER_PLAYER, MAX_CHARS } from "./Types";
 export function buildGlyphMetricsTex(
   gl: WebGL2RenderingContext,
   atlas: ParsedAtlas,
+  range: number = CHAR_RANGE,
 ): WebGLTexture {
-  const data = new Float32Array(CHAR_RANGE * 2 * 4);
+  const data = new Float32Array(range * 2 * 4);
 
   for (const ch of atlas.chars) {
     if (ch.id >= CHAR_RANGE) continue;
@@ -23,7 +24,7 @@ export function buildGlyphMetricsTex(
     data[r0 + 2] = ch.yoffset;
     data[r0 + 3] = ch.width;
     // Row 1: height, atlasU0, atlasV0, atlasU1
-    const r1 = (CHAR_RANGE + ch.id) * 4;
+    const r1 = (range + ch.id) * 4;
     data[r1 + 0] = ch.height;
     data[r1 + 1] = ch.x / atlas.scaleW;
     data[r1 + 2] = ch.y / atlas.scaleH;
@@ -32,7 +33,7 @@ export function buildGlyphMetricsTex(
   }
 
   return createTexture2D(gl, {
-    width: CHAR_RANGE,
+    width: range,
     height: 2,
     internalFormat: gl.RGBA32F,
     format: gl.RGBA,
@@ -57,7 +58,7 @@ export function buildCursorTex(
   });
 }
 
-/** String data: MAX_CHARS x (maxPlayers * LINES_PER_PLAYER), R8UI. Dynamic. */
+/** String data: MAX_CHARS x (maxPlayers * LINES_PER_PLAYER), R16UI (glyph ids past 255 for DynamicGlyphs). Dynamic. */
 export function buildStringTex(
   gl: WebGL2RenderingContext,
   maxPlayers: number,
@@ -66,10 +67,10 @@ export function buildStringTex(
   return createTexture2D(gl, {
     width: MAX_CHARS,
     height,
-    internalFormat: gl.R8UI,
+    internalFormat: gl.R16UI,
     format: gl.RED_INTEGER,
-    type: gl.UNSIGNED_BYTE,
-    data: new Uint8Array(MAX_CHARS * height),
+    type: gl.UNSIGNED_SHORT,
+    data: new Uint16Array(MAX_CHARS * height),
   });
 }
 

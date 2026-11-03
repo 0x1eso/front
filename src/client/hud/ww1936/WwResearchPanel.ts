@@ -315,12 +315,36 @@ export class WwResearchPanel extends WwDrawerBase {
   }
 
   updated() {
+    this.reserveToastSpace();
     if (!this.open || this.centred) return;
     const el = this.scroller();
     if (el === null) return;
     this.centred = true;
     const day = today(this.game);
     el.scrollLeft = Math.max(0, todayX(day) * this.zoom - 60);
+  }
+
+  /**
+   * On a phone an open panel is full-width, so the "next" card (above the
+   * dock) would cover its last row: the panels leave room for the card
+   * (--ww-toast-h, read by WW_PANEL_STYLE) while it shows. Wider screens
+   * have the card beside the panel's content.
+   */
+  private reserveToastSpace() {
+    const card = this.querySelector("[data-ww-next]");
+    const narrow = window.matchMedia?.("(max-width: 639px)")?.matches === true;
+    const root = document.documentElement.style;
+    if (card === null || this.open || !narrow) {
+      root.removeProperty("--ww-toast-h");
+      return;
+    }
+    const h = Math.ceil(card.getBoundingClientRect().height) + 16;
+    root.setProperty("--ww-toast-h", `${h}px`);
+  }
+
+  disconnectedCallback() {
+    document.documentElement.style.removeProperty("--ww-toast-h");
+    super.disconnectedCallback();
   }
 
   private touchStart = (e: TouchEvent) => {
@@ -1206,7 +1230,7 @@ export class WwResearchPanel extends WwDrawerBase {
       data-ww-next
       class="${this.open
         ? ""
-        : "fixed bottom-24 left-1/2 -translate-x-1/2 [@media(max-height:420px)]:top-12 [@media(max-height:420px)]:bottom-auto "}z-[1003] flex items-center gap-2 rounded-lg border border-emerald-300/70 bg-gray-900/95 p-2 text-xs text-white shadow-lg"
+        : "fixed bottom-[calc(var(--ww-dock-h,0px)+env(safe-area-inset-bottom)+8px)] right-3 max-w-[calc(100vw-24px)] max-sm:left-1/2 max-sm:right-auto max-sm:-translate-x-1/2 [@media(max-height:420px)]:top-12 [@media(max-height:420px)]:bottom-auto "}z-[1003] flex items-center gap-2 break-keep rounded-lg border border-emerald-300/70 bg-gray-900/95 p-2 text-xs text-white shadow-lg"
     >
       <span>${translateText("ww1936.rtree.next_title")}</span>
       <button

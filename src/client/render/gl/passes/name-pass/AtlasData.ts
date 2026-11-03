@@ -64,10 +64,13 @@ export interface GlyphTables {
   visW: Float32Array; // [CHAR_RANGE] — visible glyph width per char ID
 }
 
-export function buildGlyphTables(chars: BMChar[]): GlyphTables {
-  const advance = new Float32Array(CHAR_RANGE);
-  const xOffset = new Float32Array(CHAR_RANGE);
-  const visW = new Float32Array(CHAR_RANGE);
+export function buildGlyphTables(
+  chars: BMChar[],
+  range: number = CHAR_RANGE,
+): GlyphTables {
+  const advance = new Float32Array(range);
+  const xOffset = new Float32Array(range);
+  const visW = new Float32Array(range);
   for (const ch of chars) {
     if (ch.id < CHAR_RANGE) {
       advance[ch.id] = ch.xadvance;

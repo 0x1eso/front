@@ -22,9 +22,12 @@ export class WwPanelMinimizedEvent implements GameEvent {
 /** Esc: the open panel closes. */
 export class WwClosePanelEvent implements GameEvent {}
 
-/** The panel is full-screen: the dock row (fixed, z above) leaves room at the bottom. */
+/**
+ * The panel is full-screen: the dock row (fixed, z above) leaves room at the
+ * bottom, and so does the research "next" card while it shows on a phone.
+ */
 export const WW_PANEL_STYLE =
-  "inset:0;padding-bottom:calc(var(--ww-dock-h,0px) + env(safe-area-inset-bottom));";
+  "inset:0;padding-bottom:calc(var(--ww-dock-h,0px) + var(--ww-toast-h,0px) + env(safe-area-inset-bottom));";
 export const WW_PANEL_HIDDEN_STYLE = "display:none;";
 
 export function wwPanelStyle(minimized: boolean): string {

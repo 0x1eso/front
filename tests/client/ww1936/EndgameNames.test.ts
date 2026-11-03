@@ -156,19 +156,22 @@ describe("World War 1936 P5: endgame names", () => {
     });
     eg.apply({ news: [], countries: [cw, view("DEU")] });
     const { game } = fakeGame(eg, []);
-    // The map: English, whatever the UI's language (mode spec §5.4).
-    expect(wwMapName(eg.countries.get(ID("CW1")))).toBe("Free Poland");
-    expect(
-      wwMapName(
-        view("CW2", { nameKey: "ww1936.cw_name.communist", nameArg: "FRA" }),
-      ),
-    ).toBe("People's France");
+    // The map shows the screens' name: the slot's, a rename's, else P0's.
+    const slotName = "[ww1936.cw_name.democratic] country=[ww1936.country.POL]";
+    expect(wwMapName("CW1", ID("CW1"), eg)).toBe(slotName);
+    expect(wwMapName("CW1", ID("CW1"), eg)).toBe(countryText(game, ID("CW1")));
     // A rename (spec §3.5 set_name) keeps no country param.
-    expect(wwMapName(view("CW3", { nameKey: "ww1936.rename.serbia" }))).toBe(
-      "Serbia",
-    );
-    // Without a name key the P0 name stays.
-    expect(wwMapName(eg.countries.get(ID("DEU")))).toBeNull();
+    const renamed = new WwEndgameView();
+    renamed.apply({
+      news: [],
+      countries: [view("CW3", { nameKey: "ww1936.rename.serbia" })],
+    });
+    expect(wwMapName("CW3", ID("CW3"), renamed)).toBe("[ww1936.rename.serbia]");
+    // Without a name key the translated P0 name, never the English one.
+    expect(wwMapName("DEU", ID("DEU"), eg)).toBe("[ww1936.country.DEU]");
+    expect(wwMapName("DEU", ID("DEU"), null)).toBe("[ww1936.country.DEU]");
+    // Other modes (no country tag): the PlayerInfo name stays.
+    expect(wwMapName(null, 1, eg)).toBeNull();
     // The screens: the translated ideology name and the slot's flag.
     expect(countryText(game, ID("CW1"))).toBe(
       "[ww1936.cw_name.democratic] country=[ww1936.country.POL]",

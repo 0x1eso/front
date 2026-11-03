@@ -6610,6 +6610,14 @@
       "fg_research": "Alliance of Science",
       "fg_sea_lanes": "Command of the Sea"
     },
+    "faction_goal_desc": {
+      "fg_europe_vp": "The faction holds 40% or more of Europe's victory-point regions. Reward: stability +5% for 365 days.",
+      "fg_industry": "The members' military factories add up to 400 or more. Reward: factory output +5% for 365 days.",
+      "fg_liberation": "The faction retakes the capital of a member that capitulated or went into exile. Reward: war support +10% for every member.",
+      "fg_members": "The faction has 6 or more members. Reward: +50 political power for every member.",
+      "fg_research": "Members have researched an average of 50 or more techs each. Reward: research +5% for 365 days.",
+      "fg_sea_lanes": "The faction has 60% or more naval supremacy in 20 or more sea regions. Reward: transport fleet losses -10% for 365 days."
+    },
     "faction_name": {
       "auto": "{country} faction",
       "balkan_entente": "Balkan Entente",
@@ -6627,6 +6635,9 @@
     },
     "faction_ui": {
       "goal_empty": "Open slot",
+      "goal_hint": "The leader picks one goal for each slot. When the faction meets a goal's condition, every member gets its reward. A goal can fill one slot only.",
+      "goal_legend": "Goals you can pick, and what they need",
+      "goal_slot": "Goal {n}",
       "goals_title": "Faction goals",
       "relations_best": "Best relations",
       "relations_worst": "Worst relations",

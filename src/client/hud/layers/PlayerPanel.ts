@@ -1056,7 +1056,7 @@ export class PlayerPanel extends LitElement implements Controller {
         class="min-h-9 w-full rounded-lg border px-2 py-1 text-left text-sm font-semibold disabled:opacity-40 ${red
           ? "border-red-400/40 text-red-300 hover:bg-red-500/10"
           : "border-white/10 bg-white/4 text-white/90 hover:bg-white/10"} ${armed
-          ? "ring-2 ring-red-400"
+          ? "ring-2 ring-inset ring-red-400"
           : ""}"
         ?disabled=${block !== null}
         @click=${onClick}
