@@ -421,10 +421,7 @@ export function planDay(
       // division unless [전부 공격] is on; one in a battle stays in it.
       if (direct) {
         const go = here
-          .filter(
-            (r) =>
-              t.battle[r] === 0 && fitToJoin(land, r),
-          )
+          .filter((r) => t.battle[r] === 0 && fitToJoin(land, r))
           .sort(
             (x, y) =>
               land.baseStatsOf(y).speedCenti - land.baseStatsOf(x).speedCenti ||
@@ -481,9 +478,7 @@ export function planDay(
     for (const r of side) {
       if (t.battle[r] !== 0) continue;
       if (
-        direct
-          ? fitToJoin(land, r)
-          : t.org[r] * 100 >= land.orgMaxOf(r) * pct
+        direct ? fitToJoin(land, r) : t.org[r] * 100 >= land.orgMaxOf(r) * pct
       ) {
         ids.push(t.id[r]);
       }

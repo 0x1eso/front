@@ -529,7 +529,10 @@ export function tankRole(def: DesignDef): TankRole {
   if (m[0] === "aa_auto") return "sp_anti_air";
   if (
     m[1] === "turret_none" &&
-    (m[0] === "gun_small" || m[0] === "gun_hv" || m[0] === "gun_heavy")
+    (m[0] === "gun_small" ||
+      m[0] === "gun_hv" ||
+      m[0] === "gun_heavy" ||
+      m[0] === "gun_super")
   ) {
     return "tank_destroyer";
   }
