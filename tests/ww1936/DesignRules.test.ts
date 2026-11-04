@@ -114,6 +114,21 @@ describe("design rules", () => {
     ).toBe("tank");
   });
 
+  it("the recommended tank destroyer is a tank destroyer on every chassis that can carry gun_super", () => {
+    for (const b of [
+      "medium_3",
+      "heavy_2",
+      "heavy_3",
+      "super_heavy_1",
+      "modern_1",
+    ]) {
+      const d = recommendedTank(b, ALL, "tank_destroyer");
+      expect(d.modules[0]).toBe("gun_super");
+      expect(tankRole(d)).toBe("tank_destroyer");
+      expect(designBlock(d, OPEN)).toBe(null);
+    }
+  });
+
   it("cost: additions, then module %, then level %; reliability clamped 400..990", () => {
     const plain = tankStats(tank("medium_2", ["", "", "", "", "", "", ""]));
     const levels = tankStats(
