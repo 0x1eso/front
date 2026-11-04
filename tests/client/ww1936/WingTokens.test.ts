@@ -80,9 +80,12 @@ const gbrWings = (n: number) =>
     }),
   );
 
+const foreign = (n: number) =>
+  gbrWings(n).map((w) => ({ ...w, owner: DEU(), side: DEU() }));
+
 describe("wing token layout", () => {
   it("shows a base chip with the air layer off, a group chip from three wings, tokens below", () => {
-    const g = seaGame({ wings: gbrWings(3) });
+    const g = seaGame({ wings: foreign(3) });
     const out: WingSlot[] = [];
     const lay = (airLayer: boolean, chosen = none, expanded = none, zoom = 4) =>
       layoutWings(
@@ -108,7 +111,7 @@ describe("wing token layout", () => {
       [2],
     );
     // Fewer than three wings are tokens; far out they are chips, then dots.
-    const two = seaGame({ wings: gbrWings(2) });
+    const two = seaGame({ wings: foreign(2) });
     expect(
       layoutWings(
         two.air,
@@ -127,6 +130,20 @@ describe("wing token layout", () => {
       out,
     );
     expect(out[0].lod).toBe(2);
+  });
+
+  it("my own planes are tokens whatever the lens says, never a chip (w51)", () => {
+    const g = seaGame({ wings: gbrWings(4) });
+    const out: WingSlot[] = [];
+    const n = layoutWings(
+      g.air,
+      g.navy,
+      undefined,
+      { zoom: 4, airLayer: false, chosen: none, expanded: none },
+      out,
+    );
+    expect(n).toBe(4);
+    expect(out.every((s) => s.kind === SLOT_TOKEN)).toBe(true);
   });
 
   it("a tap hits the nearest slot within the tap radius", () => {

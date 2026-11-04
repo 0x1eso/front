@@ -66,6 +66,7 @@ import { lensMapSource } from "./ww1936/LensModel";
 import { linePeaceMapSource } from "./ww1936/LinePeaceModel";
 import { seaAirFacts } from "./ww1936/NavyModel";
 import { wingUiOf } from "./ww1936/WingUi";
+import { WwAirGroupCard } from "./ww1936/WwAirGroupCard";
 import { WwAirLegend } from "./ww1936/WwAirLegend";
 import { WwAirPanel } from "./ww1936/WwAirPanel";
 import { WwAirZoneCard } from "./ww1936/WwAirZoneCard";
@@ -99,7 +100,6 @@ import { WwTakeoverCard } from "./ww1936/WwTakeoverCard";
 import { WwTopBand } from "./ww1936/WwTopBand";
 import { WwWhitePeaceCard } from "./ww1936/WwWhitePeaceCard";
 import { WwWingCard } from "./ww1936/WwWingCard";
-import { WwAirGroupCard } from "./ww1936/WwAirGroupCard";
 import { wingGlow, WwWingController } from "./ww1936/WwWingController";
 
 export function createRenderer(
