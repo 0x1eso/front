@@ -285,7 +285,7 @@ function refreshWar(air: WwAir): WarMemo {
   return warNow;
 }
 
-function sidesFight(air: WwAir, a: number, b: number): boolean {
+export function sidesFight(air: WwAir, a: number, b: number): boolean {
   if (a === b) return false;
   const m = warNow !== null && warNow.air === air ? warNow : refreshWar(air);
   const x = m.index.get(a);
@@ -302,7 +302,7 @@ function sidesFight(air: WwAir, a: number, b: number): boolean {
 }
 
 /** The sides at war with side `F`, in sideList order. */
-function enemySides(air: WwAir, F: number): readonly { key: number }[] {
+export function enemySides(air: WwAir, F: number): readonly { key: number }[] {
   const memo = refreshWar(air).enemies;
   let out = memo.get(F);
   if (out === undefined) {
@@ -320,7 +320,7 @@ function enemySides(air: WwAir, F: number): readonly { key: number }[] {
   return out;
 }
 
-function isEnemyOfSide(air: WwAir, side: number, c: number): boolean {
+export function isEnemyOfSide(air: WwAir, side: number, c: number): boolean {
   if (c === 0) return false;
   const land = air.land;
   const members = land.sideMembers(side);
@@ -409,7 +409,7 @@ function gatherGuards(air: WwAir, tick: number): void {
 // ---- Where a sortie goes ----
 
 /** A zone's center as a target: its center region or sea zone. */
-function zoneTarget(air: WwAir, sr: number): number {
+export function zoneTarget(air: WwAir, sr: number): number {
   const sc = air.ww.scenario;
   const s = sc.sr(sr);
   if (s === undefined || s.members.length === 0) return 0;
@@ -433,7 +433,7 @@ function widthOfIds(air: WwAir, ids: readonly number[]): number {
 }
 
 /** `side`'s frontage in the battle of region `r`; 0 when it doesn't fight there. */
-function sideWidthIn(air: WwAir, r: number, side: number): number {
+export function sideWidthIn(air: WwAir, r: number, side: number): number {
   const land = air.land;
   const b = land.battles.get(r);
   if (b === undefined) return 0;
@@ -472,7 +472,7 @@ function pickBattle(
  * The battle of a followed army (design §4.1): its attack nearest the order's
  * goal, else the battle holding most of its divisions; 0 when it isn't fighting.
  */
-function armyBattle(air: WwAir, army: number): number {
+export function armyBattle(air: WwAir, army: number): number {
   const land = air.land;
   const a = land.armies.get(army);
   if (a === undefined) return 0;
@@ -560,7 +560,7 @@ function bombTarget(air: WwAir, w: Wing, side: number): number {
  * spotted, or in battle; 0 none. A whole-zone order flies to the first of
  * them: the delivery strikes the sea zone it was sent to (lane C's navalRun).
  */
-function fleetZone(
+export function fleetZone(
   air: WwAir,
   s: StrategicRegion,
   side: number,
@@ -767,7 +767,9 @@ function launchSortie(air: WwAir, w: Wing, tick: number, day: number): boolean {
     const km = sc.targetKm(w.base, hit);
     if (km > st.rangeKm) {
       // A followed army outran its wing: forward to a free base (design §4.1).
-      if (w.follow !== 0) moveUpToArmy(air, w, side, hit, planes, tick, day);
+      if (w.follow !== 0 && w.group === 0) {
+        moveUpToArmy(air, w, side, hit, planes, tick, day);
+      }
       return false;
     }
     leg = legTicks(km, st.speedKmh);
@@ -989,7 +991,7 @@ function recall(air: WwAir, w: Wing, tick: number): void {
 }
 
 /** Back to no order. */
-function clearOrder(air: WwAir, w: Wing): void {
+export function clearOrder(air: WwAir, w: Wing): void {
   w.mission = WING_NO_MISSION;
   w.target = 0;
   w.follow = 0;
@@ -2084,8 +2086,54 @@ export function issueWingMission(
   return null;
 }
 
+/** What a group gives one of its wings: a standing order (the fields of a wing_mission, resolved). */
+export interface StandingOrder {
+  mission: number;
+  sr: number;
+  target: number;
+  follow: number;
+  escortOf: number;
+  cls: number;
+}
+
+/**
+ * w50: sets a member wing's standing order the way a wing_mission would, only
+ * when it differs from the one it has (a repeat changes nothing, so the daily
+ * pick doesn't reset a wing's cycle). Returns whether it changed.
+ */
+export function setStanding(
+  air: WwAir,
+  w: Wing,
+  o: StandingOrder,
+  tick: number,
+): boolean {
+  if (
+    w.mission === o.mission &&
+    w.sr === o.sr &&
+    w.target === o.target &&
+    w.follow === o.follow &&
+    w.escortOf === o.escortOf &&
+    w.cls === o.cls
+  ) {
+    return false;
+  }
+  w.mission = o.mission;
+  w.follow = o.follow;
+  w.escortOf = o.escortOf;
+  w.target = o.target;
+  w.cls = o.cls;
+  air.setWingZone(w, o.sr);
+  air.markWing(w.id);
+  if (w.phase !== WP_GROUND) return true;
+  w.hit = 0;
+  const first =
+    tick + wingStaggerTicks(w.id, AIR_TYPES[w.type], AIR_MISSIONS[o.mission]);
+  w.until = w.until <= tick ? first : Math.min(w.until, first);
+  return true;
+}
+
 /** Target 0 with no army or escort: no order, and home at once if it's in the air. */
-function standDownWing(air: WwAir, w: Wing, tick: number): void {
+export function standDownWing(air: WwAir, w: Wing, tick: number): void {
   if (flying(w)) {
     recall(air, w, tick);
     w.flyMilli = 0;

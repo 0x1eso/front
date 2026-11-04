@@ -52,6 +52,7 @@ import {
   stockOf,
 } from "./Deploy";
 import { planeSources, swapOldPlanes } from "./DesignPlanes";
+import { dailyGroups } from "./Groups";
 import { noteWingRest } from "./WingXp";
 import { deploymentStats, wingPlanes, wingSide, type WwAir } from "./WwAir";
 
@@ -79,7 +80,7 @@ const baseLevel = (air: WwAir, region: number): number =>
   air.econ.buildingArray("air_base")[region] ?? 0;
 
 /** The bases `side` controls that can be used (not bombed out), ascending. */
-function sideBases(air: WwAir, side: number): number[] {
+export function sideBases(air: WwAir, side: number): number[] {
   const land = air.land;
   const out: number[] = [];
   for (const r of baseRegions(air)) {
@@ -183,7 +184,12 @@ function nearestOpenBase(air: WwAir, w: Wing, from: number): number {
  * Draws up to `n` planes from the owner's stock into a wing, the newest
  * year first (design planes at their year); returns the planes drawn.
  */
-function drawInto(air: WwAir, ce: CountryEconomy, w: Wing, n: number): number {
+export function drawInto(
+  air: WwAir,
+  ce: CountryEconomy,
+  w: Wing,
+  n: number,
+): number {
   const t = AIR_TYPES[w.type];
   let left = n;
   for (const x of planeSources(air.ww.depth, w.owner, t)) {
@@ -335,6 +341,7 @@ export function dailyWingCountry(
   fillDecks(air.navy, smallID);
   carrierWings(air, smallID);
   const ce = air.econ.country(smallID);
+  dailyGroups(air, smallID, day);
   for (const w of air.wingsOf(smallID)) {
     if (w.base < 0) {
       if (w.nameNo === 0) {
@@ -363,7 +370,14 @@ export function dailyWingCountry(
     }
     noteWingRest(air, w, day); // lane D filters by phase
   }
-  if (ce !== null) formWings(air, smallID, day);
+  // A human's own wings stop forming once it has saved a template: the
+  // templates draw the planes (w50).
+  if (
+    ce !== null &&
+    !(c.templates.length > 0 && air.ww.isHumanControlled(smallID))
+  ) {
+    formWings(air, smallID, day);
+  }
 }
 
 /** The start of the game (WwAir.start): every country forms its wings. */
@@ -435,6 +449,19 @@ function startFerry(air: WwAir, w: Wing, to: number, tick: number): void {
     from,
     wingPlanes(w),
   ]);
+}
+
+/** Sends a grounded wing to `to` (a group's base): the same ferry as wing_base. */
+export function ferryWing(air: WwAir, w: Wing, to: number, tick: number): void {
+  startFerry(air, w, to, tick);
+}
+
+/** The base a group forms at: the owner's usable base nearest its front (the capital in peace). */
+export function homeBase(air: WwAir, owner: number): number {
+  const bases = sideBases(air, air.land.sideOf(owner));
+  const own = bases.filter((r) => air.land.controller[r] === owner);
+  const near = frontKm(air, owner) ?? capitalKm(air, owner);
+  return pickBase(own.length > 0 ? own : bases, near);
 }
 
 /** wing_base: ferry the named wings to a base of their side with room for all of them. */
@@ -582,6 +609,8 @@ export function handOverWing(air: WwAir, w: Wing, owner: number): void {
   const c = air.country(owner);
   if (c !== null) w.nameNo = c.nextWingNo[w.type]++;
   w.auto = false;
+  w.group = 0;
+  w.fullMax = 0;
   w.mission = WING_NO_MISSION;
   w.sr = 0;
   w.target = 0;

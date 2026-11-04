@@ -983,6 +983,9 @@ export interface AiWingView {
   fuelMilli: number;
 }
 
+/** w50: the free room the plan sees at every usable base. */
+const AI_BASE_ROOM = 1_000_000;
+
 /** A base of the side, with its free room. */
 export interface AiWingBase {
   region: number;
@@ -2027,9 +2030,10 @@ export function aiWingInput(
     km,
     threatened,
   };
+  // w50: a base holds any number of planes; the plan's room is unlimited.
   const roomy = baseUsesOf(air, viewer)
-    .filter((b) => b.cap - b.used > 0)
-    .map((b) => ({ region: b.region, room: b.cap - b.used }));
+    .filter((b) => air.baseUsable(b.region))
+    .map((b) => ({ region: b.region, room: AI_BASE_ROOM }));
   base.bases = roomy;
   if (!atWar) return base;
   // Our armies in battle (a volunteer wing can't follow a host's army).
@@ -2258,7 +2262,9 @@ export function aiWings(air: WwAir, smallID: number, day: number): void {
   const own: Wing[] = [];
   let hosts: Map<number, Wing[]> | null = null;
   for (const w of air.wingsOf(smallID)) {
-    if (isCarrierWing(w) || (human && !w.auto)) continue;
+    if (isCarrierWing(w) || (human && !w.auto) || (w.group !== 0 && !w.auto)) {
+      continue;
+    }
     if (w.volunteerFor === 0) {
       own.push(w);
       continue;
@@ -2373,4 +2379,21 @@ export function wingBaseWants(
     }
   }
   return { srs, idle };
+}
+
+/**
+ * w50: the planner's bomb pick for one strategic zone (the same table the AI's
+ * bombers use), for an air group's bombers; null when nothing there is worth it.
+ */
+export function bombPickFor(
+  air: WwAir,
+  me: number,
+  zoneIdx: number,
+): AiBombPick | null {
+  const ca = air.country(me);
+  const bombsTaken = (ca?.bombTaken ?? []).reduce((x, y) => x + y, 0) > 0;
+  return (
+    wingTargetsOf(air, me, airSharedView(air, me), bombsTaken).bomb[zoneIdx] ??
+    null
+  );
 }

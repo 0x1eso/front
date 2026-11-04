@@ -407,6 +407,53 @@ const SAMPLE_INTENTS: StampedIntent[] = [
     clientID: P3,
     order: { kind: "wing_disband", wing: 9 },
   },
+  // w50: air groups.
+  {
+    type: "ww_order",
+    clientID: P1,
+    order: {
+      kind: "air_template",
+      id: 0,
+      name: "Mix",
+      planes: [100, 0, 50, 0, 0, 0, 0, 0, 0, 0],
+      keep: 2,
+    },
+  },
+  {
+    type: "ww_order",
+    clientID: P1,
+    order: { kind: "air_template_drop", id: 3 },
+  },
+  {
+    type: "ww_order",
+    clientID: P1,
+    order: {
+      kind: "air_group_order",
+      group: 4,
+      zones: [1, 1001],
+      priority: 1,
+      cls: "rail",
+      target: 3,
+      auto: false,
+      night: true,
+    },
+  },
+  {
+    type: "ww_order",
+    clientID: P1,
+    order: {
+      kind: "air_group_order",
+      group: 4,
+      zones: [],
+      priority: 0,
+      army: 7,
+    },
+  },
+  {
+    type: "ww_order",
+    clientID: P1,
+    order: { kind: "air_group_disband", group: 4 },
+  },
   {
     type: "ww_order",
     clientID: P1,

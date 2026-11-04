@@ -658,3 +658,13 @@ export interface AirGroupView {
   members: AirGroupMember[];
   zoneInfo: AirGroupZone[];
 }
+
+/** The plane types a template may hold (no carrier types, no transports), in AIR_TYPES order. */
+export const AIR_GROUP_TYPES = [
+  "fighter",
+  "bomber",
+  "heavy_fighter",
+  "cas",
+  "naval_bomber",
+  "strat_bomber",
+] as const satisfies readonly AirType[];
