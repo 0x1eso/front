@@ -71,7 +71,7 @@ async function board() {
 
 describe("war overhaul C0: the contract", () => {
   test("the new kinds are appended at the end of the lists", () => {
-    expect(LAND_ORDER_KINDS.slice(-4)).toEqual([
+    expect(LAND_ORDER_KINDS.slice(-5)).toEqual([
       "army_zone",
       "army_auto_level",
       "train_army",
