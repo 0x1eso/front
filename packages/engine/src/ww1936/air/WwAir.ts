@@ -306,6 +306,9 @@ const WingSchema = z.object({
   prevKills: zInt(),
   prevLost: zInt(),
   aceMark: zInt(),
+  // w50: present only when set.
+  group: zInt().optional(),
+  fullMax: zInt().optional(),
 });
 const ZoneTodaySchema = z.object({
   sorties: z.array(z.tuple([zInt(), zInts()])),
@@ -825,6 +828,8 @@ export class WwAir {
       prevKills: d.prevKills ?? n.prevKills,
       prevLost: d.prevLost ?? n.prevLost,
       aceMark: d.aceMark ?? n.aceMark,
+      group: d.group ?? n.group,
+      fullMax: d.fullMax ?? n.fullMax,
     };
     this.wings.set(full.id, full);
     this.wingList = null;
@@ -1394,6 +1399,8 @@ export class WwAir {
             : [...d.dcounts],
         night: d.night ?? false,
         ace: d.ace ?? 0,
+        group: d.group ?? 0,
+        fullMax: d.fullMax ?? 0,
       });
     }
     s.zones.forEach((x, i) => {

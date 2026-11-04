@@ -4841,6 +4841,7 @@
         "general_unavailable": "This general cannot serve now",
         "group_full": "The army group is full",
         "harbor_conditions": "A floating harbour cannot be placed here",
+        "in_group": "This wing belongs to an air group",
         "in_progress": "Already being researched",
         "infra_max": "Already at its highest level",
         "invasion_not_ready": "Not ready",

@@ -172,6 +172,9 @@ export interface CountryAirDetail {
   reports?: AirRaidReport[];
   /** The armies under [✈ priority], ascending (army_air_priority). */
   priorityArmies?: number[];
+  /** w50: the country's air templates (own country only) and its air groups, by id. Absent with none. */
+  templates?: AirTemplate[];
+  groups?: AirGroupView[];
 }
 export interface WwAirData {
   zones: AirZoneData[];
@@ -356,6 +359,10 @@ export interface Wing {
   prevLost: number;
   /** The highest multiple of ACE_KILLS of `kills` an ace roll was made at (lane D). */
   aceMark: number;
+  /** w50: the air group it belongs to (AirGroup.id), 0 none. */
+  group: number;
+  /** w50: its own full size when the template splits a type smaller than WW_WING_MAX_PLANES; 0: the type's full size. */
+  fullMax: number;
 }
 
 /** A wing's new fields at rest. The hash only reads a wing that left them. */
@@ -381,6 +388,8 @@ export const WING_NEW_FIELD_DEFAULTS = {
   prevKills: 0,
   prevLost: 0,
   aceMark: 0,
+  group: 0,
+  fullMax: 0,
 } as const;
 
 /** One raid report row (design §5.2), kept by both countries. */
@@ -449,6 +458,9 @@ export interface WingDetail extends WingBrief {
   /** deploymentStats now, for its range circle and flight times. */
   rangeKm: number;
   speedKmh: number;
+  /** w50: its air group (0 none) and its own full size (0: the type's). */
+  group?: number;
+  fullMax?: number;
 }
 
 /**
@@ -559,3 +571,90 @@ export const WW_AIR_REPORT_MERGE_DAYS = 30;
 
 /** What WwAir.issue takes of the wing orders. */
 export type WingOrder = Extract<WwOrder, { kind: WingOrderKind }>;
+
+// ---- w50: air groups (design /home/eser/dev/ww50-air-group-design.md). Append only. ----
+
+/** A group's total planes, a template's step, templates and zones per order. One constant for the owner to change. */
+export const WW_MAX_GROUP_PLANES = 600;
+export const WW_GROUP_STEP = 25;
+export const WW_MAX_AIR_TEMPLATES = 20;
+export const WW_GROUP_MAX_ZONES = 5;
+export const WW_AIR_TEMPLATE_NAME_MAX = 24;
+/** A template's keep-N at most. */
+export const WW_MAX_KEEP_GROUPS = 20;
+/** The air order kinds of w50, at the end of WwOrderSchema. */
+export const GROUP_ORDER_KINDS = [
+  "air_template",
+  "air_template_drop",
+  "air_group_order",
+  "air_group_disband",
+] as const;
+export type GroupOrderKind = (typeof GROUP_ORDER_KINDS)[number];
+export type GroupOrder = Extract<WwOrder, { kind: GroupOrderKind }>;
+
+/** A saved template (engine state per country). `planes`: per AIR_TYPES index, steps of WW_GROUP_STEP, carrier types 0. */
+export interface AirTemplate {
+  id: number;
+  name: string;
+  planes: number[];
+  /** How many groups the engine keeps formed, 0 none. */
+  keep: number;
+}
+
+/** What the owner sees of a member wing. */
+export interface AirGroupMember {
+  wing: number;
+  /** AIR_TYPES index. */
+  type: number;
+  planes: number;
+  /** Its full size (the template's split, else the type's). */
+  full: number;
+  /** WING_PHASES index, until (tick), the zone its sortie flies over (0 none) and its mission (WING_NO_MISSION none). */
+  phase: number;
+  until: number;
+  flySr: number;
+  flyMission: number;
+  /** Its standing zone and mission now (what the group's pick gave it; -1 / 0 waiting). */
+  sr: number;
+  mission: number;
+  /** Yesterday: shot down by it, lost. */
+  kills: number;
+  lost: number;
+  auto: boolean;
+}
+/** One ordered zone of a group. */
+export interface AirGroupZone {
+  sr: number;
+  /** The group's planes assigned to or flying in the zone now. */
+  planes: number;
+  /** Our side's and the worst enemy side's superiority there, ‰. */
+  supPm: number;
+  enemySupPm: number;
+  /** Bit i: AIR_TYPES[i] has planes in the group and reaches the zone from the group's base. */
+  reachMask: number;
+}
+/** A group, in full, for its owner only. */
+export interface AirGroupView {
+  id: number;
+  /** The template it keeps (0 none) and its name. */
+  tpl: number;
+  name: string;
+  /** Ordered zones (≤ WW_GROUP_MAX_ZONES), the priority one (0 none), the army it follows (0 none). */
+  zones: number[];
+  priority: number;
+  army: number;
+  /** WW_BOMB_CLASSES index, and a single bomb target region (0 none). */
+  cls: number;
+  target: number;
+  auto: boolean;
+  night: boolean;
+  /** Its base region (0 none). */
+  base: number;
+  /** Planes now and wanted by the template, per AIR_TYPES index (want empty with no template). */
+  planes: number[];
+  want: number[];
+  /** Range km per AIR_TYPES index of the types in it (0 absent). */
+  rangeKm: number[];
+  members: AirGroupMember[];
+  zoneInfo: AirGroupZone[];
+}

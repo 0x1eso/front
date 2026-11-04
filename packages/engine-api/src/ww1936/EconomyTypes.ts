@@ -911,6 +911,9 @@ export const WW_ORDER_BLOCKS = [
   "queue_order",
   // w28: a mine needs a deposit in its region.
   "no_deposit",
+  // w50 air groups, appended: a direct wing order on a wing in a group
+  // (recon excepted). Templates reuse too_many_templates and bad_template.
+  "in_group",
 ] as const;
 export type WwOrderBlock = (typeof WW_ORDER_BLOCKS)[number];
 

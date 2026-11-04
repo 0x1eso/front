@@ -244,6 +244,10 @@ function applyOrder(
     case "wing_disband":
     case "air_field":
     case "army_air_priority":
+    case "air_template":
+    case "air_template_drop":
+    case "air_group_order":
+    case "air_group_disband":
       block = econ.ww.air.issue(p.smallID(), order, mg.ticks());
       break;
     // P5 (plan decision 10): the endgame's orders; white peace's

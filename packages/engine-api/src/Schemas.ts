@@ -44,8 +44,12 @@ import {
   AIR_MISSIONS,
   AIR_TYPES,
   WING_MAX_PER_ORDER,
+  WW_AIR_TEMPLATE_NAME_MAX,
   WW_BOMB_CLASSES,
+  WW_GROUP_MAX_ZONES,
   WW_MAX_DEPLOY_COUNT,
+  WW_MAX_GROUP_PLANES,
+  WW_MAX_KEEP_GROUPS,
 } from "./ww1936/AirTypes";
 import { COUNTRY_TAGS } from "./ww1936/Countries";
 import {
@@ -1644,6 +1648,39 @@ export const WwOrderSchema = z.discriminatedUnion("kind", [
           .max(WW_MAX_TEMPLATES),
       )
       .max(WW_MAX_ARMIES),
+  }),
+  // Air groups (w50, AirTypes.GROUP_ORDER_KINDS), appended. air_template: id 0
+  // saves a new one, else replaces that one; `planes` per AIR_TYPES index.
+  // air_group_order: up to WW_GROUP_MAX_ZONES strategic zone ids, one of them
+  // the priority (0 none), or an army to follow (zones then empty); no zones
+  // and no army stands the group down. `auto` hands every member to [auto].
+  z.object({
+    kind: z.literal("air_template"),
+    id: zb.uint({ max: 65_535 }),
+    name: z.string().min(1).max(WW_AIR_TEMPLATE_NAME_MAX),
+    planes: z
+      .array(zb.uint({ max: WW_MAX_GROUP_PLANES }))
+      .length(AIR_TYPES.length),
+    keep: zb.uint({ max: WW_MAX_KEEP_GROUPS }),
+  }),
+  z.object({
+    kind: z.literal("air_template_drop"),
+    id: zb.uint({ max: 65_535 }),
+  }),
+  z.object({
+    kind: z.literal("air_group_order"),
+    group: zb.uint({ min: 1, max: 10_000_000 }),
+    zones: z.array(zb.uint({ min: 1, max: 65_535 })).max(WW_GROUP_MAX_ZONES),
+    priority: zb.uint({ max: 65_535 }),
+    army: WwArmy.optional(),
+    cls: z.enum(WW_BOMB_CLASSES).optional(),
+    target: WwRegionId.optional(),
+    auto: z.boolean().optional(),
+    night: z.boolean().optional(),
+  }),
+  z.object({
+    kind: z.literal("air_group_disband"),
+    group: zb.uint({ min: 1, max: 10_000_000 }),
   }),
 ]);
 export type WwOrder = z.infer<typeof WwOrderSchema>;
