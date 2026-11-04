@@ -37,13 +37,13 @@ export function rangeEffPm(km: number, rangeKm: number): number {
   return 1000 - Math.floor((250 * (2 * km - rangeKm)) / rangeKm);
 }
 
-/** Spec §14.2: the weather's share of the sorties, ‰. */
+/** Spec §14.2: the weather's share of the sorties, ‰. ww67: at least 85 %. */
 export const WEATHER_SORTIE_PM: Readonly<Record<Weather, number>> = {
   clear: 1000,
-  rain: 800,
+  rain: 850,
   mud: 900,
-  snow: 700,
-  frozen: 500,
+  snow: 850,
+  frozen: 850,
   heat: 1000,
 };
 

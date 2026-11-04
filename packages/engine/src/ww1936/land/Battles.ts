@@ -408,8 +408,8 @@ function fight(land: WwLand, b: Battle, tick: number): void {
       // (assault's price, elastic and withdraw); every source of damage.
       const defending = t.role[r] === ROLE_DEFEND;
       const o = applyBp(o0, 10_000 + (defending ? fx.defOrgBp : fx.attOrgBp));
-      // ww7 (street fighting): the defenders of an urban region take 15%
-      // less org damage, whatever dealt it (hits, air support, guns).
+      // ww7 (street fighting): the defenders of an urban region take less
+      // org damage, whatever dealt it (hits, air support, guns).
       t.org[r] = Math.max(
         0,
         was - (defending ? defenderOrgDamage(terrain, o) : o),
