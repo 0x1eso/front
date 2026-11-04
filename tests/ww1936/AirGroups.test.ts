@@ -31,7 +31,6 @@ withTestPolitics();
 const HUMANS = [{ clientID: "HUMAN001", country: "DEU" as const }];
 const DEU = TAG_ID.DEU;
 const T = (n: (typeof AIR_TYPES)[number]) => AIR_TYPES.indexOf(n);
-const M = (n: (typeof AIR_MISSIONS)[number]) => AIR_MISSIONS.indexOf(n);
 
 const planes = (o: Partial<Record<(typeof AIR_TYPES)[number], number>>) =>
   AIR_TYPES.map((t) => o[t] ?? 0);

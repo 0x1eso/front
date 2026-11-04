@@ -256,8 +256,10 @@ describe("air combat (spec §14.2–§14.4)", () => {
     for (const id of a.divisions) joinBattle(ww.land, id, WARSAW);
     const b = ww.land.battles.get(WARSAW)!;
     expect(b).toBeDefined();
-    // Only Berlin's base (Rome, on Germany's side, would be nearer).
+    // Only Berlin's base (Rome, on Germany's side, would be nearer). The start
+    // clamps a base to level 1 (w50); the old model's test wants its level 2.
     ww.economy.addBuilding(REGION.rome, "air_base", -1);
+    ww.economy.addBuilding(REGION.berlin, "air_base", 1);
     setStock(ww, deu, "cas", [400, 0, 0]);
     expect(deploy(runner, deu, SR.eastLand, "cas", "cas", 400)).toBeNull();
     const [cas] = recordsOf(ww, SR.eastLand, deu, "cas");
