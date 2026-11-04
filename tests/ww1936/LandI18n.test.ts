@@ -111,7 +111,6 @@ const LAND = [
   "btn_more",
   "btn_disband",
   "btn_general",
-  "btn_execute",
   "btn_stop",
   "btn_leave_battle",
   "tap_again",
