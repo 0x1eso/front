@@ -3,7 +3,8 @@
 // `source` says so. Costs are estimates in 1940 US dollars from comparable
 // US items by weight, labour and materials (franc prices are only a
 // cross-check). Scope: what France built or had well in development by
-// about 1949 (ARL 44, AMX-13, Ouragan); the 1950s types are left out.
+// about 1949 (ARL 44), and the AMX-13 and Ouragan left out as 1950s service
+// types by the cross-country audit (ww66 report).
 // France starts with inf_eq_1, light_tank_1, fighter_1, bomber_1,
 // heavy_fighter_1, anti_tank_1, artillery_1, dd_2, cl_2, ca_2, bc_2, bb_2
 // and ss_2 (startTechs), so the 1936 stock types need no more research.
@@ -92,7 +93,8 @@ export const FRA_HIST: readonly HistEntry[] = [
     techs: ["light_tank_1"],
     year: 1936,
     // 37 mm SA 18, only 12 mm at 500 m (Wikipedia); armour 40-43 mm cast; 20 km/h road, 14 off-road (Wikipedia). Estimate: cost against US light tank M2A4 (France priced it very low).
-    source: "Wikipedia (R35, S35, Char B1 articles, read 2026-11).",
+    source:
+      "Checked 2026-11-04 on Wikipedia: Renault R35 (10.6 t, 43 mm, 20 km/h, 37 mm SA 18). Other figures from memory; cost an estimate unless stated.",
     spec: {
       massT: 10.6,
       hullFrontMm: 40,
@@ -191,6 +193,7 @@ export const FRA_HIST: readonly HistEntry[] = [
     techs: ["light_tank_2", "tank_gun_2"],
     year: 1939,
     // H35 with the SA 38 gun and a more powerful engine; the best French light infantry tank.
+    // Audit w66: No better record than the H35: reliability 3.
     source:
       "Memory (Doyle; Touzin); gun figure from Wikipedia (R35 article, SA 38).",
     spec: {
@@ -204,33 +207,8 @@ export const FRA_HIST: readonly HistEntry[] = [
       mgs: 1,
       offroadKmh: 25,
       roadKmh: 36,
-      reliability: 4,
-      costK: 26,
-    },
-  },
-  {
-    id: "fra_amx13_75",
-    country: "FRA",
-    family: "tank",
-    role: "light",
-    techs: ["light_tank_2", "tank_gun_3"],
-    year: 1953,
-    // Oscillating turret with an autoloader, 75 mm SA 50 L/57; penetration sources run 100-135 mm with APC, 110 used. Estimate: against US M41 Walker Bulldog.
-    source:
-      "Memory (Wikipedia AMX-13; Foss, Jane's); the penetration of the SA 50 gun is uncertain.",
-    spec: {
-      massT: 14.8,
-      hullFrontMm: 40,
-      hullSlopeDeg: 45,
-      turretFrontMm: 40,
-      gunMm: 75,
-      penMm500: 110,
-      heFillerG: 600,
-      mgs: 1,
-      offroadKmh: 35,
-      roadKmh: 60,
       reliability: 3,
-      costK: 45,
+      costK: 26,
     },
   },
   {
@@ -265,7 +243,9 @@ export const FRA_HIST: readonly HistEntry[] = [
     techs: ["medium_tank_1", "tank_gun_2"],
     year: 1936,
     // 47 mm SA 35 (sources 40-56 mm at 500 m, 42 used), 47 mm cast hull front, 42 mm turret (Wikipedia), 982,000 francs. Estimate: against the Pz III E class.
-    source: "Wikipedia (R35, S35, Char B1 articles, read 2026-11).",
+    // Audit w66: Fine tank but a demanding suspension: reliability 3.
+    source:
+      "Checked 2026-11-04 on Wikipedia: SOMUA S35 (19.5 t, 47 mm hull front, 42 turret front, 40 / 32 km/h). Other figures from memory; cost an estimate unless stated.",
     spec: {
       massT: 19.5,
       hullFrontMm: 47,
@@ -277,7 +257,7 @@ export const FRA_HIST: readonly HistEntry[] = [
       mgs: 1,
       offroadKmh: 32,
       roadKmh: 40,
-      reliability: 4,
+      reliability: 3,
       costK: 42,
     },
   },
@@ -289,8 +269,10 @@ export const FRA_HIST: readonly HistEntry[] = [
     techs: ["heavy_tank_1"],
     year: 1937,
     // Hull 75 mm SA 35 L/17 and turret 47 mm SA 35 (pen. 42 used; the hull gun is the howitzer-class weapon), 60 mm armour; about 1.5 million francs (Wikipedia). Estimate: against the US M3 Lee, plus complexity.
+    // Audit w66: Complex and short-ranged in service: reliability 2.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source:
-      "Wikipedia (R35, S35, Char B1 articles, read 2026-11); turret armour and HE filler from memory.",
+      "Checked 2026-11-04 on Wikipedia: Char B1 (28 t, bis 60 mm, 28 / 21 km/h, 75 mm hull, 47 mm SA 35 turret). Other figures from memory; cost an estimate unless stated.",
     spec: {
       massT: 31.5,
       hullFrontMm: 60,
@@ -302,8 +284,8 @@ export const FRA_HIST: readonly HistEntry[] = [
       mgs: 2,
       offroadKmh: 21,
       roadKmh: 28,
-      reliability: 3,
-      costK: 70,
+      reliability: 2,
+      costK: 62,
     },
   },
   {
@@ -315,7 +297,7 @@ export const FRA_HIST: readonly HistEntry[] = [
     year: 1946,
     // 90 mm SA 44 (US M3-class, APC pen. about 120-130 mm), 120 mm front, 60 built, poor reliability. Estimate: against the US M26.
     source:
-      "Memory (Wikipedia ARL 44; Foss); armour and penetration uncertain.",
+      "Checked 2026-11-04 on Wikipedia: ARL 44 (48 t, 120 mm front, 37.2 km/h). Other figures from memory; cost an estimate unless stated.",
     spec: {
       massT: 48,
       hullFrontMm: 120,
@@ -390,14 +372,16 @@ export const FRA_HIST: readonly HistEntry[] = [
     techs: ["fighter_1"],
     year: 1938,
     // Mid-range of 720 km combat and 1,100 km at reduced power. Estimate: against the US P-36 (Hawk 75).
+    // Audit w66: Figures differ: 452 km/h (Wikipedia infobox), 486 often quoted; 470.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source:
-      "Wikipedia aircraft articles (read 2026-11) (1,895/2,540 kg, 16 m2); speed 486 km/h is a middle of the 452-490 range on the page.",
+      "Checked 2026-11-04 on Wikipedia: Morane-Saulnier M.S.406 (1,895 / 2,540 kg on 16 m2, 452 km/h, 1,100 km); 486 km/h also widely quoted, 470 used. Other figures from memory; cost an estimate unless stated.",
     spec: {
       guns: [
         { mm: 20, count: 1, rpm: 650 },
         { mm: 7.5, count: 2, rpm: 1200 },
       ],
-      maxKmh: 486,
+      maxKmh: 470,
       rangeKm: 800,
       emptyKg: 1895,
       wingLoad: 159,
@@ -405,7 +389,7 @@ export const FRA_HIST: readonly HistEntry[] = [
       bombKg: 0,
       torpedoKg: 0,
       reliability: 4,
-      costK: 20,
+      costK: 28,
     },
   },
   {
@@ -416,6 +400,7 @@ export const FRA_HIST: readonly HistEntry[] = [
     techs: ["fighter_1"],
     year: 1939,
     // Cannon version with two HS.404 and two MAC 1934; the four-MG version was weaker.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source:
       "Wikipedia aircraft articles (read 2026-11) (Bloch MB.150 page, MB.152C.1: 2,158/2,693 kg, 17.32 m2, 509 km/h, 600 km).",
     spec: {
@@ -431,7 +416,7 @@ export const FRA_HIST: readonly HistEntry[] = [
       bombKg: 0,
       torpedoKg: 0,
       reliability: 3,
-      costK: 22,
+      costK: 30,
     },
   },
   {
@@ -442,8 +427,9 @@ export const FRA_HIST: readonly HistEntry[] = [
     techs: ["fighter_1", "aero_engine_2"],
     year: 1940,
     // The best French fighter of 1940; roughly equal to a Bf 109 E. Estimate: against the US P-40.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source:
-      "Wikipedia aircraft articles (read 2026-11) (2,123/2,677 kg, 15.87 m2); speed 548 km/h as a middle of 535-560 in the references; range 1,250 km.",
+      "Checked 2026-11-04 on Wikipedia: Dewoitine D.520 (2,123 / 2,677 kg on 15.87 m2, 560 km/h, 1,250 km; entry keeps 548 km/h). Other figures from memory; cost an estimate unless stated.",
     spec: {
       guns: [
         { mm: 20, count: 1, rpm: 650 },
@@ -457,7 +443,7 @@ export const FRA_HIST: readonly HistEntry[] = [
       bombKg: 0,
       torpedoKg: 0,
       reliability: 4,
-      costK: 28,
+      costK: 34,
     },
   },
   {
@@ -468,6 +454,7 @@ export const FRA_HIST: readonly HistEntry[] = [
     techs: ["fighter_1"],
     year: 1939,
     // US export fighter bought by France 1938-40 (about 290 delivered).
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source:
       "Wikipedia (Curtiss P-36 page): the P-36A figures stand in for the Hawk 75A-3 (2,072 kg empty, 21.9 m2, 504 km/h, 1,006 km); six 7.5 mm per the page.",
     spec: {
@@ -480,31 +467,33 @@ export const FRA_HIST: readonly HistEntry[] = [
       bombKg: 0,
       torpedoKg: 0,
       reliability: 4,
-      costK: 25,
+      costK: 32,
     },
   },
   {
-    id: "fra_ouragan",
+    id: "fra_vg33",
     country: "FRA",
     family: "plane",
     type: "fighter",
-    techs: ["fighter_3"],
-    year: 1952,
-    // First French jet fighter in series; 908 kg of bombs per the page. Estimate: against the US F-84.
+    techs: ["fighter_2", "aero_engine_2"],
+    year: 1940,
+    // The next step after the D.520, and it flew in 1940; France's fighter_2 had no entry.
     source:
-      "Wikipedia aircraft articles (read 2026-11) (MD.450B: 4,142/7,404 kg, 23.8 m2, 940 km/h, 920 km ferry).",
+      "Checked 2026-11-04 on Wikipedia, Arsenal VG-33: 1,719 / 2,448 kg on 14 m2, 554 km/h, 1,200 km. Armament from memory; cost an estimate beside the D.520",
     spec: {
-      guns: [{ mm: 20, count: 4, rpm: 700 }],
-      maxKmh: 940,
-      rangeKm: 920,
-      emptyKg: 4142,
-      wingLoad: 311,
+      guns: [
+        { mm: 20, count: 1, rpm: 650 },
+        { mm: 7.5, count: 4, rpm: 1200 },
+      ],
+      maxKmh: 554,
+      rangeKm: 1200,
+      emptyKg: 1719,
+      wingLoad: 175,
       defGuns: 0,
-      bombKg: 908,
+      bombKg: 0,
       torpedoKg: 0,
       reliability: 3,
-      costK: 110,
-      jet: true,
+      costK: 34,
     },
   },
   {
@@ -515,6 +504,7 @@ export const FRA_HIST: readonly HistEntry[] = [
     techs: ["heavy_fighter_1"],
     year: 1939,
     // Twin-engine heavy fighter, two 20 mm in a belly pod; the French counterpart to the Bf 110.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source:
       "Wikipedia (Potez 630 page): 630-01 460 km/h, 1,300 km range, 3,850 kg gross, 32.7 m2; empty mass and the 631's 440 km/h from memory.",
     spec: {
@@ -530,7 +520,7 @@ export const FRA_HIST: readonly HistEntry[] = [
       bombKg: 0,
       torpedoKg: 0,
       reliability: 3,
-      costK: 38,
+      costK: 42,
     },
   },
   {
@@ -541,6 +531,7 @@ export const FRA_HIST: readonly HistEntry[] = [
     techs: ["cas_1"],
     year: 1940,
     // Twin-engine ground-attack bomber, one fixed 20 mm and two MACs forward.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source:
       "Wikipedia aircraft articles (read 2026-11) (Breguet 690 page: 3,010/4,900 kg, 29.2 m2, 490 km/h, 1,350 km, 460 kg).",
     spec: {
@@ -556,7 +547,7 @@ export const FRA_HIST: readonly HistEntry[] = [
       bombKg: 460,
       torpedoKg: 0,
       reliability: 3,
-      costK: 35,
+      costK: 38,
     },
   },
   {
@@ -567,6 +558,7 @@ export const FRA_HIST: readonly HistEntry[] = [
     techs: ["cas_1"],
     year: 1939,
     // Gull-wing dive bomber; only 15 LN.401 (68 in the family) built.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source:
       "Wikipedia aircraft articles (read 2026-11) (2,243/2,835 kg, 24.75 m2, 380 km/h, 1,200 km, 225 kg).",
     spec: {
@@ -582,7 +574,7 @@ export const FRA_HIST: readonly HistEntry[] = [
       bombKg: 225,
       torpedoKg: 0,
       reliability: 3,
-      costK: 25,
+      costK: 30,
       dive: true,
     },
   },
@@ -594,6 +586,7 @@ export const FRA_HIST: readonly HistEntry[] = [
     techs: ["bomber_1"],
     year: 1936,
     // Corrugated-skin twin-engine bomber, obsolete by 1939; about 250 built.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source:
       "Wikipedia aircraft articles (read 2026-11) (MB.210Bn.5: 6,413/9,720 kg, 62.5 m2, 322 km/h, 1,700 km, 1,600 kg).",
     spec: {
@@ -606,7 +599,7 @@ export const FRA_HIST: readonly HistEntry[] = [
       bombKg: 1600,
       torpedoKg: 0,
       reliability: 3,
-      costK: 45,
+      costK: 55,
     },
   },
   {
@@ -617,8 +610,9 @@ export const FRA_HIST: readonly HistEntry[] = [
     techs: ["bomber_2"],
     year: 1939,
     // The best French medium bomber; 20 mm dorsal and a retractable 7.5 mm ventral gun.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source:
-      "Wikipedia aircraft articles (read 2026-11) (LeO 45 page: 7,530/11,398 kg, 66 m2, 495 km/h, 1,568 kg); range 2,500 km as a middle of the 2,300-2,900 references.",
+      "Checked 2026-11-04 on Wikipedia: LeO 45 (7,530 kg, 495 km/h, 2,900 km; entry keeps 2,500 km). Other figures from memory; cost an estimate unless stated.",
     spec: {
       guns: [{ mm: 7.5, count: 1, rpm: 1200 }],
       maxKmh: 495,
@@ -629,7 +623,7 @@ export const FRA_HIST: readonly HistEntry[] = [
       bombKg: 1568,
       torpedoKg: 0,
       reliability: 4,
-      costK: 75,
+      costK: 95,
     },
   },
   {
@@ -637,9 +631,11 @@ export const FRA_HIST: readonly HistEntry[] = [
     country: "FRA",
     family: "plane",
     type: "naval_bomber",
-    techs: ["naval_bomber_1"],
+    techs: [],
     year: 1938,
     // Floatplane torpedo bomber; 121 built. Torpedo 670 kg, bombs 2 x 150 kg.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
+    // Audit w66: France holds 50 naval bombers at the start but has no naval_bomber_1: this is what they are.
     source:
       "Wikipedia aircraft articles (read 2026-11) (298D: 3,085/4,533 kg, 31.6 m2, 295 km/h, 1,000 km, one torpedo or bombs 680 kg).",
     spec: {
@@ -652,7 +648,7 @@ export const FRA_HIST: readonly HistEntry[] = [
       bombKg: 300,
       torpedoKg: 670,
       reliability: 3,
-      costK: 28,
+      costK: 30,
     },
   },
   {
@@ -663,6 +659,7 @@ export const FRA_HIST: readonly HistEntry[] = [
     techs: [],
     year: 1937,
     // Four-engine heavy bomber of 1930s design; 24 F.222/2 built.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source:
       "Wikipedia aircraft articles (read 2026-11) (F.222/2: 11,000/18,700 kg, 184.6 m2, 360 km/h, 2,200 km); bomb load 3,200 kg as a middle of 2,200 (page) and 4,200 (other references).",
     spec: {
@@ -675,7 +672,7 @@ export const FRA_HIST: readonly HistEntry[] = [
       bombKg: 3200,
       torpedoKg: 0,
       reliability: 3,
-      costK: 120,
+      costK: 110,
     },
   },
   {
@@ -686,6 +683,7 @@ export const FRA_HIST: readonly HistEntry[] = [
     techs: ["transport_plane_1"],
     year: 1947,
     // French postwar production of the Ju 52/3m.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source:
       "Wikipedia (Ju 52: 415 AAC.1 built postwar, 265 km/h); empty mass, wing area, range from memory (Ju 52/3m: 5,720 kg, 110.5 m2, 900 km).",
     spec: {
@@ -698,7 +696,7 @@ export const FRA_HIST: readonly HistEntry[] = [
       bombKg: 0,
       torpedoKg: 0,
       reliability: 4,
-      costK: 70,
+      costK: 75,
     },
   },
   {
@@ -733,6 +731,7 @@ export const FRA_HIST: readonly HistEntry[] = [
     techs: [],
     year: 1926,
     // Estimate: cost against US Clemson/Farragut destroyers by tonnage.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source:
       "Wikipedia ship-class articles (read 2026-11) (1,319 t, 4 x 130 mm, 2 x 3 x 550 mm, 33 kn; range 2,150-3,000 nm, 2,600 used); warhead 310 kg from memory.",
     spec: {
@@ -747,7 +746,7 @@ export const FRA_HIST: readonly HistEntry[] = [
       aaLight: [{ count: 2, mm: 37 }],
       aaHeavy: 0,
       aircraft: 0,
-      costM: 5,
+      costM: 4.2,
     },
   },
   {
@@ -758,8 +757,9 @@ export const FRA_HIST: readonly HistEntry[] = [
     techs: ["dd_2"],
     year: 1935,
     // Contre-torpilleur, large destroyer, fastest in the world on trials (45 kn). Estimate: against US Benson/Fletcher by tonnage.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source:
-      "Wikipedia ship-class articles (read 2026-11) (2,569 t, 5 x 138.6 mm, 9 x 550 mm, 37 kn, 2,900 nm); warhead 310 kg from memory.",
+      "Checked 2026-11-04 on Wikipedia: Le Fantasque class (2,569 t, 37 kn, 2,900 nm, 5 x 138.6, 9 x 550 mm tubes). Other figures from memory; cost an estimate unless stated.",
     spec: {
       dispT: 2569,
       main: { count: 5, mm: 138 },
@@ -772,7 +772,7 @@ export const FRA_HIST: readonly HistEntry[] = [
       aaLight: [{ count: 2, mm: 37 }],
       aaHeavy: 0,
       aircraft: 0,
-      costM: 11,
+      costM: 8.5,
     },
   },
   {
@@ -783,6 +783,7 @@ export const FRA_HIST: readonly HistEntry[] = [
     techs: ["dd_3"],
     year: 1939,
     // Estimate: against US Fletcher/Gearing by tonnage.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source:
       "Wikipedia ship-class articles (read 2026-11) (2,997 t standard, 8 x 138.6 mm, 10 x 550 mm, 39 kn, 4,345 nm on trials estimate); range 3,500 used, warhead 310 kg from memory.",
     spec: {
@@ -797,7 +798,7 @@ export const FRA_HIST: readonly HistEntry[] = [
       aaLight: [{ count: 2, mm: 37 }],
       aaHeavy: 0,
       aircraft: 0,
-      costM: 12.5,
+      costM: 10,
     },
   },
   {
@@ -808,6 +809,7 @@ export const FRA_HIST: readonly HistEntry[] = [
     techs: [],
     year: 1934,
     // Fast minelayer-cruiser; estimate: cost against US Omaha/Brooklyn by tonnage.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source:
       "Wikipedia ship-class articles (read 2026-11) (5,886 t, 9 x 152 mm, 4 x 90 mm AA, 6 x 550 mm, 34 kn, 6,000 nm at 15 kn); belt 20 mm from memory (the page lists decks only).",
     spec: {
@@ -823,7 +825,7 @@ export const FRA_HIST: readonly HistEntry[] = [
       aaLight: [{ count: 8, mm: 37 }],
       aaHeavy: 4,
       aircraft: 0,
-      costM: 18,
+      costM: 15,
     },
   },
   {
@@ -834,6 +836,7 @@ export const FRA_HIST: readonly HistEntry[] = [
     techs: ["cl_2"],
     year: 1936,
     // Estimate: against the US Brooklyn class.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source:
       "Wikipedia ship-class articles (read 2026-11) (7,600 t, 9 x 152 mm, 8 x 90 mm, 4 x 550 mm, 105 mm belt, 31 kn, range 5,500-7,000 nm, 6,000 used).",
     spec: {
@@ -849,7 +852,7 @@ export const FRA_HIST: readonly HistEntry[] = [
       aaLight: [{ count: 8, mm: 37 }],
       aaHeavy: 8,
       aircraft: 0,
-      costM: 28,
+      costM: 20,
     },
   },
   {
@@ -911,8 +914,9 @@ export const FRA_HIST: readonly HistEntry[] = [
     techs: ["bc_2"],
     year: 1937,
     // Fast battleship. Estimate: against the US North Carolina.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source:
-      "Wikipedia ship-class articles (read 2026-11) (26,500 t, 8 x 330 mm, 16 x 130 mm DP, belt 225 mm, 29.5 kn, 7,850 nm at 15 kn, 8 x 37 mm).",
+      "Checked 2026-11-04 on Wikipedia: Dunkerque class (26,500 t, 29.5 kn, 7,850 nm, 225 mm belt, 8 x 330, 16 x 130, 8 x 37). Other figures from memory; cost an estimate unless stated.",
     spec: {
       dispT: 26500,
       main: { count: 8, mm: 330 },
@@ -926,7 +930,7 @@ export const FRA_HIST: readonly HistEntry[] = [
       aaLight: [{ count: 8, mm: 37 }],
       aaHeavy: 16,
       aircraft: 0,
-      costM: 62,
+      costM: 55,
     },
   },
   {
@@ -937,6 +941,7 @@ export const FRA_HIST: readonly HistEntry[] = [
     techs: [],
     year: 1915,
     // Old dreadnought, anti-aircraft guns 8 x 75 mm. Estimate: against US New Mexico class.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source:
       "Wikipedia ship-class articles (read 2026-11) (23,936 t normal, 10 x 340 mm, belt 270 mm, 20 kn, 4,600 nm at 10 kn); secondary 14 x 138.6 mm after the interwar refit from memory.",
     spec: {
@@ -952,7 +957,7 @@ export const FRA_HIST: readonly HistEntry[] = [
       aaLight: [],
       aaHeavy: 8,
       aircraft: 0,
-      costM: 35,
+      costM: 40,
     },
   },
   {
@@ -963,8 +968,9 @@ export const FRA_HIST: readonly HistEntry[] = [
     techs: ["bb_3"],
     year: 1940,
     // Estimate: against the US Iowa/South Dakota classes.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source:
-      "Wikipedia ship-class articles (read 2026-11) (37,850 t standard, 8 x 380 mm, 9 x 152 mm, 12 x 100 mm, 8 x 37 mm, belt 327 mm, 32 kn, 9,500 nm at 15 kn).",
+      "Checked 2026-11-04 on Wikipedia: Richelieu class (37,250 LT, 32 kn, 9,500 nm, 327 mm belt, 8 x 380, 9 x 152, 12 x 100, 8 x 37). Other figures from memory; cost an estimate unless stated.",
     spec: {
       dispT: 37850,
       main: { count: 8, mm: 380 },
@@ -978,7 +984,7 @@ export const FRA_HIST: readonly HistEntry[] = [
       aaLight: [{ count: 8, mm: 37 }],
       aaHeavy: 12,
       aircraft: 0,
-      costM: 85,
+      costM: 80,
     },
   },
   {
@@ -1012,9 +1018,11 @@ export const FRA_HIST: readonly HistEntry[] = [
     country: "FRA",
     family: "ship",
     cls: "cv",
-    techs: ["cv_3"],
+    techs: ["cv_2"],
     year: 1938,
     // Never completed. Estimate: against USS Yorktown.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
+    // Audit w66: Laid down 1938: cv_2, like the Ark Royal and Yorktown.
     source:
       "Wikipedia ship-class articles (read 2026-11) (18,000 t, 8 x 130 mm DP, 8 x 37 mm, belt 105 mm, 33.5 kn, 7,000 nm at 20 kn, 40 aircraft). Planned: Joffre laid down 1938, work stopped 1940.",
     spec: {
@@ -1030,7 +1038,7 @@ export const FRA_HIST: readonly HistEntry[] = [
       aaLight: [{ count: 8, mm: 37 }],
       aaHeavy: 8,
       aircraft: 40,
-      costM: 45,
+      costM: 40,
     },
   },
   {
@@ -1041,6 +1049,7 @@ export const FRA_HIST: readonly HistEntry[] = [
     techs: [],
     year: 1931,
     // Large ocean-going boat. Estimate: against US Gato/Salmon.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source:
       "Wikipedia ship-class articles (read 2026-11) (about 1,550 t surfaced, 1 x 100 mm, 9 x 550 mm tubes, 18.6 kn, 10,000-14,000 nm); warhead from memory.",
     spec: {
@@ -1055,7 +1064,7 @@ export const FRA_HIST: readonly HistEntry[] = [
       aaLight: [],
       aaHeavy: 0,
       aircraft: 0,
-      costM: 5,
+      costM: 4.5,
     },
   },
   {
@@ -1065,12 +1074,13 @@ export const FRA_HIST: readonly HistEntry[] = [
     techs: [],
     year: 1893,
     // Bolt action with a tube magazine; autoPct is the Chauchat/FM 24 per squad. Estimate: cost against the US 1903 Springfield.
+    // Audit w66: autoPct counts automatic rifles only.
     source: "Memory (Wikipedia Lebel; tube magazine, 8 mm).",
     spec: {
       mm: 8,
       aimedRpm: 10,
       rangeM: 450,
-      autoPct: 8,
+      autoPct: 0,
       costUsd: 20,
     },
   },
@@ -1081,13 +1091,14 @@ export const FRA_HIST: readonly HistEntry[] = [
     techs: ["inf_eq_1"],
     year: 1936,
     // Short bolt-action rifle; FM 24/29 light machine gun in each group.
+    // Audit w66: autoPct counts automatic rifles only.
     source:
       "Wikipedia (MAS-36 rifle: 7.5x54 mm, 400 m iron sights); firing rate from memory.",
     spec: {
       mm: 7.5,
       aimedRpm: 14,
       rangeM: 450,
-      autoPct: 10,
+      autoPct: 0,
       costUsd: 28,
     },
   },
@@ -1098,13 +1109,14 @@ export const FRA_HIST: readonly HistEntry[] = [
     techs: ["inf_eq_2"],
     year: 1949,
     // Self-loading rifle, 20,600 to 80,000 built (sources differ).
+    // Audit w66: A self-loader: its rate is in aimedRpm, as for the Garand, the SVT and the G43.
     source:
       "Wikipedia (MAS-49 rifle: semi-automatic, 10-round box, 400 m iron sights); firing rate from memory.",
     spec: {
       mm: 7.5,
       aimedRpm: 24,
       rangeM: 450,
-      autoPct: 10,
+      autoPct: 0,
       costUsd: 45,
     },
   },
@@ -1112,9 +1124,10 @@ export const FRA_HIST: readonly HistEntry[] = [
     id: "fra_citroen23",
     country: "FRA",
     family: "support",
-    techs: [],
+    techs: ["support_eq_1"],
     year: 1934,
     // Standard French army truck; estimate: against the US 2.5-ton truck (about 2,500 dollars).
+    // Audit w66: Support set of 1936 under support_eq_1, so the static key finds it.
     source: "Memory (Wikipedia; Citro\u00ebn Type 23, 3.5 t).",
     spec: {
       kind: "transport",
@@ -1141,9 +1154,10 @@ export const FRA_HIST: readonly HistEntry[] = [
     country: "FRA",
     family: "gun",
     role: "artillery",
-    techs: [],
+    techs: ["artillery_1"],
     year: 1897,
     // The soixante-quinze. Estimate: cost against the US 75 mm M1897.
+    // Audit w66: The gun of 1936 under artillery_1, so the static key finds it.
     source:
       "Wikipedia (Canon de 75 mod\u00e8le 1897: 1,544 kg, 3-4 rpm sustained, 11,000 m, HE 5.4 kg).",
     spec: {
