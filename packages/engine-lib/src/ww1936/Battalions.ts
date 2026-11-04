@@ -65,6 +65,9 @@ const b = (
   artillery = false,
 ): BattalionDef => ({ kind, ...r, special, artillery });
 
+// ww67: tanks' org 10 to 20 and HP ×3. With 10 and 2 a battalion of pure tanks
+// broke in two days and took its budget with it, whatever its protection:
+// anti-tank guns were a hard counter (win 0.00, exchange 0.05), not a means.
 // ww67: foot units' breakthrough ×2 (infantry 3 to 6, the others 4 to 8).
 // Attackers block with breakthrough, far below the attack coming at them, so
 // nearly all hits landed at the 40 % rate: a prepared line needed 5:1.
@@ -311,8 +314,8 @@ export const BATTALIONS: Readonly<Record<BattalionId, BattalionDef>> = {
     width: 2,
     men: 500,
     equip: [["light_tank", 60]],
-    hpMilli: 2000,
-    orgMilli: 10_000,
+    hpMilli: 6_000,
+    orgMilli: 20_000,
     soft: 1200,
     hard: 400,
     def: 400,
@@ -331,8 +334,8 @@ export const BATTALIONS: Readonly<Record<BattalionId, BattalionDef>> = {
     width: 2,
     men: 500,
     equip: [["medium_tank", 50]],
-    hpMilli: 2000,
-    orgMilli: 10_000,
+    hpMilli: 6_000,
+    orgMilli: 20_000,
     soft: 2000,
     hard: 1200,
     def: 600,
@@ -354,8 +357,8 @@ export const BATTALIONS: Readonly<Record<BattalionId, BattalionDef>> = {
     width: 3,
     men: 500,
     equip: [["heavy_tank_g", 40]],
-    hpMilli: 3000,
-    orgMilli: 10_000,
+    hpMilli: 9_000,
+    orgMilli: 20_000,
     soft: 0,
     hard: 0,
     def: 0,
@@ -374,8 +377,8 @@ export const BATTALIONS: Readonly<Record<BattalionId, BattalionDef>> = {
     width: 2,
     men: 500,
     equip: [["td_g", 40]],
-    hpMilli: 2000,
-    orgMilli: 10_000,
+    hpMilli: 6_000,
+    orgMilli: 20_000,
     soft: 0,
     hard: 0,
     def: 0,
