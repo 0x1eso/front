@@ -361,7 +361,7 @@ export const SUN_HIST: readonly HistEntry[] = [
     techs: ["medium_tank_3", "tank_gun_3", "sloped_armor", "diesel_engine"],
     year: 1944,
     // T-34-85: 32 t, hull 45 mm at 60 degrees, turret 90 mm, 85 mm ZIS-S-53 (BR-365 about 90 mm at 500 m, 30 degrees; references 85-100). Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
-    // Audit w66: 85 mm: 123-125 mm at 500 m at normal impact (Wikipedia), near the 7.5 cm L/48's figure in the same table; 95 at 30 deg, one below it.
+    // Audit w66: 85 mm: 123-125 mm at 500 m at normal impact, calculated to the Anglo-American 50 % standard (Wikipedia); the 7.5 cm L/48 gets a like figure on that standard (Wikipedia, KwK 40). So 95 at 30 deg, one below its 96.
     // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source:
       "Checked 2026-11-04 on Wikipedia: 85 mm gun page (D-5T 123-125 mm at 500 m at normal impact); T-34 page for the hull. Other figures from memory; cost an estimate unless stated.",

@@ -4,7 +4,7 @@
 // 126,000 yen, $19,078 and $33,856, Aug 1939, without armament; Wikipedia),
 // scaled by weight to the rest. Other costs are estimates of what the item took
 // industrially in 1940 US dollars against comparable US items (see the ww66
-// report's table): hulls about 0.8 of the US dollars per tonne.
+// report's table): hulls about 0.85 of the US dollars per tonne.
 import type { HistEntry } from "./Types";
 
 const SRC_TANK =
