@@ -1042,11 +1042,7 @@ function enterBand(land: WwLand, row: number): void {
  * then the smaller id; an encircled division only into the pocket), or
  * destroys it when there is none.
  */
-export function retreatDivision(
-  land: WwLand,
-  row: number,
-  broke = true,
-): void {
+export function retreatDivision(land: WwLand, row: number, broke = true): void {
   const t = land.divisions;
   if (t.id[row] === 0) return;
   if (broke) routLoss(land, row);
