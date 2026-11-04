@@ -204,7 +204,14 @@ export class PlanArrowPass {
       // Nobody in a battle yet: the army's way to its targets, from where it stands.
       if (atk.length === 0) {
         for (const t of mine.order.targets) {
-          this.arrow(cx(army.region), cy(army.region), cx(t), cy(t), STYLE_BAND, 0.8);
+          this.arrow(
+            cx(army.region),
+            cy(army.region),
+            cx(t),
+            cy(t),
+            STYLE_BAND,
+            0.8,
+          );
         }
       }
     }
