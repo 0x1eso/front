@@ -138,12 +138,13 @@ describe("the preview", () => {
     support: [...infantry().def.support],
   });
 
-  it("Germany with one more infantry battalion: the stock, not the budget, sets the count", () => {
+  it("Germany with one more infantry battalion: the men budget sets the count, not support equipment", () => {
     const p = startPreviews("DEU", [plus("infantry")]).get("infantry")!;
     expect(p.original).toBe(36);
-    // The started game made 18 (browser, 2026-11-03), cut by the stock.
-    expect(p.count).toBe(18);
-    expect(p.limitedBy).not.toBeNull();
+    // 18 while the support equipment cut the count (browser, 2026-11-03);
+    // now the men budget does, and no equipment.
+    expect(p.count).toBe(32);
+    expect(p.limitedBy).toBeNull();
   });
 
   it("an unedited template has no preview; a smaller one is cut by the budget, not the stock", () => {

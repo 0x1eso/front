@@ -421,15 +421,15 @@ describe("the preview's stock model against the engine", () => {
   test("a shortage names the group that cut the count", () => {
     const need = new Array<number>(groupStockOf([]).length).fill(0);
     need[0] = 10;
-    need[1] = 10;
+    need[2] = 10;
     const [r] = previewReforms(
       [
-        1000, 55, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        1000, 0, 55, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
       ].slice(0, need.length),
       [],
       [{ key: "a", need, men: 1, originalCount: 100, budget: 100 }],
     );
     expect(r.count).toBe(5);
-    expect(r.limitedBy).toBe(1);
+    expect(r.limitedBy).toBe(2);
   });
 });

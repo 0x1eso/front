@@ -6,6 +6,7 @@ import {
   GROUND_EQUIP_KEYS,
   GROUND_STATIC_SLOTS,
   NEED_GROUP_COUNT,
+  NEED_GROUPS,
 } from "@openfront/engine-api/ww1936/LandTypes";
 import { groupDrawSlots, slotGroup, STATIC_KEY_STATS } from "./TemplateStats";
 
@@ -71,6 +72,16 @@ export function apportion(total: number, weights: readonly number[]): number[] {
 export const FILLABLE_GROUP: readonly boolean[] = Array.from(
   { length: NEED_GROUP_COUNT },
   (_, g) => groupDrawSlots(STATIC_KEY_STATS, g).length > 0,
+);
+
+/**
+ * Need groups whose shortage cuts a start division's count. Support
+ * equipment does not: it adds nothing to a division's attack, defence or
+ * hit points, so a division is fielded with what exists of it and may be
+ * short (as the untouched start divisions already are).
+ */
+export const CUTTING_GROUP: readonly boolean[] = FILLABLE_GROUP.map(
+  (f, g) => f && NEED_GROUPS[g] !== "support_equipment",
 );
 
 /** The stock (EQUIP_KEYS order) as one number per need group: the static ground slots summed. */
@@ -152,7 +163,7 @@ export function previewReforms(
     let limit = -1;
     for (let g = 0; g < NEED_GROUP_COUNT; g++) {
       const need = e.need[g] ?? 0;
-      if (need <= 0 || !FILLABLE_GROUP[g]) continue;
+      if (need <= 0 || !CUTTING_GROUP[g]) continue;
       const n = Math.floor(pool[g] / need);
       if (n < fillable) {
         fillable = n;
@@ -172,7 +183,7 @@ export function previewReforms(
     out.push({ count, limitedBy: fillable < byBudget ? limit : -1 });
     const mine = new Array<number>(NEED_GROUP_COUNT).fill(0);
     for (let g = 0; g < NEED_GROUP_COUNT; g++) {
-      mine[g] = count * (e.need[g] ?? 0);
+      mine[g] = Math.min(pool[g], count * (e.need[g] ?? 0));
       left[g] = pool[g] - mine[g];
     }
     held.set(e.key, mine);

@@ -5,7 +5,7 @@
 // stock (full-strength divisions only).
 import { WW_MAX_ARMY_DIVISIONS } from "@openfront/engine-api/ww1936/LandTypes";
 import type { OobArmy } from "./LandStart";
-import { FILLABLE_GROUP } from "./StartReform";
+import { CUTTING_GROUP, FILLABLE_GROUP } from "./StartReform";
 
 /** What one division of a template takes: men, and equipment per need group. */
 export interface OobTemplateCost {
@@ -146,7 +146,7 @@ export function planStartOob(
         let short = -1;
         for (let g = 0; g < groups; g++) {
           const need = t.need[g] ?? 0;
-          if (need > 0 && FILLABLE_GROUP[g] && left[g] < need) {
+          if (need > 0 && CUTTING_GROUP[g] && left[g] < need) {
             short = g;
             break;
           }
@@ -160,7 +160,9 @@ export function planStartOob(
         menLeft -= t.men;
         menUsed += t.men;
         for (let g = 0; g < groups; g++) {
-          const need = FILLABLE_GROUP[g] ? (t.need[g] ?? 0) : 0;
+          const need = FILLABLE_GROUP[g]
+            ? Math.min(t.need[g] ?? 0, Math.max(0, left[g]))
+            : 0;
           left[g] -= need;
           equipUsed[g] += need;
         }

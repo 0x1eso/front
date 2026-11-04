@@ -1,3 +1,4 @@
+import { appendFileSync } from "fs";
 // World War 1936: start_oob, a major's whole start army planned in the
 // lobby. The real world1936 map (the test maps have no historical order of
 // battle), Germany or Italy as the human.
@@ -8,12 +9,16 @@ import {
   BattalionId,
   GROUND_EQUIP_KEYS,
   GROUND_SLOTS,
+  NEED_GROUPS,
   WW_MAX_TEMPLATES,
 } from "@openfront/engine-api/ww1936/LandTypes";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { START_OOB } from "@openfront/engine-lib/ww1936/LandStart";
 import { planStartOob } from "@openfront/engine-lib/ww1936/StartOob";
-import { groupStockOf } from "@openfront/engine-lib/ww1936/StartReform";
+import {
+  groupStockOf,
+  previewReforms,
+} from "@openfront/engine-lib/ww1936/StartReform";
 import {
   createGameRunner,
   createGameRunnerFromSnapshot,
@@ -468,4 +473,79 @@ describe("start_oob keeps the country's own start templates (Soviet Union)", () 
       expect(g.l.issue(g.id, planOf(g, armies)), tag).toBeNull();
     }
   }, 300_000);
+});
+
+describe("start_oob support equipment does not cut counts", () => {
+  test("every major re-issuing its own default plan fields all its divisions", async () => {
+    const out: string[] = [];
+    for (const tag of Object.keys(START_OOB) as CountryTag[]) {
+      const g = await game(tag);
+      const was = g.l.rowsOf(g.id).length;
+      const armies = START_OOB[tag]!.map((a) =>
+        a.divisions.map(([k, n]) => [k, n] as [string, number]),
+      );
+      const asked = armies.flat().reduce((n, [, c]) => n + c, 0);
+      expect(g.l.issue(g.id, planOf(g, armies)), tag).toBeNull();
+      const now = g.l.rowsOf(g.id).length;
+      out.push(`${tag} asked ${asked} start ${was} reissued ${now}`);
+      expect(now, tag).toBe(asked);
+    }
+    appendFileSync(process.env.W64_OUT ?? "/dev/null", out.join("\n") + "\n");
+  }, 300_000);
+});
+
+describe("support equipment in the pure rules", () => {
+  const SUP = NEED_GROUPS.indexOf("support_equipment");
+  const INF = NEED_GROUPS.indexOf("infantry_equipment");
+  const need = (sup: number, inf: number) => {
+    const n = new Array<number>(NEED_GROUPS.length).fill(0);
+    n[SUP] = sup;
+    n[INF] = inf;
+    return n;
+  };
+  test("planStartOob fields a division short of support and never cuts on it; rifles still cut", () => {
+    const stock = new Array<number>(NEED_GROUPS.length).fill(0);
+    stock[SUP] = 30;
+    stock[INF] = 1000;
+    const r = planStartOob(
+      1e9,
+      1e9,
+      stock,
+      [{ men: 100, need: need(20, 100) }],
+      [{ required: false, items: [{ template: 0, count: 5 }] }],
+    );
+    expect(r.total).toBe(5);
+    expect(r.limitedGroup).toBe(-1);
+    expect(r.equipUsed[SUP]).toBe(30);
+    stock[INF] = 250;
+    const s = planStartOob(
+      1e9,
+      1e9,
+      stock,
+      [{ men: 100, need: need(20, 100) }],
+      [{ required: false, items: [{ template: 0, count: 5 }] }],
+    );
+    expect(s.total).toBe(2);
+    expect(s.limitedGroup).toBe(INF);
+  });
+  test("previewReforms is not limited by support equipment", () => {
+    const stock = new Array<number>(NEED_GROUPS.length).fill(0);
+    stock[SUP] = 10;
+    stock[INF] = 1000;
+    const [p] = previewReforms(
+      stock,
+      [],
+      [
+        {
+          key: "x",
+          need: need(20, 100),
+          men: 100,
+          originalCount: 4,
+          budget: 400,
+        },
+      ],
+    );
+    expect(p.count).toBe(4);
+    expect(p.limitedBy).toBe(-1);
+  });
 });
