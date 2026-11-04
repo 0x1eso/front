@@ -2142,6 +2142,8 @@ export const AI_P4_BUILDS_AT_PEACE = 1;
 export const AI_NAVAL_BASE_MAX = 6;
 /** Spec §17.3-2: air bases at the fronts up to this level. */
 export const AI_AIR_BASE_MAX = 5;
+/** w50: in the wing model a base is level 0 or 1. */
+export const AI_WING_BASE_MAX = 1;
 /** 내 판단: the AI's anti-air, coastal forts and radar stop here (the factories come first). */
 export const AI_AA_MAX = 3;
 export const AI_COASTAL_FORT_MAX = 3;
@@ -2218,7 +2220,7 @@ export function aiP4Builds(
     return regions
       .filter(
         (r) =>
-          level(r, "air_base") < AI_AIR_BASE_MAX &&
+          level(r, "air_base") < AI_WING_BASE_MAX &&
           (want.idle || want.srs.has(sc.regionSr(r))) &&
           !baseThreatened(air, me, r),
       )

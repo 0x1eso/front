@@ -590,6 +590,19 @@ interface GameRun {
   partMax: Record<Part, number>;
   ticks: number;
   hash: number;
+  /** w50: the AI's air (WwAir): tick cost, air battles, losses, planes per base each 30 days. */
+  airMs: number[];
+  fights: { count: number; lost: number };
+  planesLost: number;
+  airSamples: {
+    date: string;
+    wings: number;
+    planes: number;
+    bases: number;
+    maxAtBase: number;
+    over200: number;
+    over400: number;
+  }[];
 }
 
 function startInfo(seed: string): GameStartInfo {
@@ -913,6 +926,25 @@ async function playGame(
     partMax,
     ticks: 0,
     hash: 0,
+    airMs: [],
+    fights: { count: 0, lost: 0 },
+    planesLost: 0,
+    airSamples: [],
+  };
+  // w50: the air war's share of each tick, its air battles, its crowding.
+  const air = ww.air;
+  let airAcc = 0;
+  const airTick = air.tick.bind(air);
+  air.tick = (ticks: number) => {
+    const a = performance.now();
+    airTick(ticks);
+    airAcc += performance.now() - a;
+  };
+  const noteFight = air.noteFight.bind(air);
+  air.noteFight = (sr: number, side: number, lost: number) => {
+    run.fights.count++;
+    run.fights.lost += lost;
+    noteFight(sr, side, lost);
   };
   const watchedWars: [CountryTag, CountryTag][] = [
     ["DEU", "POL"],
@@ -955,6 +987,7 @@ async function playGame(
   while (g.ticks() < endTick) {
     runner.addTurn({ turnNumber: g.ticks(), intents: [] });
     const before = landAcc;
+    const airBefore = airAcc;
     const a = performance.now();
     if (!runner.executeNextTick()) {
       console.log(`stopped at tick ${g.ticks()}`);
@@ -964,6 +997,7 @@ async function playGame(
     if (g.ticks() > prepEnd) {
       run.tickMs.push(tickMs);
       run.landMs.push(landAcc - before);
+      run.airMs.push(airAcc - airBefore);
       dayTickMs += tickMs;
       dayLandMs += landAcc - before;
       dayTicks++;
@@ -989,6 +1023,34 @@ async function playGame(
         run.capDay.set(t, done);
         run.conquered.add(t);
       }
+    }
+    if (done % 30 === 0) {
+      const at = new Map<number, number>();
+      let planes = 0;
+      for (const w of air.wings.values()) {
+        const n =
+          w.counts.reduce((x, y) => x + y, 0) +
+          w.dcounts.reduce((x, y) => x + y, 0);
+        planes += n;
+        if (w.base > 0) at.set(w.base, (at.get(w.base) ?? 0) + n);
+      }
+      let maxAtBase = 0;
+      let over200 = 0;
+      let over400 = 0;
+      for (const n of at.values()) {
+        maxAtBase = Math.max(maxAtBase, n);
+        if (n > 200) over200++;
+        if (n > 400) over400++;
+      }
+      run.airSamples.push({
+        date: formatIsoDate(dateOfDay(done)),
+        wings: air.wings.size,
+        planes,
+        bases: at.size,
+        maxAtBase,
+        over200,
+        over400,
+      });
     }
     const divs = new Array<number>(tags.length + 1).fill(0);
     const men = new Array<number>(tags.length + 1).fill(0);
@@ -1078,6 +1140,7 @@ async function playGame(
       );
     }
   }
+  run.planesLost = air.planesLostTotal;
   run.ticks = g.ticks();
   run.hash = (g as unknown as { hash(): number }).hash();
   if (outDir !== null) {
@@ -1239,6 +1302,40 @@ async function playGame(
   return run;
 }
 
+function printAir(run: GameRun): void {
+  const sorted = [...run.airMs].sort((x, y) => x - y);
+  const avg =
+    run.airMs.reduce((x, y) => x + y, 0) / Math.max(1, run.airMs.length);
+  console.log(
+    `air: tick avg ${avg.toFixed(3)} ms, p99 ${pct(sorted, 0.99).toFixed(3)} ms, max ${(sorted[sorted.length - 1] ?? 0).toFixed(3)} ms; air battles ${run.fights.count} (planes lost in them ${run.fights.lost}); planes lost in all ${run.planesLost}`,
+  );
+  const rows = run.airSamples.filter(
+    (_, i) => i % 6 === 0 || i === run.airSamples.length - 1,
+  );
+  console.log(
+    formatTable(
+      [
+        "date",
+        "wings",
+        "planes",
+        "bases",
+        "max at a base",
+        "bases >200",
+        "bases >400",
+      ],
+      rows.map((r) => [
+        r.date,
+        `${r.wings}`,
+        `${r.planes}`,
+        `${r.bases}`,
+        `${r.maxAtBase}`,
+        `${r.over200}`,
+        `${r.over400}`,
+      ]),
+    ),
+  );
+}
+
 function printRun(run: GameRun): void {
   console.log(`\n== ${run.seed} (ticks ${run.ticks}, hash ${run.hash}) ==`);
   const caps = [...run.capDay]
@@ -1252,6 +1349,7 @@ function printRun(run: GameRun): void {
     ([k, d]) => `${k} ${formatIsoDate(dateOfDay(d))}`,
   );
   console.log(`wars: ${wars.join(", ")}`);
+  printAir(run);
   console.log(
     formatTable(
       ["check", "value", ""],

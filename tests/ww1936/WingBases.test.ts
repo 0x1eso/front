@@ -7,7 +7,6 @@ import {
   WP_FERRY,
   WP_GROUND,
   WW_FIELD_STRIP_EFF_PM,
-  WW_FIELD_STRIP_PLANES,
 } from "@openfront/engine-api/ww1936/AirTypes";
 import { equipKey } from "@openfront/engine-api/ww1936/EconomyTypes";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
@@ -24,6 +23,7 @@ import {
   wingBaseEffPm,
 } from "@openfront/engine/ww1936/air/Wings";
 import type { WwAir } from "@openfront/engine/ww1936/air/WwAir";
+import { damageBuilding } from "@openfront/engine/ww1936/economy/Buildings";
 import "./oldAirModel";
 import { REGION, SEA, TAG_ID } from "./seaFixture";
 import {
@@ -102,7 +102,7 @@ describe("forming", () => {
     expect(fighters(air).map((w) => w.counts[0])).toEqual([40]);
   });
 
-  test("a base without room stops it", async () => {
+  test("a base holds any number of planes", async () => {
     const { air, ce } = await setup();
     giveWing(air, {
       owner: DEU,
@@ -119,7 +119,8 @@ describe("forming", () => {
     });
     const before = air.wings.size;
     formWings(air, DEU, 5);
-    expect(air.wings.size).toBe(before);
+    expect(air.wings.size).toBe(before + 3);
+    expect(fighters(air).every((w) => w.base === REGION.berlin)).toBe(true);
   });
 
   test("a disband rests the type for the cooldown", async () => {
@@ -185,7 +186,7 @@ describe("refills and efficiency", () => {
     expect([w.prevKills, w.dayKills]).toEqual([3, 0]);
   });
 
-  test("an overfull base cuts efficiency; a strip is 80 % and holds 100", async () => {
+  test("an overfull base keeps full efficiency; a strip is 80 %", async () => {
     const { air, tick } = await setup();
     const a = giveWing(air, {
       owner: DEU,
@@ -206,7 +207,7 @@ describe("refills and efficiency", () => {
       planes: 300,
       base: REGION.berlin,
     });
-    expect(wingBaseEffPm(air, a)).toBe(Math.floor((400 * 1000) / 600));
+    expect(wingBaseEffPm(air, a)).toBe(1000);
     air.setStrip(REGION.munich, tick + 10);
     const s = giveWing(air, {
       owner: DEU,
@@ -214,9 +215,9 @@ describe("refills and efficiency", () => {
       planes: 50,
       base: REGION.munich,
     });
-    expect(air.baseCapacity(REGION.munich)).toBe(0);
+    expect(air.baseUsable(REGION.munich)).toBe(false);
     air.setStrip(REGION.munich, tick);
-    expect(air.baseCapacity(REGION.munich)).toBe(WW_FIELD_STRIP_PLANES);
+    expect(air.baseUsable(REGION.munich)).toBe(true);
     expect(wingBaseEffPm(air, s)).toBe(WW_FIELD_STRIP_EFF_PM);
   });
 });
@@ -253,7 +254,7 @@ describe("wing_base and air_field", () => {
     expect(row[6]).toBe(REGION.berlin);
     expect(w.flyMilli).toBe(0);
     expect(air.baseUse(REGION.munich)).toBe(100);
-    // 100 planes fill the strip; another wing no longer fits.
+    // No capacity limit: another wing fits too.
     const v = giveWing(air, {
       owner: DEU,
       type: FIGHTER,
@@ -268,7 +269,7 @@ describe("wing_base and air_field", () => {
         { kind: "wing_base", wings: [v.id], base: REGION.munich },
         tick,
       ),
-    ).toBe("base_full");
+    ).toBeNull();
   });
 
   test("an enemy base, a plain region and a carrier are refused", async () => {
@@ -333,12 +334,9 @@ describe("a base lost", () => {
       planes: 100,
       base: REGION.berlin,
     });
-    giveWing(air, {
-      owner: TAG_ID.ITA,
-      type: FIGHTER,
-      planes: 200,
-      base: REGION.rome,
-    });
+    // Rome, the only other base of the side, is bombed out.
+    damageBuilding(air.econ, REGION.rome, "air_base", 100_000);
+    expect(air.baseUsable(REGION.rome)).toBe(false);
     takeRegion(runner.game, REGION.berlin, "FRA");
     expect(air.wings.has(w.id)).toBe(false);
     expect(ce.stock[equipKey("fighter", 1)]).toBe(80);

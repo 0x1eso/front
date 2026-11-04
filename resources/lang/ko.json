@@ -1580,7 +1580,7 @@
     "ww1936_wing_ace": "{callsign} {state, select, rise {등장} retired {은퇴} other {전사}}",
     "ww1936_wing_army_gone": "{wing}: 지원하던 군이 사라져 대기합니다",
     "ww1936_wing_base_lost": "{region} 의 공군 기지를 잃었습니다. 해당 비행단이 다른 기지로 이동합니다.",
-    "ww1936_wing_base_lost_stock": "{region} 의 공군 기지를 잃었고 빈 기지가 없어 비행단의 항공기가 비축으로 돌아갔습니다.",
+    "ww1936_wing_base_lost_stock": "{region} 의 공군 기지를 잃었고 쓸 수 있는 다른 기지가 없어 비행단의 항공기가 비축으로 돌아갔습니다.",
     "ww1936_wing_understrength": "{wing}: 비행기가 모자라 출격을 거릅니다",
     "ww1936_wpeace_accepted": "{target} 측이 평화 제안을 수락했습니다",
     "ww1936_wpeace_refused": "{target} 측이 평화 제안을 거절했습니다 — {days} 일 뒤 다시 제안할 수 있습니다",
@@ -4532,6 +4532,7 @@
         "general_unavailable": "이 장군은 지금 지휘할 수 없습니다",
         "group_full": "집단군이 가득 찼습니다",
         "harbor_conditions": "여기에 부유항을 둘 수 없습니다",
+        "in_group": "이 비행단은 항공단에 속해 있습니다",
         "in_progress": "연구 중입니다",
         "infra_max": "이미 최고 단계입니다",
         "invasion_not_ready": "준비가 끝나지 않았습니다",
@@ -10780,7 +10781,7 @@
       "uranium": "우라늄"
     },
     "reserve": {
-      "air_base": "비행장 수용량",
+      "air_base": "비행장",
       "bomb_damage_cut": "폭격 피해 경감",
       "bomber_research": "폭격기 연구",
       "carriers": "항공모함",

@@ -10,6 +10,7 @@ import {
   AirDeploySummary,
   AirFightRow,
   AirRaidReport,
+  AirTemplate,
   AirType,
   AirZoneData,
   CountryAirDetail,
@@ -60,6 +61,14 @@ import { airMissionEffects, airSupplyAt } from "./AirEffects";
 import { airMoveFactorFor, airPenaltyFor } from "./AirSuperiority";
 import { dailyAirCountry, issueAirOrder } from "./Deploy";
 import { designSlotsFor } from "./DesignPlanes";
+import {
+  groupViews,
+  issueGroupDisband,
+  issueGroupOrder,
+  issueTemplate,
+  issueTemplateDrop,
+  type AirGroup,
+} from "./Groups";
 import { paradropBlockFor, stepParadrops } from "./Paradrop";
 import { RaidNotes } from "./RaidNotes";
 import {
@@ -257,6 +266,10 @@ export class CountryAir {
   nextWingNo = new Array<number>(AIR_TYPES.length).fill(1);
   /** Per AIR_TYPES index: the day that type may form a wing again (after a disband). */
   reformDay = new Array<number>(AIR_TYPES.length).fill(0);
+  // w50 (air groups).
+  /** The saved air templates (at most WW_MAX_AIR_TEMPLATES) and the next one's id. */
+  templates: AirTemplate[] = [];
+  nextTemplateId = 1;
   constructor(
     readonly smallID: number,
     readonly tag: CountryTag,
@@ -306,6 +319,9 @@ const WingSchema = z.object({
   prevKills: zInt(),
   prevLost: zInt(),
   aceMark: zInt(),
+  // w50: present only when set.
+  group: zInt().optional(),
+  fullMax: zInt().optional(),
 });
 const ZoneTodaySchema = z.object({
   sorties: z.array(z.tuple([zInt(), zInts()])),
@@ -355,6 +371,25 @@ const RaidReportSchema = z.object({
   wsBp: zInt(),
   repairDays: zInt(),
 });
+const TemplateSchema = z.object({
+  id: zInt(),
+  name: z.string(),
+  planes: zInts(),
+  keep: zInt(),
+});
+const GroupSchema = z.object({
+  id: zInt(),
+  owner: zInt(),
+  tpl: zInt(),
+  zones: zInts(),
+  priority: zInt(),
+  army: zInt(),
+  cls: zInt(),
+  target: zInt(),
+  auto: z.boolean(),
+  night: z.boolean(),
+  base: zInt(),
+});
 const CountryAirSchema = z.object({
   bombTaken: zInts(),
   tally: z.array(zInts()),
@@ -364,6 +399,9 @@ const CountryAirSchema = z.object({
   priorityArmies: zInts(),
   nextWingNo: zInts(),
   reformDay: zInts(),
+  // w50: present only when set.
+  templates: z.array(TemplateSchema).optional(),
+  nextTemplateId: zInt().optional(),
 });
 export const WwAirStateSchema = z.object({
   wings: z.array(WingSchema),
@@ -376,6 +414,9 @@ export const WwAirStateSchema = z.object({
   // ww8.
   wingsLive: z.boolean(),
   strips: pairs(),
+  // w50: present only when set.
+  groups: z.array(GroupSchema).optional(),
+  nextGroupId: zInt().optional(),
 });
 export type WwAirState = z.infer<typeof WwAirStateSchema>;
 
@@ -410,6 +451,9 @@ export class WwAir {
   wingsLive: boolean = newGameAirModel.wingsLive;
   /** ww8: field strips, region → the tick it opens, ascending (setStrip keeps the order). */
   strips = new Map<number, number>();
+  /** w50: the air groups by id, ascending (their wings carry Wing.group). */
+  readonly groups = new Map<number, AirGroup>();
+  nextGroupId = 1;
   private countryList: (CountryAir | null)[];
   // Derived (DERIVED_FIELDS).
   /** `wings` in id order, as an array (the air steps walk it every tick); null: stale. */
@@ -577,6 +621,22 @@ export class WwAir {
         if (block === null) this.airDirtyCountries.add(smallID);
         return block;
       }
+      case "air_template":
+      case "air_template_drop":
+      case "air_group_order":
+      case "air_group_disband": {
+        if (!this.wingsLive) return "bad_index";
+        const block =
+          order.kind === "air_template"
+            ? issueTemplate(this, smallID, order)
+            : order.kind === "air_template_drop"
+              ? issueTemplateDrop(this, smallID, order.id)
+              : order.kind === "air_group_order"
+                ? issueGroupOrder(this, smallID, order, tick)
+                : issueGroupDisband(this, smallID, order.group, tick);
+        if (block === null) this.airDirtyCountries.add(smallID);
+        return block;
+      }
       default:
         return "bad_index";
     }
@@ -597,11 +657,19 @@ export class WwAir {
       case "wing_mission": {
         const wings = this.ownWings(smallID, order.wings);
         if (wings === null) return "bad_index";
+        // A wing in a group takes its group's orders (recon excepted; [auto] wings too).
+        if (
+          order.mission !== "recon" &&
+          wings.some((w) => w.group !== 0 && !w.auto)
+        ) {
+          return "in_group";
+        }
         return issueWingMission(this, smallID, wings, order, tick); // lane B
       }
       case "wing_base": {
         const wings = this.ownWings(smallID, order.wings);
         if (wings === null) return "bad_index";
+        if (wings.some((w) => w.group !== 0 && !w.auto)) return "in_group";
         return issueWingBase(this, smallID, wings, order, tick); // lane A
       }
       case "wing_auto": {
@@ -706,7 +774,22 @@ export class WwAir {
     return n;
   }
 
-  /** Spec §13.3: level × 200 less the bomb damage (whole and partial levels). */
+  /**
+   * w50: a base can be used: an air_base with damage short of its level, or
+   * a ready field strip. There is no limit on the planes it holds.
+   */
+  baseUsable(region: number): boolean {
+    const econ = this.econ;
+    const level = econ.buildingArray("air_base")[region] ?? 0;
+    const dmg =
+      econ.damage[region * BUILDING_IDS.length + buildingIndex("air_base")] ??
+      0;
+    if (level * 1000 - dmg > 0) return true;
+    const ready = this.strips.get(region);
+    return ready !== undefined && this.mg.ticks() >= ready;
+  }
+
+  /** Spec §13.3 (the old model): level × 200 less the bomb damage (whole and partial levels). */
   baseCapacity(region: number): number {
     const econ = this.econ;
     const level = econ.buildingArray("air_base")[region] ?? 0;
@@ -825,6 +908,8 @@ export class WwAir {
       prevKills: d.prevKills ?? n.prevKills,
       prevLost: d.prevLost ?? n.prevLost,
       aceMark: d.aceMark ?? n.aceMark,
+      group: d.group ?? n.group,
+      fullMax: d.fullMax ?? n.fullMax,
     };
     this.wings.set(full.id, full);
     this.wingList = null;
@@ -968,7 +1053,26 @@ export class WwAir {
     this.airDirtyZones.add(srIdx);
   }
   markWing(id: number): void {
-    if (this.wings.has(id)) this.airDirtyWings.add(id);
+    const w = this.wings.get(id);
+    if (w === undefined) return;
+    this.airDirtyWings.add(id);
+    // A group's view lists its members' phases.
+    if (w.group !== 0) this.airDirtyCountries.add(w.owner);
+  }
+
+  /** w50: removes a group (its wings, if any, must have gone or be released first). */
+  removeGroup(id: number): void {
+    const g = this.groups.get(id);
+    if (g === undefined) return;
+    for (const w of this.wingsOf(g.owner)) {
+      if (w.group === id) {
+        w.group = 0;
+        w.fullMax = 0;
+        this.markWing(w.id);
+      }
+    }
+    this.groups.delete(id);
+    this.airDirtyCountries.add(g.owner);
   }
   markCountry(id: number): void {
     this.airDirtyCountries.add(id);
@@ -1002,6 +1106,7 @@ export class WwAir {
   onCapitulation(loser: number, victor: number): void {
     void victor;
     for (const d of this.wingsOf(loser)) this.removeWing(d.id, false);
+    this.dropCountryGroups(loser);
     const c = this.country(loser);
     if (c !== null) {
       c.autoZones = [];
@@ -1017,11 +1122,21 @@ export class WwAir {
     void to;
     void mode;
     for (const d of this.wingsOf(from)) this.removeWing(d.id, true);
+    this.dropCountryGroups(from);
     const c = this.country(from);
     if (c !== null) {
       c.autoZones = [];
       c.priorityArmies = [];
     }
+  }
+
+  /** w50: a country that is gone loses its groups and templates. */
+  private dropCountryGroups(id: number): void {
+    for (const g of [...this.groups.values()]) {
+      if (g.owner === id) this.groups.delete(g.id);
+    }
+    const c = this.country(id);
+    if (c !== null) c.templates = [];
   }
 
   // ---- Screens (spec §19.4) ----
@@ -1174,6 +1289,8 @@ export class WwAir {
       prevLost: w.prevLost,
       rangeKm: st.rangeKm,
       speedKmh: st.speedKmh,
+      ...(w.group !== 0 ? { group: w.group } : {}),
+      ...(w.fullMax !== 0 ? { fullMax: w.fullMax } : {}),
     };
   }
 
@@ -1279,7 +1396,21 @@ export class WwAir {
       // Lane U: the zones the AI runs for this human (the zone card's auto).
       autoZones: [...c.autoZones].sort((a, b) => a - b),
       ...(this.wingsLive ? this.wingCountryDetail(id, c) : {}),
+      ...(this.wingsLive && c.templates.length > 0
+        ? {
+            templates: c.templates.map((t) => ({
+              ...t,
+              planes: [...t.planes],
+            })),
+          }
+        : {}),
+      ...(this.wingsLive && this.groups.size > 0 ? this.groupDetail(id) : {}),
     };
+  }
+
+  private groupDetail(id: number): Pick<CountryAirDetail, "groups"> {
+    const groups = groupViews(this, id);
+    return groups.length > 0 ? { groups } : {};
   }
 
   /** ww8: the country's part of the update in the wing model. */
@@ -1372,6 +1503,15 @@ export class WwAir {
         priorityArmies: [...c.priorityArmies],
         nextWingNo: [...c.nextWingNo],
         reformDay: [...c.reformDay],
+        ...(c.templates.length > 0
+          ? {
+              templates: c.templates.map((t) => ({
+                ...t,
+                planes: [...t.planes],
+              })),
+            }
+          : {}),
+        ...(c.nextTemplateId !== 1 ? { nextTemplateId: c.nextTemplateId } : {}),
       })),
       nextWingId: this.nextWingId,
       planesLostTotal: this.planesLostTotal,
@@ -1379,6 +1519,15 @@ export class WwAir {
       lastCommonDay: this.lastCommonDay,
       wingsLive: this.wingsLive,
       strips: arr(this.strips),
+      ...(this.groups.size > 0
+        ? {
+            groups: [...this.groups.values()].map((g) => ({
+              ...g,
+              zones: [...g.zones],
+            })),
+          }
+        : {}),
+      ...(this.nextGroupId !== 1 ? { nextGroupId: this.nextGroupId } : {}),
     };
   }
 
@@ -1394,6 +1543,8 @@ export class WwAir {
             : [...d.dcounts],
         night: d.night ?? false,
         ace: d.ace ?? 0,
+        group: d.group ?? 0,
+        fullMax: d.fullMax ?? 0,
       });
     }
     s.zones.forEach((x, i) => {
@@ -1456,7 +1607,17 @@ export class WwAir {
       c.priorityArmies = [...x.priorityArmies];
       c.nextWingNo = [...x.nextWingNo];
       c.reformDay = [...x.reformDay];
+      c.templates = (x.templates ?? []).map((t) => ({
+        ...t,
+        planes: [...t.planes],
+      }));
+      c.nextTemplateId = x.nextTemplateId ?? 1;
     });
+    this.groups.clear();
+    for (const g of s.groups ?? []) {
+      this.groups.set(g.id, { ...g, zones: [...g.zones] });
+    }
+    this.nextGroupId = s.nextGroupId ?? 1;
     this.nextWingId = s.nextWingId;
     this.planesLostTotal = s.planesLostTotal;
     this.bombPointsTotal = s.bombPointsTotal;
@@ -1656,6 +1817,30 @@ export class WwAir {
     mix(this.lastCommonDay);
     if (this.wingsLive) mix(1);
     if (this.strips.size > 0) pairs(this.strips);
+    // w50: only when set.
+    for (const g of this.groups.values()) {
+      mix(g.id);
+      mix(g.owner);
+      mix(g.tpl);
+      fold(g.zones);
+      mix(g.priority);
+      mix(g.army);
+      mix(g.cls);
+      mix(g.target);
+      mix((g.auto ? 1 : 0) + (g.night ? 2 : 0));
+      mix(g.base);
+    }
+    if (this.nextGroupId !== 1) mix(this.nextGroupId);
+    for (const c of this.countries()) {
+      for (const t of c.templates) {
+        mix(c.smallID);
+        mix(t.id);
+        fold(t.planes);
+        mix(t.keep);
+        for (let i = 0; i < t.name.length; i++) mix(t.name.charCodeAt(i));
+      }
+      if (c.nextTemplateId !== 1) mix(c.smallID * 5 + c.nextTemplateId);
+    }
     return h;
   }
 }

@@ -35,6 +35,7 @@ import {
 import { borderRegionsOf } from "@openfront/engine-lib/ww1936/FrontRules";
 import {
   ferryTicks,
+  wingFullOf,
   wingMaxPlanes,
   wingOrderBlock,
   xpAfterRefill,
@@ -51,6 +52,7 @@ import {
   stockOf,
 } from "./Deploy";
 import { planeSources, swapOldPlanes } from "./DesignPlanes";
+import { dailyGroups } from "./Groups";
 import { noteWingRest } from "./WingXp";
 import { deploymentStats, wingPlanes, wingSide, type WwAir } from "./WwAir";
 
@@ -70,60 +72,43 @@ function baseRegions(air: WwAir): number[] {
   return out.sort((a, b) => a - b);
 }
 
+/** A wing's own full size. */
+export const wingFullSize = (w: Wing): number =>
+  wingFullOf(AIR_TYPES[w.type], w.fullMax);
+
 const baseLevel = (air: WwAir, region: number): number =>
   air.econ.buildingArray("air_base")[region] ?? 0;
 
-/** The bases `side` controls that have room to be used (capacity above 0), ascending. */
-function sideBases(air: WwAir, side: number): number[] {
+/** The bases `side` controls that can be used (not bombed out), ascending. */
+export function sideBases(air: WwAir, side: number): number[] {
   const land = air.land;
   const out: number[] = [];
   for (const r of baseRegions(air)) {
     const c = land.controller[r] ?? 0;
     if (c === 0 || land.sideOf(c) !== side) continue;
-    if (air.baseCapacity(r) > 0) out.push(r);
+    if (air.baseUsable(r)) out.push(r);
   }
   return out;
 }
 
-const roomAt = (air: WwAir, region: number): number =>
-  air.baseCapacity(region) - air.baseUse(region);
-
 /**
- * The base for a new wing of `need` planes: among the bases with room for
- * all of them (less what `planned` already holds) the one nearest by `dist`
- * (ties: the smaller region); with none, the one with the most room if it
- * holds at least WW_WING_FORM_MIN. Returns the base and how many planes it
- * takes (base 0: none).
+ * The base for a new wing: the usable one nearest by `dist` (ties: the
+ * smaller region), 0 with none. A base holds any number of planes (w50).
  */
 function pickBase(
-  air: WwAir,
   bases: readonly number[],
-  need: number,
   dist: (region: number) => number,
-  planned: ReadonlyMap<number, number> | null = null,
-): { base: number; take: number } {
+): number {
   let best = 0;
   let bestKm = 0;
-  let roomBest = 0;
-  let roomBase = 0;
   for (const r of bases) {
-    const room = roomAt(air, r) - (planned?.get(r) ?? 0);
-    if (room > roomBest) {
-      roomBest = room;
-      roomBase = r;
-    }
-    if (room < need) continue;
     const km = dist(r);
     if (best === 0 || km < bestKm) {
       best = r;
       bestKm = km;
     }
   }
-  if (best !== 0) return { base: best, take: need };
-  if (roomBase !== 0 && roomBest >= WW_WING_FORM_MIN) {
-    return { base: roomBase, take: Math.min(need, roomBest) };
-  }
-  return { base: 0, take: 0 };
+  return best;
 }
 
 const capitalKm = (air: WwAir, owner: number) => {
@@ -175,20 +160,15 @@ function frontKm(
 }
 
 /**
- * The base a wing leaving `from` goes to: the nearest base of its side with
- * room for all its planes (ties: the smaller region), 0 with none.
+ * The base a wing leaving `from` goes to: the nearest usable base of its side
+ * (ties: the smaller region), 0 with none.
  */
-function nearestOpenBase(
-  air: WwAir,
-  w: Wing,
-  from: number,
-  planes: number,
-): number {
+function nearestOpenBase(air: WwAir, w: Wing, from: number): number {
   const sc = air.ww.scenario;
   let best = 0;
   let bestKm = 0;
   for (const r of sideBases(air, wingSide(air, w))) {
-    if (r === from || roomAt(air, r) < planes) continue;
+    if (r === from) continue;
     const km = sc.regionKm(from, r);
     if (best === 0 || km < bestKm) {
       best = r;
@@ -204,7 +184,12 @@ function nearestOpenBase(
  * Draws up to `n` planes from the owner's stock into a wing, the newest
  * year first (design planes at their year); returns the planes drawn.
  */
-function drawInto(air: WwAir, ce: CountryEconomy, w: Wing, n: number): number {
+export function drawInto(
+  air: WwAir,
+  ce: CountryEconomy,
+  w: Wing,
+  n: number,
+): number {
   const t = AIR_TYPES[w.type];
   let left = n;
   for (const x of planeSources(air.ww.depth, w.owner, t)) {
@@ -251,18 +236,16 @@ function swapOld(air: WwAir, ce: CountryEconomy, w: Wing, n: number): number {
   return swapped;
 }
 
-/** Fills a wing from the stock: at most `limit` planes, and what its base has room for. Returns the planes added. */
+/** Fills a wing from the stock: at most `limit` planes. Returns the planes added. */
 function refillWing(
   air: WwAir,
   ce: CountryEconomy,
   w: Wing,
   limit: number,
 ): number {
-  const full = wingMaxPlanes(AIR_TYPES[w.type]);
-  let need = Math.min(limit, full - wingPlanes(w));
+  const need = Math.min(limit, wingFullSize(w) - wingPlanes(w));
   if (need <= 0 || w.base <= 0) return 0;
-  need = Math.min(need, roomAt(air, w.base));
-  return need > 0 ? drawInto(air, ce, w, need) : 0;
+  return drawInto(air, ce, w, need);
 }
 
 // ---- Forming ----
@@ -309,18 +292,15 @@ export function formWings(air: WwAir, owner: number, day: number): void {
       bases ??= sideBases(air, side);
       near ??= frontKm(air, owner) ?? capitalKm(air, owner);
       own ??= bases.filter((r) => air.land.controller[r] === owner);
-      let { base, take } = pickBase(air, own, need, near);
-      if (take < need) {
+      let base = pickBase(own, near);
+      if (base === 0) {
         // An ally's base only near the war (or with no base of its own: an exile).
-        const allied = pickBase(
-          air,
+        base = pickBase(
           own.length === 0
             ? bases
             : bases.filter((r) => near!(r) <= WING_FORM_FRONT_KM),
-          need,
           near,
         );
-        if (allied.take > take) ({ base, take } = allied);
       }
       if (base === 0) break;
       const no = c.nextWingNo[ti];
@@ -334,7 +314,7 @@ export function formWings(air: WwAir, owner: number, day: number): void {
       });
       c.nextWingNo[ti] = no + 1;
       air.markCountry(owner);
-      const got = drawInto(air, ce, w, take);
+      const got = drawInto(air, ce, w, need);
       stock -= got;
       count++;
       has = true;
@@ -361,6 +341,7 @@ export function dailyWingCountry(
   fillDecks(air.navy, smallID);
   carrierWings(air, smallID);
   const ce = air.econ.country(smallID);
+  dailyGroups(air, smallID, day);
   for (const w of air.wingsOf(smallID)) {
     if (w.base < 0) {
       if (w.nameNo === 0) {
@@ -389,7 +370,14 @@ export function dailyWingCountry(
     }
     noteWingRest(air, w, day); // lane D filters by phase
   }
-  if (ce !== null) formWings(air, smallID, day);
+  // A human's own wings stop forming once it has saved a template: the
+  // templates draw the planes (w50).
+  if (
+    ce !== null &&
+    !(c.templates.length > 0 && air.ww.isHumanControlled(smallID))
+  ) {
+    formWings(air, smallID, day);
+  }
 }
 
 /** The start of the game (WwAir.start): every country forms its wings. */
@@ -407,7 +395,7 @@ export function rearmWing(air: WwAir, w: Wing, tick: number): void {
   const ce = air.econ.country(w.owner);
   if (ce === null || w.base <= 0) return;
   const had = wingPlanes(w);
-  const full = wingMaxPlanes(AIR_TYPES[w.type]);
+  const full = wingFullSize(w);
   const added = refillWing(
     air,
     ce,
@@ -421,19 +409,15 @@ export function rearmWing(air: WwAir, w: Wing, tick: number): void {
 }
 
 /**
- * The base's share of a take-off's efficiency, ‰: min(1, capacity ÷ use) ×
- * WW_FIELD_STRIP_EFF_PM on a strip (the bomb damage is sortieEffPm's own
+ * The base's share of a take-off's efficiency, ‰: WW_FIELD_STRIP_EFF_PM on a
+ * strip, else 1000 (no capacity limit; the bomb damage is sortieEffPm's own
  * argument, WwAir.baseDamagePm).
  */
 export function wingBaseEffPm(air: WwAir, w: Wing): number {
   if (w.base <= 0) return 1000;
-  const use = air.baseUse(w.base);
-  const cap = air.baseCapacity(w.base);
-  let eff = use <= cap ? 1000 : Math.floor((cap * 1000) / use);
-  if (baseLevel(air, w.base) === 0 && air.strips.has(w.base)) {
-    eff = Math.floor((eff * WW_FIELD_STRIP_EFF_PM) / 1000);
-  }
-  return eff;
+  return baseLevel(air, w.base) === 0 && air.strips.has(w.base)
+    ? WW_FIELD_STRIP_EFF_PM
+    : 1000;
 }
 
 // ---- Moving, disbanding, strips ----
@@ -467,6 +451,19 @@ function startFerry(air: WwAir, w: Wing, to: number, tick: number): void {
   ]);
 }
 
+/** Sends a grounded wing to `to` (a group's base): the same ferry as wing_base. */
+export function ferryWing(air: WwAir, w: Wing, to: number, tick: number): void {
+  startFerry(air, w, to, tick);
+}
+
+/** The base a group forms at: the owner's usable base nearest its front (the capital in peace). */
+export function homeBase(air: WwAir, owner: number): number {
+  const bases = sideBases(air, air.land.sideOf(owner));
+  const own = bases.filter((r) => air.land.controller[r] === owner);
+  const near = frontKm(air, owner) ?? capitalKm(air, owner);
+  return pickBase(own.length > 0 ? own : bases, near);
+}
+
 /** wing_base: ferry the named wings to a base of their side with room for all of them. */
 export function issueWingBase(
   air: WwAir,
@@ -478,9 +475,8 @@ export function issueWingBase(
   void smallID;
   const land = air.land;
   const region = order.base;
-  const isBase = air.baseCapacity(region) > 0 || baseLevel(air, region) > 0;
+  const isBase = air.baseUsable(region);
   const ctl = land.controller[region] ?? 0;
-  let room = roomAt(air, region);
   const moving: Wing[] = [];
   for (const w of wings) {
     if (w.base === region) continue;
@@ -490,11 +486,10 @@ export function issueWingBase(
       carrier: w.base < 0,
       isBase,
       ownSide: ctl !== 0 && land.sideOf(ctl) === wingSide(air, w),
-      room,
+      room: Number.MAX_SAFE_INTEGER,
       planes,
     });
     if (block !== null) return block;
-    room -= planes;
     moving.push(w);
   }
   for (const w of moving) startFerry(air, w, region, tick);
@@ -589,7 +584,7 @@ export function onBaseControlChanged(
       air.shootDown(w.id, [...gens, ...designs], to);
     }
     const planes = wingPlanes(w);
-    const dest = planes === 0 ? 0 : nearestOpenBase(air, w, region, planes);
+    const dest = planes === 0 ? 0 : nearestOpenBase(air, w, region);
     if (dest === 0) {
       air.removeWing(w.id, true);
       if (planes > 0) {
@@ -614,6 +609,8 @@ export function handOverWing(air: WwAir, w: Wing, owner: number): void {
   const c = air.country(owner);
   if (c !== null) w.nameNo = c.nextWingNo[w.type]++;
   w.auto = false;
+  w.group = 0;
+  w.fullMax = 0;
   w.mission = WING_NO_MISSION;
   w.sr = 0;
   w.target = 0;
@@ -642,12 +639,12 @@ export function baseUsesOf(air: WwAir, smallID: number): AirBaseUse[] {
     const c = land.controller[r] ?? 0;
     if (c === 0 || land.sideOf(c) !== side) continue;
     const strip = baseLevel(air, r) === 0;
-    const cap = air.baseCapacity(r);
-    if (strip && cap === 0) continue;
+    if (strip && !air.baseUsable(r)) continue;
     out.push({
       region: r,
       used: air.baseUse(r),
-      cap,
+      // w50: a base holds any number of planes; cap is no longer a limit.
+      cap: 0,
       damagePm: air.baseDamagePm(r),
       ...(strip ? { strip: true } : {}),
     });
@@ -679,19 +676,12 @@ export function formVolunteerWings(
   const bases = sideBases(air, air.land.sideOf(to));
   const sc = air.ww.scenario;
   const max = wingMaxPlanes(plane);
-  const planned = new Map<number, number>();
+  const base = pickBase(bases, (r) => sc.srKm(r, zone));
+  if (base === 0) return "no_air_base";
   const plan: [number, number][] = [];
   for (let left = count; left > 0; ) {
     if (wings + plan.length >= WW_MAX_WINGS) return "too_many_wings";
-    const { base, take } = pickBase(
-      air,
-      bases,
-      Math.min(max, left),
-      (r) => sc.srKm(r, zone),
-      planned,
-    );
-    if (base === 0) return "no_air_base";
-    planned.set(base, (planned.get(base) ?? 0) + take);
+    const take = Math.min(max, left);
     plan.push([base, take]);
     left -= take;
   }

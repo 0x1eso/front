@@ -153,7 +153,8 @@ export const LEVEL_MAX: Readonly<Partial<Record<BuildingId, number>>> = {
   rail: 5,
   supply_hub: 1,
   naval_base: 10,
-  air_base: 10,
+  // w50: a base is built or not (level 1), no capacity to grow.
+  air_base: 1,
   anti_air: 5,
   radar: 3,
   coastal_fort: 5,
@@ -911,6 +912,9 @@ export const WW_ORDER_BLOCKS = [
   "queue_order",
   // w28: a mine needs a deposit in its region.
   "no_deposit",
+  // w50 air groups, appended: a direct wing order on a wing in a group
+  // (recon excepted). Templates reuse too_many_templates and bad_template.
+  "in_group",
 ] as const;
 export type WwOrderBlock = (typeof WW_ORDER_BLOCKS)[number];
 

@@ -118,7 +118,9 @@ test("2,000 ships, 20 battles and 300 deployments stay within budget", async () 
       if (block === null) made++;
     }
   }
-  expect(air.wings.size).toBeGreaterThan(250);
+  // w50: starting air bases are level 1 at most, so the old model's
+  // capacity holds fewer records than it did.
+  expect(air.wings.size).toBeGreaterThan(200);
 
   type ThreadCpu = (prev?: NodeJS.CpuUsage) => NodeJS.CpuUsage;
   const threadCpu = (

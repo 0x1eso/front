@@ -90,6 +90,8 @@ describe("air deployments (spec §13)", () => {
     const gbr = TAG_ID.GBR;
     clearStartSetup(ww.economy, ww.economy.country(gbr)!);
     stepTo(runner, WW_PREP_TICKS + 1);
+    // The start clamps a base to level 1 (w50); the old model's test wants its level 2.
+    ww.economy.addBuilding(REGION.london, "air_base", 1);
     setStock(ww, gbr, "fighter", [600, 0, 0]);
     const deploy = (count: number) =>
       ww.air.issue(
@@ -303,6 +305,8 @@ describe("air deployments (spec §13)", () => {
     const gbr = TAG_ID.GBR;
     clearStartSetup(ww.economy, ww.economy.country(gbr)!);
     stepTo(runner, WW_PREP_TICKS + 1);
+    // The start clamps a base to level 1 (w50); the old model's test wants its level 2.
+    ww.economy.addBuilding(REGION.london, "air_base", 1);
     ww.economy.addBuilding(REGION.malta, "air_base", 1);
     setStock(ww, gbr, "fighter", [300, 0, 0]);
     expect(

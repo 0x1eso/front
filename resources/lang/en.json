@@ -1683,7 +1683,7 @@
     "ww1936_wing_ace": "{callsign} {state, select, rise {has emerged} retired {has retired} other {was lost}}",
     "ww1936_wing_army_gone": "{wing}: the army it supported is gone, so it stands down",
     "ww1936_wing_base_lost": "Your air base in {region} was lost; its wing is moving to another base.",
-    "ww1936_wing_base_lost_stock": "Your air base in {region} was lost and no base had room; the wing's planes went back to stock.",
+    "ww1936_wing_base_lost_stock": "Your air base in {region} was lost and no other base could be used; the wing's planes went back to stock.",
     "ww1936_wing_understrength": "{wing}: too few planes left, it skips its sorties",
     "ww1936_wpeace_accepted": "{target} accepted your peace offer",
     "ww1936_wpeace_lapsed": "Your peace offer to {target} lapsed: the war has changed",
@@ -4841,6 +4841,7 @@
         "general_unavailable": "This general cannot serve now",
         "group_full": "The army group is full",
         "harbor_conditions": "A floating harbour cannot be placed here",
+        "in_group": "This wing belongs to an air group",
         "in_progress": "Already being researched",
         "infra_max": "Already at its highest level",
         "invasion_not_ready": "Not ready",
@@ -11236,7 +11237,7 @@
       "uranium": "Uranium"
     },
     "reserve": {
-      "air_base": "Air base capacity",
+      "air_base": "Air base",
       "bomb_damage_cut": "Bomb damage reduction",
       "bomber_research": "Bomber research",
       "carriers": "Carriers",

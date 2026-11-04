@@ -182,8 +182,20 @@ export function wingMaxPlanes(type: AirType): number {
 }
 
 /** Below WING_RTB_PCT of full strength: it skips sorties until refilled (design §6). */
-export function wingUnderStrength(type: AirType, planes: number): boolean {
-  return planes * 100 < wingMaxPlanes(type) * WING_RTB_PCT;
+export function wingUnderStrength(
+  type: AirType,
+  planes: number,
+  fullMax = 0,
+): boolean {
+  const full = fullMax > 0 ? fullMax : wingMaxPlanes(type);
+  return planes * 100 < full * WING_RTB_PCT;
+}
+
+/** A wing's own full size (w50: a template splits a type smaller than the type's), else the type's. */
+export function wingFullOf(type: AirType, fullMax: number): number {
+  return fullMax > 0
+    ? Math.min(fullMax, wingMaxPlanes(type))
+    : wingMaxPlanes(type);
 }
 
 // ---- Bomb classes (design §5.1) ----
@@ -263,7 +275,7 @@ export interface WingBaseAsk {
   isBase: boolean;
   /** Under the wing's side. */
   ownSide: boolean;
-  /** Free planes at that base now (capacity − use). */
+  /** Unused: a base holds any number of planes (w50). */
   room: number;
   planes: number;
 }
@@ -285,7 +297,6 @@ export function wingOrderBlock(
   if (a.order === "base") {
     if (!a.isBase) return "no_air_base";
     if (!a.ownSide) return "not_controlled";
-    if (a.room < a.planes) return "base_full";
     return null;
   }
   if (a.standDown) return null;

@@ -45,6 +45,7 @@ import {
   takeRegion,
   wwGameStart,
 } from "./util";
+import { giveWing } from "./wingUtil";
 
 const GBR_PLAYER = "HUMAN002";
 const START = 601;
@@ -355,8 +356,30 @@ test("a real game on wings: every mission, base moves, 400 days, in lockstep", a
     targets: readonly number[],
     extra: Partial<Extract<WwOrder, { kind: "wing_mission" }>> = {},
   ): { w: Wing; target: number } => {
-    const { air, scenario: sc } = g.worldWar()!;
-    for (const w of air.wingsOf(idOf(g, tag))) {
+    const { air, scenario: sc, land } = g.worldWar()!;
+    const owner = idOf(g, tag);
+    // No capacity limit (w50) forms few, full wings at one base: when none
+    // of the type reaches, a new wing stands at the own base nearest the target.
+    const reaches = (w: Wing) =>
+      w.type === ty(type) &&
+      w.base > 0 &&
+      !used.has(w.id) &&
+      targets.some((r) => sc.targetKm(w.base, r) <= wingStats(air, w).rangeKm);
+    if (!air.wingsOf(owner).some(reaches)) {
+      let base = 0;
+      for (const r of sc.landRegions.map((x) => x.id)) {
+        if (
+          land.controller[r] === owner &&
+          air.baseUsable(r) &&
+          (base === 0 ||
+            sc.targetKm(r, targets[0]) < sc.targetKm(base, targets[0]))
+        ) {
+          base = r;
+        }
+      }
+      giveWing(air, { owner, type: ty(type), planes: 60, base });
+    }
+    for (const w of air.wingsOf(owner)) {
       if (w.type !== ty(type) || w.base <= 0 || used.has(w.id)) continue;
       const range = wingStats(air, w).rangeKm;
       let target = 0;

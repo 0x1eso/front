@@ -795,6 +795,7 @@ export const BLOCK_KEYS: Readonly<Record<WwOrderBlock, string>> = {
   research_queue_full: "ww1936.econ.block.research_queue_full",
   queue_order: "ww1936.econ.block.queue_order",
   no_deposit: "ww1936.econ.block.no_deposit",
+  in_group: "ww1936.econ.block.in_group",
 };
 
 // ---- Icons (pre-flight R7.7: emoji, no new image files) ----

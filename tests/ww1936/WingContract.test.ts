@@ -10,6 +10,7 @@ import {
   AIR_TYPES,
   AirMission,
   AirType,
+  GROUP_ORDER_KINDS,
   WING_NEW_FIELD_DEFAULTS,
   WING_ORDER_KINDS,
   WING_PHASES,
@@ -69,13 +70,17 @@ describe("the lists are appended, never reordered", () => {
     ]);
     expect(WW_BOMB_CLASSES[0]).toBe("auto");
     // The focus queue appended two after these, the research queues three.
-    expect(WW_ORDER_BLOCKS.slice(-9, -6)).toEqual([
+    expect(WW_ORDER_BLOCKS.slice(-10, -7)).toEqual([
       "too_many_wings",
       "no_bomb_target",
       "escort_out_of_range",
     ]);
     const kinds = WwOrderSchema.options.map((o) => o.shape.kind.value);
     // ww42 appended army_direct last; the older pins read what is before it.
+    // w50 appended the four air group orders last.
+    expect(kinds.splice(-4)).toEqual([...GROUP_ORDER_KINDS]);
+    expect(WW_ORDER_BLOCKS.slice(-1)).toEqual(["in_group"]);
+    expect(kinds.pop()).toBe("start_oob");
     expect(kinds.pop()).toBe("army_direct");
     // ww9 appends thought_set after the wing orders.
     expect(kinds.slice(-13, -7)).toEqual([...WING_ORDER_KINDS]);
@@ -251,7 +256,8 @@ describe("the order judge (design §3.3)", () => {
     expect(j({ carrier: true })).toBe("bad_air_mission");
     expect(j({ isBase: false })).toBe("no_air_base");
     expect(j({ ownSide: false })).toBe("not_controlled");
-    expect(j({ room: 149 })).toBe("base_full");
+    // w50: a base holds any number of planes.
+    expect(j({ room: 149 })).toBeNull();
   });
 });
 
