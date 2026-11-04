@@ -25,6 +25,13 @@ export function capitulate(
   // Spec §5.1-3: a civil war's party and an independence war's subject
   // look for no host.
   const own = ownWar(eg, L);
+  // ww67: who is taking which region band by band (ending the wars clears it).
+  const takers = new Map<number, number>();
+  for (const r of ww.scenario.landRegions) {
+    if (ww.land.controller[r.id] === L && ww.land.bandTaker[r.id] !== 0) {
+      takers.set(r.id, ww.land.bandTaker[r.id]);
+    }
+  }
   // Spec §5.1-2 (decided before the wars end): what L occupied goes back to
   // a legal owner still at war with it and playing.
   const back: [number, number][] = [];
@@ -55,7 +62,7 @@ export function capitulate(
   // 2. Control (the legal owner stays L's, spec §5.1-2).
   for (const [r, legal] of back)
     transferRegionPeaceful(ww.land, r, legal, tick);
-  if (!own) handOver(eg, L, R);
+  if (!own) handOver(eg, L, R, takers);
   // 6. Politics (P3: pending events, faction leader succession).
   pol.onCapitulated(L, R, tick);
   // 7. Gone; a human without a host takes over a faction friend (spec §11).
@@ -68,7 +75,7 @@ export function capitulate(
   if (own && ownWar(eg, L)) {
     // Its own war goes on without it (another member still fights): the
     // capitulation's usual way after all.
-    handOver(eg, L, R);
+    handOver(eg, L, R, takers);
     leave(eg, L, 0, tick);
   }
   // 9. Messages (P0 announces the capitulation itself).
@@ -100,13 +107,18 @@ function ownWar(eg: WwEndgame, L: number): boolean {
 }
 
 /** Spec §5.1-2: what L still controls goes to its victor (land on its way to L too). */
-function handOver(eg: WwEndgame, L: number, R: number): void {
+function handOver(
+  eg: WwEndgame,
+  L: number,
+  R: number,
+  takers: ReadonlyMap<number, number>,
+): void {
   if (R === 0) return;
   const ww = eg.ww;
   for (const t of ww.transfers()) {
     if (t.to === L) t.to = R;
   }
-  transferOnCapitulation(ww.land, L, R);
+  transferOnCapitulation(ww.land, L, R, takers);
 }
 
 /** Spec §5.1-7: the country is gone; its human (no host) gets a takeover card. */

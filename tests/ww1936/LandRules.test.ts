@@ -173,7 +173,7 @@ describe("templates (P2 spec §4.3, §4.4)", () => {
       soft: 9200,
       hard: 1100,
       def: 17_400,
-      brk: 4350,
+      brk: 5400,
       pierce: 500,
       armor: 0,
       hardnessPm: 0,
@@ -203,7 +203,7 @@ describe("templates (P2 spec §4.3, §4.4)", () => {
       soft: 8500,
       hard: 2000,
       def: 7000,
-      brk: 10_600,
+      brk: 11_000,
       armor: 1000,
       pierce: 1500,
       hardnessPm: 500,
@@ -416,15 +416,16 @@ describe("combat (P2 spec §9)", () => {
       defenderBlockBp: 10_000,
     });
     // Germany's 7·2 with engineers and recon against Poland's 9 infantry,
-    // one on one: the attacker loses (HOI4: attacking alone breaks first).
+    // one on one: ww67, with foot breakthrough ×2 its guns win the exchange of
+    // org, though it can't break a whole line alone (Battles.test).
     const one = predictBattle(side(INF72, 1), side(POL9, 1), ctx(1));
-    expect(one.ratioPm).toBeGreaterThanOrEqual(750);
-    expect(one.ratioPm).toBeLessThanOrEqual(950);
+    expect(one.ratioPm).toBeGreaterThanOrEqual(1200);
+    expect(one.ratioPm).toBeLessThanOrEqual(1450);
     // Seven against five, from two directions: the attacker wins in ~51 rounds
     // (ww7 lane F: a hit takes 0.4 of the spec's org, which said ~20).
     const seven = predictBattle(side(INF72, 7), side(POL9, 5), ctx(2));
-    expect(seven.ratioPm).toBeGreaterThanOrEqual(1450);
-    expect(seven.ratioPm).toBeLessThanOrEqual(1700);
+    expect(seven.ratioPm).toBeGreaterThanOrEqual(2300);
+    expect(seven.ratioPm).toBeLessThanOrEqual(2700);
     expect(seven.rounds).toBeGreaterThanOrEqual(50);
     expect(seven.rounds).toBeLessThanOrEqual(53);
     expect(predictBattle(emptySide(), side(POL9, 1), ctx(1)).ratioPm).toBe(0);

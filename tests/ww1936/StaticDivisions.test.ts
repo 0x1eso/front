@@ -47,7 +47,7 @@ describe("static divisions keep their P2 numbers", () => {
       soft: 9200,
       hard: 1100,
       def: 17_400,
-      brk: 4350,
+      brk: 5400,
       pierce: 500,
       speedCenti: 400,
     });
@@ -64,7 +64,7 @@ describe("static divisions keep their P2 numbers", () => {
       soft: 8500,
       hard: 2000,
       def: 7000,
-      brk: 10_600,
+      brk: 11_000,
       armor: 1000,
       pierce: 1500,
       hardnessPm: 500,

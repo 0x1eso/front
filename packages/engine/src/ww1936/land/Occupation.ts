@@ -510,6 +510,7 @@ export function transferOnCapitulation(
   land: WwLand,
   loser: number,
   victor: number,
+  takers: ReadonlyMap<number, number> = new Map(),
 ): void {
   const tick = land.mg.ticks();
   const sc = land.scenario;
@@ -517,20 +518,27 @@ export function transferOnCapitulation(
     .map((r) => r.id)
     .filter((id) => land.controller[id] === loser)
     .sort((a, b) => a - b);
-  // Spread sources: the victor's regions at the capitulation.
-  const sources = taken.map((id) =>
+  // ww67: a region another winner is taking band by band goes to that winner,
+  // not to whoever has the top war score.
+  const toOf = taken.map((id) => {
+    const taker = takers.get(id) ?? land.bandTaker[id];
+    return taker !== 0 && taker !== loser ? taker : victor;
+  });
+  // Spread sources: the receiver's regions at the capitulation.
+  const sources = taken.map((id, i) =>
     sc
       .edgesOf(id)
       .map((e) => e.to)
-      .filter((n) => land.controller[n] === victor),
+      .filter((n) => land.controller[n] === toOf[i]),
   );
   taken.forEach((id, i) => {
-    land.setController(id, victor, tick, false);
+    const to = toOf[i];
+    land.setController(id, to, tick, false);
     closeBattle(land, id);
-    evict(land, id, victor);
+    evict(land, id, to);
     land.setSpread({
       region: id,
-      by: victor,
+      by: to,
       kind: SPREAD_CAPITULATION,
       sources: sources[i],
       done: 0,

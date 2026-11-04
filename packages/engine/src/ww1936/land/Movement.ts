@@ -63,8 +63,9 @@ export function stepMovement(land: WwLand, tick: number): void {
         continue;
       } else if (mode === MOVE_RETREAT) {
         // Its refuge fell: retreat again from where it is (or be destroyed).
+        // (It left its prisoners behind when it broke.)
         stopDivision(land, r);
-        retreatDivision(land, r);
+        retreatDivision(land, r, false);
         continue;
       }
     }
@@ -140,7 +141,11 @@ export function arrive(land: WwLand, r: number, tick: number): void {
   const owner = land.fightOwner(r);
   const to = t.next[r];
   const mode = t.mode[r];
-  if (!land.sameSide(owner, land.controller[to])) {
+  // ww67: not while a battle takes the region band by band: its defenders are
+  // stepping back, not gone, and a passer-by took the whole region from under
+  // the army fighting for it. It joins that battle below.
+  const contested = land.bandProg[to] > 0 && land.battles.has(to);
+  if (!land.sameSide(owner, land.controller[to]) && !contested) {
     // Walking or advancing into an empty enemy region takes it (spec §7.7,
     // §9.7). Rows run in id order: the smaller division arrives first.
     capture(land, to, owner, tick);
