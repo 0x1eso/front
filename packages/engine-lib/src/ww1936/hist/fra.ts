@@ -2,8 +2,11 @@
 // conventions in Types.ts. Where a figure comes from memory the entry's
 // `source` says so. Costs are estimates in 1940 US dollars from comparable
 // US items by weight, labour and materials (franc prices are only a
-// cross-check, per the coordinator). Late-war and postwar types
-// (ARL 44, AMX-13, Mirage, Clemenceau) are real, reachable by tech only.
+// cross-check). Scope: what France built or had well in development by
+// about 1949 (ARL 44, AMX-13, Ouragan); the 1950s types are left out.
+// France starts with inf_eq_1, light_tank_1, fighter_1, bomber_1,
+// heavy_fighter_1, anti_tank_1, artillery_1, dd_2, cl_2, ca_2, bc_2, bb_2
+// and ss_2 (startTechs), so the 1936 stock types need no more research.
 import type { HistEntry } from "./Types";
 
 export const FRA_HIST: readonly HistEntry[] = [
@@ -135,7 +138,7 @@ export const FRA_HIST: readonly HistEntry[] = [
     country: "FRA",
     family: "tank",
     role: "light",
-    techs: ["light_tank_1", "diesel_engine"],
+    techs: ["light_tank_1"],
     year: 1938,
     // Welded sloped 40 mm armour all round, Berliet diesel, SA 18 gun; 100 built. Estimate: priced above the R35 for its diesel.
     source: "Memory (Doyle; Touzin).",
@@ -354,55 +357,6 @@ export const FRA_HIST: readonly HistEntry[] = [
     },
   },
   {
-    id: "fra_amx13_f3",
-    country: "FRA",
-    family: "tank",
-    role: "spa",
-    techs: ["light_tank_2", "artillery_3"],
-    year: 1960,
-    // 155 mm F3 howitzer on the AMX-13 chassis, open at the back; about 7 kg filler.
-    source: "Memory (Wikipedia AMX-13 F3).",
-    spec: {
-      massT: 17.4,
-      hullFrontMm: 20,
-      hullSlopeDeg: 0,
-      gunMm: 155,
-      penMm500: 0,
-      heFillerG: 7000,
-      mgs: 0,
-      offroadKmh: 30,
-      roadKmh: 60,
-      openTop: true,
-      reliability: 3,
-      costK: 55,
-    },
-  },
-  {
-    id: "fra_amx13_dca",
-    country: "FRA",
-    family: "tank",
-    role: "spaa",
-    techs: ["light_tank_2", "anti_air_2"],
-    year: 1960,
-    // Twin 30 mm HSS 831 L (about 600-650 rounds per minute each) in a radar-less turret.
-    source: "Memory (Wikipedia; Foss); firing rate uncertain.",
-    spec: {
-      massT: 17.2,
-      hullFrontMm: 20,
-      hullSlopeDeg: 0,
-      turretFrontMm: 20,
-      gunMm: 30,
-      penMm500: 35,
-      heFillerG: 50,
-      mgs: 0,
-      offroadKmh: 35,
-      roadKmh: 60,
-      aa: { barrels: 2, rpm: 650, mm: 30 },
-      reliability: 3,
-      costK: 50,
-    },
-  },
-  {
     id: "fra_d510",
     country: "FRA",
     family: "plane",
@@ -554,54 +508,6 @@ export const FRA_HIST: readonly HistEntry[] = [
     },
   },
   {
-    id: "fra_mystere_iv",
-    country: "FRA",
-    family: "plane",
-    type: "fighter",
-    techs: ["fighter_3", "jet_airframe_2"],
-    year: 1953,
-    // Swept-wing jet; two 30 mm DEFA. Estimate: against the US F-86.
-    source:
-      "Wikipedia aircraft articles (read 2026-11) (Myst\u00e8re IVA: 5,860/8,510 kg, 32.06 m2, 1,110 km/h, 915 km).",
-    spec: {
-      guns: [{ mm: 30, count: 2, rpm: 1300 }],
-      maxKmh: 1110,
-      rangeKm: 915,
-      emptyKg: 5860,
-      wingLoad: 265,
-      defGuns: 0,
-      bombKg: 1000,
-      torpedoKg: 0,
-      reliability: 3,
-      costK: 140,
-      jet: true,
-    },
-  },
-  {
-    id: "fra_mirage_iiic",
-    country: "FRA",
-    family: "plane",
-    type: "fighter",
-    techs: ["fighter_3", "jet_airframe_2", "aero_engine_4"],
-    year: 1961,
-    // Delta-wing Mach 2 interceptor; 95 built for France. Speed and range from memory (range 1,200-2,400 km by profile).
-    source:
-      "Memory (Wikipedia Mirage III IIIC/IIIE; the page text read gave only the armament: two 30 mm DEFA). Mass and wing area from memory.",
-    spec: {
-      guns: [{ mm: 30, count: 2, rpm: 1300 }],
-      maxKmh: 2350,
-      rangeKm: 1600,
-      emptyKg: 7050,
-      wingLoad: 275,
-      defGuns: 0,
-      bombKg: 1000,
-      torpedoKg: 0,
-      reliability: 3,
-      costK: 450,
-      jet: true,
-    },
-  },
-  {
     id: "fra_potez631",
     country: "FRA",
     family: "plane",
@@ -625,31 +531,6 @@ export const FRA_HIST: readonly HistEntry[] = [
       torpedoKg: 0,
       reliability: 3,
       costK: 38,
-    },
-  },
-  {
-    id: "fra_vautour_iin",
-    country: "FRA",
-    family: "plane",
-    type: "heavy_fighter",
-    techs: ["heavy_fighter_3", "jet_airframe_2"],
-    year: 1958,
-    // All-weather night fighter with a radar nose; 70 built.
-    source:
-      "Wikipedia aircraft articles (read 2026-11) (Vautour page, IIN data: 10,000/17,500 kg, 45 m2, 1,106 km/h); the 5,400 km is a ferry figure, 3,500 km used.",
-    spec: {
-      guns: [{ mm: 30, count: 4, rpm: 1300 }],
-      maxKmh: 1106,
-      rangeKm: 3500,
-      emptyKg: 10000,
-      wingLoad: 389,
-      defGuns: 0,
-      bombKg: 0,
-      torpedoKg: 0,
-      reliability: 3,
-      costK: 300,
-      jet: true,
-      radar: true,
     },
   },
   {
@@ -752,30 +633,6 @@ export const FRA_HIST: readonly HistEntry[] = [
     },
   },
   {
-    id: "fra_vautour_iib",
-    country: "FRA",
-    family: "plane",
-    type: "bomber",
-    techs: ["bomber_2", "jet_bomber_1"],
-    year: 1957,
-    // Jet light bomber with a glazed bombardier nose; 40 built.
-    source:
-      "Wikipedia aircraft articles (read 2026-11) (Vautour page: IIN airframe data used for the weights; internal bay 3,000 kg per the Israeli service notes).",
-    spec: {
-      guns: [],
-      maxKmh: 1100,
-      rangeKm: 3500,
-      emptyKg: 10000,
-      wingLoad: 389,
-      defGuns: 0,
-      bombKg: 3000,
-      torpedoKg: 0,
-      reliability: 3,
-      costK: 300,
-      jet: true,
-    },
-  },
-  {
     id: "fra_lat298",
     country: "FRA",
     family: "plane",
@@ -799,35 +656,11 @@ export const FRA_HIST: readonly HistEntry[] = [
     },
   },
   {
-    id: "fra_atlantic",
-    country: "FRA",
-    family: "plane",
-    type: "naval_bomber",
-    techs: ["naval_bomber_3"],
-    year: 1965,
-    // Maritime patrol aircraft; weapon load as 8 Mk 46 torpedoes (230 kg each, 1,840 kg) plus other stores, rough.
-    source:
-      "Wikipedia (Atlantic page: introduced 1965, 87 built; torpedoes or depth charges). Speed, mass and wing area from memory.",
-    spec: {
-      guns: [],
-      maxKmh: 590,
-      rangeKm: 5000,
-      emptyKg: 24900,
-      wingLoad: 361,
-      defGuns: 0,
-      bombKg: 2300,
-      torpedoKg: 230,
-      reliability: 4,
-      costK: 600,
-      radar: true,
-    },
-  },
-  {
     id: "fra_f222",
     country: "FRA",
     family: "plane",
     type: "strat_bomber",
-    techs: ["strat_bomber_1"],
+    techs: [],
     year: 1937,
     // Four-engine heavy bomber of 1930s design; 24 F.222/2 built.
     source:
@@ -843,30 +676,6 @@ export const FRA_HIST: readonly HistEntry[] = [
       torpedoKg: 0,
       reliability: 3,
       costK: 120,
-    },
-  },
-  {
-    id: "fra_mirage_iva",
-    country: "FRA",
-    family: "plane",
-    type: "strat_bomber",
-    techs: ["strat_bomber_3", "jet_bomber_1"],
-    year: 1964,
-    // Nuclear bomber, 62 built; bomb load 4,000 kg as a middle of the nuclear bomb and the theoretical 7,264 kg of conventional stores.
-    source:
-      "Wikipedia aircraft articles (read 2026-11) (Mirage IV: 14,500/31,600 kg, 78 m2, 2,340 km/h, 1,240 km combat radius, 4,000 km ferry, AN-22 bomb or 16 x 454 kg).",
-    spec: {
-      guns: [],
-      maxKmh: 2340,
-      rangeKm: 3000,
-      emptyKg: 14500,
-      wingLoad: 405,
-      defGuns: 0,
-      bombKg: 4000,
-      torpedoKg: 0,
-      reliability: 3,
-      costK: 1200,
-      jet: true,
     },
   },
   {
@@ -893,29 +702,6 @@ export const FRA_HIST: readonly HistEntry[] = [
     },
   },
   {
-    id: "fra_noratlas",
-    country: "FRA",
-    family: "plane",
-    type: "transport_plane",
-    techs: ["transport_plane_2"],
-    year: 1953,
-    // Twin-boom transport; 425 built.
-    source:
-      "Wikipedia aircraft articles (read 2026-11) (Nord 2501: 13,075/20,603 kg, 101.2 m2, 440 km/h, 2,500 km, 8,458 kg); range 2,000 km used for a realistic load.",
-    spec: {
-      guns: [],
-      maxKmh: 440,
-      rangeKm: 2000,
-      emptyKg: 13075,
-      wingLoad: 204,
-      defGuns: 0,
-      bombKg: 0,
-      torpedoKg: 0,
-      reliability: 3,
-      costK: 160,
-    },
-  },
-  {
     id: "fra_v156f",
     country: "FRA",
     family: "plane",
@@ -937,54 +723,6 @@ export const FRA_HIST: readonly HistEntry[] = [
       reliability: 3,
       costK: 38,
       dive: true,
-    },
-  },
-  {
-    id: "fra_etendard_ivm",
-    country: "FRA",
-    family: "plane",
-    type: "cv_fighter",
-    techs: ["fighter_3", "jet_airframe_2", "carrier_aviation_2"],
-    year: 1962,
-    // Carrier strike fighter, entered the Aéronavale 1962.
-    source:
-      "Wikipedia aircraft articles (read 2026-11) (\u00c9tendard IV: 5,897/8,170 kg, 28.4 m2, 1,099 km/h, 3,300 km ferry, 2 x 30 mm, 1,360 kg); range 2,400 km used.",
-    spec: {
-      guns: [{ mm: 30, count: 2, rpm: 1300 }],
-      maxKmh: 1099,
-      rangeKm: 2400,
-      emptyKg: 5897,
-      wingLoad: 288,
-      defGuns: 0,
-      bombKg: 1360,
-      torpedoKg: 0,
-      reliability: 4,
-      costK: 280,
-      jet: true,
-    },
-  },
-  {
-    id: "fra_alize",
-    country: "FRA",
-    family: "plane",
-    type: "cv_naval_bomber",
-    techs: ["naval_bomber_3", "carrier_aviation_2"],
-    year: 1959,
-    // Carrier anti-submarine aircraft with a radome; 89 built.
-    source:
-      "Wikipedia aircraft articles (read 2026-11) (Aliz\u00e9: 5,700/8,200 kg, 36 m2, 518 km/h, 2,500 km). Torpedo mass 500 kg and bomb load from memory.",
-    spec: {
-      guns: [],
-      maxKmh: 518,
-      rangeKm: 2500,
-      emptyKg: 5700,
-      wingLoad: 228,
-      defGuns: 0,
-      bombKg: 1000,
-      torpedoKg: 500,
-      reliability: 4,
-      costK: 160,
-      radar: true,
     },
   },
   {
@@ -1063,34 +801,6 @@ export const FRA_HIST: readonly HistEntry[] = [
     },
   },
   {
-    id: "fra_t47",
-    country: "FRA",
-    family: "ship",
-    cls: "dd",
-    techs: ["dd_4"],
-    year: 1955,
-    // Anti-aircraft destroyer. Estimate: against US Gearing and Mitscher-class costs by tonnage.
-    source:
-      "Wikipedia ship-class articles (read 2026-11) (2,750 long tons = 2,794 t, 6 x 127 mm, 6 x 57 mm, 12 x 550 mm, 34 kn, 5,000 nm at 18 kn); torpedo warhead from memory.",
-    spec: {
-      dispT: 2794,
-      main: { count: 6, mm: 127 },
-      beltMm: 0,
-      speedKn: 34,
-      rangeNm: 5000,
-      torpTubes: 12,
-      torpWarheadKg: 310,
-      asw: 1,
-      aaLight: [
-        { count: 6, mm: 57 },
-        { count: 4, mm: 20 },
-      ],
-      aaHeavy: 6,
-      aircraft: 0,
-      costM: 25,
-    },
-  },
-  {
     id: "fra_emile_bertin",
     country: "FRA",
     family: "ship",
@@ -1140,31 +850,6 @@ export const FRA_HIST: readonly HistEntry[] = [
       aaHeavy: 8,
       aircraft: 0,
       costM: 28,
-    },
-  },
-  {
-    id: "fra_de_grasse",
-    country: "FRA",
-    family: "ship",
-    cls: "cl",
-    techs: ["cl_4"],
-    year: 1956,
-    // Anti-aircraft cruiser completed in 1956. Estimate: against the US Worcester class.
-    source:
-      "Wikipedia ship-class articles (read 2026-11) (9,389 t, 16 x 127 mm DP, 20 x 57 mm, 100 mm belt, 33.8 kn); the page gives no range, 5,000 nm is from memory.",
-    spec: {
-      dispT: 9389,
-      main: { count: 16, mm: 127 },
-      beltMm: 100,
-      speedKn: 33.8,
-      rangeNm: 5000,
-      torpTubes: 0,
-      torpWarheadKg: 0,
-      asw: 0,
-      aaLight: [{ count: 20, mm: 57 }],
-      aaHeavy: 16,
-      aircraft: 0,
-      costM: 55,
     },
   },
   {
@@ -1346,32 +1031,6 @@ export const FRA_HIST: readonly HistEntry[] = [
       aaHeavy: 8,
       aircraft: 40,
       costM: 45,
-    },
-  },
-  {
-    id: "fra_clemenceau",
-    country: "FRA",
-    family: "ship",
-    cls: "cv",
-    techs: ["cv_4"],
-    year: 1961,
-    // Postwar carrier. Estimate: against the US Midway-class costs by tonnage.
-    source:
-      "Wikipedia ship-class articles (read 2026-11) (22,000 t standard on the page, 27,300 t by other references, 24,600 used; 8 x 100 mm, 32 kn, 40 aircraft, range 6,500-7,500 nm).",
-    spec: {
-      dispT: 24600,
-      main: { count: 0, mm: 0 },
-      secondary: { count: 8, mm: 100 },
-      beltMm: 0,
-      speedKn: 32,
-      rangeNm: 7000,
-      torpTubes: 0,
-      torpWarheadKg: 0,
-      asw: 0,
-      aaLight: [],
-      aaHeavy: 8,
-      aircraft: 40,
-      costM: 120,
     },
   },
   {
