@@ -265,20 +265,20 @@ describe("supply (P2 spec §11)", () => {
     takeRegion(g, WARSAW, "DEU");
     takeRegion(g, KRAKOW, "DEU");
     clearLand(g);
-    // Forty divisions in Krakow use more than it gets.
+    // Forty-five divisions in Krakow use more than it gets.
     const a = placeArmy(g, "DEU", KRAKOW, 30);
-    const a2 = placeArmy(g, "DEU", KRAKOW, 10);
+    const a2 = placeArmy(g, "DEU", KRAKOW, 15);
     const rows = [...a.divisions, ...a2.divisions].map((d) =>
       l.divisions.rowOf(d),
     );
     // One of them on a train: it eats there but adds no use (pre-flight S2).
-    l.divisions.mode[rows[39]] = MOVE_RAIL;
+    l.divisions.mode[rows[44]] = MOVE_RAIL;
     // One in Soviet Kiev, a region the side does not hold: nothing.
     const b = placeArmy(g, "DEU", BERLIN, 1);
     const lost = l.divisions.rowOf(b.divisions[0]);
     l.setDivisionRegion(lost, KIEV);
     dailySupply(l, l.sideOf(id(g, "DEU")));
-    const use = rows.slice(0, 39).reduce((n, r) => n + useOf(l, r), 0);
+    const use = rows.slice(0, 44).reduce((n, r) => n + useOf(l, r), 0);
     expect(l.useMilli[KRAKOW]).toBe(use);
     expect(use).toBeGreaterThan(l.supplyMilli[KRAKOW]);
     const rate = Math.floor((l.supplyMilli[KRAKOW] * 1000) / use);

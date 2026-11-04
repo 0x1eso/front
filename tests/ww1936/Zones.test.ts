@@ -187,10 +187,11 @@ describe("ww7 lane C: cover first, then the spare", () => {
     expect(p.get(BERLIN)).toBe(cap(BERLIN, 1));
     expect(p.get(MUNICH)!).toBeLessThanOrEqual(cap(MUNICH, 2));
     expect(p.get(ROME)!).toBeLessThanOrEqual(cap(ROME, 1));
-    // The axis holds more than the region behind it; the overflow reached it.
+    // The axis holds more than the region behind it (ww67: one width, so the
+    // axis takes all 14 but the cover).
     expect(p.get(BERLIN)!).toBeGreaterThan(p.get(ROME)!);
     expect(p.get(MUNICH)!).toBeGreaterThan(p.get(ROME)!);
-    expect(p.get(ROME)!).toBeGreaterThan(1);
+    expect(p.get(ROME)!).toBeGreaterThanOrEqual(1);
     expect([...p.values()].reduce((s, x) => s + x, 0)).toBe(14);
   }, 120_000);
 });

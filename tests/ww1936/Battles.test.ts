@@ -225,7 +225,7 @@ describe("World War 1936 P2: land battles (spec §9)", () => {
       ).orgMilli,
     );
     expect(att0 - l.divisions.org[rowOf(l, a.divisions[0])]).toBe(
-      roundDamage(roundHits(applyBp(5400, luck(1)), 3300)).orgMilli,
+      roundDamage(roundHits(applyBp(5400, luck(1)), 4350)).orgMilli,
     );
     // Without the luck they are the spec's 920 and 1170 hits.
     expect(roundHits(9200, 19_800)).toBe(920);
@@ -582,8 +582,8 @@ describe("World War 1936 P2: land battles (spec §9)", () => {
     const pr = rowOf(l, d.divisions[0]);
     const ts = l.statsOf(tr);
     const ps = l.statsOf(pr);
-    // Armour 7 against Poland's pierce 4.
-    expect(ts.armor).toBe(700);
+    // Armour 10 against Poland's pierce 4.
+    expect(ts.armor).toBe(1000);
     expect(ps.pierce).toBe(400);
     attack(l, tank, WARSAW);
     const b = l.battles.get(WARSAW)!;

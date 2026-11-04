@@ -47,8 +47,8 @@ describe("static divisions keep their P2 numbers", () => {
       soft: 9200,
       hard: 1100,
       def: 17_400,
-      brk: 3300,
-      pierce: 453,
+      brk: 4350,
+      pierce: 500,
       speedCenti: 400,
     });
     const armour = def(
@@ -64,9 +64,9 @@ describe("static divisions keep their P2 numbers", () => {
       soft: 8500,
       hard: 2000,
       def: 7000,
-      brk: 10_200,
-      armor: 700,
-      pierce: 1225,
+      brk: 10_600,
+      armor: 1000,
+      pierce: 1500,
       hardnessPm: 500,
       speedCenti: 800,
     });
