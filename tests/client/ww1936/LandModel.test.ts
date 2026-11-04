@@ -490,12 +490,12 @@ describe("LandModel (spec §15)", () => {
       { id: "general", bp: 2_000 },
       { id: "exp", bp: 500 },
       { id: "recon", bp: 500 },
-      { id: "terrain", bp: -2_500 },
+      { id: "terrain", bp: -500 },
     ]);
     // Not in it: a plain division's lines (the terrain only).
     const other = game({ ...AT_WAR, battles: [b] });
     const o = battleCard(other.land, other.view, DEU, 7, DAY)!;
-    expect(o.attackLines).toEqual([{ id: "terrain", bp: -2_500 }]);
+    expect(o.attackLines).toEqual([{ id: "terrain", bp: -500 }]);
     expect(o.mine).toBe(false);
     expect(battleCard(other.land, other.view, DEU, 6, DAY)).toBeNull();
   });

@@ -45,6 +45,7 @@ import {
 import {
   addToSide,
   applyBp,
+  armorProtectPm,
   attackValue,
   casCutHits,
   combatWidth,
@@ -344,7 +345,7 @@ function fight(land: WwLand, b: Battle, tick: number): void {
     const d = toDefends ? applyBp(d0, blockMul) : d0;
     const dmg = roundDamage(
       roundHits(a, d, toDefends ? (toMods.prepBp ?? 0) + fx.defBlockBp : 0),
-      ts.armor > s.pierce,
+      armorProtectPm(ts.armor, ts.hardnessPm, s.pierce),
     );
     org.set(to, (org.get(to) ?? 0) + dmg.orgMilli);
     hp.set(to, (hp.get(to) ?? 0) + dmg.hpMilli);
@@ -376,7 +377,7 @@ function fight(land: WwLand, b: Battle, tick: number): void {
     const to = targets[b.round % targets.length];
     const aa = effectiveLevel(land.econ, R, "anti_air");
     const h = casCutHits(hits, stats.get(to)!.airAtk, aa);
-    const dmg = roundDamage(h, false);
+    const dmg = roundDamage(h);
     org.set(to, (org.get(to) ?? 0) + dmg.orgMilli);
     hp.set(to, (hp.get(to) ?? 0) + dmg.hpMilli);
     deal(to, by, dmg.hpMilli);
@@ -388,7 +389,7 @@ function fight(land: WwLand, b: Battle, tick: number): void {
   const guns = (hits: number, targets: readonly number[], by: number) => {
     if (hits <= 0 || targets.length === 0) return;
     const to = targets[b.round % targets.length];
-    const dmg = roundDamage(hits, false);
+    const dmg = roundDamage(hits);
     org.set(to, (org.get(to) ?? 0) + dmg.orgMilli);
     hp.set(to, (hp.get(to) ?? 0) + dmg.hpMilli);
     deal(to, by, dmg.hpMilli);
@@ -408,8 +409,8 @@ function fight(land: WwLand, b: Battle, tick: number): void {
       // (assault's price, elastic and withdraw); every source of damage.
       const defending = t.role[r] === ROLE_DEFEND;
       const o = applyBp(o0, 10_000 + (defending ? fx.defOrgBp : fx.attOrgBp));
-      // ww7 (street fighting): the defenders of an urban region take 15%
-      // less org damage, whatever dealt it (hits, air support, guns).
+      // ww7 (street fighting): the defenders of an urban region take less
+      // org damage, whatever dealt it (hits, air support, guns).
       t.org[r] = Math.max(
         0,
         was - (defending ? defenderOrgDamage(terrain, o) : o),
@@ -982,7 +983,8 @@ function won(land: WwLand, b: Battle, tick: number): void {
       t.org[r] === 0 &&
       t.mode[r] !== MOVE_RETREAT
     ) {
-      retreatInBand(land, r, withdraw);
+      routLoss(land, r);
+      if (t.id[r] !== 0) retreatInBand(land, r, withdraw);
     }
   }
   for (const r of advancers) enterBand(land, r);
@@ -1039,6 +1041,8 @@ function enterBand(land: WwLand, row: number): void {
 export function retreatDivision(land: WwLand, row: number): void {
   const t = land.divisions;
   if (t.id[row] === 0) return;
+  routLoss(land, row);
+  if (t.id[row] === 0) return;
   const to = refugeOf(land, row);
   if (to === 0) {
     const owner = t.owner[row];
@@ -1065,6 +1069,23 @@ export function retreatDivision(land: WwLand, row: number): void {
   }
   release(land, row);
   startHopInto(land, row, to, MOVE_RETREAT);
+}
+
+/** ww67: the share of its strength a division broken in a lost battle leaves behind, percent. */
+export const ROUT_LOSS_PCT = 15;
+
+/**
+ * ww67: a division that broke leaves prisoners and abandoned equipment behind.
+ * Only a broken one: a division falling back with org left (a region lost
+ * around it, an order) walks away whole.
+ */
+function routLoss(land: WwLand, row: number): void {
+  if (land.divisions.org[row] !== 0) return;
+  applyHpLoss(
+    land,
+    row,
+    Math.floor((land.statsOf(row).hpMilli * ROUT_LOSS_PCT) / 100),
+  );
 }
 
 /**

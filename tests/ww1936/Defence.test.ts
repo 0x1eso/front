@@ -29,6 +29,7 @@ import {
   FORT_HALF_WIDTH_FROM,
   POSITION_DEF_BP,
   predictBattle,
+  armorProtectPm,
   roundDamage,
   roundHits,
   TERRAIN,
@@ -173,9 +174,9 @@ describe("ww7 B2: defence values", () => {
     expect(combatWidth("plains", 3)).toBe(180);
   });
 
-  test("urban defenders take 15% less org damage", () => {
-    expect(defenderOrgDamage("urban", 1000)).toBe(850);
-    expect(defenderOrgDamage("urban", 7)).toBe(5);
+  test("urban defenders take 5 % less org damage", () => {
+    expect(defenderOrgDamage("urban", 1000)).toBe(950);
+    expect(defenderOrgDamage("urban", 7)).toBe(6);
     expect(defenderOrgDamage("urban", 0)).toBe(0);
     for (const t of Object.keys(TERRAIN) as LandTerrain[]) {
       if (t !== "urban") expect(defenderOrgDamage(t, 1000)).toBe(1000);
@@ -465,7 +466,7 @@ describe("ww7 B2: forts and cities in battle", () => {
     expect(b.attLine).toHaveLength(6);
   }, 60_000);
 
-  test("the defenders of an urban region take 15% less org damage", async () => {
+  test("the defenders of an urban region take 5 % less org damage", async () => {
     // Warsaw as a city: the scenario's terrain for the region.
     const files = await loadMapFiles(
       new TestDataMapLoader(MINI),
@@ -522,7 +523,7 @@ describe("ww7 B2: forts and cities in battle", () => {
         applyBp(sd.def, dm.defenseBp),
         dm.prepBp ?? 0,
       ),
-      sd.armor > sa.pierce,
+      armorProtectPm(sd.armor, sd.hardnessPm, sa.pierce),
     ).orgMilli;
     const toAtt = roundDamage(
       roundHits(
@@ -532,16 +533,16 @@ describe("ww7 B2: forts and cities in battle", () => {
         ),
         applyBp(sa.brk, am.defenseBp),
       ),
-      sa.armor > sd.pierce,
+      armorProtectPm(sa.armor, sa.hardnessPm, sd.pierce),
     ).orgMilli;
     expect(toDef).toBeGreaterThan(100);
     const [a0, d0] = [t.org[ar], t.org[dr]];
     stepBattles(l, g.ticks());
-    // The 15% cut: the defenders take 85% of the plain round, the attackers all.
+    // The 5 % cut: the defenders take 95 % of the plain round, the attackers all.
     const defPm = Math.floor(((d0 - t.org[dr]) * 1000) / toDef);
     const attPm = Math.floor(((a0 - t.org[ar]) * 1000) / toAtt);
-    expect(defPm).toBeGreaterThanOrEqual(845);
-    expect(defPm).toBeLessThanOrEqual(855);
+    expect(defPm).toBeGreaterThanOrEqual(945);
+    expect(defPm).toBeLessThanOrEqual(955);
     expect(attPm).toBeGreaterThanOrEqual(995);
     expect(attPm).toBeLessThanOrEqual(1005);
   }, 60_000);

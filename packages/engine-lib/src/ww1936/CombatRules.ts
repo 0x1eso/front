@@ -59,7 +59,9 @@ export interface TerrainDef {
   supplyPct: number;
 }
 
-// Spec §9.2 (pre-1.11 HOI4 widths), §7.2, §11.2.
+// Spec §7.2, §11.2. ww67 (owner): terrain must not call for its own army. One
+// width everywhere, the attack cut stops at −10 %, a road's supply cost at
+// 130 %; movement keeps its old numbers (it costs time, not a different army).
 export const TERRAIN: Readonly<Record<LandTerrain, TerrainDef>> = {
   plains: {
     width: 90,
@@ -76,44 +78,44 @@ export const TERRAIN: Readonly<Record<LandTerrain, TerrainDef>> = {
     supplyPct: 100,
   },
   forest: {
-    width: 84,
-    perDirection: 42,
-    attackBp: -1500,
+    width: 90,
+    perDirection: 45,
+    attackBp: -500,
     movePct: 25,
     supplyPct: 120,
   },
   hills: {
-    width: 80,
-    perDirection: 40,
-    attackBp: -2500,
+    width: 90,
+    perDirection: 45,
+    attackBp: -500,
     movePct: 33,
     supplyPct: 120,
   },
   mountain: {
-    width: 75,
-    perDirection: 25,
-    attackBp: -5000,
+    width: 90,
+    perDirection: 45,
+    attackBp: -1000,
     movePct: 100,
-    supplyPct: 200,
+    supplyPct: 130,
   },
   marsh: {
-    width: 60,
-    perDirection: 30,
-    attackBp: -4000,
+    width: 90,
+    perDirection: 45,
+    attackBp: -1000,
     movePct: 66,
-    supplyPct: 150,
+    supplyPct: 130,
   },
   jungle: {
-    width: 84,
-    perDirection: 42,
-    attackBp: -3000,
+    width: 90,
+    perDirection: 45,
+    attackBp: -1000,
     movePct: 66,
-    supplyPct: 150,
+    supplyPct: 130,
   },
   urban: {
-    width: 96,
-    perDirection: 32,
-    attackBp: -3000,
+    width: 90,
+    perDirection: 45,
+    attackBp: -1000,
     movePct: 10,
     supplyPct: 120,
   },
@@ -147,8 +149,8 @@ export const ENTRENCH_DEF_BP = 500;
 export const POSITION_DEF_BP = 500;
 /** ww7: a defended region with a fort of this level or more halves the extra width of the attack directions. */
 export const FORT_HALF_WIDTH_FROM = 3;
-/** ww7: the share of org damage the defenders of an urban region take, percent (street fighting: −15%). */
-export const URBAN_DEFENDER_ORG_PCT = 85;
+/** The share of org damage the defenders of an urban region take, percent (street fighting; ww67: −5 %, was −15 %). */
+export const URBAN_DEFENDER_ORG_PCT = 95;
 
 /**
  * Spec §9.2: base width plus one step for every direction after the first
@@ -167,7 +169,7 @@ export function combatWidth(
   );
 }
 
-/** ww7: org damage (milli) a defender of a `land` region takes; urban −15%. */
+/** ww7: org damage (milli) a defender of a `land` region takes; urban −5 %. */
 export function defenderOrgDamage(land: LandTerrain, orgMilli: number): number {
   return land === "urban"
     ? Math.floor((orgMilli * URBAN_DEFENDER_ORG_PCT) / 100)
@@ -216,14 +218,40 @@ export function roundHits(attack: number, block: number, prepBp = 0): number {
 export const ORG_PER_HIT_E3 = 52;
 export const HP_PER_HIT_E3 = 36;
 
+/** The most armour takes off the damage, ‰ (spec §9.3-5's halving). */
+export const ARMOR_PROTECT_MAX_PM = 500;
+/** ww67: from this hardness, ‰, a division is armoured enough for the full protection. */
+export const ARMOR_FULL_HARDNESS_PM = 500;
+
+/**
+ * Spec §9.3-5, the share of the damage armour stops, ‰ (0..500). ww67: not a
+ * switch at armour > pierce. It grows with the target's tank share, full from
+ * hardness 500 ‰, so one tank battalion doesn't armour an infantry division;
+ * and it fades from full, at pierce two thirds of the armour, to nothing, at
+ * pierce equal to it, so a few guns chip at it rather than end it.
+ */
+export function armorProtectPm(
+  armor: number,
+  hardnessPm: number,
+  pierce: number,
+): number {
+  if (armor <= 0 || pierce >= armor) return 0;
+  const share = Math.min(
+    1000,
+    Math.floor((Math.max(0, hardnessPm) * 1000) / ARMOR_FULL_HARDNESS_PM),
+  );
+  const fade = Math.min(1000, Math.floor(((armor - pierce) * 3000) / armor));
+  return Math.floor((ARMOR_PROTECT_MAX_PM * share * fade) / 1_000_000);
+}
+
 /**
  * Spec §9.3-6: one round (1.829 HOI4 hours) of damage from `hitsCenti`:
- * ORG_PER_HIT_E3 org and HP_PER_HIT_E3 HP a hit, halved when the target's
- * armour beats the attacker's pierce (spec §9.3-5).
+ * ORG_PER_HIT_E3 org and HP_PER_HIT_E3 HP a hit, less the share `protectPm`
+ * armour stops (armorProtectPm).
  */
 export function roundDamage(
   hitsCenti: number,
-  armorHalved: boolean,
+  protectPm = 0,
 ): { orgMilli: number; hpMilli: number } {
   let org = Math.floor(
     (hitsCenti * WW_ROUND_HOUR_MILLI * ORG_PER_HIT_E3) / 100_000,
@@ -231,9 +259,9 @@ export function roundDamage(
   let hp = Math.floor(
     (hitsCenti * WW_ROUND_HOUR_MILLI * HP_PER_HIT_E3) / 100_000,
   );
-  if (armorHalved) {
-    org = Math.floor(org / 2);
-    hp = Math.floor(hp / 2);
+  if (protectPm > 0) {
+    org = Math.floor((org * (1000 - protectPm)) / 1000);
+    hp = Math.floor((hp * (1000 - protectPm)) / 1000);
   }
   return { orgMilli: org, hpMilli: hp };
 }
@@ -251,11 +279,16 @@ export function combineMods(
   return Math.floor(((10_000 + up) * (10_000 + down)) / 10_000);
 }
 
-/** Spec §9.2: −2% attack for every 1% of width over the line. */
+/** ww67: the most an overfull line loses, bp (the owner's terrain cap). */
+export const EXCESS_WIDTH_MAX_BP = 1000;
+
+/** Spec §9.2: −2% attack for every 1% of width over the line; ww67: at most −10 %. */
 export function excessWidthBp(usedWidth: number, width: number): number {
   const over = Math.max(0, usedWidth - width);
   // (0, not −0, when the line fits.)
-  return width <= 0 || over === 0 ? 0 : -Math.floor((over * 20_000) / width);
+  return width <= 0 || over === 0
+    ? 0
+    : -Math.min(EXCESS_WIDTH_MAX_BP, Math.floor((over * 20_000) / width));
 }
 
 /** Spec §5.4: recruit, regular, veteran, elite. */
@@ -441,7 +474,7 @@ export function divisionMods(i: ModInput): ModResult {
   push(
     aAdd,
     "mountain",
-    has(i.flags, TPL_MOUNTAIN_MAJOR) && hillsOrMountain ? 2500 : 0,
+    has(i.flags, TPL_MOUNTAIN_MAJOR) && hillsOrMountain ? 1000 : 0,
   );
   push(
     aAdd,
@@ -451,9 +484,9 @@ export function divisionMods(i: ModInput): ModResult {
   if (i.attacking) {
     if (has(i.flags, TPL_ARMOR_MAJOR)) {
       if (i.land === "plains" || i.land === "desert") {
-        push(aAdd, "armor_terrain", 1000);
+        push(aAdd, "armor_terrain", 500);
       } else {
-        push(aCut, "armor_terrain", -2000);
+        push(aCut, "armor_terrain", -500);
       }
     }
     push(aCut, "terrain", TERRAIN[i.land].attackBp);
@@ -519,6 +552,9 @@ export function divisionMods(i: ModInput): ModResult {
   // P6 (spec §4.2 guerrilla_fighter): supply penalties halved. One source:
   // lane D's commandLandMods sets halfSupply for the trait.
   if (i.halfSupply) supplyCut = halve(supplyCut, 1);
+  // ww67: a pocket takes its encircled line only. With the supply cut on top
+  // it stood at the −90 % floor at once and fell for almost no casualties.
+  if (i.encircled) supplyCut = 0;
   push(aCut, "supply", supplyCut);
   push(aCut, "encircled", i.encircled ? -5000 : 0);
   // P4 (spec §14.6, §15.4, §11.4).
@@ -598,7 +634,7 @@ export function divisionMods(i: ModInput): ModResult {
   push(
     dAdd,
     "mountain",
-    has(i.flags, TPL_MOUNTAIN_MAJOR) && hillsOrMountain ? 1000 : 0,
+    has(i.flags, TPL_MOUNTAIN_MAJOR) && hillsOrMountain ? 500 : 0,
   );
   push(dCut, "supply", supplyCut);
   push(dCut, "encircled", i.encircled ? -5000 : 0);
@@ -713,26 +749,29 @@ export function predictBattle(
     ctx.defenderAttackBp,
   );
   const dA = applyBp(per(att.brk, att.divisions), ctx.attackerBlockBp);
-  // ww7: the defenders of an urban region take 15% less org damage.
+  // ww7: the defenders of an urban region take less org damage.
   const toDef = defenderOrgDamage(
     ctx.land,
     roundDamage(
       roundHits(aA, dD, ctx.defenderPrepBp ?? 0),
-      def.armor > att.pierce,
+      armorProtectPm(def.armor, def.hardnessPm, att.pierce),
     ).orgMilli,
   );
-  const toAtt = roundDamage(roundHits(aD, dA), att.armor > def.pierce).orgMilli;
+  const toAtt = roundDamage(
+    roundHits(aD, dA),
+    armorProtectPm(att.armor, att.hardnessPm, def.pierce),
+  ).orgMilli;
   // ww8: close air support, a round's hits on one division with no block value.
   const casDef = ctx.casAttCenti ?? 0;
   const casAtt = ctx.casDefCenti ?? 0;
   const dmgDef =
     Math.floor((toDef * lineA) / 1000) +
     (casDef > 0
-      ? defenderOrgDamage(ctx.land, roundDamage(casDef, false).orgMilli)
+      ? defenderOrgDamage(ctx.land, roundDamage(casDef).orgMilli)
       : 0);
   const dmgAtt =
     Math.floor((toAtt * lineD) / 1000) +
-    (casAtt > 0 ? roundDamage(casAtt, false).orgMilli : 0);
+    (casAtt > 0 ? roundDamage(casAtt).orgMilli : 0);
   const rounds = dmgDef <= 0 ? 999_999 : Math.ceil(def.orgMilli / dmgDef);
   const ratioPm =
     dmgAtt <= 0
@@ -762,9 +801,9 @@ export function predictBattle(
  * rivers, forts, entrenchment, one or two directions), buckets them by the
  * predicted ratio's log, fits a monotone curve (pool adjacent violators) and
  * prints WIN_PCT_AT; paste it here. The fit is deterministic (seed 1). The
- * current table (ww7 lane F, `--duels 6000`), the attacker won 40.3 %: the
- * even fight is won half the time, 1.2 seven in ten, 1.4 six in seven, 2
- * nearly always, 0.7 one in seven.
+ * current table (ww67, `--duels 6000`), the attacker won 52.1 %: the even
+ * fight is won a little over half the time, 1.2 seven in ten, 1.4 nine in
+ * ten, 2 nearly always, 0.7 one in sixteen.
  */
 export const WIN_RATIO_AT_PM: readonly number[] = [
   63, 74, 88, 105, 125, 149, 177, 210, 250, 297, 354, 420, 500, 595, 707, 841,
@@ -772,8 +811,8 @@ export const WIN_RATIO_AT_PM: readonly number[] = [
   9514, 11314, 13454, 16000,
 ];
 export const WIN_PCT_AT: readonly number[] = [
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 8, 14, 29, 52, 70, 85, 96, 98, 100,
-  100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 6, 6, 26, 54, 72, 88, 96, 99, 100, 100,
+  100, 100, 100, 100, 100, 100, 100, 100, 100, 100,
 ];
 
 export function winPctOf(ratioPm: number): number {

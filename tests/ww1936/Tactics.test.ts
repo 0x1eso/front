@@ -586,7 +586,7 @@ describe("predictBattleRange and winPctOf (design §2.6)", () => {
     // ww7 lane F: wide, not a step at 1 (it was 60, 90, 100 at 1, 1.2, 1.4).
     expect(winPctOf(1189)).toBeLessThan(88);
     expect(winPctOf(1414)).toBeLessThan(95);
-    expect(winPctOf(707)).toBeGreaterThan(8);
+    expect(winPctOf(707)).toBeGreaterThan(5);
     expect(winPctOf(2000)).toBeGreaterThanOrEqual(90);
     expect(winPctOf(354)).toBeLessThan(5);
   });

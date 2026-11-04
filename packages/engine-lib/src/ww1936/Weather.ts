@@ -12,13 +12,15 @@ export interface WeatherDef {
   supplyPct: number;
 }
 
+// ww67 (owner): weather must not call for its own army. The attack cut stops
+// at −10 %, attrition at 0.1 % a day, supply at 90 %; speed keeps its numbers.
 export const WEATHER: Readonly<Record<Weather, WeatherDef>> = {
   clear: { movePct: 100, attackBp: 0, attritionPm: 0, supplyPct: 100 },
   rain: { movePct: 80, attackBp: -1000, attritionPm: 0, supplyPct: 90 },
-  mud: { movePct: 50, attackBp: -2000, attritionPm: 0, supplyPct: 75 },
-  snow: { movePct: 70, attackBp: -1000, attritionPm: 2, supplyPct: 80 },
-  frozen: { movePct: 60, attackBp: -3000, attritionPm: 5, supplyPct: 70 },
-  heat: { movePct: 90, attackBp: -1000, attritionPm: 3, supplyPct: 100 },
+  mud: { movePct: 50, attackBp: -1000, attritionPm: 0, supplyPct: 90 },
+  snow: { movePct: 70, attackBp: -1000, attritionPm: 1, supplyPct: 90 },
+  frozen: { movePct: 60, attackBp: -1000, attritionPm: 1, supplyPct: 90 },
+  heat: { movePct: 90, attackBp: -1000, attritionPm: 1, supplyPct: 100 },
 };
 
 export type Climate =

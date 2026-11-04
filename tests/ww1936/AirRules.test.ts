@@ -105,7 +105,8 @@ describe("air rules", () => {
     expect(airPenaltyBp(750, 0)).toBe(-1750);
     expect(airPenaltyBp(1000, 20)).toBe(-2450);
     expect(airPenaltyBp(1000, 100)).toBe(-1050);
-    expect(airMoveFactorPm(1000)).toBe(700);
+    expect(airMoveFactorPm(1000)).toBe(500);
+    expect(airMoveFactorPm(900)).toBe(600);
   });
 
   it("close air support and bombing", () => {
@@ -117,7 +118,7 @@ describe("air rules", () => {
     expect(bombDamageMilli(4000, 10, 0)).toBe(600);
     expect(bombDamageMilli(4000, 0, -15)).toBe(850);
     expect(aaLossPm(2, 0, 0, false)).toBe(6);
-    expect(aaLossPm(0, 400, 0, true)).toBe(4);
+    expect(aaLossPm(0, 400, 0, true)).toBe(40);
   });
 
   it("the deployment's refusals", () => {

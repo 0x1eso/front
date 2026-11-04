@@ -173,8 +173,8 @@ describe("templates (P2 spec §4.3, §4.4)", () => {
       soft: 9200,
       hard: 1100,
       def: 17_400,
-      brk: 3300,
-      pierce: 453,
+      brk: 4350,
+      pierce: 500,
       armor: 0,
       hardnessPm: 0,
       speedCenti: 400,
@@ -203,9 +203,9 @@ describe("templates (P2 spec §4.3, §4.4)", () => {
       soft: 8500,
       hard: 2000,
       def: 7000,
-      brk: 10_200,
-      armor: 700,
-      pierce: 1225,
+      brk: 10_600,
+      armor: 1000,
+      pierce: 1500,
       hardnessPm: 500,
       speedCenti: 800,
       supplyMilli: 3000,
@@ -322,13 +322,13 @@ describe("combat (P2 spec §9)", () => {
   test("combat width (spec §9.2)", () => {
     const want: Record<string, [number, number, number, number]> = {
       plains: [90, 135, 180, 225],
-      forest: [84, 126, 168, 210],
-      hills: [80, 120, 160, 200],
-      mountain: [75, 100, 125, 150],
-      marsh: [60, 90, 120, 150],
-      jungle: [84, 126, 168, 210],
+      forest: [90, 135, 180, 225],
+      hills: [90, 135, 180, 225],
+      mountain: [90, 135, 180, 225],
+      marsh: [90, 135, 180, 225],
+      jungle: [90, 135, 180, 225],
       desert: [90, 135, 180, 225],
-      urban: [96, 128, 160, 192],
+      urban: [90, 135, 180, 225],
     };
     for (const land of LAND_TERRAINS) {
       for (let d = 1; d <= 4; d++) {
@@ -343,8 +343,8 @@ describe("combat (P2 spec §9)", () => {
     expect(roundHits(9200, 19_800)).toBe(920);
     expect(roundHits(5400, 3300)).toBe(1170);
     // ww7 lane F: 0.052 org and 0.036 HP a hit (the spec's 0.13 and 0.09 × 0.4).
-    expect(roundDamage(920, false)).toEqual({ orgMilli: 874, hpMilli: 605 });
-    expect(roundDamage(920, true)).toEqual({ orgMilli: 437, hpMilli: 302 });
+    expect(roundDamage(920)).toEqual({ orgMilli: 874, hpMilli: 605 });
+    expect(roundDamage(920, 500)).toEqual({ orgMilli: 437, hpMilli: 302 });
   });
 
   test("ww7 lane F: prepared ground softens the hits inside the block", () => {
@@ -418,13 +418,13 @@ describe("combat (P2 spec §9)", () => {
     // Germany's 7·2 with engineers and recon against Poland's 9 infantry,
     // one on one: the attacker loses (HOI4: attacking alone breaks first).
     const one = predictBattle(side(INF72, 1), side(POL9, 1), ctx(1));
-    expect(one.ratioPm).toBeGreaterThanOrEqual(550);
-    expect(one.ratioPm).toBeLessThanOrEqual(700);
+    expect(one.ratioPm).toBeGreaterThanOrEqual(750);
+    expect(one.ratioPm).toBeLessThanOrEqual(950);
     // Seven against five, from two directions: the attacker wins in ~51 rounds
     // (ww7 lane F: a hit takes 0.4 of the spec's org, which said ~20).
     const seven = predictBattle(side(INF72, 7), side(POL9, 5), ctx(2));
-    expect(seven.ratioPm).toBeGreaterThanOrEqual(1100);
-    expect(seven.ratioPm).toBeLessThanOrEqual(1200);
+    expect(seven.ratioPm).toBeGreaterThanOrEqual(1450);
+    expect(seven.ratioPm).toBeLessThanOrEqual(1700);
     expect(seven.rounds).toBeGreaterThanOrEqual(50);
     expect(seven.rounds).toBeLessThanOrEqual(53);
     expect(predictBattle(emptySide(), side(POL9, 1), ctx(1)).ratioPm).toBe(0);

@@ -142,10 +142,10 @@ describe("the land war under enemy air superiority (spec §14.6)", () => {
     expect(modInputOf(l, rowG, WARSAW, true).airBp).toBe(0);
   }, 60_000);
 
-  it("movement slows up to 30%", async () => {
+  it("movement slows up to 50%", async () => {
     const { ww, side } = await germanSky();
     const hooks = ww.land.hooks;
-    expect(hooks.airMoveFactorPm(WARSAW, side.pol)).toBe(700);
+    expect(hooks.airMoveFactorPm(WARSAW, side.pol)).toBe(500);
     expect(hooks.airMoveFactorPm(WARSAW, side.deu)).toBe(1000);
     // The West's sky is nobody's.
     expect(hooks.airMoveFactorPm(REGION.paris, side.pol)).toBe(1000);
