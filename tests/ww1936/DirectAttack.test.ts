@@ -87,6 +87,24 @@ describe("ww42: direct attack", () => {
     expect(battleSeen(c, WARSAW, 20)).toBe(true);
   }, 120_000);
 
+  test("ww46: an empty target is walked into by every free division the same day", async () => {
+    const c = await atWar();
+    const a = placeArmy(c.g, "DEU", BERLIN, 4);
+    orgSet(c, a.divisions[3], 10);
+    expect(go(c, a.id, { targets: [WARSAW] })).toBe(null);
+    step(c.runner, 2);
+    const t = c.l.divisions;
+    const toward = a.divisions.filter((id) => {
+      const r = t.rowOf(id);
+      return t.dest[r] === WARSAW || t.region[r] === WARSAW;
+    });
+    // Both divisions the layout put in Berlin (next to Warsaw) go together on
+    // the first day, not one after the other; Munich keeps its cover and the
+    // one under 30 % org stays to recover.
+    expect(toward.length).toBe(2);
+    expect(toward).not.toContain(a.divisions[3]);
+  }, 120_000);
+
   test("org: 30 % joins, below recovers first and joins by itself", async () => {
     const low = await atWar();
     placeArmy(low.g, "POL", WARSAW, 1);

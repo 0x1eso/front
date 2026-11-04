@@ -2,6 +2,7 @@
 // ww7: an Attack (a plan order) attacks from the axis of its zone.
 import {
   DIRECT_ADVANCE,
+  DIRECT_ALL_IN,
   DIRECT_FAVORABLE,
   idleOrder,
   MOVE_ADVANCE,
@@ -401,6 +402,27 @@ export function planDay(
       continue;
     }
     if (enemyDivisionsIn(land, me, best) === 0) {
+      // ww46: a direct attack sends every free division of the region the
+      // same day, without waiting for the one ahead to arrive. A division
+      // below 30 % org stays to recover; an off-axis region keeps its last
+      // division unless [전부 공격] is on; one in a battle stays in it.
+      if (direct) {
+        const go = here
+          .filter(
+            (r) =>
+              t.battle[r] === 0 &&
+              t.org[r] * 100 >= land.orgMaxOf(r) * ATTACK_LEAVE_PCT,
+          )
+          .sort(
+            (x, y) =>
+              land.baseStatsOf(y).speedCenti - land.baseStatsOf(x).speedCenti ||
+              t.id[x] - t.id[y],
+          );
+        const allIn = (army.dflags & DIRECT_ALL_IN) !== 0;
+        if (!onAxis && !allIn && go.length === here.length) go.pop();
+        for (const r of go) startHopInto(land, r, best, MOVE_WALK);
+        continue;
+      }
       // Spec §7.7: walk into an empty enemy region, one division (the
       // fastest, then the smaller id), unless one is on its way already. A
       // region off the axis keeps its last division.
