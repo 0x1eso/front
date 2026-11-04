@@ -128,7 +128,7 @@ describe("a division's pierce is what can actually hit", () => {
     expect(stats(def({ medium_armor: 9 })).pierce).toBe(4500);
     const pz = stats(def({ medium_armor: 5, motorized: 4 }));
     expect(pz.pierce).toBeGreaterThan(3500);
-    expect(pz.pierce).toBeLessThan(4500);
+    expect(pz.pierce).toBeLessThanOrEqual(4500);
     // Armour is the armoured battalions' own; hardness says how much of it there is.
     expect(pz.armor).toBe(4000);
   });

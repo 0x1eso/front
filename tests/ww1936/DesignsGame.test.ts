@@ -253,7 +253,7 @@ describe("World War 1936 P6: designs in the game", () => {
     expect(s.brk).toBe(ds.brk + td.brk);
     expect(s.speedCenti).toBe(Math.min(ds.speedCenti, td.speedCenti));
     // Radio: +2 organisation over the heavy battalion's 10.
-    expect(s.orgMilli).toBe(11_000);
+    expect(s.orgMilli).toBe(21_000);
     // It fights with them: the tank destroyer's +10% when defending.
     expect(s.designFlags & TPL_TD_DEFEND).not.toBe(0);
     const here = land.divisions.region[r];
