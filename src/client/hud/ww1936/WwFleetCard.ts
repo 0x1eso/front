@@ -44,7 +44,7 @@ import {
   navyCtx,
   NavyGame,
   SHIP_ICONS,
-  shipGenName,
+  shipDesignLabel,
   shipName,
   splitOrder,
   srName,
@@ -554,7 +554,9 @@ export class WwFleetCard extends LitElement implements Controller {
             <span class="min-w-0 flex-1 truncate"
               >${shipName(c.ctx.scenario, s)}</span
             >
-            <span class="shrink-0 text-white/60">${shipGenName(s.gen)}</span>
+            <span class="shrink-0 text-white/60"
+              >${shipDesignLabel(c.ctx, s)}</span
+            >
             <span class="w-10 shrink-0 text-right tabular-nums"
               >${Math.round(s.hpPm / 10)}%</span
             >

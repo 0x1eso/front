@@ -7,7 +7,7 @@ import { histOwn } from "@openfront/engine-lib/ww1936/hist/Slots";
 import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSource";
 import { DEEP } from "./deepFixture";
 import { depthFixture } from "./depthFixture";
-import { HUMAN, step, stepTo, wwRunner } from "./util";
+import { clearStartSetup, HUMAN, order, step, stepTo, wwRunner } from "./util";
 
 beforeEach(() => usePoliticsContent(depthFixture()));
 afterEach(() => usePoliticsContent(null));
@@ -241,5 +241,74 @@ describe("start stock", () => {
         expect(d.designSlot(DEU, "plane", i + 1)!.def.hist).toBe(e.id);
       }
     });
+  });
+});
+
+// ww73: a catalogue line is never slower than the generic line of its type.
+describe("catalogue line against the generic line", () => {
+  test("the Panzer II line asks what the generic light tank asks and makes as many", async () => {
+    const { equipKey } =
+      await import("@openfront/engine-api/ww1936/EconomyTypes");
+    const { equipResources } =
+      await import("@openfront/engine/ww1936/depth/Designs");
+    const run = async (hist: boolean) => {
+      const { runner, ww, d } = await game(false);
+      const ce = ww.economy.country(DEU)!;
+      clearStartSetup(ww.economy, ce);
+      const own = histOwn("DEU", "tank");
+      const slot = own.findIndex((e) => e.id === "deu_pz2_c") + 1;
+      for (const t of own[slot - 1].techs) ce.addTech(t);
+      step(runner, 20);
+      const equipment = hist ? "tank_design" : "light_tank";
+      const gen = hist ? slot : 1;
+      const key = equipKey(equipment, gen);
+      const before = ce.stock[key];
+      step(runner, 1, [
+        order(HUMAN, { kind: "add_line", equipment, gen, factories: 4 }),
+      ]);
+      step(runner, 600);
+      const line = ce.lines[0];
+      return {
+        per: equipResources(d, DEU, key),
+        made: ce.stock[key] - before,
+        active: line.active,
+        eff: line.effBp,
+      };
+    };
+    const generic = await run(false);
+    const hist = await run(true);
+    expect(hist.per).toEqual(generic.per);
+    expect(hist.active).toBe(generic.active);
+    expect(hist.eff).toBe(generic.eff);
+    expect(hist.made).toBeGreaterThanOrEqual(generic.made);
+    expect(hist.made).toBeGreaterThan(0);
+  });
+});
+
+describe("designer-only notices", () => {
+  test("with the designer off a new chassis or airframe is not announced", async () => {
+    const { noteNewChassis } =
+      await import("@openfront/engine/ww1936/depth/DesignCells");
+    const { noteNewAirframe } =
+      await import("@openfront/engine/ww1936/depth/PlaneCells");
+    const { TANK_BASE_DEFS } =
+      await import("@openfront/engine-lib/ww1936/DesignRules");
+    const { PLANE_BASE_DEFS } =
+      await import("@openfront/engine-lib/ww1936/DesignRules");
+    const { runner, ww, d } = await game(false);
+    const ce = ww.economy.country(DEU)!;
+    for (const t of histOwn("DEU", "tank")[0].techs) ce.addTech(t);
+    for (const t of histOwn("DEU", "plane")[0].techs) ce.addTech(t);
+    step(runner, 20);
+    // The country holds own slots, which is what used to trigger the notice.
+    expect(d.country(DEU)!.des.tank.some((s) => s?.origin === "own")).toBe(
+      true,
+    );
+    const spy = vi.spyOn(d, "message");
+    const tank = Object.values(TANK_BASE_DEFS)[1].tech;
+    const plane = Object.values(PLANE_BASE_DEFS)[1].tech!;
+    noteNewChassis(d, DEU, tank);
+    noteNewAirframe(d, DEU, plane);
+    expect(spy).not.toHaveBeenCalled();
   });
 });

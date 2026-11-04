@@ -24,6 +24,7 @@ import { staticPartnerOfCell } from "@openfront/engine-lib/ww1936/PlaneScore";
 import { planeDesignIsOld } from "../air/DesignPlanes";
 import { changeLine } from "../economy/Production";
 import { copyDef, designHeld, freeSlot, saveDesign } from "./Designs";
+import { designerOn } from "./Hist";
 import type { WwDepth } from "./WwDepth";
 
 /** Two plane designs fill the same cell: the same plane type on the same airframe. */
@@ -198,6 +199,8 @@ export function planeDesignOld(d: WwDepth, id: number, slot: number): boolean {
  * plane design of its own — a new airframe is available. No world news.
  */
 export function noteNewAirframe(d: WwDepth, id: number, tech: WwTechId): void {
+  // Designer off: the catalogue has no chassis to announce.
+  if (!designerOn(d)) return;
   const base = Object.keys(PLANE_BASE_DEFS).find(
     (b) => PLANE_BASE_DEFS[b].tech === tech,
   );

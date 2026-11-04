@@ -7,8 +7,8 @@
 // 9 x 16 in on 36,000 t with a 300 mm belt is the generation-1 battleship
 // (hp 150, heavy 50, armour 50).
 import type { ShipStats } from "@openfront/engine-api/ww1936/NavyTypes";
-import { SHIP_BASE } from "../ShipStats";
-import { scaledCost } from "./ConvertCost";
+import { lineUnitCost, SHIP_BASE } from "../ShipStats";
+import { genOfTechs, scaledCost } from "./ConvertCost";
 import { interp, isqrt, roundInt, Table } from "./Num";
 import { HistShipClass, ShipEntry } from "./Types";
 
@@ -180,9 +180,14 @@ export function shipStatsOfEntry(e: ShipEntry): ShipStats {
     subDetect: b.subDetect,
     deck: e.cls === "cv" ? s.aircraft : 0,
     fuelPerDayMilli: b.fuelPerDay * 1000,
-    cost: Math.max(
-      300,
-      scaledCost(SHIP_COST[e.cls].anchor, s.costM, SHIP_COST[e.cls].refM),
+    // w73: never dearer than the generic ship of its class and generation
+    // (the techs say which), so a yard is never slower than in the old game.
+    cost: Math.min(
+      lineUnitCost(e.cls, genOfTechs(e.techs, e.cls)),
+      Math.max(
+        300,
+        scaledCost(SHIP_COST[e.cls].anchor, s.costM, SHIP_COST[e.cls].refM),
+      ),
     ),
     supWeight: b.supWeight,
   };

@@ -1808,6 +1808,7 @@ export class WwNavy {
           nameIdx: t.nameIdx[r],
           nameOwner: t.nameOwner[r],
           hpPm: s.hpMilli === 0 ? 0 : Math.floor((t.hp[r] * 1000) / s.hpMilli),
+          ...(t.design[r] > 0 ? { design: t.design[r] } : {}),
         });
       }
     }

@@ -22,6 +22,7 @@ import {
 import { oldInfoOf } from "@openfront/engine-lib/ww1936/TemplateStats";
 import { changeLine } from "../economy/Production";
 import { copyDef, designHeld, freeSlot, saveDesign } from "./Designs";
+import { designerOn } from "./Hist";
 import type { WwDepth } from "./WwDepth";
 
 /** Two tank designs fill the same cell: the same role on the same chassis. */
@@ -177,6 +178,8 @@ export function designIsOld(d: WwDepth, id: number, slot: number): boolean {
  * itself; no world news.
  */
 export function noteNewChassis(d: WwDepth, id: number, tech: WwTechId): void {
+  // Designer off: the catalogue has no chassis to announce.
+  if (!designerOn(d)) return;
   const base = Object.keys(TANK_BASE_DEFS).find(
     (b) => TANK_BASE_DEFS[b].tech === tech,
   );

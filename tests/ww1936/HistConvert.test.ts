@@ -173,8 +173,11 @@ describe("hist conversions", () => {
     const order = [
       "sun_t34_43",
       "usa_m4a1_sherman",
-      "usa_m26_pershing",
+      // ww73: a medium never costs more than the generic medium of its
+      // generation (18,000 at the third), so the Panther sits under the
+      // heavies that have no generic twin.
       "deu_panther_a",
+      "usa_m26_pershing",
       "deu_tiger1_e",
     ].map(tk);
     expect([...order].sort((a, b) => a - b)).toEqual(order);
@@ -455,7 +458,8 @@ describe("hist conversions", () => {
     expect(med(dds)).toBeLessThanOrEqual(1440);
     const pl = (id: string) =>
       planeStatsOfEntry(histEntry(id) as PlaneEntry).costMilli;
-    expect(pl("usa_b29") / pl("usa_b17g")).toBeGreaterThan(1.5);
+    // ww73: held to the generic strategic bomber of its generation (72,000).
+    expect(pl("usa_b29") / pl("usa_b17g")).toBeGreaterThan(1.3);
     expect(pl("usa_b29") / pl("usa_b17g")).toBeLessThan(3);
     expect(pl("usa_b29")).toBeLessThan(150_000);
   });
@@ -487,5 +491,80 @@ describe("slots and static names", () => {
     expect(histStaticName("DEU", "convoy", 1)).toBeNull();
     expect(histEntriesGatedBy("heavy_tank_1", "DEU").length).toBeGreaterThan(0);
     expect(histEntriesGatedBy("no_such_tech").length).toBe(0);
+  });
+});
+
+// ww73: production must not be slower than the old generic game.
+describe("no slower than the generic item of the same type and generation", () => {
+  test("light and medium tanks and every plane: cost and resources per factory", async () => {
+    const { EQUIPMENT, unitCostMilli } =
+      await import("@openfront/engine-lib/ww1936/Equipment");
+    const { genOfTechs } =
+      await import("@openfront/engine-lib/ww1936/hist/ConvertCost");
+    let checked = 0;
+    for (const e of HIST_ALL) {
+      let type: keyof typeof EQUIPMENT | null = null;
+      let prefix = "";
+      if (e.family === "tank" && (e.role === "light" || e.role === "medium")) {
+        type = e.role === "light" ? "light_tank" : "medium_tank";
+        prefix = type;
+      } else if (e.family === "plane") {
+        type = e.type;
+        prefix = e.type.replace(/^cv_/, "");
+      } else if (e.family === "tank") {
+        // No generic twin for the heavy and special roles, but never a resource
+        // the generic medium tank does not ask for (rubber, tungsten).
+        const s = tankStatsOfEntry(e);
+        const g = EQUIPMENT.medium_tank.resources;
+        s.resources.forEach((v, i) =>
+          expect(v, e.id).toBeLessThanOrEqual(g[i]),
+        );
+      }
+      if (type === null) continue;
+      const s = histStatsOf(e) as { costMilli: number; resources: number[] };
+      expect(s.costMilli, e.id).toBeLessThanOrEqual(
+        unitCostMilli(type, genOfTechs(e.techs, prefix)),
+      );
+      s.resources.forEach((v, i) =>
+        expect(v, `${e.id} resource ${i}`).toBeLessThanOrEqual(
+          EQUIPMENT[type!].resources[i],
+        ),
+      );
+      checked++;
+    }
+    expect(checked).toBeGreaterThan(100);
+  });
+
+  test("the German armoured cars need no rubber and the Panzer II costs the generic light tank", async () => {
+    const { EQUIPMENT } =
+      await import("@openfront/engine-lib/ww1936/Equipment");
+    const pz2 = tankStatsOfEntry(histEntry("deu_pz2_c") as TankEntry);
+    expect(pz2.costMilli).toBeLessThanOrEqual(8000);
+    expect(pz2.resources).toEqual([...EQUIPMENT.light_tank.resources]);
+    const car = tankStatsOfEntry(histEntry("deu_sdkfz231") as TankEntry);
+    expect(car.costMilli).toBeLessThanOrEqual(8000);
+    expect(car.resources).toEqual([...EQUIPMENT.light_tank.resources]);
+  });
+
+  test("every ship: the yard days of the line are never above the generic class and generation", async () => {
+    const { genOfTechs } =
+      await import("@openfront/engine-lib/ww1936/hist/ConvertCost");
+    const { histShipMods } =
+      await import("@openfront/engine-lib/ww1936/hist/AsDesign");
+    const { lineUnitCost } =
+      await import("@openfront/engine-lib/ww1936/ShipStats");
+    let n = 0;
+    for (const e of HIST_ALL) {
+      if (e.family !== "ship") continue;
+      // The line is a generation-1 line of the class with the entry as its design.
+      const lineCost = Math.floor(
+        (lineUnitCost(e.cls, 1) * (100 + histShipMods(e).costPct)) / 100,
+      );
+      const generic = lineUnitCost(e.cls, genOfTechs(e.techs, e.cls));
+      // A percent rounding of one in a hundred at most.
+      expect(lineCost, e.id).toBeLessThanOrEqual(Math.ceil(generic * 1.01));
+      n++;
+    }
+    expect(n).toBeGreaterThan(60);
   });
 });

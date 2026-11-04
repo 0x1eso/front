@@ -218,6 +218,8 @@ export interface FleetShipData {
   /** The country whose name list nameIdx is of (a transferred ship keeps its name). */
   nameOwner: number;
   hpPm: number;
+  /** The ship's design slot (a catalogue class or a saved design); absent: the base class. */
+  design?: number;
 }
 export interface FleetSummary {
   id: number;

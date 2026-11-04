@@ -1,7 +1,10 @@
+import { CONTENT } from "@openfront/engine-lib/ww1936/content/registry";
+import fs from "fs";
 import { describe, expect, it } from "vitest";
 import {
   focusGroups,
   groupKey,
+  groupLabel,
   hiddenCards,
   recommendedIndex,
   searchMatches,
@@ -39,5 +42,30 @@ describe("FocusGroups", () => {
     expect(
       recommendedIndex(tree, [FOCUS_DONE, FOCUS_PREREQ, 0], ["a", "b"]),
     ).toBe(-1);
+  });
+});
+
+// ww73: the group headers were English words cut from the id.
+describe("group labels", () => {
+  const lang = (f: string) =>
+    JSON.parse(fs.readFileSync(`resources/lang/${f}.json`, "utf8")).ww1936
+      .focusui.group as Record<string, string>;
+  it("every focus group has an English and a Korean name", () => {
+    const en = lang("en");
+    const ko = lang("ko");
+    const ids = new Set(
+      CONTENT.focuses
+        .map((f) => groupKey(f))
+        .filter((k) => !k.startsWith("branch:")),
+    );
+    expect(ids.size).toBeGreaterThan(60);
+    for (const id of ids) {
+      expect(en[id], id).toBeTruthy();
+      expect(ko[id], id).toMatch(/[가-힣0-9]/);
+    }
+  });
+  it("an id with no entry reads as words with a capital", () => {
+    expect(groupLabel("deu_unlisted_group")).toBe("Unlisted group");
+    expect(groupLabel("branch:army")).toBe("army");
   });
 });
