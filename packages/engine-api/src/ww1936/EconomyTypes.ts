@@ -153,7 +153,8 @@ export const LEVEL_MAX: Readonly<Partial<Record<BuildingId, number>>> = {
   rail: 5,
   supply_hub: 1,
   naval_base: 10,
-  air_base: 10,
+  // w50: a base is built or not (level 1), no capacity to grow.
+  air_base: 1,
   anti_air: 5,
   radar: 3,
   coastal_fort: 5,

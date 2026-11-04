@@ -256,7 +256,8 @@ describe("the order judge (design §3.3)", () => {
     expect(j({ carrier: true })).toBe("bad_air_mission");
     expect(j({ isBase: false })).toBe("no_air_base");
     expect(j({ ownSide: false })).toBe("not_controlled");
-    expect(j({ room: 149 })).toBe("base_full");
+    // w50: a base holds any number of planes.
+    expect(j({ room: 149 })).toBeNull();
   });
 });
 

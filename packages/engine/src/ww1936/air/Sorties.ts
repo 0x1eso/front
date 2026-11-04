@@ -747,7 +747,7 @@ function launchSortie(air: WwAir, w: Wing, tick: number, day: number): boolean {
   if (carrier ? !syncDeck(air, w) : w.base <= 0) return false;
   const planes = wingPlanes(w);
   if (planes <= 0) return false;
-  if (!carrier && wingUnderStrength(AIR_TYPES[w.type], planes)) {
+  if (!carrier && wingUnderStrength(AIR_TYPES[w.type], planes, w.fullMax)) {
     if (w.noticeDay < 0 || day - w.noticeDay >= WING_NOTICE_DAYS) {
       w.noticeDay = day;
       air.message(w.owner, "events_display.ww1936_wing_understrength", {
@@ -860,7 +860,12 @@ function launchEscorts(
       e.phase === WP_GROUND || (e.phase === WP_REARM && e.until <= tick);
     if (!ready || e.base <= 0) continue;
     const planes = wingPlanes(e);
-    if (planes <= 0 || wingUnderStrength(AIR_TYPES[e.type], planes)) continue;
+    if (
+      planes <= 0 ||
+      wingUnderStrength(AIR_TYPES[e.type], planes, e.fullMax)
+    ) {
+      continue;
+    }
     if (sc.targetKm(e.base, bomber.hit) > wingStats(air, e).rangeKm) continue;
     launch(
       air,
@@ -892,7 +897,6 @@ function moveUpToArmy(
   const range = wingStats(air, w).rangeKm;
   for (const { base } of basesInRange(air, side, sc.targetSr(hit), range)) {
     if (base === w.base || sc.targetKm(base, hit) > range) continue;
-    if (air.baseCapacity(base) - air.baseUse(base) < planes) continue;
     issueWingBase(
       air,
       w.owner,

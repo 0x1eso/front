@@ -662,7 +662,8 @@ export class WwEconomy {
       this.controller[r.id] = owners[r.id];
       // P4 spec §6.4, §12.1: the v4 start levels (or plan decision 6's formulas).
       this.p4Levels.naval_base[r.id] = scenario.startNavalBase(r.id);
-      this.p4Levels.air_base[r.id] = scenario.startAirBase(r.id);
+      // w50: a base is level 0 or 1.
+      this.p4Levels.air_base[r.id] = Math.min(1, scenario.startAirBase(r.id));
       this.p4Levels.anti_air[r.id] = scenario.startAa(r.id);
       this.p4Levels.coastal_fort[r.id] = scenario.startCoastalFort(r.id);
     }

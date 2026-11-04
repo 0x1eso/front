@@ -709,7 +709,22 @@ export class WwAir {
     return n;
   }
 
-  /** Spec §13.3: level × 200 less the bomb damage (whole and partial levels). */
+  /**
+   * w50: a base can be used: an air_base with damage short of its level, or
+   * a ready field strip. There is no limit on the planes it holds.
+   */
+  baseUsable(region: number): boolean {
+    const econ = this.econ;
+    const level = econ.buildingArray("air_base")[region] ?? 0;
+    const dmg =
+      econ.damage[region * BUILDING_IDS.length + buildingIndex("air_base")] ??
+      0;
+    if (level * 1000 - dmg > 0) return true;
+    const ready = this.strips.get(region);
+    return ready !== undefined && this.mg.ticks() >= ready;
+  }
+
+  /** Spec §13.3 (the old model): level × 200 less the bomb damage (whole and partial levels). */
   baseCapacity(region: number): number {
     const econ = this.econ;
     const level = econ.buildingArray("air_base")[region] ?? 0;

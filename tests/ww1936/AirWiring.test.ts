@@ -92,14 +92,18 @@ describe("air wiring", () => {
     expect(wingSide(ww.air, vol)).toBe(ww.land.sideOf(TAG_ID.DEU));
   });
 
-  it("base capacity is level × 200 less damage", async () => {
+  it("a base is level 1 at most at the start; damage cuts it, a bombed-out one is unusable", async () => {
     const runner = await wwRunner({}, HUMANS, SEA.map);
     const ww = runner.game.worldWar()!;
-    expect(ww.air.baseCapacity(REGION.berlin)).toBe(AIR_BASE[3] * 200);
-    expect(ww.air.baseCapacity(REGION.paris)).toBe(0);
+    // The fixture's level-2 start is clamped to 1 (w50).
+    expect(AIR_BASE[3]).toBeGreaterThan(1);
+    expect(ww.economy.buildingArray("air_base")[REGION.berlin]).toBe(1);
+    expect(ww.air.baseUsable(REGION.berlin)).toBe(true);
+    expect(ww.air.baseUsable(REGION.paris)).toBe(false);
     damageBuilding(ww.economy, REGION.berlin, "air_base", 500);
-    expect(ww.air.baseCapacity(REGION.berlin)).toBe(300);
+    expect(ww.air.baseUsable(REGION.berlin)).toBe(true);
+    expect(ww.air.baseDamagePm(REGION.berlin)).toBe(500);
     damageBuilding(ww.economy, REGION.berlin, "air_base", 5000);
-    expect(ww.air.baseCapacity(REGION.berlin)).toBe(0);
+    expect(ww.air.baseUsable(REGION.berlin)).toBe(false);
   });
 });
