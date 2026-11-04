@@ -114,7 +114,7 @@ export function airPenaltyBp(enemySupPm: number, divAirAtk: number): number {
   return v === 0 ? 0 : -v;
 }
 
-/** Spec §14.6: movement into an enemy-held sky, ‰ (at most −30%). */
+/** Spec §14.6: movement into an enemy-held sky, ‰ (ww67: at most −50 %). */
 export function airMoveFactorPm(enemySupPm: number): number {
   return (
     1000 -
@@ -199,7 +199,7 @@ export function bombDamageMilli(
   );
 }
 
-/** Spec §14.4 land AA: ‰ of the attacking sorties shot down a day. */
+/** Spec §14.4 land AA: ‰ of the attacking sorties shot down a day. ww67: the divisions' anti-air kills ×10 (÷10, was ÷100). */
 export function aaLossPm(
   aaLevel: number,
   divAirAtkSum: number,
@@ -207,7 +207,7 @@ export function aaLossPm(
   cas: boolean,
 ): number {
   return Math.floor(
-    ((aaLevel * 3 + (cas ? Math.floor(divAirAtkSum / 100) : 0)) *
+    ((aaLevel * 3 + (cas ? Math.floor(divAirAtkSum / 10) : 0)) *
       (100 + aaPct)) /
       100,
   );

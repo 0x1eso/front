@@ -213,7 +213,8 @@ export const WW_AIR_PENALTY_BP_PER_PM = 7;
 export const WW_AIR_PENALTY_MAX_BP = 3_500;
 /** Spec §14.6 with the enemy's battlefield support (+5%p): −35% − 5%p. */
 export const WW_AIR_PENALTY_BONUS_MAX_BP = 4_000;
-export const WW_AIR_MOVE_PER_PM = 600;
+/** ww67: 1000 (was 600): under 90 % enemy superiority, −40 %. */
+export const WW_AIR_MOVE_PER_PM = 1000;
 export const WW_AA_CUT_MAX_PCT = 70;
 export const WW_RADAR_RANGE_KM = 300;
 export const WW_RADAR_DETECT_PM = 150;
