@@ -79,7 +79,7 @@ describe("<ww-battle-card> (spec §15.6)", () => {
     expect(
       m.q("[data-ww-battle-side='defender'] [data-ww-battle-width]")!
         .textContent,
-    ).toBe("[ww1936.land.battle_width] used=36,width=90");
+    ).toBe("[ww1936.land.battle_width] used=36,width=80");
     // Hills: the attacker's −5 %.
     const terrain = m.q("[data-ww-mods='attacker'] [data-ww-mod='terrain']")!;
     expect(terrain.textContent).toContain("[ww1936.mod.terrain]");
