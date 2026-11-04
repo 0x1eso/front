@@ -8,8 +8,9 @@
 // (hp 150, heavy 50, armour 50).
 import type { ShipStats } from "@openfront/engine-api/ww1936/NavyTypes";
 import { SHIP_BASE } from "../ShipStats";
+import { scaledCost } from "./ConvertCost";
 import { interp, isqrt, roundInt, Table } from "./Num";
-import { ShipEntry } from "./Types";
+import { HistShipClass, ShipEntry } from "./Types";
 
 /** Standard displacement (t) to hit points. */
 export const SHIP_HP: Table = [
@@ -45,7 +46,7 @@ export const SHELL_KG: Table = [
 export const SHIP_RPM: Table = [
   [76, 15],
   [102, 14],
-  [127, 10],
+  [127, 7],
   [152, 7],
   [203, 4],
   [305, 2],
@@ -87,8 +88,38 @@ const AA_TENTHS: Table = [
   [40, 24],
   [57, 40],
 ];
-/** Hull cost: naval industry points per million 1940 dollars (a $7.5M destroyer = 1,200). */
-export const SHIP_COST_PER_M = 160;
+/**
+ * Hull cost by class: the median real price of the catalogue's class
+ * (million 1940 dollars) costs the anchor, about today's generation-1 naval
+ * points (destroyer 1,200, battleship 12,500). A Yamato is about 1.4 times a
+ * typical battleship, not 2.5 (see ConvertCost).
+ */
+export const SHIP_COST: Readonly<
+  Record<HistShipClass, { refM: number; anchor: number }>
+> = {
+  dd: { refM: 5.8, anchor: 1150 },
+  cl: { refM: 19, anchor: 3300 },
+  ca: { refM: 28, anchor: 4800 },
+  bc: { refM: 66, anchor: 8800 },
+  bb: { refM: 75, anchor: 12000 },
+  cv: { refM: 45, anchor: 9000 },
+  ss: { refM: 3.8, anchor: 850 },
+};
+/**
+ * A dual-purpose mount (a 100-140 mm battery that the ship also counts as heavy AA:
+ * Fletcher's 5 in/38, Atlanta's) is power-loaded and elevates
+ * fully: double the rate of a surface-only gun of the same calibre (Fubuki's
+ * 5 in/50 managed 5 or 6 rounds a minute).
+ */
+const DP_RATE_PCT = 200;
+/** Range: up to the generic class figure as real, above it two fifths of the excess, at most twice the generic figure. */
+export function gameRangeKm(realKm: number, genericKm: number): number {
+  if (realKm <= genericKm) return realKm;
+  return Math.min(
+    genericKm * 2,
+    genericKm + Math.floor(((realKm - genericKm) * 2) / 5),
+  );
+}
 /** Torpedo divisor: tubes x warhead kg over this = points; submarines use SUB. */
 const TORP_DIV = 160;
 const TORP_DIV_SS = 70;
@@ -100,8 +131,18 @@ export const HEAVY_MM = 203;
 export function shipStatsOfEntry(e: ShipEntry): ShipStats {
   const s = e.spec;
   const b = SHIP_BASE[e.cls];
-  const kgMin = (g: { count: number; mm: number }) =>
-    g.count * interp(SHELL_KG, g.mm) * interp(SHIP_RPM, g.mm);
+  const kgMin = (g: { count: number; mm: number; rpm?: number }) => {
+    let rpm = g.rpm ?? interp(SHIP_RPM, g.mm);
+    if (
+      g.rpm === undefined &&
+      g.mm >= 100 &&
+      g.mm <= 140 &&
+      g.count <= s.aaHeavy
+    ) {
+      rpm = (rpm * DP_RATE_PCT) / 100;
+    }
+    return g.count * interp(SHELL_KG, g.mm) * rpm;
+  };
   let lightKgMin = 0;
   let heavySalvoKg = 0;
   let heavyMm = 0;
@@ -133,13 +174,16 @@ export function shipStatsOfEntry(e: ShipEntry): ShipStats {
     armor: interp(BELT_CENTI, s.beltMm),
     aa: Math.floor((aaPts10 * 2) / 5),
     speedCentiKn: roundInt(s.speedKn * 100),
-    rangeKm: Math.floor((s.rangeNm * 1852) / 1000),
+    rangeKm: gameRangeKm(Math.floor((s.rangeNm * 1852) / 1000), b.rangeKm),
     vis: b.vis,
     surfDetect: b.surfDetect,
     subDetect: b.subDetect,
     deck: e.cls === "cv" ? s.aircraft : 0,
     fuelPerDayMilli: b.fuelPerDay * 1000,
-    cost: Math.max(300, roundInt(s.costM * SHIP_COST_PER_M)),
+    cost: Math.max(
+      300,
+      scaledCost(SHIP_COST[e.cls].anchor, s.costM, SHIP_COST[e.cls].refM),
+    ),
     supWeight: b.supWeight,
   };
 }

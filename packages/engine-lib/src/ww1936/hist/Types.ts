@@ -193,10 +193,14 @@ export type HistShipClass = (typeof HIST_SHIP_CLASSES)[number];
 export interface ShipSpec {
   /** Standard displacement, tonnes (Washington standard where known). */
   dispT: number;
-  /** Main battery. */
-  main: { count: number; mm: number };
+  /**
+   * Main battery. `rpm` (optional) is the real sustained rate of one gun
+   * per minute; without it the rate follows from the calibre and, for a
+   * 100-140 mm gun on a ship with dual-purpose guns, the power-loaded mount.
+   */
+  main: { count: number; mm: number; rpm?: number };
   /** Secondary or dual-purpose battery; omit if none. */
-  secondary?: { count: number; mm: number };
+  secondary?: { count: number; mm: number; rpm?: number };
   /** Belt armour, mm (0 for unarmoured). */
   beltMm: number;
   /** Maximum speed, knots. */

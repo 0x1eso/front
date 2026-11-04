@@ -15,8 +15,9 @@ import {
   PlaneDesignStats,
 } from "@openfront/engine-api/ww1936/DepthTypes";
 import { RESOURCE_IDS } from "@openfront/engine-api/ww1936/EconomyTypes";
+import { scaledCost, softCap } from "./ConvertCost";
 import { RELIABILITY_PM } from "./ConvertTank";
-import { clampInt, interp, isqrt, resVec, roundInt, Table } from "./Num";
+import { clampInt, interp, isqrt, resVec, Table } from "./Num";
 import { GunGroup, HistAirType, PlaneEntry } from "./Types";
 
 /** Mass of one round by calibre, grams (rifle bullet to 40 mm shell). */
@@ -33,14 +34,72 @@ export const ROUND_GRAMS: Table = [
   [40, 900],
   [57, 2800],
 ];
-/** Weight of fire of a battery, grams per second. */
+/**
+ * Explosive effect of one round, percent of its mass: rifle-calibre bullets
+ * 100, a 13 mm round hardly more, a 20 mm shell with a bursting charge about
+ * twice, 30 mm and bigger mine shells 2.6 and up.
+ */
+export const EXPLOSIVE_PCT: Table = [
+  [8, 100],
+  [12, 100],
+  [13, 110],
+  [15, 130],
+  [20, 200],
+  [23, 220],
+  [30, 260],
+  [37, 300],
+  [40, 320],
+  [57, 400],
+];
+/**
+ * Muzzle velocity and hitting power of an automatic gun, percent, read from
+ * its rate of fire (the fast-firing aircraft cannon were also the fast
+ * ones: MG FF 520 rpm and 585 m/s, MG 151 700 rpm and 700 m/s, Hispano II
+ * 600 rpm and 840 m/s, Ho-5 and B-20 800+ rpm). Rifle-calibre guns are
+ * left alone: their rate is already their weight of fire.
+ */
+export const GUN_QUALITY_PCT: Table = [
+  [400, 60],
+  [520, 70],
+  [600, 100],
+  [700, 130],
+  [850, 145],
+];
+/** Weight of fire of a battery, grams per second, counting explosive effect and gun quality. */
 export function fluxGramsPerSec(guns: readonly GunGroup[]): number {
   let f = 0;
   for (const g of guns) {
-    f += (g.count * g.rpm * interp(ROUND_GRAMS, g.mm)) / 60;
+    let w = (g.count * g.rpm * interp(ROUND_GRAMS, g.mm)) / 60;
+    if (g.mm >= 15) {
+      w =
+        (w * interp(EXPLOSIVE_PCT, g.mm) * interp(GUN_QUALITY_PCT, g.rpm)) /
+        10000;
+    } else {
+      w = (w * interp(EXPLOSIVE_PCT, g.mm)) / 100;
+    }
+    f += w;
   }
   return Math.floor(f);
 }
+
+/**
+ * Share of the fixed-gun fire a role can use, percent. A fighter is its
+ * guns; a ground attacker aims them at the ground; a bomber's few fixed
+ * guns are an afterthought (the B-25J's eight .50 are a strafer's, the
+ * Tu-2's two cannon are not a fighter's).
+ */
+const GUN_USE_PCT: Readonly<Record<HistAirType, number>> = {
+  fighter: 100,
+  cv_fighter: 100,
+  heavy_fighter: 100,
+  cas: 50,
+  cv_cas: 50,
+  bomber: 15,
+  naval_bomber: 15,
+  cv_naval_bomber: 20,
+  strat_bomber: 10,
+  transport_plane: 10,
+};
 
 /** Empty mass to air defence (centi): a big airframe soaks more. */
 export const AIR_DEF_CENTI: Table = [
@@ -96,12 +155,29 @@ const STRAT_TYPES: ReadonlySet<HistAirType> = new Set([
   "naval_bomber",
 ]);
 /**
- * Milli industry points: 1.1 IC per thousand 1940 dollars, linear like tanks
- * and ships (a 20 thousand dollar fighter is 22 IC). Real price ratios.
+ * Cost by air type: the median real price of the catalogue's type (thousand
+ * 1940 dollars) costs the anchor, about today's generic generation-1 figure
+ * for the type (fighter 22, bomber 30, strategic bomber 48). Real price
+ * ratios stay, compressed at the extremes (see ConvertCost): a B-29 is about
+ * twice a B-17, not 3.3 times.
  */
-export const PLANE_COST_MILLI_PER_K = 1100;
-export function planeCostMilli(costK: number): number {
-  return roundInt(costK * PLANE_COST_MILLI_PER_K);
+export const PLANE_COST: Readonly<
+  Record<HistAirType, { refK: number; anchorMilli: number }>
+> = {
+  fighter: { refK: 32, anchorMilli: 22_500 },
+  cv_fighter: { refK: 34, anchorMilli: 25_000 },
+  heavy_fighter: { refK: 60, anchorMilli: 30_000 },
+  cas: { refK: 32, anchorMilli: 22_500 },
+  cv_cas: { refK: 38, anchorMilli: 26_000 },
+  bomber: { refK: 80, anchorMilli: 30_000 },
+  naval_bomber: { refK: 88, anchorMilli: 28_000 },
+  cv_naval_bomber: { refK: 48, anchorMilli: 30_000 },
+  strat_bomber: { refK: 190, anchorMilli: 48_000 },
+  transport_plane: { refK: 85, anchorMilli: 30_000 },
+};
+export function planeCostMilli(type: HistAirType, costK: number): number {
+  const c = PLANE_COST[type];
+  return scaledCost(c.anchorMilli, costK, c.refK);
 }
 
 /** Game stats of a plane entry. Pure, integer, deterministic. */
@@ -109,10 +185,15 @@ export function planeStatsOfEntry(e: PlaneEntry): PlaneDesignStats {
   const s = e.spec;
   const flux = fluxGramsPerSec(s.guns);
   const fighterLike = FIGHTER_LIKE.has(e.type);
-  const airAttack = clampInt(
-    isqrt(1620 * flux) + 40 * Math.min(s.defGuns, 12),
-    0,
-    3200,
+  // Soft cap: a Me 262 with four 30 mm still beats a Fw 190 with four 20 mm.
+  const airAttack = Math.min(
+    4000,
+    softCap(
+      isqrt((1000 * flux * GUN_USE_PCT[e.type]) / 100) +
+        40 * Math.min(s.defGuns, 12),
+      2400,
+      4000,
+    ),
   );
   const airDefense = interp(AIR_DEF_CENTI, s.emptyKg) + 30 * s.defGuns;
   const agility = clampInt(
@@ -121,16 +202,13 @@ export function planeStatsOfEntry(e: PlaneEntry): PlaneDesignStats {
     AGILITY_MAX[e.type],
   );
   const dive = s.dive === true ? 150 : 100;
-  const ground = clampInt(
-    Math.floor(
-      (((s.bombKg * 30) / 100 + flux / 20) *
-        (GROUND_MULT_PCT[e.type] ?? 100) *
-        dive) /
-        10000,
-    ),
-    0,
-    2400,
+  const groundRaw = Math.floor(
+    (((s.bombKg * 30) / 100 + (flux * GUN_USE_PCT[e.type]) / 2000) *
+      (GROUND_MULT_PCT[e.type] ?? 100) *
+      dive) /
+      10000,
   );
+  const ground = Math.max(0, softCap(groundRaw, 1600, 3600));
   const strategic = STRAT_TYPES.has(e.type)
     ? clampInt(Math.floor((s.bombKg * 20) / 100), 0, 1800)
     : 0;
@@ -154,7 +232,7 @@ export function planeStatsOfEntry(e: PlaneEntry): PlaneDesignStats {
     range: Math.floor((s.rangeKm * (fighterLike ? 100 : 50)) / 100),
     detect: s.radar === true ? 20 : 0,
     relPm: RELIABILITY_PM[s.reliability],
-    costMilli: planeCostMilli(s.costK),
+    costMilli: planeCostMilli(e.type, s.costK),
     resources: resVec(RESOURCE_IDS, {
       aluminium: alu + (jet ? 1 : 0),
       rubber: s.emptyKg < 20000 ? 1 : 2,

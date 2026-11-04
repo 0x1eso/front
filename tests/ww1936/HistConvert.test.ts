@@ -107,9 +107,18 @@ describe("hist conversions", () => {
   });
 
   test("slope counts, softened", () => {
+    // 45 mm at 60 degrees is a thin plate: it keeps 2/3 of the slope bonus (65, not 79)
     expect(effectiveArmorMm({ ...t34.spec, turretFrontMm: undefined })).toBe(
-      79,
+      65,
     );
+    // a thick plate keeps all of it: 100 mm at 60 degrees is 175
+    expect(
+      effectiveArmorMm({
+        ...t34.spec,
+        hullFrontMm: 100,
+        turretFrontMm: undefined,
+      }),
+    ).toBe(175);
     expect(
       effectiveArmorMm({
         ...t34.spec,
@@ -132,8 +141,8 @@ describe("hist conversions", () => {
   test("costs are real ratios", () => {
     const c = (id: string) =>
       tankStatsOfEntry(histEntry(id) as TankEntry).costMilli;
-    expect(c("deu_tiger1_e") / c("deu_pz3_e")).toBeGreaterThan(2.4);
-    expect(tankStatsOfEntry(t34).costMilli * 3).toBeLessThan(c("deu_tiger1_e"));
+    expect(c("deu_tiger1_e") / c("deu_pz3_e")).toBeGreaterThan(2);
+    expect(tankStatsOfEntry(t34).costMilli * 2).toBeLessThan(c("deu_tiger1_e"));
   });
 
   test("cross-country audit: same gun, same penetration; real threats hold", () => {
@@ -206,7 +215,8 @@ describe("hist conversions", () => {
     const s = planeStatsOfEntry(f);
     expect(s.airAttack).toBeGreaterThan(1500);
     expect(s.airAttack).toBeLessThan(2200);
-    expect(s.costMilli).toBe(22_000);
+    expect(s.costMilli).toBeGreaterThan(15_000);
+    expect(s.costMilli).toBeLessThan(25_000);
     expect(s.speed).toBe(504);
     const h: PlaneEntry = {
       ...f,
@@ -254,7 +264,8 @@ describe("hist conversions", () => {
     const d = shipStatsOfEntry(dd);
     expect(d.hpMilli).toBe(15_000);
     expect(d.torpedo).toBe(1600);
-    expect(d.cost).toBe(1200);
+    expect(d.cost).toBeGreaterThan(900);
+    expect(d.cost).toBeLessThan(1500);
     const bb: ShipEntry = {
       ...dd,
       id: "usa_bb_test",
@@ -339,6 +350,114 @@ describe("hist conversions", () => {
     };
     expect(gunStatsOfEntry(flak88).statPct).toBeLessThanOrEqual(120);
     expect(gunStatsOfEntry(flak88).pierceCenti).toBeGreaterThan(t34 ? 7000 : 0);
+  });
+
+  test("w68: casemates sit below the turreted heavies; thin plates gain less", () => {
+    const tk = (id: string) => tankStatsOfEntry(histEntry(id) as TankEntry);
+    const tiger = tk("deu_tiger1_e").armorMm;
+    expect(tk("deu_hetzer").armorMm).toBeLessThan(tiger * 0.85);
+    expect(tk("deu_jagdpz4_70").armorMm).toBeLessThanOrEqual(tiger);
+    // the Hetzer's 60 mm at 60 degrees: plain 1.75x would be 105
+    expect(tk("deu_hetzer").armorMm).toBeLessThan(90);
+    // Tiger's gun still defeats a T-34, the T-34's does not defeat the Tiger's front
+    expect(tk("deu_tiger1_e").pierce).toBeGreaterThan(tk("sun_t34_43").armor);
+    expect(tk("sun_t34_43").pierce).toBeLessThan(tk("deu_tiger1_e").armor);
+  });
+
+  test("w68: fighter attack counts cannon and gun quality; bombers' fixed guns are discounted", () => {
+    const pl = (id: string) => planeStatsOfEntry(histEntry(id) as PlaneEntry);
+    // the late cannon fighter is above its early version
+    expect(pl("deu_bf109_f4").airAttack).toBeGreaterThan(
+      pl("deu_bf109_e").airAttack,
+    );
+    expect(pl("deu_bf109_g6").airAttack).toBeGreaterThan(
+      pl("deu_bf109_f4").airAttack,
+    );
+    // cannon (Spitfire IX) over six .50 (P-51D); one 20 mm over eight rifle-calibre guns
+    expect(pl("gbr_spitfire_ix").airAttack).toBeGreaterThan(
+      pl("usa_p51d").airAttack,
+    );
+    expect(pl("fra_d510").airAttack).toBeGreaterThan(
+      pl("gbr_hurricane_i").airAttack,
+    );
+    // a bomber's attack is below a contemporary fighter's
+    expect(pl("usa_b25j").airAttack).toBeLessThan(
+      pl("gbr_spitfire_v").airAttack,
+    );
+    expect(pl("sun_tu2").airAttack).toBeLessThan(pl("sun_yak9").airAttack);
+    // soft caps: the jet with four 30 mm stays above the Fw 190 A-8, which stays above the Bf 109 G-6
+    expect(pl("deu_me262_a1").airAttack).toBeGreaterThan(
+      pl("deu_fw190_a8").airAttack,
+    );
+    expect(pl("deu_fw190_a8").airAttack).toBeGreaterThan(
+      pl("deu_bf109_g6").airAttack,
+    );
+    expect(pl("deu_me262_a1").airAttack).toBeLessThanOrEqual(4000);
+    expect(pl("usa_a20g").ground).toBeLessThan(pl("usa_sb2c").ground);
+  });
+
+  test("w68: SP artillery differs by calibre; guns spread without a flat top", () => {
+    const soft = (id: string) =>
+      tankStatsOfEntry(histEntry(id) as TankEntry).soft;
+    expect(soft("deu_wespe")).toBeLessThan(soft("sun_su122"));
+    expect(soft("sun_su122")).toBeLessThan(soft("deu_hummel"));
+    const g = (id: string) => gunStatsOfEntry(histEntry(id) as GunEntry);
+    const at = ["deu_pak36", "deu_pak38", "deu_pak40", "deu_pak43"].map(
+      (id) => g(id).statPct,
+    );
+    for (let i = 1; i < at.length; i++)
+      expect(at[i]).toBeGreaterThan(at[i - 1]);
+    expect(Math.max(...at)).toBeLessThan(130);
+    const aa = ["deu_flak38", "deu_flak36_88", "usa_m1_90aa"].map((id) =>
+      g(id),
+    );
+    expect(aa[0].costMilli).toBeLessThan(aa[1].costMilli);
+    expect(aa[1].costMilli).toBeLessThan(aa[2].costMilli);
+    expect(g("usa_m1_90aa").costMilli).toBeLessThanOrEqual(4 * 4000);
+    // real penetration is untouched
+    expect(g("deu_pak40").pierceCenti).toBe(
+      100 * (histEntry("deu_pak40") as GunEntry).spec.penMm500,
+    );
+  });
+
+  test("w68: ship gunnery counts the rate of fire; sub ranges are compressed", () => {
+    const sh = (id: string) => shipStatsOfEntry(histEntry(id) as ShipEntry);
+    expect(sh("usa_fletcher").light).toBeGreaterThan(sh("jpn_fubuki").light);
+    expect(sh("usa_iowa").rangeKm).toBeLessThanOrEqual(12_000);
+    expect(sh("jpn_i15").rangeKm).toBeLessThanOrEqual(12_000);
+  });
+
+  test("w68: typical cost of a family stays near today's generic, extremes only 2-3x", () => {
+    const med = (xs: number[]) => xs.sort((a, b) => a - b)[xs.length >> 1];
+    const costs = (f: (e: (typeof HIST_ALL)[number]) => number | null) =>
+      HIST_ALL.map(f).filter((v): v is number => v !== null);
+    const medium = costs((e) =>
+      e.family === "tank" && e.role === "medium"
+        ? tankStatsOfEntry(e).costMilli
+        : null,
+    );
+    expect(med(medium)).toBeLessThanOrEqual(15_000);
+    const fighters = costs((e) =>
+      e.family === "plane" && e.type === "fighter"
+        ? planeStatsOfEntry(e).costMilli
+        : null,
+    );
+    expect(med(fighters)).toBeLessThanOrEqual(27_500);
+    const bombers = costs((e) =>
+      e.family === "plane" && e.type === "bomber"
+        ? planeStatsOfEntry(e).costMilli
+        : null,
+    );
+    expect(med(bombers)).toBeLessThanOrEqual(37_500);
+    const dds = costs((e) =>
+      e.family === "ship" && e.cls === "dd" ? shipStatsOfEntry(e).cost : null,
+    );
+    expect(med(dds)).toBeLessThanOrEqual(1440);
+    const pl = (id: string) =>
+      planeStatsOfEntry(histEntry(id) as PlaneEntry).costMilli;
+    expect(pl("usa_b29") / pl("usa_b17g")).toBeGreaterThan(1.5);
+    expect(pl("usa_b29") / pl("usa_b17g")).toBeLessThan(3);
+    expect(pl("usa_b29")).toBeLessThan(150_000);
   });
 
   test("prints the table", () => {

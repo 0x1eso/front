@@ -23,6 +23,7 @@ import {
   NG_SPAA,
   NG_TD,
 } from "@openfront/engine-api/ww1936/LandTypes";
+import { scaledCost, softCap } from "./ConvertCost";
 import { clampInt, interp, isqrt, resVec, roundInt, Table } from "./Num";
 import { HistTankRole, TankEntry, TankSpec } from "./Types";
 
@@ -45,13 +46,38 @@ export const SLOPE_PCT: Table = [
   [70, 195],
 ];
 
-/** Effective frontal armour, mm: the hull plate with its slope, blended 2:1 with the turret front. */
-export function effectiveArmorMm(s: TankSpec): number {
-  const hull = roundInt(
-    (s.hullFrontMm * interp(SLOPE_PCT, s.hullSlopeDeg)) / 100,
-  );
-  if (s.turretFrontMm === undefined) return hull;
-  return roundInt((2 * hull + s.turretFrontMm) / 3);
+/**
+ * Share of the slope bonus a plate keeps, percent, by its thickness (mm).
+ * A thin plate gains little from slope: a shell as thick as the plate
+ * overmatches it, bites and does not ricochet (45 mm of T-34 and 60 mm of
+ * Hetzer are not worth 1.75x). Full from 80 mm up.
+ */
+export const THIN_PLATE_PCT: Table = [
+  [0, 30],
+  [30, 40],
+  [50, 65],
+  [80, 100],
+];
+
+/** Slope-adjusted hull plate, mm. */
+function slopedHullMm(s: TankSpec): number {
+  const gain = interp(SLOPE_PCT, s.hullSlopeDeg) - 100;
+  const kept = (gain * interp(THIN_PLATE_PCT, s.hullFrontMm)) / 100;
+  return roundInt((s.hullFrontMm * (100 + kept)) / 100);
+}
+
+/**
+ * Effective frontal armour, mm. A turreted tank blends the hull plate 2:1
+ * with the turret front. A casemate vehicle (tank destroyer, assault gun,
+ * SP gun with no turret) is half its sloped upper plate, half the upright
+ * thickness: its nose, mantlet and gun shield are not the sloped plate.
+ */
+export function effectiveArmorMm(s: TankSpec, casemate = false): number {
+  const hull = slopedHullMm(s);
+  if (s.turretFrontMm !== undefined) {
+    return roundInt((2 * hull + s.turretFrontMm) / 3);
+  }
+  return casemate ? roundInt((hull + s.hullFrontMm) / 2) : hull;
 }
 
 /** Reliability 1..5 to per mille, in the 70-93 % range the designer used (80-86). */
@@ -59,8 +85,21 @@ export const RELIABILITY_PM: readonly number[] = [0, 700, 760, 830, 880, 930];
 
 /** Centi-speed per km/h of cross-country speed (20 km/h = 6.0, today's medium tank). */
 export const SPEED_CENTI_PER_KMH = 30;
-/** Milli industry points per thousand 1940 dollars (a $38.5k Pz III E = 12 IC). */
-export const TANK_COST_MILLI_PER_K = 315;
+/**
+ * Cost by role: the median real price of the catalogue's role (thousand
+ * 1940 dollars) costs the anchor, today's generic generation-1 figure (a
+ * $38.5k Pz III E is about 12 IC). See ConvertCost.
+ */
+export const TANK_COST: Readonly<
+  Record<HistTankRole, { refK: number; anchorMilli: number }>
+> = {
+  light: { refK: 20, anchorMilli: 8_000 },
+  medium: { refK: 42, anchorMilli: 11_500 },
+  heavy: { refK: 72, anchorMilli: 22_000 },
+  td: { refK: 36, anchorMilli: 13_000 },
+  spa: { refK: 38, anchorMilli: 14_000 },
+  spaa: { refK: 44, anchorMilli: 12_000 },
+};
 
 const COEF_HE: Readonly<Record<HistTankRole, number>> = {
   light: 54,
@@ -100,15 +139,20 @@ export interface HistTankStats extends TankDesignStats {
 /** Game stats of a tank entry. Pure, integer, deterministic. */
 export function tankStatsOfEntry(e: TankEntry): HistTankStats {
   const s = e.spec;
-  const armorMm = effectiveArmorMm(s);
-  const he = COEF_HE[e.role] * isqrt(s.heFillerG);
-  const soft = clampInt(
-    400 + he + 130 * Math.min(s.mgs, 3),
-    300,
-    e.role === "spa" ? 4000 : 3200,
+  const armorMm = effectiveArmorMm(
+    s,
+    e.role === "td" || e.role === "spa" || e.role === "spaa",
   );
+  const he = COEF_HE[e.role] * isqrt(s.heFillerG);
+  // Soft caps are soft: past the knee a bigger shell still counts, at a third,
+  // so a 150 mm howitzer stays above a 122 mm one (and a Tiger II's gun above a Tiger's).
+  const softRaw = 400 + he + 130 * Math.min(s.mgs, 3);
+  const soft =
+    e.role === "spa"
+      ? clampInt(softCap(softRaw, 2200, 4400), 300, 4400)
+      : clampInt(softCap(softRaw, 2400, 3600), 300, 3600);
   const hardRaw = (e.role === "spa" ? 0 : 100) + 22 * s.penMm500;
-  const hard = Math.min(hardRaw, 3600);
+  const hard = softCap(hardRaw, 2800, 4200);
   const pierce = 100 * s.penMm500;
   const def = isqrt(armorMm * 10000);
   let brk = Math.min(5000, 1500 + Math.floor(((soft + hard) * 60) / 100));
@@ -151,7 +195,11 @@ export function tankStatsOfEntry(e: TankEntry): HistTankStats {
     relPm: RELIABILITY_PM[s.reliability],
     orgAdd: 0,
     fuelPct,
-    costMilli: roundInt(s.costK * TANK_COST_MILLI_PER_K),
+    costMilli: scaledCost(
+      TANK_COST[e.role].anchorMilli,
+      s.costK,
+      TANK_COST[e.role].refK,
+    ),
     resources,
     flags: DS_HIST | (e.role === "td" ? DS_TD_DEFEND : 0),
     year: e.year,
