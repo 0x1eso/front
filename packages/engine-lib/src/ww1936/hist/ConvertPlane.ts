@@ -7,6 +7,8 @@
 // ground 6 and strategic 4; a 6 t heavy bomber strategic 12; a 750 kg torpedo
 // naval 12.
 import {
+  DS_CARGO,
+  DS_CARRIER,
   DS_JET,
   DS_RADAR,
   PlaneDesignStats,
@@ -157,7 +159,11 @@ export function planeStatsOfEntry(e: PlaneEntry): PlaneDesignStats {
       rubber: s.emptyKg < 20000 ? 1 : 2,
     }),
     fuelPct: jet ? 60 : 0,
-    flags: (jet ? DS_JET : 0) | (s.radar === true ? DS_RADAR : 0),
+    flags:
+      (jet ? DS_JET : 0) |
+      (s.radar === true ? DS_RADAR : 0) |
+      (e.type.startsWith("cv_") ? DS_CARRIER : 0) |
+      (e.type === "transport_plane" ? DS_CARGO : 0),
     year: e.year,
   };
 }

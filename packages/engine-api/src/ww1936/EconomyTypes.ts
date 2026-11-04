@@ -1,6 +1,7 @@
 // World War 1936 P1 — industry and research
 // (docs/superpowers/specs/2026-10-20-ww1936-p1-industry-design.md).
 // zbin and snapshots store these lists by position: append only.
+import { WW_PLANE_DESIGN_SLOTS, WW_TANK_DESIGN_SLOTS } from "./DepthTypes";
 
 export const RESOURCE_IDS = [
   "oil",
@@ -265,8 +266,8 @@ export const EQUIPMENT_GENS: Readonly<Record<EquipmentType, number>> = {
   cv_cas: 3,
   cv_naval_bomber: 3,
   convoy: 1,
-  tank_design: 12,
-  plane_design: 28,
+  tank_design: WW_TANK_DESIGN_SLOTS,
+  plane_design: WW_PLANE_DESIGN_SLOTS,
   railway_gun: 1,
   floating_harbor: 1,
   flying_bomb: 1,
@@ -917,6 +918,8 @@ export const WW_ORDER_BLOCKS = [
   "in_group",
   // w57: a division below WW_MIN_BATTALIONS (support companies take no width).
   "too_small",
+  // ww61: the designer is off (ww1936Designer absent): the catalogue replaces it.
+  "designer_off",
 ] as const;
 export type WwOrderBlock = (typeof WW_ORDER_BLOCKS)[number];
 

@@ -94,6 +94,7 @@ import {
   issueDesign,
 } from "./Designs";
 import { coalDemand, dailyEnergy, energyView } from "./Energy";
+import { dailyHist } from "./Hist";
 import { computeIntelRow, intelDetailOf } from "./IntelLevels";
 import { landmarkStatsOf } from "./Landmarks";
 import { dayCommonMarket, issueTrade, listingPriceMilli } from "./Market";
@@ -534,6 +535,8 @@ export class WwDepth implements LandDepthHooks {
   // ---- derived (DERIVED_FIELDS) ----
   /** smallID → kind → slot (1-based) → stats. */
   designStatCache = new Map<number, (DesignStats | null)[][]>();
+  /** ww61: per country, the researched-set size the catalogue was last checked at (derived). */
+  histSeen = new Map<number, number>();
   /** Pre-flight §0-3(a): rebuilt as a new object, never mutated (its identity joins P2's StatsInputs). */
   keyStatTables = new Map<number, KeyStatsTable>();
   /** LandDepthHooks.keyStatsSeq: moves with every keyStatTables change (derived). */
@@ -677,6 +680,7 @@ export class WwDepth implements LandDepthHooks {
     dailyThought(this, id, day); // T (ww9)
     dailyCommand(this, id, day); // D
     dailyArmyGroups(this, id, day); // D
+    dailyHist(this, id, day); // ww61: the catalogue's entries as design slots
     dailyDesigns(this, id, day); // E
     dailyMio(this, id, day); // M
     dailyIntel(this, id, day); // I (upgrades, operatives, missions, ops, crypto)
@@ -1667,6 +1671,8 @@ export function designDefHash(def: DesignDef): number {
     def.armorLevel ?? -1,
     def.engineLevel ?? -1,
     def.name,
+    // ww61: folded in only when set, so a designer game hashes as before.
+    ...(def.hist === undefined ? [] : [def.hist]),
   ].join("|");
   for (let i = 0; i < text.length; i++) {
     h = (Math.imul(h, 31) + text.charCodeAt(i)) >>> 0;

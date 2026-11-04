@@ -80,6 +80,7 @@ import {
   WW_GROUP_ARMIES,
   WW_MARKET_MAX_COUNT,
   WW_MAX_RAILGUNS,
+  WW_PLANE_DESIGN_SLOTS,
   WW_SHIP_DESIGN_SLOTS,
 } from "./ww1936/DepthTypes";
 import {
@@ -862,7 +863,7 @@ export const DeclareWarIntentSchema = z.object({
 const WwIndex = zb.uint({ max: 255 });
 const WwId = zb.uint({ min: 1, max: 10_000_000 });
 // P6 plan decision 5: a design type's "generation" is its slot (1..28).
-const WwGen = zb.uint({ min: 1, max: 28 });
+const WwGen = zb.uint({ min: 1, max: WW_PLANE_DESIGN_SLOTS });
 const WwFactories = zb.uint({ max: WW_MAX_LINE_FACTORIES });
 // P2 (P2 spec §16.3).
 const WwArmy = zb.uint({ min: 1, max: 10_000_000 });

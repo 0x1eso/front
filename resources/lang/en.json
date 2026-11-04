@@ -4882,6 +4882,7 @@
         "decision_unavailable": "Its conditions are not met",
         "design_in_use": "The design is in use",
         "design_slots_full": "Every design slot is in use",
+        "designer_off": "The designer is off in this game",
         "disarmed": "Forbidden by the disarmament terms",
         "doctrine": "Another doctrine was chosen",
         "doctrine_locked": "Changed too recently to change again",

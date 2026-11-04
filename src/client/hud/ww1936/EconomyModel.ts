@@ -792,6 +792,7 @@ export const BLOCK_KEYS: Readonly<Record<WwOrderBlock, string>> = {
   too_many_wings: "ww1936.econ.block.too_many_wings",
   no_bomb_target: "ww1936.econ.block.no_bomb_target",
   escort_out_of_range: "ww1936.econ.block.escort_out_of_range",
+  designer_off: "ww1936.econ.block.designer_off",
   research_queued: "ww1936.econ.block.research_queued",
   research_queue_full: "ww1936.econ.block.research_queue_full",
   queue_order: "ww1936.econ.block.queue_order",

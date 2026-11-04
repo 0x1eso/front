@@ -45,6 +45,15 @@ export interface HistBase {
   year: number;
   /** Where the figures come from (reference, edition). Note disagreements. */
   source: string;
+  /**
+   * Optional: this entry is the country's stand-in for a generic static
+   * equipment key, written "<equipment type>:<generation>" (for example
+   * "light_tank:1", "medium_tank:3", "infantry_equipment:2"). The static
+   * key then takes this entry's stats and name for that country. Without
+   * one, the engine picks the first entry of the right group whose first
+   * tech is the key's tech.
+   */
+  staticFor?: string;
 }
 
 // ---------------------------------------------------------------- tanks

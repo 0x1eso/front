@@ -42,6 +42,9 @@ import {
   SHIP_GENS,
   ShipClass,
 } from "@openfront/engine-api/ww1936/NavyTypes";
+import { histDesignStats } from "./hist/AsDesign";
+import { tankGroupOf } from "./hist/ConvertTank";
+import { histEntry } from "./hist/index";
 import { WW_TECHS } from "./WwTechs";
 
 /** Spec §13.3: the BB / BC modules a treaty member may not use (the screens read this too). */
@@ -524,6 +527,18 @@ export function resolvedModules(def: DesignDef): string[] {
   return def.modules.map((m, i) => (m === "" ? tankDefault(def.base, i) : m));
 }
 export function tankRole(def: DesignDef): TankRole {
+  if (def.hist !== undefined) {
+    const e = histEntry(def.hist);
+    if (e?.family === "tank") {
+      return e.role === "td"
+        ? "tank_destroyer"
+        : e.role === "spa"
+          ? "sp_artillery"
+          : e.role === "spaa"
+            ? "sp_anti_air"
+            : "tank";
+    }
+  }
   const m = resolvedModules(def);
   if (m[0] === "howitzer") return "sp_artillery";
   if (m[0] === "aa_auto") return "sp_anti_air";
@@ -540,6 +555,10 @@ export function tankRole(def: DesignDef): TankRole {
 }
 /** Plan decision 6. */
 export function designNeedGroup(def: DesignDef): number {
+  if (def.hist !== undefined) {
+    const e = histEntry(def.hist);
+    if (e?.family === "tank") return tankGroupOf(e.role);
+  }
   const role = tankRole(def);
   if (role === "tank_destroyer") return NG_TD;
   if (role === "sp_artillery") return NG_SPA;
@@ -652,7 +671,9 @@ interface ShipModDef {
   project?: SpecialProject;
   gens?: readonly number[];
   /** "main" scales light for a CL, heavy for CA/BC/BB (plan: the CL main battery is light). */
-  m: Partial<Omit<ShipDesignMods, "kind" | "flags" | "year" | "costPct">> & {
+  m: Partial<
+    Omit<ShipDesignMods, "kind" | "flags" | "year" | "costPct" | "add">
+  > & {
     mainPct?: number;
   };
   costPct: number;
@@ -935,17 +956,18 @@ export function applyShipDesign<T extends ShipStatsLike>(
   m: ShipDesignMods | null,
 ): T {
   if (m === null) return s;
+  const a = m.add;
   return {
     ...s,
     hpMilli: mul(s.hpMilli, m.hpPct),
-    light: mul(s.light, m.lightPct),
-    heavy: mul(s.heavy, m.heavyPct),
-    lightPierce: mul(s.lightPierce, m.piercePct),
-    heavyPierce: mul(s.heavyPierce, m.piercePct),
-    torpedo: mul(s.torpedo, m.torpedoPct),
-    depth: mul(s.depth, m.depthPct),
-    armor: mul(s.armor, m.armorPct),
-    aa: mul(s.aa, m.aaPct),
+    light: mul(s.light, m.lightPct) + (a?.light ?? 0),
+    heavy: mul(s.heavy, m.heavyPct) + (a?.heavy ?? 0),
+    lightPierce: mul(s.lightPierce, m.piercePct) + (a?.lightPierce ?? 0),
+    heavyPierce: mul(s.heavyPierce, m.piercePct) + (a?.heavyPierce ?? 0),
+    torpedo: mul(s.torpedo, m.torpedoPct) + (a?.torpedo ?? 0),
+    depth: mul(s.depth, m.depthPct) + (a?.depth ?? 0),
+    armor: mul(s.armor, m.armorPct) + (a?.armor ?? 0),
+    aa: mul(s.aa, m.aaPct) + (a?.aa ?? 0),
     speedCentiKn: Math.max(100, s.speedCentiKn + m.speedCentiKn),
     rangeKm: mul(s.rangeKm, m.rangePct),
     vis: mul(s.vis, m.visPct),
@@ -1240,6 +1262,10 @@ export function planeSlotTakes(slot: string, id: string): boolean {
   return g === "special";
 }
 export function planeType(def: DesignDef): string {
+  if (def.hist !== undefined) {
+    const e = histEntry(def.hist);
+    if (e?.family === "plane") return e.type;
+  }
   const size = PLANE_BASE_DEFS[def.base].size;
   const m = new Set(def.modules.filter((x) => x !== ""));
   const bombs = m.has("w_bombs_s") || m.has("w_bombs_m") || m.has("w_bombs_l");
@@ -1327,6 +1353,10 @@ export function designStats(
   def: DesignDef,
   ctx: DesignCtx,
 ): TankDesignStats | ShipDesignMods | PlaneDesignStats {
+  if (def.hist !== undefined) {
+    const h = histDesignStats(def, ctx);
+    if (h !== null) return h;
+  }
   return def.kind === "tank"
     ? tankStats(def, ctx)
     : def.kind === "ship"
@@ -1461,7 +1491,9 @@ export function designRetentionBp(
   b: DesignDef | null,
 ): number {
   if (a === null || b === null || a.kind !== b.kind) return -1;
-  if (a.base === b.base) return 9_000;
+  if (a.base === b.base && a.hist === undefined && b.hist === undefined) {
+    return 9_000;
+  }
   const roleOf = (d: DesignDef) =>
     d.kind === "tank"
       ? tankRole(d)

@@ -4510,6 +4510,7 @@
         "decision_unavailable": "조건이 맞지 않습니다",
         "design_in_use": "쓰이고 있는 설계입니다",
         "design_slots_full": "설계 칸이 모두 찼습니다",
+        "designer_off": "이 게임에서는 설계기를 쓰지 않습니다",
         "disarmed": "군비 제한 조건으로 금지되어 있습니다",
         "doctrine": "다른 교리를 골랐습니다",
         "doctrine_locked": "바꾼 지 얼마 되지 않았습니다",

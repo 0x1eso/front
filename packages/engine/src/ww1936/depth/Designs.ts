@@ -15,6 +15,7 @@ import {
   DESIGN_NAME_MAX,
   DESIGN_SLOTS,
   DesignDef,
+  DESIGNER_POOL,
   DesignKind,
   DesignOrigin,
   KeyStatsTable,
@@ -31,6 +32,7 @@ import {
   equipKey as designEquipKey,
   EQUIP_KEY_COUNT,
   EQUIP_KEYS,
+  EQUIPMENT_TYPES,
   EquipmentType,
   WW_TECH_IDS,
   WwOrderBlock,
@@ -49,6 +51,7 @@ import type {
 import {
   convertCost,
   designBlock,
+  designNeedGroup,
   designRetentionBp,
   licenceCostPct,
   PLANE_BASE_DEFS,
@@ -56,7 +59,6 @@ import {
   reliabilityLossBp,
   shipBase,
   shipYear,
-  TANK_BASE_DEFS,
   tankRole,
 } from "@openfront/engine-lib/ww1936/DesignRules";
 import {
@@ -80,6 +82,7 @@ import {
 import { rowScore } from "@openfront/engine-lib/ww1936/TemplateStats";
 import type { EffectCtx } from "../politics/Dispatch";
 import { designIsOld, saveTankCell, sweepStaticStock } from "./DesignCells";
+import { designerOn, histOwnCount } from "./Hist";
 import { licenceCostPctFor } from "./Licences";
 import { treatyEscalated, treatyMember } from "./NavalTreaty";
 import { planeDesignOld, savePlaneCell, sweepStaticPlanes } from "./PlaneCells";
@@ -136,6 +139,18 @@ export function issueDesign(
   tick: number,
 ): WwOrderBlock | null {
   const day = d.ww.day(tick);
+  // ww61: with the designer off the catalogue replaces designing; the
+  // slots stay (line_convert and the like still work).
+  if (
+    !designerOn(d) &&
+    (o.kind === "design_save" ||
+      o.kind === "design_copy" ||
+      o.kind === "design_obsolete" ||
+      o.kind === "design_rename" ||
+      o.kind === "ship_refit")
+  ) {
+    return "designer_off";
+  }
   switch (o.kind) {
     case "design_save":
       return saveOrder(d, id, o.def, o.slot ?? 0, null, day);
@@ -235,8 +250,13 @@ function saveOrder(
 export function freeSlot(d: WwDepth, id: number, kind: DesignKind): number {
   const c = d.country(id);
   if (c === null) return 0;
-  const i = c.des[kind].indexOf(null);
-  return i < 0 ? 0 : i + 1;
+  // Designer on: the designer's pool. Off: the slots after the country's own
+  // catalogue (received entries).
+  const on = designerOn(d);
+  const lo = on ? 0 : histOwnCount(d, id, kind);
+  const hi = on ? DESIGNER_POOL[kind] : c.des[kind].length;
+  for (let i = lo; i < hi; i++) if (c.des[kind][i] === null) return i + 1;
+  return 0;
 }
 
 export function dailyDesigns(d: WwDepth, id: number, day: number): void {
@@ -254,7 +274,7 @@ export function dailyDesigns(d: WwDepth, id: number, day: number): void {
     const slots = c.des[kind];
     for (let i = 0; i < slots.length; i++) {
       const s = slots[i];
-      if (s === null) continue;
+      if (s === null || s.def.hist !== undefined) continue;
       if (
         !s.obsolete &&
         !(
@@ -555,7 +575,7 @@ export function designShareType(
     case "sp_anti_air":
       return "anti_air";
     default:
-      return TANK_BASE_DEFS[def.base]?.weight === "light"
+      return designNeedGroup(def) === EQUIPMENT_TYPES.indexOf("light_tank")
         ? "light_tank"
         : "medium_tank";
   }
@@ -594,10 +614,10 @@ export function lineRetentionBp(
     const des = a ?? b;
     if (des === null || des.kind !== "tank") return -1;
     const st = EQUIP_KEYS[a === null ? fromKey : toKey][0];
-    const w = TANK_BASE_DEFS[des.base]?.weight;
+    const g = designNeedGroup(des);
     const same =
-      (st === "light_tank" && w === "light") ||
-      (st === "medium_tank" && w === "medium");
+      (st === "light_tank" && g === EQUIPMENT_TYPES.indexOf("light_tank")) ||
+      (st === "medium_tank" && g === EQUIPMENT_TYPES.indexOf("medium_tank"));
     base = same && tankRole(des) === "tank" ? 6_000 : -1;
   }
   if (base < 0) return -1;

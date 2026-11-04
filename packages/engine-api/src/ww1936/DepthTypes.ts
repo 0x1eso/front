@@ -146,13 +146,22 @@ export const DESIGN_ORIGINS = [
   "licensed",
 ] as const;
 export type DesignOrigin = (typeof DESIGN_ORIGINS)[number];
-export const WW_TANK_DESIGN_SLOTS = 12;
-export const WW_PLANE_DESIGN_SLOTS = 28;
-export const WW_SHIP_DESIGN_SLOTS = 24;
-export const DESIGN_SLOTS: Readonly<Record<DesignKind, number>> = {
+// ww61: the slots also hold the historical catalogue's entries of a country
+// (one slot per entry, engine-lib/ww1936/hist); a test pins that the largest
+// catalogue fits.
+export const WW_TANK_DESIGN_SLOTS = 64;
+export const WW_PLANE_DESIGN_SLOTS = 96;
+export const WW_SHIP_DESIGN_SLOTS = 64;
+/** The designer's own pool (designer on): today's sizes. */
+export const DESIGNER_POOL: Readonly<Record<DesignKind, number>> = {
   tank: 12,
   ship: 24,
   plane: 28,
+};
+export const DESIGN_SLOTS: Readonly<Record<DesignKind, number>> = {
+  tank: WW_TANK_DESIGN_SLOTS,
+  ship: WW_SHIP_DESIGN_SLOTS,
+  plane: WW_PLANE_DESIGN_SLOTS,
 };
 export const DESIGN_NAME_MAX = 24;
 export const TANK_BASES = [
@@ -327,6 +336,11 @@ export interface DesignDef {
   armorLevel?: number;
   engineLevel?: number;
   name: string;
+  /**
+   * ww61: the historical catalogue entry this slot holds (engine-lib/ww1936/
+   * hist id); its numbers come from the catalogue, not from `modules`.
+   */
+  hist?: string;
 }
 export const DesignNameSchema = zb.string({
   min: 1,
@@ -334,6 +348,12 @@ export const DesignNameSchema = zb.string({
   // Review L6: P2's template-name rule (no control or format characters
   // such as bidi overrides, no space at either end) and no markup.
   regex: /^[^\s\p{Cc}\p{Cf}<>](?:[^\p{Cc}\p{Cf}<>]*[^\s\p{Cc}\p{Cf}<>])?$/u,
+});
+/** Catalogue id (`<tag>_<name>`). */
+const HistIdSchema = zb.string({
+  min: 3,
+  max: 40,
+  regex: /^[a-z]{3}_[a-z0-9_]+$/,
 });
 export const DesignDefSchema = z.discriminatedUnion("kind", [
   z.object({
@@ -346,6 +366,7 @@ export const DesignDefSchema = z.discriminatedUnion("kind", [
     armorLevel: zb.uint({ max: 10 }),
     engineLevel: zb.uint({ max: 10 }),
     name: DesignNameSchema,
+    hist: HistIdSchema.optional(),
   }),
   z.object({
     kind: z.literal("ship"),
@@ -359,6 +380,7 @@ export const DesignDefSchema = z.discriminatedUnion("kind", [
       .min(3)
       .max(6),
     name: DesignNameSchema,
+    hist: HistIdSchema.optional(),
   }),
   z.object({
     kind: z.literal("plane"),
@@ -368,6 +390,7 @@ export const DesignDefSchema = z.discriminatedUnion("kind", [
       .min(4)
       .max(6),
     name: DesignNameSchema,
+    hist: HistIdSchema.optional(),
   }),
 ]);
 
@@ -432,6 +455,24 @@ export interface ShipDesignMods {
   costPct: number;
   flags: number;
   year: number;
+  /**
+   * ww61: a catalogue ship. The percents are against the class's generation-1
+   * base; where that base is 0 (a destroyer's heavy guns) `add` carries the
+   * absolute value, added after the percent.
+   */
+  add?: Partial<
+    Record<
+      | "light"
+      | "heavy"
+      | "torpedo"
+      | "depth"
+      | "armor"
+      | "aa"
+      | "lightPierce"
+      | "heavyPierce",
+      number
+    >
+  >;
 }
 
 /** Plane design numbers (spec §5.4): attack values centi, speed km/h, range km. */
