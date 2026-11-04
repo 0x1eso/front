@@ -16,9 +16,39 @@ export function wwUnlimited(gc: GameConfig): boolean {
   return gc.worldWar1936 === true && gc.ww1936Unlimited === true;
 }
 
-/** How many times longer a tick lasts: WW_UNLIMITED_TEMPO unlimited, else 1. */
+/**
+ * The unlimited game at the 45-minute game's tempo: no timer (wwUnlimited
+ * stays true) but ticks of 100 ms. Needs the unlimited key; alone it does
+ * nothing.
+ */
+export function wwFastTempo(gc: GameConfig): boolean {
+  return wwUnlimited(gc) && gc.ww1936FastTempo === true;
+}
+
+/**
+ * How many times longer a tick lasts: WW_UNLIMITED_TEMPO in the slow
+ * unlimited game, else 1 (the timed game and the fast unlimited one).
+ */
 export function wwTempo(gc: GameConfig): number {
-  return wwUnlimited(gc) ? WW_UNLIMITED_TEMPO : 1;
+  return wwUnlimited(gc) && !wwFastTempo(gc) ? WW_UNLIMITED_TEMPO : 1;
+}
+
+/** The lobby's three game lengths: 45 minutes, unlimited slow, unlimited fast. */
+export const WW_LENGTHS = ["timed", "slow", "fast"] as const;
+export type WwLength = (typeof WW_LENGTHS)[number];
+
+export function wwLengthOf(gc: GameConfig): WwLength {
+  if (!wwUnlimited(gc)) return "timed";
+  return wwFastTempo(gc) ? "fast" : "slow";
+}
+
+/** The config keys a lobby sends for a length (fast key only when fast). */
+export function wwLengthKeys(
+  length: WwLength,
+): Pick<GameConfig, "ww1936Unlimited" | "ww1936FastTempo"> {
+  return length === "fast"
+    ? { ww1936Unlimited: true, ww1936FastTempo: true }
+    : { ww1936Unlimited: length === "slow" };
 }
 
 /** One tick's wall length in milliseconds. */

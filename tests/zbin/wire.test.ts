@@ -1194,6 +1194,7 @@ describe("zbin wire: server messages", () => {
           worldWar1936: true,
           historicalAi: true,
           ww1936Unlimited: true,
+          ww1936FastTempo: true,
         },
       },
     };
@@ -1201,6 +1202,7 @@ describe("zbin wire: server messages", () => {
     expect(decoded).toEqual(viaJson(ServerMessageSchema, msg));
     if (decoded.type !== "start") throw new Error("not a start message");
     expect(decoded.gameStartInfo.config.ww1936Unlimited).toBe(true);
+    expect(decoded.gameStartInfo.config.ww1936FastTempo).toBe(true);
   });
 
   it("keeps an empty turn under 8 bytes", () => {

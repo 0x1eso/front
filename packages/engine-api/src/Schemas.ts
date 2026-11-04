@@ -523,6 +523,10 @@ export const GameConfigSchema = z.object({
   // Nothing reads it outside the mode. See
   // docs/superpowers/specs/2026-10-29-ww1936-unlimited-tempo-design.md.
   ww1936Unlimited: z.boolean().optional(),
+  // World War 1936: with ww1936Unlimited, the unlimited game at the
+  // 45-minute game's tempo (no timer, ticks of 100 ms). Appended last
+  // (zbin field order); nothing reads it without ww1936Unlimited.
+  ww1936FastTempo: z.boolean().optional(),
 });
 
 // What a host sends in update_game_config. maxPlayers is the private-lobby
