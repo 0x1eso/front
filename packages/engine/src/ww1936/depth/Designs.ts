@@ -84,7 +84,7 @@ import {
 import { rowScore } from "@openfront/engine-lib/ww1936/TemplateStats";
 import type { EffectCtx } from "../politics/Dispatch";
 import { designIsOld, saveTankCell, sweepStaticStock } from "./DesignCells";
-import { designerOn, histOwnCount } from "./Hist";
+import { designerOn, histOwnCount, sweepHistPlanes } from "./Hist";
 import { licenceCostPctFor } from "./Licences";
 import { treatyEscalated, treatyMember } from "./NavalTreaty";
 import { planeDesignOld, savePlaneCell, sweepStaticPlanes } from "./PlaneCells";
@@ -266,8 +266,12 @@ export function dailyDesigns(d: WwDepth, id: number, day: number): void {
   const c = d.country(id);
   if (c === null) return;
   // Tank cells: static tanks that arrived after the first save join the design.
-  if (c.des.tank.some((s) => s !== null)) sweepStaticStock(d, id);
-  if (c.des.plane.some((s) => s !== null)) sweepStaticPlanes(d, id);
+  if (!designerOn(d)) {
+    sweepHistPlanes(d, id); // ww61: static planes become the catalogue's
+  } else {
+    if (c.des.tank.some((s) => s !== null)) sweepStaticStock(d, id);
+    if (c.des.plane.some((s) => s !== null)) sweepStaticPlanes(d, id);
+  }
   // Spec §5.1: an obsolete slot nothing holds any more is freed (every 10
   // days); so is an old tank design nothing holds (its score is more than
   // TANK_OLD_PCT below the best of its need group; saved 10 days ago at least).

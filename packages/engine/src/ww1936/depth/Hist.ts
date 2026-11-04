@@ -3,6 +3,7 @@
 // of a kind sits in slot i + 1 of that kind, appears when its techs are
 // researched, and is never freed. Entries a country receives (licence,
 // capture, gift, market) go to the slots after its own catalogue.
+import { AIR_TYPES } from "@openfront/engine-api/ww1936/AirTypes";
 import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
 import type {
   DesignDef,
@@ -10,7 +11,11 @@ import type {
   KeyStatsTable,
 } from "@openfront/engine-api/ww1936/DepthTypes";
 import { KS, KS_FIELDS } from "@openfront/engine-api/ww1936/DepthTypes";
-import { EQUIP_KEYS } from "@openfront/engine-api/ww1936/EconomyTypes";
+import {
+  EQUIP_KEYS,
+  equipKey,
+  EQUIPMENT_GENS,
+} from "@openfront/engine-api/ww1936/EconomyTypes";
 import {
   GROUND_EQUIP_KEYS,
   GROUND_STATIC_SLOTS,
@@ -210,5 +215,45 @@ export function fillHistStatics(
       );
     }
     if (g.pierceCenti > 0) t.stats[o + KS.pierce] = g.pierceCenti;
+  }
+}
+
+/**
+ * Daily, designer off: static plane stock (the start stock, planes a generic
+ * line made, gifts, planes back from a wing) becomes the country's
+ * catalogue plane that stands in for the key: the entry flagged
+ * `staticFor` "<type>:<gen>", else its first unlocked plane of that type.
+ * So the start stock is a real, named item.
+ */
+export function sweepHistPlanes(d: WwDepth, id: number): void {
+  const country = histCountryOf(d, id);
+  const ce = d.ww.economy.country(id);
+  const c = d.country(id);
+  if (country === null || ce === null || c === null) return;
+  const own = histOwn(country, "plane");
+  for (const type of AIR_TYPES) {
+    for (let g = 1; g <= EQUIPMENT_GENS[type]; g++) {
+      const key = equipKey(type, g);
+      if (key < 0 || ce.stock[key] <= 0) continue;
+      let slot = -1;
+      for (let i = 0; i < own.length && slot < 0; i++) {
+        if (own[i].staticFor === `${type}:${g}` && c.des.plane[i] !== null) {
+          slot = i;
+        }
+      }
+      for (let i = 0; i < own.length && slot < 0; i++) {
+        const e = own[i];
+        if (
+          e.family === "plane" &&
+          e.type === type &&
+          c.des.plane[i] !== null
+        ) {
+          slot = i;
+        }
+      }
+      if (slot < 0) continue;
+      ce.stock[equipKey("plane_design", slot + 1)] += ce.stock[key];
+      ce.stock[key] = 0;
+    }
   }
 }

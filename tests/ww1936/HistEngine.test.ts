@@ -214,3 +214,32 @@ describe("snapshot and hash", () => {
     ).toBe(true);
   });
 });
+
+describe("start stock", () => {
+  test("static plane stock becomes a named catalogue plane of its type", async () => {
+    const { equipKey } =
+      await import("@openfront/engine-api/ww1936/EconomyTypes");
+    const { runner, ww, d } = await game(false);
+    const ce = ww.economy.country(DEU)!;
+    const own = histOwn("DEU", "plane");
+    const fighters = () =>
+      own.reduce(
+        (n, e, i) =>
+          n +
+          (e.type === "fighter"
+            ? ce.stock[equipKey("plane_design", i + 1)]
+            : 0),
+        0,
+      );
+    const before = fighters();
+    ce.stock[equipKey("fighter", 1)] += 7;
+    step(runner, 20);
+    expect(ce.stock[equipKey("fighter", 1)]).toBe(0);
+    expect(fighters()).toBe(before + ce.stock[equipKey("fighter", 1)] + 7);
+    own.forEach((e, i) => {
+      if (ce.stock[equipKey("plane_design", i + 1)] > 0) {
+        expect(d.designSlot(DEU, "plane", i + 1)!.def.hist).toBe(e.id);
+      }
+    });
+  });
+});
