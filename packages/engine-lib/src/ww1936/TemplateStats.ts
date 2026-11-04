@@ -455,18 +455,27 @@ function designTplFlags(ds: number): number {
 /** ww67: a battalion's weight in a division's pierce, a support company's being 1. */
 const BATTALION_PIERCE_WEIGHT = 3;
 
-const AT_TYPE = TYPE_INDEX.get("anti_tank")!;
-/** The anti-tank key's slot of generation 1, 2, … */
-const AT_SLOTS: readonly number[] = SLOT_TYPE.flatMap((ty, j) =>
-  ty === AT_TYPE && j < GROUND_STATIC_SLOTS ? [j] : [],
+/** Each type's static slots, generation 1 first. */
+const STATIC_SLOTS_OF: readonly (readonly number[])[] = Array.from(
+  { length: T },
+  (_, ty) =>
+    SLOT_TYPE.flatMap((t, j) =>
+      t === ty && j < GROUND_STATIC_SLOTS ? [j] : [],
+    ).sort((x, y) => SLOT_GEN[x] - SLOT_GEN[y]),
 );
 
-/** The anti-tank key's pierce in a table at a generation mix `g` (100 = generation 1). */
-function atRowPierce(ks: KeyStatsTable, g: number): number {
+/** A static key's field in a table at a generation mix `g` (100 = generation 1). */
+function keyFieldAt(
+  ks: KeyStatsTable,
+  type: number,
+  g: number,
+  field: number,
+): number {
+  const slots = STATIC_SLOTS_OF[type];
+  if (slots.length === 0) return 0;
   const row = (i: number) =>
     ks.stats[
-      AT_SLOTS[Math.max(0, Math.min(AT_SLOTS.length - 1, i))] * KS_FIELDS +
-        KS.pierce
+      slots[Math.max(0, Math.min(slots.length - 1, i))] * KS_FIELDS + field
     ];
   const i = Math.floor(g / 100) - 1;
   const f = g % 100;
@@ -474,22 +483,24 @@ function atRowPierce(ks: KeyStatsTable, g: number): number {
 }
 
 /**
- * ww67: a gun's pierce with its country's anti-tank key (catalogue majors'
- * real penetration, rule 7): `generic`, the table's number for this battalion
- * or company, scaled by that key against the generic one. Other types, and
- * the generic table, keep `generic`.
+ * ww67: a static number with its country's key (design rule 7: a major's key
+ * fights as the catalogue entry standing in for it, generation included):
+ * `generic`, the table's number for this battalion or company at `g`, scaled by
+ * the key against the generic key. The generic table keeps `generic`, and so
+ * does a key with nothing to scale by (a field the type doesn't have).
  */
-function atKeyPierce(
+function keyed(
   ks: KeyStatsTable,
   type: number,
   g: number,
+  field: number,
   generic: number,
 ): number {
-  if (type !== AT_TYPE || ks === STATIC_KEY_STATS) return generic;
-  const base = atRowPierce(STATIC_KEY_STATS, g);
+  if (ks === STATIC_KEY_STATS) return generic;
+  const base = keyFieldAt(STATIC_KEY_STATS, type, g, field);
   return base <= 0
     ? generic
-    : Math.floor((generic * atRowPierce(ks, g)) / base);
+    : Math.floor((generic * keyFieldAt(ks, type, g, field)) / base);
 }
 
 /**
@@ -573,14 +584,20 @@ export function templateStats(
       (d.kind === "infantry" ? tech.infOrg * 1000 : 0) +
       (bl === null ? 0 : Math.floor((bl.sums[KS.orgAdd] * 1000) / bl.units));
     n++;
-    hardSum += mix(d.hardnessPm, KS.hardnessPm);
+    hardSum += mix(
+      keyed(ks, main, g, KS.hardnessPm, d.hardnessPm),
+      KS.hardnessPm,
+    );
     const armor = pctOf(
-      mix(Math.floor((d.armor * ga) / 100), KS.armor),
+      mix(
+        keyed(ks, main, g, KS.armor, Math.floor((d.armor * ga) / 100)),
+        KS.armor,
+      ),
       bp.armor,
     );
     const pierce = pctOf(
       mix(
-        atKeyPierce(ks, main, g, Math.floor((d.pierce * ga) / 100)),
+        keyed(ks, main, g, KS.pierce, Math.floor((d.pierce * ga) / 100)),
         KS.pierce,
       ),
       bp.pierce,
@@ -591,27 +608,41 @@ export function templateStats(
     pierceMax = Math.max(pierceMax, pierce);
     pierceSum += pierce * BATTALION_PIERCE_WEIGHT;
     pierceN += BATTALION_PIERCE_WEIGHT;
-    let soft = mix(Math.floor((d.soft * gp) / 100), KS.soft);
+    let soft = mix(
+      keyed(ks, main, g, KS.soft, Math.floor((d.soft * gp) / 100)),
+      KS.soft,
+    );
     if (d.artillery) {
       soft = Math.floor((soft * (100 + tech.artillerySoftPct)) / 100);
     }
     parts[main * 4] += pctOf(soft, bp.soft);
     parts[main * 4 + 1] += pctOf(
-      mix(Math.floor((d.hard * gp) / 100), KS.hard),
+      mix(
+        keyed(ks, main, g, KS.hard, Math.floor((d.hard * gp) / 100)),
+        KS.hard,
+      ),
       bp.hard,
     );
     parts[main * 4 + 2] += pctOf(
-      mix(Math.floor((d.def * gp) / 100), KS.def),
+      mix(keyed(ks, main, g, KS.def, Math.floor((d.def * gp) / 100)), KS.def),
       bp.def,
     );
     parts[main * 4 + 3] += pctOf(
-      mix(Math.floor((d.brk * gp) / 100), KS.brk),
+      mix(keyed(ks, main, g, KS.brk, Math.floor((d.brk * gp) / 100)), KS.brk),
       bp.brk,
     );
     // Tanks gain 1 km/h a generation (spec §4.1).
     const sp = mix(
-      d.speedCenti +
-        (d.kind === "armor" ? Math.floor((clampGen(g) - 100) / 100) * 100 : 0),
+      keyed(
+        ks,
+        main,
+        g,
+        KS.speedCenti,
+        d.speedCenti +
+          (d.kind === "armor"
+            ? Math.floor((clampGen(g) - 100) / 100) * 100
+            : 0),
+      ),
       KS.speedCenti,
     );
     speed = Math.min(speed, pctOf(sp, bp.speed));
@@ -641,29 +672,31 @@ export function templateStats(
     weight += d.weightCenti;
     airAtk += Math.floor((d.airAtk * gp) / 100);
     hp += Math.floor((d.hpMilli * gp) / 100);
-    let soft = Math.floor((d.soft * gp) / 100);
+    const sg = gens[main];
+    let soft = keyed(ks, main, sg, KS.soft, Math.floor((d.soft * gp) / 100));
     if (d.artillery) {
       soft = Math.floor((soft * (100 + tech.artillerySoftPct)) / 100);
     }
     parts[main * 4] += pctOf(soft, supPct + sbp.soft);
     parts[main * 4 + 1] += pctOf(
-      Math.floor((d.hard * gp) / 100),
+      keyed(ks, main, sg, KS.hard, Math.floor((d.hard * gp) / 100)),
       supPct + sbp.hard,
     );
     parts[main * 4 + 2] += pctOf(
-      Math.floor((d.def * gp) / 100),
+      keyed(ks, main, sg, KS.def, Math.floor((d.def * gp) / 100)),
       supPct + sbp.def,
     );
     parts[main * 4 + 3] += pctOf(
-      Math.floor((d.brk * gp) / 100),
+      keyed(ks, main, sg, KS.brk, Math.floor((d.brk * gp) / 100)),
       supPct + sbp.brk,
     );
     if (d.pierce > 0) {
       const p = pctOf(
-        atKeyPierce(
+        keyed(
           ks,
           main,
           gens[main],
+          KS.pierce,
           Math.floor((d.pierce * genArmorPct(gens[main])) / 100),
         ),
         sbp.pierce,

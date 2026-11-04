@@ -170,11 +170,29 @@ export function fillHistStatics(
 ): void {
   const country = histCountryOf(d, id);
   if (country === null) return;
+  const filled = new Array<boolean>(GROUND_STATIC_SLOTS).fill(false);
   for (let j = 0; j < GROUND_STATIC_SLOTS; j++) {
     const [type, gen] = EQUIP_KEYS[GROUND_EQUIP_KEYS[j]];
     const e = histStaticEntry(country, type, gen);
-    if (e === undefined) continue;
     const o = j * KS_FIELDS;
+    if (e === undefined) {
+      // No entry for this generation: the country's last stand-in of the type,
+      // never the generic row, which outclasses the whole catalogue later on.
+      const prev =
+        gen > 1
+          ? GROUND_EQUIP_KEYS.findIndex(
+              (k) => EQUIP_KEYS[k][0] === type && EQUIP_KEYS[k][1] === gen - 1,
+            )
+          : -1;
+      if (prev >= 0 && filled[prev]) {
+        for (let f = 0; f < KS_FIELDS; f++)
+          t.stats[o + f] = t.stats[prev * KS_FIELDS + f];
+        t.score[j] = t.score[prev];
+        filled[j] = true;
+      }
+      continue;
+    }
+    filled[j] = true;
     if (e.family === "tank") {
       if (type !== "light_tank" && type !== "medium_tank") continue;
       const s = tankStatsOfEntry(e);

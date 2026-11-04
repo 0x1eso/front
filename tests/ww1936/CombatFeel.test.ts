@@ -17,6 +17,7 @@ import {
 } from "@openfront/engine-lib/ww1936/CombatRules";
 import {
   GEN1,
+  genMixOf,
   STATIC_KEY_STATS,
   templateStats,
 } from "@openfront/engine-lib/ww1936/TemplateStats";
@@ -38,6 +39,16 @@ const def = (
   support,
 });
 const stats = (d: TemplateDef) => templateStats(d, TECH, GEN1);
+/** A division's slots holding 100 units of one static key. */
+const equipOf = (type: string, gen: number) => {
+  const e = new Array<number>(GROUND_SLOTS).fill(0);
+  e[
+    GROUND_EQUIP_KEYS.findIndex(
+      (k) => EQUIP_KEYS[k][0] === type && EQUIP_KEYS[k][1] === gen,
+    )
+  ] = 100;
+  return e;
+};
 
 describe("terrain and weather call for no army of their own", () => {
   test("terrain: one width, small cuts, road cost at most 130 %", () => {
@@ -115,6 +126,26 @@ describe("a division's pierce is what can actually hit", () => {
     expect(pz.pierce).toBeLessThan(4500);
     // Armour is the armoured battalions' own; hardness says how much of it there is.
     expect(pz.armor).toBe(4000);
+  });
+
+  test("a static key fights as its row: tanks and gear alike", () => {
+    const ks = { ...STATIC_KEY_STATS, stats: STATIC_KEY_STATS.stats.slice() };
+    const tank = def({ medium_armor: 9 });
+    const gens = genMixOf(equipOf("medium_tank", 1));
+    const row = (ty: string, gen: number) =>
+      GROUND_EQUIP_KEYS.findIndex(
+        (k) => EQUIP_KEYS[k][0] === ty && EQUIP_KEYS[k][1] === gen,
+      ) * KS_FIELDS;
+    ks.stats[row("medium_tank", 1) + KS.soft] = 1000;
+    ks.stats[row("medium_tank", 1) + KS.armor] = 3100;
+    const s = templateStats(tank, TECH, gens, ks);
+    expect(s.soft).toBe(9000);
+    expect(s.armor).toBe(3100);
+    const inf = def({ infantry: 1 });
+    ks.stats[row("infantry_equipment", 1) + KS.def] = 1100;
+    expect(templateStats(inf, TECH, GEN1, ks).def).toBe(1100);
+    // The generic table keeps its numbers.
+    expect(templateStats(inf, TECH, GEN1).def).toBe(2200);
   });
 
   test("anti-tank guns take the country's key", () => {
