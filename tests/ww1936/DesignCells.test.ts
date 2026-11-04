@@ -146,8 +146,13 @@ describe("tank design cells", () => {
     // The division's numbers follow the new design at once; its org never exceeds the maximum.
     const statsAfter = ww.land.baseStatsOf(row);
     expect(statsAfter.soft).not.toBe(statsBefore.soft);
+    // ww77: the country's tank attack techs apply on top of the design's row.
     expect(statsAfter.soft).toBe(
-      (d.designStatsOf(GBR, "tank", 1) as TankDesignStats).soft,
+      Math.floor(
+        ((d.designStatsOf(GBR, "tank", 1) as TankDesignStats).soft *
+          (100 + ce.stats.armorAttackPct)) /
+          100,
+      ),
     );
     expect(ww.land.divisions.org[row]).toBeLessThanOrEqual(
       ww.land.orgMaxOf(row),
