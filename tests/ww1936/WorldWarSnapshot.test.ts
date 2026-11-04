@@ -485,12 +485,13 @@ describe("World War 1936 snapshots (spec §7.8)", () => {
 // Re-pinned for the free military (no national XP, spirits or bought traits, free
 // commanders) with faster construction and efficiency: three equal runs.
 // Re-pinned for faster research (cost 1300 -> 800 permille): three equal runs.
-const WW1936_DIGEST = "ea315e49b5b1ecc2";
+// Re-pinned for cavalry org 60 and the support divisions' minimum: three equal runs.
+const WW1936_DIGEST = "ef8f68eae603358c";
 /**
  * The same game on Easy (the lobby's default in this mode): the AI
  * handicaps and the slower war planning. Pinned with three equal runs.
  */
-const WW1936_EASY_DIGEST = "ac9a8316435ff9bb";
+const WW1936_EASY_DIGEST = "4e51247a3f511690";
 
 describe("World War 1936 stays deterministic", () => {
   // An all-AI game on the test map, long enough for the calendar's first
