@@ -4821,7 +4821,7 @@
       "turn_off": "Turn off",
       "warn_low": "Low odds: {pct}% chance to win. The army attacks anyway.",
       "why_odds": "Waiting: ratio {ratio} is below 1.00 and “Attack only when favorable” is on",
-      "why_org": "Recovering org ({n} divisions): they join by themselves at 30%"
+      "why_org": "Recovering org ({n} divisions): they rejoin by themselves at 60% after a battle, or at 30% if they have not fought yet"
     },
     "dock": {
       "air": "Air",

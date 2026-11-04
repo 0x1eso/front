@@ -116,6 +116,8 @@ export const MOVE_SEA = 5;
 export const ROLE_NONE = 0;
 export const ROLE_ATTACK = 1;
 export const ROLE_DEFEND = 2;
+/** A direct attacker that left its battle or fell below the leave line: rejoins at ATTACK_REJOIN_PCT org. */
+export const ROLE_RECOVER = 3;
 
 export const ARMY_ORDER_KINDS = [
   "idle",

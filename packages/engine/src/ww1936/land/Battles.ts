@@ -29,6 +29,7 @@ import {
   ROLE_ATTACK,
   ROLE_DEFEND,
   ROLE_NONE,
+  ROLE_RECOVER,
   TemplateDef,
   TPL_ENGINEER,
   TPL_HOSPITAL,
@@ -864,8 +865,16 @@ function release(land: WwLand, row: number): void {
 function clearRole(land: WwLand, row: number): void {
   const t = land.divisions;
   if (t.battle[row] === 0 && t.role[row] === ROLE_NONE) return;
+  const left = t.role[row] === ROLE_ATTACK;
   t.battle[row] = 0;
   t.role[row] = ROLE_NONE;
+  // A direct attacker that leaves a battle rejoins only after it recovered.
+  if (left) {
+    const o = land.armies.get(t.army[row])?.order;
+    if (o !== undefined && o.kind === "plan" && o.direct === true) {
+      t.role[row] = ROLE_RECOVER;
+    }
+  }
   land.markArmy(t.army[row]);
 }
 
