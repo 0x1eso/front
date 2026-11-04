@@ -3,6 +3,7 @@
 // moves the human's running lines to the new design. A human Britain on
 // ww1936deep (London is the naval base).
 import type { DepthOrder } from "@openfront/engine-api/Schemas";
+import { DESIGNER_POOL } from "@openfront/engine-api/ww1936/DepthTypes";
 import { SHIP_CLASSES } from "@openfront/engine-api/ww1936/NavyTypes";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { copyDesignTo } from "@openfront/engine/ww1936/depth/DesignCopy";
@@ -191,7 +192,15 @@ describe("ship design cells", () => {
     const fill: Def = { kind: "ship", base: "ca_1", modules: [], name: "x" };
     let n = 0;
     while (saveDesign(g.d, GBR, fill, 0, "own", 0, 0, 0) === 1 + n + 1) n++;
-    expect(g.d.country(GBR)!.des.ship.every((s) => s !== null)).toBe(true);
+    // ww61: the designer's own pool is the first DESIGNER_POOL.ship slots.
+    expect(DESIGNER_POOL.ship).toBe(24);
+    expect(n).toBeLessThanOrEqual(DESIGNER_POOL.ship);
+    expect(
+      g.d
+        .country(GBR)!
+        .des.ship.slice(0, DESIGNER_POOL.ship)
+        .every((s) => s !== null),
+    ).toBe(true);
     const snap = JSON.stringify(g.d.country(GBR)!.des.ship);
     expect(save(g, V2)).toBe("design_slots_full");
     expect(JSON.stringify(g.d.country(GBR)!.des.ship)).toBe(snap);

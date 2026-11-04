@@ -314,10 +314,11 @@ describe("the engine's judgements use them", () => {
     expect(tradePartnerBlock(econ, deu, gbr)).toBe("no_partner");
     expect(tradePartnerBlock(econ, gbr, fra)).toBeNull(); // North Sea
     expect(tradePartnerBlock(econ, deu, deu)).toBe("no_partner");
-    // Room: Germany sells a quarter of Munich's 40 steel a day.
-    expect(exportRoom(econ, deu, 4)).toBe(10);
+    // Room: Germany sells a quarter of Munich's steel a day; its national
+    // trait (extraction -15%) makes that 34 of the 40, so 8.
+    expect(exportRoom(econ, deu, 4)).toBe(8);
     econ.addTrade(ita, deu, 4, 1);
-    expect(exportRoom(econ, deu, 4)).toBe(2);
+    expect(exportRoom(econ, deu, 4)).toBe(0);
     // At war with Poland: no deal with it, and no road through it.
     ww.setWar(deu, pol, g.ticks());
     expect(tradePartnerBlock(econ, deu, pol)).toBe("no_partner");

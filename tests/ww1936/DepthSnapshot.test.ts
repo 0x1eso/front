@@ -45,6 +45,7 @@ import {
   exploiting,
 } from "@openfront/engine/ww1936/depth/Crypto";
 import { destroyDam } from "@openfront/engine/ww1936/depth/Dams";
+import { dailyHist } from "@openfront/engine/ww1936/depth/Hist";
 import {
   M_BUILD_NETWORK,
   ST_CAPTURED,
@@ -767,6 +768,14 @@ describe("World War 1936 P6: derived depth fields (plan Task 23 Step 2)", () => 
   const VERSIONS = ["keyStatsSeq", "designVer"] as const;
   /** armyMods' reused query object (written before every read). */
   const SCRATCH = ["modQuery"] as const;
+  /**
+   * ww61 dailyHist's memo (country -> researched-set size it last checked).
+   * A restored game starts it empty and the first day walks the catalogue
+   * again; that is idempotent (a filled slot is only upgraded from "received"
+   * when its techs are in, which grantHistItem already settles), so it is
+   * checked below by behaviour rather than rebuilt here.
+   */
+  const MEMO = ["histSeen"] as const;
   /** Screens' buffers: emptied by takeData, never read by the rules. */
   const SCREEN = [
     "depthFx",
@@ -817,7 +826,7 @@ describe("World War 1936 P6: derived depth fields (plan Task 23 Step 2)", () => 
     // Every depth field the oracle leaves out is classified here.
     const derivedHere = Object.keys(d).filter((k) => DERIVED_FIELDS.has(k));
     expect([...derivedHere].sort()).toEqual(
-      [...REBUILT, ...VERSIONS, ...SCRATCH, ...SCREEN].sort(),
+      [...REBUILT, ...VERSIONS, ...SCRATCH, ...MEMO, ...SCREEN].sort(),
     );
     // The values made on one day and read on a later one are state (§0-8).
     for (const k of ["lastPriorityGot", "resistBoost", "dayTally"]) {
@@ -853,6 +862,15 @@ describe("World War 1936 P6: derived depth fields (plan Task 23 Step 2)", () => 
       v.clear();
       v.set(999, [999] as never);
     }
+    // The memo: forgotten, the catalogue walk changes no design anywhere.
+    const desOf = () =>
+      JSON.stringify(
+        Array.from({ length: d.cap }, (_, id) => d.country(id)?.des ?? null),
+      );
+    const desBefore = desOf();
+    d.histSeen.clear();
+    for (let id = 1; id < d.cap; id++) dailyHist(d, id, 99);
+    expect(desOf()).toBe(desBefore);
     d.rebuildDerived();
     read();
     for (const k of REBUILT) expect([k, rec[k]]).toEqual([k, before[k]]);

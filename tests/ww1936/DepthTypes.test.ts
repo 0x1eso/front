@@ -131,12 +131,13 @@ describe("World War 1936 P6 lists", () => {
     expect(effectGroup("navy_xp")).toBe("endgame");
   });
 
-  it("equipment keys grow by exactly 45, the old ones unmoved; divisions 30 slots", () => {
+  it("equipment keys: the old ones unmoved, then the design slot pools; divisions 66 slots", () => {
     const old = EQUIP_KEYS.findIndex(([t]) => t === "tank_design");
-    expect(EQUIP_KEY_COUNT - old).toBe(45);
+    // ww61: the pools grew to 48 tank and 64 plane slots (WW_*_DESIGN_SLOTS).
+    expect(EQUIP_KEY_COUNT - old).toBe(48 + 64 + 5);
     expect(EQUIP_KEYS.slice(old).map(([t]) => t)).toEqual([
-      ...new Array<string>(12).fill("tank_design"),
-      ...new Array<string>(28).fill("plane_design"),
+      ...new Array<string>(48).fill("tank_design"),
+      ...new Array<string>(64).fill("plane_design"),
       "railway_gun",
       "floating_harbor",
       "flying_bomb",
@@ -144,10 +145,10 @@ describe("World War 1936 P6 lists", () => {
       "atomic_bomb",
     ]);
     // Pre-flight §0-4: the 18 P2 slots, then the 12 tank designs.
-    expect(GROUND_SLOTS).toBe(30);
+    expect(GROUND_SLOTS).toBe(18 + 48);
     expect(GROUND_EQUIP_KEYS.slice(0, 18).every((k) => k < old)).toBe(true);
     expect(GROUND_EQUIP_KEYS.slice(18)).toEqual(
-      Array.from({ length: 12 }, (_, i) => old + i),
+      Array.from({ length: 48 }, (_, i) => old + i),
     );
   });
 

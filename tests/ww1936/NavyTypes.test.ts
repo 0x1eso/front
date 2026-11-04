@@ -76,19 +76,20 @@ describe("P4 lists (plan decisions 3, 14, 23, 24, 25)", () => {
   });
 
   it("23 more stock slots, the old ones unmoved; divisions keep their 18 slots first", () => {
-    // P4's 23, then P6's 45 (plan decision 5, 28 plane design slots).
-    expect(EQUIP_KEY_COUNT).toBe(P3_EQUIP_KEYS.length + 23 + 45);
+    // P4's 23, then P6's 45 (plan decision 5), then the design pools grown
+    // to 48 tank and 64 plane slots (ww61: +36 +36).
+    expect(EQUIP_KEY_COUNT).toBe(P3_EQUIP_KEYS.length + 23 + 45 + 72);
     expect(EQUIP_KEYS.slice(0, 23).map(([t, g]) => [t, g])).toEqual(
       P3_EQUIP_KEYS,
     );
     // Pre-flight ruling 1: no plane and no convoy in a division. P6
-    // (pre-flight §0-4): the first 18 slots are the P2 keys, then the 12
+    // (pre-flight §0-4): the first 18 slots are the P2 keys, then the 48
     // tank design keys (GROUND_TYPES allow-list).
-    expect(GROUND_SLOTS).toBe(30);
+    expect(GROUND_SLOTS).toBe(66);
     expect(GROUND_EQUIPMENT).toHaveLength(8);
     expect(GROUND_EQUIP_KEYS.slice(0, 18).every((k) => k < 18)).toBe(true);
     expect(GROUND_EQUIP_KEYS.slice(18).map((k) => EQUIP_KEYS[k][0])).toEqual(
-      new Array<string>(12).fill("tank_design"),
+      new Array<string>(48).fill("tank_design"),
     );
   });
 

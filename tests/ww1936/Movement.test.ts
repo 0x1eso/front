@@ -165,11 +165,26 @@ describe("World War 1936 P2: movement (P2 spec §7)", () => {
     expect(l.issue(deu, { kind: "army_attack", army: a.id, region: 6 })).toBe(
       null,
     );
-    for (let i = 0; i < 120; i++) {
+    // An attack is a battle, not a walk: the division stays out of the region
+    // while it fights from region 3. It steps in only when the battle has
+    // taken a band of the region (ww7 bands; the foot units' stronger
+    // breakthrough lets it win this one), and then the region is still the
+    // Polish division's, which is still inside it.
+    let entered = false;
+    for (let i = 0; i < 120 && !entered; i++) {
       step(runner);
-      expect(l.divisions.region[rowOf(g, a)]).toBe(3);
-      expect(l.divisions.mode[rowOf(g, a)]).toBe(MOVE_NONE);
+      if (l.divisions.region[rowOf(g, a)] === 3) {
+        expect(l.divisions.mode[rowOf(g, a)]).toBe(MOVE_NONE);
+      } else {
+        entered = true;
+        expect(l.divisions.region[rowOf(g, a)]).toBe(6);
+        expect(l.bandProg[6]).toBeGreaterThan(0);
+        expect([...l.rowsIn(6)].some((r) => l.divisions.owner[r] === pol)).toBe(
+          true,
+        );
+      }
     }
+    expect(entered).toBe(true);
     expect(l.controller[6]).toBe(pol);
     // A walk already on the way stops the tick an enemy division moves in.
     const b = placeArmy(g, "DEU", 4, 1);

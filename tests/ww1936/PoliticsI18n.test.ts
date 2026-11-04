@@ -382,6 +382,10 @@ describe("politics strings", () => {
         for (const [k, v] of Object.entries(o)) texts(v, `${at}.${k}`, out);
       }
     };
+    const KO_ONLY_ARGS: Record<string, string[]> = {
+      "ww1936.fx.equipment_item": ["unit"],
+      "ww1936.fx.send_equipment_item": ["unit"],
+    };
     const enT = new Map<string, string>();
     const root = (j: unknown) => j as Record<string, Record<string, unknown>>;
     texts(root(en).ww1936, "ww1936", enT);
@@ -391,7 +395,13 @@ describe("politics strings", () => {
     for (const [k, text] of enT) {
       const koText = keyIn(ko, k);
       if (koText === undefined) continue;
-      expect(argNames(koText, "ko"), k).toEqual(argNames(text, "en"));
+      // Korean counts things with a counter word the code passes as `unit`
+      // (ww71: PoliticsModel itemUnit); English has no use for it.
+      const extra = KO_ONLY_ARGS[k] ?? [];
+      expect(
+        argNames(koText, "ko").filter((a) => !extra.includes(a)),
+        k,
+      ).toEqual(argNames(text, "en"));
     }
   });
 

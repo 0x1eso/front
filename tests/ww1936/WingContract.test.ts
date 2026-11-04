@@ -70,7 +70,9 @@ describe("the lists are appended, never reordered", () => {
     ]);
     expect(WW_BOMB_CLASSES[0]).toBe("auto");
     // The focus queue appended two after these, the research queues three.
-    expect(WW_ORDER_BLOCKS.slice(-10, -7)).toEqual([
+    const at = WW_ORDER_BLOCKS.indexOf("too_many_wings");
+    expect(at).toBeGreaterThan(0);
+    expect(WW_ORDER_BLOCKS.slice(at, at + 3)).toEqual([
       "too_many_wings",
       "no_bomb_target",
       "escort_out_of_range",
@@ -79,7 +81,12 @@ describe("the lists are appended, never reordered", () => {
     // ww42 appended army_direct last; the older pins read what is before it.
     // w50 appended the four air group orders last.
     expect(kinds.splice(-4)).toEqual([...GROUP_ORDER_KINDS]);
-    expect(WW_ORDER_BLOCKS.slice(-1)).toEqual(["in_group"]);
+    // in_group, then w57 too_small and ww61 designer_off.
+    expect(WW_ORDER_BLOCKS.slice(-3)).toEqual([
+      "in_group",
+      "too_small",
+      "designer_off",
+    ]);
     expect(kinds.pop()).toBe("start_oob");
     expect(kinds.pop()).toBe("army_direct");
     // ww9 appends thought_set after the wing orders.

@@ -8,6 +8,7 @@ import {
   WING_UPGRADE_PER_REARM,
 } from "@openfront/engine-api/ww1936/AirTypes";
 import {
+  DESIGNER_POOL,
   PLANE_BASES,
   type PlaneDesignStats,
   WW_PLANE_DESIGN_SLOTS,
@@ -293,7 +294,12 @@ describe("saving into a cell", () => {
     }
     // Fill with foreign designs to the pool's size.
     const des = g.d.country(GBR)!.des.plane;
-    for (let i = 0; i < des.length; i++) {
+    // ww61: the array holds the catalogue's slots too; the designer's own
+    // pool is the first DESIGNER_POOL.plane of them.
+    const pool = DESIGNER_POOL.plane;
+    expect(pool).toBe(28);
+    expect(des.length).toBeGreaterThan(pool);
+    for (let i = 0; i < pool; i++) {
       des[i] ??= {
         def: weak("small_1", "x") as never,
         origin: "received",
@@ -303,8 +309,7 @@ describe("saving into a cell", () => {
         savedDay: 0,
       };
     }
-    expect(des).toHaveLength(28);
-    expect(des.every((s) => s !== null)).toBe(true);
+    expect(des.slice(0, pool).every((s) => s !== null)).toBe(true);
     expect(n).toBeLessThan(WW_PLANE_DESIGN_SLOTS + 1);
     expect(save(g, weak("small_3", "z"))).toBeNull(); // an existing cell: overwrite, no new slot
     expect(

@@ -74,7 +74,7 @@ describe("map lenses (w14)", () => {
     const t = lensReadout(game, sel({ regionLens: "terrain" }), 4)!;
     expect(t.title).toBe(scenario.region(4)!.name);
     expect(t.lines.join("|")).toContain("[ww1936.terrain.forest]");
-    expect(t.lines.join("|")).toContain("atk=-15");
+    expect(t.lines.join("|")).toContain("atk=-5"); // ww67: forest cuts the attack by 5 %
     const vp = lensReadout(game, sel({ regionLens: "vp" }), 3)!;
     expect(vp.lines[0]).toBe("[ww1936.lens.vp_here] n=21");
     expect(vp.lines.join("|")).toContain("[ww1936.lens.vp_is_capital]");
