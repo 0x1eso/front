@@ -24,6 +24,7 @@ import {
   ARMY_RETREAT,
   ARMY_SEA,
   ArmySummary,
+  type DirectView,
   BattleSummary,
   DivisionData,
   DivisionStats,
@@ -729,6 +730,12 @@ export interface ArmyCardData {
    * not 과감 (aggressive): the army waits for better odds (nothing in battle).
    */
   waitingLowOdds: boolean;
+  /** ww42: the army's direct attack (mine.direct), null for an army without settings. */
+  direct: DirectView | null;
+  /** ww42: its order is a direct attack. */
+  directOn: boolean;
+  /** ww42: the lowest win chance of the direct attack when it is Low, else null (the red warning). */
+  lowPct: number | null;
   /** My armies this one can merge into now (army_merge passes the checks). */
   mergeWith: number[];
   /** The "⋯" panel's paradrop button (to the nearest enemy region). */
@@ -974,6 +981,9 @@ export function armyCard(
     gaps: detailOf(view, me)?.gaps?.length ?? 0,
     executing: a.mine?.order.executing ?? false,
     waitingLowOdds: waitingForOdds(a),
+    direct: a.mine?.direct ?? null,
+    directOn: a.mine?.order.direct === true,
+    lowPct: a.mine?.order.direct === true ? directWarning(a) : null,
     mergeWith: merge.into,
     paradropBlock:
       enemy === null
@@ -992,7 +1002,8 @@ export type TapKind =
   | "sea"
   | "paradrop"
   | "zone"
-  | "plan";
+  | "plan"
+  | "direct";
 
 export function tapKind(
   view: WwLandView,
@@ -1007,11 +1018,12 @@ export function tapKind(
   const enemy = sides.isEnemy(me, c);
   switch (mode) {
     case "none":
-      return ours ? "move" : enemy ? "attack" : null;
+      // ww42: a tap on an enemy region is a direct attack order.
+      return ours ? "move" : enemy ? "direct" : null;
     case "move":
       return ours ? "move" : null;
     case "attack":
-      return enemy ? "attack" : null;
+      return enemy ? "direct" : null;
     case "rail":
       return ours ? "rail" : null;
     case "sea":
@@ -1019,7 +1031,7 @@ export function tapKind(
     case "paradrop":
       return enemy ? "paradrop" : null;
     case "plan":
-      return enemy ? "plan" : null;
+      return enemy ? "direct" : null;
     case "front":
       // ww7: [방어] — a border region of ours joins or leaves the zone.
       return borderRegions(view, me, sides).includes(region) ? "zone" : null;
@@ -1045,6 +1057,7 @@ export function tapOrder(
       return { kind: "paradrop", army, region };
     case "zone":
     case "plan":
+    case "direct":
       return null;
   }
 }
@@ -2356,4 +2369,101 @@ export function idleEquipment(
     if (preset !== undefined) return { type, count, preset };
   }
   return null;
+}
+
+
+// ---- ww42: a human's direct attack ----
+
+/** The order that gives `army` its direct-attack targets (taken in order). */
+export function directOrder(
+  army: number,
+  targets: readonly number[],
+): LandOrder {
+  return { kind: "army_direct", army, targets: [...targets] };
+}
+
+/** The direct attack's settings order: the three toggles, a field left out stays. */
+export function directSettings(
+  army: number,
+  s: { favorable?: boolean; allIn?: boolean; advance?: boolean },
+): LandOrder {
+  return { kind: "army_direct", army, ...s };
+}
+
+/** The targets of the army's running direct attack (the engine's), else none. */
+export function directTargetsOf(a: ArmySummary | undefined): number[] {
+  const o = a?.mine?.order;
+  return o !== undefined && o.kind === "plan" && o.direct === true
+    ? [...o.targets]
+    : [];
+}
+
+/**
+ * The target list a tap on `region` makes: the region added at the end
+ * (at most WW_MAX_TARGETS; a full list takes none) or, tapped again, removed.
+ */
+export function tapDirectTargets(
+  targets: readonly number[],
+  region: number,
+): number[] {
+  return toggleTarget(targets, region);
+}
+
+/** One line of the card's breakdown: a kind, its divisions, and where they stand. */
+export interface DirectPart {
+  kind: "atk" | "hold" | "wait" | "rec" | "walk";
+  n: number;
+  /** For attackers: [our region, divisions] per attacking region, biggest first. */
+  regions: [number, number][];
+}
+
+/**
+ * The card's breakdown of a direct attack, from the engine's own counts
+ * (DirectView): empty groups left out, in the order attacking, holding the
+ * border, waiting, recovering, walking.
+ */
+export function directBreakdown(dv: DirectView): DirectPart[] {
+  const per = new Map<number, number>();
+  let atk = 0;
+  for (const [from, , n] of dv.atk) {
+    per.set(from, (per.get(from) ?? 0) + n);
+    atk += n;
+  }
+  const out: DirectPart[] = [];
+  if (atk > 0) {
+    out.push({
+      kind: "atk",
+      n: atk,
+      regions: [...per].sort((x, y) => y[1] - x[1] || x[0] - y[0]),
+    });
+  }
+  const rest: [DirectPart["kind"], number, number][] = [
+    ["hold", dv.hold, 0],
+    ["wait", dv.wait, 1],
+    ["rec", dv.rec, 2],
+    ["walk", dv.walk, 3],
+  ];
+  for (const [kind, n, k] of rest) {
+    if (n === 0) continue;
+    const here = new Map<number, number>();
+    for (const [region, kk, c] of dv.at) if (kk === k) here.set(region, c);
+    out.push({
+      kind,
+      n,
+      regions: [...here].sort((x, y) => y[1] - x[1] || x[0] - y[0]),
+    });
+  }
+  return out;
+}
+
+/**
+ * The lowest win chance the engine gave for the direct attack's regions when
+ * it is under the Low line (ODDS_MID_PCT), else null: the card's red warning.
+ */
+export function directWarning(a: ArmySummary | undefined): number | null {
+  const odds = a?.mine?.odds;
+  if (odds === undefined || odds.length === 0) return null;
+  let low = 100;
+  for (const o of odds) low = Math.min(low, o[2]);
+  return oddsLevel(low) === "low" ? low : null;
 }

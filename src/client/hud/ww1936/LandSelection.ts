@@ -40,6 +40,8 @@ export class WwLandSelection {
    * update carries it; null: the army's own (`mine.front`).
    */
   zoneDraft: number[] | null = null;
+  /** ww42: why the last direct-attack tap was refused (an order block); cleared by the next good tap. */
+  refusal: string | null = null;
   version = 0;
 
   select(army: number | null): void {
@@ -49,6 +51,7 @@ export class WwLandSelection {
     this.targets = [];
     this.stance = "balanced";
     this.zoneDraft = null;
+    this.refusal = null;
     this.version++;
   }
 

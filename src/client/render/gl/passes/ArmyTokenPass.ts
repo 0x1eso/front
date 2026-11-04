@@ -114,6 +114,8 @@ export class ArmyTokenPass {
   private frontRows = 0;
   private frontVersion = -1;
   private frontMe = -1;
+  private frontChosen: number | null = null;
+  private readonly directData: number[] = [];
 
   constructor(
     private gl: WebGL2RenderingContext,
@@ -209,11 +211,13 @@ export class ArmyTokenPass {
     const n = layout.count;
     const ghosts: readonly FogGhost[] = fog?.ghosts() ?? NO_GHOSTS;
     const lod = n > 0 ? layout.placements[0].lod : 0;
-    const fronts = lod <= 1 ? this.frontDots(view, me) : 0;
-    this.buf.ensureCapacity(n + fronts + ghosts.length);
+    const fronts = lod <= 1 ? this.frontDots(view, me, selection.army) : 0;
+    const directRows = lod <= 1 ? this.directDots(view, me, selection.army) : 0;
+    this.buf.ensureCapacity(n + fronts + directRows + ghosts.length);
     const f = this.buf.float32;
     let o = 0;
     for (let i = 0; i < fronts * FLOATS; i++) f[o++] = this.frontData[i];
+    for (let i = 0; i < directRows * FLOATS; i++) f[o++] = this.directData[i];
     const kind = lod === 0 ? KIND_TOKEN : lod === 1 ? KIND_CHIP : KIND_DOT;
     let chosen = -1;
     for (const g of ghosts) o = this.writeGhost(f, o, g, kind);
@@ -332,12 +336,21 @@ export class ArmyTokenPass {
    * division records; kept until the view or the viewer changes. Returns how
    * many rows frontData holds.
    */
-  private frontDots(view: WwLandView, me: number): number {
-    if (view.version === this.frontVersion && me === this.frontMe) {
+  private frontDots(
+    view: WwLandView,
+    me: number,
+    chosen: number | null,
+  ): number {
+    if (
+      view.version === this.frontVersion &&
+      me === this.frontMe &&
+      chosen === this.frontChosen
+    ) {
       return this.frontRows;
     }
     this.frontVersion = view.version;
     this.frontMe = me;
+    this.frontChosen = chosen;
     const perFront = this.perFront;
     perFront.clear();
     const data = this.frontData;
@@ -352,6 +365,8 @@ export class ArmyTokenPass {
     const w = view.scenario.width;
     for (const a of view.armies.values()) {
       if (a.owner !== me || a.mine === null) continue;
+      // ww42: the chosen direct attack's divisions are drawn by state instead.
+      if (a.id === chosen && a.mine.direct !== undefined) continue;
       for (const region of a.mine.front) {
         const n = perFront.get(a.id * 65536 + region) ?? 0;
         if (n === 0) continue;
@@ -363,6 +378,39 @@ export class ArmyTokenPass {
       }
     }
     return this.frontRows;
+  }
+
+  /**
+   * ww42: the chosen own army's direct attack: a row of dots (at most five)
+   * in each region by what its divisions there do, from the engine's counts
+   * (mine.direct): attacking, holding the border, waiting, recovering,
+   * walking. Own armies only (mine is the fog-safe field).
+   */
+  private directDots(
+    view: WwLandView,
+    me: number,
+    chosen: number | null,
+  ): number {
+    const data = this.directData;
+    data.length = 0;
+    if (chosen === null) return 0;
+    const a = view.armies.get(chosen);
+    const dv = a?.mine?.direct;
+    if (a === undefined || a.owner !== me || dv === undefined) return 0;
+    const w = view.scenario.width;
+    const row = (region: number, code: number, n: number) => {
+      const t = view.scenario.centerTile(region);
+      data.push(t % w, Math.floor(t / w), KIND_FRONT_DOTS, a.owner);
+      data.push(-1, 0, 0, 0);
+      data.push(code, 0, Math.min(FRONT_DOTS_MAX, n), 0);
+    };
+    const atk = new Map<number, number>();
+    for (const [from, , n] of dv.atk) atk.set(from, (atk.get(from) ?? 0) + n);
+    for (const [region, n] of atk) row(region, 8, n);
+    for (const [region, kind, n] of dv.at) {
+      row(region, kind === 3 ? 16 : 9 + kind, n);
+    }
+    return data.length / FLOATS;
   }
 
   draw(cam: Float32Array, tilesPerPx: number, timeSec: number): void {

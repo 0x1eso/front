@@ -4723,6 +4723,22 @@
         "top": "Biggest sources of tension"
       }
     },
+    "direct": {
+      "advance": "Keep advancing",
+      "border_all": "Border: all attack",
+      "border_keep": "Border: keep guards",
+      "favorable": "Attack only when favorable",
+      "part_atk": "Attacking {n}",
+      "part_atk_where": "Attacking {n} ({where})",
+      "part_hold": "Border guard {n}",
+      "part_rec": "Recovering {n}",
+      "part_wait": "Waiting {n}",
+      "part_walk": "Moving {n}",
+      "turn_off": "Turn off",
+      "warn_low": "Low odds: {pct}% chance to win. The army attacks anyway.",
+      "why_odds": "Waiting: ratio {ratio} is below 1.00 and “Attack only when favorable” is on",
+      "why_org": "Recovering org ({n} divisions): they join by themselves at 30%"
+    },
     "dock": {
       "air": "Air",
       "army": "Army",

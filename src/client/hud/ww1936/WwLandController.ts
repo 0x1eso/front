@@ -3,12 +3,14 @@
 // next one); with an army chosen, a tap on a region is an order's first
 // tap (its preview shows on the army card) and a second tap on the same
 // region gives it; a tap anywhere else cancels. Drags move the map.
+import type { LandOrder } from "@openfront/engine-api/Schemas";
 import {
   EventBus,
   EventConstructor,
   GameEvent,
 } from "@openfront/shared/EventBus";
 import { registerBackClosable } from "../../BackGuard";
+import { showToast } from "../../Utils";
 import { Controller } from "../../Controller";
 import {
   ContextMenuEvent,
@@ -28,12 +30,16 @@ import type { WwLandView } from "../../view/WwLandView";
 import { WwMultiSelectEvent } from "./DepthEvents";
 import {
   borderRegions,
+  cardBlockText,
+  directOrder,
+  directTargetsOf,
   groupZone,
   LandSides,
   landSidesOf,
   orderBlock,
   planOrder,
   tapKind,
+  tapDirectTargets,
   tapOrder,
   toggleTarget,
   toggleZone,
@@ -62,6 +68,8 @@ import type { WwSeaAirController } from "./WwSeaAirController";
 
 /** How long a tapped zone stays on screen before the engine's own zone replaces it. */
 const ZONE_DRAFT_MS = 4000;
+/** ww42: taps closer than this to the last direct order build on its target list. */
+const DIRECT_DRAFT_MS = 2500;
 /** A finger's reach on the map (spec §15.9), in screen px. */
 export const TAP_RADIUS_PX = 24;
 /** A press that travels this far moved the map (InputHandler's touch slop). */
@@ -153,6 +161,8 @@ export class WwLandController implements Controller {
   private down: { x: number; y: number } | null = null;
   /** When the pending region got its first tap (a double tap must not confirm). */
   private pendingAt = 0;
+  private directAt = 0;
+  private directDraft: number[] = [];
   private unregisterBack: (() => void) | null = null;
   private unregisterMultiBack: (() => void) | null = null;
   /** P6 (spec §20.4): the 500 ms press on one of my tokens, and the tap that ends it. */
@@ -491,6 +501,10 @@ export class WwLandController implements Controller {
       if (sel.mode !== "plan" && sel.mode !== "front") this.cancel();
       return;
     }
+    if (kind === "direct") {
+      this.directTap(view, me, army, region);
+      return;
+    }
     if (kind === "plan") {
       // ww7: [공격] — a target joins or leaves the plan, which goes to the
       // engine at once (its zone and odds come back with the next update).
@@ -538,6 +552,60 @@ export class WwLandController implements Controller {
     }
     this.eventBus.emit(new SendWwOrderIntentEvent(order));
     this.modeTo("none");
+    this.changed();
+  }
+
+  /**
+   * ww42: a tap on an enemy region with an army chosen: the attack starts at
+   * once; each further tap adds a target (taken in order); a target tapped
+   * again is dropped (the last one stops the attack). A refused order is
+   * told at once (the card and a toast) and changes nothing.
+   */
+  private directTap(
+    view: WwLandView,
+    me: number,
+    army: number,
+    region: number,
+  ): void {
+    const sel = this.selection;
+    const now = this.deps.now();
+    const cur = directTargetsOf(view.armies.get(army));
+    // Taps that come faster than the engine's update build on each other.
+    const base =
+      this.directDraft.length > 0 && now - this.directAt < DIRECT_DRAFT_MS
+        ? this.directDraft
+        : cur;
+    const next = tapDirectTargets(base, region);
+    if (next.length === base.length && next.every((t, i) => t === base[i])) {
+      return;
+    }
+    const order: LandOrder =
+      next.length === 0
+        ? { kind: "army_halt", army }
+        : directOrder(army, next);
+    const economy = this.game.wwEconomy?.() ?? null;
+    if (economy === null) return;
+    const block = orderBlock(
+      view,
+      economy,
+      me,
+      today(this.game),
+      order,
+      this.sides(),
+    );
+    sel.pending = null;
+    if (block !== null) {
+      sel.refusal = block;
+      sel.version++;
+      showToast(cardBlockText(block), "red");
+      this.changed();
+      return;
+    }
+    sel.refusal = null;
+    this.directDraft = next;
+    this.directAt = now;
+    sel.version++;
+    this.eventBus.emit(new SendWwOrderIntentEvent(order));
     this.changed();
   }
 

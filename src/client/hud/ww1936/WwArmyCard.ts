@@ -16,6 +16,8 @@ import {
 } from "@openfront/engine-api/ww1936/LandTypes";
 import { WW_INVASION_LAUNCH_SUP_PM } from "@openfront/engine-api/ww1936/NavyTypes";
 import { RAID_TARGETS } from "@openfront/engine-lib/ww1936/ProjectRules";
+import { GoToPositionEvent } from "../../TransformHandler";
+import { renderDirectPanel } from "./WwDirectPanel";
 import { EventBus } from "@openfront/shared/EventBus";
 import { html, LitElement, nothing, TemplateResult } from "lit";
 import { customElement, state } from "lit/decorators.js";
@@ -651,7 +653,6 @@ export class WwArmyCard extends LitElement implements Controller {
             ? this.renderLine(c, true)
             : translateText(c.card.status.key, c.card.status.params)}
       </span>
-      ${c.sel.mode === "plan" ? this.executeButton(c, false) : nothing}
       ${c.sel.mode === "front" ? this.zoneAutoButton(c) : nothing}
       ${ordering
         ? this.button(
@@ -874,6 +875,15 @@ export class WwArmyCard extends LitElement implements Controller {
 
   /** The line under the state: a refusal, a pending tap's preview, or the mode's hint. */
   private renderLine(c: Ctx, compact = false): TemplateResult | typeof nothing {
+    // ww42: a refused attack tap says why, as a toast did.
+    if (c.sel.refusal !== null && this.refused === null) {
+      return html`<span
+        data-ww-block=${c.sel.refusal}
+        class="${compact ? "" : "block "}text-red-300"
+      >
+        🔒 ${cardBlockText(c.sel.refusal as CardBlock)}
+      </span>`;
+    }
     if (this.refused !== null) {
       return html`<span
         data-ww-block=${this.refused.block}
@@ -1311,6 +1321,26 @@ export class WwArmyCard extends LitElement implements Controller {
     </div>`;
   }
 
+  /**
+   * ww42: a human's attack is direct: the settings, the breakdown and the
+   * reasons. An older plan army (stance, not direct) keeps its stance switch.
+   */
+  private renderDirect(c: Ctx): TemplateResult {
+    if (c.card.orderKind === "plan" && !c.card.directOn) {
+      return html`${this.renderWait(c)}${this.renderStance(c)}`;
+    }
+    return renderDirectPanel({
+      view: c.view,
+      card: c.card,
+      send: (o) => this.send(o),
+      goTo: (region) => {
+        const t = c.view.scenario.centerTile(region);
+        const w = c.view.scenario.width;
+        this.eventBus.emit(new GoToPositionEvent(t % w, Math.floor(t / w)));
+      },
+    });
+  }
+
   /** ww7: why a running attack stands still (every odds Low) and the one tap that changes it. */
   private renderWait(c: Ctx): TemplateResult | typeof nothing {
     if (!c.card.waitingLowOdds) return nothing;
@@ -1364,11 +1394,10 @@ export class WwArmyCard extends LitElement implements Controller {
       (id) => !(ARMY_ACTIONS as readonly string[]).includes(id),
     );
     return [
-      this.renderWait(c),
+      this.renderDirect(c),
       html`<div data-ww-action-row class="grid grid-cols-4 gap-1">
         ${ARMY_ACTIONS.map((id) => one(id, true))}
       </div>`,
-      this.renderStance(c),
       html`<div class="grid grid-cols-5 gap-1">
         ${rest.map((id) => one(id))}
       </div>`,
@@ -1483,78 +1512,11 @@ export class WwArmyCard extends LitElement implements Controller {
     );
   }
 
-  /**
-   * ww7: [실행] — the plan the taps drew runs (army_execute on; the plan is
-   * sent again first only if the engine's differs); while it runs, one
-   * press stops it. Greyed until a target is chosen.
-   */
-  private executeButton(c: Ctx, wide: boolean): TemplateResult {
-    const army = c.card.row.id;
-    if (c.card.executing) {
-      return this.button(
-        "execute",
-        translateText("ww1936.land.btn_stop"),
-        "■",
-        () => {
-          this.send({ kind: "army_execute", army, on: false });
-          this.setMode("none");
-        },
-        { danger: true, wide },
-      );
-    }
-    const targets = [...c.sel.targets];
-    const stance = c.sel.stance;
-    const plan = planOrder(army, targets, stance);
-    const block: CardBlock | null =
-      targets.length === 0
-        ? "no_target"
-        : orderBlock(
-            c.view,
-            c.economy,
-            c.me,
-            c.day,
-            plan,
-            landSidesOf(this.game),
-          );
-    return this.button(
-      "execute",
-      translateText("ww1936.land.btn_execute"),
-      "▶",
-      () => {
-        if (block !== null) {
-          this.refused = { id: "execute", block };
-          return;
-        }
-        this.refused = null;
-        const order = c.view.armies.get(army)?.mine?.order;
-        const same =
-          order?.kind === "plan" &&
-          order.stance === stance &&
-          order.targets.length === targets.length &&
-          order.targets.every((t, i) => t === targets[i]);
-        if (!same) this.send(plan);
-        this.send({ kind: "army_execute", army, on: true });
-        // The plan is the army's now: the draft goes with the mode.
-        this.setMode("none");
-      },
-      { grey: block !== null, wide },
-    );
-  }
-
-  /** [공격] mode on the unfolded card: the stance, [실행], back. */
+  /** [공격] mode on the unfolded card (ww42: the taps attack; the panel and back). */
   private renderPlan(c: Ctx): TemplateResult[] {
     return [
+      this.renderDirect(c),
       html`<div data-ww-plan-panel class="grid grid-cols-3 gap-1">
-        ${STANCES.map((s) =>
-          this.button(
-            `stance_${s}`,
-            translateText(STANCE_KEYS[s]),
-            s === "careful" ? "🛡" : s === "balanced" ? "⚖" : "🔥",
-            () => this.setStance(c, s),
-            { pressed: c.sel.stance === s },
-          ),
-        )}
-        ${this.executeButton(c, true)}
         ${this.button("back", translateText("common.back"), "←", () =>
           this.setMode("none"),
         )}

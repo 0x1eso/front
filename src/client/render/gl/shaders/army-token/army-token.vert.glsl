@@ -27,7 +27,7 @@ void main() {
   if (kind < 0.5) ext = vec4(-26.0, -20.0, 26.0, 27.0);
   else if (kind < 1.5) ext = vec4(-18.0, -13.0, 18.0, 13.0);
   else if (kind < 2.5) ext = vec4(-8.0, -8.0, 8.0, 8.0);
-  else ext = vec4(-20.0, -6.0, 20.0, 6.0);
+  else ext = vec4(-20.0, -24.0, 20.0, 24.0);
   vec2 px = mix(ext.xy, ext.zw, aPos);
   vec2 world = aA.xy + 0.5 + px * uTilesPerPx;
   vec3 clip = uCamera * vec3(world, 1.0);

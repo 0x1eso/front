@@ -203,9 +203,25 @@ void main() {
     float n = clamp(vC.z, 1.0, 5.0);
     float i = clamp(floor(p.x / 7.0 + (n - 1.0) * 0.5 + 0.5), 0.0, n - 1.0);
     float cx = (i - (n - 1.0) * 0.5) * 7.0;
-    float d = length(p - vec2(cx, 0.0)) - 2.6;
+    // ww42: a direct attack's rows (state 8..11, 16) stand one above the other
+    // and are tinted by what the divisions do: attacking, holding, waiting,
+    // recovering (8..11), walking (16).
+    float yoff = 0.0;
+    vec3 fill = terr;
+    float rad = 2.6;
+    if (state >= 8) {
+      int k = state == 16 ? 4 : state - 8;
+      yoff = (float(k) - 2.0) * 9.0;
+      rad = 3.4;
+      fill = k == 0 ? vec3(0.88, 0.2, 0.17)
+        : k == 1 ? vec3(0.35, 0.6, 0.95)
+        : k == 2 ? vec3(0.96, 0.76, 0.2)
+        : k == 3 ? vec3(0.7, 0.45, 0.9)
+        : vec3(0.85);
+    }
+    float d = length(p - vec2(cx, yoff)) - rad;
     col = over(col, edge, cover(d));
-    col = over(col, terr, cover(d + 0.9));
+    col = over(col, fill, cover(d + 0.9));
   }
   if (ghost) col.a *= 0.4;
   if (col.a <= 0.003) discard;
