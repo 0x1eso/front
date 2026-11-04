@@ -2514,6 +2514,7 @@ export class GPURenderer {
         this.wingFocus.chosen,
         this.wingFocus.expanded,
         now,
+        this.wingFocus.group ?? 0,
       );
       passes.wings.draw(cam, tilesPerPx, timeSec);
     }

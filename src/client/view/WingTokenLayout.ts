@@ -10,6 +10,7 @@
 // at +0.5. `zoom` is screen (CSS) pixels per tile.
 import {
   AIR_TYPES,
+  type AirGroupView,
   type WingBrief,
   type WingFlightRow,
   WP_BACK,
@@ -40,6 +41,10 @@ export const LOITER_TILES = 4;
 export const SLOT_TOKEN = 0;
 export const SLOT_GROUP = 1;
 export const SLOT_BASE = 2;
+/** w51: one air group at its base (wing = the group id, wings = its members). */
+export const SLOT_AIRGROUP = 3;
+/** w51: an air token's tap reach, smaller than an army's (screen px). */
+export const AIR_TAP_RADIUS_PX = 14;
 
 export interface WingSlot {
   /** SLOT_TOKEN: one wing; SLOT_GROUP: several in a chip; SLOT_BASE: a base chip (air layer off). */
@@ -67,6 +72,8 @@ export interface WingSlot {
  * [base] previews the circle before the second tap confirms).
  */
 export interface WingFocus {
+  /** w51: the chosen air group, 0 none. */
+  group?: number;
   chosen: ReadonlySet<number>;
   expanded: ReadonlySet<number>;
   range: { base: number; rangeKm: number; warning?: boolean } | null;
@@ -84,6 +91,8 @@ export interface WingLayoutInput {
   airLayer: boolean;
   /** Wings picked: always shown as tokens, layer or not. */
   chosen: ReadonlySet<number>;
+  /** w51: the group picked (its token shows chosen). Not needed for layout, kept in the pass key. */
+  group?: number;
   /** Bases whose group chip a tap opened into a fan. */
   expanded: ReadonlySet<number>;
 }
@@ -274,6 +283,14 @@ export function wingStrengthPm(b: WingBrief, planes: number): number {
   return full > 0 ? Math.min(1000, Math.round((planes * 1000) / full)) : 0;
 }
 
+function mainType(g: Pick<AirGroupView, "planes">): number {
+  let best = 0;
+  for (let i = 1; i < g.planes.length; i++) {
+    if (g.planes[i] > g.planes[best]) best = i;
+  }
+  return best;
+}
+
 interface Entry {
   b: WingBrief;
   planes: number;
@@ -297,8 +314,21 @@ export function layoutWings(
   const step = TOKEN_STEP_PX[lod] / Math.max(input.zoom, 1e-6);
   const briefs = [...air.wingBriefs.values()].sort((a, b) => a.id - b.id);
   const groups = new Map<number, Entry[]>();
+  const me = air.mySmallID();
+  const myGroups = air.detail?.groups ?? [];
+  const inGroup = new Set<number>();
+  const groupsAt = new Map<number, AirGroupView[]>();
+  for (const g of myGroups) {
+    for (const m of g.members) inGroup.add(m.wing);
+    const planes = g.planes.reduce((a, n) => a + n, 0);
+    if (planes <= 0 || g.base === 0) continue;
+    const list = groupsAt.get(g.base);
+    if (list === undefined) groupsAt.set(g.base, [g]);
+    else list.push(g);
+  }
   for (const b of briefs) {
     if (b.planes <= 0) continue;
+    if (b.owner === me && inGroup.has(b.id)) continue;
     let planes = b.planes;
     if (fog !== undefined) {
       const v = fog.wingView(b);
@@ -310,6 +340,9 @@ export function layoutWings(
     else list.push({ b, planes });
   }
   const xy: [number, number] = [0, 0];
+  for (const base of groupsAt.keys()) {
+    if (!groups.has(base)) groups.set(base, []);
+  }
   for (const [base, list] of groups) {
     if (!wingBaseXY(air, navy, base, xy)) continue;
     const x = xy[0];
@@ -317,7 +350,8 @@ export function layoutWings(
     const rest: Entry[] = [];
     const tokens: Entry[] = [];
     for (const e of list) {
-      if (input.chosen.has(e.b.id)) tokens.push(e);
+      // w51: my own planes are always tokens, whatever the lens.
+      if (input.chosen.has(e.b.id) || e.b.owner === me) tokens.push(e);
       else rest.push(e);
     }
     let k = 0;
@@ -343,6 +377,21 @@ export function layoutWings(
     } else {
       for (const e of rest) tokens.push(e);
       tokens.sort((a, b) => a.b.id - b.b.id);
+    }
+    for (const g of groupsAt.get(base) ?? []) {
+      out.push({
+        kind: SLOT_AIRGROUP,
+        wing: g.id,
+        base,
+        owner: me,
+        x,
+        y: y + fanSlot(k) * step,
+        lod,
+        planes: g.planes.reduce((a, n) => a + n, 0),
+        wings: g.members.length,
+        type: mainType(g),
+      });
+      k++;
     }
     for (const e of tokens) {
       out.push({
@@ -370,10 +419,12 @@ export function pickWingSlot(
   ty: number,
   zoom: number,
 ): WingSlot | null {
-  const r = TAP_RADIUS_PX / Math.max(zoom, 1e-6);
+  const r = AIR_TAP_RADIUS_PX / Math.max(zoom, 1e-6);
   let best: WingSlot | null = null;
   let bestD = r * r;
   for (const s of slots) {
+    // w51: a chip never takes a tap; only a token or a group is tappable.
+    if (s.kind !== SLOT_TOKEN && s.kind !== SLOT_AIRGROUP) continue;
     const d = (s.x - tx) * (s.x - tx) + (s.y - ty) * (s.y - ty);
     if (d <= bestD) {
       bestD = d;

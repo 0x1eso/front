@@ -60,10 +60,18 @@ const ArmyContent = z.object({
     .max(WW_MAX_ARMY_DIVISIONS),
 });
 
+/** w51: an air group template: planes by air type name (steps of 25, up to 600 in all). */
+const AirGroupContent = z.object({
+  type: z.literal("airgroup"),
+  name: Name,
+  planes: z.record(z.string().max(24), z.number().int().min(0).max(600)),
+});
+
 const Content = z.discriminatedUnion("type", [
   DesignContent,
   TemplateContent,
   ArmyContent,
+  AirGroupContent,
 ]);
 
 export type LibContent = z.infer<typeof Content>;
@@ -89,6 +97,13 @@ export function contentKey(c: LibContent): string {
     const m = [...d.modules];
     while (m.length > 0 && m[m.length - 1] === "") m.pop();
     return `d|${d.kind}|${d.base}|${m.join(",")}|${d.armorLevel ?? 0}|${d.engineLevel ?? 0}`;
+  }
+  if (c.type === "airgroup") {
+    const parts = Object.entries(c.planes)
+      .filter(([, n]) => n > 0)
+      .map(([t, n]) => `${t}=${n}`)
+      .sort();
+    return `g|${parts.join(",")}`;
   }
   if (c.type === "army") {
     // The order of the items does not matter; the name does not either.
@@ -257,14 +272,16 @@ export class LibraryStore {
       .map((e) =>
         e.type === "design"
           ? { type: e.type, def: e.def }
-          : e.type === "army"
-            ? { type: e.type, name: e.name, items: e.items }
-            : {
-                type: e.type,
-                name: e.name,
-                battalions: e.battalions,
-                support: e.support,
-              },
+          : e.type === "airgroup"
+            ? { type: e.type, name: e.name, planes: e.planes }
+            : e.type === "army"
+              ? { type: e.type, name: e.name, items: e.items }
+              : {
+                  type: e.type,
+                  name: e.name,
+                  battalions: e.battalions,
+                  support: e.support,
+                },
       );
     const json = JSON.stringify({ v: LIBRARY_VERSION, e: list });
     return CODE_PREFIX + toBase64(json);

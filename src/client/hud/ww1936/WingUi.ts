@@ -17,6 +17,10 @@ export class WwSelectWingsEvent implements GameEvent {
     readonly add = false,
   ) {}
 }
+/** w51: a group token tap (or a list row) chooses an air group; 0 drops it. */
+export class WwSelectGroupEvent implements GameEvent {
+  constructor(readonly group: number) {}
+}
 /** The wing screens changed (the card and the glow redraw). */
 export class WwWingChangedEvent implements GameEvent {}
 
@@ -35,6 +39,22 @@ export class WingUi {
   refused = "";
   /** The disband button tapped once. */
   disbandAsk = false;
+  /** w51: the chosen air group (0 none): its zone taps, its card. */
+  airGroup = 0;
+  /** w51: an army and a group that overlap under one tap: the chooser asks which. */
+  chooser: { army: number; group: number } | null = null;
+  /** w51: the order just sent, shown until the view catches up (taps in a row build on it). */
+  draft: {
+    group: number;
+    zones: number[];
+    priority: number;
+    army: number;
+    at: number;
+  } | null = null;
+  /** w51: the next region tap names the group's single bomb target. */
+  pickTarget = false;
+  /** w51: the last zone tap refused ("full"), "" none. */
+  groupRefused = "";
   /** Bases whose group chip was tapped open into a fan (the render lane). */
   expanded = new Set<number>();
   version = 0;
@@ -44,6 +64,8 @@ export class WingUi {
   }
 
   select(ids: readonly number[], add = false): void {
+    this.airGroup = 0;
+    this.chooser = null;
     const next = add ? [...this.ids, ...ids] : [...ids];
     this.ids = [...new Set(next)].sort((a, b) => a - b);
     this.reset();
@@ -51,6 +73,10 @@ export class WingUi {
 
   clear(): void {
     this.ids = [];
+    this.airGroup = 0;
+    this.chooser = null;
+    this.groupRefused = "";
+    this.pickTarget = false;
     this.reset();
   }
 

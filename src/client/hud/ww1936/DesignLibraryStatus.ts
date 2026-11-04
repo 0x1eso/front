@@ -5,6 +5,13 @@
 // shown with the reason and never sent.
 import type { WwOrder } from "@openfront/engine-api/Schemas";
 import {
+  AIR_TYPES,
+  WW_AIR_TEMPLATE_NAME_MAX,
+  WW_GROUP_STEP,
+  WW_MAX_AIR_TEMPLATES,
+  WW_MAX_GROUP_PLANES,
+} from "@openfront/engine-api/ww1936/AirTypes";
+import {
   DesignDef,
   DesignDefSchema,
 } from "@openfront/engine-api/ww1936/DepthTypes";
@@ -26,6 +33,7 @@ import { DESIGN_ONLY_GROUP } from "@openfront/engine-lib/ww1936/TemplatePresets"
 import { templateBlock } from "@openfront/engine-lib/ww1936/TemplateStats";
 import { translateText } from "../../Utils";
 import type { GameView } from "../../view/GameView";
+import { TEMPLATE_TYPES } from "./AirGroupModel";
 import { DesignerGame, DesignerModel } from "./DesignerModel";
 import {
   cellOf,
@@ -112,12 +120,60 @@ export function entryStatus(
   try {
     // An army template is used from the army panel, not loaded here.
     if (e.type === "army") return armyCardStatus(e);
+    if (e.type === "airgroup") return airGroupStatus(e, game);
     return e.type === "design"
       ? designStatus(e, game, have)
       : templateStatus(e, game, have);
   } catch {
     return stale();
   }
+}
+
+/** w51: an air template entry: loaded as a new template (keep 0) when the country has room. */
+function airGroupStatus(
+  e: Extract<LibEntry, { type: "airgroup" }>,
+  game: StatusGame,
+): EntryStatus {
+  const planes = AIR_TYPES.map((t) => e.planes[t] ?? 0);
+  const known = Object.keys(e.planes).every((t) =>
+    (AIR_TYPES as readonly string[]).includes(t),
+  );
+  const total = planes.reduce((a, n) => a + n, 0);
+  const usable = AIR_TYPES.every(
+    (t, i) =>
+      planes[i] % WW_GROUP_STEP === 0 &&
+      (planes[i] === 0 || TEMPLATE_TYPES.includes(i)),
+  );
+  if (!known || !usable || total <= 0 || total > WW_MAX_GROUP_PLANES) {
+    return stale();
+  }
+  const mine =
+    (
+      game as unknown as {
+        wwAir?: () => {
+          detail: { templates?: { planes: number[] }[] } | null;
+        } | null;
+      }
+    ).wwAir?.()?.detail?.templates ?? [];
+  if (mine.some((t) => t.planes.join() === planes.join())) return HAVE();
+  if (mine.length >= WW_MAX_AIR_TEMPLATES) {
+    return {
+      state: "blocked",
+      reason: translateText("ww1936.airgroup.err_too_many_templates"),
+      order: null,
+    };
+  }
+  return {
+    state: "ready",
+    reason: translateText("ww1936.library.ready"),
+    order: {
+      kind: "air_template",
+      id: 0,
+      name: e.name.slice(0, WW_AIR_TEMPLATE_NAME_MAX),
+      planes,
+      keep: 0,
+    } as WwOrder,
+  };
 }
 
 function armyCardStatus(e: Extract<LibEntry, { type: "army" }>): EntryStatus {
@@ -322,6 +378,8 @@ export class LibraryAuto {
 
 /** The name an entry shows (an automatic design name is drawn as the designer draws it). */
 export function entryName(e: LibEntry): string {
-  if (e.type === "template" || e.type === "army") return e.name;
+  if (e.type === "template" || e.type === "army" || e.type === "airgroup") {
+    return e.name;
+  }
   return designDisplayName(e.def as DesignDef);
 }

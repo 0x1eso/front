@@ -66,6 +66,7 @@ import { lensMapSource } from "./ww1936/LensModel";
 import { linePeaceMapSource } from "./ww1936/LinePeaceModel";
 import { seaAirFacts } from "./ww1936/NavyModel";
 import { wingUiOf } from "./ww1936/WingUi";
+import { WwAirGroupCard } from "./ww1936/WwAirGroupCard";
 import { WwAirLegend } from "./ww1936/WwAirLegend";
 import { WwAirPanel } from "./ww1936/WwAirPanel";
 import { WwAirZoneCard } from "./ww1936/WwAirZoneCard";
@@ -518,6 +519,13 @@ export function createRenderer(
   } else {
     console.error("ww wing card not found");
   }
+  const wwAirGroupCard = document.querySelector("ww-air-group-card");
+  if (wwAirGroupCard instanceof WwAirGroupCard) {
+    wwAirGroupCard.game = game;
+    wwAirGroupCard.eventBus = eventBus;
+  } else {
+    console.error("ww air group card not found");
+  }
 
   // P3 (spec §21): the politics drawer, the event cards above the dials,
   // the world news under the band.
@@ -799,6 +807,7 @@ export function createRenderer(
     ...(wwFleetCard instanceof WwFleetCard ? [wwFleetCard] : []),
     ...(wwAirZoneCard instanceof WwAirZoneCard ? [wwAirZoneCard] : []),
     ...(wwWingCard instanceof WwWingCard ? [wwWingCard] : []),
+    ...(wwAirGroupCard instanceof WwAirGroupCard ? [wwAirGroupCard] : []),
     ...(wwAirLegend instanceof WwAirLegend ? [wwAirLegend] : []),
     ...(wwPoliticsPanel instanceof WwPoliticsPanel ? [wwPoliticsPanel] : []),
     ...(wwTakeoverCard instanceof WwTakeoverCard ? [wwTakeoverCard] : []),

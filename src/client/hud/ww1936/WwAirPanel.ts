@@ -4,6 +4,7 @@
 // my air bases (level, planes / capacity, damage, "build more" in the
 // industry drawer) and the last 30 days' record. A long press on ✈ opens it.
 import {
+  AIR_TYPES,
   WW_BOMB_CLASSES,
   WW_FIELD_STRIP_MAX,
 } from "@openfront/engine-api/ww1936/AirTypes";
@@ -12,6 +13,7 @@ import { customElement, state } from "lit/decorators.js";
 import { GoToPositionEvent } from "../../TransformHandler";
 import { SendWwOrderIntentEvent } from "../../Transport";
 import { translateText } from "../../Utils";
+import { groupById, TemplateDraft } from "./AirGroupModel";
 import {
   AIR_MISSION_ICONS,
   airMissionName,
@@ -22,6 +24,7 @@ import {
   zoneRows,
 } from "./AirModel";
 import { designButton } from "./DesignButton";
+import { libraryStore } from "./DesignLibrary";
 import { blockText, EQUIPMENT_ICONS, genName } from "./EconomyModel";
 import {
   fleetName,
@@ -46,8 +49,14 @@ import {
   wingName,
   xpTierOf,
 } from "./WingModel";
-import { wingUiOf, WwSelectWingsEvent, WwWingChangedEvent } from "./WingUi";
+import {
+  wingUiOf,
+  WwSelectGroupEvent,
+  WwSelectWingsEvent,
+  WwWingChangedEvent,
+} from "./WingUi";
 import { isCapitulated } from "./WorldWarModel";
+import { renderGroupsTab, renderTemplatesTab } from "./WwAirGroupTabs";
 import { autoMaskOf, renderAutoSwitch } from "./WwAutoUi";
 import {
   OpenWwAirEvent,
@@ -62,11 +71,22 @@ import { DECK_MIXES } from "./WwFleetCard";
 const TAB_KEYS: Readonly<Record<WwAirTab, string>> = {
   wings: "ww1936.wing.tab_wings",
   reports: "ww1936.wing.tab_reports",
+  groups: "ww1936.airgroup.tab_groups",
+  templates: "ww1936.airgroup.tab_templates",
   zones: "ww1936.air.tab_zones",
   planes: "ww1936.air.tab_planes",
   bases: "ww1936.air.tab_bases",
   record: "ww1936.air.tab_record",
 };
+
+/** w51: the template as a library entry (the library's share code and the lobby read it). */
+function saveTemplateToLibrary(d: TemplateDraft): void {
+  const planes: Record<string, number> = {};
+  AIR_TYPES.forEach((t, i) => {
+    if ((d.planes[i] ?? 0) > 0) planes[t] = d.planes[i];
+  });
+  libraryStore().add({ type: "airgroup", name: d.name.trim(), planes });
+}
 
 const BUTTON =
   "h-9 shrink-0 rounded-md border border-white/15 bg-white/5 px-2 text-xs font-semibold hover:bg-white/10 disabled:opacity-40";
@@ -75,6 +95,9 @@ const BUTTON =
 export class WwAirPanel extends WwDrawerBase {
   protected readonly drawerId = "air" as const;
   @state() private tab: WwAirTab = "zones";
+  /** w51: the template being edited (null: the list), and the one waiting for a second delete tap. */
+  @state() private tplDraft: TemplateDraft | null = null;
+  @state() private tplArmed = 0;
   /** ww8: the wings ticked in the wings tab (sent to the card by its button). */
   @state() private checked = new Set<number>();
   private redrawKey: readonly unknown[] = [];
@@ -101,8 +124,12 @@ export class WwAirPanel extends WwDrawerBase {
 
   /** The tab to show: the old ones map onto the wing model's. */
   private activeTab(): WwAirTab {
-    if (!this.live()) return this.tab;
-    if (this.tab === "zones") return "wings";
+    if (!this.live()) {
+      return this.tab === "groups" || this.tab === "templates"
+        ? "zones"
+        : this.tab;
+    }
+    if (this.tab === "zones") return "groups";
     if (this.tab === "record") return "reports";
     return this.tab;
   }
@@ -164,6 +191,36 @@ export class WwAirPanel extends WwDrawerBase {
 
   private renderTab(ctx: NavyCtx): TemplateResult {
     switch (this.activeTab()) {
+      case "groups":
+        return renderGroupsTab({
+          ctx,
+          ticks: this.game.ticks(),
+          openGroup: (id) => {
+            const g = groupById(ctx, id);
+            this.eventBus.emit(new WwSelectGroupEvent(id));
+            if (g !== undefined && g.base > 0) {
+              const c = ctx.scenario.centerTile(g.base);
+              this.eventBus.emit(
+                new GoToPositionEvent(
+                  c % ctx.scenario.width,
+                  Math.floor(c / ctx.scenario.width),
+                ),
+              );
+            }
+          },
+          openWing: (id) => this.openCard([id]),
+          toTemplates: () => (this.tab = "templates"),
+        });
+      case "templates":
+        return renderTemplatesTab({
+          ctx,
+          draft: this.tplDraft,
+          setDraft: (d) => (this.tplDraft = d),
+          send: (o) => this.eventBus.emit(new SendWwOrderIntentEvent(o)),
+          toLibrary: (d) => saveTemplateToLibrary(d),
+          armedDrop: this.tplArmed,
+          armDrop: (id) => (this.tplArmed = id),
+        });
       case "wings":
         return this.renderWings(ctx);
       case "reports":
