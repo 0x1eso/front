@@ -18,7 +18,6 @@ import {
   MOVE_WALK,
   ROLE_ATTACK,
   ROLE_NONE,
-  ROLE_RECOVER,
   type Stance,
   TPL_PARA_ANY,
   WW_PARA_PREP_DAYS,
@@ -380,10 +379,6 @@ export function leaveAttack(land: WwLand, r: number): void {
   const t = land.divisions;
   if (t.role[r] !== ROLE_ATTACK) return;
   t.role[r] = ROLE_NONE;
-  const o = land.armies.get(t.army[r])?.order;
-  if (o !== undefined && o.kind === "plan" && o.direct === true) {
-    t.role[r] = ROLE_RECOVER;
-  }
   land.markArmy(t.army[r]);
 }
 

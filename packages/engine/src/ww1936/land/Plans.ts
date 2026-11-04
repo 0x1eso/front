@@ -10,7 +10,6 @@ import {
   MOVE_RETREAT,
   MOVE_WALK,
   ROLE_ATTACK,
-  ROLE_RECOVER,
   TPL_SIGNAL,
   traitBit,
   WW_PLAN_DAY_BP,
@@ -52,15 +51,6 @@ const STANCE_ORG_PCT: Readonly<Record<Stance, number>> = {
 };
 /** ww7 §1-4: an attacker below this org (% of max) leaves the attack. */
 const ATTACK_LEAVE_PCT = 30;
-/** A direct attacker that left a battle (ROLE_RECOVER) rejoins at this org (% of max). */
-export const ATTACK_REJOIN_PCT = 60;
-
-/** Whether a division has the org to join (or stay in) a direct attack. */
-function fitToJoin(land: WwLand, r: number): boolean {
-  const t = land.divisions;
-  const pct = t.role[r] === ROLE_RECOVER ? ATTACK_REJOIN_PCT : ATTACK_LEAVE_PCT;
-  return t.org[r] * 100 >= land.orgMaxOf(r) * pct;
-}
 
 /**
  * The preview figure a stance judges by. Aggressive attacks at any odds
@@ -394,9 +384,6 @@ export function planDay(
         t.org[r] * 100 < land.orgMaxOf(r) * ATTACK_LEAVE_PCT
       ) {
         leaveAttack(land, r);
-      } else if (t.role[r] === ROLE_RECOVER && fitToJoin(land, r)) {
-        t.role[r] = 0;
-        land.markArmy(t.army[r]);
       }
     }
     const onAxis = ax.has(f);
@@ -421,7 +408,11 @@ export function planDay(
       // division unless [전부 공격] is on; one in a battle stays in it.
       if (direct) {
         const go = here
-          .filter((r) => t.battle[r] === 0 && fitToJoin(land, r))
+          .filter(
+            (r) =>
+              t.battle[r] === 0 &&
+              t.org[r] * 100 >= land.orgMaxOf(r) * ATTACK_LEAVE_PCT,
+          )
           .sort(
             (x, y) =>
               land.baseStatsOf(y).speedCenti - land.baseStatsOf(x).speedCenti ||
@@ -477,11 +468,7 @@ export function planDay(
     const ids: number[] = [];
     for (const r of side) {
       if (t.battle[r] !== 0) continue;
-      if (
-        direct ? fitToJoin(land, r) : t.org[r] * 100 >= land.orgMaxOf(r) * pct
-      ) {
-        ids.push(t.id[r]);
-      }
+      if (t.org[r] * 100 >= land.orgMaxOf(r) * pct) ids.push(t.id[r]);
     }
     for (const id of ids) joinBattle(land, id, best);
   }
@@ -716,10 +703,7 @@ export function directView(land: WwLand, a: Army): DirectView {
     } else if (t.mode[r] !== MOVE_NONE) {
       walk++;
       note(region, 3);
-    } else if (
-      t.org[r] * 100 < land.orgMaxOf(r) * ATTACK_LEAVE_PCT ||
-      (t.role[r] === ROLE_RECOVER && !fitToJoin(land, r))
-    ) {
+    } else if (t.org[r] * 100 < land.orgMaxOf(r) * ATTACK_LEAVE_PCT) {
       rec++;
       note(region, 2);
     } else if (zone.has(region) && !axis.has(region)) {
@@ -744,7 +728,7 @@ export function directView(land: WwLand, a: Army): DirectView {
           (t.battle[r] === to ||
             (t.battle[r] === 0 &&
               t.mode[r] === MOVE_NONE &&
-              fitToJoin(land, r))),
+              t.org[r] * 100 >= land.orgMaxOf(r) * ATTACK_LEAVE_PCT)),
       );
       if (side.length === 0) continue;
       ratioPm = predictAttackRange(land, side, to).midPm;

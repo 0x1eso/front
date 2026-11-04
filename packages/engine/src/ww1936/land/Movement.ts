@@ -9,7 +9,6 @@ import {
   MOVE_RETREAT,
   MOVE_SEA,
   MOVE_WALK,
-  ROLE_RECOVER,
   TPL_ARMOR_ANY,
   TPL_CAVALRY_MAJOR,
   TPL_MOTOR_ANY,
@@ -154,7 +153,7 @@ export function arrive(land: WwLand, r: number, tick: number): void {
   t.step[r] = 0;
   t.stillDays[r] = 0;
   t.entrench[r] = 0;
-  if (t.role[r] !== ROLE_RECOVER) t.role[r] = 0;
+  t.role[r] = 0;
   t.battle[r] = 0;
   if (mode !== MOVE_RETREAT && t.dest[r] !== to) startNextHop(land, r, tick);
   // ww7 (bands): one coming into (or settling in) a region in progress: the

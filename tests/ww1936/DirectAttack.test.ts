@@ -6,7 +6,6 @@ import {
   DIRECT_ADVANCE,
   DIRECT_ALL_IN,
   DIRECT_FAVORABLE,
-  ROLE_RECOVER,
 } from "@openfront/engine-api/ww1936/LandTypes";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
@@ -119,27 +118,6 @@ describe("ww42: direct attack", () => {
     orgSet(low, a.divisions[0], 35);
     finishDay(low.runner, today(low.g) + 1);
     expect(battleSeen(low, WARSAW, 12)).toBe(true);
-  }, 120_000);
-
-  test("a division that left a battle rejoins only at 60 % org (회복 중), a fresh one at 30 %", async () => {
-    const c = await atWar();
-    placeArmy(c.g, "POL", WARSAW, 1);
-    const a = placeArmy(c.g, "DEU", BERLIN, 1);
-    orgSet(c, a.divisions[0], 40);
-    c.l.divisions.role[c.l.divisions.rowOf(a.divisions[0])] = ROLE_RECOVER;
-    expect(go(c, a.id, { targets: [WARSAW] })).toBe(null);
-    expect(battleSeen(c, WARSAW, 3)).toBe(false);
-    expect(c.l.armySummary(a).mine!.direct!.rec).toBe(1);
-    orgSet(c, a.divisions[0], 65);
-    finishDay(c.runner, today(c.g) + 1);
-    expect(battleSeen(c, WARSAW, 12)).toBe(true);
-    // The same 40 % without the mark is a fresh division and goes in.
-    const f = await atWar();
-    placeArmy(f.g, "POL", WARSAW, 1);
-    const b = placeArmy(f.g, "DEU", BERLIN, 1);
-    orgSet(f, b.divisions[0], 40);
-    expect(go(f, b.id, { targets: [WARSAW] })).toBe(null);
-    expect(battleSeen(f, WARSAW, 6)).toBe(true);
   }, 120_000);
 
   test("[유리할 때만 공격] waits with the true ratio and goes once it is off", async () => {
