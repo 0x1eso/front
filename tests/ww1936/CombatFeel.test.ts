@@ -102,15 +102,17 @@ describe("a division's pierce is what can actually hit", () => {
     expect(company).toBeLessThan(1500);
   });
 
-  test("three battalions bring the gun's real number near", () => {
+  test("three battalions bring the gun's number within reach, not all of it", () => {
     const three = stats(at).pierce;
-    expect(three).toBeGreaterThan(3000);
-    expect(three).toBeLessThanOrEqual(5000);
+    expect(three).toBeGreaterThan(2000);
+    expect(three).toBeLessThan(4000);
   });
 
-  test("a division half tanks fires its tank's gun", () => {
+  test("a division all tanks fires its tank's gun; half tanks, most of it", () => {
+    expect(stats(def({ medium_armor: 9 })).pierce).toBe(4500);
     const pz = stats(def({ medium_armor: 5, motorized: 4 }));
-    expect(pz.pierce).toBe(4500);
+    expect(pz.pierce).toBeGreaterThan(3500);
+    expect(pz.pierce).toBeLessThan(4500);
     // Armour is the armoured battalions' own; hardness says how much of it there is.
     expect(pz.armor).toBe(4000);
   });
