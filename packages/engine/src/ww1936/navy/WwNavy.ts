@@ -1990,6 +1990,9 @@ export class WwNavy {
       docks: ce.totals.dock,
       docksLent: ce.docksLent,
       docksIdle: dockyardsFree(this.econ, ce),
+      ...(this.ww.endgame.disarmBlock(id, "naval") !== null
+        ? { disarmed: true }
+        : {}),
       convoys: convoysOf(ce),
       convoysByUse: byUse,
       routes: [...this.routes.values()]

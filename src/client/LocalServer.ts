@@ -47,6 +47,8 @@ const SPEED_ORDER: ReplaySpeedMultiplier[] = [
 // build a small backlog so MAX can catch up.
 const MAX_REPLAY_BACKLOG_TURNS = 60;
 
+const MAX_PAUSED_INTENTS = 200;
+
 export class LocalServer {
   // All turns from the game record on replay.
   private replayTurns: Turn[] = [];
@@ -57,6 +59,9 @@ export class LocalServer {
   private startedAt: number;
 
   private paused = false;
+  // w76: orders given while paused wait here and go out with the unpause turn
+  // (they are ordinary turn intents then, so replays and hashes see them).
+  private pausedIntents: StampedIntent[] = [];
   private replaySpeedMultiplier = defaultReplaySpeedMultiplier;
 
   private clientID: ClientID | undefined;
@@ -217,13 +222,22 @@ export class LocalServer {
         } else {
           // Unpausing: clear pause flag before adding intent so next turn can execute
           this.paused = false;
-          this.intents.push(stampedIntent);
+          this.intents.push(stampedIntent, ...this.pausedIntents);
+          this.pausedIntents = [];
           this.endTurn();
         }
         return;
       }
-      // Don't process non-pause intents during replays or while paused
-      if (this.lobbyConfig.gameRecord || this.paused) {
+      // Never process intents during replays
+      if (this.lobbyConfig.gameRecord) {
+        return;
+      }
+      // While paused no turn runs: keep the order for the unpause turn
+      // (capped so a held key cannot grow it without end).
+      if (this.paused) {
+        if (this.pausedIntents.length < MAX_PAUSED_INTENTS) {
+          this.pausedIntents.push(stampedIntent);
+        }
         return;
       }
 

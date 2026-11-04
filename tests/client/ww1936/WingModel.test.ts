@@ -8,6 +8,7 @@ import {
   WW_BOMB_CLASSES,
 } from "@openfront/engine-api/ww1936/AirTypes";
 import { BUILDING_IDS } from "@openfront/engine-api/ww1936/EconomyTypes";
+import { histOwn } from "@openfront/engine-lib/ww1936/hist/Slots";
 import IntlMessageFormat from "intl-messageformat";
 import { describe, expect, it } from "vitest";
 import { navyCtx, NavyGame } from "../../../src/client/hud/ww1936/NavyModel";
@@ -18,6 +19,7 @@ import {
   raidNowOf,
   reportRows,
   wingNoticeParams,
+  wingPlaneNames,
 } from "../../../src/client/hud/ww1936/WingModel";
 import { WingUi } from "../../../src/client/hud/ww1936/WingUi";
 import { en, keyIn, ko } from "../../ww1936/contentUtil";
@@ -151,5 +153,20 @@ describe("texts", () => {
       new Map(),
     );
     expect(typeof out.wing).toBe("string");
+  });
+});
+
+describe("w76: wing plane names", () => {
+  it("names the catalogue planes a wing holds, with their counts; generic designs stay unnamed", () => {
+    const id = histOwn("DEU", "plane")[0].id;
+    const designs = [
+      { kind: "plane", slot: 1, def: { kind: "plane", name: id, hist: id } },
+      { kind: "plane", slot: 2, def: { kind: "plane", name: "@" } },
+      { kind: "plane", slot: 3, def: { kind: "plane", name: id, hist: id } },
+    ] as never;
+    expect(wingPlaneNames({ designs }, { dcounts: [150, 40, 0] })).toEqual([
+      `ww1936.hist.${id} 150`,
+    ]);
+    expect(wingPlaneNames({ designs }, {})).toEqual([]);
   });
 });

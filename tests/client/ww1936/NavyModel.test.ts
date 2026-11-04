@@ -38,6 +38,7 @@ import {
   navyDial,
   NavyGame,
   navyNoticeParams,
+  newLineBlock,
   regionSeaAirLines,
 } from "../../../src/client/hud/ww1936/NavyModel";
 import { sideKeyOf } from "../../../src/client/view/WwNavyView";
@@ -371,6 +372,22 @@ describe("NavyModel (spec §18.3–§18.5)", () => {
       false,
     );
     expect(d.ship).toBe("[ww1936.navy.ship_numbered] n=23");
+  });
+
+  it("w76: a refused order names its reason; a disarmed country sees the block before it orders", () => {
+    const p = navyNoticeParams(
+      "events_display.ww1936_order_refused",
+      { block: "disarmed" },
+      sea,
+      null,
+      false,
+    );
+    expect(p.reason).toBe("[ww1936.econ.block.disarmed]");
+    const ctx = {
+      navy: { detail: { lines: [], docks: 3, disarmed: true } },
+      techs: new Set(),
+    } as never;
+    expect(newLineBlock(ctx, "dd", 1)).toBe("disarmed");
   });
 
   it("ships lost today: my ships sunk in battle since the day began", () => {

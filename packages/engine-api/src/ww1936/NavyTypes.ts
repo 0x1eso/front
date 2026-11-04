@@ -341,6 +341,8 @@ export interface CountryNavyDetail {
   docks: number;
   docksLent: number;
   docksIdle: number;
+  /** w76: a disarmament (the treaty's record or a spirit) bans new naval lines; absent: none. */
+  disarmed?: boolean;
   convoys: number;
   convoysByUse: number[];
   routes: ConvoyRouteData[];

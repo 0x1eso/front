@@ -278,7 +278,9 @@ export function lineUnitCost(cls: ShipClass | "convoy", gen: number): number {
 /** Resources per assigned dockyard a day, RESOURCE_IDS order (spec §4.1 last but one column, §5.3). */
 export function lineResources(cls: ShipClass | "convoy"): number[] {
   // [oil, aluminium, rubber, tungsten, steel, chromium]
-  if (cls === "ca" || cls === "bc" || cls === "bb") return [0, 0, 0, 0, 1, 1];
+  // w76: capital ships (bb, bc) need no chromium; only the heavy cruiser does.
+  if (cls === "ca") return [0, 0, 0, 0, 1, 1];
+  if (cls === "bc" || cls === "bb") return [0, 0, 0, 0, 1, 0];
   if (cls === "cv") return [0, 1, 0, 0, 1, 0];
   return [0, 0, 0, 0, 1, 0];
 }

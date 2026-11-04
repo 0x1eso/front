@@ -11,7 +11,10 @@ import {
   navalLineOutputMilli,
   nextLaunchDays,
 } from "@openfront/engine-lib/ww1936/NavalLineRules";
-import { lineUnitCost } from "@openfront/engine-lib/ww1936/ShipStats";
+import {
+  lineResources,
+  lineUnitCost,
+} from "@openfront/engine-lib/ww1936/ShipStats";
 import type { GameRunner } from "@openfront/engine/GameRunner";
 import {
   damageBuilding,
@@ -59,6 +62,29 @@ function give(runner: GameRunner, o: WwOrder): void {
 function outputPct(ce: CountryEconomy): number {
   return ce.stats.dockOutputPct + ce.law().outputPct + ce.stats.outputPct;
 }
+
+describe("w76: naval lines", () => {
+  test("capital ships need no chromium; a heavy cruiser still does", () => {
+    const CHROMIUM = 5; // RESOURCE_IDS order: oil, aluminium, rubber, tungsten, steel, chromium
+    for (const c of ["bb", "bc", "cv"] as const) {
+      expect(lineResources(c)[CHROMIUM]).toBe(0);
+    }
+    expect(lineResources("bb")[4]).toBe(1);
+    expect(lineResources("ca")[CHROMIUM]).toBe(1);
+  });
+
+  test("a refused naval line order tells its sender why", async () => {
+    const { runner, updates } = await britain();
+    step(runner, 1, [
+      order(HUMAN, { kind: "naval_line_docks", line: 9999, docks: 2 }),
+    ]);
+    const msgs = updates
+      .flatMap((u) => u.updates[GameUpdateType.DisplayEvent])
+      .filter((m) => m.message === "events_display.ww1936_order_refused");
+    expect(msgs).toHaveLength(1);
+    expect(msgs[0].params).toEqual({ block: "bad_line" });
+  }, 120_000);
+});
 
 describe("World War 1936 P4: naval lines (spec §5.2–§5.4)", () => {
   test("orders: classes, ports, counts, the twenty-line cap", async () => {

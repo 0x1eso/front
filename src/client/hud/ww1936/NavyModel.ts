@@ -91,6 +91,7 @@ import type { WwEconomyView } from "../../view/WwEconomyView";
 import type { WwLandView } from "../../view/WwLandView";
 import { sideKeyOf, type WwNavyView } from "../../view/WwNavyView";
 import { designDisplayName } from "./DesignName";
+import { BLOCK_KEYS, blockText } from "./EconomyModel";
 import type { FogModel } from "./FogModel";
 import { invasionForce, LandSides, landSidesOf, regionName } from "./LandModel";
 import {
@@ -1144,6 +1145,8 @@ export function newLineBlock(
 ): WwOrderBlock | null {
   const d = ctx.navy.detail;
   if ((d?.lines.length ?? 0) >= WW_MAX_NAVAL_LINES) return "line_full";
+  // w76: the engine refuses every new line of a disarmed country.
+  if (d?.disarmed === true) return "disarmed";
   if (cls !== "convoy") {
     const tech = shipGenTech(cls, gen);
     if (tech !== null && !ctx.techs.has(tech)) return "no_tech";
@@ -1686,6 +1689,10 @@ export function navyNoticeParams(
           ? shipClassName(cls as ShipClass)
           : cls;
   if (cls !== null) out.cls = clsText;
+  // w76: a refused order's block id as its reason text.
+  if (typeof params.block === "string" && params.block in BLOCK_KEYS) {
+    out.reason = blockText(params.block as WwOrderBlock);
+  }
   if (typeof params.sr === "number")
     out.sr = srName(scenario, params.sr, korean);
   if (typeof params.zone === "number") {

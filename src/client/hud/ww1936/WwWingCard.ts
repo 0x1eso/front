@@ -38,6 +38,7 @@ import {
   WingChip,
   wingMax,
   wingName,
+  wingPlaneNames,
 } from "./WingModel";
 import { WingGroup, WingMode, wingUiOf, WwWingChangedEvent } from "./WingUi";
 import { isCapitulated, today, TWO_TAP_MIN_MS } from "./WorldWarModel";
@@ -548,6 +549,7 @@ export class WwWingCard extends LitElement implements Controller {
       sr === 0 ? null : zoneWeather(ctx.scenario, sr, today(this.game));
     const ph = phaseNow(ctx.air, w, this.game.ticks());
     const nightOn = wings.every((x) => x.night);
+    const planeNames = wingPlaneNames(ctx, w);
     return html`<div
       data-ww-wing-more
       class="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto"
@@ -613,6 +615,14 @@ export class WwWingCard extends LitElement implements Controller {
                   >${translateText("ww1936.wing.ferrying")}</span
                 >`
               : nothing}
+          </div>`}
+      ${many || planeNames.length === 0
+        ? nothing
+        : html`<div
+            data-ww-wing-models
+            class="truncate text-[11px] text-white/70"
+          >
+            ${planeNames.join(" · ")}
           </div>`}
       <div class="flex shrink-0 items-center gap-1">
         <button

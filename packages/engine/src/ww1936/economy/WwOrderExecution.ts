@@ -321,7 +321,23 @@ export class WwOrderExecution implements Execution {
   init(mg: Game, ticks: number): void {
     const ww = mg.worldWar();
     if (ww === null) return;
-    applyWwOrder(mg, ww.economy, this.player, this.order, ww.day(ticks));
+    const block = applyWwOrder(
+      mg,
+      ww.economy,
+      this.player,
+      this.order,
+      ww.day(ticks),
+    );
+    // w76: the screens grey what the engine would refuse, but a stale click
+    // or a rule the screen does not know (a disarmed country) reached here
+    // silently: a refused naval line order tells its sender why.
+    if (block !== null && this.order.kind.startsWith("naval_line_")) {
+      ww.navy.message(
+        this.player.smallID(),
+        "events_display.ww1936_order_refused",
+        { block },
+      );
+    }
   }
 
   tick(_ticks: number): void {}

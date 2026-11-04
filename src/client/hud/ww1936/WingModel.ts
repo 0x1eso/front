@@ -45,6 +45,7 @@ import {
   wingOrderBlock,
 } from "@openfront/engine-lib/ww1936/WingRules";
 import { translateText } from "../../Utils";
+import { designDisplayName } from "./DesignName";
 import { fogOfAir } from "./FogModel";
 import { armyName, regionName } from "./LandModel";
 import { airBpOf, landSeaAirOf } from "./LandSeaAir";
@@ -153,6 +154,25 @@ export function chosenWings(ctx: NavyCtx, ui: WingUi): WingDetail[] {
     const w = ctx.air.wings.get(id);
     if (w !== undefined && w.owner === ctx.me) out.push(w);
   }
+  return out;
+}
+
+/**
+ * w76: the catalogue planes a wing holds, by name with their count ("Bf 109 E
+ * 150"): its plane design slots (dcounts[slot - 1]) that are catalogue
+ * entries. Generic and saved designs are left to the type line.
+ */
+export function wingPlaneNames(
+  ctx: Pick<NavyCtx, "designs">,
+  w: Pick<WingDetail, "dcounts">,
+): string[] {
+  const out: string[] = [];
+  (w.dcounts ?? []).forEach((n, i) => {
+    if (n <= 0) return;
+    const row = ctx.designs.find((d) => d.kind === "plane" && d.slot === i + 1);
+    if (row === undefined || row.def.hist === undefined) return;
+    out.push(`${designDisplayName(row.def)} ${n}`);
+  });
   return out;
 }
 

@@ -1650,6 +1650,7 @@
     "ww1936_operation_failed": "Operation {op} against {country} failed",
     "ww1936_operative_captured": "Operative {codename} was captured in {country}",
     "ww1936_operative_released": "Operative {codename} was released by {country}",
+    "ww1936_order_refused": "Order refused: {reason}",
     "ww1936_port_captured": "The port of {region} fell to {country}",
     "ww1936_prep_over": "The preparation is over: wars can now be fought",
     "ww1936_project_done": "{project} completed",
