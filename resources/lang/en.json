@@ -13324,6 +13324,7 @@
       "my_autonomy": "My autonomy {pct}%",
       "none": "No subjects",
       "overlord": "Overlord: {country}",
+      "raise": "Raise level",
       "release": "Let go",
       "request_pending": "Autonomy request pending",
       "share": "Share: {text}",

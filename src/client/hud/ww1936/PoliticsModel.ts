@@ -655,6 +655,13 @@ function paramText(
       return translateText(`ww1936.hist.${v}`);
     case "type":
       return kind === "war_goal" ? wargoalName(v) : equipmentName(v as never);
+    case "level":
+      // make_subject also steps a subject up or down a level.
+      return v === "up" || v === "down"
+        ? translateText(
+            v === "up" ? "ww1936.subject.raise" : "ww1936.subject.lower",
+          )
+        : translateText(`ww1936.subject_level.${v}`);
     case "goal":
       return wargoalName(v);
     case "branch":

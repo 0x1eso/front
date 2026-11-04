@@ -1755,6 +1755,25 @@ export function lineDepthOf(
   );
 }
 
+/** A line's icon: a design takes its family's (a light tank's is the light tank's), else the type's. */
+export function lineIcon(
+  type: EquipmentType,
+  gen: number,
+  designs: readonly WwDesignSlotData[],
+): string {
+  if (type === "tank_design") {
+    const d = designs.find((x) => x.kind === "tank" && x.slot === gen);
+    if (
+      d !== undefined &&
+      d.def.kind === "tank" &&
+      d.def.base.startsWith("light")
+    ) {
+      return EQUIPMENT_ICONS.light_tank;
+    }
+  }
+  return EQUIPMENT_ICONS[type];
+}
+
 /** The name of a line's equipment: a design by its own name, else "Type Gen". */
 export function lineItemName(
   type: EquipmentType,

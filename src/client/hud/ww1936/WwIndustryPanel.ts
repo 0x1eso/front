@@ -55,6 +55,7 @@ import {
   idleMilOf,
   infraDots,
   lineDepthOf,
+  lineIcon,
   lineItemName,
   LineRow,
   lineRows,
@@ -1006,7 +1007,9 @@ export class WwIndustryPanel extends WwDrawerBase {
       class="rounded-md border border-white/10 bg-white/5 p-2"
     >
       <div class="flex items-center gap-1.5">
-        <span aria-hidden="true">${EQUIPMENT_ICONS[r.equipment]}</span>
+        <span aria-hidden="true"
+          >${lineIcon(r.equipment, r.gen, c.designs)}</span
+        >
         <span class="min-w-0 flex-1 truncate font-semibold"
           >${lineItemName(r.equipment, r.gen, c.designs, c.hist)}</span
         >
