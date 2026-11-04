@@ -65,6 +65,9 @@ const b = (
   artillery = false,
 ): BattalionDef => ({ kind, ...r, special, artillery });
 
+// ww67: foot units' breakthrough ×1.5 (infantry 3 to 4.5, the others 4 to 6).
+// Attackers block with breakthrough, far below the attack coming at them, so
+// nearly all hits landed at the 40 % rate: a prepared line needed 5:1.
 export const BATTALIONS: Readonly<Record<BattalionId, BattalionDef>> = {
   infantry: b("infantry", {
     width: 2,
@@ -75,7 +78,7 @@ export const BATTALIONS: Readonly<Record<BattalionId, BattalionDef>> = {
     soft: 600,
     hard: 100,
     def: 2200,
-    brk: 300,
+    brk: 450,
     pierce: 400,
     armor: 0,
     hardnessPm: 0,
@@ -96,7 +99,7 @@ export const BATTALIONS: Readonly<Record<BattalionId, BattalionDef>> = {
     soft: 600,
     hard: 100,
     def: 2000,
-    brk: 400,
+    brk: 600,
     pierce: 400,
     armor: 0,
     hardnessPm: 0,
@@ -121,7 +124,7 @@ export const BATTALIONS: Readonly<Record<BattalionId, BattalionDef>> = {
       soft: 600,
       hard: 100,
       def: 2200,
-      brk: 400,
+      brk: 600,
       pierce: 400,
       armor: 0,
       hardnessPm: 0,
@@ -148,7 +151,7 @@ export const BATTALIONS: Readonly<Record<BattalionId, BattalionDef>> = {
       soft: 600,
       hard: 100,
       def: 2200,
-      brk: 400,
+      brk: 600,
       pierce: 400,
       armor: 0,
       hardnessPm: 0,
@@ -175,7 +178,7 @@ export const BATTALIONS: Readonly<Record<BattalionId, BattalionDef>> = {
       soft: 600,
       hard: 100,
       def: 2000,
-      brk: 400,
+      brk: 600,
       pierce: 400,
       armor: 0,
       hardnessPm: 0,
@@ -200,7 +203,7 @@ export const BATTALIONS: Readonly<Record<BattalionId, BattalionDef>> = {
     soft: 600,
     hard: 100,
     def: 2200,
-    brk: 400,
+    brk: 600,
     pierce: 400,
     armor: 0,
     hardnessPm: 100,
