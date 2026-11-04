@@ -965,6 +965,8 @@ export interface WwLineData {
   costMilli: number;
   fill: number;
   outputMilli: number;
+  /** A design line's resources per factory (RESOURCE_IDS order); absent for a static type. */
+  per?: number[];
 }
 
 export interface WwSlotData {

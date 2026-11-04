@@ -4965,6 +4965,7 @@
       "consumer_goods": "Consumer goods {n}",
       "cooldown": "{n} days to wait",
       "days_left": "{n} days",
+      "days_per_unit": "{n} days each",
       "design_group": "{name} (own designs)",
       "efficiency": "Efficiency {n}% (cap {cap}%)",
       "export_room": "{n} a day for sale",

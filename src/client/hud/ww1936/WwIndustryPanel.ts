@@ -1049,6 +1049,15 @@ export class WwIndustryPanel extends WwDrawerBase {
             n: r.perDay.toFixed(1),
           })}</span
         >
+        ${r.daysEach === 0
+          ? nothing
+          : html`<span
+              data-ww-days-each
+              class="text-xs tabular-nums text-white/60"
+              >${translateText("ww1936.econ.days_per_unit", {
+                n: r.daysEach,
+              })}</span
+            >`}
         ${r.shortage.map(
           (res) =>
             html`<span
