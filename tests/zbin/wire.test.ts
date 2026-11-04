@@ -230,6 +230,18 @@ const SAMPLE_INTENTS: StampedIntent[] = [
   {
     type: "ww_order",
     clientID: P3,
+    order: {
+      kind: "train",
+      template: 2,
+      count: 3,
+      army: 0,
+      region: 5,
+      target: 77,
+    },
+  },
+  {
+    type: "ww_order",
+    clientID: P3,
     order: { kind: "cancel_train", entry: 7 },
   },
   {

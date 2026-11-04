@@ -547,6 +547,8 @@ export interface TrainingData {
   waiting: string;
   /** Set on the entries of one train_army order (the group id). */
   group?: number;
+  /** The army the player chose for these divisions (absent: automatic). */
+  target?: number;
 }
 
 export interface GeneralData {
@@ -730,5 +732,6 @@ export const LAND_MESSAGE_KEYS = [
   "events_display.ww1936_no_tile_attacks",
   "events_display.ww1936_template_added",
   "events_display.ww1936_army_scattered",
+  "events_display.ww1936_train_target_lost",
 ] as const;
 export type LandMessageKey = (typeof LAND_MESSAGE_KEYS)[number];

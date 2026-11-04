@@ -983,6 +983,8 @@ export const WwOrderSchema = z.discriminatedUnion("kind", [
     army: zb.uint({ max: 10_000_000 }),
     /** 0: the capital region. */
     region: zb.uint({ max: SEA_ZONE_BASE - 1 }),
+    /** The army the divisions join when ready (absent: as `army` says). */
+    target: zb.uint({ max: 10_000_000 }).optional(),
   }),
   z.object({ kind: z.literal("cancel_train"), entry: WwId }),
   z.object({ kind: z.literal("deploy_now"), entry: WwId }),

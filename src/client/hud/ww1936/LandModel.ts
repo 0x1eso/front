@@ -2184,6 +2184,35 @@ export function trainTarget(
   return a !== null && a.divisions < WW_MAX_ARMY_DIVISIONS ? a : null;
 }
 
+/** The armies a queued division can be sent to: id, name number and count. */
+export function trainToChoices(
+  view: WwLandView,
+  me: number,
+): { id: number; nameNo: number; count: number; full: boolean }[] {
+  return view.armiesOf(me).map((a) => ({
+    id: a.id,
+    nameNo: a.nameNo,
+    count: a.divisions,
+    full: a.divisions >= WW_MAX_ARMY_DIVISIONS,
+  }));
+}
+
+/** What a queued row says of its chosen army: its name, or that it is gone or full. */
+export function trainToState(
+  view: WwLandView,
+  me: number,
+  target: number | undefined,
+): { nameNo: number; gone: boolean; full: boolean } | null {
+  if (target === undefined) return null;
+  const a = myArmy(view, me, target);
+  if (a === null) return { nameNo: 0, gone: true, full: false };
+  return {
+    nameNo: a.nameNo,
+    gone: false,
+    full: a.divisions >= WW_MAX_ARMY_DIVISIONS,
+  };
+}
+
 // ---- The generals (spec §15.5 tab 4) ----
 
 export interface GeneralRowData {

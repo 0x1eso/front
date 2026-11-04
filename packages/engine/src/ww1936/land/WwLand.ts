@@ -480,6 +480,8 @@ export interface TrainingEntry {
   region: number;
   /** Set on the entries of one train_army order: they deploy together. */
   group?: number;
+  /** The army the player chose for these divisions to join (absent: automatic). */
+  target?: number;
 }
 
 export interface Trainee {
@@ -683,6 +685,7 @@ export const WwLandStateSchema = z.object({
           army: zInt(),
           region: zInt(),
           group: zInt().optional(),
+          target: zInt().optional(),
         }),
       ),
       trainees: z.array(
@@ -2545,10 +2548,7 @@ export class WwLand {
         this.keyStatsOf(t.owner[r]),
       );
       const need = this.baseStatsOf(r).need;
-      addShort(
-        need,
-        equipByType(t.equipOf(r), this.keyStatsOf(t.owner[r])),
-      );
+      addShort(need, equipByType(t.equipOf(r), this.keyStatsOf(t.owner[r])));
       let equipPm = 1000;
       fill.forEach((f, i) => {
         if (need[i] > 0) equipPm = Math.min(equipPm, f);
@@ -2613,6 +2613,7 @@ export class WwLand {
         region: e.region,
         waiting,
         ...(e.group === undefined ? {} : { group: e.group }),
+        ...(e.target === undefined ? {} : { target: e.target }),
       };
     });
     const generals: GeneralData[] = cl.generals.map((g) => {
@@ -2796,6 +2797,7 @@ export class WwLand {
         mix(e.army);
         mix(e.region);
         if (e.group !== undefined) mix(e.group);
+        if (e.target !== undefined) mix(e.target);
       }
       for (const x of cl.trainees) {
         mix(x.entry);
@@ -2934,6 +2936,7 @@ export class WwLand {
           army: e.army,
           region: e.region,
           ...(e.group === undefined ? {} : { group: e.group }),
+          ...(e.target === undefined ? {} : { target: e.target }),
         })),
         trainees: cl.trainees.map((x) => ({
           entry: x.entry,
@@ -3063,6 +3066,7 @@ export class WwLand {
         army: e.army,
         region: e.region,
         ...(e.group === undefined ? {} : { group: e.group }),
+        ...(e.target === undefined ? {} : { target: e.target }),
       }));
       cl.trainees = c.trainees.map((x) => ({
         entry: x.entry,
