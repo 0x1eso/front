@@ -469,6 +469,18 @@ const SAMPLE_INTENTS: StampedIntent[] = [
   {
     type: "ww_order",
     clientID: P2,
+    order: {
+      kind: "army_direct",
+      army: 5,
+      targets: [11, 12],
+      favorable: true,
+      advance: false,
+    },
+  },
+  { type: "ww_order", clientID: P3, order: { kind: "army_direct", army: 5 } },
+  {
+    type: "ww_order",
+    clientID: P2,
     order: { kind: "advisor_hire", slot: 7, advisor: "title:rs_aircraft" },
   },
   {

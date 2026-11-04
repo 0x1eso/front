@@ -4,6 +4,7 @@
 // fills the gaps between armies, and moves the divisions: cover first, then
 // the spare by threat (Defend) or toward the axis (Attack), then rotation.
 import {
+  DIRECT_ALL_IN,
   idleOrder,
   MOVE_ADVANCE,
   MOVE_NONE,
@@ -59,6 +60,9 @@ interface ArmyDay {
   g: BorderGraph;
   rows: number[];
   attack: boolean;
+  /** ww42: a human's direct attack; `allIn`: no division held back for the border. */
+  direct: boolean;
+  allIn: boolean;
   /** targetDistances for an Attack with targets, else null. */
   dist: Int32Array | null;
   /** The zone proper; `front` is it plus the gap fills, the order cover reads. */
@@ -259,6 +263,12 @@ function goIdle(land: WwLand, a: Army): void {
     leaveAttack(land, r);
     stopOrFinishEdge(land, r);
   }
+  // ww42: a direct attack that lost its border says so.
+  if (a.order.direct === true) {
+    land.message(a.owner, "events_display.ww1936_direct_stop_path", {
+      army: a.nameNo,
+    });
+  }
   a.order = idleOrder();
   a.front = [];
   a.planBp = 0;
@@ -384,6 +394,8 @@ function openDay(
     g,
     rows,
     attack,
+    direct: attack && o.direct === true,
+    allIn: attack && o.direct === true && (a.dflags & DIRECT_ALL_IN) !== 0,
     dist,
     zone,
     front: [...zone],
@@ -603,12 +615,19 @@ function layout(land: WwLand, d: ArmyDay, tick: number): void {
       vp[y] - vp[x] ||
       regions[x] - regions[y],
   );
-  const coverN = Math.min(n, k);
+  // ww42: [전부 공격] covers only the axis (the player accepts an open
+  // border); [국경 수비: 남김] covers every zone region as before.
+  const cover = d.allIn ? prio.filter((i) => d.axis.has(regions[i])) : prio;
+  const coverN = Math.min(n, cover.length);
   const covered = new Array<boolean>(k).fill(false);
-  for (let j = 0; j < coverN; j++) covered[prio[j]] = true;
-  // 1.5 × the combat width, in divisions of this army's mean width.
+  for (let j = 0; j < coverN; j++) covered[cover[j]] = true;
+  // 1.5 × the combat width, in divisions of this army's mean width. A direct
+  // attack lifts the cap: what stands over the width waits in the battle's
+  // own reserve and enters as a place frees (Battles).
   const mean = meanWidthOf(land, rows);
-  const cap = regions.map((f, i) => zoneCap(land, f, dirs[i], mean));
+  const cap = regions.map((f, i) =>
+    d.direct ? n : zoneCap(land, f, dirs[i], mean),
+  );
   // The shares: one for the covered, then the spare.
   const share = covered.map((c) => (c ? 1 : 0));
   const spare = n - coverN;

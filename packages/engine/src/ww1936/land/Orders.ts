@@ -5,6 +5,9 @@ import type { LandOrder } from "@openfront/engine-api/Schemas";
 import type { WwOrderBlock } from "@openfront/engine-api/ww1936/EconomyTypes";
 import {
   type ArmyOrder,
+  DIRECT_ADVANCE,
+  DIRECT_ALL_IN,
+  DIRECT_FAVORABLE,
   idleOrder,
   type LandOrderSource,
   MOVE_ADVANCE,
@@ -61,8 +64,12 @@ export function issueArmyOrder(
   if (block !== null) return block;
   if (!("army" in order) || order.kind === "divisions_convert") return null;
   const a = land.armies.get(order.army)!;
+  // ww42: a direct attack's settings alone leave auto and the invasion be.
+  const settingsOnly =
+    order.kind === "army_direct" && order.targets === undefined;
   if (
     by === "player" &&
+    !settingsOnly &&
     order.kind !== "army_auto" &&
     order.kind !== "army_auto_level"
   ) {
@@ -72,6 +79,7 @@ export function issueArmyOrder(
   // P4 spec §11.1 (pre-flight A11): another standing order drops the
   // army's invasion (lane I); the general and auto keep it.
   if (
+    !settingsOnly &&
     order.kind !== "army_auto" &&
     order.kind !== "army_auto_level" &&
     order.kind !== "army_zone" &&
@@ -104,6 +112,9 @@ export function issueArmyOrder(
       break;
     case "army_front":
       setFront(land, a, order.anchor, order.enemy);
+      break;
+    case "army_direct":
+      setDirect(land, a, order);
       break;
     case "army_plan":
       setPlan(land, a, order.targets, order.stance, false);
@@ -176,6 +187,36 @@ function setAutoLevel(a: Army, level: number): void {
 function setZone(a: Army, regions: readonly number[]): void {
   a.order = { ...a.order, zone: [...new Set(regions)] };
   if (a.order.kind === "front" || a.order.kind === "plan") a.pending = true;
+}
+
+/**
+ * ww42: a human's direct attack. The settings set first; a list of targets
+ * becomes a plan that runs at once (taken in order), an empty list stops a
+ * direct attack. A field left out stays.
+ */
+function setDirect(
+  land: WwLand,
+  a: Army,
+  order: Extract<LandOrder, { kind: "army_direct" }>,
+): void {
+  const bit = (flag: number, on: boolean | undefined) => {
+    if (on === undefined) return;
+    a.dflags = on ? a.dflags | flag : a.dflags & ~flag;
+  };
+  bit(DIRECT_FAVORABLE, order.favorable);
+  bit(DIRECT_ALL_IN, order.allIn);
+  bit(DIRECT_ADVANCE, order.advance);
+  if (order.targets === undefined) {
+    // The next day's layout reads the settings; a running attack is redrawn now.
+    if (a.order.direct === true) a.pending = true;
+    return;
+  }
+  if (order.targets.length === 0) {
+    if (a.order.direct === true) setOrder(a, idleOrder());
+    return;
+  }
+  setPlan(land, a, order.targets, "aggressive", true);
+  a.order.direct = true;
 }
 
 /** A new standing order that is no front: the front and the readiness go. */
@@ -259,13 +300,16 @@ function setPlan(
     a.path = [];
     a.planBp = 0;
   }
-  a.order = {
+  const next: ArmyOrder = {
     ...a.order,
     kind: "plan",
     targets: [...targets],
     stance,
     executing,
   };
+  // ww42: any other plan order ends a direct attack.
+  delete next.direct;
+  a.order = next;
   a.pending = true;
 }
 

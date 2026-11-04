@@ -193,6 +193,14 @@ export class PlanArrowPass {
       for (const t of mine.order.targets) fromZone(cx(t), cy(t), style, 0.95);
     }
 
+    // ww42: a direct attack's arrows, from each attacking region to its enemy
+    // region (the divisions there are the dots at the tail).
+    if (mine.order.direct === true && mine.direct !== undefined) {
+      for (const [from, to] of mine.direct.atk) {
+        this.arrow(cx(from), cy(from), cx(to), cy(to), STYLE_FLOW, 0.95);
+      }
+    }
+
     if (mine.path.length > 0) this.dots(view, army.region, mine.path, 0.95);
 
     for (const t of sel.targets) {

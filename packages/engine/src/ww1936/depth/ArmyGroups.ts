@@ -226,6 +226,17 @@ export function issueArmyGroup(
       for (const aid of g.armies) {
         const a = land.armies.get(aid);
         if (a === undefined) continue;
+        if (o.targets !== undefined) {
+          // ww42: the same direct attack for every army of the group.
+          const r = land.issue(
+            id,
+            { kind: "army_direct", army: aid, targets: o.targets },
+            sourceOf(d, id),
+          );
+          if (r === null) taken = true;
+          else if (block === "no_army") block = r;
+          continue;
+        }
         if (a.order.kind !== "front" && a.order.kind !== "plan") continue;
         const r = land.issue(
           id,

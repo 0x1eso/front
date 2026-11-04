@@ -29,6 +29,7 @@ import {
   BattleSummary,
   CountryLandDetail,
   CountryLandSummary,
+  type DirectView,
   DivisionData,
   DivisionStats,
   GeneralData,
@@ -99,7 +100,7 @@ import { startLand } from "./LandStartRun";
 import { nextStepOf, stepMovement } from "./Movement";
 import { stepSpread } from "./Occupation";
 import { applyArmyOrders, issueArmyOrder } from "./Orders";
-import { oddsOf } from "./Plans";
+import { directView, oddsOf } from "./Plans";
 import { dmzBlocks } from "./PoliticsBridge";
 import { dailyPositions, resetPosition } from "./Positions";
 import { autoAddPresets } from "./Presets";
@@ -370,6 +371,8 @@ export interface Army {
   order: ArmyOrder;
   /** Equals `autoLevel > 0` (every writer keeps both). */
   auto: boolean;
+  /** ww42: a human's direct-attack settings, DIRECT_* bits (default 0). */
+  dflags: number;
   /** ww7: 0 off, 1 defend-only auto, 2 full auto (army_auto on = 2). */
   autoLevel: number;
   planBp: number;
@@ -585,6 +588,8 @@ const OrderSchema = z.object({
   readyDay: zInt(),
   /** ww7: written when not empty. */
   zone: zInts().optional(),
+  /** ww42: a human's direct attack; written when set. */
+  direct: z.boolean().optional(),
 });
 
 export const WwLandStateSchema = z.object({
@@ -617,6 +622,8 @@ export const WwLandStateSchema = z.object({
       auto: z.boolean(),
       // ww7: written when not 0 (absent: 2 when `auto`, else 0).
       autoLevel: zInt().optional(),
+      /** ww42: the direct-attack settings (DIRECT_* bits); written when not 0. */
+      dflags: zInt().optional(),
       planBp: zInt(),
       front: zInts(),
       path: zInts(),
@@ -1210,6 +1217,7 @@ export class WwLand {
       case "army_auto":
       case "army_zone":
       case "army_auto_level":
+      case "army_direct":
       case "paradrop":
         block = issueArmyOrder(this, cl, order, by);
         break;
@@ -1969,6 +1977,7 @@ export class WwLand {
       divisions: [],
       order: idleOrder(),
       auto: false,
+      dflags: 0,
       autoLevel: 0,
       planBp: 0,
       front: [],
@@ -2366,6 +2375,11 @@ export class WwLand {
         oddsOut = { odds: a.odds.map((x) => [x[0], x[1], x[2]]) };
       }
     }
+    // ww42: how a human's direct attack stands (engine state, counted now).
+    const directOut: { direct?: DirectView } =
+      human && (a.order.direct === true || a.dflags !== 0)
+        ? { direct: directView(this, a) }
+        : {};
     const out: ArmySummary = {
       id: a.id,
       owner: a.owner,
@@ -2397,6 +2411,7 @@ export class WwLand {
             priority: a.priority,
             // ww7: sent when set.
             ...(a.autoLevel === 0 ? {} : { autoLevel: a.autoLevel }),
+            ...directOut,
             ...oddsOut,
           }
         : null,
@@ -2756,6 +2771,9 @@ export class WwLand {
       // ww7: auto is already folded; only a level it does not imply (1) and a zone.
       if (a.autoLevel !== (a.auto ? 2 : 0)) mix(0x7a1 + a.autoLevel);
       if (o.zone.length > 0) fold(o.zone);
+      // ww42: the direct attack, only when used.
+      if (o.direct === true) mix(0xd42);
+      if (a.dflags !== 0) mix(0xd43 + a.dflags);
     }
     for (const b of this.battles.values()) {
       mix(b.sinceTick);
@@ -2880,6 +2898,7 @@ export class WwLand {
         order: snapshotOrder(a.order),
         auto: a.auto,
         ...(a.autoLevel === 0 ? {} : { autoLevel: a.autoLevel }),
+        ...(a.dflags === 0 ? {} : { dflags: a.dflags }),
         planBp: a.planBp,
         front: [...a.front],
         path: [...a.path],
@@ -3000,6 +3019,7 @@ export class WwLand {
         order: copyOrder(a.order),
         auto: autoLevel > 0,
         autoLevel,
+        dflags: a.dflags ?? 0,
         planBp: a.planBp,
         front: [...a.front],
         path: [...a.path],
@@ -3158,6 +3178,7 @@ function copyOrder(
     executing: o.executing,
     readyDay: o.readyDay,
     zone: [...(o.zone ?? [])],
+    ...(o.direct === true ? { direct: true } : {}),
   };
 }
 

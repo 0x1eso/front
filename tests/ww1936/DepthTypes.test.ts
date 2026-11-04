@@ -72,6 +72,8 @@ describe("World War 1936 P6 lists", () => {
       "train_army",
       // Template conversion.
       "divisions_convert",
+      // ww42: the direct attack.
+      "army_direct",
     ]);
   });
 

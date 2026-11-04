@@ -76,8 +76,11 @@ describe("war overhaul C0: the contract", () => {
       "army_auto_level",
       "train_army",
       "divisions_convert",
+      "army_direct",
     ]);
     const kinds = WwOrderSchema.options.map((o) => o.shape.kind.value);
+    // ww42 appended army_direct last; the older pins read what is before it.
+    expect(kinds.pop()).toBe("army_direct");
     // The air overhaul (ww8) appends its six after them, then the thought
     // sliders (ww9) thought_set, then the research queue's three and
     // the per-slot research leaning.

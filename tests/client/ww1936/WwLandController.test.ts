@@ -268,10 +268,10 @@ describe("WwLandController (spec §15.3)", () => {
     expect(m.sent).toEqual([]);
     m.tapRegion(4);
     expect(m.sent).toEqual([{ kind: "army_move", army: 1, region: 4 }]);
-    // Warsaw, the enemy's: an attack after the second tap.
+    // Warsaw, the enemy's: ww42, one tap attacks at once (no preview).
     m.tapRegion(6);
-    m.tapRegion(6);
-    expect(m.sent[1]).toEqual({ kind: "army_attack", army: 1, region: 6 });
+    expect(m.sent[1]).toEqual({ kind: "army_direct", army: 1, targets: [6] });
+    expect(m.sel.pending).toBeNull();
     // London, neither mine nor at war: elsewhere. Nothing pending: the
     // army goes.
     m.tapRegion(10);
@@ -313,7 +313,7 @@ describe("WwLandController (spec §15.3)", () => {
     expect(seen).toEqual([1, 2, 3, 1]);
   });
 
-  it("[공격]: targets toggle up to three and each change goes to the engine as the plan", () => {
+  it("direct attack: one tap sends, more taps add up to three, a repeat removes, the last stops", () => {
     const m = setup({
       wars: [
         ["DEU", "POL"],
@@ -323,39 +323,39 @@ describe("WwLandController (spec §15.3)", () => {
     m.tap(...center(3));
     m.bus.emit(new WwLandModeEvent("plan"));
     for (const r of [6, 7, 8, 9]) m.tapRegion(r);
-    expect(m.sel.targets).toEqual([6, 7, 8]);
     // The fourth changed nothing: nothing sent.
     expect(m.sent).toEqual([
-      { kind: "army_plan", army: 1, targets: [6], stance: "balanced" },
-      { kind: "army_plan", army: 1, targets: [6, 7], stance: "balanced" },
-      { kind: "army_plan", army: 1, targets: [6, 7, 8], stance: "balanced" },
+      { kind: "army_direct", army: 1, targets: [6] },
+      { kind: "army_direct", army: 1, targets: [6, 7] },
+      { kind: "army_direct", army: 1, targets: [6, 7, 8] },
     ]);
     m.tapRegion(7);
-    expect(m.sel.targets).toEqual([6, 8]);
     expect(m.sent[3]).toEqual({
-      kind: "army_plan",
+      kind: "army_direct",
       army: 1,
       targets: [6, 8],
-      stance: "balanced",
     });
-    // Stray taps (my own region, the sea) keep the mode and the draft.
-    m.tapRegion(4);
+    // Stray taps (the sea) keep the mode.
     m.tap(150, 110);
     expect(m.sel.mode).toBe("plan");
-    expect(m.sel.targets).toEqual([6, 8]);
     expect(m.sent).toHaveLength(4);
-    // Leaving plan mode (the card's back or done) drops the draft.
-    m.bus.emit(new WwLandModeEvent("none"));
-    expect(m.sel.targets).toEqual([]);
+    m.tapRegion(6);
+    m.tapRegion(8);
+    expect(m.sent[5]).toEqual({ kind: "army_halt", army: 1 });
+    // The same from no mode at all: a plain tap on an enemy region attacks.
+    const n = setup();
+    n.tap(...center(3));
+    n.tapRegion(6);
+    expect(n.sent).toEqual([{ kind: "army_direct", army: 1, targets: [6] }]);
   });
 
-  it("[공격]: a running plan keeps running with new targets; the stance rides along", () => {
+  it("direct attack: a tap adds to the engine's running targets", () => {
     const order = {
       ...idleOrder(),
       kind: "plan" as const,
       targets: [6],
-      stance: "aggressive" as const,
       executing: true,
+      direct: true,
     };
     const m = setup({
       wars: [
@@ -365,14 +365,8 @@ describe("WwLandController (spec §15.3)", () => {
       armies: [army(1, "DEU", 3, { mine: mine({ order }) })],
     });
     m.tap(...center(3));
-    m.bus.emit(new WwLandModeEvent("plan"));
-    // The plan's own targets and stance start the draft.
-    expect(m.sel).toMatchObject({ targets: [6], stance: "aggressive" });
     m.tapRegion(7);
-    expect(m.sent).toEqual([
-      { kind: "army_plan", army: 1, targets: [6, 7], stance: "aggressive" },
-      { kind: "army_execute", army: 1, on: true },
-    ]);
+    expect(m.sent).toEqual([{ kind: "army_direct", army: 1, targets: [6, 7] }]);
   });
 
   it("in an order mode another army's token stands for its region", () => {

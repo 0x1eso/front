@@ -102,6 +102,12 @@ function armyOrderBlockAs(
         return "not_adjacent";
       }
       return null;
+    case "army_direct":
+      // ww42: settings alone are always fine; targets are checked as a plan's
+      // and the army must have an own-side way to the targets' border.
+      return order.targets === undefined || order.targets.length === 0
+        ? null
+        : directBlock(w, a, order.targets);
     case "army_execute":
       return order.on && a.front === false ? "not_adjacent" : null;
     case "army_zone":
@@ -227,6 +233,41 @@ function targetsBlock(
     return "not_at_war";
   }
   return targets.every((t) => nearOurSide(w, t)) ? null : "not_adjacent";
+}
+
+/**
+ * ww42: a direct attack's targets (taken in order) are enemy regions in reach
+ * (targetsBlock), and some region of the army reaches, over our side's land,
+ * a region of ours next to the enemy ground leading to the first target
+ * (no_path otherwise: an overseas or cut-off army would stand still).
+ */
+export function directBlock(
+  w: OrderCheckWorld,
+  a: OrderCheckArmy,
+  targets: readonly number[],
+): WwOrderBlock | null {
+  const block = targetsBlock(w, targets);
+  if (block !== null) return block;
+  const ours = (r: number) => w.sameSide(w.me, w.controller[r]);
+  const seen = new Set<number>([targets[0]]);
+  let frontier = [targets[0]];
+  const gates: number[] = [];
+  for (let d = 1; d <= WW_TARGET_REACH_EDGES && frontier.length > 0; d++) {
+    const next: number[] = [];
+    for (const u of frontier) {
+      for (const e of w.scenario.edgesOf(u)) {
+        if (seen.has(e.to)) continue;
+        seen.add(e.to);
+        const c = w.controller[e.to];
+        if (ours(e.to)) gates.push(e.to);
+        else if (w.isEnemy(w.me, c)) next.push(e.to);
+      }
+    }
+    frontier = next;
+  }
+  if (a.regions.length === 0) return "no_path";
+  const got = reach(w, a.regions, ours);
+  return gates.some((g) => got.has(g)) ? null : "no_path";
 }
 
 /**

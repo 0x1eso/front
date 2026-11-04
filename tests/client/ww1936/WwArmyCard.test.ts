@@ -5,6 +5,7 @@ import type { LandOrder, WwOrder } from "@openfront/engine-api/Schemas";
 import {
   ARMY_AUTO,
   ARMY_EXECUTING,
+  DIRECT_FAVORABLE,
   idleOrder,
 } from "@openfront/engine-api/ww1936/LandTypes";
 import { landOrderBlockOf } from "@openfront/engine-lib/ww1936/LandOrderChecks";
@@ -291,79 +292,78 @@ describe("<ww-army-card> (spec §15.4)", () => {
       tick,
     );
 
-  it("[공격]: targets drawn by taps are the plan; [실행] runs it, [중지] stops it", async () => {
+  it("[공격] is the direct attack: no [실행], no stance; the breakdown, the reasons and the settings", async () => {
     const m = await mount();
     await m.click(m.btn("plan"));
     expect(m.sel.mode).toBe("plan");
-    // The strip carries [실행]: greyed, with its reason, until a target is chosen.
-    expect(m.q(m.btn("execute"))!.getAttribute("aria-disabled")).toBe("true");
-    await m.click(m.btn("execute"));
-    expect(m.q("[data-ww-block='no_target']")).not.toBeNull();
-    expect(m.sent).toEqual([]);
-    // The controller's tap sent the plan; the engine's order caught up.
-    m.sel.targets = [6];
-    m.sel.stance = "aggressive";
-    m.sel.version++;
-    const plan = {
+    expect(m.q(m.btn("execute"))).toBeNull();
+    expect(m.q("[data-ww-stance]")).toBeNull();
+    // A running direct attack: the engine's counts as chips, biggest group first.
+    const order = {
       ...idleOrder(),
       kind: "plan" as const,
       targets: [6],
-      stance: "aggressive" as const,
+      executing: true,
+      direct: true,
     };
-    feed(m, mine({ order: plan }));
+    const direct = {
+      flags: DIRECT_FAVORABLE,
+      atk: [
+        [3, 6, 6],
+        [4, 6, 3],
+      ] as [number, number, number][],
+      hold: 4,
+      wait: 5,
+      rec: 2,
+      walk: 4,
+      why: 1,
+      ratioPm: 780,
+      at: [
+        [5, 0, 4],
+        [3, 1, 5],
+        [4, 2, 2],
+        [1, 3, 4],
+      ] as [number, number, number][],
+    };
+    feed(m, mine({ order, direct, odds: [[3, 6, 30]] }), {
+      state: ARMY_EXECUTING,
+    });
+    m.sel.setMode("none");
     m.el.tick();
     await m.el.updateComplete;
-    // One press: execute on (the plan is not sent again), and the mode ends.
-    await m.click(m.btn("execute"));
-    expect(m.sent).toEqual([{ kind: "army_execute", army: 1, on: true }]);
-    expect(m.sel.mode).toBe("none");
-    expect(m.sel.targets).toEqual([]);
-    // Running: [중지] beside the stance switch, one press stops it.
-    feed(
-      m,
-      mine({ order: { ...plan, executing: true } }),
-      { state: ARMY_EXECUTING },
-      702,
+    const chip = (k: string) =>
+      m.q(`[data-ww-direct-part='${k}']`)!.textContent;
+    expect(chip("atk")).toContain("[ww1936.direct.part_atk_where] n=9");
+    expect(chip("atk")).toContain("Berlin 6, Munich 3");
+    expect(chip("hold")).toContain("n=4");
+    expect(chip("wait")).toContain("n=5");
+    expect(chip("rec")).toContain("n=2");
+    expect(chip("walk")).toContain("n=4");
+    // The waiting reason carries the true ratio; the red warning the win chance.
+    expect(m.q("[data-ww-direct-why='odds']")!.textContent).toContain(
+      "ratio=0.78",
     );
-    m.el.tick();
-    await m.el.updateComplete;
-    expect(m.q("[data-ww-order='plan']")!.textContent).toContain(
-      "[ww1936.land.order_attack_running] targets=Warsaw",
-    );
-    await m.click(m.btn("stop"));
-    expect(m.sent[1]).toEqual({ kind: "army_execute", army: 1, on: false });
-  });
-
-  it("[실행] sends the plan first when the engine's differs from the draft", async () => {
-    const m = await mount();
-    await m.click(m.btn("plan"));
-    m.sel.targets = [6, 7];
-    m.sel.version++;
-    m.el.tick();
-    await m.el.updateComplete;
-    await m.click(m.btn("execute"));
+    expect(m.q("[data-ww-direct-warn]")!.textContent).toContain("pct=30");
+    await m.click("[data-ww-direct-off]");
+    await m.click("[data-ww-direct-toggle='border']");
+    await m.click("[data-ww-direct-toggle='advance']");
+    await m.click("[data-ww-direct-stop]");
     expect(m.sent).toEqual([
-      { kind: "army_plan", army: 1, targets: [6, 7], stance: "balanced" },
-      { kind: "army_execute", army: 1, on: true },
+      { kind: "army_direct", army: 1, favorable: false },
+      { kind: "army_direct", army: 1, allIn: true },
+      { kind: "army_direct", army: 1, advance: true },
+      { kind: "army_halt", army: 1 },
     ]);
   });
 
-  it("the stance switch: 신중 / 보통 / 과감, default 보통; a change resends the plan's targets", async () => {
+  it("the stance switch stays for an older (non-direct) plan: 신중 / 보통 / 과감; a change resends the plan's targets", async () => {
     const m = await mount();
+    // An idle army: no stances for a human.
+    expect(m.q("[data-ww-stance]")).toBeNull();
     const pressed = () =>
       [...m.el.querySelectorAll("[data-ww-stance] button")]
         .filter((b) => b.getAttribute("aria-pressed") === "true")
         .map((b) => (b as HTMLElement).dataset.wwArmyBtn);
-    expect(
-      [...m.el.querySelectorAll("[data-ww-stance] button")].map(
-        (b) => (b as HTMLElement).dataset.wwArmyBtn,
-      ),
-    ).toEqual(["stance_careful", "stance_balanced", "stance_aggressive"]);
-    expect(pressed()).toEqual(["stance_balanced"]);
-    // No plan yet: the choice waits for the plan, nothing is sent.
-    await m.click(m.btn("stance_careful"));
-    expect(m.sent).toEqual([]);
-    expect(pressed()).toEqual(["stance_careful"]);
     // A plan that runs keeps running with the new stance.
     const plan = {
       ...idleOrder(),
@@ -375,6 +375,16 @@ describe("<ww-army-card> (spec §15.4)", () => {
     feed(m, mine({ order: plan }), { state: ARMY_EXECUTING });
     m.el.tick();
     await m.el.updateComplete;
+    expect(
+      [...m.el.querySelectorAll("[data-ww-stance] button")].map(
+        (b) => (b as HTMLElement).dataset.wwArmyBtn,
+      ),
+    ).toEqual([
+      "stance_careful",
+      "stance_balanced",
+      "stance_aggressive",
+      "stop",
+    ]);
     expect(pressed()).toEqual(["stance_balanced"]);
     await m.click(m.btn("stance_aggressive"));
     expect(m.sent).toEqual([
@@ -483,12 +493,6 @@ describe("<ww-army-card> (spec §15.4)", () => {
     // that week: 20 ticks, 2.7 days.
     expect(p.textContent).toContain("[ww1936.land.move_days] days=2.7");
     expect(m.q("[data-ww-tap-again]")).not.toBeNull();
-    // An attack preview: the strength ratio and its bar.
-    m.sel.pending = 6;
-    m.sel.version++;
-    m.el.tick();
-    await m.el.updateComplete;
-    expect(m.q("[data-ww-preview='attack'] [data-ww-ratio]")).not.toBeNull();
   });
 
   it("sits right above the bottom rows and the dock, whatever drawer is open", async () => {

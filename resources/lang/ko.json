@@ -1481,6 +1481,12 @@
     "ww1936_decision": "결정 실행: {decision}",
     "ww1936_decrypted": "암호 해독 완료: {country}",
     "ww1936_design_saved": "설계 저장: {name}",
+    "ww1936_direct_done": "{army}: 목표를 모두 점령하여 방어로 전환합니다",
+    "ww1936_direct_over": "{army}: 더 이상 닿을 적 지역이 없어 방어로 전환합니다",
+    "ww1936_direct_stop_far": "{army}: 목표가 너무 멀어 공격을 중지했습니다",
+    "ww1936_direct_stop_gone": "{army}: 목표가 사라져 공격을 중지했습니다",
+    "ww1936_direct_stop_path": "{army}: 목표까지 육로가 없어 공격을 중지했습니다",
+    "ww1936_direct_stop_war": "{army}: 목표 국가와 더 이상 전쟁 중이 아니어서 공격을 중지했습니다",
     "ww1936_division_ready": "사단 {count}개 배치",
     "ww1936_divisions_destroyed": "{region}에서 사단 {count}개 섬멸",
     "ww1936_election": "{country}에서 선거가 치러졌습니다",
@@ -4427,6 +4433,22 @@
         "tension": "세계 긴장도",
         "top": "긴장을 가장 많이 만든 나라"
       }
+    },
+    "direct": {
+      "advance": "계속 진격",
+      "border_all": "국경 수비: 전부 공격",
+      "border_keep": "국경 수비: 남김",
+      "favorable": "유리할 때만 공격",
+      "part_atk": "공격 {n}",
+      "part_atk_where": "공격 {n} ({where})",
+      "part_hold": "국경 수비 {n}",
+      "part_rec": "회복 {n}",
+      "part_wait": "대기 {n}",
+      "part_walk": "이동 {n}",
+      "turn_off": "끄기",
+      "warn_low": "승산 낮음: 승리 확률 {pct}%. 그래도 공격합니다.",
+      "why_odds": "대기 중: 전력비 {ratio}가 1.00보다 낮고 「유리할 때만 공격」이 켜져 있습니다",
+      "why_org": "조직력 회복 중 (사단 {n}개): 30%가 되면 스스로 합류합니다"
     },
     "dock": {
       "air": "공군",
@@ -9141,7 +9163,6 @@
       "btn_defend": "방어",
       "btn_disband": "해산",
       "btn_done": "완료",
-      "btn_execute": "실행",
       "btn_general": "장군",
       "btn_leave_battle": "전투 이탈",
       "btn_merge": "병합",

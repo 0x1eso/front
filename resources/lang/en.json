@@ -1583,6 +1583,12 @@
     "ww1936_decision": "Decision carried out: {decision}",
     "ww1936_decrypted": "The codes of {country} are broken",
     "ww1936_design_saved": "Design saved: {name}",
+    "ww1936_direct_done": "{army}: all targets taken, now defending",
+    "ww1936_direct_over": "{army}: no enemy region left to reach, now defending",
+    "ww1936_direct_stop_far": "{army}: the target is out of reach, attack stopped",
+    "ww1936_direct_stop_gone": "{army}: the target is gone, attack stopped",
+    "ww1936_direct_stop_path": "{army}: no way over land to the target, attack stopped",
+    "ww1936_direct_stop_war": "{army}: no longer at war with the target, attack stopped",
     "ww1936_division_ready": "{count, plural, one {# division deployed} other {# divisions deployed}}",
     "ww1936_divisions_destroyed": "{count, plural, one {# division destroyed at {region}} other {# divisions destroyed at {region}}}",
     "ww1936_election": "{country} held elections",
@@ -4734,6 +4740,22 @@
         "tension": "World tension",
         "top": "Biggest sources of tension"
       }
+    },
+    "direct": {
+      "advance": "Keep advancing",
+      "border_all": "Border: all attack",
+      "border_keep": "Border: keep guards",
+      "favorable": "Attack only when favorable",
+      "part_atk": "Attacking {n}",
+      "part_atk_where": "Attacking {n} ({where})",
+      "part_hold": "Border guard {n}",
+      "part_rec": "Recovering {n}",
+      "part_wait": "Waiting {n}",
+      "part_walk": "Moving {n}",
+      "turn_off": "Turn off",
+      "warn_low": "Low odds: {pct}% chance to win. The army attacks anyway.",
+      "why_odds": "Waiting: ratio {ratio} is below 1.00 and “Attack only when favorable” is on",
+      "why_org": "Recovering org ({n} divisions): they join by themselves at 30%"
     },
     "dock": {
       "air": "Air",
@@ -9448,7 +9470,6 @@
       "btn_defend": "Defend",
       "btn_disband": "Disband",
       "btn_done": "Done",
-      "btn_execute": "Execute",
       "btn_general": "General",
       "btn_leave_battle": "Withdraw",
       "btn_merge": "Merge",
