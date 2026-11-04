@@ -21,11 +21,13 @@ import {
   lobbyGame,
   lobbyResearched,
   lobbyStartTemplates,
+  OOB_CONFIRM_TICKS,
   planProblem,
   START_WINDOW_TICKS,
   StartPrep,
   startPreviews,
 } from "../../../src/client/hud/ww1936/LobbyPrep";
+import { oobTemplateRows } from "../../../src/client/hud/ww1936/PrepOob";
 
 beforeEach(() => localStorage.clear());
 afterEach(() => localStorage.clear());
@@ -208,8 +210,49 @@ describe("applying the plan at the start", () => {
       (t: any) => t.key === "infantry",
     );
     expect(sent[0].armies[0][0]).toEqual({ template: infantry, count: 14 });
+    // The success text waits for the game to show the plan applied.
+    expect(notes).toEqual([]);
+    g.wwLand().details.get(1).startOob = true;
+    sp.tick(g);
     expect(notes.some((n) => n.includes("ww1936.prep.oob_applied"))).toBe(true);
     expect(prepSentFor()).toBe("g1");
+  });
+
+  it("a start_oob the game never applies is told as refused, not as fielded", () => {
+    setPrepTemplate("DEU", MINE);
+    const { sp, sent, notes } = prep();
+    let now = 5;
+    const g = { ...live(), ticks: () => now };
+    expect(sp.tick(g)).toBe(1);
+    now += OOB_CONFIRM_TICKS - 1;
+    sp.tick(g);
+    expect(notes).toEqual([]);
+    now += 1;
+    sp.tick(g);
+    expect(sent).toHaveLength(1);
+    expect(notes).toHaveLength(1);
+    expect(notes[0]).toContain("ww1936.prep.oob_refused");
+    expect(notes.some((n) => n.includes("oob_applied"))).toBe(false);
+  });
+
+  it("renaming a start template with unresearched parts is not a problem; changing it is", () => {
+    const sun = lobbyStartTemplates("SUN").find(
+      (t) => t.key === "mountain_rifle",
+    )!;
+    const rename = {
+      key: "mountain_rifle",
+      name: "Alpine",
+      battalions: [...sun.def.battalions],
+      support: [...sun.def.support],
+    };
+    const row = (p: typeof rename) =>
+      oobTemplateRows("SUN", [p]).find((r) => r.key === "mountain_rifle")!;
+    expect(row(rename).problem).toBeNull();
+    expect(row({ ...rename, support: ["engineer"] }).problem).not.toBeNull();
+    expect(
+      row({ ...rename, battalions: ["mountain", "mountain", "mountain"] })
+        .problem,
+    ).not.toBeNull();
   });
 
   it("a minor keeps its template_save", () => {

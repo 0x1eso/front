@@ -422,3 +422,50 @@ describe("planStartOob (the pure rule)", () => {
     expect(c.emptyRequired).toEqual([1]);
   });
 });
+
+describe("start_oob keeps the country's own start templates (Soviet Union)", () => {
+  test("untouched mountain rifles are not refused for the missing mountaineers; a new one still is", async () => {
+    const g = await game("SUN");
+    g.ce.stock.fill(1e6);
+    const mr = g.cl.templates.find((t) => t.key === "mountain_rifle")!;
+    expect(mr.def.battalions).toContain("mountain");
+    expect(g.ce.researched.has("mountaineers")).toBe(false);
+    const n = START_OOB.SUN!.length;
+    const armies = Array.from(
+      { length: n },
+      (_, i) =>
+        (i === 0 ? [["mountain_rifle", 2]] : [["rifle", 2]]) as [
+          string,
+          number,
+        ][],
+    );
+    // A new template with the same parts is a real no_tech.
+    const bad = planOf(g, armies, [
+      { name: "Own", battalions: [...mr.def.battalions], support: [] },
+    ]);
+    const asNew = {
+      ...bad,
+      armies: [
+        [{ template: bad.templates.length - 1, count: 1 }],
+        ...bad.armies.slice(1),
+      ],
+    } as Oob;
+    expect(g.l.issue(g.id, asNew)).toBe("no_tech");
+    expect(g.cl.startOob).toBe(false);
+    // The untouched default, every template as the country has it.
+    expect(g.l.issue(g.id, planOf(g, armies))).toBeNull();
+    expect(g.cl.startOob).toBe(true);
+    expect(armyCounts(g, 1)?.get("mountain_rifle")).toBe(2);
+  }, 120_000);
+
+  test("every major's own start templates pass the plan check as they are", async () => {
+    for (const tag of Object.keys(START_OOB) as CountryTag[]) {
+      const g = await game(tag);
+      g.ce.stock.fill(1e6);
+      const armies = START_OOB[tag]!.map(
+        () => [[g.cl.templates[0].key, 1]] as [string, number][],
+      );
+      expect(g.l.issue(g.id, planOf(g, armies)), tag).toBeNull();
+    }
+  }, 300_000);
+});

@@ -11190,6 +11190,7 @@
       "oob_blocked": "The start army plan was not sent: {reason}",
       "oob_empty_required": "{army}: an operation is running, so it needs at least one division.",
       "oob_intro": "Plan the whole start army: edit or add templates, set how many divisions of each every army holds. The men are those of the original start divisions; every division is made at full strength, so a shortage of equipment means fewer divisions.",
+      "oob_refused": "The game refused the start army plan, so your army is the default one.",
       "oob_unfilled_required": "{army}: the stock cannot staff it, and an operation is running.",
       "operation": "Operation",
       "operation_guide": "Was {n} divisions; at least one must stay.",

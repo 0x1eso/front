@@ -64,18 +64,27 @@ export function startOob(
       battalions: [...t.battalions],
       support: [...t.support],
     };
-    const block = templateBlock(def, ce.researched, Infinity);
-    if (block !== null) return block;
     let target: LandTemplate | null = null;
     if (t.key !== undefined) {
       if (keys.has(t.key)) return "bad_template";
       keys.add(t.key);
       target = cl.templates.find((x) => x.key === t.key) ?? null;
       if (target === null) return "bad_template";
-    } else {
-      if (def.name === "") return "bad_template";
-      fresh++;
+    } else if (def.name === "") {
+      return "bad_template";
     }
+    // A template the plan leaves as the country has it is not judged: a
+    // start template may hold a battalion the country has not researched
+    // (the Soviet mountain rifles), and the plan must not fail over it.
+    const same =
+      target !== null &&
+      target.def.battalions.join() === def.battalions.join() &&
+      target.def.support.join() === def.support.join();
+    if (!same) {
+      const block = templateBlock(def, ce.researched, Infinity);
+      if (block !== null) return block;
+    }
+    if (target === null) fresh++;
     defs.push(def);
     targets.push(target);
   }

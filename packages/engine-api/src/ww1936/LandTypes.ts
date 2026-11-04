@@ -637,6 +637,8 @@ export interface CountryLandDetail {
   equipShort?: number[];
   /** ww7: border regions facing a country at war with us where none of our divisions stands or is headed. */
   gaps?: number[];
+  /** The start_oob plan was applied (set only while preparation lasts). */
+  startOob?: boolean;
 }
 
 export interface WwLandData {
