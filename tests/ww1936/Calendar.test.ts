@@ -40,6 +40,9 @@ describe("the 1936 calendar", () => {
     expect(formatIsoDate(dateOfDay(dayIndex(27_000, WW_PREP_TICKS)))).toBe(
       "1945-08-21",
     );
+    // The timed game's 50:00 (30,000 ticks): late September 1946.
+    expect(dayIndex(30_000, WW_PREP_TICKS)).toBe(3920);
+    expect(formatIsoDate(dateOfDay(3920))).toBe("1946-09-25");
     for (const day of [0, 1, 2, 3, 198, 1339]) {
       const t = dayStartTick(day, WW_PREP_TICKS);
       expect(dayIndex(t, WW_PREP_TICKS)).toBe(day);

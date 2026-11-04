@@ -353,7 +353,7 @@ function snapshotPlayer(s: PlayerState): PlayerState {
  * Misc updates a replay reads only part of: what it keeps of each one, or
  * null to keep nothing of it. World War 1936's economy stream (every
  * processed country's summary, the human countries' details, the changed
- * regions) is about 2.6 KB a tick, ~70 MB over a 45-minute game; a replay
+ * regions) is about 2.6 KB a tick, ~80 MB over a 50-minute game; a replay
  * reads only each country's troop cap (ReplayGameAdapter.wwTroopCapOf).
  */
 const MISC_TRIM: Partial<

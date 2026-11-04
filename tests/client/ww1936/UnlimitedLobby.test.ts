@@ -1,5 +1,5 @@
 // World War 1936, the game length (design 2026-10-29 + w53): the lobby's
-// three choices (45 minutes, unlimited slow, unlimited fast), timed by
+// three choices (50 minutes, unlimited slow, unlimited fast), timed by
 // default; the historical AI toggle starts off; the host's choice copied to
 // the game; the join summary names the length. Nothing of it without the mode.
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -128,7 +128,7 @@ describe("the solo lobby", () => {
       worldWar1936: true,
       historicalAi: false,
       ww1936Unlimited: false,
-      maxTimerValue: 45,
+      maxTimerValue: 50,
     });
     expect(configs[0].ww1936FastTempo).toBeUndefined();
 
@@ -155,7 +155,7 @@ describe("the solo lobby", () => {
     wwOn();
     await modal.startGame();
     expect(configs[3].ww1936Unlimited).toBe(false);
-    expect(configs[3].maxTimerValue).toBe(45);
+    expect(configs[3].maxTimerValue).toBe(50);
 
     // Without the mode no key is sent.
     await modal.startGame();
@@ -239,7 +239,7 @@ describe("the host lobby", () => {
 
 describe("the game it makes", () => {
   it("the server copies the host's choice and drops the timer", () => {
-    const target = testGameConfig({ worldWar1936: true, maxTimerValue: 45 });
+    const target = testGameConfig({ worldWar1936: true, maxTimerValue: 50 });
     applyGameConfigPatch(target, {
       worldWar1936: true,
       ww1936Unlimited: true,
@@ -252,7 +252,7 @@ describe("the game it makes", () => {
     expect(target.ww1936FastTempo).toBe(false);
   });
 
-  it("the join summary has one game-length row: unlimited, or 45 minutes timed", () => {
+  it("the join summary has one game-length row: unlimited, or 50 minutes timed", () => {
     const rows = (c: GameConfig) =>
       notableLobbySettings(c, null).filter((i) => i.label === LENGTH);
     const unlimited = [{ label: LENGTH, value: "ww1936.lobby.unlimited_on" }];
@@ -282,14 +282,14 @@ describe("the game it makes", () => {
         testGameConfig({
           worldWar1936: true,
           ww1936Unlimited: true,
-          maxTimerValue: 45,
+          maxTimerValue: 50,
         }),
       ),
     ).toEqual(unlimited);
-    // Timed: 45 minutes, as before.
+    // Timed: 50 minutes, as before.
     expect(
       rows(normalizeWorldWar1936Config(testGameConfig({ worldWar1936: true }))),
-    ).toEqual([{ label: LENGTH, value: renderDuration(45 * 60) }]);
+    ).toEqual([{ label: LENGTH, value: renderDuration(50 * 60) }]);
     // The key alone does nothing.
     expect(rows(testGameConfig({ ww1936Unlimited: true }))).toEqual([]);
   });

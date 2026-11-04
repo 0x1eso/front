@@ -70,7 +70,7 @@ describe("World War 1936 settings", () => {
       bots: 0,
       randomSpawn: false,
       nations: "default",
-      maxTimerValue: 45,
+      maxTimerValue: 50,
       customAllianceDuration: 0,
       spawnImmunityDuration: 0,
       historicalAi: true,
@@ -142,17 +142,17 @@ describe("World War 1936 settings", () => {
     expect(GameConfigSchema.safeParse(n).success).toBe(true);
   });
 
-  test("timed: still 45 minutes", () => {
+  test("timed: still 50 minutes", () => {
     const n = normalizeWorldWar1936Config(
       testGameConfig({ worldWar1936: true, ww1936Unlimited: false }),
     );
-    expect(n.maxTimerValue).toBe(45);
+    expect(n.maxTimerValue).toBe(50);
     expect(
       new Config(
         testGameConfig({ worldWar1936: true }),
         false,
       ).maxTimerMinutes(),
-    ).toBe(45);
+    ).toBe(50);
   });
 
   test("off: the key alone changes nothing, the very same object comes back", () => {
@@ -191,7 +191,7 @@ describe("World War 1936 settings", () => {
     // P4 plan decision 30: the navy's fleets and naval bases replace them.
     expect(cfg.isUnitDisabled(UnitType.Warship)).toBe(true);
     expect(cfg.isUnitDisabled(UnitType.Port)).toBe(true);
-    expect(cfg.maxTimerMinutes()).toBe(45);
+    expect(cfg.maxTimerMinutes()).toBe(50);
     const off = new Config(testGameConfig({ historicalAi: true }), false);
     expect(off.worldWar1936()).toBe(false);
     expect(off.historicalAi()).toBe(false);

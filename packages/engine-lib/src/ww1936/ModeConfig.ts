@@ -52,7 +52,7 @@ export function applyWorldWar1936Rules(c: GameConfig): void {
   c.bots = 0;
   c.randomSpawn = false;
   c.nations = "default";
-  // The unlimited game has no timer (Pace.ts); the timed one plays 45 minutes.
+  // The unlimited game has no timer (Pace.ts); the timed one plays 50 minutes (WW_GAME_MINUTES).
   if (wwUnlimited(c)) {
     delete c.maxTimerValue;
   } else {

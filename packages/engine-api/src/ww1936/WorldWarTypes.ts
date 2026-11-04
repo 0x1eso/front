@@ -1,7 +1,7 @@
 /** World War 1936 (spec §3.1): ticks of the opening preparation minute. */
 export const WW_PREP_TICKS = 600;
-/** Game length in minutes (spec §2.2). */
-export const WW_GAME_MINUTES = 45;
+/** Game length in minutes (spec §2.2; 45 until 2026-11, now 50: a day is unchanged, the game ends 1946-09-25). */
+export const WW_GAME_MINUTES = 50;
 /** First sea-zone id: land regions are 1..SEA_ZONE_BASE-1 (spec §4.7). */
 export const SEA_ZONE_BASE = 40000;
 /** Tiles handed over per tick after a capitulation (spec §7.5). */

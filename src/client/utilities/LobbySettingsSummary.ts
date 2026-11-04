@@ -129,7 +129,7 @@ export function notableLobbySettings(
       ),
     });
     // The unlimited game has no timer, so the generic row above is absent
-    // (or skipped); a timed game shows its 45 minutes there.
+    // (or skipped); a timed game shows its 50 minutes there.
     if (wwUnlimited)
       items.push({
         label: translateText("private_lobby.game_length"),

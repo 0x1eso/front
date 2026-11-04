@@ -527,7 +527,7 @@ export class GameConfigSettings extends LitElement {
     );
   }
 
-  /** World War 1936: 45 minutes, unlimited (slow tempo), unlimited (fast tempo). */
+  /** World War 1936: 50 minutes, unlimited (slow tempo), unlimited (fast tempo). */
   private renderWwLength(selected: WwLength): TemplateResult {
     return renderSection(
       DIFFICULTY_ICON,

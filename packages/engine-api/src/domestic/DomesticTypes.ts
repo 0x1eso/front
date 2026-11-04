@@ -202,7 +202,7 @@ export const WIN_REASONS = [
   "science",
   "political",
   "score",
-  // World War 1936 (spec §7.6): the 45-minute score verdict, and the only
+  // World War 1936 (spec §7.6): the timed score verdict, and the only
   // camp left with a living major.
   "ww_score",
   "ww_last_camp",

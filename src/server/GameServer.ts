@@ -228,7 +228,7 @@ export class GameServer {
 
   private maxGameDuration = 3 * 60 * 60 * 1000; // 3 hours
   // World War 1936, the unlimited game once started: four times slower, it
-  // reaches 1945 at about 3 hours and has no timer after that.
+  // reaches late 1946 at about 3 hours 20 minutes and has no timer after that.
   private unlimitedMaxGameDuration = 24 * 60 * 60 * 1000; // 24 hours
 
   private disconnectedTimeout = 1 * 30 * 1000; // 30 seconds

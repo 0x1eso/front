@@ -342,7 +342,7 @@ describe("solo World War 1936", () => {
       gameMap: GameMapType.World1936,
       gameMode: GameMode.FFA,
       bots: 0,
-      maxTimerValue: 45,
+      maxTimerValue: 50,
     });
     expect(config.playerTeams).toBeUndefined();
     expect(players[0].country).toBe("FRA");

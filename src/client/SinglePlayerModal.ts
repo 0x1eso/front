@@ -965,7 +965,7 @@ export class SinglePlayerModal extends BaseModal {
     this.selectedDifficulty = value;
   }
 
-  /** The lobby's game length: 45 minutes, unlimited slow, unlimited fast. */
+  /** The lobby's game length: 50 minutes, unlimited slow, unlimited fast. */
   private wwLength(): WwLength {
     if (!this.ww1936Unlimited) return "timed";
     return this.ww1936FastTempo ? "fast" : "slow";

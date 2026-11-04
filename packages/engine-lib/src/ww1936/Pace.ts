@@ -17,7 +17,7 @@ export function wwUnlimited(gc: GameConfig): boolean {
 }
 
 /**
- * The unlimited game at the 45-minute game's tempo: no timer (wwUnlimited
+ * The unlimited game at the timed game's tempo: no timer (wwUnlimited
  * stays true) but ticks of 100 ms. Needs the unlimited key; alone it does
  * nothing.
  */
@@ -33,7 +33,7 @@ export function wwTempo(gc: GameConfig): number {
   return wwUnlimited(gc) && !wwFastTempo(gc) ? WW_UNLIMITED_TEMPO : 1;
 }
 
-/** The lobby's three game lengths: 45 minutes, unlimited slow, unlimited fast. */
+/** The lobby's three game lengths: 50 minutes, unlimited slow, unlimited fast. */
 export const WW_LENGTHS = ["timed", "slow", "fast"] as const;
 export type WwLength = (typeof WW_LENGTHS)[number];
 

@@ -171,7 +171,7 @@ describe("World War 1936 in a host's patch", () => {
     expect(target.historicalAi).toBe(false);
     expect(target.domesticMode).toBeUndefined();
     expect(target.gameMap).toBe(GameMapType.World1936);
-    expect(target.maxTimerValue).toBe(45);
+    expect(target.maxTimerValue).toBe(50);
   });
 
   it("the unlimited game keeps its key and has no timer", () => {
@@ -183,10 +183,10 @@ describe("World War 1936 in a host's patch", () => {
     });
     expect(target.ww1936Unlimited).toBe(true);
     expect(target.maxTimerValue).toBeUndefined();
-    // Back to the timed game: the 45 minutes return.
+    // Back to the timed game: the 50 minutes return.
     applyGameConfigPatch(target, { ww1936Unlimited: false });
     expect(target.ww1936Unlimited).toBe(false);
-    expect(target.maxTimerValue).toBe(45);
+    expect(target.maxTimerValue).toBe(50);
   });
 
   it("a later patch cannot turn another mode back on", () => {
