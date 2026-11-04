@@ -8,6 +8,10 @@ import {
   DesignKind,
   TankRole,
 } from "@openfront/engine-api/ww1936/DepthTypes";
+import {
+  staticKeyOfCell,
+  staticKeyOfPlaneCell,
+} from "@openfront/engine-lib/ww1936/DesignCellKeys";
 import { html, nothing, TemplateResult } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import { SendWwOrderIntentEvent } from "../../Transport";
@@ -91,6 +95,9 @@ export class WwDesigner extends WwDrawerBase {
    */
   public lobby = false;
   private noticeTimer: ReturnType<typeof setTimeout> | null = null;
+  /** The name of the design just saved into a cell no static stands in for (offers a production line). */
+  @state() private savedHint: string | null = null;
+  private savedHintTimer: ReturnType<typeof setTimeout> | null = null;
   /** A short line when the library made something (shown even with the drawer shut). */
   @state() private notice: string | null = null;
   @state() private libUi: LibraryUi = {
@@ -301,6 +308,29 @@ export class WwDesigner extends WwDrawerBase {
 
   private renderList(m: DesignerModel): TemplateResult {
     return html`<div data-ww-scroll class="min-h-0 flex-1 overflow-y-auto p-2">
+      ${this.savedHint === null
+        ? nothing
+        : html`<div
+            data-ww-saved-hint
+            class="mb-2 flex flex-wrap items-center gap-2 rounded-md border border-emerald-400/40 bg-emerald-500/10 p-2 text-xs"
+          >
+            <span class="min-w-40 flex-1 break-words"
+              >${translateText("ww1936.design.saved_no_line", {
+                name: this.savedHint,
+              })}</span
+            >
+            <button
+              type="button"
+              data-ww-saved-line
+              class="${BTN} h-10 shrink-0"
+              @click=${() => {
+                this.savedHint = null;
+                this.eventBus.emit(new OpenWwIndustryEvent("production"));
+              }}
+            >
+              ${translateText("ww1936.design.make_line")}
+            </button>
+          </div>`}
       ${renderDesignList({
         model: m,
         armed: this.armed,
@@ -963,6 +993,7 @@ export class WwDesigner extends WwDrawerBase {
   }
 
   private onSave(m: DesignerModel) {
+    const d = m.draft;
     const order = m.tapSave(performance.now());
     if (order === null) {
       this.requestUpdate();
@@ -973,5 +1004,16 @@ export class WwDesigner extends WwDrawerBase {
     // A kept draft would save a duplicate on the next confirm.
     m.open(m.kind);
     this.tab = "list";
+    // A cell with no static partner is built by no line yet: offer one.
+    const noPartner =
+      d !== null &&
+      ((d.kind === "tank" && staticKeyOfCell(d) < 0) ||
+        (d.kind === "plane" && staticKeyOfPlaneCell(d) < 0));
+    this.savedHint = noPartner ? m.displayName(d) : null;
+    if (this.savedHintTimer !== null) clearTimeout(this.savedHintTimer);
+    this.savedHintTimer = setTimeout(() => {
+      this.savedHint = null;
+      this.savedHintTimer = null;
+    }, 20000);
   }
 }

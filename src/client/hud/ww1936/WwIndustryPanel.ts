@@ -5,6 +5,7 @@ import type { WwDesignSlotData } from "@openfront/engine-api/ww1936/DepthTypes";
 import {
   BUILDABLE,
   BuildingId,
+  equipKey,
   EQUIPMENT_GENS,
   EQUIPMENT_TYPES,
   EquipmentType,
@@ -63,6 +64,7 @@ import {
   NOT_PARTNER_KEYS,
   openTradeBlock,
   paidCivsOf,
+  pickerLayout,
   receivedCivsOf,
   RESOURCE_ICONS,
   resourceName,
@@ -75,7 +77,7 @@ import {
   switchPreview,
   TradeOffer,
   tradeOffers,
-  usableDesigns,
+  type PickerDesign,
 } from "./EconomyModel";
 import { conscriptionLaw } from "./PoliticsModel";
 import {
@@ -1147,46 +1149,104 @@ export class WwIndustryPanel extends WwDrawerBase {
       isDesignType(t)
         ? []
         : Array.from({ length: EQUIPMENT_GENS[t] }, (_, i) => i + 1);
+    const layout = pickerLayout(designs);
+    // A static replaced by my design shows the design's verdict instead.
+    const shown = (t: EquipmentType, g: number) =>
+      layout.replaced.has(equipKey(t, g)) ? [] : [blockOf(t, g)];
     const locked = EQUIPMENT_TYPES.some((t) =>
-      gensOf(t).some((g) => blockOf(t, g) === "no_tech"),
+      gensOf(t).some((g) => shown(t, g).includes("no_tech")),
     );
     const projectLocked = EQUIPMENT_TYPES.some((t) =>
-      gensOf(t).some((g) => blockOf(t, g) === "project_locked"),
+      gensOf(t).some((g) => shown(t, g).includes("project_locked")),
     );
+    const typeOf = (kind: "tank" | "plane"): EquipmentType =>
+      kind === "tank" ? "tank_design" : "plane_design";
+    // One design button: it sends the design's own order.
+    const designButton = (kind: "tank" | "plane", r: PickerDesign) => {
+      const type = typeOf(kind);
+      const block = blockOf(type, r.slot);
+      return html`<button
+        type="button"
+        data-ww-pick=${`${dataKey}:${type}:${r.slot}`}
+        class="${BUTTON} h-auto min-h-10 max-w-full break-words py-1 text-left"
+        ?disabled=${block !== null || current(type, r.slot)}
+        @click=${() => pick(type, r.slot)}
+      >
+        <span>${block === null ? "" : "🔒 "}${r.name}</span>
+        ${note === null || block !== null || current(type, r.slot)
+          ? nothing
+          : html`<span class="block text-[10px] font-normal text-white/70"
+              >${note(type, r.slot)}</span
+            >`}
+      </button>`;
+    };
+    const designRow = (
+      id: string,
+      label: string,
+      kind: "tank" | "plane",
+      rows: readonly PickerDesign[],
+    ) =>
+      html`<div
+        data-ww-design-row=${`${dataKey}:${id}`}
+        class="flex flex-wrap items-center gap-1"
+      >
+        <span class="min-w-28 flex-1 text-xs break-words">${label}</span>
+        ${rows.map((r) => designButton(kind, r))}
+      </div>`;
     return html`<div
       data-ww-picker=${dataKey}
       class="mt-1.5 flex flex-col gap-1 rounded-md border border-white/10 bg-gray-900/80 p-1.5"
     >
-      ${EQUIPMENT_TYPES.map((type) =>
-        isDesignType(type)
-          ? this.renderDesignRow(dataKey, type, designs, blockOf, current, pick)
-          : html`<div class="flex flex-wrap items-center gap-1">
-              <span class="min-w-28 flex-1 truncate text-xs"
-                >${EQUIPMENT_ICONS[type]} ${equipmentName(type)}</span
+      ${EQUIPMENT_TYPES.filter((type) => !isDesignType(type)).map(
+        (type) =>
+          html`<div class="flex flex-wrap items-center gap-1">
+            <span class="min-w-28 flex-1 truncate text-xs"
+              >${EQUIPMENT_ICONS[type]} ${equipmentName(type)}</span
+            >
+            ${gensOf(type).map((gen) => {
+              const mine = layout.replaced.get(equipKey(type, gen));
+              if (mine !== undefined) return designButton(mine.kind, mine);
+              const block = blockOf(type, gen);
+              return html`<button
+                type="button"
+                data-ww-pick=${`${dataKey}:${type}:${gen}`}
+                class="${BUTTON} flex flex-col items-center justify-center leading-tight"
+                ?disabled=${block !== null || current(type, gen)}
+                @click=${() => pick(type, gen)}
               >
-              ${gensOf(type).map((gen) => {
-                const block = blockOf(type, gen);
-                return html`<button
-                  type="button"
-                  data-ww-pick=${`${dataKey}:${type}:${gen}`}
-                  class="${BUTTON} flex flex-col items-center justify-center leading-tight"
-                  ?disabled=${block !== null || current(type, gen)}
-                  @click=${() => pick(type, gen)}
+                <span
+                  >${block === "no_tech" || block === "project_locked"
+                    ? "🔒 "
+                    : ""}${genName(gen)}</span
                 >
-                  <span
-                    >${block === "no_tech" || block === "project_locked"
-                      ? "🔒 "
-                      : ""}${genName(gen)}</span
-                  >
-                  ${note === null || block !== null || current(type, gen)
-                    ? nothing
-                    : html`<span class="text-[10px] font-normal text-white/70"
-                        >${note(type, gen)}</span
-                      >`}
-                </button>`;
-              })}
-            </div>`,
+                ${note === null || block !== null || current(type, gen)
+                  ? nothing
+                  : html`<span class="text-[10px] font-normal text-white/70"
+                      >${note(type, gen)}</span
+                    >`}
+              </button>`;
+            })}
+          </div>`,
       )}
+      ${layout.groups.map((g) =>
+        designRow(
+          g.id,
+          `${EQUIPMENT_ICONS[typeOf(g.kind)]} ${translateText("ww1936.econ.design_group", { name: g.name })}`,
+          g.kind,
+          g.rows,
+        ),
+      )}
+      ${layout.foreign.length === 0
+        ? nothing
+        : html`<div
+            data-ww-design-row=${`${dataKey}:foreign`}
+            class="flex flex-wrap items-center gap-1"
+          >
+            <span class="min-w-28 flex-1 text-xs break-words"
+              >${translateText("ww1936.econ.foreign_designs")}</span
+            >
+            ${layout.foreign.map((f) => designButton(f.kind, f))}
+          </div>`}
       ${locked
         ? html`<p class="m-0 text-[11px] text-white/60">
             🔒 ${blockText("no_tech")}
@@ -1197,50 +1257,6 @@ export class WwIndustryPanel extends WwDrawerBase {
             🔒 ${blockText("project_locked")}
           </p>`
         : nothing}
-    </div>`;
-  }
-
-  /**
-   * The row of one design kind: only my usable designs, each by its name,
-   * or a hint to the design screen when there is none.
-   */
-  private renderDesignRow(
-    dataKey: string,
-    type: EquipmentType,
-    designs: readonly WwDesignSlotData[],
-    blockOf: (type: EquipmentType, gen: number) => WwOrderBlock | null,
-    current: (type: EquipmentType, gen: number) => boolean,
-    pick: (type: EquipmentType, gen: number) => void,
-  ): TemplateResult {
-    const rows = usableDesigns(
-      designs,
-      type === "tank_design" ? "tank" : "plane",
-    );
-    return html`<div
-      data-ww-design-row=${`${dataKey}:${type}`}
-      class="flex flex-wrap items-center gap-1"
-    >
-      <span class="min-w-28 flex-1 text-xs break-words"
-        >${EQUIPMENT_ICONS[type]} ${equipmentName(type)}</span
-      >
-      ${rows.length === 0
-        ? html`<span
-            data-ww-design-hint=${type}
-            class="basis-full text-[11px] text-white/60"
-            >${translateText("ww1936.econ.no_design_hint")}</span
-          >`
-        : rows.map((r) => {
-            const block = blockOf(type, r.slot);
-            return html`<button
-              type="button"
-              data-ww-pick=${`${dataKey}:${type}:${r.slot}`}
-              class="${BUTTON} h-auto min-h-10 max-w-full break-words py-1 text-left"
-              ?disabled=${block !== null || current(type, r.slot)}
-              @click=${() => pick(type, r.slot)}
-            >
-              ${r.name}
-            </button>`;
-          })}
     </div>`;
   }
 

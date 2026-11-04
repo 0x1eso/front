@@ -59,7 +59,15 @@ import {
 } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { renderNumber } from "@openfront/engine-lib/Format";
 import { dayIndex } from "@openfront/engine-lib/ww1936/Calendar";
-import { designNeedGroup } from "@openfront/engine-lib/ww1936/DesignRules";
+import {
+  staticKeyOfCell,
+  staticKeyOfPlaneCell,
+} from "@openfront/engine-lib/ww1936/DesignCellKeys";
+import {
+  designNeedGroup,
+  planeType,
+  tankRole,
+} from "@openfront/engine-lib/ww1936/DesignRules";
 import {
   addLineBlockOf,
   buildBlockOf,
@@ -1752,20 +1760,81 @@ export function lineItemName(
   return `${equipmentName(type)} ${genName(gen)}`;
 }
 
-/** My designs a line may make: saved, own or licensed, not obsolete, in slot order. */
-export function usableDesigns(
+export interface PickerDesign {
+  slot: number;
+  name: string;
+}
+
+/** A design row with no static partner: a tank role or a plane type. */
+export interface PickerGroup {
+  /** "tank:<role>" or "plane:<type>". */
+  id: string;
+  /** The role (a ww1936.role key) or plane type (a ww1936.equip key). */
+  kind: "tank" | "plane";
+  name: string;
+  rows: PickerDesign[];
+}
+
+export interface PickerLayout {
+  /** EQUIP_KEYS index of a static -> my own design that stands in for it. */
+  replaced: ReadonlyMap<number, PickerDesign & { kind: "tank" | "plane" }>;
+  groups: PickerGroup[];
+  /** Licensed designs of others (usable by a line). */
+  foreign: { kind: "tank" | "plane"; slot: number; name: string }[];
+}
+
+/**
+ * How the line pickers show designs. A static whose cell holds my own
+ * (non-obsolete) design is replaced by that design; my own designs with no
+ * static partner form one group per role or plane type; licensed designs of
+ * others form the foreign row. Captured and received designs and obsolete
+ * ones are not offered (the engine's line judge refuses them).
+ */
+export function pickerLayout(
   designs: readonly WwDesignSlotData[],
-  kind: "tank" | "plane",
-): { slot: number; name: string }[] {
-  return designs
+): PickerLayout {
+  const replaced = new Map<number, PickerDesign & { kind: "tank" | "plane" }>();
+  const groups = new Map<string, PickerGroup>();
+  const foreign: PickerLayout["foreign"] = [];
+  const sorted = designs
     .filter(
       (d) =>
-        d.kind === kind &&
-        !d.obsolete &&
-        (d.origin === "own" || d.origin === "licensed"),
+        (d.kind === "tank" || d.kind === "plane") &&
+        d.def.kind === d.kind &&
+        !d.obsolete,
     )
-    .sort((a, b) => a.slot - b.slot)
-    .map((d) => ({ slot: d.slot, name: designDisplayName(d.def) }));
+    .sort((a, b) => a.slot - b.slot);
+  for (const d of sorted) {
+    const kind = d.kind as "tank" | "plane";
+    const name = designDisplayName(d.def);
+    if (d.origin === "licensed") {
+      foreign.push({ kind, slot: d.slot, name });
+      continue;
+    }
+    if (d.origin !== "own") continue;
+    const st =
+      kind === "tank" ? staticKeyOfCell(d.def) : staticKeyOfPlaneCell(d.def);
+    if (st >= 0) {
+      if (!replaced.has(st)) replaced.set(st, { kind, slot: d.slot, name });
+      continue;
+    }
+    const role = kind === "tank" ? tankRole(d.def) : planeType(d.def);
+    const id = `${kind}:${role}`;
+    let g = groups.get(id);
+    if (g === undefined) {
+      g = {
+        id,
+        kind,
+        name: translateText(
+          kind === "tank" ? `ww1936.role.${role}` : `ww1936.equip.${role}`,
+        ),
+        rows: [],
+      };
+      groups.set(id, g);
+    }
+    g.rows.push({ slot: d.slot, name });
+  }
+  return { replaced, groups: [...groups.values()], foreign };
 }
 
 /** Units a line makes in a day; the line rows and the stock table both read it. */

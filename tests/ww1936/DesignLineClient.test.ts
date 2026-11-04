@@ -13,7 +13,7 @@ import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSou
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   lineDepthOf,
-  usableDesigns,
+  pickerLayout,
 } from "../../src/client/hud/ww1936/EconomyModel";
 import { WwDepthView } from "../../src/client/view/WwDepthView";
 import { DEEP } from "./deepFixture";
@@ -83,10 +83,11 @@ describe("the client's depth context for a line", () => {
     // Without the depth context the old judge refused every design.
     expect(equipmentTechBlock(researched, "plane_design", 1)).toBe("bad_line");
     expect(equipmentTechBlock(researched, "plane_design", 1, depth)).toBeNull();
-    // Only my usable, non-captured design is offered.
-    expect(
-      usableDesigns(view.detail(GBR)!.designs, "plane").map((r) => r.slot),
-    ).toEqual([1]);
-    expect(usableDesigns(view.detail(GBR)!.designs, "tank")).toEqual([]);
+    // Only my usable, non-captured design is offered, and it stands in for
+    // its cell's static plane (the tank side has none).
+    const layout = pickerLayout(view.detail(GBR)!.designs);
+    expect([...layout.replaced.values()].map((r) => r.slot)).toEqual([1]);
+    expect(layout.groups).toEqual([]);
+    expect(layout.foreign).toEqual([]);
   });
 });
