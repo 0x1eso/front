@@ -11027,6 +11027,8 @@
     "prep": {
       "applied": "Start templates applied: {n}",
       "approximate": "approximate: the edited templates share one stock",
+      "armies_note": "Army presets are saved in the library and show up in the army panel once the game starts. A division whose parts this country has not researched by then will not train; the army panel names it.",
+      "army_presets": "Army presets",
       "button": "Prepare templates and designs",
       "designs_intro": "Create and edit tank, plane and ship designs and division entries. The ones switched to auto are made when the game starts; any that need parts this country has not researched are skipped.",
       "draft_note": "Draft mode: no research lock, and numbers shown without country modifiers.",

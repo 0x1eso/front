@@ -10,8 +10,12 @@ vi.mock("../../../src/client/Utils", async (importOriginal) => ({
       : `[${key}]`,
 }));
 
-import { prepPlanOf } from "../../../src/client/components/ww1936/PrepPlan";
+import {
+  prepPlanOf,
+  setPrepTemplate,
+} from "../../../src/client/components/ww1936/PrepPlan";
 import { libraryStore } from "../../../src/client/hud/ww1936/DesignLibrary";
+import { lobbyStartTemplates } from "../../../src/client/hud/ww1936/LobbyPrep";
 import "../../../src/client/hud/ww1936/WwLobbyPrep";
 import type { WwLobbyPrep } from "../../../src/client/hud/ww1936/WwLobbyPrep";
 
@@ -35,6 +39,7 @@ beforeEach(() => {
   libraryStore().reload();
 });
 afterEach(() => {
+  vi.restoreAllMocks();
   document.body.innerHTML = "";
   localStorage.clear();
 });
@@ -195,5 +200,130 @@ describe("the lobby preparation screen", () => {
     const el = await screen("DEU");
     q(el, "[data-ww-prep-close]").click();
     expect(document.querySelector("ww-lobby-prep")).toBeNull();
+  });
+});
+
+describe("the army presets screen in the lobby", () => {
+  const open = async (tag: string) => {
+    const el = await screen(tag);
+    q(el, '[data-ww-prep-tab="designs"]').click();
+    await flush(el);
+    q(el, "[data-ww-prep-armies-open]").click();
+    await flush(el);
+    return el;
+  };
+  const type = async (el: WwLobbyPrep, name: string) => {
+    const input = q(el, "[data-ww-army-tpl-name]") as HTMLInputElement;
+    input.value = name;
+    input.dispatchEvent(new Event("input"));
+    await flush(el);
+  };
+  const addChoice = async (el: WwLobbyPrep, i: number) => {
+    const sel = q(el, "[data-ww-army-tpl-add]") as HTMLSelectElement;
+    sel.value = sel.options[i + 1].value;
+    sel.dispatchEvent(new Event("change"));
+    await flush(el);
+  };
+
+  it("opens from the designs tab, closes back to it, and has no train or region", async () => {
+    const el = await open("DEU");
+    expect(el.querySelector("[data-ww-prep-armies]")).not.toBeNull();
+    expect(el.querySelector("[data-ww-prep-designs]")).toBeNull();
+    expect(q(el, "[data-ww-prep-armies-note]").textContent).toContain(
+      "ww1936.prep.armies_note",
+    );
+    q(el, "[data-ww-army-tpl-new]").click();
+    await flush(el);
+    await type(el, "Test");
+    await addChoice(el, 0);
+    q(el, "[data-ww-army-tpl-save]").click();
+    await flush(el);
+    expect(el.querySelector("[data-ww-army-tpl-train]")).toBeNull();
+    expect(el.querySelector("[data-ww-army-tpl-region]")).toBeNull();
+    q(el, "[data-ww-prep-armies-close]").click();
+    await flush(el);
+    expect(el.querySelector("[data-ww-prep-designs]")).not.toBeNull();
+  });
+
+  it("creates, edits and deletes (two taps) into the library", async () => {
+    const el = await open("DEU");
+    q(el, "[data-ww-army-tpl-new]").click();
+    await flush(el);
+    await type(el, "Panzer army");
+    await addChoice(el, 0);
+    q(el, "[data-ww-army-tpl-plus='0']").click();
+    await flush(el);
+    q(el, "[data-ww-army-tpl-save]").click();
+    await flush(el);
+    let armies = libraryStore().entries.filter((e) => e.type === "army");
+    expect(armies).toHaveLength(1);
+    expect(armies[0].type === "army" && armies[0].items[0].count).toBe(2);
+    q(el, "[data-ww-army-tpl-edit]").click();
+    await flush(el);
+    await type(el, "Renamed");
+    q(el, "[data-ww-army-tpl-save]").click();
+    await flush(el);
+    armies = libraryStore().entries.filter((e) => e.type === "army");
+    expect(armies).toHaveLength(1);
+    expect(armies[0].name).toBe("Renamed");
+    q(el, "[data-ww-army-tpl-delete]").click();
+    await flush(el);
+    expect(
+      libraryStore().entries.filter((e) => e.type === "army"),
+    ).toHaveLength(1);
+    vi.spyOn(Date, "now").mockReturnValue(Date.now() + 700);
+    q(el, "[data-ww-army-tpl-delete]").click();
+    await flush(el);
+    expect(
+      libraryStore().entries.filter((e) => e.type === "army"),
+    ).toHaveLength(0);
+  });
+
+  it("holds at most 24 divisions", async () => {
+    const el = await open("DEU");
+    q(el, "[data-ww-army-tpl-new]").click();
+    await flush(el);
+    await addChoice(el, 0);
+    for (let i = 0; i < 30; i++) {
+      q(el, "[data-ww-army-tpl-plus='0']").click();
+      await flush(el);
+    }
+    expect(q(el, "[data-ww-army-tpl-total]").textContent).toContain("n=24");
+  });
+
+  it("offers the plan's start templates and the library's divisions", async () => {
+    libraryStore().add({
+      type: "template",
+      name: "Lib div",
+      battalions: ["infantry", "infantry", "infantry", "infantry", "artillery"],
+      support: ["engineer"],
+    });
+    const el = await screen("DEU");
+    const start = lobbyStartTemplates("DEU");
+    // An edited start template: the plan's content is offered, not the original.
+    setPrepTemplate("DEU", {
+      key: start[0].key,
+      name: "Edited",
+      battalions: ["infantry", "infantry", "infantry"],
+      support: [],
+    });
+    el.remove();
+    const el2 = await open("DEU");
+    q(el2, "[data-ww-army-tpl-new]").click();
+    await flush(el2);
+    const names = [
+      ...el2.querySelectorAll("[data-ww-army-tpl-add] option"),
+    ].map((o) => o.textContent ?? "");
+    expect(names.some((n) => n.includes("Edited"))).toBe(true);
+    expect(names.some((n) => n.includes("Lib div"))).toBe(true);
+    expect(names.length).toBeGreaterThanOrEqual(start.length + 1);
+    // A minor: its main template plus the library.
+    el2.remove();
+    const pol = await open("POL");
+    q(pol, "[data-ww-army-tpl-new]").click();
+    await flush(pol);
+    expect(pol.querySelectorAll("[data-ww-army-tpl-add] option")).toHaveLength(
+      1 + 1 + 1,
+    );
   });
 });

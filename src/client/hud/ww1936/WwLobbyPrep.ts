@@ -23,18 +23,27 @@ import {
 } from "../../components/ww1936/PrepPlan";
 import { SendWwOrderIntentEvent } from "../../Transport";
 import { translateText } from "../../Utils";
+import { armyEntries } from "./ArmyTemplates";
 import { WwDepthOpenEvent } from "./DepthEvents";
 import { LibEntry, libraryStore } from "./DesignLibrary";
 import { equipmentName } from "./EconomyModel";
 import { battalionSummary } from "./LandModel";
 import {
   LIB_DRAFT_ID,
+  lobbyArmyChoices,
   lobbyGame,
   lobbyResearched,
   lobbyStartTemplates,
   planProblem,
   startPreviews,
 } from "./LobbyPrep";
+import { TWO_TAP_MS, TwoTap } from "./WorldWarModel";
+import {
+  ArmyEdit,
+  armyEditOf,
+  renderArmyTemplates,
+  saveArmyEdit,
+} from "./WwArmyTemplateUi";
 import "./WwDesigner";
 import type { WwDesigner } from "./WwDesigner";
 import "./WwTemplateDesigner";
@@ -59,6 +68,11 @@ export class WwLobbyPrep extends LitElement {
   @state() private plan: PrepTemplate[] = [];
   @state() private pickKey: string | null = null;
   @state() private note = "";
+  /** The army-preset screen (designs tab) is open. */
+  @state() private armyScreen = false;
+  @state() private armyEdit: ArmyEdit | null = null;
+  @state() private armyNotice = "";
+  private readonly twoTap = new TwoTap();
   private readonly bus = new EventBus();
   private designer: WwDesigner | null = null;
 
@@ -340,6 +354,63 @@ export class WwLobbyPrep extends LitElement {
     }
   }
 
+  private confirmTap(key: string, act: () => void) {
+    if (this.twoTap.tap(key, Date.now())) act();
+    this.requestUpdate();
+    setTimeout(() => this.requestUpdate(), TWO_TAP_MS + 50);
+  }
+
+  /** The army presets: the same list and editor as the army panel, without [train] and the region. */
+  private renderArmies(): TemplateResult {
+    const library = libraryStore();
+    return html`<div data-ww-prep-armies class="flex flex-col gap-2">
+      <button
+        type="button"
+        data-ww-prep-armies-close
+        class="${BTN} self-start"
+        @click=${() => {
+          this.armyScreen = false;
+          this.armyEdit = null;
+          this.armyNotice = "";
+        }}
+      >
+        ← ${translateText("common.close")}
+      </button>
+      <p
+        data-ww-prep-armies-note
+        class="m-0 rounded-md border border-amber-400/40 bg-amber-500/10 p-2 text-xs text-amber-100"
+      >
+        ${translateText("ww1936.prep.armies_note")}
+      </p>
+      ${renderArmyTemplates({
+        land: {
+          templates: lobbyArmyChoices(this.tag, this.plan, library.entries),
+        },
+        entries: armyEntries(library.entries),
+        editing: this.armyEdit,
+        regionText: "",
+        refused: "",
+        notice: this.armyNotice,
+        edit: (e) => {
+          this.armyNotice = "";
+          this.armyEdit = armyEditOf(e);
+        },
+        change: (next) => (this.armyEdit = next),
+        save: () => {
+          const ed = this.armyEdit;
+          if (ed === null) return;
+          const r = saveArmyEdit(library, ed);
+          this.armyEdit = null;
+          this.armyNotice =
+            r === "full" ? translateText("ww1936.library.full") : "";
+        },
+        del: (e) =>
+          this.confirmTap(`army_tpl_del:${e.id}`, () => library.remove(e.id)),
+        armed: (e) => this.twoTap.isArmed(`army_tpl_del:${e.id}`, Date.now()),
+      })}
+    </div>`;
+  }
+
   private renderDesigns(): TemplateResult {
     const kinds: DesignKind[] = ["tank", "plane", "ship"];
     return html`<div data-ww-prep-designs class="flex flex-col gap-2">
@@ -352,7 +423,7 @@ export class WwLobbyPrep extends LitElement {
       <p class="m-0 text-xs text-white/70">
         ${translateText("ww1936.prep.designs_intro")}
       </p>
-      <div class="grid grid-cols-2 gap-1 sm:grid-cols-5">
+      <div class="grid grid-cols-2 gap-1 sm:grid-cols-3 lg:grid-cols-6">
         ${kinds.map(
           (k) =>
             html`<button
@@ -371,6 +442,14 @@ export class WwLobbyPrep extends LitElement {
           @click=${() => (this.editing = { mode: "library", draft: null })}
         >
           ${translateText("ww1936.prep.new_division")}
+        </button>
+        <button
+          type="button"
+          data-ww-prep-armies-open
+          class="${BTN}"
+          @click=${() => (this.armyScreen = true)}
+        >
+          ${translateText("ww1936.prep.army_presets")}
         </button>
         <button
           type="button"
@@ -463,7 +542,9 @@ export class WwLobbyPrep extends LitElement {
             <div class="min-h-0 flex-1 overflow-y-auto px-3 pb-4">
               ${this.tab === "templates"
                 ? this.renderStart()
-                : this.renderDesigns()}
+                : this.armyScreen
+                  ? this.renderArmies()
+                  : this.renderDesigns()}
               ${this.note === ""
                 ? nothing
                 : html`<p class="mt-2 text-xs text-emerald-300">

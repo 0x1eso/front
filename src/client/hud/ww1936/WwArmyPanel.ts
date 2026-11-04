@@ -68,8 +68,10 @@ import { TRAIT_ICONS, traitsOf } from "./WwArmyCard";
 import { renderGroupTab } from "./WwArmyGroupTab";
 import {
   ArmyEdit,
+  armyEditOf,
   renderArmyTemplates,
   renderGroupRow,
+  saveArmyEdit,
 } from "./WwArmyTemplateUi";
 import { autoMaskOf, renderAutoSwitch } from "./WwAutoUi";
 import { WwDrawerBase } from "./WwDrawer";
@@ -247,31 +249,14 @@ export class WwArmyPanel extends WwDrawerBase {
   private saveArmyEdit() {
     const ed = this.armyEdit;
     if (ed === null) return;
-    const store = libraryStore();
-    if (ed.id !== null) store.remove(ed.id);
-    const r = store.add({
-      type: "army",
-      name: ed.name.trim().slice(0, 40),
-      items: ed.items,
-    });
+    const r = saveArmyEdit(libraryStore(), ed);
     this.armyEdit = null;
     this.armyNotice = r === "full" ? translateText("ww1936.library.full") : "";
   }
 
   private editArmyTemplate(e: ArmyEntry | null) {
     this.armyNotice = "";
-    this.armyEdit =
-      e === null
-        ? { id: null, name: "", items: [] }
-        : {
-            id: e.id,
-            name: e.name,
-            items: e.items.map((i) => ({
-              ...i,
-              battalions: [...i.battalions],
-              support: [...i.support],
-            })),
-          };
+    this.armyEdit = armyEditOf(e);
   }
 
   private send(order: WwOrder) {

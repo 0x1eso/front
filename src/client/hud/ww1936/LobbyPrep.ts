@@ -52,6 +52,7 @@ import {
 } from "../../components/ww1936/PrepPlan";
 import { translateText } from "../../Utils";
 import type { GameView } from "../../view/GameView";
+import { LibEntry, templateKey } from "./DesignLibrary";
 import { blockText } from "./EconomyModel";
 import { designGroupsOf, researchedOf } from "./LandModel";
 import { prepSecondsLeft } from "./WorldWarModel";
@@ -69,6 +70,58 @@ export function lobbyStartTemplates(tag: CountryTag): StartTemplate[] {
   return isMajor(tag)
     ? startTemplates(tag, 5)
     : startTemplates(tag, 2).slice(0, 1);
+}
+
+/**
+ * The divisions an army template can use in the lobby: the country's start
+ * templates as the plan leaves them (one that cannot be applied is skipped
+ * at the start, so it is not offered), then the library's division entries,
+ * each content once.
+ */
+export function lobbyArmyChoices(
+  tag: CountryTag,
+  plan: readonly PrepTemplate[],
+  library: readonly LibEntry[],
+): TemplateData[] {
+  const researched = lobbyResearched(tag);
+  const out: TemplateData[] = [];
+  const seen = new Set<string>();
+  const push = (def: TemplateDef) => {
+    const key = templateKey(def.battalions, def.support);
+    if (seen.has(key)) return;
+    seen.add(key);
+    out.push({
+      id: out.length + 1,
+      key: "",
+      name: def.name,
+      battalions: [...def.battalions],
+      support: [...def.support],
+      inUse: 0,
+    });
+  };
+  for (const st of lobbyStartTemplates(tag)) {
+    const p = plan.find((x) => x.key === st.key);
+    if (p === undefined) {
+      push({ ...st.def, name: translateText(`ww1936.tpl.${st.key}`) });
+    } else {
+      const def: TemplateDef = {
+        name: p.name,
+        battalions: p.battalions as BattalionId[],
+        support: p.support as SupportId[],
+      };
+      if (planProblem(def, researched, new Set()) === null) push(def);
+    }
+  }
+  for (const e of library) {
+    if (e.type === "template") {
+      push({
+        name: e.name,
+        battalions: e.battalions as BattalionId[],
+        support: e.support as SupportId[],
+      });
+    }
+  }
+  return out;
 }
 
 /** What the country has researched at the start, as far as the lobby knows. */

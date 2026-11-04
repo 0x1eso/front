@@ -16,6 +16,7 @@ import {
   armyTotal,
   GroupRow,
 } from "./ArmyTemplates";
+import type { LibraryStore } from "./DesignLibrary";
 import { battalionSummary, templateDef, templateName } from "./LandModel";
 
 export interface ArmyEdit {
@@ -25,17 +26,44 @@ export interface ArmyEdit {
   items: ArmyItem[];
 }
 
+/** The editor's state for an entry, or for a new one (null). */
+export function armyEditOf(e: ArmyEntry | null): ArmyEdit {
+  return e === null
+    ? { id: null, name: "", items: [] }
+    : {
+        id: e.id,
+        name: e.name,
+        items: e.items.map((i) => ({
+          ...i,
+          battalions: [...i.battalions],
+          support: [...i.support],
+        })),
+      };
+}
+
+/** [save] in the editor: the entry is replaced (by id) or added; "full" when the library has no room. */
+export function saveArmyEdit(store: LibraryStore, ed: ArmyEdit): string {
+  if (ed.id !== null) store.remove(ed.id);
+  return store.add({
+    type: "army",
+    name: ed.name.trim().slice(0, 40),
+    items: ed.items,
+  });
+}
+
 export interface ArmyTemplateEnv {
-  land: CountryLandDetail;
+  /** Only the division templates the editor offers. */
+  land: Pick<CountryLandDetail, "templates">;
   entries: readonly ArmyEntry[];
   editing: ArmyEdit | null;
-  /** The region the new army forms in, as text. */
+  /** The region the new army forms in, as text; "" for none (the lobby). */
   regionText: string;
   /** Block text under the list, "" for none. */
   refused: string;
   /** A line about the last save, "" for none. */
   notice: string;
-  train: (e: ArmyEntry) => void;
+  /** Absent in the lobby: no [train] button. */
+  train?: (e: ArmyEntry) => void;
   edit: (e: ArmyEntry | null) => void;
   change: (next: ArmyEdit | null) => void;
   save: () => void;
@@ -55,9 +83,11 @@ export function renderArmyTemplates(env: ArmyTemplateEnv): TemplateResult {
     <div class="mb-1 text-xs font-bold uppercase tracking-wide text-white/70">
       ${translateText("ww1936.army_tpl.title")}
     </div>
-    <div data-ww-army-tpl-region class="text-xs text-white/70">
-      ${env.regionText}
-    </div>
+    ${env.regionText === ""
+      ? nothing
+      : html`<div data-ww-army-tpl-region class="text-xs text-white/70">
+          ${env.regionText}
+        </div>`}
     ${env.entries.length === 0
       ? html`<p data-ww-army-tpl-empty class="m-0 mt-1 text-xs text-white/60">
           ${translateText("ww1936.army_tpl.empty")}
@@ -90,6 +120,7 @@ export function renderArmyTemplates(env: ArmyTemplateEnv): TemplateResult {
 
 function renderRow(env: ArmyTemplateEnv, e: ArmyEntry): TemplateResult {
   const armed = env.armed(e);
+  const train = env.train;
   return html`<li
     data-ww-army-tpl=${e.id}
     class="rounded-md border border-white/10 bg-white/5 p-1.5 text-xs"
@@ -107,18 +138,20 @@ function renderRow(env: ArmyTemplateEnv, e: ArmyEntry): TemplateResult {
       ${e.items.map(itemText).join(" · ")}
     </div>
     <div class="mt-1 flex gap-1">
-      <button
-        type="button"
-        data-ww-army-tpl-train=${e.id}
-        class="${BTN} flex-1 border-emerald-400/50 bg-emerald-800/40 hover:bg-emerald-700/50"
-        @click=${() => env.train(e)}
-      >
-        ${translateText("ww1936.army_tpl.train")}
-      </button>
+      ${train === undefined
+        ? nothing
+        : html`<button
+            type="button"
+            data-ww-army-tpl-train=${e.id}
+            class="${BTN} flex-1 border-emerald-400/50 bg-emerald-800/40 hover:bg-emerald-700/50"
+            @click=${() => train(e)}
+          >
+            ${translateText("ww1936.army_tpl.train")}
+          </button>`}
       <button
         type="button"
         data-ww-army-tpl-edit=${e.id}
-        class=${BTN}
+        class="${BTN} flex-1"
         @click=${() => env.edit(e)}
       >
         ${translateText("ww1936.army_tpl.edit")}
