@@ -982,7 +982,8 @@ function won(land: WwLand, b: Battle, tick: number): void {
       t.org[r] === 0 &&
       t.mode[r] !== MOVE_RETREAT
     ) {
-      retreatInBand(land, r, withdraw);
+      routLoss(land, r);
+      if (t.id[r] !== 0) retreatInBand(land, r, withdraw);
     }
   }
   for (const r of advancers) enterBand(land, r);
@@ -1039,6 +1040,8 @@ function enterBand(land: WwLand, row: number): void {
 export function retreatDivision(land: WwLand, row: number): void {
   const t = land.divisions;
   if (t.id[row] === 0) return;
+  routLoss(land, row);
+  if (t.id[row] === 0) return;
   const to = refugeOf(land, row);
   if (to === 0) {
     const owner = t.owner[row];
@@ -1065,6 +1068,23 @@ export function retreatDivision(land: WwLand, row: number): void {
   }
   release(land, row);
   startHopInto(land, row, to, MOVE_RETREAT);
+}
+
+/** ww67: the share of its strength a division broken in a lost battle leaves behind, percent. */
+export const ROUT_LOSS_PCT = 15;
+
+/**
+ * ww67: a division that broke leaves prisoners and abandoned equipment behind.
+ * Only a broken one: a division falling back with org left (a region lost
+ * around it, an order) walks away whole.
+ */
+function routLoss(land: WwLand, row: number): void {
+  if (land.divisions.org[row] !== 0) return;
+  applyHpLoss(
+    land,
+    row,
+    Math.floor((land.statsOf(row).hpMilli * ROUT_LOSS_PCT) / 100),
+  );
 }
 
 /**
