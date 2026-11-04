@@ -736,10 +736,10 @@ export function templateStats(
     brk: sum(3),
     // HOI4: 30% max + 70% average armour, ww67: of the armoured battalions
     // alone (how much of the division they are is its hardness, armorProtectPm).
-    // Pierce is what the division can actually bring to bear, 1.5 times its
-    // weighted average up to its best gun: two thirds of it able to hit is the
-    // gun's whole number, and a support company counts a third of a battalion,
-    // so it adds a little.
+    // Pierce is what the division can actually bring to bear, 1.75 times its
+    // weighted average up to its best gun: four sevenths of it able to hit is
+    // the gun's whole number, and a support company counts a third of a
+    // battalion, so it adds a little.
     armor:
       armoured === 0
         ? 0
@@ -749,7 +749,7 @@ export function templateStats(
     pierce:
       pierceN === 0
         ? 0
-        : Math.min(pierceMax, Math.floor((3 * pierceSum) / (2 * pierceN))),
+        : Math.min(pierceMax, Math.floor((7 * pierceSum) / (4 * pierceN))),
     hardnessPm: n === 0 ? 0 : Math.floor(hardSum / n),
     speedCenti: n === 0 ? 0 : speed,
     supplyMilli: supply,
