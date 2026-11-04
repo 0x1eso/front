@@ -662,6 +662,11 @@ export class WwDepth implements LandDepthHooks {
       ) {
         startThought(this, id);
       }
+      // ww71: a major's catalogue entries are in their slots from the start,
+      // not from the first day's step (cheap: the researched set is checked).
+      if (c !== null && c !== undefined && this.ww.isActor(id)) {
+        dailyHist(this, id, 0);
+      }
     }
   }
 

@@ -839,6 +839,11 @@ describe("the World War 1936 economy screens' model (spec §13)", () => {
     expect(stockRowIdle(fighter)).toBe(false);
     // Without the land war's report nothing is claimed short.
     expect(stockTable(d, null).every((r) => r.short === null)).toBe(true);
+    // ww71: with a catalogue the plane stock row is "aircraft", not a designer.
+    const pd = (t: ReturnType<typeof stockTable>) =>
+      t.find((r) => r.id === "plane_design")!.name;
+    expect(pd(stockTable(d, null))).toContain("plane_design");
+    expect(pd(stockTable(d, null, [], "DEU"))).toContain("plane_stock");
   });
 
   it("law ladder locks by condition and cooldown", () => {

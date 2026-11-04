@@ -731,8 +731,20 @@ export const DEU_FOCUSES: FocusDef[] = [
     icon: "plane",
     effects: [
       { kind: "research_bonus", branch: "air", pct: 100, uses: 1 },
-      { kind: "equipment", type: "fighter", gen: 1, count: 300 },
-      { kind: "equipment", type: "bomber", gen: 1, count: 200 },
+      {
+        kind: "equipment",
+        type: "fighter",
+        gen: 1,
+        count: 300,
+        item: "deu_bf109_e",
+      },
+      {
+        kind: "equipment",
+        type: "bomber",
+        gen: 1,
+        count: 200,
+        item: "deu_he111_h6",
+      },
     ],
     ai: { base: 10 },
   },
@@ -834,7 +846,13 @@ export const DEU_FOCUSES: FocusDef[] = [
     exclusive: ["deu_barbarossa_first", "deu_med_strategy"],
     effects: [
       { kind: "war_goal", on: T("FRA"), type: "conquer" },
-      { kind: "equipment", type: "medium_tank", gen: 1, count: 120 },
+      {
+        kind: "equipment",
+        type: "medium_tank",
+        gen: 1,
+        count: 120,
+        item: "deu_pz3_e",
+      },
       { kind: "add_general", general: "manstein" },
       { kind: "research_bonus", branch: "armour", pct: 50, uses: 1 },
     ],
@@ -920,7 +938,13 @@ export const DEU_FOCUSES: FocusDef[] = [
     prereq: [["deu_barbarossa_first"]],
     effects: [
       { kind: "add_spirit", id: "deu_winter_kit" },
-      { kind: "equipment", type: "infantry_equipment", gen: 1, count: 200 },
+      {
+        kind: "equipment",
+        type: "infantry_equipment",
+        gen: 1,
+        count: 200,
+        item: "deu_kar98k",
+      },
     ],
     ai: { base: 10 },
   },
@@ -1084,7 +1108,13 @@ export const DEU_FOCUSES: FocusDef[] = [
     prereq: [["deu_collab_states", "deu_extraction"]],
     effects: [
       { kind: "manpower", amount: 20000 },
-      { kind: "equipment", type: "infantry_equipment", gen: 1, count: 100 },
+      {
+        kind: "equipment",
+        type: "infantry_equipment",
+        gen: 1,
+        count: 100,
+        item: "deu_kar98k",
+      },
     ],
     ai: { base: 10 },
   },
@@ -1327,7 +1357,16 @@ export const DEU_FOCUSES: FocusDef[] = [
     prereq: [["deu_blitz_doctrine"]],
     exclusive: ["deu_standard_tank"],
     effects: [
+      // ww71: with the designer off the heavy programme gives the real tank.
       { kind: "design_grant", preset: "preset_heavy_2" },
+      {
+        kind: "equipment",
+        type: "medium_tank",
+        gen: 3,
+        count: 40,
+        item: "deu_tiger1_e",
+      },
+      { kind: "research_bonus", tech: "heavy_tank_1", pct: 100, uses: 1 },
       { kind: "research_bonus", tech: "medium_tank_3", pct: 100, uses: 1 },
     ],
     ai: { base: 10 },
@@ -1344,7 +1383,14 @@ export const DEU_FOCUSES: FocusDef[] = [
     prereq: [["deu_blitz_doctrine"]],
     exclusive: ["deu_heavy_tanks"],
     effects: [
-      { kind: "equipment", type: "medium_tank", gen: 2, count: 150 },
+      { kind: "research_bonus", tech: "tank_gun_2", pct: 100, uses: 1 },
+      {
+        kind: "equipment",
+        type: "medium_tank",
+        gen: 2,
+        count: 150,
+        item: "deu_pz4_f2",
+      },
       { kind: "add_spirit", id: "deu_tank_mass_production" },
     ],
     ai: { base: 10 },
@@ -1378,7 +1424,13 @@ export const DEU_FOCUSES: FocusDef[] = [
     available: { kind: "war_days_ge", days: 600 },
     effects: [
       { kind: "manpower", amount: 30000 },
-      { kind: "equipment", type: "infantry_equipment", gen: 1, count: 200 },
+      {
+        kind: "equipment",
+        type: "infantry_equipment",
+        gen: 1,
+        count: 200,
+        item: "deu_kar98k",
+      },
       { kind: "stability", pct: -2 },
     ],
     ai: { base: 10 },
@@ -1426,7 +1478,13 @@ export const DEU_FOCUSES: FocusDef[] = [
     group: "deu_jets_projects",
     prereq: [["deu_radar_net_2"]],
     effects: [
-      { kind: "equipment", type: "fighter", gen: 2, count: 80 },
+      {
+        kind: "equipment",
+        type: "heavy_fighter",
+        gen: 2,
+        count: 80,
+        item: "deu_bf110_g4",
+      },
       { kind: "research_bonus", tech: "radar_2", pct: 100, uses: 1 },
     ],
     ai: { base: 10 },
@@ -1459,6 +1517,13 @@ export const DEU_FOCUSES: FocusDef[] = [
     prereq: [["deu_luftwaffe"], ["deu_kwi"]],
     effects: [
       { kind: "design_grant", preset: "preset_jet_fighter" },
+      {
+        kind: "equipment",
+        type: "fighter",
+        gen: 3,
+        count: 15,
+        item: "deu_me262_a1",
+      },
       { kind: "start_project", project: "sp_jet_engine" },
       { kind: "research_bonus", branch: "air", pct: 100, uses: 1 },
     ],
@@ -1476,7 +1541,13 @@ export const DEU_FOCUSES: FocusDef[] = [
     prereq: [["deu_jet_programme"]],
     exclusive: ["deu_mass_fighters"],
     effects: [
-      { kind: "equipment", type: "heavy_fighter", gen: 1, count: 60 },
+      {
+        kind: "equipment",
+        type: "fighter",
+        gen: 3,
+        count: 40,
+        item: "deu_me262_a1",
+      },
       { kind: "research_bonus", tech: "heavy_fighter_3", pct: 100, uses: 1 },
     ],
     ai: { base: 10 },
@@ -1493,7 +1564,14 @@ export const DEU_FOCUSES: FocusDef[] = [
     prereq: [["deu_jet_programme"]],
     exclusive: ["deu_jet_priority"],
     effects: [
-      { kind: "equipment", type: "fighter", gen: 2, count: 300 },
+      { kind: "research_bonus", tech: "aero_engine_2", pct: 100, uses: 1 },
+      {
+        kind: "equipment",
+        type: "fighter",
+        gen: 2,
+        count: 300,
+        item: "deu_bf109_g6",
+      },
       { kind: "war_support", pct: 3 },
     ],
     ai: { base: 10 },

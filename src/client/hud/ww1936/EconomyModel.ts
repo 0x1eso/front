@@ -2009,7 +2009,11 @@ export function stockTable(
     rows.push({
       id: type,
       equipment: type,
-      name: equipmentName(type),
+      // ww71: with the catalogue the row is the country's planes by name.
+      name:
+        type === "plane_design" && country !== null
+          ? translateText("ww1936.equip.plane_stock")
+          : equipmentName(type),
       stock,
       short: null,
       perDay,

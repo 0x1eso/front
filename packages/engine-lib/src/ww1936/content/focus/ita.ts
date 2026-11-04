@@ -816,7 +816,13 @@ export const ITA_FOCUSES: FocusDef[] = [
     group: "ita_modern_forces",
     effects: [
       { kind: "research_bonus", branch: "air", pct: 100, uses: 1 },
-      { kind: "equipment", type: "fighter", gen: 1, count: 200 },
+      {
+        kind: "equipment",
+        type: "fighter",
+        gen: 1,
+        count: 200,
+        item: "ita_mc200",
+      },
     ],
     ai: { base: 10 },
   },
@@ -849,7 +855,13 @@ export const ITA_FOCUSES: FocusDef[] = [
     prereq: [["ita_regia_aeronautica"]],
     effects: [
       { kind: "research_bonus", tech: "fighter_2", pct: 100, uses: 1 },
-      { kind: "equipment", type: "fighter", gen: 1, count: 150 },
+      {
+        kind: "equipment",
+        type: "fighter",
+        gen: 1,
+        count: 150,
+        item: "ita_g50",
+      },
     ],
     ai: { base: 10 },
   },
@@ -887,7 +899,13 @@ export const ITA_FOCUSES: FocusDef[] = [
     effects: [
       { kind: "army_xp", amount: 15 },
       { kind: "navy_xp", amount: 10 },
-      { kind: "equipment", type: "support_equipment", gen: 1, count: 80 },
+      {
+        kind: "equipment",
+        type: "support_equipment",
+        gen: 1,
+        count: 80,
+        item: "ita_fiat626",
+      },
     ],
     ai: { base: 5 },
   },
@@ -962,7 +980,13 @@ export const ITA_FOCUSES: FocusDef[] = [
     prereq: [["ita_submarine_arm"]],
     effects: [
       { kind: "navy_xp", amount: 10 },
-      { kind: "equipment", type: "support_equipment", gen: 1, count: 40 },
+      {
+        kind: "equipment",
+        type: "support_equipment",
+        gen: 1,
+        count: 40,
+        item: "ita_fiat626",
+      },
     ],
     ai: { base: 6 },
   },
@@ -977,7 +1001,13 @@ export const ITA_FOCUSES: FocusDef[] = [
     group: "ita_med_war",
     prereq: [["ita_libyan_road"], ["ita_suez_question"]],
     effects: [
-      { kind: "equipment", type: "medium_tank", gen: 1, count: 80 },
+      {
+        kind: "equipment",
+        type: "medium_tank",
+        gen: 1,
+        count: 80,
+        item: "ita_m11_39",
+      },
       { kind: "equipment", type: "motorized", gen: 1, count: 100 },
       { kind: "army_xp", amount: 10 },
     ],
@@ -1401,7 +1431,13 @@ export const ITA_FOCUSES: FocusDef[] = [
     prereq: [["ita_armoured_divisions"]],
     exclusive: ["ita_m_series_tank"],
     effects: [
-      { kind: "equipment", type: "artillery", gen: 1, count: 120 },
+      {
+        kind: "equipment",
+        type: "medium_tank",
+        gen: 1,
+        count: 60,
+        item: "ita_semovente_75_18",
+      },
       { kind: "army_xp", amount: 5 },
     ],
     ai: { base: 5 },
@@ -1418,7 +1454,14 @@ export const ITA_FOCUSES: FocusDef[] = [
     prereq: [["ita_armoured_divisions"]],
     exclusive: ["ita_semovente"],
     effects: [
-      { kind: "equipment", type: "medium_tank", gen: 1, count: 100 },
+      { kind: "research_bonus", tech: "tank_gun_2", pct: 100, uses: 1 },
+      {
+        kind: "equipment",
+        type: "medium_tank",
+        gen: 1,
+        count: 100,
+        item: "ita_m13_40",
+      },
       { kind: "army_xp", amount: 5 },
     ],
     ai: { base: 8 },
@@ -1434,7 +1477,13 @@ export const ITA_FOCUSES: FocusDef[] = [
     group: "ita_modern_forces",
     prereq: [["ita_army_reform"]],
     effects: [
-      { kind: "equipment", type: "artillery", gen: 1, count: 80 },
+      {
+        kind: "equipment",
+        type: "artillery",
+        gen: 1,
+        count: 80,
+        item: "ita_75_27",
+      },
       { kind: "research_bonus", branch: "artillery", pct: 50, uses: 1 },
     ],
     ai: { base: 8 },
@@ -1465,7 +1514,16 @@ export const ITA_FOCUSES: FocusDef[] = [
     icon: "plane",
     group: "ita_modern_forces",
     prereq: [["ita_fighter_modernisation"]],
-    effects: [{ kind: "equipment", type: "fighter", gen: 2, count: 120 }],
+    effects: [
+      { kind: "research_bonus", tech: "aero_engine_2", pct: 100, uses: 1 },
+      {
+        kind: "equipment",
+        type: "fighter",
+        gen: 2,
+        count: 120,
+        item: "ita_mc202",
+      },
+    ],
     ai: { base: 8 },
   },
   {
@@ -1478,7 +1536,15 @@ export const ITA_FOCUSES: FocusDef[] = [
     icon: "bomber",
     group: "ita_modern_forces",
     prereq: [["ita_regia_aeronautica"]],
-    effects: [{ kind: "equipment", type: "bomber", gen: 1, count: 100 }],
+    effects: [
+      {
+        kind: "equipment",
+        type: "bomber",
+        gen: 1,
+        count: 100,
+        item: "ita_sm79",
+      },
+    ],
     ai: { base: 8 },
   },
   {
@@ -1492,7 +1558,13 @@ export const ITA_FOCUSES: FocusDef[] = [
     group: "ita_modern_forces",
     prereq: [["ita_torpedo_bombers"]],
     effects: [
-      { kind: "equipment", type: "naval_bomber", gen: 1, count: 60 },
+      {
+        kind: "equipment",
+        type: "naval_bomber",
+        gen: 1,
+        count: 60,
+        item: "ita_sm79_silurante",
+      },
       { kind: "navy_xp", amount: 10 },
     ],
     ai: { base: 6 },
@@ -1509,7 +1581,13 @@ export const ITA_FOCUSES: FocusDef[] = [
     prereq: [["ita_spain_expedition"]],
     effects: [
       { kind: "army_xp", amount: 20 },
-      { kind: "equipment", type: "infantry_equipment", gen: 1, count: 100 },
+      {
+        kind: "equipment",
+        type: "infantry_equipment",
+        gen: 1,
+        count: 100,
+        item: "ita_carcano_m91",
+      },
     ],
     ai: { base: 5 },
   },

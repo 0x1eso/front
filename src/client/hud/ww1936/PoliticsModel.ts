@@ -78,6 +78,12 @@ import {
   describeStats,
 } from "@openfront/engine-lib/ww1936/Describe";
 import { scaleSpiritStats } from "@openfront/engine-lib/ww1936/FocusScale";
+import { histEntry } from "@openfront/engine-lib/ww1936/hist/index";
+import { histStaticName } from "@openfront/engine-lib/ww1936/hist/Slots";
+import {
+  HIST_COUNTRIES,
+  type HistCountry,
+} from "@openfront/engine-lib/ww1936/hist/Types";
 import { fogCountLabel } from "@openfront/engine-lib/ww1936/IntelRules";
 import { congressNeedBp } from "@openfront/engine-lib/ww1936/MechRules";
 import { historicalAiActive } from "@openfront/engine-lib/ww1936/Pace";
@@ -105,6 +111,7 @@ import { assetUrl } from "@openfront/shared/AssetUrls";
 import { translateText } from "../../Utils";
 import type { GameView } from "../../view";
 import type { WwPoliticsView } from "../../view/WwPoliticsView";
+import { designerOn } from "./DesignerFlag";
 import {
   blockText,
   branchName,
@@ -638,6 +645,8 @@ function paramText(
       return resourceName(v as never);
     case "tech":
       return translateText(`ww1936.tech.${v}`);
+    case "item":
+      return translateText(`ww1936.hist.${v}`);
     case "type":
       return kind === "war_goal" ? wargoalName(v) : equipmentName(v as never);
     case "goal":
@@ -660,6 +669,33 @@ function paramText(
   return v;
 }
 
+/** The catalogue country whose items the viewer sees (null: a minor, or the designer is on). */
+function costHist(i: PoliticsModelInput): HistCountry | null {
+  if (designerOn(i.game)) return null;
+  const tag = tagOf(i.game, i.me);
+  return tag !== null && (HIST_COUNTRIES as readonly string[]).includes(tag)
+    ? (tag as HistCountry)
+    : null;
+}
+
+/** The name of the entry standing in for a static key (null: the generic name). */
+function itemName(
+  country: HistCountry,
+  type: string,
+  gen: number,
+): string | null {
+  const key = histStaticName(country, type, gen);
+  return key === null ? null : translateText(key);
+}
+
+/** The counter word class of a catalogue item: guns, rifles, or vehicles and aircraft. */
+function itemUnit(id: string): "gun" | "rifle" | "veh" {
+  const e = histEntry(id);
+  if (e?.family === "gun") return "gun";
+  if (e?.family === "infantry") return "rifle";
+  return "veh";
+}
+
 /**
  * One explain line (Describe) as text, its codes turned into names; a line
  * about another country starts with "‹who›: ". Effects and conditions read
@@ -679,8 +715,18 @@ export function lineText(l: DescLine, ctx?: SelectorWho): string {
     p[k] = paramText(kind, k, v, l.params, ctx);
   }
   let text: string;
-  if (l.key.startsWith(FX)) text = translateText(`ww1936.fx.${kind}`, p);
-  else if (l.key.startsWith(COND)) {
+  if (l.key.startsWith(FX)) {
+    // ww71: a gift of a catalogue item reads as the item ("3호 전차 200대").
+    const named =
+      (kind === "equipment" || kind === "send_equipment") && "item" in l.params;
+    if (named) {
+      const count = Number(l.params.count ?? 0);
+      p.count = Math.abs(count);
+      p.lost = count < 0 ? 1 : 0;
+      p.unit = itemUnit(String(l.params.item));
+    }
+    text = translateText(`ww1936.fx.${named ? `${kind}_item` : kind}`, p);
+  } else if (l.key.startsWith(COND)) {
     text = translateText(`ww1936.cond.${kind}`, p);
   } else text = translateText(`ww1936.stat.${kind}`, p);
   const who = l.params.who;
@@ -1624,7 +1670,11 @@ export function decisionTwoTap(id: string): boolean {
  * What a decision costs: its PP (the engine's, with decisionCostPct) and
  * any equipment, manpower or army experience it also takes (spec §13.1).
  */
-export function decisionCostText(id: string, costPp: number): string | null {
+export function decisionCostText(
+  id: string,
+  costPp: number,
+  hist: HistCountry | null = null,
+): string | null {
   const c = decisionDef(id)?.cost;
   const parts: string[] = [];
   if (costPp > 0) {
@@ -1632,7 +1682,10 @@ export function decisionCostText(id: string, costPp: number): string | null {
   }
   if (c?.equipment !== undefined) {
     const [type, count] = c.equipment;
-    parts.push(`${equipmentName(type)} ${count.toLocaleString()}`);
+    // ww71: a major pays in its own item (the stand-in of the oldest model).
+    parts.push(
+      `${(hist === null ? null : itemName(hist, type, 1)) ?? equipmentName(type)} ${count.toLocaleString()}`,
+    );
   }
   if (c?.manpower !== undefined && c.manpower > 0) {
     parts.push(
@@ -1709,7 +1762,7 @@ export function decisionTab(i: PoliticsModelInput): DecisionTab {
         id: c.id,
         name: decisionName(c.id),
         desc: decisionDesc(c.id),
-        cost: decisionCostText(c.id, c.costPp),
+        cost: decisionCostText(c.id, c.costPp, costHist(i)),
         duration:
           def?.days === undefined
             ? null
@@ -2861,7 +2914,7 @@ export function playerActions(
         ideology: ideologyName(s.ruling),
       }),
       {
-        cost: decisionCostText(party.id, party.costPp),
+        cost: decisionCostText(party.id, party.costPp, costHist(i)),
         pp: party.costPp,
         block: decisionReason(party.state, party.cooldownUntil, day, undefined),
       },
@@ -2874,7 +2927,7 @@ export function playerActions(
       "coup",
       translateText("ww1936.diplo.act.coup"),
       {
-        cost: decisionCostText(coup.id, coup.costPp),
+        cost: decisionCostText(coup.id, coup.costPp, costHist(i)),
         pp: coup.costPp,
         block: decisionReason(
           coup.state,

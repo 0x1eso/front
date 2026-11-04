@@ -870,7 +870,13 @@ export const JPN_FOCUSES: FocusDef[] = [
     prereq: [["jpn_carrier_strike_force", "jpn_battleship_priority"]],
     effects: [
       { kind: "research_bonus", tech: "naval_bomber_2", pct: 100, uses: 1 },
-      { kind: "equipment", type: "naval_bomber", gen: 1, count: 100 },
+      {
+        kind: "equipment",
+        type: "naval_bomber",
+        gen: 1,
+        count: 100,
+        item: "jpn_g3m2",
+      },
     ],
     ai: { base: 10 },
   },
@@ -885,7 +891,13 @@ export const JPN_FOCUSES: FocusDef[] = [
     icon: "plane",
     effects: [
       { kind: "research_bonus", branch: "air", pct: 100, uses: 1 },
-      { kind: "equipment", type: "fighter", gen: 1, count: 200 },
+      {
+        kind: "equipment",
+        type: "fighter",
+        gen: 1,
+        count: 200,
+        item: "jpn_ki27",
+      },
     ],
     ai: { base: 10 },
   },
@@ -1374,7 +1386,13 @@ export const JPN_FOCUSES: FocusDef[] = [
     exclusive: ["jpn_oil_negotiation"],
     effects: [
       { kind: "war_goal", on: T("USA"), type: "conquer" },
-      { kind: "equipment", type: "naval_bomber", gen: 1, count: 60 },
+      {
+        kind: "equipment",
+        type: "cv_naval_bomber",
+        gen: 1,
+        count: 60,
+        item: "jpn_b5n2",
+      },
       { kind: "navy_xp", amount: 15 },
     ],
     ai: { base: 10, mods: [{ if: { kind: "historical_ai" }, factor: 300 }] },
@@ -1460,7 +1478,13 @@ export const JPN_FOCUSES: FocusDef[] = [
     prereq: [["jpn_army_modernisation"]],
     exclusive: ["jpn_spirit_over_matter"],
     effects: [
-      { kind: "equipment", type: "artillery", gen: 1, count: 300 },
+      {
+        kind: "equipment",
+        type: "artillery",
+        gen: 1,
+        count: 300,
+        item: "jpn_type38_75",
+      },
       { kind: "doctrine_mastery", domain: "land", amount: 40 },
     ],
     ai: { base: 5 },
@@ -1529,7 +1553,13 @@ export const JPN_FOCUSES: FocusDef[] = [
     icon: "plane",
     prereq: [["jpn_naval_air_arm"]],
     effects: [
-      { kind: "equipment", type: "fighter", gen: 1, count: 150 },
+      {
+        kind: "equipment",
+        type: "cv_fighter",
+        gen: 2,
+        count: 150,
+        item: "jpn_a6m2",
+      },
       { kind: "research_bonus", branch: "air", pct: 50, uses: 1 },
     ],
     ai: { base: 10 },
@@ -1628,8 +1658,15 @@ export const JPN_FOCUSES: FocusDef[] = [
     icon: "plane",
     prereq: [["jpn_army_air_service"]],
     effects: [
-      { kind: "equipment", type: "fighter", gen: 1, count: 100 },
-      { kind: "equipment", type: "cas", gen: 1, count: 60 },
+      { kind: "research_bonus", tech: "fighter_2", pct: 100, uses: 1 },
+      {
+        kind: "equipment",
+        type: "fighter",
+        gen: 2,
+        count: 100,
+        item: "jpn_ki43_2",
+      },
+      { kind: "equipment", type: "cas", gen: 2, count: 60, item: "jpn_ki51" },
     ],
     ai: { base: 10 },
   },
