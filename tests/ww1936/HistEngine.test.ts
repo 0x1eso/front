@@ -284,3 +284,31 @@ describe("catalogue line against the generic line", () => {
     expect(hist.made).toBeGreaterThan(0);
   });
 });
+
+describe("designer-only notices", () => {
+  test("with the designer off a new chassis or airframe is not announced", async () => {
+    const { noteNewChassis } =
+      await import("@openfront/engine/ww1936/depth/DesignCells");
+    const { noteNewAirframe } =
+      await import("@openfront/engine/ww1936/depth/PlaneCells");
+    const { TANK_BASE_DEFS } =
+      await import("@openfront/engine-lib/ww1936/DesignRules");
+    const { PLANE_BASE_DEFS } =
+      await import("@openfront/engine-lib/ww1936/DesignRules");
+    const { runner, ww, d } = await game(false);
+    const ce = ww.economy.country(DEU)!;
+    for (const t of histOwn("DEU", "tank")[0].techs) ce.addTech(t);
+    for (const t of histOwn("DEU", "plane")[0].techs) ce.addTech(t);
+    step(runner, 20);
+    // The country holds own slots, which is what used to trigger the notice.
+    expect(d.country(DEU)!.des.tank.some((s) => s?.origin === "own")).toBe(
+      true,
+    );
+    const spy = vi.spyOn(d, "message");
+    const tank = Object.values(TANK_BASE_DEFS)[1].tech;
+    const plane = Object.values(PLANE_BASE_DEFS)[1].tech!;
+    noteNewChassis(d, DEU, tank);
+    noteNewAirframe(d, DEU, plane);
+    expect(spy).not.toHaveBeenCalled();
+  });
+});
