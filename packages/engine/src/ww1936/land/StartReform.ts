@@ -10,6 +10,7 @@ import {
 } from "@openfront/engine-api/ww1936/LandTypes";
 import {
   apportion,
+  CUTTING_GROUP,
   startReformCount,
 } from "@openfront/engine-lib/ww1936/StartReform";
 import {
@@ -98,6 +99,8 @@ export function reformStartDivisions(
     s.need.every((need, g) => {
       const list = order[g];
       if (list === undefined || list.length === 0) return true;
+      // Support equipment never cuts a count (engine-lib CUTTING_GROUP).
+      if (!CUTTING_GROUP[g]) return true;
       let have = 0;
       for (const j of list) have += slots[j];
       return have >= need;

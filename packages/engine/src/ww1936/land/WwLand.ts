@@ -2682,6 +2682,7 @@ export class WwLand {
       divisions,
       equipShort,
       ...(gaps.length > 0 ? { gaps } : {}),
+      ...(cl.startOob ? { startOob: true } : {}),
     };
   }
 

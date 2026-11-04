@@ -359,6 +359,8 @@ export function lobbyGame(
 
 /** The sender acts only in the first seconds of a game (a resumed one is past it). */
 export const START_WINDOW_TICKS = 100;
+/** Ticks a sent start_oob has to show as applied before it counts as refused. */
+export const OOB_CONFIRM_TICKS = 50;
 
 type StartGame = Pick<
   GameView,
@@ -388,6 +390,8 @@ type StartGame = Pick<
  */
 export class StartPrep {
   private done = false;
+  /** A sent start_oob not yet seen applied: the notice waits for the game's answer. */
+  private pending: { summary: string; at: number } | null = null;
 
   constructor(
     private readonly send: (o: WwOrder) => void,
@@ -398,6 +402,7 @@ export class StartPrep {
     gameID: string,
     m: PrepOobModel | null,
     gameKeys: ReadonlySet<string>,
+    ticks: number,
   ): number {
     if (m === null) return 0;
     for (const t of m.templates) {
@@ -417,12 +422,28 @@ export class StartPrep {
     }
     this.send(o.order);
     markPrepSent(gameID);
-    this.notice(o.summary);
+    // The game may refuse the order; the success text waits until it shows.
+    this.pending = { summary: o.summary, at: ticks };
     return 1;
+  }
+
+  /** The start_oob took (the game says so), or after a while: it was refused. */
+  private confirm(game: StartGame): void {
+    const p = this.pending;
+    const id = game.myPlayer?.()?.smallID();
+    if (p === null || id === undefined) return;
+    if (game.wwLand?.()?.details.get(id)?.startOob === true) {
+      this.pending = null;
+      this.notice(p.summary);
+    } else if (game.ticks() - p.at >= OOB_CONFIRM_TICKS) {
+      this.pending = null;
+      this.notice(translateText("ww1936.prep.oob_refused"));
+    }
   }
 
   /** Called every tick; returns the number of orders it sent. */
   tick(game: StartGame | null): number {
+    if (this.pending !== null && game) this.confirm(game);
     if (this.done || game === null || game === undefined) return 0;
     const scenario = game.worldWarScenario?.();
     if (scenario === null || scenario === undefined) return 0;
@@ -465,6 +486,7 @@ export class StartPrep {
         gameID,
         oobModel(tag, plan, armies, researched, groups),
         new Set(land.templates.map((x) => x.key).filter((k) => k !== "")),
+        game.ticks(),
       );
     }
     if (plan.length === 0) return 0;

@@ -38,6 +38,7 @@ import {
   ArmyButton,
   armyCard,
   ArmyCardData,
+  armyLift,
   armyName,
   attackPreview,
   AUTO_LEVELS,
@@ -71,6 +72,7 @@ import {
   NavyCtx,
   navyCtx,
   NavyGame,
+  seaMoveLossPm,
   srName,
 } from "./NavyModel";
 import { armyPriority, wingsFollowing } from "./WingModel";
@@ -1135,12 +1137,27 @@ export class WwArmyCard extends LitElement implements Controller {
         sides,
       );
       if (p === null) return this.blockLine("no_path");
+      // A sea move is shot at below 50% supremacy: say what it costs a day.
+      const from =
+        kind === "sea" && c.navy !== null
+          ? armyLift(c.view, c.economy, c.me, army).regions
+          : [];
+      const lossPm =
+        from.length === 1 && c.navy !== null
+          ? (seaMoveLossPm(c.navy, from[0], region) ?? 0)
+          : 0;
       body = html`<span
-        >→ ${name} ·
-        ${translateText("ww1936.land.move_days", {
-          days: Math.max(0.1, daysOf(p.ticks)),
-        })}</span
-      >`;
+          >→ ${name} ·
+          ${translateText("ww1936.land.move_days", {
+            days: Math.max(0.1, daysOf(p.ticks)),
+          })}</span
+        >${lossPm > 0
+          ? html`<span data-ww-sea-loss=${lossPm} class="text-red-300"
+              >${translateText("ww1936.navy.sea_move_loss", {
+                pct: Math.floor(lossPm / 10),
+              })}</span
+            >`
+          : nothing}`;
     } else if (kind === "attack" || kind === "paradrop") {
       // P6 (spec §8.9, pre-flight A18): the defenders through the fog.
       const fog = fogModelOf(this.game);

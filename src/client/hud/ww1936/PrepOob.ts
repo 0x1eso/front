@@ -145,10 +145,15 @@ export function oobTemplateRows(
     def: TemplateDef,
     isNew: boolean,
     edited: boolean,
+    // The start template's contents untouched (a rename only): the game
+    // does not judge it, as a start template may hold unresearched parts.
+    sameContent = false,
   ) => {
     const s = statsOf(def, researched);
     let problem =
-      isNew || edited ? planProblem(def, researched, designGroups) : null;
+      (isNew || edited) && !sameContent
+        ? planProblem(def, researched, designGroups)
+        : null;
     if (problem === null && (isNew || edited) && def.name.trim() === "") {
       problem = translateText("ww1936.prep.no_name");
     }
@@ -167,6 +172,9 @@ export function oobTemplateRows(
           },
       false,
       p !== undefined,
+      p !== undefined &&
+        p.battalions.join() === st.def.battalions.join() &&
+        p.support.join() === st.def.support.join(),
     );
   }
   for (const p of plan) {

@@ -966,6 +966,10 @@ var noStrikeRegions = map[int]bool{
 	686: true, 701: true, 732: true, 734: true, 761: true, 901: true,
 }
 
+// noStrikeNavalKept are the no-strike regions that keep the formula's naval
+// base (the sea supplies them): Seoul and Taiwan.
+var noStrikeNavalKept = map[int]bool{679: true, 901: true}
+
 // buildV4 writes the version 4 fields (P4 spec §3.4–3.6, §6.4, §12.1): the
 // harbours (the tool's, checked against the final tiles), the start levels
 // (the hand ones, else the formulas: a naval base min(3, 1 + dockyards) in a
@@ -1030,7 +1034,13 @@ func buildV4(src scenarioSrc, out *scenarioOut, ids []uint16, w, h int) error {
 			if v.NavalBase > 0 && s.NavalBase != nil || v.AirBase > 0 && s.AirBase != nil || v.CoastalFort > 0 {
 				return fmt.Errorf("region %d %q is a no-strike region (Korea, Taiwan): no hand base or coastal fort", r.ID, r.Name)
 			}
-			v.NavalBase, v.AirBase, v.AA = 0, 0, 0
+			v.AirBase, v.AA = 0, 0
+			// The owner dropped the no-strike rulings: Seoul and Taiwan
+			// are island-like ports that only the sea can supply, so they
+			// keep the naval base of the formula (level 1).
+			if !noStrikeNavalKept[r.ID] {
+				v.NavalBase = 0
+			}
 		}
 		if (v.NavalBase > 0 || v.CoastalFort > 0) && v.Harbor == 0 {
 			return fmt.Errorf("region %d %q: a naval base or coastal fort but no harbour", r.ID, r.Name)

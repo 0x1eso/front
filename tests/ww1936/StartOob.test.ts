@@ -1,3 +1,4 @@
+import { appendFileSync } from "fs";
 // World War 1936: start_oob, a major's whole start army planned in the
 // lobby. The real world1936 map (the test maps have no historical order of
 // battle), Germany or Italy as the human.
@@ -8,12 +9,16 @@ import {
   BattalionId,
   GROUND_EQUIP_KEYS,
   GROUND_SLOTS,
+  NEED_GROUPS,
   WW_MAX_TEMPLATES,
 } from "@openfront/engine-api/ww1936/LandTypes";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { START_OOB } from "@openfront/engine-lib/ww1936/LandStart";
 import { planStartOob } from "@openfront/engine-lib/ww1936/StartOob";
-import { groupStockOf } from "@openfront/engine-lib/ww1936/StartReform";
+import {
+  groupStockOf,
+  previewReforms,
+} from "@openfront/engine-lib/ww1936/StartReform";
 import {
   createGameRunner,
   createGameRunnerFromSnapshot,
@@ -420,5 +425,127 @@ describe("planStartOob (the pure rule)", () => {
     expect(c.armies[0].total).toBe(24);
     expect(c.armies[0].items[1].cut).toBe("cap");
     expect(c.emptyRequired).toEqual([1]);
+  });
+});
+
+describe("start_oob keeps the country's own start templates (Soviet Union)", () => {
+  test("untouched mountain rifles are not refused for the missing mountaineers; a new one still is", async () => {
+    const g = await game("SUN");
+    g.ce.stock.fill(1e6);
+    const mr = g.cl.templates.find((t) => t.key === "mountain_rifle")!;
+    expect(mr.def.battalions).toContain("mountain");
+    expect(g.ce.researched.has("mountaineers")).toBe(false);
+    const n = START_OOB.SUN!.length;
+    const armies = Array.from(
+      { length: n },
+      (_, i) =>
+        (i === 0 ? [["mountain_rifle", 2]] : [["rifle", 2]]) as [
+          string,
+          number,
+        ][],
+    );
+    // A new template with the same parts is a real no_tech.
+    const bad = planOf(g, armies, [
+      { name: "Own", battalions: [...mr.def.battalions], support: [] },
+    ]);
+    const asNew = {
+      ...bad,
+      armies: [
+        [{ template: bad.templates.length - 1, count: 1 }],
+        ...bad.armies.slice(1),
+      ],
+    } as Oob;
+    expect(g.l.issue(g.id, asNew)).toBe("no_tech");
+    expect(g.cl.startOob).toBe(false);
+    // The untouched default, every template as the country has it.
+    expect(g.l.issue(g.id, planOf(g, armies))).toBeNull();
+    expect(g.cl.startOob).toBe(true);
+    expect(armyCounts(g, 1)?.get("mountain_rifle")).toBe(2);
+  }, 120_000);
+
+  test("every major's own start templates pass the plan check as they are", async () => {
+    for (const tag of Object.keys(START_OOB) as CountryTag[]) {
+      const g = await game(tag);
+      g.ce.stock.fill(1e6);
+      const armies = START_OOB[tag]!.map(
+        () => [[g.cl.templates[0].key, 1]] as [string, number][],
+      );
+      expect(g.l.issue(g.id, planOf(g, armies)), tag).toBeNull();
+    }
+  }, 300_000);
+});
+
+describe("start_oob support equipment does not cut counts", () => {
+  test("every major re-issuing its own default plan fields all its divisions", async () => {
+    const out: string[] = [];
+    for (const tag of Object.keys(START_OOB) as CountryTag[]) {
+      const g = await game(tag);
+      const was = g.l.rowsOf(g.id).length;
+      const armies = START_OOB[tag]!.map((a) =>
+        a.divisions.map(([k, n]) => [k, n] as [string, number]),
+      );
+      const asked = armies.flat().reduce((n, [, c]) => n + c, 0);
+      expect(g.l.issue(g.id, planOf(g, armies)), tag).toBeNull();
+      const now = g.l.rowsOf(g.id).length;
+      out.push(`${tag} asked ${asked} start ${was} reissued ${now}`);
+      expect(now, tag).toBe(asked);
+    }
+    appendFileSync(process.env.W64_OUT ?? "/dev/null", out.join("\n") + "\n");
+  }, 300_000);
+});
+
+describe("support equipment in the pure rules", () => {
+  const SUP = NEED_GROUPS.indexOf("support_equipment");
+  const INF = NEED_GROUPS.indexOf("infantry_equipment");
+  const need = (sup: number, inf: number) => {
+    const n = new Array<number>(NEED_GROUPS.length).fill(0);
+    n[SUP] = sup;
+    n[INF] = inf;
+    return n;
+  };
+  test("planStartOob fields a division short of support and never cuts on it; rifles still cut", () => {
+    const stock = new Array<number>(NEED_GROUPS.length).fill(0);
+    stock[SUP] = 30;
+    stock[INF] = 1000;
+    const r = planStartOob(
+      1e9,
+      1e9,
+      stock,
+      [{ men: 100, need: need(20, 100) }],
+      [{ required: false, items: [{ template: 0, count: 5 }] }],
+    );
+    expect(r.total).toBe(5);
+    expect(r.limitedGroup).toBe(-1);
+    expect(r.equipUsed[SUP]).toBe(30);
+    stock[INF] = 250;
+    const s = planStartOob(
+      1e9,
+      1e9,
+      stock,
+      [{ men: 100, need: need(20, 100) }],
+      [{ required: false, items: [{ template: 0, count: 5 }] }],
+    );
+    expect(s.total).toBe(2);
+    expect(s.limitedGroup).toBe(INF);
+  });
+  test("previewReforms is not limited by support equipment", () => {
+    const stock = new Array<number>(NEED_GROUPS.length).fill(0);
+    stock[SUP] = 10;
+    stock[INF] = 1000;
+    const [p] = previewReforms(
+      stock,
+      [],
+      [
+        {
+          key: "x",
+          need: need(20, 100),
+          men: 100,
+          originalCount: 4,
+          budget: 400,
+        },
+      ],
+    );
+    expect(p.count).toBe(4);
+    expect(p.limitedBy).toBe(-1);
   });
 });
