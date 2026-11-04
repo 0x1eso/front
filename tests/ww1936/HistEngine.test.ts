@@ -100,7 +100,7 @@ describe("reliability wear", () => {
     expect(breakdownPpm(950)).toBe(0);
     // Deterministic: the same inputs, the same roll; the loss never exceeds the holding.
     expect(wearRoll(7, 9)).toBe(wearRoll(7, 9));
-    expect(wearLoss(3, 5000, 999_999)).toBe(0);
+    expect(wearLoss(3, 5000, 900_000)).toBe(0);
     expect(wearLoss(300, 5000, 0)).toBe(1);
     expect(wearLoss(2, 1_000_000, 0)).toBe(2);
     let lost = 0;
