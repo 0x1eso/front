@@ -16,6 +16,7 @@ import {
   EQUIP_KEYS,
   equipKey,
   EQUIPMENT_GENS,
+  EQUIPMENT_TYPES,
   EquipmentType,
   WwTechId,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
@@ -25,14 +26,20 @@ import {
   GROUND_STATIC_SLOTS,
 } from "@openfront/engine-api/ww1936/LandTypes";
 import {
+  designNeedGroup,
   planeType,
-  TANK_BASE_DEFS,
   tankRole,
 } from "@openfront/engine-lib/ww1936/DesignRules";
 import { EQUIPMENT } from "@openfront/engine-lib/ww1936/Equipment";
+import { histEntry } from "@openfront/engine-lib/ww1936/hist/index";
+import {
+  histKindOf,
+  histSlotOf,
+} from "@openfront/engine-lib/ww1936/hist/Slots";
 import { planeGenTechs } from "@openfront/engine-lib/ww1936/PlaneStats";
 import { designKindOf, sameDesign, saveDesign } from "./Designs";
-import type { WwDepth } from "./WwDepth";
+import { histCountryOf } from "./Hist";
+import type { DesignSlot, WwDepth } from "./WwDepth";
 
 /** A copy's standing: a licence may be produced, a received design sold on, a captured one only used. */
 const ORIGIN_RANK: Readonly<Record<DesignOrigin, number>> = {
@@ -72,6 +79,13 @@ export function copyDesignTo(
       return origSlot;
   }
   const slots = dst.des[kind];
+  // ww61: a catalogue entry is the same design wherever it sits: the
+  // receiver's own catalogue slot for it (filled now if it was locked), else
+  // a slot already holding it, else the first free one after its catalogue.
+  if (src.def.hist !== undefined) {
+    const got = copyHistTo(d, src, kind, to, origin, orig, origSlot);
+    if (got !== undefined) return got;
+  }
   for (let i = 0; i < slots.length; i++) {
     const s = slots[i];
     if (
@@ -100,6 +114,57 @@ export function copyDesignTo(
     Math.max(0, d.lastCommonDay),
   );
   return typeof got === "number" ? got : null;
+}
+
+/** copyDesignTo for a catalogue entry; undefined: take the ordinary path (no slot found). */
+function copyHistTo(
+  d: WwDepth,
+  src: DesignSlot,
+  kind: DesignKind,
+  to: number,
+  origin: DesignOrigin,
+  orig: number,
+  origSlot: number,
+): number | null | undefined {
+  const dst = d.country(to);
+  if (dst === null) return null;
+  const id = src.def.hist!;
+  const slots = dst.des[kind];
+  const rank = (s: DesignSlot, i: number) => {
+    if (ORIGIN_RANK[origin] > ORIGIN_RANK[s.origin]) {
+      s.origin = origin;
+      d.markDesign(to, kind, i + 1);
+    }
+    return i + 1;
+  };
+  const country = histCountryOf(d, to);
+  if (country !== null) {
+    const mine = histSlotOf(country, id);
+    if (mine > 0 && histKindOf(histEntry(id)!) === kind) {
+      const cur = slots[mine - 1];
+      if (cur === null) {
+        slots[mine - 1] = {
+          def: {
+            ...src.def,
+            modules: [...src.def.modules],
+          } as DesignSlot["def"],
+          origin,
+          from: orig,
+          fromSlot: origSlot,
+          obsolete: false,
+          savedDay: Math.max(0, d.lastCommonDay),
+        };
+        d.markDesign(to, kind, mine);
+        return mine;
+      }
+      return rank(cur, mine - 1);
+    }
+  }
+  for (let i = 0; i < slots.length; i++) {
+    const s = slots[i];
+    if (s !== null && s.def.hist === id) return rank(s, i);
+  }
+  return undefined;
 }
 
 /**
@@ -148,7 +213,7 @@ export function nearestStatic(def: DesignDef): EquipmentType {
     case "sp_anti_air":
       return "anti_air";
     default:
-      return TANK_BASE_DEFS[def.base]?.weight === "light"
+      return designNeedGroup(def) === EQUIPMENT_TYPES.indexOf("light_tank")
         ? "light_tank"
         : "medium_tank";
   }

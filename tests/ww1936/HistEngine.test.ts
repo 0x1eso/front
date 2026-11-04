@@ -148,3 +148,42 @@ describe("AI value rule", () => {
     expect(ce.lines.length).toBeGreaterThan(0);
   });
 });
+
+describe("catalogue entries crossing between countries", () => {
+  test("a foreign entry lands after the receiver's own catalogue; an own one in its own slot", async () => {
+    const { copyDesignTo } =
+      await import("@openfront/engine/ww1936/depth/DesignCopy");
+    const { histDef } = await import("@openfront/engine/ww1936/depth/Hist");
+    const { runner, ww, d } = await game(false);
+    void runner;
+    const GBR = DEEP.tag.GBR;
+    const tigerIdx = histOwn("DEU", "tank").findIndex(
+      (e) => e.id === "deu_tiger1_e",
+    );
+    const ce = ww.economy.country(DEU)!;
+    for (const t of histOwn("DEU", "tank")[tigerIdx].techs) ce.addTech(t);
+    step(runner, 20);
+    const got = copyDesignTo(d, DEU, tigerIdx + 1, "tank", GBR, "licensed");
+    expect(got).toBe(histOwn("GBR", "tank").length + 1);
+    const slot = d.designSlot(GBR, "tank", got!)!;
+    expect(slot.def.hist).toBe("deu_tiger1_e");
+    expect(slot.origin).toBe("licensed");
+    // Again: the same slot.
+    expect(copyDesignTo(d, DEU, tigerIdx + 1, "tank", GBR, "received")).toBe(
+      got,
+    );
+    // An entry of the receiver's own catalogue takes its own slot, locked or not.
+    const mine = histOwn("GBR", "tank")[3];
+    const dd = histDef(mine)!;
+    d.country(DEU)!.des.tank[40] = {
+      def: dd as never,
+      origin: "own",
+      from: 0,
+      fromSlot: 0,
+      obsolete: false,
+      savedDay: 0,
+    };
+    expect(copyDesignTo(d, DEU, 41, "tank", GBR, "licensed")).toBe(4);
+    expect(d.designSlot(GBR, "tank", 4)!.def.hist).toBe(mine.id);
+  });
+});
