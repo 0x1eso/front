@@ -76,8 +76,8 @@ describe("P4 lists (plan decisions 3, 14, 23, 24, 25)", () => {
   });
 
   it("23 more stock slots, the old ones unmoved; divisions keep their 18 slots first", () => {
-    // P4's 23, then P6's 33 (plan decision 5).
-    expect(EQUIP_KEY_COUNT).toBe(P3_EQUIP_KEYS.length + 23 + 33);
+    // P4's 23, then P6's 45 (plan decision 5, 28 plane design slots).
+    expect(EQUIP_KEY_COUNT).toBe(P3_EQUIP_KEYS.length + 23 + 45);
     expect(EQUIP_KEYS.slice(0, 23).map(([t, g]) => [t, g])).toEqual(
       P3_EQUIP_KEYS,
     );

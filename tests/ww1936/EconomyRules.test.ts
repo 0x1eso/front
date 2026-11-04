@@ -274,8 +274,8 @@ describe("research (spec §9)", () => {
   });
 
   test("every generation has its tech", () => {
-    // P1's 23, P4's 23 (eight plane types, convoys) and P6's 33.
-    expect(EQUIP_KEY_COUNT).toBe(79);
+    // P1's 23, P4's 23 (eight plane types, convoys) and P6's 45.
+    expect(EQUIP_KEY_COUNT).toBe(91);
     for (const [type, def] of Object.entries(EQUIPMENT)) {
       // P4: the convoy's one generation needs no tech; P6: the design
       // slots and the project-gated weapons neither (plan decision 7).
