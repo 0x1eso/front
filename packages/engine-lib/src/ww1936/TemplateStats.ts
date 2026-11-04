@@ -309,7 +309,7 @@ function fillStaticRow(stats: Int32Array, j: number): void {
   if (id === undefined) return;
   const d = BATTALIONS[id];
   const g = gen * 100;
-  const gp = genStatPct(g);
+  const gp = d.kind === "armor" ? genStatPct(g) : gearStatPct(g);
   const ga = genArmorPct(g);
   stats[o + KS.soft] = Math.floor((d.soft * gp) / 100);
   stats[o + KS.hard] = Math.floor((d.hard * gp) / 100);
@@ -347,6 +347,13 @@ const clampGen = (g: number) => Math.max(100, Math.min(300, g));
 /** Attack, defence, breakthrough and HP: 100 / 125 / 150 % at gen 1 / 2 / 3. */
 export function genStatPct(g: number): number {
   return 100 + Math.floor((clampGen(g) - 100) / 4);
+}
+/**
+ * ww67: everything but tanks (rifles, guns, trucks): 100 / 105 / 110 % a
+ * generation, for majors and minors alike; a tank's numbers are its own.
+ */
+export function gearStatPct(g: number): number {
+  return 100 + Math.floor(((clampGen(g) - 100) * 5) / 100);
 }
 /** Armour and pierce: 100 / 140 / 180 %. */
 export function genArmorPct(g: number): number {
@@ -555,7 +562,7 @@ export function templateStats(
     const g = gens[main];
     // P6 (plan Task 1 Step 13): the battalion's own P6 stats (all 0 without them).
     const bp = battalionStatPct(st, id);
-    const gp = genStatPct(g);
+    const gp = d.kind === "armor" ? genStatPct(g) : gearStatPct(g);
     const ga = genArmorPct(g);
     // P6: the designs of its group, blended with the static part by units.
     const su = gens[S0 + main] ?? 0;
@@ -666,7 +673,7 @@ export function templateStats(
   for (const id of def.support) {
     const d = SUPPORTS[id];
     const main = TYPE_INDEX.get(d.equip[0][0])!;
-    const gp = genStatPct(gens[main]);
+    const gp = gearStatPct(gens[main]);
     const sbp = battalionStatPct(st, id);
     men += d.men;
     weight += d.weightCenti;
