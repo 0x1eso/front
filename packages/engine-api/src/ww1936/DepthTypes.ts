@@ -147,12 +147,12 @@ export const DESIGN_ORIGINS = [
 ] as const;
 export type DesignOrigin = (typeof DESIGN_ORIGINS)[number];
 export const WW_TANK_DESIGN_SLOTS = 12;
-export const WW_PLANE_DESIGN_SLOTS = 16;
+export const WW_PLANE_DESIGN_SLOTS = 28;
 export const WW_SHIP_DESIGN_SLOTS = 24;
 export const DESIGN_SLOTS: Readonly<Record<DesignKind, number>> = {
   tank: 12,
   ship: 24,
-  plane: 16,
+  plane: 28,
 };
 export const DESIGN_NAME_MAX = 24;
 export const TANK_BASES = [

@@ -120,12 +120,12 @@ describe("World War 1936 P6 lists", () => {
     expect(effectGroup("navy_xp")).toBe("endgame");
   });
 
-  it("equipment keys grow by exactly 33, the old ones unmoved; divisions 30 slots", () => {
+  it("equipment keys grow by exactly 45, the old ones unmoved; divisions 30 slots", () => {
     const old = EQUIP_KEYS.findIndex(([t]) => t === "tank_design");
-    expect(EQUIP_KEY_COUNT - old).toBe(33);
+    expect(EQUIP_KEY_COUNT - old).toBe(45);
     expect(EQUIP_KEYS.slice(old).map(([t]) => t)).toEqual([
       ...new Array<string>(12).fill("tank_design"),
-      ...new Array<string>(16).fill("plane_design"),
+      ...new Array<string>(28).fill("plane_design"),
       "railway_gun",
       "floating_harbor",
       "flying_bomb",

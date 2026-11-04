@@ -214,7 +214,7 @@ describe("World War 1936 P6: design copies", () => {
     for (let i = 0; i < 12; i++) {
       expect(saveDesign(d, GBR, MED1, 0, "own", 0, 0, 0)).toBe(i + 1);
     }
-    for (let i = 0; i < 16; i++) {
+    for (let i = 0; i < 28; i++) {
       expect(saveDesign(d, GBR, FIGHTER, 0, "own", 0, 0, 0)).toBe(i + 1);
     }
     const heavy: DesignDef = {

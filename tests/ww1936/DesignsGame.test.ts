@@ -775,7 +775,7 @@ describe("World War 1936 P6: design planes for P4's deployments", () => {
     ce.stock[k(2)] = 4;
     const got = drawDesignPlanes(d, GBR, "fighter", 7);
     expect(got.slice(0, 3)).toEqual([3, 4, 0]);
-    expect(got).toHaveLength(16);
+    expect(got).toHaveLength(28);
     expect([ce.stock[k(1)], ce.planesDeployed[k(1)]]).toEqual([7, 3]);
     expect([ce.stock[k(2)], ce.planesDeployed[k(2)]]).toEqual([0, 4]);
     returnDesignPlanes(d, GBR, [1, 0]);
@@ -789,12 +789,12 @@ describe("World War 1936 P6: design planes for P4's deployments", () => {
     expect(designPlaneLossBp(d, GBR, 2)).toBe(reliabilityLossBp(s2.relPm));
     expect(designPlaneLossBp(d, GBR, 9)).toBe(10_000);
     // A record of 6 static planes and 2 of slot 2: their weighted multiplier.
-    const dc = new Array<number>(16).fill(0);
+    const dc = new Array<number>(28).fill(0);
     dc[1] = 2;
     expect(planesLossBp(d, GBR, [6, 0, 0], dc)).toBe(
       Math.floor((6 * 10_000 + 2 * designPlaneLossBp(d, GBR, 2)) / 8),
     );
-    expect(planesLossBp(d, GBR, [0, 0, 0], new Array(16).fill(0))).toBe(10_000);
+    expect(planesLossBp(d, GBR, [0, 0, 0], new Array(28).fill(0))).toBe(10_000);
   });
 });
 

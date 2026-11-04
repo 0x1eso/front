@@ -265,7 +265,7 @@ export const EQUIPMENT_GENS: Readonly<Record<EquipmentType, number>> = {
   cv_naval_bomber: 3,
   convoy: 1,
   tank_design: 12,
-  plane_design: 16,
+  plane_design: 28,
   railway_gun: 1,
   floating_harbor: 1,
   flying_bomb: 1,
@@ -281,7 +281,7 @@ export const EQUIP_KEYS: readonly (readonly [EquipmentType, number])[] =
       (_, i) => [type, i + 1] as const,
     ),
   );
-export const EQUIP_KEY_COUNT = EQUIP_KEYS.length; // 23 before P4, 46 with it, 79 with P6
+export const EQUIP_KEY_COUNT = EQUIP_KEYS.length; // 23 before P4, 46 with it, 79 with P6, 91 with 28 plane designs
 
 const KEY_BASE: ReadonlyMap<EquipmentType, number> = (() => {
   const m = new Map<EquipmentType, number>();

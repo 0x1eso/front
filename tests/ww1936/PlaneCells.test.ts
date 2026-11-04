@@ -303,6 +303,7 @@ describe("saving into a cell", () => {
         savedDay: 0,
       };
     }
+    expect(des).toHaveLength(28);
     expect(des.every((s) => s !== null)).toBe(true);
     expect(n).toBeLessThan(WW_PLANE_DESIGN_SLOTS + 1);
     expect(save(g, weak("small_3", "z"))).toBeNull(); // an existing cell: overwrite, no new slot

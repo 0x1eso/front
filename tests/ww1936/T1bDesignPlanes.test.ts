@@ -213,7 +213,7 @@ describe("T1b: plane designs in P4's air war (lane E's sites)", () => {
     dailyAirZone(air, WEST, day);
     const f = zoneFlights(air, WEST).find((x) => x.id === rec.id)!;
     const gens = EQUIPMENT_GENS.fighter;
-    expect(f.counts.length).toBe(gens + 16);
+    expect(f.counts.length).toBe(gens + 28);
     expect(f.counts[gens]).toBe(start);
     expect(f.milli.slice(0, gens)).toEqual([0, 0, 0]);
     expect(f.milli[gens]).toBeGreaterThan(0);

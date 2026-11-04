@@ -846,8 +846,8 @@ export const DeclareWarIntentSchema = z.object({
 // for the sender's own country. The kinds are stored by position: append only.
 const WwIndex = zb.uint({ max: 255 });
 const WwId = zb.uint({ min: 1, max: 10_000_000 });
-// P6 plan decision 5: a design type's "generation" is its slot (1..16).
-const WwGen = zb.uint({ min: 1, max: 16 });
+// P6 plan decision 5: a design type's "generation" is its slot (1..28).
+const WwGen = zb.uint({ min: 1, max: 28 });
 const WwFactories = zb.uint({ max: WW_MAX_LINE_FACTORIES });
 // P2 (P2 spec §16.3).
 const WwArmy = zb.uint({ min: 1, max: 10_000_000 });
