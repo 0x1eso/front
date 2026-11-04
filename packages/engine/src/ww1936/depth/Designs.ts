@@ -84,6 +84,7 @@ import { licenceCostPctFor } from "./Licences";
 import { treatyEscalated, treatyMember } from "./NavalTreaty";
 import { planeDesignOld, savePlaneCell, sweepStaticPlanes } from "./PlaneCells";
 import { dailyRefits, startRefit } from "./Refit";
+import { saveShipCell } from "./ShipCells";
 import type { DesignSlot, WwDepth } from "./WwDepth";
 
 /**
@@ -218,14 +219,9 @@ function saveOrder(
     });
     return null;
   }
-  if (slot !== 0) {
-    // (Review E7: "design_in_use" here reads "the slot is taken".)
-    if (slot > DESIGN_SLOTS[kind]) return "bad_index";
-    if (c.des[kind][slot - 1] !== null) return "design_in_use";
-  } else if (freeSlot(d, id, kind) === 0) {
-    return "design_slots_full";
-  }
-  const got = saveDesign(d, id, def, slot, "own", 0, 0, day);
+  // The cell rule again: one current design per ship class x generation
+  // (ShipCells); the slot asked for is ignored.
+  const got = saveShipCell(d, id, def, day);
   if (typeof got !== "number") return got;
   d.message(id, "ww1936_design_saved", {
     name: def.name,

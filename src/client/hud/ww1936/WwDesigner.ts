@@ -8,6 +8,7 @@ import {
   DesignKind,
   TankRole,
 } from "@openfront/engine-api/ww1936/DepthTypes";
+import { shipBase } from "@openfront/engine-lib/ww1936/DesignRules";
 import { html, nothing, TemplateResult } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import { SendWwOrderIntentEvent } from "../../Transport";
@@ -41,7 +42,7 @@ import {
   renderDesignSheet,
   slotName,
 } from "./WwDesignSheet";
-import { OpenWwIndustryEvent, WwDrawerBase } from "./WwDrawer";
+import { OpenWwIndustryEvent, OpenWwNavyEvent, WwDrawerBase } from "./WwDrawer";
 import { wwPanelStyle } from "./WwPanelMode";
 
 type DesignerTab = "design" | "list" | "library";
@@ -55,7 +56,21 @@ const KIND_KEYS: Readonly<Record<DesignKind, string>> = {
 };
 
 /** The save button's text: a tank saved over a cell's design says every tank of the cell changes. */
-function saveLabel(overwrites: boolean, armed: boolean, plane = false): string {
+export function saveLabel(
+  overwrites: boolean,
+  armed: boolean,
+  plane = false,
+  ship = false,
+): string {
+  if (ship) {
+    // A ship cell's save: new ships and running lines use it, ships in service stay.
+    if (overwrites) {
+      return armed
+        ? "ww1936.design.save_cell_confirm_ship"
+        : "ww1936.design.save_cell_ship";
+    }
+    return armed ? "ww1936.design.save_confirm" : "ww1936.design.save";
+  }
   if (overwrites) {
     return armed
       ? plane
@@ -333,7 +348,14 @@ export class WwDesigner extends WwDrawerBase {
           this.eventBus.emit(new WwDepthOpenEvent("market"));
         },
         licenceFrom: this.licenceFrom(m),
-        makeLine: () => {
+        makeLine: (row) => {
+          const sb = row.kind === "ship" ? shipBase(row.def.base) : null;
+          if (sb !== null) {
+            this.eventBus.emit(
+              new OpenWwNavyEvent("shipyards", { cls: sb.cls, gen: sb.gen }),
+            );
+            return;
+          }
           this.eventBus.emit(new OpenWwIndustryEvent("production"));
         },
       })}
@@ -734,6 +756,13 @@ export class WwDesigner extends WwDrawerBase {
               >🔒 ${this.lockedTip}</span
             >`
           : nothing}
+        ${this.lockedTip === null && block === null && d?.kind === "ship"
+          ? html`<span
+              data-ww-ship-save-note
+              class="min-w-0 text-[11px] leading-tight text-white/70"
+              >${translateText("ww1936.design.ship_save_note")}</span
+            >`
+          : nothing}
         ${this.lockedTip === null && block !== null && d !== null
           ? html`<span
               data-ww-block=${block}
@@ -838,10 +867,13 @@ export class WwDesigner extends WwDrawerBase {
                   d !== null &&
                     ((d.kind === "tank" &&
                       m.cellDesign(d.base, m.tankRoleSel) !== null) ||
+                      (d.kind === "ship" &&
+                        m.shipCellDesign(d.base) !== null) ||
                       (d.kind === "plane" &&
                         m.planeCellDesign(d.base, m.planeTypeSel) !== null)),
                   armed,
                   d !== null && d.kind === "plane",
+                  d !== null && d.kind === "ship",
                 ),
               )}
             </button>`}

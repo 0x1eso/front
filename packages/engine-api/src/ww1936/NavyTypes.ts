@@ -330,6 +330,8 @@ export interface NavalLineData {
   nextName: number;
   outputMilli: number;
   fill: number;
+  /** The line's ship design slot (1-based); absent: the base class. */
+  design?: number;
 }
 export interface CountryNavyDetail {
   smallID: number;

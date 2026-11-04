@@ -91,13 +91,13 @@ export function existingKeys(game: StatusGame): Set<string> {
   return out;
 }
 
-/** My own tank or plane design already sits in `cell` (DesignLibrary.cellOf). */
+/** My own design (a ship's: the current one) already sits in `cell` (DesignLibrary.cellOf). */
 export function cellTaken(game: StatusGame, cell: string): boolean {
   const me = game.myPlayer()?.smallID() ?? 0;
   const designs = game.wwDepth?.()?.detail(me)?.designs ?? [];
   return designs.some(
     (d) =>
-      d.kind !== "ship" &&
+      !(d.kind === "ship" && d.obsolete) &&
       d.origin === "own" &&
       cellOf({ type: "design", def: d.def }) === cell,
   );
