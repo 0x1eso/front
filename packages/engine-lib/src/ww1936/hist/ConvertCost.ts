@@ -5,6 +5,8 @@
 // real price); real price differences stay as ratios, but compressed at the
 // extremes: twice the typical price costs about 1.5x, four times about 2.2x,
 // so a Tiger or a B-29 is clearly dearer (2-3x a contemporary) and not 10-30x.
+import type { EquipmentType } from "@openfront/engine-api/ww1936/EconomyTypes";
+import { EQUIPMENT, unitCostMilli } from "../Equipment";
 import { interp, roundInt, Table } from "./Num";
 
 /** Price over the family's reference price (per mille) to cost multiplier (per mille). Concave, strictly rising. */
@@ -43,4 +45,48 @@ export function scaledCost(
 export function softCap(v: number, knee: number, max: number): number {
   if (v <= knee) return v;
   return Math.min(max, knee + Math.floor((v - knee) / 3));
+}
+
+/**
+ * The generation a catalogue entry belongs to by its techs: the highest
+ * `<prefix>_<n>` it needs (1 when none). Used to hold an entry up against the
+ * generic item of the same tier.
+ */
+export function genOfTechs(techs: readonly string[], prefix: string): number {
+  let g = 1;
+  for (const t of techs) {
+    if (t.startsWith(`${prefix}_`)) {
+      const n = Number(t.slice(prefix.length + 1));
+      if (Number.isInteger(n) && n > g) g = n;
+    }
+  }
+  return g;
+}
+
+/**
+ * w73 (owner: production must not be slower than the old generic game): a
+ * real price keeps its ratios against its peers, but an entry never costs
+ * more than today's generic item of the same type and generation.
+ */
+export function atMostGeneric(
+  costMilli: number,
+  type: EquipmentType | null,
+  techs: readonly string[],
+  prefix: string,
+): number {
+  if (type === null) return costMilli;
+  return Math.min(costMilli, unitCostMilli(type, genOfTechs(techs, prefix)));
+}
+
+/**
+ * w73: the resources per factory an entry asks for, never more of any
+ * resource than the generic item of its type (and none the generic one does
+ * not ask for: rubber in an armoured car, tungsten in a gun tank).
+ */
+export function atMostGenericRes(
+  res: readonly number[],
+  type: EquipmentType,
+): number[] {
+  const g = EQUIPMENT[type].resources;
+  return res.map((v, i) => Math.min(v, g[i] ?? 0));
 }

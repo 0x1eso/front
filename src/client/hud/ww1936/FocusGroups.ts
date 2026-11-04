@@ -1,4 +1,5 @@
 import type { FocusDef } from "@openfront/engine-api/ww1936/PoliticsTypes";
+import { translateText } from "../../Utils";
 import {
   FOCUS_BYPASSED,
   FOCUS_DONE,
@@ -41,11 +42,19 @@ export function focusGroups(
   return [...map.values()];
 }
 
-/** A group id as words: "deu_war_strategy" -> "war strategy" (the tag prefix is dropped). */
+/**
+ * A group's name: `ww1936.focusui.group.<id>` in the player's language; a
+ * group with no entry reads as its id in words, "deu_war_strategy" ->
+ * "War strategy" (the tag prefix dropped, the first letter capital).
+ */
 export function groupLabel(key: string): string {
   if (key.startsWith("branch:")) return key.slice(7);
+  const textKey = `ww1936.focusui.group.${key}`;
+  const text = translateText(textKey);
+  if (text !== textKey) return text;
   const parts = key.split("_");
-  return (parts.length > 1 ? parts.slice(1) : parts).join(" ");
+  const words = (parts.length > 1 ? parts.slice(1) : parts).join(" ");
+  return words.charAt(0).toUpperCase() + words.slice(1);
 }
 
 /**

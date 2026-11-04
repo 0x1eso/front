@@ -23,7 +23,12 @@ import {
   NG_SPAA,
   NG_TD,
 } from "@openfront/engine-api/ww1936/LandTypes";
-import { scaledCost, softCap } from "./ConvertCost";
+import {
+  atMostGeneric,
+  atMostGenericRes,
+  scaledCost,
+  softCap,
+} from "./ConvertCost";
 import { clampInt, interp, isqrt, resVec, roundInt, Table } from "./Num";
 import { HistTankRole, TankEntry, TankSpec } from "./Types";
 
@@ -179,13 +184,17 @@ export function tankStatsOfEntry(e: TankEntry): HistTankStats {
   const aa = s.aa
     ? Math.floor((s.aa.barrels * s.aa.rpm * s.aa.mm * 100) / 2000)
     : 0;
-  const resources = resVec(RESOURCE_IDS, {
-    steel: s.massT >= 60 ? 4 : s.massT >= 35 ? 3 : s.massT >= 12 ? 2 : 1,
-    oil: s.massT >= 55 ? 2 : 1,
-    chromium: armorMm >= 150 ? 2 : armorMm >= 60 ? 1 : 0,
-    tungsten: s.penMm500 >= 100 ? 2 : s.penMm500 >= 60 ? 1 : 0,
-    rubber: s.wheeled ? 1 : 0,
-  });
+  // w73: never more per factory than the generic light or medium tank.
+  const resources = atMostGenericRes(
+    resVec(RESOURCE_IDS, {
+      steel: s.massT >= 60 ? 4 : s.massT >= 35 ? 3 : s.massT >= 12 ? 2 : 1,
+      oil: s.massT >= 55 ? 2 : 1,
+      chromium: armorMm >= 150 ? 2 : armorMm >= 60 ? 1 : 0,
+      tungsten: s.penMm500 >= 100 ? 2 : s.penMm500 >= 60 ? 1 : 0,
+      rubber: s.wheeled ? 1 : 0,
+    }),
+    e.role === "light" ? "light_tank" : "medium_tank",
+  );
   return {
     kind: "tank",
     role: ENGINE_ROLE[e.role],
@@ -202,10 +211,21 @@ export function tankStatsOfEntry(e: TankEntry): HistTankStats {
     relPm: RELIABILITY_PM[s.reliability],
     orgAdd: 0,
     fuelPct,
-    costMilli: scaledCost(
-      TANK_COST[e.role].anchorMilli,
-      s.costK,
-      TANK_COST[e.role].refK,
+    // w73: light and medium tanks never cost more than the generic tank of
+    // their generation; heavy and special roles have no generic twin.
+    costMilli: atMostGeneric(
+      scaledCost(
+        TANK_COST[e.role].anchorMilli,
+        s.costK,
+        TANK_COST[e.role].refK,
+      ),
+      e.role === "light"
+        ? "light_tank"
+        : e.role === "medium"
+          ? "medium_tank"
+          : null,
+      e.techs,
+      e.role === "light" ? "light_tank" : "medium_tank",
     ),
     resources,
     flags: DS_HIST | (e.role === "td" ? DS_TD_DEFEND : 0),

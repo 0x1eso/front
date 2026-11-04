@@ -7,7 +7,7 @@ import { histOwn } from "@openfront/engine-lib/ww1936/hist/Slots";
 import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSource";
 import { DEEP } from "./deepFixture";
 import { depthFixture } from "./depthFixture";
-import { HUMAN, step, stepTo, wwRunner } from "./util";
+import { clearStartSetup, HUMAN, order, step, stepTo, wwRunner } from "./util";
 
 beforeEach(() => usePoliticsContent(depthFixture()));
 afterEach(() => usePoliticsContent(null));
@@ -241,5 +241,46 @@ describe("start stock", () => {
         expect(d.designSlot(DEU, "plane", i + 1)!.def.hist).toBe(e.id);
       }
     });
+  });
+});
+
+// ww73: a catalogue line is never slower than the generic line of its type.
+describe("catalogue line against the generic line", () => {
+  test("the Panzer II line asks what the generic light tank asks and makes as many", async () => {
+    const { equipKey } =
+      await import("@openfront/engine-api/ww1936/EconomyTypes");
+    const { equipResources } =
+      await import("@openfront/engine/ww1936/depth/Designs");
+    const run = async (hist: boolean) => {
+      const { runner, ww, d } = await game(false);
+      const ce = ww.economy.country(DEU)!;
+      clearStartSetup(ww.economy, ce);
+      const own = histOwn("DEU", "tank");
+      const slot = own.findIndex((e) => e.id === "deu_pz2_c") + 1;
+      for (const t of own[slot - 1].techs) ce.addTech(t);
+      step(runner, 20);
+      const equipment = hist ? "tank_design" : "light_tank";
+      const gen = hist ? slot : 1;
+      const key = equipKey(equipment, gen);
+      const before = ce.stock[key];
+      step(runner, 1, [
+        order(HUMAN, { kind: "add_line", equipment, gen, factories: 4 }),
+      ]);
+      step(runner, 600);
+      const line = ce.lines[0];
+      return {
+        per: equipResources(d, DEU, key),
+        made: ce.stock[key] - before,
+        active: line.active,
+        eff: line.effBp,
+      };
+    };
+    const generic = await run(false);
+    const hist = await run(true);
+    expect(hist.per).toEqual(generic.per);
+    expect(hist.active).toBe(generic.active);
+    expect(hist.eff).toBe(generic.eff);
+    expect(hist.made).toBeGreaterThanOrEqual(generic.made);
+    expect(hist.made).toBeGreaterThan(0);
   });
 });

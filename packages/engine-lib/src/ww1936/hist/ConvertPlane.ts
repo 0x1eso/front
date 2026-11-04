@@ -15,7 +15,12 @@ import {
   PlaneDesignStats,
 } from "@openfront/engine-api/ww1936/DepthTypes";
 import { RESOURCE_IDS } from "@openfront/engine-api/ww1936/EconomyTypes";
-import { scaledCost, softCap } from "./ConvertCost";
+import {
+  atMostGeneric,
+  atMostGenericRes,
+  scaledCost,
+  softCap,
+} from "./ConvertCost";
 import { RELIABILITY_PM } from "./ConvertTank";
 import { clampInt, interp, isqrt, resVec, Table } from "./Num";
 import { GunGroup, HistAirType, PlaneEntry } from "./Types";
@@ -232,11 +237,21 @@ export function planeStatsOfEntry(e: PlaneEntry): PlaneDesignStats {
     range: Math.floor((s.rangeKm * (fighterLike ? 100 : 50)) / 100),
     detect: s.radar === true ? 20 : 0,
     relPm: RELIABILITY_PM[s.reliability],
-    costMilli: planeCostMilli(e.type, s.costK),
-    resources: resVec(RESOURCE_IDS, {
-      aluminium: alu + (jet ? 1 : 0),
-      rubber: s.emptyKg < 20000 ? 1 : 2,
-    }),
+    // w73: never dearer, nor hungrier per factory, than the generic plane
+    // of its type and generation.
+    costMilli: atMostGeneric(
+      planeCostMilli(e.type, s.costK),
+      e.type,
+      e.techs,
+      e.type.replace(/^cv_/, ""),
+    ),
+    resources: atMostGenericRes(
+      resVec(RESOURCE_IDS, {
+        aluminium: alu + (jet ? 1 : 0),
+        rubber: s.emptyKg < 20000 ? 1 : 2,
+      }),
+      e.type,
+    ),
     fuelPct: jet ? 60 : 0,
     flags:
       DS_HIST |

@@ -45,6 +45,8 @@ const DYNAMIC_KEY_PATTERNS: RegExp[] = [
   // ww8 wings: WingModel builds `ww1936.wing.chip_${mission}` and
   // `ww1936.wing.state_${phase}` from lists the scan cannot follow.
   /^ww1936\.wing\.(?:chip|state)_[a-z_]+$/,
+  // ww73: a focus group's name by its id (FocusGroups.groupLabel).
+  /^ww1936\.focusui\.group\.[a-z0-9_]+$/,
 ];
 
 /**
