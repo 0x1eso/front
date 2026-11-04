@@ -110,3 +110,41 @@ describe("reliability wear", () => {
     expect(lost).toBeLessThan(380);
   });
 });
+
+describe("AI value rule", () => {
+  test("good enough and cheap beats the best and dear", async () => {
+    const { pickValue, valueNear } =
+      await import("@openfront/engine/ww1936/depth/AiHist");
+    // A Tiger-like (score 100, cost 100) against a T-34-like (score 70, cost 30).
+    expect(
+      pickValue([
+        { key: 5, score: 100, cost: 100 },
+        { key: 9, score: 70, cost: 30 },
+      ]),
+    ).toBe(9);
+    // Junk far below the best is never picked however cheap.
+    expect(
+      pickValue([
+        { key: 5, score: 100, cost: 100 },
+        { key: 9, score: 30, cost: 5 },
+      ]),
+    ).toBe(5);
+    expect(valueNear(70, 30, 70, 30)).toBe(true);
+    expect(valueNear(100, 100, 70, 30)).toBe(false);
+  });
+
+  test("an AI game with the catalogue runs and the AI builds catalogue tanks", async () => {
+    const runner = await wwRunner({ ww1936Designer: false }, [], DEEP.map);
+    stepTo(runner, WW_PREP_TICKS + 2);
+    const ww = runner.game.worldWar()!;
+    for (const t of histOwn("DEU", "tank")[0].techs) {
+      ww.economy.country(DEU)?.addTech(t);
+    }
+    step(runner, 1500);
+    const ce = ww.economy.country(DEU)!;
+    const slots = ww.depth.country(DEU)!.des.tank.filter((s) => s !== null);
+    expect(slots.length).toBeGreaterThan(0);
+    expect(slots.every((s) => s!.def.hist !== undefined)).toBe(true);
+    expect(ce.lines.length).toBeGreaterThan(0);
+  });
+});

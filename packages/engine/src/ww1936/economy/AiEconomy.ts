@@ -82,6 +82,7 @@ import type { Player } from "../../game/Game";
 import { baseThreatened, wingBaseWants } from "../air/AiAir";
 import { designShareType, equipResources } from "../depth/Designs";
 import { sharedResearchPct } from "../depth/FactionRules";
+import { histCountryOf } from "../depth/Hist";
 import type { WwDepth } from "../depth/WwDepth";
 import { capitalRegion } from "../land/LandStartRun";
 import {
@@ -2127,7 +2128,11 @@ function aiNavalLinesTurn(
         gen: l.gen,
         docks: l.docks,
       })),
-    researched: ce.researched,
+    // ww61: a catalogue ship is a generation-1 hull; its techs gate the entry.
+    researched:
+      histCountryOf(econ.ww.depth, ce.smallID) !== null
+        ? new Set<WwTechId>()
+        : ce.researched,
     convoyStock: convoysOf(ce),
     convoyNeed: need,
     port: aiMainBase(econ.ww, ce.smallID),

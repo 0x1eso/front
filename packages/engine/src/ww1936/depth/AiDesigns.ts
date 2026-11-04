@@ -58,13 +58,16 @@ import {
 import { aiPersonality } from "../economy/AiEconomy";
 import { changeLine } from "../economy/Production";
 import type { CountryEconomy } from "../economy/WwEconomy";
+import { aiHistDay, pickValue, valueNear } from "./AiHist";
 import { saveTankCell } from "./DesignCells";
 import {
+  equipCostMilli,
   navalLineDesignBlock,
   presetName,
   sameDesign,
   saveDesign,
 } from "./Designs";
+import { designerOn, histCountryOf } from "./Hist";
 import { treatyEscalated, treatyMember } from "./NavalTreaty";
 import type { DesignSlot, WwDepth } from "./WwDepth";
 
@@ -89,6 +92,14 @@ export function aiDesignsDay(d: WwDepth, id: number, day: number): void {
   if (!atWar && day % 10 !== id % 10) return;
   const ce = d.ww.economy.country(id);
   if (ce === null || d.country(id) === null) return;
+  // ww61: with the designer off the AI designs nothing; it picks from the
+  // catalogue (AiHist).
+  if (!designerOn(d)) {
+    aiTankLines(d, id, ce);
+    aiRoleTemplates(d, id, ce, day);
+    aiHistDay(d, id, ce);
+    return;
+  }
   aiTankDesigns(d, id, ce, day);
   aiTankLines(d, id, ce);
   aiRoleTemplates(d, id, ce, day);
@@ -329,6 +340,8 @@ function bestOfGroups(
   const ks = d.keyStats(id);
   const usableSlots = new Set(usable(d, id, "tank").map(([slot]) => slot));
   const best = new Map<number, number>();
+  const hist = histCountryOf(d, id) !== null;
+  const cands = new Map<number, { key: number; score: number }[]>();
   for (let j = 0; j < GROUND_SLOTS; j++) {
     const g = ks.group[j];
     if (g < 0 || !isTankGroup(g)) continue;
@@ -340,6 +353,12 @@ function bestOfGroups(
     } else if (!usableSlots.has(j - GROUND_STATIC_SLOTS + 1)) {
       continue;
     }
+    if (hist) {
+      let l = cands.get(g);
+      if (l === undefined) cands.set(g, (l = []));
+      l.push({ key, score: ks.score[j] });
+      continue;
+    }
     const was = best.get(g);
     if (
       was === undefined ||
@@ -347,6 +366,16 @@ function bestOfGroups(
     ) {
       best.set(g, key);
     }
+  }
+  // ww61: with the catalogue, the value rule (AiHist.pickValue): good
+  // enough and cheap beats the best and dear.
+  for (const [g, list] of cands) {
+    best.set(
+      g,
+      pickValue(
+        list.map((c) => ({ ...c, cost: equipCostMilli(d, id, c.key) })),
+      ),
+    );
   }
   return best;
 }
@@ -397,7 +426,24 @@ function aiTankLines(d: WwDepth, id: number, ce: CountryEconomy): void {
     const key = best.get(g);
     if (key === undefined || key === l.key) continue;
     const j = GROUND_EQUIP_KEYS.indexOf(l.key);
-    if (j >= 0 && ks.score[j] >= ks.score[GROUND_EQUIP_KEYS.indexOf(key)]) {
+    if (histCountryOf(d, id) !== null) {
+      // ww61: keep a line whose key is nearly as good a value as the best.
+      const jb = GROUND_EQUIP_KEYS.indexOf(key);
+      if (
+        j >= 0 &&
+        valueNear(
+          ks.score[j],
+          equipCostMilli(d, id, l.key),
+          ks.score[jb],
+          equipCostMilli(d, id, key),
+        )
+      ) {
+        continue;
+      }
+    } else if (
+      j >= 0 &&
+      ks.score[j] >= ks.score[GROUND_EQUIP_KEYS.indexOf(key)]
+    ) {
       continue;
     }
     if (info.old[j] !== 1 && l.effBp < cap - NEAR_CAP_BP) continue;
