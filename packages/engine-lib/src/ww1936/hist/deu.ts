@@ -234,7 +234,9 @@ export const DEU_HIST: readonly HistEntry[] = [
       offroadKmh: 25,
       roadKmh: 46,
       reliability: 2,
-      costK: 58,
+      // Real price 58 (RM 143,912 at 2.5): the owner allows a step up to 2-3 times
+      // a contemporary, so quantity counts against its front armour.
+      costK: 180,
     },
   },
   {
