@@ -2,28 +2,40 @@
 // deu.ts (see Types.ts).
 //
 // Conventions: armour in mm, slope from the vertical, penetration at 500 m /
-// 30 degrees with the normal AP round, costs in 1940 US dollars at the
-// official rate of about 19 lire to the dollar. Italian prices in lire are
-// only known roughly (the references differ by a third or more), so every
-// cost here is a sensible middle and approximate; the lira at the official
-// rate also makes Italian kit look cheap beside the German. Reliability 1..5
-// from the history. Italy's weak tanks stay weak: thin armour, small guns.
-// Main references: Wikipedia articles on each vehicle, aircraft, gun and
-// ship class (which cite Cappellini, Gentilli/Cappellini "Aerei Italiani",
-// Green and Swanborough "Complete Book of Fighters", Brescia "Mussolini's
-// Navy", Gardiner "Conway's All the World's Fighting Ships 1922-1946",
-// Ceva/Curami "Mezzi blindo-corazzati italiani", Cappellini "Semoventi").
-// Where sources differ, a middle value is used and noted. Heavy-fighter
-// and carrier-aircraft roles are empty: Italy had no such types in service.
+// 30 degrees with the normal AP round. Reliability 1..5 from the history.
+// Italy's weak tanks stay weak: thin armour, small guns.
+//
+// Costs are 1940 US dollars of industrial effort, NOT lire at an exchange
+// rate. Each is scaled by weight, complexity and materials from a comparable
+// American item, with Italian small-batch, labour-heavy production adding to
+// it. The American reference prices are FROM MEMORY and approximate: M3 Stuart
+// about $33k (12.5 t), M4 about $45k, M8 armoured car about $20k, P-40 about
+// $45k, B-25 about $140k, B-17 about $205-240k, C-47 about $90k, Fletcher
+// destroyer about $6.5M, Brooklyn cruiser about $20M, New Orleans cruiser
+// about $21M, North Carolina about $76M, Wasp carrier about $36M, Gato
+// submarine about $4.5M, 105 mm M2 howitzer about $8k, Bofors 40 mm about
+// $10k. Lire figures found by web search, used only as a cross-check:
+// MC.202 525,000 lire and Re.2001 600,000 lire, with 22,000 man-hours per
+// MC.202 against 4,500-6,000 for a Bf 109E/F (encyclopedia.pub, a
+// Wikipedia-derived entry; it gives no primary source); SM.79 about
+// 1.7 million lire (a photo caption on ww2incolor.com, weak); Littorio class
+// about 850 million lire a ship (warhistory.org, "Italian Navy 1940"). No
+// price was found for the M13/40.
+//
+// Specifications are from memory of the Wikipedia articles on each vehicle,
+// aircraft, gun and ship class; nothing here was checked against a printed
+// reference. Where recalled figures differ a middle value is used and noted.
+// Heavy-fighter and carrier-aircraft roles are empty: Italy had no such
+// types in service.
 import type { HistEntry } from "./Types";
 
 const SRC_TANK =
-  "Wikipedia vehicle articles; Ceva and Curami, Mezzi blindo-corazzati italiani; Cappellini, Semoventi";
+  "Wikipedia vehicle articles, from memory; cost scaled from US tanks";
 const SRC_AIR =
-  "Wikipedia aircraft articles; Gentilli and Cappellini, Aerei Italiani; Green and Swanborough, Complete Book of Fighters";
+  "Wikipedia aircraft articles, from memory; cost scaled from US aircraft, lire cross-check in the file header";
 const SRC_SHIP =
-  "Gardiner (ed.), Conway's All the World's Fighting Ships 1922-1946; Brescia, Mussolini's Navy; Wikipedia class articles";
-const SRC_GUN = "Wikipedia gun articles; Cappellini, Le artiglierie italiane";
+  "Wikipedia ship class articles, from memory; cost scaled from US ships by displacement";
+const SRC_GUN = "Wikipedia gun articles, from memory; cost scaled from US guns";
 
 export const ITA_HIST: readonly HistEntry[] = [
   // ------------------------------------------------------------ tanks
@@ -35,7 +47,7 @@ export const ITA_HIST: readonly HistEntry[] = [
     techs: ["light_tank_1"],
     year: 1933,
     // CV.33 / L3/33 tankette: 3.2 t, 13.5 mm riveted plate, two 8 mm Fiat
-    // machine guns, no turret; about 63,000 lire.
+    // machine guns, no turret; cost from the M3 Stuart by weight.
     source: SRC_TANK,
     spec: {
       massT: 3.2,
@@ -48,7 +60,7 @@ export const ITA_HIST: readonly HistEntry[] = [
       offroadKmh: 20,
       roadKmh: 42,
       reliability: 3,
-      costK: 3.3,
+      costK: 7,
     },
   },
   {
@@ -74,7 +86,7 @@ export const ITA_HIST: readonly HistEntry[] = [
       roadKmh: 78,
       wheeled: true,
       reliability: 4,
-      costK: 12,
+      costK: 16,
     },
   },
   {
@@ -98,7 +110,7 @@ export const ITA_HIST: readonly HistEntry[] = [
       offroadKmh: 25,
       roadKmh: 42,
       reliability: 3,
-      costK: 10.5,
+      costK: 19,
     },
   },
   {
@@ -124,7 +136,7 @@ export const ITA_HIST: readonly HistEntry[] = [
       roadKmh: 32,
       diesel: true,
       reliability: 3,
-      costK: 11,
+      costK: 38,
     },
   },
   {
@@ -150,7 +162,7 @@ export const ITA_HIST: readonly HistEntry[] = [
       roadKmh: 32,
       diesel: true,
       reliability: 3,
-      costK: 14,
+      costK: 42,
     },
   },
   {
@@ -176,7 +188,7 @@ export const ITA_HIST: readonly HistEntry[] = [
       roadKmh: 33,
       diesel: true,
       reliability: 3,
-      costK: 15,
+      costK: 44,
     },
   },
   {
@@ -201,7 +213,7 @@ export const ITA_HIST: readonly HistEntry[] = [
       offroadKmh: 24,
       roadKmh: 40,
       reliability: 3,
-      costK: 18,
+      costK: 48,
     },
   },
   {
@@ -227,7 +239,7 @@ export const ITA_HIST: readonly HistEntry[] = [
       offroadKmh: 25,
       roadKmh: 40,
       reliability: 3,
-      costK: 28,
+      costK: 75,
     },
   },
   {
@@ -252,7 +264,7 @@ export const ITA_HIST: readonly HistEntry[] = [
       roadKmh: 42,
       openTop: true,
       reliability: 3,
-      costK: 10,
+      costK: 18,
     },
   },
   {
@@ -277,7 +289,7 @@ export const ITA_HIST: readonly HistEntry[] = [
       offroadKmh: 20,
       roadKmh: 32,
       reliability: 4,
-      costK: 15,
+      costK: 40,
     },
   },
   {
@@ -301,7 +313,7 @@ export const ITA_HIST: readonly HistEntry[] = [
       offroadKmh: 22,
       roadKmh: 40,
       reliability: 4,
-      costK: 18,
+      costK: 44,
     },
   },
   {
@@ -327,7 +339,7 @@ export const ITA_HIST: readonly HistEntry[] = [
       roadKmh: 30,
       openTop: true,
       reliability: 3,
-      costK: 25,
+      costK: 48,
     },
   },
   {
@@ -351,7 +363,7 @@ export const ITA_HIST: readonly HistEntry[] = [
       offroadKmh: 22,
       roadKmh: 35,
       reliability: 4,
-      costK: 22,
+      costK: 50,
     },
   },
   // ------------------------------------------------------------ planes
@@ -374,7 +386,7 @@ export const ITA_HIST: readonly HistEntry[] = [
       bombKg: 100,
       torpedoKg: 0,
       reliability: 4,
-      costK: 9,
+      costK: 16,
     },
   },
   {
@@ -397,7 +409,7 @@ export const ITA_HIST: readonly HistEntry[] = [
       bombKg: 100,
       torpedoKg: 0,
       reliability: 4,
-      costK: 13,
+      costK: 22,
     },
   },
   {
@@ -420,7 +432,7 @@ export const ITA_HIST: readonly HistEntry[] = [
       bombKg: 0,
       torpedoKg: 0,
       reliability: 3,
-      costK: 14,
+      costK: 30,
     },
   },
   {
@@ -443,7 +455,7 @@ export const ITA_HIST: readonly HistEntry[] = [
       bombKg: 0,
       torpedoKg: 0,
       reliability: 4,
-      costK: 17,
+      costK: 34,
     },
   },
   {
@@ -469,7 +481,7 @@ export const ITA_HIST: readonly HistEntry[] = [
       bombKg: 0,
       torpedoKg: 0,
       reliability: 3,
-      costK: 24,
+      costK: 45,
     },
   },
   {
@@ -495,7 +507,7 @@ export const ITA_HIST: readonly HistEntry[] = [
       bombKg: 0,
       torpedoKg: 0,
       reliability: 4,
-      costK: 26,
+      costK: 48,
     },
   },
   {
@@ -521,7 +533,7 @@ export const ITA_HIST: readonly HistEntry[] = [
       bombKg: 0,
       torpedoKg: 0,
       reliability: 3,
-      costK: 30,
+      costK: 55,
     },
   },
   {
@@ -547,7 +559,7 @@ export const ITA_HIST: readonly HistEntry[] = [
       bombKg: 0,
       torpedoKg: 0,
       reliability: 3,
-      costK: 32,
+      costK: 58,
     },
   },
   {
@@ -574,7 +586,7 @@ export const ITA_HIST: readonly HistEntry[] = [
       bombKg: 1000,
       torpedoKg: 0,
       reliability: 2,
-      costK: 20,
+      costK: 40,
     },
   },
   {
@@ -601,7 +613,7 @@ export const ITA_HIST: readonly HistEntry[] = [
       torpedoKg: 0,
       dive: true,
       reliability: 3,
-      costK: 28,
+      costK: 50,
     },
   },
   {
@@ -624,7 +636,7 @@ export const ITA_HIST: readonly HistEntry[] = [
       bombKg: 2000,
       torpedoKg: 0,
       reliability: 4,
-      costK: 50,
+      costK: 85,
     },
   },
   {
@@ -647,7 +659,7 @@ export const ITA_HIST: readonly HistEntry[] = [
       bombKg: 1600,
       torpedoKg: 0,
       reliability: 3,
-      costK: 55,
+      costK: 92,
     },
   },
   {
@@ -670,7 +682,7 @@ export const ITA_HIST: readonly HistEntry[] = [
       bombKg: 1250,
       torpedoKg: 0,
       reliability: 4,
-      costK: 62,
+      costK: 105,
     },
   },
   {
@@ -693,7 +705,7 @@ export const ITA_HIST: readonly HistEntry[] = [
       bombKg: 2000,
       torpedoKg: 0,
       reliability: 3,
-      costK: 66,
+      costK: 115,
     },
   },
   {
@@ -716,7 +728,7 @@ export const ITA_HIST: readonly HistEntry[] = [
       bombKg: 0,
       torpedoKg: 800,
       reliability: 4,
-      costK: 65,
+      costK: 108,
     },
   },
   {
@@ -739,7 +751,7 @@ export const ITA_HIST: readonly HistEntry[] = [
       bombKg: 0,
       torpedoKg: 800,
       reliability: 3,
-      costK: 66,
+      costK: 112,
     },
   },
   {
@@ -763,7 +775,7 @@ export const ITA_HIST: readonly HistEntry[] = [
       bombKg: 3500,
       torpedoKg: 0,
       reliability: 2,
-      costK: 150,
+      costK: 280,
     },
   },
   {
@@ -786,7 +798,7 @@ export const ITA_HIST: readonly HistEntry[] = [
       bombKg: 0,
       torpedoKg: 0,
       reliability: 4,
-      costK: 55,
+      costK: 105,
     },
   },
   // ------------------------------------------------------------ ships
@@ -811,7 +823,7 @@ export const ITA_HIST: readonly HistEntry[] = [
       aaLight: [{ count: 2, mm: 40 }],
       aaHeavy: 0,
       aircraft: 0,
-      costM: 1.3,
+      costM: 3.6,
     },
   },
   {
@@ -836,7 +848,7 @@ export const ITA_HIST: readonly HistEntry[] = [
       aaLight: [{ count: 2, mm: 40 }],
       aaHeavy: 0,
       aircraft: 0,
-      costM: 2.1,
+      costM: 5.8,
     },
   },
   {
@@ -861,7 +873,7 @@ export const ITA_HIST: readonly HistEntry[] = [
       aaLight: [{ count: 2, mm: 37 }],
       aaHeavy: 0,
       aircraft: 0,
-      costM: 1.9,
+      costM: 4.8,
     },
   },
   {
@@ -886,7 +898,7 @@ export const ITA_HIST: readonly HistEntry[] = [
       aaLight: [{ count: 4, mm: 37 }],
       aaHeavy: 0,
       aircraft: 0,
-      costM: 2,
+      costM: 5.4,
     },
   },
   {
@@ -914,7 +926,7 @@ export const ITA_HIST: readonly HistEntry[] = [
       ],
       aaHeavy: 0,
       aircraft: 0,
-      costM: 2.2,
+      costM: 5.8,
     },
   },
   {
@@ -941,7 +953,7 @@ export const ITA_HIST: readonly HistEntry[] = [
       aaLight: [{ count: 8, mm: 37 }],
       aaHeavy: 6,
       aircraft: 0,
-      costM: 5,
+      costM: 13,
     },
   },
   {
@@ -970,7 +982,7 @@ export const ITA_HIST: readonly HistEntry[] = [
       ],
       aaHeavy: 6,
       aircraft: 0,
-      costM: 6.8,
+      costM: 19,
     },
   },
   {
@@ -999,7 +1011,7 @@ export const ITA_HIST: readonly HistEntry[] = [
       ],
       aaHeavy: 0,
       aircraft: 0,
-      costM: 5,
+      costM: 10,
     },
   },
   {
@@ -1025,7 +1037,7 @@ export const ITA_HIST: readonly HistEntry[] = [
       aaLight: [{ count: 8, mm: 37 }],
       aaHeavy: 12,
       aircraft: 0,
-      costM: 9,
+      costM: 22,
     },
   },
   {
@@ -1054,7 +1066,7 @@ export const ITA_HIST: readonly HistEntry[] = [
       ],
       aaHeavy: 12,
       aircraft: 0,
-      costM: 10.5,
+      costM: 28,
     },
   },
   {
@@ -1084,7 +1096,7 @@ export const ITA_HIST: readonly HistEntry[] = [
       ],
       aaHeavy: 8,
       aircraft: 0,
-      costM: 10,
+      costM: 30,
     },
   },
   {
@@ -1096,7 +1108,7 @@ export const ITA_HIST: readonly HistEntry[] = [
     year: 1940,
     // Littorio class (Vittorio Veneto, Roma): about 41,000 t actual standard
     // (35,000 Washington on paper), 9 x 381 mm, 12 x 152 mm, 12 x 90 mm AA,
-    // 280 mm belt, 30 kn; about 750 million lire.
+    // 280 mm belt, 30 kn; about 850 million lire per ship (warhistory.org); cost set above the North Carolina.
     source: SRC_SHIP,
     spec: {
       dispT: 41000,
@@ -1114,7 +1126,7 @@ export const ITA_HIST: readonly HistEntry[] = [
       ],
       aaHeavy: 12,
       aircraft: 0,
-      costM: 39,
+      costM: 85,
     },
   },
   {
@@ -1130,7 +1142,8 @@ export const ITA_HIST: readonly HistEntry[] = [
     source: SRC_SHIP,
     spec: {
       dispT: 23500,
-      main: { count: 8, mm: 135 },
+      main: { count: 0, mm: 0 },
+      secondary: { count: 8, mm: 135 },
       beltMm: 76,
       speedKn: 30,
       rangeNm: 5500,
@@ -1140,7 +1153,7 @@ export const ITA_HIST: readonly HistEntry[] = [
       aaLight: [{ count: 132, mm: 20 }],
       aaHeavy: 12,
       aircraft: 51,
-      costM: 12,
+      costM: 40,
     },
   },
   {
@@ -1165,7 +1178,7 @@ export const ITA_HIST: readonly HistEntry[] = [
       aaLight: [],
       aaHeavy: 0,
       aircraft: 0,
-      costM: 1.4,
+      costM: 3.2,
     },
   },
   {
@@ -1190,7 +1203,7 @@ export const ITA_HIST: readonly HistEntry[] = [
       aaLight: [],
       aaHeavy: 0,
       aircraft: 0,
-      costM: 1.8,
+      costM: 3.8,
     },
   },
   {
@@ -1215,7 +1228,7 @@ export const ITA_HIST: readonly HistEntry[] = [
       aaLight: [],
       aaHeavy: 0,
       aircraft: 0,
-      costM: 1.2,
+      costM: 2.6,
     },
   },
   // ------------------------------------------------------------ infantry
@@ -1227,8 +1240,9 @@ export const ITA_HIST: readonly HistEntry[] = [
     year: 1891,
     // Carcano M91 / M91/38 bolt-action rifle, 6.5 mm, aimed fire about 12
     // rounds a minute; the standard Italian rifle throughout the war.
-    source: "Wikipedia, Carcano; Cappellini, Le armi italiane",
-    spec: { mm: 6.5, aimedRpm: 12, rangeM: 500, autoPct: 0, costUsd: 15 },
+    source:
+      "Wikipedia, Carcano, from memory; cost a guess near the US 1903 rifle",
+    spec: { mm: 6.5, aimedRpm: 12, rangeM: 500, autoPct: 0, costUsd: 22 },
   },
   {
     id: "ita_beretta_m38",
@@ -1237,9 +1251,10 @@ export const ITA_HIST: readonly HistEntry[] = [
     techs: ["inf_eq_2"],
     year: 1938,
     // Beretta Moschetto Automatico M1938A, 9 mm submachine gun, about 600
-    // rounds per minute cyclic; issued to a minority of men (15 % used).
-    source: "Wikipedia, Beretta Model 38; Cappellini, Le armi italiane",
-    spec: { mm: 9, aimedRpm: 15, rangeM: 200, autoPct: 15, costUsd: 35 },
+    // rounds per minute cyclic; aimed bursts about 25 a minute, short range.
+    source:
+      "Wikipedia, Beretta Model 38, from memory; cost scaled from the Thompson",
+    spec: { mm: 9, aimedRpm: 25, rangeM: 200, autoPct: 0, costUsd: 55 },
   },
   // ------------------------------------------------------------ support
   {
@@ -1249,9 +1264,10 @@ export const ITA_HIST: readonly HistEntry[] = [
     techs: ["support_eq_1"],
     year: 1939,
     // Fiat 626 NL: 3-tonne army lorry, the common Italian truck; range of
-    // about 450 km; roughly 20,000 lire.
-    source: "Wikipedia, Fiat 626; Cappellini, Mezzi dell'esercito",
-    spec: { kind: "transport", rangeKm: 450, costUsd: 1050 },
+    // about 450 km.
+    source:
+      "Wikipedia, Fiat 626, from memory; cost scaled from US 1.5-ton trucks",
+    spec: { kind: "transport", rangeKm: 450, costUsd: 1400 },
   },
   {
     id: "ita_lancia_3ro",
@@ -1260,9 +1276,10 @@ export const ITA_HIST: readonly HistEntry[] = [
     techs: ["support_eq_1"],
     year: 1938,
     // Lancia 3Ro: diesel heavy truck of 6 tonnes, range about 500 km;
-    // about 55,000 lire.
-    source: "Wikipedia, Lancia 3Ro; Cappellini, Mezzi dell'esercito",
-    spec: { kind: "transport", rangeKm: 500, costUsd: 2900 },
+    //
+    source:
+      "Wikipedia, Lancia 3Ro, from memory; cost scaled from US 2.5-ton trucks",
+    spec: { kind: "transport", rangeKm: 500, costUsd: 3200 },
   },
   {
     id: "ita_alce",
@@ -1271,9 +1288,10 @@ export const ITA_HIST: readonly HistEntry[] = [
     techs: ["support_eq_1"],
     year: 1939,
     // Moto Guzzi Alce: 500 cc army motorcycle for reconnaissance and
-    // dispatch riders, range about 350 km; about 6,000 lire.
-    source: "Wikipedia, Moto Guzzi Alce",
-    spec: { kind: "recon", rangeKm: 350, costUsd: 320 },
+    // dispatch riders, range about 350 km;
+    source:
+      "Wikipedia, Moto Guzzi Alce, from memory; cost scaled from the Harley WLA",
+    spec: { kind: "recon", rangeKm: 350, costUsd: 400 },
   },
   // ------------------------------------------------------------ guns
   {
@@ -1294,7 +1312,7 @@ export const ITA_HIST: readonly HistEntry[] = [
       penMm500: 0,
       massKg: 1076,
       barrels: 1,
-      costK: 5,
+      costK: 6,
     },
   },
   {
@@ -1315,7 +1333,7 @@ export const ITA_HIST: readonly HistEntry[] = [
       penMm500: 0,
       massKg: 1421,
       barrels: 1,
-      costK: 6,
+      costK: 7,
     },
   },
   {
@@ -1336,7 +1354,7 @@ export const ITA_HIST: readonly HistEntry[] = [
       penMm500: 0,
       massKg: 900,
       barrels: 1,
-      costK: 4.5,
+      costK: 6,
     },
   },
   {
@@ -1357,7 +1375,7 @@ export const ITA_HIST: readonly HistEntry[] = [
       penMm500: 0,
       massKg: 2300,
       barrels: 1,
-      costK: 9,
+      costK: 12,
     },
   },
   {
@@ -1378,7 +1396,7 @@ export const ITA_HIST: readonly HistEntry[] = [
       penMm500: 0,
       massKg: 1250,
       barrels: 1,
-      costK: 6.5,
+      costK: 9,
     },
   },
   {
@@ -1399,7 +1417,7 @@ export const ITA_HIST: readonly HistEntry[] = [
       penMm500: 0,
       massKg: 11300,
       barrels: 1,
-      costK: 22,
+      costK: 30,
     },
   },
   {
@@ -1421,7 +1439,7 @@ export const ITA_HIST: readonly HistEntry[] = [
       penMm500: 38,
       massKg: 277,
       barrels: 1,
-      costK: 1.8,
+      costK: 2.2,
     },
   },
   {
@@ -1442,7 +1460,7 @@ export const ITA_HIST: readonly HistEntry[] = [
       penMm500: 0,
       massKg: 307,
       barrels: 1,
-      costK: 1.5,
+      costK: 2.5,
     },
   },
   {
@@ -1463,7 +1481,7 @@ export const ITA_HIST: readonly HistEntry[] = [
       penMm500: 0,
       massKg: 1000,
       barrels: 1,
-      costK: 2.5,
+      costK: 5,
     },
   },
   {
@@ -1484,7 +1502,7 @@ export const ITA_HIST: readonly HistEntry[] = [
       penMm500: 0,
       massKg: 3000,
       barrels: 1,
-      costK: 4.5,
+      costK: 12,
     },
   },
   {
@@ -1505,7 +1523,7 @@ export const ITA_HIST: readonly HistEntry[] = [
       penMm500: 0,
       massKg: 8000,
       barrels: 1,
-      costK: 8,
+      costK: 28,
     },
   },
 ];
