@@ -75,7 +75,11 @@ export class WwLandModeEvent implements GameEvent {
   constructor(readonly mode: LandMode) {}
 }
 export class OpenWwArmyEvent implements GameEvent {
-  constructor(readonly tab: WwArmyTab = "armies") {}
+  /** `convertArmy`: open the templates tab on that army's overwrite picker. */
+  constructor(
+    readonly tab: WwArmyTab = "armies",
+    readonly convertArmy?: number,
+  ) {}
 }
 export class OpenWwBattleEvent implements GameEvent {
   constructor(readonly region: number) {}

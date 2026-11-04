@@ -59,7 +59,7 @@ export function issueArmyOrder(
 ): WwOrderBlock | null {
   const block = armyOrderBlock(land, cl, order);
   if (block !== null) return block;
-  if (!("army" in order)) return null;
+  if (!("army" in order) || order.kind === "divisions_convert") return null;
   const a = land.armies.get(order.army)!;
   if (
     by === "player" &&

@@ -709,6 +709,8 @@ export const LAND_ORDER_KINDS = [
   "army_auto_level",
   // Army templates, appended at the end of the order union.
   "train_army",
+  // Template conversion, appended.
+  "divisions_convert",
 ] as const;
 export type LandOrderKind = (typeof LAND_ORDER_KINDS)[number];
 

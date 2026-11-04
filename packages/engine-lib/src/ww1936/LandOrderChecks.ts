@@ -65,7 +65,8 @@ export function landOrderBlockOf(
   w: OrderCheckWorld,
   order: LandOrder,
 ): WwOrderBlock | null {
-  if (!("army" in order)) return null;
+  // (divisions_convert names an army too, but the engine judges it itself.)
+  if (!("army" in order) || order.kind === "divisions_convert") return null;
   const a = w.army(order.army);
   if (a === null || a.owner !== w.me) return "no_army";
   // P5 lane A: the owner gives the order; a volunteer army's side checks

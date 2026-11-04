@@ -4214,6 +4214,19 @@
       "tab": "Congress",
       "threshold": "Threshold {pct}%"
     },
+    "convert": {
+      "already": "Every division here already has this template.",
+      "btn_army": "Change whole army's template",
+      "btn_template": "Overwrite with another template",
+      "delete_old": "Delete unused template {name}",
+      "delete_tap": "Tap again to delete",
+      "done": "Converted to {name}. Equipment and organisation fill in gradually.",
+      "intro_army": "{army}: pick the template for its {n} divisions.",
+      "intro_template": "{name}: pick the template its {n} divisions become.",
+      "note": "Every division changes at once and keeps its place, plan and battle. Equipment and organisation are redrawn gradually; no division is lost.",
+      "queued": "Queued training of this template moves too.",
+      "tap_again": "Tap again to change {n} divisions"
+    },
     "convoy_use": {
       "idle": "Idle",
       "lend_lease": "Lend-lease",
