@@ -115,7 +115,10 @@ export type WwAirTab =
   | "record"
   // ww8: the wing model's two tabs (wings replaces zones, reports record).
   | "wings"
-  | "reports";
+  | "reports"
+  // w51: air groups and their templates.
+  | "groups"
+  | "templates";
 export const WW_AIR_TABS: readonly WwAirTab[] = [
   "zones",
   "planes",
@@ -125,6 +128,8 @@ export const WW_AIR_TABS: readonly WwAirTab[] = [
 
 /** ww8 (design §8.7): the air drawer's tabs in the wing model. */
 export const WW_AIR_TABS_LIVE: readonly WwAirTab[] = [
+  "groups",
+  "templates",
   "wings",
   "bases",
   "planes",

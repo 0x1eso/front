@@ -15,12 +15,16 @@
 
 import {
   AIR_MISSIONS,
+  WP_BACK,
   WP_GROUND,
+  WP_OUT,
   WP_REARM,
+  WP_STATION,
 } from "@openfront/engine-api/ww1936/AirTypes";
 import { fogOfAir } from "../../../hud/ww1936/FogModel";
 import {
   layoutWings,
+  SLOT_AIRGROUP,
   SLOT_TOKEN,
   wingPhase,
   type WingSlot,
@@ -105,6 +109,7 @@ export class WingTokenPass {
     chosen: ReadonlySet<number>,
     expanded: ReadonlySet<number>,
     nowMs: number,
+    chosenGroup = 0,
   ): void {
     const fog = fogOfAir(air);
     const tick = Math.floor(tickF);
@@ -119,6 +124,7 @@ export class WingTokenPass {
       air.activeFights(nowMs),
       [...chosen].join(","),
       [...expanded].join(","),
+      chosenGroup,
     ].join("|");
     if (key === this.key) return;
     this.key = key;
@@ -127,7 +133,7 @@ export class WingTokenPass {
       air,
       navy,
       fog,
-      { zoom, airLayer, chosen, expanded },
+      { zoom, airLayer, chosen, expanded, group: chosenGroup },
       this.slots,
     );
     this.fighting.clear();
@@ -143,7 +149,9 @@ export class WingTokenPass {
     for (let pass = 0; pass < 2; pass++) {
       for (let i = 0; i < n; i++) {
         const s = this.slots[i];
-        const isChosen = s.kind === SLOT_TOKEN && chosen.has(s.wing);
+        const isChosen =
+          (s.kind === SLOT_TOKEN && chosen.has(s.wing)) ||
+          (s.kind === SLOT_AIRGROUP && s.wing === chosenGroup);
         if (isChosen === (pass === 1)) this.write(air, s, isChosen, tick);
       }
     }
@@ -159,6 +167,10 @@ export class WingTokenPass {
     const b = this.batch;
     const x = s.x + 0.5;
     const y = s.y + 0.5;
+    if (s.kind === SLOT_AIRGROUP) {
+      this.writeGroup(air, s, chosen, tick);
+      return;
+    }
     // A group chip reads like a base chip: the plane silhouette and the planes it holds
     // (a count chip alone looks like an army's).
     if (s.kind !== SLOT_TOKEN || s.lod > 0) {
@@ -202,6 +214,59 @@ export class WingTokenPass {
       s.planes,
       brief === undefined ? -1 : wingStrengthPm(brief, s.planes),
       detail === undefined ? -1 : detail.xpMilli,
+      airMissionCell(mission),
+      state,
+      chosen ? TOKEN_CHOSEN : 0,
+    );
+  }
+
+  /** w51: an air group is a token: its main type's silhouette, its planes, its strength. */
+  private writeGroup(
+    air: WwAirView,
+    s: WingSlot,
+    chosen: boolean,
+    tick: number,
+  ): void {
+    const b = this.batch;
+    const x = s.x + 0.5;
+    const y = s.y + 0.5;
+    if (s.lod > 0) {
+      let k = 1;
+      if (s.lod === 1) k = numberGlyphs(SHIP_CELL.plane, s.planes, this.glyphs);
+      else this.glyphs[0] = SHIP_CELL.plane;
+      b.putText(x, y, s.owner, this.glyphs, k, TEXT_OWNER);
+      return;
+    }
+    const g = air.detail?.groups?.find((v) => v.id === s.wing);
+    let state = 0;
+    let mission = -1;
+    let pm = -1;
+    if (g !== undefined) {
+      let full = 0;
+      let now = 0;
+      let allRest = g.members.length > 0;
+      for (const m of g.members) {
+        full += m.full;
+        now += m.planes;
+        const ph = m.phase;
+        const flying = ph === WP_OUT || ph === WP_STATION || ph === WP_BACK;
+        if (ph !== WP_REARM) allRest = false;
+        if (flying && mission < 0) mission = m.flyMission;
+        if (flying && this.fighting.has(m.flySr)) state |= ST_BATTLE;
+      }
+      if (allRest) state |= ST_REPAIR;
+      pm = full > 0 ? Math.min(1000, Math.round((now * 1000) / full)) : 0;
+    }
+    void tick;
+    b.putToken(
+      x,
+      y,
+      KIND_TOKEN,
+      s.owner,
+      SHIP_CELL.plane,
+      s.planes,
+      pm,
+      -1,
       airMissionCell(mission),
       state,
       chosen ? TOKEN_CHOSEN : 0,

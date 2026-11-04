@@ -74,6 +74,11 @@ const GROUPS: readonly {
     key: "ww1936.army_tpl.group",
     match: (e) => e.type === "army",
   },
+  {
+    id: "airgroup",
+    key: "ww1936.airgroup.library_group",
+    match: (e) => e.type === "airgroup",
+  },
 ];
 
 const BTN =
@@ -82,6 +87,12 @@ const BTN =
 function summary(e: LibEntry, s: EntryStatus, model: DesignerModel): string {
   if (s.state === "stale") {
     return e.type === "design" ? `${e.def.kind} · ${e.def.base}` : "";
+  }
+  if (e.type === "airgroup") {
+    return Object.entries(e.planes)
+      .filter(([, n]) => n > 0)
+      .map(([t, n]) => `${translateText(`ww1936.equip.${t}`)} ${n}`)
+      .join(" · ");
   }
   if (e.type === "army") {
     return e.items.map((i) => `${i.name} ×${i.count}`).join(" · ");
@@ -139,46 +150,62 @@ function renderCard(
       ${s.state === "ready" ? "" : s.state === "have" ? "" : "🔒 "}${s.reason}
     </div>
     <div class="flex flex-wrap gap-1">
-      ${e.type === "army"
-        ? nothing
-        : html`${env.edit
-              ? html`<button
-                  type="button"
-                  data-ww-lib-edit
-                  class="${BTN} flex-1 border-sky-400/60 bg-sky-800/40"
-                  @click=${() => env.edit?.(e)}
-                >
-                  ${translateText("ww1936.prep.edit_entry")}
-                </button>`
-              : html`<button
-                  type="button"
-                  data-ww-lib-load
-                  aria-disabled=${String(s.order === null)}
-                  class="${BTN} flex-1 ${s.order === null
-                    ? "opacity-40"
-                    : "border-emerald-400/60 bg-emerald-800/50"}"
-                  @click=${() => {
-                    if (s.order !== null) env.load(e, s);
-                  }}
-                >
-                  ${translateText("ww1936.library.load")}
-                </button>`}
-            <button
+      ${e.type === "airgroup"
+        ? env.edit
+          ? nothing
+          : html`<button
               type="button"
-              role="switch"
-              data-ww-lib-auto
-              aria-checked=${String(e.auto)}
-              aria-disabled=${String(s.state === "stale")}
-              class="${BTN} flex items-center gap-1 ${e.auto
-                ? "border-emerald-400/70 bg-emerald-900/50"
-                : ""} ${s.state === "stale" ? "opacity-40" : ""}"
+              data-ww-lib-load
+              aria-disabled=${String(s.order === null)}
+              class="${BTN} flex-1 ${s.order === null
+                ? "opacity-40"
+                : "border-emerald-400/60 bg-emerald-800/50"}"
               @click=${() => {
-                if (s.state !== "stale") env.toggleAuto(e);
+                if (s.order !== null) env.load(e, s);
               }}
             >
-              ${translateText("ww1936.library.auto")}
-              ${translateText(e.auto ? "ww1936.auto.on" : "ww1936.auto.off")}
-            </button>`}
+              ${translateText("ww1936.library.load")}
+            </button>`
+        : e.type === "army"
+          ? nothing
+          : html`${env.edit
+                ? html`<button
+                    type="button"
+                    data-ww-lib-edit
+                    class="${BTN} flex-1 border-sky-400/60 bg-sky-800/40"
+                    @click=${() => env.edit?.(e)}
+                  >
+                    ${translateText("ww1936.prep.edit_entry")}
+                  </button>`
+                : html`<button
+                    type="button"
+                    data-ww-lib-load
+                    aria-disabled=${String(s.order === null)}
+                    class="${BTN} flex-1 ${s.order === null
+                      ? "opacity-40"
+                      : "border-emerald-400/60 bg-emerald-800/50"}"
+                    @click=${() => {
+                      if (s.order !== null) env.load(e, s);
+                    }}
+                  >
+                    ${translateText("ww1936.library.load")}
+                  </button>`}
+              <button
+                type="button"
+                role="switch"
+                data-ww-lib-auto
+                aria-checked=${String(e.auto)}
+                aria-disabled=${String(s.state === "stale")}
+                class="${BTN} flex items-center gap-1 ${e.auto
+                  ? "border-emerald-400/70 bg-emerald-900/50"
+                  : ""} ${s.state === "stale" ? "opacity-40" : ""}"
+                @click=${() => {
+                  if (s.state !== "stale") env.toggleAuto(e);
+                }}
+              >
+                ${translateText("ww1936.library.auto")}
+                ${translateText(e.auto ? "ww1936.auto.on" : "ww1936.auto.off")}
+              </button>`}
       <button
         type="button"
         data-ww-lib-share
