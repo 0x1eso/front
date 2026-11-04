@@ -2,9 +2,10 @@
 // units of Types.ts (armour mm and slope from the vertical, penetration at
 // 500 m / 30 degrees with the normal AP round, speeds km/h, cost in thousand
 // 1940 US dollars).
-// Soviet prices are not comparable at the official rate, so every cost is an
-// estimate from US and British items of like weight and labour (mass-produced
-// Soviet designs come out cheap for their weight). Figures marked as
+// Soviet prices are not comparable at the official rate. Costs are ruble ratios
+// anchored on a T-34 at about 30 thousand dollars (135,000 rubles in 1943; IS-2
+// 264,400; see the ww66 report's table), or estimates from US and British items
+// of like weight and labour where no ruble price is known. Figures marked as
 // references were read in articles; the rest, including most masses, speeds
 // and gun data, are from memory and spot-checked, not all verified.
 // Where references disagree a middle value is used and the range is noted.
@@ -29,6 +30,7 @@ export const SUN_HIST: readonly HistEntry[] = [
     techs: [],
     year: 1931,
     // T-27 tankette: 2.7 t, 10 mm, one 7.62 mm DT; mass-produced (about 3,200). Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_TANK,
     spec: {
       massT: 2.7,
@@ -41,7 +43,7 @@ export const SUN_HIST: readonly HistEntry[] = [
       offroadKmh: 20,
       roadKmh: 40,
       reliability: 3,
-      costK: 3.5,
+      costK: 5,
     },
   },
   {
@@ -52,6 +54,7 @@ export const SUN_HIST: readonly HistEntry[] = [
     techs: ["light_tank_1"],
     year: 1933,
     // T-26 model 1933: 9.4 t, 15 mm, 45 mm 20-K (BR-240 AP about 32 mm at 500 m, 30 degrees; references 30-35), DT coaxial. Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_TANK,
     spec: {
       massT: 9.4,
@@ -65,7 +68,7 @@ export const SUN_HIST: readonly HistEntry[] = [
       offroadKmh: 18,
       roadKmh: 30,
       reliability: 3,
-      costK: 12,
+      costK: 14,
     },
   },
   {
@@ -76,6 +79,7 @@ export const SUN_HIST: readonly HistEntry[] = [
     techs: ["light_tank_1"],
     year: 1933,
     // BT-5: 11.6 t, 13 mm, 45 mm 20-K, 72 km/h on wheels (52 on tracks). Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_TANK,
     spec: {
       massT: 11.6,
@@ -89,7 +93,7 @@ export const SUN_HIST: readonly HistEntry[] = [
       offroadKmh: 40,
       roadKmh: 72,
       reliability: 3,
-      costK: 15,
+      costK: 17,
     },
   },
   {
@@ -100,6 +104,7 @@ export const SUN_HIST: readonly HistEntry[] = [
     techs: ["light_tank_1"],
     year: 1938,
     // BA-10 armoured car (6x4): 5.1 t, 10 mm, 45 mm 20-K, 53 km/h. Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_TANK,
     spec: {
       massT: 5.1,
@@ -114,7 +119,7 @@ export const SUN_HIST: readonly HistEntry[] = [
       roadKmh: 53,
       wheeled: true,
       reliability: 3,
-      costK: 8,
+      costK: 10,
     },
   },
   {
@@ -125,6 +130,7 @@ export const SUN_HIST: readonly HistEntry[] = [
     techs: ["light_tank_2"],
     year: 1939,
     // T-26 model 1939: 10.3 t, 15 mm hull, conical turret 25 mm, 45 mm 20-K; slopes approximate. Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_TANK,
     spec: {
       massT: 10.3,
@@ -138,7 +144,7 @@ export const SUN_HIST: readonly HistEntry[] = [
       offroadKmh: 20,
       roadKmh: 30,
       reliability: 3,
-      costK: 13,
+      costK: 15,
     },
   },
   {
@@ -149,6 +155,7 @@ export const SUN_HIST: readonly HistEntry[] = [
     techs: ["light_tank_2"],
     year: 1937,
     // BT-7: 13.8 t, 22 mm hull, 15 mm turret, 45 mm 20-K, 86 km/h on wheels. Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_TANK,
     spec: {
       massT: 13.8,
@@ -162,7 +169,7 @@ export const SUN_HIST: readonly HistEntry[] = [
       offroadKmh: 40,
       roadKmh: 86,
       reliability: 3,
-      costK: 17,
+      costK: 19,
     },
   },
   {
@@ -173,6 +180,7 @@ export const SUN_HIST: readonly HistEntry[] = [
     techs: ["light_tank_2"],
     year: 1940,
     // T-40 amphibious: 5.5 t, 13 mm, 12.7 mm DShK plus one DT. Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_TANK,
     spec: {
       massT: 5.5,
@@ -186,7 +194,7 @@ export const SUN_HIST: readonly HistEntry[] = [
       offroadKmh: 25,
       roadKmh: 44,
       reliability: 3,
-      costK: 9,
+      costK: 11,
     },
   },
   {
@@ -197,6 +205,7 @@ export const SUN_HIST: readonly HistEntry[] = [
     techs: ["light_tank_2"],
     year: 1941,
     // T-60: 5.8 t, 35 mm front, 20 mm TNSh (about 17 mm at 500 m), slope approximate. Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_TANK,
     spec: {
       massT: 5.8,
@@ -210,7 +219,7 @@ export const SUN_HIST: readonly HistEntry[] = [
       offroadKmh: 25,
       roadKmh: 45,
       reliability: 3,
-      costK: 8,
+      costK: 10,
     },
   },
   {
@@ -221,6 +230,7 @@ export const SUN_HIST: readonly HistEntry[] = [
     techs: ["light_tank_2", "armor_plate_2"],
     year: 1942,
     // T-70: 9.2 t, 45 mm hull, 60 mm turret, 45 mm 20-K; hull slope approximate. Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_TANK,
     spec: {
       massT: 9.2,
@@ -234,7 +244,7 @@ export const SUN_HIST: readonly HistEntry[] = [
       offroadKmh: 30,
       roadKmh: 45,
       reliability: 3,
-      costK: 12,
+      costK: 16,
     },
   },
   {
@@ -245,6 +255,7 @@ export const SUN_HIST: readonly HistEntry[] = [
     techs: ["light_tank_2"],
     year: 1942,
     // BA-64 armoured car on the GAZ-67 chassis: 2.4 t, 15 mm, one 7.62 mm DT, 80 km/h. Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_TANK,
     spec: {
       massT: 2.4,
@@ -259,7 +270,7 @@ export const SUN_HIST: readonly HistEntry[] = [
       roadKmh: 80,
       wheeled: true,
       reliability: 4,
-      costK: 4,
+      costK: 6,
     },
   },
   {
@@ -270,6 +281,7 @@ export const SUN_HIST: readonly HistEntry[] = [
     techs: ["medium_tank_1"],
     year: 1938,
     // T-28 model 1938: 28 t, 30 mm, 76.2 mm KT-28 L/16.5 (low velocity, about 25 mm at 500 m), four DT. Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_TANK,
     spec: {
       massT: 28,
@@ -283,7 +295,7 @@ export const SUN_HIST: readonly HistEntry[] = [
       offroadKmh: 18,
       roadKmh: 37,
       reliability: 2,
-      costK: 40,
+      costK: 45,
     },
   },
   {
@@ -294,6 +306,8 @@ export const SUN_HIST: readonly HistEntry[] = [
     techs: ["medium_tank_1", "sloped_armor", "diesel_engine"],
     year: 1940,
     // T-34 model 1940: 26.8 t, hull 45 mm at 60 degrees, welded turret 52 mm, 76.2 mm L-11 (about 33 mm at 500 m, 30 degrees; references 30-40).3 per dollar (references 247,000-270,000). Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
+    // Audit w66: F-34 with BR-350A is 62-69 mm at 500 m (Wikipedia, angle not stated: Soviet normal-impact figures); 60 at 30 deg. Enough for a Pz III's 50 mm front, not a Pz IV H's 80 mm. 33 was far below it. 30 km/h cross-country as in the contract's own T-34.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_TANK,
     spec: {
       massT: 26.8,
@@ -301,14 +315,14 @@ export const SUN_HIST: readonly HistEntry[] = [
       hullSlopeDeg: 60,
       turretFrontMm: 52,
       gunMm: 76,
-      penMm500: 33,
+      penMm500: 60,
       heFillerG: 650,
       mgs: 2,
-      offroadKmh: 35,
+      offroadKmh: 30,
       roadKmh: 55,
       diesel: true,
       reliability: 3,
-      costK: 28,
+      costK: 38,
     },
   },
   {
@@ -319,21 +333,24 @@ export const SUN_HIST: readonly HistEntry[] = [
     techs: ["medium_tank_2", "sloped_armor", "diesel_engine"],
     year: 1943,
     // T-34 model 1943: 30.9 t, hull 45 mm at 60 degrees, hexagonal turret 70 mm, 76.2 mm F-34 (BR-350A about 50 mm at 500 m, 30 degrees; references 45-61). Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
-    source: SRC_TANK,
+    // Audit w66: Same F-34 as the 1940 model: same 60. 30 km/h cross-country.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
+    source:
+      "Checked 2026-11-04 on Wikipedia: T-34 (45 mm at 60 deg, 53 km/h, 130,000-429,000 rubles, 3,094-9,000 man-hours), 76 mm F-34 (BR-350A 62-69 mm at 500 m). Cost: T-34 is the anchor of the ruble ratios, an estimate.",
     spec: {
       massT: 30.9,
       hullFrontMm: 45,
       hullSlopeDeg: 60,
       turretFrontMm: 70,
       gunMm: 76,
-      penMm500: 50,
+      penMm500: 60,
       heFillerG: 650,
       mgs: 2,
-      offroadKmh: 35,
+      offroadKmh: 30,
       roadKmh: 55,
       diesel: true,
       reliability: 4,
-      costK: 22,
+      costK: 30,
     },
   },
   {
@@ -344,21 +361,24 @@ export const SUN_HIST: readonly HistEntry[] = [
     techs: ["medium_tank_3", "tank_gun_3", "sloped_armor", "diesel_engine"],
     year: 1944,
     // T-34-85: 32 t, hull 45 mm at 60 degrees, turret 90 mm, 85 mm ZIS-S-53 (BR-365 about 90 mm at 500 m, 30 degrees; references 85-100). Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
-    source: SRC_TANK,
+    // Audit w66: 85 mm: 123-125 mm at 500 m at normal impact, calculated to the Anglo-American 50 % standard (Wikipedia); the 7.5 cm L/48 gets a like figure on that standard (Wikipedia, KwK 40). So 95 at 30 deg, one below its 96.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
+    source:
+      "Checked 2026-11-04 on Wikipedia: 85 mm gun page (D-5T 123-125 mm at 500 m at normal impact); T-34 page for the hull. Other figures from memory; cost an estimate unless stated.",
     spec: {
       massT: 32,
       hullFrontMm: 45,
       hullSlopeDeg: 60,
       turretFrontMm: 90,
       gunMm: 85,
-      penMm500: 90,
+      penMm500: 95,
       heFillerG: 660,
       mgs: 2,
-      offroadKmh: 35,
+      offroadKmh: 30,
       roadKmh: 55,
       diesel: true,
       reliability: 4,
-      costK: 25,
+      costK: 34,
     },
   },
   {
@@ -393,21 +413,24 @@ export const SUN_HIST: readonly HistEntry[] = [
     techs: ["heavy_tank_1", "diesel_engine"],
     year: 1941,
     // KV-1 model 1941: 45 t, hull 75 mm at 30 degrees (slope approximate), turret 75 mm, 76.2 mm ZiS-5 (about 50 mm), three DT; transmission weak. Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
-    source: SRC_TANK,
+    // Audit w66: ZiS-5 fires the F-34's rounds: same 60.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
+    source:
+      "Checked 2026-11-04 on Wikipedia: KV tank family (KV-1 up to 90 mm with add-on plate, 35 km/h, ZiS-5). Other figures from memory; cost an estimate unless stated.",
     spec: {
       massT: 45,
       hullFrontMm: 75,
       hullSlopeDeg: 30,
       turretFrontMm: 75,
       gunMm: 76,
-      penMm500: 50,
+      penMm500: 60,
       heFillerG: 650,
       mgs: 3,
       offroadKmh: 20,
       roadKmh: 35,
       diesel: true,
       reliability: 2,
-      costK: 45,
+      costK: 72,
     },
   },
   {
@@ -418,6 +441,7 @@ export const SUN_HIST: readonly HistEntry[] = [
     techs: ["heavy_tank_1", "artillery_2", "diesel_engine"],
     year: 1940,
     // KV-2: 52 t, hull 75 mm, turret mantlet 75-110 mm (100 used), 152 mm M-10T howitzer (HE filler about 5.5 kg, no usable AP round), notoriously unreliable. Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_TANK,
     spec: {
       massT: 52,
@@ -432,7 +456,7 @@ export const SUN_HIST: readonly HistEntry[] = [
       roadKmh: 34,
       diesel: true,
       reliability: 1,
-      costK: 55,
+      costK: 85,
     },
   },
   {
@@ -440,9 +464,11 @@ export const SUN_HIST: readonly HistEntry[] = [
     country: "SUN",
     family: "tank",
     role: "heavy",
-    techs: ["heavy_tank_1", "tank_engine_2"],
+    techs: ["heavy_tank_1", "diesel_engine", "tank_engine_2"],
     year: 1942,
     // KV-1S: 42.5 t, hull 75 mm, cast turret 82 mm, 76.2 mm ZiS-5, 43 km/h; lighter and faster. Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
+    // Audit w66: ZiS-5: same 60; V-2 diesel like every KV.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_TANK,
     spec: {
       massT: 42.5,
@@ -450,14 +476,14 @@ export const SUN_HIST: readonly HistEntry[] = [
       hullSlopeDeg: 30,
       turretFrontMm: 82,
       gunMm: 76,
-      penMm500: 50,
+      penMm500: 60,
       heFillerG: 650,
       mgs: 2,
       offroadKmh: 25,
       roadKmh: 43,
       diesel: true,
       reliability: 3,
-      costK: 38,
+      costK: 58,
     },
   },
   {
@@ -468,12 +494,15 @@ export const SUN_HIST: readonly HistEntry[] = [
     techs: ["heavy_tank_2", "tank_gun_3", "diesel_engine"],
     year: 1944,
     // IS-2 model 1944: 46 t, upper hull 120 mm at 60 degrees (references vary on slope), turret 160 mm, 122 mm D-25T (BR-471 about 120 mm at 500 m, 30 degrees; references 117-125), HE filler about 3.6 kg. Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
-    source: SRC_TANK,
+    // Audit w66: 100 mm turret front (Wikipedia, IS tank family); 155-160 is the mantlet's peak, and every other entry uses the turret or the plain mantlet figure. Hull 120 mm at 60 deg stays. Armour 193 becomes 173.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
+    source:
+      "Checked 2026-11-04 on Wikipedia: IS tank family (264,400 rubles, 46 t, 37 km/h, hull 120 mm, turret 100, mantlet 155, D-25T), 122 mm A-19 page (BR-471 120 mm at 500 m, 60 deg meet angle). Cost: ruble ratio to the T-34.",
     spec: {
       massT: 46,
       hullFrontMm: 120,
       hullSlopeDeg: 60,
-      turretFrontMm: 160,
+      turretFrontMm: 100,
       gunMm: 122,
       penMm500: 120,
       heFillerG: 3600,
@@ -482,7 +511,7 @@ export const SUN_HIST: readonly HistEntry[] = [
       roadKmh: 37,
       diesel: true,
       reliability: 3,
-      costK: 50,
+      costK: 58,
     },
   },
   {
@@ -493,20 +522,22 @@ export const SUN_HIST: readonly HistEntry[] = [
     techs: ["light_tank_2", "tank_gun_2"],
     year: 1943,
     // SU-76M: 11.2 t, 35 mm, open-topped, 76.2 mm ZiS-3 (about 50 mm at 500 m). Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
+    // Audit w66: ZiS-3 fires the F-34's rounds: same 60.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_TANK,
     spec: {
       massT: 11.2,
       hullFrontMm: 35,
       hullSlopeDeg: 20,
       gunMm: 76,
-      penMm500: 50,
+      penMm500: 60,
       heFillerG: 650,
       mgs: 0,
       offroadKmh: 25,
       roadKmh: 45,
       openTop: true,
       reliability: 3,
-      costK: 11,
+      costK: 16,
     },
   },
   {
@@ -517,20 +548,22 @@ export const SUN_HIST: readonly HistEntry[] = [
     techs: ["medium_tank_2", "tank_gun_3", "diesel_engine"],
     year: 1943,
     // SU-85: 29.6 t, casemate 45 mm at 50 degrees, 85 mm D-5S (about 90 mm at 500 m). Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
+    // Audit w66: D-5S: same 85 mm figure as the T-34-85.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_TANK,
     spec: {
       massT: 29.6,
       hullFrontMm: 45,
       hullSlopeDeg: 50,
       gunMm: 85,
-      penMm500: 90,
+      penMm500: 95,
       heFillerG: 660,
       mgs: 0,
       offroadKmh: 30,
       roadKmh: 47,
       diesel: true,
       reliability: 4,
-      costK: 24,
+      costK: 28,
     },
   },
   {
@@ -541,6 +574,7 @@ export const SUN_HIST: readonly HistEntry[] = [
     techs: ["medium_tank_2", "artillery_2", "diesel_engine"],
     year: 1943,
     // SU-122: 30.9 t, 45 mm at 50 degrees, 122 mm M-30S howitzer (HE filler about 3.6 kg); 638 built. Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_TANK,
     spec: {
       massT: 30.9,
@@ -554,7 +588,7 @@ export const SUN_HIST: readonly HistEntry[] = [
       roadKmh: 55,
       diesel: true,
       reliability: 4,
-      costK: 26,
+      costK: 30,
     },
   },
   {
@@ -565,6 +599,7 @@ export const SUN_HIST: readonly HistEntry[] = [
     techs: ["heavy_tank_1", "artillery_2", "diesel_engine"],
     year: 1943,
     // SU-152: 45.5 t, casemate 75 mm, 152 mm ML-20S (BR-540 APHE about 105 mm at 500 m, 30 degrees; HE filler about 6 kg). Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_TANK,
     spec: {
       massT: 45.5,
@@ -578,7 +613,7 @@ export const SUN_HIST: readonly HistEntry[] = [
       roadKmh: 43,
       diesel: true,
       reliability: 3,
-      costK: 40,
+      costK: 48,
     },
   },
   {
@@ -589,20 +624,23 @@ export const SUN_HIST: readonly HistEntry[] = [
     techs: ["medium_tank_3", "tank_gun_4", "diesel_engine"],
     year: 1944,
     // SU-100: 31.6 t, casemate 75 mm at 50 degrees, 100 mm D-10S (BR-412 about 150 mm at 500 m, 30 degrees; references 139-160), HE filler about 1.5 kg. Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
-    source: SRC_TANK,
+    // Audit w66: D-10S BR-412 is 160 mm at 500 m at normal impact (Wikipedia); 130 at 30 deg by the D-25T's ratio, and near the US 90 mm M3 at 125. 150 was too high.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
+    source:
+      "Checked 2026-11-04 on Wikipedia: SU-100 (31.6 t, 75 mm, 48 km/h), D-10 (BR-412 160 mm at 500 m). Other figures from memory; cost an estimate unless stated.",
     spec: {
       massT: 31.6,
       hullFrontMm: 75,
       hullSlopeDeg: 50,
       gunMm: 100,
-      penMm500: 150,
+      penMm500: 130,
       heFillerG: 1460,
       mgs: 0,
       offroadKmh: 30,
       roadKmh: 50,
       diesel: true,
       reliability: 4,
-      costK: 25,
+      costK: 32,
     },
   },
   // ---- planes
@@ -614,21 +652,20 @@ export const SUN_HIST: readonly HistEntry[] = [
     techs: ["fighter_1"],
     year: 1939,
     // I-16 type 24: 525 km/h, 700 km, empty 1,327 kg, 14.54 m2 wing, two ShKAS and two 20 mm ShVAK. Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
+    // Audit w66: Most I-16s of 1936-41 (types 5 to 24) had two or four ShKAS; the two-ShVAK type 28 was a few hundred. Type 24: four ShKAS. Attack 24.6 above a Bf 109 E was the cannon version.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_AIR,
     spec: {
       maxKmh: 525,
       rangeKm: 700,
       emptyKg: 1327,
       wingLoad: 129,
-      guns: [
-        { mm: 7.62, count: 2, rpm: 1800 },
-        { mm: 20, count: 2, rpm: 800 },
-      ],
+      guns: [{ mm: 7.62, count: 4, rpm: 1800 }],
       defGuns: 0,
       bombKg: 0,
       torpedoKg: 0,
       reliability: 3,
-      costK: 9,
+      costK: 14,
     },
   },
   {
@@ -639,6 +676,7 @@ export const SUN_HIST: readonly HistEntry[] = [
     techs: ["fighter_1"],
     year: 1939,
     // I-153 biplane: 444 km/h, 880 km, four ShKAS, 200 kg of bombs. Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_AIR,
     spec: {
       maxKmh: 444,
@@ -650,7 +688,7 @@ export const SUN_HIST: readonly HistEntry[] = [
       bombKg: 200,
       torpedoKg: 0,
       reliability: 3,
-      costK: 10,
+      costK: 12,
     },
   },
   {
@@ -661,6 +699,7 @@ export const SUN_HIST: readonly HistEntry[] = [
     techs: ["fighter_2"],
     year: 1941,
     // MiG-3: 640 km/h at altitude, range 1,000 km (820-1,250), 12.7 mm BS plus two ShKAS. Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_AIR,
     spec: {
       maxKmh: 640,
@@ -675,7 +714,7 @@ export const SUN_HIST: readonly HistEntry[] = [
       bombKg: 200,
       torpedoKg: 0,
       reliability: 2,
-      costK: 18,
+      costK: 22,
     },
   },
   {
@@ -686,6 +725,7 @@ export const SUN_HIST: readonly HistEntry[] = [
     techs: ["fighter_2"],
     year: 1941,
     // LaGG-3 series 66: 575 km/h, 1,000 km, one 20 mm ShVAK, one 12.7 mm BS, two ShKAS; heavy wooden airframe. Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_AIR,
     spec: {
       maxKmh: 575,
@@ -701,7 +741,7 @@ export const SUN_HIST: readonly HistEntry[] = [
       bombKg: 200,
       torpedoKg: 0,
       reliability: 2,
-      costK: 16,
+      costK: 20,
     },
   },
   {
@@ -712,6 +752,7 @@ export const SUN_HIST: readonly HistEntry[] = [
     techs: ["fighter_2"],
     year: 1941,
     // Yak-1: 592 km/h, 700 km, one 20 mm ShVAK and two ShKAS. Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_AIR,
     spec: {
       maxKmh: 592,
@@ -726,7 +767,7 @@ export const SUN_HIST: readonly HistEntry[] = [
       bombKg: 200,
       torpedoKg: 0,
       reliability: 4,
-      costK: 16,
+      costK: 18,
     },
   },
   {
@@ -737,6 +778,7 @@ export const SUN_HIST: readonly HistEntry[] = [
     techs: ["fighter_2", "aero_engine_2"],
     year: 1942,
     // Yak-9: 600 km/h, 875 km, one 20 mm ShVAK and one 12.7 mm UBS; most produced Soviet fighter (about 16,700). Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_AIR,
     spec: {
       maxKmh: 600,
@@ -751,7 +793,7 @@ export const SUN_HIST: readonly HistEntry[] = [
       bombKg: 200,
       torpedoKg: 0,
       reliability: 4,
-      costK: 15,
+      costK: 18,
     },
   },
   {
@@ -762,18 +804,21 @@ export const SUN_HIST: readonly HistEntry[] = [
     techs: ["fighter_3", "aero_engine_2"],
     year: 1943,
     // La-5FN: 650 km/h, 765 km, two 20 mm ShVAK. Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
-    source: SRC_AIR,
+    // Audit w66: 2,706 kg empty (Wikipedia).
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
+    source:
+      "Checked 2026-11-04 on Wikipedia: Lavochkin La-5 (2,706 / 3,168 kg on 17.5 m2, 648 km/h, 765 km, 2 x 20 mm). Other figures from memory; cost an estimate unless stated.",
     spec: {
       maxKmh: 650,
       rangeKm: 765,
-      emptyKg: 2605,
-      wingLoad: 192,
+      emptyKg: 2706,
+      wingLoad: 187,
       guns: [{ mm: 20, count: 2, rpm: 800 }],
       defGuns: 0,
       bombKg: 150,
       torpedoKg: 0,
       reliability: 4,
-      costK: 17,
+      costK: 24,
     },
   },
   {
@@ -784,6 +829,7 @@ export const SUN_HIST: readonly HistEntry[] = [
     techs: ["fighter_3"],
     year: 1944,
     // Yak-3: 655 km/h, 650 km, one 20 mm ShVAK and two 12.7 mm UBS, very light airframe. Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_AIR,
     spec: {
       maxKmh: 655,
@@ -798,7 +844,7 @@ export const SUN_HIST: readonly HistEntry[] = [
       bombKg: 0,
       torpedoKg: 0,
       reliability: 4,
-      costK: 14,
+      costK: 18,
     },
   },
   {
@@ -809,6 +855,8 @@ export const SUN_HIST: readonly HistEntry[] = [
     techs: ["fighter_3", "aero_engine_2", "aircraft_cannon_1"],
     year: 1944,
     // La-7: 680 km/h, 665 km, three 20 mm B-20. Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
+    // Audit w66: Engine failures in service: reliability 3.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_AIR,
     spec: {
       maxKmh: 680,
@@ -819,8 +867,8 @@ export const SUN_HIST: readonly HistEntry[] = [
       defGuns: 0,
       bombKg: 150,
       torpedoKg: 0,
-      reliability: 4,
-      costK: 17,
+      reliability: 3,
+      costK: 26,
     },
   },
   {
@@ -831,6 +879,7 @@ export const SUN_HIST: readonly HistEntry[] = [
     techs: ["heavy_fighter_1"],
     year: 1941,
     // Pe-3bis: 530 km/h, 2,150 km, one 20 mm and two 12.7 mm forward, two defensive; bomb load 700 kg as light bomber (references vary). About 360 built. Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_AIR,
     spec: {
       maxKmh: 530,
@@ -845,7 +894,7 @@ export const SUN_HIST: readonly HistEntry[] = [
       bombKg: 700,
       torpedoKg: 0,
       reliability: 3,
-      costK: 38,
+      costK: 45,
     },
   },
   {
@@ -856,6 +905,7 @@ export const SUN_HIST: readonly HistEntry[] = [
     techs: ["cas_1"],
     year: 1938,
     // Su-2: 486 km/h, 910 km, four ShKAS forward and one defensive, 400 kg bombs. Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_AIR,
     spec: {
       maxKmh: 486,
@@ -867,7 +917,7 @@ export const SUN_HIST: readonly HistEntry[] = [
       bombKg: 400,
       torpedoKg: 0,
       reliability: 3,
-      costK: 24,
+      costK: 28,
     },
   },
   {
@@ -875,9 +925,11 @@ export const SUN_HIST: readonly HistEntry[] = [
     country: "SUN",
     family: "plane",
     type: "cas",
-    techs: ["cas_1"],
+    techs: ["cas_2"],
     year: 1941,
     // Il-2 single-seat: 404 km/h, 765 km, armoured shell, two 20 mm ShVAK and two ShKAS, 600 kg bombs. Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
+    // Audit w66: A 1941 type: cas_2 like the Ju 87 D, not a start tech.
     source: SRC_AIR,
     spec: {
       maxKmh: 404,
@@ -892,7 +944,7 @@ export const SUN_HIST: readonly HistEntry[] = [
       bombKg: 600,
       torpedoKg: 0,
       reliability: 4,
-      costK: 24,
+      costK: 30,
     },
   },
   {
@@ -903,11 +955,14 @@ export const SUN_HIST: readonly HistEntry[] = [
     techs: ["cas_2", "aircraft_cannon_1"],
     year: 1942,
     // Il-2m3 two-seat: 414 km/h, 765 km, two 23 mm VYa, two ShKAS, one 12.7 mm rear gun, 600 kg bombs. Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
-    source: SRC_AIR,
+    // Audit w66: 4,425 kg empty (Wikipedia).
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
+    source:
+      "Checked 2026-11-04 on Wikipedia: Ilyushin Il-2 (4,425 kg, 38.5 m2, 410 km/h, 765 km). Other figures from memory; cost an estimate unless stated.",
     spec: {
       maxKmh: 414,
       rangeKm: 765,
-      emptyKg: 4525,
+      emptyKg: 4425,
       wingLoad: 165,
       guns: [
         { mm: 23, count: 2, rpm: 550 },
@@ -917,7 +972,7 @@ export const SUN_HIST: readonly HistEntry[] = [
       bombKg: 600,
       torpedoKg: 0,
       reliability: 4,
-      costK: 26,
+      costK: 32,
     },
   },
   {
@@ -928,6 +983,7 @@ export const SUN_HIST: readonly HistEntry[] = [
     techs: ["cas_3", "aircraft_cannon_2"],
     year: 1944,
     // Il-10: 551 km/h, 800 km, two 23 mm NS-23, one 12.7 mm rear gun, 600 kg normal and 1,000 kg maximum bombs. Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_AIR,
     spec: {
       maxKmh: 551,
@@ -939,7 +995,7 @@ export const SUN_HIST: readonly HistEntry[] = [
       bombKg: 1000,
       torpedoKg: 0,
       reliability: 4,
-      costK: 28,
+      costK: 36,
     },
   },
   {
@@ -950,6 +1006,7 @@ export const SUN_HIST: readonly HistEntry[] = [
     techs: ["bomber_1"],
     year: 1936,
     // SB-2: 423 km/h (references 410-450), 1,200 km, four ShKAS (two forward, two defensive), 600 kg normal bomb load; about 6,600 built. Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_AIR,
     spec: {
       maxKmh: 423,
@@ -961,7 +1018,7 @@ export const SUN_HIST: readonly HistEntry[] = [
       bombKg: 600,
       torpedoKg: 0,
       reliability: 3,
-      costK: 28,
+      costK: 40,
     },
   },
   {
@@ -972,6 +1029,7 @@ export const SUN_HIST: readonly HistEntry[] = [
     techs: ["bomber_1"],
     year: 1936,
     // DB-3: 439 km/h, 3,100 km, three defensive ShKAS, 1,000 kg normal bomb load (2,500 maximum). Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_AIR,
     spec: {
       maxKmh: 439,
@@ -983,7 +1041,7 @@ export const SUN_HIST: readonly HistEntry[] = [
       bombKg: 1000,
       torpedoKg: 0,
       reliability: 3,
-      costK: 40,
+      costK: 52,
     },
   },
   {
@@ -994,6 +1052,7 @@ export const SUN_HIST: readonly HistEntry[] = [
     techs: ["bomber_2"],
     year: 1940,
     // Il-4 (DB-3F): 422 km/h, 3,800 km, empty 5,800 kg, three defensive guns, 1,000 kg normal bomb load (2,500 maximum). Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_AIR,
     spec: {
       maxKmh: 422,
@@ -1005,7 +1064,7 @@ export const SUN_HIST: readonly HistEntry[] = [
       bombKg: 1000,
       torpedoKg: 0,
       reliability: 3,
-      costK: 38,
+      costK: 52,
     },
   },
   {
@@ -1016,19 +1075,22 @@ export const SUN_HIST: readonly HistEntry[] = [
     techs: ["bomber_2"],
     year: 1941,
     // Pe-2: 540 km/h, 1,500 km, empty 5,870 kg, two ShKAS forward and two defensive, 1,200 kg bombs, dive bomber; about 11,400 built. Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
-    source: SRC_AIR,
+    // Audit w66: 5,950 / 7,536 kg on 40.5 m2, 1,315 km, 1,000 kg of bombs (Wikipedia).
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
+    source:
+      "Checked 2026-11-04 on Wikipedia: Petlyakov Pe-2 (5,950 / 7,536 kg on 40.5 m2, 540 km/h, 1,315 km, 1,000 kg). Other figures from memory; cost an estimate unless stated.",
     spec: {
       maxKmh: 540,
-      rangeKm: 1500,
-      emptyKg: 5870,
-      wingLoad: 210,
+      rangeKm: 1315,
+      emptyKg: 5950,
+      wingLoad: 186,
       guns: [{ mm: 7.62, count: 2, rpm: 1800 }],
       defGuns: 2,
-      bombKg: 1200,
+      bombKg: 1000,
       torpedoKg: 0,
       dive: true,
       reliability: 4,
-      costK: 45,
+      costK: 52,
     },
   },
   {
@@ -1039,6 +1101,7 @@ export const SUN_HIST: readonly HistEntry[] = [
     techs: ["bomber_2", "aero_engine_2"],
     year: 1943,
     // Tu-2: 547 km/h, 2,000 km, two 20 mm ShVAK forward, three defensive guns, 2,270 kg internal bomb load (3,000 maximum). Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_AIR,
     spec: {
       maxKmh: 547,
@@ -1051,7 +1114,7 @@ export const SUN_HIST: readonly HistEntry[] = [
       torpedoKg: 0,
       dive: true,
       reliability: 4,
-      costK: 60,
+      costK: 75,
     },
   },
   {
@@ -1062,6 +1125,7 @@ export const SUN_HIST: readonly HistEntry[] = [
     techs: ["naval_bomber_1"],
     year: 1939,
     // DB-3T torpedo bomber: 439 km/h, 3,000 km, 45-36-AN torpedo of 940 kg. Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_AIR,
     spec: {
       maxKmh: 439,
@@ -1073,7 +1137,7 @@ export const SUN_HIST: readonly HistEntry[] = [
       bombKg: 0,
       torpedoKg: 940,
       reliability: 3,
-      costK: 42,
+      costK: 54,
     },
   },
   {
@@ -1084,6 +1148,7 @@ export const SUN_HIST: readonly HistEntry[] = [
     techs: ["naval_bomber_2"],
     year: 1941,
     // Il-4T torpedo bomber: 422 km/h, 3,800 km, 940 kg torpedo. Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_AIR,
     spec: {
       maxKmh: 422,
@@ -1095,7 +1160,7 @@ export const SUN_HIST: readonly HistEntry[] = [
       bombKg: 0,
       torpedoKg: 940,
       reliability: 3,
-      costK: 40,
+      costK: 54,
     },
   },
   {
@@ -1106,6 +1171,7 @@ export const SUN_HIST: readonly HistEntry[] = [
     techs: ["strat_bomber_1"],
     year: 1935,
     // TB-3 4M-34RN: 288 km/h, 3,120 km, empty about 11,200 kg, 230 m2 wing, six defensive guns, 4,000 kg bombs (2,000 normal, 5,000 maximum). Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_AIR,
     spec: {
       maxKmh: 288,
@@ -1117,7 +1183,7 @@ export const SUN_HIST: readonly HistEntry[] = [
       bombKg: 4000,
       torpedoKg: 0,
       reliability: 2,
-      costK: 90,
+      costK: 100,
     },
   },
   {
@@ -1128,6 +1194,7 @@ export const SUN_HIST: readonly HistEntry[] = [
     techs: ["strat_bomber_2"],
     year: 1940,
     // Pe-8 (TB-7): 443 km/h, 3,700 km (up to 5,000), empty about 17,000 kg (references 16,000-18,400), 188.7 m2 wing, 4,000 kg bombs; 93 built. Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_AIR,
     spec: {
       maxKmh: 443,
@@ -1139,7 +1206,7 @@ export const SUN_HIST: readonly HistEntry[] = [
       bombKg: 4000,
       torpedoKg: 0,
       reliability: 2,
-      costK: 150,
+      costK: 170,
     },
   },
   {
@@ -1150,6 +1217,7 @@ export const SUN_HIST: readonly HistEntry[] = [
     techs: ["transport_plane_1"],
     year: 1939,
     // Li-2 (licence-built DC-3): 346 km/h, 2,500 km, empty 7,700 kg. Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_AIR,
     spec: {
       maxKmh: 346,
@@ -1161,7 +1229,7 @@ export const SUN_HIST: readonly HistEntry[] = [
       bombKg: 0,
       torpedoKg: 0,
       reliability: 4,
-      costK: 60,
+      costK: 70,
     },
   },
   // ---- ships
@@ -1173,6 +1241,7 @@ export const SUN_HIST: readonly HistEntry[] = [
     techs: [],
     year: 1938,
     // Project 7 Gnevny: 1,612 t, four 130 mm B-13, two 76 mm AA, three 45 mm (entered as 40 mm), six 533 mm tubes, 38 kn. Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_SHIP,
     spec: {
       dispT: 1612,
@@ -1186,7 +1255,7 @@ export const SUN_HIST: readonly HistEntry[] = [
       aaLight: [{ count: 3, mm: 40 }],
       aaHeavy: 2,
       aircraft: 0,
-      costM: 4.5,
+      costM: 5,
     },
   },
   {
@@ -1242,10 +1311,13 @@ export const SUN_HIST: readonly HistEntry[] = [
     country: "SUN",
     family: "ship",
     cls: "cl",
-    techs: [],
+    techs: ["cl_2"],
     year: 1938,
     // Project 26 Kirov: about 7,900 t standard, nine 180 mm, six 100 mm AA, six 45 mm (entered as 40 mm), six 533 mm tubes, 50 mm belt, 36 kn. Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
-    source: SRC_SHIP,
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
+    // Audit w66: Same gate as the Duca d'Aosta of like size.
+    source:
+      "Checked 2026-11-04 on Wikipedia: Kirov class (7,890 t, 36 kn, 50 mm belt, 9 x 180, 6 x 100, 6 x 45; entry counts them as 40 mm class). Other figures from memory; cost an estimate unless stated.",
     spec: {
       dispT: 7900,
       main: { count: 9, mm: 180 },
@@ -1258,7 +1330,7 @@ export const SUN_HIST: readonly HistEntry[] = [
       aaLight: [{ count: 6, mm: 40 }],
       aaHeavy: 6,
       aircraft: 0,
-      costM: 17,
+      costM: 20,
     },
   },
   {
@@ -1269,6 +1341,8 @@ export const SUN_HIST: readonly HistEntry[] = [
     techs: ["cl_2"],
     year: 1940,
     // Project 26-bis Maxim Gorky: 8,177 t standard (Wikipedia), nine 180 mm, six 100 mm AA, 70 mm belt, 36 kn; range 4,220 nm at 18 kn (other sources 6,000 nm at 10 kn). Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
+    // Audit w66: Same gate as the Kirov.
     source: SRC_SHIP,
     spec: {
       dispT: 8177,
@@ -1282,7 +1356,7 @@ export const SUN_HIST: readonly HistEntry[] = [
       aaLight: [{ count: 6, mm: 40 }],
       aaHeavy: 6,
       aircraft: 0,
-      costM: 19,
+      costM: 21,
     },
   },
   {
@@ -1293,6 +1367,7 @@ export const SUN_HIST: readonly HistEntry[] = [
     techs: [],
     year: 1934,
     // Gangut class as modernised (Marat, Oktyabrskaya Revolutsiya): about 23,600 t, twelve 305 mm, sixteen 120 mm (secondary), belt 225 mm, about 23 kn. Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_SHIP,
     spec: {
       dispT: 23600,
@@ -1307,7 +1382,7 @@ export const SUN_HIST: readonly HistEntry[] = [
       aaLight: [{ count: 8, mm: 40 }],
       aaHeavy: 6,
       aircraft: 0,
-      costM: 45,
+      costM: 40,
     },
   },
   {
@@ -1343,7 +1418,10 @@ export const SUN_HIST: readonly HistEntry[] = [
     techs: ["bb_3", "super_heavy_battleship"],
     year: 1938,
     // Project 23 Sovetsky Soyuz (four laid down 1938-40, none completed): 59,150 t standard, nine 406 mm B-37, twelve 152 mm, twelve 100 mm AA, 375 mm belt, 28 kn. Planned figures (AA 32-40 barrels, 36 used); cost estimated. Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
-    source: SRC_SHIP,
+    // Audit w66: Ten quadruple 37 mm (Wikipedia).
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
+    source:
+      "Checked 2026-11-04 on Wikipedia: Sovetsky Soyuz class (59,150 t, 28 kn, belt to 420 mm, 9 x 406, 12 x 152, 12 x 100, 40 x 37). Other figures from memory; cost an estimate unless stated.",
     spec: {
       dispT: 59150,
       main: { count: 9, mm: 406 },
@@ -1354,10 +1432,10 @@ export const SUN_HIST: readonly HistEntry[] = [
       torpTubes: 0,
       torpWarheadKg: 0,
       asw: 2,
-      aaLight: [{ count: 36, mm: 37 }],
+      aaLight: [{ count: 40, mm: 37 }],
       aaHeavy: 12,
       aircraft: 0,
-      costM: 140,
+      costM: 125,
     },
   },
   {
@@ -1464,8 +1542,9 @@ export const SUN_HIST: readonly HistEntry[] = [
     techs: ["inf_eq_1"],
     year: 1930,
     // Mosin-Nagant M91/30 bolt-action rifle, 7.62x54R, five rounds; about 12 million made. Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_GEAR,
-    spec: { mm: 7.62, aimedRpm: 14, rangeM: 500, autoPct: 0, costUsd: 15 },
+    spec: { mm: 7.62, aimedRpm: 14, rangeM: 500, autoPct: 0, costUsd: 18 },
   },
   {
     id: "sun_svt40",
@@ -1484,8 +1563,10 @@ export const SUN_HIST: readonly HistEntry[] = [
     techs: ["inf_eq_2"],
     year: 1941,
     // PPSh-41 submachine gun, 7.62x25, drum of 71, about 6 million made; effective range 150-200 m. Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
+    // Audit w66: Share of a rifle division's men with one, a quarter to a third late in the war (estimate); the rest kept the Mosin. 100 hid that.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_GEAR,
-    spec: { mm: 7.62, aimedRpm: 20, rangeM: 200, autoPct: 100, costUsd: 20 },
+    spec: { mm: 7.62, aimedRpm: 20, rangeM: 200, autoPct: 30, costUsd: 18 },
   },
   {
     id: "sun_gaz_aa",
@@ -1625,13 +1706,14 @@ export const SUN_HIST: readonly HistEntry[] = [
     techs: ["anti_tank_1", "at_imp_1"],
     year: 1942,
     // 45 mm anti-tank gun M1942 (M-42), longer barrel: about 48 mm at 500 m (references 45-57), 625 kg. Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
+    // Audit w66: M-42 L/66 about 50 mm at normal impact: 42 at 30 deg, below the Pak 38, above the 45 mm M1937.
     source: SRC_GEAR,
     spec: {
       mm: 45,
       rpm: 15,
       rangeM: 4400,
       shellKg: 1.43,
-      penMm500: 48,
+      penMm500: 42,
       massKg: 625,
       barrels: 1,
       costK: 1.4,
@@ -1645,13 +1727,14 @@ export const SUN_HIST: readonly HistEntry[] = [
     techs: ["anti_tank_2", "at_imp_1"],
     year: 1943,
     // 57 mm ZiS-2 anti-tank gun: BR-271 about 90 mm at 500 m (30 degrees; 109 mm at 0 degrees), range 8,400 m, 3.14 kg shell, 1,050 kg. Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
+    // Audit w66: 57 mm at 990 m/s, about 106 mm at normal impact: 85 at 30 deg.
     source: SRC_GEAR,
     spec: {
       mm: 57,
       rpm: 15,
       rangeM: 8400,
       shellKg: 3.14,
-      penMm500: 90,
+      penMm500: 85,
       massKg: 1050,
       barrels: 1,
       costK: 2.5,
@@ -1665,13 +1748,14 @@ export const SUN_HIST: readonly HistEntry[] = [
     techs: ["anti_tank_2", "at_imp_2"],
     year: 1944,
     // 100 mm BS-3 field gun: BR-412 about 150 mm at 500 m (30 degrees), range 20,000 m, 15.6 kg shell, 3,650 kg, 8 rpm. Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
+    // Audit w66: Same D-10 round as the SU-100: 130.
     source: SRC_GEAR,
     spec: {
       mm: 100,
       rpm: 8,
       rangeM: 20000,
       shellKg: 15.6,
-      penMm500: 150,
+      penMm500: 130,
       massKg: 3650,
       barrels: 1,
       costK: 8,

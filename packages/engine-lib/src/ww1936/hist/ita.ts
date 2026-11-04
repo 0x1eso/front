@@ -5,7 +5,7 @@
 // 30 degrees with the normal AP round. Reliability 1..5 from the history.
 // Italy's weak tanks stay weak: thin armour, small guns.
 //
-// Costs are 1940 US dollars of industrial effort, NOT lire at an exchange
+// Costs (rebased in the ww66 audit) are 1940 US dollars of industrial effort, NOT lire at an exchange
 // rate. Each is scaled by weight, complexity and materials from a comparable
 // American item, with Italian small-batch, labour-heavy production adding to
 // it. The American reference prices are FROM MEMORY and approximate: M3 Stuart
@@ -48,6 +48,7 @@ export const ITA_HIST: readonly HistEntry[] = [
     year: 1933,
     // CV.33 / L3/33 tankette: 3.2 t, 13.5 mm riveted plate, two 8 mm Fiat
     // machine guns, no turret; cost from the M3 Stuart by weight.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_TANK,
     spec: {
       massT: 3.2,
@@ -60,7 +61,7 @@ export const ITA_HIST: readonly HistEntry[] = [
       offroadKmh: 20,
       roadKmh: 42,
       reliability: 3,
-      costK: 7,
+      costK: 9,
     },
   },
   {
@@ -122,6 +123,8 @@ export const ITA_HIST: readonly HistEntry[] = [
     year: 1939,
     // M11/39: 11 t, 30 mm front, the 37 mm Vickers-Terni gun fixed in the
     // hull (about 24 mm at 500 m), turret with two 8 mm; diesel; poor.
+    // Audit w66: Poor in the desert: reliability 2.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_TANK,
     spec: {
       massT: 11,
@@ -135,8 +138,8 @@ export const ITA_HIST: readonly HistEntry[] = [
       offroadKmh: 20,
       roadKmh: 32,
       diesel: true,
-      reliability: 3,
-      costK: 38,
+      reliability: 2,
+      costK: 30,
     },
   },
   {
@@ -148,7 +151,10 @@ export const ITA_HIST: readonly HistEntry[] = [
     year: 1940,
     // M13/40: 14 t, 30 mm hull and 40 mm turret front, 47/32 gun (sources
     // give 30-43 mm at 500 m, 38 used), four 8 mm; diesel, cramped, sound.
-    source: SRC_TANK,
+    // Audit w66: Weak engine, filter trouble in the desert: reliability 2; the M14/41 fixed part of it.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
+    source:
+      "Checked 2026-11-04 on Wikipedia: M13/40 (14 t, 31.8 km/h road, 47/32). Other figures from memory; cost an estimate unless stated.",
     spec: {
       massT: 14,
       hullFrontMm: 30,
@@ -161,8 +167,8 @@ export const ITA_HIST: readonly HistEntry[] = [
       offroadKmh: 20,
       roadKmh: 32,
       diesel: true,
-      reliability: 3,
-      costK: 42,
+      reliability: 2,
+      costK: 34,
     },
   },
   {
@@ -174,6 +180,7 @@ export const ITA_HIST: readonly HistEntry[] = [
     year: 1941,
     // M14/41: the M13/40 with a 145 hp diesel and sand filters; same armour
     // and gun.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_TANK,
     spec: {
       massT: 14.5,
@@ -188,7 +195,7 @@ export const ITA_HIST: readonly HistEntry[] = [
       roadKmh: 33,
       diesel: true,
       reliability: 3,
-      costK: 44,
+      costK: 36,
     },
   },
   {
@@ -200,6 +207,7 @@ export const ITA_HIST: readonly HistEntry[] = [
     year: 1943,
     // M15/42: 15.5 t, 45 mm front, longer 47/40 gun (about 50 mm at 500 m),
     // 192 hp petrol engine; few were built before the armistice.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_TANK,
     spec: {
       massT: 15.5,
@@ -213,7 +221,7 @@ export const ITA_HIST: readonly HistEntry[] = [
       offroadKmh: 24,
       roadKmh: 40,
       reliability: 3,
-      costK: 48,
+      costK: 40,
     },
   },
   {
@@ -226,20 +234,24 @@ export const ITA_HIST: readonly HistEntry[] = [
     // P26/40 ("heavy" by name, 26 t in fact): 50 mm sloped hull front,
     // 60 mm turret, 75/34 gun (about 70 mm at 500 m); only a handful built
     // by the armistice; the price is an estimate.
-    source: SRC_TANK,
+    // Audit w66: 75/34 set to 65 mm beside the US 75 mm M3 at 68 (lower velocity); the P26/40 was a diesel.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
+    source:
+      "Checked 2026-11-04 on Wikipedia: P26/40 (26 t, hull 50, turret 60 mm, 40/25 km/h, 75/34). Other figures from memory; cost an estimate unless stated.",
     spec: {
+      diesel: true,
       massT: 26,
       hullFrontMm: 50,
       hullSlopeDeg: 30,
       turretFrontMm: 60,
       gunMm: 75,
-      penMm500: 70,
+      penMm500: 65,
       heFillerG: 600,
       mgs: 2,
       offroadKmh: 25,
       roadKmh: 40,
       reliability: 3,
-      costK: 75,
+      costK: 62,
     },
   },
   {
@@ -251,6 +263,7 @@ export const ITA_HIST: readonly HistEntry[] = [
     year: 1942,
     // Semovente L40 da 47/32: 6.5 t, the 47/32 in an open-topped casemate on
     // the L6/40 chassis, 30 mm front.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_TANK,
     spec: {
       massT: 6.5,
@@ -264,7 +277,7 @@ export const ITA_HIST: readonly HistEntry[] = [
       roadKmh: 42,
       openTop: true,
       reliability: 3,
-      costK: 18,
+      costK: 16,
     },
   },
   {
@@ -277,9 +290,13 @@ export const ITA_HIST: readonly HistEntry[] = [
     // Semovente da 75/18 on the M40/M41 chassis: 13.8 t, 50 mm front, short
     // 75/18 howitzer; its HEAT round (1942) pierces about 70 mm at any range
     // but with low velocity, so 50 mm is used as a middle. Reliable.
-    source: SRC_TANK,
+    // Audit w66: 13.1 t (Wikipedia); on the diesel M14/41 chassis.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
+    source:
+      "Checked 2026-11-04 on Wikipedia: Semovente da 75/18 (13.1 t, 75/18). Other figures from memory; cost an estimate unless stated.",
     spec: {
-      massT: 13.8,
+      diesel: true,
+      massT: 13.1,
       hullFrontMm: 50,
       hullSlopeDeg: 10,
       gunMm: 75,
@@ -289,7 +306,7 @@ export const ITA_HIST: readonly HistEntry[] = [
       offroadKmh: 20,
       roadKmh: 32,
       reliability: 4,
-      costK: 40,
+      costK: 32,
     },
   },
   {
@@ -301,19 +318,21 @@ export const ITA_HIST: readonly HistEntry[] = [
     year: 1943,
     // Semovente da 75/34 on the M42M chassis: 15 t, 50 mm front, 75/34 gun
     // (about 70 mm at 500 m).
+    // Audit w66: 75/34: same gun as the P26/40.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_TANK,
     spec: {
       massT: 15,
       hullFrontMm: 50,
       hullSlopeDeg: 10,
       gunMm: 75,
-      penMm500: 70,
+      penMm500: 65,
       heFillerG: 600,
       mgs: 1,
       offroadKmh: 22,
       roadKmh: 40,
       reliability: 4,
-      costK: 44,
+      costK: 36,
     },
   },
   {
@@ -326,20 +345,24 @@ export const ITA_HIST: readonly HistEntry[] = [
     // Semovente da 90/53: the AA gun in a thin open mount on the M41 chassis
     // (30 mm front); about 30 built. 90/53 AP: sources give 100-140 mm at
     // 500 m, 120 mm used.
-    source: SRC_TANK,
+    // Audit w66: 90/53 quoted at 140 mm at 500 m without an angle (Wikipedia); 112 at 30 deg by the same ratio as the D-25T's 150/120; between the 88 L/56 at 110 and the 90 mm M3 at 125.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
+    source:
+      "Checked 2026-11-04 on Wikipedia: Cannone da 90/53 (AP 140 mm at 500 m, 120 at 1,000 m, angle not given); 112 at 30 deg by ratio. Other figures from memory; cost an estimate unless stated.",
     spec: {
+      diesel: true,
       massT: 16,
       hullFrontMm: 30,
       hullSlopeDeg: 0,
       gunMm: 90,
-      penMm500: 120,
+      penMm500: 112,
       heFillerG: 1000,
       mgs: 0,
       offroadKmh: 18,
       roadKmh: 30,
       openTop: true,
       reliability: 3,
-      costK: 48,
+      costK: 42,
     },
   },
   {
@@ -351,6 +374,7 @@ export const ITA_HIST: readonly HistEntry[] = [
     year: 1943,
     // Semovente da 105/25 on the M43 chassis: 105 mm howitzer in a closed
     // casemate, 75 mm front. About 100 built before the armistice.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_TANK,
     spec: {
       massT: 16,
@@ -363,7 +387,7 @@ export const ITA_HIST: readonly HistEntry[] = [
       offroadKmh: 22,
       roadKmh: 35,
       reliability: 4,
-      costK: 50,
+      costK: 44,
     },
   },
   // ------------------------------------------------------------ planes
@@ -375,6 +399,7 @@ export const ITA_HIST: readonly HistEntry[] = [
     techs: ["fighter_1"],
     year: 1933,
     // Fiat CR.32 biplane: 375 km/h, 2 x 12.7 mm Breda-SAFAT; light bombs.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_AIR,
     spec: {
       maxKmh: 375,
@@ -386,7 +411,7 @@ export const ITA_HIST: readonly HistEntry[] = [
       bombKg: 100,
       torpedoKg: 0,
       reliability: 4,
-      costK: 16,
+      costK: 14,
     },
   },
   {
@@ -493,11 +518,13 @@ export const ITA_HIST: readonly HistEntry[] = [
     year: 1941,
     // Macchi MC.202 Folgore: DB 601 licence engine, 600 km/h, 2 x 12.7 mm
     // and 2 x 7.7 mm; the best Italian fighter of its year.
-    source: SRC_AIR,
+    // Audit w66: 2,491 kg empty (Wikipedia).
+    source:
+      "Checked 2026-11-04 on Wikipedia: Macchi C.202 (2,491 kg, 16.82 m2, 600 km/h, 765 km). Other figures from memory; cost an estimate unless stated.",
     spec: {
       maxKmh: 600,
       rangeKm: 765,
-      emptyKg: 2350,
+      emptyKg: 2491,
       wingLoad: 174,
       guns: [
         { mm: 12.7, count: 2, rpm: 700 },
@@ -519,7 +546,8 @@ export const ITA_HIST: readonly HistEntry[] = [
     year: 1943,
     // Macchi MC.205 Veltro: DB 605 licence engine, 642 km/h, 2 x 12.7 mm
     // and 2 x 20 mm MG 151; built in small numbers.
-    source: SRC_AIR,
+    source:
+      "Checked 2026-11-04 on Wikipedia: Macchi C.205 (2,581 / 3,408 kg on 16.8 m2, 642 km/h, 950 km). Other figures from memory; cost an estimate unless stated.",
     spec: {
       maxKmh: 642,
       rangeKm: 950,
@@ -572,6 +600,7 @@ export const ITA_HIST: readonly HistEntry[] = [
     // Breda Ba.65 ground attacker: 430 km/h, 2 x 12.7 and 2 x 7.7 mm in the
     // wings, one flexible 7.7 mm, up to 1,000 kg of bombs; its engine
     // overheated in the desert.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_AIR,
     spec: {
       maxKmh: 430,
@@ -586,7 +615,7 @@ export const ITA_HIST: readonly HistEntry[] = [
       bombKg: 1000,
       torpedoKg: 0,
       reliability: 2,
-      costK: 40,
+      costK: 32,
     },
   },
   {
@@ -598,6 +627,7 @@ export const ITA_HIST: readonly HistEntry[] = [
     year: 1943,
     // Reggiane Re.2002 Ariete: dive-capable fighter-bomber, 530 km/h,
     // 2 x 12.7 and 2 x 7.7 mm, one 630 kg bomb; about 150 built.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_AIR,
     spec: {
       maxKmh: 530,
@@ -613,7 +643,7 @@ export const ITA_HIST: readonly HistEntry[] = [
       torpedoKg: 0,
       dive: true,
       reliability: 3,
-      costK: 50,
+      costK: 46,
     },
   },
   {
@@ -625,6 +655,7 @@ export const ITA_HIST: readonly HistEntry[] = [
     year: 1935,
     // Savoia-Marchetti SM.81 Pipistrello: three-engine bomber/transport,
     // 340 km/h, 2,000 kg of bombs, six 7.7 mm.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_AIR,
     spec: {
       maxKmh: 340,
@@ -636,7 +667,7 @@ export const ITA_HIST: readonly HistEntry[] = [
       bombKg: 2000,
       torpedoKg: 0,
       reliability: 4,
-      costK: 85,
+      costK: 70,
     },
   },
   {
@@ -648,6 +679,7 @@ export const ITA_HIST: readonly HistEntry[] = [
     year: 1936,
     // Fiat BR.20 Cicogna: twin-engine, 440 km/h, 1,600 kg bombs, three or
     // four machine guns (one 12.7 mm); vulnerable and fragile in the cold.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_AIR,
     spec: {
       maxKmh: 440,
@@ -659,7 +691,7 @@ export const ITA_HIST: readonly HistEntry[] = [
       bombKg: 1600,
       torpedoKg: 0,
       reliability: 3,
-      costK: 92,
+      costK: 80,
     },
   },
   {
@@ -671,18 +703,21 @@ export const ITA_HIST: readonly HistEntry[] = [
     year: 1936,
     // Savoia-Marchetti SM.79 Sparviero: three engines, 435 km/h, 1,250 kg of
     // bombs, five machine guns (12.7 and 7.7 mm); the best Italian bomber.
-    source: SRC_AIR,
+    // Audit w66: 460 km/h, 7,700 kg, 10,050 kg on 61.7 m2, 2,600 km (Wikipedia, Savoia-Marchetti SM.79).
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
+    source:
+      "Checked 2026-11-04 on Wikipedia: SM.79 (7,700 / 10,050 kg on 61.7 m2, 460 km/h, 2,600 km, 1,200 kg). Other figures from memory; cost an estimate unless stated.",
     spec: {
-      maxKmh: 435,
-      rangeKm: 1900,
-      emptyKg: 7500,
-      wingLoad: 183,
+      maxKmh: 460,
+      rangeKm: 2600,
+      emptyKg: 7700,
+      wingLoad: 163,
       guns: [],
       defGuns: 5,
       bombKg: 1250,
       torpedoKg: 0,
       reliability: 4,
-      costK: 105,
+      costK: 85,
     },
   },
   {
@@ -694,6 +729,7 @@ export const ITA_HIST: readonly HistEntry[] = [
     year: 1939,
     // CANT Z.1007bis Alcione: three engines, wooden, 450 km/h, 2,000 kg of
     // bombs, five machine guns. Empty mass quoted 8,300-9,000 kg, 8,700 used.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_AIR,
     spec: {
       maxKmh: 450,
@@ -705,7 +741,7 @@ export const ITA_HIST: readonly HistEntry[] = [
       bombKg: 2000,
       torpedoKg: 0,
       reliability: 3,
-      costK: 115,
+      costK: 95,
     },
   },
   {
@@ -717,18 +753,20 @@ export const ITA_HIST: readonly HistEntry[] = [
     year: 1940,
     // SM.79 Sparviero torpedo-bomber (silurante): 450 mm aerial torpedo of
     // about 800 kg (two were carried on short missions, one used here).
+    // Audit w66: Airframe as the bomber's; slower with the torpedo.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_AIR,
     spec: {
       maxKmh: 430,
-      rangeKm: 1900,
-      emptyKg: 7500,
-      wingLoad: 183,
+      rangeKm: 2600,
+      emptyKg: 7700,
+      wingLoad: 163,
       guns: [],
       defGuns: 5,
       bombKg: 0,
       torpedoKg: 800,
       reliability: 4,
-      costK: 108,
+      costK: 88,
     },
   },
   {
@@ -740,6 +778,7 @@ export const ITA_HIST: readonly HistEntry[] = [
     year: 1941,
     // Savoia-Marchetti SM.84: improved SM.79, 475 km/h, torpedoes or 2,000 kg
     // of bombs; unreliable engines. Empty mass 7,400-7,900 kg, 7,750 used.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_AIR,
     spec: {
       maxKmh: 475,
@@ -751,7 +790,7 @@ export const ITA_HIST: readonly HistEntry[] = [
       bombKg: 0,
       torpedoKg: 800,
       reliability: 3,
-      costK: 112,
+      costK: 92,
     },
   },
   {
@@ -764,6 +803,7 @@ export const ITA_HIST: readonly HistEntry[] = [
     // Piaggio P.108B: the only Italian four-engine bomber in service, 430
     // km/h, 3,500 kg bombs, remote nacelle turrets and other guns (six
     // 12.7 mm); about 24 built, troubled engines.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_AIR,
     spec: {
       maxKmh: 430,
@@ -775,7 +815,7 @@ export const ITA_HIST: readonly HistEntry[] = [
       bombKg: 3500,
       torpedoKg: 0,
       reliability: 2,
-      costK: 280,
+      costK: 240,
     },
   },
   {
@@ -787,6 +827,7 @@ export const ITA_HIST: readonly HistEntry[] = [
     year: 1940,
     // Savoia-Marchetti SM.82 Marsupiale: three-engine heavy transport,
     // 375 km/h, 4 t payload.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_AIR,
     spec: {
       maxKmh: 375,
@@ -798,7 +839,7 @@ export const ITA_HIST: readonly HistEntry[] = [
       bombKg: 0,
       torpedoKg: 0,
       reliability: 4,
-      costK: 105,
+      costK: 100,
     },
   },
   // ------------------------------------------------------------ ships
@@ -995,6 +1036,7 @@ export const ITA_HIST: readonly HistEntry[] = [
     // Capitani Romani class (scout cruiser): about 3,750 t, 8 x 135 mm,
     // 6 tubes, 40 kn nominal, no belt (deck plating only); three completed
     // in 1942-43.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_SHIP,
     spec: {
       dispT: 3750,
@@ -1011,7 +1053,7 @@ export const ITA_HIST: readonly HistEntry[] = [
       ],
       aaHeavy: 0,
       aircraft: 0,
-      costM: 10,
+      costM: 14,
     },
   },
   {
@@ -1049,7 +1091,8 @@ export const ITA_HIST: readonly HistEntry[] = [
     year: 1931,
     // Zara class: about 11,500 t standard, 8 x 203 mm, 12 x 100 mm, 150 mm
     // belt, 32 kn; the best-protected Italian heavy cruisers.
-    source: SRC_SHIP,
+    source:
+      "Checked 2026-11-04 on Wikipedia: Zara class (11,326 t, 32 kn, 150 mm belt, 8 x 203). Other figures from memory; cost an estimate unless stated.",
     spec: {
       dispT: 11500,
       main: { count: 8, mm: 203 },
@@ -1079,6 +1122,7 @@ export const ITA_HIST: readonly HistEntry[] = [
     // Conte di Cavour and Giulio Cesare as rebuilt 1933-37: about 24,000 t,
     // 10 x 320 mm, 12 x 120 mm, 8 x 100 mm AA, 250 mm belt, 27 kn. The cost
     // of the rebuild is an estimate.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_SHIP,
     spec: {
       dispT: 24000,
@@ -1096,7 +1140,7 @@ export const ITA_HIST: readonly HistEntry[] = [
       ],
       aaHeavy: 8,
       aircraft: 0,
-      costM: 30,
+      costM: 34,
     },
   },
   {
@@ -1109,7 +1153,9 @@ export const ITA_HIST: readonly HistEntry[] = [
     // Littorio class (Vittorio Veneto, Roma): about 41,000 t actual standard
     // (35,000 Washington on paper), 9 x 381 mm, 12 x 152 mm, 12 x 90 mm AA,
     // 280 mm belt, 30 kn; about 850 million lire per ship (warhistory.org); cost set above the North Carolina.
-    source: SRC_SHIP,
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
+    source:
+      "Checked 2026-11-04 on Wikipedia: Littorio class (40,724 t, 30 kn, 4,580 nm, 280 + 70 mm belt, 9 x 381, 12 x 152, 12 x 90, 20 x 37, 20 x 20). Other figures from memory; cost an estimate unless stated.",
     spec: {
       dispT: 41000,
       main: { count: 9, mm: 381 },
@@ -1126,7 +1172,7 @@ export const ITA_HIST: readonly HistEntry[] = [
       ],
       aaHeavy: 12,
       aircraft: 0,
-      costM: 85,
+      costM: 84,
     },
   },
   {
@@ -1139,6 +1185,7 @@ export const ITA_HIST: readonly HistEntry[] = [
     // Aquila: the liner Roma converted 1941-43, never finished: about
     // 23,500 t, 8 x 135 mm, 12 x 65 mm AA, 132 x 20 mm AA, 76 mm belt, 30 kn,
     // planned air group of about 51. Planned only; cost an estimate.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_SHIP,
     spec: {
       dispT: 23500,
@@ -1153,7 +1200,7 @@ export const ITA_HIST: readonly HistEntry[] = [
       aaLight: [{ count: 132, mm: 20 }],
       aaHeavy: 12,
       aircraft: 51,
-      costM: 40,
+      costM: 45,
     },
   },
   {
@@ -1252,9 +1299,10 @@ export const ITA_HIST: readonly HistEntry[] = [
     year: 1938,
     // Beretta Moschetto Automatico M1938A, 9 mm submachine gun, about 600
     // rounds per minute cyclic; aimed bursts about 25 a minute, short range.
+    // Audit w66: Issued to about one man in ten.
     source:
       "Wikipedia, Beretta Model 38, from memory; cost scaled from the Thompson",
-    spec: { mm: 9, aimedRpm: 25, rangeM: 200, autoPct: 0, costUsd: 55 },
+    spec: { mm: 9, aimedRpm: 25, rangeM: 200, autoPct: 10, costUsd: 55 },
   },
   // ------------------------------------------------------------ support
   {
@@ -1430,7 +1478,8 @@ export const ITA_HIST: readonly HistEntry[] = [
     // Cannone da 47/32 Mod. 35 (Bohler design): 12 rounds a minute, shell
     // 1.44 kg, 277 kg; penetration quoted 30-43 mm at 500 m, 38 mm used
     // (same value as the M13/40's gun).
-    source: SRC_GUN,
+    source:
+      "Checked 2026-11-04 on Wikipedia: Cannone da 47/32 (43 mm at 500 m, angle not given; L/40 50 mm). Other figures from memory; cost an estimate unless stated.",
     spec: {
       mm: 47,
       rpm: 12,
