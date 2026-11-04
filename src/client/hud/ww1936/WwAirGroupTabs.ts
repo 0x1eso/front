@@ -285,7 +285,7 @@ function renderEditor(env: TemplatesTabEnv, d: TemplateDraft): TemplateResult {
       .value=${d.name}
       placeholder=${translateText("ww1936.airgroup.name_hint")}
       aria-label=${translateText("ww1936.airgroup.name_hint")}
-      class="h-10 rounded-md border border-white/15 bg-black/30 px-2 text-sm"
+      class="h-10 rounded-md border border-white/15 bg-black/30 px-2 text-sm text-white"
       @input=${(e: Event) =>
         env.setDraft({ ...d, name: (e.target as HTMLInputElement).value })}
     />

@@ -107,7 +107,15 @@ export class WwAirGroupCard extends LitElement implements Controller {
   }
 
   private refit() {
-    const next = cardPlace();
+    const base = cardPlace();
+    // More rows than a wing card: it may grow to a third of the screen.
+    const next = {
+      ...base,
+      maxHeight: Math.max(
+        base.maxHeight,
+        Math.min(Math.floor(window.innerHeight * 0.4), 340),
+      ),
+    };
     if (!samePlace(next, this.place)) this.place = next;
   }
 

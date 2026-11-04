@@ -26,6 +26,7 @@ import {
   WW_MAX_GROUP_PLANES,
   WW_MAX_KEEP_GROUPS,
 } from "@openfront/engine-api/ww1936/AirTypes";
+import { EQUIPMENT_GENS } from "@openfront/engine-api/ww1936/EconomyTypes";
 import { planeStats } from "@openfront/engine-lib/ww1936/PlaneStats";
 import { translateText } from "../../Utils";
 import { NavyCtx, srName } from "./NavyModel";
@@ -127,12 +128,9 @@ export function roleTotals(
 export function typeRanges(ctx: NavyCtx): number[] {
   return AIR_TYPES.map((t) => {
     let best = 0;
-    for (let gen = 1; gen <= 4; gen++) {
-      try {
-        best = Math.max(best, planeStats(t, gen, ctx.stats, ctx.techs).rangeKm);
-      } catch {
-        break;
-      }
+    for (let gen = 1; gen <= (EQUIPMENT_GENS[t] ?? 1); gen++) {
+      const km = planeStats(t, gen, ctx.stats, ctx.techs).rangeKm;
+      if (Number.isFinite(km)) best = Math.max(best, km);
     }
     return best;
   });
@@ -312,8 +310,9 @@ export function memberStateKey(phase: number, planes: number): string {
 }
 
 export function groupName(g: Pick<AirGroupView, "id" | "name">): string {
+  // Two groups of one template share its name: the id tells them apart.
   return g.name !== ""
-    ? g.name
+    ? `${g.name} ${g.id}`
     : translateText("ww1936.airgroup.default_name", { id: g.id });
 }
 

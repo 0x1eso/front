@@ -198,6 +198,7 @@ export class WwAirPanel extends WwDrawerBase {
           openGroup: (id) => {
             const g = groupById(ctx, id);
             this.eventBus.emit(new WwSelectGroupEvent(id));
+            this.setOpen(false);
             if (g !== undefined && g.base > 0) {
               const c = ctx.scenario.centerTile(g.base);
               this.eventBus.emit(
