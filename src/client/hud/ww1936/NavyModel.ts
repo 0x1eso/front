@@ -48,6 +48,7 @@ import {
 import type { WwStats } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { SEA_ZONE_BASE } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { AdmiralDef, ADMIRALS } from "@openfront/engine-lib/ww1936/Admirals";
+import { interceptLossPm } from "@openfront/engine-lib/ww1936/ConvoyRules";
 import {
   designBlock,
   shipBase,
@@ -1309,6 +1310,35 @@ export function enemySupremacy(ctx: NavyCtx, sr: number): number {
     }
   }
   return Math.min(1000, e);
+}
+
+/**
+ * An army_sea move's worst daily loss ‰ on its way (ConvoyRules.interceptLossPm,
+ * the engine's rule): each sea region of the route where my side holds under
+ * 50% supremacy against an enemy with power costs (500 - mine) / 5 ‰ a day.
+ * Null: no route; 0: the way is clear.
+ */
+export function seaMoveLossPm(
+  ctx: NavyCtx,
+  from: number,
+  to: number,
+): number | null {
+  const sc = ctx.scenario;
+  const a = sc.harborOf(from);
+  const b = sc.harborOf(to);
+  if (a === 0 || b === 0) return null;
+  const way = seaKm(ctx.p4, sc, ctx.economy, ctx.sides, ctx.me, false, a, [b]);
+  if (way === null) return null;
+  let worst = 0;
+  for (const z of way.zones) {
+    const sr = sc.zoneSr(z);
+    if (sr === 0) continue;
+    worst = Math.max(
+      worst,
+      interceptLossPm(ctx.navy.mySupremacy(sr), enemySupremacy(ctx, sr)),
+    );
+  }
+  return worst;
 }
 
 export interface InvasionPreview {

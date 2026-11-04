@@ -10,6 +10,7 @@ import {
   invasionPreview,
   invasionTargets,
   navyCtx,
+  seaMoveLossPm,
   supLight,
 } from "../../../src/client/hud/ww1936/NavyModel";
 import { REGION, SR } from "../../ww1936/seaFixture";
@@ -125,6 +126,16 @@ describe("the easy landing card", () => {
     const ctx = navyCtx(g.game as never)!;
     expect(invadeButtonBlock(ctx, 1)).toBeNull();
     expect(invasionPreview(ctx, 1, REGION.rome)!.block).toBeNull();
+  });
+
+  it("a sea move says what the contested route costs a day (interceptLossPm)", () => {
+    const g = britain(2);
+    const ctx = navyCtx(g.game as never)!;
+    // London to Rome crosses the approaches (450 against 550: 10‰) and the
+    // central waters (0 against 1000: 100‰): the worst is 100‰ a day.
+    expect(seaMoveLossPm(ctx, REGION.london, REGION.rome)).toBe(100);
+    // Nothing to sail to.
+    expect(seaMoveLossPm(ctx, REGION.london, REGION.berlin)).toBeNull();
   });
 
   it("refusals say why", () => {

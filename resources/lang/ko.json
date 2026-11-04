@@ -9871,6 +9871,7 @@
       "route_via": "경유: {list}",
       "routes_none": "해로가 없습니다",
       "routes_title": "해로",
+      "sea_move_loss": "적 함대가 이 항로를 막고 있습니다. 바다에 있는 동안 하루에 군 병력의 최대 {pct}%를 잃습니다.",
       "ship_numbered": "{n}호",
       "ships_total": "함선 {n}척",
       "stat_hp": "체력",
