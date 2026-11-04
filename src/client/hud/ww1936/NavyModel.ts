@@ -7,7 +7,11 @@
 // invasionCapacity, invasionPrepDays, divisionConvoys.
 import type { WwOrder } from "@openfront/engine-api/Schemas";
 import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
-import { ID_NAVY } from "@openfront/engine-api/ww1936/DepthTypes";
+import {
+  type DesignDef,
+  ID_NAVY,
+  type WwDesignSlotData,
+} from "@openfront/engine-api/ww1936/DepthTypes";
 import {
   type WwOrderBlock,
   type WwTechId,
@@ -45,6 +49,10 @@ import type { WwStats } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { SEA_ZONE_BASE } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { AdmiralDef, ADMIRALS } from "@openfront/engine-lib/ww1936/Admirals";
 import {
+  designBlock,
+  shipBase,
+} from "@openfront/engine-lib/ww1936/DesignRules";
+import {
   crossingDays,
   easyCrossingLossPm,
   easyInterceptLossPm,
@@ -77,9 +85,11 @@ import { shipGenTech, shipStats } from "@openfront/engine-lib/ww1936/ShipStats";
 import { translateText } from "../../Utils";
 import type { GameView } from "../../view/GameView";
 import type { WwAirView } from "../../view/WwAirView";
+import type { WwDepthView } from "../../view/WwDepthView";
 import type { WwEconomyView } from "../../view/WwEconomyView";
 import type { WwLandView } from "../../view/WwLandView";
 import { sideKeyOf, type WwNavyView } from "../../view/WwNavyView";
+import { designDisplayName } from "./DesignName";
 import type { FogModel } from "./FogModel";
 import { invasionForce, LandSides, landSidesOf, regionName } from "./LandModel";
 import {
@@ -101,6 +111,7 @@ export type NavyGame = WwGame & {
   wwEconomy?(): WwEconomyView | null;
   wwNavy?(): WwNavyView | null;
   wwAir?(): WwAirView | null;
+  wwDepth?(): WwDepthView | null;
 };
 
 /** One line of words: a translation key and its params. */
@@ -125,6 +136,14 @@ export interface NavyCtx {
   p4: LandSeaAir;
   /** shipStats of my ships by `${cls}:${gen}` (stats and techs are fixed per ctx). */
   shipMemo: Map<string, ShipStats>;
+  /** My saved designs (empty without the depth view). */
+  designs: readonly WwDesignSlotData[];
+  /** The depth view's treaty facts and finished projects, for the design checks. */
+  designCtx: {
+    projects: number;
+    treatyMember: boolean;
+    treatyEscalated: boolean;
+  };
 }
 
 /** The navy and air facts the land model reads (GameRenderer registers them). */
@@ -175,6 +194,7 @@ export function navyCtx(game: NavyGame): NavyCtx | null {
   const tag = scenario.tagOfSmallId(id);
   if (tag === undefined) return null;
   const p4 = seaAirFacts(game, navy, air);
+  const depth = game.wwDepth?.() ?? null;
   return {
     scenario,
     navy,
@@ -189,6 +209,12 @@ export function navyCtx(game: NavyGame): NavyCtx | null {
     day: today(game),
     p4,
     shipMemo: new Map(),
+    designs: depth?.detail(id)?.designs ?? [],
+    designCtx: {
+      projects: depth?.detail(id)?.projects.done ?? 0,
+      treatyMember: depth?.treatyData.members.includes(id) ?? false,
+      treatyEscalated: depth?.treatyData.escalated ?? false,
+    },
   };
 }
 
@@ -955,6 +981,8 @@ export interface LineCard {
   portName: string;
   /** Its resources fall short (fill below 1000‰). */
   short: boolean;
+  /** The line's ship design by name; null: the base class. */
+  designName: string | null;
 }
 
 export function lineCards(ctx: NavyCtx): LineCard[] {
@@ -976,8 +1004,95 @@ export function lineCards(ctx: NavyCtx): LineCard[] {
       nextName: key === null ? null : translateText(`ww1936.ship.${key}`),
       portName: regionName(ctx.scenario, l.port),
       short: l.fill < 1000,
+      designName: lineDesignName(ctx, l),
     };
   });
+}
+
+/** The design a naval line makes, by name (null: the base class). */
+export function lineDesignName(ctx: NavyCtx, l: NavalLineData): string | null {
+  if ((l.design ?? 0) <= 0) return null;
+  const row = ctx.designs.find((x) => x.kind === "ship" && x.slot === l.design);
+  return row === undefined ? null : designDisplayName(row.def);
+}
+
+/** A ship design a new line of (cls, gen) can build: its slot and name, and why not when blocked. */
+export interface LineDesign {
+  slot: number;
+  name: string;
+  /** "own": the cell's current design; "foreign": licensed. */
+  origin: "own" | "licensed";
+  block: WwOrderBlock | null;
+}
+
+function designFits(
+  row: WwDesignSlotData,
+  cls: ShipClass,
+  gen: number,
+): boolean {
+  const sb = shipBase(row.def.base);
+  return sb !== null && sb.cls === cls && sb.gen === gen;
+}
+
+/** Why a ship design may not go on a line (the engine's navalLineDesignBlock: designBlock holds the treaty rules). */
+function lineDesignBlock(ctx: NavyCtx, def: DesignDef): WwOrderBlock | null {
+  return designBlock(def, {
+    techs: ctx.techs,
+    projects: ctx.designCtx.projects,
+    treatyMember: ctx.designCtx.treatyMember,
+    treatyEscalated: ctx.designCtx.treatyEscalated,
+  });
+}
+
+/**
+ * The design a new line of (cls, gen) takes by itself: my current own
+ * design of the cell (the newest not obsolete), or null with none. The
+ * choice is automatic: the cell holds one current design.
+ */
+export function cellLineDesign(
+  ctx: NavyCtx,
+  cls: ShipClass | "convoy",
+  gen: number,
+): LineDesign | null {
+  if (cls === "convoy") return null;
+  let best: WwDesignSlotData | null = null;
+  for (const r of ctx.designs) {
+    if (r.kind !== "ship" || r.obsolete || r.origin !== "own") continue;
+    if (!designFits(r, cls, gen)) continue;
+    if (best === null || r.slot > best.slot) best = r;
+  }
+  return best === null
+    ? null
+    : {
+        slot: best.slot,
+        name: designDisplayName(best.def),
+        origin: "own",
+        block: lineDesignBlock(ctx, best.def),
+      };
+}
+
+/** Licensed (foreign) designs of (cls, gen) a line may choose instead, in slot order. */
+export function foreignLineDesigns(
+  ctx: NavyCtx,
+  cls: ShipClass | "convoy",
+  gen: number,
+): LineDesign[] {
+  if (cls === "convoy") return [];
+  return ctx.designs
+    .filter(
+      (r) =>
+        r.kind === "ship" &&
+        !r.obsolete &&
+        r.origin === "licensed" &&
+        designFits(r, cls, gen),
+    )
+    .sort((a, b) => a.slot - b.slot)
+    .map((r) => ({
+      slot: r.slot,
+      name: designDisplayName(r.def),
+      origin: "licensed" as const,
+      block: lineDesignBlock(ctx, r.def),
+    }));
 }
 
 /** What a new line can build (spec §5.2): the classes and the convoy. */
@@ -1026,6 +1141,7 @@ export function newLineOrder(
   port: number,
   docks: number,
   count: number,
+  design = 0,
 ): WwOrder {
   return {
     kind: "naval_line_add",
@@ -1034,6 +1150,7 @@ export function newLineOrder(
     docks: Math.max(1, Math.min(WW_MAX_DOCKS_PER_LINE, docks)),
     count: Math.max(0, Math.min(WW_MAX_LINE_COUNT, count)),
     port,
+    ...(design > 0 && cls !== "convoy" ? { design } : {}),
   };
 }
 

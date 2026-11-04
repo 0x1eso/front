@@ -109,9 +109,9 @@ export function templateKey(
 }
 
 /**
- * The cell a tank or plane design entry saves into (a tank's role x its
- * chassis, a plane's type x its airframe), or null for a ship or template
- * entry (or one too broken to tell).
+ * The cell a design entry saves into (a tank's role x its chassis, a
+ * plane's type x its airframe, a ship's class x generation), or null for
+ * a template entry (or one too broken to tell).
  */
 export function cellOf(c: LibContent): string | null {
   if (c.type !== "design") return null;
@@ -122,6 +122,7 @@ export function cellOf(c: LibContent): string | null {
     if (c.def.kind === "plane") {
       return `plane:${planeType(c.def as DesignDef)}|${c.def.base}`;
     }
+    if (c.def.kind === "ship") return `ship|${c.def.base}`;
     return null;
   } catch {
     return null;

@@ -22,10 +22,12 @@ import { regionName } from "./LandModel";
 import {
   ADMIRAL_TRAIT_ICONS,
   admiralRows,
+  cellLineDesign,
   convoyLosses,
   convoySummary,
   docksLine,
   fleetRows,
+  foreignLineDesigns,
   LINE_CLASSES,
   LineCard,
   lineCards,
@@ -78,6 +80,8 @@ interface LineDraft {
   port: number;
   docks: number;
   count: number;
+  /** A foreign (licensed) design slot picked instead of my cell's design; 0: mine. */
+  foreign?: number;
 }
 
 /**
@@ -92,7 +96,10 @@ export class WwShipyards extends LitElement {
   @property({ attribute: false }) game: GameView;
   @property({ attribute: false }) eventBus: EventBus;
   /** Open "new line" with the convoy picked (the convoys tab's shortcut). */
-  @property({ attribute: false }) preset: "convoy" | null = null;
+  @property({ attribute: false }) preset:
+    | "convoy"
+    | { cls: ShipClass; gen: number }
+    | null = null;
   /** The navy and economy views' versions: a new one redraws the lines. */
   @property({ attribute: false }) version = "";
   @state() private draft: LineDraft | null = null;
@@ -105,6 +112,21 @@ export class WwShipyards extends LitElement {
   willUpdate(changed: Map<string, unknown>) {
     if (changed.has("preset") && this.preset === "convoy") {
       this.draft = { cls: "convoy", gen: 1, port: 0, docks: 1, count: 0 };
+    } else if (
+      changed.has("preset") &&
+      this.preset !== null &&
+      this.preset !== "convoy"
+    ) {
+      // The design card's [make a production line]: the draft on its cell.
+      const nctx = navyCtx(this.game as unknown as NavyGame);
+      const ports = nctx === null ? [] : linePorts(nctx);
+      this.draft = {
+        cls: this.preset.cls,
+        gen: this.preset.gen,
+        port: ports[0] ?? 0,
+        docks: 1,
+        count: 1,
+      };
     }
   }
 
@@ -181,8 +203,9 @@ export class WwShipyards extends LitElement {
     >
       <div class="flex items-center gap-1.5">
         <span aria-hidden="true">${SHIP_ICONS[l.cls]}</span>
-        <span class="min-w-0 flex-1 truncate font-semibold"
-          >${translateText("ww1936.navy.line_ship", {
+        <span data-ww-line-title class="min-w-0 flex-1 truncate font-semibold"
+          >${c.designName ??
+          translateText("ww1936.navy.line_ship", {
             cls: lineClassName(l.cls),
             gen:
               l.cls === "convoy" || l.cls === "floating_harbor"
@@ -326,6 +349,13 @@ export class WwShipyards extends LitElement {
     }
     const port = ports.includes(d.port) ? d.port : (ports[0] ?? 0);
     const block = newLineBlock(ctx, d.cls, d.gen);
+    const own = cellLineDesign(ctx, d.cls, d.gen);
+    const foreign = foreignLineDesigns(ctx, d.cls, d.gen);
+    const picked =
+      d.foreign !== undefined && d.foreign > 0
+        ? (foreign.find((x) => x.slot === d.foreign) ?? own)
+        : own;
+    const designBlockWhy = picked?.block ?? null;
     const chip = (
       key: string,
       label: string,
@@ -380,6 +410,39 @@ export class WwShipyards extends LitElement {
           );
         })}
       </div>
+      ${d.cls === "convoy"
+        ? nothing
+        : html`<div class=${HEADING}>
+              ${translateText("ww1936.navy.new_line_design")}
+            </div>
+            <p data-ww-line-design class="m-0 text-white/90">
+              ${picked === null
+                ? translateText("ww1936.navy.new_line_no_design")
+                : picked.name}
+            </p>
+            ${foreign.length === 0
+              ? nothing
+              : html`<div class=${HEADING}>
+                    ${translateText("ww1936.navy.new_line_foreign")}
+                  </div>
+                  <div class="flex flex-wrap gap-1">
+                    ${own === null
+                      ? nothing
+                      : chip(
+                          `design:${own.slot}`,
+                          own.name,
+                          picked?.slot === own.slot,
+                          () => (this.draft = { ...d, foreign: 0 }),
+                        )}
+                    ${foreign.map((f) =>
+                      chip(
+                        `design:${f.slot}`,
+                        `⚑ ${f.name}`,
+                        picked?.slot === f.slot,
+                        () => (this.draft = { ...d, foreign: f.slot }),
+                      ),
+                    )}
+                  </div>`}`}
       <div class=${HEADING}>${translateText("ww1936.navy.new_line_port")}</div>
       <div class="flex flex-wrap gap-1">
         ${ports.map((r) =>
@@ -415,14 +478,31 @@ export class WwShipyards extends LitElement {
         : html`<p data-ww-block=${block} class="m-0 text-red-300">
             🔒 ${blockText(block)}
           </p>`}
+      ${block === null && designBlockWhy !== null
+        ? html`<p
+            data-ww-design-block=${designBlockWhy}
+            class="m-0 text-red-300"
+          >
+            🔒 ${blockText(designBlockWhy)}
+          </p>`
+        : nothing}
       <div class="flex gap-1">
         <button
           type="button"
           data-ww-start-naval-line
           class="${BUTTON} flex-1 bg-sky-800/60"
-          ?disabled=${block !== null || port === 0}
+          ?disabled=${block !== null || designBlockWhy !== null || port === 0}
           @click=${() => {
-            this.send(newLineOrder(d.cls, d.gen, port, d.docks, d.count));
+            this.send(
+              newLineOrder(
+                d.cls,
+                d.gen,
+                port,
+                d.docks,
+                d.count,
+                picked?.slot ?? 0,
+              ),
+            );
             this.draft = null;
           }}
         >
@@ -448,12 +528,20 @@ export class WwShipyards extends LitElement {
 export class WwNavyPanel extends WwDrawerBase {
   protected readonly drawerId = "navy" as const;
   @state() private tab: WwNavyTab = "fleets";
-  @state() private preset: "convoy" | null = null;
+  @state() private preset: "convoy" | { cls: ShipClass; gen: number } | null =
+    null;
   private redrawKey: readonly unknown[] = [];
 
   init() {
     super.init();
     this.eventBus.on(OpenWwNavyEvent, (e) => {
+      if (e.draft !== null) {
+        // A design card's [make a production line]: never a toggle.
+        this.tab = "shipyards";
+        this.preset = { cls: e.draft.cls, gen: e.draft.gen };
+        this.setOpen(true);
+        return;
+      }
       if (this.open && (e.tab === null || e.tab === this.tab)) {
         this.setOpen(false);
         return;
@@ -471,6 +559,7 @@ export class WwNavyPanel extends WwDrawerBase {
     const was = this.open;
     super.setOpen(open);
     if (was !== open) this.eventBus.emit(new WwSeaLayerEvent(open));
+    if (!open) this.preset = null;
   }
 
   tick() {

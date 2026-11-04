@@ -1984,6 +1984,7 @@ export class WwNavy {
             : queuedShipName(cn.tag, SHIP_CLASSES[l.cls], cn.nameNext[l.cls])),
         outputMilli: l.lastOutput,
         fill: l.fill,
+        ...(l.design > 0 ? { design: l.design } : {}),
       })),
       docks: ce.totals.dock,
       docksLent: ce.docksLent,

@@ -1,4 +1,5 @@
 import type { BuildingId } from "@openfront/engine-api/ww1936/EconomyTypes";
+import type { ShipClass } from "@openfront/engine-api/ww1936/NavyTypes";
 import { EventBus, GameEvent } from "@openfront/shared/EventBus";
 import { html, LitElement, nothing, TemplateResult } from "lit";
 import { state } from "lit/decorators.js";
@@ -136,7 +137,11 @@ export const WW_AIR_TABS_LIVE: readonly WwAirTab[] = [
  * that tab.
  */
 export class OpenWwNavyEvent implements GameEvent {
-  constructor(public readonly tab: WwNavyTab | null = null) {}
+  constructor(
+    public readonly tab: WwNavyTab | null = null,
+    /** Opens the shipyards with a new-line draft on this ship class and generation. */
+    public readonly draft: { cls: ShipClass; gen: number } | null = null,
+  ) {}
 }
 
 /** Open the air drawer (a long press on the ✈ dial, spec §18.1), like the navy drawer. */

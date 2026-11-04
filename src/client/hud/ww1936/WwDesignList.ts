@@ -54,10 +54,12 @@ function renderCard(env: DesignListEnv, row: WwDesignSlotData): TemplateResult {
   const use = designUse(model, row);
   const name = designDisplayName(def);
   const key = `obsolete:${row.kind}:${row.slot}`;
-  // A tank design is a cell's: no slot management, no retiring, no copying
-  // of my own (the designer's cell list edits it); a foreign one can still
-  // be adapted into my own cell.
-  const tank = row.kind !== "ship";
+  // A tank, plane or own ship design is a cell's: no slot management, no
+  // retiring, no copying of my own (the designer's cell list edits it); a
+  // foreign one can still be adapted into my own cell. An own ship design
+  // that went obsolete is an old version some ships still hold: no edit.
+  const tank = row.kind !== "ship" || row.origin === "own";
+  const oldShip = row.kind === "ship" && row.origin === "own" && row.obsolete;
   const tankScore =
     row.kind === "tank"
       ? model.tankScore(row.slot)
@@ -88,6 +90,13 @@ function renderCard(env: DesignListEnv, row: WwDesignSlotData): TemplateResult {
                   >${translateText("ww1936.design.old")}</span
                 >`
               : nothing}`}
+      ${oldShip
+        ? html`<span
+            data-ww-old
+            class="shrink-0 rounded bg-amber-500/30 px-1 text-[11px] text-amber-200"
+            >${translateText("ww1936.design.old")}</span
+          >`
+        : nothing}
       ${origin === ""
         ? nothing
         : html`<span
@@ -109,26 +118,31 @@ function renderCard(env: DesignListEnv, row: WwDesignSlotData): TemplateResult {
       )}
     </div>
     <div data-ww-design-use class="text-white/60">
-      ${translateText("ww1936.design.list_line", {
-        line: use.lines,
-        stock: use.stock,
-        divisions: use.users,
-      })}
+      ${row.kind === "ship"
+        ? translateText("ww1936.design.list_ships", { n: use.users })
+        : translateText("ww1936.design.list_line", {
+            line: use.lines,
+            stock: use.stock,
+            divisions: use.users,
+          })}
     </div>
     <div class="flex flex-wrap gap-1">
-      <button
-        type="button"
-        data-ww-design-copy
-        class="h-9 min-w-24 flex-1 rounded-md border border-white/15 bg-white/5 px-2 font-semibold hover:bg-white/10"
-        @click=${() => env.copy(row)}
-      >
-        ${translateText(
-          tank && row.origin === "own"
-            ? "ww1936.design.edit_cell"
-            : "ww1936.design.edit_new",
-        )}
-      </button>
-      ${row.kind === "ship" || row.obsolete
+      ${oldShip
+        ? nothing
+        : html`<button
+            type="button"
+            data-ww-design-copy
+            class="h-9 min-w-24 flex-1 rounded-md border border-white/15 bg-white/5 px-2 font-semibold hover:bg-white/10"
+            @click=${() => env.copy(row)}
+          >
+            ${translateText(
+              tank && row.origin === "own"
+                ? "ww1936.design.edit_cell"
+                : "ww1936.design.edit_new",
+            )}
+          </button>`}
+      ${row.obsolete ||
+      (row.kind === "ship" && row.origin !== "own" && row.origin !== "licensed")
         ? nothing
         : html`<button
             type="button"

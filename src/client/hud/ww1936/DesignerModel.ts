@@ -412,7 +412,7 @@ export class DesignerModel {
         ? this.cellDesign(id)
         : this.kind === "plane"
           ? this.planeCellDesign(id)
-          : null;
+          : this.shipCellDesign(id);
     this.base = saved === null ? null : saved.def;
     this.draft =
       saved === null
@@ -555,6 +555,13 @@ export class DesignerModel {
         this.planeCellDesign(d.base, planeType(d)) === null
       );
     }
+    if (d.kind === "ship") {
+      // A save needs a free slot unless it rewrites the cell's design in place.
+      return (
+        this.designsOf("ship").length >= DESIGN_SLOTS.ship &&
+        !this.shipCellRewritable(d.base)
+      );
+    }
     if (d.kind !== "tank") {
       return this.designsOf(d.kind).length >= DESIGN_SLOTS[d.kind];
     }
@@ -570,6 +577,32 @@ export class DesignerModel {
     if (d === null) return false;
     if (d.kind === "plane") return planeType(d) !== this.planeTypeSel;
     return d.kind === "tank" && tankRole(d) !== this.tankRoleSel;
+  }
+
+  /**
+   * My current own design in the ship cell (class x generation, the base id
+   * of the chip): the newest one that is not obsolete.
+   */
+  shipCellDesign(base: string): WwDesignSlotData | null {
+    let best: WwDesignSlotData | null = null;
+    for (const r of this.designsOf("ship")) {
+      if (r.origin !== "own" || r.obsolete || r.def.base !== base) continue;
+      if (best === null || r.slot > best.slot) best = r;
+    }
+    return best;
+  }
+
+  /**
+   * Whether a save into the ship cell rewrites its design in place: no ship
+   * has it and no line that makes it has progress (the engine's rule; the
+   * engine judges the order again). Otherwise the save takes a new slot.
+   */
+  shipCellRewritable(base: string): boolean {
+    const cur = this.shipCellDesign(base);
+    if (cur === null) return false;
+    if (cur.inUse > 0) return false;
+    const lines = this.view.wwNavy?.()?.detail?.lines ?? [];
+    return !lines.some((l) => l.design === cur.slot && l.progressMilli > 0);
   }
 
   /** My own design in the plane cell (airframe x type); the lowest slot when an old snapshot holds several. */
