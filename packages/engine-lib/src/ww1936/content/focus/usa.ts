@@ -436,6 +436,7 @@ export const USA_FOCUSES: FocusDef[] = [
         kind: "send_equipment",
         to: T("CHN"),
         type: "infantry_equipment",
+        item: "usa_m1903a3",
         count: 3000,
       },
       { kind: "send_equipment", to: T("CHN"), type: "motorized", count: 500 },
@@ -889,7 +890,13 @@ export const USA_FOCUSES: FocusDef[] = [
     icon: "plane",
     effects: [
       { kind: "research_bonus", branch: "air", pct: 100, uses: 1 },
-      { kind: "equipment", type: "fighter", gen: 1, count: 200 },
+      {
+        kind: "equipment",
+        type: "fighter",
+        gen: 1,
+        count: 200,
+        item: "usa_p36a",
+      },
     ],
     ai: { base: 10 },
   },
@@ -1283,7 +1290,13 @@ export const USA_FOCUSES: FocusDef[] = [
         building: "mil",
         count: 3,
       },
-      { kind: "equipment", type: "bomber", gen: 1, count: 100 },
+      {
+        kind: "equipment",
+        type: "strat_bomber",
+        gen: 2,
+        count: 60,
+        item: "usa_b24j",
+      },
     ],
     ai: { base: 12 },
   },
@@ -1492,8 +1505,20 @@ export const USA_FOCUSES: FocusDef[] = [
     group: "usa_pacific_war",
     prereq: [["usa_fast_carriers"]],
     effects: [
-      { kind: "equipment", type: "cv_fighter", gen: 2, count: 150 },
-      { kind: "equipment", type: "cv_naval_bomber", gen: 2, count: 100 },
+      {
+        kind: "equipment",
+        type: "cv_fighter",
+        gen: 2,
+        count: 150,
+        item: "usa_f6f5",
+      },
+      {
+        kind: "equipment",
+        type: "cv_naval_bomber",
+        gen: 2,
+        count: 100,
+        item: "usa_tbf1",
+      },
       { kind: "navy_xp", amount: 20 },
     ],
     ai: { base: 12 },
@@ -1547,8 +1572,15 @@ export const USA_FOCUSES: FocusDef[] = [
     exclusive: ["usa_island_hopping"],
     available: { kind: "at_war_with", of: T("JPN") },
     effects: [
+      { kind: "research_bonus", tech: "aero_engine_3", pct: 50, uses: 1 },
       { kind: "navy_xp", amount: 30 },
-      { kind: "equipment", type: "cv_fighter", gen: 2, count: 100 },
+      {
+        kind: "equipment",
+        type: "cv_fighter",
+        gen: 2,
+        count: 100,
+        item: "usa_f4u1d",
+      },
     ],
     ai: { base: 12 },
   },
@@ -1607,7 +1639,13 @@ export const USA_FOCUSES: FocusDef[] = [
     group: "usa_pacific_war",
     prereq: [["usa_strategic_bombing"]],
     effects: [
-      { kind: "equipment", type: "strat_bomber", gen: 2, count: 100 },
+      {
+        kind: "equipment",
+        type: "strat_bomber",
+        gen: 3,
+        count: 50,
+        item: "usa_b29",
+      },
       {
         kind: "if",
         cond: { kind: "has_tech", tech: "strat_bomber_2" },
@@ -1631,7 +1669,16 @@ export const USA_FOCUSES: FocusDef[] = [
     icon: "tank",
     group: "usa_european_war",
     prereq: [["usa_armored_force"]],
-    effects: [{ kind: "equipment", type: "anti_tank", gen: 2, count: 300 }],
+    effects: [
+      { kind: "research_bonus", tech: "tank_gun_3", pct: 50, uses: 1 },
+      {
+        kind: "equipment",
+        type: "medium_tank",
+        gen: 2,
+        count: 100,
+        item: "usa_m10",
+      },
+    ],
     ai: { base: 8 },
   },
   {
@@ -1646,7 +1693,14 @@ export const USA_FOCUSES: FocusDef[] = [
     prereq: [["usa_armored_force"]],
     exclusive: ["usa_pershing_heavy"],
     effects: [
-      { kind: "equipment", type: "medium_tank", gen: 2, count: 600 },
+      { kind: "research_bonus", tech: "medium_tank_2", pct: 100, uses: 1 },
+      {
+        kind: "equipment",
+        type: "medium_tank",
+        gen: 2,
+        count: 600,
+        item: "usa_m4a1_sherman",
+      },
       {
         kind: "build",
         where: { best: 2, of: "great_lakes" },
@@ -1668,7 +1722,14 @@ export const USA_FOCUSES: FocusDef[] = [
     prereq: [["usa_armored_force"]],
     exclusive: ["usa_sherman_mass"],
     effects: [
-      { kind: "equipment", type: "medium_tank", gen: 3, count: 200 },
+      { kind: "research_bonus", tech: "heavy_tank_2", pct: 100, uses: 1 },
+      {
+        kind: "equipment",
+        type: "medium_tank",
+        gen: 3,
+        count: 120,
+        item: "usa_m26_pershing",
+      },
       { kind: "army_xp", amount: 15 },
     ],
     ai: {
@@ -1803,7 +1864,13 @@ export const USA_FOCUSES: FocusDef[] = [
     prereq: [["usa_radiation_lab"]],
     effects: [
       { kind: "start_project", project: "sp_proximity_fuze" },
-      { kind: "equipment", type: "anti_air", gen: 2, count: 200 },
+      {
+        kind: "equipment",
+        type: "anti_air",
+        gen: 2,
+        count: 200,
+        item: "usa_m1_90aa",
+      },
     ],
     ai: { base: 10 },
   },
@@ -1863,7 +1930,16 @@ export const USA_FOCUSES: FocusDef[] = [
     icon: "plane",
     group: "usa_science",
     prereq: [["usa_escort_fighters"]],
-    effects: [{ kind: "equipment", type: "fighter", gen: 3, count: 250 }],
+    effects: [
+      { kind: "research_bonus", tech: "drop_tanks", pct: 100, uses: 1 },
+      {
+        kind: "equipment",
+        type: "fighter",
+        gen: 3,
+        count: 250,
+        item: "usa_p51d",
+      },
+    ],
     ai: { base: 12 },
   },
   {
@@ -1877,7 +1953,13 @@ export const USA_FOCUSES: FocusDef[] = [
     group: "usa_science",
     prereq: [["usa_air_corps"]],
     effects: [
-      { kind: "equipment", type: "transport_plane", gen: 1, count: 150 },
+      {
+        kind: "equipment",
+        type: "transport_plane",
+        gen: 1,
+        count: 150,
+        item: "usa_c47",
+      },
     ],
     ai: { base: 8 },
   },

@@ -27,6 +27,7 @@ import { histEntry } from "@openfront/engine-lib/ww1936/hist/index";
 import {
   histKindOf,
   histOwn,
+  histSlotOf,
   histStaticEntry,
 } from "@openfront/engine-lib/ww1936/hist/Slots";
 import {
@@ -256,4 +257,50 @@ export function sweepHistPlanes(d: WwDepth, id: number): void {
       ce.stock[key] = 0;
     }
   }
+}
+
+/**
+ * A focus, event or decision gives (or takes, with a negative count) units of
+ * one catalogue item. Designer off and the item the receiver's own tank or
+ * plane: its slot is opened if its techs are not yet researched (the stock of
+ * an item is a design-slot stock), and the units go there. Returns false when
+ * the item does not apply (designer on, not a major's own tank or plane), so
+ * the caller falls back to the plain (type, gen) static stock. Gear items
+ * (rifles, trucks, guns) are static keys already and always fall back.
+ */
+export function grantHistItem(
+  d: WwDepth,
+  id: number,
+  itemId: string,
+  count: number,
+): boolean {
+  const country = histCountryOf(d, id);
+  const e = histEntry(itemId);
+  const c = d.country(id);
+  const ce = d.ww.economy.country(id);
+  if (country === null || e === undefined || e.country !== country) {
+    return false;
+  }
+  if (c === null || ce === null) return false;
+  const kind = histKindOf(e);
+  if (kind !== "tank" && kind !== "plane") return false;
+  const slot = histSlotOf(country, itemId);
+  if (slot <= 0) return false;
+  if (c.des[kind][slot - 1] === null) {
+    const def = histDef(e);
+    if (def === null) return false;
+    c.des[kind][slot - 1] = {
+      def: def as DesignSlot["def"],
+      origin: "own",
+      from: 0,
+      fromSlot: 0,
+      obsolete: false,
+      savedDay: 0,
+    };
+    d.markDesign(id, kind, slot);
+  }
+  const key = equipKey(kind === "tank" ? "tank_design" : "plane_design", slot);
+  if (key < 0) return false;
+  ce.stock[key] = Math.max(0, ce.stock[key] + count);
+  return true;
 }

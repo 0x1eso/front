@@ -463,12 +463,25 @@ export type Effect = W &
         count: number;
       }
     | { kind: "manpower"; amount?: number; recruitablePct?: number }
-    | { kind: "equipment"; type: EquipmentType; gen: number; count: number }
+    | {
+        kind: "equipment";
+        type: EquipmentType;
+        gen: number;
+        count: number;
+        /**
+         * The catalogue item a major gets (a hist id of its own country,
+         * designer off). The text names it; without the catalogue, or for
+         * another country, the (type, gen) static stock is what is given.
+         */
+        item?: string;
+      }
     | {
         kind: "send_equipment";
         to: Selector;
         type: EquipmentType;
         count: number;
+        /** Text only: the catalogue item this gift reads as (the sender's oldest stock of the type). */
+        item?: string;
       }
     | {
         kind: "research_bonus";
@@ -878,11 +891,13 @@ export const WwEffectSchema: z.ZodType<Effect> = z.lazy(() =>
       gen: pos.max(3),
       // Negative: a loss (the stock never goes below 0).
       count: int,
+      item: z.string().max(40).optional(),
     }),
     ...leaf(["send_equipment"], {
       to: SelectorSchema,
       type: z.enum(EQUIPMENT_TYPES),
       count: pos,
+      item: z.string().max(40).optional(),
     }),
     ...leaf(["research_bonus"], {
       branch: z.enum(TECH_BRANCHES).optional(),

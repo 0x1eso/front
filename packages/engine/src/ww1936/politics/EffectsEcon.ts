@@ -31,6 +31,7 @@ import {
 } from "@openfront/engine-lib/ww1936/TemplateStats";
 import { permPctOfXp } from "@openfront/engine-lib/ww1936/ThoughtRules";
 import { receiveKey } from "../depth/DesignCopy";
+import { grantHistItem } from "../depth/Hist";
 import type { WwDepth } from "../depth/WwDepth";
 import { noStrikeAt, usedSlots } from "../economy/Construction";
 import { drawManpower, drawTemplateEquip } from "../economy/Stock";
@@ -359,6 +360,7 @@ export function applyEconEffect(
   const c = pol.country(actor);
   const ce = econ.country(actor);
   if (c === null || ce === null) return;
+  const depth0 = pol.ww.depth as WwDepth | undefined;
   switch (e.kind) {
     case "build": {
       let left = e.count;
@@ -402,6 +404,13 @@ export function applyEconEffect(
       break;
     }
     case "equipment": {
+      if (
+        e.item !== undefined &&
+        depth0 !== undefined &&
+        grantHistItem(depth0, actor, e.item, e.count)
+      ) {
+        break;
+      }
       const key = equipKey(e.type, e.gen);
       if (key >= 0) ce.stock[key] = Math.max(0, ce.stock[key] + e.count);
       break;

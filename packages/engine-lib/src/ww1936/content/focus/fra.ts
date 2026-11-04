@@ -68,7 +68,13 @@ export const FRA_FOCUSES: FocusDef[] = [
     effects: [
       { kind: "research_bonus", branch: "air", pct: 50, uses: 1 },
       { kind: "build", where: { best: 1 }, building: "mil", count: 1 },
-      { kind: "equipment", type: "fighter", gen: 1, count: 100 },
+      {
+        kind: "equipment",
+        type: "fighter",
+        gen: 1,
+        count: 100,
+        item: "fra_ms406",
+      },
     ],
     ai: { base: 10 },
   },
@@ -757,7 +763,13 @@ export const FRA_FOCUSES: FocusDef[] = [
     group: "fra_navy_air",
     effects: [
       { kind: "research_bonus", branch: "air", pct: 100, uses: 1 },
-      { kind: "equipment", type: "fighter", gen: 1, count: 200 },
+      {
+        kind: "equipment",
+        type: "fighter",
+        gen: 1,
+        count: 200,
+        item: "fra_mb152",
+      },
     ],
     ai: { base: 10 },
   },
@@ -787,7 +799,13 @@ export const FRA_FOCUSES: FocusDef[] = [
     effects: [
       // The P1 bomber is the tactical bomber.
       { kind: "research_bonus", tech: "bomber_2", pct: 100, uses: 1 },
-      { kind: "equipment", type: "bomber", gen: 1, count: 100 },
+      {
+        kind: "equipment",
+        type: "bomber",
+        gen: 2,
+        count: 100,
+        item: "fra_leo451",
+      },
     ],
     ai: { base: 10 },
   },
@@ -1430,6 +1448,7 @@ export const FRA_FOCUSES: FocusDef[] = [
         kind: "send_equipment",
         to: T("ESR"),
         type: "infantry_equipment",
+        item: "fra_mas36",
         count: 100,
       },
       { kind: "volunteers", to: T("ESR"), divisions: 1 },
@@ -1449,7 +1468,13 @@ export const FRA_FOCUSES: FocusDef[] = [
     prereq: [["fra_tank_programme"]],
     exclusive: ["fra_somua_light"],
     effects: [
-      { kind: "equipment", type: "medium_tank", gen: 1, count: 60 },
+      {
+        kind: "equipment",
+        type: "medium_tank",
+        gen: 1,
+        count: 40,
+        item: "fra_b1_bis",
+      },
       { kind: "research_bonus", branch: "armour", pct: 25, uses: 1 },
     ],
     ai: { base: 10 },
@@ -1466,7 +1491,13 @@ export const FRA_FOCUSES: FocusDef[] = [
     prereq: [["fra_tank_programme"]],
     exclusive: ["fra_char_b"],
     effects: [
-      { kind: "equipment", type: "light_tank", gen: 2, count: 80 },
+      {
+        kind: "equipment",
+        type: "medium_tank",
+        gen: 1,
+        count: 60,
+        item: "fra_s35",
+      },
       { kind: "research_bonus", branch: "armour", pct: 25, uses: 1 },
     ],
     ai: { base: 10 },
@@ -1498,7 +1529,13 @@ export const FRA_FOCUSES: FocusDef[] = [
     group: "fra_army",
     prereq: [["fra_army_reorganisation"]],
     effects: [
-      { kind: "equipment", type: "anti_tank", gen: 1, count: 100 },
+      {
+        kind: "equipment",
+        type: "anti_tank",
+        gen: 1,
+        count: 100,
+        item: "fra_at25_sal",
+      },
       { kind: "fort", where: { best: 1, of: "nord_lorraine" }, amount: 1 },
     ],
     ai: { base: 10 },
@@ -1514,7 +1551,13 @@ export const FRA_FOCUSES: FocusDef[] = [
     group: "fra_navy_air",
     prereq: [["fra_modern_fighters"]],
     effects: [
-      { kind: "equipment", type: "fighter", gen: 2, count: 120 },
+      {
+        kind: "equipment",
+        type: "fighter",
+        gen: 2,
+        count: 120,
+        item: "fra_d520",
+      },
       { kind: "research_bonus", branch: "air", pct: 20, uses: 1 },
     ],
     ai: { base: 10 },
@@ -1530,7 +1573,13 @@ export const FRA_FOCUSES: FocusDef[] = [
     group: "fra_navy_air",
     prereq: [["fra_bomber_force"]],
     effects: [
-      { kind: "equipment", type: "bomber", gen: 1, count: 60 },
+      {
+        kind: "equipment",
+        type: "bomber",
+        gen: 1,
+        count: 60,
+        item: "fra_mb210",
+      },
       { kind: "army_xp", amount: 5 },
     ],
     ai: { base: 10 },
@@ -1729,6 +1778,7 @@ export const FRA_FOCUSES: FocusDef[] = [
         kind: "send_equipment",
         to: T("POL"),
         type: "infantry_equipment",
+        item: "fra_mas36",
         count: 50,
       },
     ],

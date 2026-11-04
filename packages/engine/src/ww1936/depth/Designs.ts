@@ -922,6 +922,9 @@ export function grantDesign(
 ): void {
   const d = ctx.pol.ww.depth as WwDepth | undefined;
   if (d === undefined || d.country(actor) === null) return;
+  // ww71: with the designer off the slots belong to the catalogue; a preset
+  // design would land on one of its entries. The focus gives an item instead.
+  if (!designerOn(d)) return;
   const p = ctx.pol.content.aiDesignPresets.find((x) => x.id === e.preset);
   if (p === undefined) return;
   const def = { ...p.def, name: presetName(p.id) } as DesignDef;
