@@ -149,9 +149,9 @@ export type DesignOrigin = (typeof DESIGN_ORIGINS)[number];
 // ww61: the slots also hold the historical catalogue's entries of a country
 // (one slot per entry, engine-lib/ww1936/hist); a test pins that the largest
 // catalogue fits.
-export const WW_TANK_DESIGN_SLOTS = 64;
-export const WW_PLANE_DESIGN_SLOTS = 96;
-export const WW_SHIP_DESIGN_SLOTS = 64;
+export const WW_TANK_DESIGN_SLOTS = 48;
+export const WW_PLANE_DESIGN_SLOTS = 64;
+export const WW_SHIP_DESIGN_SLOTS = 40;
 /** The designer's own pool (designer on): today's sizes. */
 export const DESIGNER_POOL: Readonly<Record<DesignKind, number>> = {
   tank: 12,

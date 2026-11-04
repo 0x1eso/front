@@ -94,7 +94,7 @@ import {
   issueDesign,
 } from "./Designs";
 import { coalDemand, dailyEnergy, energyView } from "./Energy";
-import { dailyHist } from "./Hist";
+import { dailyHist, fillHistStatics } from "./Hist";
 import { computeIntelRow, intelDetailOf } from "./IntelLevels";
 import { landmarkStatsOf } from "./Landmarks";
 import { dayCommonMarket, issueTrade, listingPriceMilli } from "./Market";
@@ -1879,6 +1879,7 @@ function buildKeyStats(d: WwDepth, id: number): KeyStatsTable {
     stats: STATIC_KEY_STATS.stats.slice(),
   };
   if (d.countries[id] !== null && d.countries[id] !== undefined) {
+    fillHistStatics(d, id, t); // ww61: a major's statics from its catalogue
     fillDesignRows(d, id, t);
   }
   return t;

@@ -7,14 +7,32 @@ import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
 import type {
   DesignDef,
   DesignKind,
+  KeyStatsTable,
 } from "@openfront/engine-api/ww1936/DepthTypes";
+import { KS, KS_FIELDS } from "@openfront/engine-api/ww1936/DepthTypes";
+import { EQUIP_KEYS } from "@openfront/engine-api/ww1936/EconomyTypes";
+import {
+  GROUND_EQUIP_KEYS,
+  GROUND_STATIC_SLOTS,
+} from "@openfront/engine-api/ww1936/LandTypes";
+import { histStatsOf } from "@openfront/engine-lib/ww1936/hist/Convert";
+import type { GearStats } from "@openfront/engine-lib/ww1936/hist/ConvertGear";
+import { tankStatsOfEntry } from "@openfront/engine-lib/ww1936/hist/ConvertTank";
 import { histEntry } from "@openfront/engine-lib/ww1936/hist/index";
-import { histKindOf, histOwn } from "@openfront/engine-lib/ww1936/hist/Slots";
+import {
+  histKindOf,
+  histOwn,
+  histStaticEntry,
+} from "@openfront/engine-lib/ww1936/hist/Slots";
 import {
   HIST_COUNTRIES,
   HistCountry,
   HistEntry,
 } from "@openfront/engine-lib/ww1936/hist/Types";
+import {
+  rowScore,
+  STATIC_KEY_STATS,
+} from "@openfront/engine-lib/ww1936/TemplateStats";
 import type { DesignSlot, WwDepth } from "./WwDepth";
 
 const PLANE_BASE_BY_TYPE: Readonly<Record<string, string>> = {
@@ -130,4 +148,67 @@ export function histOfSlot(
 ): HistEntry | undefined {
   const h = d.designSlot(id, kind, slot)?.def.hist;
   return h === undefined ? undefined : histEntry(h);
+}
+
+const GEAR_FIELDS = [KS.soft, KS.hard, KS.def, KS.brk] as const;
+
+/**
+ * A major's static keys take their numbers from its catalogue (rule 7): a
+ * tank key from the entry standing in for it (histStaticEntry), the other
+ * keys from the generation-1 row scaled by the entry's percent (the spread
+ * between real weapons stays small), an anti-tank key with its real pierce.
+ */
+export function fillHistStatics(
+  d: WwDepth,
+  id: number,
+  t: KeyStatsTable,
+): void {
+  const country = histCountryOf(d, id);
+  if (country === null) return;
+  for (let j = 0; j < GROUND_STATIC_SLOTS; j++) {
+    const [type, gen] = EQUIP_KEYS[GROUND_EQUIP_KEYS[j]];
+    const e = histStaticEntry(country, type, gen);
+    if (e === undefined) continue;
+    const o = j * KS_FIELDS;
+    if (e.family === "tank") {
+      if (type !== "light_tank" && type !== "medium_tank") continue;
+      const s = tankStatsOfEntry(e);
+      t.stats[o + KS.soft] = s.soft;
+      t.stats[o + KS.hard] = s.hard;
+      t.stats[o + KS.def] = s.def;
+      t.stats[o + KS.brk] = s.brk;
+      t.stats[o + KS.pierce] = s.pierce;
+      t.stats[o + KS.armor] = s.armor;
+      t.stats[o + KS.hardnessPm] = s.hardnessPm;
+      t.stats[o + KS.speedCenti] = s.speedCenti;
+      t.stats[o + KS.aa] = s.aa;
+      t.stats[o + KS.relPm] = s.relPm;
+      t.stats[o + KS.fuelPct] = s.fuelPct;
+      t.stats[o + KS.flags] = s.flags;
+      t.score[j] = rowScore(t.stats, j, t.group[j], t.year[j]);
+      continue;
+    }
+    if (
+      e.family !== "infantry" &&
+      e.family !== "support" &&
+      e.family !== "gun"
+    ) {
+      continue;
+    }
+    const g = histStatsOf(e) as GearStats;
+    // The generation-1 row of the same type is the 100 % reference.
+    const j1 =
+      EQUIP_KEYS[GROUND_EQUIP_KEYS[j]][0] === type
+        ? GROUND_EQUIP_KEYS.findIndex(
+            (k) => EQUIP_KEYS[k][0] === type && EQUIP_KEYS[k][1] === 1,
+          )
+        : j;
+    const o1 = j1 * KS_FIELDS;
+    for (const f of GEAR_FIELDS) {
+      t.stats[o + f] = Math.floor(
+        (STATIC_KEY_STATS.stats[o1 + f] * g.statPct) / 100,
+      );
+    }
+    if (g.pierceCenti > 0) t.stats[o + KS.pierce] = g.pierceCenti;
+  }
 }

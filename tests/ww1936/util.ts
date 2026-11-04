@@ -80,6 +80,9 @@ export function wwGameStart(
       instantBuild: false,
       randomSpawn: false,
       worldWar1936: true,
+      // ww61: the designer is off by default in the game; the older tests
+      // exercise it, so the fixture turns it on unless a test says otherwise.
+      ww1936Designer: true,
       ...config,
     },
     players: humans.map((h, i) => ({
