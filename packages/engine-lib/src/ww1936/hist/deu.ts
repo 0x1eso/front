@@ -346,11 +346,12 @@ export const DEU_HIST: readonly HistEntry[] = [
     country: "DEU",
     family: "tank",
     role: "spaa",
-    techs: ["medium_tank_3", "anti_air_1"],
+    techs: ["medium_tank_2", "anti_air_1"],
     year: 1944,
     // Quad 2 cm Flakvierling 38 in an open turret on a Pz IV chassis (about
     // 450 rounds per minute per barrel); RM about 80,000.
     // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
+    // Audit w66: Quad 2 cm on a Pz IV chassis: same gate as the Crusader AA Mk II; medium_tank_3 was not this chassis's level.
     source: SRC_PT,
     spec: {
       massT: 22,
@@ -673,6 +674,29 @@ export const DEU_HIST: readonly HistEntry[] = [
   // Third Reich"; prices (RM at 2.5 per dollar) from Griehl and the
   // Luftwaffe production tables, where references differ a mid value is used
   // and several are estimates (noted per entry).
+  {
+    id: "deu_he51",
+    country: "DEU",
+    family: "plane",
+    type: "fighter",
+    techs: [],
+    year: 1935,
+    // Biplane in squadron service in 1936; the 109 B only arrived in 1937. Stands for the start stock.
+    source:
+      "From memory of the Wikipedia article (He 51 B-1: about 1,460 kg empty, 1,900 kg on 27.2 m2, 330 km/h, 570 km, two MG 17); cost an estimate",
+    spec: {
+      maxKmh: 330,
+      rangeKm: 570,
+      emptyKg: 1460,
+      wingLoad: 70,
+      guns: [{ mm: 7.92, count: 2, rpm: 1100 }],
+      defGuns: 0,
+      bombKg: 0,
+      torpedoKg: 0,
+      reliability: 4,
+      costK: 12,
+    },
+  },
   {
     id: "deu_bf109_e",
     country: "DEU",

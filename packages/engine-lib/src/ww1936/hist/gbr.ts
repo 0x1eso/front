@@ -576,6 +576,7 @@ export const GBR_HIST: readonly HistEntry[] = [
     // Crusader AA Mk II: twin 20 mm Oerlikon (450 rounds a minute each) in
     // an open turret on a Crusader hull. Cost estimate.
     // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
+    // Audit w66: AA tech added, same gate as the Wirbelwind.
     source: SRC_TANK,
     spec: {
       massT: 19.5,
@@ -1317,11 +1318,12 @@ export const GBR_HIST: readonly HistEntry[] = [
     country: "GBR",
     family: "ship",
     cls: "cl",
-    techs: ["cl_3"],
+    techs: ["cl_2"],
     year: 1937,
     // Southampton (Town) class: 9,100 t, twelve 6-inch in four triples,
     // eight 4-inch HA, six tubes, 114 mm belt, 32 kn, 7,700 nm at 13 kn.
     // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
+    // Audit w66: Town class of 1937: cl_2 like the Brooklyn of the same year.
     source: SRC_SHIP,
     spec: {
       dispT: 9100,
@@ -1652,12 +1654,13 @@ export const GBR_HIST: readonly HistEntry[] = [
     id: "gbr_smle",
     country: "GBR",
     family: "infantry",
-    techs: [],
+    techs: ["inf_eq_1"],
     year: 1907,
     // SMLE No. 1 Mk III*: .303, ten-round magazine, the fastest bolt action
     // in service (about 20 aimed rounds a minute), effective range about
     // 500 m; one Bren (10 %) in each ten-man section. Cost estimate.
     // Audit w66: autoPct counts self-loading or automatic rifles only, as Types.ts says; the squad LMG counts for nobody.
+    // Audit w66: Standard issue of 1936 under the same first tech as every country's rifle: the engine maps the static key by first tech.
     source: SRC_GEAR,
     spec: { mm: 7.7, aimedRpm: 20, rangeM: 500, autoPct: 0, costUsd: 25 },
   },
@@ -1832,11 +1835,12 @@ export const GBR_HIST: readonly HistEntry[] = [
     country: "GBR",
     family: "gun",
     role: "anti_tank",
-    techs: ["tank_gun_4"],
+    techs: ["anti_tank_2", "tank_gun_4"],
     year: 1943,
     // QF 17-pounder: 76.2 mm, 10 rounds a minute, APCBC 7.7 kg and about
     // 140 mm at 500 m (sources 130-150), 3,040 kg; the strongest Allied AT
     // gun. The range figure (9,200 m) is a rough estimate. Cost estimate.
+    // Audit w66: Under the anti-tank tree like every other towed gun, and the static key's first-tech rule.
     source: SRC_GEAR,
     spec: {
       mm: 76,

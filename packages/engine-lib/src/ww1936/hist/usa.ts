@@ -576,6 +576,32 @@ export const USA_HIST: readonly HistEntry[] = [
     },
   },
   {
+    id: "usa_f3f",
+    country: "USA",
+    family: "plane",
+    type: "cv_fighter",
+    techs: ["fighter_1", "carrier_aviation"],
+    year: 1936,
+    // The Navy's carrier fighter of 1936: the US starts with 200 and no monoplane until the F4F.
+    source:
+      "From memory of the Wikipedia article (F3F-2: about 1,490 kg empty, 2,060 kg on 24.2 m2, 418 km/h, 1,580 km, one .50 and one .30); cost an estimate",
+    spec: {
+      maxKmh: 418,
+      rangeKm: 1580,
+      emptyKg: 1490,
+      wingLoad: 85,
+      guns: [
+        { mm: 12.7, count: 1, rpm: 800 },
+        { mm: 7.62, count: 1, rpm: 1100 },
+      ],
+      defGuns: 0,
+      bombKg: 0,
+      torpedoKg: 0,
+      reliability: 4,
+      costK: 14,
+    },
+  },
+  {
     id: "usa_f4f4",
     country: "USA",
     family: "plane",
@@ -671,6 +697,29 @@ export const USA_HIST: readonly HistEntry[] = [
       torpedoKg: 0,
       reliability: 3,
       costK: 105,
+    },
+  },
+  {
+    id: "usa_a17",
+    country: "USA",
+    family: "plane",
+    type: "cas",
+    techs: ["cas_1"],
+    year: 1935,
+    // The Air Corps attack plane of 1936: the US starts with 100 of this type and its next entry was the A-20G.
+    source:
+      "From memory of the Wikipedia article (Northrop A-17A: about 2,320 kg empty, 3,430 kg on 33.6 m2, 354 km/h, 1,170 km, four .30 fixed, one .30 flexible, 540 kg); cost an estimate",
+    spec: {
+      maxKmh: 354,
+      rangeKm: 1170,
+      emptyKg: 2320,
+      wingLoad: 102,
+      guns: [{ mm: 7.62, count: 4, rpm: 1100 }],
+      defGuns: 1,
+      bombKg: 540,
+      torpedoKg: 0,
+      reliability: 4,
+      costK: 28,
     },
   },
   {
@@ -866,15 +915,39 @@ export const USA_HIST: readonly HistEntry[] = [
     },
   },
   {
-    id: "usa_b17g",
+    id: "usa_b17e",
     country: "USA",
     family: "plane",
     type: "strat_bomber",
     techs: ["strat_bomber_1"],
+    year: 1941,
+    // First B-17 with a tail gun: the strat_bomber_1 step, gated like the Wellington and the TB-3.
+    source:
+      "From memory of the Wikipedia article (B-17E: about 14,850 kg empty, 510 km/h, 3,200 km, 11 guns); cost an estimate near the B-17G's",
+    spec: {
+      maxKmh: 510,
+      rangeKm: 3200,
+      emptyKg: 14850,
+      wingLoad: 170,
+      guns: [],
+      defGuns: 11,
+      bombKg: 3600,
+      torpedoKg: 0,
+      reliability: 5,
+      costK: 220,
+    },
+  },
+  {
+    id: "usa_b17g",
+    country: "USA",
+    family: "plane",
+    type: "strat_bomber",
+    techs: ["strat_bomber_2"],
     year: 1943,
     // Boeing B-17G Flying Fortress: thirteen .50 in MGs, 3,600 kg normal
     // load on a short mission (2,000 kg long range, 7,800 maximum). Cost
     // $204-238k, mid 210.
+    // Audit w66: Late 1943 model, gated with the B-24J and Pe-8; the B-17E is the strat_bomber_1 entry.
     source: SRC_AIR,
     spec: {
       maxKmh: 462,
@@ -1215,11 +1288,12 @@ export const USA_HIST: readonly HistEntry[] = [
     country: "USA",
     family: "ship",
     cls: "bb",
-    techs: ["bb_2"],
+    techs: ["bb_3"],
     year: 1941,
     // North Carolina class: 9 x 16 in/45 Mk 6, 20 x 5 in/38 DP, 305 mm
     // belt, 28 kn, 35,000 long tons; 16 x 28 mm as completed. Cost about
     // $76M.
+    // Audit w66: A fast treaty battleship of 1941: bb_3, like the King George V, Bismarck, Littorio, Richelieu.
     source: SRC_SHIP,
     spec: {
       dispT: 35560,
@@ -1351,6 +1425,31 @@ export const USA_HIST: readonly HistEntry[] = [
     },
   },
   {
+    id: "usa_salmon",
+    country: "USA",
+    family: "ship",
+    cls: "ss",
+    techs: ["ss_2"],
+    year: 1938,
+    // The start boat: the US starts with ss_2 and its only other boat is the Gato at ss_3.
+    source:
+      "From memory of the Wikipedia article (Salmon class: 1,450 t surfaced, 21 kn, 11,000 nm, eight tubes); cost an estimate below the Gato's",
+    spec: {
+      dispT: 1450,
+      main: { count: 1, mm: 76 },
+      beltMm: 0,
+      speedKn: 21,
+      rangeNm: 11000,
+      torpTubes: 8,
+      torpWarheadKg: 290,
+      asw: 0,
+      aaLight: [],
+      aaHeavy: 0,
+      aircraft: 0,
+      costM: 4.5,
+    },
+  },
+  {
     id: "usa_gato",
     country: "USA",
     family: "ship",
@@ -1383,11 +1482,12 @@ export const USA_HIST: readonly HistEntry[] = [
     id: "usa_m1903a3",
     country: "USA",
     family: "infantry",
-    techs: [],
+    techs: ["inf_eq_1"],
     year: 1936,
     // Springfield M1903A3 bolt-action, .30-06 (7.62 mm), 15 rounds per
     // minute aimed, 500 m. Cost about $40.
     // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
+    // Audit w66: As above: the rifle of 1936 under inf_eq_1.
     source: SRC_GEAR,
     spec: { mm: 7.62, aimedRpm: 15, rangeM: 500, autoPct: 0, costUsd: 35 },
   },
@@ -1395,12 +1495,13 @@ export const USA_HIST: readonly HistEntry[] = [
     id: "usa_m1_garand",
     country: "USA",
     family: "infantry",
-    techs: ["inf_eq_1"],
+    techs: ["inf_eq_2"],
     year: 1937,
     // M1 Garand, the first self-loading rifle to be general issue: 8-round
     // clip, .30-06, about 25 aimed rounds per minute, 500 m. Cost $85 in
     // 1937, $40 by 1944; mid 60.
     // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
+    // Audit w66: A self-loader, gated like the SVT-40, the G43 and the MAS 49.
     source: SRC_GEAR,
     spec: { mm: 7.62, aimedRpm: 25, rangeM: 500, autoPct: 0, costUsd: 80 },
   },
@@ -1442,11 +1543,12 @@ export const USA_HIST: readonly HistEntry[] = [
     country: "USA",
     family: "gun",
     role: "artillery",
-    techs: [],
+    techs: ["artillery_1"],
     year: 1897,
     // French-pattern 75 mm field gun M1897 as the 1936 divisional gun:
     // about 15 rounds per minute, 8,500 m, 6.2 kg shell. Cost about $5k
     // (estimate).
+    // Audit w66: The gun of 1936 under artillery_1, so the static key finds it.
     source: SRC_GEAR,
     spec: {
       mm: 75,
@@ -1464,10 +1566,11 @@ export const USA_HIST: readonly HistEntry[] = [
     country: "USA",
     family: "gun",
     role: "artillery",
-    techs: ["artillery_1"],
+    techs: ["artillery_2"],
     year: 1941,
     // 105 mm howitzer M2A1: sustained 3 rounds per minute (burst 10), 11,160
     // m, 15 kg shell, 2,260 kg. Cost about $8k (estimate).
+    // Audit w66: Better than the M1897: artillery_2, like the 25-pounder.
     source: SRC_GEAR,
     spec: {
       mm: 105,
@@ -1485,10 +1588,11 @@ export const USA_HIST: readonly HistEntry[] = [
     country: "USA",
     family: "gun",
     role: "artillery",
-    techs: ["artillery_2"],
+    techs: ["artillery_3"],
     year: 1942,
     // 155 mm howitzer M1 (M114): 1-2 rounds per minute sustained, 14,600 m,
     // 43 kg shell, 5,760 kg. Cost about $20k (estimate).
+    // Audit w66: Medium piece: artillery_3, like the British 5.5 in and the Japanese 150 mm.
     source: SRC_GEAR,
     spec: {
       mm: 155,

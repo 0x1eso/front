@@ -918,10 +918,11 @@ export const SUN_HIST: readonly HistEntry[] = [
     country: "SUN",
     family: "plane",
     type: "cas",
-    techs: ["cas_1"],
+    techs: ["cas_2"],
     year: 1941,
     // Il-2 single-seat: 404 km/h, 765 km, armoured shell, two 20 mm ShVAK and two ShKAS, 600 kg bombs. Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
     // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
+    // Audit w66: A 1941 type: cas_2 like the Ju 87 D, not a start tech.
     source: SRC_AIR,
     spec: {
       maxKmh: 404,
@@ -1301,10 +1302,11 @@ export const SUN_HIST: readonly HistEntry[] = [
     country: "SUN",
     family: "ship",
     cls: "cl",
-    techs: [],
+    techs: ["cl_2"],
     year: 1938,
     // Project 26 Kirov: about 7,900 t standard, nine 180 mm, six 100 mm AA, six 45 mm (entered as 40 mm), six 533 mm tubes, 50 mm belt, 36 kn. Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
     // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
+    // Audit w66: Same gate as the Duca d'Aosta of like size.
     source: SRC_SHIP,
     spec: {
       dispT: 7900,
@@ -1330,6 +1332,7 @@ export const SUN_HIST: readonly HistEntry[] = [
     year: 1940,
     // Project 26-bis Maxim Gorky: 8,177 t standard (Wikipedia), nine 180 mm, six 100 mm AA, 70 mm belt, 36 kn; range 4,220 nm at 18 kn (other sources 6,000 nm at 10 kn). Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
     // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
+    // Audit w66: Same gate as the Kirov.
     source: SRC_SHIP,
     spec: {
       dispT: 8177,

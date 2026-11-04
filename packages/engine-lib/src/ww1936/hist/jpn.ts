@@ -361,12 +361,13 @@ export const JPN_HIST: readonly HistEntry[] = [
     id: "jpn_a5m4",
     country: "JPN",
     family: "plane",
-    type: "fighter",
-    techs: ["fighter_1"],
+    type: "cv_fighter",
+    techs: ["fighter_1", "carrier_aviation"],
     year: 1936,
     // Navy fighter, 2 x 7.7 mm; 435 km/h, 1,200 km, loaded 1,671 kg on 17.8 m2; price estimated.
     // Audit w66: Type 89 7.7 mm about 900 rpm; 600 was far below it.
     // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
+    // Audit w66: A carrier fighter, the type Japan starts with in stock; the army's Ki-27 stays the land fighter.
     source: SRC_AIR,
     spec: {
       maxKmh: 435,
@@ -433,10 +434,11 @@ export const JPN_HIST: readonly HistEntry[] = [
     country: "JPN",
     family: "plane",
     type: "fighter",
-    techs: ["fighter_2"],
+    techs: ["fighter_2", "aircraft_cannon_1"],
     year: 1943,
     // Licensed DB601 engine (Ha-40) that was unreliable; 2 x 12.7 mm and 2 x 20 mm Ho-5; price estimated.
     // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
+    // Audit w66: Cannon fighter, gated with the cannon as the Spitfire V and Fw 190 A are.
     source: SRC_AIR,
     spec: {
       maxKmh: 590,
@@ -1308,14 +1310,40 @@ export const JPN_HIST: readonly HistEntry[] = [
     },
   },
   {
+    id: "jpn_kd6",
+    country: "JPN",
+    family: "ship",
+    cls: "ss",
+    techs: ["ss_2"],
+    year: 1934,
+    // The fleet boat of 1936; Japan's only other boat was the 1940 I-15.
+    source:
+      "From memory of the Wikipedia article (Kaidai VIa: 1,400 t surfaced, 23 kn, 14,000 nm, six tubes, one 100 mm); cost an estimate",
+    spec: {
+      dispT: 1400,
+      main: { count: 1, mm: 100 },
+      beltMm: 0,
+      speedKn: 23,
+      rangeNm: 14000,
+      torpTubes: 6,
+      torpWarheadKg: 300,
+      asw: 0,
+      aaLight: [],
+      aaHeavy: 0,
+      aircraft: 0,
+      costM: 5,
+    },
+  },
+  {
     id: "jpn_i15",
     country: "JPN",
     family: "ship",
     cls: "ss",
-    techs: ["ss_2", "torpedo_1"],
+    techs: ["ss_3"],
     year: 1940,
     // 2,589 t surfaced, 6 tubes 533 mm with the Type 95 oxygen torpedo (405 kg), 14,000 nm; cost estimated.
     // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
+    // Audit w66: Large fleet boat of 1940: ss_3, like the Gato and the K class; the Kaidai 6 is the start boat.
     source: SRC_SHIP,
     spec: {
       dispT: 2589,
@@ -1353,6 +1381,17 @@ export const JPN_HIST: readonly HistEntry[] = [
     // Audit w66: autoPct counts automatic rifles only.
     source: SRC_GUN,
     spec: { mm: 7.7, aimedRpm: 12, rangeM: 500, autoPct: 0, costUsd: 28 },
+  },
+  {
+    id: "jpn_type94_truck",
+    country: "JPN",
+    family: "support",
+    techs: ["support_eq_1"],
+    year: 1934,
+    // The only country without a support entry; this was the army's standard truck.
+    source:
+      "From memory of the Wikipedia article (Isuzu Type 94 six-wheel truck); range and cost estimates",
+    spec: { kind: "transport", rangeKm: 400, costUsd: 2000 },
   },
   {
     id: "jpn_type38_75",

@@ -210,31 +210,6 @@ export const FRA_HIST: readonly HistEntry[] = [
     },
   },
   {
-    id: "fra_amx13_75",
-    country: "FRA",
-    family: "tank",
-    role: "light",
-    techs: ["light_tank_2", "tank_gun_3"],
-    year: 1953,
-    // Oscillating turret with an autoloader, 75 mm SA 50 L/57; penetration sources run 100-135 mm with APC, 110 used. Estimate: against US M41 Walker Bulldog.
-    source:
-      "Memory (Wikipedia AMX-13; Foss, Jane's); the penetration of the SA 50 gun is uncertain.",
-    spec: {
-      massT: 14.8,
-      hullFrontMm: 40,
-      hullSlopeDeg: 45,
-      turretFrontMm: 40,
-      gunMm: 75,
-      penMm500: 110,
-      heFillerG: 600,
-      mgs: 1,
-      offroadKmh: 35,
-      roadKmh: 60,
-      reliability: 3,
-      costK: 45,
-    },
-  },
-  {
     id: "fra_d2",
     country: "FRA",
     family: "tank",
@@ -493,27 +468,29 @@ export const FRA_HIST: readonly HistEntry[] = [
     },
   },
   {
-    id: "fra_ouragan",
+    id: "fra_vg33",
     country: "FRA",
     family: "plane",
     type: "fighter",
-    techs: ["fighter_3"],
-    year: 1952,
-    // First French jet fighter in series; 908 kg of bombs per the page. Estimate: against the US F-84.
+    techs: ["fighter_2", "aero_engine_2"],
+    year: 1940,
+    // The next step after the D.520, and it flew in 1940; France's fighter_2 had no entry.
     source:
-      "Wikipedia aircraft articles (read 2026-11) (MD.450B: 4,142/7,404 kg, 23.8 m2, 940 km/h, 920 km ferry).",
+      "Checked 2026-11-04 on Wikipedia, Arsenal VG-33: 1,719 / 2,448 kg on 14 m2, 554 km/h, 1,200 km. Armament from memory; cost an estimate beside the D.520",
     spec: {
-      guns: [{ mm: 20, count: 4, rpm: 700 }],
-      maxKmh: 940,
-      rangeKm: 920,
-      emptyKg: 4142,
-      wingLoad: 311,
+      guns: [
+        { mm: 20, count: 1, rpm: 650 },
+        { mm: 7.5, count: 4, rpm: 1200 },
+      ],
+      maxKmh: 554,
+      rangeKm: 1200,
+      emptyKg: 1719,
+      wingLoad: 175,
       defGuns: 0,
-      bombKg: 908,
+      bombKg: 0,
       torpedoKg: 0,
       reliability: 3,
-      costK: 110,
-      jet: true,
+      costK: 34,
     },
   },
   {
@@ -651,10 +628,11 @@ export const FRA_HIST: readonly HistEntry[] = [
     country: "FRA",
     family: "plane",
     type: "naval_bomber",
-    techs: ["naval_bomber_1"],
+    techs: [],
     year: 1938,
     // Floatplane torpedo bomber; 121 built. Torpedo 670 kg, bombs 2 x 150 kg.
     // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
+    // Audit w66: France holds 50 naval bombers at the start but has no naval_bomber_1: this is what they are.
     source:
       "Wikipedia aircraft articles (read 2026-11) (298D: 3,085/4,533 kg, 31.6 m2, 295 km/h, 1,000 km, one torpedo or bombs 680 kg).",
     spec: {
@@ -1037,10 +1015,11 @@ export const FRA_HIST: readonly HistEntry[] = [
     country: "FRA",
     family: "ship",
     cls: "cv",
-    techs: ["cv_3"],
+    techs: ["cv_2"],
     year: 1938,
     // Never completed. Estimate: against USS Yorktown.
     // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
+    // Audit w66: Laid down 1938: cv_2, like the Ark Royal and Yorktown.
     source:
       "Wikipedia ship-class articles (read 2026-11) (18,000 t, 8 x 130 mm DP, 8 x 37 mm, belt 105 mm, 33.5 kn, 7,000 nm at 20 kn, 40 aircraft). Planned: Joffre laid down 1938, work stopped 1940.",
     spec: {
@@ -1142,9 +1121,10 @@ export const FRA_HIST: readonly HistEntry[] = [
     id: "fra_citroen23",
     country: "FRA",
     family: "support",
-    techs: [],
+    techs: ["support_eq_1"],
     year: 1934,
     // Standard French army truck; estimate: against the US 2.5-ton truck (about 2,500 dollars).
+    // Audit w66: Support set of 1936 under support_eq_1, so the static key finds it.
     source: "Memory (Wikipedia; Citro\u00ebn Type 23, 3.5 t).",
     spec: {
       kind: "transport",
@@ -1171,9 +1151,10 @@ export const FRA_HIST: readonly HistEntry[] = [
     country: "FRA",
     family: "gun",
     role: "artillery",
-    techs: [],
+    techs: ["artillery_1"],
     year: 1897,
     // The soixante-quinze. Estimate: cost against the US 75 mm M1897.
+    // Audit w66: The gun of 1936 under artillery_1, so the static key finds it.
     source:
       "Wikipedia (Canon de 75 mod\u00e8le 1897: 1,544 kg, 3-4 rpm sustained, 11,000 m, HE 5.4 kg).",
     spec: {
