@@ -7,7 +7,6 @@ import type { DesignDef } from "@openfront/engine-api/ww1936/DepthTypes";
 import {
   EQUIP_KEYS,
   equipKey,
-  EquipmentType,
   WwOrderBlock,
   WwTechId,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
@@ -15,6 +14,7 @@ import {
   GROUND_EQUIP_KEYS,
   GROUND_STATIC_SLOTS,
 } from "@openfront/engine-api/ww1936/LandTypes";
+import { staticKeyOfCell } from "@openfront/engine-lib/ww1936/DesignCellKeys";
 import {
   TANK_BASE_DEFS,
   tankRole,
@@ -23,27 +23,6 @@ import { oldInfoOf } from "@openfront/engine-lib/ww1936/TemplateStats";
 import { changeLine } from "../economy/Production";
 import { copyDef, designHeld, freeSlot, saveDesign } from "./Designs";
 import type { WwDepth } from "./WwDepth";
-
-/**
- * The static tank each chassis cell of the plain "tank" role stands in for
- * (their techs are the same: TANK_BASE_DEFS.tech === EQUIPMENT.techs[gen-1]).
- */
-const STATIC_OF_BASE: Readonly<
-  Record<string, readonly [EquipmentType, number]>
-> = {
-  light_1: ["light_tank", 1],
-  light_2: ["light_tank", 2],
-  medium_1: ["medium_tank", 1],
-  medium_2: ["medium_tank", 2],
-  medium_3: ["medium_tank", 3],
-};
-
-/** The EQUIP_KEYS index of the static tank a design's cell absorbs; -1: none. */
-export function staticKeyOfCell(def: DesignDef): number {
-  if (def.kind !== "tank" || tankRole(def) !== "tank") return -1;
-  const s = STATIC_OF_BASE[def.base];
-  return s === undefined ? -1 : equipKey(s[0], s[1]);
-}
 
 /** Two tank designs fill the same cell: the same role on the same chassis. */
 export function sameCell(a: DesignDef, b: DesignDef): boolean {

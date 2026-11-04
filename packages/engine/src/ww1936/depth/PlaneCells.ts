@@ -15,6 +15,7 @@ import {
   type WwOrderBlock,
   type WwTechId,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
+import { staticKeyOfPlaneCell } from "@openfront/engine-lib/ww1936/DesignCellKeys";
 import {
   PLANE_BASE_DEFS,
   planeType,
@@ -43,13 +44,6 @@ export function ownPlaneCellSlots(
     }
   });
   return out;
-}
-
-/** The EQUIP_KEYS index of the static plane a design's cell absorbs; -1: none. */
-export function staticKeyOfPlaneCell(def: DesignDef): number {
-  if (def.kind !== "plane") return -1;
-  const p = staticPartnerOfCell(planeType(def), def.base);
-  return p === null ? -1 : equipKey(p.type, p.gen);
 }
 
 /** What moves into design slot `slot`: a static generation, or another design slot (a legacy duplicate). */

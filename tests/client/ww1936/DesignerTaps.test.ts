@@ -131,6 +131,54 @@ describe("<ww-designer>", () => {
     el.remove();
   }, 30_000);
 
+  it("a save into a cell no static stands in for offers a production line", async () => {
+    const { EventBus } = await import("@openfront/shared/EventBus");
+    const { WwDepthOpenEvent } =
+      await import("../../../src/client/hud/ww1936/DepthEvents");
+    const { OpenWwIndustryEvent } =
+      await import("../../../src/client/hud/ww1936/WwDrawer");
+    await import("../../../src/client/hud/ww1936/WwDesigner");
+    const bus = new EventBus();
+    const opened: string[] = [];
+    bus.on(OpenWwIndustryEvent, (e) => opened.push(String(e.tab)));
+    const el = document.createElement("ww-designer") as HTMLElement & {
+      game: unknown;
+      eventBus: unknown;
+      updateComplete: Promise<boolean>;
+      init(): void;
+    };
+    el.game = designerGame();
+    el.eventBus = bus;
+    document.body.appendChild(el);
+    el.init();
+    bus.emit(new WwDepthOpenEvent("designer", { kind: "tank" }));
+    await el.updateComplete;
+    const click = async (sel: string) => {
+      (el.querySelector(sel) as HTMLElement).click();
+      await el.updateComplete;
+    };
+    const save = async () => {
+      await click("[data-ww-design-save]");
+      await new Promise((r) => setTimeout(r, 400));
+      await click("[data-ww-design-save]");
+    };
+    // A plain medium tank is a static's cell: no offer.
+    await click("[data-ww-cell=medium_2]");
+    await save();
+    expect(el.querySelector("[data-ww-saved-hint]")).toBeNull();
+    // A tank destroyer has no static partner: the offer opens production.
+    (el.querySelector("[data-ww-design-kind=tank]") as HTMLElement).click();
+    await el.updateComplete;
+    await click("[data-ww-role-tab=tank_destroyer]");
+    await click("[data-ww-cell=medium_2]");
+    await save();
+    expect(el.querySelector("[data-ww-saved-hint]")).not.toBeNull();
+    await click("[data-ww-saved-line]");
+    expect(opened).toEqual(["production"]);
+    expect(el.querySelector("[data-ww-saved-hint]")).toBeNull();
+    el.remove();
+  }, 30_000);
+
   it("final review D (D1): a name typed with a trailing space saves trimmed", async () => {
     const { EventBus } = await import("@openfront/shared/EventBus");
     const { WwDepthOpenEvent } =
