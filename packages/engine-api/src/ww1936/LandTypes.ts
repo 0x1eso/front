@@ -152,6 +152,11 @@ export interface ArmyOrder {
   readyDay: number;
   /** ww7: the army's explicit zone (tap order); empty: the engine picks it. */
   zone: number[];
+  /**
+   * ww42: a human's direct attack (army_direct): the targets are taken in
+   * order and the army goes at once. Absent for every other order.
+   */
+  direct?: boolean;
 }
 export function idleOrder(): ArmyOrder {
   return {
@@ -424,6 +429,32 @@ export interface ArmySummary {
   volunteerFor?: number;
 }
 
+/** ww42: the direct-attack settings bits (Army.dflags). */
+export const DIRECT_FAVORABLE = 1;
+export const DIRECT_ALL_IN = 2;
+export const DIRECT_ADVANCE = 4;
+
+/**
+ * ww42: how a human army's divisions stand, counted by the rule the engine
+ * uses (Plans.directView). `atk`: [our region, the enemy region, divisions]
+ * per attacking group; the rest are division counts. `wait`: why the
+ * waiting ones wait (0 none, 1 odds, 2 org, 3 a battle over its width);
+ * `ratioPm`: the average org-removal ratio (‰) the attack is judged by,
+ * -1 when there is none.
+ */
+export interface DirectView {
+  flags: number;
+  atk: [number, number, number][];
+  hold: number;
+  wait: number;
+  rec: number;
+  walk: number;
+  why: number;
+  ratioPm: number;
+  /** The regions where holders / waiting / recovering divisions stand: [region, kind(0 hold,1 wait,2 rec,3 walk), n]. */
+  at: [number, number, number][];
+}
+
 export interface ArmyMineData {
   order: ArmyOrder;
   front: number[];
@@ -442,6 +473,8 @@ export interface ArmyMineData {
   priority?: number;
   /** ww7: 0 off, 1 defend-only auto, 2 full auto (`auto` equals level > 0); sent when set. */
   autoLevel?: number;
+  /** ww42: a human army's direct-attack settings and division breakdown; sent when the army has them. */
+  direct?: DirectView;
   /**
    * ww7: for each zone region of a plan order, [our region, the enemy region
    * it would attack, win %]; sent for human armies with a plan order.
@@ -709,6 +742,8 @@ export const LAND_ORDER_KINDS = [
   "army_auto_level",
   // Army templates, appended at the end of the order union.
   "train_army",
+  // ww42: a human's direct attack and its per-army settings.
+  "army_direct",
 ] as const;
 export type LandOrderKind = (typeof LAND_ORDER_KINDS)[number];
 
@@ -733,5 +768,12 @@ export const LAND_MESSAGE_KEYS = [
   "events_display.ww1936_template_added",
   "events_display.ww1936_army_scattered",
   "events_display.ww1936_train_target_lost",
+  // ww42: the direct attack's endings.
+  "events_display.ww1936_direct_done",
+  "events_display.ww1936_direct_over",
+  "events_display.ww1936_direct_stop_war",
+  "events_display.ww1936_direct_stop_path",
+  "events_display.ww1936_direct_stop_far",
+  "events_display.ww1936_direct_stop_gone",
 ] as const;
 export type LandMessageKey = (typeof LAND_MESSAGE_KEYS)[number];

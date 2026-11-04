@@ -1285,7 +1285,12 @@ export const WwOrderSchema = z.discriminatedUnion("kind", [
     // Review L7: a smallID, as P2's army_front.enemy.
     enemy: zb.uint({ max: 1000 }),
   }),
-  z.object({ kind: z.literal("ag_execute"), group: WwId }),
+  z.object({
+    kind: z.literal("ag_execute"),
+    group: WwId,
+    // ww42: with targets, every army of the group gets the direct attack.
+    targets: z.array(WwRegionId).min(1).max(WW_MAX_TARGETS).optional(),
+  }),
   z.object({ kind: z.literal("ag_auto"), group: WwId, on: z.boolean() }),
   z.object({
     kind: z.literal("medal_award"),
@@ -1579,6 +1584,17 @@ export const WwOrderSchema = z.discriminatedUnion("kind", [
       .min(1)
       .max(WW_MAX_ARMY_DIVISIONS),
     region: zb.uint({ max: SEA_ZONE_BASE - 1 }),
+  }),
+  // ww42, appended: a human's direct attack. `targets` (taken in order, the
+  // army goes at once; an empty list stops it) and the army's settings
+  // ([유리할 때만 공격], [전부 공격], [계속 진격]); a field left out stays.
+  z.object({
+    kind: z.literal("army_direct"),
+    army: WwArmy,
+    targets: z.array(WwRegionId).max(WW_MAX_TARGETS).optional(),
+    favorable: z.boolean().optional(),
+    allIn: z.boolean().optional(),
+    advance: z.boolean().optional(),
   }),
 ]);
 export type WwOrder = z.infer<typeof WwOrderSchema>;

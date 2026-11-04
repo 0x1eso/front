@@ -1,6 +1,9 @@
 // World War 1936 P2: battle plans and planning (P2 spec §8.2, §8.3).
 // ww7: an Attack (a plan order) attacks from the axis of its zone.
 import {
+  DIRECT_ADVANCE,
+  DIRECT_FAVORABLE,
+  type DirectView,
   idleOrder,
   MOVE_ADVANCE,
   MOVE_NONE,
@@ -26,11 +29,12 @@ import {
   predictBattle,
   predictBattleRange,
 } from "@openfront/engine-lib/ww1936/CombatRules";
+import { landOrderBlockOf } from "@openfront/engine-lib/ww1936/LandOrderChecks";
 import { effectiveLevel } from "../economy/Buildings";
 import { joinBattle, modsOf } from "./Battles";
 import { generalOf } from "./GeneralsRun";
 import { enemyDivisionsIn, startHopInto } from "./Movement";
-import { leaveAttack } from "./Orders";
+import { leaveAttack, orderCheckWorld } from "./Orders";
 import type { Army, WwLand } from "./WwLand";
 
 /**
@@ -82,7 +86,9 @@ export function targetDistances(
   land: WwLand,
   army: Army,
   /** ww7 lane D: hypothetical targets (the AI's gate), default the order's. */
-  targets: readonly number[] = army.order.targets,
+  targets: readonly number[] = army.order.direct === true
+    ? army.order.targets.slice(0, 1)
+    : army.order.targets,
 ): Int32Array {
   const sc = land.scenario;
   const dist = new Int32Array(sc.maxRegionId() + 1).fill(
@@ -134,6 +140,7 @@ export function axisOf(
  */
 export function finishPlan(land: WwLand, army: Army): boolean {
   const o = army.order;
+  if (o.kind === "plan" && o.direct === true) return finishDirect(land, army);
   if (o.kind !== "plan" || o.targets.length === 0) return false;
   // P5 lane A: a volunteer army judges by its host's side.
   const me = land.ownerForSides(army);
@@ -150,6 +157,129 @@ export function finishPlan(land: WwLand, army: Army): boolean {
   army.odds = undefined;
   land.markArmy(army.id);
   return true;
+}
+
+/** ww42: the notice key for the block that stopped a direct attack. */
+const STOP_KEYS = {
+  not_at_war: "events_display.ww1936_direct_stop_war",
+  no_path: "events_display.ww1936_direct_stop_path",
+  not_adjacent: "events_display.ww1936_direct_stop_far",
+} as const;
+
+/**
+ * ww42: a direct attack ends: the army turns to Defend where it stands (as
+ * finishPlan does) and its player is told why.
+ */
+function endDirect(
+  land: WwLand,
+  army: Army,
+  key:
+    | (typeof STOP_KEYS)[keyof typeof STOP_KEYS]
+    | "events_display.ww1936_direct_stop_gone"
+    | "events_display.ww1936_direct_done"
+    | "events_display.ww1936_direct_over",
+): true {
+  const o = army.order;
+  for (const r of armyRows(land, army)) leaveAttack(land, r);
+  army.order = {
+    ...idleOrder(),
+    kind: "front",
+    anchor: land.armyRegion(army),
+    enemy: o.enemy,
+  };
+  army.odds = undefined;
+  land.message(army.owner, key, { army: army.nameNo });
+  land.markArmy(army.id);
+  return true;
+}
+
+/** ww42: the order checks' verdict on the direct attack's remaining targets, now. */
+function directBlockNow(land: WwLand, army: Army): string | null {
+  return landOrderBlockOf(orderCheckWorld(land, army.owner), {
+    kind: "army_direct",
+    army: army.id,
+    targets: army.order.targets,
+  });
+}
+
+/**
+ * ww42: the nearest enemy region next to ground our side holds, by walking
+ * out from the army's divisions over our side's land (the smaller id among
+ * those next to the same layer); 0 when none is reachable.
+ */
+function nearestEnemyRegion(land: WwLand, army: Army, me: number): number {
+  const sc = land.scenario;
+  const ours = (r: number) => land.sameSide(me, land.controller[r]);
+  const seen = new Set<number>();
+  let layer: number[] = [];
+  for (const r of armyRows(land, army)) {
+    const at = land.divisions.region[r];
+    if (!seen.has(at) && ours(at)) {
+      seen.add(at);
+      layer.push(at);
+    }
+  }
+  layer.sort((x, y) => x - y);
+  while (layer.length > 0) {
+    let best = 0;
+    for (const u of layer) {
+      for (const e of sc.edgesOf(u)) {
+        if (land.isEnemy(me, land.controller[e.to]) && (best === 0 || e.to < best)) {
+          best = e.to;
+        }
+      }
+    }
+    if (best !== 0) return best;
+    const next: number[] = [];
+    for (const u of layer) {
+      for (const e of sc.edgesOf(u)) {
+        if (seen.has(e.to) || !ours(e.to)) continue;
+        seen.add(e.to);
+        next.push(e.to);
+      }
+    }
+    layer = next.sort((x, y) => x - y);
+  }
+  return 0;
+}
+
+/**
+ * ww42: a direct attack's day check. Targets our side holds drop out of the
+ * list; with some left the order must still be possible (war, reach, a way
+ * over our land), else it stops with a notice. With none left the army
+ * defends and is told, or with [계속 진격] takes the nearest enemy region.
+ * True when the attack ended.
+ */
+function finishDirect(land: WwLand, army: Army): boolean {
+  const o = army.order;
+  const me = land.ownerForSides(army);
+  const left = o.targets.filter((r) => !land.sameSide(me, land.controller[r]));
+  if (left.length !== o.targets.length) {
+    o.targets = left;
+    land.markArmy(army.id);
+  }
+  if (left.length > 0) {
+    const block = directBlockNow(land, army);
+    if (block === null) return false;
+    return endDirect(
+      land,
+      army,
+      STOP_KEYS[block as keyof typeof STOP_KEYS] ??
+        "events_display.ww1936_direct_stop_gone",
+    );
+  }
+  if ((army.dflags & DIRECT_ADVANCE) !== 0) {
+    const next = nearestEnemyRegion(land, army, me);
+    if (next !== 0) {
+      o.targets = [next];
+      if (directBlockNow(land, army) === null) {
+        land.markArmy(army.id);
+        return false;
+      }
+    }
+    return endDirect(land, army, "events_display.ww1936_direct_over");
+  }
+  return endDirect(land, army, "events_display.ww1936_direct_done");
 }
 
 /** Enemy divisions' defence in `region` (the plan's "weaker first"). */
@@ -229,6 +359,10 @@ export function planDay(
   if (finishPlan(land, army)) return;
   // P5 lane A: a volunteer army attacks its host's enemies.
   const me = land.ownerForSides(army);
+  const direct = o.direct === true;
+  const favorable = direct && (army.dflags & DIRECT_FAVORABLE) !== 0;
+  // ww42: a direct attack's other zone regions next to the same enemy region.
+  const others: [number, number[]][] = [];
   const t = land.divisions;
   const dist = targetDist ?? targetDistances(land, army);
   const rows = armyRows(land, army);
@@ -250,7 +384,19 @@ export function planDay(
     }
     const onAxis = ax.has(f);
     const best = attackTarget(land, army, me, f, dist, !onAxis);
-    if (best < 0) continue;
+    if (best < 0) {
+      // ww42: a holder off the axis joins an attack on an enemy region next to it that the axis attacks.
+      if (direct && !onAxis) {
+        const any = attackTarget(land, army, me, f, dist, false);
+        if (any >= 0) {
+          others.push([
+            any,
+            here.filter((r) => t.battle[r] === 0 || t.battle[r] === any),
+          ]);
+        }
+      }
+      continue;
+    }
     if (enemyDivisionsIn(land, me, best) === 0) {
       // Spec §7.7: walk into an empty enemy region, one division (the
       // fastest, then the smaller id), unless one is on its way already. A
@@ -280,12 +426,20 @@ export function planDay(
     if (known === undefined) strikes.set(best, side);
     else known.push(...side);
   }
+  for (const [best, side] of others) {
+    const known = strikes.get(best);
+    if (known !== undefined) known.push(...side);
+  }
   // The preview, per enemy region: every axis region that goes for it
   // attacks together (one direction each).
-  const pct = STANCE_ORG_PCT[o.stance];
+  // ww42: a direct attack goes at any odds (average ratio at 1.00 only when
+  // [유리할 때만 공격] is on) and joins at 30 % org, as ATTACK_LEAVE_PCT.
+  const pct = direct ? ATTACK_LEAVE_PCT : STANCE_ORG_PCT[o.stance];
   for (const [best, side] of strikes) {
     const p = predictAttackRange(land, side, best);
-    if (stancePm(p, o.stance) < STANCE_MIN_PM) continue;
+    if (direct) {
+      if (favorable && p.midPm < STANCE_MIN_PM) continue;
+    } else if (stancePm(p, o.stance) < STANCE_MIN_PM) continue;
     const ids: number[] = [];
     for (const r of side) {
       if (t.battle[r] !== 0) continue;
@@ -484,4 +638,98 @@ function gatherAttack(
     );
   }
   return { att, def, ctx };
+}
+
+/**
+ * ww42: how a human army's divisions stand now, by the rule the engine uses:
+ * attacking (in a battle as attacker, by [our region, enemy region]), holding
+ * the border (standing in a zone region off the axis, or defending), walking,
+ * recovering (standing under 30 % org) and waiting (the rest). `why` says why
+ * the waiting wait: 1 the odds gate ([유리할 때만 공격]), 2 org; `ratioPm`
+ * is the average ratio of the axis region's attack.
+ */
+export function directView(land: WwLand, a: Army): DirectView {
+  const t = land.divisions;
+  const rows = armyRows(land, a);
+  const axis = new Set<number>();
+  if (a.order.kind === "plan" && a.front.length > 0) {
+    const dist = a.order.targets.length > 0 ? targetDistances(land, a) : null;
+    for (const f of axisOf(a.front, dist)) axis.add(f);
+  }
+  const zone = new Set(a.front);
+  const atk = new Map<number, number>();
+  const at = new Map<number, number>();
+  let hold = 0;
+  let wait = 0;
+  let rec = 0;
+  let walk = 0;
+  const note = (region: number, kind: number) => {
+    const k = region * 4 + kind;
+    at.set(k, (at.get(k) ?? 0) + 1);
+  };
+  for (const r of rows) {
+    const region = t.region[r];
+    if (t.battle[r] !== 0 && t.role[r] === ROLE_ATTACK) {
+      const k = region * 65536 + t.battle[r];
+      atk.set(k, (atk.get(k) ?? 0) + 1);
+    } else if (t.battle[r] !== 0) {
+      hold++;
+      note(region, 0);
+    } else if (t.mode[r] !== MOVE_NONE) {
+      walk++;
+      note(region, 3);
+    } else if (t.org[r] * 100 < land.orgMaxOf(r) * ATTACK_LEAVE_PCT) {
+      rec++;
+      note(region, 2);
+    } else if (zone.has(region) && !axis.has(region)) {
+      hold++;
+      note(region, 0);
+    } else {
+      wait++;
+      note(region, 1);
+    }
+  }
+  // The odds of the first axis region's attack (the average ratio).
+  let ratioPm = -1;
+  if (a.order.kind === "plan" && a.order.targets.length > 0) {
+    const me = land.ownerForSides(a);
+    const dist = targetDistances(land, a);
+    for (const f of [...axis].sort((x, y) => x - y)) {
+      const to = attackTarget(land, a, me, f, dist, false);
+      if (to < 0 || enemyDivisionsIn(land, me, to) === 0) continue;
+      const side = rows.filter(
+        (r) =>
+          t.region[r] === f &&
+          (t.battle[r] === to ||
+            (t.battle[r] === 0 &&
+              t.mode[r] === MOVE_NONE &&
+              t.org[r] * 100 >= land.orgMaxOf(r) * ATTACK_LEAVE_PCT)),
+      );
+      if (side.length === 0) continue;
+      ratioPm = predictAttackRange(land, side, to).midPm;
+      break;
+    }
+  }
+  const favorable = (a.dflags & DIRECT_FAVORABLE) !== 0;
+  const why =
+    favorable && wait > 0 && ratioPm >= 0 && ratioPm < STANCE_MIN_PM
+      ? 1
+      : atk.size === 0 && wait === 0 && rec > 0
+        ? 2
+        : 0;
+  return {
+    flags: a.dflags,
+    atk: [...atk]
+      .sort((x, y) => x[0] - y[0])
+      .map(([k, n]) => [Math.floor(k / 65536), k % 65536, n]),
+    hold,
+    wait,
+    rec,
+    walk,
+    why,
+    ratioPm,
+    at: [...at]
+      .sort((x, y) => x[0] - y[0])
+      .map(([k, n]) => [Math.floor(k / 4), k % 4, n]),
+  };
 }

@@ -75,6 +75,8 @@ describe("the lists are appended, never reordered", () => {
       "escort_out_of_range",
     ]);
     const kinds = WwOrderSchema.options.map((o) => o.shape.kind.value);
+    // ww42 appended army_direct last; the older pins read what is before it.
+    expect(kinds.pop()).toBe("army_direct");
     // ww9 appends thought_set after the wing orders.
     expect(kinds.slice(-12, -6)).toEqual([...WING_ORDER_KINDS]);
     expect(kinds.slice(-6, -5)).toEqual(["thought_set"]);

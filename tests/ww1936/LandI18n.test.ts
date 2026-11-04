@@ -176,6 +176,12 @@ const NOTICES = [
   "ww1936_template_added",
   "ww1936_army_scattered",
   "ww1936_train_target_lost",
+  "ww1936_direct_done",
+  "ww1936_direct_over",
+  "ww1936_direct_stop_far",
+  "ww1936_direct_stop_gone",
+  "ww1936_direct_stop_path",
+  "ww1936_direct_stop_war",
 ];
 
 const KEYS = [

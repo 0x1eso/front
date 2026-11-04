@@ -209,6 +209,7 @@ export function autoArmyNamed(
   if (
     order.kind === "army_auto" ||
     order.kind === "army_auto_level" ||
+    (order.kind === "army_direct" && order.targets === undefined) ||
     !("army" in order)
   ) {
     return 0;
