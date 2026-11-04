@@ -173,8 +173,8 @@ describe("hist conversions", () => {
     const order = [
       "sun_t34_43",
       "usa_m4a1_sherman",
-      "deu_panther_a",
       "usa_m26_pershing",
+      "deu_panther_a",
       "deu_tiger1_e",
     ].map(tk);
     expect([...order].sort((a, b) => a - b)).toEqual(order);
