@@ -86,21 +86,27 @@ export function renderDirectPanel(d: DirectPanelDeps): TemplateResult {
       ? nothing
       : html`<div data-ww-direct-parts class="flex flex-wrap gap-1">
           ${parts.map(
-            (p) => html`<button
-              type="button"
-              data-ww-direct-part=${p.kind}
-              class="flex min-h-10 items-center gap-1 rounded-md border border-white/15 bg-white/10 px-2 text-xs hover:bg-white/20"
-              @click=${() => {
-                if (p.regions.length > 0) d.goTo(p.regions[0][0]);
-              }}
-            >
-              <span class="h-2.5 w-2.5 rounded-full ${PART_DOT[p.kind]}"></span>
-              ${partText(d.view, p)}
-            </button>`,
+            (p) =>
+              html`<button
+                type="button"
+                data-ww-direct-part=${p.kind}
+                class="flex min-h-10 items-center gap-1 rounded-md border border-white/15 bg-white/10 px-2 text-xs hover:bg-white/20"
+                @click=${() => {
+                  if (p.regions.length > 0) d.goTo(p.regions[0][0]);
+                }}
+              >
+                <span
+                  class="h-2.5 w-2.5 rounded-full ${PART_DOT[p.kind]}"
+                ></span>
+                ${partText(d.view, p)}
+              </button>`,
           )}
         </div>`}
     ${card.directOn && card.lowPct !== null
-      ? html`<div data-ww-direct-warn class="text-xs font-semibold text-red-300">
+      ? html`<div
+          data-ww-direct-warn
+          class="text-xs font-semibold text-red-300"
+        >
           ⚠ ${translateText("ww1936.direct.warn_low", { pct: card.lowPct })}
         </div>`
       : nothing}
@@ -128,8 +134,11 @@ export function renderDirectPanel(d: DirectPanelDeps): TemplateResult {
         </div>`
       : nothing}
     <div class="grid grid-cols-2 gap-1">
-      ${toggle("favorable", translateText("ww1936.direct.favorable"), favorable, () =>
-        d.send(directSettings(army, { favorable: !favorable })),
+      ${toggle(
+        "favorable",
+        translateText("ww1936.direct.favorable"),
+        favorable,
+        () => d.send(directSettings(army, { favorable: !favorable })),
       )}
       ${toggle(
         "border",
@@ -140,7 +149,9 @@ export function renderDirectPanel(d: DirectPanelDeps): TemplateResult {
         ),
         (flags & DIRECT_ALL_IN) !== 0,
         () =>
-          d.send(directSettings(army, { allIn: (flags & DIRECT_ALL_IN) === 0 })),
+          d.send(
+            directSettings(army, { allIn: (flags & DIRECT_ALL_IN) === 0 }),
+          ),
       )}
       ${toggle(
         "advance",

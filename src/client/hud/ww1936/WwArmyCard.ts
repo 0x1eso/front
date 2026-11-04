@@ -16,12 +16,11 @@ import {
 } from "@openfront/engine-api/ww1936/LandTypes";
 import { WW_INVASION_LAUNCH_SUP_PM } from "@openfront/engine-api/ww1936/NavyTypes";
 import { RAID_TARGETS } from "@openfront/engine-lib/ww1936/ProjectRules";
-import { GoToPositionEvent } from "../../TransformHandler";
-import { renderDirectPanel } from "./WwDirectPanel";
 import { EventBus } from "@openfront/shared/EventBus";
 import { html, LitElement, nothing, TemplateResult } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import { Controller } from "../../Controller";
+import { GoToPositionEvent } from "../../TransformHandler";
 import { SendWwOrderIntentEvent } from "../../Transport";
 import { translateText } from "../../Utils";
 import type { GameView } from "../../view";
@@ -76,6 +75,7 @@ import {
 } from "./NavyModel";
 import { armyPriority, wingsFollowing } from "./WingModel";
 import { today, TWO_TAP_MS, TwoTap, wwActive } from "./WorldWarModel";
+import { renderDirectPanel } from "./WwDirectPanel";
 import { WwDrawerEvent } from "./WwDrawer";
 import { WwLandChangedEvent } from "./WwLandController";
 import { renderRaidPicker } from "./WwRaidPicker";

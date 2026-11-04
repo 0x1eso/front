@@ -24,8 +24,8 @@ import {
   ARMY_RETREAT,
   ARMY_SEA,
   ArmySummary,
-  type DirectView,
   BattleSummary,
+  type DirectView,
   DivisionData,
   DivisionStats,
   GeneralData,
@@ -2370,7 +2370,6 @@ export function idleEquipment(
   }
   return null;
 }
-
 
 // ---- ww42: a human's direct attack ----
 

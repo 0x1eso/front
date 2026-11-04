@@ -680,12 +680,14 @@ describe("fog leaks (spec §8.9)", () => {
       el.init();
       const sel = landSelectionOf(g.game as never);
       sel.select(1);
+      // ww42: a plain attack tap has no preview; the paradrop's keeps this one.
+      sel.setMode("paradrop");
       sel.pending = NEAR;
       sel.version++;
       el.tick();
       await el.updateComplete;
       const ratio = el
-        .querySelector("[data-ww-preview='attack'] [data-ww-ratio]")!
+        .querySelector("[data-ww-preview='paradrop'] [data-ww-ratio]")!
         .getAttribute("data-ww-ratio");
       const f = fogModelOf(g.game as never);
       const view = g.land;

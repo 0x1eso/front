@@ -10,7 +10,6 @@ import {
   GameEvent,
 } from "@openfront/shared/EventBus";
 import { registerBackClosable } from "../../BackGuard";
-import { showToast } from "../../Utils";
 import { Controller } from "../../Controller";
 import {
   ContextMenuEvent,
@@ -20,6 +19,7 @@ import {
   TouchEvent,
 } from "../../InputHandler";
 import { SendWwOrderIntentEvent } from "../../Transport";
+import { showToast } from "../../Utils";
 import type { GameView } from "../../view";
 import {
   battleMarkers,
@@ -38,8 +38,8 @@ import {
   landSidesOf,
   orderBlock,
   planOrder,
-  tapKind,
   tapDirectTargets,
+  tapKind,
   tapOrder,
   toggleTarget,
   toggleZone,
@@ -580,9 +580,7 @@ export class WwLandController implements Controller {
       return;
     }
     const order: LandOrder =
-      next.length === 0
-        ? { kind: "army_halt", army }
-        : directOrder(army, next);
+      next.length === 0 ? { kind: "army_halt", army } : directOrder(army, next);
     const economy = this.game.wwEconomy?.() ?? null;
     if (economy === null) return;
     const block = orderBlock(

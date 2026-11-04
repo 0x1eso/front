@@ -559,10 +559,12 @@ describe("LandModel (spec §15)", () => {
     expect(kind("none", 4)).toBe("move");
     // Italy: the same faction, my side.
     expect(kind("none", 5)).toBe("move");
-    expect(kind("none", 6)).toBe("attack");
+    expect(kind("none", 6)).toBe("direct");
     expect(kind("none", 10)).toBeNull();
     expect(kind("move", 6)).toBeNull();
-    expect(kind("plan", 7)).toBe("plan");
+    expect(kind("plan", 7)).toBe("direct");
+    expect(kind("attack", 7)).toBe("direct");
+    expect(tapOrder("direct", 1, 7)).toBeNull();
     expect(kind("plan", 3)).toBeNull();
     // ww7: [방어] — a border region of ours joins or leaves the zone;
     // an inner or an enemy region does nothing (the mode stays).

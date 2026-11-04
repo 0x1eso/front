@@ -5,6 +5,9 @@ import type { LandOrder } from "@openfront/engine-api/Schemas";
 import type { WwOrderBlock } from "@openfront/engine-api/ww1936/EconomyTypes";
 import {
   type ArmyOrder,
+  DIRECT_ADVANCE,
+  DIRECT_ALL_IN,
+  DIRECT_FAVORABLE,
   idleOrder,
   type LandOrderSource,
   MOVE_ADVANCE,
@@ -15,9 +18,6 @@ import {
   MOVE_WALK,
   ROLE_ATTACK,
   ROLE_NONE,
-  DIRECT_ADVANCE,
-  DIRECT_ALL_IN,
-  DIRECT_FAVORABLE,
   type Stance,
   TPL_PARA_ANY,
   WW_PARA_PREP_DAYS,

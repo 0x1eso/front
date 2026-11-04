@@ -77,7 +77,11 @@ describe("ww42: direct attack", () => {
     placeArmy(c.g, "POL", WARSAW, 12);
     const a = placeArmy(c.g, "DEU", BERLIN, 1);
     expect(go(c, a.id, { targets: [WARSAW] })).toBe(null);
-    expect(a.order).toMatchObject({ kind: "plan", executing: true, direct: true });
+    expect(a.order).toMatchObject({
+      kind: "plan",
+      executing: true,
+      direct: true,
+    });
     step(c.runner, 2);
     expect(c.l.armySummary(a).mine!.direct!.atk.length).toBeGreaterThan(0);
     expect(battleSeen(c, WARSAW, 20)).toBe(true);
@@ -123,7 +127,13 @@ describe("ww42: direct attack", () => {
     expect(go(keep, k.id, { targets: [KRAKOW] })).toBe(null);
     step(keep.runner);
     const at = (c: Ctx, id: number) =>
-      new Set(id === 0 ? [] : c.l.armies.get(id)!.divisions.map((d) => c.l.divisions.dest[c.l.divisions.rowOf(d)]));
+      new Set(
+        id === 0
+          ? []
+          : c.l.armies
+              .get(id)!
+              .divisions.map((d) => c.l.divisions.dest[c.l.divisions.rowOf(d)]),
+      );
     expect(k.front).toEqual([MUNICH, BERLIN]);
     for (const f of k.front) expect(at(keep, k.id).has(f)).toBe(true);
     const all = await atWar();
@@ -189,7 +199,9 @@ describe("ww42: direct attack", () => {
     placeArmy(c.g, "POL", WARSAW, 1);
     placeArmy(c.g, "POL", KRAKOW, 1);
     const a = placeArmy(c.g, "DEU", BERLIN, 3);
-    expect(c.l.issue(c.deu, { kind: "army_auto", army: a.id, on: true }, "player")).toBe(null);
+    expect(
+      c.l.issue(c.deu, { kind: "army_auto", army: a.id, on: true }, "player"),
+    ).toBe(null);
     expect(go(c, a.id, { allIn: true })).toBe(null);
     expect(a.auto).toBe(true);
     expect(go(c, a.id, { targets: [KRAKOW, WARSAW] })).toBe(null);
@@ -204,7 +216,9 @@ describe("ww42: direct attack", () => {
     const c = await atWar();
     placeArmy(c.g, "POL", WARSAW, 3);
     const a = placeArmy(c.g, "DEU", BERLIN, 4);
-    expect(go(c, a.id, { targets: [WARSAW], favorable: true, advance: true })).toBe(null);
+    expect(
+      go(c, a.id, { targets: [WARSAW], favorable: true, advance: true }),
+    ).toBe(null);
     finishDay(c.runner, today(c.g) + 1);
     step(c.runner, 5);
     const copy = await wwRestore(c.runner, DEU_POL);

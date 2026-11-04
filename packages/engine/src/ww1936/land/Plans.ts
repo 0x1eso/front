@@ -3,7 +3,6 @@
 import {
   DIRECT_ADVANCE,
   DIRECT_FAVORABLE,
-  type DirectView,
   idleOrder,
   MOVE_ADVANCE,
   MOVE_NONE,
@@ -18,6 +17,7 @@ import {
   type BattlePrediction,
   type BattleRange,
   type CombatMods,
+  type DirectView,
   type SideSum,
   type Stance,
 } from "@openfront/engine-api/ww1936/LandTypes";
@@ -224,7 +224,10 @@ function nearestEnemyRegion(land: WwLand, army: Army, me: number): number {
     let best = 0;
     for (const u of layer) {
       for (const e of sc.edgesOf(u)) {
-        if (land.isEnemy(me, land.controller[e.to]) && (best === 0 || e.to < best)) {
+        if (
+          land.isEnemy(me, land.controller[e.to]) &&
+          (best === 0 || e.to < best)
+        ) {
           best = e.to;
         }
       }
