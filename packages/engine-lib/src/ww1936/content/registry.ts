@@ -151,6 +151,7 @@ import { SPIRITS_GBR } from "./spirits/gbr";
 import { SPIRITS_GEN } from "./spirits/gen";
 import { SPIRITS_ITA } from "./spirits/ita";
 import { SPIRITS_JPN } from "./spirits/jpn";
+import { SPIRITS_NATIONAL } from "./spirits/national";
 import { SPIRITS_P4 } from "./spirits/p4";
 import { SPIRITS_PACK_CHINA } from "./spirits/pack_china";
 import { SPIRITS_PACK_NORTH } from "./spirits/pack_north";
@@ -561,6 +562,7 @@ export const CONTENT_PARTS: ContentParts = {
     ...SPIRITS_PACK_NORTH,
     ...SPIRITS_PACK_WORLD,
     ...DEPTH_SPIRITS,
+    ...SPIRITS_NATIONAL,
   ],
   traits: TRAITS,
   // P4 (spec §16.3): the navy and air chiefs (AirChiefs.P4_PERSONS), last.

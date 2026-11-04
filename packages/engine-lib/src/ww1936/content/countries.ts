@@ -25,6 +25,8 @@ import type {
   FactionNameDef,
 } from "@openfront/engine-api/ww1936/PoliticsTypes";
 
+import { NATIONAL_SPIRITS, SUN_GAP_END } from "./spirits/national";
+
 export const COUNTRY_POLITICS: readonly CountryPoliticsDef[] = [
   // ---- majors (spec §6.5) ----
   // Germany: NSDAP one-party state since 1933-07-14.
@@ -35,7 +37,7 @@ export const COUNTRY_POLITICS: readonly CountryPoliticsDef[] = [
     stability: 60,
     warSupport: 50,
     tree: "DEU",
-    spirits: ["deu_rhineland_dmz", "deu_rearmament"],
+    spirits: ["deu_rhineland_dmz", "deu_rearmament", ...NATIONAL_SPIRITS.DEU],
     leaders: {
       democratic: "deu_goerdeler",
       communist: "title:leader_communist",
@@ -53,7 +55,7 @@ export const COUNTRY_POLITICS: readonly CountryPoliticsDef[] = [
     warSupport: 65,
     // P5 (P5 spec §18.1-5): its own tree.
     tree: "ITA",
-    spirits: ["ita_abyssinia", "ita_sanctions"],
+    spirits: ["ita_abyssinia", "ita_sanctions", ...NATIONAL_SPIRITS.ITA],
     // P5 (K1): the non-aligned government is the 1943 Marshal-Premier's, the
     // democratic one the President of the Council (titles, persons/ita.ts).
     leaders: {
@@ -73,7 +75,7 @@ export const COUNTRY_POLITICS: readonly CountryPoliticsDef[] = [
     warSupport: 55,
     // P5 (P5 spec §18.1-5): its own tree.
     tree: "JPN",
-    spirits: ["jpn_service_rivalry"],
+    spirits: ["jpn_service_rivalry", ...NATIONAL_SPIRITS.JPN],
     // Pre-flight R7: leader_jpn leads at the start only, shown by its title
     // like every Japanese person (controller ruling on review B M1).
     startLeader: "leader_jpn",
@@ -94,7 +96,7 @@ export const COUNTRY_POLITICS: readonly CountryPoliticsDef[] = [
     warSupport: 20,
     tree: "GBR",
     firstElection: "1940-11-14",
-    spirits: ["gbr_peace_mood", "gbr_empire"],
+    spirits: ["gbr_peace_mood", "gbr_empire", ...NATIONAL_SPIRITS.GBR],
     leaders: {
       democratic: "leader_gbr",
       communist: "gbr_pollitt",
@@ -113,7 +115,12 @@ export const COUNTRY_POLITICS: readonly CountryPoliticsDef[] = [
     // P5 (P5 spec §18.1-5): its own tree.
     tree: "FRA",
     firstElection: "1936-04-26",
-    spirits: ["fra_divided", "fra_defensive_mind", "fra_hollow_years"],
+    spirits: [
+      "fra_divided",
+      "fra_defensive_mind",
+      "fra_hollow_years",
+      ...NATIONAL_SPIRITS.FRA,
+    ],
     leaders: {
       democratic: "leader_fra",
       communist: "title:leader_communist",
@@ -132,7 +139,7 @@ export const COUNTRY_POLITICS: readonly CountryPoliticsDef[] = [
     // P5 (P5 spec §18.1-5): its own tree.
     tree: "USA",
     firstElection: "1936-11-03",
-    spirits: ["usa_depression", "usa_isolation"],
+    spirits: ["usa_depression", "usa_isolation", ...NATIONAL_SPIRITS.USA],
     leaders: {
       democratic: "leader_usa",
       communist: "title:leader_communist",
@@ -149,7 +156,9 @@ export const COUNTRY_POLITICS: readonly CountryPoliticsDef[] = [
     stability: 55,
     warSupport: 40,
     tree: "SUN",
-    spirits: ["sun_five_year_plans"],
+    spirits: ["sun_five_year_plans", ...NATIONAL_SPIRITS.SUN],
+    // w69: the purge gap runs out on its date and hands over to its scars.
+    timedSpirits: [{ id: "nat_sun_purge_gap", until: SUN_GAP_END }],
     leaders: {
       democratic: "title:sun_provisional_head",
       communist: "leader_sun",

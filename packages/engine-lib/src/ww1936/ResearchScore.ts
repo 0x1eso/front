@@ -193,10 +193,17 @@ const COUNTRY_AREA: Readonly<
   Partial<Record<CountryTag, Partial<Record<TechTab, number>>>>
 > = {
   DEU: { armour: 85, air: 70, industry: 70 },
-  SUN: { infantry: 80, artillery: 80, armour: 55, naval: 15, air: 40 },
+  SUN: { infantry: 80, artillery: 80, armour: 70, naval: 15, air: 40 },
   GBR: { naval: 70, air: 70, electronics: 70, armour: 35 },
-  USA: { industry: 85, naval: 60, air: 70, electronics: 65 },
-  JPN: { naval: 80, air: 60, armour: 40 },
+  USA: {
+    industry: 85,
+    naval: 60,
+    air: 70,
+    electronics: 65,
+    infantry: 60,
+    armour: 55,
+  },
+  JPN: { naval: 80, air: 70, armour: 40 },
   ITA: { naval: 50, air: 55 },
   FRA: { infantry: 65, artillery: 70, support: 55, industry: 60 },
 };

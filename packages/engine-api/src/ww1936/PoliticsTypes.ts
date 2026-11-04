@@ -677,13 +677,19 @@ export type SpiritRule =
   | "no_lend_lease"
   | "no_naval_build"
   | { maxDivisions: number }
-  | { noAidTo: readonly CountryTag[] };
+  | { noAidTo: readonly CountryTag[] }
+  // w69: while in exile, its lines make nothing but what a licence covers.
+  | "licence_gear_only";
 export interface SpiritDef {
   id: SpiritId;
   stats: Partial<WwStats>;
   icon: string;
   hidden?: boolean;
   rules?: readonly SpiritRule[];
+  /** w69: a timed spirit hands over to this one when it runs out. */
+  next?: SpiritId;
+  /** The date `next` runs out (omitted: for good). */
+  nextUntil?: string;
 }
 
 export interface TraitDef {
@@ -761,6 +767,8 @@ export interface CountryPoliticsDef {
   tree: FocusTreeId;
   firstElection?: string;
   spirits?: readonly SpiritId[];
+  /** w69: spirits the country starts with that run out on a date (the day, not a duration). */
+  timedSpirits?: readonly { id: SpiritId; until: string }[];
   leaders: Partial<Record<Ideology, PersonId>>;
   /** Ideologies with a country-specific government name key (ww1936.gov.<TAG>.<ideology>). */
   govNames?: readonly Ideology[];

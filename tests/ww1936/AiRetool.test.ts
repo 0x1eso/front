@@ -2,6 +2,7 @@
 // line near its cap (pre-flight R6.7). The plan and the order see the same
 // state, so in a game nothing refuses one; here changeLine refuses the first.
 import { equipKey } from "@openfront/engine-api/ww1936/EconomyTypes";
+import { effCapBp } from "@openfront/engine-lib/ww1936/EconomyRules";
 import { aiEconomyTick } from "@openfront/engine/ww1936/economy/AiEconomy";
 import * as Production from "@openfront/engine/ww1936/economy/Production";
 import { byTag, stepTo, wwRunner } from "./util";
@@ -35,7 +36,8 @@ test("a refused retooling tries the next line near its cap", async () => {
     key: equipKey(type, 1),
     factories: 2,
     active: 2,
-    effBp: 5900,
+    // 100 under the cap (w69: Germany's cap is 6800 with its workshops).
+    effBp: effCapBp(deu.stats) - 100,
     progress: 0,
     fill: 1000,
     lastOutput: 0,

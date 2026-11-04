@@ -33,6 +33,7 @@ import {
   equipResources,
   lineRetentionBp,
 } from "../depth/Designs";
+import { licenceKeys } from "../depth/Licences";
 import { mioFamilyOfKey } from "../depth/Mio";
 import type { WwDepth } from "../depth/WwDepth";
 import { navalLineDemand } from "./NavalLines";
@@ -227,9 +228,11 @@ export function stepProduction(econ: WwEconomy, ce: CountryEconomy): void {
     ce.stats.outputPct +
     (depth?.energyOutputPct(ce.smallID) ?? 0);
   const cap = effCapBp(ce.stats);
+  // w69: an exile under licence_gear_only (France) makes only licensed gear.
+  const licensed = gearLicences(econ, depth, ce.smallID);
   ce.lines.forEach((line, i) => {
     line.fill = alloc.fill[i];
-    if (line.active === 0) {
+    if (line.active === 0 || (licensed !== null && !licensed.has(line.key))) {
       line.lastOutput = 0;
       return;
     }
@@ -316,4 +319,28 @@ export function lineDepthCtx(
     ce.smallID,
     depth.country(ce.smallID)?.proj.done ?? 0,
   );
+}
+
+/**
+ * w69: the keys an exile with the licence_gear_only spirit may still make
+ * (the ones it holds a licence for); null when no such lock is on.
+ */
+function gearLicences(
+  econ: WwEconomy,
+  depth: WwDepth | undefined,
+  id: number,
+): Set<number> | null {
+  if (depth === undefined) return null;
+  const pol = econ.ww.politics;
+  const c = pol.country(id);
+  if (c === null || c.spirits.length === 0) return null;
+  let locked = false;
+  for (const s of c.spirits) {
+    if (pol.content.spiritIdx.get(s.id)?.rules?.includes("licence_gear_only")) {
+      locked = true;
+      break;
+    }
+  }
+  if (!locked || !econ.ww.endgame.isExile(id)) return null;
+  return new Set(licenceKeys(depth, id));
 }

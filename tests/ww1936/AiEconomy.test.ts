@@ -48,6 +48,7 @@ import {
 } from "@openfront/engine/ww1936/economy/AiEconomy";
 import { addLine, moveLine } from "@openfront/engine/ww1936/economy/Production";
 import { exportRoom } from "@openfront/engine/ww1936/economy/Trade";
+import { removeSpirit } from "@openfront/engine/ww1936/politics/Spirits";
 import { byTag, HUMAN, stamped, step, stepTo, wwRunner } from "./util";
 
 // ---- The pure plan ----
@@ -435,11 +436,12 @@ describe("the AI's plan (spec §12, pre-flight R6)", () => {
       tank_design: 0,
       plane_design: 0,
     });
+    // w69: the Soviet Union leans to mass tanks (AI_NATION_TILT: tank +6, rifles -6).
     expect(aiLineShares("SUN", true, medium, false)).toMatchObject({
-      infantry_equipment: 39,
+      infantry_equipment: 34,
       artillery: 18,
       light_tank: 0,
-      medium_tank: 9,
+      medium_tank: 14,
       motorized: 0,
       bomber: 0,
       cas: 5,
@@ -1144,8 +1146,22 @@ const aiDay = (smallID: number, from = 0) => {
   return d;
 };
 
+/**
+ * w69: the majors' national traits (extraction, costs) are balance; these
+ * tests pin the bare start's queue and trade numbers, so they run without.
+ */
+function withoutNational(runner: GameRunner): void {
+  const pol = runner.game.worldWar()!.politics;
+  for (const c of pol.list()) {
+    for (const s of [...c.spirits]) {
+      if (s.id.startsWith("nat_")) removeSpirit(pol, c.smallID, s.id);
+    }
+  }
+}
+
 async function allAi() {
   const runner = await wwRunner();
+  withoutNational(runner);
   const g = runner.game;
   const ww = g.worldWar()!;
   const econ = ww.economy;
@@ -1415,6 +1431,7 @@ describe("the AI economy in a game (spec §12)", () => {
     // France is a human's; Italy's starting artillery wants tungsten, and
     // London sells one deal of it (as above, Italy takes it on day 0).
     const runner = await wwRunner({}, [{ clientID: HUMAN, country: "FRA" }]);
+    withoutNational(runner);
     const g = runner.game;
     const econ = g.worldWar()!.economy;
     const [fra, ita, gbr] = (["FRA", "ITA", "GBR"] as const).map((t) =>

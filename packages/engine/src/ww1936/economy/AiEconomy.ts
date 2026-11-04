@@ -255,6 +255,17 @@ export const AI_SCHOOL_TILT: Readonly<
   battleplan: { anti_tank: 5, artillery: 5, tank: -5, bomber: -5 },
 };
 
+/**
+ * w69: each major's own lean on top of its school (points; each row sums to
+ * 0): the Soviet Union's mass tanks. The others lean through their air shares,
+ * dock targets and research (a broad mix for the United States).
+ */
+export const AI_NATION_TILT: Readonly<
+  Partial<Record<CountryTag, Readonly<Partial<Record<AiLineSlot, number>>>>>
+> = {
+  SUN: { tank: 6, infantry_equipment: -6 },
+};
+
 const SCHOOL_OF: Readonly<Partial<Record<CountryTag, DoctrineSchool>>> = {
   DEU: "mobile",
   SUN: "mass",
@@ -296,7 +307,8 @@ export function aiAirShares(
   tag: CountryTag,
   ctx: AiAirShareCtx,
 ): Partial<Record<EquipmentType, number>> {
-  const carrier = CARRIER_NAVIES.includes(tag) ? 1 : 0;
+  // w69: Japan's carriers are its air arm; the others keep one point each.
+  const carrier = tag === "JPN" ? 3 : CARRIER_NAVIES.includes(tag) ? 1 : 0;
   let strat = 0;
   if (tag === "GBR" && (ctx.atWar || ctx.wtBp >= 5000)) strat = 3;
   if (tag === "USA" && ctx.atWar) strat = 4;
@@ -323,6 +335,8 @@ export function aiAirShares(
 export const AI_FIGHTER_SHARE: Readonly<Partial<Record<CountryTag, number>>> = {
   DEU: 12,
   FRA: 6,
+  // w69: Britain's air defence (the radar chain wants fighters).
+  GBR: 10,
 };
 
 const AIR_EQUIPMENT: ReadonlySet<EquipmentType> = new Set(AIR_TYPES);
@@ -362,6 +376,9 @@ export function aiLineShares(
   const tilt: Readonly<Partial<Record<AiLineSlot, number>>> = major
     ? (AI_SCHOOL_TILT[aiSchool(tag)] ?? {})
     : {};
+  const nation: Readonly<Partial<Record<AiLineSlot, number>>> = major
+    ? (AI_NATION_TILT[tag] ?? {})
+    : {};
   const tank: EquipmentType = researched.has("medium_tank_1")
     ? "medium_tank"
     : "light_tank";
@@ -370,7 +387,7 @@ export function aiLineShares(
     const t = slot === "tank" ? tank : slot;
     const own =
       major && AIR_EQUIPMENT.has(t) ? (air[t] ?? 0) : (base[slot] ?? 0);
-    out[t] += own + (tilt[slot] ?? 0);
+    out[t] += own + (tilt[slot] ?? 0) + (nation[slot] ?? 0);
   }
   for (const t of EQUIPMENT_TYPES) out[t] = Math.max(0, out[t]);
   if (major) {
