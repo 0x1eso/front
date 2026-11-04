@@ -106,6 +106,8 @@ export function groupChips(
   const types = new Set(wings.map(airTypeOf));
   const out: WingChip[] = [];
   for (const m of GROUP_MISSIONS[group]) {
+    // w51: a wing in a group takes its group's orders; only recon stays direct.
+    if (inGroupLocked(wings) && m !== "recon") continue;
     if (!AIR_MISSION_TYPES[m].some((t) => types.has(t))) continue;
     if (m === "strategic_bombing") {
       for (const c of BOMB_CHIP_CLASSES) {
@@ -127,6 +129,10 @@ function chipKey(group: WingGroup, m: AirMission): string {
   if (group === "bomb" && m === "port_strike") return "ww1936.bomb.class_port";
   return `ww1936.wing.chip_${m}`;
 }
+
+/** A chosen wing is in an air group and not under [auto]: the engine refuses its direct orders (in_group). */
+export const inGroupLocked = (wings: readonly WingDetail[]): boolean =>
+  wings.some((w) => (w.group ?? 0) !== 0 && !w.auto);
 
 /** The groups with at least one chip for the chosen wings. */
 export function groupsFor(wings: readonly WingDetail[]): WingGroup[] {
@@ -360,7 +366,7 @@ export function baseAsk(
     carrier: w.base < 0,
     isBase: use !== undefined,
     ownSide: side.own,
-    room: use === undefined ? 0 : use.cap - use.used,
+    room: 0,
     planes: w.base === region ? 0 : w.planes,
   };
 }
@@ -614,8 +620,6 @@ export const inAir = (p: PhaseNow): boolean => p.phase >= 1 && p.phase <= 3;
 export interface LiveBase {
   region: number;
   name: string;
-  used: number;
-  cap: number;
   damagePm: number;
   strip: boolean;
   /** Ticks left before a field strip is ready (0: ready or not a strip). */
@@ -636,8 +640,6 @@ export function liveBases(ctx: NavyCtx, ticks: number): LiveBase[] {
     .map((b) => ({
       region: b.region,
       name: regionName(ctx.scenario, b.region),
-      used: b.used,
-      cap: b.cap,
       damagePm: b.damagePm,
       strip: b.strip === true,
       readyIn: Math.max(0, (ready.get(b.region) ?? 0) - ticks),

@@ -1,7 +1,7 @@
 // World War 1936 P4 (spec §18.7): the air drawer — four tabs: the zones
 // my planes fly over (a row opens that zone's card), my planes by type and
 // generation (stock, deployed, on decks; each carrier fleet's deck mix),
-// my air bases (level, planes / capacity, damage, "build more" in the
+// my air bases (level, damage, "build more" in the
 // industry drawer) and the last 30 days' record. A long press on ✈ opens it.
 import {
   AIR_TYPES,
@@ -637,12 +637,6 @@ export class WwAirPanel extends WwDrawerBase {
                           region: b.name,
                         })
                       : b.name}</span
-                  >
-                  <span class="tabular-nums"
-                    >${translateText("ww1936.air.base_use", {
-                      used: b.used,
-                      cap: b.cap,
-                    })}</span
                   >
                   <span class="tabular-nums text-white/70"
                     >${translateText("ww1936.wing.base_wings", {

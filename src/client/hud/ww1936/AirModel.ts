@@ -268,8 +268,7 @@ export function deployBlock(
     count,
     have: r.max,
     deploymentsUsed,
-    anyBaseInRange:
-      r.value > 0 || basesInRange(ctx, sr, type).some((b) => b.used < b.cap),
+    anyBaseInRange: r.value > 0 || basesInRange(ctx, sr, type).length > 0,
     allNoStrike: allNoStrikeZone(ctx.scenario, sr),
   };
   return airDeployBlock(ask);

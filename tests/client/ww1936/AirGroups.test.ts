@@ -461,7 +461,12 @@ describe("taps", () => {
   });
 
   it("a zone no type reaches is refused with a reason, nothing sent", () => {
-    const f = fixture(group({ rangeKm: planes({ fighter: 1, bomber: 1 }) }));
+    const f = fixture(group({ rangeKm: planes({ fighter: 1, bomber: 1 }) }), {
+      air: airDetail("GBR", {
+        bases: [{ region: REGION.london, used: 0, cap: 0, damagePm: 0 }],
+        groups: [group({ rangeKm: planes({ fighter: 1, bomber: 1 }) })],
+      }),
+    });
     wingUiOf(f.s.game).airGroup = 7;
     const [bx, by] = tileOf(REGION.moscow);
     f.ctl.handleTap(bx, by);
@@ -674,5 +679,21 @@ describe("screens render", () => {
     expect((sent[0] as { planes: number[] }).planes[T("strat_bomber")]).toBe(
       25,
     );
+  });
+});
+
+describe("grouped wings take no direct orders (in_group)", () => {
+  it("only recon stays on the old card; [auto] wings are free", async () => {
+    const { groupChips, inGroupLocked } =
+      await import("../../../src/client/hud/ww1936/WingModel");
+    const w = (over: object) =>
+      ({ id: 1, type: T("fighter"), group: 7, auto: false, ...over }) as never;
+    expect(inGroupLocked([w({})])).toBe(true);
+    expect(inGroupLocked([w({ auto: true })])).toBe(false);
+    expect(inGroupLocked([w({ group: 0 })])).toBe(false);
+    expect(groupChips("air", [w({})]).map((c) => c.mission)).toEqual(["recon"]);
+    expect(
+      groupChips("air", [w({ group: 0 })]).map((c) => c.mission),
+    ).toContain("interception");
   });
 });

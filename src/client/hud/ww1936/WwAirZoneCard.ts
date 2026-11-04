@@ -410,8 +410,7 @@ export class WwAirZoneCard extends LitElement implements Controller {
         >
         <span data-ww-zone-bases
           >${translateText("ww1936.air.zone_bases", {
-            used: d.bases.used,
-            cap: d.bases.cap,
+            count: d.bases.count,
           })}</span
         >
         ${d.kind === "land"

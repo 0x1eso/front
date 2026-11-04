@@ -3868,7 +3868,7 @@
       "tab_planes": "Planes",
       "tab_record": "Record",
       "tab_zones": "Zones",
-      "zone_bases": "Bases in range {used} / {cap}",
+      "zone_bases": "Bases in range {count}",
       "zone_defence": "Anti-air {aa} · Radar {radar}",
       "zone_enemy_none": "No enemy aircraft seen",
       "zone_enemy_seen": "Enemy aircraft seen: {list}",

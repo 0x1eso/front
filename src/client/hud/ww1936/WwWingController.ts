@@ -367,8 +367,14 @@ export class WwWingController implements Controller {
     }
     const sr = this.srAt(ctx, x, y);
     if (sr === 0) return false;
+    // The engine's rule: some type reaches the zone from some base of my side.
     const maxKm = Math.max(0, ...groupRanges(g).map((r) => r.km));
-    if (g.base > 0 && ctx.scenario.srKm(g.base, sr) > maxKm) {
+    const bases = ctx.air.detail?.bases ?? [];
+    const reachable =
+      maxKm === 0 ||
+      bases.length === 0 ||
+      bases.some((b) => ctx.scenario.srKm(b.region, sr) <= maxKm);
+    if (!reachable && !g.zones.includes(sr)) {
       ui.groupRefused = "range";
       this.changed();
       return true;

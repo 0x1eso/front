@@ -3561,7 +3561,7 @@
       "tab_planes": "항공기",
       "tab_record": "전과",
       "tab_zones": "공역",
-      "zone_bases": "사거리 안 기지 {used} / {cap}",
+      "zone_bases": "사거리 안 기지 {count}곳",
       "zone_defence": "대공포 {aa} · 레이더 {radar}",
       "zone_enemy_none": "확인된 적 항공기 없음",
       "zone_enemy_seen": "확인된 적 항공기: {list}",

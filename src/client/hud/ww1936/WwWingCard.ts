@@ -26,6 +26,7 @@ import {
   groupChips,
   groupsFor,
   inAir,
+  inGroupLocked,
   missionOf,
   missionOrder,
   orderLine,
@@ -301,6 +302,7 @@ export class WwWingCard extends LitElement implements Controller {
     const ui = wingUiOf(this.game);
     const carrier = wings.some((w) => w.base < 0);
     const grey = carrier || wings.every((w) => w.planes <= 0);
+    const locked = inGroupLocked(wings);
     const group = ui.group;
     if (this.escortPick) return this.renderEscortPick(ctx, wings);
     if (group !== null) {
@@ -355,11 +357,15 @@ export class WwWingCard extends LitElement implements Controller {
       <button
         type="button"
         data-ww-wing-base
-        aria-disabled=${String(grey)}
-        class="${BTN} ${grey ? GREY : IDLE}"
+        aria-disabled=${String(grey || locked)}
+        class="${BTN} ${grey || locked ? GREY : IDLE}"
         @click=${() => {
-          if (grey) {
-            this.why = carrier ? "bad_air_mission" : "no_air_base";
+          if (grey || locked) {
+            this.why = locked
+              ? "in_group"
+              : carrier
+                ? "bad_air_mission"
+                : "no_air_base";
             this.requestUpdate();
             return;
           }
