@@ -271,6 +271,32 @@ export function placeStyle(p: CardPlace): string {
     : `bottom: ${p.bottom}px; right: ${p.right}px; ${size}`;
 }
 
+/**
+ * ww46: a direct attack's card (breakdown, reasons, three toggles) needs
+ * more than a quarter of the screen: up to 42 % of the height, but never
+ * above the screen's 40 % line, so a phone keeps its upper half of map to tap.
+ */
+export function directMaxHeight(p: CardPlace): number {
+  const h = window.innerHeight;
+  return Math.max(
+    p.maxHeight,
+    Math.min(Math.floor(h * 0.42), Math.floor(h * 0.6 - p.bottom)),
+  );
+}
+
+/**
+ * ww46: the direct card's width: the whole maxWidth (a card placed at
+ * left: 50% would else shrink to half the screen), and on a phone it keeps
+ * clear of the lens buttons down the right edge, whose z-index is above it.
+ */
+export function directWidthStyle(p: CardPlace): string {
+  const w = window.innerWidth;
+  if (w < 600 && (p.left === undefined || p.left === null)) {
+    return `; left: ${GAP}px; transform: none; width: ${Math.max(0, w - GAP - 56)}px`;
+  }
+  return `; width: ${p.maxWidth}px`;
+}
+
 export function samePlace(a: CardPlace, b: CardPlace): boolean {
   return (
     a.bottom === b.bottom &&
@@ -738,15 +764,31 @@ export class WwArmyCard extends LitElement implements Controller {
   private renderFull(c: Ctx): TemplateResult {
     const r = c.card.row;
     const line = this.renderLine(c);
+    // ww46: the direct panel's card is taller and wraps: the buttons column
+    // goes under the left one when the two do not fit side by side.
+    const directCard =
+      this.panel === "main" &&
+      c.sel.mode !== "front" &&
+      !(c.card.orderKind === "plan" && !c.card.directOn);
     return html`<section
       data-ww-army-card=${r.id}
       data-collapsed="false"
       aria-label=${armyName(r.nameNo)}
-      class="fixed z-[1001] flex max-h-[25vh] gap-2 overflow-y-auto rounded-lg border border-white/15 bg-gray-900/92 p-1.5 text-xs text-white shadow-xl"
-      style=${placeStyle(this.place)}
+      class="fixed z-[1001] flex max-h-[25vh] ${directCard
+        ? "flex-wrap content-start"
+        : ""} gap-2 overflow-y-auto rounded-lg border border-white/15 bg-gray-900/92 p-1.5 text-xs text-white shadow-xl"
+      style="${placeStyle(
+        directCard
+          ? { ...this.place, maxHeight: directMaxHeight(this.place) }
+          : this.place,
+      )}${directCard ? directWidthStyle(this.place) : ""}"
       @contextmenu=${(e: Event) => e.preventDefault()}
     >
-      <div class="flex min-w-0 flex-1 flex-col gap-0.5">
+      <div
+        class="flex min-w-0 flex-1 flex-col gap-0.5 ${directCard
+          ? "basis-44"
+          : ""}"
+      >
         <div class="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-0.5">
           <span
             data-ww-zone-dot
@@ -802,7 +844,9 @@ export class WwArmyCard extends LitElement implements Controller {
         data-ww-card-buttons=${this.panel}
         class="${this.panel === "main" || this.panel === "auto"
           ? "flex flex-col"
-          : "grid grid-cols-5 content-start"} shrink-0 gap-1"
+          : "grid grid-cols-5 content-start"} ${directCard
+          ? "min-w-0 max-w-full flex-1 basis-[17rem]"
+          : "shrink-0"} gap-1"
       >
         ${this.panel === "main"
           ? c.sel.mode === "plan"

@@ -64,7 +64,7 @@ function toggle(
     type="button"
     data-ww-direct-toggle=${id}
     aria-pressed=${String(on)}
-    class="min-h-10 rounded-md border px-2 text-xs ${on
+    class="min-h-10 rounded-md border px-1.5 text-xs leading-tight ${on
       ? "border-amber-300 bg-amber-700/50"
       : "border-white/15 bg-white/10 hover:bg-white/20"}"
     @click=${act}
@@ -81,10 +81,10 @@ export function renderDirectPanel(d: DirectPanelDeps): TemplateResult {
   const dv = card.directOn ? card.direct : null;
   const parts = dv === null ? [] : directBreakdown(dv);
   const favorable = (flags & DIRECT_FAVORABLE) !== 0;
-  return html`<div data-ww-direct class="flex flex-col gap-1">
+  return html`<div data-ww-direct class="flex shrink-0 flex-col gap-1">
     ${dv === null
       ? nothing
-      : html`<div data-ww-direct-parts class="flex flex-wrap gap-1">
+      : html`<div data-ww-direct-parts class="flex shrink-0 flex-wrap gap-1">
           ${card.directOn
             ? html`<button
                 type="button"
@@ -115,7 +115,7 @@ export function renderDirectPanel(d: DirectPanelDeps): TemplateResult {
     ${card.directOn && card.lowPct !== null
       ? html`<div
           data-ww-direct-warn
-          class="text-xs font-semibold text-red-300"
+          class="shrink-0 text-xs font-semibold text-red-300"
         >
           ⚠ ${translateText("ww1936.direct.warn_low", { pct: card.lowPct })}
         </div>`
@@ -123,7 +123,7 @@ export function renderDirectPanel(d: DirectPanelDeps): TemplateResult {
     ${dv !== null && dv.why === 1
       ? html`<div
           data-ww-direct-why="odds"
-          class="flex flex-wrap items-center gap-1 text-xs text-amber-300"
+          class="flex shrink-0 flex-wrap items-center gap-1 text-xs text-amber-300"
         >
           ${translateText("ww1936.direct.why_odds", {
             ratio: (dv.ratioPm / 1000).toFixed(2),
@@ -139,11 +139,14 @@ export function renderDirectPanel(d: DirectPanelDeps): TemplateResult {
         </div>`
       : nothing}
     ${dv !== null && dv.why === 2
-      ? html`<div data-ww-direct-why="org" class="text-xs text-amber-300">
+      ? html`<div
+          data-ww-direct-why="org"
+          class="shrink-0 text-xs text-amber-300"
+        >
           ${translateText("ww1936.direct.why_org", { n: dv.rec })}
         </div>`
       : nothing}
-    <div class="grid grid-cols-2 gap-1">
+    <div data-ww-direct-settings class="grid shrink-0 grid-cols-3 gap-1">
       ${toggle(
         "favorable",
         translateText("ww1936.direct.favorable"),
