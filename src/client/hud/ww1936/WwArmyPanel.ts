@@ -611,7 +611,7 @@ export class WwArmyPanel extends WwDrawerBase {
           >
           <select
             data-ww-train-to
-            class="h-10 min-w-0 flex-1 rounded-md border border-white/20 bg-slate-900 px-2 text-xs"
+            class="h-10 min-w-0 flex-1 rounded-md border border-white/20 bg-slate-900 px-2 text-xs text-white"
             @change=${(ev: Event) => {
               WwArmyPanel.lastTrainTo = Number(
                 (ev.target as HTMLSelectElement).value,
@@ -634,13 +634,15 @@ export class WwArmyPanel extends WwDrawerBase {
             )}
           </select>
         </label>
-        <div data-ww-train-target class="text-white/70">
-          ${target === null
-            ? translateText("ww1936.land.train_new_army")
-            : translateText("ww1936.land.train_into", {
-                army: armyName(target.nameNo),
-              })}
-        </div>
+        ${to !== 0
+          ? nothing
+          : html`<div data-ww-train-target class="text-white/70">
+              ${target === null
+                ? translateText("ww1936.land.train_new_army")
+                : translateText("ww1936.land.train_into", {
+                    army: armyName(target.nameNo),
+                  })}
+            </div>`}
       </div>
       ${renderArmyTemplates({
         land: c.land,
