@@ -58,6 +58,8 @@ export interface HistPickItem {
   lack: string[];
   /** A licensed entry of another country. */
   foreign: boolean;
+  /** Researched, but the engine has not put it in its slot yet (it does so at the day's turn). */
+  pending?: boolean;
 }
 
 export interface HistPickGroup {
@@ -222,7 +224,15 @@ function slotGroups(
       (d) => d.kind === kind && d.slot === slot && d.def.hist === e.id,
     );
     const usable = row !== undefined && !row.obsolete;
-    add(g, itemOf(e, type, slot, usable ? [] : lacking(e, researched), false));
+    const it = itemOf(
+      e,
+      type,
+      slot,
+      usable ? [] : lacking(e, researched),
+      false,
+    );
+    if (!usable && it.lack.length === 0) it.pending = true;
+    add(g, it);
   });
   for (const d of designs) {
     if (d.kind !== kind || d.origin !== "licensed" || d.obsolete) continue;
@@ -268,15 +278,15 @@ export function histShipItems(
       (d) => d.kind === "ship" && d.slot === i + 1 && d.def.hist === e.id,
     );
     const usable = row !== undefined && !row.obsolete;
-    out.push(
-      itemOf(
-        e,
-        "tank_design",
-        i + 1,
-        usable ? [] : lacking(e, researched),
-        false,
-      ),
+    const it = itemOf(
+      e,
+      "tank_design",
+      i + 1,
+      usable ? [] : lacking(e, researched),
+      false,
     );
+    if (!usable && it.lack.length === 0) it.pending = true;
+    out.push(it);
   });
   for (const d of designs) {
     if (d.kind !== "ship" || d.origin !== "licensed" || d.obsolete) continue;

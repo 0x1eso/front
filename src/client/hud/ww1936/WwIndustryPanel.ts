@@ -1387,7 +1387,7 @@ export class WwIndustryPanel extends WwDrawerBase {
             data-ww-pick=${`${dataKey}:${it.type}:${it.gen}`}
             data-ww-hist=${it.id}
             class="${ROW} ${here ? "border-sky-400/60 bg-sky-500/10" : ""}"
-            ?disabled=${block !== null || here}
+            ?disabled=${block !== null || here || it.pending === true}
             @click=${() => pick(it.type, it.gen)}
           >
             <span class="block break-words text-xs font-semibold"
@@ -1397,15 +1397,20 @@ export class WwIndustryPanel extends WwDrawerBase {
               class="block break-words text-[11px] font-normal leading-snug text-white/70"
               >${it.stats}</span
             >
-            ${block !== null
-              ? html`<span class="block text-[11px] font-normal text-red-300"
-                  >🔒 ${blockText(block)}</span
+            ${it.pending === true
+              ? html`<span class="block text-[11px] font-normal text-amber-200"
+                  >${translateText("ww1936.hist_pick.pending")}</span
                 >`
-              : note === null || here
-                ? nothing
-                : html`<span class="block text-[10px] font-normal text-white/70"
-                    >${note(it.type, it.gen)}</span
-                  >`}
+              : block !== null
+                ? html`<span class="block text-[11px] font-normal text-red-300"
+                    >🔒 ${blockText(block)}</span
+                  >`
+                : note === null || here
+                  ? nothing
+                  : html`<span
+                      class="block text-[10px] font-normal text-white/70"
+                      >${note(it.type, it.gen)}</span
+                    >`}
           </button>`,
         );
       }

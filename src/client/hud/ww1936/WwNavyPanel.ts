@@ -327,7 +327,7 @@ export class WwShipyards extends LitElement {
     picked: HistPickItem | null,
     choose: (slot: number) => void,
   ): TemplateResult {
-    const usable = items.filter((i) => i.lack.length === 0);
+    const usable = items.filter((i) => i.lack.length === 0 && !i.pending);
     const locked = items.filter((i) => i.lack.length > 0);
     return html`<div
       data-ww-hist-ships
@@ -451,7 +451,9 @@ export class WwShipyards extends LitElement {
         ? histShipItems(hist, d.cls, ctx.designs, ctx.techs)
         : [];
     const histMode = histShips.length > 0;
-    const histUsable = histShips.filter((i) => i.lack.length === 0);
+    const histUsable = histShips.filter(
+      (i) => i.lack.length === 0 && i.pending !== true,
+    );
     const histPicked =
       histUsable.find((i) => i.gen === d.foreign) ?? histUsable[0] ?? null;
     const designBlockWhy = histMode ? null : (picked?.block ?? null);

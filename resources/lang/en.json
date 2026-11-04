@@ -9923,6 +9923,7 @@
       "locked_hide": "Hide {n} locked",
       "locked_show": "Show {n} locked",
       "needs": "Needs: {list}",
+      "pending": "Ready from the next day",
       "plane": "Air {atk}/{def} · Speed {speed} · Range {range} · Cost {cost} · Reliability {rel}%",
       "plane_bomb": "Air {atk}/{def} · Bombs {bomb} · Speed {speed} · Range {range} · Cost {cost} · Reliability {rel}%",
       "role_heavy": "Heavy tanks",
