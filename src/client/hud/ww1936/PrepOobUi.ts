@@ -200,7 +200,7 @@ function renderArmyBody(
     ${m.templates.map((t, k) => {
       const n = a.counts[k];
       const real = a.fielded[k];
-      const lastOfRequired = a.required && a.total === n && n > 0;
+      const lastOfRequired = a.required && a.total === 1 && n === 1;
       return html`<div
         data-ww-oob-row=${t.key}
         class="flex min-h-10 items-center gap-1 ${t.problem !== null

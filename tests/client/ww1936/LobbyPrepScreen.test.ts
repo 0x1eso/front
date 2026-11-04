@@ -11,6 +11,7 @@ vi.mock("../../../src/client/Utils", async (importOriginal) => ({
 }));
 
 import {
+  prepArmiesOf,
   prepPlanOf,
   setPrepTemplate,
 } from "../../../src/client/components/ww1936/PrepPlan";
@@ -322,5 +323,81 @@ describe("the army presets screen in the lobby", () => {
     expect(pol.querySelectorAll("[data-ww-army-tpl-add] option")).toHaveLength(
       1 + 1 + 1,
     );
+  });
+
+  it("a major's start army: top bar, armies in order, steppers, fill, defaults", async () => {
+    const el = await screen("DEU");
+    expect(q(el, "[data-ww-oob-top]")).toBeTruthy();
+    expect(q(el, "[data-ww-oob-men]").textContent).toContain("ww1936.prep.men");
+    const armies = el.querySelectorAll("[data-ww-oob-army]");
+    expect(armies).toHaveLength(3);
+    // The first army is open: a row per template, with steppers.
+    const row = q(el, '[data-ww-oob-army="0"] [data-ww-oob-row="infantry"]');
+    expect(q(row, "[data-ww-oob-count]").textContent).toBe("14");
+    q(row, "[data-ww-oob-minus]").click();
+    await flush(el);
+    expect(
+      q(
+        el,
+        '[data-ww-oob-army="0"] [data-ww-oob-row="infantry"] [data-ww-oob-count]',
+      ).textContent,
+    ).toBe("13");
+    expect(
+      prepArmiesOf("DEU")![0].find((i) => i.key === "infantry")!.count,
+    ).toBe(13);
+    // Fill with what the men allow: more than before.
+    q(el, '[data-ww-oob-army="0"] [data-ww-oob-fill]').click();
+    await flush(el);
+    const filled = Number(
+      q(
+        el,
+        '[data-ww-oob-army="0"] [data-ww-oob-row="infantry"] [data-ww-oob-count]',
+      ).textContent,
+    );
+    expect(filled).toBeGreaterThanOrEqual(13);
+    // Back to the 1936 start.
+    q(el, "[data-ww-oob-reset]").click();
+    await flush(el);
+    expect(prepArmiesOf("DEU")).toBeNull();
+    expect(
+      q(
+        el,
+        '[data-ww-oob-army="0"] [data-ww-oob-row="infantry"] [data-ww-oob-count]',
+      ).textContent,
+    ).toBe("14");
+  });
+
+  it("Italy shows the two operation armies first, marked, and keeps them staffed", async () => {
+    const el = await screen("ITA");
+    const armies = [...el.querySelectorAll<HTMLElement>("[data-ww-oob-army]")];
+    expect(armies.slice(0, 2).map((a) => a.dataset.required)).toEqual([
+      "true",
+      "true",
+    ]);
+    expect(armies.slice(2).every((a) => a.dataset.required === "false")).toBe(
+      true,
+    );
+    expect(armies[0].textContent).toContain("ww1936.prep.operation");
+    // Step the first one down to its last division: the minus stops.
+    const a0 = '[data-ww-oob-army="0"]';
+    for (let n = 0; n < 40; n++) {
+      for (const key of ["binary", "colonial"]) {
+        const b = q(el, `${a0} [data-ww-oob-row="${key}"] [data-ww-oob-minus]`);
+        if (!(b as HTMLButtonElement).disabled) b.click();
+        await flush(el);
+      }
+    }
+    const left = [...el.querySelectorAll(`${a0} [data-ww-oob-count]`)]
+      .map((c) => Number(c.textContent))
+      .reduce((a, b) => a + b, 0);
+    expect(left).toBe(1);
+    expect(q(el, "[data-ww-oob-problem]")).toBeNull();
+  });
+
+  it("makes a new template, and removes it from the plan", async () => {
+    const el = await screen("DEU");
+    q(el, "[data-ww-prep-new-template]").click();
+    await flush(el);
+    expect(el.querySelector("ww-template-designer")).toBeTruthy();
   });
 });

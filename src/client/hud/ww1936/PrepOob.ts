@@ -30,6 +30,7 @@ import {
 } from "../../components/ww1936/PrepPlan";
 import { translateText } from "../../Utils";
 import { LibEntry, templateKey } from "./DesignLibrary";
+import { armyName } from "./LandModel";
 import {
   lobbyResearched,
   lobbyStartTemplates,
@@ -37,7 +38,6 @@ import {
   startGroupStock,
   statsOf,
 } from "./LobbyPrep";
-import { armyName } from "./LandModel";
 import { startRegionName } from "./StartRegionNames";
 import { isKoreanUi } from "./WorldWarModel";
 
@@ -509,12 +509,20 @@ export function oobOrderOf(
             support: [...t.def.support],
           };
     }),
-    armies: m.armies.map((a) =>
-      a.counts
-        .map((n, k) => ({ k, n }))
-        .filter(({ k, n }) => n > 0 && at.has(k))
-        .map(({ k, n }) => ({ template: at.get(k)!, count: n })),
-    ),
+    // An army holds 24 at most: what is stored beyond it is cut in item
+    // order, as the fill cuts it.
+    armies: m.armies.map((a) => {
+      let room = WW_MAX_ARMY_DIVISIONS;
+      const items: { template: number; count: number }[] = [];
+      a.counts.forEach((n, k) => {
+        const at1 = at.get(k);
+        if (n <= 0 || at1 === undefined || room <= 0) return;
+        const c = Math.min(n, room);
+        room -= c;
+        items.push({ template: at1, count: c });
+      });
+      return items;
+    }),
   } as WwOrder;
   const r = m.result;
   return {

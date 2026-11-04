@@ -12,6 +12,7 @@ import {
 } from "@openfront/engine-api/ww1936/LandTypes";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { START_OOB } from "@openfront/engine-lib/ww1936/LandStart";
+import { planStartOob } from "@openfront/engine-lib/ww1936/StartOob";
 import { groupStockOf } from "@openfront/engine-lib/ww1936/StartReform";
 import {
   createGameRunner,
@@ -205,7 +206,10 @@ describe("start_oob (Germany, real map)", () => {
     );
     const budgetH = startMen(h);
     expect(h.l.issue(h.id, o2)).toBeNull();
-    const men = h.l.templateStatsOf(h.id, h.cl.templates[h.cl.templates.length - 1].id)!.men;
+    const men = h.l.templateStatsOf(
+      h.id,
+      h.cl.templates[h.cl.templates.length - 1].id,
+    )!.men;
     const n = h.l.rowsOf(h.id).length;
     expect(n).toBe(Math.min(72, Math.floor(budgetH / men)));
     expect(n * men).toBeLessThanOrEqual(budgetH);
@@ -381,4 +385,40 @@ describe("start_oob (Italy: the Ethiopian armies must be staffed)", () => {
       .reduce((n, a) => n + a.divisions.length, 0);
     expect(rest + 2).toBeLessThan(49);
   }, 180_000);
+});
+
+describe("planStartOob (the pure rule)", () => {
+  const tpl = [{ men: 100, need: [10, 0] }];
+  it("fills operation armies first, then the rest in order; equipment cuts to full strength", () => {
+    const r = planStartOob(1e9, Infinity, [35, 0], tpl, [
+      { required: false, items: [{ template: 0, count: 3 }] },
+      { required: true, items: [{ template: 0, count: 2 }] },
+    ]);
+    // 3 divisions' worth of equipment: the operation army has 2, the other gets 1.
+    expect(r.armies.map((a) => a.total)).toEqual([1, 2]);
+    expect(r.armies[0].items[0]).toMatchObject({ cut: "equip", group: 0 });
+    expect(r.limitedGroup).toBe(0);
+    expect(r.equipUsed[0]).toBe(30);
+    expect(r.menUsed).toBe(300);
+  });
+  it("cuts by men and by the 24 per army; an empty operation army is reported", () => {
+    const m = planStartOob(250, Infinity, [1e6, 0], tpl, [
+      { required: false, items: [{ template: 0, count: 24 }] },
+    ]);
+    expect(m.total).toBe(2);
+    expect(m.armies[0].items[0].cut).toBe("men");
+    const c = planStartOob(1e9, Infinity, [1e6, 0], tpl, [
+      {
+        required: true,
+        items: [
+          { template: 0, count: 24 },
+          { template: 0, count: 24 },
+        ],
+      },
+      { required: true, items: [] },
+    ]);
+    expect(c.armies[0].total).toBe(24);
+    expect(c.armies[0].items[1].cut).toBe("cap");
+    expect(c.emptyRequired).toEqual([1]);
+  });
 });
