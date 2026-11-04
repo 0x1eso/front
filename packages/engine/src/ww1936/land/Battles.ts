@@ -57,6 +57,7 @@ import {
   ModResult,
   planMaxBp,
   predictBattleRange,
+  armorProtectPm,
   roundDamage,
   roundHits,
 } from "@openfront/engine-lib/ww1936/CombatRules";
@@ -344,7 +345,7 @@ function fight(land: WwLand, b: Battle, tick: number): void {
     const d = toDefends ? applyBp(d0, blockMul) : d0;
     const dmg = roundDamage(
       roundHits(a, d, toDefends ? (toMods.prepBp ?? 0) + fx.defBlockBp : 0),
-      ts.armor > s.pierce,
+      armorProtectPm(ts.armor, ts.hardnessPm, s.pierce),
     );
     org.set(to, (org.get(to) ?? 0) + dmg.orgMilli);
     hp.set(to, (hp.get(to) ?? 0) + dmg.hpMilli);
@@ -376,7 +377,7 @@ function fight(land: WwLand, b: Battle, tick: number): void {
     const to = targets[b.round % targets.length];
     const aa = effectiveLevel(land.econ, R, "anti_air");
     const h = casCutHits(hits, stats.get(to)!.airAtk, aa);
-    const dmg = roundDamage(h, false);
+    const dmg = roundDamage(h);
     org.set(to, (org.get(to) ?? 0) + dmg.orgMilli);
     hp.set(to, (hp.get(to) ?? 0) + dmg.hpMilli);
     deal(to, by, dmg.hpMilli);
@@ -388,7 +389,7 @@ function fight(land: WwLand, b: Battle, tick: number): void {
   const guns = (hits: number, targets: readonly number[], by: number) => {
     if (hits <= 0 || targets.length === 0) return;
     const to = targets[b.round % targets.length];
-    const dmg = roundDamage(hits, false);
+    const dmg = roundDamage(hits);
     org.set(to, (org.get(to) ?? 0) + dmg.orgMilli);
     hp.set(to, (hp.get(to) ?? 0) + dmg.hpMilli);
     deal(to, by, dmg.hpMilli);

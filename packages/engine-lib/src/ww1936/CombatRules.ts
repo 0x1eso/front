@@ -218,14 +218,37 @@ export function roundHits(attack: number, block: number, prepBp = 0): number {
 export const ORG_PER_HIT_E3 = 52;
 export const HP_PER_HIT_E3 = 36;
 
+/** The most armour takes off the damage, ‰ (spec §9.3-5's halving). */
+export const ARMOR_PROTECT_MAX_PM = 500;
+/** ww67: from this hardness, ‰, a division is armoured enough for the full protection. */
+export const ARMOR_FULL_HARDNESS_PM = 500;
+
+/**
+ * Spec §9.3-5, the share of the damage armour stops, ‰ (0..500). ww67: not a
+ * switch at armour > pierce. It grows with the target's tank share, full from
+ * hardness 500 ‰, so one tank battalion doesn't armour an infantry division;
+ * and it fades from full, at pierce half the armour, to nothing, at pierce equal
+ * to it, so a few guns chip at it rather than end it.
+ */
+export function armorProtectPm(
+  armor: number,
+  hardnessPm: number,
+  pierce: number,
+): number {
+  if (armor <= 0 || pierce >= armor) return 0;
+  const share = Math.min(1000, Math.floor((Math.max(0, hardnessPm) * 1000) / ARMOR_FULL_HARDNESS_PM));
+  const fade = Math.min(1000, Math.floor(((armor - pierce) * 2000) / armor));
+  return Math.floor((ARMOR_PROTECT_MAX_PM * share * fade) / 1_000_000);
+}
+
 /**
  * Spec §9.3-6: one round (1.829 HOI4 hours) of damage from `hitsCenti`:
- * ORG_PER_HIT_E3 org and HP_PER_HIT_E3 HP a hit, halved when the target's
- * armour beats the attacker's pierce (spec §9.3-5).
+ * ORG_PER_HIT_E3 org and HP_PER_HIT_E3 HP a hit, less the share `protectPm`
+ * armour stops (armorProtectPm).
  */
 export function roundDamage(
   hitsCenti: number,
-  armorHalved: boolean,
+  protectPm = 0,
 ): { orgMilli: number; hpMilli: number } {
   let org = Math.floor(
     (hitsCenti * WW_ROUND_HOUR_MILLI * ORG_PER_HIT_E3) / 100_000,
@@ -233,9 +256,9 @@ export function roundDamage(
   let hp = Math.floor(
     (hitsCenti * WW_ROUND_HOUR_MILLI * HP_PER_HIT_E3) / 100_000,
   );
-  if (armorHalved) {
-    org = Math.floor(org / 2);
-    hp = Math.floor(hp / 2);
+  if (protectPm > 0) {
+    org = Math.floor((org * (1000 - protectPm)) / 1000);
+    hp = Math.floor((hp * (1000 - protectPm)) / 1000);
   }
   return { orgMilli: org, hpMilli: hp };
 }
@@ -728,21 +751,24 @@ export function predictBattle(
     ctx.land,
     roundDamage(
       roundHits(aA, dD, ctx.defenderPrepBp ?? 0),
-      def.armor > att.pierce,
+      armorProtectPm(def.armor, def.hardnessPm, att.pierce),
     ).orgMilli,
   );
-  const toAtt = roundDamage(roundHits(aD, dA), att.armor > def.pierce).orgMilli;
+  const toAtt = roundDamage(
+    roundHits(aD, dA),
+    armorProtectPm(att.armor, att.hardnessPm, def.pierce),
+  ).orgMilli;
   // ww8: close air support, a round's hits on one division with no block value.
   const casDef = ctx.casAttCenti ?? 0;
   const casAtt = ctx.casDefCenti ?? 0;
   const dmgDef =
     Math.floor((toDef * lineA) / 1000) +
     (casDef > 0
-      ? defenderOrgDamage(ctx.land, roundDamage(casDef, false).orgMilli)
+      ? defenderOrgDamage(ctx.land, roundDamage(casDef).orgMilli)
       : 0);
   const dmgAtt =
     Math.floor((toAtt * lineD) / 1000) +
-    (casAtt > 0 ? roundDamage(casAtt, false).orgMilli : 0);
+    (casAtt > 0 ? roundDamage(casAtt).orgMilli : 0);
   const rounds = dmgDef <= 0 ? 999_999 : Math.ceil(def.orgMilli / dmgDef);
   const ratioPm =
     dmgAtt <= 0

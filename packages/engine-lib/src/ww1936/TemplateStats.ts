@@ -452,6 +452,46 @@ function designTplFlags(ds: number): number {
   );
 }
 
+/** ww67: a battalion's weight in a division's pierce, a support company's being 1. */
+const BATTALION_PIERCE_WEIGHT = 3;
+
+const AT_TYPE = TYPE_INDEX.get("anti_tank")!;
+/** The anti-tank key's slot of generation 1, 2, … */
+const AT_SLOTS: readonly number[] = SLOT_TYPE.flatMap((ty, j) =>
+  ty === AT_TYPE && j < GROUND_STATIC_SLOTS ? [j] : [],
+);
+
+/** The anti-tank key's pierce in a table at a generation mix `g` (100 = generation 1). */
+function atRowPierce(ks: KeyStatsTable, g: number): number {
+  const row = (i: number) =>
+    ks.stats[
+      AT_SLOTS[Math.max(0, Math.min(AT_SLOTS.length - 1, i))] * KS_FIELDS +
+        KS.pierce
+    ];
+  const i = Math.floor(g / 100) - 1;
+  const f = g % 100;
+  return Math.floor((row(i) * (100 - f) + row(i + 1) * f) / 100);
+}
+
+/**
+ * ww67: a gun's pierce with its country's anti-tank key (catalogue majors'
+ * real penetration, rule 7): `generic`, the table's number for this battalion
+ * or company, scaled by that key against the generic one. Other types, and
+ * the generic table, keep `generic`.
+ */
+function atKeyPierce(
+  ks: KeyStatsTable,
+  type: number,
+  g: number,
+  generic: number,
+): number {
+  if (type !== AT_TYPE || ks === STATIC_KEY_STATS) return generic;
+  const base = atRowPierce(STATIC_KEY_STATS, g);
+  return base <= 0
+    ? generic
+    : Math.floor((generic * atRowPierce(ks, g)) / base);
+}
+
 /**
  * Spec §4.3: sums, averages and the HOI4 armour / pierce formulas of a
  * template at full strength. Generations and the doctrines that change a
@@ -538,14 +578,14 @@ export function templateStats(
       bp.armor,
     );
     const pierce = pctOf(
-      mix(Math.floor((d.pierce * ga) / 100), KS.pierce),
+      mix(atKeyPierce(ks, main, g, Math.floor((d.pierce * ga) / 100)), KS.pierce),
       bp.pierce,
     );
     armorMax = Math.max(armorMax, armor);
     armorSum += armor;
     pierceMax = Math.max(pierceMax, pierce);
-    pierceSum += pierce;
-    pierceN++;
+    pierceSum += pierce * BATTALION_PIERCE_WEIGHT;
+    pierceN += BATTALION_PIERCE_WEIGHT;
     let soft = mix(Math.floor((d.soft * gp) / 100), KS.soft);
     if (d.artillery) {
       soft = Math.floor((soft * (100 + tech.artillerySoftPct)) / 100);
@@ -615,7 +655,12 @@ export function templateStats(
     );
     if (d.pierce > 0) {
       const p = pctOf(
-        Math.floor((d.pierce * genArmorPct(gens[main])) / 100),
+        atKeyPierce(
+          ks,
+          main,
+          gens[main],
+          Math.floor((d.pierce * genArmorPct(gens[main])) / 100),
+        ),
         sbp.pierce,
       );
       pierceMax = Math.max(pierceMax, p);
@@ -651,15 +696,16 @@ export function templateStats(
     hard: sum(1),
     def: sum(2),
     brk: sum(3),
-    // HOI4: 30% max + 70% average armour, 40% max + 60% average pierce.
+    // HOI4: 30% max + 70% average armour. ww67: pierce is what the division
+    // can actually bring to bear, twice its weighted average up to its best
+    // gun: half of it able to hit is the gun's whole number, and a support
+    // company counts a third of a battalion, so it adds a little.
     armor:
       n === 0 ? 0 : Math.floor((30 * armorMax * n + 70 * armorSum) / (100 * n)),
     pierce:
       pierceN === 0
         ? 0
-        : Math.floor(
-            (40 * pierceMax * pierceN + 60 * pierceSum) / (100 * pierceN),
-          ),
+        : Math.min(pierceMax, Math.floor((2 * pierceSum) / pierceN)),
     hardnessPm: n === 0 ? 0 : Math.floor(hardSum / n),
     speedCenti: n === 0 ? 0 : speed,
     supplyMilli: supply,
