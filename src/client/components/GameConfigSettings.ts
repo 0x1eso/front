@@ -18,6 +18,7 @@ import {
   wwAiLevel,
   wwDifficulty,
 } from "@openfront/engine-lib/ww1936/AiDifficulty";
+import { WW_LENGTHS, WwLength } from "@openfront/engine-lib/ww1936/Pace";
 import {
   LitElement,
   SVGTemplateResult,
@@ -246,7 +247,7 @@ export interface GameConfigSettingsData {
    * fixes them). The difficulty offers the mode's own three levels
    * (engine-lib ww1936/AiDifficulty: the AI countries' handicaps).
    */
-  worldWar?: { picker: TemplateResult };
+  worldWar?: { picker: TemplateResult; length?: WwLength };
 }
 
 @customElement("game-config-settings")
@@ -284,6 +285,10 @@ export class GameConfigSettings extends LitElement {
 
   private handleSelectRandom = () => {
     this.emit("random-map-selected", {});
+  };
+
+  private handleWwLengthSelect = (length: WwLength) => {
+    this.emit("ww-length-selected", { length });
   };
 
   private handleDifficultySelect = (difficulty: Difficulty) => {
@@ -522,6 +527,39 @@ export class GameConfigSettings extends LitElement {
     );
   }
 
+  /** World War 1936: 45 minutes, unlimited (slow tempo), unlimited (fast tempo). */
+  private renderWwLength(selected: WwLength): TemplateResult {
+    return renderSection(
+      DIFFICULTY_ICON,
+      "text-green-400",
+      "bg-green-500/20",
+      "ww1936.lobby.length",
+      html`
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4" data-ww-length>
+          ${WW_LENGTHS.map(
+            (length) => html`
+              <button
+                data-ww-length-option=${length}
+                @click=${() => this.handleWwLengthSelect(length)}
+                class="${cardClass(
+                  selected === length,
+                  "flex flex-col items-center p-4 gap-2 h-full",
+                )}"
+              >
+                <span class="${CARD_LABEL_CLASS} text-center text-white">
+                  ${translateText(`ww1936.lobby.length_${length}`)}
+                </span>
+                <span class="text-xs text-white/60 text-center normal-case">
+                  ${translateText(`ww1936.lobby.length_${length}_hint`)}
+                </span>
+              </button>
+            `,
+          )}
+        </div>
+      `,
+    );
+  }
+
   render() {
     if (!this.settings) return nothing;
     const settings = this.settings;
@@ -555,7 +593,9 @@ export class GameConfigSettings extends LitElement {
               this.renderMapSearchInput(),
             )}
         ${settings.worldWar
-          ? this.renderWwDifficulty(settings)
+          ? html`${this.renderWwDifficulty(settings)}${this.renderWwLength(
+              settings.worldWar.length ?? "timed",
+            )}`
           : this.renderDifficulty(settings)}
         ${settings.worldWar
           ? nothing

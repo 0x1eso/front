@@ -5,7 +5,7 @@ import {
   GameMode,
   UnitType,
 } from "@openfront/engine-api/game/GameTypes";
-import { GameConfig } from "@openfront/engine-api/Schemas";
+import { GameConfig, GameConfigSchema } from "@openfront/engine-api/Schemas";
 import { Config } from "@openfront/engine-lib/configuration/Config";
 import {
   applyWorldWar1936Rules,
@@ -124,6 +124,22 @@ describe("World War 1936 settings", () => {
       false,
     );
     expect(cfg.maxTimerMinutes()).toBeNull();
+  });
+
+  test("fast unlimited: no timer, both keys stay, idempotent", () => {
+    const n = normalizeWorldWar1936Config(
+      testGameConfig({
+        worldWar1936: true,
+        ww1936Unlimited: true,
+        ww1936FastTempo: true,
+        maxTimerValue: 10,
+      }),
+    );
+    expect(n.maxTimerValue).toBeUndefined();
+    expect(n.ww1936FastTempo).toBe(true);
+    expect(normalizeWorldWar1936Config(n)).toEqual(n);
+    expect(new Config(n, false).maxTimerMinutes()).toBeNull();
+    expect(GameConfigSchema.safeParse(n).success).toBe(true);
   });
 
   test("timed: still 45 minutes", () => {

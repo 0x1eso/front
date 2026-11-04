@@ -17,6 +17,7 @@ import {
   DOMESTIC_CONQUEST_PERCENT,
 } from "@openfront/engine-lib/domestic/Balance";
 import { DoomsdayClockSpeed } from "@openfront/engine-lib/game/DoomsdayClock";
+import type { WwLength } from "@openfront/engine-lib/ww1936/Pace";
 import { GameEnv } from "@openfront/shared/configuration/Env";
 import { EventBus } from "@openfront/shared/EventBus";
 import {
@@ -124,6 +125,7 @@ export class HostLobbyModal extends BaseModal {
   @state() private historicalAi = false;
   /** The unlimited slow-pace game (engine-lib/ww1936/Pace.ts), off by default. */
   @state() private ww1936Unlimited = false;
+  @state() private ww1936FastTempo = false;
   /** World War 1936 P6 (spec §9.8, plan decision 21): the atomic bomb, on by default. */
   @state() private ww1936Nukes = true;
   @state() private countryPicks: { clientID: string; tag: CountryTag }[] = [];
@@ -774,10 +776,6 @@ export class HostLobbyModal extends BaseModal {
                         checked: this.historicalAi,
                       },
                       {
-                        labelKey: "ww1936.lobby.unlimited",
-                        checked: this.ww1936Unlimited,
-                      },
-                      {
                         labelKey: "ww1936.lobby.nukes",
                         checked: this.ww1936Nukes,
                       },
@@ -918,6 +916,7 @@ export class HostLobbyModal extends BaseModal {
                             new SendPickCountryEvent(e.detail.tag),
                           )}
                       ></ww-country-picker>`,
+                      length: this.wwLength(),
                     },
                   }
                 : {}),
@@ -925,6 +924,7 @@ export class HostLobbyModal extends BaseModal {
             @map-selected=${this.handleConfigMapSelected}
             @random-map-selected=${this.handleConfigRandomMapSelected}
             @difficulty-selected=${this.handleConfigDifficultySelected}
+            @ww-length-selected=${this.handleWwLengthSelected}
             @doomsday-clock-speed-selected=${this
               .handleConfigDoomsdayClockSpeedSelected}
             @game-mode-selected=${this.handleConfigGameModeSelected}
@@ -1229,6 +1229,7 @@ export class HostLobbyModal extends BaseModal {
     this.worldWar1936 = false;
     this.historicalAi = false;
     this.ww1936Unlimited = false;
+    this.ww1936FastTempo = false;
     this.ww1936Nukes = true;
     this.countryPicks = [];
     this.hostCheatsEnabled = false;
@@ -1276,6 +1277,19 @@ export class HostLobbyModal extends BaseModal {
     this.selectedDifficulty = value;
     this.putGameConfig();
   }
+
+  /** The lobby's game length: 45 minutes, unlimited slow, unlimited fast. */
+  private wwLength(): WwLength {
+    if (!this.ww1936Unlimited) return "timed";
+    return this.ww1936FastTempo ? "fast" : "slow";
+  }
+
+  private handleWwLengthSelected = (e: Event) => {
+    const { length } = (e as CustomEvent<{ length: WwLength }>).detail;
+    this.ww1936Unlimited = length !== "timed";
+    this.ww1936FastTempo = length === "fast";
+    this.putGameConfig();
+  };
 
   private handleConfigDifficultySelected = (e: Event) => {
     const customEvent = e as CustomEvent<{ difficulty: Difficulty }>;
@@ -1382,10 +1396,6 @@ export class HostLobbyModal extends BaseModal {
         break;
       case "game_settings.historical_ai":
         this.historicalAi = checked;
-        this.putGameConfig();
-        break;
-      case "ww1936.lobby.unlimited":
-        this.ww1936Unlimited = checked;
         this.putGameConfig();
         break;
       case "ww1936.lobby.nukes":
@@ -1966,6 +1976,7 @@ export class HostLobbyModal extends BaseModal {
               ? {
                   ww1936Nukes: this.ww1936Nukes,
                   ww1936Unlimited: this.ww1936Unlimited,
+                  ww1936FastTempo: this.ww1936FastTempo,
                 }
               : {}),
             congress:

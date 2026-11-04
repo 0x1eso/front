@@ -6,6 +6,9 @@ import {
   msPerTickOf,
   WW_HISTORY_END_ISO,
   WW_UNLIMITED_TEMPO,
+  wwFastTempo,
+  wwLengthKeys,
+  wwLengthOf,
   wwRealTicks,
   wwTempo,
   wwUnlimited,
@@ -19,6 +22,51 @@ const TIMED = testGameConfig({ worldWar1936: true });
 const UNLIMITED = testGameConfig({
   worldWar1936: true,
   ww1936Unlimited: true,
+});
+
+const FAST = testGameConfig({
+  worldWar1936: true,
+  ww1936Unlimited: true,
+  ww1936FastTempo: true,
+});
+
+describe("the fast unlimited game: no timer, the 45-minute tempo", () => {
+  test("tempo 1 and 100 ms, still unlimited; the key needs the mode and the unlimited key", () => {
+    expect(wwUnlimited(FAST)).toBe(true);
+    expect(wwFastTempo(FAST)).toBe(true);
+    expect(wwTempo(FAST)).toBe(1);
+    expect(msPerTickOf(FAST)).toBe(100);
+    expect(wwRealTicks(FAST, 300)).toBe(300);
+    for (const gc of [
+      testGameConfig({ ww1936FastTempo: true }),
+      testGameConfig({ worldWar1936: true, ww1936FastTempo: true }),
+      testGameConfig({ ww1936Unlimited: true, ww1936FastTempo: true }),
+    ]) {
+      expect(wwFastTempo(gc)).toBe(false);
+      expect(wwUnlimited(gc)).toBe(false);
+      expect(wwTempo(gc)).toBe(1);
+    }
+    // Slow stays slow when the fast key is false.
+    expect(
+      wwTempo(testGameConfig({ ...UNLIMITED, ww1936FastTempo: false })),
+    ).toBe(4);
+  });
+
+  test("the three lengths: timed, slow, fast; keys and Config", () => {
+    expect(wwLengthOf(TIMED)).toBe("timed");
+    expect(wwLengthOf(UNLIMITED)).toBe("slow");
+    expect(wwLengthOf(FAST)).toBe("fast");
+    expect(wwLengthKeys("timed")).toEqual({ ww1936Unlimited: false });
+    expect(wwLengthKeys("slow")).toEqual({ ww1936Unlimited: true });
+    expect(wwLengthKeys("fast")).toEqual({
+      ww1936Unlimited: true,
+      ww1936FastTempo: true,
+    });
+    const cfg = new Config(FAST, false);
+    expect(cfg.wwUnlimited()).toBe(true);
+    expect(cfg.wwTempo()).toBe(1);
+    expect(cfg.msPerTick()).toBe(100);
+  });
 });
 
 describe("the unlimited game's pace", () => {

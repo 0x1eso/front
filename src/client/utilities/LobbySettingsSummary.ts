@@ -133,7 +133,11 @@ export function notableLobbySettings(
     if (wwUnlimited)
       items.push({
         label: translateText("private_lobby.game_length"),
-        value: translateText("ww1936.lobby.unlimited_on"),
+        value: translateText(
+          c.ww1936FastTempo === true
+            ? "ww1936.lobby.unlimited_fast_on"
+            : "ww1936.lobby.unlimited_on",
+        ),
       });
     // P6 (spec §9.8): the atomic bomb.
     items.push({

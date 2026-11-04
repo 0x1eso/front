@@ -1,7 +1,7 @@
-// World War 1936, the unlimited game (design 2026-10-29): the lobby's
-// slow-pace toggle, off by default, right after the historical AI toggle,
-// which now starts off too; the host's choice copied to the game; the join
-// summary names the game's length. Nothing of it without the mode.
+// World War 1936, the game length (design 2026-10-29 + w53): the lobby's
+// three choices (45 minutes, unlimited slow, unlimited fast), timed by
+// default; the historical AI toggle starts off; the host's choice copied to
+// the game; the join summary names the length. Nothing of it without the mode.
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("../../../src/client/Cosmetics", () => ({
@@ -57,14 +57,13 @@ import { applyGameConfigPatch } from "../../../src/server/ConfigPatch";
 import { testGameConfig } from "../../util/Wire";
 
 const AI = "game_settings.historical_ai";
-const UNLIMITED = "ww1936.lobby.unlimited";
 const LENGTH = "private_lobby.game_length";
 
 const toggle = (labelKey: string, checked: boolean) =>
   new CustomEvent("option-toggle-changed", { detail: { labelKey, checked } });
 
 /** The option toggles a modal hands its settings, as rendered. */
-async function toggles(modal: unknown): Promise<ToggleOptionConfig[]> {
+async function settingsOf(modal: unknown): Promise<GameConfigSettings> {
   const container = document.createElement("div");
   document.body.appendChild(container);
   render((modal as { renderBody(): TemplateResult }).renderBody(), container);
@@ -72,18 +71,20 @@ async function toggles(modal: unknown): Promise<ToggleOptionConfig[]> {
     "game-config-settings",
   )!;
   await settings.updateComplete;
-  return settings.settings!.options.toggles;
+  return settings;
 }
 
-/** Both toggles off, the unlimited one right after the historical AI. */
-function expectBothOffInOrder(list: ToggleOptionConfig[]): void {
-  const keys = list.map((t) => t.labelKey);
-  const ai = keys.indexOf(AI);
-  expect(ai).toBeGreaterThanOrEqual(0);
-  expect(keys[ai + 1]).toBe(UNLIMITED);
-  expect(list[ai].checked).toBe(false);
-  expect(list[ai + 1].checked).toBe(false);
+async function toggles(modal: unknown): Promise<ToggleOptionConfig[]> {
+  return (await settingsOf(modal)).settings!.options.toggles;
 }
+
+/** The length cards a lobby shows and the one it marks as chosen. */
+async function lengthOf(modal: unknown): Promise<string | undefined> {
+  return (await settingsOf(modal)).settings!.worldWar?.length;
+}
+
+const pick = (length: string) =>
+  new CustomEvent("ww-length-selected", { detail: { length } });
 
 afterEach(() => {
   document.body.innerHTML = "";
@@ -93,26 +94,35 @@ afterEach(() => {
 describe("the solo lobby", () => {
   const solo = (): any => document.createElement("single-player-modal");
 
-  it("shows the toggle after the historical AI, both off; not without the mode", async () => {
+  it("offers the three lengths in the mode only, timed chosen; the historical AI starts off", async () => {
     const modal = solo();
-    expect((await toggles(modal)).map((t) => t.labelKey)).not.toContain(
-      UNLIMITED,
-    );
+    expect(await lengthOf(modal)).toBeUndefined();
     modal.handleConfigOptionToggleChanged(
       toggle("game_settings.world_war_1936", true),
     );
-    expectBothOffInOrder(await toggles(modal));
+    expect(await lengthOf(modal)).toBe("timed");
+    const list = await toggles(modal);
+    expect(list.find((t) => t.labelKey === AI)?.checked).toBe(false);
+    expect(list.map((t) => t.labelKey)).not.toContain("ww1936.lobby.unlimited");
+    const settings = await settingsOf(modal);
+    expect(
+      [...settings.querySelectorAll("[data-ww-length-option]")].map((e) =>
+        e.getAttribute("data-ww-length-option"),
+      ),
+    ).toEqual(["timed", "slow", "fast"]);
   });
 
-  it("starts timed with the historical AI off; checked, unlimited with no timer", async () => {
+  it("starts timed; slow and fast send their keys and no timer; the start resets it", async () => {
     const modal = solo();
     const configs: GameConfig[] = [];
     modal.addEventListener("join-lobby", (e: Event) =>
       configs.push((e as CustomEvent).detail.gameStartInfo.config),
     );
-    modal.handleConfigOptionToggleChanged(
-      toggle("game_settings.world_war_1936", true),
-    );
+    const wwOn = () =>
+      modal.handleConfigOptionToggleChanged(
+        toggle("game_settings.world_war_1936", true),
+      );
+    wwOn();
     await modal.startGame();
     expect(configs[0]).toMatchObject({
       worldWar1936: true,
@@ -120,32 +130,38 @@ describe("the solo lobby", () => {
       ww1936Unlimited: false,
       maxTimerValue: 45,
     });
+    expect(configs[0].ww1936FastTempo).toBeUndefined();
 
     // (A start resets the lobby's options: the mode is turned on again.)
-    modal.handleConfigOptionToggleChanged(
-      toggle("game_settings.world_war_1936", true),
-    );
-    modal.handleConfigOptionToggleChanged(toggle(UNLIMITED, true));
-    expect(
-      (await toggles(modal)).find((t) => t.labelKey === UNLIMITED),
-    ).toMatchObject({ checked: true });
+    wwOn();
+    modal.handleWwLengthSelected(pick("slow"));
+    expect(await lengthOf(modal)).toBe("slow");
     await modal.startGame();
     expect(configs[1].ww1936Unlimited).toBe(true);
-    expect(configs[1].historicalAi).toBe(false);
+    expect(configs[1].ww1936FastTempo).toBeUndefined();
     expect("maxTimerValue" in configs[1]).toBe(false);
 
-    // The start reset it: the next game is timed again.
-    modal.handleConfigOptionToggleChanged(
-      toggle("game_settings.world_war_1936", true),
-    );
+    wwOn();
+    modal.handleWwLengthSelected(pick("fast"));
+    expect(await lengthOf(modal)).toBe("fast");
     await modal.startGame();
-    expect(configs[2].ww1936Unlimited).toBe(false);
-    expect(configs[2].maxTimerValue).toBe(45);
+    expect(configs[2]).toMatchObject({
+      ww1936Unlimited: true,
+      ww1936FastTempo: true,
+    });
+    expect("maxTimerValue" in configs[2]).toBe(false);
 
-    // Without the mode neither key is sent.
+    // The start reset it: the next game is timed again.
+    wwOn();
     await modal.startGame();
-    expect(configs[3].ww1936Unlimited).toBeUndefined();
-    expect(configs[3].historicalAi).toBeUndefined();
+    expect(configs[3].ww1936Unlimited).toBe(false);
+    expect(configs[3].maxTimerValue).toBe(45);
+
+    // Without the mode no key is sent.
+    await modal.startGame();
+    expect(configs[4].ww1936Unlimited).toBeUndefined();
+    expect(configs[4].ww1936FastTempo).toBeUndefined();
+    expect(configs[4].historicalAi).toBeUndefined();
   });
 });
 
@@ -169,51 +185,71 @@ describe("the host lobby", () => {
     return config;
   }
 
-  it("shows the toggle after the historical AI, both off", async () => {
+  it("offers the three lengths, timed chosen", async () => {
     const modal = host();
     modal.worldWar1936 = true;
-    expectBothOffInOrder(await toggles(modal));
+    expect(await lengthOf(modal)).toBe("timed");
   });
 
-  it("sends both keys off by default; the toggle updates the lobby", async () => {
+  it("sends the keys of the chosen length; a choice updates the lobby; only with the mode", async () => {
     const modal = host();
     modal.worldWar1936 = true;
     expect(await sent(modal)).toMatchObject({
       worldWar1936: true,
       historicalAi: false,
       ww1936Unlimited: false,
+      ww1936FastTempo: false,
     });
 
     const putGameConfig = vi.fn();
     modal.putGameConfig = putGameConfig;
-    modal.handleConfigOptionToggleChanged(toggle(UNLIMITED, true));
-    expect(modal.ww1936Unlimited).toBe(true);
+    modal.handleWwLengthSelected(pick("fast"));
     expect(putGameConfig).toHaveBeenCalledTimes(1);
     delete modal.putGameConfig;
-    expect((await sent(modal)).ww1936Unlimited).toBe(true);
+    expect(await sent(modal)).toMatchObject({
+      ww1936Unlimited: true,
+      ww1936FastTempo: true,
+    });
+    expect(await lengthOf(modal)).toBe("fast");
 
-    // Like the atomic-bomb key, it goes only with the mode.
+    modal.handleWwLengthSelected(pick("slow"));
+    expect(await sent(modal)).toMatchObject({
+      ww1936Unlimited: true,
+      ww1936FastTempo: false,
+    });
+
     modal.worldWar1936 = false;
-    expect((await sent(modal)).ww1936Unlimited).toBeUndefined();
+    const off = await sent(modal);
+    expect(off.ww1936Unlimited).toBeUndefined();
+    expect(off.ww1936FastTempo).toBeUndefined();
   });
 
-  it("closing the lobby turns both back off", () => {
+  it("closing the lobby turns the length back to timed", () => {
     const modal = host();
     modal.leaveLobbyOnClose = false;
     modal.historicalAi = true;
     modal.ww1936Unlimited = true;
+    modal.ww1936FastTempo = true;
     modal.onClose();
     expect(modal.historicalAi).toBe(false);
     expect(modal.ww1936Unlimited).toBe(false);
+    expect(modal.ww1936FastTempo).toBe(false);
   });
 });
 
 describe("the game it makes", () => {
   it("the server copies the host's choice and drops the timer", () => {
     const target = testGameConfig({ worldWar1936: true, maxTimerValue: 45 });
-    applyGameConfigPatch(target, { worldWar1936: true, ww1936Unlimited: true });
+    applyGameConfigPatch(target, {
+      worldWar1936: true,
+      ww1936Unlimited: true,
+      ww1936FastTempo: true,
+    });
     expect(target.ww1936Unlimited).toBe(true);
+    expect(target.ww1936FastTempo).toBe(true);
     expect("maxTimerValue" in target).toBe(false);
+    applyGameConfigPatch(target, { ww1936FastTempo: false });
+    expect(target.ww1936FastTempo).toBe(false);
   });
 
   it("the join summary has one game-length row: unlimited, or 45 minutes timed", () => {
@@ -230,6 +266,16 @@ describe("the game it makes", () => {
         ),
       ),
     ).toEqual(unlimited);
+    // The fast one names its own tempo.
+    expect(
+      rows(
+        testGameConfig({
+          worldWar1936: true,
+          ww1936Unlimited: true,
+          ww1936FastTempo: true,
+        }),
+      ),
+    ).toEqual([{ label: LENGTH, value: "ww1936.lobby.unlimited_fast_on" }]);
     // A timer value left on an unlimited config adds no second row.
     expect(
       rows(

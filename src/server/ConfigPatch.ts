@@ -43,6 +43,8 @@ const COPIED_KEYS = [
   "ww1936Nukes",
   // The unlimited game (no timer, slower ticks; engine-lib/ww1936/Pace.ts).
   "ww1936Unlimited",
+  // The unlimited game at the 45-minute tempo.
+  "ww1936FastTempo",
 ] as const satisfies readonly (keyof GameConfig)[];
 
 // `.nullable().optional()` in the schema: the wire says null to clear a
