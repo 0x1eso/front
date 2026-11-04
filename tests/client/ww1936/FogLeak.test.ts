@@ -921,6 +921,10 @@ describe("fog leaks (spec §8.9)", () => {
       "hud/ww1936/WwArmyPanel.ts",
       // Army templates: the composition of my own army and my own queue.
       "hud/ww1936/ArmyTemplates.ts",
+      // The lobby's start army plan: its own plan, no game is running yet.
+      "hud/ww1936/PrepOob.ts",
+      "hud/ww1936/PrepOobUi.ts",
+      "hud/ww1936/WwLobbyPrep.ts",
       // ww8 lane G: my own wings (view.wings holds mine only) and my armies.
       "hud/ww1936/WingModel.ts",
       "hud/ww1936/WwWingCard.ts",
