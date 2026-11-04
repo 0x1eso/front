@@ -12197,7 +12197,29 @@
       "sun_deep_ops_doctrine": "종심 작전 교리",
       "sun_garrison_regime": "병영 국가",
       "sun_marshals_rule": "원수 평의회",
-      "sun_army_industry": "군이 관리하는 산업"
+      "sun_army_industry": "군이 관리하는 산업",
+      "nat_deu_panzer": "기갑 교리",
+      "nat_deu_workshop": "숙련된 공방",
+      "nat_deu_strain": "비싸고 까다로운 기계",
+      "nat_sun_mass": "총동원 체제",
+      "nat_sun_resilience": "끈질긴 회복력",
+      "nat_sun_purge_gap": "비어버린 지휘부",
+      "nat_sun_purge_scars": "회복 중인 지휘부",
+      "nat_usa_arsenal": "산업의 병기창",
+      "nat_usa_logistics": "두터운 보급망",
+      "nat_usa_slow_mobilisation": "평시의 군대",
+      "nat_gbr_lifeline": "바다의 생명선",
+      "nat_gbr_radar_net": "레이더망",
+      "nat_gbr_commonwealth": "영연방의 손길",
+      "nat_fra_citadel": "요새 교리",
+      "nat_fra_slow_heavy": "무겁고 신중한 군대",
+      "nat_fra_stripped_arsenal": "무너지기 쉬운 병기창",
+      "nat_jpn_kido_butai": "기동 항공 함대",
+      "nat_jpn_assault": "돌격 정신",
+      "nat_jpn_scarce": "자원 빈국",
+      "nat_ita_mare_nostrum": "지중해 함대",
+      "nat_ita_light_forces": "가볍고 빠른 군대",
+      "nat_ita_thin_industry": "빈약한 산업"
     },
     "spirit_desc": {
       "arg_neutral_course": "아르헨티나는 모든 편과 교역하되 누구의 전쟁에도 끼지 않는다.",
@@ -12500,7 +12522,29 @@
       "sun_deep_ops_doctrine": "옛 학파의 공세 교리가 돌아와 계획은 빨라지고 돌파는 날카로워진다.",
       "sun_garrison_regime": "예비군이 훈련을 마치고 대기하지만, 민수품이 그 대가를 치른다.",
       "sun_marshals_rule": "통치 평의회 덕에 쿠데타는 어려워지고 결정에 드는 비용은 줄어든다.",
-      "sun_army_industry": "군 관리자들이 맡은 군수 공장이 더 빨리 지어지고, 그 비용은 민간이 치른다."
+      "sun_army_industry": "군 관리자들이 맡은 군수 공장이 더 빨리 지어지고, 그 비용은 민간이 치른다.",
+      "nat_deu_panzer": "전차와 차량화 사단이 돌파에 특화되어 조직력을 오래 유지하고, 전차 대대가 돌파구에서 더 강하게 친다.",
+      "nat_deu_workshop": "생산 라인이 더 높은 효율에 더 빠르게 다가간다.",
+      "nat_deu_strain": "기갑 장비는 값이 더 들고 고장도 잦으며, 부족한 원자재를 아껴 써야 한다.",
+      "nat_sun_mass": "막대한 인력과 값싼 대량 생산을 갖췄지만, 전차와 경전투기의 질은 떨어진다.",
+      "nat_sun_resilience": "패배한 뒤에도 사단의 조직력이 빨리 돌아오고 보충병이 더 빨리 도착한다.",
+      "nat_sun_purge_gap": "장교 손실로 참모 업무가 더디고 사단 조직력이 떨어진다. 시간이 지나면 풀린다.",
+      "nat_sun_purge_scars": "참모 업무가 회복되는 중이라 약점이 줄었고 곧 사라진다.",
+      "nat_usa_arsenal": "공장이 더 빨리 지어지고 조선소 생산이 늘며, 항공기와 함선의 건조 비용이 줄어든다.",
+      "nat_usa_logistics": "군대가 보급과 연료를 덜 쓰고, 연료 비축량이 더 크다.",
+      "nat_usa_slow_mobilisation": "훈련에 시간이 더 걸리고 소집 가능한 인원이 적다.",
+      "nat_gbr_lifeline": "수송선단의 손실이 적고 호송 전력이 더 튼튼하다.",
+      "nat_gbr_radar_net": "적기를 더 일찍 포착하고, 요격기가 더 날카로우며 대공포가 더 잘 맞힌다.",
+      "nat_gbr_commonwealth": "식민지가 원자재와 값싼 교역을 보태지만, 본국 육군은 작고 전차는 약하다.",
+      "nat_fra_citadel": "요새의 가치가 더 크고 부대가 더 빠르고 깊게 참호를 판다.",
+      "nat_fra_slow_heavy": "전차는 장갑이 두껍지만 군대의 진격이 느리고 보병의 공격이 약하다.",
+      "nat_fra_stripped_arsenal": "본토가 무너져 망명 정부가 되면, 공장은 면허로 허용된 장비만 만든다.",
+      "nat_jpn_kido_butai": "항모 항공대가 더 강하게 타격하고, 갑판에 더 많은 항공기를 싣고, 어뢰가 더 강하다.",
+      "nat_jpn_assault": "보병이 더 강하게 공격하고 조직력을 더 오래 유지한다.",
+      "nat_jpn_scarce": "본토에 원자재가 적고 교역 비용이 비싸며 전차는 약하다.",
+      "nat_ita_mare_nostrum": "함선이 바다를 더 빠르게 건넌다.",
+      "nat_ita_light_forces": "경전차와 경항공기가 더 싸고 부대 이동이 빠르다.",
+      "nat_ita_thin_industry": "건설이 더디고 공장 생산량이 적으며, 전차와 화포의 질이 뒤처진다."
     },
     "stance": {
       "aggressive": "과감",
@@ -13777,6 +13821,15 @@
       "yesterday": "어제 격추 {kills}, 손실 {lost}",
       "zone_planes": "{n}기",
       "zone_sup": "제공 {mine}% 대 {enemy}%"
+    },
+    "style": {
+      "DEU": "질과 기갑전: 돌파력과 빠르게 오르는 생산 효율. 그러나 장비는 비싸고 자원은 부족하다.",
+      "FRA": "요새 방어: 튼튼한 요새, 빠른 참호 구축, 이른 중전차. 공격은 느리고 본토를 잃으면 병기창도 멈춘다.",
+      "GBR": "해군과 공군: 안전한 수송선단, 레이더와 방공, 식민지 자원. 육군은 작고 전차는 약하다.",
+      "ITA": "지중해와 경기동: 빠른 함대, 값싼 경장비, 빠른 이동. 산업은 작고 장비는 약하다.",
+      "JPN": "항공 함대와 보병 돌격: 항모 항공대, 어뢰, 매서운 보병. 자원은 적고 전차는 약하다.",
+      "SUN": "인력과 물량: 막대한 병력, 값싼 장비, 빠른 회복. 초반엔 지휘가 서툴고 질이 낮다.",
+      "USA": "산업과 보급: 빠른 공장 건설, 풍족한 보급, 항공기와 함선 대량 생산. 군대는 작고 동원은 느리다."
     }
   }
 }

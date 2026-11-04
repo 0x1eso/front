@@ -630,6 +630,13 @@ export class WwPolitics {
         for (const s of d.spirits ?? []) {
           c.spirits.push({ id: s, untilDay: -1, addedDay: 0 });
         }
+        for (const s of d.timedSpirits ?? []) {
+          c.spirits.push({
+            id: s.id,
+            untilDay: dayOfDate(s.until),
+            addedDay: 0,
+          });
+        }
       }
       // Controller ruling R7: startLeader first (Japan's 1936 prime minister).
       c.leader =

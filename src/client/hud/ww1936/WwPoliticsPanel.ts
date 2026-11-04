@@ -27,6 +27,7 @@ import {
   spiritDesc,
   spiritName,
   spiritTab,
+  styleLine,
   TextLine,
   TONE_BAR_CLASS,
   TONE_CLASS,
@@ -727,30 +728,36 @@ export class WwPoliticsPanel extends WwDrawerBase {
         ${translateText("ww1936.pol.spirit.none")}
       </p>`;
     }
-    return html`<ul class="m-0 mt-2 flex list-none flex-col gap-1 p-0">
-      ${list.map(
-        (s) =>
-          html`<li data-ww-spirit=${s.id} class="${CARD} flex gap-2">
-            <img
-              src=${s.icon}
-              alt=""
-              class="size-8 shrink-0 rounded bg-gray-800 p-1"
-              @error=${(e: Event) =>
-                ((e.target as HTMLElement).style.visibility = "hidden")}
-            />
-            <div class="min-w-0 flex-1">
-              <div class="flex justify-between gap-2">
-                <b class="min-w-0 truncate">${s.name}</b>
-                <span class="shrink-0 text-white/60">${s.left}</span>
+    const style = styleLine(i);
+    return html`${style === ""
+        ? nothing
+        : html`<p data-ww-style class="m-0 mt-2 text-xs text-amber-200">
+            ${style}
+          </p>`}
+      <ul class="m-0 mt-2 flex list-none flex-col gap-1 p-0">
+        ${list.map(
+          (s) =>
+            html`<li data-ww-spirit=${s.id} class="${CARD} flex gap-2">
+              <img
+                src=${s.icon}
+                alt=""
+                class="size-8 shrink-0 rounded bg-gray-800 p-1"
+                @error=${(e: Event) =>
+                  ((e.target as HTMLElement).style.visibility = "hidden")}
+              />
+              <div class="min-w-0 flex-1">
+                <div class="flex justify-between gap-2">
+                  <b class="min-w-0 truncate">${s.name}</b>
+                  <span class="shrink-0 text-white/60">${s.left}</span>
+                </div>
+                <p class="m-0 text-white/70">${s.desc}</p>
+                ${s.effects.map(
+                  (e) => html`<span class="block text-white/80">${e}</span>`,
+                )}
               </div>
-              <p class="m-0 text-white/70">${s.desc}</p>
-              ${s.effects.map(
-                (e) => html`<span class="block text-white/80">${e}</span>`,
-              )}
-            </div>
-          </li>`,
-      )}
-    </ul>`;
+            </li>`,
+        )}
+      </ul>`;
   }
 
   // ---- Decisions ----

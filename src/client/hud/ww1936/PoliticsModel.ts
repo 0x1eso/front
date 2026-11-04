@@ -1534,6 +1534,14 @@ export interface SpiritView {
   left: string;
 }
 
+/** My country's one-line style (the seven majors only; "" for any other). */
+export function styleLine(i: PoliticsModelInput): string {
+  const tag = tagOf(i.game, i.me);
+  return tag !== null && COUNTRIES[tag].major
+    ? translateText(`ww1936.style.${tag}`)
+    : "";
+}
+
 export function spiritTab(i: PoliticsModelInput): SpiritView[] {
   const d = i.view.detail(i.me);
   if (d === null) return [];

@@ -89,6 +89,9 @@ export class CountryPicker extends LitElement {
             ></span>
             ${translateText(`ww1936.faction.${faction}`)}
           </span>`}
+      <span data-ww-style class="text-xs text-white/60">
+        ${translateText(`ww1936.style.${tag}`)}
+      </span>
       ${holder === null
         ? nothing
         : html`<span class="text-xs text-white/60">

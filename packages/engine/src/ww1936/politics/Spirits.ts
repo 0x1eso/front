@@ -5,6 +5,7 @@ import type {
   SpiritDef,
   SpiritId,
 } from "@openfront/engine-api/ww1936/PoliticsTypes";
+import { dayOfDate } from "@openfront/engine-lib/ww1936/Calendar";
 import type { CountryPol, WwPolitics } from "./WwPolitics";
 
 /** dmzRegions' answer while no rule is on (callers only read it). */
@@ -108,7 +109,20 @@ export function expireSpirits(
   day: number,
 ): void {
   if (!c.spirits.some((s) => s.untilDay >= 0 && s.untilDay <= day)) return;
+  const over = c.spirits.filter((s) => s.untilDay >= 0 && s.untilDay <= day);
   c.spirits = c.spirits.filter((s) => s.untilDay < 0 || s.untilDay > day);
+  // w69: a spirit that hands over to another (its `next`) does so here.
+  for (const s of over) {
+    const def = pol.content.spiritIdx.get(s.id);
+    const next = def?.next;
+    if (next !== undefined && !c.hasSpirit(next)) {
+      const until =
+        def?.nextUntil === undefined ? -1 : dayOfDate(def.nextUntil);
+      if (until < 0 || until > day) {
+        c.spirits.push({ id: next, untilDay: until, addedDay: day });
+      }
+    }
+  }
   changed(c);
   pol.recomputeStats(c.smallID);
 }

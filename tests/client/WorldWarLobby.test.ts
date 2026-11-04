@@ -117,6 +117,18 @@ describe("<ww-country-picker> (spec §8.1)", () => {
     expect(el.querySelectorAll("[data-group]")).toHaveLength(4);
   });
 
+  it("w69: each major's card says in one line how it plays", async () => {
+    const el = await picker();
+    for (const tag of MAJOR_TAGS) {
+      const line = el.querySelector(
+        `button[data-tag="${tag}"] [data-ww-style]`,
+      );
+      expect(line?.textContent?.trim()).toBe(`ww1936.style.${tag}`);
+    }
+    // The minors have no such line.
+    expect(el.querySelectorAll("[data-ww-style]")).toHaveLength(7);
+  });
+
   it("a country someone else holds is greyed out with their name", async () => {
     const el = await picker();
     const deu = el.querySelector<HTMLButtonElement>('button[data-tag="DEU"]')!;
