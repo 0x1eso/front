@@ -45,6 +45,7 @@ import {
 import {
   addToSide,
   applyBp,
+  armorProtectPm,
   attackValue,
   casCutHits,
   combatWidth,
@@ -57,7 +58,6 @@ import {
   ModResult,
   planMaxBp,
   predictBattleRange,
-  armorProtectPm,
   roundDamage,
   roundHits,
 } from "@openfront/engine-lib/ww1936/CombatRules";

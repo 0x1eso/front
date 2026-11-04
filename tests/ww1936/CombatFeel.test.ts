@@ -1,11 +1,11 @@
 // ww67: the rules that make battles read like the Second World War.
-import { LAND_TERRAINS } from "@openfront/engine-api/ww1936/LandTypes";
 import { KS, KS_FIELDS } from "@openfront/engine-api/ww1936/DepthTypes";
 import type {
   BattalionId,
   SupportId,
   TemplateDef,
 } from "@openfront/engine-api/ww1936/LandTypes";
+import { LAND_TERRAINS } from "@openfront/engine-api/ww1936/LandTypes";
 import { WEATHER_SORTIE_PM } from "@openfront/engine-lib/ww1936/AirRules";
 import {
   armorProtectPm,
@@ -196,9 +196,7 @@ describe("a broken division leaves men and equipment behind", () => {
     expect(men - t.men[broken]).toBeLessThanOrEqual(
       Math.ceil((men * 16) / 100),
     );
-    expect(
-      [...t.equipOf(broken)].reduce((x, y) => x + y, 0),
-    ).toBeLessThan(eq);
+    expect([...t.equipOf(broken)].reduce((x, y) => x + y, 0)).toBeLessThan(eq);
     const men2 = t.men[whole];
     retreatDivision(l, whole);
     expect(t.men[whole]).toBe(men2);

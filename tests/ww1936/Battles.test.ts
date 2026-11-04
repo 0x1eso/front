@@ -24,8 +24,8 @@ import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { dayOfDate, dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
 import {
   applyBp,
-  attackValue,
   armorProtectPm,
+  attackValue,
   roundDamage,
   roundHits,
 } from "@openfront/engine-lib/ww1936/CombatRules";

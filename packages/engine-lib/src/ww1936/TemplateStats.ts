@@ -579,7 +579,10 @@ export function templateStats(
       bp.armor,
     );
     const pierce = pctOf(
-      mix(atKeyPierce(ks, main, g, Math.floor((d.pierce * ga) / 100)), KS.pierce),
+      mix(
+        atKeyPierce(ks, main, g, Math.floor((d.pierce * ga) / 100)),
+        KS.pierce,
+      ),
       bp.pierce,
     );
     armorMax = Math.max(armorMax, armor);
