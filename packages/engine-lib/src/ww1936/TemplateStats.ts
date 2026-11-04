@@ -517,6 +517,7 @@ export function templateStats(
   let hardSum = 0;
   let armorMax = 0;
   let armorSum = 0;
+  let armoured = 0;
   let pierceMax = 0;
   let pierceSum = 0;
   let pierceN = 0;
@@ -583,6 +584,7 @@ export function templateStats(
     );
     armorMax = Math.max(armorMax, armor);
     armorSum += armor;
+    if (armor > 0) armoured++;
     pierceMax = Math.max(pierceMax, pierce);
     pierceSum += pierce * BATTALION_PIERCE_WEIGHT;
     pierceN += BATTALION_PIERCE_WEIGHT;
@@ -696,12 +698,18 @@ export function templateStats(
     hard: sum(1),
     def: sum(2),
     brk: sum(3),
-    // HOI4: 30% max + 70% average armour. ww67: pierce is what the division
-    // can actually bring to bear, twice its weighted average up to its best
-    // gun: half of it able to hit is the gun's whole number, and a support
-    // company counts a third of a battalion, so it adds a little.
+    // HOI4: 30% max + 70% average armour, ww67: of the armoured battalions
+    // alone (how much of the division they are is its hardness, armorProtectPm).
+    // Pierce is what the division can actually bring to bear, twice its weighted
+    // average up to its best gun: half of it able to hit is the gun's whole
+    // number, and a support company counts a third of a battalion, so it adds
+    // a little.
     armor:
-      n === 0 ? 0 : Math.floor((30 * armorMax * n + 70 * armorSum) / (100 * n)),
+      armoured === 0
+        ? 0
+        : Math.floor(
+            (30 * armorMax * armoured + 70 * armorSum) / (100 * armoured),
+          ),
     pierce:
       pierceN === 0
         ? 0

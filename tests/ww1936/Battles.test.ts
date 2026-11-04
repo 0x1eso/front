@@ -25,6 +25,7 @@ import { dayOfDate, dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
 import {
   applyBp,
   attackValue,
+  armorProtectPm,
   roundDamage,
   roundHits,
 } from "@openfront/engine-lib/ww1936/CombatRules";
@@ -221,11 +222,10 @@ describe("World War 1936 P2: land battles (spec §9)", () => {
           19_800,
           modsOf(l, rowOf(l, d.divisions[0]), WARSAW, false).prepBp ?? 0,
         ),
-        false,
       ).orgMilli,
     );
     expect(att0 - l.divisions.org[rowOf(l, a.divisions[0])]).toBe(
-      roundDamage(roundHits(applyBp(5400, luck(1)), 3300), false).orgMilli,
+      roundDamage(roundHits(applyBp(5400, luck(1)), 3300)).orgMilli,
     );
     // Without the luck they are the spec's 920 and 1170 hits.
     expect(roundHits(9200, 19_800)).toBe(920);
@@ -606,8 +606,8 @@ describe("World War 1936 P2: land battles (spec §9)", () => {
       applyBp(ts.brk, tankMods.defenseBp),
     );
     expect(hits).toBeGreaterThan(0);
-    expect(lost).toBe(roundDamage(hits, true).orgMilli);
-    const unarmoured = roundDamage(hits, false).orgMilli;
+    expect(lost).toBe(roundDamage(hits, 500).orgMilli);
+    const unarmoured = roundDamage(hits).orgMilli;
     expect(Math.abs(lost * 2 - unarmoured)).toBeLessThanOrEqual(1);
   }, 60_000);
 
@@ -755,11 +755,17 @@ describe("World War 1936 ww7 lane A: tactics, luck and reserves in a battle (des
         applyBp(as.brk, am.defenseBp),
       );
       const wantDef = applyBp(
-        roundDamage(hitsOnDef, ds.armor > as.pierce).orgMilli,
+        roundDamage(
+          hitsOnDef,
+          armorProtectPm(ds.armor, ds.hardnessPm, as.pierce),
+        ).orgMilli,
         10_000 + fx.defOrgBp,
       );
       const wantAtt = applyBp(
-        roundDamage(hitsOnAtt, as.armor > ds.pierce).orgMilli,
+        roundDamage(
+          hitsOnAtt,
+          armorProtectPm(as.armor, as.hardnessPm, ds.pierce),
+        ).orgMilli,
         10_000 + fx.attOrgBp,
       );
       const [ao, dorg] = [t.org[ar], t.org[dr]];

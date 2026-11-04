@@ -343,8 +343,8 @@ describe("combat (P2 spec §9)", () => {
     expect(roundHits(9200, 19_800)).toBe(920);
     expect(roundHits(5400, 3300)).toBe(1170);
     // ww7 lane F: 0.052 org and 0.036 HP a hit (the spec's 0.13 and 0.09 × 0.4).
-    expect(roundDamage(920, false)).toEqual({ orgMilli: 874, hpMilli: 605 });
-    expect(roundDamage(920, true)).toEqual({ orgMilli: 437, hpMilli: 302 });
+    expect(roundDamage(920)).toEqual({ orgMilli: 874, hpMilli: 605 });
+    expect(roundDamage(920, 500)).toEqual({ orgMilli: 437, hpMilli: 302 });
   });
 
   test("ww7 lane F: prepared ground softens the hits inside the block", () => {

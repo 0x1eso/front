@@ -29,6 +29,7 @@ import {
   FORT_HALF_WIDTH_FROM,
   POSITION_DEF_BP,
   predictBattle,
+  armorProtectPm,
   roundDamage,
   roundHits,
   TERRAIN,
@@ -522,7 +523,7 @@ describe("ww7 B2: forts and cities in battle", () => {
         applyBp(sd.def, dm.defenseBp),
         dm.prepBp ?? 0,
       ),
-      sd.armor > sa.pierce,
+      armorProtectPm(sd.armor, sd.hardnessPm, sa.pierce),
     ).orgMilli;
     const toAtt = roundDamage(
       roundHits(
@@ -532,7 +533,7 @@ describe("ww7 B2: forts and cities in battle", () => {
         ),
         applyBp(sa.brk, am.defenseBp),
       ),
-      sa.armor > sd.pierce,
+      armorProtectPm(sa.armor, sa.hardnessPm, sd.pierce),
     ).orgMilli;
     expect(toDef).toBeGreaterThan(100);
     const [a0, d0] = [t.org[ar], t.org[dr]];

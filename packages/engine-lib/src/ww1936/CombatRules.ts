@@ -227,8 +227,8 @@ export const ARMOR_FULL_HARDNESS_PM = 500;
  * Spec §9.3-5, the share of the damage armour stops, ‰ (0..500). ww67: not a
  * switch at armour > pierce. It grows with the target's tank share, full from
  * hardness 500 ‰, so one tank battalion doesn't armour an infantry division;
- * and it fades from full, at pierce half the armour, to nothing, at pierce equal
- * to it, so a few guns chip at it rather than end it.
+ * and it fades from full, at pierce two thirds of the armour, to nothing, at
+ * pierce equal to it, so a few guns chip at it rather than end it.
  */
 export function armorProtectPm(
   armor: number,
@@ -236,8 +236,11 @@ export function armorProtectPm(
   pierce: number,
 ): number {
   if (armor <= 0 || pierce >= armor) return 0;
-  const share = Math.min(1000, Math.floor((Math.max(0, hardnessPm) * 1000) / ARMOR_FULL_HARDNESS_PM));
-  const fade = Math.min(1000, Math.floor(((armor - pierce) * 2000) / armor));
+  const share = Math.min(
+    1000,
+    Math.floor((Math.max(0, hardnessPm) * 1000) / ARMOR_FULL_HARDNESS_PM),
+  );
+  const fade = Math.min(1000, Math.floor(((armor - pierce) * 3000) / armor));
   return Math.floor((ARMOR_PROTECT_MAX_PM * share * fade) / 1_000_000);
 }
 
