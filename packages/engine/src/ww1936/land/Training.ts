@@ -283,6 +283,12 @@ export function queueTraining(
     const a = land.armies.get(o.army);
     if (a === undefined || a.owner !== cl.smallID) return "no_army";
   }
+  // The chosen army must be mine now; whether it can take the division is
+  // checked when the division is ready (it may be full or gone by then).
+  if (o.target !== undefined) {
+    const a = land.armies.get(o.target);
+    if (a === undefined || a.owner !== cl.smallID) return "no_army";
+  }
   if (
     o.region !== 0 &&
     (land.scenario.region(o.region) === undefined ||
@@ -296,6 +302,7 @@ export function queueTraining(
     remaining: o.count,
     army: o.army,
     region: o.region,
+    ...(o.target === undefined ? {} : { target: o.target }),
   });
   land.markCountry(cl.smallID);
   return null;
@@ -409,9 +416,10 @@ export function deployNow(
   const x = cl.trainees[i];
   const s = land.templateStatsOf(cl.smallID, x.template);
   if (s === null) return "bad_template";
-  const region = deployRegion(land, cl.smallID, e.region);
-  if (region === 0) return "bad_region";
-  const army = deployArmy(land, cl, e, region);
+  const spot = deploySpot(land, cl, e);
+  if (spot.region === 0) return "bad_region";
+  const region = spot.region;
+  const army = spot.army;
   if (army === null) return "too_many_armies";
   // Spec §5.1 (내 판단): org = maximum × progress.
   const total = trainDaysOf(land.econ.country(cl.smallID), s);
@@ -470,8 +478,7 @@ export function dailyTraining(
         continue;
       }
       const e = cl.training.find((en) => en.id === x.entry);
-      const region = deployRegion(land, cl.smallID, e?.region ?? 0);
-      const army = region === 0 ? null : deployArmy(land, cl, e, region);
+      const { region, army } = deploySpot(land, cl, e);
       if (army !== null) {
         spawnTrainee(land, cl, x, region, army, (max) => max);
         ready++;
@@ -521,6 +528,43 @@ function deployRegion(land: WwLand, smallID: number, region: number): number {
     return region;
   }
   return capitalRegion(land, smallID);
+}
+
+/**
+ * Where a single division deploys. With a chosen army (`target`) that still
+ * exists, is ours and has room: into that army, in the region the army is in
+ * when that region is one we hold, else in the region the entry would have
+ * used (the army is still joined, wherever it is). A target that is gone or
+ * full is dropped with one notice, and the division deploys as before.
+ */
+function deploySpot(
+  land: WwLand,
+  cl: CountryLand,
+  e: TrainingEntry | undefined,
+): { region: number; army: Army | null } {
+  if (e !== undefined && e.target !== undefined) {
+    const a = land.armies.get(e.target);
+    if (
+      a !== undefined &&
+      a.owner === cl.smallID &&
+      a.divisions.length < WW_MAX_ARMY_DIVISIONS
+    ) {
+      const at = land.armyRegion(a);
+      const held =
+        at !== 0 &&
+        land.scenario.region(at) !== undefined &&
+        land.sameSide(land.controller[at], cl.smallID);
+      const region = held ? at : deployRegion(land, cl.smallID, e.region);
+      return { region, army: region === 0 ? null : a };
+    }
+    delete e.target;
+    land.message(cl.smallID, "events_display.ww1936_train_target_lost", {});
+  }
+  const region = deployRegion(land, cl.smallID, e?.region ?? 0);
+  return {
+    region,
+    army: region === 0 ? null : deployArmy(land, cl, e, region),
+  };
 }
 
 /**

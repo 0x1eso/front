@@ -50,6 +50,8 @@ import {
   templateName,
   trainingRows,
   trainTarget,
+  trainToChoices,
+  trainToState,
 } from "./LandModel";
 import {
   landSelectionOf,
@@ -124,6 +126,8 @@ interface Ctx {
  */
 @customElement("ww-army-panel")
 export class WwArmyPanel extends WwDrawerBase {
+  /** The "deploy to" choice, kept for the session (0: automatic). */
+  private static lastTrainTo = 0;
   protected readonly drawerId = "army" as const;
   @state() private tab: WwArmyTab = "armies";
   /** The template whose designer is open (0: a new one); null: the list. */
@@ -563,6 +567,11 @@ export class WwArmyPanel extends WwDrawerBase {
     const short = shortTypes(c.view, c.economy, c.me);
     const target = trainTarget(c.view, c.me, c.army);
     const full = c.land.training.length >= WW_MAX_TRAINING;
+    const choices = trainToChoices(c.view, c.me);
+    // A remembered army that is gone reads as automatic again.
+    const to = choices.some((a) => a.id === WwArmyPanel.lastTrainTo)
+      ? WwArmyPanel.lastTrainTo
+      : 0;
     const train = (t: TemplateData, count: number) => {
       if (full) {
         this.refused = {
@@ -578,6 +587,7 @@ export class WwArmyPanel extends WwDrawerBase {
         count,
         army: target?.id ?? 0,
         region: target?.region ?? 0,
+        ...(to === 0 ? {} : { target: to }),
       });
     };
     return html`<div class="mt-2 flex flex-col gap-1 text-xs">
@@ -595,6 +605,35 @@ export class WwArmyPanel extends WwDrawerBase {
               >`
             : nothing}
         </div>
+        <label class="flex items-center gap-1.5 text-white/80">
+          <span class="shrink-0"
+            >${translateText("ww1936.land.deploy_to")}</span
+          >
+          <select
+            data-ww-train-to
+            class="h-10 min-w-0 flex-1 rounded-md border border-white/20 bg-slate-900 px-2 text-xs"
+            @change=${(ev: Event) => {
+              WwArmyPanel.lastTrainTo = Number(
+                (ev.target as HTMLSelectElement).value,
+              );
+              this.requestUpdate();
+            }}
+          >
+            <option value="0" ?selected=${to === 0}>
+              ${translateText("ww1936.land.deploy_to_auto")}
+            </option>
+            ${choices.map(
+              (a) =>
+                html`<option value=${a.id} ?selected=${to === a.id}>
+                  ${translateText("ww1936.land.deploy_to_army", {
+                    army: armyName(a.nameNo),
+                    n: a.count,
+                    max: WW_MAX_ARMY_DIVISIONS,
+                  })}
+                </option>`,
+            )}
+          </select>
+        </label>
         <div data-ww-train-target class="text-white/70">
           ${target === null
             ? translateText("ww1936.land.train_new_army")
@@ -689,6 +728,7 @@ export class WwArmyPanel extends WwDrawerBase {
     const key = `cancel_train:${t.id}`;
     const armed = this.armed(key);
     const army = t.army === 0 ? undefined : c.view.armies.get(t.army);
+    const to = trainToState(c.view, c.me, t.target);
     const waiting =
       t.waiting === "manpower"
         ? translateText("ww1936.land.waiting_manpower")
@@ -706,12 +746,28 @@ export class WwArmyPanel extends WwDrawerBase {
           >${r.template === null ? "" : templateName(r.template)}
           ×${t.remaining}</span
         >
-        ${army === undefined
+        ${army === undefined || to !== null
           ? nothing
           : html`<span class="shrink-0 text-white/60"
               >→ ${armyName(army.nameNo)}</span
             >`}
       </div>
+      ${to === null
+        ? nothing
+        : html`<div
+            data-ww-entry-to=${to.gone ? "gone" : to.full ? "full" : "ok"}
+            class="${to.gone || to.full ? "text-amber-300" : "text-white/60"}"
+          >
+            ${to.gone
+              ? translateText("ww1936.land.deploy_to_gone")
+              : to.full
+                ? translateText("ww1936.land.deploy_to_full", {
+                    army: armyName(to.nameNo),
+                  })
+                : translateText("ww1936.land.deploy_to_row", {
+                    army: armyName(to.nameNo),
+                  })}
+          </div>`}
       <div class="my-1 h-1.5 rounded bg-white/10">
         <div
           class="h-1.5 rounded bg-amber-400"

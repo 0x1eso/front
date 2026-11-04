@@ -161,6 +161,50 @@ describe("<ww-army-panel> (spec §15.5)", () => {
     expect(m.q("[data-ww-division='1'] [data-ww-short-equipment]")).toBeNull();
   });
 
+  it("training: the 'deploy to' choice is sent as the order's target and shown on the row", async () => {
+    const m = await mount(
+      {
+        landDetails: [
+          landDetail("DEU", {
+            training: [
+              training(7, { remaining: 1, target: 2 }),
+              training(8, { remaining: 1, target: 99 }),
+              training(9, { remaining: 1 }),
+            ],
+          }),
+        ],
+      },
+      "training",
+    );
+    const sel = m.q("[data-ww-train-to]") as HTMLSelectElement;
+    expect([...sel.options].map((o) => o.value)).toEqual(["0", "1", "2"]);
+    expect(sel.options[2].textContent).toContain(
+      "[ww1936.land.deploy_to_army]",
+    );
+    expect(sel.className).toContain("h-10");
+    await m.click("[data-ww-train='1:1']");
+    sel.value = "2";
+    sel.dispatchEvent(new Event("change"));
+    await m.el.updateComplete;
+    await m.click("[data-ww-train='1:1']");
+    sel.value = "0";
+    sel.dispatchEvent(new Event("change"));
+    await m.el.updateComplete;
+    await m.click("[data-ww-train='1:1']");
+    expect(m.sent.map((o) => ("target" in o ? o.target : undefined))).toEqual([
+      undefined,
+      2,
+      undefined,
+    ]);
+    expect(
+      m.q("[data-ww-entry='7'] [data-ww-entry-to]")!.dataset.wwEntryTo,
+    ).toBe("ok");
+    expect(
+      m.q("[data-ww-entry='8'] [data-ww-entry-to]")!.dataset.wwEntryTo,
+    ).toBe("gone");
+    expect(m.q("[data-ww-entry='9'] [data-ww-entry-to]")).toBeNull();
+  });
+
   it("training: +1 and +5, into the chosen army; deploy now; cancel on the second tap", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(100_000);
