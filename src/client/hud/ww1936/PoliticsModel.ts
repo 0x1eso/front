@@ -646,6 +646,12 @@ function paramText(
     case "tech":
       return translateText(`ww1936.tech.${v}`);
     case "item":
+      // lend_lease names an equipment type (or fuel), not a catalogue item.
+      if (kind === "lend_lease") {
+        return v === "fuel"
+          ? resourceName("fuel" as never)
+          : equipmentName(v as never);
+      }
       return translateText(`ww1936.hist.${v}`);
     case "type":
       return kind === "war_goal" ? wargoalName(v) : equipmentName(v as never);
