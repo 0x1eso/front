@@ -24,6 +24,7 @@ export const JPN_HIST: readonly HistEntry[] = [
     techs: ["light_tank_1"],
     year: 1934,
     // Tankette, 12 mm all round, one 6.5/7.7 mm MG; price not documented, estimated by weight against the Ha-Go.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_TANK,
     spec: {
       massT: 3.45,
@@ -36,7 +37,7 @@ export const JPN_HIST: readonly HistEntry[] = [
       offroadKmh: 20,
       roadKmh: 40,
       reliability: 3,
-      costK: 4,
+      costK: 9,
     },
   },
   {
@@ -47,6 +48,7 @@ export const JPN_HIST: readonly HistEntry[] = [
     techs: ["light_tank_1"],
     year: 1937,
     // Improved tankette, 12 mm, 37 mm Type 94 gun in a small turret (penetration quoted 12-35 mm, 25 mm used); price estimated by weight.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_TANK,
     spec: {
       massT: 4.75,
@@ -60,7 +62,7 @@ export const JPN_HIST: readonly HistEntry[] = [
       offroadKmh: 22,
       roadKmh: 40,
       reliability: 3,
-      costK: 6,
+      costK: 11,
       diesel: true,
     },
   },
@@ -73,6 +75,7 @@ export const JPN_HIST: readonly HistEntry[] = [
     year: 1936,
     // The standard Japanese tank, 12 mm, 37 mm Type 94 gun, diesel; 71,000 yen in Aug 1939 without armament (Wikipedia) as cross-check; cost estimated against the Stuart.
     // Audit w66: Slope estimated from the layout; no firm reference.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_TANK,
     spec: {
       massT: 7.4,
@@ -86,7 +89,7 @@ export const JPN_HIST: readonly HistEntry[] = [
       offroadKmh: 25,
       roadKmh: 45,
       reliability: 4,
-      costK: 12,
+      costK: 22,
       diesel: true,
     },
   },
@@ -98,6 +101,7 @@ export const JPN_HIST: readonly HistEntry[] = [
     techs: ["light_tank_2"],
     year: 1940,
     // Ha-Go successor, 16 mm front, 37 mm Type 98 gun; price estimated from the Ha-Go.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_TANK,
     spec: {
       massT: 7.2,
@@ -111,7 +115,7 @@ export const JPN_HIST: readonly HistEntry[] = [
       offroadKmh: 30,
       roadKmh: 50,
       reliability: 4,
-      costK: 12,
+      costK: 24,
       diesel: true,
     },
   },
@@ -123,6 +127,7 @@ export const JPN_HIST: readonly HistEntry[] = [
     techs: ["light_tank_2", "amphibious_drive"],
     year: 1942,
     // Navy landing-force amphibious tank with pontoons, 12 mm, 37 mm gun; price estimated.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_TANK,
     spec: {
       massT: 9.5,
@@ -136,7 +141,7 @@ export const JPN_HIST: readonly HistEntry[] = [
       offroadKmh: 20,
       roadKmh: 37,
       reliability: 3,
-      costK: 18,
+      costK: 30,
       diesel: true,
     },
   },
@@ -148,6 +153,7 @@ export const JPN_HIST: readonly HistEntry[] = [
     techs: [],
     year: 1931,
     // Infantry-support tank of the 1930s, 17 mm, short 57 mm Type 90 gun (Type 90 gun, about 15 mm, from memory); price estimated.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_TANK,
     spec: {
       massT: 12.8,
@@ -161,7 +167,7 @@ export const JPN_HIST: readonly HistEntry[] = [
       offroadKmh: 15,
       roadKmh: 26,
       reliability: 3,
-      costK: 17,
+      costK: 28,
     },
   },
   {
@@ -173,6 +179,7 @@ export const JPN_HIST: readonly HistEntry[] = [
     year: 1938,
     // 15-25 mm hull (25 used), 35 mm turret, short 57 mm Type 97 gun (Wikipedia: 20 mm at 500 m), diesel; 126,000 yen in Aug 1939 (Wikipedia) as cross-check; cost estimated.
     // Audit w66: Fighting-compartment front about 10 deg (GlobalSecurity, Type 97 design page).
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_TANK,
     spec: {
       massT: 15.8,
@@ -186,7 +193,7 @@ export const JPN_HIST: readonly HistEntry[] = [
       offroadKmh: 20,
       roadKmh: 38,
       reliability: 4,
-      costK: 22,
+      costK: 38,
       diesel: true,
     },
   },
@@ -199,6 +206,7 @@ export const JPN_HIST: readonly HistEntry[] = [
     year: 1942,
     // Chi-Ha with a new turret and the 47 mm Type 1 gun (penetration quoted 55-68 mm at 500 m, 60 used); price near the Chi-Ha.
     // Audit w66: Type 1 47 mm: 40 mm at 500 m (Wikipedia, gun infobox) and 2 in at 500 yd at 30 deg (US test table, same page); 45 is the middle, 60 was above the 5 cm L/60.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_TANK,
     spec: {
       massT: 15.8,
@@ -212,7 +220,7 @@ export const JPN_HIST: readonly HistEntry[] = [
       offroadKmh: 20,
       roadKmh: 38,
       reliability: 4,
-      costK: 24,
+      costK: 40,
       diesel: true,
     },
   },
@@ -225,6 +233,7 @@ export const JPN_HIST: readonly HistEntry[] = [
     year: 1941,
     // 50 mm front, 47 mm Type 1 gun (60 mm), diesel; price estimated.
     // Audit w66: Same 47 mm as the Shinhoto. Slope estimated from the Chi-Ha's layout; no firm reference.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_TANK,
     spec: {
       massT: 17.2,
@@ -238,7 +247,7 @@ export const JPN_HIST: readonly HistEntry[] = [
       offroadKmh: 26,
       roadKmh: 44,
       reliability: 4,
-      costK: 28,
+      costK: 44,
       diesel: true,
     },
   },
@@ -251,6 +260,7 @@ export const JPN_HIST: readonly HistEntry[] = [
     year: 1944,
     // Chi-He with the 75 mm Type 3 gun (Type 90 field-gun ballistics, 60-70 mm, 65 used); about 166 built; price estimated.
     // Audit w66: 50 mm at 15 deg is a game-reference table (War Thunder wiki), the only figure found: an estimate.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_TANK,
     spec: {
       massT: 18.8,
@@ -264,7 +274,7 @@ export const JPN_HIST: readonly HistEntry[] = [
       offroadKmh: 24,
       roadKmh: 39,
       reliability: 4,
-      costK: 30,
+      costK: 48,
       diesel: true,
     },
   },
@@ -277,6 +287,7 @@ export const JPN_HIST: readonly HistEntry[] = [
     year: 1944,
     // 75 mm front and turret, 75 mm Type 5 gun (about 100 mm, references differ); only about 60 built; hull slope not documented (0 used); price estimated.
     // Audit w66: Type 5 75 mm quoted at 75 mm at 1,000 m; about 85 at 500 m, estimate. Slope estimated like the Chi-Nu's.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_TANK,
     spec: {
       massT: 30.2,
@@ -290,7 +301,7 @@ export const JPN_HIST: readonly HistEntry[] = [
       offroadKmh: 25,
       roadKmh: 45,
       reliability: 3,
-      costK: 55,
+      costK: 85,
       diesel: true,
     },
   },
@@ -302,6 +313,7 @@ export const JPN_HIST: readonly HistEntry[] = [
     techs: ["medium_tank_1", "tank_gun_2"],
     year: 1942,
     // 75 mm Type 90 field gun (65 mm) on the Chi-Ha chassis, 25 mm shield, open-topped; price estimated.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_TANK,
     spec: {
       massT: 13.5,
@@ -315,7 +327,7 @@ export const JPN_HIST: readonly HistEntry[] = [
       roadKmh: 38,
       openTop: true,
       reliability: 4,
-      costK: 20,
+      costK: 30,
       diesel: true,
     },
   },
@@ -327,6 +339,7 @@ export const JPN_HIST: readonly HistEntry[] = [
     techs: ["medium_tank_1", "artillery_2"],
     year: 1942,
     // 15 cm Type 38 howitzer on the Chi-Ha chassis, open-topped, 25 mm; price estimated.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_TANK,
     spec: {
       massT: 15.3,
@@ -340,7 +353,7 @@ export const JPN_HIST: readonly HistEntry[] = [
       roadKmh: 38,
       openTop: true,
       reliability: 3,
-      costK: 24,
+      costK: 34,
       diesel: true,
     },
   },
@@ -353,6 +366,7 @@ export const JPN_HIST: readonly HistEntry[] = [
     year: 1936,
     // Navy fighter, 2 x 7.7 mm; 435 km/h, 1,200 km, loaded 1,671 kg on 17.8 m2; price estimated.
     // Audit w66: Type 89 7.7 mm about 900 rpm; 600 was far below it.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_AIR,
     spec: {
       maxKmh: 435,
@@ -364,7 +378,7 @@ export const JPN_HIST: readonly HistEntry[] = [
       bombKg: 60,
       torpedoKg: 0,
       reliability: 4,
-      costK: 12,
+      costK: 16,
     },
   },
   {
@@ -376,6 +390,7 @@ export const JPN_HIST: readonly HistEntry[] = [
     year: 1937,
     // Army fighter, 2 x 7.7 mm; range quoted 627 km normal, 1,700 km ferry (1,000 used); price estimated.
     // Audit w66: Type 89 7.7 mm about 900 rpm.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_AIR,
     spec: {
       maxKmh: 470,
@@ -387,7 +402,7 @@ export const JPN_HIST: readonly HistEntry[] = [
       bombKg: 100,
       torpedoKg: 0,
       reliability: 4,
-      costK: 11,
+      costK: 15,
     },
   },
   {
@@ -398,6 +413,7 @@ export const JPN_HIST: readonly HistEntry[] = [
     techs: ["fighter_2"],
     year: 1942,
     // 2 x 12.7 mm Ho-103; range quoted 1,620-1,760 km (1,600 used); price estimated.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_AIR,
     spec: {
       maxKmh: 530,
@@ -409,7 +425,7 @@ export const JPN_HIST: readonly HistEntry[] = [
       bombKg: 500,
       torpedoKg: 0,
       reliability: 4,
-      costK: 20,
+      costK: 24,
     },
   },
   {
@@ -420,6 +436,7 @@ export const JPN_HIST: readonly HistEntry[] = [
     techs: ["fighter_2"],
     year: 1943,
     // Licensed DB601 engine (Ha-40) that was unreliable; 2 x 12.7 mm and 2 x 20 mm Ho-5; price estimated.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_AIR,
     spec: {
       maxKmh: 590,
@@ -434,7 +451,7 @@ export const JPN_HIST: readonly HistEntry[] = [
       bombKg: 200,
       torpedoKg: 0,
       reliability: 2,
-      costK: 30,
+      costK: 34,
     },
   },
   {
@@ -445,6 +462,7 @@ export const JPN_HIST: readonly HistEntry[] = [
     techs: ["fighter_3", "aircraft_cannon_1"],
     year: 1944,
     // Best Army fighter, 2 x 20 mm and 2 x 12.7 mm; engine and fuel quality problems; range quoted 1,700-2,900 km (2,000 used); price estimated.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_AIR,
     spec: {
       maxKmh: 624,
@@ -459,7 +477,7 @@ export const JPN_HIST: readonly HistEntry[] = [
       bombKg: 500,
       torpedoKg: 0,
       reliability: 3,
-      costK: 30,
+      costK: 38,
     },
   },
   {
@@ -470,6 +488,7 @@ export const JPN_HIST: readonly HistEntry[] = [
     techs: ["fighter_3", "aircraft_cannon_1"],
     year: 1944,
     // Navy land-based fighter, 4 x 20 mm; Homare engine and landing gear unreliable; loaded weight quoted 3,860-4,860 kg (3,900 used); price estimated.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_AIR,
     spec: {
       maxKmh: 594,
@@ -481,7 +500,7 @@ export const JPN_HIST: readonly HistEntry[] = [
       bombKg: 500,
       torpedoKg: 0,
       reliability: 2,
-      costK: 36,
+      costK: 40,
     },
   },
   {
@@ -493,6 +512,7 @@ export const JPN_HIST: readonly HistEntry[] = [
     year: 1940,
     // 2 x 20 mm Type 99 and 2 x 7.7 mm; range 1,870 km internal, 3,100 km with a drop tank (1,900 used); price estimated.
     // Audit w66: 533 km/h (Wikipedia). Type 97 7.7 mm about 900 rpm, as on every Japanese fixed 7.7.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_AIR,
     spec: {
       maxKmh: 533,
@@ -507,7 +527,7 @@ export const JPN_HIST: readonly HistEntry[] = [
       bombKg: 60,
       torpedoKg: 0,
       reliability: 4,
-      costK: 27,
+      costK: 32,
     },
   },
   {
@@ -519,6 +539,7 @@ export const JPN_HIST: readonly HistEntry[] = [
     year: 1943,
     // 2 x 20 mm Type 99 Mk 2 and 2 x 7.7 mm; price estimated.
     // Audit w66: Type 97 7.7 mm about 900 rpm.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_AIR,
     spec: {
       maxKmh: 565,
@@ -533,7 +554,7 @@ export const JPN_HIST: readonly HistEntry[] = [
       bombKg: 250,
       torpedoKg: 0,
       reliability: 4,
-      costK: 28,
+      costK: 34,
     },
   },
   {
@@ -544,6 +565,7 @@ export const JPN_HIST: readonly HistEntry[] = [
     techs: ["heavy_fighter_1"],
     year: 1942,
     // Twin-engine fighter, 2 x 12.7 mm, 1 x 20 mm, one rear 7.92 mm; price estimated.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_AIR,
     spec: {
       maxKmh: 547,
@@ -558,7 +580,7 @@ export const JPN_HIST: readonly HistEntry[] = [
       bombKg: 500,
       torpedoKg: 0,
       reliability: 2,
-      costK: 50,
+      costK: 55,
     },
   },
   {
@@ -569,6 +591,7 @@ export const JPN_HIST: readonly HistEntry[] = [
     techs: ["heavy_fighter_2", "aircraft_cannon_1"],
     year: 1944,
     // 37 mm Ho-203 and 2 x 20 mm Ho-5, one rear 7.92 mm; price estimated.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_AIR,
     spec: {
       maxKmh: 540,
@@ -583,7 +606,7 @@ export const JPN_HIST: readonly HistEntry[] = [
       bombKg: 500,
       torpedoKg: 0,
       reliability: 3,
-      costK: 58,
+      costK: 60,
     },
   },
   {
@@ -616,6 +639,7 @@ export const JPN_HIST: readonly HistEntry[] = [
     techs: ["cas_2"],
     year: 1940,
     // Army ground-attack plane, 2 x 7.7 mm and one flexible, 200 kg of bombs, very reliable; price estimated.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_AIR,
     spec: {
       maxKmh: 424,
@@ -627,7 +651,7 @@ export const JPN_HIST: readonly HistEntry[] = [
       bombKg: 200,
       torpedoKg: 0,
       reliability: 4,
-      costK: 18,
+      costK: 22,
     },
   },
   {
@@ -638,6 +662,7 @@ export const JPN_HIST: readonly HistEntry[] = [
     techs: ["cas_1", "carrier_aviation"],
     year: 1939,
     // Fixed-gear dive bomber, 250 kg plus 2 x 60 kg, 2 x 7.7 mm and one flexible; sank more ships than any other Axis aircraft; price estimated.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_AIR,
     spec: {
       maxKmh: 389,
@@ -650,7 +675,7 @@ export const JPN_HIST: readonly HistEntry[] = [
       torpedoKg: 0,
       dive: true,
       reliability: 4,
-      costK: 24,
+      costK: 28,
     },
   },
   {
@@ -661,6 +686,7 @@ export const JPN_HIST: readonly HistEntry[] = [
     techs: ["cas_2", "carrier_aviation"],
     year: 1943,
     // Fast dive bomber with a liquid-cooled then radial engine (early Atsuta engines unreliable); loaded weight and range differ by source; price estimated.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_AIR,
     spec: {
       maxKmh: 580,
@@ -673,7 +699,7 @@ export const JPN_HIST: readonly HistEntry[] = [
       torpedoKg: 0,
       dive: true,
       reliability: 3,
-      costK: 40,
+      costK: 42,
     },
   },
   {
@@ -684,6 +710,7 @@ export const JPN_HIST: readonly HistEntry[] = [
     techs: ["bomber_1"],
     year: 1938,
     // Army heavy bomber, up to 1,000 kg, 5 x 7.7 mm; price estimated.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_AIR,
     spec: {
       maxKmh: 432,
@@ -695,7 +722,7 @@ export const JPN_HIST: readonly HistEntry[] = [
       bombKg: 1000,
       torpedoKg: 0,
       reliability: 4,
-      costK: 85,
+      costK: 80,
     },
   },
   {
@@ -706,6 +733,7 @@ export const JPN_HIST: readonly HistEntry[] = [
     techs: ["bomber_2"],
     year: 1940,
     // Fast light bomber, 300 kg, 3 x 7.7 mm; price estimated.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_AIR,
     spec: {
       maxKmh: 480,
@@ -717,7 +745,7 @@ export const JPN_HIST: readonly HistEntry[] = [
       bombKg: 300,
       torpedoKg: 0,
       reliability: 4,
-      costK: 70,
+      costK: 60,
     },
   },
   {
@@ -728,6 +756,7 @@ export const JPN_HIST: readonly HistEntry[] = [
     techs: ["bomber_2"],
     year: 1942,
     // 1,000 kg, 1 x 20 mm and 5 x 7.7 mm; weak armour and fuel tanks; price estimated.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_AIR,
     spec: {
       maxKmh: 492,
@@ -739,7 +768,7 @@ export const JPN_HIST: readonly HistEntry[] = [
       bombKg: 1000,
       torpedoKg: 0,
       reliability: 3,
-      costK: 105,
+      costK: 95,
     },
   },
   {
@@ -750,6 +779,7 @@ export const JPN_HIST: readonly HistEntry[] = [
     techs: ["bomber_2"],
     year: 1944,
     // Best Japanese medium bomber, 800 kg, 1 x 20 mm and 4 x 12.7 mm; few built; price estimated.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_AIR,
     spec: {
       maxKmh: 537,
@@ -761,7 +791,7 @@ export const JPN_HIST: readonly HistEntry[] = [
       bombKg: 800,
       torpedoKg: 0,
       reliability: 3,
-      costK: 150,
+      costK: 110,
     },
   },
   {
@@ -772,6 +802,7 @@ export const JPN_HIST: readonly HistEntry[] = [
     techs: ["naval_bomber_1"],
     year: 1937,
     // Long-range navy land attack plane, 800 kg bomb or torpedo, 1 x 20 mm and 3 x 7.7 mm; sank Prince of Wales and Repulse together with G4M; price estimated.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_AIR,
     spec: {
       maxKmh: 415,
@@ -783,7 +814,7 @@ export const JPN_HIST: readonly HistEntry[] = [
       bombKg: 800,
       torpedoKg: 800,
       reliability: 4,
-      costK: 105,
+      costK: 75,
     },
   },
   {
@@ -794,6 +825,7 @@ export const JPN_HIST: readonly HistEntry[] = [
     techs: ["naval_bomber_2"],
     year: 1941,
     // Very long range (quoted 4,700-6,000 km, 5,000 used), 800 kg bomb or torpedo, 1 x 20 mm and 3 x 7.7 mm; unprotected fuel tanks; price estimated.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_AIR,
     spec: {
       maxKmh: 428,
@@ -805,7 +837,7 @@ export const JPN_HIST: readonly HistEntry[] = [
       bombKg: 800,
       torpedoKg: 800,
       reliability: 3,
-      costK: 130,
+      costK: 95,
     },
   },
   {
@@ -816,6 +848,7 @@ export const JPN_HIST: readonly HistEntry[] = [
     techs: ["naval_bomber_3"],
     year: 1944,
     // Fast navy bomber, 800 kg bomb or torpedo, 20 mm and 13 mm; Homare engines unreliable; weights differ by source; price estimated.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_AIR,
     spec: {
       maxKmh: 547,
@@ -827,7 +860,7 @@ export const JPN_HIST: readonly HistEntry[] = [
       bombKg: 800,
       torpedoKg: 800,
       reliability: 2,
-      costK: 160,
+      costK: 100,
     },
   },
   {
@@ -838,6 +871,7 @@ export const JPN_HIST: readonly HistEntry[] = [
     techs: ["naval_bomber_1", "carrier_aviation"],
     year: 1937,
     // Carrier torpedo bomber of Pearl Harbor, 800 kg torpedo (Type 91) or bombs, one flexible 7.7 mm; price estimated.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_AIR,
     spec: {
       maxKmh: 378,
@@ -849,7 +883,7 @@ export const JPN_HIST: readonly HistEntry[] = [
       bombKg: 800,
       torpedoKg: 800,
       reliability: 4,
-      costK: 38,
+      costK: 34,
     },
   },
   {
@@ -860,6 +894,7 @@ export const JPN_HIST: readonly HistEntry[] = [
     techs: ["naval_bomber_2", "carrier_aviation"],
     year: 1943,
     // Torpedo bomber, 800 kg torpedo or bombs, 2 x 7.7 mm flexible; early engine trouble fixed in the B6N2; price estimated.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_AIR,
     spec: {
       maxKmh: 482,
@@ -871,7 +906,7 @@ export const JPN_HIST: readonly HistEntry[] = [
       bombKg: 800,
       torpedoKg: 800,
       reliability: 3,
-      costK: 55,
+      costK: 48,
     },
   },
   {
@@ -882,6 +917,7 @@ export const JPN_HIST: readonly HistEntry[] = [
     techs: ["transport_plane_1"],
     year: 1939,
     // Licence-built Douglas DC-3; figures taken from the DC-3; price estimated.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_AIR,
     spec: {
       maxKmh: 350,
@@ -893,7 +929,7 @@ export const JPN_HIST: readonly HistEntry[] = [
       bombKg: 0,
       torpedoKg: 0,
       reliability: 4,
-      costK: 90,
+      costK: 80,
     },
   },
   {
@@ -928,6 +964,7 @@ export const JPN_HIST: readonly HistEntry[] = [
     techs: ["dd_2"],
     year: 1928,
     // 1,750 t, 6 x 127 mm, 9 tubes 610 mm (Type 90, 400 kg warhead as built); cost estimated.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_SHIP,
     spec: {
       dispT: 1750,
@@ -941,7 +978,7 @@ export const JPN_HIST: readonly HistEntry[] = [
       aaLight: [],
       aaHeavy: 0,
       aircraft: 0,
-      costM: 4.5,
+      costM: 5,
     },
   },
   {
@@ -976,6 +1013,7 @@ export const JPN_HIST: readonly HistEntry[] = [
     techs: ["dd_3", "dual_purpose_guns", "torpedo_1"],
     year: 1942,
     // 2,701 t air-defence destroyer, 8 x 100 mm dual-purpose, 4 tubes 610 mm; cost estimated.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_SHIP,
     spec: {
       dispT: 2701,
@@ -989,7 +1027,7 @@ export const JPN_HIST: readonly HistEntry[] = [
       aaLight: [{ count: 4, mm: 25 }],
       aaHeavy: 8,
       aircraft: 0,
-      costM: 6.5,
+      costM: 7.5,
     },
   },
   {
@@ -1000,6 +1038,7 @@ export const JPN_HIST: readonly HistEntry[] = [
     techs: [],
     year: 1922,
     // 5,170 t, 7 x 140 mm, 8 tubes 533 mm (Type 8, 300 kg); range quoted 9,000 nm at 10 kn; cost estimated.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_SHIP,
     spec: {
       dispT: 5170,
@@ -1013,7 +1052,7 @@ export const JPN_HIST: readonly HistEntry[] = [
       aaLight: [],
       aaHeavy: 2,
       aircraft: 0,
-      costM: 11,
+      costM: 12,
     },
   },
   {
@@ -1123,6 +1162,7 @@ export const JPN_HIST: readonly HistEntry[] = [
     techs: [],
     year: 1937,
     // About 32,000 t after the 1937 rebuild, 8 x 356 mm, 14 x 152 mm, 203 mm belt, 30 kn; cost estimated.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_SHIP,
     spec: {
       dispT: 32000,
@@ -1137,7 +1177,7 @@ export const JPN_HIST: readonly HistEntry[] = [
       aaLight: [{ count: 20, mm: 25 }],
       aaHeavy: 8,
       aircraft: 0,
-      costM: 35,
+      costM: 45,
     },
   },
   {
@@ -1148,6 +1188,7 @@ export const JPN_HIST: readonly HistEntry[] = [
     techs: [],
     year: 1920,
     // 39,130 t after the 1936 rebuild, 8 x 410 mm, 305 mm belt, 25 kn; cost estimated.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_SHIP,
     spec: {
       dispT: 39130,
@@ -1162,7 +1203,7 @@ export const JPN_HIST: readonly HistEntry[] = [
       aaLight: [{ count: 20, mm: 25 }],
       aaHeavy: 8,
       aircraft: 0,
-      costM: 55,
+      costM: 65,
     },
   },
   {
@@ -1173,6 +1214,7 @@ export const JPN_HIST: readonly HistEntry[] = [
     techs: ["bb_3", "super_heavy_battleship"],
     year: 1941,
     // 65,000 t standard, 9 x 460 mm, 410 mm belt, 27 kn; cost estimated against the Iowa class by tonnage.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_SHIP,
     spec: {
       dispT: 65000,
@@ -1187,7 +1229,7 @@ export const JPN_HIST: readonly HistEntry[] = [
       aaLight: [{ count: 24, mm: 25 }],
       aaHeavy: 12,
       aircraft: 0,
-      costM: 160,
+      costM: 115,
     },
   },
   {
@@ -1198,6 +1240,7 @@ export const JPN_HIST: readonly HistEntry[] = [
     techs: [],
     year: 1927,
     // 36,500 t, about 91 aircraft after the 1938 rebuild, 6 x 203 mm casemates, 31 kn; belt quoted 152 mm; cost estimated.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_SHIP,
     spec: {
       dispT: 36500,
@@ -1212,7 +1255,7 @@ export const JPN_HIST: readonly HistEntry[] = [
       aaLight: [{ count: 28, mm: 25 }],
       aaHeavy: 12,
       aircraft: 91,
-      costM: 45,
+      costM: 55,
     },
   },
   {
@@ -1247,6 +1290,7 @@ export const JPN_HIST: readonly HistEntry[] = [
     techs: ["cv_3"],
     year: 1941,
     // 25,675 t, 72 aircraft, 34 kn, strong protection (belt quoted 165-215 mm over magazines, 165 used); cost estimated.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_SHIP,
     spec: {
       dispT: 25675,
@@ -1260,7 +1304,7 @@ export const JPN_HIST: readonly HistEntry[] = [
       aaLight: [{ count: 36, mm: 25 }],
       aaHeavy: 16,
       aircraft: 72,
-      costM: 50,
+      costM: 45,
     },
   },
   {
@@ -1271,6 +1315,7 @@ export const JPN_HIST: readonly HistEntry[] = [
     techs: ["ss_2", "torpedo_1"],
     year: 1940,
     // 2,589 t surfaced, 6 tubes 533 mm with the Type 95 oxygen torpedo (405 kg), 14,000 nm; cost estimated.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_SHIP,
     spec: {
       dispT: 2589,
@@ -1284,7 +1329,7 @@ export const JPN_HIST: readonly HistEntry[] = [
       aaLight: [{ count: 2, mm: 25 }],
       aaHeavy: 0,
       aircraft: 0,
-      costM: 9,
+      costM: 8,
     },
   },
   {

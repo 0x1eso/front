@@ -29,6 +29,7 @@ export const USA_HIST: readonly HistEntry[] = [
     // 37 mm M5 gun, 25 mm front, four MGs, 11.5 t; about 375 built.
     // Cost about $25k (estimate; sources thin).
     // Audit w66: 37 mm M5, about 3 mm below the M6 (Wikipedia, 37 mm gun M3).
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_TANK,
     spec: {
       massT: 11.5,
@@ -42,7 +43,7 @@ export const USA_HIST: readonly HistEntry[] = [
       offroadKmh: 25,
       roadKmh: 58,
       reliability: 3,
-      costK: 25,
+      costK: 28,
     },
   },
   {
@@ -80,6 +81,7 @@ export const USA_HIST: readonly HistEntry[] = [
     year: 1942,
     // Twin Cadillac engines, 64 mm sloped front, 37 mm M6; 6,800 built.
     // Audit w66: Same 37 mm M6.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_TANK,
     spec: {
       massT: 15.4,
@@ -93,7 +95,7 @@ export const USA_HIST: readonly HistEntry[] = [
       offroadKmh: 32,
       roadKmh: 58,
       reliability: 4,
-      costK: 38,
+      costK: 28,
     },
   },
   {
@@ -106,6 +108,7 @@ export const USA_HIST: readonly HistEntry[] = [
     // 75 mm M6 (lightened tank gun, about 70 mm at 500 m), 25 mm front at
     // 60 degrees, 38 mm turret; 4,731 built. Cost about $55k (sources 50-60).
     // Audit w66: 75 mm M6 has the M3's ballistics: 68.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_TANK,
     spec: {
       massT: 18.4,
@@ -119,7 +122,7 @@ export const USA_HIST: readonly HistEntry[] = [
       offroadKmh: 35,
       roadKmh: 55,
       reliability: 4,
-      costK: 55,
+      costK: 40,
     },
   },
   {
@@ -132,6 +135,7 @@ export const USA_HIST: readonly HistEntry[] = [
     // Six-wheeled armoured car, 37 mm M6, 19 mm front, 89 km/h; 8,523 built.
     // Cost about $20k (estimate).
     // Audit w66: Same 37 mm family.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_TANK,
     spec: {
       massT: 7.8,
@@ -146,7 +150,7 @@ export const USA_HIST: readonly HistEntry[] = [
       roadKmh: 89,
       wheeled: true,
       reliability: 4,
-      costK: 20,
+      costK: 22,
     },
   },
   {
@@ -185,6 +189,7 @@ export const USA_HIST: readonly HistEntry[] = [
     // front at 56 degrees, 76 mm turret; very reliable, easy to repair.
     // Cost $33-50k depending on year and builder, mid 42.
     // Audit w66: 75 mm M3: M61 APC about 66, M72 AP about 76 mm at 500 yd, from memory; one figure, 68, for the whole M3 family.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_TANK,
     spec: {
       massT: 30.3,
@@ -198,7 +203,7 @@ export const USA_HIST: readonly HistEntry[] = [
       offroadKmh: 25,
       roadKmh: 38,
       reliability: 5,
-      costK: 42,
+      costK: 44,
     },
   },
   {
@@ -212,6 +217,7 @@ export const USA_HIST: readonly HistEntry[] = [
     // 76 mm turret, Ford GAA V8. HE filler of the M42A1 shell about 330 g
     // (estimate). Cost about $45k.
     // Audit w66: 76 mm M1 APC M62 is 93-94 mm at 500 yd, 30 deg (Wikipedia); the M79 solid shot, 109 mm, was the substitute and shatters on hard plate.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_TANK,
     spec: {
       massT: 32,
@@ -225,7 +231,7 @@ export const USA_HIST: readonly HistEntry[] = [
       offroadKmh: 26,
       roadKmh: 42,
       reliability: 5,
-      costK: 45,
+      costK: 50,
     },
   },
   {
@@ -237,6 +243,7 @@ export const USA_HIST: readonly HistEntry[] = [
     year: 1944,
     // "Easy Eight": 76 mm M1A2, wide HVSS tracks for lower ground pressure.
     // Audit w66: Same 76 mm M1 as the M4A3(76).
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_TANK,
     spec: {
       massT: 33.6,
@@ -250,7 +257,7 @@ export const USA_HIST: readonly HistEntry[] = [
       offroadKmh: 30,
       roadKmh: 42,
       reliability: 5,
-      costK: 49,
+      costK: 54,
     },
   },
   {
@@ -263,6 +270,7 @@ export const USA_HIST: readonly HistEntry[] = [
     // Classed a heavy tank in 1945. 90 mm M3 (M82 APC about 112-143 mm at
     // 500 m, mid 125), 102 mm front at 46 degrees, 102 mm turret; 2,000
     // built, 20 in Europe. Cost about $75k (estimate). Underpowered.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_TANK,
     spec: {
       massT: 41.7,
@@ -276,7 +284,7 @@ export const USA_HIST: readonly HistEntry[] = [
       offroadKmh: 24,
       roadKmh: 40,
       reliability: 3,
-      costK: 75,
+      costK: 80,
     },
   },
   {
@@ -289,6 +297,7 @@ export const USA_HIST: readonly HistEntry[] = [
     // Tank destroyer on the Sherman chassis, 3-inch M7 (about 98 mm at
     // 500 m), 57 mm sloped front, open-topped turret; 6,700 built.
     // Audit w66: 3-inch M7 fires the same M62 APC as the 76 mm M1.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_TANK,
     spec: {
       massT: 29,
@@ -303,7 +312,7 @@ export const USA_HIST: readonly HistEntry[] = [
       roadKmh: 51,
       openTop: true,
       reliability: 4,
-      costK: 38,
+      costK: 46,
     },
   },
   {
@@ -342,6 +351,7 @@ export const USA_HIST: readonly HistEntry[] = [
     year: 1944,
     // M10 hull with the 90 mm M3 (about 125 mm at 500 m), 57 mm sloped
     // front, open turret; 1,772 built. Cost about $60k (estimate).
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_TANK,
     spec: {
       massT: 28,
@@ -356,7 +366,7 @@ export const USA_HIST: readonly HistEntry[] = [
       roadKmh: 42,
       openTop: true,
       reliability: 4,
-      costK: 60,
+      costK: 62,
     },
   },
   {
@@ -368,6 +378,7 @@ export const USA_HIST: readonly HistEntry[] = [
     year: 1942,
     // 105 mm M2A1 howitzer on the M3 chassis (HE filler about 2.1 kg),
     // open-topped, 51 mm front; 4,316 built. Cost about $40k (estimate).
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_TANK,
     spec: {
       massT: 22.9,
@@ -381,7 +392,7 @@ export const USA_HIST: readonly HistEntry[] = [
       roadKmh: 38,
       openTop: true,
       reliability: 4,
-      costK: 40,
+      costK: 42,
     },
   },
   {
@@ -394,6 +405,7 @@ export const USA_HIST: readonly HistEntry[] = [
     // Half-track M3 with the M45 quad .50 in (M2HB, 450-575 rounds per
     // minute each, 500 used), 12 mm armour; 2,877 built. Cost about $10k
     // (estimate). The AP round pierces about 10 mm at 500 m.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_TANK,
     spec: {
       massT: 9,
@@ -408,7 +420,7 @@ export const USA_HIST: readonly HistEntry[] = [
       roadKmh: 65,
       openTop: true,
       reliability: 4,
-      costK: 10,
+      costK: 12,
       aa: { barrels: 4, rpm: 500, mm: 12.7 },
     },
   },
@@ -422,6 +434,7 @@ export const USA_HIST: readonly HistEntry[] = [
     // Twin 40 mm Bofors (about 120 rounds per minute each, pierces about
     // 42 mm at 500 m) on the Chaffee chassis, open turret; 285 built.
     // Cost about $60k (estimate).
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_TANK,
     spec: {
       massT: 17.4,
@@ -436,7 +449,7 @@ export const USA_HIST: readonly HistEntry[] = [
       roadKmh: 55,
       openTop: true,
       reliability: 4,
-      costK: 60,
+      costK: 45,
       aa: { barrels: 2, rpm: 120, mm: 40 },
     },
   },
@@ -451,6 +464,7 @@ export const USA_HIST: readonly HistEntry[] = [
     year: 1934,
     // Boeing P-26A Peashooter: two .30 in MGs, open cockpit, fixed gear.
     // Cost about $11k (estimate).
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_AIR,
     spec: {
       maxKmh: 377,
@@ -462,7 +476,7 @@ export const USA_HIST: readonly HistEntry[] = [
       bombKg: 90,
       torpedoKg: 0,
       reliability: 4,
-      costK: 11,
+      costK: 16,
     },
   },
   {
@@ -570,6 +584,7 @@ export const USA_HIST: readonly HistEntry[] = [
     year: 1942,
     // Grumman F4F-4 Wildcat: six .50 in MGs, folding wings; sturdy.
     // Cost about $20k.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_AIR,
     spec: {
       maxKmh: 512,
@@ -581,7 +596,7 @@ export const USA_HIST: readonly HistEntry[] = [
       bombKg: 90,
       torpedoKg: 0,
       reliability: 5,
-      costK: 20,
+      costK: 30,
     },
   },
   {
@@ -616,6 +631,7 @@ export const USA_HIST: readonly HistEntry[] = [
     year: 1944,
     // Vought F4U-1D Corsair: six .50 in MGs, fastest US naval fighter of
     // the war; difficult deck landings early. Cost about $52k.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_AIR,
     spec: {
       maxKmh: 671,
@@ -627,7 +643,7 @@ export const USA_HIST: readonly HistEntry[] = [
       bombKg: 900,
       torpedoKg: 0,
       reliability: 4,
-      costK: 52,
+      costK: 60,
     },
   },
   {
@@ -639,6 +655,7 @@ export const USA_HIST: readonly HistEntry[] = [
     year: 1943,
     // Lockheed P-38J Lightning: one 20 mm and four .50 in the nose, twin
     // Allisons, 1,450 kg of bombs. Cost $97-134k, mid 115.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_AIR,
     spec: {
       maxKmh: 666,
@@ -653,7 +670,7 @@ export const USA_HIST: readonly HistEntry[] = [
       bombKg: 1450,
       torpedoKg: 0,
       reliability: 3,
-      costK: 115,
+      costK: 105,
     },
   },
   {
@@ -714,6 +731,7 @@ export const USA_HIST: readonly HistEntry[] = [
     // Curtiss SB2C-3 Helldiver: two 20 mm forward, twin .30 flexible, 1,800
     // kg of bombs; troubled development ("Beast"). Cost about $70k
     // (estimate).
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_AIR,
     spec: {
       maxKmh: 452,
@@ -726,7 +744,7 @@ export const USA_HIST: readonly HistEntry[] = [
       torpedoKg: 0,
       dive: true,
       reliability: 3,
-      costK: 70,
+      costK: 60,
     },
   },
   {
@@ -738,6 +756,7 @@ export const USA_HIST: readonly HistEntry[] = [
     year: 1937,
     // Douglas B-18 Bolo, the 1936-40 mainstay of the Air Corps: three .30
     // MGs, 2,950 kg of bombs, obsolete by 1941. Cost about $64k.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_AIR,
     spec: {
       maxKmh: 346,
@@ -749,7 +768,7 @@ export const USA_HIST: readonly HistEntry[] = [
       bombKg: 2950,
       torpedoKg: 0,
       reliability: 4,
-      costK: 64,
+      costK: 70,
     },
   },
   {
@@ -951,6 +970,7 @@ export const USA_HIST: readonly HistEntry[] = [
     year: 1919,
     // Clemson class flush-decker (156 built): 4 x 4 in/50, one 3 in AA, 12
     // tubes (Mk 8 warhead about 210 kg), 35 kn, 1,190 t. Cost about $1.2M.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_SHIP,
     spec: {
       dispT: 1210,
@@ -964,7 +984,7 @@ export const USA_HIST: readonly HistEntry[] = [
       aaLight: [],
       aaHeavy: 1,
       aircraft: 0,
-      costM: 1.2,
+      costM: 3.5,
     },
   },
   {
@@ -1003,6 +1023,7 @@ export const USA_HIST: readonly HistEntry[] = [
     // 2,050 t, 10 x 40 mm and 7 x 20 mm as completed in 1943. Cost about
     // $10M.
     // Audit w66: 5,500 nm at 15 kn (Wikipedia).
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_SHIP,
     spec: {
       dispT: 2083,
@@ -1019,7 +1040,7 @@ export const USA_HIST: readonly HistEntry[] = [
       ],
       aaHeavy: 5,
       aircraft: 0,
-      costM: 10,
+      costM: 6.5,
     },
   },
   {
@@ -1031,6 +1052,7 @@ export const USA_HIST: readonly HistEntry[] = [
     year: 1923,
     // Omaha class: 12 x 6 in/53 (two twin, eight single), 10 tubes, 76 mm
     // belt, 34 kn, 7,050 long tons standard. Cost about $9M (estimate).
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_SHIP,
     spec: {
       dispT: 7163,
@@ -1044,7 +1066,7 @@ export const USA_HIST: readonly HistEntry[] = [
       aaLight: [],
       aaHeavy: 2,
       aircraft: 0,
-      costM: 9,
+      costM: 15,
     },
   },
   {
@@ -1057,6 +1079,7 @@ export const USA_HIST: readonly HistEntry[] = [
     // Brooklyn class: 15 x 6 in/47 in five turrets, 8 x 5 in/25 AA, 127 mm
     // belt, 32.5 kn, 9,475 long tons, no torpedoes. Cost about $18M
     // (estimate).
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_SHIP,
     spec: {
       dispT: 9627,
@@ -1070,7 +1093,7 @@ export const USA_HIST: readonly HistEntry[] = [
       aaLight: [],
       aaHeavy: 8,
       aircraft: 4,
-      costM: 18,
+      costM: 25,
     },
   },
   {
@@ -1112,6 +1135,7 @@ export const USA_HIST: readonly HistEntry[] = [
     year: 1930,
     // Northampton class: 9 x 8 in/55, 76 mm belt, 32.5 kn, 9,050 long tons,
     // 6 tubes, 4 x 5 in/25 AA. Cost about $16M (estimate).
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_SHIP,
     spec: {
       dispT: 9195,
@@ -1125,7 +1149,7 @@ export const USA_HIST: readonly HistEntry[] = [
       aaLight: [],
       aaHeavy: 4,
       aircraft: 4,
-      costM: 16,
+      costM: 22,
     },
   },
   {
@@ -1138,6 +1162,7 @@ export const USA_HIST: readonly HistEntry[] = [
     // Baltimore class: 9 x 8 in/55, 12 x 5 in/38 DP, 152 mm belt, 33 kn,
     // 13,600 long tons; 48 x 40 mm and 22 x 20 mm in listed fits. Cost
     // about $35M (estimate).
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_SHIP,
     spec: {
       dispT: 13818,
@@ -1155,7 +1180,7 @@ export const USA_HIST: readonly HistEntry[] = [
       ],
       aaHeavy: 12,
       aircraft: 4,
-      costM: 35,
+      costM: 40,
     },
   },
   {
@@ -1167,6 +1192,7 @@ export const USA_HIST: readonly HistEntry[] = [
     year: 1923,
     // Colorado class: 8 x 16 in/45, 12 x 5 in/51, 343 mm belt, 21 kn,
     // 32,600 long tons, 8 x 3 in AA. Cost about $41M (estimate).
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_SHIP,
     spec: {
       dispT: 33122,
@@ -1181,7 +1207,7 @@ export const USA_HIST: readonly HistEntry[] = [
       aaLight: [],
       aaHeavy: 8,
       aircraft: 3,
-      costM: 41,
+      costM: 55,
     },
   },
   {
@@ -1250,6 +1276,7 @@ export const USA_HIST: readonly HistEntry[] = [
     // Lexington class (built on a battlecruiser hull): 8 x 8 in, 12 x 5 in/25
     // AA, 178 mm belt, 33 kn, 36,000 long tons, 78 aircraft. Cost about $44M
     // (estimate).
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_SHIP,
     spec: {
       dispT: 36576,
@@ -1263,7 +1290,7 @@ export const USA_HIST: readonly HistEntry[] = [
       aaLight: [],
       aaHeavy: 12,
       aircraft: 78,
-      costM: 44,
+      costM: 65,
     },
   },
   {
@@ -1275,6 +1302,7 @@ export const USA_HIST: readonly HistEntry[] = [
     year: 1937,
     // Yorktown class: 19,800 long tons, 8 x 5 in/38, 16 x 28 mm, 102 mm
     // belt, 32.5 kn, 90 aircraft. Cost about $33M (estimate).
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_SHIP,
     spec: {
       dispT: 20117,
@@ -1289,7 +1317,7 @@ export const USA_HIST: readonly HistEntry[] = [
       aaLight: [{ count: 16, mm: 28 }],
       aaHeavy: 8,
       aircraft: 90,
-      costM: 33,
+      costM: 45,
     },
   },
   {
@@ -1332,6 +1360,7 @@ export const USA_HIST: readonly HistEntry[] = [
     // Gato class fleet submarine (77 built): 1,525 long tons, 10 tubes (Mk
     // 14, warhead about 290 kg), 20.25 kn, 11,000 nm, one 3 in gun. Cost
     // about $6M (estimate).
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_SHIP,
     spec: {
       dispT: 1550,
@@ -1345,7 +1374,7 @@ export const USA_HIST: readonly HistEntry[] = [
       aaLight: [{ count: 2, mm: 20 }],
       aaHeavy: 0,
       aircraft: 0,
-      costM: 6,
+      costM: 5.5,
     },
   },
 
@@ -1358,6 +1387,7 @@ export const USA_HIST: readonly HistEntry[] = [
     year: 1936,
     // Springfield M1903A3 bolt-action, .30-06 (7.62 mm), 15 rounds per
     // minute aimed, 500 m. Cost about $40.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_GEAR,
     spec: { mm: 7.62, aimedRpm: 15, rangeM: 500, autoPct: 0, costUsd: 40 },
   },
@@ -1370,6 +1400,7 @@ export const USA_HIST: readonly HistEntry[] = [
     // M1 Garand, the first self-loading rifle to be general issue: 8-round
     // clip, .30-06, about 25 aimed rounds per minute, 500 m. Cost $85 in
     // 1937, $40 by 1944; mid 60.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_GEAR,
     spec: { mm: 7.62, aimedRpm: 25, rangeM: 500, autoPct: 0, costUsd: 60 },
   },

@@ -44,6 +44,7 @@ export const GBR_HIST: readonly HistEntry[] = [
     year: 1936,
     // Vickers Light Tank Mk VIB: 5.3 t, 14 mm all round, one .50 and one
     // .303 MG, 56 km/h. Cost estimate by weight.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_TANK,
     spec: {
       massT: 5.3,
@@ -57,7 +58,7 @@ export const GBR_HIST: readonly HistEntry[] = [
       offroadKmh: 35,
       roadKmh: 56,
       reliability: 4,
-      costK: 10,
+      costK: 12,
     },
   },
   {
@@ -69,6 +70,7 @@ export const GBR_HIST: readonly HistEntry[] = [
     year: 1938,
     // Infantry Tank Mk I: 11 t, 60 mm front, one Vickers .50 in the turret,
     // 13 km/h. Cost estimate.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_TANK,
     spec: {
       massT: 11.2,
@@ -82,7 +84,7 @@ export const GBR_HIST: readonly HistEntry[] = [
       offroadKmh: 8,
       roadKmh: 13,
       reliability: 3,
-      costK: 20,
+      costK: 22,
     },
   },
   {
@@ -94,6 +96,7 @@ export const GBR_HIST: readonly HistEntry[] = [
     year: 1939,
     // Cruiser Mk I (A9): 12.7 t, 14 mm, 2-pdr and three MGs, 40 km/h;
     // mechanically troublesome. Cost estimate.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_TANK,
     spec: {
       massT: 12.7,
@@ -107,7 +110,7 @@ export const GBR_HIST: readonly HistEntry[] = [
       offroadKmh: 25,
       roadKmh: 40,
       reliability: 2,
-      costK: 25,
+      costK: 30,
     },
   },
   {
@@ -144,6 +147,7 @@ export const GBR_HIST: readonly HistEntry[] = [
     year: 1941,
     // Daimler Armoured Car: 7.5 t, 16 mm front, 2-pdr and a coaxial Besa,
     // 80 km/h, four-wheel drive and steering. Cost estimate.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_TANK,
     spec: {
       massT: 7.5,
@@ -158,7 +162,7 @@ export const GBR_HIST: readonly HistEntry[] = [
       roadKmh: 80,
       wheeled: true,
       reliability: 4,
-      costK: 18,
+      costK: 20,
     },
   },
   {
@@ -170,6 +174,7 @@ export const GBR_HIST: readonly HistEntry[] = [
     year: 1939,
     // Cruiser Mk IV (A13 Mk II): 15 t, 30 mm, 2-pdr and a Besa, Christie
     // suspension, 48 km/h; thin armour, poor mechanical life. Cost estimate.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_TANK,
     spec: {
       massT: 15.1,
@@ -183,7 +188,7 @@ export const GBR_HIST: readonly HistEntry[] = [
       offroadKmh: 28,
       roadKmh: 48,
       reliability: 2,
-      costK: 30,
+      costK: 32,
     },
   },
   {
@@ -250,6 +255,7 @@ export const GBR_HIST: readonly HistEntry[] = [
     year: 1941,
     // Crusader I: 19 t, 40 mm hull, 49 mm turret, 2-pdr and two Besa,
     // 43 km/h; fast but unreliable in the desert. Cost estimate.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_TANK,
     spec: {
       massT: 19.3,
@@ -263,7 +269,7 @@ export const GBR_HIST: readonly HistEntry[] = [
       offroadKmh: 24,
       roadKmh: 43,
       reliability: 2,
-      costK: 34,
+      costK: 36,
     },
   },
   {
@@ -276,6 +282,7 @@ export const GBR_HIST: readonly HistEntry[] = [
     // Crusader III: 20 t, 51 mm, 6-pdr (APCBC about 74 mm at 500 m; sources
     // 68-80), one Besa. Cost estimate on the Crusader I.
     // Audit w66: 6-pounder: one figure, 75, for it and the US M1 57 mm.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_TANK,
     spec: {
       massT: 20,
@@ -289,7 +296,7 @@ export const GBR_HIST: readonly HistEntry[] = [
       offroadKmh: 24,
       roadKmh: 43,
       reliability: 2,
-      costK: 38,
+      costK: 40,
     },
   },
   {
@@ -303,6 +310,7 @@ export const GBR_HIST: readonly HistEntry[] = [
     // 6-pdr, about 68 mm at 500 m; HE about 0.6 kg filler), two Besa,
     // Meteor engine, 64 km/h. Cost estimate.
     // Audit w66: QF 75 mm fires the US M61: 68. 29 km/h cross-country and a 64 mm vertical plate per Wikipedia, so slope 0 is right; 40 was above the page's figure.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_TANK,
     spec: {
       massT: 27.9,
@@ -316,7 +324,7 @@ export const GBR_HIST: readonly HistEntry[] = [
       offroadKmh: 29,
       roadKmh: 64,
       reliability: 4,
-      costK: 42,
+      costK: 40,
     },
   },
   {
@@ -358,6 +366,7 @@ export const GBR_HIST: readonly HistEntry[] = [
     // the British 17-pdr (APCBC about 140 mm at 500 m; sources 130-150), one
     // MG. Cost: the US hull (about 33k) plus gun and conversion, estimate.
     // Audit w66: A Sherman V with a 17-pounder: same mechanicals, reliability 4 as a Sherman of that kind.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_TANK,
     spec: {
       massT: 34,
@@ -371,7 +380,7 @@ export const GBR_HIST: readonly HistEntry[] = [
       offroadKmh: 26,
       roadKmh: 40,
       reliability: 4,
-      costK: 45,
+      costK: 50,
     },
   },
   {
@@ -487,6 +496,7 @@ export const GBR_HIST: readonly HistEntry[] = [
     // Bishop: 25-pdr (87.6 mm, HE about 0.7 kg filler) in a fixed box on a
     // Valentine hull, 60 mm front, 24 km/h; cramped, limited elevation. Cost
     // estimate.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_TANK,
     spec: {
       massT: 17.3,
@@ -499,7 +509,7 @@ export const GBR_HIST: readonly HistEntry[] = [
       offroadKmh: 14,
       roadKmh: 24,
       reliability: 3,
-      costK: 36,
+      costK: 34,
     },
   },
   {
@@ -538,6 +548,7 @@ export const GBR_HIST: readonly HistEntry[] = [
     // Crusader AA Mk I: one 40 mm Bofors (AP about 48 mm at 500 m; sources
     // 47-50; 120 rounds a minute) in an open turret on a Crusader hull.
     // Cost estimate.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_TANK,
     spec: {
       massT: 19.5,
@@ -551,7 +562,7 @@ export const GBR_HIST: readonly HistEntry[] = [
       roadKmh: 43,
       openTop: true,
       reliability: 2,
-      costK: 40,
+      costK: 44,
       aa: { barrels: 1, rpm: 120, mm: 40 },
     },
   },
@@ -564,6 +575,7 @@ export const GBR_HIST: readonly HistEntry[] = [
     year: 1943,
     // Crusader AA Mk II: twin 20 mm Oerlikon (450 rounds a minute each) in
     // an open turret on a Crusader hull. Cost estimate.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_TANK,
     spec: {
       massT: 19.5,
@@ -577,7 +589,7 @@ export const GBR_HIST: readonly HistEntry[] = [
       roadKmh: 43,
       openTop: true,
       reliability: 2,
-      costK: 38,
+      costK: 42,
       aa: { barrels: 2, rpm: 450, mm: 20 },
     },
   },
@@ -616,6 +628,7 @@ export const GBR_HIST: readonly HistEntry[] = [
     // Hawker Hurricane I: 520 km/h (100-octane), eight .303, about 950 km,
     // rugged. Cost estimate (tube-and-fabric airframe, cheaper than the
     // Spitfire; the ratio is disputed).
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_AIR,
     spec: {
       maxKmh: 520,
@@ -627,7 +640,7 @@ export const GBR_HIST: readonly HistEntry[] = [
       bombKg: 0,
       torpedoKg: 0,
       reliability: 4,
-      costK: 22,
+      costK: 28,
     },
   },
   {
@@ -639,6 +652,7 @@ export const GBR_HIST: readonly HistEntry[] = [
     year: 1938,
     // Spitfire Ia: 570 km/h (sources 555-580), eight .303, 636 km. 12,604
     // pounds in a 1939 export contract (web check); US-terms cost estimate.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_AIR,
     spec: {
       maxKmh: 570,
@@ -650,7 +664,7 @@ export const GBR_HIST: readonly HistEntry[] = [
       bombKg: 0,
       torpedoKg: 0,
       reliability: 4,
-      costK: 30,
+      costK: 36,
     },
   },
   {
@@ -662,6 +676,7 @@ export const GBR_HIST: readonly HistEntry[] = [
     year: 1941,
     // Spitfire Vb: 594 km/h, two 20 mm Hispano and four .303, 760 km. Cost
     // estimate on the Mk I.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_AIR,
     spec: {
       maxKmh: 594,
@@ -676,7 +691,7 @@ export const GBR_HIST: readonly HistEntry[] = [
       bombKg: 0,
       torpedoKg: 0,
       reliability: 4,
-      costK: 32,
+      costK: 38,
     },
   },
   {
@@ -688,6 +703,7 @@ export const GBR_HIST: readonly HistEntry[] = [
     year: 1942,
     // Spitfire IXc: Merlin 61, 650 km/h (sources up to 657), two 20 mm and
     // four .303, 700 km. Cost estimate.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_AIR,
     spec: {
       maxKmh: 650,
@@ -702,7 +718,7 @@ export const GBR_HIST: readonly HistEntry[] = [
       bombKg: 0,
       torpedoKg: 0,
       reliability: 4,
-      costK: 36,
+      costK: 40,
     },
   },
   {
@@ -714,6 +730,7 @@ export const GBR_HIST: readonly HistEntry[] = [
     year: 1944,
     // Spitfire XIV: Griffon 65, 722 km/h, two 20 mm and two .50, 740 km.
     // Cost estimate.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_AIR,
     spec: {
       maxKmh: 722,
@@ -728,7 +745,7 @@ export const GBR_HIST: readonly HistEntry[] = [
       bombKg: 0,
       torpedoKg: 0,
       reliability: 3,
-      costK: 42,
+      costK: 46,
     },
   },
   {
@@ -740,6 +757,7 @@ export const GBR_HIST: readonly HistEntry[] = [
     year: 1944,
     // Hawker Tempest V: Sabre IIA, 695 km/h, four 20 mm Hispano Mk II,
     // about 1,190 km; fast at low level, a thirsty engine. Cost estimate.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_AIR,
     spec: {
       maxKmh: 695,
@@ -751,7 +769,7 @@ export const GBR_HIST: readonly HistEntry[] = [
       bombKg: 0,
       torpedoKg: 0,
       reliability: 3,
-      costK: 45,
+      costK: 55,
     },
   },
   {
@@ -764,6 +782,7 @@ export const GBR_HIST: readonly HistEntry[] = [
     // Bristol Beaufighter IF: twin Hercules, 520 km/h, four 20 mm and six
     // .303, AI Mk IV radar; range 1,750 km (sources 1,500-2,000). Cost
     // estimate.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_AIR,
     spec: {
       maxKmh: 520,
@@ -779,7 +798,7 @@ export const GBR_HIST: readonly HistEntry[] = [
       torpedoKg: 0,
       radar: true,
       reliability: 3,
-      costK: 70,
+      costK: 75,
     },
   },
   {
@@ -792,6 +811,7 @@ export const GBR_HIST: readonly HistEntry[] = [
     // Mosquito FB Mk VI: wooden twin, 612 km/h, four 20 mm and four .303,
     // 907 kg of bombs; empty weight 6,200-6,800 kg in the sources. Cost
     // estimate.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_AIR,
     spec: {
       maxKmh: 612,
@@ -806,7 +826,7 @@ export const GBR_HIST: readonly HistEntry[] = [
       bombKg: 907,
       torpedoKg: 0,
       reliability: 4,
-      costK: 75,
+      costK: 80,
     },
   },
   {
@@ -843,6 +863,7 @@ export const GBR_HIST: readonly HistEntry[] = [
     // Hawker Typhoon Ib: 663 km/h, four 20 mm, two 227 kg bombs; a poor
     // start (engine, tail failures), then the best ground-attack fighter.
     // Cost estimate.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_AIR,
     spec: {
       maxKmh: 663,
@@ -854,7 +875,7 @@ export const GBR_HIST: readonly HistEntry[] = [
       bombKg: 454,
       torpedoKg: 0,
       reliability: 2,
-      costK: 45,
+      costK: 50,
     },
   },
   {
@@ -866,6 +887,7 @@ export const GBR_HIST: readonly HistEntry[] = [
     year: 1939,
     // Bristol Blenheim IV: 428 km/h, 454 kg of bombs, one fixed .303 and
     // three flexible; range 1,950 km (sources 1,800-2,350). Cost estimate.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_AIR,
     spec: {
       maxKmh: 428,
@@ -877,7 +899,7 @@ export const GBR_HIST: readonly HistEntry[] = [
       bombKg: 454,
       torpedoKg: 0,
       reliability: 3,
-      costK: 60,
+      costK: 65,
     },
   },
   {
@@ -889,6 +911,7 @@ export const GBR_HIST: readonly HistEntry[] = [
     year: 1942,
     // Mosquito B Mk IV: unarmed, 612 km/h, four 227 kg bombs (908 kg),
     // about 2,200 km. Cost estimate.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_AIR,
     spec: {
       maxKmh: 612,
@@ -900,7 +923,7 @@ export const GBR_HIST: readonly HistEntry[] = [
       bombKg: 908,
       torpedoKg: 0,
       reliability: 4,
-      costK: 70,
+      costK: 75,
     },
   },
   {
@@ -983,6 +1006,7 @@ export const GBR_HIST: readonly HistEntry[] = [
     // Handley Page Halifax III: Hercules radials, 454 km/h, 5,900 kg
     // (13,000 lb) of bombs, nine .303; about 3,000 km (sources 2,000-3,200
     // by load). Cost estimate by weight (a B-24 was about 215k).
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_AIR,
     spec: {
       maxKmh: 454,
@@ -994,7 +1018,7 @@ export const GBR_HIST: readonly HistEntry[] = [
       bombKg: 5900,
       torpedoKg: 0,
       reliability: 3,
-      costK: 160,
+      costK: 185,
     },
   },
   {
@@ -1009,6 +1033,7 @@ export const GBR_HIST: readonly HistEntry[] = [
     // 6.3 t. Cost estimate (a forum post gave about 43,000 pounds in 1941;
     // not verified).
     // Audit w66: 55,000 lb on 1,297 sq ft (Wikipedia): normal weight.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_AIR,
     spec: {
       maxKmh: 462,
@@ -1020,7 +1045,7 @@ export const GBR_HIST: readonly HistEntry[] = [
       bombKg: 6350,
       torpedoKg: 0,
       reliability: 4,
-      costK: 150,
+      costK: 190,
     },
   },
   {
@@ -1079,6 +1104,7 @@ export const GBR_HIST: readonly HistEntry[] = [
     // Seafire IIC: naval Spitfire V, 540 km/h (sources 535-560), two 20 mm
     // and four .303, short range 760 km; fragile undercarriage. Cost
     // estimate.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_AIR,
     spec: {
       maxKmh: 540,
@@ -1093,7 +1119,7 @@ export const GBR_HIST: readonly HistEntry[] = [
       bombKg: 0,
       torpedoKg: 0,
       reliability: 3,
-      costK: 34,
+      costK: 40,
     },
   },
   {
@@ -1105,6 +1131,7 @@ export const GBR_HIST: readonly HistEntry[] = [
     year: 1938,
     // Blackburn Skua II: dive bomber, 362 km/h, one 227 kg bomb, four fixed
     // .303 and one flexible; 1,220 km. Cost estimate.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_AIR,
     spec: {
       maxKmh: 362,
@@ -1117,7 +1144,7 @@ export const GBR_HIST: readonly HistEntry[] = [
       torpedoKg: 0,
       dive: true,
       reliability: 3,
-      costK: 40,
+      costK: 35,
     },
   },
   {
@@ -1130,6 +1157,7 @@ export const GBR_HIST: readonly HistEntry[] = [
     // Fairey Swordfish I: biplane, 224 km/h, one 730 kg torpedo (or 680 kg of
     // mines or bombs), one fixed and one flexible .303; 880 km. Slow, very
     // rugged. Cost estimate.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_AIR,
     spec: {
       maxKmh: 224,
@@ -1141,7 +1169,7 @@ export const GBR_HIST: readonly HistEntry[] = [
       bombKg: 680,
       torpedoKg: 730,
       reliability: 5,
-      costK: 18,
+      costK: 22,
     },
   },
   {
@@ -1154,6 +1182,7 @@ export const GBR_HIST: readonly HistEntry[] = [
     // Fairey Barracuda II: monoplane torpedo and dive bomber, 367 km/h, one
     // 730 kg torpedo or 725 kg of bombs, two flexible .303; 1,100 km. Cost
     // estimate.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_AIR,
     spec: {
       maxKmh: 367,
@@ -1166,7 +1195,7 @@ export const GBR_HIST: readonly HistEntry[] = [
       torpedoKg: 730,
       dive: true,
       reliability: 3,
-      costK: 55,
+      costK: 50,
     },
   },
 
@@ -1184,6 +1213,7 @@ export const GBR_HIST: readonly HistEntry[] = [
     year: 1918,
     // Admiralty W class: 1,140 t, four 4-inch, four 21-inch tubes (sources
     // give 4 to 6), 34 kn, 3,500 nm at 15 kn; one 3-inch HA gun.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_SHIP,
     spec: {
       dispT: 1140,
@@ -1197,7 +1227,7 @@ export const GBR_HIST: readonly HistEntry[] = [
       aaLight: [],
       aaHeavy: 1,
       aircraft: 0,
-      costM: 5,
+      costM: 3.5,
     },
   },
   {
@@ -1210,6 +1240,7 @@ export const GBR_HIST: readonly HistEntry[] = [
     // Tribal class: 1,850 t, eight 4.7-inch in four twins, one quadruple
     // 2-pdr, four tubes, 36 kn, 5,700 nm at 15 kn; strong guns, few
     // torpedoes, no HA main battery.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_SHIP,
     spec: {
       dispT: 1850,
@@ -1223,7 +1254,7 @@ export const GBR_HIST: readonly HistEntry[] = [
       aaLight: [{ count: 4, mm: 40 }],
       aaHeavy: 0,
       aircraft: 0,
-      costM: 8,
+      costM: 6.5,
     },
   },
   {
@@ -1236,6 +1267,7 @@ export const GBR_HIST: readonly HistEntry[] = [
     // J class (Jervis): 1,690 t, six 4.7-inch in three twins, ten tubes (two
     // quintuple), 36 kn, 5,500 nm at 15 kn, one quadruple 2-pdr, asdic and
     // throwers.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_SHIP,
     spec: {
       dispT: 1690,
@@ -1249,7 +1281,7 @@ export const GBR_HIST: readonly HistEntry[] = [
       aaLight: [{ count: 4, mm: 40 }],
       aaHeavy: 0,
       aircraft: 0,
-      costM: 8,
+      costM: 6.5,
     },
   },
   {
@@ -1262,6 +1294,7 @@ export const GBR_HIST: readonly HistEntry[] = [
     // Leander class: 7,000 t, eight 6-inch in four twins, four 4-inch HA,
     // eight tubes, 76 mm belt, 32.5 kn, about 5,700 nm at 13 kn (sources
     // 5,500-5,730).
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_SHIP,
     spec: {
       dispT: 7000,
@@ -1276,7 +1309,7 @@ export const GBR_HIST: readonly HistEntry[] = [
       aaLight: [],
       aaHeavy: 4,
       aircraft: 0,
-      costM: 24,
+      costM: 20,
     },
   },
   {
@@ -1288,6 +1321,7 @@ export const GBR_HIST: readonly HistEntry[] = [
     year: 1937,
     // Southampton (Town) class: 9,100 t, twelve 6-inch in four triples,
     // eight 4-inch HA, six tubes, 114 mm belt, 32 kn, 7,700 nm at 13 kn.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_SHIP,
     spec: {
       dispT: 9100,
@@ -1302,7 +1336,7 @@ export const GBR_HIST: readonly HistEntry[] = [
       aaLight: [],
       aaHeavy: 8,
       aircraft: 0,
-      costM: 32,
+      costM: 27,
     },
   },
   {
@@ -1315,6 +1349,7 @@ export const GBR_HIST: readonly HistEntry[] = [
     // Dido class: 5,450 t, ten 5.25-inch DP guns in five twins, six tubes,
     // 76 mm belt, 33 kn, about 4,000 nm (sources 3,500-4,240); two quadruple
     // 2-pdr and some 20 mm. An anti-aircraft cruiser first.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_SHIP,
     spec: {
       dispT: 5450,
@@ -1331,7 +1366,7 @@ export const GBR_HIST: readonly HistEntry[] = [
       ],
       aaHeavy: 10,
       aircraft: 0,
-      costM: 26,
+      costM: 18,
     },
   },
   {
@@ -1344,6 +1379,7 @@ export const GBR_HIST: readonly HistEntry[] = [
     // Norfolk class (County type): 9,975 t, eight 8-inch in four twins, eight
     // 4-inch HA, eight tubes, 114 mm belt over the magazines, 32 kn, a very
     // long range (12,500 nm at 12 kn in one reference; others less).
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_SHIP,
     spec: {
       dispT: 9975,
@@ -1358,7 +1394,7 @@ export const GBR_HIST: readonly HistEntry[] = [
       aaLight: [],
       aaHeavy: 8,
       aircraft: 0,
-      costM: 33,
+      costM: 26,
     },
   },
   {
@@ -1371,6 +1407,7 @@ export const GBR_HIST: readonly HistEntry[] = [
     // HMS Hood: 41,200 t, eight 15-inch in four twins, twelve 5.5-inch,
     // 305 mm belt, 31 kn, 7,500 nm at 14 kn, four submerged tubes, eight
     // 4-inch HA by 1939.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_SHIP,
     spec: {
       dispT: 41200,
@@ -1385,7 +1422,7 @@ export const GBR_HIST: readonly HistEntry[] = [
       aaLight: [],
       aaHeavy: 8,
       aircraft: 0,
-      costM: 90,
+      costM: 85,
     },
   },
   {
@@ -1399,6 +1436,7 @@ export const GBR_HIST: readonly HistEntry[] = [
     // t, eight 15-inch in four twins, twenty 4.5-inch DP (ten twins), 330 mm
     // belt, 24 kn, about 5,000 nm (sources 4,500-6,000), four octuple 2-pdr.
     // Cost: a rebuild of an old hull, estimate.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_SHIP,
     spec: {
       dispT: 31100,
@@ -1413,7 +1451,7 @@ export const GBR_HIST: readonly HistEntry[] = [
       aaLight: [{ count: 32, mm: 40 }],
       aaHeavy: 20,
       aircraft: 0,
-      costM: 65,
+      costM: 55,
     },
   },
   {
@@ -1426,6 +1464,7 @@ export const GBR_HIST: readonly HistEntry[] = [
     // Nelson class: 33,950 t, nine 16-inch in three triples forward, twelve
     // 6-inch, six 4.7-inch HA, 356 mm belt, 23.5 kn, 7,000 nm, two 24.5-inch
     // tubes (warhead 337 kg), one octuple 2-pdr.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_SHIP,
     spec: {
       dispT: 33950,
@@ -1440,7 +1479,7 @@ export const GBR_HIST: readonly HistEntry[] = [
       aaLight: [{ count: 8, mm: 40 }],
       aaHeavy: 6,
       aircraft: 0,
-      costM: 75,
+      costM: 60,
     },
   },
   {
@@ -1454,6 +1493,7 @@ export const GBR_HIST: readonly HistEntry[] = [
     // one twin), sixteen 5.25-inch DP, 356 mm belt, 28 kn, about 6,000 nm,
     // four octuple 2-pdr.
     // Audit w66: 14.7 in belt (Wikipedia).
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_SHIP,
     spec: {
       dispT: 36700,
@@ -1468,7 +1508,7 @@ export const GBR_HIST: readonly HistEntry[] = [
       aaLight: [{ count: 32, mm: 40 }],
       aaHeavy: 16,
       aircraft: 0,
-      costM: 80,
+      costM: 75,
     },
   },
   {
@@ -1562,6 +1602,7 @@ export const GBR_HIST: readonly HistEntry[] = [
     year: 1931,
     // S class (group 1): 670 t surfaced, six bow tubes, one 3-inch gun,
     // 13.75 kn surfaced, 3,800 nm at 10 kn.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_SHIP,
     spec: {
       dispT: 670,
@@ -1575,7 +1616,7 @@ export const GBR_HIST: readonly HistEntry[] = [
       aaLight: [],
       aaHeavy: 0,
       aircraft: 0,
-      costM: 3.5,
+      costM: 2.5,
     },
   },
   {
@@ -1588,6 +1629,7 @@ export const GBR_HIST: readonly HistEntry[] = [
     // T class (group 1): 1,090 t surfaced, eleven tubes (eight internal and
     // two external forward, one aft; sources say 10 or 11), one 4-inch gun,
     // 15.25 kn surfaced, 8,000 nm at 10 kn.
+    // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_SHIP,
     spec: {
       dispT: 1090,
@@ -1601,7 +1643,7 @@ export const GBR_HIST: readonly HistEntry[] = [
       aaLight: [],
       aaHeavy: 0,
       aircraft: 0,
-      costM: 5,
+      costM: 4.2,
     },
   },
 
