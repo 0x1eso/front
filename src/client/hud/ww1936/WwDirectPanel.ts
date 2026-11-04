@@ -85,6 +85,16 @@ export function renderDirectPanel(d: DirectPanelDeps): TemplateResult {
     ${dv === null
       ? nothing
       : html`<div data-ww-direct-parts class="flex flex-wrap gap-1">
+          ${card.directOn
+            ? html`<button
+                type="button"
+                data-ww-direct-stop
+                class="min-h-10 rounded-md border border-red-400 bg-red-900/60 px-3 text-xs font-semibold"
+                @click=${() => d.send({ kind: "army_halt", army })}
+              >
+                ■ ${translateText("ww1936.land.btn_stop")}
+              </button>`
+            : nothing}
           ${parts.map(
             (p) =>
               html`<button
@@ -162,16 +172,6 @@ export function renderDirectPanel(d: DirectPanelDeps): TemplateResult {
             directSettings(army, { advance: (flags & DIRECT_ADVANCE) === 0 }),
           ),
       )}
-      ${card.directOn
-        ? html`<button
-            type="button"
-            data-ww-direct-stop
-            class="min-h-10 rounded-md border border-red-400 bg-red-900/60 px-2 text-xs"
-            @click=${() => d.send({ kind: "army_halt", army })}
-          >
-            ■ ${translateText("ww1936.land.btn_stop")}
-          </button>`
-        : nothing}
     </div>
   </div>`;
 }

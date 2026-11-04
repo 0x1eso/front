@@ -188,16 +188,24 @@ export class PlanArrowPass {
     };
 
     const plan = mine.order.kind === "plan";
-    if (plan) {
+    // ww44: a direct attack draws its own arrows (below), not the zone's.
+    if (plan && mine.order.direct !== true) {
       const style = mine.order.executing ? STYLE_FLOW : STYLE_BAND;
       for (const t of mine.order.targets) fromZone(cx(t), cy(t), style, 0.95);
     }
 
     // ww42: a direct attack's arrows, from each attacking region to its enemy
     // region (the divisions there are the dots at the tail).
-    if (mine.order.direct === true && mine.direct !== undefined) {
-      for (const [from, to] of mine.direct.atk) {
+    if (mine.order.direct === true) {
+      const atk = mine.direct?.atk ?? [];
+      for (const [from, to] of atk) {
         this.arrow(cx(from), cy(from), cx(to), cy(to), STYLE_FLOW, 0.95);
+      }
+      // Nobody in a battle yet: the army's way to its targets, from where it stands.
+      if (atk.length === 0) {
+        for (const t of mine.order.targets) {
+          this.arrow(cx(army.region), cy(army.region), cx(t), cy(t), STYLE_BAND, 0.8);
+        }
       }
     }
 
