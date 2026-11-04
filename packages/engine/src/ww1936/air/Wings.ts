@@ -27,6 +27,7 @@ import {
   type Wing,
   type WingOrder,
 } from "@openfront/engine-api/ww1936/AirTypes";
+import { DS_HIST } from "@openfront/engine-api/ww1936/DepthTypes";
 import {
   EQUIPMENT_GENS,
   equipKey,
@@ -34,12 +35,18 @@ import {
 } from "@openfront/engine-api/ww1936/EconomyTypes";
 import { borderRegionsOf } from "@openfront/engine-lib/ww1936/FrontRules";
 import {
+  breakdownPpm,
+  wearLoss,
+  wearRoll,
+} from "@openfront/engine-lib/ww1936/hist/Wear";
+import {
   ferryTicks,
   wingFullOf,
   wingMaxPlanes,
   wingOrderBlock,
   xpAfterRefill,
 } from "@openfront/engine-lib/ww1936/WingRules";
+import { loseDesignPlanes } from "../depth/Designs";
 import { damageBuilding, damageOf } from "../economy/Buildings";
 import type { CountryEconomy } from "../economy/WwEconomy";
 import { fillDecks } from "../navy/Carriers";
@@ -390,10 +397,38 @@ export function formStartWings(air: WwAir): void {
 }
 
 /** A wing entering `rearm` (lane B calls it): refill and swap for newer planes. */
+/**
+ * ww61: catalogue planes with a poor reliability wear out at a rearm: a
+ * small loss from the wing, refilled by the rearm from the stock (the wing
+ * and the deployed ledger both lose them).
+ */
+function wearWing(air: WwAir, w: Wing, tick: number): void {
+  let lost: number[] | null = null;
+  for (let s = 0; s < w.dcounts.length; s++) {
+    const n = w.dcounts[s];
+    if (n <= 0) continue;
+    const st = air.ww.depth.designStatsOf(w.owner, "plane", s + 1) as {
+      flags: number;
+      relPm: number;
+    } | null;
+    if (st === null || (st.flags & DS_HIST) === 0) continue;
+    const ppm = breakdownPpm(st.relPm);
+    if (ppm <= 0) continue;
+    const k = wearLoss(n, ppm, wearRoll(tick, w.id * 131 + s));
+    if (k <= 0) continue;
+    w.dcounts[s] -= k;
+    (lost ??= new Array<number>(w.dcounts.length).fill(0))[s] = k;
+  }
+  if (lost !== null) {
+    loseDesignPlanes(air.ww.depth, w.owner, lost);
+    air.markWing(w.id);
+  }
+}
+
 export function rearmWing(air: WwAir, w: Wing, tick: number): void {
-  void tick;
   const ce = air.econ.country(w.owner);
   if (ce === null || w.base <= 0) return;
+  wearWing(air, w, tick);
   const had = wingPlanes(w);
   const full = wingFullSize(w);
   const added = refillWing(

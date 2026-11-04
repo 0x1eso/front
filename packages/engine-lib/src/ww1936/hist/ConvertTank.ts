@@ -8,6 +8,7 @@
 // 1936-39 baseline: a Pz III E (armour about 31, pierce 30, soft 10-11,
 // 12 IC) sits where today's generation-1 medium tank sits.
 import {
+  DS_HIST,
   DS_TD_DEFEND,
   TankDesignStats,
   TankRole,
@@ -152,7 +153,7 @@ export function tankStatsOfEntry(e: TankEntry): HistTankStats {
     fuelPct,
     costMilli: roundInt(s.costK * TANK_COST_MILLI_PER_K),
     resources,
-    flags: e.role === "td" ? DS_TD_DEFEND : 0,
+    flags: DS_HIST | (e.role === "td" ? DS_TD_DEFEND : 0),
     year: e.year,
     armorMm,
   };

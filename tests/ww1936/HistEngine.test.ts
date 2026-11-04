@@ -89,3 +89,24 @@ describe("catalogue as design slots", () => {
     expect(d.country(DEU)!.des.tank.every((s) => s === null)).toBe(true);
   });
 });
+
+describe("reliability wear", () => {
+  test("poor reliability wears more, from 90 percent nothing", async () => {
+    const { breakdownPpm, wearLoss, wearRoll } =
+      await import("@openfront/engine-lib/ww1936/hist/Wear");
+    expect(breakdownPpm(700)).toBe(5000);
+    expect(breakdownPpm(830)).toBe(1750);
+    expect(breakdownPpm(900)).toBe(0);
+    expect(breakdownPpm(950)).toBe(0);
+    // Deterministic: the same inputs, the same roll; the loss never exceeds the holding.
+    expect(wearRoll(7, 9)).toBe(wearRoll(7, 9));
+    expect(wearLoss(3, 5000, 999_999)).toBe(0);
+    expect(wearLoss(300, 5000, 0)).toBe(1);
+    expect(wearLoss(2, 1_000_000, 0)).toBe(2);
+    let lost = 0;
+    for (let i = 0; i < 2000; i++) lost += wearLoss(30, 5000, wearRoll(i, 1));
+    // 30 tanks at 0.5 % over 2000 days: about 300.
+    expect(lost).toBeGreaterThan(220);
+    expect(lost).toBeLessThan(380);
+  });
+});

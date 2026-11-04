@@ -9,6 +9,7 @@
 import {
   DS_CARGO,
   DS_CARRIER,
+  DS_HIST,
   DS_JET,
   DS_RADAR,
   PlaneDesignStats,
@@ -160,6 +161,7 @@ export function planeStatsOfEntry(e: PlaneEntry): PlaneDesignStats {
     }),
     fuelPct: jet ? 60 : 0,
     flags:
+      DS_HIST |
       (jet ? DS_JET : 0) |
       (s.radar === true ? DS_RADAR : 0) |
       (e.type.startsWith("cv_") ? DS_CARRIER : 0) |

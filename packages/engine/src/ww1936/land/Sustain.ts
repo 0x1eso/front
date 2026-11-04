@@ -2,6 +2,11 @@
 // spec §5.1, §5.3, §5.4, §6.2): a country's day of training, its
 // divisions by id, its army experience and its generals. disbandDivision
 // is the foundation's (one path for the equipment back to the stock).
+import {
+  DS_HIST,
+  KS,
+  KS_FIELDS,
+} from "@openfront/engine-api/ww1936/DepthTypes";
 import { WW_DAY_SPLIT } from "@openfront/engine-api/ww1936/EconomyTypes";
 import {
   GROUND_EQUIP_KEYS,
@@ -15,6 +20,7 @@ import {
 } from "@openfront/engine-api/ww1936/LandTypes";
 import type { WwStatKey } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
+import { breakdownPpm } from "@openfront/engine-lib/ww1936/hist/Wear";
 import {
   isTankGroup,
   oldInfoOf,
@@ -327,12 +333,20 @@ export function attritionPpm(land: WwLand, r: number, day: number): number {
   return ppm + wpm;
 }
 
+/**
+ * ww61, reliability: catalogue equipment (DS_HIST rows) wears out while its
+ * division moves. ppm of the slot a day, from the entry's reliability: 0.5 %
+ * at 70 %, 0.175 % at 83 %, nothing from 90 %. Static keys and designer
+ * designs carry no DS_HIST flag and do not wear. The loss is taken from the
+ * holder and refilled by reinforcement from the stock (or refit).
+ */
 function attrition(land: WwLand, r: number, day: number): void {
   const ppm = attritionPpm(land, r, day);
-  if (ppm <= 0) return;
   const t = land.divisions;
+  const moving = t.mode[r] !== MOVE_NONE && !atSea(land, r);
+  if (ppm <= 0 && !moving) return;
   const men = t.men[r];
-  if (men > 0) {
+  if (ppm > 0 && men > 0) {
     t.lossMen[r] += Math.floor((men * ppm) / 1000);
     const lost = Math.min(men, Math.floor(t.lossMen[r] / 1000));
     t.lossMen[r] -= lost * 1000;
@@ -347,11 +361,15 @@ function attrition(land: WwLand, r: number, day: number): void {
   for (let j = 0; j < GROUND_SLOTS; j++) {
     const have = t.equip[base + j];
     if (have <= 0) continue;
-    t.lossEq[base + j] += designLossMilli(
-      ks,
-      j,
-      Math.floor((have * ppm) / 1000),
-    );
+    const o = j * KS_FIELDS;
+    const wear =
+      moving && (ks.stats[o + KS.flags] & DS_HIST) !== 0
+        ? breakdownPpm(ks.stats[o + KS.relPm])
+        : 0;
+    if (ppm <= 0 && wear === 0) continue;
+    t.lossEq[base + j] +=
+      designLossMilli(ks, j, Math.floor((have * ppm) / 1000)) +
+      Math.floor((have * wear) / 1000);
     const lost = Math.min(have, Math.floor(t.lossEq[base + j] / 1000));
     t.lossEq[base + j] -= lost * 1000;
     if (lost > 0) land.addEquip(r, j, -lost);

@@ -431,6 +431,7 @@ export const DS_CARGO = 1 << 8; // plane: transport
 export const DS_MINE_LAYER = 1 << 9; // ship
 export const DS_MINESWEEP = 1 << 10; // ship
 export const DS_JET = 1 << 11; // plane: fuel ×1.6
+export const DS_HIST = 1 << 12; // ww61: a catalogue entry (reliability wear applies)
 
 /** Ship design modifiers over the P4 base stats (spec §5.3.3): percents and absolute deltas. */
 export interface ShipDesignMods {
