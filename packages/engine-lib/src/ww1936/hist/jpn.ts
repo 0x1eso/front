@@ -1341,7 +1341,7 @@ export const JPN_HIST: readonly HistEntry[] = [
     // 6.5 x 50 mm bolt action; one automatic weapon per squad (about 6 %); price estimated.
     // Audit w66: autoPct counts automatic rifles only.
     source: SRC_GUN,
-    spec: { mm: 6.5, aimedRpm: 12, rangeM: 400, autoPct: 6, costUsd: 25 },
+    spec: { mm: 6.5, aimedRpm: 12, rangeM: 400, autoPct: 0, costUsd: 25 },
   },
   {
     id: "jpn_type99",
@@ -1352,7 +1352,7 @@ export const JPN_HIST: readonly HistEntry[] = [
     // 7.7 x 58 mm bolt action, same squad support weapons; price estimated.
     // Audit w66: autoPct counts automatic rifles only.
     source: SRC_GUN,
-    spec: { mm: 7.7, aimedRpm: 12, rangeM: 500, autoPct: 6, costUsd: 28 },
+    spec: { mm: 7.7, aimedRpm: 12, rangeM: 500, autoPct: 0, costUsd: 28 },
   },
   {
     id: "jpn_type38_75",

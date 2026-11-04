@@ -1704,7 +1704,7 @@ export const DEU_HIST: readonly HistEntry[] = [
     // Karabiner 98k, 7.92 x 57 mm bolt action, 5-round clip; about RM 70.
     // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_GEAR,
-    spec: { mm: 7.92, aimedRpm: 15, rangeM: 500, autoPct: 0, costUsd: 40 },
+    spec: { mm: 7.92, aimedRpm: 15, rangeM: 500, autoPct: 0, costUsd: 30 },
   },
   {
     id: "deu_g43",
@@ -1716,7 +1716,7 @@ export const DEU_HIST: readonly HistEntry[] = [
     // about RM 80. Aimed rate 25 per minute (semi-automatic).
     // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_GEAR,
-    spec: { mm: 7.92, aimedRpm: 25, rangeM: 500, autoPct: 0, costUsd: 75 },
+    spec: { mm: 7.92, aimedRpm: 25, rangeM: 500, autoPct: 0, costUsd: 60 },
   },
   {
     id: "deu_stg44",
@@ -1728,7 +1728,7 @@ export const DEU_HIST: readonly HistEntry[] = [
     // range about 300-400 m; about RM 70.
     // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_GEAR,
-    spec: { mm: 7.92, aimedRpm: 25, rangeM: 400, autoPct: 50, costUsd: 60 },
+    spec: { mm: 7.92, aimedRpm: 25, rangeM: 400, autoPct: 50, costUsd: 50 },
   },
   {
     id: "deu_opel_blitz",

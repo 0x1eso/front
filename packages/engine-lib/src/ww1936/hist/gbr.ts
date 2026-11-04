@@ -1659,7 +1659,7 @@ export const GBR_HIST: readonly HistEntry[] = [
     // 500 m; one Bren (10 %) in each ten-man section. Cost estimate.
     // Audit w66: autoPct counts self-loading or automatic rifles only, as Types.ts says; the squad LMG counts for nobody.
     source: SRC_GEAR,
-    spec: { mm: 7.7, aimedRpm: 20, rangeM: 500, autoPct: 10, costUsd: 25 },
+    spec: { mm: 7.7, aimedRpm: 20, rangeM: 500, autoPct: 0, costUsd: 25 },
   },
   {
     id: "gbr_no4_mk1",
@@ -1672,7 +1672,7 @@ export const GBR_HIST: readonly HistEntry[] = [
     // automatic share to about a quarter by 1944. Cost estimate.
     // Audit w66: autoPct as the SMLE.
     source: SRC_GEAR,
-    spec: { mm: 7.7, aimedRpm: 20, rangeM: 500, autoPct: 25, costUsd: 22 },
+    spec: { mm: 7.7, aimedRpm: 20, rangeM: 500, autoPct: 0, costUsd: 22 },
   },
   {
     id: "gbr_ws18",

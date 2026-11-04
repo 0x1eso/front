@@ -1389,7 +1389,7 @@ export const USA_HIST: readonly HistEntry[] = [
     // minute aimed, 500 m. Cost about $40.
     // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_GEAR,
-    spec: { mm: 7.62, aimedRpm: 15, rangeM: 500, autoPct: 0, costUsd: 40 },
+    spec: { mm: 7.62, aimedRpm: 15, rangeM: 500, autoPct: 0, costUsd: 35 },
   },
   {
     id: "usa_m1_garand",
@@ -1402,7 +1402,7 @@ export const USA_HIST: readonly HistEntry[] = [
     // 1937, $40 by 1944; mid 60.
     // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_GEAR,
-    spec: { mm: 7.62, aimedRpm: 25, rangeM: 500, autoPct: 0, costUsd: 60 },
+    spec: { mm: 7.62, aimedRpm: 25, rangeM: 500, autoPct: 0, costUsd: 80 },
   },
   {
     id: "usa_jeep",

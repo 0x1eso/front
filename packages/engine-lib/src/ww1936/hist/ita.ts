@@ -1293,7 +1293,7 @@ export const ITA_HIST: readonly HistEntry[] = [
     // Audit w66: Issued to about one man in ten.
     source:
       "Wikipedia, Beretta Model 38, from memory; cost scaled from the Thompson",
-    spec: { mm: 9, aimedRpm: 25, rangeM: 200, autoPct: 0, costUsd: 55 },
+    spec: { mm: 9, aimedRpm: 25, rangeM: 200, autoPct: 10, costUsd: 55 },
   },
   // ------------------------------------------------------------ support
   {

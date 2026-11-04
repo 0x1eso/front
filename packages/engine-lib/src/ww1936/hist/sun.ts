@@ -1530,7 +1530,7 @@ export const SUN_HIST: readonly HistEntry[] = [
     // Mosin-Nagant M91/30 bolt-action rifle, 7.62x54R, five rounds; about 12 million made. Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
     // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_GEAR,
-    spec: { mm: 7.62, aimedRpm: 14, rangeM: 500, autoPct: 0, costUsd: 15 },
+    spec: { mm: 7.62, aimedRpm: 14, rangeM: 500, autoPct: 0, costUsd: 18 },
   },
   {
     id: "sun_svt40",
@@ -1552,7 +1552,7 @@ export const SUN_HIST: readonly HistEntry[] = [
     // Audit w66: Share of a rifle division's men with one, a quarter to a third late in the war (estimate); the rest kept the Mosin. 100 hid that.
     // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source: SRC_GEAR,
-    spec: { mm: 7.62, aimedRpm: 20, rangeM: 200, autoPct: 100, costUsd: 20 },
+    spec: { mm: 7.62, aimedRpm: 20, rangeM: 200, autoPct: 30, costUsd: 18 },
   },
   {
     id: "sun_gaz_aa",
