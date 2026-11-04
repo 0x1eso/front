@@ -305,6 +305,7 @@ export const DERIVED_FIELDS = new Set<string>([
   // versions; the tick's effects, news and change marks; the land war's
   // depth hooks (the WwDepth itself, compared as WorldWar.depth).
   "designStatCache",
+  "histSeen",
   "keyStatTables",
   "keyStatsSeq",
   "regionStatusIndex",
