@@ -1,11 +1,16 @@
 // ww67: the rules that make battles read like the Second World War.
 import { KS, KS_FIELDS } from "@openfront/engine-api/ww1936/DepthTypes";
+import { EQUIP_KEYS } from "@openfront/engine-api/ww1936/EconomyTypes";
 import type {
   BattalionId,
   SupportId,
   TemplateDef,
 } from "@openfront/engine-api/ww1936/LandTypes";
-import { LAND_TERRAINS } from "@openfront/engine-api/ww1936/LandTypes";
+import {
+  GROUND_EQUIP_KEYS,
+  GROUND_SLOTS,
+  LAND_TERRAINS,
+} from "@openfront/engine-api/ww1936/LandTypes";
 import { WEATHER_SORTIE_PM } from "@openfront/engine-lib/ww1936/AirRules";
 import {
   armorProtectPm,

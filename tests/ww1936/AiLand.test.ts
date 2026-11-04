@@ -379,11 +379,13 @@ describe("the AI's land war on the test map (spec §14)", () => {
     // No attack before the plan is ready (spec §14.4).
     finishDay(runner, d0 + 5);
     expect(l.battles.size).toBe(0);
-    // Within 30 days Germany's side holds Warsaw (an ally's division in it may take it).
+    // Within 30 days Germany holds Warsaw.
     let day = d0 + 6;
-    while (l.controller[6] === pol && day <= d0 + 30) finishDay(runner, day++);
-    expect(l.controller[6]).not.toBe(pol);
-    expect(l.sameSide(deu, l.controller[6])).toBe(true);
+    while (l.controller[6] !== deu && day <= d0 + 30) finishDay(runner, day++);
+    expect(l.controller[6]).toBe(deu);
+    // It went to war to conquer Poland: the peace leaves it there.
+    for (let d = day; d < day + 8; d++) finishDay(runner, d);
+    expect(l.controller[6]).toBe(deu);
     expect(ww.isAtWar(deu, pol) || !byTag(g, "POL").isAlive()).toBe(true);
   }, 120_000);
 

@@ -953,10 +953,14 @@ function won(land: WwLand, b: Battle, tick: number): void {
     closeBattle(land, R);
     if (inside.length > 0) {
       // P5 (plan decision 20): a volunteer takes it for the country it serves.
+      // ww67: the country that carried the attack takes it, when it stands
+      // inside; not whichever ally's division is first in the list.
       capture(
         land,
         R,
-        land.fightOwner(inside[0]),
+        inside.some((r) => land.fightOwner(r) === b.attLead)
+          ? b.attLead
+          : land.fightOwner(inside[0]),
         tick,
         envelop ? EVICT_ORG_PCT_ENVELOP : EVICT_ORG_PCT,
       );

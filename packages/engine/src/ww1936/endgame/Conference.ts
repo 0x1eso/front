@@ -758,6 +758,18 @@ export function finishConference(
     const left: number[] = [];
     for (const r of c.stake) {
       if (pol.legalOwner[r] !== L || eg.isZone(r)) continue;
+      // ww67: a winner that went to war to conquer the loser keeps what it
+      // holds and nobody bought. Without this the army that took a capital
+      // gave it back whenever a day-by-day war score left it short of points.
+      const holder = land.controller[r] ?? 0;
+      if (
+        holder !== L &&
+        actor(holder) &&
+        c.conquer.some(([p, on]) => p === holder && on === L)
+      ) {
+        pol.setLegalOwner(r, holder);
+        continue;
+      }
       left.push(r);
     }
     if (left.length === 0) {
