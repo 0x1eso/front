@@ -131,6 +131,9 @@ const ENGINE_ROLE: Readonly<Record<HistTankRole, TankRole>> = {
   spaa: "sp_anti_air",
 };
 
+/** ww67: a tank's attack and breakthrough, percent a year after 1939. */
+export const TANK_ERA_PCT_A_YEAR = 4;
+
 export interface HistTankStats extends TankDesignStats {
   /** Effective frontal armour, mm (armor / 100). */
   armorMm: number;
@@ -159,6 +162,10 @@ export function tankStatsOfEntry(e: TankEntry): HistTankStats {
   if (e.role === "td") brk = Math.floor((brk * 70) / 100);
   if (e.role === "spa") brk = Math.floor((brk * 40) / 100);
   if (e.role === "spaa") brk = Math.floor((brk * 50) / 100);
+  // ww67: attack and breakthrough keep pace with the era, as a division's gear
+  // does: better ammunition, sights, radios and crews; armour and pierce stay real.
+  const era = 100 + TANK_ERA_PCT_A_YEAR * Math.max(0, e.year - 1939);
+  const scale = (x: number) => Math.floor((x * era) / 100);
   const hardnessPm = clampInt(
     800 + Math.floor((armorMm * 3) / 2) - (s.openTop ? 100 : 0),
     700,
@@ -183,10 +190,10 @@ export function tankStatsOfEntry(e: TankEntry): HistTankStats {
     kind: "tank",
     role: ENGINE_ROLE[e.role],
     group: tankGroupOf(e.role),
-    soft,
-    hard,
+    soft: scale(soft),
+    hard: scale(hard),
     def,
-    brk,
+    brk: scale(brk),
     pierce,
     armor: 100 * armorMm,
     aa,
