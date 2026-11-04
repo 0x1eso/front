@@ -1,3 +1,10 @@
+import {
+  DS_AMPHIBIOUS,
+  DS_FLAIL,
+  DS_FLAME,
+  DS_HIST,
+  DS_RECON,
+} from "@openfront/engine-api/ww1936/DepthTypes";
 import { WW_TECH_IDS } from "@openfront/engine-api/ww1936/EconomyTypes";
 import { histStatsOf } from "@openfront/engine-lib/ww1936/hist/Convert";
 import {
@@ -566,5 +573,77 @@ describe("no slower than the generic item of the same type and generation", () =
       n++;
     }
     expect(n).toBeGreaterThan(60);
+  });
+});
+
+describe("w77: special abilities of catalogue vehicles", () => {
+  const flagsOf = (e: TankEntry) =>
+    (tankStatsOfEntry(e) as { flags: number }).flags;
+
+  test("spec fields set the designer's own flags on the catalogue row", () => {
+    expect(flagsOf(t34) & DS_AMPHIBIOUS).toBe(0);
+    for (const [field, flag] of [
+      ["amphibious", DS_AMPHIBIOUS],
+      ["flame", DS_FLAME],
+      ["flail", DS_FLAIL],
+    ] as const) {
+      const e: TankEntry = { ...t34, spec: { ...t34.spec, [field]: true } };
+      expect(flagsOf(e) & flag, field).toBe(flag);
+      expect(flagsOf(e) & DS_HIST, field).toBe(DS_HIST);
+    }
+    const recon: PlaneEntry = {
+      ...base,
+      id: "x_recon",
+      country: "DEU",
+      family: "plane",
+      type: "fighter",
+      spec: {
+        maxKmh: 560,
+        rangeKm: 900,
+        emptyKg: 2500,
+        wingLoad: 170,
+        guns: [],
+        defGuns: 0,
+        bombKg: 0,
+        torpedoKg: 0,
+        recon: true,
+        reliability: 3,
+        costK: 40,
+      },
+    };
+    expect(
+      (planeStatsOfEntry(recon) as { flags: number }).flags & DS_RECON,
+    ).toBe(DS_RECON);
+    expect(
+      (
+        planeStatsOfEntry({
+          ...recon,
+          spec: { ...recon.spec, recon: false },
+        }) as {
+          flags: number;
+        }
+      ).flags & DS_RECON,
+    ).toBe(0);
+  });
+
+  test("only the vehicles that really were amphibious carry the flag", () => {
+    const amphibious = HIST_ALL.filter(
+      (e): e is TankEntry => e.family === "tank" && e.spec.amphibious === true,
+    ).map((e) => e.id);
+    expect(amphibious.sort()).toEqual(["jpn_type2_kami", "sun_t40"]);
+    for (const id of amphibious) {
+      expect(flagsOf(histEntry(id) as TankEntry) & DS_AMPHIBIOUS, id).toBe(
+        DS_AMPHIBIOUS,
+      );
+    }
+    // No catalogue entry is a flame tank, a flail or a recon plane yet.
+    expect(
+      HIST_ALL.some(
+        (e) =>
+          (e.family === "tank" &&
+            (e.spec.flame === true || e.spec.flail === true)) ||
+          (e.family === "plane" && e.spec.recon === true),
+      ),
+    ).toBe(false);
   });
 });

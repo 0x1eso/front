@@ -100,6 +100,15 @@ export interface TankSpec {
   roadKmh: number;
   /** Diesel engine (lower fuel use). */
   diesel?: boolean;
+  /**
+   * w77: a swimming or landing tank (pontoons, flotation screen); sets
+   * DS_AMPHIBIOUS. Set only on a vehicle that really was one.
+   */
+  amphibious?: boolean;
+  /** w77: a flamethrower tank (DS_FLAME). No catalogue entry is one yet. */
+  flame?: boolean;
+  /** w77: a mine-flail tank (DS_FLAIL). No catalogue entry is one yet. */
+  flail?: boolean;
   /** Open-topped fighting compartment. */
   openTop?: boolean;
   /** Full tracks or half tracks = false; wheeled armoured car = true. */
@@ -163,6 +172,8 @@ export interface PlaneSpec {
   torpedoKg: number;
   /** Radar-equipped night/naval patrol set. */
   radar?: boolean;
+  /** w77: a dedicated photo-reconnaissance variant (DS_RECON). No catalogue entry is one yet. */
+  recon?: boolean;
   /** Dive-bomber (steep-attack accuracy). */
   dive?: boolean;
   /** Turbojet or rocket engine (fuel use up). */

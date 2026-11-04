@@ -561,32 +561,74 @@ const BASE_TECHS: Readonly<Record<WwTechId, WwTechDef>> = {
   // facilities and the railway gun; no effects (the intelligence lane
   // counts the cryptography techs).
   heavy_tank_1: t("heavy_tank_1", "armour", 1939, ["medium_tank_1"]),
-  heavy_tank_2: t("heavy_tank_2", "armour", 1941, ["heavy_tank_1"]),
-  heavy_tank_3: t("heavy_tank_3", "armour", 1943, ["heavy_tank_2"]),
-  tank_gun_2: t("tank_gun_2", "armour", 1940, ["anti_tank_2"]),
-  tank_gun_3: t("tank_gun_3", "armour", 1942, ["tank_gun_2"]),
-  cast_armor: t("cast_armor", "armour", 1938, ["light_tank_2"]),
-  diesel_engine: t("diesel_engine", "armour", 1938, ["motorized_1"]),
-  torsion_bar: t("torsion_bar", "armour", 1939, ["light_tank_2"]),
-  tank_radio: t("tank_radio", "armour", 1938, ["electronics_1"]),
-  sloped_armor: t("sloped_armor", "armour", 1940, ["medium_tank_1"]),
-  interleaved_wheels: t("interleaved_wheels", "armour", 1941, ["torsion_bar"]),
-  amphibious_drive: t("amphibious_drive", "armour", 1941, ["marines"]),
-  flame_tank: t("flame_tank", "armour", 1938, ["engineer_company"]),
+  heavy_tank_2: t("heavy_tank_2", "armour", 1941, ["heavy_tank_1"], {
+    armorAttackPct: 3,
+  }),
+  heavy_tank_3: t("heavy_tank_3", "armour", 1943, ["heavy_tank_2"], {
+    armorAttackPct: 3,
+  }),
+  tank_gun_2: t("tank_gun_2", "armour", 1940, ["anti_tank_2"], {
+    armorPiercePct: 4,
+  }),
+  tank_gun_3: t("tank_gun_3", "armour", 1942, ["tank_gun_2"], {
+    armorPiercePct: 4,
+  }),
+  cast_armor: t("cast_armor", "armour", 1938, ["light_tank_2"], {
+    armorArmorPct: 5,
+  }),
+  diesel_engine: t("diesel_engine", "armour", 1938, ["motorized_1"], {
+    mechOrg: 2,
+  }),
+  torsion_bar: t("torsion_bar", "armour", 1939, ["light_tank_2"], {
+    armorBrkPct: 4,
+  }),
+  tank_radio: t("tank_radio", "armour", 1938, ["electronics_1"], {
+    mechOrg: 3,
+  }),
+  sloped_armor: t("sloped_armor", "armour", 1940, ["medium_tank_1"], {
+    armorArmorPct: 5,
+  }),
+  interleaved_wheels: t("interleaved_wheels", "armour", 1941, ["torsion_bar"], {
+    armorBrkPct: 3,
+  }),
+  amphibious_drive: t("amphibious_drive", "armour", 1941, ["marines"], {
+    invasionPrepPct: -5,
+  }),
+  flame_tank: t("flame_tank", "armour", 1938, ["engineer_company"], {
+    fortPenaltyCutPct: 5,
+  }),
   dual_purpose_guns: t("dual_purpose_guns", "naval", 1940, ["fire_control_1"]),
-  naval_radar_2: t("naval_radar_2", "naval", 1942, ["naval_radar_1"]),
-  armored_deck: t("armored_deck", "naval", 1939, ["cv_2"]),
+  naval_radar_2: t("naval_radar_2", "naval", 1942, ["naval_radar_1"], {
+    navalDetectPct: 5,
+  }),
+  armored_deck: t("armored_deck", "naval", 1939, ["cv_2"], {
+    navalDamageTakenPct: -4,
+  }),
   mine_warfare_1: t("mine_warfare_1", "naval", 1936),
-  snorkel: t("snorkel", "naval", 1944, ["ss_3"]),
-  super_heavy_battleship: t("super_heavy_battleship", "naval", 1940, ["bb_3"]),
+  snorkel: t("snorkel", "naval", 1944, ["ss_3"], { subVisibilityPct: -10 }),
+  super_heavy_battleship: t("super_heavy_battleship", "naval", 1940, ["bb_3"], {
+    capitalHpPct: 5,
+  }),
   floating_harbor_1: t("floating_harbor_1", "naval", 1943, ["landing_craft_2"]),
-  aircraft_cannon_1: t("aircraft_cannon_1", "air", 1938, ["fighter_1"]),
-  aircraft_cannon_2: t("aircraft_cannon_2", "air", 1942, ["aircraft_cannon_1"]),
-  self_sealing_tanks: t("self_sealing_tanks", "air", 1938, ["fighter_1"]),
-  drop_tanks: t("drop_tanks", "air", 1939, ["fighter_1"]),
-  bomb_sight_1: t("bomb_sight_1", "air", 1939, ["bomber_1"]),
-  air_rockets_1: t("air_rockets_1", "air", 1942, ["cas_2"]),
-  air_radar_1: t("air_radar_1", "air", 1941, ["radar_1"]),
+  aircraft_cannon_1: t("aircraft_cannon_1", "air", 1938, ["fighter_1"], {
+    fighterAttackPct: 5,
+  }),
+  aircraft_cannon_2: t(
+    "aircraft_cannon_2",
+    "air",
+    1942,
+    ["aircraft_cannon_1"],
+    { fighterAttackPct: 5 },
+  ),
+  self_sealing_tanks: t("self_sealing_tanks", "air", 1938, ["fighter_1"], {
+    airLossCutPct: 3,
+  }),
+  drop_tanks: t("drop_tanks", "air", 1939, ["fighter_1"], { airRangePct: 5 }),
+  bomb_sight_1: t("bomb_sight_1", "air", 1939, ["bomber_1"], {
+    stratBombPct: 5,
+  }),
+  air_rockets_1: t("air_rockets_1", "air", 1942, ["cas_2"], { casPct: 5 }),
+  air_radar_1: t("air_radar_1", "air", 1941, ["radar_1"], { airDetectPct: 5 }),
   railway_gun_1: t("railway_gun_1", "artillery", 1939, ["artillery_2"]),
   cryptography_1: t("cryptography_1", "electronics", 1936),
   cryptography_2: t("cryptography_2", "electronics", 1939, ["cryptography_1"]),
@@ -769,7 +811,7 @@ const BASE_TECHS: Readonly<Record<WwTechId, WwTechDef>> = {
     "armour",
     1940,
     ["diesel_engine"],
-    {},
+    { mechOrg: 2 },
     {
       cost: COST_NORMAL,
       role: "module",
@@ -798,7 +840,7 @@ const BASE_TECHS: Readonly<Record<WwTechId, WwTechDef>> = {
     "armour",
     1943,
     ["tank_engine_2"],
-    {},
+    { mechOrg: 3 },
     {
       cost: COST_NORMAL,
       role: "module",
@@ -810,7 +852,7 @@ const BASE_TECHS: Readonly<Record<WwTechId, WwTechDef>> = {
     "armour",
     1944,
     ["tank_gun_3"],
-    {},
+    { armorPiercePct: 4 },
     {
       cost: COST_NORMAL,
       role: "module",
@@ -822,7 +864,7 @@ const BASE_TECHS: Readonly<Record<WwTechId, WwTechDef>> = {
     "armour",
     1944,
     ["heavy_tank_3"],
-    {},
+    { armorDefensePct: 4 },
     {
       cost: COST_BIG,
       role: "chassis",
@@ -834,7 +876,7 @@ const BASE_TECHS: Readonly<Record<WwTechId, WwTechDef>> = {
     "armour",
     1945,
     ["medium_tank_3", "tank_gun_4"],
-    {},
+    { armorAttackPct: 3, armorBrkPct: 3 },
     {
       cost: COST_BIG,
       role: "post",
@@ -1029,7 +1071,7 @@ const BASE_TECHS: Readonly<Record<WwTechId, WwTechDef>> = {
     "air",
     1944,
     ["air_radar_1", "radar_2"],
-    {},
+    { airDetectPct: 5 },
     {
       cost: COST_NORMAL,
       role: "module",
@@ -1041,7 +1083,7 @@ const BASE_TECHS: Readonly<Record<WwTechId, WwTechDef>> = {
     "air",
     1945,
     ["aero_engine_4"],
-    {},
+    { airAgilityPct: 5 },
     {
       cost: COST_BIG,
       role: "post",
@@ -1054,7 +1096,7 @@ const BASE_TECHS: Readonly<Record<WwTechId, WwTechDef>> = {
     "air",
     1945,
     ["strat_bomber_2"],
-    {},
+    { bomberDefensePct: 5 },
     {
       cost: COST_BIG,
       role: "post",

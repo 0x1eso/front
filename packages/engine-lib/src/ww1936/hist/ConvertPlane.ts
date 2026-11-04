@@ -12,6 +12,7 @@ import {
   DS_HIST,
   DS_JET,
   DS_RADAR,
+  DS_RECON,
   PlaneDesignStats,
 } from "@openfront/engine-api/ww1936/DepthTypes";
 import { RESOURCE_IDS } from "@openfront/engine-api/ww1936/EconomyTypes";
@@ -257,6 +258,7 @@ export function planeStatsOfEntry(e: PlaneEntry): PlaneDesignStats {
       DS_HIST |
       (jet ? DS_JET : 0) |
       (s.radar === true ? DS_RADAR : 0) |
+      (s.recon === true ? DS_RECON : 0) |
       (e.type.startsWith("cv_") ? DS_CARRIER : 0) |
       (e.type === "transport_plane" ? DS_CARGO : 0),
     year: e.year,

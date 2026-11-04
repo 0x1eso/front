@@ -196,7 +196,13 @@ export const TECH_RULE_LINES: Readonly<
   synthetic_rubber_1: [["synthetic_rubber"]],
   metal_substitute_1: [["metal_1"]],
   metal_substitute_2: [["metal_2"]],
+  mine_warfare_1: [["mine_work"]],
   mine_warfare_2: [["mines", { n: 50 }]],
+  // w77: the ship anti-air techs (ShipStats' NAVAL_AA_PCT) and the second fire control.
+  dual_purpose_guns: [["naval_aa", { n: 10 }]],
+  naval_aa_1: [["naval_aa", { n: 15 }]],
+  naval_aa_2: [["naval_aa", { n: 20 }]],
+  fire_control_2: [["fire_control", { n: 5 }]],
   cryptography_1: [["cipher", { c: 40, d: 15 }]],
   cryptography_2: [["cipher", { c: 40, d: 15 }]],
   cryptography_3: [["cipher", { c: 40, d: 15 }]],

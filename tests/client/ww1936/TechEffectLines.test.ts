@@ -43,9 +43,11 @@ vi.mock("../../../src/client/Utils", async (importOriginal) => ({
   },
 }));
 
+import { HIST_COUNTRIES } from "@openfront/engine-lib/ww1936/hist/Types";
 import {
   CUT_EFFECTS,
   effectLines,
+  histUnlockLines,
   leadLines,
   NO_EFFECT_KEY,
   ownEffectLines,
@@ -103,6 +105,58 @@ describe("every researchable tech says what it does", () => {
       if (ownEffectLines(id).length > 0) {
         expect(effectLines(id), id).not.toContain(TEXT.ko[NO_EFFECT_KEY]);
       }
+    }
+  });
+});
+
+describe("w77: with the designer off every live tech does something", () => {
+  // The designer's parts and the catalogue entries a tech gates do not count:
+  // a tech with only those is empty for a minor and for any major without
+  // an entry behind it. Stat effects, equipment, a ship class, units,
+  // buildings, projects and rule lines do.
+  const majors = [null, ...HIST_COUNTRIES];
+  for (const lang of ["ko", "en"] as const) {
+    it(`gives a minor and every major a line of its own in ${lang}`, () => {
+      LANG = lang;
+      const empty: string[] = [];
+      for (const id of shown) {
+        for (const country of majors) {
+          const own = ownEffectLines(id, { designer: false, country });
+          const hist = histUnlockLines(id, country);
+          const real = own.filter((l) => !hist.includes(l));
+          if (real.length === 0) empty.push(`${id}@${country ?? "minor"}`);
+        }
+      }
+      expect(empty).toEqual([]);
+    });
+  }
+
+  it("the new lines read right in both languages", () => {
+    for (const lang of ["ko", "en"] as const) {
+      LANG = lang;
+      const one = (id: string) =>
+        ownEffectLines(id as never, { designer: false, country: null });
+      expect(one("mine_warfare_1").join("|")).toMatch(
+        lang === "ko" ? /기뢰 부설.*소해/ : /mine laying.*sweeping/,
+      );
+      expect(one("naval_aa_1")[0]).toBe(
+        lang === "ko" ? "함선 대공 화력 +15%" : "Ship anti-air +15%",
+      );
+      expect(one("snorkel")[0]).toBe(
+        lang === "ko" ? "잠수함 피발견도 −10%" : "Submarine visibility −10%",
+      );
+      expect(one("armored_deck")[0]).toBe(
+        lang === "ko" ? "함선이 받는 피해 −4%" : "Damage taken by ships −4%",
+      );
+      expect(one("amphibious_drive")[0]).toBe(
+        lang === "ko" ? "상륙 준비 시간 −5%" : "Landing preparation time −5%",
+      );
+      expect(one("tank_gun_2")[0]).toBe(
+        lang === "ko" ? "전차포 관통 +4%" : "Tank gun piercing +4%",
+      );
+      expect(one("fire_control_2")[0]).toBe(
+        lang === "ko" ? "해전 함포 명중 +5%" : "Naval gun hit chance +5%",
+      );
     }
   });
 });

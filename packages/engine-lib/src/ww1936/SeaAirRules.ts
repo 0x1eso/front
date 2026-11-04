@@ -1,5 +1,9 @@
 // World War 1936 P6 (P6 spec §15): mines, aces, night bombing and
 // recon. Final (plan Task 1 Step 8); lane W2 uses them (Task 8).
+import {
+  DS_MINE_LAYER,
+  DS_MINESWEEP,
+} from "@openfront/engine-api/ww1936/DepthTypes";
 import type { ShipClass } from "@openfront/engine-api/ww1936/NavyTypes";
 
 /** Mines are milli-units (0..1_000_000 = spec 0..1000). */
@@ -14,6 +18,29 @@ export const MINE_SWEEP_PER_DAY: Readonly<Partial<Record<ShipClass, number>>> =
     dd: 3_000,
     cl: 2_000,
   };
+
+/**
+ * w77: which mine work a ship may do, as DS_MINE_LAYER / DS_MINESWEEP bits.
+ * The one judgement Mines, the AI, the order screens and the fleet card's
+ * chips all use. With the designer on it is the design's own flags (as it
+ * always was: only a mine-layer or minesweeper design works mines). With the
+ * designer off no ship has a design to carry the module, so mine_warfare_1
+ * opens the work by class: destroyers, light cruisers and submarines lay,
+ * destroyers and light cruisers sweep (the classes that have a rate above).
+ */
+export function mineRoleFlags(
+  cls: ShipClass,
+  designFlags: number,
+  designer: boolean,
+  hasMineWarfare1: boolean,
+): number {
+  if (designer) return designFlags & (DS_MINE_LAYER | DS_MINESWEEP);
+  if (!hasMineWarfare1) return 0;
+  return (
+    ((MINE_LAY_PER_DAY[cls] ?? 0) > 0 ? DS_MINE_LAYER : 0) |
+    ((MINE_SWEEP_PER_DAY[cls] ?? 0) > 0 ? DS_MINESWEEP : 0)
+  );
+}
 
 export function mineDecay(m: number): number {
   return Math.floor((m * 5) / 1000);

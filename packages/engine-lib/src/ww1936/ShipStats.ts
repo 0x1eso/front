@@ -172,6 +172,12 @@ export const SHIP_BASE: Readonly<Record<ShipClass, ShipBase>> = {
     supWeight: 1,
   },
 };
+/** w77: the anti-air a ship gains from each naval AA tech, percent of its base AA. */
+export const NAVAL_AA_PCT = {
+  dual_purpose_guns: 10,
+  naval_aa_1: 15,
+  naval_aa_2: 20,
+} as const;
 /** Spec §4.2, index = generation − 1. */
 export const GEN_HP_PCT = [100, 110, 120, 130] as const;
 export const GEN_ATK_PCT = [100, 125, 150, 175] as const;
@@ -220,6 +226,12 @@ export function shipStats(
       ? v
       : Math.floor((v * (100 + stats.mioStatPct_naval)) / 100);
   const pierce = GEN_PIERCE_PCT[g];
+  // w77: the naval anti-air techs, read by id like the radar and the sonar.
+  const aaPct =
+    atk +
+    (techs.has("dual_purpose_guns") ? NAVAL_AA_PCT.dual_purpose_guns : 0) +
+    (techs.has("naval_aa_1") ? NAVAL_AA_PCT.naval_aa_1 : 0) +
+    (techs.has("naval_aa_2") ? NAVAL_AA_PCT.naval_aa_2 : 0);
   const surf = Math.floor(
     ((b.surfDetect + GEN_DETECT[g]) *
       (100 + (techs.has("naval_radar_1") ? 20 : 0))) /
@@ -254,7 +266,7 @@ export function shipStats(
     torpedo: mio(b.torpedo * Math.max(0, torpPct)),
     depth: mio(b.depth * Math.max(0, depthPct)),
     armor: b.armor * pierce,
-    aa: mio(b.aa * atk),
+    aa: mio(b.aa * aaPct),
     speedCentiKn: (b.speedKn + genSpeedKn(cls, gen)) * 100,
     rangeKm: b.rangeKm,
     vis,

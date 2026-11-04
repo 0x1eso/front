@@ -35,13 +35,16 @@ import { aiAtWar, invasionBoundFleets, invasionRouteSrs } from "../navy/AiNavy";
 import { FST, MISSION } from "../navy/Missions";
 import type { Fleet } from "../navy/WwNavy";
 import { fliesAtNight, issueSeaAir } from "./AirExtras";
-import { enemyMinesMilli, shipDesignFlags, sidesAtWar } from "./Mines";
+import { designerOn } from "./Hist";
+import { enemyMinesMilli, shipMineFlags, sidesAtWar } from "./Mines";
 import type { WwDepth } from "./WwDepth";
 
 /** Spec §15.1: the countries that mine their home waters whenever at war. */
 export const AI_MINE_TAGS: readonly CountryTag[] = ["GBR", "DEU", "SUN", "FIN"];
 /** Spec §15.1: the home waters — the sea regions nearest the capital. */
 export const AI_MINE_HOME_REGIONS = 2;
+/** w77: the most ships the AI puts on one mine mission with the designer off. */
+export const AI_MINE_SHIPS = 3;
 /** Spec §15.3: Britain's strategic bombing goes by night from this date. */
 export const AI_NIGHT_GBR_DATE = "1940-09-01";
 /** 내 판단: by night under an enemy sky this strong over the zone, ‰; back by day below the second. */
@@ -129,6 +132,19 @@ function enemyFleetNear(d: WwDepth, id: number, sr: number): boolean {
 
 /** Which of the mine flags any of the country's ship designs carries. */
 function mineDesignFlags(d: WwDepth, id: number): number {
+  // w77: with the designer off no design carries the module: the owner's
+  // ships decide (Mines' shipMineFlags: mine_warfare_1 and the class).
+  if (!designerOn(d)) {
+    const navy = d.ww.navy;
+    let any = 0;
+    for (const f of navy.fleetsOf(id)) {
+      for (const sid of f.ships) {
+        const r = navy.ships.rowOf(sid);
+        if (r >= 0) any |= shipMineFlags(d, r);
+      }
+    }
+    return any;
+  }
   const c = d.country(id);
   if (c === null) return 0;
   let flags = 0;
@@ -165,15 +181,21 @@ function assignShips(
   const bound = d.ww.isHumanControlled(id)
     ? invasionBoundFleets(navy, id)
     : null;
+  // w77: with the designer off every destroyer, light cruiser and submarine
+  // can work mines, so the AI takes only the idle fleets' ships (a fleet on
+  // a mission keeps it) and at most AI_MINE_SHIPS for one region.
+  const picky = !designerOn(d);
   let best: Fleet | null = null;
   let bestShips: number[] = [];
   for (const f of [...navy.fleetsOf(id)].sort((a, b) => a.id - b.id)) {
     if (f.state === FST.battle || isDepthFleet(f)) continue;
     if (bound?.has(f.id) === true) continue;
-    const ships = f.ships.filter((sid) => {
+    if (picky && f.mission !== MISSION.hold) continue;
+    let ships = f.ships.filter((sid) => {
       const r = t.rowOf(sid);
-      return r >= 0 && (shipDesignFlags(d, r) & flag) !== 0;
+      return r >= 0 && (shipMineFlags(d, r) & flag) !== 0;
     });
+    if (picky) ships = ships.slice(0, AI_MINE_SHIPS);
     if (ships.length === 0) continue;
     const better =
       best === null ||

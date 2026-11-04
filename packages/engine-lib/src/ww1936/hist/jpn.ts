@@ -143,6 +143,7 @@ export const JPN_HIST: readonly HistEntry[] = [
       roadKmh: 37,
       reliability: 3,
       costK: 30,
+      amphibious: true,
       diesel: true,
     },
   },

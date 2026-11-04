@@ -341,3 +341,44 @@ describe("U5 screens", () => {
     expect(TREATY_LIMITED_MODULES.untilEscalated).toEqual(["main_heavy"]);
   });
 });
+
+describe("w77: the fleet card's mine chips with the designer off", () => {
+  const chips = (designer: boolean, techs: string[], classes: string[]) => {
+    const fleets = new Map([
+      [7, { owner: 1, ships: classes.map((cls) => ({ cls })) }],
+    ]);
+    return model(
+      "GBR",
+      (d) =>
+        d.apply({
+          details: [depthDetail("GBR", { smallID: 1 })],
+          fx: [],
+          news: [],
+        }),
+      {},
+      {
+        wwNavy: () => ({ fleets }),
+        wwEconomy: () => ({ detail: () => ({ researched: techs }) }),
+        config: () => ({
+          gameConfig: () => ({ ww1936Designer: designer }),
+        }),
+      },
+    )
+      .fleetChips(7)
+      .map((c) => c.mission);
+  };
+
+  it("needs mine_warfare_1 and a ship of the right class", () => {
+    expect(chips(false, [], ["dd", "ss"])).toEqual([]);
+    expect(chips(false, ["mine_warfare_1"], ["dd"])).toEqual([
+      "lay_mines",
+      "sweep_mines",
+    ]);
+    expect(chips(false, ["mine_warfare_1"], ["ss"])).toEqual(["lay_mines"]);
+    expect(chips(false, ["mine_warfare_1"], ["bb", "ca"])).toEqual([]);
+  });
+
+  it("with the designer on it still needs a design with the module", () => {
+    expect(chips(true, ["mine_warfare_1"], ["dd"])).toEqual([]);
+  });
+});

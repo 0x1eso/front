@@ -195,6 +195,7 @@ export const SUN_HIST: readonly HistEntry[] = [
       roadKmh: 44,
       reliability: 3,
       costK: 11,
+      amphibious: true,
     },
   },
   {

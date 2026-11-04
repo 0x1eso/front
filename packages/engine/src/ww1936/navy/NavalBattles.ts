@@ -81,6 +81,9 @@ const PROTECTOR_SCREEN_PM = 150;
 const FIRE_CONTROL_HIT_PCT = 10;
 const RADAR_HIT_PCT = 5;
 const FIRE_CONTROL: WwTechId = "fire_control_1";
+/** w77: fire_control_2 adds this to the gun hit chance, %. */
+export const FIRE_CONTROL_2_HIT_PCT = 5;
+const FIRE_CONTROL_2: WwTechId = "fire_control_2";
 const RADAR: WwTechId = "naval_radar_1";
 /** Spec §9.4: rounds between carrier strikes (base_strike_2's carrierRoundsCut takes one off). */
 const CARRIER_EVERY = 3;
@@ -800,7 +803,11 @@ function fire(
       const r = hasTech(navy, sh.owner, RADAR) ? RADAR_HIT_PCT : 0;
       pct = [
         r,
-        r + (hasTech(navy, sh.owner, FIRE_CONTROL) ? FIRE_CONTROL_HIT_PCT : 0),
+        r +
+          (hasTech(navy, sh.owner, FIRE_CONTROL) ? FIRE_CONTROL_HIT_PCT : 0) +
+          (hasTech(navy, sh.owner, FIRE_CONTROL_2)
+            ? FIRE_CONTROL_2_HIT_PCT
+            : 0),
       ];
       memo.hitPct.set(sh.owner, pct);
     }

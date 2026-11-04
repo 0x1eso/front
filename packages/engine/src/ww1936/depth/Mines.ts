@@ -19,10 +19,12 @@ import {
   mineDamageMilli,
   mineDecay,
   mineInvasionCutPct,
+  mineRoleFlags,
 } from "@openfront/engine-lib/ww1936/SeaAirRules";
 import { FST, MISSION } from "../navy/Missions";
 import { applyShipDamage } from "../navy/NavalBattles";
 import type { Fleet } from "../navy/WwNavy";
+import { designerOn } from "./Hist";
 import type { WwDepth } from "./WwDepth";
 
 /**
@@ -59,6 +61,22 @@ export function shipDesignFlags(d: WwDepth, row: number): number {
   const slot = t.design[row];
   if (slot === 0) return 0;
   return d.designStatsOf(t.owner[row], "ship", slot)?.flags ?? 0;
+}
+
+/**
+ * w77: the mine work (DS_MINE_LAYER / DS_MINESWEEP bits) the ship in `row`
+ * may do: its design's with the designer on, its class's once the owner
+ * has mine_warfare_1 with it off (mineRoleFlags).
+ */
+export function shipMineFlags(d: WwDepth, row: number): number {
+  const t = d.ww.navy.ships;
+  const owner = t.owner[row];
+  return mineRoleFlags(
+    SHIP_CLASSES[t.cls[row]],
+    shipDesignFlags(d, row),
+    designerOn(d),
+    d.ww.economy.country(owner)?.researched.has("mine_warfare_1") === true,
+  );
 }
 
 /** Working its mission in place: at sea, on station, no path left (not moving, not in a battle). */
@@ -140,7 +158,7 @@ export function seaRegionDay(d: WwDepth, sr: number, day: number): void {
         if (r < 0) continue;
         x.ships.push(sid);
         if (!lays && !sweeps) continue;
-        const flags = shipDesignFlags(d, r);
+        const flags = shipMineFlags(d, r);
         const cls = SHIP_CLASSES[t.cls[r]];
         if (lays && (flags & DS_MINE_LAYER) !== 0) {
           x.lay += mineBoost(MINE_LAY_PER_DAY[cls] ?? 0, mw2);

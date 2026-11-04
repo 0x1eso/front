@@ -13,6 +13,8 @@ import {
   CONTINUOUS_FOCUSES,
   type ContinuousFocus,
   DAMS,
+  DS_MINE_LAYER,
+  DS_MINESWEEP,
   FACILITY_IDS,
   FACTION_GOALS,
   FACTION_RULES,
@@ -27,7 +29,10 @@ import {
   WW_MAX_RAILGUNS,
 } from "@openfront/engine-api/ww1936/DepthTypes";
 import type { BuildingId } from "@openfront/engine-api/ww1936/EconomyTypes";
-import { ADMIRAL_TRAITS } from "@openfront/engine-api/ww1936/NavyTypes";
+import {
+  ADMIRAL_TRAITS,
+  type ShipClass,
+} from "@openfront/engine-api/ww1936/NavyTypes";
 import { dayOfDate } from "@openfront/engine-lib/ww1936/Calendar";
 import { intelBand } from "@openfront/engine-lib/ww1936/IntelRules";
 import {
@@ -42,12 +47,14 @@ import {
   RAID_TARGETS,
   rocketTargetBlock,
 } from "@openfront/engine-lib/ww1936/ProjectRules";
+import { mineRoleFlags } from "@openfront/engine-lib/ww1936/SeaAirRules";
 import {
   LANDMARK_STATS,
   scorchBlock,
 } from "@openfront/engine-lib/ww1936/WorldRules";
 import { translateText } from "../../Utils";
 import type { GameView } from "../../view/GameView";
+import { type DesignerFlagGame, designerOn } from "./DesignerFlag";
 import { designDisplayName, designNameOr, histNameOf } from "./DesignName";
 import { equipmentName, genName } from "./EconomyModel";
 import { fogModelOf } from "./FogModel";
@@ -821,12 +828,32 @@ export class DepthMiscModel {
       .map((b) => ({ building: b, facility: FACILITY_BUILDINGS.has(b) }));
   }
 
-  /** The fleet card's mine chips: when a design with the module is in the owner's list. */
+  /**
+   * The fleet card's mine chips. Designer on: when a design with the module is
+   * in the owner's list. Off: mine_warfare_1 researched and a ship of a class
+   * that can do the work in the fleet (SeaAirRules' mineRoleFlags, the rule
+   * the engine and the AI use).
+   */
   fleetChips(fleetId: number): FleetChip[] {
     const f = this.view.wwNavy?.()?.fleets.get(fleetId);
     const det = (this.view.wwDepth?.() ?? null)?.detail(this.me());
     if (f === undefined || det === undefined || f.owner !== this.me()) {
       return [];
+    }
+    const out: FleetChip[] = [];
+    if (!designerOn(this.view as DesignerFlagGame)) {
+      const mw1 =
+        this.view
+          .wwEconomy?.()
+          ?.detail(this.me())
+          ?.researched.includes("mine_warfare_1") === true;
+      const flags = f.ships.reduce(
+        (a, s) => a | mineRoleFlags(s.cls as ShipClass, 0, false, mw1),
+        0,
+      );
+      if ((flags & DS_MINE_LAYER) !== 0) out.push({ mission: "lay_mines" });
+      if ((flags & DS_MINESWEEP) !== 0) out.push({ mission: "sweep_mines" });
+      return out;
     }
     const classes = (names: string[]) =>
       f.ships.some((s) => names.includes(s.cls));
@@ -835,7 +862,6 @@ export class DepthMiscModel {
         (x) =>
           x.kind === "ship" && !x.obsolete && x.def.modules.includes(module),
       );
-    const out: FleetChip[] = [];
     if (has("mine_layer") && classes(["dd", "cl", "ss"])) {
       out.push({ mission: "lay_mines" });
     }
