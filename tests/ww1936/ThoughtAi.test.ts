@@ -13,6 +13,7 @@ import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSou
 import { DEEP } from "./deepFixture";
 import { depthFixture } from "./depthFixture";
 import { dropPact, stepTo, warAfterPrep, wwRunner } from "./util";
+import { giveWing } from "./wingUtil";
 
 beforeEach(() => usePoliticsContent(depthFixture()));
 afterEach(() => usePoliticsContent(null));
@@ -74,6 +75,25 @@ describe("thought AI (design §9)", () => {
       aiThoughtTargets(d, DEU, (DEU % 30) + 30),
     );
     expect(aiThoughtTargets(d, DEU, DEU % 30)).not.toBeNull();
+  });
+
+  it("a wing counts by its own type: strategic bombers pull the strategic slider", async () => {
+    const runner = await wwRunner(
+      {},
+      [{ clientID: "HUMANPOL", country: "POL" }],
+      DEEP.map,
+    );
+    stepTo(runner, WW_PREP_TICKS + 1);
+    const ww = runner.game.worldWar()!;
+    const d = ww.depth;
+    const judge = (type: "strat_bomber" | "bomber"): number => {
+      for (const w of [...ww.air.wingsOf(DEU)]) ww.air.removeWing(w.id, true);
+      giveWing(ww.air, { owner: DEU, type, planes: 10 });
+      setTarget(d, DEU, new Array<number>(9).fill(9));
+      return aiThoughtTargets(d, DEU, DEU % 90)![7];
+    };
+    // Generation 1 of a plain bomber wing is not a strategic bomber.
+    expect(judge("strat_bomber")).toBeLessThan(judge("bomber"));
   });
 
   it("the officer-corps tables are keyed by start position", () => {

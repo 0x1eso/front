@@ -19,6 +19,7 @@ import {
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { thoughtStartPos } from "@openfront/engine-lib/ww1936/ThoughtRules";
 import { AI_FIGHTER_HOLD_SUP_PM } from "../air/AiAir";
+import { wingPlanes } from "../air/WwAir";
 import { aiPersonality } from "../economy/AiEconomy";
 import { homeSeaRegions } from "./AiSeaAir";
 import { enemySupPm } from "./Atomic";
@@ -159,11 +160,15 @@ function adjustments(d: WwDepth, id: number): number[] {
   let strat = 0;
   let bombers = 0;
   for (const w of ww.air.wingsOf(id)) {
-    strat += w.counts[T_STRAT] ?? 0;
-    bombers +=
-      (w.counts[T_STRAT] ?? 0) +
-      (w.counts[T_BOMBER] ?? 0) +
-      (w.counts[T_NAVAL_BOMBER] ?? 0);
+    const n = wingPlanes(w);
+    if (w.type === T_STRAT) strat += n;
+    if (
+      w.type === T_STRAT ||
+      w.type === T_BOMBER ||
+      w.type === T_NAVAL_BOMBER
+    ) {
+      bombers += n;
+    }
   }
   const front = land
     .armiesOf(id)
