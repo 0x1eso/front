@@ -68,7 +68,7 @@ const b = (
 // ww67: tanks' org 10 to 20 and HP ×3. With 10 and 2 a battalion of pure tanks
 // broke in two days and took its budget with it, whatever its protection:
 // anti-tank guns were a hard counter (win 0.00, exchange 0.05), not a means.
-// ww67: foot units' breakthrough ×2 (infantry 3 to 6, the others 4 to 8).
+// ww67: foot units' breakthrough ×2.5 (infantry 3 to 7.5, the others 4 to 10).
 // Attackers block with breakthrough, far below the attack coming at them, so
 // nearly all hits landed at the 40 % rate: a prepared line needed 5:1.
 export const BATTALIONS: Readonly<Record<BattalionId, BattalionDef>> = {
@@ -81,7 +81,7 @@ export const BATTALIONS: Readonly<Record<BattalionId, BattalionDef>> = {
     soft: 600,
     hard: 100,
     def: 2200,
-    brk: 600,
+    brk: 750,
     pierce: 400,
     armor: 0,
     hardnessPm: 0,
@@ -102,7 +102,7 @@ export const BATTALIONS: Readonly<Record<BattalionId, BattalionDef>> = {
     soft: 600,
     hard: 100,
     def: 2000,
-    brk: 800,
+    brk: 1000,
     pierce: 400,
     armor: 0,
     hardnessPm: 0,
@@ -127,7 +127,7 @@ export const BATTALIONS: Readonly<Record<BattalionId, BattalionDef>> = {
       soft: 600,
       hard: 100,
       def: 2200,
-      brk: 800,
+      brk: 1000,
       pierce: 400,
       armor: 0,
       hardnessPm: 0,
@@ -154,7 +154,7 @@ export const BATTALIONS: Readonly<Record<BattalionId, BattalionDef>> = {
       soft: 600,
       hard: 100,
       def: 2200,
-      brk: 800,
+      brk: 1000,
       pierce: 400,
       armor: 0,
       hardnessPm: 0,
@@ -181,7 +181,7 @@ export const BATTALIONS: Readonly<Record<BattalionId, BattalionDef>> = {
       soft: 600,
       hard: 100,
       def: 2000,
-      brk: 800,
+      brk: 1000,
       pierce: 400,
       armor: 0,
       hardnessPm: 0,
@@ -206,7 +206,7 @@ export const BATTALIONS: Readonly<Record<BattalionId, BattalionDef>> = {
     soft: 600,
     hard: 100,
     def: 2200,
-    brk: 800,
+    brk: 1000,
     pierce: 400,
     armor: 0,
     hardnessPm: 100,
