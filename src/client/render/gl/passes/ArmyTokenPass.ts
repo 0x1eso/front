@@ -16,7 +16,10 @@
  * without armies.
  */
 
-import { ARMY_AUTO } from "@openfront/engine-api/ww1936/LandTypes";
+import {
+  ARMY_AUTO,
+  ARMY_EXECUTING,
+} from "@openfront/engine-api/ww1936/LandTypes";
 import {
   type FogArmyView,
   type FogGhost,
@@ -58,6 +61,12 @@ export const KIND_DOT = 2;
 export const KIND_FRONT_DOTS = 3;
 /** At most this many front dots in a region (spec §15.2). */
 const FRONT_DOTS_MAX = 5;
+/** Front-row state codes the shader reads (army-token.frag.glsl): pills 8..11 and 16, an order badge 24. */
+const CODE_ATK = 8;
+const CODE_WALK = 16;
+const CODE_ORDER = 24;
+/** Vertical step between the stacked pills of one region, screen px. */
+const PILL_STEP_PX = 17;
 
 /** The atlas layout the token and battle shaders share. */
 export const ATLAS_DEFINES: Record<string, number> = {
@@ -285,7 +294,8 @@ export class ArmyTokenPass {
       fv === null || fv.bars === "exact" ? a.strengthPm : stepPm(a.strengthPm);
     f[o + 7] = fv === null || fv.bars === "exact" ? a.orgPm : stepPm(a.orgPm);
     // Automation: the "A" mark shows on the viewer's own auto armies only.
-    f[o + 8] = a.owner === me ? a.state : a.state & ~ARMY_AUTO;
+    f[o + 8] =
+      a.owner === me ? a.state : a.state & ~(ARMY_AUTO | ARMY_EXECUTING);
     f[o + 9] = chosen ? 1 : 0;
     // ww7: the auto level (1 defence, 2 full) of the viewer's own armies,
     // shown beside the "A".
@@ -381,10 +391,12 @@ export class ArmyTokenPass {
   }
 
   /**
-   * ww42: the chosen own army's direct attack: a row of dots (at most five)
-   * in each region by what its divisions there do, from the engine's counts
-   * (mine.direct): attacking, holding the border, waiting, recovering,
-   * walking. Own armies only (mine is the fog-safe field).
+   * ww42/ww44: the chosen own army's direct attack, from the engine's counts
+   * (mine.direct): in each region a pill per kind of what its divisions do
+   * (holding the border, waiting, recovering, walking) with their number; the
+   * attacking count sits halfway along its arrow, and each
+   * target carries its order (1, 2, 3). Own armies only (mine is the
+   * fog-safe field).
    */
   private directDots(
     view: WwLandView,
@@ -398,17 +410,47 @@ export class ArmyTokenPass {
     const dv = a?.mine?.direct;
     if (a === undefined || a.owner !== me || dv === undefined) return 0;
     const w = view.scenario.width;
-    const row = (region: number, code: number, n: number) => {
-      const t = view.scenario.centerTile(region);
-      data.push(t % w, Math.floor(t / w), KIND_FRONT_DOTS, a.owner);
-      data.push(-1, 0, 0, 0);
-      data.push(code, 0, Math.min(FRONT_DOTS_MAX, n), 0);
+    const row = (
+      x: number,
+      y: number,
+      code: number,
+      n: number,
+      yoff: number,
+    ) => {
+      data.push(x, y, KIND_FRONT_DOTS, a.owner);
+      data.push(-1, Math.min(MAX_NUMBER, n), 0, yoff);
+      data.push(code, 0, 0, 0);
     };
-    const atk = new Map<number, number>();
-    for (const [from, , n] of dv.atk) atk.set(from, (atk.get(from) ?? 0) + n);
-    for (const [region, n] of atk) row(region, 8, n);
+    const xy = (region: number): [number, number] => {
+      const t = view.scenario.centerTile(region);
+      return [t % w, Math.floor(t / w)];
+    };
+    // Per region the pills stand one above the other.
+    const per = new Map<number, [number, number][]>();
+    const put = (region: number, code: number, n: number) => {
+      const list = per.get(region);
+      if (list === undefined) per.set(region, [[code, n]]);
+      else list.push([code, n]);
+    };
+    for (const [from, to, n] of dv.atk) {
+      const [fx, fy] = xy(from);
+      const [tx, ty] = xy(to);
+      row((fx + tx) / 2, (fy + ty) / 2, CODE_ATK, n, 0);
+    }
     for (const [region, kind, n] of dv.at) {
-      row(region, kind === 3 ? 16 : 9 + kind, n);
+      put(region, kind === 3 ? CODE_WALK : CODE_ATK + 1 + kind, n);
+    }
+    for (const [region, list] of per) {
+      const [x, y] = xy(region);
+      list.forEach(([code, n], j) => {
+        row(x, y, code, n, (j - (list.length - 1) / 2) * PILL_STEP_PX);
+      });
+    }
+    if (a.mine!.order.direct === true) {
+      a.mine!.order.targets.forEach((t, i) => {
+        const [x, y] = xy(t);
+        row(x, y, CODE_ORDER, i + 1, 0);
+      });
     }
     return data.length / FLOATS;
   }

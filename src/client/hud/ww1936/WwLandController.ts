@@ -357,6 +357,80 @@ export class WwLandController implements Controller {
     return true;
   }
 
+  /**
+   * ww44: the group tab's [공격] mode: a tap on an enemy region gives every
+   * army of the group the direct attack (ag_execute with the targets, taken
+   * in order); the same region again removes it; any other region does
+   * nothing. A tap on my token ends the mode and chooses it as usual (false).
+   */
+  private groupAttackTap(
+    view: WwLandView,
+    me: number,
+    w: { x: number; y: number },
+    zoom: number,
+  ): boolean {
+    const m = this.multi;
+    const group = m.attackGroup!;
+    const mine = this.deps
+      .layout(view, this.game.ticks(), zoom)
+      .filter((p) => view.armies.get(p.army)?.owner === me);
+    if (this.deps.hit(mine, w.x, w.y, TAP_RADIUS_PX / zoom, null) !== null) {
+      m.cancel();
+      this.changed();
+      return false;
+    }
+    const region = this.regionAt(view, w.x, w.y);
+    const sides = this.sides();
+    if (!sides.isEnemy(me, view.controller[region])) return true;
+    const armies =
+      this.game
+        .wwDepth?.()
+        ?.armyGroups()
+        .find((g) => g.id === group)?.armies ?? [];
+    const next = tapDirectTargets(m.attackTargets, region);
+    if (
+      next.length === m.attackTargets.length &&
+      next.every((t, i) => t === m.attackTargets[i])
+    ) {
+      return true;
+    }
+    const economy = this.game.wwEconomy?.() ?? null;
+    if (economy === null) return true;
+    if (next.length === 0) {
+      for (const army of armies) {
+        this.eventBus.emit(
+          new SendWwOrderIntentEvent({ kind: "army_halt", army }),
+        );
+      }
+      m.attackTargets = [];
+      m.version++;
+      this.changed();
+      return true;
+    }
+    // Refused for every army of the group: told at once, nothing sent.
+    const blocks = armies.map((army) =>
+      orderBlock(
+        view,
+        economy,
+        me,
+        today(this.game),
+        directOrder(army, next),
+        sides,
+      ),
+    );
+    if (blocks.length > 0 && blocks.every((b) => b !== null)) {
+      showToast(cardBlockText(blocks[0]!), "red");
+      return true;
+    }
+    m.attackTargets = next;
+    m.version++;
+    this.eventBus.emit(
+      new SendWwOrderIntentEvent({ kind: "ag_execute", group, targets: next }),
+    );
+    this.changed();
+    return true;
+  }
+
   /** A short tap on the map at screen (x, y); true when the land flow took it. */
   tap(x: number, y: number): boolean {
     this.pressStop();
@@ -409,6 +483,12 @@ export class WwLandController implements Controller {
     const radius = TAP_RADIUS_PX / zoom;
     // ww8: a wing order waiting for its target takes the tap before any token.
     if (this.deps.wing?.(w.x, w.y, radius) === true) return true;
+    if (
+      this.multi.attackGroup !== null &&
+      this.groupAttackTap(view, me, w, zoom)
+    ) {
+      return true;
+    }
     if (this.multi.active || this.multi.frontGroup !== null) {
       return this.multiTap(view, me, w, zoom);
     }

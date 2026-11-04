@@ -117,6 +117,24 @@ function renderGroup(c: GroupTabCtx, g: GroupRow): TemplateResult {
       </button>
       <button
         type="button"
+        data-ww-group-attack
+        aria-pressed=${String(
+          multiSelectOf(landSelectionOf(c.game)).attackGroup === g.id,
+        )}
+        class="${BTN} ${multiSelectOf(landSelectionOf(c.game)).attackGroup ===
+        g.id
+          ? "border-red-400 bg-red-500/30"
+          : ""}"
+        @click=${() => {
+          const m = multiSelectOf(landSelectionOf(c.game));
+          m.startAttack(g.id);
+          if (m.attackGroup !== null) c.onFront();
+        }}
+      >
+        ${translateText("ww1936.ag.attack")}
+      </button>
+      <button
+        type="button"
         data-ww-group-execute
         class="${BTN} ${c.armed(exec)
           ? "border-amber-300 bg-amber-500/30"
@@ -164,6 +182,11 @@ export function renderGroupTab(c: GroupTabCtx): TemplateResult {
           ${translateText("ww1936.ag.empty")}
         </p>`
       : groups.map((g) => renderGroup(c, g))}
+    ${multi.attackGroup !== null
+      ? html`<p data-ww-attack-hint class="m-0 text-xs text-red-300">
+          ${translateText("ww1936.ag.attack_hint")}
+        </p>`
+      : nothing}
     ${multi.frontGroup !== null
       ? html`<p class="m-0 text-xs text-amber-300">
           ${translateText("ww1936.ag.front_hint")}

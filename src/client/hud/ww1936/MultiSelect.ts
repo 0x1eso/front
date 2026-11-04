@@ -38,6 +38,9 @@ export class WwMultiSelect {
   /** Group front flow (the group tab's or the bar's [전선]): its group, the first-tap region. */
   frontGroup: number | null = null;
   pending: number | null = null;
+  /** ww44: the group whose direct attack the next enemy-region taps give, and the targets so far. */
+  attackGroup: number | null = null;
+  attackTargets: number[] = [];
   version = 0;
 
   start(first: number): void {
@@ -74,10 +77,24 @@ export class WwMultiSelect {
     this.version++;
   }
 
+  /** ww44: the group's [공격] mode (a tap on an enemy region sends the attack). A second call ends it. */
+  startAttack(group: number): void {
+    const off = this.attackGroup === group;
+    this.attackGroup = off ? null : group;
+    this.attackTargets = [];
+    this.frontGroup = null;
+    this.pending = null;
+    this.version++;
+  }
+
   cancel(): void {
-    if (!this.active && this.frontGroup === null) return;
+    if (!this.active && this.frontGroup === null && this.attackGroup === null) {
+      return;
+    }
     this.active = false;
     this.armies = [];
+    this.attackGroup = null;
+    this.attackTargets = [];
     this.frontGroup = null;
     this.pending = null;
     this.version++;

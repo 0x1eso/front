@@ -3737,6 +3737,8 @@
       "staff": "General staff seat"
     },
     "ag": {
+      "attack": "Attack",
+      "attack_hint": "Tap enemy regions on the map to give this group a direct attack (tap again to drop one)",
       "auto": "Auto",
       "cancel": "Cancel",
       "create": "Form an army group",

@@ -24,6 +24,7 @@ const int ENCIRCLED = 4;
 const int RAIL = 8;
 const int SEA = 16;
 const int RETREAT = 32;
+const int EXECUTING = 64;
 const int AUTO = 128;
 const int PARA = 256;
 
@@ -157,6 +158,13 @@ void main() {
       col = over(col, GROUP[gi], cover(sdBox(p - vec2(0.0, 23.0), vec2(18.0, 1.6), 0.5)));
     }
 
+    // ww44: an attacking army of mine (executing order): a red mark, bottom left of the box.
+    if ((state & EXECUTING) != 0) {
+      float dA = length(p - vec2(-18.0, 11.0)) - 4.5;
+      col = over(col, vec3(1.0), cover(dA));
+      col = over(col, RING, cover(dA + 1.2));
+    }
+
     if (icon >= 0.0) {
       float dIcon = length(p - iconC) - 7.5;
       col = over(col, vec3(0.1), 0.9 * cover(dIcon));
@@ -191,6 +199,12 @@ void main() {
     col = over(col, terr, cover(dBox + 1.25));
     col = overTexel(col, tNum, cover(dBox));
     if (approx) col = overTexel(col, tTilde, cover(sdBox(p - vec2(8.0, -4.0), vec2(4.0, 4.0), 0.0)));
+    // ww44: an attacking army of mine.
+    if ((state & EXECUTING) != 0) {
+      float dA = length(p - vec2(12.0, 7.5)) - 4.0;
+      col = over(col, vec3(1.0), cover(dA));
+      col = over(col, RING, cover(dA + 1.2));
+    }
   } else if (kind < 2.5) {
     // Dot.
     float d = length(p) - 3.5;
@@ -200,28 +214,38 @@ void main() {
     col = over(col, terr, cover(d + 1.0));
   } else {
     // Front dots: up to five, one per division of the army in that region.
-    float n = clamp(vC.z, 1.0, 5.0);
-    float i = clamp(floor(p.x / 7.0 + (n - 1.0) * 0.5 + 0.5), 0.0, n - 1.0);
-    float cx = (i - (n - 1.0) * 0.5) * 7.0;
-    // ww42: a direct attack's rows (state 8..11, 16) stand one above the other
-    // and are tinted by what the divisions do: attacking, holding, waiting,
-    // recovering (8..11), walking (16).
-    float yoff = 0.0;
-    vec3 fill = terr;
-    float rad = 2.6;
+    // ww44: a direct attack's rows (state 8..11 attacking, holding, waiting,
+    // recovering; 16 walking) are a pill with the number of divisions
+    // (vB.y), stacked by vB.w px; state 24 is a target's order badge (vB.y).
     if (state >= 8) {
-      int k = state == 16 ? 4 : state - 8;
-      yoff = (float(k) - 2.0) * 9.0;
-      rad = 3.4;
-      fill = k == 0 ? vec3(0.88, 0.2, 0.17)
-        : k == 1 ? vec3(0.35, 0.6, 0.95)
-        : k == 2 ? vec3(0.96, 0.76, 0.2)
-        : k == 3 ? vec3(0.7, 0.45, 0.9)
-        : vec3(0.85);
+      vec2 q = p - vec2(0.0, vB.w);
+      float num = clamp(floor(vB.y + 0.5), 0.0, float(MAX_NUMBER));
+      vec4 tNum = atlas(float(NUMBER_CELL0) + num, (q + 9.0) / 18.0);
+      if (state == 24) {
+        float dB = length(q) - 8.5;
+        col = over(col, vec3(1.0), cover(dB));
+        col = over(col, vec3(0.1, 0.1, 0.12), cover(dB + 1.6));
+        col = overTexel(col, tNum, cover(dB + 1.6));
+      } else {
+        int k = state == 16 ? 4 : state - 8;
+        vec3 fill = k == 0 ? vec3(0.80, 0.14, 0.12)
+          : k == 1 ? vec3(0.25, 0.50, 0.90)
+          : k == 2 ? vec3(0.78, 0.58, 0.08)
+          : k == 3 ? vec3(0.58, 0.34, 0.80)
+          : vec3(0.45);
+        float dBox = sdBox(q, vec2(12.0, 7.5), 3.0);
+        col = over(col, vec3(1.0), cover(dBox));
+        col = over(col, fill, cover(dBox + 1.25));
+        col = overTexel(col, tNum, cover(dBox + 1.25));
+      }
+    } else {
+      float n = clamp(vC.z, 1.0, 5.0);
+      float i = clamp(floor(p.x / 7.0 + (n - 1.0) * 0.5 + 0.5), 0.0, n - 1.0);
+      float cx = (i - (n - 1.0) * 0.5) * 7.0;
+      float d = length(p - vec2(cx, 0.0)) - 2.6;
+      col = over(col, edge, cover(d));
+      col = over(col, terr, cover(d + 0.9));
     }
-    float d = length(p - vec2(cx, yoff)) - rad;
-    col = over(col, edge, cover(d));
-    col = over(col, fill, cover(d + 0.9));
   }
   if (ghost) col.a *= 0.4;
   if (col.a <= 0.003) discard;
