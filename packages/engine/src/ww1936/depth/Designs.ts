@@ -18,6 +18,7 @@ import {
   DESIGNER_POOL,
   DesignKind,
   DesignOrigin,
+  DS_HIST,
   KeyStatsTable,
   KS,
   KS_FIELDS,
@@ -65,6 +66,7 @@ import {
   EQUIPMENT,
   unitCostMilli,
 } from "@openfront/engine-lib/ww1936/Equipment";
+import { isqrt } from "@openfront/engine-lib/ww1936/hist/Num";
 import { mioFamilyOf } from "@openfront/engine-lib/ww1936/MioRules";
 import {
   lineCostMilli,
@@ -814,9 +816,24 @@ export function designPlaneAsP4(s: PlaneDesignStats, type: string): PlaneStats {
     : (s.type as AirType);
   const p = PLANE_BASE[t];
   const fuel0 = p.fuel * 100;
-  const byCost = Math.floor(
-    (fuel0 * Math.max(1, s.costMilli)) / Math.max(1, unitCostMilli(t, 1)),
-  );
+  // The designer's price stays near the static one, so fuel follows the
+  // price. A catalogue plane costs its real price (a B-29 is 14 times the
+  // static strategic bomber): its fuel follows the square root of that.
+  const byCost =
+    (s.flags & DS_HIST) !== 0
+      ? Math.floor(
+          (fuel0 *
+            isqrt(
+              Math.floor(
+                (Math.max(1, s.costMilli) * 1_000_000) /
+                  Math.max(1, unitCostMilli(t, 1)),
+              ),
+            )) /
+            1000,
+        )
+      : Math.floor(
+          (fuel0 * Math.max(1, s.costMilli)) / Math.max(1, unitCostMilli(t, 1)),
+        );
   return {
     airAtk: s.airAttack,
     airDef: s.airDefense,

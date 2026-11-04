@@ -1,3 +1,4 @@
+import { WW_PLANE_DESIGN_SLOTS } from "@openfront/engine-api/ww1936/DepthTypes";
 // World War 1936 P6 lane E (plan Task 3 Step 8, spec §5): designs in a
 // real game — a human Britain on ww1936deep, the techs and experience
 // given by the test (plan decision 30).
@@ -775,7 +776,7 @@ describe("World War 1936 P6: design planes for P4's deployments", () => {
     ce.stock[k(2)] = 4;
     const got = drawDesignPlanes(d, GBR, "fighter", 7);
     expect(got.slice(0, 3)).toEqual([3, 4, 0]);
-    expect(got).toHaveLength(28);
+    expect(got).toHaveLength(WW_PLANE_DESIGN_SLOTS);
     expect([ce.stock[k(1)], ce.planesDeployed[k(1)]]).toEqual([7, 3]);
     expect([ce.stock[k(2)], ce.planesDeployed[k(2)]]).toEqual([0, 4]);
     returnDesignPlanes(d, GBR, [1, 0]);
