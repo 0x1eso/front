@@ -136,8 +136,8 @@ describe("the research tree (research overhaul)", () => {
     };
     expect(researchBlockOf(done, "concentrated_1")).toBe("exclusive");
     expect(researchBlockOf(done, "dispersed_2")).toBeNull();
-    // The air overhaul (ww8) appended three blocks after these, the focus queue two, the research queues three, w28 one.
-    expect(WW_ORDER_BLOCKS.slice(-12, -9)).toEqual([
+    // The air overhaul (ww8) appended three blocks after these, the focus queue two, the research queues three, w28 one, then in_group.
+    expect(WW_ORDER_BLOCKS.slice(-13, -10)).toEqual([
       "exclusive",
       "no_project",
       "bonus_held",

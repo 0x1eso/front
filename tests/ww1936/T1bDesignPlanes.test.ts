@@ -158,6 +158,12 @@ describe("T1b: plane designs in P4's air war (lane E's sites)", () => {
     // ② A deployment draws the design planes (no static fighter left).
     noStaticFighters(ww, GBR);
     for (const d of air.wingsOf(GBR)) air.removeWing(d.id, true);
+    // The start clamps a base to level 1 (w50); this old-model test wants room
+    // for the whole stock, so every level-1 base gets a second level.
+    const bases = ww.economy.buildingArray("air_base");
+    for (let r = 0; r < bases.length; r++) {
+      if (bases[r] === 1) ww.economy.addBuilding(r, "air_base", 1);
+    }
     const have = ce.stock[KEY];
     const deployed0 = ce.planesDeployed[KEY];
     expect(

@@ -76,6 +76,11 @@ describe("World War 1936 P6 lists", () => {
       "army_direct",
       // ww48: the whole start army planned in the lobby.
       "start_oob",
+      // The air groups: the template and group orders.
+      "air_template",
+      "air_template_drop",
+      "air_group_order",
+      "air_group_disband",
     ]);
   });
 

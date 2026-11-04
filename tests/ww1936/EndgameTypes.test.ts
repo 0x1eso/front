@@ -153,12 +153,20 @@ describe("World War 1936 P5 lists", () => {
       "queue_order",
       // w28: a mine needs a deposit.
       "no_deposit",
+      // The air groups: a plane already in a group.
+      "in_group",
     ]);
     const kinds = WwOrderSchema.options.map(
       (o) => (o.shape.kind as { value: string }).value,
     );
     // ww48 appended start_oob last, ww42 army_direct before it; the older
     // pins read what is before them.
+    expect(kinds.splice(-4)).toEqual([
+      "air_template",
+      "air_template_drop",
+      "air_group_order",
+      "air_group_disband",
+    ]);
     expect(kinds.pop()).toBe("start_oob");
     expect(kinds.pop()).toBe("army_direct");
     // The automation lane appends auto_set and army_auto_all after them,

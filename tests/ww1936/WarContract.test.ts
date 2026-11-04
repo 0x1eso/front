@@ -71,15 +71,24 @@ async function board() {
 
 describe("war overhaul C0: the contract", () => {
   test("the new kinds are appended at the end of the lists", () => {
-    expect(LAND_ORDER_KINDS.slice(-5)).toEqual([
+    expect(LAND_ORDER_KINDS.slice(-6)).toEqual([
       "army_zone",
       "army_auto_level",
       "train_army",
       "divisions_convert",
       "army_direct",
+      "start_oob",
     ]);
     const kinds = WwOrderSchema.options.map((o) => o.shape.kind.value);
-    // ww42 appended army_direct last; the older pins read what is before it.
+    // The air groups appended their four last (after ww48's start_oob after
+    // ww42's army_direct); the older pins read what is before them.
+    expect(kinds.splice(-4)).toEqual([
+      "air_template",
+      "air_template_drop",
+      "air_group_order",
+      "air_group_disband",
+    ]);
+    expect(kinds.pop()).toBe("start_oob");
     expect(kinds.pop()).toBe("army_direct");
     // The air overhaul (ww8) appends its six after them, then the thought
     // sliders (ww9) thought_set, then the research queue's three and

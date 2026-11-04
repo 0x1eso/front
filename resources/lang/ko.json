@@ -13261,7 +13261,7 @@
       "target_pick": "지역을 누르세요",
       "target_set": "목표 지정됨",
       "to_library": "보관함에 저장",
-      "total": "{n} / {max}기 (25기 단위)",
+      "total": "{n} / {max}기 ({step}기 단위)",
       "tpl_new": "새 템플릿",
       "tpl_none": "아직 템플릿이 없습니다.",
       "type_dec": "25기 줄이기",
