@@ -97,3 +97,12 @@ export function normalizeWorldWar1936Config(c: GameConfig): GameConfig {
   applyWorldWar1936Rules(out);
   return out;
 }
+
+/**
+ * World War 1936: the tank, plane and ship designer is on only when the
+ * config says so (`ww1936Designer`); absent means off, and the historical
+ * equipment catalogue (hist/) replaces it.
+ */
+export function wwDesigner(c: Pick<GameConfig, "ww1936Designer">): boolean {
+  return c.ww1936Designer === true;
+}

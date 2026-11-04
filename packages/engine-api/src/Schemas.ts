@@ -527,6 +527,11 @@ export const GameConfigSchema = z.object({
   // 45-minute game's tempo (no timer, ticks of 100 ms). Appended last
   // (zbin field order); nothing reads it without ww1936Unlimited.
   ww1936FastTempo: z.boolean().optional(),
+  // World War 1936: the tank, plane and ship designer. Absent means off:
+  // the historical equipment catalogue (engine-lib/ww1936/hist) replaces it.
+  // On keeps the designer's behaviour (and its tests). No lobby option.
+  // Appended last (zbin field order).
+  ww1936Designer: z.boolean().optional(),
 });
 
 // What a host sends in update_game_config. maxPlayers is the private-lobby

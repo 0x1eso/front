@@ -1205,6 +1205,23 @@ describe("zbin wire: server messages", () => {
     expect(decoded.gameStartInfo.config.ww1936FastTempo).toBe(true);
   });
 
+  it("round-trips the World War 1936 designer flag", () => {
+    const [sctx, cctx] = ctxPair();
+    const sample = SERVER_MESSAGES.find((m) => m.type === "start")!;
+    if (sample.type !== "start") throw new Error("no start sample");
+    const msg: ServerMessage = {
+      ...sample,
+      gameStartInfo: {
+        ...sample.gameStartInfo,
+        config: { ...CONFIG, worldWar1936: true, ww1936Designer: true },
+      },
+    };
+    const decoded = decodeServerMessage(encodeServerMessage(msg, sctx), cctx);
+    expect(decoded).toEqual(viaJson(ServerMessageSchema, msg));
+    if (decoded.type !== "start") throw new Error("not a start message");
+    expect(decoded.gameStartInfo.config.ww1936Designer).toBe(true);
+  });
+
   it("keeps an empty turn under 8 bytes", () => {
     const [sctx] = ctxPair();
     const bytes = encodeServerMessage(
