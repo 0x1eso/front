@@ -4,9 +4,8 @@
 //
 // Conventions (see Types.ts): armour in mm, slope from the vertical,
 // penetration at 500 m / 30 degrees with the normal AP round, cost in
-// thousand 1940 US dollars as an industrial estimate (RM prices at 2.5 per
-// dollar as a cross-check for tanks, planes and ships priced against US and
-// British items of like weight),
+// thousand 1940 US dollars as an industrial estimate (combat-ready RM prices at
+// 2.5 per dollar for tanks, the ww66 report's table for the rest),
 // reliability 1..5 from the history. Each entry cites its source; where the
 // references disagree a middle value is used and the disagreement noted.
 // Armour and penetration figures follow Jentz and Doyle, "Panzer Tracts"
@@ -138,7 +137,8 @@ export const DEU_HIST: readonly HistEntry[] = [
     // 50 mm front (added plate on the hull); RM 96,000.
     // Audit w66: 5 cm KwK 38 L/42 PzGr 39 is 47 mm at 500 m, 30 deg (Wikipedia).
     // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
-    source: SRC_PT,
+    source:
+      "Checked 2026-11-04 on Wikipedia: Panzer III (Ausf. J 50 mm front, 40/20 km/h, RM 103,163 for the Ausf. M), 5 cm KwK 38 (47 mm at 500 m, 30 deg). Other figures from memory; cost an estimate unless stated.",
     spec: {
       massT: 21.5,
       hullFrontMm: 50,
@@ -192,7 +192,8 @@ export const DEU_HIST: readonly HistEntry[] = [
     // 50 mm turret front. RM 103,462.
     // Audit w66: 7.5 cm KwK 40 L/48 is 96 mm (Wikipedia).
     // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
-    source: SRC_PT,
+    source:
+      "Checked 2026-11-04 on Wikipedia: Panzer IV (RM 103,462, 38-42 km/h road, 16 off-road; entry keeps 18), 7.5 cm KwK 40 (L/48 96 mm, L/43 91 mm at 500 m, 30 deg). Other figures from memory; cost an estimate unless stated.",
     spec: {
       massT: 25.7,
       hullFrontMm: 80,
@@ -219,7 +220,8 @@ export const DEU_HIST: readonly HistEntry[] = [
     // 55 degrees, 110 mm turret front; poor early reliability. RM 117,100.
     // Audit w66: 138 mm was the 100 m figure; KwK 42 is 124 mm at 500 m, 30 deg (Wikipedia).
     // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
-    source: SRC_PT,
+    source:
+      "Checked 2026-11-04 on Wikipedia: Panther tank (44.8 t, 46 km/h, RM 117,100 without weapons, 143,912 combat ready), 7.5 cm KwK 42 (124 mm at 500 m, 30 deg). Cost: combat-ready RM at 2.5. Other figures from memory; cost an estimate unless stated.",
     spec: {
       massT: 44.8,
       hullFrontMm: 80,
@@ -245,7 +247,8 @@ export const DEU_HIST: readonly HistEntry[] = [
     // 88 mm KwK 36 L/56 (PzGr 39 about 110 mm at 500 m; sources 100-120),
     // 100 mm front, 100 mm turret; heavy and temperamental. RM 250,800.
     // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
-    source: SRC_PT,
+    source:
+      "Checked 2026-11-04 on Wikipedia: Tiger I (57 t, 20-25 km/h off-road, RM 250,700 without weapons, 299,800 combat ready, 25-120 mm), 8.8 cm KwK 36 (110 mm at 500 m, 30 deg). Cost: combat-ready RM at 2.5. Other figures from memory; cost an estimate unless stated.",
     spec: {
       massT: 57,
       hullFrontMm: 100,
@@ -273,7 +276,8 @@ export const DEU_HIST: readonly HistEntry[] = [
     // RM 321,500.
     // Audit w66: KwK 43 PzGr 39/43 is 185 mm at 500 m, 30 deg; 202 is at 100 m (Wikipedia, 8.8 cm Pak 43).
     // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
-    source: SRC_PT,
+    source:
+      "Checked 2026-11-04 on Wikipedia: Tiger II (69.8 t, 25-185 mm, 41.5 km/h, RM 321,500), 8.8 cm Pak 43 (185 mm at 500 m, 30 deg). Other figures from memory; cost an estimate unless stated.",
     spec: {
       massT: 69.8,
       hullFrontMm: 150,
@@ -300,7 +304,8 @@ export const DEU_HIST: readonly HistEntry[] = [
     // front (applique), cheap for what it does. RM 82,500.
     // Audit w66: 7.5 cm StuK 40 L/48 is 96 mm, as the KwK 40 L/48.
     // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
-    source: SRC_PT,
+    source:
+      "Checked 2026-11-04 on Wikipedia: StuG III (23.9 t, 16-80 mm, 40 km/h, RM 82,500). Other figures from memory; cost an estimate unless stated.",
     spec: {
       massT: 23.9,
       hullFrontMm: 80,
@@ -519,7 +524,8 @@ export const DEU_HIST: readonly HistEntry[] = [
     // L/48), 60 mm front at 60 degrees, cheap and reliable. About RM 60,000.
     // Audit w66: PaK 39 L/48 is 96 mm; nose-heavy and overloaded, reliability 3. Armour stays 60 mm at 60 deg, the real plate: see the conversion report on casemates.
     // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
-    source: SRC_PT,
+    source:
+      "Checked 2026-11-04 on Wikipedia: Jagdpanzer 38(t) (15.75 t, 8-60 mm). Slope and gun figure from memory; cost an estimate.",
     spec: {
       massT: 15.75,
       hullFrontMm: 60,
@@ -787,7 +793,8 @@ export const DEU_HIST: readonly HistEntry[] = [
     // Bf 109 G-6: 1 x 20 mm MG 151/20 + 2 x 13 mm MG 131 (cowl bulges); 642 km/h
     // at 6,300 m, 2,247 kg empty (Wikipedia).
     // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
-    source: SRC_AIR,
+    source:
+      "Checked 2026-11-04 on Wikipedia: Messerschmitt Bf 109 (G-6: 2,247 kg empty, 3,148 kg on 16.05 m2, 880 km). Other figures from memory; cost an estimate unless stated.",
     spec: {
       maxKmh: 640,
       rangeKm: 880,
@@ -869,7 +876,8 @@ export const DEU_HIST: readonly HistEntry[] = [
     // (653 at altitude), heavy.
     // Audit w66: BMW 801 cured by this model: reliability 4.
     // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
-    source: SRC_AIR,
+    source:
+      "Checked 2026-11-04 on Wikipedia: Focke-Wulf Fw 190 (A-8: 3,200 / 4,417 kg on 18.3 m2, 652 km/h, 900-1,000 km). Other figures from memory; cost an estimate unless stated.",
     spec: {
       maxKmh: 653,
       rangeKm: 800,
@@ -1055,7 +1063,8 @@ export const DEU_HIST: readonly HistEntry[] = [
     // Ju 87 D-3: 410 km/h, 1,000 kg normal load (1,800 kg overload), twin MG
     // 81Z aft. Price about RM 78,000 (estimate).
     // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
-    source: SRC_AIR,
+    source:
+      "Checked 2026-11-04 on Wikipedia: Junkers Ju 87 (D: 8,598 lb empty, 255 mph). Other figures from memory; cost an estimate unless stated.",
     spec: {
       maxKmh: 410,
       rangeKm: 600,
@@ -1562,7 +1571,8 @@ export const DEU_HIST: readonly HistEntry[] = [
     // 320 mm belt, 30 kn on trials, 8,870 nm at 19 kn (Wikipedia). RM 196.8 million (memory); dollar cost is an estimate by weight against the North Carolina class.
     // Audit w66: 8,525 nm at 19 kn, and 20 x 2 cm as built (Wikipedia).
     // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
-    source: SRC_SHIP,
+    source:
+      "Checked 2026-11-04 on Wikipedia: Bismarck class (41,700 t, 30 kn, 8,525 nm, 320 mm belt, 8 x 380, 12 x 150, 16 x 105, 16 x 37, 20 x 20). Cost: RM 196.8M at 2.5 plus a labour margin, an estimate.",
     spec: {
       dispT: 41700,
       main: { count: 8, mm: 380 },

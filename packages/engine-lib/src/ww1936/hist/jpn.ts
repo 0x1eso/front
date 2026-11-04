@@ -1,10 +1,10 @@
 // World War 1936 historical catalogue: Japan. Real specifications; conventions
 // as in Types.ts and deu.ts. Where references disagree the note says which
-// value was used. Costs are estimates of what the item took industrially in
-// 1940 US dollars, by weight, labour and materials against comparable US
-// items (Stuart, P-40, SBD, Fletcher, Essex...), not the yen price at the
-// official rate; only the Ha-Go and Chi-Ha yen prices are documented
-// (71,000 and 126,000 yen, Aug 1939) and served as a cross-check.
+// value was used. Tank costs follow the Ha-Go and Chi-Ha prices (71,000 and
+// 126,000 yen, $19,078 and $33,856, Aug 1939, without armament; Wikipedia),
+// scaled by weight to the rest. Other costs are estimates of what the item took
+// industrially in 1940 US dollars against comparable US items (see the ww66
+// report's table): hulls about 0.8 of the US dollars per tonne.
 import type { HistEntry } from "./Types";
 
 const SRC_TANK =
@@ -76,7 +76,8 @@ export const JPN_HIST: readonly HistEntry[] = [
     // The standard Japanese tank, 12 mm, 37 mm Type 94 gun, diesel; 71,000 yen in Aug 1939 without armament (Wikipedia) as cross-check; cost estimated against the Stuart.
     // Audit w66: Slope estimated from the layout; no firm reference.
     // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
-    source: SRC_TANK,
+    source:
+      "Checked 2026-11-04 on Wikipedia: Type 95 Ha-Go (71,000 yen, $19,078, August 1939, without armament; 7.4 t, 45 km/h, 12 mm). Cost: that price plus the gun. Other figures from memory; cost an estimate unless stated.",
     spec: {
       massT: 7.4,
       hullFrontMm: 12,
@@ -180,7 +181,8 @@ export const JPN_HIST: readonly HistEntry[] = [
     // 15-25 mm hull (25 used), 35 mm turret, short 57 mm Type 97 gun (Wikipedia: 20 mm at 500 m), diesel; 126,000 yen in Aug 1939 (Wikipedia) as cross-check; cost estimated.
     // Audit w66: Fighting-compartment front about 10 deg (GlobalSecurity, Type 97 design page).
     // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
-    source: SRC_TANK,
+    source:
+      "Checked 2026-11-04 on Wikipedia: Type 97 Chi-Ha (126,000 yen, $33,856, August 1939, without armament; 14.3-15.2 t, 38 km/h, 8-25 mm). Cost: that price plus the gun. GlobalSecurity for the 10 deg plate. Other figures from memory; cost an estimate unless stated.",
     spec: {
       massT: 15.8,
       hullFrontMm: 25,
@@ -234,7 +236,8 @@ export const JPN_HIST: readonly HistEntry[] = [
     // 50 mm front, 47 mm Type 1 gun (60 mm), diesel; price estimated.
     // Audit w66: Same 47 mm as the Shinhoto. Slope estimated from the Chi-Ha's layout; no firm reference.
     // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
-    source: SRC_TANK,
+    source:
+      "Checked 2026-11-04 on Wikipedia: Type 1 Chi-He (17.2 t, 44 km/h, 20-50 mm, gun 40 mm at 500 m); Type 1 47 mm anti-tank gun (2 in at 500 yd, 30 deg). Cost scaled from the Chi-Ha's price. Other figures from memory; cost an estimate unless stated.",
     spec: {
       massT: 17.2,
       hullFrontMm: 50,
@@ -415,7 +418,8 @@ export const JPN_HIST: readonly HistEntry[] = [
     year: 1942,
     // 2 x 12.7 mm Ho-103; range quoted 1,620-1,760 km (1,600 used); price estimated.
     // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
-    source: SRC_AIR,
+    source:
+      "Checked 2026-11-04 on Wikipedia: Nakajima Ki-43 (1,910 / 2,590 kg on 21.4 m2, 530 km/h, 1,760 km; entry keeps the II's 1,600 km). Other figures from memory; cost an estimate unless stated.",
     spec: {
       maxKmh: 530,
       rangeKm: 1600,
@@ -515,7 +519,8 @@ export const JPN_HIST: readonly HistEntry[] = [
     // 2 x 20 mm Type 99 and 2 x 7.7 mm; range 1,870 km internal, 3,100 km with a drop tank (1,900 used); price estimated.
     // Audit w66: 533 km/h (Wikipedia). Type 97 7.7 mm about 900 rpm, as on every Japanese fixed 7.7.
     // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
-    source: SRC_AIR,
+    source:
+      "Checked 2026-11-04 on Wikipedia: Mitsubishi A6M Zero (A6M2: 1,680 kg empty, 22.44 m2, 533 km/h, 1,870 km). Other figures from memory; cost an estimate unless stated.",
     spec: {
       maxKmh: 533,
       rangeKm: 1900,
@@ -828,7 +833,8 @@ export const JPN_HIST: readonly HistEntry[] = [
     year: 1941,
     // Very long range (quoted 4,700-6,000 km, 5,000 used), 800 kg bomb or torpedo, 1 x 20 mm and 3 x 7.7 mm; unprotected fuel tanks; price estimated.
     // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
-    source: SRC_AIR,
+    source:
+      "Checked 2026-11-04 on Wikipedia: Mitsubishi G4M (6,741 / 9,500 kg on 78.1 m2, 428 km/h, 2,852 km normal; entry keeps the maximum). Other figures from memory; cost an estimate unless stated.",
     spec: {
       maxKmh: 428,
       rangeKm: 5000,
@@ -874,7 +880,8 @@ export const JPN_HIST: readonly HistEntry[] = [
     year: 1937,
     // Carrier torpedo bomber of Pearl Harbor, 800 kg torpedo (Type 91) or bombs, one flexible 7.7 mm; price estimated.
     // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
-    source: SRC_AIR,
+    source:
+      "Checked 2026-11-04 on Wikipedia: Nakajima B5N (2,279 / 3,800 kg on 37.7 m2, 378 km/h, 978 km normal; entry keeps the maximum, 800 kg torpedo). Other figures from memory; cost an estimate unless stated.",
     spec: {
       maxKmh: 378,
       rangeKm: 1990,
@@ -991,7 +998,8 @@ export const JPN_HIST: readonly HistEntry[] = [
     techs: ["dd_3", "torpedo_1"],
     year: 1939,
     // 2,033 t, 6 x 127 mm, 8 tubes 610 mm with the Type 93 oxygen torpedo (490 kg warhead); cost estimated.
-    source: SRC_SHIP,
+    source:
+      "Checked 2026-11-04 on Wikipedia: Kagero class (2,000 LT, 35.5 kn, 6 x 127, 4 x 25, 8 x 610 mm tubes). Other figures from memory; cost an estimate unless stated.",
     spec: {
       dispT: 2033,
       main: { count: 6, mm: 127 },
@@ -1114,7 +1122,8 @@ export const JPN_HIST: readonly HistEntry[] = [
     techs: ["ca_2", "torpedo_1"],
     year: 1932,
     // 12,986 t as completed (the treaty figure of 9,850 t was false), 10 x 203 mm, 16 tubes 610 mm, 127 mm belt; cost estimated.
-    source: SRC_SHIP,
+    source:
+      "Checked 2026-11-04 on Wikipedia: Takao class (34.2 kn, 127 mm magazine belt, 10 x 203, 8 x 127). Other figures from memory; cost an estimate unless stated.",
     spec: {
       dispT: 12986,
       main: { count: 10, mm: 203 },
@@ -1217,7 +1226,8 @@ export const JPN_HIST: readonly HistEntry[] = [
     year: 1941,
     // 65,000 t standard, 9 x 460 mm, 410 mm belt, 27 kn; cost estimated against the Iowa class by tonnage.
     // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
-    source: SRC_SHIP,
+    source:
+      "Checked 2026-11-04 on Wikipedia: Yamato class (27 kn, 7,200 nm, 9 x 460, 12 x 155, 12 x 127, 24 x 25; about 250 million yen in 1940, $58M at the official rate). Cost: dollars per tonne with Japanese labour, an estimate far above that price.",
     spec: {
       dispT: 65000,
       main: { count: 9, mm: 460 },
@@ -1293,7 +1303,8 @@ export const JPN_HIST: readonly HistEntry[] = [
     year: 1941,
     // 25,675 t, 72 aircraft, 34 kn, strong protection (belt quoted 165-215 mm over magazines, 165 used); cost estimated.
     // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
-    source: SRC_SHIP,
+    source:
+      "Checked 2026-11-04 on Wikipedia: Shokaku class (34.5 kn, 9,700 nm, 72 + 12 aircraft, 46-165 mm belt, 16 x 127, 36 x 25). Other figures from memory; cost an estimate unless stated.",
     spec: {
       dispT: 25675,
       main: { count: 0, mm: 0 },

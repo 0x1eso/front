@@ -136,6 +136,43 @@ describe("hist conversions", () => {
     expect(tankStatsOfEntry(t34).costMilli * 3).toBeLessThan(c("deu_tiger1_e"));
   });
 
+  test("cross-country audit: same gun, same penetration; real threats hold", () => {
+    const tk = (id: string) => tankStatsOfEntry(histEntry(id) as TankEntry);
+    const same = (ids: string[]) => {
+      const vals = ids.map((id) => tk(id).pierce);
+      expect(new Set(vals).size).toBe(1);
+    };
+    same(["sun_t34_40", "sun_t34_43", "sun_kv1", "sun_kv1s", "sun_su76m"]); // F-34, ZiS-5, ZiS-3
+    same(["usa_m4a1_sherman", "usa_m24_chaffee", "gbr_cromwell_iv"]); // 75 mm M3 family
+    same(["usa_m4a3_76", "usa_m4a3e8", "usa_m18_hellcat", "usa_m10"]); // 76 mm M1, 3-inch M7
+    same(["deu_panther_a", "deu_jagdpz4_70"]); // L/70
+    same(["deu_tiger2_b", "deu_jagdpanther"]); // L/71
+    same(["deu_pz4_h", "deu_stug3_g", "deu_hetzer"]); // L/48
+    // A T-34 threatens a Panzer III's front; a Panzer III's gun does not answer.
+    expect(tk("sun_t34_43").pierce).toBeGreaterThan(tk("deu_pz3_j").armor);
+    expect(tk("deu_pz3_j").pierce).toBeLessThan(tk("sun_t34_43").armor);
+    // The Sherman's 76 mm does not defeat a Tiger's front, the 90 mm does.
+    expect(tk("usa_m4a3_76").pierce).toBeLessThan(tk("deu_tiger1_e").armor);
+    expect(tk("usa_m26_pershing").pierce).toBeGreaterThan(
+      tk("deu_tiger1_e").armor,
+    );
+  });
+
+  test("cross-country audit: one cost basis, nothing past the era", () => {
+    const tk = (id: string) =>
+      tankStatsOfEntry(histEntry(id) as TankEntry).costMilli;
+    const order = [
+      "sun_t34_43",
+      "usa_m4a1_sherman",
+      "deu_panther_a",
+      "usa_m26_pershing",
+      "deu_tiger1_e",
+    ].map(tk);
+    expect([...order].sort((a, b) => a - b)).toEqual(order);
+    expect(tk("sun_is2")).toBeLessThan(tk("deu_tiger1_e"));
+    for (const e of HIST_ALL) expect(e.year).toBeLessThanOrEqual(1950);
+  });
+
   test("unreliable stays below reliable", () => {
     const r = (id: string) =>
       tankStatsOfEntry(histEntry(id) as TankEntry).relPm;

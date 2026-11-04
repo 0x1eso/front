@@ -2,9 +2,10 @@
 // units of Types.ts (armour mm and slope from the vertical, penetration at
 // 500 m / 30 degrees with the normal AP round, speeds km/h, cost in thousand
 // 1940 US dollars).
-// Soviet prices are not comparable at the official rate, so every cost is an
-// estimate from US and British items of like weight and labour (mass-produced
-// Soviet designs come out cheap for their weight). Figures marked as
+// Soviet prices are not comparable at the official rate. Costs are ruble ratios
+// anchored on a T-34 at about 30 thousand dollars (135,000 rubles in 1943; IS-2
+// 264,400; see the ww66 report's table), or estimates from US and British items
+// of like weight and labour where no ruble price is known. Figures marked as
 // references were read in articles; the rest, including most masses, speeds
 // and gun data, are from memory and spot-checked, not all verified.
 // Where references disagree a middle value is used and the range is noted.
@@ -334,7 +335,8 @@ export const SUN_HIST: readonly HistEntry[] = [
     // T-34 model 1943: 30.9 t, hull 45 mm at 60 degrees, hexagonal turret 70 mm, 76.2 mm F-34 (BR-350A about 50 mm at 500 m, 30 degrees; references 45-61). Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
     // Audit w66: Same F-34 as the 1940 model: same 60. 30 km/h cross-country.
     // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
-    source: SRC_TANK,
+    source:
+      "Checked 2026-11-04 on Wikipedia: T-34 (45 mm at 60 deg, 53 km/h, 130,000-429,000 rubles, 3,094-9,000 man-hours), 76 mm F-34 (BR-350A 62-69 mm at 500 m). Cost: T-34 is the anchor of the ruble ratios, an estimate.",
     spec: {
       massT: 30.9,
       hullFrontMm: 45,
@@ -361,7 +363,8 @@ export const SUN_HIST: readonly HistEntry[] = [
     // T-34-85: 32 t, hull 45 mm at 60 degrees, turret 90 mm, 85 mm ZIS-S-53 (BR-365 about 90 mm at 500 m, 30 degrees; references 85-100). Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
     // Audit w66: 85 mm: 123-125 mm at 500 m at normal impact (Wikipedia), near the 7.5 cm L/48's figure in the same table; 95 at 30 deg, one below it.
     // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
-    source: SRC_TANK,
+    source:
+      "Checked 2026-11-04 on Wikipedia: 85 mm gun page (D-5T 123-125 mm at 500 m at normal impact); T-34 page for the hull. Other figures from memory; cost an estimate unless stated.",
     spec: {
       massT: 32,
       hullFrontMm: 45,
@@ -412,7 +415,8 @@ export const SUN_HIST: readonly HistEntry[] = [
     // KV-1 model 1941: 45 t, hull 75 mm at 30 degrees (slope approximate), turret 75 mm, 76.2 mm ZiS-5 (about 50 mm), three DT; transmission weak. Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
     // Audit w66: ZiS-5 fires the F-34's rounds: same 60.
     // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
-    source: SRC_TANK,
+    source:
+      "Checked 2026-11-04 on Wikipedia: KV tank family (KV-1 up to 90 mm with add-on plate, 35 km/h, ZiS-5). Other figures from memory; cost an estimate unless stated.",
     spec: {
       massT: 45,
       hullFrontMm: 75,
@@ -492,7 +496,8 @@ export const SUN_HIST: readonly HistEntry[] = [
     // IS-2 model 1944: 46 t, upper hull 120 mm at 60 degrees (references vary on slope), turret 160 mm, 122 mm D-25T (BR-471 about 120 mm at 500 m, 30 degrees; references 117-125), HE filler about 3.6 kg. Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
     // Audit w66: 100 mm turret front (Wikipedia, IS tank family); 155-160 is the mantlet's peak, and every other entry uses the turret or the plain mantlet figure. Hull 120 mm at 60 deg stays. Armour 193 becomes 173.
     // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
-    source: SRC_TANK,
+    source:
+      "Checked 2026-11-04 on Wikipedia: IS tank family (264,400 rubles, 46 t, 37 km/h, hull 120 mm, turret 100, mantlet 155, D-25T), 122 mm A-19 page (BR-471 120 mm at 500 m, 60 deg meet angle). Cost: ruble ratio to the T-34.",
     spec: {
       massT: 46,
       hullFrontMm: 120,
@@ -621,7 +626,8 @@ export const SUN_HIST: readonly HistEntry[] = [
     // SU-100: 31.6 t, casemate 75 mm at 50 degrees, 100 mm D-10S (BR-412 about 150 mm at 500 m, 30 degrees; references 139-160), HE filler about 1.5 kg. Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
     // Audit w66: D-10S BR-412 is 160 mm at 500 m at normal impact (Wikipedia); 130 at 30 deg by the D-25T's ratio, and near the US 90 mm M3 at 125. 150 was too high.
     // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
-    source: SRC_TANK,
+    source:
+      "Checked 2026-11-04 on Wikipedia: SU-100 (31.6 t, 75 mm, 48 km/h), D-10 (BR-412 160 mm at 500 m). Other figures from memory; cost an estimate unless stated.",
     spec: {
       massT: 31.6,
       hullFrontMm: 75,
@@ -800,7 +806,8 @@ export const SUN_HIST: readonly HistEntry[] = [
     // La-5FN: 650 km/h, 765 km, two 20 mm ShVAK. Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
     // Audit w66: 2,706 kg empty (Wikipedia).
     // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
-    source: SRC_AIR,
+    source:
+      "Checked 2026-11-04 on Wikipedia: Lavochkin La-5 (2,706 / 3,168 kg on 17.5 m2, 648 km/h, 765 km, 2 x 20 mm). Other figures from memory; cost an estimate unless stated.",
     spec: {
       maxKmh: 650,
       rangeKm: 765,
@@ -950,7 +957,8 @@ export const SUN_HIST: readonly HistEntry[] = [
     // Il-2m3 two-seat: 414 km/h, 765 km, two 23 mm VYa, two ShKAS, one 12.7 mm rear gun, 600 kg bombs. Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
     // Audit w66: 4,425 kg empty (Wikipedia).
     // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
-    source: SRC_AIR,
+    source:
+      "Checked 2026-11-04 on Wikipedia: Ilyushin Il-2 (4,425 kg, 38.5 m2, 410 km/h, 765 km). Other figures from memory; cost an estimate unless stated.",
     spec: {
       maxKmh: 414,
       rangeKm: 765,
@@ -1069,7 +1077,8 @@ export const SUN_HIST: readonly HistEntry[] = [
     // Pe-2: 540 km/h, 1,500 km, empty 5,870 kg, two ShKAS forward and two defensive, 1,200 kg bombs, dive bomber; about 11,400 built. Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
     // Audit w66: 5,950 / 7,536 kg on 40.5 m2, 1,315 km, 1,000 kg of bombs (Wikipedia).
     // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
-    source: SRC_AIR,
+    source:
+      "Checked 2026-11-04 on Wikipedia: Petlyakov Pe-2 (5,950 / 7,536 kg on 40.5 m2, 540 km/h, 1,315 km, 1,000 kg). Other figures from memory; cost an estimate unless stated.",
     spec: {
       maxKmh: 540,
       rangeKm: 1315,
@@ -1307,7 +1316,8 @@ export const SUN_HIST: readonly HistEntry[] = [
     // Project 26 Kirov: about 7,900 t standard, nine 180 mm, six 100 mm AA, six 45 mm (entered as 40 mm), six 533 mm tubes, 50 mm belt, 36 kn. Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
     // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     // Audit w66: Same gate as the Duca d'Aosta of like size.
-    source: SRC_SHIP,
+    source:
+      "Checked 2026-11-04 on Wikipedia: Kirov class (7,890 t, 36 kn, 50 mm belt, 9 x 180, 6 x 100, 6 x 45; entry counts them as 40 mm class). Other figures from memory; cost an estimate unless stated.",
     spec: {
       dispT: 7900,
       main: { count: 9, mm: 180 },
@@ -1410,7 +1420,8 @@ export const SUN_HIST: readonly HistEntry[] = [
     // Project 23 Sovetsky Soyuz (four laid down 1938-40, none completed): 59,150 t standard, nine 406 mm B-37, twelve 152 mm, twelve 100 mm AA, 375 mm belt, 28 kn. Planned figures (AA 32-40 barrels, 36 used); cost estimated. Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
     // Audit w66: Ten quadruple 37 mm (Wikipedia).
     // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
-    source: SRC_SHIP,
+    source:
+      "Checked 2026-11-04 on Wikipedia: Sovetsky Soyuz class (59,150 t, 28 kn, belt to 420 mm, 9 x 406, 12 x 152, 12 x 100, 40 x 37). Other figures from memory; cost an estimate unless stated.",
     spec: {
       dispT: 59150,
       main: { count: 9, mm: 406 },

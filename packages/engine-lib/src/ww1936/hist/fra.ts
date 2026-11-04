@@ -3,7 +3,8 @@
 // `source` says so. Costs are estimates in 1940 US dollars from comparable
 // US items by weight, labour and materials (franc prices are only a
 // cross-check). Scope: what France built or had well in development by
-// about 1949 (ARL 44, AMX-13, Ouragan); the 1950s types are left out.
+// about 1949 (ARL 44), and the AMX-13 and Ouragan left out as 1950s service
+// types by the cross-country audit (ww66 report).
 // France starts with inf_eq_1, light_tank_1, fighter_1, bomber_1,
 // heavy_fighter_1, anti_tank_1, artillery_1, dd_2, cl_2, ca_2, bc_2, bb_2
 // and ss_2 (startTechs), so the 1936 stock types need no more research.
@@ -92,7 +93,8 @@ export const FRA_HIST: readonly HistEntry[] = [
     techs: ["light_tank_1"],
     year: 1936,
     // 37 mm SA 18, only 12 mm at 500 m (Wikipedia); armour 40-43 mm cast; 20 km/h road, 14 off-road (Wikipedia). Estimate: cost against US light tank M2A4 (France priced it very low).
-    source: "Wikipedia (R35, S35, Char B1 articles, read 2026-11).",
+    source:
+      "Checked 2026-11-04 on Wikipedia: Renault R35 (10.6 t, 43 mm, 20 km/h, 37 mm SA 18). Other figures from memory; cost an estimate unless stated.",
     spec: {
       massT: 10.6,
       hullFrontMm: 40,
@@ -242,7 +244,8 @@ export const FRA_HIST: readonly HistEntry[] = [
     year: 1936,
     // 47 mm SA 35 (sources 40-56 mm at 500 m, 42 used), 47 mm cast hull front, 42 mm turret (Wikipedia), 982,000 francs. Estimate: against the Pz III E class.
     // Audit w66: Fine tank but a demanding suspension: reliability 3.
-    source: "Wikipedia (R35, S35, Char B1 articles, read 2026-11).",
+    source:
+      "Checked 2026-11-04 on Wikipedia: SOMUA S35 (19.5 t, 47 mm hull front, 42 turret front, 40 / 32 km/h). Other figures from memory; cost an estimate unless stated.",
     spec: {
       massT: 19.5,
       hullFrontMm: 47,
@@ -269,7 +272,7 @@ export const FRA_HIST: readonly HistEntry[] = [
     // Audit w66: Complex and short-ranged in service: reliability 2.
     // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source:
-      "Wikipedia (R35, S35, Char B1 articles, read 2026-11); turret armour and HE filler from memory.",
+      "Checked 2026-11-04 on Wikipedia: Char B1 (28 t, bis 60 mm, 28 / 21 km/h, 75 mm hull, 47 mm SA 35 turret). Other figures from memory; cost an estimate unless stated.",
     spec: {
       massT: 31.5,
       hullFrontMm: 60,
@@ -294,7 +297,7 @@ export const FRA_HIST: readonly HistEntry[] = [
     year: 1946,
     // 90 mm SA 44 (US M3-class, APC pen. about 120-130 mm), 120 mm front, 60 built, poor reliability. Estimate: against the US M26.
     source:
-      "Memory (Wikipedia ARL 44; Foss); armour and penetration uncertain.",
+      "Checked 2026-11-04 on Wikipedia: ARL 44 (48 t, 120 mm front, 37.2 km/h). Other figures from memory; cost an estimate unless stated.",
     spec: {
       massT: 48,
       hullFrontMm: 120,
@@ -372,7 +375,7 @@ export const FRA_HIST: readonly HistEntry[] = [
     // Audit w66: Figures differ: 452 km/h (Wikipedia infobox), 486 often quoted; 470.
     // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source:
-      "Wikipedia aircraft articles (read 2026-11) (1,895/2,540 kg, 16 m2); speed 486 km/h is a middle of the 452-490 range on the page.",
+      "Checked 2026-11-04 on Wikipedia: Morane-Saulnier M.S.406 (1,895 / 2,540 kg on 16 m2, 452 km/h, 1,100 km); 486 km/h also widely quoted, 470 used. Other figures from memory; cost an estimate unless stated.",
     spec: {
       guns: [
         { mm: 20, count: 1, rpm: 650 },
@@ -426,7 +429,7 @@ export const FRA_HIST: readonly HistEntry[] = [
     // The best French fighter of 1940; roughly equal to a Bf 109 E. Estimate: against the US P-40.
     // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source:
-      "Wikipedia aircraft articles (read 2026-11) (2,123/2,677 kg, 15.87 m2); speed 548 km/h as a middle of 535-560 in the references; range 1,250 km.",
+      "Checked 2026-11-04 on Wikipedia: Dewoitine D.520 (2,123 / 2,677 kg on 15.87 m2, 560 km/h, 1,250 km; entry keeps 548 km/h). Other figures from memory; cost an estimate unless stated.",
     spec: {
       guns: [
         { mm: 20, count: 1, rpm: 650 },
@@ -609,7 +612,7 @@ export const FRA_HIST: readonly HistEntry[] = [
     // The best French medium bomber; 20 mm dorsal and a retractable 7.5 mm ventral gun.
     // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source:
-      "Wikipedia aircraft articles (read 2026-11) (LeO 45 page: 7,530/11,398 kg, 66 m2, 495 km/h, 1,568 kg); range 2,500 km as a middle of the 2,300-2,900 references.",
+      "Checked 2026-11-04 on Wikipedia: LeO 45 (7,530 kg, 495 km/h, 2,900 km; entry keeps 2,500 km). Other figures from memory; cost an estimate unless stated.",
     spec: {
       guns: [{ mm: 7.5, count: 1, rpm: 1200 }],
       maxKmh: 495,
@@ -756,7 +759,7 @@ export const FRA_HIST: readonly HistEntry[] = [
     // Contre-torpilleur, large destroyer, fastest in the world on trials (45 kn). Estimate: against US Benson/Fletcher by tonnage.
     // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source:
-      "Wikipedia ship-class articles (read 2026-11) (2,569 t, 5 x 138.6 mm, 9 x 550 mm, 37 kn, 2,900 nm); warhead 310 kg from memory.",
+      "Checked 2026-11-04 on Wikipedia: Le Fantasque class (2,569 t, 37 kn, 2,900 nm, 5 x 138.6, 9 x 550 mm tubes). Other figures from memory; cost an estimate unless stated.",
     spec: {
       dispT: 2569,
       main: { count: 5, mm: 138 },
@@ -913,7 +916,7 @@ export const FRA_HIST: readonly HistEntry[] = [
     // Fast battleship. Estimate: against the US North Carolina.
     // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source:
-      "Wikipedia ship-class articles (read 2026-11) (26,500 t, 8 x 330 mm, 16 x 130 mm DP, belt 225 mm, 29.5 kn, 7,850 nm at 15 kn, 8 x 37 mm).",
+      "Checked 2026-11-04 on Wikipedia: Dunkerque class (26,500 t, 29.5 kn, 7,850 nm, 225 mm belt, 8 x 330, 16 x 130, 8 x 37). Other figures from memory; cost an estimate unless stated.",
     spec: {
       dispT: 26500,
       main: { count: 8, mm: 330 },
@@ -967,7 +970,7 @@ export const FRA_HIST: readonly HistEntry[] = [
     // Estimate: against the US Iowa/South Dakota classes.
     // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
     source:
-      "Wikipedia ship-class articles (read 2026-11) (37,850 t standard, 8 x 380 mm, 9 x 152 mm, 12 x 100 mm, 8 x 37 mm, belt 327 mm, 32 kn, 9,500 nm at 15 kn).",
+      "Checked 2026-11-04 on Wikipedia: Richelieu class (37,250 LT, 32 kn, 9,500 nm, 327 mm belt, 8 x 380, 9 x 152, 12 x 100, 8 x 37). Other figures from memory; cost an estimate unless stated.",
     spec: {
       dispT: 37850,
       main: { count: 8, mm: 380 },

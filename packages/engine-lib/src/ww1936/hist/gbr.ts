@@ -11,10 +11,10 @@
 //
 // Costs are INDUSTRIAL ESTIMATES in 1940 US dollars, not pounds at the
 // official rate: scaled from comparable US items by weight, labour and
-// material (Sherman about 33k, Fletcher about 10 million, North Carolina
-// about 77 million), British prices only as a cross-check; good to +-30 %.
-// The one hard price found, 12,604 pounds for a Spitfire I (a 1939 export
-// contract, engine and guns included), fits about 30k.
+// material, British prices only as a cross-check; good to +-30 %. Rebased in the
+// ww66 audit: Sherman 44k, Fletcher 6.5 million, North Carolina 76 million. The
+// hard prices found: Cromwell 10,000 pounds (40k at the 1940 rate), Spitfire I
+// 12,604 pounds on a 1939 export contract, engine and guns included (fits 36-50k).
 //
 // Static generations onto these entries:
 //   light I = Light Tank Mk VIB, light II = Tetrarch (and A9)
@@ -229,7 +229,8 @@ export const GBR_HIST: readonly HistEntry[] = [
     // Matilda II: 27 t, 78 mm hull, 75 mm turret, 2-pdr and a Besa, 24 km/h;
     // immune to most 1940 guns, slow, costly cast hull. Cost estimate.
     // Audit w66: Twin diesels (AEC or Leyland).
-    source: SRC_TANK,
+    source:
+      "Checked 2026-11-04 on Wikipedia: Matilda II (25 tons, 20-78 mm, 24 km/h). Other figures from memory; cost an estimate unless stated.",
     spec: {
       diesel: true,
       massT: 26.9,
@@ -283,7 +284,8 @@ export const GBR_HIST: readonly HistEntry[] = [
     // 68-80), one Besa. Cost estimate on the Crusader I.
     // Audit w66: 6-pounder: one figure, 75, for it and the US M1 57 mm.
     // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
-    source: SRC_TANK,
+    source:
+      "Checked 2026-11-04 on Wikipedia: Crusader tank (Mk III 51 mm). Other figures from memory; cost an estimate unless stated.",
     spec: {
       massT: 20,
       hullFrontMm: 51,
@@ -311,7 +313,8 @@ export const GBR_HIST: readonly HistEntry[] = [
     // Meteor engine, 64 km/h. Cost estimate.
     // Audit w66: QF 75 mm fires the US M61: 68. 29 km/h cross-country and a 64 mm vertical plate per Wikipedia, so slope 0 is right; 40 was above the page's figure.
     // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
-    source: SRC_TANK,
+    source:
+      "Checked 2026-11-04 on Wikipedia: Cromwell tank (27.6 LT, 64 mm vertical hull, 76 mm turret, 64 km/h maximum, 29 cross-country, 10,000 pounds, $40k at the 1940 rate). Cost is that price.",
     spec: {
       massT: 27.9,
       hullFrontMm: 64,
@@ -339,7 +342,8 @@ export const GBR_HIST: readonly HistEntry[] = [
     // 30 degrees; other angles and ranges give 110-137), two Besa, 47 km/h;
     // reliable. Cost estimate.
     // Audit w66: 14.3 mph cross-country (Wikipedia). 76 mm plate is vertical (Wikipedia, Tank Encyclopedia), so slope 0 is right.
-    source: SRC_TANK,
+    source:
+      "Checked 2026-11-04 on Wikipedia: Comet (14-101 mm, 32.4 / 14.3 mph, QF 77 mm); Tank Encyclopedia for the 76 mm vertical plate. Other figures from memory; cost an estimate unless stated.",
     spec: {
       massT: 33.5,
       hullFrontMm: 76,
@@ -419,7 +423,8 @@ export const GBR_HIST: readonly HistEntry[] = [
     // Churchill III/IV: 40 t, 102 mm hull, 89 mm turret, 6-pdr (74 mm at
     // 500 m), two Besa; the faults mostly cured. Cost estimate.
     // Audit w66: 127 mm turret front on Mk IV-VI (Wikipedia). 6-pounder: 75, as the US M1 57 mm.
-    source: SRC_TANK,
+    source:
+      "Checked 2026-11-04 on Wikipedia: Churchill tank (Mk IV-VI: 102 mm hull, 127 mm turret front). Other figures from memory; cost an estimate unless stated.",
     spec: {
       massT: 39.6,
       hullFrontMm: 102,
@@ -445,7 +450,8 @@ export const GBR_HIST: readonly HistEntry[] = [
     // Churchill VII: 40.7 t, 152 mm hull and turret, 75 mm (68 mm at
     // 500 m), two Besa, 20 km/h; reliable by then. Cost estimate.
     // Audit w66: QF 75 mm: 68. 152 mm hull and turret front are the real figures (Wikipedia): the highest of any British tank, and a Panther's gun at 124 fails against them at 500 m, 30 deg, as the numbers say.
-    source: SRC_TANK,
+    source:
+      "Checked 2026-11-04 on Wikipedia: Churchill tank (Mk VII-VIII: 152 mm hull and turret front). Other figures from memory; cost an estimate unless stated.",
     spec: {
       massT: 40.7,
       hullFrontMm: 152,
@@ -678,7 +684,8 @@ export const GBR_HIST: readonly HistEntry[] = [
     // Spitfire Vb: 594 km/h, two 20 mm Hispano and four .303, 760 km. Cost
     // estimate on the Mk I.
     // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
-    source: SRC_AIR,
+    source:
+      "Checked 2026-11-04 on Wikipedia: Supermarine Spitfire (Mk Vb: 5,065 / 6,622 lb on 242.1 sq ft, 370 mph). Other figures from memory; cost an estimate unless stated.",
     spec: {
       maxKmh: 594,
       rangeKm: 760,
@@ -1035,7 +1042,8 @@ export const GBR_HIST: readonly HistEntry[] = [
     // not verified).
     // Audit w66: 55,000 lb on 1,297 sq ft (Wikipedia): normal weight.
     // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
-    source: SRC_AIR,
+    source:
+      "Checked 2026-11-04 on Wikipedia: Avro Lancaster (36,900 / 55,000 lb on 1,297 sq ft, 282 mph; entry keeps 462 km/h). Other figures from memory; cost an estimate unless stated.",
     spec: {
       maxKmh: 462,
       rangeKm: 4070,
@@ -1496,7 +1504,8 @@ export const GBR_HIST: readonly HistEntry[] = [
     // four octuple 2-pdr.
     // Audit w66: 14.7 in belt (Wikipedia).
     // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
-    source: SRC_SHIP,
+    source:
+      "Checked 2026-11-04 on Wikipedia: King George V class (36,727 t, 28 kn, 14.7 in belt, 10 x 14 in, 16 x 5.25 in). Other figures from memory; cost an estimate unless stated.",
     spec: {
       dispT: 36700,
       main: { count: 10, mm: 356 },
@@ -1578,7 +1587,8 @@ export const GBR_HIST: readonly HistEntry[] = [
     // belt, 36 aircraft (the armoured hangar cost capacity), sixteen
     // 4.5-inch DP, six octuple 2-pdr, 30.5 kn, 6,900 nm at 20 kn (sources
     // 6,900-11,000 at different speeds).
-    source: SRC_SHIP,
+    source:
+      "Checked 2026-11-04 on Wikipedia: Illustrious class (23,000 LT, 30.5 kn, 4.5 in belt, 36-57 aircraft, 16 x 4.5 in). Other figures from memory; cost an estimate unless stated.",
     spec: {
       dispT: 23200,
       main: { count: 0, mm: 0 },

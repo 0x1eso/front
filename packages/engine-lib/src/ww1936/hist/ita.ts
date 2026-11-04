@@ -5,7 +5,7 @@
 // 30 degrees with the normal AP round. Reliability 1..5 from the history.
 // Italy's weak tanks stay weak: thin armour, small guns.
 //
-// Costs are 1940 US dollars of industrial effort, NOT lire at an exchange
+// Costs (rebased in the ww66 audit) are 1940 US dollars of industrial effort, NOT lire at an exchange
 // rate. Each is scaled by weight, complexity and materials from a comparable
 // American item, with Italian small-batch, labour-heavy production adding to
 // it. The American reference prices are FROM MEMORY and approximate: M3 Stuart
@@ -153,7 +153,8 @@ export const ITA_HIST: readonly HistEntry[] = [
     // give 30-43 mm at 500 m, 38 used), four 8 mm; diesel, cramped, sound.
     // Audit w66: Weak engine, filter trouble in the desert: reliability 2; the M14/41 fixed part of it.
     // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
-    source: SRC_TANK,
+    source:
+      "Checked 2026-11-04 on Wikipedia: M13/40 (14 t, 31.8 km/h road, 47/32). Other figures from memory; cost an estimate unless stated.",
     spec: {
       massT: 14,
       hullFrontMm: 30,
@@ -235,7 +236,8 @@ export const ITA_HIST: readonly HistEntry[] = [
     // by the armistice; the price is an estimate.
     // Audit w66: 75/34 set to 65 mm beside the US 75 mm M3 at 68 (lower velocity); the P26/40 was a diesel.
     // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
-    source: SRC_TANK,
+    source:
+      "Checked 2026-11-04 on Wikipedia: P26/40 (26 t, hull 50, turret 60 mm, 40/25 km/h, 75/34). Other figures from memory; cost an estimate unless stated.",
     spec: {
       diesel: true,
       massT: 26,
@@ -290,7 +292,8 @@ export const ITA_HIST: readonly HistEntry[] = [
     // but with low velocity, so 50 mm is used as a middle. Reliable.
     // Audit w66: 13.1 t (Wikipedia); on the diesel M14/41 chassis.
     // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
-    source: SRC_TANK,
+    source:
+      "Checked 2026-11-04 on Wikipedia: Semovente da 75/18 (13.1 t, 75/18). Other figures from memory; cost an estimate unless stated.",
     spec: {
       diesel: true,
       massT: 13.1,
@@ -344,7 +347,8 @@ export const ITA_HIST: readonly HistEntry[] = [
     // 500 m, 120 mm used.
     // Audit w66: 90/53 quoted at 140 mm at 500 m without an angle (Wikipedia); 112 at 30 deg by the same ratio as the D-25T's 150/120; between the 88 L/56 at 110 and the 90 mm M3 at 125.
     // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
-    source: SRC_TANK,
+    source:
+      "Checked 2026-11-04 on Wikipedia: Cannone da 90/53 (AP 140 mm at 500 m, 120 at 1,000 m, angle not given); 112 at 30 deg by ratio. Other figures from memory; cost an estimate unless stated.",
     spec: {
       diesel: true,
       massT: 16,
@@ -515,7 +519,8 @@ export const ITA_HIST: readonly HistEntry[] = [
     // Macchi MC.202 Folgore: DB 601 licence engine, 600 km/h, 2 x 12.7 mm
     // and 2 x 7.7 mm; the best Italian fighter of its year.
     // Audit w66: 2,491 kg empty (Wikipedia).
-    source: SRC_AIR,
+    source:
+      "Checked 2026-11-04 on Wikipedia: Macchi C.202 (2,491 kg, 16.82 m2, 600 km/h, 765 km). Other figures from memory; cost an estimate unless stated.",
     spec: {
       maxKmh: 600,
       rangeKm: 765,
@@ -541,7 +546,8 @@ export const ITA_HIST: readonly HistEntry[] = [
     year: 1943,
     // Macchi MC.205 Veltro: DB 605 licence engine, 642 km/h, 2 x 12.7 mm
     // and 2 x 20 mm MG 151; built in small numbers.
-    source: SRC_AIR,
+    source:
+      "Checked 2026-11-04 on Wikipedia: Macchi C.205 (2,581 / 3,408 kg on 16.8 m2, 642 km/h, 950 km). Other figures from memory; cost an estimate unless stated.",
     spec: {
       maxKmh: 642,
       rangeKm: 950,
@@ -699,7 +705,8 @@ export const ITA_HIST: readonly HistEntry[] = [
     // bombs, five machine guns (12.7 and 7.7 mm); the best Italian bomber.
     // Audit w66: 460 km/h, 7,700 kg, 10,050 kg on 61.7 m2, 2,600 km (Wikipedia, Savoia-Marchetti SM.79).
     // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
-    source: SRC_AIR,
+    source:
+      "Checked 2026-11-04 on Wikipedia: SM.79 (7,700 / 10,050 kg on 61.7 m2, 460 km/h, 2,600 km, 1,200 kg). Other figures from memory; cost an estimate unless stated.",
     spec: {
       maxKmh: 460,
       rangeKm: 2600,
@@ -1084,7 +1091,8 @@ export const ITA_HIST: readonly HistEntry[] = [
     year: 1931,
     // Zara class: about 11,500 t standard, 8 x 203 mm, 12 x 100 mm, 150 mm
     // belt, 32 kn; the best-protected Italian heavy cruisers.
-    source: SRC_SHIP,
+    source:
+      "Checked 2026-11-04 on Wikipedia: Zara class (11,326 t, 32 kn, 150 mm belt, 8 x 203). Other figures from memory; cost an estimate unless stated.",
     spec: {
       dispT: 11500,
       main: { count: 8, mm: 203 },
@@ -1146,7 +1154,8 @@ export const ITA_HIST: readonly HistEntry[] = [
     // (35,000 Washington on paper), 9 x 381 mm, 12 x 152 mm, 12 x 90 mm AA,
     // 280 mm belt, 30 kn; about 850 million lire per ship (warhistory.org); cost set above the North Carolina.
     // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
-    source: SRC_SHIP,
+    source:
+      "Checked 2026-11-04 on Wikipedia: Littorio class (40,724 t, 30 kn, 4,580 nm, 280 + 70 mm belt, 9 x 381, 12 x 152, 12 x 90, 20 x 37, 20 x 20). Other figures from memory; cost an estimate unless stated.",
     spec: {
       dispT: 41000,
       main: { count: 9, mm: 381 },
@@ -1469,7 +1478,8 @@ export const ITA_HIST: readonly HistEntry[] = [
     // Cannone da 47/32 Mod. 35 (Bohler design): 12 rounds a minute, shell
     // 1.44 kg, 277 kg; penetration quoted 30-43 mm at 500 m, 38 mm used
     // (same value as the M13/40's gun).
-    source: SRC_GUN,
+    source:
+      "Checked 2026-11-04 on Wikipedia: Cannone da 47/32 (43 mm at 500 m, angle not given; L/40 50 mm). Other figures from memory; cost an estimate unless stated.",
     spec: {
       mm: 47,
       rpm: 12,
