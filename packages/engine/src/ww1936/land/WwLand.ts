@@ -72,6 +72,7 @@ import {
   genMixInto,
   genMixOf,
   isGen1Mix,
+  sameCountedEquip,
   strengthPmAt,
   templateCounts,
   templateStats,
@@ -1817,14 +1818,13 @@ export class WwLand {
     const hit = this.statsCache.get(id);
     if (hit !== undefined && hit.epoch === epoch && hit.template === tpl) {
       const he = hit.equip;
-      let same = hit.men === men;
-      for (let j = 0; same && j < GROUND_SLOTS; j++) {
-        same = he[j] === eq[base0 + j];
+      // Only the slots that count (static, and the designs filling a group).
+      if (hit.men === men && sameCountedEquip(he, 0, eq, base0, hit.ks)) {
+        return hit;
       }
-      if (same) return hit;
       // Men or equipment moved: the base holds while the generation mix does.
       hit.men = men;
-      for (let j = 0; j < GROUND_SLOTS; j++) he[j] = eq[base0 + j];
+      he.set(eq.subarray(base0, base0 + GROUND_SLOTS));
       const mix = genMixInto(MIX_SCRATCH, he, hit.ks);
       let sameMix = true;
       for (let i = 0; sameMix && i < mix.length; i++) {

@@ -362,6 +362,54 @@ export function genArmorPct(g: number): number {
 
 export const STATIC_KEY_STATS: KeyStatsTable = staticKeyStats();
 
+let ACTIVE_KS: KeyStatsTable | null = null;
+let ACTIVE_SLOTS: Int16Array = new Int16Array(0);
+const ACTIVE_MEMO = new WeakMap<KeyStatsTable, Int16Array>();
+
+/**
+ * The design slots (division slot indices) of a table that fill a need
+ * group, ascending. Only those count in a division's mix and holdings, so
+ * the hot loops visit them instead of every one of the (many) design
+ * slots. A table is never written in place, so the list is made once.
+ */
+export function activeDesignSlots(ks: KeyStatsTable): Int16Array {
+  if (ks === ACTIVE_KS) return ACTIVE_SLOTS;
+  let a = ACTIVE_MEMO.get(ks);
+  if (a === undefined) {
+    const out: number[] = [];
+    for (let j = GROUND_STATIC_SLOTS; j < GROUND_SLOTS; j++) {
+      if (ks.group[j] >= 0) out.push(j);
+    }
+    a = Int16Array.from(out);
+    ACTIVE_MEMO.set(ks, a);
+  }
+  ACTIVE_KS = ks;
+  ACTIVE_SLOTS = a;
+  return a;
+}
+
+/**
+ * Whether two ground equipment vectors agree in every slot that counts for
+ * `ks`: the static slots and the design slots that fill a group.
+ */
+export function sameCountedEquip(
+  a: ArrayLike<number>,
+  aBase: number,
+  b: ArrayLike<number>,
+  bBase: number,
+  ks: KeyStatsTable,
+): boolean {
+  for (let j = 0; j < GROUND_STATIC_SLOTS; j++) {
+    if (a[aBase + j] !== b[bBase + j]) return false;
+  }
+  const act = activeDesignSlots(ks);
+  for (let i = 0; i < act.length; i++) {
+    const j = act[i];
+    if (a[aBase + j] !== b[bBase + j]) return false;
+  }
+  return true;
+}
+
 /** A division's generation mix (and P6 design units) from its slots. */
 export function genMixOf(
   equip: ArrayLike<number>,
@@ -392,19 +440,27 @@ export function genMixInto(
     out[i] = units[i] === 0 ? 100 : Math.floor((sum[i] * 100) / units[i]);
   }
   for (let i = 0; i < T; i++) out[S0 + i] = 0;
-  for (let d = 0; d < WW_TANK_DESIGN_SLOTS; d++) {
-    const n = equip[GROUND_STATIC_SLOTS + d] ?? 0;
-    out[D0 + d] = n;
-    const g = ks.group[GROUND_STATIC_SLOTS + d];
-    if (n > 0 && g >= 0) out[S0 + g] = units[g];
+  // Only the slots that fill a group are held: units in an empty design
+  // slot (group -1) count for nothing and read as zero.
+  out.fill(0, D0, D0 + WW_TANK_DESIGN_SLOTS);
+  const act = activeDesignSlots(ks);
+  for (let a = 0; a < act.length; a++) {
+    const j = act[a];
+    const n = equip[j] ?? 0;
+    out[D0 + j - GROUND_STATIC_SLOTS] = n;
+    if (n > 0) {
+      const g = ks.group[j];
+      out[S0 + g] = units[g];
+    }
   }
   return out;
 }
 
 /** The mix holds no design unit (P2's numbers). */
-function staticOnly(gens: GenMix): boolean {
-  for (let d = 0; d < WW_TANK_DESIGN_SLOTS; d++) {
-    if ((gens[D0 + d] ?? 0) !== 0) return false;
+function staticOnly(gens: GenMix, ks: KeyStatsTable): boolean {
+  const act = activeDesignSlots(ks);
+  for (let a = 0; a < act.length; a++) {
+    if ((gens[D0 + act[a] - GROUND_STATIC_SLOTS] ?? 0) !== 0) return false;
   }
   return true;
 }
@@ -429,9 +485,10 @@ function blendOf(
   let units = 0;
   const sums = new Array<number>(KS_FIELDS).fill(0);
   let flags = 0;
-  for (let d = 0; d < WW_TANK_DESIGN_SLOTS; d++) {
-    const n = gens[D0 + d] ?? 0;
-    const j = GROUND_STATIC_SLOTS + d;
+  const act = activeDesignSlots(ks);
+  for (let a = 0; a < act.length; a++) {
+    const j = act[a];
+    const n = gens[D0 + j - GROUND_STATIC_SLOTS] ?? 0;
     if (n <= 0 || ks.group[j] !== g) continue;
     units += n;
     const o = j * KS_FIELDS;
@@ -523,7 +580,7 @@ export function templateStats(
   ks: KeyStatsTable = STATIC_KEY_STATS,
 ): DivisionStats {
   // P6: the designs a division holds blend into its tank battalions.
-  const withDesigns = !staticOnly(gens);
+  const withDesigns = !staticOnly(gens, ks);
   let designFlags = 0;
   const need = new Array<number>(T).fill(0);
   const parts = new Array<number>(T * 4).fill(0);
@@ -787,11 +844,10 @@ export function equipByType(
   for (let j = 0; j < GROUND_STATIC_SLOTS; j++) {
     have[SLOT_TYPE[j]] += equip[j] ?? 0;
   }
-  for (let j = GROUND_STATIC_SLOTS; j < GROUND_SLOTS; j++) {
-    const n = equip[j] ?? 0;
-    if (n === 0) continue;
-    const g = ks.group[j];
-    if (g >= 0) have[g] += n;
+  const act = activeDesignSlots(ks);
+  for (let a = 0; a < act.length; a++) {
+    const j = act[a];
+    have[ks.group[j]] += equip[j] ?? 0;
   }
   return have;
 }
