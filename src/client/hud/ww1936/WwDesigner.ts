@@ -18,6 +18,7 @@ import { customElement, state } from "lit/decorators.js";
 import { SendWwOrderIntentEvent } from "../../Transport";
 import { translateText } from "../../Utils";
 import { WwDepthOpenEvent } from "./DepthEvents";
+import { designerOn } from "./DesignerFlag";
 import {
   DESIGNER_CARD_H,
   DESIGNER_CARD_W,
@@ -34,7 +35,6 @@ import {
   TankCell,
 } from "./DesignerModel";
 import { LibEntry, libraryStore } from "./DesignLibrary";
-import { designerOn } from "./DesignerFlag";
 import { entryName, LibraryAuto } from "./DesignLibraryStatus";
 import { blockText as orderBlockText } from "./EconomyModel";
 import { StartPrep } from "./LobbyPrep";

@@ -23,7 +23,9 @@ import { translateText } from "../../Utils";
  * here: text key ww1936.hist.<id>.
  */
 export function histNameOf(id: string): string | null {
-  return histEntry(id) === undefined ? null : translateText(`ww1936.hist.${id}`);
+  return histEntry(id) === undefined
+    ? null
+    : translateText(`ww1936.hist.${id}`);
 }
 
 /** True for the engine's marker of an automatic name. */

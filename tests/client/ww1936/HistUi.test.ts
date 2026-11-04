@@ -15,17 +15,23 @@ vi.mock("../../../src/client/Utils", async (importOriginal) => ({
       : `[${key}]`,
 }));
 
-import { WwDepthView } from "../../../src/client/view/WwDepthView";
-import { depthNoticeParams } from "../../../src/client/hud/ww1936/DepthMiscModel";
-import { designButton, designsButton } from "../../../src/client/hud/ww1936/DesignButton";
-import { designDisplayName } from "../../../src/client/hud/ww1936/DesignName";
-import { lineItemName, stockTable } from "../../../src/client/hud/ww1936/EconomyModel";
-import { OpenWwIndustryEvent } from "../../../src/client/hud/ww1936/WwDrawer";
-import type { WwIndustryPanel } from "../../../src/client/hud/ww1936/WwIndustryPanel";
-import "../../../src/client/hud/ww1936/WwIndustryPanel";
-import { effectLines } from "../../../src/client/hud/ww1936/TechEffectLines";
-import { SendWwOrderIntentEvent } from "../../../src/client/Transport";
 import { render } from "lit";
+import { depthNoticeParams } from "../../../src/client/hud/ww1936/DepthMiscModel";
+import {
+  designButton,
+  designsButton,
+} from "../../../src/client/hud/ww1936/DesignButton";
+import { designDisplayName } from "../../../src/client/hud/ww1936/DesignName";
+import {
+  lineItemName,
+  stockTable,
+} from "../../../src/client/hud/ww1936/EconomyModel";
+import { effectLines } from "../../../src/client/hud/ww1936/TechEffectLines";
+import { OpenWwIndustryEvent } from "../../../src/client/hud/ww1936/WwDrawer";
+import "../../../src/client/hud/ww1936/WwIndustryPanel";
+import type { WwIndustryPanel } from "../../../src/client/hud/ww1936/WwIndustryPanel";
+import { SendWwOrderIntentEvent } from "../../../src/client/Transport";
+import { WwDepthView } from "../../../src/client/view/WwDepthView";
 import { designerGame, saved } from "./DesignerFixture";
 import { detail, fakeEconGame, ID, summary } from "./EconomyFixture";
 
@@ -54,9 +60,7 @@ function mountDeu(
   depth.apply({
     fx: [],
     news: [],
-    details: [
-      { smallID: ID("DEU"), designs, projects: { done: 0 } } as never,
-    ],
+    details: [{ smallID: ID("DEU"), designs, projects: { done: 0 } } as never],
     market: {
       listings: [],
       deals: [],
@@ -102,7 +106,9 @@ describe("the production picker of the catalogue (designer off)", () => {
     const row = m.el.querySelector("[data-ww-hist='deu_pz3_e']")!;
     expect(row.textContent).toContain("[ww1936.hist.deu_pz3_e]");
     expect(row.textContent).toContain("[ww1936.hist_pick.tank]");
-    expect(row.textContent).toMatch(/armor=\d+,pierce=\d+,speed=[\d.]+,cost=[\d.]+,rel=\d+/);
+    expect(row.textContent).toMatch(
+      /armor=\d+,pierce=\d+,speed=[\d.]+,cost=[\d.]+,rel=\d+/,
+    );
     // The generic tank buttons give way to the catalogue.
     expect(m.el.querySelector("[data-ww-pick='add:medium_tank:1']")).toBeNull();
     (row as HTMLButtonElement).click();
@@ -111,9 +117,9 @@ describe("the production picker of the catalogue (designer off)", () => {
     ]);
     // The 40 px rule and a scrolling list.
     expect(row.className).toContain("min-h-10");
-    expect(
-      m.el.querySelector("[data-ww-picker]")!.className,
-    ).toContain("overflow-y-auto");
+    expect(m.el.querySelector("[data-ww-picker]")!.className).toContain(
+      "overflow-y-auto",
+    );
   });
 
   it("a locked entry is not a button; it waits folded with the tech it needs", async () => {
@@ -122,7 +128,9 @@ describe("the production picker of the catalogue (designer off)", () => {
     // Panzer III J needs medium tank II: no row, not pickable.
     expect(m.el.querySelector("[data-ww-hist='deu_pz3_j']")).toBeNull();
     expect(m.el.querySelector("[data-ww-hist-lock]")).toBeNull();
-    m.el.querySelector<HTMLButtonElement>("[data-ww-hist-locked-toggle]")!.click();
+    m.el
+      .querySelector<HTMLButtonElement>("[data-ww-hist-locked-toggle]")!
+      .click();
     await m.el.updateComplete;
     const lock = m.el.querySelector("[data-ww-hist-lock='deu_pz3_j']")!;
     expect(lock.tagName).not.toBe("BUTTON");
@@ -133,7 +141,9 @@ describe("the production picker of the catalogue (designer off)", () => {
     const m = mountDeu(researched, [], true);
     await openPicker(m);
     expect(m.el.querySelector("[data-ww-hist]")).toBeNull();
-    expect(m.el.querySelector("[data-ww-pick='add:medium_tank:1']")).not.toBeNull();
+    expect(
+      m.el.querySelector("[data-ww-pick='add:medium_tank:1']"),
+    ).not.toBeNull();
   });
 });
 
@@ -154,9 +164,8 @@ describe("the designer is hidden when off", () => {
   });
 
   async function drawer(designer: boolean) {
-    const { WwDepthOpenEvent } = await import(
-      "../../../src/client/hud/ww1936/DepthEvents"
-    );
+    const { WwDepthOpenEvent } =
+      await import("../../../src/client/hud/ww1936/DepthEvents");
     await import("../../../src/client/hud/ww1936/WwDesigner");
     const bus = new EventBus();
     const el = document.createElement("ww-designer") as HTMLElement & {
@@ -227,14 +236,19 @@ describe("catalogue names", () => {
 
 describe("tech effect text", () => {
   it("lists what the tech unlocks for my country; the module lines go with the designer", () => {
-    const off = effectLines("medium_tank_3", { designer: false, country: "DEU" });
+    const off = effectLines("medium_tank_3", {
+      designer: false,
+      country: "DEU",
+    });
     expect(off.join("|")).toContain("[ww1936.techfx.hist_unlocks]");
     expect(off.join("|")).toContain("[ww1936.hist.deu_panther_a]");
     expect(off.join("|")).not.toContain("tank_chassis");
     expect(off.join("|")).not.toContain("tank_modules");
     // A minor lists no entries.
     expect(
-      effectLines("medium_tank_3", { designer: false, country: "POL" }).join("|"),
+      effectLines("medium_tank_3", { designer: false, country: "POL" }).join(
+        "|",
+      ),
     ).not.toContain("hist_unlocks");
     // Designer on (and the old default): the chassis line, no catalogue line.
     const on = effectLines("medium_tank_3", { designer: true, country: "DEU" });

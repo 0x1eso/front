@@ -8,8 +8,8 @@ import type { WwOrder } from "@openfront/engine-api/Schemas";
 import { AIR_TYPES, type AirType } from "@openfront/engine-api/ww1936/AirTypes";
 import {
   DESIGN_NAME_MAX,
-  DESIGNER_POOL,
   DesignDef,
+  DESIGNER_POOL,
   DesignKind,
   DesignNameSchema,
   DesignStats,

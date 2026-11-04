@@ -269,7 +269,13 @@ export function histShipItems(
     );
     const usable = row !== undefined && !row.obsolete;
     out.push(
-      itemOf(e, "tank_design", i + 1, usable ? [] : lacking(e, researched), false),
+      itemOf(
+        e,
+        "tank_design",
+        i + 1,
+        usable ? [] : lacking(e, researched),
+        false,
+      ),
     );
   });
   for (const d of designs) {

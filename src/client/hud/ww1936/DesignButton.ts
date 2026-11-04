@@ -6,7 +6,7 @@ import type { EventBus } from "@openfront/shared/EventBus";
 import { html, TemplateResult } from "lit";
 import { translateText } from "../../Utils";
 import { WwDepthOpenEvent } from "./DepthEvents";
-import { designerOn, DesignerFlagGame } from "./DesignerFlag";
+import { DesignerFlagGame, designerOn } from "./DesignerFlag";
 
 const DESIGN_BUTTON_KEYS: Readonly<Record<DesignKind, string>> = {
   tank: "ww1936.depth.design_tank",

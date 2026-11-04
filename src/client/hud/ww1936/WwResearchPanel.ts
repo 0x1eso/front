@@ -19,8 +19,8 @@ import { SendWwOrderIntentEvent } from "../../Transport";
 import { translateText } from "../../Utils";
 import { ringSvg } from "../domestic/Dial";
 import { WwDepthOpenEvent } from "./DepthEvents";
-import { designerOn } from "./DesignerFlag";
 import { DepthIndustryModel } from "./DepthIndustryModel";
+import { designerOn } from "./DesignerFlag";
 import {
   blockText,
   branchName,

@@ -96,6 +96,7 @@ import {
   researchProgress,
 } from "@openfront/engine-lib/ww1936/EconomyRules";
 import { EQUIPMENT } from "@openfront/engine-lib/ww1936/Equipment";
+import type { HistCountry } from "@openfront/engine-lib/ww1936/hist/Types";
 import { isNoStrike } from "@openfront/engine-lib/ww1936/NoStrike";
 import {
   lawBlock,
@@ -134,7 +135,6 @@ import type { WwEndgameView } from "../../view/WwEndgameView";
 import type { WwPoliticsView } from "../../view/WwPoliticsView";
 import { designDisplayName } from "./DesignName";
 import { staticItemName } from "./HistPicker";
-import type { HistCountry } from "@openfront/engine-lib/ww1936/hist/Types";
 import { today, wwActive, type WwGame } from "./WorldWarModel";
 
 /** What the economy screens read from the game (a fake in tests). */

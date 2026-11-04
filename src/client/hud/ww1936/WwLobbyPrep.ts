@@ -722,7 +722,9 @@ export class WwLobbyPrep extends LitElement {
   }
 
   private renderDesigns(): TemplateResult {
-    const kinds: DesignKind[] = this.designerOn ? ["tank", "plane", "ship"] : [];
+    const kinds: DesignKind[] = this.designerOn
+      ? ["tank", "plane", "ship"]
+      : [];
     return html`<div data-ww-prep-designs class="flex flex-col gap-2">
       <p
         data-ww-prep-draft-note

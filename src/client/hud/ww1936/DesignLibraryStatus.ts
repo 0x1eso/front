@@ -34,6 +34,7 @@ import { templateBlock } from "@openfront/engine-lib/ww1936/TemplateStats";
 import { translateText } from "../../Utils";
 import type { GameView } from "../../view/GameView";
 import { TEMPLATE_TYPES } from "./AirGroupModel";
+import { designerOn } from "./DesignerFlag";
 import { DesignerGame, DesignerModel } from "./DesignerModel";
 import {
   cellOf,
@@ -43,7 +44,6 @@ import {
   templateKey,
 } from "./DesignLibrary";
 import { designDisplayName } from "./DesignName";
-import { designerOn } from "./DesignerFlag";
 import { blockText } from "./EconomyModel";
 import { designGroupsOf, researchedOf } from "./LandModel";
 

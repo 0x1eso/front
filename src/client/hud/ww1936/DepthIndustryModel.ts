@@ -56,7 +56,6 @@ import type { GameView } from "../../view/GameView";
 import type { WwDepthView } from "../../view/WwDepthView";
 import { airCtx, deployedHere, zoneCard } from "./AirModel";
 import { designDisplayName } from "./DesignName";
-import { histCountryOfGame, staticItemName } from "./HistPicker";
 import {
   equipmentName,
   genName,
@@ -64,6 +63,7 @@ import {
   ResourceRowView,
 } from "./EconomyModel";
 import { fogModelOf } from "./FogModel";
+import { histCountryOfGame, staticItemName } from "./HistPicker";
 import { today } from "./WorldWarModel";
 
 // ---- names (keys: lane T's ww1936.mio.*, market.*, energy.*, project_ui.*) ----

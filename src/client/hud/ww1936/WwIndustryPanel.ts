@@ -33,16 +33,6 @@ import type { WwEndgameView } from "../../view/WwEndgameView";
 import { designsButton } from "./DesignButton";
 import { designerOn } from "./DesignerFlag";
 import {
-  histCountryOfTag,
-  histGearItem,
-  histHasKind,
-  histPlaneGroups,
-  histPlaneTypes,
-  histTankGroups,
-  type HistPickGroup,
-  type HistPickItem,
-} from "./HistPicker";
-import {
   addLineBlock,
   armyMenOf,
   autoPlace,
@@ -91,6 +81,16 @@ import {
   tradeOffers,
   type PickerDesign,
 } from "./EconomyModel";
+import {
+  histCountryOfTag,
+  histGearItem,
+  histHasKind,
+  histPlaneGroups,
+  histPlaneTypes,
+  histTankGroups,
+  type HistPickGroup,
+  type HistPickItem,
+} from "./HistPicker";
 import { conscriptionLaw } from "./PoliticsModel";
 import {
   countryName,
@@ -1292,33 +1292,33 @@ export class WwIndustryPanel extends WwDrawerBase {
           }
         }
         return html`<div class="flex flex-wrap items-center gap-1">
-            <span class="min-w-28 flex-1 truncate text-xs"
-              >${EQUIPMENT_ICONS[type]} ${equipmentName(type)}</span
+          <span class="min-w-28 flex-1 truncate text-xs"
+            >${EQUIPMENT_ICONS[type]} ${equipmentName(type)}</span
+          >
+          ${gensOf(type).map((gen) => {
+            const mine = layout.replaced.get(equipKey(type, gen));
+            if (mine !== undefined) return designButton(mine.kind, mine);
+            const block = blockOf(type, gen);
+            return html`<button
+              type="button"
+              data-ww-pick=${`${dataKey}:${type}:${gen}`}
+              class="${BUTTON} flex flex-col items-center justify-center leading-tight"
+              ?disabled=${block !== null || current(type, gen)}
+              @click=${() => pick(type, gen)}
             >
-            ${gensOf(type).map((gen) => {
-              const mine = layout.replaced.get(equipKey(type, gen));
-              if (mine !== undefined) return designButton(mine.kind, mine);
-              const block = blockOf(type, gen);
-              return html`<button
-                type="button"
-                data-ww-pick=${`${dataKey}:${type}:${gen}`}
-                class="${BUTTON} flex flex-col items-center justify-center leading-tight"
-                ?disabled=${block !== null || current(type, gen)}
-                @click=${() => pick(type, gen)}
+              <span
+                >${block === "no_tech" || block === "project_locked"
+                  ? "🔒 "
+                  : ""}${genName(gen)}</span
               >
-                <span
-                  >${block === "no_tech" || block === "project_locked"
-                    ? "🔒 "
-                    : ""}${genName(gen)}</span
-                >
-                ${note === null || block !== null || current(type, gen)
-                  ? nothing
-                  : html`<span class="text-[10px] font-normal text-white/70"
-                      >${note(type, gen)}</span
-                    >`}
-              </button>`;
-            })}
-          </div>`;
+              ${note === null || block !== null || current(type, gen)
+                ? nothing
+                : html`<span class="text-[10px] font-normal text-white/70"
+                    >${note(type, gen)}</span
+                  >`}
+            </button>`;
+          })}
+        </div>`;
       })}
       ${this.renderHistLocked(lockedItems)}
       ${layout.groups.map((g) =>
@@ -1381,31 +1381,33 @@ export class WwIndustryPanel extends WwDrawerBase {
           continue;
         }
         const here = current(it.type, it.gen);
-        rows.push(html`<button
-          type="button"
-          data-ww-pick=${`${dataKey}:${it.type}:${it.gen}`}
-          data-ww-hist=${it.id}
-          class="${ROW} ${here ? "border-sky-400/60 bg-sky-500/10" : ""}"
-          ?disabled=${block !== null || here}
-          @click=${() => pick(it.type, it.gen)}
-        >
-          <span class="block break-words text-xs font-semibold"
-            >${it.foreign ? "⚑ " : ""}${it.name}</span
+        rows.push(
+          html`<button
+            type="button"
+            data-ww-pick=${`${dataKey}:${it.type}:${it.gen}`}
+            data-ww-hist=${it.id}
+            class="${ROW} ${here ? "border-sky-400/60 bg-sky-500/10" : ""}"
+            ?disabled=${block !== null || here}
+            @click=${() => pick(it.type, it.gen)}
           >
-          <span
-            class="block break-words text-[11px] font-normal leading-snug text-white/70"
-            >${it.stats}</span
-          >
-          ${block !== null
-            ? html`<span class="block text-[11px] font-normal text-red-300"
-                >🔒 ${blockText(block)}</span
-              >`
-            : note === null || here
-              ? nothing
-              : html`<span class="block text-[10px] font-normal text-white/70"
-                  >${note(it.type, it.gen)}</span
-                >`}
-        </button>`);
+            <span class="block break-words text-xs font-semibold"
+              >${it.foreign ? "⚑ " : ""}${it.name}</span
+            >
+            <span
+              class="block break-words text-[11px] font-normal leading-snug text-white/70"
+              >${it.stats}</span
+            >
+            ${block !== null
+              ? html`<span class="block text-[11px] font-normal text-red-300"
+                  >🔒 ${blockText(block)}</span
+                >`
+              : note === null || here
+                ? nothing
+                : html`<span class="block text-[10px] font-normal text-white/70"
+                    >${note(it.type, it.gen)}</span
+                  >`}
+          </button>`,
+        );
       }
       if (rows.length === 0) return nothing;
       return html`<div data-ww-hist-group=${g.id} class="flex flex-col gap-1">
@@ -1435,23 +1437,24 @@ export class WwIndustryPanel extends WwDrawerBase {
       </button>
       ${this.histLockedOpen
         ? items.map(
-            (it) => html`<div
-              data-ww-hist-lock=${it.id}
-              class="rounded-md border border-white/10 bg-white/5 px-2 py-1 opacity-80"
-            >
-              <span class="block break-words text-xs font-semibold"
-                >🔒 ${it.name}</span
+            (it) =>
+              html`<div
+                data-ww-hist-lock=${it.id}
+                class="rounded-md border border-white/10 bg-white/5 px-2 py-1 opacity-80"
               >
-              <span
-                class="block break-words text-[11px] leading-snug text-white/70"
-                >${it.stats}</span
-              >
-              <span class="block break-words text-[11px] text-amber-200"
-                >${translateText("ww1936.hist_pick.needs", {
-                  list: it.lack.join(", "),
-                })}</span
-              >
-            </div>`,
+                <span class="block break-words text-xs font-semibold"
+                  >🔒 ${it.name}</span
+                >
+                <span
+                  class="block break-words text-[11px] leading-snug text-white/70"
+                  >${it.stats}</span
+                >
+                <span class="block break-words text-[11px] text-amber-200"
+                  >${translateText("ww1936.hist_pick.needs", {
+                    list: it.lack.join(", "),
+                  })}</span
+                >
+              </div>`,
           )
         : nothing}
     </div>`;
