@@ -176,7 +176,7 @@ describe("start division re-forming (preparation)", () => {
     expect(
       l.issue(
         id,
-        saveOf(l, id, INFANTRY, (b) => b.slice(0, 1)),
+        saveOf(l, id, INFANTRY, (b) => b.slice(0, 3)),
       ),
     ).toBeNull();
     const rows = divisionsOf(l, id, INFANTRY);
@@ -324,7 +324,7 @@ describe("start division re-forming (preparation)", () => {
     expect(
       a.l.issue(
         a.id,
-        saveOf(a.l, a.id, INFANTRY, (b) => b.slice(0, 2)),
+        saveOf(a.l, a.id, INFANTRY, (b) => b.slice(0, 3)),
       ),
     ).toBeNull();
     // The same divisions, men above the new need back in the pool.

@@ -657,6 +657,7 @@ export const BLOCK_KEYS: Readonly<Record<WwOrderBlock, string>> = {
   no_xp: "ww1936.econ.block.no_xp",
   bad_template: "ww1936.econ.block.bad_template",
   special_cap: "ww1936.econ.block.special_cap",
+  too_small: "ww1936.econ.block.too_small",
   no_rail: "ww1936.econ.block.no_rail",
   no_port: "ww1936.econ.block.no_port",
   para_range: "ww1936.econ.block.para_range",

@@ -5012,6 +5012,7 @@
         "too_many_fleets": "At most 40 fleets",
         "too_many_templates": "Too many templates",
         "too_many_wings": "This country is at its wing limit",
+        "too_small": "A division with support companies needs at least 3 battalions",
         "trades_full": "Too many deals",
         "trait_unavailable": "This trait cannot be given now",
         "treaty_exists": "Already in force",

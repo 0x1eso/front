@@ -661,6 +661,8 @@ export const WW_MAX_TRAIN_COUNT = 10;
 export const WW_MAX_ARMIES = 40;
 /** HOI4's designer: 5 columns × 5 rows (pre-flight U1). */
 export const WW_MAX_BATTALIONS = 25;
+/** w57: a division with support companies needs this many battalions (support takes no width). */
+export const WW_MIN_BATTALIONS = 3;
 export const WW_MAX_SUPPORT = 4;
 export const WW_MAX_WIDTH = 40;
 export const WW_MAX_TARGETS = 3;

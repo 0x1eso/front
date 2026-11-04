@@ -48,6 +48,7 @@ import {
   WW_MAX_BATTALIONS,
   WW_MAX_SUPPORT,
   WW_MAX_WIDTH,
+  WW_MIN_BATTALIONS,
   WW_TEMPLATE_NAME_MAX,
 } from "@openfront/engine-api/ww1936/LandTypes";
 import type { WwStatKey } from "@openfront/engine-api/ww1936/PoliticsTypes";
@@ -842,6 +843,11 @@ export function templateBlock(
 ): WwOrderBlock | null {
   if (def.battalions.length < 1 || def.battalions.length > WW_MAX_BATTALIONS) {
     return "bad_template";
+  }
+  // Support companies take no width, so under a few battalions they beat
+  // everything: a division with support needs WW_MIN_BATTALIONS.
+  if (def.support.length > 0 && def.battalions.length < WW_MIN_BATTALIONS) {
+    return "too_small";
   }
   if (def.support.length > WW_MAX_SUPPORT) return "bad_template";
   if (new Set(def.support).size !== def.support.length) return "bad_template";

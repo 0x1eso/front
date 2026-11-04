@@ -273,6 +273,17 @@ describe("templates (P2 spec §4.3, §4.4)", () => {
         Infinity,
       ),
     ).toBe("bad_template");
+    // w57: a lone battalion with support is refused, without support it is fine; three are fine.
+    expect(
+      templateBlock(
+        def([["infantry", 1]], ["support_artillery"]),
+        ALL_TECHS,
+        Infinity,
+      ),
+    ).toBe("too_small");
+    expect(templateBlock(def([["cavalry", 3]]), ALL_TECHS, Infinity)).toBe(
+      null,
+    );
     const mountain = def([["mountain", 6]]);
     expect(
       templateBlock(

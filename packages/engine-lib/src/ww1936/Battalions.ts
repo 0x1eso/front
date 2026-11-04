@@ -91,7 +91,8 @@ export const BATTALIONS: Readonly<Record<BattalionId, BattalionDef>> = {
     men: 1000,
     equip: [["infantry_equipment", 120]],
     hpMilli: 25_000,
-    orgMilli: 70_000,
+    // w57: org equal to infantry (was 70): cavalry pays for its speed, not the best line unit
+    orgMilli: 60_000,
     soft: 600,
     hard: 100,
     def: 2000,

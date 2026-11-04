@@ -915,6 +915,8 @@ export const WW_ORDER_BLOCKS = [
   // w50 air groups, appended: a direct wing order on a wing in a group
   // (recon excepted). Templates reuse too_many_templates and bad_template.
   "in_group",
+  // w57: a division below WW_MIN_BATTALIONS (support companies take no width).
+  "too_small",
 ] as const;
 export type WwOrderBlock = (typeof WW_ORDER_BLOCKS)[number];
 
