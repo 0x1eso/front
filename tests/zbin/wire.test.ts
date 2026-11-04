@@ -222,6 +222,35 @@ const SAMPLE_INTENTS: StampedIntent[] = [
     clientID: P3,
     order: { kind: "template_delete", template: 3 },
   },
+  // ww48: the whole start army, a kept 1936 template (empty name) and a new one.
+  {
+    type: "ww_order",
+    clientID: P3,
+    order: {
+      kind: "start_oob",
+      templates: [
+        {
+          key: "infantry",
+          name: "",
+          battalions: ["infantry", "artillery"],
+          support: [],
+        },
+        {
+          name: "보병 사단 7·2",
+          battalions: ["infantry", "infantry", "artillery"],
+          support: ["engineer"],
+        },
+      ],
+      armies: [
+        [
+          { template: 0, count: 14 },
+          { template: 1, count: 24 },
+        ],
+        [],
+        [{ template: 1, count: 0 }],
+      ],
+    },
+  },
   {
     type: "ww_order",
     clientID: P3,

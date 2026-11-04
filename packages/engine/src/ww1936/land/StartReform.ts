@@ -37,6 +37,8 @@ export function noteStartBudget(
   // (Cleared when preparation ends, but a save on that very tick must not use it.)
   if (!land.ww.inPrep(land.mg.ticks())) return false;
   if (!land.ww.isHumanControlled(cl.smallID)) return false;
+  // The whole start army was planned (start_oob): no per-template re-form after it.
+  if (cl.startOob) return false;
   if (cl.startReform.some((e) => e.template === tpl.id)) return true;
   // Only a 1936 start template (its key stays until the player renames it).
   if (tpl.key === "") return false;

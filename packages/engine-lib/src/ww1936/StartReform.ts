@@ -68,7 +68,7 @@ export function apportion(total: number, weights: readonly number[]): number[] {
 // ---- the stock side: what a template could be filled from ----
 
 /** Need groups that have division slots at all (design-only ones have none until a design exists). */
-const FILLABLE_GROUP: readonly boolean[] = Array.from(
+export const FILLABLE_GROUP: readonly boolean[] = Array.from(
   { length: NEED_GROUP_COUNT },
   (_, g) => groupDrawSlots(STATIC_KEY_STATS, g).length > 0,
 );

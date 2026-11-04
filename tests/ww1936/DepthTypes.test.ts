@@ -74,6 +74,8 @@ describe("World War 1936 P6 lists", () => {
       "divisions_convert",
       // ww42: the direct attack.
       "army_direct",
+      // ww48: the whole start army planned in the lobby.
+      "start_oob",
     ]);
   });
 

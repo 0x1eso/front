@@ -746,6 +746,8 @@ export const LAND_ORDER_KINDS = [
   "divisions_convert",
   // ww42: a human's direct attack and its per-army settings.
   "army_direct",
+  // ww48: the whole start army planned in the lobby.
+  "start_oob",
 ] as const;
 export type LandOrderKind = (typeof LAND_ORDER_KINDS)[number];
 

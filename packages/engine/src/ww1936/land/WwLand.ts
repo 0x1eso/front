@@ -104,6 +104,7 @@ import { directView, oddsOf } from "./Plans";
 import { dmzBlocks } from "./PoliticsBridge";
 import { dailyPositions, resetPosition } from "./Positions";
 import { autoAddPresets } from "./Presets";
+import { startOob } from "./StartOob";
 import { dailySupply } from "./Supply";
 import { dailySustain } from "./Sustain";
 import {
@@ -551,6 +552,8 @@ export class CountryLand {
    * Empty otherwise; cleared when preparation ends.
    */
   startReform: { template: number; count: number; budget: number }[] = [];
+  /** ww48: the whole start army was planned (start_oob), once; cleared when preparation ends. */
+  startOob = false;
 
   constructor(
     readonly smallID: number,
@@ -737,6 +740,8 @@ export const WwLandStateSchema = z.object({
       startReform: z
         .array(z.object({ template: zInt(), count: zInt(), budget: zInt() }))
         .optional(),
+      /** ww48: written only when set. */
+      startOob: z.boolean().optional(),
     }),
   ),
 });
@@ -1095,9 +1100,9 @@ export class WwLand {
   /** Preparation is over: the start templates' budgets are gone (the old refit rule applies). */
   private clearStartReform(): void {
     for (const cl of this.countryList) {
-      if (cl !== null && cl !== undefined && cl.startReform.length > 0) {
-        cl.startReform = [];
-      }
+      if (cl === null || cl === undefined) continue;
+      if (cl.startReform.length > 0) cl.startReform = [];
+      cl.startOob = false;
     }
   }
 
@@ -1164,6 +1169,9 @@ export class WwLand {
     switch (order.kind) {
       case "template_save":
         block = saveTemplate(this, cl, order);
+        break;
+      case "start_oob":
+        block = startOob(this, cl, order);
         break;
       case "template_delete":
         block = deleteTemplate(this, cl, order.template);
@@ -2856,6 +2864,7 @@ export class WwLand {
         mix(e.count);
         mix(e.budget);
       }
+      if (cl.startOob) mix(0x0b0b);
     }
     return h;
   }
@@ -2980,6 +2989,7 @@ export class WwLand {
         ...(cl.startReform.length === 0
           ? {}
           : { startReform: cl.startReform.map((e) => ({ ...e })) }),
+        ...(cl.startOob ? { startOob: true } : {}),
       })),
     };
   }
@@ -3109,6 +3119,7 @@ export class WwLand {
       cl.warnedTileAttack = c.warnedTileAttack;
       cl.peakDivisions = c.peakDivisions;
       cl.startReform = (c.startReform ?? []).map((e) => ({ ...e }));
+      cl.startOob = c.startOob === true;
     }
     this.rebuildDerived();
     // A restored game's screens have seen nothing yet.

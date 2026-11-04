@@ -157,7 +157,9 @@ describe("World War 1936 P5 lists", () => {
     const kinds = WwOrderSchema.options.map(
       (o) => (o.shape.kind as { value: string }).value,
     );
-    // ww42 appended army_direct last; the older pins read what is before it.
+    // ww48 appended start_oob last, ww42 army_direct before it; the older
+    // pins read what is before them.
+    expect(kinds.pop()).toBe("start_oob");
     expect(kinds.pop()).toBe("army_direct");
     // The automation lane appends auto_set and army_auto_all after them,
     // peace on the current line its one after those, the research

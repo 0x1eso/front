@@ -106,10 +106,12 @@ import {
   LandOrderKind,
   STANCES,
   SUPPORT_IDS,
+  WW_MAX_ARMIES,
   WW_MAX_ARMY_DIVISIONS,
   WW_MAX_BATTALIONS,
   WW_MAX_SUPPORT,
   WW_MAX_TARGETS,
+  WW_MAX_TEMPLATES,
   WW_MAX_TRAIN_COUNT,
   WW_TEMPLATE_NAME_MAX,
   WW_ZONE_MAX,
@@ -879,6 +881,12 @@ const WwTemplateName = zb.string({
   regex: /^[^\s\p{Cc}](?:[^\p{Cc}]*[^\s\p{Cc}])?$/u,
 });
 
+/** The same, or empty: a start template keeping its 1936 name (start_oob). */
+const WwOptTemplateName = zb.string({
+  max: WW_TEMPLATE_NAME_MAX,
+  regex: /^(?:[^\s\p{Cc}](?:[^\p{Cc}]*[^\s\p{Cc}])?)?$/u,
+});
+
 // P5 (P5 spec §21.3, plan decision 11): a peace demand on the wire. The
 // "exactly one of group/region" of occupation_zone is the engine's check
 // (bad_demand), not the schema's (no refine on a zbin union).
@@ -1604,6 +1612,38 @@ export const WwOrderSchema = z.discriminatedUnion("kind", [
     favorable: z.boolean().optional(),
     allIn: z.boolean().optional(),
     advance: z.boolean().optional(),
+  }),
+  // ww48, appended: a major's whole start army planned in the lobby, once,
+  // in the preparation minute. `armies` are in the country's start order;
+  // each lists [template index into `templates`, count]. A template with a
+  // `key` overwrites that start template, one without is new.
+  z.object({
+    kind: z.literal("start_oob"),
+    templates: z
+      .array(
+        z.object({
+          key: z.string().max(64).optional(),
+          name: WwOptTemplateName,
+          battalions: z
+            .array(z.enum(BATTALION_IDS))
+            .min(1)
+            .max(WW_MAX_BATTALIONS),
+          support: z.array(z.enum(SUPPORT_IDS)).max(WW_MAX_SUPPORT),
+        }),
+      )
+      .max(WW_MAX_TEMPLATES),
+    armies: z
+      .array(
+        z
+          .array(
+            z.object({
+              template: zb.uint({ max: WW_MAX_TEMPLATES - 1 }),
+              count: zb.uint({ max: WW_MAX_ARMY_DIVISIONS }),
+            }),
+          )
+          .max(WW_MAX_TEMPLATES),
+      )
+      .max(WW_MAX_ARMIES),
   }),
 ]);
 export type WwOrder = z.infer<typeof WwOrderSchema>;
