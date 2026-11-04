@@ -4634,6 +4634,7 @@
       "consumer_goods": "소비재 {n}",
       "cooldown": "{n}일 기다려야 함",
       "days_left": "{n}일",
+      "days_per_unit": "한 대에 {n}일",
       "design_group": "{name} (내 설계)",
       "efficiency": "효율 {n}% (상한 {cap}%)",
       "export_room": "하루 {n} 판매 가능",

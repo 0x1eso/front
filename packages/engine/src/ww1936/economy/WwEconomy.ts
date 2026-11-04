@@ -79,6 +79,7 @@ import {
 } from "@openfront/engine-lib/ww1936/WwTechs";
 import { z } from "zod";
 import type { Game, Player } from "../../game/Game";
+import { equipCostMilli, equipResources } from "../depth/Designs";
 import { sharedResearchPct } from "../depth/FactionRules";
 import { regionStatus } from "../depth/World";
 import type { WwDepth } from "../depth/WwDepth";
@@ -1456,6 +1457,11 @@ export class WwEconomy {
       })),
       lines: ce.lines.map((l) => {
         const [equipment, gen] = EQUIP_KEYS[l.key];
+        // A design's cost and resources are the design's own (the static
+        // table holds 0 for the design types): the screens read them here.
+        const depth = this.ww.depth as WwDepth | undefined;
+        const isDesign =
+          equipment === "tank_design" || equipment === "plane_design";
         return {
           id: l.id,
           equipment,
@@ -1464,9 +1470,15 @@ export class WwEconomy {
           active: l.active,
           effBp: l.effBp,
           progressMilli: l.progress,
-          costMilli: unitCostMilli(equipment, gen),
+          costMilli:
+            isDesign && depth !== undefined
+              ? equipCostMilli(depth, ce.smallID, l.key)
+              : unitCostMilli(equipment, gen),
           fill: l.fill,
           outputMilli: l.lastOutput,
+          ...(isDesign && depth !== undefined
+            ? { per: equipResources(depth, ce.smallID, l.key) }
+            : {}),
         };
       }),
       slotCount: t.slotCount,

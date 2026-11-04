@@ -1638,6 +1638,8 @@ export interface LineRow {
   cap: number;
   /** Units a day. */
   perDay: number;
+  /** Days for one unit when a unit takes more than a day (0: a unit or more a day, or no output). */
+  daysEach: number;
   /** Resources this line gets less of than it needs. */
   shortage: ResourceId[];
 }
@@ -1658,6 +1660,7 @@ export function lineShortages(detail: WwCountryDetail): ResourceId[][] {
     detail.lines.map((l) => ({
       key: equipKey(l.equipment, l.gen),
       factories: l.active,
+      ...(l.per === undefined ? {} : { per: l.per }),
     })),
   ).short.map((lacks) => lacks.map((r) => RESOURCE_IDS[r]));
 }
@@ -1674,6 +1677,7 @@ export function lineRows(detail: WwCountryDetail): LineRow[] {
     eff: l.effBp / 10_000,
     cap: detail.effCapBp / 10_000,
     perDay: linePerDay(l),
+    daysEach: lineDaysEach(linePerDay(l)),
     shortage: shortages[index],
   }));
 }
@@ -1840,6 +1844,11 @@ export function pickerLayout(
 /** Units a line makes in a day; the line rows and the stock table both read it. */
 export function linePerDay(l: WwLineData): number {
   return l.costMilli > 0 ? l.outputMilli / l.costMilli : 0;
+}
+
+/** Whole days for one unit at `perDay`, when that is more than a day; else 0. */
+export function lineDaysEach(perDay: number): number {
+  return perDay > 0 && perDay < 1 ? Math.ceil(1 / perDay - 1e-9) : 0;
 }
 
 export type StockStatusKind =

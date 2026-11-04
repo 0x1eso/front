@@ -63,6 +63,7 @@ const ECON = [
   "efficiency",
   "after_switch",
   "per_day",
+  "days_per_unit",
   "stockpile",
   "produced",
   "exported",
