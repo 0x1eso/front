@@ -8,7 +8,7 @@ import type { WwOrder } from "@openfront/engine-api/Schemas";
 import { AIR_TYPES, type AirType } from "@openfront/engine-api/ww1936/AirTypes";
 import {
   DESIGN_NAME_MAX,
-  DESIGN_SLOTS,
+  DESIGNER_POOL,
   DesignDef,
   DesignKind,
   DesignNameSchema,
@@ -20,8 +20,6 @@ import {
   TANK_BASES,
   TankDesignStats,
   TankRole,
-  WW_PLANE_DESIGN_SLOTS,
-  WW_TANK_DESIGN_SLOTS,
   WwDesignSlotData,
 } from "@openfront/engine-api/ww1936/DepthTypes";
 import {
@@ -551,22 +549,22 @@ export class DesignerModel {
   private slotsFull(d: DesignDef): boolean {
     if (d.kind === "plane") {
       return (
-        this.designsOf("plane").length >= WW_PLANE_DESIGN_SLOTS &&
+        this.designsOf("plane").length >= DESIGNER_POOL.plane &&
         this.planeCellDesign(d.base, planeType(d)) === null
       );
     }
     if (d.kind === "ship") {
       // A save needs a free slot unless it rewrites the cell's design in place.
       return (
-        this.designsOf("ship").length >= DESIGN_SLOTS.ship &&
+        this.designsOf("ship").length >= DESIGNER_POOL.ship &&
         !this.shipCellRewritable(d.base)
       );
     }
     if (d.kind !== "tank") {
-      return this.designsOf(d.kind).length >= DESIGN_SLOTS[d.kind];
+      return this.designsOf(d.kind).length >= DESIGNER_POOL[d.kind];
     }
     return (
-      this.designsOf("tank").length >= WW_TANK_DESIGN_SLOTS &&
+      this.designsOf("tank").length >= DESIGNER_POOL.tank &&
       this.cellDesign(d.base, tankRole(d)) === null
     );
   }

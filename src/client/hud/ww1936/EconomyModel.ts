@@ -133,6 +133,8 @@ import type { WwEconomyView } from "../../view/WwEconomyView";
 import type { WwEndgameView } from "../../view/WwEndgameView";
 import type { WwPoliticsView } from "../../view/WwPoliticsView";
 import { designDisplayName } from "./DesignName";
+import { staticItemName } from "./HistPicker";
+import type { HistCountry } from "@openfront/engine-lib/ww1936/hist/Types";
 import { today, wwActive, type WwGame } from "./WorldWarModel";
 
 /** What the economy screens read from the game (a fake in tests). */
@@ -1758,12 +1760,16 @@ export function lineItemName(
   type: EquipmentType,
   gen: number,
   designs: readonly WwDesignSlotData[],
+  country: HistCountry | null = null,
 ): string {
   if (type === "tank_design" || type === "plane_design") {
     const kind = type === "tank_design" ? "tank" : "plane";
     const d = designs.find((x) => x.kind === kind && x.slot === gen);
     if (d !== undefined) return designDisplayName(d.def);
   }
+  // ww63: a major's static key shows its country's equipment (Panzer I, ...).
+  const hist = staticItemName(country, type, gen);
+  if (hist !== null) return hist;
   return `${equipmentName(type)} ${genName(gen)}`;
 }
 
@@ -1926,6 +1932,7 @@ export function stockTable(
   detail: WwCountryDetail,
   equipShort: readonly number[] | null,
   designs: readonly WwDesignSlotData[] = [],
+  country: HistCountry | null = null,
 ): StockTableRow[] {
   const designOf = (kind: string, slot: number) =>
     designs.find((d) => d.kind === kind && d.slot === slot) ?? null;
@@ -1934,7 +1941,7 @@ export function stockTable(
     return d === null || d.def.kind !== "tank" ? -1 : designNeedGroup(d.def);
   };
   const keyName = (type: EquipmentType, gen: number): string =>
-    lineItemName(type, gen, designs);
+    lineItemName(type, gen, designs, country);
   const perKey = new Map<number, number>();
   for (const l of detail.lines) {
     const k = equipKey(l.equipment, l.gen);

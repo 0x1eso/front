@@ -43,6 +43,7 @@ import {
   templateKey,
 } from "./DesignLibrary";
 import { designDisplayName } from "./DesignName";
+import { designerOn } from "./DesignerFlag";
 import { blockText } from "./EconomyModel";
 import { designGroupsOf, researchedOf } from "./LandModel";
 
@@ -355,6 +356,8 @@ export class LibraryAuto {
     const have = existingKeys(game);
     for (const e of this.store.entries) {
       if (!e.auto) continue;
+      // ww63: designer off, a saved design is not made (the engine would refuse).
+      if (e.type === "design" && !designerOn(game)) continue;
       const hold = this.sentAt.get(e.id);
       if (hold !== undefined && t - hold < AUTO_SENT_HOLD_MS) continue;
       // A cell that already has a design of mine is left alone: the

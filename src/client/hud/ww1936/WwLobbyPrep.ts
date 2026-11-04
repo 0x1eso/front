@@ -97,6 +97,8 @@ export class WwLobbyPrep extends LitElement {
   private readonly twoTap = new TwoTap();
   private readonly bus = new EventBus();
   private designer: WwDesigner | null = null;
+  /** ww63: the game's `ww1936Designer`; no lobby option sets it, so the designs are hidden. */
+  @property({ type: Boolean }) designerOn = false;
 
   createRenderRoot() {
     return this;
@@ -110,7 +112,10 @@ export class WwLobbyPrep extends LitElement {
     const d = document.createElement("ww-designer") as WwDesigner;
     d.lobby = true;
     // The designer's library statuses read the country's own start research.
-    d.game = lobbyGame(this.tag, { mode: "start" }) as never;
+    d.game = lobbyGame(this.tag, {
+      mode: "start",
+      designer: this.designerOn,
+    }) as never;
     d.eventBus = this.bus;
     d.init();
     this.designer = d;
@@ -717,7 +722,7 @@ export class WwLobbyPrep extends LitElement {
   }
 
   private renderDesigns(): TemplateResult {
-    const kinds: DesignKind[] = ["tank", "plane", "ship"];
+    const kinds: DesignKind[] = this.designerOn ? ["tank", "plane", "ship"] : [];
     return html`<div data-ww-prep-designs class="flex flex-col gap-2">
       <p
         data-ww-prep-draft-note
@@ -726,7 +731,11 @@ export class WwLobbyPrep extends LitElement {
         ${translateText("ww1936.prep.draft_note")}
       </p>
       <p class="m-0 text-xs text-white/70">
-        ${translateText("ww1936.prep.designs_intro")}
+        ${translateText(
+          this.designerOn
+            ? "ww1936.prep.designs_intro"
+            : "ww1936.prep.designs_intro_hist",
+        )}
       </p>
       <div class="grid grid-cols-2 gap-1 sm:grid-cols-3 lg:grid-cols-6">
         ${kinds.map(
@@ -772,8 +781,16 @@ export class WwLobbyPrep extends LitElement {
     const ed = this.editing!;
     const game =
       ed.mode === "start"
-        ? lobbyGame(this.tag, { mode: "start", plan: this.plan })
-        : lobbyGame(this.tag, { mode: "library", draft: ed.draft });
+        ? lobbyGame(this.tag, {
+            mode: "start",
+            plan: this.plan,
+            designer: this.designerOn,
+          })
+        : lobbyGame(this.tag, {
+            mode: "library",
+            draft: ed.draft,
+            designer: this.designerOn,
+          });
     const id =
       ed.mode === "start" ? ed.index + 1 : ed.draft === null ? 0 : LIB_DRAFT_ID;
     // A new template of a major's plan starts as a copy of its main template.
@@ -801,7 +818,12 @@ export class WwLobbyPrep extends LitElement {
   render() {
     const tabs: [Tab, string][] = [
       ["templates", "ww1936.prep.tab_templates"],
-      ["designs", "ww1936.prep.tab_designs"],
+      [
+        "designs",
+        this.designerOn
+          ? "ww1936.prep.tab_designs"
+          : "ww1936.prep.tab_designs_hist",
+      ],
     ];
     return html`<div
       data-ww-lobby-prep

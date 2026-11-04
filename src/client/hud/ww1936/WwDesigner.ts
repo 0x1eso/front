@@ -34,6 +34,7 @@ import {
   TankCell,
 } from "./DesignerModel";
 import { LibEntry, libraryStore } from "./DesignLibrary";
+import { designerOn } from "./DesignerFlag";
 import { entryName, LibraryAuto } from "./DesignLibraryStatus";
 import { blockText as orderBlockText } from "./EconomyModel";
 import { StartPrep } from "./LobbyPrep";
@@ -138,8 +139,11 @@ export class WwDesigner extends WwDrawerBase {
     this.store.subscribe(() => this.requestUpdate());
     this.eventBus.on(WwDepthOpenEvent, (e) => {
       if (e.kind !== "designer" && e.kind !== "designs") return;
+      // ww63: designer off, only the library (divisions, armies, air groups) opens.
+      const on = this.designerOn();
+      if (!on && e.kind === "designer") return;
       const m = this.ensureModel();
-      if (e.kind === "designs" && e.arg?.tab === "library") {
+      if (e.kind === "designs" && (e.arg?.tab === "library" || !on)) {
         if (this.open && this.tab === "library") return this.setOpen(false);
         this.store.reload();
         this.tab = "library";
@@ -156,6 +160,11 @@ export class WwDesigner extends WwDrawerBase {
       }
       this.setOpen(true);
     });
+  }
+
+  /** Whether the designer is on in this game (ww63: off hides all of it, keeps the library). */
+  private designerOn(): boolean {
+    return designerOn(this.game);
   }
 
   /** For tests. */
@@ -226,6 +235,8 @@ export class WwDesigner extends WwDrawerBase {
           </div>`;
     }
     const m = this.ensureModel();
+    const on = this.designerOn();
+    const tab: DesignerTab = on ? this.tab : "library";
     return html`<aside
       data-ww-drawer="designer"
       aria-label=${translateText("ww1936.design.title")}
@@ -234,9 +245,9 @@ export class WwDesigner extends WwDrawerBase {
       @contextmenu=${(e: Event) => e.preventDefault()}
     >
       ${this.renderBar(m)}
-      ${this.tab === "design"
+      ${tab === "design"
         ? this.renderDesign(m)
-        : this.tab === "list"
+        : tab === "list"
           ? this.renderList(m)
           : this.renderLibraryTab()}
       ${this.notice === null
@@ -261,7 +272,7 @@ export class WwDesigner extends WwDrawerBase {
         >${translateText("ww1936.design.title")}</span
       >
       <div role="tablist" class="flex min-w-0 flex-1 gap-1 overflow-x-auto">
-        ${DESIGN_KINDS.map(
+        ${(this.designerOn() ? DESIGN_KINDS : []).map(
           (k) =>
             html`<button
               type="button"
@@ -279,7 +290,7 @@ export class WwDesigner extends WwDrawerBase {
               ${translateText(KIND_KEYS[k])}
             </button>`,
         )}
-        ${this.lobby
+        ${this.lobby || !this.designerOn()
           ? nothing
           : html`<button
               type="button"
@@ -297,8 +308,8 @@ export class WwDesigner extends WwDrawerBase {
           type="button"
           role="tab"
           data-ww-design-tab-library
-          aria-selected=${String(this.tab === "library")}
-          class="${BTN} ${this.tab === "library"
+          aria-selected=${String(!this.designerOn() || this.tab === "library")}
+          class="${BTN} ${!this.designerOn() || this.tab === "library"
             ? "border-sky-400/60 bg-sky-500/20"
             : ""}"
           @click=${() => {
@@ -938,6 +949,7 @@ export class WwDesigner extends WwDrawerBase {
       (this.libUi = { ...this.libUi, ...p });
     return html`<div data-ww-scroll class="min-h-0 flex-1 overflow-y-auto p-2">
       ${renderLibrary({
+        designer: this.designerOn(),
         store: this.store,
         game: this.game as never,
         ui,
@@ -1010,6 +1022,7 @@ export class WwDesigner extends WwDrawerBase {
   /** Lobby: a library card opens as a draft (a design here, a division on the screen). */
   private editEntry(e: LibEntry): void {
     if (e.type === "design") {
+      if (!this.designerOn()) return;
       this.tab = "design";
       this.ensureModel().open(e.def.kind, { ...e.def } as never);
     } else if (e.type === "template") {

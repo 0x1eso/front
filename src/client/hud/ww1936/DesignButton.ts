@@ -6,6 +6,7 @@ import type { EventBus } from "@openfront/shared/EventBus";
 import { html, TemplateResult } from "lit";
 import { translateText } from "../../Utils";
 import { WwDepthOpenEvent } from "./DepthEvents";
+import { designerOn, DesignerFlagGame } from "./DesignerFlag";
 
 const DESIGN_BUTTON_KEYS: Readonly<Record<DesignKind, string>> = {
   tank: "ww1936.depth.design_tank",
@@ -16,7 +17,9 @@ const DESIGN_BUTTON_KEYS: Readonly<Record<DesignKind, string>> = {
 export function designButton(
   eventBus: EventBus,
   kind: DesignKind,
+  game: DesignerFlagGame | null | undefined,
 ): TemplateResult {
+  if (!designerOn(game)) return html``;
   return html`<button
     type="button"
     data-ww-designer=${kind}
@@ -28,7 +31,11 @@ export function designButton(
 }
 
 /** The production tab's [designs] button: the saved designs of every kind. */
-export function designsButton(eventBus: EventBus): TemplateResult {
+export function designsButton(
+  eventBus: EventBus,
+  game: DesignerFlagGame | null | undefined,
+): TemplateResult {
+  if (!designerOn(game)) return html``;
   return html`<button
     type="button"
     data-ww-designs

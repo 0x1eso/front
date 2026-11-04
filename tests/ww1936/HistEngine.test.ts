@@ -226,7 +226,7 @@ describe("start stock", () => {
       own.reduce(
         (n, e, i) =>
           n +
-          (e.type === "fighter"
+          (e.family === "plane" && e.type === "fighter"
             ? ce.stock[equipKey("plane_design", i + 1)]
             : 0),
         0,

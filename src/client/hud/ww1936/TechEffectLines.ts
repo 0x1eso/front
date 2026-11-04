@@ -31,6 +31,11 @@ import {
   TANK_MODULE_DEFS,
 } from "@openfront/engine-lib/ww1936/DesignRules";
 import { genTech } from "@openfront/engine-lib/ww1936/Equipment";
+import { histEntriesGatedBy } from "@openfront/engine-lib/ww1936/hist/Slots";
+import {
+  HIST_COUNTRIES,
+  type HistCountry,
+} from "@openfront/engine-lib/ww1936/hist/Types";
 import { PROJECT_DEFS } from "@openfront/engine-lib/ww1936/ProjectRules";
 import { WW_TECHS } from "@openfront/engine-lib/ww1936/WwTechs";
 import { translateText } from "../../Utils";
@@ -260,9 +265,51 @@ function ruleLines(tech: WwTechId): string[] {
   );
 }
 
+/**
+ * ww63: how the effect lines read the game. `designer` (the game's
+ * `ww1936Designer`, default on so older callers read as before): off hides
+ * the lines that name the designers' modules and chassis cells and lists the
+ * catalogue entries the tech helps to unlock for `country` instead.
+ */
+export interface EffectOpts {
+  designer?: boolean;
+  /** My country tag; a minor or none lists no catalogue entries. */
+  country?: string | null;
+}
+
+/** Entries listed in a tech's "unlocks" line before "and N more". */
+const HIST_SHOWN = 6;
+
+/** The catalogue entries a tech helps to unlock for a country, as one line (empty: none). */
+export function histUnlockLines(
+  tech: WwTechId,
+  country: string | null | undefined,
+): string[] {
+  if (
+    country === null ||
+    country === undefined ||
+    !(HIST_COUNTRIES as readonly string[]).includes(country)
+  ) {
+    return [];
+  }
+  const names = histEntriesGatedBy(tech, country as HistCountry).map((e) =>
+    translateText(`ww1936.hist.${e.id}`),
+  );
+  if (names.length === 0) return [];
+  return [
+    names.length <= HIST_SHOWN
+      ? translateText("ww1936.techfx.hist_unlocks", { list: list(names) })
+      : translateText("ww1936.techfx.hist_unlocks_more", {
+          list: list(names.slice(0, HIST_SHOWN)),
+          n: names.length - HIST_SHOWN,
+        }),
+  ];
+}
+
 /** What a tech opens or lets one do, by name, one line each. */
-export function unlockLines(tech: WwTechId): string[] {
+export function unlockLines(tech: WwTechId, opts: EffectOpts = {}): string[] {
   const out: string[] = [];
+  const designer = opts.designer !== false;
   for (const u of techEquipment(tech)) {
     out.push(
       translateText(UNLOCK_EQUIPMENT_KEY, {
@@ -294,7 +341,16 @@ export function unlockLines(tech: WwTechId): string[] {
       translateText("ww1936.techfx.buildings", { list: list(buildings) }),
     );
   }
-  const p = techParts(tech);
+  const p = designer
+    ? techParts(tech)
+    : {
+        tankModules: [],
+        tankChassis: [],
+        shipModules: [],
+        planeModules: [],
+        planeChassis: [],
+      };
+  if (!designer) out.push(...histUnlockLines(tech, opts.country));
   if (p.tankChassis.length > 0) {
     out.push(
       translateText("ww1936.techfx.tank_chassis", {
@@ -373,8 +429,15 @@ export function leadLines(tech: WwTechId): string[] {
 }
 
 /** The lines of what a tech does itself: its unlocks, hard-coded rules and stat effects. */
-export function ownEffectLines(tech: WwTechId): string[] {
-  return [...unlockLines(tech), ...ruleLines(tech), ...statEffectLines(tech)];
+export function ownEffectLines(
+  tech: WwTechId,
+  opts: EffectOpts = {},
+): string[] {
+  return [
+    ...unlockLines(tech, opts),
+    ...ruleLines(tech),
+    ...statEffectLines(tech),
+  ];
 }
 
 /**
@@ -382,8 +445,8 @@ export function ownEffectLines(tech: WwTechId): string[] {
  * ships, units, buildings, designer parts), the rules it changes, its
  * bonuses, then what it leads to. A tech with nothing of its own says so.
  */
-export function effectLines(tech: WwTechId): string[] {
-  const own = ownEffectLines(tech);
+export function effectLines(tech: WwTechId, opts: EffectOpts = {}): string[] {
+  const own = ownEffectLines(tech, opts);
   return [
     ...(own.length === 0 ? [translateText(NO_EFFECT_KEY)] : own),
     ...leadLines(tech),

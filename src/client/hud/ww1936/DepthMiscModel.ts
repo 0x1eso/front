@@ -48,7 +48,7 @@ import {
 } from "@openfront/engine-lib/ww1936/WorldRules";
 import { translateText } from "../../Utils";
 import type { GameView } from "../../view/GameView";
-import { designDisplayName, designNameOr } from "./DesignName";
+import { designDisplayName, designNameOr, histNameOf } from "./DesignName";
 import { equipmentName, genName } from "./EconomyModel";
 import { fogModelOf } from "./FogModel";
 import {
@@ -289,6 +289,12 @@ export function depthNoticeParams(
           ? designDisplayName(def)
           : designNameOr(params.name, translateText("ww1936.design.unnamed")),
     };
+  }
+  // ww63: a catalogue entry travels as its id; the notice shows its name.
+  for (const k of ["name", "design"]) {
+    const v = params[k];
+    const h = typeof v === "string" ? histNameOf(v) : null;
+    if (h !== null) out = { ...out, [k]: h };
   }
   for (const [k, prefix] of Object.entries(NOTICE_ID_PARAMS)) {
     const v = params[k];

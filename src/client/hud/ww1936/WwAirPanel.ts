@@ -306,7 +306,7 @@ export class WwAirPanel extends WwDrawerBase {
       .filter((f) => f.owner === ctx.me && fleetNumbers(ctx, f).hasCarrier)
       .sort((a, b) => a.id - b.id);
     return html`
-      ${designButton(this.eventBus, "plane")}
+      ${designButton(this.eventBus, "plane", this.game)}
       ${rows.length === 0
         ? html`<p class="m-0 mt-2 text-xs text-white/60">
             ${translateText("ww1936.air.rows_none")}

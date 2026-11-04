@@ -265,6 +265,8 @@ export interface LobbyAdapterOptions {
   plan?: readonly PrepTemplate[];
   /** The library division being edited, under LIB_DRAFT_ID (library mode). */
   draft?: TemplateDef | null;
+  /** ww63: the game's `ww1936Designer` (no lobby option sets it, so normally off). */
+  designer?: boolean;
 }
 
 /**
@@ -341,6 +343,9 @@ export function lobbyGame(
   };
   const land = { version: 1, details: new Map([[LOBBY_ME, { templates }]]) };
   const game = {
+    config: () => ({
+      gameConfig: () => ({ ww1936Designer: opts.designer === true }),
+    }),
     myPlayer: () => ({
       smallID: () => LOBBY_ME,
       isAlive: () => true,

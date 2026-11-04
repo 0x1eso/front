@@ -30,6 +30,8 @@ export interface LibraryUi {
 }
 
 export interface LibraryEnv {
+  /** ww63: false hides the design entries (tank, plane, ship) and their groups. */
+  designer?: boolean;
   store: LibraryStore;
   game: DesignerGame & Parameters<typeof existingKeys>[0];
   ui: LibraryUi;
@@ -231,7 +233,10 @@ function renderCard(
 }
 
 export function renderLibrary(env: LibraryEnv): TemplateResult {
-  const entries = env.store.entries;
+  const entries =
+    env.designer === false
+      ? env.store.entries.filter((e) => e.type !== "design")
+      : env.store.entries;
   const have = existingKeys(env.game);
   const model = new DesignerModel(env.game);
   return html`<div data-ww-library class="flex flex-col gap-3">

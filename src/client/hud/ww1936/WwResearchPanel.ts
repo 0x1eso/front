@@ -19,6 +19,7 @@ import { SendWwOrderIntentEvent } from "../../Transport";
 import { translateText } from "../../Utils";
 import { ringSvg } from "../domestic/Dial";
 import { WwDepthOpenEvent } from "./DepthEvents";
+import { designerOn } from "./DesignerFlag";
 import { DepthIndustryModel } from "./DepthIndustryModel";
 import {
   blockText,
@@ -950,7 +951,10 @@ export class WwResearchPanel extends WwDrawerBase {
         data-ww-effects
         class="m-0 flex list-none flex-col gap-0.5 p-0 text-white/80"
       >
-        ${effectLines(c.id).map(
+        ${effectLines(c.id, {
+          designer: designerOn(this.game),
+          country: this.game?.myPlayer()?.countryTag?.() ?? null,
+        }).map(
           (line) => html`<li data-ww-effect class="break-words">${line}</li>`,
         )}
       </ul>

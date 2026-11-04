@@ -17,6 +17,11 @@ import { SendWwOrderIntentEvent } from "../../Transport";
 import { translateText } from "../../Utils";
 import type { GameView } from "../../view";
 import { designButton } from "./DesignButton";
+import {
+  histCountryOfGame,
+  histShipItems,
+  type HistPickItem,
+} from "./HistPicker";
 import { blockText, genName } from "./EconomyModel";
 import { regionName } from "./LandModel";
 import {
@@ -314,6 +319,86 @@ export class WwShipyards extends LitElement {
     </li>`;
   }
 
+  @state() private histLockedOpen = false;
+
+  /** ww63: the class's catalogue ships as rows (name, stats line); the locked ones fold away with their tech. */
+  private renderHistShips(
+    items: readonly HistPickItem[],
+    picked: HistPickItem | null,
+    choose: (slot: number) => void,
+  ): TemplateResult {
+    const usable = items.filter((i) => i.lack.length === 0);
+    const locked = items.filter((i) => i.lack.length > 0);
+    return html`<div
+      data-ww-hist-ships
+      class="flex max-h-[45vh] flex-col gap-1 overflow-y-auto overscroll-contain"
+    >
+      <div class=${HEADING}>${translateText("ww1936.navy.new_line_design")}</div>
+      ${usable.length === 0
+        ? html`<p class="m-0 text-white/70">
+            ${translateText("ww1936.navy.new_line_no_design")}
+          </p>`
+        : usable.map(
+            (it) => html`<button
+              type="button"
+              data-ww-pick=${`design:${it.gen}`}
+              data-ww-hist=${it.id}
+              aria-pressed=${String(picked?.gen === it.gen)}
+              class="min-h-10 w-full rounded-md border px-2 py-1 text-left ${picked?.gen ===
+              it.gen
+                ? "border-sky-300 bg-sky-800/60"
+                : "border-white/15 bg-white/5 hover:bg-white/10"}"
+              @click=${() => choose(it.gen)}
+            >
+              <span class="block break-words text-xs font-semibold"
+                >${it.foreign ? "⚑ " : ""}${it.name}</span
+              >
+              <span
+                class="block break-words text-[11px] font-normal leading-snug text-white/70"
+                >${it.stats}</span
+              >
+            </button>`,
+          )}
+      ${locked.length === 0
+        ? nothing
+        : html`<button
+              type="button"
+              data-ww-hist-locked-toggle
+              aria-expanded=${String(this.histLockedOpen)}
+              class="h-10 w-full rounded-md border border-white/15 bg-white/5 text-xs font-semibold hover:bg-white/10"
+              @click=${() => (this.histLockedOpen = !this.histLockedOpen)}
+            >
+              ${translateText(
+                this.histLockedOpen
+                  ? "ww1936.hist_pick.locked_hide"
+                  : "ww1936.hist_pick.locked_show",
+                { n: locked.length },
+              )}
+            </button>
+            ${this.histLockedOpen
+              ? locked.map(
+                  (it) => html`<div
+                    data-ww-hist-lock=${it.id}
+                    class="rounded-md border border-white/10 bg-white/5 px-2 py-1 opacity-80"
+                  >
+                    <span class="block break-words text-xs font-semibold"
+                      >🔒 ${it.name}</span
+                    >
+                    <span
+                      class="block break-words text-[11px] leading-snug text-white/70"
+                      >${it.stats}</span
+                    >
+                    <span class="block break-words text-[11px] text-amber-200"
+                      >${translateText("ww1936.hist_pick.needs", {
+                        list: it.lack.join(", "),
+                      })}</span
+                    >
+                  </div>`,
+                )
+              : nothing}`}
+    </div>`;
+  }
+
   private renderNewLine(ctx: NavyCtx): TemplateResult {
     const d = this.draft;
     const ports = linePorts(ctx);
@@ -355,7 +440,17 @@ export class WwShipyards extends LitElement {
       d.foreign !== undefined && d.foreign > 0
         ? (foreign.find((x) => x.slot === d.foreign) ?? own)
         : own;
-    const designBlockWhy = picked?.block ?? null;
+    // ww63: designer off, a major picks a ship of its catalogue (generation 1 hulls).
+    const hist = histCountryOfGame(this.game);
+    const histShips =
+      hist !== null && d.cls !== "convoy"
+        ? histShipItems(hist, d.cls, ctx.designs, ctx.techs)
+        : [];
+    const histMode = histShips.length > 0;
+    const histUsable = histShips.filter((i) => i.lack.length === 0);
+    const histPicked =
+      histUsable.find((i) => i.gen === d.foreign) ?? histUsable[0] ?? null;
+    const designBlockWhy = histMode ? null : (picked?.block ?? null);
     const chip = (
       key: string,
       label: string,
@@ -397,8 +492,12 @@ export class WwShipyards extends LitElement {
           ),
         )}
       </div>
-      <div class=${HEADING}>${translateText("ww1936.navy.new_line_gen")}</div>
-      <div class="flex flex-wrap gap-1">
+      ${histMode
+        ? nothing
+        : html`<div class=${HEADING}>
+            ${translateText("ww1936.navy.new_line_gen")}
+          </div>`}
+      <div class="flex flex-wrap gap-1 ${histMode ? "hidden" : ""}">
         ${lineGens(d.cls).map((gen) => {
           const locked = newLineBlock(ctx, d.cls, gen) === "no_tech";
           return chip(
@@ -410,7 +509,12 @@ export class WwShipyards extends LitElement {
           );
         })}
       </div>
-      ${d.cls === "convoy"
+      ${histMode
+        ? this.renderHistShips(histShips, histPicked, (slot) => {
+            this.draft = { ...d, foreign: slot };
+          })
+        : nothing}
+      ${d.cls === "convoy" || histMode
         ? nothing
         : html`<div class=${HEADING}>
               ${translateText("ww1936.navy.new_line_design")}
@@ -500,7 +604,7 @@ export class WwShipyards extends LitElement {
                 port,
                 d.docks,
                 d.count,
-                picked?.slot ?? 0,
+                histMode ? (histPicked?.gen ?? 0) : (picked?.slot ?? 0),
               ),
             );
             this.draft = null;
@@ -627,7 +731,7 @@ export class WwNavyPanel extends WwDrawerBase {
       case "fleets":
         return this.renderFleets(ctx);
       case "shipyards":
-        return html`${designButton(this.eventBus, "ship")}
+        return html`${designButton(this.eventBus, "ship", this.game)}
           <ww-shipyards
             .game=${this.game}
             .eventBus=${this.eventBus}

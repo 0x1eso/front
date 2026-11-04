@@ -829,7 +829,7 @@ export class WwArmyPanel extends WwDrawerBase {
     }
     if (this.convertFrom !== null)
       return this.renderConvert(c, this.convertFrom);
-    return html`${designButton(this.eventBus, "tank")} ${this.renderIdle(c)}
+    return html`${designButton(this.eventBus, "tank", this.game)} ${this.renderIdle(c)}
       ${this.renderConverted(c)}
       <ul data-ww-templates class="m-0 mt-2 flex list-none flex-col gap-1 p-0">
         ${c.land.templates.map(

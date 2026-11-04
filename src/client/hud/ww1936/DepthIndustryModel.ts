@@ -56,6 +56,7 @@ import type { GameView } from "../../view/GameView";
 import type { WwDepthView } from "../../view/WwDepthView";
 import { airCtx, deployedHere, zoneCard } from "./AirModel";
 import { designDisplayName } from "./DesignName";
+import { histCountryOfGame, staticItemName } from "./HistPicker";
 import {
   equipmentName,
   genName,
@@ -383,7 +384,9 @@ export class DepthIndustryModel {
   keyName(key: number, design: DesignDef | null = null): string {
     if (design !== null) return designDisplayName(design);
     const { type, gen } = this.keyRow(key);
-    return type === null ? "?" : `${equipmentName(type)} ${genName(gen)}`;
+    if (type === null) return "?";
+    const hist = staticItemName(histCountryOfGame(this.view), type, gen);
+    return hist ?? `${equipmentName(type)} ${genName(gen)}`;
   }
 
   listings(filter: ListingFilter = {}): ListingRow[] {

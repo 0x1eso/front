@@ -14,12 +14,17 @@ export interface DesignerFake {
   designs?: WwDesignSlotData[];
   /** Licence requests waiting (from, to). */
   pendingLicences?: { from: number; to: number }[];
+  /** ww1936Designer in the game config (default on: these tests are about the designer). */
+  designer?: boolean;
 }
 
 export function designerGame(o: DesignerFake = {}) {
   const techs = o.techs ?? WW_TECH_IDS;
   const designs = o.designs ?? [];
   const game = {
+    config: () => ({
+      gameConfig: () => ({ ww1936Designer: o.designer !== false }),
+    }),
     myPlayer: () => ({ smallID: () => 1 }),
     wwEconomy: () => ({
       version: 1,

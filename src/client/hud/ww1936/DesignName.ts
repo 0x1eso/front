@@ -13,7 +13,18 @@ import {
   tankDefault,
   tankRole,
 } from "@openfront/engine-lib/ww1936/DesignRules";
+import { histEntry } from "@openfront/engine-lib/ww1936/hist/index";
 import { translateText } from "../../Utils";
+
+/**
+ * ww63: a catalogue entry's name in the viewer's language, or null when `id`
+ * is not a catalogue id. The engine stores `def.name` of a catalogue slot as
+ * the id (so digests do not depend on the language); every screen resolves it
+ * here: text key ww1936.hist.<id>.
+ */
+export function histNameOf(id: string): string | null {
+  return histEntry(id) === undefined ? null : translateText(`ww1936.hist.${id}`);
+}
 
 /** True for the engine's marker of an automatic name. */
 export function isAutoDesignName(name: string): boolean {
@@ -58,6 +69,12 @@ export function autoNameOf(def: DesignDef): string {
 
 /** The name to show for a design: its own, or the automatic one for "@". */
 export function designDisplayName(def: DesignDef): string {
+  if (def.hist !== undefined) {
+    const h = histNameOf(def.hist);
+    if (h !== null) return h;
+  }
+  const byName = histNameOf(def.name);
+  if (byName !== null) return byName;
   if (!isAutoDesignName(def.name)) return def.name;
   try {
     return autoNameOf(def);
@@ -72,5 +89,7 @@ export function designDisplayName(def: DesignDef): string {
  * own name) so the marker never reaches the screen.
  */
 export function designNameOr(name: string, fallback: string): string {
+  const h = histNameOf(name);
+  if (h !== null) return h;
   return isAutoDesignName(name) ? fallback : name;
 }

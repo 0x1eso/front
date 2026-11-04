@@ -153,6 +153,8 @@ export function region(
 }
 
 export interface FakeOptions {
+  /** ww1936Designer in the game config (default on, so the designer tests read as before). */
+  designer?: boolean;
   /** My country; null: a spectator. */
   me?: CountryTag | null;
   ticks?: number;
@@ -302,7 +304,10 @@ export function fakeEconGame(o: FakeOptions = {}) {
     usernameOf: () => null,
     numLandTiles: () => 20_300,
     inSpawnPhase: () => false,
-    config: () => ({ historicalAi: () => true }),
+    config: () => ({
+      historicalAi: () => true,
+      gameConfig: () => ({ ww1936Designer: o.designer !== false }),
+    }),
   };
   return { game, view, players, land, pol };
 }

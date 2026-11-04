@@ -20,9 +20,10 @@ import { lobbyStartTemplates } from "../../../src/client/hud/ww1936/LobbyPrep";
 import "../../../src/client/hud/ww1936/WwLobbyPrep";
 import type { WwLobbyPrep } from "../../../src/client/hud/ww1936/WwLobbyPrep";
 
-async function screen(tag: string): Promise<WwLobbyPrep> {
+async function screen(tag: string, designer = true): Promise<WwLobbyPrep> {
   const el = document.createElement("ww-lobby-prep") as WwLobbyPrep;
   el.tag = tag as never;
+  el.designerOn = designer;
   document.body.appendChild(el);
   await el.updateComplete;
   return el;
@@ -152,6 +153,21 @@ describe("the lobby preparation screen", () => {
       ),
     ).toBe(true);
     expect(prepPlanOf("DEU")).toEqual([]);
+  });
+
+  it("designer off (no lobby option sets it): no design buttons, the library and the presets stay", async () => {
+    const el = await screen("DEU", false);
+    q(el, '[data-ww-prep-tab="designs"]').click();
+    await flush(el);
+    expect(el.querySelector("[data-ww-prep-design]")).toBeNull();
+    expect(el.querySelector("[data-ww-prep-division]")).not.toBeNull();
+    expect(el.querySelector("[data-ww-prep-armies-open]")).not.toBeNull();
+    expect(el.querySelector("[data-ww-prep-library]")).not.toBeNull();
+    // The library tab of the hosted drawer lists no design entries.
+    q(el, "[data-ww-prep-library]").click();
+    await flush(el);
+    expect(el.querySelector("[data-ww-design-kind]")).toBeNull();
+    expect(el.querySelector("[data-ww-lib-group='tank']")).toBeNull();
   });
 
   it("opens the designer as a draft: no game list, no draft switch, no game save", async () => {

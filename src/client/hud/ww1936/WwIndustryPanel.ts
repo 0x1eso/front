@@ -19,7 +19,8 @@ import {
 } from "@openfront/engine-api/ww1936/EconomyTypes";
 import { renderNumber } from "@openfront/engine-lib/Format";
 import type { LineDepthCtx } from "@openfront/engine-lib/ww1936/EconomyChecks";
-import { isDesignType } from "@openfront/engine-lib/ww1936/Equipment";
+import { genTech, isDesignType } from "@openfront/engine-lib/ww1936/Equipment";
+import type { HistCountry } from "@openfront/engine-lib/ww1936/hist/Types";
 import type { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
 import { assetUrl } from "@openfront/shared/AssetUrls";
 import { html, nothing, TemplateResult } from "lit";
@@ -30,6 +31,17 @@ import type { PlayerView } from "../../view";
 import type { WwEconomyView } from "../../view/WwEconomyView";
 import type { WwEndgameView } from "../../view/WwEndgameView";
 import { designsButton } from "./DesignButton";
+import { designerOn } from "./DesignerFlag";
+import {
+  histCountryOfTag,
+  histGearItem,
+  histHasKind,
+  histPlaneGroups,
+  histPlaneTypes,
+  histTankGroups,
+  type HistPickGroup,
+  type HistPickItem,
+} from "./HistPicker";
 import {
   addLineBlock,
   armyMenOf,
@@ -130,6 +142,8 @@ const HEADING =
   "mb-1 mt-3 text-xs font-bold uppercase tracking-wide text-white/70";
 const BUTTON =
   "h-9 shrink-0 rounded-md border border-white/15 bg-white/5 px-2 text-xs font-semibold hover:bg-white/10 disabled:opacity-40";
+const ROW =
+  "min-h-10 w-full rounded-md border border-white/15 bg-white/5 px-2 py-1 text-left hover:bg-white/10 disabled:opacity-40";
 const ICON_BUTTON =
   "size-9 shrink-0 rounded-md border border-white/10 bg-white/5 text-xs hover:bg-white/10 disabled:opacity-30";
 
@@ -152,6 +166,8 @@ interface Ctx {
   lineDepth: LineDepthCtx | undefined;
   /** My saved designs, for the pickers and the line names. */
   designs: readonly WwDesignSlotData[];
+  /** ww63: my catalogue country while the designer is off (null: a minor, or the designer is on). */
+  hist: HistCountry | null;
   /** Gone or capitulated: the engine refuses every order ("dead"). */
   dead: boolean;
 }
@@ -184,6 +200,8 @@ export class WwIndustryPanel extends WwDrawerBase {
   /** The line whose equipment picker is open. */
   @state() private switching: number | null = null;
   @state() private addingLine = false;
+  /** ww63: the picker's locked catalogue entries are unfolded. */
+  @state() private histLockedOpen = false;
   @state() private stockRest = false;
   @state() private stockOpen: ReadonlySet<string> = new Set();
   /** P4 (spec §18.8): the production tab shows munitions or shipyards. */
@@ -267,6 +285,7 @@ export class WwIndustryPanel extends WwDrawerBase {
       depth: buildDepthInputs(game, id),
       lineDepth: lineDepthOf(game, id),
       designs: game.wwDepth?.()?.detail(id)?.designs ?? [],
+      hist: designerOn(game) ? null : histCountryOfTag(me.countryTag?.()),
       // P5 pre-flight §0-1: an exile still builds.
       dead: !wwActive(game, id),
     };
@@ -957,7 +976,7 @@ export class WwIndustryPanel extends WwDrawerBase {
           this.renderLine(c, r, d.lines[r.index], rows.length, retention),
         )}
       </ul>
-      ${this.renderNewLine(c)} ${designsButton(this.eventBus)}
+      ${this.renderNewLine(c)} ${designsButton(this.eventBus, this.game)}
       ${this.renderStock(c)}
     `;
   }
@@ -989,7 +1008,7 @@ export class WwIndustryPanel extends WwDrawerBase {
       <div class="flex items-center gap-1.5">
         <span aria-hidden="true">${EQUIPMENT_ICONS[r.equipment]}</span>
         <span class="min-w-0 flex-1 truncate font-semibold"
-          >${lineItemName(r.equipment, r.gen, c.designs)}</span
+          >${lineItemName(r.equipment, r.gen, c.designs, c.hist)}</span
         >
         ${oldLine === null || !oldLine.old
           ? nothing
@@ -1138,6 +1157,7 @@ export class WwIndustryPanel extends WwDrawerBase {
         this.switching = null;
         this.send({ kind: "change_line", line: line.id, equipment: type, gen });
       },
+      c,
     );
   }
 
@@ -1153,12 +1173,23 @@ export class WwIndustryPanel extends WwDrawerBase {
     current: (type: EquipmentType, gen: number) => boolean,
     note: ((type: EquipmentType, gen: number) => string) | null,
     pick: (type: EquipmentType, gen: number) => void,
+    c: Ctx,
   ): TemplateResult {
+    const hist = c.hist;
+    const researched = new Set<string>(c.detail.researched);
+    const lockedItems: HistPickItem[] = [];
+    const histDone = { tank: false, plane: false };
+    const tankCovered = hist !== null && histHasKind(hist, "tank");
+    const planeTypes = hist === null ? null : histPlaneTypes(hist);
     const gensOf = (t: EquipmentType) =>
       isDesignType(t)
         ? []
         : Array.from({ length: EQUIPMENT_GENS[t] }, (_, i) => i + 1);
-    const layout = pickerLayout(designs);
+    // ww63: a major's designs are its catalogue entries, listed below by role.
+    const layout =
+      hist === null
+        ? pickerLayout(designs)
+        : { replaced: new Map(), groups: [], foreign: [] };
     // A static replaced by my design shows the design's verdict instead.
     const shown = (t: EquipmentType, g: number) =>
       layout.replaced.has(equipKey(t, g)) ? [] : [blockOf(t, g)];
@@ -1204,11 +1235,63 @@ export class WwIndustryPanel extends WwDrawerBase {
       </div>`;
     return html`<div
       data-ww-picker=${dataKey}
-      class="mt-1.5 flex flex-col gap-1 rounded-md border border-white/10 bg-gray-900/80 p-1.5"
+      class="mt-1.5 flex flex-col gap-1 rounded-md border border-white/10 bg-gray-900/80 p-1.5 ${hist ===
+      null
+        ? ""
+        : "max-h-[60vh] overflow-y-auto overscroll-contain"}"
     >
-      ${EQUIPMENT_TYPES.filter((type) => !isDesignType(type)).map(
-        (type) =>
-          html`<div class="flex flex-wrap items-center gap-1">
+      ${EQUIPMENT_TYPES.filter((type) => !isDesignType(type)).map((type) => {
+        if (hist !== null) {
+          const isTank = type === "light_tank" || type === "medium_tank";
+          if (isTank && tankCovered) {
+            if (histDone.tank) return nothing;
+            histDone.tank = true;
+            return this.renderHistGroups(
+              histTankGroups(hist, c.designs, researched),
+              dataKey,
+              blockOf,
+              current,
+              note,
+              pick,
+              lockedItems,
+            );
+          }
+          if (planeTypes!.has(type)) {
+            if (histDone.plane) return nothing;
+            histDone.plane = true;
+            return this.renderHistGroups(
+              histPlaneGroups(hist, c.designs, researched, AIR_TYPES),
+              dataKey,
+              blockOf,
+              current,
+              note,
+              pick,
+              lockedItems,
+            );
+          }
+          const gear = gensOf(type).map((g) =>
+            histGearItem(hist, type, g, researched),
+          );
+          if (gear.some((x) => x !== null)) {
+            return this.renderHistGroups(
+              [
+                {
+                  id: `gear:${type}`,
+                  label: `${EQUIPMENT_ICONS[type]} ${equipmentName(type)}`,
+                  items: gear.filter((x): x is HistPickItem => x !== null),
+                },
+              ],
+              dataKey,
+              blockOf,
+              current,
+              note,
+              pick,
+              lockedItems,
+              true,
+            );
+          }
+        }
+        return html`<div class="flex flex-wrap items-center gap-1">
             <span class="min-w-28 flex-1 truncate text-xs"
               >${EQUIPMENT_ICONS[type]} ${equipmentName(type)}</span
             >
@@ -1235,8 +1318,9 @@ export class WwIndustryPanel extends WwDrawerBase {
                     >`}
               </button>`;
             })}
-          </div>`,
-      )}
+          </div>`;
+      })}
+      ${this.renderHistLocked(lockedItems)}
       ${layout.groups.map((g) =>
         designRow(
           g.id,
@@ -1265,6 +1349,110 @@ export class WwIndustryPanel extends WwDrawerBase {
         ? html`<p class="m-0 text-[11px] text-white/60">
             🔒 ${blockText("project_locked")}
           </p>`
+        : nothing}
+    </div>`;
+  }
+
+  /**
+   * ww63: catalogue entries as rows, one group per role or type: the name,
+   * then a compact stats line (and the note under it). A locked entry goes
+   * to `locked`, shown folded at the foot of the picker with its tech.
+   */
+  private renderHistGroups(
+    groups: readonly HistPickGroup[],
+    dataKey: string,
+    blockOf: (type: EquipmentType, gen: number) => WwOrderBlock | null,
+    current: (type: EquipmentType, gen: number) => boolean,
+    note: ((type: EquipmentType, gen: number) => string) | null,
+    pick: (type: EquipmentType, gen: number) => void,
+    locked: HistPickItem[],
+    gear = false,
+  ): TemplateResult {
+    return html`${groups.map((g) => {
+      const rows: TemplateResult[] = [];
+      for (const it of g.items) {
+        const block = blockOf(it.type, it.gen);
+        const lack =
+          gear && block === "no_tech" && it.lack.length === 0
+            ? [translateText(`ww1936.tech.${genTech(it.type, it.gen)}`)]
+            : it.lack;
+        if (lack.length > 0 || (gear && block === "no_tech")) {
+          locked.push({ ...it, lack });
+          continue;
+        }
+        const here = current(it.type, it.gen);
+        rows.push(html`<button
+          type="button"
+          data-ww-pick=${`${dataKey}:${it.type}:${it.gen}`}
+          data-ww-hist=${it.id}
+          class="${ROW} ${here ? "border-sky-400/60 bg-sky-500/10" : ""}"
+          ?disabled=${block !== null || here}
+          @click=${() => pick(it.type, it.gen)}
+        >
+          <span class="block break-words text-xs font-semibold"
+            >${it.foreign ? "⚑ " : ""}${it.name}</span
+          >
+          <span
+            class="block break-words text-[11px] font-normal leading-snug text-white/70"
+            >${it.stats}</span
+          >
+          ${block !== null
+            ? html`<span class="block text-[11px] font-normal text-red-300"
+                >🔒 ${blockText(block)}</span
+              >`
+            : note === null || here
+              ? nothing
+              : html`<span class="block text-[10px] font-normal text-white/70"
+                  >${note(it.type, it.gen)}</span
+                >`}
+        </button>`);
+      }
+      if (rows.length === 0) return nothing;
+      return html`<div data-ww-hist-group=${g.id} class="flex flex-col gap-1">
+        <div class="mt-1 text-xs font-bold text-white/80">${g.label}</div>
+        ${rows}
+      </div>`;
+    })}`;
+  }
+
+  /** ww63: the folded list of locked catalogue entries, each with the tech it needs. */
+  private renderHistLocked(items: readonly HistPickItem[]): TemplateResult {
+    if (items.length === 0) return html``;
+    return html`<div data-ww-hist-locked class="mt-1 flex flex-col gap-1">
+      <button
+        type="button"
+        data-ww-hist-locked-toggle
+        aria-expanded=${String(this.histLockedOpen)}
+        class="${BUTTON} h-10 w-full"
+        @click=${() => (this.histLockedOpen = !this.histLockedOpen)}
+      >
+        ${translateText(
+          this.histLockedOpen
+            ? "ww1936.hist_pick.locked_hide"
+            : "ww1936.hist_pick.locked_show",
+          { n: items.length },
+        )}
+      </button>
+      ${this.histLockedOpen
+        ? items.map(
+            (it) => html`<div
+              data-ww-hist-lock=${it.id}
+              class="rounded-md border border-white/10 bg-white/5 px-2 py-1 opacity-80"
+            >
+              <span class="block break-words text-xs font-semibold"
+                >🔒 ${it.name}</span
+              >
+              <span
+                class="block break-words text-[11px] leading-snug text-white/70"
+                >${it.stats}</span
+              >
+              <span class="block break-words text-[11px] text-amber-200"
+                >${translateText("ww1936.hist_pick.needs", {
+                  list: it.lack.join(", "),
+                })}</span
+              >
+            </div>`,
+          )
         : nothing}
     </div>`;
   }
@@ -1299,6 +1487,7 @@ export class WwIndustryPanel extends WwDrawerBase {
               this.addingLine = false;
               this.send({ kind: "add_line", equipment: type, gen, factories });
             },
+            c,
           )
         : nothing}
     </section>`;
@@ -1307,7 +1496,7 @@ export class WwIndustryPanel extends WwDrawerBase {
   private renderStock(c: Ctx): TemplateResult {
     const short = this.game?.wwLand?.()?.details.get(c.id)?.equipShort ?? null;
     const designs = this.game?.wwDepth?.()?.detail(c.id)?.designs ?? [];
-    const all = stockTable(c.detail, short, designs);
+    const all = stockTable(c.detail, short, designs, c.hist);
     const folded = all.filter(stockRowIdle);
     const shown = this.stockRest ? all : all.filter((r) => !stockRowIdle(r));
     const tone = {
