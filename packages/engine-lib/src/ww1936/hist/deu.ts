@@ -132,6 +132,7 @@ export const DEU_HIST: readonly HistEntry[] = [
     year: 1941,
     // 50 mm KwK 38 L/42 (PzGr 39 about 50 mm at 500 m, sources 40-60),
     // 50 mm front (added plate on the hull); RM 96,000.
+    // Audit w66: 5 cm KwK 38 L/42 PzGr 39 is 47 mm at 500 m, 30 deg (Wikipedia).
     source: SRC_PT,
     spec: {
       massT: 21.5,
@@ -139,7 +140,7 @@ export const DEU_HIST: readonly HistEntry[] = [
       hullSlopeDeg: 9,
       turretFrontMm: 50,
       gunMm: 50,
-      penMm500: 50,
+      penMm500: 47,
       heFillerG: 100,
       mgs: 2,
       offroadKmh: 20,
@@ -157,6 +158,7 @@ export const DEU_HIST: readonly HistEntry[] = [
     year: 1939,
     // Support tank with the short 75 mm KwK 37 L/24 (PzGr about 38 mm at
     // 500 m, HE shell 680 g filler), 30 mm armour. RM about 103,000.
+    // Audit w66: 7.5 cm KwK 37 L/24 is 39 mm (Wikipedia).
     source: SRC_PT,
     spec: {
       massT: 20,
@@ -164,7 +166,7 @@ export const DEU_HIST: readonly HistEntry[] = [
       hullSlopeDeg: 9,
       turretFrontMm: 30,
       gunMm: 75,
-      penMm500: 38,
+      penMm500: 39,
       heFillerG: 680,
       mgs: 2,
       offroadKmh: 20,
@@ -182,6 +184,7 @@ export const DEU_HIST: readonly HistEntry[] = [
     year: 1943,
     // 75 mm KwK 40 L/48 (PzGr 39: 89 mm at 500 m), 80 mm hull front plate,
     // 50 mm turret front. RM 103,462.
+    // Audit w66: 7.5 cm KwK 40 L/48 is 96 mm (Wikipedia).
     source: SRC_PT,
     spec: {
       massT: 25.7,
@@ -189,7 +192,7 @@ export const DEU_HIST: readonly HistEntry[] = [
       hullSlopeDeg: 10,
       turretFrontMm: 50,
       gunMm: 75,
-      penMm500: 89,
+      penMm500: 96,
       heFillerG: 680,
       mgs: 2,
       offroadKmh: 18,
@@ -207,6 +210,7 @@ export const DEU_HIST: readonly HistEntry[] = [
     year: 1943,
     // 75 mm KwK 42 L/70 (PzGr 39/42 about 138 mm at 500 m), 80 mm glacis at
     // 55 degrees, 110 mm turret front; poor early reliability. RM 117,100.
+    // Audit w66: 138 mm was the 100 m figure; KwK 42 is 124 mm at 500 m, 30 deg (Wikipedia).
     source: SRC_PT,
     spec: {
       massT: 44.8,
@@ -214,7 +218,7 @@ export const DEU_HIST: readonly HistEntry[] = [
       hullSlopeDeg: 55,
       turretFrontMm: 110,
       gunMm: 75,
-      penMm500: 138,
+      penMm500: 124,
       heFillerG: 680,
       mgs: 2,
       offroadKmh: 25,
@@ -258,6 +262,7 @@ export const DEU_HIST: readonly HistEntry[] = [
     // 88 mm KwK 43 L/71 (about 210 mm at 500 m; sources 190-220), 150 mm
     // glacis at 50 degrees, 185 mm turret front; the least reliable of them.
     // RM 321,500.
+    // Audit w66: KwK 43 PzGr 39/43 is 185 mm at 500 m, 30 deg; 202 is at 100 m (Wikipedia, 8.8 cm Pak 43).
     source: SRC_PT,
     spec: {
       massT: 69.8,
@@ -265,7 +270,7 @@ export const DEU_HIST: readonly HistEntry[] = [
       hullSlopeDeg: 50,
       turretFrontMm: 185,
       gunMm: 88,
-      penMm500: 210,
+      penMm500: 185,
       heFillerG: 870,
       mgs: 2,
       offroadKmh: 17,
@@ -283,13 +288,14 @@ export const DEU_HIST: readonly HistEntry[] = [
     year: 1942,
     // Assault gun, no turret: 75 mm StuK 40 L/48 (89 mm at 500 m), 80 mm
     // front (applique), cheap for what it does. RM 82,500.
+    // Audit w66: 7.5 cm StuK 40 L/48 is 96 mm, as the KwK 40 L/48.
     source: SRC_PT,
     spec: {
       massT: 23.9,
       hullFrontMm: 80,
       hullSlopeDeg: 10,
       gunMm: 75,
-      penMm500: 89,
+      penMm500: 96,
       heFillerG: 680,
       mgs: 1,
       offroadKmh: 20,
@@ -414,6 +420,7 @@ export const DEU_HIST: readonly HistEntry[] = [
     // Sd.Kfz. 234/2 eight-wheel armoured car, 50 mm KwK 39/1 L/60 (PzGr 39
     // 59-86 mm at 500 m by source, 75 used), 30 mm sloped front; complex and
     // only 101 built. Price estimated at RM 80,000.
+    // Audit w66: 5 cm KwK 39/1 L/60 is 59 mm at 500 m, 30 deg (Wikipedia, 5 cm KwK 39); 75 was above the gun.
     source: SRC_PT,
     spec: {
       massT: 11.7,
@@ -421,7 +428,7 @@ export const DEU_HIST: readonly HistEntry[] = [
       hullSlopeDeg: 45,
       turretFrontMm: 30,
       gunMm: 50,
-      penMm500: 75,
+      penMm500: 59,
       heFillerG: 100,
       mgs: 1,
       offroadKmh: 30,
@@ -440,6 +447,7 @@ export const DEU_HIST: readonly HistEntry[] = [
     year: 1942,
     // First Pz IV with the long 75 mm KwK 40 L/43 (PzGr 39 about 82 mm at
     // 500 m; L/48 89 mm), 50 mm front and turret; price as the other Pz IV.
+    // Audit w66: 7.5 cm L/43 is 91 mm at 500 m, 30 deg (Wikipedia, 7.5 cm KwK 40).
     source: SRC_PT,
     spec: {
       massT: 23.6,
@@ -447,7 +455,7 @@ export const DEU_HIST: readonly HistEntry[] = [
       hullSlopeDeg: 9,
       turretFrontMm: 50,
       gunMm: 75,
-      penMm500: 82,
+      penMm500: 91,
       heFillerG: 680,
       mgs: 2,
       offroadKmh: 20,
@@ -465,13 +473,14 @@ export const DEU_HIST: readonly HistEntry[] = [
     year: 1940,
     // Early assault gun, short 75 mm StuK 37 L/24 (PzGr about 38 mm at 500 m,
     // 680 g HE filler), 50 mm front; RM about 80,000 (Spielberger, mid).
+    // Audit w66: 7.5 cm StuK 37 L/24 is 39 mm, as the KwK 37.
     source: SRC_PT,
     spec: {
       massT: 20.2,
       hullFrontMm: 50,
       hullSlopeDeg: 9,
       gunMm: 75,
-      penMm500: 38,
+      penMm500: 39,
       heFillerG: 680,
       mgs: 0,
       offroadKmh: 20,
@@ -489,18 +498,19 @@ export const DEU_HIST: readonly HistEntry[] = [
     year: 1944,
     // Jagdpanzer 38(t): 75 mm Pak 39 L/48 (89 mm at 500 m as the KwK 40
     // L/48), 60 mm front at 60 degrees, cheap and reliable. About RM 60,000.
+    // Audit w66: PaK 39 L/48 is 96 mm; nose-heavy and overloaded, reliability 3. Armour stays 60 mm at 60 deg, the real plate: see the conversion report on casemates.
     source: SRC_PT,
     spec: {
       massT: 15.75,
       hullFrontMm: 60,
       hullSlopeDeg: 60,
       gunMm: 75,
-      penMm500: 89,
+      penMm500: 96,
       heFillerG: 680,
       mgs: 1,
       offroadKmh: 15,
       roadKmh: 39,
-      reliability: 4,
+      reliability: 3,
       costK: 30,
     },
   },
@@ -514,13 +524,14 @@ export const DEU_HIST: readonly HistEntry[] = [
     // Jagdpanzer IV/70(V): 75 mm StuK 42 L/70 (as the Panther's, 138 mm at
     // 500 m), 80 mm front at about 50 degrees; front-heavy, wore its drive.
     // Price estimated at RM 90,000.
+    // Audit w66: PaK 42 L/70 is the KwK 42's gun: 124 mm, not the 100 m figure.
     source: SRC_PT,
     spec: {
       massT: 25.8,
       hullFrontMm: 80,
       hullSlopeDeg: 50,
       gunMm: 75,
-      penMm500: 138,
+      penMm500: 124,
       heFillerG: 680,
       mgs: 1,
       offroadKmh: 20,
@@ -539,13 +550,14 @@ export const DEU_HIST: readonly HistEntry[] = [
     // Panther chassis with the 88 mm Pak 43/3 L/71 (about 210 mm at 500 m,
     // as the Tiger II gun), 80 mm glacis at 55 degrees. RM about 117,000
     // (the Panther's price; references differ).
+    // Audit w66: PaK 43/3 is 185 mm at 500 m, 30 deg.
     source: SRC_PT,
     spec: {
       massT: 45.5,
       hullFrontMm: 80,
       hullSlopeDeg: 55,
       gunMm: 88,
-      penMm500: 210,
+      penMm500: 185,
       heFillerG: 870,
       mgs: 1,
       offroadKmh: 25,
@@ -801,6 +813,7 @@ export const DEU_HIST: readonly HistEntry[] = [
     year: 1944,
     // Fw 190 A-8: 2 x 13 mm MG 131 + 4 x 20 mm MG 151/20, 650 km/h class
     // (653 at altitude), heavy.
+    // Audit w66: BMW 801 cured by this model: reliability 4.
     source: SRC_AIR,
     spec: {
       maxKmh: 653,
@@ -814,7 +827,7 @@ export const DEU_HIST: readonly HistEntry[] = [
       defGuns: 0,
       bombKg: 0,
       torpedoKg: 0,
-      reliability: 3,
+      reliability: 4,
       costK: 40,
     },
   },
@@ -853,6 +866,7 @@ export const DEU_HIST: readonly HistEntry[] = [
     year: 1944,
     // Me 262 A-1a: 4 x 30 mm MK 108, 870 km/h, Jumo 004 engines that wore out
     // in 10-25 hours. About RM 87,400 (Wikipedia, one reference).
+    // Audit w66: Jumo 004 life in hours: reliability 1, as the He 177.
     source: SRC_AIR,
     spec: {
       maxKmh: 870,
@@ -864,7 +878,7 @@ export const DEU_HIST: readonly HistEntry[] = [
       bombKg: 0,
       torpedoKg: 0,
       jet: true,
-      reliability: 2,
+      reliability: 1,
       costK: 60,
     },
   },
@@ -1473,6 +1487,7 @@ export const DEU_HIST: readonly HistEntry[] = [
     year: 1940,
     // Bismarck class: 41,700 t standard, 8 x 38 cm, 12 x 15 cm, 16 x 10.5 cm,
     // 320 mm belt, 30 kn on trials, 8,870 nm at 19 kn (Wikipedia). RM 196.8 million (memory); dollar cost is an estimate by weight against the North Carolina class.
+    // Audit w66: 8,525 nm at 19 kn, and 20 x 2 cm as built (Wikipedia).
     source: SRC_SHIP,
     spec: {
       dispT: 41700,
@@ -1480,13 +1495,13 @@ export const DEU_HIST: readonly HistEntry[] = [
       secondary: { count: 12, mm: 150 },
       beltMm: 320,
       speedKn: 30,
-      rangeNm: 8870,
+      rangeNm: 8525,
       torpTubes: 0,
       torpWarheadKg: 0,
       asw: 0,
       aaLight: [
         { count: 16, mm: 37 },
-        { count: 12, mm: 20 },
+        { count: 20, mm: 20 },
       ],
       aaHeavy: 16,
       aircraft: 0,
@@ -1753,13 +1768,14 @@ export const DEU_HIST: readonly HistEntry[] = [
     year: 1940,
     // 5 cm Pak 38 L/60: 2.06 kg PzGr 39, 14 rpm, 70 mm at 500 m (sources 59-86),
     // 1,000 kg; about RM 8,500.
+    // Audit w66: Same round as the KwK 39 L/60 at 59 mm; 70 was above it.
     source: SRC_GEAR,
     spec: {
       mm: 50,
       rpm: 14,
       rangeM: 5000,
       shellKg: 2.06,
-      penMm500: 70,
+      penMm500: 60,
       massKg: 1000,
       barrels: 1,
       costK: 3.4,
@@ -1774,13 +1790,14 @@ export const DEU_HIST: readonly HistEntry[] = [
     year: 1942,
     // 7.5 cm Pak 40 L/46: 6.8 kg PzGr 39, 12 rpm, about 85 mm at 500 m,
     // 1,425 kg; about RM 12,000.
+    // Audit w66: PzGr 39 is 96 mm at 500 m, 30 deg (Wikipedia, 7.5 cm Pak 40).
     source: SRC_GEAR,
     spec: {
       mm: 75,
       rpm: 12,
       rangeM: 7680,
       shellKg: 6.8,
-      penMm500: 85,
+      penMm500: 96,
       massKg: 1425,
       barrels: 1,
       costK: 4.8,
@@ -1795,13 +1812,14 @@ export const DEU_HIST: readonly HistEntry[] = [
     year: 1943,
     // 8.8 cm Pak 43 L/71: 10.2 kg PzGr 39/43, 10 rpm, about 210 mm at 500 m
     // (as the KwK 43), 4,400 kg; price estimated at RM 16,000.
+    // Audit w66: PzGr 39/43 is 185 mm at 500 m, 30 deg (Wikipedia, 8.8 cm Pak 43).
     source: SRC_GEAR,
     spec: {
       mm: 88,
       rpm: 10,
       rangeM: 15000,
       shellKg: 10.2,
-      penMm500: 210,
+      penMm500: 185,
       massKg: 4400,
       barrels: 1,
       costK: 6.4,

@@ -28,6 +28,7 @@ export const USA_HIST: readonly HistEntry[] = [
     year: 1935,
     // 37 mm M5 gun, 25 mm front, four MGs, 11.5 t; about 375 built.
     // Cost about $25k (estimate; sources thin).
+    // Audit w66: 37 mm M5, about 3 mm below the M6 (Wikipedia, 37 mm gun M3).
     source: SRC_TANK,
     spec: {
       massT: 11.5,
@@ -35,7 +36,7 @@ export const USA_HIST: readonly HistEntry[] = [
       hullSlopeDeg: 0,
       turretFrontMm: 25,
       gunMm: 37,
-      penMm500: 40,
+      penMm500: 47,
       heFillerG: 20,
       mgs: 4,
       offroadKmh: 25,
@@ -53,6 +54,7 @@ export const USA_HIST: readonly HistEntry[] = [
     year: 1941,
     // 37 mm M6 gun, 38 mm hull front, 5 MGs, 12.7 t; 13,859 built. Hunnicutt
     // cost about $33.5k. Reliable but short-ranged.
+    // Audit w66: 37 mm M6 with APC M51: 53 mm at 500 yd, 30 deg, homogeneous plate (Wikipedia); 50 at 500 m.
     source: SRC_TANK,
     spec: {
       massT: 12.7,
@@ -60,7 +62,7 @@ export const USA_HIST: readonly HistEntry[] = [
       hullSlopeDeg: 15,
       turretFrontMm: 38,
       gunMm: 37,
-      penMm500: 40,
+      penMm500: 50,
       heFillerG: 20,
       mgs: 4,
       offroadKmh: 30,
@@ -77,6 +79,7 @@ export const USA_HIST: readonly HistEntry[] = [
     techs: ["light_tank_2"],
     year: 1942,
     // Twin Cadillac engines, 64 mm sloped front, 37 mm M6; 6,800 built.
+    // Audit w66: Same 37 mm M6.
     source: SRC_TANK,
     spec: {
       massT: 15.4,
@@ -84,7 +87,7 @@ export const USA_HIST: readonly HistEntry[] = [
       hullSlopeDeg: 20,
       turretFrontMm: 51,
       gunMm: 37,
-      penMm500: 40,
+      penMm500: 50,
       heFillerG: 20,
       mgs: 3,
       offroadKmh: 32,
@@ -102,6 +105,7 @@ export const USA_HIST: readonly HistEntry[] = [
     year: 1944,
     // 75 mm M6 (lightened tank gun, about 70 mm at 500 m), 25 mm front at
     // 60 degrees, 38 mm turret; 4,731 built. Cost about $55k (sources 50-60).
+    // Audit w66: 75 mm M6 has the M3's ballistics: 68.
     source: SRC_TANK,
     spec: {
       massT: 18.4,
@@ -109,7 +113,7 @@ export const USA_HIST: readonly HistEntry[] = [
       hullSlopeDeg: 60,
       turretFrontMm: 38,
       gunMm: 75,
-      penMm500: 70,
+      penMm500: 68,
       heFillerG: 680,
       mgs: 2,
       offroadKmh: 35,
@@ -127,6 +131,7 @@ export const USA_HIST: readonly HistEntry[] = [
     year: 1943,
     // Six-wheeled armoured car, 37 mm M6, 19 mm front, 89 km/h; 8,523 built.
     // Cost about $20k (estimate).
+    // Audit w66: Same 37 mm family.
     source: SRC_TANK,
     spec: {
       massT: 7.8,
@@ -134,7 +139,7 @@ export const USA_HIST: readonly HistEntry[] = [
       hullSlopeDeg: 45,
       turretFrontMm: 19,
       gunMm: 37,
-      penMm500: 40,
+      penMm500: 50,
       heFillerG: 20,
       mgs: 1,
       offroadKmh: 45,
@@ -179,6 +184,7 @@ export const USA_HIST: readonly HistEntry[] = [
     // 75 mm M3 L/40 (M61 APC about 68-76 mm at 500 m, mid 70), 51 mm hull
     // front at 56 degrees, 76 mm turret; very reliable, easy to repair.
     // Cost $33-50k depending on year and builder, mid 42.
+    // Audit w66: 75 mm M3: M61 APC about 66, M72 AP about 76 mm at 500 yd, from memory; one figure, 68, for the whole M3 family.
     source: SRC_TANK,
     spec: {
       massT: 30.3,
@@ -186,7 +192,7 @@ export const USA_HIST: readonly HistEntry[] = [
       hullSlopeDeg: 56,
       turretFrontMm: 76,
       gunMm: 75,
-      penMm500: 70,
+      penMm500: 68,
       heFillerG: 680,
       mgs: 2,
       offroadKmh: 25,
@@ -205,6 +211,7 @@ export const USA_HIST: readonly HistEntry[] = [
     // 76 mm M1A1 (M62 APC about 109 mm at 500 m), 64 mm front at 47 degrees,
     // 76 mm turret, Ford GAA V8. HE filler of the M42A1 shell about 330 g
     // (estimate). Cost about $45k.
+    // Audit w66: 76 mm M1 APC M62 is 93-94 mm at 500 yd, 30 deg (Wikipedia); the M79 solid shot, 109 mm, was the substitute and shatters on hard plate.
     source: SRC_TANK,
     spec: {
       massT: 32,
@@ -212,7 +219,7 @@ export const USA_HIST: readonly HistEntry[] = [
       hullSlopeDeg: 47,
       turretFrontMm: 76,
       gunMm: 76,
-      penMm500: 105,
+      penMm500: 93,
       heFillerG: 330,
       mgs: 2,
       offroadKmh: 26,
@@ -229,6 +236,7 @@ export const USA_HIST: readonly HistEntry[] = [
     techs: ["medium_tank_3", "tank_gun_3"],
     year: 1944,
     // "Easy Eight": 76 mm M1A2, wide HVSS tracks for lower ground pressure.
+    // Audit w66: Same 76 mm M1 as the M4A3(76).
     source: SRC_TANK,
     spec: {
       massT: 33.6,
@@ -236,7 +244,7 @@ export const USA_HIST: readonly HistEntry[] = [
       hullSlopeDeg: 47,
       turretFrontMm: 76,
       gunMm: 76,
-      penMm500: 105,
+      penMm500: 93,
       heFillerG: 330,
       mgs: 2,
       offroadKmh: 30,
@@ -280,6 +288,7 @@ export const USA_HIST: readonly HistEntry[] = [
     year: 1942,
     // Tank destroyer on the Sherman chassis, 3-inch M7 (about 98 mm at
     // 500 m), 57 mm sloped front, open-topped turret; 6,700 built.
+    // Audit w66: 3-inch M7 fires the same M62 APC as the 76 mm M1.
     source: SRC_TANK,
     spec: {
       massT: 29,
@@ -287,7 +296,7 @@ export const USA_HIST: readonly HistEntry[] = [
       hullSlopeDeg: 55,
       turretFrontMm: 19,
       gunMm: 76,
-      penMm500: 98,
+      penMm500: 93,
       heFillerG: 330,
       mgs: 1,
       offroadKmh: 25,
@@ -306,6 +315,7 @@ export const USA_HIST: readonly HistEntry[] = [
     year: 1943,
     // Very fast, 12.7 mm armour, 76 mm M1A1 (about 105 mm at 500 m);
     // 2,507 built. Cost about $55k (references differ).
+    // Audit w66: Same 76 mm M1.
     source: SRC_TANK,
     spec: {
       massT: 17,
@@ -313,7 +323,7 @@ export const USA_HIST: readonly HistEntry[] = [
       hullSlopeDeg: 45,
       turretFrontMm: 19,
       gunMm: 76,
-      penMm500: 105,
+      penMm500: 93,
       heFillerG: 330,
       mgs: 1,
       offroadKmh: 40,
@@ -512,12 +522,13 @@ export const USA_HIST: readonly HistEntry[] = [
     year: 1943,
     // Republic P-47D Thunderbolt: eight .50 in MGs, turbosupercharged R-2800;
     // up to 1,130 kg of bombs. Cost about $83k.
+    // Audit w66: 13,230 lb on 300 sq ft (Wikipedia): normal weight.
     source: SRC_AIR,
     spec: {
       maxKmh: 690,
       rangeKm: 1260,
       emptyKg: 4490,
-      wingLoad: 245,
+      wingLoad: 215,
       guns: [{ mm: 12.7, count: 8, rpm: 800 }],
       defGuns: 0,
       bombKg: 1130,
@@ -535,12 +546,13 @@ export const USA_HIST: readonly HistEntry[] = [
     year: 1944,
     // North American P-51D Mustang: six .50 in MGs, Packard Merlin, long
     // range with drop tanks (1,650 km internal). Cost about $51k.
+    // Audit w66: 7,635 lb empty, 9,200 lb on 235 sq ft (Wikipedia); 252 was the overload figure, Types.ts asks for normal weight.
     source: SRC_AIR,
     spec: {
       maxKmh: 703,
       rangeKm: 1650,
-      emptyKg: 3230,
-      wingLoad: 252,
+      emptyKg: 3463,
+      wingLoad: 191,
       guns: [{ mm: 12.7, count: 6, rpm: 800 }],
       defGuns: 0,
       bombKg: 910,
@@ -990,13 +1002,14 @@ export const USA_HIST: readonly HistEntry[] = [
     // Fletcher class (175 built): 5 x 5 in/38, 10 tubes (Mk 15), 36.5 kn,
     // 2,050 t, 10 x 40 mm and 7 x 20 mm as completed in 1943. Cost about
     // $10M.
+    // Audit w66: 5,500 nm at 15 kn (Wikipedia).
     source: SRC_SHIP,
     spec: {
       dispT: 2083,
       main: { count: 5, mm: 127 },
       beltMm: 0,
       speedKn: 36.5,
-      rangeNm: 6500,
+      rangeNm: 5500,
       torpTubes: 10,
       torpWarheadKg: 224,
       asw: 2,
@@ -1466,13 +1479,14 @@ export const USA_HIST: readonly HistEntry[] = [
     year: 1940,
     // 37 mm gun M3: 15 rounds per minute, 0.87 kg APC, about 40 mm at 500 m
     // (sources 35-50), 414 kg. Cost about $2k (estimate).
+    // Audit w66: Same 37 mm M3/M6 figure as the Stuart's: 50.
     source: SRC_GEAR,
     spec: {
       mm: 37,
       rpm: 15,
       rangeM: 5000,
       shellKg: 0.87,
-      penMm500: 40,
+      penMm500: 50,
       massKg: 414,
       barrels: 1,
       costK: 2,
@@ -1508,13 +1522,14 @@ export const USA_HIST: readonly HistEntry[] = [
     year: 1943,
     // 3-inch gun M5 (towed M7): 12 rounds per minute, 6.8 kg APC, about 98
     // mm at 500 m, 2,540 kg. Cost about $6k (estimate).
+    // Audit w66: Same 3-inch M62 as the M10: 93.
     source: SRC_GEAR,
     spec: {
       mm: 76,
       rpm: 12,
       rangeM: 14000,
       shellKg: 6.8,
-      penMm500: 98,
+      penMm500: 93,
       massKg: 2540,
       barrels: 1,
       costK: 6,

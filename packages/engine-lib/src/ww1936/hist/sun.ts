@@ -294,6 +294,7 @@ export const SUN_HIST: readonly HistEntry[] = [
     techs: ["medium_tank_1", "sloped_armor", "diesel_engine"],
     year: 1940,
     // T-34 model 1940: 26.8 t, hull 45 mm at 60 degrees, welded turret 52 mm, 76.2 mm L-11 (about 33 mm at 500 m, 30 degrees; references 30-40).3 per dollar (references 247,000-270,000). Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
+    // Audit w66: F-34 with BR-350A is 62-69 mm at 500 m (Wikipedia, angle not stated: Soviet normal-impact figures); 60 at 30 deg. Enough for a Pz III's 50 mm front, not a Pz IV H's 80 mm. 33 was far below it. 30 km/h cross-country as in the contract's own T-34.
     source: SRC_TANK,
     spec: {
       massT: 26.8,
@@ -301,10 +302,10 @@ export const SUN_HIST: readonly HistEntry[] = [
       hullSlopeDeg: 60,
       turretFrontMm: 52,
       gunMm: 76,
-      penMm500: 33,
+      penMm500: 60,
       heFillerG: 650,
       mgs: 2,
-      offroadKmh: 35,
+      offroadKmh: 30,
       roadKmh: 55,
       diesel: true,
       reliability: 3,
@@ -319,6 +320,7 @@ export const SUN_HIST: readonly HistEntry[] = [
     techs: ["medium_tank_2", "sloped_armor", "diesel_engine"],
     year: 1943,
     // T-34 model 1943: 30.9 t, hull 45 mm at 60 degrees, hexagonal turret 70 mm, 76.2 mm F-34 (BR-350A about 50 mm at 500 m, 30 degrees; references 45-61). Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
+    // Audit w66: Same F-34 as the 1940 model: same 60. 30 km/h cross-country.
     source: SRC_TANK,
     spec: {
       massT: 30.9,
@@ -326,10 +328,10 @@ export const SUN_HIST: readonly HistEntry[] = [
       hullSlopeDeg: 60,
       turretFrontMm: 70,
       gunMm: 76,
-      penMm500: 50,
+      penMm500: 60,
       heFillerG: 650,
       mgs: 2,
-      offroadKmh: 35,
+      offroadKmh: 30,
       roadKmh: 55,
       diesel: true,
       reliability: 4,
@@ -344,6 +346,7 @@ export const SUN_HIST: readonly HistEntry[] = [
     techs: ["medium_tank_3", "tank_gun_3", "sloped_armor", "diesel_engine"],
     year: 1944,
     // T-34-85: 32 t, hull 45 mm at 60 degrees, turret 90 mm, 85 mm ZIS-S-53 (BR-365 about 90 mm at 500 m, 30 degrees; references 85-100). Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
+    // Audit w66: 85 mm: 123-125 mm at 500 m at normal impact (Wikipedia), near the 7.5 cm L/48's figure in the same table; 95 at 30 deg, one below it.
     source: SRC_TANK,
     spec: {
       massT: 32,
@@ -351,10 +354,10 @@ export const SUN_HIST: readonly HistEntry[] = [
       hullSlopeDeg: 60,
       turretFrontMm: 90,
       gunMm: 85,
-      penMm500: 90,
+      penMm500: 95,
       heFillerG: 660,
       mgs: 2,
-      offroadKmh: 35,
+      offroadKmh: 30,
       roadKmh: 55,
       diesel: true,
       reliability: 4,
@@ -393,6 +396,7 @@ export const SUN_HIST: readonly HistEntry[] = [
     techs: ["heavy_tank_1", "diesel_engine"],
     year: 1941,
     // KV-1 model 1941: 45 t, hull 75 mm at 30 degrees (slope approximate), turret 75 mm, 76.2 mm ZiS-5 (about 50 mm), three DT; transmission weak. Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
+    // Audit w66: ZiS-5 fires the F-34's rounds: same 60.
     source: SRC_TANK,
     spec: {
       massT: 45,
@@ -400,7 +404,7 @@ export const SUN_HIST: readonly HistEntry[] = [
       hullSlopeDeg: 30,
       turretFrontMm: 75,
       gunMm: 76,
-      penMm500: 50,
+      penMm500: 60,
       heFillerG: 650,
       mgs: 3,
       offroadKmh: 20,
@@ -440,9 +444,10 @@ export const SUN_HIST: readonly HistEntry[] = [
     country: "SUN",
     family: "tank",
     role: "heavy",
-    techs: ["heavy_tank_1", "tank_engine_2"],
+    techs: ["heavy_tank_1", "diesel_engine", "tank_engine_2"],
     year: 1942,
     // KV-1S: 42.5 t, hull 75 mm, cast turret 82 mm, 76.2 mm ZiS-5, 43 km/h; lighter and faster. Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
+    // Audit w66: ZiS-5: same 60; V-2 diesel like every KV.
     source: SRC_TANK,
     spec: {
       massT: 42.5,
@@ -450,7 +455,7 @@ export const SUN_HIST: readonly HistEntry[] = [
       hullSlopeDeg: 30,
       turretFrontMm: 82,
       gunMm: 76,
-      penMm500: 50,
+      penMm500: 60,
       heFillerG: 650,
       mgs: 2,
       offroadKmh: 25,
@@ -468,12 +473,13 @@ export const SUN_HIST: readonly HistEntry[] = [
     techs: ["heavy_tank_2", "tank_gun_3", "diesel_engine"],
     year: 1944,
     // IS-2 model 1944: 46 t, upper hull 120 mm at 60 degrees (references vary on slope), turret 160 mm, 122 mm D-25T (BR-471 about 120 mm at 500 m, 30 degrees; references 117-125), HE filler about 3.6 kg. Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
+    // Audit w66: 100 mm turret front (Wikipedia, IS tank family); 155-160 is the mantlet's peak, and every other entry uses the turret or the plain mantlet figure. Hull 120 mm at 60 deg stays. Armour 193 becomes 173.
     source: SRC_TANK,
     spec: {
       massT: 46,
       hullFrontMm: 120,
       hullSlopeDeg: 60,
-      turretFrontMm: 160,
+      turretFrontMm: 100,
       gunMm: 122,
       penMm500: 120,
       heFillerG: 3600,
@@ -493,13 +499,14 @@ export const SUN_HIST: readonly HistEntry[] = [
     techs: ["light_tank_2", "tank_gun_2"],
     year: 1943,
     // SU-76M: 11.2 t, 35 mm, open-topped, 76.2 mm ZiS-3 (about 50 mm at 500 m). Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
+    // Audit w66: ZiS-3 fires the F-34's rounds: same 60.
     source: SRC_TANK,
     spec: {
       massT: 11.2,
       hullFrontMm: 35,
       hullSlopeDeg: 20,
       gunMm: 76,
-      penMm500: 50,
+      penMm500: 60,
       heFillerG: 650,
       mgs: 0,
       offroadKmh: 25,
@@ -517,13 +524,14 @@ export const SUN_HIST: readonly HistEntry[] = [
     techs: ["medium_tank_2", "tank_gun_3", "diesel_engine"],
     year: 1943,
     // SU-85: 29.6 t, casemate 45 mm at 50 degrees, 85 mm D-5S (about 90 mm at 500 m). Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
+    // Audit w66: D-5S: same 85 mm figure as the T-34-85.
     source: SRC_TANK,
     spec: {
       massT: 29.6,
       hullFrontMm: 45,
       hullSlopeDeg: 50,
       gunMm: 85,
-      penMm500: 90,
+      penMm500: 95,
       heFillerG: 660,
       mgs: 0,
       offroadKmh: 30,
@@ -589,13 +597,14 @@ export const SUN_HIST: readonly HistEntry[] = [
     techs: ["medium_tank_3", "tank_gun_4", "diesel_engine"],
     year: 1944,
     // SU-100: 31.6 t, casemate 75 mm at 50 degrees, 100 mm D-10S (BR-412 about 150 mm at 500 m, 30 degrees; references 139-160), HE filler about 1.5 kg. Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
+    // Audit w66: D-10S BR-412 is 160 mm at 500 m at normal impact (Wikipedia); 130 at 30 deg by the D-25T's ratio, and near the US 90 mm M3 at 125. 150 was too high.
     source: SRC_TANK,
     spec: {
       massT: 31.6,
       hullFrontMm: 75,
       hullSlopeDeg: 50,
       gunMm: 100,
-      penMm500: 150,
+      penMm500: 130,
       heFillerG: 1460,
       mgs: 0,
       offroadKmh: 30,
@@ -614,16 +623,14 @@ export const SUN_HIST: readonly HistEntry[] = [
     techs: ["fighter_1"],
     year: 1939,
     // I-16 type 24: 525 km/h, 700 km, empty 1,327 kg, 14.54 m2 wing, two ShKAS and two 20 mm ShVAK. Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
+    // Audit w66: Most I-16s of 1936-41 (types 5 to 24) had two or four ShKAS; the two-ShVAK type 28 was a few hundred. Type 24: four ShKAS. Attack 24.6 above a Bf 109 E was the cannon version.
     source: SRC_AIR,
     spec: {
       maxKmh: 525,
       rangeKm: 700,
       emptyKg: 1327,
       wingLoad: 129,
-      guns: [
-        { mm: 7.62, count: 2, rpm: 1800 },
-        { mm: 20, count: 2, rpm: 800 },
-      ],
+      guns: [{ mm: 7.62, count: 4, rpm: 1800 }],
       defGuns: 0,
       bombKg: 0,
       torpedoKg: 0,
@@ -762,12 +769,13 @@ export const SUN_HIST: readonly HistEntry[] = [
     techs: ["fighter_3", "aero_engine_2"],
     year: 1943,
     // La-5FN: 650 km/h, 765 km, two 20 mm ShVAK. Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
+    // Audit w66: 2,706 kg empty (Wikipedia).
     source: SRC_AIR,
     spec: {
       maxKmh: 650,
       rangeKm: 765,
-      emptyKg: 2605,
-      wingLoad: 192,
+      emptyKg: 2706,
+      wingLoad: 187,
       guns: [{ mm: 20, count: 2, rpm: 800 }],
       defGuns: 0,
       bombKg: 150,
@@ -809,6 +817,7 @@ export const SUN_HIST: readonly HistEntry[] = [
     techs: ["fighter_3", "aero_engine_2", "aircraft_cannon_1"],
     year: 1944,
     // La-7: 680 km/h, 665 km, three 20 mm B-20. Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
+    // Audit w66: Engine failures in service: reliability 3.
     source: SRC_AIR,
     spec: {
       maxKmh: 680,
@@ -819,7 +828,7 @@ export const SUN_HIST: readonly HistEntry[] = [
       defGuns: 0,
       bombKg: 150,
       torpedoKg: 0,
-      reliability: 4,
+      reliability: 3,
       costK: 17,
     },
   },
@@ -903,11 +912,12 @@ export const SUN_HIST: readonly HistEntry[] = [
     techs: ["cas_2", "aircraft_cannon_1"],
     year: 1942,
     // Il-2m3 two-seat: 414 km/h, 765 km, two 23 mm VYa, two ShKAS, one 12.7 mm rear gun, 600 kg bombs. Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
+    // Audit w66: 4,425 kg empty (Wikipedia).
     source: SRC_AIR,
     spec: {
       maxKmh: 414,
       rangeKm: 765,
-      emptyKg: 4525,
+      emptyKg: 4425,
       wingLoad: 165,
       guns: [
         { mm: 23, count: 2, rpm: 550 },
@@ -1016,15 +1026,16 @@ export const SUN_HIST: readonly HistEntry[] = [
     techs: ["bomber_2"],
     year: 1941,
     // Pe-2: 540 km/h, 1,500 km, empty 5,870 kg, two ShKAS forward and two defensive, 1,200 kg bombs, dive bomber; about 11,400 built. Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
+    // Audit w66: 5,950 / 7,536 kg on 40.5 m2, 1,315 km, 1,000 kg of bombs (Wikipedia).
     source: SRC_AIR,
     spec: {
       maxKmh: 540,
-      rangeKm: 1500,
-      emptyKg: 5870,
-      wingLoad: 210,
+      rangeKm: 1315,
+      emptyKg: 5950,
+      wingLoad: 186,
       guns: [{ mm: 7.62, count: 2, rpm: 1800 }],
       defGuns: 2,
-      bombKg: 1200,
+      bombKg: 1000,
       torpedoKg: 0,
       dive: true,
       reliability: 4,
@@ -1343,6 +1354,7 @@ export const SUN_HIST: readonly HistEntry[] = [
     techs: ["bb_3", "super_heavy_battleship"],
     year: 1938,
     // Project 23 Sovetsky Soyuz (four laid down 1938-40, none completed): 59,150 t standard, nine 406 mm B-37, twelve 152 mm, twelve 100 mm AA, 375 mm belt, 28 kn. Planned figures (AA 32-40 barrels, 36 used); cost estimated. Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
+    // Audit w66: Ten quadruple 37 mm (Wikipedia).
     source: SRC_SHIP,
     spec: {
       dispT: 59150,
@@ -1354,7 +1366,7 @@ export const SUN_HIST: readonly HistEntry[] = [
       torpTubes: 0,
       torpWarheadKg: 0,
       asw: 2,
-      aaLight: [{ count: 36, mm: 37 }],
+      aaLight: [{ count: 40, mm: 37 }],
       aaHeavy: 12,
       aircraft: 0,
       costM: 140,
@@ -1484,6 +1496,7 @@ export const SUN_HIST: readonly HistEntry[] = [
     techs: ["inf_eq_2"],
     year: 1941,
     // PPSh-41 submachine gun, 7.62x25, drum of 71, about 6 million made; effective range 150-200 m. Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
+    // Audit w66: Share of a rifle division's men with one, a quarter to a third late in the war (estimate); the rest kept the Mosin. 100 hid that.
     source: SRC_GEAR,
     spec: { mm: 7.62, aimedRpm: 20, rangeM: 200, autoPct: 100, costUsd: 20 },
   },
@@ -1625,13 +1638,14 @@ export const SUN_HIST: readonly HistEntry[] = [
     techs: ["anti_tank_1", "at_imp_1"],
     year: 1942,
     // 45 mm anti-tank gun M1942 (M-42), longer barrel: about 48 mm at 500 m (references 45-57), 625 kg. Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
+    // Audit w66: M-42 L/66 about 50 mm at normal impact: 42 at 30 deg, below the Pak 38, above the 45 mm M1937.
     source: SRC_GEAR,
     spec: {
       mm: 45,
       rpm: 15,
       rangeM: 4400,
       shellKg: 1.43,
-      penMm500: 48,
+      penMm500: 42,
       massKg: 625,
       barrels: 1,
       costK: 1.4,
@@ -1645,13 +1659,14 @@ export const SUN_HIST: readonly HistEntry[] = [
     techs: ["anti_tank_2", "at_imp_1"],
     year: 1943,
     // 57 mm ZiS-2 anti-tank gun: BR-271 about 90 mm at 500 m (30 degrees; 109 mm at 0 degrees), range 8,400 m, 3.14 kg shell, 1,050 kg. Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
+    // Audit w66: 57 mm at 990 m/s, about 106 mm at normal impact: 85 at 30 deg.
     source: SRC_GEAR,
     spec: {
       mm: 57,
       rpm: 15,
       rangeM: 8400,
       shellKg: 3.14,
-      penMm500: 90,
+      penMm500: 85,
       massKg: 1050,
       barrels: 1,
       costK: 2.5,
@@ -1665,13 +1680,14 @@ export const SUN_HIST: readonly HistEntry[] = [
     techs: ["anti_tank_2", "at_imp_2"],
     year: 1944,
     // 100 mm BS-3 field gun: BR-412 about 150 mm at 500 m (30 degrees), range 20,000 m, 15.6 kg shell, 3,650 kg, 8 rpm. Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
+    // Audit w66: Same D-10 round as the SU-100: 130.
     source: SRC_GEAR,
     spec: {
       mm: 100,
       rpm: 8,
       rangeM: 20000,
       shellKg: 15.6,
-      penMm500: 150,
+      penMm500: 130,
       massKg: 3650,
       barrels: 1,
       costK: 8,

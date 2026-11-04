@@ -72,11 +72,12 @@ export const JPN_HIST: readonly HistEntry[] = [
     techs: ["light_tank_1"],
     year: 1936,
     // The standard Japanese tank, 12 mm, 37 mm Type 94 gun, diesel; 71,000 yen in Aug 1939 without armament (Wikipedia) as cross-check; cost estimated against the Stuart.
+    // Audit w66: Slope estimated from the layout; no firm reference.
     source: SRC_TANK,
     spec: {
       massT: 7.4,
       hullFrontMm: 12,
-      hullSlopeDeg: 0,
+      hullSlopeDeg: 10,
       turretFrontMm: 12,
       gunMm: 37,
       penMm500: 25,
@@ -171,11 +172,12 @@ export const JPN_HIST: readonly HistEntry[] = [
     techs: ["medium_tank_1"],
     year: 1938,
     // 15-25 mm hull (25 used), 35 mm turret, short 57 mm Type 97 gun (Wikipedia: 20 mm at 500 m), diesel; 126,000 yen in Aug 1939 (Wikipedia) as cross-check; cost estimated.
+    // Audit w66: Fighting-compartment front about 10 deg (GlobalSecurity, Type 97 design page).
     source: SRC_TANK,
     spec: {
       massT: 15.8,
       hullFrontMm: 25,
-      hullSlopeDeg: 0,
+      hullSlopeDeg: 10,
       turretFrontMm: 35,
       gunMm: 57,
       penMm500: 20,
@@ -196,14 +198,15 @@ export const JPN_HIST: readonly HistEntry[] = [
     techs: ["medium_tank_1", "tank_gun_2"],
     year: 1942,
     // Chi-Ha with a new turret and the 47 mm Type 1 gun (penetration quoted 55-68 mm at 500 m, 60 used); price near the Chi-Ha.
+    // Audit w66: Type 1 47 mm: 40 mm at 500 m (Wikipedia, gun infobox) and 2 in at 500 yd at 30 deg (US test table, same page); 45 is the middle, 60 was above the 5 cm L/60.
     source: SRC_TANK,
     spec: {
       massT: 15.8,
       hullFrontMm: 25,
-      hullSlopeDeg: 0,
+      hullSlopeDeg: 10,
       turretFrontMm: 25,
       gunMm: 47,
-      penMm500: 60,
+      penMm500: 45,
       heFillerG: 40,
       mgs: 2,
       offroadKmh: 20,
@@ -221,14 +224,15 @@ export const JPN_HIST: readonly HistEntry[] = [
     techs: ["medium_tank_2", "tank_gun_2"],
     year: 1941,
     // 50 mm front, 47 mm Type 1 gun (60 mm), diesel; price estimated.
+    // Audit w66: Same 47 mm as the Shinhoto. Slope estimated from the Chi-Ha's layout; no firm reference.
     source: SRC_TANK,
     spec: {
       massT: 17.2,
       hullFrontMm: 50,
-      hullSlopeDeg: 0,
+      hullSlopeDeg: 10,
       turretFrontMm: 50,
       gunMm: 47,
-      penMm500: 60,
+      penMm500: 45,
       heFillerG: 40,
       mgs: 2,
       offroadKmh: 26,
@@ -246,11 +250,12 @@ export const JPN_HIST: readonly HistEntry[] = [
     techs: ["medium_tank_2", "tank_gun_3"],
     year: 1944,
     // Chi-He with the 75 mm Type 3 gun (Type 90 field-gun ballistics, 60-70 mm, 65 used); about 166 built; price estimated.
+    // Audit w66: 50 mm at 15 deg is a game-reference table (War Thunder wiki), the only figure found: an estimate.
     source: SRC_TANK,
     spec: {
       massT: 18.8,
       hullFrontMm: 50,
-      hullSlopeDeg: 0,
+      hullSlopeDeg: 15,
       turretFrontMm: 50,
       gunMm: 75,
       penMm500: 65,
@@ -271,14 +276,15 @@ export const JPN_HIST: readonly HistEntry[] = [
     techs: ["medium_tank_3", "tank_gun_3"],
     year: 1944,
     // 75 mm front and turret, 75 mm Type 5 gun (about 100 mm, references differ); only about 60 built; hull slope not documented (0 used); price estimated.
+    // Audit w66: Type 5 75 mm quoted at 75 mm at 1,000 m; about 85 at 500 m, estimate. Slope estimated like the Chi-Nu's.
     source: SRC_TANK,
     spec: {
       massT: 30.2,
       hullFrontMm: 75,
-      hullSlopeDeg: 0,
+      hullSlopeDeg: 15,
       turretFrontMm: 75,
       gunMm: 75,
-      penMm500: 100,
+      penMm500: 85,
       heFillerG: 500,
       mgs: 2,
       offroadKmh: 25,
@@ -346,13 +352,14 @@ export const JPN_HIST: readonly HistEntry[] = [
     techs: ["fighter_1"],
     year: 1936,
     // Navy fighter, 2 x 7.7 mm; 435 km/h, 1,200 km, loaded 1,671 kg on 17.8 m2; price estimated.
+    // Audit w66: Type 89 7.7 mm about 900 rpm; 600 was far below it.
     source: SRC_AIR,
     spec: {
       maxKmh: 435,
       rangeKm: 1200,
       emptyKg: 1263,
       wingLoad: 94,
-      guns: [{ mm: 7.7, count: 2, rpm: 600 }],
+      guns: [{ mm: 7.7, count: 2, rpm: 900 }],
       defGuns: 0,
       bombKg: 60,
       torpedoKg: 0,
@@ -368,13 +375,14 @@ export const JPN_HIST: readonly HistEntry[] = [
     techs: ["fighter_1"],
     year: 1937,
     // Army fighter, 2 x 7.7 mm; range quoted 627 km normal, 1,700 km ferry (1,000 used); price estimated.
+    // Audit w66: Type 89 7.7 mm about 900 rpm.
     source: SRC_AIR,
     spec: {
       maxKmh: 470,
       rangeKm: 1000,
       emptyKg: 1110,
       wingLoad: 96,
-      guns: [{ mm: 7.7, count: 2, rpm: 750 }],
+      guns: [{ mm: 7.7, count: 2, rpm: 900 }],
       defGuns: 0,
       bombKg: 100,
       torpedoKg: 0,
@@ -484,15 +492,16 @@ export const JPN_HIST: readonly HistEntry[] = [
     techs: ["fighter_2", "carrier_aviation", "aircraft_cannon_1"],
     year: 1940,
     // 2 x 20 mm Type 99 and 2 x 7.7 mm; range 1,870 km internal, 3,100 km with a drop tank (1,900 used); price estimated.
+    // Audit w66: 533 km/h (Wikipedia). Type 97 7.7 mm about 900 rpm, as on every Japanese fixed 7.7.
     source: SRC_AIR,
     spec: {
-      maxKmh: 525,
+      maxKmh: 533,
       rangeKm: 1900,
       emptyKg: 1680,
       wingLoad: 107,
       guns: [
         { mm: 20, count: 2, rpm: 520 },
-        { mm: 7.7, count: 2, rpm: 680 },
+        { mm: 7.7, count: 2, rpm: 900 },
       ],
       defGuns: 0,
       bombKg: 60,
@@ -509,6 +518,7 @@ export const JPN_HIST: readonly HistEntry[] = [
     techs: ["fighter_3", "carrier_aviation", "aircraft_cannon_1"],
     year: 1943,
     // 2 x 20 mm Type 99 Mk 2 and 2 x 7.7 mm; price estimated.
+    // Audit w66: Type 97 7.7 mm about 900 rpm.
     source: SRC_AIR,
     spec: {
       maxKmh: 565,
@@ -517,7 +527,7 @@ export const JPN_HIST: readonly HistEntry[] = [
       wingLoad: 128,
       guns: [
         { mm: 20, count: 2, rpm: 600 },
-        { mm: 7.7, count: 2, rpm: 680 },
+        { mm: 7.7, count: 2, rpm: 900 },
       ],
       defGuns: 0,
       bombKg: 250,
@@ -1284,6 +1294,7 @@ export const JPN_HIST: readonly HistEntry[] = [
     techs: ["inf_eq_1"],
     year: 1905,
     // 6.5 x 50 mm bolt action; one automatic weapon per squad (about 6 %); price estimated.
+    // Audit w66: autoPct counts automatic rifles only.
     source: SRC_GUN,
     spec: { mm: 6.5, aimedRpm: 12, rangeM: 400, autoPct: 6, costUsd: 25 },
   },
@@ -1294,6 +1305,7 @@ export const JPN_HIST: readonly HistEntry[] = [
     techs: ["inf_eq_2"],
     year: 1939,
     // 7.7 x 58 mm bolt action, same squad support weapons; price estimated.
+    // Audit w66: autoPct counts automatic rifles only.
     source: SRC_GUN,
     spec: { mm: 7.7, aimedRpm: 12, rangeM: 500, autoPct: 6, costUsd: 28 },
   },
@@ -1385,13 +1397,14 @@ export const JPN_HIST: readonly HistEntry[] = [
     techs: ["anti_tank_2"],
     year: 1941,
     // 47 mm, 1.5 kg AP, penetration quoted 55-68 mm (60 used), 750 kg; price estimated.
+    // Audit w66: Same 47 mm as the Chi-He: 45.
     source: SRC_GUN,
     spec: {
       mm: 47,
       rpm: 15,
       rangeM: 6000,
       shellKg: 1.5,
-      penMm500: 60,
+      penMm500: 45,
       massKg: 750,
       barrels: 1,
       costK: 4,

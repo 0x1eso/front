@@ -122,6 +122,7 @@ export const ITA_HIST: readonly HistEntry[] = [
     year: 1939,
     // M11/39: 11 t, 30 mm front, the 37 mm Vickers-Terni gun fixed in the
     // hull (about 24 mm at 500 m), turret with two 8 mm; diesel; poor.
+    // Audit w66: Poor in the desert: reliability 2.
     source: SRC_TANK,
     spec: {
       massT: 11,
@@ -135,7 +136,7 @@ export const ITA_HIST: readonly HistEntry[] = [
       offroadKmh: 20,
       roadKmh: 32,
       diesel: true,
-      reliability: 3,
+      reliability: 2,
       costK: 38,
     },
   },
@@ -148,6 +149,7 @@ export const ITA_HIST: readonly HistEntry[] = [
     year: 1940,
     // M13/40: 14 t, 30 mm hull and 40 mm turret front, 47/32 gun (sources
     // give 30-43 mm at 500 m, 38 used), four 8 mm; diesel, cramped, sound.
+    // Audit w66: Weak engine, filter trouble in the desert: reliability 2; the M14/41 fixed part of it.
     source: SRC_TANK,
     spec: {
       massT: 14,
@@ -161,7 +163,7 @@ export const ITA_HIST: readonly HistEntry[] = [
       offroadKmh: 20,
       roadKmh: 32,
       diesel: true,
-      reliability: 3,
+      reliability: 2,
       costK: 42,
     },
   },
@@ -226,14 +228,16 @@ export const ITA_HIST: readonly HistEntry[] = [
     // P26/40 ("heavy" by name, 26 t in fact): 50 mm sloped hull front,
     // 60 mm turret, 75/34 gun (about 70 mm at 500 m); only a handful built
     // by the armistice; the price is an estimate.
+    // Audit w66: 75/34 set to 65 mm beside the US 75 mm M3 at 68 (lower velocity); the P26/40 was a diesel.
     source: SRC_TANK,
     spec: {
+      diesel: true,
       massT: 26,
       hullFrontMm: 50,
       hullSlopeDeg: 30,
       turretFrontMm: 60,
       gunMm: 75,
-      penMm500: 70,
+      penMm500: 65,
       heFillerG: 600,
       mgs: 2,
       offroadKmh: 25,
@@ -277,9 +281,11 @@ export const ITA_HIST: readonly HistEntry[] = [
     // Semovente da 75/18 on the M40/M41 chassis: 13.8 t, 50 mm front, short
     // 75/18 howitzer; its HEAT round (1942) pierces about 70 mm at any range
     // but with low velocity, so 50 mm is used as a middle. Reliable.
+    // Audit w66: 13.1 t (Wikipedia); on the diesel M14/41 chassis.
     source: SRC_TANK,
     spec: {
-      massT: 13.8,
+      diesel: true,
+      massT: 13.1,
       hullFrontMm: 50,
       hullSlopeDeg: 10,
       gunMm: 75,
@@ -301,13 +307,14 @@ export const ITA_HIST: readonly HistEntry[] = [
     year: 1943,
     // Semovente da 75/34 on the M42M chassis: 15 t, 50 mm front, 75/34 gun
     // (about 70 mm at 500 m).
+    // Audit w66: 75/34: same gun as the P26/40.
     source: SRC_TANK,
     spec: {
       massT: 15,
       hullFrontMm: 50,
       hullSlopeDeg: 10,
       gunMm: 75,
-      penMm500: 70,
+      penMm500: 65,
       heFillerG: 600,
       mgs: 1,
       offroadKmh: 22,
@@ -326,13 +333,15 @@ export const ITA_HIST: readonly HistEntry[] = [
     // Semovente da 90/53: the AA gun in a thin open mount on the M41 chassis
     // (30 mm front); about 30 built. 90/53 AP: sources give 100-140 mm at
     // 500 m, 120 mm used.
+    // Audit w66: 90/53 quoted at 140 mm at 500 m without an angle (Wikipedia); 112 at 30 deg by the same ratio as the D-25T's 150/120; between the 88 L/56 at 110 and the 90 mm M3 at 125.
     source: SRC_TANK,
     spec: {
+      diesel: true,
       massT: 16,
       hullFrontMm: 30,
       hullSlopeDeg: 0,
       gunMm: 90,
-      penMm500: 120,
+      penMm500: 112,
       heFillerG: 1000,
       mgs: 0,
       offroadKmh: 18,
@@ -493,11 +502,12 @@ export const ITA_HIST: readonly HistEntry[] = [
     year: 1941,
     // Macchi MC.202 Folgore: DB 601 licence engine, 600 km/h, 2 x 12.7 mm
     // and 2 x 7.7 mm; the best Italian fighter of its year.
+    // Audit w66: 2,491 kg empty (Wikipedia).
     source: SRC_AIR,
     spec: {
       maxKmh: 600,
       rangeKm: 765,
-      emptyKg: 2350,
+      emptyKg: 2491,
       wingLoad: 174,
       guns: [
         { mm: 12.7, count: 2, rpm: 700 },
@@ -671,12 +681,13 @@ export const ITA_HIST: readonly HistEntry[] = [
     year: 1936,
     // Savoia-Marchetti SM.79 Sparviero: three engines, 435 km/h, 1,250 kg of
     // bombs, five machine guns (12.7 and 7.7 mm); the best Italian bomber.
+    // Audit w66: 460 km/h, 7,700 kg, 10,050 kg on 61.7 m2, 2,600 km (Wikipedia, Savoia-Marchetti SM.79).
     source: SRC_AIR,
     spec: {
-      maxKmh: 435,
-      rangeKm: 1900,
-      emptyKg: 7500,
-      wingLoad: 183,
+      maxKmh: 460,
+      rangeKm: 2600,
+      emptyKg: 7700,
+      wingLoad: 163,
       guns: [],
       defGuns: 5,
       bombKg: 1250,
@@ -717,12 +728,13 @@ export const ITA_HIST: readonly HistEntry[] = [
     year: 1940,
     // SM.79 Sparviero torpedo-bomber (silurante): 450 mm aerial torpedo of
     // about 800 kg (two were carried on short missions, one used here).
+    // Audit w66: Airframe as the bomber's; slower with the torpedo.
     source: SRC_AIR,
     spec: {
       maxKmh: 430,
-      rangeKm: 1900,
-      emptyKg: 7500,
-      wingLoad: 183,
+      rangeKm: 2600,
+      emptyKg: 7700,
+      wingLoad: 163,
       guns: [],
       defGuns: 5,
       bombKg: 0,
@@ -1252,6 +1264,7 @@ export const ITA_HIST: readonly HistEntry[] = [
     year: 1938,
     // Beretta Moschetto Automatico M1938A, 9 mm submachine gun, about 600
     // rounds per minute cyclic; aimed bursts about 25 a minute, short range.
+    // Audit w66: Issued to about one man in ten.
     source:
       "Wikipedia, Beretta Model 38, from memory; cost scaled from the Thompson",
     spec: { mm: 9, aimedRpm: 25, rangeM: 200, autoPct: 0, costUsd: 55 },

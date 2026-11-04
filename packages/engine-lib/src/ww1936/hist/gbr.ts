@@ -196,8 +196,10 @@ export const GBR_HIST: readonly HistEntry[] = [
     // Valentine II: 16 t, 60 mm hull, 65 mm turret, 2-pdr and a Besa,
     // 24 km/h; very reliable, cheap for its armour by design (reused A9/A10
     // parts). Cost estimate.
+    // Audit w66: AEC diesel.
     source: SRC_TANK,
     spec: {
+      diesel: true,
       massT: 16.3,
       hullFrontMm: 60,
       hullSlopeDeg: 0,
@@ -221,8 +223,10 @@ export const GBR_HIST: readonly HistEntry[] = [
     year: 1939,
     // Matilda II: 27 t, 78 mm hull, 75 mm turret, 2-pdr and a Besa, 24 km/h;
     // immune to most 1940 guns, slow, costly cast hull. Cost estimate.
+    // Audit w66: Twin diesels (AEC or Leyland).
     source: SRC_TANK,
     spec: {
+      diesel: true,
       massT: 26.9,
       hullFrontMm: 78,
       hullSlopeDeg: 0,
@@ -271,6 +275,7 @@ export const GBR_HIST: readonly HistEntry[] = [
     year: 1942,
     // Crusader III: 20 t, 51 mm, 6-pdr (APCBC about 74 mm at 500 m; sources
     // 68-80), one Besa. Cost estimate on the Crusader I.
+    // Audit w66: 6-pounder: one figure, 75, for it and the US M1 57 mm.
     source: SRC_TANK,
     spec: {
       massT: 20,
@@ -278,7 +283,7 @@ export const GBR_HIST: readonly HistEntry[] = [
       hullSlopeDeg: 0,
       turretFrontMm: 51,
       gunMm: 57,
-      penMm500: 74,
+      penMm500: 75,
       heFillerG: 80,
       mgs: 1,
       offroadKmh: 24,
@@ -297,6 +302,7 @@ export const GBR_HIST: readonly HistEntry[] = [
     // Cromwell IV: 28 t, 64 mm hull, 76 mm turret, 75 mm QF (bored-out
     // 6-pdr, about 68 mm at 500 m; HE about 0.6 kg filler), two Besa,
     // Meteor engine, 64 km/h. Cost estimate.
+    // Audit w66: QF 75 mm fires the US M61: 68. 29 km/h cross-country and a 64 mm vertical plate per Wikipedia, so slope 0 is right; 40 was above the page's figure.
     source: SRC_TANK,
     spec: {
       massT: 27.9,
@@ -307,7 +313,7 @@ export const GBR_HIST: readonly HistEntry[] = [
       penMm500: 68,
       heFillerG: 600,
       mgs: 2,
-      offroadKmh: 40,
+      offroadKmh: 29,
       roadKmh: 64,
       reliability: 4,
       costK: 42,
@@ -324,6 +330,7 @@ export const GBR_HIST: readonly HistEntry[] = [
     // often quoted is the turret), 77 mm HV (APCBC about 109 mm at 500 m,
     // 30 degrees; other angles and ranges give 110-137), two Besa, 47 km/h;
     // reliable. Cost estimate.
+    // Audit w66: 14.3 mph cross-country (Wikipedia). 76 mm plate is vertical (Wikipedia, Tank Encyclopedia), so slope 0 is right.
     source: SRC_TANK,
     spec: {
       massT: 33.5,
@@ -334,7 +341,7 @@ export const GBR_HIST: readonly HistEntry[] = [
       penMm500: 109,
       heFillerG: 650,
       mgs: 2,
-      offroadKmh: 28,
+      offroadKmh: 23,
       roadKmh: 47,
       reliability: 4,
       costK: 50,
@@ -350,6 +357,7 @@ export const GBR_HIST: readonly HistEntry[] = [
     // Sherman VC Firefly: US hull (51 mm at 56 degrees, 76 mm turret) with
     // the British 17-pdr (APCBC about 140 mm at 500 m; sources 130-150), one
     // MG. Cost: the US hull (about 33k) plus gun and conversion, estimate.
+    // Audit w66: A Sherman V with a 17-pounder: same mechanicals, reliability 4 as a Sherman of that kind.
     source: SRC_TANK,
     spec: {
       massT: 34,
@@ -362,7 +370,7 @@ export const GBR_HIST: readonly HistEntry[] = [
       mgs: 1,
       offroadKmh: 26,
       roadKmh: 40,
-      reliability: 3,
+      reliability: 4,
       costK: 45,
     },
   },
@@ -401,14 +409,15 @@ export const GBR_HIST: readonly HistEntry[] = [
     year: 1942,
     // Churchill III/IV: 40 t, 102 mm hull, 89 mm turret, 6-pdr (74 mm at
     // 500 m), two Besa; the faults mostly cured. Cost estimate.
+    // Audit w66: 127 mm turret front on Mk IV-VI (Wikipedia). 6-pounder: 75, as the US M1 57 mm.
     source: SRC_TANK,
     spec: {
       massT: 39.6,
       hullFrontMm: 102,
       hullSlopeDeg: 0,
-      turretFrontMm: 89,
+      turretFrontMm: 127,
       gunMm: 57,
-      penMm500: 74,
+      penMm500: 75,
       heFillerG: 80,
       mgs: 2,
       offroadKmh: 15,
@@ -426,6 +435,7 @@ export const GBR_HIST: readonly HistEntry[] = [
     year: 1944,
     // Churchill VII: 40.7 t, 152 mm hull and turret, 75 mm (68 mm at
     // 500 m), two Besa, 20 km/h; reliable by then. Cost estimate.
+    // Audit w66: QF 75 mm: 68. 152 mm hull and turret front are the real figures (Wikipedia): the highest of any British tank, and a Panther's gun at 124 fails against them at 500 m, 30 deg, as the numbers say.
     source: SRC_TANK,
     spec: {
       massT: 40.7,
@@ -998,12 +1008,13 @@ export const GBR_HIST: readonly HistEntry[] = [
     // load (much more in special versions), eight .303; about 4,000 km with
     // 6.3 t. Cost estimate (a forum post gave about 43,000 pounds in 1941;
     // not verified).
+    // Audit w66: 55,000 lb on 1,297 sq ft (Wikipedia): normal weight.
     source: SRC_AIR,
     spec: {
       maxKmh: 462,
       rangeKm: 4070,
       emptyKg: 16800,
-      wingLoad: 224,
+      wingLoad: 207,
       guns: [],
       defGuns: 8,
       bombKg: 6350,
@@ -1442,12 +1453,13 @@ export const GBR_HIST: readonly HistEntry[] = [
     // King George V class: 36,700 t (35,000 treaty), ten 14-inch (two quad,
     // one twin), sixteen 5.25-inch DP, 356 mm belt, 28 kn, about 6,000 nm,
     // four octuple 2-pdr.
+    // Audit w66: 14.7 in belt (Wikipedia).
     source: SRC_SHIP,
     spec: {
       dispT: 36700,
       main: { count: 10, mm: 356 },
       secondary: { count: 16, mm: 133 },
-      beltMm: 356,
+      beltMm: 370,
       speedKn: 28,
       rangeNm: 6000,
       torpTubes: 0,
@@ -1603,6 +1615,7 @@ export const GBR_HIST: readonly HistEntry[] = [
     // SMLE No. 1 Mk III*: .303, ten-round magazine, the fastest bolt action
     // in service (about 20 aimed rounds a minute), effective range about
     // 500 m; one Bren (10 %) in each ten-man section. Cost estimate.
+    // Audit w66: autoPct counts self-loading or automatic rifles only, as Types.ts says; the squad LMG counts for nobody.
     source: SRC_GEAR,
     spec: { mm: 7.7, aimedRpm: 20, rangeM: 500, autoPct: 10, costUsd: 25 },
   },
@@ -1615,6 +1628,7 @@ export const GBR_HIST: readonly HistEntry[] = [
     // Rifle No. 4 Mk I: simpler and stronger than the SMLE, quicker to make,
     // 20 aimed rounds a minute, 500 m; the Bren and Sten issue lifts the
     // automatic share to about a quarter by 1944. Cost estimate.
+    // Audit w66: autoPct as the SMLE.
     source: SRC_GEAR,
     spec: { mm: 7.7, aimedRpm: 20, rangeM: 500, autoPct: 25, costUsd: 22 },
   },
@@ -1758,13 +1772,14 @@ export const GBR_HIST: readonly HistEntry[] = [
     // QF 6-pounder Mk II: 57 mm, 15 rounds a minute, APCBC 2.85 kg and about
     // 74 mm at 500 m (sources 68-80), 1,112 kg. The range figure (5,000 m)
     // is a rough estimate. Cost estimate.
+    // Audit w66: One figure for the 6-pounder and the US M1: 75, estimate.
     source: SRC_GEAR,
     spec: {
       mm: 57,
       rpm: 15,
       rangeM: 5000,
       shellKg: 2.85,
-      penMm500: 74,
+      penMm500: 75,
       massKg: 1112,
       barrels: 1,
       costK: 3.5,

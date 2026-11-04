@@ -191,6 +191,7 @@ export const FRA_HIST: readonly HistEntry[] = [
     techs: ["light_tank_2", "tank_gun_2"],
     year: 1939,
     // H35 with the SA 38 gun and a more powerful engine; the best French light infantry tank.
+    // Audit w66: No better record than the H35: reliability 3.
     source:
       "Memory (Doyle; Touzin); gun figure from Wikipedia (R35 article, SA 38).",
     spec: {
@@ -204,7 +205,7 @@ export const FRA_HIST: readonly HistEntry[] = [
       mgs: 1,
       offroadKmh: 25,
       roadKmh: 36,
-      reliability: 4,
+      reliability: 3,
       costK: 26,
     },
   },
@@ -265,6 +266,7 @@ export const FRA_HIST: readonly HistEntry[] = [
     techs: ["medium_tank_1", "tank_gun_2"],
     year: 1936,
     // 47 mm SA 35 (sources 40-56 mm at 500 m, 42 used), 47 mm cast hull front, 42 mm turret (Wikipedia), 982,000 francs. Estimate: against the Pz III E class.
+    // Audit w66: Fine tank but a demanding suspension: reliability 3.
     source: "Wikipedia (R35, S35, Char B1 articles, read 2026-11).",
     spec: {
       massT: 19.5,
@@ -277,7 +279,7 @@ export const FRA_HIST: readonly HistEntry[] = [
       mgs: 1,
       offroadKmh: 32,
       roadKmh: 40,
-      reliability: 4,
+      reliability: 3,
       costK: 42,
     },
   },
@@ -289,6 +291,7 @@ export const FRA_HIST: readonly HistEntry[] = [
     techs: ["heavy_tank_1"],
     year: 1937,
     // Hull 75 mm SA 35 L/17 and turret 47 mm SA 35 (pen. 42 used; the hull gun is the howitzer-class weapon), 60 mm armour; about 1.5 million francs (Wikipedia). Estimate: against the US M3 Lee, plus complexity.
+    // Audit w66: Complex and short-ranged in service: reliability 2.
     source:
       "Wikipedia (R35, S35, Char B1 articles, read 2026-11); turret armour and HE filler from memory.",
     spec: {
@@ -302,7 +305,7 @@ export const FRA_HIST: readonly HistEntry[] = [
       mgs: 2,
       offroadKmh: 21,
       roadKmh: 28,
-      reliability: 3,
+      reliability: 2,
       costK: 70,
     },
   },
@@ -390,6 +393,7 @@ export const FRA_HIST: readonly HistEntry[] = [
     techs: ["fighter_1"],
     year: 1938,
     // Mid-range of 720 km combat and 1,100 km at reduced power. Estimate: against the US P-36 (Hawk 75).
+    // Audit w66: Figures differ: 452 km/h (Wikipedia infobox), 486 often quoted; 470.
     source:
       "Wikipedia aircraft articles (read 2026-11) (1,895/2,540 kg, 16 m2); speed 486 km/h is a middle of the 452-490 range on the page.",
     spec: {
@@ -397,7 +401,7 @@ export const FRA_HIST: readonly HistEntry[] = [
         { mm: 20, count: 1, rpm: 650 },
         { mm: 7.5, count: 2, rpm: 1200 },
       ],
-      maxKmh: 486,
+      maxKmh: 470,
       rangeKm: 800,
       emptyKg: 1895,
       wingLoad: 159,
@@ -1065,12 +1069,13 @@ export const FRA_HIST: readonly HistEntry[] = [
     techs: [],
     year: 1893,
     // Bolt action with a tube magazine; autoPct is the Chauchat/FM 24 per squad. Estimate: cost against the US 1903 Springfield.
+    // Audit w66: autoPct counts automatic rifles only.
     source: "Memory (Wikipedia Lebel; tube magazine, 8 mm).",
     spec: {
       mm: 8,
       aimedRpm: 10,
       rangeM: 450,
-      autoPct: 8,
+      autoPct: 0,
       costUsd: 20,
     },
   },
@@ -1081,13 +1086,14 @@ export const FRA_HIST: readonly HistEntry[] = [
     techs: ["inf_eq_1"],
     year: 1936,
     // Short bolt-action rifle; FM 24/29 light machine gun in each group.
+    // Audit w66: autoPct counts automatic rifles only.
     source:
       "Wikipedia (MAS-36 rifle: 7.5x54 mm, 400 m iron sights); firing rate from memory.",
     spec: {
       mm: 7.5,
       aimedRpm: 14,
       rangeM: 450,
-      autoPct: 10,
+      autoPct: 0,
       costUsd: 28,
     },
   },
@@ -1098,13 +1104,14 @@ export const FRA_HIST: readonly HistEntry[] = [
     techs: ["inf_eq_2"],
     year: 1949,
     // Self-loading rifle, 20,600 to 80,000 built (sources differ).
+    // Audit w66: A self-loader: its rate is in aimedRpm, as for the Garand, the SVT and the G43.
     source:
       "Wikipedia (MAS-49 rifle: semi-automatic, 10-round box, 400 m iron sights); firing rate from memory.",
     spec: {
       mm: 7.5,
       aimedRpm: 24,
       rangeM: 450,
-      autoPct: 10,
+      autoPct: 0,
       costUsd: 45,
     },
   },
