@@ -63,8 +63,9 @@ export function stepMovement(land: WwLand, tick: number): void {
         continue;
       } else if (mode === MOVE_RETREAT) {
         // Its refuge fell: retreat again from where it is (or be destroyed).
+        // (It left its prisoners behind when it broke.)
         stopDivision(land, r);
-        retreatDivision(land, r);
+        retreatDivision(land, r, false);
         continue;
       }
     }
