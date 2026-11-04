@@ -320,3 +320,16 @@ describe("designer flag", () => {
     expect(wwDesigner({ ww1936Designer: true })).toBe(true);
   });
 });
+
+describe("slots and static names", () => {
+  test("a static key falls back to the generic name where the country has no stand-in", async () => {
+    const { histStaticName, histEntriesGatedBy } =
+      await import("@openfront/engine-lib/ww1936/hist/Slots");
+    expect(histStaticName("DEU", "light_tank", 1)).toMatch(
+      /^ww1936\.hist\.deu_/,
+    );
+    expect(histStaticName("DEU", "convoy", 1)).toBeNull();
+    expect(histEntriesGatedBy("heavy_tank_1", "DEU").length).toBeGreaterThan(0);
+    expect(histEntriesGatedBy("no_such_tech").length).toBe(0);
+  });
+});

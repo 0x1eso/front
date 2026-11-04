@@ -78,3 +78,32 @@ function gearMatches(e: HistEntry, type: string): boolean {
   return false;
 }
 export { tankGroupOf };
+
+/** The text key of the entry standing in for a static key in a country, null for the generic name. */
+export function histStaticName(
+  country: HistCountry,
+  type: string,
+  gen: number,
+): string | null {
+  const e = histStaticEntry(country, type, gen);
+  return e === undefined ? null : `ww1936.hist.${e.id}`;
+}
+
+/**
+ * The entries a tech helps to unlock (it is one of their techs), of one
+ * country or all, in catalogue order: what a tech's effect text lists now
+ * that the designer's modules and chassis are gates.
+ */
+export function histEntriesGatedBy(
+  tech: string,
+  country?: HistCountry,
+): HistEntry[] {
+  const out: HistEntry[] = [];
+  for (const c of Object.keys(HIST_CATALOGUE) as HistCountry[]) {
+    if (country !== undefined && c !== country) continue;
+    for (const e of HIST_CATALOGUE[c]) {
+      if ((e.techs as readonly string[]).includes(tech)) out.push(e);
+    }
+  }
+  return out;
+}
