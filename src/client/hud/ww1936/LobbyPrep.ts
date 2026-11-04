@@ -18,6 +18,7 @@ import {
   SupportId,
   TemplateData,
   TemplateDef,
+  WW_MAX_TEMPLATES,
 } from "@openfront/engine-api/ww1936/LandTypes";
 import {
   isMajor,
@@ -45,7 +46,9 @@ import {
 } from "@openfront/engine-lib/ww1936/TemplateStats";
 import { techTotals } from "@openfront/engine-lib/ww1936/WwTechs";
 import {
+  isNewTemplateKey,
   markPrepSent,
+  prepArmiesOf,
   prepPlanOf,
   prepSentFor,
   PrepTemplate,
@@ -55,6 +58,7 @@ import type { GameView } from "../../view/GameView";
 import { LibEntry, templateKey } from "./DesignLibrary";
 import { blockText } from "./EconomyModel";
 import { designGroupsOf, researchedOf } from "./LandModel";
+import { hasStartOob, oobModel, oobOrderOf, PrepOobModel } from "./PrepOob";
 import { prepSecondsLeft } from "./WorldWarModel";
 
 /** The lobby's single player slot id in the adapter. */
@@ -160,12 +164,26 @@ export interface StartPreview {
   limitedBy: EquipmentType | null;
 }
 
-function statsOf(def: TemplateDef, researched: ReadonlySet<WwTechId>) {
+export function statsOf(def: TemplateDef, researched: ReadonlySet<WwTechId>) {
   return templateStats(
     def,
     techTotals(researched),
     genMixOf(new Array<number>(GROUND_SLOTS).fill(0)),
   );
+}
+
+/**
+ * The need groups' stock of a country at the start: startStock and the
+ * army's rifles. It is also what the start's divisions hold plus what is
+ * left, which is what a re-form gets to draw from.
+ */
+export function startGroupStock(tag: CountryTag): number[] {
+  const army = startArmy(tag, 0);
+  const stock = startStock(tag, army, 0, 0);
+  stock[equipKey("infantry_equipment", 1)] += Math.ceil(
+    army / WW_MEN_PER_INF_EQUIPMENT,
+  );
+  return groupStockOf(stock);
 }
 
 /**
@@ -201,11 +219,6 @@ export function startPreviews(
       for (let i = 0; i < n; i++) field.push({ key, need: need.get(key)! });
     }
   }
-  const army = startArmy(tag, 0);
-  const stock = startStock(tag, army, 0, 0);
-  stock[equipKey("infantry_equipment", 1)] += Math.ceil(
-    army / WW_MEN_PER_INF_EQUIPMENT,
-  );
   const edits: ReformEdit[] = [];
   const keys: string[] = [];
   for (const p of plan) {
@@ -231,7 +244,7 @@ export function startPreviews(
       budget: n * old.men,
     });
   }
-  const res = previewReforms(groupStockOf(stock), field, edits);
+  const res = previewReforms(startGroupStock(tag), field, edits);
   res.forEach((r, i) => {
     const group = r.limitedBy < 0 ? null : NEED_GROUPS[r.limitedBy];
     out.set(keys[i], {
@@ -291,6 +304,21 @@ export function lobbyGame(
             },
       );
     });
+    // Templates the plan made (a major's), after the start templates.
+    let next = templates.length + 1;
+    for (const p of opts.plan ?? []) {
+      if (!isNewTemplateKey(p.key) || templates.length >= WW_MAX_TEMPLATES) {
+        continue;
+      }
+      templates.push({
+        id: next++,
+        key: "",
+        name: p.name,
+        battalions: [...p.battalions] as BattalionId[],
+        support: [...p.support] as SupportId[],
+        inUse: 0,
+      });
+    }
   } else if (opts.draft) {
     templates.push({
       id: LIB_DRAFT_ID,
@@ -366,6 +394,33 @@ export class StartPrep {
     private readonly notice: (text: string) => void,
   ) {}
 
+  private sendOob(
+    gameID: string,
+    m: PrepOobModel | null,
+    gameKeys: ReadonlySet<string>,
+  ): number {
+    if (m === null) return 0;
+    for (const t of m.templates) {
+      if (t.problem !== null && t.edited) {
+        this.notice(
+          translateText("ww1936.prep.skipped", {
+            name: t.def.name,
+            reason: t.problem,
+          }),
+        );
+      }
+    }
+    const o = oobOrderOf(m, gameKeys);
+    if (typeof o === "string") {
+      this.notice(translateText("ww1936.prep.oob_blocked", { reason: o }));
+      return 0;
+    }
+    this.send(o.order);
+    markPrepSent(gameID);
+    this.notice(o.summary);
+    return 1;
+  }
+
   /** Called every tick; returns the number of orders it sent. */
   tick(game: StartGame | null): number {
     if (this.done || game === null || game === undefined) return 0;
@@ -398,11 +453,21 @@ export class StartPrep {
     const gameID = String(game.gameID());
     if (prepSentFor() === gameID) return 0;
     const plan = prepPlanOf(tag);
-    if (plan.length === 0) return 0;
+    const armies = prepArmiesOf(tag);
     const researched = researchedOf(economy, me.smallID());
     const groups = designGroupsOf(
       game.wwDepth?.()?.detail(me.smallID())?.designs,
     );
+    // A major plans its whole start army: one start_oob replaces the per-template saves.
+    if (hasStartOob(tag)) {
+      if (plan.length === 0 && armies === null) return 0;
+      return this.sendOob(
+        gameID,
+        oobModel(tag, plan, armies, researched, groups),
+        new Set(land.templates.map((x) => x.key).filter((k) => k !== "")),
+      );
+    }
+    if (plan.length === 0) return 0;
     let sent = 0;
     for (const p of plan) {
       const t = land.templates.find((x) => x.key === p.key);

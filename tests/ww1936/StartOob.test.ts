@@ -205,7 +205,7 @@ describe("start_oob (Germany, real map)", () => {
     );
     const budgetH = startMen(h);
     expect(h.l.issue(h.id, o2)).toBeNull();
-    const men = h.l.templateStatsOf(h.id, h.cl.templates.at(-1)!.id)!.men;
+    const men = h.l.templateStatsOf(h.id, h.cl.templates[h.cl.templates.length - 1].id)!.men;
     const n = h.l.rowsOf(h.id).length;
     expect(n).toBe(Math.min(72, Math.floor(budgetH / men)));
     expect(n * men).toBeLessThanOrEqual(budgetH);
@@ -227,7 +227,7 @@ describe("start_oob (Germany, real map)", () => {
       [{ name: "Heavy", battalions: heavy, support: [] }],
     );
     expect(g.l.issue(g.id, o)).toBeNull();
-    const tpl = g.cl.templates.at(-1)!;
+    const tpl = g.cl.templates[g.cl.templates.length - 1];
     const s = g.l.templateStatsOf(g.id, tpl.id)!;
     const rows = g.l
       .rowsOf(g.id)

@@ -16,14 +16,20 @@ import { EventBus } from "@openfront/shared/EventBus";
 import { html, LitElement, nothing, TemplateResult } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import {
+  clearPrepAll,
   clearPrepTemplate,
+  isNewTemplateKey,
+  nextNewKey,
+  PrepArmies,
+  prepArmiesOf,
   prepPlanOf,
   PrepTemplate,
+  setPrepArmies,
   setPrepTemplate,
 } from "../../components/ww1936/PrepPlan";
 import { SendWwOrderIntentEvent } from "../../Transport";
 import { translateText } from "../../Utils";
-import { armyEntries } from "./ArmyTemplates";
+import { armyEntries, ArmyEntry } from "./ArmyTemplates";
 import { WwDepthOpenEvent } from "./DepthEvents";
 import { LibEntry, libraryStore } from "./DesignLibrary";
 import { equipmentName } from "./EconomyModel";
@@ -37,6 +43,17 @@ import {
   planProblem,
   startPreviews,
 } from "./LobbyPrep";
+import {
+  fillFromLibrary,
+  fillRemaining,
+  hasStartOob,
+  newTemplateRoom,
+  normalizeArmies,
+  oobModel,
+  PrepOobModel,
+  withCount,
+} from "./PrepOob";
+import { renderOobArmies, renderOobTop } from "./PrepOobUi";
 import { TWO_TAP_MS, TwoTap } from "./WorldWarModel";
 import {
   ArmyEdit,
@@ -67,6 +84,11 @@ export class WwLobbyPrep extends LitElement {
   @state() private editing: Editing | null = null;
   @state() private plan: PrepTemplate[] = [];
   @state() private pickKey: string | null = null;
+  /** A major's army plan (null: the 1936 armies). */
+  @state() private armies: PrepArmies | null = null;
+  @state() private openArmy: number | null = 0;
+  @state() private libArmy: number | null = null;
+  @state() private fillKey = "";
   @state() private note = "";
   /** The army-preset screen (designs tab) is open. */
   @state() private armyScreen = false;
@@ -83,6 +105,7 @@ export class WwLobbyPrep extends LitElement {
   connectedCallback() {
     super.connectedCallback();
     this.plan = prepPlanOf(this.tag);
+    this.armies = prepArmiesOf(this.tag);
     this.bus.on(SendWwOrderIntentEvent, (e) => this.onOrder(e.order));
     const d = document.createElement("ww-designer") as WwDesigner;
     d.lobby = true;
@@ -146,14 +169,50 @@ export class WwLobbyPrep extends LitElement {
       );
       return;
     }
-    const st = lobbyStartTemplates(this.tag)[ed.index];
-    if (st === undefined) return;
-    this.setPlan(st.key, def);
+    if (ed.index < 0) {
+      // A new template of a major's plan.
+      if (newTemplateRoom(this.tag, this.plan) <= 0 || def.name.trim() === "") {
+        this.note = translateText("ww1936.prep.no_room");
+        return;
+      }
+      const key = nextNewKey(this.plan);
+      setPrepTemplate(this.tag, {
+        key,
+        name: def.name,
+        battalions: [...def.battalions],
+        support: [...def.support],
+      });
+      this.plan = prepPlanOf(this.tag);
+      // Saved: the editor now holds that template.
+      this.editing = { mode: "start", index: this.rowsOf().length - 1 };
+      return;
+    }
+    const key = this.rowsOf()[ed.index]?.key;
+    if (key === undefined) return;
+    this.setPlan(key, def);
+  }
+
+  /** The template rows: the start templates, then the plan's new ones. */
+  private rowsOf(): { key: string }[] {
+    return [
+      ...lobbyStartTemplates(this.tag),
+      ...this.plan.filter((p) => isNewTemplateKey(p.key)),
+    ];
   }
 
   private setPlan(key: string, def: TemplateDef) {
     const st = lobbyStartTemplates(this.tag).find((x) => x.key === key);
-    if (st === undefined) return;
+    if (st === undefined) {
+      if (!isNewTemplateKey(key)) return;
+      setPrepTemplate(this.tag, {
+        key,
+        name: def.name,
+        battalions: [...def.battalions],
+        support: [...def.support],
+      });
+      this.plan = prepPlanOf(this.tag);
+      return;
+    }
     if (
       sameDef(st.def, def) &&
       (def.name === "" || def.name === translateText(`ww1936.tpl.${key}`))
@@ -175,6 +234,8 @@ export class WwLobbyPrep extends LitElement {
   }
 
   private renderStart(): TemplateResult {
+    const major = hasStartOob(this.tag) ? this.model() : null;
+    if (major !== null) return this.renderOob(major);
     const researched = lobbyResearched(this.tag);
     const list = lobbyStartTemplates(this.tag);
     const previews = startPreviews(this.tag, this.plan);
@@ -346,6 +407,250 @@ export class WwLobbyPrep extends LitElement {
     </div>`;
   }
 
+  // ---- a major's whole start army ----
+
+  private model(): PrepOobModel | null {
+    return oobModel(this.tag, this.plan, this.armies);
+  }
+
+  private saveArmies(next: PrepArmies | null) {
+    const n = next === null ? null : normalizeArmies(this.tag, next);
+    setPrepArmies(this.tag, n);
+    this.armies = n;
+  }
+
+  private setCount(army: number, key: string, n: number) {
+    const m = this.model();
+    if (m === null) return;
+    const next = withCount(m, army, key, n);
+    if (next === null) {
+      this.note = translateText("ww1936.prep.operation_note");
+      return;
+    }
+    this.note = "";
+    this.saveArmies(next);
+  }
+
+  private takeLibrary(army: number, entry: ArmyEntry) {
+    const m = this.model();
+    if (m === null) return;
+    const r = fillFromLibrary(m, this.plan, army, entry);
+    if (r === null) {
+      this.note = translateText("ww1936.prep.operation_note");
+      return;
+    }
+    for (const t of r.added) setPrepTemplate(this.tag, t);
+    this.plan = prepPlanOf(this.tag);
+    this.saveArmies(r.armies);
+    this.libArmy = null;
+    this.note = [
+      translateText("ww1936.prep.army_loaded", { name: entry.name }),
+      ...r.skipped,
+    ].join(" ");
+  }
+
+  private fillArmy(army: number, key: string) {
+    const m = this.model();
+    if (m === null) return;
+    const next = fillRemaining(m, army, key);
+    if (next === null) {
+      this.note = translateText("ww1936.prep.fill_none");
+      return;
+    }
+    this.note = "";
+    this.saveArmies(next);
+  }
+
+  private resetAll() {
+    clearPrepAll(this.tag);
+    this.plan = [];
+    this.armies = null;
+    this.note = "";
+  }
+
+  private renderOob(m: PrepOobModel): TemplateResult {
+    const researched = lobbyResearched(this.tag);
+    const library = libraryStore().entries.filter((e) => e.type === "template");
+    const room = newTemplateRoom(this.tag, this.plan);
+    return html`<div
+      data-ww-prep-start
+      data-ww-prep-oob
+      class="flex flex-col gap-2"
+    >
+      <p class="m-0 text-xs text-white/70">
+        ${translateText("ww1936.prep.oob_intro")}
+      </p>
+      ${renderOobTop(m)}
+      <h3 class="m-0 text-sm font-bold">
+        ${translateText("ww1936.prep.templates_title")}
+      </h3>
+      ${m.templates.map((t, index) => {
+        const fielded = m.armies.reduce((n, a) => n + a.fielded[index], 0);
+        const asked = m.armies.reduce((n, a) => n + a.counts[index], 0);
+        const fits = library.filter(
+          (e) =>
+            e.type === "template" &&
+            planProblem(
+              {
+                name: e.name,
+                battalions: e.battalions as BattalionId[],
+                support: e.support as SupportId[],
+              },
+              researched,
+              new Set(),
+            ) === null,
+        );
+        return html`<section
+          data-ww-prep-tpl=${t.key}
+          data-edited=${String(t.edited)}
+          class="flex flex-col gap-1 rounded-md border p-2 text-xs ${t.edited
+            ? "border-amber-400/50 bg-amber-500/10"
+            : "border-white/10 bg-white/5"}"
+        >
+          <div class="flex items-center gap-2">
+            <span class="min-w-0 flex-1 truncate text-sm font-bold"
+              >${t.def.name}</span
+            >
+            ${t.edited
+              ? html`<span class="rounded bg-amber-500/30 px-1 text-amber-200"
+                  >${translateText(
+                    t.isNew ? "ww1936.prep.new_badge" : "ww1936.prep.edited",
+                  )}</span
+                >`
+              : nothing}
+          </div>
+          <div class="text-white/70">${battalionSummary(t.def)}</div>
+          ${t.problem === null
+            ? html`<div
+                data-ww-prep-preview
+                class="${fielded < asked
+                  ? "text-amber-200"
+                  : "text-emerald-300"}"
+              >
+                ${translateText("ww1936.prep.tpl_fielded", {
+                  n: fielded,
+                  asked,
+                })}
+              </div>`
+            : html`<div data-ww-prep-problem class="text-red-300">
+                🔒
+                ${translateText("ww1936.prep.skipped", {
+                  name: t.def.name,
+                  reason: t.problem,
+                })}
+              </div>`}
+          <div class="flex flex-wrap gap-1">
+            <button
+              type="button"
+              data-ww-prep-edit
+              class="${BTN} flex-1"
+              @click=${() => (this.editing = { mode: "start", index })}
+            >
+              ${translateText("ww1936.prep.edit")}
+            </button>
+            <button
+              type="button"
+              data-ww-prep-from-library
+              aria-expanded=${String(this.pickKey === t.key)}
+              class="${BTN} flex-1"
+              @click=${() =>
+                (this.pickKey = this.pickKey === t.key ? null : t.key)}
+            >
+              ${translateText("ww1936.prep.from_library")}
+            </button>
+            ${t.isNew
+              ? html`<button
+                  type="button"
+                  data-ww-prep-remove
+                  class="${BTN} border-red-400/40"
+                  @click=${() => {
+                    clearPrepTemplate(this.tag, t.key);
+                    this.plan = prepPlanOf(this.tag);
+                    this.armies = prepArmiesOf(this.tag);
+                  }}
+                >
+                  ${translateText("ww1936.prep.remove_template")}
+                </button>`
+              : t.edited
+                ? html`<button
+                    type="button"
+                    data-ww-prep-reset
+                    class="${BTN} border-red-400/40"
+                    @click=${() => {
+                      clearPrepTemplate(this.tag, t.key);
+                      this.plan = prepPlanOf(this.tag);
+                    }}
+                  >
+                    ${translateText("ww1936.prep.reset")}
+                  </button>`
+                : nothing}
+          </div>
+          ${this.pickKey !== t.key
+            ? nothing
+            : html`<ul
+                data-ww-prep-pick
+                class="m-0 flex list-none flex-col gap-1 p-0"
+              >
+                ${fits.length === 0
+                  ? html`<li class="text-white/60">
+                      ${translateText("ww1936.prep.library_none")}
+                    </li>`
+                  : fits.map((e) =>
+                      e.type !== "template"
+                        ? nothing
+                        : html`<li>
+                            <button
+                              type="button"
+                              data-ww-prep-take=${e.id}
+                              class="${BTN} flex w-full flex-col items-start text-left"
+                              @click=${() => {
+                                this.setPlan(t.key, {
+                                  name: e.name,
+                                  battalions: e.battalions as BattalionId[],
+                                  support: e.support as SupportId[],
+                                });
+                                this.pickKey = null;
+                              }}
+                            >
+                              <span class="font-bold">${e.name}</span>
+                              <span class="text-white/60"
+                                >${battalionSummary({
+                                  name: e.name,
+                                  battalions: e.battalions as BattalionId[],
+                                  support: e.support as SupportId[],
+                                })}</span
+                              >
+                            </button>
+                          </li>`,
+                    )}
+              </ul>`}
+        </section>`;
+      })}
+      <button
+        type="button"
+        data-ww-prep-new-template
+        class="${BTN} self-start"
+        ?disabled=${room <= 0}
+        @click=${() => (this.editing = { mode: "start", index: -1 })}
+      >
+        ${translateText("ww1936.prep.new_template")}
+      </button>
+      ${renderOobArmies(m, {
+        open: this.openArmy,
+        libraryOpen: this.libArmy,
+        fillKey: this.fillKey,
+        library: armyEntries(libraryStore().entries),
+        toggle: (i) => (this.openArmy = this.openArmy === i ? null : i),
+        setCount: (i, key, n) => this.setCount(i, key, n),
+        toggleLibrary: (i) => (this.libArmy = this.libArmy === i ? null : i),
+        takeLibrary: (i, e) => this.takeLibrary(i, e),
+        setFillKey: (k) => (this.fillKey = k),
+        fill: (i, k) => this.fillArmy(i, k),
+        reset: () => this.resetAll(),
+      })}
+    </div>`;
+  }
+
   private openDesigner(kind: DesignKind | "library") {
     if (kind === "library") {
       this.bus.emit(new WwDepthOpenEvent("designs", { tab: "library" }));
@@ -471,6 +776,8 @@ export class WwLobbyPrep extends LitElement {
         : lobbyGame(this.tag, { mode: "library", draft: ed.draft });
     const id =
       ed.mode === "start" ? ed.index + 1 : ed.draft === null ? 0 : LIB_DRAFT_ID;
+    // A new template of a major's plan starts as a copy of its main template.
+    const baseId = ed.mode === "start" && ed.index < 0 ? 1 : 0;
     return html`<div class="p-2">
       ${ed.mode === "library"
         ? html`<p class="m-0 text-xs text-amber-100">
@@ -481,6 +788,7 @@ export class WwLobbyPrep extends LitElement {
         .game=${game}
         .eventBus=${this.bus}
         .templateId=${id}
+        .baseId=${baseId}
         .lobby=${true}
         @ww-designer-close=${() => (this.editing = null)}
       ></ww-template-designer>

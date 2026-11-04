@@ -86,12 +86,9 @@ describe("the lobby preparation screen", () => {
     await flush(el);
     const card = q(el, '[data-ww-prep-tpl="infantry"]');
     expect(card.dataset.edited).toBe("true");
+    // A major: what the template fields over the whole start army.
     expect(q(card, "[data-ww-prep-preview]").textContent).toContain(
-      "ww1936.prep.preview",
-    );
-    // One edited template: the number is not a forecast.
-    expect(q(card, "[data-ww-prep-preview]").textContent).not.toContain(
-      "ww1936.prep.approximate",
+      "ww1936.prep.tpl_fielded",
     );
     expect(prepPlanOf("DEU")).toHaveLength(1);
     expect(prepPlanOf("DEU")[0].name).toBe("Lib div");

@@ -13,6 +13,7 @@ vi.mock("../../../src/client/Utils", async (importOriginal) => ({
 
 import {
   prepSentFor,
+  setPrepArmies,
   setPrepTemplate,
 } from "../../../src/client/components/ww1936/PrepPlan";
 import { DesignerModel } from "../../../src/client/hud/ww1936/DesignerModel";
@@ -187,26 +188,69 @@ describe("the preview", () => {
 });
 
 describe("applying the plan at the start", () => {
-  it("sends one template_save per edited template, once", () => {
+  it("a major sends one start_oob for its plan, once", () => {
     setPrepTemplate("DEU", MINE);
-    const { sp, sent } = prep();
+    const { sp, sent, notes } = prep();
     const g = live();
     expect(sp.tick(g)).toBe(1);
     expect(sp.tick(g)).toBe(0);
     expect(sent).toHaveLength(1);
+    expect(sent[0].kind).toBe("start_oob");
+    expect(sent[0].templates[0]).toMatchObject({
+      key: "infantry",
+      name: "Mine",
+      battalions: MINE.battalions,
+      support: MINE.support,
+    });
+    // The 1936 armies as they are: three, Germany's counts.
+    expect(sent[0].armies).toHaveLength(3);
+    const infantry = sent[0].templates.findIndex(
+      (t: any) => t.key === "infantry",
+    );
+    expect(sent[0].armies[0][0]).toEqual({ template: infantry, count: 14 });
+    expect(notes.some((n) => n.includes("ww1936.prep.oob_applied"))).toBe(true);
+    expect(prepSentFor()).toBe("g1");
+  });
+
+  it("a minor keeps its template_save", () => {
+    const plain = {
+      ...MINE,
+      battalions: ["infantry", "infantry"],
+      support: [],
+    };
+    setPrepTemplate("POL", plain);
+    const { sp, sent } = prep();
+    const g = live({ tag: "POL" });
+    expect(sp.tick(g)).toBe(1);
     expect(sent[0]).toMatchObject({
       kind: "template_save",
       base: 0,
       name: "Mine",
-      battalions: MINE.battalions,
-      support: MINE.support,
+      battalions: plain.battalions,
     });
     const id = g
       .wwLand()
       .details.get(1)
       .templates.find((t: any) => t.key === "infantry").id;
     expect(sent[0].template).toBe(id);
-    expect(prepSentFor()).toBe("g1");
+  });
+
+  it("an army plan alone sends too; an empty operation army is not sent", () => {
+    setPrepArmies("ITA", [[{ key: "binary", count: 3 }], [], [], [], []]);
+    const a = prep();
+    expect(a.sp.tick(live({ tag: "ITA" }))).toBe(0);
+    expect(a.sent).toHaveLength(0);
+    expect(a.notes.some((n) => n.includes("ww1936.prep.oob_blocked"))).toBe(
+      true,
+    );
+    setPrepArmies("DEU", [
+      [{ key: "infantry", count: 5 }],
+      [],
+      [{ key: "armored", count: 1 }],
+    ]);
+    const b = prep();
+    expect(b.sp.tick(live())).toBe(1);
+    expect(b.sent[0].armies[1]).toEqual([]);
   });
 
   it("is not sent again by a reloaded page of the same game", () => {
@@ -247,29 +291,17 @@ describe("applying the plan at the start", () => {
     expect(sent).toHaveLength(0);
   });
 
-  it("skips what is now invalid, with a notice, and what already holds the plan", () => {
+  it("leaves out what is now invalid, with a notice", () => {
     setPrepTemplate("DEU", {
       ...MINE,
       key: "armored",
       battalions: ["heavy_armor"],
     });
-    setPrepTemplate("DEU", {
-      ...MINE,
-      key: "mountain",
-      name: "Same",
-      battalions: [
-        ...lobbyStartTemplates("DEU").find((t) => t.key === "mountain")!.def
-          .battalions,
-      ],
-      support: [
-        ...lobbyStartTemplates("DEU").find((t) => t.key === "mountain")!.def
-          .support,
-      ],
-    });
     setPrepTemplate("DEU", MINE);
     const { sp, sent, notes } = prep();
     expect(sp.tick(live())).toBe(1);
-    expect(sent.map((o) => o.name)).toEqual(["Mine"]);
+    expect(sent[0].templates.map((t: any) => t.key)).toContain("infantry");
+    expect(sent[0].templates.map((t: any) => t.key)).not.toContain("armored");
     expect(notes.some((n) => n.includes("ww1936.prep.skipped"))).toBe(true);
   });
 
