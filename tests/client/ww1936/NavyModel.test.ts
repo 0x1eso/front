@@ -425,3 +425,33 @@ describe("NavyModel (spec §18.3–§18.5)", () => {
     expect(navyDial(ctx, 725).lost).toBe(0);
   });
 });
+
+// ww73: a ship built to a catalogue class shows that class, not only its generation.
+describe("ship design label", () => {
+  it("a ship with a design slot reads as the design, else as its generation", async () => {
+    const { shipDesignLabel } =
+      await import("../../../src/client/hud/ww1936/NavyModel");
+    const ctx = {
+      designs: [
+        {
+          kind: "ship",
+          slot: 2,
+          def: {
+            kind: "ship",
+            base: "dd_1",
+            modules: ["", "", ""],
+            name: "ita_navigatori",
+            hist: "ita_navigatori",
+          },
+        },
+      ],
+    } as never;
+    expect(shipDesignLabel(ctx, { gen: 1, design: 2 })).toBe(
+      "[ww1936.hist.ita_navigatori]",
+    );
+    expect(shipDesignLabel(ctx, { gen: 1 })).toBe("[ww1936.ship_gen.1]");
+    expect(shipDesignLabel(ctx, { gen: 2, design: 9 })).toBe(
+      "[ww1936.ship_gen.2]",
+    );
+  });
+});

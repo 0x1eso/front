@@ -245,6 +245,23 @@ export const shipClassName = (cls: ShipClass) =>
   translateText(`ww1936.ship_class.${cls}`);
 export const shipGenName = (gen: number) =>
   translateText(`ww1936.ship_gen.${gen}`);
+/**
+ * What a ship's row says beside its name: the design it was built to (a
+ * catalogue class such as "Navigatori-class destroyer"), else its generation.
+ */
+export function shipDesignLabel(
+  ctx: Pick<NavyCtx, "designs">,
+  s: Pick<FleetShipData, "gen" | "design">,
+): string {
+  if ((s.design ?? 0) > 0) {
+    const row = ctx.designs.find(
+      (x) => x.kind === "ship" && x.slot === s.design,
+    );
+    if (row !== undefined) return designDisplayName(row.def);
+  }
+  return shipGenName(s.gen);
+}
+
 export const missionName = (m: FleetMission) =>
   translateText(`ww1936.mission.${m}`);
 export const engageName = (r: EngageRule) =>

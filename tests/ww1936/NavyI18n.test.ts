@@ -189,4 +189,15 @@ describe("P4 navy and air translations", () => {
       /Air Superiority|Trade Interdiction|Fleet in Being/i,
     );
   });
+
+  // ww73: the engine sends {cls} with these two notices; "{name}" showed raw.
+  it("the naval line notices use the argument the engine sends", () => {
+    for (const k of ["naval_line_done", "naval_line_stalled"]) {
+      for (const lang of [en, ko]) {
+        const text = keyIn(lang, `events_display.ww1936_${k}`);
+        expect(text, k).toContain("{cls}");
+        expect(text, k).not.toContain("{name}");
+      }
+    }
+  });
 });
