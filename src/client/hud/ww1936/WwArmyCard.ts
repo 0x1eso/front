@@ -1207,7 +1207,9 @@ export class WwArmyCard extends LitElement implements Controller {
       @click=${act}
     >
       <span aria-hidden="true" class="text-sm">${icon}</span>
-      <span class="max-w-14 truncate text-xs">${label}</span>
+      <span class="${opts.wide ? "max-w-28" : "max-w-14"} truncate text-xs"
+        >${label}</span
+      >
       ${opts.badge === undefined
         ? nothing
         : html`<span
@@ -1579,6 +1581,16 @@ export class WwArmyCard extends LitElement implements Controller {
             this.panel = "main";
           }),
         { danger: armed },
+      ),
+      this.button(
+        "convert",
+        translateText("ww1936.convert.btn_army"),
+        "⇄",
+        () => {
+          this.panel = "main";
+          this.eventBus.emit(new OpenWwArmyEvent("templates", army));
+        },
+        { wide: true },
       ),
       this.button(
         "general",

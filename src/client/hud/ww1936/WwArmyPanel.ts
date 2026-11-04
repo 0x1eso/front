@@ -76,6 +76,7 @@ import {
   saveArmyEdit,
 } from "./WwArmyTemplateUi";
 import { autoMaskOf, renderAutoSwitch } from "./WwAutoUi";
+import { convertOptions, renderConvertPicker } from "./WwConvertPicker";
 import { WwDrawerBase } from "./WwDrawer";
 import { WwLandChangedEvent } from "./WwLandController";
 import "./WwTemplateDesigner";
@@ -141,6 +142,12 @@ export class WwArmyPanel extends WwDrawerBase {
   /** The army template being edited (a new one when its id is null). */
   @state() private armyEdit: ArmyEdit | null = null;
   @state() private armyNotice = "";
+  /** The template whose divisions the overwrite picker is converting. */
+  @state() private convertFrom: number | null = null;
+  /** The army whose divisions the overwrite picker is converting (from its card). */
+  @state() private convertArmy: number | null = null;
+  /** A conversion just sent: offer to delete the old template once unused. */
+  @state() private converted: { from: number; to: number } | null = null;
   /** A train waiting for the templates it just asked for. */
   private pendingTrain: {
     entry: ArmyEntry;
@@ -154,12 +161,15 @@ export class WwArmyPanel extends WwDrawerBase {
     super.init();
     this.eventBus.on(OpenWwArmyEvent, (e) => {
       // The same tab again shuts the drawer; another tab switches to it.
-      if (this.open && this.tab === e.tab) {
+      if (this.open && this.tab === e.tab && e.convertArmy === undefined) {
         this.setOpen(false);
         return;
       }
       this.tab = e.tab;
       this.designing = null;
+      this.convertFrom = null;
+      this.convertArmy = e.convertArmy ?? null;
+      this.converted = null;
       this.setOpen(true);
     });
     this.eventBus.on(WwLandChangedEvent, () => {
@@ -814,7 +824,13 @@ export class WwArmyPanel extends WwDrawerBase {
       ></ww-template-designer>`;
     }
     const full = c.land.templates.length >= WW_MAX_TEMPLATES;
+    if (this.convertArmy !== null) {
+      return this.renderConvertArmy(c, this.convertArmy);
+    }
+    if (this.convertFrom !== null)
+      return this.renderConvert(c, this.convertFrom);
     return html`${designButton(this.eventBus, "tank")} ${this.renderIdle(c)}
+      ${this.renderConverted(c)}
       <ul data-ww-templates class="m-0 mt-2 flex list-none flex-col gap-1 p-0">
         ${c.land.templates.map(
           (t) =>
@@ -839,6 +855,20 @@ export class WwArmyPanel extends WwDrawerBase {
                   >${battalionSummary(templateDef(t))}</span
                 >
               </button>
+              ${t.inUse > 0 && c.land.templates.length > 1
+                ? html`<button
+                    type="button"
+                    data-ww-convert-open=${t.id}
+                    class="mt-0.5 h-10 w-full rounded-md border border-white/15 bg-white/10 px-2 text-xs font-semibold hover:bg-white/20"
+                    @click=${() => {
+                      this.refused = null;
+                      this.converted = null;
+                      this.convertFrom = t.id;
+                    }}
+                  >
+                    ${translateText("ww1936.convert.btn_template")}
+                  </button>`
+                : nothing}
             </li>`,
         )}
       </ul>
@@ -868,6 +898,117 @@ export class WwArmyPanel extends WwDrawerBase {
             🔒 ${this.refused.text}
           </p>`
         : nothing}`;
+  }
+
+  /** The overwrite picker of one template: every division of it becomes the template picked. */
+  private renderConvert(c: Ctx, from: number): TemplateResult {
+    const t = c.land.templates.find((x) => x.id === from);
+    if (t === undefined) {
+      this.convertFrom = null;
+      return html``;
+    }
+    const key = (to: number) => `convert:${from}:${to}`;
+    return renderConvertPicker({
+      scope: `template:${from}`,
+      intro: translateText("ww1936.convert.intro_template", {
+        name: templateName(t),
+        n: t.inUse,
+      }),
+      options: convertOptions(
+        c.land.templates,
+        c.land.training,
+        new Set(c.economy.detail(c.me)?.researched ?? []),
+        new Map([[from, t.inUse]]),
+        from,
+      ),
+      armed: (to) => this.armed(key(to)),
+      tap: (to) =>
+        this.confirmTap(key(to), () => {
+          this.send({ kind: "divisions_convert", to, from });
+          this.converted = { from, to };
+          this.convertFrom = null;
+        }),
+      cancel: () => (this.convertFrom = null),
+      refused: "",
+      queued: c.land.training.some((e) => e.template === from),
+    });
+  }
+
+  /** The overwrite picker of one army: every division of it becomes the template picked. */
+  private renderConvertArmy(c: Ctx, army: number): TemplateResult {
+    const rows = divisionRows(c.view, c.me, army);
+    const a = c.view.armies.get(army);
+    if (a === undefined || rows.length === 0) {
+      this.convertArmy = null;
+      return html``;
+    }
+    const moved = new Map<number, number>();
+    for (const r of rows) {
+      moved.set(r.data.template, (moved.get(r.data.template) ?? 0) + 1);
+    }
+    const key = (to: number) => `convert_army:${army}:${to}`;
+    return renderConvertPicker({
+      scope: `army:${army}`,
+      intro: translateText("ww1936.convert.intro_army", {
+        army: armyName(a.nameNo),
+        n: rows.length,
+      }),
+      options: convertOptions(
+        c.land.templates,
+        c.land.training,
+        new Set(c.economy.detail(c.me)?.researched ?? []),
+        moved,
+        null,
+      ),
+      armed: (to) => this.armed(key(to)),
+      tap: (to) =>
+        this.confirmTap(key(to), () => {
+          this.send({ kind: "divisions_convert", to, army });
+          this.convertArmy = null;
+        }),
+      cancel: () => (this.convertArmy = null),
+      refused: "",
+      queued: false,
+    });
+  }
+
+  /** After a conversion: delete the old template when nothing uses it any more. */
+  private renderConverted(c: Ctx): TemplateResult | typeof nothing {
+    const done = this.converted;
+    if (done === null) return nothing;
+    const to = c.land.templates.find((x) => x.id === done.to);
+    const old = c.land.templates.find((x) => x.id === done.from);
+    if (to === undefined) return nothing;
+    const key = `convert_del:${done.from}`;
+    const armed = this.armed(key);
+    return html`<div
+      data-ww-converted
+      class="mt-2 rounded-md border border-emerald-400/40 bg-emerald-900/30 p-1.5 text-xs"
+    >
+      <p class="m-0">
+        ${translateText("ww1936.convert.done", { name: templateName(to) })}
+      </p>
+      ${old === undefined || old.inUse > 0
+        ? nothing
+        : html`<button
+            type="button"
+            data-ww-convert-delete=${old.id}
+            data-armed=${String(armed)}
+            class="mt-1 h-10 w-full rounded-md border px-2 font-semibold ${armed
+              ? "border-red-400 bg-red-900/70"
+              : "border-red-400/40 bg-red-900/30"}"
+            @click=${() =>
+              this.confirmTap(key, () => {
+                this.send({ kind: "template_delete", template: old.id });
+                this.converted = null;
+              })}
+          >
+            ${translateText(
+              armed ? "ww1936.convert.delete_tap" : "ww1936.convert.delete_old",
+              { name: templateName(old) },
+            )}
+          </button>`}
+    </div>`;
   }
 
   /** Equipment in stock that no template uses: a bar that adds the preset which would. */

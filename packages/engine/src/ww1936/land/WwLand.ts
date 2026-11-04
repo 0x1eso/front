@@ -107,6 +107,7 @@ import { dailySupply } from "./Supply";
 import { dailySustain } from "./Sustain";
 import {
   cancelTraining,
+  convertDivisions,
   deleteTemplate,
   deployNow,
   lowestFillPm,
@@ -1165,6 +1166,9 @@ export class WwLand {
         break;
       case "train_army":
         block = queueArmyTraining(this, cl, order);
+        break;
+      case "divisions_convert":
+        block = convertDivisions(this, cl, order);
         break;
       case "cancel_train":
         block = cancelTraining(this, cl, order.entry);

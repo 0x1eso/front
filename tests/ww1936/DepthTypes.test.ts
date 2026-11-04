@@ -70,6 +70,8 @@ describe("World War 1936 P6 lists", () => {
       "research_lean_slot",
       // Army templates: a whole army at once.
       "train_army",
+      // Template conversion.
+      "divisions_convert",
     ]);
   });
 

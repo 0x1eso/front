@@ -145,28 +145,130 @@ function refitTemplate(
   for (let r = 0; r < t.rows; r++) {
     if (t.id[r] === 0 || t.owner[r] !== cl.smallID) continue;
     if (t.template[r] !== template) continue;
-    land.touchDivision(r);
-    const s = land.baseStatsOf(r);
-    if (t.men[r] > s.men) {
-      returnManpower(ce, t.men[r] - s.men);
-      land.setMen(r, s.men);
-    }
-    const slots = Array.from(t.equipOf(r));
-    returnExcess(ce, slots, s.need, land.keyStatsOf(cl.smallID));
-    applySlots(land, r, slots);
-    const max = land.orgMaxOf(r);
-    if (t.org[r] > max) t.org[r] = max;
+    refitDivision(land, cl, ce, r);
   }
-  const s = land.templateStatsOf(cl.smallID, template);
-  if (s === null) return;
   for (const x of cl.trainees) {
-    if (x.template !== template) continue;
-    if (x.men > s.men) {
-      returnManpower(ce, x.men - s.men);
-      x.men = s.men;
-    }
-    returnExcess(ce, x.equip, s.need, land.keyStatsOf(cl.smallID));
+    if (x.template === template) refitTrainee(land, cl, ce, x);
   }
+}
+
+/** One division (already holding its new template) follows it: surplus men and equipment go back, org is cut. */
+function refitDivision(
+  land: WwLand,
+  cl: CountryLand,
+  ce: CountryEconomy,
+  r: number,
+): void {
+  const t = land.divisions;
+  land.touchDivision(r);
+  const s = land.baseStatsOf(r);
+  if (t.men[r] > s.men) {
+    returnManpower(ce, t.men[r] - s.men);
+    land.setMen(r, s.men);
+  }
+  const slots = Array.from(t.equipOf(r));
+  returnExcess(ce, slots, s.need, land.keyStatsOf(cl.smallID));
+  applySlots(land, r, slots);
+  const max = land.orgMaxOf(r);
+  if (t.org[r] > max) t.org[r] = max;
+}
+
+/** The same for a trainee (already holding its new template). */
+function refitTrainee(
+  land: WwLand,
+  cl: CountryLand,
+  ce: CountryEconomy,
+  x: Trainee,
+): void {
+  const s = land.templateStatsOf(cl.smallID, x.template);
+  if (s === null) return;
+  if (x.men > s.men) {
+    returnManpower(ce, x.men - s.men);
+    x.men = s.men;
+  }
+  returnExcess(ce, x.equip, s.need, land.keyStatsOf(cl.smallID));
+}
+
+/**
+ * Moves divisions to another template at once: every division of template
+ * `from`, or of army `army` (whatever its template), then each follows the
+ * new template exactly as an edited template's divisions do (refitDivision).
+ * With `from`, its trainees and queued entries move too. Refused as a
+ * whole, changing nothing, when any check fails.
+ */
+export function convertDivisions(
+  land: WwLand,
+  cl: CountryLand,
+  o: Extract<LandOrder, { kind: "divisions_convert" }>,
+): WwOrderBlock | null {
+  const ce = land.econ.country(cl.smallID);
+  if (ce === null) return "dead";
+  const disarmed = land.ww.endgame.disarmBlock(cl.smallID, "train");
+  if (disarmed !== null) return disarmed;
+  if ((o.from === undefined) === (o.army === undefined)) return "bad_index";
+  const to = cl.template(o.to);
+  if (to === null) return "bad_template";
+  if (o.from === o.to) return "bad_template";
+  if (o.from !== undefined && cl.template(o.from) === null) {
+    return "bad_template";
+  }
+  // The parts the target needs: the same rule saving a template uses.
+  const block = templateBlock(to.def, ce.researched, Infinity);
+  if (block !== null) return block;
+  const target = land.templateStatsOf(cl.smallID, o.to);
+  if (target === null) return "bad_template";
+  const t = land.divisions;
+  const rows: number[] = [];
+  if (o.army !== undefined) {
+    const a = land.armies.get(o.army);
+    if (a === undefined || a.owner !== cl.smallID) return "no_army";
+    for (const id of a.divisions) {
+      const r = t.rowOf(id);
+      if (r >= 0 && t.template[r] !== o.to) rows.push(r);
+    }
+  } else {
+    for (const r of land.rowsOf(cl.smallID)) {
+      if (t.template[r] === o.from) rows.push(r);
+    }
+  }
+  const trainees =
+    o.from === undefined
+      ? []
+      : cl.trainees.filter((x) => x.template === o.from);
+  const entries =
+    o.from === undefined
+      ? []
+      : cl.training.filter((e) => e.template === o.from);
+  if (rows.length + trainees.length + entries.length === 0) return "bad_index";
+  // The special cap, counting every converted division, trainee and entry.
+  if (target.special > 0) {
+    const used = battalionsInUse(land, cl);
+    let total = used.total;
+    let special = used.special;
+    const swap = (template: number, n: number) => {
+      const s = land.templateStatsOf(cl.smallID, template);
+      if (s === null) return;
+      total += n * (target.battalions - s.battalions);
+      special += n * (target.special - s.special);
+    };
+    for (const r of rows) swap(t.template[r], 1);
+    for (const x of trainees) swap(x.template, 1);
+    for (const e of entries) swap(e.template, e.remaining);
+    if (special > specialCap(total)) return "special_cap";
+  }
+  for (const r of rows) {
+    land.setTemplate(r, o.to);
+    refitDivision(land, cl, ce, r);
+  }
+  for (const x of trainees) {
+    x.template = o.to;
+    refitTrainee(land, cl, ce, x);
+  }
+  for (const e of entries) e.template = o.to;
+  land.markCountry(cl.smallID);
+  const p = land.mg.playerBySmallID(cl.smallID);
+  if (p.isPlayer()) p.setTroops(land.fieldMen(cl.smallID));
+  return null;
 }
 
 /**

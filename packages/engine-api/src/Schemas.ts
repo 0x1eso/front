@@ -1580,6 +1580,15 @@ export const WwOrderSchema = z.discriminatedUnion("kind", [
       .max(WW_MAX_ARMY_DIVISIONS),
     region: zb.uint({ max: SEA_ZONE_BASE - 1 }),
   }),
+  // Template conversion, appended: the divisions of template `from` (or of
+  // army `army`, whatever their template) move to template `to` and are
+  // refitted like an edited template's. Exactly one of `from` and `army`.
+  z.object({
+    kind: z.literal("divisions_convert"),
+    to: WwTemplateId,
+    from: WwTemplateId.optional(),
+    army: zb.uint({ max: 10_000_000 }).optional(),
+  }),
 ]);
 export type WwOrder = z.infer<typeof WwOrderSchema>;
 /** The land war's orders (P2): what WwLand.issue takes. */
