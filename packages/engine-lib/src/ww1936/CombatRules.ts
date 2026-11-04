@@ -526,6 +526,9 @@ export function divisionMods(i: ModInput): ModResult {
   // P6 (spec §4.2 guerrilla_fighter): supply penalties halved. One source:
   // lane D's commandLandMods sets halfSupply for the trait.
   if (i.halfSupply) supplyCut = halve(supplyCut, 1);
+  // ww67: a pocket takes its encircled line only. With the supply cut on top
+  // it stood at the −90 % floor at once and fell for almost no casualties.
+  if (i.encircled) supplyCut = 0;
   push(aCut, "supply", supplyCut);
   push(aCut, "encircled", i.encircled ? -5000 : 0);
   // P4 (spec §14.6, §15.4, §11.4).
