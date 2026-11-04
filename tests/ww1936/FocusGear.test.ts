@@ -20,6 +20,8 @@ import {
 } from "@openfront/engine-lib/ww1936/hist/Slots";
 import type { HistCountry } from "@openfront/engine-lib/ww1936/hist/Types";
 import type { GameRunner } from "@openfront/engine/GameRunner";
+import { dailyHist } from "@openfront/engine/ww1936/depth/Hist";
+import { addLine } from "@openfront/engine/ww1936/economy/Production";
 import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSource";
 import {
   applyEffect,
@@ -200,6 +202,28 @@ describe("the reward gives the item", () => {
       item: "deu_me262_a1",
     });
     expect(ce.stock[equipKey("plane_design", me)]).toBe(0);
+  });
+
+  it("designer off: a gift before its techs fights but makes no production line, until the techs come", async () => {
+    const { runner, ww, d } = await game(false);
+    const slot = histSlotOf("DEU", "deu_tiger1_e");
+    const ce = ww.economy.country(DEU)!;
+    give(runner, {
+      kind: "equipment",
+      type: "medium_tank",
+      gen: 3,
+      count: 40,
+      item: "deu_tiger1_e",
+    });
+    expect(d.designSlot(DEU, "tank", slot)?.origin).toBe("received");
+    expect(addLine(ww.economy, ce, "tank_design", slot, 1)).toBe("bad_line");
+    const lines = ce.lines.length;
+    for (const t of histOwn("DEU", "tank")[slot - 1].techs) ce.addTech(t);
+    dailyHist(d, DEU, ww.day(runner.game.ticks()));
+    expect(d.designSlot(DEU, "tank", slot)?.origin).toBe("own");
+    expect(addLine(ww.economy, ce, "tank_design", slot, 1)).toBeNull();
+    expect(ce.lines.length).toBe(lines + 1);
+    expect(ce.stock[equipKey("tank_design", slot)]).toBe(40);
   });
 
   it("designer off: another country's item, or a gear item, falls back to the static stock", async () => {

@@ -15,6 +15,7 @@ vi.mock("../../../src/client/Utils", async (importOriginal) => ({
       : `[${key}]`,
 }));
 
+import { histOwn } from "@openfront/engine-lib/ww1936/hist/Slots";
 import { render } from "lit";
 import { depthNoticeParams } from "../../../src/client/hud/ww1936/DepthMiscModel";
 import {
@@ -26,6 +27,7 @@ import {
   lineItemName,
   stockTable,
 } from "../../../src/client/hud/ww1936/EconomyModel";
+import { histTankGroups } from "../../../src/client/hud/ww1936/HistPicker";
 import { effectLines } from "../../../src/client/hud/ww1936/TechEffectLines";
 import { OpenWwIndustryEvent } from "../../../src/client/hud/ww1936/WwDrawer";
 import "../../../src/client/hud/ww1936/WwIndustryPanel";
@@ -254,5 +256,26 @@ describe("tech effect text", () => {
     const on = effectLines("medium_tank_3", { designer: true, country: "DEU" });
     expect(on.join("|")).not.toContain("hist_unlocks");
     expect(effectLines("medium_tank_3").join("|")).toBe(on.join("|"));
+  });
+});
+
+describe("the tank picker", () => {
+  it("a gift before its techs is listed as locked, not as a line to make", () => {
+    const own = histOwn("DEU", "tank");
+    const i = own.findIndex((e) => e.id === "deu_tiger1_e");
+    const row = (origin: string) =>
+      ({
+        kind: "tank",
+        slot: i + 1,
+        origin,
+        obsolete: false,
+        def: { hist: "deu_tiger1_e" },
+      }) as never;
+    const tiger = (designs: never[]) =>
+      histTankGroups("DEU", designs, new Set())
+        .flatMap((g) => g.items)
+        .find((it) => it.id === "deu_tiger1_e")!;
+    expect(tiger([row("received")]).lack.length).toBeGreaterThan(0);
+    expect(tiger([row("own")]).lack).toEqual([]);
   });
 });

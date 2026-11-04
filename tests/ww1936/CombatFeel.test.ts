@@ -165,6 +165,33 @@ describe("a division's pierce is what can actually hit", () => {
   });
 });
 
+describe("a major's gear", () => {
+  test("keeps its generation, times its percent; tanks keep real numbers", async () => {
+    const runner = await wwRunner({ ww1936Designer: false }, [
+      { clientID: "HUMAN001", country: "DEU" },
+    ]);
+    const g = runner.game;
+    const ks = g.worldWar()!.depth.keyStats(byTag(g, "DEU").smallID());
+    const row = (ty: string, gen: number) =>
+      GROUND_EQUIP_KEYS.findIndex(
+        (k) => EQUIP_KEYS[k][0] === ty && EQUIP_KEYS[k][1] === gen,
+      ) * KS_FIELDS;
+    const generic = STATIC_KEY_STATS.stats;
+    // G43 (112 %) on the generation-2 rifle row, StG 44 (120 %) on the third.
+    const f = KS.def;
+    const inf = (gen: number) => row("infantry_equipment", gen) + f;
+    expect(ks.stats[inf(2)]).toBe(Math.floor((generic[inf(2)] * 112) / 100));
+    expect(ks.stats[inf(3)]).toBe(Math.floor((generic[inf(3)] * 120) / 100));
+    expect(ks.stats[inf(3)]).toBeGreaterThan(ks.stats[inf(2)]);
+    // No gen-3 artillery entry: the last percent on the generation-3 row.
+    const art = (gen: number) => row("artillery", gen) + KS.soft;
+    expect(ks.stats[art(3)]).toBeGreaterThan(ks.stats[art(2)]);
+    // A Pz III E's soft is its own (under the generic gen-1 tank).
+    const tank = row("medium_tank", 1) + KS.soft;
+    expect(ks.stats[tank]).toBeLessThan(generic[tank]);
+  }, 60_000);
+});
+
 describe("a pocket", () => {
   test("takes its encircled line and no supply cut", () => {
     const mods = divisionMods({

@@ -223,7 +223,11 @@ function slotGroups(
     const row = designs.find(
       (d) => d.kind === kind && d.slot === slot && d.def.hist === e.id,
     );
-    const usable = row !== undefined && !row.obsolete;
+    // A gift before its techs holds the slot but can't be made yet.
+    const usable =
+      row !== undefined &&
+      !row.obsolete &&
+      (row.origin === "own" || row.origin === "licensed");
     const it = itemOf(
       e,
       type,
@@ -277,7 +281,11 @@ export function histShipItems(
     const row = designs.find(
       (d) => d.kind === "ship" && d.slot === i + 1 && d.def.hist === e.id,
     );
-    const usable = row !== undefined && !row.obsolete;
+    // A gift before its techs holds the slot but can't be made yet.
+    const usable =
+      row !== undefined &&
+      !row.obsolete &&
+      (row.origin === "own" || row.origin === "licensed");
     const it = itemOf(
       e,
       "tank_design",

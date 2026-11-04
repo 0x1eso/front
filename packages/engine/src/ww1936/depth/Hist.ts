@@ -129,7 +129,16 @@ export function dailyHist(d: WwDepth, id: number, day: number): void {
   for (const kind of ["tank", "plane", "ship"] as const) {
     const own = histOwn(country, kind);
     for (let i = 0; i < own.length; i++) {
-      if (c.des[kind][i] !== null || !histUnlocked(d, id, own[i])) continue;
+      if (!histUnlocked(d, id, own[i])) continue;
+      const held = c.des[kind][i];
+      if (held !== null) {
+        // A gift that came before its techs: now it can be made.
+        if (held.origin === "received" && held.def.hist === own[i].id) {
+          held.origin = "own";
+          d.markDesign(id, kind, i + 1);
+        }
+        continue;
+      }
       const def = histDef(own[i]);
       if (def === null) continue;
       c.des[kind][i] = {
@@ -159,10 +168,13 @@ export function histOfSlot(
 const GEAR_FIELDS = [KS.soft, KS.hard, KS.def, KS.brk] as const;
 
 /**
- * A major's static keys take their numbers from its catalogue (rule 7): a
- * tank key from the entry standing in for it (histStaticEntry), the other
- * keys from the generation-1 row scaled by the entry's percent (the spread
- * between real weapons stays small), an anti-tank key with its real pierce.
+ * A major's static keys take their numbers from its catalogue (rule 7). A tank
+ * key: the entry standing in for it, real numbers, since its generations are
+ * real vehicles. Any other key: the generic row of its own generation × the
+ * entry's percent, so the next generation helps as it does for everyone and
+ * the country's weapon sets the spread around it (small, by the owner's rule);
+ * an anti-tank key with its real pierce. A generation with no entry goes on
+ * from the country's last stand-in of the type, never the bare generic row.
  */
 export function fillHistStatics(
   d: WwDepth,
@@ -171,29 +183,39 @@ export function fillHistStatics(
 ): void {
   const country = histCountryOf(d, id);
   if (country === null) return;
-  const filled = new Array<boolean>(GROUND_STATIC_SLOTS).fill(false);
+  // Per type: the last tank row, or the last gear entry's percent and pierce row.
+  const lastTank = new Map<string, number>();
+  const lastGear = new Map<string, { pct: number; pierceRow: number }>();
   for (let j = 0; j < GROUND_STATIC_SLOTS; j++) {
     const [type, gen] = EQUIP_KEYS[GROUND_EQUIP_KEYS[j]];
     const e = histStaticEntry(country, type, gen);
     const o = j * KS_FIELDS;
+    const generic = STATIC_KEY_STATS.stats;
     if (e === undefined) {
-      // No entry for this generation: the country's last stand-in of the type,
-      // never the generic row, which outclasses the whole catalogue later on.
-      const prev =
-        gen > 1
-          ? GROUND_EQUIP_KEYS.findIndex(
-              (k) => EQUIP_KEYS[k][0] === type && EQUIP_KEYS[k][1] === gen - 1,
-            )
-          : -1;
-      if (prev >= 0 && filled[prev]) {
-        for (let f = 0; f < KS_FIELDS; f++)
-          t.stats[o + f] = t.stats[prev * KS_FIELDS + f];
-        t.score[j] = t.score[prev];
-        filled[j] = true;
+      const tank = lastTank.get(type);
+      if (tank !== undefined) {
+        for (let f = 0; f < KS_FIELDS; f++) {
+          t.stats[o + f] = t.stats[tank * KS_FIELDS + f];
+        }
+        t.score[j] = t.score[tank];
+        lastTank.set(type, j);
+        continue;
+      }
+      const gear = lastGear.get(type);
+      if (gear === undefined) continue;
+      for (const f of GEAR_FIELDS) {
+        t.stats[o + f] = Math.floor((generic[o + f] * gear.pct) / 100);
+      }
+      const baseP = generic[gear.pierceRow * KS_FIELDS + KS.pierce];
+      if (baseP > 0) {
+        t.stats[o + KS.pierce] = Math.floor(
+          (t.stats[gear.pierceRow * KS_FIELDS + KS.pierce] *
+            generic[o + KS.pierce]) /
+            baseP,
+        );
       }
       continue;
     }
-    filled[j] = true;
     if (e.family === "tank") {
       if (type !== "light_tank" && type !== "medium_tank") continue;
       const s = tankStatsOfEntry(e);
@@ -210,6 +232,7 @@ export function fillHistStatics(
       t.stats[o + KS.fuelPct] = s.fuelPct;
       t.stats[o + KS.flags] = s.flags;
       t.score[j] = rowScore(t.stats, j, t.group[j], t.year[j]);
+      lastTank.set(type, j);
       continue;
     }
     if (
@@ -220,20 +243,11 @@ export function fillHistStatics(
       continue;
     }
     const g = histStatsOf(e) as GearStats;
-    // The generation-1 row of the same type is the 100 % reference.
-    const j1 =
-      EQUIP_KEYS[GROUND_EQUIP_KEYS[j]][0] === type
-        ? GROUND_EQUIP_KEYS.findIndex(
-            (k) => EQUIP_KEYS[k][0] === type && EQUIP_KEYS[k][1] === 1,
-          )
-        : j;
-    const o1 = j1 * KS_FIELDS;
     for (const f of GEAR_FIELDS) {
-      t.stats[o + f] = Math.floor(
-        (STATIC_KEY_STATS.stats[o1 + f] * g.statPct) / 100,
-      );
+      t.stats[o + f] = Math.floor((generic[o + f] * g.statPct) / 100);
     }
     if (g.pierceCenti > 0) t.stats[o + KS.pierce] = g.pierceCenti;
+    lastGear.set(type, { pct: g.statPct, pierceRow: j });
   }
 }
 
@@ -309,7 +323,9 @@ export function grantHistItem(
     if (def === null) return false;
     c.des[kind][slot - 1] = {
       def: def as DesignSlot["def"],
-      origin: "own",
+      // Before its techs it fights but isn't made: only "own" and "licensed"
+      // slots take a production line. dailyHist makes it "own" with the techs.
+      origin: histUnlocked(d, id, e) ? "own" : "received",
       from: 0,
       fromSlot: 0,
       obsolete: false,
