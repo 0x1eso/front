@@ -5,7 +5,16 @@
 // give a real penetration, since the threshold rule reads it.
 import { RESOURCE_IDS } from "@openfront/engine-api/ww1936/EconomyTypes";
 import { EQUIPMENT } from "../Equipment";
-import { clampInt, compressPct, isqrt, resVec, roundInt } from "./Num";
+import { scaledCost } from "./ConvertCost";
+import {
+  clampInt,
+  compressPct,
+  interp,
+  isqrt,
+  resVec,
+  roundInt,
+  Table,
+} from "./Num";
 import { GunEntry, InfantryEntry, SupportEntry } from "./Types";
 
 /** What a gear entry does in the game. */
@@ -37,6 +46,39 @@ const SUPPORT_REF: Readonly<Record<string, number>> = {
 };
 const LO = 85;
 const HI = 120;
+/**
+ * Gun strength ratio (per mille of the reference gun) to percent. Concave
+ * and never flat: twice the reference reads 110 %, eight times 124 %, so a
+ * 88 mm Flak and a 3.7 cm Flak differ, where the old clamp read both 120 %.
+ */
+export const GUN_PCT: Table = [
+  [250, 85],
+  [500, 92],
+  [1000, 100],
+  [2000, 110],
+  [4000, 118],
+  [8000, 124],
+  [16000, 128],
+];
+/** Support strength ratio to percent (same idea, narrower). */
+export const SUPPORT_PCT: Table = [
+  [250, 88],
+  [500, 94],
+  [1000, 100],
+  [2000, 107],
+  [4000, 113],
+  [8000, 118],
+];
+/** Reference price of a support set by kind, dollars (the signal reference is a 1940 field set). */
+const SUPPORT_REF_USD: Readonly<Record<string, number>> = {
+  signal: 400,
+  engineer: 1500,
+  medical: 1200,
+  recon: 2500,
+  transport: 3500,
+};
+/** Median real price of a gun by role, thousand dollars: it costs the generic base. */
+const GUN_REF_K = { artillery: 8, anti_tank: 3.4, anti_air: 7 } as const;
 
 /** Infantry shoulder arm: rate of fire, range and calibre. */
 export function infantryStatsOfEntry(e: InfantryEntry): GearStats {
@@ -61,12 +103,23 @@ export function infantryStatsOfEntry(e: InfantryEntry): GearStats {
   };
 }
 
-/** Support set: reach against the kind's reference, cost against 1,500 dollars. */
+/**
+ * Support set: what it is worth is reach AND build (a set's price follows its
+ * quality, weight and reliability: the SCR-300 at $400 and 5 km was the best
+ * radio of the war, far above a 8 km set that needed a truck), so the ratio
+ * is two parts reach (square root, the kind's reference) to one part price.
+ */
 export function supportStatsOfEntry(e: SupportEntry): GearStats {
   const s = e.spec;
-  const ratioPm = (s.rangeKm * 1000) / SUPPORT_REF[s.kind];
+  const reach = isqrt(
+    Math.floor((s.rangeKm * 1_000_000) / SUPPORT_REF[s.kind]),
+  );
+  const price = isqrt(
+    Math.floor((s.costUsd * 1_000_000) / SUPPORT_REF_USD[s.kind]),
+  );
+  const ratioPm = (2 * reach + price) / 3;
   return {
-    statPct: compressPct(ratioPm, 25, 90, 115),
+    statPct: interp(SUPPORT_PCT, ratioPm),
     pierceCenti: 0,
     costMilli: clampInt(
       roundInt((EQUIPMENT.support_equipment.costMilli * s.costUsd) / 1500),
@@ -89,13 +142,9 @@ export function gunStatsOfEntry(e: GunEntry): GearStats {
   const ratioPm = (2 * wofPm + rangePm) / 3;
   const base = EQUIPMENT[e.role].costMilli;
   return {
-    statPct: compressPct(ratioPm, 40, LO, HI),
+    statPct: interp(GUN_PCT, ratioPm),
     pierceCenti: e.role === "anti_tank" ? 100 * s.penMm500 : 0,
-    costMilli: clampInt(
-      roundInt((base * s.costK) / ref.costK),
-      Math.floor(base / 3),
-      base * 4,
-    ),
+    costMilli: scaledCost(base, s.costK, GUN_REF_K[e.role]),
     resources:
       e.role === "anti_air"
         ? resVec(RESOURCE_IDS, { steel: 1, aluminium: 1 })
