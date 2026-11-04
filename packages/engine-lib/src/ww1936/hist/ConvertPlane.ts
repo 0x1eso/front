@@ -93,12 +93,12 @@ const STRAT_TYPES: ReadonlySet<HistAirType> = new Set([
   "naval_bomber",
 ]);
 /**
- * Milli industry points = sqrt(costK * 1000 * 24200): a 20 thousand dollar
- * fighter is 22 IC. The root keeps a heavy bomber (15 times a fighter's
- * price) at about 4 times its industry cost: a wing of them stays buildable.
+ * Milli industry points: 1.1 IC per thousand 1940 dollars, linear like tanks
+ * and ships (a 20 thousand dollar fighter is 22 IC). Real price ratios.
  */
+export const PLANE_COST_MILLI_PER_K = 1100;
 export function planeCostMilli(costK: number): number {
-  return isqrt(roundInt(costK * 1000) * 24_200);
+  return roundInt(costK * PLANE_COST_MILLI_PER_K);
 }
 
 /** Game stats of a plane entry. Pure, integer, deterministic. */
