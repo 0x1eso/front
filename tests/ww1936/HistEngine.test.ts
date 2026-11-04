@@ -187,3 +187,30 @@ describe("catalogue entries crossing between countries", () => {
     expect(d.designSlot(GBR, "tank", 4)!.def.hist).toBe(mine.id);
   });
 });
+
+describe("snapshot and hash", () => {
+  test("a catalogue game restores to the same hash and keeps running alike", async () => {
+    const { wwRestore, gameHash } = await import("./util");
+    const humans = [{ clientID: HUMAN, country: "DEU" as const }];
+    const { runner, ww } = await game(false);
+    for (const t of histOwn("DEU", "tank")[0].techs) {
+      ww.economy.country(DEU)?.addTech(t);
+    }
+    step(runner, 30);
+    const b = await wwRestore(runner, humans, DEEP.map, {
+      ww1936Designer: false,
+    });
+    expect(gameHash(b)).toBe(gameHash(runner));
+    for (let i = 0; i < 20; i++) {
+      step(runner, 1);
+      step(b, 1);
+      expect(gameHash(b), `tick ${i}`).toBe(gameHash(runner));
+    }
+    expect(
+      b.game
+        .worldWar()!
+        .depth.country(DEU)!
+        .des.tank.some((s) => s?.def.hist),
+    ).toBe(true);
+  });
+});

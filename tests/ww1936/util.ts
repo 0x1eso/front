@@ -291,9 +291,10 @@ export async function wwRestore(
   runner: GameRunner,
   humans: WwHuman[] = [],
   map = MINI,
+  config: Partial<GameConfig> = {},
 ): Promise<GameRunner> {
   return createGameRunnerFromSnapshot(
-    wwGameStart({}, humans),
+    wwGameStart(config, humans),
     runner.snapshot(),
     undefined,
     await loadMapFiles(
