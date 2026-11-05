@@ -237,7 +237,7 @@ export const AI_OUTNUMBERED_PCT = 150;
  * at the win table's 94 % a local chance is worth taking whatever the whole
  * front looks like (it was the pursuit bar, 2.0).
  */
-export const AI_OUTNUMBERED_ATTACK_PM = 1500;
+export const AI_OUTNUMBERED_ATTACK_PM = 1600;
 const AI_FACING_EDGES = 2;
 /** ww7 lane D item 2: a fallback line lies at most this many layers behind the border. */
 export const AI_SHORTEN_LAYERS = 3;
@@ -335,13 +335,13 @@ export interface AiGate {
 export function aiGatePm(personality: AiPersonality): AiGate {
   switch (personality) {
     case "aggressor":
-      // ww7 lane F: 1100 / 750 (design: 1300 / 900). ww90, the refit win
-      // table: 1.0 is won six times in ten, as 1.1 was.
-      return { midPm: 1000, lowPm: 700 };
+      // ww7 lane F: 1100 / 750 (design: 1300 / 900). On the wide win table
+      // 1.1 is won six times in ten; ww90's refit leaves that where it was.
+      return { midPm: 1100, lowPm: 750 };
     case "democracy":
-      return { midPm: 1400, lowPm: 1000 };
+      return { midPm: 1600, lowPm: 1100 };
     case "minor":
-      return { midPm: 1250, lowPm: 900 };
+      return { midPm: 1450, lowPm: 1000 };
   }
 }
 

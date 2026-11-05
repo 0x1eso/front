@@ -437,11 +437,11 @@ describe("P2: armour and pierce bands", () => {
       ["anti_tank", 2],
     ]);
     expect(withGuns.bandPierce).toEqual([400, 5000]);
-    expect(withGuns.bandHard).toEqual([700, 6000]);
+    expect(withGuns.bandHard).toEqual([700, 7000]);
     expect(withGuns.pierce).toBe(5000);
     // Defending: the guns' share goes straight through a medium tank's armour.
     const p = bandProtectPm(withGuns.bandPierce, withGuns.bandHard, 4000);
-    expect(p).toBe(Math.floor((700 * 850) / 6700));
+    expect(p).toBe(Math.floor((700 * 850) / 7700));
   });
 
   test("a gun pierces fully defending, half attacking; a tank's gun both ways", () => {

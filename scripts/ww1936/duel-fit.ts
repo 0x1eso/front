@@ -585,7 +585,7 @@ async function main(): Promise<void> {
     };
   };
   if (o.plan) {
-    planReport(o, play, useKeys, deuKeys, l, deu, addTemplate);
+    planReport(o, play, useKeys, deuKeys, l);
     return;
   }
   if (o.targets) {
@@ -884,11 +884,12 @@ const PLAN_ROWS: readonly PlanRow[] = [
   ),
   ...(
     [
-      [12, 12],
-      [8, 16],
-      [4, 20],
-      [16, 8],
-      [24, 0],
+      [8, 8],
+      [5, 11],
+      [3, 13],
+      [11, 5],
+      [16, 0],
+      [0, 16],
     ] as const
   ).map(
     ([tanks, line]): PlanRow => ({
@@ -1059,15 +1060,11 @@ function planReport(
   useKeys: (ks: KeyStatsTable | null) => void,
   deuKeys: KeyStatsTable,
   l: WwLand,
-  deu: number,
-  addTpl: typeof addTemplate,
 ): void {
   const n = o.duels === 2000 ? 300 : o.duels;
   // No research, laws or spirits on either side.
-  for (const c of [
-    l.econ.country(deu)!,
-    ...l.countries().map((x) => l.econ.country(x.smallID)!),
-  ]) {
+  for (const cl of l.countries()) {
+    const c = l.econ.country(cl.smallID)!;
     const st = c.stats as unknown as Record<string, unknown>;
     for (const k of Object.keys(st)) if (typeof st[k] === "number") st[k] = 0;
     c.statsVer++;
@@ -1114,7 +1111,6 @@ function planReport(
         `def lost ${(mean(rs.map((x) => x.defLostPm)) / 10).toFixed(1).padStart(4)}%`,
     );
   }
-  void addTpl;
 }
 
 // ---------------------------------------------------------------------------

@@ -154,9 +154,9 @@ describe("the AI's land decisions (spec §14, pure)", () => {
 
   test("thresholds by personality", () => {
     // ww7 lane D: the bars of the combined range replace the single ratio.
-    expect(aiGatePm("aggressor")).toEqual({ midPm: 1000, lowPm: 700 });
-    expect(aiGatePm("democracy")).toEqual({ midPm: 1400, lowPm: 1000 });
-    expect(aiGatePm("minor")).toEqual({ midPm: 1250, lowPm: 900 });
+    expect(aiGatePm("aggressor")).toEqual({ midPm: 1100, lowPm: 750 });
+    expect(aiGatePm("democracy")).toEqual({ midPm: 1600, lowPm: 1100 });
+    expect(aiGatePm("minor")).toEqual({ midPm: 1450, lowPm: 1000 });
   });
 
   test("front plan splits armies by demand", () => {

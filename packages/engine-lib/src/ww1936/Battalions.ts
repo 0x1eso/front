@@ -278,7 +278,7 @@ export const BATTALIONS: Readonly<Record<BattalionId, BattalionDef>> = {
     hpMilli: 600,
     orgMilli: 0,
     soft: 400,
-    hard: 3000,
+    hard: 3500,
     def: 400,
     brk: 100,
     pierce: 5000,

@@ -1014,8 +1014,8 @@ export function predictBattle(
  * predicted ratio's log, fits a monotone curve (pool adjacent violators) and
  * prints WIN_PCT_AT; paste it here. The fit is deterministic (seed 1). The
  * current table (ww90, `--duels 4000`, tank and anti-tank divisions in the
- * draw): the even fight is won six times in ten, 1.2 five in six, 1.4 nine in
- * ten, 2 nearly always, 0.7 one in seven.
+ * draw): the even fight is won a little under half the time, 1.2 four in five,
+ * 1.4 nine in ten, 2 nearly always, 0.7 one in ten.
  */
 export const WIN_RATIO_AT_PM: readonly number[] = [
   63, 74, 88, 105, 125, 149, 177, 210, 250, 297, 354, 420, 500, 595, 707, 841,
@@ -1023,7 +1023,7 @@ export const WIN_RATIO_AT_PM: readonly number[] = [
   9514, 11314, 13454, 16000,
 ];
 export const WIN_PCT_AT: readonly number[] = [
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 4, 14, 30, 60, 84, 92, 98, 99, 100,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 3, 10, 23, 46, 82, 88, 97, 99, 100,
   100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100,
 ];
 

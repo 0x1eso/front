@@ -1,6 +1,7 @@
 // ww90: the combat overhaul's fit. Rules are checked on the pure functions;
 // the win table's targets come from `duel-fit.ts --plan` (the report has them).
 import { COUNTRY_TAGS } from "@openfront/engine-api/ww1936/Countries";
+import { KS, KS_FIELDS } from "@openfront/engine-api/ww1936/DepthTypes";
 import {
   BattalionId,
   DivisionStats,
@@ -27,6 +28,9 @@ import {
   TANK_FEAR_PCT,
   winPctOf,
 } from "@openfront/engine-lib/ww1936/CombatRules";
+import { tankStatsOfEntry } from "@openfront/engine-lib/ww1936/hist/ConvertTank";
+import { histOwn } from "@openfront/engine-lib/ww1936/hist/Slots";
+import type { TankEntry } from "@openfront/engine-lib/ww1936/hist/Types";
 import { startTemplates } from "@openfront/engine-lib/ww1936/LandStart";
 import {
   presetById,
@@ -35,11 +39,13 @@ import {
 } from "@openfront/engine-lib/ww1936/TemplatePresets";
 import {
   GEN1,
+  rowScore,
   STATIC_KEY_STATS,
   tankSpeedPm,
   templateStats,
 } from "@openfront/engine-lib/ww1936/TemplateStats";
 import { techTotals } from "@openfront/engine-lib/ww1936/WwTechs";
+import { aiPickEntry } from "@openfront/engine/ww1936/depth/AiPick";
 import {
   effortScore,
   pickMainSector,
@@ -219,10 +225,10 @@ describe("armour with no infantry", () => {
 });
 
 describe("the win table", () => {
-  test("the even fight is won six in ten and the curve climbs", () => {
-    expect(winPctOf(1000)).toBe(60);
-    expect(winPctOf(707)).toBe(14);
-    expect(winPctOf(1414)).toBe(92);
+  test("the even fight is near half and the curve climbs", () => {
+    expect(winPctOf(1000)).toBe(46);
+    expect(winPctOf(707)).toBe(10);
+    expect(winPctOf(1414)).toBe(88);
     expect(winPctOf(2828)).toBe(100);
   });
 });
@@ -245,6 +251,40 @@ describe("the tank score sees speed", () => {
 
   test("a row with no speed (the screens') stands as it is", () => {
     expect(tankSpeedPm(0)).toBe(1000);
+  });
+});
+
+describe("the catalogue's slow giants", () => {
+  /** The AI's pick among a country's tank destroyers, every one unlocked, nothing to fear. */
+  const pick = (tag: "DEU" | "GBR" | "USA") => {
+    const list = histOwn(tag, "tank")
+      .filter((e) => e.family === "tank" && e.role === "td")
+      .map((e, i) => {
+        const s = tankStatsOfEntry(e as TankEntry);
+        const row = new Int32Array(KS_FIELDS);
+        row[KS.soft] = s.soft;
+        row[KS.hard] = s.hard;
+        row[KS.def] = s.def;
+        row[KS.brk] = s.brk;
+        row[KS.pierce] = s.pierce;
+        row[KS.armor] = s.armor;
+        row[KS.speedCenti] = s.speedCenti;
+        return {
+          key: i,
+          id: e.id,
+          score: rowScore(row, 0, s.group, s.year),
+          cost: s.costMilli,
+          relPm: s.relPm,
+        };
+      });
+    return list[aiPickEntry(list, 50)].id;
+  };
+
+  test("the AI leaves Jagdtiger, Tortoise and T28 alone", () => {
+    expect(pick("DEU")).not.toBe("deu_jagdtiger");
+    expect(pick("DEU")).not.toBe("deu_elefant");
+    expect(pick("GBR")).not.toBe("gbr_tortoise");
+    expect(pick("USA")).not.toBe("usa_t28");
   });
 });
 
