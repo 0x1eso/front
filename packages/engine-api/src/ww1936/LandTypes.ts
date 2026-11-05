@@ -284,6 +284,10 @@ export const TPL_FOOT_MAJOR = 1 << 19;
 export const TPL_BARE_ARMOR = 1 << 20;
 /** ww84: heavy tanks are at least half its armour: built to break forts and trenches. */
 export const TPL_HEAVY_LEAD = 1 << 21;
+/** ww84: light tanks are at least half its battalions. */
+export const TPL_LIGHT_MAJOR = 1 << 22;
+/** ww84: fast enough to run through a broken line: at least half fast battalions, heavy tanks not leading. */
+export const TPL_EXPLOIT = 1 << 23;
 
 /**
  * A division's numbers (spec §4.3, §16.2): attack and defence values and
@@ -408,6 +412,8 @@ export interface BattleCtx {
   defenderCutMulBp?: number;
   /** ww84: rounds of the opening barrage left; absent: all of them (a battle not begun). */
   prepFireRounds?: number;
+  /** ww84: rounds left of armour running through, the defenders' prepared ground not counting; absent: 0. */
+  exploitRounds?: number;
   /** ww8: close air support a round now, after the anti-air cut (casCutHits), centi; absent: 0. */
   casAttCenti?: number;
   casDefCenti?: number;

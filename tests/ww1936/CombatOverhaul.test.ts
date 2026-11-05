@@ -11,6 +11,7 @@ import {
   BattalionId,
   DivisionStats,
   GENERAL_TRAITS,
+  idleOrder,
   NEED_GROUP_COUNT,
   NEED_GROUPS,
   RETIRED_GENERAL_TRAITS,
@@ -18,8 +19,10 @@ import {
   TPL_BARE_ARMOR,
   TPL_CAVALRY_MAJOR,
   TPL_ENGINEER,
+  TPL_EXPLOIT,
   TPL_FOOT_MAJOR,
   TPL_HEAVY_LEAD,
+  TPL_LIGHT_MAJOR,
   TPL_MARINE_MAJOR,
   TPL_MOUNTAIN_MAJOR,
   traitBit,
@@ -38,6 +41,7 @@ import {
   divisionMods,
   emptySide,
   entrenchMax,
+  EXPLOIT_ROUNDS,
   FOOT_DEFENCE_ORG_PCT,
   FORT_ATTACK_BP,
   hitProtectPm,
@@ -71,13 +75,16 @@ import { techTotals } from "@openfront/engine-lib/ww1936/WwTechs";
 import type { Game } from "@openfront/engine/game/Game";
 import { createGameRunner } from "@openfront/engine/GameRunner";
 import {
+  exploitReady,
   fearCutOf,
   joinBattle,
   ROUT_LOSS_CAVALRY_PCT,
+  ROUT_LOSS_EXPLOIT_PCT,
   ROUT_LOSS_PCT,
   stepBattles,
   stepRecovery,
 } from "@openfront/engine/ww1936/land/Battles";
+import { depthOf as depthOfRegion } from "@openfront/engine/ww1936/land/Bands";
 import { landDivisions } from "@openfront/engine/ww1936/land/SeaLift";
 import type { Army, WwLand } from "@openfront/engine/ww1936/land/WwLand";
 import { loadMapFiles } from "@openfront/shared/GameMapLoader";
@@ -768,5 +775,159 @@ describe("P4: the opening barrage, guns and heavy tanks", () => {
     expect(
       predictBattle({ ...tank, heavyPm: 1000 }, def, ctx).ratioPm,
     ).toBeGreaterThan(predictBattle(tank, def, ctx).ratioPm);
+  });
+});
+
+describe("P5: armour running through", () => {
+  const panzer: [BattalionId, number][] = [
+    ["medium_armor", 4],
+    ["motorized", 5],
+  ];
+
+  test("who can: fast battalions at half or more, heavy tanks not leading", () => {
+    expect(stats(panzer).flags & TPL_EXPLOIT).not.toBe(0);
+    expect(
+      stats([
+        ["sp_artillery", 3],
+        ["sp_anti_air", 1],
+        ["mot_artillery", 1],
+        ["infantry", 4],
+      ]).flags & TPL_EXPLOIT,
+    ).not.toBe(0);
+    expect(stats([["infantry", 9]]).flags & TPL_EXPLOIT).toBe(0);
+    expect(
+      stats([
+        ["heavy_armor", 4],
+        ["motorized", 5],
+      ]).flags & TPL_EXPLOIT,
+    ).toBe(0);
+    expect(stats([["light_armor", 5], ["motorized", 4]]).flags & TPL_LIGHT_MAJOR).not.toBe(0);
+    expect(stats(panzer).flags & TPL_LIGHT_MAJOR).toBe(0);
+  });
+
+  /** A band of Warsaw won by an army of `list`: Warsaw has more bands for it. */
+  async function bandWon(list: readonly (readonly [BattalionId, number])[]) {
+    const { g, l } = await war();
+    const tpl = template(g, "DEU", list);
+    const a = placeArmy(g, "DEU", BERLIN, 2, tpl);
+    const d = placeArmy(g, "POL", WARSAW, 1);
+    a.order = {
+      ...idleOrder(),
+      kind: "plan",
+      anchor: l.armyRegion(a),
+      targets: [WARSAW],
+      stance: "aggressive",
+      executing: true,
+    };
+    attack(l, a, WARSAW);
+    const t = l.divisions;
+    stepBattles(l, g.ticks());
+    return { g, l, a, d, t };
+  }
+
+  test("only with half its org left", async () => {
+    const { l, a, t } = await bandWon(panzer);
+    const r = t.rowOf(a.divisions[0]);
+    t.org[r] = Math.floor(l.orgMaxOf(r) / 2) + 1;
+    expect(exploitReady(l, r)).toBe(true);
+    t.org[r] = Math.floor(l.orgMaxOf(r) / 2) - 1;
+    expect(exploitReady(l, r)).toBe(false);
+  }, 60_000);
+
+  test("a band won marks who runs through; infantry never", async () => {
+    const marked = async (list: readonly (readonly [BattalionId, number])[]) => {
+      const { g, l, a, d, t } = await bandWon(list);
+      expect(depthOfRegion(l, WARSAW)).toBeGreaterThan(1);
+      t.org[t.rowOf(d.divisions[0])] = 1;
+      stepBattles(l, g.ticks());
+      expect(l.bandProg[WARSAW]).toBe(1);
+      return { mark: l.battles.get(WARSAW)?.exploit, ids: a.divisions };
+    };
+    const tanks = await marked(panzer);
+    expect(tanks.mark).toEqual(tanks.ids);
+    expect((await marked([["infantry", 9]])).mark).toBeUndefined();
+  }, 120_000);
+
+  test("the band after: trenches ignored for four rounds, then the mark is gone", async () => {
+    const { g, l, a, d, t } = await bandWon(panzer);
+    const b = l.battles.get(WARSAW)!;
+    const r = t.rowOf(d.divisions[0]);
+    t.entrench[r] = 5;
+    const round = (exploit: boolean) => {
+      b.round = 1;
+      b.phaseRound = 1;
+      b.tacticAtt = 0;
+      b.tacticDef = 0;
+      if (exploit) b.exploit = [...a.divisions];
+      else delete b.exploit;
+      t.org[r] = 50_000;
+      stepBattles(l, g.ticks());
+      return 50_000 - t.org[r];
+    };
+    expect(round(true)).toBeGreaterThan(round(false));
+    b.exploit = [...a.divisions];
+    b.round = EXPLOIT_ROUNDS;
+    t.org[r] = 50_000;
+    stepBattles(l, g.ticks());
+    expect(b.exploit).toBeUndefined();
+    // A snapshot keeps the mark while it lasts.
+    b.exploit = [a.divisions[0]];
+    expect(l.snapshot().battles[0].exploit).toEqual([a.divisions[0]]);
+  }, 60_000);
+
+  test("those it breaks leave a quarter behind", async () => {
+    const { g, l, d, t } = await bandWon(panzer);
+    const r = t.rowOf(d.divisions[0]);
+    t.org[r] = 1;
+    const men = t.men[r];
+    stepBattles(l, g.ticks());
+    const lost = ((men - t.men[r]) * 100) / men;
+    expect(lost).toBeGreaterThanOrEqual(ROUT_LOSS_EXPLOIT_PCT);
+    expect(lost).toBeLessThan(ROUT_LOSS_EXPLOIT_PCT + 3);
+  }, 60_000);
+
+  test("the last band falls: in at twice the pace, light tanks two and a half", async () => {
+    const needOf = async (list: readonly (readonly [BattalionId, number])[]) => {
+      const { g, l, a, d, t } = await bandWon(list);
+      // One band left, the defender one blow from breaking.
+      l.bandProg[WARSAW] = depthOfRegion(l, WARSAW) - 1;
+      t.org[t.rowOf(d.divisions[0])] = 1;
+      stepBattles(l, g.ticks());
+      return t.need[t.rowOf(a.divisions[0])];
+    };
+    const plain = await needOf([["infantry", 9]]);
+    expect(plain).toBeGreaterThan(0);
+    expect(await needOf(panzer)).toBe(Math.floor(plain / 2));
+    expect(
+      await needOf([
+        ["light_armor", 5],
+        ["motorized", 4],
+      ]),
+    ).toBe(Math.floor((plain * 100) / 250));
+  }, 120_000);
+
+  test("the prediction sees the trenches ignored", () => {
+    const side = (s: DivisionStats) => {
+      const sum = emptySide();
+      addToSide(sum, s, s.orgMilli);
+      return sum;
+    };
+    const ctx = {
+      land: "plains" as const,
+      directions: 1,
+      attackerAttackBp: 10_000,
+      attackerBlockBp: 10_000,
+      defenderAttackBp: 10_000,
+      defenderBlockBp: 12_500,
+      defenderPrepBp: 2500,
+    };
+    const att = side(stats(panzer));
+    const def = side(stats([["infantry", 9]]));
+    expect(
+      predictBattle(att, def, { ...ctx, exploitRounds: 4 }).rounds,
+    ).toBeLessThanOrEqual(predictBattle(att, def, ctx).rounds);
+    expect(
+      predictBattle(att, def, { ...ctx, exploitRounds: 4 }).ratioPm,
+    ).toBeGreaterThan(predictBattle(att, def, ctx).ratioPm);
   });
 });

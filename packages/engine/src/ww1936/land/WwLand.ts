@@ -448,6 +448,8 @@ export interface Battle {
   dmgBy?: [number, number][];
   /** ww84: defenders broken in this band by cavalry or armour running through: [division, rout loss %]. */
   routBy?: [number, number][];
+  /** ww84: divisions running through from the band before; gone after EXPLOIT_ROUNDS rounds. */
+  exploit?: number[];
 }
 
 export const SPREAD_BATTLE = 0;
@@ -666,6 +668,7 @@ export const WwLandStateSchema = z.object({
       capEq: zInts().optional(),
       dmgBy: z.array(z.tuple([zInt(), zInt()])).optional(),
       routBy: z.array(z.tuple([zInt(), zInt()])).optional(),
+      exploit: zInts().optional(),
     }),
   ),
   spreads: z.array(
@@ -2788,6 +2791,7 @@ export class WwLand {
         mix(b.phaseRound);
       }
       if (b.routBy !== undefined) for (const e of b.routBy) fold(e);
+      if (b.exploit !== undefined) fold(b.exploit);
     }
     // ww84: marines just ashore, only when any are.
     if (this.landedUntil.size > 0) {
@@ -2941,6 +2945,7 @@ export class WwLand {
         ...(b.routBy === undefined
           ? {}
           : { routBy: b.routBy.map(([d, p]): [number, number] => [d, p]) }),
+        ...(b.exploit === undefined ? {} : { exploit: [...b.exploit] }),
       })),
       spreads: [...this.spreads.values()].map((s) => ({
         region: s.region,
@@ -3073,6 +3078,7 @@ export class WwLand {
         ...(b.routBy === undefined
           ? {}
           : { routBy: b.routBy.map(([d, p]): [number, number] => [d, p]) }),
+        ...(b.exploit === undefined ? {} : { exploit: [...b.exploit] }),
       });
     }
     this.spreads.clear();

@@ -182,6 +182,15 @@ export function defenderOrgPct(flags: number): number {
 export const TRENCH_ANTI_TANK_PM = 50;
 export const TRENCH_ANTI_TANK_MAX_PM = 250;
 
+/** ww84: rounds of the next band that armour running through ignores trenches, and what it costs the enemy's reserves, points. */
+export const EXPLOIT_ROUNDS = 4;
+export const EXPLOIT_RESERVE_PP = -20;
+/** ww84: the org a division needs left to run through, percent of its maximum. */
+export const EXPLOIT_ORG_PCT = 50;
+/** ww84: its pace into a taken region, percent; light tanks' more. */
+export const EXPLOIT_ADVANCE_PCT = 200;
+export const EXPLOIT_ADVANCE_LIGHT_PCT = 250;
+
 /** ww84: the rounds of a band its attackers' guns open with. */
 export const PREP_FIRE_ROUNDS = 8;
 /** ww84: what heavy tanks take off the enemy's prepared ground and forts, ‰ and percent kept. */
@@ -860,20 +869,35 @@ export function predictBattle(
   const plainRound = roundOnDef(0, heavyKeep);
   const fire = att.prepFireBp ?? 0;
   const fireRounds = fire > 0 ? (ctx.prepFireRounds ?? PREP_FIRE_ROUNDS) : 0;
+  const exploitRounds = ctx.exploitRounds ?? 0;
   let rounds: number;
   let dmgDef = plainRound;
-  if (fireRounds === 0) {
+  if (fireRounds === 0 && exploitRounds === 0) {
     rounds = dmgDef <= 0 ? 999_999 : Math.ceil(def.orgMilli / dmgDef);
   } else {
-    // ww84: the barrage's rounds, then the plain ones.
-    const fireRound = roundOnDef(fire, keepAfterFire(heavyKeep, fire));
-    const done = fireRound * fireRounds;
+    // ww84: the first rounds as they will go, then the plain ones.
+    let org = def.orgMilli;
+    let n = 0;
+    const stage = (length: number, dmg: number) => {
+      if (org <= 0 || length <= 0) return;
+      if (dmg * length >= org) {
+        n += Math.ceil(org / Math.max(1, dmg));
+        org = 0;
+      } else {
+        n += length;
+        org -= dmg * length;
+      }
+    };
+    const both = Math.min(fireRounds, exploitRounds);
+    stage(both, roundOnDef(fire, 0));
+    stage(exploitRounds - both, roundOnDef(0, 0));
+    stage(fireRounds - both, roundOnDef(fire, keepAfterFire(heavyKeep, fire)));
     rounds =
-      done >= def.orgMilli
-        ? Math.ceil(def.orgMilli / Math.max(1, fireRound))
+      org <= 0
+        ? n
         : plainRound <= 0
           ? 999_999
-          : fireRounds + Math.ceil((def.orgMilli - done) / plainRound);
+          : n + Math.ceil(org / plainRound);
     dmgDef = rounds >= 999_999 ? 0 : Math.floor(def.orgMilli / rounds);
   }
   const dmgAtt =
