@@ -71,6 +71,7 @@ import {
   decisionTargetOk,
 } from "./Decisions";
 import { makeCtx } from "./Dispatch";
+import { pickRegions } from "./EffectsEcon";
 import { factionEnemies, isMajor, joinBlock } from "./Factions";
 import { beatPending } from "./HistoryBeats";
 import { hasRule, ruleValue } from "./Spirits";
@@ -547,6 +548,22 @@ function targetKeys(d: DecisionDef, n: number): string[] {
  * ≥ AI_DECISION_SAVE_WEIGHT, else passed over for a lighter one.
  * The weight's mods are judged for the chooser (AiWeight), no target.
  */
+/**
+ * ww103: the AI's fort decision, and the level it stops at. Taken every 180
+ * days it put level 5 forts on whole borders (Poland's and Yugoslavia's stood
+ * in Germany's way to the end); AiLand.build places the strong ones by value.
+ */
+export const AI_FORT_DECISION = "gen_fortify_border";
+export const AI_FORT_DECISION_LEVEL = 2;
+
+/** The regions that decision would pick stand at its level already. */
+export function bordersFortified(pol: WwPolitics, id: number): boolean {
+  const fort = pol.econ.fort;
+  return pickRegions(pol, id, { borderWith: "threat", n: 3 }).some(
+    (r) => fort[r] >= AI_FORT_DECISION_LEVEL,
+  );
+}
+
 function aiDecision(
   pol: WwPolitics,
   c: CountryPol,
@@ -588,6 +605,7 @@ function aiDecision(
     const d = pol.content.decisions[i];
     const pays = budget.affords(c, pp);
     if (!pays && w < AI_DECISION_SAVE_WEIGHT) continue;
+    if (d.id === AI_FORT_DECISION && bordersFortified(pol, id)) continue;
     let target = -1;
     let ready = false;
     if (d.target === undefined) {

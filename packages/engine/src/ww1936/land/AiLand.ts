@@ -39,6 +39,7 @@ import {
   SupportId,
   TPL_ARMOR_ANY,
   TPL_BARE_ARMOR,
+  TPL_ENGINEER,
   TPL_EXPLOIT,
   TPL_HEAVY_LEAD,
   TPL_MARINE_MAJOR,
@@ -138,10 +139,12 @@ import {
   pickMainEnemy,
   pickMainSector,
 } from "./AiEffort";
+import { joinBattle } from "./Battles";
 import { meanWidthOf, zoneCap } from "./Fronts";
 import { canServe } from "./GeneralsRun";
 import { capitalRegion } from "./LandStartRun";
 import { enemyDivisionsIn } from "./Movement";
+import { capture } from "./Occupation";
 import {
   armyRows,
   attackTarget,
@@ -245,6 +248,12 @@ export const AI_LIBERATION_LIFT_RATIO_PM = 3000;
  */
 export const AI_LIBERATION_LIFT_WAR_DAYS = 540;
 /**
+ * ww103: and two years in the rule ends anyway. A strength ratio of 3 is out of
+ * reach of any entrenched line, so the Allies stood at Germany's border with
+ * 900 divisions to the end of the game, attacking nothing they didn't own.
+ */
+export const AI_LIBERATION_LIFT_ANY_DAYS = 720;
+/**
  * ww7 lane D item 3: the AI's offensives go in aggressive once decided. The
  * plan step judges a stance per region, with what stands there today; the
  * AI's own gates (the combined range against the region, ρ < 0.7 or org <
@@ -323,6 +332,43 @@ export const AI_RAIL_MIN_KM = 1000;
 /** (내 판단) At most this many forts and railways wait in the queue. */
 const LAND_BUILDS_QUEUED = 2;
 const FORT_MAX = 5;
+/**
+ * ww103: level 5 forts froze the world after 1941 (attack x0.15 along whole
+ * fronts). A country takes them only on its most valuable spots on the line: a
+ * major this many, a minor one; any other line stands at 2, or 3 where the
+ * enemy outnumbers what stands there.
+ */
+export const AI_FORT_TOP_SPOTS = 3;
+export const AI_FORT_TOP_MINOR = 1;
+export const AI_FORT_LINE_LEVEL = 2;
+export const AI_FORT_STRONG_LEVEL = 4;
+export const AI_FORT_PRESSED_LEVEL = 3;
+/**
+ * ww103: what a line region holds, % of its layout cap: past that a division adds
+ * nothing to the width and only makes the region starve. Over it, armies stand
+ * behind the line.
+ */
+export const AI_LINE_DEPTH_PCT = 150;
+/** ww103: an idle army standing under this supply rate, ‰, walks to a region that feeds it. */
+export const AI_FEED_OK_PM = 700;
+/** ww103: how often a country looks at its hungry idle armies, days. */
+export const AI_RELIEF_PERIOD_DAYS = 5;
+/** ww103: of its divisions this share under the feed bar stops its training, %. */
+export const AI_TRAIN_HUNGRY_PCT = 12;
+/** ww103: at war, this share of its divisions on idle orders stops its training, %, from AI_TRAIN_IDLE_MIN divisions. */
+export const AI_TRAIN_IDLE_PCT = 25;
+export const AI_TRAIN_IDLE_MIN = 40;
+/**
+ * ww103: a front stalemated this many days starts to lower the bars, down to
+ * AI_STALE_MID_PM / AI_STALE_LOW_PM at AI_STALE_FULL_DAYS: a front that stands
+ * for years has to be broken at even odds, or it never moves.
+ */
+export const AI_STALE_FROM_DAYS = 90;
+export const AI_STALE_FULL_DAYS = 360;
+export const AI_STALE_MID_PM = 1000;
+export const AI_STALE_LOW_PM = 700;
+/** ww103: off the effort, a front with armies to spare attacks a line at this % of the bar. */
+export const AI_SECOND_EFFORT_PCT = 125;
 /** ww91 rule 7: a neighbour's threat from which a plan forts its border in peace, bp (politics' own bar). */
 const AI_FORT_THREAT_BP = 500;
 
@@ -389,6 +435,87 @@ export function aiGatePm(personality: AiPersonality): AiGate {
     case "minor":
       return { midPm: 1450, lowPm: 1000 };
   }
+}
+
+/** ww103: the bars after `staleDays` of stalemate: from AI_STALE_FROM_DAYS down to the floors, never up. */
+export function aiStaleGate(g: AiGate, staleDays: number): AiGate {
+  const span = AI_STALE_FULL_DAYS - AI_STALE_FROM_DAYS;
+  const d = Math.max(0, Math.min(span, staleDays - AI_STALE_FROM_DAYS));
+  const down = (bar: number, floor: number) =>
+    bar <= floor ? bar : bar - Math.floor(((bar - floor) * d) / span);
+  return {
+    midPm: down(g.midPm, AI_STALE_MID_PM),
+    lowPm: down(g.lowPm, AI_STALE_LOW_PM),
+  };
+}
+
+/** ww103: the war's length alone, or with the odds, ends a democracy's liberation-only rule. */
+export function aiLiberationOver(warDays: number, ratioPm: number): boolean {
+  return (
+    warDays >= AI_LIBERATION_LIFT_ANY_DAYS ||
+    (ratioPm >= AI_LIBERATION_LIFT_RATIO_PM &&
+      warDays >= AI_LIBERATION_LIFT_WAR_DAYS)
+  );
+}
+
+/** ww103: what aiRearArmies reads of an army on a front. */
+export interface AiLineArmy {
+  id: number;
+  divisions: number;
+  /** In a running attack. */
+  running: boolean;
+  shock: boolean;
+  /** Stands behind the line already. */
+  behind: boolean;
+  /** A human's Defend-only army: not ours to move. */
+  fixed: boolean;
+}
+
+/**
+ * ww103: the armies that go behind a line that takes `want` divisions: those in
+ * a running attack stay, then the shock armies, then those on the line, the
+ * largest first, until it is full.
+ */
+export function aiRearArmies(
+  armies: readonly AiLineArmy[],
+  want: number,
+): Set<number> {
+  const rank = (a: AiLineArmy) =>
+    (a.running ? 0 : 8) + (a.shock ? 0 : 4) + (a.behind ? 2 : 0);
+  const list = [...armies].sort(
+    (a, b) => rank(a) - rank(b) || b.divisions - a.divisions || a.id - b.id,
+  );
+  const out = new Set<number>();
+  let kept = 0;
+  for (const a of list) {
+    if (kept >= want && !a.running && !a.fixed) out.add(a.id);
+    else kept += a.divisions;
+  }
+  return out;
+}
+
+/** ww103: the fort level the AI builds a region up to: see AI_FORT_TOP_SPOTS. */
+export function aiFortCap(top: boolean, pressed: boolean): number {
+  if (top) return FORT_MAX;
+  return pressed ? AI_FORT_PRESSED_LEVEL : AI_FORT_LINE_LEVEL;
+}
+
+/**
+ * ww103: whether training stops: too many divisions already go hungry, or (at
+ * war) stand idle. What it can't feed or use it doesn't train.
+ */
+export function aiTrainStops(i: {
+  total: number;
+  hungry: number;
+  idle: number;
+  atWar: boolean;
+}): boolean {
+  if (i.hungry * 100 > i.total * AI_TRAIN_HUNGRY_PCT) return true;
+  return (
+    i.atWar &&
+    i.idle >= AI_TRAIN_IDLE_MIN &&
+    i.idle * 100 > i.total * AI_TRAIN_IDLE_PCT
+  );
 }
 
 /** A candidate line: its regions, its terrain (half regions) and the victory points it gives up. */
@@ -1121,6 +1248,8 @@ class AiDay {
   private effortOf = new Map<number, number>();
   /** ww81 C1: the others on a front judged for one: they walk and pursue, no more. */
   private offEffort = new Set<number>();
+  /** ww103: enemies a front of ours has armies to spare against today. */
+  private surplus = new Set<number>();
   /** ww81 C4: the armies that lead today's main efforts: the air goes to them first. */
   private skyArmies = new Set<number>();
   /** ww81 C3: today's cuts of each enemy read (on the period's day or for a new sector). */
@@ -1258,6 +1387,15 @@ class AiDay {
       midPm: Math.floor((base.midPm * st.midPct) / 100),
       lowPm: Math.floor((base.lowPm * st.lowPct) / 100),
     };
+  }
+
+  /** ww103: the bars against `enemy`, lowered by the days its front has stood still. */
+  private gateOn(enemy: number): AiGate {
+    const eg = this.land.ww.endgame;
+    const w = eg.warOfPair(this.me, enemy);
+    const front = eg.fronts.find((x) => x[0] === w);
+    if (front === undefined) return this.gate();
+    return aiStaleGate(this.gate(), this.day - front[3]);
   }
 
   private issue(order: WwOrder): boolean {
@@ -1400,6 +1538,7 @@ class AiDay {
     if (this.human && this.trains) this.judgeRoles();
     if (enemies.length > 0) this.fronts(enemies, garrisons);
     else if (!this.human) this.peacetime(garrisons);
+    if (!this.human) this.relieve(garrisons);
     this.attacks();
     if (!this.human) this.syncSky();
     if (this.trains) this.train(garrisons);
@@ -2211,13 +2350,25 @@ class AiDay {
     const judged = atWar && ring === null && !outnumbered && !offMain;
     const per = outnumbered ? AI_OUTNUMBERED_PER_REGION : 1;
     const reserve = atWar ? this.reserveOf(line, standing, per, judged) : null;
-    const held = standing.filter((a) => a !== reserve);
-    if (offMain) for (const a of held) this.offEffort.add(a.id);
+    const all = standing.filter((a) => a !== reserve);
+    // ww103: what the line can't use stands behind it, where it is fed.
+    const spare = this.rearOf(f, line, all, per);
+    if (offMain) for (const a of all) this.offEffort.add(a.id);
     const zones =
-      (judged ? this.mainEffort(f, line, held) : null) ??
-      this.zonesOf(f, line, held);
+      (judged ? this.mainEffort(f, line, all, spare) : null) ??
+      this.zonesOf(
+        f,
+        line,
+        all.filter((a) => !spare.has(a)),
+      );
     if (reserve !== null) this.postReserve(reserve, f, line);
     if (pool.length > 0) this.postPool(pool, f, line);
+    const rear = all.filter((a) => spare.has(a) && !this.effortOf.has(a.id));
+    if (rear.length > 0) {
+      this.surplus.add(f.enemy);
+      this.postRear(rear, f, line);
+    }
+    const held = all.filter((a) => !rear.includes(a));
     for (const a of held) {
       const o = a.order;
       const defend =
@@ -2468,6 +2619,7 @@ class AiDay {
     f: Front,
     line: readonly number[],
     armies: readonly Army[],
+    spare: ReadonlySet<Army>,
   ): Map<number, number[]> | null {
     const land = this.land;
     const sc = land.scenario;
@@ -2480,9 +2632,14 @@ class AiDay {
       a.order.kind === "plan" &&
       a.order.executing &&
       effortTarget(a.order) === sector;
-    // ww91 rule 8: mountain troops lead on a fort or across a river.
-    const rough = this.natMountain() && this.rough(near, sector);
-    const leads = (a: Army) => rough && this.mostly(a, TPL_MOUNTAIN_MAJOR);
+    // ww91 rule 8: mountain troops lead on a fort or across a river. ww103: on
+    // a fort so do those made to break one.
+    const rough = this.rough(near, sector);
+    const forted = effectiveLevel(land.econ, sector, "fort") > 0;
+    const leads = (a: Army) =>
+      rough &&
+      ((this.natMountain() && this.mostly(a, TPL_MOUNTAIN_MAJOR)) ||
+        (forted && this.breaker(a)));
     const rank = (a: Army) =>
       (running(a) ? 0 : 4) + (leads(a) ? 0 : 2) + (this.shock(a) ? 0 : 1);
     const ranked = armies
@@ -2494,25 +2651,32 @@ class AiDay {
           a.id - b.id,
       );
     let left = 0;
-    for (const a of armies) left += a.divisions.length;
+    for (const a of armies) {
+      if (!spare.has(a)) left += a.divisions.length;
+    }
     // C6: no more than the sector feeds; those over it stay on the line.
     const room = this.roomAt(near, this.supplyUnit(ranked));
     const chosen = new Set<Army>();
     let on = 0;
     for (const a of ranked) {
+      const free = spare.has(a);
       if (!running(a)) {
-        if (left - a.divisions.length < rest.length) continue;
+        if (!free && left - a.divisions.length < rest.length) continue;
         if (on > 0 && on >= room) continue;
       }
       chosen.add(a);
-      left -= a.divisions.length;
+      if (!free) left -= a.divisions.length;
       on += a.divisions.length;
     }
-    const others = armies.filter((a) => !chosen.has(a));
+    const others = armies.filter((a) => !chosen.has(a) && !spare.has(a));
     if (chosen.size === 0 || (others.length === 0 && rest.length > 0)) {
-      const zones = this.zonesOf(f, line, armies);
+      const zones = this.zonesOf(
+        f,
+        line,
+        armies.filter((a) => !spare.has(a)),
+      );
       const on = ranked.filter((a) =>
-        zones.get(a.id)!.some((r) => near.includes(r)),
+        zones.get(a.id)?.some((r) => near.includes(r)),
       );
       for (const a of on) this.joinEffort(a, sector);
       if (on.length > 0) this.skyArmies.add(on[0].id);
@@ -2571,10 +2735,202 @@ class AiDay {
     return n === 0 ? 1 : Math.max(1, Math.floor(use / n));
   }
 
-  /** C6: the divisions `regions` feed at `unit`. */
+  /** C6: the divisions `regions` feed at `unit`, an ally's standing there left out. */
   private roomAt(regions: readonly number[], unit: number): number {
-    const supply = regions.map((r) => this.land.supplyMilli[r]);
+    const supply = regions.map((r) => this.feedOf(r));
     return effortRoom(supply, unit);
+  }
+
+  /** ww103: what `region` has left for us, milli: its supply less an ally's use there. */
+  private feedOf(region: number): number {
+    const land = this.land;
+    const t = land.divisions;
+    let others = 0;
+    for (const r of land.rowsIn(region)) {
+      if (t.owner[r] !== this.me && t.mode[r] === MOVE_NONE) {
+        others += land.supplyBaseOf(r);
+      }
+    }
+    return Math.max(0, land.supplyMilli[region] - others);
+  }
+
+  /** ww103: the divisions line region `r` usefully takes: the width's and what it feeds, at least one. */
+  private lineRoom(r: number, unit: number, mean: number): number {
+    const land = this.land;
+    const sc = land.scenario;
+    let dirs = 0;
+    for (const e of sc.edgesOf(r)) {
+      if (land.isEnemy(this.me, land.controller[e.to])) dirs++;
+    }
+    const wide = Math.floor(
+      (zoneCap(land, r, dirs, mean) * AI_LINE_DEPTH_PCT) / 100,
+    );
+    return Math.max(1, Math.min(wide, Math.floor(this.feedOf(r) / unit)));
+  }
+
+  /** ww103: on the line's own armies' reckoning, an army that stands behind the line already. */
+  private behind(a: Army, onLine: ReadonlySet<number>): boolean {
+    const o = a.order;
+    return o.kind === "front" && o.zone.length === 1 && !onLine.has(o.zone[0]);
+  }
+
+  /**
+   * ww103: the armies of `armies` the line has no use for: 125 divisions on one
+   * region add nothing to its width and starve there, and a stack that deep can't
+   * be attacked at any odds, so fronts froze. Looked at on the period's day: the
+   * armies that keep the line are those in a running attack, then the shock
+   * armies, then those on it, the largest first, until the line is full; between
+   * those days whoever stands behind stays there (orders are the memory).
+   */
+  private rearOf(
+    f: Front,
+    line: readonly number[],
+    armies: readonly Army[],
+    per: number,
+  ): Set<Army> {
+    const onLine = new Set(line);
+    const out = new Set<Army>();
+    if (armies.length < 2) return out;
+    if (!this.effortDue()) {
+      for (const a of armies) if (this.behind(a, onLine)) out.add(a);
+      return out;
+    }
+    const rows = armies.flatMap((a) => armyRows(this.land, a));
+    const unit = this.supplyUnit(armies);
+    const mean = meanWidthOf(this.land, rows);
+    let want = 0;
+    for (const r of line) want += this.lineRoom(r, unit, mean);
+    want = Math.max(want, line.length * per);
+    const ids = aiRearArmies(
+      armies.map((a) => ({
+        id: a.id,
+        divisions: a.divisions.length,
+        running: a.order.kind === "plan" && a.order.executing,
+        shock: this.shock(a),
+        behind: this.behind(a, onLine),
+        fixed: this.defendOnly(a),
+      })),
+      want,
+    );
+    for (const a of armies) if (ids.has(a.id)) out.add(a);
+    return out;
+  }
+
+  /**
+   * ww103: the armies behind the line go to the nearest region of the stretch
+   * that feeds them, off the line; one standing where it is fed stays.
+   */
+  private postRear(armies: readonly Army[], f: Front, line: readonly number[]) {
+    const land = this.land;
+    const onLine = new Set(line);
+    const comp = this.comp();
+    const unit = this.supplyUnit(armies);
+    const dist = this.bfs(
+      [...line],
+      (r) => comp[r] === f.comp && this.ours(r) && land.controller[r] !== 0,
+    );
+    let list: number[] | null = null;
+    const planned = new Map<number, number>();
+    for (const a of armies) {
+      this.offEffort.add(a.id);
+      const n = a.divisions.length;
+      const at = a.order.zone.length === 1 ? a.order.zone[0] : 0;
+      const fits = (r: number) => {
+        const room = Math.floor(this.feedOf(r) / unit);
+        return room - (planned.get(r) ?? 0) >= n;
+      };
+      if (at !== 0 && !onLine.has(at) && comp[at] === f.comp && fits(at)) {
+        planned.set(at, (planned.get(at) ?? 0) + n);
+        this.giveZone(a, f, [at], true);
+        continue;
+      }
+      list ??= this.side()
+        .regions.filter((r) => dist[r] > 0 && dist[r] < FAR)
+        .sort((x, y) => dist[x] - dist[y] || x - y);
+      const spot = list.find(fits) ?? this.behindLine(f, line);
+      planned.set(spot, (planned.get(spot) ?? 0) + n);
+      this.giveZone(a, f, [spot], true);
+    }
+  }
+
+  /**
+   * ww103: an idle army standing on enemy land, with no battle: what a failed
+   * landing with no way home leaves. Nothing else gives it an order (it is on no
+   * stretch of ours) and defenders don't attack who stands among them, so nine
+   * Italian divisions stood in Turkey from 1940 to the end of the game. It fights
+   * for the region where it stands, or takes it if nobody is left. True: it was
+   * on enemy land.
+   */
+  private fightHere(rows: readonly number[]): boolean {
+    const land = this.land;
+    const t = land.divisions;
+    const here = t.region[rows[0]];
+    if (!land.isEnemy(this.me, land.controller[here])) return false;
+    if (enemyDivisionsIn(land, this.me, here) === 0) {
+      capture(land, here, this.me, land.mg.ticks());
+      return true;
+    }
+    for (const r of rows) joinBattle(land, t.id[r], here);
+    return true;
+  }
+
+  /**
+   * ww103: idle armies starving where they stand walk to the nearest region of
+   * their stretch that feeds them (a port's few supplies, a landing's beach, an
+   * empire's desert town). A front's armies are holdFront's.
+   */
+  private relieve(garrisons: ReadonlySet<number>): void {
+    if ((this.day + this.me) % AI_RELIEF_PERIOD_DAYS !== 0) return;
+    const land = this.land;
+    const sc = land.scenario;
+    const t = land.divisions;
+    const comp = this.comp();
+    const left = new Map<number, number>();
+    const hungry: Army[] = [];
+    for (const a of this.armies()) {
+      if (garrisons.has(a.id) || a.order.kind !== "idle") continue;
+      if (a.divisions.length === 0 || this.travelling(a)) continue;
+      const rows = armyRows(land, a);
+      if (rows.some((r) => t.mode[r] !== MOVE_NONE || t.battle[r] !== 0)) {
+        continue;
+      }
+      if (this.fightHere(rows)) continue;
+      if (t.supply[rows[0]] < AI_FEED_OK_PM) hungry.push(a);
+    }
+    if (hungry.length === 0) return;
+    const unit = this.supplyUnit(hungry);
+    const roomOf = (r: number) => {
+      let n = left.get(r);
+      if (n === undefined) {
+        n = Math.floor(
+          Math.max(0, land.supplyMilli[r] - land.useMilli[r]) / unit,
+        );
+        left.set(r, n);
+      }
+      return n;
+    };
+    const regions = this.side().regions;
+    for (const a of hungry) {
+      const here = land.armyRegion(a);
+      const c = comp[here];
+      if (c === undefined || c < 0) continue;
+      const n = a.divisions.length;
+      let best = 0;
+      let bestKm = Infinity;
+      for (const r of regions) {
+        if (r === here || comp[r] !== c || roomOf(r) < n) continue;
+        const km = sc.regionKm(here, r);
+        if (km < bestKm || (km === bestKm && r < best)) {
+          best = r;
+          bestKm = km;
+        }
+      }
+      if (best === 0) continue;
+      left.set(best, roomOf(best) - n);
+      if (!this.railTransit(a, best)) {
+        this.issue({ kind: "army_move", army: a.id, region: best });
+      }
+    }
   }
 
   private joinEffort(a: Army, sector: number): void {
@@ -2616,6 +2972,19 @@ class AiDay {
       if ((this.land.baseStatsOf(r).flags & flag) !== 0) n++;
     }
     return n > 0 && n * 2 >= rows.length;
+  }
+
+  /** ww103: a quarter of the army or more is heavy tanks, assault infantry, engineers or guns. */
+  private breaker(a: Army): boolean {
+    const rows = armyRows(this.land, a);
+    let n = 0;
+    for (const r of rows) {
+      const s = this.land.baseStatsOf(r);
+      const flags =
+        s.flags & (TPL_HEAVY_LEAD | TPL_MOUNTAIN_MAJOR | TPL_ENGINEER);
+      if (flags !== 0 || (s.prepFireBp ?? 0) > 0) n++;
+    }
+    return n > 0 && n * 4 >= rows.length;
   }
 
   /** ww90: heavy tanks or assault infantry are at the army's head: forts cost it less. */
@@ -3210,8 +3579,14 @@ class AiDay {
     const at = land.armyRegion(a);
     const c = comp[at];
     const dist = this.bfs([at], (r) => comp[r] === c);
+    // ww103: a port that can feed the army: 115 American divisions gathered in
+    // Alaska's little harbour at 1 % supply, waiting for convoys.
+    const unit = this.supplyUnit([a]);
+    const fed = (p: number) =>
+      Math.max(0, land.supplyMilli[p] - land.useMilli[p]) >= unit * rows.length;
     let port = 0;
     for (const p of this.portsOf(c)) {
+      if (!fed(p)) continue;
       if (port === 0 || dist[p] < dist[port]) port = p;
     }
     if (port === 0 || (a.order.kind === "move" && a.order.to === port)) return;
@@ -3306,9 +3681,10 @@ class AiDay {
     const placed = new Map<number, number>();
     let homeLoad = 0;
     const spot = new Map<number, number>();
-    // An army fits where its region would feed at least half of it.
+    // An army fits where its region would feed it (ww103: at the bar an idle
+    // army walks off at, or the two would send it to and fro).
     const fits = (r: number, n: number): boolean =>
-      ((room.get(r) ?? 0) - (placed.get(r) ?? 0)) * 2 >= n;
+      ((room.get(r) ?? 0) - (placed.get(r) ?? 0)) * 1000 >= n * AI_FEED_OK_PM;
     const put = (a: Army, r: number): void => {
       const n = a.divisions.length;
       placed.set(r, (placed.get(r) ?? 0) + n);
@@ -3745,12 +4121,21 @@ class AiDay {
     const aim = this.effortOf.get(s.a.id);
     const x = s.legs[0].x;
     const pocket = !r.free && this.inPocket(enemy, x);
+    const gate = this.gateOn(enemy);
+    // ww103: with armies to spare behind the line a front can run a second
+    // attack where the odds are clearly good.
+    const offBar = this.surplus.has(enemy)
+      ? Math.min(
+          AI_PURSUIT_RATIO_PM,
+          Math.floor((gate.midPm * AI_SECOND_EFFORT_PCT) / 100),
+        )
+      : AI_PURSUIT_RATIO_PM;
     if (
       (aim !== undefined || this.offEffort.has(s.a.id)) &&
       aim !== x &&
       !r.free &&
       !pocket &&
-      r.midPm < AI_PURSUIT_RATIO_PM
+      r.midPm < offBar
     ) {
       return false;
     }
@@ -3758,7 +4143,6 @@ class AiDay {
       if (hold) return false;
       return this.nobodyAcross(s.a, enemy) || this.ripe(s.a, enemy, 0);
     }
-    const gate = this.gate();
     // C3 rule 3: a pocket waits for no readiness, as a broken enemy doesn't.
     const floor = pocket ? AI_PURSUIT_RATIO_PM : r.midPm;
     if (!this.ripe(s.a, enemy, floor)) return false;
@@ -4102,15 +4486,11 @@ class AiDay {
    * a major of our camp (Paris fallen: the Allies go for Germany; ww7 lane D:
    * Warsaw is not Paris, now that a Poland can fall in a month), or when our strength ratio there reaches
    * AI_LIBERATION_LIFT_RATIO_PM after AI_LIBERATION_LIFT_WAR_DAYS of war
-   * (a thin West Wall in 1939 is no reason).
+   * (a thin West Wall in 1939 is no reason), or (ww103) after
+   * AI_LIBERATION_LIFT_ANY_DAYS of war.
    */
   private liberationLifted(enemy: number, ratioPm: number): boolean {
-    if (
-      ratioPm >= AI_LIBERATION_LIFT_RATIO_PM &&
-      this.warDays(enemy) >= AI_LIBERATION_LIFT_WAR_DAYS
-    ) {
-      return true;
-    }
+    if (aiLiberationOver(this.warDays(enemy), ratioPm)) return true;
     const land = this.land;
     const sc = land.scenario;
     for (const tag of sc.countries) {
@@ -4209,6 +4589,7 @@ class AiDay {
     if (training >= trainTarget(this.major, this.personality, atPeace)) {
       return;
     }
+    if (!this.human && this.overFed(atPeace)) return;
     const keyOf = new Map(cl.templates.map((t) => [t.id, t.key]));
     const firstId = cl.templates[0]?.id ?? -1;
     const counts: Record<AiRole, number> = {
@@ -4298,6 +4679,24 @@ class AiDay {
         region: 0,
       });
     }
+  }
+
+  /** ww103: more divisions than it can feed or use (aiTrainStops). */
+  private overFed(atPeace: boolean): boolean {
+    const land = this.land;
+    const t = land.divisions;
+    let total = 0;
+    let hungry = 0;
+    let idle = 0;
+    for (const a of land.armiesOf(this.me)) {
+      const n = a.divisions.length;
+      total += n;
+      if (a.order.kind === "idle") idle += n;
+      for (const r of armyRows(land, a)) {
+        if (t.mode[r] === MOVE_NONE && t.supply[r] < AI_FEED_OK_PM) hungry++;
+      }
+    }
+    return aiTrainStops({ total, hungry, idle, atWar: !atPeace });
   }
 
   /**
@@ -4816,6 +5215,53 @@ class AiDay {
   }
 
   /**
+   * ww103: the fort level each of `core` is built up to against `foes`: level 5 on
+   * the line's most valuable regions (the most points, the capital first), level
+   * 3 where the enemy next door outnumbers what stands there, else level 2.
+   */
+  private fortRoom(
+    core: readonly number[],
+    foes: ReadonlySet<number>,
+  ): (region: number) => number {
+    const land = this.land;
+    const sc = land.scenario;
+    const cap = capitalRegion(land, this.me);
+    const vp = (r: number) =>
+      (sc.region(r)?.vp ?? 0) + (r === cap ? AI_EFFORT_CAPITAL_VALUE : 0);
+    // The ones it already has count: fronts move, and five years of new top
+    // spots would fortify the whole country.
+    const fort = land.econ.fort;
+    const has = core.filter((r) => fort[r] >= AI_FORT_STRONG_LEVEL).length;
+    const spots = this.major ? AI_FORT_TOP_SPOTS : AI_FORT_TOP_MINOR;
+    const top = new Set(
+      core
+        .filter(
+          (r) =>
+            vp(r) > 0 &&
+            fort[r] < AI_FORT_STRONG_LEVEL &&
+            sc.edgesOf(r).some((e) => foes.has(land.controller[e.to])),
+        )
+        .sort((a, b) => vp(b) - vp(a) || a - b)
+        .slice(0, Math.max(0, spots - has)),
+    );
+    const t = land.divisions;
+    const pressed = (r: number) => {
+      let theirs = 0;
+      for (const e of sc.edgesOf(r)) {
+        const c = land.controller[e.to];
+        if (foes.has(c)) theirs += this.enemyCount(e.to, c);
+      }
+      if (theirs === 0) return false;
+      let ours = 0;
+      for (const x of land.rowsIn(r)) {
+        if (land.sameSide(this.me, t.owner[x])) ours++;
+      }
+      return theirs > ours;
+    };
+    return (r) => aiFortCap(top.has(r), pressed(r));
+  }
+
+  /**
    * Spec §14.5, one a day with at most LAND_BUILDS_QUEUED waiting: a fort
    * in the core victory-point region facing the most enemy divisions
    * (democracies and minors), a West Wall for any country on a core
@@ -4847,10 +5293,14 @@ class AiDay {
       return true;
     };
     const tryBuildInfra = (r: number) => tryBuild(r, "infra");
+    const fortFoes: ReadonlySet<number> =
+      enemies.length > 0 ? new Set(enemies) : this.peaceThreats();
+    const roomFor = this.fortRoom(core, fortFoes);
+    const belowCap = (r: number) => fortLevel(r) < roomFor(r);
     if (this.personality !== "aggressor" && enemies.length > 0) {
       const facing = new Map<number, number>();
       for (const r of core) {
-        if ((sc.region(r)?.vp ?? 0) <= 0 || fortLevel(r) >= FORT_MAX) continue;
+        if ((sc.region(r)?.vp ?? 0) <= 0 || !belowCap(r)) continue;
         let n = -1;
         for (const e of sc.edgesOf(r)) {
           const c = land.controller[e.to];
@@ -4871,7 +5321,7 @@ class AiDay {
       const west = core
         .filter(
           (r) =>
-            fortLevel(r) < FORT_MAX &&
+            belowCap(r) &&
             sc.edgesOf(r).some((e) => holds.includes(land.controller[e.to])),
         )
         .sort((a, b) => fortLevel(a) - fortLevel(b) || a - b);
@@ -4879,14 +5329,15 @@ class AiDay {
       if (this.effortDue() && this.frontInfra(tryBuildInfra)) return;
     } else if (this.warPlan.fortLevel > 0) {
       // ww91 rule 7: forts before the war, on the borders of a threat.
-      const foes = this.peaceThreats();
       const sites = core
-        .filter((r) =>
-          wantsPeaceFort(
-            this.warPlan,
-            fortLevel(r),
-            sc.edgesOf(r).some((e) => foes.has(land.controller[e.to])),
-          ),
+        .filter(
+          (r) =>
+            belowCap(r) &&
+            wantsPeaceFort(
+              this.warPlan,
+              fortLevel(r),
+              sc.edgesOf(r).some((e) => fortFoes.has(land.controller[e.to])),
+            ),
         )
         .sort(
           (a, b) =>
