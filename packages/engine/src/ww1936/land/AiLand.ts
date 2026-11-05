@@ -38,7 +38,11 @@ import {
   Stance,
   SupportId,
   TPL_ARMOR_ANY,
+  TPL_BARE_ARMOR,
+  TPL_EXPLOIT,
+  TPL_HEAVY_LEAD,
   TPL_MOTOR_ANY,
+  TPL_MOUNTAIN_MAJOR,
   TPL_PARA_ANY,
   WW_AI_PREWAR_DAYS,
   WW_MAX_ARMY_DIVISIONS,
@@ -49,6 +53,7 @@ import {
 } from "@openfront/engine-api/ww1936/LandTypes";
 import { WW_INVASION_MAX_KM } from "@openfront/engine-api/ww1936/NavyTypes";
 import { wwAiWarPlanDue } from "@openfront/engine-lib/ww1936/AiDifficulty";
+import { BATTALIONS } from "@openfront/engine-lib/ww1936/Battalions";
 import { combatWidth } from "@openfront/engine-lib/ww1936/CombatRules";
 import { splitFront } from "@openfront/engine-lib/ww1936/CommandRules";
 import { queuedInRegion } from "@openfront/engine-lib/ww1936/EconomyChecks";
@@ -229,10 +234,10 @@ const RATIO_FREE_PM = 10_000;
 export const AI_OUTNUMBERED_PCT = 150;
 /**
  * ww7 lane F: the mid ratio from which an outnumbered front still attacks, ‰:
- * at the wide win table's 94 % a local chance is worth taking whatever the
- * whole front looks like (it was the pursuit bar, 2.0).
+ * at the win table's 94 % a local chance is worth taking whatever the whole
+ * front looks like (it was the pursuit bar, 2.0).
  */
-export const AI_OUTNUMBERED_ATTACK_PM = 1600;
+export const AI_OUTNUMBERED_ATTACK_PM = 1500;
 const AI_FACING_EDGES = 2;
 /** ww7 lane D item 2: a fallback line lies at most this many layers behind the border. */
 export const AI_SHORTEN_LAYERS = 3;
@@ -330,13 +335,13 @@ export interface AiGate {
 export function aiGatePm(personality: AiPersonality): AiGate {
   switch (personality) {
     case "aggressor":
-      // ww7 lane F: 1100 / 750 (design: 1300 / 900). On the wide win table
-      // 1.1 is won six times in ten.
-      return { midPm: 1100, lowPm: 750 };
+      // ww7 lane F: 1100 / 750 (design: 1300 / 900). ww90, the refit win
+      // table: 1.0 is won six times in ten, as 1.1 was.
+      return { midPm: 1000, lowPm: 700 };
     case "democracy":
-      return { midPm: 1600, lowPm: 1100 };
+      return { midPm: 1400, lowPm: 1000 };
     case "minor":
-      return { midPm: 1450, lowPm: 1000 };
+      return { midPm: 1250, lowPm: 900 };
   }
 }
 
@@ -572,6 +577,16 @@ const PRESET_AI_WEIGHT: Readonly<Record<string, number>> = {
 
 /** The anti-tank infantry preset's template key. */
 export const AI_ANTI_TANK_KEY = "pre_anti_tank_infantry";
+/** ww90: the line divisions heaviest in guns, what opens a band with a barrage. */
+const AI_GUN_KEYS: readonly string[] = [
+  "pre_artillery_div",
+  "pre_engineer_infantry",
+];
+/** ww90: the heavy preset's key, and how much more of it the AI mixes in against forts. */
+const AI_HEAVY_KEY = "pre_heavy_breakthrough";
+const AI_HEAVY_FORT_WEIGHT = 3;
+/** ww90: an enemy fort of this level on a front calls for heavy tanks. */
+const AI_HEAVY_FORT_LEVEL = 3;
 
 export interface AiTrainTemplate {
   id: number;
@@ -589,7 +604,8 @@ export interface AiTrainInput {
   major: boolean;
   dev: number;
   hasArmorTech: boolean;
-  hasMountains: boolean;
+  /** ww90: assault infantry is researched (it breaks rivers and forts, wherever they are). */
+  hasAssault: boolean;
   /** Divisions in training (queued and started). */
   training: number;
   manpower: number;
@@ -603,6 +619,10 @@ export interface AiTrainInput {
   armorBonus?: number;
   /** ww81 (T2): % of infantry divisions that are anti-tank infantry (0, 10 or 20). */
   antiTankPct?: number;
+  /** ww90: % of infantry divisions heavy in guns, when the country means to attack. */
+  gunPct?: number;
+  /** ww90: forts ahead: heavy tanks weigh more among the armour. */
+  fortsAhead?: boolean;
   /** ww81 (T2): fuel under a quarter of its cap: armour halves. */
   fuelLow?: boolean;
 }
@@ -618,14 +638,15 @@ function roleShares(i: AiTrainInput): Record<AiRole, number> {
   };
   switch (i.personality) {
     case "aggressor":
-      s.infantry = 70;
       s.armor = i.hasArmorTech ? 15 : 0;
       s.motorized = 5;
-      s.mountain = i.hasMountains ? 10 : 0;
+      s.mountain = i.hasAssault ? 10 : 0;
+      s.infantry = 100 - s.armor - s.motorized - s.mountain;
       break;
     case "democracy":
-      s.infantry = 85;
       s.armor = i.hasArmorTech ? 15 : 0;
+      s.mountain = i.hasAssault ? 5 : 0;
+      s.infantry = 100 - s.armor - s.mountain;
       break;
     case "minor":
       s.infantry = 90;
@@ -682,6 +703,17 @@ export function aiTrainPlan(i: AiTrainInput): number[] {
       ) {
         return at;
       }
+      // ww90: a line that means to attack brings its guns.
+      const gun = i.templates.find((t) => AI_GUN_KEYS.includes(t.key));
+      if (
+        gun !== undefined &&
+        (i.gunPct ?? 0) > 0 &&
+        gun.fillPm >= TRAIN_FILL_PM &&
+        manpower >= gun.men * TRAIN_MEN_FACTOR &&
+        (gun.have ?? 0) * 100 < (i.gunPct ?? 0) * Math.max(1, counts.infantry)
+      ) {
+        return gun;
+      }
       return i.templates[0];
     }
     // The role's templates (1936 keys, presets): the one furthest below its weight that the stock and men allow (else any, so the gate below holds).
@@ -693,7 +725,11 @@ export function aiTrainPlan(i: AiTrainInput): number[] {
     let best: AiTrainTemplate | undefined;
     let bestLoad = Infinity;
     for (const t of own.filter(ok)) {
-      const load = (t.have ?? 0) / (PRESET_AI_WEIGHT[t.key] ?? 1);
+      const weight =
+        t.key === AI_HEAVY_KEY && i.fortsAhead === true
+          ? AI_HEAVY_FORT_WEIGHT
+          : (PRESET_AI_WEIGHT[t.key] ?? 1);
+      const load = (t.have ?? 0) / weight;
       if (load < bestLoad) {
         best = t;
         bestLoad = load;
@@ -2100,15 +2136,41 @@ class AiDay {
     this.offEffort.delete(a.id);
   }
 
-  /** Motorized and armoured divisions are a third of the army or more (the shock armies of ww80 section 5). */
+  /** Motorized, armoured and assault divisions are a third of the army or more (the shock armies of ww80 section 5). */
   private shock(a: Army): boolean {
     const rows = armyRows(this.land, a);
     let n = 0;
     for (const r of rows) {
       const flags = this.land.baseStatsOf(r).flags;
-      if ((flags & (TPL_ARMOR_ANY | TPL_MOTOR_ANY)) !== 0) n++;
+      if (
+        (flags & (TPL_ARMOR_ANY | TPL_MOTOR_ANY | TPL_MOUNTAIN_MAJOR)) !==
+        0
+      ) {
+        n++;
+      }
     }
     return n > 0 && n * 3 >= rows.length;
+  }
+
+  /** ww90: at least half the army's divisions have this flag. */
+  private mostly(a: Army, flag: number): boolean {
+    const rows = armyRows(this.land, a);
+    let n = 0;
+    for (const r of rows) {
+      if ((this.land.baseStatsOf(r).flags & flag) !== 0) n++;
+    }
+    return n > 0 && n * 2 >= rows.length;
+  }
+
+  /** ww90: heavy tanks or assault infantry are at the army's head: forts cost it less. */
+  private breaksForts(armies: readonly Army[]): boolean {
+    return armies.some((a) => {
+      for (const r of armyRows(this.land, a)) {
+        const flags = this.land.baseStatsOf(r).flags;
+        if ((flags & (TPL_HEAVY_LEAD | TPL_MOUNTAIN_MAJOR)) !== 0) return true;
+      }
+      return false;
+    });
   }
 
   /**
@@ -2247,6 +2309,7 @@ class AiDay {
       regions,
       wwRoll(land.ww.politics.seed, P_AXIS, this.me, period, f.enemy),
       waiting,
+      this.breaksForts(able),
     );
   }
 
@@ -3247,7 +3310,9 @@ class AiDay {
         targets: [x],
         favorable: false,
         allIn: false,
-        advance: false,
+        // ww90: fast armies run through what they break; the stop rules
+        // (org, ratio, supply) still end it.
+        advance: this.mostly(s.a, TPL_EXPLOIT),
       });
       return;
     }
@@ -3693,6 +3758,8 @@ class AiDay {
     for (const tpl of cl.templates) {
       const s = land.templateStatsOf(this.me, tpl.id);
       if (s === null) continue;
+      // ww90: tanks with no infantry can't hold what they take.
+      if ((s.flags & TPL_BARE_ARMOR) !== 0) continue;
       // Task 11 round 2: a template over the special-forces cap is not
       // offered (its order would be refused every day, and the role it
       // stands for blocked all training: Germany's mountain division held
@@ -3718,14 +3785,14 @@ class AiDay {
       major: this.major,
       dev: land.scenario.devOf(cl.tag, civ),
       hasArmorTech: this.ce.researched.has("light_tank_1"),
-      hasMountains: land.econ
-        .regionsOf(this.me)
-        .some((r) => land.scenario.landOf(r) === "mountain"),
+      hasAssault: this.ce.researched.has("mountaineers"),
       training,
       atPeace,
       armorBonus: this.armorBonus(templates),
       fuelLow: this.ce.fuelRatioPm < 250,
       antiTankPct: this.antiTankPct(),
+      gunPct: this.gunPct(),
+      fortsAhead: this.fortsAhead(templates),
       manpower: this.ce.manpower,
       counts,
       templates,
@@ -3793,6 +3860,28 @@ class AiDay {
     return armor > pierce ? 20 : 10;
   }
 
+  /**
+   * ww90: the share of the line that is guns, for a country at war or about
+   * to be: 15 % for an aggressor, 10 % for anyone else. A barrage opens every band.
+   */
+  private gunPct(): number {
+    if (this.atWar.length === 0 && this.imminent.length === 0) return 0;
+    if (!this.ce.researched.has("artillery_1")) return 0;
+    return this.personality === "aggressor" ? 15 : 10;
+  }
+
+  /** ww90: an enemy at war holds a fort that takes heavy tanks, and we have the template. */
+  private fortsAhead(templates: readonly AiTrainTemplate[]): boolean {
+    if (!templates.some((t) => t.key === AI_HEAVY_KEY)) return false;
+    const econ = this.land.econ;
+    for (const e of this.atWar) {
+      for (const r of econ.regionsOf(e)) {
+        if (effectiveLevel(econ, r, "fort") >= AI_HEAVY_FORT_LEVEL) return true;
+      }
+    }
+    return false;
+  }
+
   /** The role of a template by id (the first is the infantry one). */
   private roleOfId(tpl: number): AiRole {
     const first = this.cl.templates[0]?.id;
@@ -3811,7 +3900,11 @@ class AiDay {
       if (r < 0) continue;
       const role = this.roleOfId(t.template[r]);
       if (role === "armor" || role === "motorized") armour++;
-      else if (role === "mountain" || role === "cavalry") apart++;
+      else if (role === "mountain" || role === "cavalry") {
+        // ww90: assault infantry goes with the line it breaks through for.
+        const flags = this.land.baseStatsOf(r).flags;
+        if ((flags & TPL_MOUNTAIN_MAJOR) === 0) apart++;
+      }
     }
     return { id: a.id, n: a.divisions.length + waiting, armour, apart };
   }
@@ -3980,6 +4073,19 @@ class AiDay {
         );
         this.saveTemplate(tpl.id, bns, tpl.def.support);
       }
+    }
+    // ww90: no armour without its infantry: a tank battalion gives way.
+    for (const tpl of cl.templates) {
+      const flags = templateStats(tpl.def, this.ce.stats, GEN1).flags;
+      if ((flags & TPL_BARE_ARMOR) === 0) continue;
+      if (!researched.has("motorized_1")) continue;
+      const i = tpl.def.battalions.findIndex(
+        (b) => BATTALIONS[b].kind === "armor",
+      );
+      if (i < 0) continue;
+      const bns = [...tpl.def.battalions];
+      bns[i] = "motorized";
+      this.saveTemplate(tpl.id, bns, tpl.def.support);
     }
   }
 

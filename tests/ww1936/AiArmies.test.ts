@@ -116,7 +116,7 @@ describe("ww81 anti-tank share", () => {
     major: true,
     dev: 5,
     hasArmorTech: false,
-    hasMountains: false,
+    hasAssault: false,
     training: 9,
     manpower: 1_000_000,
     counts: { infantry: 30, armor: 0, motorized: 0, mountain: 0, cavalry: 0 },
