@@ -7,11 +7,14 @@ import {
   type EquipmentType,
   type WwTechId,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
-import { EQUIPMENT, genTech, unitCostMilli } from "../Equipment";
+import { EQUIPMENT, genTech } from "../Equipment";
 import { WW_TECHS } from "../WwTechs";
+import { histStatsOf } from "./Convert";
+import type { GearStats } from "./ConvertGear";
 import { tankGroupOf } from "./ConvertTank";
 import { HIST_CATALOGUE } from "./index";
-import type { HistCountry, HistEntry, TankEntry } from "./Types";
+import { staticGearCostMilli } from "./StaticCost";
+import type { GunEntry, HistCountry, HistEntry, TankEntry } from "./Types";
 
 /** The design kind an entry occupies a slot of (gear entries: none, they are static keys). */
 export function histKindOf(e: HistEntry): DesignKind | null {
@@ -58,6 +61,59 @@ export function histStaticEntry(
   country: HistCountry,
   type: string,
   gen: number,
+  researched?: ReadonlySet<string>,
+): HistEntry | undefined {
+  const base = baseStaticEntry(country, type, gen);
+  if (researched === undefined || base === undefined) return base;
+  return betterGun(country, type, gen, base, researched);
+}
+
+/**
+ * ww91: with the techs in hand, a gun key shows the best entry of its role
+ * whose gate is the key's tech plus an improvement tech (art_imp, at_imp,
+ * aa_imp) the country has researched; the base stand-in otherwise. Best: the
+ * higher stat percent, then the higher pierce, then the earlier in the file.
+ */
+function betterGun(
+  country: HistCountry,
+  type: string,
+  gen: number,
+  base: HistEntry,
+  researched: ReadonlySet<string>,
+): HistEntry {
+  if (base.family !== "gun" || base.role !== type) return base;
+  const keyTech = (EQUIPMENT as Record<string, { techs: readonly string[] }>)[
+    type
+  ]?.techs[gen - 1];
+  let best = base;
+  let bestS = histStatsOf(base) as GearStats;
+  for (const e of HIST_CATALOGUE[country]) {
+    if (e === base || !isBetterGun(e) || e.role !== type) continue;
+    if (e.techs[0] !== keyTech || !e.techs.every((t) => researched.has(t))) {
+      continue;
+    }
+    const s = histStatsOf(e) as GearStats;
+    if (
+      s.statPct > bestS.statPct ||
+      (s.statPct === bestS.statPct && s.pierceCenti > bestS.pierceCenti)
+    ) {
+      best = e;
+      bestS = s;
+    }
+  }
+  return best;
+}
+
+/** A gun that waits for an improvement tech on top of its key's tech. */
+export function isBetterGun(e: HistEntry): e is GunEntry {
+  return e.family === "gun" && e.techs.some((t) => IMP_TECH.test(t));
+}
+const IMP_TECH = /^(art|at|aa)_imp_\d$/;
+
+function baseStaticEntry(
+  country: HistCountry,
+  type: string,
+  gen: number,
 ): HistEntry | undefined {
   const name = `${type}:${gen}`;
   const list = HIST_CATALOGUE[country];
@@ -78,7 +134,13 @@ export function histStaticEntry(
 }
 function gearMatches(e: HistEntry, type: string): boolean {
   if (type === "infantry_equipment") return e.family === "infantry";
-  if (type === "support_equipment") return e.family === "support";
+  // ww91: trucks stand in for the motorized key, the rest for the support key.
+  if (type === "motorized") {
+    return e.family === "support" && e.spec.kind === "transport";
+  }
+  if (type === "support_equipment") {
+    return e.family === "support" && e.spec.kind !== "transport";
+  }
   if (type === "artillery" || type === "anti_tank" || type === "anti_air") {
     return e.family === "gun" && e.role === type;
   }
@@ -102,8 +164,9 @@ export function histStaticName(
   country: HistCountry,
   type: string,
   gen: number,
+  researched?: ReadonlySet<string>,
 ): string | null {
-  const e = histStaticEntry(country, type, gen);
+  const e = histStaticEntry(country, type, gen, researched);
   return e === undefined ? null : `ww1936.hist.${e.id}`;
 }
 
@@ -129,6 +192,7 @@ export function histEntriesGatedBy(
 const GEAR_TYPES: readonly EquipmentType[] = [
   "infantry_equipment",
   "support_equipment",
+  "motorized",
   "artillery",
   "anti_tank",
   "anti_air",
@@ -160,12 +224,14 @@ function gearGatesMap(): ReadonlyMap<HistEntry, readonly WwTechId[]> {
  * tech, and an entry standing in for nothing has none: no tech ever gives it.
  */
 export function histGatesOf(e: HistEntry): readonly WwTechId[] {
+  // ww91: a better gun is gated by its own techs (key tech + improvement).
+  if (isBetterGun(e)) return e.techs;
   return histKindOf(e) !== null ? e.techs : (gearGatesMap().get(e) ?? []);
 }
 
 /** Whether the country really gets this entry from some tech. */
 function histInUse(e: HistEntry): boolean {
-  return histKindOf(e) !== null || gearGatesMap().has(e);
+  return histKindOf(e) !== null || isBetterGun(e) || gearGatesMap().has(e);
 }
 
 /** A country's entries that can be fielded, in catalogue order. */
@@ -243,10 +309,9 @@ export function techRelevance(tech: WwTechId, country: string): TechRelevance {
 }
 
 /**
- * B8: the milli industry points production really charges for a gear
- * entry: the generic cost of the static key it stands in for (production
- * charges the key's table, not the entry's own figure). Null for an entry
- * no static key maps to.
+ * The milli industry points production charges for a gear entry: the cost of
+ * the static key it stands in for, at the halved gap (ww91, StaticCost). Null
+ * for an entry no static key maps to.
  */
 export function histGearChargeMilli(e: HistEntry): number | null {
   if (e.family !== "infantry" && e.family !== "support" && e.family !== "gun") {
@@ -255,7 +320,7 @@ export function histGearChargeMilli(e: HistEntry): number | null {
   for (const type of GEAR_TYPES) {
     for (let g = 1; g <= EQUIPMENT_GENS[type]; g++) {
       if (histStaticEntry(e.country, type, g) === e) {
-        return unitCostMilli(type, g);
+        return staticGearCostMilli(e.country, type, g);
       }
     }
   }

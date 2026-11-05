@@ -1125,22 +1125,26 @@ export const FRA_HIST: readonly HistEntry[] = [
     id: "fra_citroen23",
     country: "FRA",
     family: "support",
-    techs: ["support_eq_1"],
+    techs: ["motorized_1"],
+    staticFor: "motorized:1",
     year: 1934,
     // Standard French army truck; estimate: against the US 2.5-ton truck (about 2,500 dollars).
     // Audit w66: Support set of 1936 under support_eq_1, so the static key finds it.
-    source: "Memory (Wikipedia; Citro\u00ebn Type 23, 3.5 t).",
+    source:
+      "Memory (Wikipedia; Citro\u00ebn U23, 1.5 t payload; ww91 check against the Wikipedia article).",
     spec: {
       kind: "transport",
       rangeKm: 400,
       costUsd: 2000,
+      reliability: 3,
     },
   },
   {
     id: "fra_unic_p107",
     country: "FRA",
     family: "support",
-    techs: ["motorized_1"],
+    techs: ["support_eq_1"],
+    staticFor: "support_equipment:1",
     year: 1938,
     // Half-track carrier, Kégresse-style; 3,000 built.
     source: "Memory (Wikipedia; Unic P107).",
@@ -1177,7 +1181,7 @@ export const FRA_HIST: readonly HistEntry[] = [
     country: "FRA",
     family: "gun",
     role: "artillery",
-    techs: ["artillery_1"],
+    techs: ["artillery_1", "art_imp_1"],
     year: 1913,
     // Estimate: against the US 105 mm M2.
     source: "Memory (Schneider 105 L; 15.7 kg shell, 12,100 m, 2,300 kg).",
@@ -1197,7 +1201,7 @@ export const FRA_HIST: readonly HistEntry[] = [
     country: "FRA",
     family: "gun",
     role: "artillery",
-    techs: ["artillery_1"],
+    techs: ["artillery_1", "art_imp_1"],
     year: 1917,
     // Estimate: against the US 155 mm M1.
     source:

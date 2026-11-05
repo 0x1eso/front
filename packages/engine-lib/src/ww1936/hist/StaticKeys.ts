@@ -2,7 +2,11 @@
 // client's template screens read the very numbers the engine does.
 import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
 import type { KeyStatsTable } from "@openfront/engine-api/ww1936/DepthTypes";
-import { KS, KS_FIELDS } from "@openfront/engine-api/ww1936/DepthTypes";
+import {
+  DS_HIST,
+  KS,
+  KS_FIELDS,
+} from "@openfront/engine-api/ww1936/DepthTypes";
 import { EQUIP_KEYS } from "@openfront/engine-api/ww1936/EconomyTypes";
 import {
   GROUND_EQUIP_KEYS,
@@ -11,12 +15,13 @@ import {
 import { rowScore, STATIC_KEY_STATS } from "../TemplateStats";
 import { histStatsOf } from "./Convert";
 import type { GearStats } from "./ConvertGear";
-import { tankStatsOfEntry } from "./ConvertTank";
+import { RELIABILITY_PM, tankStatsOfEntry } from "./ConvertTank";
 import { histStaticEntry } from "./Slots";
 import { HIST_COUNTRIES, type HistCountry } from "./Types";
 import { weakKeyRow } from "./WeakGeneric";
 
-const GEAR_FIELDS = [KS.soft, KS.hard, KS.def, KS.brk] as const;
+// ww91 (B16): an anti-air key also carries its air attack (the gun row of a country scales it).
+const GEAR_FIELDS = [KS.soft, KS.hard, KS.def, KS.brk, KS.aa] as const;
 
 /**
  * A major's static keys take their numbers from its catalogue (rule 7). A tank
@@ -32,6 +37,7 @@ const GEAR_FIELDS = [KS.soft, KS.hard, KS.def, KS.brk] as const;
 export function fillStaticKeys(
   country: HistCountry | null,
   t: KeyStatsTable,
+  researched?: ReadonlySet<string>,
 ): void {
   if (country === null) {
     for (let j = 0; j < GROUND_STATIC_SLOTS; j++) weakKeyRow(t, j);
@@ -42,7 +48,7 @@ export function fillStaticKeys(
   const lastGear = new Map<string, { pct: number; pierceRow: number }>();
   for (let j = 0; j < GROUND_STATIC_SLOTS; j++) {
     const [type, gen] = EQUIP_KEYS[GROUND_EQUIP_KEYS[j]];
-    const e = histStaticEntry(country, type, gen);
+    const e = histStaticEntry(country, type, gen, researched);
     const o = j * KS_FIELDS;
     const generic = STATIC_KEY_STATS.stats;
     if (e === undefined) {
@@ -99,6 +105,15 @@ export function fillStaticKeys(
     ) {
       continue;
     }
+    // ww91: a truck's row has no combat numbers; its reliability makes the
+    // slot wear while the division moves (Sustain.attrition reads DS_HIST).
+    if (type === "motorized") {
+      if (e.family === "support" && e.spec.reliability !== undefined) {
+        t.stats[o + KS.relPm] = RELIABILITY_PM[e.spec.reliability];
+        t.stats[o + KS.flags] |= DS_HIST;
+      }
+      continue;
+    }
     const g = histStatsOf(e) as GearStats;
     for (const f of GEAR_FIELDS) {
       t.stats[o + f] = Math.floor((generic[o + f] * g.statPct) / 100);
@@ -109,7 +124,10 @@ export function fillStaticKeys(
 }
 
 /** The static key table of a country with the designer off (what the engine's buildKeyStats makes for a fresh division). */
-export function histStaticKeyTable(tag: CountryTag): KeyStatsTable {
+export function histStaticKeyTable(
+  tag: CountryTag,
+  researched?: ReadonlySet<string>,
+): KeyStatsTable {
   const t: KeyStatsTable = {
     group: STATIC_KEY_STATS.group.slice(),
     year: STATIC_KEY_STATS.year.slice(),
@@ -121,6 +139,7 @@ export function histStaticKeyTable(tag: CountryTag): KeyStatsTable {
       ? (tag as HistCountry)
       : null,
     t,
+    researched,
   );
   return t;
 }

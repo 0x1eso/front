@@ -1770,17 +1770,19 @@ export const DEU_HIST: readonly HistEntry[] = [
     id: "deu_opel_blitz",
     country: "DEU",
     family: "support",
-    techs: ["support_eq_1"],
+    techs: ["motorized_1"],
+    staticFor: "motorized:1",
     year: 1937,
-    // Opel Blitz 3-ton 4x2 truck, about 410 km road range; about RM 5,000.
+    // Opel Blitz 3-ton 4x2 truck, about 410 km road range (weak source: one secondary listing, not checked against the maker); about RM 5,000.
     source: SRC_GEAR,
-    spec: { kind: "transport", rangeKm: 410, costUsd: 2000 },
+    spec: { kind: "transport", rangeKm: 410, costUsd: 2000, reliability: 3 },
   },
   {
     id: "deu_kuebelwagen",
     country: "DEU",
     family: "support",
     techs: ["support_eq_1"],
+    staticFor: "support_equipment:1",
     year: 1940,
     // Volkswagen Type 82 Kübelwagen light utility car, about 400 km range;
     // about RM 3,500.
@@ -1855,7 +1857,7 @@ export const DEU_HIST: readonly HistEntry[] = [
     country: "DEU",
     family: "gun",
     role: "anti_tank",
-    techs: ["anti_tank_1"],
+    techs: ["anti_tank_1", "at_imp_1"],
     year: 1940,
     // 5 cm Pak 38 L/60: 2.06 kg PzGr 39, 14 rpm, 70 mm at 500 m (sources 59-86),
     // 1,000 kg; about RM 8,500.
@@ -1899,7 +1901,7 @@ export const DEU_HIST: readonly HistEntry[] = [
     country: "DEU",
     family: "gun",
     role: "anti_tank",
-    techs: ["anti_tank_2"],
+    techs: ["anti_tank_2", "at_imp_2"],
     year: 1943,
     // 8.8 cm Pak 43 L/71: 10.2 kg PzGr 39/43, 10 rpm, about 210 mm at 500 m
     // (as the KwK 43), 4,400 kg; price estimated at RM 16,000.
@@ -1942,7 +1944,7 @@ export const DEU_HIST: readonly HistEntry[] = [
     country: "DEU",
     family: "gun",
     role: "anti_air",
-    techs: ["anti_air_1"],
+    techs: ["anti_air_1", "aa_imp_1"],
     year: 1936,
     // 8.8 cm Flak 36: 9.4 kg shell, 15 rpm, 8,000 m effective ceiling, about
     // 5,000 kg in action; about RM 33,000.

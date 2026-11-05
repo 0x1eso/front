@@ -266,6 +266,12 @@ export interface SupportSpec {
   rangeKm: number;
   /** Cost per set, 1940 US dollars. */
   costUsd: number;
+  /**
+   * ww91: a truck's mechanical reliability, 1..5 as for tanks (a judgement
+   * from the histories, not a sourced figure). A truck standing in for the
+   * motorized key wears while its division moves (Wear.breakdownPpm).
+   */
+  reliability?: 1 | 2 | 3 | 4 | 5;
 }
 export interface SupportEntry extends HistBase {
   family: "support";

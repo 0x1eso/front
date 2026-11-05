@@ -385,7 +385,17 @@ export class DepthIndustryModel {
     if (design !== null) return designDisplayName(design);
     const { type, gen } = this.keyRow(key);
     if (type === null) return "?";
-    const hist = staticItemName(histCountryOfGame(this.view), type, gen);
+    const me = this.view.myPlayer?.()?.smallID();
+    const done =
+      me === undefined
+        ? undefined
+        : this.view.wwEconomy?.()?.detail(me)?.researched;
+    const hist = staticItemName(
+      histCountryOfGame(this.view),
+      type,
+      gen,
+      done === undefined ? undefined : new Set<string>(done),
+    );
     return hist ?? `${equipmentName(type)} ${genName(gen)}`;
   }
 

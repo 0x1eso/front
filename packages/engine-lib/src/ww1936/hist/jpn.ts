@@ -1400,12 +1400,13 @@ export const JPN_HIST: readonly HistEntry[] = [
     id: "jpn_type94_truck",
     country: "JPN",
     family: "support",
-    techs: ["support_eq_1"],
+    techs: ["motorized_1"],
+    staticFor: "motorized:1",
     year: 1934,
     // The only country without a support entry; this was the army's standard truck.
     source:
       "From memory of the Wikipedia article (Isuzu Type 94 six-wheel truck); range and cost estimates",
-    spec: { kind: "transport", rangeKm: 400, costUsd: 2000 },
+    spec: { kind: "transport", rangeKm: 400, costUsd: 2000, reliability: 3 },
   },
   {
     id: "jpn_type38_75",
@@ -1553,7 +1554,7 @@ export const JPN_HIST: readonly HistEntry[] = [
     country: "JPN",
     family: "tank",
     role: "medium",
-    techs: ["modern_tank_1", "medium_tank_3"],
+    techs: ["modern_tank_1", "medium_tank_3", "tank_gun_3"],
     year: 1945,
     // ww85: One prototype by May 1945; the 75 mm gun was never fitted, so gun figures are those it was built for, as on jpn_type4_chito. No price found: estimate at the Chi-To's rate per tonne. Speed off road and hull slope as the Chi-To (no source gives them).
     source:
@@ -1794,5 +1795,17 @@ export const JPN_HIST: readonly HistEntry[] = [
       aircraft: 3,
       costM: 16.4,
     },
+  },
+  {
+    id: "jpn_kurogane_95",
+    country: "JPN",
+    family: "support",
+    techs: ["support_eq_1"],
+    staticFor: "support_equipment:1",
+    year: 1936,
+    // ww91: Kurogane Type 95 (Ki-Go) light 4x4 scout car, about 4,700 built from 1936; the army's jeep. Range and price are estimates (price at the US jeep's, no source found).
+    source:
+      "From memory of the Wikipedia article (Kurogane Type 95); range and cost estimates",
+    spec: { kind: "recon", rangeKm: 300, costUsd: 900 },
   },
 ];

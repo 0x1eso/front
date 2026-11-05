@@ -107,7 +107,7 @@ describe("the catalogue's gates (ww82 §5)", () => {
         }
       }
     }
-    expect(found).toBe(99);
+    expect(found).toBe(106); // ww91: the seven trucks stand in for the motorized key
   });
 
   it("a tank's gun tech follows its penetration at 500 m", () => {
@@ -125,22 +125,26 @@ describe("the catalogue's gates (ww82 §5)", () => {
     }
   });
 
-  it("gear counts only where it stands in: 30 entries are never fielded", () => {
+  it("gear counts only where it stands in: 9 entries are never fielded (ww91: trucks, support items and 15 better guns stand in)", () => {
     const gear = ALL.filter(
       (e) =>
         e.family === "infantry" || e.family === "support" || e.family === "gun",
     );
-    expect(gear.filter((e) => histGatesOf(e).length === 0)).toHaveLength(30);
-    // Pak 40's at_imp_2 gate was never real: the card no longer claims it.
-    expect(histEntriesGatedBy("at_imp_2", "DEU").map((e) => e.id)).toEqual([]);
+    expect(gear.filter((e) => histGatesOf(e).length === 0)).toHaveLength(9);
+    // Pak 40's at_imp_2 gate was never real; the Pak 43 really waits for it (ww91).
+    expect(histEntriesGatedBy("at_imp_2", "DEU").map((e) => e.id)).toEqual([
+      "deu_pak43",
+    ]);
   });
 });
 
 describe("what a tech is to a major (ww82 §8, §9)", () => {
   it("own, pass-through and generic; a minor is never dimmed", () => {
     expect(techRelevance("medium_tank_3", "DEU")).toBe("own");
-    expect(techRelevance("heavy_tank_2", "DEU")).toBe("pass");
-    expect(techRelevance("heavy_fighter_3", "DEU")).toBe("generic");
+    // heavy_tank_2 gates a German entry now (the Tiger II), so it is its own.
+    expect(techRelevance("heavy_tank_2", "DEU")).toBe("own");
+    expect(techRelevance("strat_bomber_1", "DEU")).toBe("pass");
+    expect(techRelevance("cl_2", "DEU")).toBe("generic");
     expect(techRelevance("medium_tank_3", "ITA")).toBe("generic");
     expect(techRelevance("medium_tank_3", "POL")).toBe("own");
     // Only generation and gun techs dim: gear and effects are real for all.
@@ -174,6 +178,7 @@ describe("what a tech is to a major (ww82 §8, §9)", () => {
     // POL's own value for the tech is the same score less the cut's absence.
     if (pol !== null) expect(ita).toBeLessThan(pol);
     const v = catalogueTechValues("DEU", new Set(), () => 100);
-    expect(v[WW_TECH_IDS.indexOf("at_imp_2")]).toBe(0);
+    // at_imp_2 now opens the Pak 43, so it pays; an unrelated improvement does not.
+    expect(v[WW_TECH_IDS.indexOf("at_imp_2")]).toBeGreaterThan(0);
   });
 });

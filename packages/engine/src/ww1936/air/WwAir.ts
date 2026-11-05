@@ -46,6 +46,7 @@ import { aceOnWingGone } from "../depth/Aces";
 import {
   designPlaneAsP4,
   loseDesignPlanes,
+  planeDesignSlotsOf,
   planeStatsOfKey,
   returnDesignPlanes,
 } from "../depth/Designs";
@@ -880,9 +881,21 @@ export class WwAir {
    */
   transportStatsOf(owner: number): PlaneStats {
     const ce = this.econ.country(owner);
-    return ce === null
-      ? planeStats("transport_plane", 1, emptyStats(), new Set())
-      : planeStats("transport_plane", 1, ce.stats, ce.researched);
+    if (ce === null) {
+      return planeStats("transport_plane", 1, emptyStats(), new Set());
+    }
+    // ww91 (B17): a major's best held catalogue transport (design slots by
+    // score, the first with stock) sets reach and run in; none held: generic.
+    const depth = this.ww.depth as WwDepth | undefined;
+    if (depth !== undefined) {
+      for (const slot of planeDesignSlotsOf(depth, owner, "transport_plane")) {
+        const key = equipKey("plane_design", slot);
+        if (ce.stock[key] <= 0) continue;
+        const ds = planeStatsOfKey(depth, owner, key);
+        if (ds !== null) return designPlaneAsP4(ds, "transport_plane");
+      }
+    }
+    return planeStats("transport_plane", 1, ce.stats, ce.researched);
   }
 
   /**

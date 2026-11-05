@@ -365,9 +365,7 @@ describe("the AI and point-defence fighters", () => {
       own.findIndex((e) => e.id === "deu_me163_b") + 1,
     );
     // The start pick has moved the 1936 line; put a static one back.
-    const line = ce.lines.find(
-      (l) => EQUIP_KEYS[l.key][0] === "plane_design",
-    )!;
+    const line = ce.lines.find((l) => EQUIP_KEYS[l.key][0] === "plane_design")!;
     line.key = equipKey("fighter", 1);
     aiPickNewPlaneLines(d, DEU, ce);
     expect(line.key).not.toBe(equipKey("fighter", 1));

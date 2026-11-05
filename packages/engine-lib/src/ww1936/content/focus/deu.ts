@@ -626,7 +626,13 @@ export const DEU_FOCUSES: FocusDef[] = [
     icon: "road",
     prereq: [["deu_panzer_arm"]],
     effects: [
-      { kind: "equipment", type: "motorized", gen: 1, count: 2000 },
+      {
+        kind: "equipment",
+        type: "motorized",
+        gen: 1,
+        count: 2000,
+        item: "deu_opel_blitz",
+      },
       { kind: "unlock_template", template: "deu_motorized_div" },
     ],
     ai: { base: 10 },

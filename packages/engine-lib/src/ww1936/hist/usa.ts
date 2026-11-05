@@ -1527,6 +1527,7 @@ export const USA_HIST: readonly HistEntry[] = [
     country: "USA",
     family: "support",
     techs: ["support_eq_1"],
+    staticFor: "support_equipment:1",
     year: 1941,
     // Willys MB / Ford GPW quarter-ton 4x4 (640,000 built): range about 480
     // km, cost about $900.
@@ -1548,12 +1549,13 @@ export const USA_HIST: readonly HistEntry[] = [
     id: "usa_cckw",
     country: "USA",
     family: "support",
-    techs: ["motorized_2"],
+    techs: ["motorized_1"],
+    staticFor: "motorized:1",
     year: 1941,
-    // GMC CCKW 2.5-ton 6x6 truck ("Jimmy", 562,000 built), range about 400
+    // GMC CCKW 2.5-ton 6x6 truck ("Jimmy"; 518,000 to 572,500 built, depending on what is counted), range about 400
     // km. Cost about $4,000 (estimate).
     source: SRC_GEAR,
-    spec: { kind: "transport", rangeKm: 400, costUsd: 4000 },
+    spec: { kind: "transport", rangeKm: 400, costUsd: 4000, reliability: 5 },
   },
   {
     id: "usa_m1897",
@@ -1670,7 +1672,7 @@ export const USA_HIST: readonly HistEntry[] = [
     country: "USA",
     family: "gun",
     role: "anti_tank",
-    techs: ["anti_tank_2"],
+    techs: ["anti_tank_2", "at_imp_2"],
     year: 1943,
     // 3-inch gun M5 (towed M7): 12 rounds per minute, 6.8 kg APC, about 98
     // mm at 500 m, 2,540 kg. Cost about $6k (estimate).

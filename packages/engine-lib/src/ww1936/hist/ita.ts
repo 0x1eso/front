@@ -1309,13 +1309,14 @@ export const ITA_HIST: readonly HistEntry[] = [
     id: "ita_fiat626",
     country: "ITA",
     family: "support",
-    techs: ["support_eq_1"],
+    techs: ["motorized_1"],
+    staticFor: "motorized:1",
     year: 1939,
     // Fiat 626 NL: 3-tonne army lorry, the common Italian truck; range of
     // about 450 km.
     source:
       "Wikipedia, Fiat 626, from memory; cost scaled from US 1.5-ton trucks",
-    spec: { kind: "transport", rangeKm: 450, costUsd: 1400 },
+    spec: { kind: "transport", rangeKm: 450, costUsd: 1400, reliability: 3 },
   },
   {
     id: "ita_lancia_3ro",
@@ -1334,6 +1335,7 @@ export const ITA_HIST: readonly HistEntry[] = [
     country: "ITA",
     family: "support",
     techs: ["support_eq_1"],
+    staticFor: "support_equipment:1",
     year: 1939,
     // Moto Guzzi Alce: 500 cc army motorcycle for reconnaissance and
     // dispatch riders, range about 350 km;
@@ -1410,7 +1412,7 @@ export const ITA_HIST: readonly HistEntry[] = [
     country: "ITA",
     family: "gun",
     role: "artillery",
-    techs: ["artillery_1"],
+    techs: ["artillery_1", "art_imp_1"],
     year: 1913,
     // Cannone da 105/28: 6 rounds a minute, range 13,000 m, shell 15.1 kg,
     // about 2,300 kg.
@@ -1452,7 +1454,7 @@ export const ITA_HIST: readonly HistEntry[] = [
     country: "ITA",
     family: "gun",
     role: "artillery",
-    techs: ["artillery_2"],
+    techs: ["artillery_2", "art_imp_2"],
     year: 1935,
     // Cannone da 149/40 Mod. 35: heavy gun, 2 rounds a minute, range
     // 23,700 m, shell 46 kg, about 11,300 kg.
@@ -1517,7 +1519,7 @@ export const ITA_HIST: readonly HistEntry[] = [
     country: "ITA",
     family: "gun",
     role: "anti_air",
-    techs: ["anti_air_1"],
+    techs: ["anti_air_1", "aa_imp_1"],
     year: 1939,
     // Cannone-mitragliera da 37/54 (Breda): 120 rounds a minute, effective
     // ceiling about 3,000 m, 0.82 kg shell.
@@ -1538,7 +1540,7 @@ export const ITA_HIST: readonly HistEntry[] = [
     country: "ITA",
     family: "gun",
     role: "anti_air",
-    techs: ["anti_air_1"],
+    techs: ["anti_air_1", "aa_imp_1"],
     year: 1934,
     // Cannone da 75/46 C.A. Mod. 34 (Ansaldo): 15 rounds a minute, ceiling
     // about 9,000 m, shell 6.5 kg, about 3,000 kg.

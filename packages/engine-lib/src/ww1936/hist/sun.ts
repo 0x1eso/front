@@ -1574,6 +1574,7 @@ export const SUN_HIST: readonly HistEntry[] = [
     country: "SUN",
     family: "support",
     techs: ["support_eq_1"],
+    staticFor: "support_equipment:1",
     year: 1932,
     // GAZ-AA 1.5 t truck (Ford AA licence); range about 195 km (the GAZ-55 ambulance on the same chassis is given 195 km). Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
     source: SRC_GEAR,
@@ -1583,11 +1584,12 @@ export const SUN_HIST: readonly HistEntry[] = [
     id: "sun_zis5",
     country: "SUN",
     family: "support",
-    techs: ["support_eq_1"],
+    techs: ["motorized_1"],
+    staticFor: "motorized:1",
     year: 1933,
     // ZiS-5 3 t truck; 60 l tank at 34 l per 100 km gives about 175 km (derived). Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
     source: SRC_GEAR,
-    spec: { kind: "transport", rangeKm: 175, costUsd: 1500 },
+    spec: { kind: "transport", rangeKm: 175, costUsd: 1500, reliability: 4 },
   },
   {
     id: "sun_gaz67",
@@ -1664,7 +1666,7 @@ export const SUN_HIST: readonly HistEntry[] = [
     country: "SUN",
     family: "gun",
     role: "artillery",
-    techs: ["artillery_2"],
+    techs: ["artillery_2", "art_imp_2"],
     year: 1937,
     // 152 mm ML-20 gun-howitzer: range 17,265 m, 43.5 kg shell, 7,270 kg, 4 rpm. Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
     source: SRC_GEAR,
@@ -1704,7 +1706,7 @@ export const SUN_HIST: readonly HistEntry[] = [
     country: "SUN",
     family: "gun",
     role: "anti_tank",
-    techs: ["anti_tank_1"],
+    techs: ["anti_tank_1", "at_imp_1"],
     year: 1942,
     // 45 mm anti-tank gun M1942 (M-42), longer barrel: about 48 mm at 500 m (references 45-57), 625 kg. Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
     // Audit w66: M-42 L/66 about 50 mm at normal impact: 42 at 30 deg, below the Pak 38, above the 45 mm M1937.
@@ -1746,7 +1748,7 @@ export const SUN_HIST: readonly HistEntry[] = [
     country: "SUN",
     family: "gun",
     role: "anti_tank",
-    techs: ["anti_tank_2"],
+    techs: ["anti_tank_2", "at_imp_2"],
     year: 1944,
     // 100 mm BS-3 field gun: BR-412 about 150 mm at 500 m (30 degrees), range 20,000 m, 15.6 kg shell, 3,650 kg, 8 rpm. Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
     // Audit w66: Same D-10 round as the SU-100: 130.
@@ -1787,7 +1789,7 @@ export const SUN_HIST: readonly HistEntry[] = [
     country: "SUN",
     family: "gun",
     role: "anti_air",
-    techs: ["anti_air_1"],
+    techs: ["anti_air_1", "aa_imp_1"],
     year: 1939,
     // 37 mm 61-K AA gun (Bofors derivative): about 160 rpm, effective ceiling 3,000 m, 0.73 kg shell, mass approximate. Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
     source: SRC_GEAR,
@@ -1853,7 +1855,7 @@ export const SUN_HIST: readonly HistEntry[] = [
     country: "SUN",
     family: "tank",
     role: "medium",
-    techs: ["modern_tank_1", "medium_tank_3"],
+    techs: ["modern_tank_1", "medium_tank_3", "tank_gun_3"],
     year: 1944,
     // ww85: Accepted 23 November 1944, 1,823 built to 1947, teething engine and gearbox faults. Same 85 mm as sun_t34_85. No price found: estimate just above the T-34-85's 34.
     source:
