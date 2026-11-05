@@ -21,6 +21,7 @@ import type {
 import { sharedResearchBonusPct } from "@openfront/engine-lib/ww1936/MechRules";
 import { addPpCapped } from "@openfront/engine-lib/ww1936/PoliticsRules";
 import type { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
+import { liveTechCount } from "@openfront/engine-lib/ww1936/WwTechs";
 import { payPp } from "../politics/PayPp";
 import { addSpirit } from "../politics/Spirits";
 import type { WwDepth } from "./WwDepth";
@@ -242,7 +243,8 @@ export function goalProgressPm(
     case "fg_research": {
       let techs = 0;
       for (const m of members) {
-        techs += d.ww.economy.country(m)?.researched.size ?? 0;
+        const ce = d.ww.economy.country(m);
+        if (ce !== null) techs += liveTechCount(ce.researched);
       }
       return pm(techs, members.length * GOAL_TECHS_PER_MEMBER);
     }

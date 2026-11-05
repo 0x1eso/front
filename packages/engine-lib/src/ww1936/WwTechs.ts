@@ -164,7 +164,7 @@ export interface WwTechDef {
   year: number;
   prereqs: readonly WwTechId[];
   effects: Partial<WwStats>;
-  /** Research days multiplier ‰ (COST_IMP / COST_NORMAL / COST_BIG). */
+  /** Research days multiplier ‰ (COST_IMP / COST_NORMAL / COST_BIG; a merged tech: the sum of its members). */
   costPm: number;
   role: TechRole;
   /**
@@ -178,11 +178,14 @@ export interface WwTechDef {
   design?: TechDesignPart;
   school?: DoctrineSchool;
   /**
-   * P6 (plan decision 25, spec §1.4): an old doctrine tech. Its id stays in
-   * WW_TECH_IDS; it cannot be researched, the screens skip it and its
-   * effects are empty (the grand doctrines carry them now).
+   * P6 (plan decision 25, spec §1.4): an old doctrine tech, or (ww82) a tech
+   * merged into another. Its id stays in WW_TECH_IDS; it cannot be
+   * researched, the screens skip it and its effects are empty (the grand
+   * doctrines or the keeper carry them now).
    */
   retired?: true;
+  /** ww82: the old techs this one holds: finishing it marks them researched too. */
+  absorbs?: readonly WwTechId[];
 }
 
 /** The support companies (research overhaul changes §2.6: the support tab). */
@@ -300,7 +303,9 @@ const BASE_TECHS: Readonly<Record<WwTechId, WwTechDef>> = {
   artillery_2: t("artillery_2", "artillery", 1939, ["artillery_1"]),
   artillery_3: t("artillery_3", "artillery", 1942, ["artillery_2"]),
   anti_tank_1: t("anti_tank_1", "artillery", 1936, ["artillery_1"]),
-  anti_tank_2: t("anti_tank_2", "artillery", 1940, ["anti_tank_1"]),
+  anti_tank_2: t("anti_tank_2", "artillery", 1940, ["anti_tank_1"], {
+    tankFearCutPp: 5,
+  }),
   anti_air_1: t("anti_air_1", "artillery", 1936, ["artillery_1"]),
   anti_air_2: t("anti_air_2", "artillery", 1940, ["anti_air_1"]),
   light_tank_1: t("light_tank_1", "armour", 1936, ["motorized_1"]),
@@ -597,10 +602,17 @@ const BASE_TECHS: Readonly<Record<WwTechId, WwTechDef>> = {
   flame_tank: t("flame_tank", "armour", 1938, ["engineer_company"], {
     fortPenaltyCutPct: 5,
   }),
-  dual_purpose_guns: t("dual_purpose_guns", "naval", 1940, ["fire_control_1"]),
-  naval_radar_2: t("naval_radar_2", "naval", 1942, ["naval_radar_1"], {
-    navalDetectPct: 5,
-  }),
+  // ww82: holds naval_aa_1 and naval_aa_2 (ShipStats reads the three ids).
+  dual_purpose_guns: {
+    ...t("dual_purpose_guns", "naval", 1940, ["anti_air_1"]),
+    costPm: 2438,
+  },
+  naval_radar_2: {
+    ...t("naval_radar_2", "naval", 1940, ["electronics_1"], {
+      navalDetectPct: 5,
+    }),
+    costPm: 2084,
+  },
   armored_deck: t("armored_deck", "naval", 1939, ["cv_2"], {
     navalDamageTakenPct: -4,
   }),
@@ -646,14 +658,16 @@ const BASE_TECHS: Readonly<Record<WwTechId, WwTechDef>> = {
   support_imp_1: n("support_imp_1", "infantry", 1938, ["support_eq_1"], {
     supportCompanyPct: 5,
   }),
+  // ww82: Field kit, an id kept from the winter gear the terrain rules read.
   winter_gear_1: n("winter_gear_1", "infantry", 1938, ["inf_eq_1"], {
-    winterPenaltyPct: 25,
+    infOrg: 3,
   }),
   motorized_2: n("motorized_2", "infantry", 1939, ["motorized_1"], {
     motSpeedPct: 10,
   }),
+  // ww82: Field supply, an id kept from the desert gear.
   desert_gear_1: n("desert_gear_1", "infantry", 1939, ["inf_eq_1"], {
-    desertAttackPct: 10,
+    supplyUsePct: -3,
   }),
   inf_imp_2: n("inf_imp_2", "infantry", 1940, ["inf_eq_2", "inf_imp_1"], {
     infAttackPct: 5,
@@ -663,15 +677,15 @@ const BASE_TECHS: Readonly<Record<WwTechId, WwTechDef>> = {
     "infantry",
     1940,
     ["marines"],
-    { invasionPrepPct: -10 },
-    { role: "unit" },
+    { invasionPrepPct: -15 },
+    { role: "unit", cost: 1834 },
   ),
   inf_at_1: n(
     "inf_at_1",
     "infantry",
     1941,
     ["inf_eq_2", "anti_tank_1"],
-    { infHardPct: 15 },
+    { infHardPct: 15, tankFearCutPp: 5 },
     { cost: COST_NORMAL },
   ),
   para_2: n(
@@ -690,13 +704,15 @@ const BASE_TECHS: Readonly<Record<WwTechId, WwTechDef>> = {
     { motOrg: 3, motSpeedPct: 5 },
     { cost: COST_NORMAL },
   ),
+  // The portable anti-tank weapon: one line for everyone, no rocketry, so a
+  // minor reaches it too. Pierce 4 to 25, hard attack +1.
   inf_at_2: n(
     "inf_at_2",
     "infantry",
-    1943,
-    ["inf_at_1", "rocketry_1"],
-    { infHardPct: 15 },
-    { cost: COST_NORMAL },
+    1942,
+    ["inf_at_1"],
+    { infAtPierce: 2100, infAtHard: 100, tankFearCutPp: 5 },
+    { cost: 1072 },
   ),
   inf_imp_3: n(
     "inf_imp_3",
@@ -728,7 +744,7 @@ const BASE_TECHS: Readonly<Record<WwTechId, WwTechDef>> = {
     "support",
     1939,
     ["recon_company"],
-    { reconPct: 10 },
+    { reconPct: 25 },
     { role: "unit" },
   ),
   field_maintenance: n(
@@ -776,15 +792,15 @@ const BASE_TECHS: Readonly<Record<WwTechId, WwTechDef>> = {
     "support",
     1942,
     ["engineer_2"],
-    { fortPenaltyCutPct: 10 },
-    { role: "unit" },
+    { fortPenaltyCutPct: 15 },
+    { role: "unit", cost: 1465 },
   ),
   recon_3: n(
     "recon_3",
     "support",
     1942,
     ["recon_2", "radio_1"],
-    { reconPct: 10 },
+    { reconPct: 25 },
     { role: "unit" },
   ),
   logistics_3: n(
@@ -898,6 +914,7 @@ const BASE_TECHS: Readonly<Record<WwTechId, WwTechDef>> = {
   ),
   at_imp_1: n("at_imp_1", "artillery", 1938, ["anti_tank_1"], {
     atPiercePct: 10,
+    tankFearCutPp: 5,
   }),
   aa_imp_1: n("aa_imp_1", "artillery", 1938, ["anti_air_1"], { aaPct: 10 }),
   art_imp_2: n("art_imp_2", "artillery", 1940, ["artillery_2", "art_imp_1"], {
@@ -914,6 +931,7 @@ const BASE_TECHS: Readonly<Record<WwTechId, WwTechDef>> = {
   at_imp_2: n("at_imp_2", "artillery", 1941, ["anti_tank_2", "at_imp_1"], {
     atPiercePct: 10,
     atHardPct: 5,
+    tankFearCutPp: 5,
   }),
   aa_imp_2: n("aa_imp_2", "artillery", 1941, ["anti_air_2", "aa_imp_1"], {
     aaPct: 10,
@@ -963,11 +981,11 @@ const BASE_TECHS: Readonly<Record<WwTechId, WwTechDef>> = {
   fire_control_2: n(
     "fire_control_2",
     "naval",
-    1941,
-    ["fire_control_1", "naval_radar_1"],
+    1939,
+    [],
     {},
     {
-      cost: COST_NORMAL,
+      cost: 2091,
       role: "module",
       design: { designer: "ship", part: "module", id: "fc_2" },
     },
@@ -983,22 +1001,37 @@ const BASE_TECHS: Readonly<Record<WwTechId, WwTechDef>> = {
       design: { designer: "ship", part: "module", id: "aa_3" },
     },
   ),
-  damage_control_2: n("damage_control_2", "naval", 1941, ["damage_control_1"], {
-    navalDamageTakenPct: -5,
-    repairPct: 10,
-  }),
-  naval_engine_3: n("naval_engine_3", "naval", 1942, ["naval_engine_2"], {
-    navalSpeedPct: 5,
-  }),
-  hedgehog: n("hedgehog", "naval", 1942, ["depth_charge_2", "sonar_2"], {
-    depthChargePct: 15,
-  }),
+  damage_control_2: n(
+    "damage_control_2",
+    "naval",
+    1939,
+    [],
+    { navalDamageTakenPct: -10, repairPct: 10 },
+    { cost: 1569 },
+  ),
+  naval_engine_3: n(
+    "naval_engine_3",
+    "naval",
+    1940,
+    [],
+    { navalSpeedPct: 10 },
+    { cost: 1563 },
+  ),
+  hedgehog: n(
+    "hedgehog",
+    "naval",
+    1941,
+    ["sonar_2"],
+    { depthChargePct: 30 },
+    { cost: 1500 },
+  ),
   convoy_escort_2: n(
     "convoy_escort_2",
     "naval",
-    1942,
-    ["convoy_escort_1", "sonar_2"],
-    { convoyEscortPct: 10 },
+    1940,
+    ["dd_2", "sonar_2"],
+    { convoyEscortPct: 20 },
+    { cost: 1563 },
   ),
   carrier_deck_2: n(
     "carrier_deck_2",
@@ -1011,10 +1044,10 @@ const BASE_TECHS: Readonly<Record<WwTechId, WwTechDef>> = {
   torpedo_3: n(
     "torpedo_3",
     "naval",
-    1943,
-    ["torpedo_2", "sonar_2"],
-    { torpedoPct: 10, subTorpedoPct: 10 },
-    { cost: COST_NORMAL },
+    1941,
+    ["torpedo_1", "sonar_2"],
+    { torpedoPct: 20, subTorpedoPct: 10 },
+    { cost: 1847 },
   ),
   // -- air
   aero_engine_2: n("aero_engine_2", "air", 1939, ["fighter_1"], {
@@ -1054,26 +1087,41 @@ const BASE_TECHS: Readonly<Record<WwTechId, WwTechDef>> = {
   aero_engine_3: n("aero_engine_3", "air", 1942, ["aero_engine_2"], {
     airAgilityPct: 5,
   }),
-  bomb_sight_2: n("bomb_sight_2", "air", 1942, ["bomb_sight_1"], {
-    stratBombPct: 10,
-  }),
-  naval_strike_2: n("naval_strike_2", "air", 1942, ["naval_strike_1"], {
-    navalStrikePct: 10,
-  }),
+  bomb_sight_2: n(
+    "bomb_sight_2",
+    "air",
+    1940,
+    ["bomber_1"],
+    { stratBombPct: 15 },
+    { cost: 1792 },
+  ),
+  naval_strike_2: n(
+    "naval_strike_2",
+    "air",
+    1940,
+    ["naval_bomber_1"],
+    { navalStrikePct: 20 },
+    { cost: 1563 },
+  ),
   aero_engine_4: n("aero_engine_4", "air", 1944, ["aero_engine_3"], {
     airAgilityPct: 5,
   }),
-  air_rockets_2: n("air_rockets_2", "air", 1944, ["air_rockets_1"], {
-    casPct: 10,
-  }),
+  air_rockets_2: n(
+    "air_rockets_2",
+    "air",
+    1943,
+    ["cas_2"],
+    { casPct: 15 },
+    { cost: 1734 },
+  ),
   air_radar_2: n(
     "air_radar_2",
     "air",
-    1944,
-    ["air_radar_1", "radar_2"],
-    { airDetectPct: 5 },
+    1942,
+    ["radar_2"],
+    { airDetectPct: 10 },
     {
-      cost: COST_NORMAL,
+      cost: 2072,
       role: "module",
       design: { designer: "plane", part: "module", id: "radar_2" },
     },
@@ -1389,6 +1437,64 @@ const BASE_TECHS: Readonly<Record<WwTechId, WwTechDef>> = {
     {},
     { cost: COST_NORMAL, role: "eco" },
   ),
+  // ---- ww82: the merged techs, appended. Each holds the old techs of
+  // TECH_ABSORBS: their effects summed here, their costs summed in costPm.
+  tank_armour_1: n(
+    "tank_armour_1",
+    "armour",
+    1938,
+    ["light_tank_2"],
+    { armorArmorPct: 10 },
+    { cost: 1900 },
+  ),
+  tank_armour_2: n(
+    "tank_armour_2",
+    "armour",
+    1941,
+    ["tank_armour_1", "medium_tank_1"],
+    { armorArmorPct: 10 },
+    { cost: 1789 },
+  ),
+  tank_drive_1: n(
+    "tank_drive_1",
+    "armour",
+    1939,
+    ["light_tank_2", "motorized_1"],
+    { armorSpeedPct: 10, armorBrkPct: 4, mechOrg: 4, armorRelPp: 5 },
+    { cost: 3750 },
+  ),
+  tank_drive_2: n(
+    "tank_drive_2",
+    "armour",
+    1942,
+    ["tank_drive_1", "medium_tank_1"],
+    { armorSpeedPct: 10, armorBrkPct: 3, mechOrg: 3, armorRelPp: 5 },
+    { cost: 2750 },
+  ),
+  tank_command: n(
+    "tank_command",
+    "armour",
+    1939,
+    ["light_tank_2", "electronics_1"],
+    { armorBrkPct: 5, mechOrg: 3 },
+    { cost: 1796 },
+  ),
+  air_protection: n(
+    "air_protection",
+    "air",
+    1938,
+    ["fighter_1"],
+    { airLossCutPct: 8 },
+    { cost: 1825 },
+  ),
+  air_range: n(
+    "air_range",
+    "air",
+    1939,
+    ["fighter_1"],
+    { airRangePct: 15 },
+    { cost: 1819 },
+  ),
 } as Record<WwTechId, WwTechDef>;
 
 /** P6 (plan decision 25, spec §1.4): the 20 old doctrine techs, retired. */
@@ -1414,16 +1520,63 @@ export const RETIRED_DOCTRINE_TECHS: readonly WwTechId[] = [
   "operational_integrity_1",
   "operational_integrity_2",
 ];
-const RETIRED = new Set<WwTechId>(RETIRED_DOCTRINE_TECHS);
 
-/** Spec §9.4; P6: the retired doctrine techs keep their row, empty. */
+/**
+ * ww82: the techs that hold others. Finishing one also marks what it absorbs
+ * as researched (CountryEconomy.addTech), so every reader of an old id (the
+ * designer's part rows, ShipStats, NavalBattles, Spotting, has_tech) keeps
+ * working. An absorbed tech is retired: no one starts it and it adds nothing,
+ * its effects live on the keeper.
+ */
+export const TECH_ABSORBS: Readonly<
+  Partial<Record<WwTechId, readonly WwTechId[]>>
+> = {
+  tank_armour_1: ["cast_armor", "armor_plate_2"],
+  tank_armour_2: ["sloped_armor", "armor_plate_3"],
+  tank_drive_1: [
+    "diesel_engine",
+    "torsion_bar",
+    "tank_engine_2",
+    "tank_reliability_1",
+  ],
+  tank_drive_2: ["interleaved_wheels", "tank_engine_3", "tank_reliability_2"],
+  tank_command: ["tank_radio", "armor_coordination"],
+  marines_2: ["amphibious_drive"],
+  engineer_3: ["flame_tank"],
+  air_protection: ["self_sealing_tanks", "air_armor_1"],
+  air_range: ["drop_tanks", "long_range_1"],
+  bomb_sight_2: ["bomb_sight_1"],
+  naval_strike_2: ["naval_strike_1"],
+  air_rockets_2: ["air_rockets_1"],
+  air_radar_2: ["air_radar_1"],
+  dual_purpose_guns: ["naval_aa_1", "naval_aa_2"],
+  naval_radar_2: ["naval_radar_1"],
+  fire_control_2: ["fire_control_1"],
+  damage_control_2: ["damage_control_1"],
+  naval_engine_3: ["naval_engine_2"],
+  hedgehog: ["depth_charge_2"],
+  convoy_escort_2: ["convoy_escort_1"],
+  torpedo_3: ["torpedo_2"],
+};
+
+const RETIRED = new Set<WwTechId>([
+  ...RETIRED_DOCTRINE_TECHS,
+  ...Object.values(TECH_ABSORBS).flat(),
+]);
+
+/** Spec §9.4; P6, ww82: the retired techs keep their row, empty. */
 export const WW_TECHS: Readonly<Record<WwTechId, WwTechDef>> =
   Object.fromEntries(
     WW_TECH_IDS.map((id) => {
       const d = BASE_TECHS[id];
+      const absorbs = TECH_ABSORBS[id];
       return [
         id,
-        RETIRED.has(id) ? { ...d, effects: {}, retired: true as const } : d,
+        RETIRED.has(id)
+          ? { ...d, effects: {}, retired: true as const }
+          : absorbs === undefined
+            ? d
+            : { ...d, absorbs },
       ];
     }),
   ) as Record<WwTechId, WwTechDef>;
@@ -1440,6 +1593,13 @@ export function retiredTechEffects(id: WwTechId): Partial<WwStats> {
 /** P6: a tech no one researches (plan decision 25). */
 export function isRetiredTech(id: WwTechId): boolean {
   return WW_TECHS[id].retired === true;
+}
+
+/** ww82: how many techs of `researched` count: a merged old id is not a tech of its own. */
+export function liveTechCount(researched: ReadonlySet<WwTechId>): number {
+  let n = 0;
+  for (const id of researched) if (!RETIRED.has(id)) n++;
+  return n;
 }
 
 const ZERO: TechEffects = {

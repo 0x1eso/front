@@ -1931,7 +1931,7 @@ export const USA_FOCUSES: FocusDef[] = [
     group: "usa_science",
     prereq: [["usa_escort_fighters"]],
     effects: [
-      { kind: "research_bonus", tech: "drop_tanks", pct: 100, uses: 1 },
+      { kind: "research_bonus", tech: "air_range", pct: 100, uses: 1 },
       {
         kind: "equipment",
         type: "fighter",

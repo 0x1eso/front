@@ -19,6 +19,7 @@ import {
   upgradeBlock,
 } from "@openfront/engine-lib/ww1936/IntelRules";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
+import { liveTechCount } from "@openfront/engine-lib/ww1936/WwTechs";
 import { foundAgency, startUpgrade } from "./Agency";
 import {
   activateCrypto,
@@ -196,10 +197,14 @@ export function topThreat(d: WwDepth, id: number): number {
 export function techLeader(d: WwDepth, id: number): number {
   const econ = d.ww.economy;
   let best = 0;
-  let most = econ.country(id)?.researched.size ?? 0;
+  const count = (t: number) => {
+    const ce = econ.country(t);
+    return ce === null ? 0 : liveTechCount(ce.researched);
+  };
+  let most = count(id);
   for (let t = 1; t < d.cap; t++) {
     if (t === id || !d.ww.isActor(t) || d.ww.sameFaction(id, t)) continue;
-    const n = econ.country(t)?.researched.size ?? 0;
+    const n = count(t);
     if (n > most) {
       best = t;
       most = n;

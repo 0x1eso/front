@@ -123,15 +123,13 @@ function useOf(id: WwTechId): TechUse {
   const d = WW_TECHS[id];
   if (d.tab === "naval") return "ship";
   if (d.tab === "armour") {
-    return id === "amphibious_drive" || id === "flame_tank" ? null : TANKS;
+    return TANKS;
   }
   if (d.tab === "air") {
     if (/^(fighter|aircraft_cannon|aero_engine|jet_airframe)/.test(id)) {
       return PLANES_FIGHTER;
     }
-    if (/^(self_sealing|drop_tanks|air_armor|long_range)/.test(id)) {
-      return PLANES_ALL;
-    }
+    if (id === "air_protection" || id === "air_range") return PLANES_ALL;
     if (id.startsWith("heavy_fighter")) return ["heavy_fighter"];
     if (/^(bomber|strat_bomber|bomb_sight|jet_bomber)/.test(id)) {
       return PLANES_BOMBER;
@@ -249,10 +247,8 @@ const FAVOURED_STAT: Readonly<
     "radar_1",
     "radar_2",
     "radar_3",
-    "naval_radar_1",
-    "convoy_escort_1",
+    "naval_radar_2",
     "convoy_escort_2",
-    "depth_charge_2",
     "hedgehog",
   ],
   USA: ["tools_2", "construction_2"],
@@ -636,7 +632,7 @@ function situationBonus(
   if (sit.antiTank === -1 && /^tank_gun/.test(id)) b += 25;
   if (
     sit.airLosses === true &&
-    /^(fighter|aircraft_cannon|aero_engine|air_armor|self_sealing)/.test(id)
+    /^(fighter|aircraft_cannon|aero_engine|air_protection)/.test(id)
   ) {
     b += 20;
   }
