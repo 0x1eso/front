@@ -1,6 +1,7 @@
 // World War 1936 P3 (spec §14.5, Task 5): the reasons P3 adds to a
 // declaration of war and what a declaration without a goal costs, on
 // ww1936pol with the test content.
+import { GameUpdateType } from "@openfront/engine-api/game/GameUpdates";
 import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
 import { IDEO_DEM } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
@@ -30,6 +31,7 @@ import {
   step,
   stepTo,
   wwRunner,
+  wwRunnerCapture,
 } from "./util";
 
 /** A spirit with the isolation rule (spec §9.1 rules; lane P reads them). */
@@ -165,6 +167,36 @@ describe(
       // A join uses no goal and costs nothing.
       expect(p.hasWarGoal(deu, csk)).toBe(true);
       expect(p.country(deu)!.stabBaseBp).toBe(5000);
+    });
+  },
+);
+
+// Game test: slow under the full suite's load.
+describe(
+  "a refused declaration is told to the player",
+  { timeout: 60_000 },
+  () => {
+    it("a pact that holds says so, instead of nothing", async () => {
+      const { runner, updates } = await wwRunnerCapture(
+        {},
+        [{ clientID: HUMAN, country: "DEU" }],
+        POL,
+      );
+      stepTo(runner, WW_PREP_TICKS + 1);
+      const g = runner.game;
+      const pl = byTag(g, "POL");
+      step(runner, 2, [
+        stamped(HUMAN, { type: "declare_war", target: pl.id() }),
+      ]);
+      expect(
+        g.worldWar()!.isAtWar(byTag(g, "DEU").smallID(), pl.smallID()),
+      ).toBe(false);
+      const told = updates
+        .flatMap((u) => u.updates[GameUpdateType.DisplayEvent])
+        .filter(
+          (m) => m.message === "events_display.ww1936_declare_blocked_nap",
+        );
+      expect(told).toHaveLength(1);
     });
   },
 );
