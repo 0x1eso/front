@@ -34,9 +34,11 @@ import {
   TPL_AMPHIBIOUS,
   TPL_ARMOR_ANY,
   TPL_ARMOR_MAJOR,
+  TPL_BARE_ARMOR,
   TPL_CAVALRY_MAJOR,
   TPL_FLAIL,
   TPL_FLAME,
+  TPL_FOOT_MAJOR,
   TPL_INFANTRY_DIV,
   TPL_MARINE_ANY,
   TPL_MARINE_MAJOR,
@@ -528,6 +530,24 @@ const AMBUSH_GUNS: ReadonlySet<string> = new Set([
 const gunAttackPierce = (p: number) =>
   Math.floor((p * GUN_ATTACK_PIERCE_PCT) / 100);
 
+/** ww84: foot battalions: what an infantry-line tech reaches. */
+const FOOT_KINDS: ReadonlySet<string> = new Set([
+  "infantry",
+  "cavalry",
+  "special",
+  "motor",
+]);
+
+/**
+ * ww84: what the portable anti-tank line adds to a foot battalion, centi:
+ * pierce and hard attack. The keys are the research lane's (WW_STAT_KEYS
+ * infAtPierce, infAtHard); read by name, 0 until a country has them.
+ */
+function portableAntiTank(tech: TechTotals): { pierce: number; hard: number } {
+  const st = tech as unknown as Partial<Record<string, number>>;
+  return { pierce: st.infAtPierce ?? 0, hard: st.infAtHard ?? 0 };
+}
+
 /** One carrier of hard attack: its need group, pierce (defending, attacking) and hard attack. */
 interface HardCarrier {
   group: number;
@@ -678,6 +698,7 @@ export function templateStats(
   let flags = 0;
   let special = 0;
   let armorN = 0;
+  let footN = 0;
   let motorN = 0;
   let mountainN = 0;
   let marineN = 0;
@@ -689,6 +710,7 @@ export function templateStats(
   let fuelWidth = 0;
   let fuelHour = 0;
   const st = tech as unknown as Partial<Record<WwStatKey, number>>;
+  const portable = portableAntiTank(tech);
   for (const id of def.battalions) {
     const d = BATTALIONS[id];
     const main = TYPE_INDEX.get(d.equip[0][0])!;
@@ -735,13 +757,15 @@ export function templateStats(
       ),
       bp.armor,
     );
-    const pierce = pctOf(
-      mix(
-        keyed(ks, main, g, KS.pierce, Math.floor((d.pierce * ga) / 100)),
-        KS.pierce,
-      ),
-      bp.pierce,
-    );
+    const foot = FOOT_KINDS.has(d.kind);
+    const pierce =
+      pctOf(
+        mix(
+          keyed(ks, main, g, KS.pierce, Math.floor((d.pierce * ga) / 100)),
+          KS.pierce,
+        ),
+        bp.pierce,
+      ) + (foot ? portable.pierce : 0);
     armorMax = Math.max(armorMax, armor);
     armorSum += armor;
     if (armor > 0) armoured++;
@@ -754,13 +778,14 @@ export function templateStats(
       soft = Math.floor((soft * (100 + tech.artillerySoftPct)) / 100);
     }
     parts[main * 4] += pctOf(soft, bp.soft);
-    const hard = pctOf(
-      mix(
-        keyed(ks, main, g, KS.hard, Math.floor((d.hard * gp) / 100)),
-        KS.hard,
-      ),
-      bp.hard,
-    );
+    const hard =
+      pctOf(
+        mix(
+          keyed(ks, main, g, KS.hard, Math.floor((d.hard * gp) / 100)),
+          KS.hard,
+        ),
+        bp.hard,
+      ) + (foot ? portable.hard : 0);
     parts[main * 4 + 1] += hard;
     carriers.push({
       group: main,
@@ -800,6 +825,7 @@ export function templateStats(
     for (const [t, k] of d.equip) need[TYPE_INDEX.get(t)!] += k;
     if (d.special) special++;
     if (d.kind === "armor") armorN++;
+    if (foot) footN++;
     if (d.kind === "motor" || id === "mot_artillery") motorN++;
     if (id === "mountain") mountainN++;
     if (id === "marine") marineN++;
@@ -860,6 +886,8 @@ export function templateStats(
   }
   if (armorN > 0) flags |= TPL_ARMOR_ANY;
   if (armorN * 2 >= n && n > 0) flags |= TPL_ARMOR_MAJOR;
+  if (footN * 2 >= n && n > 0) flags |= TPL_FOOT_MAJOR;
+  if (armorN * 2 >= n && n > 0 && footN * 3 < n) flags |= TPL_BARE_ARMOR;
   if (motorN > 0) flags |= TPL_MOTOR_ANY;
   if (mountainN > 0) flags |= TPL_MOUNTAIN_ANY;
   if (marineN > 0) flags |= TPL_MARINE_ANY;

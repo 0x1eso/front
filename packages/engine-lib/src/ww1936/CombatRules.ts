@@ -13,10 +13,12 @@ import {
   TPL_AMPHIBIOUS,
   TPL_ARMOR_ANY,
   TPL_ARMOR_MAJOR,
+  TPL_BARE_ARMOR,
   TPL_CAVALRY_MAJOR,
   TPL_ENGINEER,
   TPL_FLAIL,
   TPL_FLAME,
+  TPL_FOOT_MAJOR,
   TPL_INFANTRY_DIV,
   TPL_MARINE_ANY,
   TPL_MARINE_MAJOR,
@@ -161,6 +163,67 @@ export function roundHits(attack: number, block: number, prepBp = 0): number {
  */
 export const ORG_PER_HIT_E3 = 52;
 export const HP_PER_HIT_E3 = 36;
+
+/** ww84: the org damage a foot division takes defending, and tanks with no infantry, %. */
+export const FOOT_DEFENCE_ORG_PCT = 85;
+export const BARE_ARMOR_ORG_PCT = 125;
+
+/** ww84: what a defender with `flags` takes of the org damage dealt to it, %. */
+export function defenderOrgPct(flags: number): number {
+  return has(flags, TPL_BARE_ARMOR)
+    ? BARE_ARMOR_ORG_PCT
+    : has(flags, TPL_FOOT_MAJOR)
+      ? FOOT_DEFENCE_ORG_PCT
+      : 100;
+}
+
+/** ww84: what a trench takes off a tank's protection, ‰ a level, at most. */
+export const TRENCH_ANTI_TANK_PM = 50;
+export const TRENCH_ANTI_TANK_MAX_PM = 250;
+
+/** ww84: entrenched foot get at tanks close up: ‰ off the protection of what they hit. */
+export function trenchCutPm(flags: number, levels: number): number {
+  return has(flags, TPL_FOOT_MAJOR)
+    ? Math.min(TRENCH_ANTI_TANK_MAX_PM, TRENCH_ANTI_TANK_PM * levels)
+    : 0;
+}
+
+/** ww84: what tanks do to defenders with nothing to stop them, extra org damage, %. */
+export const TANK_FEAR_PCT = 25;
+
+/** The side's best pierce with something left to fire it. */
+function bestPierce(pierce: readonly number[], hard: readonly number[]): number {
+  let best = 0;
+  for (let i = 0; i < hard.length; i++) {
+    if (hard[i] > 0 && pierce[i] > best) best = pierce[i];
+  }
+  return best;
+}
+
+/**
+ * ww84: the research lane's key off the tank fear penalty (WW_STAT_KEYS
+ * tankFearCutPp): read by name, 0 until a country has it.
+ */
+export function tankFearCutPp(tech: TechTotals): number {
+  return (tech as unknown as Partial<Record<string, number>>).tankFearCutPp ?? 0;
+}
+
+/**
+ * ww84: tank fear, extra org damage % a defender takes from an armour-major
+ * attacker when its best pierce is at most a third of the attacker's armour,
+ * less `cutPp` (anti-tank research).
+ */
+export function tankFearPct(
+  bandPierce: readonly number[],
+  bandHard: readonly number[],
+  attackerArmor: number,
+  cutPp: number,
+): number {
+  if (attackerArmor <= 0 || bestPierce(bandPierce, bandHard) * 3 > attackerArmor) {
+    return 0;
+  }
+  return Math.max(0, TANK_FEAR_PCT - cutPp);
+}
 
 /** ww84: what armour stops of the hard part of a hit, ‰, with pierce at or below a third of it. */
 export const ARMOR_PROTECT_MAX_PM = 850;
@@ -622,9 +685,13 @@ export function planMaxBp(tech: TechTotals): number {
   return 3000 + tech.planMaxBp;
 }
 
-/** Entrenchment cap (spec §9.4): 5, +5 engineers, +2 battleplan_2 (tech.entrenchMax). */
+/**
+ * Entrenchment cap (spec §9.4): 5, +5 engineers, +2 battleplan_2
+ * (tech.entrenchMax). ww84: tanks with no infantry dig in half as deep.
+ */
 export function entrenchMax(flags: number, tech: TechTotals): number {
-  return 5 + (has(flags, TPL_ENGINEER) ? 5 : 0) + tech.entrenchMax;
+  const max = 5 + (has(flags, TPL_ENGINEER) ? 5 : 0) + tech.entrenchMax;
+  return has(flags, TPL_BARE_ARMOR) ? Math.floor(max / 2) : max;
 }
 
 /**
@@ -658,6 +725,29 @@ function sideProtectPm(
       ? Math.max(0, armorProtectPm(to.armor, from.pierce) - cutPm)
       : bandProtectPm(pierce, hard, to.armor, cutPm),
   );
+}
+
+/** ww84: a round's org damage to a defending side, by what it is made of and the attackers' tanks. */
+function sideDefOrg(
+  org: number,
+  att: SideSum,
+  def: SideSum,
+  ctx: BattleCtx,
+): number {
+  const fear =
+    def.bandPierce === undefined || def.bandHard === undefined
+      ? 0
+      : Math.floor(
+          (tankFearPct(
+            def.bandPierce,
+            def.bandHard,
+            att.armor,
+            ctx.tankFearCutPp ?? 0,
+          ) *
+            (att.armorMajorPm ?? 0)) /
+            1000,
+        );
+  return Math.floor((org * ((def.defOrgPct ?? 100) + fear)) / 100);
 }
 
 /**
@@ -701,20 +791,37 @@ export function predictBattle(
     ctx.defenderAttackBp,
   );
   const dA = applyBp(per(att.brk, att.divisions), ctx.attackerBlockBp);
-  const toDef = roundDamage(
-    roundHits(aA, dD, ctx.defenderPrepBp ?? 0),
-    sideProtectPm(att, def, true),
-  ).orgMilli;
+  const prepBp = ctx.defenderPrepBp ?? 0;
+  const toDef = sideDefOrg(
+    roundDamage(roundHits(aA, dD, prepBp), sideProtectPm(att, def, true))
+      .orgMilli,
+    att,
+    def,
+    ctx,
+  );
+  // Only the foot on the defending side reach the tanks from a trench.
+  const trench = Math.floor(
+    (Math.min(
+      TRENCH_ANTI_TANK_MAX_PM,
+      TRENCH_ANTI_TANK_PM * Math.floor(prepBp / POSITION_DEF_BP),
+    ) *
+      (def.footPm ?? 0)) /
+      1000,
+  );
   const toAtt = roundDamage(
     roundHits(aD, dA),
-    sideProtectPm(def, att, false),
+    sideProtectPm(def, att, false, trench),
   ).orgMilli;
   // ww8: close air support, a round's hits on one division with no block value.
   const casDef = ctx.casAttCenti ?? 0;
   const casAtt = ctx.casDefCenti ?? 0;
   const dmgDef =
     Math.floor((toDef * lineA) / 1000) +
-    (casDef > 0 ? roundDamage(casDef).orgMilli : 0);
+    (casDef > 0
+      ? Math.floor(
+          (roundDamage(casDef).orgMilli * (def.defOrgPct ?? 100)) / 100,
+        )
+      : 0);
   const dmgAtt =
     Math.floor((toAtt * lineD) / 1000) +
     (casAtt > 0 ? roundDamage(casAtt).orgMilli : 0);
@@ -845,6 +952,8 @@ export interface SideStats {
   bandPierce?: readonly number[];
   bandPierceAtk?: readonly number[];
   bandHard?: readonly number[];
+  /** TPL_* flags (absent: no division rule counts). */
+  flags?: number;
 }
 
 /** ww84: the most pierce bands a side sum keeps; the rest join the band nearest in pierce. */
@@ -905,6 +1014,15 @@ export function addToSide(sum: SideSum, s: SideStats, orgMilli: number): void {
     w1 === 0 ? 0 : Math.floor((sum.pierce * w0 + s.pierce * sw) / w1);
   sum.hardnessPm =
     w1 === 0 ? 0 : Math.floor((sum.hardnessPm * w0 + s.hardnessPm * sw) / w1);
+  const fl = s.flags ?? 0;
+  const weigh = (old: number, x: number) =>
+    w1 === 0 ? 0 : Math.floor((old * w0 + x * sw) / w1);
+  sum.defOrgPct = weigh(sum.defOrgPct ?? 100, defenderOrgPct(fl));
+  sum.footPm = weigh(sum.footPm ?? 0, has(fl, TPL_FOOT_MAJOR) ? 1000 : 0);
+  sum.armorMajorPm = weigh(
+    sum.armorMajorPm ?? 0,
+    has(fl, TPL_ARMOR_MAJOR) ? 1000 : 0,
+  );
   const hs = s.bandHard;
   if (hs === undefined || s.bandPierce === undefined) {
     addSideBand(sum, s.pierce, s.pierce, s.hard);

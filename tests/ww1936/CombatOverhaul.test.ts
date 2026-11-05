@@ -15,8 +15,10 @@ import {
   NEED_GROUPS,
   RETIRED_GENERAL_TRAITS,
   SupportId,
+  TPL_BARE_ARMOR,
   TPL_CAVALRY_MAJOR,
   TPL_ENGINEER,
+  TPL_FOOT_MAJOR,
   TPL_MARINE_MAJOR,
   TPL_MOUNTAIN_MAJOR,
   traitBit,
@@ -29,14 +31,21 @@ import {
   addToSide,
   armorProtectPm,
   ASSAULT_BREAK_BP,
+  BARE_ARMOR_ORG_PCT,
   bandProtectPm,
+  defenderOrgPct,
   divisionMods,
   emptySide,
+  entrenchMax,
+  FOOT_DEFENCE_ORG_PCT,
   FORT_ATTACK_BP,
   hitProtectPm,
   ModInput,
   predictBattle,
   RIVER_ATTACK_BP,
+  TANK_FEAR_PCT,
+  tankFearPct,
+  trenchCutPm,
 } from "@openfront/engine-lib/ww1936/CombatRules";
 import { GENERALS } from "@openfront/engine-lib/ww1936/Generals";
 import { moveNeed, moveStep } from "@openfront/engine-lib/ww1936/MoveRules";
@@ -473,4 +482,150 @@ describe("P2: armour and pierce bands", () => {
       toTanks.ratioPm,
     );
   });
+});
+
+describe("P3: infantry and armour", () => {
+  const tanks = stats([
+    ["medium_armor", 4],
+    ["motorized", 5],
+  ]);
+  const bare = stats([
+    ["medium_armor", 7],
+    ["motorized", 2],
+  ]);
+  const rifles = stats([["infantry", 9]]);
+  const side = (s: DivisionStats) => {
+    const sum = emptySide();
+    addToSide(sum, s, s.orgMilli);
+    return sum;
+  };
+  const ctx = {
+    land: "plains" as const,
+    directions: 1,
+    attackerAttackBp: 10_000,
+    attackerBlockBp: 10_000,
+    defenderAttackBp: 10_000,
+    defenderBlockBp: 10_000,
+  };
+
+  test("foot defend at −15 % org damage; tanks on their own at +25 %", () => {
+    expect(rifles.flags & TPL_FOOT_MAJOR).not.toBe(0);
+    expect(defenderOrgPct(rifles.flags)).toBe(FOOT_DEFENCE_ORG_PCT);
+    expect(tanks.flags & TPL_BARE_ARMOR).toBe(0);
+    expect(defenderOrgPct(tanks.flags)).toBe(FOOT_DEFENCE_ORG_PCT);
+    expect(bare.flags & TPL_BARE_ARMOR).not.toBe(0);
+    expect(defenderOrgPct(bare.flags)).toBe(BARE_ARMOR_ORG_PCT);
+    expect(defenderOrgPct(stats([["artillery", 9]]).flags)).toBe(100);
+  });
+
+  test("tanks on their own dig in half as deep", () => {
+    expect(entrenchMax(rifles.flags, ZERO)).toBe(5);
+    expect(entrenchMax(bare.flags, ZERO)).toBe(2);
+    expect(entrenchMax(bare.flags | TPL_ENGINEER, ZERO)).toBe(5);
+  });
+
+  test("a trench costs tanks 5 points of protection a level, 25 at most", () => {
+    expect(trenchCutPm(rifles.flags, 0)).toBe(0);
+    expect(trenchCutPm(rifles.flags, 3)).toBe(150);
+    expect(trenchCutPm(rifles.flags, 9)).toBe(250);
+    expect(trenchCutPm(stats([["artillery", 9]]).flags, 5)).toBe(0);
+    expect(bandProtectPm([400], [900], 4000, 250)).toBe(600);
+    expect(bandProtectPm([3900], [900], 4000, 250)).toBe(0);
+  });
+
+  test("tank fear: a line that can't reach a third of the armour takes 25 % more", () => {
+    expect(tankFearPct(rifles.bandPierce, rifles.bandHard, 4000, 0)).toBe(
+      TANK_FEAR_PCT,
+    );
+    // Research takes it off, five points a step.
+    expect(tankFearPct(rifles.bandPierce, rifles.bandHard, 4000, 10)).toBe(15);
+    expect(tankFearPct(rifles.bandPierce, rifles.bandHard, 4000, 30)).toBe(0);
+    const guns = stats([
+      ["infantry", 7],
+      ["anti_tank", 2],
+    ]);
+    expect(tankFearPct(guns.bandPierce, guns.bandHard, 4000, 0)).toBe(0);
+    // A gun with no crew left stops nobody's fear.
+    expect(tankFearPct(guns.bandPierce, [700, 0], 4000, 0)).toBe(TANK_FEAR_PCT);
+  });
+
+  test("portable anti-tank weapons: foot battalions' pierce and hard attack", () => {
+    const tech = { ...ZERO, infAtPierce: 2100, infAtHard: 100 };
+    const of = (b: BattalionId) =>
+      templateStats({ name: "", battalions: [b], support: [] }, tech, GEN1);
+    expect(of("infantry").bandPierce).toEqual([2500]);
+    expect(of("infantry").hard).toBe(200);
+    expect(of("motorized").bandPierce).toEqual([2500]);
+    expect(of("mountain").bandPierce).toEqual([2500]);
+    expect(of("artillery").bandPierce).toEqual([500]);
+    expect(of("medium_armor").bandPierce).toEqual([4500]);
+    // And rifles now reach past a third of a medium tank's armour.
+    const s = of("infantry");
+    expect(tankFearPct(s.bandPierce, s.bandHard, 4000, 0)).toBe(0);
+  });
+
+  test("the prediction knows all of it", () => {
+    const toFoot = predictBattle(side(tanks), side(rifles), ctx);
+    const fearless = predictBattle(side(tanks), side(rifles), {
+      ...ctx,
+      tankFearCutPp: 25,
+    });
+    // Tank fear: the armour-major share of the attackers counts (4 of 9 is
+    // no armour-major division, so here nothing).
+    expect(toFoot.ratioPm).toBe(fearless.ratioPm);
+    const heavy = stats([
+      ["medium_armor", 5],
+      ["motorized", 4],
+    ]);
+    expect(
+      predictBattle(side(heavy), side(rifles), ctx).ratioPm,
+    ).toBeGreaterThan(
+      predictBattle(side(heavy), side(rifles), { ...ctx, tankFearCutPp: 25 })
+        .ratioPm,
+    );
+    // Foot defend better than the same numbers without the rule.
+    const plainDef = { ...side(rifles), defOrgPct: 100 };
+    expect(predictBattle(side(rifles), plainDef, ctx).ratioPm).toBeGreaterThan(
+      predictBattle(side(rifles), side(rifles), ctx).ratioPm,
+    );
+    // A trench gets at the tanks.
+    const dug = { ...ctx, defenderPrepBp: 2500 };
+    const open = predictBattle(side(heavy), side(rifles), {
+      ...dug,
+      defenderBlockBp: 12_500,
+    });
+    const noFoot = { ...side(rifles), footPm: 0 };
+    expect(open.ratioPm).toBeLessThan(
+      predictBattle(side(heavy), noFoot, { ...dug, defenderBlockBp: 12_500 })
+        .ratioPm,
+    );
+  });
+
+  test("in a fight: a medium tank line scares rifles, and a battle applies the foot cut", async () => {
+    const round = async (by: "tank" | "rifle") => {
+      const { g, l } = await war();
+      const tpl = template(
+        g,
+        "DEU",
+        by === "tank"
+          ? [
+              ["medium_armor", 5],
+              ["motorized", 4],
+            ]
+          : [["infantry", 9]],
+      );
+      const pol = template(g, "POL", [["infantry", 9]]);
+      l.econ.country(byTag(g, "DEU").smallID())!.researched.add("medium_tank_1");
+      const a = placeArmy(g, "DEU", BERLIN, 1, tpl);
+      const d = placeArmy(g, "POL", WARSAW, 1, pol);
+      attack(l, a, WARSAW);
+      const t = l.divisions;
+      const r = t.rowOf(d.divisions[0]);
+      const was = t.org[r];
+      stepBattles(l, g.ticks());
+      return was - t.org[r];
+    };
+    expect(await round("rifle")).toBeGreaterThan(0);
+    expect(await round("tank")).toBeGreaterThan(await round("rifle"));
+  }, 120_000);
 });

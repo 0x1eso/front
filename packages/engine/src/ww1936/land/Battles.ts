@@ -30,6 +30,7 @@ import {
   ROLE_DEFEND,
   ROLE_NONE,
   TemplateDef,
+  TPL_ARMOR_MAJOR,
   TPL_CAVALRY_MAJOR,
   TPL_ENGINEER,
   TPL_HOSPITAL,
@@ -50,6 +51,7 @@ import {
   bandProtectPm,
   casCutHits,
   combatWidth,
+  defenderOrgPct,
   divisionMods,
   emptySide,
   entrenchMax,
@@ -62,6 +64,9 @@ import {
   predictBattleRange,
   roundDamage,
   roundHits,
+  tankFearCutPp,
+  tankFearPct,
+  trenchCutPm,
 } from "@openfront/engine-lib/ww1936/CombatRules";
 import { reliabilityLossBp } from "@openfront/engine-lib/ww1936/DesignRules";
 import { fuelCombatBp } from "@openfront/engine-lib/ww1936/FuelRules";
@@ -359,10 +364,21 @@ function fight(land: WwLand, b: Battle, tick: number): void {
               toDefends ? s.bandPierceAtk : s.bandPierce,
               s.bandHard,
               ts.armor,
+              toDefends
+                ? 0
+                : trenchCutPm(s.flags, t.entrench[from] + land.posLevel[R]),
             ),
           ),
     );
-    org.set(to, (org.get(to) ?? 0) + dmg.orgMilli);
+    // ww84: tanks through a line that can't stop them.
+    const fear =
+      toDefends && (s.flags & TPL_ARMOR_MAJOR) !== 0
+        ? tankFearPct(ts.bandPierce, ts.bandHard, s.armor, fearCutOf(land, to))
+        : 0;
+    org.set(
+      to,
+      (org.get(to) ?? 0) + Math.floor((dmg.orgMilli * (100 + fear)) / 100),
+    );
     hp.set(to, (hp.get(to) ?? 0) + dmg.hpMilli);
     deal(to, land.fightOwner(from), dmg.hpMilli);
     if (toDefends) {
@@ -428,7 +444,9 @@ function fight(land: WwLand, b: Battle, tick: number): void {
       // (assault's price, elastic and withdraw); every source of damage.
       const defending = t.role[r] === ROLE_DEFEND;
       const o = applyBp(o0, 10_000 + (defending ? fx.defOrgBp : fx.attOrgBp));
-      t.org[r] = Math.max(0, was - o);
+      // ww84: dug-in foot give less ground, tanks on their own more.
+      const pct = defending ? defenderOrgPct(land.flagsOf(r)) : 100;
+      t.org[r] = Math.max(0, was - Math.floor((o * pct) / 100));
       if (defending) {
         b.lostOrgMilli += was - t.org[r];
         if (t.org[r] === 0 && was > 0) noteRout(b, t.id[r], routBy.get(r) ?? 0);
@@ -1101,6 +1119,12 @@ export const ROUT_LOSS_PCT = 15;
 /** ww84: cavalry runs the broken down: what a defender it broke leaves, percent. */
 export const ROUT_LOSS_CAVALRY_PCT = ROUT_LOSS_PCT + 5;
 
+/** ww84: points row `to`'s country has off the tank fear penalty. */
+export function fearCutOf(land: WwLand, to: number): number {
+  const ce = land.econ.country(land.divisions.owner[to]);
+  return ce === null ? 0 : tankFearCutPp(ce.stats);
+}
+
 /** ww84: what a defender broken by a division with `flags` leaves behind, percent; 0: the plain rate. */
 function routPctBy(flags: number): number {
   return (flags & TPL_CAVALRY_MAJOR) !== 0 ? ROUT_LOSS_CAVALRY_PCT : 0;
@@ -1441,6 +1465,7 @@ export function battleExtras(
     defenderAttackBp: dm.attackBp,
     defenderBlockBp: dm.defenseBp,
     defenderPrepBp: dm.prepBp ?? 0,
+    tankFearCutPp: fearCutOf(land, firstDef),
   };
   // ww8: the wings on station count in the odds.
   const casA = land.hooks.casNowCenti(b.region, attSide);

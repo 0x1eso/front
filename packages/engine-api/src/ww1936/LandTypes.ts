@@ -278,6 +278,10 @@ export const TPL_FLAME = 1 << 15;
 export const TPL_AMPHIBIOUS = 1 << 16;
 export const TPL_FLAIL = 1 << 17;
 export const TPL_TD_DEFEND = 1 << 18;
+/** ww84: at least half its battalions are foot (infantry, cavalry, special or motorized). */
+export const TPL_FOOT_MAJOR = 1 << 19;
+/** ww84: armour-major with under a third of foot: tanks on their own. */
+export const TPL_BARE_ARMOR = 1 << 20;
 
 /**
  * A division's numbers (spec §4.3, §16.2): attack and defence values and
@@ -366,6 +370,11 @@ export interface SideSum {
   bandPierce?: number[];
   bandPierceAtk?: number[];
   bandHard?: number[];
+  /** ww84, width-weighted: the org damage it takes defending, % (absent: 100). */
+  defOrgPct?: number;
+  /** ww84: the share of its width that is foot-major and armour-major divisions, ‰ (absent: 0). */
+  footPm?: number;
+  armorMajorPm?: number;
 }
 
 export interface BattleCtx {
@@ -380,6 +389,8 @@ export interface BattleCtx {
   defenderBlockBp: number;
   /** ww7 lane F: the defenders' prepared ground, bp (CombatRules.roundHits); absent: 0. */
   defenderPrepBp?: number;
+  /** ww84: points of the defenders' country off the tank fear penalty; absent: 0. */
+  tankFearCutPp?: number;
   /** ww8: close air support a round now, after the anti-air cut (casCutHits), centi; absent: 0. */
   casAttCenti?: number;
   casDefCenti?: number;
