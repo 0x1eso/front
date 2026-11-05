@@ -693,7 +693,12 @@ test("a real game on wings: every mission, base moves, 400 days, in lockstep", a
     if (t > T(3) + 2 && (t - T(3) - 2) % (T(RETARGET_DAYS) - START) === 0) {
       for (const e of sentOn) {
         const w = air.wings.get(e.id);
-        if (w !== undefined && w.target !== e.target) {
+        // A region taken in the same days is rightly refused: no enemy there.
+        if (
+          w !== undefined &&
+          w.target !== e.target &&
+          land.isEnemy(w.owner, land.controller[e.target] ?? 0)
+        ) {
           seen.refused.push(`sent on: wing ${e.id}`);
         }
       }

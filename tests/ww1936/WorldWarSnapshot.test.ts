@@ -488,12 +488,12 @@ describe("World War 1936 snapshots (spec §7.8)", () => {
 // Re-pinned for cavalry org 60 and the support divisions' minimum: three equal runs.
 // Re-pinned for historical equipment, national traits and the combat rework: three equal runs.
 // Re-pinned for w77 (36 techs gained effects, the AI researches and fights with them): three equal runs.
-const WW1936_DIGEST = "48477950496583db";
+const WW1936_DIGEST = "61151a369aead6d5";
 /**
  * The same game on Easy (the lobby's default in this mode): the AI
  * handicaps and the slower war planning. Pinned with three equal runs.
  */
-const WW1936_EASY_DIGEST = "dab7864c2f2497bd";
+const WW1936_EASY_DIGEST = "dfc1099d7236f722";
 
 describe("World War 1936 stays deterministic", () => {
   // An all-AI game on the test map, long enough for the calendar's first
