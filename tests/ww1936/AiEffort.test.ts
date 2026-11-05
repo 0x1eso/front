@@ -45,6 +45,13 @@ describe("AI main sector", () => {
     expect(pickMainSector(far, 1)).toBe(1);
   });
 
+  it("keeps the standing sector while it is close to the best", () => {
+    const list = [region({ region: 1, vp: 9 }), region({ region: 2, vp: 8 })];
+    expect(pickMainSector(list, 0, 2)).toBe(2);
+    const far = [region({ region: 1, vp: 9 }), region({ region: 2, vp: 1 })];
+    expect(pickMainSector(far, 0, 2)).toBe(1);
+  });
+
   it("leaves strong forts out unless nothing else is in reach", () => {
     const fort = region({ region: 1, vp: 50, fort: AI_EFFORT_FORT_BAR });
     expect(pickMainSector([fort, region({ region: 2 })], 0)).toBe(2);

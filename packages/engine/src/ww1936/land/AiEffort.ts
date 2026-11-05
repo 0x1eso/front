@@ -3,6 +3,7 @@
 // whole border (a broad attack at 1.5:1 took 0 of 4 regions, all divisions
 // on one region reached the objective). AiLand gathers the plain numbers
 // below from the game and acts on the answer; nothing here reads the game.
+import type { ArmyOrder } from "@openfront/engine-api/ww1936/LandTypes";
 import { idHash } from "@openfront/engine-lib/ww1936/Roll";
 
 /** wwRoll purpose of the main sector's seeded choice. */
@@ -46,11 +47,14 @@ export function effortScore(r: EffortRegion): number {
  * ties to the smaller id. `roll` (any non-negative integer, the seeded draw of
  * this period) takes the second best half the time when it is within
  * AI_EFFORT_CLOSE_PCT of the best, so games differ. 0 with no region.
- * `score` is effortScore unless the caller has adjusted it.
+ * `keep`, the sector standing now, stays while it is that close to the best:
+ * armies do not march off for a coin. `score` is effortScore unless the
+ * caller has adjusted it.
  */
 export function pickMainSector(
   regions: readonly EffortRegion[],
   roll: number,
+  keep = 0,
   score: (r: EffortRegion) => number = effortScore,
 ): number {
   const open = regions.filter((r) => r.fort < AI_EFFORT_FORT_BAR);
@@ -59,8 +63,25 @@ export function pickMainSector(
     .sort((a, b) => b.score - a.score || a.region - b.region);
   if (list.length === 0) return 0;
   const [first, second] = list;
+  const kept = list.find((r) => r.region === keep);
+  if (
+    kept !== undefined &&
+    kept.score * 100 >= first.score * (100 - AI_EFFORT_CLOSE_PCT)
+  ) {
+    return keep;
+  }
   const close =
     second !== undefined &&
     second.score * 100 >= first.score * (100 - AI_EFFORT_CLOSE_PCT);
   return close && roll % 2 === 1 ? second.region : first.region;
+}
+
+/**
+ * The region an army's main effort goes for, 0 when it is on none: a plan
+ * waiting (the AI's others run at once), or a direct attack. This is the main
+ * sector other AI code reads; the orders are all the memory an effort has.
+ */
+export function effortTarget(o: ArmyOrder): number {
+  if (o.kind !== "plan" || o.targets.length === 0) return 0;
+  return o.direct === true || !o.executing ? o.targets[0] : 0;
 }
