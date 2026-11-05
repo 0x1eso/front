@@ -441,6 +441,8 @@ export function applyEconEffect(
     case "research_bonus": {
       const key = e.tech ?? e.branch;
       if (key === undefined) return;
+      // A finished tech never uses it: it would hold one of the five places.
+      if (e.tech !== undefined && ce.researched.has(e.tech)) return;
       c.researchBonuses.push({ key, pct: e.pct, uses: e.uses });
       if (c.researchBonuses.length > WW_MAX_RESEARCH_BONUSES) {
         c.researchBonuses.shift();

@@ -315,6 +315,10 @@ describe("economy and military effects", () => {
     expect(c.researchBonuses.map((b) => b.pct)).toEqual([2, 3, 4, 5, 6]);
     run([{ kind: "research_bonus", tech: "inf_eq_2", pct: 50, uses: 2 }]);
     expect(c.researchBonuses[4]).toEqual({ key: "inf_eq_2", pct: 50, uses: 2 });
+    // ww100: a tech already done takes no place in the list.
+    const [done] = ce.researched;
+    run([{ kind: "research_bonus", tech: done, pct: 50, uses: 1 }]);
+    expect(c.researchBonuses.some((b) => b.key === done)).toBe(false);
     // add_tech: researched at once; a slot working on it is free again.
     const slot = ce.slots.findIndex((s) => s !== null);
     const tech = ce.slots[slot]!.tech;
