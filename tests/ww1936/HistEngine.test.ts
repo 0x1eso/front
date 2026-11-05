@@ -244,6 +244,35 @@ describe("start stock", () => {
   });
 });
 
+describe("catalogue carrier deck (B15)", () => {
+  test("a catalogue carrier's deck is its own, not the generation's 40", async () => {
+    const { deckSize } = await import("@openfront/engine/ww1936/navy/Carriers");
+    const { histSlotOf } =
+      await import("@openfront/engine-lib/ww1936/hist/Slots");
+    const { histEntry } =
+      await import("@openfront/engine-lib/ww1936/hist/index");
+    const { runner, ww } = await game(false);
+    const ce = ww.economy.country(DEU)!;
+    const e = histEntry("deu_graf_zeppelin")!;
+    for (const t of e.techs) ce.addTech(t);
+    step(runner, 20);
+    const port = ww.scenario.landRegions.find(
+      (r) => ww.scenario.harborOf(r.id) !== 0,
+    )!.id;
+    const id = ww.navy.createFleet(DEU, port, [["cv", 1, 1]]);
+    const f = ww.navy.fleets.get(id)!;
+    const row = ww.navy.ships.rowOf(f.ships[0]);
+    const generic = deckSize(ww.navy, row, f);
+    ww.navy.ships.design[row] = histSlotOf("DEU", e.id);
+    const own = deckSize(ww.navy, row, f);
+    const aircraft = (e as { spec: { aircraft: number } }).spec.aircraft;
+    expect(aircraft).not.toBe(40);
+    expect(own).toBeGreaterThanOrEqual(aircraft - 2);
+    expect(own).toBeLessThanOrEqual(aircraft + 2);
+    expect(own).not.toBe(generic);
+  });
+});
+
 describe("catalogue transports (B9)", () => {
   test("the paradrop's transport count sees plane-design stock", async () => {
     const { equipKey } =

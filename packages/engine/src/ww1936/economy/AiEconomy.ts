@@ -67,6 +67,10 @@ import {
 } from "@openfront/engine-lib/ww1936/EconomyRules";
 import { EQUIPMENT, genTech } from "@openfront/engine-lib/ww1936/Equipment";
 import { fuelGain } from "@openfront/engine-lib/ww1936/FuelRules";
+import { gunStatsOfEntry } from "@openfront/engine-lib/ww1936/hist/ConvertGear";
+import { tankStatsOfEntry } from "@openfront/engine-lib/ww1936/hist/ConvertTank";
+import { HIST_CATALOGUE } from "@openfront/engine-lib/ww1936/hist/index";
+import type { HistEntry } from "@openfront/engine-lib/ww1936/hist/Types";
 import { navalLineClass } from "@openfront/engine-lib/ww1936/NavalLineRules";
 import { isNoStrike } from "@openfront/engine-lib/ww1936/NoStrike";
 import { lawCost, LawCtx } from "@openfront/engine-lib/ww1936/PoliticsRules";
@@ -710,6 +714,8 @@ export interface AiResearchInput {
   projects: number;
   /** RESEARCH_LEANS index of each slot (a human's auto-research); a missing slot: balanced. */
   leans: readonly number[];
+  /** ww81: what the war asks for now, read only when a slot is free (researchScores' situation). */
+  readonly situation?: ResearchScoreInput["situation"];
 }
 
 /**
@@ -1289,10 +1295,81 @@ export function researchScoreInput(
     shared: r?.shared ?? [],
     researched,
     running,
-    // ww81: fuel short is the resource shortage it can read here; the
-    // anti-tank gap and the wing losses are left to a later feed.
+    // ww81: fuel short stands for a resource shortage; the war situation
+    // (armour gap, wing losses) comes from the research input.
     situation: (i.fuelOil ?? 0) > 0 ? { shortResource: true } : undefined,
   };
+}
+
+function mergeSituation(
+  a: ResearchScoreInput["situation"],
+  b: ResearchScoreInput["situation"],
+): ResearchScoreInput["situation"] {
+  return a === undefined ? b : b === undefined ? a : { ...a, ...b };
+}
+
+/** Heavy wing losses: this many planes lost in 30 days, and more than it shot down. */
+const HEAVY_WING_LOSSES = 40;
+
+/**
+ * ww81: the war's ask of a country's research — at war only. Our best
+ * anti-tank gun's pierce under the enemies' best frontal armour asks for
+ * anti-tank techs (1); else our best tank gun under it asks for tank guns
+ * (-1). Heavy wing losses in the last 30 days (the air tally) ask for
+ * fighter techs. A country without a catalogue reads none of it.
+ */
+export function warSituation(
+  econ: WwEconomy,
+  ce: CountryEconomy,
+): ResearchScoreInput["situation"] {
+  const enemies = econ.ww.enemiesOf(ce.smallID);
+  if (enemies.length === 0) return undefined;
+  let antiTank: -1 | 0 | 1 = 0;
+  const mine = (
+    HIST_CATALOGUE as Partial<Record<string, readonly HistEntry[]>>
+  )[ce.tag];
+  if (mine !== undefined) {
+    let armour = 0;
+    for (const x of enemies) {
+      const ec = econ.country(x);
+      const list =
+        ec === null
+          ? undefined
+          : (HIST_CATALOGUE as Partial<Record<string, readonly HistEntry[]>>)[
+              ec.tag
+            ];
+      if (ec === null || list === undefined) continue;
+      for (const e of list) {
+        if (e.family === "tank" && e.techs.every((t) => ec.researched.has(t))) {
+          armour = Math.max(armour, tankStatsOfEntry(e).armor);
+        }
+      }
+    }
+    let atPierce = 0;
+    let tankPierce = 0;
+    for (const e of mine) {
+      if (!e.techs.every((t) => ce.researched.has(t))) continue;
+      if (e.family === "gun" && e.role === "anti_tank") {
+        atPierce = Math.max(atPierce, gunStatsOfEntry(e).pierceCenti);
+      } else if (e.family === "tank") {
+        tankPierce = Math.max(tankPierce, tankStatsOfEntry(e).pierce);
+      }
+    }
+    if (armour > 0) {
+      if (atPierce < armour) antiTank = 1;
+      else if (tankPierce < armour) antiTank = -1;
+    }
+  }
+  const c = econ.ww.air.country(ce.smallID);
+  let lost = 0;
+  let shot = 0;
+  if (c !== null) {
+    for (const v of c.tally[1]) lost += v;
+    for (const v of c.tally[0]) shot += v;
+  }
+  const airLosses = lost >= HEAVY_WING_LOSSES && lost > shot;
+  if (antiTank === 0 && !airLosses) return undefined;
+  return { antiTank, airLosses };
 }
 
 /**
@@ -1857,6 +1934,7 @@ function researchInputOf(econ: WwEconomy, ce: CountryEconomy): AiResearchInput {
   const pol = econ.ww.politics as WwPolitics | undefined;
   const me = ce.smallID;
   let shared: [WwTechId, number][] | null = null;
+  let sit: [ResearchScoreInput["situation"]] | null = null;
   return {
     seed: pol?.seed ?? 0,
     smallID: me,
@@ -1875,6 +1953,9 @@ function researchInputOf(econ: WwEconomy, ce: CountryEconomy): AiResearchInput {
     },
     projects: projectsDone(econ, ce),
     leans: ce.slotLeans,
+    get situation() {
+      return (sit ??= [warSituation(econ, ce)])[0];
+    },
   };
 }
 

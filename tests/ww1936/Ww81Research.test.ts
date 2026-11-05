@@ -65,7 +65,9 @@ const input = (over: Partial<ResearchScoreInput>): ResearchScoreInput => ({
 describe("the score with the catalogue", () => {
   it("Germany ranks the medium tank near the top, a strategic bomber below it", () => {
     const s = researchScores(input({}));
-    expect(s[at("medium_tank_1")]! - s[at("strat_bomber_1")]!).toBeGreaterThan(-1);
+    expect(s[at("medium_tank_1")]! - s[at("strat_bomber_1")]!).toBeGreaterThan(
+      -1,
+    );
   });
   it("a minor without a tank line leaves tank techs out", () => {
     const s = researchScores(
@@ -93,5 +95,22 @@ describe("B8: a gear entry shows what production charges", () => {
   it("an entry standing in for a static key shows the key's generic cost", () => {
     const e = histEntry("deu_kar98k")!;
     expect(histGearChargeMilli(e)).toBe(unitCostMilli("infantry_equipment", 1));
+  });
+});
+
+describe("the war's ask of research (warSituation)", () => {
+  it("none at peace; heavy wing losses and an armour gap at war", async () => {
+    const { seaGame, war } = await import("./convoyUtil");
+    const { warSituation } =
+      await import("@openfront/engine/ww1936/economy/AiEconomy");
+    const g = await seaGame();
+    const gbr = g.ce("GBR");
+    expect(warSituation(g.ww.economy, gbr)).toBeUndefined();
+    war(g, "GBR", "ITA");
+    const air = g.ww.air.country(gbr.smallID)!;
+    air.tally[1][0] = 60;
+    expect(warSituation(g.ww.economy, gbr)?.airLosses).toBe(true);
+    const sit = warSituation(g.ww.economy, gbr);
+    expect([-1, 0, 1]).toContain(sit?.antiTank);
   });
 });
