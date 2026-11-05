@@ -46,7 +46,6 @@ import {
 } from "@openfront/engine-api/ww1936/LandTypes";
 import { WW_INVASION_MAX_KM } from "@openfront/engine-api/ww1936/NavyTypes";
 import { wwAiWarPlanDue } from "@openfront/engine-lib/ww1936/AiDifficulty";
-import { dayOfDate } from "@openfront/engine-lib/ww1936/Calendar";
 import { combatWidth } from "@openfront/engine-lib/ww1936/CombatRules";
 import { splitFront } from "@openfront/engine-lib/ww1936/CommandRules";
 import { queuedInRegion } from "@openfront/engine-lib/ww1936/EconomyChecks";
@@ -178,10 +177,9 @@ export const AI_REATTACK_READY_BP = 500;
 export const AI_PURSUIT_RATIO_PM = 2000;
 /**
  * Task 11 round 2 (내 판단): when a democracy's liberation-only rule
- * against an aggressor ends (AiDay.liberationLifted): from 1942 (the
- * Allies' offensives of 1942–44), or at this strength ratio, ‰.
+ * against an aggressor ends (AiDay.liberationLifted): at this strength
+ * ratio, ‰, or when the capital test below holds (no date: ww81 D3).
  */
-export const AI_LIBERATION_END_DAY = dayOfDate("1942-01-01");
 export const AI_LIBERATION_LIFT_RATIO_PM = 3000;
 /**
  * The strength ratio lifts it only after this many days of that war. ww7 lane
@@ -267,8 +265,6 @@ export const AI_PEACE_HOME_PCT = 25;
 export const AI_RAIL_MIN_KM = 1000;
 /** (내 판단) At most this many forts and railways wait in the queue. */
 const LAND_BUILDS_QUEUED = 2;
-/** Spec §14.5: Germany's West Wall. */
-const WESTWALL_DAY = dayOfDate("1938-01-01");
 const FORT_MAX = 5;
 
 // ---- Pure decisions (plain data in, plain data out) ----
@@ -907,6 +903,10 @@ class AiDay {
     { ratioPm: number; width: number }
   >();
   private capDistCache: Int32Array | null = null;
+  /** armies()'s list, dropped by every order issued. */
+  private armiesMemo: Army[] | null = null;
+  /** bfsReach's distances (FAR between calls, reset over the reached ones). */
+  private reachDist: Int32Array | null = null;
   private warsCache: readonly { a: number; b: number; sinceTick: number }[] =
     [];
   private warsRead = false;
@@ -996,6 +996,7 @@ class AiDay {
   }
 
   private issue(order: WwOrder): boolean {
+    this.armiesMemo = null;
     return this.land.issue(this.me, order, "ai") === null;
   }
 
@@ -1047,6 +1048,40 @@ class AiDay {
     return dist;
   }
 
+  /**
+   * `bfs` over a reused buffer: the regions reached, in BFS order, with
+   * their distances in `reachDist` until `reachDone` resets them.
+   */
+  private bfsReach(
+    sources: readonly number[],
+    pass: (region: number) => boolean,
+    maxDepth: number,
+  ): number[] {
+    const sc = this.land.scenario;
+    this.reachDist ??= new Int32Array(sc.maxRegionId() + 1).fill(FAR);
+    const dist = this.reachDist;
+    const queue: number[] = [];
+    for (const s of sources) {
+      if (dist[s] === 0) continue;
+      dist[s] = 0;
+      queue.push(s);
+    }
+    for (let i = 0; i < queue.length; i++) {
+      const u = queue[i];
+      if (dist[u] >= maxDepth) continue;
+      for (const e of sc.edgesOf(u)) {
+        if (dist[e.to] !== FAR || !pass(e.to)) continue;
+        dist[e.to] = dist[u] + 1;
+        queue.push(e.to);
+      }
+    }
+    return queue;
+  }
+
+  private reachDone(queue: readonly number[]): void {
+    for (const r of queue) this.reachDist![r] = FAR;
+  }
+
   /** Days since our war with `enemy` began (counted from the preparation's end). */
   private warDays(enemy: number): number {
     const ww = this.land.ww;
@@ -1073,6 +1108,7 @@ class AiDay {
    * never a garrison (lane O's) or a volunteer army (lane A's).
    */
   private armies(): Army[] {
+    if (this.armiesMemo !== null) return this.armiesMemo;
     const all = this.land
       .armiesOf(this.me)
       .filter(
@@ -1082,7 +1118,8 @@ class AiDay {
           a.order.kind !== "garrison" &&
           a.volunteerFor === 0,
       );
-    return this.human ? all.filter((a) => a.auto) : all;
+    this.armiesMemo = this.human ? all.filter((a) => a.auto) : all;
+    return this.armiesMemo;
   }
 
   run(): void {
@@ -1327,10 +1364,12 @@ class AiDay {
 
   private group(garrisons: ReadonlySet<number>): void {
     const land = this.land;
-    const free = () =>
-      this.armies().filter(
-        (a) => !garrisons.has(a.id) && a.order.kind !== "paradrop",
-      );
+    // Merges only remove armies and grow others, so one list serves the
+    // whole pass; `free` drops those merged away.
+    const all = this.armies().filter(
+      (a) => !garrisons.has(a.id) && a.order.kind !== "paradrop",
+    );
+    const free = () => all.filter((a) => land.armies.has(a.id));
     // (1) A small army joins the lowest-numbered army at least its size in its region.
     for (const a of free()) {
       if (!land.armies.has(a.id)) continue;
@@ -1338,9 +1377,10 @@ class AiDay {
       if (n === 0 || n > SMALL_ARMY) continue;
       if (a.order.kind === "plan" && a.order.executing) continue;
       const here = land.armyRegion(a);
-      const into = free().find(
+      const into = all.find(
         (b) =>
           b.id !== a.id &&
+          land.armies.has(b.id) &&
           b.divisions.length >= n &&
           b.divisions.length + n <= WW_MAX_ARMY_DIVISIONS &&
           land.armyRegion(b) === here,
@@ -1966,11 +2006,10 @@ class AiDay {
     return theirs;
   }
 
-  /** A line region's terrain, half regions: mountain or city, fort (more from level 3), every way in over a river. */
+  /** A line region's terrain, half regions: fort (more from level 3), every way in over a river (land type is capped in the rules: ww65). */
   private lineTerrain(r: number, ahead: (x: number) => boolean): number {
     const sc = this.land.scenario;
-    const kind = sc.landOf(r);
-    let s = kind === "mountain" || kind === "urban" ? 1 : 0;
+    let s = 0;
     const fort = effectiveLevel(this.land.econ, r, "fort");
     if (fort >= 1) s++;
     if (fort >= 3) s++;
@@ -2969,11 +3008,12 @@ class AiDay {
     const land = this.land;
     const sc = land.scenario;
     const me = this.me;
-    const dist = this.bfs(
+    const reached = this.bfsReach(
       this.zoneOf(a),
       (r) => land.isEnemy(me, land.controller[r]),
       WW_TARGET_REACH_EDGES,
     );
+    const dist = this.reachDist!;
     const pol = land.ww.politics;
     const enemyTag = sc.tagOfSmallId(enemy);
     // P5: a woken dormant slot's capital is its best region.
@@ -2993,8 +3033,11 @@ class AiDay {
       owner === me ||
       (this.personality === "democracy" && land.ww.sameFaction(me, owner));
     const regions: AiTargetRegion[] = [];
-    for (const r of sc.landRegions) {
-      const d = dist[r.id];
+    const cands = reached.filter((id) => sc.region(id) !== undefined);
+    cands.sort((p, q) => p - q);
+    for (const id of cands) {
+      const r = sc.region(id)!;
+      const d = dist[id];
       if (d === 0 || d === FAR || land.controller[r.id] !== enemy) continue;
       // Liberation only: our own (a democracy: or its camp's) core regions
       // (P3 legal owner + core).
@@ -3008,6 +3051,7 @@ class AiDay {
         capital: r.id === capital,
       });
     }
+    this.reachDone(reached);
     return regions;
   }
 
@@ -3015,13 +3059,11 @@ class AiDay {
    * Task 11 round 2 (내 판단): a democracy's liberation-only rule against an
    * aggressor ends once that enemy's side holds our 1936 capital or that of
    * a major of our camp (Paris fallen: the Allies go for Germany; ww7 lane D:
-   * Warsaw is not Paris, now that a Poland can fall in a month), from
-   * AI_LIBERATION_END_DAY on, or when our strength ratio there reaches
+   * Warsaw is not Paris, now that a Poland can fall in a month), or when our strength ratio there reaches
    * AI_LIBERATION_LIFT_RATIO_PM after AI_LIBERATION_LIFT_WAR_DAYS of war
    * (a thin West Wall in 1939 is no reason).
    */
   private liberationLifted(enemy: number, ratioPm: number): boolean {
-    if (this.day >= AI_LIBERATION_END_DAY) return true;
     if (
       ratioPm >= AI_LIBERATION_LIFT_RATIO_PM &&
       this.warDays(enemy) >= AI_LIBERATION_LIFT_WAR_DAYS
@@ -3558,7 +3600,8 @@ class AiDay {
   /**
    * Spec §14.5, one a day with at most LAND_BUILDS_QUEUED waiting: a fort
    * in the core victory-point region facing the most enemy divisions
-   * (democracies and minors), Germany's West Wall from 1938, else a
+   * (democracies and minors), a West Wall for any country on a core
+   * border to a likely enemy (at war or planned), else a
    * railway in a core region without one, nearest the capital first.
    */
   private build(enemies: readonly number[]): void {
@@ -3600,13 +3643,12 @@ class AiDay {
       );
       for (const r of list) if (tryBuild(r, "fort")) return;
     }
-    if (this.tag === "DEU" && this.day >= WESTWALL_DAY) {
-      const fra = sc.smallIdOf("FRA");
+    if (enemies.length > 0) {
       const west = core
         .filter(
           (r) =>
             fortLevel(r) < FORT_MAX &&
-            sc.edgesOf(r).some((e) => land.controller[e.to] === fra),
+            sc.edgesOf(r).some((e) => enemies.includes(land.controller[e.to])),
         )
         .sort((a, b) => fortLevel(a) - fortLevel(b) || a - b);
       for (const r of west) if (tryBuild(r, "fort")) return;

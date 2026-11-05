@@ -65,6 +65,30 @@ describe("the invasion planner (spec §17.4)", () => {
     expect(aiInvasionPick([a, b])?.target).toBe(4);
   });
 
+  test("an AI with no convoys gathers no landing army (C9)", async () => {
+    const runner = await wwRunner(
+      {},
+      [{ clientID: HUMAN, country: "ITA" }],
+      SEA.map,
+    );
+    const g = runner.game;
+    const ww = g.worldWar()!;
+    const gbr = TAG_ID.GBR;
+    leaveFaction(pol(g), gbr, g.ticks());
+    ww.navy.createFleet(gbr, REGION.london, [
+      ["bb", 2, 2],
+      ["dd", 2, 6],
+    ]);
+    placeArmy(g, "GBR", REGION.london, 4);
+    ww.economy.country(gbr)!.stock[equipKey("convoy", 1)] = 0;
+    warAfterPrep(runner, HUMAN, "GBR");
+    const end = dayStartTick(ww.day(g.ticks()) + 40, ww.prepEndTick());
+    while (g.ticks() < end) step(runner);
+    expect([...ww.navy.invasions.values()].some((x) => x.owner === gbr)).toBe(
+      false,
+    );
+  });
+
   test("an AI with an overseas enemy plans a landing", async () => {
     // ww1936sea: a human Italy at war with an AI Britain (London and
     // Malta are islands: no land front; Britain out of its faction, so
@@ -84,6 +108,8 @@ describe("the invasion planner (spec §17.4)", () => {
       ["dd", 2, 6],
     ]);
     placeArmy(g, "GBR", REGION.london, 4);
+    // C9: it gathers only what its convoys carry (none: no landing).
+    ww.economy.country(gbr)!.stock[equipKey("convoy", 1)] = 200;
     const invades: WwOrder[] = [];
     const issue = ww.navy.issue.bind(ww.navy);
     ww.navy.issue = (id, o, tick, by) => {
@@ -145,6 +171,7 @@ describe("the invasion planner (spec §17.4)", () => {
       ["dd", 2, 6],
     ]);
     placeArmy(g, "GBR", REGION.london, 4);
+    ww.economy.country(gbr)!.stock[equipKey("convoy", 1)] = 200;
     const cancels: number[] = [];
     const issue = ww.navy.issue.bind(ww.navy);
     ww.navy.issue = (id, o, tick, by) => {

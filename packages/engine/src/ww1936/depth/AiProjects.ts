@@ -56,8 +56,6 @@ const HISTORY_TAGS: ReadonlySet<string> = new Set([
 /** Spec §19.6 "그 밖": civilian + military factories for the science projects, and for the atomic one. */
 export const AI_SCIENCE_FACTORIES = 80;
 export const AI_ATOMIC_FACTORIES = 150;
-/** Spec §19.6: no AI bomb before this date. */
-export const AI_NUKE_FROM = "1944-01-01";
 /** Spec §19.6: a major raids at most once in this many days. */
 export const AI_RAID_DAYS = 180;
 /** The flying bomb and ballistic rocket lines the AI opens (factories). */
@@ -392,7 +390,6 @@ function aiNuke(d: WwDepth, id: number, day: number, tick: number): void {
   const ww = d.ww;
   const econ = ww.economy;
   if ((econ.country(id)?.stock[equipKey("atomic_bomb", 1)] ?? 0) < 1) return;
-  if (day < dayOfDate(AI_NUKE_FROM)) return;
   const land = ww.land;
   const sc = ww.scenario;
   const myTag = ww.tagOf(id);

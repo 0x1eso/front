@@ -9,7 +9,6 @@ import type { GameRunner } from "@openfront/engine/GameRunner";
 import {
   AI_ENERGY_PM,
   AI_PLANTS_QUEUED,
-  AI_SCORCH_FROM,
   aiWorldDay,
   DNIPRO_FLAG,
 } from "@openfront/engine/ww1936/depth/AiWorld";
@@ -64,8 +63,11 @@ describe("World War 1936 P6: the AI's world devices", () => {
     takeRegion(g, warsaw, "SUN");
     days(runner, 1);
     expect(econ.country(sun)!.totals.warDays).toBeGreaterThanOrEqual(0);
-    // Not before 1941 (the AI ran today on the game's 1936 date).
+    // No enemy on Soviet soil yet: nothing burns, whatever the date.
+    aiWorldDay(d, sun, dayOf("1941-01-01", sun, 4));
     expect(d.world.scorchQueue).toEqual([]);
+    // The enemy on Soviet soil: Krakow counts as Soviet, Poland holds it.
+    ww.politics.legalOwner[DEEP.region.krakow] = sun;
     ww.politics.country(sun)!.ppMilli = 100_000;
     // Room in Moscow: its slots are full with what the AI queued there.
     econ.country(sun)!.queue = [];
@@ -74,7 +76,7 @@ describe("World War 1936 P6: the AI's world devices", () => {
     const moscowMil = econ.mil[moscow];
     const moscowCiv = econ.civ[moscow];
     expect(kievMil + kievCiv).toBeGreaterThanOrEqual(2);
-    aiWorldDay(d, sun, dayOf(AI_SCORCH_FROM, sun, 5));
+    aiWorldDay(d, sun, dayOf("1941-01-01", sun, 5));
     // Moved inland first (P3's move_buildings), as far as Moscow has room.
     const moved = kievMil + kievCiv - econ.mil[kiev] - econ.civ[kiev];
     expect(moved).toBeGreaterThan(0);
@@ -84,7 +86,7 @@ describe("World War 1936 P6: the AI's world devices", () => {
     const today = ww.day(g.ticks());
     expect(d.world.scorchQueue).toEqual([[kiev, sun, today + SCORCH_DAYS]]);
     // One region a day; never the capital.
-    aiWorldDay(d, sun, dayOf(AI_SCORCH_FROM, sun, 5));
+    aiWorldDay(d, sun, dayOf("1941-01-01", sun, 5));
     expect(d.world.scorchQueue.length).toBe(1);
     // Three days on, what is left burns, the Dnipro dam with it.
     const left = econ.civ[kiev];
