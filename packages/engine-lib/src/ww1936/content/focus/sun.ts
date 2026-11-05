@@ -770,6 +770,9 @@ export const SUN_FOCUSES = [
       { kind: "remove_spirit", id: "sun_purge_aftermath_2" },
       { kind: "remove_spirit", id: "sun_purge_aftermath_3" },
       { kind: "add_spirit", id: "sun_war_lessons" },
+      // ww91: the Guards title also comes through the winter war's lessons.
+      { kind: "add_tech", tech: "mountaineers" },
+      { kind: "add_spirit", id: "nat_sun_unit" },
     ],
     ai: { base: 10 },
   },
@@ -815,6 +818,9 @@ export const SUN_FOCUSES = [
     icon: "medal",
     prereq: [["sun_patriotic_war"]],
     effects: [
+      // ww91: the Guards Rifles are mountain battalions under the Guards name.
+      { kind: "add_tech", tech: "mountaineers" },
+      { kind: "add_spirit", id: "nat_sun_unit" },
       { kind: "unlock_template", template: "sun_guards_rifle" },
       { kind: "army_xp", amount: 20 },
     ],

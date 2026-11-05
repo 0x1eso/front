@@ -791,6 +791,7 @@ export const GBR_FOCUSES: FocusDef[] = [
       // parachute line and its prerequisite.
       { kind: "research_bonus", tech: "paratroopers", pct: 100, uses: 1 },
       { kind: "research_bonus", tech: "mountaineers", pct: 100, uses: 1 },
+      { kind: "add_spirit", id: "nat_gbr_unit" },
     ],
     ai: { base: 10 },
   },

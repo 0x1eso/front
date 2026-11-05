@@ -634,6 +634,8 @@ export const DEU_FOCUSES: FocusDef[] = [
         item: "deu_opel_blitz",
       },
       { kind: "unlock_template", template: "deu_motorized_div" },
+      // ww91: the Panzergrenadiers, the motorized battalion renamed.
+      { kind: "add_spirit", id: "nat_deu_unit" },
     ],
     ai: { base: 10 },
   },

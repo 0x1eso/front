@@ -725,6 +725,7 @@ export const JPN_FOCUSES: FocusDef[] = [
         uses: 1,
       },
       { kind: "add_spirit", id: "jpn_landing_skill" },
+      { kind: "add_spirit", id: "nat_jpn_unit" },
     ],
     ai: { base: 10 },
   },

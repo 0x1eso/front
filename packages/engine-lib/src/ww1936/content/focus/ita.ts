@@ -672,6 +672,7 @@ export const ITA_FOCUSES: FocusDef[] = [
     prereq: [["ita_army_reform"]],
     effects: [
       { kind: "unlock_template", template: "ita_alpini_ii" },
+      { kind: "add_spirit", id: "nat_ita_unit" },
       { kind: "army_xp", amount: 10 },
     ],
     ai: { base: 10 },
