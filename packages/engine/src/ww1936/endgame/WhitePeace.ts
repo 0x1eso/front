@@ -23,6 +23,7 @@ import { sharePm } from "@openfront/engine-lib/ww1936/EndgameRules";
 import {
   hasPeaceTerms,
   negPeaceAccepts,
+  warWearinessPct,
 } from "@openfront/engine-lib/ww1936/NegPeaceRules";
 import { wwRealTicks } from "@openfront/engine-lib/ww1936/Pace";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
@@ -196,7 +197,10 @@ export function surrenderPm(eg: WwEndgame, id: number): number {
  * whether there is a front at all: a region side 0 controls next to one
  * side 1 controls (a war across the sea alone has none).
  */
-function frontCounts(eg: WwEndgame, w: WwWar): [number, number, boolean] {
+export function frontCounts(
+  eg: WwEndgame,
+  w: WwWar,
+): [number, number, boolean] {
   const side = new Int8Array(eg.size).fill(-1);
   for (const s of [0, 1] as const) {
     for (const m of w.sides[s].members) side[m.id] = s;
@@ -227,18 +231,17 @@ function frontCounts(eg: WwEndgame, w: WwWar): [number, number, boolean] {
  * The day's common step: each ongoing normal war's front — [war, regions
  * side 0 holds of side 1, the other way, the day it last really moved]. A
  * change of more than WW_STALEMATE_REGIONS regions since that day starts
- * the count again; a new war counts from its first day. A war without a
- * front (the sides touch nowhere on land) is no stalemate: its count
- * starts again every day.
+ * the count again; a new war counts from its first day, front or none (a
+ * war the sides fight only at sea counts too).
  */
 export function stepFronts(eg: WwEndgame, day: number): void {
   const next: [number, number, number, number][] = [];
   for (const w of eg.wars) {
     if (w.ended !== null || w.kind !== "normal") continue;
-    const [a, b, contact] = frontCounts(eg, w);
+    const [a, b] = frontCounts(eg, w);
     const prev = eg.fronts.find((f) => f[0] === w.id);
-    if (!contact) next.push([w.id, a, b, day]);
-    else if (prev === undefined) next.push([w.id, a, b, w.startDay]);
+    // ww88: a war with no land front counts from its start too.
+    if (prev === undefined) next.push([w.id, a, b, w.startDay]);
     else if (
       Math.abs(a - prev[1]) + Math.abs(b - prev[2]) >
       WW_STALEMATE_REGIONS
@@ -668,10 +671,12 @@ export function acceptPct(
     if (lead > 0) pct -= Math.floor((lead * AI_PEACE_SCORE_PCT) / 1000);
   }
   pct = Math.max(0, pct);
+  // A long war tires its target, with or without a land front (ww88);
+  // a side much stronger is tired by half as much.
+  const strong = sTo !== -1 && muchStronger(eg, w, sTo);
+  pct += warWearinessPct(day - w.startDay, strong);
   // A much stronger side takes no stalemate peace: only its own losses count.
-  if (sTo !== -1 && muchStronger(eg, w, sTo)) {
-    return Math.min(AI_PEACE_MAX_PCT, pct);
-  }
+  if (strong) return Math.min(AI_PEACE_MAX_PCT, pct);
   if (stalemateDays(eg, w.id, day) >= WW_WHITE_PEACE_STALEMATE_DAYS) {
     pct += AI_PEACE_STALEMATE_PCT;
   }

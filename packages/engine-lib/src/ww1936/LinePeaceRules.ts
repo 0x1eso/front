@@ -103,8 +103,14 @@ export function linePeaceMoves(
  * conference's base(r) at its control factor (the receiver holds it
  * already), as the negotiated peace values occupied land.
  */
-export function lineRegionValue(f: NegPeaceFacts, region: number): number {
-  return Math.floor((f.base(region) * NEG_PEACE_CONTROLLED_PCT) / 100);
+export function lineRegionValue(
+  f: NegPeaceFacts,
+  region: number,
+  full = false,
+): number {
+  return full
+    ? f.base(region)
+    : Math.floor((f.base(region) * NEG_PEACE_CONTROLLED_PCT) / 100);
 }
 
 /** The share (‰) of its losses a side `capPm` ‰ of the way to its surrender line does not count. */
@@ -116,18 +122,21 @@ export function linePeaceReliefPm(capPm: number): number {
 /**
  * The line's worth to the side `side` names (its members), points: the
  * regions it gets, less those it gives up — counted at (1000 − reliefPm) ‰.
+ * `full`: every region at its whole base (the AI's judge, ww88: a region
+ * it holds is worth what it is, or a beaten side's line is never enough).
  */
 export function linePeaceValue(
   f: NegPeaceFacts,
   moves: readonly LineMove[],
   side: (id: number) => boolean,
   reliefPm: number,
+  full = false,
 ): number {
   let gain = 0;
   let loss = 0;
   for (const [r, giver, receiver] of moves) {
-    if (side(receiver)) gain += lineRegionValue(f, r);
-    else if (side(giver)) loss += lineRegionValue(f, r);
+    if (side(receiver)) gain += lineRegionValue(f, r, full);
+    else if (side(giver)) loss += lineRegionValue(f, r, full);
   }
   const counted = 1000 - Math.max(0, Math.min(1000, reliefPm));
   return gain - Math.floor((loss * counted) / 1000);

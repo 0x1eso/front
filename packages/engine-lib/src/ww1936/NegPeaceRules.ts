@@ -41,6 +41,10 @@ export const AI_NEG_UNIT_PM = 2;
  * victory points a giver may cede, near the end.
  */
 export const AI_NEG_WIN_PCT = 60;
+/** The lead (‰) under which a side ahead asks nothing extra… */
+export const AI_NEG_WIN_FROM_PM = 300;
+/** …and the white-peace chance (percent) from which it asks nothing: in between the extra fades. */
+export const AI_NEG_WIN_FADE_PCT = 30;
 /** The AI proposer aims its terms at this accept chance (percent). */
 export const AI_NEG_AIM_PCT = 60;
 /** The AI proposer gives at most what its own white-peace chance past this percent is worth. */
@@ -226,19 +230,65 @@ export function negPeacePctValue(j: NegPeaceJudge, pct: number): number {
 }
 
 /**
- * The extra a side that would refuse a white peace (`pct` 0) needs: its
+ * The extra a side clearly ahead needs, points. It grows smoothly with the
  * lead (‰: the proposer's way to its surrender line, or the share of its
- * land held) times AI_NEG_WIN_PCT of the proposer's land value. Nothing
- * while a white peace has a chance.
+ * land held): nothing up to AI_NEG_WIN_FROM_PM, then in proportion to
+ * AI_NEG_WIN_PCT of the proposer's land value at the full lead. It fades
+ * as the white peace's chance `pct` rises, and is gone from
+ * AI_NEG_WIN_FADE_PCT.
  */
 export function negPeaceWinNeed(
   pct: number,
   leadPm: number,
   proposerBase: number,
 ): number {
-  if (pct > 0) return 0;
+  if (pct >= AI_NEG_WIN_FADE_PCT) return 0;
   const lead = Math.max(0, Math.min(1000, leadPm));
-  return Math.floor((proposerBase * lead * AI_NEG_WIN_PCT) / 100_000);
+  const over = Math.floor(
+    (Math.max(0, lead - AI_NEG_WIN_FROM_PM) * 1000) /
+      (1000 - AI_NEG_WIN_FROM_PM),
+  );
+  return Math.floor(
+    (proposerBase *
+      over *
+      AI_NEG_WIN_PCT *
+      (AI_NEG_WIN_FADE_PCT - Math.max(0, pct))) /
+      (100_000 * AI_NEG_WIN_FADE_PCT),
+  );
+}
+
+// ---- War weariness (ww88): a long war gets easier to end ----
+
+/** The war's age (days) from which the target's chance rises. */
+export const WW_WEARY_START_DAYS = 365;
+/** …by one percent every this many days… */
+export const WW_WEARY_STEP_DAYS = 30;
+/** …up to this much (percent). */
+export const WW_WEARY_MAX_PCT = 30;
+
+/**
+ * The accept chance a war's length adds, percent: 0 before a year, then 1
+ * at a year and one more every 30 days up to 30. A target side that is
+ * AI_PEACE_STRONGER_RATIO times stronger gets half.
+ */
+export function warWearinessPct(ageDays: number, stronger: boolean): number {
+  if (ageDays < WW_WEARY_START_DAYS) return 0;
+  const n = Math.min(
+    WW_WEARY_MAX_PCT,
+    1 + Math.floor((ageDays - WW_WEARY_START_DAYS) / WW_WEARY_STEP_DAYS),
+  );
+  return stronger ? Math.floor(n / 2) : n;
+}
+
+/**
+ * Points still missing for the hint's "high" chance (NEG_PEACE_HINT_HIGH_PCT)
+ * with terms worth `value`: 0 when they are enough already.
+ */
+export function negPeaceMissing(j: NegPeaceJudge, value: number): number {
+  const need =
+    j.winNeed +
+    Math.ceil((j.unit * Math.max(0, NEG_PEACE_HINT_HIGH_PCT - j.pct)) / 1000);
+  return Math.max(0, need - value);
 }
 
 /**

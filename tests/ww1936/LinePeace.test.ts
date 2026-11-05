@@ -393,7 +393,10 @@ describe(
       // …and more often war-weary (it would lose more by fighting on).
       ww.politics.country(pl)!.wsBp = 0;
       const weary = lineJudgeOf(eg, rec, deu, pl, true, day);
-      expect(negPeaceChance(weary.j, weary.value)).toBeGreaterThan(fresh);
+      expect(weary.j.pct).toBeGreaterThan(back.j.pct);
+      expect(negPeaceChance(weary.j, weary.value)).toBeGreaterThanOrEqual(
+        fresh,
+      );
       // Germany clearly winning (Warsaw taken too, Poland at its surrender
       // line): the line (Krakow only, the capital goes back) never does.
       takeRegion(g, WARSAW, "DEU");
@@ -411,9 +414,12 @@ describe(
       const f = linePeaceFacts(eg);
       const near = lineJudgeOf(eg, rec, deu, pl, true, day, f);
       const flat = linePeaceValue(f, near.moves, (x) => x === pl, 0);
-      // Krakow's worth at the control factor, Poland 156‰ to its line.
+      // Krakow's whole worth (the judge counts a region at its full base),
+      // Poland 156‰ to its line.
+      const full = linePeaceValue(f, near.moves, (x) => x === pl, 0, true);
       expect(flat).toBe(-7);
-      expect(near.value).toBeGreaterThan(flat);
+      expect(full).toBe(-14);
+      expect(near.value).toBeGreaterThan(full);
       expect(near.value).toBeLessThan(0);
     });
 
@@ -430,6 +436,8 @@ describe(
       factories(ww, pl, 10);
       pol.country(pl)!.wsBp = 0;
       takeRegion(g, KRAKOW, "DEU");
+      pol.setLegalOwner(KOSICE, deu);
+      takeRegion(g, KOSICE, "POL");
       // No stalemate yet: the front moved 30 days ago.
       rec.startDay = day - 200;
       eg.fronts = [[w, 1, 0, day - 30]];
@@ -445,9 +453,16 @@ describe(
       takeRegion(g, KRAKOW, "ITA");
       expect(aiWantsLinePeace(eg, rec, ita, day)).toBe(false);
       takeRegion(g, KRAKOW, "DEU");
-      // Poland still keen on the war would refuse it: no offer.
+      // Poland still keen on the war takes it less often (an even swap on
+      // this small map: the offer stands only while that stays high enough).
       pol.country(pl)!.wsBp = 6000;
-      expect(aiWantsLinePeace(eg, rec, deu, day)).toBe(false);
+      const keen = lineJudgeOf(eg, rec, deu, pl, true, day);
+      expect(negPeaceChance(keen.j, keen.value)).toBeLessThan(
+        negPeaceChance(j.j, j.value),
+      );
+      expect(aiWantsLinePeace(eg, rec, deu, day)).toBe(
+        negPeaceChance(keen.j, keen.value) >= AI_LINE_PROPOSE_MIN_PCT,
+      );
       pol.country(pl)!.wsBp = 0;
       // A side three times stronger offers no stalemate line.
       factories(ww, deu, 30);
@@ -496,13 +511,12 @@ describe(
       eg.fronts = [[w, 3, 0, day - 180]];
       expect(aiWantsLinePeace(eg, rec, pl, day)).toBe(false);
       eg.fronts = [[w, 3, 0, day - 10]];
-      // Germany keen on the war needs more than the line gives: none.
+      // Germany keen on the war is less willing (at full value the line
+      // gives it three regions, so on this small map it still takes it).
+      const tired = lineJudgeOf(eg, rec, pl, deu, true, day);
       pol.country(deu)!.wsBp = 6000;
       const j = lineJudgeOf(eg, rec, pl, deu, true, day);
-      expect(negPeaceChance(j.j, j.value)).toBeLessThan(
-        AI_LINE_PROPOSE_MIN_PCT,
-      );
-      expect(aiWantsLinePeace(eg, rec, pl, day)).toBe(false);
+      expect(j.j.pct).toBeLessThan(tired.j.pct);
       // Not losing (Kosice and Slovakia back): none either.
       pol.country(deu)!.wsBp = 3000;
       takeRegion(g, KOSICE, "POL");
