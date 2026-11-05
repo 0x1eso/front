@@ -11,6 +11,7 @@ import {
   WwTechId,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
+import { planOf } from "@openfront/engine-lib/ww1936/AiPlans";
 import { dayOfDate, dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
 import { aheadPct } from "@openfront/engine-lib/ww1936/EconomyRules";
 import { navalStartTechs } from "@openfront/engine-lib/ww1936/EconomyStart";
@@ -27,7 +28,7 @@ import {
   AI_FUEL_OIL_MAX,
   AI_SUPPORT_RESERVE,
   AI_SUPPORT_SHORT_PTS,
-  aiAlerted,
+  aiDockTarget,
   aiInput,
   AiInput,
   aiLineShares,
@@ -49,6 +50,10 @@ import {
 } from "@openfront/engine/ww1936/economy/AiEconomy";
 import { addLine, moveLine } from "@openfront/engine/ww1936/economy/Production";
 import { exportRoom } from "@openfront/engine/ww1936/economy/Trade";
+import type {
+  CountryEconomy,
+  WwEconomy,
+} from "@openfront/engine/ww1936/economy/WwEconomy";
 import { removeSpirit } from "@openfront/engine/ww1936/politics/Spirits";
 import { byTag, HUMAN, stamped, step, stepTo, wwRunner } from "./util";
 
@@ -154,11 +159,6 @@ describe("the AI's plan (spec §12, pre-flight R6)", () => {
       democracy: 2000,
       minor: 1200,
     });
-    expect(aiAlerted("aggressor", -1, 0)).toBe(true);
-    expect(aiAlerted("minor", -1, 1199)).toBe(false);
-    expect(aiAlerted("minor", -1, 1200)).toBe(true);
-    expect(aiAlerted("democracy", -1, 1999)).toBe(false);
-    expect(aiAlerted("democracy", 0, 0)).toBe(true);
   });
 
   test("the situation decides civ or mil", () => {
@@ -213,12 +213,13 @@ describe("the AI's plan (spec §12, pre-flight R6)", () => {
           }),
         ),
       );
-    expect(gbr(1999)).toEqual(["3:civx3"]);
-    expect(gbr(2000)).toEqual(["3:milx3"]);
+    // (ww91 rule 7: with so few free factories, one at a time.)
+    expect(gbr(1999)).toEqual(["3:civx1"]);
+    expect(gbr(2000)).toEqual(["3:milx1"]);
     const pol = (wtBp: number) =>
       builds(aiPlan(input({ wtBp, regions: TWO_REGIONS })));
-    expect(pol(1199)).toEqual(["3:civx3"]);
-    expect(pol(1200)).toEqual(["3:milx3"]);
+    expect(pol(1199)).toEqual(["3:civx1"]);
+    expect(pol(1200)).toEqual(["3:milx1"]);
     // No slot anywhere: infrastructure where something is mined.
     expect(
       builds(
@@ -260,7 +261,72 @@ describe("the AI's plan (spec §12, pre-flight R6)", () => {
           }),
         ),
       ),
-    ).toEqual(["1:civx3"]);
+    ).toEqual(["1:civx1"]);
+  });
+
+  test("ww91 rule 7: the plan and the situation choose the factories", () => {
+    const coast = TWO_REGIONS.map((r) => ({ ...r, coastal: true }));
+    const turn = (over: Partial<AiInput>) =>
+      builds(
+        aiPlan(
+          input({
+            major: true,
+            freeCivMilli: 20_000,
+            regions: coast,
+            ...over,
+          }),
+        ),
+      ).map((b) => b.split(":")[1]);
+    const plan = (tag: "SUN" | "JPN" | "USA") => planOf(tag, 7, 3);
+    // The Soviet Union expects no war yet: civilian, whatever its personality.
+    const sun = {
+      tag: "SUN" as const,
+      personality: "aggressor" as const,
+      plan: plan("SUN"),
+    };
+    expect(turn({ ...sun, wtBp: 1999 })[0]).toBe("civx3");
+    expect(turn({ ...sun, wtBp: 2000 })[0]).toBe("milx3");
+    expect(turn({ ...sun, wtBp: 0, plannedWar: true })[0]).toBe("milx3");
+    expect(turn({ ...sun, wtBp: 0, threatPct: 150 })[0]).toBe("milx3");
+    // Japan's navy comes first: it opens with a dockyard and alternates.
+    const jpn = turn({
+      tag: "JPN",
+      personality: "aggressor",
+      plan: plan("JPN"),
+      docks: 14,
+      dockTarget: 25,
+    });
+    expect(jpn[0].startsWith("dock")).toBe(true);
+    expect(jpn[1].startsWith("mil")).toBe(true);
+    // Lines short of what trade can bring: no more military, at war too.
+    const short = {
+      tag: "DEU" as const,
+      personality: "aggressor" as const,
+      warDays: 10,
+      mil: 10,
+      lines: [{ ...line(1, "artillery", 1, 10), active: 10, fill: 300 }],
+    };
+    expect(turn(short)[0]).toBe("civx3");
+    // With a seller and the factories to pay it, trade will: military.
+    expect(
+      turn({
+        ...short,
+        payableCivs: 20,
+        partners: [
+          {
+            smallID: 9,
+            sameFaction: false,
+            room: new Array<number>(RESOURCE_COUNT).fill(100),
+          },
+        ],
+      })[0],
+    ).toBe("milx3");
+  });
+
+  test("ww91 rule 7: the United States builds docks from tension 20 %", () => {
+    expect(aiDockTarget("USA", false, 1999)).toBe(0);
+    expect(aiDockTarget("USA", false, 2000)).toBe(20);
+    expect(aiDockTarget("USA", true, 0)).toBe(40);
   });
 
   test("a lacking resource gets infrastructure where it is mined", () => {
@@ -292,7 +358,7 @@ describe("the AI's plan (spec §12, pre-flight R6)", () => {
         ],
       }),
     );
-    expect(builds(plan)).toEqual(["5:infrax1", "2:civx2"]);
+    expect(builds(plan)).toEqual(["5:infrax1", "2:civx1"]);
   });
 
   test("the biggest gap gets the idle factories", () => {
@@ -418,11 +484,11 @@ describe("the AI's plan (spec §12, pre-flight R6)", () => {
     expect(aiLineShares("DEU", true, light, false)).toEqual({
       infantry_equipment: 29,
       support_equipment: 9,
-      artillery: 8,
+      artillery: 6,
       anti_tank: 4,
       anti_air: 4,
       motorized: 8,
-      light_tank: 17,
+      light_tank: 19,
       medium_tank: 0,
       fighter: 12,
       bomber: 0,
@@ -444,10 +510,10 @@ describe("the AI's plan (spec §12, pre-flight R6)", () => {
       tank_design: 0,
       plane_design: 0,
     });
-    // w69: the Soviet Union leans to mass tanks (AI_NATION_TILT: tank +6, rifles -6).
+    // w69, ww91: the Soviet Union leans to mass tanks and guns (AI_NATION_TILT).
     expect(aiLineShares("SUN", true, medium, false)).toMatchObject({
-      infantry_equipment: 34,
-      artillery: 18,
+      infantry_equipment: 32,
+      artillery: 20,
       light_tank: 0,
       medium_tank: 14,
       motorized: 0,
@@ -1170,19 +1236,32 @@ async function allAi() {
   return { runner, g, ww, econ, ce };
 }
 
+/** The test map holds few resources: lines there would starve, and a starved country builds civilian (ww91 rule 7). */
+function feed(econ: WwEconomy, ce: CountryEconomy): void {
+  for (let k = 0; k < RESOURCE_COUNT; k++) {
+    econ.resBonus[3 * RESOURCE_COUNT + k] = 2000;
+  }
+  econ.markCountryDirty(ce.smallID);
+}
+
 describe("the AI economy in a game (spec §12)", () => {
   test("an aggressor queues military factories from the start", async () => {
-    const { runner, ce } = await allAi();
+    const { runner, ce, econ } = await allAi();
     const deu = ce("DEU");
+    feed(econ, deu);
     // Day 0 is every country's first turn (Task 9), on its own tick.
     stepTo(runner, dayStart(0) + (deu.smallID % WW_DAY_SPLIT));
     expect(deu.queue).toEqual([]);
     stepTo(runner, dayStart(0) + (deu.smallID % WW_DAY_SPLIT) + 1);
-    // 5.25 free factories: two entries. Berlin (4 free slots) before
-    // Munich (2), both infra 5.
-    expect(
-      deu.queue.map((q) => `${q.region}:${q.building}x${q.count}`),
-    ).toEqual(["3:milx3", "4:milx2"]);
+    // 5.25 free factories: two entries, one factory each (ww91 rule 7).
+    // Berlin (4 free slots) first, both infra 5.
+    // (ww91 rule 7: and fuel in stock, the plan's other first.)
+    expect(deu.queue.map((q) => q.building)).toEqual([
+      "mil",
+      "mil",
+      "synthetic_refinery",
+    ]);
+    expect(deu.queue[0].region).toBe(3);
     // Rome has no free slot: Italy builds infrastructure there instead.
     throughDay(runner, 0);
     const ita = ce("ITA");
@@ -1196,9 +1275,10 @@ describe("the AI economy in a game (spec §12)", () => {
   });
 
   test("after the switch it builds military factories, ahead of the civilian ones", async () => {
-    const { runner, ce } = await allAi();
+    const { runner, ce, econ } = await allAi();
     const deu = ce("DEU");
     const gbr = ce("GBR");
+    feed(econ, deu);
     const day = aiDay(deu.smallID, 182);
     expect(day).toBe(189);
     stepTo(runner, dayStart(day));
@@ -1231,11 +1311,9 @@ describe("the AI economy in a game (spec §12)", () => {
     expect(kinds[0]).toBe("mil");
     expect(kinds.indexOf("civ")).toBe(kinds.lastIndexOf("civ"));
     // (Task 15: the turn's P4 builds come last — a synthetic refinery for
-    // the trucks' rubber here.)
+    // the trucks' rubber here; ww91: a fort or a silo too. No factory.)
     expect(
-      kinds
-        .slice(kinds.indexOf("civ") + 1)
-        .filter((k) => k !== "synthetic_refinery"),
+      kinds.slice(kinds.indexOf("civ") + 1).filter((k) => k === "mil"),
     ).toEqual([]);
     // (It was still in front for that day's building.)
     expect(

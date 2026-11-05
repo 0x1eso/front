@@ -10,6 +10,7 @@ import {
   type AirType,
   type WingOrder,
 } from "@openfront/engine-api/ww1936/AirTypes";
+import { AI_PLAN_DEFAULT } from "@openfront/engine-lib/ww1936/AiPlans";
 import { wingMaxPlanes } from "@openfront/engine-lib/ww1936/WingRules";
 import {
   AI_WING_FIGHTER_MAX_PCT,
@@ -111,6 +112,71 @@ const isDown = (o: MissionOrder | undefined) =>
   o.escort === undefined;
 
 describe("aiWingPlan", () => {
+  test("ww91: worn veterans rest, at most half the wings", () => {
+    const zones = [zone(2, { front: true, enemyDivisions: 2 })];
+    const up = { mission: "air_superiority" as const, sr: 2 };
+    const plan = aiWingPlan(
+      input({
+        wings: [
+          { ...wing(1, "fighter"), ...up, planes: 10, worn: true },
+          { ...wing(2, "fighter"), ...up, planes: 20, worn: true },
+          { ...wing(3, "fighter"), ...up },
+          { ...wing(4, "fighter"), ...up },
+          { ...wing(5, "fighter"), planes: 5, worn: true },
+        ],
+        zones,
+      }),
+    );
+    // The two weakest of the worn: five wings, two may rest; a resting one
+    // already idle gets no order.
+    expect(of(plan, 5)).toBeUndefined();
+    expect(of(plan, 1)).toMatchObject({ kind: "wing_mission", target: 0 });
+  });
+
+  test("ww91: the plan's sky bar and weights steer the bombers", () => {
+    const zones = [
+      zone(2, {
+        supPm: 250,
+        enemyPlanes: 50,
+        bomb: { region: 21, cls: "rail", score: 90 },
+      }),
+    ];
+    const bomb = (stratSupPm: number) =>
+      of(
+        aiWingPlan(
+          input({
+            wings: [wing(1, "strat_bomber")],
+            zones,
+            plan: { ...AI_PLAN_DEFAULT, stratSupPm },
+          }),
+        ),
+        1,
+      )?.mission;
+    expect(bomb(200)).toBe("strategic_bombing");
+    expect(bomb(300)).not.toBe("strategic_bombing");
+    // Two targets: the plan's bombing weight beats the port's by its share.
+    const two = [
+      zone(2, {
+        supPm: 900,
+        bomb: { region: 21, cls: "rail", score: 12 },
+        port: { region: 22, ships: 5 },
+      }),
+    ];
+    const first = (bombWeightPct: number, navalWeightPct: number) =>
+      of(
+        aiWingPlan(
+          input({
+            wings: [wing(1, "bomber")],
+            zones: two,
+            plan: { ...AI_PLAN_DEFAULT, bombWeightPct, navalWeightPct },
+          }),
+        ),
+        1,
+      )?.mission;
+    expect(first(200, 100)).toBe("strategic_bombing");
+    expect(first(50, 150)).toBe("port_strike");
+  });
+
   test("peace: every wing with an order stands down", () => {
     const plan = aiWingPlan(
       input({

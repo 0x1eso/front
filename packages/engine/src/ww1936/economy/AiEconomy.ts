@@ -49,6 +49,15 @@ import {
   WW_MAX_NAVAL_LINES,
 } from "@openfront/engine-api/ww1936/NavyTypes";
 import {
+  AI_BUILD_FILL_PM,
+  AI_PLAN_DEFAULT,
+  buildsForWar,
+  type FactoryView,
+  type NationalPlan,
+  nextFactory,
+  planOf,
+} from "@openfront/engine-lib/ww1936/AiPlans";
+import {
   dealUnitsOf,
   exclusiveLineTaken,
   exportRoomOf,
@@ -133,37 +142,29 @@ export const AI_ALERT_WT_BP: Readonly<Record<AiPersonality, number>> = {
   minor: 1200,
 };
 
-export function aiAlerted(
-  personality: AiPersonality,
-  warDays: number,
-  wtBp: number,
-): boolean {
-  return (
-    personality === "aggressor" ||
-    warDays >= 0 ||
-    wtBp >= AI_ALERT_WT_BP[personality]
-  );
-}
-
-/** After its switch and at peace, an AI queues this many military factories to one civilian (R6.2). */
-export const AI_MIL_PER_CIV: Readonly<Record<AiPersonality, number>> = {
-  aggressor: 3,
-  democracy: 3,
-  minor: 3,
-};
-
-/** P4 spec §17.5: military factories queued to one dockyard while short of the target. */
-export const AI_MIL_PER_DOCK = 4;
+/** ww91 rule 7: at this `milPerDock` or under, docks rank with the factories in the queue. */
+const AI_SEA_FIRST_MIL_PER_DOCK = 2;
+/** ww91 rule 7: at this `fortLevel` or over, forts rank with the factories in the queue. */
+const AI_FORT_FIRST_LEVEL = 3;
+/** ww91 rule 7: the world tension from which the United States builds its first docks. */
+export const AI_USA_DOCK_WT_BP = 2000;
+/** ww91 rule 7: its peace target from there. */
+export const AI_USA_PEACE_DOCKS = 20;
 /**
- * P4 spec §17.5: dockyard targets (the United States' only at war; any
- * other country builds none beyond its own).
+ * P4 spec §17.5: dockyard targets (the United States' at war, ww91: 20 from
+ * tension 20 %; any other country builds none beyond its own).
  */
-export function aiDockTarget(tag: CountryTag, atWar: boolean): number {
+export function aiDockTarget(
+  tag: CountryTag,
+  atWar: boolean,
+  wtBp = 0,
+): number {
   switch (tag) {
     case "GBR":
       return 30;
     case "USA":
-      return atWar ? 40 : 0;
+      if (atWar) return 40;
+      return wtBp >= AI_USA_DOCK_WT_BP ? AI_USA_PEACE_DOCKS : 0;
     case "JPN":
       return 25;
     case "DEU":
@@ -266,14 +267,21 @@ export const AI_SCHOOL_TILT: Readonly<
 };
 
 /**
- * w69: each major's own lean on top of its school (points; each row sums to
- * 0): the Soviet Union's mass tanks. The others lean through their air shares,
- * dock targets and research (a broad mix for the United States).
+ * w69, ww91 rule 7: each major's own lean on top of its school (points; each
+ * row sums to 0), what its plan builds first: Germany's tanks, the Soviet
+ * Union's guns and mass tanks, France's guns and anti-tank guns, the gun-heavy
+ * divisions of the United States and Britain (no armour-led plan for Britain),
+ * Japan's few guns and tanks. Italy leans through its air shares and docks.
  */
 export const AI_NATION_TILT: Readonly<
   Partial<Record<CountryTag, Readonly<Partial<Record<AiLineSlot, number>>>>>
 > = {
-  SUN: { tank: 6, infantry_equipment: -6 },
+  DEU: { tank: 3, artillery: -3 },
+  SUN: { tank: 6, artillery: 3, infantry_equipment: -9 },
+  USA: { artillery: 3, motorized: 2, infantry_equipment: -5 },
+  GBR: { artillery: 3, tank: -3 },
+  FRA: { anti_tank: 3, artillery: 2, tank: -2, infantry_equipment: -3 },
+  JPN: { infantry_equipment: 6, artillery: -3, tank: -3 },
 };
 
 const SCHOOL_OF: Readonly<Partial<Record<CountryTag, DoctrineSchool>>> = {
@@ -636,6 +644,12 @@ export interface AiInput {
   tag: CountryTag;
   personality: AiPersonality;
   major: boolean;
+  /** ww91: the plan it plays; none: the default. */
+  plan?: Readonly<NationalPlan>;
+  /** ww91 rule 7: it plans or expects a war within the pre-war window (read when it builds). */
+  readonly plannedWar?: boolean;
+  /** ww91 rule 7: the strongest possible enemy next door, % of our divisions (a major's; read when it builds). */
+  readonly threatPct?: number;
   day: number;
   /** Days of the longest running war; -1 at peace. */
   warDays: number;
@@ -1194,17 +1208,84 @@ function infraGain(deposit: number, infraRoom: number): number {
   );
 }
 
+/** ww91 rule 7: the lines' resource fill, weighted by their working factories, ‰ (1000 with none). */
+export function aiLinesFillPm(lines: readonly AiLine[]): number {
+  let n = 0;
+  let sum = 0;
+  for (const l of lines) {
+    n += l.active;
+    sum += l.fill * l.active;
+  }
+  return n === 0 ? 1000 : Math.floor(sum / n);
+}
+
+/**
+ * The queue's order after the switch; ww91 rule 7: a navy that comes first puts
+ * its docks with the factories, a line that comes first its forts.
+ */
+function queueRank(plan: Readonly<NationalPlan>): (b: string) => number {
+  const seaFirst = plan.milPerDock <= AI_SEA_FIRST_MIL_PER_DOCK;
+  const fortFirst = plan.fortLevel >= AI_FORT_FIRST_LEVEL;
+  return (b) =>
+    b === "mil" || (seaFirst && b === "dock") || (fortFirst && b === "fort")
+      ? 0
+      : b === "infra"
+        ? 1
+        : 2;
+}
+
+/**
+ * ww91 rule 7: the lines run short of resources and the deals open to us can't
+ * bring them in (the turn's trade step would, otherwise: a line's first day
+ * always looks short, before any deal).
+ */
+function aiStarved(i: AiInput, need: readonly number[]): boolean {
+  if (aiLinesFillPm(i.lines) >= AI_BUILD_FILL_PM) return false;
+  let left = Math.max(0, i.payableCivs - i.paidCivs) * WW_TRADE_UNITS_PER_CIV;
+  for (let k = 0; k < RESOURCE_COUNT; k++) {
+    const short = need[k] - available(i, k);
+    if (short <= 0) continue;
+    let room = 0;
+    for (const p of i.partners) room += p.room[k];
+    const bought = Math.min(short, room, left);
+    if (bought < short) return true;
+    left -= bought;
+  }
+  return false;
+}
+
+/** ww91 rule 7: the factory choice's view of a turn. */
+function factoryView(i: AiInput, need: readonly number[]): FactoryView {
+  return {
+    plan: i.plan ?? AI_PLAN_DEFAULT,
+    personalityAlertWtBp: AI_ALERT_WT_BP[i.personality],
+    atWar: i.warDays >= 0,
+    plannedWar: i.plannedWar === true,
+    wtBp: i.wtBp,
+    threatPct: i.threatPct ?? 0,
+    idleMil: i.idleMil,
+    starved: aiStarved(i, need),
+  };
+}
+
 function planConstruction(
   i: AiInput,
   need: readonly number[],
   orders: AiOrder[],
 ): void {
-  const switched = aiAlerted(i.personality, i.warDays, i.wtBp);
-  const atWar = i.warDays >= 0;
+  const view = factoryView(i, need);
+  const switched = buildsForWar(view);
+  const atWar = view.atWar;
+  const plan = view.plan;
+  const seaFirst = plan.milPerDock <= AI_SEA_FIRST_MIL_PER_DOCK;
   const target = Math.min(
     WW_MAX_QUEUE,
     Math.ceil(i.freeCivMilli / (WW_MAX_CIVS_PER_PROJECT * 1000)) + 1,
   );
+  // ww91 rule 7: few free civilian factories, small entries: three factories
+  // on six civilian ones stood 500 days at the head of the queue, and the
+  // plan couldn't change its mind.
+  const entry = i.freeCivMilli < 10_000 ? 1 : i.freeCivMilli < 20_000 ? 2 : 3;
   const regions = i.regions.map((r) => ({ ...r }));
   let length = i.queue.length;
   let civEntries = 0;
@@ -1262,11 +1343,13 @@ function planConstruction(
 
   while (length < target) {
     // P4 spec §17.5: after the switch, dockyards short of the target take
-    // one entry in AI_MIL_PER_DOCK + 1 (four military to one dockyard).
+    // one entry in milPerDock + 1 (ww91: the plan's; four factories to one
+    // dockyard by default; a navy that comes first opens with a dockyard).
     if (
       switched &&
       (i.docks ?? 0) + docksQueued < (i.dockTarget ?? 0) &&
-      milEntries >= AI_MIL_PER_DOCK * (dockEntries + 1)
+      milEntries + civEntries >=
+        plan.milPerDock * (dockEntries + (seaFirst ? 0 : 1))
     ) {
       const r = bestRegion(
         regions,
@@ -1278,16 +1361,11 @@ function planConstruction(
         continue;
       }
     }
-    // R6.2: before the switch civilian, after it AI_MIL_PER_CIV military
-    // to 1 civilian (military only at war).
-    const ratio = AI_MIL_PER_CIV[i.personality];
-    const building =
-      !switched || (!atWar && milEntries >= ratio * (civEntries + 1))
-        ? "civ"
-        : "mil";
+    // R6.2, ww91 rule 7: civilian or military by the situation and the plan.
+    const building = nextFactory(view, milEntries, civEntries);
     const r = bestRegion(regions, (x) => !x.occupied && x.free > 0);
     if (r !== null) {
-      build(r, building, Math.min(3, r.free));
+      build(r, building, Math.min(entry, r.free));
       continue;
     }
     // No slot left anywhere: infrastructure where something is mined.
@@ -1302,7 +1380,7 @@ function planConstruction(
   // civilian ones still queued from before it (else those took a year or
   // more to finish first); HOI4's AI reorders its queue the same way.
   if (switched || atWar) {
-    const rank = (b: string) => (b === "mil" ? 0 : b === "infra" ? 1 : 2);
+    const rank = queueRank(plan);
     let sorted = true;
     let worst = 0;
     for (const q of [...i.queue, ...orders.filter((o) => o.kind === "build")]) {
@@ -1674,7 +1752,8 @@ export const AI_NAVAL_SHARES: Readonly<
 > = {
   GBR: { dd: 35, cl: 15, bb: 10, cv: 15, ss: 5, convoy: 20 },
   USA: { dd: 35, cl: 10, bb: 10, cv: 25, ss: 10, convoy: 10 },
-  JPN: { dd: 30, cl: 10, ca: 5, bb: 10, cv: 25, ss: 15, convoy: 5 },
+  // ww91: its escort penalty is the plan's biggest hole.
+  JPN: { dd: 35, cl: 10, ca: 5, bb: 5, cv: 25, ss: 5, convoy: 15 },
   DEU: { dd: 15, ca: 5, bb: 15, ss: 60, convoy: 5 },
   ITA: { dd: 30, cl: 15, bb: 15, ss: 30, convoy: 10 },
   FRA: { dd: 30, cl: 20, bb: 15, ss: 25, convoy: 10 },
@@ -1698,6 +1777,11 @@ export const AI_NAVAL_BATCH: Readonly<Record<AiNavalSlot, number>> = {
   convoy: 0,
 };
 
+/** ww91: where the escorts' points come from, in this order. */
+const AI_ESCORT_FROM: readonly AiNavalSlot[] = ["bb", "bc", "ca", "ss", "cv"];
+/** ww91: convoys lost in 30 days, % of the stock, from which the plan builds escorts. */
+export const AI_ESCORT_LOSS_PCT = 5;
+
 /** Whether the convoys run short: the routes need more than 90% of the stock. */
 export function aiConvoyShort(need: number, stock: number): boolean {
   return need * 10 > stock * 9;
@@ -1707,11 +1791,21 @@ export function aiConvoyShort(need: number, stock: number): boolean {
 export function aiNavalShares(
   tag: CountryTag,
   convoyShort: boolean,
+  /** ww91: points the plan moves to destroyers and convoys while it loses convoys. */
+  escortPts = 0,
 ): Record<AiNavalSlot, number> {
   const base = AI_NAVAL_SHARES[tag] ?? AI_NAVAL_SHARES_OTHER;
   const out = Object.fromEntries(
     NAVAL_SLOTS.map((k) => [k, base[k] ?? 0]),
   ) as Record<AiNavalSlot, number>;
+  let moved = 0;
+  for (const k of AI_ESCORT_FROM) {
+    const take = Math.min(out[k], escortPts - moved);
+    out[k] -= take;
+    moved += take;
+  }
+  out.dd += Math.ceil(moved / 2);
+  out.convoy += Math.floor(moved / 2);
   if (!convoyShort || out.convoy >= AI_CONVOY_RUSH_PCT) return out;
   const ships = NAVAL_SLOTS.filter((k) => k !== "convoy");
   const scaled = shareOut(
@@ -1742,6 +1836,8 @@ export interface AiNavalLineInput {
   convoyNeed: number;
   /** The launch port of a new line (the best naval base); 0: none, no new line. */
   port: number;
+  /** ww91: points moved to destroyers and convoys (aiNavalShares). */
+  escortPts?: number;
 }
 
 /** The newest generation `tag` may build of a class (gen 1 is always open). */
@@ -1767,7 +1863,7 @@ export function newestShipGen(
 export function aiNavalLinePlan(i: AiNavalLineInput): NavalLineOrder[] {
   const orders: NavalLineOrder[] = [];
   const short = aiConvoyShort(i.convoyNeed, i.convoyStock);
-  const shares = aiNavalShares(i.tag, short);
+  const shares = aiNavalShares(i.tag, short, i.escortPts ?? 0);
   const assigned = new Map<AiNavalSlot, number>();
   let used = 0;
   for (const l of i.lines) {
@@ -1906,15 +2002,26 @@ export function aiInput(
         };
       });
   const warDays = econ.warDays(me, tick);
+  const major = COUNTRIES[ce.tag].major;
+  const politics = politicsInput(econ, ce);
+  let threat: number | null = null;
+  let planned: boolean | null = null;
   return {
     tag: ce.tag,
     personality: aiPersonality(ce.tag),
-    major: COUNTRIES[ce.tag].major,
+    major,
+    plan: planOfCountry(econ, ce),
+    get plannedWar() {
+      return (planned ??= plannedWarOf(econ, me, day));
+    },
+    get threatPct() {
+      return (threat ??= major ? aiThreatPct(econ, me) : 0);
+    },
     day,
     warDays,
     laws: { ...ce.laws },
     lawCooldownUntil: { ...ce.lawCooldownUntil },
-    ...politicsInput(econ, ce),
+    ...politics,
     manpower: ce.manpower,
     recruitable: t.recruitable,
     infStock: ce.infStock(),
@@ -1973,12 +2080,78 @@ export function aiInput(
       (ce.major || t.dock > 0) &&
       econ.regionsOf(me).some((r) => econ.scenario.harborOf(r) !== 0),
     docks: t.dock,
-    dockTarget: aiDockTarget(ce.tag, warDays >= 0),
+    dockTarget: aiDockTarget(ce.tag, warDays >= 0, politics.wtBp),
     fuelOil: fuelOilOf(econ, ce),
     priorityDemand: (econ.ww.depth as WwDepth | undefined)?.priorityDemand(me),
     keyCost: retoolCostOf(econ, me),
     research: researchInputOf(econ, ce),
   };
+}
+
+/** ww91: the plan `ce`'s AI plays (the default for a human or without politics). */
+export function planOfCountry(
+  econ: WwEconomy,
+  ce: CountryEconomy,
+): Readonly<NationalPlan> {
+  const pol = econ.ww.politics as WwPolitics | undefined;
+  if (pol === undefined) return AI_PLAN_DEFAULT;
+  return planOf(
+    ce.tag,
+    pol.seed,
+    ce.smallID,
+    econ.ww.isHumanControlled(ce.smallID),
+  );
+}
+
+/** ww91 rule 7: a war within the pre-war window is planned or expected. */
+function plannedWarOf(econ: WwEconomy, me: number, day: number): boolean {
+  const pol = econ.ww.politics as WwPolitics | undefined;
+  return pol !== undefined && pol.plannedWars(me, day).length > 0;
+}
+
+/**
+ * ww91 rule 7: the strongest country touching our core land that could fight
+ * us, by the divisions in the field a player's map shows, % of ours. A colony's
+ * border is no threat to the country: Britain's neighbours are half the world.
+ */
+export function aiThreatPct(econ: WwEconomy, me: number): number {
+  const ww = econ.ww;
+  const land = ww.land;
+  const sc = econ.scenario;
+  const pol = ww.politics;
+  const count = (id: number) => {
+    let n = 0;
+    for (const a of land.armiesOf(id)) n += a.divisions.length;
+    return n;
+  };
+  const near = new Set<number>();
+  for (const r of econ.regionsOf(me)) {
+    if (pol.legalOwner[r] !== me || !pol.isCore(r)) continue;
+    for (const e of sc.edgesOf(r)) near.add(land.controller[e.to]);
+  }
+  const ours = Math.max(1, count(me));
+  let best = 0;
+  for (const n of near) {
+    if (n === 0 || land.sameSide(me, n) || !ww.isActor(n)) continue;
+    best = Math.max(best, Math.floor((count(n) * 100) / ours));
+  }
+  return best;
+}
+
+/**
+ * ww91 rule 5: units a day the lines and the fuel want beyond what the country
+ * has, RESOURCE_IDS order. Its own books only.
+ */
+export function aiResourceGap(econ: WwEconomy, ce: CountryEconomy): number[] {
+  const t = ce.totals;
+  const need = new Array<number>(RESOURCE_COUNT).fill(0);
+  for (const l of ce.lines) {
+    const per = EQUIPMENT[typeOf(l.key)].resources;
+    for (let k = 0; k < RESOURCE_COUNT; k++) need[k] += per[k] * l.active;
+  }
+  return withFuelOil(need, fuelOilOf(econ, ce)).map((n, k) =>
+    Math.max(0, n - (t.produced[k] - t.exported[k] + t.imported[k])),
+  );
 }
 
 /** AiInput.research (changes §5): the faction's shared research is read only when a slot is free. */
@@ -2091,7 +2264,7 @@ export function aiPlanesFirst(econ: WwEconomy, ce: CountryEconomy): void {
  * progress stays with each entry).
  */
 function militaryFirst(econ: WwEconomy, ce: CountryEconomy): void {
-  const rank = (b: string) => (b === "mil" ? 0 : b === "infra" ? 1 : 2);
+  const rank = queueRank(planOfCountry(econ, ce));
   for (let j = 0; j < ce.queue.length; j++) {
     let best = j;
     for (let k = j + 1; k < ce.queue.length; k++) {
@@ -2292,8 +2465,18 @@ function aiNavalLinesTurn(
     convoyStock: convoysOf(ce),
     convoyNeed: need,
     port: aiMainBase(econ.ww, ce.smallID),
+    escortPts: escortPtsOf(econ, ce),
   });
   for (const o of orders) navy.issue(ce.smallID, o, tick, "ai");
+}
+
+/** ww91: the plan's escort points while convoys go down at the rate that calls for them. */
+function escortPtsOf(econ: WwEconomy, ce: CountryEconomy): number {
+  const pts = planOfCountry(econ, ce).escortLossPts;
+  if (pts === 0) return 0;
+  let lost = 0;
+  for (const m of econ.ww.navy.country(ce.smallID)?.convoyLoss ?? []) lost += m;
+  return lost >= convoysOf(ce) * AI_ESCORT_LOSS_PCT * 10 ? pts : 0;
 }
 
 /** P4 spec §17.5: sea and air buildings a turn (the factories keep the rest of the queue). */
@@ -2343,7 +2526,13 @@ export function aiP4Builds(
   const me = ce.smallID;
   const enemies = ww.enemiesOf(me).filter((e) => land.isEnemy(me, e));
   const atWar = enemies.length > 0;
-  let budget = atWar ? AI_P4_BUILDS_AT_WAR : AI_P4_BUILDS_AT_PEACE;
+  const plan = planOfCountry(econ, ce);
+  // ww91 rule 7: lines short of resources: what feeds them goes first, with a build more.
+  // A plan that stops on fuel wants its stock over half the cap.
+  const fuelLow = plan.fuelStopPm > 0 && ce.fuelMilli * 2 < fuelCapOf(econ, ce);
+  const starving = aiLinesFillPm(ce.lines) < AI_BUILD_FILL_PM || fuelLow;
+  let budget =
+    (atWar ? AI_P4_BUILDS_AT_WAR : AI_P4_BUILDS_AT_PEACE) + (starving ? 1 : 0);
   // Never in a no-strike region (no bases placed in Korea or Taiwan).
   const regions = econ
     .regionsOf(me)
@@ -2394,6 +2583,101 @@ export function aiP4Builds(
           a - b,
       );
   };
+  /** The buildings that answer a shortage (a closure: a shortage goes first, below). */
+  const feedBuilds = () => {
+    // Task 15: a refinery makes rubber too — built when the lines lack it.
+    const t = ce.totals;
+    /** w28: what the lines want of resource k, and whether the country's units fall short of it. */
+    const lineNeed = (k: number) => {
+      let need = 0;
+      for (const l of ce.lines) {
+        need += EQUIPMENT[typeOf(l.key)].resources[k] * l.active;
+      }
+      return need;
+    };
+    const resShort = (k: number) =>
+      lineNeed(k) > t.produced[k] - t.exported[k] + t.imported[k];
+    const rubberShort = resShort(RUBBER);
+    if (
+      (ce.fuelRatioPm < AI_SYNTH_RATIO_PM || rubberShort || fuelLow) &&
+      ce.researched.has("synthetic_oil_1") &&
+      !anyQueued("synthetic_refinery")
+    ) {
+      first(slotRegions(), "synthetic_refinery");
+    }
+    // w28: an alloy plant when the lines lack tungsten or chromium (a few, one
+    // at a time), a mine level where a short resource lies in the ground.
+    const energyOk =
+      ((econ.ww.depth as WwDepth | undefined)?.country(me)?.mech.energyPm ??
+        1000) >= AI_METAL_ENERGY_PM;
+    const tungstenShort = resShort(RESOURCE_IDS.indexOf("tungsten"));
+    const chromiumShort = resShort(RESOURCE_IDS.indexOf("chromium"));
+    if (
+      energyOk &&
+      (tungstenShort || chromiumShort) &&
+      ce.researched.has("metal_substitute_1") &&
+      !anyQueued("alloy_plant") &&
+      econ.countryBuildings(me, "alloy_plant") < AI_ALLOY_MAX
+    ) {
+      first(slotRegions(), "alloy_plant");
+    }
+    const steelIdx = RESOURCE_IDS.indexOf("steel");
+    const alumIdx = RESOURCE_IDS.indexOf("aluminium");
+    const deepShort = (k: number) =>
+      lineNeed(k) * AI_SMELTER_FILL_PCT >
+      (t.produced[k] - t.exported[k] + t.imported[k]) * 100;
+    if (
+      energyOk &&
+      (deepShort(steelIdx) || deepShort(alumIdx)) &&
+      ce.researched.has("metal_substitute_1") &&
+      !anyQueued("smelter") &&
+      econ.countryBuildings(me, "smelter") < AI_SMELTER_MAX
+    ) {
+      first(slotRegions(), "smelter");
+    }
+    if (!anyQueued("mine") && budget > 0) {
+      const shortRes: number[] = [];
+      for (let k = 0; k < RESOURCE_COUNT; k++) {
+        if (resShort(k)) shortRes.push(k);
+      }
+      let mineLevels = 0;
+      for (const r of econ.regionsOf(me)) mineLevels += level(r, "mine");
+      if (shortRes.length > 0 && mineLevels < plan.mineMax) {
+        const dep = (r: number) =>
+          shortRes.reduce((a, k) => a + (econ.deposits(r)[k] ?? 0), 0);
+        const sites = regions
+          .filter(
+            (r) => !econ.isOccupied(r) && level(r, "mine") < 3 && dep(r) > 0,
+          )
+          .sort(
+            (a, b) =>
+              dep(b) - dep(a) || level(a, "mine") - level(b, "mine") || a - b,
+          );
+        first(sites, "mine");
+      }
+    }
+  };
+  // Fuel: a refinery when short, a silo when full for a while.
+  const slotRegions = () =>
+    regions
+      .filter((r) => !econ.isOccupied(r))
+      .map((r) => ({
+        r,
+        free:
+          econ.regionSlots(r, ce.stats.slotPct) -
+          usedSlots(econ, r) -
+          queuedInRegion(ce.queue, r).factories,
+      }))
+      .filter((x) => x.free > 0)
+      .sort(
+        (a, b) =>
+          (econ.infra[b.r] ?? 0) - (econ.infra[a.r] ?? 0) ||
+          b.free - a.free ||
+          a.r - b.r,
+      )
+      .map((x) => x.r);
+  const anyQueued = (b: BuildingId) => ce.queue.some((q) => q.building === b);
+  if (starving) feedBuilds();
   if (atWar) {
     const navy = ww.navy;
     // Naval bases: our ports on a sea where an enemy holds a port, or on
@@ -2524,98 +2808,12 @@ export function aiP4Builds(
       first(forts, "coastal_fort");
     }
   }
-  // Fuel: a refinery when short, a silo when full for a while.
-  const slotRegions = () =>
-    regions
-      .filter((r) => !econ.isOccupied(r))
-      .map((r) => ({
-        r,
-        free:
-          econ.regionSlots(r, ce.stats.slotPct) -
-          usedSlots(econ, r) -
-          queuedInRegion(ce.queue, r).factories,
-      }))
-      .filter((x) => x.free > 0)
-      .sort(
-        (a, b) =>
-          (econ.infra[b.r] ?? 0) - (econ.infra[a.r] ?? 0) ||
-          b.free - a.free ||
-          a.r - b.r,
-      )
-      .map((x) => x.r);
-  const anyQueued = (b: BuildingId) => ce.queue.some((q) => q.building === b);
-  // Task 15: a refinery makes rubber too — built when the lines lack it.
-  const t = ce.totals;
-  /** w28: what the lines want of resource k, and whether the country's units fall short of it. */
-  const lineNeed = (k: number) => {
-    let need = 0;
-    for (const l of ce.lines) {
-      need += EQUIPMENT[typeOf(l.key)].resources[k] * l.active;
-    }
-    return need;
-  };
-  const resShort = (k: number) =>
-    lineNeed(k) > t.produced[k] - t.exported[k] + t.imported[k];
-  const rubberShort = resShort(RUBBER);
-  if (
-    (ce.fuelRatioPm < AI_SYNTH_RATIO_PM || rubberShort) &&
-    ce.researched.has("synthetic_oil_1") &&
-    !anyQueued("synthetic_refinery")
-  ) {
-    first(slotRegions(), "synthetic_refinery");
-  }
-  // w28: an alloy plant when the lines lack tungsten or chromium (a few, one
-  // at a time), a mine level where a short resource lies in the ground.
-  const energyOk =
-    ((econ.ww.depth as WwDepth | undefined)?.country(me)?.mech.energyPm ??
-      1000) >= AI_METAL_ENERGY_PM;
-  const tungstenShort = resShort(RESOURCE_IDS.indexOf("tungsten"));
-  const chromiumShort = resShort(RESOURCE_IDS.indexOf("chromium"));
-  if (
-    energyOk &&
-    (tungstenShort || chromiumShort) &&
-    ce.researched.has("metal_substitute_1") &&
-    !anyQueued("alloy_plant") &&
-    econ.countryBuildings(me, "alloy_plant") < AI_ALLOY_MAX
-  ) {
-    first(slotRegions(), "alloy_plant");
-  }
-  const steelIdx = RESOURCE_IDS.indexOf("steel");
-  const alumIdx = RESOURCE_IDS.indexOf("aluminium");
-  const deepShort = (k: number) =>
-    lineNeed(k) * AI_SMELTER_FILL_PCT >
-    (t.produced[k] - t.exported[k] + t.imported[k]) * 100;
-  if (
-    energyOk &&
-    (deepShort(steelIdx) || deepShort(alumIdx)) &&
-    ce.researched.has("metal_substitute_1") &&
-    !anyQueued("smelter") &&
-    econ.countryBuildings(me, "smelter") < AI_SMELTER_MAX
-  ) {
-    first(slotRegions(), "smelter");
-  }
-  if (!anyQueued("mine") && budget > 0) {
-    const shortRes: number[] = [];
-    for (let k = 0; k < RESOURCE_COUNT; k++) if (resShort(k)) shortRes.push(k);
-    let mineLevels = 0;
-    for (const r of econ.regionsOf(me)) mineLevels += level(r, "mine");
-    if (shortRes.length > 0 && mineLevels < AI_MINE_MAX) {
-      const dep = (r: number) =>
-        shortRes.reduce((a, k) => a + (econ.deposits(r)[k] ?? 0), 0);
-      const sites = regions
-        .filter(
-          (r) => !econ.isOccupied(r) && level(r, "mine") < 3 && dep(r) > 0,
-        )
-        .sort(
-          (a, b) =>
-            dep(b) - dep(a) || level(a, "mine") - level(b, "mine") || a - b,
-        );
-      first(sites, "mine");
-    }
-  }
+  if (!starving) feedBuilds();
   if (
     ce.fuelMilli >= fuelCapOf(econ, ce) &&
-    day - ce.fuelShortDay > AI_SILO_FULL_DAYS &&
+    // ww91 rule 7: a plan that stops on fuel stocks it sooner.
+    day - ce.fuelShortDay >
+      (plan.fuelStopPm > 0 ? AI_SILO_FULL_DAYS / 2 : AI_SILO_FULL_DAYS) &&
     !anyQueued("fuel_silo")
   ) {
     first(slotRegions(), "fuel_silo");

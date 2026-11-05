@@ -31,6 +31,7 @@ import {
   WwAiLevel,
   wwAiWarPlanDue,
 } from "@openfront/engine-lib/ww1936/AiDifficulty";
+import { planOf } from "@openfront/engine-lib/ww1936/AiPlans";
 import { dayOfDate } from "@openfront/engine-lib/ww1936/Calendar";
 import { invasionCapacity } from "@openfront/engine-lib/ww1936/InvasionRules";
 import {
@@ -187,6 +188,10 @@ export interface AiNavalInput {
    * under AI_FUEL_RESERVE_DAYS of yesterday's use. Absent: false.
    */
   fuelShort?: boolean;
+  /** ww91 rule 6: the route supremacy its landings want ‰; absent: AI_INVASION_SUP_PM. */
+  landingSupPm?: number;
+  /** ww91: its torpedoes don't work yet: no raid mission. */
+  noRaid?: boolean;
 }
 
 /**
@@ -673,6 +678,21 @@ export function srKmIn(
 }
 
 /**
+ * ww91 rule 6: the sea regions around `me`'s own home ports (those it holds
+ * by right), where its plan looks first.
+ */
+export function homeSeaSrs(ww: WwNavy["ww"], me: number): Set<number> {
+  const sc = ww.scenario;
+  const legal = ww.politics.legalOwner;
+  const out = new Set<number>();
+  for (const r of navalPortsOf(ww, me)) {
+    const z = sc.harborOf(r);
+    if (z !== 0 && legal[r] === me) out.add(sc.zoneSr(z));
+  }
+  return out;
+}
+
+/**
  * The AI's main naval base: its highest working level, then the smaller
  * id; never a no-strike region (no bases or fleets placed in Korea or
  * Taiwan). 0 when none.
@@ -935,9 +955,8 @@ export function aiNavalPlan(input: AiNavalInput): AiNavalOrder[] {
   // ② Invasion support: each route region to 600‰ (ours ≥ 1.5 × theirs).
   for (const r of input.regions) {
     if (!r.invasion) continue;
-    const need = Math.floor(
-      (r.enemySup * AI_INVASION_SUP_PM) / (1000 - AI_INVASION_SUP_PM),
-    );
+    const sup = input.landingSupPm ?? AI_INVASION_SUP_PM;
+    const need = Math.floor((r.enemySup * sup) / (1000 - sup));
     const pool = [...byRole("main"), ...byRole("patrol")]
       .filter((f) => inRange(f, r.sr))
       .sort((a, b) => b.supPower - a.supPower || a.id - b.id);
@@ -958,6 +977,7 @@ export function aiNavalPlan(input: AiNavalInput): AiNavalOrder[] {
     (a, b) => threat(b) - threat(a) || a.sr - b.sr,
   );
   for (const step of input.style.order) {
+    if (step === "raid" && input.noRaid === true) continue;
     if (step === "home") {
       // ③ A battle fleet strikes where the threat to home is greatest; a
       // weaker one waits in port (a fleet in being). With no threat at
@@ -1105,7 +1125,11 @@ export function aiNavalPlan(input: AiNavalInput): AiNavalOrder[] {
         want(f, go("patrol", r.sr, "if_stronger"));
         continue;
       }
-    } else if (role === "sub" && input.style.engagePm === undefined) {
+    } else if (
+      role === "sub" &&
+      input.style.engagePm === undefined &&
+      input.noRaid !== true
+    ) {
       const r = input.regions.find(
         (x) =>
           (x.enemySup > 0 || x.enemyTraffic > 0) &&
@@ -1543,6 +1567,13 @@ export function aiNavalInput(
     style: aiNavyStyle(tag),
     seed: ww.politics.seed,
     fuelShort: aiFuelShort(navy, smallID),
+    landingSupPm: planOf(
+      tag,
+      ww.politics.seed,
+      smallID,
+      ww.isHumanControlled(smallID),
+    ).landingSupPm,
+    noRaid: (navy.econ.country(smallID)?.stats.subTorpedoPct ?? 0) < 0,
   };
 }
 
@@ -1844,3 +1875,68 @@ export function aiOverseasWarScore(
 
 /** Spec §11.1: the reach of an invasion by sea. */
 const AI_INVASION_REACH_KM = WW_INVASION_MAX_KM;
+
+/** Spec §17.4: the expected supremacy, ours over ours plus the route's worst enemy, ‰. */
+export function expectedSupPm(ours: number, enemyWorst: number): number {
+  return ours <= 0 ? 0 : Math.floor((ours * 1000) / (ours + enemyWorst));
+}
+
+/** The enemy's supremacy power by sea region (fleets present; docked at half). */
+export function enemySupBySr(navy: WwNavy, me: number): Map<number, number> {
+  const out = new Map<number, number>();
+  for (const [sr, e] of aiEnemySeaView(navy, me)) out.set(sr, e.sup);
+  return out;
+}
+
+/** The route's sea regions, port harbor to target harbor (null: no way). */
+export function routeSrs(
+  navy: WwNavy,
+  me: number,
+  from: number,
+  to: number,
+): number[] | null {
+  const sc = navy.scenario;
+  const p = seaPath(
+    sc,
+    [sc.harborOf(from)],
+    [sc.harborOf(to)],
+    navy.passable(me, true),
+  );
+  if (p === null) return null;
+  const out: number[] = [];
+  for (const z of p.zones) {
+    const sr = sc.zoneSr(z);
+    if (sr !== 0 && !out.includes(sr)) out.push(sr);
+  }
+  return out;
+}
+
+/** Our battle fleets' and patrols' supremacy power (what can hold a route). */
+export function routePower(navy: WwNavy, me: number): number {
+  let ours = 0;
+  for (const f of navy.fleetsOf(me)) {
+    const role = fleetRole(fleetCounts(navy, f));
+    if (role === "main" || role === "patrol") {
+      ours += aiSupPower(fleetRows(navy, f));
+    }
+  }
+  return ours;
+}
+
+/**
+ * ww91 rule 6: the supremacy we expect on the worst region of the way between
+ * two ports, ‰: 1000 with no enemy on it, 0 with no way.
+ */
+export function aiRouteSupPm(
+  navy: WwNavy,
+  me: number,
+  from: number,
+  to: number,
+): number {
+  const srs = routeSrs(navy, me, from, to);
+  if (srs === null) return 0;
+  const enemy = enemySupBySr(navy, me);
+  let worst = 0;
+  for (const sr of srs) worst = Math.max(worst, enemy.get(sr) ?? 0);
+  return worst === 0 ? 1000 : expectedSupPm(routePower(navy, me), worst);
+}

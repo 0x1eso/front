@@ -29,6 +29,7 @@ import type {
   WwStatKey,
   WwStats,
 } from "@openfront/engine-api/ww1936/PoliticsTypes";
+import { AI_PLANS } from "./AiPlans";
 import { natUnitRow, type NatUnitRow } from "./NationalUnits";
 import { idHash, wwRoll } from "./Roll";
 import { retiredTechEffects } from "./WwTechs";
@@ -598,7 +599,7 @@ export interface StartDoctrineInput {
 
 /**
  * Spec §3.5 / §19.2: an AI country's day-0 doctrines — its row (historical
- * AI) or its personality's (the naval rule applies), then per domain a
+ * AI, and always for a major with a plan) or its personality's (the naval rule applies), then per domain a
  * seeded START_DOCTRINE_DEVIATION_PCT chance of another grand doctrine of
  * that domain (sub-doctrines kept).
  */
@@ -606,7 +607,11 @@ export function startDoctrinePick(i: StartDoctrineInput): {
   gd: (GrandDoctrine | null)[];
   sub: (Subdoctrine | null)[];
 } {
-  const own = i.historical ? i.table.find((r) => r.tag === i.tag) : undefined;
+  // ww91 8.1: the seven majors keep their own row with the switch off too.
+  const own =
+    i.historical || AI_PLANS[i.tag] !== undefined
+      ? i.table.find((r) => r.tag === i.tag)
+      : undefined;
   const pRow = i.table.find((r) => r.tag === `@${i.personality}`);
   let gd: (GrandDoctrine | null)[];
   let sub: (Subdoctrine | null)[];

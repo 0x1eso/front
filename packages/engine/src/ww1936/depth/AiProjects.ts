@@ -28,6 +28,7 @@ import {
 import { effectiveLevel } from "../economy/Buildings";
 import { queueBuild } from "../economy/Construction";
 import { addLine } from "../economy/Production";
+import { capitalsOf, fleetCounts } from "../navy/AiNavy";
 import {
   issueNukeDrop,
   nearestRocketSite,
@@ -550,6 +551,37 @@ function aiRaid(d: WwDepth, id: number, tick: number): void {
       units[1][1].push(t.id[r]);
     }
   }
+  /** The first raid the judge allows on `target`'s building, by these kinds. */
+  const tryRaid = (
+    target: number,
+    building: BuildingId,
+    tries: readonly [RaidInput["kind"], number][],
+  ): boolean => {
+    for (const [kind, unit] of tries) {
+      const ask = raidAskOf(d, id, kind, unit, target, building);
+      if (raidBlock(ask.input) !== null) continue;
+      if (
+        issueRaid(
+          d,
+          id,
+          { kind: "raid", raid: kind, unit, target, building },
+          tick,
+        ) === null
+      ) {
+        return true;
+      }
+    }
+    return false;
+  };
+  // ww91 rule 8: frogmen go first, for the port that holds the most capital ships.
+  if ((econ.country(id)?.stats.harborRaidPm ?? 0) > 0) {
+    const frogmen = units[1][1].map((u): [RaidInput["kind"], number] => [
+      "raid_commando",
+      u,
+    ]);
+    const ports = harboursOfCapitalShips(d, id);
+    for (const p of ports) if (tryRaid(p, "naval_base", frogmen)) return;
+  }
   for (const building of AI_RAID_TARGETS) {
     for (const reg of sc.landRegions) {
       const target = reg.id;
@@ -570,20 +602,27 @@ function aiRaid(d: WwDepth, id: number, tick: number): void {
       for (const [kind, ids] of units) {
         for (const u of ids) tries.push([kind, u]);
       }
-      for (const [kind, unit] of tries) {
-        const ask = raidAskOf(d, id, kind, unit, target, building);
-        if (raidBlock(ask.input) !== null) continue;
-        if (
-          issueRaid(
-            d,
-            id,
-            { kind: "raid", raid: kind, unit, target, building },
-            tick,
-          ) === null
-        ) {
-          return;
-        }
+      if (tryRaid(target, building, tries)) return;
+    }
+  }
+}
+
+/** ww91 rule 8: enemy ports with capital ships in them, the most first (the strike planner's own reading). */
+function harboursOfCapitalShips(d: WwDepth, id: number): number[] {
+  const ww = d.ww;
+  const navy = ww.navy;
+  const land = ww.land;
+  const held = new Map<number, number>();
+  for (const e of ww.enemiesOf(id)) {
+    for (const f of navy.fleetsOf(e)) {
+      if (f.docked === 0 || !land.isEnemy(id, land.controller[f.docked])) {
+        continue;
+      }
+      const n = capitalsOf(fleetCounts(navy, f));
+      if (n > 0 && !d.noStrike(f.docked)) {
+        held.set(f.docked, (held.get(f.docked) ?? 0) + n);
       }
     }
   }
+  return [...held.keys()].sort((a, b) => held.get(b)! - held.get(a)! || a - b);
 }

@@ -21,13 +21,19 @@ import {
   INVASION_STATES,
   WW_INVASION_MAX_KM,
 } from "@openfront/engine-api/ww1936/NavyTypes";
+import {
+  AI_PLAN_DEFAULT,
+  planOf,
+  resourceWorth,
+} from "@openfront/engine-lib/ww1936/AiPlans";
 import { divisionConvoys } from "@openfront/engine-lib/ww1936/ConvoyRules";
 import {
   invasionCapacity,
   invasionPrepDays,
 } from "@openfront/engine-lib/ww1936/InvasionRules";
 import { isNoStrike } from "@openfront/engine-lib/ww1936/NoStrike";
-import { seaPath } from "@openfront/engine-lib/ww1936/SeaGraph";
+import { enemySkyPm } from "../air/AirSuperiority";
+import { aiResourceGap } from "../economy/AiEconomy";
 import { convoysOf, effectiveLevel } from "../economy/Buildings";
 import { aiSideStretches } from "../land/AiLand";
 import { capitalRegion } from "../land/LandStartRun";
@@ -39,12 +45,12 @@ import {
   AI_BEAT_FACTOR,
   AI_INVASION_SUP_PM,
   aiAtWar,
-  aiEnemySeaView,
   aiJitterPm,
-  aiSupPower,
-  fleetCounts,
-  fleetRole,
-  fleetRows,
+  enemySupBySr,
+  expectedSupPm,
+  homeSeaSrs,
+  routePower,
+  routeSrs,
   seaReach,
   straitSig,
 } from "./AiNavy";
@@ -57,14 +63,14 @@ import type { WwNavy } from "./WwNavy";
 export const AI_INVASION_MIN = 3;
 /** 내 판단: an army of 3 would be merged back by the land AI's grouping (≤ 3); gather 4 or more. */
 export const AI_INVASION_GATHER = 4;
-/** Spec §17.4: with a land front, invade only when this share of divisions is on no front. */
-export const AI_INVASION_SPARE_PCT = 20;
 /** Spec §11.3: the launch needs this supremacy on every route region. */
 export const AI_LAUNCH_SUP_PM = 500;
 /** 내 판단: the walk to a port turns to rail beyond this (the land AI's AI_RAIL_MIN_KM). */
 const RAIL_KM = 1000;
 
 const READY = INVASION_STATES.indexOf("ready");
+
+export { expectedSupPm };
 
 /** The AI's view of one invasion target (spec §17.4). */
 export interface AiInvasionInput {
@@ -83,6 +89,10 @@ export interface AiInvasionInput {
   routeKm: number;
   /** A landing history beat's window covers it (×10, spec §17.6). */
   beat?: boolean;
+  /** ww91: what an island base is worth to this plan; none: the default. */
+  islandValue?: number;
+  /** ww91 rules 5 and 6: what the plan adds (resources it lacks, its own seas). */
+  extra?: number;
 }
 
 /** A scored target with the route supremacy we expect (ours ÷ the route's worst enemy). */
@@ -91,16 +101,19 @@ export interface AiInvasionCandidate extends AiInvasionInput {
 }
 
 /**
- * Pure (spec §17.4): (VP + port 5 + enemy capital 20 + island base 5) ×
- * 100 / (1 + enemy divisions × 3) / (1 + km / 1000), each step rounded
- * down; a beat ×10.
+ * Pure (spec §17.4): (VP + port 5 + enemy capital 20 + island base 5, and
+ * ww91's plan values) × 100 / (1 + enemy divisions × 3) / (1 + km / 1000),
+ * each step rounded down; a beat ×10.
  */
 export function aiInvasionScore(input: AiInvasionInput): number {
   const base =
     (input.vp +
       (input.port ? 5 : 0) +
       (input.enemyCapital ? 20 : 0) +
-      (input.islandBase ? 5 : 0)) *
+      (input.islandBase
+        ? (input.islandValue ?? AI_PLAN_DEFAULT.islandBaseValue)
+        : 0) +
+      (input.extra ?? 0)) *
     100;
   const byDivisions = Math.floor(base / (1 + input.divisions * 3));
   const s = Math.floor(
@@ -109,14 +122,15 @@ export function aiInvasionScore(input: AiInvasionInput): number {
   return input.beat === true ? s * AI_BEAT_FACTOR : s;
 }
 
-/** Pure: the best target whose route we expect to hold at 600‰ (ties: the smaller region). */
+/** Pure: the best target whose route we expect to hold at 600‰, or the plan's bar (ties: the smaller region). */
 export function aiInvasionPick(
   cands: readonly AiInvasionCandidate[],
+  supPm: number = AI_INVASION_SUP_PM,
 ): AiInvasionCandidate | null {
   let best: AiInvasionCandidate | null = null;
   let bestScore = 0;
   for (const c of cands) {
-    if (c.supPm < AI_INVASION_SUP_PM) continue;
+    if (c.supPm < supPm) continue;
     const s = aiInvasionScore(c);
     if (s <= 0) continue;
     if (
@@ -131,42 +145,7 @@ export function aiInvasionPick(
   return best;
 }
 
-/** Spec §17.4: the expected supremacy, ours over ours plus the route's worst enemy, ‰. */
-export function expectedSupPm(ours: number, enemyWorst: number): number {
-  return ours <= 0 ? 0 : Math.floor((ours * 1000) / (ours + enemyWorst));
-}
-
 // ---- The engine side ----
-
-/** The enemy's supremacy power by sea region (fleets present; docked at half). */
-function enemySupBySr(navy: WwNavy, me: number): Map<number, number> {
-  const out = new Map<number, number>();
-  for (const [sr, e] of aiEnemySeaView(navy, me)) out.set(sr, e.sup);
-  return out;
-}
-
-/** The route's sea regions, port harbor to target harbor (null: no way). */
-function routeSrs(
-  navy: WwNavy,
-  me: number,
-  from: number,
-  to: number,
-): number[] | null {
-  const sc = navy.scenario;
-  const p = seaPath(
-    sc,
-    [sc.harborOf(from)],
-    [sc.harborOf(to)],
-    navy.passable(me, true),
-  );
-  if (p === null) return null;
-  const out: number[] = [];
-  for (const z of p.zones) {
-    const sr = sc.zoneSr(z);
-    if (sr !== 0 && !out.includes(sr)) out.push(sr);
-  }
-  return out;
-}
 
 /** An army standing still together, out of battle (its region), else 0. */
 function standingRegion(navy: WwNavy, a: Army): number {
@@ -196,18 +175,6 @@ export const AI_INVASION_REVIEW_DAYS = 30;
 /** The review day of a country's stuck invasions (no memory: a fixed day of the cycle). */
 export function aiInvasionReviewDue(smallID: number, day: number): boolean {
   return day % AI_INVASION_REVIEW_DAYS === smallID % AI_INVASION_REVIEW_DAYS;
-}
-
-/** Our battle fleets' and patrols' supremacy power (what can hold a route). */
-function routePower(navy: WwNavy, me: number): number {
-  let ours = 0;
-  for (const f of navy.fleetsOf(me)) {
-    const role = fleetRole(fleetCounts(navy, f));
-    if (role === "main" || role === "patrol") {
-      ours += aiSupPower(fleetRows(navy, f));
-    }
-  }
-  return ours;
 }
 
 /**
@@ -314,6 +281,8 @@ function planInvasion(
   const land = navy.land;
   const ww = navy.ww;
   const sc = navy.scenario;
+  const ce = navy.econ.country(me)!;
+  const plan = planOf(ce.tag, ww.politics.seed, me);
   // Our fleets' power that can hold a route (battle fleets and patrols).
   const ours = routePower(navy, me);
   if (ours <= 0) return;
@@ -338,7 +307,7 @@ function planInvasion(
         fronted += a.divisions.length;
       }
     }
-    if ((all - fronted) * 100 < all * AI_INVASION_SPARE_PCT) return;
+    if ((all - fronted) * 100 < all * plan.invasionSparePct) return;
   }
   // Departure ports: ours, in a stretch with free divisions to gather.
   const freeByComp = new Map<number, number>();
@@ -360,11 +329,13 @@ function planInvasion(
   const dists = ports.map(
     (r) => seaReach(sc, [sc.harborOf(r)], pass, sig).dist,
   );
-  const ce = navy.econ.country(me)!;
   // The beat window's preparation: an ordinary army's (not all marines).
   const prep = invasionPrepDays(ce.stats, ce.researched, false, false);
   const beats = activeBeatTargets(navy, me, day, "invade", prep);
   const capitals = new Set(enemies.map((e) => capitalRegion(land, e)));
+  const gap = plan.resourceValue > 0 ? aiResourceGap(navy.econ, ce) : [];
+  const homeSeas = plan.homeSeaValue > 0 ? homeSeaSrs(ww, me) : null;
+  const side = land.sideOf(me);
   // Every enemy coastal region within reach, scored.
   const cands: (AiInvasionCandidate & { from: number })[] = [];
   for (const r of sc.landRegions) {
@@ -382,6 +353,8 @@ function planInvasion(
       }
     });
     if (km < 0 || km > WW_INVASION_MAX_KM) continue;
+    // ww91 rule 4: no landing under the enemy's sky.
+    if (enemySkyPm(ww.air, r.id, side) >= plan.skyBarPm) continue;
     let divisions = enemyDivisionsIn(land, me, r.id);
     for (const n of sc.regionNeighbours(r.id)) {
       divisions += enemyDivisionsIn(land, me, n);
@@ -399,6 +372,10 @@ function planInvasion(
       divisions,
       routeKm: km,
       beat: beats.has(r.id),
+      islandValue: plan.islandBaseValue,
+      extra:
+        resourceWorth(navy.econ.deposits(r.id), gap, plan.resourceValue) +
+        (homeSeas?.has(sc.zoneSr(harbor)) === true ? plan.homeSeaValue : 0),
       supPm: 0,
       from,
     });
@@ -418,7 +395,7 @@ function planInvasion(
     let worst = 0;
     for (const sr of srs) worst = Math.max(worst, enemySup.get(sr) ?? 0);
     c.supPm = expectedSupPm(ours, worst);
-    if (aiInvasionPick([c]) !== null) {
+    if (aiInvasionPick([c], plan.landingSupPm) !== null) {
       pick = c;
       break;
     }

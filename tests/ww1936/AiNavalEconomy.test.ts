@@ -64,8 +64,10 @@ describe("the AI's naval production (spec §17.5)", () => {
     });
     expect(aiNavalShares("JPN", false)).toMatchObject({
       cv: 25,
-      ss: 15,
+      ss: 5,
       ca: 5,
+      dd: 35,
+      convoy: 15,
     });
     expect(aiNavalShares("SUN", false)).toMatchObject({ ss: 50, bb: 0, cv: 0 });
     // Anyone else with dockyards: destroyers, submarines, convoys.

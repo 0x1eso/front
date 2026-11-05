@@ -23,6 +23,79 @@ export const AI_EFFORT_CLOSE_PCT = 15;
 /** C4 (내 판단, from the 90 % measurement): enemy superiority from this ‰ halves a sector's score. */
 export const AI_EFFORT_SKY_PM = 700;
 
+/** wwRoll purpose of ww91 rule 1's seeded lean between enemies. */
+export const P_MAIN_ENEMY = idHash("ai_main_enemy");
+/** ww91 rule 1: the seeded lean on an enemy's score, ± this %. */
+export const AI_ENEMY_LEAN_PCT = 10;
+/** ww91 rule 1: from this `oneEnemyPct` the fronts off the main enemy start no effort of their own. */
+export const AI_ONE_ENEMY_HOLD_PCT = 75;
+
+/** ww91 rule 1: one enemy with a land front, as the AI sees it. */
+export interface EnemyFront {
+  enemy: number;
+  /** Victory points in reach of the front. */
+  vp: number;
+  /** Its capital is among them. */
+  capital: boolean;
+  /** Its divisions facing us. */
+  divisions: number;
+}
+
+/** (Victory points in reach + the capital's value) × 1000 ÷ the divisions facing. */
+export function enemyFrontScore(e: EnemyFront): number {
+  return Math.floor(
+    ((1 + e.vp + (e.capital ? AI_EFFORT_CAPITAL_VALUE : 0)) * 1000) /
+      Math.max(1, e.divisions),
+  );
+}
+
+/**
+ * ww91 rule 1: the enemy that gets the offensive: the best score, leaned by
+ * `leanOf` (any non-negative integer, seeded for the period) ± 10 %; ties to
+ * the smaller id. `keep`, the enemy most of the army fights now, stays while
+ * it is within AI_EFFORT_CLOSE_PCT of the best. 0 with none.
+ */
+export function pickMainEnemy(
+  list: readonly EnemyFront[],
+  leanOf: (enemy: number) => number,
+  keep = 0,
+): number {
+  const span = 2 * AI_ENEMY_LEAN_PCT + 1;
+  const scored = list
+    .map((e) => ({
+      enemy: e.enemy,
+      score: Math.floor(
+        (enemyFrontScore(e) *
+          (100 - AI_ENEMY_LEAN_PCT + (leanOf(e.enemy) % span))) /
+          100,
+      ),
+    }))
+    .sort((a, b) => b.score - a.score || a.enemy - b.enemy);
+  if (scored.length === 0) return 0;
+  const kept = scored.find((e) => e.enemy === keep);
+  if (
+    kept !== undefined &&
+    kept.score * 100 >= scored[0].score * (100 - AI_EFFORT_CLOSE_PCT)
+  ) {
+    return keep;
+  }
+  return scored[0].enemy;
+}
+
+/**
+ * ww91 rule 1: a front's demand when it is off the main enemy: what it holds
+ * with, plus the part of an offensive's extra the plan leaves it.
+ */
+export function offMainDemand(
+  held: number,
+  full: number,
+  oneEnemyPct: number,
+): number {
+  return (
+    held + Math.floor((Math.max(0, full - held) * (100 - oneEnemyPct)) / 100)
+  );
+}
+
 /** One enemy region the effort could go for. */
 export interface EffortRegion {
   region: number;
@@ -46,7 +119,11 @@ export interface EffortRegion {
  * for the fort level, so that nobody at all behind a fort is not free. Under
  * an enemy sky the score halves (C4).
  */
-export function effortScore(r: EffortRegion, breaksForts = false): number {
+export function effortScore(
+  r: EffortRegion,
+  breaksForts = false,
+  skyBarPm = AI_EFFORT_SKY_PM,
+): number {
   const value = 1 + r.vp + (r.capital ? AI_EFFORT_CAPITAL_VALUE : 0) + r.extra;
   const fort = r.fort * r.width;
   const score = Math.floor(
@@ -59,7 +136,7 @@ export function effortScore(r: EffortRegion, breaksForts = false): number {
             : fort),
       ),
   );
-  return (r.skyPm ?? 0) >= AI_EFFORT_SKY_PM ? Math.floor(score / 2) : score;
+  return (r.skyPm ?? 0) >= skyBarPm ? Math.floor(score / 2) : score;
 }
 
 /**
@@ -69,26 +146,32 @@ export function effortScore(r: EffortRegion, breaksForts = false): number {
  * AI_EFFORT_CLOSE_PCT of the best, so games differ. 0 with no region.
  * `keep`, the sector standing now, stays while it is that close to the best:
  * armies do not march off for a coin. `breaksForts`: ww90, the force has heavy
- * tanks or assault infantry.
+ * tanks or assault infantry. `keepPct`: ww91, the plan's "that close";
+ * `skyBarPm`: its sky bar (rule 4).
  */
 export function pickMainSector(
   regions: readonly EffortRegion[],
   roll: number,
   keep = 0,
   breaksForts = false,
+  keepPct = AI_EFFORT_CLOSE_PCT,
+  skyBarPm = AI_EFFORT_SKY_PM,
 ): number {
   const bar = breaksForts ? AI_EFFORT_BREAK_FORT_BAR : AI_EFFORT_FORT_BAR;
   const open = regions.filter((r) => r.fort < bar);
-  const list = (open.length > 0 ? open : regions)
-    .map((r) => ({ region: r.region, score: effortScore(r, breaksForts) }))
+  const reach = open.length > 0 ? open : regions;
+  // ww91 rule 4: sky first: no sector under the enemy's sky while another stands.
+  const clear = reach.filter((r) => (r.skyPm ?? 0) < skyBarPm);
+  const list = (clear.length > 0 ? clear : reach)
+    .map((r) => ({
+      region: r.region,
+      score: effortScore(r, breaksForts, skyBarPm),
+    }))
     .sort((a, b) => b.score - a.score || a.region - b.region);
   if (list.length === 0) return 0;
   const [first, second] = list;
   const kept = list.find((r) => r.region === keep);
-  if (
-    kept !== undefined &&
-    kept.score * 100 >= first.score * (100 - AI_EFFORT_CLOSE_PCT)
-  ) {
+  if (kept !== undefined && kept.score * 100 >= first.score * (100 - keepPct)) {
     return keep;
   }
   const close =
