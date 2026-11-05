@@ -3005,8 +3005,9 @@ class AiDay {
   /**
    * ww105: `a`, which its stretch can't feed, sails to the nearest port of ours
    * on another that can take it, gathering in a port first. 111 Soviet divisions
-   * sat out the war on Sakhalin at 7 % supply: the sea took them there and no
-   * order took them back. It sails on any route: at 7 % there is nothing to lose.
+   * sat out the war on Sakhalin at 7 % supply, cut off from the mainland, and
+   * no order took them away. It sails on any route: at 7 % there is nothing to
+   * lose.
    */
   private sailOff(a: Army, f: Front, unit: number): boolean {
     const land = this.land;
