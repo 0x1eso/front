@@ -165,6 +165,9 @@ export function landRegained(eg: WwEndgame, id: number, tick: number): void {
   eg.dirtyCountries.add(id);
   eg.ww.clearCapitulation(id);
   eg.wakeQueue.push(id);
+  // ww88: what it gets back is its own again, not hand-over land.
+  const legal = eg.ww.politics.legalOwner;
+  eg.handedOver = eg.handedOver.filter(([r]) => legal[r] !== id);
   // P5 final lane (the exile return loop, HOI4: a liberated country is not
   // surrendered again over what it had already lost): its capitulation line
   // counts from the victory points it holds now.

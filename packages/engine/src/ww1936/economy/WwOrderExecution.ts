@@ -268,6 +268,7 @@ function applyOrder(
     case "peace_offer":
     case "peace_reply":
     case "line_peace_offer":
+    case "peace_surrender":
       block = econ.ww.endgame.issue(p.smallID(), order, mg.ticks());
       break;
     case "takeover_pick":
@@ -311,6 +312,7 @@ export function isDepthOrder(o: WwOrder): o is DepthOrder {
 const PEACE_NOTICE_KINDS: ReadonlySet<string> = new Set([
   "peace_offer",
   "line_peace_offer",
+  "peace_surrender",
   "peace_reply",
   "peace_submit",
   "peace_pass",

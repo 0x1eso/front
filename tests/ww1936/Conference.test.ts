@@ -40,7 +40,15 @@ import {
 import type { WorldWar } from "@openfront/engine/ww1936/WorldWar";
 import { END, endId } from "./endFixture";
 import { endgameFixture } from "./endgameFixture";
-import { END_MAP, order, step, stepTo, type WwHuman, wwRunner } from "./util";
+import {
+  END_MAP,
+  order,
+  step,
+  stepTo,
+  withoutAssignment,
+  type WwHuman,
+  wwRunner,
+} from "./util";
 
 // Lane X's real releasableTags and activateCountry (batch 21: the mocks are
 // gone; the end fixture gives SVK its cores in Slovakia and Kosice).
@@ -108,7 +116,7 @@ function beat(
   const before = eg.conferences.length;
   capitulate(g, ww, player(g, loser), g.ticks());
   expect(eg.conferences).toHaveLength(before + 1);
-  return eg.conferences[before];
+  return withoutAssignment(eg, eg.conferences[before]);
 }
 
 const part = (c: Conference, tag: CountryTag) =>
@@ -286,17 +294,17 @@ describe("World War 1936 P5: the peace conference (spec §6)", () => {
     const [deu, pl] = [id("DEU"), id("POL")];
     const c = beat(t, "POL", [["DEU", 1000, [R.warsaw]]]);
     expect(ww.land.controller[R.krakow]).toBe(deu);
-    submit(t, c, "DEU", [{ kind: "take", region: R.warsaw }]);
+    submit(t, c, "DEU", [{ kind: "take", region: R.krakow }]);
     closeRound(t, c);
     expect(c.status).toBe(1);
     submit(t, c, "DEU", null);
     closeRound(t, c);
     expect(c.status).toBe(2);
     expect(c.doneDay).toBe(ww.day(t.g.ticks()));
-    expect(ww.politics.legalOwner[R.warsaw]).toBe(deu);
-    expect(ww.land.controller[R.warsaw]).toBe(deu);
-    expect(ww.politics.legalOwner[R.krakow]).toBe(pl);
-    expect(ww.land.controller[R.krakow]).toBe(pl);
+    expect(ww.politics.legalOwner[R.krakow]).toBe(deu);
+    expect(ww.land.controller[R.krakow]).toBe(deu);
+    expect(ww.politics.legalOwner[R.warsaw]).toBe(pl);
+    expect(ww.land.controller[R.warsaw]).toBe(pl);
     expect(eg.countryState(pl)).toBe("active");
     expect(ww.isCapitulated(pl)).toBe(false);
     expect(eg.isActor(pl)).toBe(true);
@@ -310,8 +318,8 @@ describe("World War 1936 P5: the peace conference (spec §6)", () => {
           loser: "POL",
           loserTag: "POL",
           n: 1,
-          regions: String(R.warsaw),
-          region: R.warsaw,
+          regions: String(R.krakow),
+          region: R.krakow,
         },
       },
     ]);
@@ -478,6 +486,10 @@ describe("World War 1936 P5: the peace conference (spec §6)", () => {
     expect(submitDemands(t.eg, id("DEU"), b.id, null, t.g.ticks())).toBe(
       "conference_closed",
     );
+    closeRound(t, a);
+    // B10: an empty first round goes on; the second ends it.
+    expect(a.status).toBe(1);
+    submit(t, a, "DEU", null);
     closeRound(t, a);
     expect(a.status).toBe(2);
     expect(b.status).toBe(1);
@@ -655,7 +667,7 @@ describe("World War 1936 P5: the treaty's results (spec §6.7)", () => {
     submit(t, c, "DEU", [
       { kind: "reparations", target: pl, k: 1 },
       { kind: "change_government", target: pl },
-      { kind: "take", region: R.warsaw },
+      { kind: "take", region: R.krakow },
     ]);
     closeRound(t, c);
     expect(c.lastRound.map((x) => x.ok)).toEqual([true, true, true]);
@@ -726,11 +738,11 @@ describe("World War 1936 P5: the treaty's results (spec §6.7)", () => {
     const c = beat(t, "POL", [["DEU", 1000, [R.warsaw]]]);
     expect(b.ended).toBeNull();
     expect(eg.member(b, pl)!.state).toBe("capitulated");
-    submit(t, c, "DEU", [{ kind: "take", region: R.warsaw }]);
+    submit(t, c, "DEU", [{ kind: "take", region: R.krakow }]);
     finish(t, c, ["DEU"]);
     expect(eg.countryState(pl)).toBe("active");
     expect(eg.member(b, pl)!.state).toBe("left");
-    expect(ww.politics.legalOwner[R.krakow]).toBe(pl);
+    expect(ww.politics.legalOwner[R.warsaw]).toBe(pl);
   });
 
   it("a human loser's takeover card is not offered twice", async () => {

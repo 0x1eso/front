@@ -29,7 +29,7 @@ import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSou
 import type { WorldWar } from "@openfront/engine/ww1936/WorldWar";
 import { END, endId } from "./endFixture";
 import { endgameFixture } from "./endgameFixture";
-import { END_MAP, stepTo, wwRunner } from "./util";
+import { END_MAP, stepTo, withoutAssignment, wwRunner } from "./util";
 
 // Lane X's real releasableTags (batch 21: the mock is gone; the end
 // fixture gives SVK its cores, so the CSK row's release names it).
@@ -78,7 +78,7 @@ function beat(
     for (const r of regions) ww.land.setController(r, id(tag), g.ticks());
   }
   capitulate(g, ww, player(g, loser), g.ticks());
-  return eg.conferences[eg.conferences.length - 1];
+  return withoutAssignment(eg, eg.conferences[eg.conferences.length - 1]);
 }
 
 const kinds = (ds: { kind: number }[]) => ds.map((d) => DEMAND_KINDS[d.kind]);

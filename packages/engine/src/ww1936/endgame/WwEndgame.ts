@@ -66,6 +66,7 @@ import {
 } from "./LendLease";
 import { returnLiberated } from "./Liberation";
 import { aiLinePeaceDay, linePeaceData, offerLinePeace } from "./LinePeace";
+import { aiAskTermsDay, askForTerms } from "./AskTerms";
 import { peaceJudgeData } from "./NegPeace";
 import {
   garrisonOrder,
@@ -164,6 +165,15 @@ const ConferenceSchema = z.object({
       ok: z.boolean(),
     }),
   ),
+  // ww88: decided at the opening; old saves have none and settle as before.
+  /** [region, winner]: what each winner gets without paying (PeaceAssign). */
+  assign: z.array(z.tuple([zInt(), zInt()])).optional(),
+  /** [winner, points] added at the opening for held regions it gave up. */
+  comp: z.array(z.tuple([zInt(), zInt()])).optional(),
+  /** [region, victor]: land a capitulation handed over, not conquered. */
+  handed: z.array(z.tuple([zInt(), zInt()])).optional(),
+  /** The side asked for terms (Ask for terms): its members keep the rest and their armies. */
+  asked: z.literal(true).optional(),
 });
 export type Conference = z.infer<typeof ConferenceSchema>;
 const WarSchema = z.object({
@@ -271,6 +281,8 @@ const PeaceOfferSchema = z.object({
   terms: PeaceTermsSchema.optional(),
   /** Peace on the current line (LinePeace.ts): true; absent for the other kinds. */
   line: z.literal(true).optional(),
+  /** ww88: the proposer asks for terms (accepting opens a conference). */
+  ask: z.literal(true).optional(),
 });
 export type PeaceOffer = z.infer<typeof PeaceOfferSchema>;
 export const WwEndgameStateSchema = z.object({
@@ -359,6 +371,8 @@ export const WwEndgameStateSchema = z.object({
   capBase: z.array(z.tuple([zInt(), zInt()])).optional(),
   /** White peace: pending offers (by id), refusal cooldowns [from, to, untilDay], truces [a, b, untilDay] (a < b), fronts [war, a, b, sinceDay]. */
   peaceOffers: z.array(PeaceOfferSchema).optional(),
+  /** ww88: [region, victor], see handedOver. */
+  handedOver: z.array(z.tuple([zInt(), zInt()])).optional(),
   nextOfferId: zInt().optional(),
   peaceCooldowns: z.array(z.tuple([zInt(), zInt(), zInt()])).optional(),
   truces: z.array(z.tuple([zInt(), zInt(), zInt()])).optional(),
@@ -446,6 +460,12 @@ export class WwEndgame {
   capBase: [number, number][] = [];
   /** White peace (WhitePeace.ts): pending offers, by id. */
   peaceOffers: PeaceOffer[] = [];
+  /**
+   * ww88: [region, victor]: regions a capitulation handed to its victor
+   * without a fight, until a conference shares them out or the loser
+   * comes back (the conference must not count them as conquered).
+   */
+  handedOver: [number, number][] = [];
   nextOfferId = 1;
   /** [from, to, untilDay]: `from` may not offer `to` again before untilDay. */
   peaceCooldowns: [number, number, number][] = [];
@@ -599,6 +619,7 @@ export class WwEndgame {
       aiAidDay(this, id, day, tick); // A
       aiPeaceDay(this, id, day, tick); // white peace
       aiLinePeaceDay(this, id, day, tick); // peace on the current line
+      aiAskTermsDay(this, id, day, tick); // ww88: a beaten AI asks for terms
     }
     this.flushDayNotes(id);
   }
@@ -650,6 +671,8 @@ export class WwEndgame {
         return replyPeace(this, smallID, order.offer, order.accept, tick);
       case "line_peace_offer":
         return offerLinePeace(this, smallID, order.war, order.target, tick);
+      case "peace_surrender":
+        return askForTerms(this, smallID, order.war, tick);
       default:
         return "bad_index";
     }
@@ -1647,6 +1670,7 @@ export class WwEndgame {
       dayNotes: this.dayNotes,
       capBase: this.capBase,
       peaceOffers: this.peaceOffers,
+      handedOver: this.handedOver,
       nextOfferId: this.nextOfferId,
       peaceCooldowns: this.peaceCooldowns,
       truces: this.truces,
@@ -1717,6 +1741,7 @@ export class WwEndgame {
     this.dayNotes = c.dayNotes;
     this.capBase = c.capBase ?? [];
     this.peaceOffers = c.peaceOffers ?? [];
+    this.handedOver = c.handedOver ?? [];
     this.nextOfferId = c.nextOfferId ?? 1;
     this.peaceCooldowns = c.peaceCooldowns ?? [];
     this.truces = c.truces ?? [];
@@ -1838,6 +1863,11 @@ export class WwEndgame {
         mix(l.target);
         mix(l.ok ? 1 : 0);
       }
+      // ww88: only when set (an old save's conference has none).
+      if (c.assign !== undefined) pairs(c.assign);
+      if (c.comp !== undefined) pairs(c.comp);
+      if (c.handed !== undefined) pairs(c.handed);
+      if (c.asked === true) mix(1);
     }
     mix(this.zones.length);
     for (const z of this.zones) {
@@ -1925,6 +1955,7 @@ export class WwEndgame {
     }
     // P5 final lane: the capitulation baselines (none in most games).
     if (this.capBase.length > 0) pairs(this.capBase);
+    if (this.handedOver.length > 0) pairs(this.handedOver);
     // White peace: offers, cooldowns, truces and the fronts' stalemate count.
     mix(this.nextOfferId);
     mix(this.peaceOffers.length);
@@ -1939,7 +1970,7 @@ export class WwEndgame {
       // Negotiated peace: the terms, field by field (none: a 0; peace on
       // the current line: a 2 — it carries no terms).
       const t = o.terms;
-      mix(t !== undefined ? 1 : o.line === true ? 2 : 0);
+      mix(t !== undefined ? 1 : o.line === true ? 2 : o.ask === true ? 3 : 0);
       if (t !== undefined) {
         ids(t.give);
         ids(t.take);

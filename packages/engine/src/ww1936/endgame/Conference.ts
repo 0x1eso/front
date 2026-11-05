@@ -20,12 +20,14 @@ import {
   WW_PEACE_MAX_ROUNDS,
   WW_PEACE_ROUND_TICKS,
   WW_REPARATIONS_DAYS,
+  WW_TRUCE_DAYS,
   WwConferenceView,
   WwDemandView,
   WwWar,
 } from "@openfront/engine-api/ww1936/EndgameTypes";
 import { SHIP_CLASSES } from "@openfront/engine-api/ww1936/NavyTypes";
 import {
+  IDEO_DEM,
   IDEO_NEU,
   IDEOLOGIES,
 } from "@openfront/engine-api/ww1936/PoliticsTypes";
@@ -36,6 +38,13 @@ import {
   turnOrder,
 } from "@openfront/engine-lib/ww1936/EndgameRules";
 import { wwRealTicks } from "@openfront/engine-lib/ww1936/Pace";
+import {
+  AssignIn,
+  peaceAssignment,
+  settleLosers,
+  WW_PEACE_BIG_CITY_VP,
+  WW_PEACE_LOSER_MIN_PCT,
+} from "@openfront/engine-lib/ww1936/PeaceAssign";
 import {
   demandKindIndex,
   expandPeaceDemand,
@@ -50,6 +59,7 @@ import {
   REGION_DEMAND_KINDS,
 } from "@openfront/engine-lib/ww1936/PeaceRules";
 import { SHIP_BASE } from "@openfront/engine-lib/ww1936/ShipStats";
+import { capitulate as capitulateCountry } from "../Capitulation";
 import { effectiveBuildings } from "../economy/Buildings";
 import { transferRegionPeaceful } from "../land/PoliticsBridge";
 import { dissolveFaction, leaveFaction } from "../politics/Factions";
@@ -66,6 +76,7 @@ import {
   loserIds,
   registerWarEnds,
 } from "./Wars";
+import { setTruce } from "./WhitePeace";
 import type { Conference, Settled, StoredDemand, WwEndgame } from "./WwEndgame";
 
 /** DEMAND_KINDS index of each kind (StoredDemand.kind, Settled.kind). */
@@ -155,7 +166,11 @@ export function peaceFacts(eg: WwEndgame): PeaceFacts {
  */
 export function peaceTable(eg: WwEndgame, c: Conference): PeaceTable {
   const live = (id: number) => eg.isActor(id);
-  if (c.settled.every((s) => live(s.by)) && c.claims.every(([p]) => live(p))) {
+  if (
+    c.settled.every((s) => live(s.by)) &&
+    c.claims.every(([p]) => live(p)) &&
+    (c.assign ?? []).every(([, p]) => live(p))
+  ) {
     return c;
   }
   // A claim of a participant that stopped playing holds nothing (Taiwan).
@@ -163,6 +178,7 @@ export function peaceTable(eg: WwEndgame, c: Conference): PeaceTable {
     ...c,
     settled: c.settled.filter((s) => live(s.by)),
     claims: c.claims.filter(([p]) => live(p)),
+    assign: c.assign?.filter(([, p]) => live(p)),
   };
 }
 
@@ -276,6 +292,7 @@ export function openConference(
   eg: WwEndgame,
   warIds: readonly number[],
   tick: number,
+  terms?: TermsOpening,
 ): number {
   const ww = eg.ww;
   const pol = ww.politics;
@@ -287,7 +304,7 @@ export function openConference(
         w !== null && w.ended !== null && w.ended.winner !== -1,
     );
   if (wars.length === 0) return 0;
-  const loserSet = new Set<number>();
+  const loserSet = new Set<number>(terms?.losers ?? []);
   for (const w of wars) for (const id of loserIds(w)) loserSet.add(id);
   const losers = [...loserSet].sort(asc);
   const ws = new Map<number, number>();
@@ -301,9 +318,11 @@ export function openConference(
   }
   const ids = [...ws.keys()].sort(asc);
   if (ids.length === 0 || losers.length === 0) return 0;
+  const ids0 = new Set(ids);
   const stake = ww.scenario.landRegions
     .map((r) => r.id)
     .filter((r) => loserSet.has(pol.legalOwner[r] ?? 0))
+    .filter((r) => terms === undefined || termsStake(eg, r, ids0))
     .sort(asc);
   const base = stake.map((r) => regionBase(eg, r));
   let total = 0;
@@ -311,6 +330,7 @@ export function openConference(
   const pts = participantPoints(
     total,
     ids.map((id) => ws.get(id)!),
+    terms?.poolPct,
   );
   const { claims, conquer, topple } = goalsOf(eg, wars, ids, losers, stake);
   const human = ids.some((id) => eg.isHumanControlled(id));
@@ -341,7 +361,9 @@ export function openConference(
     ai: [],
     settled: [],
     lastRound: [],
+    ...(terms === undefined ? {} : { asked: true as const }),
   };
+  assignAtOpening(eg, c);
   eg.conferences.push(c);
   if (c.status === 1) refreshAi(eg, c);
   const params = countryListParams(eg, "losers", losers);
@@ -351,6 +373,116 @@ export function openConference(
   eg.news("news_peace_conference", params);
   eg.dirtyConf = true;
   return c.id;
+}
+
+/** What a side that asked for terms brings to its conference (AskTerms.ts). */
+export interface TermsOpening {
+  /** Its members: they lose without having capitulated. */
+  losers: readonly number[];
+  /** The share of the usual pool, percent. */
+  poolPct: number;
+}
+
+/** Ask for terms: at stake is what a winner holds, and what borders it. */
+function termsStake(
+  eg: WwEndgame,
+  r: number,
+  winners: ReadonlySet<number>,
+): boolean {
+  const ctrl = eg.ww.land.controller;
+  if (winners.has(ctrl[r] ?? 0)) return true;
+  return eg.ww.scenario
+    .regionNeighbours(r)
+    .some((n) => winners.has(ctrl[n] ?? 0));
+}
+
+/** ww88: an AI democracy gets nothing assigned; a human keeps what it holds. */
+function keepsLand(eg: WwEndgame, id: number): boolean {
+  return (
+    eg.isHumanControlled(id) ||
+    eg.ww.politics.country(id)?.ruling !== IDEO_DEM
+  );
+}
+
+/** A loser's capital while it is legally its own (0: none). */
+function legalCapital(eg: WwEndgame, id: number): number {
+  const sc = eg.ww.scenario;
+  const tag = sc.tagOfSmallId(id);
+  const tile = tag === undefined ? null : sc.capitalTileOrNull(tag);
+  const cap = tile === null ? 0 : sc.regionAt(tile);
+  return cap !== 0 && eg.ww.politics.legalOwner[cap] === id ? cap : 0;
+}
+
+/** The losers still in the game that asked for terms: no capitulation, armies kept. */
+function livingAsked(eg: WwEndgame, c: Conference): Set<number> {
+  if (c.asked !== true) return new Set();
+  return new Set(
+    c.losers.filter((L) => eg.isActor(L) && !eg.ww.isCapitulated(L)),
+  );
+}
+
+/** The conference as PeaceAssign reads it. */
+export function assignInput(eg: WwEndgame, c: Conference): AssignIn {
+  const ww = eg.ww;
+  const sc = ww.scenario;
+  const legal = ww.politics.legalOwner;
+  const ctrl = ww.land.controller;
+  const handed = new Map(c.handed ?? []);
+  const winners = c.parts.filter((p) => eg.isActor(p.id));
+  const isWinner = new Set(winners.map((p) => p.id));
+  const caps = new Map(c.losers.map((L) => [L, legalCapital(eg, L)]));
+  const keptCapitals = livingAsked(eg, c);
+  return {
+    regions: c.stake.map((r, i) => {
+      const L = legal[r] ?? 0;
+      const reg = sc.region(r);
+      const isCap = caps.get(L) === r;
+      const held = ctrl[r] ?? 0;
+      return {
+        region: r,
+        loser: L,
+        value: c.base[i],
+        group: sc.regionSr(r),
+        // Ask for terms: its capital goes back, as on a line peace.
+        holder:
+          handed.has(r) || !isWinner.has(held) || (isCap && keptCapitals.has(L))
+            ? 0
+            : held,
+        handedTo: handed.get(r) ?? 0,
+        port: sc.isPort(r),
+        keyCity: isCap || (reg?.vp ?? 0) >= WW_PEACE_BIG_CITY_VP,
+      };
+    }),
+    winners: winners.map((p) => ({
+      id: p.id,
+      wsMilli: p.wsMilli,
+      keeps: keepsLand(eg, p.id),
+    })),
+    neighbours: (r) => sc.regionNeighbours(r),
+    legal: (r) => legal[r] ?? 0,
+    capitalOf: (L) => caps.get(L) ?? 0,
+  };
+}
+
+/** ww88: the assignment, its compensation, decided once so everyone sees it. */
+function assignAtOpening(eg: WwEndgame, c: Conference): void {
+  const ctrl = eg.ww.land.controller;
+  const stake = new Set(c.stake);
+  // A region lost again since it was handed over was fought for after all.
+  const handed = eg.handedOver.filter(
+    ([r, to]) => stake.has(r) && ctrl[r] === to,
+  );
+  eg.handedOver = eg.handedOver.filter(([r]) => !stake.has(r));
+  if (handed.length > 0) c.handed = handed.sort((a, b) => a[0] - b[0]);
+  const out = peaceAssignment(assignInput(eg, c), {
+    safe: livingAsked(eg, c),
+  });
+  c.assign = out.assign;
+  c.comp = out.comp;
+  for (const [id, pts] of out.comp) {
+    const p = c.parts.find((x) => x.id === id);
+    if (p !== undefined) p.pts += pts;
+  }
 }
 
 /**
@@ -519,7 +651,9 @@ function closeRound(eg: WwEndgame, c: Conference, tick: number): void {
   const settled = resolveRound(eg, c);
   const taken = takenMap(eg, c);
   const allTaken = c.stake.every((r) => taken.has(r));
-  if (c.round >= WW_PEACE_MAX_ROUNDS || settled === 0 || allTaken) {
+  // B10: an empty first round doesn't end it (a pass must not void it).
+  const empty = settled === 0 && c.round > 1;
+  if (c.round >= WW_PEACE_MAX_ROUNDS || empty || allTaken) {
     finishConference(eg, c, tick);
     return;
   }
@@ -695,7 +829,10 @@ export function finishConference(
   const actor = (id: number) => eg.isActor(id);
   // A participant that stopped playing gets nothing: its settlements are
   // ignored (their regions fall back to the loser in step 6).
-  const live = c.settled.filter((s) => actor(s.by));
+  const bought = c.settled.filter((s) => actor(s.by));
+  const landBefore = legalValues(eg, livingAsked(eg, c));
+  // ww88: the assignment, as takes that cost nothing: what nobody bought.
+  const live = [...bought, ...assignmentRows(eg, c, bought)];
   const of = (k: DemandKind) => live.filter((s) => s.kind === KIND[k]);
   // 1. The ended wars' pairs (P3 end_war's pair removal only).
   const pairs: [number, number][] = [];
@@ -752,39 +889,31 @@ export function finishConference(
     }
     eg.dirtyZones = true;
   }
-  // 6. What nobody took goes back to its loser, which lives again.
+  // 6. What nobody took or was assigned goes back to its loser, which lives
+  // again (one that asked for terms never stopped).
+  const asked = livingAsked(eg, c);
   const revived: number[] = [];
   for (const L of c.losers) {
     const left: number[] = [];
     for (const r of c.stake) {
       if (pol.legalOwner[r] !== L || eg.isZone(r)) continue;
-      // ww67: a winner that went to war to conquer the loser keeps what it
-      // holds and nobody bought. Without this the army that took a capital
-      // gave it back whenever a day-by-day war score left it short of points.
-      const holder = land.controller[r] ?? 0;
-      if (
-        holder !== L &&
-        actor(holder) &&
-        c.conquer.some(([p, on]) => p === holder && on === L)
-      ) {
-        pol.setLegalOwner(r, holder);
-        continue;
-      }
       left.push(r);
     }
-    if (left.length === 0) {
+    if (left.length === 0 && !asked.has(L)) {
       eg.setCountryState(L, CS_GONE);
       continue;
     }
     for (const r of left) transferRegionPeaceful(land, r, L, tick);
-    landRegained(eg, L, tick);
     revived.push(L);
-    // Its peace is made: out of its other wars too, so no second
-    // conference shares out its land (spec §4.4).
-    for (const w of eg.wars) {
-      if (w.ended !== null || c.warIds.includes(w.id)) continue;
-      if (eg.member(w, L)?.state === "capitulated") {
-        eg.setMemberState(w.id, L, "left");
+    if (!asked.has(L)) {
+      landRegained(eg, L, tick);
+      // Its peace is made: out of its other wars too, so no second
+      // conference shares out its land (spec §4.4).
+      for (const w of eg.wars) {
+        if (w.ended !== null || c.warIds.includes(w.id)) continue;
+        if (eg.member(w, L)?.state === "capitulated") {
+          eg.setMemberState(w.id, L, "left");
+        }
       }
     }
     const puppet = of("puppet").find((s) => s.target === L);
@@ -881,6 +1010,114 @@ export function finishConference(
   eg.dirtyPeaceLog = true;
   eg.dirtyWars = true;
   eg.adminDirty = true;
+  if (asked.size > 0) finishTerms(eg, c, asked, landBefore, day, tick);
+}
+
+/** Each country's legal land value, by the conference's base. */
+function legalValues(
+  eg: WwEndgame,
+  ids: ReadonlySet<number>,
+): Map<number, number> {
+  const out = new Map<number, number>();
+  if (ids.size === 0) return out;
+  const legal = eg.ww.politics.legalOwner;
+  for (const r of eg.ww.scenario.landRegions) {
+    const o = legal[r.id] ?? 0;
+    if (ids.has(o)) out.set(o, (out.get(o) ?? 0) + regionBase(eg, r.id));
+  }
+  return out;
+}
+
+/**
+ * ww88 Ask for terms: a truce with every winner; a loser left under
+ * WW_PEACE_LOSER_MIN_PCT of its land can't stand and capitulates the usual
+ * way to the main victor.
+ */
+function finishTerms(
+  eg: WwEndgame,
+  c: Conference,
+  asked: ReadonlySet<number>,
+  before: ReadonlyMap<number, number>,
+  day: number,
+  tick: number,
+): void {
+  const parts = c.parts.filter((p) => eg.isActor(p.id));
+  for (const L of asked) {
+    for (const p of parts) setTruce(eg, L, p.id, day + WW_TRUCE_DAYS);
+  }
+  const now = legalValues(eg, asked);
+  const victor = peaceMainVictor(parts);
+  for (const L of [...asked].sort(asc)) {
+    const was = before.get(L) ?? 0;
+    if ((now.get(L) ?? 0) * 100 >= was * WW_PEACE_LOSER_MIN_PCT) continue;
+    const p = eg.mg.playerBySmallID(L);
+    const to = eg.mg.playerBySmallID(victor);
+    if (!p.isPlayer() || !to.isPlayer()) continue;
+    capitulateCountry(eg.mg, eg.ww, p, tick, to);
+  }
+}
+
+/**
+ * ww88: the assignment as settlements (one per winner and loser, cost 0),
+ * read at the treaty: what a demand bought stays bought, a participant that
+ * stopped playing gets nothing, a puppet gets back what its master has no
+ * core or claim on, and a loser left too small now is gone now.
+ */
+function assignmentRows(
+  eg: WwEndgame,
+  c: Conference,
+  bought: readonly Settled[],
+): Settled[] {
+  if (c.assign === undefined) return [];
+  const legal = eg.ww.politics.legalOwner;
+  const spoken = new Set<number>();
+  const safe = livingAsked(eg, c);
+  const puppetBy = new Map<number, number>();
+  for (const s of bought) {
+    if (REGION_KINDS.has(s.kind)) for (const r of s.regions) spoken.add(r);
+    if (s.kind === KIND.release || s.kind === KIND.liberate) {
+      safe.add(s.beneficiary);
+    }
+    if (s.kind === KIND.puppet) {
+      safe.add(s.target);
+      puppetBy.set(s.target, s.by);
+    }
+  }
+  for (const r of c.stake) if (eg.isZone(r)) spoken.add(r);
+  const assign = new Map<number, number>();
+  for (const [r, p] of c.assign) {
+    if (spoken.has(r) || !eg.isActor(p)) continue;
+    const L = legal[r] ?? 0;
+    const givesBack =
+      puppetBy.get(L) === p &&
+      !eg.hasCore(p, r) &&
+      !c.claims.some(([x, y]) => x === p && y === r);
+    if (!givesBack) assign.set(r, p);
+  }
+  settleLosers(assignInput(eg, c), assign, { safe, bought: spoken });
+  const rows = new Map<string, Settled>();
+  for (const [r, p] of [...assign].sort((a, b) => a[0] - b[0])) {
+    if (spoken.has(r)) continue;
+    const L = legal[r] ?? 0;
+    const key = `${p}:${L}`;
+    const row = rows.get(key);
+    if (row !== undefined) {
+      row.regions.push(r);
+      continue;
+    }
+    rows.set(key, {
+      kind: KIND.take,
+      by: p,
+      regions: [r],
+      target: L,
+      beneficiary: p,
+      k: 0,
+      pct: 0,
+      round: 0,
+      cost: 0,
+    });
+  }
+  return [...rows.values()];
 }
 
 /** Spec §6.4 disarm: 1,095 days of arms limitation; divisions past 12 disband, the weakest first. */
@@ -1122,7 +1359,35 @@ export function conferenceView(eg: WwEndgame, conf: number): WwConferenceView {
       };
     }),
     mainVictor: ctx.mainVictor,
+    assign: (c.assign ?? []).map(([r, p]): [number, number] => [r, p]),
+    comp: (c.comp ?? []).map(([p, n]): [number, number] => [p, n]),
+    handed: (c.handed ?? []).map(([r]) => r),
+    gone: goneNow(eg, c),
+    asked: c.asked === true,
   };
+}
+
+/** The losers the treaty would leave with nothing as things stand now. */
+function goneNow(eg: WwEndgame, c: Conference): number[] {
+  const live = c.settled.filter((s) => eg.isActor(s.by));
+  const rows = assignmentRows(eg, c, live);
+  const lost = new Set<number>();
+  for (const s of [...live, ...rows]) {
+    if (REGION_KINDS.has(s.kind)) for (const r of s.regions) lost.add(r);
+  }
+  const legal = eg.ww.politics.legalOwner;
+  const asked = livingAsked(eg, c);
+  const freed = new Set(
+    live
+      .filter((s) => s.kind === KIND.release || s.kind === KIND.liberate)
+      .map((s) => s.beneficiary),
+  );
+  return c.losers.filter(
+    (L) =>
+      !asked.has(L) &&
+      !freed.has(L) &&
+      c.stake.every((r) => legal[r] !== L || lost.has(r)),
+  );
 }
 
 /** Spec §6.4: a loser is a major (the AI's values; COUNTRIES). */

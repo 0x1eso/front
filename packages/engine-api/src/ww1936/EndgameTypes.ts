@@ -80,13 +80,21 @@ export type WhitePeaceOrderKind = (typeof WHITE_PEACE_ORDER_KINDS)[number];
 /** Peace on the current line: appended after the automation's orders, to WwEndgame.issue (answered by peace_reply). */
 export const LINE_PEACE_ORDER_KINDS = ["line_peace_offer"] as const;
 export type LinePeaceOrderKind = (typeof LINE_PEACE_ORDER_KINDS)[number];
+/** ww88 Ask for terms: appended, to WwEndgame.issue (answered by peace_reply). */
+export const ASK_TERMS_ORDER_KINDS = ["peace_surrender"] as const;
+export type AskTermsOrderKind = (typeof ASK_TERMS_ORDER_KINDS)[number];
 export type LendLeaseItem = EquipmentType | "fuel";
 
 // ---- Constants (spec §2.1, §5–§15; values marked (내 판단) in the spec are final) ----
-export const WW_PEACE_ROUND_TICKS = 300;
-export const WW_PEACE_MAX_ROUNDS = 4;
+export const WW_PEACE_ROUND_TICKS = 200;
+export const WW_PEACE_MAX_ROUNDS = 3;
 export const WW_PEACE_DEMANDS_PER_ROUND = 5;
 export const WW_PEACE_POOL_PCT = 130;
+/** ww88 Ask for terms: from this far to the surrender line (‰), at this share of the pool. */
+export const WW_ASK_TERMS_MIN_PM = 400;
+export const WW_ASK_TERMS_MIN_POOL_PCT = 60;
+/** ww88: an AI loser asks from this far to its surrender line (‰). */
+export const WW_ASK_TERMS_AI_PM = 700;
 export const WW_PEACE_LOG_SIZE = 10;
 export const WW_WAR_KEEP_DAYS = 30;
 export const WW_TAKEOVER_CARD_TICKS = 300;
@@ -371,6 +379,16 @@ export interface WwConferenceView {
   conquer: [number, number][];
   topple: [number, number][];
   reserved: [number, number][];
+  /** ww88: [region, winner]: what each winner gets without paying, decided at the opening. */
+  assign?: [number, number][];
+  /** ww88: [winner, points] added at the opening for held regions given up to the assignment. */
+  comp?: [number, number][];
+  /** ww88: the regions that came by a capitulation's hand-over. */
+  handed?: number[];
+  /** ww88: the losers that would end with nothing as things stand. */
+  gone?: number[];
+  /** ww88: the losers asked for terms: they keep the rest of their land. */
+  asked?: boolean;
   /**
    * Lane W (for the card, U1): every demand settled so far, in the order it
    * settled (round, then slot and turn) — derived from the conference's
@@ -497,6 +515,8 @@ export interface WwPeaceOfferView {
   terms: (WwPeaceTerms & { payK: number; demandK: number }) | null;
   /** Peace on the current line: what would change hands now (absent: another kind of offer). */
   line?: WwLinePeaceSplit;
+  /** ww88: the proposer asks for terms: accepting opens a peace conference. */
+  ask?: boolean;
 }
 /**
  * Peace on the current line (owner request 2026-10-31): the regions that

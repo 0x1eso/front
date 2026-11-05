@@ -115,6 +115,14 @@ function handOver(
 ): void {
   if (R === 0) return;
   const ww = eg.ww;
+  // ww88: what no winner fought for; a band taker's region counts as conquest.
+  for (const r of ww.scenario.landRegions) {
+    if (ww.land.controller[r.id] !== L) continue;
+    const taker = takers.get(r.id) ?? ww.land.bandTaker[r.id];
+    if (taker !== 0 && taker !== L) continue;
+    eg.handedOver = eg.handedOver.filter(([x]) => x !== r.id);
+    eg.handedOver.push([r.id, R]);
+  }
   for (const t of ww.transfers()) {
     if (t.to === L) t.to = R;
   }

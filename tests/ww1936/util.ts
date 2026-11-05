@@ -27,6 +27,11 @@ import {
   GameRunner,
 } from "@openfront/engine/GameRunner";
 import { removeLine } from "@openfront/engine/ww1936/economy/Production";
+import { aiDemands } from "@openfront/engine/ww1936/endgame/PeaceAi";
+import type {
+  Conference,
+  WwEndgame,
+} from "@openfront/engine/ww1936/endgame/WwEndgame";
 import { cancelResearch } from "@openfront/engine/ww1936/economy/ResearchRun";
 import type {
   CountryEconomy,
@@ -356,4 +361,27 @@ export function grantDoctrineStats(
   }
   d.testStats.set(id, next);
   ww.politics.recomputeStats(id);
+}
+
+/**
+ * ww88: `c` as if nothing were assigned at its opening, for the tests of the
+ * demand rules and the treaty: every region is up for sale and what nobody
+ * buys goes back to its loser. The assignment has its own tests
+ * (PeaceAssign, PeaceAssignWorld).
+ */
+export function withoutAssignment(eg: WwEndgame, c: Conference): Conference {
+  for (const [id, pts] of c.comp ?? []) {
+    const p = c.parts.find((x) => x.id === id);
+    if (p !== undefined) p.pts -= pts;
+  }
+  c.assign = [];
+  c.comp = [];
+  c.handed = undefined;
+  if (c.status === 1) {
+    c.ai = c.parts.map((p) => ({
+      id: p.id,
+      demands: eg.isActor(p.id) ? aiDemands(eg, c.id, p.id) : [],
+    }));
+  }
+  return c;
 }

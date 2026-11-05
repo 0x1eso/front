@@ -928,6 +928,10 @@ export const WW_ORDER_BLOCKS = [
   "too_small",
   // ww61: the designer is off (ww1936Designer absent): the catalogue replaces it.
   "designer_off",
+  // ww88 Ask for terms, appended: not yet far enough to the surrender line;
+  // only a side's leader speaks for the side.
+  "peace_not_beaten",
+  "peace_not_leader",
 ] as const;
 export type WwOrderBlock = (typeof WW_ORDER_BLOCKS)[number];
 
