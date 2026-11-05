@@ -124,8 +124,8 @@ describe("<ww-army-card> (spec §15.4)", () => {
     expect(m.el.querySelectorAll("[title]")).toHaveLength(0);
     const buttons = [...m.el.querySelectorAll("button")];
     // The action row (4), the stance switch (3), rail, sea, split, merge
-    // and more (5), the fold toggle and ✕.
-    expect(buttons).toHaveLength(14);
+    // and more (5), the fold toggle and ✕, and ww81's auto-merge toggle.
+    expect(buttons).toHaveLength(15);
     for (const b of buttons) {
       expect(b.className).toMatch(/\b(h-10|h-11|size-10)\b/);
     }
