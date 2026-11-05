@@ -120,6 +120,22 @@ function focusDead(
   );
 }
 
+/**
+ * ww91 8.1: the focuses that give the seven majors their national unit weigh
+ * this much more, with the historical AI on or off: the random pick would
+ * otherwise leave a plan without its troops.
+ */
+export const AI_UNIT_FOCUS_WEIGHT = 20;
+export const AI_UNIT_FOCUSES: ReadonlySet<FocusId> = new Set([
+  "deu_motorized",
+  "sun_guards",
+  "usa_marine_corps",
+  "gbr_commandos",
+  "fra_colonial_divisions",
+  "jpn_naval_landing_force",
+  "ita_alpini",
+]);
+
 /** Spec §18.5 common factors, percent: war, few military factories, the P1 persona (controller ruling R17). */
 function branchFactor(
   pol: WwPolitics,
@@ -173,7 +189,9 @@ export function aiPickFocus(
     .map((i) => pol.content.focuses[i])
     .filter((f) => startable(f.id));
   const weights = cands.map((f) => {
-    const w = aiWeight(f.ai, (i) => evalCondition(ctx, f.ai!.mods![i].if));
+    const w =
+      aiWeight(f.ai, (i) => evalCondition(ctx, f.ai!.mods![i].if)) +
+      (AI_UNIT_FOCUSES.has(f.id) ? AI_UNIT_FOCUS_WEIGHT : 0);
     return Math.floor((w * branchFactor(pol, id, f.branch)) / 100);
   });
   const k = pickWeighted(

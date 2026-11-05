@@ -14,6 +14,7 @@
 //
 // Plane designs stay the players' for now: P4's deployments and decks do
 // not draw design planes yet (T1b), so the AI keeps its static types.
+import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
 import {
   KS,
   KS_FIELDS,
@@ -37,6 +38,7 @@ import {
   WW_MAX_BATTALIONS,
 } from "@openfront/engine-api/ww1936/LandTypes";
 import { SHIP_CLASSES } from "@openfront/engine-api/ww1936/NavyTypes";
+import { AI_PLANS } from "@openfront/engine-lib/ww1936/AiPlans";
 import { dayOfDate } from "@openfront/engine-lib/ww1936/Calendar";
 import {
   designBlock,
@@ -149,7 +151,7 @@ function roleMajor(d: WwDepth, id: number, ce: CountryEconomy): boolean {
   const tag = d.ww.tagOf(id);
   return (
     ce.major &&
-    (tag !== "SUN" || !historical(d)) &&
+    (tag !== "SUN" || !historical(d, tag)) &&
     aiPersonality(tag) === "aggressor"
   );
 }
@@ -157,11 +159,12 @@ function roleMajor(d: WwDepth, id: number, ce: CountryEconomy): boolean {
 /**
  * The historical AI (the lobby's historicalAi): the spec's country rules
  * and K5's country presets. Off, the AI goes by its personality alone
- * (review E10; the owner's rule: history is flavour).
+ * (review E10; the owner's rule: history is flavour). ww91 8.1: a major with
+ * a plan follows its country both ways, as the plan does after V-J Day.
  */
-function historical(d: WwDepth): boolean {
+function historical(d: WwDepth, tag: CountryTag): boolean {
   // From V-J Day the free AI's designs (Pace).
-  return d.ww.historicalAiNow();
+  return AI_PLANS[tag] !== undefined || d.ww.historicalAiNow();
 }
 
 /** The (base, role) pairs the AI keeps a tank design of. */
@@ -197,7 +200,7 @@ function presetFor(
   ok: (def: AiDesignPreset["def"]) => boolean,
 ): AiDesignPreset | null {
   const tag = d.ww.tagOf(id);
-  const hist = historical(d);
+  const hist = historical(d, tag);
   let best: AiDesignPreset | null = null;
   let bestScore = -1;
   for (const p of d.ww.politics.content.aiDesignPresets) {
@@ -619,7 +622,7 @@ function shipFit(
   };
   // Spec §19.3 (history as flavour: by personality without the historical AI).
   const tag = d.ww.tagOf(id);
-  const hist = historical(d);
+  const hist = historical(d, tag);
   const who = aiPersonality(tag);
   const radar = hist ? tag === "GBR" || tag === "USA" : who === "democracy";
   const torp = hist ? tag === "JPN" : who === "aggressor";
