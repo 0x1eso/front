@@ -1590,7 +1590,21 @@
     "ww1936_annex_integrated": "{region}이(가) 자동 통합되어 코어가 되었습니다",
     "ww1936_medal_auto": "{army} 에 훈장이 수여되었습니다",
     "ww1936_congress_dissolved": "미국에서 의회가 해산되었다.",
-    "ww1936_congress_restored": "미국 의회가 다시 열렸다."
+    "ww1936_congress_restored": "미국 의회가 다시 열렸다.",
+    "ww1936_declare_blocked_prep": "선전포고하지 못했습니다: 준비 시간에는 선포할 수 없습니다",
+    "ww1936_declare_blocked_self": "선전포고하지 못했습니다: 자기 나라에는 선포할 수 없습니다",
+    "ww1936_declare_blocked_dead": "선전포고하지 못했습니다: 사라진 나라입니다",
+    "ww1936_declare_blocked_capitulated": "선전포고하지 못했습니다: 항복한 나라입니다",
+    "ww1936_declare_blocked_faction": "선전포고하지 못했습니다: 같은 진영입니다",
+    "ww1936_declare_blocked_at_war": "선전포고하지 못했습니다: 이미 전쟁 중입니다",
+    "ww1936_declare_blocked_nap": "선전포고하지 못했습니다: 불가침 조약: 먼저 파기해야 합니다",
+    "ww1936_declare_blocked_guarantor": "선전포고하지 못했습니다: 그 나라를 보장하고 있습니다",
+    "ww1936_declare_blocked_democracy_no_goal": "선전포고하지 못했습니다: 민주 정부는 전쟁 목표 없이 선포할 수 없습니다",
+    "ww1936_declare_blocked_isolation": "선전포고하지 못했습니다: 고립주의가 막고 있습니다",
+    "ww1936_declare_blocked_subject_restricted": "선전포고하지 못했습니다: 속국은 종주국의 적과만 싸울 수 있습니다",
+    "ww1936_declare_blocked_exile": "선전포고하지 못했습니다: 망명 정부는 전쟁을 선포할 수 없습니다",
+    "ww1936_declare_blocked_congress": "선전포고하지 못했습니다: 의회가 전쟁을 승인하지 않습니다",
+    "ww1936_declare_blocked_truce_active": "선전포고하지 못했습니다: 백지 평화 휴전 중입니다 (1년)"
   },
   "featured_stream": {
     "expand": "펼치기",

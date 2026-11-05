@@ -50,8 +50,16 @@ export class DeclareWarExecution implements Execution {
       }
       return;
     }
-    if (declareWarBlock(mg, ww, this.player, target, ticks) === null) {
+    const block = declareWarBlock(mg, ww, this.player, target, ticks);
+    if (block === null) {
       declareWar(mg, ww, this.player, target, ticks);
+    } else {
+      // The player is told why nothing happened.
+      ww.endgame.message(
+        this.player.smallID(),
+        `ww1936_declare_blocked_${block}`,
+        {},
+      );
     }
   }
 

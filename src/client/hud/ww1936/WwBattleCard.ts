@@ -31,6 +31,7 @@ import {
   CARD_MIN_PX,
   CardPlace,
   cardPlace,
+  directMaxHeight,
   placeStyle,
   samePlace,
 } from "./WwArmyCard";
@@ -157,7 +158,9 @@ export class WwBattleCard extends LitElement implements Controller {
       data-ww-battle-card=${b.region}
       aria-label=${name}
       class="fixed z-[1001] flex max-h-[25vh] flex-col gap-1 overflow-y-auto rounded-lg border border-white/15 bg-gray-900/92 p-1.5 text-xs text-white shadow-xl"
-      style="${placeStyle(this.place)} width: ${this.place.maxWidth}px;"
+      style="${placeStyle(this.place)} max-height: ${directMaxHeight(
+        this.place,
+      )}px; width: ${this.place.maxWidth}px;"
       @contextmenu=${(e: Event) => e.preventDefault()}
     >
       <div class="flex items-center gap-1.5">
@@ -286,7 +289,7 @@ export class WwBattleCard extends LitElement implements Controller {
             type="button"
             data-ww-air-priority
             aria-pressed=${String(on)}
-            class="ml-auto h-8 rounded-md border px-2 ${on
+            class="ml-auto h-10 rounded-md border px-2 ${on
               ? "border-sky-300 bg-sky-800/60"
               : "border-white/15 bg-white/10 hover:bg-white/20"}"
             @click=${() => {
