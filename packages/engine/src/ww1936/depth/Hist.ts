@@ -311,7 +311,7 @@ export function histPlaneSlotFor(
 export function openHistSlot(
   d: WwDepth,
   id: number,
-  kind: "tank" | "plane",
+  kind: "tank" | "plane" | "ship",
   slot: number,
   e: HistEntry,
 ): boolean {

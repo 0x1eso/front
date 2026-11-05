@@ -1333,7 +1333,7 @@ export class WwNavy {
   statsFor(owner: number, cls: ShipClass, gen: number, design = 0): ShipStats {
     const ce = this.econ.country(owner);
     const key =
-      (owner * 64 + SHIP_CLASSES.indexOf(cls) * 8 + gen) * 32 + design;
+      (owner * 64 + SHIP_CLASSES.indexOf(cls) * 8 + gen) * 64 + design;
     const dv = design === 0 ? 0 : this.ww.depth.designVersion(owner);
     const hit = this.shipStatsMemo.get(key);
     if (

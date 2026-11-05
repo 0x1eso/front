@@ -66,6 +66,7 @@ import {
   moveNeed,
   regionDistances,
 } from "@openfront/engine-lib/ww1936/MoveRules";
+import { shipIsStandIn } from "@openfront/engine-lib/ww1936/hist/StartShips";
 import { launchDaysAt } from "@openfront/engine-lib/ww1936/NavalLineRules";
 import {
   fleetMissionBlock,
@@ -248,17 +249,26 @@ export const shipGenName = (gen: number) =>
   translateText(`ww1936.ship_gen.${gen}`);
 /**
  * What a ship's row says beside its name: the design it was built to (a
- * catalogue class such as "Navigatori-class destroyer"), else its generation.
+ * catalogue class such as "Navigatori-class destroyer"), else its generation;
+ * a 1936 ship that only stands in on the class reads "≈ Queen Elizabeth".
  */
 export function shipDesignLabel(
-  ctx: Pick<NavyCtx, "designs">,
-  s: Pick<FleetShipData, "gen" | "design">,
+  ctx: Pick<NavyCtx, "designs" | "scenario">,
+  s: Pick<FleetShipData, "gen" | "design" | "cls" | "nameIdx" | "nameOwner">,
 ): string {
   if ((s.design ?? 0) > 0) {
     const row = ctx.designs.find(
       (x) => x.kind === "ship" && x.slot === s.design,
     );
-    if (row !== undefined) return designDisplayName(row.def);
+    if (row !== undefined) {
+      const name = designDisplayName(row.def);
+      const tag = ctx.scenario.tagOfSmallId(s.nameOwner);
+      return tag !== undefined &&
+        row.def.hist !== undefined &&
+        shipIsStandIn(tag, s.cls, s.nameIdx, row.def.hist)
+        ? translateText("ww1936.navy.ship_like", { name })
+        : name;
+    }
   }
   return shipGenName(s.gen);
 }

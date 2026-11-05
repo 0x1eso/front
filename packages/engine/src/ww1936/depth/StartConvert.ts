@@ -4,7 +4,9 @@
 // generation; the first clock then moves the 1936 lines to the AI's pick, which
 // needs the game's seed. A plane type whose first entry waits on a tech (the
 // I-16, the Do 17, France's D.376) gets that entry in its slot all the same:
-// it fights, and isn't made until the tech comes.
+// it fights, and isn't made until the tech comes. Start ships and their slips
+// take the entries of hist/StartShips; a slip's ship stays a real one even if
+// the tech comes later (Richelieu, Scharnhorst were being built in 1936).
 import { AIR_TYPES } from "@openfront/engine-api/ww1936/AirTypes";
 import {
   EQUIP_KEYS,
@@ -15,12 +17,23 @@ import {
   GROUND_EQUIP_KEYS,
   GROUND_STATIC_SLOTS,
 } from "@openfront/engine-api/ww1936/LandTypes";
-import { histOwn } from "@openfront/engine-lib/ww1936/hist/Slots";
+import {
+  SHIP_CLASSES,
+  type ShipClass,
+} from "@openfront/engine-api/ww1936/NavyTypes";
+import { histEntry } from "@openfront/engine-lib/ww1936/hist/index";
+import { histOwn, histSlotOf } from "@openfront/engine-lib/ww1936/hist/Slots";
+import {
+  startLinePick,
+  startShipPick,
+} from "@openfront/engine-lib/ww1936/hist/StartShips";
+import type { HistCountry } from "@openfront/engine-lib/ww1936/hist/Types";
+import { shipNameKey } from "@openfront/engine-lib/ww1936/ShipNames";
 import { changeLine } from "../economy/Production";
 import { bestOfGroups } from "./AiDesigns";
 import { aiPickNewPlaneLines } from "./AiHist";
 import { aiPickEntry, type PickCand, qualityLean } from "./AiPick";
-import { equipCostMilli } from "./Designs";
+import { equipCostMilli, navalLineCostMilli } from "./Designs";
 import {
   dailyHist,
   histCountryOf,
@@ -38,6 +51,68 @@ export function startConvert(d: WwDepth): void {
     openFirstPlanes(d, id);
     sweepHistPlanes(d, id);
     convertStartWings(d, id);
+    convertStartShips(d, id);
+    convertStartNavalLines(d, id);
+  }
+}
+
+/** The slot of a ship entry, opened; 0 when it isn't this country's or its class. */
+function shipSlot(
+  d: WwDepth,
+  country: HistCountry,
+  id: number,
+  entry: string,
+  cls: ShipClass,
+): number {
+  const e = histEntry(entry);
+  if (e === undefined || e.family !== "ship" || e.cls !== cls) return 0;
+  const slot = histSlotOf(country, entry);
+  return slot > 0 && openHistSlot(d, id, "ship", slot, e) ? slot : 0;
+}
+
+/** A major's ships: generation 1 and the entry's slot (its numbers are percents over that base). */
+function convertStartShips(d: WwDepth, id: number): void {
+  const country = histCountryOf(d, id);
+  if (country === null) return;
+  const navy = d.ww.navy;
+  const t = navy.ships;
+  for (let r = 0; r < t.rows; r++) {
+    if (t.owner[r] !== id || !t.alive(r)) continue;
+    const cls = SHIP_CLASSES[t.cls[r]];
+    const name = shipNameKey(country, cls, t.nameIdx[r]);
+    const pick = startShipPick(country, cls, t.gen[r], name);
+    if (pick === null) continue;
+    const slot = shipSlot(d, country, id, pick.entry, cls);
+    if (slot === 0) continue;
+    t.gen[r] = 1;
+    t.design[r] = slot;
+    const s = navy.shipStatsOf(r);
+    t.hp[r] = s.hpMilli;
+    t.org[r] = s.orgMilli;
+    navy.markFleet(t.fleet[r]);
+  }
+}
+
+/** A major's 1936 slips: the same, with the same share of the first ship done. */
+function convertStartNavalLines(d: WwDepth, id: number): void {
+  const country = histCountryOf(d, id);
+  const ce = d.ww.economy.country(id);
+  if (country === null || ce === null) return;
+  for (const l of ce.navalLines) {
+    if (l.cls >= SHIP_CLASSES.length) continue;
+    const cls = SHIP_CLASSES[l.cls];
+    const name =
+      l.names.length === 0 ? null : shipNameKey(country, cls, l.names[0]);
+    const pick = startLinePick(country, cls, l.gen, name);
+    if (pick === null) continue;
+    const slot = shipSlot(d, country, id, pick.entry, cls);
+    if (slot === 0) continue;
+    const was = navalLineCostMilli(d, id, l);
+    l.gen = 1;
+    l.design = slot;
+    l.progress = Math.floor(
+      (l.progress * navalLineCostMilli(d, id, l)) / Math.max(1, was),
+    );
   }
 }
 
