@@ -107,7 +107,7 @@ describe("the catalogue's gates (ww82 §5)", () => {
         }
       }
     }
-    expect(found).toBe(99);
+    expect(found).toBe(106); // ww91: the seven trucks stand in for the motorized key
   });
 
   it("a tank's gun tech follows its penetration at 500 m", () => {
@@ -125,12 +125,12 @@ describe("the catalogue's gates (ww82 §5)", () => {
     }
   });
 
-  it("gear counts only where it stands in: 30 entries are never fielded", () => {
+  it("gear counts only where it stands in: 24 entries are never fielded (ww91: six more stand in)", () => {
     const gear = ALL.filter(
       (e) =>
         e.family === "infantry" || e.family === "support" || e.family === "gun",
     );
-    expect(gear.filter((e) => histGatesOf(e).length === 0)).toHaveLength(30);
+    expect(gear.filter((e) => histGatesOf(e).length === 0)).toHaveLength(24);
     // Pak 40's at_imp_2 gate was never real: the card no longer claims it.
     expect(histEntriesGatedBy("at_imp_2", "DEU").map((e) => e.id)).toEqual([]);
   });

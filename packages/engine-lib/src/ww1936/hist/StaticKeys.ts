@@ -2,7 +2,11 @@
 // client's template screens read the very numbers the engine does.
 import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
 import type { KeyStatsTable } from "@openfront/engine-api/ww1936/DepthTypes";
-import { KS, KS_FIELDS } from "@openfront/engine-api/ww1936/DepthTypes";
+import {
+  DS_HIST,
+  KS,
+  KS_FIELDS,
+} from "@openfront/engine-api/ww1936/DepthTypes";
 import { EQUIP_KEYS } from "@openfront/engine-api/ww1936/EconomyTypes";
 import {
   GROUND_EQUIP_KEYS,
@@ -11,7 +15,7 @@ import {
 import { rowScore, STATIC_KEY_STATS } from "../TemplateStats";
 import { histStatsOf } from "./Convert";
 import type { GearStats } from "./ConvertGear";
-import { tankStatsOfEntry } from "./ConvertTank";
+import { RELIABILITY_PM, tankStatsOfEntry } from "./ConvertTank";
 import { histStaticEntry } from "./Slots";
 import { HIST_COUNTRIES, type HistCountry } from "./Types";
 import { weakKeyRow } from "./WeakGeneric";
@@ -97,6 +101,15 @@ export function fillStaticKeys(
       e.family !== "support" &&
       e.family !== "gun"
     ) {
+      continue;
+    }
+    // ww91: a truck's row has no combat numbers; its reliability makes the
+    // slot wear while the division moves (Sustain.attrition reads DS_HIST).
+    if (type === "motorized") {
+      if (e.family === "support" && e.spec.reliability !== undefined) {
+        t.stats[o + KS.relPm] = RELIABILITY_PM[e.spec.reliability];
+        t.stats[o + KS.flags] |= DS_HIST;
+      }
       continue;
     }
     const g = histStatsOf(e) as GearStats;

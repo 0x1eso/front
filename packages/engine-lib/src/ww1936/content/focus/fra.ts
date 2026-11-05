@@ -634,7 +634,13 @@ export const FRA_FOCUSES: FocusDef[] = [
     group: "fra_army",
     prereq: [["fra_army_reorganisation"]],
     effects: [
-      { kind: "equipment", type: "motorized", gen: 1, count: 2000 },
+      {
+        kind: "equipment",
+        type: "motorized",
+        gen: 1,
+        count: 2000,
+        item: "fra_citroen23",
+      },
       { kind: "unlock_template", template: "fra_motorised_division" },
     ],
     ai: { base: 10 },

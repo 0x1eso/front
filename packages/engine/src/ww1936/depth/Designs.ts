@@ -67,6 +67,7 @@ import {
   unitCostMilli,
 } from "@openfront/engine-lib/ww1936/Equipment";
 import { isqrt } from "@openfront/engine-lib/ww1936/hist/Num";
+import { staticGearCostMilli } from "@openfront/engine-lib/ww1936/hist/StaticCost";
 import { mioFamilyOf } from "@openfront/engine-lib/ww1936/MioRules";
 import {
   lineCostMilli,
@@ -84,7 +85,12 @@ import {
 import { rowScore } from "@openfront/engine-lib/ww1936/TemplateStats";
 import type { EffectCtx } from "../politics/Dispatch";
 import { designIsOld, saveTankCell, sweepStaticStock } from "./DesignCells";
-import { designerOn, histOwnCount, sweepHistPlanes } from "./Hist";
+import {
+  designerOn,
+  histCountryOf,
+  histOwnCount,
+  sweepHistPlanes,
+} from "./Hist";
 import { licenceCostPctFor } from "./Licences";
 import { treatyEscalated, treatyMember } from "./NavalTreaty";
 import { planeDesignOld, savePlaneCell, sweepStaticPlanes } from "./PlaneCells";
@@ -477,7 +483,8 @@ export function equipCostMilli(d: WwDepth, id: number, key: number): number {
       | null;
     cost = s?.costMilli ?? 0;
   } else {
-    cost = unitCostMilli(type, gen);
+    // ww91: a major's catalogue gear costs at the halved gap (designer off).
+    cost = staticGearCostMilli(histCountryOf(d, id), type, gen);
     const f = mioFamilyOf(type);
     const pct = f < 0 ? 0 : (statsOf(d, id)[MIO_COST_KEYS[f]] ?? 0);
     if (pct !== 0) cost = Math.floor((cost * Math.max(10, 100 + pct)) / 100);

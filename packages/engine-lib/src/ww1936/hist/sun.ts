@@ -1574,6 +1574,7 @@ export const SUN_HIST: readonly HistEntry[] = [
     country: "SUN",
     family: "support",
     techs: ["support_eq_1"],
+    staticFor: "support_equipment:1",
     year: 1932,
     // GAZ-AA 1.5 t truck (Ford AA licence); range about 195 km (the GAZ-55 ambulance on the same chassis is given 195 km). Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
     source: SRC_GEAR,
@@ -1583,11 +1584,12 @@ export const SUN_HIST: readonly HistEntry[] = [
     id: "sun_zis5",
     country: "SUN",
     family: "support",
-    techs: ["support_eq_1"],
+    techs: ["motorized_1"],
+    staticFor: "motorized:1",
     year: 1933,
     // ZiS-5 3 t truck; 60 l tank at 34 l per 100 km gives about 175 km (derived). Cost is an estimate from US and British items of like weight and labour (a mass-produced Soviet design is cheap for its weight).
     source: SRC_GEAR,
-    spec: { kind: "transport", rangeKm: 175, costUsd: 1500 },
+    spec: { kind: "transport", rangeKm: 175, costUsd: 1500, reliability: 4 },
   },
   {
     id: "sun_gaz67",

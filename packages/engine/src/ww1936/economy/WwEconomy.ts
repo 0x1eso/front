@@ -1475,8 +1475,9 @@ export class WwEconomy {
           active: l.active,
           effBp: l.effBp,
           progressMilli: l.progress,
+          // ww91: a major's static gear shows what production charges it.
           costMilli:
-            isDesign && depth !== undefined
+            depth !== undefined
               ? equipCostMilli(depth, ce.smallID, l.key)
               : unitCostMilli(equipment, gen),
           fill: l.fill,

@@ -1309,13 +1309,14 @@ export const ITA_HIST: readonly HistEntry[] = [
     id: "ita_fiat626",
     country: "ITA",
     family: "support",
-    techs: ["support_eq_1"],
+    techs: ["motorized_1"],
+    staticFor: "motorized:1",
     year: 1939,
     // Fiat 626 NL: 3-tonne army lorry, the common Italian truck; range of
     // about 450 km.
     source:
       "Wikipedia, Fiat 626, from memory; cost scaled from US 1.5-ton trucks",
-    spec: { kind: "transport", rangeKm: 450, costUsd: 1400 },
+    spec: { kind: "transport", rangeKm: 450, costUsd: 1400, reliability: 3 },
   },
   {
     id: "ita_lancia_3ro",
@@ -1334,6 +1335,7 @@ export const ITA_HIST: readonly HistEntry[] = [
     country: "ITA",
     family: "support",
     techs: ["support_eq_1"],
+    staticFor: "support_equipment:1",
     year: 1939,
     // Moto Guzzi Alce: 500 cc army motorcycle for reconnaissance and
     // dispatch riders, range about 350 km;

@@ -1692,6 +1692,7 @@ export const GBR_HIST: readonly HistEntry[] = [
     country: "GBR",
     family: "support",
     techs: ["support_eq_1"],
+    staticFor: "support_equipment:1",
     year: 1940,
     // Wireless Set No. 18: man-pack set for company and battalion, voice
     // range about 8 km (sources 6-10). Cost estimate.
@@ -1724,12 +1725,13 @@ export const GBR_HIST: readonly HistEntry[] = [
     id: "gbr_bedford_ql",
     country: "GBR",
     family: "support",
-    techs: ["motorized_2"],
+    techs: ["motorized_1"],
+    staticFor: "motorized:1",
     year: 1941,
     // Bedford QL 3-ton 4x4 lorry, the army's standard truck, range about
     // 380 km (sources 320-480). Cost estimate.
     source: SRC_GEAR,
-    spec: { kind: "transport", rangeKm: 380, costUsd: 2000 },
+    spec: { kind: "transport", rangeKm: 380, costUsd: 2000, reliability: 4 },
   },
   {
     id: "gbr_18pdr",
