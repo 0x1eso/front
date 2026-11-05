@@ -66,6 +66,11 @@ export function airPenaltyFor(
   return airGroundPenaltyBp(worst, z.enemyPp.get(side) ?? 0, divAirAtk);
 }
 
+/** The worst enemy superiority over `region`'s zone as yesterday left it, ‰ (the AI's main sector). */
+export function enemySkyPm(air: WwAir, region: number, side: number): number {
+  return landZoneOf(air, region)?.enemySup.get(side) ?? 0;
+}
+
 /** Spec §14.6: movement into `region` under enemy superiority, ‰ (WwAir.airMoveFactorPm). */
 export function airMoveFactorFor(
   air: WwAir,

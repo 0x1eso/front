@@ -363,7 +363,9 @@ describe("the AI's land war on the test map (spec §14)", () => {
     finishDay(runner, d0);
     // Its armies front Poland along Germany's side of the border
     // (Berlin, Munich and Rome); a guard holds Berlin (4 edges or less).
-    const fronts = l.armiesOf(deu).filter((a) => a.order.kind === "front");
+    const fronts = l
+      .armiesOf(deu)
+      .filter((a) => a.order.kind === "front" || a.order.kind === "plan");
     expect(fronts.length).toBeGreaterThan(0);
     for (const a of fronts) {
       expect(a.order.enemy).toBe(pol);
@@ -389,6 +391,28 @@ describe("the AI's land war on the test map (spec §14)", () => {
     expect(ww.isAtWar(deu, pol) || !byTag(g, "POL").isAlive()).toBe(true);
   }, 120_000);
 
+  test("C4: the air follows the army leading the main effort, and leaves it with the effort", async () => {
+    const { runner, g, ww, l, d0 } = await aiWar("DEU", "POL");
+    const deu = byTag(g, "DEU").smallID();
+    const pol = byTag(g, "POL").smallID();
+    finishDay(runner, d0);
+    finishDay(runner, d0 + 1);
+    const list = () => ww.air.country(deu)!.priorityArmies;
+    expect(list().length).toBeGreaterThan(0);
+    for (const id of list()) {
+      expect(l.armies.get(id)!.order.kind).toBe("plan");
+      expect(l.armies.get(id)!.order.enemy).toBe(pol);
+    }
+    // No enemy divisions left: nothing stands, so no effort, and the air is free.
+    for (let r = 0; r < l.divisions.rows; r++) {
+      if (l.divisions.alive(r) && l.divisions.owner[r] === pol) {
+        l.killDivision(r, false);
+      }
+    }
+    for (let d = d0 + 2; d <= d0 + 12; d++) finishDay(runner, d);
+    expect(list()).toEqual([]);
+  }, 120_000);
+
   test("an AI regroups when its org runs low and waits for it before attacking again", async () => {
     const { runner, g, calls, d0 } = await aiWar("DEU", "POL");
     const deu = byTag(g, "DEU").smallID();
@@ -396,7 +420,10 @@ describe("the AI's land war on the test map (spec §14)", () => {
     // Every offensive Germany starts, it starts with its army at 85% org
     // or more (controller ruling 5): never on what recovered overnight.
     const on = calls.filter(
-      (c) => c.smallID === deu && c.order.kind === "army_execute" && c.order.on,
+      (c) =>
+        c.smallID === deu &&
+        ((c.order.kind === "army_execute" && c.order.on) ||
+          (c.order.kind === "army_direct" && c.order.targets !== undefined)),
     );
     expect(on.length).toBeGreaterThan(0);
     for (const c of on)
@@ -447,7 +474,10 @@ describe("the AI's land war on the test map (spec §14)", () => {
     const from = today(g);
     for (let d = from; d < from + 12; d++) finishDay(runner, d);
     const on = calls.filter(
-      (c) => c.smallID === deu && c.order.kind === "army_execute" && c.order.on,
+      (c) =>
+        c.smallID === deu &&
+        ((c.order.kind === "army_execute" && c.order.on) ||
+          (c.order.kind === "army_direct" && c.order.targets !== undefined)),
     );
     expect(on.length).toBeGreaterThan(0);
     expect(AI_REATTACK_READY_BP).toBe(500);
@@ -477,20 +507,24 @@ describe("the AI's land war on the test map (spec §14)", () => {
     // ww7 lane F: Germany's own offensive is gone on this map (prepared ground
     // against the gate; see WorldWarSnapshot's Poland test). Open for the owner.
     // Round 2: once Germany holds Paris, the rule is lifted: France plans
-    // into German land too (Germany's divisions gone, so France attacks).
+    // into German land too. Germany's divisions gone but for a strong Paris,
+    // and one in Berlin: the main sector turns to the weak German region.
     takeRegion(g, 1, "DEU");
     for (let r = 0; r < l.divisions.rows; r++) {
       if (l.divisions.alive(r) && l.divisions.owner[r] === deu) {
         l.killDivision(r, false);
       }
     }
+    placeArmy(g, "DEU", 1, 60);
+    placeArmy(g, "DEU", 3, 1);
     const from = calls.length;
     stepTo(runner, 12_000 + 30 * 8);
     const later = calls
       .slice(from)
       .flatMap((c) =>
-        c.smallID === fra && c.order.kind === "army_plan"
-          ? c.order.targets
+        c.smallID === fra &&
+        (c.order.kind === "army_plan" || c.order.kind === "army_direct")
+          ? (c.order.targets ?? [])
           : [],
       );
     expect(later.some((r) => owners[r] === deu)).toBe(true);

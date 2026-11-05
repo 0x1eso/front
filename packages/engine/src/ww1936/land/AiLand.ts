@@ -4,7 +4,8 @@
 // through the orders a player gives: land.issue(smallID, order, "ai") and
 // the economy's queueBuild. It keeps no memory of its own: every day it
 // works the picture out again from the game (a restored game decides the
-// same), with no randomness and every tie to the smaller id.
+// same), with no randomness but the seeded draw of a main sector (AiEffort),
+// and every tie to the smaller id.
 //
 // One day of a country (aiLandTick): the template refit (every 180 days),
 // then, daily at war or with a calendar war near (else every 10 days),
@@ -20,7 +21,8 @@
 // border (shorterLine). Offensives (launch) are judged on the combined range
 // of every division the side would commit against a region, then go in on an
 // aggressive stance. A human's auto armies take the same road by their level:
-// 1 holds only, 2 also attacks.
+// 1 holds only, 2 also attacks. ww81: a line that stands is attacked at one
+// main sector a front (land/AiEffort, mainEffort), by army_direct.
 import type { WwOrder } from "@openfront/engine-api/Schemas";
 import { COUNTRIES, CountryTag } from "@openfront/engine-api/ww1936/Countries";
 import { WwTechId } from "@openfront/engine-api/ww1936/EconomyTypes";
@@ -36,6 +38,7 @@ import {
   Stance,
   SupportId,
   TPL_ARMOR_ANY,
+  TPL_MOTOR_ANY,
   TPL_PARA_ANY,
   WW_AI_PREWAR_DAYS,
   WW_MAX_ARMY_DIVISIONS,
@@ -55,6 +58,7 @@ import {
 } from "@openfront/engine-lib/ww1936/FrontRules";
 import { WW_INITIAL_WARS } from "@openfront/engine-lib/ww1936/History";
 import { WW_TARGET_REACH_EDGES } from "@openfront/engine-lib/ww1936/LandOrderChecks";
+import { wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { ALL_EDGES } from "@openfront/engine-lib/ww1936/SeaGraph";
 import {
   presetById,
@@ -66,6 +70,7 @@ import {
   specialCap,
   templateStats,
 } from "@openfront/engine-lib/ww1936/TemplateStats";
+import { enemySkyPm } from "../air/AirSuperiority";
 import { type AiPersonality, aiPersonality } from "../economy/AiEconomy";
 import { convoysOf, effectiveLevel } from "../economy/Buildings";
 import { queueBuild } from "../economy/Construction";
@@ -82,6 +87,17 @@ import {
   type ShapeCandidate,
   trainTargetArmy,
 } from "./AiArmies";
+import {
+  AI_EFFORT_CAPITAL_VALUE,
+  AI_EFFORT_PERIOD_DAYS,
+  effortFed,
+  effortRoom,
+  effortTarget,
+  enemyCuts,
+  type EnemyCuts,
+  P_AXIS,
+  pickMainSector,
+} from "./AiEffort";
 import { meanWidthOf, zoneCap } from "./Fronts";
 import { canServe } from "./GeneralsRun";
 import { capitalRegion } from "./LandStartRun";
@@ -90,6 +106,7 @@ import {
   armyRows,
   attackTarget,
   axisOf,
+  enemyStrength,
   predictAttack,
   predictAttackRange,
   targetDistances,
@@ -465,6 +482,8 @@ export interface AiTargetRegion {
   dist: number;
   /** The enemy's capital: its victory points count twice (controller ruling 5). */
   capital?: boolean;
+  /** ww81 C3: the enemy divisions taking it would cut off. */
+  cut?: number;
 }
 
 /**
@@ -476,7 +495,10 @@ export function aiTargets(input: {
   regions: readonly AiTargetRegion[];
 }): number[] {
   const score = (r: AiTargetRegion) =>
-    Math.floor((r.vp * (r.capital === true ? 200 : 100)) / (r.dist + 1));
+    Math.floor(
+      (r.vp * (r.capital === true ? 200 : 100) + (r.cut ?? 0) * 100) /
+        (r.dist + 1),
+    );
   const out = input.regions
     .filter((r) => score(r) > 0)
     .sort((a, b) => score(b) - score(a) || a.region - b.region)
@@ -914,6 +936,14 @@ class AiDay {
   private holding = new Set<number>();
   /** facingPower's memo. */
   private facingCache = new Map<number, number>();
+  /** ww81 C1: today's armies on a main effort, and the region each goes for. */
+  private effortOf = new Map<number, number>();
+  /** ww81 C1: the others on a front judged for one: they walk and pursue, no more. */
+  private offEffort = new Set<number>();
+  /** ww81 C4: the armies that lead today's main efforts: the air goes to them first. */
+  private skyArmies = new Set<number>();
+  /** ww81 C3: today's cuts of each enemy read (on the period's day or for a new sector). */
+  private cutsMemo = new Map<number, EnemyCuts>();
 
   constructor(
     readonly land: WwLand,
@@ -1136,6 +1166,7 @@ class AiDay {
     if (enemies.length > 0) this.fronts(enemies, garrisons);
     else if (!this.human) this.peacetime(garrisons);
     this.attacks();
+    if (!this.human) this.syncSky();
     if (this.trains) this.train(garrisons);
     if (!this.human) this.build(enemies);
   }
@@ -1818,15 +1849,417 @@ class AiDay {
       ? this.shorterLine(f, armies, divisions, outnumbered)
       : null;
     const line = ring ?? border;
-    const zones = this.zonesOf(f, line, armies);
-    for (const a of armies) {
+    const judged = atWar && ring === null && !outnumbered;
+    const per = outnumbered ? AI_OUTNUMBERED_PER_REGION : 1;
+    const reserve = atWar ? this.reserveOf(line, armies, per, judged) : null;
+    const held = armies.filter((a) => a !== reserve);
+    const zones =
+      (judged ? this.mainEffort(f, line, held) : null) ??
+      this.zonesOf(f, line, held);
+    if (reserve !== null) this.postReserve(reserve, f, line);
+    for (const a of held) {
+      const o = a.order;
       const defend =
         ring !== null ||
         this.defendOnly(a) ||
         (outnumbered &&
-          !(a.order.kind === "plan" && a.order.executing && this.pressing(a)));
+          !(o.kind === "plan" && o.executing && this.pressing(a))) ||
+        // An effort this army has left: its waiting plan goes.
+        (this.offEffort.has(a.id) && o.kind === "plan" && !o.executing);
       this.giveZone(a, f, zones.get(a.id)!, defend);
+      const x = this.effortOf.get(a.id);
+      if (x !== undefined) this.aim(a, x);
     }
+  }
+
+  /**
+   * ww81 C7: the army this front keeps back, when three or more stand on it and
+   * the others still hold the line at `per` divisions a region: one on its way
+   * or back there first, then on a front with a main effort (`judged`) the
+   * smallest that isn't a shock army, as the effort wants those, and on any
+   * other a shock army first, then the largest.
+   */
+  private reserveOf(
+    line: readonly number[],
+    armies: readonly Army[],
+    per: number,
+    judged: boolean,
+  ): Army | null {
+    if (armies.length < 3) return null;
+    let total = 0;
+    for (const a of armies) total += a.divisions.length;
+    const onLine = new Set(line);
+    const back = (a: Army) => {
+      const o = a.order;
+      if (o.kind === "front") {
+        return o.zone.length === 1 && !onLine.has(o.zone[0]);
+      }
+      return this.lost(o.kind === "plan" ? o.targets[0] : 0);
+    };
+    const rank = (a: Army) =>
+      (back(a) ? 0 : 2) + (this.shock(a) === judged ? 1 : 0);
+    const size = (a: Army) => (judged ? 1 : -1) * a.divisions.length;
+    const list = armies
+      .filter((a) => {
+        if (this.defendOnly(a)) return false;
+        const o = a.order;
+        const running = o.kind === "plan" && o.executing;
+        return back(a) || !running;
+      })
+      .sort((a, b) => rank(a) - rank(b) || size(a) - size(b) || a.id - b.id);
+    for (const a of list) {
+      if (total - a.divisions.length >= line.length * per) return a;
+    }
+    return null;
+  }
+
+  /** An enemy holds `region`, which is our side's by right. */
+  private lost(region: number): boolean {
+    if (region === 0) return false;
+    const land = this.land;
+    return (
+      land.isEnemy(this.me, land.controller[region]) &&
+      land.sameSide(this.me, land.ww.politics.legalOwner[region])
+    );
+  }
+
+  /**
+   * ww81 C7: the reserve stands behind the middle of the line; when the enemy
+   * has taken a region of ours next to the line (most points first, then the
+   * smaller id) it goes for it on the usual gate, and walks back afterwards.
+   */
+  private postReserve(a: Army, f: Front, line: readonly number[]): void {
+    const land = this.land;
+    const sc = land.scenario;
+    let target = 0;
+    const vp = (r: number) => sc.region(r)?.vp ?? 0;
+    for (const r of line) {
+      for (const e of sc.edgesOf(r)) {
+        const x = e.to;
+        if (land.controller[x] !== f.enemy || !this.lost(x)) continue;
+        if (
+          target === 0 ||
+          vp(x) > vp(target) ||
+          (vp(x) === vp(target) && x < target)
+        ) {
+          target = x;
+        }
+      }
+    }
+    this.offEffort.add(a.id);
+    if (target === 0) {
+      this.giveZone(a, f, [this.behindLine(f, line)], true);
+      return;
+    }
+    const near = line.filter((r) => sc.edgeBetween(r, target) >= 0);
+    this.giveZone(a, f, near, false);
+    this.joinEffort(a, target);
+    this.aim(a, target);
+  }
+
+  /** The region of ours behind the line's middle, nearest our capital; the middle itself with none. */
+  private behindLine(f: Front, line: readonly number[]): number {
+    const chain = borderChain(this.land, this.me, f.enemy, line);
+    const mid = chain[Math.floor(chain.length / 2)];
+    const onLine = new Set(line);
+    const comp = this.comp();
+    const dist = this.capDist();
+    let best = mid;
+    let bestDist = FAR;
+    for (const e of this.land.scenario.edgesOf(mid)) {
+      const r = e.to;
+      if (onLine.has(r) || comp[r] !== f.comp) continue;
+      if (dist[r] < bestDist || (dist[r] === bestDist && r < best)) {
+        best = r;
+        bestDist = dist[r];
+      }
+    }
+    return best;
+  }
+
+  /**
+   * ww81 C1: the front's main effort. Its sector's zone (our line regions next
+   * to the sector) goes to the armies with armour first, then the largest, as
+   * long as those left keep a division for each other region of the line; they
+   * share out the rest and send what they can spare to the sector too. With
+   * too few to spare, the zones stay as they are and the armies whose zone
+   * touches the sector go for it, spare divisions only.
+   * Null: the plain zones. A human's auto armies count, those on 수비 자동 hold.
+   */
+  private mainEffort(
+    f: Front,
+    line: readonly number[],
+    armies: readonly Army[],
+  ): Map<number, number[]> | null {
+    const land = this.land;
+    const sc = land.scenario;
+    for (const a of armies) this.offEffort.add(a.id);
+    const sector = this.sectorOf(f, line, armies);
+    if (sector === 0) return null;
+    const near = line.filter((r) => sc.edgeBetween(r, sector) >= 0);
+    const rest = line.filter((r) => sc.edgeBetween(r, sector) < 0);
+    const running = (a: Army) =>
+      a.order.kind === "plan" &&
+      a.order.executing &&
+      effortTarget(a.order) === sector;
+    const rank = (a: Army) => (running(a) ? 0 : 2) + (this.shock(a) ? 0 : 1);
+    const ranked = armies
+      .filter((a) => !this.defendOnly(a))
+      .sort(
+        (a, b) =>
+          rank(a) - rank(b) ||
+          b.divisions.length - a.divisions.length ||
+          a.id - b.id,
+      );
+    let left = 0;
+    for (const a of armies) left += a.divisions.length;
+    // C6: no more than the sector feeds; those over it stay on the line.
+    const room = this.roomAt(near, this.supplyUnit(ranked));
+    const chosen = new Set<Army>();
+    let on = 0;
+    for (const a of ranked) {
+      if (!running(a)) {
+        if (left - a.divisions.length < rest.length) continue;
+        if (on > 0 && on >= room) continue;
+      }
+      chosen.add(a);
+      left -= a.divisions.length;
+      on += a.divisions.length;
+    }
+    const others = armies.filter((a) => !chosen.has(a));
+    if (chosen.size === 0 || (others.length === 0 && rest.length > 0)) {
+      const zones = this.zonesOf(f, line, armies);
+      const on = ranked.filter((a) =>
+        zones.get(a.id)!.some((r) => near.includes(r)),
+      );
+      for (const a of on) this.joinEffort(a, sector);
+      if (on.length > 0) this.skyArmies.add(on[0].id);
+      return zones;
+    }
+    for (const a of chosen) this.joinEffort(a, sector);
+    const zones =
+      others.length > 0 && rest.length > 0
+        ? this.zonesOf(f, rest, others)
+        : new Map<number, number[]>();
+    for (const a of chosen) zones.set(a.id, [...near]);
+    // Whoever holds the rest keeps a division a region; its spare joins in.
+    for (const a of others) {
+      const zone = zones.get(a.id) ?? [];
+      const wide = [...new Set([...zone, ...near])];
+      zones.set(a.id, zone.length === 0 ? [...near] : zone);
+      if (this.defendOnly(a) || wide.length > WW_ZONE_MAX) continue;
+      if (a.divisions.length <= zone.length || on >= room) continue;
+      zones.set(a.id, wide);
+      this.joinEffort(a, sector);
+      on += a.divisions.length - zone.length;
+    }
+    this.skyArmies.add(ranked.find((a) => chosen.has(a))!.id);
+    return zones;
+  }
+
+  /**
+   * ww81 C4: army_air_priority follows the efforts: on for the army leading
+   * one from the day it is chosen, off when it ends. The AI's own armies only:
+   * on a human's the switch stays the player's.
+   */
+  private syncSky(): void {
+    const air = this.land.ww.air;
+    const now = air.country(this.me)?.priorityArmies;
+    if (now === undefined) return;
+    const set = (army: number, on: boolean) => {
+      const order: WwOrder = { kind: "army_air_priority", army, on };
+      air.issue(this.me, order, this.land.mg.ticks());
+    };
+    for (const id of [...now]) if (!this.skyArmies.has(id)) set(id, false);
+    for (const id of [...this.skyArmies].sort((a, b) => a - b)) {
+      if (!now.includes(id)) set(id, true);
+    }
+  }
+
+  /** A division's supply use among `armies`, milli (armour asks more). */
+  private supplyUnit(armies: readonly Army[]): number {
+    let use = 0;
+    let n = 0;
+    for (const a of armies) {
+      for (const r of armyRows(this.land, a)) {
+        use += this.land.supplyBaseOf(r);
+        n++;
+      }
+    }
+    return n === 0 ? 1 : Math.max(1, Math.floor(use / n));
+  }
+
+  /** C6: the divisions `regions` feed at `unit`. */
+  private roomAt(regions: readonly number[], unit: number): number {
+    const supply = regions.map((r) => this.land.supplyMilli[r]);
+    return effortRoom(supply, unit);
+  }
+
+  private joinEffort(a: Army, sector: number): void {
+    this.effortOf.set(a.id, sector);
+    this.offEffort.delete(a.id);
+  }
+
+  /** Motorized and armoured divisions are a third of the army or more (the shock armies of ww80 section 5). */
+  private shock(a: Army): boolean {
+    const rows = armyRows(this.land, a);
+    let n = 0;
+    for (const r of rows) {
+      const flags = this.land.baseStatsOf(r).flags;
+      if ((flags & (TPL_ARMOR_ANY | TPL_MOTOR_ANY)) !== 0) n++;
+    }
+    return n > 0 && n * 3 >= rows.length;
+  }
+
+  /**
+   * The front's sector: the one a direct attack runs on; else, between the
+   * period's days, the one the armies wait on (their plans are all the memory
+   * there is: a restored game reads the same); else a new choice.
+   */
+  private sectorOf(
+    f: Front,
+    line: readonly number[],
+    armies: readonly Army[],
+  ): number {
+    const land = this.land;
+    const sc = land.scenario;
+    let waiting = 0;
+    for (const a of armies) {
+      const x = effortTarget(a.order);
+      if (x === 0 || a.order.enemy !== f.enemy) continue;
+      if (land.controller[x] !== f.enemy) continue;
+      if (!line.some((r) => sc.edgeBetween(r, x) >= 0)) continue;
+      if (a.order.executing) return x;
+      if (waiting === 0) waiting = x;
+    }
+    if (waiting !== 0 && !this.effortDue()) return waiting;
+    return this.pickSector(f, line, armies, waiting);
+  }
+
+  /** The period's day of this country: the sectors and the cuts are looked at again. */
+  private effortDue(): boolean {
+    return (this.day + this.me) % AI_EFFORT_PERIOD_DAYS === 0;
+  }
+
+  /**
+   * ww81 C3: what cutting `enemy`'s land does, from the map alone: control and
+   * the divisions the AI already reads, not the encircled flag (fog). Sea
+   * supply is not in it, so it is an estimate, good enough for aiming.
+   */
+  private cutsOf(enemy: number): EnemyCuts {
+    const memo = this.cutsMemo.get(enemy);
+    if (memo !== undefined) return memo;
+    const land = this.land;
+    const sc = land.scenario;
+    const regions = land.econ
+      .regionsOf(enemy)
+      .filter((r) => land.controller[r] === enemy)
+      .sort((a, b) => a - b);
+    const cuts = enemyCuts(
+      regions,
+      land.ww.capitalRegion(enemy),
+      (r) => sc.edgesOf(r).map((e) => e.to),
+      (r) => enemyDivisionsIn(land, this.me, r),
+    );
+    this.cutsMemo.set(enemy, cuts);
+    return cuts;
+  }
+
+  /** C3 rule 3: `x` is a pocket of `enemy`, seen on the period's day. */
+  private inPocket(enemy: number, x: number): boolean {
+    return this.effortDue() && this.cutsOf(enemy).pocket.has(x);
+  }
+
+  /** Rule 1 of C1, on what stands across `line` today (land/AiEffort). 0: nobody to attack. */
+  private pickSector(
+    f: Front,
+    line: readonly number[],
+    armies: readonly Army[],
+    waiting: number,
+  ): number {
+    const land = this.land;
+    const sc = land.scenario;
+    const across = new Set<number>();
+    for (const r of line) {
+      for (const e of sc.edgesOf(r)) {
+        if (land.controller[e.to] === f.enemy) across.add(e.to);
+      }
+    }
+    if (across.size === 0) return 0;
+    const reach = this.targetRegions(
+      line,
+      f.enemy,
+      this.ratioOver(f.enemy, across),
+    );
+    const { cut } = this.cutsOf(f.enemy);
+    // The road on: a target deeper in counts for what stands in front of it.
+    const pull = new Map<number, number>();
+    const byId = new Map(reach.map((r) => [r.region, r]));
+    for (const t of aiTargets({ regions: reach })) {
+      const r = byId.get(t)!;
+      const worth = r.vp + (r.capital ? AI_EFFORT_CAPITAL_VALUE : 0);
+      if (worth === 0) continue;
+      const dist = this.bfs(
+        [t],
+        (x) => land.isEnemy(this.me, land.controller[x]),
+        WW_TARGET_REACH_EDGES,
+      );
+      for (const x of across) {
+        if (dist[x] === 0 || dist[x] === FAR) continue;
+        const v = Math.floor(worth / (dist[x] + 1));
+        pull.set(x, Math.max(pull.get(x) ?? 0, v));
+      }
+    }
+    // C6: the force meant for a sector is at least the largest army.
+    const able = armies.filter((a) => !this.defendOnly(a));
+    const unit = this.supplyUnit(able);
+    const force = Math.max(0, ...able.map((a) => a.divisions.length));
+    const fed = (x: number) =>
+      effortFed(
+        this.roomAt(
+          line.filter((r) => sc.edgeBetween(r, x) >= 0),
+          unit,
+        ),
+        force,
+      );
+    const regions = reach
+      .filter(
+        (r) =>
+          r.dist === 1 &&
+          enemyDivisionsIn(land, this.me, r.region) > 0 &&
+          fed(r.region),
+      )
+      .map((r) => {
+        const fort = effectiveLevel(land.econ, r.region, "fort");
+        return {
+          region: r.region,
+          vp: r.vp,
+          capital: r.capital === true,
+          fort,
+          width: combatWidth(sc.landOf(r.region), 1, fort),
+          defence: enemyStrength(land, this.me, r.region),
+          extra: (pull.get(r.region) ?? 0) + (cut.get(r.region) ?? 0),
+          skyPm: enemySkyPm(land.ww.air, r.region, land.sideOf(this.me)),
+        };
+      });
+    const period = Math.floor((this.day + this.me) / AI_EFFORT_PERIOD_DAYS);
+    return pickMainSector(
+      regions,
+      wwRoll(land.ww.politics.seed, P_AXIS, this.me, period, f.enemy),
+      waiting,
+    );
+  }
+
+  /** The army's plan waits on `x`, unless it runs already (a walk finishes first). */
+  private aim(a: Army, x: number): void {
+    const o = a.order;
+    if (o.kind === "plan" && (o.executing || o.targets[0] === x)) return;
+    this.issue({
+      kind: "army_plan",
+      army: a.id,
+      targets: [x],
+      stance: AI_STANCE,
+    });
   }
 
   /**
@@ -2456,7 +2889,11 @@ class AiDay {
             !fighting && org < AI_ATTACK_ORG_PM && ratio < AI_PURSUIT_RATIO_PM
           );
         };
-        if (stop()) this.issue({ kind: "army_execute", army: a.id, on: false });
+        if (stop()) {
+          // ww81 C1: a direct attack ends for good; Defend keeps the zone.
+          if (o.direct === true) this.toDefend(a);
+          else this.issue({ kind: "army_execute", army: a.id, on: false });
+        }
         continue;
       }
       if (org < AI_ATTACK_ORG_PM || this.formedPm(a, rows) < FORMED_PM) {
@@ -2500,7 +2937,11 @@ class AiDay {
     }
     const aims = new Map<number, Aims>();
     for (const a of ready) {
-      const regions = this.targetRegions(a, enemy, this.ratioOf(a, enemy));
+      const regions = this.targetRegions(
+        this.zoneOf(a),
+        enemy,
+        this.ratioOf(a, enemy),
+      );
       if (regions.length === 0) continue;
       const targets = aiTargets({ regions });
       aims.set(a.id, {
@@ -2542,6 +2983,8 @@ class AiDay {
         let near = FAR;
         for (const s of tried.live) {
           near = Math.min(near, aims.get(s.a.id)!.dist[x]);
+          // ww81 C1: a sector that stands goes before any walk.
+          if (!tried.range.free && this.effortOf.get(s.a.id) === x) near = -1;
         }
         const r = tried.range;
         const mid = r.free ? Infinity : r.midPm;
@@ -2570,7 +3013,7 @@ class AiDay {
     const bar = aiGatePm(this.personality);
     for (const a of ready) {
       if (a.order.kind !== "plan" || !this.ripe(a, enemy, 0)) continue;
-      if (fixed.some((s) => s.a === a)) continue;
+      if (fixed.some((s) => s.a === a) || this.effortOf.has(a.id)) continue;
       const r = read.get(a.order.targets[0]);
       if (r === undefined || r.midPm * 100 < bar.midPm * AI_GATE_GIVE_UP_PCT) {
         this.toDefend(a);
@@ -2673,7 +3116,10 @@ class AiDay {
       for (const e of sc.edgesOf(l.f)) {
         if (land.isEnemy(this.me, land.controller[e.to])) dirs++;
       }
-      let more = Math.min(shares[i], zoneCap(land, l.f, dirs, mean));
+      // ww81 C1: a direct attack lifts the layout's cap.
+      let more = this.effortOf.has(a.id)
+        ? shares[i]
+        : Math.min(shares[i], zoneCap(land, l.f, dirs, mean));
       for (const r of free) if (t.region[r] === l.f) more--;
       for (const r of free) {
         if (more <= 0) break;
@@ -2744,12 +3190,28 @@ class AiDay {
   private clears(s: AiStrike, r: AiRange): boolean {
     const hold = this.holding.has(s.a.id);
     const enemy = s.a.order.enemy;
+    // ww81 C1: an effort goes for its sector, and off it nobody attacks a
+    // line that stands: walks and a broken enemy only.
+    const aim = this.effortOf.get(s.a.id);
+    const x = s.legs[0].x;
+    const pocket = !r.free && this.inPocket(enemy, x);
+    if (
+      (aim !== undefined || this.offEffort.has(s.a.id)) &&
+      aim !== x &&
+      !r.free &&
+      !pocket &&
+      r.midPm < AI_PURSUIT_RATIO_PM
+    ) {
+      return false;
+    }
     if (r.free) {
       if (hold) return false;
       return this.nobodyAcross(s.a, enemy) || this.ripe(s.a, enemy, 0);
     }
     const gate = aiGatePm(this.personality);
-    if (!this.ripe(s.a, enemy, r.midPm)) return false;
+    // C3 rule 3: a pocket waits for no readiness, as a broken enemy doesn't.
+    const floor = pocket ? AI_PURSUIT_RATIO_PM : r.midPm;
+    if (!this.ripe(s.a, enemy, floor)) return false;
     return (
       r.midPm >= (hold ? AI_OUTNUMBERED_ATTACK_PM : gate.midPm) &&
       r.lowPm >= gate.lowPm
@@ -2770,9 +3232,30 @@ class AiDay {
     const sc = land.scenario;
     const x = s.legs[0].x;
     const o = s.a.order;
-    const planned = o.kind === "plan" && o.targets[0] === x;
+    // ww81 C1: a line that stands takes the whole effort, massed; empty land
+    // and a broken enemy go on as they always did.
+    const pocket = !r.free && this.inPocket(o.enemy, x);
+    if (
+      this.effortOf.get(s.a.id) === x &&
+      !r.free &&
+      r.midPm < AI_PURSUIT_RATIO_PM
+    ) {
+      if (!pocket && !this.massed(s)) return;
+      this.issue({
+        kind: "army_direct",
+        army: s.a.id,
+        targets: [x],
+        favorable: false,
+        allIn: false,
+        advance: false,
+      });
+      return;
+    }
+    const planned =
+      o.kind === "plan" && o.targets[0] === x && !this.effortOf.has(s.a.id);
     if (planned) {
-      const now = r.free || r.midPm >= AI_PURSUIT_RATIO_PM || this.massed(s);
+      const now =
+        r.free || pocket || r.midPm >= AI_PURSUIT_RATIO_PM || this.massed(s);
       this.plan(s.a, o.targets, AI_STANCE, now);
       return;
     }
@@ -2787,7 +3270,7 @@ class AiDay {
       s.a,
       [x, ...beyond].slice(0, WW_MAX_TARGETS),
       AI_STANCE,
-      r.free || r.midPm >= AI_PURSUIT_RATIO_PM,
+      r.free || pocket || r.midPm >= AI_PURSUIT_RATIO_PM,
     );
   }
 
@@ -3001,7 +3484,7 @@ class AiDay {
    * own beyond liberating them).
    */
   private targetRegions(
-    a: Army,
+    zone: readonly number[],
     enemy: number,
     ratioPm: number,
   ): AiTargetRegion[] {
@@ -3009,7 +3492,7 @@ class AiDay {
     const sc = land.scenario;
     const me = this.me;
     const reached = this.bfsReach(
-      this.zoneOf(a),
+      zone,
       (r) => land.isEnemy(me, land.controller[r]),
       WW_TARGET_REACH_EDGES,
     );
@@ -3044,11 +3527,15 @@ class AiDay {
       if (coresOnly && !(ours(pol.legalOwner[r.id]) && pol.isCore(r.id))) {
         continue;
       }
+      const cut = this.effortDue()
+        ? (this.cutsOf(enemy).cut.get(r.id) ?? 0)
+        : 0;
       regions.push({
         region: r.id,
         vp: r.vp,
         dist: d,
         capital: r.id === capital,
+        ...(cut > 0 ? { cut } : {}),
       });
     }
     this.reachDone(reached);
@@ -3437,11 +3924,10 @@ class AiDay {
   }
 
   /**
-   * HOOK (lane C): whether the army stands on the main sector. Until
-   * land/AiEffort.ts exists nothing knows it, and armour share alone judges.
+   * Whether the army is on the current main effort (C1).
    */
-  private onMainSector(_a: Army): boolean | null {
-    return null;
+  private onMainSector(a: Army): boolean | null {
+    return this.effortOf.has(a.id);
   }
 
   /** A human's auto-trained armies that are still auto judge defence or offence auto. */

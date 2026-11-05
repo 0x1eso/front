@@ -24,6 +24,7 @@ import {
   land,
   placeArmy,
   stepTo,
+  takeRegion,
   warAfterPrep,
   wwGameStart,
   wwRunner,
@@ -218,16 +219,17 @@ describe("ww7 lane D: the AI's army objective orders", () => {
     expect(a.order.zone).toEqual(zone);
   }, 300_000);
 
-  test("the gate reads all that would go in: one army alone holds where two converging attack", async () => {
-    // Twenty in Warsaw: eighteen would not do, nor the nine beside them; the
-    // two armies' zones both touch Warsaw, and together they clear the bars.
+  test("the gate reads all that would go in: one army alone holds where two converging attack, and they go together for one region", async () => {
+    // Twenty in Warsaw, twenty-four in Krakow: eighteen would not do, and the
+    // front stands outnumbered; with nine more the main effort takes both
+    // armies to one region: the holder of the rest sends its spare too.
     const run = async (armies: [number, number][]) => {
       const c = await atWar();
       placeArmy(c.g, "POL", WARSAW, 20);
       placeArmy(c.g, "POL", KRAKOW, 24);
       const mine = armies.map(([r, n]) => autoArmy(c, r, n, 2));
-      c.days(30, () => c.l.battles.has(WARSAW));
-      return { c, mine, fought: c.l.battles.has(WARSAW) };
+      c.days(30, () => c.l.battles.size > 0);
+      return { c, mine, fought: c.l.battles.size > 0 };
     };
     const alone = await run([[MUNICH, 18]]);
     expect(alone.fought).toBe(false);
@@ -237,15 +239,83 @@ describe("ww7 lane D: the AI's army objective orders", () => {
       [MUNICH, 18],
     ]);
     expect(both.fought).toBe(true);
+    expect(both.c.l.battles.size).toBe(1);
+    const sector = [...both.c.l.battles.keys()][0];
     const plans = both.c.orders.flatMap((o) =>
       o.kind === "army_plan" ? [o] : [],
     );
+    const direct = both.c.orders.flatMap((o) =>
+      o.kind === "army_direct" ? [o] : [],
+    );
     expect(new Set(plans.map((o) => o.army)).size).toBe(2);
+    expect(new Set(direct.map((o) => o.army)).size).toBe(2);
     for (const o of plans) {
-      expect(o.targets[0]).toBe(WARSAW);
+      expect(o.targets[0]).toBe(sector);
       expect(o.stance).toBe("aggressive");
     }
+    for (const o of direct) {
+      expect(o.targets).toEqual([sector]);
+      expect(o.advance).toBe(false);
+      expect(o.allIn).toBe(false);
+      expect(o.favorable).toBe(false);
+    }
   }, 240_000);
+
+  test("C1: only the main sector is attacked, in force, and a level 1 army holds", async () => {
+    const c = await atWar();
+    placeArmy(c.g, "POL", WARSAW, 24);
+    placeArmy(c.g, "POL", KRAKOW, 24);
+    const big = autoArmy(c, MUNICH, 24, 2);
+    const hold = autoArmy(c, BERLIN, 9, 1);
+    c.days(30, () => c.l.battles.size > 0);
+    expect(c.l.battles.size).toBe(1);
+    expect(big.order.direct).toBe(true);
+    expect(big.order.targets).toEqual([...c.l.battles.keys()]);
+    expect(hold.order.kind).toBe("front");
+    expect(
+      c.orders.some((o) => o.kind === "army_direct" && o.army === hold.id),
+    ).toBe(false);
+  }, 120_000);
+
+  test("C6: a sector that feeds under half of the army starts no effort", async () => {
+    const c = await atWar();
+    placeArmy(c.g, "POL", WARSAW, 24);
+    placeArmy(c.g, "POL", KRAKOW, 24);
+    const big = autoArmy(c, MUNICH, 24, 2);
+    const other = autoArmy(c, BERLIN, 9, 2);
+    // Divisions too hungry for any region to feed.
+    c.l.supplyBaseOf = () => 1_000_000_000;
+    c.days(12);
+    expect(big.order.kind).toBe("front");
+    expect(other.order.kind).toBe("front");
+    expect(c.orders.some((o) => o.kind === "army_plan")).toBe(false);
+  }, 120_000);
+
+  test("C7: with armies to spare one stays back, and goes for a region the enemy took", async () => {
+    const c = await atWar();
+    placeArmy(c.g, "POL", WARSAW, 24);
+    placeArmy(c.g, "POL", KRAKOW, 24);
+    const big = autoArmy(c, BERLIN, 24, 2);
+    autoArmy(c, BERLIN, 12, 2);
+    const small = autoArmy(c, BERLIN, 6, 2);
+    c.days(3);
+    expect(small.order.kind).toBe("front");
+    expect(small.order.zone.length).toBe(1);
+    expect(big.order.kind).toBe("plan");
+    // Poland walks into Rome, its side's by right; the reserve turns on it.
+    takeRegion(c.g, ROME, "POL");
+    placeArmy(c.g, "POL", ROME, 1);
+    c.orders.length = 0;
+    c.days(1);
+    expect(
+      c.orders.some(
+        (o) =>
+          o.kind === "army_plan" &&
+          o.army === small.id &&
+          o.targets[0] === ROME,
+      ),
+    ).toBe(true);
+  }, 120_000);
 
   test("level 1 holds and never attacks (a plan turns to Defend), level 2 attacks; army_auto and the all-armies switch mean level 2", async () => {
     const hold = await atWar();
