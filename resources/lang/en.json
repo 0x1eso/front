@@ -13734,6 +13734,15 @@
       "transport_ship_2": "Improved transports",
       "winter_gear_1": "Field kit"
     },
+    "tech_portable": {
+      "DEU": "Panzerfaust",
+      "FRA": "Bazooka",
+      "GBR": "PIAT",
+      "ITA": "Panzerfaust",
+      "JPN": "Type 4 rocket launcher",
+      "SUN": "RPG-43",
+      "USA": "Bazooka"
+    },
     "techfx": {
       "buildings": "Unlocks buildings: {list}",
       "hist_unlocks": "Unlocks: {list}",
@@ -14240,15 +14249,6 @@
       "refuse": "Refuse",
       "scope_separate": "Separate peace (leaves the faction)",
       "scope_whole": "Whole war"
-    },
-    "tech_portable": {
-      "DEU": "Panzerfaust",
-      "FRA": "Bazooka",
-      "GBR": "PIAT",
-      "ITA": "Panzerfaust",
-      "JPN": "Type 4 rocket launcher",
-      "SUN": "RPG-43",
-      "USA": "Bazooka"
     }
   }
 }
