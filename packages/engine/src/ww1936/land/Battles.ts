@@ -54,6 +54,7 @@ import {
   CAS_RESERVE_PP,
   casCutHits,
   casProtectPm,
+  casualtyReturnShare,
   combatWidth,
   defenderOrgPct,
   divisionMods,
@@ -482,7 +483,10 @@ function fight(land: WwLand, b: Battle, tick: number): void {
       const defending = t.role[r] === ROLE_DEFEND;
       const o = applyBp(o0, 10_000 + (defending ? fx.defOrgBp : fx.attOrgBp));
       // ww84: dug-in foot give less ground, tanks on their own more.
-      const pct = defending ? defenderOrgPct(land.flagsOf(r)) : 100;
+      const pct = defending
+        ? (land.templateNumbersOf(r).defOrgPct ??
+          defenderOrgPct(land.flagsOf(r)))
+        : 100;
       t.org[r] = Math.max(0, was - Math.floor((o * pct) / 100));
       if (defending) {
         b.lostOrgMilli += was - t.org[r];
@@ -793,6 +797,7 @@ function sideProfileOf(
   out.cavalry = n > 0 && cavalry * 2 >= n;
   const ce = lead < 0 ? null : land.econ.country(t.owner[PA_ROW[lead]]);
   out.doctrine = Math.min(10, Math.floor((ce?.stats.reconPct ?? 0) / 5));
+  out.tacticInitiative = ce?.stats.tacticInitiative ?? 0;
   const mean = n === 0 ? 0 : Math.floor(exp / n);
   out.expTier = mean < 250 ? 0 : mean < 500 ? 1 : mean < 750 ? 2 : 3;
   out.artPm = battalions === 0 ? 0 : Math.floor((art * 1000) / battalions);
@@ -1339,10 +1344,9 @@ export function applyHpLoss(land: WwLand, row: number, hpMilli: number): void {
   if (lost > 0) {
     const ce = land.econ.country(owner);
     // Research overhaul (hospital_2): casualtyReturnPp adds to the share.
-    const pct = Math.min(
-      100,
-      ((flags & TPL_HOSPITAL) !== 0 ? 50 : 20) +
-        Math.max(0, ce?.stats.casualtyReturnPp ?? 0),
+    const pct = casualtyReturnShare(
+      (flags & TPL_HOSPITAL) !== 0,
+      ce?.stats.casualtyReturnPp ?? 0,
     );
     const back = Math.floor((lost * pct) / 100);
     if (ce !== null) returnManpower(ce, back);

@@ -169,12 +169,17 @@ export const HP_PER_HIT_E3 = 36;
 export const FOOT_DEFENCE_ORG_PCT = 85;
 export const BARE_ARMOR_ORG_PCT = 125;
 
+/** ww91: the share of a division's casualties that return to the pool, %: 20 (50 with a hospital) plus the stat, within 0..100 (a negative stat cuts it). */
+export function casualtyReturnShare(hospital: boolean, pp: number): number {
+  return Math.max(0, Math.min(100, (hospital ? 50 : 20) + pp));
+}
+
 /** ww84: what a defender with `flags` takes of the org damage dealt to it, %. */
-export function defenderOrgPct(flags: number): number {
+export function defenderOrgPct(flags: number, footPp = 0): number {
   return has(flags, TPL_BARE_ARMOR)
     ? BARE_ARMOR_ORG_PCT
     : has(flags, TPL_FOOT_MAJOR)
-      ? FOOT_DEFENCE_ORG_PCT
+      ? FOOT_DEFENCE_ORG_PCT + footPp
       : 100;
 }
 
@@ -1050,6 +1055,8 @@ export interface SideStats {
   /** TPL_* flags (absent: no division rule counts). */
   flags?: number;
   prepFireBp?: number;
+  /** ww91: the org damage it takes defending, % (absent: from `flags`). */
+  defOrgPct?: number;
 }
 
 /** ww84: the most pierce bands a side sum keeps; the rest join the band nearest in pierce. */
@@ -1116,7 +1123,12 @@ export function addToSide(sum: SideSum, s: SideStats, orgMilli: number): void {
   sum.hardnessPm =
     w1 === 0 ? 0 : Math.floor((sum.hardnessPm * w0 + s.hardnessPm * sw) / w1);
   const fl = s.flags ?? 0;
-  sum.defOrgPct = byWidth(sum.defOrgPct ?? 100, defenderOrgPct(fl), w0, sw);
+  sum.defOrgPct = byWidth(
+    sum.defOrgPct ?? 100,
+    s.defOrgPct ?? defenderOrgPct(fl),
+    w0,
+    sw,
+  );
   sum.footPm = byWidth(
     sum.footPm ?? 0,
     has(fl, TPL_FOOT_MAJOR) ? 1000 : 0,

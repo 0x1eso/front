@@ -349,6 +349,8 @@ export interface DivisionStats {
    * of its battalions, a support company a third of one, at most +30 %).
    */
   prepFireBp: number;
+  /** ww91: the org damage the division takes defending, % (absent: from its flags, CombatRules.defenderOrgPct). */
+  defOrgPct?: number;
 }
 
 export interface CombatMods {

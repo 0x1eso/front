@@ -29,6 +29,7 @@ import type {
   WwStatKey,
   WwStats,
 } from "@openfront/engine-api/ww1936/PoliticsTypes";
+import { natUnitRow, type NatUnitRow } from "./NationalUnits";
 import { idHash, wwRoll } from "./Roll";
 import { retiredTechEffects } from "./WwTechs";
 
@@ -426,6 +427,10 @@ export interface BattalionStatPct {
   speed: number;
   /** Organisation added, whole points. */
   org: number;
+  /** ww91: supply use, training time and hit points, percent (national units, supply spirits). */
+  supply: number;
+  train: number;
+  hp: number;
 }
 
 const INFANTRY_LIKE: ReadonlySet<string> = new Set([
@@ -446,6 +451,13 @@ const AT_LIKE: ReadonlySet<string> = new Set([
   "support_anti_tank",
   "tank_destroyer",
 ]);
+/** ww91: the gun battalions whose supply use artSupplyPct changes. */
+const GUNS: ReadonlySet<string> = new Set([
+  "artillery",
+  "mot_artillery",
+  "sp_artillery",
+  "support_artillery",
+]);
 const ART_LIKE: ReadonlySet<string> = new Set([
   "artillery",
   "mot_artillery",
@@ -465,6 +477,9 @@ const ZERO_PCT: BattalionStatPct = {
   pierce: 0,
   speed: 0,
   org: 0,
+  supply: 0,
+  train: 0,
+  hp: 0,
 };
 
 /**
@@ -478,16 +493,23 @@ export function battalionStatPct(
   bat: BattalionId | SupportId,
 ): BattalionStatPct {
   const s = (k: WwStatKey) => stats[k] ?? 0;
+  // ww91: a national unit's row, only for its own base battalion, only once
+  // the country holds the unit (natUnit); a foot battalion's national traits.
+  const nat = natUnitRow(s("natUnit"), bat);
   if (INFANTRY_LIKE.has(bat)) {
     const mio = s("mioStatPct_infantry");
-    return {
+    const out: BattalionStatPct = {
       ...ZERO_PCT,
       soft: s("infAttackPct") + mio,
       hard: s("infAttackPct") + s("infHardPct") + mio,
       def: s("infDefensePct") + mio,
+      brk: bat === "motorized" ? 0 : s("infBrkPct"),
       speed: bat === "motorized" ? s("motSpeedPct") : 0,
       org: bat === "motorized" ? s("motOrg") : 0,
+      supply: s("infSupplyPct"),
     };
+    if (nat !== null) addNatRow(out, nat);
+    return out;
   }
   if (TANKS.has(bat)) {
     const mio = s("mioStatPct_armor");
@@ -516,6 +538,7 @@ export function battalionStatPct(
       ...ZERO_PCT,
       soft: mio,
       hard: mio,
+      supply: GUNS.has(bat) ? s("artSupplyPct") : 0,
       speed:
         bat === "artillery" || bat === "mot_artillery" || bat === "sp_artillery"
           ? s("artSpeedPct")
@@ -523,6 +546,16 @@ export function battalionStatPct(
     };
   }
   return ZERO_PCT;
+}
+
+function addNatRow(out: BattalionStatPct, r: NatUnitRow): void {
+  out.soft += r.soft;
+  out.hard += r.hard;
+  out.brk += r.brk;
+  out.org += r.org;
+  out.hp += r.hp;
+  out.supply += r.supply;
+  out.train += r.train;
 }
 
 /** x × (100 + pct) / 100, rounded down; x itself at 0 (static divisions keep P2's numbers). */

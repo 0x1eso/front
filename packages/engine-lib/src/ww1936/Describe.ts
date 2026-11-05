@@ -155,7 +155,8 @@ export function describeStats(s: Partial<WwStats>): DescLine[] {
   const out: DescLine[] = [];
   for (const k of WW_STAT_KEYS) {
     const v = s[k];
-    if (v !== undefined && v !== 0) {
+    // natUnit unlocks a unit; the screens name it, never print a number.
+    if (v !== undefined && v !== 0 && k !== "natUnit") {
       out.push({
         key: `ww1936.stat.${k}`,
         params: { value: v },

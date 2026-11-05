@@ -59,6 +59,7 @@ import {
 } from "@openfront/engine-api/ww1936/LandTypes";
 import type { WwStatKey } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { BATTALIONS, SUPPORTS } from "./Battalions";
+import { defenderOrgPct } from "./CombatRules";
 import { battalionStatPct, pctOf } from "./DoctrineRules";
 import { EQUIPMENT, unitCostMilli } from "./Equipment";
 import { LAND_FUEL_PER_HOUR_MILLI } from "./FuelRules";
@@ -785,7 +786,7 @@ export function templateStats(
       fuelHour += fuel;
     }
     men += d.men;
-    hp += Math.floor((d.hpMilli * gp) / 100);
+    hp += pctOf(Math.floor((d.hpMilli * gp) / 100), bp.hp);
     orgSum +=
       d.orgMilli +
       bp.org * 1000 +
@@ -862,12 +863,12 @@ export function templateStats(
       KS.speedCenti,
     );
     speed = Math.min(speed, pctOf(sp, bp.speed));
-    supply += d.supplyMilli;
+    supply += pctOf(d.supplyMilli, bp.supply);
     const days =
       d.kind === "infantry"
         ? Math.floor((d.trainDays * (100 - tech.infTrainCutPct)) / 100)
         : d.trainDays;
-    train = Math.max(train, days);
+    train = Math.max(train, pctOf(days, bp.train));
     for (const [t, k] of d.equip) need[TYPE_INDEX.get(t)!] += k;
     if (d.special) special++;
     if (d.kind === "armor") armorN++;
@@ -947,6 +948,7 @@ export function templateStats(
   if (cavalryN * 2 >= n && n > 0) flags |= TPL_CAVALRY_MAJOR;
   if (paraN > 0) flags |= TPL_PARA_ANY;
   if (armorN === 0 && motorN === 0 && cavalryN === 0) flags |= TPL_INFANTRY_DIV;
+  const prepFirePct = st.prepFirePct ?? 0;
   const sum = (k: number) => {
     let x = 0;
     for (let i = 0; i < T; i++) x += parts[i * 4 + k];
@@ -989,10 +991,15 @@ export function templateStats(
     fuelHourMilli: fuelHour,
     designFlags,
     ...pierceBands(),
+    // ww91: prepFirePct scales the barrage and its cap alike.
     prepFireBp:
       n === 0
         ? 0
-        : Math.min(PREP_FIRE_MAX_BP, Math.floor((gunN * 10_000) / (3 * n))),
+        : Math.min(
+            pctOf(PREP_FIRE_MAX_BP, prepFirePct),
+            pctOf(Math.floor((gunN * 10_000) / (3 * n)), prepFirePct),
+          ),
+    defOrgPct: defenderOrgPct(flags, st.footDefOrgPp ?? 0),
   };
 }
 

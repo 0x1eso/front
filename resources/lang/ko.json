@@ -12903,7 +12903,20 @@
       "armorSpeedPct": "전차 속도 {value, number, ::sign-always}%",
       "infAtPierce": "보병 장갑 관통력 {value, number, ::sign-always} (1/100 단위)",
       "infAtHard": "보병 경성 공격 {value, number, ::sign-always} (1/100 단위)",
-      "tankFearCutPp": "전차 공포 페널티 감소 {value, number, ::sign-always}%p"
+      "tankFearCutPp": "전차 공포 페널티 감소 {value, number, ::sign-always}%p",
+      "infBrkPct": "보병 돌파력 {value, number, ::sign-always}%",
+      "infSupplyPct": "보병 보급 소모 {value, number, ::sign-always}%",
+      "artSupplyPct": "포병 보급 소모 {value, number, ::sign-always}%",
+      "footDefOrgPp": "보병 방어 시 조직력 손실 {value, number, ::sign-always}%p",
+      "prepFirePct": "개시 포격 {value, number, ::sign-always}%",
+      "tacticInitiative": "전투 주도권 {value, number, ::sign-always}",
+      "wolfPackPct": "잠수함 늑대떼 습격력 {value, number, ::sign-always}%",
+      "carrierRepairPct": "항공모함 수리 {value, number, ::sign-always}%",
+      "wingStartXpMilli": "개전 조종사 경험 {value, number, ::sign-always} (1/1000 단위)",
+      "wingRookieXpMilli": "신참 조종사 경험 {value, number, ::sign-always} (1/1000 단위)",
+      "wingXpCapMilli": "조종사 경험 상한 {value, number, ::sign-always} (1/1000 단위)",
+      "effGrowthPct": "생산 라인 효율 성장 {value, number, ::sign-always}%",
+      "harborRaidPm": "항구·부두 습격 {value, number, ::sign-always}‰"
     },
     "subject": {
       "annex": "합병",

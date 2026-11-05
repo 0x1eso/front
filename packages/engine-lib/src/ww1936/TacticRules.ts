@@ -227,6 +227,8 @@ export interface TacticSide {
   cavalry: boolean;
   /** Doctrine and research: 0..10. */
   doctrine: number;
+  /** ww91: the country's tacticInitiative stat, points, -10..+10 (absent: 0). */
+  tacticInitiative?: number;
   /** Experience tier of the line: 0 recruit … 3 elite (CombatRules.expBp's steps). */
   expTier: number;
   /** Artillery battalions and armour + motorized battalions, ‰ of the line's battalions. */
@@ -298,6 +300,7 @@ export function initiativeOf(s: TacticSide, defending: boolean): number {
   if (s.recon) v += 5;
   if (s.cavalry) v += CAVALRY_INITIATIVE;
   v += Math.max(0, Math.min(10, s.doctrine)) + 3 * s.expTier;
+  v += Math.max(-10, Math.min(10, s.tacticInitiative ?? 0));
   return Math.max(0, Math.min(100, v));
 }
 

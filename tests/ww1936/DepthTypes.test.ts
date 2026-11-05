@@ -119,8 +119,9 @@ describe("World War 1936 P6 lists", () => {
     // 69 (the brief's 74 less the 5 P4 added at the pre-flight's request).
     const stats = after(WW_STAT_KEYS, "occupationOutputPp");
     // The research overhaul appends its three after them, the tank and
-    // anti-tank techs four (armorSpeedPct, infAtPierce, infAtHard, tankFearCutPp).
-    expect(stats).toHaveLength(69 + 3 + 4);
+    // anti-tank techs four (armorSpeedPct, infAtPierce, infAtHard, tankFearCutPp),
+    // and ww91's national character keys 14 (infBrkPct .. harborRaidPm).
+    expect(stats).toHaveLength(69 + 3 + 4 + 14);
     expect(stats[0]).toBe("infAttackPct");
     expect(new Set(WW_STAT_KEYS).size).toBe(WW_STAT_KEYS.length);
     // Pre-flight §0-6: after P5's navy_xp; 10 conditions with nukes_on.

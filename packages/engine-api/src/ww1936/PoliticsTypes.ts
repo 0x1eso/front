@@ -249,6 +249,28 @@ export const WW_STAT_KEYS = [
   "infAtPierce",
   "infAtHard",
   "tankFearCutPp",
+  // National character (ww91 N0), appended. infBrkPct: foot (not motorized)
+  // breakthrough. infSupplyPct, artSupplyPct: supply use of the infantry
+  // family and of gun battalions. footDefOrgPp: points on the 85 % org damage
+  // a foot-major defender takes. prepFirePct: scales the opening barrage and
+  // its cap. tacticInitiative: points on battle initiative. natUnit: the
+  // national unit unlocked, 0 none, 1-7 (a hidden line). wolfPackPct,
+  // carrierRepairPct, wingStartXpMilli, wingRookieXpMilli, wingXpCapMilli,
+  // effGrowthPct, harborRaidPm: navy, air and production character.
+  "infBrkPct",
+  "infSupplyPct",
+  "artSupplyPct",
+  "footDefOrgPp",
+  "prepFirePct",
+  "tacticInitiative",
+  "natUnit",
+  "wolfPackPct",
+  "carrierRepairPct",
+  "wingStartXpMilli",
+  "wingRookieXpMilli",
+  "wingXpCapMilli",
+  "effGrowthPct",
+  "harborRaidPm",
 ] as const;
 export type WwStatKey = (typeof WW_STAT_KEYS)[number];
 export type WwStats = Record<WwStatKey, number>;

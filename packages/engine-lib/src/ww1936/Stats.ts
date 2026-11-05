@@ -124,6 +124,14 @@ const P6_CLAMP: readonly (readonly [WwStatKey, number, number])[] =
         return [[k, 0, 10_000]];
       }
       if (k === "carrierCycleCut") return [[k, 0, 2]];
+      // ww91 N0: the national character keys that are no …Pct / …Pp.
+      if (k === "tacticInitiative") return [[k, -10, 10]];
+      if (k === "natUnit") return [[k, 0, 7]];
+      if (k === "wingStartXpMilli" || k === "wingRookieXpMilli") {
+        return [[k, -1000, 1000]];
+      }
+      if (k === "wingXpCapMilli") return [[k, -1000, 0]];
+      if (k === "harborRaidPm") return [[k, -1000, 1000]];
       return [];
     },
   );

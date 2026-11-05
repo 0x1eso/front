@@ -321,7 +321,10 @@ describe("politics strings", () => {
       "ww1936.cond.all",
       "ww1936.cond.any",
       "ww1936.cond.not",
-      ...WW_STAT_KEYS.map((k) => `ww1936.stat.${k}`),
+      // natUnit is a hidden line: describeStats skips it, so it has no text.
+      ...WW_STAT_KEYS.filter((k) => k !== "natUnit").map(
+        (k) => `ww1936.stat.${k}`,
+      ),
       ...RESERVE_KEYS.map((k) => `ww1936.reserve.${k}`),
       "ww1936.faction_name.auto",
       ...CONTENT.groups.map((g) => `ww1936.pol.group.${g.id}`),
@@ -346,7 +349,10 @@ describe("politics strings", () => {
       ...NOTIFICATION_KEYS,
       ...EFFECT_KINDS.map((k) => `ww1936.fx.${k}`),
       ...CONDITION_KINDS.map((k) => `ww1936.cond.${k}`),
-      ...WW_STAT_KEYS.map((k) => `ww1936.stat.${k}`),
+      // natUnit is a hidden line: describeStats skips it, so it has no text.
+      ...WW_STAT_KEYS.filter((k) => k !== "natUnit").map(
+        (k) => `ww1936.stat.${k}`,
+      ),
     ];
     for (const [lang, json] of [
       ["en", en],
