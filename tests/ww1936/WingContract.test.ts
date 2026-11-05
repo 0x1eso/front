@@ -81,11 +81,12 @@ describe("the lists are appended, never reordered", () => {
     // ww42 appended army_direct last; the older pins read what is before it.
     // w50 appended the four air group orders last.
     expect(kinds.splice(-4)).toEqual([...GROUP_ORDER_KINDS]);
-    // in_group, then w57 too_small and ww61 designer_off.
-    expect(WW_ORDER_BLOCKS.slice(-3)).toEqual([
+    // in_group, then w57 too_small, ww61 designer_off and ww89 too_many_support.
+    expect(WW_ORDER_BLOCKS.slice(-4)).toEqual([
       "in_group",
       "too_small",
       "designer_off",
+      "too_many_support",
     ]);
     expect(kinds.pop()).toBe("start_oob");
     expect(kinds.pop()).toBe("army_direct");

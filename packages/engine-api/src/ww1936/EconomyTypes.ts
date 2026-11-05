@@ -928,6 +928,8 @@ export const WW_ORDER_BLOCKS = [
   "too_small",
   // ww61: the designer is off (ww1936Designer absent): the catalogue replaces it.
   "designer_off",
+  // Owner, 2026-11-05: more support companies than the battalions carry.
+  "too_many_support",
 ] as const;
 export type WwOrderBlock = (typeof WW_ORDER_BLOCKS)[number];
 

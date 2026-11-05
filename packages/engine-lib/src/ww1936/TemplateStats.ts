@@ -50,6 +50,7 @@ import {
   WW_MAX_WIDTH,
   WW_MIN_BATTALIONS,
   WW_TEMPLATE_NAME_MAX,
+  wwMaxSupport,
 } from "@openfront/engine-api/ww1936/LandTypes";
 import type { WwStatKey } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { BATTALIONS, SUPPORTS } from "./Battalions";
@@ -1014,6 +1015,9 @@ export function templateBlock(
     return "too_small";
   }
   if (def.support.length > WW_MAX_SUPPORT) return "bad_template";
+  if (def.support.length > wwMaxSupport(def.battalions.length)) {
+    return "too_many_support";
+  }
   if (new Set(def.support).size !== def.support.length) return "bad_template";
   // "" = the automatic name (1936 defaults, the AI's edits); a player's
   // order always carries one (the zod schema requires it).

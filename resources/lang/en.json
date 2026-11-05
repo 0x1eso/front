@@ -5014,6 +5014,7 @@
         "too_many_demands": "Too many demands this round",
         "too_many_deployments": "Too many air deployments",
         "too_many_fleets": "At most 40 fleets",
+        "too_many_support": "Too many support companies: one for every two battalions, rounded up, at most 4",
         "too_many_templates": "Too many templates",
         "too_many_wings": "This country is at its wing limit",
         "too_small": "A division with support companies needs at least 3 battalions",

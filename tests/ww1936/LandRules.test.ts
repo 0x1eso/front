@@ -16,6 +16,7 @@ import {
   TemplateDef,
   traitBit,
   WW_MAX_BATTALIONS,
+  wwMaxSupport,
 } from "@openfront/engine-api/ww1936/LandTypes";
 import { ScenarioDataSchema } from "@openfront/engine-api/ww1936/ScenarioTypes";
 import { dayOfDate } from "@openfront/engine-lib/ww1936/Calendar";
@@ -284,6 +285,25 @@ describe("templates (P2 spec §4.3, §4.4)", () => {
     expect(templateBlock(def([["cavalry", 3]]), ALL_TECHS, Infinity)).toBe(
       null,
     );
+    // ww89: support companies by battalions, rounded up, at most 4.
+    const four = [
+      "support_artillery",
+      "engineer",
+      "recon",
+      "field_hospital",
+    ] as const;
+    const companies = (n: number, k: number) =>
+      templateBlock(
+        def([["infantry", n]], [...four].slice(0, k)),
+        ALL_TECHS,
+        Infinity,
+      );
+    expect([3, 4, 5, 6, 7, 8].map(wwMaxSupport)).toEqual([2, 2, 3, 3, 4, 4]);
+    expect(companies(3, 2)).toBeNull();
+    expect(companies(3, 3)).toBe("too_many_support");
+    expect(companies(4, 3)).toBe("too_many_support");
+    expect(companies(5, 3)).toBeNull();
+    expect(companies(8, 4)).toBeNull();
     const mountain = def([["mountain", 6]]);
     expect(
       templateBlock(

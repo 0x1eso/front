@@ -15,6 +15,7 @@ import {
   WW_MAX_SUPPORT,
   WW_MAX_TEMPLATES,
   WW_TEMPLATE_NAME_MAX,
+  wwMaxSupport,
 } from "@openfront/engine-api/ww1936/LandTypes";
 import { BATTALIONS, SUPPORTS } from "@openfront/engine-lib/ww1936/Battalions";
 import {
@@ -287,6 +288,11 @@ export class WwTemplateDesigner extends LitElement {
           >
             🔒 ${blockText(this.refused)}
           </p>`}
+      ${this.refused === null && block === "too_many_support"
+        ? html`<p data-ww-support-limit class="m-0 text-xs text-amber-200">
+            ${blockText(block)}
+          </p>`
+        : nothing}
       ${this.renderActions(block)} ${this.renderLibraryRow()}
     </div>`;
   }
@@ -490,9 +496,10 @@ export class WwTemplateDesigner extends LitElement {
     }
     const s = this.draft.support;
     const support = [];
+    const room = wwMaxSupport(this.draft.battalions.length);
     for (let i = 0; i < WW_MAX_SUPPORT; i++) {
       support.push(
-        i <= s.length && i < WW_MAX_SUPPORT
+        i < s.length || (i === s.length && i < room)
           ? this.cell(
               "support",
               i,
