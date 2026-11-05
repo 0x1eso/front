@@ -6,6 +6,7 @@ import {
   DIRECT_ADVANCE,
   DIRECT_ALL_IN,
   DIRECT_FAVORABLE,
+  DIRECT_MERGE,
 } from "@openfront/engine-api/ww1936/LandTypes";
 import { html, nothing, TemplateResult } from "lit";
 import { translateText } from "../../Utils";
@@ -174,6 +175,15 @@ export function renderDirectPanel(d: DirectPanelDeps): TemplateResult {
           d.send(
             directSettings(army, { advance: (flags & DIRECT_ADVANCE) === 0 }),
           ),
+      )}
+    </div>
+    <div data-ww-merge-settings class="grid shrink-0 grid-cols-1 gap-1">
+      ${toggle(
+        "merge",
+        translateText("ww1936.direct.merge"),
+        (flags & DIRECT_MERGE) !== 0,
+        () =>
+          d.send(directSettings(army, { merge: (flags & DIRECT_MERGE) === 0 })),
       )}
     </div>
   </div>`;

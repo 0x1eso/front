@@ -433,6 +433,8 @@ export interface ArmySummary {
 export const DIRECT_FAVORABLE = 1;
 export const DIRECT_ALL_IN = 2;
 export const DIRECT_ADVANCE = 4;
+/** ww81: the army may take auto-trained divisions and be merged by the AI helpers (a human's toggle). */
+export const DIRECT_MERGE = 8;
 
 /**
  * ww42: how a human army's divisions stand, counted by the rule the engine

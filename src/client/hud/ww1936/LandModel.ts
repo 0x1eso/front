@@ -2384,7 +2384,12 @@ export function directOrder(
 /** The direct attack's settings order: the three toggles, a field left out stays. */
 export function directSettings(
   army: number,
-  s: { favorable?: boolean; allIn?: boolean; advance?: boolean },
+  s: {
+    favorable?: boolean;
+    allIn?: boolean;
+    advance?: boolean;
+    merge?: boolean;
+  },
 ): LandOrder {
   return { kind: "army_direct", army, ...s };
 }

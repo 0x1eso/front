@@ -4813,6 +4813,7 @@
       "border_all": "Border: all attack",
       "border_keep": "Border: keep guards",
       "favorable": "Attack only when favorable",
+      "merge": "May take auto-trained divisions and be merged",
       "part_atk": "Attacking {n}",
       "part_atk_where": "Attacking {n} ({where})",
       "part_hold": "Border guard {n}",

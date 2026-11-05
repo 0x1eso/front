@@ -26,6 +26,7 @@ import { COUNTRIES, CountryTag } from "@openfront/engine-api/ww1936/Countries";
 import { WwTechId } from "@openfront/engine-api/ww1936/EconomyTypes";
 import {
   BattalionId,
+  DIRECT_MERGE,
   type LandTerrain,
   MOVE_ADVANCE,
   MOVE_NONE,
@@ -38,6 +39,7 @@ import {
   TPL_PARA_ANY,
   WW_AI_PREWAR_DAYS,
   WW_MAX_ARMY_DIVISIONS,
+  WW_MAX_BATTALIONS,
   WW_MAX_SUPPORT,
   WW_MAX_TARGETS,
   WW_ZONE_MAX,
@@ -71,6 +73,16 @@ import { queueBuild } from "../economy/Construction";
 import type { CountryEconomy } from "../economy/WwEconomy";
 import { seaReach } from "../navy/AiNavy";
 import { navalPort, navalPortsOf } from "../navy/Ports";
+import {
+  type ArmyFacts,
+  chooseMerge,
+  chooseShape,
+  judgeRole,
+  type MergeFacts,
+  MERGES_PER_DAY,
+  type ShapeCandidate,
+  trainTargetArmy,
+} from "./AiArmies";
 import { meanWidthOf, zoneCap } from "./Fronts";
 import { canServe } from "./GeneralsRun";
 import { capitalRegion } from "./LandStartRun";
@@ -83,7 +95,13 @@ import {
   predictAttackRange,
   targetDistances,
 } from "./Plans";
-import type { Army, CountryLand, GeneralState, WwLand } from "./WwLand";
+import type {
+  Army,
+  CountryLand,
+  GeneralState,
+  LandTemplate,
+  WwLand,
+} from "./WwLand";
 
 // ---- Constants (spec §14; the (내 판단) ones are marked) ----
 
@@ -534,6 +552,9 @@ const PRESET_AI_WEIGHT: Readonly<Record<string, number>> = {
   pre_mot_infantry: 3,
 };
 
+/** The anti-tank infantry preset's template key. */
+export const AI_ANTI_TANK_KEY = "pre_anti_tank_infantry";
+
 export interface AiTrainTemplate {
   id: number;
   key: string;
@@ -560,6 +581,12 @@ export interface AiTrainInput {
   templates: readonly AiTrainTemplate[];
   /** At peace with no war in sight (trainTarget). */
   atPeace?: boolean;
+  /** ww81 (T2): armour share points to add (national character, spare tanks and trucks). */
+  armorBonus?: number;
+  /** ww81 (T2): % of infantry divisions that are anti-tank infantry (0, 10 or 20). */
+  antiTankPct?: number;
+  /** ww81 (T2): fuel under a quarter of its cap: armour halves. */
+  fuelLow?: boolean;
 }
 
 /** Spec §14.5: the role shares, %. */
@@ -586,6 +613,14 @@ function roleShares(i: AiTrainInput): Record<AiRole, number> {
       s.infantry = 90;
       s.cavalry = i.dev <= 2 ? 10 : 0;
       break;
+  }
+  // ww81 (T2): the armour share reacts to stock, fuel and national character.
+  if (i.hasArmorTech && s.armor > 0) {
+    const armor = i.fuelLow
+      ? Math.floor(s.armor / 2)
+      : Math.max(0, Math.min(40, s.armor + (i.armorBonus ?? 0)));
+    s.infantry += s.armor - armor;
+    s.armor = armor;
   }
   return s;
 }
@@ -616,7 +651,21 @@ export function aiTrainPlan(i: AiTrainInput): number[] {
   let manpower = i.manpower;
   let training = i.training;
   const tplOf = (role: AiRole): AiTrainTemplate | undefined => {
-    if (role === "infantry") return i.templates[0];
+    if (role === "infantry") {
+      // ww81 (T2): against armour a tenth (a fifth) of the infantry is anti-tank.
+      const at = i.templates.find((t) => t.key === AI_ANTI_TANK_KEY);
+      if (
+        at !== undefined &&
+        (i.antiTankPct ?? 0) > 0 &&
+        at.fillPm >= TRAIN_FILL_PM &&
+        manpower >= at.men * TRAIN_MEN_FACTOR &&
+        (at.have ?? 0) * 100 <
+          (i.antiTankPct ?? 0) * Math.max(1, counts.infantry)
+      ) {
+        return at;
+      }
+      return i.templates[0];
+    }
     // The role's templates (1936 keys, presets): the one furthest below its weight that the stock and men allow (else any, so the gate below holds).
     const own = i.templates.filter(
       (t) => ROLE_KEYS[role].includes(t.key) || roleOfTemplate(t.key) === role,
@@ -1045,6 +1094,8 @@ class AiDay {
       this.group(garrisons);
       this.generals(garrisons);
     }
+    if (!this.human || this.trains) this.composeMerge(garrisons);
+    if (this.human && this.trains) this.judgeRoles();
     if (enemies.length > 0) this.fronts(enemies, garrisons);
     else if (!this.human) this.peacetime(garrisons);
     this.attacks();
@@ -3143,6 +3194,9 @@ class AiDay {
         .some((r) => land.scenario.landOf(r) === "mountain"),
       training,
       atPeace,
+      armorBonus: this.armorBonus(templates),
+      fuelLow: this.ce.fuelRatioPm < 250,
+      antiTankPct: this.antiTankPct(),
       manpower: this.ce.manpower,
       counts,
       templates,
@@ -3152,18 +3206,95 @@ class AiDay {
         kind: "train",
         template,
         count: 1,
-        army: this.trainArmy(garrisons),
+        army: this.trainArmy(garrisons, template),
         region: 0,
       });
     }
   }
 
   /**
-   * The army a new division joins: the smallest (counting what already
-   * trains for it) on the capital's stretch, no guard (ties: the smaller
-   * id); 0: a new army.
+   * ww81 (T2): armour share points: +5 for the Soviet Union and Germany
+   * (mass armour), +10 while the stock equips five more armour divisions
+   * (tanks and trucks both, the template's whole need).
    */
-  private trainArmy(garrisons: ReadonlySet<number>): number {
+  private armorBonus(templates: readonly AiTrainTemplate[]): number {
+    let bonus = this.tag === "SUN" || this.tag === "DEU" ? 5 : 0;
+    for (const t of templates) {
+      if (roleOfTemplate(t.key) !== "armor") continue;
+      const s = this.land.templateStatsOf(this.me, t.id);
+      if (s === null) continue;
+      let cover = Infinity;
+      for (let i = 0; i < s.need.length; i++) {
+        if (s.need[i] > 0) {
+          cover = Math.min(cover, Math.floor(this.stockOf(i) / s.need[i]));
+        }
+      }
+      if (cover >= 5) {
+        bonus += 10;
+        break;
+      }
+    }
+    return bonus;
+  }
+
+  /**
+   * ww81 (T2): at war against armour, a tenth of the infantry is
+   * anti-tank, a fifth when the enemy's best armour beats our best pierce.
+   */
+  private antiTankPct(): number {
+    if (this.atWar.length === 0 || !this.enemyArmour()) return 0;
+    const land = this.land;
+    const t = land.divisions;
+    let armor = 0;
+    for (const e of this.atWar) {
+      for (const a of land.armiesOf(e)) {
+        for (const id of a.divisions) {
+          const r = t.rowOf(id);
+          if (r >= 0) armor = Math.max(armor, land.baseStatsOf(r).armor);
+        }
+      }
+    }
+    let pierce = 0;
+    for (const a of land.armiesOf(this.me)) {
+      for (const id of a.divisions) {
+        const r = t.rowOf(id);
+        if (r >= 0) pierce = Math.max(pierce, land.baseStatsOf(r).pierce);
+      }
+    }
+    return armor > pierce ? 20 : 10;
+  }
+
+  /** The role of a template by id (the first is the infantry one). */
+  private roleOfId(tpl: number): AiRole {
+    const first = this.cl.templates[0]?.id;
+    if (tpl === first) return "infantry";
+    const t = this.cl.template(tpl);
+    return t === null ? "infantry" : roleOfTemplate(t.key);
+  }
+
+  /** An army's composition for the army rules (`waiting`: divisions training for it). */
+  private armyFacts(a: Army, waiting: number): ArmyFacts {
+    const t = this.land.divisions;
+    let armour = 0;
+    let apart = 0;
+    for (const id of a.divisions) {
+      const r = t.rowOf(id);
+      if (r < 0) continue;
+      const role = this.roleOfId(t.template[r]);
+      if (role === "armor" || role === "motorized") armour++;
+      else if (role === "mountain" || role === "cavalry") apart++;
+    }
+    return { id: a.id, n: a.divisions.length + waiting, armour, apart };
+  }
+
+  /**
+   * ww81 (C2): the army a new division joins, by section 5 of the design:
+   * armour to a shock army, line to a shock army that stays a third armour
+   * or else the smallest line army; an idle forming army at the capital of
+   * any size counts (no chain of one-division armies). A human's training
+   * adds only to armies with the merge toggle on. 0: a new army.
+   */
+  private trainArmy(garrisons: ReadonlySet<number>, tpl: number): number {
     const land = this.land;
     const cl = this.cl;
     const cap = capitalRegion(land, this.me);
@@ -3177,26 +3308,112 @@ class AiDay {
       const e = cl.training.find((y) => y.id === x.entry);
       if (e !== undefined) waiting.set(e.army, (waiting.get(e.army) ?? 0) + 1);
     }
-    let best = 0;
-    let bestN = WW_MAX_ARMY_DIVISIONS;
+    const facts: ArmyFacts[] = [];
     for (const a of land.armiesOf(this.me)) {
-      if (garrisons.has(a.id) || a.divisions.length <= AI_GUARD_DIVISIONS) {
-        continue;
-      }
-      // P4: an invasion army takes no new divisions (it would outgrow its
-      // landing), and neither does one on its way somewhere (rail, sea, a
-      // port): the new divisions appear at the capital and would be left
-      // behind on another stretch, the army split over the sea.
+      if (garrisons.has(a.id)) continue;
+      if (this.human && (a.dflags & DIRECT_MERGE) === 0) continue;
+      // P4: an invasion army takes no new divisions, and neither does one on
+      // its way somewhere: the new divisions appear at the capital.
       if (a.order.kind === "invade" || a.order.kind === "move") continue;
       if (paraArmy(land, a)) continue;
       if (comp[land.armyRegion(a)] !== comp[cap]) continue;
-      const n = a.divisions.length + (waiting.get(a.id) ?? 0);
-      if (n < bestN) {
-        best = a.id;
-        bestN = n;
+      const forming = a.order.kind === "idle" && land.armyRegion(a) === cap;
+      if (a.divisions.length <= AI_GUARD_DIVISIONS && !forming) continue;
+      facts.push(this.armyFacts(a, waiting.get(a.id) ?? 0));
+    }
+    const role = this.roleOfId(tpl);
+    return trainTargetArmy(role === "armor" || role === "motorized", facts);
+  }
+
+  // ---- ww81: merging small armies, and the role of auto-trained ones ----
+
+  /** At most two merges a day: the smallest small army into the nearest good partner. */
+  private composeMerge(garrisons: ReadonlySet<number>): void {
+    const land = this.land;
+    const t = land.divisions;
+    for (let k = 0; k < MERGES_PER_DAY; k++) {
+      const facts: MergeFacts[] = [];
+      for (const a of land.armiesOf(this.me)) {
+        if (garrisons.has(a.id) || a.volunteerFor !== 0) continue;
+        if (this.human && (a.dflags & DIRECT_MERGE) === 0) continue;
+        const kind = a.order.kind;
+        if (kind === "invade" || kind === "garrison" || kind === "paradrop") {
+          continue;
+        }
+        if (paraArmy(land, a) || this.travelling(a)) continue;
+        if (
+          a.order.kind === "plan" &&
+          (a.order.executing || a.order.direct === true)
+        ) {
+          continue;
+        }
+        const rows = armyRows(land, a);
+        if (rows.some((r) => t.battle[r] !== 0 || t.encircled[r] !== 0)) {
+          continue;
+        }
+        if (rows.some((r) => t.mode[r] !== MOVE_NONE)) continue;
+        const comp = this.armyComp(a);
+        if (comp < 0) continue;
+        facts.push({
+          ...this.armyFacts(a, 0),
+          region: land.armyRegion(a),
+          comp,
+          front: kind === "front" || kind === "plan" ? a.order.enemy : -1,
+          planBp: a.planBp,
+        });
+      }
+      const m = chooseMerge(facts, (x, y) => land.scenario.regionKm(x, y));
+      if (m === null) return;
+      const from = land.armies.get(m.army);
+      const into = land.armies.get(m.into);
+      if (from === undefined || into === undefined) return;
+      if (!m.near) {
+        // Walk to the partner first (an idle army only: a front army keeps its line).
+        if (from.order.kind === "idle") {
+          this.issue({
+            kind: "army_move",
+            army: from.id,
+            region: land.armyRegion(into),
+          });
+        }
+        return;
+      }
+      const zone = [...new Set([...from.order.zone, ...into.order.zone])].slice(
+        0,
+        WW_ZONE_MAX,
+      );
+      if (!this.issue({ kind: "army_merge", army: from.id, into: into.id })) {
+        return;
+      }
+      if (
+        zone.length > 0 &&
+        (into.order.kind === "front" || into.order.kind === "plan")
+      ) {
+        this.issue({ kind: "army_zone", army: into.id, regions: zone });
       }
     }
-    return best;
+  }
+
+  /**
+   * HOOK (lane C): whether the army stands on the main sector. Until
+   * land/AiEffort.ts exists nothing knows it, and armour share alone judges.
+   */
+  private onMainSector(_a: Army): boolean | null {
+    return null;
+  }
+
+  /** A human's auto-trained armies that are still auto judge defence or offence auto. */
+  private judgeRoles(): void {
+    for (const a of this.land.armiesOf(this.me)) {
+      if (!a.auto || (a.dflags & DIRECT_MERGE) === 0) continue;
+      const level =
+        judgeRole(this.armyFacts(a, 0), this.onMainSector(a)) === "offence"
+          ? 2
+          : 1;
+      if (a.autoLevel !== level) {
+        this.issue({ kind: "army_auto_level", army: a.id, level });
+      }
+    }
   }
 
   /**
@@ -3209,6 +3426,7 @@ class AiDay {
     const cl = this.cl;
     const researched = this.ce.researched;
     const inf = cl.templates[0];
+    if (inf !== undefined) this.refitWidth(inf);
     if (inf !== undefined && inf.def.support.length < WW_MAX_SUPPORT) {
       const wanted: readonly (readonly [SupportId, readonly WwTechId[]])[] = [
         ["support_artillery", ["artillery_1", "support_eq_1"]],
@@ -3235,6 +3453,49 @@ class AiDay {
         this.saveTemplate(tpl.id, bns, tpl.def.support);
       }
     }
+  }
+
+  /**
+   * ww81 (T1): the infantry template moves one battalion off a width that
+   * costs attack against the combat widths (the battle's own fill rule):
+   * the majority kind removed (mass: aggressors) or a minority kind added
+   * (firepower: the rest), whichever pays least. The stock check of
+   * saveTemplate guards an added battalion.
+   */
+  private refitWidth(inf: LandTemplate): void {
+    const bns = inf.def.battalions;
+    const count = new Map<BattalionId, number>();
+    for (const b of bns) count.set(b, (count.get(b) ?? 0) + 1);
+    let major: BattalionId | null = null;
+    for (const [b, n] of count) {
+      if (major === null || n > count.get(major)!) major = b;
+    }
+    if (major === null) return;
+    const stats = this.ce.stats;
+    const widthOf = (b: readonly BattalionId[]) =>
+      templateStats({ ...inf.def, battalions: b }, stats, GEN1).width;
+    const shapes: BattalionId[][] = [];
+    const cands: ShapeCandidate[] = [];
+    if (count.get(major)! >= 3) {
+      const i = bns.lastIndexOf(major);
+      const next = bns.filter((_, k) => k !== i);
+      cands.push({ index: shapes.length, width: widthOf(next), delta: -1 });
+      shapes.push(next);
+    }
+    if (bns.length < WW_MAX_BATTALIONS) {
+      for (const b of count.keys()) {
+        if (b === major) continue;
+        const next = [...bns, b];
+        cands.push({ index: shapes.length, width: widthOf(next), delta: 1 });
+        shapes.push(next);
+      }
+    }
+    const pick = chooseShape(
+      widthOf(bns),
+      cands,
+      this.personality === "aggressor" ? -1 : 1,
+    );
+    if (pick >= 0) this.saveTemplate(inf.id, shapes[pick], inf.def.support);
   }
 
   /**

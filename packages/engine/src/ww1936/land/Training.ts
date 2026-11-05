@@ -11,6 +11,7 @@ import {
   WwOrderBlock,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
 import {
+  DIRECT_MERGE,
   DivisionStats,
   GROUND_EQUIP_KEYS,
   GROUND_SLOTS,
@@ -693,6 +694,20 @@ function deployArmy(
   }
   const fresh = land.newArmy(cl.smallID);
   if (fresh !== null) {
+    // ww81: a human's auto training opens armies that may take its next
+    // divisions and be merged (the toggle's default; any other army is off).
+    if (
+      e !== undefined &&
+      e.group === undefined &&
+      e.target === undefined &&
+      land.ww.isHumanControlled(cl.smallID) &&
+      land.ww.autoOn(cl.smallID, "training")
+    ) {
+      fresh.dflags |= DIRECT_MERGE;
+      // It judges its own role from here (defence auto first).
+      fresh.auto = true;
+      fresh.autoLevel = 1;
+    }
     if (e !== undefined) e.army = fresh.id;
     return fresh;
   }
