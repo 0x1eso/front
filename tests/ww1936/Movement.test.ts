@@ -140,16 +140,16 @@ describe("World War 1936 P2: movement (P2 spec §7)", () => {
     clearLand(g);
     const deu = byTag(g, "DEU").smallID();
     const pol = byTag(g, "POL").smallID();
-    const a = placeArmy(g, "DEU", 3, 1);
+    const a = placeArmy(g, "DEU", 3, 2);
     placeArmy(g, "POL", 6, 1);
     expect(l.issue(deu, { kind: "army_attack", army: a.id, region: 6 })).toBe(
       null,
     );
     // An attack is a battle, not a walk: the division stays out of the region
     // while it fights from region 3. It steps in only when the battle has
-    // taken a band of the region (ww7 bands; the foot units' stronger
-    // breakthrough lets it win this one), and then the region is still the
-    // Polish division's, which is still inside it.
+    // taken a band of the region (ww7 bands; two divisions, as one alone
+    // breaks first, see Battles), and then the region is still the Polish
+    // division's, which is still inside it.
     let entered = false;
     for (let i = 0; i < 120 && !entered; i++) {
       step(runner);
