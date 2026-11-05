@@ -140,8 +140,7 @@ export function assignGarrisons(
     const first = a.divisions.length > 0 ? t.rowOf(a.divisions[0]) : -1;
     const use = first >= 0 ? land.supplyBaseOf(first) : 0;
     const regs = admin.filter(
-      (r) =>
-        (scope === 0 || legal[r] === scope) && regionFeeds(land, r, use),
+      (r) => (scope === 0 || legal[r] === scope) && regionFeeds(land, r, use),
     );
     if (regs.length === 0) continue;
     const inScope = new Set(regs);

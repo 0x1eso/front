@@ -11,11 +11,11 @@ import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
 import type { GameRunner } from "@openfront/engine/GameRunner";
 import {
+  assignGarrisons,
   needOf,
   rowSuppression,
   supplyOf,
 } from "@openfront/engine/ww1936/endgame/Garrison";
-import { assignGarrisons } from "@openfront/engine/ww1936/endgame/Garrison";
 import { garrisonOrder } from "@openfront/engine/ww1936/endgame/Occupation";
 import { startHopInto } from "@openfront/engine/ww1936/land/Movement";
 import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSource";
