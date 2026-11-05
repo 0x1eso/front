@@ -1,5 +1,6 @@
 import type { WwOrder } from "@openfront/engine-api/Schemas";
 import { CountryTag } from "@openfront/engine-api/ww1936/Countries";
+import type { WwWarSummary } from "@openfront/engine-api/ww1936/EndgameTypes";
 import { historicalAiActive } from "@openfront/engine-lib/ww1936/Pace";
 import { EventBus } from "@openfront/shared/EventBus";
 import { html, LitElement, nothing, TemplateResult } from "lit";
@@ -39,7 +40,7 @@ import {
   warGoalTab,
   worldTab,
 } from "./PoliticsModel";
-import { whitePeaceButton } from "./WhitePeaceModel";
+import { askTermsButton, whitePeaceButton } from "./WhitePeaceModel";
 import {
   countryName,
   diplomacyModel,
@@ -601,6 +602,19 @@ export class WwDiplomacyPanel extends LitElement implements Controller {
 
   // ---- Wars and war goals ----
 
+  /** ww88 Ask for terms: a beaten side's leader, two taps; greyed for the offers' reasons. */
+  private renderAskTerms(war: number, me: number, w: WwWarSummary) {
+    const ask = askTermsButton(this.game, me, w);
+    if (ask === null) return nothing;
+    const label = translateText("ww1936.wpeace.ask");
+    return html`${ask.block !== null
+        ? html`<button type="button" class=${BUTTON} disabled>${label}</button>`
+        : this.twoTapButton(`ask:${war}`, label, ask.order)}
+      <span class="text-xs text-white/60"
+        >${translateText("ww1936.wpeace.ask_hint")}</span
+      >`;
+  }
+
   /**
    * White peace (owner-approved plan §6), negotiated peace (owner request
    * "7번"): my ongoing war's [Offer peace] — "Whole war" when I lead my
@@ -703,6 +717,7 @@ export class WwDiplomacyPanel extends LitElement implements Controller {
             >
               ${translateText("ww1936.lpeace.offer")}
             </button>`}
+        ${this.renderAskTerms(b.war, me, w)}
         <span class="text-xs text-white/60">${b.scope}</span>
         ${b.block === null || b.pending
           ? nothing

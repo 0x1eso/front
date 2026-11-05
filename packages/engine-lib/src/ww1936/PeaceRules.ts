@@ -70,6 +70,10 @@ export interface PeaceTable {
   /** [participant, loser]. */
   readonly topple: readonly (readonly [number, number])[];
   readonly settled: readonly PeaceSettledRow[];
+  /** ww88: [region, winner], what each winner gets without paying (PeaceAssign). */
+  readonly assign?: readonly (readonly [number, number])[];
+  /** ww88: the losers asked for terms: they keep their army. */
+  readonly asked?: boolean;
 }
 
 /** A demand spelled out (plan decision 11): its regions, target, receiver, k, pct. */
@@ -92,7 +96,9 @@ export type PeaceBlock =
   | "no_factories"
   | "no_faction"
   | "lost_capital"
-  | "already_used";
+  | "already_used"
+  | "already_yours"
+  | "keeps_army";
 
 /** The translation key of a reason (the card shows it). */
 export function peaceBlockKey(block: PeaceBlock): string {
@@ -165,6 +171,22 @@ function stakeIndex(stake: readonly number[], region: number): number {
   }
   return m.at.get(region) ?? -1;
 }
+/** ww88: a table's region → winner, built once per list (as the stake's index). */
+const ASSIGN_INDEX = new WeakMap<
+  readonly (readonly [number, number])[],
+  Map<number, number>
+>();
+/** The winner `region` is assigned to; 0: none. */
+export function peaceAssignedTo(t: PeaceTable, region: number): number {
+  const list = t.assign;
+  if (list === undefined) return 0;
+  let m = ASSIGN_INDEX.get(list);
+  if (m === undefined) {
+    m = new Map(list.map(([r, p]) => [r, p]));
+    ASSIGN_INDEX.set(list, m);
+  }
+  return m.get(region) ?? 0;
+}
 const pairIn = (
   list: readonly (readonly [number, number])[],
   a: number,
@@ -230,6 +252,18 @@ export function peaceRest(
   free: (r: number) => boolean,
 ): number[] {
   return t.stake.filter((r) => f.legalOwner(r) === loser && free(r));
+}
+
+/** ww88: `loser`'s free stake regions nobody is assigned: what it would keep. */
+export function peaceKept(
+  f: PeaceFacts,
+  t: PeaceTable,
+  loser: number,
+  free: (r: number) => boolean,
+): number[] {
+  return peaceRest(f, t, loser, free).filter(
+    (r) => peaceAssignedTo(t, r) === 0,
+  );
 }
 
 /**
@@ -298,7 +332,7 @@ export function peaceReparationsRoom(
   free: (r: number) => boolean,
 ): number {
   let civ = 0;
-  for (const r of peaceRest(f, t, loser, free)) civ += f.regionCivs(r);
+  for (const r of peaceKept(f, t, loser, free)) civ += f.regionCivs(r);
   let owed = 0;
   for (const s of t.settled) {
     if (s.kind === KIND_IDX.reparations && s.target === loser) owed += s.k;
@@ -334,33 +368,44 @@ export function planPeaceDemand(
   /** Of `regs`, those free and not locked by a puppet settled on their owner. */
   const open = (regs: readonly number[]): number[] =>
     regs.filter((r) => free(r) && !puppeted(r));
+  /** ww88: what `b` gets anyway is not for sale to it. */
+  const notFor = (regs: readonly number[], b: number): number[] =>
+    regs.filter((r) => peaceAssignedTo(t, r) !== b);
   switch (d.kind) {
     case "take":
     case "take_group": {
-      const each = open(d.regions).map((r): [number, number] => [
+      const cand = open(d.regions);
+      const each = notFor(cand, p).map((r): [number, number] => [
         r,
         peaceRegionCost(f, t, r, p, p),
       ]);
-      return each.length > 0 ? { each } : "no_target";
+      if (each.length > 0) return { each };
+      return cand.length > 0 ? "already_yours" : "no_target";
     }
     case "take_for": {
       const b = d.beneficiary;
       if (b === p || !isPart(t, b)) return "bad_demand";
       const cand = d.regions.filter((r) => free(r) && !puppeted(r));
-      const each = open(cand.filter((r) => f.hasCore(b, r))).map(
-        (r): [number, number] => [r, peaceRegionCost(f, t, r, p, b)],
-      );
+      const cores = open(cand.filter((r) => f.hasCore(b, r)));
+      const each = notFor(cores, b).map((r): [number, number] => [
+        r,
+        peaceRegionCost(f, t, r, p, b),
+      ]);
       if (each.length > 0) return { each };
+      if (cores.length > 0) return "already_yours";
       return cand.length > 0 ? "no_core" : "no_target";
     }
     case "annex_rest": {
       if (!loser || peaceSettledOn(t, L, "puppet")) return "bad_demand";
-      const regs = open(peaceRest(f, t, L, free));
-      if (regs.length === 0) return "no_target";
+      const rest = open(peaceRest(f, t, L, free));
+      const regs = notFor(rest, p);
+      if (regs.length === 0) {
+        return rest.length > 0 ? "already_yours" : "no_target";
+      }
       return all(regs, aggregateCost(costs(regs), AGG_PCT.annex_rest));
     }
     case "occupation_zone": {
-      const cand = open(d.regions);
+      const cand = notFor(open(d.regions), p);
       const regs = peaceZoneRegions(f, p, cand, () => true);
       if (regs.length > 0) {
         return all(regs, aggregateCost(costs(regs), AGG_PCT.occupation_zone));
@@ -372,7 +417,13 @@ export function planPeaceDemand(
       if (!loser || peaceSettledOn(t, L, "annex_rest", "puppet")) {
         return "bad_demand";
       }
-      const regs = peaceRest(f, t, L, free);
+      // ww88: what it keeps; a loser left with nothing lives on in what its
+      // master gives back to it.
+      const kept = peaceKept(f, t, L, free);
+      const regs =
+        kept.length > 0
+          ? kept
+          : peaceRest(f, t, L, free).filter((r) => peaceAssignedTo(t, r) === p);
       if (regs.length === 0) return "no_target";
       return all([], aggregateCost(costs(regs), AGG_PCT.puppet));
     }
@@ -394,7 +445,7 @@ export function planPeaceDemand(
       ) {
         return "bad_demand";
       }
-      const regs = peaceRest(f, t, L, free);
+      const regs = peaceKept(f, t, L, free);
       if (regs.length === 0) return "no_target";
       const pct = pairIn(t.topple, p, L)
         ? AGG_PCT.change_government_topple
@@ -409,6 +460,8 @@ export function planPeaceDemand(
     case "demilitarise": {
       const cand = d.regions.filter((r) => {
         if (!t.stake.includes(r) || !free(r)) return false;
+        // ww88: it holds only on land the loser keeps.
+        if (peaceAssignedTo(t, r) !== 0) return false;
         return !t.settled.some(
           (x) => x.kind === KIND_IDX.demilitarise && x.regions.includes(r),
         );
@@ -430,13 +483,14 @@ export function planPeaceDemand(
     }
     case "reparations": {
       if (!loser || d.k < 1) return "bad_demand";
-      if (peaceRest(f, t, L, free).length === 0) return "no_target";
+      if (peaceKept(f, t, L, free).length === 0) return "no_target";
       if (d.k > peaceReparationsRoom(f, t, L, free)) return "no_factories";
       return all([], reparationsCost(d.k));
     }
     case "disarm": {
       if (!loser || peaceSettledOn(t, L, "disarm")) return "bad_demand";
-      const regs = peaceRest(f, t, L, free);
+      if (t.asked === true) return "keeps_army";
+      const regs = peaceKept(f, t, L, free);
       if (regs.length === 0) return "no_target";
       return all([], aggregateCost(costs(regs), AGG_PCT.disarm));
     }

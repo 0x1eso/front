@@ -395,6 +395,7 @@ export function linePeaceData(
           chance: negPeaceChance(t.j, t.value),
           missing: negPeaceMissing(t.j, t.value),
           ...peaceReasonOf(eg, w, m.id, target, whole, day, t.j.pct),
+          capPm: surrenderPm(eg, m.id),
         });
       }
     }

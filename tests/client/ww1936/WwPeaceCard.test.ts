@@ -137,11 +137,11 @@ describe("<ww-peace-card> (P5 spec §20.1)", () => {
     expect(m.q("[data-ww-peace-round]")!.textContent!.trim()).toBe(
       `[ww1936.peace.round] n=1,max=${WW_PEACE_MAX_ROUNDS}`,
     );
-    // The deadline in ticks: 150 of 300 left.
+    // The deadline in ticks: 150 of 200 left.
     expect(m.q("[data-ww-peace-seconds]")!.textContent!.trim()).toBe(
       "[ww1936.peace.time_left] s=15",
     );
-    expect(m.q("[data-ww-peace-time]")!.style.width).toBe("50%");
+    expect(m.q("[data-ww-peace-time]")!.style.width).toBe("75%");
     // Paused: the ticks stand still, so does the timer.
     m.el.tick();
     await m.redraw();
@@ -183,8 +183,8 @@ describe("<ww-peace-card> (P5 spec §20.1)", () => {
     const m = await mount("DEU");
     const confirm = () =>
       m.q<HTMLButtonElement>("[data-ww-peace-btn='confirm']")!;
-    // Nothing to confirm yet.
-    expect(confirm().disabled).toBe(true);
+    // ww88: an empty draft confirms what we hold.
+    expect(confirm().disabled).toBe(false);
     peaceUiOf(m.game).add({ kind: "take", region: WARSAW });
     await m.redraw();
     confirm().click();
@@ -242,6 +242,23 @@ describe("<ww-peace-card> (P5 spec §20.1)", () => {
     expect(other.layer.childElementCount).toBe(0);
     expect(other.el.querySelector("[data-ww-peace-slot]")).toBeNull();
   });
+  it("the assignment heads the card, and the quick treaty fills the draft", async () => {
+    const m = await mount("DEU");
+    const split = m.q("[data-ww-peace-split]");
+    expect(split).not.toBeNull();
+    expect(split!.textContent).toContain("[ww1936.peace.split_title]");
+    peaceUiOf(m.game).add({ kind: "take", region: WARSAW });
+    await m.redraw();
+    m.q<HTMLButtonElement>("[data-ww-peace-btn='quick-hold']")!.click();
+    await m.redraw();
+    expect(peaceUiOf(m.game).draft).toEqual([]);
+    m.q<HTMLButtonElement>("[data-ww-peace-btn='quick-puppet']")!.click();
+    await m.redraw();
+    expect(peaceUiOf(m.game).draft).toEqual([
+      { kind: "puppet", target: ID("POL") },
+    ]);
+  });
+
   it("a pass after a draft is acknowledged and can't be sent again", async () => {
     vi.useFakeTimers({ toFake: ["Date", "setTimeout"] });
     vi.setSystemTime(10_000);

@@ -104,8 +104,9 @@ export function maxReparations(lossCivs: number): number {
 export function participantPoints(
   totalBase: number,
   wsMilli: readonly number[],
+  poolPct: number = WW_PEACE_POOL_PCT,
 ): number[] {
-  const pool = Math.floor((totalBase * WW_PEACE_POOL_PCT) / 100);
+  const pool = Math.floor((totalBase * poolPct) / 100);
   const n = wsMilli.length;
   if (n === 0) return [];
   let sum = 0;

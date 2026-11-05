@@ -4651,7 +4651,9 @@
         "exclusive": "둘 중 하나만 고를 수 있는 다른 줄을 이미 골랐습니다",
         "no_project": "필요한 특수 프로젝트가 아직 끝나지 않았습니다",
         "bonus_held": "이 갈래에는 이미 연구 보너스가 있습니다",
-        "no_deposit": "이 지역에는 매장지가 없습니다"
+        "no_deposit": "이 지역에는 매장지가 없습니다",
+        "peace_not_beaten": "강화를 청할 만큼 밀리지 않았습니다: 항복선의 40%부터 가능",
+        "peace_not_leader": "같은 편 지도국만 강화를 청할 수 있습니다"
       },
       "build_here": "여기 짓기",
       "buy": "사기",
@@ -10783,8 +10785,23 @@
         "no_target": "요구할 대상이 남아 있지 않습니다",
         "not_adjacent": "내가 통제하는 주와 맞닿아야 합니다",
         "not_participant": "이긴 나라만 요구할 수 있습니다",
-        "too_many_demands": "한 라운드에 요구는 최대 {max}개입니다"
-      }
+        "too_many_demands": "한 라운드에 요구는 최대 {max}개입니다",
+        "already_yours": "이 회의에서 이미 내 땅입니다",
+        "keeps_army": "강화를 청한 나라라 군대를 유지합니다"
+      },
+      "map_assigned": "이 색의 나라에 돌아갑니다",
+      "quick_hold": "점령지 그대로 확정",
+      "quick_liberate": "해방",
+      "quick_puppet": "괴뢰국 세우기",
+      "quick_title": "빠른 조약",
+      "split_bought": "구매 {n}곳",
+      "split_comp": "내준 땅 보상 +{pts}점",
+      "split_gets": "{country}: {n}개 주",
+      "split_gone": "{country}은(는) 사라집니다",
+      "split_keeps": "{country}은(는) {n}개 주를 지킵니다",
+      "split_title": "누가 무엇을 얻나",
+      "split_puppet": "{country}은(는) {by}의 괴뢰국으로 남습니다",
+      "split_zones": "점령 구역 {n}곳"
     },
     "person": {
       "arg_alvear": "마르셀로 T. 데 알베아르",
@@ -13630,7 +13647,11 @@
       "card_pays": "{country} 측 배상: 공장 {pct}% (하루 {k} 개), {days} 일간",
       "card_frees": "{country} 측이 {subject} 측을 독립시킵니다",
       "weary": "전쟁 피로 {pct}%",
-      "weary_title": "전쟁이 1년을 넘기면 30일마다 상대가 받아들일 확률이 1%씩 올라 최대 30%까지 오릅니다."
+      "weary_title": "전쟁이 1년을 넘기면 30일마다 상대가 받아들일 확률이 1%씩 올라 최대 30%까지 오릅니다.",
+      "ask": "강화 요청",
+      "ask_hint": "지금 평화 회의를 엽니다: 회의에 오르지 않은 땅과 군대는 지킵니다",
+      "card_ask": "수락하면 지금 평화 회의가 열립니다: 우리 측이 점령한 땅을 나눕니다",
+      "card_title_ask": "{country}의 강화 요청"
     },
     "npeace": {
       "title": "평화 제안: {country}",

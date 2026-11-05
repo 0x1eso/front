@@ -1694,6 +1694,10 @@ export const WwOrderSchema = z.discriminatedUnion("kind", [
     kind: z.literal("air_group_disband"),
     group: zb.uint({ min: 1, max: 10_000_000 }),
   }),
+  // Ask for terms (ww88, EndgameTypes.ASK_TERMS_ORDER_KINDS), appended: a
+  // losing side's leader asks the other side's leader for a peace
+  // conference now; answered by peace_reply.
+  z.object({ kind: z.literal("peace_surrender"), war: WwId }),
 ]);
 export type WwOrder = z.infer<typeof WwOrderSchema>;
 /** The land war's orders (P2): what WwLand.issue takes. */

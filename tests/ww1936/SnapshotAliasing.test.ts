@@ -26,6 +26,7 @@ import {
   order,
   step,
   stepTo,
+  withoutAssignment,
   type WwHuman,
   wwRestore,
   wwRunner,
@@ -112,7 +113,7 @@ describe("World War 1936: no shared arrays between state records", () => {
     const p = g.playerBySmallID(pol);
     if (!p.isPlayer()) throw new Error("no POL");
     capitulate(g, ww, p, g.ticks());
-    const c = eg.conferences[eg.conferences.length - 1];
+    const c = withoutAssignment(eg, eg.conferences[eg.conferences.length - 1]);
     expect(
       submitDemands(
         eg,

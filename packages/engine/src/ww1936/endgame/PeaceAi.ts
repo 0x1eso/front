@@ -25,6 +25,7 @@ import {
   takeNavyCost,
 } from "@openfront/engine-lib/ww1936/EndgameRules";
 import {
+  peaceAssignedTo,
   peacePickShips,
   peaceRegionCost,
   peaceReparationsRoom,
@@ -403,10 +404,18 @@ function generalAi(
   const friends = c.parts.filter(
     (b) => b.id !== id && pol.sameFaction(id, b.id),
   );
-  // Regions (spec §6.9).
+  // ww88: who gets a region without paying; what an AI democracy only sits on.
+  const assignee = (r: number) => peaceAssignedTo(ctx.table, r);
+  const sits = new Set(c.dem ?? []);
+  // Regions (spec §6.9). What it gets anyway it doesn't buy; another
+  // winner's share it buys only for a core or a claim (no ragged borders).
   for (const r of c.stake) {
     if (!free(r)) continue;
-    add("take", takeValue(r), r, stored("take", 0, [r]));
+    const to = assignee(r);
+    if (to === 0 || (to !== id && (eg.hasCore(id, r) || claim(r)))) {
+      add("take", takeValue(r), r, stored("take", 0, [r]));
+    }
+    if (to !== 0) continue;
     for (const b of friends) {
       if (!eg.hasCore(b.id, r)) continue;
       add(
@@ -452,7 +461,10 @@ function generalAi(
     return f;
   };
   for (const L of c.losers) {
-    const rest = c.stake.filter((r) => legal[r] === L && free(r));
+    const all = c.stake.filter((r) => legal[r] === L && free(r));
+    // ww88: what the loser keeps is what's still to be decided.
+    const rest = all.filter((r) => assignee(r) === 0);
+    const onlyMine = all.every((r) => assignee(r) === 0 || assignee(r) === id);
     let restV = 0;
     for (const r of rest) restV += takeValue(r);
     const { lVp } = loserFacts(L);
@@ -470,7 +482,7 @@ function generalAi(
     };
     const settledOn = (...kinds: DemandKind[]) =>
       peaceSettledOn(ctx.table, L, ...kinds);
-    if (aggressive && lVp * 100 < myVp * 15) {
+    if (aggressive && lVp * 100 < myVp * 15 && onlyMine) {
       add(
         "annex_rest",
         Math.floor((restV * 110) / 100),
@@ -523,7 +535,7 @@ function generalAi(
         rest.length === 0 ? 0 : reparationsCost(k),
       );
     }
-    if (major) {
+    if (major && c.asked !== true) {
       add(
         "disarm",
         100,
@@ -571,6 +583,10 @@ function generalAi(
     const kind = dem ? "liberate" : "release";
     const regs = c.stake.filter((r) => free(r) && eg.hasCore(T, r));
     if (regs.length === 0) continue;
+    // ww88: it doesn't pay to give up what it gets anyway.
+    if (regs.some((r) => assignee(r) === id && !sits.has(r))) continue;
+    // Nor to free the country it gets as a puppet.
+    if (c.demPuppets?.some(([L, d]) => L === T && d === id) === true) continue;
     let v = 0;
     for (const r of regs) v += worth(r);
     add(
@@ -611,7 +627,9 @@ function generalAi(
   const leftOf = (L: number): number[] => {
     const m = leftMemo.get(L);
     if (m !== undefined && m.ver === usedVer) return m.left;
-    const left = c.stake.filter((r) => legal[r] === L && free(r));
+    const left = c.stake.filter(
+      (r) => legal[r] === L && free(r) && assignee(r) === 0,
+    );
     leftMemo.set(L, { ver: usedVer, left });
     return left;
   };

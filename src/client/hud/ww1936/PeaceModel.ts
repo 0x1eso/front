@@ -26,6 +26,7 @@ import { turnOrder } from "@openfront/engine-lib/ww1936/EndgameRules";
 import {
   demandKindIndex,
   expandPeaceDemand,
+  peaceAssignedTo,
   type PeaceBlock,
   peaceBlockKey,
   type PeaceDemandIn,
@@ -43,10 +44,12 @@ import type { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
 import { SHIP_BASE } from "@openfront/engine-lib/ww1936/ShipStats";
 import { assetUrl } from "@openfront/shared/AssetUrls";
 import {
+  PEACE_ASSIGNED,
   PEACE_DECIDED,
   PEACE_FREE,
   PEACE_MINE,
   PEACE_OTHER,
+  PEACE_PREVIEW,
   PEACE_SELECTED,
   type PeaceMapRegion,
   type PeaceMapSource,
@@ -76,6 +79,29 @@ export interface PeaceWhy {
   /** A `country` given as a smallID becomes its name (whyText). */
   params?: Record<string, string | number>;
 }
+
+/** One winner's line of the assignment (PeaceModel.split). */
+export interface PeaceSplitRow {
+  id: number;
+  regions: number;
+  /** Of them, settled by a demand. */
+  bought: number;
+  /** Of them, an AI democracy's occupation zones. */
+  zones: number;
+  /** Points it got at the opening for held land it gave up. */
+  comp: number;
+}
+export interface PeaceSplit {
+  winners: PeaceSplitRow[];
+  /** The losers that live on, with what they keep of the stake. */
+  losers: { id: number; regions: number }[];
+  /** [loser, AI democracy]: it goes on as that country's puppet. */
+  puppets: [number, number][];
+  /** The losers that end with nothing. */
+  gone: number[];
+}
+/** The Quick treaty's buttons. */
+export type PeaceQuick = "hold" | "puppet" | "liberate";
 
 /** One demand of a list as the engine would take it now, in order. */
 export interface DemandEval {
@@ -198,6 +224,8 @@ export class PeaceModel {
       claims: c?.claims ?? [],
       conquer: c?.conquer ?? [],
       topple: c?.topple ?? [],
+      assign: c?.assign,
+      asked: c?.asked,
       // Everything settled so far, in settle order (lane W's view).
       settled: (c?.settled ?? []).map((x) => ({
         kind: demandKindIndex(x.kind),
@@ -221,6 +249,82 @@ export class PeaceModel {
   stakeRegion(region: number): WwConferenceView["stake"][number] | null {
     const i = this.stakeIdx.get(region);
     return i === undefined ? null : this.conference!.stake[i];
+  }
+
+  /** ww88: the winner `region` goes to without paying; 0: none. */
+  assignedTo(region: number): number {
+    return peaceAssignedTo(this.table, region);
+  }
+
+  /**
+   * ww88: the conference at a glance: each winner's regions and the part
+   * bought so far, the compensation, and what each loser keeps or that it
+   * goes. Winners by most regions; ties by id.
+   */
+  split(): PeaceSplit {
+    const c = this.conference;
+    const rows = new Map<number, PeaceSplitRow>();
+    const row = (id: number): PeaceSplitRow => {
+      let x = rows.get(id);
+      if (x === undefined) {
+        x = { id, regions: 0, bought: 0, zones: 0, comp: 0 };
+        rows.set(id, x);
+      }
+      return x;
+    };
+    const kept = new Map<number, number>();
+    const sits = new Set(c?.dem ?? []);
+    const master = new Map(c?.demPuppets ?? []);
+    for (const s of c?.stake ?? []) {
+      if (s.settledBy !== 0) {
+        const x = row(s.settledBy);
+        x.regions++;
+        x.bought++;
+        continue;
+      }
+      const to = this.assignedTo(s.region);
+      const L = this.world.legalOwner(s.region);
+      if (to !== 0) {
+        const x = row(to);
+        x.regions++;
+        if (sits.has(s.region) && master.get(L) !== to) x.zones++;
+        continue;
+      }
+      kept.set(L, (kept.get(L) ?? 0) + 1);
+    }
+    for (const [id, pts] of c?.comp ?? []) row(id).comp = pts;
+    const gone = c?.gone ?? [];
+    return {
+      winners: [...rows.values()].sort(
+        (a, b) => b.regions - a.regions || a.id - b.id,
+      ),
+      losers: (c?.losers ?? [])
+        .filter((L) => !gone.includes(L) && !master.has(L))
+        .map((id) => ({ id, regions: kept.get(id) ?? 0 })),
+      puppets: [...master],
+      gone: [...gone],
+    };
+  }
+
+  /**
+   * ww88 Quick treaty: what a button fills the draft with: nothing (what we
+   * hold is ours), a puppet of each loser, or each country to liberate;
+   * only what the engine would settle, in turn, while the points last.
+   */
+  quickDraft(me: number, kind: PeaceQuick): PeaceDemand[] {
+    const c = this.conference;
+    if (c === null || kind === "hold") return [];
+    const cand: PeaceDemand[] =
+      kind === "puppet"
+        ? c.losers.map((target) => ({ kind: "puppet", target }))
+        : c.releasable.map((tag) => ({ kind: "liberate", tag }));
+    const out: PeaceDemand[] = [];
+    for (const d of cand) {
+      if (out.length >= WW_PEACE_DEMANDS_PER_ROUND) break;
+      const rows = [...out, d].map((x, i) => this.expand(x, i, me));
+      if (this.evaluate(me, rows).every((e) => e.ok)) out.push(d);
+    }
+    return out;
   }
 
   /** The engine's region price (plan decision 13): `p` demands, `b` receives. */
@@ -949,7 +1053,10 @@ export function peaceMapRegions(game: PeaceGame): PeaceMapRegion[] {
   const sc = game.worldWarScenario();
   const m = peaceModelOf(game);
   const me = peaceMe(game);
-  if (!ui.map || sc === null || m === null || me === null) return [];
+  if (sc === null || m === null || me === null) return [];
+  // ww88: from the opening the assignment shows for everyone in it.
+  if (!ui.map && peaceRole(game) === null) return [];
+  const preview = ui.map ? 0 : PEACE_PREVIEW;
   const mine = new Set<number>();
   for (const e of m.evaluate(me, m.demandRows(me, ui.draft))) {
     for (const r of e.view.regions) mine.add(r);
@@ -958,6 +1065,7 @@ export function peaceMapRegions(game: PeaceGame): PeaceMapRegion[] {
   const w = sc.width;
   return m.conference!.stake.map((s) => {
     const ctrl = m.world.controller(s.region);
+    const to = m.assignedTo(s.region);
     let state = PEACE_FREE;
     let rgb = 0xffffff;
     if (s.settledBy !== 0) {
@@ -966,11 +1074,15 @@ export function peaceMapRegions(game: PeaceGame): PeaceMapRegion[] {
     } else if (mine.has(s.region)) {
       state = PEACE_MINE;
       rgb = myColor;
+    } else if (to !== 0) {
+      state = PEACE_ASSIGNED;
+      rgb = peaceColor(game, to);
     } else if (ctrl !== me && m.participant(ctrl) !== null) {
       state = PEACE_OTHER;
       rgb = peaceColor(game, ctrl);
     }
     if (s.region === ui.region) state |= PEACE_SELECTED;
+    state |= preview;
     const t = sc.centerTile(s.region);
     return {
       region: s.region,
@@ -1000,7 +1112,7 @@ export function peaceMapSource(game: PeaceGame): PeaceMapSource {
   return {
     key: () => {
       const ui = peaceUiOf(game);
-      if (!ui.map) return "";
+      if (!ui.map && peaceRole(game) === null) return "";
       changed = key === "";
       put(0, confRevision(game.wwEndgame?.()?.conference() ?? null));
       put(1, ui.version);

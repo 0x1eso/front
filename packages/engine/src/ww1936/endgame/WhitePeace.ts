@@ -32,6 +32,7 @@ import { leaveFaction } from "../politics/Factions";
 import { payPp } from "../politics/PayPp";
 import { endWarBetween } from "../politics/Territory";
 import { landRegained } from "./Activate";
+import { askTermsAccepted, openTermsConference } from "./AskTerms";
 import { applyLinePeace, lineAiAccepts, linePeaceOfferView } from "./LinePeace";
 import {
   aiPeaceTerms,
@@ -272,7 +273,12 @@ export function truceUntil(eg: WwEndgame, a: number, b: number): number {
   return eg.truces.find((t) => t[0] === lo && t[1] === hi)?.[2] ?? 0;
 }
 
-function setTruce(eg: WwEndgame, a: number, b: number, until: number): void {
+export function setTruce(
+  eg: WwEndgame,
+  a: number,
+  b: number,
+  until: number,
+): void {
   if (a === b) return;
   const lo = Math.min(a, b);
   const hi = Math.max(a, b);
@@ -487,6 +493,11 @@ function resolveOffer(
       ...names,
       days: WW_WHITE_PEACE_COOLDOWN_DAYS,
     });
+    return;
+  }
+  // ww88: terms asked for and granted: the conference takes it from here.
+  if (o.ask === true) {
+    openTermsConference(eg, o.war, o.from, tick);
     return;
   }
   makePeace(eg, o, tick);
@@ -705,6 +716,8 @@ export function offerRoll(eg: WwEndgame, o: PeaceOffer): number {
 export function aiAccepts(eg: WwEndgame, o: PeaceOffer, day: number): boolean {
   // Peace on the current line: the line's value (LinePeace.ts).
   if (o.line === true) return lineAiAccepts(eg, o, day);
+  // ww88: terms asked for: its own judgement (AskTerms.ts).
+  if (o.ask === true) return askTermsAccepted(eg, o);
   const w = eg.war(o.war);
   if (w === null) return false;
   const f = negPeaceFacts(eg);
@@ -791,6 +804,7 @@ export function peaceOfferView(eg: WwEndgame, o: PeaceOffer): WwPeaceOfferView {
     deadlineTick: o.deadlineTick,
     terms: peaceTermsView(eg, o),
     ...(o.line === true ? { line: linePeaceOfferView(eg, o) } : {}),
+    ...(o.ask === true ? { ask: true } : {}),
   };
   if (w === null) return { ...base, sides: [empty, empty], held: [] };
   const sf = eg.sideIndex(w, o.from);

@@ -185,8 +185,8 @@ describe("decision windows: a quarter of the ticks in the unlimited game", () =>
     tags.map((t) => ({ clientID: `H${t}`, country: t }));
 
   test.each([
-    ["timed", 300, TIMED],
-    ["unlimited", 75, UNLIMITED],
+    ["timed", 200, TIMED],
+    ["unlimited", 50, UNLIMITED],
   ])(
     "%s: a peace-conference round lasts %i ticks",
     async (_name, round, config) => {
@@ -200,6 +200,9 @@ describe("decision windows: a quarter of the ticks in the unlimited game", () =>
       const q = beat(g, "LTU", [["DEU", 1000, [R.kaunas]]]);
       expect([c.status, q.status]).toEqual([1, 0]);
       const eg = g.worldWar()!.endgame;
+      // B10: an empty first round goes on; the second ends it.
+      expect(submitDemands(eg, endId("DEU"), c.id, null, g.ticks())).toBeNull();
+      stepConferences(eg, c.roundEndTick);
       expect(submitDemands(eg, endId("DEU"), c.id, null, g.ticks())).toBeNull();
       const t1 = c.roundEndTick;
       stepConferences(eg, t1);
