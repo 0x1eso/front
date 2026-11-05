@@ -22,6 +22,7 @@ import { WW_TECHS } from "../WwTechs";
 import { histStatsOf } from "./Convert";
 import type { GearStats } from "./ConvertGear";
 import { HIST_CATALOGUE } from "./index";
+import { histGatesOf, histUsable } from "./Slots";
 import type { HistCountry, HistEntry } from "./Types";
 
 export const TECH_VALUE_CAP = 60;
@@ -123,15 +124,14 @@ export function catalogueTechValues(
   mult: GroupMult,
 ): number[] {
   const out = new Array<number>(WW_TECH_IDS.length).fill(0);
-  const list = (
-    HIST_CATALOGUE as Partial<Record<CountryTag, readonly HistEntry[]>>
-  )[tag as HistCountry];
-  if (list === undefined) return out;
+  if (!(tag in HIST_CATALOGUE)) return out;
+  // Gear that stands in for nothing can never be fielded: no tech pays for it.
+  const list = histUsable(tag as HistCountry);
   // Best open score per group.
   const best = new Map<string, number>();
   const missing: WwTechId[][] = [];
   for (const e of list) {
-    const miss = e.techs.filter((t) => !researched.has(t));
+    const miss = histGatesOf(e).filter((t) => !researched.has(t));
     missing.push(miss);
     if (miss.length === 0) {
       const { group, score } = scoreOf(e);

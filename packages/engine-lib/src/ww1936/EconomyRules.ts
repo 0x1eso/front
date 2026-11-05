@@ -372,10 +372,19 @@ export function yearStartDay(year: number): number {
   return daysFromCivil(year, 1, 1) - DAY_1936;
 }
 
-/** +100% a year ahead of the tech's year, prorated by day. */
+/**
+ * The ahead-of-time penalty, percent: +100% for the first year ahead of the
+ * tech's year, prorated by day, then +AHEAD_LATE_PCT for each further year.
+ * Research is cheap (WW_RESEARCH_COST_PM), so the steep part is what keeps a
+ * major from running one line of late gear years early (ww83).
+ */
+export const AHEAD_LATE_PCT = 600;
 export function aheadPct(techYear: number, day: number): number {
-  const start = yearStartDay(techYear);
-  return day >= start ? 0 : Math.floor(((start - day) * 100) / 365);
+  const early = yearStartDay(techYear) - day;
+  if (early <= 0) return 0;
+  return early <= 365
+    ? Math.floor((early * 100) / 365)
+    : 100 + Math.floor(((early - 365) * AHEAD_LATE_PCT) / 365);
 }
 
 /** Milli-days a slot gains in a day. */

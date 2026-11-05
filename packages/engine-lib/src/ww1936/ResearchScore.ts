@@ -21,6 +21,7 @@ import {
 } from "@openfront/engine-api/ww1936/EconomyTypes";
 import { aheadPct, yearStartDay } from "./EconomyRules";
 import { HIST_CATALOGUE } from "./hist/index";
+import { techRelevance } from "./hist/Slots";
 import { catalogueTechValues } from "./hist/TechValue";
 import { idHash, wwRoll } from "./Roll";
 import { INDUSTRY_ORG, TechRole, WW_TECHS } from "./WwTechs";
@@ -394,6 +395,9 @@ const ROLE_WEIGHT: Readonly<Record<TechRole, number>> = {
   post: -20,
 };
 
+/** ww82 §8: a catalogue country's score cut on a generation tech that gives it no entry. */
+const GENERIC_TECH_CUT = 30;
+
 /** A human's leaning (RESEARCH_LEANS order): what it adds to each tab. */
 const LEAN_AREA: readonly Partial<Record<TechTab, number>>[] = [
   {},
@@ -603,6 +607,9 @@ export function researchScores(i: ResearchScoreInput): (number | null)[] {
     if (behind > 0) s += Math.min(15, behind * 5);
     if (favoured.has(id)) s += 20;
     if (value !== null) s += value[k];
+    // ww82: nothing of its own there and nothing behind it: last of all.
+    if (catalogue && techRelevance(id, i.tag) === "generic")
+      s -= GENERIC_TECH_CUT;
     if (sit !== undefined) s += situationBonus(sit, id);
     s -= Math.floor(aheadPct(d.year, i.day) / 2);
     return s + (wwRoll(i.seed, P_RESEARCH, i.smallID, k) % 11);
