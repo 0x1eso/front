@@ -9,7 +9,10 @@ import {
 import { GameMapSize, GameMapType } from "@openfront/engine-api/game/GameTypes";
 import {
   BattalionId,
+  DivisionStats,
   GENERAL_TRAITS,
+  NEED_GROUP_COUNT,
+  NEED_GROUPS,
   RETIRED_GENERAL_TRAITS,
   SupportId,
   TPL_CAVALRY_MAJOR,
@@ -23,11 +26,17 @@ import { regionDepth } from "@openfront/engine-lib/ww1936/BandRules";
 import { BATTALIONS } from "@openfront/engine-lib/ww1936/Battalions";
 import { dayOfDate, dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
 import {
+  addToSide,
+  armorProtectPm,
   ASSAULT_BREAK_BP,
+  bandProtectPm,
   divisionMods,
-  ModInput,
-  RIVER_ATTACK_BP,
+  emptySide,
   FORT_ATTACK_BP,
+  hitProtectPm,
+  ModInput,
+  predictBattle,
+  RIVER_ATTACK_BP,
 } from "@openfront/engine-lib/ww1936/CombatRules";
 import { GENERALS } from "@openfront/engine-lib/ww1936/Generals";
 import { moveNeed, moveStep } from "@openfront/engine-lib/ww1936/MoveRules";
@@ -41,7 +50,9 @@ import {
   newTacticSide,
 } from "@openfront/engine-lib/ww1936/TacticRules";
 import {
+  divisionStatsAt,
   GEN1,
+  MAX_PIERCE_BANDS,
   templateStats,
 } from "@openfront/engine-lib/ww1936/TemplateStats";
 import { techTotals } from "@openfront/engine-lib/ww1936/WwTechs";
@@ -336,4 +347,130 @@ describe("P1: assault infantry, cavalry, marines", () => {
     const snap = l.snapshot();
     expect(snap.landedUntil).toEqual([[a.divisions[0], l.day() + 3]]);
   }, 60_000);
+});
+
+/** What `by`'s attack loses to `to`'s armour, ‰, as it attacks or defends. */
+const stopped = (by: DivisionStats, to: DivisionStats, attacking: boolean) =>
+  hitProtectPm(
+    by.soft,
+    by.hard,
+    to.hardnessPm,
+    bandProtectPm(
+      attacking ? by.bandPierceAtk : by.bandPierce,
+      by.bandHard,
+      to.armor,
+    ),
+  );
+
+describe("P2: armour and pierce bands", () => {
+  const tanks = stats([
+    ["medium_armor", 4],
+    ["motorized", 5],
+  ]);
+  const rifles = stats([["infantry", 9]]);
+
+  test("the curve: 85 % to a third, 50 % at two thirds, none at the armour", () => {
+    expect([1000, 2000, 3000, 4000, 5000, 6000].map((p) => armorProtectPm(6000, p))).toEqual(
+      [850, 850, 675, 500, 250, 0],
+    );
+  });
+
+  test("rifles barely scratch a tank's hard part; the soft part goes through", () => {
+    expect(bandProtectPm(rifles.bandPierce, rifles.bandHard, tanks.armor)).toBe(850);
+    // Medium tanks 4 of 9: hardness 455 ‰, and rifles are mostly soft attack:
+    // 12 % of their hits are hard, as the plan's split has it. (P7's numbers.)
+    expect(stopped(rifles, tanks, true)).toBe(103);
+    // A pure tank division is nearly all hard: more of it stopped.
+    expect(stopped(rifles, stats([["medium_armor", 9]]), true)).toBe(510);
+  });
+
+  test("anti-tank guns are not diluted by the rifles around them", () => {
+    const withGuns = stats([
+      ["infantry", 7],
+      ["anti_tank", 2],
+    ]);
+    expect(withGuns.bandPierce).toEqual([400, 5000]);
+    expect(withGuns.bandHard).toEqual([700, 3000]);
+    expect(withGuns.pierce).toBe(5000);
+    // Defending: the guns' share goes straight through a medium tank's armour.
+    const p = bandProtectPm(withGuns.bandPierce, withGuns.bandHard, 4000);
+    expect(p).toBe(Math.floor((700 * 850) / 3700));
+  });
+
+  test("a gun pierces fully defending, half attacking; a tank's gun both ways", () => {
+    const guns = stats([
+      ["infantry", 7],
+      ["anti_tank", 2],
+    ]);
+    expect(guns.bandPierceAtk).toEqual([400, 2500]);
+    const company = stats([["infantry", 9]], ["support_anti_tank"]);
+    expect(company.bandPierce).toEqual([400, 4500]);
+    expect(company.bandPierceAtk).toEqual([400, 2250]);
+    expect(tanks.bandPierceAtk).toEqual(tanks.bandPierce);
+    expect(stopped(guns, tanks, true)).toBeGreaterThan(
+      stopped(guns, tanks, false),
+    );
+  });
+
+  test("at most four bands, the nearest merged by hard attack", () => {
+    const s = stats(
+      [
+        ["infantry", 3],
+        ["artillery", 1],
+        ["anti_air", 1],
+        ["anti_tank", 1],
+        ["light_armor", 1],
+        ["medium_armor", 1],
+      ],
+      ["support_anti_air"],
+    );
+    expect(s.bandPierce.length).toBe(MAX_PIERCE_BANDS);
+    expect(s.bandHard.reduce((a, b) => a + b, 0)).toBe(s.hard);
+    expect([...s.bandPierce].sort((a, b) => a - b)).toEqual(s.bandPierce);
+    // (The medium tank's 45 and the gun's 50 are the nearest pair here.)
+    expect(s.bandPierce[MAX_PIERCE_BANDS - 1]).toBeGreaterThan(4500);
+    expect(s.bandPierce[MAX_PIERCE_BANDS - 1]).toBeLessThan(5000);
+  });
+
+  test("a gun the division has lost pierces nothing", () => {
+    const s = stats([
+      ["infantry", 7],
+      ["anti_tank", 2],
+    ]);
+    const fill = new Array<number>(NEED_GROUP_COUNT).fill(1000);
+    fill[NEED_GROUPS.indexOf("anti_tank")] = 0;
+    const d = divisionStatsAt(s, fill, s.men);
+    expect(d.bandHard).toEqual([700, 0]);
+    expect(bandProtectPm(d.bandPierce, d.bandHard, 4000)).toBe(850);
+  });
+
+  test("the prediction fights by bands too", () => {
+    const side = (s: DivisionStats) => {
+      const sum = emptySide();
+      addToSide(sum, s, s.orgMilli);
+      return sum;
+    };
+    const ctx = {
+      land: "plains" as const,
+      directions: 1,
+      attackerAttackBp: 10_000,
+      attackerBlockBp: 10_000,
+      defenderAttackBp: 10_000,
+      defenderBlockBp: 10_000,
+    };
+    const guns = stats([
+      ["infantry", 7],
+      ["anti_tank", 2],
+    ]);
+    const a = side(tanks);
+    const plain = predictBattle(a, side(rifles), ctx);
+    const held = predictBattle(a, side(guns), ctx);
+    expect(held.ratioPm).toBeLessThan(plain.ratioPm);
+    // Rifles are hardly worse than bare hands against the tanks.
+    const toTanks = predictBattle(side(rifles), a, ctx);
+    const noArmour = { ...a, armor: 0 };
+    expect(predictBattle(side(rifles), noArmour, ctx).ratioPm).toBeGreaterThan(
+      toTanks.ratioPm,
+    );
+  });
 });

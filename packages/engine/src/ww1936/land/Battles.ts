@@ -46,14 +46,15 @@ import {
 import {
   addToSide,
   applyBp,
-  armorProtectPm,
   attackValue,
+  bandProtectPm,
   casCutHits,
   combatWidth,
   divisionMods,
   emptySide,
   entrenchMax,
   excessWidthBp,
+  hitProtectPm,
   ModInput,
   MARINE_LANDED_RECOVERY_PCT,
   ModResult,
@@ -347,7 +348,19 @@ function fight(land: WwLand, b: Battle, tick: number): void {
     const d = toDefends ? applyBp(d0, blockMul) : d0;
     const dmg = roundDamage(
       roundHits(a, d, toDefends ? (toMods.prepBp ?? 0) + fx.defBlockBp : 0),
-      armorProtectPm(ts.armor, ts.hardnessPm, s.pierce),
+      // (Nothing to work out against an unarmoured target, nearly every hit.)
+      ts.armor <= 0
+        ? 0
+        : hitProtectPm(
+            soft,
+            s.hard,
+            ts.hardnessPm,
+            bandProtectPm(
+              toDefends ? s.bandPierceAtk : s.bandPierce,
+              s.bandHard,
+              ts.armor,
+            ),
+          ),
     );
     org.set(to, (org.get(to) ?? 0) + dmg.orgMilli);
     hp.set(to, (hp.get(to) ?? 0) + dmg.hpMilli);

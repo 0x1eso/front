@@ -516,8 +516,85 @@ function designTplFlags(ds: number): number {
   );
 }
 
-/** ww67: a battalion's weight in a division's pierce, a support company's being 1. */
-const BATTALION_PIERCE_WEIGHT = 3;
+/** ww84: the most pierce bands a division keeps. */
+export const MAX_PIERCE_BANDS = 4;
+/** ww84: anti-tank guns are ambushers: their pierce on the attack, percent. */
+export const GUN_ATTACK_PIERCE_PCT = 50;
+const AMBUSH_GUNS: ReadonlySet<string> = new Set([
+  "anti_tank",
+  "tank_destroyer",
+  "support_anti_tank",
+]);
+const gunAttackPierce = (p: number) =>
+  Math.floor((p * GUN_ATTACK_PIERCE_PCT) / 100);
+
+/** One carrier of hard attack: its need group, pierce (defending, attacking) and hard attack. */
+interface HardCarrier {
+  group: number;
+  pierce: number;
+  atk: number;
+  hard: number;
+}
+
+/**
+ * ww84: the division's carriers of hard attack as pierce bands: one band for
+ * each pierce, then the two nearest bands merged (weighted by hard attack)
+ * until at most MAX_PIERCE_BANDS are left.
+ */
+function pierceBands(
+  carriers: readonly HardCarrier[],
+): Pick<
+  DivisionStats,
+  "bandPierce" | "bandPierceAtk" | "bandHard" | "bandParts"
+> {
+  const bands: { pierce: number; atk: number; hard: number; of: number[] }[] =
+    [];
+  carriers.forEach((c, i) => {
+    const b = bands.find((x) => x.pierce === c.pierce && x.atk === c.atk);
+    if (b === undefined) {
+      bands.push({ pierce: c.pierce, atk: c.atk, hard: c.hard, of: [i] });
+    } else {
+      b.hard += c.hard;
+      b.of.push(i);
+    }
+  });
+  bands.sort((a, b) => a.pierce - b.pierce || a.atk - b.atk);
+  while (bands.length > MAX_PIERCE_BANDS) {
+    let k = 0;
+    for (let i = 1; i + 1 < bands.length; i++) {
+      if (
+        bands[i + 1].pierce - bands[i].pierce <
+        bands[k + 1].pierce - bands[k].pierce
+      ) {
+        k = i;
+      }
+    }
+    const [a, b] = [bands[k], bands[k + 1]];
+    const hard = a.hard + b.hard;
+    const mean = (x: number, y: number) =>
+      hard === 0
+        ? Math.max(x, y)
+        : Math.floor((x * a.hard + y * b.hard) / hard);
+    bands.splice(k, 2, {
+      pierce: mean(a.pierce, b.pierce),
+      atk: mean(a.atk, b.atk),
+      hard,
+      of: [...a.of, ...b.of],
+    });
+  }
+  const bandParts: number[] = [];
+  bands.forEach((b, i) => {
+    for (const c of b.of) {
+      bandParts.push(i, carriers[c].group, carriers[c].hard);
+    }
+  });
+  return {
+    bandPierce: bands.map((b) => b.pierce),
+    bandPierceAtk: bands.map((b) => b.atk),
+    bandHard: bands.map((b) => b.hard),
+    bandParts,
+  };
+}
 
 /** Each type's static slots, generation 1 first. */
 const STATIC_SLOTS_OF: readonly (readonly number[])[] = Array.from(
@@ -594,8 +671,7 @@ export function templateStats(
   let armorSum = 0;
   let armoured = 0;
   let pierceMax = 0;
-  let pierceSum = 0;
-  let pierceN = 0;
+  const carriers: HardCarrier[] = [];
   let speed = Number.MAX_SAFE_INTEGER;
   let supply = 0;
   let train = 0;
@@ -670,8 +746,6 @@ export function templateStats(
     armorSum += armor;
     if (armor > 0) armoured++;
     pierceMax = Math.max(pierceMax, pierce);
-    pierceSum += pierce * BATTALION_PIERCE_WEIGHT;
-    pierceN += BATTALION_PIERCE_WEIGHT;
     let soft = mix(
       keyed(ks, main, g, KS.soft, Math.floor((d.soft * gp) / 100)),
       KS.soft,
@@ -680,13 +754,20 @@ export function templateStats(
       soft = Math.floor((soft * (100 + tech.artillerySoftPct)) / 100);
     }
     parts[main * 4] += pctOf(soft, bp.soft);
-    parts[main * 4 + 1] += pctOf(
+    const hard = pctOf(
       mix(
         keyed(ks, main, g, KS.hard, Math.floor((d.hard * gp) / 100)),
         KS.hard,
       ),
       bp.hard,
     );
+    parts[main * 4 + 1] += hard;
+    carriers.push({
+      group: main,
+      pierce,
+      atk: AMBUSH_GUNS.has(id) ? gunAttackPierce(pierce) : pierce,
+      hard,
+    });
     parts[main * 4 + 2] += pctOf(
       mix(keyed(ks, main, g, KS.def, Math.floor((d.def * gp) / 100)), KS.def),
       bp.def,
@@ -742,10 +823,11 @@ export function templateStats(
       soft = Math.floor((soft * (100 + tech.artillerySoftPct)) / 100);
     }
     parts[main * 4] += pctOf(soft, supPct + sbp.soft);
-    parts[main * 4 + 1] += pctOf(
+    const hard = pctOf(
       keyed(ks, main, sg, KS.hard, Math.floor((d.hard * gp) / 100)),
       supPct + sbp.hard,
     );
+    parts[main * 4 + 1] += hard;
     parts[main * 4 + 2] += pctOf(
       keyed(ks, main, sg, KS.def, Math.floor((d.def * gp) / 100)),
       supPct + sbp.def,
@@ -766,8 +848,12 @@ export function templateStats(
         sbp.pierce,
       );
       pierceMax = Math.max(pierceMax, p);
-      pierceSum += p;
-      pierceN++;
+      carriers.push({
+        group: main,
+        pierce: p,
+        atk: AMBUSH_GUNS.has(id) ? gunAttackPierce(p) : p,
+        hard,
+      });
     }
     for (const [t, k] of d.equip) need[TYPE_INDEX.get(t)!] += k;
     flags |= d.flag;
@@ -799,21 +885,16 @@ export function templateStats(
     def: sum(2),
     brk: sum(3),
     // HOI4: 30% max + 70% average armour, ww67: of the armoured battalions
-    // alone (how much of the division they are is its hardness, armorProtectPm).
-    // Pierce is what the division can actually bring to bear, 1.75 times its
-    // weighted average up to its best gun: four sevenths of it able to hit is
-    // the gun's whole number, and a support company counts a third of a
-    // battalion, so it adds a little.
+    // alone (how much of the division they are is its hardness: what is soft
+    // in a hit goes through it). Pierce is its best gun, ww84; what fights is
+    // each band on its own (pierceBands).
     armor:
       armoured === 0
         ? 0
         : Math.floor(
             (30 * armorMax * armoured + 70 * armorSum) / (100 * armoured),
           ),
-    pierce:
-      pierceN === 0
-        ? 0
-        : Math.min(pierceMax, Math.floor((7 * pierceSum) / (4 * pierceN))),
+    pierce: pierceMax,
     hardnessPm: n === 0 ? 0 : Math.floor(hardSum / n),
     speedCenti: n === 0 ? 0 : speed,
     supplyMilli: supply,
@@ -828,6 +909,7 @@ export function templateStats(
     fuelWidthPm: width === 0 ? 0 : Math.floor((fuelWidth * 1000) / width),
     fuelHourMilli: fuelHour,
     designFlags,
+    ...pierceBands(carriers),
   };
 }
 
@@ -912,12 +994,19 @@ export function divisionStatsAt(
   }
   const menPm =
     s.men === 0 ? 1000 : Math.min(1000, Math.floor((men * 1000) / s.men));
+  // ww84: a gun without its crew and gun pierces nothing.
+  const bandHard = new Array<number>(s.bandHard.length).fill(0);
+  const bp = s.bandParts;
+  for (let i = 0; i < bp.length; i += 3) {
+    bandHard[bp[i]] += Math.floor((bp[i + 2] * fill[bp[i + 1]]) / 1000);
+  }
   return {
     ...s,
     soft,
     hard,
     def,
     brk,
+    bandHard,
     hpMilli: Math.floor((s.hpMilli * menPm) / 1000),
   };
 }

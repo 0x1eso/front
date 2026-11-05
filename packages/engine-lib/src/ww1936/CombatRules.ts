@@ -162,30 +162,67 @@ export function roundHits(attack: number, block: number, prepBp = 0): number {
 export const ORG_PER_HIT_E3 = 52;
 export const HP_PER_HIT_E3 = 36;
 
-/** The most armour takes off the damage, ‰ (spec §9.3-5's halving). */
-export const ARMOR_PROTECT_MAX_PM = 500;
-/** ww67: from this hardness, ‰, a division is armoured enough for the full protection. */
-export const ARMOR_FULL_HARDNESS_PM = 500;
+/** ww84: what armour stops of the hard part of a hit, ‰, with pierce at or below a third of it. */
+export const ARMOR_PROTECT_MAX_PM = 850;
+/** ww84: and at two thirds of it; nothing at pierce equal to it. */
+export const ARMOR_PROTECT_MID_PM = 500;
 
 /**
- * Spec §9.3-5, the share of the damage armour stops, ‰ (0..500). ww67: not a
- * switch at armour > pierce. It grows with the target's tank share, full from
- * hardness 500 ‰, so one tank battalion doesn't armour an infantry division;
- * and it fades from full, at pierce two thirds of the armour, to nothing, at
- * pierce equal to it, so a few guns chip at it rather than end it.
+ * Spec §9.3-5, ww84: the share of a hard hit armour stops, ‰: 850 up to pierce
+ * a third of the armour, falling in a straight line to 500 at two thirds and to
+ * nothing at pierce equal to it. How armoured the target is shows elsewhere:
+ * the soft part of a hit goes through (hitProtectPm).
  */
-export function armorProtectPm(
-  armor: number,
-  hardnessPm: number,
-  pierce: number,
-): number {
+export function armorProtectPm(armor: number, pierce: number): number {
   if (armor <= 0 || pierce >= armor) return 0;
-  const share = Math.min(
-    1000,
-    Math.floor((Math.max(0, hardnessPm) * 1000) / ARMOR_FULL_HARDNESS_PM),
-  );
-  const fade = Math.min(1000, Math.floor(((armor - pierce) * 3000) / armor));
-  return Math.floor((ARMOR_PROTECT_MAX_PM * share * fade) / 1_000_000);
+  const p3 = pierce * 3;
+  if (p3 <= armor) return ARMOR_PROTECT_MAX_PM;
+  return p3 <= 2 * armor
+    ? ARMOR_PROTECT_MAX_PM -
+        Math.floor(
+          ((ARMOR_PROTECT_MAX_PM - ARMOR_PROTECT_MID_PM) * (p3 - armor)) / armor,
+        )
+    : Math.floor((ARMOR_PROTECT_MID_PM * (3 * armor - p3)) / armor);
+}
+
+/**
+ * ww84: what armour stops of a division's hard attack, ‰: each pierce band
+ * against the armour on its own, weighted by its hard attack. `cutPm` comes
+ * off every band's protection.
+ */
+export function bandProtectPm(
+  pierce: readonly number[],
+  hard: readonly number[],
+  armor: number,
+  cutPm = 0,
+): number {
+  if (armor <= 0) return 0;
+  let sum = 0;
+  let all = 0;
+  for (let i = 0; i < hard.length; i++) {
+    const h = hard[i];
+    if (h <= 0) continue;
+    all += h;
+    sum += h * Math.max(0, armorProtectPm(armor, pierce[i]) - cutPm);
+  }
+  return all === 0 ? 0 : Math.floor(sum / all);
+}
+
+/**
+ * ww84: the share of a whole hit armour stops, ‰: a hit is split as the attack
+ * value is (attackValue), soft goes through, the hard part meets the armour.
+ */
+export function hitProtectPm(
+  soft: number,
+  hard: number,
+  targetHardnessPm: number,
+  hardProtectPm: number,
+): number {
+  if (hardProtectPm <= 0) return 0;
+  const h = Math.max(0, Math.min(1000, targetHardnessPm));
+  const hardPart = hard * h;
+  const all = soft * (1000 - h) + hardPart;
+  return all <= 0 ? 0 : Math.floor((hardProtectPm * hardPart) / all);
 }
 
 /**
@@ -603,6 +640,26 @@ export function casCutHits(
   return Math.floor((h * Math.max(0, 100 - 5 * aaLevel)) / 100);
 }
 
+/** ww84: hitProtectPm from side sums: what `to`'s armour stops of `from`'s hits. */
+function sideProtectPm(
+  from: SideSum,
+  to: SideSum,
+  attacking: boolean,
+  cutPm = 0,
+): number {
+  if (to.armor <= 0) return 0;
+  const pierce = attacking ? from.bandPierceAtk : from.bandPierce;
+  const hard = from.bandHard;
+  return hitProtectPm(
+    from.soft,
+    from.hard,
+    to.hardnessPm,
+    pierce === undefined || hard === undefined
+      ? Math.max(0, armorProtectPm(to.armor, from.pierce) - cutPm)
+      : bandProtectPm(pierce, hard, to.armor, cutPm),
+  );
+}
+
 /**
  * Spec §9.9: how fast each side strips the other's org, from side sums.
  * The engine's plan step (§8.2), the AI (§14.4) and the attack preview
@@ -646,11 +703,11 @@ export function predictBattle(
   const dA = applyBp(per(att.brk, att.divisions), ctx.attackerBlockBp);
   const toDef = roundDamage(
     roundHits(aA, dD, ctx.defenderPrepBp ?? 0),
-    armorProtectPm(def.armor, def.hardnessPm, att.pierce),
+    sideProtectPm(att, def, true),
   ).orgMilli;
   const toAtt = roundDamage(
     roundHits(aD, dA),
-    armorProtectPm(att.armor, att.hardnessPm, def.pierce),
+    sideProtectPm(def, att, false),
   ).orgMilli;
   // ww8: close air support, a round's hits on one division with no block value.
   const casDef = ctx.casAttCenti ?? 0;
@@ -785,6 +842,56 @@ export interface SideStats {
   pierce: number;
   hardnessPm: number;
   hpMilli: number;
+  bandPierce?: readonly number[];
+  bandPierceAtk?: readonly number[];
+  bandHard?: readonly number[];
+}
+
+/** ww84: the most pierce bands a side sum keeps; the rest join the band nearest in pierce. */
+const SIDE_BANDS_MAX = 8;
+
+/** ww84: `hard` hard attack at this pierce into a side's bands. */
+function addSideBand(
+  sum: SideSum,
+  pierce: number,
+  atk: number,
+  hard: number,
+): void {
+  const ps = (sum.bandPierce ??= []);
+  const as = (sum.bandPierceAtk ??= []);
+  const hs = (sum.bandHard ??= []);
+  let k = -1;
+  for (let i = 0; i < ps.length; i++) {
+    if (ps[i] === pierce && as[i] === atk) {
+      k = i;
+      break;
+    }
+  }
+  if (k < 0 && ps.length >= SIDE_BANDS_MAX) {
+    k = 0;
+    for (let i = 1; i < ps.length; i++) {
+      if (Math.abs(ps[i] - pierce) < Math.abs(ps[k] - pierce)) k = i;
+    }
+  }
+  if (k >= 0) {
+    hs[k] += hard;
+    return;
+  }
+  ps.push(pierce);
+  as.push(atk);
+  hs.push(hard);
+}
+
+/** ww84: every pierce band of `from` into `sum` (a screen joining two sides). */
+export function addSideBands(sum: SideSum, from: SideSum): void {
+  const ps = from.bandPierce;
+  const as = from.bandPierceAtk;
+  const hs = from.bandHard;
+  if (ps === undefined || as === undefined || hs === undefined) {
+    addSideBand(sum, from.pierce, from.pierce, from.hard);
+    return;
+  }
+  for (let i = 0; i < hs.length; i++) addSideBand(sum, ps[i], as[i], hs[i]);
 }
 
 /** Adds one division's numbers to a side sum (armour, pierce, hardness width-weighted). */
@@ -798,6 +905,14 @@ export function addToSide(sum: SideSum, s: SideStats, orgMilli: number): void {
     w1 === 0 ? 0 : Math.floor((sum.pierce * w0 + s.pierce * sw) / w1);
   sum.hardnessPm =
     w1 === 0 ? 0 : Math.floor((sum.hardnessPm * w0 + s.hardnessPm * sw) / w1);
+  const hs = s.bandHard;
+  if (hs === undefined || s.bandPierce === undefined) {
+    addSideBand(sum, s.pierce, s.pierce, s.hard);
+  } else {
+    const ps = s.bandPierce;
+    const as = s.bandPierceAtk ?? ps;
+    for (let i = 0; i < hs.length; i++) addSideBand(sum, ps[i], as[i], hs[i]);
+  }
   sum.divisions++;
   sum.width = w1;
   sum.soft += s.soft;
@@ -821,5 +936,8 @@ export function emptySide(): SideSum {
     hardnessPm: 0,
     orgMilli: 0,
     hpMilli: 0,
+    bandPierce: [],
+    bandPierceAtk: [],
+    bandHard: [],
   };
 }

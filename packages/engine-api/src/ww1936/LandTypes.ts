@@ -322,6 +322,17 @@ export interface DivisionStats {
   fuelHourMilli: number;
   /** P6 (pre-flight §0-3c): TPL_FLAME … TPL_TD_DEFEND of the designs it holds. */
   designFlags: number;
+  /**
+   * ww84: its hard attack by what pierces (at most four bands, least pierce
+   * first): each band's pierce defending and attacking (anti-tank guns are
+   * ambushers, half as good on the attack), and its hard attack. A rifle
+   * can't dilute a gun: each band meets the armour on its own.
+   */
+  bandPierce: number[];
+  bandPierceAtk: number[];
+  bandHard: number[];
+  /** [band, need group, hard attack] of each carrier: divisionStats scales bandHard by that group's fill. */
+  bandParts: number[];
 }
 
 export interface CombatMods {
@@ -351,6 +362,10 @@ export interface SideSum {
   hardnessPm: number;
   orgMilli: number;
   hpMilli: number;
+  /** ww84: the side's hard attack by pierce (DivisionStats' bands, summed); absent: all of it at `pierce`. */
+  bandPierce?: number[];
+  bandPierceAtk?: number[];
+  bandHard?: number[];
 }
 
 export interface BattleCtx {

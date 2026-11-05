@@ -28,7 +28,6 @@ import {
   FORT_HALF_WIDTH_FROM,
   POSITION_DEF_BP,
   predictBattle,
-  armorProtectPm,
   roundDamage,
   roundHits,
   TERRAIN,

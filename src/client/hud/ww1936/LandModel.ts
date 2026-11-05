@@ -48,6 +48,7 @@ import {
 } from "@openfront/engine-api/ww1936/LandTypes";
 import { BATTALIONS } from "@openfront/engine-lib/ww1936/Battalions";
 import {
+  addSideBands,
   combatWidth,
   divisionMods,
   emptySide,
@@ -1226,7 +1227,7 @@ export function mergeSides(a: SideSum, b: SideSum): SideSum {
   const w = a.width + b.width;
   const mix = (x: number, y: number) =>
     w === 0 ? 0 : Math.floor((x * a.width + y * b.width) / w);
-  return {
+  const sum: SideSum = {
     divisions: a.divisions + b.divisions,
     width: w,
     soft: a.soft + b.soft,
@@ -1239,6 +1240,9 @@ export function mergeSides(a: SideSum, b: SideSum): SideSum {
     orgMilli: a.orgMilli + b.orgMilli,
     hpMilli: a.hpMilli + b.hpMilli,
   };
+  addSideBands(sum, a);
+  addSideBands(sum, b);
+  return sum;
 }
 
 /** `n` divisions of `s` as a side (pre-flight U-c's stand-in for unseen armies). */
@@ -1255,6 +1259,9 @@ function sideOfStats(s: DivisionStats, n: number): SideSum {
     hardnessPm: s.hardnessPm,
     orgMilli: s.orgMilli * n,
     hpMilli: s.hpMilli * n,
+    bandPierce: s.bandPierce,
+    bandPierceAtk: s.bandPierceAtk,
+    bandHard: s.bandHard.map((h) => h * n),
   };
 }
 
@@ -1502,6 +1509,9 @@ export function sideScaledTo(s: SideSum, n: number): SideSum {
     hardnessPm: s.hardnessPm,
     orgMilli: k(s.orgMilli),
     hpMilli: k(s.hpMilli),
+    bandPierce: s.bandPierce,
+    bandPierceAtk: s.bandPierceAtk,
+    bandHard: s.bandHard?.map(k),
   };
 }
 
