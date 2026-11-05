@@ -12949,7 +12949,7 @@
       "surrenderPp": "항복 기준 {value, number, ::sign-always}%p",
       "tensionPct": "우리가 만드는 세계 긴장도 {value, number, ::sign-always}%",
       "torpedoPct": "어뢰 공격 {value, number, ::sign-always}%",
-      "tradeCostPct": "무역 비용 {value, number, ::sign-always}%",
+      "tradeCostPct": "공장당 무역 물량 {value, number, ::sign-always}%",
       "trainPct": "하루 모집 {value, number, ::sign-always}%",
       "vehicleBonusPct": "트럭·전차 보너스 {value, number, ::sign-always}%",
       "warSupportBp": "전쟁지지도 {value, number, ::sign-always scale/0.01}%",

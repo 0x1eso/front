@@ -1,6 +1,7 @@
 import { CONTENT_PARTS } from "@openfront/engine-lib/ww1936/content/registry";
 import { histStaticKeyTable } from "@openfront/engine-lib/ww1936/hist/StaticKeys";
 import { STATIC_KEY_STATS } from "@openfront/engine-lib/ww1936/TemplateStats";
+import fs from "fs";
 import { expect, test } from "vitest";
 
 // ww92: tradeCostPct is the trade units per factory, so plus is more goods.
@@ -24,6 +25,12 @@ test("the trade spirits agree with their text: plus is better, minus is worse", 
   }
   expect(trade("nat_jpn_scarce")).toBe(-10);
   expect(trade("ita_sanctions")).toBeLessThan(0);
+  // ww100: a boycott is no bonus, and a plus is no cost on the screen.
+  expect(trade("mex_oil_boycott")).toBeLessThan(0);
+  for (const lang of ["en", "ko"]) {
+    const text = fs.readFileSync(`resources/lang/${lang}.json`, "utf8");
+    expect(text).toMatch(/"tradeCostPct": "[^"]*(goods|물량)/);
+  }
 });
 
 test("the client's key table for a minor is weaker than the generic one; a major's is its catalogue", () => {

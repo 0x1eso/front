@@ -22,7 +22,7 @@ export const SPIRITS_PACK_WORLD: SpiritDef[] = [
     stats: { enemyJustifyTimePct: 50, tradeCostPct: 10 },
   },
   // mex_oil_crisis a (365 days): the companies' boycott
-  { id: "mex_oil_boycott", icon: "oil", stats: { tradeCostPct: 10 } },
+  { id: "mex_oil_boycott", icon: "oil", stats: { tradeCostPct: -10 } },
   // bra_feb_departure a (365 days)
   {
     id: "bra_feb_veterans",

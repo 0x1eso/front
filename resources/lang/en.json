@@ -13544,7 +13544,7 @@
       "tankFearCutPp": "Tank fear penalty cut {value, number, ::sign-always}%p",
       "tensionPct": "World tension we cause {value, number, ::sign-always}%",
       "torpedoPct": "Torpedo attack {value, number, ::sign-always}%",
-      "tradeCostPct": "Trade cost {value, number, ::sign-always}%",
+      "tradeCostPct": "Trade goods per factory {value, number, ::sign-always}%",
       "trainPct": "Daily draft {value, number, ::sign-always}%",
       "vehicleBonusPct": "Truck and tank bonuses {value, number, ::sign-always}%",
       "warSupportBp": "War support {value, number, ::sign-always scale/0.01}%",
