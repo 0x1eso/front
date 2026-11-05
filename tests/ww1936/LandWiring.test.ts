@@ -202,19 +202,18 @@ describe("World War 1936 P2: the land war's wiring", () => {
     expect(ce.stock[equipKey("infantry_equipment", 1)]).toBe(
       MAJOR_START.DEU!.infReserve + 48_000 - 50 * 600,
     );
-    // Every division at full men and org; the equipment as far as the
-    // stock went (Germany's 1,000 support equipment fill the first 28).
+    // Every division at full men, org and equipment: ww107's line takes no
+    // support equipment until its engineers and recon come.
     const t = l.divisions;
     const strength: number[] = [];
     for (let r = 0; r < t.rows; r++) {
       if (!t.alive(r) || t.owner[r] !== id("DEU")) continue;
-      expect(t.men[r]).toBe(10_500);
+      expect(t.men[r]).toBe(7_000);
       expect(t.org[r]).toBe(l.orgMaxOf(r));
       strength.push(l.strengthOf(r));
     }
-    expect(strength.slice(0, 28).every((s) => s === 1000)).toBe(true);
-    expect(strength[44]).toBeLessThan(1000);
-    expect(ce.stock[equipKey("support_equipment", 1)]).toBeLessThan(35);
+    expect(strength.every((s) => s === 1000)).toBe(true);
+    expect(ce.stock[equipKey("support_equipment", 1)]).toBe(1000);
     // The land techs (spec §4.6).
     expect(ce.researched.has("engineer_company")).toBe(true);
     expect(ce.researched.has("mountaineers")).toBe(true);
