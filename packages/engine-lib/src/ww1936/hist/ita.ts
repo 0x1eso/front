@@ -1494,6 +1494,29 @@ export const ITA_HIST: readonly HistEntry[] = [
     },
   },
   {
+    id: "ita_90_53_at",
+    country: "ITA",
+    family: "gun",
+    role: "anti_tank",
+    techs: ["anti_tank_2"],
+    year: 1942,
+    // ww107: the 90/53 anti-aircraft gun on a truck or a field mount, fired
+    // at tanks in North Africa and Italy (a served use, not a paper design).
+    // Same 112 mm at 30 degrees as the Semovente 90/53 above.
+    source:
+      "Checked 2026-11-06 on Wikipedia: Cannone da 90/53 (6,240 kg in action, 19 rpm, shell 10.3 kg, AP 140 mm at 500 m, used against tanks in North Africa). 112 at 30 deg by the same ratio as the Semovente; effective range an estimate.",
+    spec: {
+      mm: 90,
+      rpm: 19,
+      rangeM: 3000,
+      shellKg: 10.3,
+      penMm500: 112,
+      massKg: 6240,
+      barrels: 1,
+      costK: 9,
+    },
+  },
+  {
     id: "ita_breda_20_65",
     country: "ITA",
     family: "gun",
