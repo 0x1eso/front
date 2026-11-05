@@ -12,6 +12,7 @@ import {
   trainTargetArmy,
   widthPenaltyBp,
 } from "@openfront/engine/ww1936/land/AiArmies";
+import { aiTrainPlan } from "@openfront/engine/ww1936/land/AiLand";
 import { byTag, HUMAN, land, wwRunner } from "./util";
 
 const f = (id: number, n: number, armour = 0, apart = 0): ArmyFacts => ({
@@ -107,4 +108,34 @@ describe("ww81 merge toggle", () => {
     l.issue(deu, { kind: "army_direct", army: a.id, merge: false });
     expect(a.dflags).toBe(DIRECT_ADVANCE);
   }, 120_000);
+});
+
+describe("ww81 anti-tank share", () => {
+  const input = (antiTankPct: number) => ({
+    personality: "democracy" as const,
+    major: true,
+    dev: 5,
+    hasArmorTech: false,
+    hasMountains: false,
+    training: 9,
+    manpower: 1_000_000,
+    counts: { infantry: 30, armor: 0, motorized: 0, mountain: 0, cavalry: 0 },
+    antiTankPct,
+    templates: [
+      { id: 1, key: "infantry", men: 10_000, fillPm: 1000, have: 27 },
+      {
+        id: 2,
+        key: "pre_anti_tank_infantry",
+        men: 10_000,
+        fillPm: 1000,
+        have: 3,
+      },
+    ],
+  });
+  test("a tenth of the infantry is anti-tank against armour, a fifth when pierce is short", () => {
+    expect(aiTrainPlan(input(0))).toEqual([1]);
+    // 3 of 30 is a tenth: a fifth wants more, a tenth does not.
+    expect(aiTrainPlan(input(10))).toEqual([1]);
+    expect(aiTrainPlan(input(20))).toEqual([2]);
+  });
 });

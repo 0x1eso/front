@@ -552,6 +552,9 @@ const PRESET_AI_WEIGHT: Readonly<Record<string, number>> = {
   pre_mot_infantry: 3,
 };
 
+/** The anti-tank infantry preset's template key. */
+export const AI_ANTI_TANK_KEY = "pre_anti_tank_infantry";
+
 export interface AiTrainTemplate {
   id: number;
   key: string;
@@ -580,6 +583,8 @@ export interface AiTrainInput {
   atPeace?: boolean;
   /** ww81 (T2): armour share points to add (national character, spare tanks and trucks). */
   armorBonus?: number;
+  /** ww81 (T2): % of infantry divisions that are anti-tank infantry (0, 10 or 20). */
+  antiTankPct?: number;
   /** ww81 (T2): fuel under a quarter of its cap: armour halves. */
   fuelLow?: boolean;
 }
@@ -646,7 +651,21 @@ export function aiTrainPlan(i: AiTrainInput): number[] {
   let manpower = i.manpower;
   let training = i.training;
   const tplOf = (role: AiRole): AiTrainTemplate | undefined => {
-    if (role === "infantry") return i.templates[0];
+    if (role === "infantry") {
+      // ww81 (T2): against armour a tenth (a fifth) of the infantry is anti-tank.
+      const at = i.templates.find((t) => t.key === AI_ANTI_TANK_KEY);
+      if (
+        at !== undefined &&
+        (i.antiTankPct ?? 0) > 0 &&
+        at.fillPm >= TRAIN_FILL_PM &&
+        manpower >= at.men * TRAIN_MEN_FACTOR &&
+        (at.have ?? 0) * 100 <
+          (i.antiTankPct ?? 0) * Math.max(1, counts.infantry)
+      ) {
+        return at;
+      }
+      return i.templates[0];
+    }
     // The role's templates (1936 keys, presets): the one furthest below its weight that the stock and men allow (else any, so the gate below holds).
     const own = i.templates.filter(
       (t) => ROLE_KEYS[role].includes(t.key) || roleOfTemplate(t.key) === role,
@@ -3177,6 +3196,7 @@ class AiDay {
       atPeace,
       armorBonus: this.armorBonus(templates),
       fuelLow: this.ce.fuelRatioPm < 250,
+      antiTankPct: this.antiTankPct(),
       manpower: this.ce.manpower,
       counts,
       templates,
@@ -3215,6 +3235,33 @@ class AiDay {
       }
     }
     return bonus;
+  }
+
+  /**
+   * ww81 (T2): at war against armour, a tenth of the infantry is
+   * anti-tank, a fifth when the enemy's best armour beats our best pierce.
+   */
+  private antiTankPct(): number {
+    if (this.atWar.length === 0 || !this.enemyArmour()) return 0;
+    const land = this.land;
+    const t = land.divisions;
+    let armor = 0;
+    for (const e of this.atWar) {
+      for (const a of land.armiesOf(e)) {
+        for (const id of a.divisions) {
+          const r = t.rowOf(id);
+          if (r >= 0) armor = Math.max(armor, land.baseStatsOf(r).armor);
+        }
+      }
+    }
+    let pierce = 0;
+    for (const a of land.armiesOf(this.me)) {
+      for (const id of a.divisions) {
+        const r = t.rowOf(id);
+        if (r >= 0) pierce = Math.max(pierce, land.baseStatsOf(r).pierce);
+      }
+    }
+    return armor > pierce ? 20 : 10;
   }
 
   /** The role of a template by id (the first is the infantry one). */
