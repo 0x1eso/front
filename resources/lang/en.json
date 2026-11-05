@@ -10197,6 +10197,7 @@
       "deploy_to_full": "{army} is full: another army takes it",
       "deploy_to_gone": "The chosen army is gone: another army takes it",
       "deploy_to_row": "Joins {army} when ready",
+      "design_none": "This country has no such vehicle; buy it on the market or get a licence",
       "design_only": "Needs this class of tank: opened by research",
       "designer_copy": "Copy",
       "designer_delete": "Delete",

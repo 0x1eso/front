@@ -110,6 +110,18 @@ describe("template presets in the designer", () => {
     ).toBeNull();
   });
 
+  it("with the catalogue, a battalion nobody can research says market or licence", async () => {
+    const note = async (tag: string) => {
+      const m = await mount(["medium_tank_1", "heavy_tank_1"], tag);
+      await m.click("[data-ww-slot-kind='battalion'][data-ww-slot='0']");
+      return m
+        .q("[data-ww-pick='heavy_armor']")!
+        .querySelector("[data-ww-design-only]")!.textContent;
+    };
+    expect(await note("DEU")).toContain("ww1936.land.design_only");
+    expect(await note("POL")).toContain("ww1936.land.design_none");
+  });
+
   it("the support row offers what the battalions carry and says why", async () => {
     const m = await mount([]);
     const el = m.el as unknown as {

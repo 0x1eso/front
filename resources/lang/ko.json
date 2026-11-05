@@ -9826,6 +9826,7 @@
       "deploy_to_full": "{army}: 가득 차서 다른 군에 배치됩니다",
       "deploy_to_gone": "지정한 군이 없어 다른 군에 배치됩니다",
       "deploy_to_row": "완료되면 {army}에 편입",
+      "design_none": "이 나라에는 이런 차량이 없습니다. 시장에서 사거나 라이선스를 받으세요",
       "design_only": "이 종류의 전차가 있어야 합니다: 연구로 열립니다",
       "designer_copy": "복사",
       "designer_delete": "삭제",
