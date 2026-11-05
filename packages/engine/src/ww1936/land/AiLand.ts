@@ -41,6 +41,7 @@ import {
   TPL_BARE_ARMOR,
   TPL_EXPLOIT,
   TPL_HEAVY_LEAD,
+  TPL_MARINE_MAJOR,
   TPL_MOTOR_ANY,
   TPL_MOUNTAIN_MAJOR,
   TPL_PARA_ANY,
@@ -69,6 +70,7 @@ import {
 } from "@openfront/engine-lib/ww1936/FrontRules";
 import { WW_INITIAL_WARS } from "@openfront/engine-lib/ww1936/History";
 import { WW_TARGET_REACH_EDGES } from "@openfront/engine-lib/ww1936/LandOrderChecks";
+import { natUnitRow } from "@openfront/engine-lib/ww1936/NationalUnits";
 import { wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { ALL_EDGES } from "@openfront/engine-lib/ww1936/SeaGraph";
 import {
@@ -97,6 +99,7 @@ import {
   choosePool,
   type MergeFacts,
   MERGES_PER_DAY,
+  mostlyApart,
   type PoolFacts,
   type ShapeCandidate,
   trainTargetArmy,
@@ -664,6 +667,8 @@ export interface AiTrainInput {
   fortsAhead?: boolean;
   /** ww81 (T2): fuel under a quarter of its cap: armour halves. */
   fuelLow?: boolean;
+  /** ww91: the country's national unit is motorized (Panzergrenadiers): its share doubles. */
+  motorUnit?: boolean;
 }
 
 /** Spec §14.5: the role shares, %. */
@@ -678,7 +683,7 @@ function roleShares(i: AiTrainInput): Record<AiRole, number> {
   switch (i.personality) {
     case "aggressor":
       s.armor = i.hasArmorTech ? 15 : 0;
-      s.motorized = 5;
+      s.motorized = i.motorUnit === true ? 10 : 5;
       s.mountain = i.hasAssault ? 10 : 0;
       s.infantry = 100 - s.armor - s.motorized - s.mountain;
       break;
@@ -1543,13 +1548,17 @@ class AiDay {
       if (n === 0 || n > SMALL_ARMY) continue;
       if (a.order.kind === "plan" && a.order.executing) continue;
       const here = land.armyRegion(a);
+      // ww91 rule 8: the good troops stay among their own.
+      const apart = (x: Army) =>
+        this.warPlan.unitPct > 0 && mostlyApart(this.armyFacts(x, 0));
       const into = all.find(
         (b) =>
           b.id !== a.id &&
           land.armies.has(b.id) &&
           b.divisions.length >= n &&
           b.divisions.length + n <= WW_MAX_ARMY_DIVISIONS &&
-          land.armyRegion(b) === here,
+          land.armyRegion(b) === here &&
+          apart(a) === apart(b),
       );
       if (into !== undefined) {
         this.issue({ kind: "army_merge", army: a.id, into: into.id });
@@ -1837,8 +1846,22 @@ class AiDay {
       });
       if (current >= 0) ours[current] += this.armyPower(a);
     }
+    // ww91 rule 8: idle marines wait for a landing, unless a front needs them.
+    const short = fronts.some(
+      (f, i) =>
+        this.atWar.includes(f.enemy) &&
+        this.facingPower(f) * 100 > ours[i] * AI_OUTNUMBERED_PCT,
+    );
+    const landing = (id: number) => {
+      const a = land.armies.get(id)!;
+      return a.order.kind === "idle" && this.mostly(a, TPL_MARINE_MAJOR);
+    };
+    const fleet =
+      !short &&
+      this.warPlan.unitPct > 0 &&
+      land.ww.navy.fleetsOf(this.me).length > 0;
     const plan = aiFrontPlan({
-      armies: input,
+      armies: fleet ? input.filter((x) => !landing(x.id)) : input,
       enemies: fronts.map((f, i) => ({
         id: i,
         border: f.border,
@@ -2347,7 +2370,11 @@ class AiDay {
       a.order.kind === "plan" &&
       a.order.executing &&
       effortTarget(a.order) === sector;
-    const rank = (a: Army) => (running(a) ? 0 : 2) + (this.shock(a) ? 0 : 1);
+    // ww91 rule 8: mountain troops lead on a fort or across a river.
+    const rough = this.natMountain() && this.rough(near, sector);
+    const leads = (a: Army) => rough && this.mostly(a, TPL_MOUNTAIN_MAJOR);
+    const rank = (a: Army) =>
+      (running(a) ? 0 : 4) + (leads(a) ? 0 : 2) + (this.shock(a) ? 0 : 1);
     const ranked = armies
       .filter((a) => !this.defendOnly(a))
       .sort(
@@ -2443,6 +2470,16 @@ class AiDay {
   private joinEffort(a: Army, sector: number): void {
     this.effortOf.set(a.id, sector);
     this.offEffort.delete(a.id);
+  }
+
+  /** `sector` has a fort, or every way in from `near` crosses a river. */
+  private rough(near: readonly number[], sector: number): boolean {
+    const sc = this.land.scenario;
+    if (effectiveLevel(this.land.econ, sector, "fort") > 0) return true;
+    return (
+      near.length > 0 &&
+      near.every((r) => sc.edge(sc.edgeBetween(r, sector)).river !== 0)
+    );
   }
 
   /** Motorized, armoured and assault divisions are a third of the army or more (the shock armies of ww80 section 5). */
@@ -4100,6 +4137,8 @@ class AiDay {
       dev: land.scenario.devOf(cl.tag, civ),
       hasArmorTech: this.ce.researched.has("light_tank_1"),
       unitPct: this.warPlan.unitPct,
+      motorUnit:
+        !this.human && natUnitRow(this.ce.stats.natUnit, "motorized") !== null,
       hasAssault: this.ce.researched.has("mountaineers"),
       training,
       atPeace,
@@ -4216,12 +4255,28 @@ class AiDay {
       const role = this.roleOfId(t.template[r]);
       if (role === "armor" || role === "motorized") armour++;
       else if (role === "mountain" || role === "cavalry") {
-        // ww90: assault infantry goes with the line it breaks through for.
+        // ww90: assault infantry goes with the line it breaks through for,
+        // unless it is the national unit (ww91 rule 8).
         const flags = this.land.baseStatsOf(r).flags;
-        if ((flags & TPL_MOUNTAIN_MAJOR) === 0) apart++;
+        if ((flags & TPL_MOUNTAIN_MAJOR) === 0 || this.natMountain()) apart++;
       }
     }
     return { id: a.id, n: a.divisions.length + waiting, armour, apart };
+  }
+
+  /** ww91 rule 8: the mountain troops are the national unit (Guards, Alpini, the Legion). */
+  private natMountain(): boolean {
+    return (
+      !this.human && natUnitRow(this.ce.stats.natUnit, "mountain") !== null
+    );
+  }
+
+  /** ww91 rule 8: a template of the good troops, who serve in armies of their own. */
+  private unitTemplate(tpl: number): boolean {
+    if (this.warPlan.unitPct === 0) return false;
+    const flags = this.land.templateStatsOf(this.me, tpl)?.flags ?? 0;
+    if ((flags & TPL_MARINE_MAJOR) !== 0) return true;
+    return (flags & TPL_MOUNTAIN_MAJOR) !== 0 && this.natMountain();
   }
 
   /**
@@ -4259,7 +4314,11 @@ class AiDay {
       facts.push(this.armyFacts(a, waiting.get(a.id) ?? 0));
     }
     const role = this.roleOfId(tpl);
-    return trainTargetArmy(role === "armor" || role === "motorized", facts);
+    return trainTargetArmy(
+      role === "armor" || role === "motorized",
+      facts,
+      this.unitTemplate(tpl),
+    );
   }
 
   // ---- ww81: merging small armies, and the role of auto-trained ones ----

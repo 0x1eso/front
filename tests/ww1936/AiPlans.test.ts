@@ -13,8 +13,12 @@ import {
   AI_RESERVE_PCT,
   aiBestRing,
   aiBorderDemand,
+  aiTrainPlan,
 } from "@openfront/engine/ww1936/land/AiLand";
-import { choosePool } from "@openfront/engine/ww1936/land/AiArmies";
+import {
+  choosePool,
+  trainTargetArmy,
+} from "@openfront/engine/ww1936/land/AiArmies";
 import {
   effortScore,
   enemyFrontScore,
@@ -219,5 +223,42 @@ describe("rule 4: sky first", () => {
     expect(effortScore(region(1, 550), false, 500)).toBe(
       Math.floor(effortScore(region(1, 0)) / 2),
     );
+  });
+});
+
+describe("rule 8: post the good troops", () => {
+  const facts = (id: number, n: number, apart = 0, armour = 0) => ({
+    id,
+    n,
+    apart,
+    armour,
+  });
+
+  it("the good troops gather in an army of their own", () => {
+    const armies = [facts(1, 12), facts(2, 3, 3), facts(3, 6, 5)];
+    expect(trainTargetArmy(false, armies, true)).toBe(3);
+    expect(trainTargetArmy(false, [facts(1, 12)], true)).toBe(0);
+    expect(trainTargetArmy(false, armies)).toBe(1);
+  });
+
+  it("Germany's motorized share doubles with its national unit", () => {
+    const train = (motorUnit: boolean) =>
+      aiTrainPlan({
+        personality: "aggressor",
+        major: true,
+        dev: 5,
+        hasArmorTech: false,
+        hasAssault: false,
+        training: 0,
+        manpower: 1_000_000,
+        counts: { infantry: 92, armor: 0, motorized: 7, mountain: 0, cavalry: 0 },
+        templates: [
+          { id: 1, key: "infantry", men: 10, fillPm: 1000 },
+          { id: 2, key: "motorized", men: 10, fillPm: 1000 },
+        ],
+        motorUnit,
+      })[0];
+    expect(train(false)).toBe(1);
+    expect(train(true)).toBe(2);
   });
 });
