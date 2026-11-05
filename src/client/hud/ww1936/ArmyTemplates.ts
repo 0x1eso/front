@@ -21,7 +21,7 @@ import type { WwLandView } from "../../view/WwLandView";
 import { LibContent, LibEntry, templateKey } from "./DesignLibrary";
 import { entryStatus, existingKeys } from "./DesignLibraryStatus";
 import { blockText } from "./EconomyModel";
-import { techOf, templateDef, templateName } from "./LandModel";
+import { ksOf, techOf, templateDef, templateName } from "./LandModel";
 
 export type ArmyContent = Extract<LibContent, { type: "army" }>;
 export type ArmyEntry = Extract<LibEntry, { type: "army" }>;
@@ -179,7 +179,8 @@ export function trainDaysFor(
   me: number,
 ): (t: TemplateData) => number {
   const tech = techOf(economy, me);
-  return (t) => templateStats(templateDef(t), tech, GEN1).trainDays;
+  return (t) =>
+    templateStats(templateDef(t), tech, GEN1, ksOf(economy, me)).trainDays;
 }
 
 export interface GroupRow {

@@ -80,12 +80,17 @@ describe("the lists are appended, never reordered", () => {
     const kinds = WwOrderSchema.options.map((o) => o.shape.kind.value);
     // ww42 appended army_direct last; the older pins read what is before it.
     // w50 appended the four air group orders last.
+    // The peace overhaul appended peace_surrender after them.
+    expect(kinds.pop()).toBe("peace_surrender");
     expect(kinds.splice(-4)).toEqual([...GROUP_ORDER_KINDS]);
-    // in_group, then w57 too_small, ww61 designer_off and ww89 too_many_support.
-    expect(WW_ORDER_BLOCKS.slice(-4)).toEqual([
+    // in_group, then w57 too_small, ww61 designer_off, the peace rules'
+    // peace_not_beaten and peace_not_leader, ww89 too_many_support.
+    expect(WW_ORDER_BLOCKS.slice(-6)).toEqual([
       "in_group",
       "too_small",
       "designer_off",
+      "peace_not_beaten",
+      "peace_not_leader",
       "too_many_support",
     ]);
     expect(kinds.pop()).toBe("start_oob");

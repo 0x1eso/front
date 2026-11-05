@@ -10,6 +10,7 @@ import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
 import {
   type DesignDef,
   ID_NAVY,
+  type ShipDesignMods,
   type WwDesignSlotData,
 } from "@openfront/engine-api/ww1936/DepthTypes";
 import {
@@ -50,10 +51,14 @@ import { SEA_ZONE_BASE } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { AdmiralDef, ADMIRALS } from "@openfront/engine-lib/ww1936/Admirals";
 import { interceptLossPm } from "@openfront/engine-lib/ww1936/ConvoyRules";
 import {
+  applyShipDesign,
   designBlock,
+  designStats,
   shipBase,
 } from "@openfront/engine-lib/ww1936/DesignRules";
 import { shipIsStandIn } from "@openfront/engine-lib/ww1936/hist/StartShips";
+import { HIST_COUNTRIES } from "@openfront/engine-lib/ww1936/hist/Types";
+import { weakShipStats } from "@openfront/engine-lib/ww1936/hist/WeakGeneric";
 import {
   crossingDays,
   easyCrossingLossPm,
@@ -91,6 +96,7 @@ import type { WwDepthView } from "../../view/WwDepthView";
 import type { WwEconomyView } from "../../view/WwEconomyView";
 import type { WwLandView } from "../../view/WwLandView";
 import { sideKeyOf, type WwNavyView } from "../../view/WwNavyView";
+import { type DesignerFlagGame, designerOn } from "./DesignerFlag";
 import { designDisplayName } from "./DesignName";
 import { BLOCK_KEYS, blockText } from "./EconomyModel";
 import type { FogModel } from "./FogModel";
@@ -141,6 +147,8 @@ export interface NavyCtx {
   shipMemo: Map<string, ShipStats>;
   /** My saved designs (empty without the depth view). */
   designs: readonly WwDesignSlotData[];
+  /** ww92: the designer is on (off: a ship with no design is weak generic use, as in the engine). */
+  designerOn: boolean;
   /** The depth view's treaty facts and finished projects, for the design checks. */
   designCtx: {
     projects: number;
@@ -213,6 +221,7 @@ export function navyCtx(game: NavyGame): NavyCtx | null {
     p4,
     shipMemo: new Map(),
     designs: depth?.detail(id)?.designs ?? [],
+    designerOn: designerOn(game as DesignerFlagGame),
     designCtx: {
       projects: depth?.detail(id)?.projects.done ?? 0,
       treatyMember: depth?.treatyData.members.includes(id) ?? false,
@@ -366,21 +375,59 @@ export const MISSION_ICONS: Readonly<Record<FleetMission, string>> = {
 
 const NO_TECHS: ReadonlySet<WwTechId> = new Set();
 
-function statsFor(ctx: NavyCtx, cls: ShipClass, gen: number): ShipStats {
-  const key = `${cls}:${gen}`;
+/** ww92: my ship as the engine's statsFor has it: the design's modifiers over the class, else (designer off) weak generic use. */
+function statsFor(
+  ctx: NavyCtx,
+  cls: ShipClass,
+  gen: number,
+  design = 0,
+): ShipStats {
+  const key = `${cls}:${gen}:${design}`;
   let s = ctx.shipMemo.get(key);
   if (s === undefined) {
-    s = shipStats(cls, gen, ctx.stats, ctx.techs);
+    const base = shipStats(cls, gen, ctx.stats, ctx.techs);
+    const row =
+      design > 0
+        ? ctx.designs.find((x) => x.kind === "ship" && x.slot === design)
+        : undefined;
+    if (row !== undefined) {
+      s = applyShipDesign(
+        base,
+        designStats(row.def, {
+          techs: ctx.techs,
+          projects: ctx.designCtx.projects,
+          relPp: 0,
+          costPct: 0,
+        }) as ShipDesignMods,
+      );
+    } else {
+      s = ctx.designerOn || design > 0 ? base : weakShipStats(base, cls, gen);
+    }
     ctx.shipMemo.set(key, s);
   }
   return s;
 }
 
 /** A ship's numbers: mine with my stats and techs, another's plain. */
-function shipOf(ctx: NavyCtx, f: FleetSummary, cls: ShipClass, gen: number) {
-  return f.owner === ctx.me && f.ships.length > 0
-    ? statsFor(ctx, cls, gen)
-    : shipStats(cls, gen, statsFromArray(null), NO_TECHS);
+function shipOf(
+  ctx: NavyCtx,
+  f: FleetSummary,
+  cls: ShipClass,
+  gen: number,
+  design = 0,
+) {
+  if (f.owner === ctx.me && f.ships.length > 0) {
+    return statsFor(ctx, cls, gen, design);
+  }
+  const plain = shipStats(cls, gen, statsFromArray(null), NO_TECHS);
+  // A minor has no catalogue, so every ship of it is weak generic use; a
+  // major's design is hidden from here, so it stays plain.
+  const tag = ctx.scenario.tagOfSmallId(f.owner);
+  return !ctx.designerOn &&
+    tag !== undefined &&
+    !(HIST_COUNTRIES as readonly string[]).includes(tag)
+    ? weakShipStats(plain, cls, gen)
+    : plain;
 }
 
 /** What one fleet adds up to (spec §7.2, §8.3, §9.9, §15.3). */
@@ -402,8 +449,8 @@ export function fleetNumbers(ctx: NavyCtx, f: FleetSummary): FleetNumbers {
   let range = Infinity;
   let speed = Infinity;
   let fuel = 0;
-  const views = list.map(([cls, gen, hpPm]) => {
-    const st = shipOf(ctx, f, cls, gen);
+  const views = list.map(([cls, gen, hpPm, design]) => {
+    const st = shipOf(ctx, f, cls, gen, design);
     range = Math.min(range, st.rangeKm);
     speed = Math.min(speed, st.speedCentiKn);
     fuel += st.fuelPerDayMilli;
@@ -664,8 +711,8 @@ export function navalSideSum(
 
 function sideShips(ctx: NavyCtx, fleets: readonly FleetSummary[]) {
   return fleets.flatMap((f) =>
-    fleetShipsOf(f).map(([cls, gen, hpPm]) => {
-      const st = shipOf(ctx, f, cls, gen);
+    fleetShipsOf(f).map(([cls, gen, hpPm, design]) => {
+      const st = shipOf(ctx, f, cls, gen, design);
       return {
         cls,
         stats: st,

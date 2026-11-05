@@ -24,6 +24,7 @@ import {
   CIVIL_WAR_SLOTS,
   COUNTRIES,
 } from "@openfront/engine-api/ww1936/Countries";
+import type { KeyStatsTable } from "@openfront/engine-api/ww1936/DepthTypes";
 import type { WwPolGlobal } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import type { WorldWarData } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { Config } from "@openfront/engine-lib/configuration/Config";
@@ -31,6 +32,7 @@ import { unpackMotionPlans } from "@openfront/engine-lib/game/MotionPlans";
 import { TerrainMapData } from "@openfront/engine-lib/game/TerrainMapLoader";
 import { TerraNulliusImpl } from "@openfront/engine-lib/game/TerraNulliusImpl";
 import { UnitGrid } from "@openfront/engine-lib/game/UnitGrid";
+import { histStaticKeyTable } from "@openfront/engine-lib/ww1936/hist/StaticKeys";
 import {
   fillScenarioOwners,
   ScenarioIndex,
@@ -224,6 +226,23 @@ export class GameView implements GameLike {
       this._wwAir = new WwAirView(scenario, me, side);
       this._wwEndgame = new WwEndgameView();
       this._wwDepth = new WwDepthView();
+      // ww92: template screens read the stats and key table the engine uses.
+      const econ = this._wwEconomy;
+      const pol = this._wwPolitics;
+      econ.statsSource = (id) => pol.detail(id)?.stats ?? null;
+      const ksMemo = new Map<string, KeyStatsTable>();
+      econ.keyStatsSource = (id) => {
+        const tag = scenario.tagOfSmallId(id);
+        if (tag === undefined) return null;
+        // Designer on: the generic table (a fresh division holds no designs).
+        if (this._config.gameConfig().ww1936Designer === true) return null;
+        let t = ksMemo.get(tag);
+        if (t === undefined) {
+          t = histStaticKeyTable(tag);
+          ksMemo.set(tag, t);
+        }
+        return t;
+      };
     }
     this.lastUpdate = null;
     this.unitGrid = new UnitGrid<UnitView>(this._map);

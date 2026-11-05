@@ -10,36 +10,22 @@ import type {
   DesignKind,
   KeyStatsTable,
 } from "@openfront/engine-api/ww1936/DepthTypes";
-import { KS, KS_FIELDS } from "@openfront/engine-api/ww1936/DepthTypes";
 import {
-  EQUIP_KEYS,
   equipKey,
   EQUIPMENT_GENS,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
-import {
-  GROUND_EQUIP_KEYS,
-  GROUND_STATIC_SLOTS,
-} from "@openfront/engine-api/ww1936/LandTypes";
-import { histStatsOf } from "@openfront/engine-lib/ww1936/hist/Convert";
-import type { GearStats } from "@openfront/engine-lib/ww1936/hist/ConvertGear";
-import { tankStatsOfEntry } from "@openfront/engine-lib/ww1936/hist/ConvertTank";
 import { histEntry } from "@openfront/engine-lib/ww1936/hist/index";
 import {
   histKindOf,
   histOwn,
   histSlotOf,
-  histStaticEntry,
 } from "@openfront/engine-lib/ww1936/hist/Slots";
+import { fillStaticKeys } from "@openfront/engine-lib/ww1936/hist/StaticKeys";
 import {
   HIST_COUNTRIES,
   HistCountry,
   HistEntry,
 } from "@openfront/engine-lib/ww1936/hist/Types";
-import { weakKeyRow } from "@openfront/engine-lib/ww1936/hist/WeakGeneric";
-import {
-  rowScore,
-  STATIC_KEY_STATS,
-} from "@openfront/engine-lib/ww1936/TemplateStats";
 import type { CountryDepth, DesignSlot, WwDepth } from "./WwDepth";
 
 const PLANE_BASE_BY_TYPE: Readonly<Record<string, string>> = {
@@ -166,8 +152,6 @@ export function histOfSlot(
   return h === undefined ? undefined : histEntry(h);
 }
 
-const GEAR_FIELDS = [KS.soft, KS.hard, KS.def, KS.brk] as const;
-
 /**
  * A major's static keys take their numbers from its catalogue (rule 7). A tank
  * key: the entry standing in for it, real numbers, since its generations are
@@ -185,80 +169,7 @@ export function fillHistStatics(
   t: KeyStatsTable,
 ): void {
   if (designerOn(d)) return;
-  const country = histCountryOf(d, id);
-  if (country === null) {
-    for (let j = 0; j < GROUND_STATIC_SLOTS; j++) weakKeyRow(t, j);
-    return;
-  }
-  // Per type: the last tank row, or the last gear entry's percent and pierce row.
-  const lastTank = new Map<string, number>();
-  const lastGear = new Map<string, { pct: number; pierceRow: number }>();
-  for (let j = 0; j < GROUND_STATIC_SLOTS; j++) {
-    const [type, gen] = EQUIP_KEYS[GROUND_EQUIP_KEYS[j]];
-    const e = histStaticEntry(country, type, gen);
-    const o = j * KS_FIELDS;
-    const generic = STATIC_KEY_STATS.stats;
-    if (e === undefined) {
-      const tank = lastTank.get(type);
-      if (tank !== undefined) {
-        for (let f = 0; f < KS_FIELDS; f++) {
-          t.stats[o + f] = t.stats[tank * KS_FIELDS + f];
-        }
-        t.score[j] = t.score[tank];
-        lastTank.set(type, j);
-        continue;
-      }
-      const gear = lastGear.get(type);
-      if (gear === undefined) {
-        weakKeyRow(t, j);
-        continue;
-      }
-      for (const f of GEAR_FIELDS) {
-        t.stats[o + f] = Math.floor((generic[o + f] * gear.pct) / 100);
-      }
-      const baseP = generic[gear.pierceRow * KS_FIELDS + KS.pierce];
-      if (baseP > 0) {
-        t.stats[o + KS.pierce] = Math.floor(
-          (t.stats[gear.pierceRow * KS_FIELDS + KS.pierce] *
-            generic[o + KS.pierce]) /
-            baseP,
-        );
-      }
-      continue;
-    }
-    if (e.family === "tank") {
-      if (type !== "light_tank" && type !== "medium_tank") continue;
-      const s = tankStatsOfEntry(e);
-      t.stats[o + KS.soft] = s.soft;
-      t.stats[o + KS.hard] = s.hard;
-      t.stats[o + KS.def] = s.def;
-      t.stats[o + KS.brk] = s.brk;
-      t.stats[o + KS.pierce] = s.pierce;
-      t.stats[o + KS.armor] = s.armor;
-      t.stats[o + KS.hardnessPm] = s.hardnessPm;
-      t.stats[o + KS.speedCenti] = s.speedCenti;
-      t.stats[o + KS.aa] = s.aa;
-      t.stats[o + KS.relPm] = s.relPm;
-      t.stats[o + KS.fuelPct] = s.fuelPct;
-      t.stats[o + KS.flags] = s.flags;
-      t.score[j] = rowScore(t.stats, j, t.group[j], t.year[j]);
-      lastTank.set(type, j);
-      continue;
-    }
-    if (
-      e.family !== "infantry" &&
-      e.family !== "support" &&
-      e.family !== "gun"
-    ) {
-      continue;
-    }
-    const g = histStatsOf(e) as GearStats;
-    for (const f of GEAR_FIELDS) {
-      t.stats[o + f] = Math.floor((generic[o + f] * g.statPct) / 100);
-    }
-    if (g.pierceCenti > 0) t.stats[o + KS.pierce] = g.pierceCenti;
-    lastGear.set(type, { pct: g.statPct, pierceRow: j });
-  }
+  fillStaticKeys(histCountryOf(d, id), t);
 }
 
 /**

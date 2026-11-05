@@ -48,6 +48,7 @@ import {
   battalionSummary,
   designer,
   designGroupsOf,
+  ksOf,
   presetLockText,
   researchedOf,
   techOf,
@@ -256,9 +257,10 @@ export class WwTemplateDesigner extends LitElement {
     const researched = researchedOf(economy, me);
     const tech = techOf(economy, me);
     const after = { ...this.draft, name: this.saveName() };
-    const d = designer(after, tech, researched);
+    const ks = ksOf(economy, me);
+    const d = designer(after, tech, researched, ks);
     const beforeStats =
-      this.saved === null ? null : templateStats(this.saved, tech, GEN1);
+      this.saved === null ? null : templateStats(this.saved, tech, GEN1, ks);
     const isNew = this.editing === 0;
     const block: WwOrderBlock | null =
       after.name === ""

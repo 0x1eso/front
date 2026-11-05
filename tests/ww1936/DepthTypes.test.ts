@@ -81,6 +81,8 @@ describe("World War 1936 P6 lists", () => {
       "air_template_drop",
       "air_group_order",
       "air_group_disband",
+      // The peace conference: surrender.
+      "peace_surrender",
     ]);
   });
 
@@ -100,8 +102,11 @@ describe("World War 1936 P6 lists", () => {
   });
 
   it("techs, refusals, stats, effects and conditions are appended", () => {
-    // P6's 33, then the research overhaul's 108, w28's 2.
-    expect(after(WW_TECH_IDS, "military_police")).toHaveLength(33 + 108 + 2);
+    // P6's 33, then the research overhaul's 108, w28's 2, the tank and air
+    // tree's 7 (tank_armour_1/2, tank_drive_1/2, tank_command, air_protection, air_range).
+    expect(after(WW_TECH_IDS, "military_police")).toHaveLength(
+      33 + 108 + 2 + 7,
+    );
     expect(after(WW_TECH_IDS, "rocketry_1")[0]).toBe("inf_imp_1");
     expect(after(WW_TECH_IDS, "military_police")[0]).toBe("heavy_tank_1");
     // 32 (pre-flight §0-6: no_civs and no_xp existed already).
@@ -113,8 +118,9 @@ describe("World War 1936 P6 lists", () => {
     expect(new Set(WW_ORDER_BLOCKS).size).toBe(WW_ORDER_BLOCKS.length);
     // 69 (the brief's 74 less the 5 P4 added at the pre-flight's request).
     const stats = after(WW_STAT_KEYS, "occupationOutputPp");
-    // The research overhaul appends its three after them.
-    expect(stats).toHaveLength(69 + 3);
+    // The research overhaul appends its three after them, the tank and
+    // anti-tank techs four (armorSpeedPct, infAtPierce, infAtHard, tankFearCutPp).
+    expect(stats).toHaveLength(69 + 3 + 4);
     expect(stats[0]).toBe("infAttackPct");
     expect(new Set(WW_STAT_KEYS).size).toBe(WW_STAT_KEYS.length);
     // Pre-flight §0-6: after P5's navy_xp; 10 conditions with nukes_on.

@@ -82,6 +82,8 @@ describe("war overhaul C0: the contract", () => {
     const kinds = WwOrderSchema.options.map((o) => o.shape.kind.value);
     // The air groups appended their four last (after ww48's start_oob after
     // ww42's army_direct); the older pins read what is before them.
+    // The peace overhaul appended peace_surrender after them.
+    expect(kinds.pop()).toBe("peace_surrender");
     expect(kinds.splice(-4)).toEqual([
       "air_template",
       "air_template_drop",

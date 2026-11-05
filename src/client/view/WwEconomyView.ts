@@ -1,3 +1,4 @@
+import type { KeyStatsTable } from "@openfront/engine-api/ww1936/DepthTypes";
 import {
   BUILDING_IDS,
   BuildingId,
@@ -50,6 +51,14 @@ export class WwEconomyView {
   private repairPm = new Map<number, number>();
   /** Bumped on every merge; screens redraw when it moves. */
   version = 0;
+  /**
+   * ww92: what the engine uses for a country's template stats beyond its
+   * researched techs: the sum of its stats (spirits, laws, ...) in
+   * WW_STAT_KEYS order, and its static key table. Set by the game view;
+   * null: the screens fall back to techs and the generic table.
+   */
+  statsSource: ((id: number) => readonly number[] | null) | null = null;
+  keyStatsSource: ((id: number) => KeyStatsTable | null) | null = null;
 
   constructor(readonly scenario: ScenarioIndex) {
     const regions = scenario.landRegions;

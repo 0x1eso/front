@@ -184,17 +184,20 @@ export function landingBpsOf(
 }
 
 /** A fleet's ships as (class, generation) pairs; other countries' fleets: their counts at generation 1. */
-export function fleetShipsOf(f: FleetSummary): [ShipClass, number, number][] {
+export function fleetShipsOf(
+  f: FleetSummary,
+): [ShipClass, number, number, number][] {
   if (f.ships.length > 0) {
-    return f.ships.map((s): [ShipClass, number, number] => [
+    return f.ships.map((s): [ShipClass, number, number, number] => [
       s.cls,
       s.gen,
       s.hpPm,
+      s.design ?? 0,
     ]);
   }
-  const out: [ShipClass, number, number][] = [];
+  const out: [ShipClass, number, number, number][] = [];
   SHIP_CLASSES.forEach((cls, i) => {
-    for (let k = 0; k < (f.counts[i] ?? 0); k++) out.push([cls, 1, f.hpPm]);
+    for (let k = 0; k < (f.counts[i] ?? 0); k++) out.push([cls, 1, f.hpPm, 0]);
   });
   return out;
 }

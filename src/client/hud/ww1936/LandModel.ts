@@ -5,7 +5,10 @@
 // the paths, the fronts and the weather.
 import type { LandOrder } from "@openfront/engine-api/Schemas";
 import { COUNTRIES } from "@openfront/engine-api/ww1936/Countries";
-import type { DesignDef } from "@openfront/engine-api/ww1936/DepthTypes";
+import type {
+  DesignDef,
+  KeyStatsTable,
+} from "@openfront/engine-api/ww1936/DepthTypes";
 import {
   EQUIP_KEYS,
   EQUIPMENT_TYPES,
@@ -46,6 +49,7 @@ import {
   WW_ZONE_DIVS_DEFEND,
   WW_ZONE_MAX,
 } from "@openfront/engine-api/ww1936/LandTypes";
+import { WW_STAT_KEYS } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { BATTALIONS } from "@openfront/engine-lib/ww1936/Battalions";
 import {
   addSideBands,
@@ -97,6 +101,7 @@ import {
 } from "@openfront/engine-lib/ww1936/TemplatePresets";
 import {
   GEN1,
+  STATIC_KEY_STATS,
   templateBlock,
   templateCounts,
   templateStats,
@@ -371,7 +376,22 @@ export function researchedOf(
 }
 
 export function techOf(economy: WwEconomyView, me: number): TechTotals {
-  return techTotals(researchedOf(economy, me));
+  const tech = techTotals(researchedOf(economy, me));
+  // ww92: the engine feeds templateStats the country's whole stat sum
+  // (spirits, laws, ...), not the techs alone; the screens do the same.
+  const sum = economy.statsSource?.(me) ?? null;
+  if (sum === null) return tech;
+  const out: TechTotals = { ...tech };
+  const o = out as unknown as Record<string, number>;
+  WW_STAT_KEYS.forEach((k, n) => {
+    o[k] = sum[n] ?? 0;
+  });
+  return out;
+}
+
+/** ww92: the country's static key table as the engine uses it (the weak generic of a minor, a major's catalogue). */
+export function ksOf(economy: WwEconomyView, me: number): KeyStatsTable {
+  return economy.keyStatsSource?.(me) ?? STATIC_KEY_STATS;
 }
 
 const NEUTRAL_TECH = techTotals(new Set());
@@ -517,7 +537,9 @@ export function armyLift(
       const t = templateOf(view, me, id);
       stats.set(
         id,
-        t === null ? null : templateStats(templateDef(t), tech, GEN1),
+        t === null
+          ? null
+          : templateStats(templateDef(t), tech, GEN1, ksOf(economy, me)),
       );
     }
     return stats.get(id) ?? null;
@@ -1467,7 +1489,10 @@ function armyInput(
   const divs = divisionsOf(view, me, a.id);
   const tech = techOf(economy, me);
   const t = templateOf(view, me, mainTemplate(divs));
-  const ts = t === null ? null : templateStats(templateDef(t), tech, GEN1);
+  const ts =
+    t === null
+      ? null
+      : templateStats(templateDef(t), tech, GEN1, ksOf(economy, me));
   const g = generalData(view, me, a.general);
   const exp =
     divs.length === 0
@@ -1640,7 +1665,9 @@ function armyUsesFuel(
   return divisionsOf(view, me, army).some((d) => {
     const t = templateOf(view, me, d.template);
     return (
-      t !== null && templateStats(templateDef(t), tech, GEN1).fuelHourMilli > 0
+      t !== null &&
+      templateStats(templateDef(t), tech, GEN1, ksOf(economy, me))
+        .fuelHourMilli > 0
     );
   });
 }
@@ -1658,7 +1685,7 @@ function armySpeed(
     if (t === null) continue;
     speed = Math.min(
       speed,
-      templateStats(templateDef(t), tech, GEN1).speedCenti,
+      templateStats(templateDef(t), tech, GEN1, ksOf(economy, me)).speedCenti,
     );
   }
   return speed === Number.MAX_SAFE_INTEGER ? 400 : speed;
@@ -1702,7 +1729,9 @@ export function invasionForce(
   const divs = divisionsOf(view, me, army);
   const statsOf = (tpl: number) => {
     const t = templateOf(view, me, tpl);
-    return t === null ? null : templateStats(templateDef(t), tech, GEN1);
+    return t === null
+      ? null
+      : templateStats(templateDef(t), tech, GEN1, ksOf(economy, me));
   };
   const all = divs.map((d) => ({
     ...d,
@@ -1874,7 +1903,10 @@ export function battleCard(
     const a = myArmy(view, me, d.army);
     if (a === null) return null;
     const t = templateOf(view, me, d.template);
-    const ts = t === null ? null : templateStats(templateDef(t), tech, GEN1);
+    const ts =
+      t === null
+        ? null
+        : templateStats(templateDef(t), tech, GEN1, ksOf(economy, me));
     const opponent = attacking ? b.defender : b.attacker;
     return {
       ...armyInput(view, economy, me, a, attacking, region, sides, opponent),
@@ -2108,8 +2140,9 @@ export function designer(
   after: TemplateDef,
   tech: TechTotals,
   researched: ReadonlySet<WwTechId>,
+  ks: KeyStatsTable = STATIC_KEY_STATS,
 ): DesignerData {
-  const stats = templateStats(after, tech, GEN1);
+  const stats = templateStats(after, tech, GEN1, ks);
   const block = templateBlock(after, researched, Infinity);
   return { stats, block, factoryDays: factoryDaysOf(stats) };
 }
@@ -2182,9 +2215,12 @@ export function shortTypes(
   const need = new Array<number>(EQUIPMENT_TYPES.length).fill(0);
   for (const r of pick) {
     if (r.template === null) continue;
-    templateStats(templateDef(r.template), tech, GEN1).need.forEach(
-      (n, i) => (need[i] += n),
-    );
+    templateStats(
+      templateDef(r.template),
+      tech,
+      GEN1,
+      ksOf(economy, me),
+    ).need.forEach((n, i) => (need[i] += n));
   }
   const stock = economy.detail(me)?.stock ?? [];
   const have = new Array<number>(EQUIPMENT_TYPES.length).fill(0);

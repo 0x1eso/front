@@ -155,9 +155,11 @@ describe("World War 1936 P5 lists", () => {
       "no_deposit",
       // The air groups: a plane already in a group.
       "in_group",
-      // w57, ww61 and ww89 append their three.
+      // w57 and ww61 append their two, the peace rules two, ww89 one.
       "too_small",
       "designer_off",
+      "peace_not_beaten",
+      "peace_not_leader",
       "too_many_support",
     ]);
     const kinds = WwOrderSchema.options.map(
@@ -165,6 +167,8 @@ describe("World War 1936 P5 lists", () => {
     );
     // ww48 appended start_oob last, ww42 army_direct before it; the older
     // pins read what is before them.
+    // The peace conference appended peace_surrender after the air groups.
+    expect(kinds.pop()).toBe("peace_surrender");
     expect(kinds.splice(-4)).toEqual([
       "air_template",
       "air_template_drop",
