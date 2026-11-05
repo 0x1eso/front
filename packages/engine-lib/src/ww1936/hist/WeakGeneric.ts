@@ -456,7 +456,44 @@ function keyRows(): Map<number, number>[] {
   return out;
 }
 
-/** Writes the generic use of static slot `j` into a table's row. */
+const WEAKEST_TANK = new Map<number, number>();
+
+/**
+ * The lowest score a real tank of slot `j` has in a table, speed counted
+ * (Infinity: not a tank key). ww90 scores a tank by its speed, so a slow real
+ * one (an FT-17, a Matilda I) ranks far under its fight numbers.
+ */
+function weakestTankScore(j: number): number {
+  const known = WEAKEST_TANK.get(j);
+  if (known !== undefined) return known;
+  const [type, gen] = EQUIP_KEYS[GROUND_EQUIP_KEYS[j]];
+  let weakest = Infinity;
+  if (type === "light_tank" || type === "medium_tank") {
+    const { group, year } = STATIC_KEY_STATS;
+    const one = new Int32Array(KS_FIELDS);
+    for (const e of realTanks(type, gen)) {
+      const s = tankStatsOfEntry(e);
+      one[KS.soft] = s.soft;
+      one[KS.hard] = s.hard;
+      one[KS.def] = s.def;
+      one[KS.brk] = s.brk;
+      one[KS.pierce] = s.pierce;
+      one[KS.armor] = s.armor;
+      one[KS.aa] = s.aa;
+      one[KS.speedCenti] = s.speedCenti;
+      weakest = Math.min(weakest, rowScore(one, 0, group[j], year[j]));
+    }
+  }
+  WEAKEST_TANK.set(j, weakest);
+  return weakest;
+}
+
+/**
+ * Writes the generic use of static slot `j` into a table's row. Its score stays
+ * under every real tank's, speed counted; only the score, which ranks the slot:
+ * its fight numbers answer to the real fight numbers (keyTarget), and a 1.5 km/h
+ * FT-17 is no reason to cut those to a sixth.
+ */
 export function weakKeyRow(
   t: {
     stats: Int32Array;
@@ -470,5 +507,8 @@ export function weakKeyRow(
   if (row === undefined || row.size === 0) return;
   const o = j * KS_FIELDS;
   for (const [f, v] of row) t.stats[o + f] = v;
-  t.score[j] = rowScore(t.stats, j, t.group[j], t.year[j]);
+  t.score[j] = Math.min(
+    rowScore(t.stats, j, t.group[j], t.year[j]),
+    weakestTankScore(j) - 1,
+  );
 }
