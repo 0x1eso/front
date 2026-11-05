@@ -29,6 +29,7 @@ import { aiPersonality } from "../economy/AiEconomy";
 import { aiBorderDemand } from "../land/AiLand";
 import { enemyDivisionsIn } from "../land/Movement";
 import { leaveAttack, setGarrison, stopOrFinishEdge } from "../land/Orders";
+import { ATTRITION_SUPPLY_PM } from "../land/Sustain";
 import type { Army, WwLand } from "../land/WwLand";
 import { needOf, rowSuppression } from "./Garrison";
 import {
@@ -226,10 +227,15 @@ function frontHeavy(eg: WwEndgame, id: number): boolean {
   return demand * 100 > AI_FRONT_HEAVY_PCT * land.rowsOf(id).length * 10;
 }
 
-/** A division the AI may take into a garrison: free of fights, voyages, invasions, drops and volunteering. */
+/**
+ * A division the AI may take into a garrison: free of fights, voyages, invasions,
+ * drops and volunteering. ww106: and fed: the weakest go first, so a pocket's
+ * starving divisions were picked, and no relief moves a garrison.
+ */
 function garrisonable(land: WwLand, row: number): boolean {
   const t = land.divisions;
   if (t.id[row] === 0 || t.battle[row] !== 0) return false;
+  if (t.supply[row] < ATTRITION_SUPPLY_PM) return false;
   const m = t.mode[row];
   if (m === MOVE_RETREAT || m === MOVE_ADVANCE || m === MOVE_SEA) return false;
   const a = land.armies.get(t.army[row]);

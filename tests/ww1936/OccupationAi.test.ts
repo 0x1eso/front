@@ -107,6 +107,20 @@ describe("World War 1936 P5: the occupation AI", () => {
       expect(a.divisions.length).toBeLessThanOrEqual(24);
   }, 60_000);
 
+  it("ww106: takes no starving division into a garrison, where no relief moves it", async () => {
+    const { runner, g, eg, land, deu } = await aiGame();
+    for (const r of CZECH) eg.resBp[r] = 6000;
+    const a = placeArmy(g, "DEU", END.region["prague"], 8);
+    const t = land.divisions;
+    for (const id of a.divisions) t.supply[t.rowOf(id)] = 100;
+    days(runner, 3);
+    const taken = land
+      .armiesOf(deu)
+      .filter((x) => x.order.kind === "garrison")
+      .flatMap((x) => x.divisions);
+    expect(taken.filter((id) => a.divisions.includes(id))).toEqual([]);
+  }, 60_000);
+
   it("switches to civil law under heavy resistance", async () => {
     const { runner, ww, eg, deu } = await aiGame();
     for (const r of CZECH) eg.resBp[r] = 9000;

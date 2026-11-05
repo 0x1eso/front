@@ -107,7 +107,9 @@ import { queueBuild } from "../economy/Construction";
 import { fuelCapOf } from "../economy/Fuel";
 import type { CountryEconomy } from "../economy/WwEconomy";
 import { aiRouteSupPm, seaReach } from "../navy/AiNavy";
+import { freeConvoysOf } from "../navy/Convoys";
 import { navalPort, navalPortsOf } from "../navy/Ports";
+import { convoysForDivisions } from "../navy/SeaTransfer";
 import {
   type ArmyFacts,
   chooseMerge,
@@ -2908,7 +2910,7 @@ class AiDay {
       this.offEffort.add(a.id);
       const zone = this.rearZone(a, f, line, unit);
       if (zone !== null) this.giveZone(a, f, zone, true);
-      else if (!this.sailOff(a, f, unit)) {
+      else if (!this.sailOff(a, f.comp, unit)) {
         // No way out: the whole stretch shares the hunger, not one region.
         const all = this.rearList(f, line);
         this.giveZone(
@@ -3006,13 +3008,18 @@ class AiDay {
    * no order took them away. It sails on any route: at 7 % there is nothing to
    * lose.
    */
-  private sailOff(a: Army, f: Front, unit: number): boolean {
+  private sailOff(a: Army, stretch: number, unit: number): boolean {
     const land = this.land;
     const sc = land.scenario;
     const t = land.divisions;
     const rows = armyRows(land, a);
-    const ports = this.portsOf(f.comp);
+    const ports = this.portsOf(stretch);
     if (rows.length === 0 || ports.length === 0) return false;
+    // ww106: with too few convoys it would only starve in the port instead.
+    const navy = land.ww.navy;
+    if (freeConvoysOf(navy, this.me) < convoysForDivisions(navy, a.divisions)) {
+      return false;
+    }
     const comp = this.comp();
     const here = t.region[rows[0]];
     const gathered =
@@ -3025,7 +3032,9 @@ class AiDay {
     let best = 0;
     let bestKm = Infinity;
     for (const r of this.side().regions) {
-      if (comp[r] === f.comp || comp[r] < 0 || !navalPort(land.ww, r)) continue;
+      if (comp[r] === stretch || comp[r] < 0 || !navalPort(land.ww, r)) {
+        continue;
+      }
       const take = Math.min(rows.length, zoneCap(land, r, 1, mean));
       if (Math.floor(this.feedOf(r) / unit) < take) continue;
       const km = sc.regionKm(from, r);
@@ -3080,9 +3089,31 @@ class AiDay {
   }
 
   /**
+   * ww106: stretch `c` can't feed who stands on it and no enemy is next to it: no
+   * fight will open a way out. Seed 2's 1940: Poland's separate peace shut about
+   * 285 Soviet divisions in East Prussia and Lithuania between neutrals, with
+   * convoys for six of them, and attrition took 2.3 million men in a year.
+   */
+  private deadEnd(c: number): boolean {
+    const land = this.land;
+    const comp = this.comp();
+    let supply = 0;
+    let use = 0;
+    for (const r of this.side().regions) {
+      if (comp[r] !== c) continue;
+      if (!this.quiet(r)) return false;
+      supply += land.supplyMilli[r];
+      use += land.useMilli[r];
+    }
+    return supply < use;
+  }
+
+  /**
    * ww103: idle armies starving where they stand walk to the nearest region of
    * their stretch that feeds them (a port's few supplies, a landing's beach, an
    * empire's desert town). A front's armies are holdFront's, while its war lasts.
+   * ww106: with no such region they sail, and in a dead end with no convoys for
+   * them one army goes home each period, until the rest are fed.
    */
   private relieve(garrisons: ReadonlySet<number>): void {
     if ((this.day + this.me) % AI_RELIEF_PERIOD_DAYS !== 0) return;
@@ -3116,6 +3147,7 @@ class AiDay {
       return n;
     };
     const regions = this.side().regions;
+    let sent = false;
     for (const a of hungry) {
       const here = land.armyRegion(a);
       const c = comp[here];
@@ -3132,15 +3164,17 @@ class AiDay {
         }
       }
       if (best === 0) {
+        if (this.sailOff(a, c, unit)) continue;
+        const rows = armyRows(land, a);
+        let sum = 0;
+        for (const r of rows) sum += t.supply[r];
+        if (sum >= ATTRITION_SUPPLY_PM * rows.length) continue;
         // No way out, by land or sea, at peace: an enclave a line peace left it
         // in (175 Soviet divisions starved in Saxony for years). The men go
         // home by disbanding.
-        if (
-          this.atWar.length === 0 &&
-          this.portsOf(c).length === 0 &&
-          t.supply[armyRows(land, a)[0]] < ATTRITION_SUPPLY_PM
-        ) {
-          this.issue({ kind: "army_disband", army: a.id });
+        const enclave = this.atWar.length === 0 && this.portsOf(c).length === 0;
+        if (enclave || (!sent && this.effortDue() && this.deadEnd(c))) {
+          sent = this.issue({ kind: "army_disband", army: a.id }) || sent;
         }
         continue;
       }

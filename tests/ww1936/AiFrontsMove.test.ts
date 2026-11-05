@@ -248,6 +248,44 @@ describe("the AI's fronts move (ww103)", () => {
     });
   });
 
+  it("ww106: a democracy stronger with its land back goes in; with land still lost it takes that back first", async () => {
+    const run = async (lost: boolean) => {
+      const { runner, g, l, ww, deu, pl: fra } = await realWar("DEU", "FRA");
+      const sc = l.scenario;
+      const legal = ww.politics.legalOwner;
+      const home = sc.landRegions.find(
+        (r) =>
+          legal[r.id] === fra &&
+          sc.edgesOf(r.id).some((e) => legal[e.to] === deu),
+      )!.id;
+      const across = sc.edgesOf(home).find((e) => legal[e.to] === deu)!.to;
+      const far = sc.edgesOf(home).find((e) => legal[e.to] === fra)!.to;
+      if (lost) {
+        takeRegion(g, far, "DEU");
+        placeArmy(g, "DEU", far, 6);
+      }
+      for (let i = 0; i < 3; i++) placeArmy(g, "FRA", home, 24);
+      placeArmy(g, "DEU", across, 2);
+      const d0 = ww.day(g.ticks());
+      const aims = new Set<number>();
+      for (let d = d0; d <= d0 + 40; d++) {
+        finishDay(runner, d);
+        // Once it has the land back the rule is over: that's the other case.
+        if (lost && l.controller[far] !== deu) break;
+        for (const a of l.armiesOf(fra)) {
+          if (a.order.kind !== "plan") continue;
+          for (const r of a.order.targets) aims.add(legal[r]);
+        }
+      }
+      return { aims, deu, fra };
+    };
+    const back = await run(false);
+    expect(back.aims.has(back.deu)).toBe(true);
+    const short = await run(true);
+    expect(short.aims.has(short.fra)).toBe(true);
+    expect(short.aims.has(short.deu)).toBe(false);
+  }, 300_000);
+
   it("the fort decision stops where the AI's border stands at its level", async () => {
     const { g, deu } = await war();
     const p = pol(g);
@@ -370,6 +408,44 @@ describe("the AI's fronts move (ww103)", () => {
       });
     }
     expect(sailed).toBe(true);
+  }, 300_000);
+
+  it("ww106: an idle army its stretch can't feed sails too", async () => {
+    // A war with no land front: nothing but the relief looks at them.
+    const { runner, g, l, ww } = await realWar("SUN", "USA");
+    const sc = l.scenario;
+    const sakhalin = sc.landRegions.find((r) => r.name === "Sakhalin")!.id;
+    for (const e of sc.edgesOf(sakhalin)) {
+      if (l.controller[e.to] === l.controller[sakhalin]) {
+        takeRegion(g, e.to, "JPN");
+      }
+    }
+    const armies = [0, 1, 2, 3].map(() => placeArmy(g, "SUN", sakhalin, 20));
+    const d0 = ww.day(g.ticks());
+    let sailed = false;
+    for (let d = d0; d <= d0 + 24 && !sailed; d++) {
+      finishDay(runner, d);
+      sailed = armies.some((a) => {
+        const o = a.order;
+        return o.kind === "move" && o.to !== sakhalin;
+      });
+    }
+    expect(sailed).toBe(true);
+  }, 300_000);
+
+  it("ww106: at war, cut off between neutrals with no convoys, armies go home one at a time", async () => {
+    const { runner, g, l, ww, d0, deu } = await war();
+    const LONDON = 10;
+    takeRegion(g, LONDON, "DEU");
+    ww.economy.buildingArray("naval_base")[LONDON] = 0;
+    const ce = l.econ.country(deu)!;
+    ce.manpower += 10_000_000;
+    for (let k = 0; k < ce.stock.length; k++) ce.stock[k] += 1_000_000;
+    for (let i = 0; i < 3; i++) placeArmy(g, "DEU", LONDON, 24);
+    // One period of the effort: one army, the war still on.
+    for (let d = d0; d <= d0 + 12; d++) finishDay(runner, d);
+    expect(ww.enemiesOf(deu).length).toBeGreaterThan(0);
+    expect(l.rowsIn(LONDON).length).toBe(48);
   }, 300_000);
 
   it("ww105: a hungry army walks when no rail line reaches where it's fed", async () => {
