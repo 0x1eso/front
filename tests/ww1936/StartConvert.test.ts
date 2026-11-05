@@ -17,12 +17,15 @@ import {
 } from "@openfront/engine-api/ww1936/EconomyTypes";
 import { GameMapSize, GameMapType } from "@openfront/engine-api/game/GameTypes";
 import type { MapFiles } from "@openfront/engine-api/game/MapFiles";
-import { createGameRunner } from "@openfront/engine/GameRunner";
+import {
+  createGameRunner,
+  createGameRunnerFromSnapshot,
+} from "@openfront/engine/GameRunner";
 import { loadMapFiles } from "@openfront/shared/GameMapLoader";
 import path from "path";
 import { fileURLToPath } from "url";
 import { NodeGameMapLoader } from "../perf/fullgame/NodeGameMapLoader";
-import { HUMAN, stepTo, wwGameStart, wwRestore, wwRunner } from "./util";
+import { HUMAN, stepTo, wwGameStart } from "./util";
 
 let files: MapFiles;
 beforeAll(async () => {
@@ -200,14 +203,18 @@ describe("start ships", () => {
   });
 
   test("a restored game has the same ships and the same hash", async () => {
-    const humans = [{ clientID: HUMAN, country: "DEU" as const }];
-    const a = await wwRunner({ ww1936Designer: false }, humans, "ww1936deep");
-    stepTo(a, 3);
-    const t = a.game.worldWar()!.navy.ships;
+    const { runner: a, ww } = await game(false);
+    const t = ww.navy.ships;
     expect(t.design.subarray(0, t.rows).some((x) => x > 0)).toBe(true);
-    const b = await wwRestore(a, humans, "ww1936deep", {
-      ww1936Designer: false,
-    });
+    const b = await createGameRunnerFromSnapshot(
+      wwGameStart({ ww1936Designer: false }, [
+        { clientID: HUMAN, country: "DEU" },
+      ]),
+      a.snapshot(),
+      undefined,
+      files,
+      () => {},
+    );
     const u = b.game.worldWar()!.navy.ships;
     expect([...u.design.subarray(0, u.rows)]).toEqual([
       ...t.design.subarray(0, t.rows),
