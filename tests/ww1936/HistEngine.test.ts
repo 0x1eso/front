@@ -302,6 +302,8 @@ describe("start stock by generation (B4)", () => {
     const { runner, ww } = await game(false);
     const ce = ww.economy.country(DEU)!;
     const own = histOwn("DEU", "plane");
+    // ww83: one fighter is open at the start now; open a second.
+    ce.researched.add("fighter_2");
     const slots = (): number[] =>
       own
         .map((e, i) => (ce.stock[equipKey("plane_design", i + 1)] > 0 ? i : -1))

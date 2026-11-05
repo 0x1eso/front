@@ -1879,7 +1879,7 @@ export const SUN_HIST: readonly HistEntry[] = [
     country: "SUN",
     family: "tank",
     role: "spaa",
-    techs: ["light_tank_2", "anti_air_2"],
+    techs: ["light_tank_2", "anti_air_2", "tank_drive_2"],
     year: 1945,
     // ww85: 37 mm 61-K in an open turret on the SU-76M chassis; 375 built to 1948, no service in the war. Rate is the cyclic 120, as usa_m19_gmc counts it (practical 50-60). No price found: estimate above the SU-76M's 16. Penetration and HE filler are estimates for the 37 mm.
     source:
