@@ -28,6 +28,10 @@ import {
   stockTable,
 } from "../../../src/client/hud/ww1936/EconomyModel";
 import { histTankGroups } from "../../../src/client/hud/ww1936/HistPicker";
+import {
+  lobbyResearched,
+  lobbyTech,
+} from "../../../src/client/hud/ww1936/LobbyPrep";
 import { effectLines } from "../../../src/client/hud/ww1936/TechEffectLines";
 import { OpenWwIndustryEvent } from "../../../src/client/hud/ww1936/WwDrawer";
 import "../../../src/client/hud/ww1936/WwIndustryPanel";
@@ -216,6 +220,21 @@ describe("catalogue names", () => {
         slot: 7,
       }).name,
     ).toBe("[ww1936.hist.deu_pz4_h]");
+  });
+
+  it("ww107: a line's gun name follows the techs done, and the lobby's numbers carry the start spirits", () => {
+    const base = lineItemName("anti_tank", 1, [], "DEU");
+    const better = lineItemName(
+      "anti_tank",
+      1,
+      [],
+      "DEU",
+      new Set(["anti_tank_1", "at_imp_1"]),
+    );
+    expect(better).not.toBe(base);
+    const plain = lobbyTech(lobbyResearched("DEU"));
+    const withSpirits = lobbyTech(lobbyResearched("DEU"), "DEU");
+    expect(JSON.stringify(withSpirits)).not.toBe(JSON.stringify(plain));
   });
 
   it("production lines and the stock table name catalogue slots and a major's static keys", () => {

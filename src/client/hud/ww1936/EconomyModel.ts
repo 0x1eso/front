@@ -1790,6 +1790,8 @@ export function lineItemName(
   gen: number,
   designs: readonly WwDesignSlotData[],
   country: HistCountry | null = null,
+  // ww107: the techs done, so a gun key shows the better gun they open.
+  researched?: ReadonlySet<string>,
 ): string {
   if (type === "tank_design" || type === "plane_design") {
     const kind = type === "tank_design" ? "tank" : "plane";
@@ -1797,7 +1799,7 @@ export function lineItemName(
     if (d !== undefined) return designDisplayName(d.def);
   }
   // ww63: a major's static key shows its country's equipment (Panzer I, ...).
-  const hist = staticItemName(country, type, gen);
+  const hist = staticItemName(country, type, gen, researched);
   if (hist !== null) return hist;
   return `${equipmentName(type)} ${genName(gen)}`;
 }
@@ -1963,6 +1965,7 @@ export function stockTable(
   designs: readonly WwDesignSlotData[] = [],
   country: HistCountry | null = null,
 ): StockTableRow[] {
+  const done = new Set<string>(detail.researched);
   const designOf = (kind: string, slot: number) =>
     designs.find((d) => d.kind === kind && d.slot === slot) ?? null;
   const designGroup = (slot: number) => {
@@ -1970,7 +1973,7 @@ export function stockTable(
     return d === null || d.def.kind !== "tank" ? -1 : designNeedGroup(d.def);
   };
   const keyName = (type: EquipmentType, gen: number): string =>
-    lineItemName(type, gen, designs, country);
+    lineItemName(type, gen, designs, country, done);
   const perKey = new Map<number, number>();
   for (const l of detail.lines) {
     const k = equipKey(l.equipment, l.gen);

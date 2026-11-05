@@ -149,7 +149,7 @@ export function oobTemplateRows(
     // does not judge it, as a start template may hold unresearched parts.
     sameContent = false,
   ) => {
-    const s = statsOf(def, researched);
+    const s = statsOf(def, researched, tag);
     let problem =
       (isNew || edited) && !sameContent
         ? planProblem(def, researched, designGroups)
@@ -234,7 +234,7 @@ export function oobModel(
   const originals = new Map(
     lobbyStartTemplates(tag).map((t) => [
       t.key,
-      statsOf(t.def, researched).men,
+      statsOf(t.def, researched, tag).men,
     ]),
   );
   const first = originals.values().next().value ?? 0;

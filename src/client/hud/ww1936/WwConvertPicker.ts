@@ -13,7 +13,10 @@ import type {
   TrainingData,
 } from "@openfront/engine-api/ww1936/LandTypes";
 import { specialCap } from "@openfront/engine-lib/ww1936/TemplateStats";
-import { techTotals } from "@openfront/engine-lib/ww1936/WwTechs";
+import {
+  type TechTotals,
+  techTotals,
+} from "@openfront/engine-lib/ww1936/WwTechs";
 import { html, nothing, TemplateResult } from "lit";
 import { translateText } from "../../Utils";
 import { blockText } from "./EconomyModel";
@@ -45,8 +48,11 @@ export function convertOptions(
   researched: ReadonlySet<WwTechId>,
   moved: ReadonlyMap<number, number>,
   exclude: number | null,
+  // ww107: the country's whole stat sum (spirits, laws), as the engine
+  // reads it; the techs alone when not given.
+  techIn?: TechTotals,
 ): ConvertOption[] {
-  const tech = techTotals(researched);
+  const tech = techIn ?? techTotals(researched);
   const info = new Map(
     templates.map((t) => {
       const d = designer(templateDef(t), tech, researched);

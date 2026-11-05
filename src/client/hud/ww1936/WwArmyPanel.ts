@@ -47,6 +47,7 @@ import {
   rosterName,
   rowGeneralName,
   shortTypes,
+  techOf,
   templateDef,
   templateName,
   trainingRows,
@@ -924,6 +925,7 @@ export class WwArmyPanel extends WwDrawerBase {
         new Set(c.economy.detail(c.me)?.researched ?? []),
         new Map([[from, t.inUse]]),
         from,
+        techOf(c.economy, c.me),
       ),
       armed: (to) => this.armed(key(to)),
       tap: (to) =>
@@ -964,6 +966,7 @@ export class WwArmyPanel extends WwDrawerBase {
         new Set(c.economy.detail(c.me)?.researched ?? []),
         moved,
         null,
+        techOf(c.economy, c.me),
       ),
       armed: (to) => this.armed(key(to)),
       tap: (to) =>

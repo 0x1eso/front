@@ -20,6 +20,7 @@ import {
   TemplateDef,
   WW_MAX_TEMPLATES,
 } from "@openfront/engine-api/ww1936/LandTypes";
+import { CONTENT } from "@openfront/engine-lib/ww1936/content/registry";
 import {
   isMajor,
   startArmy,
@@ -44,7 +45,10 @@ import {
   templateBlock,
   templateStats,
 } from "@openfront/engine-lib/ww1936/TemplateStats";
-import { techTotals } from "@openfront/engine-lib/ww1936/WwTechs";
+import {
+  type TechTotals,
+  techTotals,
+} from "@openfront/engine-lib/ww1936/WwTechs";
 import {
   isNewTemplateKey,
   markPrepSent,
@@ -164,10 +168,39 @@ export interface StartPreview {
   limitedBy: EquipmentType | null;
 }
 
-export function statsOf(def: TemplateDef, researched: ReadonlySet<WwTechId>) {
+/**
+ * ww107: the lobby's tech totals with the country's start spirits added, as
+ * the engine sums them (spirits are part of the stat sum templateStats
+ * reads). Without a tag: the techs alone.
+ */
+export function lobbyTech(
+  researched: ReadonlySet<WwTechId>,
+  tag?: CountryTag,
+): TechTotals {
+  const tech = techTotals(researched);
+  if (tag === undefined) return tech;
+  const out = { ...tech } as unknown as Record<string, number>;
+  const d = CONTENT.countryIdx.get(tag);
+  for (const id of [
+    ...(d?.spirits ?? []),
+    ...(d?.timedSpirits ?? []).map((t) => t.id),
+  ]) {
+    const sp = CONTENT.spiritIdx.get(id);
+    if (sp === undefined) continue;
+    const st = sp.stats as Partial<Record<string, number>>;
+    for (const k in st) out[k] = (out[k] ?? 0) + (st[k] ?? 0);
+  }
+  return out as unknown as TechTotals;
+}
+
+export function statsOf(
+  def: TemplateDef,
+  researched: ReadonlySet<WwTechId>,
+  tag?: CountryTag,
+) {
   return templateStats(
     def,
-    techTotals(researched),
+    lobbyTech(researched, tag),
     genMixOf(new Array<number>(GROUND_SLOTS).fill(0)),
   );
 }
@@ -214,7 +247,7 @@ export function startPreviews(
     for (const [key, n] of divisions) {
       const def = originals.get(key);
       if (def === undefined) continue;
-      if (!need.has(key)) need.set(key, statsOf(def, researched).need);
+      if (!need.has(key)) need.set(key, statsOf(def, researched, tag).need);
       counts.set(key, (counts.get(key) ?? 0) + n);
       for (let i = 0; i < n; i++) field.push({ key, need: need.get(key)! });
     }
@@ -225,7 +258,7 @@ export function startPreviews(
     const def = originals.get(p.key);
     const n = counts.get(p.key);
     if (def === undefined || n === undefined) continue;
-    const old = statsOf(def, researched);
+    const old = statsOf(def, researched, tag);
     const now = statsOf(
       {
         name: p.name,
@@ -233,6 +266,7 @@ export function startPreviews(
         support: p.support as SupportId[],
       },
       researched,
+      tag,
     );
     if (old.men <= 0 || now.men <= 0) continue;
     keys.push(p.key);

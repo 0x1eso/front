@@ -1020,7 +1020,13 @@ export class WwIndustryPanel extends WwDrawerBase {
           >${lineIcon(r.equipment, r.gen, c.designs)}</span
         >
         <span class="min-w-0 flex-1 truncate font-semibold"
-          >${lineItemName(r.equipment, r.gen, c.designs, c.hist)}</span
+          >${lineItemName(
+            r.equipment,
+            r.gen,
+            c.designs,
+            c.hist,
+            new Set<string>(c.detail.researched),
+          )}</span
         >
         ${oldLine === null || !oldLine.old
           ? nothing
