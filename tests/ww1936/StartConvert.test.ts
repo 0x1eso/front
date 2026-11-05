@@ -1,7 +1,14 @@
 // ww78 section 7 and 7B: with the designer off a major starts on real planes,
 // real lines and real ships; a minor and a designer-on game stay as they were.
+import { GameMapSize, GameMapType } from "@openfront/engine-api/game/GameTypes";
+import type { MapFiles } from "@openfront/engine-api/game/MapFiles";
 import { AIR_TYPES } from "@openfront/engine-api/ww1936/AirTypes";
+import {
+  EQUIP_KEYS,
+  equipKey,
+} from "@openfront/engine-api/ww1936/EconomyTypes";
 import { SHIP_CLASSES } from "@openfront/engine-api/ww1936/NavyTypes";
+import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { histEntry } from "@openfront/engine-lib/ww1936/hist/index";
 import { histSlotOf } from "@openfront/engine-lib/ww1936/hist/Slots";
 import {
@@ -11,12 +18,6 @@ import {
 } from "@openfront/engine-lib/ww1936/hist/StartShips";
 import type { HistCountry } from "@openfront/engine-lib/ww1936/hist/Types";
 import { START_NAVY } from "@openfront/engine-lib/ww1936/StartNavy";
-import {
-  EQUIP_KEYS,
-  equipKey,
-} from "@openfront/engine-api/ww1936/EconomyTypes";
-import { GameMapSize, GameMapType } from "@openfront/engine-api/game/GameTypes";
-import type { MapFiles } from "@openfront/engine-api/game/MapFiles";
 import {
   createGameRunner,
   createGameRunnerFromSnapshot,
@@ -54,7 +55,12 @@ async function game(designer: boolean) {
   );
   stepTo(runner, 3);
   const ww = runner.game.worldWar()!;
-  return { runner, ww, d: ww.depth, idOf: (t: string) => ww.politics.idOfTag(t as never) };
+  return {
+    runner,
+    ww,
+    d: ww.depth,
+    idOf: (t: string) => ww.politics.idOfTag(t as never),
+  };
 }
 
 const majors = ["DEU", "USA", "GBR", "FRA", "ITA", "JPN", "SUN"] as const;
@@ -138,11 +144,13 @@ describe("start ships", () => {
       const c = d.tag as HistCountry;
       for (const s of d.ships) {
         const p = startShipPick(c, s.cls, s.gen, s.name ?? null);
-        if (p !== null) expect(histEntry(p.entry)).toMatchObject({ cls: s.cls });
+        if (p !== null)
+          expect(histEntry(p.entry)).toMatchObject({ cls: s.cls });
       }
       for (const l of d.lines) {
         const p = startLinePick(c, l.cls, l.gen, l.names[0] ?? null);
-        if (p !== null) expect(histEntry(p.entry)).toMatchObject({ cls: l.cls });
+        if (p !== null)
+          expect(histEntry(p.entry)).toMatchObject({ cls: l.cls });
       }
     }
   });
@@ -220,5 +228,20 @@ describe("start ships", () => {
       ...t.design.subarray(0, t.rows),
     ]);
     expect(b.game.worldWar()!.hash()).toBe(a.game.worldWar()!.hash());
+  });
+
+  test("a carrier's deck fills with catalogue planes on the first days", async () => {
+    const { runner, ww, idOf } = await game(false);
+    stepTo(runner, WW_PREP_TICKS + 40);
+    const t = ww.navy.ships;
+    const jpn = idOf("JPN");
+    const cv = SHIP_CLASSES.indexOf("cv");
+    let design = 0;
+    for (let r = 0; r < t.rows; r++) {
+      if (t.owner[r] !== jpn || t.cls[r] !== cv) continue;
+      expect(t.deckOf(r).every((n) => n === 0)).toBe(true);
+      for (const n of t.deckDOf(r)) design += n;
+    }
+    expect(design).toBeGreaterThan(0);
   });
 });

@@ -26,13 +26,7 @@ export const START_FLEET_MAP: Readonly<Record<HistCountry, FleetMap>> = {
   GBR: {
     exact: {
       gbr_bb_nelson: ["nelson", "rodney"],
-      gbr_bb_qe: [
-        "queen_elizabeth",
-        "barham",
-        "valiant",
-        "warspite",
-        "malaya",
-      ],
+      gbr_bb_qe: ["queen_elizabeth", "barham", "valiant", "warspite", "malaya"],
       gbr_bc_hood: ["hood"],
       gbr_cv_courageous: ["courageous", "glorious"],
       gbr_cv_ark_royal: ["ark_royal"],

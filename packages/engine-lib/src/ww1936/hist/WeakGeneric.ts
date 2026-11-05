@@ -29,21 +29,17 @@ import type {
   ShipClass,
   ShipStats,
 } from "@openfront/engine-api/ww1936/NavyTypes";
-import {
-  PlaneNumbers,
-  planeScore,
-  staticPlaneNumbers,
-} from "../PlaneScore";
+import { PlaneNumbers, planeScore, staticPlaneNumbers } from "../PlaneScore";
 import { PLANE_BASE } from "../PlaneStats";
 import { GEN_HP_PCT, shipStats } from "../ShipStats";
 import { emptyStats } from "../Stats";
 import { rowScore, STATIC_KEY_STATS } from "../TemplateStats";
+import { histStatsOf } from "./Convert";
 import { genOfTechs } from "./ConvertCost";
 import { GearStats } from "./ConvertGear";
 import { planeStatsOfEntry } from "./ConvertPlane";
 import { shipPowerOf, shipStatsOfEntry } from "./ConvertShip";
 import { tankStatsOfEntry } from "./ConvertTank";
-import { histStatsOf } from "./Convert";
 import { HIST_ALL, HIST_CATALOGUE } from "./index";
 import { histStaticEntry } from "./Slots";
 import type { HistCountry, PlaneEntry, ShipEntry, TankEntry } from "./Types";
@@ -84,6 +80,7 @@ function pressUnder<K extends string>(
   score: () => number,
   weakest: number,
 ): void {
+  if (weakest === Infinity) return; // No entries at all: nothing to be under.
   for (let i = 0; i < 40 && score() >= weakest; i++) {
     for (const k of fight) t[k] = Math.floor((t[k] * 9) / 10);
   }
@@ -461,7 +458,12 @@ function keyRows(): Map<number, number>[] {
 
 /** Writes the generic use of static slot `j` into a table's row. */
 export function weakKeyRow(
-  t: { stats: Int32Array; score: Int32Array; group: Int8Array; year: Int16Array },
+  t: {
+    stats: Int32Array;
+    score: Int32Array;
+    group: Int8Array;
+    year: Int16Array;
+  },
   j: number,
 ): void {
   const row = keyRows()[j];

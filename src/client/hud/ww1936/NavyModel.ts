@@ -53,6 +53,7 @@ import {
   designBlock,
   shipBase,
 } from "@openfront/engine-lib/ww1936/DesignRules";
+import { shipIsStandIn } from "@openfront/engine-lib/ww1936/hist/StartShips";
 import {
   crossingDays,
   easyCrossingLossPm,
@@ -66,7 +67,6 @@ import {
   moveNeed,
   regionDistances,
 } from "@openfront/engine-lib/ww1936/MoveRules";
-import { shipIsStandIn } from "@openfront/engine-lib/ww1936/hist/StartShips";
 import { launchDaysAt } from "@openfront/engine-lib/ww1936/NavalLineRules";
 import {
   fleetMissionBlock,

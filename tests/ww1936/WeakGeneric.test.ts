@@ -158,9 +158,7 @@ describe("generic use leaves the rest alone", () => {
     const st = shipStats("bb", 1, emptyStats(), new Set());
     expect(st.hpMilli).toBe(150_000);
     expect(weakShipStats(st, "bb", 1).cost).toBe(st.cost);
-    expect(
-      planeStats("fighter", 1, emptyStats(), new Set()).airAtk,
-    ).toBe(1800);
+    expect(planeStats("fighter", 1, emptyStats(), new Set()).airAtk).toBe(1800);
   });
 
   test("a fighter's reach is not cut, and country percents still count", () => {

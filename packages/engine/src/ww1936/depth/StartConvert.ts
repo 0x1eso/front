@@ -187,7 +187,7 @@ export function startConvertLines(d: WwDepth, id: number): void {
     progress: l.progress,
   }));
   // One line moves a call.
-  for (const _ of before) aiPickNewPlaneLines(d, id, ce);
+  for (let i = 0; i < before.length; i++) aiPickNewPlaneLines(d, id, ce);
   startTankLines(d, id);
   for (const b of before) {
     if (b.l.key === b.key) continue;
