@@ -381,6 +381,7 @@ export function linePeaceData(
           to: target,
           ...linePeaceSplit(f, t.moves, (x) => own.has(x)),
           chance: negPeaceChance(t.j, t.value),
+          capPm: surrenderPm(eg, m.id),
         });
       }
     }

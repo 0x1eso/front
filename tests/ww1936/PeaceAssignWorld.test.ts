@@ -33,6 +33,9 @@ import { fileURLToPath } from "url";
 import { NodeGameMapLoader } from "../perf/fullgame/NodeGameMapLoader";
 import { step, stepTo, wwGameStart } from "./util";
 
+// The real map takes seconds to load.
+vi.setConfig({ testTimeout: 30_000 });
+
 async function worldFiles(): Promise<MapFiles> {
   return loadMapFiles(
     new NodeGameMapLoader(
@@ -113,6 +116,16 @@ function beatFrance(
   capitulate(g, ww as WorldWar, playerOf(g, fra), g.ticks(), playerOf(g, idOf(t, to)));
   expect(eg.conferences).toHaveLength(before + 1);
   return eg.conferences[before];
+}
+
+/** Every participant passes every round: the treaty is the assignment alone. */
+function passAll(t: T, c: Conference): void {
+  while (c.status === 1) {
+    c.ai = [];
+    c.subs = c.parts.map((p) => ({ id: p.id, demands: [], passed: true }));
+    c.roundEndTick = Math.min(c.roundEndTick, t.g.ticks() + 1);
+    step(t.runner);
+  }
 }
 
 const assignOf = (c: Conference) => new Map(c.assign ?? []);
@@ -268,36 +281,64 @@ describe("World War 1936 ww88: the assignment on the real map", () => {
     for (const r of west) expect(a.get(r)).toBe(jpn);
   });
 
-  it("an AI democracy is assigned nothing; France lives on and it's given back", async () => {
+  it("a human takes most of France and an AI democracy holds the rest: its regions are zones, France is gone", async () => {
     const t = await start();
-    const [gbr, sun, fra] = [idOf(t, "GBR"), idOf(t, "SUN"), idOf(t, "FRA")];
-    const near = srOf(t, NORTH);
+    const [deu, gbr, fra] = [idOf(t, "DEU"), idOf(t, "GBR"), idOf(t, "FRA")];
+    const real = t.eg.isHumanControlled.bind(t.eg);
+    t.eg.isHumanControlled = (id: number) => id === deu || real(id);
+    const west = srOf(t, WEST);
+    const rest = t.sc.landRegions
+      .filter(
+        (r) =>
+          t.ww.politics.legalOwner[r.id] === fra && !west.includes(r.id),
+      )
+      .map((r) => r.id);
+    const c = beatFrance(t, [
+      ["DEU", 2000, rest],
+      ["GBR", 500, west],
+    ]);
+    expect(c.demPuppets).toEqual([]);
+    const a = assignOf(c);
+    for (const r of west) expect(a.get(r)).toBe(gbr);
+    expect([...(c.dem ?? [])].sort((x, y) => x - y)).toEqual(
+      [...west].sort((x, y) => x - y),
+    );
+    expect(conferenceView(t.eg, c.id).gone).toEqual([fra]);
+    // The human passes; the treaty makes the zones and nothing revives.
+    passAll(t, c);
+    expect(t.eg.countryState(fra)).toBe("gone");
+    for (const r of west) {
+      expect(t.eg.isZone(r)).toBe(true);
+      expect(t.ww.land.controller[r]).toBe(gbr);
+      expect(t.ww.politics.legalOwner[r]).toBe(fra);
+    }
+    expect(t.ww.politics.legalOwner[PARIS]).toBe(deu);
+  });
+
+  it("with a third of the stake or more an AI democracy gets France as a puppet on that land", async () => {
+    const t = await start();
+    const [sun, gbr, fra] = [idOf(t, "SUN"), idOf(t, "GBR"), idOf(t, "FRA")];
+    const east = srOf(t, EAST);
     const c = beatFrance(
       t,
       [
-        ["GBR", 1000, near],
-        ["SUN", 500, srOf(t, EAST)],
+        ["GBR", 1000, srOf(t, NORTH)],
+        ["SUN", 500, east],
       ],
       "GBR",
     );
+    expect(c.demPuppets).toEqual([[fra, gbr]]);
     const a = assignOf(c);
-    for (const r of near) expect(a.has(r)).toBe(false);
-    for (const r of srOf(t, EAST)) expect(a.get(r)).toBe(sun);
-    expect(countOf(c, gbr)).toBe(0);
+    for (const r of east) expect(a.get(r)).toBe(sun);
     expect(conferenceView(t.eg, c.id).gone).toEqual([]);
-    step(t.runner);
-    step(t.runner);
-    expect(c.status).toBe(2);
+    passAll(t, c);
     expect(t.eg.countryState(fra)).toBe("active");
     expect(t.ww.isCapitulated(fra)).toBe(false);
-    // What the democracy held and nobody bought went back.
-    const bought = new Set(c.settled.flatMap((s) => s.regions));
-    const back = c.stake.filter((r) => !bought.has(r) && !a.has(r));
-    expect(back.length).toBeGreaterThan(0);
-    for (const r of back) {
-      expect(t.ww.politics.legalOwner[r]).toBe(fra);
-      expect(t.ww.land.controller[r]).toBe(fra);
-    }
+    expect(t.eg.subjectOf(fra)?.overlord).toBe(gbr);
+    expect(t.eg.subjectOf(fra)?.level).toBe("puppet");
+    expect(t.ww.politics.legalOwner[PARIS]).toBe(fra);
+    expect(t.ww.land.controller[PARIS]).toBe(fra);
+    expect(t.ww.politics.legalOwner[east[0]]).toBe(sun);
   });
 
   it("a human keeps what it holds whatever its government", async () => {

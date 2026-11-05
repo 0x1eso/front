@@ -169,6 +169,14 @@ console.log("\nWho gets what");
 for (const [id, [n, v]] of [...sum].sort((a, b) => b[1][1] - a[1][1])) {
   console.log(`  ${id === 0 ? "the loser" : tagOf(id)}: ${n} regions, value ${v}`);
 }
+for (const [L, d] of out.puppets) {
+  console.log(`${tagOf(L)} goes on as a puppet of ${tagOf(d)}.`);
+}
+const master = new Map(out.puppets);
+const zoned = out.dem.filter(
+  (r) => master.get(owner.get(r) ?? 0) !== assigned.get(r),
+);
+if (zoned.length > 0) console.log(`Occupation zones: ${zoned.join(", ")}`);
 console.log("Compensation");
 for (const [id, pts] of out.comp) console.log(`  ${tagOf(id)}: +${pts} points`);
 if (out.comp.length === 0) console.log("  none");

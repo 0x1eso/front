@@ -404,8 +404,9 @@ function generalAi(
   const friends = c.parts.filter(
     (b) => b.id !== id && pol.sameFaction(id, b.id),
   );
-  // ww88: who gets a region without paying.
+  // ww88: who gets a region without paying; what an AI democracy only sits on.
   const assignee = (r: number) => peaceAssignedTo(ctx.table, r);
+  const sits = new Set(c.dem ?? []);
   // Regions (spec §6.9). What it gets anyway it doesn't buy; another
   // winner's share it buys only for a core or a claim (no ragged borders).
   for (const r of c.stake) {
@@ -583,7 +584,9 @@ function generalAi(
     const regs = c.stake.filter((r) => free(r) && eg.hasCore(T, r));
     if (regs.length === 0) continue;
     // ww88: it doesn't pay to give up what it gets anyway.
-    if (regs.some((r) => assignee(r) === id)) continue;
+    if (regs.some((r) => assignee(r) === id && !sits.has(r))) continue;
+    // Nor to free the country it gets as a puppet.
+    if (c.demPuppets?.some(([L, d]) => L === T && d === id) === true) continue;
     let v = 0;
     for (const r of regs) v += worth(r);
     add(

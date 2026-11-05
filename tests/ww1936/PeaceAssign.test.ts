@@ -248,7 +248,7 @@ describe("World War 1936 ww88: PeaceAssign", () => {
     expect(peaceAssignment(i).comp).toEqual([]);
   });
 
-  it("an AI democracy gets nothing assigned and nobody takes what it holds", () => {
+  it("under a third an AI democracy's regions are zones, and nobody takes them", () => {
     const i = map(
       [
         reg(1, { holder: A, value: 80 }),
@@ -263,9 +263,54 @@ describe("World War 1936 ww88: PeaceAssign", () => {
       { 10: A },
       3,
     );
-    const a = assigned(i);
-    expect(a.get(1)).toBe(A);
-    expect(a.has(2)).toBe(false);
+    const out = peaceAssignment(i);
+    expect(new Map(out.assign).get(2)).toBe(B);
+    expect(out.dem).toEqual([2]);
+    expect(out.puppets).toEqual([]);
+  });
+
+  it("a third of the stake's value makes the loser its puppet; a point less doesn't", () => {
+    const at = (v: number) =>
+      map(
+        [
+          reg(1, { holder: A, value: 100 - v, group: 1 }),
+          reg(2, { holder: B, value: v, group: 2, keyCity: true }),
+        ],
+        [win(A), win(B, 100, false)],
+        [
+          [1, 10],
+          [2, 11],
+        ],
+        { 10: A, 11: B },
+      );
+    expect(peaceAssignment(at(34)).puppets).toEqual([[L, B]]);
+    expect(peaceAssignment(at(33)).puppets).toEqual([]);
+    expect(peaceAssignment(at(34)).gone).toEqual([]);
+  });
+
+  it("of two democracies over the line the larger gets the puppet, the other zones", () => {
+    const i = map(
+      [
+        reg(1, { holder: A, value: 40, group: 1 }),
+        reg(2, { holder: B, value: 60, group: 2 }),
+      ],
+      [win(A, 100, false), win(B, 100, false)],
+      [],
+    );
+    const out = peaceAssignment(i);
+    expect(out.puppets).toEqual([[L, B]]);
+    expect(out.dem).toEqual([1, 2]);
+  });
+
+  it("an AI democracy's hand-over land counts as its own: no land for the loser", () => {
+    const i = map(
+      [reg(1, { holder: A, group: 1 }), reg(2, { handedTo: A, group: 2 })],
+      [win(A, 100, false)],
+      [],
+    );
+    const out = peaceAssignment(i);
+    expect(out.puppets).toEqual([[L, A]]);
+    expect(out.dem).toEqual([1, 2]);
   });
 
   it("a loser with no capital left is gone: its last regions go to the adjacent winner holding the most", () => {

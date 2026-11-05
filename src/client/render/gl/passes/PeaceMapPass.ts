@@ -42,8 +42,12 @@ export const PEACE_MINE = 2;
 export const PEACE_DECIDED = 3;
 /** Controlled by another participant (a rim in its colour). */
 export const PEACE_OTHER = 4;
+/** ww88: what a winner gets at the conference (its colour, lightly). */
+export const PEACE_ASSIGNED = 5;
 /** OR-ed into the state: the region tapped last. */
 export const PEACE_SELECTED = 8;
+/** ww88: OR-ed into the state: the preview: the rest of the map stays lit, no prices. */
+export const PEACE_PREVIEW = 16;
 /** Prices show from this zoom (CSS px per tile) on. */
 export const PEACE_LABEL_MIN_ZOOM = 0.5;
 /** CSS px per font pixel of the price digits. */
@@ -162,6 +166,8 @@ export class PeaceMapPass {
   private fCamera: WebGLUniformLocation | null = null;
   private fTilesPerPx: WebGLUniformLocation | null = null;
   private fTime: WebGLUniformLocation | null = null;
+  private fDim: WebGLUniformLocation | null = null;
+  private dim = 1;
   private lCamera: WebGLUniformLocation | null = null;
   private lCellWorld: WebGLUniformLocation | null = null;
   private lAlpha: WebGLUniformLocation | null = null;
@@ -219,6 +225,8 @@ export class PeaceMapPass {
     ) as WebGLProgram | null;
     const prevAlign = gl.getParameter(gl.UNPACK_ALIGNMENT) as number;
     this.ensure();
+    const preview = (regions[0].state & PEACE_PREVIEW) !== 0;
+    this.dim = preview ? 0 : 1;
     peaceRegionTable(regions, this.table);
     gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
     gl.bindTexture(gl.TEXTURE_2D, this.tableTex);
@@ -245,7 +253,7 @@ export class PeaceMapPass {
       f[o + 3] = peaceDigits(v);
       o += LABEL_FLOATS;
     }
-    this.labelCount = regions.length;
+    this.labelCount = preview ? 0 : regions.length;
     gl.bindBuffer(gl.ARRAY_BUFFER, buf.buffer);
     gl.bufferSubData(gl.ARRAY_BUFFER, 0, f, 0, o);
     gl.bindBuffer(gl.ARRAY_BUFFER, prevBuf);
@@ -264,6 +272,7 @@ export class PeaceMapPass {
     gl.uniformMatrix3fv(this.fCamera, false, cam);
     gl.uniform1f(this.fTilesPerPx, tilesPerPx);
     gl.uniform1f(this.fTime, timeSec);
+    gl.uniform1f(this.fDim, this.dim);
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, tiles);
     gl.activeTexture(gl.TEXTURE1);
@@ -334,6 +343,7 @@ export class PeaceMapPass {
       PEACE_MINE,
       PEACE_DECIDED,
       PEACE_OTHER,
+      PEACE_ASSIGNED,
       PEACE_SELECTED,
     };
     const fill = createProgram(
@@ -346,6 +356,7 @@ export class PeaceMapPass {
     this.fCamera = fu("uCamera");
     this.fTilesPerPx = fu("uTilesPerPx");
     this.fTime = fu("uTime");
+    this.fDim = fu("uDim");
     gl.useProgram(fill);
     gl.uniform1i(fu("uTiles"), 0);
     gl.uniform1i(fu("uTable"), 1);

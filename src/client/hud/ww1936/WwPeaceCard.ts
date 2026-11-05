@@ -10,6 +10,10 @@
 // would refuse), the AI demands that go in when time runs out ("Fill with
 // AI demands"), "Pass this round" and "Confirm" (two taps each), and after
 // a confirm "Confirmed — waiting" (it can be changed until the deadline).
+// ww88: the assignment made at the opening heads the card and the band
+// (who gets what, what's bought, the compensation, what becomes of a
+// loser), the map shows it from the first second, and the Quick treaty's
+// three buttons fill the draft; an empty draft confirms what we hold.
 // When a round ends its results show for 1.5 s; when the conference ends
 // the treaty shows for 3 s and the card goes. A loser sees only the band
 // "Peace conference in progress — waiting for the result". "–" folds the
@@ -58,6 +62,7 @@ import {
   peaceMe,
   PeaceModel,
   peaceModelOf,
+  PeaceQuick,
   peaceRegionName,
   peaceRole,
   peaceUiOf,
@@ -528,7 +533,8 @@ export class WwPeaceCard extends LitElement implements Controller {
         <span data-ww-peace-waiting class="text-white/80"
           >${translateText("ww1936.peace.waiting")}</span
         >
-        ${this.timeBar(m)}`,
+        ${this.timeBar(m)}
+        <div class="min-h-0 overflow-y-auto">${this.renderSplit(m)}</div>`,
     );
   }
 
@@ -619,6 +625,86 @@ export class WwPeaceCard extends LitElement implements Controller {
     );
   }
 
+  /** ww88: who gets what, bought and compensated, and what becomes of each loser. */
+  private renderSplit(m: PeaceModel): TemplateResult {
+    const s = m.split();
+    const name = (id: number) => peaceCountryName(this.game, id);
+    const line = (text: string, extras: string[] = []) =>
+      html`<span class="block leading-tight text-white/80"
+        >${[text, ...extras].join(" · ")}</span
+      >`;
+    return html`<div
+      data-ww-peace-split
+      class="flex flex-col gap-0.5 rounded-md bg-white/5 p-1"
+    >
+      <span class="font-semibold text-white/80"
+        >${translateText("ww1936.peace.split_title")}</span
+      >
+      ${s.winners.map((w) =>
+        line(
+          translateText("ww1936.peace.split_gets", {
+            country: name(w.id),
+            n: w.regions,
+          }),
+          [
+            ...(w.bought > 0
+              ? [translateText("ww1936.peace.split_bought", { n: w.bought })]
+              : []),
+            ...(w.zones > 0
+              ? [translateText("ww1936.peace.split_zones", { n: w.zones })]
+              : []),
+            ...(w.comp > 0
+              ? [translateText("ww1936.peace.split_comp", { pts: w.comp })]
+              : []),
+          ],
+        ),
+      )}
+      ${s.losers.map((l) =>
+        line(
+          translateText("ww1936.peace.split_keeps", {
+            country: name(l.id),
+            n: l.regions,
+          }),
+        ),
+      )}
+      ${s.puppets.map(([l, d]) =>
+        line(
+          translateText("ww1936.peace.split_puppet", {
+            country: name(l),
+            by: name(d),
+          }),
+        ),
+      )}
+      ${s.gone.map((l) =>
+        line(translateText("ww1936.peace.split_gone", { country: name(l) })),
+      )}
+    </div>`;
+  }
+
+  /** ww88 Quick treaty: three buttons that fill the draft. */
+  private renderQuick(m: PeaceModel, me: number): TemplateResult {
+    const button = (kind: PeaceQuick, key: string) => {
+      const draft = m.quickDraft(me, kind);
+      return this.btn(
+        `quick-${kind}`,
+        translateText(key),
+        () => {
+          peaceUiOf(this.game).setDraft(draft);
+          this.requestUpdate();
+        },
+        { disabled: kind !== "hold" && draft.length === 0, extra: "flex-1" },
+      );
+    };
+    return html`<span class="font-semibold text-white/80"
+        >${translateText("ww1936.peace.quick_title")}</span
+      >
+      <div class="flex flex-wrap gap-1">
+        ${button("hold", "ww1936.peace.quick_hold")}
+        ${button("puppet", "ww1936.peace.quick_puppet")}
+        ${button("liberate", "ww1936.peace.quick_liberate")}
+      </div>`;
+  }
+
   private renderCard(m: PeaceModel, me: number): TemplateResult {
     const conf = m.conference!;
     const ui = peaceUiOf(this.game);
@@ -675,6 +761,7 @@ export class WwPeaceCard extends LitElement implements Controller {
           data-ww-peace-scroll
           class="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto"
         >
+          ${this.renderSplit(m)} ${this.renderQuick(m, me)}
           <span class="font-semibold text-white/80"
             >${translateText("ww1936.peace.my_demands", {
               n: ui.draft.length,
@@ -746,10 +833,8 @@ export class WwPeaceCard extends LitElement implements Controller {
               {
                 armed: this.twoTap.isArmed("confirm", now),
                 // The engine refuses a list with a demand it can't spell out.
-                disabled:
-                  ui.draft.length === 0 ||
-                  (confirmed && !passed) ||
-                  rows.some((e) => e.refused),
+                // ww88: an empty draft confirms what we hold.
+                disabled: confirmed || rows.some((e) => e.refused),
                 extra: "flex-1 font-semibold",
               },
             )}
@@ -1124,6 +1209,7 @@ export class WwPeaceCard extends LitElement implements Controller {
         "ww1936.peace.map_decided",
       )}
       ${item("border-[3px] border-gray-300", "ww1936.peace.map_other")}
+      ${item("bg-gray-300/50", "ww1936.peace.map_assigned")}
     </div>`;
   }
 }

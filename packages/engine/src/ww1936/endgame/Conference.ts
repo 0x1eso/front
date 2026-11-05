@@ -401,7 +401,7 @@ function termsStake(
     .some((n) => winners.has(ctrl[n] ?? 0));
 }
 
-/** ww88: an AI democracy gets nothing assigned; a human keeps what it holds. */
+/** ww88: an AI democracy gets zones or a puppet; a human keeps what it holds. */
 function keepsLand(eg: WwEndgame, id: number): boolean {
   return (
     eg.isHumanControlled(id) ||
@@ -479,6 +479,8 @@ function assignAtOpening(eg: WwEndgame, c: Conference): void {
   });
   c.assign = out.assign;
   c.comp = out.comp;
+  c.dem = out.dem;
+  c.demPuppets = out.puppets;
   for (const [id, pts] of out.comp) {
     const p = c.parts.find((x) => x.id === id);
     if (p !== undefined) p.pts += pts;
@@ -1088,6 +1090,21 @@ function assignmentRows(
   for (const r of c.stake) if (eg.isZone(r)) spoken.add(r);
   const assign = new Map<number, number>();
   const assignedOf = new Set(c.assign.map(([r]) => r));
+  // An AI democracy's land: zones, or the land of the puppet it gets.
+  const sits = new Set(c.dem ?? []);
+  const masters = new Map<number, number>();
+  for (const [L, d] of c.demPuppets ?? []) {
+    // Freed by a demand, it is its own master.
+    const freed = bought.some(
+      (s) =>
+        (s.kind === KIND.release || s.kind === KIND.liberate) &&
+        s.beneficiary === L,
+    );
+    if (!eg.isActor(d) || puppetBy.has(L) || freed) continue;
+    masters.set(L, d);
+    safe.add(L);
+  }
+  const zones = new Map<number, number[]>();
   // A puppet with nothing of its own lives on in what its master gives back.
   const bare = (L: number) =>
     c.stake.every(
@@ -1096,6 +1113,12 @@ function assignmentRows(
   for (const [r, p] of c.assign) {
     if (spoken.has(r) || !eg.isActor(p)) continue;
     const L = legal[r] ?? 0;
+    if (sits.has(r)) {
+      if (masters.get(L) === p || puppetBy.has(L)) continue;
+      zones.set(p, [...(zones.get(p) ?? []), r]);
+      spoken.add(r);
+      continue;
+    }
     const givesBack =
       puppetBy.get(L) === p &&
       bare(L) &&
@@ -1106,7 +1129,6 @@ function assignmentRows(
   settleLosers(assignInput(eg, c), assign, { safe, bought: spoken });
   const rows = new Map<string, Settled>();
   for (const [r, p] of [...assign].sort((a, b) => a[0] - b[0])) {
-    if (spoken.has(r)) continue;
     const L = legal[r] ?? 0;
     const key = `${p}:${L}`;
     const row = rows.get(key);
@@ -1126,7 +1148,28 @@ function assignmentRows(
       cost: 0,
     });
   }
-  return [...rows.values()];
+  const free = (kind: number, by: number, regions: number[], target: number) => ({
+    kind,
+    by,
+    regions,
+    target,
+    beneficiary: by,
+    k: 0,
+    pct: 0,
+    round: 0,
+    cost: 0,
+  });
+  return [
+    ...rows.values(),
+    ...[...zones]
+      .sort((a, b) => a[0] - b[0])
+      .map(([d, regs]) =>
+        free(KIND.occupation_zone, d, regs, legal[regs[0]] ?? 0),
+      ),
+    ...[...masters]
+      .sort((a, b) => a[0] - b[0])
+      .map(([L, d]) => free(KIND.puppet, d, [], L)),
+  ];
 }
 
 /** Spec §6.4 disarm: 1,095 days of arms limitation; divisions past 12 disband, the weakest first. */
@@ -1369,6 +1412,8 @@ export function conferenceView(eg: WwEndgame, conf: number): WwConferenceView {
     }),
     mainVictor: ctx.mainVictor,
     assign: (c.assign ?? []).map(([r, p]): [number, number] => [r, p]),
+    dem: [...(c.dem ?? [])],
+    demPuppets: (c.demPuppets ?? []).map(([L, d]): [number, number] => [L, d]),
     comp: (c.comp ?? []).map(([p, n]): [number, number] => [p, n]),
     handed: (c.handed ?? []).map(([r]) => r),
     gone: goneNow(eg, c),

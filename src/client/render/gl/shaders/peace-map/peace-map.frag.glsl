@@ -13,13 +13,15 @@ precision highp usampler2D;
 //   free: a white rim;
 //   mine: my colour (lightened) over it and a wide rim in it;
 //   decided: the settler's colour, hatched;
-//   other: a wide rim in the controlling participant's colour.
+//   other: a wide rim in the controlling participant's colour;
+//   assigned: the winner's colour, lightly, with a thin rim in it.
 // The selected region pulses a white outline. Widths are screen pixels.
 
 uniform usampler2D uTiles;  // R16UI per tile: bit 15 edge, low 15 code
 uniform sampler2D uTable;   // RGBA8 PEACE_TEX_SIZE²: colour, state
 uniform float uTilesPerPx;  // world tiles per screen (CSS) pixel
 uniform float uTime;        // seconds
+uniform float uDim;         // 1: the map mode dims the rest; 0: the preview leaves it
 
 in vec2 vUV;
 out vec4 fragColor;
@@ -60,7 +62,7 @@ void main() {
   int s = stateOf(cell);
   int kind = s & 7;
   if (id == 0u || kind == 0) {
-    fragColor = vec4(0.02, 0.03, 0.05, 0.58);
+    fragColor = vec4(0.02, 0.03, 0.05, 0.58 * uDim);
     return;
   }
   vec3 c = cell.rgb;
@@ -68,6 +70,7 @@ void main() {
   // Mine: my colour, lightened so a dark national colour doesn't read as
   // the dimmed outside, with a wide rim in it.
   if (kind == PEACE_MINE) col = over(col, mix(c, vec3(1.0), 0.3), 0.6);
+  if (kind == PEACE_ASSIGNED) col = over(col, mix(c, vec3(1.0), 0.2), 0.42);
   if (kind == PEACE_DECIDED) {
     col = over(col, c, 0.3);
     float stripe = fract((w.x + w.y) / (9.0 * uTilesPerPx));

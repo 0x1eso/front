@@ -3,6 +3,7 @@
 // drawer, and the card a human target answers.
 import type { WwOrder } from "@openfront/engine-api/Schemas";
 import {
+  WW_ASK_TERMS_MIN_PM,
   WW_WHITE_PEACE_CARD_TICKS,
   WW_WHITE_PEACE_MIN_DAYS,
   WW_WHITE_PEACE_PP,
@@ -105,6 +106,26 @@ export function whitePeaceButton(
   };
 }
 
+/**
+ * ww88 Ask for terms: a side's leader, once it is far enough to its
+ * surrender line, may ask for a conference now; null: nothing to show (not
+ * the leader, or not beaten enough yet).
+ */
+export function askTermsButton(
+  game: WhitePeaceGame,
+  me: number,
+  w: WwWarSummary,
+): { block: string | null; order: WwOrder } | null {
+  const b = whitePeaceButton(game, me, w);
+  if (b === null || !b.whole || b.pending) return null;
+  const pm = game.wwEndgame?.()?.lineFor(me, w.id)?.capPm ?? 0;
+  if (pm < WW_ASK_TERMS_MIN_PM) return null;
+  return {
+    block: b.block,
+    order: { kind: "peace_surrender", war: w.id },
+  };
+}
+
 export interface WhitePeaceSideLine {
   flagUrl: string;
   name: string;
@@ -154,7 +175,9 @@ export function whitePeaceCardModel(
     id: o.id,
     deadlineTick: o.deadlineTick,
     title: translateText(
-      o.line !== undefined
+      o.ask === true
+        ? "ww1936.wpeace.card_title_ask"
+        : o.line !== undefined
         ? "ww1936.lpeace.card_title"
         : o.terms === null || o.terms === undefined
           ? "ww1936.wpeace.card_title"
@@ -163,7 +186,11 @@ export function whitePeaceCardModel(
     ),
     war: w === null ? "" : warName(game, w),
     scope: translateText(
-      o.whole ? "ww1936.wpeace.card_whole" : "ww1936.wpeace.card_separate",
+      o.ask === true
+        ? "ww1936.wpeace.card_ask"
+        : o.whole
+          ? "ww1936.wpeace.card_whole"
+          : "ww1936.wpeace.card_separate",
       { country: from },
     ),
     sides: o.sides.map((s) => sideLine(game, s)),

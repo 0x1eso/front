@@ -17,6 +17,8 @@ export const WW_PEACE_ENCLAVE_MAX_REGIONS = 3;
 export const WW_PEACE_ENCLAVE_PASSES = 4;
 /** Under this percent of its stake's value a loser is gone. */
 export const WW_PEACE_LOSER_MIN_PCT = 10;
+/** An AI democracy holding this share of a loser's stake (1 / n) makes it a puppet. */
+export const WW_PEACE_DEM_PUPPET_DEN = 3;
 
 export interface AssignRegion {
   readonly region: number;
@@ -38,7 +40,7 @@ export interface AssignRegion {
 export interface AssignWinner {
   readonly id: number;
   readonly wsMilli: number;
-  /** False for an AI democracy: nothing is assigned to it. */
+  /** False for an AI democracy: it gets zones or a puppet, not the land. */
   readonly keeps: boolean;
 }
 
@@ -55,8 +57,12 @@ export interface AssignIn {
 }
 
 export interface AssignOut {
-  /** [region, winner], regions ascending. */
+  /** [region, winner], regions ascending; an AI democracy's regions too. */
   assign: [number, number][];
+  /** The regions of `assign` an AI democracy sits on: no ownership moves. */
+  dem: number[];
+  /** [loser, AI democracy]: it holds a third of the stake: the loser, on that land, is its puppet. */
+  puppets: [number, number][];
   /** [winner, extra points], winners ascending. */
   comp: [number, number][];
   /** The losers left with nothing, ascending. */
@@ -396,10 +402,9 @@ export interface LoserRules {
 
 /**
  * Step 4: a loser with no capital left, or under WW_PEACE_LOSER_MIN_PCT of
- * its stake's value, is gone. What an AI democracy sits on stays with it
- * (nobody is left to give it back to); the rest goes to the adjacent winner
- * holding the most of the loser. `assign` gets the new rows; the gone come
- * back, ascending.
+ * its stake's value, is gone; its last regions go to the adjacent winner
+ * holding the most of it. `assign` gets the new rows; the gone come back,
+ * ascending.
  */
 export function settleLosers(
   inp: AssignIn,
@@ -432,18 +437,48 @@ export function settleLosers(
     ) {
       continue;
     }
-    const open: AssignRegion[] = [];
-    for (const r of left) {
-      if (winners.has(r.holder)) assign.set(r.region, r.holder);
-      else open.push(r);
-    }
-    for (const piece of connected(w, open)) {
+    for (const piece of connected(w, left)) {
       const to = heir(w, L, piece);
       if (to !== 0) for (const r of piece) assign.set(r.region, to);
     }
     if (left.every((r) => assign.has(r.region))) gone.push(L);
   }
   return gone;
+}
+
+/**
+ * Owner decision (ww88): what an AI democracy sits on never revives the
+ * loser. With a third of a loser's stake it makes the loser its puppet on
+ * that land (the largest such holder; a second one's land is zones); with
+ * less, the regions are its occupation zones. `noPuppet`: losers that stay
+ * their own masters.
+ */
+function democracyPuppets(
+  w: Work,
+  noPuppet: ReadonlySet<number> | undefined,
+): [number, number][] {
+  const totals = new Map<number, number>();
+  const held = new Map<number, Map<number, number>>();
+  for (const r of w.inp.regions) {
+    totals.set(r.loser, (totals.get(r.loser) ?? 0) + r.value);
+    const d = w.shadow.get(r.region);
+    if (d === undefined) continue;
+    let m = held.get(r.loser);
+    if (m === undefined) held.set(r.loser, (m = new Map()));
+    m.set(d, (m.get(d) ?? 0) + r.value);
+  }
+  const out: [number, number][] = [];
+  for (const [L, m] of [...held].sort((a, b) => a[0] - b[0])) {
+    if (noPuppet?.has(L) === true) continue;
+    const [d, v] = [...m].sort(
+      (a, b) =>
+        b[1] - a[1] ||
+        w.winners.get(b[0])!.wsMilli - w.winners.get(a[0])!.wsMilli ||
+        a[0] - b[0],
+    )[0];
+    if (v * WW_PEACE_DEM_PUPPET_DEN >= totals.get(L)!) out.push([L, d]);
+  }
+  return out;
 }
 
 /** The whole assignment of a conference at its opening. */
@@ -471,9 +506,24 @@ export function peaceAssignment(
     if (w.winners.get(r.holder)?.keeps !== true) continue;
     comp.set(r.holder, (comp.get(r.holder) ?? 0) + r.value);
   }
-  const gone = settleLosers(inp, w.assign, rules);
+  const puppets = democracyPuppets(w, rules.safe);
+  const masterOf = new Map(puppets);
+  // The puppet's master sits only on its own land there: another
+  // democracy's regions stay zones, and go neither to the loser nor to an heir.
+  const zones = new Set<number>();
+  for (const r of inp.regions) {
+    const d = w.shadow.get(r.region);
+    if (d !== undefined && masterOf.get(r.loser) !== d) zones.add(r.region);
+  }
+  const gone = settleLosers(inp, w.assign, {
+    safe: new Set([...(rules.safe ?? []), ...masterOf.keys()]),
+    bought: new Set([...(rules.bought ?? []), ...zones]),
+  });
+  for (const [r, d] of w.shadow) w.assign.set(r, d);
   return {
     assign: [...w.assign].sort((a, b) => a[0] - b[0]),
+    dem: [...w.shadow.keys()].sort((a, b) => a - b),
+    puppets,
     comp: [...comp].sort((a, b) => a[0] - b[0]),
     gone,
   };

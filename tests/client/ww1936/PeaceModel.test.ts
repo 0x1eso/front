@@ -29,11 +29,13 @@ import {
   type PeaceWorld,
 } from "../../../src/client/hud/ww1936/PeaceModel";
 import {
+  PEACE_ASSIGNED,
   PEACE_DECIDED,
   PEACE_FREE,
   PEACE_LABEL_CELL_PX,
   PEACE_MINE,
   PEACE_OTHER,
+  PEACE_PREVIEW,
   PEACE_SELECTED,
   PEACE_TEX_SIZE,
   peaceDigits,
@@ -97,6 +99,82 @@ function world(over: Partial<PeaceWorld> = {}): PeaceWorld {
     ...over,
   };
 }
+
+describe("ww88: the assignment on the screens", () => {
+  it("splits: who gets what, what's bought, the compensation, what becomes of the loser", () => {
+    const m = new PeaceModel(
+      conference({
+        stake: [
+          { region: WARSAW, base: 40, settledBy: ITA, zone: false },
+          { region: KRAKOW, base: 30, settledBy: 0, zone: false },
+        ],
+        assign: [[KRAKOW, DEU]],
+        comp: [[ITA, 7]],
+        gone: [POL],
+      }),
+      world(),
+    );
+    expect(m.split()).toEqual({
+      winners: [
+        { id: DEU, regions: 1, bought: 0, zones: 0, comp: 0 },
+        { id: ITA, regions: 1, bought: 1, zones: 0, comp: 7 },
+      ],
+      losers: [],
+      puppets: [],
+      gone: [POL],
+    });
+  });
+
+  it("an AI democracy's zones and its puppet read as such, a living loser's land as kept", () => {
+    const zones = new PeaceModel(
+      conference({ assign: [[WARSAW, ITA]], dem: [WARSAW] }),
+      world(),
+    ).split();
+    expect(zones.winners[0]).toMatchObject({ id: ITA, zones: 1 });
+    expect(zones.losers).toEqual([{ id: POL, regions: 1 }]);
+    const puppet = new PeaceModel(
+      conference({
+        assign: [[WARSAW, ITA]],
+        dem: [WARSAW],
+        demPuppets: [[POL, ITA]],
+      }),
+      world(),
+    ).split();
+    expect(puppet.winners[0]).toMatchObject({ id: ITA, zones: 0 });
+    expect(puppet.puppets).toEqual([[POL, ITA]]);
+    expect(puppet.losers).toEqual([]);
+  });
+
+  it("what is assigned to me can't be bought, and says why", () => {
+    const m = new PeaceModel(conference({ assign: [[WARSAW, DEU]] }), world());
+    expect(m.evaluate(DEU, [take(WARSAW)])[0].why?.key).toBe(
+      "ww1936.peace.why.already_yours",
+    );
+    expect(m.evaluate(ITA, [take(WARSAW)])[0].why?.key).not.toBe(
+      "ww1936.peace.why.already_yours",
+    );
+  });
+
+  it("the quick treaty keeps to what the engine would settle", () => {
+    const m = new PeaceModel(conference({ assign: [[WARSAW, DEU]] }), world());
+    expect(m.quickDraft(DEU, "hold")).toEqual([]);
+    expect(m.quickDraft(DEU, "puppet")).toEqual([
+      { kind: "puppet", target: POL },
+    ]);
+    expect(m.quickDraft(DEU, "liberate")).toEqual([]);
+    // Nothing to set up a puppet on: everything is someone else's.
+    const none = new PeaceModel(
+      conference({
+        assign: [
+          [WARSAW, ITA],
+          [KRAKOW, ITA],
+        ],
+      }),
+      world(),
+    );
+    expect(none.quickDraft(DEU, "puppet")).toEqual([]);
+  });
+});
 
 const take = (region: number, slot = 0): WwDemandView => ({
   kind: "take",
@@ -383,6 +461,31 @@ describe("World War 1936 P5: the conference map mode", () => {
     expect(state.get(KRAKOW)).toBe(PEACE_MINE | PEACE_SELECTED);
     // Kiev: the Soviet Union (a participant) controls it.
     expect(state.get(9)).toBe(PEACE_OTHER);
+  });
+
+  it("the assignment shows from the opening, without the map mode, to those in it", () => {
+    const { game, eg, conf } = mapGame();
+    const me = game.myPlayer()!.smallID();
+    const src = peaceMapSource(game);
+    expect(src.key()).toBe("");
+    eg.apply({
+      news: [],
+      conference: {
+        ...conf,
+        participants: [
+          ...conf.participants,
+          { id: me, pts: 9, sharePm: 1, order: 9, human: true, final: false },
+        ],
+        assign: [[KRAKOW, ITA]],
+      },
+    });
+    expect(src.key()).not.toBe("");
+    const rows = new Map(src.regions().map((r) => [r.region, r.state]));
+    expect(rows.get(KRAKOW)).toBe(PEACE_ASSIGNED | PEACE_PREVIEW);
+    // The map mode keeps its own look: dimmed, with prices.
+    peaceUiOf(game).openMap();
+    const open = new Map(peaceMapRegions(game).map((r) => [r.region, r.state]));
+    expect(open.get(KRAKOW)).toBe(PEACE_ASSIGNED);
   });
 
   it("map taps and the map's key", () => {

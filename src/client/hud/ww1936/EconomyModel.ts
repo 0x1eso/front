@@ -787,6 +787,8 @@ export const BLOCK_KEYS: Readonly<Record<WwOrderBlock, string>> = {
   peace_war_kind: "ww1936.econ.block.peace_war_kind",
   peace_pending: "ww1936.econ.block.peace_pending",
   peace_no_offer: "ww1936.econ.block.peace_no_offer",
+  peace_not_beaten: "ww1936.econ.block.peace_not_beaten",
+  peace_not_leader: "ww1936.econ.block.peace_not_leader",
   no_invasion_port: "ww1936.econ.block.no_invasion_port",
   // Negotiated peace.
   peace_bad_terms: "ww1936.econ.block.peace_bad_terms",

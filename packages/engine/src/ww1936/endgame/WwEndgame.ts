@@ -170,6 +170,10 @@ const ConferenceSchema = z.object({
   assign: z.array(z.tuple([zInt(), zInt()])).optional(),
   /** [winner, points] added at the opening for held regions it gave up. */
   comp: z.array(z.tuple([zInt(), zInt()])).optional(),
+  /** The regions of `assign` an AI democracy sits on (zones, or its puppet's land). */
+  dem: zIds().optional(),
+  /** [loser, AI democracy]: the loser goes on as its puppet. */
+  demPuppets: z.array(z.tuple([zInt(), zInt()])).optional(),
   /** [region, victor]: land a capitulation handed over, not conquered. */
   handed: z.array(z.tuple([zInt(), zInt()])).optional(),
   /** The side asked for terms (Ask for terms): its members keep the rest and their armies. */
@@ -1866,6 +1870,8 @@ export class WwEndgame {
       // ww88: only when set (an old save's conference has none).
       if (c.assign !== undefined) pairs(c.assign);
       if (c.comp !== undefined) pairs(c.comp);
+      if (c.dem !== undefined) ids(c.dem);
+      if (c.demPuppets !== undefined) pairs(c.demPuppets);
       if (c.handed !== undefined) pairs(c.handed);
       if (c.asked === true) mix(1);
     }
