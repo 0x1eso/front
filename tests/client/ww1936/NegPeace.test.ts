@@ -24,6 +24,8 @@ import {
   negPeaceMapRegions,
   negPeaceMapTap,
   negPeaceUiOf,
+  peaceWhyForWar,
+  peaceWhyLine,
   wwPeaceMapSource,
   type NegPeaceGame,
 } from "../../../src/client/hud/ww1936/NegPeaceModel";
@@ -168,6 +170,28 @@ describe("the negotiated peace composer", () => {
     const h = negPeaceComposer(g, ID("POL"), w)!;
     expect(h.hintLevel).toBeNull();
     expect(h.hint).toBe("[ww1936.npeace.chance_human]");
+  });
+
+  it("says why in one line with the points still missing, and the war row keeps it", () => {
+    // 20% by a unit of 100: 40 percent short of "high" (60) is 4 points.
+    const { w, g, ui } = polandComposing({
+      pct: 20,
+      unit: 100,
+      winNeed: 0,
+      reason: "not_hurt",
+      weary: 7,
+    } as never);
+    const v = negPeaceComposer(g, ID("POL"), w)!;
+    expect(v.why).toBe("[ww1936.npeace.why_not_hurt] pts=4");
+    expect(peaceWhyForWar(g, ID("POL"), 4)).toBe(v.why);
+    // Krakow (14 points) is more than enough: no line.
+    ui.openMap();
+    negPeaceMapTap(g, KRAKOW);
+    expect(negPeaceComposer(g, ID("POL"), w)!.why).toBeNull();
+    // A side winning: no price, only the fact.
+    expect(peaceWhyLine("winning", 99999)).toBe("[ww1936.npeace.why_winning]");
+    expect(peaceWhyLine(undefined, 5)).toBeNull();
+    expect(peaceWhyLine("no_front", 0)).toBeNull();
   });
 
   it("renders its buttons and hands their taps over", () => {

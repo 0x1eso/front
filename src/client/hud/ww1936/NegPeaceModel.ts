@@ -14,6 +14,7 @@ import {
   WW_NEG_REPARATIONS_MAX_LEVEL,
   WW_NEG_REPARATIONS_STEP_PCT,
   WwPeaceOfferView,
+  WwPeaceReason,
   WwPeaceTerms,
   WwWarSummary,
 } from "@openfront/engine-api/ww1936/EndgameTypes";
@@ -23,6 +24,7 @@ import {
   negPeaceChance,
   NegPeaceFacts,
   negPeaceHint,
+  negPeaceMissing,
   negPeaceRepK,
   negPeaceTermsBlock,
   negPeaceValue,
@@ -213,6 +215,33 @@ export function negPeaceFactsOf(game: NegPeaceGame): NegPeaceFacts | null {
   };
 }
 
+/**
+ * Why the AI is hard to move, in one line, with the points still missing
+ * for a "high" chance (ww88). Null when it may agree already, or the
+ * missing points are none.
+ */
+export function peaceWhyLine(
+  reason: WwPeaceReason | undefined,
+  missing: number,
+): string | null {
+  if (reason === undefined) return null;
+  if (reason === "winning") return translateText("ww1936.npeace.why_winning");
+  if (missing <= 0) return null;
+  return translateText(`ww1936.npeace.why_${reason}`, {
+    pts: Math.ceil(missing),
+  });
+}
+
+/** The war row's line after a refusal: the judge's reason with the price of a white peace (null: none). */
+export function peaceWhyForWar(
+  game: NegPeaceGame,
+  me: number,
+  war: number,
+): string | null {
+  const j = game.wwEndgame?.()?.judgeFor(me, war) ?? null;
+  return j === null ? null : peaceWhyLine(j.reason, negPeaceMissing(j, 0));
+}
+
 /** A refusal's text (the order block's). */
 function blockText(block: string): string {
   return translateText(BLOCK_KEYS[block as keyof typeof BLOCK_KEYS] ?? block);
@@ -286,6 +315,8 @@ export interface NegPeaceComposerView {
   hint: string;
   /** The level in words (null: a human target, or no judge yet). */
   hintLevel: NegPeaceHint | null;
+  /** Why they are hard to move, with the points missing (null: they may agree). */
+  why: string | null;
   order: WwOrder;
 }
 
@@ -348,6 +379,7 @@ export function negPeaceComposer(
   // The hint: the engine's facts of the war, my terms' value (engine-lib).
   let hint: string;
   let hintLevel: NegPeaceComposerView["hintLevel"] = null;
+  let why: string | null = null;
   const human = isHuman(game, target);
   const j = eg?.judgeFor(me, w.id) ?? null;
   if (human) hint = translateText("ww1936.npeace.chance_human");
@@ -364,6 +396,7 @@ export function negPeaceComposer(
         )
       : 0;
     hintLevel = negPeaceHint(negPeaceChance(j, v));
+    why = peaceWhyLine(j.reason, negPeaceMissing(j, v));
     hint =
       hintLevel === "none"
         ? translateText("ww1936.npeace.chance_none")
@@ -389,6 +422,7 @@ export function negPeaceComposer(
     white: any ? null : translateText("ww1936.npeace.white"),
     hint,
     hintLevel,
+    why,
     order: any
       ? { kind: "peace_offer", war: w.id, target, terms: t }
       : { kind: "peace_offer", war: w.id, target },

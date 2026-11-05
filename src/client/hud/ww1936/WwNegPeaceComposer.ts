@@ -174,6 +174,9 @@ export function negPeaceComposerTemplate(
           class="font-semibold ${hintTone}"
           >${v.hint}</span
         >`}
+    ${v.why === null
+      ? nothing
+      : html`<span data-ww-npeace-why class="text-amber-200">${v.why}</span>`}
     <div class="flex gap-1">
       <button
         type="button"
