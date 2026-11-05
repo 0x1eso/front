@@ -554,72 +554,95 @@ const FOOT_KINDS: ReadonlySet<string> = new Set([
   "motor",
 ]);
 
-/** One carrier of hard attack: its need group, pierce (defending, attacking) and hard attack. */
-interface HardCarrier {
-  group: number;
-  pierce: number;
-  atk: number;
-  hard: number;
+// One carrier of hard attack each: need group, pierce defending and attacking,
+// hard attack (scratch: templateStats fills them and pierceBands reads them).
+const C_GROUP: number[] = [];
+const C_PIERCE: number[] = [];
+const C_ATK: number[] = [];
+const C_HARD: number[] = [];
+const C_BAND: number[] = [];
+
+function addCarrier(
+  group: number,
+  pierce: number,
+  atk: number,
+  hard: number,
+): void {
+  C_GROUP.push(group);
+  C_PIERCE.push(pierce);
+  C_ATK.push(atk);
+  C_HARD.push(hard);
 }
 
 /**
  * ww84: the division's carriers of hard attack as pierce bands: one band for
  * each pierce, then the two nearest bands merged (weighted by hard attack)
- * until at most MAX_PIERCE_BANDS are left.
+ * until at most MAX_PIERCE_BANDS are left. Empties the carriers.
  */
-function pierceBands(
-  carriers: readonly HardCarrier[],
-): Pick<
+function pierceBands(): Pick<
   DivisionStats,
   "bandPierce" | "bandPierceAtk" | "bandHard" | "bandParts"
 > {
-  const bands: { pierce: number; atk: number; hard: number; of: number[] }[] =
-    [];
-  carriers.forEach((c, i) => {
-    const b = bands.find((x) => x.pierce === c.pierce && x.atk === c.atk);
-    if (b === undefined) {
-      bands.push({ pierce: c.pierce, atk: c.atk, hard: c.hard, of: [i] });
-    } else {
-      b.hard += c.hard;
-      b.of.push(i);
-    }
-  });
-  bands.sort((a, b) => a.pierce - b.pierce || a.atk - b.atk);
-  while (bands.length > MAX_PIERCE_BANDS) {
+  const bandPierce: number[] = [];
+  const bandPierceAtk: number[] = [];
+  const bandHard: number[] = [];
+  const n = C_GROUP.length;
+  C_BAND.length = n;
+  for (let i = 0; i < n; i++) {
+    const p = C_PIERCE[i];
+    const a = C_ATK[i];
+    // Least pierce first: find its place, or the band that has it.
     let k = 0;
-    for (let i = 1; i + 1 < bands.length; i++) {
+    while (
+      k < bandPierce.length &&
+      (bandPierce[k] < p || (bandPierce[k] === p && bandPierceAtk[k] < a))
+    ) {
+      k++;
+    }
+    if (
+      k < bandPierce.length &&
+      bandPierce[k] === p &&
+      bandPierceAtk[k] === a
+    ) {
+      bandHard[k] += C_HARD[i];
+    } else {
+      bandPierce.splice(k, 0, p);
+      bandPierceAtk.splice(k, 0, a);
+      bandHard.splice(k, 0, C_HARD[i]);
+      for (let j = 0; j < i; j++) if (C_BAND[j] >= k) C_BAND[j]++;
+    }
+    C_BAND[i] = k;
+  }
+  while (bandPierce.length > MAX_PIERCE_BANDS) {
+    let k = 0;
+    for (let i = 1; i + 1 < bandPierce.length; i++) {
       if (
-        bands[i + 1].pierce - bands[i].pierce <
-        bands[k + 1].pierce - bands[k].pierce
+        bandPierce[i + 1] - bandPierce[i] <
+        bandPierce[k + 1] - bandPierce[k]
       ) {
         k = i;
       }
     }
-    const [a, b] = [bands[k], bands[k + 1]];
-    const hard = a.hard + b.hard;
+    const [ha, hb] = [bandHard[k], bandHard[k + 1]];
+    const hard = ha + hb;
     const mean = (x: number, y: number) =>
-      hard === 0
-        ? Math.max(x, y)
-        : Math.floor((x * a.hard + y * b.hard) / hard);
-    bands.splice(k, 2, {
-      pierce: mean(a.pierce, b.pierce),
-      atk: mean(a.atk, b.atk),
-      hard,
-      of: [...a.of, ...b.of],
-    });
+      hard === 0 ? Math.max(x, y) : Math.floor((x * ha + y * hb) / hard);
+    bandPierce[k] = mean(bandPierce[k], bandPierce[k + 1]);
+    bandPierceAtk[k] = mean(bandPierceAtk[k], bandPierceAtk[k + 1]);
+    bandHard[k] = hard;
+    bandPierce.splice(k + 1, 1);
+    bandPierceAtk.splice(k + 1, 1);
+    bandHard.splice(k + 1, 1);
+    for (let j = 0; j < n; j++) if (C_BAND[j] > k) C_BAND[j]--;
   }
-  const bandParts: number[] = [];
-  bands.forEach((b, i) => {
-    for (const c of b.of) {
-      bandParts.push(i, carriers[c].group, carriers[c].hard);
-    }
-  });
-  return {
-    bandPierce: bands.map((b) => b.pierce),
-    bandPierceAtk: bands.map((b) => b.atk),
-    bandHard: bands.map((b) => b.hard),
-    bandParts,
-  };
+  const bandParts = new Array<number>(n * 3);
+  for (let i = 0; i < n; i++) {
+    bandParts[i * 3] = C_BAND[i];
+    bandParts[i * 3 + 1] = C_GROUP[i];
+    bandParts[i * 3 + 2] = C_HARD[i];
+  }
+  C_GROUP.length = C_PIERCE.length = C_ATK.length = C_HARD.length = 0;
+  return { bandPierce, bandPierceAtk, bandHard, bandParts };
 }
 
 /** Each type's static slots, generation 1 first. */
@@ -697,7 +720,6 @@ export function templateStats(
   let armorSum = 0;
   let armoured = 0;
   let pierceMax = 0;
-  const carriers: HardCarrier[] = [];
   let speed = Number.MAX_SAFE_INTEGER;
   let supply = 0;
   let train = 0;
@@ -800,12 +822,12 @@ export function templateStats(
         bp.hard,
       ) + (foot ? atHard : 0);
     parts[main * 4 + 1] += hard;
-    carriers.push({
-      group: main,
+    addCarrier(
+      main,
       pierce,
-      atk: AMBUSH_GUNS.has(id) ? gunAttackPierce(pierce) : pierce,
+      AMBUSH_GUNS.has(id) ? gunAttackPierce(pierce) : pierce,
       hard,
-    });
+    );
     parts[main * 4 + 2] += pctOf(
       mix(keyed(ks, main, g, KS.def, Math.floor((d.def * gp) / 100)), KS.def),
       bp.def,
@@ -891,12 +913,7 @@ export function templateStats(
         sbp.pierce,
       );
       pierceMax = Math.max(pierceMax, p);
-      carriers.push({
-        group: main,
-        pierce: p,
-        atk: AMBUSH_GUNS.has(id) ? gunAttackPierce(p) : p,
-        hard,
-      });
+      addCarrier(main, p, AMBUSH_GUNS.has(id) ? gunAttackPierce(p) : p, hard);
     }
     for (const [t, k] of d.equip) need[TYPE_INDEX.get(t)!] += k;
     if (d.artillery) gunN++;
@@ -959,7 +976,7 @@ export function templateStats(
     fuelWidthPm: width === 0 ? 0 : Math.floor((fuelWidth * 1000) / width),
     fuelHourMilli: fuelHour,
     designFlags,
-    ...pierceBands(carriers),
+    ...pierceBands(),
     prepFireBp:
       n === 0
         ? 0

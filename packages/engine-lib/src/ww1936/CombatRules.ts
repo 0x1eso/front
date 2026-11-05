@@ -1099,6 +1099,11 @@ export function addSideBands(sum: SideSum, from: SideSum): void {
   for (let i = 0; i < hs.length; i++) addSideBand(sum, ps[i], as[i], hs[i]);
 }
 
+/** `old` over width `w0` and `x` over width `w`, width-weighted (no closure: addToSide runs per division). */
+function byWidth(old: number, x: number, w0: number, w: number): number {
+  return w0 + w === 0 ? 0 : Math.floor((old * w0 + x * w) / (w0 + w));
+}
+
 /** Adds one division's numbers to a side sum (armour, pierce, hardness width-weighted). */
 export function addToSide(sum: SideSum, s: SideStats, orgMilli: number): void {
   const w0 = sum.width;
@@ -1111,16 +1116,26 @@ export function addToSide(sum: SideSum, s: SideStats, orgMilli: number): void {
   sum.hardnessPm =
     w1 === 0 ? 0 : Math.floor((sum.hardnessPm * w0 + s.hardnessPm * sw) / w1);
   const fl = s.flags ?? 0;
-  const weigh = (old: number, x: number) =>
-    w1 === 0 ? 0 : Math.floor((old * w0 + x * sw) / w1);
-  sum.defOrgPct = weigh(sum.defOrgPct ?? 100, defenderOrgPct(fl));
-  sum.footPm = weigh(sum.footPm ?? 0, has(fl, TPL_FOOT_MAJOR) ? 1000 : 0);
-  sum.armorMajorPm = weigh(
+  sum.defOrgPct = byWidth(sum.defOrgPct ?? 100, defenderOrgPct(fl), w0, sw);
+  sum.footPm = byWidth(
+    sum.footPm ?? 0,
+    has(fl, TPL_FOOT_MAJOR) ? 1000 : 0,
+    w0,
+    sw,
+  );
+  sum.armorMajorPm = byWidth(
     sum.armorMajorPm ?? 0,
     has(fl, TPL_ARMOR_MAJOR) ? 1000 : 0,
+    w0,
+    sw,
   );
-  sum.prepFireBp = weigh(sum.prepFireBp ?? 0, s.prepFireBp ?? 0);
-  sum.heavyPm = weigh(sum.heavyPm ?? 0, has(fl, TPL_HEAVY_LEAD) ? 1000 : 0);
+  sum.prepFireBp = byWidth(sum.prepFireBp ?? 0, s.prepFireBp ?? 0, w0, sw);
+  sum.heavyPm = byWidth(
+    sum.heavyPm ?? 0,
+    has(fl, TPL_HEAVY_LEAD) ? 1000 : 0,
+    w0,
+    sw,
+  );
   if (has(fl, TPL_RECON)) sum.recon = true;
   const hs = s.bandHard;
   if (hs === undefined || s.bandPierce === undefined) {
