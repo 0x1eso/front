@@ -125,6 +125,9 @@ export function checkWarEnds(eg: WwEndgame, day: number, tick: number): void {
     more = false;
     for (const w of eg.wars) {
       if (w.ended !== null) continue;
+      // A leader wiped off the map before its surrender line stays "active"
+      // on the record, and a war led by the dead could never make peace.
+      eg.fixLeader(w);
       if (endOne(eg, w, day, tick, ended)) {
         changed = true;
         more = true;
