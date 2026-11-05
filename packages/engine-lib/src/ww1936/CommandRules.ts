@@ -16,23 +16,18 @@ import {
   WW_ADMIRAL_TRAIT_MAX,
 } from "@openfront/engine-api/ww1936/NavyTypes";
 
-/** Spec §4.2 table: the 12 new general traits. kind "terrain" ones come from 60 battle days in `terrain`. */
+/** Spec §4.2 table: the new general traits (ww84: the three terrain ones are gone). */
 export interface GeneralTraitDef {
-  kind: "terrain" | "assign";
+  kind: "assign";
   level: number;
   needs?: GeneralTrait;
   /** Tier (the old command-power value); only 0 (not assignable) matters now. */
   cp: number;
-  /** P2 terrainDays index (entries 4.. are forest+jungle, urban, marsh). */
-  terrainIdx?: number;
 }
 
 export const NEW_GENERAL_TRAITS: Readonly<
   Partial<Record<GeneralTrait, GeneralTraitDef>>
 > = {
-  forest_expert: { kind: "terrain", level: 1, cp: 0, terrainIdx: 4 },
-  urban_expert: { kind: "terrain", level: 1, cp: 0, terrainIdx: 5 },
-  swamp_expert: { kind: "terrain", level: 1, cp: 0, terrainIdx: 6 },
   infantry_expert: {
     kind: "assign",
     level: 2,
@@ -53,7 +48,6 @@ export const NEW_GENERAL_TRAITS: Readonly<
     cp: 25,
   },
 };
-export const TERRAIN_TRAIT_DAYS = 60;
 
 // ---- ww15: traits come by themselves (nothing is bought).
 /** Free automatic trait: battle days per trait already held, plus one (generals); usage days likewise (admirals). */

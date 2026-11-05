@@ -288,7 +288,6 @@ export function forceMarch(
     walkStep: moveStep(
       speed === Infinity ? DEFAULT_SPEED_CENTI : speed,
       1,
-      "clear",
       1000,
       0,
     ),
@@ -340,7 +339,7 @@ export function pickInvasionPort(
 ): InvasionPortPlan | "no_invasion_port" | "no_sea_path" {
   const sc = w.scenario;
   const walk = regionDistances(sc, w.from, w.ours, (e, to) =>
-    edgeTicks(moveNeed(sc.edge(e), sc.landOf(to)), w.walkStep),
+    edgeTicks(moveNeed(sc.edge(e)), w.walkStep),
   );
   const rail =
     w.railOk && w.railed(w.from)

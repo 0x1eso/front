@@ -88,6 +88,19 @@ export const GENERAL_TRAITS = [
   "ambusher",
 ] as const;
 export type GeneralTrait = (typeof GENERAL_TRAITS)[number];
+/**
+ * ww84: the ground and the weather decide nothing, so these do nothing. They
+ * stay in GENERAL_TRAITS because a trait's bit is its place in the list; no
+ * general gets one and the screens skip them.
+ */
+export const RETIRED_GENERAL_TRAITS: readonly GeneralTrait[] = [
+  "winter_specialist",
+  "desert_fox",
+  "mountaineer",
+  "forest_expert",
+  "urban_expert",
+  "swamp_expert",
+];
 /** Bit of a trait in a trait mask. */
 export function traitBit(t: GeneralTrait): number {
   return 1 << GENERAL_TRAITS.indexOf(t);

@@ -1550,7 +1550,7 @@ function invasionReach(ctx: NavyCtx, army: number): InvasionReach {
   )?.world;
   if (world !== undefined) {
     const walk = regionDistances(sc, world.from, world.ours, (e, to) =>
-      edgeTicks(moveNeed(sc.edge(e), sc.landOf(to)), world.walkStep),
+      edgeTicks(moveNeed(sc.edge(e)), world.walkStep),
     );
     for (const r of walk.keys()) if (world.isPort(r)) reach.ports.push(r);
     reach.ports.sort((x, y) => x - y);

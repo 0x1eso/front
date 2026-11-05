@@ -30,6 +30,7 @@ import {
   ROLE_DEFEND,
   ROLE_NONE,
   TemplateDef,
+  TPL_CAVALRY_MAJOR,
   TPL_ENGINEER,
   TPL_HOSPITAL,
   TPL_RECON,
@@ -49,12 +50,12 @@ import {
   attackValue,
   casCutHits,
   combatWidth,
-  defenderOrgDamage,
   divisionMods,
   emptySide,
   entrenchMax,
   excessWidthBp,
   ModInput,
+  MARINE_LANDED_RECOVERY_PCT,
   ModResult,
   planMaxBp,
   predictBattleRange,
@@ -277,10 +278,9 @@ function fight(land: WwLand, b: Battle, tick: number): void {
   b.round++;
   // 3. Width and the lines (spec §9.2).
   const dirs = new Set(b.attackers.map((id) => t.region[t.rowOf(id)])).size;
-  const terrain = land.scenario.landOf(R);
   // ww7: a fort of level 3+ halves the extra width of the extra directions.
   const width = combatWidth(
-    terrain,
+    land.scenario.landOf(R),
     Math.min(4, Math.max(1, dirs)),
     effectiveLevel(land.econ, R, "fort"),
   );
@@ -306,6 +306,8 @@ function fight(land: WwLand, b: Battle, tick: number): void {
   // P5 hook (W, plan decision 21): who dealt each target's HP damage,
   // summed by dealer (one entry per country, not per hit).
   const dealt = new Map<number, Map<number, number>>();
+  // ww84: what a broken defender leaves behind, by who hit it this round.
+  const routBy = new Map<number, number>();
   const deal = (to: number, by: number, hpMilli: number) => {
     if (hpMilli <= 0) return;
     let l = dealt.get(to);
@@ -350,6 +352,10 @@ function fight(land: WwLand, b: Battle, tick: number): void {
     org.set(to, (org.get(to) ?? 0) + dmg.orgMilli);
     hp.set(to, (hp.get(to) ?? 0) + dmg.hpMilli);
     deal(to, land.fightOwner(from), dmg.hpMilli);
+    if (toDefends) {
+      const rout = routPctBy(s.flags);
+      if (rout > (routBy.get(to) ?? 0)) routBy.set(to, rout);
+    }
   };
   const mods = new Map<number, CombatMods>();
   for (const r of att.active) mods.set(r, modsOf(land, r, R, true));
@@ -409,13 +415,11 @@ function fight(land: WwLand, b: Battle, tick: number): void {
       // (assault's price, elastic and withdraw); every source of damage.
       const defending = t.role[r] === ROLE_DEFEND;
       const o = applyBp(o0, 10_000 + (defending ? fx.defOrgBp : fx.attOrgBp));
-      // ww7 (street fighting): the defenders of an urban region take less
-      // org damage, whatever dealt it (hits, air support, guns).
-      t.org[r] = Math.max(
-        0,
-        was - (defending ? defenderOrgDamage(terrain, o) : o),
-      );
-      if (defending) b.lostOrgMilli += was - t.org[r];
+      t.org[r] = Math.max(0, was - o);
+      if (defending) {
+        b.lostOrgMilli += was - t.org[r];
+        if (t.org[r] === 0 && was > 0) noteRout(b, t.id[r], routBy.get(r) ?? 0);
+      }
       land.markArmy(t.army[r]);
       const menBefore = t.men[r];
       const against = t.owner[r];
@@ -655,6 +659,7 @@ function sideProfileOf(
   let entrench = 0;
   let signal = false;
   let recon = false;
+  let cavalry = 0;
   for (const id of ids) {
     const r = t.rowOf(id);
     if (r < 0) continue;
@@ -668,6 +673,7 @@ function sideProfileOf(
     const flags = land.flagsOf(r);
     if ((flags & TPL_SIGNAL) !== 0) signal = true;
     if ((flags & TPL_RECON) !== 0) recon = true;
+    if ((flags & TPL_CAVALRY_MAJOR) !== 0) cavalry++;
     exp += t.exp[r];
     entrench += t.entrench[r];
     const c = compositionOf(land, r);
@@ -692,6 +698,7 @@ function sideProfileOf(
   out.level = g?.level ?? 0;
   out.signal = signal;
   out.recon = recon;
+  out.cavalry = n > 0 && cavalry * 2 >= n;
   const ce = lead < 0 ? null : land.econ.country(t.owner[PA_ROW[lead]]);
   out.doctrine = Math.min(10, Math.floor((ce?.stats.reconPct ?? 0) / 5));
   const mean = n === 0 ? 0 : Math.floor(exp / n);
@@ -1014,6 +1021,7 @@ function won(land: WwLand, b: Battle, tick: number): void {
   b.phaseRound = 0;
   delete b.capEq;
   delete b.dmgBy;
+  delete b.routBy;
   // An empty band is walked through at a band's pace.
   if (!defenceIn(land, R, b.attLead)) {
     walkThrough(
@@ -1077,19 +1085,32 @@ export function retreatDivision(land: WwLand, row: number, broke = true): void {
 
 /** ww67: the share of its strength a division broken in a lost battle leaves behind, percent. */
 export const ROUT_LOSS_PCT = 15;
+/** ww84: cavalry runs the broken down: what a defender it broke leaves, percent. */
+export const ROUT_LOSS_CAVALRY_PCT = ROUT_LOSS_PCT + 5;
+
+/** ww84: what a defender broken by a division with `flags` leaves behind, percent; 0: the plain rate. */
+function routPctBy(flags: number): number {
+  return (flags & TPL_CAVALRY_MAJOR) !== 0 ? ROUT_LOSS_CAVALRY_PCT : 0;
+}
+
+/** ww84: a defender broke in `b`; `pct` above the plain rate waits for its rout. */
+function noteRout(b: Battle, id: number, pct: number): void {
+  if (pct > 0) (b.routBy ??= []).push([id, pct]);
+}
 
 /**
  * ww67: a division that broke leaves prisoners and abandoned equipment behind.
  * Only a broken one: a division falling back with org left (a region lost
- * around it, an order) walks away whole.
+ * around it, an order) walks away whole. ww84: more of it if its breakers were
+ * cavalry or armour running through (Battle.routBy).
  */
 function routLoss(land: WwLand, row: number): void {
-  if (land.divisions.org[row] !== 0) return;
-  applyHpLoss(
-    land,
-    row,
-    Math.floor((land.statsOf(row).hpMilli * ROUT_LOSS_PCT) / 100),
-  );
+  const t = land.divisions;
+  if (t.org[row] !== 0) return;
+  const b = t.battle[row] === 0 ? undefined : land.battles.get(t.battle[row]);
+  const pct =
+    b?.routBy?.find((e) => e[0] === t.id[row])?.[1] ?? ROUT_LOSS_PCT;
+  applyHpLoss(land, row, Math.floor((land.statsOf(row).hpMilli * pct) / 100));
 }
 
 /**
@@ -1263,6 +1284,7 @@ export function stepRecovery(land: WwLand): void {
       (Math.floor((base * (pct + signal)) / 100) * supply) / 1000,
     );
     if (m === MOVE_WALK || stepping) gain = Math.floor(gain / 2);
+    if (land.landedUntil.size > 0) gain = landedGain(land, r, gain);
     if (gain <= 0) continue;
     const now = Math.min(max, was + gain);
     t.org[r] = now;
@@ -1270,6 +1292,14 @@ export function stepRecovery(land: WwLand): void {
       land.markArmy(army);
     }
   }
+}
+
+/** ww84: marines fresh ashore get their org back half as fast again. */
+function landedGain(land: WwLand, row: number, gain: number): number {
+  const until = land.landedUntil.get(land.divisions.id[row]);
+  return until === undefined || until < land.day()
+    ? gain
+    : Math.floor((gain * MARINE_LANDED_RECOVERY_PCT) / 100);
 }
 
 /**
@@ -1485,8 +1515,7 @@ const NEUTRAL_TECH = techTotals(new Set());
 /**
  * What divisionMods needs for division `row` fighting over `region`
  * (attacking it, or defending it): its general, template flags, tech,
- * experience, readiness, the region's terrain and weather, the edge's
- * river and strait, the fort, its entrenchment, supply and encirclement
+ * experience, readiness, the edge's river and strait, the fort, its entrenchment, supply and encirclement
  * (pre-flight U11). The battles (battleMods) and the plans' predictions
  * (Plans.predictAttack) both call it. The excess width is 0: a battle
  * applies it to its whole line.
@@ -1533,7 +1562,6 @@ export function modInputOf(
       strait = edge.strait === 1;
     }
   }
-  const landOf = sc.landOf(region);
   // P4 (pre-flight ruling 3): the navy's, the air war's and fuel's cuts,
   // O(1) reads of what their days stored, so the mods cache sees them.
   // P5 (plan decision 20): a volunteer fights on its host's side, under
@@ -1564,8 +1592,6 @@ export function modInputOf(
     tech,
     exp: t.exp[row],
     planBp,
-    land: landOf,
-    weather: land.weatherOn(region, land.day()),
     river,
     strait,
     // P4 (spec §14.8): a bombed fort holds as the lower level. P6 (spec

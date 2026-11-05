@@ -41,7 +41,7 @@ export const SPIRITS_JPN: SpiritDef[] = [
   {
     id: "jpn_northern_readiness",
     icon: "compass",
-    stats: { winterPenaltyPct: -25 },
+    stats: { recoveryPct: 8 },
   },
   // jpn_hawaii_operation (90 days)
   {
@@ -59,13 +59,13 @@ export const SPIRITS_JPN: SpiritDef[] = [
   {
     id: "jpn_night_fighting",
     icon: "star_plain",
-    stats: { attackPct: 5, forestDefensePct: 10 },
+    stats: { attackPct: 5, defensePct: 3 },
   },
   // jpn_jungle_training: no jungle stat exists, so woodland defence stands in.
   {
     id: "jpn_jungle_warfare",
     icon: "compass",
-    stats: { supplyUsePct: -10, forestDefensePct: 10 },
+    stats: { supplyUsePct: -10, defensePct: 3 },
   },
   // jpn_naval_landing_force
   { id: "jpn_landing_skill", icon: "ship", stats: { invasionPrepPct: -15 } },

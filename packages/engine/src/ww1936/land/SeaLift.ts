@@ -3,7 +3,12 @@
 // keeps its departure region with mode MOVE_SEA and need 0 (the voyage
 // moves it; stepMovement skips such a row), so every per-region loop of P2
 // stays whole.
-import { MOVE_NONE, MOVE_SEA } from "@openfront/engine-api/ww1936/LandTypes";
+import {
+  MOVE_NONE,
+  MOVE_SEA,
+  TPL_MARINE_ANY,
+} from "@openfront/engine-api/ww1936/LandTypes";
+import { MARINE_LANDED_DAYS } from "@openfront/engine-lib/ww1936/CombatRules";
 import { applyHpLoss, leaveBattle } from "./Battles";
 import { arrive } from "./Movement";
 import type { WwLand } from "./WwLand";
@@ -55,6 +60,9 @@ export function landDivisions(
     const r = t.rowOf(id);
     if (r < 0) continue;
     if (amphibious) {
+      if ((land.flagsOf(r) & TPL_MARINE_ANY) !== 0) {
+        land.landedUntil.set(id, land.day() + MARINE_LANDED_DAYS);
+      }
       land.setDivisionRegion(r, region);
       t.mode[r] = MOVE_NONE;
       t.next[r] = region;

@@ -215,6 +215,8 @@ export interface TacticSide {
   level: number;
   signal: boolean;
   recon: boolean;
+  /** ww84: at least half the line is cavalry divisions. */
+  cavalry: boolean;
   /** Doctrine and research: 0..10. */
   doctrine: number;
   /** Experience tier of the line: 0 recruit … 3 elite (CombatRules.expBp's steps). */
@@ -236,6 +238,7 @@ export function newTacticSide(): TacticSide {
     level: 0,
     signal: false,
     recon: false,
+    cavalry: false,
     doctrine: 0,
     expTier: 0,
     artPm: 0,
@@ -252,7 +255,6 @@ const B_INFANTRY_OFFICER = T("infantry_officer");
 const B_CAVALRY = T("cavalry_officer");
 const B_OFFENSIVE = T("offensive_doctrine");
 const B_DEFENSIVE = T("defensive_doctrine");
-const B_DESERT_FOX = T("desert_fox");
 const B_ARMOR_EXPERT = T("armor_expert");
 const B_ARTILLERY = T("artillery_officer");
 const B_TRICKSTER = T("trickster");
@@ -262,10 +264,13 @@ const B_AMBUSHER = T("ambusher");
 
 const hasT = (mask: number, bit: number) => (mask & bit) !== 0;
 
+/** ww84: cavalry finds the gaps first. */
+export const CAVALRY_INITIATIVE = 10;
+
 /**
  * 0..100. 20 + the general's skill × 4 + level × 2 + his traits' part + a
- * signal company 10 + a recon company 5 + doctrine 0..10 + 3 a step of the
- * line's experience (design §2.3). The attacker's offensive_doctrine and the
+ * signal company 10 + a recon company 5 + a line of cavalry 10 + doctrine
+ * 0..10 + 3 a step of the line's experience (design §2.3). The attacker's offensive_doctrine and the
  * defender's defensive_doctrine and ambusher count 6; a trickster 8; a
  * skirmisher 4; a panzer leader (attacker) 4.
  */
@@ -283,6 +288,7 @@ export function initiativeOf(s: TacticSide, defending: boolean): number {
   }
   if (s.signal) v += 10;
   if (s.recon) v += 5;
+  if (s.cavalry) v += CAVALRY_INITIATIVE;
   v += Math.max(0, Math.min(10, s.doctrine)) + 3 * s.expTier;
   return Math.max(0, Math.min(100, v));
 }
@@ -319,7 +325,7 @@ export function attackWeights(s: TacticSide, w: number[]): void {
   }
   w[AT_ENVELOP] =
     s.directions >= 2 ? 10 + 4 * Math.min(2, s.directions - 2) : 0;
-  if (hasT(m, B_CAVALRY) || hasT(m, B_DESERT_FOX)) {
+  if (hasT(m, B_CAVALRY)) {
     w[AT_ENVELOP] = pct(w[AT_ENVELOP], 200);
   }
 }

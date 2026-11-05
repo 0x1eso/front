@@ -1,15 +1,9 @@
 // World War 1936 P2: movement (P2 spec §7.2–§7.5) and paths over the
 // region graph (§7.3). The engine's movement lane and the screens' move
 // previews call the same functions.
-import {
-  LandTerrain,
-  Weather,
-  WW_ROUND_HOUR_MILLI,
-} from "@openfront/engine-api/ww1936/LandTypes";
-import { TERRAIN } from "./CombatRules";
+import { WW_ROUND_HOUR_MILLI } from "@openfront/engine-api/ww1936/LandTypes";
 import { RegionHeap } from "./RegionHeap";
 import type { Edge, ScenarioIndex } from "./ScenarioIndex";
-import { WEATHER } from "./Weather";
 
 /**
  * Spec §7.2 extra distance over an edge's river, % (0 none, 1 small, 2
@@ -27,31 +21,27 @@ export function riverPct(e: Edge): number {
   );
 }
 
-/** Milli-km to cross `edge` into a region of `toLand` on foot. */
-export function moveNeed(edge: Edge, toLand: LandTerrain): number {
-  return Math.floor(
-    (edge.km * 1000 * (100 + TERRAIN[toLand].movePct + riverPct(edge))) / 100,
-  );
+/** Milli-km to cross `edge` on foot (ww84: the ground ahead adds nothing). */
+export function moveNeed(edge: Edge): number {
+  return Math.floor((edge.km * 1000 * (100 + riverPct(edge))) / 100);
 }
 
 /**
  * Milli-km a division walks in a tick (spec §7.2): speed × 1.829 h,
  * +5% per infrastructure level above 1 plus `bonusBp` (mobile_1, traits),
- * × weather, × (50 + supply/20)% — half speed without supply.
+ * × (50 + supply/20)% — half speed without supply.
  */
 export function moveStep(
   speedCenti: number,
   infra: number,
-  weather: Weather,
   supplyPm: number,
   bonusBp: number,
 ): number {
   const base = Math.floor((speedCenti * WW_ROUND_HOUR_MILLI) / 100);
   const infraBp = 500 * Math.max(0, infra - 1);
   const a = Math.floor((base * (10_000 + infraBp + bonusBp)) / 10_000);
-  const b = Math.floor((a * WEATHER[weather].movePct) / 100);
   const s = Math.max(0, Math.min(1000, supplyPm));
-  return Math.max(1, Math.floor((b * (50 + Math.floor(s / 20))) / 100));
+  return Math.max(1, Math.floor((a * (50 + Math.floor(s / 20))) / 100));
 }
 
 export const RAIL_KMH_CENTI = 5000;

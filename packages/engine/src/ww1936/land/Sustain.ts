@@ -25,7 +25,6 @@ import {
   isTankGroup,
   oldInfoOf,
 } from "@openfront/engine-lib/ww1936/TemplateStats";
-import { WEATHER } from "@openfront/engine-lib/ww1936/Weather";
 import {
   drawEquip,
   drawManpower,
@@ -55,7 +54,6 @@ export const ATTRITION_CUT_PPM = 10_000;
  * that move, fight or lack supply, a trickle otherwise): a division resting
  * in full supply takes this share of the day's weather attrition, %.
  */
-export const WEATHER_ATTRITION_IDLE_PCT = 25;
 /**
  * Whether a division fought since its country's last day (spec §5.4
  * "전투에 참가한 날"): lastFight is the tick of its last round. The
@@ -294,11 +292,9 @@ export function upgrade(land: WwLand, ce: CountryEconomy, r: number): void {
 
 /**
  * Spec §5.3, §10, §11.5 attrition, ppm of men and of every equipment slot:
- * below 50% supply `(500 − supply) / 500 × 1%`, encircled 1%, plus the
- * day's weather in its region (a winter specialist halves snow and frost,
- * a desert fox ignores heat; a division at rest in full supply takes a
- * quarter of it, Task 11). The remainders build up in lossMen / lossEq
- * (milli) as HP losses do; nothing goes back, the men lost are dead.
+ * below 50% supply `(500 − supply) / 500 × 1%`, encircled 1% (ww84: no
+ * weather). The remainders build up in lossMen / lossEq (milli) as HP
+ * losses do; nothing goes back, the men lost are dead.
  */
 export function attritionPpm(land: WwLand, r: number, day: number): number {
   const t = land.divisions;
@@ -310,27 +306,7 @@ export function attritionPpm(land: WwLand, r: number, day: number): number {
         ATTRITION_SUPPLY_PM,
     );
   }
-  const reg = t.region[r];
-  const w = land.weatherOn(reg, day);
-  let wpm = WEATHER[w].attritionPm * 1000;
-  if (wpm > 0) {
-    const army = land.armies.get(t.army[r]);
-    const traits =
-      army === undefined ? 0 : (generalOf(land, army)?.traits ?? 0);
-    if (
-      (w === "snow" || w === "frozen") &&
-      (traits & traitBit("winter_specialist")) !== 0
-    ) {
-      wpm = Math.floor(wpm / 2);
-    }
-    if (w === "heat" && (traits & traitBit("desert_fox")) !== 0) wpm = 0;
-    // Task 11 (ruling 1): full only on the move, in a battle or short of
-    // supply; a quarter at rest in full supply.
-    const exposed =
-      t.mode[r] !== MOVE_NONE || t.battle[r] !== 0 || t.supply[r] < 1000;
-    if (!exposed) wpm = Math.floor((wpm * WEATHER_ATTRITION_IDLE_PCT) / 100);
-  }
-  return ppm + wpm;
+  return ppm;
 }
 
 /**

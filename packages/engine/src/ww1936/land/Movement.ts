@@ -106,14 +106,12 @@ function stepOf(land: WwLand, r: number, mode: number): number {
       : Math.floor((step * land.econ.railEff[next]) / have);
   }
   const to = t.next[r];
-  const w = land.weatherOn(to, land.day());
   const s = land.baseStatsOf(r);
   let step = moveStep(
     s.speedCenti,
     land.econ.infraEff[to],
-    w,
     t.supply[r],
-    ce.stats.speedPct * 100 + traitSpeedBp(land, r, s.flags, to),
+    ce.stats.speedPct * 100 + traitSpeedBp(land, r, s.flags),
   );
   // P4 (spec §14.6, §15.4): enemy air superiority over the way, fuel.
   const air = land.hooks.airMoveFactorPm(to, land.sideOf(t.owner[r]));
@@ -166,27 +164,12 @@ export function arrive(land: WwLand, r: number, tick: number): void {
   if (land.bandProg[to] !== 0) attachOccupiers(land, to);
 }
 
-/** P6 (spec §4.2): swamp_expert's bit. */
-const SWAMP_EXPERT = traitBit("swamp_expert");
-
-/**
- * Spec §6.2: the general's movement traits, bp (panzer leader, cavalry
- * officer); P6 (spec §4.2, T1b) swamp_expert +10% walking into a marsh
- * region `to`.
- */
-export function traitSpeedBp(
-  land: WwLand,
-  r: number,
-  flags: number,
-  to: number,
-): number {
+/** Spec §6.2: the general's movement traits, bp (panzer leader, cavalry officer). */
+export function traitSpeedBp(land: WwLand, r: number, flags: number): number {
   const army = land.armies.get(land.divisions.army[r]);
   const g = army === undefined ? null : generalOf(land, army);
   if (g === null) return 0;
   let bp = 0;
-  if ((g.traits & SWAMP_EXPERT) !== 0 && land.scenario.landOf(to) === "marsh") {
-    bp += 1000;
-  }
   if (
     (g.traits & traitBit("panzer_leader")) !== 0 &&
     (flags & (TPL_ARMOR_ANY | TPL_MOTOR_ANY)) !== 0
@@ -277,7 +260,7 @@ export function startNextHop(land: WwLand, row: number, tick: number): void {
     if (next >= 0) {
       edge = sc.edgeBetween(here, next);
       const e = sc.edge(edge);
-      need = rail ? e.km * 1000 : moveNeed(e, sc.landOf(next));
+      need = rail ? e.km * 1000 : moveNeed(e);
     }
   }
   if (next < 0) {
@@ -348,7 +331,7 @@ export function slowestPathStep(land: WwLand, army: Army): number {
     if (r >= 0) speed = Math.min(speed, land.baseStatsOf(r).speedCenti);
   }
   if (speed === Infinity) speed = DEFAULT_SPEED_CENTI;
-  return moveStep(speed, 1, "clear", 1000, 0);
+  return moveStep(speed, 1, 1000, 0);
 }
 
 /**
@@ -376,7 +359,7 @@ export function pathTicks(
     if (e < 0) continue;
     let step = rows.length === 0 ? fallback : Infinity;
     for (const r of rows) step = Math.min(step, walkStepInto(land, r, to));
-    total += edgeTicks(moveNeed(sc.edge(e), sc.landOf(to)), step);
+    total += edgeTicks(moveNeed(sc.edge(e)), step);
   }
   return total;
 }
@@ -385,15 +368,13 @@ export function pathTicks(
 export function walkStepInto(land: WwLand, r: number, to: number): number {
   const t = land.divisions;
   const ce = land.econ.country(t.owner[r]);
-  const w = land.weatherOn(to, land.day());
   const s = land.baseStatsOf(r);
   return moveStep(
     s.speedCenti,
     land.econ.infraEff[to],
-    w,
     t.supply[r],
     (ce === null ? 0 : ce.stats.speedPct * 100) +
-      traitSpeedBp(land, r, s.flags, to),
+      traitSpeedBp(land, r, s.flags),
   );
 }
 
@@ -412,7 +393,7 @@ export function findPath(
   const sc = land.scenario;
   const step = slowestPathStep(land, army);
   return shortestPath(sc, from, to, pass, (e, next) =>
-    edgeTicks(moveNeed(sc.edge(e), sc.landOf(next)), step),
+    edgeTicks(moveNeed(sc.edge(e)), step),
   );
 }
 
@@ -458,7 +439,7 @@ function sidePath(
       from,
       to,
       (r) => land.sameSide(owner, land.controller[r]),
-      (e, next) => edgeTicks(moveNeed(sc.edge(e), sc.landOf(next)), step),
+      (e, next) => edgeTicks(moveNeed(sc.edge(e)), step),
     );
     if (memo.paths.size > 4096) memo.paths.clear();
     memo.paths.set(key, path);
@@ -504,7 +485,7 @@ export function startHopInto(
   t.step[row] = 0;
   t.mode[row] = mode;
   t.dest[row] = region;
-  let need = moveNeed(land.scenario.edge(e), land.scenario.landOf(region));
+  let need = moveNeed(land.scenario.edge(e));
   // ww7 (bands): into an enemy region in progress, the bands left are all
   // that is walked (a band takes the edge time ÷ depth); none fallen: the edge.
   const prog = land.bandProg[region];

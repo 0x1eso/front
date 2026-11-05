@@ -15,7 +15,6 @@ import {
   casRoundHits,
   rangeEffPm,
   sortieEffPm,
-  WEATHER_SORTIE_PM,
 } from "@openfront/engine-lib/ww1936/AirRules";
 import { dayOfDate, dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
 import { roundDamage } from "@openfront/engine-lib/ww1936/CombatRules";
@@ -128,10 +127,7 @@ function expectedPool(g: Game, n: number): number {
   const ce = ww.economy.country(deu)!;
   const km = ww.scenario.srKm(REGION.berlin, SR.eastLand);
   const rangePm = rangeEffPm(km, 450);
-  const weather =
-    WEATHER_SORTIE_PM[ww.land.weatherOn(REGION.krakow, ww.land.day())];
   const eff = sortieEffPm(
-    weather,
     ce.fuelRatioPm,
     rangePm,
     0,
@@ -179,7 +175,6 @@ async function oneRound(opts: {
 describe("World War 1936 P4: close air support (spec §14.7)", () => {
   test("100 1936 CAS give their pool split by frontage", async () => {
     const { g, ww, l, air, deu } = await juneWar();
-    expect(l.weatherOn(REGION.krakow, l.day())).toBe("clear");
     // Berlin → the zone East's center (pre-flight T8 A2 row: 282 km, 937‰).
     expect(ww.scenario.srKm(REGION.berlin, SR.eastLand)).toBe(282);
     expect(rangeEffPm(282, 450)).toBe(937);

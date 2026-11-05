@@ -394,7 +394,7 @@ describe("LandModel (spec §15)", () => {
     );
   });
 
-  it("previews a move over my side's regions with that day's weather", () => {
+  it("previews a move over my side's regions", () => {
     const { land, view } = game({
       armies: [army(1, "DEU", 3), army(2, "DEU", 2)],
       landDetails: [
@@ -403,11 +403,11 @@ describe("LandModel (spec §15)", () => {
         }),
       ],
     });
-    // Berlin → Munich: 140 km into forest (+25%) = 175,000; infantry
-    // 4 km/h at infrastructure 5 (+20%): 8,779 a tick → 20 ticks.
+    // Berlin → Munich: 140 km = 140,000; infantry 4 km/h at infrastructure 5
+    // (+20%): 8,779 a tick → 16 ticks.
     expect(movePreview(land, view, DEU, 1, 4, "move", DAY)).toEqual({
       path: [3, 4],
-      ticks: 20,
+      ticks: 16,
     });
     // London only through France: no way on my side.
     expect(movePreview(land, view, DEU, 1, 10, "move", DAY)).toBeNull();
@@ -421,7 +421,7 @@ describe("LandModel (spec §15)", () => {
       path: [2, 10],
       ticks: 45,
     });
-    // In snow the same walk takes longer (70% speed; Munich's winter is
+    // In snow the same walk takes as long (ww84; Munich's winter is
     // temperate since Task 11: snow, rain or clear by the week).
     const snow = Array.from({ length: 400 }, (_, d) => d).find(
       (d) =>
@@ -432,7 +432,7 @@ describe("LandModel (spec §15)", () => {
           view.scenario.wcell(4),
         ) === "snow",
     )!;
-    expect(movePreview(land, view, DEU, 1, 4, "move", snow)!.ticks).toBe(29);
+    expect(movePreview(land, view, DEU, 1, 4, "move", snow)!.ticks).toBe(16);
   });
 
   it("the designer's numbers are templateStats' and a change costs nothing", () => {
@@ -481,8 +481,6 @@ describe("LandModel (spec §15)", () => {
     });
     const c = battleCard(land, view, DEU, 7, DAY)!;
     expect(c).toMatchObject({
-      land: "hills",
-      weather: "clear",
       mine: true,
       leaveArmies: [1],
     });
@@ -490,12 +488,11 @@ describe("LandModel (spec §15)", () => {
       { id: "general", bp: 2_000 },
       { id: "exp", bp: 500 },
       { id: "recon", bp: 500 },
-      { id: "terrain", bp: -500 },
     ]);
-    // Not in it: a plain division's lines (the terrain only).
+    // Not in it: a plain division's lines (none).
     const other = game({ ...AT_WAR, battles: [b] });
     const o = battleCard(other.land, other.view, DEU, 7, DAY)!;
-    expect(o.attackLines).toEqual([{ id: "terrain", bp: -500 }]);
+    expect(o.attackLines).toEqual([]);
     expect(o.mine).toBe(false);
     expect(battleCard(other.land, other.view, DEU, 6, DAY)).toBeNull();
   });

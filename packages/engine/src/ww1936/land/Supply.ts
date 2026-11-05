@@ -272,13 +272,7 @@ function runHub(
       if (ours[to] === 0) continue;
       const nd =
         du +
-        supplyEdgeCost(
-          sc.edge(e.edge).km,
-          rail[u],
-          rail[to],
-          sc.landOf(to),
-          infra[to],
-        );
+        supplyEdgeCost(sc.edge(e.edge).km, rail[u], rail[to], infra[to]);
       if (nd < dist[to]) {
         dist[to] = nd;
         heap.push(nd, to);
@@ -374,8 +368,7 @@ export function dailySupply(land: WwLand, side: number): void {
     if (!cut) {
       const core =
         sc.region(r)!.core && land.sameSide(owners[r], land.controller[r]);
-      const w = land.weatherOn(r, day);
-      s = regionSupplyMilli(best[r], localSupplyMilli(core, infra[r]), w);
+      s = regionSupplyMilli(best[r], localSupplyMilli(core, infra[r]));
       // P5 hook (O, spec §8.6): resistance cuts an administered region's supply.
       const f = land.ww.endgame.supplyFactorPm(r);
       if (f !== 1000) s = Math.floor((s * f) / 1000);

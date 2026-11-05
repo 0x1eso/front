@@ -142,31 +142,27 @@ function attackPlan(l: WwLand, a: Army, region: number): void {
 }
 
 describe("ww7 depth bands: the rules", () => {
-  test("depth = clamp(1, 4, floor(sqrt(tiles) / 10)), one more for a city, at most 5", () => {
-    const table: [number, boolean, number, number][] = [
-      [0, false, 0, 1],
-      [99, false, 0, 1],
-      [100, false, 0, 1],
-      [399, false, 0, 1],
-      [400, false, 0, 2],
-      [899, false, 0, 2],
-      [900, false, 0, 3],
-      [1599, false, 0, 3],
-      [1600, false, 0, 4],
-      [100_000, false, 0, 4],
-      // Urban, or 10 victory points: one more band.
-      [50, true, 0, 2],
-      [50, false, 9, 1],
-      [50, false, 10, 2],
-      [900, true, 0, 4],
-      [900, false, 21, 4],
-      [1600, true, 21, 5],
-      [100_000, true, 40, BAND_MAX],
+  test("depth = clamp(1, 4, floor(sqrt(tiles) / 10)), one more for 10 points, at most 5", () => {
+    const table: [number, number, number][] = [
+      [0, 0, 1],
+      [99, 0, 1],
+      [100, 0, 1],
+      [399, 0, 1],
+      [400, 0, 2],
+      [899, 0, 2],
+      [900, 0, 3],
+      [1599, 0, 3],
+      [1600, 0, 4],
+      [100_000, 0, 4],
+      // 10 victory points: one more band (ww84: urban ground adds none).
+      [50, 9, 1],
+      [50, 10, 2],
+      [900, 21, 4],
+      [1600, 21, 5],
+      [100_000, 40, BAND_MAX],
     ];
-    for (const [tiles, urban, vp, want] of table) {
-      expect(regionDepth(tiles, urban, vp), `${tiles} ${urban} ${vp}`).toBe(
-        want,
-      );
+    for (const [tiles, vp, want] of table) {
+      expect(regionDepth(tiles, vp), `${tiles} ${vp}`).toBe(want);
     }
     for (const n of [0, 1, 2, 3, 4, 8, 9, 10, 99, 100, 10_000, 99_999]) {
       expect(isqrt(n)).toBe(Math.floor(Math.sqrt(n)));
@@ -258,7 +254,7 @@ describe("ww7 depth bands: a region falls band by band", () => {
     const edges = sc.edgesOf(WARSAW);
     const mean = Math.floor(
       edges.reduce(
-        (s, e) => s + moveNeed(sc.edge(e.edge), sc.landOf(WARSAW)),
+        (s, e) => s + moveNeed(sc.edge(e.edge)),
         0,
       ) / edges.length,
     );
@@ -333,10 +329,7 @@ describe("ww7 depth bands: a region falls band by band", () => {
     const { runner, g, l, deu } = await juneWar();
     takeRegion(g, WARSAW, "DEU");
     const sc = g.worldWar()!.scenario;
-    const need = moveNeed(
-      sc.edge(sc.edgeBetween(WARSAW, KRAKOW)),
-      sc.landOf(KRAKOW),
-    );
+    const need = moveNeed(sc.edge(sc.edgeBetween(WARSAW, KRAKOW)));
     const [id] = placeArmy(g, "DEU", WARSAW, 1).divisions;
     const r = rowOf(l, id);
     const t = l.divisions;

@@ -80,8 +80,6 @@ function input(over: Partial<ModInput> = {}): ModInput {
     tech: ZERO,
     exp: 0,
     planBp: 0,
-    land: "plains",
-    weather: "clear",
     river: 0,
     strait: false,
     fort: 0,
@@ -117,30 +115,6 @@ const T = (t: Parameters<typeof traitBit>[0]) => traitBit(t);
 
 describe("combat lines (CombatRules, spec §4.2–§4.5, §5.2.2, §21.2)", () => {
   it("the new general traits", () => {
-    expect(
-      at(mods({ traits: T("forest_expert"), land: "forest" }), "trait"),
-    ).toBe(1000);
-    expect(
-      df(
-        mods({ traits: T("forest_expert"), land: "jungle", attacking: false }),
-        "trait",
-      ),
-    ).toBe(500);
-    expect(
-      at(mods({ traits: T("urban_expert"), land: "urban" }), "trait"),
-    ).toBe(1000);
-    expect(
-      df(
-        mods({ traits: T("urban_expert"), land: "urban", attacking: false }),
-        "trait",
-      ),
-    ).toBe(1000);
-    expect(
-      at(mods({ traits: T("swamp_expert"), land: "marsh" }), "trait"),
-    ).toBe(1000);
-    expect(
-      at(mods({ traits: T("swamp_expert"), land: "plains" }), "trait"),
-    ).toBeUndefined();
     const inf = { traits: T("infantry_expert"), flags: TPL_INFANTRY_DIV };
     expect(at(mods(inf), "trait")).toBe(1000);
     expect(df(mods({ ...inf, attacking: false }), "trait")).toBe(1000);
@@ -185,9 +159,6 @@ describe("combat lines (CombatRules, spec §4.2–§4.5, §5.2.2, §21.2)", () =
   });
 
   it("design flags: flame, tank destroyer, amphibious, flail", () => {
-    expect(at(mods({ designFlags: TPL_FLAME, land: "urban" }), "flame")).toBe(
-      1000,
-    );
     expect(at(mods({ designFlags: TPL_FLAME, fort: 1 }), "flame")).toBe(1000);
     expect(at(mods({ designFlags: TPL_FLAME }), "flame")).toBeUndefined();
     expect(

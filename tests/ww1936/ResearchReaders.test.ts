@@ -81,8 +81,6 @@ const NEUTRAL = {
   tech: ZERO,
   exp: 0,
   planBp: 0,
-  land: "plains",
-  weather: "clear",
   river: 0,
   strait: false,
   fort: 0,

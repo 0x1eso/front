@@ -92,34 +92,4 @@ describe("T1b-L: lane D's land traits", () => {
     stepRecovery(l);
     expect(t.org[p]).toBe(Math.floor((full * 400) / 1000));
   }, 60_000);
-
-  it("swamp_expert: +10% walking into a marsh region, nothing elsewhere", async () => {
-    const { g, land: l } = await germany();
-    const a = placeArmy(g, "DEU", BERLIN, 1);
-    const b = placeArmy(g, "DEU", BERLIN, 1);
-    lead(l, a, traitBit("swamp_expert"));
-    const t = l.divisions;
-    const ra = t.rowOf(a.divisions[0]);
-    const rb = t.rowOf(b.divisions[0]);
-    const flags = l.baseStatsOf(ra).flags;
-    // The deep map has no marsh: Munich becomes one for this test.
-    // (A test-only write: the scenario's region is read-only data.)
-    const munich = l.scenario.region(MUNICH)! as { land?: LandTerrain };
-    const was = munich.land;
-    try {
-      expect(traitSpeedBp(l, ra, flags, MUNICH)).toBe(0);
-      munich.land = "marsh";
-      expect(l.scenario.landOf(MUNICH)).toBe("marsh");
-      expect(traitSpeedBp(l, ra, flags, MUNICH)).toBe(1000);
-      expect(traitSpeedBp(l, rb, flags, MUNICH)).toBe(0);
-      expect(traitSpeedBp(l, ra, flags, BERLIN)).toBe(0);
-      // The tick's step: the expert's division walks faster into the marsh.
-      startHopInto(l, ra, MUNICH, MOVE_WALK);
-      startHopInto(l, rb, MUNICH, MOVE_WALK);
-      stepMovement(l, g.ticks());
-      expect(t.step[ra]).toBeGreaterThan(t.step[rb]);
-    } finally {
-      munich.land = was;
-    }
-  }, 60_000);
 });

@@ -1310,11 +1310,7 @@ function attackOrigins(
 }
 
 /** A division the screen can only guess at: no general, no plan, full supply. */
-function plainInput(
-  attacking: boolean,
-  land: LandTerrain,
-  weather: Weather,
-): ModInput {
+function plainInput(attacking: boolean): ModInput {
   return {
     attacking,
     genAtt: 0,
@@ -1324,8 +1320,6 @@ function plainInput(
     tech: NEUTRAL_TECH,
     exp: 0,
     planBp: 0,
-    land,
-    weather,
     river: 0,
     strait: false,
     fort: 0,
@@ -1432,8 +1426,6 @@ function armyInput(
   me: number,
   a: ArmySummary,
   attacking: boolean,
-  land: LandTerrain,
-  weather: Weather,
   region: number,
   sides: LandSides,
   opponent: number,
@@ -1448,7 +1440,7 @@ function armyInput(
       ? 0
       : Math.floor(divs.reduce((s, d) => s + d.exp, 0) / divs.length);
   return {
-    ...plainInput(attacking, land, weather),
+    ...plainInput(attacking),
     genAtt: g?.att ?? 0,
     genDef: g?.def ?? 0,
     traits: g?.traits ?? 0,
@@ -1537,7 +1529,6 @@ export function attackPreview(
   if (a === null || view.scenario.region(region) === undefined) return null;
   const s = view.scenario;
   const land = s.landOf(region);
-  const weather = weatherOf(s, region, day);
   const origins = attackOrigins(view, me, a, region, sides);
   const directions = Math.max(1, Math.min(4, origins.length));
   const { river, strait } = crossing(s, origins, region);
@@ -1559,8 +1550,6 @@ export function attackPreview(
       me,
       a,
       true,
-      land,
-      weather,
       region,
       sides,
       holder,
@@ -1571,7 +1560,7 @@ export function attackPreview(
     excessBp: excessWidthBp(a.sum.width, width),
   }).mods;
   const dm = divisionMods({
-    ...plainInput(false, land, weather),
+    ...plainInput(false),
     ...p4Fields(view, economy, me, sides, holder, region, false, me, null, []),
     excessBp: excessWidthBp(def.width, width),
     encircled: view.regions.get(region)?.encircled ?? false,
@@ -1755,14 +1744,13 @@ export function movePreview(
       let step = moveStep(
         speed,
         economy.infra[to] ?? 1,
-        day < 0 ? "clear" : weatherOf(s, to, day),
         supply,
         0,
       );
       const air = airMoveOf(p4, s, to, me);
       if (air !== 1000) step = Math.floor((step * air) / 1000);
       if (fuel < 1000) step = Math.floor((step * landFuelSpeedPm(fuel)) / 1000);
-      return edgeTicks(moveNeed(s.edge(e), s.landOf(to)), step);
+      return edgeTicks(moveNeed(s.edge(e)), step);
     };
   }
   const path = shortestPath(s, from, region, pass, cost);
@@ -1814,7 +1802,7 @@ export function battleCard(
     .map((e) => e.to)
     .filter((r) => sides.sameSide(b.attacker, view.controller[r]));
   let att: ModInput = {
-    ...plainInput(true, land, weather),
+    ...plainInput(true),
     ...p4Fields(
       view,
       economy,
@@ -1832,7 +1820,7 @@ export function battleCard(
     excessBp: excessWidthBp(b.attWidth, b.width),
   };
   let def: ModInput = {
-    ...plainInput(false, land, weather),
+    ...plainInput(false),
     ...p4Fields(
       view,
       economy,
@@ -1865,8 +1853,6 @@ export function battleCard(
         me,
         a,
         attacking,
-        land,
-        weather,
         region,
         sides,
         opponent,

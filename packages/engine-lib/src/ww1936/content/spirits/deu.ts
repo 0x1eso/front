@@ -54,7 +54,7 @@ export const SPIRITS_DEU: SpiritDef[] = [
   // deu_machine_tools: efficiency cap +10%
   { id: "deu_standard_tools", icon: "industry", stats: { effCapBp: 1000 } },
   // w6 expansion
-  { id: "deu_winter_kit", icon: "infantry", stats: { winterPenaltyPct: -15 } },
+  { id: "deu_winter_kit", icon: "infantry", stats: { recoveryPct: 5 } },
   {
     id: "deu_speer_rationalisation",
     icon: "industry",

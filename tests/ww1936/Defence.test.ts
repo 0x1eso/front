@@ -23,7 +23,6 @@ import {
   applyBp,
   attackValue,
   combatWidth,
-  defenderOrgDamage,
   divisionMods,
   ENTRENCH_DEF_BP,
   FORT_HALF_WIDTH_FROM,
@@ -99,8 +98,6 @@ const NEUTRAL: ModInput = {
   tech: techTotals(new Set()),
   exp: 0,
   planBp: 0,
-  land: "plains",
-  weather: "clear",
   river: 0,
   strait: false,
   fort: 0,
@@ -172,15 +169,6 @@ describe("ww7 B2: defence values", () => {
     expect(combatWidth("plains", 1, 5)).toBe(90);
     expect(combatWidth("plains", 3, 3)).toBe(135);
     expect(combatWidth("plains", 3)).toBe(180);
-  });
-
-  test("urban defenders take 5 % less org damage", () => {
-    expect(defenderOrgDamage("urban", 1000)).toBe(950);
-    expect(defenderOrgDamage("urban", 7)).toBe(6);
-    expect(defenderOrgDamage("urban", 0)).toBe(0);
-    for (const t of Object.keys(TERRAIN) as LandTerrain[]) {
-      if (t !== "urban") expect(defenderOrgDamage(t, 1000)).toBe(1000);
-    }
   });
 
   test("the prediction knows the urban cut and the fort's width", () => {
@@ -464,87 +452,6 @@ describe("ww7 B2: forts and cities in battle", () => {
     stepBattles(l, g.ticks());
     // Five fill 100, a sixth still stands with a third of its width left, a seventh waits.
     expect(b.attLine).toHaveLength(6);
-  }, 60_000);
-
-  test("the defenders of an urban region take 5 % less org damage", async () => {
-    // Warsaw as a city: the scenario's terrain for the region.
-    const files = await loadMapFiles(
-      new TestDataMapLoader(MINI),
-      GameMapType.World1936,
-      GameMapSize.Normal,
-    );
-    const scenario = structuredClone(files.scenario!);
-    scenario.regions.find((r) => r.name === "Warsaw")!.land = "urban";
-    const runner = await createGameRunner(
-      wwGameStart({}, DEU_POL),
-      undefined,
-      { ...files, scenario },
-      (gu) => {
-        if ("errMsg" in gu) throw new Error(gu.errMsg);
-      },
-    );
-    const g: Game = runner.game;
-    dropPact(g, "DEU", "POL");
-    stepTo(runner, dayStartTick(dayOfDate("1936-06-01"), WW_PREP_TICKS));
-    step(runner, 2, [
-      stamped(HUMAN, { type: "declare_war", target: byTag(g, "POL").id() }),
-    ]);
-    clearLand(g);
-    const l = land(g);
-    expect(l.scenario.landOf(WARSAW)).toBe("urban");
-    for (const tag of ["DEU", "POL"] as const) {
-      const ce = l.econ.country(byTag(g, tag).smallID())!;
-      for (const t of EQUIPMENT_TYPES) ce.stock[equipKey(t, 1)] += 100_000;
-      ce.manpower += 1_000_000;
-    }
-    const a = placeArmy(g, "DEU", BERLIN, 1);
-    const d = placeArmy(g, "POL", WARSAW, 1);
-    attack(l, a, WARSAW);
-    const t = l.divisions;
-    const [ar, dr] = [t.rowOf(a.divisions[0]), t.rowOf(d.divisions[0])];
-    // What a round deals, from the same numbers the battle reads.
-    const sa = l.statsOf(ar);
-    const sd = l.statsOf(dr);
-    const am = modsOf(l, ar, WARSAW, true);
-    const dm = modsOf(l, dr, WARSAW, false);
-    // This round's luck on both sides (no tactic pair yet: the next phase's).
-    const b = l.battles.get(WARSAW)!;
-    b.phaseRound = 1;
-    const seed = l.ww.politics.seed;
-    const day = l.ww.day(g.ticks());
-    const lucky = (side: number) =>
-      10_000 + luckBp(seed, WARSAW, b.sinceTick, day, side);
-    const toDef = roundDamage(
-      roundHits(
-        applyBp(
-          applyBp(attackValue(sa.soft, sa.hard, sd.hardnessPm), am.attackBp),
-          lucky(0),
-        ),
-        applyBp(sd.def, dm.defenseBp),
-        dm.prepBp ?? 0,
-      ),
-      armorProtectPm(sd.armor, sd.hardnessPm, sa.pierce),
-    ).orgMilli;
-    const toAtt = roundDamage(
-      roundHits(
-        applyBp(
-          applyBp(attackValue(sd.soft, sd.hard, sa.hardnessPm), dm.attackBp),
-          lucky(1),
-        ),
-        applyBp(sa.brk, am.defenseBp),
-      ),
-      armorProtectPm(sa.armor, sa.hardnessPm, sd.pierce),
-    ).orgMilli;
-    expect(toDef).toBeGreaterThan(100);
-    const [a0, d0] = [t.org[ar], t.org[dr]];
-    stepBattles(l, g.ticks());
-    // The 5 % cut: the defenders take 95 % of the plain round, the attackers all.
-    const defPm = Math.floor(((d0 - t.org[dr]) * 1000) / toDef);
-    const attPm = Math.floor(((a0 - t.org[ar]) * 1000) / toAtt);
-    expect(defPm).toBeGreaterThanOrEqual(945);
-    expect(defPm).toBeLessThanOrEqual(955);
-    expect(attPm).toBeGreaterThanOrEqual(995);
-    expect(attPm).toBeLessThanOrEqual(1005);
   }, 60_000);
 });
 

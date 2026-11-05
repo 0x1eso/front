@@ -16,7 +16,6 @@ import {
   aaLossPm,
   rangeEffPm,
   sortieEffPm,
-  WEATHER_SORTIE_PM,
 } from "@openfront/engine-lib/ww1936/AirRules";
 import { dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
 import { planeStats } from "@openfront/engine-lib/ww1936/PlaneStats";
@@ -25,7 +24,6 @@ import type { GameRunner } from "@openfront/engine/GameRunner";
 import { snapshotGame } from "@openfront/engine/snapshot/GameSnapshot";
 import {
   airDuelMilli,
-  zoneWeather,
 } from "@openfront/engine/ww1936/air/AirCombat";
 import type { Wing } from "@openfront/engine/ww1936/air/WwAir";
 import { joinBattle } from "@openfront/engine/ww1936/land/Battles";
@@ -94,14 +92,6 @@ function recordsOf(ww: WorldWar, sr: number, owner: number, type: AirType) {
 const lossMilli = (d: Wing, start: number) =>
   (start - d.counts.reduce((a, b) => a + b, 0)) * 1000 + d.lossRest;
 
-/** The first day from `from` on that is clear over zone `sr`. */
-function clearDay(ww: WorldWar, sr: number, from: number): number {
-  for (let d = from; d < from + 400; d++) {
-    if (zoneWeather(ww.air, sr, d) === "clear") return d;
-  }
-  throw new Error("no clear day");
-}
-
 /** Runs up to the start of `day`, then through its tick k. */
 function toDay(runner: GameRunner, day: number): void {
   const ww = runner.game.worldWar()!;
@@ -121,7 +111,7 @@ async function channelWar() {
   }
   warAfterPrep(runner, HUMAN, "ITA");
   expect(ww.land.isEnemy(TAG_ID.GBR, TAG_ID.ITA)).toBe(true);
-  const day = clearDay(ww, SR.central, ww.day(runner.game.ticks()) + 1);
+  const day = ww.day(runner.game.ticks() + 1);
   return { runner, ww, day };
 }
 
@@ -203,7 +193,7 @@ describe("air combat (spec §14.2–§14.4)", () => {
     // The bombers fly at 30% (no superiority yesterday); interceptors weigh
     // them ×3 and the fighters ×1.
     const bomberMilli =
-      100 * sortieEffPm(1000, 1000, rangeEffPm(128, 900), 0, 0);
+      100 * sortieEffPm(1000, rangeEffPm(128, 900), 0, 0);
     expect(bomberMilli).toBe(30_000);
     const loss = airDuelMilli(
       [{ stats: planeStats("fighter", 1, Z, none), milli: 200_000, weight: 1 }],
@@ -274,13 +264,7 @@ describe("air combat (spec §14.2–§14.4)", () => {
     }
     const pm = aaLossPm(1, polAa, 0, true);
     expect(pm).toBe(3 + Math.floor(polAa / 100));
-    const eff = sortieEffPm(
-      WEATHER_SORTIE_PM[zoneWeather(ww.air, SR.eastLand, day)],
-      1000,
-      937,
-      0,
-      0,
-    );
+    const eff = sortieEffPm(1000, 937, 0, 0);
     through(runner, day, ww.scenario.srIdxOf(SR.eastLand) % 7);
     expect(ww.land.battles.has(WARSAW)).toBe(true);
     expect(lossMilli(cas, 400)).toBe(Math.floor((400 * eff * pm) / 1000));

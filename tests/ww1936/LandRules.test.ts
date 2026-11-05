@@ -130,8 +130,6 @@ const neutral = (over: Partial<ModInput>): ModInput => ({
   tech: ZERO_TECH,
   exp: 0,
   planBp: 0,
-  land: "plains",
-  weather: "clear",
   river: 0,
   strait: false,
   fort: 0,
@@ -446,15 +444,14 @@ describe("movement, supply and weather (P2 spec §7, §10, §11)", () => {
   });
 
   test("movement (spec §7.2)", () => {
-    expect(moveNeed(edge(180), "plains")).toBe(180_000);
-    const step = moveStep(400, 1, "clear", 1000, 0);
+    expect(moveNeed(edge(180))).toBe(180_000);
+    const step = moveStep(400, 1, 1000, 0);
     expect(step).toBe(7316);
     expect(edgeTicks(180_000, step)).toBe(25);
-    expect(moveStep(400, 3, "clear", 1000, 0)).toBe(8047);
+    expect(moveStep(400, 3, 1000, 0)).toBe(8047);
     expect(edgeTicks(180_000, 8047)).toBe(23);
-    expect(moveNeed(edge(180, 2), "hills")).toBe(329_400);
-    expect(moveStep(400, 1, "mud", 1000, 0)).toBe(3658);
-    expect(moveStep(400, 1, "clear", 0, 0)).toBe(3658);
+    expect(moveNeed(edge(180, 2))).toBe(270_000);
+    expect(moveStep(400, 1, 0, 0)).toBe(3658);
     expect(railStep(0)).toBe(91_450);
     expect(edgeTicks(600_000, railStep(0))).toBe(7);
     expect(railStep(20)).toBe(109_740);
@@ -466,9 +463,9 @@ describe("movement, supply and weather (P2 spec §7, §10, §11)", () => {
     expect(hubCapacityMilli(HUB_CAPITAL, 3)).toBe(65_000);
     expect(hubCapacityMilli(HUB_CITY, 3)).toBe(32_000);
     expect(hubCapacityMilli(HUB_SEA, 3)).toBe(SEA_HUB_MILLI);
-    expect(supplyEdgeCost(300, 3, 3, "plains", 5)).toBe(6000);
+    expect(supplyEdgeCost(300, 3, 3, 5)).toBe(6000);
     // A road: 300 km × 100% / (100 + 10 × 1), Task 11's doubled reach.
-    expect(supplyEdgeCost(300, 0, 3, "plains", 1)).toBe(27_272);
+    expect(supplyEdgeCost(300, 0, 3, 1)).toBe(27_272);
     expect(supplyFrom(65_000, 6000)).toBe(58_500);
     expect(supplyFrom(65_000, 60_000)).toBe(0);
     expect(supplyRatePm(8500, 17_000)).toBe(500);

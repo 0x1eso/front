@@ -84,10 +84,10 @@ describe("air rules", () => {
     expect(rangeEffPm(650, 650)).toBe(750);
     expect(rangeEffPm(651, 650)).toBe(0);
     expect(rangeEffPm(487, 650)).toBe(876);
-    expect(sortieEffPm(1000, 1000, 1000, 0, null)).toBe(1000);
-    expect(sortieEffPm(800, 1000, 750, 0, null)).toBe(600);
-    expect(sortieEffPm(800, 1000, 750, 0, 0)).toBe(180);
-    expect(sortieEffPm(800, 1000, 750, 0, 1000)).toBe(600);
+    expect(sortieEffPm(1000, 1000, 0, null)).toBe(1000);
+    expect(sortieEffPm(800, 750, 0, null)).toBe(600);
+    expect(sortieEffPm(800, 750, 0, 0)).toBe(180);
+    expect(sortieEffPm(800, 750, 0, 1000)).toBe(600);
   });
 
   it("detection and agility", () => {

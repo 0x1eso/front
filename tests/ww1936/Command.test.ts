@@ -97,31 +97,14 @@ describe("command (spec §4)", () => {
     expect(JSON.stringify(ww.economy.country(DEU)!.stats)).toBe(stats);
   });
 
-  it("a terrain trait arrives after 60 forest battle days", async () => {
-    const { runner, land, d } = await germany();
+  it("no terrain trait arrives, however long the battles on a ground (ww84)", async () => {
+    const { runner, land } = await germany();
     const g = land.country(DEU)!.generals.find((x) => x.army === 0)!;
-    // The key the screen gets (WwPolitics.message adds "events_display.").
-    const spy = vi.spyOn(runner.game, "displayMessage");
-    void d;
-    g.terrainDays[4] = 59;
-    stepTo(runner, afterTurn(runner, 0));
-    expect(g.traits & traitBit("forest_expert")).toBe(0);
-    g.terrainDays[4] = 60;
+    const before = g.traits;
+    g.terrainDays[4] = 600;
     stepTo(runner, afterTurn(runner, 1));
-    expect(g.traits & traitBit("forest_expert")).not.toBe(0);
-    const told = () =>
-      spy.mock.calls.filter(
-        (x) => x[0] === "events_display.ww1936_trait_unlocked",
-      );
-    expect(told().length).toBe(1);
-    expect(told()[0][4]).toEqual({ general: g.id, trait: "forest_expert" });
-    expect(
-      spy.mock.calls.some((x) => x[0].startsWith("events_display.events_")),
-    ).toBe(false);
-    // Told once.
-    stepTo(runner, afterTurn(runner, 3));
-    expect(told().length).toBe(1);
-    spy.mockRestore();
+    expect(g.traits & traitBit("forest_expert")).toBe(0);
+    expect(g.traits & before).toBe(before);
   });
 
   it("promoting a field marshal costs 25 PP only and frees his army", async () => {

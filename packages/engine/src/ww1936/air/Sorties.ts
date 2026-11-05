@@ -46,7 +46,6 @@ import {
   casPoolCenti,
   detectionPm,
   sortieEffPm,
-  WEATHER_SORTIE_PM,
 } from "@openfront/engine-lib/ww1936/AirRules";
 import { wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import type { StrategicRegion } from "@openfront/engine-lib/ww1936/ScenarioIndex";
@@ -88,7 +87,6 @@ import {
   W_INT_OTHER,
   W_SUP_FIGHTER,
   W_SUP_OTHER,
-  zoneWeather,
 } from "./AirCombat";
 import { bombTableOf, tableWeight } from "./Bombing";
 import {
@@ -807,7 +805,6 @@ function launch(
   const eff = effWith(
     ce.stats.sortieEffPct,
     sortieEffPm(
-      WEATHER_SORTIE_PM[zoneWeather(air, sr, day)],
       ce.fuelRatioPm,
       1000,
       dmg,

@@ -3,10 +3,10 @@
 // fought over again, and its control (and victory-point tile) changes only
 // when the last one falls. Integer arithmetic only.
 
-/** The least and the most bands a region has before the urban step. */
+/** The least and the most bands a region has before the city step. */
 export const BAND_MIN = 1;
 export const BAND_MAX_TILES = 4;
-/** The most any region has (urban or a victory-point region included). */
+/** The most any region has (a city region included). */
 export const BAND_MAX = 5;
 /** Victory points from which a region is a city region (one more band). */
 export const BAND_CITY_VP = 10;
@@ -30,16 +30,16 @@ export function isqrt(n: number): number {
 }
 
 /**
- * Design §3: depth d = clamp(1, 4, ⌊√tiles / 10⌋), one more for an urban
- * region or one worth ≥ 10 victory points, at most 5. ⌊√t / 10⌋ is
- * ⌊√⌊t / 100⌋⌋, so the whole of it is an integer root.
+ * Design §3: depth d = clamp(1, 4, ⌊√tiles / 10⌋), one more for a region
+ * worth ≥ 10 victory points (ww84: urban ground adds none), at most 5.
+ * ⌊√t / 10⌋ is ⌊√⌊t / 100⌋⌋, so the whole of it is an integer root.
  */
-export function regionDepth(tiles: number, urban: boolean, vp: number): number {
+export function regionDepth(tiles: number, vp: number): number {
   const base = Math.min(
     BAND_MAX_TILES,
     Math.max(BAND_MIN, isqrt(Math.floor(tiles / 100))),
   );
-  return Math.min(BAND_MAX, base + (urban || vp >= BAND_CITY_VP ? 1 : 0));
+  return Math.min(BAND_MAX, base + (vp >= BAND_CITY_VP ? 1 : 0));
 }
 
 /**

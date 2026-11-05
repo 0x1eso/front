@@ -14,7 +14,6 @@ import {
   BuildingId,
   EQUIPMENT_GENS,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
-import type { Weather } from "@openfront/engine-api/ww1936/LandTypes";
 import {
   aaLossPm,
   agilityFactorPm,
@@ -23,9 +22,7 @@ import {
   detectionPm,
   rangeEffPm,
   sortieEffPm,
-  WEATHER_SORTIE_PM,
 } from "@openfront/engine-lib/ww1936/AirRules";
-import { weatherAt } from "@openfront/engine-lib/ww1936/Weather";
 import { aceMods } from "../depth/Aces";
 import { nightMods } from "../depth/AirExtras";
 import { designPlaneP4, planesLossBp } from "../depth/Designs";
@@ -140,21 +137,6 @@ export function effWith(pct: number, pm: number): number {
     : Math.min(1000, Math.floor((pm * Math.max(0, 100 + pct)) / 100));
 }
 
-/**
- * Spec §13.1: a zone's weather — a land zone's is its center region's (P2
- * weatherOn), a sea zone's its center sea zone's latitude and cell, on
- * plains. Tests pick their days with it.
- */
-export function zoneWeather(air: WwAir, sr: number, day: number): Weather {
-  const sc = air.ww.scenario;
-  const s = sc.sr(sr);
-  if (s === undefined || s.members.length === 0) return "clear";
-  const at = sc.regionAt(s.center);
-  const c = s.members.includes(at) ? at : s.members[0];
-  if (s.kind === "land") return air.land.weatherOn(c, day);
-  return weatherAt(day, sc.zoneLatC(c), "plains", sc.zoneWcell(c));
-}
-
 /** The flights of the zone's last day this tick (A2 reads them right after: the same call). */
 const lastFlights = new WeakMap<
   WwAir,
@@ -184,7 +166,6 @@ function flightsOf(
   if (ids.length === 0) return [];
   const sc = air.ww.scenario;
   const z = air.zoneState[sc.srIdxOf(sr)];
-  const weatherPm = WEATHER_SORTIE_PM[zoneWeather(air, sr, day)];
   const econ = air.econ;
   const out: AirFlight[] = [];
   for (const id of ids) {
@@ -245,7 +226,6 @@ function flightsOf(
           : effWith(
               effPct,
               sortieEffPm(
-                weatherPm,
                 ce.fuelRatioPm,
                 rangeEffPm(km, st.rangeKm),
                 dmgPm,
@@ -274,7 +254,6 @@ function flightsOf(
           effWith(
             effPct,
             sortieEffPm(
-              weatherPm,
               ce.fuelRatioPm,
               rangeEffPm(km, st.rangeKm),
               dmgPm,

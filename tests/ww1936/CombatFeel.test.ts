@@ -11,14 +11,12 @@ import {
   GROUND_SLOTS,
   LAND_TERRAINS,
 } from "@openfront/engine-api/ww1936/LandTypes";
-import { WEATHER_SORTIE_PM } from "@openfront/engine-lib/ww1936/AirRules";
 import {
   armorProtectPm,
   combatWidth,
   divisionMods,
   excessWidthBp,
   roundDamage,
-  TERRAIN,
 } from "@openfront/engine-lib/ww1936/CombatRules";
 import {
   GEN1,
@@ -26,7 +24,6 @@ import {
   STATIC_KEY_STATS,
   templateStats,
 } from "@openfront/engine-lib/ww1936/TemplateStats";
-import { WEATHER } from "@openfront/engine-lib/ww1936/Weather";
 import { techTotals } from "@openfront/engine-lib/ww1936/WwTechs";
 import { retreatDivision } from "@openfront/engine/ww1936/land/Battles";
 import { describe, expect, test } from "vitest";
@@ -55,27 +52,14 @@ const equipOf = (type: string, gen: number) => {
   return e;
 };
 
-describe("terrain and weather call for no army of their own", () => {
-  test("terrain: one width, small cuts, road cost at most 130 %", () => {
+describe("terrain calls for no army of its own", () => {
+  test("one width", () => {
     for (const t of LAND_TERRAINS) {
       expect(combatWidth(t, 1), t).toBe(90);
       expect(combatWidth(t, 2), t).toBe(135);
-      expect(TERRAIN[t].attackBp).toBeGreaterThanOrEqual(-1000);
-      expect(TERRAIN[t].supplyPct).toBeLessThanOrEqual(130);
     }
     expect(excessWidthBp(92, 90)).toBe(-444);
     expect(excessWidthBp(180, 90)).toBe(-1000);
-  });
-
-  test("weather: attack, attrition, supply and sorties are capped", () => {
-    for (const w of Object.values(WEATHER)) {
-      expect(w.attackBp).toBeGreaterThanOrEqual(-1000);
-      expect(w.attritionPm).toBeLessThanOrEqual(1);
-      expect(w.supplyPct).toBeGreaterThanOrEqual(90);
-    }
-    for (const pm of Object.values(WEATHER_SORTIE_PM)) {
-      expect(pm).toBeGreaterThanOrEqual(850);
-    }
   });
 });
 
@@ -203,8 +187,6 @@ describe("a pocket", () => {
       tech: TECH,
       exp: 0,
       planBp: 0,
-      land: "plains",
-      weather: "clear",
       river: 0,
       strait: false,
       fort: 0,

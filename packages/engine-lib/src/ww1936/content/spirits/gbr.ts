@@ -57,7 +57,7 @@ export const SPIRITS_GBR: SpiritDef[] = [
   // gbr_total_production
   { id: "gbr_total_output", icon: "factory_mil", stats: { outputPct: 10 } },
   // gbr_desert_training
-  { id: "gbr_desert_warfare", icon: "compass", stats: { desertAttackPct: 10 } },
+  { id: "gbr_desert_warfare", icon: "compass", stats: { attackPct: 3 } },
   // gbr_abdication, second option (365 days)
   {
     id: "gbr_kings_party",
@@ -110,7 +110,7 @@ export const SPIRITS_GBR: SpiritDef[] = [
     stats: { mechBreakPct: 10 },
   },
   // gbr_burma_campaign
-  { id: "gbr_chindits", icon: "infantry", stats: { forestDefensePct: 10 } },
+  { id: "gbr_chindits", icon: "infantry", stats: { defensePct: 3 } },
   // gbr_rationing
   {
     id: "gbr_ration_book",

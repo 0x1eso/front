@@ -47,11 +47,7 @@ export function depthOf(land: WwLand, region: number): number {
     d =
       r === undefined
         ? 1
-        : regionDepth(
-            sc.regionTiles(region).length,
-            sc.landOf(region) === "urban",
-            r.vp,
-          );
+        : regionDepth(sc.regionTiles(region).length, r.vp);
     cache[region] = d;
   }
   return d;
@@ -66,9 +62,8 @@ export function bandNeedOf(land: WwLand, region: number): number {
   const sc = land.scenario;
   const edges = sc.edgesOf(region);
   if (edges.length === 0) return 1000;
-  const to = sc.landOf(region);
   let sum = 0;
-  for (const e of edges) sum += moveNeed(sc.edge(e.edge), to);
+  for (const e of edges) sum += moveNeed(sc.edge(e.edge));
   return Math.max(1, Math.floor(sum / edges.length / depthOf(land, region)));
 }
 

@@ -770,7 +770,7 @@ function walkNeeds(
         continue;
       }
       // The cost of walking from e.to into u.
-      const nd = du + moveNeed(sc.edge(e.edge), sc.landOf(u));
+      const nd = du + moveNeed(sc.edge(e.edge));
       if (nd > bound) continue;
       const old = need.get(e.to);
       if (old === undefined || nd < old) {

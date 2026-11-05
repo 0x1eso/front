@@ -21,13 +21,11 @@ import {
   TPL_MARINE_ANY,
   TPL_MARINE_MAJOR,
   TPL_MOTOR_ANY,
-  TPL_MOUNTAIN_ANY,
   TPL_MOUNTAIN_MAJOR,
   TPL_PARA_ANY,
   TPL_RECON,
   TPL_TD_DEFEND,
   traitBit,
-  Weather,
   WW_ROUND_HOUR_MILLI,
 } from "@openfront/engine-api/ww1936/LandTypes";
 import type {
@@ -40,7 +38,6 @@ import {
   RANGE_LOW_DEF_ATK_BP,
   RANGE_LUCK_BP,
 } from "./TacticRules";
-import { WEATHER } from "./Weather";
 import { TechTotals } from "./WwTechs";
 
 /** A P6 stat of a TechTotals that is the country's WwStats (0 when absent: a neutral tech). */
@@ -51,74 +48,21 @@ function stat(t: TechTotals, k: WwStatKey): number {
 export interface TerrainDef {
   width: number;
   perDirection: number;
-  /** Attacker's attack, bp (≤ 0). */
-  attackBp: number;
-  /** Extra distance to enter, % (spec §7.2). */
-  movePct: number;
-  /** Supply cost of a road edge into it, % (spec §11.2). */
-  supplyPct: number;
 }
 
-// Spec §7.2, §11.2. ww67 (owner): terrain must not call for its own army. One
-// width everywhere, the attack cut stops at −10 %, a road's supply cost at
-// 130 %; movement keeps its old numbers (it costs time, not a different army).
+// Spec §7.2. ww84 (owner): terrain decides nothing. No attack cut, no extra
+// distance, no supply cost; every region has the one width (rivers, straits
+// and forts are what is left of the ground).
+const ONE_WIDTH: TerrainDef = { width: 90, perDirection: 45 };
 export const TERRAIN: Readonly<Record<LandTerrain, TerrainDef>> = {
-  plains: {
-    width: 90,
-    perDirection: 45,
-    attackBp: 0,
-    movePct: 0,
-    supplyPct: 100,
-  },
-  desert: {
-    width: 90,
-    perDirection: 45,
-    attackBp: 0,
-    movePct: 10,
-    supplyPct: 100,
-  },
-  forest: {
-    width: 90,
-    perDirection: 45,
-    attackBp: -500,
-    movePct: 25,
-    supplyPct: 120,
-  },
-  hills: {
-    width: 90,
-    perDirection: 45,
-    attackBp: -500,
-    movePct: 33,
-    supplyPct: 120,
-  },
-  mountain: {
-    width: 90,
-    perDirection: 45,
-    attackBp: -1000,
-    movePct: 100,
-    supplyPct: 130,
-  },
-  marsh: {
-    width: 90,
-    perDirection: 45,
-    attackBp: -1000,
-    movePct: 66,
-    supplyPct: 130,
-  },
-  jungle: {
-    width: 90,
-    perDirection: 45,
-    attackBp: -1000,
-    movePct: 66,
-    supplyPct: 130,
-  },
-  urban: {
-    width: 90,
-    perDirection: 45,
-    attackBp: -1000,
-    movePct: 10,
-    supplyPct: 120,
-  },
+  plains: ONE_WIDTH,
+  desert: ONE_WIDTH,
+  forest: ONE_WIDTH,
+  hills: ONE_WIDTH,
+  mountain: ONE_WIDTH,
+  marsh: ONE_WIDTH,
+  jungle: ONE_WIDTH,
+  urban: ONE_WIDTH,
 };
 
 /**
@@ -147,10 +91,17 @@ export const FORT_ATTACK_BP = -1700;
 export const ENTRENCH_DEF_BP = 500;
 /** ww7: defence per position level (Positions.ts), bp. */
 export const POSITION_DEF_BP = 500;
+/** ww84: marines recover org at this percent of the normal rate for this many days after a landing. */
+export const MARINE_LANDED_RECOVERY_PCT = 150;
+export const MARINE_LANDED_DAYS = 3;
+
+/** ww84: assault infantry's breakthrough when it attacks, bp. */
+export const ASSAULT_BREAK_BP = 2000;
+/** ww84: the share of the river and fort penalties assault infantry pays, percent. */
+export const ASSAULT_OBSTACLE_PCT = 85;
+
 /** ww7: a defended region with a fort of this level or more halves the extra width of the attack directions. */
 export const FORT_HALF_WIDTH_FROM = 3;
-/** The share of org damage the defenders of an urban region take, percent (street fighting; ww67: −5 %, was −15 %). */
-export const URBAN_DEFENDER_ORG_PCT = 95;
 
 /**
  * Spec §9.2: base width plus one step for every direction after the first
@@ -167,13 +118,6 @@ export function combatWidth(
   return (
     t.width + (fort >= FORT_HALF_WIDTH_FROM ? Math.floor(extra / 2) : extra)
   );
-}
-
-/** ww7: org damage (milli) a defender of a `land` region takes; urban −5 %. */
-export function defenderOrgDamage(land: LandTerrain, orgMilli: number): number {
-  return land === "urban"
-    ? Math.floor((orgMilli * URBAN_DEFENDER_ORG_PCT) / 100)
-    : orgMilli;
 }
 
 export function applyBp(x: number, bp: number): number {
@@ -317,9 +261,6 @@ export interface ModInput {
   exp: number;
   /** The army's readiness when the division fights in or from its front region; else 0. */
   planBp: number;
-  /** The battle region's terrain and weather. */
-  land: LandTerrain;
-  weather: Weather;
   /** Attacker only: the edge it attacks over (0 when dropped in), the region's fort level. */
   river: 0 | 1 | 2;
   strait: boolean;
@@ -390,9 +331,9 @@ const has = (mask: number, bit: number) => (mask & bit) !== 0;
 const TB = (t: Parameters<typeof traitBit>[0]) => traitBit(t);
 
 /**
- * Spec §9.4 (and §4.1 terrain specialities, §4.2 companies, §6.2 traits,
- * §10 weather, §11.5 encirclement): a division's attack and defence
- * modifiers in one battle. "defense" multiplies its block value (defence
+ * Spec §9.4 (and §4.2 companies, §6.2 traits, §11.5 encirclement): a
+ * division's attack and defence modifiers in one battle. ww84: the ground and
+ * the weather are not among them. "defense" multiplies its block value (defence
  * when it defends, breakthrough when it attacks).
  */
 export function divisionMods(i: ModInput): ModResult {
@@ -403,7 +344,8 @@ export function divisionMods(i: ModInput): ModResult {
   const push = (l: ModLine[], id: string, bp: number) => {
     if (bp !== 0) l.push({ id, bp });
   };
-  const hillsOrMountain = i.land === "hills" || i.land === "mountain";
+  // ww84: assault infantry pays a sixth less for rivers and forts.
+  const assault = has(i.flags, TPL_MOUNTAIN_MAJOR) ? ASSAULT_OBSTACLE_PCT : 100;
   // Attack
   push(aAdd, "general", i.genAtt * 500);
   let trait = 0;
@@ -420,13 +362,7 @@ export function divisionMods(i: ModInput): ModResult {
     trait += 1000;
   }
   if (has(i.traits, TB("offensive_doctrine"))) trait += 500;
-  if (has(i.traits, TB("desert_fox")) && i.land === "desert") trait += 1000;
-  if (has(i.traits, TB("mountaineer")) && hillsOrMountain) trait += 1000;
   // P6 (spec §4.2): the new general traits.
-  const forest = i.land === "forest" || i.land === "jungle";
-  if (has(i.traits, TB("forest_expert")) && forest) trait += 1000;
-  if (has(i.traits, TB("urban_expert")) && i.land === "urban") trait += 1000;
-  if (has(i.traits, TB("swamp_expert")) && i.land === "marsh") trait += 1000;
   if (has(i.traits, TB("infantry_expert")) && has(i.flags, TPL_INFANTRY_DIV)) {
     trait += 1000;
   }
@@ -449,12 +385,7 @@ export function divisionMods(i: ModInput): ModResult {
   push(aAdd, "field_marshal", i.fmAtt * 250);
   push(aAdd, "fm_trait", fmTraitBp(i.fmTraits, "attackBp"));
   push(aAdd, "command", i.cmdAttBp);
-  push(
-    aAdd,
-    "doctrine",
-    i.tech.attackPct * 100 +
-      (i.land === "desert" ? i.tech.desertAttackPct * 100 : 0),
-  );
+  push(aAdd, "doctrine", i.tech.attackPct * 100);
   push(aAdd, "exp", expBp(i.exp));
   // P6: the enemy's recon and trickster cut the readiness (never below 0);
   // the field marshal's part above the country's cap is its own line.
@@ -471,25 +402,7 @@ export function divisionMods(i: ModInput): ModResult {
     "recon",
     has(i.flags, TPL_RECON) ? 500 + 5 * stat(i.tech, "reconPct") : 0,
   );
-  push(
-    aAdd,
-    "mountain",
-    has(i.flags, TPL_MOUNTAIN_MAJOR) && hillsOrMountain ? 1000 : 0,
-  );
-  push(
-    aAdd,
-    "marine",
-    has(i.flags, TPL_MARINE_MAJOR) && i.land === "marsh" ? 1500 : 0,
-  );
   if (i.attacking) {
-    if (has(i.flags, TPL_ARMOR_MAJOR)) {
-      if (i.land === "plains" || i.land === "desert") {
-        push(aAdd, "armor_terrain", 500);
-      } else {
-        push(aCut, "armor_terrain", -500);
-      }
-    }
-    push(aCut, "terrain", TERRAIN[i.land].attackBp);
     // P6 (spec §4.2, §5.2.2, §21.2): engineer officers, amphibious and
     // flail tanks, the river and fort penalty cuts.
     const engOfficer = has(i.traits, TB("engineer_officer")) ? 85 : 100;
@@ -504,10 +417,13 @@ export function divisionMods(i: ModInput): ModResult {
         "river",
         cutBy(
           cutBy(
-            halve(RIVER_ATTACK_BP[i.river], n),
-            100 - stat(i.tech, "riverPenaltyCutPct"),
+            cutBy(
+              halve(RIVER_ATTACK_BP[i.river], n),
+              100 - stat(i.tech, "riverPenaltyCutPct"),
+            ),
+            engOfficer,
           ),
-          engOfficer,
+          assault,
         ),
       );
     }
@@ -526,21 +442,11 @@ export function divisionMods(i: ModInput): ModResult {
       );
       if (has(i.designFlags, TPL_FLAIL)) f = cutBy(f, 75);
       f = cutBy(f, 100 - stat(i.tech, "fortPenaltyCutPct"));
-      push(aCut, "fort", cutBy(f, engOfficer));
+      push(aCut, "fort", cutBy(cutBy(f, engOfficer), assault));
     }
-    if (has(i.designFlags, TPL_FLAME) && (i.land === "urban" || fort > 0)) {
+    if (has(i.designFlags, TPL_FLAME) && fort > 0) {
       push(aAdd, "flame", 1000);
     }
-    let w = WEATHER[i.weather].attackBp;
-    if (i.weather === "snow" || i.weather === "frozen") {
-      if (has(i.traits, TB("winter_specialist"))) w = halve(w, 1);
-      if (i.weather === "snow" && has(i.flags, TPL_MOUNTAIN_ANY)) {
-        w = halve(w, 1);
-      }
-      w = -Math.floor((-w * Math.max(0, 100 - i.tech.winterPenaltyPct)) / 100);
-    }
-    if (i.weather === "heat" && has(i.traits, TB("desert_fox"))) w = 0;
-    push(aCut, "weather", w);
   }
   // P6 (spec §21.2, review L2): excessWidthCutPct shrinks the excess-width penalty.
   push(
@@ -572,13 +478,6 @@ export function divisionMods(i: ModInput): ModResult {
   }
   if (has(i.traits, TB("defensive_doctrine"))) dTrait += 1000;
   // P6 (spec §4.2).
-  if (
-    has(i.traits, TB("forest_expert")) &&
-    (i.land === "forest" || i.land === "jungle")
-  ) {
-    dTrait += 500;
-  }
-  if (has(i.traits, TB("urban_expert")) && i.land === "urban") dTrait += 1000;
   if (has(i.traits, TB("infantry_expert")) && has(i.flags, TPL_INFANTRY_DIV)) {
     dTrait += 1000;
   }
@@ -601,13 +500,14 @@ export function divisionMods(i: ModInput): ModResult {
       ? i.tech.mechBreakPct
       : 0;
     push(dAdd, "doctrine", (i.tech.breakthroughPct + mech) * 100);
-  } else {
+    // ww84: assault infantry breaks through a fifth harder.
     push(
       dAdd,
-      "doctrine",
-      i.tech.defensePct * 100 +
-        (i.land === "forest" ? i.tech.forestDefensePct * 100 : 0),
+      "mountain",
+      has(i.flags, TPL_MOUNTAIN_MAJOR) ? ASSAULT_BREAK_BP : 0,
     );
+  } else {
+    push(dAdd, "doctrine", i.tech.defensePct * 100);
     push(dAdd, "entrench", i.entrench * ENTRENCH_DEF_BP);
     push(dAdd, "position", (i.posLevel ?? 0) * POSITION_DEF_BP);
     // P6 (spec §21.2): the fort's defence per level (its own region's fort).
@@ -630,11 +530,6 @@ export function divisionMods(i: ModInput): ModResult {
           (500 * Math.max(0, 100 + stat(i.tech, "engineerMulPct"))) / 100,
         )
       : 0,
-  );
-  push(
-    dAdd,
-    "mountain",
-    has(i.flags, TPL_MOUNTAIN_MAJOR) && hillsOrMountain ? 500 : 0,
   );
   push(dCut, "supply", supplyCut);
   push(dCut, "encircled", i.encircled ? -5000 : 0);
@@ -749,14 +644,10 @@ export function predictBattle(
     ctx.defenderAttackBp,
   );
   const dA = applyBp(per(att.brk, att.divisions), ctx.attackerBlockBp);
-  // ww7: the defenders of an urban region take less org damage.
-  const toDef = defenderOrgDamage(
-    ctx.land,
-    roundDamage(
-      roundHits(aA, dD, ctx.defenderPrepBp ?? 0),
-      armorProtectPm(def.armor, def.hardnessPm, att.pierce),
-    ).orgMilli,
-  );
+  const toDef = roundDamage(
+    roundHits(aA, dD, ctx.defenderPrepBp ?? 0),
+    armorProtectPm(def.armor, def.hardnessPm, att.pierce),
+  ).orgMilli;
   const toAtt = roundDamage(
     roundHits(aD, dA),
     armorProtectPm(att.armor, att.hardnessPm, def.pierce),
@@ -766,9 +657,7 @@ export function predictBattle(
   const casAtt = ctx.casDefCenti ?? 0;
   const dmgDef =
     Math.floor((toDef * lineA) / 1000) +
-    (casDef > 0
-      ? defenderOrgDamage(ctx.land, roundDamage(casDef).orgMilli)
-      : 0);
+    (casDef > 0 ? roundDamage(casDef).orgMilli : 0);
   const dmgAtt =
     Math.floor((toAtt * lineD) / 1000) +
     (casAtt > 0 ? roundDamage(casAtt).orgMilli : 0);
