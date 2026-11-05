@@ -41,6 +41,7 @@ const NO_COMPANIES: ReadonlySet<string> = new Set([
   "colonial_garrison",
   "garrison",
   "mountain_rifle",
+  "pre_garrison_div",
 ]);
 
 /** The companies a template of `key` works towards ("": a player's own, the line's). */
