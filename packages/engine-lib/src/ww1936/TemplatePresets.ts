@@ -2,6 +2,7 @@
 // data and pure functions: the engine (start templates, auto-add, the AI)
 // and the template designer call the same ones. Requirements are read off
 // the battalion and support tables, so they never drift from them.
+import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
 import { WwTechId } from "@openfront/engine-api/ww1936/EconomyTypes";
 import {
   BattalionId,
@@ -426,6 +427,42 @@ export const GUIDE_PRESET_IDS: ReadonlySet<string> = new Set([
   "pre_guide_assault",
   "pre_guide_marine",
 ]);
+const MAIN_ARMOUR = "pre_guide_armour";
+const ECONOMY_ARMOUR = "pre_guide_armour15";
+const NARROW_ASSAULT = "pre_guide_assault9";
+/** The assault line's preset id: it replaces the narrow one in a major's list. */
+export const ASSAULT_LINE_PRESET = "pre_guide_assault";
+/** Lane M: weak tanks do better on the width 15 armour: these nations take it first. */
+const ECONOMY_ARMOUR_FIRST: ReadonlySet<CountryTag> = new Set([
+  "FRA",
+  "GBR",
+  "ITA",
+]);
+
+/**
+ * ww107, lane M: the guide templates of `fresh` a country takes, in its order.
+ * France's medium armour is the width 15 one alone (S35: 71-93 % on the width
+ * 22, 99-100 % on it); a major with assault infantry has the assault line, not
+ * the narrow one (78-85 % against 65-68 %, for fewer losses).
+ */
+export function guidePresetsFor(
+  tag: CountryTag,
+  major: boolean,
+  researched: ReadonlySet<WwTechId>,
+  fresh: readonly TemplatePreset[],
+): TemplatePreset[] {
+  const out = fresh.filter(
+    (x) =>
+      GUIDE_PRESET_IDS.has(x.id) &&
+      !(tag === "FRA" && x.id === MAIN_ARMOUR) &&
+      !(major && researched.has("mountaineers") && x.id === NARROW_ASSAULT),
+  );
+  if (!ECONOMY_ARMOUR_FIRST.has(tag)) return out;
+  return [
+    ...out.filter((x) => x.id === ECONOMY_ARMOUR),
+    ...out.filter((x) => x.id !== ECONOMY_ARMOUR),
+  ];
+}
 
 const BY_ID: ReadonlyMap<string, TemplatePreset> = new Map(
   TEMPLATE_PRESETS.map((x) => [x.id, x]),

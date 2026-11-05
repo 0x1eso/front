@@ -6,8 +6,12 @@ import {
   NG_HEAVY,
   WW_MAX_TEMPLATES,
 } from "@openfront/engine-api/ww1936/LandTypes";
+import { ASSAULT_LINE_KEY } from "@openfront/engine-lib/ww1936/AutoCompanies";
+import { isMajor } from "@openfront/engine-lib/ww1936/EconomyStart";
 import {
+  ASSAULT_LINE_PRESET,
   GUIDE_PRESET_IDS,
+  guidePresetsFor,
   newlyUsable,
   presetDef,
   sameBattalions,
@@ -70,6 +74,25 @@ function addGuidePreset(
   });
 }
 
+/**
+ * Lane M: a major keeps the narrow assault line only until it has assault
+ * infantry. It goes unless the human edited it (its switch is off), divisions
+ * stand on it (the delete refuses) or the assault line found no room.
+ */
+function retireNarrowLine(
+  land: WwLand,
+  cl: CountryLand,
+  assault: TemplatePreset,
+): void {
+  const narrow = cl.templates.find((t) => t.key === ASSAULT_LINE_KEY);
+  if (narrow?.auto !== true || !sameBattalions(assault, cl.templates)) return;
+  land.issue(
+    cl.smallID,
+    { kind: "template_delete", template: narrow.id },
+    "ai",
+  );
+}
+
 /** The day's check: each preset newly usable is added as a template unless a template already uses its battalion type or the cap is full. */
 export function autoAddPresets(land: WwLand, cl: CountryLand): void {
   const ce = land.econ.country(cl.smallID);
@@ -83,8 +106,10 @@ export function autoAddPresets(land: WwLand, cl: CountryLand): void {
   const human = land.ww.isHumanControlled(cl.smallID);
   // The guide's come first: the older library's skip a type already in use.
   if (human) {
-    for (const x of fresh) {
-      if (GUIDE_PRESET_IDS.has(x.id)) addGuidePreset(land, cl, x);
+    const major = isMajor(cl.tag);
+    for (const x of guidePresetsFor(cl.tag, major, ce.researched, fresh)) {
+      addGuidePreset(land, cl, x);
+      if (major && x.id === ASSAULT_LINE_PRESET) retireNarrowLine(land, cl, x);
     }
   }
   for (const x of fresh) {

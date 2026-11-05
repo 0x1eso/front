@@ -20,12 +20,17 @@ export const WW_AUTO_COMPANY_FILL_PM = 800;
 /** The AI's training gate: stock against one division's need, ‰ (aiTrainPlan). */
 export const AI_TRAIN_FILL_PM = 500;
 
-/** The guide's companies, in its order: engineers first, then recon. */
+/**
+ * The guide's companies. Support anti-tank leads (lane M: a line without it
+ * loses 95 % to armour at 1:1, with it about half): it draws on its own gear,
+ * so it waits for nothing. Engineers first, then recon orders those two, who
+ * share support equipment.
+ */
 const LINE_TARGET: readonly SupportId[] = [
+  "support_anti_tank",
   "engineer",
   "recon",
   "support_artillery",
-  "support_anti_tank",
 ];
 const NO_TARGET: readonly SupportId[] = [];
 /** A template of four battalions carries two companies: the guide's are these. */

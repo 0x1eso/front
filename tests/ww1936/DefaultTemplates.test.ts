@@ -75,6 +75,7 @@ import {
   HUMAN,
   land,
   order,
+  placeArmy,
   step,
   stepTo,
   wwGameStart,
@@ -333,6 +334,17 @@ describe("the automatic companies, the pure rule", () => {
     ).toBe("recon");
   });
 
+  it("support anti-tank comes first: it waits for nobody and nobody's check goes before it", () => {
+    expect(
+      next({ free: stock({ anti_tank: 64, support_equipment: 1000 }) }),
+    ).toBe("support_anti_tank");
+    expect(next({ free: stock({ anti_tank: 64 }) })).toBe("support_anti_tank");
+    // A shortage of its gear holds nothing else back.
+    expect(
+      next({ free: stock({ anti_tank: 63, support_equipment: 1000 }) }),
+    ).toBe("engineer");
+  });
+
   it("a company with its tech closed waits, and the next one goes on", () => {
     const researched = techs("recon_company", "artillery_1", "support_eq_1");
     expect(next({ researched, free: stock({ support_equipment: 1000 }) })).toBe(
@@ -372,10 +384,10 @@ describe("the automatic companies, the pure rule", () => {
 
   it("targets: the line's four, two for the narrow line, none for a garrison", () => {
     expect(autoCompanyTarget("infantry")).toEqual([
+      "support_anti_tank",
       "engineer",
       "recon",
       "support_artillery",
-      "support_anti_tank",
     ]);
     expect(autoCompanyTarget("")).toEqual(autoCompanyTarget("infantry"));
     expect(autoCompanyTarget("pre_guide_assault9")).toEqual([
@@ -400,12 +412,16 @@ describe("the automatic companies in the game", () => {
     check();
     expect(line.def.support).toContain("engineer");
     expect(line.def.support).not.toContain("recon");
-    expect(armour.def.support).toContain("engineer");
+    // Lane M: anti-tank leads where it isn't there yet.
+    expect(armour.def.support).toEqual([
+      "support_artillery",
+      "support_anti_tank",
+    ]);
     check();
     expect(line.def.support).toContain("recon");
-    expect(armour.def.support).toContain("recon");
+    expect(armour.def.support).toContain("engineer");
     check();
-    expect(armour.def.support).toContain("support_anti_tank");
+    expect(armour.def.support).toContain("recon");
     expect(line.def.support).toHaveLength(4);
     // It is the ordinary save: the name stays the template's.
     expect(line.key).not.toBe("");
@@ -558,25 +574,99 @@ describe("the automatic companies in the game", () => {
 });
 
 describe("new templates on tech", () => {
+  /** A small human game of `tag` with the first day's templates in. */
+  async function joined(tag: CountryTag) {
+    const p = await played(tag);
+    autoAddPresets(p.l, p.cl);
+    const keys = () => p.cl.templates.map((t) => t.key);
+    const open = (...techs: WwTechId[]) => {
+      for (const t of techs) p.ce.addTech(t);
+      autoAddPresets(p.l, p.cl);
+    };
+    return { ...p, keys, open };
+  }
+
   it("a human gets the guide's as they open, its companies on, and divisions stay as they are", async () => {
-    const { l, id, cl, ce } = await played();
-    autoAddPresets(l, cl);
+    const { l, id, cl, keys, open } = await joined("DEU");
     const before = l.rowsOf(id).map((r) => l.divisions.template[r]);
-    const has = (k: string) => cl.templates.some((t) => t.key === k);
-    // Open from the first day: the narrow line and the motorized division.
-    expect(has("pre_guide_assault9")).toBe(true);
-    expect(has("pre_guide_motor")).toBe(true);
-    // Germany's mountain line is already this template.
-    expect(has("pre_guide_assault")).toBe(false);
-    expect(has("pre_guide_armour")).toBe(false);
-    ce.addTech("light_tank_2");
-    ce.addTech("medium_tank_1");
-    autoAddPresets(l, cl);
+    expect(keys()).toContain("pre_guide_motor");
+    // Germany's mountain line is already the assault line: no narrow line.
+    expect(keys()).not.toContain("pre_guide_assault");
+    expect(keys()).not.toContain("pre_guide_assault9");
+    expect(keys()).not.toContain("pre_guide_armour");
+    open("light_tank_2", "medium_tank_1");
     const k22 = cl.templates.find((t) => t.key === "pre_guide_armour")!;
     expect(k22.auto).toBe(true);
     expect(widthOf(k22.def)).toBe(22);
-    expect(has("pre_guide_armour15")).toBe(true);
+    expect(keys().indexOf("pre_guide_armour")).toBeLessThan(
+      keys().indexOf("pre_guide_armour15"),
+    );
     expect(l.rowsOf(id).map((r) => l.divisions.template[r])).toEqual(before);
+  }, 60_000);
+
+  it("armour by nation: France the width 15 alone, Britain and Italy it first", async () => {
+    const fra = await joined("FRA");
+    fra.open("light_tank_2", "medium_tank_1");
+    expect(fra.keys()).toContain("pre_guide_armour15");
+    expect(fra.keys()).not.toContain("pre_guide_armour");
+    for (const tag of ["GBR", "ITA"] as const) {
+      const g = await joined(tag);
+      g.open("light_tank_2", "medium_tank_1");
+      expect(g.keys().indexOf("pre_guide_armour15"), tag).toBeGreaterThan(-1);
+      expect(g.keys().indexOf("pre_guide_armour15"), tag).toBeLessThan(
+        g.keys().indexOf("pre_guide_armour"),
+      );
+    }
+  }, 60_000);
+
+  it("France's heavy template joins with its heavy tank, on the catalogue too", async () => {
+    const humans = [{ clientID: HUMAN, country: "FRA" as CountryTag }];
+    const { runner } = await wwRunnerCapture(
+      { ww1936Designer: false } as never,
+      humans,
+    );
+    stepTo(runner, WW_PREP_TICKS + 1);
+    const l = land(runner.game);
+    const cl = l.country(byTag(runner.game, "FRA").smallID())!;
+    const ce = l.econ.country(cl.smallID)!;
+    ce.addTech("light_tank_2");
+    ce.addTech("medium_tank_1");
+    ce.addTech("heavy_tank_1");
+    for (let i = 0; i < 3; i++) step(runner, 40);
+    autoAddPresets(l, cl);
+    expect(cl.templates.map((t) => t.key)).toContain("pre_guide_heavy");
+  }, 60_000);
+
+  it("the assault line replaces the narrow one when assault infantry opens", async () => {
+    const { keys, open, cl, l } = await joined("GBR");
+    expect(keys()).toContain("pre_guide_assault9");
+    open("mountaineers");
+    expect(keys()).toContain("pre_guide_assault");
+    expect(keys()).not.toContain("pre_guide_assault9");
+    const line = cl.templates.find((t) => t.key === "pre_guide_assault")!;
+    expect(line.def.battalions.filter((b) => b === "mountain")).toHaveLength(6);
+    expect(line.auto).toBe(true);
+    expect(autoCompanyTarget(line.key)).toEqual(autoCompanyTarget("infantry"));
+    // It stays gone.
+    autoAddPresets(l, cl);
+    expect(keys()).not.toContain("pre_guide_assault9");
+  }, 60_000);
+
+  it("a narrow line in use or edited stays when the assault line comes", async () => {
+    const used = await joined("GBR");
+    const narrow = used.cl.templates.find(
+      (t) => t.key === "pre_guide_assault9",
+    )!;
+    const at = used.l.divisions.region[used.l.rowsOf(used.id)[0]];
+    placeArmy(used.runner.game, "GBR", at, 1, narrow.id);
+    used.open("mountaineers");
+    expect(used.keys()).toContain("pre_guide_assault");
+    expect(used.keys()).toContain("pre_guide_assault9");
+    const edited = await joined("FRA");
+    delete edited.cl.templates.find((t) => t.key === "pre_guide_assault9")!
+      .auto;
+    edited.open("mountaineers");
+    expect(edited.keys()).toContain("pre_guide_assault9");
   }, 60_000);
 
   it("a full list gets the existing notice and no second try; a deleted one stays gone", async () => {
