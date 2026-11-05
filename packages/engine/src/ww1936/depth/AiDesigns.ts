@@ -359,7 +359,7 @@ function groupKey(def: DesignDef): number {
  * score (ties: the smaller slot) among the static tanks whose tech the
  * country has and its usable designs (own or licensed, not obsolete).
  */
-function bestOfGroups(
+export function bestOfGroups(
   d: WwDepth,
   id: number,
   ce: CountryEconomy,

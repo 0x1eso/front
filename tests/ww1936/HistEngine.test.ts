@@ -350,7 +350,7 @@ describe("the AI and point-defence fighters", () => {
   test("a German AI fighter line never moves to the Me 163", async () => {
     const { aiPickNewPlaneLines } =
       await import("@openfront/engine/ww1936/depth/AiHist");
-    const { equipKey } =
+    const { EQUIP_KEYS, equipKey } =
       await import("@openfront/engine-api/ww1936/EconomyTypes");
     const { ww, d, runner } = await game(false);
     const ce = ww.economy.country(DEU)!;
@@ -364,8 +364,13 @@ describe("the AI and point-defence fighters", () => {
       "plane_design",
       own.findIndex((e) => e.id === "deu_me163_b") + 1,
     );
-    expect(ce.lines.some((l) => l.key === equipKey("fighter", 1))).toBe(true);
+    // The start pick has moved the 1936 line; put a static one back.
+    const line = ce.lines.find(
+      (l) => EQUIP_KEYS[l.key][0] === "plane_design",
+    )!;
+    line.key = equipKey("fighter", 1);
     aiPickNewPlaneLines(d, DEU, ce);
+    expect(line.key).not.toBe(equipKey("fighter", 1));
     expect(ce.lines.some((l) => l.key === komet)).toBe(false);
   });
 });
