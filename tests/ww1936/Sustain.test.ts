@@ -15,14 +15,7 @@ import {
 } from "@openfront/engine-api/ww1936/LandTypes";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { dayOfDate, dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
-import {
-  climateOf,
-  weatherAt,
-} from "@openfront/engine-lib/ww1936/Weather";
-import {
-  assignGeneral,
-  canServe,
-} from "@openfront/engine/ww1936/land/GeneralsRun";
+import { climateOf, weatherAt } from "@openfront/engine-lib/ww1936/Weather";
 import { atSea, liftDivisions } from "@openfront/engine/ww1936/land/SeaLift";
 import {
   attritionPpm,

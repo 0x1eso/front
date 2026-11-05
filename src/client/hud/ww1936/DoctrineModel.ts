@@ -7,9 +7,9 @@ import {
 } from "@openfront/engine-api/ww1936/DepthTypes";
 import {
   GENERAL_TRAITS,
-  RETIRED_GENERAL_TRAITS,
   type GeneralData,
   type GeneralTrait,
+  RETIRED_GENERAL_TRAITS,
   traitBit,
 } from "@openfront/engine-api/ww1936/LandTypes";
 import {

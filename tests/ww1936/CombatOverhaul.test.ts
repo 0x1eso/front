@@ -1,12 +1,11 @@
 // ww84: the combat overhaul. Ground and weather decide nothing, armour stops
 // what can't pierce it, each battalion has its job. Rules are checked on the
 // pure functions; what only a fight can show runs a real battle round.
-import { CONTENT_PARTS } from "@openfront/engine-lib/ww1936/content/registry";
-import {
-  EQUIPMENT_TYPES,
-  equipKey,
-} from "@openfront/engine-api/ww1936/EconomyTypes";
 import { GameMapSize, GameMapType } from "@openfront/engine-api/game/GameTypes";
+import {
+  equipKey,
+  EQUIPMENT_TYPES,
+} from "@openfront/engine-api/ww1936/EconomyTypes";
 import {
   BattalionId,
   DivisionStats,
@@ -29,6 +28,11 @@ import {
   traitBit,
 } from "@openfront/engine-api/ww1936/LandTypes";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
+import {
+  airGroundPenaltyBp,
+  airPenaltyBp,
+  airSupplyFactorPm,
+} from "@openfront/engine-lib/ww1936/AirRules";
 import { regionDepth } from "@openfront/engine-lib/ww1936/BandRules";
 import { BATTALIONS } from "@openfront/engine-lib/ww1936/Battalions";
 import { dayOfDate, dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
@@ -36,8 +40,8 @@ import {
   addToSide,
   armorProtectPm,
   ASSAULT_BREAK_BP,
-  BARE_ARMOR_ORG_PCT,
   bandProtectPm,
+  BARE_ARMOR_ORG_PCT,
   casProtectPm,
   defenderOrgPct,
   divisionMods,
@@ -57,11 +61,7 @@ import {
   tankFearPct,
   trenchCutPm,
 } from "@openfront/engine-lib/ww1936/CombatRules";
-import {
-  airGroundPenaltyBp,
-  airPenaltyBp,
-  airSupplyFactorPm,
-} from "@openfront/engine-lib/ww1936/AirRules";
+import { CONTENT_PARTS } from "@openfront/engine-lib/ww1936/content/registry";
 import { GENERALS } from "@openfront/engine-lib/ww1936/Generals";
 import { moveNeed, moveStep } from "@openfront/engine-lib/ww1936/MoveRules";
 import {
@@ -87,6 +87,7 @@ import {
 import { techTotals } from "@openfront/engine-lib/ww1936/WwTechs";
 import type { Game } from "@openfront/engine/game/Game";
 import { createGameRunner } from "@openfront/engine/GameRunner";
+import { depthOf as depthOfRegion } from "@openfront/engine/ww1936/land/Bands";
 import {
   exploitReady,
   fearCutOf,
@@ -97,7 +98,6 @@ import {
   stepBattles,
   stepRecovery,
 } from "@openfront/engine/ww1936/land/Battles";
-import { depthOf as depthOfRegion } from "@openfront/engine/ww1936/land/Bands";
 import { stepPosition } from "@openfront/engine/ww1936/land/Positions";
 import { landDivisions } from "@openfront/engine/ww1936/land/SeaLift";
 import type { Army, WwLand } from "@openfront/engine/ww1936/land/WwLand";
@@ -115,8 +115,8 @@ import {
   stamped,
   step,
   stepTo,
-  WwHuman,
   wwGameStart,
+  WwHuman,
 } from "./util";
 
 const DEU_POL: WwHuman[] = [
@@ -232,7 +232,11 @@ function template(
   cl.templates.push({
     id,
     key: "",
-    def: { name: `t${id}`, battalions: battalions(list), support: [...support] },
+    def: {
+      name: `t${id}`,
+      battalions: battalions(list),
+      support: [...support],
+    },
   });
   return id;
 }
@@ -262,7 +266,14 @@ describe("P1: the ground and the weather decide nothing", () => {
   }, 120_000);
 
   test("marching, supply lines and bands read no ground", () => {
-    const edge = { a: 1, b: 2, border: 10, km: 180, river: 0, strait: 0 } as const;
+    const edge = {
+      a: 1,
+      b: 2,
+      border: 10,
+      km: 180,
+      river: 0,
+      strait: 0,
+    } as const;
     expect(moveNeed(edge)).toBe(180_000);
     expect(moveStep(400, 1, 1000, 0)).toBe(7316);
     expect(supplyEdgeCost(300, 0, 3, 1)).toBe(27_272);
@@ -404,13 +415,15 @@ describe("P2: armour and pierce bands", () => {
   const rifles = stats([["infantry", 9]]);
 
   test("the curve: 85 % to a third, 50 % at two thirds, none at the armour", () => {
-    expect([1000, 2000, 3000, 4000, 5000, 6000].map((p) => armorProtectPm(6000, p))).toEqual(
-      [850, 850, 675, 500, 250, 0],
-    );
+    expect(
+      [1000, 2000, 3000, 4000, 5000, 6000].map((p) => armorProtectPm(6000, p)),
+    ).toEqual([850, 850, 675, 500, 250, 0]);
   });
 
   test("rifles barely scratch a tank's hard part; the soft part goes through", () => {
-    expect(bandProtectPm(rifles.bandPierce, rifles.bandHard, tanks.armor)).toBe(850);
+    expect(bandProtectPm(rifles.bandPierce, rifles.bandHard, tanks.armor)).toBe(
+      850,
+    );
     // Medium tanks 4 of 9: hardness 455 ‰, and rifles are mostly soft attack:
     // 12 % of their hits are hard, as the plan's split has it. (P7's numbers.)
     expect(stopped(rifles, tanks, true)).toBe(103);
@@ -656,7 +669,9 @@ describe("P3: infantry and armour", () => {
           : [["infantry", 9]],
       );
       const pol = template(g, "POL", [["infantry", 9]]);
-      l.econ.country(byTag(g, "DEU").smallID())!.researched.add("medium_tank_1");
+      l.econ
+        .country(byTag(g, "DEU").smallID())!
+        .researched.add("medium_tank_1");
       const a = placeArmy(g, "DEU", BERLIN, 1, tpl);
       const d = placeArmy(g, "POL", WARSAW, 1, pol);
       attack(l, a, WARSAW);
@@ -700,7 +715,9 @@ describe("P4: the opening barrage, guns and heavy tanks", () => {
       ]).prepFireBp,
     ).toBe(2000);
     // A support company is a third of a battalion.
-    expect(stats([["infantry", 9]], ["support_artillery"]).prepFireBp).toBe(370);
+    expect(stats([["infantry", 9]], ["support_artillery"]).prepFireBp).toBe(
+      370,
+    );
     expect(
       stats([
         ["infantry", 7],
@@ -815,7 +832,12 @@ describe("P5: armour running through", () => {
         ["motorized", 5],
       ]).flags & TPL_EXPLOIT,
     ).toBe(0);
-    expect(stats([["light_armor", 5], ["motorized", 4]]).flags & TPL_LIGHT_MAJOR).not.toBe(0);
+    expect(
+      stats([
+        ["light_armor", 5],
+        ["motorized", 4],
+      ]).flags & TPL_LIGHT_MAJOR,
+    ).not.toBe(0);
     expect(stats(panzer).flags & TPL_LIGHT_MAJOR).toBe(0);
   });
 
@@ -849,7 +871,9 @@ describe("P5: armour running through", () => {
   }, 60_000);
 
   test("a band won marks who runs through; infantry never", async () => {
-    const marked = async (list: readonly (readonly [BattalionId, number])[]) => {
+    const marked = async (
+      list: readonly (readonly [BattalionId, number])[],
+    ) => {
       const { g, l, a, d, t } = await bandWon(list);
       expect(depthOfRegion(l, WARSAW)).toBeGreaterThan(1);
       t.org[t.rowOf(d.divisions[0])] = 1;
@@ -901,7 +925,9 @@ describe("P5: armour running through", () => {
   }, 60_000);
 
   test("the last band falls: in at twice the pace, light tanks two and a half", async () => {
-    const needOf = async (list: readonly (readonly [BattalionId, number])[]) => {
+    const needOf = async (
+      list: readonly (readonly [BattalionId, number])[],
+    ) => {
       const { g, l, a, d, t } = await bandWon(list);
       // One band left, the defender one blow from breaking.
       l.bandProg[WARSAW] = depthOfRegion(l, WARSAW) - 1;
@@ -964,7 +990,9 @@ describe("P6: recon, engineers and the air", () => {
 
   test("an ambush finds nobody when the attackers have recon", () => {
     expect(tacticFx(AT_ATTACK, DT_AMBUSH, newTacticFx()).defAtkBp).toBe(1500);
-    expect(tacticFx(AT_ATTACK, DT_AMBUSH, newTacticFx(), true).defAtkBp).toBe(0);
+    expect(tacticFx(AT_ATTACK, DT_AMBUSH, newTacticFx(), true).defAtkBp).toBe(
+      0,
+    );
   });
 
   test("recon sees the enemy's pick 20 points more often", () => {
@@ -1004,9 +1032,9 @@ describe("P6: recon, engineers and the air", () => {
       defenderBlockBp: 10_000,
     };
     expect(side(["recon"]).recon).toBe(true);
-    expect(predictBattleRange(side(["recon"]), side([]), ctx).lowPm).toBeGreaterThan(
-      predictBattleRange(side([]), side([]), ctx).lowPm,
-    );
+    expect(
+      predictBattleRange(side(["recon"]), side([]), ctx).lowPm,
+    ).toBeGreaterThan(predictBattleRange(side([]), side([]), ctx).lowPm);
   });
 
   test("engineers build positions faster", () => {

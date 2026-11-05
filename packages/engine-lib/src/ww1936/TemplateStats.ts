@@ -554,7 +554,6 @@ const FOOT_KINDS: ReadonlySet<string> = new Set([
   "motor",
 ]);
 
-
 /** One carrier of hard attack: its need group, pierce (defending, attacking) and hard attack. */
 interface HardCarrier {
   group: number;

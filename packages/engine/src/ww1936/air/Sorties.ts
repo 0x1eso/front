@@ -804,12 +804,7 @@ function launch(
   const sup = isShooter(m) ? null : (air.zoneState[idx].sup.get(side) ?? 0);
   const eff = effWith(
     ce.stats.sortieEffPct,
-    sortieEffPm(
-      ce.fuelRatioPm,
-      1000,
-      dmg,
-      sup,
-    ),
+    sortieEffPm(ce.fuelRatioPm, 1000, dmg, sup),
   );
   const planes = wingPlanes(w);
   const flyMilli = Math.floor((planes * eff * wingBaseEffPm(air, w)) / 1000);

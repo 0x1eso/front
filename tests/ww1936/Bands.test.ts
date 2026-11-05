@@ -253,10 +253,7 @@ describe("ww7 depth bands: a region falls band by band", () => {
     const sc = g.worldWar()!.scenario;
     const edges = sc.edgesOf(WARSAW);
     const mean = Math.floor(
-      edges.reduce(
-        (s, e) => s + moveNeed(sc.edge(e.edge)),
-        0,
-      ) / edges.length,
+      edges.reduce((s, e) => s + moveNeed(sc.edge(e.edge)), 0) / edges.length,
     );
     expect(t.need[r]).toBe(Math.floor(mean / 4));
     expect(bandNeedOf(l, WARSAW)).toBe(t.need[r]);

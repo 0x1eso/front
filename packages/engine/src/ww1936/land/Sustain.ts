@@ -14,7 +14,6 @@ import {
   MOVE_NONE,
   NEED_GROUP_COUNT,
   TPL_HOSPITAL,
-  traitBit,
   WW_EXP_PER_DAY,
   WW_UPGRADE_PM,
 } from "@openfront/engine-api/ww1936/LandTypes";
@@ -35,7 +34,7 @@ import {
 } from "../economy/Stock";
 import type { CountryEconomy } from "../economy/WwEconomy";
 import { designLossMilli } from "./Battles";
-import { dailyGenerals, generalOf } from "./GeneralsRun";
+import { dailyGenerals } from "./GeneralsRun";
 import { atSea } from "./SeaLift";
 import {
   applySlots,

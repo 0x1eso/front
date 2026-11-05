@@ -66,8 +66,8 @@ import {
   EXPLOIT_RESERVE_PP,
   EXPLOIT_ROUNDS,
   hitProtectPm,
-  ModInput,
   MARINE_LANDED_RECOVERY_PCT,
+  ModInput,
   ModResult,
   planMaxBp,
   predictBattleRange,
@@ -1241,8 +1241,7 @@ function routLoss(land: WwLand, row: number): void {
   const t = land.divisions;
   if (t.org[row] !== 0) return;
   const b = t.battle[row] === 0 ? undefined : land.battles.get(t.battle[row]);
-  const pct =
-    b?.routBy?.find((e) => e[0] === t.id[row])?.[1] ?? ROUT_LOSS_PCT;
+  const pct = b?.routBy?.find((e) => e[0] === t.id[row])?.[1] ?? ROUT_LOSS_PCT;
   applyHpLoss(land, row, Math.floor((land.statsOf(row).hpMilli * pct) / 100));
 }
 

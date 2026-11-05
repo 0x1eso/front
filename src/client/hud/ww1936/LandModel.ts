@@ -1587,16 +1587,7 @@ export function attackPreview(
           enemyValue(seen.divisions, sides.sameSide(me, holder) ? 0 : holder),
         );
   const att = divisionMods({
-    ...armyInput(
-      view,
-      economy,
-      me,
-      a,
-      true,
-      region,
-      sides,
-      holder,
-    ),
+    ...armyInput(view, economy, me, a, true, region, sides, holder),
     river,
     strait,
     fort,
@@ -1785,12 +1776,7 @@ export function movePreview(
       : 1000;
     pass = ours;
     cost = (e, to) => {
-      let step = moveStep(
-        speed,
-        economy.infra[to] ?? 1,
-        supply,
-        0,
-      );
+      let step = moveStep(speed, economy.infra[to] ?? 1, supply, 0);
       const air = airMoveOf(p4, s, to, me);
       if (air !== 1000) step = Math.floor((step * air) / 1000);
       if (fuel < 1000) step = Math.floor((step * landFuelSpeedPm(fuel)) / 1000);
@@ -1891,16 +1877,7 @@ export function battleCard(
     const ts = t === null ? null : templateStats(templateDef(t), tech, GEN1);
     const opponent = attacking ? b.defender : b.attacker;
     return {
-      ...armyInput(
-        view,
-        economy,
-        me,
-        a,
-        attacking,
-        region,
-        sides,
-        opponent,
-      ),
+      ...armyInput(view, economy, me, a, attacking, region, sides, opponent),
       flags: ts?.flags ?? 0,
       exp: d.exp,
       supplyPm: d.supplyPm,

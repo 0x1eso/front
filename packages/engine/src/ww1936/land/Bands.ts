@@ -44,10 +44,7 @@ export function depthOf(land: WwLand, region: number): number {
   let d = cache[region];
   if (d === 0) {
     const r = sc.region(region);
-    d =
-      r === undefined
-        ? 1
-        : regionDepth(sc.regionTiles(region).length, r.vp);
+    d = r === undefined ? 1 : regionDepth(sc.regionTiles(region).length, r.vp);
     cache[region] = d;
   }
   return d;

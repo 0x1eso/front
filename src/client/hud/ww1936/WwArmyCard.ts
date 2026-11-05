@@ -7,8 +7,8 @@ import {
 import type { WwOrderBlock } from "@openfront/engine-api/ww1936/EconomyTypes";
 import {
   GENERAL_TRAITS,
-  RETIRED_GENERAL_TRAITS,
   GeneralTrait,
+  RETIRED_GENERAL_TRAITS,
   type Stance,
   STANCES,
   traitBit,

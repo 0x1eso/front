@@ -207,7 +207,10 @@ function keepAfterFire(keepPm: number, fireBp: number): number {
  * division with `flags` whose barrage is at `fireBp` this round.
  */
 export function prepKeepPm(flags: number, fireBp: number): number {
-  return keepAfterFire(has(flags, TPL_HEAVY_LEAD) ? 1000 - HEAVY_PREP_CUT_PM : 1000, fireBp);
+  return keepAfterFire(
+    has(flags, TPL_HEAVY_LEAD) ? 1000 - HEAVY_PREP_CUT_PM : 1000,
+    fireBp,
+  );
 }
 
 /** ww84: entrenched foot get at tanks close up: ‰ off the protection of what they hit. */
@@ -221,7 +224,10 @@ export function trenchCutPm(flags: number, levels: number): number {
 export const TANK_FEAR_PCT = 25;
 
 /** The side's best pierce with something left to fire it. */
-function bestPierce(pierce: readonly number[], hard: readonly number[]): number {
+function bestPierce(
+  pierce: readonly number[],
+  hard: readonly number[],
+): number {
   let best = 0;
   for (let i = 0; i < hard.length; i++) {
     if (hard[i] > 0 && pierce[i] > best) best = pierce[i];
@@ -245,7 +251,10 @@ export function tankFearPct(
   attackerArmor: number,
   cutPp: number,
 ): number {
-  if (attackerArmor <= 0 || bestPierce(bandPierce, bandHard) * 3 > attackerArmor) {
+  if (
+    attackerArmor <= 0 ||
+    bestPierce(bandPierce, bandHard) * 3 > attackerArmor
+  ) {
     return 0;
   }
   return Math.max(0, TANK_FEAR_PCT - cutPp);
@@ -269,7 +278,8 @@ export function armorProtectPm(armor: number, pierce: number): number {
   return p3 <= 2 * armor
     ? ARMOR_PROTECT_MAX_PM -
         Math.floor(
-          ((ARMOR_PROTECT_MAX_PM - ARMOR_PROTECT_MID_PM) * (p3 - armor)) / armor,
+          ((ARMOR_PROTECT_MAX_PM - ARMOR_PROTECT_MID_PM) * (p3 - armor)) /
+            armor,
         )
     : Math.floor((ARMOR_PROTECT_MID_PM * (3 * armor - p3)) / armor);
 }

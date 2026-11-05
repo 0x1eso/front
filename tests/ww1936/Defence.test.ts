@@ -2,7 +2,6 @@
 // level, positions (build, keep, reset, river start, zone), the fort's
 // width, urban org damage, and the capitulation gauge arithmetic, the
 // capital's +15 points and France's floor.
-import { GameMapSize, GameMapType } from "@openfront/engine-api/game/GameTypes";
 import { COUNTRIES } from "@openfront/engine-api/ww1936/Countries";
 import {
   equipKey,
@@ -20,16 +19,12 @@ import {
 } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { dayOfDate, dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
 import {
-  applyBp,
-  attackValue,
   combatWidth,
   divisionMods,
   ENTRENCH_DEF_BP,
   FORT_HALF_WIDTH_FROM,
   POSITION_DEF_BP,
   predictBattle,
-  roundDamage,
-  roundHits,
   TERRAIN,
   type ModInput,
 } from "@openfront/engine-lib/ww1936/CombatRules";
@@ -37,10 +32,7 @@ import {
   effectiveSurrenderPct,
   withCapitalPct,
 } from "@openfront/engine-lib/ww1936/PoliticsRules";
-import { luckBp } from "@openfront/engine-lib/ww1936/TacticRules";
 import { techTotals } from "@openfront/engine-lib/ww1936/WwTechs";
-import type { Game } from "@openfront/engine/game/Game";
-import { createGameRunner } from "@openfront/engine/GameRunner";
 import {
   capitulationStep,
   holdsCapital,
@@ -48,7 +40,6 @@ import {
 import {
   joinBattle,
   modInputOf,
-  modsOf,
   stepBattles,
 } from "@openfront/engine/ww1936/land/Battles";
 import {
@@ -59,20 +50,16 @@ import {
   stepPosition,
 } from "@openfront/engine/ww1936/land/Positions";
 import type { Army, WwLand } from "@openfront/engine/ww1936/land/WwLand";
-import { loadMapFiles } from "@openfront/shared/GameMapLoader";
-import { TestDataMapLoader } from "../util/ScriptedGame";
 import {
   byTag,
   clearLand,
   dropPact,
   HUMAN,
   land,
-  MINI,
   placeArmy,
   stamped,
   step,
   stepTo,
-  wwGameStart,
   wwRunner,
   type WwHuman,
 } from "./util";

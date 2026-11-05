@@ -6,17 +6,10 @@ import {
   EQUIPMENT_TYPES,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
 import {
-  type LandTerrain,
-  MOVE_WALK,
   traitBit,
   WW_ROUND_HOUR_MILLI,
 } from "@openfront/engine-api/ww1936/LandTypes";
 import { stepRecovery } from "@openfront/engine/ww1936/land/Battles";
-import {
-  startHopInto,
-  stepMovement,
-  traitSpeedBp,
-} from "@openfront/engine/ww1936/land/Movement";
 import type { Army, WwLand } from "@openfront/engine/ww1936/land/WwLand";
 import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSource";
 import { DEEP } from "./deepFixture";

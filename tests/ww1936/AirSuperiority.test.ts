@@ -18,9 +18,7 @@ import { dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
 import { planeStats } from "@openfront/engine-lib/ww1936/PlaneStats";
 import { emptyStats } from "@openfront/engine-lib/ww1936/Stats";
 import type { GameRunner } from "@openfront/engine/GameRunner";
-import {
-  dailyAirZone,
-} from "@openfront/engine/ww1936/air/AirCombat";
+import { dailyAirZone } from "@openfront/engine/ww1936/air/AirCombat";
 import { radarPmAt } from "@openfront/engine/ww1936/air/AirSuperiority";
 import { drawPlanes } from "@openfront/engine/ww1936/economy/Buildings";
 import type { WorldWar } from "@openfront/engine/ww1936/WorldWar";

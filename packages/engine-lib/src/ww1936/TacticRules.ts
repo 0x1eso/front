@@ -385,8 +385,7 @@ export function picksSecond(
   const lead = ia > id ? 0 : ia < id ? 1 : -1;
   if (lead >= 0) {
     const recon = lead === 0 ? attRecon : defRecon;
-    const chance =
-      50 + Math.abs(ia - id) + (recon ? RECON_SEE_PP : 0);
+    const chance = 50 + Math.abs(ia - id) + (recon ? RECON_SEE_PP : 0);
     if (rS < Math.min(100, chance)) return lead;
   } else if (attRecon && rS < RECON_SEE_PP) {
     return 0;

@@ -32,7 +32,6 @@ import {
   strengthPm,
   templateStats,
 } from "@openfront/engine-lib/ww1936/TemplateStats";
-import { weatherAt } from "@openfront/engine-lib/ww1936/Weather";
 import {
   createGameRunnerFromSnapshot,
   GameRunner,

@@ -16,7 +16,6 @@ import {
   combatWidth,
   divisionMods,
   excessWidthBp,
-  roundDamage,
 } from "@openfront/engine-lib/ww1936/CombatRules";
 import {
   GEN1,

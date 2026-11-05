@@ -271,8 +271,7 @@ function runHub(
       }
       if (ours[to] === 0) continue;
       const nd =
-        du +
-        supplyEdgeCost(sc.edge(e.edge).km, rail[u], rail[to], infra[to]);
+        du + supplyEdgeCost(sc.edge(e.edge).km, rail[u], rail[to], infra[to]);
       if (nd < dist[to]) {
         dist[to] = nd;
         heap.push(nd, to);

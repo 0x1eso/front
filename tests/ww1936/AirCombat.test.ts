@@ -22,9 +22,7 @@ import { planeStats } from "@openfront/engine-lib/ww1936/PlaneStats";
 import { emptyStats } from "@openfront/engine-lib/ww1936/Stats";
 import type { GameRunner } from "@openfront/engine/GameRunner";
 import { snapshotGame } from "@openfront/engine/snapshot/GameSnapshot";
-import {
-  airDuelMilli,
-} from "@openfront/engine/ww1936/air/AirCombat";
+import { airDuelMilli } from "@openfront/engine/ww1936/air/AirCombat";
 import type { Wing } from "@openfront/engine/ww1936/air/WwAir";
 import { joinBattle } from "@openfront/engine/ww1936/land/Battles";
 import type { WorldWar } from "@openfront/engine/ww1936/WorldWar";
@@ -192,8 +190,7 @@ describe("air combat (spec §14.2–§14.4)", () => {
     through(runner, day, ww.scenario.srIdxOf(SR.central) % 7);
     // The bombers fly at 30% (no superiority yesterday); interceptors weigh
     // them ×3 and the fighters ×1.
-    const bomberMilli =
-      100 * sortieEffPm(1000, rangeEffPm(128, 900), 0, 0);
+    const bomberMilli = 100 * sortieEffPm(1000, rangeEffPm(128, 900), 0, 0);
     expect(bomberMilli).toBe(30_000);
     const loss = airDuelMilli(
       [{ stats: planeStats("fighter", 1, Z, none), milli: 200_000, weight: 1 }],

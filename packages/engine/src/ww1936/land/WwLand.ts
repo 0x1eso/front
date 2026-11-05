@@ -48,8 +48,6 @@ import {
   TemplateDef,
   TERRAIN_DAY_SLOTS,
   TrainingData,
-  Weather,
-  WEATHERS,
   WW_DEPLOY_MIN_FILL_PM,
   WW_MAX_ARMIES,
   WwLandData,
@@ -77,7 +75,6 @@ import {
   templateCounts,
   templateStats,
 } from "@openfront/engine-lib/ww1936/TemplateStats";
-import { weatherAt } from "@openfront/engine-lib/ww1936/Weather";
 import { techTotals } from "@openfront/engine-lib/ww1936/WwTechs";
 import { z } from "zod";
 import type { Game, Player } from "../../game/Game";
@@ -2795,7 +2792,9 @@ export class WwLand {
     }
     // ww84: marines just ashore, only when any are.
     if (this.landedUntil.size > 0) {
-      for (const [id, day] of [...this.landedUntil].sort((x, y) => x[0] - y[0])) {
+      for (const [id, day] of [...this.landedUntil].sort(
+        (x, y) => x[0] - y[0],
+      )) {
         mix(id);
         mix(day);
       }

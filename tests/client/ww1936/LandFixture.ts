@@ -15,10 +15,7 @@ import {
   TemplateData,
   TrainingData,
 } from "@openfront/engine-api/ww1936/LandTypes";
-import {
-  addToSide,
-  emptySide,
-} from "@openfront/engine-lib/ww1936/CombatRules";
+import { addToSide, emptySide } from "@openfront/engine-lib/ww1936/CombatRules";
 import { startTemplates } from "@openfront/engine-lib/ww1936/LandStart";
 import {
   GEN1,

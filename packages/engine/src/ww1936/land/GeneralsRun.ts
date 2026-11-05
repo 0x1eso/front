@@ -5,7 +5,6 @@
 import type { WwOrderBlock } from "@openfront/engine-api/ww1936/EconomyTypes";
 import {
   GENERAL_TRAITS,
-  GeneralTrait,
   ROLE_ATTACK,
   ROLE_DEFEND,
   traitBit,

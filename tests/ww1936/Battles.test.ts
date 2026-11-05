@@ -630,10 +630,7 @@ describe("World War 1936 P2: land battles (spec §9)", () => {
         ps.bandPierce,
         ps.bandHard,
         ts.armor,
-        trenchCutPm(
-          ps.flags,
-          l.divisions.entrench[pr] + l.posLevel[WARSAW],
-        ),
+        trenchCutPm(ps.flags, l.divisions.entrench[pr] + l.posLevel[WARSAW]),
       ),
     );
     expect(protect).toBeGreaterThan(0);

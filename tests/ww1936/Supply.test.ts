@@ -21,7 +21,6 @@ import {
   supplyRatePm,
   supplyUseMilli,
 } from "@openfront/engine-lib/ww1936/SupplyRules";
-import { weatherAt } from "@openfront/engine-lib/ww1936/Weather";
 import type { Game } from "@openfront/engine/game/Game";
 import { createGameRunner, GameRunner } from "@openfront/engine/GameRunner";
 import { dailySupply, liveHubs } from "@openfront/engine/ww1936/land/Supply";
