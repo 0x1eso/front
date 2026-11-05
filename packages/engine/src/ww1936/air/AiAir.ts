@@ -43,6 +43,11 @@ import {
   ROLE_ATTACK,
   TPL_PARA_ANY,
 } from "@openfront/engine-api/ww1936/LandTypes";
+import {
+  AI_PLAN_DEFAULT,
+  planOf,
+  type NationalPlan,
+} from "@openfront/engine-lib/ww1936/AiPlans";
 import { paradropBlockOf } from "@openfront/engine-lib/ww1936/AirRules";
 import { NAVAL_BEATS } from "@openfront/engine-lib/ww1936/NavalBeats";
 import { isNoStrike } from "@openfront/engine-lib/ww1936/NoStrike";
@@ -178,6 +183,8 @@ export interface AiAirInput {
   only?: readonly number[];
   /** Task 15: percent of the fighters kept over the capital (default 100 − AI_AIR_USE_PCT). */
   fighterHomePct?: number;
+  /** ww91: the sky bombing wants ‰; none: AI_STRAT_SUP_PM. */
+  stratSupPm?: number;
 }
 /** An order the AI gives through air.issue (the same as a player's). */
 export type AiAirOrder = AirOrder;
@@ -220,7 +227,7 @@ function demandsOf(
         m === "strategic_bombing" &&
         z.kind === "land" &&
         z.industry > 0 &&
-        z.supPm >= AI_STRAT_SUP_PM &&
+        z.supPm >= (i.stratSupPm ?? AI_STRAT_SUP_PM) &&
         // A tactical bomber bombs industry only when no attack needs it.
         (type !== "bomber" || !casWanted)
       ) {
@@ -686,6 +693,7 @@ export function aiAirInput(
     current,
     ...(only === undefined ? {} : { only }),
     ...(home === undefined ? {} : { fighterHomePct: home }),
+    stratSupPm: planOf(ce.tag, ww.politics.seed, smallID, human).stratSupPm,
   };
 }
 
@@ -1036,6 +1044,8 @@ export interface AiWingInput {
   smallID: number;
   day: number;
   atWar: boolean;
+  /** ww91: the plan's weights and sky bar; none: the default. */
+  plan?: Readonly<NationalPlan>;
   /** Only the zones with something to do, and the capital's. */
   zones: readonly AiWingZone[];
   /** Ascending id. */
@@ -1101,12 +1111,18 @@ function wingDemandsOf(
   const cas = CAS_TYPES.includes(type);
   const fighter = WING_TYPE_FIGHTERS.includes(type);
   const casWanted = cas && i.armies.some((a) => a.attacking > 0);
+  const plan = i.plan ?? AI_PLAN_DEFAULT;
+  // ww91: the plan's weight on a demand; it never falls to nothing.
+  const lean = (w: number, pct: number) =>
+    Math.max(1, Math.floor((w * pct) / 100));
   if (cas) {
     for (const a of i.armies) {
       if (noBombers.has(a.sr)) continue;
-      const w =
+      const w = lean(
         (1 + 2 * a.attacking + a.defending) *
-        (a.priority ? AI_WING_PRIORITY_FACTOR : 1);
+          (a.priority ? AI_WING_PRIORITY_FACTOR : 1),
+        plan.casWeightPct,
+      );
       out.push(
         newDemand(
           "cas",
@@ -1186,11 +1202,18 @@ function wingDemandsOf(
     // Close support of the side's battle where no army of ours fights.
     if (cas && z.battles > 0 && !followed.has(z.sr)) {
       out.push(
-        newDemand("cas", z, z.sr, z.battleRegion, z.battles, RANK_CAS_DEFEND),
+        newDemand(
+          "cas",
+          z,
+          z.sr,
+          z.battleRegion,
+          lean(z.battles, plan.casWeightPct),
+          RANK_CAS_DEFEND,
+        ),
       );
     }
     if (casWanted) continue; // the attack needs them first
-    const openSky = z.supPm >= AI_STRAT_SUP_PM || z.enemyPlanes === 0;
+    const openSky = z.supPm >= plan.stratSupPm || z.enemyPlanes === 0;
     if (
       z.bomb !== null &&
       openSky &&
@@ -1202,7 +1225,7 @@ function wingDemandsOf(
           z,
           z.sr,
           z.bomb.region,
-          z.bomb.score * beat,
+          lean(z.bomb.score * beat, plan.bombWeightPct),
           RANK_BOMB,
           0,
           z.bomb.cls,
@@ -1216,7 +1239,7 @@ function wingDemandsOf(
           z,
           z.sr,
           z.port.region,
-          5 + 2 * z.port.ships,
+          lean(5 + 2 * z.port.ships, plan.navalWeightPct),
           RANK_PORT,
         ),
       );
@@ -1224,14 +1247,23 @@ function wingDemandsOf(
     if (type !== "strat_bomber") {
       if (z.fleetZone !== 0) {
         out.push(
-          newDemand("naval_strike", z, z.sr, z.fleetZone, 6, RANK_STRIKE),
+          newDemand(
+            "naval_strike",
+            z,
+            z.sr,
+            z.fleetZone,
+            lean(6, plan.navalWeightPct),
+            RANK_STRIKE,
+          ),
         );
       }
       if (type === "naval_bomber" && z.kind === "sea") {
         if (z.convoyLoss) {
-          out.push(newDemand("naval_patrol", z, z.sr, 0, 4, RANK_PATROL));
+          const w = lean(4, plan.navalWeightPct);
+          out.push(newDemand("naval_patrol", z, z.sr, 0, w, RANK_PATROL));
         } else if (z.homeWaters) {
-          out.push(newDemand("naval_patrol", z, z.sr, 0, 2, RANK_PATROL));
+          const w = lean(2, plan.navalWeightPct);
+          out.push(newDemand("naval_patrol", z, z.sr, 0, w, RANK_PATROL));
         }
       }
     }
@@ -2232,6 +2264,7 @@ export function aiWingInput(
       : undefined;
   return {
     ...base,
+    plan: planOf(ce.tag, ww.politics.seed, owner, ww.isHumanControlled(owner)),
     zones,
     armies,
     capitalSr,

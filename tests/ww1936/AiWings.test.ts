@@ -10,6 +10,7 @@ import {
   type AirType,
   type WingOrder,
 } from "@openfront/engine-api/ww1936/AirTypes";
+import { AI_PLAN_DEFAULT } from "@openfront/engine-lib/ww1936/AiPlans";
 import { wingMaxPlanes } from "@openfront/engine-lib/ww1936/WingRules";
 import {
   AI_WING_FIGHTER_MAX_PCT,
@@ -111,6 +112,50 @@ const isDown = (o: MissionOrder | undefined) =>
   o.escort === undefined;
 
 describe("aiWingPlan", () => {
+  test("ww91: the plan's sky bar and weights steer the bombers", () => {
+    const zones = [
+      zone(2, {
+        supPm: 250,
+        enemyPlanes: 50,
+        bomb: { region: 21, cls: "rail", score: 90 },
+      }),
+    ];
+    const bomb = (stratSupPm: number) =>
+      of(
+        aiWingPlan(
+          input({
+            wings: [wing(1, "strat_bomber")],
+            zones,
+            plan: { ...AI_PLAN_DEFAULT, stratSupPm },
+          }),
+        ),
+        1,
+      )?.mission;
+    expect(bomb(200)).toBe("strategic_bombing");
+    expect(bomb(300)).not.toBe("strategic_bombing");
+    // Two targets: the plan's bombing weight beats the port's by its share.
+    const two = [
+      zone(2, {
+        supPm: 900,
+        bomb: { region: 21, cls: "rail", score: 12 },
+        port: { region: 22, ships: 5 },
+      }),
+    ];
+    const first = (bombWeightPct: number, navalWeightPct: number) =>
+      of(
+        aiWingPlan(
+          input({
+            wings: [wing(1, "bomber")],
+            zones: two,
+            plan: { ...AI_PLAN_DEFAULT, bombWeightPct, navalWeightPct },
+          }),
+        ),
+        1,
+      )?.mission;
+    expect(first(200, 100)).toBe("strategic_bombing");
+    expect(first(50, 150)).toBe("port_strike");
+  });
+
   test("peace: every wing with an order stands down", () => {
     const plan = aiWingPlan(
       input({
