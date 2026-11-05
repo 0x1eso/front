@@ -427,12 +427,16 @@ function livingAsked(eg: WwEndgame, c: Conference): Set<number> {
 }
 
 /** The conference as PeaceAssign reads it. */
-export function assignInput(eg: WwEndgame, c: Conference): AssignIn {
+export function assignInput(
+  eg: WwEndgame,
+  c: Conference,
+  handedOver: readonly [number, number][] = c.handed ?? [],
+): AssignIn {
   const ww = eg.ww;
   const sc = ww.scenario;
   const legal = ww.politics.legalOwner;
   const ctrl = ww.land.controller;
-  const handed = new Map(c.handed ?? []);
+  const handed = new Map(handedOver);
   const winners = c.parts.filter((p) => eg.isActor(p.id));
   const isWinner = new Set(winners.map((p) => p.id));
   const caps = new Map(c.losers.map((L) => [L, legalCapital(eg, L)]));
@@ -473,14 +477,15 @@ function assignAtOpening(eg: WwEndgame, c: Conference): void {
     ([r, to]) => stake.has(r) && ctrl[r] === to,
   );
   eg.handedOver = eg.handedOver.filter(([r]) => !stake.has(r));
-  if (handed.length > 0) c.handed = handed.sort((a, b) => a[0] - b[0]);
-  const out = peaceAssignment(assignInput(eg, c), {
+  handed.sort((a, b) => a[0] - b[0]);
+  const out = peaceAssignment(assignInput(eg, c, handed), {
     safe: livingAsked(eg, c),
   });
   c.assign = out.assign;
   c.comp = out.comp;
   c.dem = out.dem;
   c.demPuppets = out.puppets;
+  if (handed.length > 0) c.handed = handed;
   for (const [id, pts] of out.comp) {
     const p = c.parts.find((x) => x.id === id);
     if (p !== undefined) p.pts += pts;

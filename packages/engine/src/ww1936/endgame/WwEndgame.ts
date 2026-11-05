@@ -166,6 +166,9 @@ const ConferenceSchema = z.object({
     }),
   ),
   // ww88: decided at the opening; old saves have none and settle as before.
+  // In the order the opening sets them (a restored object's keys follow this).
+  /** The side asked for terms (Ask for terms): its members keep the rest and their armies. */
+  asked: z.literal(true).optional(),
   /** [region, winner]: what each winner gets without paying (PeaceAssign). */
   assign: z.array(z.tuple([zInt(), zInt()])).optional(),
   /** [winner, points] added at the opening for held regions it gave up. */
@@ -176,8 +179,6 @@ const ConferenceSchema = z.object({
   demPuppets: z.array(z.tuple([zInt(), zInt()])).optional(),
   /** [region, victor]: land a capitulation handed over, not conquered. */
   handed: z.array(z.tuple([zInt(), zInt()])).optional(),
-  /** The side asked for terms (Ask for terms): its members keep the rest and their armies. */
-  asked: z.literal(true).optional(),
 });
 export type Conference = z.infer<typeof ConferenceSchema>;
 const WarSchema = z.object({
