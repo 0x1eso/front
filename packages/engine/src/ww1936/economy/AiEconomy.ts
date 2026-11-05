@@ -1981,6 +1981,22 @@ export function aiInput(
   };
 }
 
+/**
+ * ww91 rule 5: units a day the lines and the fuel want beyond what the country
+ * has, RESOURCE_IDS order. Its own books only.
+ */
+export function aiResourceGap(econ: WwEconomy, ce: CountryEconomy): number[] {
+  const t = ce.totals;
+  const need = new Array<number>(RESOURCE_COUNT).fill(0);
+  for (const l of ce.lines) {
+    const per = EQUIPMENT[typeOf(l.key)].resources;
+    for (let k = 0; k < RESOURCE_COUNT; k++) need[k] += per[k] * l.active;
+  }
+  return withFuelOil(need, fuelOilOf(econ, ce)).map((n, k) =>
+    Math.max(0, n - (t.produced[k] - t.exported[k] + t.imported[k])),
+  );
+}
+
 /** AiInput.research (changes §5): the faction's shared research is read only when a slot is free. */
 function researchInputOf(econ: WwEconomy, ce: CountryEconomy): AiResearchInput {
   const pol = econ.ww.politics as WwPolitics | undefined;

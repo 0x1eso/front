@@ -285,3 +285,24 @@ export function planStance(
     stopped,
   };
 }
+
+/** Rule 5: units of a deposit per point of value (deposits run to tens, points to ones). */
+export const AI_PLAN_UNITS_PER_VALUE = 10;
+
+/**
+ * Rule 5, war for resources: what a region is worth for the resources the
+ * country lacks: the plan's value for each unit there, no more of a resource
+ * than the gap. `gap`: units a day short, RESOURCE_IDS order.
+ */
+export function resourceWorth(
+  deposits: readonly number[],
+  gap: readonly number[],
+  value: number,
+): number {
+  if (value === 0) return 0;
+  let units = 0;
+  for (let k = 0; k < gap.length; k++) {
+    if (gap[k] > 0) units += Math.min(deposits[k] ?? 0, gap[k]);
+  }
+  return Math.floor((value * units) / AI_PLAN_UNITS_PER_VALUE);
+}

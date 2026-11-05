@@ -40,6 +40,7 @@ import {
   WW_COST,
   WW_NAP_BREAK_DAYS,
 } from "@openfront/engine-api/ww1936/PoliticsTypes";
+import { planOf, resourceWorth } from "@openfront/engine-lib/ww1936/AiPlans";
 import { dayOfDate } from "@openfront/engine-lib/ww1936/Calendar";
 import type { ContentRegistry } from "@openfront/engine-lib/ww1936/content/registry";
 import { historicalAiActive } from "@openfront/engine-lib/ww1936/Pace";
@@ -53,12 +54,13 @@ import {
 import { aiWeight, idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { declareWar, declareWarBlock } from "../Diplomacy";
 import {
+  aiResourceGap,
   AiPersonality,
   aiLawTarget,
   aiPersonality,
 } from "../economy/AiEconomy";
 import type { CountryEconomy } from "../economy/WwEconomy";
-import { aiOverseasWarScore } from "../navy/AiNavy";
+import { aiOverseasWarScore, homeSeaSrs } from "../navy/AiNavy";
 import { candidatesFor } from "./Advisors";
 import { evalCondition } from "./Conditions";
 import {
@@ -892,6 +894,7 @@ function aiJustify(
         !majorGuaranteed(pol, t) &&
         aiWarScore(pol, id, t, false) >= AI_JUSTIFY_SCORE_PM,
     );
+  planOrder(pol, c, near);
   const pact = (t: number) => pol.isAtWarBlockedByNap(id, t);
   const order = [
     ...near.filter((t) => claims.has(t) && !pact(t)),
@@ -931,6 +934,36 @@ function aiJustify(
     );
     return;
   }
+}
+
+/**
+ * ww91 rules 5 and 6, with the historical AI off: which theatre first, when no
+ * beat says. `near` is sorted by what the plan values in each target: the
+ * resources it lacks, the coasts of its own seas. Ties stay as they were.
+ */
+function planOrder(pol: WwPolitics, c: CountryPol, near: number[]): void {
+  const id = c.smallID;
+  const plan = planOf(c.tag, pol.seed, id);
+  if (plan.resourceValue === 0 && plan.homeSeaValue === 0) return;
+  const econ = pol.econ;
+  const ce = econ.country(id);
+  if (ce === null) return;
+  const sc = pol.ww.scenario;
+  const gap = aiResourceGap(econ, ce);
+  const seas = plan.homeSeaValue > 0 ? homeSeaSrs(pol.ww, id) : null;
+  const worth = new Map<number, number>();
+  for (const t of near) {
+    let w = 0;
+    for (const r of econ.regionsOf(t)) {
+      w += resourceWorth(econ.deposits(r), gap, plan.resourceValue);
+      const z = sc.harborOf(r);
+      if (seas !== null && z !== 0 && seas.has(sc.zoneSr(z))) {
+        w += plan.homeSeaValue;
+      }
+    }
+    worth.set(t, w);
+  }
+  near.sort((a, b) => worth.get(b)! - worth.get(a)!);
 }
 
 /**

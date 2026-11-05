@@ -5,6 +5,7 @@ import {
   planOf,
   planStance,
   planStrengthPct,
+  resourceWorth,
 } from "@openfront/engine-lib/ww1936/AiPlans";
 import {
   AI_ATTACK_ORG_PM,
@@ -26,6 +27,11 @@ import {
   pickMainEnemy,
   pickMainSector,
 } from "@openfront/engine/ww1936/land/AiEffort";
+import {
+  aiInvasionPick,
+  aiInvasionScore,
+} from "@openfront/engine/ww1936/navy/AiInvasion";
+import { expectedSupPm } from "@openfront/engine/ww1936/navy/AiNavy";
 import { describe, expect, it } from "vitest";
 
 /** A seed giving the country a strength of exactly `want`, %. */
@@ -260,5 +266,55 @@ describe("rule 8: post the good troops", () => {
       })[0];
     expect(train(false)).toBe(1);
     expect(train(true)).toBe(2);
+  });
+});
+
+describe("rule 5: war for resources", () => {
+  it("only what it lacks counts, no more of it than the gap", () => {
+    expect(resourceWorth([30, 0, 9], [20, 5, 0], 10)).toBe(20);
+    expect(resourceWorth([30, 0, 9], [40, 5, 0], 5)).toBe(15);
+    expect(resourceWorth([0, 0, 9], [20, 5, 0], 10)).toBe(0);
+    expect(resourceWorth([30, 0, 9], [20, 5, 0], 0)).toBe(0);
+  });
+
+  it("a landing goes for the oil over the larger town", () => {
+    const at = {
+      port: false,
+      enemyCapital: false,
+      islandBase: false,
+      divisions: 0,
+      routeKm: 0,
+      supPm: 1000,
+    };
+    const town = { ...at, target: 1, vp: 10 };
+    const oil = { ...at, target: 2, vp: 3, extra: 20 };
+    expect(aiInvasionPick([town, oil])?.target).toBe(2);
+    expect(aiInvasionPick([town, { ...oil, extra: 0 }])?.target).toBe(1);
+  });
+});
+
+describe("rule 6: sea lanes first", () => {
+  const at = {
+    target: 1,
+    vp: 5,
+    port: false,
+    enemyCapital: false,
+    islandBase: true,
+    divisions: 0,
+    routeKm: 0,
+    supPm: 620,
+  };
+  it("the plan's bar decides the landing", () => {
+    expect(aiInvasionPick([at])).not.toBeNull();
+    expect(aiInvasionPick([at], 700)).toBeNull();
+    expect(aiInvasionPick([{ ...at, supPm: 560 }], 550)).not.toBeNull();
+  });
+  it("an island base is worth what the plan says", () => {
+    expect(aiInvasionScore(at)).toBe(1000);
+    expect(aiInvasionScore({ ...at, islandValue: 10 })).toBe(1500);
+  });
+  it("expected supremacy stays where the invasion planner had it", () => {
+    expect(expectedSupPm(3, 1)).toBe(750);
+    expect(expectedSupPm(0, 0)).toBe(0);
   });
 });

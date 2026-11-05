@@ -55,10 +55,12 @@ import {
 import { WW_INVASION_MAX_KM } from "@openfront/engine-api/ww1936/NavyTypes";
 import { wwAiWarPlanDue } from "@openfront/engine-lib/ww1936/AiDifficulty";
 import {
+  AI_PLAN_DEFAULT,
   type NationalPlan,
   planOf,
   type PlanStance,
   planStance,
+  resourceWorth,
 } from "@openfront/engine-lib/ww1936/AiPlans";
 import { BATTALIONS } from "@openfront/engine-lib/ww1936/Battalions";
 import { combatWidth } from "@openfront/engine-lib/ww1936/CombatRules";
@@ -84,12 +86,16 @@ import {
   templateStats,
 } from "@openfront/engine-lib/ww1936/TemplateStats";
 import { enemySkyPm } from "../air/AirSuperiority";
-import { type AiPersonality, aiPersonality } from "../economy/AiEconomy";
+import {
+  type AiPersonality,
+  aiPersonality,
+  aiResourceGap,
+} from "../economy/AiEconomy";
 import { convoysOf, effectiveLevel } from "../economy/Buildings";
 import { queueBuild } from "../economy/Construction";
 import { fuelCapOf } from "../economy/Fuel";
 import type { CountryEconomy } from "../economy/WwEconomy";
-import { seaReach } from "../navy/AiNavy";
+import { aiRouteSupPm, seaReach } from "../navy/AiNavy";
 import { navalPort, navalPortsOf } from "../navy/Ports";
 import {
   type ArmyFacts,
@@ -1036,6 +1042,8 @@ class AiDay {
   private cutsMemo = new Map<number, EnemyCuts>();
   /** ww91 rule 2: today's stance. */
   private stanceMemo: PlanStance | null = null;
+  /** ww91 rule 5: today's resource gap. */
+  private gapMemo: number[] | null = null;
   /** ww91 rule 1: the one enemy that gets the offensive today; 0: no such choice. */
   private mainEnemy = 0;
 
@@ -2646,7 +2654,10 @@ class AiDay {
           fort,
           width: combatWidth(sc.landOf(r.region), 1, fort),
           defence: enemyStrength(land, this.me, r.region),
-          extra: (pull.get(r.region) ?? 0) + (cut.get(r.region) ?? 0),
+          extra:
+            (pull.get(r.region) ?? 0) +
+            (cut.get(r.region) ?? 0) +
+            this.lackWorth(r.region),
           skyPm: enemySkyPm(land.ww.air, r.region, land.sideOf(this.me)),
         };
       });
@@ -2659,6 +2670,14 @@ class AiDay {
       this.warPlan.effortKeepPct,
       this.warPlan.skyBarPm,
     );
+  }
+
+  /** ww91 rule 5: what `region` is worth for the resources we lack. */
+  private lackWorth(region: number): number {
+    const value = this.warPlan.resourceValue;
+    if (value === 0) return 0;
+    this.gapMemo ??= aiResourceGap(this.land.econ, this.ce);
+    return resourceWorth(this.land.econ.deposits(region), this.gapMemo, value);
   }
 
   /** The army's plan waits on `x`, unless it runs already (a walk finishes first). */
@@ -3080,7 +3099,8 @@ class AiDay {
         if (sc.regionKm(here, p) > AI_SEA_MAX_KM) continue;
         if (best === 0 || fromAnchor[p] < fromAnchor[best]) best = p;
       }
-      if (best !== 0) {
+      // ww91 rule 6: a plan sails only on a route it holds.
+      if (best !== 0 && this.routeHeld(here, best)) {
         this.issue({ kind: "army_sea", army: a.id, region: best });
       }
       return;
@@ -3094,6 +3114,15 @@ class AiDay {
     }
     if (port === 0 || (a.order.kind === "move" && a.order.to === port)) return;
     this.issue({ kind: "army_move", army: a.id, region: port });
+  }
+
+  /** ww91 rule 6: the route between two ports is ours at the plan's bar (a plan's; the others just sail). */
+  private routeHeld(from: number, to: number): boolean {
+    if (this.warPlan === AI_PLAN_DEFAULT) return true;
+    const navy = this.land.ww.navy;
+    return (
+      aiRouteSupPm(navy, this.me, from, to) >= this.warPlan.landingSupPm
+    );
   }
 
   /**
