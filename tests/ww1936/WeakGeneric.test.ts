@@ -120,6 +120,8 @@ describe("generic use is below every real entry of its group", () => {
           scratch[KS.pierce] = s.pierce;
           scratch[KS.armor] = s.armor;
           scratch[KS.aa] = s.aa;
+          // As the table scores it: a slow real tank still ranks above (ww90).
+          scratch[KS.speedCenti] = s.speedCenti;
           expect(t.score[j]).toBeLessThan(
             rowScore(scratch, 0, t.group[j], t.year[j]),
           );

@@ -50,11 +50,6 @@ export const ATTRITION_SUPPLY_PM = 500;
 /** Spec §5.3, §11.5: 1% a day (ppm) without supply or encircled. */
 export const ATTRITION_CUT_PPM = 10_000;
 /**
- * Task 11 balance (controller ruling 1; HOI4: weather attrition hits units
- * that move, fight or lack supply, a trickle otherwise): a division resting
- * in full supply takes this share of the day's weather attrition, %.
- */
-/**
  * Whether a division fought since its country's last day (spec §5.4
  * "전투에 참가한 날"): lastFight is the tick of its last round. The
  * country's day comes on tick k = smallID % 7 of each day, before that

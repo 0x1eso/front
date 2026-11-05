@@ -540,7 +540,12 @@ describe("the AI's land war on the test map (spec §14)", () => {
     placeArmy(g, "DEU", 1, 60);
     placeArmy(g, "DEU", 3, 1);
     const from = calls.length;
-    stepTo(runner, 12_000 + 30 * 8);
+    // (France keeps fighting: on this map Paris is nearly all its points, and
+    // the gauge would fill in three days.)
+    for (let t = 12_000 + 1; t <= 12_000 + 30 * 8; t++) {
+      g.worldWar()!.setCapitulationGauge(fra, 0);
+      stepTo(runner, t);
+    }
     const later = calls
       .slice(from)
       .flatMap((c) =>

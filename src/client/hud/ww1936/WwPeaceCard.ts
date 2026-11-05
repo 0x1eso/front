@@ -109,7 +109,7 @@ function compactScreen(): boolean {
 /**
  * A round's time bar (1 → 0) and its whole seconds left, `ticksLeft` ticks
  * before the deadline. The round is WW_PEACE_ROUND_TICKS in this game's
- * ticks (wwRealTicks: 75 in the unlimited game), so it is 30 s either way.
+ * ticks (wwRealTicks: 50 in the unlimited game), so it is 20 s either way.
  */
 export function peaceTimeLeft(
   game: WwPaceGame,

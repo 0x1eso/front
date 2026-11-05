@@ -154,7 +154,7 @@ describe("training (P2 spec §5.1)", () => {
     expect(ce.manpower).toBe(500);
   });
 
-  test("below 50% equipment it waits; at 45 days it deploys", async () => {
+  test("below 50% equipment it waits; at 49 days it deploys", async () => {
     const { runner, updates, l, id, cl, ce, issue, nextDay } = await germany();
     ce.manpower = 50_000;
     setStock(ce, "infantry_equipment", 5_000);
@@ -163,15 +163,16 @@ describe("training (P2 spec §5.1)", () => {
     setStock(ce, "artillery", 0);
     expect(issue(train(INFANTRY))).toBeNull();
     const s = l.templateStatsOf(id, INFANTRY)!;
-    expect(s.trainDays).toBe(45);
+    // 45, and Germany's long school takes 15 % more on the foot (ww91 N2).
+    expect(s.trainDays).toBe(49);
     nextDay(); // starts
-    nextDay(s.trainDays); // 45 days of training
+    nextDay(s.trainDays); // 49 days of training
     expect(cl.trainees).toHaveLength(1);
-    expect(cl.trainees[0].days).toBe(45);
+    expect(cl.trainees[0].days).toBe(49);
     expect(l.armiesOf(id)).toHaveLength(0);
     expect(l.countryDetail(cl).training[0].trainees[0]).toMatchObject({
-      days: 45,
-      need: 45,
+      days: 49,
+      need: 49,
     });
     // The screen says why: the guns, the lowest fill the engine deploys on,
     // though the cost-weighted bar is above half.
@@ -250,7 +251,7 @@ describe("training (P2 spec §5.1)", () => {
     expect(cl.training).toHaveLength(0);
     const [a] = l.armiesOf(id);
     const r = l.divisions.rowOf(a.divisions[0]);
-    expect(l.divisions.org[r]).toBe(Math.floor((l.orgMaxOf(r) * 22) / 45));
+    expect(l.divisions.org[r]).toBe(Math.floor((l.orgMaxOf(r) * 22) / 49));
     expect(issue({ kind: "deploy_now", entry })).toBe("bad_index");
   });
 
@@ -400,7 +401,8 @@ describe("templates (P2 spec §4.4)", () => {
       ),
     ).toBeNull();
     const r0 = rows()[0];
-    expect(l.baseStatsOf(r0).orgMilli).toBe(Math.floor((9 * 60_000) / 13));
+    // (Germany's foot have 3 org more, ww91 N2.)
+    expect(l.baseStatsOf(r0).orgMilli).toBe(Math.floor((9 * 63_000) / 13));
     for (const r of rows()) expect(t.org[r]).toBe(l.orgMaxOf(r));
     ce.manpower = 1_000_000;
     setStock(ce, "artillery", 10_000);

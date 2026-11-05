@@ -1,8 +1,10 @@
 // The air overhaul's flip (ww8): the wing model running for real. The world1936
 // map, 400 days: Germany and Britain are humans at war, France and Poland are
-// AI, restored copies run beside the game. Every air order goes in as a
-// player's intent; the test's hand only sets the stage. The AI's planes idle
-// until lane E. WINGS_LIVE_LOG=<file> writes the numbers.
+// AI and fly their own wings, restored copies run beside the game. Every air
+// order goes in as a player's intent; the test's hand only sets the stage. The
+// hand keeps the two humans in fuel, so the air war runs to the last day and
+// is read in 50-day slices, and takes it from Germany for a spell to show what
+// that does. WINGS_LIVE_LOG=<file> writes the numbers.
 import type { StampedIntent, WwOrder } from "@openfront/engine-api/Schemas";
 import {
   AIR_MISSIONS,
@@ -11,6 +13,7 @@ import {
   type AirType,
   type Wing,
   WING_NO_MISSION,
+  WING_OVERRUN_LOSS_PCT,
   WP_FERRY,
   WP_GROUND,
   WP_STATION,
@@ -29,12 +32,13 @@ import {
 import { railStep } from "@openfront/engine-lib/ww1936/MoveRules";
 import { bombClassHits } from "@openfront/engine-lib/ww1936/WingRules";
 import type { Game } from "@openfront/engine/game/Game";
+import { bombTableOf, tableWeight } from "@openfront/engine/ww1936/air/Bombing";
 import { wingStats } from "@openfront/engine/ww1936/air/Sorties";
 import { wingBaseEffPm } from "@openfront/engine/ww1936/air/Wings";
-import { removeSpirit } from "@openfront/engine/ww1936/politics/Spirits";
 import { wingPlanes } from "@openfront/engine/ww1936/air/WwAir";
 import { damageBuilding } from "@openfront/engine/ww1936/economy/Buildings";
 import { navalPort } from "@openfront/engine/ww1936/navy/Ports";
+import { removeSpirit } from "@openfront/engine/ww1936/politics/Spirits";
 import { appendFileSync } from "node:fs";
 import { fleetAtSea } from "./convoyUtil";
 import { runLockstep, worldFiles } from "./lockstep";
@@ -53,6 +57,17 @@ const START = 601;
 /** The tick `d` days after the war starts. */
 const T = (d: number) => START + Math.floor((d * 15) / 2);
 const DAYS = 400;
+/** The days of a slice, and the tank the hand fills the two humans to. */
+const SLICE_DAYS = 50;
+const FUEL = 40_000_000;
+/** Germany's dry spell, in days; the wet days before it are the measure. */
+const DRY_FROM = 320;
+const DRY_TO = 340;
+const DRY_SETTLE = 2;
+/** The first day of fresh German divisions on the front, one lot a slice. */
+const FRESH_FROM = 115;
+/** How often the players send their bombers on to what still works. */
+const RETARGET_DAYS = 30;
 const log = (line: string) => {
   const out = process.env.WINGS_LIVE_LOG;
   if (out !== undefined) appendFileSync(out, `${line}\n`);
@@ -86,6 +101,18 @@ function borderOf(g: Game, me: number, foe: number): [number, number] {
   throw new Error(`no border ${me}-${foe}`);
 }
 
+/** Our first region touching an enemy of ours, in id order. */
+function frontOf(g: Game, me: number): number {
+  const { land, scenario: sc } = g.worldWar()!;
+  for (const r of sc.landRegions) {
+    if (land.controller[r.id] !== me) continue;
+    for (const e of sc.edgesOf(r.id)) {
+      if (land.isEnemy(me, land.controller[e.to] ?? 0)) return r.id;
+    }
+  }
+  throw new Error(`no front for ${me}`);
+}
+
 /** Where the stage stands (found from the game, the same in every copy). */
 let stage = {
   battleA: 0,
@@ -94,6 +121,8 @@ let stage = {
   pocket: 0,
   armyA: 0,
   armyB: 0,
+  armyFight: 0,
+  casWing: 0,
   armyPocket: 0,
   armyPara: 0,
   zoneFleet: 0,
@@ -101,8 +130,8 @@ let stage = {
 };
 let railRun = { army: 0, to: 0 };
 const supply = [0, 0];
-let captured = 0;
-let capturedWings: { id: number; ground: boolean; planes: number }[] = [];
+/** The German base that falls: its two wings, the tick it fell, what the one on the ground should keep. */
+let fall = { base: 0, up: 0, down: 0, taken: 0, keeps: 0 };
 
 /** The stage, on the game and every copy alike: reads only the game it gets. */
 function hand(g: Game): void {
@@ -125,13 +154,20 @@ function hand(g: Game): void {
     for (const id of [deu, gbr]) {
       const ce = econ.country(id)!;
       for (const [type, n] of STOCK) ce.stock[equipKey(type, 1)] += n;
-      ce.fuelMilli = Math.max(ce.fuelMilli, 40_000_000);
     }
     // Room for them near the front.
     econ.addBuilding(borderOf(g, deu, pol)[0], "air_base", 3);
     econ.addBuilding(borderOf(g, deu, fra)[0], "air_base", 20);
     econ.addBuilding(ww.capitalRegion(gbr), "air_base", 20);
   }
+  // Fuel for the whole run, but for Germany's dry spell.
+  if ((t - START) % (T(10) - START) === 0) {
+    for (const id of [deu, gbr]) {
+      const ce = econ.country(id)!;
+      ce.fuelMilli = Math.max(ce.fuelMilli, FUEL);
+    }
+  }
+  if (t >= T(DRY_FROM) && t < T(DRY_TO)) econ.country(deu)!.fuelMilli = 0;
   if (t === T(2)) {
     for (const id of [deu, fra, pol]) {
       const ce = econ.country(id)!;
@@ -216,6 +252,8 @@ function hand(g: Game): void {
       pocket,
       armyA,
       armyB,
+      armyFight: armyB,
+      casWing: 0,
       armyPocket,
       armyPara,
       zoneFleet,
@@ -227,39 +265,71 @@ function hand(g: Game): void {
     // Something the precision raid may take, under a bomber's target.
     econ.addBuilding(raider(g).target, "radar", 1);
   }
-  if (t === T(90)) {
-    // A German base falls with wings on the ground and in the air.
-    const at = new Map<number, Wing[]>();
-    for (const w of air.wingsOf(deu)) {
-      if (w.base <= 0 || w.base === ww.capitalRegion(deu)) continue;
-      if (w.phase === WP_FERRY || land.controller[w.base] !== deu) continue;
-      at.set(w.base, [...(at.get(w.base) ?? []), w]);
-    }
-    for (const b of [...at.keys()].sort((x, y) => x - y)) {
-      const up = at.get(b)!.find((w) => w.phase === WP_STATION);
-      const down = at
-        .get(b)!
-        .find((w) => w.phase === WP_GROUND && w.mission < 0);
-      if (up === undefined || down === undefined) continue;
-      captured = b;
-      capturedWings = [up, down].map((w) => ({
-        id: w.id,
-        ground: w === down,
-        planes: wingPlanes(w),
-      }));
-      takeRegion(g, b, "POL");
-      break;
+  if (
+    t >= T(FRESH_FROM) &&
+    (t - T(FRESH_FROM)) % (T(SLICE_DAYS) - START) === 0
+  ) {
+    // Fresh divisions on the front, so close air support has work to the end.
+    const ce = econ.country(deu)!;
+    ce.manpower += 300_000;
+    for (const e of GROUND_EQUIPMENT) ce.stock[equipKey(e, 1)] += 10_000;
+    stage.armyFight = placeArmy(g, "DEU", frontOf(g, deu), 10).id;
+  }
+  if (t === T(75)) {
+    // A new German base behind the line, and two wings of its own.
+    const base = sc.landRegions
+      .map((r) => r.id)
+      .filter(
+        (r) =>
+          land.controller[r] === deu &&
+          r !== ww.capitalRegion(deu) &&
+          r !== stage.pocket &&
+          econ.buildingArray("air_base")[r] === 0 &&
+          !air.strips.has(r) &&
+          land.rowsIn(r).length === 0,
+      )[0];
+    econ.addBuilding(base, "air_base", 3);
+    const [up, down] = [0, 1].map(
+      () => giveWing(air, { owner: deu, type: "fighter", planes: 60, base }).id,
+    );
+    fall = { base, up, down, taken: 0, keeps: 0 };
+  }
+  if (t >= T(90) && fall.base !== 0) {
+    // It falls with one wing in the air and one on the ground.
+    const up = air.wings.get(fall.up);
+    const down = air.wings.get(fall.down);
+    if (
+      up?.base === fall.base &&
+      up.phase === WP_STATION &&
+      down?.base === fall.base &&
+      down.phase === WP_GROUND
+    ) {
+      fall.keeps = 0;
+      for (const n of [...down.counts, ...down.dcounts]) {
+        fall.keeps += n - Math.floor((n * WING_OVERRUN_LOSS_PCT) / 100);
+      }
+      fall.taken = t;
+      takeRegion(g, fall.base, "POL");
     }
   }
+  if (t === T(116)) {
+    // A base and a wing with the fresh army.
+    const base = land.armyRegion(land.armies.get(stage.armyFight)!);
+    econ.addBuilding(base, "air_base", 2);
+    stage.casWing = giveWing(air, {
+      owner: deu,
+      type: "cas",
+      planes: 100,
+      base,
+    }).id;
+  }
   if (t === T(119)) {
-    // Room near the army, and a far base for the wing following it.
-    econ.addBuilding(stage.ourB, "air_base", 2);
+    // A far base for the wing following the army.
+    const from = land.armyRegion(land.armies.get(stage.armyFight)!);
     const far = sc.landRegions
       .map((r) => r.id)
       .filter((r) => land.controller[r] === deu)
-      .sort(
-        (a, b) => sc.regionKm(b, stage.ourB) - sc.regionKm(a, stage.ourB),
-      )[0];
+      .sort((a, b) => sc.regionKm(b, from) - sc.regionKm(a, from))[0];
     econ.addBuilding(far, "air_base", 2);
   }
   if (t === T(149)) {
@@ -326,7 +396,18 @@ test("a real game on wings: every mission, base moves, 400 days, in lockstep", a
     shipsHit: 0,
     night: 0,
     interceptorsUp: 0,
-    fuelEmptyDay: 0,
+    slices: Array.from({ length: Math.ceil(DAYS / SLICE_DAYS) }, () => ({
+      deu: 0,
+      gbr: 0,
+      ai: 0,
+      battles: 0,
+      planesLost: 0,
+      points: 0,
+    })),
+    wet: { milli: 0, ticks: 0 },
+    dry: { milli: 0, ticks: 0 },
+    dryRatio: 1000,
+    retargeted: 0,
     maxXp: 0,
     aces: new Set<number>(),
     paraDropped: false,
@@ -339,7 +420,7 @@ test("a real game on wings: every mission, base moves, 400 days, in lockstep", a
     moved: { id: 0, to: 0, sawFerry: false, flewAfter: false },
     standDown: { id: 0, ok: false },
     disband: { id: 0, ok: false },
-    moveUp: { id: 0, far: 0, ok: false },
+    moveUp: { id: 0, far: 0, landed: false, ok: false },
     groundAfter: 0,
     groundFerry: false,
     upRebased: false,
@@ -349,6 +430,7 @@ test("a real game on wings: every mission, base moves, 400 days, in lockstep", a
   let main: Game | null = null;
   const used = new Set<number>();
   const expected: { id: number; mission: number; what: string }[] = [];
+  const sentOn: { id: number; target: number }[] = [];
   const out: StampedIntent[] = [];
 
   /** Orders the first free wing of the type that reaches one of `targets`, the nearest. */
@@ -438,7 +520,6 @@ test("a real game on wings: every mission, base moves, 400 days, in lockstep", a
       out.push(
         order(HUMAN, { kind: "army_auto_all", on: true }),
         order(GBR_PLAYER, { kind: "army_auto_all", on: true }),
-        order(GBR_PLAYER, { kind: "auto_set", domain: "navy", on: true }),
       );
     }
     if (t === T(2) + 1) {
@@ -556,6 +637,66 @@ test("a real game on wings: every mission, base moves, 400 days, in lockstep", a
           army: s.armyPocket,
         },
       ).w.id;
+    }
+    if (t > T(3) && (t - T(3)) % (T(RETARGET_DAYS) - START) === 0) {
+      // The front moves and what was bombed stops working: a player sends the
+      // bombers with nothing left to hit on to the nearest thing that does.
+      sentOn.length = 0;
+      for (const [tag, client] of [
+        ["DEU", HUMAN],
+        ["GBR", GBR_PLAYER],
+      ] as const) {
+        const owner = idOf(g, tag);
+        for (const w of air.wingsOf(owner)) {
+          if (w.mission !== mi("strategic_bombing") || w.base <= 0) continue;
+          const table = (r: number) =>
+            bombTableOf(
+              WW_BOMB_CLASSES[w.cls],
+              (sc.region(r)?.res[0] ?? 0) > 0,
+            );
+          const works = (r: number) =>
+            land.isEnemy(owner, land.controller[r] ?? 0) &&
+            tableWeight(econ, r, table(r)) > 0;
+          if (works(w.target)) continue;
+          const range = wingStats(air, w).rangeKm;
+          const next = lands
+            .filter(
+              (r) =>
+                works(r) &&
+                sc.targetKm(w.base, r) <= range &&
+                bombClassHits(
+                  WW_BOMB_CLASSES[w.cls],
+                  (b) => econ.buildingArray(b)[r] ?? 0,
+                  (sc.region(r)?.res[0] ?? 0) > 0,
+                ),
+            )
+            .sort(
+              (a, b) =>
+                sc.targetKm(w.base, a) - sc.targetKm(w.base, b) || a - b,
+            )[0];
+          if (next === undefined) continue;
+          sentOn.push({ id: w.id, target: next });
+          out.push(
+            order(client, {
+              kind: "wing_mission",
+              wings: [w.id],
+              mission: "strategic_bombing",
+              target: next,
+              cls: WW_BOMB_CLASSES[w.cls],
+            }),
+          );
+        }
+      }
+      seen.retargeted += sentOn.length;
+      log(`day ${ww.day(t)}: ${sentOn.length} bomber wings sent on`);
+    }
+    if (t > T(3) + 2 && (t - T(3) - 2) % (T(RETARGET_DAYS) - START) === 0) {
+      for (const e of sentOn) {
+        const w = air.wings.get(e.id);
+        if (w !== undefined && w.target !== e.target) {
+          seen.refused.push(`sent on: wing ${e.id}`);
+        }
+      }
     }
     if (t === T(3) + 2) {
       for (const e of expected) {
@@ -677,6 +818,16 @@ test("a real game on wings: every mission, base moves, 400 days, in lockstep", a
         order(HUMAN, { kind: "nuke_drop", region: c.target, rocket: false }),
       );
     }
+    if (t === T(76)) {
+      out.push(
+        order(HUMAN, {
+          kind: "wing_mission",
+          wings: [fall.up],
+          mission: "air_superiority",
+          target: fall.base,
+        }),
+      );
+    }
     if (t === T(80)) {
       const w = raider(g);
       out.push(
@@ -689,11 +840,24 @@ test("a real game on wings: every mission, base moves, 400 days, in lockstep", a
         }),
       );
     }
+    if (t === T(118)) {
+      // A wing follows the fresh army.
+      seen.moveUp.id = s.casWing;
+      out.push(
+        order(HUMAN, {
+          kind: "wing_mission",
+          wings: [s.casWing],
+          mission: "cas",
+          target: land.armyRegion(land.armies.get(s.armyFight)!),
+          army: s.armyFight,
+        }),
+      );
+    }
     if (t === T(120)) {
-      // A followed army out of reach: the wing moves up by itself.
-      const w = air
-        .wingsOf(deu)
-        .find((x) => x.follow === s.armyB && x.type === ty("cas"))!;
+      // Sent far from it: out of reach, it moves up by itself.
+      const w = air.wings.get(seen.moveUp.id)!;
+      if (w.follow !== s.armyFight) seen.refused.push("cas: follow");
+      const from = land.armyRegion(land.armies.get(s.armyFight)!);
       const far = lands
         .filter(
           (r) =>
@@ -701,18 +865,23 @@ test("a real game on wings: every mission, base moves, 400 days, in lockstep", a
             econ.buildingArray("air_base")[r] > 0 &&
             air.baseCapacity(r) - air.baseUse(r) >= wingPlanes(w),
         )
-        .sort((a, b) => sc.regionKm(b, s.ourB) - sc.regionKm(a, s.ourB))[0];
-      seen.moveUp = { id: w.id, far, ok: false };
+        .sort((a, b) => sc.regionKm(b, from) - sc.regionKm(a, from))[0];
+      seen.moveUp.far = far;
+      log(
+        `move up: wing ${w.id} to ${far}, ${sc.targetKm(far, from)} km from the army, reach ${wingStats(air, w).rangeKm}`,
+      );
       out.push(order(HUMAN, { kind: "wing_base", wings: [w.id], base: far }));
     }
-    if (t >= T(120) && t < T(300) && (t - T(120)) % 15 === 0) {
-      // Keep that army fighting.
-      const a = land.armies.get(s.armyB);
-      const row = land.divisions.rowOf(a?.divisions[0] ?? 0);
-      if (a !== undefined && row >= 0 && land.divisions.battle[row] === 0) {
-        const region = sc.regionNeighbours(land.armyRegion(a)).find(enemy);
-        if (region !== undefined) {
-          out.push(order(HUMAN, { kind: "army_move", army: a.id, region }));
+    if (t > T(FRESH_FROM) && (t - T(FRESH_FROM) - 1) % 15 === 0) {
+      // Keep the followed army and the one on the front fighting.
+      for (const id of new Set([s.armyB, s.armyFight])) {
+        const a = land.armies.get(id);
+        const row = land.divisions.rowOf(a?.divisions[0] ?? 0);
+        if (a !== undefined && row >= 0 && land.divisions.battle[row] === 0) {
+          const region = sc.regionNeighbours(land.armyRegion(a)).find(enemy);
+          if (region !== undefined) {
+            out.push(order(HUMAN, { kind: "army_move", army: a.id, region }));
+          }
         }
       }
     }
@@ -735,9 +904,17 @@ test("a real game on wings: every mission, base moves, 400 days, in lockstep", a
     const deu = idOf(g, "DEU");
     const gbr = idOf(g, "GBR");
     const s = stage;
+    const slice =
+      seen.slices[Math.floor((t - START) / (T(SLICE_DAYS) - START))];
+    let deuUp = 0;
     for (const w of air.wings.values()) {
       if (w.phase === WP_STATION && w.flyMilli > 0) {
         const m = w.flyMission;
+        if (w.owner === deu) {
+          slice.deu += w.flyMilli;
+          deuUp += w.flyMilli;
+        } else if (w.owner === gbr) slice.gbr += w.flyMilli;
+        else slice.ai += w.flyMilli;
         seen.stationed.set(m, (seen.stationed.get(m) ?? 0) + 1);
         if (m === mi("strategic_bombing") && w.night) seen.night++;
         if (m === mi("interception")) seen.interceptorsUp++;
@@ -745,6 +922,18 @@ test("a real game on wings: every mission, base moves, 400 days, in lockstep", a
       }
       seen.maxXp = Math.max(seen.maxXp, w.xpMilli);
       if (w.ace !== 0) seen.aces.add(w.ace);
+    }
+    if (land.battles.size > 0) slice.battles++;
+    slice.planesLost = air.planesLostTotal;
+    slice.points = air.bombPointsTotal;
+    if (t >= T(DRY_FROM - 20) && t < T(DRY_FROM)) {
+      seen.wet.milli += deuUp;
+      seen.wet.ticks++;
+    }
+    if (t >= T(DRY_FROM + DRY_SETTLE) && t < T(DRY_TO)) {
+      seen.dry.milli += deuUp;
+      seen.dry.ticks++;
+      seen.dryRatio = Math.min(seen.dryRatio, econ.country(deu)!.fuelRatioPm);
     }
     for (const z of air.zoneState) {
       for (const [, , h] of z.casNow) seen.casPeak = Math.max(seen.casPeak, h);
@@ -783,9 +972,6 @@ test("a real game on wings: every mission, base moves, 400 days, in lockstep", a
       }
     }
     const ce = econ.country(deu)!;
-    if (ce.fuelMilli === 0 && seen.fuelEmptyDay === 0) {
-      seen.fuelEmptyDay = ww.day(t) - ww.day(START);
-    }
     const m = seen.moved;
     const mw = air.wings.get(m.id);
     if (mw?.base === m.to) {
@@ -801,26 +987,21 @@ test("a real game on wings: every mission, base moves, 400 days, in lockstep", a
     ) {
       seen.stripEff = wingBaseEffPm(air, sw);
     }
-    if (t > T(121) && air.wings.get(seen.moveUp.id)?.base !== seen.moveUp.far) {
-      seen.moveUp.ok = seen.moveUp.id !== 0;
-    }
+    const up = air.wings.get(seen.moveUp.id);
+    if (up?.base === seen.moveUp.far) seen.moveUp.landed = true;
+    else if (seen.moveUp.landed && (up?.follow ?? 0) > 0) seen.moveUp.ok = true;
     seen.nukes = 0;
     for (const c of ["FRA", "POL", "GBR"] as CountryTag[]) {
       seen.nukes += ww.depth.country(idOf(g, c))?.proj.nukedCount ?? 0;
     }
     if (ww.depth.raids.length > 0) seen.raidsQueued++;
     else if (seen.raidsQueued > 0) seen.raidOver = true;
-    if (t === T(90) + 2 && captured !== 0) {
-      for (const c of capturedWings) {
-        const w = air.wings.get(c.id);
-        if (w === undefined) continue;
-        if (c.ground) {
-          seen.groundAfter = wingPlanes(w);
-          seen.groundFerry = w.phase === WP_FERRY && w.base !== captured;
-        } else {
-          seen.upRebased = w.base !== captured;
-        }
-      }
+    if (fall.taken !== 0 && t === fall.taken + 2) {
+      const down = air.wings.get(fall.down);
+      seen.groundAfter = down === undefined ? 0 : wingPlanes(down);
+      seen.groundFerry = down?.phase === WP_FERRY && down.base !== fall.base;
+      const up = air.wings.get(fall.up);
+      seen.upRebased = up !== undefined && up.base !== fall.base;
     }
     const para = land.armies.get(s.armyPara);
     if (para !== undefined && para.paraLastDay >= 0) seen.paraDropped = true;
@@ -851,7 +1032,10 @@ test("a real game on wings: every mission, base moves, 400 days, in lockstep", a
     graphs: true,
     moments: [
       { name: "all flying", when: (g) => g.ticks() === T(12) },
-      { name: "base taken", when: (g) => g.ticks() === T(90) + 1 },
+      {
+        name: "base taken",
+        when: (g) => fall.taken !== 0 && g.ticks() === fall.taken + 1,
+      },
     ],
     hand,
     intents: (g) => {
@@ -890,13 +1074,29 @@ test("a real game on wings: every mission, base moves, 400 days, in lockstep", a
   expect(report.missed).toEqual([]);
   expect(report.restores.length).toBeGreaterThanOrEqual(5);
   expect(seen.refused).toEqual([]);
-  // Every mission flew. (Naval strikes hold no station in every game: only the
-  // AI's navy keeps a spotted fleet in the zone. seen.navalStrike is below.)
+  // Every mission flew.
   for (const m of AIR_MISSIONS) {
-    if (m !== "paradrop" && m !== "naval_strike") {
+    if (m !== "paradrop") {
       expect(seen.stationed.get(mi(m)) ?? 0, m).toBeGreaterThan(0);
     }
   }
+  // The air war runs to the end: in every slice both humans and the AI fly,
+  // planes fall, bombs land and the ground war goes on under them.
+  expect(seen.retargeted).toBeGreaterThan(0);
+  seen.slices.forEach((s, i) => {
+    const was = seen.slices[i - 1] ?? { planesLost: 0, points: 0 };
+    expect(s.deu, `Germany, slice ${i}`).toBeGreaterThan(0);
+    expect(s.gbr, `Britain, slice ${i}`).toBeGreaterThan(0);
+    expect(s.ai, `the AI, slice ${i}`).toBeGreaterThan(0);
+    expect(s.battles, `battles, slice ${i}`).toBeGreaterThan(0);
+    expect(s.planesLost, `losses, slice ${i}`).toBeGreaterThan(was.planesLost);
+    expect(s.points, `bombs, slice ${i}`).toBeGreaterThan(was.points);
+  });
+  // Without fuel fewer of Germany's planes get up.
+  expect(seen.dryRatio).toBeLessThan(1000);
+  expect(seen.dry.milli * 10 * seen.wet.ticks).toBeLessThan(
+    seen.wet.milli * 9 * seen.dry.ticks,
+  );
   // Planes fall on both sides; the sky over the contested zone changes hands.
   expect(air.planesLostTotal).toBeGreaterThan(500);
   expect(seen.lost.get(idOf(g, "DEU")) ?? 0).toBeGreaterThan(0);
@@ -937,8 +1137,8 @@ test("a real game on wings: every mission, base moves, 400 days, in lockstep", a
   expect(seen.standDown.ok).toBe(true);
   expect(seen.disband.ok).toBe(true);
   expect(seen.moveUp.ok).toBe(true);
-  const down = capturedWings.find((w) => w.ground)!;
-  expect(seen.groundAfter).toBe(down.planes - Math.floor(down.planes / 5));
+  expect(fall.taken).toBeGreaterThan(0);
+  expect(seen.groundAfter).toBe(fall.keeps);
   expect(seen.groundFerry).toBe(true);
   expect(seen.upRebased).toBe(true);
   // A bombed railway runs lower, slows the train; without rail, less supply.
