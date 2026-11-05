@@ -516,6 +516,18 @@ describe("LandModel (spec §15)", () => {
     ]);
   });
 
+  it("the battle card names what engineers and recon take off the prepared ground", () => {
+    const b = battle(7, "DEU", "POL", {
+      engineerCutPm: 300,
+      reconCutPm: 50,
+    });
+    const { land, view } = game({ ...AT_WAR, battles: [b] });
+    expect(battleCard(land, view, DEU, 7, DAY)!.defenseLines).toEqual([
+      { id: "engineer", bp: -3000 },
+      { id: "recon_position", bp: -500 },
+    ]);
+  });
+
   it("the region card's land lines", () => {
     const { land, view } = game({
       regions: [region(7, { fort: 2 }), region(3, { fort: 0 })],

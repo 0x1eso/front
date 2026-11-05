@@ -207,13 +207,6 @@ describe("combat lines (CombatRules, spec §4.2–§4.5, §5.2.2, §21.2)", () =
         "fort_def",
       ),
     ).toBe(600);
-    expect(df(mods({ flags: TPL_ENGINEER }), "engineer")).toBe(500);
-    expect(
-      df(
-        mods({ flags: TPL_ENGINEER, tech: tech({ engineerMulPct: 100 }) }),
-        "engineer",
-      ),
-    ).toBe(1000);
     expect(at(mods({ supplyPm: 500 }), "supply")).toBe(-2500);
     expect(at(mods({ supplyPm: 500, halfSupply: true }), "supply")).toBe(-1250);
     expect(at(mods({ excessBp: -2000 }), "excess")).toBe(-2000);

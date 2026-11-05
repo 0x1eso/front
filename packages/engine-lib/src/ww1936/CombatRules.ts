@@ -26,6 +26,9 @@ import {
   TPL_MOUNTAIN_MAJOR,
   TPL_PARA_ANY,
   TPL_RECON,
+  TPL_SUPPORT_AA,
+  TPL_SUPPORT_AT,
+  TPL_SUPPORT_GUNS,
   TPL_TANK_FORCE,
   TPL_TD_DEFEND,
   traitBit,
@@ -97,8 +100,55 @@ export const FORT_ATTACK_BP = -1700;
  * to one with guns takes it two times in three (plan section 6).
  */
 export const ENTRENCH_DEF_BP = 2500;
+/** ww98 (owner): the levels at the full rate; each one above gives this, bp. */
+export const ENTRENCH_FULL_LEVELS = 5;
+export const ENTRENCH_DEEP_BP = 1250;
+
+/** ww98: what `level` levels of entrenchment are worth together, bp. */
+export function entrenchBp(level: number): number {
+  return level <= ENTRENCH_FULL_LEVELS
+    ? level * ENTRENCH_DEF_BP
+    : ENTRENCH_FULL_LEVELS * ENTRENCH_DEF_BP +
+        (level - ENTRENCH_FULL_LEVELS) * ENTRENCH_DEEP_BP;
+}
+
 /** ww7: defence per position level (Positions.ts), bp. Equal to a level of entrenchment: predictBattle counts levels by it. */
 export const POSITION_DEF_BP = 2500;
+
+/**
+ * ww98 (owner): what the support companies do. Each works for its own division
+ * only, the attackers' on that division's hits, the defenders' on what that
+ * division takes, so a line of them never adds up past the figure here.
+ */
+/** Engineers attacking: the share of the enemy's entrenchment and position gone, ‰, and its cap with research (engineerMulPct). */
+export const ENGINEER_PREP_CUT_PM = 300;
+export const ENGINEER_PREP_CUT_MAX_PM = 500;
+/** Recon attacking: the share of the enemy's position gone, ‰, after the engineers'. */
+export const RECON_POSITION_CUT_PM = 100;
+/** Recon on either side: what the battle card's luck and tactic bounds keep, %. */
+export const RECON_RANGE_PCT = 50;
+/** Support guns: rounds of fire a level of the enemy's entrenchment takes (the whole line firing), and the levels a battle can wear. */
+export const ENTRENCH_WEAR_ROUNDS = 8;
+export const ENTRENCH_WEAR_MAX = 3;
+/** Support anti-tank: the share of the tank fear its division takes, %. */
+export const SUPPORT_AT_FEAR_PCT = 50;
+/** Support anti-air: what its division takes of close air support and of the air superiority penalty, %. */
+export const SUPPORT_AA_CAS_PCT = 80;
+export const SUPPORT_AA_AIR_PCT = 75;
+/** Field hospital: the share of attrition its division takes, %. */
+export const HOSPITAL_ATTRITION_PCT = 75;
+/** Logistics: the share of its division's fuel it burns, %. */
+export const LOGISTICS_FUEL_PCT = 90;
+
+/** ww98: a division's engineers against prepared ground, ‰: research scales it (`mulPct`), up to the cap. */
+export function engineerCutPm(flags: number, mulPct: number): number {
+  return has(flags, TPL_ENGINEER)
+    ? Math.min(
+        ENGINEER_PREP_CUT_MAX_PM,
+        Math.floor((ENGINEER_PREP_CUT_PM * Math.max(0, 100 + mulPct)) / 100),
+      )
+    : 0;
+}
 /** ww84: marines recover org at this percent of the normal rate for this many days after a landing. */
 export const MARINE_LANDED_RECOVERY_PCT = 150;
 export const MARINE_LANDED_DAYS = 3;
@@ -247,6 +297,26 @@ export function prepKeepPm(flags: number, fireBp: number): number {
   );
 }
 
+/**
+ * ww98: what is left of a defender's prepared ground `prepBp` (position `posBp`
+ * of it) against a division with `flags`: what prepKeepPm keeps, less its
+ * engineers' share (`cutPm`), and of the position its recon's as well. Each cut
+ * works on what the last one left.
+ */
+export function prepLeftBp(
+  prepBp: number,
+  posBp: number,
+  flags: number,
+  fireBp: number,
+  cutPm: number,
+): number {
+  const keep = Math.floor((prepKeepPm(flags, fireBp) * (1000 - cutPm)) / 1000);
+  const left = Math.floor((prepBp * keep) / 1000);
+  return has(flags, TPL_RECON)
+    ? left - Math.floor((posBp * keep * RECON_POSITION_CUT_PM) / 1_000_000)
+    : left;
+}
+
 /** ww84: entrenched foot get at tanks close up: ‰ off the protection of what they hit. */
 export function trenchCutPm(flags: number, levels: number): number {
   return has(flags, TPL_FOOT_MAJOR)
@@ -292,6 +362,13 @@ export function tankFearPct(
     return 0;
   }
   return Math.max(0, TANK_FEAR_PCT - cutPp);
+}
+
+/** ww98: what a defender with `flags` takes of `fearPct`: support anti-tank halves it. */
+export function fearTakenPct(fearPct: number, flags: number): number {
+  return has(flags, TPL_SUPPORT_AT)
+    ? Math.floor((fearPct * SUPPORT_AT_FEAR_PCT) / 100)
+    : fearPct;
 }
 
 /** ww84: what armour stops of the hard part of a hit, ‰, with pierce at or below a third of it. */
@@ -657,7 +734,11 @@ export function divisionMods(i: ModInput): ModResult {
   push(aCut, "supply", supplyCut);
   push(aCut, "encircled", i.encircled ? -5000 : 0);
   // P4 (spec §14.6, §15.4, §11.4).
-  push(aCut, "air", i.airBp);
+  // ww98: support anti-air keeps a part of the enemy's sky off its division.
+  const airBp = has(i.flags, TPL_SUPPORT_AA)
+    ? cutBy(i.airBp, SUPPORT_AA_AIR_PCT)
+    : i.airBp;
+  push(aCut, "air", airBp);
   push(aCut, "fuel", i.fuelBp);
   if (i.attacking) {
     push(aCut, "landing", i.landingBp);
@@ -701,7 +782,7 @@ export function divisionMods(i: ModInput): ModResult {
     );
   } else {
     push(dAdd, "doctrine", i.tech.defensePct * 100);
-    push(dAdd, "entrench", i.entrench * ENTRENCH_DEF_BP);
+    push(dAdd, "entrench", entrenchBp(i.entrench));
     push(dAdd, "position", (i.posLevel ?? 0) * POSITION_DEF_BP);
     // P6 (spec §21.2): the fort's defence per level (its own region's fort).
     push(dAdd, "fort_def", i.fort * stat(i.tech, "fortDefPerLevelBp"));
@@ -709,19 +790,9 @@ export function divisionMods(i: ModInput): ModResult {
   push(dAdd, "exp", expBp(i.exp));
   push(dAdd, "plan", planBp);
   push(dAdd, "fm_plan", fmPlanBp);
-  // P6 (spec §21.2): engineerMulPct scales the engineers' line.
-  push(
-    dAdd,
-    "engineer",
-    has(i.flags, TPL_ENGINEER)
-      ? Math.floor(
-          (500 * Math.max(0, 100 + stat(i.tech, "engineerMulPct"))) / 100,
-        )
-      : 0,
-  );
   push(dCut, "supply", supplyCut);
   push(dCut, "encircled", i.encircled ? -5000 : 0);
-  push(dCut, "air", i.airBp);
+  push(dCut, "air", airBp);
   push(dCut, "fuel", i.fuelBp);
   if (!i.attacking) push(dCut, "shore_bombard", i.shoreBp);
   // ww7 lane A (design §2.2): blitz halves the defender's entrenchment
@@ -734,14 +805,17 @@ export function divisionMods(i: ModInput): ModResult {
   }
   const sum = (l: ModLine[]) => l.map((x) => x.bp);
   let prepBp = 0;
+  let posBp = 0;
   for (const l of dAdd) {
     if (PREP_LINE_IDS.includes(l.id)) prepBp += l.bp;
+    if (l.id === "position") posBp = l.bp;
   }
   return {
     mods: {
       attackBp: combineMods(sum(aAdd), sum(aCut)),
       defenseBp: combineMods(sum(dAdd), sum(dCut)),
       prepBp,
+      posBp,
       defCutMulBp: combineMods([], sum(dCut)),
     },
     attackLines: [...aAdd, ...aCut],
@@ -785,15 +859,20 @@ export function entrenchMax(flags: number, tech: TechTotals): number {
 
 /**
  * P4 spec §14.7: a round's close air support hits, centi, after the target's
- * anti-air (1% a point, at most 60%) and the region's AA (5% a level).
+ * anti-air (1% a point, at most 60%) and the region's AA (5% a level). ww98:
+ * and its support anti-air, by the target's `flags`.
  */
 export function casCutHits(
   hits: number,
   targetAirAtk: number,
   aaLevel: number,
+  flags = 0,
 ): number {
   const h = Math.floor((hits * (100 - Math.min(60, targetAirAtk))) / 100);
-  return Math.floor((h * Math.max(0, 100 - 5 * aaLevel)) / 100);
+  const c = Math.floor((h * Math.max(0, 100 - 5 * aaLevel)) / 100);
+  return has(flags, TPL_SUPPORT_AA)
+    ? Math.floor((c * SUPPORT_AA_CAS_PCT) / 100)
+    : c;
 }
 
 /**
@@ -829,15 +908,24 @@ function sideProtectPm(
   );
 }
 
-/** ww90: the extra org damage a side's tanks do to `def` by fear, %, by their share of its width. */
+/**
+ * ww90: the extra org damage a side's tanks do to `def` by fear, %, by their
+ * share of its width. ww98: and by the share of `def` whose support anti-tank
+ * halves it.
+ */
 export function sideFearPct(att: SideSum, def: SideSum, cutPp: number): number {
-  return def.bandPierce === undefined || def.bandHard === undefined
-    ? 0
-    : Math.floor(
-        (tankFearPct(def.bandPierce, def.bandHard, att.armor, cutPp) *
-          (att.armorMajorPm ?? 0)) /
-          1000,
-      );
+  if (def.bandPierce === undefined || def.bandHard === undefined) return 0;
+  const fear = Math.floor(
+    (tankFearPct(def.bandPierce, def.bandHard, att.armor, cutPp) *
+      (att.armorMajorPm ?? 0)) /
+      1000,
+  );
+  return (
+    fear -
+    Math.floor(
+      (fear * (100 - SUPPORT_AT_FEAR_PCT) * (def.fearHalfPm ?? 0)) / 100_000,
+    )
+  );
 }
 
 /** ww84: a round's org damage to a defending side, by what it is made of and the attackers' tanks. */
@@ -929,12 +1017,20 @@ export function predictBattle(
             100,
         )
       : 0;
-  // A round's org off the defenders with `fireBp` of barrage and `keepPm` of
-  // their prepared ground left.
+  // A round's org off the defenders with `fireBp` of barrage, `keepPm` of
+  // their prepared ground left and `wornBp` of it gone to the guns for good.
   const perDef = per(def.def, def.divisions);
   const cutMul = ctx.defenderCutMulBp ?? 10_000;
-  const roundOnDef = (fireBp: number, keepPm: number): number => {
-    const prep = Math.floor((prepBp * keepPm) / 1000);
+  const posBp = ctx.defenderPosBp ?? 0;
+  const reconCut = att.reconCutPm ?? 0;
+  const roundOnDef = (
+    fireBp: number,
+    keepPm: number,
+    wornBp: number,
+  ): number => {
+    const prep =
+      Math.floor(((prepBp - wornBp) * keepPm) / 1000) -
+      Math.floor((posBp * keepPm * reconCut) / 1_000_000);
     const block =
       ctx.defenderBlockBp - Math.floor(((prepBp - prep) * cutMul) / 10_000);
     const toDef = sideDefOrg(
@@ -953,46 +1049,68 @@ export function predictBattle(
     return Math.floor((toDef * lineA) / 1000) + casOrg;
   };
   const heavyKeep = Math.floor(
-    ((1000 -
+    ((((1000 -
       Math.floor(
         (HEAVY_PREP_CUT_PM * (att.heavyPm ?? 0) + TANK_PREP_CUT_PM * tanks) /
           1000,
       )) *
       (1000 - Math.floor((BLITZ_PREP_CUT_PM * tanks) / 1000))) /
+      1000) *
+      (1000 - (att.engineerCutPm ?? 0))) /
       1000,
   );
-  const plainRound = roundOnDef(0, heavyKeep);
   const fire = att.prepFireBp ?? 0;
   const fireRounds = fire > 0 ? (ctx.prepFireRounds ?? PREP_FIRE_ROUNDS) : 0;
   const exploitRounds = ctx.exploitRounds ?? 0;
+  // ww98: the guns' wear, a level every `wearEvery` rounds while there's any.
+  const level = ctx.defenderEntrench ?? 0;
+  const wearPm = att.wearPm ?? 0;
+  const wearLevels =
+    wearPm > 0
+      ? Math.min(level, ENTRENCH_WEAR_MAX - (ctx.wornLevels ?? 0))
+      : 0;
+  const wearEvery =
+    wearLevels > 0
+      ? Math.ceil((ENTRENCH_WEAR_ROUNDS * 1000) / Math.max(1, wearPm))
+      : 0;
   let rounds: number;
-  let dmgDef = plainRound;
-  if (fireRounds === 0 && exploitRounds === 0) {
+  let dmgDef: number;
+  if (fireRounds === 0 && exploitRounds === 0 && wearLevels <= 0) {
+    dmgDef = roundOnDef(0, heavyKeep, 0);
     rounds = dmgDef <= 0 ? 999_999 : Math.ceil(def.orgMilli / dmgDef);
   } else {
-    // ww84: the first rounds as they will go, then the plain ones.
+    // ww84: the rounds as they will go: each stretch runs to the next change.
     let org = def.orgMilli;
     let n = 0;
-    const stage = (length: number, dmg: number) => {
-      if (org <= 0 || length <= 0) return;
+    while (org > 0) {
+      const firing = n < fireRounds;
+      const running = n < exploitRounds;
+      const worn = wearEvery > 0 ? Math.floor(n / wearEvery) : 0;
+      const k = Math.min(wearLevels, worn);
+      let next = 0;
+      if (firing) next = fireRounds;
+      if (running && (next === 0 || exploitRounds < next)) next = exploitRounds;
+      if (k < wearLevels && (next === 0 || (k + 1) * wearEvery < next)) {
+        next = (k + 1) * wearEvery;
+      }
+      const dmg = roundOnDef(
+        firing ? fire : 0,
+        running ? 0 : firing ? keepAfterFire(heavyKeep, fire) : heavyKeep,
+        k > 0 ? entrenchBp(level) - entrenchBp(level - k) : 0,
+      );
+      if (next === 0) {
+        n = dmg <= 0 ? 999_999 : n + Math.ceil(org / dmg);
+        break;
+      }
+      const length = next - n;
       if (dmg * length >= org) {
         n += Math.ceil(org / Math.max(1, dmg));
-        org = 0;
-      } else {
-        n += length;
-        org -= dmg * length;
+        break;
       }
-    };
-    const both = Math.min(fireRounds, exploitRounds);
-    stage(both, roundOnDef(fire, 0));
-    stage(exploitRounds - both, roundOnDef(0, 0));
-    stage(fireRounds - both, roundOnDef(fire, keepAfterFire(heavyKeep, fire)));
-    rounds =
-      org <= 0
-        ? n
-        : plainRound <= 0
-          ? 999_999
-          : n + Math.ceil(org / plainRound);
+      n = next;
+      org -= dmg * length;
+    }
+    rounds = n;
     dmgDef = rounds >= 999_999 ? 0 : Math.floor(def.orgMilli / rounds);
   }
   const dmgAtt =
@@ -1089,20 +1207,27 @@ export function predictBattleRange(
       days: mid.days,
     };
   }
+  // ww98: recon on either side: both know better what they face.
+  const seen = att.recon === true || def.recon === true;
+  const span = (bp: number) =>
+    seen ? Math.floor((bp * RECON_RANGE_PCT) / 100) : bp;
   const low = predictBattle(att, def, {
     ...ctx,
-    attackerAttackBp: scaleBp(ctx.attackerAttackBp, 10_000 - RANGE_LUCK_BP),
+    attackerAttackBp: scaleBp(
+      ctx.attackerAttackBp,
+      10_000 - span(RANGE_LUCK_BP),
+    ),
     // (Recon: the ambush the low bound assumes finds nobody.)
     defenderAttackBp:
       att.recon === true
         ? ctx.defenderAttackBp
-        : scaleBp(ctx.defenderAttackBp, 10_000 + RANGE_LOW_DEF_ATK_BP),
+        : scaleBp(ctx.defenderAttackBp, 10_000 + span(RANGE_LOW_DEF_ATK_BP)),
   });
   const high = predictBattle(att, def, {
     ...ctx,
     attackerAttackBp: scaleBp(
-      scaleBp(ctx.attackerAttackBp, 10_000 + RANGE_LUCK_BP),
-      10_000 + RANGE_HIGH_ATT_ATK_BP,
+      scaleBp(ctx.attackerAttackBp, 10_000 + span(RANGE_LUCK_BP)),
+      10_000 + span(RANGE_HIGH_ATT_ATK_BP),
     ),
   });
   return {
@@ -1133,6 +1258,8 @@ export interface SideStats {
   prepFireBp?: number;
   /** ww91: the org damage it takes defending, % (absent: from `flags`). */
   defOrgPct?: number;
+  /** ww98: what its engineers take off prepared ground, ‰ (absent: 0). */
+  engineerCutPm?: number;
 }
 
 /** ww84: the most pierce bands a side sum keeps; the rest join the band nearest in pierce. */
@@ -1231,6 +1358,30 @@ export function addToSide(sum: SideSum, s: SideStats, orgMilli: number): void {
     sw,
   );
   if (has(fl, TPL_RECON)) sum.recon = true;
+  sum.engineerCutPm = byWidth(
+    sum.engineerCutPm ?? 0,
+    s.engineerCutPm ?? 0,
+    w0,
+    sw,
+  );
+  sum.reconCutPm = byWidth(
+    sum.reconCutPm ?? 0,
+    has(fl, TPL_RECON) ? RECON_POSITION_CUT_PM : 0,
+    w0,
+    sw,
+  );
+  sum.wearPm = byWidth(
+    sum.wearPm ?? 0,
+    has(fl, TPL_SUPPORT_GUNS) ? 1000 : 0,
+    w0,
+    sw,
+  );
+  sum.fearHalfPm = byWidth(
+    sum.fearHalfPm ?? 0,
+    has(fl, TPL_SUPPORT_AT) ? 1000 : 0,
+    w0,
+    sw,
+  );
   const hs = s.bandHard;
   if (hs === undefined || s.bandPierce === undefined) {
     addSideBand(sum, s.pierce, s.pierce, s.hard);

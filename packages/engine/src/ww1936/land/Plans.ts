@@ -647,21 +647,28 @@ function gatherAttack(
     defenderAttackBp: dm.attackBp,
     defenderBlockBp: dm.defenseBp,
     defenderPrepBp: dm.prepBp ?? 0,
+    defenderPosBp: dm.posBp ?? 0,
+    defenderEntrench: firstDef < 0 ? 0 : t.entrench[firstDef],
+    wornLevels: land.battles.get(region)?.wornLevels ?? 0,
     defenderCutMulBp: dm.defCutMulBp,
     tankFearCutPp: firstDef < 0 ? 0 : fearCutOf(land, firstDef),
   };
   // ww8: the wings on station over a battle already there count in the odds.
   if (firstDef >= 0 && attackers.length > 0 && land.battles.has(region)) {
     const aa = effectiveLevel(land.econ, region, "anti_air");
+    const fd = land.statsOf(firstDef);
+    const fa = land.statsOf(attackers[0]);
     ctx.casAttCenti = casCutHits(
       land.hooks.casNowCenti(region, land.sideOf(owners[0])),
-      land.statsOf(firstDef).airAtk,
+      fd.airAtk,
       aa,
+      fd.flags,
     );
     ctx.casDefCenti = casCutHits(
       land.hooks.casNowCenti(region, land.sideOf(land.controller[region] ?? 0)),
-      land.statsOf(attackers[0]).airAtk,
+      fa.airAtk,
       aa,
+      fa.flags,
     );
   }
   return { att, def, ctx };

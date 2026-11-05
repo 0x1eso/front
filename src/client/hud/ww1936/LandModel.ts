@@ -1275,6 +1275,10 @@ export function mergeSides(a: SideSum, b: SideSum): SideSum {
     prepFireBp: mix(a.prepFireBp ?? 0, b.prepFireBp ?? 0),
     heavyPm: mix(a.heavyPm ?? 0, b.heavyPm ?? 0),
     recon: a.recon === true || b.recon === true,
+    engineerCutPm: mix(a.engineerCutPm ?? 0, b.engineerCutPm ?? 0),
+    reconCutPm: mix(a.reconCutPm ?? 0, b.reconCutPm ?? 0),
+    wearPm: mix(a.wearPm ?? 0, b.wearPm ?? 0),
+    fearHalfPm: mix(a.fearHalfPm ?? 0, b.fearHalfPm ?? 0),
   };
   addSideBands(sum, a);
   addSideBands(sum, b);
@@ -1293,6 +1297,10 @@ function sideShares(
   | "prepFireBp"
   | "heavyPm"
   | "recon"
+  | "engineerCutPm"
+  | "reconCutPm"
+  | "wearPm"
+  | "fearHalfPm"
 > {
   const one = emptySide();
   addToSide(one, s, 0);
@@ -1304,6 +1312,10 @@ function sideShares(
     prepFireBp: one.prepFireBp,
     heavyPm: one.heavyPm,
     recon: one.recon,
+    engineerCutPm: one.engineerCutPm,
+    reconCutPm: one.reconCutPm,
+    wearPm: one.wearPm,
+    fearHalfPm: one.fearHalfPm,
   };
 }
 
@@ -1586,6 +1598,10 @@ export function sideScaledTo(s: SideSum, n: number): SideSum {
     prepFireBp: s.prepFireBp,
     heavyPm: s.heavyPm,
     recon: s.recon,
+    engineerCutPm: s.engineerCutPm,
+    reconCutPm: s.reconCutPm,
+    wearPm: s.wearPm,
+    fearHalfPm: s.fearHalfPm,
   };
 }
 
@@ -1651,6 +1667,7 @@ export function attackPreview(
     defenderAttackBp: dm.attackBp,
     defenderBlockBp: dm.defenseBp,
     defenderPrepBp: dm.prepBp ?? 0,
+    defenderPosBp: dm.posBp ?? 0,
     defenderCutMulBp: dm.defCutMulBp,
     casAttCenti:
       battle !== undefined && sides.sameSide(me, battle.attacker)
@@ -1983,7 +2000,8 @@ function sideAttackLines(b: BattleSummary): ModLine[] {
 /**
  * ww90: what the battle does to the org the defenders lose: foot give less
  * ground, tanks with no infantry more, tanks they can't stop more again. Green
- * is good for the side it stands on, so a saving is plus.
+ * is good for the side it stands on, so a saving is plus. ww98: and what the
+ * attackers' engineers and recon take off their prepared ground.
  */
 function sideDefenseLines(b: BattleSummary): ModLine[] {
   const out: ModLine[] = [];
@@ -1992,6 +2010,12 @@ function sideDefenseLines(b: BattleSummary): ModLine[] {
   if (org > 100) out.push({ id: "bare_armor", bp: (100 - org) * 100 });
   if ((b.fearPct ?? 0) > 0) {
     out.push({ id: "tank_fear", bp: -b.fearPct! * 100 });
+  }
+  if ((b.engineerCutPm ?? 0) > 0) {
+    out.push({ id: "engineer", bp: -b.engineerCutPm! * 10 });
+  }
+  if ((b.reconCutPm ?? 0) > 0) {
+    out.push({ id: "recon_position", bp: -b.reconCutPm! * 10 });
   }
   return out;
 }
