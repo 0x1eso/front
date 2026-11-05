@@ -26,7 +26,6 @@ import {
   equipKey,
   EQUIPMENT_GENS,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
-import { dayOfDate } from "@openfront/engine-lib/ww1936/Calendar";
 import { RECON_SORTIES } from "@openfront/engine-lib/ww1936/SeaAirRules";
 import { isCarrierWing } from "../air/Deploy";
 import { wingPlanes, wingSide, type Wing } from "../air/WwAir";
@@ -45,8 +44,6 @@ export const AI_MINE_TAGS: readonly CountryTag[] = ["GBR", "DEU", "SUN", "FIN"];
 export const AI_MINE_HOME_REGIONS = 2;
 /** w77: the most ships the AI puts on one mine mission with the designer off. */
 export const AI_MINE_SHIPS = 3;
-/** Spec §15.3: Britain's strategic bombing goes by night from this date. */
-export const AI_NIGHT_GBR_DATE = "1940-09-01";
 /** 내 판단: by night under an enemy sky this strong over the zone, ‰; back by day below the second. */
 export const AI_NIGHT_ON_PM = 500;
 export const AI_NIGHT_OFF_PM = 300;
@@ -62,7 +59,6 @@ export const AI_SWEEP_HOME_MILLI = 50_000;
 const M_BOMB = AIR_MISSIONS.indexOf("strategic_bombing");
 const M_RECON = AIR_MISSIONS.indexOf("recon");
 const T_FIGHTER = AIR_TYPES.indexOf("fighter");
-const GBR_NIGHT_DAY = dayOfDate(AI_NIGHT_GBR_DATE);
 
 /** T1b (P4 AiNavy input): a fleet on a mine mission, the depth AI's to command. */
 export function isDepthFleet(f: Fleet): boolean {
@@ -280,7 +276,7 @@ function aiNight(d: WwDepth, id: number, day: number): void {
     }
   }
   if (bombers.length === 0) return;
-  const gbr = ww.tagOf(id) === "GBR" && day >= GBR_NIGHT_DAY;
+  const gbr = ww.tagOf(id) === "GBR";
   const side = ww.land.sideOf(id);
   const seen = new Set<string>();
   for (const dep of bombers) {
@@ -291,7 +287,7 @@ function aiNight(d: WwDepth, id: number, day: number): void {
     const enemySup = idx < 0 ? 0 : (air.zoneState[idx].enemySup.get(side) ?? 0);
     const night = fliesAtNight(d, dep);
     const want =
-      gbr || enemySup >= AI_NIGHT_ON_PM
+      (gbr && enemySup > 0) || enemySup >= AI_NIGHT_ON_PM
         ? true
         : enemySup < AI_NIGHT_OFF_PM
           ? false

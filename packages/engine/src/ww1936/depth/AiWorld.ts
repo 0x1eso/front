@@ -19,7 +19,6 @@ import {
   RESOURCE_IDS,
   WW_AI_PERIOD_DAYS,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
-import { dayOfDate } from "@openfront/engine-lib/ww1936/Calendar";
 import { tradeUnitsPerCiv } from "@openfront/engine-lib/ww1936/EconomyRules";
 import { scorchBlock } from "@openfront/engine-lib/ww1936/WorldRules";
 import { queueBuild, usedSlots } from "../economy/Construction";
@@ -41,8 +40,6 @@ import type { WwDepth } from "./WwDepth";
  */
 export const AI_ENERGY_PM = 990;
 export const AI_PLANTS_QUEUED = 8;
-/** Spec §16.7: the Soviet scorched earth starts in 1941. */
-export const AI_SCORCH_FROM = "1941-01-01";
 /** Spec §16.7: a region with this many factories is worth moving and burning. */
 export const AI_SCORCH_FACTORIES = 2;
 export const DNIPRO_FLAG = "hist_sun_dnipro_dam";
@@ -51,7 +48,6 @@ export const HARBOR_FLAG = "hist_gbr_floating_harbor";
 const COAL = RESOURCE_IDS.indexOf("coal");
 const HARBOR_KEY = equipKey("floating_harbor", 1);
 const GUN_KEY = equipKey("railway_gun", 1);
-const SCORCH_FROM_DAY = dayOfDate(AI_SCORCH_FROM);
 const DNIPRO = DAMS.indexOf("dam_dnipro");
 const MOVED: readonly BuildingId[] = ["mil", "civ"];
 
@@ -152,7 +148,7 @@ export function aiBuildPlant(d: WwDepth, ce: CountryEconomy): void {
 // ---- scorched earth (spec §16.7, §16.4) ----
 
 function aiScorch(d: WwDepth, id: number, day: number): void {
-  if (day < SCORCH_FROM_DAY || d.ww.tagOf(id) !== "SUN") return;
+  if (d.ww.tagOf(id) !== "SUN") return;
   const econ = d.ww.economy;
   const land = d.ww.land;
   const pol = d.ww.politics;
@@ -162,6 +158,13 @@ function aiScorch(d: WwDepth, id: number, day: number): void {
   const mine = econ
     .regionsOf(id)
     .filter((r) => (pol.legalOwner[r] ?? 0) === id);
+  // The enemy on home soil (no date): one of our regions under an enemy.
+  let invaded = false;
+  for (let r = 1; r < pol.legalOwner.length && !invaded; r++) {
+    const c = land.controller[r];
+    invaded = pol.legalOwner[r] === id && c !== id && land.isEnemy(id, c);
+  }
+  if (!invaded) return;
   let target = 0;
   for (const r of mine) {
     if (r === capital || factories(r) < AI_SCORCH_FACTORIES) continue;

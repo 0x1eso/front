@@ -12,7 +12,6 @@ import {
   type FactionGoal,
 } from "@openfront/engine-api/ww1936/DepthTypes";
 import { IDEO_DEM } from "@openfront/engine-api/ww1936/PoliticsTypes";
-import { dayOfDate } from "@openfront/engine-lib/ww1936/Calendar";
 import { CONGRESS, cfocusBlock } from "@openfront/engine-lib/ww1936/MechRules";
 import {
   decisionBlock,
@@ -115,8 +114,8 @@ function atWarWithTag(
 
 /**
  * Spec §13.2 AI: China toward the centre; Japan the army's way until it
- * fights a naval power (or 1941 comes), then toward the balance; France to
- * the right once rearmament is called for (1938, 40% tension, or war).
+ * fights a naval power, then toward the balance; France to
+ * the right once rearmament is called for (40% tension or war).
  */
 function aiBalance(d: WwDepth, id: number, day: number): void {
   const tag = d.ww.tagOf(id);
@@ -128,8 +127,7 @@ function aiBalance(d: WwDepth, id: number, day: number): void {
     return;
   }
   if (tag === "JPN") {
-    const balance =
-      atWarWithTag(d, id, ["USA", "GBR"]) || day >= dayOfDate("1941-01-01");
+    const balance = atWarWithTag(d, id, ["USA", "GBR"]);
     if (!balance) {
       if (v > -600) takeMechDecision(d, id, "jpn_army_budget");
     } else if (v < -200) {
@@ -139,10 +137,7 @@ function aiBalance(d: WwDepth, id: number, day: number): void {
     }
     return;
   }
-  const rearm =
-    day >= dayOfDate("1938-01-01") ||
-    d.ww.politics.wtBp >= AI_CONGRESS_TENSION_BP ||
-    d.ww.hasWar(id);
+  const rearm = d.ww.politics.wtBp >= AI_CONGRESS_TENSION_BP || d.ww.hasWar(id);
   if (rearm && v < 600) takeMechDecision(d, id, "fra_rearmament_act");
 }
 
@@ -157,9 +152,9 @@ function led(d: WwDepth, id: number): { f: number; members: number[] } {
 }
 
 /**
- * Spec §14.1 AI: the leader shares research from 1939; a democratic leader
+ * Spec §14.1 AI: the leader shares research once tension or war calls for it; a democratic leader
  * shares intelligence once the faction fights a major and the war has
- * turned hard (mid-1940, or a member down) — the Anglo-American way; the
+ * turned hard (a member down or its capital lost) — the Anglo-American way; the
  * others never do. (Spec §19.7: the naval treaty's members follow the
  * escalator and stay — no AI step.)
  */
@@ -170,7 +165,8 @@ function aiFactionRules(d: WwDepth, id: number, day: number): void {
   const pp = () => pol.country(id)?.ppMilli ?? 0;
   if (
     !ruleOn(d, f, FR_SHARED_RESEARCH) &&
-    day >= dayOfDate("1939-01-01") &&
+    (d.ww.politics.wtBp >= AI_CONGRESS_TENSION_BP ||
+      members.some((m) => d.ww.hasWar(m))) &&
     pp() >= (50 + AI_PP_RESERVE) * 1000
   ) {
     issueFactionRule(
@@ -184,8 +180,7 @@ function aiFactionRules(d: WwDepth, id: number, day: number): void {
     !ruleOn(d, f, FR_SHARED_INTEL) &&
     pol.country(id)?.ruling === IDEO_DEM &&
     members.some((m) => d.ww.enemiesOf(m).some((e) => isMajorId(d, e))) &&
-    (day >= dayOfDate("1940-06-01") ||
-      members.some((m) => d.ww.isCapitulated(m))) &&
+    members.some((m) => d.ww.isCapitulated(m) || capitalLost(d, m)) &&
     pp() >= (50 + AI_PP_RESERVE) * 1000
   ) {
     issueFactionRule(
@@ -195,6 +190,12 @@ function aiFactionRules(d: WwDepth, id: number, day: number): void {
       day,
     );
   }
+}
+
+/** The enemy holds the 1936 capital region of `id` (none known: false). */
+function capitalLost(d: WwDepth, id: number): boolean {
+  const cap = d.ww.capitalRegion(id);
+  return cap !== 0 && d.ww.land.controller[cap] !== id;
 }
 
 function isMajorId(d: WwDepth, id: number): boolean {
