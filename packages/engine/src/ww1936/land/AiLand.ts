@@ -2912,7 +2912,14 @@ class AiDay {
       const zone = this.rearZone(a, f, line, unit);
       if (zone !== null) this.giveZone(a, f, zone, true);
       else if (!this.effortDue() || !this.sailOff(a, f, unit)) {
-        this.giveZone(a, f, [this.behindLine(f, line)], true);
+        // No way out: the whole stretch shares the hunger, not one region.
+        const all = this.rearList(f, line);
+        this.giveZone(
+          a,
+          f,
+          all.length > 0 ? all : [this.behindLine(f, line)],
+          true,
+        );
       }
     }
   }
@@ -3059,9 +3066,23 @@ class AiDay {
   }
 
   /**
+   * ww105: `a` still stands on a front against a country we are no longer at
+   * war with. With another war on nothing else moves it: 141 French divisions
+   * starved in Foggia for two years after Italy's peace, at war with Japan only.
+   */
+  private warOver(a: Army): boolean {
+    const o = a.order;
+    return (
+      (o.kind === "front" || o.kind === "plan") &&
+      !this.atWar.includes(o.enemy) &&
+      !this.imminent.includes(o.enemy)
+    );
+  }
+
+  /**
    * ww103: idle armies starving where they stand walk to the nearest region of
    * their stretch that feeds them (a port's few supplies, a landing's beach, an
-   * empire's desert town). A front's armies are holdFront's.
+   * empire's desert town). A front's armies are holdFront's, while its war lasts.
    */
   private relieve(garrisons: ReadonlySet<number>): void {
     if ((this.day + this.me) % AI_RELIEF_PERIOD_DAYS !== 0) return;
@@ -3076,11 +3097,11 @@ class AiDay {
       if (this.travelling(a)) continue;
       const rows = armyRows(land, a);
       if (a.order.kind !== "paradrop") this.fightHere(rows);
-      if (a.order.kind !== "idle") continue;
+      if (a.order.kind !== "idle" && !this.warOver(a)) continue;
       if (rows.some((r) => t.mode[r] !== MOVE_NONE || t.battle[r] !== 0)) {
         continue;
       }
-      if (t.supply[rows[0]] < AI_FEED_OK_PM) hungry.push(a);
+      if (rows.some((r) => t.supply[r] < AI_FEED_OK_PM)) hungry.push(a);
     }
     if (hungry.length === 0) return;
     const unit = this.supplyUnit(hungry);

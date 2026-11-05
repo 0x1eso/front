@@ -285,6 +285,30 @@ describe("the AI's fronts move (ww103)", () => {
     }
   }, 300_000);
 
+  it("ww105: an army left on the front of a war that ended walks off to eat", async () => {
+    const { runner, g, l, deu, ww } = await realWar();
+    const sc = l.scenario;
+    const fra = byTag(g, "FRA").smallID();
+    const mine = sc.landRegions
+      .map((r) => r.id)
+      .filter((r) => l.controller[r] === deu);
+    const d0 = ww.day(g.ticks());
+    finishDay(runner, d0);
+    const worst = [...mine].sort(
+      (x, y) => l.supplyMilli[x] - l.supplyMilli[y] || x - y,
+    )[0];
+    const a = placeArmy(g, "DEU", worst, 24);
+    a.order = { ...a.order, kind: "front", enemy: fra, zone: [worst] };
+    expect(ww.isAtWar(deu, fra)).toBe(false);
+    for (let d = d0 + 1; d <= d0 + 14; d++) finishDay(runner, d);
+    const t = l.divisions;
+    const left = a.divisions.filter((id) => {
+      const r = t.rowOf(id);
+      return t.region[r] === worst && t.dest[r] === worst;
+    });
+    expect(left).toHaveLength(0);
+  }, 300_000);
+
   it("ww105: an army its stretch can't feed sails to a stretch that can", async () => {
     const { runner, g, l, ww } = await realWar("SUN", "JPN");
     const sc = l.scenario;
