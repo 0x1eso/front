@@ -423,9 +423,7 @@ export function planPeaceDemand(
       const regs =
         kept.length > 0
           ? kept
-          : peaceRest(f, t, L, free).filter(
-              (r) => peaceAssignedTo(t, r) === p,
-            );
+          : peaceRest(f, t, L, free).filter((r) => peaceAssignedTo(t, r) === p);
       if (regs.length === 0) return "no_target";
       return all([], aggregateCost(costs(regs), AGG_PCT.puppet));
     }

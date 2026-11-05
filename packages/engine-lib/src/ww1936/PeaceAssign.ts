@@ -335,11 +335,7 @@ function connected(w: Work, list: readonly AssignRegion[]): AssignRegion[][] {
  * Who takes the last regions of a gone loser: the winner next to them holding
  * the most of it, else the winner holding the most of it; 0: no winner at all.
  */
-function heir(
-  w: Work,
-  loser: number,
-  piece: readonly AssignRegion[],
-): number {
+function heir(w: Work, loser: number, piece: readonly AssignRegion[]): number {
   const inside = new Set(piece.map((r) => r.region));
   const holds = new Map<number, number>();
   for (const r of w.inp.regions) {

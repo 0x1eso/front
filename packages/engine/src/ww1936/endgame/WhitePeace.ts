@@ -19,6 +19,7 @@ import {
   WwPeaceTerms,
   WwWar,
 } from "@openfront/engine-api/ww1936/EndgameTypes";
+import { IDEO_DEM } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { sharePm } from "@openfront/engine-lib/ww1936/EndgameRules";
 import {
   hasPeaceTerms,
@@ -26,7 +27,6 @@ import {
   warWearinessPct,
 } from "@openfront/engine-lib/ww1936/NegPeaceRules";
 import { wwRealTicks } from "@openfront/engine-lib/ww1936/Pace";
-import { IDEO_DEM } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { evictDivisions, transferRegionPeaceful } from "../land/PoliticsBridge";
 import { leaveFaction } from "../politics/Factions";

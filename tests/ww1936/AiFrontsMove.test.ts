@@ -232,7 +232,9 @@ describe("the AI's fronts move (ww103)", () => {
     expect(aiLiberationOver(30, odds, yes)).toBe(false);
     expect(aiLiberationOver(30, 9000, no)).toBe(false);
     // A year in: whatever the odds.
-    expect(aiLiberationOver(AI_LIBERATION_LIFT_ANY_DAYS - 1, 0, no)).toBe(false);
+    expect(aiLiberationOver(AI_LIBERATION_LIFT_ANY_DAYS - 1, 0, no)).toBe(
+      false,
+    );
     expect(aiLiberationOver(AI_LIBERATION_LIFT_ANY_DAYS, 0, no)).toBe(true);
   });
 
