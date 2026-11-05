@@ -1898,6 +1898,11 @@ export function modInputOf(
   const fighter = land.fightOwner(row);
   const side = land.sideOf(fighter);
   const base = land.baseStatsOf(row);
+  // ww107: what depends on a company's gear reads the division as it stands.
+  const gear =
+    (base.flags & (TPL_ENGINEER | TPL_SUPPORT_AA)) !== 0
+      ? land.statsOf(row)
+      : base;
   const fuelBp =
     base.fuelWidthPm > 0
       ? fuelCombatBp(land.hooks.fuelFactorPm(fighter), base.fuelWidthPm)
@@ -1921,8 +1926,8 @@ export function modInputOf(
     genDef: g?.dfn ?? 0,
     traits: g?.traits ?? 0,
     flags: land.flagsOf(row),
-    engineerPm: land.companyPm(row, TPL_ENGINEER),
-    supportAaPm: land.companyPm(row, TPL_SUPPORT_AA),
+    engineerPm: companyPmOf(gear, TPL_ENGINEER),
+    supportAaPm: companyPmOf(gear, TPL_SUPPORT_AA),
     tech,
     exp: t.exp[row],
     planBp,
@@ -1937,7 +1942,7 @@ export function modInputOf(
     excessBp: 0,
     supplyPm: t.supply[row],
     encircled: t.encircled[row] !== 0,
-    airBp: land.hooks.airPenaltyBp(region, side, land.statsOf(row).airAtk),
+    airBp: land.hooks.airPenaltyBp(region, side, gear.airAtk),
     fuelBp,
     landingBp,
     coastalFortBp: fortBp,

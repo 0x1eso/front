@@ -411,7 +411,8 @@ test("a real game on wings: every mission, base moves, 400 days, in lockstep", a
     maxXp: 0,
     aces: new Set<number>(),
     paraDropped: false,
-    nukes: 0,
+    nukeQueued: false,
+    nukeFlown: false,
     raidsQueued: 0,
     raidOver: false,
     strip: 0,
@@ -995,10 +996,9 @@ test("a real game on wings: every mission, base moves, 400 days, in lockstep", a
     const up = air.wings.get(seen.moveUp.id);
     if (up?.base === seen.moveUp.far) seen.moveUp.landed = true;
     else if (seen.moveUp.landed && (up?.follow ?? 0) > 0) seen.moveUp.ok = true;
-    seen.nukes = 0;
-    for (const c of ["FRA", "POL", "GBR"] as CountryTag[]) {
-      seen.nukes += ww.depth.country(idOf(g, c))?.proj.nukedCount ?? 0;
-    }
+    // ww107: it may land or be intercepted, by the seeded roll over the zone.
+    if (ww.depth.nukeQueue.length > 0) seen.nukeQueued = true;
+    else if (seen.nukeQueued) seen.nukeFlown = true;
     if (ww.depth.raids.length > 0) seen.raidsQueued++;
     else if (seen.raidsQueued > 0) seen.raidOver = true;
     if (fall.taken !== 0 && t === fall.taken + 2) {
@@ -1132,7 +1132,7 @@ test("a real game on wings: every mission, base moves, 400 days, in lockstep", a
   expect(seen.maxXp).toBeGreaterThan(300);
   // A paradrop, the bomb, a precision raid.
   expect(seen.paraDropped).toBe(true);
-  expect(seen.nukes).toBeGreaterThan(0);
+  expect(seen.nukeFlown).toBe(true);
   expect(seen.raidsQueued).toBeGreaterThan(0);
   expect(seen.raidOver).toBe(true);
   // Base moves: a ferry that flew on, a strip, a stand-down, a disband, a

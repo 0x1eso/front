@@ -81,6 +81,8 @@ describe("the lists are appended, never reordered", () => {
     // ww42 appended army_direct last; the older pins read what is before it.
     // w50 appended the four air group orders last.
     // The peace overhaul appended peace_surrender after them.
+    // ww107 appended template_auto after it.
+    expect(kinds.pop()).toBe("template_auto");
     expect(kinds.pop()).toBe("peace_surrender");
     expect(kinds.splice(-4)).toEqual([...GROUP_ORDER_KINDS]);
     // in_group, then w57 too_small, ww61 designer_off, the peace rules'

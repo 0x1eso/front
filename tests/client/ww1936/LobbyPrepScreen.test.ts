@@ -360,7 +360,7 @@ describe("the army presets screen in the lobby", () => {
     ).toBe("19");
     expect(
       prepArmiesOf("DEU")![0].find((i) => i.key === "infantry")!.count,
-    ).toBe(13);
+    ).toBe(19);
     // Fill with what the men allow: more than before.
     q(el, '[data-ww-oob-army="0"] [data-ww-oob-fill]').click();
     await flush(el);

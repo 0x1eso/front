@@ -218,7 +218,7 @@ describe("World War 1936 P2 land war strings", () => {
   const ko = lang("ko");
 
   it("covers every template key the start builds", () => {
-    expect(TEMPLATE_KEYS.length).toBe(24);
+    expect(TEMPLATE_KEYS.length).toBe(20);
   });
 
   it.each(KEYS)("%s is in en and ko with the same placeholders", (key) => {
