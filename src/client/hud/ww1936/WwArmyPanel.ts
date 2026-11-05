@@ -42,6 +42,7 @@ import {
   divisionRows,
   generalRows,
   idleEquipment,
+  natUnitOf,
   regionName,
   rosterName,
   rowGeneralName,
@@ -852,7 +853,7 @@ export class WwArmyPanel extends WwDrawerBase {
                   >
                 </span>
                 <span class="block truncate text-white/70"
-                  >${battalionSummary(templateDef(t))}</span
+                  >${battalionSummary(templateDef(t), natUnitOf(c.economy, c.me))}</span
                 >
               </button>
               ${t.inUse > 0 && c.land.templates.length > 1
@@ -931,6 +932,7 @@ export class WwArmyPanel extends WwDrawerBase {
       cancel: () => (this.convertFrom = null),
       refused: "",
       queued: c.land.training.some((e) => e.template === from),
+      natUnit: natUnitOf(c.economy, c.me),
     });
   }
 

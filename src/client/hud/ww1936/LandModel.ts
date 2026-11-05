@@ -133,6 +133,7 @@ import {
   shoreBpOf,
 } from "./LandSeaAir";
 import type { LandMode } from "./LandSelection";
+import { battalionName } from "./NationalNames";
 import { factionOfId, isKoreanUi, type WwGame } from "./WorldWarModel";
 
 // ---- Sides (spec §7.1): who is a friend, who may be fought now ----
@@ -373,6 +374,11 @@ export function researchedOf(
   me: number,
 ): Set<WwTechId> {
   return new Set(economy.detail(me)?.researched ?? []);
+}
+
+/** ww91: the national unit the country holds (0: none). */
+export function natUnitOf(economy: WwEconomyView, me: number): number {
+  return techOf(economy, me).natUnit ?? 0;
 }
 
 export function techOf(economy: WwEconomyView, me: number): TechTotals {
@@ -1471,6 +1477,7 @@ function p4Fields(
           region,
           div?.flags ?? 0,
           techs,
+          natUnitOf(economy, me),
         )
       : { landingBp: 0, coastalFortBp: 0 };
   return {
@@ -2178,9 +2185,9 @@ export function designer(
 }
 
 /** "Infantry ×9 · Artillery ×2": a template's battalions, most first. */
-export function battalionSummary(def: TemplateDef): string {
+export function battalionSummary(def: TemplateDef, natUnit = 0): string {
   return templateCounts(def)
-    .map(([id, n]) => `${translateText(`ww1936.battalion.${id}`)} ×${n}`)
+    .map(([id, n]) => `${battalionName(id, natUnit)} ×${n}`)
     .join(" · ");
 }
 
