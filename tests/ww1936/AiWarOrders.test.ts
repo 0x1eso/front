@@ -24,6 +24,7 @@ import {
   land,
   placeArmy,
   stepTo,
+  takeRegion,
   warAfterPrep,
   wwGameStart,
   wwRunner,
@@ -288,6 +289,32 @@ describe("ww7 lane D: the AI's army objective orders", () => {
     expect(big.order.kind).toBe("front");
     expect(other.order.kind).toBe("front");
     expect(c.orders.some((o) => o.kind === "army_plan")).toBe(false);
+  }, 120_000);
+
+  test("C7: with armies to spare one stays back, and goes for a region the enemy took", async () => {
+    const c = await atWar();
+    placeArmy(c.g, "POL", WARSAW, 24);
+    placeArmy(c.g, "POL", KRAKOW, 24);
+    const big = autoArmy(c, BERLIN, 24, 2);
+    autoArmy(c, BERLIN, 12, 2);
+    const small = autoArmy(c, BERLIN, 6, 2);
+    c.days(3);
+    expect(small.order.kind).toBe("front");
+    expect(small.order.zone.length).toBe(1);
+    expect(big.order.kind).toBe("plan");
+    // Poland walks into Rome, its side's by right; the reserve turns on it.
+    takeRegion(c.g, ROME, "POL");
+    placeArmy(c.g, "POL", ROME, 1);
+    c.orders.length = 0;
+    c.days(1);
+    expect(
+      c.orders.some(
+        (o) =>
+          o.kind === "army_plan" &&
+          o.army === small.id &&
+          o.targets[0] === ROME,
+      ),
+    ).toBe(true);
   }, 120_000);
 
   test("level 1 holds and never attacks (a plan turns to Defend), level 2 attacks; army_auto and the all-armies switch mean level 2", async () => {

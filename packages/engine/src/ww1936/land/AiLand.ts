@@ -1789,11 +1789,15 @@ class AiDay {
       ? this.shorterLine(f, armies, divisions, outnumbered)
       : null;
     const line = ring ?? border;
+    const judged = atWar && ring === null && !outnumbered;
+    const per = outnumbered ? AI_OUTNUMBERED_PER_REGION : 1;
+    const reserve = atWar ? this.reserveOf(line, armies, per, judged) : null;
+    const held = armies.filter((a) => a !== reserve);
     const zones =
-      (atWar && ring === null && !outnumbered
-        ? this.mainEffort(f, line, armies)
-        : null) ?? this.zonesOf(f, line, armies);
-    for (const a of armies) {
+      (judged ? this.mainEffort(f, line, held) : null) ??
+      this.zonesOf(f, line, held);
+    if (reserve !== null) this.postReserve(reserve, f, line);
+    for (const a of held) {
       const o = a.order;
       const defend =
         ring !== null ||
@@ -1806,6 +1810,111 @@ class AiDay {
       const x = this.effortOf.get(a.id);
       if (x !== undefined) this.aim(a, x);
     }
+  }
+
+  /**
+   * ww81 C7: the army this front keeps back, when three or more stand on it and
+   * the others still hold the line at `per` divisions a region: one on its way
+   * or back there first, then on a front with a main effort (`judged`) the
+   * smallest that isn't a shock army, as the effort wants those, and on any
+   * other a shock army first, then the largest.
+   */
+  private reserveOf(
+    line: readonly number[],
+    armies: readonly Army[],
+    per: number,
+    judged: boolean,
+  ): Army | null {
+    if (armies.length < 3) return null;
+    let total = 0;
+    for (const a of armies) total += a.divisions.length;
+    const onLine = new Set(line);
+    const back = (a: Army) => {
+      const o = a.order;
+      if (o.kind === "front") {
+        return o.zone.length === 1 && !onLine.has(o.zone[0]);
+      }
+      return this.lost(o.kind === "plan" ? o.targets[0] : 0);
+    };
+    const rank = (a: Army) =>
+      (back(a) ? 0 : 2) + (this.shock(a) === judged ? 1 : 0);
+    const size = (a: Army) => (judged ? 1 : -1) * a.divisions.length;
+    const list = armies
+      .filter((a) => {
+        if (this.defendOnly(a)) return false;
+        const o = a.order;
+        const running = o.kind === "plan" && o.executing;
+        return back(a) || !running;
+      })
+      .sort((a, b) => rank(a) - rank(b) || size(a) - size(b) || a.id - b.id);
+    for (const a of list) {
+      if (total - a.divisions.length >= line.length * per) return a;
+    }
+    return null;
+  }
+
+  /** An enemy holds `region`, which is our side's by right. */
+  private lost(region: number): boolean {
+    if (region === 0) return false;
+    const land = this.land;
+    return (
+      land.isEnemy(this.me, land.controller[region]) &&
+      land.sameSide(this.me, land.ww.politics.legalOwner[region])
+    );
+  }
+
+  /**
+   * ww81 C7: the reserve stands behind the middle of the line; when the enemy
+   * has taken a region of ours next to the line (most points first, then the
+   * smaller id) it goes for it on the usual gate, and walks back afterwards.
+   */
+  private postReserve(a: Army, f: Front, line: readonly number[]): void {
+    const land = this.land;
+    const sc = land.scenario;
+    let target = 0;
+    const vp = (r: number) => sc.region(r)?.vp ?? 0;
+    for (const r of line) {
+      for (const e of sc.edgesOf(r)) {
+        const x = e.to;
+        if (land.controller[x] !== f.enemy || !this.lost(x)) continue;
+        if (
+          target === 0 ||
+          vp(x) > vp(target) ||
+          (vp(x) === vp(target) && x < target)
+        ) {
+          target = x;
+        }
+      }
+    }
+    this.offEffort.add(a.id);
+    if (target === 0) {
+      this.giveZone(a, f, [this.behindLine(f, line)], true);
+      return;
+    }
+    const near = line.filter((r) => sc.edgeBetween(r, target) >= 0);
+    this.giveZone(a, f, near, false);
+    this.joinEffort(a, target);
+    this.aim(a, target);
+  }
+
+  /** The region of ours behind the line's middle, nearest our capital; the middle itself with none. */
+  private behindLine(f: Front, line: readonly number[]): number {
+    const chain = borderChain(this.land, this.me, f.enemy, line);
+    const mid = chain[Math.floor(chain.length / 2)];
+    const onLine = new Set(line);
+    const comp = this.comp();
+    const dist = this.capDist();
+    let best = mid;
+    let bestDist = FAR;
+    for (const e of this.land.scenario.edgesOf(mid)) {
+      const r = e.to;
+      if (onLine.has(r) || comp[r] !== f.comp) continue;
+      if (dist[r] < bestDist || (dist[r] === bestDist && r < best)) {
+        best = r;
+        bestDist = dist[r];
+      }
+    }
+    return best;
   }
 
   /**
