@@ -838,7 +838,7 @@ export function aiPeaceDay(
     const w = eg.war(wid);
     if (w === null || w.ended !== null || w.kind !== "normal") continue;
     const s = eg.sideIndex(w, id);
-    if (s < 0) continue;
+    if (s === -1) continue;
     const target = w.sides[1 - s].leader;
     if (peaceOfferBlock(eg, id, wid, target, day) !== null) continue;
     if (!aiWantsPeace(eg, w, id, day)) continue;
