@@ -288,7 +288,8 @@ describe("the AI's fronts move (ww103)", () => {
   it("ww105: an army its stretch can't feed sails to a stretch that can", async () => {
     const { runner, g, l, ww } = await realWar("SUN", "JPN");
     const sc = l.scenario;
-    const at = (name: string) => sc.landRegions.find((r) => r.name === name)!.id;
+    const at = (name: string) =>
+      sc.landRegions.find((r) => r.name === name)!.id;
     const sakhalin = at("Sakhalin");
     // Sakhalin cut off: no rear on it, one port, and a Japanese front.
     for (const e of sc.edgesOf(sakhalin)) {

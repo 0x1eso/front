@@ -58,13 +58,13 @@ import { wwAiWarPlanDue } from "@openfront/engine-lib/ww1936/AiDifficulty";
 import {
   AI_LINE_SHAPES,
   AI_PLAN_DEFAULT,
+  type LineShape,
   type NationalPlan,
   planOf,
   planPrepared,
   type PlanStance,
   planStance,
   resourceWorth,
-  type LineShape,
   type ShapeRows,
   wantsPeaceFort,
 } from "@openfront/engine-lib/ww1936/AiPlans";

@@ -16,11 +16,11 @@ import { startDoctrinePick } from "@openfront/engine-lib/ww1936/DoctrineRules";
 import { createGameRunner, GameRunner } from "@openfront/engine/GameRunner";
 import { declareWar } from "@openfront/engine/ww1936/Diplomacy";
 import { aiLandTick } from "@openfront/engine/ww1936/land/AiLand";
-import { unlockTemplate } from "@openfront/engine/ww1936/politics/EffectsEcon";
 import {
   AI_UNIT_FOCUSES,
   aiPickFocus,
 } from "@openfront/engine/ww1936/politics/AiFocus";
+import { unlockTemplate } from "@openfront/engine/ww1936/politics/EffectsEcon";
 import { loadMapFiles } from "@openfront/shared/GameMapLoader";
 import path from "path";
 import { fileURLToPath } from "url";

@@ -752,14 +752,19 @@ describe("the AI's land war on world1936 (controller ruling 3)", () => {
     }
     expect(onPoland * 10).toBeGreaterThanOrEqual(all * 4);
     expect(onPoland).toBeGreaterThan(onFrance);
-    // They stand on Polish border regions.
+    // They stand on Polish border regions, or (ww103: what the line can't use)
+    // right behind them.
     const t = l.divisions;
+    const onBorder = (r: number) =>
+      sc.edgesOf(r).some((e) => l.controller[e.to] === pol);
     let atBorder = 0;
     for (const a of l.armiesOf(deu)) {
       if (a.order.enemy !== pol) continue;
       for (const id of a.divisions) {
         const r = t.region[t.rowOf(id)];
-        if (sc.edgesOf(r).some((e) => l.controller[e.to] === pol)) atBorder++;
+        if (onBorder(r) || sc.edgesOf(r).some((e) => onBorder(e.to))) {
+          atBorder++;
+        }
       }
     }
     expect(atBorder * 10).toBeGreaterThanOrEqual(onPoland * 5);
