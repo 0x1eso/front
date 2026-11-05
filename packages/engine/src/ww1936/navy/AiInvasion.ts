@@ -442,7 +442,7 @@ function planInvasion(
 function convoyFit(
   navy: WwNavy,
   armies: readonly Army[],
-  comp: readonly number[],
+  comp: ArrayLike<number>,
   port: number,
   freeConvoys: number,
 ): number {
