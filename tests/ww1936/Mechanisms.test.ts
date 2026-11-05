@@ -201,12 +201,12 @@ describe("World War 1936 P6: the mechanisms' AI", () => {
     aiMechDay(d, GBR, 13);
     expect(slotted()).toContain("fg_industry");
     expect(slotted()).toEqual(closest());
-    // Shared research from 1939 (at peace), paid from its PP.
+    // Shared research once tension calls for it, paid from its PP.
     ww.politics.country(GBR)!.ppMilli = 200_000;
     aiMechDay(d, GBR, 23);
     expect(ruleOn(d, f, FR_SHARED_RESEARCH)).toBe(false);
-    const day1939 = dayOfDate("1939-01-01");
-    aiMechDay(d, GBR, day1939 + ((13 - (day1939 % 10)) % 10));
+    ww.politics.wtBp = 4000;
+    aiMechDay(d, GBR, 33);
     expect(ruleOn(d, f, FR_SHARED_RESEARCH)).toBe(true);
     expect(ww.politics.country(GBR)!.ppMilli).toBe(150_000);
     // A treaty member stays in (the escalator decides), at peace no intel sharing.
@@ -241,9 +241,9 @@ describe("World War 1936 P6: the mechanisms' AI", () => {
       // 1936 at low tension and peace: no rearmament yet.
       aiMechDay(d, fra, 4);
       expect(bopValue(d, "FRA")).toBe(v);
-      // From 1938 France moves right.
-      const day1938 = dayOfDate("1938-01-01");
-      aiMechDay(d, fra, day1938 + ((14 - (day1938 % 10)) % 10));
+      // Under world tension (no date) France moves right.
+      ww.politics.wtBp = 4000;
+      aiMechDay(d, fra, 14);
       expect(bopValue(d, "FRA")).toBe(base === 0 ? v + 150 : v);
     }
   });

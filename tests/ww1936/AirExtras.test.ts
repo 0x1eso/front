@@ -15,7 +15,6 @@ import {
 } from "@openfront/engine-api/ww1936/DepthTypes";
 import { EQUIPMENT_GENS } from "@openfront/engine-api/ww1936/EconomyTypes";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
-import { dayOfDate } from "@openfront/engine-lib/ww1936/Calendar";
 import {
   NIGHT_LOSS_BP,
   nightLossBp,
@@ -286,7 +285,7 @@ describe("World War 1936 P6: air recon (spec §15.4)", () => {
 });
 
 describe("World War 1936 P6: the AI's night bombing and recon (spec §19.7)", () => {
-  it("Britain bombs by night from September 1940 or under an enemy sky; recon lands at peace", async () => {
+  it("Britain bombs by night under an enemy sky; recon lands at peace", async () => {
     const runner = await atWar([{ clientID: "HUMANITA", country: "ITA" }]);
     const ww = runner.game.worldWar()!;
     const d = ww.depth;
@@ -314,9 +313,11 @@ describe("World War 1936 P6: the AI's night bombing and recon (spec §19.7)", ()
     air.zoneState[idx].enemySup = new Map();
     aiSeaAirDay(d, GBR, quiet(start + 3));
     expect(bombers.night).toBe(false);
-    // From September 1940 Britain bombs by night whatever the sky.
-    aiSeaAirDay(d, GBR, quiet(dayOfDate("1940-09-01")));
+    // Britain bombs by night under any enemy sky, however thin (no date).
+    air.zoneState[idx].enemySup = new Map([[ww.land.sideOf(GBR), 100]]);
+    aiSeaAirDay(d, GBR, quiet(start + 4));
     expect(bombers.night).toBe(true);
+    air.zoneState[idx].enemySup = new Map();
     // Recon: a group the AI flies lands when the war is over.
     const recon = deploy(runner, GBR, "fighter", "recon", 24);
     expect(isDepthDeployment(recon)).toBe(true);
