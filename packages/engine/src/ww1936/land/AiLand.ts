@@ -858,6 +858,10 @@ class AiDay {
     { ratioPm: number; width: number }
   >();
   private capDistCache: Int32Array | null = null;
+  /** armies()'s list, dropped by every order issued. */
+  private armiesMemo: Army[] | null = null;
+  /** bfsReach's distances (FAR between calls, reset over the reached ones). */
+  private reachDist: Int32Array | null = null;
   private warsCache: readonly { a: number; b: number; sinceTick: number }[] =
     [];
   private warsRead = false;
@@ -947,6 +951,7 @@ class AiDay {
   }
 
   private issue(order: WwOrder): boolean {
+    this.armiesMemo = null;
     return this.land.issue(this.me, order, "ai") === null;
   }
 
@@ -998,6 +1003,40 @@ class AiDay {
     return dist;
   }
 
+  /**
+   * `bfs` over a reused buffer: the regions reached, in BFS order, with
+   * their distances in `reachDist` until `reachDone` resets them.
+   */
+  private bfsReach(
+    sources: readonly number[],
+    pass: (region: number) => boolean,
+    maxDepth: number,
+  ): number[] {
+    const sc = this.land.scenario;
+    this.reachDist ??= new Int32Array(sc.maxRegionId() + 1).fill(FAR);
+    const dist = this.reachDist;
+    const queue: number[] = [];
+    for (const s of sources) {
+      if (dist[s] === 0) continue;
+      dist[s] = 0;
+      queue.push(s);
+    }
+    for (let i = 0; i < queue.length; i++) {
+      const u = queue[i];
+      if (dist[u] >= maxDepth) continue;
+      for (const e of sc.edgesOf(u)) {
+        if (dist[e.to] !== FAR || !pass(e.to)) continue;
+        dist[e.to] = dist[u] + 1;
+        queue.push(e.to);
+      }
+    }
+    return queue;
+  }
+
+  private reachDone(queue: readonly number[]): void {
+    for (const r of queue) this.reachDist![r] = FAR;
+  }
+
   /** Days since our war with `enemy` began (counted from the preparation's end). */
   private warDays(enemy: number): number {
     const ww = this.land.ww;
@@ -1024,6 +1063,7 @@ class AiDay {
    * never a garrison (lane O's) or a volunteer army (lane A's).
    */
   private armies(): Army[] {
+    if (this.armiesMemo !== null) return this.armiesMemo;
     const all = this.land
       .armiesOf(this.me)
       .filter(
@@ -1033,7 +1073,8 @@ class AiDay {
           a.order.kind !== "garrison" &&
           a.volunteerFor === 0,
       );
-    return this.human ? all.filter((a) => a.auto) : all;
+    this.armiesMemo = this.human ? all.filter((a) => a.auto) : all;
+    return this.armiesMemo;
   }
 
   run(): void {
@@ -1276,10 +1317,12 @@ class AiDay {
 
   private group(garrisons: ReadonlySet<number>): void {
     const land = this.land;
-    const free = () =>
-      this.armies().filter(
-        (a) => !garrisons.has(a.id) && a.order.kind !== "paradrop",
-      );
+    // Merges only remove armies and grow others, so one list serves the
+    // whole pass; `free` drops those merged away.
+    const all = this.armies().filter(
+      (a) => !garrisons.has(a.id) && a.order.kind !== "paradrop",
+    );
+    const free = () => all.filter((a) => land.armies.has(a.id));
     // (1) A small army joins the lowest-numbered army at least its size in its region.
     for (const a of free()) {
       if (!land.armies.has(a.id)) continue;
@@ -1287,9 +1330,10 @@ class AiDay {
       if (n === 0 || n > SMALL_ARMY) continue;
       if (a.order.kind === "plan" && a.order.executing) continue;
       const here = land.armyRegion(a);
-      const into = free().find(
+      const into = all.find(
         (b) =>
           b.id !== a.id &&
+          land.armies.has(b.id) &&
           b.divisions.length >= n &&
           b.divisions.length + n <= WW_MAX_ARMY_DIVISIONS &&
           land.armyRegion(b) === here,
@@ -2918,11 +2962,12 @@ class AiDay {
     const land = this.land;
     const sc = land.scenario;
     const me = this.me;
-    const dist = this.bfs(
+    const reached = this.bfsReach(
       this.zoneOf(a),
       (r) => land.isEnemy(me, land.controller[r]),
       WW_TARGET_REACH_EDGES,
     );
+    const dist = this.reachDist!;
     const pol = land.ww.politics;
     const enemyTag = sc.tagOfSmallId(enemy);
     // P5: a woken dormant slot's capital is its best region.
@@ -2942,8 +2987,11 @@ class AiDay {
       owner === me ||
       (this.personality === "democracy" && land.ww.sameFaction(me, owner));
     const regions: AiTargetRegion[] = [];
-    for (const r of sc.landRegions) {
-      const d = dist[r.id];
+    const cands = reached.filter((id) => sc.region(id) !== undefined);
+    cands.sort((p, q) => p - q);
+    for (const id of cands) {
+      const r = sc.region(id)!;
+      const d = dist[id];
       if (d === 0 || d === FAR || land.controller[r.id] !== enemy) continue;
       // Liberation only: our own (a democracy: or its camp's) core regions
       // (P3 legal owner + core).
@@ -2957,6 +3005,7 @@ class AiDay {
         capital: r.id === capital,
       });
     }
+    this.reachDone(reached);
     return regions;
   }
 
