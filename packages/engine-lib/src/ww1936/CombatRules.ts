@@ -41,6 +41,10 @@ import {
   RANGE_LOW_DEF_ATK_BP,
   RANGE_LUCK_BP,
 } from "./TacticRules";
+import {
+  NAT_ALPINI_OBSTACLE_PCT,
+  NAT_UNIT_ITA,
+} from "./NationalUnits";
 import { TechTotals } from "./WwTechs";
 
 /** A P6 stat of a TechTotals that is the country's WwStats (0 when absent: a neutral tech). */
@@ -532,7 +536,12 @@ export function divisionMods(i: ModInput): ModResult {
     if (bp !== 0) l.push({ id, bp });
   };
   // ww84: assault infantry pays a sixth less for rivers and forts.
-  const assault = has(i.flags, TPL_MOUNTAIN_MAJOR) ? ASSAULT_OBSTACLE_PCT : 100;
+  // ww91: the Italian Alpini pay a little less still.
+  const assault = has(i.flags, TPL_MOUNTAIN_MAJOR)
+    ? i.tech.natUnit === NAT_UNIT_ITA
+      ? NAT_ALPINI_OBSTACLE_PCT
+      : ASSAULT_OBSTACLE_PCT
+    : 100;
   // Attack
   push(aAdd, "general", i.genAtt * 500);
   let trait = 0;

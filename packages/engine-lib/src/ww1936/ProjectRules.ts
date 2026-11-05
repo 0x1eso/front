@@ -242,6 +242,8 @@ export function raidSuccessPm(
     enemyDivision: boolean;
     coastalFort: number;
     bombers: number;
+    /** ww91: success added, per mille (the British Commandos). */
+    bonusPm?: number;
   },
 ): number {
   const v =
@@ -260,7 +262,8 @@ export function raidSuccessPm(
           Math.floor(i.bombers / 10) -
           50 * i.aa -
           Math.floor(Math.max(0, i.supPm - 400) / 2);
-  return Math.max(50, Math.min(950, v));
+  const bonus = kind === 1 ? (i.bonusPm ?? 0) : 0;
+  return Math.max(50, Math.min(950, v + bonus));
 }
 
 export const RAID_TARGETS: Readonly<Record<RaidKind, readonly BuildingId[]>> = {

@@ -1209,7 +1209,13 @@ export function amphibiousModsFor(
     sr === 0 ? 0 : minesInvasionCutPct(navy.ww.depth, sr, t.owner[row]);
   return {
     attackBp:
-      -landingBp(marines, ce.researched, easyLanding(navy, row)) - 100 * mines,
+      -landingBp(
+        marines,
+        ce.researched,
+        easyLanding(navy, row),
+        ce.stats.natUnit ?? 0,
+      ) -
+      100 * mines,
     defenseBp: 0,
   };
 }
