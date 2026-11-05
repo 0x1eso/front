@@ -12,12 +12,13 @@ import {
   WW_PEACE_POOL_PCT,
   WW_WHITE_PEACE_CARD_TICKS,
   WW_WHITE_PEACE_PP,
+  WwWar,
 } from "@openfront/engine-api/ww1936/EndgameTypes";
 import { wwRealTicks } from "@openfront/engine-lib/ww1936/Pace";
 import { payPp } from "../politics/PayPp";
 import { endWarBetween } from "../politics/Territory";
-import { openConference } from "./Conference";
-import { peaceOfferBlock, surrenderPm } from "./WhitePeace";
+import { isMajor, openConference } from "./Conference";
+import { fighting, peaceOfferBlock, surrenderPm } from "./WhitePeace";
 import type { PeaceOffer, WwEndgame } from "./WwEndgame";
 
 /** The pool's share, percent: the minimum at the first chance, all of it at the line. */
@@ -116,6 +117,22 @@ export function openTermsConference(
   openConference(eg, [warId], tick, { losers, poolPct });
 }
 
+/**
+ * Terms bind the whole side, so an AI leader does not ask over the head of a
+ * great power on it that is still short of the asking line: in a real game a
+ * beaten Poland handed Germany France's fleet and made France a puppet with
+ * France's 139 divisions unfought. It fights on, and the war outlives it.
+ */
+function majorAllyStands(eg: WwEndgame, w: WwWar, id: number): boolean {
+  return w.sides[eg.sideIndex(w, id) as 0 | 1].members.some(
+    (m) =>
+      m.id !== id &&
+      fighting(m) &&
+      isMajor(eg, m.id) &&
+      surrenderPm(eg, m.id) < WW_ASK_TERMS_MIN_PM,
+  );
+}
+
 /** The AI's day: a beaten side leader asks, in its oldest war that allows it. */
 export function aiAskTermsDay(
   eg: WwEndgame,
@@ -127,6 +144,7 @@ export function aiAskTermsDay(
   for (const wid of [...eg.warsOf(id)].sort((a, b) => a - b)) {
     if (surrenderPm(eg, id) < WW_ASK_TERMS_AI_PM) return;
     if (askTermsBlock(eg, id, wid, day) !== null) continue;
+    if (majorAllyStands(eg, eg.war(wid)!, id)) continue;
     askForTerms(eg, id, wid, tick);
     return;
   }

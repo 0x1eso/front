@@ -4,6 +4,8 @@ import type { WarLink } from "@openfront/engine-api/ww1936/EndgameTypes";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import type { Game } from "@openfront/engine/game/Game";
 import { declareWar, isSpanishPair } from "@openfront/engine/ww1936/Diplomacy";
+import { checkWarEnds } from "@openfront/engine/ww1936/endgame/Wars";
+import { peaceOfferBlock } from "@openfront/engine/ww1936/endgame/WhitePeace";
 import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSource";
 import { joinFaction } from "@openfront/engine/ww1936/politics/Factions";
 import { endWarBetween } from "@openfront/engine/ww1936/politics/Territory";
@@ -87,6 +89,23 @@ describe("World War 1936 P5: war records", () => {
     expect(eg.warOfPair(deu, gbr)).toBe(eg.warOfPair(deu, fra));
     expect(eg.wars[0].sides[1].members.map((m) => m.id)).toEqual([fra, gbr]);
     checkPairs(ww);
+  });
+
+  it("a side led by a country wiped off the map passes to one still playing", async () => {
+    const { g, ww } = await atWarStart();
+    const [deu, fra, gbr] = [endId("DEU"), endId("FRA"), endId("GBR")];
+    declareWar(g, ww, player(g, deu), player(g, fra), g.ticks());
+    const eg = ww.endgame;
+    const w = eg.war(eg.warOfPair(deu, fra))!;
+    expect(w.sides[1].leader).toBe(fra);
+    // No land, no capitulation: the record still says it fights.
+    vi.spyOn(player(g, fra), "isAlive").mockReturnValue(false);
+    const day = ww.day(g.ticks());
+    expect(peaceOfferBlock(eg, deu, w.id, fra, day)).toBe("bad_target");
+    checkWarEnds(eg, day, g.ticks());
+    expect(eg.member(w, fra)?.state).toBe("active");
+    expect(w.sides[1].leader).toBe(gbr);
+    expect(peaceOfferBlock(eg, deu, w.id, gbr, day)).not.toBe("bad_target");
   });
 
   it("the two Spains' war is a civil war whoever declares it", async () => {

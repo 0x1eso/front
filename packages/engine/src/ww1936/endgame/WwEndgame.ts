@@ -887,21 +887,27 @@ export class WwEndgame {
   fixLeader(w: WwWar): void {
     for (const side of w.sides) {
       if (
-        side.members.some((m) => m.id === side.leader && m.state === "active")
+        side.members.some(
+          (m) =>
+            m.id === side.leader && m.state === "active" && this.isActor(m.id),
+        )
       ) {
         continue;
       }
       let best = 0;
       let bestF = -1;
       for (const m of side.members) {
-        if (m.state !== "active") continue;
+        if (m.state !== "active" || !this.isActor(m.id)) continue;
         const f = this.factoriesOf(m.id);
         if (f > bestF || (f === bestF && m.id < best)) {
           best = m.id;
           bestF = f;
         }
       }
-      if (best !== 0) side.leader = best;
+      if (best !== 0 && best !== side.leader) {
+        side.leader = best;
+        this.dirtyWars = true;
+      }
     }
   }
   factoriesOf(id: number): number {

@@ -225,6 +225,17 @@ describe("peaceful territory changes (spec §17)", { timeout: 60_000 }, () => {
     expect(back.mine).toBe(back.all);
   });
 
+  it("a war begun between friends sends each one's troops home", async () => {
+    const { g, ww, l, id } = await game();
+    const [deu, csk] = [id("DEU"), id("CSK")];
+    const army = placeArmy(g, "DEU", 13, 1);
+    const row = l.divisions.rowOf(army.divisions[0]);
+    expect(l.controller[13]).toBe(csk);
+    ww.setWar(deu, csk, g.ticks());
+    expect(l.divisions.region[row]).not.toBe(13);
+    expect(l.controller[l.divisions.region[row]]).toBe(deu);
+  });
+
   it("capitulation uses the legal owner's regions", async () => {
     const { runner, g, ww, p, id } = await game();
     const [deu, fra] = [id("DEU"), id("FRA")];
