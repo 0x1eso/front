@@ -48,7 +48,6 @@ import {
   WW_MAX_DOCKS_PER_LINE,
   WW_MAX_NAVAL_LINES,
 } from "@openfront/engine-api/ww1936/NavyTypes";
-import { dayOfDate } from "@openfront/engine-lib/ww1936/Calendar";
 import {
   dealUnitsOf,
   exclusiveLineTaken,
@@ -85,6 +84,7 @@ import { shipGenTech } from "@openfront/engine-lib/ww1936/ShipStats";
 import { WW_TECHS } from "@openfront/engine-lib/ww1936/WwTechs";
 import type { Player } from "../../game/Game";
 import { baseThreatened, wingBaseWants } from "../air/AiAir";
+import { aiPickNewPlaneLines, aiShipLines } from "../depth/AiHist";
 import { designShareType, equipResources } from "../depth/Designs";
 import { sharedResearchPct } from "../depth/FactionRules";
 import { histCountryOf } from "../depth/Hist";
@@ -117,16 +117,29 @@ export function aiPersonality(tag: CountryTag): AiPersonality {
 }
 
 /**
- * Spec §12.1: from this day an AI builds military factories. The
- * aggressors' moved from 1937-07 to 1936-07 (Task 9 balance: Germany's
- * Four Year Plan and the Soviet five-year plans rearmed from 1936; the
- * later date left Germany at 28 military factories in 1939-09, §16 wants 35).
+ * Spec §12.1, ww81 (no dates): an AI builds military factories once the
+ * situation calls for it. An aggressor always does (as its 1936 date was
+ * at the start); a minor does at war or from world tension 12%; a democracy
+ * at war or from 20%. World tension starts at 4%, so the order stays:
+ * aggressor, then minor, then democracy.
  */
-export const AI_SWITCH_DAY: Readonly<Record<AiPersonality, number>> = {
-  aggressor: dayOfDate("1936-07-01"),
-  democracy: dayOfDate("1939-01-01"),
-  minor: dayOfDate("1938-01-01"),
+export const AI_ALERT_WT_BP: Readonly<Record<AiPersonality, number>> = {
+  aggressor: 0,
+  democracy: 2000,
+  minor: 1200,
 };
+
+export function aiAlerted(
+  personality: AiPersonality,
+  warDays: number,
+  wtBp: number,
+): boolean {
+  return (
+    personality === "aggressor" ||
+    warDays >= 0 ||
+    wtBp >= AI_ALERT_WT_BP[personality]
+  );
+}
 
 /** After its switch and at peace, an AI queues this many military factories to one civilian (R6.2). */
 export const AI_MIL_PER_CIV: Readonly<Record<AiPersonality, number>> = {
@@ -162,8 +175,10 @@ export function aiDockTarget(tag: CountryTag, atWar: boolean): number {
   }
 }
 
-const DAY_1938 = dayOfDate("1938-01-01");
-const DAY_1939 = dayOfDate("1939-01-01");
+/** ww81: world tension (bp) that stands where the 1938 and 1939 dates stood. */
+const WT_EARLY_BP = 2000;
+const WT_PARTIAL_BP = 3500;
+const WT_CONSCRIPT_BP = 1000;
 
 /** A line target: an equipment, or `tank` (medium once researched, else light). */
 export type AiLineSlot = EquipmentType | "tank";
@@ -840,7 +855,7 @@ export function aiPlan(input: AiInput): AiPlan {
 // ---- 1. Laws ----
 
 function economyTarget(
-  i: Pick<AiInput, "personality" | "day" | "warDays">,
+  i: Pick<AiInput, "personality" | "wtBp" | "warDays">,
 ): LawValue {
   const war = i.warDays >= 0;
   switch (i.personality) {
@@ -849,12 +864,12 @@ function economyTarget(
       return war ? "war_economy" : "partial_mobilization";
     case "democracy":
       if (i.warDays >= 180) return "war_economy";
-      if (war || i.day >= DAY_1939) return "partial_mobilization";
-      return i.day >= DAY_1938 ? "early_mobilization" : "civilian";
+      if (war || i.wtBp >= WT_PARTIAL_BP) return "partial_mobilization";
+      return i.wtBp >= WT_EARLY_BP ? "early_mobilization" : "civilian";
     case "minor":
       if (i.warDays >= 365) return "war_economy";
       if (war) return "partial_mobilization";
-      return i.day >= DAY_1938 ? "early_mobilization" : "civilian";
+      return i.wtBp >= AI_ALERT_WT_BP.minor ? "early_mobilization" : "civilian";
   }
 }
 
@@ -916,7 +931,7 @@ function planLaws(i: LawInput, orders: AiOrder[]): void {
         set("conscription", next);
       }
     }
-  } else if (i.personality === "aggressor" && i.day >= DAY_1938) {
+  } else if (i.personality === "aggressor" && i.wtBp >= WT_CONSCRIPT_BP) {
     raiseTo("conscription", "extensive");
   }
 }
@@ -984,11 +999,10 @@ function planLines(i: AiInput, retool = true): PlannedLines {
   // would run new factories at the 20% floor: none go there until a deal
   // or a mine brings some (the lines keep what they have).
   const starved = new Set<EquipmentType>();
-  // ww7 lane F: not the guns while they run short: the floor is what there is
-  // (no tungsten, Germany's case), and the fill gate waits for them.
+  // ww81 (B13): the guns no longer get an exemption; the line mix's floor
+  // rule covers Germany's old stall.
   const gunsShort = (i.artStock ?? AI_ARTILLERY_RESERVE) < AI_ARTILLERY_RESERVE;
   for (const t of hasLine) {
-    if (t === "artillery" && gunsShort) continue;
     const working = i.lines.filter((l) => lineType(l) === t && l.active > 0);
     if (working.length > 0 && working.every((l) => l.fill === 0)) {
       starved.add(t);
@@ -1147,7 +1161,7 @@ function planConstruction(
   need: readonly number[],
   orders: AiOrder[],
 ): void {
-  const switched = i.day >= AI_SWITCH_DAY[i.personality];
+  const switched = aiAlerted(i.personality, i.warDays, i.wtBp);
   const atWar = i.warDays >= 0;
   const target = Math.min(
     WW_MAX_QUEUE,
@@ -2185,11 +2199,22 @@ export function aiEconomyTick(
       if (applyAiOrder(econ, ce, alt, day) === null) break;
     }
   }
+  // ww81 (B4, AI side): a plane line just added takes its catalogue entry now.
+  if (
+    plan.some((o) => o.kind === "add_line" && AIR_EQUIPMENT.has(o.equipment))
+  ) {
+    const depth = econ.ww.depth as WwDepth | undefined;
+    if (depth !== undefined) aiPickNewPlaneLines(depth, ce.smallID, ce);
+  }
   // P4 spec §17.5: the naval lines and the sea and air buildings, on the turn.
   if (isAiTurn(ce.smallID, day, ce.major)) {
     if (only === undefined || only.lines) {
       aiPlanesFirst(econ, ce);
       aiNavalLinesTurn(econ, ce, tick);
+      const depth = econ.ww.depth as WwDepth | undefined;
+      if (depth !== undefined && histCountryOf(depth, ce.smallID) !== null) {
+        aiShipLines(depth, ce.smallID, ce);
+      }
     }
     if (only === undefined) aiP4Builds(econ, ce, day);
   }

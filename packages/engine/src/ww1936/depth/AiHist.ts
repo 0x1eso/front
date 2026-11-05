@@ -15,7 +15,16 @@ import { histEntry } from "@openfront/engine-lib/ww1936/hist/index";
 import { planeScore } from "@openfront/engine-lib/ww1936/PlaneScore";
 import { changeLine } from "../economy/Production";
 import type { CountryEconomy } from "../economy/WwEconomy";
-import { equipCostMilli, shipDesignOf } from "./Designs";
+import type { PickCand } from "./AiPick";
+import {
+  aiKeeps,
+  aiPickEntry,
+  fighterScore,
+  lineDraw,
+  qualityLean,
+  resourceMultPm,
+} from "./AiPick";
+import { equipCostMilli } from "./Designs";
 import { histCountryOf } from "./Hist";
 import type { WwDepth } from "./WwDepth";
 
@@ -76,8 +85,10 @@ function planeCands(
   id: number,
   type: string,
   slotOnly = 0,
-): (Cand & { slot: number })[] {
-  const out: (Cand & { slot: number })[] = [];
+): (PickCand & { slot: number })[] {
+  const out: (PickCand & { slot: number })[] = [];
+  const ce = d.ww.economy.country(id);
+  const draw = ce === null ? [] : lineDraw(d, id, ce);
   d.country(id)?.des.plane.forEach((s, i) => {
     if (s === null || s.obsolete || (slotOnly > 0 && i + 1 !== slotOnly))
       return;
@@ -92,25 +103,37 @@ function planeCands(
       slot: i + 1,
       key,
       cost: equipCostMilli(d, id, key),
-      score: planeScore(type, {
-        airAtk: st.airAttack,
-        airDef: st.airDefense,
-        agility: st.agility,
-        speed: st.speed,
-        range: st.range,
-        ground: st.ground,
-        strat: st.strategic,
-        naval: st.naval,
-      }),
+      relPm: st.relPm,
+      resPm: ce === null ? 1000 : resourceMultPm(d, id, ce, key, draw),
+      // ww81 P1b: a fighter is judged on what the duel reads.
+      score: FIGHTERS.has(type)
+        ? fighterScore(st.airAttack, st.airDefense, st.agility)
+        : planeScore(type, {
+            airAtk: st.airAttack,
+            airDef: st.airDefense,
+            agility: st.agility,
+            speed: st.speed,
+            range: st.range,
+            ground: st.ground,
+            strat: st.strategic,
+            naval: st.naval,
+          }),
     });
   });
   return out;
 }
 
+const FIGHTERS: ReadonlySet<string> = new Set([
+  "fighter",
+  "heavy_fighter",
+  "cv_fighter",
+]);
+
 /** One air line a day moves to the value-best catalogue plane of its type. */
 function aiPlaneLines(d: WwDepth, id: number, ce: CountryEconomy): void {
   const des = d.country(id)?.des.plane;
   if (des === undefined) return;
+  const q = qualityLean(d, id);
   for (const l of ce.lines) {
     const [t, g] = EQUIP_KEYS[l.key];
     let type: string | null = null;
@@ -123,23 +146,29 @@ function aiPlaneLines(d: WwDepth, id: number, ce: CountryEconomy): void {
     if (type === null) continue;
     const cands = planeCands(d, id, type);
     if (cands.length === 0) continue;
-    const best = cands.find((c) => c.key === pickValue(cands))!;
+    const bestKey = aiPickEntry(cands, q);
+    const best = cands.find((c) => c.key === bestKey)!;
     if (best.slot === cur) continue;
-    if (cur > 0) {
-      const mine = planeCands(d, id, type, cur)[0];
-      if (
-        mine !== undefined &&
-        valueNear(mine.score, mine.cost, best.score, best.cost)
-      ) {
-        continue;
-      }
-    }
+    if (cur > 0 && aiKeeps(cands, q, l.key)) continue;
     if (
       changeLine(d.ww.economy, ce, l.id, "plane_design", best.slot) === null
     ) {
       return;
     }
   }
+}
+
+/**
+ * ww81 (B4, AI side): a plane line just added as a static type takes its
+ * catalogue entry at once, not on the next design day.
+ */
+export function aiPickNewPlaneLines(
+  d: WwDepth,
+  id: number,
+  ce: CountryEconomy,
+): void {
+  if (histCountryOf(d, id) === null) return;
+  aiPlaneLines(d, id, ce);
 }
 
 /** Ship power for ranking within a class (points; not a game number). */
@@ -159,34 +188,38 @@ function shipPower(id: string): number {
   );
 }
 
-/** A naval line between ships takes the value-best catalogue ship of its class. */
-function aiShipLines(d: WwDepth, id: number, ce: CountryEconomy): void {
+/**
+ * A naval line between ships takes the value-best catalogue ship of its
+ * class; a line with no design at all takes one at once (ww81 P3, B6).
+ */
+export function aiShipLines(d: WwDepth, id: number, ce: CountryEconomy): void {
   const des = d.country(id)?.des.ship;
   if (des === undefined) return;
+  const q = qualityLean(d, id);
   for (const l of ce.navalLines) {
     if (l.cls >= SHIP_CLASSES.length) continue;
     const between = l.progress === 0 || l.progress < l.lastOutput;
-    if (!between) continue;
-    const cands: (Cand & { slot: number })[] = [];
+    if (!between && l.design > 0) continue;
+    const cands: (PickCand & { slot: number })[] = [];
     des.forEach((s, i) => {
       if (s === null || s.obsolete || s.def.hist === undefined) return;
       if (s.origin !== "own" && s.origin !== "licensed") return;
       if (!s.def.base.startsWith(`${SHIP_CLASSES[l.cls]}_`)) return;
-      const mods = shipDesignOf(d, id, i + 1);
+      const e = histEntry(s.def.hist);
       cands.push({
         slot: i + 1,
         key: i + 1,
         score: shipPower(s.def.hist),
-        cost: Math.max(1, 1000 + (mods?.costPct ?? 0) * 10),
+        // The entry's own yard cost (the line cost scales with it).
+        cost: Math.max(
+          1,
+          e?.family === "ship" ? shipStatsOfEntry(e).cost : 1000,
+        ),
+        relPm: 1000,
       });
     });
     if (cands.length === 0) continue;
-    // Cost: the entry's own yard cost (the line cost scales with it).
-    for (const c of cands) {
-      const e = histEntry(des[c.slot - 1]!.def.hist!);
-      if (e?.family === "ship") c.cost = shipStatsOfEntry(e).cost;
-    }
-    const slot = pickValue(cands);
+    const slot = aiPickEntry(cands, q);
     if (l.design !== slot && l.gen === 1) l.design = slot;
   }
 }
