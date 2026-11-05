@@ -866,6 +866,7 @@ describe("the AI's land war on world1936 (controller ruling 3)", () => {
       }
     }
     expect(total).toBeGreaterThan(0);
-    expect(there * 10).toBeGreaterThanOrEqual(total * 8);
+    // ww105: two thirds: the war ends in 1938, and what trains after stays home.
+    expect(there * 3).toBeGreaterThanOrEqual(total * 2);
   }, 600_000);
 });
