@@ -240,8 +240,9 @@ describe("World War 1936 P2: land battles (spec §9)", () => {
           100,
       ),
     );
+    // (Germany's army spirit: +15 % foot breakthrough, 5250 to 6034, ww91 N2.)
     expect(att0 - l.divisions.org[rowOf(l, a.divisions[0])]).toBe(
-      roundDamage(roundHits(applyBp(5400, luck(1)), 6450)).orgMilli,
+      roundDamage(roundHits(applyBp(5400, luck(1)), 7234)).orgMilli,
     );
     // Without the luck they are the spec's 920 and 1170 hits.
     expect(roundHits(9200, 19_800)).toBe(920);
