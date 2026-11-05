@@ -128,7 +128,7 @@ export const RECON_POSITION_CUT_PM = 100;
 /** Recon on either side: what the battle card's luck and tactic bounds keep, %. */
 export const RECON_RANGE_PCT = 50;
 /** Support guns: rounds of fire a level of the enemy's entrenchment takes (the whole line firing), and the levels a battle can wear. */
-export const ENTRENCH_WEAR_ROUNDS = 8;
+export const ENTRENCH_WEAR_ROUNDS = 15;
 export const ENTRENCH_WEAR_MAX = 3;
 /** Support anti-tank: the share of the tank fear its division takes, %. */
 export const SUPPORT_AT_FEAR_PCT = 50;

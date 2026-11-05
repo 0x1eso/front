@@ -251,6 +251,10 @@ const TEMPLATES = {
   inf72eng: { battalions: INF72, support: ["engineer"] },
   inf72recon: { battalions: INF72, support: ["recon"] },
   inf72sup: { battalions: INF72, support: ["support_artillery"] },
+  inf72noeng: {
+    battalions: INF72,
+    support: ["recon", "support_artillery"],
+  },
   inf72all: {
     battalions: INF72,
     support: ["engineer", "recon", "support_artillery"],
@@ -760,6 +764,7 @@ const DEEP_ROWS: readonly PlanRow[] = (["generic", "deu"] as const).flatMap(
       deep("guns + engineers 3:1", "inf72eng", THREE, gen, k),
       deep("guns + recon 3:1", "inf72recon", THREE, gen, k),
       deep("guns + support guns 3:1", "inf72sup", THREE, gen, k),
+      deep("guns + recon + support guns 3:1", "inf72noeng", THREE, gen, k),
       deep("guns + all three 3:1", "inf72all", THREE, gen, k),
       deep("guns + all three 5:1", "inf72all", FIVE, gen, k),
       deep("armour 3:1", "tank45", THREE, gen, k),
