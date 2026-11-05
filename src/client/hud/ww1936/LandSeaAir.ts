@@ -164,6 +164,7 @@ export function landingBpsOf(
   region: number,
   flags: number,
   techs: ReadonlySet<WwTechId>,
+  natUnit = 0,
 ): { landingBp: number; coastalFortBp: number } {
   const none = { landingBp: 0, coastalFortBp: 0 };
   const detail = p?.navy.detail ?? null;
@@ -177,7 +178,7 @@ export function landingBpsOf(
   const easy = here.some((d) => detail.landingEasy?.includes(d) ?? false);
   const lv = economy.effectiveBuildings("coastal_fort", region);
   return {
-    landingBp: -landingBp((flags & TPL_MARINE_ANY) !== 0, techs, easy),
+    landingBp: -landingBp((flags & TPL_MARINE_ANY) !== 0, techs, easy, natUnit),
     coastalFortBp:
       lv === 0 ? 0 : -coastalFortBp(lv, (flags & TPL_ENGINEER) !== 0),
   };

@@ -36,6 +36,7 @@ import type {
   WwStats,
 } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { FM_TRAIT_STATS } from "./CommandRules";
+import { NAT_ALPINI_OBSTACLE_PCT, NAT_UNIT_ITA } from "./NationalUnits";
 import {
   RANGE_HIGH_ATT_ATK_BP,
   RANGE_LOW_DEF_ATK_BP,
@@ -532,7 +533,12 @@ export function divisionMods(i: ModInput): ModResult {
     if (bp !== 0) l.push({ id, bp });
   };
   // ww84: assault infantry pays a sixth less for rivers and forts.
-  const assault = has(i.flags, TPL_MOUNTAIN_MAJOR) ? ASSAULT_OBSTACLE_PCT : 100;
+  // ww91: the Italian Alpini pay a little less still.
+  const assault = has(i.flags, TPL_MOUNTAIN_MAJOR)
+    ? i.tech.natUnit === NAT_UNIT_ITA
+      ? NAT_ALPINI_OBSTACLE_PCT
+      : ASSAULT_OBSTACLE_PCT
+    : 100;
   // Attack
   push(aAdd, "general", i.genAtt * 500);
   let trait = 0;

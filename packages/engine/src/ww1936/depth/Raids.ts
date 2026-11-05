@@ -24,6 +24,10 @@ import {
 } from "@openfront/engine-api/ww1936/LandTypes";
 import { P_RAID } from "@openfront/engine-lib/ww1936/DepthRules";
 import {
+  NAT_COMMANDO_RAID_PM,
+  NAT_UNIT_GBR,
+} from "@openfront/engine-lib/ww1936/NationalUnits";
+import {
   RAID_BOMBER_LOSS_PCT,
   RAID_FACILITY_CUT_MILLI,
   RAID_FACILITY_INTEL,
@@ -121,6 +125,11 @@ function commandoRouteOk(
   return srs.every((sr) => navy.supremacy(side, sr) >= RAID_ROUTE_SUP_PM);
 }
 
+/** ww91: the national unit the country holds (0: none). */
+function natUnitOf(d: WwDepth, owner: number): number {
+  return d.ww.economy.country(owner)?.stats.natUnit ?? 0;
+}
+
 /** The general of a division's army has the commando trait (spec §4.2). */
 function commandoGeneral(d: WwDepth, owner: number, row: number): boolean {
   const land = d.ww.land;
@@ -194,7 +203,10 @@ export function raidAskOf(
           r,
           kind === "raid_para" ? ["paratrooper"] : ["marine", "mountain"],
         );
-      commando = commandoGeneral(d, id, r);
+      // ww91: British Commandos prepare as fast as a commando general's raid.
+      commando =
+        commandoGeneral(d, id, r) ||
+        (kind === "raid_commando" && natUnitOf(d, id) === NAT_UNIT_GBR);
       if (kind === "raid_para") {
         reachOk =
           effectiveLevel(ww.economy, from, "air_base") >= 1 &&
@@ -380,6 +392,7 @@ function resolveRaid(d: WwDepth, raid: Raid, day: number, tick: number): void {
     coastalFort: effectiveLevel(econ, raid.target, "coastal_fort"),
     bombers: raidBombersIn(d, owner, sc.regionSr(raid.target)),
     harborPm: frogmen ? econ.country(owner)?.stats.harborRaidPm : 0,
+    bonusPm: natUnitOf(d, owner) === NAT_UNIT_GBR ? NAT_COMMANDO_RAID_PM : 0,
   });
   const roll = wwRoll(ww.politics.seed, P_RAID, raid.uid) % 1_000_000;
   let hit = 0;

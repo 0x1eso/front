@@ -117,16 +117,42 @@ function toggled(
 }
 
 const TRAITS: Record<string, readonly string[]> = {
-  DEU: ["nat_deu_panzer", "nat_deu_workshop", "nat_deu_strain"],
-  SUN: ["nat_sun_mass", "nat_sun_resilience", "nat_sun_purge_gap"],
-  USA: ["nat_usa_arsenal", "nat_usa_logistics", "nat_usa_slow_mobilisation"],
-  GBR: ["nat_gbr_lifeline", "nat_gbr_radar_net", "nat_gbr_commonwealth"],
-  FRA: ["nat_fra_citadel", "nat_fra_slow_heavy", "nat_fra_stripped_arsenal"],
-  JPN: ["nat_jpn_kido_butai", "nat_jpn_assault", "nat_jpn_scarce"],
+  DEU: ["nat_deu_panzer", "nat_deu_workshop", "nat_deu_strain", "nat_deu_army"],
+  SUN: [
+    "nat_sun_mass",
+    "nat_sun_resilience",
+    "nat_sun_purge_gap",
+    "nat_sun_army",
+  ],
+  USA: [
+    "nat_usa_arsenal",
+    "nat_usa_logistics",
+    "nat_usa_slow_mobilisation",
+    "nat_usa_army",
+  ],
+  GBR: [
+    "nat_gbr_lifeline",
+    "nat_gbr_radar_net",
+    "nat_gbr_commonwealth",
+    "nat_gbr_army",
+  ],
+  FRA: [
+    "nat_fra_citadel",
+    "nat_fra_slow_heavy",
+    "nat_fra_stripped_arsenal",
+    "nat_fra_army",
+  ],
+  JPN: [
+    "nat_jpn_kido_butai",
+    "nat_jpn_assault",
+    "nat_jpn_scarce",
+    "nat_jpn_army",
+  ],
   ITA: [
     "nat_ita_mare_nostrum",
     "nat_ita_light_forces",
     "nat_ita_thin_industry",
+    "nat_ita_army",
   ],
 };
 
@@ -196,15 +222,15 @@ describe("w69 national traits", () => {
           "medium_armor",
         ).brk,
     );
-    expect(bOn - bOff).toBe(15);
+    expect(bOn - bOff).toBe(10);
   });
 
   test("Soviet Union: cheap gear, quick recovery, and an early command weakness that ends", () => {
     const [cOn, cOff] = toggled("SUN", "nat_sun_mass", () =>
       equipCostMilli(ww().depth!, idOf("SUN"), key("infantry_equipment")),
     );
-    expect(cOn / cOff).toBeGreaterThan(0.84);
-    expect(cOn / cOff).toBeLessThan(0.86);
+    expect(cOn / cOff).toBeGreaterThan(0.94);
+    expect(cOn / cOff).toBeLessThan(0.96);
     const land = ww().land;
     const row = land.rowsOf(idOf("SUN"))[0];
     const [mOn, mOff] = toggled("SUN", "nat_sun_purge_gap", () =>

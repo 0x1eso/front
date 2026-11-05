@@ -754,6 +754,7 @@ export const USA_FOCUSES: FocusDef[] = [
       },
       { kind: "unlock_template", template: "usa_marine_division" },
       { kind: "add_spirit", id: "usa_amphibious_doctrine" },
+      { kind: "add_spirit", id: "nat_usa_unit" },
     ],
     ai: { base: 10 },
   },

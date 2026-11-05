@@ -700,6 +700,9 @@ export const FRA_FOCUSES: FocusDef[] = [
     effects: [
       { kind: "manpower", amount: 80000 },
       { kind: "unlock_template", template: "fra_colonial_ii" },
+      // ww91: the Foreign Legion, the mountain battalion renamed.
+      { kind: "add_tech", tech: "mountaineers" },
+      { kind: "add_spirit", id: "nat_fra_unit" },
     ],
     ai: { base: 10 },
   },

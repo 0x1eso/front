@@ -100,6 +100,8 @@ export interface ConvertEnv {
   refused: string;
   /** Queued training of the template moves too (templates tab only). */
   queued: boolean;
+  /** ww91: the national unit the country holds (names its battalions). */
+  natUnit?: number;
 }
 
 const BTN = "min-h-11 w-full rounded-md border p-1.5 text-left text-xs";
@@ -137,7 +139,7 @@ export function renderConvertPicker(env: ConvertEnv): TemplateResult {
               >${templateName(o.template)}</span
             >
             <span class="block truncate"
-              >${battalionSummary(templateDef(o.template))}</span
+              >${battalionSummary(templateDef(o.template), env.natUnit)}</span
             >
             <span class="block truncate tabular-nums"
               >${statLine(o.stats)}</span

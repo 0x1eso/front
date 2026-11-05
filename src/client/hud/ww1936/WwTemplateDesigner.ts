@@ -19,6 +19,7 @@ import {
 } from "@openfront/engine-api/ww1936/LandTypes";
 import { BATTALIONS, SUPPORTS } from "@openfront/engine-lib/ww1936/Battalions";
 import { histHasTankGroup } from "@openfront/engine-lib/ww1936/hist/Slots";
+import { natUnitRow } from "@openfront/engine-lib/ww1936/NationalUnits";
 import {
   DESIGN_ONLY_GROUP,
   presetDef,
@@ -49,12 +50,14 @@ import {
   designer,
   designGroupsOf,
   ksOf,
+  natUnitOf,
   presetLockText,
   researchedOf,
   techOf,
   templateDef,
   templateName,
 } from "./LandModel";
+import { battalionName, natUnitNote } from "./NationalNames";
 import { TWO_TAP_MS, TwoTap } from "./WorldWarModel";
 
 /** Short marks for the grid cells (pre-flight R7.7: no new images). */
@@ -316,6 +319,12 @@ export class WwTemplateDesigner extends LitElement {
       : "ww1936.land.design_none";
   }
 
+  /** ww91: the national unit the country holds (names and numbers its battalion). */
+  private natUnit(): number {
+    const economy = this.game?.wwEconomy?.() ?? null;
+    return economy === null ? 0 : natUnitOf(economy, this.me());
+  }
+
   private groups(): Set<number> {
     return designGroupsOf(this.game?.wwDepth?.()?.detail(this.me())?.designs);
   }
@@ -491,7 +500,7 @@ export class WwTemplateDesigner extends LitElement {
             "battalion",
             i,
             BATTALION_ICONS[b[i]],
-            translateText(`ww1936.battalion.${b[i]}`),
+            battalionName(b[i], this.natUnit()),
             before !== null && before.battalions[i] !== b[i],
           ),
         );
@@ -571,6 +580,7 @@ export class WwTemplateDesigner extends LitElement {
       missing: WwTechId | undefined,
       pick: () => void,
       designOnly: string | null = null,
+      note: string | null = null,
     ) =>
       html`<li>
         <button
@@ -597,6 +607,13 @@ export class WwTemplateDesigner extends LitElement {
                     tech: techName(missing),
                   })}</span
             >
+            ${note !== null
+              ? html`<span
+                  data-ww-nat-unit
+                  class="block text-[11px] text-emerald-200"
+                  >${note}</span
+                >`
+              : nothing}
             ${designOnly
               ? html`<span
                   data-ww-design-only
@@ -613,18 +630,23 @@ export class WwTemplateDesigner extends LitElement {
         <ul class="m-0 flex list-none flex-col gap-1 p-0">
           ${BATTALION_IDS.map((id) => {
             const b = BATTALIONS[id];
+            const nat = natUnitRow(this.natUnit(), id);
+            const more = (v: number, pct: number | undefined) =>
+              Math.floor((v * (100 + (pct ?? 0))) / 100) / 100;
             return option(
               id,
               BATTALION_ICONS[id],
-              translateText(`ww1936.battalion.${id}`),
+              battalionName(id, this.natUnit()),
               `${translateText("ww1936.land.stat_width")} ${b.width} · ${translateText(
                 "ww1936.land.stat_soft",
-              )} ${b.soft / 100} · ${translateText("ww1936.land.stat_hard")} ${
-                b.hard / 100
-              } · ${translateText("ww1936.land.stat_defense")} ${b.def / 100}`,
+              )} ${more(b.soft, nat?.soft)} · ${translateText("ww1936.land.stat_hard")} ${more(
+                b.hard,
+                nat?.hard,
+              )} · ${translateText("ww1936.land.stat_defense")} ${b.def / 100}`,
               b.techs.find((t) => !researched.has(t)),
               () => this.setBattalion(p.index, id),
               this.designOnlyKey(id),
+              natUnitNote(id, this.natUnit()),
             );
           })}
         </ul>
