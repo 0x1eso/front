@@ -379,8 +379,8 @@ function rocketArsenal(d: WwDepth, id: number): void {
 // ---- The bomb ----
 
 /**
- * Spec §19.6: from 1944 a bomb in stock goes, one a day, to a major enemy
- * at war: with the historical AI, K5's NUKE_TARGETS first (not before
+ * Spec §19.6: a bomb in stock goes, one a day, to a major enemy at war
+ * (by situation, not date, C8): with the historical AI, K5's NUKE_TARGETS first (not before
  * their date, and not that enemy before it); else the enemy region under
  * our strategic bombers (or in a rocket's reach) with the most civilian
  * and military factories, never the capital or a no-strike region (ties:

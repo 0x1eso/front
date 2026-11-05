@@ -108,20 +108,19 @@ describe("World War 1936 P6: the projects AI (spec §19.6)", () => {
     ]);
   }, 60_000);
 
-  it("an AI drops its bomb from 1944 on the enemy region with the most factories, never the capital", async () => {
+  it("an AI drops its bomb, whatever the date, on the enemy region with the most factories, never the capital", async () => {
     usePoliticsContent(depthFixture());
     const runner = await britishBomb();
     const ww = runner.game.worldWar()!;
     const d = ww.depth;
     expect(ww.capitalRegion(DEEP.tag.DEU)).toBe(BERLIN);
-    aiProjectsDay(d, GBR, dayOfDate("1943-12-31"));
-    expect(d.nukeQueue).toEqual([]);
-    aiProjectsDay(d, GBR, dayOfDate("1944-01-01"));
+    // (By situation, not by date, C8: the bomb in stock goes at once.)
+    aiProjectsDay(d, GBR, dayOfDate("1938-06-01"));
     expect(d.nukeQueue.map((e) => [e.owner, e.region])).toEqual([
       [GBR, MUNICH],
     ]);
     // One bomb, one drop.
-    aiProjectsDay(d, GBR, dayOfDate("1944-01-02"));
+    aiProjectsDay(d, GBR, dayOfDate("1938-06-02"));
     expect(d.nukeQueue).toHaveLength(1);
   }, 60_000);
 
