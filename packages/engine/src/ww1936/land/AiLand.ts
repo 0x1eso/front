@@ -69,6 +69,7 @@ import {
   specialCap,
   templateStats,
 } from "@openfront/engine-lib/ww1936/TemplateStats";
+import { enemySkyPm } from "../air/AirSuperiority";
 import { type AiPersonality, aiPersonality } from "../economy/AiEconomy";
 import { convoysOf, effectiveLevel } from "../economy/Buildings";
 import { queueBuild } from "../economy/Construction";
@@ -894,6 +895,8 @@ class AiDay {
   private effortOf = new Map<number, number>();
   /** ww81 C1: the others on a front judged for one: they walk and pursue, no more. */
   private offEffort = new Set<number>();
+  /** ww81 C4: the armies that lead today's main efforts: the air goes to them first. */
+  private skyArmies = new Set<number>();
   /** ww81 C3: today's cuts of each enemy read (on the period's day or for a new sector). */
   private cutsMemo = new Map<number, EnemyCuts>();
 
@@ -1116,6 +1119,7 @@ class AiDay {
     if (enemies.length > 0) this.fronts(enemies, garrisons);
     else if (!this.human) this.peacetime(garrisons);
     this.attacks();
+    if (!this.human) this.syncSky();
     if (this.trains) this.train(garrisons);
     if (!this.human) this.build(enemies);
   }
@@ -1978,10 +1982,11 @@ class AiDay {
     const others = armies.filter((a) => !chosen.has(a));
     if (chosen.size === 0 || (others.length === 0 && rest.length > 0)) {
       const zones = this.zonesOf(f, line, armies);
-      for (const a of ranked) {
-        if (!zones.get(a.id)!.some((r) => near.includes(r))) continue;
-        this.joinEffort(a, sector);
-      }
+      const on = ranked.filter((a) =>
+        zones.get(a.id)!.some((r) => near.includes(r)),
+      );
+      for (const a of on) this.joinEffort(a, sector);
+      if (on.length > 0) this.skyArmies.add(on[0].id);
       return zones;
     }
     for (const a of chosen) this.joinEffort(a, sector);
@@ -2001,7 +2006,27 @@ class AiDay {
       this.joinEffort(a, sector);
       on += a.divisions.length - zone.length;
     }
+    this.skyArmies.add(ranked.find((a) => chosen.has(a))!.id);
     return zones;
+  }
+
+  /**
+   * ww81 C4: army_air_priority follows the efforts: on for the army leading
+   * one from the day it is chosen, off when it ends. The AI's own armies only:
+   * on a human's the switch stays the player's.
+   */
+  private syncSky(): void {
+    const air = this.land.ww.air;
+    const now = air.country(this.me)?.priorityArmies;
+    if (now === undefined) return;
+    const set = (army: number, on: boolean) => {
+      const order: WwOrder = { kind: "army_air_priority", army, on };
+      air.issue(this.me, order, this.land.mg.ticks());
+    };
+    for (const id of [...now]) if (!this.skyArmies.has(id)) set(id, false);
+    for (const id of [...this.skyArmies].sort((a, b) => a - b)) {
+      if (!now.includes(id)) set(id, true);
+    }
   }
 
   /** A division's supply use among `armies`, milli (armour asks more). */
@@ -2167,6 +2192,7 @@ class AiDay {
           width: combatWidth(sc.landOf(r.region), 1, fort),
           defence: enemyStrength(land, this.me, r.region),
           extra: (pull.get(r.region) ?? 0) + (cut.get(r.region) ?? 0),
+          skyPm: enemySkyPm(land.ww.air, r.region, land.sideOf(this.me)),
         };
       });
     const period = Math.floor((this.day + this.me) / AI_EFFORT_PERIOD_DAYS);

@@ -391,6 +391,28 @@ describe("the AI's land war on the test map (spec §14)", () => {
     expect(ww.isAtWar(deu, pol) || !byTag(g, "POL").isAlive()).toBe(true);
   }, 120_000);
 
+  test("C4: the air follows the army leading the main effort, and leaves it with the effort", async () => {
+    const { runner, g, ww, l, d0 } = await aiWar("DEU", "POL");
+    const deu = byTag(g, "DEU").smallID();
+    const pol = byTag(g, "POL").smallID();
+    finishDay(runner, d0);
+    finishDay(runner, d0 + 1);
+    const list = () => ww.air.country(deu)!.priorityArmies;
+    expect(list().length).toBeGreaterThan(0);
+    for (const id of list()) {
+      expect(l.armies.get(id)!.order.kind).toBe("plan");
+      expect(l.armies.get(id)!.order.enemy).toBe(pol);
+    }
+    // No enemy divisions left: nothing stands, so no effort, and the air is free.
+    for (let r = 0; r < l.divisions.rows; r++) {
+      if (l.divisions.alive(r) && l.divisions.owner[r] === pol) {
+        l.killDivision(r, false);
+      }
+    }
+    for (let d = d0 + 2; d <= d0 + 12; d++) finishDay(runner, d);
+    expect(list()).toEqual([]);
+  }, 120_000);
+
   test("an AI regroups when its org runs low and waits for it before attacking again", async () => {
     const { runner, g, calls, d0 } = await aiWar("DEU", "POL");
     const deu = byTag(g, "DEU").smallID();

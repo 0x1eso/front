@@ -32,6 +32,13 @@ describe("AI main sector", () => {
     expect(effortScore(region({ region: 1, vp: 4, defence: 50 }))).toBe(100);
   });
 
+  it("halves a sector under an enemy sky", () => {
+    const open = effortScore(region({ region: 1, vp: 4, skyPm: 699 }));
+    expect(effortScore(region({ region: 1, vp: 4, skyPm: 700 }))).toBe(
+      Math.floor(open / 2),
+    );
+  });
+
   it("takes the best, and the smaller id on a tie", () => {
     const list = [
       region({ region: 7, vp: 1 }),
