@@ -52,6 +52,9 @@ export function divisionConvoys(weightCenti: number): number {
   return Math.ceil((weightCenti * 2) / 100);
 }
 
+/** ww91 N3: the boats a pack needs in one sea region. */
+export const WOLF_PACK_BOATS = 6;
+
 /**
  * Spec §10.6 raid power, centi. Submarines: torpedo × (100 + subAttack +
  * convoyRaid) / 100 (the doctrine's raid bonus is convoyRaid, once); surface raiders: (light + heavy) × 0.5
@@ -65,13 +68,18 @@ export function raidPowerCenti(
   stats: WwStats,
   techs: ReadonlySet<WwTechId>,
   fuelPm: number,
+  subBoats = 0,
 ): number {
+  // ww91 N3: six boats or more in the region hunt as a pack.
+  const pack = subBoats >= WOLF_PACK_BOATS ? stats.wolfPackPct : 0;
   // The doctrine terms are stat keys (P6 pre-flight): its raid bonus is
   // convoyRaidPct (counted once), surfaceRaidPct trade_interdiction_2's
   // ×1.5 (+50).
   void techs;
   const sub = Math.floor(
-    (subTorpedoCenti * (100 + stats.subAttackPct + stats.convoyRaidPct)) / 100,
+    (subTorpedoCenti *
+      (100 + stats.subAttackPct + stats.convoyRaidPct + pack)) /
+      100,
   );
   const surf = Math.floor(
     (Math.floor((surfaceGunsCenti * (100 + stats.surfaceRaidPct)) / 200) *

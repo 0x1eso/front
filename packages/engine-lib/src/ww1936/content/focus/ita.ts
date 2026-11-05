@@ -980,13 +980,8 @@ export const ITA_FOCUSES: FocusDef[] = [
     prereq: [["ita_submarine_arm"]],
     effects: [
       { kind: "navy_xp", amount: 10 },
-      {
-        kind: "equipment",
-        type: "support_equipment",
-        gen: 1,
-        count: 40,
-        item: "ita_fiat626",
-      },
+      // ww91 N3: frogmen (raids on ports), in place of the 40 trucks.
+      { kind: "add_spirit", id: "nat_ita_decima" },
     ],
     ai: { base: 6 },
   },

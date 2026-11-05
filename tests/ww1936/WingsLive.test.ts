@@ -31,6 +31,7 @@ import { bombClassHits } from "@openfront/engine-lib/ww1936/WingRules";
 import type { Game } from "@openfront/engine/game/Game";
 import { wingStats } from "@openfront/engine/ww1936/air/Sorties";
 import { wingBaseEffPm } from "@openfront/engine/ww1936/air/Wings";
+import { removeSpirit } from "@openfront/engine/ww1936/politics/Spirits";
 import { wingPlanes } from "@openfront/engine/ww1936/air/WwAir";
 import { damageBuilding } from "@openfront/engine/ww1936/economy/Buildings";
 import { navalPort } from "@openfront/engine/ww1936/navy/Ports";
@@ -118,6 +119,9 @@ function hand(g: Game): void {
       (n) => n.a !== deu && n.b !== deu,
     );
     for (const foe of [pol, fra, gbr]) ww.setWar(deu, foe, t);
+    // ww91 N3: Germany's shorter air range would leave the scripted fighter
+    // meeting out of reach; this test is about wings, not the range key.
+    removeSpirit(ww.politics, deu, "nat_deu_sea_air");
     for (const id of [deu, gbr]) {
       const ce = econ.country(id)!;
       for (const [type, n] of STOCK) ce.stock[equipKey(type, 1)] += n;

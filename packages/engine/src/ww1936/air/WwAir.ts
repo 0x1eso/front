@@ -40,6 +40,7 @@ import { dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
 import { weakPlaneStats } from "@openfront/engine-lib/ww1936/hist/WeakGeneric";
 import { planeStats } from "@openfront/engine-lib/ww1936/PlaneStats";
 import { emptyStats } from "@openfront/engine-lib/ww1936/Stats";
+import { newWingXp } from "@openfront/engine-lib/ww1936/WingRules";
 import { z } from "zod";
 import type { Game } from "../../game/Game";
 import { aceOnWingGone } from "../depth/Aces";
@@ -890,6 +891,13 @@ export class WwAir {
    * leaves out starts at rest, and the planes in `counts` and `dcounts` are the
    * caller's to have taken off the ledger.
    */
+  /** ww91 N3: a new wing's experience, the national pilot keys on top of 300. */
+  private newWingXp(owner: number): number {
+    const st = this.econ.country(owner)?.stats;
+    if (st === undefined) return WING_NEW_FIELD_DEFAULTS.xpMilli;
+    return newWingXp(st, this.ww.day(this.mg.ticks()) === 0);
+  }
+
   addWing(
     d: Pick<Wing, "owner" | "type" | "counts" | "base"> &
       Partial<Omit<Wing, "id" | "owner" | "type" | "counts" | "base">>,
@@ -926,7 +934,7 @@ export class WwAir {
       hit: d.hit ?? n.hit,
       flySr: d.flySr ?? n.flySr,
       flyMission: d.flyMission ?? n.flyMission,
-      xpMilli: d.xpMilli ?? n.xpMilli,
+      xpMilli: d.xpMilli ?? this.newWingXp(d.owner),
       kills: d.kills ?? n.kills,
       lastFerryDay: d.lastFerryDay ?? n.lastFerryDay,
       noticeDay: d.noticeDay ?? n.noticeDay,
