@@ -78,6 +78,8 @@ import { navalPort, navalPortsOf } from "../navy/Ports";
 import {
   AI_EFFORT_CAPITAL_VALUE,
   AI_EFFORT_PERIOD_DAYS,
+  effortFed,
+  effortRoom,
   effortTarget,
   P_AXIS,
   pickMainSector,
@@ -1842,11 +1844,18 @@ class AiDay {
       );
     let left = 0;
     for (const a of armies) left += a.divisions.length;
+    // C6: no more than the sector feeds; those over it stay on the line.
+    const room = this.roomAt(near, this.supplyUnit(ranked));
     const chosen = new Set<Army>();
+    let on = 0;
     for (const a of ranked) {
-      if (!running(a) && left - a.divisions.length < rest.length) continue;
+      if (!running(a)) {
+        if (left - a.divisions.length < rest.length) continue;
+        if (on > 0 && on >= room) continue;
+      }
       chosen.add(a);
       left -= a.divisions.length;
+      on += a.divisions.length;
     }
     const others = armies.filter((a) => !chosen.has(a));
     if (chosen.size === 0 || (others.length === 0 && rest.length > 0)) {
@@ -1869,11 +1878,31 @@ class AiDay {
       const wide = [...new Set([...zone, ...near])];
       zones.set(a.id, zone.length === 0 ? [...near] : zone);
       if (this.defendOnly(a) || wide.length > WW_ZONE_MAX) continue;
-      if (a.divisions.length <= zone.length) continue;
+      if (a.divisions.length <= zone.length || on >= room) continue;
       zones.set(a.id, wide);
       this.joinEffort(a, sector);
+      on += a.divisions.length - zone.length;
     }
     return zones;
+  }
+
+  /** A division's supply use among `armies`, milli (armour asks more). */
+  private supplyUnit(armies: readonly Army[]): number {
+    let use = 0;
+    let n = 0;
+    for (const a of armies) {
+      for (const r of armyRows(this.land, a)) {
+        use += this.land.supplyBaseOf(r);
+        n++;
+      }
+    }
+    return n === 0 ? 1 : Math.max(1, Math.floor(use / n));
+  }
+
+  /** C6: the divisions `regions` feed at `unit`. */
+  private roomAt(regions: readonly number[], unit: number): number {
+    const supply = regions.map((r) => this.land.supplyMilli[r]);
+    return effortRoom(supply, unit);
   }
 
   private joinEffort(a: Army, sector: number): void {
@@ -1914,13 +1943,15 @@ class AiDay {
       if (waiting === 0) waiting = x;
     }
     const due = (this.day + this.me) % AI_EFFORT_PERIOD_DAYS === 0;
-    return waiting !== 0 && !due ? waiting : this.pickSector(f, line, waiting);
+    if (waiting !== 0 && !due) return waiting;
+    return this.pickSector(f, line, armies, waiting);
   }
 
   /** Rule 1 of C1, on what stands across `line` today (land/AiEffort). 0: nobody to attack. */
   private pickSector(
     f: Front,
     line: readonly number[],
+    armies: readonly Army[],
     waiting: number,
   ): number {
     const land = this.land;
@@ -1955,9 +1986,24 @@ class AiDay {
         pull.set(x, Math.max(pull.get(x) ?? 0, v));
       }
     }
+    // C6: the force meant for a sector is at least the largest army.
+    const able = armies.filter((a) => !this.defendOnly(a));
+    const unit = this.supplyUnit(able);
+    const force = Math.max(0, ...able.map((a) => a.divisions.length));
+    const fed = (x: number) =>
+      effortFed(
+        this.roomAt(
+          line.filter((r) => sc.edgeBetween(r, x) >= 0),
+          unit,
+        ),
+        force,
+      );
     const regions = reach
       .filter(
-        (r) => r.dist === 1 && enemyDivisionsIn(land, this.me, r.region) > 0,
+        (r) =>
+          r.dist === 1 &&
+          enemyDivisionsIn(land, this.me, r.region) > 0 &&
+          fed(r.region),
       )
       .map((r) => {
         const fort = effectiveLevel(land.econ, r.region, "fort");

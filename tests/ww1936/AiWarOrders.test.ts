@@ -276,6 +276,20 @@ describe("ww7 lane D: the AI's army objective orders", () => {
     ).toBe(false);
   }, 120_000);
 
+  test("C6: a sector that feeds under half of the army starts no effort", async () => {
+    const c = await atWar();
+    placeArmy(c.g, "POL", WARSAW, 24);
+    placeArmy(c.g, "POL", KRAKOW, 24);
+    const big = autoArmy(c, MUNICH, 24, 2);
+    const other = autoArmy(c, BERLIN, 9, 2);
+    // Divisions too hungry for any region to feed.
+    c.l.supplyBaseOf = () => 1_000_000_000;
+    c.days(12);
+    expect(big.order.kind).toBe("front");
+    expect(other.order.kind).toBe("front");
+    expect(c.orders.some((o) => o.kind === "army_plan")).toBe(false);
+  }, 120_000);
+
   test("level 1 holds and never attacks (a plan turns to Defend), level 2 attacks; army_auto and the all-armies switch mean level 2", async () => {
     const hold = await atWar();
     placeArmy(hold.g, "POL", WARSAW, 1);

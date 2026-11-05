@@ -85,3 +85,16 @@ export function effortTarget(o: ArmyOrder): number {
   if (o.kind !== "plan" || o.targets.length === 0) return 0;
   return o.direct === true || !o.executing ? o.targets[0] : 0;
 }
+
+/** C6: divisions the regions feed, at `unit` milli of supply a division (each region floored). */
+export function effortRoom(supply: readonly number[], unit: number): number {
+  const u = Math.max(1, unit);
+  let n = 0;
+  for (const m of supply) n += Math.floor(m / u);
+  return n;
+}
+
+/** C6: a sector feeding under half of the force meant for it starts no effort. */
+export function effortFed(room: number, divisions: number): boolean {
+  return room * 2 >= divisions;
+}

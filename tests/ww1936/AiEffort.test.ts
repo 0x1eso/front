@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   AI_EFFORT_FORT_BAR,
   type EffortRegion,
+  effortFed,
+  effortRoom,
   effortScore,
   pickMainSector,
 } from "../../packages/engine/src/ww1936/land/AiEffort";
@@ -57,5 +59,12 @@ describe("AI main sector", () => {
     expect(pickMainSector([fort, region({ region: 2 })], 0)).toBe(2);
     expect(pickMainSector([fort], 0)).toBe(1);
     expect(pickMainSector([], 0)).toBe(0);
+  });
+
+  it("counts what a sector feeds, heavier divisions fewer, and starts on half of it", () => {
+    expect(effortRoom([1000, 2500], 1000)).toBe(3);
+    expect(effortRoom([1000, 2500], 2000)).toBe(1);
+    expect(effortFed(6, 12)).toBe(true);
+    expect(effortFed(5, 12)).toBe(false);
   });
 });
