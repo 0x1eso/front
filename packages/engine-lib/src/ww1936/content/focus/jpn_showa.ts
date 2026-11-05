@@ -559,7 +559,8 @@ export const JPN_SHOWA_FOCUSES: FocusDef[] = [
     effects: [
       { kind: "war_goal", on: T("CHN"), type: "conquer" },
       { kind: "army_xp", amount: 15 },
-      { kind: "research_bonus", branch: "doctrine", pct: 50, uses: 1 },
+      // No live tech is in the doctrine branch any more: mastery instead.
+      { kind: "doctrine_mastery", domain: "land", amount: 30 },
     ],
     ai: { base: 10 },
   },

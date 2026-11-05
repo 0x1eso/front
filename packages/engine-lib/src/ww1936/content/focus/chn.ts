@@ -51,6 +51,8 @@ export const CHN_FOCUSES: FocusDef[] = [
     icon: "infantry",
     effects: [
       { kind: "army_xp", amount: 25 },
+      // The template check refuses a battalion or company without its tech.
+      { kind: "add_tech", tech: "engineer_company" },
       { kind: "unlock_template", template: "chn_trained_division" },
     ],
     ai: { base: 10 },
@@ -411,6 +413,10 @@ export const CHN_FOCUSES: FocusDef[] = [
     icon: "infantry",
     prereq: [["chn_us_aid"]],
     effects: [
+      // The template check refuses a battalion or company without its tech.
+      { kind: "add_tech", tech: "anti_tank_1" },
+      { kind: "add_tech", tech: "engineer_company" },
+      { kind: "add_tech", tech: "recon_company" },
       { kind: "unlock_template", template: "chn_expeditionary_division" },
       {
         kind: "divisions",

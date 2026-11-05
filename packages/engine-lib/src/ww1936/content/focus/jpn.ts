@@ -1538,6 +1538,8 @@ export const JPN_FOCUSES: FocusDef[] = [
     icon: "ship",
     prereq: [["jpn_naval_landing_force"]],
     effects: [
+      // The other way to this template; without its company it wouldn't open.
+      { kind: "add_tech", tech: "military_police" },
       { kind: "unlock_template", template: "jpn_garrison_ii" },
       { kind: "army_xp", amount: 15 },
     ],
