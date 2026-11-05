@@ -115,11 +115,11 @@ export function entrenchBp(level: number): number {
 /** ww7: defence per position level (Positions.ts), bp. Equal to a level of entrenchment: predictBattle counts levels by it. */
 export const POSITION_DEF_BP = 2500;
 
-/**
- * ww98 (owner): what the support companies do. Each works for its own division
- * only, the attackers' on that division's hits, the defenders' on what that
- * division takes, so a line of them never adds up past the figure here.
- */
+// ww98 (owner): what the support companies do. Each works for its own division
+// only, the attackers' on that division's hits, the defenders' on what that
+// division takes, so a line of them never adds up past the figure here. The
+// guns' wear is the exception: one clock a battle (Battles.wearEntrenchment).
+
 /** Engineers attacking: the share of the enemy's entrenchment and position gone, ‰, and its cap with research (engineerMulPct). */
 export const ENGINEER_PREP_CUT_PM = 300;
 export const ENGINEER_PREP_CUT_MAX_PM = 500;
@@ -1066,9 +1066,7 @@ export function predictBattle(
   const level = ctx.defenderEntrench ?? 0;
   const wearPm = att.wearPm ?? 0;
   const wearLevels =
-    wearPm > 0
-      ? Math.min(level, ENTRENCH_WEAR_MAX - (ctx.wornLevels ?? 0))
-      : 0;
+    wearPm > 0 ? Math.min(level, ENTRENCH_WEAR_MAX - (ctx.wornLevels ?? 0)) : 0;
   const wearEvery =
     wearLevels > 0
       ? Math.ceil((ENTRENCH_WEAR_ROUNDS * 1000) / Math.max(1, wearPm))

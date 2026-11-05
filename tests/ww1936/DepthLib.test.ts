@@ -24,7 +24,6 @@ import {
   TemplateDef,
   TPL_AMPHIBIOUS,
   TPL_ARMOR_ANY,
-  TPL_ENGINEER,
   TPL_FLAIL,
   TPL_FLAME,
   TPL_INFANTRY_DIV,

@@ -287,7 +287,11 @@ function finishDirect(land: WwLand, army: Army): boolean {
 }
 
 /** Enemy divisions' defence in `region` (the plan's "weaker first"). */
-export function enemyStrength(land: WwLand, me: number, region: number): number {
+export function enemyStrength(
+  land: WwLand,
+  me: number,
+  region: number,
+): number {
   const t = land.divisions;
   let s = 0;
   for (const r of land.rowsIn(region)) {

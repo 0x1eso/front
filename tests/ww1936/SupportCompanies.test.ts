@@ -429,6 +429,15 @@ describe("support guns", () => {
     const before = l.hash();
     b.wearPm = 4000;
     expect(l.hash()).not.toBe(before);
+    b.wornLevels = 2;
+    const snap = structuredClone(l.snapshot());
+    expect(snap.battles[0].wearPm).toBe(4000);
+    expect(snap.battles[0].wornLevels).toBe(2);
+    const worn = l.hash();
+    b.wornLevels = 0;
+    l.restoreState(snap);
+    expect(l.battles.get(WARSAW)?.wornLevels).toBe(2);
+    expect(l.hash()).toBe(worn);
   });
 
   test("the prediction counts the wear, by the levels left to wear", () => {
@@ -459,9 +468,7 @@ describe("support anti-tank", () => {
     expect(sideFearPct(att, { ...def, fearHalfPm: 1000 }, 0)).toBe(
       TANK_FEAR_PCT / 2,
     );
-    expect(sideFearPct(att, { ...def, fearHalfPm: 500 }, 0)).toBe(
-      23,
-    );
+    expect(sideFearPct(att, { ...def, fearHalfPm: 500 }, 0)).toBe(23);
   });
 });
 

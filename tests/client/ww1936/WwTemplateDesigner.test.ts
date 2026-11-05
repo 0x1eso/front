@@ -131,6 +131,9 @@ describe("<ww-template-designer> (spec §15.5)", () => {
     await m.click(slot("support", 2));
     expect(m.q("[data-ww-pick='engineer']")).toBeNull();
     expect(m.q("[data-ww-pick='support_artillery']")).not.toBeNull();
+    expect(
+      m.q("[data-ww-pick='support_artillery'] [data-ww-support-note]"),
+    ).not.toBeNull();
   });
 
   it("copy saves a new template in one tap when nothing changed; delete takes two", async () => {
