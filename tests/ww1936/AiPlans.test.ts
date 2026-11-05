@@ -11,8 +11,17 @@ import {
   AI_OFFENSE_DEMAND_PCT,
   AI_REGROUP_ORG_PM,
   AI_RESERVE_PCT,
+  aiBestRing,
   aiBorderDemand,
 } from "@openfront/engine/ww1936/land/AiLand";
+import { choosePool } from "@openfront/engine/ww1936/land/AiArmies";
+import {
+  effortScore,
+  enemyFrontScore,
+  offMainDemand,
+  pickMainEnemy,
+  pickMainSector,
+} from "@openfront/engine/ww1936/land/AiEffort";
 import { describe, expect, it } from "vitest";
 
 /** A seed giving the country a strength of exactly `want`, %. */
@@ -104,5 +113,111 @@ describe("rule 2: strike while strong", () => {
     const fr = { ...AI_PLAN_DEFAULT, gateMidPct: 115 };
     expect(planStance(fr, 0, 0).midPct).toBe(115);
     expect(planStance(fr, 0, 0).stopped).toBe(false);
+  });
+});
+
+describe("rule 1: one enemy at a time", () => {
+  const rich = { enemy: 5, vp: 19, capital: false, divisions: 20 };
+  const poor = { enemy: 9, vp: 3, capital: false, divisions: 20 };
+  const flat = () => 10; // no lean
+
+  it("value over the divisions facing, the capital counted", () => {
+    expect(enemyFrontScore(rich)).toBe(1000);
+    expect(enemyFrontScore({ ...rich, capital: true })).toBe(1500);
+    expect(enemyFrontScore({ ...rich, divisions: 0 })).toBe(20_000);
+  });
+
+  it("the best enemy wins; the seeded lean settles a close call", () => {
+    expect(pickMainEnemy([poor, rich], flat)).toBe(5);
+    const a = { ...poor, vp: 19 };
+    expect(pickMainEnemy([a, rich], (e) => (e === 9 ? 20 : 0))).toBe(9);
+    expect(pickMainEnemy([a, rich], (e) => (e === 9 ? 0 : 20))).toBe(5);
+    expect(pickMainEnemy([], flat)).toBe(0);
+  });
+
+  it("the enemy being fought stays while it is close to the best", () => {
+    const near = { ...rich, enemy: 2, vp: 17 };
+    expect(pickMainEnemy([near, rich], flat, 2)).toBe(2);
+    expect(pickMainEnemy([poor, rich], flat, 9)).toBe(5);
+  });
+
+  it("off the main enemy a front keeps what the plan leaves it", () => {
+    expect(offMainDemand(100, 300, 100)).toBe(100);
+    expect(offMainDemand(100, 300, 70)).toBe(160);
+    expect(offMainDemand(100, 300, 0)).toBe(300);
+    expect(offMainDemand(300, 100, 50)).toBe(300);
+  });
+});
+
+describe("rule 3: trade space, hold a fist", () => {
+  const border = { regions: 10, terrain: 0 };
+  const ring = { regions: 7, terrain: 0, vpLost: 2 };
+
+  it("a ring gives up points by the plan's count", () => {
+    expect(aiBestRing(border, [ring])).toBe(0);
+    expect(aiBestRing(border, [{ ...ring, vpLost: 4 }])).toBe(-1);
+    expect(aiBestRing(border, [{ ...ring, vpLost: 4 }], 50)).toBe(0);
+    expect(aiBestRing(border, [ring], 200)).toBe(-1);
+  });
+
+  const army = (id: number, n: number, fist = false, back = false) => ({
+    id,
+    n,
+    fist,
+    back,
+  });
+
+  it("the pool takes the fist first, about its share", () => {
+    const list = [army(1, 20), army(2, 20, true), army(3, 20), army(4, 20)];
+    expect(choosePool(list, 15, 10)).toEqual([2]);
+    expect(choosePool(list, 0, 10)).toEqual([]);
+  });
+
+  it("an army already behind the line stays in it", () => {
+    const list = [army(1, 12), army(2, 12, true), army(3, 12, false, true)];
+    expect(choosePool(list, 20, 5)[0]).toBe(3);
+  });
+
+  it("the line keeps a division a region, and one army; two armies pool nothing", () => {
+    const list = [army(1, 6, true), army(2, 6), army(3, 6)];
+    expect(choosePool(list, 34, 13)).toEqual([]);
+    expect(choosePool([army(1, 40, true), army(2, 40)], 15, 2)).toEqual([]);
+    expect(choosePool(list, 90, 1)).toHaveLength(2);
+  });
+
+  it("no army of more than twice the share", () => {
+    const list = [army(1, 24, true), army(2, 24), army(3, 24)];
+    expect(choosePool(list, 10, 5)).toEqual([]);
+  });
+});
+
+describe("rule 4: sky first", () => {
+  const region = (id: number, skyPm: number, vp = 0) => ({
+    region: id,
+    vp,
+    capital: false,
+    fort: 0,
+    width: 80,
+    defence: 100,
+    extra: 0,
+    skyPm,
+  });
+
+  it("a sector under the enemy's sky is left out while another stands", () => {
+    const list = [region(1, 700, 40), region(2, 0)];
+    expect(pickMainSector(list, 0)).toBe(2);
+  });
+
+  it("with every sector under it the best halved score still decides", () => {
+    expect(pickMainSector([region(1, 900, 40), region(2, 900)], 0)).toBe(1);
+  });
+
+  it("the plan's bar sets where the sky counts", () => {
+    const list = [region(1, 550, 40), region(2, 0)];
+    expect(pickMainSector(list, 0)).toBe(1);
+    expect(pickMainSector(list, 0, 0, false, 15, 500)).toBe(2);
+    expect(effortScore(region(1, 550), false, 500)).toBe(
+      Math.floor(effortScore(region(1, 0)) / 2),
+    );
   });
 });

@@ -111,6 +111,8 @@ import {
   pickMainSector,
 } from "./AiEffort";
 import { meanWidthOf, zoneCap } from "./Fronts";
+  type EnemyFront,
+  offMainDemand,
 import { canServe } from "./GeneralsRun";
 import { capitalRegion } from "./LandStartRun";
 import { enemyDivisionsIn } from "./Movement";
@@ -836,6 +838,9 @@ interface AiLeg {
 }
 
 /** What an army would (or does) throw at the regions across its zone. */
+  /** ww91 rule 1: the same border's demand as a held front and as an offensive. */
+  held: number;
+  full: number;
 interface AiStrike {
   a: Army;
   legs: AiLeg[];
@@ -1026,6 +1031,8 @@ class AiDay {
     readonly human: boolean,
   ) {
     this.me = cl.smallID;
+  /** ww91 rule 1: the one enemy that gets the offensive today; 0: no such choice. */
+  private mainEnemy = 0;
     this.tag = cl.tag;
     this.personality = aiPersonality(cl.tag);
     this.major = COUNTRIES[cl.tag].major;
@@ -1660,7 +1667,8 @@ class AiDay {
           }
         }
         const offensive = this.offensive(enemy);
-        let demand = 0;
+        let held = 0;
+        let full = 0;
         for (const b of order) {
           let milli = 0;
           let dirs = 0;
@@ -1679,10 +1687,19 @@ class AiDay {
             dirs,
             fort: land.econ.fort[b] ?? 0,
             offensePct: this.stance().offensePct,
-            holdCenti: this.plan.holdCenti,
-          });
+            holdCenti: this.warPlan.holdCenti,
+          };
+          held += aiBorderDemand({ ...at, offensive: false });
+          full += aiBorderDemand({ ...at, offensive: true });
         }
-        fronts.push({ enemy, comp: c, border: order, demand });
+        fronts.push({
+          enemy,
+          comp: c,
+          border: order,
+          demand: offensive ? full : held,
+          held,
+          full,
+        });
       }
     }
     return fronts;
@@ -1779,6 +1796,7 @@ class AiDay {
       let reach: number[] = [];
       fronts.forEach((f, i) => {
         if (f.comp === c) reach.push(i);
+    this.oneEnemy(fronts, armies);
       });
       let sea = false;
       if (reach.length === 0) {
@@ -1851,6 +1869,75 @@ class AiDay {
    * plan knows only tenths of demand, and its armies stay where they are:
    * Germany's last armies chased Poland's remnant while the Allies massed in
    * the west. Worst front first (ties: the earlier). ww7 lane F (item 1: no
+  /**
+   * ww91 rule 1, one enemy at a time: with two or more enemies on land, the
+   * best one gets an offensive's demand, and the others keep only what the
+   * plan leaves them, unless they outnumber us there. It keeps no memory: the
+   * enemy most of the army faces stays while it is nearly as good.
+   */
+  private oneEnemy(fronts: Front[], armies: readonly Army[]): void {
+    if (this.warPlan.oneEnemyPct === 0) return;
+    const land = this.land;
+    const sc = land.scenario;
+    const ids = [...new Set(fronts.map((f) => f.enemy))];
+    if (ids.length < 2) return;
+    const on = new Map<number, number>();
+    for (const a of armies) {
+      const o = a.order;
+      if (o.kind !== "front" && o.kind !== "plan") continue;
+      on.set(o.enemy, (on.get(o.enemy) ?? 0) + a.divisions.length);
+    }
+    let keep = 0;
+    for (const e of ids) {
+      if ((on.get(e) ?? 0) > (on.get(keep) ?? 0)) keep = e;
+    }
+    const list: EnemyFront[] = ids.map((enemy) => {
+      const border = fronts.flatMap((f) =>
+        f.enemy === enemy ? f.border : [],
+      );
+      const reached = this.bfsReach(
+        border,
+        (r) => land.controller[r] === enemy,
+        WW_TARGET_REACH_EDGES,
+      );
+      const capital = land.ww.capitalRegion(enemy);
+      const dist = this.reachDist!;
+      const out: EnemyFront = { enemy, vp: 0, capital: false, divisions: 0 };
+      for (const r of reached) {
+        if (land.controller[r] !== enemy) continue;
+        out.vp += sc.region(r)?.vp ?? 0;
+        if (r === capital) out.capital = true;
+        if (dist[r] === 1) out.divisions += this.enemyCount(r, enemy);
+      }
+      this.reachDone(reached);
+      return out;
+    });
+    const period = Math.floor((this.day + this.me) / AI_EFFORT_PERIOD_DAYS);
+    const seed = land.ww.politics.seed;
+    this.mainEnemy = pickMainEnemy(
+      list,
+      (e) => wwRoll(seed, P_MAIN_ENEMY, this.me, period, e),
+      keep,
+    );
+    const ours = new Map<number, number>();
+    for (const a of armies) {
+      const k = a.order.enemy * 65_536 + this.armyComp(a);
+      ours.set(k, (ours.get(k) ?? 0) + this.armyPower(a));
+    }
+    for (const f of fronts) {
+      if (f.enemy === this.mainEnemy) {
+        f.demand = f.full;
+        continue;
+      }
+      const mine = ours.get(f.enemy * 65_536 + f.comp) ?? 0;
+      const outnumbered =
+        this.atWar.includes(f.enemy) &&
+        this.facingPower(f) * 100 > mine * AI_OUTNUMBERED_PCT;
+      if (outnumbered || !this.offensive(f.enemy)) continue;
+      f.demand = offMainDemand(f.held, f.full, this.warPlan.oneEnemyPct);
+    }
+  }
+
    * uncovered border with divisions to spare): a front with nobody on it takes
    * the smallest army another front can spare, however that front stands. With
    * every front outnumbered nobody could give: Niedersachsen and
@@ -1972,10 +2059,16 @@ class AiDay {
       ? this.shorterLine(f, armies, divisions, outnumbered)
       : null;
     const line = ring ?? border;
-    const judged = atWar && ring === null && !outnumbered;
+    // ww91 rule 1: off the main enemy a front holds: walks and a broken enemy only.
+    const offMain =
+      this.mainEnemy !== 0 &&
+      f.enemy !== this.mainEnemy &&
+      this.warPlan.oneEnemyPct >= AI_ONE_ENEMY_HOLD_PCT;
+    const judged = atWar && ring === null && !outnumbered && !offMain;
     const per = outnumbered ? AI_OUTNUMBERED_PER_REGION : 1;
-    const reserve = atWar ? this.reserveOf(line, armies, per, judged) : null;
-    const held = armies.filter((a) => a !== reserve);
+    const reserve = atWar ? this.reserveOf(line, standing, per, judged) : null;
+    const held = standing.filter((a) => a !== reserve);
+    if (offMain) for (const a of held) this.offEffort.add(a.id);
     const zones =
       (judged ? this.mainEffort(f, line, held) : null) ??
       this.zonesOf(f, line, held);

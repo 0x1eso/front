@@ -23,6 +23,77 @@ export const AI_EFFORT_CLOSE_PCT = 15;
 /** C4 (내 판단, from the 90 % measurement): enemy superiority from this ‰ halves a sector's score. */
 export const AI_EFFORT_SKY_PM = 700;
 
+/** wwRoll purpose of ww91 rule 1's seeded lean between enemies. */
+export const P_MAIN_ENEMY = idHash("ai_main_enemy");
+/** ww91 rule 1: the seeded lean on an enemy's score, ± this %. */
+export const AI_ENEMY_LEAN_PCT = 10;
+/** ww91 rule 1: from this `oneEnemyPct` the fronts off the main enemy start no effort of their own. */
+export const AI_ONE_ENEMY_HOLD_PCT = 75;
+
+/** ww91 rule 1: one enemy with a land front, as the AI sees it. */
+export interface EnemyFront {
+  enemy: number;
+  /** Victory points in reach of the front. */
+  vp: number;
+  /** Its capital is among them. */
+  capital: boolean;
+  /** Its divisions facing us. */
+  divisions: number;
+}
+
+/** (Victory points in reach + the capital's value) × 1000 ÷ the divisions facing. */
+export function enemyFrontScore(e: EnemyFront): number {
+  return Math.floor(
+    ((1 + e.vp + (e.capital ? AI_EFFORT_CAPITAL_VALUE : 0)) * 1000) /
+      Math.max(1, e.divisions),
+  );
+}
+
+/**
+ * ww91 rule 1: the enemy that gets the offensive: the best score, leaned by
+ * `leanOf` (any non-negative integer, seeded for the period) ± 10 %; ties to
+ * the smaller id. `keep`, the enemy most of the army fights now, stays while
+ * it is within AI_EFFORT_CLOSE_PCT of the best. 0 with none.
+ */
+export function pickMainEnemy(
+  list: readonly EnemyFront[],
+  leanOf: (enemy: number) => number,
+  keep = 0,
+): number {
+  const span = 2 * AI_ENEMY_LEAN_PCT + 1;
+  const scored = list
+    .map((e) => ({
+      enemy: e.enemy,
+      score: Math.floor(
+        (enemyFrontScore(e) *
+          (100 - AI_ENEMY_LEAN_PCT + (leanOf(e.enemy) % span))) /
+          100,
+      ),
+    }))
+    .sort((a, b) => b.score - a.score || a.enemy - b.enemy);
+  if (scored.length === 0) return 0;
+  const kept = scored.find((e) => e.enemy === keep);
+  if (
+    kept !== undefined &&
+    kept.score * 100 >= scored[0].score * (100 - AI_EFFORT_CLOSE_PCT)
+  ) {
+    return keep;
+  }
+  return scored[0].enemy;
+}
+
+/**
+ * ww91 rule 1: a front's demand when it is off the main enemy: what it holds
+ * with, plus the part of an offensive's extra the plan leaves it.
+ */
+export function offMainDemand(
+  held: number,
+  full: number,
+  oneEnemyPct: number,
+): number {
+  return held + Math.floor((Math.max(0, full - held) * (100 - oneEnemyPct)) / 100);
+}
+
 /** One enemy region the effort could go for. */
 export interface EffortRegion {
   region: number;
