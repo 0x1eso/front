@@ -2854,24 +2854,26 @@ class AiDay {
   }
 
   /**
-   * ww103: an idle army standing on enemy land, with no battle: what a failed
-   * landing with no way home leaves. Nothing else gives it an order (it is on no
-   * stretch of ours) and defenders don't attack who stands among them, so nine
-   * Italian divisions stood in Turkey from 1940 to the end of the game. It fights
-   * for the region where it stands, or takes it if nobody is left. True: it was
-   * on enemy land.
+   * ww103: divisions standing on enemy land with no battle: what a failed landing
+   * with no way home leaves, or a pursuit that lost its region. Nothing else
+   * moves them (they are on no stretch of ours) and defenders don't attack who
+   * stands among them, so nine Italian divisions stood in Turkey from 1940 to the
+   * end of the game. They fight for the region they stand in, or take it if
+   * nobody is left.
    */
-  private fightHere(rows: readonly number[]): boolean {
+  private fightHere(rows: readonly number[]): void {
     const land = this.land;
     const t = land.divisions;
-    const here = t.region[rows[0]];
-    if (!land.isEnemy(this.me, land.controller[here])) return false;
-    if (enemyDivisionsIn(land, this.me, here) === 0) {
-      capture(land, here, this.me, land.mg.ticks());
-      return true;
+    for (const r of rows) {
+      if (t.mode[r] !== MOVE_NONE || t.battle[r] !== 0) continue;
+      const here = t.region[r];
+      if (!land.isEnemy(this.me, land.controller[here])) continue;
+      if (enemyDivisionsIn(land, this.me, here) === 0) {
+        capture(land, here, this.me, land.mg.ticks());
+      } else {
+        joinBattle(land, t.id[r], here);
+      }
     }
-    for (const r of rows) joinBattle(land, t.id[r], here);
-    return true;
   }
 
   /**
@@ -2888,13 +2890,14 @@ class AiDay {
     const left = new Map<number, number>();
     const hungry: Army[] = [];
     for (const a of this.armies()) {
-      if (garrisons.has(a.id) || a.order.kind !== "idle") continue;
-      if (a.divisions.length === 0 || this.travelling(a)) continue;
+      if (garrisons.has(a.id) || a.divisions.length === 0) continue;
+      if (this.travelling(a)) continue;
       const rows = armyRows(land, a);
+      if (a.order.kind !== "paradrop") this.fightHere(rows);
+      if (a.order.kind !== "idle") continue;
       if (rows.some((r) => t.mode[r] !== MOVE_NONE || t.battle[r] !== 0)) {
         continue;
       }
-      if (this.fightHere(rows)) continue;
       if (t.supply[rows[0]] < AI_FEED_OK_PM) hungry.push(a);
     }
     if (hungry.length === 0) return;
