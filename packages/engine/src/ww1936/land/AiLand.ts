@@ -5202,10 +5202,11 @@ class AiDay {
   /**
    * ww105: one company more on line template `tpl` (support artillery, then
    * engineers, anti-tank when an enemy at war fields armour or its table keeps
-   * it, on a major's shape recon, then field hospital, logistics), when the
-   * stock equips it (saveTemplate). A line whose company gear has run out gives
-   * those companies up instead: under half a division's need all of its training
-   * stops, for the sake of a company. It takes them back once the stock can.
+   * it, then field hospital, logistics), when the stock equips it (saveTemplate).
+   * A line whose table keeps a company takes its guns as companies: it adds recon
+   * after the anti-tank, and if it has stopped training for want of a company's
+   * gear it gives that company up, the last in first, one a refit: a division
+   * short of a company beats none. It takes it back once the stock can.
    */
   private refitCompanies(
     tpl: LandTemplate,
@@ -5213,9 +5214,11 @@ class AiDay {
   ): void {
     const researched = this.ce.researched;
     const { battalions, support } = tpl.def;
-    const fed = support.filter((s) => !this.companyShort(tpl, s));
-    if (fed.length < support.length) {
-      this.saveTemplate(tpl.id, battalions, fed);
+    const company = shape?.company;
+    for (let i = support.length - 1; i >= 0 && company !== undefined; i--) {
+      if (!this.stallsTraining(tpl, support[i])) continue;
+      const kept = support.filter((_, k) => k !== i);
+      this.saveTemplate(tpl.id, battalions, kept);
       return;
     }
     if (support.length >= wwMaxSupport(battalions.length)) return;
@@ -5223,7 +5226,7 @@ class AiDay {
       ["support_artillery", ["artillery_1", "support_eq_1"]],
       ["engineer", ["engineer_company"]],
       ["support_anti_tank", ["anti_tank_1", "support_eq_1"]],
-      ...(shape === undefined
+      ...(company === undefined
         ? []
         : ([["recon", ["recon_company"]]] as const)),
       ["field_hospital", ["field_hospital"]],
@@ -5232,11 +5235,7 @@ class AiDay {
     for (const [s, techs] of wanted) {
       if (support.includes(s)) continue;
       if (!techs.every((x) => researched.has(x))) continue;
-      if (
-        s === "support_anti_tank" &&
-        shape?.company !== s &&
-        !this.enemyArmour()
-      ) {
+      if (s === "support_anti_tank" && company !== s && !this.enemyArmour()) {
         continue;
       }
       this.saveTemplate(tpl.id, battalions, [...support, s]);
@@ -5244,8 +5243,20 @@ class AiDay {
     }
   }
 
-  /** ww105: the stock can't fill one division's need of a type company `s` of `tpl` uses. */
-  private companyShort(tpl: LandTemplate, s: SupportId): boolean {
+  /**
+   * ww105: nothing of `tpl` is training and the stock of a type company `s`
+   * uses is under the training gate (aiTrainPlan's TRAIN_FILL_PM). A stock near
+   * nothing alone says little: a country short of support gear trains on what
+   * comes off the line.
+   */
+  private stallsTraining(tpl: LandTemplate, s: SupportId): boolean {
+    const cl = this.cl;
+    if (
+      cl.trainees.some((x) => x.template === tpl.id) ||
+      cl.training.some((e) => e.template === tpl.id)
+    ) {
+      return false;
+    }
     const stats = this.ce.stats;
     const need = templateStats(tpl.def, stats, GEN1).need;
     const without = templateStats(
@@ -5253,7 +5264,11 @@ class AiDay {
       stats,
       GEN1,
     ).need;
-    return need.some((n, i) => n > without[i] && this.stockOf(i) < n);
+    return need.some(
+      (n, i) =>
+        n > without[i] &&
+        Math.floor((this.stockOf(i) * 1000) / n) < TRAIN_FILL_PM,
+    );
   }
 
   /** The battalion can be fielded on its own techs. */

@@ -249,14 +249,31 @@ describe("the plan's small rules in the game", () => {
         if (t === "support_equipment") ce.stock[k] = n;
       });
     };
+    // Training goes on: a stock near nothing alone takes no company away.
+    const cl = l.country(sun)!;
+    cl.trainees.push({
+      entry: 0,
+      template: line.id,
+      men: 0,
+      equip: [],
+      days: 1,
+    });
     setGear(0);
     aiLandTick(l, sun, sun);
-    // Only the companies on the empty gear go; the guns stay. None comes back
-    // while the stock is empty, whatever the gear the divisions gave back.
+    expect(line.def.support).toContain("recon");
+    // Nothing trains: the last company on the gear goes, one a refit; the guns
+    // stay, and none comes back while the stock is empty.
+    cl.trainees.length = 0;
+    cl.training.length = 0;
+    setGear(0);
+    aiLandTick(l, sun, sun);
+    expect(line.def.support).not.toContain("recon");
+    expect(line.def.support).toContain("engineer");
+    cl.trainees.length = 0;
+    cl.training.length = 0;
     setGear(0);
     aiLandTick(l, sun, sun);
     expect(line.def.support).not.toContain("engineer");
-    expect(line.def.support).not.toContain("recon");
     expect(line.def.support).toContain("support_artillery");
     expect(line.def.support).toContain("support_anti_tank");
     setGear(1_000_000);
