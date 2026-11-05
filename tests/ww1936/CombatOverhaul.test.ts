@@ -437,11 +437,11 @@ describe("P2: armour and pierce bands", () => {
       ["anti_tank", 2],
     ]);
     expect(withGuns.bandPierce).toEqual([400, 5000]);
-    expect(withGuns.bandHard).toEqual([700, 3000]);
+    expect(withGuns.bandHard).toEqual([700, 7000]);
     expect(withGuns.pierce).toBe(5000);
     // Defending: the guns' share goes straight through a medium tank's armour.
     const p = bandProtectPm(withGuns.bandPierce, withGuns.bandHard, 4000);
-    expect(p).toBe(Math.floor((700 * 850) / 3700));
+    expect(p).toBe(Math.floor((700 * 850) / 7700));
   });
 
   test("a gun pierces fully defending, half attacking; a tank's gun both ways", () => {
@@ -571,12 +571,12 @@ describe("P3: infantry and armour", () => {
     expect(bandProtectPm([3900], [900], 4000, 250)).toBe(0);
   });
 
-  test("tank fear: a line that can't reach a third of the armour takes 25 % more", () => {
+  test("tank fear: a line that can't reach a third of the armour takes 30 % more", () => {
     expect(tankFearPct(rifles.bandPierce, rifles.bandHard, 4000, 0)).toBe(
       TANK_FEAR_PCT,
     );
     // Research takes it off, five points a step.
-    expect(tankFearPct(rifles.bandPierce, rifles.bandHard, 4000, 10)).toBe(15);
+    expect(tankFearPct(rifles.bandPierce, rifles.bandHard, 4000, 10)).toBe(20);
     expect(tankFearPct(rifles.bandPierce, rifles.bandHard, 4000, 30)).toBe(0);
     const guns = stats([
       ["infantry", 7],
@@ -622,11 +622,11 @@ describe("P3: infantry and armour", () => {
     const toFoot = predictBattle(side(tanks), side(rifles), ctx);
     const fearless = predictBattle(side(tanks), side(rifles), {
       ...ctx,
-      tankFearCutPp: 25,
+      tankFearCutPp: 30,
     });
-    // Tank fear: the armour-major share of the attackers counts (4 of 9 is
-    // no armour-major division, so here nothing).
-    expect(toFoot.ratioPm).toBe(fearless.ratioPm);
+    // Tank fear: ww90, tanks with their motorized count, so the plan's own
+    // 4 + 5 division does; rifles alone do not.
+    expect(toFoot.ratioPm).toBeGreaterThan(fearless.ratioPm);
     const heavy = stats([
       ["medium_armor", 5],
       ["motorized", 4],
@@ -634,7 +634,7 @@ describe("P3: infantry and armour", () => {
     expect(
       predictBattle(side(heavy), side(rifles), ctx).ratioPm,
     ).toBeGreaterThan(
-      predictBattle(side(heavy), side(rifles), { ...ctx, tankFearCutPp: 25 })
+      predictBattle(side(heavy), side(rifles), { ...ctx, tankFearCutPp: 30 })
         .ratioPm,
     );
     // Foot defend better than the same numbers without the rule.
@@ -748,8 +748,9 @@ describe("P4: the opening barrage, guns and heavy tanks", () => {
         ["motorized", 4],
       ]).flags & TPL_HEAVY_LEAD,
     ).toBe(0);
-    expect(prepKeepPm(heavy.flags, 0)).toBe(750);
-    expect(prepKeepPm(heavy.flags, 2000)).toBe(600);
+    // ww90: on top of what any tanks with their motorized roll over.
+    expect(prepKeepPm(heavy.flags, 0)).toBe(350);
+    expect(prepKeepPm(heavy.flags, 2000)).toBe(280);
     const fort = (flags: number) =>
       line(divisionMods(input({ flags, fort: 3 })).attackLines, "fort");
     expect(fort(0)).toBe(-5100);
@@ -958,8 +959,8 @@ describe("P5: armour running through", () => {
       attackerAttackBp: 10_000,
       attackerBlockBp: 10_000,
       defenderAttackBp: 10_000,
-      defenderBlockBp: 12_500,
-      defenderPrepBp: 2500,
+      defenderBlockBp: 22_500,
+      defenderPrepBp: 12_500,
     };
     const att = side(stats(panzer));
     const def = side(stats([["infantry", 9]]));

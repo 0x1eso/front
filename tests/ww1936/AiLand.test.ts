@@ -295,7 +295,7 @@ describe("the AI's land decisions (spec §14, pure)", () => {
       major: true,
       dev: 5,
       hasArmorTech: false,
-      hasMountains: false,
+      hasAssault: false,
       unitPct: 5,
       training: 0,
       manpower: 1_000_000,
@@ -323,7 +323,7 @@ describe("the AI's land decisions (spec §14, pure)", () => {
       major: true,
       dev: 5,
       hasArmorTech: true,
-      hasMountains: false,
+      hasAssault: false,
       training: 0,
       manpower: 1_000_000,
       counts: counts({ infantry: 40, armor: 5 }),
@@ -368,7 +368,7 @@ describe("the AI's land decisions (spec §14, pure)", () => {
       aiTrainPlan({
         ...base,
         hasArmorTech: false,
-        hasMountains: true,
+        hasAssault: true,
         counts: counts({ infantry: 40 }),
       }),
     ).toEqual([3, 3, 3]);

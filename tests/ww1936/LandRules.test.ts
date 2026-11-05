@@ -375,9 +375,9 @@ describe("combat (P2 spec §9)", () => {
     );
     // Entrenchment and positions count, a blitz halves the entrenchment.
     const input = neutral({ attacking: false, entrench: 5, posLevel: 3 });
-    expect(divisionMods(input).mods.prepBp).toBe(4000);
+    expect(divisionMods(input).mods.prepBp).toBe(20_000);
     expect(divisionMods({ ...input, halfEntrench: true }).mods.prepBp).toBe(
-      2750,
+      13_750,
     );
     expect(divisionMods(neutral({})).mods.prepBp).toBe(0);
   });
@@ -405,10 +405,10 @@ describe("combat (P2 spec §9)", () => {
     expect(line(divisionMods(neutral({ fort: 3 })).attackLines, "fort")).toBe(
       -3825,
     );
-    // The defender's entrenchment (ww7: 5% a level, was 3%) and engineers.
+    // The defender's entrenchment (ww90: 25% a level, was 5%) and engineers.
     expect(
       divisionMods(neutral({ attacking: false, entrench: 4 })).mods.defenseBp,
-    ).toBe(12_500);
+    ).toBe(20_500);
     expect(
       line(divisionMods(neutral({ supplyPm: 500 })).attackLines, "supply"),
     ).toBe(-2500);
@@ -437,11 +437,11 @@ describe("combat (P2 spec §9)", () => {
     // one on one: ww67, with foot breakthrough ×2 its guns win the exchange of
     // org, though it can't break a whole line alone (Battles.test).
     const one = predictBattle(side(INF72, 1), side(POL9, 1), ctx(1));
-    expect(one.ratioPm).toBeGreaterThanOrEqual(1020);
+    expect(one.ratioPm).toBeGreaterThanOrEqual(960);
     expect(one.ratioPm).toBeLessThanOrEqual(1230);
     // Seven against five, from two directions: the attacker wins in ~65 rounds
     // (ww7 lane F: a hit takes 0.4 of the spec's org, which said ~20; ww84:
-    // foot defend at 85 % org damage).
+    // foot defend at 82 % org damage).
     const seven = predictBattle(side(INF72, 7), side(POL9, 5), ctx(2));
     expect(seven.ratioPm).toBeGreaterThanOrEqual(1800);
     expect(seven.ratioPm).toBeLessThanOrEqual(2300);

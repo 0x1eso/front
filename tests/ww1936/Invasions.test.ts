@@ -711,7 +711,6 @@ describe("naval invasions", () => {
     a.auto = true;
     // Three divisions need more than Britain's 35 start convoys.
     navy.econ.country(GBR)!.stock[equipKey("convoy", 1)] = 100;
-    const [pole] = placeArmy(g, "POL", REGION.krakow, 1).divisions;
     // A player's order turns the army's auto off (P2 spec §8.5).
     expect(invade(navy, GBR, a, REGION.krakow)).toBeNull();
     expect(a.auto).toBe(false);
@@ -722,7 +721,11 @@ describe("naval invasions", () => {
     expect(inv.state).toBe(st("ready"));
     // The patrols' supremacy, computed on the sea regions' days.
     expect(invasionLaunchBlock(navy, a.id)).toBeNull();
-    // The Pole worn down as the convoys sail (its org recovers in port).
+    // The defender comes last: Poland's AI pulls a lone division back to
+    // Warsaw well inside the 60 days of preparation, and an empty Krakow
+    // falls with no battle at all. Worn down as the convoys sail (its org
+    // recovers in port).
+    const [pole] = placeArmy(g, "POL", REGION.krakow, 1).divisions;
     l.divisions.org[l.divisions.rowOf(pole)] = 1;
     expect(
       navy.issue(GBR, { kind: "invasion_execute", army: a.id }, g.ticks()),

@@ -49,6 +49,7 @@ import {
   TPL_MOUNTAIN_ANY,
   TPL_MOUNTAIN_MAJOR,
   TPL_PARA_ANY,
+  TPL_TANK_FORCE,
   TPL_TD_DEFEND,
   WW_MAX_BATTALIONS,
   WW_MAX_SUPPORT,
@@ -59,7 +60,7 @@ import {
 } from "@openfront/engine-api/ww1936/LandTypes";
 import type { WwStatKey } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { BATTALIONS, SUPPORTS } from "./Battalions";
-import { defenderOrgPct } from "./CombatRules";
+import { defenderOrgPct, researchedArmor } from "./CombatRules";
 import { battalionStatPct, pctOf } from "./DoctrineRules";
 import { EQUIPMENT, unitCostMilli } from "./Equipment";
 import { LAND_FUEL_PER_HOUR_MILLI } from "./FuelRules";
@@ -163,12 +164,47 @@ const W_SPA = [60, 10, 10, 20, 0, 0, 0];
 const W_SPAA = [10, 0, 10, 10, 0, 0, 70];
 const W_FIELDS = [KS.soft, KS.hard, KS.def, KS.brk, KS.pierce, KS.armor, KS.aa];
 
+/** ww90: from this speed a tank keeps up with the motorized around it, centi-km/h. */
+export const TANK_SPEED_FULL_CENTI = 600;
+/** ww90: under this one it drags even the infantry. */
+const TANK_SPEED_FOOT_CENTI = 400;
+/** ww90: the most a fast tank's score gains, ‰, reached at 9 km/h. */
+const TANK_SPEED_BONUS_PM = 100;
+const TANK_SPEED_TOP_CENTI = 900;
+
+/**
+ * ww90: what a tank's speed does to its score, ‰. A division marches at its
+ * slowest and only fast ones run through a broken line, so a tank pays for
+ * being slower than the motorized around it, in proportion, and with the
+ * square of its speed under the infantry's pace (a Tortoise, 1.8 km/h, keeps
+ * an eighth); a fast one gains a little. 0: a row with no speed (the screens'
+ * tables), which counts as full.
+ */
+export function tankSpeedPm(speedCenti: number): number {
+  if (speedCenti <= 0) return 1000;
+  if (speedCenti >= TANK_SPEED_FULL_CENTI) {
+    return (
+      1000 +
+      Math.floor(
+        (TANK_SPEED_BONUS_PM *
+          (Math.min(speedCenti, TANK_SPEED_TOP_CENTI) -
+            TANK_SPEED_FULL_CENTI)) /
+          (TANK_SPEED_TOP_CENTI - TANK_SPEED_FULL_CENTI),
+      )
+    );
+  }
+  const pace = Math.floor((1000 * speedCenti) / TANK_SPEED_FULL_CENTI);
+  if (speedCenti >= TANK_SPEED_FOOT_CENTI) return pace;
+  return Math.floor((pace * speedCenti) / TANK_SPEED_FOOT_CENTI);
+}
+
 /**
  * The performance score of a KeyStatsTable row (integers only): weighted by
  * the group's role — tank: soft, hard, breakthrough, defence, armour,
  * pierce; tank destroyer: mainly pierce and hard; SP artillery: mainly
- * soft; SP anti-air: mainly anti-air. Groups that are no tanks rank by
- * `year` (their generation), as before.
+ * soft; SP anti-air: mainly anti-air; ww90: all of it by speed
+ * (tankSpeedPm). Groups that are no tanks rank by `year` (their
+ * generation), as before.
  */
 export function rowScore(
   stats: ArrayLike<number>,
@@ -190,7 +226,9 @@ export function rowScore(
   for (let i = 0; i < W_FIELDS.length; i++) {
     if (w[i] !== 0) sum += stats[o + W_FIELDS[i]] * w[i];
   }
-  return Math.floor(sum / 100);
+  return Math.floor(
+    (Math.floor(sum / 100) * tankSpeedPm(stats[o + KS.speedCenti])) / 1000,
+  );
 }
 
 /** Percent below the group's best score from which a key is old (Rule 5). */
@@ -233,6 +271,7 @@ export function keyStatsWithDesigns(
       pierce: number;
       armor: number;
       aa: number;
+      speedCenti?: number;
     };
   }>,
 ): KeyStatsTable {
@@ -255,6 +294,7 @@ export function keyStatsWithDesigns(
     t.stats[o + KS.pierce] = s.pierce;
     t.stats[o + KS.armor] = s.armor;
     t.stats[o + KS.aa] = s.aa;
+    t.stats[o + KS.speedCenti] = s.speedCenti ?? 0;
     t.score[j] = rowScore(t.stats, j, s.group, s.year);
   }
   return t;
@@ -797,7 +837,7 @@ export function templateStats(
       keyed(ks, main, g, KS.hardnessPm, d.hardnessPm),
       KS.hardnessPm,
     );
-    const armor = pctOf(
+    const armor = researchedArmor(
       mix(
         keyed(ks, main, g, KS.armor, Math.floor((d.armor * ga) / 100)),
         KS.armor,
@@ -934,6 +974,7 @@ export function templateStats(
   }
   if (armorN > 0) flags |= TPL_ARMOR_ANY;
   if (armorN * 2 >= n && n > 0) flags |= TPL_ARMOR_MAJOR;
+  if (armorN > 0 && (armorN + motorN) * 2 >= n) flags |= TPL_TANK_FORCE;
   if (footN * 2 >= n && n > 0) flags |= TPL_FOOT_MAJOR;
   const heavyLead = heavyN > 0 && heavyN * 2 >= armorN;
   if (heavyLead) flags |= TPL_HEAVY_LEAD;

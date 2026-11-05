@@ -12,6 +12,9 @@ export const P_AXIS = idHash("ai_axis");
 export const AI_EFFORT_PERIOD_DAYS = 10;
 /** Rule 1: a fort of this level or more is left out while anything else is in reach. */
 export const AI_EFFORT_FORT_BAR = 4;
+/** ww90: with heavy tanks or assault infantry at hand, a level higher, and a fort counts this share. */
+export const AI_EFFORT_BREAK_FORT_BAR = 5;
+export const AI_EFFORT_BREAK_FORT_PCT = 75;
 /** Rule 1: an enemy capital's value, on top of its victory points. */
 export const AI_EFFORT_CAPITAL_VALUE = 10;
 /** Rule 2 (내 판단): the second-best sector is in the draw within this share of the best. */
@@ -43,10 +46,18 @@ export interface EffortRegion {
  * for the fort level, so that nobody at all behind a fort is not free. Under
  * an enemy sky the score halves (C4).
  */
-export function effortScore(r: EffortRegion): number {
+export function effortScore(r: EffortRegion, breaksForts = false): number {
   const value = 1 + r.vp + (r.capital ? AI_EFFORT_CAPITAL_VALUE : 0) + r.extra;
+  const fort = r.fort * r.width;
   const score = Math.floor(
-    (value * 1000) / Math.max(1, r.defence + r.fort * r.width),
+    (value * 1000) /
+      Math.max(
+        1,
+        r.defence +
+          (breaksForts
+            ? Math.floor((fort * AI_EFFORT_BREAK_FORT_PCT) / 100)
+            : fort),
+      ),
   );
   return (r.skyPm ?? 0) >= AI_EFFORT_SKY_PM ? Math.floor(score / 2) : score;
 }
@@ -57,16 +68,19 @@ export function effortScore(r: EffortRegion): number {
  * this period) takes the second best half the time when it is within
  * AI_EFFORT_CLOSE_PCT of the best, so games differ. 0 with no region.
  * `keep`, the sector standing now, stays while it is that close to the best:
- * armies do not march off for a coin.
+ * armies do not march off for a coin. `breaksForts`: ww90, the force has heavy
+ * tanks or assault infantry.
  */
 export function pickMainSector(
   regions: readonly EffortRegion[],
   roll: number,
   keep = 0,
+  breaksForts = false,
 ): number {
-  const open = regions.filter((r) => r.fort < AI_EFFORT_FORT_BAR);
+  const bar = breaksForts ? AI_EFFORT_BREAK_FORT_BAR : AI_EFFORT_FORT_BAR;
+  const open = regions.filter((r) => r.fort < bar);
   const list = (open.length > 0 ? open : regions)
-    .map((r) => ({ region: r.region, score: effortScore(r) }))
+    .map((r) => ({ region: r.region, score: effortScore(r, breaksForts) }))
     .sort((a, b) => b.score - a.score || a.region - b.region);
   if (list.length === 0) return 0;
   const [first, second] = list;

@@ -186,6 +186,11 @@ export class WwBattleCard extends LitElement implements Controller {
         ></div>
       </div>
       ${this.renderAir(d)} ${this.renderLuck(battleLuck(b, this.luckBand(b)))}
+      ${(b.runRounds ?? 0) > 0 && this.luckBand(b) >= 3
+        ? html`<div data-ww-battle-running class="text-amber-300">
+            ${translateText("ww1936.land.battle_running", { n: b.runRounds! })}
+          </div>`
+        : nothing}
       <div class="grid grid-cols-2 gap-2">
         ${this.renderSide(
           "attacker",

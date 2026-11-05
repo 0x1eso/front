@@ -84,7 +84,7 @@ function baseTemplates(tag: CountryTag, dev: number): StartTemplate[] {
           "armored",
           [
             ["light_armor", 4],
-            ["motorized", 2],
+            ["motorized", 3],
             ["mot_artillery", 1],
           ],
           ["recon"],
@@ -193,7 +193,7 @@ function baseTemplates(tag: CountryTag, dev: number): StartTemplate[] {
         ]),
         tpl("tank_brigade", [
           ["light_armor", 3],
-          ["motorized", 1],
+          ["motorized", 2],
         ]),
         tpl("mountain_rifle", [["mountain", 6]]),
       ];

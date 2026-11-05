@@ -1265,6 +1265,7 @@ export function mergeSides(a: SideSum, b: SideSum): SideSum {
     defOrgPct: mix(a.defOrgPct ?? 100, b.defOrgPct ?? 100),
     footPm: mix(a.footPm ?? 0, b.footPm ?? 0),
     armorMajorPm: mix(a.armorMajorPm ?? 0, b.armorMajorPm ?? 0),
+    barePm: mix(a.barePm ?? 0, b.barePm ?? 0),
     prepFireBp: mix(a.prepFireBp ?? 0, b.prepFireBp ?? 0),
     heavyPm: mix(a.heavyPm ?? 0, b.heavyPm ?? 0),
     recon: a.recon === true || b.recon === true,
@@ -1279,7 +1280,13 @@ function sideShares(
   s: DivisionStats,
 ): Pick<
   SideSum,
-  "defOrgPct" | "footPm" | "armorMajorPm" | "prepFireBp" | "heavyPm" | "recon"
+  | "defOrgPct"
+  | "footPm"
+  | "armorMajorPm"
+  | "barePm"
+  | "prepFireBp"
+  | "heavyPm"
+  | "recon"
 > {
   const one = emptySide();
   addToSide(one, s, 0);
@@ -1287,6 +1294,7 @@ function sideShares(
     defOrgPct: one.defOrgPct,
     footPm: one.footPm,
     armorMajorPm: one.armorMajorPm,
+    barePm: one.barePm,
     prepFireBp: one.prepFireBp,
     heavyPm: one.heavyPm,
     recon: one.recon,
@@ -1567,6 +1575,7 @@ export function sideScaledTo(s: SideSum, n: number): SideSum {
     defOrgPct: s.defOrgPct,
     footPm: s.footPm,
     armorMajorPm: s.armorMajorPm,
+    barePm: s.barePm,
     prepFireBp: s.prepFireBp,
     heavyPm: s.heavyPm,
     recon: s.recon,
@@ -1952,11 +1961,32 @@ export function battleCard(
     summary: b,
     land,
     weather,
-    attackLines: divisionMods(att).attackLines,
-    defenseLines: divisionMods(def).defenseLines,
+    attackLines: [...divisionMods(att).attackLines, ...sideAttackLines(b)],
+    defenseLines: [...divisionMods(def).defenseLines, ...sideDefenseLines(b)],
     mine: leave.length > 0,
     leaveArmies: leave,
   };
+}
+
+/** ww90: what the battle adds to the attackers' lines: the opening barrage while it lasts. */
+function sideAttackLines(b: BattleSummary): ModLine[] {
+  return (b.fireBp ?? 0) > 0 ? [{ id: "barrage", bp: b.fireBp! }] : [];
+}
+
+/**
+ * ww90: what the battle does to the org the defenders lose: foot give less
+ * ground, tanks with no infantry more, tanks they can't stop more again. Green
+ * is good for the side it stands on, so a saving is plus.
+ */
+function sideDefenseLines(b: BattleSummary): ModLine[] {
+  const out: ModLine[] = [];
+  const org = b.defOrgPct ?? 100;
+  if (org < 100) out.push({ id: "foot_line", bp: (100 - org) * 100 });
+  if (org > 100) out.push({ id: "bare_armor", bp: (100 - org) * 100 });
+  if ((b.fearPct ?? 0) > 0) {
+    out.push({ id: "tank_fear", bp: -b.fearPct! * 100 });
+  }
+  return out;
 }
 
 // ---- ww7: luck on the battle card (design §2.2, §2.6) ----

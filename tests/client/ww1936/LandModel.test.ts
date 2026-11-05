@@ -496,6 +496,26 @@ describe("LandModel (spec §15)", () => {
     expect(battleCard(other.land, other.view, DEU, 6, DAY)).toBeNull();
   });
 
+  it("the battle card names the barrage, tank fear and what the defenders are", () => {
+    const b = battle(7, "DEU", "POL", {
+      fireBp: 2222,
+      fearPct: 30,
+      defOrgPct: 82,
+    });
+    const { land, view } = game({ ...AT_WAR, battles: [b] });
+    const c = battleCard(land, view, DEU, 7, DAY)!;
+    expect(c.attackLines).toEqual([{ id: "barrage", bp: 2222 }]);
+    expect(c.defenseLines).toEqual([
+      { id: "foot_line", bp: 1800 },
+      { id: "tank_fear", bp: -3000 },
+    ]);
+    const bare = battle(7, "DEU", "POL", { defOrgPct: 125 });
+    const on = game({ ...AT_WAR, battles: [bare] });
+    expect(battleCard(on.land, on.view, DEU, 7, DAY)!.defenseLines).toEqual([
+      { id: "bare_armor", bp: -2500 },
+    ]);
+  });
+
   it("the region card's land lines", () => {
     const { land, view } = game({
       regions: [region(7, { fort: 2 }), region(3, { fort: 0 })],

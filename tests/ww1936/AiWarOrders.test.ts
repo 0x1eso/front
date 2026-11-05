@@ -220,20 +220,21 @@ describe("ww7 lane D: the AI's army objective orders", () => {
   }, 300_000);
 
   test("the gate reads all that would go in: one army alone holds where two converging attack, and they go together for one region", async () => {
-    // Twenty in Warsaw, twenty-four in Krakow: eighteen would not do, and the
-    // front stands outnumbered; with nine more the main effort takes both
-    // armies to one region: the holder of the rest sends its spare too.
+    // Dug in (ww90: a trench takes about three to one), nine in Warsaw and
+    // eleven in Krakow: eighteen would not do, and the front stands
+    // outnumbered; with nine more the main effort takes both armies to one
+    // region: the holder of the rest sends its spare too.
     const run = async (armies: [number, number][]) => {
       const c = await atWar();
-      placeArmy(c.g, "POL", WARSAW, 20);
-      placeArmy(c.g, "POL", KRAKOW, 24);
+      placeArmy(c.g, "POL", WARSAW, 9);
+      placeArmy(c.g, "POL", KRAKOW, 11);
       const mine = armies.map(([r, n]) => autoArmy(c, r, n, 2));
       c.days(30, () => c.l.battles.size > 0);
       return { c, mine, fought: c.l.battles.size > 0 };
     };
     const alone = await run([[MUNICH, 18]]);
     expect(alone.fought).toBe(false);
-    expect(alone.mine[0].order.kind).toBe("front");
+    expect(alone.mine[0].order.executing).toBe(false);
     const both = await run([
       [BERLIN, 9],
       [MUNICH, 18],
@@ -263,8 +264,8 @@ describe("ww7 lane D: the AI's army objective orders", () => {
 
   test("C1: only the main sector is attacked, in force, and a level 1 army holds", async () => {
     const c = await atWar();
-    placeArmy(c.g, "POL", WARSAW, 24);
-    placeArmy(c.g, "POL", KRAKOW, 24);
+    placeArmy(c.g, "POL", WARSAW, 8);
+    placeArmy(c.g, "POL", KRAKOW, 8);
     const big = autoArmy(c, MUNICH, 24, 2);
     const hold = autoArmy(c, BERLIN, 9, 1);
     c.days(30, () => c.l.battles.size > 0);

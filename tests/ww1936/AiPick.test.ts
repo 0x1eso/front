@@ -41,12 +41,19 @@ describe("ww81 the AI's entry pick", () => {
     expect(aiKeeps(list, 20, 9)).toBe(false);
   });
 
-  test("C5: armour past the enemy's pierce counts more, a gun that cannot pierce less", () => {
-    const t = { armor: 50, pierce: 40 };
-    expect(thresholdPm(60, 60, t)).toBe(1500);
-    expect(thresholdPm(30, 30, t)).toBe(800);
-    expect(thresholdPm(60, 30, t)).toBe(1200);
-    expect(thresholdPm(60, 60, { armor: 0, pierce: 0 })).toBe(1000);
+  test("C5: on the armour curve: armour the enemy can't pierce counts more, a gun that can't pierce less", () => {
+    const t = { armor: 5000, pierce: 4000 };
+    // Armour just over the pierce stops next to nothing: no ×3/2 at the line.
+    expect(thresholdPm(4100, 5000, t)).toBe(1021);
+    // Two thirds: half stopped. A third: the whole ×3/2.
+    expect(thresholdPm(6000, 5000, t)).toBe(1294);
+    expect(thresholdPm(12_000, 5000, t)).toBe(1500);
+    // A gun at a third of the armour: the whole ×4/5.
+    expect(thresholdPm(100, 1600, t)).toBe(800);
+    expect(thresholdPm(12_000, 1600, t)).toBe(1200);
+    // A light vehicle stops half at best, whatever the gun.
+    expect(thresholdPm(1900, 5000, { armor: 0, pierce: 400 })).toBe(1294);
+    expect(thresholdPm(6000, 6000, { armor: 0, pierce: 0 })).toBe(1000);
   });
 
   test("a more agile fighter scores higher at equal attack", () => {

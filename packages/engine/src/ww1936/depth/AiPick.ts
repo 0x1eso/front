@@ -7,8 +7,10 @@
 //     at all x2.5 (stateless; the market's imports count in what is held);
 //  4. a national quality lean Q (0..100, seeded +-10 a game): the score
 //     counts more the closer it is to the top, the more Q;
-//  5. C5: a tank that out-armours the enemy's pierce counts x3/2, one that
-//     cannot pierce the enemy's armour x4/5.
+//  5. C5: a tank that out-armours the enemy's pierce counts up to x3/2, one
+//     that cannot pierce the enemy's armour down to x4/5, each on the
+//     armour curve (ww90).
+//     Speed is in the score itself (TemplateStats.tankSpeedPm).
 // All integers; the lists are append-only and nothing here is stored.
 import { KS, KS_FIELDS } from "@openfront/engine-api/ww1936/DepthTypes";
 import { EQUIP_KEYS } from "@openfront/engine-api/ww1936/EconomyTypes";
@@ -18,6 +20,10 @@ import {
   GROUND_STATIC_SLOTS,
 } from "@openfront/engine-api/ww1936/LandTypes";
 import { agilityFactorPm } from "@openfront/engine-lib/ww1936/AirRules";
+import {
+  ARMOR_PROTECT_MAX_PM,
+  armorProtectPm,
+} from "@openfront/engine-lib/ww1936/CombatRules";
 import { EQUIPMENT } from "@openfront/engine-lib/ww1936/Equipment";
 import { breakdownPpm } from "@openfront/engine-lib/ww1936/hist/Wear";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
@@ -186,16 +192,36 @@ export function enemyThreshold(
   return out;
 }
 
-/** C5's multiplier (per mille) for a tank slot's armour and pierce against the threshold. */
+/** C5 at its fullest: what armour nothing pierces adds, and what a gun that pierces nothing takes, ‰. */
+const ARMOR_WORTH_PM = 500;
+const PIERCE_WORTH_PM = 200;
+
+/**
+ * C5's multiplier (per mille) for a tank slot's armour and pierce against the
+ * threshold. ww90: on the armour curve, which is what a hit reads: armour just
+ * over the enemy's pierce stops next to nothing, and a light vehicle stops half
+ * at best, so ×3/2 and ×4/5 are the far ends, not a step at the line.
+ */
 export function thresholdPm(
   armor: number,
   pierce: number,
   t: Threshold,
 ): number {
-  let pm = 1000;
-  if (t.pierce > 0 && armor > t.pierce) pm = Math.floor((pm * 3) / 2);
-  if (t.armor > 0 && pierce < t.armor) pm = Math.floor((pm * 4) / 5);
-  return pm;
+  const up =
+    t.pierce > 0
+      ? Math.floor(
+          (ARMOR_WORTH_PM * armorProtectPm(armor, t.pierce)) /
+            ARMOR_PROTECT_MAX_PM,
+        )
+      : 0;
+  const down =
+    t.armor > 0
+      ? Math.floor(
+          (PIERCE_WORTH_PM * armorProtectPm(t.armor, pierce)) /
+            ARMOR_PROTECT_MAX_PM,
+        )
+      : 0;
+  return Math.floor(((1000 + up) * (1000 - down)) / 1000);
 }
 
 // ---- planes (P1b): the fighter score the duel reads ----

@@ -153,8 +153,8 @@ export const TEMPLATE_PRESETS: readonly TemplatePreset[] = [
       ["artillery", 1],
     ],
     ["engineer"],
-    "Mountain Troops",
-    "산악",
+    "Assault Infantry",
+    "돌격보병",
   ),
   p(
     "marine_div",
@@ -228,7 +228,7 @@ export const TEMPLATE_PRESETS: readonly TemplatePreset[] = [
     "light_armor",
     [
       ["light_armor", 4],
-      ["motorized", 2],
+      ["motorized", 3],
       ["mot_artillery", 1],
     ],
     ["recon"],
@@ -279,8 +279,8 @@ export const TEMPLATE_PRESETS: readonly TemplatePreset[] = [
     "heavy",
     "heavy_armor",
     [
-      ["heavy_armor", 2],
-      ["medium_armor", 3],
+      ["heavy_armor", 3],
+      ["medium_armor", 2],
       ["motorized", 4],
     ],
     ["recon", "engineer"],
