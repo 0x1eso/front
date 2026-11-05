@@ -26,22 +26,53 @@ const tpl = (
   def: {
     name: "",
     battalions: bns.flatMap(([id, n]) => new Array<BattalionId>(n).fill(id)),
-    support,
+    support: [...support],
   },
 });
 
-/** Spec §4.5. The first template is the one the generic order of battle uses. */
+/**
+ * Spec §4.5. The first template is the one the generic order of battle uses.
+ * ww107: a major starts on its default templates alone.
+ */
 export function startTemplates(tag: CountryTag, dev: number): StartTemplate[] {
   const out = baseTemplates(tag, dev);
+  if (isMajor(tag)) return out;
+  return [
+    ...out,
+    ...usablePicks(
+      tag,
+      dev,
+      dev >= 4 ? MINOR_PICKS_4 : dev === 3 ? MINOR_PICKS_3 : MINOR_PICKS_LOW,
+      out,
+    ),
+  ];
+}
+
+/** ww107: the role templates an AI major trains from, beside its default ones. A human's list stays the default one. */
+export function aiRoleTemplates(tag: CountryTag, dev: number): StartTemplate[] {
+  return usablePicks(
+    tag,
+    dev,
+    AI_ROLE_PICKS[tag] ?? [],
+    baseTemplates(tag, dev),
+  );
+}
+
+/** The picks a country can field at the start (its techs are its start techs) and doesn't hold yet. */
+function usablePicks(
+  tag: CountryTag,
+  dev: number,
+  picks: readonly string[],
+  held: readonly StartTemplate[],
+): StartTemplate[] {
   const researched = new Set<WwTechId>([
     ...startTechs(tag, 0),
     ...landStartTechs(tag, isMajor(tag), dev),
   ]);
-  for (const id of PRESET_PICKS[tag] ??
-    (dev >= 4 ? MINOR_PICKS_4 : dev === 3 ? MINOR_PICKS_3 : MINOR_PICKS_LOW)) {
+  const out: StartTemplate[] = [];
+  for (const id of picks) {
     const x = presetById(id);
-    if (x === undefined || out.some((t) => t.key === id)) continue;
-    // Usable at the start only: its techs are in the country's start techs.
+    if (x === undefined || held.some((t) => t.key === id)) continue;
     if (!presetStatus(x, researched, NO_DESIGNS).usable) continue;
     out.push({ key: id, def: presetDef(x) });
   }
@@ -49,14 +80,14 @@ export function startTemplates(tag: CountryTag, dev: number): StartTemplate[] {
 }
 
 const NO_DESIGNS: ReadonlySet<number> = new Set();
-/** National flavour: the presets each major adds to its 1936 templates (majors hold 4-6). */
-const PRESET_PICKS: Partial<Record<CountryTag, readonly string[]>> = {
+/** National flavour: the presets each AI major adds to its 1936 templates. */
+const AI_ROLE_PICKS: Partial<Record<CountryTag, readonly string[]>> = {
   DEU: ["pre_mot_infantry", "pre_anti_tank_infantry"],
   ITA: ["pre_mot_infantry", "pre_artillery_div"],
-  JPN: ["pre_light_armored", "pre_marine_div", "pre_mot_infantry"],
+  JPN: ["pre_marine_div", "pre_mot_infantry"],
   GBR: ["pre_marine_div", "pre_mot_infantry", "pre_artillery_div"],
   FRA: ["pre_mot_infantry", "pre_artillery_div"],
-  USA: ["pre_light_armored", "pre_marine_div", "pre_mot_infantry"],
+  USA: ["pre_marine_div", "pre_mot_infantry"],
   SUN: ["pre_mot_infantry", "pre_artillery_div"],
 };
 /** Mid and minor nations (3-4 and 2-3 templates) by development. */
@@ -68,133 +99,70 @@ const MINOR_PICKS_4 = [
 const MINOR_PICKS_3 = ["pre_engineer_infantry", "pre_garrison_div"];
 const MINOR_PICKS_LOW = ["pre_garrison_div"];
 
+/** ww107, the guide's line (L15), width 15: no engineers or recon in a default, the automatic companies bring them. */
+const LINE: [BattalionId, number][] = [
+  ["infantry", 6],
+  ["artillery", 1],
+];
+/** The guide's light armour (B15), width 15. */
+const LIGHT_ARMOUR: [BattalionId, number][] = [
+  ["light_armor", 3],
+  ["motorized", 3],
+  ["mot_artillery", 1],
+];
+/** The assault line of Germany's and Italy's mountain divisions, width 15. */
+const MOUNTAIN_LINE: [BattalionId, number][] = [
+  ["mountain", 6],
+  ["artillery", 1],
+];
+const GARRISON: [BattalionId, number][] = [["infantry", 6]];
+const GUNS: SupportId[] = ["support_artillery"];
+/** Germany and France hold the anti-tank tech at the start. */
+const GUNS_AT: SupportId[] = ["support_artillery", "support_anti_tank"];
+
 function baseTemplates(tag: CountryTag, dev: number): StartTemplate[] {
   switch (tag) {
     case "DEU":
       return [
-        tpl(
-          "infantry",
-          [
-            ["infantry", 9],
-            ["artillery", 2],
-          ],
-          ["engineer", "recon"],
-        ),
-        tpl(
-          "armored",
-          [
-            ["light_armor", 4],
-            ["motorized", 3],
-            ["mot_artillery", 1],
-          ],
-          ["recon"],
-        ),
-        tpl("mountain", [
-          ["mountain", 6],
-          ["artillery", 1],
-        ]),
-        tpl("cavalry", [["cavalry", 4]]),
+        tpl("infantry", LINE, GUNS_AT),
+        tpl("armored", LIGHT_ARMOUR, GUNS),
+        tpl("mountain", MOUNTAIN_LINE, GUNS_AT),
       ];
     case "ITA":
       return [
-        tpl(
-          "binary",
-          [
-            ["infantry", 6],
-            ["artillery", 2],
-          ],
-          ["engineer"],
-        ),
-        tpl("alpini", [
-          ["mountain", 6],
-          ["artillery", 1],
-        ]),
-        tpl("celere", [
-          ["light_armor", 2],
-          ["cavalry", 2],
-          ["mot_artillery", 1],
-        ]),
-        tpl("colonial", [["infantry", 6]]),
+        tpl("binary", LINE, GUNS),
+        tpl("alpini", MOUNTAIN_LINE, GUNS),
+        tpl("celere", LIGHT_ARMOUR, GUNS),
+        tpl("colonial", GARRISON),
       ];
     case "JPN":
       return [
-        tpl(
-          "square",
-          [
-            ["infantry", 12],
-            ["artillery", 2],
-          ],
-          ["engineer"],
-        ),
-        tpl("cavalry_brigade", [["cavalry", 3]]),
-        tpl("garrison", [["infantry", 6]]),
+        tpl("square", LINE, GUNS),
+        tpl("pre_light_armored", LIGHT_ARMOUR, GUNS),
+        tpl("garrison", GARRISON),
       ];
     case "GBR":
       return [
-        tpl(
-          "infantry",
-          [
-            ["infantry", 9],
-            ["artillery", 3],
-          ],
-          ["engineer", "recon"],
-        ),
-        tpl("mobile", [
-          ["light_armor", 3],
-          ["motorized", 2],
-          ["mot_artillery", 1],
-        ]),
-        tpl("colonial_garrison", [["infantry", 6]]),
+        tpl("infantry", LINE, GUNS),
+        tpl("mobile", LIGHT_ARMOUR, GUNS),
+        tpl("colonial_garrison", GARRISON),
       ];
     case "FRA":
       return [
-        tpl(
-          "infantry",
-          [
-            ["infantry", 9],
-            ["artillery", 3],
-          ],
-          ["engineer"],
-        ),
-        tpl(
-          "dlm",
-          [
-            ["light_armor", 2],
-            ["motorized", 3],
-            ["mot_artillery", 1],
-          ],
-          ["recon"],
-        ),
-        tpl("colonial", [["infantry", 6]]),
-        tpl("cavalry", [["cavalry", 4]]),
+        tpl("infantry", LINE, GUNS_AT),
+        tpl("dlm", LIGHT_ARMOUR, GUNS),
+        tpl("colonial", GARRISON),
       ];
     case "USA":
       return [
-        tpl(
-          "square",
-          [
-            ["infantry", 9],
-            ["artillery", 3],
-          ],
-          ["engineer"],
-        ),
-        tpl("cavalry", [["cavalry", 4]]),
-        tpl("garrison", [["infantry", 6]]),
+        tpl("square", LINE, GUNS),
+        tpl("pre_light_armored", LIGHT_ARMOUR, GUNS),
+        tpl("garrison", GARRISON),
       ];
     case "SUN":
       return [
-        tpl("rifle", [
-          ["infantry", 9],
-          ["artillery", 2],
-        ]),
-        tpl("cavalry", [
-          ["cavalry", 4],
-          ["light_armor", 1],
-        ]),
-        tpl("tank_brigade", [
-          ["light_armor", 3],
-          ["motorized", 2],
-        ]),
+        tpl("rifle", LINE, GUNS),
+        tpl("tank_brigade", LIGHT_ARMOUR, GUNS),
         tpl("mountain_rifle", [["mountain", 6]]),
       ];
     default: {
@@ -244,6 +212,9 @@ export interface OobArmy {
   titledGeneral?: boolean;
 }
 
+// ww107: the guide's start plans, redone through planStartOob on the old men
+// budgets without its engineers and recon. The men those companies freed are
+// more line divisions, to the smallest army that holds a line, then to any.
 // Spec §6.4 majors; used only when scenario.json says historicalOob (plan
 // decision 14). Region ids are world1936's (1..1342, which Task 2 keeps),
 // named in the comments; the first one each country holds at the start is
@@ -254,38 +225,37 @@ export interface OobArmy {
 export const START_OOB: Readonly<
   Partial<Record<CountryTag, readonly OobArmy[]>>
 > = {
-  // Germany: infantry 36, armored 3, mountain 3, cavalry 1 (43).
+  // Germany: line 50, light armour 8, mountain 3 (61).
   DEU: [
     {
       // East: Lower Silesia, Upper Silesia, Pomerania.
       regions: [335, 352, 271],
       divisions: [
-        ["infantry", 14],
+        ["infantry", 20],
         ["mountain", 3],
-        ["cavalry", 1],
       ],
     },
     {
       // West: Rheinland-Pfalz, Nordrhein-Westfalen.
       regions: [356, 322],
-      divisions: [["infantry", 14]],
+      divisions: [["infantry", 18]],
     },
     {
       // Reserve: Berlin.
       regions: [306],
       divisions: [
-        ["infantry", 8],
-        ["armored", 3],
+        ["infantry", 12],
+        ["armored", 8],
       ],
     },
   ],
-  // Italy: binary 60, alpini 6, celere 2, colonial 12 (80).
+  // Italy: line 61, alpini 6, light armour 5, colonial 12 (84).
   ITA: [
     {
       // Ethiopian front, north: Eritrea; marching on Addis Ababa.
       regions: [980],
       divisions: [
-        ["binary", 12],
+        ["binary", 10],
         ["colonial", 6],
       ],
       planTargets: [1056],
@@ -294,7 +264,7 @@ export const START_OOB: Readonly<
       // Ethiopian front, south: Italian Somaliland; marching on Addis Ababa.
       regions: [1039],
       divisions: [
-        ["binary", 2],
+        ["binary", 6],
         ["colonial", 4],
       ],
       planTargets: [1056],
@@ -303,7 +273,7 @@ export const START_OOB: Readonly<
       // Libya: Tripolitania, Ajdabiya (Cyrenaica).
       regions: [809, 812],
       divisions: [
-        ["binary", 6],
+        ["binary", 8],
         ["colonial", 2],
       ],
     },
@@ -311,9 +281,9 @@ export const START_OOB: Readonly<
       // North: Turin, Milano.
       regions: [494, 482],
       divisions: [
-        ["binary", 16],
+        ["binary", 13],
         ["alpini", 6],
-        ["celere", 2],
+        ["celere", 5],
       ],
     },
     {
@@ -322,7 +292,7 @@ export const START_OOB: Readonly<
       divisions: [["binary", 24]],
     },
   ],
-  // Japan: square 17, cavalry brigades 4, garrisons 4 (25). The Kwantung and
+  // Japan: line 36, light armour 2, garrison 1 (39). The Kwantung and
   // home armies start under generals; the Chōsen Army (Korea) and the Taiwan
   // Army, the 1936 garrisons, under none.
   JPN: [
@@ -331,24 +301,21 @@ export const START_OOB: Readonly<
       // Liaoning (its own camp, spec §7.1).
       regions: [666, 486, 553],
       divisions: [
-        ["square", 5],
-        ["cavalry_brigade", 3],
-        ["garrison", 1],
+        ["square", 14],
+        ["pre_light_armored", 2],
       ],
     },
     {
       // Home islands: Tokyo, Ōsaka.
       regions: [758, 766],
       divisions: [
-        ["square", 10],
-        ["cavalry_brigade", 1],
-        ["garrison", 2],
+        ["square", 16],
       ],
     },
     {
       // Chōsen Army: Seoul (Keijō), else P'yŏngyang.
       regions: [679, 686],
-      divisions: [["square", 2]],
+      divisions: [["square", 6]],
     },
     {
       // Taiwan Army: Taiwan, else Tokyo.
@@ -356,83 +323,88 @@ export const START_OOB: Readonly<
       divisions: [["garrison", 1]],
     },
   ],
-  // United Kingdom: infantry 12, mobile 1, colonial garrisons 8 (21).
+  // United Kingdom: line 21, light armour 2, colonial garrisons 5 (28).
   GBR: [
     {
       // Home: London, Hampshire (Aldershot).
       regions: [329, 337],
       divisions: [
         ["infantry", 10],
-        ["mobile", 1],
+        ["mobile", 2],
       ],
     },
     {
       // Egypt and Palestine: Cairo.
       regions: [767],
       divisions: [
-        ["infantry", 2],
+        ["infantry", 6],
         ["colonial_garrison", 2],
       ],
     },
     {
       // Malaya and Hong Kong: Malaya, Hong Kong.
       regions: [1087, 927],
-      divisions: [["colonial_garrison", 3]],
+      divisions: [
+        ["infantry", 5],
+        ["colonial_garrison", 1],
+      ],
     },
     {
       // East Africa: Nairobi, Khartoum.
       regions: [1104, 933],
-      divisions: [["colonial_garrison", 3]],
+      divisions: [["colonial_garrison", 2]],
     },
   ],
-  // France: infantry 40, DLM 2, colonial 25, cavalry 4 (71).
+  // France: line 67, DLM 8, colonial 16 (91).
   FRA: [
     {
       // North-east 1 (the Maginot Line): Moselle, Meuse.
       regions: [390, 376],
       divisions: [
         ["infantry", 20],
-        ["dlm", 2],
-        ["cavalry", 2],
+        ["dlm", 4],
       ],
     },
     {
       // North-east 2 (the Belgian border): Pas-de-Calais, Marne.
       regions: [353, 379],
       divisions: [
-        ["infantry", 14],
-        ["cavalry", 2],
+        ["infantry", 20],
+        ["dlm", 4],
       ],
     },
     {
       // Alps: Savoie, Alpes-Maritimes.
       regions: [497, 531],
-      divisions: [["infantry", 6]],
+      divisions: [["infantry", 24]],
     },
     {
       // North Africa: Alger, Tunis, Grand Casablanca.
       regions: [733, 725, 787],
-      divisions: [["colonial", 17]],
+      divisions: [["colonial", 10]],
     },
     {
       // Levant: Aleppo.
       regions: [729],
-      divisions: [["colonial", 4]],
+      divisions: [
+        ["infantry", 3],
+        ["colonial", 3],
+      ],
     },
     {
       // Indochina: Ha Noi, Saigon.
       regions: [918, 988],
-      divisions: [["colonial", 4]],
+      divisions: [["colonial", 3]],
     },
   ],
-  // United States: square 9, cavalry 2, garrisons 6 (17).
+  // United States: line 15, light armour 1, garrisons 5 (21).
   USA: [
     {
       // Home: Texas, District of Columbia.
       regions: [749, 662],
       divisions: [
-        ["square", 9],
-        ["cavalry", 2],
+        ["square", 15],
+        ["pre_light_armored", 1],
       ],
     },
     {
@@ -443,70 +415,64 @@ export const START_OOB: Readonly<
     {
       // Hawaii (and Panama, which has no US region on the map).
       regions: [930],
-      divisions: [["garrison", 4]],
+      divisions: [["garrison", 3]],
     },
   ],
-  // Soviet Union: rifle 100, cavalry 20, tank brigades 10, mountain 4 (134).
+  // Soviet Union: line 130, light armour 34, mountain 4 (168). Seven armies of
+  // 24 are the limit here: the rest of the budget stays in the pool.
   SUN: [
     {
       // West 1 (Leningrad): Leningrad, Novgorod.
       regions: [163, 193],
       divisions: [
-        ["rifle", 17],
-        ["tank_brigade", 2],
+        ["rifle", 20],
+        ["tank_brigade", 4],
       ],
     },
     {
       // West 2 (Belorussia): City of Minsk, Vitebsk.
       regions: [277, 247],
       divisions: [
-        ["rifle", 18],
-        ["cavalry", 4],
-        ["tank_brigade", 2],
+        ["rifle", 16],
+        ["tank_brigade", 8],
       ],
     },
     {
       // West 3 (Kiev): Kiev City, Zhytomyr.
       regions: [344, 341],
       divisions: [
-        ["rifle", 17],
-        ["cavalry", 5],
-        ["tank_brigade", 2],
+        ["rifle", 16],
+        ["tank_brigade", 8],
       ],
     },
     {
       // West 4 (the Romanian border): Odessa, Khmel'nyts'kyy.
       regions: [429, 364],
       divisions: [
-        ["rifle", 18],
-        ["cavalry", 3],
-        ["tank_brigade", 2],
+        ["rifle", 16],
+        ["tank_brigade", 8],
       ],
     },
     {
       // Caucasus: Tbilisi, Bakı.
       regions: [601, 603],
       divisions: [
-        ["rifle", 6],
-        ["cavalry", 2],
+        ["rifle", 18],
+        ["tank_brigade", 2],
         ["mountain_rifle", 4],
       ],
     },
     {
       // Central Asia: Tashkent, Stalinabad.
       regions: [570, 669],
-      divisions: [
-        ["rifle", 4],
-        ["cavalry", 4],
-      ],
+      divisions: [["rifle", 24]],
     },
     {
       // Far East: Khabarovsk (S), Primor'ye.
       regions: [251, 424],
       divisions: [
         ["rifle", 20],
-        ["cavalry", 2],
-        ["tank_brigade", 2],
+        ["tank_brigade", 4],
       ],
     },
   ],

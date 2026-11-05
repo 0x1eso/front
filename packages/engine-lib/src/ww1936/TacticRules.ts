@@ -499,9 +499,13 @@ export function reinfPctOf(
   initiative: number,
   signal: boolean,
   infiltrationPp: number,
+  signalPm = 1000,
 ): number {
   const p =
-    25 + Math.floor(initiative / 4) + (signal ? 10 : 0) + infiltrationPp;
+    25 +
+    Math.floor(initiative / 4) +
+    (signal ? Math.floor((10 * signalPm) / 1000) : 0) +
+    infiltrationPp;
   return Math.max(0, Math.min(REINF_MAX_PCT, p));
 }
 

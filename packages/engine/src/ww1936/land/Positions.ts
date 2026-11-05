@@ -10,6 +10,7 @@ import {
   MOVE_NONE,
   TPL_ENGINEER,
 } from "@openfront/engine-api/ww1936/LandTypes";
+import { stepsAtPm } from "@openfront/engine-lib/ww1936/CombatRules";
 import type { WwLand } from "./WwLand";
 
 /** The highest position level. */
@@ -28,7 +29,8 @@ export const POS_EMPTY_DAYS = 5;
  * level every POS_STEP_DAYS days; one whose every edge to the enemy crosses
  * a river (`river`) qualifies at level 1. So an ordinary region has level 1
  * after 10 days (5 in a zone), a river one after 5. ww84: engineers among the
- * divisions standing there add a day to each day.
+ * divisions standing there add a day to each day; ww107: as far as their gear
+ * goes (`engineerPm`, their best division's).
  */
 export function stepPosition(
   level: number,
@@ -37,6 +39,7 @@ export function stepPosition(
   zone: boolean,
   river: boolean,
   engineers = false,
+  engineerPm = 1000,
 ): { level: number; days: number } {
   if (!stood) {
     // Nothing built yet: the standing starts over. Else the position
@@ -49,7 +52,9 @@ export function stepPosition(
       : { level, days: -empty };
   }
   if (level >= POS_MAX_LEVEL) return { level: POS_MAX_LEVEL, days: 0 };
-  let d = Math.max(0, days) + (zone ? 2 : 1) + (engineers ? 1 : 0);
+  const start = Math.max(0, days);
+  let d =
+    start + (zone ? 2 : 1) + (engineers ? stepsAtPm(start, engineerPm) : 0);
   let lv = level;
   while (lv < POS_MAX_LEVEL) {
     const need = lv === 0 && !river ? 2 * POS_STEP_DAYS : POS_STEP_DAYS;
@@ -91,22 +96,30 @@ export function dailyPositions(land: WwLand, smallID: number): void {
     // Who stood: a division of the controller's side that is not moving.
     let stood = false;
     let zone = false;
-    let engineers = false;
+    let engineerPm = 0;
     for (const row of land.rowsIn(r)) {
       if (t.mode[row] !== MOVE_NONE) continue;
       if (!land.sameSide(land.fightOwner(row), smallID)) continue;
       stood = true;
-      if ((land.flagsOf(row) & TPL_ENGINEER) !== 0) engineers = true;
+      engineerPm = Math.max(engineerPm, land.companyPm(row, TPL_ENGINEER));
       const a = land.armies.get(t.army[row]);
       if (a !== undefined && a.order.kind === "front" && a.front.includes(r)) {
         zone = true;
       }
-      if (zone && engineers) break;
+      if (zone && engineerPm === 1000) break;
     }
     if (!stood && level === 0 && days === 0) continue;
     // (Only a region without a level starts from the river.)
     const river = stood && level === 0 && riverFronted(land, r, smallID);
-    const next = stepPosition(level, days, stood, zone, river, engineers);
+    const next = stepPosition(
+      level,
+      days,
+      stood,
+      zone,
+      river,
+      engineerPm > 0,
+      engineerPm,
+    );
     if (next.level === level && next.days === days) continue;
     land.posLevel[r] = next.level;
     land.posDays[r] = next.days;

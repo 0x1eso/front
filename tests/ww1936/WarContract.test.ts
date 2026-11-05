@@ -71,7 +71,7 @@ async function board() {
 
 describe("war overhaul C0: the contract", () => {
   test("the new kinds are appended at the end of the lists", () => {
-    expect(LAND_ORDER_KINDS.slice(-6)).toEqual([
+    expect(LAND_ORDER_KINDS.slice(-7, -1)).toEqual([
       "army_zone",
       "army_auto_level",
       "train_army",
@@ -83,6 +83,7 @@ describe("war overhaul C0: the contract", () => {
     // The air groups appended their four last (after ww48's start_oob after
     // ww42's army_direct); the older pins read what is before them.
     // The peace overhaul appended peace_surrender after them.
+    expect(kinds.pop()).toBe("template_auto");
     expect(kinds.pop()).toBe("peace_surrender");
     expect(kinds.splice(-4)).toEqual([
       "air_template",

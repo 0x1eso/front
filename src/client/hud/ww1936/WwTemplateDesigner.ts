@@ -17,6 +17,7 @@ import {
   WW_TEMPLATE_NAME_MAX,
   wwMaxSupport,
 } from "@openfront/engine-api/ww1936/LandTypes";
+import { hasAutoCompanies } from "@openfront/engine-lib/ww1936/AutoCompanies";
 import { BATTALIONS, SUPPORTS } from "@openfront/engine-lib/ww1936/Battalions";
 import { histHasTankGroup } from "@openfront/engine-lib/ww1936/hist/Slots";
 import { natUnitRow } from "@openfront/engine-lib/ww1936/NationalUnits";
@@ -168,6 +169,8 @@ export class WwTemplateDesigner extends LitElement {
   @state() private libNote = "";
   /** "Draft for the library": locked parts can be picked; only the library save is open. */
   @state() private draftMode = false;
+  /** ww107: the switch as tapped, until the engine's answer comes back. */
+  @state() private autoTapped: boolean | null = null;
   /** The template this one copies on save (its id), once [Copy] was pressed. */
   private copyOf = 0;
   private editing = 0;
@@ -194,6 +197,7 @@ export class WwTemplateDesigner extends LitElement {
   }
 
   private load() {
+    this.autoTapped = null;
     const t = this.template(this.templateId);
     const base = this.template(this.baseId);
     this.editing = t === null ? 0 : t.id;
@@ -300,8 +304,43 @@ export class WwTemplateDesigner extends LitElement {
             ${blockText(block)}
           </p>`
         : nothing}
-      ${this.renderActions(block)} ${this.renderLibraryRow()}
+      ${this.renderAuto()} ${this.renderActions(block)}
+      ${this.renderLibraryRow()}
     </div>`;
+  }
+
+  /** ww107: the automatic support companies' switch, on a saved template that has any. */
+  private renderAuto(): TemplateResult | typeof nothing {
+    const t = this.template(this.editing);
+    if (t === null || this.lobby || !hasAutoCompanies(t.key)) return nothing;
+    const on = this.autoTapped ?? t.auto === true;
+    return html`<button
+      type="button"
+      data-ww-auto-companies
+      aria-pressed=${String(on)}
+      class="flex min-h-10 flex-col items-start rounded-md border px-2 py-1 text-left text-xs ${on
+        ? "border-emerald-400/60 bg-emerald-800/40"
+        : "border-white/15 bg-white/5"}"
+      @click=${() => {
+        this.autoTapped = !on;
+        this.eventBus.emit(
+          new SendWwOrderIntentEvent({
+            kind: "template_auto",
+            template: t.id,
+            on: !on,
+          }),
+        );
+      }}
+    >
+      <span class="font-semibold"
+        >${translateText(
+          on ? "ww1936.land.auto_companies_on" : "ww1936.land.auto_companies_off",
+        )}</span
+      >
+      <span class="text-white/60"
+        >${translateText("ww1936.land.auto_companies_hint")}</span
+      >
+    </button>`;
   }
 
   /**

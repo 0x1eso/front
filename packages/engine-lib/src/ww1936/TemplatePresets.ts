@@ -326,7 +326,106 @@ export const TEMPLATE_PRESETS: readonly TemplatePreset[] = [
     "Anti-Air Armoured",
     "대공 기갑",
   ),
+  // ww107: the guide's templates, appended (a bit each in presetSeen). A human
+  // is given them as their techs open; they start on the support guns and the
+  // automatic companies bring the rest.
+  p(
+    "guide_armour",
+    "armor",
+    "medium_armor",
+    [
+      ["medium_armor", 7],
+      ["motorized", 4],
+    ],
+    ["support_artillery"],
+    "Main Armour",
+    "주력 기갑",
+  ),
+  p(
+    "guide_armour15",
+    "armor",
+    "medium_armor",
+    [
+      ["medium_armor", 3],
+      ["motorized", 3],
+      ["mot_artillery", 1],
+    ],
+    ["support_artillery"],
+    "Economy Armour",
+    "경제 기갑",
+  ),
+  p(
+    "guide_heavy",
+    "heavy",
+    "heavy_armor",
+    [
+      ["heavy_armor", 4],
+      ["motorized", 5],
+    ],
+    ["support_artillery"],
+    "Breakthrough Armour",
+    "돌파 기갑",
+  ),
+  p(
+    "guide_motor",
+    "motor",
+    "motorized",
+    [
+      ["motorized", 6],
+      ["mot_artillery", 1],
+    ],
+    ["support_artillery"],
+    "Mobile Division",
+    "기동 사단",
+  ),
+  p(
+    "guide_assault9",
+    "infantry",
+    "infantry",
+    [
+      ["infantry", 3],
+      ["artillery", 1],
+    ],
+    ["support_artillery"],
+    "Narrow Assault Line",
+    "폭 9 돌격 사단",
+  ),
+  p(
+    "guide_assault",
+    "mountain",
+    "mountain",
+    [
+      ["mountain", 6],
+      ["artillery", 1],
+    ],
+    ["support_artillery"],
+    "Assault Line",
+    "돌격 사단",
+  ),
+  p(
+    "guide_marine",
+    "marine",
+    "marine",
+    [
+      ["marine", 6],
+      ["artillery", 1],
+    ],
+    ["support_artillery"],
+    "Marine Line",
+    "해병 사단",
+  ),
 ];
+
+/** ww107: the guide's templates: a human's as their techs open, never the AI's (it keeps its role templates). */
+export const GUIDE_PRESET_IDS: ReadonlySet<string> = new Set([
+  "pre_guide_armour",
+  "pre_guide_armour15",
+  "pre_guide_heavy",
+  "pre_guide_motor",
+  "pre_guide_assault9",
+  "pre_guide_assault",
+  "pre_guide_marine",
+]);
 
 const BY_ID: ReadonlyMap<string, TemplatePreset> = new Map(
   TEMPLATE_PRESETS.map((x) => [x.id, x]),
@@ -406,6 +505,17 @@ export function newlyUsable(
     (x, i) =>
       (seen & (1 << i)) === 0 &&
       presetStatus(x, researched, designGroups).usable,
+  );
+}
+
+/** A template of these battalions is already there, in any order. */
+export function sameBattalions(
+  x: TemplatePreset,
+  templates: readonly { def: TemplateDef }[],
+): boolean {
+  const want = [...presetDef(x).battalions].sort().join();
+  return templates.some(
+    (t) => [...t.def.battalions].sort().join() === want,
   );
 }
 

@@ -29,6 +29,7 @@ import {
   HUMAN,
   land,
   placeArmy,
+  wideLine,
   withTestPolitics,
   wwRunner,
 } from "./util";
@@ -44,6 +45,7 @@ async function board() {
   ]);
   const g = runner.game;
   clearLand(g);
+  wideLine(g);
   for (const tag of ["DEU", "POL"] as const) {
     const ce = land(g).econ.country(byTag(g, tag).smallID())!;
     for (const t of EQUIPMENT_TYPES) ce.stock[equipKey(t, 1)] += 100_000;

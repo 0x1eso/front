@@ -61,15 +61,15 @@ const MINOR_ROSTERS: readonly CountryTag[] = [
   "HUN",
 ];
 
-/** Spec §6.4: divisions per template key. */
+/** ww107: the guide's start plans, divisions per template key. */
 const OOB_TOTALS: Readonly<Record<string, Readonly<Record<string, number>>>> = {
-  DEU: { infantry: 36, armored: 3, mountain: 3, cavalry: 1 },
-  ITA: { binary: 60, alpini: 6, celere: 2, colonial: 12 },
-  JPN: { square: 17, cavalry_brigade: 4, garrison: 4 },
-  GBR: { infantry: 12, mobile: 1, colonial_garrison: 8 },
-  FRA: { infantry: 40, dlm: 2, colonial: 25, cavalry: 4 },
-  USA: { square: 9, cavalry: 2, garrison: 6 },
-  SUN: { rifle: 100, cavalry: 20, tank_brigade: 10, mountain_rifle: 4 },
+  DEU: { infantry: 50, armored: 8, mountain: 3 },
+  ITA: { binary: 61, alpini: 6, celere: 5, colonial: 12 },
+  JPN: { square: 36, pre_light_armored: 2, garrison: 1 },
+  GBR: { infantry: 21, mobile: 2, colonial_garrison: 5 },
+  FRA: { infantry: 67, dlm: 8, colonial: 16 },
+  USA: { square: 15, pre_light_armored: 1, garrison: 5 },
+  SUN: { rifle: 130, tank_brigade: 34, mountain_rifle: 4 },
 };
 /** Spec §6.4: armies per major. */
 const OOB_ARMIES: Readonly<Record<string, number>> = {
@@ -371,10 +371,10 @@ function expectHistoricalOob(runner: Awaited<ReturnType<typeof worldRunner>>) {
     };
   };
   const deu = of("DEU");
-  expect(deu.divisions).toBe(43);
+  expect(deu.divisions).toBe(61);
   expect(deu.armies).toHaveLength(3);
   const ita = of("ITA");
-  expect(ita.divisions).toBe(80);
+  expect(ita.divisions).toBe(84);
   expect(ita.armies).toHaveLength(5);
   for (const tag of MAJOR_TAGS) {
     const c = of(tag);
@@ -409,7 +409,7 @@ function expectHistoricalOob(runner: Awaited<ReturnType<typeof worldRunner>>) {
 }
 
 describe("the order of battle on the real map", () => {
-  test("the shipped world1936 scenario fields Germany's 43 divisions in 3 armies and Italy's 80", async () => {
+  test("the shipped world1936 scenario fields Germany's 61 divisions in 3 armies and Italy's 84", async () => {
     // Task 2's v3 map ships the flag (pre-flight G-a).
     expect(scenario.historicalOob).toBe(true);
     const runner = await worldRunner(await worldFiles());

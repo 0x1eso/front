@@ -145,8 +145,11 @@ export function reinforce(land: WwLand, ce: CountryEconomy, r: number): void {
   if (add > 0 && drawManpower(ce, add)) {
     const exp = t.exp[r];
     const cut = exp - Math.floor((exp * men) / (men + add));
-    t.exp[r] =
-      exp - ((s.flags & TPL_HOSPITAL) !== 0 ? Math.floor(cut / 2) : cut);
+    // ww107: the hospital's half, as far as its gear goes.
+    const kept = Math.floor(
+      ((cut - Math.floor(cut / 2)) * land.companyPm(r, TPL_HOSPITAL)) / 1000,
+    );
+    t.exp[r] = exp - cut + kept;
     land.setMen(r, men + add);
   }
   const slots = REINFORCE_SLOTS;
@@ -302,9 +305,14 @@ export function attritionPpm(land: WwLand, r: number, day: number): number {
     );
   }
   // ww98: a field hospital keeps a quarter of it.
-  return ppm > 0 && (land.flagsOf(r) & TPL_HOSPITAL) !== 0
-    ? Math.floor((ppm * HOSPITAL_ATTRITION_PCT) / 100)
-    : ppm;
+  const hospitalPm = ppm > 0 ? land.companyPm(r, TPL_HOSPITAL) : 0;
+  return (
+    ppm -
+    Math.floor(
+      ((ppm - Math.floor((ppm * HOSPITAL_ATTRITION_PCT) / 100)) * hospitalPm) /
+        1000,
+    )
+  );
 }
 
 /**

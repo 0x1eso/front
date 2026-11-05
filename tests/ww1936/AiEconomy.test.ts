@@ -1600,7 +1600,9 @@ describe("the AI economy in a game (spec §12)", () => {
     // Germany and the Soviet Union built civilian factories.
     for (const tag of ["GBR", "FRA"] as const) {
       const c = a.econ.country(byTag(a.g, tag).smallID())!;
-      expect(c.totals.civ).toBeGreaterThan(a.start[c.smallID - 1].civ);
+      // ww107: built, or on the queue: France's forts go first on this small map.
+      const queued = c.queue.filter((q) => q.building === "civ").length;
+      expect(c.totals.civ + queued).toBeGreaterThan(a.start[c.smallID - 1].civ);
     }
     // Deterministic: a second run ends in the same economy.
     const b = await run();

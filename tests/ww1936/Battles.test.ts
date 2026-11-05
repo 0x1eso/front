@@ -81,6 +81,7 @@ import {
   step,
   stepTo,
   takeRegion,
+  wideLine,
   WwHuman,
   wwRestore,
   wwRunnerCapture,
@@ -136,6 +137,7 @@ async function juneWar(gameID?: string) {
     stamped(HUMAN, { type: "declare_war", target: byTag(g, "POL").id() }),
   ]);
   clearLand(g);
+  wideLine(g);
   stockUp(g, "DEU");
   stockUp(g, "POL");
   const l = land(g);

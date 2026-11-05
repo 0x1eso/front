@@ -158,9 +158,13 @@ export function easyCrossingLossPm(
   return Math.min(WW_EASY_INVASION_LOSS_CAP_PM, Math.floor(milli / perDay));
 }
 
-/** Spec §11.4: the coastal fort's cut of a landing attack, bp ≥ 0 (−15% a level, engineers × 0.75). */
-export function coastalFortBp(level: number, engineers: boolean): number {
-  return level * (engineers ? 1125 : 1500);
+/** Spec §11.4: the coastal fort's cut of a landing attack, bp ≥ 0 (−15% a level, engineers × 0.75, ww107: as far as their gear goes). */
+export function coastalFortBp(
+  level: number,
+  engineers: boolean,
+  engineerPm = 1000,
+): number {
+  return level * (engineers ? 1500 - Math.floor((375 * engineerPm) / 1000) : 1500);
 }
 
 /**

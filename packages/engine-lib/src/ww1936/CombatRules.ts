@@ -33,11 +33,14 @@ import {
   TPL_TD_DEFEND,
   traitBit,
   WW_ROUND_HOUR_MILLI,
+  NEED_GROUPS,
+  SupportId,
 } from "@openfront/engine-api/ww1936/LandTypes";
 import type {
   WwStatKey,
   WwStats,
 } from "@openfront/engine-api/ww1936/PoliticsTypes";
+import { SUPPORTS } from "./Battalions";
 import { FM_TRAIT_STATS } from "./CommandRules";
 import { NAT_ALPINI_OBSTACLE_PCT, NAT_UNIT_ITA } from "./NationalUnits";
 import {
@@ -140,6 +143,61 @@ export const HOSPITAL_ATTRITION_PCT = 75;
 /** Logistics: the share of its division's fuel it burns, %. */
 export const LOGISTICS_FUEL_PCT = 90;
 
+/**
+ * ww107: a support company works as far as its gear goes: its need groups, by
+ * its flag. Half its gear, half its effect (a company sharing a group shares
+ * its fill); none, none.
+ */
+const COMPANY_GROUPS: ReadonlyMap<number, readonly number[]> = new Map(
+  Object.values(SUPPORTS)
+    .filter((d) => d.flag !== 0)
+    .map((d) => [d.flag, d.equip.map(([t]) => NEED_GROUPS.indexOf(t))]),
+);
+
+/** ww107: what an effect that is on or off needs of its company's gear, ‰. */
+export const COMPANY_ON_PM = 500;
+
+/** What a division reads its companies from: its need and, at its men and gear now, its fill. */
+export interface CompanyGear {
+  flags?: number;
+  need?: readonly number[];
+  /** Each need group's fill, ‰ (divisionStatsAt); absent: full-strength numbers. */
+  fill?: readonly number[];
+}
+
+/** ww107: how much of the company with `flag` works, ‰: its lowest gear fill; 0 without one. */
+export function companyPmOf(s: CompanyGear, flag: number): number {
+  if (!has(s.flags ?? 0, flag)) return 0;
+  const fill = s.fill;
+  if (fill === undefined) return 1000;
+  let low = 1000;
+  for (const g of COMPANY_GROUPS.get(flag) ?? []) {
+    if ((s.need?.[g] ?? 0) > 0) low = Math.min(low, fill[g]);
+  }
+  return low;
+}
+
+/** ww107: each of these companies with how much of it works, ‰: the division card's numbers. */
+export function companyFills(
+  support: readonly SupportId[],
+  fill: readonly number[],
+): { id: SupportId; pm: number }[] {
+  return support.map((id) => {
+    let pm = 1000;
+    for (const [t] of SUPPORTS[id].equip) {
+      pm = Math.min(pm, fill[NEED_GROUPS.indexOf(t)] ?? 1000);
+    }
+    return { id, pm };
+  });
+}
+
+/** `n`‰ of `x`, the way a company's effect scales. */
+const byPm = (x: number, pm: number): number => Math.floor((x * pm) / 1000);
+
+/** ww107: a one-unit step every `i`th time at rate `pm`, spread evenly: every time at 1000, never at 0. */
+export const stepsAtPm = (i: number, pm: number): number =>
+  byPm(i + 1, pm) - byPm(i, pm);
+
 /** ww98: a division's engineers against prepared ground, ‰: research scales it (`mulPct`), up to the cap. */
 export function engineerCutPm(flags: number, mulPct: number): number {
   return has(flags, TPL_ENGINEER)
@@ -225,8 +283,13 @@ export const FOOT_DEFENCE_ORG_PCT = 82;
 export const BARE_ARMOR_ORG_PCT = 125;
 
 /** ww91: the share of a division's casualties that return to the pool, %: 20 (50 with a hospital) plus the stat, within 0..100 (a negative stat cuts it). */
-export function casualtyReturnShare(hospital: boolean, pp: number): number {
-  return Math.max(0, Math.min(100, (hospital ? 50 : 20) + pp));
+export function casualtyReturnShare(
+  hospital: boolean,
+  pp: number,
+  hospitalPm = 1000,
+): number {
+  const base = hospital ? 20 + byPm(30, hospitalPm) : 20;
+  return Math.max(0, Math.min(100, base + pp));
 }
 
 /** ww90: what armour with no infantry loses of its attack defending, bp, and the share of its hardness that counts then, %. */
@@ -300,8 +363,8 @@ export function prepKeepPm(flags: number, fireBp: number): number {
 /**
  * ww98: what is left of a defender's prepared ground `prepBp` (position `posBp`
  * of it) against a division with `flags`: what prepKeepPm keeps, less its
- * engineers' share (`cutPm`), and of the position its recon's as well. Each cut
- * works on what the last one left.
+ * engineers' share (`cutPm`), and of the position its recon's as well, as far
+ * as its gear goes (`reconPm`). Each cut works on what the last one left.
  */
 export function prepLeftBp(
   prepBp: number,
@@ -309,11 +372,15 @@ export function prepLeftBp(
   flags: number,
   fireBp: number,
   cutPm: number,
+  reconPm = 1000,
 ): number {
   const keep = Math.floor((prepKeepPm(flags, fireBp) * (1000 - cutPm)) / 1000);
   const left = Math.floor((prepBp * keep) / 1000);
   return has(flags, TPL_RECON)
-    ? left - Math.floor((posBp * keep * RECON_POSITION_CUT_PM) / 1_000_000)
+    ? left -
+        Math.floor(
+          (posBp * keep * byPm(RECON_POSITION_CUT_PM, reconPm)) / 1_000_000,
+        )
     : left;
 }
 
@@ -364,10 +431,15 @@ export function tankFearPct(
   return Math.max(0, TANK_FEAR_PCT - cutPp);
 }
 
-/** ww98: what a defender with `flags` takes of `fearPct`: support anti-tank halves it. */
-export function fearTakenPct(fearPct: number, flags: number): number {
+/** ww98: what a defender with `flags` takes of `fearPct`: support anti-tank halves it, as far as its gear goes. */
+export function fearTakenPct(
+  fearPct: number,
+  flags: number,
+  atPm = 1000,
+): number {
   return has(flags, TPL_SUPPORT_AT)
-    ? Math.floor((fearPct * SUPPORT_AT_FEAR_PCT) / 100)
+    ? fearPct -
+        byPm(fearPct - Math.floor((fearPct * SUPPORT_AT_FEAR_PCT) / 100), atPm)
     : fearPct;
 }
 
@@ -522,6 +594,9 @@ export interface ModInput {
   traits: number;
   /** TemplateStats flags. */
   flags: number;
+  /** ww107: how much of its engineers and support anti-air works, ‰ (absent: all). */
+  engineerPm?: number;
+  supportAaPm?: number;
   tech: TechTotals;
   exp: number;
   /** The army's readiness when the division fights in or from its front region; else 0. */
@@ -676,18 +751,21 @@ export function divisionMods(i: ModInput): ModResult {
         ? 85
         : 100;
     const amph = has(i.designFlags, TPL_AMPHIBIOUS);
+    // ww107: the engineers' part works as far as their gear goes.
+    const engPm = has(i.flags, TPL_ENGINEER) ? (i.engineerPm ?? 1000) : 0;
     if (i.river > 0) {
       const n =
-        (has(i.flags, TPL_ENGINEER) ? 1 : 0) +
         (has(i.flags, TPL_MARINE_ANY) || amph ? 1 : 0) +
         (has(i.traits, TB("river_crosser")) ? 1 : 0);
+      const without = halve(RIVER_ATTACK_BP[i.river], n);
+      const bridged = halve(RIVER_ATTACK_BP[i.river], n + 1);
       push(
         aCut,
         "river",
         cutBy(
           cutBy(
             cutBy(
-              halve(RIVER_ATTACK_BP[i.river], n),
+              without + byPm(bridged - without, engPm),
               100 - stat(i.tech, "riverPenaltyCutPct"),
             ),
             engOfficer,
@@ -706,8 +784,7 @@ export function divisionMods(i: ModInput): ModResult {
     const fort = Math.max(0, i.fort - i.fortCut);
     if (fort > 0) {
       let f = -Math.floor(
-        (-FORT_ATTACK_BP * fort * (has(i.flags, TPL_ENGINEER) ? 75 : 100)) /
-          100,
+        (-FORT_ATTACK_BP * fort * (100 - byPm(25, engPm))) / 100,
       );
       if (has(i.designFlags, TPL_FLAIL)) f = cutBy(f, 75);
       if (has(i.flags, TPL_HEAVY_LEAD)) f = cutBy(f, HEAVY_FORT_PCT);
@@ -736,7 +813,10 @@ export function divisionMods(i: ModInput): ModResult {
   // P4 (spec §14.6, §15.4, §11.4).
   // ww98: support anti-air keeps a part of the enemy's sky off its division.
   const airBp = has(i.flags, TPL_SUPPORT_AA)
-    ? cutBy(i.airBp, SUPPORT_AA_AIR_PCT)
+    ? cutBy(
+        i.airBp,
+        100 - byPm(100 - SUPPORT_AA_AIR_PCT, i.supportAaPm ?? 1000),
+      )
     : i.airBp;
   push(aCut, "air", airBp);
   push(aCut, "fuel", i.fuelBp);
@@ -850,10 +930,16 @@ export function planMaxBp(tech: TechTotals): number {
 
 /**
  * Entrenchment cap (spec §9.4): 5, +5 engineers, +2 battleplan_2
- * (tech.entrenchMax). ww84: tanks with no infantry dig in half as deep.
+ * (tech.entrenchMax). ww84: tanks with no infantry dig in half as deep. ww107:
+ * the engineers' five go by their gear, rounded down: 2 at half, 4 at 80 %.
  */
-export function entrenchMax(flags: number, tech: TechTotals): number {
-  const max = 5 + (has(flags, TPL_ENGINEER) ? 5 : 0) + tech.entrenchMax;
+export function entrenchMax(
+  flags: number,
+  tech: TechTotals,
+  engineerPm = 1000,
+): number {
+  const max =
+    5 + (has(flags, TPL_ENGINEER) ? byPm(5, engineerPm) : 0) + tech.entrenchMax;
   return has(flags, TPL_BARE_ARMOR) ? Math.floor(max / 2) : max;
 }
 
@@ -867,11 +953,12 @@ export function casCutHits(
   targetAirAtk: number,
   aaLevel: number,
   flags = 0,
+  aaPm = 1000,
 ): number {
   const h = Math.floor((hits * (100 - Math.min(60, targetAirAtk))) / 100);
   const c = Math.floor((h * Math.max(0, 100 - 5 * aaLevel)) / 100);
   return has(flags, TPL_SUPPORT_AA)
-    ? Math.floor((c * SUPPORT_AA_CAS_PCT) / 100)
+    ? c - byPm(c - Math.floor((c * SUPPORT_AA_CAS_PCT) / 100), aaPm)
     : c;
 }
 
@@ -1258,6 +1345,9 @@ export interface SideStats {
   defOrgPct?: number;
   /** ww98: what its engineers take off prepared ground, ‰ (absent: 0). */
   engineerCutPm?: number;
+  /** ww107: its need and fill per need group (companyPmOf; absent: full). */
+  need?: readonly number[];
+  fill?: readonly number[];
 }
 
 /** ww84: the most pierce bands a side sum keeps; the rest join the band nearest in pierce. */
@@ -1355,7 +1445,8 @@ export function addToSide(sum: SideSum, s: SideStats, orgMilli: number): void {
     w0,
     sw,
   );
-  if (has(fl, TPL_RECON)) sum.recon = true;
+  const reconPm = companyPmOf(s, TPL_RECON);
+  if (reconPm >= COMPANY_ON_PM) sum.recon = true;
   sum.engineerCutPm = byWidth(
     sum.engineerCutPm ?? 0,
     s.engineerCutPm ?? 0,
@@ -1364,19 +1455,19 @@ export function addToSide(sum: SideSum, s: SideStats, orgMilli: number): void {
   );
   sum.reconCutPm = byWidth(
     sum.reconCutPm ?? 0,
-    has(fl, TPL_RECON) ? RECON_POSITION_CUT_PM : 0,
+    byPm(RECON_POSITION_CUT_PM, reconPm),
     w0,
     sw,
   );
   sum.wearPm = byWidth(
     sum.wearPm ?? 0,
-    has(fl, TPL_SUPPORT_GUNS) ? 1000 : 0,
+    companyPmOf(s, TPL_SUPPORT_GUNS),
     w0,
     sw,
   );
   sum.fearHalfPm = byWidth(
     sum.fearHalfPm ?? 0,
-    has(fl, TPL_SUPPORT_AT) ? 1000 : 0,
+    companyPmOf(s, TPL_SUPPORT_AT),
     w0,
     sw,
   );

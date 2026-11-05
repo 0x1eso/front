@@ -206,6 +206,26 @@ export function clearLand(game: Game): void {
 }
 
 /**
+ * Sets `tag`'s first template to nine infantry, two guns, engineers and recon
+ * (width 24, 10,500 men, the German line before ww107), its automatic
+ * companies off: for a test that pins a rule, not the default template.
+ */
+export function wideLine(game: Game, tag: CountryTag = "DEU"): void {
+  const cl = land(game).country(byTag(game, tag).smallID())!;
+  const tpl = cl.templates[0];
+  delete tpl.auto;
+  tpl.def = {
+    name: "",
+    battalions: [
+      ...new Array<BattalionId>(9).fill("infantry"),
+      "artillery",
+      "artillery",
+    ],
+    support: ["engineer", "recon"],
+  };
+}
+
+/**
  * `n` full-strength divisions of `tag`'s template number `template` (1:
  * its first 1936 template) in `region`, as one new army; returns the army.
  * Draws men and equipment like training; the test country needs both.

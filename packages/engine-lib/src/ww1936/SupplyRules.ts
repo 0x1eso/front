@@ -70,10 +70,11 @@ export function supplyUseMilli(
   logisticsCompany: boolean,
   logisticsWizard: boolean,
   techPct: number,
+  logisticsPm = 1000,
 ): number {
   const cut =
     generalLog * 5 +
-    (logisticsCompany ? 20 : 0) +
+    (logisticsCompany ? Math.floor((20 * logisticsPm) / 1000) : 0) +
     (logisticsWizard ? 15 : 0) -
     techPct;
   return Math.floor((baseMilli * Math.max(10, 100 - cut)) / 100);

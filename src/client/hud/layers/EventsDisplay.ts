@@ -344,9 +344,20 @@ export class EventsDisplay extends LitElement implements Controller {
         };
       }
       if (typeof params.template === "string") {
+        // ww107: a template of a player's own goes by its name.
+        const own = typeof params.name === "string" ? params.name : "";
         params = {
           ...params,
-          template: translateText("ww1936.tpl." + params.template),
+          template:
+            params.template === ""
+              ? own
+              : translateText("ww1936.tpl." + params.template),
+        };
+      }
+      if (typeof params.company === "string") {
+        params = {
+          ...params,
+          company: translateText("ww1936.support." + params.company),
         };
       }
       if (typeof params.resource === "string") {

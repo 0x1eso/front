@@ -83,6 +83,8 @@ describe("World War 1936 P6 lists", () => {
       "air_group_disband",
       // The peace conference: surrender.
       "peace_surrender",
+      // ww107: the automatic support companies' switch.
+      "template_auto",
     ]);
   });
 

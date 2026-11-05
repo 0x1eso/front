@@ -51,6 +51,7 @@ import {
   WW_DEPLOY_MIN_FILL_PM,
   WW_MAX_ARMIES,
   WwLandData,
+  NEED_GROUPS,
 } from "@openfront/engine-api/ww1936/LandTypes";
 import type { WwStats } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { zInt } from "@openfront/engine-lib/snapshot/SnapshotType";
@@ -59,6 +60,8 @@ import {
   addToSide,
   combatWidth,
   emptySide,
+  companyFills,
+  companyPmOf,
 } from "@openfront/engine-lib/ww1936/CombatRules";
 import { GENERALS } from "@openfront/engine-lib/ww1936/Generals";
 import { idHash } from "@openfront/engine-lib/ww1936/Roll";
@@ -101,6 +104,7 @@ import { applyArmyOrders, issueArmyOrder } from "./Orders";
 import { directView, oddsOf } from "./Plans";
 import { dmzBlocks } from "./PoliticsBridge";
 import { dailyPositions, resetPosition } from "./Positions";
+import { dailyAutoCompanies, setTemplateAuto } from "./AutoCompanies";
 import { autoAddPresets } from "./Presets";
 import { startOob } from "./StartOob";
 import { dailySupply } from "./Supply";
@@ -477,6 +481,10 @@ export interface LandTemplate {
   key: string;
   /** Replace it (never write into it): the stats caches see a new def. */
   def: TemplateDef;
+  /** ww107: its automatic support companies are on (AutoCompanies); absent: off. */
+  auto?: boolean;
+  /** ww107: companies the AI gave up for want of gear (companyBit); absent: none. */
+  autoDropped?: number;
 }
 
 export interface TrainingEntry {
@@ -694,6 +702,8 @@ export const WwLandStateSchema = z.object({
           name: z.string(),
           battalions: z.array(z.string()),
           support: z.array(z.string()),
+          auto: z.boolean().optional(),
+          autoDropped: zInt().optional(),
         }),
       ),
       nextTemplateId: zInt(),
@@ -830,6 +840,8 @@ interface TemplateStatsEntry {
 }
 
 const EMPTY_DEF: TemplateDef = { name: "", battalions: [], support: [] };
+/** ww107: the need group of the companies with no effect flag (military police). */
+const SUPPORT_GROUP = NEED_GROUPS.indexOf("support_equipment");
 const NO_ROWS: readonly number[] = Object.freeze([]);
 const NO_TEMPLATES: readonly LandTemplate[] = Object.freeze([]);
 /** statsEntry's generation mix scratch. */
@@ -1148,6 +1160,7 @@ export class WwLand {
     // ww7: the positions of the regions it controls.
     dailyPositions(this, id);
     autoAddPresets(this, cl);
+    dailyAutoCompanies(this, cl, day);
     // P5 plan decision 7: the AI runs a country no human controls now.
     // Automation: a human's auto armies, and its training when handed over.
     if (
@@ -1184,9 +1197,17 @@ export class WwLand {
     switch (order.kind) {
       case "template_save":
         block = saveTemplate(this, cl, order);
+        // ww107: a player's edit ends the automatic companies.
+        if (block === null && by === "player") {
+          const edited = cl.template(order.template);
+          if (edited !== null) delete edited.auto;
+        }
         break;
       case "start_oob":
         block = startOob(this, cl, order);
+        break;
+      case "template_auto":
+        block = setTemplateAuto(this, cl, order);
         break;
       case "template_delete":
         block = deleteTemplate(this, cl, order.template);
@@ -1642,6 +1663,30 @@ export class WwLand {
   /** The template's flags (TPL_*) of a division: they read only its template def. */
   flagsOf(row: number): number {
     return this.rowOrgEntry(row) ? this.rowStats.flags[row] : 0;
+  }
+
+  /** ww107: how much of the division's company with `flag` works, ‰: its gear now; 0 without one. */
+  companyPm(row: number, flag: number): number {
+    return (this.flagsOf(row) & flag) === 0
+      ? 0
+      : companyPmOf(this.statsOf(row), flag);
+  }
+
+  /** ww107: the division card's line: its companies working at less than full. */
+  private companiesShort(
+    owner: number,
+    row: number,
+    fill: readonly number[],
+  ): Pick<DivisionData, "companies"> {
+    const def = this.defOf(owner, this.divisions.template[row]);
+    if (def === null || def.support.length === 0) return {};
+    const companies = companyFills(def.support, fill).filter((c) => c.pm < 1000);
+    return companies.length === 0 ? {} : { companies };
+  }
+
+  /** ww107: the division's fill of support equipment, ‰. */
+  supportGearPm(row: number): number {
+    return this.statsOf(row).fill?.[SUPPORT_GROUP] ?? 1000;
   }
 
   /** A division's combat width: it reads only its template def. */
@@ -2581,6 +2626,7 @@ export class WwLand {
         equipPm,
         battle: t.battle[r],
         role: t.role[r],
+        ...this.companiesShort(id, r, fill),
       });
     }
     const training: TrainingData[] = cl.training.map((e) => {
@@ -2665,6 +2711,7 @@ export class WwLand {
         battalions: [...tpl.def.battalions],
         support: [...tpl.def.support],
         inUse: inUse.get(tpl.id) ?? 0,
+        ...(tpl.auto === true ? { auto: true } : {}),
       })),
       training,
       generals,
@@ -2820,6 +2867,8 @@ export class WwLand {
         mix(idHash(tpl.def.name));
         for (const b of tpl.def.battalions) mix(idHash(b));
         for (const s of tpl.def.support) mix(idHash(s));
+        if (tpl.auto === true) mix(1);
+        if (tpl.autoDropped !== undefined) mix(tpl.autoDropped);
       }
       mix(cl.nextTemplateId);
       mix(cl.presetSeen);
@@ -2972,6 +3021,10 @@ export class WwLand {
           name: tpl.def.name,
           battalions: [...tpl.def.battalions],
           support: [...tpl.def.support],
+          ...(tpl.auto === true ? { auto: true } : {}),
+          ...(tpl.autoDropped === undefined
+            ? {}
+            : { autoDropped: tpl.autoDropped }),
         })),
         nextTemplateId: cl.nextTemplateId,
         presetSeen: cl.presetSeen,
@@ -3114,6 +3167,10 @@ export class WwLand {
           battalions: tpl.battalions as BattalionId[],
           support: tpl.support as SupportId[],
         },
+        ...(tpl.auto === true ? { auto: true } : {}),
+        ...(tpl.autoDropped === undefined
+          ? {}
+          : { autoDropped: tpl.autoDropped }),
       }));
       cl.nextTemplateId = c.nextTemplateId;
       cl.presetSeen = c.presetSeen ?? 0;

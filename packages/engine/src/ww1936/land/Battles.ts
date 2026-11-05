@@ -38,6 +38,8 @@ import {
   TPL_LIGHT_MAJOR,
   TPL_RECON,
   TPL_SIGNAL,
+  TPL_SUPPORT_AA,
+  TPL_SUPPORT_AT,
   TPL_SUPPORT_GUNS,
   TPL_TANK_FORCE,
   traitBit,
@@ -72,6 +74,8 @@ import {
   EXPLOIT_ORG_PCT,
   EXPLOIT_RESERVE_PP,
   EXPLOIT_ROUNDS,
+  COMPANY_ON_PM,
+  companyPmOf,
   fearTakenPct,
   hitProtectPm,
   MARINE_LANDED_RECOVERY_PCT,
@@ -81,6 +85,7 @@ import {
   predictBattleRange,
   PREP_FIRE_ROUNDS,
   prepLeftBp,
+  stepsAtPm,
   roundDamage,
   roundHits,
   sideFearPct,
@@ -407,6 +412,7 @@ function fight(land: WwLand, b: Battle, tick: number): void {
             s.flags,
             fire,
             s.engineerCutPm ?? 0,
+            companyPmOf(s, TPL_RECON),
           );
     const blockBp =
       toMods.defenseBp -
@@ -443,6 +449,7 @@ function fight(land: WwLand, b: Battle, tick: number): void {
               fearCutOf(land, to),
             ),
             ts.flags,
+            companyPmOf(ts, TPL_SUPPORT_AT),
           )
         : 0;
     org.set(
@@ -482,7 +489,13 @@ function fight(land: WwLand, b: Battle, tick: number): void {
     const to = targets[b.round % targets.length];
     const aa = effectiveLevel(land.econ, R, "anti_air");
     const ts = stats.get(to)!;
-    const h = casCutHits(hits, ts.airAtk, aa, ts.flags);
+    const h = casCutHits(
+      hits,
+      ts.airAtk,
+      aa,
+      ts.flags,
+      companyPmOf(ts, TPL_SUPPORT_AA),
+    );
     const dmg = roundDamage(h, casProtectPm(ts.armor, ts.hardnessPm));
     org.set(to, (org.get(to) ?? 0) + dmg.orgMilli);
     hp.set(to, (hp.get(to) ?? 0) + dmg.hpMilli);
@@ -582,12 +595,11 @@ function wearEntrenchment(
   stats: ReadonlyMap<number, DivisionStats>,
 ): void {
   if ((b.wornLevels ?? 0) >= ENTRENCH_WEAR_MAX || active.length === 0) return;
+  // ww107: support guns wear it down as far as their gear goes.
   let guns = 0;
-  for (const r of active) {
-    if ((stats.get(r)!.flags & TPL_SUPPORT_GUNS) !== 0) guns++;
-  }
+  for (const r of active) guns += companyPmOf(stats.get(r)!, TPL_SUPPORT_GUNS);
   if (guns === 0) return;
-  const pm = (b.wearPm ?? 0) + Math.floor((guns * 1000) / active.length);
+  const pm = (b.wearPm ?? 0) + Math.floor(guns / active.length);
   if (pm < ENTRENCH_WEAR_ROUNDS * 1000) {
     b.wearPm = pm;
     return;
@@ -743,9 +755,10 @@ function underCas(rc: RoundCtx, side: number): number {
 function reserveEnters(land: WwLand, row: number, side: number): boolean {
   const rc = RC;
   // ww84: armour running through catches the defenders' reserves on the road.
+  const signalPm = land.companyPm(row, TPL_SIGNAL);
   const pct = reinfPctOf(
     initiative(rc, side),
-    (land.flagsOf(row) & TPL_SIGNAL) !== 0,
+    signalPm > 0,
     (side === 0
       ? rc.fx.attReinfPp
       : rc.fx.defReinfPp +
@@ -844,8 +857,9 @@ function sideProfileOf(
       PA_ROW.push(r);
     } else PA_N[k]++;
     const flags = land.flagsOf(r);
-    if ((flags & TPL_SIGNAL) !== 0) signal = true;
-    if ((flags & TPL_RECON) !== 0) recon = true;
+    // ww107: an effect that is on or off needs half the company's gear.
+    if (land.companyPm(r, TPL_SIGNAL) >= COMPANY_ON_PM) signal = true;
+    if (land.companyPm(r, TPL_RECON) >= COMPANY_ON_PM) recon = true;
     if ((flags & TPL_CAVALRY_MAJOR) !== 0) cavalry++;
     exp += t.exp[r];
     entrench += t.entrench[r];
@@ -947,7 +961,11 @@ function lineUp(
     if (fits) {
       line.push(t.id[r]);
       used += w;
-      if (first || prev.has(t.id[r]) || (land.flagsOf(r) & TPL_SIGNAL) !== 0) {
+      if (
+        first ||
+        prev.has(t.id[r]) ||
+        land.companyPm(r, TPL_SIGNAL) >= COMPANY_ON_PM
+      ) {
         active.push(r);
       }
     }
@@ -1423,6 +1441,8 @@ export function applyHpLoss(land: WwLand, row: number, hpMilli: number): void {
   if (hpMilli <= 0 || t.id[row] === 0) return;
   const hpNow = land.statsOf(row).hpMilli;
   const flags = land.flagsOf(row);
+  // ww107: as it stood when hit: the gear it loses here doesn't count.
+  const hospitalPm = land.companyPm(row, TPL_HOSPITAL);
   const owner = t.owner[row];
   const men = t.men[row];
   if (men <= 0) return;
@@ -1462,6 +1482,7 @@ export function applyHpLoss(land: WwLand, row: number, hpMilli: number): void {
     const pct = casualtyReturnShare(
       (flags & TPL_HOSPITAL) !== 0,
       ce?.stats.casualtyReturnPp ?? 0,
+      hospitalPm,
     );
     const back = Math.floor((lost * pct) / 100);
     if (ce !== null) returnManpower(ce, back);
@@ -1528,7 +1549,9 @@ export function stepRecovery(land: WwLand): void {
     if (encircled && !half) continue;
     const pct = (packed - (packed & 1)) / 2;
     const signal =
-      (land.flagsAt(r, epochs[t.owner[r]]) & TPL_SIGNAL) !== 0 ? 10 : 0;
+      (land.flagsAt(r, epochs[t.owner[r]]) & TPL_SIGNAL) !== 0
+        ? Math.floor((10 * land.companyPm(r, TPL_SIGNAL)) / 1000)
+        : 0;
     let supply = Math.max(0, t.supply[r]);
     if (half && supply < 1000) supply += Math.floor((1000 - supply) / 2);
     let gain = Math.floor(
@@ -1593,7 +1616,11 @@ export function dailyEntrench(land: WwLand, smallID: number): void {
       everyOf.set(army, entrenchEvery);
     }
     const flags = land.flagsOf(r);
-    const dug = (flags & TPL_ENGINEER) !== 0 && t.stillDays[r] % 2 === 1;
+    // ww107: the engineers' extra spadework goes by their gear.
+    const engineerPm = land.companyPm(r, TPL_ENGINEER);
+    const dug =
+      t.stillDays[r] % 2 === 1 &&
+      stepsAtPm((t.stillDays[r] - 1) / 2, engineerPm) > 0;
     if (t.stillDays[r] % entrenchEvery !== 0 && !dug) continue;
     if (t.role[r] === ROLE_DEFEND && underWear(land, r)) continue;
     let step = stepOf.get(army);
@@ -1606,7 +1633,7 @@ export function dailyEntrench(land: WwLand, smallID: number): void {
     }
     const gain =
       (t.stillDays[r] % entrenchEvery === 0 ? step : 0) + (dug ? 1 : 0);
-    const max = entrenchMax(flags, ce.stats);
+    const max = entrenchMax(flags, ce.stats, engineerPm);
     t.entrench[r] = Math.min(max, t.entrench[r] + gain);
   }
 }
@@ -1709,8 +1736,20 @@ export function battleExtras(
     const aa = effectiveLevel(land.econ, b.region, "anti_air");
     const fd = land.statsOf(firstDef);
     const fa = land.statsOf(firstAtt);
-    ctx.casAttCenti = casCutHits(casA, fd.airAtk, aa, fd.flags);
-    ctx.casDefCenti = casCutHits(casD, fa.airAtk, aa, fa.flags);
+    ctx.casAttCenti = casCutHits(
+      casA,
+      fd.airAtk,
+      aa,
+      fd.flags,
+      companyPmOf(fd, TPL_SUPPORT_AA),
+    );
+    ctx.casDefCenti = casCutHits(
+      casD,
+      fa.airAtk,
+      aa,
+      fa.flags,
+      companyPmOf(fa, TPL_SUPPORT_AA),
+    );
     if (ctx.casAttCenti > 0) out.casAttCenti = ctx.casAttCenti;
     if (ctx.casDefCenti > 0) out.casDefCenti = ctx.casDefCenti;
   }
@@ -1869,7 +1908,10 @@ export function modInputOf(
   if (amph !== null) {
     const engineers = (land.flagsOf(row) & TPL_ENGINEER) !== 0;
     const lv = effectiveLevel(land.econ, region, "coastal_fort");
-    fortBp = lv === 0 ? 0 : -coastalFortBp(lv, engineers);
+    fortBp =
+      lv === 0
+        ? 0
+        : -coastalFortBp(lv, engineers, land.companyPm(row, TPL_ENGINEER));
     // The hook gives the landing part only (lane I); the fort is ours.
     landingBp = amph.attackBp;
   }
@@ -1879,6 +1921,8 @@ export function modInputOf(
     genDef: g?.dfn ?? 0,
     traits: g?.traits ?? 0,
     flags: land.flagsOf(row),
+    engineerPm: land.companyPm(row, TPL_ENGINEER),
+    supportAaPm: land.companyPm(row, TPL_SUPPORT_AA),
     tech,
     exp: t.exp[row],
     planBp,
@@ -1893,7 +1937,7 @@ export function modInputOf(
     excessBp: 0,
     supplyPm: t.supply[row],
     encircled: t.encircled[row] !== 0,
-    airBp: land.hooks.airPenaltyBp(region, side, base.airAtk),
+    airBp: land.hooks.airPenaltyBp(region, side, land.statsOf(row).airAtk),
     fuelBp,
     landingBp,
     coastalFortBp: fortBp,

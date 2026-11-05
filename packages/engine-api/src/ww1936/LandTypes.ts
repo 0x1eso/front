@@ -341,6 +341,8 @@ export interface DivisionStats {
   weightCenti: number;
   /** P4 spec §14.6: anti-air battalions 20, companies 10, by generation. */
   airAtk: number;
+  /** ww107: the part of airAtk its support anti-air brings (divisionStats scales it by their gear). */
+  companyAirAtk?: number;
   /** P4 spec §15.4: the fuel battalions' share of the width, ‰. */
   fuelWidthPm: number;
   /** P4 spec §15.3: Σ LAND_FUEL_PER_HOUR_MILLI of its battalions. */
@@ -364,6 +366,10 @@ export interface DivisionStats {
    * of its battalions, a support company a third of one, at most +30 %).
    */
   prepFireBp: number;
+  /** ww107: the part of prepFireBp its support guns bring (divisionStats scales it by their gear). */
+  companyFireBp?: number;
+  /** ww107: at its gear now (divisionStats): each need group's fill, ‰; absent: the template's full numbers. */
+  fill?: readonly number[];
   /** ww98: the share of the enemy's prepared ground its engineers take when it attacks, ‰ (research included; absent: none). */
   engineerCutPm?: number;
   /** ww91: the org damage the division takes defending, % (absent: from its flags, CombatRules.defenderOrgPct). */
@@ -680,6 +686,8 @@ export interface TemplateData {
   battalions: BattalionId[];
   support: SupportId[];
   inUse: number;
+  /** ww107: its automatic support companies are on. */
+  auto?: boolean;
 }
 
 export interface TrainingData {
@@ -734,6 +742,8 @@ export interface DivisionData {
   battle: number;
   /** ROLE_NONE, ROLE_ATTACK or ROLE_DEFEND. */
   role: number;
+  /** ww107: its companies short of gear, and how much of each works, ‰. */
+  companies?: { id: SupportId; pm: number }[];
 }
 
 export interface CountryLandDetail {
@@ -870,6 +880,8 @@ export const LAND_ORDER_KINDS = [
   "army_direct",
   // ww48: the whole start army planned in the lobby.
   "start_oob",
+  // ww107: a template's automatic support companies.
+  "template_auto",
 ] as const;
 export type LandOrderKind = (typeof LAND_ORDER_KINDS)[number];
 
@@ -901,5 +913,8 @@ export const LAND_MESSAGE_KEYS = [
   "events_display.ww1936_direct_stop_path",
   "events_display.ww1936_direct_stop_far",
   "events_display.ww1936_direct_stop_gone",
+  // ww107: the automatic companies, and a guide template with no room left.
+  "events_display.ww1936_company_added",
+  "ww1936.econ.block.too_many_templates",
 ] as const;
 export type LandMessageKey = (typeof LAND_MESSAGE_KEYS)[number];

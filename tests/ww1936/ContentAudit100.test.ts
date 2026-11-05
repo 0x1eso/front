@@ -27,31 +27,22 @@ function walk(o: unknown, see: (x: Record<string, unknown>) => void): void {
 }
 
 describe("ww100: rewards that do what they say", () => {
-  test.each([
-    ["chn_central_army", "CHN", false],
-    ["chn_expeditionary", "CHN", false],
-    ["jpn_amphibious_arm", "JPN", true],
-  ] as [string, CountryTag, boolean][])(
-    "%s opens its template from the start techs",
-    (id, tag, major) => {
-      const f = CONTENT.focuses.find((x) => x.id === id)!;
-      const techs = new Set<WwTechId>([
-        ...startTechs(tag, 0),
-        ...landStartTechs(tag, major, 0),
-      ]);
-      const templates: string[] = [];
-      walk(f.effects, (x) => {
-        if (x.kind === "add_tech") techs.add(x.tech as WwTechId);
-        if (x.kind === "unlock_template") templates.push(x.template as string);
-      });
-      expect(templates.length).toBeGreaterThan(0);
-      for (const t of templates) {
-        const c = CONTENT.templates.find((x) => x.id === t)!;
-        const def = { ...c, name: "" } as unknown as TemplateDef;
-        expect(templateBlock(def, techs, Infinity)).toBeNull();
-      }
-    },
-  );
+  test("ww107: no focus gives a division template", () => {
+    const given: string[] = [];
+    walk(CONTENT.focuses, (x) => {
+      if (x.kind === "unlock_template") given.push(x.template as string);
+    });
+    expect(given).toEqual([]);
+  });
+
+  test("ww107: every focus the template grant left still does something", () => {
+    const empty = CONTENT.focuses
+      .filter((f) => f.effects.length === 0)
+      .map((f) => f.id)
+      .sort();
+    // Two that had no effect before it either.
+    expect(empty).toEqual(["pol_zaolzie", "tur_hatay"]);
+  });
 
   test("every research bonus names a branch with a live tech", () => {
     const live = new Set(

@@ -36,6 +36,7 @@ import {
   placeArmy,
   step,
   stepTo,
+  wideLine,
   wwRunnerCapture,
 } from "./util";
 
@@ -43,9 +44,10 @@ import {
 const SUMMER = dayOfDate("1936-06-15");
 const BERLIN = 3;
 const MUNICH = 4;
-const INFANTRY = 1; // DEU's templates: infantry, armored, mountain, cavalry
+const INFANTRY = 1; // DEU's templates: infantry, armored, mountain
 const MOUNTAIN = 3;
-const CAVALRY = 4;
+/** ww107: no major starts with cavalry: germany() adds it, for a cheap division. */
+const CAVALRY = 99;
 
 async function germany(clear = true) {
   const { runner, updates } = await wwRunnerCapture({}, [
@@ -59,6 +61,16 @@ async function germany(clear = true) {
   const ce = l.econ.country(id)!;
   clearStartSetup(l.econ, ce);
   if (clear) clearLand(g);
+  wideLine(g);
+  cl.templates.push({
+    id: CAVALRY,
+    key: "",
+    def: {
+      name: "Cavalry",
+      battalions: new Array<BattalionId>(4).fill("cavalry"),
+      support: [],
+    },
+  });
   let day = SUMMER;
   return {
     runner,
@@ -356,7 +368,8 @@ describe("templates (P2 spec §4.4)", () => {
       }
       return out;
     };
-    expect(rows()).toHaveLength(45);
+    expect(rows()).toHaveLength(50);
+    for (const r of rows()) l.setMen(r, 10_500);
     const artSlots = keysOf("artillery").map(groundSlotOf);
     const guns = rows().reduce(
       (n, r) =>
@@ -383,7 +396,7 @@ describe("templates (P2 spec §4.4)", () => {
     expect(typeTotal(ce.stock, "artillery")).toBe(stockGuns + guns);
     const menAfter = rows().reduce((n, r) => n + t.men[r], 0);
     expect(ce.manpower).toBe(manpower + men - menAfter);
-    expect(menAfter).toBe(45 * 9_500);
+    expect(menAfter).toBe(50 * 9_500);
     // Four artillery battalions in: org is cut to the lower maximum and the
     // guns come by reinforcement.
     for (const r of rows()) t.org[r] = l.orgMaxOf(r);
@@ -459,7 +472,7 @@ describe("templates (P2 spec §4.4)", () => {
     ).toBeNull();
     // From nothing every battalion is a change; still free.
     expect(issue(save(0, [["infantry", 2]], [], "Two"))).toBeNull();
-    expect(cl.templates).toHaveLength(8);
+    expect(cl.templates).toHaveLength(6);
   });
 
   test("template and training orders refuse what the rules refuse", async () => {
@@ -497,7 +510,7 @@ describe("templates (P2 spec §4.4)", () => {
       "bad_template",
     );
     // Training: a template, an army of ours, a region of our side.
-    expect(issue(train(99))).toBe("bad_template");
+    expect(issue(train(98))).toBe("bad_template");
     const polArmy = l.armiesOf(byTag(g, "POL").smallID())[0];
     expect(issue(train(INFANTRY, 1, polArmy.id))).toBe("no_army");
     expect(issue(train(INFANTRY, 1, 0, 6))).toBe("bad_region");

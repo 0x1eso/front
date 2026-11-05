@@ -45,7 +45,11 @@ export function rowSuppression(land: WwLand, row: number): number {
   const t = land.divisions;
   const tpl = land.templateOf(t.owner[row], t.template[row]);
   if (tpl === null) return 0;
-  return divisionSuppression(tpl.def, land.strengthOf(row));
+  return divisionSuppression(
+    tpl.def,
+    land.strengthOf(row),
+    land.supportGearPm(row),
+  );
 }
 
 /** The division's army garrisons (army order "garrison"). */

@@ -545,6 +545,18 @@ export class WwArmyPanel extends WwDrawerBase {
                 : nothing}
             </div>
             ${this.bars(d.data.strengthPm, d.data.orgPm)}
+            ${(d.data.companies ?? []).length === 0
+              ? nothing
+              : html`<div data-ww-company-short class="text-amber-200">
+                  ${(d.data.companies ?? [])
+                    .map((x) =>
+                      translateText("ww1936.land.company_effect", {
+                        company: translateText(`ww1936.support.${x.id}`),
+                        pct: Math.floor(x.pm / 10),
+                      }),
+                    )
+                    .join(" · ")}
+                </div>`}
             <div class="text-white/60">
               ${translateText("ww1936.land.supply", {
                 pct: Math.floor(d.data.supplyPm / 10),

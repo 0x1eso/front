@@ -612,6 +612,7 @@ function divisionRates(
           ((land.flagsOf(row) & (TPL_ARMOR_ANY | TPL_MOTOR_ANY)) !== 0
             ? g.mobilePct
             : 0),
+        land.companyPm(row, TPL_LOGISTICS),
       );
     }
   }

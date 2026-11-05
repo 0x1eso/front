@@ -16,6 +16,7 @@ import { startDoctrinePick } from "@openfront/engine-lib/ww1936/DoctrineRules";
 import { createGameRunner, GameRunner } from "@openfront/engine/GameRunner";
 import { declareWar } from "@openfront/engine/ww1936/Diplomacy";
 import { aiLandTick } from "@openfront/engine/ww1936/land/AiLand";
+import { dailyAutoCompanies } from "@openfront/engine/ww1936/land/AutoCompanies";
 import {
   AI_UNIT_FOCUSES,
   aiPickFocus,
@@ -204,9 +205,9 @@ describe("the plan's small rules in the game", () => {
     ce.researched.add("artillery_1");
     for (let i = 0; i < 6; i++) aiLandTick(l, deu, deu);
     const line = l.country(deu)!.templates[0].def.battalions;
-    expect(line.filter((b) => b === "infantry")).toHaveLength(8);
-    expect(line.filter((b) => b === "artillery")).toHaveLength(2);
-    expect(line).toHaveLength(10);
+    expect(line.filter((b) => b === "infantry")).toHaveLength(6);
+    expect(line.filter((b) => b === "artillery")).toHaveLength(1);
+    expect(line).toHaveLength(7);
   }, 60_000);
 
   it("ww105: a major's line, and its focus line, take their guns as companies", async () => {
@@ -218,8 +219,13 @@ describe("the plan's small rules in the game", () => {
     for (let k = 0; k < ce.stock.length; k++) ce.stock[k] += 1_000_000;
     for (const t of COMPANY_TECHS) ce.researched.add(t);
     const focus = unlockTemplate(pol(g), sun, "sun_rifle_ii")!;
-    for (let i = 0; i < 8; i++) aiLandTick(l, sun, sun);
-    for (const tpl of [l.country(sun)!.templates[0], focus]) {
+    const cl = l.country(sun)!;
+    stepTo(runner, WW_PREP_TICKS + 1);
+    for (let i = 0; i < 8; i++) {
+      aiLandTick(l, sun, sun);
+      dailyAutoCompanies(l, cl, sun);
+    }
+    for (const tpl of [cl.templates[0], focus]) {
       const { battalions, support } = tpl.def;
       expect(battalions.filter((b) => b === "infantry")).toHaveLength(6);
       expect(battalions.filter((b) => b === "artillery")).toHaveLength(1);
@@ -241,8 +247,11 @@ describe("the plan's small rules in the game", () => {
     const ce = l.econ.country(sun)!;
     for (let k = 0; k < ce.stock.length; k++) ce.stock[k] += 1_000_000;
     for (const t of COMPANY_TECHS) ce.researched.add(t);
-    for (let i = 0; i < 8; i++) aiLandTick(l, sun, sun);
-    const line = l.country(sun)!.templates[0];
+    const cl = l.country(sun)!;
+    stepTo(runner, WW_PREP_TICKS + 1);
+    const check = () => dailyAutoCompanies(l, cl, sun);
+    for (let i = 0; i < 8; i++) check();
+    const line = cl.templates[0];
     expect(line.def.support).toContain("engineer");
     const setGear = (n: number) => {
       EQUIP_KEYS.forEach(([t], k) => {
@@ -250,7 +259,6 @@ describe("the plan's small rules in the game", () => {
       });
     };
     // Training goes on: a stock near nothing alone takes no company away.
-    const cl = l.country(sun)!;
     cl.trainees.push({
       entry: 0,
       template: line.id,
@@ -259,26 +267,26 @@ describe("the plan's small rules in the game", () => {
       days: 1,
     });
     setGear(0);
-    aiLandTick(l, sun, sun);
+    check();
     expect(line.def.support).toContain("recon");
     // Nothing trains: the last company on the gear goes, one a refit; the guns
     // stay, and none comes back while the stock is empty.
     cl.trainees.length = 0;
     cl.training.length = 0;
     setGear(0);
-    aiLandTick(l, sun, sun);
+    check();
     expect(line.def.support).not.toContain("recon");
     expect(line.def.support).toContain("engineer");
     cl.trainees.length = 0;
     cl.training.length = 0;
     setGear(0);
-    aiLandTick(l, sun, sun);
+    check();
     expect(line.def.support).not.toContain("engineer");
     expect(line.def.support).toContain("support_artillery");
     expect(line.def.support).toContain("support_anti_tank");
     setGear(1_000_000);
-    aiLandTick(l, sun, sun);
-    aiLandTick(l, sun, sun);
+    check();
+    check();
     expect(line.def.support).toContain("engineer");
     expect(line.def.support).toContain("recon");
   }, 60_000);

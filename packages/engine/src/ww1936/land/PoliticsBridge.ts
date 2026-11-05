@@ -284,16 +284,21 @@ function templateFor(cl: CountryLand, src: LandTemplate): number {
     });
     return id;
   }
+  return mostAlike(cl, src.def).id;
+}
+
+/** The country's template closest to `def` (ties: smaller id). It has at least one. */
+export function mostAlike(cl: CountryLand, def: TemplateDef): LandTemplate {
   let best = cl.templates[0];
   let bestD = Infinity;
   for (const x of cl.templates) {
-    const d = difference(x.def, src.def);
+    const d = difference(x.def, def);
     if (d < bestD || (d === bestD && x.id < best.id)) {
       best = x;
       bestD = d;
     }
   }
-  return best.id;
+  return best;
 }
 
 /**
