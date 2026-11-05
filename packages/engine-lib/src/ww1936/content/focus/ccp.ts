@@ -105,7 +105,6 @@ export const CCP_FOCUSES: FocusDef[] = [
     icon: "infantry",
     prereq: [["ccp_united_front"]],
     effects: [
-      { kind: "unlock_template", template: "ccp_guerrilla_division" },
       {
         kind: "divisions",
         template: "ccp_guerrilla_division",
@@ -300,7 +299,6 @@ export const CCP_FOCUSES: FocusDef[] = [
     icon: "infantry",
     prereq: [["ccp_hundred_regiments"]],
     effects: [
-      { kind: "unlock_template", template: "ccp_field_army_division" },
       { kind: "army_xp", amount: 30 },
     ],
     ai: { base: 10 },

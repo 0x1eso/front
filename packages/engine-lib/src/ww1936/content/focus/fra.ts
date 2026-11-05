@@ -619,7 +619,6 @@ export const FRA_FOCUSES: FocusDef[] = [
     group: "fra_army",
     effects: [
       { kind: "army_xp", amount: 20 },
-      { kind: "unlock_template", template: "fra_infantry_ii" },
     ],
     ai: { base: 10 },
   },
@@ -641,7 +640,6 @@ export const FRA_FOCUSES: FocusDef[] = [
         count: 2000,
         item: "fra_citroen23",
       },
-      { kind: "unlock_template", template: "fra_motorised_division" },
     ],
     ai: { base: 10 },
   },
@@ -656,7 +654,6 @@ export const FRA_FOCUSES: FocusDef[] = [
     group: "fra_army",
     prereq: [["fra_mobile_reserve"], ["fra_motorised_divisions"]],
     effects: [
-      { kind: "unlock_template", template: "fra_armoured_ii" },
       // "Mobile doctrine research +100% once": the doctrine branch.
       { kind: "doctrine_mastery", domain: "land", amount: 60 },
       // Usable now, whatever the P2 roster's `from` says.
@@ -675,10 +672,8 @@ export const FRA_FOCUSES: FocusDef[] = [
     group: "fra_army",
     prereq: [["fra_army_reorganisation"]],
     effects: [
-      // France starts without the mountain battalion's tech; the template
-      // check would refuse fra_mountain_division without it.
+      // France starts without the mountain battalion's tech.
       { kind: "add_tech", tech: "mountaineers" },
-      { kind: "unlock_template", template: "fra_mountain_division" },
       {
         kind: "fort",
         where: { best: 3, of: "italy_alpine_border_fr" },
@@ -699,7 +694,6 @@ export const FRA_FOCUSES: FocusDef[] = [
     prereq: [["fra_army_reorganisation"], ["fra_empire_defence"]],
     effects: [
       { kind: "manpower", amount: 80000 },
-      { kind: "unlock_template", template: "fra_colonial_ii" },
       // ww91: the Foreign Legion, the mountain battalion renamed.
       { kind: "add_tech", tech: "mountaineers" },
       { kind: "add_spirit", id: "nat_fra_unit" },
@@ -1621,7 +1615,6 @@ export const FRA_FOCUSES: FocusDef[] = [
     prereq: [["fra_alpine_troops"]],
     effects: [
       { kind: "army_xp", amount: 10 },
-      { kind: "unlock_template", template: "fra_mountain_division" },
     ],
     ai: { base: 10 },
   },

@@ -145,8 +145,7 @@ export const POL_FOCUSES: FocusDef[] = [
     ai: { base: 10 },
   },
   {
-    // Poland built light tanks from 1935; without light_tank_1 the P2 template
-    // check would refuse the brigade, so the focus grants it (lane report).
+    // Poland built light tanks from 1935: the focus opens light_tank_1.
     id: "pol_armored_brigades",
     tree: "pol",
     x: 24,
@@ -158,7 +157,6 @@ export const POL_FOCUSES: FocusDef[] = [
     effects: [
       { kind: "research_bonus", branch: "armour", pct: 100, uses: 1 },
       { kind: "add_tech", tech: "light_tank_1" },
-      { kind: "unlock_template", template: "pol_armored_cavalry" },
     ],
     ai: { base: 10 },
   },

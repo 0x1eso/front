@@ -218,13 +218,12 @@ export const NOR_FOCUSES: readonly FocusDef[] = [
     icon: "infantry",
     prereq: [["nor_winter_training"]],
     effects: [
-      // Mountain battalions need the mountaineers tech; without it the template would not unlock.
+      // Opens the mountain battalions.
       {
         kind: "if",
         cond: not({ kind: "has_tech", tech: "mountaineers" }),
         then: [{ kind: "add_tech", tech: "mountaineers" }],
       },
-      { kind: "unlock_template", template: "nor_ski_division" },
       { kind: "add_spirit", id: "nor_ski_warfare" },
     ],
     ai: { base: 10 },

@@ -650,7 +650,6 @@ export const USA_FOCUSES: FocusDef[] = [
     icon: "infantry",
     effects: [
       { kind: "army_xp", amount: 25 },
-      { kind: "unlock_template", template: "usa_infantry_ii" },
     ],
     ai: { base: 10 },
   },
@@ -666,7 +665,6 @@ export const USA_FOCUSES: FocusDef[] = [
     available: any(after("1940-07-01"), { kind: "at_war" }),
     effects: [
       { kind: "research_bonus", branch: "armour", pct: 100, uses: 1 },
-      { kind: "unlock_template", template: "usa_armored_division" },
     ],
     ai: { base: 10 },
   },
@@ -752,7 +750,6 @@ export const USA_FOCUSES: FocusDef[] = [
           },
         ],
       },
-      { kind: "unlock_template", template: "usa_marine_division" },
       { kind: "add_spirit", id: "usa_amphibious_doctrine" },
       { kind: "add_spirit", id: "nat_usa_unit" },
     ],
@@ -1576,7 +1573,6 @@ export const USA_FOCUSES: FocusDef[] = [
     available: { kind: "at_war_with", of: T("JPN") },
     effects: [
       { kind: "army_xp", amount: 20 },
-      { kind: "unlock_template", template: "usa_marine_division" },
     ],
     ai: { base: 8 },
   },
@@ -1771,7 +1767,6 @@ export const USA_FOCUSES: FocusDef[] = [
     available: { kind: "at_war" },
     effects: [
       { kind: "army_xp", amount: 30 },
-      { kind: "unlock_template", template: "usa_marine_division" },
     ],
     ai: { base: 15 },
   },
@@ -1837,7 +1832,6 @@ export const USA_FOCUSES: FocusDef[] = [
     prereq: [["usa_airborne"]],
     effects: [
       { kind: "army_xp", amount: 20 },
-      { kind: "unlock_template", template: "usa_infantry_ii" },
     ],
     ai: { base: 8 },
   },

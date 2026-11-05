@@ -417,7 +417,6 @@ export const LAT_FOCUSES: FocusDef[] = [
       { kind: "at_war_with", of: T("ITA") },
     ),
     effects: [
-      { kind: "unlock_template", template: "bra_feb_division" },
       {
         kind: "divisions",
         template: "bra_feb_division",

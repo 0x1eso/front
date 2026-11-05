@@ -104,7 +104,6 @@ export const SUN_BONAPARTE_FOCUSES: FocusDef[] = [
     prereq: [["sun_deep_ops_revived"]],
     effects: [
       { kind: "research_bonus", branch: "armour", pct: 50, uses: 1 },
-      { kind: "unlock_template", template: "sun_tank_division" },
       { kind: "doctrine_mastery", domain: "land", track: "armor", amount: 60 },
       { kind: "build", where: { best: 3 }, building: "mil", count: 1 },
       {

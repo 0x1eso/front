@@ -594,7 +594,6 @@ export const BAL_FOCUSES: readonly FocusDef[] = [
     icon: "tank",
     prereq: [["bal_royal_army"]],
     effects: [
-      { kind: "unlock_template", template: "hun_mobile_brigade" },
       { kind: "research_bonus", branch: "armour", pct: 50, uses: 1 },
     ],
     ai: { base: 10 },
@@ -637,7 +636,6 @@ export const BAL_FOCUSES: readonly FocusDef[] = [
         cond: not({ kind: "has_tech", tech: "mountaineers" }),
         then: [{ kind: "add_tech", tech: "mountaineers" }],
       },
-      { kind: "unlock_template", template: "bal_mountain_division" },
       { kind: "add_spirit", id: "bal_highland_drill" },
     ],
     ai: { base: 10 },

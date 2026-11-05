@@ -722,7 +722,6 @@ export const GBR_FOCUSES: FocusDef[] = [
     icon: "infantry",
     effects: [
       { kind: "army_xp", amount: 25 },
-      { kind: "unlock_template", template: "gbr_infantry_div_ii" },
     ],
     ai: { base: 10 },
   },
@@ -758,7 +757,6 @@ export const GBR_FOCUSES: FocusDef[] = [
         count: 2000,
         item: "gbr_bedford_ql",
       },
-      { kind: "unlock_template", template: "gbr_motor_div" },
     ],
     ai: { base: 10 },
   },
@@ -773,7 +771,6 @@ export const GBR_FOCUSES: FocusDef[] = [
     prereq: [["gbr_mechanisation"]],
     effects: [
       { kind: "research_bonus", branch: "armour", pct: 100, uses: 1 },
-      { kind: "unlock_template", template: "gbr_armoured_div" },
     ],
     ai: { base: 10 },
   },

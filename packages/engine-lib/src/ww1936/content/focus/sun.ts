@@ -722,7 +722,6 @@ export const SUN_FOCUSES = [
     icon: "infantry",
     effects: [
       { kind: "army_xp", amount: 40 },
-      { kind: "unlock_template", template: "sun_rifle_ii" },
       { kind: "add_spirit", id: "sun_rkka_reserves" },
     ],
     ai: { base: 10 },
@@ -738,7 +737,6 @@ export const SUN_FOCUSES = [
     prereq: [["sun_rkka_expansion"]],
     effects: [
       { kind: "research_bonus", branch: "armour", pct: 100, uses: 1 },
-      { kind: "unlock_template", template: "sun_tank_division" },
     ],
     ai: { base: 10 },
   },
@@ -821,7 +819,6 @@ export const SUN_FOCUSES = [
       // ww91: the Guards Rifles are mountain battalions under the Guards name.
       { kind: "add_tech", tech: "mountaineers" },
       { kind: "add_spirit", id: "nat_sun_unit" },
-      { kind: "unlock_template", template: "sun_guards_rifle" },
       { kind: "army_xp", amount: 20 },
     ],
     ai: { base: 10 },
