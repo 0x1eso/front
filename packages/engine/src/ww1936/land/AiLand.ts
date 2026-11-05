@@ -415,6 +415,18 @@ export function aiBorderDemand(i: {
   return Math.max(DEMAND_MIN, Math.min(d, cap));
 }
 
+/**
+ * ww105: a front's demand, tenths of a division, under what its stretch feeds
+ * (`fed` divisions): no more than that, but one a border region.
+ */
+export function aiFedDemand(
+  demand: number,
+  fed: number,
+  border: number,
+): number {
+  return Math.min(demand, Math.max(fed, border) * DEMAND_PER_ARMY_DIVISION);
+}
+
 /** The range an offensive has to clear, ‰. */
 export interface AiGate {
   midPm: number;
@@ -1254,6 +1266,10 @@ class AiDay {
   private surplus = new Set<number>();
   /** ww103: divisions today's fronts have put on each line region (the period's day). */
   private lineUsed = new Map<number, number>();
+  /** ww105: the divisions today's rear zones have put on each region. */
+  private rearUsed = new Map<number, number>();
+  /** ww105: the quiet regions of a stretch by front, nearest its line first. */
+  private rearLists = new Map<number, readonly number[]>();
   /** ww81 C4: the armies that lead today's main efforts: the air goes to them first. */
   private skyArmies = new Set<number>();
   /** ww81 C3: today's cuts of each enemy read (on the period's day or for a new sector). */
@@ -2055,6 +2071,7 @@ class AiDay {
         a.order.kind !== "paradrop",
     );
     this.oneEnemy(fronts, armies);
+    this.feedDemand(fronts, armies);
     const input: AiFrontArmy[] = [];
     const ours = fronts.map(() => 0);
     for (const a of armies) {
@@ -2139,6 +2156,33 @@ class AiDay {
     fronts.forEach((f, i) => {
       if (assigned[i].length > 0) this.holdFront(f, assigned[i]);
     });
+  }
+
+  /**
+   * ww105: a front asks for no more than its stretch feeds: Sakhalin, with room
+   * for 8 divisions, took 111 in the first weeks of a war with Japan.
+   */
+  private feedDemand(fronts: Front[], armies: readonly Army[]): void {
+    const land = this.land;
+    let use = 0;
+    let n = 0;
+    for (const a of armies) {
+      const rows = armyRows(land, a);
+      if (rows.length === 0) continue;
+      use += land.supplyBaseOf(rows[0]) * rows.length;
+      n += rows.length;
+    }
+    if (n === 0) return;
+    const unit = Math.max(1, Math.floor(use / n));
+    const comp = this.comp();
+    const room = new Map<number, number>();
+    for (const r of this.side().regions) {
+      const fed = Math.floor(land.supplyMilli[r] / unit);
+      room.set(comp[r], (room.get(comp[r]) ?? 0) + fed);
+    }
+    for (const f of fronts) {
+      f.demand = aiFedDemand(f.demand, room.get(f.comp) ?? 0, f.border.length);
+    }
   }
 
   /**
@@ -2419,9 +2463,7 @@ class AiDay {
     const onLine = new Set(line);
     const back = (a: Army) => {
       const o = a.order;
-      if (o.kind === "front") {
-        return o.zone.length === 1 && !onLine.has(o.zone[0]);
-      }
+      if (o.kind === "front") return this.behind(a, onLine);
       return this.lost(o.kind === "plan" ? o.targets[0] : 0);
     };
     const rank = (a: Army) =>
@@ -2455,19 +2497,12 @@ class AiDay {
     const onLine = new Set(border);
     const facts: PoolFacts[] = armies
       .filter((a) => !(a.order.kind === "plan" && a.order.executing))
-      .map((a) => {
-        const z = a.order.zone;
-        return {
-          id: a.id,
-          n: a.divisions.length,
-          fist: this.shock(a),
-          back:
-            a.order.enemy === f.enemy &&
-            a.order.kind === "front" &&
-            z.length === 1 &&
-            !onLine.has(z[0]),
-        };
-      });
+      .map((a) => ({
+        id: a.id,
+        n: a.divisions.length,
+        fist: this.shock(a),
+        back: a.order.enemy === f.enemy && this.behind(a, onLine),
+      }));
     const ids = choosePool(facts, pct, border.length);
     return armies.filter((a) => ids.includes(a.id));
   }
@@ -2482,11 +2517,7 @@ class AiDay {
     const sc = this.land.scenario;
     const x = this.counterSector(f, line, pool);
     if (x === 0) {
-      const back = this.behindLine(f, line);
-      for (const a of pool) {
-        this.offEffort.add(a.id);
-        this.giveZone(a, f, [back], true);
-      }
+      this.postRear(pool, f, line);
       return;
     }
     const near = line.filter((r) => sc.edgeBetween(r, x) >= 0);
@@ -2593,7 +2624,7 @@ class AiDay {
     }
     this.offEffort.add(a.id);
     if (target === 0) {
-      this.giveZone(a, f, [this.behindLine(f, line)], true);
+      this.postRear([a], f, line);
       return;
     }
     const near = line.filter((r) => sc.edgeBetween(r, target) >= 0);
@@ -2817,7 +2848,11 @@ class AiDay {
   /** ww103: on the line's own armies' reckoning, an army that stands behind the line already. */
   private behind(a: Army, onLine: ReadonlySet<number>): boolean {
     const o = a.order;
-    return o.kind === "front" && o.zone.length === 1 && !onLine.has(o.zone[0]);
+    return (
+      o.kind === "front" &&
+      o.zone.length > 0 &&
+      o.zone.every((r) => !onLine.has(r))
+    );
   }
 
   /**
@@ -2866,45 +2901,138 @@ class AiDay {
   }
 
   /**
-   * ww103: the armies behind the line go to the nearest region of the stretch
-   * that feeds them, off the line; one standing where it is fed stays.
+   * ww103: the armies behind the line go to the nearest regions of the stretch
+   * that feed them, off the line; one standing where it is fed stays. ww105: an
+   * army no region of its stretch can feed leaves it by sea, if it can.
    */
   private postRear(armies: readonly Army[], f: Front, line: readonly number[]) {
-    const land = this.land;
-    const onLine = new Set(line);
-    const comp = this.comp();
     const unit = this.supplyUnit(armies);
-    const dist = this.bfs(
-      [...line],
-      (r) => comp[r] === f.comp && this.ours(r) && land.controller[r] !== 0,
-    );
-    let list: number[] | null = null;
-    const planned = new Map<number, number>();
     for (const a of armies) {
       this.offEffort.add(a.id);
-      const n = a.divisions.length;
-      const at = a.order.zone.length === 1 ? a.order.zone[0] : 0;
-      const fits = (r: number) => {
-        const room = Math.floor(this.feedOf(r) / unit);
-        return room - (planned.get(r) ?? 0) >= n;
-      };
-      if (at !== 0 && !onLine.has(at) && comp[at] === f.comp && fits(at)) {
-        planned.set(at, (planned.get(at) ?? 0) + n);
-        this.giveZone(a, f, [at], true);
-        continue;
+      const zone = this.rearZone(a, f, line, unit);
+      if (zone !== null) this.giveZone(a, f, zone, true);
+      else if (!this.effortDue() || !this.sailOff(a, f, unit)) {
+        this.giveZone(a, f, [this.behindLine(f, line)], true);
       }
-      // Off every line: another front's region is no rear.
-      const quiet = (r: number) =>
-        !land.scenario
-          .edgesOf(r)
-          .some((e) => land.isEnemy(this.me, land.controller[e.to]));
-      list ??= this.side()
-        .regions.filter((r) => dist[r] > 0 && dist[r] < FAR && quiet(r))
-        .sort((x, y) => dist[x] - dist[y] || x - y);
-      const spot = list.find(fits) ?? this.behindLine(f, line);
-      planned.set(spot, (planned.get(spot) ?? 0) + n);
-      this.giveZone(a, f, [spot], true);
     }
+  }
+
+  /**
+   * ww105: the regions `a` stands behind the line on, or null: its stretch has
+   * too few. A zone region takes its cap (zoneCap) and whoever doesn't fit stays
+   * where it is, so one region for an army of 24 walked 6 of them there and left
+   * 18 on the line: 117 Soviet divisions starved in one Mongolian town. So an
+   * army gets as many regions as it takes, the nearest first, each one able to
+   * feed its cap; where it stands it stays while that holds.
+   */
+  private rearZone(
+    a: Army,
+    f: Front,
+    line: readonly number[],
+    unit: number,
+  ): number[] | null {
+    const land = this.land;
+    const n = a.divisions.length;
+    const mean = meanWidthOf(land, armyRows(land, a));
+    const capOf = (r: number) => Math.min(n, zoneCap(land, r, 1, mean));
+    const fed = (r: number) =>
+      Math.floor(this.feedOf(r) / unit) - (this.rearUsed.get(r) ?? 0) >=
+      capOf(r);
+    const fills = (z: readonly number[]) =>
+      z.reduce((sum, r) => sum + capOf(r), 0) >= n;
+    const comp = this.comp();
+    const now = a.order.zone;
+    let zone: number[] | null = null;
+    if (
+      this.behind(a, new Set(line)) &&
+      fills(now) &&
+      now.every((r) => comp[r] === f.comp && this.quiet(r) && fed(r))
+    ) {
+      zone = [...now];
+    } else {
+      const picked: number[] = [];
+      for (const r of this.rearList(f, line)) {
+        if (!fed(r)) continue;
+        picked.push(r);
+        if (fills(picked)) {
+          zone = picked;
+          break;
+        }
+      }
+    }
+    if (zone === null) return null;
+    const each = Math.ceil(n / zone.length);
+    for (const r of zone) {
+      this.rearUsed.set(r, (this.rearUsed.get(r) ?? 0) + each);
+    }
+    return zone;
+  }
+
+  /** No enemy next to it: another front's region is no rear. */
+  private quiet(r: number): boolean {
+    const land = this.land;
+    return !land.scenario
+      .edgesOf(r)
+      .some((e) => land.isEnemy(this.me, land.controller[e.to]));
+  }
+
+  /** ww105: the quiet regions of `f`'s stretch off `line`, the nearest it first. */
+  private rearList(f: Front, line: readonly number[]): readonly number[] {
+    const key = f.enemy * 65_536 + f.comp;
+    let list = this.rearLists.get(key);
+    if (list === undefined) {
+      const land = this.land;
+      const comp = this.comp();
+      const dist = this.bfs(
+        [...line],
+        (r) => comp[r] === f.comp && this.ours(r) && land.controller[r] !== 0,
+      );
+      list = this.side()
+        .regions.filter((r) => dist[r] > 0 && dist[r] < FAR && this.quiet(r))
+        .sort((x, y) => dist[x] - dist[y] || x - y);
+      this.rearLists.set(key, list);
+    }
+    return list;
+  }
+
+  /**
+   * ww105: `a`, which its stretch can't feed, sails to the nearest port of ours
+   * on another that can take it, gathering in a port first. 111 Soviet divisions
+   * sat out the war on Sakhalin at 7 % supply: the sea took them there and no
+   * order took them back. It sails on any route: at 7 % there is nothing to lose.
+   */
+  private sailOff(a: Army, f: Front, unit: number): boolean {
+    const land = this.land;
+    const sc = land.scenario;
+    const t = land.divisions;
+    const rows = armyRows(land, a);
+    const ports = this.portsOf(f.comp);
+    if (rows.length === 0 || ports.length === 0) return false;
+    const comp = this.comp();
+    const here = t.region[rows[0]];
+    const gathered =
+      navalPort(land.ww, here) &&
+      rows.every((r) => t.region[r] === here && t.mode[r] === MOVE_NONE);
+    const from = gathered ? here : this.nearestIn(ports, here);
+    const mean = meanWidthOf(land, rows);
+    let best = 0;
+    let bestKm = Infinity;
+    for (const r of this.side().regions) {
+      if (comp[r] === f.comp || comp[r] < 0 || !navalPort(land.ww, r)) continue;
+      const take = Math.min(rows.length, zoneCap(land, r, 1, mean));
+      if (Math.floor(this.feedOf(r) / unit) < take) continue;
+      const km = sc.regionKm(from, r);
+      if (km < bestKm || (km === bestKm && r < best)) {
+        best = r;
+        bestKm = km;
+      }
+    }
+    if (best === 0) return false;
+    if (gathered) {
+      return this.issue({ kind: "army_sea", army: a.id, region: best });
+    }
+    if (a.order.kind === "move" && a.order.to === from) return true;
+    return this.issue({ kind: "army_move", army: a.id, region: from });
   }
 
   /**

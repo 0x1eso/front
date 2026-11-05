@@ -4,10 +4,12 @@
 // for years. Men died without battles for the same stacks. So: forts by value,
 // a line no deeper than its width, the rest behind it where they are fed, no
 // training past what it can feed or use, and a stalemate lowers the bars.
+import { GameMapSize, GameMapType } from "@openfront/engine-api/game/GameTypes";
+import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
 import { WW_DAY_SPLIT } from "@openfront/engine-api/ww1936/EconomyTypes";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
-import type { GameRunner } from "@openfront/engine/GameRunner";
+import { createGameRunner, GameRunner } from "@openfront/engine/GameRunner";
 import { declareWar } from "@openfront/engine/ww1936/Diplomacy";
 import {
   AI_FORT_LINE_LEVEL,
@@ -21,6 +23,7 @@ import {
   AI_STALE_MID_PM,
   AI_TRAIN_HUNGRY_PCT,
   AI_TRAIN_IDLE_MIN,
+  aiFedDemand,
   aiFortCap,
   aiGatePm,
   aiLiberationOver,
@@ -34,7 +37,11 @@ import {
 } from "@openfront/engine/ww1936/politics/AiPolitics";
 import { pickRegions } from "@openfront/engine/ww1936/politics/EffectsEcon";
 import { addWarGoal } from "@openfront/engine/ww1936/politics/WarGoals";
+import { loadMapFiles } from "@openfront/shared/GameMapLoader";
+import path from "path";
+import { fileURLToPath } from "url";
 import { describe, expect, it } from "vitest";
+import { NodeGameMapLoader } from "../perf/fullgame/NodeGameMapLoader";
 import {
   byTag,
   clearLand,
@@ -44,6 +51,7 @@ import {
   pol,
   stepTo,
   takeRegion,
+  wwGameStart,
   wwRunner,
 } from "./util";
 
@@ -66,6 +74,38 @@ async function war() {
     pl: pl.smallID(),
     d0: ww.day(g.ticks()),
   };
+}
+
+/** On world1936: two AI countries at war, the board blank, gear and convoys to spare. */
+async function realWar(tagA: CountryTag = "DEU", tagB: CountryTag = "POL") {
+  const dir = path.dirname(fileURLToPath(import.meta.url));
+  const runner = await createGameRunner(
+    wwGameStart({ historicalAi: false }, []),
+    undefined,
+    await loadMapFiles(
+      new NodeGameMapLoader(path.join(dir, "../../resources/maps")),
+      GameMapType.World1936,
+      GameMapSize.Normal,
+    ),
+    (gu) => {
+      if ("errMsg" in gu) throw new Error(gu.errMsg);
+    },
+  );
+  const g = runner.game;
+  dropPact(g, tagA, tagB);
+  const [a, b] = [byTag(g, tagA), byTag(g, tagB)];
+  addWarGoal(pol(g), a.smallID(), b.smallID(), "conquer", "", 0);
+  stepTo(runner, WW_PREP_TICKS + 1);
+  const ww = g.worldWar()!;
+  expect(declareWar(g, ww, a, b, g.ticks())).not.toEqual([]);
+  clearLand(g);
+  const l = land(g);
+  for (const id of [a.smallID(), b.smallID()]) {
+    const ce = l.econ.country(id)!;
+    ce.manpower += 10_000_000;
+    for (let k = 0; k < ce.stock.length; k++) ce.stock[k] += 100_000;
+  }
+  return { runner, g, l, deu: a.smallID(), pl: b.smallID(), ww };
 }
 
 function finishDay(runner: GameRunner, d: number): void {
@@ -200,6 +240,76 @@ describe("the AI's fronts move (ww103)", () => {
     econ.fort[picks[0]] = AI_FORT_DECISION_LEVEL;
     expect(bordersFortified(p, deu)).toBe(true);
   }, 120_000);
+
+  it("ww105: a front asks for no more than its stretch feeds, and one a region", () => {
+    expect(aiFedDemand(1200, 8, 1)).toBe(80);
+    expect(aiFedDemand(50, 8, 1)).toBe(50);
+    expect(aiFedDemand(1200, 2, 5)).toBe(50);
+  });
+
+  it("ww105: an army behind the line stands there whole, on regions that feed it", async () => {
+    const { runner, g, l, deu, pl, ww } = await realWar();
+    const sc = l.scenario;
+    const line = sc.landRegions
+      .map((r) => r.id)
+      .filter(
+        (r) =>
+          l.controller[r] === deu &&
+          sc.edgesOf(r).some((e) => l.controller[e.to] === pl),
+      );
+    const across = sc
+      .edgesOf(line[0])
+      .find((e) => l.controller[e.to] === pl)!.to;
+    placeArmy(g, "POL", across, 24);
+    const armies = [0, 1, 2, 3, 4, 5, 6, 7].map(() =>
+      placeArmy(g, "DEU", line[0], 24),
+    );
+    const d0 = ww.day(g.ticks());
+    for (let d = d0; d <= d0 + 45; d++) finishDay(runner, d);
+    const t = l.divisions;
+    const onLine = new Set(line);
+    const rear = armies.filter(
+      (a) =>
+        l.armies.has(a.id) &&
+        a.order.kind === "front" &&
+        a.order.zone.length > 0 &&
+        a.order.zone.every((r) => !onLine.has(r)),
+    );
+    expect(rear.length).toBeGreaterThan(0);
+    for (const a of rear) {
+      // One region takes a quarter of an army: the rest used to stay put.
+      expect(a.order.zone.length).toBeGreaterThan(1);
+      for (const id of a.divisions) {
+        expect(a.order.zone).toContain(t.dest[t.rowOf(id)]);
+      }
+    }
+  }, 300_000);
+
+  it("ww105: an army its stretch can't feed sails to a stretch that can", async () => {
+    const { runner, g, l, ww } = await realWar("SUN", "JPN");
+    const sc = l.scenario;
+    const at = (name: string) => sc.landRegions.find((r) => r.name === name)!.id;
+    const sakhalin = at("Sakhalin");
+    // Sakhalin cut off: no rear on it, one port, and a Japanese front.
+    for (const e of sc.edgesOf(sakhalin)) {
+      if (l.controller[e.to] !== l.controller[sakhalin]) continue;
+      takeRegion(g, e.to, "JPN");
+    }
+    for (const e of sc.edgesOf(sakhalin)) placeArmy(g, "JPN", e.to, 40);
+    const armies = [0, 1, 2, 3, 4, 5].map(() =>
+      placeArmy(g, "SUN", sakhalin, 20),
+    );
+    const d0 = ww.day(g.ticks());
+    let sailed = false;
+    for (let d = d0; d <= d0 + 24 && !sailed; d++) {
+      finishDay(runner, d);
+      sailed = armies.some((a) => {
+        const o = a.order;
+        return o.kind === "move" && o.to !== sakhalin;
+      });
+    }
+    expect(sailed).toBe(true);
+  }, 300_000);
 
   it("at peace an army starving with no way out disbands; men come home", async () => {
     const runner = await wwRunner({ historicalAi: false });
