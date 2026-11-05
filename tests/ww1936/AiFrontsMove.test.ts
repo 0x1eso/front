@@ -208,6 +208,8 @@ describe("the AI's fronts move (ww103)", () => {
     const l = land(g);
     const LONDON = 10;
     takeRegion(g, LONDON, "DEU");
+    // An enclave: no land road home, and no port either.
+    g.worldWar()!.economy.buildingArray("naval_base")[LONDON] = 0;
     const a = placeArmy(g, "DEU", LONDON, 40);
     const d0 = g.worldWar()!.day(g.ticks());
     for (let d = d0; d <= d0 + 25; d++) finishDay(runner, d);

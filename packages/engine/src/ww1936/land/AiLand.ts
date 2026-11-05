@@ -2982,10 +2982,12 @@ class AiDay {
         }
       }
       if (best === 0) {
-        // No way out, at peace: an enclave a line peace left it in (175 Soviet
-        // divisions starved in Saxony for years). The men go home by disbanding.
+        // No way out, by land or sea, at peace: an enclave a line peace left it
+        // in (175 Soviet divisions starved in Saxony for years). The men go
+        // home by disbanding.
         if (
           this.atWar.length === 0 &&
+          this.portsOf(c).length === 0 &&
           t.supply[armyRows(land, a)[0]] < ATTRITION_SUPPLY_PM
         ) {
           this.issue({ kind: "army_disband", army: a.id });
