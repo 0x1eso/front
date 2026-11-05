@@ -840,6 +840,8 @@ export class WwEndgame {
             continue;
           }
           if (!this.ww.isActor(e.id)) continue;
+          // w86: a truce covers joins too.
+          if (this.truceUntil(id, e.id) > this.ww.day(tick)) continue;
           this.ww.setWar(id, e.id, tick, { kind: "into", warId: w.id });
         }
       }

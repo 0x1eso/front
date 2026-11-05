@@ -26,6 +26,7 @@ import {
   negPeaceRepK,
   negPeaceTermsBlock,
   negPeaceValue,
+  type NegPeaceHint,
 } from "@openfront/engine-lib/ww1936/NegPeaceRules";
 import {
   PEACE_FREE,
@@ -284,7 +285,7 @@ export interface NegPeaceComposerView {
   /** "Chance they accept: high" — or "A human player decides". */
   hint: string;
   /** The level in words (null: a human target, or no judge yet). */
-  hintLevel: "low" | "medium" | "high" | null;
+  hintLevel: NegPeaceHint | null;
   order: WwOrder;
 }
 
@@ -363,9 +364,12 @@ export function negPeaceComposer(
         )
       : 0;
     hintLevel = negPeaceHint(negPeaceChance(j, v));
-    hint = translateText("ww1936.npeace.chance", {
-      level: translateText(`ww1936.npeace.chance_${hintLevel}`),
-    });
+    hint =
+      hintLevel === "none"
+        ? translateText("ww1936.npeace.chance_none")
+        : translateText("ww1936.npeace.chance", {
+            level: translateText(`ww1936.npeace.chance_${hintLevel}`),
+          });
   }
   return {
     war: w.id,

@@ -22,7 +22,9 @@ export function lineHintTone(level: string | null): string {
       ? "text-amber-200"
       : level === "low"
         ? "text-red-300"
-        : "text-white/70";
+        : level === "none"
+          ? "text-red-400"
+          : "text-white/70";
 }
 
 /** A line's totals and the regions each way (the preview's and the card's). */

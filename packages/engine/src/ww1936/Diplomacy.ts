@@ -133,6 +133,8 @@ export function declareWar(
     for (const m of ww.factionMembers(faction)) {
       // P5 pre-flight §0-1: exiles of the faction are drawn in too.
       if (m === b || m === a || !ww.isActor(m)) continue;
+      // w86: a truce covers joins too.
+      if (ww.endgame.truceUntil(a, m) > ww.day(tick)) continue;
       if (ww.setWar(a, m, tick, { kind: "into", warId })) joined.push(m);
     }
   }

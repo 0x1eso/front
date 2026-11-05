@@ -445,6 +445,16 @@ function resolveOffer(
 ): void {
   eg.peaceOffers = eg.peaceOffers.filter((x) => x !== o);
   eg.dirtyPeace = true;
+  // w86: the card shows one offer at a time; the next one gets its full
+  // window once it is in front (it ran out unseen before).
+  const next = eg.peaceOffers.find((x) => x.to === o.to);
+  if (next !== undefined && eg.isHumanControlled(o.to)) {
+    next.deadlineTick = Math.max(
+      next.deadlineTick,
+      tick +
+        wwRealTicks(eg.mg.config().gameConfig(), WW_WHITE_PEACE_CARD_TICKS),
+    );
+  }
   const day = eg.ww.day(tick);
   const names = countryParams(eg, { target: o.to });
   // Negotiated peace: terms that no longer hold (a region changed its
@@ -454,6 +464,14 @@ function resolveOffer(
     (accept && peaceTermsBlock(eg, o.from, o.to, o.terms) !== null)
   ) {
     eg.message(o.from, "ww1936_wpeace_lapsed", names);
+    // w86: the one who tapped Accept hears it too.
+    if (accept) {
+      eg.message(
+        o.to,
+        "ww1936_wpeace_lapsed_to",
+        countryParams(eg, { target: o.from }),
+      );
+    }
     return;
   }
   if (!accept) {

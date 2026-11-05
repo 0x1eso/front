@@ -127,7 +127,9 @@ export function negPeaceComposerTemplate(
         ? "text-amber-200"
         : v.hintLevel === "low"
           ? "text-red-300"
-          : "text-white/70";
+          : v.hintLevel === "none"
+            ? "text-red-400"
+            : "text-white/70";
   return html`<div
     data-ww-npeace=${v.war}
     class="mt-1 flex flex-col gap-1.5 rounded-md border border-emerald-300/40 bg-black/20 p-1.5 text-xs"

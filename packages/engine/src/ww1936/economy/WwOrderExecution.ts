@@ -308,6 +308,18 @@ export function isDepthOrder(o: WwOrder): o is DepthOrder {
   return DEPTH_KINDS.has(o.kind);
 }
 
+const PEACE_NOTICE_KINDS: ReadonlySet<string> = new Set([
+  "peace_offer",
+  "line_peace_offer",
+  "peace_reply",
+  "peace_submit",
+  "peace_pass",
+]);
+
+/** Orders whose refusal is told to the sender. */
+const refusalIsTold = (kind: string): boolean =>
+  kind.startsWith("naval_line_") || PEACE_NOTICE_KINDS.has(kind);
+
 /**
  * ww_order (plan decision 2): one economy order of the sender's country,
  * applied once in init (also during the preparation minute, spec §2).
@@ -331,7 +343,8 @@ export class WwOrderExecution implements Execution {
     // w76: the screens grey what the engine would refuse, but a stale click
     // or a rule the screen does not know (a disarmed country) reached here
     // silently: a refused naval line order tells its sender why.
-    if (block !== null && this.order.kind.startsWith("naval_line_")) {
+    // w86: the peace orders say why too (a stale target, a spent power).
+    if (block !== null && refusalIsTold(this.order.kind)) {
       ww.navy.message(
         this.player.smallID(),
         "events_display.ww1936_order_refused",

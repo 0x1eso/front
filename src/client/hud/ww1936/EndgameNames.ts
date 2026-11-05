@@ -170,6 +170,7 @@ export const ENDGAME_NOTICES: ReadonlySet<string> = new Set([
   "events_display.ww1936_wpeace_accepted",
   "events_display.ww1936_wpeace_refused",
   "events_display.ww1936_wpeace_lapsed",
+  "events_display.ww1936_wpeace_lapsed_to",
   // Air raids: the victim hears who attacked (attacker = smallID).
   "events_display.ww1936_air_raid",
 ]);

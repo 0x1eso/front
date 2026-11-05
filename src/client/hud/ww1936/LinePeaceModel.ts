@@ -190,9 +190,12 @@ export function linePeacePreview(
     hint = translateText("ww1936.npeace.chance_human");
   } else if (ready) {
     hintLevel = negPeaceHint(row.chance);
-    hint = translateText("ww1936.npeace.chance", {
-      level: translateText(`ww1936.npeace.chance_${hintLevel}`),
-    });
+    hint =
+      hintLevel === "none"
+        ? translateText("ww1936.npeace.chance_none")
+        : translateText("ww1936.npeace.chance", {
+            level: translateText(`ww1936.npeace.chance_${hintLevel}`),
+          });
   }
   return {
     war: w.id,

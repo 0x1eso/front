@@ -1688,6 +1688,7 @@
     "ww1936_wing_understrength": "{wing}: too few planes left, it skips its sorties",
     "ww1936_wpeace_accepted": "{target} accepted your peace offer",
     "ww1936_wpeace_lapsed": "Your peace offer to {target} lapsed: the war has changed",
+    "ww1936_wpeace_lapsed_to": "Your acceptance of the peace offer from {target} did not take effect: the war has changed, so the war goes on",
     "ww1936_wpeace_refused": "{target} refused your peace offer: you can offer again in {days} days"
   },
   "featured_stream": {
@@ -11138,6 +11139,7 @@
       "chance_human": "A human player decides",
       "chance_low": "low",
       "chance_medium": "medium",
+      "chance_none": "They will refuse",
       "demand": "I demand",
       "done": "Done",
       "free": "Release {country}",
@@ -14282,7 +14284,7 @@
     "wpeace": {
       "accept": "Accept",
       "block": {
-        "cooldown": "Offer again in {days} d",
+        "cooldown": "They refused. Offer again in {days} d",
         "no_pp": "Not enough political power ({pp})",
         "puppet": "A puppet follows its overlord",
         "too_early": "Possible once the war is 90 days old ({days} d left)",

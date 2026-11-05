@@ -1586,6 +1586,7 @@
     "ww1936_wpeace_accepted": "{target} 측이 평화 제안을 수락했습니다",
     "ww1936_wpeace_refused": "{target} 측이 평화 제안을 거절했습니다 — {days} 일 뒤 다시 제안할 수 있습니다",
     "ww1936_wpeace_lapsed": "{target} 측에 보낸 평화 제안이 무효가 되었습니다 (전쟁 상황 변화)",
+    "ww1936_wpeace_lapsed_to": "{target} 측의 평화 제안을 수락했지만 전쟁 상황이 바뀌어 무효가 되었습니다. 전쟁은 계속됩니다",
     "ww1936_annex_integrated": "{region}이(가) 자동 통합되어 코어가 되었습니다",
     "ww1936_medal_auto": "{army} 에 훈장이 수여되었습니다",
     "ww1936_congress_dissolved": "미국에서 의회가 해산되었다.",
@@ -13628,7 +13629,7 @@
       "pending": "상대 응답 대기",
       "block": {
         "too_early": "전쟁 90일 이후 가능 ({days} 일 남음)",
-        "cooldown": "재제안 대기 {days} 일",
+        "cooldown": "상대가 거절했습니다. 재제안 대기 {days} 일",
         "no_pp": "정치력 부족 ({pp})",
         "war_kind": "내전·독립전쟁 불가",
         "puppet": "괴뢰국은 종주국을 따릅니다"
@@ -13662,6 +13663,7 @@
       "chance_low": "낮음",
       "chance_medium": "보통",
       "chance_high": "높음",
+      "chance_none": "상대가 거절할 것입니다",
       "chance_human": "상대는 사람 플레이어입니다: 직접 판단합니다",
       "send": "제안 보내기",
       "cancel": "취소",

@@ -180,5 +180,7 @@ describe("negotiated peace rules", () => {
     expect(negPeaceHint(70)).toBe("high");
     expect(negPeaceHint(30)).toBe("medium");
     expect(negPeaceHint(29)).toBe("low");
+    expect(negPeaceHint(1)).toBe("low");
+    expect(negPeaceHint(0)).toBe("none");
   });
 });

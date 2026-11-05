@@ -270,11 +270,12 @@ export function negPeaceChance(j: NegPeaceJudge, value: number): number {
   return Math.max(0, Math.min(100, n));
 }
 
-export type NegPeaceHint = "low" | "medium" | "high";
+export type NegPeaceHint = "none" | "low" | "medium" | "high";
 
 /** The chance in words. */
 export function negPeaceHint(chance: number): NegPeaceHint {
   if (chance >= NEG_PEACE_HINT_HIGH_PCT) return "high";
   if (chance >= NEG_PEACE_HINT_MEDIUM_PCT) return "medium";
-  return "low";
+  if (chance > 0) return "low";
+  return "none";
 }
