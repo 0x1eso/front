@@ -36,15 +36,12 @@ import type {
   WwStats,
 } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { FM_TRAIT_STATS } from "./CommandRules";
+import { NAT_ALPINI_OBSTACLE_PCT, NAT_UNIT_ITA } from "./NationalUnits";
 import {
   RANGE_HIGH_ATT_ATK_BP,
   RANGE_LOW_DEF_ATK_BP,
   RANGE_LUCK_BP,
 } from "./TacticRules";
-import {
-  NAT_ALPINI_OBSTACLE_PCT,
-  NAT_UNIT_ITA,
-} from "./NationalUnits";
 import { TechTotals } from "./WwTechs";
 
 /** A P6 stat of a TechTotals that is the country's WwStats (0 when absent: a neutral tech). */

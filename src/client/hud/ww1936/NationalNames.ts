@@ -17,7 +17,5 @@ export function battalionName(id: BattalionId, natUnit = 0): string {
 /** One line on what the unit is, for the picker; null for any other battalion. */
 export function natUnitNote(id: BattalionId, natUnit = 0): string | null {
   const row = natUnitRow(natUnit, id);
-  return row === null
-    ? null
-    : translateText(`ww1936.nat_unit_desc.${row.tag}`);
+  return row === null ? null : translateText(`ww1936.nat_unit_desc.${row.tag}`);
 }

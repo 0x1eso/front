@@ -287,7 +287,12 @@ export const NATIONAL_SPIRITS: Readonly<Record<string, readonly string[]>> = {
     "nat_fra_stripped_arsenal",
     "nat_fra_army",
   ],
-  JPN: ["nat_jpn_kido_butai", "nat_jpn_assault", "nat_jpn_scarce", "nat_jpn_army"],
+  JPN: [
+    "nat_jpn_kido_butai",
+    "nat_jpn_assault",
+    "nat_jpn_scarce",
+    "nat_jpn_army",
+  ],
   ITA: [
     "nat_ita_mare_nostrum",
     "nat_ita_light_forces",

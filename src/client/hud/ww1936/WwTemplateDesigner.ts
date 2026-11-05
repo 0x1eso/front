@@ -18,8 +18,8 @@ import {
   wwMaxSupport,
 } from "@openfront/engine-api/ww1936/LandTypes";
 import { BATTALIONS, SUPPORTS } from "@openfront/engine-lib/ww1936/Battalions";
-import { natUnitRow } from "@openfront/engine-lib/ww1936/NationalUnits";
 import { histHasTankGroup } from "@openfront/engine-lib/ww1936/hist/Slots";
+import { natUnitRow } from "@openfront/engine-lib/ww1936/NationalUnits";
 import {
   DESIGN_ONLY_GROUP,
   presetDef,

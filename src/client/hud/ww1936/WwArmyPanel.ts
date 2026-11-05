@@ -853,7 +853,10 @@ export class WwArmyPanel extends WwDrawerBase {
                   >
                 </span>
                 <span class="block truncate text-white/70"
-                  >${battalionSummary(templateDef(t), natUnitOf(c.economy, c.me))}</span
+                  >${battalionSummary(
+                    templateDef(t),
+                    natUnitOf(c.economy, c.me),
+                  )}</span
                 >
               </button>
               ${t.inUse > 0 && c.land.templates.length > 1

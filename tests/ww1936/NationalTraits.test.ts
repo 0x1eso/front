@@ -118,7 +118,12 @@ function toggled(
 
 const TRAITS: Record<string, readonly string[]> = {
   DEU: ["nat_deu_panzer", "nat_deu_workshop", "nat_deu_strain", "nat_deu_army"],
-  SUN: ["nat_sun_mass", "nat_sun_resilience", "nat_sun_purge_gap", "nat_sun_army"],
+  SUN: [
+    "nat_sun_mass",
+    "nat_sun_resilience",
+    "nat_sun_purge_gap",
+    "nat_sun_army",
+  ],
   USA: [
     "nat_usa_arsenal",
     "nat_usa_logistics",
@@ -137,7 +142,12 @@ const TRAITS: Record<string, readonly string[]> = {
     "nat_fra_stripped_arsenal",
     "nat_fra_army",
   ],
-  JPN: ["nat_jpn_kido_butai", "nat_jpn_assault", "nat_jpn_scarce", "nat_jpn_army"],
+  JPN: [
+    "nat_jpn_kido_butai",
+    "nat_jpn_assault",
+    "nat_jpn_scarce",
+    "nat_jpn_army",
+  ],
   ITA: [
     "nat_ita_mare_nostrum",
     "nat_ita_light_forces",

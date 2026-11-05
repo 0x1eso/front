@@ -184,10 +184,7 @@ export function landingBp(
   // ww91: the American Marine Regiments land under a lighter cut.
   const ease =
     hasMarines && natUnit === NAT_UNIT_USA ? NAT_MARINE_LANDING_EASE_BP : 0;
-  return Math.max(
-    0,
-    base - ease - (techs.has("landing_craft_2") ? 1000 : 0),
-  );
+  return Math.max(0, base - ease - (techs.has("landing_craft_2") ? 1000 : 0));
 }
 
 /** Spec §11.4 attack lines of a landing division (negative bp: cuts for combineMods). */
