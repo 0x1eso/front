@@ -1688,11 +1688,13 @@ function regionList(game: EndgameGame, regions: string): string {
     .map(Number)
     .filter((r) => r > 0);
   if (sc === null || ids.length === 0) return "";
-  const names = ids.slice(0, 3).map((r) => regionName(sc, r));
-  if (ids.length > 3) {
-    names.push(translateText("ww1936.eventui.more", { n: ids.length - 3 }));
-  }
-  return names.join(", ");
+  const names = ids
+    .slice(0, 3)
+    .map((r) => regionName(sc, r))
+    .join(", ");
+  return ids.length > 3
+    ? translateText("ww1936.lpeace.more", { names, n: ids.length - 3 })
+    : names;
 }
 
 /** A treaty line (spec §6.5) as text: country tags as names, `regions` as `what`. */
