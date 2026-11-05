@@ -72,6 +72,7 @@ import {
   planMaxBp,
 } from "@openfront/engine-lib/ww1936/CombatRules";
 import { splitFront } from "@openfront/engine-lib/ww1936/CommandRules";
+import { CONTENT } from "@openfront/engine-lib/ww1936/content/registry";
 import { queuedInRegion } from "@openfront/engine-lib/ww1936/EconomyChecks";
 import {
   borderChain,
@@ -597,14 +598,57 @@ const ROLE_KEYS: Readonly<Record<AiRole, readonly string[]>> = {
   cavalry: ["cavalry", "cavalry_brigade"],
 };
 
-/** The role of a template by its 1936 key; any other (a player's own, colonial, garrison) counts as infantry. */
+/**
+ * ww100: the role a focus template really has, read off its battalions: armour
+ * from a third of them, else the largest of the foot kinds; guns don't count.
+ */
+function roleOfBattalions(bns: readonly BattalionId[]): AiRole {
+  const n: Record<AiRole, number> = {
+    infantry: 0,
+    armor: 0,
+    motorized: 0,
+    mountain: 0,
+    cavalry: 0,
+  };
+  for (const b of bns) {
+    if (BATTALIONS[b].kind === "armor") n.armor++;
+    else if (b === "motorized" || b === "mot_artillery") n.motorized++;
+    else if (b === "mountain" || b === "marine") n.mountain++;
+    else if (b === "cavalry") n.cavalry++;
+    else if (b === "infantry") n.infantry++;
+  }
+  if (n.armor * 3 >= bns.length) return "armor";
+  let best: AiRole = "infantry";
+  for (const role of AI_ROLES) if (n[role] > n[best]) best = role;
+  return best;
+}
+
+const FOCUS_TEMPLATE_ROLE: ReadonlyMap<string, AiRole> = new Map(
+  CONTENT.templates.map((t) => [
+    t.id,
+    roleOfBattalions(t.battalions as readonly BattalionId[]),
+  ]),
+);
+
+/** ww100: the focus's infantry templates that fight in the line (a garrison's police don't). */
+const FOCUS_LINE_INFANTRY: ReadonlySet<string> = new Set(
+  CONTENT.templates
+    .filter(
+      (t) =>
+        FOCUS_TEMPLATE_ROLE.get(t.id) === "infantry" &&
+        !(t.support as readonly string[]).includes("military_police"),
+    )
+    .map((t) => t.id),
+);
+
+/** The role of a template by its 1936 key or its focus template's make-up; any other (a player's own) counts as infantry. */
 export function roleOfTemplate(key: string): AiRole {
   const preset = presetById(key);
   if (preset !== undefined) return PRESET_AI_ROLE[preset.role];
   for (const role of AI_ROLES) {
     if (ROLE_KEYS[role].includes(key)) return role;
   }
-  return "infantry";
+  return FOCUS_TEMPLATE_ROLE.get(key) ?? "infantry";
 }
 
 /** The AI's training role of each preset role (the armour presets all stand for "armor"). */
@@ -798,7 +842,19 @@ export function aiTrainPlan(i: AiTrainInput): number[] {
       ) {
         return gun;
       }
-      return i.templates[0];
+      // ww100: a focus's infantry division shares the line with the first one.
+      let line = i.templates[0];
+      for (const t of i.templates) {
+        if (
+          FOCUS_LINE_INFANTRY.has(t.key) &&
+          t.fillPm >= TRAIN_FILL_PM &&
+          manpower >= t.men * TRAIN_MEN_FACTOR &&
+          (t.have ?? 0) < (line.have ?? 0)
+        ) {
+          line = t;
+        }
+      }
+      return line;
     }
     // The role's templates (1936 keys, presets): the one furthest below its weight that the stock and men allow (else any, so the gate below holds).
     const own = i.templates.filter(
