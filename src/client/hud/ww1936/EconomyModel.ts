@@ -412,6 +412,13 @@ export const TECH_KEYS: Readonly<Record<WwTechId, string>> = {
   synthetic_oil_2: "ww1936.tech.synthetic_oil_2",
   metal_substitute_1: "ww1936.tech.metal_substitute_1",
   metal_substitute_2: "ww1936.tech.metal_substitute_2",
+  tank_armour_1: "ww1936.tech.tank_armour_1",
+  tank_armour_2: "ww1936.tech.tank_armour_2",
+  tank_drive_1: "ww1936.tech.tank_drive_1",
+  tank_drive_2: "ww1936.tech.tank_drive_2",
+  tank_command: "ww1936.tech.tank_command",
+  air_protection: "ww1936.tech.air_protection",
+  air_range: "ww1936.tech.air_range",
   // P5 (spec §8.5).
   military_police: "ww1936.tech.military_police",
   // P6 (spec §5.2.5, §5.7).

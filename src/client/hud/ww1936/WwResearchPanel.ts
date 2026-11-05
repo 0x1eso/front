@@ -12,6 +12,7 @@ import {
   WwCountryDetail,
   WwTechId,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
+import { HIST_COUNTRIES } from "@openfront/engine-lib/ww1936/hist/Types";
 import { WW_TECHS } from "@openfront/engine-lib/ww1936/WwTechs";
 import { html, nothing, svg, TemplateResult } from "lit";
 import { customElement, state } from "lit/decorators.js";
@@ -29,6 +30,7 @@ import {
   QueueRow,
   queueRows,
   researchBlock,
+  ResearchCard,
   researchCards,
   ResearchCardState,
   researchSlots,
@@ -51,8 +53,11 @@ import {
   NODE_W,
   NodeLook,
   PAD,
+  PORTABLE_AT_TECH,
   recommendNext,
   tabSummary,
+  TechGear,
+  techGear,
   todayX,
   TreeLayout,
   treeLayout,
@@ -122,6 +127,17 @@ const NODE_LOOK: Readonly<Record<NodeLook, string>> = {
 
 /** The year axis' header row. */
 const HEAD = 22;
+/** Catalogue names listed on a card before "and N more". */
+const GEAR_SHOWN = 6;
+const HIST_TAGS: ReadonlySet<string> = new Set(HIST_COUNTRIES);
+const histName = (id: string) => translateText(`ww1936.hist.${id}`);
+
+/** A node's line: the country's best one or two names, "+N" for the rest. */
+function gearNames(g: TechGear): string {
+  const shown = g.entries.slice(0, 2).map((e) => histName(e.id));
+  const more = g.entries.length - shown.length;
+  return more > 0 ? `${shown.join(", ")} +${more}` : shown.join(", ");
+}
 /** Below this height the tree gives way to the card list. */
 const LIST_MAX_HEIGHT = 300;
 const SHEET_PHONE = 280;
@@ -151,6 +167,8 @@ export class WwResearchPanel extends WwDrawerBase {
   @state() private flash = false;
   /** The "next" card's pick after a research finished. */
   @state() private nextPick: WwTechId | null = null;
+  /** The card list's "general techs" row is open. */
+  @state() private showGeneric = false;
   private doneCount = -1;
   private centred = false;
   private pinch: { dist: number; zoom: number } | null = null;
@@ -177,6 +195,24 @@ export class WwResearchPanel extends WwDrawerBase {
     const me = this.game?.myPlayer() ?? null;
     if (me === null || this.game.worldWarScenario() === null) return null;
     return this.game.wwEconomy?.()?.detail(me.smallID()) ?? null;
+  }
+
+  /** My country's tag. */
+  private tag(): string | null {
+    return this.game?.myPlayer()?.countryTag?.() ?? null;
+  }
+
+  /** My country when the catalogue applies: a designer game keeps its look. */
+  private gearCountry(): string | null {
+    return designerOn(this.game) ? null : this.tag();
+  }
+
+  /** A tech's name in my country: the portable weapon goes by its own name. */
+  private techLabel(id: WwTechId): string {
+    const tag = this.gearCountry();
+    return id === PORTABLE_AT_TECH && tag !== null && HIST_TAGS.has(tag)
+      ? translateText(`ww1936.tech_portable.${tag}`)
+      : techName(id);
   }
 
   /** The research bonuses my country holds (politics). */
@@ -505,7 +541,7 @@ export class WwResearchPanel extends WwDrawerBase {
       </div>`;
     }
     const bonuses = this.bonuses();
-    const layout = treeLayout(d, tab, day, bonuses);
+    const layout = treeLayout(d, tab, day, bonuses, this.gearCountry());
     const sel = layout.nodes.find((n) => n.card.id === this.selected) ?? null;
     const tablet = !this.compact;
     // A narrow screen (a phone upright): the detail takes the tree's place
@@ -700,11 +736,19 @@ export class WwResearchPanel extends WwDrawerBase {
     const locked = n.look === "prereq" || n.look === "exclusive";
     const startable = sel && (c.block === null || c.block === "no_slot");
     const q = n.queued;
+    const rel = n.gear?.relevance ?? "own";
+    const names = n.gear === null ? "" : gearNames(n.gear);
+    const dim =
+      rel === "generic"
+        ? 0.45
+        : c.year === LAST_YEAR || rel === "pass"
+          ? 0.7
+          : 1;
     return html`<div
       class="absolute"
       style="left:${n.x}px;top:${n.y +
-      HEAD}px;width:${NODE_W}px;height:${NODE_H}px;${c.year === LAST_YEAR
-        ? "opacity:.7"
+      HEAD}px;width:${NODE_W}px;height:${NODE_H}px;${dim < 1
+        ? `opacity:${dim}`
         : ""}"
     >
       <button
@@ -712,7 +756,8 @@ export class WwResearchPanel extends WwDrawerBase {
         data-ww-tech=${c.id}
         data-look=${n.look}
         data-selected=${String(sel)}
-        aria-label=${techName(c.id)}
+        data-relevance=${rel}
+        aria-label=${this.techLabel(c.id)}
         class="relative size-full overflow-hidden rounded-md border p-1 text-left leading-tight ${NODE_LOOK[
           n.look
         ]} ${q === null ? "" : "border-dashed border-cyan-300"} ${sel
@@ -726,9 +771,18 @@ export class WwResearchPanel extends WwDrawerBase {
         <span class="block truncate text-[11px] font-bold"
           >${bd.exclusive ? "⇄ " : ""}${locked ? "🔒 " : ""}${bd.project
             ? "🧪 "
-            : ""}${techName(c.id)}</span
+            : ""}${rel === "pass" ? "→ " : ""}${names === ""
+            ? this.techLabel(c.id)
+            : names}</span
         >
         <span class="flex flex-wrap gap-x-1 text-[9px] tabular-nums">
+          ${names === ""
+            ? nothing
+            : html`<span
+                data-ww-node-tech
+                class="max-w-20 truncate text-white/70"
+                >${this.techLabel(c.id)}</span
+              >`}
           <span class="text-white/60">${c.year}</span>
           ${n.look === "done"
             ? html`<span class="text-emerald-300">✓</span>`
@@ -883,7 +937,8 @@ export class WwResearchPanel extends WwDrawerBase {
         ? null
         : block;
     return html`<div data-ww-detail=${c.id} class="flex flex-col gap-1">
-      <div class="text-sm font-bold">${techName(c.id)}</div>
+      <div class="text-sm font-bold">${this.techLabel(c.id)}</div>
+      ${n.gear === null ? nothing : this.renderGear(n.gear)}
       <div class="text-white/70">
         ${c.year} · ${translateText("ww1936.rtree.base_days", { n: c.days })}
       </div>
@@ -955,7 +1010,8 @@ export class WwResearchPanel extends WwDrawerBase {
       >
         ${effectLines(c.id, {
           designer: designerOn(this.game),
-          country: this.game?.myPlayer()?.countryTag?.() ?? null,
+          // The block above already lists a major's entries.
+          country: n.gear === null ? this.tag() : null,
         }).map(
           (line) => html`<li data-ww-effect class="break-words">${line}</li>`,
         )}
@@ -996,6 +1052,52 @@ export class WwResearchPanel extends WwDrawerBase {
             🔒 ${blockText(status)}
           </div>`}
       ${def.branch === "doctrine" ? nothing : this.renderGrant(d, def.branch)}
+    </div>`;
+  }
+
+  /** "Your equipment": what this tech gives my country, by name (ww82 §9). */
+  private renderGear(g: TechGear): TemplateResult {
+    if (g.relevance === "generic") {
+      return html`<div data-ww-gear="generic" class="text-white/60">
+        ${translateText("ww1936.rtree.gear_generic")}
+      </div>`;
+    }
+    if (g.relevance === "pass") {
+      const shown = g.leads.slice(0, GEAR_SHOWN).map(histName).join(", ");
+      const more = g.leads.length - GEAR_SHOWN;
+      return html`<div data-ww-gear="pass" class="break-words text-white/70">
+        ${more > 0
+          ? translateText("ww1936.rtree.gear_pass_more", {
+              list: shown,
+              n: more,
+            })
+          : translateText("ww1936.rtree.gear_pass", { list: shown })}
+      </div>`;
+    }
+    if (g.entries.length === 0) return html`${nothing}`;
+    const more = g.entries.length - GEAR_SHOWN;
+    return html`<div data-ww-gear="own" class="flex flex-col gap-0.5">
+      <div class="font-semibold">
+        ${translateText("ww1936.rtree.gear_title")}
+      </div>
+      ${g.entries.slice(0, GEAR_SHOWN).map(
+        (e) =>
+          html`<div data-ww-gear-entry=${e.id} class="break-words">
+            ${histName(e.id)} · ${e.year}
+            ${e.needs.length === 0
+              ? nothing
+              : html`<span class="text-amber-300">
+                  ${translateText("ww1936.rtree.gear_needs", {
+                    techs: e.needs.map((t) => techName(t)).join(", "),
+                  })}</span
+                >`}
+          </div>`,
+      )}
+      ${more > 0
+        ? html`<div class="text-white/60">
+            ${translateText("ww1936.rtree.gear_more", { n: more })}
+          </div>`
+        : nothing}
     </div>`;
   }
 
@@ -1270,6 +1372,41 @@ export class WwResearchPanel extends WwDrawerBase {
   /** The card list: the fallback on a very short screen. */
   private renderList(d: WwCountryDetail, day: number): TemplateResult {
     const tab = this.branch;
+    const country = this.gearCountry();
+    const researched = new Set(d.researched);
+    const cards =
+      tab === "projects"
+        ? []
+        : researchCards(d, tab, day).map((c) => ({
+            c,
+            gear: techGear(c.id, country, researched),
+          }));
+    const generic = cards.filter((x) => x.gear?.relevance === "generic");
+    const row = (c: ResearchCard, gear: TechGear | null) =>
+      html`<li>
+        <button
+          type="button"
+          data-ww-card=${c.id}
+          ?disabled=${c.state !== "available"}
+          class="min-h-11 w-full min-w-0 rounded-md border p-2 text-left ${CARD_LOOK[
+            c.state
+          ]}"
+          @click=${() => {
+            this.selected = c.id;
+            if (researchBlock(d, c.id) === null) this.send(c.id);
+          }}
+        >
+          <span class="font-bold">${this.techLabel(c.id)}</span>
+          <span class="text-white/60"> ${c.year}</span>
+          ${gear === null || gear.entries.length === 0
+            ? nothing
+            : html`<span
+                data-ww-card-gear
+                class="block truncate text-xs text-white/70"
+                >${gearNames(gear)}</span
+              >`}
+        </button>
+      </li>`;
     return html`<div class="flex min-h-0 flex-1 gap-1">
       ${this.renderRail()}
       <div class="min-w-0 flex-1 overflow-y-auto">
@@ -1279,26 +1416,30 @@ export class WwResearchPanel extends WwDrawerBase {
               data-ww-cards
               class="m-0 flex list-none flex-col gap-1.5 p-0"
             >
-              ${researchCards(d, tab, day).map(
-                (c) =>
-                  html`<li>
+              ${cards
+                .filter((x) => x.gear?.relevance !== "generic")
+                .map((x) => row(x.c, x.gear))}
+              ${generic.length === 0
+                ? nothing
+                : html`<li>
                     <button
                       type="button"
-                      data-ww-card=${c.id}
-                      ?disabled=${c.state !== "available"}
-                      class="min-h-11 w-full rounded-md border p-2 text-left ${CARD_LOOK[
-                        c.state
-                      ]}"
+                      data-ww-generic-row
+                      aria-expanded=${String(this.showGeneric)}
+                      class="min-h-11 w-full rounded-md border border-gray-700 bg-gray-900 p-2 text-left text-white/70"
                       @click=${() => {
-                        this.selected = c.id;
-                        if (researchBlock(d, c.id) === null) this.send(c.id);
+                        this.showGeneric = !this.showGeneric;
                       }}
                     >
-                      <span class="font-bold">${techName(c.id)}</span>
-                      <span class="text-white/60"> ${c.year}</span>
+                      ${this.showGeneric ? "▾" : "▸"}
+                      ${translateText("ww1936.rtree.gear_group", {
+                        n: generic.length,
+                      })}
                     </button>
-                  </li>`,
-              )}
+                  </li>`}
+              ${this.showGeneric
+                ? generic.map((x) => row(x.c, x.gear))
+                : nothing}
             </ul>`}
       </div>
     </div>`;

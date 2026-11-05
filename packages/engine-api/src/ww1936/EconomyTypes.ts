@@ -690,6 +690,14 @@ export const WW_TECH_IDS = [
   "construction_5",
   "metal_substitute_1",
   "metal_substitute_2",
+  // ww82: the merged techs (WwTechs.TECH_ABSORBS), appended.
+  "tank_armour_1",
+  "tank_armour_2",
+  "tank_drive_1",
+  "tank_drive_2",
+  "tank_command",
+  "air_protection",
+  "air_range",
 ] as const;
 export type WwTechId = (typeof WW_TECH_IDS)[number];
 

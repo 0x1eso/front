@@ -5,7 +5,7 @@
 //
 //   score = area weight (personality, country, a human's lines and leaning)
 //         + role + need + bonus + catch-up + favoured + catalogue value
-//           + situation − ahead ÷ 2 + jitter
+//           + situation − early ÷ 2 + jitter
 //
 // Integers only, no state: the jitter is wwRoll(seed, P_RESEARCH, country,
 // tech index) and the either/or line wwRoll(seed, P_RESEARCH_EXCL, …), so
@@ -19,8 +19,9 @@ import {
   WW_TECH_IDS,
   WwTechId,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
-import { aheadPct, yearStartDay } from "./EconomyRules";
+import { earlyPct, yearStartDay } from "./EconomyRules";
 import { HIST_CATALOGUE } from "./hist/index";
+import { techRelevance } from "./hist/Slots";
 import { catalogueTechValues } from "./hist/TechValue";
 import { idHash, wwRoll } from "./Roll";
 import { INDUSTRY_ORG, TechRole, WW_TECHS } from "./WwTechs";
@@ -123,15 +124,13 @@ function useOf(id: WwTechId): TechUse {
   const d = WW_TECHS[id];
   if (d.tab === "naval") return "ship";
   if (d.tab === "armour") {
-    return id === "amphibious_drive" || id === "flame_tank" ? null : TANKS;
+    return TANKS;
   }
   if (d.tab === "air") {
     if (/^(fighter|aircraft_cannon|aero_engine|jet_airframe)/.test(id)) {
       return PLANES_FIGHTER;
     }
-    if (/^(self_sealing|drop_tanks|air_armor|long_range)/.test(id)) {
-      return PLANES_ALL;
-    }
+    if (id === "air_protection" || id === "air_range") return PLANES_ALL;
     if (id.startsWith("heavy_fighter")) return ["heavy_fighter"];
     if (/^(bomber|strat_bomber|bomb_sight|jet_bomber)/.test(id)) {
       return PLANES_BOMBER;
@@ -249,10 +248,8 @@ const FAVOURED_STAT: Readonly<
     "radar_1",
     "radar_2",
     "radar_3",
-    "naval_radar_1",
-    "convoy_escort_1",
+    "naval_radar_2",
     "convoy_escort_2",
-    "depth_charge_2",
     "hedgehog",
   ],
   USA: ["tools_2", "construction_2"],
@@ -397,6 +394,9 @@ const ROLE_WEIGHT: Readonly<Record<TechRole, number>> = {
   eco: 12,
   post: -20,
 };
+
+/** ww82 §8: a catalogue country's score cut on a generation tech that gives it no entry. */
+const GENERIC_TECH_CUT = 30;
 
 /** A human's leaning (RESEARCH_LEANS order): what it adds to each tab. */
 const LEAN_AREA: readonly Partial<Record<TechTab, number>>[] = [
@@ -607,8 +607,11 @@ export function researchScores(i: ResearchScoreInput): (number | null)[] {
     if (behind > 0) s += Math.min(15, behind * 5);
     if (favoured.has(id)) s += 20;
     if (value !== null) s += value[k];
+    // ww82: nothing of its own there and nothing behind it: last of all.
+    if (catalogue && techRelevance(id, i.tag) === "generic")
+      s -= GENERIC_TECH_CUT;
     if (sit !== undefined) s += situationBonus(sit, id);
-    s -= Math.floor(aheadPct(d.year, i.day) / 2);
+    s -= Math.floor(earlyPct(d.year, i.day) / 2);
     return s + (wwRoll(i.seed, P_RESEARCH, i.smallID, k) % 11);
   });
 }
@@ -636,7 +639,7 @@ function situationBonus(
   if (sit.antiTank === -1 && /^tank_gun/.test(id)) b += 25;
   if (
     sit.airLosses === true &&
-    /^(fighter|aircraft_cannon|aero_engine|air_armor|self_sealing)/.test(id)
+    /^(fighter|aircraft_cannon|aero_engine|air_protection)/.test(id)
   ) {
     b += 20;
   }

@@ -1508,7 +1508,7 @@ export const SUN_FOCUSES = [
     group: "sun_war_line",
     prereq: [["sun_mech_corps"]],
     effects: [
-      { kind: "research_bonus", tech: "sloped_armor", pct: 100, uses: 1 },
+      { kind: "research_bonus", tech: "tank_armour_2", pct: 100, uses: 1 },
       {
         kind: "equipment",
         type: "medium_tank",

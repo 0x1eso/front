@@ -125,7 +125,7 @@ export const JPN_HIST: readonly HistEntry[] = [
     country: "JPN",
     family: "tank",
     role: "light",
-    techs: ["light_tank_2", "amphibious_drive"],
+    techs: ["light_tank_2", "marines_2"],
     year: 1942,
     // Navy landing-force amphibious tank with pontoons, 12 mm, 37 mm gun; price estimated.
     // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
@@ -205,7 +205,7 @@ export const JPN_HIST: readonly HistEntry[] = [
     country: "JPN",
     family: "tank",
     role: "medium",
-    techs: ["medium_tank_1", "tank_gun_2"],
+    techs: ["medium_tank_2"],
     year: 1942,
     // Chi-Ha with a new turret and the 47 mm Type 1 gun (penetration quoted 55-68 mm at 500 m, 60 used); price near the Chi-Ha.
     // Audit w66: Type 1 47 mm: 40 mm at 500 m (Wikipedia, gun infobox) and 2 in at 500 yd at 30 deg (US test table, same page); 45 is the middle, 60 was above the 5 cm L/60.
@@ -232,7 +232,8 @@ export const JPN_HIST: readonly HistEntry[] = [
     country: "JPN",
     family: "tank",
     role: "medium",
-    techs: ["medium_tank_2", "tank_gun_2"],
+    techs: ["medium_tank_2"],
+    staticFor: "medium_tank:2",
     year: 1941,
     // 50 mm front, 47 mm Type 1 gun (60 mm), diesel; price estimated.
     // Audit w66: Same 47 mm as the Shinhoto. Slope estimated from the Chi-Ha's layout; no firm reference.
@@ -260,7 +261,7 @@ export const JPN_HIST: readonly HistEntry[] = [
     country: "JPN",
     family: "tank",
     role: "medium",
-    techs: ["medium_tank_2", "tank_gun_3"],
+    techs: ["medium_tank_3", "tank_gun_2"],
     year: 1944,
     // Chi-He with the 75 mm Type 3 gun (Type 90 field-gun ballistics, 60-70 mm, 65 used); about 166 built; price estimated.
     // Audit w66: 50 mm at 15 deg is a game-reference table (War Thunder wiki), the only figure found: an estimate.
@@ -288,6 +289,7 @@ export const JPN_HIST: readonly HistEntry[] = [
     family: "tank",
     role: "medium",
     techs: ["medium_tank_3", "tank_gun_3"],
+    staticFor: "medium_tank:3",
     year: 1944,
     // 75 mm front and turret, 75 mm Type 5 gun (about 100 mm, references differ); only about 60 built; hull slope not documented (0 used); price estimated.
     // Audit w66: Type 5 75 mm quoted at 75 mm at 1,000 m; about 85 at 500 m, estimate. Slope estimated like the Chi-Nu's.
@@ -340,7 +342,7 @@ export const JPN_HIST: readonly HistEntry[] = [
     country: "JPN",
     family: "tank",
     role: "spa",
-    techs: ["medium_tank_1", "artillery_2"],
+    techs: ["medium_tank_2", "artillery_2"],
     year: 1942,
     // 15 cm Type 38 howitzer on the Chi-Ha chassis, open-topped, 25 mm; price estimated.
     // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
@@ -439,7 +441,7 @@ export const JPN_HIST: readonly HistEntry[] = [
     country: "JPN",
     family: "plane",
     type: "fighter",
-    techs: ["fighter_2", "aircraft_cannon_1"],
+    techs: ["fighter_1", "aircraft_cannon_1", "aero_engine_3"],
     year: 1943,
     // Licensed DB601 engine (Ha-40) that was unreliable; 2 x 12.7 mm and 2 x 20 mm Ho-5; price estimated.
     // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
@@ -570,7 +572,7 @@ export const JPN_HIST: readonly HistEntry[] = [
     country: "JPN",
     family: "plane",
     type: "heavy_fighter",
-    techs: ["heavy_fighter_1"],
+    techs: ["heavy_fighter_1", "aero_engine_3"],
     year: 1942,
     // Twin-engine fighter, 2 x 12.7 mm, 1 x 20 mm, one rear 7.92 mm; price estimated.
     // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
@@ -596,7 +598,7 @@ export const JPN_HIST: readonly HistEntry[] = [
     country: "JPN",
     family: "plane",
     type: "heavy_fighter",
-    techs: ["heavy_fighter_2", "aircraft_cannon_1"],
+    techs: ["heavy_fighter_3", "aircraft_cannon_1"],
     year: 1944,
     // 37 mm Ho-203 and 2 x 20 mm Ho-5, one rear 7.92 mm; price estimated.
     // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
@@ -667,7 +669,7 @@ export const JPN_HIST: readonly HistEntry[] = [
     country: "JPN",
     family: "plane",
     type: "cv_cas",
-    techs: ["cas_1", "carrier_aviation"],
+    techs: ["cas_1", "carrier_aviation", "aero_engine_2"],
     year: 1939,
     // Fixed-gear dive bomber, 250 kg plus 2 x 60 kg, 2 x 7.7 mm and one flexible; sank more ships than any other Axis aircraft; price estimated.
     // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
@@ -691,7 +693,7 @@ export const JPN_HIST: readonly HistEntry[] = [
     country: "JPN",
     family: "plane",
     type: "cv_cas",
-    techs: ["cas_2", "carrier_aviation"],
+    techs: ["cas_1", "carrier_aviation", "aero_engine_3"],
     year: 1943,
     // Fast dive bomber with a liquid-cooled then radial engine (early Atsuta engines unreliable); loaded weight and range differ by source; price estimated.
     // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
@@ -784,7 +786,7 @@ export const JPN_HIST: readonly HistEntry[] = [
     country: "JPN",
     family: "plane",
     type: "bomber",
-    techs: ["bomber_2"],
+    techs: ["bomber_1", "aero_engine_4"],
     year: 1944,
     // Best Japanese medium bomber, 800 kg, 1 x 20 mm and 4 x 12.7 mm; few built; price estimated.
     // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
@@ -901,7 +903,7 @@ export const JPN_HIST: readonly HistEntry[] = [
     country: "JPN",
     family: "plane",
     type: "cv_naval_bomber",
-    techs: ["naval_bomber_2", "carrier_aviation"],
+    techs: ["naval_bomber_1", "carrier_aviation", "aero_engine_3"],
     year: 1943,
     // Torpedo bomber, 800 kg torpedo or bombs, 2 x 7.7 mm flexible; early engine trouble fixed in the B6N2; price estimated.
     // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).

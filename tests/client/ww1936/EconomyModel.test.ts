@@ -689,15 +689,16 @@ describe("the World War 1936 economy screens' model (spec §13)", () => {
     expect(states("naval")).not.toHaveProperty("fleet_in_being_1");
     expect(states("air")).not.toHaveProperty("strategic_destruction_1");
     const cards = researchCards(d, "infantry", 0);
-    // 1936: 120 days; 1939 three years early: +300%, a quarter of the speed.
+    // 1936: 120 days at the knob; 1939 three years early: the first year's
+    // +100%, the next two +600% each (1936 is a leap year: one day more).
     expect(cards.find((c) => c.id === "support_eq_1")).toMatchObject({
-      days: 96,
-      etaDays: 96,
+      days: 42,
+      etaDays: 42,
       ahead: 0,
     });
     expect(cards.find((c) => c.id === "inf_eq_2")).toMatchObject({
-      ahead: 300,
-      etaDays: (165_000 - 60_000) / 250,
+      ahead: 1301,
+      etaDays: Math.ceil((165_000 - 60_000) / 71),
     });
     // Free trade: research +5%.
     const free = detail("DEU", {
@@ -710,11 +711,11 @@ describe("the World War 1936 economy screens' model (spec §13)", () => {
     expect(
       researchCards(free, "infantry", 0).find((c) => c.id === "support_eq_2")!
         .etaDays,
-    ).toBe(Math.ceil(144_000 / Math.floor((1000 * 105) / (100 + 400))));
+    ).toBe(Math.ceil(63_000 / Math.floor((1000 * 105) / (100 + 1901))));
     // The slots: one running, two empty; the dial follows.
     const slots = researchSlots(d, 0);
     expect(slots.map((s) => s.tech)).toEqual(["inf_eq_2", null, null]);
-    expect(slots[0]).toMatchObject({ ahead: 300, daysLeft: 420 });
+    expect(slots[0]).toMatchObject({ ahead: 1301, daysLeft: 1479 });
     expect(researchDial(d)).toMatchObject({ free: 2, running: 1 });
     // Every slot busy: an available card says there is no slot.
     const busy = detail("DEU", {

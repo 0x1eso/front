@@ -89,7 +89,7 @@ describe("the research score (research overhaul)", () => {
       s[at("aero_engine_2")]! - noPlanes[at("aero_engine_2")]!,
     ).toBeGreaterThan(0);
     const bonus = researchScores(base({ bonusKeys: ["armour"] }));
-    expect(bonus[at("tank_engine_2")]! - s[at("tank_engine_2")]!).toBe(25);
+    expect(bonus[at("tank_drive_1")]! - s[at("tank_drive_1")]!).toBe(25);
     // A minor without planes: no air techs; landlocked: no sea techs.
     const minor = researchScores(
       base({ tag: "POL", persona: "minor", coastal: false, lineFactories: {} }),
@@ -112,7 +112,7 @@ describe("the research score (research overhaul)", () => {
     const h = (lean: number) => researchScores(base({ human: true, lean }));
     const navy = RESEARCH_LEANS.indexOf("navy");
     const army = RESEARCH_LEANS.indexOf("army");
-    expect(h(navy)[at("torpedo_2")]!).toBeGreaterThan(h(0)[at("torpedo_2")]!);
+    expect(h(navy)[at("torpedo_3")]!).toBeGreaterThan(h(0)[at("torpedo_3")]!);
     expect(h(army)[at("inf_imp_2")]!).toBeGreaterThan(h(0)[at("inf_imp_2")]!);
     // An AI's leaning is its personality: the field is ignored.
     expect(researchScores(base({ lean: navy }))).toEqual(

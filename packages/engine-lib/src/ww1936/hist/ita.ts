@@ -69,7 +69,7 @@ export const ITA_HIST: readonly HistEntry[] = [
     country: "ITA",
     family: "tank",
     role: "light",
-    techs: ["light_tank_2"],
+    techs: ["light_tank_2", "tank_drive_2"],
     year: 1941,
     // Autoblindo AB 41: 7.4 t armoured car, 40 mm front plate, 20 mm Breda
     // 35 (about 20 mm at 500 m), two 8 mm machine guns, 78 km/h on the road.
@@ -147,7 +147,7 @@ export const ITA_HIST: readonly HistEntry[] = [
     country: "ITA",
     family: "tank",
     role: "medium",
-    techs: ["medium_tank_1", "tank_gun_2"],
+    techs: ["medium_tank_1"],
     year: 1940,
     // M13/40: 14 t, 30 mm hull and 40 mm turret front, 47/32 gun (sources
     // give 30-43 mm at 500 m, 38 used), four 8 mm; diesel, cramped, sound.
@@ -176,7 +176,7 @@ export const ITA_HIST: readonly HistEntry[] = [
     country: "ITA",
     family: "tank",
     role: "medium",
-    techs: ["medium_tank_1", "tank_gun_2"],
+    techs: ["medium_tank_1"],
     year: 1941,
     // M14/41: the M13/40 with a 145 hp diesel and sand filters; same armour
     // and gun.
@@ -229,7 +229,7 @@ export const ITA_HIST: readonly HistEntry[] = [
     country: "ITA",
     family: "tank",
     role: "medium",
-    techs: ["medium_tank_2", "tank_gun_2", "artillery_1"],
+    techs: ["medium_tank_2", "tank_gun_2"],
     year: 1943,
     // P26/40 ("heavy" by name, 26 t in fact): 50 mm sloped hull front,
     // 60 mm turret, 75/34 gun (about 70 mm at 500 m); only a handful built
@@ -259,7 +259,7 @@ export const ITA_HIST: readonly HistEntry[] = [
     country: "ITA",
     family: "tank",
     role: "td",
-    techs: ["light_tank_2", "tank_gun_2"],
+    techs: ["light_tank_2", "tank_drive_2"],
     year: 1942,
     // Semovente L40 da 47/32: 6.5 t, the 47/32 in an open-topped casemate on
     // the L6/40 chassis, 30 mm front.
@@ -285,7 +285,7 @@ export const ITA_HIST: readonly HistEntry[] = [
     country: "ITA",
     family: "tank",
     role: "td",
-    techs: ["medium_tank_1", "artillery_1"],
+    techs: ["medium_tank_1", "tank_gun_2"],
     year: 1941,
     // Semovente da 75/18 on the M40/M41 chassis: 13.8 t, 50 mm front, short
     // 75/18 howitzer; its HEAT round (1942) pierces about 70 mm at any range
@@ -314,7 +314,7 @@ export const ITA_HIST: readonly HistEntry[] = [
     country: "ITA",
     family: "tank",
     role: "td",
-    techs: ["medium_tank_2", "tank_gun_2", "artillery_1"],
+    techs: ["medium_tank_2", "tank_gun_2"],
     year: 1943,
     // Semovente da 75/34 on the M42M chassis: 15 t, 50 mm front, 75/34 gun
     // (about 70 mm at 500 m).
@@ -419,7 +419,7 @@ export const ITA_HIST: readonly HistEntry[] = [
     country: "ITA",
     family: "plane",
     type: "fighter",
-    techs: ["fighter_1"],
+    techs: ["fighter_1", "aero_engine_2"],
     year: 1939,
     // Fiat CR.42 Falco: the last biplane fighter in production, 430 km/h,
     // 2 x 12.7 mm; very agile, outclassed by monoplanes.
@@ -465,7 +465,7 @@ export const ITA_HIST: readonly HistEntry[] = [
     country: "ITA",
     family: "plane",
     type: "fighter",
-    techs: ["fighter_1"],
+    techs: ["fighter_1", "aero_engine_2"],
     year: 1939,
     // Macchi MC.200 Saetta: 503 km/h, 2 x 12.7 mm, good handling, weak
     // engine and guns. Range quoted 570-870 km, 600 used.
@@ -623,7 +623,7 @@ export const ITA_HIST: readonly HistEntry[] = [
     country: "ITA",
     family: "plane",
     type: "cas",
-    techs: ["cas_2"],
+    techs: ["cas_1", "aero_engine_3"],
     year: 1943,
     // Reggiane Re.2002 Ariete: dive-capable fighter-bomber, 530 km/h,
     // 2 x 12.7 and 2 x 7.7 mm, one 630 kg bomb; about 150 built.
@@ -749,7 +749,7 @@ export const ITA_HIST: readonly HistEntry[] = [
     country: "ITA",
     family: "plane",
     type: "naval_bomber",
-    techs: ["naval_bomber_1"],
+    techs: ["naval_bomber_2"],
     year: 1940,
     // SM.79 Sparviero torpedo-bomber (silurante): 450 mm aerial torpedo of
     // about 800 kg (two were carried on short missions, one used here).
@@ -798,7 +798,7 @@ export const ITA_HIST: readonly HistEntry[] = [
     country: "ITA",
     family: "plane",
     type: "strat_bomber",
-    techs: ["strat_bomber_1"],
+    techs: ["strat_bomber_1", "aero_engine_3"],
     year: 1942,
     // Piaggio P.108B: the only Italian four-engine bomber in service, 430
     // km/h, 3,500 kg bombs, remote nacelle turrets and other guns (six
@@ -823,7 +823,7 @@ export const ITA_HIST: readonly HistEntry[] = [
     country: "ITA",
     family: "plane",
     type: "transport_plane",
-    techs: ["transport_plane_1"],
+    techs: ["transport_plane_2"],
     year: 1940,
     // Savoia-Marchetti SM.82 Marsupiale: three-engine heavy transport,
     // 375 km/h, 4 t payload.
@@ -1180,7 +1180,7 @@ export const ITA_HIST: readonly HistEntry[] = [
     country: "ITA",
     family: "ship",
     cls: "cv",
-    techs: ["carrier_aviation", "cv_2"],
+    techs: ["cv_4", "carrier_aviation"],
     year: 1943,
     // Aquila: the liner Roma converted 1941-43, never finished: about
     // 23,500 t, 8 x 135 mm, 12 x 65 mm AA, 132 x 20 mm AA, 76 mm belt, 30 kn,
@@ -1233,7 +1233,7 @@ export const ITA_HIST: readonly HistEntry[] = [
     country: "ITA",
     family: "ship",
     cls: "ss",
-    techs: ["ss_2"],
+    techs: ["ss_3"],
     year: 1939,
     // Marcello class: about 1,060 t surfaced, 8 x 533 mm tubes, one 100 mm
     // gun, 17.4 kn, long range (quoted 10,000-12,000 nm; 10,500 used).
@@ -1258,7 +1258,7 @@ export const ITA_HIST: readonly HistEntry[] = [
     country: "ITA",
     family: "ship",
     cls: "ss",
-    techs: ["ss_2"],
+    techs: ["ss_3"],
     year: 1941,
     // Acciaio class (medium coastal boat): about 715 t surfaced, 6 x 533 mm
     // tubes, one 100 mm gun, 14 kn.

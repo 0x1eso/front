@@ -175,11 +175,11 @@ describe("World War 1936 automation: the switches", () => {
     const { runner, g, ww, deu } = await human();
     const fra = byTag(g, "FRA").smallID();
     const d0 = today(g);
-    // Every tech of 1936 done: what is left is a year early or more.
+    // Every tech to 1937 done: what is left is more than a year early.
     for (const id of [deu, fra]) {
       const ce = ww.economy.country(id)!;
       for (const t of WW_TECH_IDS) {
-        if (WW_TECHS[t].year <= 1936 && WW_TECHS[t].retired !== true) {
+        if (WW_TECHS[t].year <= 1937 && WW_TECHS[t].retired !== true) {
           ce.addTech(t);
         }
       }
@@ -197,11 +197,10 @@ describe("World War 1936 automation: the switches", () => {
     finishDay(runner, d0 + 1);
     expect(filled(g, deu)).toBe(deuCe.totals.slotCount);
     for (const s of deuCe.slots) {
-      expect(WW_TECHS[s!.tech].year).toBeGreaterThan(1936);
+      expect(WW_TECHS[s!.tech].year).toBeGreaterThan(1937);
     }
-    // An AI country still waits for its techs' year (the AI's own balance,
-    // left as it was: the pinned all-AI games do not move).
-    expect(filled(g, fra)).toBe(0);
+    // ww83: techs are short now, and an AI country fills its slots too.
+    expect(filled(g, fra)).toBe(ww.economy.country(fra)!.totals.slotCount);
   }, 120_000);
 
   it("research: past the AI's own list, auto research takes any tech the country may start", async () => {

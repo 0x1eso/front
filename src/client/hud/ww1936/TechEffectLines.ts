@@ -117,22 +117,27 @@ export interface TechParts {
 }
 
 export function techParts(tech: WwTechId): TechParts {
+  // ww82: a merged tech opens the parts of the old techs it holds.
+  const own = new Set<WwTechId | undefined>([
+    tech,
+    ...(WW_TECHS[tech].absorbs ?? []),
+  ]);
   const ids = <T extends { tech?: WwTechId }>(t: Readonly<Record<string, T>>) =>
     Object.entries(t)
-      .filter(([, d]) => d.tech === tech)
+      .filter(([, d]) => own.has(d.tech))
       .map(([id]) => id);
   return {
     tankModules: ids(TANK_MODULE_DEFS),
     tankChassis: ids(TANK_BASE_DEFS),
     shipModules: Object.entries(SHIP_MODULE_DEFS)
-      .filter(([, d]) => d.tech === tech)
+      .filter(([, d]) => own.has(d.tech))
       .map(([id, d]) => ({
         id,
         ...(d.project === undefined ? {} : { project: d.project }),
       })),
     planeModules: ids(PLANE_MODULE_DEFS),
     planeChassis: Object.entries(PLANE_BASE_DEFS)
-      .filter(([, d]) => d.tech === tech)
+      .filter(([, d]) => own.has(d.tech))
       .map(([id, d]) => ({
         id,
         ...(d.project === undefined ? {} : { project: d.project }),
@@ -190,19 +195,16 @@ export const TECH_RULE_LINES: Readonly<
   sonar_1: [["sonar", { dc: 15, sub: 30 }]],
   sonar_2: [["sonar", { dc: 15, sub: 30 }]],
   torpedo_1: [["torpedo", { n: 15 }]],
-  naval_radar_1: [["naval_radar", { n: 20, hit: 5 }]],
-  fire_control_1: [["fire_control", { n: 10 }]],
+  naval_radar_2: [["naval_radar", { n: 20, hit: 5 }]],
   synthetic_oil_2: [["synthetic_oil_2"]],
   synthetic_rubber_1: [["synthetic_rubber"]],
   metal_substitute_1: [["metal_1"]],
   metal_substitute_2: [["metal_2"]],
   mine_warfare_1: [["mine_work"]],
   mine_warfare_2: [["mines", { n: 50 }]],
-  // w77: the ship anti-air techs (ShipStats' NAVAL_AA_PCT) and the second fire control.
-  dual_purpose_guns: [["naval_aa", { n: 10 }]],
-  naval_aa_1: [["naval_aa", { n: 15 }]],
-  naval_aa_2: [["naval_aa", { n: 20 }]],
-  fire_control_2: [["fire_control", { n: 5 }]],
+  // w77, ww82: ShipStats' NAVAL_AA_PCT (10, 15, 20) and both fire controls (10, 5), merged.
+  dual_purpose_guns: [["naval_aa", { n: 45 }]],
+  fire_control_2: [["fire_control", { n: 15 }]],
   cryptography_1: [["cipher", { c: 40, d: 15 }]],
   cryptography_2: [["cipher", { c: 40, d: 15 }]],
   cryptography_3: [["cipher", { c: 40, d: 15 }]],
@@ -236,8 +238,10 @@ const SHOWN: Readonly<Partial<Record<string, (v: number) => number>>> = {
   nightBombBp: (v) => v / 100,
   fortDefPerLevelBp: (v) => v / 100,
   armyXpMilli: (v) => v / 1000,
-  // The recon company's attack bonus is 5% plus 0.05%p per point.
-  reconPct: (v) => v / 20,
+  infAtPierce: (v) => v / 100,
+  infAtHard: (v) => v / 100,
+  // Battles' tactic reading: a point for every 5 of the key, at most 10.
+  reconPct: (v) => v / 5,
 };
 
 /** One line per stat effect of a tech, in the stat list's order. */

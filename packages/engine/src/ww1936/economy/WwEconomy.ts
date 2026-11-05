@@ -73,9 +73,11 @@ import {
 } from "@openfront/engine-lib/ww1936/Stats";
 import { LawEffects, lawEffects } from "@openfront/engine-lib/ww1936/WwLaws";
 import {
+  liveTechCount,
   techCostMilli,
   TechTotals,
   techTotals,
+  WW_TECHS,
 } from "@openfront/engine-lib/ww1936/WwTechs";
 import { z } from "zod";
 import type { Game, Player } from "../../game/Game";
@@ -350,6 +352,8 @@ export class CountryEconomy {
     // A tech got for free (an event, a start) keeps no half-done progress.
     this.savedResearch = this.savedResearch.filter((r) => r.tech !== id);
     this.researched.add(id);
+    // ww82: a merged tech brings the old ids it holds, which the rules read.
+    for (const old of WW_TECHS[id].absorbs ?? []) this.researched.add(old);
     this.researched = new Set(
       WW_TECH_IDS.filter((t) => this.researched.has(t)),
     );
@@ -1391,7 +1395,7 @@ export class WwEconomy {
       recruitable: t.recruitable,
       // P2: the men in the field (the troop mirror; replays read it).
       troopCap: fieldMen,
-      researchedCount: ce.researched.size,
+      researchedCount: liveTechCount(ce.researched),
       shortage: ce.lines.some((l) => l.active > 0 && l.fill < 1000),
       exportRoom: RESOURCE_IDS.map((_, k) =>
         Math.max(0, exportRoomOf(t.produced[k], exportPct, sold[k])),

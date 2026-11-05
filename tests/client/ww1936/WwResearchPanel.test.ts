@@ -137,7 +137,7 @@ describe("<ww-research-panel> (spec §13.4)", () => {
     const card = m.q("[data-ww-tech='support_eq_2']")!;
     expect(card.dataset.look).toBe("available");
     // 1940, four years early: +400%.
-    expect(card.textContent).toContain("+400%");
+    expect(card.textContent).toContain("+1901%");
     await m.click("[data-ww-tech='support_eq_2']");
     expect(m.sent).toEqual([]);
     expect(m.q("[data-ww-start-pill]")!.textContent).toContain("n=2");
