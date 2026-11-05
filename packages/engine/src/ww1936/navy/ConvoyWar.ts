@@ -17,7 +17,6 @@ import {
   escortPowerCenti,
   raidPowerCenti,
 } from "@openfront/engine-lib/ww1936/ConvoyRules";
-import { planeStats } from "@openfront/engine-lib/ww1936/PlaneStats";
 import { wingStats } from "../air/Sorties";
 import { wingPlanes } from "../air/WwAir";
 import { exploiting } from "../depth/Crypto";
@@ -392,7 +391,7 @@ export function airOf(
       add(
         naval,
         d.owner,
-        n * planeStats(type, g + 1, ce.stats, ce.researched).naval,
+        n * navy.ww.air.planeStatsOf(d.owner, type, g + 1).naval,
       );
       add(planes, d.owner, n);
     });

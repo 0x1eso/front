@@ -39,6 +39,7 @@ import { zInt } from "@openfront/engine-lib/snapshot/SnapshotType";
 import { dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
 import { applyShipDesign } from "@openfront/engine-lib/ww1936/DesignRules";
 import { fleetFuelSpeedPm } from "@openfront/engine-lib/ww1936/FuelRules";
+import { weakShipStats } from "@openfront/engine-lib/ww1936/hist/WeakGeneric";
 import { NAVAL_BEATS } from "@openfront/engine-lib/ww1936/NavalBeats";
 import { navalLineClass } from "@openfront/engine-lib/ww1936/NavalLineRules";
 import { tickMilliKm } from "@openfront/engine-lib/ww1936/NavalRules";
@@ -61,6 +62,7 @@ import {
   navalLineCostMilli,
   shipDesignOf,
 } from "../depth/Designs";
+import { designerOn } from "../depth/Hist";
 import { convoysOf, losePlanes } from "../economy/Buildings";
 import { fuelCapOf, noteFleetFuel } from "../economy/Fuel";
 import { dockyardsFree, issueNavalLineOrder } from "../economy/NavalLines";
@@ -1349,10 +1351,13 @@ export class WwNavy {
       ce === null
         ? shipStats(cls, gen, emptyStats(), new Set())
         : shipStats(cls, gen, ce.stats, ce.researched);
+    // Owner, 2026-11-05: a generic ship is weaker than any real one.
     const stats =
-      design === 0
-        ? base
-        : applyShipDesign(base, shipDesignOf(this.ww.depth, owner, design));
+      design !== 0
+        ? applyShipDesign(base, shipDesignOf(this.ww.depth, owner, design))
+        : designerOn(this.ww.depth)
+          ? base
+          : weakShipStats(base, cls, gen);
     if (ce !== null) {
       this.shipStatsMemo.set(key, {
         statsVer: ce.statsVer,

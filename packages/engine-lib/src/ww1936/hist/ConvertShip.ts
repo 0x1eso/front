@@ -192,3 +192,17 @@ export function shipStatsOfEntry(e: ShipEntry): ShipStats {
     supWeight: b.supWeight,
   };
 }
+
+/** Ship power for ranking within a class (points; not a game number). */
+export function shipPowerOf(s: ShipStats): number {
+  return Math.floor(
+    s.hpMilli / 100 +
+      s.heavy / 10 +
+      s.light / 20 +
+      s.torpedo / 10 +
+      s.depth / 20 +
+      s.aa / 20 +
+      s.armor / 10 +
+      s.speedCentiKn / 50,
+  );
+}

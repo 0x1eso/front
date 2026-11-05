@@ -16,10 +16,12 @@ import {
   EQUIPMENT_GENS,
   type EquipmentType,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
+import { weakStaticPlaneScore } from "@openfront/engine-lib/ww1936/hist/WeakGeneric";
 import { staticPlaneScore } from "@openfront/engine-lib/ww1936/PlaneScore";
 import { planeGenTechs } from "@openfront/engine-lib/ww1936/PlaneStats";
 import { isOldScore } from "@openfront/engine-lib/ww1936/TemplateStats";
 import { planeDesignScore, planeDesignSlotsOf } from "../depth/Designs";
+import { designerOn } from "../depth/Hist";
 import type { WwDepth } from "../depth/WwDepth";
 import type { CountryEconomy } from "../economy/WwEconomy";
 
@@ -101,6 +103,7 @@ export function planeRankOf(
   const hit = st.types.get(type);
   if (hit !== undefined) return hit;
   const gens = EQUIPMENT_GENS[type as EquipmentType] ?? 0;
+  const weak = !designerOn(depth);
   const rows: {
     src: PlaneSource;
     score: number;
@@ -110,7 +113,9 @@ export function planeRankOf(
   for (let g = gens; g >= 1; g--) {
     rows.push({
       src: { gen: g, slot: 0 },
-      score: staticPlaneScore(type as AirType, g),
+      score: weak
+        ? weakStaticPlaneScore(type as AirType, g)
+        : staticPlaneScore(type as AirType, g),
       kind: 0,
       fieldable: planeGenTechs(type as AirType, g).every((t) => res.has(t)),
     });

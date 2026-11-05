@@ -10,7 +10,10 @@ import type { PlaneDesignStats } from "@openfront/engine-api/ww1936/DepthTypes";
 import { EQUIP_KEYS } from "@openfront/engine-api/ww1936/EconomyTypes";
 import { SHIP_CLASSES } from "@openfront/engine-api/ww1936/NavyTypes";
 import { planeType } from "@openfront/engine-lib/ww1936/DesignRules";
-import { shipStatsOfEntry } from "@openfront/engine-lib/ww1936/hist/ConvertShip";
+import {
+  shipPowerOf,
+  shipStatsOfEntry,
+} from "@openfront/engine-lib/ww1936/hist/ConvertShip";
 import { histEntry } from "@openfront/engine-lib/ww1936/hist/index";
 import { planeScore } from "@openfront/engine-lib/ww1936/PlaneScore";
 import { changeLine } from "../economy/Production";
@@ -184,17 +187,7 @@ export function aiPickNewPlaneLines(
 function shipPower(id: string): number {
   const e = histEntry(id);
   if (e === undefined || e.family !== "ship") return 0;
-  const s = shipStatsOfEntry(e);
-  return Math.floor(
-    s.hpMilli / 100 +
-      s.heavy / 10 +
-      s.light / 20 +
-      s.torpedo / 10 +
-      s.depth / 20 +
-      s.aa / 20 +
-      s.armor / 10 +
-      s.speedCentiKn / 50,
-  );
+  return shipPowerOf(shipStatsOfEntry(e));
 }
 
 /**

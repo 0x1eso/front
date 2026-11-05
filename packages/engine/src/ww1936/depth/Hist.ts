@@ -35,6 +35,7 @@ import {
   HistCountry,
   HistEntry,
 } from "@openfront/engine-lib/ww1936/hist/Types";
+import { weakKeyRow } from "@openfront/engine-lib/ww1936/hist/WeakGeneric";
 import {
   rowScore,
   STATIC_KEY_STATS,
@@ -175,14 +176,20 @@ const GEAR_FIELDS = [KS.soft, KS.hard, KS.def, KS.brk] as const;
  * the country's weapon sets the spread around it (small, by the owner's rule);
  * an anti-tank key with its real pierce. A generation with no entry goes on
  * from the country's last stand-in of the type, never the bare generic row.
+ * With the designer off, a key with nothing to go on and every minor's key is
+ * generic use (WeakGeneric); a designer-on game keeps the generic row.
  */
 export function fillHistStatics(
   d: WwDepth,
   id: number,
   t: KeyStatsTable,
 ): void {
+  if (designerOn(d)) return;
   const country = histCountryOf(d, id);
-  if (country === null) return;
+  if (country === null) {
+    for (let j = 0; j < GROUND_STATIC_SLOTS; j++) weakKeyRow(t, j);
+    return;
+  }
   // Per type: the last tank row, or the last gear entry's percent and pierce row.
   const lastTank = new Map<string, number>();
   const lastGear = new Map<string, { pct: number; pierceRow: number }>();
@@ -202,7 +209,10 @@ export function fillHistStatics(
         continue;
       }
       const gear = lastGear.get(type);
-      if (gear === undefined) continue;
+      if (gear === undefined) {
+        weakKeyRow(t, j);
+        continue;
+      }
       for (const f of GEAR_FIELDS) {
         t.stats[o + f] = Math.floor((generic[o + f] * gear.pct) / 100);
       }
