@@ -74,6 +74,10 @@ export interface PeaceTable {
   readonly assign?: readonly (readonly [number, number])[];
   /** ww88: the losers asked for terms: they keep their army. */
   readonly asked?: boolean;
+  /** ww88: the regions of `assign` an AI democracy sits on: no land moves. */
+  readonly dem?: readonly number[];
+  /** ww88: [loser, AI democracy]: the loser lives on as its puppet on that land. */
+  readonly demPuppets?: readonly (readonly [number, number])[];
 }
 
 /** A demand spelled out (plan decision 11): its regions, target, receiver, k, pct. */
@@ -254,15 +258,32 @@ export function peaceRest(
   return t.stake.filter((r) => f.legalOwner(r) === loser && free(r));
 }
 
-/** ww88: `loser`'s free stake regions nobody is assigned: what it would keep. */
+/**
+ * ww100: the regions an AI democracy sits on that stay `loser`'s at the
+ * treaty: its master's when it lives on as a puppet, all of them when a puppet
+ * was bought. (Zones of a loser who is gone are no one's to demand over.)
+ */
+function demKept(t: PeaceTable, loser: number): (r: number) => boolean {
+  const sits = t.dem;
+  if (sits === undefined || sits.length === 0) return () => false;
+  const on = new Set(sits);
+  if (peaceSettledOn(t, loser, "puppet")) return (r) => on.has(r);
+  const master = t.demPuppets?.find(([L]) => L === loser)?.[1];
+  return master === undefined
+    ? () => false
+    : (r) => on.has(r) && peaceAssignedTo(t, r) === master;
+}
+
+/** ww88: `loser`'s free stake regions nobody takes: what it would keep. */
 export function peaceKept(
   f: PeaceFacts,
   t: PeaceTable,
   loser: number,
   free: (r: number) => boolean,
 ): number[] {
+  const stays = demKept(t, loser);
   return peaceRest(f, t, loser, free).filter(
-    (r) => peaceAssignedTo(t, r) === 0,
+    (r) => peaceAssignedTo(t, r) === 0 || stays(r),
   );
 }
 
@@ -420,10 +441,13 @@ export function planPeaceDemand(
       // ww88: what it keeps; a loser left with nothing lives on in what its
       // master gives back to it.
       const kept = peaceKept(f, t, L, free);
+      const sits = new Set(t.dem ?? []);
       const regs =
         kept.length > 0
           ? kept
-          : peaceRest(f, t, L, free).filter((r) => peaceAssignedTo(t, r) === p);
+          : peaceRest(f, t, L, free).filter(
+              (r) => peaceAssignedTo(t, r) === p || sits.has(r),
+            );
       if (regs.length === 0) return "no_target";
       return all([], aggregateCost(costs(regs), AGG_PCT.puppet));
     }

@@ -358,8 +358,17 @@ function connected(w: Work, list: readonly AssignRegion[]): AssignRegion[][] {
   return out;
 }
 
-/** Who takes the last regions of a gone loser: the adjacent winner holding the most of it. */
-function heir(w: Work, loser: number, piece: readonly AssignRegion[]): number {
+/**
+ * Who takes the last regions of a gone loser: the keeping winner next to them
+ * holding the most of it, else the keeping winner holding the most of it. An
+ * AI democracy never inherits land: with no keeping winner at all, the one
+ * next to them (else the first by war score) sits there as a zone; `zone` says so.
+ */
+function heir(
+  w: Work,
+  loser: number,
+  piece: readonly AssignRegion[],
+): { to: number; zone: boolean } {
   const inside = new Set(piece.map((r) => r.region));
   const holds = new Map<number, number>();
   for (const r of w.inp.regions) {
@@ -382,12 +391,16 @@ function heir(w: Work, loser: number, piece: readonly AssignRegion[]): number {
         w.winners.get(b)!.wsMilli - w.winners.get(a)!.wsMilli ||
         a - b,
     );
-  return (
-    order([...near])[0] ??
-    order([...holds.keys()].filter((id) => w.winners.has(id)))[0] ??
-    order([...w.winners.keys()])[0] ??
-    0
-  );
+  const keeps = (id: number) => w.winners.get(id)?.keeps === true;
+  const keeper =
+    order([...near].filter(keeps))[0] ??
+    order([...holds.keys()].filter(keeps))[0] ??
+    order([...w.winners.keys()].filter(keeps))[0];
+  if (keeper !== undefined) return { to: keeper, zone: false };
+  return {
+    to: order([...near])[0] ?? order([...w.winners.keys()])[0] ?? 0,
+    zone: true,
+  };
 }
 
 export interface LoserRules {
@@ -395,6 +408,8 @@ export interface LoserRules {
   safe?: ReadonlySet<number>;
   /** Regions spoken for by a demand: they are neither left nor assigned. */
   bought?: ReadonlySet<number>;
+  /** Filled with [region, AI democracy]: last regions with no keeping winner to take them. */
+  zones?: Map<number, number>;
 }
 
 /**
@@ -435,10 +450,17 @@ export function settleLosers(
       continue;
     }
     for (const piece of connected(w, left)) {
-      const to = heir(w, L, piece);
-      if (to !== 0) for (const r of piece) assign.set(r.region, to);
+      const { to, zone } = heir(w, L, piece);
+      if (to === 0) continue;
+      for (const r of piece) (zone ? rules.zones : assign)?.set(r.region, to);
     }
-    if (left.every((r) => assign.has(r.region))) gone.push(L);
+    if (
+      left.every(
+        (r) => assign.has(r.region) || rules.zones?.has(r.region) === true,
+      )
+    ) {
+      gone.push(L);
+    }
   }
   return gone;
 }
@@ -512,10 +534,13 @@ export function peaceAssignment(
     const d = w.shadow.get(r.region);
     if (d !== undefined && masterOf.get(r.loser) !== d) zones.add(r.region);
   }
+  const lastZones = new Map<number, number>();
   const gone = settleLosers(inp, w.assign, {
     safe: new Set([...(rules.safe ?? []), ...masterOf.keys()]),
     bought: new Set([...(rules.bought ?? []), ...zones]),
+    zones: lastZones,
   });
+  for (const [r, d] of lastZones) w.shadow.set(r, d);
   for (const [r, d] of w.shadow) w.assign.set(r, d);
   return {
     assign: [...w.assign].sort((a, b) => a[0] - b[0]),

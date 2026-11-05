@@ -899,6 +899,7 @@ export function finishConference(
   // 6. What nobody took or was assigned goes back to its loser, which lives
   // again (one that asked for terms never stopped).
   const asked = livingAsked(eg, c);
+  const falling = fallingAsked(eg, asked, landBefore);
   const revived: number[] = [];
   for (const L of c.losers) {
     const left: number[] = [];
@@ -926,8 +927,10 @@ export function finishConference(
     const puppet = of("puppet").find((s) => s.target === L);
     if (puppet !== undefined) {
       makeSubject(eg, L, puppet.by, "puppet", false, tick);
-    } else if (pol.factionIdx(L) >= 0) {
-      // Pre-flight §0-9: a peace takes the loser out of its alliance.
+    } else if (pol.factionIdx(L) >= 0 && !falling.has(L)) {
+      // Pre-flight §0-9: a peace takes the loser out of its alliance. (One
+      // that falls after the treaty stays, as any capitulated member does: a
+      // human's takeover card or exile reads it.)
       leaveFaction(pol, L, tick);
     }
     const gov = of("change_government").find((s) => s.target === L);
@@ -1017,20 +1020,38 @@ export function finishConference(
   eg.dirtyPeaceLog = true;
   eg.dirtyWars = true;
   eg.adminDirty = true;
-  if (asked.size > 0) finishTerms(eg, c, asked, landBefore, day, tick);
+  if (asked.size > 0) finishTerms(eg, c, asked, falling, day, tick);
 }
 
 /** Each country's legal land value, by the conference's base. */
 function legalValues(
   eg: WwEndgame,
   ids: ReadonlySet<number>,
+  skipZones = false,
 ): Map<number, number> {
   const out = new Map<number, number>();
   if (ids.size === 0) return out;
   const legal = eg.ww.politics.legalOwner;
   for (const r of eg.ww.scenario.landRegions) {
     const o = legal[r.id] ?? 0;
-    if (ids.has(o)) out.set(o, (out.get(o) ?? 0) + regionBase(eg, r.id));
+    if (!ids.has(o) || (skipZones && eg.isZone(r.id))) continue;
+    out.set(o, (out.get(o) ?? 0) + regionBase(eg, r.id));
+  }
+  return out;
+}
+
+/** ww88: the countries that asked for terms and now hold under WW_PEACE_LOSER_MIN_PCT of the land they had. */
+function fallingAsked(
+  eg: WwEndgame,
+  asked: ReadonlySet<number>,
+  before: ReadonlyMap<number, number>,
+): Set<number> {
+  // (A zone is its only on paper: it counts as lost.)
+  const now = legalValues(eg, asked, true);
+  const out = new Set<number>();
+  for (const L of asked) {
+    const was = before.get(L) ?? 0;
+    if ((now.get(L) ?? 0) * 100 < was * WW_PEACE_LOSER_MIN_PCT) out.add(L);
   }
   return out;
 }
@@ -1038,13 +1059,16 @@ function legalValues(
 /**
  * ww88 Ask for terms: a truce with every winner; a loser left under
  * WW_PEACE_LOSER_MIN_PCT of its land can't stand and capitulates the usual
- * way to the main victor.
+ * way. ww100: no war is left to bring a conference, so its last land is settled
+ * here: the main keeping victor takes it; with only AI democracies it is the
+ * main victor's zone. An exile keeps its claim, and a conference another war
+ * opened settles it instead.
  */
 function finishTerms(
   eg: WwEndgame,
   c: Conference,
   asked: ReadonlySet<number>,
-  before: ReadonlyMap<number, number>,
+  falling: ReadonlySet<number>,
   day: number,
   tick: number,
 ): void {
@@ -1054,16 +1078,39 @@ function finishTerms(
     const cap = legalCapital(eg, L);
     if (cap !== 0) transferRegionPeaceful(eg.ww.land, cap, L, tick);
   }
-  const now = legalValues(eg, asked);
-  const victor = peaceMainVictor(parts);
-  for (const L of [...asked].sort(asc)) {
-    const was = before.get(L) ?? 0;
-    if ((now.get(L) ?? 0) * 100 >= was * WW_PEACE_LOSER_MIN_PCT) continue;
+  const keepers = parts.filter((p) => keepsLand(eg, p.id));
+  const victor = peaceMainVictor(keepers.length > 0 ? keepers : parts);
+  for (const L of [...falling].sort(asc)) {
     const p = eg.mg.playerBySmallID(L);
     const to = eg.mg.playerBySmallID(victor);
     if (!p.isPlayer() || !to.isPlayer()) continue;
     capitulateCountry(eg.mg, eg.ww, p, tick, to);
+    if (eg.isExile(L)) continue;
+    if (eg.conferences.some((x) => x.status !== 2 && x.losers.includes(L))) {
+      continue;
+    }
+    settleFallen(eg, L, victor, keepers.length > 0);
   }
+}
+
+/** ww100: the legal land of `L` that `to` now holds, which no treaty will come for: as its own, or as zones. */
+function settleFallen(
+  eg: WwEndgame,
+  L: number,
+  to: number,
+  keeps: boolean,
+): void {
+  const pol = eg.ww.politics;
+  const settled = new Set<number>();
+  for (const r of eg.ww.scenario.landRegions) {
+    if (pol.legalOwner[r.id] !== L || eg.isZone(r.id)) continue;
+    if (eg.ww.land.controller[r.id] !== to) continue;
+    settled.add(r.id);
+    if (keeps) pol.setLegalOwner(r.id, to);
+    else eg.zones.push({ region: r.id, holder: to, untilDay: -1 });
+  }
+  if (!keeps) eg.dirtyZones = true;
+  eg.handedOver = eg.handedOver.filter(([r]) => !settled.has(r));
 }
 
 /**
@@ -1129,7 +1176,15 @@ function assignmentRows(
       !c.claims.some(([x, y]) => x === p && y === r);
     if (!givesBack) assign.set(r, p);
   }
-  settleLosers(assignInput(eg, c), assign, { safe, bought: spoken });
+  const lastZones = new Map<number, number>();
+  settleLosers(assignInput(eg, c), assign, {
+    safe,
+    bought: spoken,
+    zones: lastZones,
+  });
+  for (const [r, p] of [...lastZones].sort((a, b) => a[0] - b[0])) {
+    zones.set(p, [...(zones.get(p) ?? []), r]);
+  }
   const rows = new Map<string, Settled>();
   for (const [r, p] of [...assign].sort((a, b) => a[0] - b[0])) {
     const L = legal[r] ?? 0;

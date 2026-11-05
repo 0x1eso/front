@@ -348,6 +348,44 @@ describe("World War 1936 ww88: PeaceAssign", () => {
     expect(new Map(out.assign).has(2)).toBe(false);
   });
 
+  it("an AI democracy next to the last regions inherits no land: a keeping winner does", () => {
+    // Region 3 is left, under a tenth; B's home is next to it, A isn't.
+    const i = map(
+      [
+        reg(1, { holder: A, value: 95, group: 1 }),
+        reg(3, { value: 5, group: 2 }),
+      ],
+      [win(A), win(B, 500, false)],
+      [[3, 8]],
+      { 8: B },
+      1,
+    );
+    const out = peaceAssignment(i);
+    expect(new Map(out.assign).get(3)).toBe(A);
+    expect(out.dem).toEqual([]);
+    expect(out.gone).toEqual([L]);
+  });
+
+  it("with no keeping winner the last regions are a zone, never land", () => {
+    const i = map(
+      [reg(1, { holder: B, value: 10 }), reg(3, { value: 90, group: 2 })],
+      [win(B, 500, false)],
+      [[3, 8]],
+      { 8: B },
+      1,
+    );
+    // Under a third: no puppet, zones; the capital's land is the democracy's.
+    const a = new Map<number, number>();
+    const zones = new Map<number, number>();
+    expect(settleLosers(i, a, { bought: new Set([1]), zones })).toEqual([L]);
+    expect(a.size).toBe(0);
+    expect(zones.get(3)).toBe(B);
+    const out = peaceAssignment(i);
+    expect(out.puppets).toEqual([]);
+    expect(out.dem).toEqual([1, 3]);
+    expect(out.gone).toEqual([L]);
+  });
+
   it("a safe loser stays, and regions spoken for count as neither kept nor assigned", () => {
     const i = map(
       [reg(1, { value: 95 }), reg(2, { value: 5 })],

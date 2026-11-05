@@ -226,6 +226,8 @@ export class PeaceModel {
       topple: c?.topple ?? [],
       assign: c?.assign,
       asked: c?.asked,
+      dem: c?.dem,
+      demPuppets: c?.demPuppets,
       // Everything settled so far, in settle order (lane W's view).
       settled: (c?.settled ?? []).map((x) => ({
         kind: demandKindIndex(x.kind),

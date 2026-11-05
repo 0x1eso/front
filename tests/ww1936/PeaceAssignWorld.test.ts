@@ -9,6 +9,7 @@ import {
   WW_ASK_TERMS_MIN_POOL_PCT,
   WW_WHITE_PEACE_MIN_DAYS,
 } from "@openfront/engine-api/ww1936/EndgameTypes";
+import { IDEO_DEM } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import type { Game, Player } from "@openfront/engine/game/Game";
 import { createGameRunner } from "@openfront/engine/GameRunner";
@@ -27,6 +28,7 @@ import {
   truceUntil,
 } from "@openfront/engine/ww1936/endgame/WhitePeace";
 import type { Conference } from "@openfront/engine/ww1936/endgame/WwEndgame";
+import { joinFaction } from "@openfront/engine/ww1936/politics/Factions";
 import type { WorldWar } from "@openfront/engine/ww1936/WorldWar";
 import { loadMapFiles } from "@openfront/shared/GameMapLoader";
 import path from "path";
@@ -505,6 +507,67 @@ describe("World War 1936 ww88: Ask for terms on the real map", () => {
     passAll(t, c);
     expect(ww.isCapitulated(tur)).toBe(true);
     expect(ww.land.controller[cap]).toBe(deu);
+    // ww100: no war is left to bring a conference: its last land is settled now.
+    expect(ww.politics.legalOwner[cap]).toBe(deu);
+    expect(eg.countryState(tur)).toBe("gone");
+    expect(eg.handedOver.some(([r]) => r === cap)).toBe(false);
+  });
+
+  it("an AI democracy gets the last land of one that fell after terms as a zone", async () => {
+    const t = await start();
+    const [gbr, tur] = [idOf(t, "GBR"), idOf(t, "TUR")];
+    const { g, ww, eg } = t;
+    ww.setWar(gbr, tur, g.ticks());
+    const w = eg.war(eg.warOfPair(gbr, tur))!;
+    // Its whole side: with a keeping winner the land would go there.
+    for (const m of w.sides[eg.sideIndex(w, gbr) as 0 | 1].members) {
+      ww.politics.country(m.id)!.ruling = IDEO_DEM;
+    }
+    w.startDay = ww.day(g.ticks()) - WW_WHITE_PEACE_MIN_DAYS;
+    ww.politics.country(tur)!.ppMilli = 100_000;
+    addWarScore(eg, w.id, gbr, 1000);
+    const cap = t.sc.regionAt(t.sc.capitalTileOrNull("TUR")!);
+    for (const r of t.sc.landRegions) {
+      if (ww.politics.legalOwner[r.id] === tur && r.id !== cap) {
+        ww.land.setController(r.id, gbr, g.ticks());
+      }
+    }
+    expect(askForTerms(eg, tur, w.id, g.ticks())).toBeNull();
+    const offer = eg.peaceOffers.find((o) => o.ask === true)!;
+    expect(replyPeace(eg, gbr, offer.id, true, g.ticks())).toBeNull();
+    passAll(t, eg.conferences[eg.conferences.length - 1]);
+    expect(ww.isCapitulated(tur)).toBe(true);
+    expect(ww.land.controller[cap]).toBe(gbr);
+    expect(ww.politics.legalOwner[cap]).toBe(tur);
+    expect(eg.isZone(cap)).toBe(true);
+  });
+
+  it("one that falls after terms is still in its faction for the takeover card", async () => {
+    const t = await start();
+    const [deu, tur, gbr] = [idOf(t, "DEU"), idOf(t, "TUR"), idOf(t, "GBR")];
+    const { g, ww, eg } = t;
+    const pol = ww.politics;
+    const f = pol.factionIdx(gbr);
+    expect(f).toBeGreaterThanOrEqual(0);
+    joinFaction(pol, tur, f, g.ticks());
+    expect(pol.factionIdx(tur)).toBe(f);
+    ww.setWar(deu, tur, g.ticks());
+    const w = eg.war(eg.warOfPair(deu, tur))!;
+    w.startDay = ww.day(g.ticks()) - WW_WHITE_PEACE_MIN_DAYS;
+    pol.country(tur)!.ppMilli = 100_000;
+    addWarScore(eg, w.id, deu, 1000);
+    const cap = t.sc.regionAt(t.sc.capitalTileOrNull("TUR")!);
+    for (const r of t.sc.landRegions) {
+      if (pol.legalOwner[r.id] === tur && r.id !== cap) {
+        ww.land.setController(r.id, deu, g.ticks());
+      }
+    }
+    expect(askForTerms(eg, tur, w.id, g.ticks())).toBeNull();
+    const offer = eg.peaceOffers.find((o) => o.ask === true)!;
+    expect(replyPeace(eg, deu, offer.id, true, g.ticks())).toBeNull();
+    passAll(t, eg.conferences[eg.conferences.length - 1]);
+    expect(ww.isCapitulated(tur)).toBe(true);
+    expect(pol.factionIdx(tur)).toBe(f);
   });
 
   it("an AI side leader asks from 70 %, and not before", async () => {
