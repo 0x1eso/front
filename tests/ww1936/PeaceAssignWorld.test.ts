@@ -530,6 +530,36 @@ describe("World War 1936 ww88: Ask for terms on the real map", () => {
     expect(w.ended).toBeNull();
   });
 
+  it("an AI minor doesn't ask over the head of a great power on its side", async () => {
+    const t = await start();
+    const { g, ww, eg } = t;
+    const [deu, pol, fra] = [idOf(t, "DEU"), idOf(t, "POL"), idOf(t, "FRA")];
+    ww.setWar(deu, pol, g.ticks());
+    const w = eg.war(eg.warOfPair(deu, pol))!;
+    ww.setWar(deu, fra, g.ticks(), { kind: "into", warId: w.id });
+    expect(eg.sideIndex(w, fra)).toBe(eg.sideIndex(w, pol));
+    w.startDay = ww.day(g.ticks()) - WW_WHITE_PEACE_MIN_DAYS;
+    ww.politics.country(pol)!.ppMilli = 100_000;
+    const cap = t.sc.regionAt(t.sc.capitalTileOrNull("POL")!);
+    for (const r of t.sc.landRegions) {
+      if (ww.politics.legalOwner[r.id] === pol && r.id !== cap) {
+        ww.land.setController(r.id, deu, g.ticks());
+      }
+    }
+    expect(surrenderPm(eg, pol)).toBeGreaterThanOrEqual(700);
+    expect(surrenderPm(eg, fra)).toBeLessThan(400);
+    const day = ww.day(g.ticks());
+    aiAskTermsDay(eg, pol, day, g.ticks());
+    expect(eg.peaceOffers.some((o) => o.ask === true)).toBe(false);
+    // France beaten too: the side is, and its leader speaks for it.
+    for (const sr of [NORTH, EAST, WEST, CENTRE]) {
+      for (const r of srOf(t, sr)) ww.land.setController(r, deu, g.ticks());
+    }
+    expect(surrenderPm(eg, fra)).toBeGreaterThanOrEqual(400);
+    aiAskTermsDay(eg, pol, day, g.ticks());
+    expect(eg.peaceOffers.some((o) => o.ask === true)).toBe(true);
+  });
+
   it("an AI winner refuses when it isn't clearly ahead", async () => {
     const t = await start();
     const [deu, fra] = [idOf(t, "DEU"), idOf(t, "FRA")];
