@@ -12,14 +12,14 @@ export const SPIRITS_PACK_WORLD: SpiritDef[] = [
     stats: { stabilityBp: 500, enemyJustifyTimePct: 25 },
   },
   // lat_rubber without rubber regions: "무역 비용 −5%"
-  { id: "lat_rubber_trade", icon: "globe", stats: { tradeCostPct: -5 } },
+  { id: "lat_rubber_trade", icon: "globe", stats: { tradeCostPct: 5 } },
   // lat_export_boom: "무역 비용 −10%"
-  { id: "lat_export_trade", icon: "globe", stats: { tradeCostPct: -10 } },
+  { id: "lat_export_trade", icon: "globe", stats: { tradeCostPct: 10 } },
   // arg_neutrality: "정당화 받는 시간 +50%, 무역 비용 −10%"
   {
     id: "arg_neutral_course",
     icon: "dove",
-    stats: { enemyJustifyTimePct: 50, tradeCostPct: -10 },
+    stats: { enemyJustifyTimePct: 50, tradeCostPct: 10 },
   },
   // mex_oil_crisis a (365 days): the companies' boycott
   { id: "mex_oil_boycott", icon: "oil", stats: { tradeCostPct: 10 } },
@@ -56,5 +56,5 @@ export const SPIRITS_PACK_WORLD: SpiritDef[] = [
 
   // ---- New states ----
   // new_economy: "무역 비용 −10%"
-  { id: "new_trade_terms", icon: "scales", stats: { tradeCostPct: -10 } },
+  { id: "new_trade_terms", icon: "scales", stats: { tradeCostPct: 10 } },
 ];

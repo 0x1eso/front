@@ -148,6 +148,6 @@ export const SPIRITS_JPN: SpiritDef[] = [
   {
     id: "jpn_washington_credit",
     icon: "handshake",
-    stats: { tradeCostPct: -5, tensionPct: -5 },
+    stats: { tradeCostPct: 5, tensionPct: -5 },
   },
 ];

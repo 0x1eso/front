@@ -80,5 +80,5 @@ export const SPIRITS_PACK_CHINA: SpiritDef[] = [
   // +5% for the whole army stands in (its army is mostly horsemen).
   { id: "chw_cavalry_tradition", icon: "sword", stats: { attackPct: 5 } },
   // chw_border_trade: trade cost -10%.
-  { id: "chw_frontier_trade", icon: "globe", stats: { tradeCostPct: -10 } },
+  { id: "chw_frontier_trade", icon: "globe", stats: { tradeCostPct: 10 } },
 ];

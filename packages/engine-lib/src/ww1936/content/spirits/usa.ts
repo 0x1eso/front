@@ -38,7 +38,7 @@ export const SPIRITS_USA: SpiritDef[] = [
   {
     id: "usa_neutral_trade_spirit",
     icon: "scales",
-    stats: { tradeCostPct: -15, consumerGoodsPp: -2 },
+    stats: { tradeCostPct: 15, consumerGoodsPp: -2 },
   },
   // usa_neutrality_patrol
   { id: "usa_patrol_fleet", icon: "compass", stats: { navalDetectPct: 10 } },

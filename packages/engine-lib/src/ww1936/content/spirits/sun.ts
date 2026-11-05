@@ -348,6 +348,6 @@ export const SPIRITS_SUN = [
   {
     id: "sun_market_plan",
     icon: "industry",
-    stats: { outputPct: 3, tradeCostPct: -10, consumerGoodsPp: -1 },
+    stats: { outputPct: 3, tradeCostPct: 10, consumerGoodsPp: -1 },
   },
 ] satisfies SpiritDef[];

@@ -97,7 +97,7 @@ export const SPIRITS_NATIONAL: readonly SpiritDef[] = [
     icon: "globe",
     stats: {
       extractionPct: 15,
-      tradeCostPct: -15,
+      tradeCostPct: 15,
       recruitablePct: -15,
       mioStatPct_armor: -10,
     },
@@ -140,7 +140,7 @@ export const SPIRITS_NATIONAL: readonly SpiritDef[] = [
   {
     id: "nat_jpn_scarce",
     icon: "oil",
-    stats: { extractionPct: -10, tradeCostPct: 15, mioStatPct_armor: -10 },
+    stats: { extractionPct: -10, tradeCostPct: -10, mioStatPct_armor: -10 },
   },
 
   // ---- Italy: the Mediterranean and light mobility ----

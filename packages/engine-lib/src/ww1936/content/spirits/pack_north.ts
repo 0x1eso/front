@@ -8,7 +8,7 @@ export const SPIRITS_PACK_NORTH: readonly SpiritDef[] = [
   // ---- Balkans ----
   // bal_arms_imports (720 days): spec "arms-market prices −20%". P6 has no
   // market-price key for the buyer; trade cost −10% stands in.
-  { id: "bal_arms_contracts", icon: "document", stats: { tradeCostPct: -10 } },
+  { id: "bal_arms_contracts", icon: "document", stats: { tradeCostPct: 10 } },
   // bal_mountain_troops: spec "mountain battalion attack +5%". No key is
   // limited to mountain battalions; infantry attack +3% stands in.
   { id: "bal_highland_drill", icon: "infantry", stats: { infAttackPct: 3 } },
@@ -47,7 +47,7 @@ export const SPIRITS_PACK_NORTH: readonly SpiritDef[] = [
   // nor_resistance: occupied cores of the exiled state resist more.
   { id: "nor_home_front", icon: "fist", stats: { resistanceTargetPct: 15 } },
   // swe_iron_ore: trade cost −10%.
-  { id: "swe_ore_exports", icon: "mine", stats: { tradeCostPct: -10 } },
+  { id: "swe_ore_exports", icon: "mine", stats: { tradeCostPct: 10 } },
   // swe_armed_neutrality: takes the place of the starting gen_armed_neutrality
   // (defence +10%, others justify 50% slower) — defence +15%, war support +10%.
   {
@@ -56,7 +56,7 @@ export const SPIRITS_PACK_NORTH: readonly SpiritDef[] = [
     stats: { defensePct: 15, warSupportBp: 1000, enemyJustifyTimePct: 50 },
   },
   // dnk_agriculture: trade cost −10%.
-  { id: "dnk_farm_exports", icon: "wheat", stats: { tradeCostPct: -10 } },
+  { id: "dnk_farm_exports", icon: "wheat", stats: { tradeCostPct: 10 } },
   // fin_motti: forest defence +10%. The spec's second half (encircled enemies
   // in forest recover no organisation) has no key or rule (report: DSL gap).
   {
