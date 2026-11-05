@@ -34,6 +34,7 @@ import { WwAir, WwAirStateSchema } from "./air/WwAir";
 import { WwDepth, WwDepthStateSchema } from "./depth/WwDepth";
 import { WwEconomy, WwEconomyStateSchema } from "./economy/WwEconomy";
 import { WwEndgame, WwEndgameStateSchema } from "./endgame/WwEndgame";
+import { evictArmies } from "./land/PoliticsBridge";
 import { WwLand, WwLandStateSchema } from "./land/WwLand";
 import { NavyAirHooks } from "./navy/NavyAirHooks";
 import { WwNavy, WwNavyStateSchema } from "./navy/WwNavy";
@@ -451,6 +452,11 @@ export class WorldWar {
     this.dataDirty = true;
     this.warVer++;
     this.endgame.onWarPairCreated(a, b, link, tick);
+    // Who stood on the other's land as a friend does not fight from there:
+    // a real game left 47 Allied divisions unsupplied in Holland for years
+    // when a treaty turned the Dutch into German puppets.
+    evictArmies(this.land, a, b);
+    evictArmies(this.land, b, a);
     return true;
   }
 
