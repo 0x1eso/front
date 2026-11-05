@@ -143,8 +143,16 @@ export function newTacticFx(): TacticFx {
   };
 }
 
-/** Table of design §2.2, written into `out` (no allocation). */
-export function tacticFx(att: number, def: number, out: TacticFx): TacticFx {
+/**
+ * Table of design §2.2, written into `out` (no allocation). `attRecon`: the
+ * attackers have a recon company, and an ambush finds nobody (ww84).
+ */
+export function tacticFx(
+  att: number,
+  def: number,
+  out: TacticFx,
+  attRecon = false,
+): TacticFx {
   const countered = isCountered(att, def);
   let attAtk = 0;
   let attOrg = 0;
@@ -174,7 +182,7 @@ export function tacticFx(att: number, def: number, out: TacticFx): TacticFx {
   let defOrg = 0;
   let hp = 0;
   if (def === DT_AMBUSH) {
-    defAtk += 1500;
+    if (!attRecon) defAtk += 1500;
   } else if (def === DT_ELASTIC) {
     defOrg -= 2000;
   } else if (def === DT_COUNTER) {
@@ -358,6 +366,36 @@ export function defenseWeights(s: TacticSide, w: number[]): void {
   w[DT_WITHDRAW] = 8;
 }
 
+/** ww84: what a recon company adds to the chance of seeing the enemy's pick, points. */
+export const RECON_SEE_PP = 20;
+
+/**
+ * Who picks second on roll `rS` (0..99): 0 the attacker, 1 the defender, -1
+ * nobody. The side with the higher initiative sees with 50 % + the difference,
+ * a recon company adding RECON_SEE_PP; a side with recon and no lead has that
+ * chance alone, from the other end of the roll.
+ */
+export function picksSecond(
+  ia: number,
+  id: number,
+  attRecon: boolean,
+  defRecon: boolean,
+  rS: number,
+): number {
+  const lead = ia > id ? 0 : ia < id ? 1 : -1;
+  if (lead >= 0) {
+    const recon = lead === 0 ? attRecon : defRecon;
+    const chance =
+      50 + Math.abs(ia - id) + (recon ? RECON_SEE_PP : 0);
+    if (rS < Math.min(100, chance)) return lead;
+  } else if (attRecon && rS < RECON_SEE_PP) {
+    return 0;
+  }
+  const trailing = lead === 0 ? defRecon : lead === 1 ? attRecon : defRecon;
+  if (trailing && rS >= 100 - RECON_SEE_PP) return lead === 1 ? 0 : 1;
+  return -1;
+}
+
 /** The picks of one phase (written by pickTactics). */
 export interface TacticPick {
   att: number;
@@ -371,8 +409,8 @@ const WD: number[] = new Array<number>(LAND_DEFENSE_TACTICS.length).fill(0);
 /**
  * Design §2.2, §2.3: both sides pick, each from its weights by its own roll
  * (k = 0 the attacker's, 1 the defender's). The side with the higher
- * initiative picks second with 50 % + the difference in percent, seeing the
- * other's pick: a defender takes the tactic that counters it when it has
+ * initiative picks second with 50 % + the difference in percent (a recon
+ * company adds to it: picksSecond), seeing the other's pick: a defender takes the tactic that counters it when it has
  * one (and may use it); an attacker keeps clear of the attack tactic the
  * defender's pick counters. Otherwise both pick blind. The inputs are the
  * only state: the roll is wwRoll(seed, P_LAND_TACTIC, region, since,
@@ -395,15 +433,15 @@ export function pickTactics(
   const rS = wwRoll(seed, P_LAND_TACTIC, region, since, key + 2) % 100;
   attackWeights(att, WA);
   defenseWeights(def, WD);
-  const sees = ia !== id && rS < Math.min(100, 50 + Math.abs(ia - id));
-  if (sees && ia > id) {
+  const second = picksSecond(ia, id, att.recon, def.recon, rS);
+  if (second === 0) {
     // The attacker picks second.
     const d = pickWeighted(WD, rD);
     const countered = COUNTERED_BY_DEFENSE[d];
     if (countered >= 0) WA[countered] = 0;
     out.def = d;
     out.att = pickWeighted(WA, rA);
-  } else if (sees) {
+  } else if (second === 1) {
     // The defender picks second.
     const a = pickWeighted(WA, rA);
     const c = COUNTER_OF_ATTACK[a];

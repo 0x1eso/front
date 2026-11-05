@@ -107,12 +107,17 @@ export function airMoveFactorPm(enemySupPm: number): number {
   );
 }
 
+/** ww84: supply under an enemy-held sky, ‰: half a percent for each percent over 50. */
+export function airSupplyFactorPm(enemySupPm: number): number {
+  return 1000 - Math.floor(Math.max(0, enemySupPm - 500) / 2);
+}
+
 /**
  * Spec §14.6 with the enemy's battlefield support: the cut, bp ≤ 0, of the
  * worst enemy superiority less the division's anti-air (airPenaltyBp), then
  * that enemy's bonus `bonusPp` (supPenaltyPp: +100 bp a point) on top — the
  * spec lists it as a row of its own, after the anti-air cut (A1 review
- * ruling) — up to −40% in all. No bonus without enemy superiority. With no
+ * ruling) — up to −20% in all (ww84). No bonus without enemy superiority. With no
  * bonus it is airPenaltyBp. The engine's hook and the battle card both call
  * it.
  */

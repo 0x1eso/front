@@ -370,10 +370,10 @@ describe("combat (P2 spec §9)", () => {
   });
 
   test("divisionMods", () => {
-    // Plains, clear, full supply, no general: recon's +5%.
-    expect(divisionMods(neutral({})).mods.attackBp).toBe(10_500);
+    // Full supply, no general: nothing (ww84: a recon company adds none).
+    expect(divisionMods(neutral({})).mods.attackBp).toBe(10_000);
     // A big river, halved by the engineers.
-    expect(divisionMods(neutral({ river: 2 })).mods.attackBp).toBe(8400);
+    expect(divisionMods(neutral({ river: 2 })).mods.attackBp).toBe(8000);
     // Task 11: a small river −10% (halved by the engineers: −5%), a big
     // one −40%; moving over them +15% and +50%.
     expect(RIVER_ATTACK_BP).toEqual([0, -1000, -4000]);
@@ -385,10 +385,10 @@ describe("combat (P2 spec §9)", () => {
     expect(line(divisionMods(neutral({ fort: 3 })).attackLines, "fort")).toBe(
       -3825,
     );
-    // The defender's entrenchment (ww7: 5% a level, was 3%), engineers and recon.
+    // The defender's entrenchment (ww7: 5% a level, was 3%) and engineers.
     expect(
       divisionMods(neutral({ attacking: false, entrench: 4 })).mods.defenseBp,
-    ).toBe(13_000);
+    ).toBe(12_500);
     expect(
       line(divisionMods(neutral({ supplyPm: 500 })).attackLines, "supply"),
     ).toBe(-2500);

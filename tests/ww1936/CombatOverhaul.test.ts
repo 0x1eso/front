@@ -25,6 +25,7 @@ import {
   TPL_LIGHT_MAJOR,
   TPL_MARINE_MAJOR,
   TPL_MOUNTAIN_MAJOR,
+  TPL_RECON,
   traitBit,
 } from "@openfront/engine-api/ww1936/LandTypes";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
@@ -37,6 +38,7 @@ import {
   ASSAULT_BREAK_BP,
   BARE_ARMOR_ORG_PCT,
   bandProtectPm,
+  casProtectPm,
   defenderOrgPct,
   divisionMods,
   emptySide,
@@ -47,6 +49,7 @@ import {
   hitProtectPm,
   ModInput,
   predictBattle,
+  predictBattleRange,
   PREP_FIRE_ROUNDS,
   prepKeepPm,
   RIVER_ATTACK_BP,
@@ -54,6 +57,11 @@ import {
   tankFearPct,
   trenchCutPm,
 } from "@openfront/engine-lib/ww1936/CombatRules";
+import {
+  airGroundPenaltyBp,
+  airPenaltyBp,
+  airSupplyFactorPm,
+} from "@openfront/engine-lib/ww1936/AirRules";
 import { GENERALS } from "@openfront/engine-lib/ww1936/Generals";
 import { moveNeed, moveStep } from "@openfront/engine-lib/ww1936/MoveRules";
 import {
@@ -61,9 +69,14 @@ import {
   supplyEdgeCost,
 } from "@openfront/engine-lib/ww1936/SupplyRules";
 import {
+  AT_ATTACK,
   CAVALRY_INITIATIVE,
+  DT_AMBUSH,
   initiativeOf,
+  newTacticFx,
   newTacticSide,
+  picksSecond,
+  tacticFx,
 } from "@openfront/engine-lib/ww1936/TacticRules";
 import {
   divisionStatsAt,
@@ -85,10 +98,11 @@ import {
   stepRecovery,
 } from "@openfront/engine/ww1936/land/Battles";
 import { depthOf as depthOfRegion } from "@openfront/engine/ww1936/land/Bands";
+import { stepPosition } from "@openfront/engine/ww1936/land/Positions";
 import { landDivisions } from "@openfront/engine/ww1936/land/SeaLift";
 import type { Army, WwLand } from "@openfront/engine/ww1936/land/WwLand";
 import { loadMapFiles } from "@openfront/shared/GameMapLoader";
-import { describe, expect, test } from "vitest";
+import { describe, expect, test, vi } from "vitest";
 import { TestDataMapLoader } from "../util/ScriptedGame";
 import {
   byTag,
@@ -930,4 +944,133 @@ describe("P5: armour running through", () => {
       predictBattle(att, def, { ...ctx, exploitRounds: 4 }).ratioPm,
     ).toBeGreaterThan(predictBattle(att, def, ctx).ratioPm);
   });
+});
+
+describe("P6: recon, engineers and the air", () => {
+  test("a recon company adds nothing to attack or defence", () => {
+    const m = divisionMods(input({ flags: TPL_RECON }));
+    expect(line(m.attackLines, "recon")).toBeUndefined();
+    expect(line(m.defenseLines, "recon")).toBeUndefined();
+    expect(m.mods.attackBp).toBe(10_000);
+    expect(m.mods.defenseBp).toBe(10_000);
+  });
+
+  test("its initiative stays", () => {
+    const s = newTacticSide();
+    const before = initiativeOf(s, false);
+    s.recon = true;
+    expect(initiativeOf(s, false)).toBe(before + 5);
+  });
+
+  test("an ambush finds nobody when the attackers have recon", () => {
+    expect(tacticFx(AT_ATTACK, DT_AMBUSH, newTacticFx()).defAtkBp).toBe(1500);
+    expect(tacticFx(AT_ATTACK, DT_AMBUSH, newTacticFx(), true).defAtkBp).toBe(0);
+  });
+
+  test("recon sees the enemy's pick 20 points more often", () => {
+    // 0: the attacker picks second, 1: the defender, -1: both blind.
+    // The attacker leads by 10: it sees on rolls under 60, with recon under 80.
+    expect(picksSecond(30, 20, false, false, 59)).toBe(0);
+    expect(picksSecond(30, 20, false, false, 60)).toBe(-1);
+    expect(picksSecond(30, 20, true, false, 79)).toBe(0);
+    expect(picksSecond(30, 20, true, false, 80)).toBe(-1);
+    // The defender trails, but its recon has the top 20 of the roll.
+    expect(picksSecond(30, 20, false, true, 79)).toBe(-1);
+    expect(picksSecond(30, 20, false, true, 80)).toBe(1);
+    // The defender leads.
+    expect(picksSecond(20, 30, false, false, 59)).toBe(1);
+    expect(picksSecond(20, 30, false, true, 79)).toBe(1);
+    expect(picksSecond(20, 30, true, false, 85)).toBe(0);
+    // Even: blind, unless a side has recon.
+    expect(picksSecond(25, 25, false, false, 10)).toBe(-1);
+    expect(picksSecond(25, 25, true, false, 19)).toBe(0);
+    expect(picksSecond(25, 25, true, false, 20)).toBe(-1);
+    expect(picksSecond(25, 25, false, true, 80)).toBe(1);
+  });
+
+  test("the low bound of the range assumes no ambush against recon", () => {
+    const side = (support: readonly SupportId[]) => {
+      const s = stats([["infantry", 9]], support);
+      const sum = emptySide();
+      addToSide(sum, s, s.orgMilli);
+      return sum;
+    };
+    const ctx = {
+      land: "plains" as const,
+      directions: 1,
+      attackerAttackBp: 10_000,
+      attackerBlockBp: 10_000,
+      defenderAttackBp: 10_000,
+      defenderBlockBp: 10_000,
+    };
+    expect(side(["recon"]).recon).toBe(true);
+    expect(predictBattleRange(side(["recon"]), side([]), ctx).lowPm).toBeGreaterThan(
+      predictBattleRange(side([]), side([]), ctx).lowPm,
+    );
+  });
+
+  test("engineers build positions faster", () => {
+    let plain = { level: 0, days: 0 };
+    let dug = { level: 0, days: 0 };
+    for (let d = 0; d < 5; d++) {
+      plain = stepPosition(plain.level, plain.days, true, false, false);
+      dug = stepPosition(dug.level, dug.days, true, false, false, true);
+    }
+    expect(plain.level).toBe(0);
+    expect(dug.level).toBe(1);
+  });
+
+  test("close air support: half armour's protection, on its armoured share", () => {
+    expect(casProtectPm(0, 900)).toBe(0);
+    expect(casProtectPm(4000, 1000)).toBe(425);
+    expect(casProtectPm(4000, 900)).toBe(382);
+    expect(casProtectPm(4000, 100)).toBe(42);
+  });
+
+  test("the sky costs a land battle at most 20 %", () => {
+    expect(airPenaltyBp(1000, 0)).toBe(-2000);
+    expect(airGroundPenaltyBp(1000, 5, 0)).toBe(-2000);
+    expect(airPenaltyBp(600, 0)).toBe(-700);
+  });
+
+  test("supply loses half a percent for each percent of enemy sky over 50", () => {
+    expect(airSupplyFactorPm(0)).toBe(1000);
+    expect(airSupplyFactorPm(500)).toBe(1000);
+    expect(airSupplyFactorPm(600)).toBe(950);
+    expect(airSupplyFactorPm(1000)).toBe(750);
+  });
+
+  test("under enemy close air support a side's reserves are held up", async () => {
+    // Each round one place in the attackers' line is free for a reserve's roll.
+    const entries = async (underAir: boolean) => {
+      const { g, l } = await war();
+      const a = placeArmy(g, "DEU", BERLIN, 6);
+      const d = placeArmy(g, "POL", WARSAW, 6);
+      attack(l, a, WARSAW);
+      const t = l.divisions;
+      stepBattles(l, g.ticks());
+      const b = l.battles.get(WARSAW)!;
+      const full = b.attLine.length;
+      const enemy = l.sideOf(byTag(g, "POL").smallID());
+      if (underAir) {
+        vi.spyOn(l.hooks, "casHits").mockImplementation((_, side) =>
+          side === enemy ? 100 : 0,
+        );
+      }
+      let entered = 0;
+      for (let i = 0; i < 60; i++) {
+        b.attLine = b.attLine.slice(0, full - 1);
+        for (const id of [...a.divisions, ...d.divisions]) {
+          t.org[t.rowOf(id)] = 40_000;
+        }
+        stepBattles(l, g.ticks());
+        if (b.attLine.length >= full) entered++;
+      }
+      vi.restoreAllMocks();
+      return entered;
+    };
+    const clear = await entries(false);
+    expect(clear).toBeGreaterThan(0);
+    expect(await entries(true)).toBeLessThan(clear);
+  }, 120_000);
 });

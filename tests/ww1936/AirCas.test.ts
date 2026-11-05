@@ -222,9 +222,11 @@ describe("World War 1936 P4: close air support (spec §14.7)", () => {
     expect(without.hits).toBe(0);
     expect(withCas.hits).toBeGreaterThan(0);
     expect(withCas.divAa).toBe(0);
-    // The round's CAS hits on the defender, no block value (P2 roundDamage).
-    expect(withCas.lostOrg - without.lostOrg).toBe(
-      roundDamage(withCas.hits).orgMilli,
+    // The round's CAS hits on the defender, no block value (P2 roundDamage);
+    // foot take 85 % of the org damage defending (ww84).
+    expect(withCas.lostOrg - without.lostOrg).toBeCloseTo(
+      (roundDamage(withCas.hits).orgMilli * 85) / 100,
+      -1,
     );
   }, 120_000);
 
@@ -237,8 +239,9 @@ describe("World War 1936 P4: close air support (spec §14.7)", () => {
     const cut = Math.floor(
       (Math.floor((withCas.hits * (100 - withCas.divAa)) / 100) * 90) / 100,
     );
-    expect(withCas.lostOrg - without.lostOrg).toBe(
-      roundDamage(cut).orgMilli,
+    expect(withCas.lostOrg - without.lostOrg).toBeCloseTo(
+      (roundDamage(cut).orgMilli * 85) / 100,
+      -1,
     );
     expect(cut).toBeLessThan(withCas.hits);
   }, 120_000);

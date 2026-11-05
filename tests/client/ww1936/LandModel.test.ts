@@ -371,13 +371,13 @@ describe("LandModel (spec §15)", () => {
       fort: 0,
       directions: 1,
     });
-    // German infantry: recon +5% attack; recon and engineers +5% each on
-    // its breakthrough. Poland's division: no modifier.
+    // German infantry: engineers +5% on its breakthrough. Poland's division:
+    // no modifier.
     const want = predictBattle(land.armies.get(1)!.sum, pol.sum, {
       land: "plains",
       directions: 1,
-      attackerAttackBp: combineMods([500], []),
-      attackerBlockBp: combineMods([500, 500], []),
+      attackerAttackBp: 10_000,
+      attackerBlockBp: combineMods([500], []),
       defenderAttackBp: 10_000,
       defenderBlockBp: 10_000,
     });
@@ -487,7 +487,6 @@ describe("LandModel (spec §15)", () => {
     expect(c.attackLines).toEqual([
       { id: "general", bp: 2_000 },
       { id: "exp", bp: 500 },
-      { id: "recon", bp: 500 },
     ]);
     // Not in it: a plain division's lines (none).
     const other = game({ ...AT_WAR, battles: [b] });

@@ -392,6 +392,8 @@ export interface SideSum {
   /** ww84: width-weighted opening barrage, bp, and the share of its width led by heavy tanks, ‰ (absent: 0). */
   prepFireBp?: number;
   heavyPm?: number;
+  /** ww84: a recon company somewhere on the side: the enemy's ambush doesn't land. */
+  recon?: boolean;
 }
 
 export interface BattleCtx {

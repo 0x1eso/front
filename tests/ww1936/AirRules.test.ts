@@ -100,11 +100,11 @@ describe("air rules", () => {
   });
 
   it("the land war's penalty and movement (spec §14.6)", () => {
-    expect(airPenaltyBp(1000, 0)).toBe(-3500);
+    expect(airPenaltyBp(1000, 0)).toBe(-2000);
     expect(airPenaltyBp(500, 0)).toBe(0);
     expect(airPenaltyBp(750, 0)).toBe(-1750);
-    expect(airPenaltyBp(1000, 20)).toBe(-2450);
-    expect(airPenaltyBp(1000, 100)).toBe(-1050);
+    expect(airPenaltyBp(1000, 20)).toBe(-1400);
+    expect(airPenaltyBp(1000, 100)).toBe(-600);
     expect(airMoveFactorPm(1000)).toBe(500);
     expect(airMoveFactorPm(900)).toBe(600);
   });

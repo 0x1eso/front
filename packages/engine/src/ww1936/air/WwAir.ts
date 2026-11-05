@@ -58,7 +58,11 @@ import type { WorldWar } from "../WorldWar";
 import { aiAir, aiWings, issueArmyAirPriority, issueWingAuto } from "./AiAir";
 import { dailyAirZone } from "./AirCombat";
 import { airMissionEffects, airSupplyAt } from "./AirEffects";
-import { airMoveFactorFor, airPenaltyFor } from "./AirSuperiority";
+import {
+  airMoveFactorFor,
+  airPenaltyFor,
+  airSupplyFactorFor,
+} from "./AirSuperiority";
 import { dailyAirCountry, issueAirOrder } from "./Deploy";
 import { designSlotsFor } from "./DesignPlanes";
 import {
@@ -734,6 +738,11 @@ export class WwAir {
   /** Spec §14.6: movement into `region` (A1). */
   airMoveFactorPm(region: number, side: number): number {
     return airMoveFactorFor(this, region, side);
+  }
+
+  /** ww84: what enemy superiority leaves of `region`'s supply, ‰. */
+  airSupplyFactorPm(region: number, side: number): number {
+    return airSupplyFactorFor(this, region, side);
   }
 
   /** Spec §14.10: air supply into `region` (A2). */

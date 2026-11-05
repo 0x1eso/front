@@ -58,7 +58,6 @@ const MODS = [
   "doctrine",
   "exp",
   "plan",
-  "recon",
   "engineer",
   "mountain",
   "river",

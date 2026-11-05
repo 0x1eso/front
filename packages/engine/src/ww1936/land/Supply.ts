@@ -375,6 +375,9 @@ export function dailySupply(land: WwLand, side: number): void {
       // P6 hook (W1, pre-flight §D): flood, scorch and nuke status.
       const d = land.depthHooks.supplyPm(r);
       if (d !== 1000) s = Math.floor((s * Math.max(0, d)) / 1000);
+      // ww84: an enemy-held sky thins out what comes up the road.
+      const sky = land.hooks.airSupplyFactorPm(r, side);
+      if (sky !== 1000) s = Math.floor((s * sky) / 1000);
     }
     // P4 spec §14.10: air supply, encircled regions too.
     s += land.hooks.airSupply(r, side);

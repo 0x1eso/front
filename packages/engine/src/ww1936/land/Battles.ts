@@ -51,7 +51,9 @@ import {
   applyBp,
   attackValue,
   bandProtectPm,
+  CAS_RESERVE_PP,
   casCutHits,
+  casProtectPm,
   combatWidth,
   defenderOrgPct,
   divisionMods,
@@ -81,6 +83,7 @@ import { reliabilityLossBp } from "@openfront/engine-lib/ww1936/DesignRules";
 import { fuelCombatBp } from "@openfront/engine-lib/ww1936/FuelRules";
 import { coastalFortBp } from "@openfront/engine-lib/ww1936/InvasionRules";
 import {
+  DT_AMBUSH,
   initiativeOf,
   luckBp,
   newTacticFx,
@@ -307,7 +310,13 @@ function fight(land: WwLand, b: Battle, tick: number): void {
   const rc = beginRound(land, b, tick, dirs);
   if (b.phaseRound === 0) pickPhase(rc);
   b.phaseRound = (b.phaseRound + 1) % TACTIC_PHASE_ROUNDS;
-  const fx = tacticFx(b.tacticAtt, b.tacticDef, rc.fx);
+  // (Recon only counts against an ambush: no profile read in any other round.)
+  const fx = tacticFx(
+    b.tacticAtt,
+    b.tacticDef,
+    rc.fx,
+    b.tacticDef === DT_AMBUSH && profile(rc, 0).recon,
+  );
   const att = lineUp(land, b.attackers, b.attLine, width, b.round === 1, 0);
   const def = lineUp(land, b.defenders, b.defLine, width, b.round === 1, 1);
   b.attLine = att.line;
@@ -438,8 +447,9 @@ function fight(land: WwLand, b: Battle, tick: number): void {
     if (hits <= 0 || targets.length === 0) return;
     const to = targets[b.round % targets.length];
     const aa = effectiveLevel(land.econ, R, "anti_air");
-    const h = casCutHits(hits, stats.get(to)!.airAtk, aa);
-    const dmg = roundDamage(h);
+    const ts = stats.get(to)!;
+    const h = casCutHits(hits, ts.airAtk, aa);
+    const dmg = roundDamage(h, casProtectPm(ts.armor, ts.hardnessPm));
     org.set(to, (org.get(to) ?? 0) + dmg.orgMilli);
     hp.set(to, (hp.get(to) ?? 0) + dmg.hpMilli);
     deal(to, by, dmg.hpMilli);
@@ -550,6 +560,8 @@ interface RoundCtx {
   side: [TacticSide, TacticSide];
   have: [boolean, boolean];
   init: [number, number];
+  /** ww84: each side's reserve points under enemy close air support (1: not asked yet). */
+  cas: [number, number];
 }
 
 const RC: RoundCtx = {
@@ -566,6 +578,7 @@ const RC: RoundCtx = {
   side: [newTacticSide(), newTacticSide()],
   have: [false, false],
   init: [-1, -1],
+  cas: [1, 1],
 };
 const PICK: TacticPick = { att: 0, def: 0 };
 const FX_SCRATCH: TacticFx = newTacticFx();
@@ -586,6 +599,7 @@ function beginRound(
   rc.directions = directions;
   rc.have[0] = rc.have[1] = false;
   rc.init[0] = rc.init[1] = -1;
+  rc.cas[0] = rc.cas[1] = 1;
   // The luck of the battle's day: one draw pair a side a game day.
   const day = land.ww.day(tick);
   rc.luckAtt = luckBp(rc.seed, b.region, b.sinceTick, day, 0);
@@ -633,6 +647,21 @@ function pickPhase(rc: RoundCtx): void {
   b.tacticDef = PICK.def;
 }
 
+/**
+ * ww84: side `side`'s reserves under the enemy's close air support, points.
+ * What's on station now was there last round (the wings stay for their
+ * pulse), so this needs no state; a round's roll asks once.
+ */
+function underCas(rc: RoundCtx, side: number): number {
+  if (rc.cas[side] === 1) {
+    const b = rc.b!;
+    const land = rc.land;
+    const enemy = land.sideOf(side === 0 ? b.defLead : b.attLead);
+    rc.cas[side] = land.hooks.casHits(b.region, enemy) > 0 ? CAS_RESERVE_PP : 0;
+  }
+  return rc.cas[side];
+}
+
 /** Whether reserve `row` of side `side` rolls its way into the line this round. */
 function reserveEnters(land: WwLand, row: number, side: number): boolean {
   const rc = RC;
@@ -640,10 +669,11 @@ function reserveEnters(land: WwLand, row: number, side: number): boolean {
   const pct = reinfPctOf(
     initiative(rc, side),
     (land.flagsOf(row) & TPL_SIGNAL) !== 0,
-    side === 0
+    (side === 0
       ? rc.fx.attReinfPp
       : rc.fx.defReinfPp +
-          (rc.b?.exploit === undefined ? 0 : EXPLOIT_RESERVE_PP),
+        (rc.b?.exploit === undefined ? 0 : EXPLOIT_RESERVE_PP)) +
+      underCas(rc, side),
   );
   return (
     reinfRoll(rc.seed, rc.region, rc.since, rc.round, land.divisions.id[row]) <

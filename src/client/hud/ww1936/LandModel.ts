@@ -1245,6 +1245,7 @@ export function mergeSides(a: SideSum, b: SideSum): SideSum {
     armorMajorPm: mix(a.armorMajorPm ?? 0, b.armorMajorPm ?? 0),
     prepFireBp: mix(a.prepFireBp ?? 0, b.prepFireBp ?? 0),
     heavyPm: mix(a.heavyPm ?? 0, b.heavyPm ?? 0),
+    recon: a.recon === true || b.recon === true,
   };
   addSideBands(sum, a);
   addSideBands(sum, b);
@@ -1256,7 +1257,7 @@ function sideShares(
   s: DivisionStats,
 ): Pick<
   SideSum,
-  "defOrgPct" | "footPm" | "armorMajorPm" | "prepFireBp" | "heavyPm"
+  "defOrgPct" | "footPm" | "armorMajorPm" | "prepFireBp" | "heavyPm" | "recon"
 > {
   const one = emptySide();
   addToSide(one, s, 0);
@@ -1266,6 +1267,7 @@ function sideShares(
     armorMajorPm: one.armorMajorPm,
     prepFireBp: one.prepFireBp,
     heavyPm: one.heavyPm,
+    recon: one.recon,
   };
 }
 
@@ -1542,6 +1544,7 @@ export function sideScaledTo(s: SideSum, n: number): SideSum {
     armorMajorPm: s.armorMajorPm,
     prepFireBp: s.prepFireBp,
     heavyPm: s.heavyPm,
+    recon: s.recon,
   };
 }
 

@@ -523,11 +523,6 @@ export function divisionMods(i: ModInput): ModResult {
   const planBp = planTotal - fmPlanBp;
   push(aAdd, "plan", planBp);
   push(aAdd, "fm_plan", fmPlanBp);
-  push(
-    aAdd,
-    "recon",
-    has(i.flags, TPL_RECON) ? 500 + 5 * stat(i.tech, "reconPct") : 0,
-  );
   if (i.attacking) {
     // P6 (spec §4.2, §5.2.2, §21.2): engineer officers, amphibious and
     // flail tanks, the river and fort penalty cuts.
@@ -643,11 +638,6 @@ export function divisionMods(i: ModInput): ModResult {
   push(dAdd, "exp", expBp(i.exp));
   push(dAdd, "plan", planBp);
   push(dAdd, "fm_plan", fmPlanBp);
-  push(
-    dAdd,
-    "recon",
-    has(i.flags, TPL_RECON) ? 500 + 5 * stat(i.tech, "reconPct") : 0,
-  );
   // P6 (spec §21.2): engineerMulPct scales the engineers' line.
   push(
     dAdd,
@@ -734,6 +724,18 @@ export function casCutHits(
   const h = Math.floor((hits * (100 - Math.min(60, targetAirAtk))) / 100);
   return Math.floor((h * Math.max(0, 100 - 5 * aaLevel)) / 100);
 }
+
+/**
+ * ww84: what armour stops of close air support, ‰: half what it stops of a
+ * shot with no pierce to speak of, on the armoured share of the target.
+ */
+export function casProtectPm(armor: number, hardnessPm: number): number {
+  const h = Math.max(0, Math.min(1000, hardnessPm));
+  return Math.floor((armorProtectPm(armor, 0) * h) / 2000);
+}
+
+/** ww84: what a side under close air support loses of its reserves' chance, points. */
+export const CAS_RESERVE_PP = -10;
 
 /** ww84: hitProtectPm from side sums: what `to`'s armour stops of `from`'s hits. */
 function sideProtectPm(
@@ -838,7 +840,10 @@ export function predictBattle(
   const casOrg =
     casDef > 0
       ? Math.floor(
-          (roundDamage(casDef).orgMilli * (def.defOrgPct ?? 100)) / 100,
+          (roundDamage(casDef, casProtectPm(def.armor, def.hardnessPm))
+            .orgMilli *
+            (def.defOrgPct ?? 100)) /
+            100,
         )
       : 0;
   // A round's org off the defenders with `fireBp` of barrage and `keepPm` of
@@ -902,7 +907,9 @@ export function predictBattle(
   }
   const dmgAtt =
     Math.floor((toAtt * lineD) / 1000) +
-    (casAtt > 0 ? roundDamage(casAtt).orgMilli : 0);
+    (casAtt > 0
+      ? roundDamage(casAtt, casProtectPm(att.armor, att.hardnessPm)).orgMilli
+      : 0);
   const ratioPm =
     dmgAtt <= 0
       ? 1_000_000
@@ -994,10 +1001,11 @@ export function predictBattleRange(
   const low = predictBattle(att, def, {
     ...ctx,
     attackerAttackBp: scaleBp(ctx.attackerAttackBp, 10_000 - RANGE_LUCK_BP),
-    defenderAttackBp: scaleBp(
-      ctx.defenderAttackBp,
-      10_000 + RANGE_LOW_DEF_ATK_BP,
-    ),
+    // (Recon: the ambush the low bound assumes finds nobody.)
+    defenderAttackBp:
+      att.recon === true
+        ? ctx.defenderAttackBp
+        : scaleBp(ctx.defenderAttackBp, 10_000 + RANGE_LOW_DEF_ATK_BP),
   });
   const high = predictBattle(att, def, {
     ...ctx,
@@ -1103,6 +1111,7 @@ export function addToSide(sum: SideSum, s: SideStats, orgMilli: number): void {
   );
   sum.prepFireBp = weigh(sum.prepFireBp ?? 0, s.prepFireBp ?? 0);
   sum.heavyPm = weigh(sum.heavyPm ?? 0, has(fl, TPL_HEAVY_LEAD) ? 1000 : 0);
+  if (has(fl, TPL_RECON)) sum.recon = true;
   const hs = s.bandHard;
   if (hs === undefined || s.bandPierce === undefined) {
     addSideBand(sum, s.pierce, s.pierce, s.hard);
