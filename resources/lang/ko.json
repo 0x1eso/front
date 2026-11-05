@@ -4859,7 +4859,11 @@
       "unlock": "{equipment} {gen} 생산 가능",
       "unlock_unit": "{unit} 편성 가능",
       "vehicleBonusPct": "트럭·전차 보너스 +{n}%",
-      "winterPenaltyPct": "겨울 벌칙 −{n}%"
+      "winterPenaltyPct": "겨울 벌칙 −{n}%",
+      "armorSpeedPct": "전차 속도 +{n}%",
+      "infAtPierce": "보병 장갑 관통력 +{n}",
+      "infAtHard": "보병 경성 공격 +{n}",
+      "tankFearCutPp": "전차 공포 페널티 −{n}%p"
     },
     "energy": {
       "band": "에너지 {pct}%",
@@ -12825,7 +12829,11 @@
       "winterPenaltyPct": "겨울 벌칙 {value, number, ::sign-always scale/-1}%",
       "rsSupportPct": "지원 연구 속도 {value, number, ::sign-always}%",
       "infHardPct": "보병 대전차 공격 {value, number, ::sign-always}%",
-      "casualtyReturnPp": "사상자 중 인력 귀환 {value, number, ::sign-always}%p"
+      "casualtyReturnPp": "사상자 중 인력 귀환 {value, number, ::sign-always}%p",
+      "armorSpeedPct": "전차 속도 {value, number, ::sign-always}%",
+      "infAtPierce": "보병 장갑 관통력 {value, number, ::sign-always} (1/100 단위)",
+      "infAtHard": "보병 경성 공격 {value, number, ::sign-always} (1/100 단위)",
+      "tankFearCutPp": "전차 공포 페널티 감소 {value, number, ::sign-always}%p"
     },
     "subject": {
       "annex": "합병",
