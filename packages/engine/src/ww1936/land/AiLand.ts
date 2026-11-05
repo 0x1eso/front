@@ -2911,7 +2911,7 @@ class AiDay {
       this.offEffort.add(a.id);
       const zone = this.rearZone(a, f, line, unit);
       if (zone !== null) this.giveZone(a, f, zone, true);
-      else if (!this.effortDue() || !this.sailOff(a, f, unit)) {
+      else if (!this.sailOff(a, f, unit)) {
         // No way out: the whole stretch shares the hunger, not one region.
         const all = this.rearList(f, line);
         this.giveZone(
@@ -3020,6 +3020,8 @@ class AiDay {
     const gathered =
       navalPort(land.ww, here) &&
       rows.every((r) => t.region[r] === here && t.mode[r] === MOVE_NONE);
+    // Gathering is decided on the period's day, the sailing on the day it's done.
+    if (!gathered && !this.effortDue()) return false;
     const from = gathered ? here : this.nearestIn(ports, here);
     const mean = meanWidthOf(land, rows);
     let best = 0;
