@@ -240,6 +240,11 @@ const FRONT_MERGE_UNDER = 4;
  * and Italy to Eritrea are 3,500–4,000 km on the map.
  */
 export const AI_SEA_MAX_KM = 6000;
+/**
+ * ww79 (내 판단): at peace this share of the divisions, in percent, stays
+ * home (in regions whose supply feeds them) instead of lining a border.
+ */
+export const AI_PEACE_HOME_PCT = 25;
 /** Task 11 round 2 (내 판단): an army goes by rail to a place this far, km. */
 export const AI_RAIL_MIN_KM = 1000;
 /** (내 판단) At most this many forts and railways wait in the queue. */
@@ -2157,31 +2162,47 @@ class AiDay {
   }
 
   /**
-   * Spec §14.3-5: no enemy: the armies line our border with the neighbour
-   * fielding the most divisions (ties: the smaller id), spread along it as
-   * a front's anchors are; those already there or on their way stay.
+   * Spec §14.3-5, ww79: no enemy: the armies are shared across our borders
+   * by threat (each hostile neighbour weighs its divisions, plus one, split
+   * over its border regions), only where a region's supply feeds at least
+   * half an army; AI_PEACE_HOME_PCT of the divisions stay home, in regions
+   * with room.
+   * Armies already placed (there or on their way) keep their place while it
+   * still has a share and room; the rest go to the border region most
+   * short of its share, or to the nearest region with room.
    */
   private peacetime(garrisons: ReadonlySet<number>): void {
     const land = this.land;
     const sc = land.scenario;
-    let pick = 0;
-    let most = -1;
+    const mine = land.econ.regionsOf(this.me);
+    // Threat of each neighbour that is a possible enemy, and its border size.
+    const threat = new Map<number, number>();
     for (const n of land.econ.countryNeighbours(this.me)) {
       if (land.sameSide(this.me, n) || !this.fights(n)) continue;
-      let d = 0;
+      let d = 1;
       for (const a of land.armiesOf(n)) d += a.divisions.length;
-      if (d > most) {
-        pick = n;
-        most = d;
+      threat.set(n, d);
+    }
+    if (threat.size === 0) return;
+    const edgesTo = new Map<number, number>();
+    for (const r of mine) {
+      for (const n of this.borderOwners(r, threat)) {
+        edgesTo.set(n, (edgesTo.get(n) ?? 0) + 1);
       }
     }
-    if (pick === 0) return;
-    const capDist = this.capDist();
-    const border = land.econ
-      .regionsOf(this.me)
-      .filter((r) => sc.edgesOf(r).some((e) => land.controller[e.to] === pick))
-      .sort((a, b) => capDist[a] - capDist[b] || a - b);
-    if (border.length === 0) return;
+    const share = new Map<number, number>();
+    let shareSum = 0;
+    for (const r of mine) {
+      let w = 0;
+      for (const n of this.borderOwners(r, threat)) {
+        w += Math.floor((threat.get(n)! * 1000) / edgesTo.get(n)!);
+      }
+      if (w > 0) {
+        share.set(r, w);
+        shareSum += w;
+      }
+    }
+    if (shareSum === 0) return;
     const comp = this.comp();
     const armies = this.armies()
       .filter(
@@ -2192,18 +2213,122 @@ class AiDay {
           !this.travelling(a),
       )
       .sort((a, b) => b.divisions.length - a.divisions.length || a.id - b.id);
-    armies.forEach((a, i) => {
-      const at = Math.floor(
-        ((2 * i + 1) * border.length) / (2 * armies.length),
-      );
-      const to = border[at];
+    if (armies.length === 0) return;
+    // A division's supply use, milli: the average of the armies' own.
+    let useSum = 0;
+    let divs = 0;
+    for (const a of armies) {
+      const rows = armyRows(land, a);
+      if (rows.length === 0) continue;
+      useSum += land.supplyBaseOf(rows[0]) * a.divisions.length;
+      divs += a.divisions.length;
+    }
+    if (divs === 0) return;
+    const unit = Math.max(1, Math.floor(useSum / divs));
+    // Divisions each region can feed, less what the garrisons already use.
+    const room = new Map<number, number>();
+    for (const r of mine) {
+      const fed = Math.floor(land.supplyMilli[r] / unit);
+      if (fed > 0) room.set(r, fed);
+    }
+    for (const g of land.armiesOf(this.me)) {
+      if (!garrisons.has(g.id)) continue;
+      const at = land.armyRegion(g);
+      const left = room.get(at);
+      if (left !== undefined) room.set(at, left - g.divisions.length);
+    }
+    const home = Math.floor((divs * AI_PEACE_HOME_PCT) / 100);
+    const border = divs - home;
+    const placed = new Map<number, number>();
+    let homeLoad = 0;
+    const spot = new Map<number, number>();
+    // An army fits where its region would feed at least half of it.
+    const fits = (r: number, n: number): boolean =>
+      ((room.get(r) ?? 0) - (placed.get(r) ?? 0)) * 2 >= n;
+    const put = (a: Army, r: number): void => {
+      const n = a.divisions.length;
+      placed.set(r, (placed.get(r) ?? 0) + n);
+      if (!share.has(r)) homeLoad += n;
+      spot.set(a.id, r);
+    };
+    // Short of its share, scaled by shareSum: positive means room for more.
+    const short = (r: number): number =>
+      border * share.get(r)! - (placed.get(r) ?? 0) * shareSum;
+    const rest: Army[] = [];
+    for (const a of armies) {
       const here = land.armyRegion(a);
-      if (comp[here] !== comp[to]) return;
-      if (a.order.kind === "move" && a.order.to === to) return;
-      if (a.order.kind === "idle" && here === to) return;
-      if (this.railTransit(a, to)) return;
+      const at = a.order.kind === "move" ? a.order.to : here;
+      if (share.has(at) && short(at) > 0 && fits(at, a.divisions.length)) {
+        put(a, at);
+      } else rest.push(a);
+    }
+    const left: Army[] = [];
+    for (const a of rest) {
+      const here = land.armyRegion(a);
+      const at = a.order.kind === "move" ? a.order.to : here;
+      if (
+        !share.has(at) &&
+        homeLoad < home &&
+        comp[at] >= 0 &&
+        fits(at, a.divisions.length)
+      ) {
+        put(a, at);
+      } else left.push(a);
+    }
+    for (const a of left) {
+      const n = a.divisions.length;
+      const here = land.armyRegion(a);
+      let best = 0;
+      let bestShort = 0;
+      for (const [r] of share) {
+        if (comp[r] !== comp[here] || !fits(r, n)) continue;
+        const sh = short(r);
+        if (sh > bestShort || (sh === bestShort && sh > 0 && r < best)) {
+          best = r;
+          bestShort = sh;
+        }
+      }
+      if (best === 0) {
+        let near = Infinity;
+        for (const r of mine) {
+          if (comp[r] !== comp[here] || share.has(r) || !fits(r, n)) continue;
+          const km = sc.regionKm(here, r);
+          if (km < near || (km === near && r < best)) {
+            best = r;
+            near = km;
+          }
+        }
+      }
+      if (best === 0) {
+        // Nothing with room: it stays where it is.
+        spot.set(a.id, here);
+        continue;
+      }
+      put(a, best);
+    }
+    for (const a of armies) {
+      const to = spot.get(a.id);
+      if (to === undefined) continue;
+      const here = land.armyRegion(a);
+      if (comp[here] !== comp[to]) continue;
+      if (a.order.kind === "move" && a.order.to === to) continue;
+      if (a.order.kind === "idle" && here === to) continue;
+      if (this.railTransit(a, to)) continue;
       this.issue({ kind: "army_move", army: a.id, region: to });
-    });
+    }
+  }
+
+  /** The neighbours in `among` that control a region next to `r`, ascending, once each. */
+  private borderOwners(
+    r: number,
+    among: ReadonlyMap<number, number>,
+  ): number[] {
+    const out: number[] = [];
+    for (const e of this.land.scenario.edgesOf(r)) {
+      const c = this.land.controller[e.to];
+      if (among.has(c) && !out.includes(c)) out.push(c);
+    }
+    return out.sort((x, y) => x - y);
   }
 
   // ---- Attacks (spec §14.4) ----
