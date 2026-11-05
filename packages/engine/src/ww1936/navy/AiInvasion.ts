@@ -48,6 +48,7 @@ import {
   seaReach,
   straitSig,
 } from "./AiNavy";
+import { freeConvoysOf } from "./Convoys";
 import { invasionLaunchBlock } from "./Invasions";
 import { navalPort, navalPortsOf } from "./Ports";
 import type { WwNavy } from "./WwNavy";
@@ -425,8 +426,39 @@ function planInvasion(
   if (pick === null) return;
   const cap = invasionCapacity(ce.stats, ce.researched);
   // 내 판단: twice the defenders and four more, within the capacity.
-  const need = Math.min(cap, 2 * pick.divisions + AI_INVASION_GATHER);
+  let need = Math.min(cap, 2 * pick.divisions + AI_INVASION_GATHER);
+  // C9: the convoys must carry the army (spec §17.4) before it gathers;
+  // gather what they carry, none if that is under the minimum.
+  const fit = convoyFit(navy, armies, comp, pick.from, freeConvoysOf(navy, me));
+  if (fit < AI_INVASION_MIN) return;
+  need = Math.min(need, fit);
   readyArmy(navy, me, tick, armies, pick.from, pick.target, need, cap);
+}
+
+/**
+ * C9: how many free divisions of the departure port's stretch the free
+ * convoys carry, at the average convoy cost of those divisions.
+ */
+function convoyFit(
+  navy: WwNavy,
+  armies: readonly Army[],
+  comp: readonly number[],
+  port: number,
+  freeConvoys: number,
+): number {
+  let n = 0;
+  let total = 0;
+  for (const a of armies) {
+    if (!freeArmy(navy, a) || comp[standingRegion(navy, a)] !== comp[port]) {
+      continue;
+    }
+    for (const id of a.divisions) {
+      total += divisionConvoys(divisionWeightCenti(navy.land, id));
+      n++;
+    }
+  }
+  if (n === 0) return 0;
+  return Math.floor((freeConvoys * n) / Math.max(1, total));
 }
 
 /** The marine template with the most divisions in `a`, and how many (spec §17.4: marines first). */
