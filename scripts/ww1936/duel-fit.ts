@@ -28,9 +28,23 @@
  * same harness: `--duels` battles for each row of TARGETS, and prints each
  * row's attacker win %, the table's win % at its predicted ratio, the mean
  * days of a won battle and the ratios.
+ *
+ *   npx tsx scripts/ww1936/duel-fit.ts --plan [--duels 300]
+ *
+ * instead plays the combat overhaul's targets (ww84 plan section 6), each row
+ * with both sides on one country's gear of one generation, no research, laws
+ * or spirits: attacker win %, the table's %, days, and the men each side lost.
  */
-import { EQUIP_KEYS } from "@openfront/engine-api/ww1936/EconomyTypes";
+import type { KeyStatsTable } from "@openfront/engine-api/ww1936/DepthTypes";
+import { KS, KS_FIELDS } from "@openfront/engine-api/ww1936/DepthTypes";
 import {
+  EQUIP_KEYS,
+  equipKey,
+  EQUIPMENT_GENS,
+  type EquipmentType,
+} from "@openfront/engine-api/ww1936/EconomyTypes";
+import {
+  GROUND_EQUIP_KEYS,
   idleOrder,
   type LandTerrain,
   MOVE_RETREAT,
@@ -42,6 +56,8 @@ import {
   WIN_RATIO_AT_PM,
   winPctOf,
 } from "@openfront/engine-lib/ww1936/CombatRules";
+import { histOwn } from "@openfront/engine-lib/ww1936/hist/Slots";
+import { STATIC_KEY_STATS } from "@openfront/engine-lib/ww1936/TemplateStats";
 import { clearBands } from "@openfront/engine/ww1936/land/Bands";
 import {
   closeBattle,
@@ -70,10 +86,19 @@ interface Options {
   seed: number;
   out: string;
   targets: boolean;
+  plan: boolean;
+  only: string;
 }
 
 function parseArgs(argv: string[]): Options {
-  const o: Options = { duels: 2000, seed: 1, out: "", targets: false };
+  const o: Options = {
+    duels: 2000,
+    seed: 1,
+    out: "",
+    targets: false,
+    plan: false,
+    only: "",
+  };
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
     const next = () => {
@@ -85,6 +110,8 @@ function parseArgs(argv: string[]): Options {
     else if (arg === "--seed") o.seed = parseInt(next(), 10);
     else if (arg === "--out") o.out = next();
     else if (arg === "--targets") o.targets = true;
+    else if (arg === "--plan") o.plan = true;
+    else if (arg === "--only") o.only = next();
     else throw new Error(`unknown argument: ${arg}`);
   }
   return o;
@@ -159,6 +186,55 @@ const TEMPLATES = {
     support: ["engineer"],
   },
   cav: { battalions: Array<"cavalry">(6).fill("cavalry"), support: [] },
+  // The combat overhaul's divisions (plan section 6).
+  tank45: {
+    battalions: [
+      ...Array<"medium_armor">(4).fill("medium_armor"),
+      ...Array<"motorized">(5).fill("motorized"),
+    ],
+    support: [],
+  },
+  tank54: {
+    battalions: [
+      ...Array<"medium_armor">(5).fill("medium_armor"),
+      ...Array<"motorized">(4).fill("motorized"),
+    ],
+    support: [],
+  },
+  heavy45: {
+    battalions: [
+      ...Array<"heavy_armor">(4).fill("heavy_armor"),
+      ...Array<"motorized">(5).fill("motorized"),
+    ],
+    support: [],
+  },
+  light45: {
+    battalions: [
+      ...Array<"light_armor">(4).fill("light_armor"),
+      ...Array<"motorized">(5).fill("motorized"),
+    ],
+    support: [],
+  },
+  bare9: {
+    battalions: Array<"medium_armor">(9).fill("medium_armor"),
+    support: [],
+  },
+  bare6: {
+    battalions: [
+      ...Array<"medium_armor">(6).fill("medium_armor"),
+      "motorized",
+      "motorized",
+    ],
+    support: [],
+  },
+  inf6at2: {
+    battalions: [
+      ...Array<"infantry">(6).fill("infantry"),
+      "anti_tank",
+      "anti_tank",
+    ],
+    support: [],
+  },
 } as const;
 type TemplateKey = keyof typeof TEMPLATES;
 
@@ -194,6 +270,9 @@ interface Duel {
   /** The battle's roll key and the game tick its rounds run from. */
   since: number;
   tick0: number;
+  /** --plan: both sides' gear generation, and the tank catalogue entry (the attacker's) in place of static tanks. */
+  gen?: number;
+  tank?: string;
 }
 
 /** Log-uniform integer in [lo, hi]. */
@@ -261,6 +340,9 @@ interface Outcome {
   high: number;
   win: boolean;
   rounds: number;
+  /** Share of the men lost, ‰. */
+  attLostPm: number;
+  defLostPm: number;
 }
 
 /** A duel of the design's target table, played `--duels` times with new rolls. */
@@ -352,6 +434,19 @@ async function main(): Promise<void> {
   const deu = byTag(g, "DEU").smallID();
   const pol = byTag(g, "POL").smallID();
   const t = l.divisions;
+  // --plan: both sides read one key table, with no research, laws or spirits.
+  let planKs: KeyStatsTable | null = null;
+  const hooks = l.depthHooks as unknown as {
+    keyStats(id: number): KeyStatsTable;
+    keyStatsSeq: number;
+  };
+  const useKeys = (ks: KeyStatsTable | null) => {
+    planKs = ks;
+    hooks.keyStatsSeq++;
+  };
+  const realKeys = hooks.keyStats.bind(hooks);
+  hooks.keyStats = (id) => planKs ?? realKeys(id);
+  const deuKeys = realKeys(deu);
   // The terrain of Warsaw per duel (the scenario's landOf, once patched).
   const sc = l.scenario as unknown as { landOf(r: number): LandTerrain };
   const landOf = sc.landOf.bind(sc);
@@ -371,6 +466,20 @@ async function main(): Promise<void> {
         if (EQUIP_KEYS[k][1] === 1) ce.stock[k] = 2_000_000_000;
       }
       ce.manpower = 2_000_000_000;
+      if (d.gen !== undefined) {
+        const slot = d.tank === undefined ? 0 : tankSlot(d.tank);
+        for (let k = 0; k < ce.stock.length; k++) {
+          const [type, gen] = EQUIP_KEYS[k];
+          ce.stock[k] =
+            type === "tank_design"
+              ? gen === slot && id === deu
+                ? 2_000_000_000
+                : 0
+              : gen === Math.min(d.gen, EQUIPMENT_GENS[type])
+                ? 2_000_000_000
+                : 0;
+        }
+      }
     }
     terrain = d.land;
     const from = d.ways === 2 ? [BERLIN, MUNICH] : [BERLIN];
@@ -409,6 +518,13 @@ async function main(): Promise<void> {
       }
     };
     pin();
+    const menOf = (ids: readonly number[]) =>
+      ids.reduce((sum, id) => {
+        const r = t.rowOf(id);
+        return sum + (r >= 0 ? t.men[r] : 0);
+      }, 0);
+    const attMen = menOf(attIds);
+    const defMen = menOf(defIds);
     const range = predictAttackRange(
       l,
       attIds.map((id) => t.rowOf(id)),
@@ -438,8 +554,14 @@ async function main(): Promise<void> {
       high: range.highPm,
       win: won,
       rounds,
+      attLostPm: Math.round((1000 * (attMen - menOf(attIds))) / attMen),
+      defLostPm: Math.round((1000 * (defMen - menOf(defIds))) / defMen),
     };
   };
+  if (o.plan) {
+    planReport(o, play, useKeys, deuKeys, l, deu, addTemplate);
+    return;
+  }
   if (o.targets) {
     const n = o.duels === 2000 ? 300 : o.duels;
     for (const target of TARGETS) {
@@ -482,6 +604,344 @@ async function main(): Promise<void> {
     }
   }
   report(out, o);
+}
+
+// ---------------------------------------------------------------------------
+// The combat overhaul's targets (plan section 6)
+
+/** The DEU slot of a tank entry (1-based). */
+function tankSlot(id: string): number {
+  const i = histOwn("DEU", "tank").findIndex((e) => e.id === id);
+  if (i < 0) throw new Error(`no tank ${id}`);
+  return i + 1;
+}
+
+/** `ks` with its generation-2 anti-tank gun at `pierceCenti`, as Pak 43 or the 17-pounder would be. */
+function withAtGun(ks: KeyStatsTable, pierceCenti: number): KeyStatsTable {
+  const t: KeyStatsTable = {
+    group: ks.group.slice(),
+    year: ks.year.slice(),
+    score: ks.score.slice(),
+    stats: ks.stats.slice(),
+  };
+  t.stats[slotOf("anti_tank", 2) * KS_FIELDS + KS.pierce] = pierceCenti;
+  return t;
+}
+
+function slotOf(type: EquipmentType, gen: number): number {
+  const j = GROUND_EQUIP_KEYS.indexOf(equipKey(type, gen));
+  if (j < 0) throw new Error(`no slot ${type} ${gen}`);
+  return j;
+}
+
+interface PlanRow extends Target {
+  gen: number;
+  keys: "generic" | "deu" | "pak43" | "17pdr";
+  tank?: string;
+}
+
+const plan = (
+  name: string,
+  att: TemplateKey,
+  def: TemplateKey,
+  n: [number, number],
+  entrench: number,
+  fort: number,
+  gen: number,
+  keys: PlanRow["keys"],
+  tank?: string,
+): PlanRow => ({
+  name,
+  att,
+  def,
+  nAtt: n[0],
+  nDef: n[1],
+  ways: 1,
+  land: "plains",
+  fort,
+  entrench,
+  pos: 0,
+  gen,
+  keys,
+  tank,
+});
+
+const PLAN_ROWS: readonly PlanRow[] = [
+  ...(["generic", "deu"] as const).flatMap((k) =>
+    [1, 2, 3].flatMap((gen) => {
+      const tag = `${k} g${gen}`;
+      return [
+        plan(
+          `${tag} tank on inf9 (95)`,
+          "tank45",
+          "inf9",
+          [3, 3],
+          0,
+          0,
+          gen,
+          k,
+        ),
+        plan(`${tag} tank on inf72`, "tank45", "inf72", [3, 3], 0, 0, gen, k),
+        plan(
+          `${tag} tank on dug-in AT (40-55)`,
+          "tank45",
+          "inf6at2",
+          [3, 3],
+          5,
+          0,
+          gen,
+          k,
+        ),
+        plan(
+          `${tag} inf72 3:1 dug-in (60-70)`,
+          "inf72",
+          "inf9",
+          [6, 2],
+          5,
+          0,
+          gen,
+          k,
+        ),
+        plan(
+          `${tag} inf9 on bare9 (60)`,
+          "inf9",
+          "bare9",
+          [3, 3],
+          0,
+          0,
+          gen,
+          k,
+        ),
+        plan(
+          `${tag} inf72 on bare9 (60)`,
+          "inf72",
+          "bare9",
+          [3, 3],
+          0,
+          0,
+          gen,
+          k,
+        ),
+        plan(
+          `${tag} inf9 on bare6 (60)`,
+          "inf9",
+          "bare6",
+          [3, 3],
+          0,
+          0,
+          gen,
+          k,
+        ),
+        plan(`${tag} inf9 on inf9 (<15)`, "inf9", "inf9", [3, 3], 0, 0, gen, k),
+        plan(
+          `${tag} inf9 on dug-in inf9 (<15)`,
+          "inf9",
+          "inf9",
+          [3, 3],
+          5,
+          0,
+          gen,
+          k,
+        ),
+        plan(
+          `${tag} inf72 on inf72 (<15)`,
+          "inf72",
+          "inf72",
+          [3, 3],
+          0,
+          0,
+          gen,
+          k,
+        ),
+        plan(`${tag} tank on fort 3`, "tank45", "inf9", [3, 3], 0, 3, gen, k),
+      ];
+    }),
+  ),
+  plan(
+    "deu 1942 Pz IV F2 on fort 3",
+    "tank45",
+    "inf9",
+    [3, 3],
+    0,
+    3,
+    2,
+    "deu",
+    "deu_pz4_f2",
+  ),
+  plan(
+    "deu 1942 Tiger I on fort 3",
+    "heavy45",
+    "inf9",
+    [3, 3],
+    0,
+    3,
+    2,
+    "deu",
+    "deu_tiger1_e",
+  ),
+  plan(
+    "deu 1942 Pz IV F2 on dug-in fort 3",
+    "tank45",
+    "inf9",
+    [3, 3],
+    5,
+    3,
+    2,
+    "deu",
+    "deu_pz4_f2",
+  ),
+  plan(
+    "deu 1942 Tiger I on dug-in fort 3",
+    "heavy45",
+    "inf9",
+    [3, 3],
+    5,
+    3,
+    2,
+    "deu",
+    "deu_tiger1_e",
+  ),
+  plan(
+    "deu 1942 Pz IV F2 on inf9 (95)",
+    "tank45",
+    "inf9",
+    [3, 3],
+    0,
+    0,
+    2,
+    "deu",
+    "deu_pz4_f2",
+  ),
+  plan(
+    "deu 1942 Pz IV F2 on dug-in AT",
+    "tank45",
+    "inf6at2",
+    [3, 3],
+    5,
+    0,
+    2,
+    "deu",
+    "deu_pz4_f2",
+  ),
+  plan(
+    "Pak 43: Pz IV F2 on dug-in AT",
+    "tank45",
+    "inf6at2",
+    [3, 3],
+    5,
+    0,
+    2,
+    "pak43",
+    "deu_pz4_f2",
+  ),
+  plan(
+    "Pak 43: Panther on dug-in AT",
+    "tank45",
+    "inf6at2",
+    [3, 3],
+    5,
+    0,
+    2,
+    "pak43",
+    "deu_panther_a",
+  ),
+  plan(
+    "17-pdr: Pz IV F2 on dug-in AT",
+    "tank45",
+    "inf6at2",
+    [3, 3],
+    5,
+    0,
+    2,
+    "17pdr",
+    "deu_pz4_f2",
+  ),
+  plan(
+    "17-pdr: Panther on dug-in AT",
+    "tank45",
+    "inf6at2",
+    [3, 3],
+    5,
+    0,
+    2,
+    "17pdr",
+    "deu_panther_a",
+  ),
+  plan(
+    "Pak 43: Panther 2:1 on dug-in AT",
+    "tank45",
+    "inf6at2",
+    [6, 3],
+    5,
+    0,
+    2,
+    "pak43",
+    "deu_panther_a",
+  ),
+  plan("Pz I (light45) on inf9", "light45", "inf9", [3, 3], 0, 0, 1, "deu"),
+  plan("inf9 on Pz I (light45)", "inf9", "light45", [3, 3], 0, 0, 1, "deu"),
+];
+
+function planReport(
+  o: Options,
+  play: (d: Duel, pos: number) => Outcome,
+  useKeys: (ks: KeyStatsTable | null) => void,
+  deuKeys: KeyStatsTable,
+  l: WwLand,
+  deu: number,
+  addTpl: typeof addTemplate,
+): void {
+  const n = o.duels === 2000 ? 300 : o.duels;
+  // No research, laws or spirits on either side.
+  for (const c of [
+    l.econ.country(deu)!,
+    ...l.countries().map((x) => l.econ.country(x.smallID)!),
+  ]) {
+    const st = c.stats as unknown as Record<string, unknown>;
+    for (const k of Object.keys(st)) if (typeof st[k] === "number") st[k] = 0;
+    c.statsVer++;
+  }
+  const tables: Record<PlanRow["keys"], KeyStatsTable> = {
+    generic: STATIC_KEY_STATS,
+    deu: deuKeys,
+    pak43: withAtGun(deuKeys, 18_500),
+    "17pdr": withAtGun(deuKeys, 14_000),
+  };
+  const mean = (xs: number[]) =>
+    xs.length === 0 ? 0 : xs.reduce((a, b) => a + b, 0) / xs.length;
+  for (const r of PLAN_ROWS) {
+    if (o.only !== "" && !r.name.includes(o.only)) continue;
+    useKeys(tables[r.keys]);
+    const rs: Outcome[] = [];
+    for (let i = 0; i < n; i++) {
+      const rnd = prng(
+        Math.imul(o.seed, 0x9e3779b1) ^ Math.imul(i + 1, 0x85ebca6b),
+      );
+      rs.push(
+        play(
+          {
+            ...r,
+            river: 0,
+            since: 1 + Math.floor(rnd() * 1_000_000),
+            tick0: 1000 + Math.floor(rnd() * 3000),
+          },
+          r.pos,
+        ),
+      );
+    }
+    const wins = rs.filter((x) => x.win);
+    console.log(
+      `${r.name.padEnd(44)} win ${pctStr(wins.length, n).padStart(3)}% ` +
+        `table ${String(winPctOf(rs[0].mid)).padStart(3)}% ` +
+        `ratio ${String(rs[0].mid).padStart(5)} ` +
+        `won in ${(mean(wins.map((x) => x.rounds)) / 7.5).toFixed(1).padStart(4)} d ` +
+        `all ${(mean(rs.map((x) => x.rounds)) / 7.5).toFixed(1).padStart(4)} d ` +
+        `att lost ${(mean(rs.map((x) => x.attLostPm)) / 10).toFixed(1).padStart(4)}% ` +
+        `(won ${(mean(wins.map((x) => x.attLostPm)) / 10).toFixed(1)}%) ` +
+        `def lost ${(mean(rs.map((x) => x.defLostPm)) / 10).toFixed(1).padStart(4)}%`,
+    );
+  }
+  void addTpl;
 }
 
 // ---------------------------------------------------------------------------

@@ -58,6 +58,7 @@ import {
 } from "@openfront/engine-api/ww1936/LandTypes";
 import type { WwStatKey } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { BATTALIONS, SUPPORTS } from "./Battalions";
+import { researchedArmor } from "./CombatRules";
 import { battalionStatPct, pctOf } from "./DoctrineRules";
 import { EQUIPMENT, unitCostMilli } from "./Equipment";
 import { LAND_FUEL_PER_HOUR_MILLI } from "./FuelRules";
@@ -785,7 +786,7 @@ export function templateStats(
       keyed(ks, main, g, KS.hardnessPm, d.hardnessPm),
       KS.hardnessPm,
     );
-    const armor = pctOf(
+    const armor = researchedArmor(
       mix(
         keyed(ks, main, g, KS.armor, Math.floor((d.armor * ga) / 100)),
         KS.armor,

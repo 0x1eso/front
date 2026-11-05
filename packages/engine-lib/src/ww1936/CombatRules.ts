@@ -264,24 +264,42 @@ export function tankFearPct(
 export const ARMOR_PROTECT_MAX_PM = 850;
 /** ww84: and at two thirds of it; nothing at pierce equal to it. */
 export const ARMOR_PROTECT_MID_PM = 500;
+/** ww90 (owner): under this armour, centi, a light vehicle never stops more than the middle share. */
+export const ARMOR_FULL_PROTECT_FROM = 2000;
+
+/**
+ * ww90 (owner): armour after its research percent: a light vehicle the research
+ * would lift to the line takes half of it. Plate on a Pz I isn't a Pz III.
+ */
+export function researchedArmor(armor: number, pct: number): number {
+  const full = Math.floor((armor * (100 + pct)) / 100);
+  return armor < ARMOR_FULL_PROTECT_FROM && full >= ARMOR_FULL_PROTECT_FROM
+    ? Math.floor((armor * (200 + pct)) / 200)
+    : full;
+}
 
 /**
  * Spec §9.3-5, ww84: the share of a hard hit armour stops, ‰: 850 up to pierce
  * a third of the armour, falling in a straight line to 500 at two thirds and to
  * nothing at pierce equal to it. How armoured the target is shows elsewhere:
- * the soft part of a hit goes through (hitProtectPm).
+ * the soft part of a hit goes through (hitProtectPm). ww90: a light vehicle,
+ * under ARMOR_FULL_PROTECT_FROM, stops the middle share at most: rifles at close
+ * range still hurt a Pz I or an armoured car.
  */
 export function armorProtectPm(armor: number, pierce: number): number {
   if (armor <= 0 || pierce >= armor) return 0;
   const p3 = pierce * 3;
-  if (p3 <= armor) return ARMOR_PROTECT_MAX_PM;
-  return p3 <= 2 * armor
-    ? ARMOR_PROTECT_MAX_PM -
+  if (p3 > 2 * armor) {
+    return Math.floor((ARMOR_PROTECT_MID_PM * (3 * armor - p3)) / armor);
+  }
+  if (armor < ARMOR_FULL_PROTECT_FROM) return ARMOR_PROTECT_MID_PM;
+  return p3 <= armor
+    ? ARMOR_PROTECT_MAX_PM
+    : ARMOR_PROTECT_MAX_PM -
         Math.floor(
           ((ARMOR_PROTECT_MAX_PM - ARMOR_PROTECT_MID_PM) * (p3 - armor)) /
             armor,
-        )
-    : Math.floor((ARMOR_PROTECT_MID_PM * (3 * armor - p3)) / armor);
+        );
 }
 
 /**
