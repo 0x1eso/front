@@ -116,33 +116,21 @@ describe("ww88: the assignment on the screens", () => {
     );
     expect(m.split()).toEqual({
       winners: [
-        { id: DEU, regions: 1, bought: 0, zones: 0, comp: 0 },
-        { id: ITA, regions: 1, bought: 1, zones: 0, comp: 7 },
+        { id: DEU, regions: 1, bought: 0, comp: 0 },
+        { id: ITA, regions: 1, bought: 1, comp: 7 },
       ],
       losers: [],
-      puppets: [],
       gone: [POL],
     });
   });
 
-  it("an AI democracy's zones and its puppet read as such, a living loser's land as kept", () => {
-    const zones = new PeaceModel(
-      conference({ assign: [[WARSAW, ITA]], dem: [WARSAW] }),
+  it("a living loser's land reads as kept, what is assigned as the winner's", () => {
+    const s = new PeaceModel(
+      conference({ assign: [[WARSAW, ITA]] }),
       world(),
     ).split();
-    expect(zones.winners[0]).toMatchObject({ id: ITA, zones: 1 });
-    expect(zones.losers).toEqual([{ id: POL, regions: 1 }]);
-    const puppet = new PeaceModel(
-      conference({
-        assign: [[WARSAW, ITA]],
-        dem: [WARSAW],
-        demPuppets: [[POL, ITA]],
-      }),
-      world(),
-    ).split();
-    expect(puppet.winners[0]).toMatchObject({ id: ITA, zones: 0 });
-    expect(puppet.puppets).toEqual([[POL, ITA]]);
-    expect(puppet.losers).toEqual([]);
+    expect(s.winners[0]).toMatchObject({ id: ITA, regions: 1 });
+    expect(s.losers).toEqual([{ id: POL, regions: 1 }]);
   });
 
   it("what is assigned to me can't be bought, and says why", () => {

@@ -43,6 +43,7 @@ import {
   acceptPct,
   AI_PEACE_REFUSE_CAP_PM,
   AI_PEACE_REFUSE_HELD_PM,
+  democracyFightsOn,
   fighting,
   frontCounts,
   heldPm,
@@ -407,9 +408,11 @@ export function peaceJudgeData(
         const whole = w.sides[s].leader === m.id;
         const j = peaceJudgeOf(eg, w, m.id, target, whole, day, f);
         // ww103: an AI side holding a beaten country deals on the line only.
+        // ww106: a winning AI democracy's side fights on.
         const refuses =
           !eg.isHumanControlled(target) &&
-          targetHoldsBeaten(eg, w, m.id, whole);
+          (targetHoldsBeaten(eg, w, m.id, whole) ||
+            democracyFightsOn(eg, w, s === 0 ? 1 : 0, day));
         const reason = peaceReasonOf(eg, w, m.id, target, whole, day, j.pct);
         rows.push({
           war: w.id,

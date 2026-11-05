@@ -86,8 +86,6 @@ export interface PeaceSplitRow {
   regions: number;
   /** Of them, settled by a demand. */
   bought: number;
-  /** Of them, an AI democracy's occupation zones. */
-  zones: number;
   /** Points it got at the opening for held land it gave up. */
   comp: number;
 }
@@ -95,8 +93,6 @@ export interface PeaceSplit {
   winners: PeaceSplitRow[];
   /** The losers that live on, with what they keep of the stake. */
   losers: { id: number; regions: number }[];
-  /** [loser, AI democracy]: it goes on as that country's puppet. */
-  puppets: [number, number][];
   /** The losers that end with nothing. */
   gone: number[];
 }
@@ -226,8 +222,6 @@ export class PeaceModel {
       topple: c?.topple ?? [],
       assign: c?.assign,
       asked: c?.asked,
-      dem: c?.dem,
-      demPuppets: c?.demPuppets,
       // Everything settled so far, in settle order (lane W's view).
       settled: (c?.settled ?? []).map((x) => ({
         kind: demandKindIndex(x.kind),
@@ -269,14 +263,12 @@ export class PeaceModel {
     const row = (id: number): PeaceSplitRow => {
       let x = rows.get(id);
       if (x === undefined) {
-        x = { id, regions: 0, bought: 0, zones: 0, comp: 0 };
+        x = { id, regions: 0, bought: 0, comp: 0 };
         rows.set(id, x);
       }
       return x;
     };
     const kept = new Map<number, number>();
-    const sits = new Set(c?.dem ?? []);
-    const master = new Map(c?.demPuppets ?? []);
     for (const s of c?.stake ?? []) {
       if (s.settledBy !== 0) {
         const x = row(s.settledBy);
@@ -285,13 +277,11 @@ export class PeaceModel {
         continue;
       }
       const to = this.assignedTo(s.region);
-      const L = this.world.legalOwner(s.region);
       if (to !== 0) {
-        const x = row(to);
-        x.regions++;
-        if (sits.has(s.region) && master.get(L) !== to) x.zones++;
+        row(to).regions++;
         continue;
       }
+      const L = this.world.legalOwner(s.region);
       kept.set(L, (kept.get(L) ?? 0) + 1);
     }
     for (const [id, pts] of c?.comp ?? []) row(id).comp = pts;
@@ -301,9 +291,8 @@ export class PeaceModel {
         (a, b) => b.regions - a.regions || a.id - b.id,
       ),
       losers: (c?.losers ?? [])
-        .filter((L) => !gone.includes(L) && !master.has(L))
+        .filter((L) => !gone.includes(L))
         .map((id) => ({ id, regions: kept.get(id) ?? 0 })),
-      puppets: [...master],
       gone: [...gone],
     };
   }

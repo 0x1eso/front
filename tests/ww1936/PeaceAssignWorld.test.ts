@@ -299,7 +299,7 @@ describe("World War 1936 ww88: the assignment on the real map", () => {
     for (const r of west) expect(a.get(r)).toBe(jpn);
   });
 
-  it("a human takes most of France and an AI democracy holds the rest: its regions are zones, France is gone", async () => {
+  it("an AI democracy keeps what it holds as a human winner does, France is gone", async () => {
     const t = await start();
     const [deu, gbr, fra] = [idOf(t, "DEU"), idOf(t, "GBR"), idOf(t, "FRA")];
     const real = t.eg.isHumanControlled.bind(t.eg);
@@ -314,47 +314,43 @@ describe("World War 1936 ww88: the assignment on the real map", () => {
       ["DEU", 2000, rest],
       ["GBR", 500, west],
     ]);
-    expect(c.demPuppets).toEqual([]);
+    expect(c.dem).toBeUndefined();
+    expect(c.demPuppets).toBeUndefined();
     const a = assignOf(c);
     for (const r of west) expect(a.get(r)).toBe(gbr);
-    expect([...(c.dem ?? [])].sort((x, y) => x - y)).toEqual(
-      [...west].sort((x, y) => x - y),
-    );
     expect(conferenceView(t.eg, c.id).gone).toEqual([fra]);
-    // The human passes; the treaty makes the zones and nothing revives.
     passAll(t, c);
     expect(t.eg.countryState(fra)).toBe("gone");
     for (const r of west) {
-      expect(t.eg.isZone(r)).toBe(true);
+      expect(t.eg.isZone(r)).toBe(false);
       expect(t.ww.land.controller[r]).toBe(gbr);
-      expect(t.ww.politics.legalOwner[r]).toBe(fra);
+      expect(t.ww.politics.legalOwner[r]).toBe(gbr);
     }
     expect(t.ww.politics.legalOwner[PARIS]).toBe(deu);
   });
 
-  it("with a third of the stake or more an AI democracy gets France as a puppet on that land", async () => {
+  it("with most of the stake an AI democracy takes it whole: no puppet comes of it", async () => {
     const t = await start();
     const [sun, gbr, fra] = [idOf(t, "SUN"), idOf(t, "GBR"), idOf(t, "FRA")];
     const east = srOf(t, EAST);
+    const north = srOf(t, NORTH);
     const c = beatFrance(
       t,
       [
-        ["GBR", 1000, srOf(t, NORTH)],
+        ["GBR", 1000, north],
         ["SUN", 500, east],
       ],
       "GBR",
     );
-    expect(c.demPuppets).toEqual([[fra, gbr]]);
     const a = assignOf(c);
+    for (const r of north) expect(a.get(r)).toBe(gbr);
     for (const r of east) expect(a.get(r)).toBe(sun);
-    expect(conferenceView(t.eg, c.id).gone).toEqual([]);
     passAll(t, c);
-    expect(t.eg.countryState(fra)).toBe("active");
-    expect(t.ww.isCapitulated(fra)).toBe(false);
-    expect(t.eg.subjectOf(fra)?.overlord).toBe(gbr);
-    expect(t.eg.subjectOf(fra)?.level).toBe("puppet");
-    expect(t.ww.politics.legalOwner[PARIS]).toBe(fra);
-    expect(t.ww.land.controller[PARIS]).toBe(fra);
+    expect(t.eg.subjectOf(fra)?.overlord ?? 0).not.toBe(gbr);
+    for (const r of north) {
+      expect(t.ww.politics.legalOwner[r]).toBe(gbr);
+      expect(t.eg.isZone(r)).toBe(false);
+    }
     expect(t.ww.politics.legalOwner[east[0]]).toBe(sun);
   });
 
@@ -513,13 +509,12 @@ describe("World War 1936 ww88: Ask for terms on the real map", () => {
     expect(eg.handedOver.some(([r]) => r === cap)).toBe(false);
   });
 
-  it("an AI democracy gets the last land of one that fell after terms as a zone", async () => {
+  it("an AI democracy gets the last land of one that fell after terms as its own", async () => {
     const t = await start();
     const [gbr, tur] = [idOf(t, "GBR"), idOf(t, "TUR")];
     const { g, ww, eg } = t;
     ww.setWar(gbr, tur, g.ticks());
     const w = eg.war(eg.warOfPair(gbr, tur))!;
-    // Its whole side: with a keeping winner the land would go there.
     for (const m of w.sides[eg.sideIndex(w, gbr) as 0 | 1].members) {
       ww.politics.country(m.id)!.ruling = IDEO_DEM;
     }
@@ -538,8 +533,8 @@ describe("World War 1936 ww88: Ask for terms on the real map", () => {
     passAll(t, eg.conferences[eg.conferences.length - 1]);
     expect(ww.isCapitulated(tur)).toBe(true);
     expect(ww.land.controller[cap]).toBe(gbr);
-    expect(ww.politics.legalOwner[cap]).toBe(tur);
-    expect(eg.isZone(cap)).toBe(true);
+    expect(ww.politics.legalOwner[cap]).toBe(gbr);
+    expect(eg.isZone(cap)).toBe(false);
   });
 
   it("one that falls after terms is still in its faction for the takeover card", async () => {

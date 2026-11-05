@@ -43,7 +43,10 @@ import {
   AI_PEACE_REFUSE_CAP_PM,
   AI_PROPOSE_CAP_PM,
   AI_PROPOSE_LOST_PM,
+  aiDemocracy,
   aiWantsPeace,
+  democracyCanWin,
+  democracyFightsOn,
   fighting,
   followers,
   heldPm,
@@ -251,6 +254,24 @@ export function lineJudgeOf(
 }
 
 /**
+ * ww106: side `s` won't take this line: a democracy on it is winning, or the
+ * line hands the enemy land of a country on its side while it can still win.
+ */
+export function lineRefused(
+  eg: WwEndgame,
+  w: WwWar,
+  s: 0 | 1,
+  moves: readonly LineMove[],
+  day: number,
+): boolean {
+  return (
+    democracyFightsOn(eg, w, s, day) ||
+    (democracyCanWin(eg, w, s) &&
+      moves.some(([, giver]) => eg.sideIndex(w, giver) === s))
+  );
+}
+
+/**
  * The AI target's answer to a line offer: its value against what the war
  * says it needs at the offer's seeded roll (NegPeaceRules.negPeaceAccepts).
  * A side clearly winning (no chance of a white peace) needs its lead's
@@ -263,7 +284,9 @@ export function lineAiAccepts(
 ): boolean {
   const w = eg.war(o.war);
   if (w === null) return false;
-  const { j, value } = lineJudgeOf(eg, w, o.from, o.to, o.whole, day);
+  const { j, value, moves } = lineJudgeOf(eg, w, o.from, o.to, o.whole, day);
+  const st = eg.sideIndex(w, o.to);
+  if (st !== -1 && lineRefused(eg, w, st, moves, day)) return false;
   return negPeaceAccepts(j, value, lineOfferRoll(eg, o));
 }
 
@@ -314,6 +337,10 @@ export function aiWantsLinePeace(
   const f = linePeaceFacts(eg);
   const t = lineJudgeOf(eg, w, id, target, whole, day, f);
   if (t.moves.length === 0) return false;
+  // ww106: nor does a winning democracy's side offer one.
+  if ((whole || aiDemocracy(eg, id)) && lineRefused(eg, w, s, t.moves, day)) {
+    return false;
+  }
   if (!losing && !keeps) {
     const own = new Set(t.mine);
     const mine = (x: number) => own.has(x);
@@ -398,14 +425,19 @@ export function linePeaceData(
         const whole = w.sides[s].leader === m.id;
         const t = lineJudgeOf(eg, w, m.id, target, whole, day, f);
         const own = new Set(t.mine);
+        // ww106: a winning AI democracy's side says no at every roll.
+        const refused =
+          !eg.isHumanControlled(target) &&
+          lineRefused(eg, w, s === 0 ? 1 : 0, t.moves, day);
         rows.push({
           war: w.id,
           from: m.id,
           to: target,
           ...linePeaceSplit(f, t.moves, (x) => own.has(x)),
-          chance: negPeaceChance(t.j, t.value),
+          chance: refused ? 0 : negPeaceChance(t.j, t.value),
           missing: negPeaceMissing(t.j, t.value),
           ...peaceReasonOf(eg, w, m.id, target, whole, day, t.j.pct),
+          ...(refused ? { reason: "winning" as const } : {}),
           capPm: surrenderPm(eg, m.id),
         });
       }

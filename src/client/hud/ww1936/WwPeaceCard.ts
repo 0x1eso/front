@@ -650,9 +650,6 @@ export class WwPeaceCard extends LitElement implements Controller {
             ...(w.bought > 0
               ? [translateText("ww1936.peace.split_bought", { n: w.bought })]
               : []),
-            ...(w.zones > 0
-              ? [translateText("ww1936.peace.split_zones", { n: w.zones })]
-              : []),
             ...(w.comp > 0
               ? [translateText("ww1936.peace.split_comp", { pts: w.comp })]
               : []),
@@ -664,14 +661,6 @@ export class WwPeaceCard extends LitElement implements Controller {
           translateText("ww1936.peace.split_keeps", {
             country: name(l.id),
             n: l.regions,
-          }),
-        ),
-      )}
-      ${s.puppets.map(([l, d]) =>
-        line(
-          translateText("ww1936.peace.split_puppet", {
-            country: name(l),
-            by: name(d),
           }),
         ),
       )}

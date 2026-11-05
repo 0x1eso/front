@@ -57,6 +57,7 @@ import {
   stored,
   takenMap,
 } from "./Conference";
+import { aiDemocracy } from "./WhitePeace";
 import type { Conference, StoredDemand, WwEndgame } from "./WwEndgame";
 
 /**
@@ -153,7 +154,7 @@ export function aiDemands(
   // 1. The history table.
   for (const { L, dd } of historyLines(eg, c, smallID)) {
     if (out.length >= WW_PEACE_DEMANDS_PER_ROUND) break;
-    const sd = fromDefault(eg, c, L, dd, out.length, free, ctx, sh);
+    const sd = fromDefault(eg, c, smallID, L, dd, out.length, free, ctx, sh);
     if (sd === null) continue;
     const cost = priceOf(eg, c, smallID, sd, used, ctx, free);
     if (cost > 0) take(sd, cost);
@@ -161,6 +162,30 @@ export function aiDemands(
   // 2. The general AI in the slots left.
   generalAi(eg, c, part, out, used, spent, ctx, sh);
   return out;
+}
+
+/**
+ * ww106: `T` was on `id`'s side: on its side of one of the conference's wars,
+ * or of its faction and in none of them against it. (A government in exile is
+ * one or the other, and never releasable: it comes home by itself.)
+ */
+function onItsSide(
+  eg: WwEndgame,
+  c: Conference,
+  id: number,
+  T: number,
+): boolean {
+  let ally = eg.ww.politics.sameFaction(id, T);
+  for (const x of c.warIds) {
+    const w = eg.war(x);
+    if (w === null) continue;
+    const s = eg.sideIndex(w, id);
+    const t = eg.sideIndex(w, T);
+    if (s === -1 || t === -1) continue;
+    if (s !== t) return false;
+    ally = true;
+  }
+  return ally;
 }
 
 /** Spec §6.9: the history table's demands of `p` (historical AI on, its row kept, conditions met). */
@@ -198,6 +223,7 @@ function groupRegions(eg: WwEndgame, group: string): number[] {
 function fromDefault(
   eg: WwEndgame,
   c: Conference,
+  by: number,
   L: number,
   dd: PeaceDefaultDemand,
   slot: number,
@@ -239,9 +265,10 @@ function fromDefault(
     case "liberate": {
       if (!sh.releasable.includes(dd.tag)) return null;
       const t = sc.smallIdOf(dd.tag);
-      return t === 0
-        ? null
-        : stored(dd.kind, slot, [], { target: t, beneficiary: t });
+      if (t === 0 || (aiDemocracy(eg, by) && !onItsSide(eg, c, by, t))) {
+        return null;
+      }
+      return stored(dd.kind, slot, [], { target: t, beneficiary: t });
     }
     case "reparations": {
       const k = Math.min(
@@ -303,6 +330,10 @@ function generalAi(
   const econ = eg.ww.economy;
   const ruling = pol.country(id)?.ruling ?? IDEO_NEU;
   const dem = ruling === IDEO_DEM;
+  // ww106: an AI democracy wants what any winner wants, friends' land apart.
+  // A human's card keeps a democracy's old values.
+  const aiDem = aiDemocracy(eg, id);
+  const humanDem = dem && !aiDem;
   const aggressive =
     aiPersonality(pol.tagOf(id)) === "aggressor" ||
     ruling === IDEO_COM ||
@@ -334,9 +365,15 @@ function generalAi(
       (claim(r) ? 30 : 0) +
       (ctrl[r] === id ? 20 : 0) +
       (bordersMine(r) ? 10 : -20);
-    if (dem) {
-      const other = eg.coreHolders(r).some((h) => h !== id && h !== coreOf);
+    const third = (h: number) => h !== id && h !== coreOf;
+    if (humanDem) {
+      const other = eg.coreHolders(r).some(third);
       v = Math.floor((v * (other ? 20 : 50)) / 100);
+    } else if (
+      aiDem &&
+      eg.coreHolders(r).some((h) => third(h) && onItsSide(eg, c, id, h))
+    ) {
+      v = Math.floor((v * 20) / 100);
     }
     return Math.max(0, v);
   };
@@ -404,9 +441,8 @@ function generalAi(
   const friends = c.parts.filter(
     (b) => b.id !== id && pol.sameFaction(id, b.id),
   );
-  // ww88: who gets a region without paying; what an AI democracy only sits on.
+  // ww88: who gets a region without paying.
   const assignee = (r: number) => peaceAssignedTo(ctx.table, r);
-  const sits = new Set(c.dem ?? []);
   // Regions (spec §6.9). What it gets anyway it doesn't buy; another
   // winner's share it buys only for a core or a claim (no ragged borders).
   for (const r of c.stake) {
@@ -430,7 +466,7 @@ function generalAi(
       ctrl[r] === id ||
       sc.regionNeighbours(r).some((n) => ctrl[n] === id)
     ) {
-      const pct = dem && isMajor(eg, legal[r]) ? 70 : 20;
+      const pct = humanDem && isMajor(eg, legal[r]) ? 70 : 20;
       const v = Math.floor((takeValue(r) * pct) / 100);
       if (v > 0) {
         add(
@@ -482,7 +518,7 @@ function generalAi(
     };
     const settledOn = (...kinds: DemandKind[]) =>
       peaceSettledOn(ctx.table, L, ...kinds);
-    if (aggressive && lVp * 100 < myVp * 15 && onlyMine) {
+    if ((aggressive || aiDem) && lVp * 100 < myVp * 15 && onlyMine) {
       add(
         "annex_rest",
         Math.floor((restV * 110) / 100),
@@ -490,7 +526,7 @@ function generalAi(
         stored("annex_rest", 0, [], { target: L }),
       );
     }
-    const puppetPct = aggressive ? 60 : dem && !major ? 30 : 0;
+    const puppetPct = aggressive || aiDem ? 60 : humanDem && !major ? 30 : 0;
     add(
       "puppet",
       Math.floor((restV * puppetPct) / 100),
@@ -580,13 +616,14 @@ function generalAi(
   for (const tag of sh.releasable) {
     const T = sc.smallIdOf(tag);
     if (T === 0) continue;
+    // ww106: an AI democracy frees its own side's countries, and only those:
+    // an enemy's parts are worth nothing to it.
+    if (aiDem && !onItsSide(eg, c, id, T)) continue;
     const kind = dem ? "liberate" : "release";
     const regs = c.stake.filter((r) => free(r) && eg.hasCore(T, r));
     if (regs.length === 0) continue;
-    // ww88: it doesn't pay to give up what it gets anyway.
-    if (regs.some((r) => assignee(r) === id && !sits.has(r))) continue;
-    // Nor to free the country it gets as a puppet.
-    if (c.demPuppets?.some(([L, d]) => L === T && d === id) === true) continue;
+    // ww88: it doesn't pay to give up what it gets anyway; a friend it frees all the same.
+    if (!aiDem && regs.some((r) => assignee(r) === id)) continue;
     let v = 0;
     for (const r of regs) v += worth(r);
     add(

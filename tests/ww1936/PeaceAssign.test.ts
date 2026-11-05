@@ -25,11 +25,7 @@ const reg = (region: number, o: Partial<AssignRegion> = {}): AssignRegion => ({
   keyCity: false,
   ...o,
 });
-const win = (id: number, wsMilli = 100, keeps = true): AssignWinner => ({
-  id,
-  wsMilli,
-  keeps,
-});
+const win = (id: number, wsMilli = 100): AssignWinner => ({ id, wsMilli });
 
 /** `edges` as land neighbours; `home` maps regions outside the stake to their owners. */
 function map(
@@ -248,71 +244,6 @@ describe("World War 1936 ww88: PeaceAssign", () => {
     expect(peaceAssignment(i).comp).toEqual([]);
   });
 
-  it("under a third an AI democracy's regions are zones, and nobody takes them", () => {
-    const i = map(
-      [
-        reg(1, { holder: A, value: 80 }),
-        reg(2, { holder: B, value: 20 }),
-        reg(3),
-      ],
-      [win(A), win(B, 100, false)],
-      [
-        [1, 10],
-        [2, 3],
-      ],
-      { 10: A },
-      3,
-    );
-    const out = peaceAssignment(i);
-    expect(new Map(out.assign).get(2)).toBe(B);
-    expect(out.dem).toEqual([2]);
-    expect(out.puppets).toEqual([]);
-  });
-
-  it("a third of the stake's value makes the loser its puppet; a point less doesn't", () => {
-    const at = (v: number) =>
-      map(
-        [
-          reg(1, { holder: A, value: 100 - v, group: 1 }),
-          reg(2, { holder: B, value: v, group: 2, keyCity: true }),
-        ],
-        [win(A), win(B, 100, false)],
-        [
-          [1, 10],
-          [2, 11],
-        ],
-        { 10: A, 11: B },
-      );
-    expect(peaceAssignment(at(34)).puppets).toEqual([[L, B]]);
-    expect(peaceAssignment(at(33)).puppets).toEqual([]);
-    expect(peaceAssignment(at(34)).gone).toEqual([]);
-  });
-
-  it("of two democracies over the line the larger gets the puppet, the other zones", () => {
-    const i = map(
-      [
-        reg(1, { holder: A, value: 40, group: 1 }),
-        reg(2, { holder: B, value: 60, group: 2 }),
-      ],
-      [win(A, 100, false), win(B, 100, false)],
-      [],
-    );
-    const out = peaceAssignment(i);
-    expect(out.puppets).toEqual([[L, B]]);
-    expect(out.dem).toEqual([1, 2]);
-  });
-
-  it("an AI democracy's hand-over land counts as its own: no land for the loser", () => {
-    const i = map(
-      [reg(1, { holder: A, group: 1 }), reg(2, { handedTo: A, group: 2 })],
-      [win(A, 100, false)],
-      [],
-    );
-    const out = peaceAssignment(i);
-    expect(out.puppets).toEqual([[L, A]]);
-    expect(out.dem).toEqual([1, 2]);
-  });
-
   it("a loser with no capital left is gone: its last regions go to the adjacent winner holding the most", () => {
     const i = map(
       [
@@ -348,41 +279,20 @@ describe("World War 1936 ww88: PeaceAssign", () => {
     expect(new Map(out.assign).has(2)).toBe(false);
   });
 
-  it("an AI democracy next to the last regions inherits no land: a keeping winner does", () => {
+  it("the last regions go to the winner next to them, whoever holds more elsewhere", () => {
     // Region 3 is left, under a tenth; B's home is next to it, A isn't.
     const i = map(
       [
         reg(1, { holder: A, value: 95, group: 1 }),
         reg(3, { value: 5, group: 2 }),
       ],
-      [win(A), win(B, 500, false)],
+      [win(A), win(B, 500)],
       [[3, 8]],
       { 8: B },
       1,
     );
     const out = peaceAssignment(i);
-    expect(new Map(out.assign).get(3)).toBe(A);
-    expect(out.dem).toEqual([]);
-    expect(out.gone).toEqual([L]);
-  });
-
-  it("with no keeping winner the last regions are a zone, never land", () => {
-    const i = map(
-      [reg(1, { holder: B, value: 10 }), reg(3, { value: 90, group: 2 })],
-      [win(B, 500, false)],
-      [[3, 8]],
-      { 8: B },
-      1,
-    );
-    // Under a third: no puppet, zones; the capital's land is the democracy's.
-    const a = new Map<number, number>();
-    const zones = new Map<number, number>();
-    expect(settleLosers(i, a, { bought: new Set([1]), zones })).toEqual([L]);
-    expect(a.size).toBe(0);
-    expect(zones.get(3)).toBe(B);
-    const out = peaceAssignment(i);
-    expect(out.puppets).toEqual([]);
-    expect(out.dem).toEqual([1, 3]);
+    expect(new Map(out.assign).get(3)).toBe(B);
     expect(out.gone).toEqual([L]);
   });
 

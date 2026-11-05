@@ -17,8 +17,6 @@ export const WW_PEACE_ENCLAVE_MAX_REGIONS = 3;
 export const WW_PEACE_ENCLAVE_PASSES = 4;
 /** Under this percent of its stake's value a loser is gone. */
 export const WW_PEACE_LOSER_MIN_PCT = 10;
-/** An AI democracy holding this share of a loser's stake (1 / n) makes it a puppet. */
-export const WW_PEACE_DEM_PUPPET_DEN = 3;
 
 export interface AssignRegion {
   readonly region: number;
@@ -40,8 +38,6 @@ export interface AssignRegion {
 export interface AssignWinner {
   readonly id: number;
   readonly wsMilli: number;
-  /** False for an AI democracy: it gets zones or a puppet, not the land. */
-  readonly keeps: boolean;
 }
 
 export interface AssignIn {
@@ -57,12 +53,8 @@ export interface AssignIn {
 }
 
 export interface AssignOut {
-  /** [region, winner], regions ascending; an AI democracy's regions too. */
+  /** [region, winner], regions ascending. */
   assign: [number, number][];
-  /** The regions of `assign` an AI democracy sits on: no ownership moves. */
-  dem: number[];
-  /** [loser, AI democracy]: it holds a third of the stake: the loser, on that land, is its puppet. */
-  puppets: [number, number][];
   /** [winner, extra points], winners ascending. */
   comp: [number, number][];
   /** The losers left with nothing, ascending. */
@@ -98,13 +90,11 @@ interface Work {
   winners: Map<number, AssignWinner>;
   /** Region → the winner it is assigned to. */
   assign: Map<number, number>;
-  /** Region → an AI democracy that sits there (it is not assigned, but its neighbours see it). */
-  shadow: Map<number, number>;
 }
 
-/** Who owns `n` for a neighbour's purposes: assigned land, a democracy's, a winner's home land. */
+/** Who owns `n` for a neighbour's purposes: assigned land, a winner's home land. */
 function ownerOf(w: Work, n: number): number {
-  const a = w.assign.get(n) ?? w.shadow.get(n);
+  const a = w.assign.get(n);
   if (a !== undefined) return a;
   if (w.byId.has(n)) return 0;
   const l = w.inp.legal(n);
@@ -128,8 +118,6 @@ interface Group {
   rank: { id: number; held: number }[];
   /** The winner taking it (0: none). */
   taker: number;
-  /** An AI democracy that holds its two thirds (0: none). */
-  shadow: number;
 }
 
 function groupsOf(w: Work): Group[] {
@@ -146,7 +134,6 @@ function groupsOf(w: Work): Group[] {
       list,
       rank: ranked(list, w.winners),
       taker: 0,
-      shadow: 0,
     }));
 }
 
@@ -163,8 +150,7 @@ function dominated(g: Group): boolean {
 function stayWithHolders(w: Work, g: Group): void {
   for (const r of g.list) {
     if (r.holder === 0 || !w.winners.has(r.holder)) continue;
-    if (w.winners.get(r.holder)!.keeps) w.assign.set(r.region, r.holder);
-    else w.shadow.set(r.region, r.holder);
+    w.assign.set(r.region, r.holder);
   }
 }
 
@@ -172,8 +158,7 @@ function takeGroup(w: Work, g: Group, id: number): void {
   g.taker = id;
   for (const r of g.list) {
     if (r.holder === 0 || !w.winners.has(r.holder)) continue;
-    if (w.winners.get(r.holder)!.keeps) w.assign.set(r.region, id);
-    else w.shadow.set(r.region, r.holder);
+    w.assign.set(r.region, id);
   }
 }
 
@@ -181,17 +166,9 @@ function takeGroup(w: Work, g: Group, id: number): void {
 function assignGroups(w: Work, groups: readonly Group[]): void {
   const pending: Group[] = [];
   for (const g of groups) {
-    if (!dominated(g)) {
-      stayWithHolders(w, g);
-    } else if (!w.winners.get(g.rank[0].id)!.keeps) {
-      g.shadow = g.rank[0].id;
-      stayWithHolders(w, g);
-    } else {
-      pending.push(g);
-    }
+    if (dominated(g)) pending.push(g);
+    else stayWithHolders(w, g);
   }
-  const keepers = (g: Group) =>
-    g.rank.filter((x) => w.winners.get(x.id)!.keeps);
   for (let more = pending.length > 0; more; ) {
     more = false;
     // The first holder wherever it connects; only then the next in line.
@@ -203,9 +180,7 @@ function assignGroups(w: Work, groups: readonly Group[]): void {
     }
     if (more) continue;
     for (const g of pending) {
-      const next = keepers(g)
-        .slice(1)
-        .find((x) => touches(w, x.id, g.list));
+      const next = g.rank.slice(1).find((x) => touches(w, x.id, g.list));
       if (next === undefined) continue;
       takeGroup(w, g, next.id);
       pending.splice(pending.indexOf(g), 1);
@@ -250,15 +225,13 @@ function bestNeighbour(w: Work, list: readonly AssignRegion[]): number {
  */
 function assignHandedOver(w: Work, groups: readonly Group[]): void {
   const set = (r: AssignRegion, id: number) => {
-    if (w.winners.get(id)?.keeps === true) w.assign.set(r.region, id);
-    else if (id !== 0 && w.winners.has(id)) w.shadow.set(r.region, id);
+    if (w.winners.has(id)) w.assign.set(r.region, id);
   };
   let open: AssignRegion[][] = [];
   for (const g of groups) {
     const handed = g.list.filter((r) => r.handedTo !== 0);
     if (handed.length === 0) continue;
-    const to = g.taker || g.shadow;
-    if (to !== 0) for (const r of handed) set(r, to);
+    if (g.taker !== 0) for (const r of handed) set(r, g.taker);
     else open.push(handed);
   }
   for (let more = open.length > 0; more; ) {
@@ -312,7 +285,7 @@ function surrounder(w: Work, id: number, regions: readonly number[]): number {
       const a = w.assign.get(n);
       const o = a ?? (w.byId.has(n) ? 0 : w.inp.legal(n));
       if (o === 0 || o === id || !w.winners.has(o)) return 0;
-      if (w.shadow.has(n) || (by !== 0 && o !== by)) return 0;
+      if (by !== 0 && o !== by) return 0;
       by = o;
       assigned ||= a !== undefined;
     }
@@ -359,16 +332,14 @@ function connected(w: Work, list: readonly AssignRegion[]): AssignRegion[][] {
 }
 
 /**
- * Who takes the last regions of a gone loser: the keeping winner next to them
- * holding the most of it, else the keeping winner holding the most of it. An
- * AI democracy never inherits land: with no keeping winner at all, the one
- * next to them (else the first by war score) sits there as a zone; `zone` says so.
+ * Who takes the last regions of a gone loser: the winner next to them holding
+ * the most of it, else the winner holding the most of it; 0: no winner at all.
  */
 function heir(
   w: Work,
   loser: number,
   piece: readonly AssignRegion[],
-): { to: number; zone: boolean } {
+): number {
   const inside = new Set(piece.map((r) => r.region));
   const holds = new Map<number, number>();
   for (const r of w.inp.regions) {
@@ -391,16 +362,12 @@ function heir(
         w.winners.get(b)!.wsMilli - w.winners.get(a)!.wsMilli ||
         a - b,
     );
-  const keeps = (id: number) => w.winners.get(id)?.keeps === true;
-  const keeper =
-    order([...near].filter(keeps))[0] ??
-    order([...holds.keys()].filter(keeps))[0] ??
-    order([...w.winners.keys()].filter(keeps))[0];
-  if (keeper !== undefined) return { to: keeper, zone: false };
-  return {
-    to: order([...near])[0] ?? order([...w.winners.keys()])[0] ?? 0,
-    zone: true,
-  };
+  return (
+    order([...near])[0] ??
+    order([...holds.keys()])[0] ??
+    order([...w.winners.keys()])[0] ??
+    0
+  );
 }
 
 export interface LoserRules {
@@ -408,8 +375,6 @@ export interface LoserRules {
   safe?: ReadonlySet<number>;
   /** Regions spoken for by a demand: they are neither left nor assigned. */
   bought?: ReadonlySet<number>;
-  /** Filled with [region, AI democracy]: last regions with no keeping winner to take them. */
-  zones?: Map<number, number>;
 }
 
 /**
@@ -425,7 +390,7 @@ export function settleLosers(
 ): number[] {
   const winners = new Map(inp.winners.map((x) => [x.id, x]));
   const byId = new Map(inp.regions.map((r) => [r.region, r]));
-  const w: Work = { inp, byId, winners, assign, shadow: new Map() };
+  const w: Work = { inp, byId, winners, assign };
   const losers = [...new Set(inp.regions.map((r) => r.loser))].sort(
     (a, b) => a - b,
   );
@@ -450,54 +415,13 @@ export function settleLosers(
       continue;
     }
     for (const piece of connected(w, left)) {
-      const { to, zone } = heir(w, L, piece);
+      const to = heir(w, L, piece);
       if (to === 0) continue;
-      for (const r of piece) (zone ? rules.zones : assign)?.set(r.region, to);
+      for (const r of piece) assign.set(r.region, to);
     }
-    if (
-      left.every(
-        (r) => assign.has(r.region) || rules.zones?.has(r.region) === true,
-      )
-    ) {
-      gone.push(L);
-    }
+    if (left.every((r) => assign.has(r.region))) gone.push(L);
   }
   return gone;
-}
-
-/**
- * Owner decision (ww88): what an AI democracy sits on never revives the
- * loser. With a third of a loser's stake it makes the loser its puppet on
- * that land (the largest such holder; a second one's land is zones); with
- * less, the regions are its occupation zones. `noPuppet`: losers that stay
- * their own masters.
- */
-function democracyPuppets(
-  w: Work,
-  noPuppet: ReadonlySet<number> | undefined,
-): [number, number][] {
-  const totals = new Map<number, number>();
-  const held = new Map<number, Map<number, number>>();
-  for (const r of w.inp.regions) {
-    totals.set(r.loser, (totals.get(r.loser) ?? 0) + r.value);
-    const d = w.shadow.get(r.region);
-    if (d === undefined) continue;
-    let m = held.get(r.loser);
-    if (m === undefined) held.set(r.loser, (m = new Map()));
-    m.set(d, (m.get(d) ?? 0) + r.value);
-  }
-  const out: [number, number][] = [];
-  for (const [L, m] of [...held].sort((a, b) => a[0] - b[0])) {
-    if (noPuppet?.has(L) === true) continue;
-    const [d, v] = [...m].sort(
-      (a, b) =>
-        b[1] - a[1] ||
-        w.winners.get(b[0])!.wsMilli - w.winners.get(a[0])!.wsMilli ||
-        a[0] - b[0],
-    )[0];
-    if (v * WW_PEACE_DEM_PUPPET_DEN >= totals.get(L)!) out.push([L, d]);
-  }
-  return out;
 }
 
 /** The whole assignment of a conference at its opening. */
@@ -510,7 +434,6 @@ export function peaceAssignment(
     byId: new Map(inp.regions.map((r) => [r.region, r])),
     winners: new Map(inp.winners.map((x) => [x.id, x])),
     assign: new Map(),
-    shadow: new Map(),
   };
   const groups = groupsOf(w);
   assignGroups(w, groups);
@@ -522,30 +445,12 @@ export function peaceAssignment(
   for (const r of inp.regions) {
     const to = w.assign.get(r.region);
     if (to === undefined || r.holder === 0 || r.holder === to) continue;
-    if (w.winners.get(r.holder)?.keeps !== true) continue;
+    if (!w.winners.has(r.holder)) continue;
     comp.set(r.holder, (comp.get(r.holder) ?? 0) + r.value);
   }
-  const puppets = democracyPuppets(w, rules.safe);
-  const masterOf = new Map(puppets);
-  // The puppet's master sits only on its own land there: another
-  // democracy's regions stay zones, and go neither to the loser nor to an heir.
-  const zones = new Set<number>();
-  for (const r of inp.regions) {
-    const d = w.shadow.get(r.region);
-    if (d !== undefined && masterOf.get(r.loser) !== d) zones.add(r.region);
-  }
-  const lastZones = new Map<number, number>();
-  const gone = settleLosers(inp, w.assign, {
-    safe: new Set([...(rules.safe ?? []), ...masterOf.keys()]),
-    bought: new Set([...(rules.bought ?? []), ...zones]),
-    zones: lastZones,
-  });
-  for (const [r, d] of lastZones) w.shadow.set(r, d);
-  for (const [r, d] of w.shadow) w.assign.set(r, d);
+  const gone = settleLosers(inp, w.assign, rules);
   return {
     assign: [...w.assign].sort((a, b) => a[0] - b[0]),
-    dem: [...w.shadow.keys()].sort((a, b) => a - b),
-    puppets,
     comp: [...comp].sort((a, b) => a[0] - b[0]),
     gone,
   };

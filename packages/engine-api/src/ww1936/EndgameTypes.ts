@@ -381,10 +381,6 @@ export interface WwConferenceView {
   reserved: [number, number][];
   /** ww88: [region, winner]: what each winner gets without paying, decided at the opening. */
   assign?: [number, number][];
-  /** ww88: the regions of `assign` an AI democracy sits on: zones, or its puppet's land. */
-  dem?: number[];
-  /** ww88: [loser, AI democracy]: the loser goes on as its puppet. */
-  demPuppets?: [number, number][];
   /** ww88: [winner, points] added at the opening for held regions given up to the assignment. */
   comp?: [number, number][];
   /** ww88: the regions that came by a capitulation's hand-over. */

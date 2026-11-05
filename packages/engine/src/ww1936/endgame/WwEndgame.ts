@@ -173,9 +173,9 @@ const ConferenceSchema = z.object({
   assign: z.array(z.tuple([zInt(), zInt()])).optional(),
   /** [winner, points] added at the opening for held regions it gave up. */
   comp: z.array(z.tuple([zInt(), zInt()])).optional(),
-  /** The regions of `assign` an AI democracy sits on (zones, or its puppet's land). */
+  /** ww106: no longer set (an AI democracy keeps land as any winner does); an old save's value stays in its hash. */
   dem: zIds().optional(),
-  /** [loser, AI democracy]: the loser goes on as its puppet. */
+  /** ww106: no longer set, as `dem`. */
   demPuppets: z.array(z.tuple([zInt(), zInt()])).optional(),
   /** [region, victor]: land a capitulation handed over, not conquered. */
   handed: z.array(z.tuple([zInt(), zInt()])).optional(),

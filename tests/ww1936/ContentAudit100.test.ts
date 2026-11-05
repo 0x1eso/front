@@ -120,7 +120,7 @@ describe("ww100: rewards that do what they say", () => {
     expect(line).not.toContain(3);
   });
 
-  test("land under an AI democracy counts for demands where the loser lives on", () => {
+  test("land assigned to a winner is no land the loser keeps", () => {
     const facts = {
       controller: () => 7,
       legalOwner: () => 9,
@@ -143,7 +143,6 @@ describe("ww100: rewards that do what they say", () => {
         [1, 7],
         [2, 7],
       ] as [number, number][],
-      dem: [1, 2],
     };
     const free = () => true;
     const demand = {
@@ -154,24 +153,15 @@ describe("ww100: rewards that do what they say", () => {
       k: 1,
       pct: 0,
     };
-    // Zones of a loser who is gone: nothing to demand over.
+    // A loser with nothing left: nothing to demand over.
     expect(peaceKept(facts, table, 9, free)).toEqual([]);
     expect(planPeaceDemand(facts, table, 5, demand, free)).toBe("no_target");
-    // It lives on as the democracy's puppet on that land.
-    const puppet = { ...table, demPuppets: [[9, 7]] as [number, number][] };
-    expect(peaceKept(facts, puppet, 9, free)).toEqual([1, 2]);
-    expect(typeof planPeaceDemand(facts, puppet, 5, demand, free)).toBe(
+    // The winner it went to can make it a puppet on that land; another can't.
+    const puppet = { ...demand, kind: "puppet" as const };
+    expect(typeof planPeaceDemand(facts, table, 7, puppet, free)).toBe(
       "object",
     );
-    // A bought puppet keeps it as well, and can be bought on it.
-    const bought = planPeaceDemand(
-      facts,
-      table,
-      5,
-      { ...demand, kind: "puppet" },
-      free,
-    );
-    expect(typeof bought).toBe("object");
+    expect(planPeaceDemand(facts, table, 5, puppet, free)).toBe("no_target");
   });
 
   test("coup resistance makes a coup harder: +30 % is 1.3 times", () => {

@@ -10827,9 +10827,7 @@
       "split_gets": "{country}: {n}개 주",
       "split_gone": "{country}은(는) 사라집니다",
       "split_keeps": "{country}은(는) {n}개 주를 지킵니다",
-      "split_title": "누가 무엇을 얻나",
-      "split_puppet": "{country}은(는) {by}의 괴뢰국으로 남습니다",
-      "split_zones": "점령 구역 {n}곳"
+      "split_title": "누가 무엇을 얻나"
     },
     "person": {
       "arg_alvear": "마르셀로 T. 데 알베아르",

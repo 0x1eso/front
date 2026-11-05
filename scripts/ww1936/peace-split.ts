@@ -10,7 +10,6 @@
  *
  *   --loser TAG           the loser (repeatable)
  *   --winner TAG:SCORE    a winner and its war score (repeatable)
- *   --dem TAG             that winner is an AI democracy (repeatable)
  *   --hold TAG:LIST       what TAG conquered: region ids and srNN strategic
  *                         regions, comma separated (repeatable; a later one
  *                         wins a region)
@@ -72,11 +71,10 @@ const tagOf = (id: number) => tags[id - 1] ?? "?";
 
 const losers = new Set(args("loser").map(idOf));
 if (losers.size === 0) throw new Error("--loser is required");
-const dems = new Set(args("dem").map(idOf));
 const winners = args("winner").map((w) => {
   const [tag, ws] = w.split(":");
   const id = idOf(tag);
-  return { id, wsMilli: Number(ws ?? 0), keeps: !dems.has(id) };
+  return { id, wsMilli: Number(ws ?? 0) };
 });
 const near = new Map<number, number[]>();
 for (const [a, b] of data.edges) {
@@ -169,14 +167,6 @@ for (const [id, [n, v]] of [...sum].sort((a, b) => b[1][1] - a[1][1])) {
     `  ${id === 0 ? "the loser" : tagOf(id)}: ${n} regions, value ${v}`,
   );
 }
-for (const [L, d] of out.puppets) {
-  console.log(`${tagOf(L)} goes on as a puppet of ${tagOf(d)}.`);
-}
-const master = new Map(out.puppets);
-const zoned = out.dem.filter(
-  (r) => master.get(owner.get(r) ?? 0) !== assigned.get(r),
-);
-if (zoned.length > 0) console.log(`Occupation zones: ${zoned.join(", ")}`);
 console.log("Compensation");
 for (const [id, pts] of out.comp) console.log(`  ${tagOf(id)}: +${pts} points`);
 if (out.comp.length === 0) console.log("  none");

@@ -28,7 +28,6 @@ import {
 } from "@openfront/engine-api/ww1936/EndgameTypes";
 import { SHIP_CLASSES } from "@openfront/engine-api/ww1936/NavyTypes";
 import {
-  IDEO_DEM,
   IDEO_NEU,
   IDEOLOGIES,
 } from "@openfront/engine-api/ww1936/PoliticsTypes";
@@ -402,13 +401,6 @@ function termsStake(
     .some((n) => winners.has(ctrl[n] ?? 0));
 }
 
-/** ww88: an AI democracy gets zones or a puppet; a human keeps what it holds. */
-function keepsLand(eg: WwEndgame, id: number): boolean {
-  return (
-    eg.isHumanControlled(id) || eg.ww.politics.country(id)?.ruling !== IDEO_DEM
-  );
-}
-
 /** A loser's capital while it is legally its own (0: none). */
 function legalCapital(eg: WwEndgame, id: number): number {
   const sc = eg.ww.scenario;
@@ -460,7 +452,6 @@ export function assignInput(
     winners: winners.map((p) => ({
       id: p.id,
       wsMilli: p.wsMilli,
-      keeps: keepsLand(eg, p.id),
     })),
     neighbours: (r) => sc.regionNeighbours(r),
     legal: (r) => legal[r] ?? 0,
@@ -483,8 +474,6 @@ function assignAtOpening(eg: WwEndgame, c: Conference): void {
   });
   c.assign = out.assign;
   c.comp = out.comp;
-  c.dem = out.dem;
-  c.demPuppets = out.puppets;
   if (handed.length > 0) c.handed = handed;
   for (const [id, pts] of out.comp) {
     const p = c.parts.find((x) => x.id === id);
@@ -1078,8 +1067,7 @@ function finishTerms(
     const cap = legalCapital(eg, L);
     if (cap !== 0) transferRegionPeaceful(eg.ww.land, cap, L, tick);
   }
-  const keepers = parts.filter((p) => keepsLand(eg, p.id));
-  const victor = peaceMainVictor(keepers.length > 0 ? keepers : parts);
+  const victor = peaceMainVictor(parts);
   for (const L of [...falling].sort(asc)) {
     const p = eg.mg.playerBySmallID(L);
     const to = eg.mg.playerBySmallID(victor);
@@ -1089,27 +1077,20 @@ function finishTerms(
     if (eg.conferences.some((x) => x.status !== 2 && x.losers.includes(L))) {
       continue;
     }
-    settleFallen(eg, L, victor, keepers.length > 0);
+    settleFallen(eg, L, victor);
   }
 }
 
-/** ww100: the legal land of `L` that `to` now holds, which no treaty will come for: as its own, or as zones. */
-function settleFallen(
-  eg: WwEndgame,
-  L: number,
-  to: number,
-  keeps: boolean,
-): void {
+/** ww100: the legal land of `L` that `to` now holds, which no treaty will come for, is its own. */
+function settleFallen(eg: WwEndgame, L: number, to: number): void {
   const pol = eg.ww.politics;
   const settled = new Set<number>();
   for (const r of eg.ww.scenario.landRegions) {
     if (pol.legalOwner[r.id] !== L || eg.isZone(r.id)) continue;
     if (eg.ww.land.controller[r.id] !== to) continue;
     settled.add(r.id);
-    if (keeps) pol.setLegalOwner(r.id, to);
-    else eg.zones.push({ region: r.id, holder: to, untilDay: -1 });
+    pol.setLegalOwner(r.id, to);
   }
-  if (!keeps) eg.dirtyZones = true;
   eg.handedOver = eg.handedOver.filter(([r]) => !settled.has(r));
 }
 
@@ -1142,33 +1123,12 @@ function assignmentRows(
   for (const r of c.stake) if (eg.isZone(r)) spoken.add(r);
   const assign = new Map<number, number>();
   const assignedOf = new Set(c.assign.map(([r]) => r));
-  // An AI democracy's land: zones, or the land of the puppet it gets.
-  const sits = new Set(c.dem ?? []);
-  const masters = new Map<number, number>();
-  for (const [L, d] of c.demPuppets ?? []) {
-    // Freed by a demand, it is its own master.
-    const freed = bought.some(
-      (s) =>
-        (s.kind === KIND.release || s.kind === KIND.liberate) &&
-        s.beneficiary === L,
-    );
-    if (!eg.isActor(d) || puppetBy.has(L) || freed) continue;
-    masters.set(L, d);
-    safe.add(L);
-  }
-  const zones = new Map<number, number[]>();
   // A puppet with nothing of its own lives on in what its master gives back.
   const bare = (L: number) =>
     c.stake.every((r) => legal[r] !== L || assignedOf.has(r) || spoken.has(r));
   for (const [r, p] of c.assign) {
     if (spoken.has(r) || !eg.isActor(p)) continue;
     const L = legal[r] ?? 0;
-    if (sits.has(r)) {
-      if (masters.get(L) === p || puppetBy.has(L)) continue;
-      zones.set(p, [...(zones.get(p) ?? []), r]);
-      spoken.add(r);
-      continue;
-    }
     const givesBack =
       puppetBy.get(L) === p &&
       bare(L) &&
@@ -1176,15 +1136,7 @@ function assignmentRows(
       !c.claims.some(([x, y]) => x === p && y === r);
     if (!givesBack) assign.set(r, p);
   }
-  const lastZones = new Map<number, number>();
-  settleLosers(assignInput(eg, c), assign, {
-    safe,
-    bought: spoken,
-    zones: lastZones,
-  });
-  for (const [r, p] of [...lastZones].sort((a, b) => a[0] - b[0])) {
-    zones.set(p, [...(zones.get(p) ?? []), r]);
-  }
+  settleLosers(assignInput(eg, c), assign, { safe, bought: spoken });
   const rows = new Map<string, Settled>();
   for (const [r, p] of [...assign].sort((a, b) => a[0] - b[0])) {
     const L = legal[r] ?? 0;
@@ -1206,33 +1158,7 @@ function assignmentRows(
       cost: 0,
     });
   }
-  const free = (
-    kind: number,
-    by: number,
-    regions: number[],
-    target: number,
-  ) => ({
-    kind,
-    by,
-    regions,
-    target,
-    beneficiary: by,
-    k: 0,
-    pct: 0,
-    round: 0,
-    cost: 0,
-  });
-  return [
-    ...rows.values(),
-    ...[...zones]
-      .sort((a, b) => a[0] - b[0])
-      .map(([d, regs]) =>
-        free(KIND.occupation_zone, d, regs, legal[regs[0]] ?? 0),
-      ),
-    ...[...masters]
-      .sort((a, b) => a[0] - b[0])
-      .map(([L, d]) => free(KIND.puppet, d, [], L)),
-  ];
+  return [...rows.values()];
 }
 
 /** Spec §6.4 disarm: 1,095 days of arms limitation; divisions past 12 disband, the weakest first. */
@@ -1475,8 +1401,6 @@ export function conferenceView(eg: WwEndgame, conf: number): WwConferenceView {
     }),
     mainVictor: ctx.mainVictor,
     assign: (c.assign ?? []).map(([r, p]): [number, number] => [r, p]),
-    dem: [...(c.dem ?? [])],
-    demPuppets: (c.demPuppets ?? []).map(([L, d]): [number, number] => [L, d]),
     comp: (c.comp ?? []).map(([p, n]): [number, number] => [p, n]),
     handed: (c.handed ?? []).map(([r]) => r),
     gone: goneNow(eg, c),

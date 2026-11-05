@@ -376,8 +376,6 @@ export function withoutAssignment(eg: WwEndgame, c: Conference): Conference {
   }
   c.assign = [];
   c.comp = [];
-  c.dem = [];
-  c.demPuppets = [];
   c.handed = undefined;
   if (c.status === 1) {
     c.ai = c.parts.map((p) => ({

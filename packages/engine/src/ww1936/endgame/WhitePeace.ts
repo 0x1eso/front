@@ -26,6 +26,7 @@ import {
   warWearinessPct,
 } from "@openfront/engine-lib/ww1936/NegPeaceRules";
 import { wwRealTicks } from "@openfront/engine-lib/ww1936/Pace";
+import { IDEO_DEM } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { evictDivisions, transferRegionPeaceful } from "../land/PoliticsBridge";
 import { leaveFaction } from "../politics/Factions";
@@ -673,16 +674,61 @@ function reviveCapitulated(eg: WwEndgame, w: WwWar, tick: number): void {
 
 // ---- The AI ----
 
+/** Civilian and military factories of side `s`'s fighting members. */
+function sideFactories(eg: WwEndgame, w: WwWar, s: 0 | 1): number {
+  return w.sides[s].members
+    .filter((m) => fighting(m))
+    .reduce((n, m) => n + eg.factoriesOf(m.id), 0);
+}
+
 /** Side `s` of `w` has AI_PEACE_STRONGER_RATIO times the other's factories (or more). */
 export function muchStronger(eg: WwEndgame, w: WwWar, s: 0 | 1): boolean {
-  const factories = (x: 0 | 1) =>
-    w.sides[x].members
-      .filter((m) => fighting(m))
-      .reduce((n, m) => n + eg.factoriesOf(m.id), 0);
-  const mine = factories(s);
+  const mine = sideFactories(eg, w, s);
   return (
-    mine > 0 && mine >= AI_PEACE_STRONGER_RATIO * factories(s === 0 ? 1 : 0)
+    mine > 0 &&
+    mine >= AI_PEACE_STRONGER_RATIO * sideFactories(eg, w, s === 0 ? 1 : 0)
   );
+}
+
+/** ww106: `id` is a democracy the AI plays. */
+export function aiDemocracy(eg: WwEndgame, id: number): boolean {
+  return (
+    !eg.isHumanControlled(id) && eg.ww.politics.country(id)?.ruling === IDEO_DEM
+  );
+}
+
+/**
+ * ww106: side `s` of `w` has more factories than the other with an AI
+ * democracy fighting on it: the war is its to win. A whole-war peace binds the
+ * side, whoever leads it (the leader is whoever has most factories: the Soviets
+ * signed Britain and France out of the German war at six to one).
+ */
+export function democracyCanWin(eg: WwEndgame, w: WwWar, s: 0 | 1): boolean {
+  return (
+    w.sides[s].members.some((m) => fighting(m) && aiDemocracy(eg, m.id)) &&
+    sideFactories(eg, w, s) > sideFactories(eg, w, s === 0 ? 1 : 0)
+  );
+}
+
+/**
+ * ww106: and it is winning: the front moved within
+ * WW_WHITE_PEACE_STALEMATE_DAYS and it holds at least as much of the other side
+ * as they hold of it. Such a side neither takes nor offers peace of any kind; a
+ * stalled front is weariness's to judge.
+ */
+export function democracyFightsOn(
+  eg: WwEndgame,
+  w: WwWar,
+  s: 0 | 1,
+  day: number,
+): boolean {
+  if (!democracyCanWin(eg, w, s)) return false;
+  if (stalemateDays(eg, w.id, day) >= WW_WHITE_PEACE_STALEMATE_DAYS) {
+    return false;
+  }
+  const mine = sideIds(w, s);
+  const theirs = sideIds(w, s === 0 ? 1 : 0);
+  return heldPm(eg, mine, theirs) >= heldPm(eg, theirs, mine);
 }
 
 /** What the AI weighs: the proposer's and the target's groups' land and lines. */
@@ -781,6 +827,9 @@ export function aiAccepts(eg: WwEndgame, o: PeaceOffer, day: number): boolean {
   if (w === null) return false;
   // ww103: what its side has beaten stays down: it deals on the line only.
   if (targetHoldsBeaten(eg, w, o.from, o.whole)) return false;
+  // ww106: a democracy that is winning fights on.
+  const st = eg.sideIndex(w, o.to);
+  if (st !== -1 && democracyFightsOn(eg, w, st, day)) return false;
   const f = negPeaceFacts(eg);
   const j = peaceJudgeOf(eg, w, o.from, o.to, o.whole, day, f);
   return negPeaceAccepts(j, offerValue(eg, w, o, f), offerRoll(eg, o));
@@ -803,6 +852,10 @@ export function aiWantsPeace(
   const s = eg.sideIndex(w, id);
   if (s === -1) return false;
   const whole = w.sides[s].leader === id;
+  // ww106: nor does it ask for peace, or sign its side out.
+  if ((whole || aiDemocracy(eg, id)) && democracyFightsOn(eg, w, s, day)) {
+    return false;
+  }
   const st = warState(eg, w, id, whole);
   const cap = surrenderPm(eg, id);
   if (
