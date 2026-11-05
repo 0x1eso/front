@@ -37,6 +37,7 @@ import {
 } from "@openfront/engine-lib/ww1936/NegPeaceRules";
 import { evictDivisions, transferRegionPeaceful } from "../land/PoliticsBridge";
 import { regionBase } from "./Conference";
+import { LINE_REFUSED_NEED } from "./LinePeace";
 import { endSubject } from "./Subjects";
 import {
   acceptPct,
@@ -49,6 +50,7 @@ import {
   proposerGroup,
   sideIds,
   surrenderPm,
+  targetHoldsBeaten,
 } from "./WhitePeace";
 import type { PeaceOffer, WwEndgame } from "./WwEndgame";
 
@@ -404,12 +406,20 @@ export function peaceJudgeData(
         f ??= negPeaceFacts(eg);
         const whole = w.sides[s].leader === m.id;
         const j = peaceJudgeOf(eg, w, m.id, target, whole, day, f);
+        // ww103: an AI side holding a beaten country deals on the line only.
+        const refuses =
+          !eg.isHumanControlled(target) &&
+          targetHoldsBeaten(eg, w, m.id, whole);
+        const reason = peaceReasonOf(eg, w, m.id, target, whole, day, j.pct);
         rows.push({
           war: w.id,
           from: m.id,
           to: target,
           ...j,
-          ...peaceReasonOf(eg, w, m.id, target, whole, day, j.pct),
+          ...reason,
+          ...(refuses
+            ? { pct: 0, winNeed: LINE_REFUSED_NEED, reason: "winning" as const }
+            : {}),
         });
       }
     }

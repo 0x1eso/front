@@ -191,6 +191,65 @@ export function surrenderPm(eg: WwEndgame, id: number): number {
   return Math.min(1000, Math.floor((lost * 100_000) / (line * pct)));
 }
 
+/**
+ * ww103: `holders` control land of a country among `owners` that is beaten:
+ * capitulated, in exile, or AI_PEACE_REFUSE_CAP_PM of its way to its surrender
+ * line. A white or negotiated peace would hand it back and undo the push, so an
+ * AI side holding one deals on the line instead. Occupation zones stay either
+ * way and do not count.
+ */
+export function holdsBeaten(
+  eg: WwEndgame,
+  holders: readonly number[],
+  owners: readonly number[],
+): boolean {
+  const h = new Set(holders);
+  const o = new Set(owners);
+  const ctrl = eg.ww.land.controller;
+  const legal = eg.ww.politics.legalOwner;
+  const held = new Set<number>();
+  for (const r of eg.ww.scenario.landRegions) {
+    const l = legal[r.id] ?? 0;
+    if (o.has(l) && h.has(ctrl[r.id] ?? 0) && !eg.isZone(r.id)) held.add(l);
+  }
+  for (const l of held) {
+    if (surrenderPm(eg, l) >= AI_PEACE_REFUSE_CAP_PM) return true;
+  }
+  return false;
+}
+
+/** ww103: the group `from` would make peace for holds a beaten enemy in `w`. */
+export function proposerHoldsBeaten(
+  eg: WwEndgame,
+  w: WwWar,
+  from: number,
+  whole: boolean,
+): boolean {
+  const s = eg.sideIndex(w, from);
+  if (s === -1) return false;
+  return holdsBeaten(
+    eg,
+    proposerGroup(eg, w, from, whole),
+    sideIds(w, s === 0 ? 1 : 0),
+  );
+}
+
+/** ww103: the side `from` offers peace to holds a beaten country of `from`'s group. */
+export function targetHoldsBeaten(
+  eg: WwEndgame,
+  w: WwWar,
+  from: number,
+  whole: boolean,
+): boolean {
+  const s = eg.sideIndex(w, from);
+  if (s === -1) return false;
+  return holdsBeaten(
+    eg,
+    sideIds(w, s === 0 ? 1 : 0),
+    proposerGroup(eg, w, from, whole),
+  );
+}
+
 // ---- The front (stalemate) ----
 
 /**
@@ -720,6 +779,8 @@ export function aiAccepts(eg: WwEndgame, o: PeaceOffer, day: number): boolean {
   if (o.ask === true) return askTermsAccepted(eg, o);
   const w = eg.war(o.war);
   if (w === null) return false;
+  // ww103: what its side has beaten stays down: it deals on the line only.
+  if (targetHoldsBeaten(eg, w, o.from, o.whole)) return false;
   const f = negPeaceFacts(eg);
   const j = peaceJudgeOf(eg, w, o.from, o.to, o.whole, day, f);
   return negPeaceAccepts(j, offerValue(eg, w, o, f), offerRoll(eg, o));
@@ -781,6 +842,8 @@ export function aiPeaceDay(
     const target = w.sides[1 - s].leader;
     if (peaceOfferBlock(eg, id, wid, target, day) !== null) continue;
     if (!aiWantsPeace(eg, w, id, day)) continue;
+    // ww103: holding a beaten country it offers the line (aiLinePeaceDay).
+    if (proposerHoldsBeaten(eg, w, id, w.sides[s].leader === id)) continue;
     // Negotiated peace: the losing side gives, a side ahead may demand.
     const terms = aiPeaceTerms(eg, w, id, target, day) ?? undefined;
     offerPeace(eg, id, wid, target, tick, terms);

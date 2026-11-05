@@ -43,6 +43,7 @@ import {
   AI_PEACE_REFUSE_CAP_PM,
   AI_PROPOSE_CAP_PM,
   AI_PROPOSE_LOST_PM,
+  aiWantsPeace,
   fighting,
   followers,
   heldPm,
@@ -50,6 +51,7 @@ import {
   pairsOf,
   peaceOfferBlock,
   proposerGroup,
+  proposerHoldsBeaten,
   sideIds,
   stalemateDays,
   surrenderPm,
@@ -277,6 +279,8 @@ export function lineAiAccepts(
  *   front stalemated WW_WHITE_PEACE_STALEMATE_DAYS with its side gaining
  *   more than it gives up, and its own judge (as if the other side offered
  *   the line) taking it at AI_LINE_SELF_ROLL — not a side clearly winning.
+ * - or (ww103) it wants peace by aiWantsPeace, and holds a beaten country a
+ *   white or negotiated peace would hand back: it offers the line instead.
  * Either way something changes hands, and the other side's judge takes
  * the line at least AI_LINE_PROPOSE_MIN_PCT of the time.
  */
@@ -297,13 +301,20 @@ export function aiWantsLinePeace(
     surrenderPm(eg, id) >= AI_PROPOSE_CAP_PM ||
     heldPm(eg, sideIds(w, s === 0 ? 1 : 0), proposerGroup(eg, w, id, whole)) >=
       AI_PROPOSE_LOST_PM;
-  if (losing ? stalled : !whole || !stalled || muchStronger(eg, w, s)) {
+  // ww103: a side that wants out while it holds a beaten country has only the
+  // line left, whatever the front does.
+  const keeps =
+    aiWantsPeace(eg, w, id, day) && proposerHoldsBeaten(eg, w, id, whole);
+  if (
+    !keeps &&
+    (losing ? stalled : !whole || !stalled || muchStronger(eg, w, s))
+  ) {
     return false;
   }
   const f = linePeaceFacts(eg);
   const t = lineJudgeOf(eg, w, id, target, whole, day, f);
   if (t.moves.length === 0) return false;
-  if (!losing) {
+  if (!losing && !keeps) {
     const own = new Set(t.mine);
     const mine = (x: number) => own.has(x);
     if (linePeaceValue(f, t.moves, mine, 0, true) <= 0) return false;
