@@ -19,7 +19,7 @@ import type { WwTemplateDesigner } from "../../../src/client/hud/ww1936/WwTempla
 import { detail } from "./EconomyFixture";
 import { fakeLandGame, landDetail, startTemplate } from "./LandFixture";
 
-async function mount(researched: string[]) {
+async function mount(researched: string[], tag?: string) {
   const g = fakeLandGame({
     details: [
       detail("DEU", {
@@ -36,7 +36,14 @@ async function mount(researched: string[]) {
   const el = document.createElement(
     "ww-template-designer",
   ) as WwTemplateDesigner;
-  el.game = g.game as never;
+  el.game = (
+    tag === undefined
+      ? g.game
+      : Object.assign(g.game, {
+          worldWarScenario: () => ({ tagOfSmallId: () => tag }),
+        config: () => ({ gameConfig: () => ({ ww1936Designer: false }) }),
+        })
+  ) as never;
   el.eventBus = new EventBus();
   el.templateId = 0;
   document.body.appendChild(el);
@@ -101,6 +108,43 @@ describe("template presets in the designer", () => {
     expect(
       m.q("[data-ww-pick='infantry']")!.querySelector("[data-ww-design-only]"),
     ).toBeNull();
+  });
+
+  it("with the catalogue, a battalion nobody can research says market or licence", async () => {
+    const note = async (tag: string) => {
+      const m = await mount(["medium_tank_1", "heavy_tank_1"], tag);
+      await m.click("[data-ww-slot-kind='battalion'][data-ww-slot='0']");
+      return m
+        .q("[data-ww-pick='heavy_armor']")!
+        .querySelector("[data-ww-design-only]")!.textContent;
+    };
+    expect(await note("DEU")).toContain("ww1936.land.design_only");
+    expect(await note("POL")).toContain("ww1936.land.design_none");
+  });
+
+  it("the support row offers what the battalions carry and says why", async () => {
+    const m = await mount([]);
+    const el = m.el as unknown as {
+      draft: Record<string, unknown>;
+      updateComplete: Promise<boolean>;
+    };
+    el.draft = {
+      ...el.draft,
+      battalions: ["infantry", "infantry", "infantry"],
+      support: ["engineer", "recon"],
+    };
+    await el.updateComplete;
+    expect(m.q("[data-ww-slot-kind='support'][data-ww-slot='2']")).toBeNull();
+    expect(m.q("[data-ww-support-limit]")).toBeNull();
+    el.draft = {
+      ...el.draft,
+      name: "X",
+      support: ["engineer", "recon", "support_artillery"],
+    };
+    await el.updateComplete;
+    expect(m.q("[data-ww-support-limit]")?.textContent).toContain(
+      "ww1936.econ.block.too_many_support",
+    );
   });
 });
 

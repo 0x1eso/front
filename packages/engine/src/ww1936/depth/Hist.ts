@@ -35,11 +35,12 @@ import {
   HistCountry,
   HistEntry,
 } from "@openfront/engine-lib/ww1936/hist/Types";
+import { weakKeyRow } from "@openfront/engine-lib/ww1936/hist/WeakGeneric";
 import {
   rowScore,
   STATIC_KEY_STATS,
 } from "@openfront/engine-lib/ww1936/TemplateStats";
-import type { DesignSlot, WwDepth } from "./WwDepth";
+import type { CountryDepth, DesignSlot, WwDepth } from "./WwDepth";
 
 const PLANE_BASE_BY_TYPE: Readonly<Record<string, string>> = {
   heavy_fighter: "medium_1",
@@ -175,14 +176,20 @@ const GEAR_FIELDS = [KS.soft, KS.hard, KS.def, KS.brk] as const;
  * the country's weapon sets the spread around it (small, by the owner's rule);
  * an anti-tank key with its real pierce. A generation with no entry goes on
  * from the country's last stand-in of the type, never the bare generic row.
+ * With the designer off, a key with nothing to go on and every minor's key is
+ * generic use (WeakGeneric); a designer-on game keeps the generic row.
  */
 export function fillHistStatics(
   d: WwDepth,
   id: number,
   t: KeyStatsTable,
 ): void {
+  if (designerOn(d)) return;
   const country = histCountryOf(d, id);
-  if (country === null) return;
+  if (country === null) {
+    for (let j = 0; j < GROUND_STATIC_SLOTS; j++) weakKeyRow(t, j);
+    return;
+  }
   // Per type: the last tank row, or the last gear entry's percent and pierce row.
   const lastTank = new Map<string, number>();
   const lastGear = new Map<string, { pct: number; pierceRow: number }>();
@@ -202,7 +209,10 @@ export function fillHistStatics(
         continue;
       }
       const gear = lastGear.get(type);
-      if (gear === undefined) continue;
+      if (gear === undefined) {
+        weakKeyRow(t, j);
+        continue;
+      }
       for (const f of GEAR_FIELDS) {
         t.stats[o + f] = Math.floor((generic[o + f] * gear.pct) / 100);
       }
@@ -263,39 +273,73 @@ export function sweepHistPlanes(d: WwDepth, id: number): void {
   const ce = d.ww.economy.country(id);
   const c = d.country(id);
   if (country === null || ce === null || c === null) return;
-  const own = histOwn(country, "plane");
   for (const type of AIR_TYPES) {
     for (let g = 1; g <= EQUIPMENT_GENS[type]; g++) {
       const key = equipKey(type, g);
       if (key < 0 || ce.stock[key] <= 0) continue;
-      let slot = -1;
-      for (let i = 0; i < own.length && slot < 0; i++) {
-        if (own[i].staticFor === `${type}:${g}` && c.des.plane[i] !== null) {
-          slot = i;
-        }
-      }
-      if (slot < 0) {
-        // B4: by generation — the g-th oldest unlocked plane of the type
-        // (the newest when there are fewer), not always the first.
-        const open: number[] = [];
-        for (let i = 0; i < own.length; i++) {
-          const e = own[i];
-          if (
-            e.family === "plane" &&
-            e.type === type &&
-            c.des.plane[i] !== null
-          ) {
-            open.push(i);
-          }
-        }
-        open.sort((x, y) => own[x].year - own[y].year || x - y);
-        if (open.length > 0) slot = open[Math.min(g, open.length) - 1];
-      }
-      if (slot < 0) continue;
-      ce.stock[equipKey("plane_design", slot + 1)] += ce.stock[key];
+      const slot = histPlaneSlotFor(c, country, type, g);
+      if (slot === 0) continue;
+      ce.stock[equipKey("plane_design", slot)] += ce.stock[key];
       ce.stock[key] = 0;
     }
   }
+}
+
+/**
+ * The plane design slot (1-based, 0: none) standing in for a static plane:
+ * the entry flagged `staticFor` "<type>:<gen>", else (B4) by generation, the
+ * g-th oldest unlocked plane of the type, the newest when there are fewer.
+ */
+export function histPlaneSlotFor(
+  c: CountryDepth,
+  country: HistCountry,
+  type: string,
+  g: number,
+): number {
+  const own = histOwn(country, "plane");
+  for (let i = 0; i < own.length; i++) {
+    if (own[i].staticFor === `${type}:${g}` && c.des.plane[i] !== null) {
+      return i + 1;
+    }
+  }
+  const open: number[] = [];
+  for (let i = 0; i < own.length; i++) {
+    const e = own[i];
+    if (e.family === "plane" && e.type === type && c.des.plane[i] !== null) {
+      open.push(i);
+    }
+  }
+  open.sort((x, y) => own[x].year - own[y].year || x - y);
+  return open.length === 0 ? 0 : open[Math.min(g, open.length) - 1] + 1;
+}
+
+/**
+ * Puts an entry in its slot if it isn't there. Before its techs it fights but
+ * isn't made: only "own" and "licensed" slots take a production line, and
+ * dailyHist makes it "own" with the techs. False when the entry has no def.
+ */
+export function openHistSlot(
+  d: WwDepth,
+  id: number,
+  kind: "tank" | "plane" | "ship",
+  slot: number,
+  e: HistEntry,
+): boolean {
+  const c = d.country(id);
+  if (c === null) return false;
+  if (c.des[kind][slot - 1] !== null) return true;
+  const def = histDef(e);
+  if (def === null) return false;
+  c.des[kind][slot - 1] = {
+    def: def as DesignSlot["def"],
+    origin: histUnlocked(d, id, e) ? "own" : "received",
+    from: 0,
+    fromSlot: 0,
+    obsolete: false,
+    savedDay: 0,
+  };
+  d.markDesign(id, kind, slot);
+  return true;
 }
 
 /**
@@ -325,21 +369,7 @@ export function grantHistItem(
   if (kind !== "tank" && kind !== "plane") return false;
   const slot = histSlotOf(country, itemId);
   if (slot <= 0) return false;
-  if (c.des[kind][slot - 1] === null) {
-    const def = histDef(e);
-    if (def === null) return false;
-    c.des[kind][slot - 1] = {
-      def: def as DesignSlot["def"],
-      // Before its techs it fights but isn't made: only "own" and "licensed"
-      // slots take a production line. dailyHist makes it "own" with the techs.
-      origin: histUnlocked(d, id, e) ? "own" : "received",
-      from: 0,
-      fromSlot: 0,
-      obsolete: false,
-      savedDay: 0,
-    };
-    d.markDesign(id, kind, slot);
-  }
+  if (!openHistSlot(d, id, kind, slot, e)) return false;
   const key = equipKey(kind === "tank" ? "tank_design" : "plane_design", slot);
   if (key < 0) return false;
   ce.stock[key] = Math.max(0, ce.stock[key] + count);

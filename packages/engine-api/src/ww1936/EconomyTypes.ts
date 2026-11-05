@@ -932,6 +932,8 @@ export const WW_ORDER_BLOCKS = [
   // only a side's leader speaks for the side.
   "peace_not_beaten",
   "peace_not_leader",
+  // Owner, 2026-11-05: more support companies than the battalions carry.
+  "too_many_support",
 ] as const;
 export type WwOrderBlock = (typeof WW_ORDER_BLOCKS)[number];
 

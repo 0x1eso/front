@@ -86,6 +86,17 @@ function gearMatches(e: HistEntry, type: string): boolean {
 }
 export { tankGroupOf };
 
+/**
+ * Whether a country's catalogue has any vehicle of a need group (a minor has no
+ * catalogue): research can open one, else only the market or a licence can.
+ */
+export function histHasTankGroup(tag: string, group: number): boolean {
+  if (!(tag in HIST_CATALOGUE)) return false;
+  return HIST_CATALOGUE[tag as HistCountry].some(
+    (e) => e.family === "tank" && tankGroupOf(e.role) === group,
+  );
+}
+
 /** The text key of the entry standing in for a static key in a country, null for the generic name. */
 export function histStaticName(
   country: HistCountry,

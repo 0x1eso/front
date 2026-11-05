@@ -899,7 +899,7 @@ export function aiParadrops(
         continue;
       }
       // A target out of reach: to our air base nearest it, in range.
-      const range = air.planeStatsOf(me, "transport_plane", 1).rangeKm;
+      const range = air.transportStatsOf(me).rangeKm;
       const to = sc.centerTile(t.r);
       let best = 0;
       let bestKm = Infinity;

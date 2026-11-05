@@ -15,8 +15,10 @@ import {
   WW_MAX_SUPPORT,
   WW_MAX_TEMPLATES,
   WW_TEMPLATE_NAME_MAX,
+  wwMaxSupport,
 } from "@openfront/engine-api/ww1936/LandTypes";
 import { BATTALIONS, SUPPORTS } from "@openfront/engine-lib/ww1936/Battalions";
+import { histHasTankGroup } from "@openfront/engine-lib/ww1936/hist/Slots";
 import {
   DESIGN_ONLY_GROUP,
   presetDef,
@@ -34,6 +36,7 @@ import { SendWwOrderIntentEvent } from "../../Transport";
 import { translateText } from "../../Utils";
 import type { GameView } from "../../view";
 import { WwDepthOpenEvent } from "./DepthEvents";
+import { designerOn } from "./DesignerFlag";
 import { libraryStore } from "./DesignLibrary";
 import {
   blockText,
@@ -287,8 +290,28 @@ export class WwTemplateDesigner extends LitElement {
           >
             🔒 ${blockText(this.refused)}
           </p>`}
+      ${this.refused === null && block === "too_many_support"
+        ? html`<p data-ww-support-limit class="m-0 text-xs text-amber-200">
+            ${blockText(block)}
+          </p>`
+        : nothing}
       ${this.renderActions(block)} ${this.renderLibraryRow()}
     </div>`;
+  }
+
+  /**
+   * The note under a battalion that needs a vehicle: research opens one, or,
+   * with the catalogue, the country has none to open (null: needs no vehicle).
+   */
+  private designOnlyKey(id: BattalionId): string | null {
+    const g = DESIGN_ONLY_GROUP[id];
+    if (g === undefined) return null;
+    const tag = this.game?.worldWarScenario?.()?.tagOfSmallId(this.me());
+    return designerOn(this.game) ||
+      tag === undefined ||
+      histHasTankGroup(tag, g)
+      ? "ww1936.land.design_only"
+      : "ww1936.land.design_none";
   }
 
   private groups(): Set<number> {
@@ -490,9 +513,10 @@ export class WwTemplateDesigner extends LitElement {
     }
     const s = this.draft.support;
     const support = [];
+    const room = wwMaxSupport(this.draft.battalions.length);
     for (let i = 0; i < WW_MAX_SUPPORT; i++) {
       support.push(
-        i <= s.length && i < WW_MAX_SUPPORT
+        i < s.length || (i === s.length && i < room)
           ? this.cell(
               "support",
               i,
@@ -544,14 +568,14 @@ export class WwTemplateDesigner extends LitElement {
       facts: string,
       missing: WwTechId | undefined,
       pick: () => void,
-      designOnly = false,
+      designOnly: string | null = null,
     ) =>
       html`<li>
         <button
           type="button"
           data-ww-pick=${id}
           data-locked=${String(missing !== undefined)}
-          data-design-only=${String(designOnly)}
+          data-design-only=${String(designOnly !== null)}
           aria-disabled=${String(missing !== undefined && !this.draftMode)}
           class="flex min-h-9 w-full items-center gap-2 rounded-md border px-2 py-1 text-left text-xs ${missing ===
           undefined
@@ -575,7 +599,7 @@ export class WwTemplateDesigner extends LitElement {
               ? html`<span
                   data-ww-design-only
                   class="block truncate text-[11px] text-amber-200"
-                  >${translateText("ww1936.land.design_only")}</span
+                  >${translateText(designOnly)}</span
                 >`
               : nothing}
           </span>
@@ -598,7 +622,7 @@ export class WwTemplateDesigner extends LitElement {
               } · ${translateText("ww1936.land.stat_defense")} ${b.def / 100}`,
               b.techs.find((t) => !researched.has(t)),
               () => this.setBattalion(p.index, id),
-              id in DESIGN_ONLY_GROUP,
+              this.designOnlyKey(id),
             );
           })}
         </ul>

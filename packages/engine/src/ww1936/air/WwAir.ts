@@ -37,6 +37,7 @@ import {
 } from "@openfront/engine-api/ww1936/EconomyTypes";
 import { zInt } from "@openfront/engine-lib/snapshot/SnapshotType";
 import { dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
+import { weakPlaneStats } from "@openfront/engine-lib/ww1936/hist/WeakGeneric";
 import { planeStats } from "@openfront/engine-lib/ww1936/PlaneStats";
 import { emptyStats } from "@openfront/engine-lib/ww1936/Stats";
 import { z } from "zod";
@@ -48,6 +49,7 @@ import {
   planeStatsOfKey,
   returnDesignPlanes,
 } from "../depth/Designs";
+import { designerOn } from "../depth/Hist";
 import type { WwDepth } from "../depth/WwDepth";
 import { buildingIndex, losePlanes, returnPlanes } from "../economy/Buildings";
 import type { WwEconomy } from "../economy/WwEconomy";
@@ -853,10 +855,14 @@ export class WwAir {
     ) {
       return hit.stats;
     }
-    const stats =
+    const base =
       ce === null
         ? planeStats(type, gen, emptyStats(), new Set())
         : planeStats(type, gen, ce.stats, ce.researched);
+    // Owner, 2026-11-05: a generic plane is weaker than any real one.
+    const stats = designerOn(this.ww.depth)
+      ? base
+      : weakPlaneStats(base, type, gen);
     if (ce !== null) {
       this.planeStatsMemo.set(key, {
         statsVer: ce.statsVer,
@@ -865,6 +871,18 @@ export class WwAir {
       });
     }
     return stats;
+  }
+
+  /**
+   * A drop's transport numbers, whoever flies it: reach and the run in are the
+   * lift's rules, read from the generic transport whatever the planes are, so
+   * they stay out of planeStatsOf's cut for generic planes.
+   */
+  transportStatsOf(owner: number): PlaneStats {
+    const ce = this.econ.country(owner);
+    return ce === null
+      ? planeStats("transport_plane", 1, emptyStats(), new Set())
+      : planeStats("transport_plane", 1, ce.stats, ce.researched);
   }
 
   /**

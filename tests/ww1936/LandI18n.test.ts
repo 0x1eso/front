@@ -72,6 +72,7 @@ const MODS = [
 const LAND = [
   "presets",
   "upgrade_old_new",
+  "design_none",
   "design_only",
   "needs_design",
   "idle_equipment",

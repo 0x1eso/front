@@ -43,9 +43,9 @@ import {
   WW_AI_PREWAR_DAYS,
   WW_MAX_ARMY_DIVISIONS,
   WW_MAX_BATTALIONS,
-  WW_MAX_SUPPORT,
   WW_MAX_TARGETS,
   WW_ZONE_MAX,
+  wwMaxSupport,
 } from "@openfront/engine-api/ww1936/LandTypes";
 import { WW_INVASION_MAX_KM } from "@openfront/engine-api/ww1936/NavyTypes";
 import { wwAiWarPlanDue } from "@openfront/engine-lib/ww1936/AiDifficulty";
@@ -3955,7 +3955,10 @@ class AiDay {
     const researched = this.ce.researched;
     const inf = cl.templates[0];
     if (inf !== undefined) this.refitWidth(inf);
-    if (inf !== undefined && inf.def.support.length < WW_MAX_SUPPORT) {
+    if (
+      inf !== undefined &&
+      inf.def.support.length < wwMaxSupport(inf.def.battalions.length)
+    ) {
       const wanted: readonly (readonly [SupportId, readonly WwTechId[]])[] = [
         ["support_artillery", ["artillery_1", "support_eq_1"]],
         ["engineer", ["engineer_company"]],
@@ -4040,7 +4043,12 @@ class AiDay {
   ): void {
     const tpl = this.cl.template(id);
     if (tpl === null) return;
-    const def = { name: "", battalions, support };
+    const def = {
+      name: "",
+      battalions,
+      // A smaller division carries fewer companies; the last in go first.
+      support: support.slice(0, wwMaxSupport(battalions.length)),
+    };
     const t = this.land.divisions;
     let n = this.cl.trainees.filter((x) => x.template === id).length;
     for (const e of this.cl.training) if (e.template === id) n += e.remaining;
@@ -4062,7 +4070,7 @@ class AiDay {
       base: 0,
       name: "",
       battalions: [...battalions],
-      support: [...support],
+      support: [...def.support],
     });
   }
 

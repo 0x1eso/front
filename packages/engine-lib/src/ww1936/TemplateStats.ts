@@ -55,6 +55,7 @@ import {
   WW_MAX_WIDTH,
   WW_MIN_BATTALIONS,
   WW_TEMPLATE_NAME_MAX,
+  wwMaxSupport,
 } from "@openfront/engine-api/ww1936/LandTypes";
 import type { WwStatKey } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { BATTALIONS, SUPPORTS } from "./Battalions";
@@ -693,6 +694,13 @@ function keyed(
     : Math.floor((generic * keyFieldAt(ks, type, g, field)) / base);
 }
 
+const ANTI_AIR_G = TYPE_INDEX.get("anti_air")!;
+
+/** An anti-air gun's air attack under its key (the key row is centi): generic use has less. */
+function keyedAa(ks: KeyStatsTable, g: number, generic: number): number {
+  return Math.floor(keyed(ks, ANTI_AIR_G, g, KS.aa, generic * 100) / 100);
+}
+
 /**
  * Spec §4.3: sums, averages and the HOI4 armour / pierce formulas of a
  * template at full strength. Generations and the doctrines that change a
@@ -763,7 +771,10 @@ export function templateStats(
       bl === null ? staticVal : blend(bl, staticVal, su, f);
     width += d.width;
     weight += d.weightCenti;
-    const aaStatic = Math.floor((d.airAtk * gp) / 100);
+    const aaStatic =
+      main === ANTI_AIR_G
+        ? keyedAa(ks, g, Math.floor((d.airAtk * gp) / 100))
+        : Math.floor((d.airAtk * gp) / 100);
     airAtk +=
       bl === null
         ? aaStatic
@@ -880,9 +891,10 @@ export function templateStats(
     const sbp = battalionStatPct(st, id);
     men += d.men;
     weight += d.weightCenti;
-    airAtk += Math.floor((d.airAtk * gp) / 100);
-    hp += Math.floor((d.hpMilli * gp) / 100);
     const sg = gens[main];
+    const aa = Math.floor((d.airAtk * gp) / 100);
+    airAtk += main === ANTI_AIR_G ? keyedAa(ks, sg, aa) : aa;
+    hp += Math.floor((d.hpMilli * gp) / 100);
     let soft = keyed(ks, main, sg, KS.soft, Math.floor((d.soft * gp) / 100));
     if (d.artillery) {
       soft = Math.floor((soft * (100 + tech.artillerySoftPct)) / 100);
@@ -1163,6 +1175,9 @@ export function templateBlock(
     return "too_small";
   }
   if (def.support.length > WW_MAX_SUPPORT) return "bad_template";
+  if (def.support.length > wwMaxSupport(def.battalions.length)) {
+    return "too_many_support";
+  }
   if (new Set(def.support).size !== def.support.length) return "bad_template";
   // "" = the automatic name (1936 defaults, the AI's edits); a player's
   // order always carries one (the zod schema requires it).

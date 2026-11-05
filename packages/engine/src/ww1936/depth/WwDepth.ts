@@ -124,6 +124,7 @@ import {
 import { processRaids } from "./Raids";
 import { railGunFortCut, railGunHits, railGunsOfRemovedArmy } from "./RailGuns";
 import { processRockets } from "./Rockets";
+import { startConvert, startConvertLines } from "./StartConvert";
 import {
   dailyThought,
   issueThought,
@@ -610,6 +611,7 @@ export class WwDepth implements LandDepthHooks {
       .filter((id) => id > 0)
       .sort((a, b) => a - b);
     startDepthContent(this);
+    startConvert(this); // ww78 B3: a major's stock and wings are real from the start
     this.rebuildDerived();
     // Plan decision 36: the first update carries every country.
     for (let id = 1; id < this.cap; id++) this.depthDirty.add(id);
@@ -656,19 +658,13 @@ export class WwDepth implements LandDepthHooks {
   private startThoughts(): void {
     for (let id = 1; id < this.cap; id++) {
       const c = this.countries[id];
-      if (
-        c !== null &&
-        c !== undefined &&
-        !c.th.started &&
-        this.ww.isActor(id)
-      ) {
-        startThought(this, id);
-      }
+      if (c === null || c === undefined || !this.ww.isActor(id)) continue;
+      const first = !c.th.started;
+      if (first) startThought(this, id);
       // ww71: a major's catalogue entries are in their slots from the start,
       // not from the first day's step (cheap: the researched set is checked).
-      if (c !== null && c !== undefined && this.ww.isActor(id)) {
-        dailyHist(this, id, 0);
-      }
+      dailyHist(this, id, 0);
+      if (first) startConvertLines(this, id); // ww78 B3
     }
   }
 

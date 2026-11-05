@@ -732,6 +732,10 @@ export const WW_MAX_BATTALIONS = 25;
 /** w57: a division with support companies needs this many battalions (support takes no width). */
 export const WW_MIN_BATTALIONS = 3;
 export const WW_MAX_SUPPORT = 4;
+/** Owner, 2026-11-05: support companies by battalions: 3 allow 2, 7 or more allow 4. */
+export function wwMaxSupport(battalions: number): number {
+  return Math.min(WW_MAX_SUPPORT, Math.ceil(battalions / 2));
+}
 export const WW_MAX_WIDTH = 40;
 export const WW_MAX_TARGETS = 3;
 export const WW_TEMPLATE_NAME_MAX = 24;

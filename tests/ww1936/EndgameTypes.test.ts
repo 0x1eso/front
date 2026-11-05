@@ -155,9 +155,10 @@ describe("World War 1936 P5 lists", () => {
       "no_deposit",
       // The air groups: a plane already in a group.
       "in_group",
-      // w57 and ww61 append their two.
+      // w57, ww61 and ww89 append their three.
       "too_small",
       "designer_off",
+      "too_many_support",
     ]);
     const kinds = WwOrderSchema.options.map(
       (o) => (o.shape.kind as { value: string }).value,

@@ -143,7 +143,7 @@ export function paradropAskOf(
   return {
     fromAirBase: base,
     targetKm: km,
-    transportRangeKm: air.planeStatsOf(a.owner, TRANSPORT, 1).rangeKm,
+    transportRangeKm: air.transportStatsOf(a.owner).rangeKm,
     transportsFree: Math.max(
       0,
       transportStock(air, a.owner) - reservedTransports(air, a.owner, a.id),
@@ -310,7 +310,7 @@ export function paradropLosses(
       attackers,
       [
         {
-          stats: air.planeStatsOf(a.owner, TRANSPORT, 1),
+          stats: air.transportStatsOf(a.owner),
           milli: planes * 1000,
           weight: interceptors ? 3 : 1,
         },

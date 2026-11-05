@@ -200,7 +200,7 @@ export function raidAskOf(
           effectiveLevel(ww.economy, from, "air_base") >= 1 &&
           transportStock(ww.air, id) >= RAID_MIN_TRANSPORTS &&
           sc.kmBetween(sc.centerTile(from), sc.centerTile(target)) <=
-            ww.air.planeStatsOf(id, "transport_plane", 1).rangeKm;
+            ww.air.transportStatsOf(id).rangeKm;
       } else {
         reachOk =
           freeConvoysOf(ww.navy, id) >= RAID_MIN_CONVOYS &&
