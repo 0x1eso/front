@@ -4,6 +4,10 @@
 // AI already has; nothing here names a date or a region. A plan is derived
 // from the seed and the tag, never stored: `planOf` works it out again.
 import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
+import type {
+  BattalionId,
+  SupportId,
+} from "@openfront/engine-api/ww1936/LandTypes";
 import { idHash, wwRoll } from "./Roll";
 
 export interface NationalPlan {
@@ -61,6 +65,14 @@ export interface NationalPlan {
   fortLevel: number;
   /** Rule 7: mine levels it will build where a short resource lies. */
   mineMax: number;
+  /** 1: a foot army plans one region at a time, so its slow guns keep up. */
+  footStep: number;
+  /** Readiness an attack on defenders waits for, % of the country's cap (0: the usual gates). */
+  readyPct: number;
+  /** A veteran wing under this % of its planes rests and refills (0: never). */
+  restWingPct: number;
+  /** Dockyard points that go to destroyers and convoys while convoys are being lost. */
+  escortLossPts: number;
 }
 
 /** A minor, a human's auto armies and anyone without a row. */
@@ -94,6 +106,10 @@ export const AI_PLAN_DEFAULT: Readonly<NationalPlan> = {
   milPerDock: 4,
   fortLevel: 0,
   mineMax: 6,
+  footStep: 0,
+  readyPct: 0,
+  restWingPct: 0,
+  escortLossPts: 0,
 };
 
 /** Section 8.4: what each major changes of the default. */
@@ -116,6 +132,7 @@ export const AI_PLANS: Readonly<
     milPerDock: 6,
     fortLevel: 1,
     mineMax: 12,
+    footStep: 1,
   },
   SUN: {
     offensePct: 220,
@@ -191,6 +208,7 @@ export const AI_PLANS: Readonly<
     unitPct: 3,
     alertWtBp: 1200,
     fortLevel: 4,
+    readyPct: 90,
   },
   JPN: {
     oneEnemyPct: 50,
@@ -212,6 +230,8 @@ export const AI_PLANS: Readonly<
     unitPct: 8,
     milPerDock: 1,
     mineMax: 12,
+    restWingPct: 50,
+    escortLossPts: 20,
   },
   ITA: {
     offensePct: 180,
@@ -234,6 +254,9 @@ export const AI_PLANS: Readonly<
     mineMax: 10,
   },
 };
+
+/** The most readiness a plan waits for, % of the cap: it must be reachable. */
+const AI_PLAN_READY_MAX_PCT = 95;
 
 /** wwRoll purpose of a plan's seeded strength. */
 export const P_AI_PLAN = idHash("ai_plan");
@@ -271,6 +294,7 @@ export function planOf(
       : base + Math.floor((gap * pct + 50) / 100);
   }
   out.oneEnemyPct = Math.min(100, out.oneEnemyPct);
+  out.readyPct = Math.min(AI_PLAN_READY_MAX_PCT, out.readyPct);
   return out;
 }
 
@@ -410,3 +434,118 @@ export function wantsPeaceFort(
 ): boolean {
   return threat && level < plan.fortLevel;
 }
+
+/** France's long preparation: readiness `planBp` against its cap has reached the plan's share. */
+export function planPrepared(
+  plan: Readonly<NationalPlan>,
+  planBp: number,
+  capBp: number,
+): boolean {
+  return planBp * 100 >= capBp * plan.readyPct;
+}
+
+// ---- Division shapes (ww91 8.4, owner's ruling: the table decides) ----
+
+/** Battalions of a shape, in the order the refit fills them (the ones that keep it legal first). */
+export type ShapeRows = readonly (readonly [BattalionId, number])[];
+
+export interface LineShape {
+  line: ShapeRows;
+  armour: ShapeRows;
+  /** A support company it keeps whatever the enemy fields. */
+  company?: SupportId;
+}
+
+/**
+ * Section 8.4's shapes for the seven majors, set where one changes on the
+ * width rule: only widths 15 and 22 cost no attack (widthPenaltyBp), so each
+ * shape moves to them where its reason stays true. Against the design's table:
+ * line, DEU one more infantry, SUN one infantry for an anti-tank battalion, USA,
+ * GBR, FRA one anti-tank battalion added, ITA one gun less, JPN one infantry
+ * less (width 17, not free: 15 would cost a quarter of its rifles); armour,
+ * DEU, SUN, FRA more motorized, USA a second SP gun, GBR two mobile guns, JPN
+ * and ITA two motorized for a mobile gun.
+ */
+export const AI_LINE_SHAPES: Readonly<
+  Partial<Record<CountryTag, Readonly<LineShape>>>
+> = {
+  DEU: {
+    line: [
+      ["artillery", 2],
+      ["infantry", 8],
+    ],
+    armour: [
+      ["motorized", 5],
+      ["medium_armor", 6],
+    ],
+  },
+  SUN: {
+    line: [
+      ["artillery", 3],
+      ["anti_tank", 1],
+      ["infantry", 6],
+    ],
+    armour: [
+      ["motorized", 5],
+      ["medium_armor", 6],
+    ],
+  },
+  USA: {
+    line: [
+      ["artillery", 3],
+      ["anti_tank", 1],
+      ["infantry", 6],
+    ],
+    armour: [
+      ["motorized", 4],
+      ["medium_armor", 4],
+      ["sp_artillery", 2],
+    ],
+  },
+  GBR: {
+    line: [
+      ["artillery", 3],
+      ["anti_tank", 1],
+      ["infantry", 6],
+    ],
+    armour: [
+      ["motorized", 4],
+      ["medium_armor", 4],
+      ["mot_artillery", 2],
+    ],
+  },
+  FRA: {
+    line: [
+      ["artillery", 3],
+      ["anti_tank", 1],
+      ["infantry", 6],
+    ],
+    armour: [
+      ["motorized", 6],
+      ["medium_armor", 5],
+    ],
+    company: "support_anti_tank",
+  },
+  JPN: {
+    line: [
+      ["artillery", 1],
+      ["infantry", 7],
+    ],
+    armour: [
+      ["motorized", 3],
+      ["light_armor", 3],
+      ["mot_artillery", 1],
+    ],
+  },
+  ITA: {
+    line: [
+      ["artillery", 1],
+      ["infantry", 6],
+    ],
+    armour: [
+      ["motorized", 3],
+      ["light_armor", 3],
+      ["mot_artillery", 1],
+    ],
+  },
+};

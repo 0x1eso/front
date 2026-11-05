@@ -55,6 +55,7 @@ import {
 import { WW_INVASION_MAX_KM } from "@openfront/engine-api/ww1936/NavyTypes";
 import { wwAiWarPlanDue } from "@openfront/engine-lib/ww1936/AiDifficulty";
 import {
+  AI_LINE_SHAPES,
   AI_PLAN_DEFAULT,
   type NationalPlan,
   planOf,
@@ -62,6 +63,7 @@ import {
   planStance,
   resourceWorth,
   wantsPeaceFort,
+  type ShapeRows,
 } from "@openfront/engine-lib/ww1936/AiPlans";
 import { BATTALIONS } from "@openfront/engine-lib/ww1936/Battalions";
 import { combatWidth } from "@openfront/engine-lib/ww1936/CombatRules";
@@ -88,6 +90,7 @@ import {
 } from "@openfront/engine-lib/ww1936/TemplateStats";
 import { enemySkyPm } from "../air/AirSuperiority";
 import {
+  templateBlock,
   type AiPersonality,
   aiPersonality,
   aiResourceGap,
@@ -114,6 +117,7 @@ import {
 import {
   AI_EFFORT_CAPITAL_VALUE,
   AI_EFFORT_FORT_BAR,
+  shapeStep,
   AI_EFFORT_PERIOD_DAYS,
   AI_ONE_ENEMY_HOLD_PCT,
   effortFed,
@@ -622,6 +626,23 @@ const PRESET_AI_WEIGHT: Readonly<Record<string, number>> = {
   pre_medium_armored: 4,
   pre_light_armored: 2,
   pre_mot_infantry: 3,
+/** ww91 8.4: the armour templates a major's shape applies to (not its heavy, gun or special ones). */
+const AI_SHAPED_ARMOUR: readonly string[] = [
+  "armored",
+  "mobile",
+  "dlm",
+  "celere",
+  "tank_brigade",
+  "pre_light_armored",
+  "pre_medium_armored",
+];
+
+/** ww91 8.4: what stands in for a battalion not researched yet. */
+const AI_SHAPE_STAND_IN: Readonly<Partial<Record<BattalionId, BattalionId>>> = {
+  medium_armor: "light_armor",
+  sp_artillery: "mot_artillery",
+};
+
 };
 
 /** The anti-tank infantry preset's template key. */
@@ -4468,7 +4489,9 @@ class AiDay {
     const cl = this.cl;
     const researched = this.ce.researched;
     const inf = cl.templates[0];
-    if (inf !== undefined) this.refitWidth(inf);
+    // ww91 8.4: a major's shapes come from its table; the width rule is the minors'.
+    const shape = AI_LINE_SHAPES[cl.tag];
+    if (inf !== undefined && shape === undefined) this.refitWidth(inf);
     if (
       inf !== undefined &&
       inf.def.support.length < wwMaxSupport(inf.def.battalions.length)
@@ -4483,12 +4506,20 @@ class AiDay {
       for (const [s, techs] of wanted) {
         if (inf.def.support.includes(s)) continue;
         if (!techs.every((x) => researched.has(x))) continue;
-        if (s === "support_anti_tank" && !this.enemyArmour()) continue;
+        if (
+          s === "support_anti_tank" &&
+          shape?.company !== s &&
+          !this.enemyArmour()
+        ) {
+          continue;
+        }
         this.saveTemplate(inf.id, inf.def.battalions, [...inf.def.support, s]);
         break;
       }
     }
-    if (researched.has("medium_tank_1")) {
+    const lightShape =
+      shape?.armour.some(([b]) => b === "light_armor") === true;
+    if (researched.has("medium_tank_1") && !lightShape) {
       for (const tpl of cl.templates) {
         if (roleOfTemplate(tpl.key) !== "armor") continue;
         if (!tpl.def.battalions.includes("light_armor")) continue;
@@ -4512,6 +4543,14 @@ class AiDay {
       this.saveTemplate(tpl.id, bns, tpl.def.support);
     }
   }
+    if (shape !== undefined) {
+      if (inf !== undefined) this.refitShape(inf, shape.line);
+      for (const tpl of cl.templates) {
+        if (AI_SHAPED_ARMOUR.includes(tpl.key)) {
+          this.refitShape(tpl, shape.armour);
+        }
+      }
+    }
 
   /**
    * ww81 (T1): the infantry template moves one battalion off a width that
@@ -4527,6 +4566,31 @@ class AiDay {
     let major: BattalionId | null = null;
     for (const [b, n] of count) {
       if (major === null || n > count.get(major)!) major = b;
+  /** The battalion can be fielded on its own techs. */
+  private canField(b: BattalionId): boolean {
+    const def = { name: "", battalions: [b], support: [] };
+    return templateBlock(def, this.ce.researched, Infinity) === null;
+  }
+
+  /**
+   * ww91 8.4: one step of `tpl` towards its shape. What isn't researched yet
+   * stands in by its older kind, or stays out; a light tank still waiting for
+   * its swap holds the shape back, so a division never loses its tanks.
+   */
+  private refitShape(tpl: LandTemplate, rows: ShapeRows): void {
+    const target = new Map<BattalionId, number>();
+    for (const [b, n] of rows) {
+      const old = AI_SHAPE_STAND_IN[b];
+      const id =
+        this.canField(b) || old === undefined || !this.canField(old) ? b : old;
+      if (this.canField(id)) target.set(id, (target.get(id) ?? 0) + n);
+    }
+    const now = tpl.def.battalions;
+    if (now.includes("light_armor") && !target.has("light_armor")) return;
+    const next = shapeStep(now, [...target]);
+    if (next !== null) this.saveTemplate(tpl.id, next, tpl.def.support);
+  }
+
     }
     if (major === null) return;
     const stats = this.ce.stats;

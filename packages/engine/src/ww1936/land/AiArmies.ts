@@ -3,7 +3,10 @@
 // small armies merge, which role an auto-trained army plays, and which
 // battalion shape pays no width penalty. Plain data in, a decision out; no
 // game state, so each rule is tested alone (AiLand wires them in).
-import { WW_MAX_ARMY_DIVISIONS } from "@openfront/engine-api/ww1936/LandTypes";
+import {
+  type BattalionId,
+  WW_MAX_ARMY_DIVISIONS,
+} from "@openfront/engine-api/ww1936/LandTypes";
 import {
   excessWidthBp,
   TERRAIN,
@@ -144,6 +147,44 @@ export function chooseMerge(
     };
   }
   return null;
+}
+
+/**
+ * ww91 8.4: the next shape on the way to `target`: what is over the target goes
+ * at once, and one missing battalion comes in, in the target's order (a large
+ * army can't equip a whole new shape in a day). Null: there already.
+ */
+export function shapeStep(
+  now: readonly BattalionId[],
+  target: readonly (readonly [BattalionId, number])[],
+): BattalionId[] | null {
+  const have = new Map<BattalionId, number>();
+  for (const b of now) have.set(b, (have.get(b) ?? 0) + 1);
+  const out: BattalionId[] = [];
+  let added = false;
+  for (const [b, n] of target) {
+    const h = have.get(b) ?? 0;
+    let k = Math.min(h, n);
+    if (h < n && !added) {
+      k = h + 1;
+      added = true;
+    }
+    for (let i = 0; i < k; i++) out.push(b);
+  }
+  const same =
+    !added &&
+    out.length === now.length &&
+    target.every(([b, n]) => (have.get(b) ?? 0) === n);
+  return same ? null : out;
+}
+
+/** ww91: a foot army of a plan that marches one region at a time drops the targets beyond. */
+export function marchTargets(
+  x: number,
+  beyond: readonly number[],
+  footStep: boolean,
+): number[] {
+  return footStep ? [x] : [x, ...beyond];
 }
 
 /** What ww91 rule 3 weighs of an army of an outnumbered front. */
