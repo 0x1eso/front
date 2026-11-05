@@ -15,14 +15,15 @@ import {
   shipStatsOfEntry,
 } from "@openfront/engine-lib/ww1936/hist/ConvertShip";
 import { histEntry } from "@openfront/engine-lib/ww1936/hist/index";
-import { planeScore } from "@openfront/engine-lib/ww1936/PlaneScore";
 import { changeLine } from "../economy/Production";
 import type { CountryEconomy } from "../economy/WwEconomy";
 import type { PickCand } from "./AiPick";
 import {
+  AI_FIGHTER_TYPES,
+  AI_PLANE_BASE_YEAR,
   aiKeeps,
   aiPickEntry,
-  fighterScore,
+  aiPlaneScore,
   lineDraw,
   qualityLean,
   resourceMultPm,
@@ -107,7 +108,7 @@ function planeCands(
     if (planeType(s.def) !== type) return;
     const st = d.designStatsOf(id, "plane", i + 1) as PlaneDesignStats | null;
     if (st === null) return;
-    if (FIGHTERS.has(type) && st.range < AI_MIN_FIGHTER_RANGE) return;
+    if (AI_FIGHTER_TYPES.has(type) && st.range < AI_MIN_FIGHTER_RANGE) return;
     const key = EQUIP_KEYS.findIndex(
       (k) => k[0] === "plane_design" && k[1] === i + 1,
     );
@@ -117,29 +118,20 @@ function planeCands(
       cost: equipCostMilli(d, id, key),
       relPm: st.relPm,
       resPm: ce === null ? 1000 : resourceMultPm(d, id, ce, key, draw),
-      // ww81 P1b: a fighter is judged on what the duel reads.
-      score: FIGHTERS.has(type)
-        ? fighterScore(st.airAttack, st.airDefense, st.agility)
-        : planeScore(type, {
-            airAtk: st.airAttack,
-            airDef: st.airDefense,
-            agility: st.agility,
-            speed: st.speed,
-            range: st.range,
-            ground: st.ground,
-            strat: st.strategic,
-            naval: st.naval,
-          }),
+      // ww81 P1b, ww103: what the duel reads, counted up for speed and year.
+      score: aiPlaneScore(type, st, planeYear(s.def)),
     });
   });
   return out;
 }
 
-const FIGHTERS: ReadonlySet<string> = new Set([
-  "fighter",
-  "heavy_fighter",
-  "cv_fighter",
-]);
+/** A design's year: its catalogue entry's; one of the designer's by its airframe's generation. */
+function planeYear(def: { hist?: string; base: string }): number {
+  const e = def.hist === undefined ? undefined : histEntry(def.hist);
+  if (e !== undefined) return e.year;
+  const gen = Number(/_(\d)$/.exec(def.base)?.[1] ?? 1);
+  return AI_PLANE_BASE_YEAR + 3 * gen;
+}
 
 /** One air line a day moves to the value-best catalogue plane of its type. */
 function aiPlaneLines(d: WwDepth, id: number, ce: CountryEconomy): void {

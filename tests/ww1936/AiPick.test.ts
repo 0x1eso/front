@@ -1,7 +1,11 @@
+import { planeStatsOfEntry } from "@openfront/engine-lib/ww1936/hist/ConvertPlane";
+import { histEntry } from "@openfront/engine-lib/ww1936/hist/index";
+import type { PlaneEntry } from "@openfront/engine-lib/ww1936/hist/Types";
 import { describe, expect, test } from "vitest";
 import {
   aiKeeps,
   aiPickEntry,
+  aiPlaneScore,
   fighterScore,
   thresholdPm,
   type PickCand,
@@ -58,5 +62,37 @@ describe("ww81 the AI's entry pick", () => {
 
   test("a more agile fighter scores higher at equal attack", () => {
     expect(fighterScore(100, 50, 14)).toBeGreaterThan(fighterScore(100, 50, 8));
+  });
+
+  // ww103: the catalogue's own numbers, as AiHist.planeCands reads them.
+  const cand = (key: number, id: string): PickCand => {
+    const e = histEntry(id) as PlaneEntry;
+    const st = planeStatsOfEntry(e);
+    return c(key, aiPlaneScore(st.type, st, e.year), st.costMilli, {
+      relPm: st.relPm,
+    });
+  };
+
+  test.each([
+    ["usa_p51d", "usa_p40e"],
+    ["usa_b25j", "usa_b18"],
+    ["usa_f6f5", "usa_f4f4"],
+    ["usa_a20g", "usa_a17"],
+    ["usa_p80a", "usa_p51d"],
+    ["deu_me262_a1", "deu_fw190_a8"],
+    ["gbr_meteor_f3", "gbr_spitfire_v"],
+  ])("%s takes a line from %s", (better, older) => {
+    const list = [cand(1, older), cand(2, better)];
+    for (const q of [0, 60, 100]) {
+      expect(aiPickEntry(list, q)).toBe(2);
+      expect(aiKeeps(list, q, 1)).toBe(false);
+    }
+  });
+
+  test("a faster plane of the same year and numbers scores higher", () => {
+    const st = planeStatsOfEntry(histEntry("usa_p51d") as PlaneEntry);
+    expect(aiPlaneScore("fighter", st, 1944)).toBeGreaterThan(
+      aiPlaneScore("fighter", { ...st, speed: st.speed - 100 }, 1944),
+    );
   });
 });

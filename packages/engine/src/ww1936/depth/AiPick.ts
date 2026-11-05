@@ -12,7 +12,11 @@
 //     armour curve (ww90).
 //     Speed is in the score itself (TemplateStats.tankSpeedPm).
 // All integers; the lists are append-only and nothing here is stored.
-import { KS, KS_FIELDS } from "@openfront/engine-api/ww1936/DepthTypes";
+import {
+  KS,
+  KS_FIELDS,
+  PlaneDesignStats,
+} from "@openfront/engine-api/ww1936/DepthTypes";
 import { EQUIP_KEYS } from "@openfront/engine-api/ww1936/EconomyTypes";
 import {
   GROUND_EQUIP_KEYS,
@@ -26,6 +30,7 @@ import {
 } from "@openfront/engine-lib/ww1936/CombatRules";
 import { EQUIPMENT } from "@openfront/engine-lib/ww1936/Equipment";
 import { breakdownPpm } from "@openfront/engine-lib/ww1936/hist/Wear";
+import { planeScore } from "@openfront/engine-lib/ww1936/PlaneScore";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import {
   isOldScore,
@@ -226,6 +231,18 @@ export function thresholdPm(
 
 // ---- planes (P1b): the fighter score the duel reads ----
 
+/** ww103: the fighter types, judged on what the duel reads. */
+export const AI_FIGHTER_TYPES: ReadonlySet<string> = new Set([
+  "fighter",
+  "heavy_fighter",
+  "cv_fighter",
+]);
+/** ww103: the speed a plane's score counts from, km/h. */
+export const AI_PLANE_SPEED_KMH = 500;
+/** ww103: the year a plane's score counts from, and what each year after it adds, %. */
+export const AI_PLANE_BASE_YEAR = 1936;
+export const AI_PLANE_YEAR_PCT = 8;
+
 /** AI-only fighter score: air attack x the agility factor against an average, plus defence. */
 export function fighterScore(
   airAtk: number,
@@ -234,5 +251,37 @@ export function fighterScore(
 ): number {
   return (
     Math.floor((2 * airAtk * agilityFactorPm(agility, 10)) / 1000) + airDef
+  );
+}
+
+/**
+ * ww103: the AI's score of a plane, for its factories only. No fight reads
+ * speed, so a P-40E outscored a P-51D and a B-18 a B-25J, and the AI built 1937
+ * planes to the end. So what it reads of the plane (the duel for a fighter, the
+ * plane's own score else) counts up with speed and with the plane's year: the
+ * newer, faster type wins unless it is far behind on the numbers. Whether it is
+ * fit to fly (range, wear, resources) stays with the pick.
+ */
+export function aiPlaneScore(
+  type: string,
+  st: PlaneDesignStats,
+  year: number,
+): number {
+  const base = AI_FIGHTER_TYPES.has(type)
+    ? fighterScore(st.airAttack, st.airDefense, st.agility)
+    : planeScore(type, {
+        airAtk: st.airAttack,
+        airDef: st.airDefense,
+        agility: st.agility,
+        speed: st.speed,
+        range: st.range,
+        ground: st.ground,
+        strat: st.strategic,
+        naval: st.naval,
+      });
+  const age = Math.max(0, year - AI_PLANE_BASE_YEAR);
+  return Math.floor(
+    (base * st.speed * (100 + age * AI_PLANE_YEAR_PCT)) /
+      (AI_PLANE_SPEED_KMH * 100),
   );
 }
