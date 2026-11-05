@@ -186,13 +186,15 @@ describe("GameServer match telemetry", () => {
         intentType: "spawn",
       },
     });
-    // Paused intents are accepted at ingress but never queued into a turn:
-    // the turns committed once play resumes do not carry it.
+    // Paused intents wait and go out with the unpause turn (w86).
     game.handleIntent({ type: "toggle_pause", paused: false }, ADMIN_BOT);
     vi.advanceTimersByTime(TURN_MS);
     const committed = committedIntents(ws).map((i) => i.type);
     expect(committed).toContain("toggle_pause");
-    expect(committed).not.toContain("spawn");
+    expect(committed).toContain("spawn");
+    expect(committed.indexOf("spawn")).toBeGreaterThan(
+      committed.indexOf("toggle_pause"),
+    );
   });
 
   it("preserves an existing authorization rejection and reason", async () => {

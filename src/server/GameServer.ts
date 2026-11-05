@@ -217,6 +217,8 @@ export function defaultGameServerDeps(): GameServerDeps {
   };
 }
 
+const MAX_PAUSED_INTENTS = 200;
+
 export class GameServer {
   // Compares the per-turn state hashes clients report; a disagreeing client
   // is told once and its votes are ignored from then on.
@@ -256,6 +258,9 @@ export class GameServer {
   private startDeferred = false;
   private ended = false;
   private paused = false;
+  // w86: orders given while paused wait here and go out with the unpause turn
+  // (same as LocalServer; capped so a held key cannot grow it without end).
+  private pausedIntents: StampedIntent[] = [];
   private _startTime: number | null = null;
   private hasReachedMaxPlayerCount: boolean = false;
 
@@ -524,6 +529,8 @@ export class GameServer {
         } else {
           this.paused = false;
           this.addIntent(stamped);
+          for (const held of this.pausedIntents) this.addIntent(held);
+          this.pausedIntents = [];
           this.endTurn();
         }
         return outcome;
@@ -536,6 +543,9 @@ export class GameServer {
         const paused = this.paused;
         const outcome = finish({ status: 200 }, paused ? "paused" : undefined);
         if (!paused) this.addIntent(stamped);
+        else if (this.pausedIntents.length < MAX_PAUSED_INTENTS) {
+          this.pausedIntents.push(stamped);
+        }
         return outcome;
       }
     }
