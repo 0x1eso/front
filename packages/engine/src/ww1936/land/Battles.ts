@@ -299,7 +299,9 @@ function fight(land: WwLand, b: Battle, tick: number): void {
   if (phase === BAND_WON) return won(land, b, tick);
   if (phase === BAND_WAIT) return;
   b.round++;
-  if (b.exploit !== undefined && b.round > EXPLOIT_ROUNDS) delete b.exploit;
+  if (b.exploit !== undefined && b.round > exploitRoundsOf(land, b)) {
+    delete b.exploit;
+  }
   // 3. Width and the lines (spec §9.2).
   const dirs = new Set(b.attackers.map((id) => t.region[t.rowOf(id)])).size;
   // ww7: a fort of level 3+ halves the extra width of the extra directions.
@@ -690,7 +692,11 @@ function reserveEnters(land: WwLand, row: number, side: number): boolean {
       ? rc.fx.attReinfPp
       : rc.fx.defReinfPp +
         (rc.b?.exploit === undefined ? 0 : EXPLOIT_RESERVE_PP)) +
-      underCas(rc, side),
+      underCas(rc, side) +
+      // ww97: a master of reserves has them in sooner.
+      ((profile(rc, side).traits & RESERVE_MASTER) !== 0
+        ? RESERVE_MASTER_PP
+        : 0),
   );
   return (
     reinfRoll(rc.seed, rc.region, rc.since, rc.round, land.divisions.id[row]) <
@@ -1215,6 +1221,40 @@ export function fearCutOf(land: WwLand, to: number): number {
   return ce === null ? 0 : tankFearCutPp(ce.stats);
 }
 
+/** ww97: rounds a deep-thrust general adds to the run. */
+export const DEEP_THRUST_ROUNDS = 2;
+/** ww97: reserve entry a master of reserves adds, points. */
+export const RESERVE_MASTER_PP = 15;
+/** ww97: a rearguard master's broken divisions leave this much less, points. */
+export const REARGUARD_ROUT_PP = 5;
+const DEEP_THRUST = traitBit("deep_thrust");
+const RESERVE_MASTER = traitBit("reserve_master");
+const REARGUARD = traitBit("rearguard");
+
+/** Whether division `row`'s army has a general with trait `bit`. */
+function leadsWith(land: WwLand, row: number, bit: number): boolean {
+  const a = land.armies.get(land.divisions.army[row]);
+  const g = a === undefined ? null : generalOf(land, a);
+  return g !== null && (g.traits & bit) !== 0;
+}
+
+/**
+ * ww97: rounds the run lasts in `b`: EXPLOIT_ROUNDS, and two more when one of
+ * the divisions running through has a deep-thrust general. Read from the
+ * general each round, so no state.
+ */
+function exploitRoundsOf(land: WwLand, b: Battle): number {
+  if (b.exploit !== undefined) {
+    for (const id of b.exploit) {
+      const r = land.divisions.rowOf(id);
+      if (r >= 0 && leadsWith(land, r, DEEP_THRUST)) {
+        return EXPLOIT_ROUNDS + DEEP_THRUST_ROUNDS;
+      }
+    }
+  }
+  return EXPLOIT_ROUNDS;
+}
+
 /** ww84: armour running through: what those it breaks leave behind, percent. */
 export const ROUT_LOSS_EXPLOIT_PCT = 25;
 
@@ -1259,7 +1299,11 @@ function routLoss(land: WwLand, row: number): void {
   const t = land.divisions;
   if (t.org[row] !== 0) return;
   const b = t.battle[row] === 0 ? undefined : land.battles.get(t.battle[row]);
-  const pct = b?.routBy?.find((e) => e[0] === t.id[row])?.[1] ?? ROUT_LOSS_PCT;
+  let pct = b?.routBy?.find((e) => e[0] === t.id[row])?.[1] ?? ROUT_LOSS_PCT;
+  // ww97: a rearguard master's division leaves less when it breaks.
+  if (pct === ROUT_LOSS_PCT && leadsWith(land, row, REARGUARD)) {
+    pct -= REARGUARD_ROUT_PP;
+  }
   applyHpLoss(land, row, Math.floor((land.statsOf(row).hpMilli * pct) / 100));
 }
 
@@ -1581,7 +1625,9 @@ export function battleExtras(
     tankFearCutPp: fearCutOf(land, firstDef),
     prepFireRounds: Math.max(0, PREP_FIRE_ROUNDS - b.round),
     exploitRounds:
-      b.exploit === undefined ? 0 : Math.max(0, EXPLOIT_ROUNDS - b.round),
+      b.exploit === undefined
+        ? 0
+        : Math.max(0, exploitRoundsOf(land, b) - b.round),
   };
   // ww8: the wings on station count in the odds.
   const casA = land.hooks.casNowCenti(b.region, attSide);

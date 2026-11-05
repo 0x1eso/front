@@ -62,6 +62,9 @@ import {
 } from "./WwDepth";
 
 const GUERRILLA = traitBit("guerrilla_fighter");
+const SET_PIECE = traitBit("set_piece");
+const RESERVE_MASTER = traitBit("reserve_master");
+const REARGUARD = traitBit("rearguard");
 const TRICKSTER = traitBit("trickster");
 const SKIRMISHER = traitBit("skirmisher");
 /** Spec §4.2 trickster: the enemy's readiness bonus −10%p. */
@@ -649,12 +652,18 @@ function buildMods(d: WwDepth, a: Army, enemy: number): ArmyDepthMods {
   const gen =
     cl !== null && a.general !== 0 ? generalById(cl, a.general) : null;
   const halfSupply = gen !== null && (gen.traits & GUERRILLA) !== 0;
+  // ww97: the named generals' costs and gains in readiness and recovery.
+  const gt = gen?.traits ?? 0;
+  const setPiece = (gt & SET_PIECE) !== 0;
+  recoveryPct +=
+    ((gt & REARGUARD) !== 0 ? 10 : 0) - ((gt & RESERVE_MASTER) !== 0 ? 10 : 0);
   const fm = cl !== null && a.group !== 0 ? groupMarshal(d, cl, a.group) : null;
   if (
     fm === null &&
     attBp === 0 &&
     defBp === 0 &&
     recoveryPct === 0 &&
+    !setPiece &&
     !halfSupply
   ) {
     return NEUTRAL_ARMY_MODS;
@@ -669,8 +678,8 @@ function buildMods(d: WwDepth, a: Army, enemy: number): ArmyDepthMods {
     halfSupply,
     orgAdd: fs?.org ?? 0,
     recoveryPct: recoveryPct + (fs?.recoveryPct ?? 0),
-    planSpeedPct: fs?.planSpeedPct ?? 0,
-    planMaxBp: fs?.planMaxBp ?? 0,
+    planSpeedPct: (fs?.planSpeedPct ?? 0) - (setPiece ? 10 : 0),
+    planMaxBp: (fs?.planMaxBp ?? 0) + (setPiece ? 1000 : 0),
     entrenchSpeedPct: fs?.entrenchSpeedPct ?? 0,
     supplyUsePct: fs?.supplyUsePct ?? 0,
     fmPlan: fm?.plan ?? 0,

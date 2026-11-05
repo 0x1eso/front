@@ -164,6 +164,9 @@ export function arrive(land: WwLand, r: number, tick: number): void {
   if (land.bandProg[to] !== 0) attachOccupiers(land, to);
 }
 
+const HARD_PURSUIT = traitBit("hard_pursuit");
+const FAST_INFILTRATION = traitBit("fast_infiltration");
+
 /** Spec §6.2: the general's movement traits, bp (panzer leader, cavalry officer). */
 export function traitSpeedBp(land: WwLand, r: number, flags: number): number {
   const army = land.armies.get(land.divisions.army[r]);
@@ -182,6 +185,10 @@ export function traitSpeedBp(land: WwLand, r: number, flags: number): number {
   ) {
     bp += 1000;
   }
+  // ww97: Patton's dash for the mobile divisions, Yamashita's for the foot.
+  const mobile = (flags & (TPL_ARMOR_ANY | TPL_MOTOR_ANY)) !== 0;
+  if ((g.traits & HARD_PURSUIT) !== 0 && mobile) bp += 1000;
+  if ((g.traits & FAST_INFILTRATION) !== 0 && !mobile) bp += 1000;
   return bp;
 }
 

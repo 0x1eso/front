@@ -587,7 +587,11 @@ export function divisionMods(i: ModInput): ModResult {
   if (i.attacking) {
     // P6 (spec §4.2, §5.2.2, §21.2): engineer officers, amphibious and
     // flail tanks, the river and fort penalty cuts.
-    const engOfficer = has(i.traits, TB("engineer_officer")) ? 85 : 100;
+    // ww97: Juin's line breaker cuts the same two penalties (not stacked).
+    const engOfficer =
+      has(i.traits, TB("engineer_officer")) || has(i.traits, TB("line_breaker"))
+        ? 85
+        : 100;
     const amph = has(i.designFlags, TPL_AMPHIBIOUS);
     if (i.river > 0) {
       const n =

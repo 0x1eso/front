@@ -14,7 +14,9 @@
 // the same values.
 import {
   MOVE_NONE,
+  TPL_ARMOR_ANY,
   TPL_LOGISTICS,
+  TPL_MOTOR_ANY,
   traitBit,
   WW_SUPPLY_RANGE,
 } from "@openfront/engine-api/ww1936/LandTypes";
@@ -551,6 +553,9 @@ function occupierRate(
  * does not hold. An army none of whose divisions was encircled and one of
  * which is now hears it once.
  */
+/** ww97: extra supply use of armour and motorized under a dashing general, percent. */
+const MOBILE_USE_PCT = 10;
+
 function divisionRates(
   land: WwLand,
   st: SupplyState,
@@ -564,9 +569,10 @@ function divisionRates(
   for (const r of regions) use[r] = 0;
   const logOf = new Map<
     number,
-    { log: number; wizard: boolean; usePct: number }
+    { log: number; wizard: boolean; usePct: number; mobilePct: number }
   >();
   const wizard = traitBit("logistics_wizard");
+  const MOBILE_USE_TRAITS = traitBit("deep_thrust") | traitBit("hard_pursuit");
   // The side's divisions, member by member (sums and sets: the order is free).
   const rows: number[] = [];
   for (const m of members) {
@@ -588,6 +594,11 @@ function divisionRates(
           log: (gen?.log ?? 0) + (am?.fmLog ?? 0),
           wizard: gen !== null && (gen.traits & wizard) !== 0,
           usePct: am?.supplyUsePct ?? 0,
+          // ww97: the dash of deep thrust and hard pursuit costs supply.
+          mobilePct:
+            gen !== null && (gen.traits & MOBILE_USE_TRAITS) !== 0
+              ? -MOBILE_USE_PCT
+              : 0,
         };
         logOf.set(t.army[row], g);
       }
@@ -596,7 +607,11 @@ function divisionRates(
         g.log,
         (land.flagsOf(row) & TPL_LOGISTICS) !== 0,
         g.wizard,
-        usePct + g.usePct,
+        usePct +
+          g.usePct +
+          ((land.flagsOf(row) & (TPL_ARMOR_ANY | TPL_MOTOR_ANY)) !== 0
+            ? g.mobilePct
+            : 0),
       );
     }
   }

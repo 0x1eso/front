@@ -86,6 +86,15 @@ export const GENERAL_TRAITS = [
   "guerrilla_fighter",
   "skirmisher",
   "ambusher",
+  // ww97 (national design area G): the named generals' own traits, bits
+  // 23-29; bit 30 stays spare. No general is assigned one: only the roster.
+  "deep_thrust",
+  "reserve_master",
+  "hard_pursuit",
+  "set_piece",
+  "fast_infiltration",
+  "rearguard",
+  "line_breaker",
 ] as const;
 export type GeneralTrait = (typeof GENERAL_TRAITS)[number];
 /**

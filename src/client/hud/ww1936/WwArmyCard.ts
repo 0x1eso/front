@@ -184,6 +184,14 @@ export const TRAIT_ICONS: Readonly<Partial<Record<GeneralTrait, string>>> = {
   guerrilla_fighter: "🌿",
   skirmisher: "👁",
   ambusher: "🪤",
+  // ww97: the named generals' own traits.
+  deep_thrust: "🚀",
+  reserve_master: "🧱",
+  hard_pursuit: "🏁",
+  set_piece: "🗺",
+  fast_infiltration: "🥷",
+  rearguard: "🚧",
+  line_breaker: "🔨",
 };
 
 const STANCE_KEYS = {

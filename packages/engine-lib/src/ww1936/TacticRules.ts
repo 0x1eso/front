@@ -271,6 +271,7 @@ const B_TRICKSTER = T("trickster");
 const B_COMMANDO = T("commando");
 const B_SKIRMISHER = T("skirmisher");
 const B_AMBUSHER = T("ambusher");
+const B_FAST_INFILTRATION = T("fast_infiltration");
 
 const hasT = (mask: number, bit: number) => (mask & bit) !== 0;
 
@@ -289,6 +290,7 @@ export function initiativeOf(s: TacticSide, defending: boolean): number {
   const m = s.traits;
   if (hasT(m, B_TRICKSTER)) v += 8;
   if (hasT(m, B_SKIRMISHER)) v += 4;
+  if (hasT(m, B_FAST_INFILTRATION)) v += 6;
   if (defending) {
     if (hasT(m, B_DEFENSIVE)) v += 6;
     if (hasT(m, B_AMBUSHER)) v += 6;
@@ -324,7 +326,12 @@ export function attackWeights(s: TacticSide, w: number[]): void {
   w[AT_SHOCK] = 16;
   if (hasT(m, B_OFFENSIVE)) w[AT_SHOCK] = 32;
   w[AT_INFILTRATION] = 12;
-  if (hasT(m, B_TRICKSTER) || hasT(m, B_SKIRMISHER) || hasT(m, B_COMMANDO)) {
+  if (
+    hasT(m, B_TRICKSTER) ||
+    hasT(m, B_SKIRMISHER) ||
+    hasT(m, B_COMMANDO) ||
+    hasT(m, B_FAST_INFILTRATION)
+  ) {
     w[AT_INFILTRATION] = 30;
   }
   w[AT_BARRAGE] = s.artPm >= 250 ? 8 + Math.floor(s.artPm / 25) : 0;
