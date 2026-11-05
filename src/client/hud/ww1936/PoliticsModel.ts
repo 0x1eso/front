@@ -983,6 +983,11 @@ export function lostVpPct(i: PoliticsModelInput): number {
   return total <= 0 ? 0 : Math.floor((lost * 100) / total);
 }
 
+const BASE_LINE_KEYS: ReadonlySet<string> = new Set([
+  "ww1936.pol.line.stab_base",
+  "ww1936.pol.line.ws_base",
+]);
+
 function bar(
   bp: number,
   baseBp: number,
@@ -993,11 +998,14 @@ function bar(
     pct: pctOf(bp),
     tone: toneOf(bp),
     base: translateText("ww1936.pol.gov.base", { pct: pctOf(baseBp) }),
-    lines: lines.map((l) => ({
-      label: translateText(l.key),
-      value: signedPctText(l.bp),
-      negative: l.bp < 0,
-    })),
+    // The header line already says the base: don't repeat it as a row.
+    lines: lines
+      .filter((l) => !BASE_LINE_KEYS.has(l.key))
+      .map((l) => ({
+        label: translateText(l.key),
+        value: signedPctText(l.bp),
+        negative: l.bp < 0,
+      })),
     effects,
   };
 }
