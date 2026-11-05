@@ -154,6 +154,7 @@ import {
   predictAttackRange,
   targetDistances,
 } from "./Plans";
+import { ATTRITION_SUPPLY_PM } from "./Sustain";
 import type {
   Army,
   CountryLand,
@@ -1250,6 +1251,8 @@ class AiDay {
   private offEffort = new Set<number>();
   /** ww103: enemies a front of ours has armies to spare against today. */
   private surplus = new Set<number>();
+  /** ww103: divisions today's fronts have put on each line region (the period's day). */
+  private lineUsed = new Map<number, number>();
   /** ww81 C4: the armies that lead today's main efforts: the air goes to them first. */
   private skyArmies = new Set<number>();
   /** ww81 C3: today's cuts of each enemy read (on the period's day or for a new sector). */
@@ -1387,6 +1390,17 @@ class AiDay {
       midPm: Math.floor((base.midPm * st.midPct) / 100),
       lowPm: Math.floor((base.lowPm * st.lowPct) / 100),
     };
+  }
+
+  /** ww103: an outnumbered front's bar: a stalemate lowers it like the others. */
+  private outnumberedBar(enemy: number): number {
+    const w = this.land.ww.endgame.warOfPair(this.me, enemy);
+    const front = this.land.ww.endgame.fronts.find((x) => x[0] === w);
+    if (front === undefined) return AI_OUTNUMBERED_ATTACK_PM;
+    return aiStaleGate(
+      { midPm: AI_OUTNUMBERED_ATTACK_PM, lowPm: AI_OUTNUMBERED_ATTACK_PM },
+      this.day - front[3],
+    ).midPm;
   }
 
   /** ww103: the bars against `enemy`, lowered by the days its front has stood still. */
@@ -2309,7 +2323,7 @@ class AiDay {
    */
   private holdFront(f: Front, armies: readonly Army[]): void {
     const atWar = this.atWar.includes(f.enemy);
-    let ours = 0;
+    let ours = this.alliesOn(f);
     for (const a of armies) ours += this.armyPower(a);
     const outnumbered =
       atWar && this.facingPower(f) * 100 > ours * AI_OUTNUMBERED_PCT;
@@ -2369,6 +2383,7 @@ class AiDay {
       this.postRear(rear, f, line);
     }
     const held = all.filter((a) => !rear.includes(a));
+    if (this.effortDue()) this.noteLine(held, zones);
     for (const a of held) {
       const o = a.order;
       const defend =
@@ -2768,6 +2783,36 @@ class AiDay {
     return Math.max(1, Math.min(wide, Math.floor(this.feedOf(r) / unit)));
   }
 
+  /** ww103: what today's fronts have put on each line region: fronts share them. */
+  private noteLine(
+    armies: readonly Army[],
+    zones: ReadonlyMap<number, readonly number[]>,
+  ): void {
+    for (const a of armies) {
+      const zone = zones.get(a.id) ?? [];
+      const each = Math.ceil(a.divisions.length / Math.max(1, zone.length));
+      for (const r of zone) {
+        this.lineUsed.set(r, (this.lineUsed.get(r) ?? 0) + each);
+      }
+    }
+  }
+
+  /** ww103: the power of the allies standing on `f`'s border: a front they share is not ours alone. */
+  private alliesOn(f: Front): number {
+    const land = this.land;
+    const t = land.divisions;
+    let n = 0;
+    for (const b of f.border) {
+      for (const r of land.rowsIn(b)) {
+        const o = t.owner[r];
+        if (o !== this.me && land.sameSide(this.me, o)) {
+          n += this.divisionPower(r);
+        }
+      }
+    }
+    return n;
+  }
+
   /** ww103: on the line's own armies' reckoning, an army that stands behind the line already. */
   private behind(a: Army, onLine: ReadonlySet<number>): boolean {
     const o = a.order;
@@ -2799,7 +2844,10 @@ class AiDay {
     const unit = this.supplyUnit(armies);
     const mean = meanWidthOf(this.land, rows);
     let want = 0;
-    for (const r of line) want += this.lineRoom(r, unit, mean);
+    for (const r of line) {
+      const used = this.lineUsed.get(r) ?? 0;
+      want += Math.max(0, this.lineRoom(r, unit, mean) - used);
+    }
     want = Math.max(want, line.length * per);
     const ids = aiRearArmies(
       armies.map((a) => ({
@@ -2844,8 +2892,13 @@ class AiDay {
         this.giveZone(a, f, [at], true);
         continue;
       }
+      // Off every line: another front's region is no rear.
+      const quiet = (r: number) =>
+        !land.scenario
+          .edgesOf(r)
+          .some((e) => land.isEnemy(this.me, land.controller[e.to]));
       list ??= this.side()
-        .regions.filter((r) => dist[r] > 0 && dist[r] < FAR)
+        .regions.filter((r) => dist[r] > 0 && dist[r] < FAR && quiet(r))
         .sort((x, y) => dist[x] - dist[y] || x - y);
       const spot = list.find(fits) ?? this.behindLine(f, line);
       planned.set(spot, (planned.get(spot) ?? 0) + n);
@@ -2928,7 +2981,17 @@ class AiDay {
           bestKm = km;
         }
       }
-      if (best === 0) continue;
+      if (best === 0) {
+        // No way out, at peace: an enclave a line peace left it in (175 Soviet
+        // divisions starved in Saxony for years). The men go home by disbanding.
+        if (
+          this.atWar.length === 0 &&
+          t.supply[armyRows(land, a)[0]] < ATTRITION_SUPPLY_PM
+        ) {
+          this.issue({ kind: "army_disband", army: a.id });
+        }
+        continue;
+      }
       left.set(best, roomOf(best) - n);
       if (!this.railTransit(a, best)) {
         this.issue({ kind: "army_move", army: a.id, region: best });
@@ -4149,10 +4212,8 @@ class AiDay {
     // C3 rule 3: a pocket waits for no readiness, as a broken enemy doesn't.
     const floor = pocket ? AI_PURSUIT_RATIO_PM : r.midPm;
     if (!this.ripe(s.a, enemy, floor)) return false;
-    return (
-      r.midPm >= (hold ? AI_OUTNUMBERED_ATTACK_PM : gate.midPm) &&
-      r.lowPm >= gate.lowPm
-    );
+    const bar = hold ? this.outnumberedBar(enemy) : gate.midPm;
+    return r.midPm >= bar && r.lowPm >= gate.lowPm;
   }
 
   /**

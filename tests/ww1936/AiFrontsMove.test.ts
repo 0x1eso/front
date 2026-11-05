@@ -43,6 +43,7 @@ import {
   placeArmy,
   pol,
   stepTo,
+  takeRegion,
   wwRunner,
 } from "./util";
 
@@ -198,5 +199,18 @@ describe("the AI's fronts move (ww103)", () => {
     expect(bordersFortified(p, deu)).toBe(false);
     econ.fort[picks[0]] = AI_FORT_DECISION_LEVEL;
     expect(bordersFortified(p, deu)).toBe(true);
+  }, 120_000);
+
+  it("at peace an army starving with no way out disbands; men come home", async () => {
+    const runner = await wwRunner({ historicalAi: false });
+    const g = runner.game;
+    stepTo(runner, WW_PREP_TICKS + 1);
+    const l = land(g);
+    const LONDON = 10;
+    takeRegion(g, LONDON, "DEU");
+    const a = placeArmy(g, "DEU", LONDON, 40);
+    const d0 = g.worldWar()!.day(g.ticks());
+    for (let d = d0; d <= d0 + 25; d++) finishDay(runner, d);
+    expect(l.armies.has(a.id)).toBe(false);
   }, 120_000);
 });
