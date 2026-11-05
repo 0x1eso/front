@@ -538,15 +538,6 @@ const FOOT_KINDS: ReadonlySet<string> = new Set([
   "motor",
 ]);
 
-/**
- * ww84: what the portable anti-tank line adds to a foot battalion, centi:
- * pierce and hard attack. The keys are the research lane's (WW_STAT_KEYS
- * infAtPierce, infAtHard); read by name, 0 until a country has them.
- */
-function portableAntiTank(tech: TechTotals): { pierce: number; hard: number } {
-  const st = tech as unknown as Partial<Record<string, number>>;
-  return { pierce: st.infAtPierce ?? 0, hard: st.infAtHard ?? 0 };
-}
 
 /** One carrier of hard attack: its need group, pierce (defending, attacking) and hard attack. */
 interface HardCarrier {
@@ -710,7 +701,9 @@ export function templateStats(
   let fuelWidth = 0;
   let fuelHour = 0;
   const st = tech as unknown as Partial<Record<WwStatKey, number>>;
-  const portable = portableAntiTank(tech);
+  // ww84: what the portable anti-tank line adds to a foot battalion, centi.
+  const atPierce = st.infAtPierce ?? 0;
+  const atHard = st.infAtHard ?? 0;
   for (const id of def.battalions) {
     const d = BATTALIONS[id];
     const main = TYPE_INDEX.get(d.equip[0][0])!;
@@ -765,7 +758,7 @@ export function templateStats(
           KS.pierce,
         ),
         bp.pierce,
-      ) + (foot ? portable.pierce : 0);
+      ) + (foot ? atPierce : 0);
     armorMax = Math.max(armorMax, armor);
     armorSum += armor;
     if (armor > 0) armoured++;
@@ -785,7 +778,7 @@ export function templateStats(
           KS.hard,
         ),
         bp.hard,
-      ) + (foot ? portable.hard : 0);
+      ) + (foot ? atHard : 0);
     parts[main * 4 + 1] += hard;
     carriers.push({
       group: main,

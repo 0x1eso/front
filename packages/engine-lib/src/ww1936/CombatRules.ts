@@ -200,12 +200,9 @@ function bestPierce(pierce: readonly number[], hard: readonly number[]): number 
   return best;
 }
 
-/**
- * ww84: the research lane's key off the tank fear penalty (WW_STAT_KEYS
- * tankFearCutPp): read by name, 0 until a country has it.
- */
+/** ww84: the points anti-tank research takes off the tank fear penalty. */
 export function tankFearCutPp(tech: TechTotals): number {
-  return (tech as unknown as Partial<Record<string, number>>).tankFearCutPp ?? 0;
+  return stat(tech, "tankFearCutPp");
 }
 
 /**

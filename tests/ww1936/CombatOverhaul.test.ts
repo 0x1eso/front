@@ -68,6 +68,7 @@ import { techTotals } from "@openfront/engine-lib/ww1936/WwTechs";
 import type { Game } from "@openfront/engine/game/Game";
 import { createGameRunner } from "@openfront/engine/GameRunner";
 import {
+  fearCutOf,
   joinBattle,
   ROUT_LOSS_CAVALRY_PCT,
   ROUT_LOSS_PCT,
@@ -563,6 +564,22 @@ describe("P3: infantry and armour", () => {
     const s = of("infantry");
     expect(tankFearPct(s.bandPierce, s.bandHard, 4000, 0)).toBe(0);
   });
+
+  test("the research reaches a real division: inf_at_2 and tank fear", async () => {
+    const { g, l } = await war();
+    const ce = l.econ.country(byTag(g, "POL").smallID())!;
+    const before = ce.stats.tankFearCutPp;
+    ce.addTech("inf_at_1");
+    ce.addTech("inf_at_2");
+    expect(ce.stats.tankFearCutPp).toBeGreaterThanOrEqual(before + 10);
+    const tpl = template(g, "POL", [["infantry", 9]]);
+    const d = placeArmy(g, "POL", WARSAW, 1, tpl);
+    const s = l.statsOf(l.divisions.rowOf(d.divisions[0]));
+    expect(s.bandPierce[0]).toBeGreaterThanOrEqual(2500);
+    expect(fearCutOf(l, l.divisions.rowOf(d.divisions[0]))).toBe(
+      ce.stats.tankFearCutPp,
+    );
+  }, 60_000);
 
   test("the prediction knows all of it", () => {
     const toFoot = predictBattle(side(tanks), side(rifles), ctx);
