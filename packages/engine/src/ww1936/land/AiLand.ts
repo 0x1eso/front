@@ -94,25 +94,31 @@ import {
   chooseMerge,
   chooseShape,
   judgeRole,
+  choosePool,
   type MergeFacts,
   MERGES_PER_DAY,
+  type PoolFacts,
   type ShapeCandidate,
   trainTargetArmy,
 } from "./AiArmies";
 import {
   AI_EFFORT_CAPITAL_VALUE,
+  AI_EFFORT_FORT_BAR,
   AI_EFFORT_PERIOD_DAYS,
+  AI_ONE_ENEMY_HOLD_PCT,
   effortFed,
   effortRoom,
   effortTarget,
   enemyCuts,
   type EnemyCuts,
+  type EnemyFront,
+  offMainDemand,
   P_AXIS,
+  P_MAIN_ENEMY,
+  pickMainEnemy,
   pickMainSector,
 } from "./AiEffort";
 import { meanWidthOf, zoneCap } from "./Fronts";
-  type EnemyFront,
-  offMainDemand,
 import { canServe } from "./GeneralsRun";
 import { capitalRegion } from "./LandStartRun";
 import { enemyDivisionsIn } from "./Movement";
@@ -382,8 +388,11 @@ export interface AiRing {
 export function aiBestRing(
   border: { regions: number; terrain: number },
   rings: readonly AiRing[],
+  /** ww91 rule 3: what the points given up count, % of normal. */
+  vpPct = 100,
 ): number {
-  const score = (r: AiRing) => 2 * r.regions - r.terrain + 2 * r.vpLost;
+  const score = (r: AiRing) =>
+    2 * r.regions - r.terrain + Math.floor((2 * r.vpLost * vpPct) / 100);
   let best = -1;
   let bestScore = score({ ...border, vpLost: 0 });
   rings.forEach((r, i) => {
@@ -829,6 +838,9 @@ interface Front {
   comp: number;
   border: number[];
   demand: number;
+  /** ww91 rule 1: the same border's demand as a held front and as an offensive. */
+  held: number;
+  full: number;
 }
 
 /** An axis region of a plan and the enemy region it goes for. */
@@ -838,9 +850,6 @@ interface AiLeg {
 }
 
 /** What an army would (or does) throw at the regions across its zone. */
-  /** ww91 rule 1: the same border's demand as a held front and as an offensive. */
-  held: number;
-  full: number;
 interface AiStrike {
   a: Army;
   legs: AiLeg[];
@@ -979,7 +988,7 @@ class AiDay {
   readonly personality: AiPersonality;
   readonly major: boolean;
   /** ww91: the plan this country plays (the defaults for a human or a minor). */
-  readonly plan: Readonly<NationalPlan>;
+  readonly warPlan: Readonly<NationalPlan>;
   /** At war and able to fight, ascending. */
   readonly atWar: number[];
   /**
@@ -1022,6 +1031,8 @@ class AiDay {
   private cutsMemo = new Map<number, EnemyCuts>();
   /** ww91 rule 2: today's stance. */
   private stanceMemo: PlanStance | null = null;
+  /** ww91 rule 1: the one enemy that gets the offensive today; 0: no such choice. */
+  private mainEnemy = 0;
 
   constructor(
     readonly land: WwLand,
@@ -1031,12 +1042,10 @@ class AiDay {
     readonly human: boolean,
   ) {
     this.me = cl.smallID;
-  /** ww91 rule 1: the one enemy that gets the offensive today; 0: no such choice. */
-  private mainEnemy = 0;
     this.tag = cl.tag;
     this.personality = aiPersonality(cl.tag);
     this.major = COUNTRIES[cl.tag].major;
-    this.plan = planOf(cl.tag, land.ww.politics.seed, cl.smallID, human);
+    this.warPlan = planOf(cl.tag, land.ww.politics.seed, cl.smallID, human);
     this.atWar = land.ww
       .enemiesOf(this.me)
       .filter((e) => this.fights(e) && land.isEnemy(this.me, e));
@@ -1130,7 +1139,7 @@ class AiDay {
   /** ww91 rule 2: strike while strong (no reads for a plan that doesn't care). */
   private stance(): PlanStance {
     if (this.stanceMemo === null) {
-      const p = this.plan;
+      const p = this.warPlan;
       const fuel = p.fuelStopPm > 0 || p.gateMidPct < 100;
       this.stanceMemo = planStance(
         p,
@@ -1327,7 +1336,7 @@ class AiDay {
     const out: number[] = [];
     if (cap !== 0 && near[cap] !== FAR) out.push(cap);
     const slots = Math.floor(
-      Math.floor((this.cl.peakDivisions * this.plan.reservePct) / 100) /
+      Math.floor((this.cl.peakDivisions * this.warPlan.reservePct) / 100) /
         AI_GUARD_DIVISIONS,
     );
     if (slots === 0) return out;
@@ -1680,9 +1689,8 @@ class AiDay {
             if (k === undefined) facing.set(x, (k = this.enemyCount(x, enemy)));
             milli += Math.floor((k * 1000) / touching.get(x)!);
           }
-          demand += aiBorderDemand({
+          const at = {
             facingMilli: milli,
-            offensive,
             land: sc.landOf(b),
             dirs,
             fort: land.econ.fort[b] ?? 0,
@@ -1788,6 +1796,7 @@ class AiDay {
         a.divisions.length > 0 &&
         a.order.kind !== "paradrop",
     );
+    this.oneEnemy(fronts, armies);
     const input: AiFrontArmy[] = [];
     const ours = fronts.map(() => 0);
     for (const a of armies) {
@@ -1796,7 +1805,6 @@ class AiDay {
       let reach: number[] = [];
       fronts.forEach((f, i) => {
         if (f.comp === c) reach.push(i);
-    this.oneEnemy(fronts, armies);
       });
       let sea = false;
       if (reach.length === 0) {
@@ -1861,14 +1869,6 @@ class AiDay {
     });
   }
 
-  /**
-   * ww7 lane D items 1 and 4: a front at war with fewer divisions than regions,
-   * or outnumbered, draws the nearest army (one not attacking before one that
-   * is) of another front of the same stretch that would keep a division for
-   * each of its regions and stay clear of being outnumbered itself. The demand
-   * plan knows only tenths of demand, and its armies stay where they are:
-   * Germany's last armies chased Poland's remnant while the Allies massed in
-   * the west. Worst front first (ties: the earlier). ww7 lane F (item 1: no
   /**
    * ww91 rule 1, one enemy at a time: with two or more enemies on land, the
    * best one gets an offensive's demand, and the others keep only what the
@@ -1938,6 +1938,14 @@ class AiDay {
     }
   }
 
+  /**
+   * ww7 lane D items 1 and 4: a front at war with fewer divisions than regions,
+   * or outnumbered, draws the nearest army (one not attacking before one that
+   * is) of another front of the same stretch that would keep a division for
+   * each of its regions and stay clear of being outnumbered itself. The demand
+   * plan knows only tenths of demand, and its armies stay where they are:
+   * Germany's last armies chased Poland's remnant while the Allies massed in
+   * the west. Worst front first (ties: the earlier). ww7 lane F (item 1: no
    * uncovered border with divisions to spare): a front with nobody on it takes
    * the smallest army another front can spare, however that front stands. With
    * every front outnumbered nobody could give: Niedersachsen and
@@ -2037,10 +2045,13 @@ class AiDay {
       atWar && this.facingPower(f) * 100 > ours * AI_OUTNUMBERED_PCT;
     if (outnumbered) for (const a of armies) this.holding.add(a.id);
     const { border, shared } = this.ourBorder(f);
+    // ww91 rule 3: the fist stays out of the line while the front is outnumbered.
+    const pool = outnumbered ? this.poolOf(f, armies, border) : [];
+    const standing = armies.filter((a) => !pool.includes(a));
     let divisions = 0;
     let attacking = false;
     let pursuing = false;
-    for (const a of armies) {
+    for (const a of standing) {
       divisions += a.divisions.length;
       if (a.order.kind === "plan" && a.order.executing) {
         attacking = true;
@@ -2056,7 +2067,7 @@ class AiDay {
         ? !pursuing
         : !attacking && (!this.offensive(f.enemy) || this.stance().stopped));
     const ring = mayShorten
-      ? this.shorterLine(f, armies, divisions, outnumbered)
+      ? this.shorterLine(f, standing, divisions, outnumbered)
       : null;
     const line = ring ?? border;
     // ww91 rule 1: off the main enemy a front holds: walks and a broken enemy only.
@@ -2073,6 +2084,7 @@ class AiDay {
       (judged ? this.mainEffort(f, line, held) : null) ??
       this.zonesOf(f, line, held);
     if (reserve !== null) this.postReserve(reserve, f, line);
+    if (pool.length > 0) this.postPool(pool, f, line);
     for (const a of held) {
       const o = a.order;
       const defend =
@@ -2127,6 +2139,123 @@ class AiDay {
       if (total - a.divisions.length >= line.length * per) return a;
     }
     return null;
+  }
+
+  /**
+   * ww91 rule 3: the armies this outnumbered front keeps out of its line, by
+   * the plan's share. Not one in a running attack, and never a human's.
+   */
+  private poolOf(
+    f: Front,
+    armies: readonly Army[],
+    border: readonly number[],
+  ): Army[] {
+    const pct = this.warPlan.poolPct;
+    if (pct === 0) return [];
+    const onLine = new Set(border);
+    const facts: PoolFacts[] = armies
+      .filter((a) => !(a.order.kind === "plan" && a.order.executing))
+      .map((a) => {
+        const z = a.order.zone;
+        return {
+          id: a.id,
+          n: a.divisions.length,
+          fist: this.shock(a),
+          back:
+            a.order.enemy === f.enemy &&
+            a.order.kind === "front" &&
+            z.length === 1 &&
+            !onLine.has(z[0]),
+        };
+      });
+    const ids = choosePool(facts, pct, border.length);
+    return armies.filter((a) => ids.includes(a.id));
+  }
+
+  /**
+   * ww91 rule 3: the pool stands behind the line; on the day a sector clears
+   * the plan's counter bar with the pool in, it goes for that sector. A pool
+   * never fed in piecemeal is also a pool never lost: once the front is no
+   * longer outnumbered poolOf lets it go, and the main effort takes it first.
+   */
+  private postPool(pool: readonly Army[], f: Front, line: readonly number[]) {
+    const sc = this.land.scenario;
+    const x = this.counterSector(f, line, pool);
+    if (x === 0) {
+      const back = this.behindLine(f, line);
+      for (const a of pool) {
+        this.offEffort.add(a.id);
+        this.giveZone(a, f, [back], true);
+      }
+      return;
+    }
+    const near = line.filter((r) => sc.edgeBetween(r, x) >= 0);
+    for (const a of pool) {
+      this.holding.delete(a.id);
+      this.giveZone(a, f, near, false);
+      this.joinEffort(a, x);
+      this.aim(a, x);
+    }
+    this.skyArmies.add(pool[0].id);
+  }
+
+  /**
+   * ww91 rule 3: the sector a pool counterattacks: the one its plans wait on
+   * (the orders are all the memory there is), else on the period's day the
+   * thinnest region across the line, when the pool and those standing next to
+   * it clear the counter bar. 0: not yet.
+   */
+  private counterSector(
+    f: Front,
+    line: readonly number[],
+    pool: readonly Army[],
+  ): number {
+    const bar = this.warPlan.counterPm;
+    if (bar === 0) return 0;
+    const land = this.land;
+    const sc = land.scenario;
+    const near = (x: number) => line.filter((r) => sc.edgeBetween(r, x) >= 0);
+    for (const a of pool) {
+      const x = effortTarget(a.order);
+      if (
+        x !== 0 &&
+        a.order.enemy === f.enemy &&
+        land.controller[x] === f.enemy &&
+        near(x).length > 0
+      ) {
+        return x;
+      }
+    }
+    if (!this.effortDue()) return 0;
+    const side = land.sideOf(this.me);
+    let best = 0;
+    let bestDefence = Infinity;
+    const seen = new Set<number>();
+    for (const r of line) {
+      for (const e of sc.edgesOf(r)) {
+        const x = e.to;
+        if (seen.has(x) || land.controller[x] !== f.enemy) continue;
+        seen.add(x);
+        if (enemyDivisionsIn(land, this.me, x) === 0) continue;
+        if (effectiveLevel(land.econ, x, "fort") >= AI_EFFORT_FORT_BAR) {
+          continue;
+        }
+        if (enemySkyPm(land.ww.air, x, side) >= this.warPlan.skyBarPm) continue;
+        const d = enemyStrength(land, this.me, x);
+        if (d < bestDefence || (d === bestDefence && x < best)) {
+          best = x;
+          bestDefence = d;
+        }
+      }
+    }
+    if (best === 0) return 0;
+    const from = near(best);
+    const standing = this.frontStanding(f.enemy);
+    const rows: number[] = [];
+    for (const r of from) rows.push(...(standing.get(r) ?? []));
+    for (const a of pool) rows.push(...armyRows(land, a));
+    const p = predictAttackRange(land, rows, best, from.length);
+    return p.midPm >= bar ? best : 0;
   }
 
   /** An enemy holds `region`, which is our side's by right. */
@@ -2772,6 +2901,7 @@ class AiDay {
     const best = aiBestRing(
       { regions: f.border.length, terrain: terrainOf(0) },
       candidates,
+      outnumbered ? this.warPlan.ringVpPct : 100,
     );
     return best < 0 ? null : rings[best + 1];
   }
@@ -3122,7 +3252,7 @@ class AiDay {
         // Ruling 5: under 40% org it regroups; spec §14.4: under 0.7 it
         // holds; Task 11 (ruling 6): the attack over, a worn army regroups.
         const stop = () => {
-          if (org < this.plan.regroupPm) return true;
+          if (org < this.warPlan.regroupPm) return true;
           const fighting = rows.some(
             (r) =>
               land.divisions.battle[r] !== 0 ||
@@ -3132,7 +3262,7 @@ class AiDay {
           if (ratio < STOP_RATIO_PM) return true;
           return (
             !fighting &&
-            org < this.plan.reattackPm &&
+            org < this.warPlan.reattackPm &&
             ratio < AI_PURSUIT_RATIO_PM
           );
         };
@@ -3143,7 +3273,7 @@ class AiDay {
         }
         continue;
       }
-      if (org < this.plan.reattackPm || this.formedPm(a, rows) < FORMED_PM) {
+      if (org < this.warPlan.reattackPm || this.formedPm(a, rows) < FORMED_PM) {
         continue;
       }
       let list = ready.get(o.enemy);
@@ -3969,7 +4099,7 @@ class AiDay {
       major: this.major,
       dev: land.scenario.devOf(cl.tag, civ),
       hasArmorTech: this.ce.researched.has("light_tank_1"),
-      unitPct: this.plan.unitPct,
+      unitPct: this.warPlan.unitPct,
       hasAssault: this.ce.researched.has("mountaineers"),
       training,
       atPeace,

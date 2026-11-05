@@ -34,7 +34,8 @@ export function isShock(a: ArmyFacts): boolean {
   return a.armour > 0 && a.armour * SHOCK_THIRD >= a.n;
 }
 
-const mostlyApart = (a: ArmyFacts) => a.apart * 2 > a.n;
+/** Most of the army is special troops: they stay among their own. */
+export const mostlyApart = (a: ArmyFacts) => a.apart * 2 > a.n;
 
 /**
  * The army a new division joins (0: a new one). `armour`: an armour or
@@ -45,12 +46,21 @@ const mostlyApart = (a: ArmyFacts) => a.apart * 2 > a.n;
  * Armour: a shock army (else any army with armour) under 12 armour with
  * room, the most armoured first. Line: a shock army that stays a third
  * armour with the division in, the most armoured first; else the smallest
- * line army with room. Never makes 20:4.
+ * line army with room. Never makes 20:4. ww91 rule 8, `unit` (Guards, marines,
+ * the national mountain troops): the fullest army of its own kind with room,
+ * else a new one, so that the good troops can be posted as one.
  */
 export function trainTargetArmy(
   armour: boolean,
   armies: readonly ArmyFacts[],
+  unit = false,
 ): number {
+  if (unit) {
+    const own = armies
+      .filter((a) => a.n < WW_MAX_ARMY_DIVISIONS && mostlyApart(a))
+      .sort((a, b) => b.n - a.n || a.id - b.id);
+    return own[0]?.id ?? 0;
+  }
   const room = armies.filter(
     (a) => a.n < WW_MAX_ARMY_DIVISIONS && !mostlyApart(a),
   );
@@ -134,6 +144,50 @@ export function chooseMerge(
     };
   }
   return null;
+}
+
+/** What ww91 rule 3 weighs of an army of an outnumbered front. */
+export interface PoolFacts {
+  id: number;
+  n: number;
+  /** Armour or special troops: the fist. */
+  fist: boolean;
+  /** It stands behind the line already. */
+  back: boolean;
+}
+
+/**
+ * ww91 rule 3: the armies kept out of an outnumbered front's line, about
+ * `pct` % of its divisions: those back already, then the fist, then the
+ * smaller, as long as one army stays and the rest keep a division for each of
+ * the `regions` of the line. None with fewer than three armies, and no army
+ * of more than twice the share (a pool is a part, not the front).
+ */
+export function choosePool(
+  armies: readonly PoolFacts[],
+  pct: number,
+  regions: number,
+): number[] {
+  if (armies.length < 3 || pct <= 0) return [];
+  let total = 0;
+  for (const a of armies) total += a.n;
+  const want = Math.floor((total * pct) / 100);
+  const order = [...armies].sort(
+    (a, b) =>
+      Number(b.back) - Number(a.back) ||
+      Number(b.fist) - Number(a.fist) ||
+      a.n - b.n ||
+      a.id - b.id,
+  );
+  const out: number[] = [];
+  let kept = 0;
+  for (const a of order) {
+    if (kept >= want || out.length + 1 >= armies.length) break;
+    if (a.n > want * 2 || total - kept - a.n < regions) continue;
+    out.push(a.id);
+    kept += a.n;
+  }
+  return out;
 }
 
 /** The AI's two auto levels for a human's auto-trained army. */
