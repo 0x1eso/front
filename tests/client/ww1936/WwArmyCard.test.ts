@@ -489,9 +489,8 @@ describe("<ww-army-card> (spec §15.4)", () => {
     await m.el.updateComplete;
     const p = m.q("[data-ww-preview='move']")!;
     expect(p.textContent).toContain("→ Munich");
-    // Berlin → Munich: Munich's January is temperate (Task 11) and clear
-    // that week: 20 ticks, 2.7 days.
-    expect(p.textContent).toContain("[ww1936.land.move_days] days=2.7");
+    // Berlin → Munich: 16 ticks, 2.1 days, whatever the ground or the weather.
+    expect(p.textContent).toContain("[ww1936.land.move_days] days=2.1");
     expect(m.q("[data-ww-tap-again]")).not.toBeNull();
   });
 
