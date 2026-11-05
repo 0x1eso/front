@@ -7,6 +7,11 @@
 import type { WwOrder } from "@openfront/engine-api/Schemas";
 import { WP_FERRY } from "@openfront/engine-api/ww1936/AirTypes";
 import type { WwOrderBlock } from "@openfront/engine-api/ww1936/EconomyTypes";
+import {
+  rookieXpOf,
+  wingXpCapOf,
+  xpTier,
+} from "@openfront/engine-lib/ww1936/WingRules";
 import { EventBus } from "@openfront/shared/EventBus";
 import { html, LitElement, nothing, TemplateResult } from "lit";
 import { customElement, state } from "lit/decorators.js";
@@ -598,6 +603,19 @@ export class WwWingCard extends LitElement implements Controller {
                 kills: w.kills,
               })}</span
             >
+            ${ctx.stats.wingRookieXpMilli !== 0 ||
+            ctx.stats.wingXpCapMilli !== 0
+              ? html`<span data-ww-wing-pilots
+                  >${translateText("ww1936.wing.pilots", {
+                    rookie: translateText(
+                      `ww1936.wing.tier_${xpTier(rookieXpOf(ctx.stats))}`,
+                    ),
+                    cap: translateText(
+                      `ww1936.wing.tier_${xpTier(wingXpCapOf(ctx.stats))}`,
+                    ),
+                  })}</span
+                >`
+              : nothing}
             ${underRtb(w)
               ? html`<span class="text-amber-300"
                   >${translateText("ww1936.wing.under_strength", {

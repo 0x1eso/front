@@ -5040,6 +5040,7 @@
       "days_left": "{n} days",
       "days_per_unit": "{n} days each",
       "design_group": "{name} (own designs)",
+      "eff_traits": "Growth {growth, number, ::sign-always}%, a retool keeps {keep, number, ::sign-always} points",
       "efficiency": "Efficiency {n}% (cap {cap}%)",
       "export_room": "{n} a day for sale",
       "exported": "Exported",
@@ -10980,6 +10981,7 @@
       "preview_enemy": "Known enemy strength {n}",
       "preview_fuel": "Fuel {n} / day",
       "preview_odds": "Strength ratio {ratio}",
+      "preview_pack": "Pack: {n} of {need} boats, {pct, number, ::sign-always}%",
       "preview_sup": "Naval supremacy {pct}%",
       "region_air_base": "Air base {n}",
       "region_air_zone": "Air zone: {zone}",
@@ -11892,6 +11894,7 @@
       "tab": "Special projects"
     },
     "raid": {
+      "frogmen": "(frogmen {pct, number, ::sign-always}%)",
       "raid_bomb": "Precision Bombing Raid",
       "raid_commando": "Commando Raid",
       "raid_para": "Airborne Raid"
@@ -13498,13 +13501,13 @@
       "wolfPackPct": "Submarine pack raid power {value, number, ::sign-always}%"
     },
     "style": {
-      "DEU": "Quality and armoured war: breakthrough and fast-learning factories, but costly gear and scarce raw materials.",
-      "FRA": "Fortress defence: strong forts, quick digging in and early heavy tanks, but slow attacks and an arsenal that fails with the homeland.",
-      "GBR": "Sea and air: safe convoys, radar and air defence, colonial resources, but a small army and weak tanks.",
-      "ITA": "The Mediterranean and light mobility: a fast fleet, cheap light gear and quick movement, but small industry and weak gear.",
-      "JPN": "Naval aviation and infantry assault: carrier wings, torpedoes and fierce infantry, but few resources and weak tanks.",
-      "SUN": "Manpower and mass: huge numbers, cheap gear and quick recovery, but weak command early on and lower quality.",
-      "USA": "Industry and logistics: fast factories, deep supply, mass planes and ships, but a small army that mobilises slowly."
+      "DEU": "Quality and speed: radio-led infantry and armoured thrusts, submarine packs and close air support. Gear is dear, production lines climb slowly, and oil, raw materials and heavy bombers are short.",
+      "FRA": "The prepared line: strong forts, plenty of good guns and thick tanks, planned battles. It is slow to act, tanks have few radios, the air force flies far fewer sorties, and the arsenal fails with the homeland.",
+      "GBR": "Sea lanes, guns and night bombers: safe convoys, radar, code-breaking and heavy artillery. The army is small and cautious, tanks are unreliable and carrier air groups are small.",
+      "ITA": "The Mediterranean: a fast fleet, torpedo boats and planes, frogmen and mountain troops. Divisions are small and thinly armed, command and radar are poor, fuel is short and industry is thin.",
+      "JPN": "Infantry spirit and the strike fleet: night assault, stubborn defence, torpedoes, carrier wings and veteran pilots who are not replaced. Convoy escort is neglected, guns and tanks are few, and raw materials are scarce.",
+      "SUN": "Mass and recovery: huge numbers, a planned opening barrage, cheap gear and fast lines. Divisions are weak one on one, command is rigid, and pilots start green.",
+      "USA": "Industry and reach: fast factories, strong guns, carriers that mend quickly and steady replacements. The army starts small, soldiers lose cohesion, tanks are thin and the submarine torpedoes fail until the campaign is put right."
     },
     "subject": {
       "annex": "Annex",
@@ -14292,6 +14295,7 @@
       "none": "No wings yet",
       "on_carrier": "Carrier deck",
       "order_line": "{mission} → {target}",
+      "pilots": "Replacement pilots: {rookie}; best reachable: {cap}",
       "report_counts": "{raids} sorties · {lost} lost",
       "report_hit": "Hit: {place}",
       "report_raid": "Raid: {place}",

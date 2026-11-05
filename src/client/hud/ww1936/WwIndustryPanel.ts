@@ -22,6 +22,7 @@ import type { LineDepthCtx } from "@openfront/engine-lib/ww1936/EconomyChecks";
 import { genTech, isDesignType } from "@openfront/engine-lib/ww1936/Equipment";
 import type { HistCountry } from "@openfront/engine-lib/ww1936/hist/Types";
 import type { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
+import { emptyStats } from "@openfront/engine-lib/ww1936/Stats";
 import { assetUrl } from "@openfront/shared/AssetUrls";
 import { html, nothing, TemplateResult } from "lit";
 import { customElement, state } from "lit/decorators.js";
@@ -92,6 +93,7 @@ import {
   type HistPickGroup,
   type HistPickItem,
 } from "./HistPicker";
+import { statsFromArray } from "./LandSeaAir";
 import { conscriptionLaw } from "./PoliticsModel";
 import {
   countryName,
@@ -961,10 +963,17 @@ export class WwIndustryPanel extends WwDrawerBase {
     return html`${this.renderProdSwitch()} ${this.renderMunitions(c)}`;
   }
 
+  /** ww91 N4: the stats the line rows show; set by renderMunitions. */
+  private lineStats = emptyStats();
+
   private renderMunitions(c: Ctx): TemplateResult {
     const d = c.detail;
     const rows = lineRows(d);
-    const retention = retentionBpOf(d);
+    // ww91 N4: the country's own growth and retention keys (spirits too).
+    this.lineStats = statsFromArray(
+      this.game.wwPolitics?.()?.detail(c.id)?.stats ?? null,
+    );
+    const retention = Math.max(retentionBpOf(d), this.lineStats.retentionBp);
     return html`
       <p data-ww-mil class="m-0 mt-2 text-xs text-white/80">
         ${translateText("ww1936.econ.mil_factories", {
@@ -1107,6 +1116,14 @@ export class WwIndustryPanel extends WwDrawerBase {
             cap: Math.round(r.cap * 100),
           })}</span
         >
+        ${this.lineStats.effGrowthPct !== 0 || this.lineStats.retentionBp !== 0
+          ? html`<span data-ww-eff-traits class="text-xs text-white/60"
+              >${translateText("ww1936.econ.eff_traits", {
+                growth: this.lineStats.effGrowthPct,
+                keep: this.lineStats.retentionBp / 100,
+              })}</span
+            >`
+          : nothing}
         ${oldLine === null || oldLine.best === null
           ? nothing
           : html`<button
