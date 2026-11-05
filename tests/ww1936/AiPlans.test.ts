@@ -2,20 +2,15 @@ import {
   AI_PLAN_DEFAULT,
   AI_PLAN_STOP_OFFENSE_PCT,
   AI_PLANS,
+  buildsForWar,
+  type FactoryView,
+  nextFactory,
   planOf,
   planStance,
   planStrengthPct,
   resourceWorth,
+  wantsPeaceFort,
 } from "@openfront/engine-lib/ww1936/AiPlans";
-import {
-  AI_ATTACK_ORG_PM,
-  AI_OFFENSE_DEMAND_PCT,
-  AI_REGROUP_ORG_PM,
-  AI_RESERVE_PCT,
-  aiBestRing,
-  aiBorderDemand,
-  aiTrainPlan,
-} from "@openfront/engine/ww1936/land/AiLand";
 import {
   choosePool,
   trainTargetArmy,
@@ -27,6 +22,15 @@ import {
   pickMainEnemy,
   pickMainSector,
 } from "@openfront/engine/ww1936/land/AiEffort";
+import {
+  AI_ATTACK_ORG_PM,
+  AI_OFFENSE_DEMAND_PCT,
+  AI_REGROUP_ORG_PM,
+  AI_RESERVE_PCT,
+  aiBestRing,
+  aiBorderDemand,
+  aiTrainPlan,
+} from "@openfront/engine/ww1936/land/AiLand";
 import {
   aiInvasionPick,
   aiInvasionScore,
@@ -257,7 +261,13 @@ describe("rule 8: post the good troops", () => {
         hasAssault: false,
         training: 0,
         manpower: 1_000_000,
-        counts: { infantry: 92, armor: 0, motorized: 7, mountain: 0, cavalry: 0 },
+        counts: {
+          infantry: 92,
+          armor: 0,
+          motorized: 7,
+          mountain: 0,
+          cavalry: 0,
+        },
         templates: [
           { id: 1, key: "infantry", men: 10, fillPm: 1000 },
           { id: 2, key: "motorized", men: 10, fillPm: 1000 },
@@ -316,5 +326,75 @@ describe("rule 6: sea lanes first", () => {
   it("expected supremacy stays where the invasion planner had it", () => {
     expect(expectedSupPm(3, 1)).toBe(750);
     expect(expectedSupPm(0, 0)).toBe(0);
+  });
+});
+
+describe("rule 7: build for the plan", () => {
+  const at = (over: Partial<FactoryView> = {}): FactoryView => ({
+    plan: AI_PLAN_DEFAULT,
+    personalityAlertWtBp: 2000,
+    atWar: false,
+    plannedWar: false,
+    wtBp: 400,
+    threatPct: 0,
+    idleMil: 0,
+    starved: false,
+    ...over,
+  });
+  const plan = (over: Partial<typeof AI_PLAN_DEFAULT>) => ({
+    ...AI_PLAN_DEFAULT,
+    ...over,
+  });
+
+  it("a country that expects no war builds civilian factories", () => {
+    expect(buildsForWar(at())).toBe(false);
+    expect(nextFactory(at(), 0, 0)).toBe("civ");
+  });
+
+  it("the plan names its tension; without one the personality's stands", () => {
+    const sun = plan({ alertWtBp: 2000 });
+    expect(buildsForWar(at({ plan: sun, wtBp: 1999 }))).toBe(false);
+    expect(buildsForWar(at({ plan: sun, wtBp: 2000 }))).toBe(true);
+    expect(buildsForWar(at({ personalityAlertWtBp: 0 }))).toBe(true);
+    expect(
+      buildsForWar(at({ plan: sun, wtBp: 0, personalityAlertWtBp: 0 })),
+    ).toBe(false);
+  });
+
+  it("war, a planned war or a stronger neighbour end the wait", () => {
+    expect(buildsForWar(at({ atWar: true }))).toBe(true);
+    expect(buildsForWar(at({ plannedWar: true }))).toBe(true);
+    expect(buildsForWar(at({ threatPct: 149 }))).toBe(false);
+    expect(buildsForWar(at({ threatPct: 150 }))).toBe(true);
+  });
+
+  it("the mix follows the plan, and leans further with high tension", () => {
+    const de = at({ plan: plan({ milPerCiv: 4 }), wtBp: 0 });
+    const alerted = { ...de, personalityAlertWtBp: 0 };
+    expect(nextFactory(alerted, 3, 0)).toBe("mil");
+    expect(nextFactory(alerted, 4, 0)).toBe("civ");
+    expect(nextFactory({ ...alerted, wtBp: 3500 }, 4, 0)).toBe("mil");
+    expect(nextFactory({ ...alerted, wtBp: 3500 }, 8, 0)).toBe("civ");
+    const us = { ...alerted, plan: plan({ milPerCiv: 2 }) };
+    expect(nextFactory(us, 2, 0)).toBe("civ");
+  });
+
+  it("at war or with a war planned, only military", () => {
+    expect(nextFactory(at({ atWar: true }), 30, 0)).toBe("mil");
+    expect(nextFactory(at({ plannedWar: true }), 30, 0)).toBe("mil");
+  });
+
+  it("factories the lines can't feed are not built, even at war", () => {
+    expect(nextFactory(at({ atWar: true, starved: true }), 0, 0)).toBe("civ");
+    expect(nextFactory(at({ atWar: true }), 0, 0)).toBe("mil");
+    expect(nextFactory(at({ atWar: true, idleMil: 3 }), 0, 0)).toBe("civ");
+  });
+
+  it("forts before a war: on a threat's border, up to the plan's level", () => {
+    const fra = plan({ fortLevel: 4 });
+    expect(wantsPeaceFort(fra, 3, true)).toBe(true);
+    expect(wantsPeaceFort(fra, 4, true)).toBe(false);
+    expect(wantsPeaceFort(fra, 0, false)).toBe(false);
+    expect(wantsPeaceFort(AI_PLAN_DEFAULT, 0, true)).toBe(false);
   });
 });

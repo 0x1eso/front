@@ -31,6 +31,7 @@ import {
   WwAiLevel,
   wwAiWarPlanDue,
 } from "@openfront/engine-lib/ww1936/AiDifficulty";
+import { planOf } from "@openfront/engine-lib/ww1936/AiPlans";
 import { dayOfDate } from "@openfront/engine-lib/ww1936/Calendar";
 import { invasionCapacity } from "@openfront/engine-lib/ww1936/InvasionRules";
 import {
@@ -44,7 +45,6 @@ import {
 } from "@openfront/engine-lib/ww1936/NavalRules";
 import { isNoStrike } from "@openfront/engine-lib/ww1936/NoStrike";
 import { historicalAiActive } from "@openfront/engine-lib/ww1936/Pace";
-import { planOf } from "@openfront/engine-lib/ww1936/AiPlans";
 import {
   idHash,
   P_AI_NAVY,

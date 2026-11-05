@@ -53,6 +53,14 @@ export interface NationalPlan {
   homeSeaValue: number;
   /** Share of the divisions that are its special troops, %. */
   unitPct: number;
+  /** Rule 7: world tension, bp, from which it builds for war; -1: as its personality does. */
+  alertWtBp: number;
+  /** Rule 7: factory entries to one dockyard entry, while short of its dock target. */
+  milPerDock: number;
+  /** Rule 7: fort level it wants before a war on a border with a threat (0: none). */
+  fortLevel: number;
+  /** Rule 7: mine levels it will build where a short resource lies. */
+  mineMax: number;
 }
 
 /** A minor, a human's auto armies and anyone without a row. */
@@ -82,6 +90,10 @@ export const AI_PLAN_DEFAULT: Readonly<NationalPlan> = {
   resourceValue: 0,
   homeSeaValue: 0,
   unitPct: 0,
+  alertWtBp: -1,
+  milPerDock: 4,
+  fortLevel: 0,
+  mineMax: 6,
 };
 
 /** Section 8.4: what each major changes of the default. */
@@ -101,6 +113,9 @@ export const AI_PLANS: Readonly<
     navalWeightPct: 80,
     landingSupPm: 650,
     resourceValue: 5,
+    milPerDock: 6,
+    fortLevel: 1,
+    mineMax: 12,
   },
   SUN: {
     offensePct: 220,
@@ -120,6 +135,9 @@ export const AI_PLANS: Readonly<
     landingSupPm: 700,
     invasionSparePct: 30,
     unitPct: 5,
+    alertWtBp: 2000,
+    milPerDock: 6,
+    fortLevel: 2,
   },
   USA: {
     milPerCiv: 2,
@@ -134,6 +152,7 @@ export const AI_PLANS: Readonly<
     invasionSparePct: 15,
     islandBaseValue: 8,
     unitPct: 5,
+    milPerDock: 2,
   },
   GBR: {
     offensePct: 180,
@@ -151,6 +170,8 @@ export const AI_PLANS: Readonly<
     invasionSparePct: 15,
     homeSeaValue: 3,
     unitPct: 3,
+    alertWtBp: 1500,
+    milPerDock: 2,
   },
   FRA: {
     offensePct: 140,
@@ -168,6 +189,8 @@ export const AI_PLANS: Readonly<
     invasionSparePct: 30,
     homeSeaValue: 3,
     unitPct: 3,
+    alertWtBp: 1200,
+    fortLevel: 4,
   },
   JPN: {
     oneEnemyPct: 50,
@@ -187,6 +210,8 @@ export const AI_PLANS: Readonly<
     islandBaseValue: 10,
     resourceValue: 10,
     unitPct: 8,
+    milPerDock: 1,
+    mineMax: 12,
   },
   ITA: {
     offensePct: 180,
@@ -204,6 +229,9 @@ export const AI_PLANS: Readonly<
     resourceValue: 3,
     homeSeaValue: 5,
     unitPct: 8,
+    milPerDock: 3,
+    fortLevel: 1,
+    mineMax: 10,
   },
 };
 
@@ -216,7 +244,10 @@ export function planStrengthPct(seed: number, smallID: number): number {
 }
 
 /** A bar, not an amount: on or off, and where. The seed does not move it. */
-const UNSCALED: ReadonlySet<keyof NationalPlan> = new Set(["counterPm"]);
+const UNSCALED: ReadonlySet<keyof NationalPlan> = new Set([
+  "counterPm",
+  "alertWtBp",
+]);
 
 /**
  * The plan of `tag` in this game: each number moved from the default by the
@@ -305,4 +336,77 @@ export function resourceWorth(
     if (gap[k] > 0) units += Math.min(deposits[k] ?? 0, gap[k]);
   }
   return Math.floor((value * units) / AI_PLAN_UNITS_PER_VALUE);
+}
+
+// ---- Rule 7: build for the plan ----
+
+/** What the factory choice looks at. */
+export interface FactoryView {
+  plan: Readonly<NationalPlan>;
+  /** The personality's alert tension, bp, used when the plan names none. */
+  personalityAlertWtBp: number;
+  atWar: boolean;
+  /** A war it plans or expects within the pre-war window. */
+  plannedWar: boolean;
+  wtBp: number;
+  /** A possible enemy next door has this % of our divisions. */
+  threatPct: number;
+  /** Working military factories no line uses. */
+  idleMil: number;
+  /** The lines lack resources that trade can't bring in. */
+  starved: boolean;
+}
+
+/** A neighbour with this % of our divisions alerts a major whatever the tension. */
+export const AI_BUILD_THREAT_PCT = 150;
+/** World tension, bp, from which the mix leans twice as hard to the military. */
+export const AI_BUILD_TENSE_BP = 3500;
+/** Lines filled under this ‰ are short of resources. */
+export const AI_BUILD_FILL_PM = 800;
+/** Idle military factories from which no more are built. */
+export const AI_BUILD_IDLE_MIL = 3;
+
+/**
+ * Rule 7: from when a country builds for war. A civilian factory repays its
+ * cost in about four years (10,800 points against some 6.7 a day, after
+ * consumer goods), so it only suits a country that expects no war for that
+ * long: war, a planned war, a stronger neighbour or tension ends it.
+ */
+export function buildsForWar(i: FactoryView): boolean {
+  if (i.atWar || i.plannedWar || i.threatPct >= AI_BUILD_THREAT_PCT) {
+    return true;
+  }
+  const bar = i.plan.alertWtBp >= 0 ? i.plan.alertWtBp : i.personalityAlertWtBp;
+  return i.wtBp >= bar;
+}
+
+/**
+ * Rule 7: the next factory entry, given the entries in the queue. Before the
+ * alert civilian. More military factories than the lines can feed (idle ones,
+ * or lines short of what trade can bring) make nothing: a civilian one grows
+ * the rest. At war or with a war planned, military. Otherwise the plan's
+ * mix, twice as military from high tension.
+ */
+export function nextFactory(
+  i: FactoryView,
+  milEntries: number,
+  civEntries: number,
+): "civ" | "mil" {
+  if (!buildsForWar(i)) return "civ";
+  if (i.idleMil >= AI_BUILD_IDLE_MIL || i.starved) return "civ";
+  if (i.atWar || i.plannedWar) return "mil";
+  const ratio = i.plan.milPerCiv * (i.wtBp >= AI_BUILD_TENSE_BP ? 2 : 1);
+  return milEntries >= ratio * (civEntries + 1) ? "civ" : "mil";
+}
+
+/**
+ * Rule 7: this border wants a fort before the war: the plan builds them, the
+ * neighbour is a threat, and the region is under the plan's level.
+ */
+export function wantsPeaceFort(
+  plan: Readonly<NationalPlan>,
+  level: number,
+  threat: boolean,
+): boolean {
+  return threat && level < plan.fortLevel;
 }

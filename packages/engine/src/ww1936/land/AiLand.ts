@@ -25,7 +25,7 @@
 // main sector a front (land/AiEffort, mainEffort), by army_direct.
 import type { WwOrder } from "@openfront/engine-api/Schemas";
 import { COUNTRIES, CountryTag } from "@openfront/engine-api/ww1936/Countries";
-import { WwTechId } from "@openfront/engine-api/ww1936/EconomyTypes";
+import { MAX_INFRA, WwTechId } from "@openfront/engine-api/ww1936/EconomyTypes";
 import {
   BattalionId,
   DIRECT_MERGE,
@@ -61,6 +61,7 @@ import {
   type PlanStance,
   planStance,
   resourceWorth,
+  wantsPeaceFort,
 } from "@openfront/engine-lib/ww1936/AiPlans";
 import { BATTALIONS } from "@openfront/engine-lib/ww1936/Battalions";
 import { combatWidth } from "@openfront/engine-lib/ww1936/CombatRules";
@@ -100,9 +101,9 @@ import { navalPort, navalPortsOf } from "../navy/Ports";
 import {
   type ArmyFacts,
   chooseMerge,
+  choosePool,
   chooseShape,
   judgeRole,
-  choosePool,
   type MergeFacts,
   MERGES_PER_DAY,
   mostlyApart,
@@ -312,6 +313,8 @@ export const AI_RAIL_MIN_KM = 1000;
 /** (내 판단) At most this many forts and railways wait in the queue. */
 const LAND_BUILDS_QUEUED = 2;
 const FORT_MAX = 5;
+/** ww91 rule 7: a neighbour's threat from which a plan forts its border in peace, bp (politics' own bar). */
+const AI_FORT_THREAT_BP = 500;
 
 // ---- Pure decisions (plain data in, plain data out) ----
 
@@ -1042,6 +1045,8 @@ class AiDay {
   private cutsMemo = new Map<number, EnemyCuts>();
   /** ww91 rule 2: today's stance. */
   private stanceMemo: PlanStance | null = null;
+  /** ww91 rule 7: the enemies that outnumber a front of ours today. */
+  private pressed = new Set<number>();
   /** ww91 rule 5: today's resource gap. */
   private gapMemo: number[] | null = null;
   /** ww91 rule 1: the one enemy that gets the offensive today; 0: no such choice. */
@@ -1923,9 +1928,7 @@ class AiDay {
       if ((on.get(e) ?? 0) > (on.get(keep) ?? 0)) keep = e;
     }
     const list: EnemyFront[] = ids.map((enemy) => {
-      const border = fronts.flatMap((f) =>
-        f.enemy === enemy ? f.border : [],
-      );
+      const border = fronts.flatMap((f) => (f.enemy === enemy ? f.border : []));
       const reached = this.bfsReach(
         border,
         (r) => land.controller[r] === enemy,
@@ -2074,7 +2077,10 @@ class AiDay {
     for (const a of armies) ours += this.armyPower(a);
     const outnumbered =
       atWar && this.facingPower(f) * 100 > ours * AI_OUTNUMBERED_PCT;
-    if (outnumbered) for (const a of armies) this.holding.add(a.id);
+    if (outnumbered) {
+      this.pressed.add(f.enemy);
+      for (const a of armies) this.holding.add(a.id);
+    }
     const { border, shared } = this.ourBorder(f);
     // ww91 rule 3: the fist stays out of the line while the front is outnumbered.
     const pool = outnumbered ? this.poolOf(f, armies, border) : [];
@@ -3120,9 +3126,7 @@ class AiDay {
   private routeHeld(from: number, to: number): boolean {
     if (this.warPlan === AI_PLAN_DEFAULT) return true;
     const navy = this.land.ww.navy;
-    return (
-      aiRouteSupPm(navy, this.me, from, to) >= this.warPlan.landingSupPm
-    );
+    return aiRouteSupPm(navy, this.me, from, to) >= this.warPlan.landingSupPm;
   }
 
   /**
@@ -4600,12 +4604,77 @@ class AiDay {
     return false;
   }
 
+  /** ww91 rule 7: the enemies whose fronts we hold, not those we run over: not our offensives, unless they outnumber us. */
+  private heldFoes(enemies: readonly number[]): number[] {
+    return enemies.filter((e) => !this.offensive(e) || this.pressed.has(e));
+  }
+
+  /**
+   * ww91 rule 7: the possible enemies next door worth a fort before the war:
+   * those politics calls a threat, or with more divisions than we have.
+   */
+  private peaceThreats(): ReadonlySet<number> {
+    const land = this.land;
+    const pol = land.ww.politics;
+    const count = (id: number) => {
+      let n = 0;
+      for (const a of land.armiesOf(id)) n += a.divisions.length;
+      return n;
+    };
+    const ours = count(this.me);
+    const out = new Set<number>();
+    for (const n of land.econ.countryNeighbours(this.me)) {
+      if (land.sameSide(this.me, n) || !this.fights(n)) continue;
+      if ((pol.threatBp[n] ?? 0) >= AI_FORT_THREAT_BP || count(n) > ours) {
+        out.add(n);
+      }
+    }
+    return out;
+  }
+
+  /**
+   * ww91 rule 7: the worst fed region of our fronts gets a level of
+   * infrastructure: where more stands than the supply feeds, a road feeds
+   * them (Supply reads it) better than a factory far away.
+   */
+  private frontInfra(build: (region: number) => boolean): boolean {
+    const land = this.land;
+    const econ = land.econ;
+    const queue = this.ce.queue;
+    if (queue.some((q) => q.building === "infra")) return false;
+    const on = new Map<number, number>();
+    const t = land.divisions;
+    for (const a of this.armies()) {
+      if (a.order.kind !== "front" && a.order.kind !== "plan") continue;
+      for (const r of armyRows(land, a)) {
+        if (t.mode[r] !== MOVE_NONE) continue;
+        on.set(t.region[r], (on.get(t.region[r]) ?? 0) + 1);
+      }
+    }
+    const unit = this.supplyUnit(this.armies());
+    let best = 0;
+    let worst = 0;
+    for (const [r, n] of [...on].sort((x, y) => x[0] - y[0])) {
+      if (land.controller[r] !== this.me || econ.infra[r] >= MAX_INFRA) {
+        continue;
+      }
+      const short = n - Math.floor(land.supplyMilli[r] / unit);
+      if (short > worst) {
+        worst = short;
+        best = r;
+      }
+    }
+    return best !== 0 && build(best);
+  }
+
   /**
    * Spec §14.5, one a day with at most LAND_BUILDS_QUEUED waiting: a fort
    * in the core victory-point region facing the most enemy divisions
    * (democracies and minors), a West Wall for any country on a core
    * border to a likely enemy (at war or planned), else a
    * railway in a core region without one, nearest the capital first.
+   * ww91 rule 7: a plan's forts before a war, and none on a border it attacks
+   * over; infrastructure under the armies a region can't feed.
    */
   private build(enemies: readonly number[]): void {
     const land = this.land;
@@ -4624,11 +4693,12 @@ class AiDay {
       .filter((r) => pol.legalOwner[r] === this.me && pol.isCore(r));
     const fortLevel = (r: number) =>
       econ.fort[r] + queuedInRegion(ce.queue, r).fort;
-    const tryBuild = (r: number, b: "fort" | "rail") => {
+    const tryBuild = (r: number, b: "fort" | "rail" | "infra") => {
       if (queueBuild(econ, ce, r, b, 1) !== null) return false;
       econ.markCountryDirty(this.me);
       return true;
     };
+    const tryBuildInfra = (r: number) => tryBuild(r, "infra");
     if (this.personality !== "aggressor" && enemies.length > 0) {
       const facing = new Map<number, number>();
       for (const r of core) {
@@ -4647,14 +4717,36 @@ class AiDay {
       for (const r of list) if (tryBuild(r, "fort")) return;
     }
     if (enemies.length > 0) {
+      // ww91 rule 7: forts go where we hold: not a front we are running over.
+      const holds =
+        this.warPlan.oneEnemyPct === 0 ? enemies : this.heldFoes(enemies);
       const west = core
         .filter(
           (r) =>
             fortLevel(r) < FORT_MAX &&
-            sc.edgesOf(r).some((e) => enemies.includes(land.controller[e.to])),
+            sc.edgesOf(r).some((e) => holds.includes(land.controller[e.to])),
         )
         .sort((a, b) => fortLevel(a) - fortLevel(b) || a - b);
       for (const r of west) if (tryBuild(r, "fort")) return;
+      if (this.effortDue() && this.frontInfra(tryBuildInfra)) return;
+    } else if (this.warPlan.fortLevel > 0) {
+      // ww91 rule 7: forts before the war, on the borders of a threat.
+      const foes = this.peaceThreats();
+      const sites = core
+        .filter((r) =>
+          wantsPeaceFort(
+            this.warPlan,
+            fortLevel(r),
+            sc.edgesOf(r).some((e) => foes.has(land.controller[e.to])),
+          ),
+        )
+        .sort(
+          (a, b) =>
+            fortLevel(a) - fortLevel(b) ||
+            (sc.region(b)?.vp ?? 0) - (sc.region(a)?.vp ?? 0) ||
+            a - b,
+        );
+      for (const r of sites) if (tryBuild(r, "fort")) return;
     }
     const capDist = this.capDist();
     const rail = core

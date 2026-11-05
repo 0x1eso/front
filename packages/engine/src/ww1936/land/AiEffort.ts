@@ -91,7 +91,9 @@ export function offMainDemand(
   full: number,
   oneEnemyPct: number,
 ): number {
-  return held + Math.floor((Math.max(0, full - held) * (100 - oneEnemyPct)) / 100);
+  return (
+    held + Math.floor((Math.max(0, full - held) * (100 - oneEnemyPct)) / 100)
+  );
 }
 
 /** One enemy region the effort could go for. */
@@ -169,10 +171,7 @@ export function pickMainSector(
   if (list.length === 0) return 0;
   const [first, second] = list;
   const kept = list.find((r) => r.region === keep);
-  if (
-    kept !== undefined &&
-    kept.score * 100 >= first.score * (100 - keepPct)
-  ) {
+  if (kept !== undefined && kept.score * 100 >= first.score * (100 - keepPct)) {
     return keep;
   }
   const close =

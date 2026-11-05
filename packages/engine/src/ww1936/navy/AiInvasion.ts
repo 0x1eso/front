@@ -45,7 +45,6 @@ import {
   AI_BEAT_FACTOR,
   AI_INVASION_SUP_PM,
   aiAtWar,
-  aiEnemySeaView,
   aiJitterPm,
   enemySupBySr,
   expectedSupPm,
