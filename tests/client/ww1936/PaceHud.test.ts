@@ -207,13 +207,13 @@ describe("the countdowns at the game's tick length", () => {
   });
 
   it("a peace round's bar is full at a quarter of the ticks", () => {
-    // 75 ticks: the whole unlimited round (wwRealTicks(300)), 30 s.
+    // 50 ticks: the whole unlimited round (wwRealTicks(200)), 20 s.
     const slow = { config: () => SLOW };
-    expect(peaceTimeLeft(slow, 75)).toEqual({ fraction: 1, seconds: 30 });
-    // At 100 ms the same 75 ticks are a quarter of the round, 8 s.
+    expect(peaceTimeLeft(slow, 50)).toEqual({ fraction: 1, seconds: 20 });
+    // At 100 ms the same 50 ticks are a quarter of the round, 5 s.
     const timed = { config: () => TIMED };
-    expect(peaceTimeLeft(timed, 75)).toEqual({ fraction: 0.25, seconds: 8 });
-    expect(peaceTimeLeft(timed, 300)).toEqual({ fraction: 1, seconds: 30 });
+    expect(peaceTimeLeft(timed, 50)).toEqual({ fraction: 0.25, seconds: 5 });
+    expect(peaceTimeLeft(timed, 200)).toEqual({ fraction: 1, seconds: 20 });
   });
 
   it("the takeover card's bar is full at a quarter of the ticks", () => {
@@ -259,21 +259,21 @@ describe("the cards redraw each second at 400 ms", () => {
   it("the peace card", async () => {
     const { game } = fakePolGame({ me: "DEU", ticks: 701 });
     const eg = new WwEndgameView();
-    eg.apply({ news: [], conference: conference(775) });
+    eg.apply({ news: [], conference: conference(750) });
     const m = await mountCard<WwPeaceCard>("ww-peace-card", {
       ...game,
       wwEndgame: () => eg,
       config: () => SLOW,
     });
     expect(m.text("[data-ww-peace-seconds]")).toBe(
-      "[ww1936.peace.time_left] s=30",
+      "[ww1936.peace.time_left] s=20",
     );
     expect(
       m.layer.querySelector<HTMLElement>("[data-ww-peace-time]")!.style.width,
-    ).toBe("99%");
+    ).toBe("98%");
     await m.at(708);
     expect(m.text("[data-ww-peace-seconds]")).toBe(
-      "[ww1936.peace.time_left] s=27",
+      "[ww1936.peace.time_left] s=17",
     );
   });
 
