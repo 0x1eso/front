@@ -282,6 +282,8 @@ export const TPL_TD_DEFEND = 1 << 18;
 export const TPL_FOOT_MAJOR = 1 << 19;
 /** ww84: armour-major with under a third of foot: tanks on their own. */
 export const TPL_BARE_ARMOR = 1 << 20;
+/** ww84: heavy tanks are at least half its armour: built to break forts and trenches. */
+export const TPL_HEAVY_LEAD = 1 << 21;
 
 /**
  * A division's numbers (spec §4.3, §16.2): attack and defence values and
@@ -337,6 +339,12 @@ export interface DivisionStats {
   bandHard: number[];
   /** [band, need group, hard attack] of each carrier: divisionStats scales bandHard by that group's fill. */
   bandParts: number[];
+  /**
+   * ww84: its opening barrage, bp: the attack it adds in a band's first rounds
+   * and the share of the enemy's prepared ground it takes (artillery's share
+   * of its battalions, a support company a third of one, at most +30 %).
+   */
+  prepFireBp: number;
 }
 
 export interface CombatMods {
@@ -344,6 +352,8 @@ export interface CombatMods {
   defenseBp: number;
   /** ww7 lane F: a defender's prepared ground (entrenchment + positions), bp; absent: 0 (CombatRules.roundHits). */
   prepBp?: number;
+  /** ww84: the cuts' factor in defenseBp, bp (10,000 + the cuts): what a point of prepared ground is worth in it; absent: 10,000. */
+  defCutMulBp?: number;
 }
 
 /** One modifier line for the battle card (key ww1936.mod.<id>). */
@@ -375,6 +385,9 @@ export interface SideSum {
   /** ww84: the share of its width that is foot-major and armour-major divisions, ‰ (absent: 0). */
   footPm?: number;
   armorMajorPm?: number;
+  /** ww84: width-weighted opening barrage, bp, and the share of its width led by heavy tanks, ‰ (absent: 0). */
+  prepFireBp?: number;
+  heavyPm?: number;
 }
 
 export interface BattleCtx {
@@ -391,6 +404,10 @@ export interface BattleCtx {
   defenderPrepBp?: number;
   /** ww84: points of the defenders' country off the tank fear penalty; absent: 0. */
   tankFearCutPp?: number;
+  /** ww84: the cuts' factor of the defender's block (CombatMods.defCutMulBp); absent: 10,000. */
+  defenderCutMulBp?: number;
+  /** ww84: rounds of the opening barrage left; absent: all of them (a battle not begun). */
+  prepFireRounds?: number;
   /** ww8: close air support a round now, after the anti-air cut (casCutHits), centi; absent: 0. */
   casAttCenti?: number;
   casDefCenti?: number;

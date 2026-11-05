@@ -19,6 +19,7 @@ import {
   TPL_FLAIL,
   TPL_FLAME,
   TPL_FOOT_MAJOR,
+  TPL_HEAVY_LEAD,
   TPL_INFANTRY_DIV,
   TPL_MARINE_ANY,
   TPL_MARINE_MAJOR,
@@ -180,6 +181,25 @@ export function defenderOrgPct(flags: number): number {
 /** ww84: what a trench takes off a tank's protection, ‰ a level, at most. */
 export const TRENCH_ANTI_TANK_PM = 50;
 export const TRENCH_ANTI_TANK_MAX_PM = 250;
+
+/** ww84: the rounds of a band its attackers' guns open with. */
+export const PREP_FIRE_ROUNDS = 8;
+/** ww84: what heavy tanks take off the enemy's prepared ground and forts, ‰ and percent kept. */
+export const HEAVY_PREP_CUT_PM = 250;
+export const HEAVY_FORT_PCT = 75;
+
+/** ww84: `keepPm` of the prepared ground, less the share a barrage of `fireBp` takes. */
+function keepAfterFire(keepPm: number, fireBp: number): number {
+  return Math.floor((keepPm * (10_000 - fireBp)) / 10_000);
+}
+
+/**
+ * ww84: the share of a defender's prepared ground, ‰, that counts against a
+ * division with `flags` whose barrage is at `fireBp` this round.
+ */
+export function prepKeepPm(flags: number, fireBp: number): number {
+  return keepAfterFire(has(flags, TPL_HEAVY_LEAD) ? 1000 - HEAVY_PREP_CUT_PM : 1000, fireBp);
+}
 
 /** ww84: entrenched foot get at tanks close up: ‰ off the protection of what they hit. */
 export function trenchCutPm(flags: number, levels: number): number {
@@ -538,6 +558,7 @@ export function divisionMods(i: ModInput): ModResult {
           100,
       );
       if (has(i.designFlags, TPL_FLAIL)) f = cutBy(f, 75);
+      if (has(i.flags, TPL_HEAVY_LEAD)) f = cutBy(f, HEAVY_FORT_PCT);
       f = cutBy(f, 100 - stat(i.tech, "fortPenaltyCutPct"));
       push(aCut, "fort", cutBy(cutBy(f, engOfficer), assault));
     }
@@ -651,6 +672,7 @@ export function divisionMods(i: ModInput): ModResult {
       attackBp: combineMods(sum(aAdd), sum(aCut)),
       defenseBp: combineMods(sum(dAdd), sum(dCut)),
       prepBp,
+      defCutMulBp: combineMods([], sum(dCut)),
     },
     attackLines: [...aAdd, ...aCut],
     defenseLines: [...dAdd, ...dCut],
@@ -778,7 +800,6 @@ export function predictBattle(
     ),
     ctx.attackerAttackBp,
   );
-  const dD = applyBp(per(def.def, def.divisions), ctx.defenderBlockBp);
   const aD = applyBp(
     attackValue(
       per(def.soft, def.divisions),
@@ -789,13 +810,6 @@ export function predictBattle(
   );
   const dA = applyBp(per(att.brk, att.divisions), ctx.attackerBlockBp);
   const prepBp = ctx.defenderPrepBp ?? 0;
-  const toDef = sideDefOrg(
-    roundDamage(roundHits(aA, dD, prepBp), sideProtectPm(att, def, true))
-      .orgMilli,
-    att,
-    def,
-    ctx,
-  );
   // Only the foot on the defending side reach the tanks from a trench.
   const trench = Math.floor(
     (Math.min(
@@ -812,17 +826,59 @@ export function predictBattle(
   // ww8: close air support, a round's hits on one division with no block value.
   const casDef = ctx.casAttCenti ?? 0;
   const casAtt = ctx.casDefCenti ?? 0;
-  const dmgDef =
-    Math.floor((toDef * lineA) / 1000) +
-    (casDef > 0
+  const casOrg =
+    casDef > 0
       ? Math.floor(
           (roundDamage(casDef).orgMilli * (def.defOrgPct ?? 100)) / 100,
         )
-      : 0);
+      : 0;
+  // A round's org off the defenders with `fireBp` of barrage and `keepPm` of
+  // their prepared ground left.
+  const perDef = per(def.def, def.divisions);
+  const cutMul = ctx.defenderCutMulBp ?? 10_000;
+  const roundOnDef = (fireBp: number, keepPm: number): number => {
+    const prep = Math.floor((prepBp * keepPm) / 1000);
+    const block =
+      ctx.defenderBlockBp - Math.floor(((prepBp - prep) * cutMul) / 10_000);
+    const toDef = sideDefOrg(
+      roundDamage(
+        roundHits(
+          fireBp > 0 ? applyBp(aA, 10_000 + fireBp) : aA,
+          applyBp(perDef, block),
+          prep,
+        ),
+        sideProtectPm(att, def, true),
+      ).orgMilli,
+      att,
+      def,
+      ctx,
+    );
+    return Math.floor((toDef * lineA) / 1000) + casOrg;
+  };
+  const heavyKeep =
+    1000 - Math.floor((HEAVY_PREP_CUT_PM * (att.heavyPm ?? 0)) / 1000);
+  const plainRound = roundOnDef(0, heavyKeep);
+  const fire = att.prepFireBp ?? 0;
+  const fireRounds = fire > 0 ? (ctx.prepFireRounds ?? PREP_FIRE_ROUNDS) : 0;
+  let rounds: number;
+  let dmgDef = plainRound;
+  if (fireRounds === 0) {
+    rounds = dmgDef <= 0 ? 999_999 : Math.ceil(def.orgMilli / dmgDef);
+  } else {
+    // ww84: the barrage's rounds, then the plain ones.
+    const fireRound = roundOnDef(fire, keepAfterFire(heavyKeep, fire));
+    const done = fireRound * fireRounds;
+    rounds =
+      done >= def.orgMilli
+        ? Math.ceil(def.orgMilli / Math.max(1, fireRound))
+        : plainRound <= 0
+          ? 999_999
+          : fireRounds + Math.ceil((def.orgMilli - done) / plainRound);
+    dmgDef = rounds >= 999_999 ? 0 : Math.floor(def.orgMilli / rounds);
+  }
   const dmgAtt =
     Math.floor((toAtt * lineD) / 1000) +
     (casAtt > 0 ? roundDamage(casAtt).orgMilli : 0);
-  const rounds = dmgDef <= 0 ? 999_999 : Math.ceil(def.orgMilli / dmgDef);
   const ratioPm =
     dmgAtt <= 0
       ? 1_000_000
@@ -951,6 +1007,7 @@ export interface SideStats {
   bandHard?: readonly number[];
   /** TPL_* flags (absent: no division rule counts). */
   flags?: number;
+  prepFireBp?: number;
 }
 
 /** ww84: the most pierce bands a side sum keeps; the rest join the band nearest in pierce. */
@@ -1020,6 +1077,8 @@ export function addToSide(sum: SideSum, s: SideStats, orgMilli: number): void {
     sum.armorMajorPm ?? 0,
     has(fl, TPL_ARMOR_MAJOR) ? 1000 : 0,
   );
+  sum.prepFireBp = weigh(sum.prepFireBp ?? 0, s.prepFireBp ?? 0);
+  sum.heavyPm = weigh(sum.heavyPm ?? 0, has(fl, TPL_HEAVY_LEAD) ? 1000 : 0);
   const hs = s.bandHard;
   if (hs === undefined || s.bandPierce === undefined) {
     addSideBand(sum, s.pierce, s.pierce, s.hard);

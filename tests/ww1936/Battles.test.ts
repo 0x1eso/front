@@ -28,6 +28,8 @@ import {
   bandProtectPm,
   defenderOrgPct,
   hitProtectPm,
+  PREP_FIRE_ROUNDS,
+  prepKeepPm,
   roundDamage,
   roundHits,
   trenchCutPm,
@@ -222,10 +224,16 @@ describe("World War 1936 P2: land battles (spec §9)", () => {
     expect(def0 - l.divisions.org[rowOf(l, d.divisions[0])]).toBe(
       Math.floor(
         (roundDamage(
+          // Soft 82 (ww84), and two battalions of guns in nine open the band.
           roundHits(
-            applyBp(9200, luck(0)),
+            applyBp(applyBp(8200, luck(0)), 12_222),
             19_800,
-            modsOf(l, rowOf(l, d.divisions[0]), WARSAW, false).prepBp ?? 0,
+            Math.floor(
+              ((modsOf(l, rowOf(l, d.divisions[0]), WARSAW, false).prepBp ??
+                0) *
+                prepKeepPm(0, 2222)) /
+                1000,
+            ),
           ),
         ).orgMilli *
           85) /
@@ -754,20 +762,36 @@ describe("World War 1936 ww7 lane A: tactics, luck and reserves in a battle (des
       const ds = l.statsOf(dr);
       const am = battleMods(l, b, ar).mods;
       const dm = battleMods(l, b, dr).mods;
+      // (The opening barrage, while this next round is one of its eight.)
+      const fire = b.round < PREP_FIRE_ROUNDS ? as.prepFireBp : 0;
+      const prep = Math.floor(((dm.prepBp ?? 0) * prepKeepPm(0, fire)) / 1000);
       const hitsOnDef = roundHits(
         applyBp(
           applyBp(
-            attackValue(
-              applyBp(as.soft, 10_000 + fx.attSoftBp),
-              as.hard,
-              ds.hardnessPm,
+            applyBp(
+              attackValue(
+                applyBp(as.soft, 10_000 + fx.attSoftBp),
+                as.hard,
+                ds.hardnessPm,
+              ),
+              am.attackBp,
             ),
-            am.attackBp,
+            mulA,
           ),
-          mulA,
+          10_000 + fire,
         ),
-        applyBp(applyBp(ds.def, dm.defenseBp), 10_000 + fx.defBlockBp),
-        (dm.prepBp ?? 0) + fx.defBlockBp,
+        applyBp(
+          applyBp(
+            ds.def,
+            dm.defenseBp -
+              Math.floor(
+                (((dm.prepBp ?? 0) - prep) * (dm.defCutMulBp ?? 10_000)) /
+                  10_000,
+              ),
+          ),
+          10_000 + fx.defBlockBp,
+        ),
+        prep + fx.defBlockBp,
       );
       const hitsOnAtt = roundHits(
         applyBp(

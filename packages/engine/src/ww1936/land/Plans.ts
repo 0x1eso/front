@@ -647,6 +647,7 @@ function gatherAttack(
     defenderAttackBp: dm.attackBp,
     defenderBlockBp: dm.defenseBp,
     defenderPrepBp: dm.prepBp ?? 0,
+    defenderCutMulBp: dm.defCutMulBp,
     tankFearCutPp: firstDef < 0 ? 0 : fearCutOf(land, firstDef),
   };
   // ww8: the wings on station over a battle already there count in the odds.

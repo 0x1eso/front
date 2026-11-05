@@ -39,6 +39,7 @@ import {
   TPL_FLAIL,
   TPL_FLAME,
   TPL_FOOT_MAJOR,
+  TPL_HEAVY_LEAD,
   TPL_INFANTRY_DIV,
   TPL_MARINE_ANY,
   TPL_MARINE_MAJOR,
@@ -530,6 +531,9 @@ const AMBUSH_GUNS: ReadonlySet<string> = new Set([
 const gunAttackPierce = (p: number) =>
   Math.floor((p * GUN_ATTACK_PIERCE_PCT) / 100);
 
+/** ww84: the most an opening barrage adds, bp. */
+export const PREP_FIRE_MAX_BP = 3000;
+
 /** ww84: foot battalions: what an infantry-line tech reaches. */
 const FOOT_KINDS: ReadonlySet<string> = new Set([
   "infantry",
@@ -690,6 +694,9 @@ export function templateStats(
   let special = 0;
   let armorN = 0;
   let footN = 0;
+  // Battalions of guns ×3 (a support company counts one), and heavy tanks.
+  let gunN = 0;
+  let heavyN = 0;
   let motorN = 0;
   let mountainN = 0;
   let marineN = 0;
@@ -819,6 +826,8 @@ export function templateStats(
     if (d.special) special++;
     if (d.kind === "armor") armorN++;
     if (foot) footN++;
+    if (d.artillery) gunN += 3;
+    if (id === "heavy_armor") heavyN++;
     if (d.kind === "motor" || id === "mot_artillery") motorN++;
     if (id === "mountain") mountainN++;
     if (id === "marine") marineN++;
@@ -875,11 +884,13 @@ export function templateStats(
       });
     }
     for (const [t, k] of d.equip) need[TYPE_INDEX.get(t)!] += k;
+    if (d.artillery) gunN++;
     flags |= d.flag;
   }
   if (armorN > 0) flags |= TPL_ARMOR_ANY;
   if (armorN * 2 >= n && n > 0) flags |= TPL_ARMOR_MAJOR;
   if (footN * 2 >= n && n > 0) flags |= TPL_FOOT_MAJOR;
+  if (heavyN > 0 && heavyN * 2 >= armorN) flags |= TPL_HEAVY_LEAD;
   if (armorN * 2 >= n && n > 0 && footN * 3 < n) flags |= TPL_BARE_ARMOR;
   if (motorN > 0) flags |= TPL_MOTOR_ANY;
   if (mountainN > 0) flags |= TPL_MOUNTAIN_ANY;
@@ -931,6 +942,10 @@ export function templateStats(
     fuelHourMilli: fuelHour,
     designFlags,
     ...pierceBands(carriers),
+    prepFireBp:
+      n === 0
+        ? 0
+        : Math.min(PREP_FIRE_MAX_BP, Math.floor((gunN * 10_000) / (3 * n))),
   };
 }
 

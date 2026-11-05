@@ -19,6 +19,7 @@ import {
   TPL_CAVALRY_MAJOR,
   TPL_ENGINEER,
   TPL_FOOT_MAJOR,
+  TPL_HEAVY_LEAD,
   TPL_MARINE_MAJOR,
   TPL_MOUNTAIN_MAJOR,
   traitBit,
@@ -42,6 +43,8 @@ import {
   hitProtectPm,
   ModInput,
   predictBattle,
+  PREP_FIRE_ROUNDS,
+  prepKeepPm,
   RIVER_ATTACK_BP,
   TANK_FEAR_PCT,
   tankFearPct,
@@ -645,4 +648,125 @@ describe("P3: infantry and armour", () => {
     expect(await round("rifle")).toBeGreaterThan(0);
     expect(await round("tank")).toBeGreaterThan(await round("rifle"));
   }, 120_000);
+});
+
+describe("P4: the opening barrage, guns and heavy tanks", () => {
+  const side = (s: DivisionStats) => {
+    const sum = emptySide();
+    addToSide(sum, s, s.orgMilli);
+    return sum;
+  };
+  const ctx = {
+    land: "plains" as const,
+    directions: 1,
+    attackerAttackBp: 10_000,
+    attackerBlockBp: 10_000,
+    defenderAttackBp: 10_000,
+    defenderBlockBp: 12_500,
+    defenderPrepBp: 2500,
+  };
+  const guns = stats([
+    ["infantry", 6],
+    ["artillery", 3],
+  ]);
+
+  test("the barrage is the guns' share of the battalions, at most 30 %", () => {
+    expect(guns.prepFireBp).toBe(3000);
+    expect(
+      stats([
+        ["infantry", 8],
+        ["artillery", 2],
+      ]).prepFireBp,
+    ).toBe(2000);
+    // A support company is a third of a battalion.
+    expect(stats([["infantry", 9]], ["support_artillery"]).prepFireBp).toBe(370);
+    expect(
+      stats([
+        ["infantry", 7],
+        ["mot_artillery", 1],
+        ["sp_artillery", 1],
+      ]).prepFireBp,
+    ).toBe(2222);
+    expect(stats([["infantry", 9]]).prepFireBp).toBe(0);
+    expect(BATTALIONS.artillery.soft).toBe(2000);
+    expect(BATTALIONS.mot_artillery.soft).toBe(2000);
+  });
+
+  test("the same share of the prepared ground goes", () => {
+    expect(prepKeepPm(0, 0)).toBe(1000);
+    expect(prepKeepPm(0, 3000)).toBe(700);
+  });
+
+  test("heavy tanks: a quarter off trench, position and fort, and only when they lead", () => {
+    const heavy = stats([
+      ["heavy_armor", 4],
+      ["motorized", 5],
+    ]);
+    expect(heavy.flags & TPL_HEAVY_LEAD).not.toBe(0);
+    expect(
+      stats([
+        ["heavy_armor", 1],
+        ["medium_armor", 4],
+        ["motorized", 4],
+      ]).flags & TPL_HEAVY_LEAD,
+    ).toBe(0);
+    expect(prepKeepPm(heavy.flags, 0)).toBe(750);
+    expect(prepKeepPm(heavy.flags, 2000)).toBe(600);
+    const fort = (flags: number) =>
+      line(divisionMods(input({ flags, fort: 3 })).attackLines, "fort");
+    expect(fort(0)).toBe(-5100);
+    expect(fort(TPL_HEAVY_LEAD)).toBe(-3825);
+  });
+
+  test("a band's first eight rounds hit harder, and only those", async () => {
+    const { g, l } = await war();
+    const tpl = template(g, "DEU", [
+      ["infantry", 6],
+      ["artillery", 3],
+    ]);
+    const a = placeArmy(g, "DEU", BERLIN, 1, tpl);
+    const d = placeArmy(g, "POL", WARSAW, 1);
+    attack(l, a, WARSAW);
+    const t = l.divisions;
+    const r = t.rowOf(d.divisions[0]);
+    const b = () => l.battles.get(WARSAW)!;
+    const round = () => {
+      const was = t.org[r];
+      stepBattles(l, g.ticks());
+      return was - t.org[r];
+    };
+    stepBattles(l, g.ticks());
+    // Same tick, same luck, same tactics each pair.
+    const inside: number[] = [];
+    const outside: number[] = [];
+    for (const n of [1, 5, 1, 5]) {
+      b().round = n === 1 ? PREP_FIRE_ROUNDS - 2 : PREP_FIRE_ROUNDS + 4;
+      b().phaseRound = 1;
+      b().tacticAtt = 0;
+      b().tacticDef = 0;
+      t.org[r] = 50_000;
+      (n === 1 ? inside : outside).push(round());
+    }
+    expect(inside[0]).toBeGreaterThan(outside[0]);
+  }, 60_000);
+
+  test("the prediction follows: a short battle gets the barrage's whole weight", () => {
+    const att = side(guns);
+    const def = side(stats([["infantry", 9]]));
+    const none = { ...att, prepFireBp: 0 };
+    const over = predictBattle(att, def, { ...ctx, prepFireRounds: 0 });
+    expect(over.ratioPm).toBe(predictBattle(none, def, ctx).ratioPm);
+    expect(predictBattle(att, def, ctx).ratioPm).toBeGreaterThan(over.ratioPm);
+    expect(predictBattle(att, def, ctx).rounds).toBeLessThan(over.rounds);
+    // Heavy tanks too.
+    const tank = side(
+      stats([
+        ["medium_armor", 4],
+        ["motorized", 5],
+      ]),
+    );
+    expect(
+      predictBattle({ ...tank, heavyPm: 1000 }, def, ctx).ratioPm,
+    ).toBeGreaterThan(predictBattle(tank, def, ctx).ratioPm);
+  });
 });

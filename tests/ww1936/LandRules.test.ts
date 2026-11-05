@@ -168,7 +168,7 @@ describe("templates (P2 spec §4.3, §4.4)", () => {
       men: 8500,
       hpMilli: 176_200,
       orgMilli: 46_666,
-      soft: 9200,
+      soft: 8200,
       hard: 1100,
       def: 17_400,
       brk: 6450,
@@ -198,7 +198,7 @@ describe("templates (P2 spec §4.3, §4.4)", () => {
     );
     expect(s).toMatchObject({
       width: 15,
-      soft: 8500,
+      soft: 8000,
       hard: 2000,
       def: 7000,
       brk: 11_400,
@@ -226,7 +226,7 @@ describe("templates (P2 spec §4.3, §4.4)", () => {
       return out as unknown as TechTotals;
     };
     const art = def([["artillery", 1]]);
-    expect(templateStats(art, gd("gd_firepower", false), GEN1).soft).toBe(3000);
+    expect(templateStats(art, gd("gd_firepower", false), GEN1).soft).toBe(2400);
     const inf = def([["infantry", 1]]);
     expect(templateStats(inf, gd("gd_mass", true), GEN1).orgMilli).toBe(70_000);
     const armour = def([
@@ -245,7 +245,7 @@ describe("templates (P2 spec §4.3, §4.4)", () => {
     const slots = fullSlots(INF72);
     slots[groundSlotOf(equipKey("artillery", 1))] = 12;
     const half = divisionStats(s, slots, 4250);
-    expect(half.soft).toBe(6700);
+    expect(half.soft).toBe(6200);
     expect(half.hpMilli).toBe(88_100);
     expect(strengthPm(s, slots, 8500)).toBe(926);
     expect(strengthPm(s, fullSlots(INF72), 8500)).toBe(1000);
@@ -419,14 +419,14 @@ describe("combat (P2 spec §9)", () => {
     const one = predictBattle(side(INF72, 1), side(POL9, 1), ctx(1));
     expect(one.ratioPm).toBeGreaterThanOrEqual(1020);
     expect(one.ratioPm).toBeLessThanOrEqual(1230);
-    // Seven against five, from two directions: the attacker wins in ~60 rounds
+    // Seven against five, from two directions: the attacker wins in ~65 rounds
     // (ww7 lane F: a hit takes 0.4 of the spec's org, which said ~20; ww84:
     // foot defend at 85 % org damage).
     const seven = predictBattle(side(INF72, 7), side(POL9, 5), ctx(2));
-    expect(seven.ratioPm).toBeGreaterThanOrEqual(1950);
+    expect(seven.ratioPm).toBeGreaterThanOrEqual(1800);
     expect(seven.ratioPm).toBeLessThanOrEqual(2300);
-    expect(seven.rounds).toBeGreaterThanOrEqual(59);
-    expect(seven.rounds).toBeLessThanOrEqual(62);
+    expect(seven.rounds).toBeGreaterThanOrEqual(62);
+    expect(seven.rounds).toBeLessThanOrEqual(68);
     expect(predictBattle(emptySide(), side(POL9, 1), ctx(1)).ratioPm).toBe(0);
     expect(predictBattle(side(POL9, 1), emptySide(), ctx(1)).ratioPm).toBe(
       1_000_000,

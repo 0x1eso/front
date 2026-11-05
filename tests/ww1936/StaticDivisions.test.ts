@@ -44,7 +44,7 @@ describe("static divisions keep their P2 numbers", () => {
       men: 8500,
       hpMilli: 176_200,
       orgMilli: 46_666,
-      soft: 9200,
+      soft: 8200,
       hard: 1100,
       def: 17_400,
       brk: 6450,
@@ -61,7 +61,7 @@ describe("static divisions keep their P2 numbers", () => {
     );
     expect(templateStats(armour, ZERO, GEN1, ks)).toMatchObject({
       width: 15,
-      soft: 8500,
+      soft: 8000,
       hard: 2000,
       def: 7000,
       brk: 11_400,

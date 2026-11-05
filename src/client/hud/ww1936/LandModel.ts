@@ -1243,6 +1243,8 @@ export function mergeSides(a: SideSum, b: SideSum): SideSum {
     defOrgPct: mix(a.defOrgPct ?? 100, b.defOrgPct ?? 100),
     footPm: mix(a.footPm ?? 0, b.footPm ?? 0),
     armorMajorPm: mix(a.armorMajorPm ?? 0, b.armorMajorPm ?? 0),
+    prepFireBp: mix(a.prepFireBp ?? 0, b.prepFireBp ?? 0),
+    heavyPm: mix(a.heavyPm ?? 0, b.heavyPm ?? 0),
   };
   addSideBands(sum, a);
   addSideBands(sum, b);
@@ -1252,13 +1254,18 @@ export function mergeSides(a: SideSum, b: SideSum): SideSum {
 /** The shares of one division's flags (addToSide over an empty side). */
 function sideShares(
   s: DivisionStats,
-): Pick<SideSum, "defOrgPct" | "footPm" | "armorMajorPm"> {
+): Pick<
+  SideSum,
+  "defOrgPct" | "footPm" | "armorMajorPm" | "prepFireBp" | "heavyPm"
+> {
   const one = emptySide();
   addToSide(one, s, 0);
   return {
     defOrgPct: one.defOrgPct,
     footPm: one.footPm,
     armorMajorPm: one.armorMajorPm,
+    prepFireBp: one.prepFireBp,
+    heavyPm: one.heavyPm,
   };
 }
 
@@ -1533,6 +1540,8 @@ export function sideScaledTo(s: SideSum, n: number): SideSum {
     defOrgPct: s.defOrgPct,
     footPm: s.footPm,
     armorMajorPm: s.armorMajorPm,
+    prepFireBp: s.prepFireBp,
+    heavyPm: s.heavyPm,
   };
 }
 
@@ -1607,6 +1616,7 @@ export function attackPreview(
     defenderAttackBp: dm.attackBp,
     defenderBlockBp: dm.defenseBp,
     defenderPrepBp: dm.prepBp ?? 0,
+    defenderCutMulBp: dm.defCutMulBp,
     casAttCenti:
       battle !== undefined && sides.sameSide(me, battle.attacker)
         ? (battle.casAttCenti ?? 0)

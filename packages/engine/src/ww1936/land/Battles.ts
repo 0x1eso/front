@@ -62,6 +62,8 @@ import {
   ModResult,
   planMaxBp,
   predictBattleRange,
+  PREP_FIRE_ROUNDS,
+  prepKeepPm,
   roundDamage,
   roundHits,
   tankFearCutPp,
@@ -331,6 +333,7 @@ function fight(land: WwLand, b: Battle, tick: number): void {
   const defMul = mulBp(10_000 + fx.defAtkBp, 10_000 + rc.luckDef);
   const softMul = 10_000 + fx.attSoftBp;
   const blockMul = 10_000 + fx.defBlockBp;
+  const barrage = b.round <= PREP_FIRE_ROUNDS;
   const hit = (
     from: number,
     fromMods: CombatMods,
@@ -342,17 +345,31 @@ function fight(land: WwLand, b: Battle, tick: number): void {
     const s = stats.get(from)!;
     const ts = stats.get(to)!;
     const soft = toDefends ? applyBp(s.soft, softMul) : s.soft;
+    // ww84: an attacker's guns open the band: more attack, and that share of
+    // the prepared ground gone; heavy tanks go through a part of it as well.
+    const fire = toDefends && barrage ? s.prepFireBp : 0;
     const a = applyBp(
       applyBp(
-        applyBp(attackValue(soft, s.hard, ts.hardnessPm), fromMods.attackBp),
-        10_000 + excess,
+        applyBp(
+          applyBp(attackValue(soft, s.hard, ts.hardnessPm), fromMods.attackBp),
+          10_000 + excess,
+        ),
+        toDefends ? attMul : defMul,
       ),
-      toDefends ? attMul : defMul,
+      10_000 + fire,
     );
-    const d0 = applyBp(toDefends ? ts.def : ts.brk, toMods.defenseBp);
+    const prep0 = toDefends ? (toMods.prepBp ?? 0) : 0;
+    const prep =
+      prep0 > 0
+        ? Math.floor((prep0 * prepKeepPm(s.flags, fire)) / 1000)
+        : prep0;
+    const blockBp =
+      toMods.defenseBp -
+      Math.floor(((prep0 - prep) * (toMods.defCutMulBp ?? 10_000)) / 10_000);
+    const d0 = applyBp(toDefends ? ts.def : ts.brk, blockBp);
     const d = toDefends ? applyBp(d0, blockMul) : d0;
     const dmg = roundDamage(
-      roundHits(a, d, toDefends ? (toMods.prepBp ?? 0) + fx.defBlockBp : 0),
+      roundHits(a, d, toDefends ? prep + fx.defBlockBp : 0),
       // (Nothing to work out against an unarmoured target, nearly every hit.)
       ts.armor <= 0
         ? 0
@@ -1465,7 +1482,9 @@ export function battleExtras(
     defenderAttackBp: dm.attackBp,
     defenderBlockBp: dm.defenseBp,
     defenderPrepBp: dm.prepBp ?? 0,
+    defenderCutMulBp: dm.defCutMulBp,
     tankFearCutPp: fearCutOf(land, firstDef),
+    prepFireRounds: Math.max(0, PREP_FIRE_ROUNDS - b.round),
   };
   // ww8: the wings on station count in the odds.
   const casA = land.hooks.casNowCenti(b.region, attSide);
