@@ -520,7 +520,9 @@ describe("the AI's plan (spec §12, pre-flight R6)", () => {
     };
     expect(before("DEU", "ss_3", "bb_3")).toBe(true);
     expect(before("GBR", "sonar_2", "ss_3")).toBe(true);
-    expect(before("JPN", "cv_3", "ss_3")).toBe(true);
+    // ww81: the favoured list gave way to catalogue value; Japan still takes
+    // its next carrier before its late submarines.
+    expect(before("JPN", "cv_2", "ss_3")).toBe(true);
     for (const tag of ["DEU", "GBR", "JPN", "USA", "ITA", "SUN"] as const) {
       expect(aiResearchOrder(tag).some(isRetiredTech), tag).toBe(false);
     }
