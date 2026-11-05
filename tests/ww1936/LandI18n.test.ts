@@ -7,6 +7,7 @@ import {
   SUPPORT_IDS,
   WEATHERS,
 } from "@openfront/engine-api/ww1936/LandTypes";
+import { CONTENT } from "@openfront/engine-lib/ww1936/content/registry";
 import { startTemplates } from "@openfront/engine-lib/ww1936/LandStart";
 import fs from "fs";
 import IntlMessageFormat from "intl-messageformat";
@@ -69,6 +70,10 @@ const MODS = [
   "entrench",
   "position",
   "recon_position",
+  // Every line the battle card can print comes from these three.
+  "fm_plan",
+  "field_marshal",
+  "fm_trait",
 ];
 const LAND = [
   "presets",
@@ -189,6 +194,7 @@ const KEYS = [
   ...SUPPORT_IDS.map((b) => `ww1936.support.${b}`),
   ...SUPPORT_IDS.map((b) => `ww1936.support_note.${b}`),
   ...TEMPLATE_KEYS.map((k) => `ww1936.tpl.${k}`),
+  ...CONTENT.templates.map((t) => `ww1936.tpl.${t.id}`),
   ...LAND_TERRAINS.map((k) => `ww1936.terrain.${k}`),
   ...WEATHERS.map((k) => `ww1936.weather.${k}`),
   ...LIVE_TRAITS.map((k) => `ww1936.trait.${k}`),
