@@ -105,7 +105,7 @@ async function realWar(tagA: CountryTag = "DEU", tagB: CountryTag = "POL") {
   for (const id of [a.smallID(), b.smallID()]) {
     const ce = l.econ.country(id)!;
     ce.manpower += 10_000_000;
-    for (let k = 0; k < ce.stock.length; k++) ce.stock[k] += 100_000;
+    for (let k = 0; k < ce.stock.length; k++) ce.stock[k] += 1_000_000;
   }
   return { runner, g, l, deu: a.smallID(), pl: b.smallID(), ww };
 }
@@ -292,19 +292,24 @@ describe("the AI's fronts move (ww103)", () => {
     const { runner, g, l, deu, ww } = await realWar("DEU", "USA");
     const sc = l.scenario;
     const fra = byTag(g, "FRA").smallID();
-    const mine = sc.landRegions
-      .map((r) => r.id)
-      .filter(
-        (r) =>
-          l.controller[r] === deu &&
-          sc.edgesOf(r).some((e) => l.controller[e.to] === deu),
-      );
+    // Germany proper: East Prussia is a stretch of its own.
+    const mine = [sc.landRegions.find((r) => r.name === "Berlin")!.id];
+    for (let i = 0; i < mine.length; i++) {
+      for (const e of sc.edgesOf(mine[i])) {
+        if (l.controller[e.to] === deu && !mine.includes(e.to)) {
+          mine.push(e.to);
+        }
+      }
+    }
     const d0 = ww.day(g.ticks());
     finishDay(runner, d0);
     const worst = [...mine].sort(
       (x, y) => l.supplyMilli[x] - l.supplyMilli[y] || x - y,
     )[0];
-    const armies = [0, 1, 2].map(() => placeArmy(g, "DEU", worst, 24));
+    l.econ.country(deu)!.manpower += 10_000_000;
+    const armies = [0, 1, 2, 3, 4, 5, 6, 7].map(() =>
+      placeArmy(g, "DEU", worst, 24),
+    );
     for (const a of armies) {
       a.order = { ...a.order, kind: "front", enemy: fra, zone: [worst] };
     }
@@ -316,7 +321,7 @@ describe("the AI's fronts move (ww103)", () => {
       .flatMap((a) => a.divisions)
       .map((id) => t.rowOf(id))
       .filter((r) => t.region[r] === worst && t.mode[r] === MOVE_NONE);
-    expect(stay.length).toBeLessThan(72);
+    expect(stay.length).toBeLessThan(150);
     for (const r of stay) {
       expect(t.supply[r]).toBeGreaterThanOrEqual(AI_FEED_OK_PM);
     }
