@@ -5,8 +5,10 @@ import {
   effortFed,
   effortRoom,
   effortScore,
+  enemyCuts,
   pickMainSector,
 } from "../../packages/engine/src/ww1936/land/AiEffort";
+import { aiTargets } from "../../packages/engine/src/ww1936/land/AiLand";
 
 const region = (
   r: Partial<EffortRegion> & { region: number },
@@ -66,5 +68,52 @@ describe("AI main sector", () => {
     expect(effortRoom([1000, 2500], 2000)).toBe(1);
     expect(effortFed(6, 12)).toBe(true);
     expect(effortFed(5, 12)).toBe(false);
+  });
+
+  it("finds what a region cuts off from the capital, and what is cut already", () => {
+    // 1 (capital) - 2 - 3 - 4, a ring 1 - 5 - 6 - 1, and 9 alone.
+    const edges = new Map<number, number[]>([
+      [1, [2, 5, 6]],
+      [2, [1, 3]],
+      [3, [2, 4]],
+      [4, [3]],
+      [5, [1, 6]],
+      [6, [1, 5]],
+      [9, []],
+    ]);
+    const list = [...edges.keys()].sort((a, b) => a - b);
+    const divisions = new Map([
+      [3, 2],
+      [4, 5],
+      [5, 7],
+      [9, 3],
+    ]);
+    const { cut, pocket } = enemyCuts(
+      list,
+      1,
+      (r) => edges.get(r)!,
+      (r) => divisions.get(r) ?? 0,
+    );
+    expect(cut.get(2)).toBe(7);
+    expect(cut.get(3)).toBe(5);
+    expect(cut.has(5)).toBe(false);
+    expect(cut.has(1)).toBe(false);
+    expect([...pocket]).toEqual([9]);
+    expect(
+      enemyCuts(
+        list,
+        0,
+        () => [],
+        () => 1,
+      ).pocket.size,
+    ).toBe(0);
+  });
+
+  it("a region that cuts divisions off is a target, points or not", () => {
+    const regions = [
+      { region: 1, vp: 3, dist: 1 },
+      { region: 2, vp: 0, dist: 1, cut: 9 },
+    ];
+    expect(aiTargets({ regions })[0]).toBe(2);
   });
 });

@@ -98,3 +98,72 @@ export function effortRoom(supply: readonly number[], unit: number): number {
 export function effortFed(room: number, divisions: number): boolean {
   return room * 2 >= divisions;
 }
+
+/** C3: what taking each region of an enemy's land would cut off, and what is cut already. */
+export interface EnemyCuts {
+  /** Region -> enemy divisions behind it, seen from the capital. */
+  cut: Map<number, number>;
+  /** Enemy regions no land road joins to the capital (pockets, from the map alone). */
+  pocket: Set<number>;
+}
+
+/**
+ * C3 rule 1: articulation regions of the enemy's land graph from its capital,
+ * one linear pass (iterative low-link). `regions` ascending; `edges(r)` the
+ * neighbours, in a fixed order; `divisions(r)` the enemy divisions in r. With
+ * no capital (0, or not in the list) nothing is cut and nothing is a pocket.
+ */
+export function enemyCuts(
+  regions: readonly number[],
+  capital: number,
+  edges: (region: number) => readonly number[],
+  divisions: (region: number) => number,
+): EnemyCuts {
+  const cut = new Map<number, number>();
+  const pocket = new Set<number>();
+  const known = new Set(regions);
+  if (!known.has(capital)) return { cut, pocket };
+  const disc = new Map<number, number>();
+  const low = new Map<number, number>();
+  const below = new Map<number, number>();
+  let clock = 0;
+  const open = (r: number) => {
+    clock++;
+    disc.set(r, clock);
+    low.set(r, clock);
+    below.set(r, divisions(r));
+    return {
+      r,
+      parent: 0,
+      next: 0,
+      list: edges(r).filter((e) => known.has(e)),
+    };
+  };
+  const stack = [open(capital)];
+  while (stack.length > 0) {
+    const top = stack[stack.length - 1];
+    if (top.next < top.list.length) {
+      const e = top.list[top.next++];
+      if (e === top.parent) continue;
+      const seen = disc.get(e);
+      if (seen !== undefined) {
+        low.set(top.r, Math.min(low.get(top.r)!, seen));
+        continue;
+      }
+      const child = open(e);
+      child.parent = top.r;
+      stack.push(child);
+      continue;
+    }
+    stack.pop();
+    const up = stack[stack.length - 1];
+    if (up === undefined) break;
+    low.set(up.r, Math.min(low.get(up.r)!, low.get(top.r)!));
+    below.set(up.r, below.get(up.r)! + below.get(top.r)!);
+    if (low.get(top.r)! >= disc.get(up.r)! && up.r !== capital) {
+      cut.set(up.r, (cut.get(up.r) ?? 0) + below.get(top.r)!);
+    }
+  }
+  for (const r of regions) if (!disc.has(r)) pocket.add(r);
+  return { cut, pocket };
+}

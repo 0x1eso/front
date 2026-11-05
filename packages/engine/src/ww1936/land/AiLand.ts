@@ -81,6 +81,8 @@ import {
   effortFed,
   effortRoom,
   effortTarget,
+  enemyCuts,
+  type EnemyCuts,
   P_AXIS,
   pickMainSector,
 } from "./AiEffort";
@@ -465,6 +467,8 @@ export interface AiTargetRegion {
   dist: number;
   /** The enemy's capital: its victory points count twice (controller ruling 5). */
   capital?: boolean;
+  /** ww81 C3: the enemy divisions taking it would cut off. */
+  cut?: number;
 }
 
 /**
@@ -476,7 +480,10 @@ export function aiTargets(input: {
   regions: readonly AiTargetRegion[];
 }): number[] {
   const score = (r: AiTargetRegion) =>
-    Math.floor((r.vp * (r.capital === true ? 200 : 100)) / (r.dist + 1));
+    Math.floor(
+      (r.vp * (r.capital === true ? 200 : 100) + (r.cut ?? 0) * 100) /
+        (r.dist + 1),
+    );
   const out = input.regions
     .filter((r) => score(r) > 0)
     .sort((a, b) => score(b) - score(a) || a.region - b.region)
@@ -887,6 +894,8 @@ class AiDay {
   private effortOf = new Map<number, number>();
   /** ww81 C1: the others on a front judged for one: they walk and pursue, no more. */
   private offEffort = new Set<number>();
+  /** ww81 C3: today's cuts of each enemy read (on the period's day or for a new sector). */
+  private cutsMemo = new Map<number, EnemyCuts>();
 
   constructor(
     readonly land: WwLand,
@@ -2051,9 +2060,42 @@ class AiDay {
       if (a.order.executing) return x;
       if (waiting === 0) waiting = x;
     }
-    const due = (this.day + this.me) % AI_EFFORT_PERIOD_DAYS === 0;
-    if (waiting !== 0 && !due) return waiting;
+    if (waiting !== 0 && !this.effortDue()) return waiting;
     return this.pickSector(f, line, armies, waiting);
+  }
+
+  /** The period's day of this country: the sectors and the cuts are looked at again. */
+  private effortDue(): boolean {
+    return (this.day + this.me) % AI_EFFORT_PERIOD_DAYS === 0;
+  }
+
+  /**
+   * ww81 C3: what cutting `enemy`'s land does, from the map alone: control and
+   * the divisions the AI already reads, not the encircled flag (fog). Sea
+   * supply is not in it, so it is an estimate, good enough for aiming.
+   */
+  private cutsOf(enemy: number): EnemyCuts {
+    const memo = this.cutsMemo.get(enemy);
+    if (memo !== undefined) return memo;
+    const land = this.land;
+    const sc = land.scenario;
+    const regions = land.econ
+      .regionsOf(enemy)
+      .filter((r) => land.controller[r] === enemy)
+      .sort((a, b) => a - b);
+    const cuts = enemyCuts(
+      regions,
+      land.ww.capitalRegion(enemy),
+      (r) => sc.edgesOf(r).map((e) => e.to),
+      (r) => enemyDivisionsIn(land, this.me, r),
+    );
+    this.cutsMemo.set(enemy, cuts);
+    return cuts;
+  }
+
+  /** C3 rule 3: `x` is a pocket of `enemy`, seen on the period's day. */
+  private inPocket(enemy: number, x: number): boolean {
+    return this.effortDue() && this.cutsOf(enemy).pocket.has(x);
   }
 
   /** Rule 1 of C1, on what stands across `line` today (land/AiEffort). 0: nobody to attack. */
@@ -2077,6 +2119,7 @@ class AiDay {
       f.enemy,
       this.ratioOver(f.enemy, across),
     );
+    const { cut } = this.cutsOf(f.enemy);
     // The road on: a target deeper in counts for what stands in front of it.
     const pull = new Map<number, number>();
     const byId = new Map(reach.map((r) => [r.region, r]));
@@ -2123,7 +2166,7 @@ class AiDay {
           fort,
           width: combatWidth(sc.landOf(r.region), 1, fort),
           defence: enemyStrength(land, this.me, r.region),
-          extra: pull.get(r.region) ?? 0,
+          extra: (pull.get(r.region) ?? 0) + (cut.get(r.region) ?? 0),
         };
       });
     const period = Math.floor((this.day + this.me) / AI_EFFORT_PERIOD_DAYS);
@@ -3078,10 +3121,13 @@ class AiDay {
     // ww81 C1: an effort goes for its sector, and off it nobody attacks a
     // line that stands: walks and a broken enemy only.
     const aim = this.effortOf.get(s.a.id);
+    const x = s.legs[0].x;
+    const pocket = !r.free && this.inPocket(enemy, x);
     if (
       (aim !== undefined || this.offEffort.has(s.a.id)) &&
-      aim !== s.legs[0].x &&
+      aim !== x &&
       !r.free &&
+      !pocket &&
       r.midPm < AI_PURSUIT_RATIO_PM
     ) {
       return false;
@@ -3091,7 +3137,9 @@ class AiDay {
       return this.nobodyAcross(s.a, enemy) || this.ripe(s.a, enemy, 0);
     }
     const gate = aiGatePm(this.personality);
-    if (!this.ripe(s.a, enemy, r.midPm)) return false;
+    // C3 rule 3: a pocket waits for no readiness, as a broken enemy doesn't.
+    const floor = pocket ? AI_PURSUIT_RATIO_PM : r.midPm;
+    if (!this.ripe(s.a, enemy, floor)) return false;
     return (
       r.midPm >= (hold ? AI_OUTNUMBERED_ATTACK_PM : gate.midPm) &&
       r.lowPm >= gate.lowPm
@@ -3114,12 +3162,13 @@ class AiDay {
     const o = s.a.order;
     // ww81 C1: a line that stands takes the whole effort, massed; empty land
     // and a broken enemy go on as they always did.
+    const pocket = !r.free && this.inPocket(o.enemy, x);
     if (
       this.effortOf.get(s.a.id) === x &&
       !r.free &&
       r.midPm < AI_PURSUIT_RATIO_PM
     ) {
-      if (!this.massed(s)) return;
+      if (!pocket && !this.massed(s)) return;
       this.issue({
         kind: "army_direct",
         army: s.a.id,
@@ -3133,7 +3182,8 @@ class AiDay {
     const planned =
       o.kind === "plan" && o.targets[0] === x && !this.effortOf.has(s.a.id);
     if (planned) {
-      const now = r.free || r.midPm >= AI_PURSUIT_RATIO_PM || this.massed(s);
+      const now =
+        r.free || pocket || r.midPm >= AI_PURSUIT_RATIO_PM || this.massed(s);
       this.plan(s.a, o.targets, AI_STANCE, now);
       return;
     }
@@ -3148,7 +3198,7 @@ class AiDay {
       s.a,
       [x, ...beyond].slice(0, WW_MAX_TARGETS),
       AI_STANCE,
-      r.free || r.midPm >= AI_PURSUIT_RATIO_PM,
+      r.free || pocket || r.midPm >= AI_PURSUIT_RATIO_PM,
     );
   }
 
@@ -3405,11 +3455,15 @@ class AiDay {
       if (coresOnly && !(ours(pol.legalOwner[r.id]) && pol.isCore(r.id))) {
         continue;
       }
+      const cut = this.effortDue()
+        ? (this.cutsOf(enemy).cut.get(r.id) ?? 0)
+        : 0;
       regions.push({
         region: r.id,
         vp: r.vp,
         dist: d,
         capital: r.id === capital,
+        ...(cut > 0 ? { cut } : {}),
       });
     }
     this.reachDone(reached);
