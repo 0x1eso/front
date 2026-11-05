@@ -758,11 +758,7 @@ describe("World War 1936 P6: design planes for P4's deployments", () => {
     const { ww, d } = await game();
     const ALL = new Set(WW_TECH_IDS);
     const ce = ww.economy.country(GBR)!;
-    for (const t of [
-      "fighter_2",
-      "air_protection",
-      "air_range",
-    ] as const) {
+    for (const t of ["fighter_2", "air_protection", "air_range"] as const) {
       ce.addTech(t);
     }
     // Slot 1 a 1936 fighter, slot 2 a 1940 one, slot 3 a bomber.

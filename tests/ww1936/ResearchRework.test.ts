@@ -132,9 +132,7 @@ describe("the catalogue's gates (ww82 §5)", () => {
     );
     expect(gear.filter((e) => histGatesOf(e).length === 0)).toHaveLength(30);
     // Pak 40's at_imp_2 gate was never real: the card no longer claims it.
-    expect(
-      histEntriesGatedBy("at_imp_2", "DEU").map((e) => e.id),
-    ).toEqual([]);
+    expect(histEntriesGatedBy("at_imp_2", "DEU").map((e) => e.id)).toEqual([]);
   });
 });
 
@@ -166,8 +164,12 @@ describe("what a tech is to a major (ww82 §8, §9)", () => {
       running: [],
     };
     const at = WW_TECH_IDS.indexOf("medium_tank_3");
-    const ita = researchScores({ ...base, tag: "ITA", persona: "aggressor" })[at];
-    const pol = researchScores({ ...base, tag: "POL", persona: "aggressor" })[at];
+    const ita = researchScores({ ...base, tag: "ITA", persona: "aggressor" })[
+      at
+    ];
+    const pol = researchScores({ ...base, tag: "POL", persona: "aggressor" })[
+      at
+    ];
     expect(ita).not.toBeNull();
     // POL's own value for the tech is the same score less the cut's absence.
     if (pol !== null) expect(ita).toBeLessThan(pol);

@@ -180,7 +180,7 @@ const RELEVANCE = new Map<HistCountry, ReadonlyMap<WwTechId, TechRelevance>>();
 function relevanceOf(
   country: HistCountry,
 ): ReadonlyMap<WwTechId, TechRelevance> {
-  let m = RELEVANCE.get(country);
+  const m = RELEVANCE.get(country);
   if (m !== undefined) return m;
   const own = new Set<WwTechId>();
   for (const e of histUsable(country))

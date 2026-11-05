@@ -124,8 +124,14 @@ function leastEarly(first: readonly WwTechId[] = []): Picker {
   return (day, researched, running) => {
     const taken = new Set(running);
     const out: WwTechId[] = [];
-    for (let free = running.filter((t) => t === null).length; free > 0; free--) {
-      const list = WW_TECH_IDS.filter((t) => open(t, researched) && !taken.has(t));
+    for (
+      let free = running.filter((t) => t === null).length;
+      free > 0;
+      free--
+    ) {
+      const list = WW_TECH_IDS.filter(
+        (t) => open(t, researched) && !taken.has(t),
+      );
       const rush = first.find((t) => list.includes(t));
       const best =
         rush ??
@@ -198,7 +204,10 @@ describe("research pace (ww83)", () => {
     for (const tag of HIST_COUNTRIES) {
       const r = runTree(tag, DEV_MAJOR, leastEarly());
       expect(r.pct, tag).toBeGreaterThanOrEqual(85);
-      expect(r.idle.slice(0, 9).every((n) => n === 0), tag).toBe(true);
+      expect(
+        r.idle.slice(0, 9).every((n) => n === 0),
+        tag,
+      ).toBe(true);
     }
   });
 
@@ -208,7 +217,10 @@ describe("research pace (ww83)", () => {
         const r = runTree(tag, DEV_MAJOR, aiPlan(tag, seed));
         expect(r.pct, `${tag} ${seed}`).toBeGreaterThanOrEqual(80);
         // Empty only when its list ends, in the last years.
-        expect(r.idle.slice(0, 9).every((n) => n === 0), tag).toBe(true);
+        expect(
+          r.idle.slice(0, 9).every((n) => n === 0),
+          tag,
+        ).toBe(true);
       }
     }
   });

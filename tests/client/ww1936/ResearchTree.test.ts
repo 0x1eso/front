@@ -96,9 +96,9 @@ describe("research tree", () => {
     const own = node("DEU", "armour", "medium_tank_3").gear!;
     expect(own.relevance).toBe("own");
     expect(own.entries.map((e) => e.id)).toContain("deu_panther_a");
-    expect(
-      own.entries.find((e) => e.id === "deu_panther_a")!.needs,
-    ).toContain("tank_gun_3");
+    expect(own.entries.find((e) => e.id === "deu_panther_a")!.needs).toContain(
+      "tank_gun_3",
+    );
     const pass = node("DEU", "armour", "heavy_tank_2").gear!;
     expect(pass.relevance).toBe("pass");
     expect(pass.leads.length).toBeGreaterThan(0);
@@ -124,9 +124,9 @@ describe("research tree", () => {
     );
     await m.click("[data-ww-tech='medium_tank_3']");
     expect(m.q("[data-ww-gear='own']")).not.toBeNull();
-    expect(
-      m.q("[data-ww-gear-entry='deu_panther_a']")!.textContent,
-    ).toContain("gear_needs");
+    expect(m.q("[data-ww-gear-entry='deu_panther_a']")!.textContent).toContain(
+      "gear_needs",
+    );
     await m.click("[data-ww-tab='air']");
     const generic = m.q("[data-ww-tech='heavy_fighter_3']")!;
     expect(generic.dataset.relevance).toBe("generic");
@@ -151,7 +151,9 @@ describe("research tree", () => {
     });
     await m.click("[data-ww-tab='air']");
     expect(m.q("[data-ww-card='heavy_fighter_3']")).toBeNull();
-    expect(m.q("[data-ww-card='fighter_2'] [data-ww-card-gear]")).not.toBeNull();
+    expect(
+      m.q("[data-ww-card='fighter_2'] [data-ww-card-gear]"),
+    ).not.toBeNull();
     await m.click("[data-ww-generic-row]");
     expect(m.q("[data-ww-card='heavy_fighter_3']")).not.toBeNull();
   });
