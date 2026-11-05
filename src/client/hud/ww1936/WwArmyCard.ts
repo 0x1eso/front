@@ -716,7 +716,7 @@ export class WwArmyCard extends LitElement implements Controller {
         type="button"
         data-ww-air-priority
         aria-pressed=${String(on)}
-        class="h-8 shrink-0 rounded-md border px-2 ${on
+        class="h-10 shrink-0 rounded-md border px-2 ${on
           ? "border-sky-300 bg-sky-800/60"
           : "border-white/15 bg-white/10 hover:bg-white/20"}"
         @click=${() =>
