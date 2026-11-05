@@ -2490,7 +2490,8 @@ class AiDay {
       wwRoll(land.ww.politics.seed, P_AXIS, this.me, period, f.enemy),
       waiting,
       this.breaksForts(able),
-      this.plan.effortKeepPct,
+      this.warPlan.effortKeepPct,
+      this.warPlan.skyBarPm,
     );
   }
 

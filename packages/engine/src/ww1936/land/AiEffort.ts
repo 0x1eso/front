@@ -144,7 +144,8 @@ export function effortScore(
  * AI_EFFORT_CLOSE_PCT of the best, so games differ. 0 with no region.
  * `keep`, the sector standing now, stays while it is that close to the best:
  * armies do not march off for a coin. `breaksForts`: ww90, the force has heavy
- * tanks or assault infantry. `keepPct`: ww91, the plan's "that close".
+ * tanks or assault infantry. `keepPct`: ww91, the plan's "that close";
+ * `skyBarPm`: its sky bar (rule 4).
  */
 export function pickMainSector(
   regions: readonly EffortRegion[],
@@ -152,11 +153,18 @@ export function pickMainSector(
   keep = 0,
   breaksForts = false,
   keepPct = AI_EFFORT_CLOSE_PCT,
+  skyBarPm = AI_EFFORT_SKY_PM,
 ): number {
   const bar = breaksForts ? AI_EFFORT_BREAK_FORT_BAR : AI_EFFORT_FORT_BAR;
   const open = regions.filter((r) => r.fort < bar);
-  const list = (open.length > 0 ? open : regions)
-    .map((r) => ({ region: r.region, score: effortScore(r, breaksForts) }))
+  const reach = open.length > 0 ? open : regions;
+  // ww91 rule 4: sky first: no sector under the enemy's sky while another stands.
+  const clear = reach.filter((r) => (r.skyPm ?? 0) < skyBarPm);
+  const list = (clear.length > 0 ? clear : reach)
+    .map((r) => ({
+      region: r.region,
+      score: effortScore(r, breaksForts, skyBarPm),
+    }))
     .sort((a, b) => b.score - a.score || a.region - b.region);
   if (list.length === 0) return 0;
   const [first, second] = list;
