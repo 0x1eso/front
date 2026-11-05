@@ -18,6 +18,7 @@ import {
 import type { GearStats } from "@openfront/engine-lib/ww1936/hist/ConvertGear";
 import { histEntry } from "@openfront/engine-lib/ww1936/hist/index";
 import {
+  histGearChargeMilli,
   histKindOf,
   histOwn,
   histStaticEntry,
@@ -123,7 +124,7 @@ export function histStatsLine(e: HistEntry): string {
         {
           pct: g.statPct,
           pierce: mm(g.pierceCenti),
-          cost: n1(g.costMilli / 10),
+          cost: n1((histGearChargeMilli(e) ?? g.costMilli) / 10),
         },
       );
     }

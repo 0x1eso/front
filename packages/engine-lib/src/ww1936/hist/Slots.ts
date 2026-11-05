@@ -1,7 +1,11 @@
 // World War 1936 historical catalogue: how entries sit in the engine's
 // design slots and static keys.
 import type { DesignKind } from "@openfront/engine-api/ww1936/DepthTypes";
-import { EQUIPMENT } from "../Equipment";
+import {
+  EQUIPMENT_GENS,
+  type EquipmentType,
+} from "@openfront/engine-api/ww1936/EconomyTypes";
+import { EQUIPMENT, unitCostMilli } from "../Equipment";
 import { tankGroupOf } from "./ConvertTank";
 import { HIST_CATALOGUE } from "./index";
 import type { HistCountry, HistEntry, TankEntry } from "./Types";
@@ -106,4 +110,32 @@ export function histEntriesGatedBy(
     }
   }
   return out;
+}
+
+const GEAR_TYPES: readonly EquipmentType[] = [
+  "infantry_equipment",
+  "support_equipment",
+  "artillery",
+  "anti_tank",
+  "anti_air",
+];
+
+/**
+ * B8: the milli industry points production really charges for a gear
+ * entry: the generic cost of the static key it stands in for (production
+ * charges the key's table, not the entry's own figure). Null for an entry
+ * no static key maps to.
+ */
+export function histGearChargeMilli(e: HistEntry): number | null {
+  if (e.family !== "infantry" && e.family !== "support" && e.family !== "gun") {
+    return null;
+  }
+  for (const type of GEAR_TYPES) {
+    for (let g = 1; g <= EQUIPMENT_GENS[type]; g++) {
+      if (histStaticEntry(e.country, type, g) === e) {
+        return unitCostMilli(type, g);
+      }
+    }
+  }
+  return null;
 }

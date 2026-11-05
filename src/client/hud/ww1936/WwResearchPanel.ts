@@ -226,6 +226,8 @@ export class WwResearchPanel extends WwDrawerBase {
       tag,
       day: today(this.game),
       smallID: me.smallID(),
+      navalLines: this.game.wwNavy?.()?.detail?.lines.length ?? 0,
+      bonusKeys: this.bonuses().map((b) => b.key),
     });
   }
 

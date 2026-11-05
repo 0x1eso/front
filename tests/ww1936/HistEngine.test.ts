@@ -244,6 +244,62 @@ describe("start stock", () => {
   });
 });
 
+describe("catalogue transports (B9)", () => {
+  test("the paradrop's transport count sees plane-design stock", async () => {
+    const { equipKey } =
+      await import("@openfront/engine-api/ww1936/EconomyTypes");
+    const { transportStock } =
+      await import("@openfront/engine/ww1936/air/Paradrop");
+    const { runner, ww } = await game(false);
+    const ce = ww.economy.country(DEU)!;
+    const own = histOwn("DEU", "plane");
+    const slot =
+      own.findIndex(
+        (e) => e.family === "plane" && e.type === "transport_plane",
+      ) + 1;
+    expect(slot).toBeGreaterThan(0);
+    for (const t of own[slot - 1].techs) ce.addTech(t);
+    step(runner, 20);
+    const before = transportStock(ww.air, DEU);
+    ce.stock[equipKey("plane_design", slot)] += 33;
+    expect(transportStock(ww.air, DEU)).toBe(before + 33);
+  });
+});
+
+describe("start stock by generation (B4)", () => {
+  test("generic fighter:2 does not land in the same entry as fighter:1", async () => {
+    const { equipKey } =
+      await import("@openfront/engine-api/ww1936/EconomyTypes");
+    const { runner, ww } = await game(false);
+    const ce = ww.economy.country(DEU)!;
+    const own = histOwn("DEU", "plane");
+    const slots = (): number[] =>
+      own
+        .map((e, i) => (ce.stock[equipKey("plane_design", i + 1)] > 0 ? i : -1))
+        .filter((i) => i >= 0);
+    const g1Only = async () => {
+      ce.stock[equipKey("fighter", 1)] = 0;
+      ce.stock[equipKey("fighter", 2)] = 0;
+    };
+    await g1Only();
+    for (let i = 0; i < own.length; i++)
+      ce.stock[equipKey("plane_design", i + 1)] = 0;
+    ce.stock[equipKey("fighter", 2)] = 5;
+    step(runner, 20);
+    const g2 = slots().filter(
+      (i) => (own[i] as { type?: string }).type === "fighter",
+    );
+    ce.stock[equipKey("fighter", 1)] = 5;
+    step(runner, 20);
+    const both = slots().filter(
+      (i) => (own[i] as { type?: string }).type === "fighter",
+    );
+    expect(g2.length).toBe(1);
+    // The generation-1 stock went to another (older) entry than generation 2's.
+    expect(both.length).toBeGreaterThan(1);
+  });
+});
+
 // ww73: a catalogue line is never slower than the generic line of its type.
 describe("catalogue line against the generic line", () => {
   test("the Panzer II line asks what the generic light tank asks and makes as many", async () => {

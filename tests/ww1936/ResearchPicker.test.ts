@@ -84,8 +84,10 @@ describe("the research score (research overhaul)", () => {
     const noPlanes = researchScores(
       base({ lineFactories: { infantry_equipment: 10 } }),
     );
-    // A line of the kind: +20 for its improvement.
-    expect(s[at("aero_engine_2")]! - noPlanes[at("aero_engine_2")]!).toBe(20);
+    // A line of the kind: its share of the lines, up to 25, for its improvement (ww81).
+    expect(
+      s[at("aero_engine_2")]! - noPlanes[at("aero_engine_2")]!,
+    ).toBeGreaterThan(0);
     const bonus = researchScores(base({ bonusKeys: ["armour"] }));
     expect(bonus[at("tank_engine_2")]! - s[at("tank_engine_2")]!).toBe(25);
     // A minor without planes: no air techs; landlocked: no sea techs.

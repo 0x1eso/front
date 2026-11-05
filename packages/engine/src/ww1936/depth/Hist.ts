@@ -274,15 +274,22 @@ export function sweepHistPlanes(d: WwDepth, id: number): void {
           slot = i;
         }
       }
-      for (let i = 0; i < own.length && slot < 0; i++) {
-        const e = own[i];
-        if (
-          e.family === "plane" &&
-          e.type === type &&
-          c.des.plane[i] !== null
-        ) {
-          slot = i;
+      if (slot < 0) {
+        // B4: by generation — the g-th oldest unlocked plane of the type
+        // (the newest when there are fewer), not always the first.
+        const open: number[] = [];
+        for (let i = 0; i < own.length; i++) {
+          const e = own[i];
+          if (
+            e.family === "plane" &&
+            e.type === type &&
+            c.des.plane[i] !== null
+          ) {
+            open.push(i);
+          }
         }
+        open.sort((x, y) => own[x].year - own[y].year || x - y);
+        if (open.length > 0) slot = open[Math.min(g, open.length) - 1];
       }
       if (slot < 0) continue;
       ce.stock[equipKey("plane_design", slot + 1)] += ce.stock[key];

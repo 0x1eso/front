@@ -121,6 +121,13 @@ export function deckSize(navy: WwNavy, row: number, f: Fleet): number {
     // P6 (spec §21.2, T1b): carrierDeckPct.
     (st?.carrierDeckPct ?? 0) +
     (((adm?.traits ?? 0) & AVIATOR) !== 0 ? AVIATOR_DECK_PCT : 0);
+  // B15: a designed (catalogue) carrier's own deck — Akagi 91 — which the
+  // ship stats already scale by the owner's deck percents; the aviator's
+  // trait comes on top. A generic carrier: the generation's deck as before.
+  if (t.design[row] !== 0) {
+    const trait = ((adm?.traits ?? 0) & AVIATOR) !== 0 ? AVIATOR_DECK_PCT : 0;
+    return Math.floor((navy.shipStatsOf(row).deck * (100 + trait)) / 100);
+  }
   return Math.floor((GEN_DECK[t.gen[row] - 1] * (100 + pct)) / 100);
 }
 

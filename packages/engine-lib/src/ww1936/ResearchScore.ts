@@ -4,7 +4,8 @@
 // planResearch keeps the ahead-of-time tiers and the land/sea/air caps.
 //
 //   score = area weight (personality, country, a human's lines and leaning)
-//         + role + need + bonus + catch-up + favoured − ahead ÷ 2 + jitter
+//         + role + need + bonus + catch-up + favoured + catalogue value
+//           + situation − ahead ÷ 2 + jitter
 //
 // Integers only, no state: the jitter is wwRoll(seed, P_RESEARCH, country,
 // tech index) and the either/or line wwRoll(seed, P_RESEARCH_EXCL, …), so
@@ -19,14 +20,37 @@ import {
   WwTechId,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
 import { aheadPct, yearStartDay } from "./EconomyRules";
+import { HIST_CATALOGUE } from "./hist/index";
+import { catalogueTechValues } from "./hist/TechValue";
 import { idHash, wwRoll } from "./Roll";
 import { INDUSTRY_ORG, TechRole, WW_TECHS } from "./WwTechs";
 
 export const P_RESEARCH = idHash("research");
 export const P_RESEARCH_EXCL = idHash("research_excl");
+/** ww81: the seeded lean of an AI's catalogue programme (one of three, +20 on its groups). */
+export const P_RESEARCH_PROG = idHash("research_prog");
 
 /** The AI personalities (AiEconomy.aiPersonality). */
 export type ResearchPersona = "aggressor" | "democracy" | "minor";
+
+const AGGRESSORS: readonly CountryTag[] = ["DEU", "ITA", "JPN", "SUN"];
+const DEMOCRACIES: readonly CountryTag[] = [
+  "GBR",
+  "FRA",
+  "USA",
+  "CAN",
+  "AUS",
+  "NZL",
+  "ZAF",
+  "RAJ",
+];
+
+/** The AI personality of a country (one source for the engine and the research card). */
+export function researchPersonaOf(tag: CountryTag): ResearchPersona {
+  if (AGGRESSORS.includes(tag)) return "aggressor";
+  if (DEMOCRACIES.includes(tag)) return "democracy";
+  return "minor";
+}
 
 /** What the score reads of a country (built by the engine from its state). */
 export interface ResearchScoreInput {
@@ -53,6 +77,19 @@ export interface ResearchScoreInput {
   /** Techs researched (the either/or choice reads them, with `running`). */
   researched: ReadonlySet<WwTechId>;
   running: readonly (WwTechId | null)[];
+  /**
+   * ww81: what the war asks for now (read only when a slot is free); none:
+   * nothing. `antiTank` 1: our best anti-tank pierce is under the enemy's
+   * best armour (anti-tank techs +25), -1: the reverse (tank guns +25).
+   * `airLosses`: heavy wing losses lately (fighter techs +20).
+   * `shortResource`: a resource covers under half its need (synthetic and
+   * substitute techs +25).
+   */
+  situation?: {
+    antiTank?: -1 | 0 | 1;
+    airLosses?: boolean;
+    shortResource?: boolean;
+  };
 }
 
 // ---- The kinds of equipment a tech serves ----
@@ -61,18 +98,12 @@ const PLANES_FIGHTER: readonly EquipmentType[] = [
   "fighter",
   "heavy_fighter",
   "cv_fighter",
-  "plane_design",
 ];
-const PLANES_BOMBER: readonly EquipmentType[] = [
-  "bomber",
-  "strat_bomber",
-  "plane_design",
-];
-const PLANES_CAS: readonly EquipmentType[] = ["cas", "cv_cas", "plane_design"];
+const PLANES_BOMBER: readonly EquipmentType[] = ["bomber", "strat_bomber"];
+const PLANES_CAS: readonly EquipmentType[] = ["cas", "cv_cas"];
 const PLANES_NAVAL: readonly EquipmentType[] = [
   "naval_bomber",
   "cv_naval_bomber",
-  "plane_design",
 ];
 const PLANES_ALL: readonly EquipmentType[] = [
   ...PLANES_FIGHTER,
@@ -83,11 +114,7 @@ const PLANES_ALL: readonly EquipmentType[] = [
   "naval_bomber",
   "cv_naval_bomber",
 ];
-const TANKS: readonly EquipmentType[] = [
-  "light_tank",
-  "medium_tank",
-  "tank_design",
-];
+const TANKS: readonly EquipmentType[] = ["light_tank", "medium_tank"];
 
 /** "ship": a naval line's; a list: those equipment lines'; null: no equipment (always wanted). */
 export type TechUse = readonly EquipmentType[] | "ship" | null;
@@ -208,23 +235,16 @@ const COUNTRY_AREA: Readonly<
   FRA: { infantry: 65, artillery: 70, support: 55, industry: 60 },
 };
 
-/** "Look first" (+30): the old SEA_FOCUS / AIR_FOCUS lists and each major's mark (changes §5). */
-const FAVOURED: Readonly<Partial<Record<CountryTag, readonly WwTechId[]>>> = {
-  DEU: [
-    "ss_3",
-    "torpedo_1",
-    "cas_2",
-    "heavy_fighter_2",
-    "radar_1",
-    "medium_tank_1",
-    "medium_tank_2",
-    "tank_engine_2",
-    "tank_gun_2",
-    "tank_gun_3",
-    "fighter_2",
-  ],
+/**
+ * ww81: techs valued for their effect, not for gear (+20): what a country
+ * is known for beyond its catalogue. Gear techs are valued by
+ * catalogueTechValues instead (TechValue.ts), shaped by PROGRAMME.
+ */
+const FAVOURED_STAT: Readonly<
+  Partial<Record<CountryTag, readonly WwTechId[]>>
+> = {
+  DEU: ["radar_1"],
   GBR: [
-    "sonar_1",
     "sonar_2",
     "radar_1",
     "radar_2",
@@ -234,42 +254,138 @@ const FAVOURED: Readonly<Partial<Record<CountryTag, readonly WwTechId[]>>> = {
     "convoy_escort_2",
     "depth_charge_2",
     "hedgehog",
-    "strat_bomber_2",
-    "fighter_2",
   ],
-  JPN: [
-    "cv_3",
-    "cv_4",
-    "torpedo_1",
-    "torpedo_2",
-    "torpedo_3",
-    "naval_bomber_2",
-    "naval_strike_1",
-    "carrier_deck_2",
+  USA: ["tools_2", "construction_2"],
+  FRA: ["fortification_2", "art_imp_1"],
+  SUN: ["inf_imp_1", "inf_imp_2", "art_imp_1", "art_imp_2", "at_imp_1"],
+};
+
+/**
+ * ww81: percent on the catalogue gain of a group (others 100): national
+ * character. Keys: tanks (all tank groups), light, medium, heavy, cas,
+ * fighter, strat, carrier (cv_ planes), naval_bomber, artillery, anti_tank.
+ */
+const PROGRAMME: Readonly<
+  Partial<Record<CountryTag, Readonly<Record<string, number>>>>
+> = {
+  DEU: { medium: 130, cas: 130, fighter: 120, strat: 50 },
+  SUN: { medium: 140, artillery: 130, cas: 130 },
+  USA: { strat: 130, carrier: 130, medium: 110 },
+  GBR: { fighter: 130, strat: 120, medium: 90 },
+  JPN: { carrier: 140, naval_bomber: 130, tanks: 70 },
+  ITA: { light: 110, naval_bomber: 110 },
+  FRA: { heavy: 120, anti_tank: 120, artillery: 120 },
+};
+
+/** The programme keys a catalogue group answers to. */
+function programmeKeys(group: string): string[] {
+  const [kind, sub] = group.split(":");
+  if (kind === "tank") return ["tanks", sub];
+  if (kind === "gun") return [sub];
+  if (kind !== "plane") return [];
+  const out: string[] = [];
+  if (sub.startsWith("cv_")) out.push("carrier");
+  if (sub === "fighter" || sub === "heavy_fighter" || sub === "cv_fighter") {
+    out.push("fighter");
+  } else if (sub === "cas" || sub === "cv_cas") out.push("cas");
+  else if (sub === "strat_bomber") out.push("strat");
+  else if (sub === "naval_bomber" || sub === "cv_naval_bomber") {
+    out.push("naval_bomber");
+  }
+  return out;
+}
+
+/**
+ * The three leans an AI rolls one of per game (+20 on the programme of the
+ * groups): a predicate on the catalogue group.
+ */
+const LEANS_DEFAULT: readonly ((g: string) => boolean)[] = [
+  (g) => g.startsWith("tank:"),
+  (g) => g.startsWith("plane:"),
+  (g) => g.startsWith("ship:"),
+];
+const LEANS_BY_TAG: Readonly<
+  Partial<Record<CountryTag, readonly ((g: string) => boolean)[]>>
+> = {
+  DEU: [
+    (g) => g.startsWith("tank:"),
+    (g) => g.startsWith("plane:"),
+    (g) => g === "ship:ss",
   ],
-  USA: [
-    "cv_3",
-    "cv_4",
-    "dd_3",
-    "landing_craft_1",
-    "strat_bomber_1",
-    "strat_bomber_2",
-    "bomb_sight_2",
-    "tools_2",
-    "construction_2",
-  ],
-  ITA: ["bb_3", "cl_3", "ss_3", "torpedo_1", "naval_bomber_2"],
-  FRA: ["fortification_2", "art_imp_1", "artillery_2", "heavy_fighter_2"],
   SUN: [
-    "inf_imp_1",
-    "inf_imp_2",
-    "art_imp_1",
-    "art_imp_2",
-    "at_imp_1",
-    "artillery_2",
-    "cas_2",
+    (g) => g.startsWith("tank:"),
+    (g) => g.startsWith("gun:"),
+    (g) => g.startsWith("plane:"),
   ],
 };
+
+const DESIGN_TYPES: ReadonlySet<EquipmentType> = new Set<EquipmentType>([
+  "plane_design",
+  "tank_design",
+]);
+
+/** The equipment lines a catalogue group is built on ("ship": a naval line). */
+function groupTypes(group: string): readonly EquipmentType[] | "ship" {
+  const [kind, sub] = group.split(":");
+  switch (kind) {
+    case "tank":
+      return [sub === "light" ? "light_tank" : "medium_tank"];
+    case "plane":
+      return [sub as EquipmentType];
+    case "gun":
+      return [sub as EquipmentType];
+    case "ship":
+      return "ship";
+    case "sup":
+      return [sub === "transport" ? "motorized" : "support_equipment"];
+    default:
+      return ["infantry_equipment"];
+  }
+}
+
+/** Percent of its lines' factories on `types` (design lines count as the type they stand for). */
+function lineSharePct(
+  i: ResearchScoreInput,
+  types: readonly EquipmentType[],
+): number {
+  let total = 0;
+  let on = 0;
+  for (const [t, n] of Object.entries(i.lineFactories)) {
+    if (n === undefined || n <= 0 || DESIGN_TYPES.has(t as EquipmentType)) {
+      continue;
+    }
+    total += n;
+    if (types.includes(t as EquipmentType)) on += n;
+  }
+  return total > 0 ? Math.floor((on * 100) / total) : 0;
+}
+
+/** weight × programme ÷ 100, in percent, of a catalogue group for this input. */
+function groupMult(i: ResearchScoreInput): (group: string) => number {
+  const prog = i.human ? undefined : PROGRAMME[i.tag];
+  const leans = LEANS_BY_TAG[i.tag] ?? LEANS_DEFAULT;
+  const lean = i.human
+    ? undefined
+    : leans[wwRoll(i.seed, P_RESEARCH_PROG, i.smallID) % leans.length];
+  return (group) => {
+    const types = groupTypes(group);
+    const weight =
+      types === "ship"
+        ? i.navalLines > 0
+          ? 60
+          : 30
+        : 30 + Math.min(70, 3 * lineSharePct(i, types));
+    let pct = 100;
+    if (prog !== undefined) {
+      for (const key of programmeKeys(group)) {
+        const v = prog[key];
+        if (v !== undefined) pct = pct === 100 ? v : Math.max(pct, v);
+      }
+    }
+    if (lean?.(group) === true) pct += 20;
+    return Math.floor((weight * pct) / 100);
+  };
+}
 
 /** The role's weight (an AI's; a 1945 tech waits for the unlimited game). */
 const ROLE_WEIGHT: Readonly<Record<TechRole, number>> = {
@@ -436,7 +552,13 @@ function builds(i: ResearchScoreInput, use: TechUse): boolean {
  */
 export function researchScores(i: ResearchScoreInput): (number | null)[] {
   const area = researchAreaWeights(i);
-  const favoured = new Set(FAVOURED[i.tag] ?? []);
+  const favoured = new Set(FAVOURED_STAT[i.tag] ?? []);
+  const catalogue = hasCatalogue(i.tag);
+  const value = catalogue
+    ? catalogueTechValues(i.tag, i.researched, groupMult(i))
+    : null;
+  const sit = i.situation;
+  const total = totalFactories(i);
   const line = preferredExclusiveLine(i);
   const planes = PLANES_ALL.some((t) => (i.lineFactories[t] ?? 0) > 0);
   const airShare = area[tabIx("air")];
@@ -453,22 +575,78 @@ export function researchScores(i: ResearchScoreInput): (number | null)[] {
       // An AI without planes (a minor) leaves the air war out.
       if (d.tab === "air" && !planes && airShare < 20) return null;
       if (!aiWants(i, id)) return null;
+      // A minor leaves out the tanks it has no line for.
+      if (!catalogue && d.tab === "armour" && use === TANKS && !built) {
+        return null;
+      }
     }
-    let s = area[tabIx(d.tab)] + ROLE_WEIGHT[d.role];
-    // Need: the lines it runs (an improvement, a generation, a module).
+    // A catalogue country's modules and chassis are gates (ww81): full weight.
+    const role =
+      catalogue && (d.role === "module" || d.role === "chassis")
+        ? ROLE_WEIGHT.eco
+        : ROLE_WEIGHT[d.role];
+    let s = area[tabIx(d.tab)] + role;
+    // Need: its share of the lines that use the tech, at most 25 (ww81; B7).
     if (use !== null) {
-      if (built) s += d.role === "gen" || d.role === "imp" ? 20 : 10;
-      else if (i.human) s -= 40;
+      if (built) {
+        const share =
+          use === "ship"
+            ? 25
+            : total > 0
+              ? Math.min(25, lineSharePct(i, use))
+              : 0;
+        s += d.role === "gen" || d.role === "imp" ? share : share >> 1;
+        // At least a little: a line it runs is a line it should keep current.
+        if (share > 0) s += 2;
+      } else if (i.human) s -= 40;
     }
     if (bonus.has(id) || bonus.has(d.branch)) s += 25;
     s += Math.floor((shared.get(id) ?? 0) / 2);
     // Catch-up: 5 a year behind its year, at most 15.
     const behind = Math.floor((i.day - yearStartDay(d.year)) / 365);
     if (behind > 0) s += Math.min(15, behind * 5);
-    if (favoured.has(id)) s += 30;
+    if (favoured.has(id)) s += 20;
+    if (value !== null) s += value[k];
+    if (sit !== undefined) s += situationBonus(sit, id);
     s -= Math.floor(aheadPct(d.year, i.day) / 2);
     return s + (wwRoll(i.seed, P_RESEARCH, i.smallID, k) % 11);
   });
+}
+
+function hasCatalogue(tag: CountryTag): boolean {
+  return (HIST_CATALOGUE as Record<string, unknown>)[tag] !== undefined;
+}
+
+function totalFactories(i: ResearchScoreInput): number {
+  let n = 0;
+  for (const [t, f] of Object.entries(i.lineFactories)) {
+    if (f !== undefined && f > 0 && !DESIGN_TYPES.has(t as EquipmentType))
+      n += f;
+  }
+  return n;
+}
+
+/** What the war asks for now (ResearchScoreInput.situation). */
+function situationBonus(
+  sit: NonNullable<ResearchScoreInput["situation"]>,
+  id: WwTechId,
+): number {
+  let b = 0;
+  if (sit.antiTank === 1 && /^(anti_tank|at_imp)/.test(id)) b += 25;
+  if (sit.antiTank === -1 && /^tank_gun/.test(id)) b += 25;
+  if (
+    sit.airLosses === true &&
+    /^(fighter|aircraft_cannon|aero_engine|air_armor|self_sealing)/.test(id)
+  ) {
+    b += 20;
+  }
+  if (
+    sit.shortResource === true &&
+    /^(synthetic_|metal_substitute|rubber_)/.test(id)
+  ) {
+    b += 25;
+  }
+  return b;
 }
 
 /** One tech's score (researchScores' value; the screens' "next pick" and tests). */

@@ -27,6 +27,7 @@ import {
   paradropBlockOf,
   paradropTransports,
 } from "@openfront/engine-lib/ww1936/AirRules";
+import { planeDesignSlotsOf } from "../depth/Designs";
 import { effectiveLevel } from "../economy/Buildings";
 import { damageDivisions, divisionWeightCenti } from "../land/SeaLift";
 import type { Army } from "../land/WwLand";
@@ -57,11 +58,21 @@ export function transportStock(air: WwAir, smallID: number): number {
   for (let g = 1; g <= EQUIPMENT_GENS[TRANSPORT]; g++) {
     n += ce.stock[equipKey(TRANSPORT, g)];
   }
+  // B9: catalogue transports are plane-design stock.
+  for (const slot of designTransportSlots(air, smallID)) {
+    n += ce.stock[equipKey("plane_design", slot)];
+  }
   // ww8: the transports of the country's wings waiting on the ground count too.
   if (air.wingsLive) {
     for (const w of idleTransportWings(air, smallID)) n += wingPlanes(w);
   }
   return n;
+}
+
+/** The plane-design slots (1-based) whose design flies as a transport. */
+function designTransportSlots(air: WwAir, owner: number): number[] {
+  const d = air.ww.depth;
+  return d === undefined ? [] : planeDesignSlotsOf(d, owner, TRANSPORT);
 }
 
 /** ww8: the owner's transport wings that are not flying (ground or rearm), in id order. */
@@ -337,6 +348,14 @@ export function resolveParadrop(air: WwAir, army: number, tick: number): void {
     let gone = 0;
     for (let g = 1; g <= EQUIPMENT_GENS[TRANSPORT] && left > 0; g++) {
       const k = equipKey(TRANSPORT, g);
+      const take = Math.min(left, ce.stock[k]);
+      ce.stock[k] -= take;
+      left -= take;
+      gone += take;
+    }
+    for (const slot of designTransportSlots(air, a.owner)) {
+      if (left <= 0) break;
+      const k = equipKey("plane_design", slot);
       const take = Math.min(left, ce.stock[k]);
       ce.stock[k] -= take;
       left -= take;

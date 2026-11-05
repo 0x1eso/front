@@ -72,6 +72,7 @@ import { isNoStrike } from "@openfront/engine-lib/ww1936/NoStrike";
 import { lawCost, LawCtx } from "@openfront/engine-lib/ww1936/PoliticsRules";
 import {
   leanHasTab,
+  researchPersonaOf,
   ResearchScoreInput,
   researchScores,
   techDomain,
@@ -107,22 +108,8 @@ import type { CountryEconomy, WwEconomy } from "./WwEconomy";
 
 export type AiPersonality = "aggressor" | "democracy" | "minor";
 
-const AGGRESSORS: readonly CountryTag[] = ["DEU", "ITA", "JPN", "SUN"];
-const DEMOCRACIES: readonly CountryTag[] = [
-  "GBR",
-  "FRA",
-  "USA",
-  "CAN",
-  "AUS",
-  "NZL",
-  "ZAF",
-  "RAJ",
-];
-
 export function aiPersonality(tag: CountryTag): AiPersonality {
-  if (AGGRESSORS.includes(tag)) return "aggressor";
-  if (DEMOCRACIES.includes(tag)) return "democracy";
-  return "minor";
+  return researchPersonaOf(tag);
 }
 
 /**
@@ -1302,6 +1289,9 @@ export function researchScoreInput(
     shared: r?.shared ?? [],
     researched,
     running,
+    // ww81: fuel short is the resource shortage it can read here; the
+    // anti-tank gap and the wing losses are left to a later feed.
+    situation: (i.fuelOil ?? 0) > 0 ? { shortResource: true } : undefined,
   };
 }
 

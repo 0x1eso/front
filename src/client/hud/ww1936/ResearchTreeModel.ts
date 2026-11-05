@@ -1,6 +1,7 @@
 // Research overhaul phase 2 (changes §4, §6): the research tree's model —
 // the layout of one tab (year axis, rows, prerequisite lines), the node
 // looks and badges, the bonus sources, the "next" suggestion. Pure: no DOM.
+import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
 import {
   RESEARCH_LEANS,
   TECH_BRANCHES,
@@ -11,6 +12,7 @@ import {
 import { aheadPct } from "@openfront/engine-lib/ww1936/EconomyRules";
 import {
   leanHasTab,
+  researchPersonaOf,
   researchScores,
 } from "@openfront/engine-lib/ww1936/ResearchScore";
 import { WW_TECHS } from "@openfront/engine-lib/ww1936/WwTechs";
@@ -241,6 +243,9 @@ export interface RecommendInput {
   day: number;
   smallID: number;
   coastal?: boolean;
+  /** B14: the naval lines it runs and the research bonuses it holds, as the engine reads them. */
+  navalLines?: number;
+  bonusKeys?: readonly string[];
 }
 
 /**
@@ -264,14 +269,14 @@ export function recommendNext(
     seed: i.seed ?? 0,
     smallID: i.smallID,
     tag: i.tag as never,
-    persona: "democracy",
+    persona: researchPersonaOf(i.tag as CountryTag),
     day: i.day,
     human: true,
     lean,
     coastal: i.coastal ?? true,
     lineFactories: equip,
-    navalLines: 0,
-    bonusKeys: [],
+    navalLines: i.navalLines ?? 0,
+    bonusKeys: i.bonusKeys ?? [],
     shared: d.sharedResearch ?? [],
     researched,
     running,
