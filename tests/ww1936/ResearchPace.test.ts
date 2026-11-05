@@ -2,8 +2,9 @@
 // major has researched at least 80% of the tree, and the cheap research does
 // not bring late gear years early. Calculated, no game: every day runs the
 // engine's own numbers (researchProgress, aheadPct, techCostMilli) at normal
-// speed with the start slots only. No research bonus, focus slot or special
-// project counts, so a real game runs ahead of these figures.
+// speed. ww103: with the slots and speed a major really has (the seven full
+// games of ww99: the lowest slots of each year, six by 1941, and the slowest
+// majors' research speed; Germany and Britain run at +50 %). No project counts.
 import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
 import {
   WW_TECH_IDS,
@@ -67,6 +68,26 @@ type Picker = (
   running: readonly (WwTechId | null)[],
 ) => WwTechId[];
 
+/** ww103: the fewest slots a major held on 1 January of each year, ww99's games. */
+const MAJOR_SLOTS: readonly (readonly [string, number])[] = [
+  ["1939-01-01", 4],
+  ["1940-01-01", 5],
+  ["1941-01-01", 6],
+];
+
+/** ww103: the research speed of the slowest majors in those games (+11 to +21), %. */
+const MAJOR_SPEED_PCT = 15;
+
+/** The slots of `tag` on `day`: a minor keeps its start. */
+function slotsOn(tag: CountryTag, day: number, major: boolean): number {
+  let n = startResearchSlots(tag);
+  if (!major) return n;
+  for (const [date, slots] of MAJOR_SLOTS) {
+    if (day >= dayOfDate(date)) n = Math.max(n, slots);
+  }
+  return n;
+}
+
 /** One country's research from day 0 to the end, slots refilled by `pick`. */
 function runTree(tag: CountryTag, dev: number, pick: Picker): Run {
   const researched = startSet(tag, dev);
@@ -82,7 +103,9 @@ function runTree(tag: CountryTag, dev: number, pick: Picker): Run {
   const done = new Map<WwTechId, number>();
   const idle = new Array<number>(11).fill(0);
   let milli = 0;
+  const major = dev === DEV_MAJOR;
   for (let day = 0; day < END; day++) {
+    while (slots.length < slotsOn(tag, day, major)) slots.push(null);
     if (slots.includes(null)) {
       const next = pick(
         day,
@@ -99,7 +122,10 @@ function runTree(tag: CountryTag, dev: number, pick: Picker): Run {
         idle[Math.floor(day / 366)]++;
         return;
       }
-      s.milli += researchProgress(0, aheadPct(WW_TECHS[s.tech].year, day));
+      s.milli += researchProgress(
+        major ? MAJOR_SPEED_PCT : 0,
+        aheadPct(WW_TECHS[s.tech].year, day),
+      );
       if (s.milli < techCostMilli(s.tech)) return;
       researched.add(s.tech);
       for (const old of WW_TECHS[s.tech].absorbs ?? []) researched.add(old);
@@ -150,7 +176,6 @@ function leastEarly(first: readonly WwTechId[] = []): Picker {
 
 /** The AI's own research turn on an empty economy. */
 function aiPlan(tag: CountryTag, seed: number): Picker {
-  const slotCount = startResearchSlots(tag);
   return (day, researched, running) => {
     const orders: AiOrder[] = [];
     planResearch(
@@ -160,7 +185,7 @@ function aiPlan(tag: CountryTag, seed: number): Picker {
         day,
         researched: [...researched],
         slots: [...running],
-        slotCount,
+        slotCount: running.length,
         coastal: true,
         lines: [],
         research: {
@@ -192,7 +217,7 @@ function chainTo(t: WwTechId): WwTechId[] {
 
 describe("research pace (ww83)", () => {
   it("the knob and the steep part of the ahead-of-time cost", () => {
-    expect(WW_RESEARCH_COST_PM).toBe(350);
+    expect(WW_RESEARCH_COST_PM).toBe(700);
     expect(AHEAD_LATE_PCT).toBe(600);
     // 1936 has 366 days: day 1 is one year and two years before these.
     expect(aheadPct(1937, 1)).toBe(100);
@@ -203,7 +228,7 @@ describe("research pace (ww83)", () => {
   it("every major researches 80% of the tree in a careful order", () => {
     for (const tag of HIST_COUNTRIES) {
       const r = runTree(tag, DEV_MAJOR, leastEarly());
-      expect(r.pct, tag).toBeGreaterThanOrEqual(85);
+      expect(r.pct, tag).toBeGreaterThanOrEqual(82);
       expect(
         r.idle.slice(0, 9).every((n) => n === 0),
         tag,
@@ -216,20 +241,20 @@ describe("research pace (ww83)", () => {
       for (const seed of [1, 987_654]) {
         const r = runTree(tag, DEV_MAJOR, aiPlan(tag, seed));
         expect(r.pct, `${tag} ${seed}`).toBeGreaterThanOrEqual(80);
-        // Empty only when its list ends, in the last years.
+        // ww103: no slot stands empty to the end (ww99: 26 months empty).
         expect(
-          r.idle.slice(0, 9).every((n) => n === 0),
+          r.idle.every((n) => n === 0),
           tag,
         ).toBe(true);
       }
     }
   });
 
-  it("a minor reaches about half of the tree with its two slots", () => {
+  it("a minor reaches over a quarter of the tree with its two slots", () => {
     for (const dev of [2, 3]) {
       const r = runTree("POL", dev, leastEarly());
-      expect(r.pct).toBeGreaterThanOrEqual(50);
-      expect(r.pct).toBeLessThanOrEqual(62);
+      expect(r.pct).toBeGreaterThanOrEqual(25);
+      expect(r.pct).toBeLessThanOrEqual(35);
     }
   });
 

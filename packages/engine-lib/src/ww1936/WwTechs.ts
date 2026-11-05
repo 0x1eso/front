@@ -146,9 +146,12 @@ export const COST_BIG = 1250;
  * land the majors' 1945 share in 45–60%. Owner request 2026-11-03: faster
  * (1300 -> 800); that share has not been measured since. Owner request
  * 2026-11-05 (ww83): 800 -> 350, the slowest major finishes at least 80% of
- * the tree by the end of a timed game (ResearchPace.test.ts pins it).
+ * the tree by the end of a timed game (ResearchPace.test.ts pins it). ww103:
+ * 350 -> 700: that sum counted start slots and no research speed, but majors
+ * hold six slots by 1941 at +11 to +53 %, so everyone finished by mid-1944 and
+ * left six slots empty for two years.
  */
-export const WW_RESEARCH_COST_PM = 350;
+export const WW_RESEARCH_COST_PM = 700;
 
 /** A designer part a tech opens (DesignRules reads it; phase 2 wires it). */
 export interface TechDesignPart {
