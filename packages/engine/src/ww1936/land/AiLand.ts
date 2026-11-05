@@ -2187,7 +2187,7 @@ class AiDay {
         return {
           region: r.region,
           vp: r.vp,
-          capital: r.capital,
+          capital: r.capital === true,
           fort,
           width: combatWidth(sc.landOf(r.region), 1, fort),
           defence: enemyStrength(land, this.me, r.region),
