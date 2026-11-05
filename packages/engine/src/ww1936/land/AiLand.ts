@@ -238,23 +238,16 @@ export const AI_REATTACK_READY_BP = 500;
  */
 export const AI_PURSUIT_RATIO_PM = 2000;
 /**
- * Task 11 round 2 (내 판단): when a democracy's liberation-only rule
- * against an aggressor ends (AiDay.liberationLifted): at this strength
- * ratio, ‰, or when the capital test below holds (no date: ww81 D3).
+ * ww106: a democracy's liberation-only rule against an aggressor ends early
+ * (AiDay.liberationLifted) when its side holds all its own land back and its
+ * strength ratio there passes this, ‰. Or by the capital test below.
  */
-export const AI_LIBERATION_LIFT_RATIO_PM = 3000;
+export const AI_LIBERATION_LIFT_RATIO_PM = 1000;
 /**
- * The strength ratio lifts it only after this many days of that war. ww7 lane
- * F: 540 (was 240, the Phoney War's eight months): 1940's Allies, 300
- * divisions against Germany's 130, took it apart the month the rule lifted.
+ * ww106: and a year into that war it ends anyway: a democracy goes to war to
+ * win, it doesn't stop at its own border.
  */
-export const AI_LIBERATION_LIFT_WAR_DAYS = 540;
-/**
- * ww103: and two years in the rule ends anyway. A strength ratio of 3 is out of
- * reach of any entrenched line, so the Allies stood at Germany's border with
- * 900 divisions to the end of the game, attacking nothing they didn't own.
- */
-export const AI_LIBERATION_LIFT_ANY_DAYS = 720;
+export const AI_LIBERATION_LIFT_ANY_DAYS = 365;
 /**
  * ww7 lane D item 3: the AI's offensives go in aggressive once decided. The
  * plan step judges a stance per region, with what stands there today; the
@@ -445,7 +438,8 @@ export function aiGatePm(personality: AiPersonality): AiGate {
       // 1.1 is won six times in ten; ww90's refit leaves that where it was.
       return { midPm: 1100, lowPm: 750 };
     case "democracy":
-      return { midPm: 1600, lowPm: 1100 };
+      // ww106: 1300 / 900 (was 1600 / 1100): still above an aggressor's.
+      return { midPm: 1300, lowPm: 900 };
     case "minor":
       return { midPm: 1450, lowPm: 1000 };
   }
@@ -463,12 +457,15 @@ export function aiStaleGate(g: AiGate, staleDays: number): AiGate {
   };
 }
 
-/** ww103: the war's length alone, or with the odds, ends a democracy's liberation-only rule. */
-export function aiLiberationOver(warDays: number, ratioPm: number): boolean {
+/** ww106: a year of war, or its side's land all back with the odds its way, ends a democracy's liberation-only rule. */
+export function aiLiberationOver(
+  warDays: number,
+  ratioPm: number,
+  landBack: () => boolean,
+): boolean {
   return (
     warDays >= AI_LIBERATION_LIFT_ANY_DAYS ||
-    (ratioPm >= AI_LIBERATION_LIFT_RATIO_PM &&
-      warDays >= AI_LIBERATION_LIFT_WAR_DAYS)
+    (ratioPm > AI_LIBERATION_LIFT_RATIO_PM && landBack())
   );
 }
 
@@ -4708,13 +4705,15 @@ class AiDay {
    * Task 11 round 2 (내 판단): a democracy's liberation-only rule against an
    * aggressor ends once that enemy's side holds our 1936 capital or that of
    * a major of our camp (Paris fallen: the Allies go for Germany; ww7 lane D:
-   * Warsaw is not Paris, now that a Poland can fall in a month), or when our strength ratio there reaches
-   * AI_LIBERATION_LIFT_RATIO_PM after AI_LIBERATION_LIFT_WAR_DAYS of war
-   * (a thin West Wall in 1939 is no reason), or (ww103) after
-   * AI_LIBERATION_LIFT_ANY_DAYS of war.
+   * Warsaw is not Paris, now that a Poland can fall in a month), or (ww106) by
+   * aiLiberationOver: a year of that war, or our side's land all back and our
+   * strength ratio there past AI_LIBERATION_LIFT_RATIO_PM.
    */
   private liberationLifted(enemy: number, ratioPm: number): boolean {
-    if (aiLiberationOver(this.warDays(enemy), ratioPm)) return true;
+    const over = aiLiberationOver(this.warDays(enemy), ratioPm, () =>
+      this.sideLandBack(enemy),
+    );
+    if (over) return true;
     const land = this.land;
     const sc = land.scenario;
     for (const tag of sc.countries) {
@@ -4731,6 +4730,31 @@ class AiDay {
       if (c !== 0 && (c === enemy || land.sameSide(enemy, c))) return true;
     }
     return false;
+  }
+
+  /**
+   * ww106: `enemy`'s side holds no land of ours: of us, our camp, or anyone
+   * still on our side of that war (a Poland that fell counts until it's free).
+   */
+  private sideLandBack(enemy: number): boolean {
+    const land = this.land;
+    const eg = land.ww.endgame;
+    const w = eg.war(eg.warOfPair(this.me, enemy));
+    const s = w === null ? -1 : eg.sideIndex(w, this.me);
+    const ours = (id: number) =>
+      id === this.me ||
+      land.ww.sameFaction(this.me, id) ||
+      (w !== null &&
+        s !== -1 &&
+        eg.sideIndex(w, id) === s &&
+        eg.member(w, id)?.state !== "left");
+    const legal = land.ww.politics.legalOwner;
+    for (const r of land.scenario.landRegions) {
+      const c = land.controller[r.id];
+      if (c === legal[r.id] || !land.sameSide(enemy, c)) continue;
+      if (ours(legal[r.id])) return false;
+    }
+    return true;
   }
 
   private encircled(rows: readonly number[]): boolean {

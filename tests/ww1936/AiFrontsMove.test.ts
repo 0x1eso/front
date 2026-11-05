@@ -18,7 +18,6 @@ import {
   AI_FORT_PRESSED_LEVEL,
   AI_LIBERATION_LIFT_ANY_DAYS,
   AI_LIBERATION_LIFT_RATIO_PM,
-  AI_LIBERATION_LIFT_WAR_DAYS,
   AI_STALE_FROM_DAYS,
   AI_STALE_FULL_DAYS,
   AI_STALE_LOW_PM,
@@ -222,12 +221,31 @@ describe("the AI's fronts move (ww103)", () => {
     ).toBe(0);
   });
 
-  it("two years in, a democracy no longer only liberates", () => {
+  it("a year in, or with its land back and the odds its way, a democracy no longer only liberates", () => {
+    const yes = () => true;
+    const no = () => false;
     const odds = AI_LIBERATION_LIFT_RATIO_PM;
-    expect(aiLiberationOver(AI_LIBERATION_LIFT_WAR_DAYS - 1, odds)).toBe(false);
-    expect(aiLiberationOver(AI_LIBERATION_LIFT_WAR_DAYS, odds)).toBe(true);
-    expect(aiLiberationOver(AI_LIBERATION_LIFT_WAR_DAYS, 500)).toBe(false);
-    expect(aiLiberationOver(AI_LIBERATION_LIFT_ANY_DAYS, 0)).toBe(true);
+    expect(AI_LIBERATION_LIFT_ANY_DAYS).toBe(365);
+    expect(odds).toBe(1000);
+    // Early: only with its land back and above even odds.
+    expect(aiLiberationOver(30, odds + 1, yes)).toBe(true);
+    expect(aiLiberationOver(30, odds, yes)).toBe(false);
+    expect(aiLiberationOver(30, 9000, no)).toBe(false);
+    // A year in: whatever the odds.
+    expect(aiLiberationOver(AI_LIBERATION_LIFT_ANY_DAYS - 1, 0, no)).toBe(false);
+    expect(aiLiberationOver(AI_LIBERATION_LIFT_ANY_DAYS, 0, no)).toBe(true);
+  });
+
+  it("a democracy's bars sit between the old ones and an aggressor's", () => {
+    const d = aiGatePm("democracy");
+    const a = aiGatePm("aggressor");
+    expect(d).toEqual({ midPm: 1300, lowPm: 900 });
+    expect(d.midPm).toBeGreaterThan(a.midPm);
+    expect(d.lowPm).toBeGreaterThan(a.lowPm);
+    expect(aiStaleGate(d, 5000)).toEqual({
+      midPm: AI_STALE_MID_PM,
+      lowPm: AI_STALE_LOW_PM,
+    });
   });
 
   it("the fort decision stops where the AI's border stands at its level", async () => {
