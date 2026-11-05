@@ -4,9 +4,7 @@
 // AI already has; nothing here names a date or a region. A plan is derived
 // from the seed and the tag, never stored: `planOf` works it out again.
 import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
-import type {
-  BattalionId,
-} from "@openfront/engine-api/ww1936/LandTypes";
+import type { BattalionId } from "@openfront/engine-api/ww1936/LandTypes";
 import { idHash, wwRoll } from "./Roll";
 
 export interface NationalPlan {

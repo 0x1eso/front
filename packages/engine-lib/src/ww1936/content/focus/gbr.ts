@@ -720,9 +720,7 @@ export const GBR_FOCUSES: FocusDef[] = [
     days: 70,
     branch: "army",
     icon: "infantry",
-    effects: [
-      { kind: "army_xp", amount: 25 },
-    ],
+    effects: [{ kind: "army_xp", amount: 25 }],
     ai: { base: 10 },
   },
   {
@@ -769,9 +767,7 @@ export const GBR_FOCUSES: FocusDef[] = [
     branch: "army",
     icon: "tank",
     prereq: [["gbr_mechanisation"]],
-    effects: [
-      { kind: "research_bonus", branch: "armour", pct: 100, uses: 1 },
-    ],
+    effects: [{ kind: "research_bonus", branch: "armour", pct: 100, uses: 1 }],
     ai: { base: 10 },
   },
   {

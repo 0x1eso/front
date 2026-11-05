@@ -16,9 +16,7 @@ import {
   ROLE_ATTACK,
   TemplateDef,
 } from "@openfront/engine-api/ww1936/LandTypes";
-import {
-  predictBattle,
-} from "@openfront/engine-lib/ww1936/CombatRules";
+import { predictBattle } from "@openfront/engine-lib/ww1936/CombatRules";
 import { titledGeneralId } from "@openfront/engine-lib/ww1936/Generals";
 import { landOrderBlockOf } from "@openfront/engine-lib/ww1936/LandOrderChecks";
 import { startTemplates } from "@openfront/engine-lib/ww1936/LandStart";

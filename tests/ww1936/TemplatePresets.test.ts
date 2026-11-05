@@ -11,8 +11,8 @@ import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { BATTALIONS } from "@openfront/engine-lib/ww1936/Battalions";
 import { startTechs } from "@openfront/engine-lib/ww1936/EconomyStart";
 import {
-  landStartTechs,
   aiRoleTemplates,
+  landStartTechs,
   startTemplates,
 } from "@openfront/engine-lib/ww1936/LandStart";
 import {

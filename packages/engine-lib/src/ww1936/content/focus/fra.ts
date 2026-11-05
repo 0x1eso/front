@@ -617,9 +617,7 @@ export const FRA_FOCUSES: FocusDef[] = [
     branch: "army",
     icon: "infantry",
     group: "fra_army",
-    effects: [
-      { kind: "army_xp", amount: 20 },
-    ],
+    effects: [{ kind: "army_xp", amount: 20 }],
     ai: { base: 10 },
   },
   {
@@ -1613,9 +1611,7 @@ export const FRA_FOCUSES: FocusDef[] = [
     icon: "infantry",
     group: "fra_army",
     prereq: [["fra_alpine_troops"]],
-    effects: [
-      { kind: "army_xp", amount: 10 },
-    ],
+    effects: [{ kind: "army_xp", amount: 10 }],
     ai: { base: 10 },
   },
   {

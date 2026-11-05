@@ -2,18 +2,12 @@
 // opens is refused without its techs, and a research bonus on a branch with
 // no live tech sits in the country's five bonus places for good. And the
 // owner's list: focus templates' roles, coup resistance, a puppet's demands.
-import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
-import type { WwTechId } from "@openfront/engine-api/ww1936/EconomyTypes";
-import type { TemplateDef } from "@openfront/engine-api/ww1936/LandTypes";
 import { CONTENT } from "@openfront/engine-lib/ww1936/content/registry";
-import { startTechs } from "@openfront/engine-lib/ww1936/EconomyStart";
 import { coupSuccessPm } from "@openfront/engine-lib/ww1936/IntelRules";
-import { landStartTechs } from "@openfront/engine-lib/ww1936/LandStart";
 import {
   peaceKept,
   planPeaceDemand,
 } from "@openfront/engine-lib/ww1936/PeaceRules";
-import { templateBlock } from "@openfront/engine-lib/ww1936/TemplateStats";
 import { WW_TECHS } from "@openfront/engine-lib/ww1936/WwTechs";
 import {
   aiTrainPlan,

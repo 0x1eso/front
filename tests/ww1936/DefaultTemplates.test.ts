@@ -1,12 +1,12 @@
 // World War 1936 ww107: the guide's default templates and start plans, the
 // automatic support companies, new templates on tech for a human, and support
 // companies that work only as far as their gear goes.
-import {
-  GameMapSize,
-  GameMapType,
-} from "@openfront/engine-api/game/GameTypes";
+import { GameMapSize, GameMapType } from "@openfront/engine-api/game/GameTypes";
 import { CountryTag } from "@openfront/engine-api/ww1936/Countries";
-import { EQUIP_KEYS, WwTechId } from "@openfront/engine-api/ww1936/EconomyTypes";
+import {
+  EQUIP_KEYS,
+  WwTechId,
+} from "@openfront/engine-api/ww1936/EconomyTypes";
 import {
   GROUND_EQUIP_KEYS,
   NEED_GROUPS,
@@ -24,7 +24,6 @@ import {
   companyBit,
   nextAutoCompany,
 } from "@openfront/engine-lib/ww1936/AutoCompanies";
-import { BATTALIONS } from "@openfront/engine-lib/ww1936/Battalions";
 import {
   addToSide,
   casCutHits,
@@ -129,8 +128,7 @@ async function played(tag: CountryTag = "DEU") {
   return { runner, humans, l, id, ce, cl, setGear, check };
 }
 
-const widthOf = (d: TemplateDef) =>
-  templateStats(d, ZERO, GEN1).width;
+const widthOf = (d: TemplateDef) => templateStats(d, ZERO, GEN1).width;
 
 describe("the default templates", () => {
   it("are the guide's: width 15 at most, no cavalry, no engineers or recon", () => {
@@ -319,8 +317,7 @@ describe("the automatic companies, the pure rule", () => {
     });
 
   it("80 % of the divisions: engineers at 160 gear for ten, not at 159", () => {
-    const eng = (n: number) =>
-      next({ free: stock({ support_equipment: n }) });
+    const eng = (n: number) => next({ free: stock({ support_equipment: n }) });
     expect(eng(159)).toBeNull();
     expect(eng(160)).toBe("engineer");
   });
@@ -338,9 +335,9 @@ describe("the automatic companies, the pure rule", () => {
 
   it("a company with its tech closed waits, and the next one goes on", () => {
     const researched = techs("recon_company", "artillery_1", "support_eq_1");
-    expect(
-      next({ researched, free: stock({ support_equipment: 1000 }) }),
-    ).toBe("recon");
+    expect(next({ researched, free: stock({ support_equipment: 1000 }) })).toBe(
+      "recon",
+    );
     // Other gear isn't held back by a shortage of support equipment.
     expect(next({ free: stock({ anti_tank: 64 }) })).toBe("support_anti_tank");
     expect(next({ free: stock({ anti_tank: 63 }) })).toBeNull();
@@ -418,19 +415,18 @@ describe("the automatic companies in the game", () => {
   it("gear owed to divisions isn't free, and one check spends its stock once", async () => {
     const { l, id, cl, setGear, check } = await played();
     const line = cl.templates[0];
-    const rows = l.rowsOf(id).filter(
-      (r) => l.divisions.template[r] === line.id,
-    );
+    const rows = l
+      .rowsOf(id)
+      .filter((r) => l.divisions.template[r] === line.id);
     expect(rows.length).toBeGreaterThan(0);
     const armour = cl.templates[1];
-    const armourRows = l.rowsOf(id).filter(
-      (r) => l.divisions.template[r] === armour.id,
-    ).length;
+    const armourRows = l
+      .rowsOf(id)
+      .filter((r) => l.divisions.template[r] === armour.id).length;
     // Enough for the line, and none left for the armour after it.
     setGear(
       "support_equipment",
-      Math.ceil(rows.length * 20 * 0.8) +
-        Math.max(1, armourRows) * 8,
+      Math.ceil(rows.length * 20 * 0.8) + Math.max(1, armourRows) * 8,
     );
     check();
     expect(line.def.support).toContain("engineer");
@@ -510,9 +506,9 @@ describe("the automatic companies in the game", () => {
     const cl = l.country(id)!;
     const ce = l.econ.country(id)!;
     const line = cl.templates[0];
-    const rows = l.rowsOf(id).filter(
-      (r) => l.divisions.template[r] === line.id,
-    );
+    const rows = l
+      .rowsOf(id)
+      .filter((r) => l.divisions.template[r] === line.id);
     const setGear = (n: number) =>
       EQUIP_KEYS.forEach(([t, gen], k) => {
         if (t === "support_equipment") ce.stock[k] = gen === 1 ? n : 0;
@@ -772,10 +768,7 @@ describe("a support company works as far as its gear goes", () => {
     expect(casCutHits(1000, 0, 0, TPL_SUPPORT_AA, 500)).toBe(900);
     expect(casCutHits(1000, 0, 0, TPL_SUPPORT_AA, 0)).toBe(1000);
     const air = (supportAaPm: number) =>
-      line(
-        input({ flags: TPL_SUPPORT_AA, airBp: -4000, supportAaPm }),
-        "air",
-      );
+      line(input({ flags: TPL_SUPPORT_AA, airBp: -4000, supportAaPm }), "air");
     expect([air(1000), air(500), air(0)]).toEqual([-3000, -3520, -4000]);
     const aa = at(["support_anti_air"], "anti_air", 500);
     expect(aa.airAtk).toBe(stats(["support_anti_air"]).airAtk / 2);
@@ -799,8 +792,9 @@ describe("a support company works as far as its gear goes", () => {
     expect(line.def.support).toContain("engineer");
     const r = l.rowsOf(id).find((x) => l.divisions.template[x] === line.id)!;
     expect(l.companyPm(r, TPL_ENGINEER)).toBe(0);
-    expect(entrenchMax(l.flagsOf(r), ce.stats, l.companyPm(r, TPL_ENGINEER)))
-      .toBe(entrenchMax(0, ce.stats));
+    expect(
+      entrenchMax(l.flagsOf(r), ce.stats, l.companyPm(r, TPL_ENGINEER)),
+    ).toBe(entrenchMax(0, ce.stats));
     const card = () =>
       l.countryDetail(cl).divisions.find((x) => x.id === l.divisions.id[r])!;
     expect(card().companies).toEqual([{ id: "engineer", pm: 0 }]);
@@ -817,9 +811,8 @@ describe("British Guiana", () => {
       "../../map-generator/scenarios/world1936/scenario.src.json",
       "../../resources/maps/world1936/scenario.json",
     ]) {
-      const regions = JSON.parse(
-        fs.readFileSync(path.join(here, f), "utf8"),
-      ).regions as { id: number; vp: number }[];
+      const regions = JSON.parse(fs.readFileSync(path.join(here, f), "utf8"))
+        .regions as { id: number; vp: number }[];
       expect(regions.find((r) => r.id === 972)!.vp, f).toBe(5);
     }
   });

@@ -9,7 +9,9 @@ import {
   CombatMods,
   LandTerrain,
   ModLine,
+  NEED_GROUPS,
   SideSum,
+  SupportId,
   TPL_AMPHIBIOUS,
   TPL_ARMOR_ANY,
   TPL_BARE_ARMOR,
@@ -33,8 +35,6 @@ import {
   TPL_TD_DEFEND,
   traitBit,
   WW_ROUND_HOUR_MILLI,
-  NEED_GROUPS,
-  SupportId,
 } from "@openfront/engine-api/ww1936/LandTypes";
 import type {
   WwStatKey,

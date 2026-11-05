@@ -610,9 +610,7 @@ export const DEU_FOCUSES: FocusDef[] = [
     branch: "army",
     icon: "tank",
     prereq: [["deu_wehrmacht"]],
-    effects: [
-      { kind: "research_bonus", branch: "armour", pct: 100, uses: 2 },
-    ],
+    effects: [{ kind: "research_bonus", branch: "armour", pct: 100, uses: 2 }],
     ai: { base: 10 },
   },
   {
@@ -662,9 +660,7 @@ export const DEU_FOCUSES: FocusDef[] = [
     branch: "army",
     icon: "infantry",
     prereq: [["deu_wehrmacht"]],
-    effects: [
-      { kind: "army_xp", amount: 10 },
-    ],
+    effects: [{ kind: "army_xp", amount: 10 }],
     ai: { base: 10 },
   },
   {

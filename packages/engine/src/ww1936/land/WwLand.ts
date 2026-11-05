@@ -42,6 +42,7 @@ import {
   MOVE_RETREAT,
   MOVE_SEA,
   NEED_GROUP_COUNT,
+  NEED_GROUPS,
   RegionLandData,
   STANCES,
   SupportId,
@@ -51,7 +52,6 @@ import {
   WW_DEPLOY_MIN_FILL_PM,
   WW_MAX_ARMIES,
   WwLandData,
-  NEED_GROUPS,
 } from "@openfront/engine-api/ww1936/LandTypes";
 import type { WwStats } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { zInt } from "@openfront/engine-lib/snapshot/SnapshotType";
@@ -59,9 +59,9 @@ import { dayOfDate, dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
 import {
   addToSide,
   combatWidth,
-  emptySide,
   companyFills,
   companyPmOf,
+  emptySide,
 } from "@openfront/engine-lib/ww1936/CombatRules";
 import { GENERALS } from "@openfront/engine-lib/ww1936/Generals";
 import { idHash } from "@openfront/engine-lib/ww1936/Roll";
@@ -86,6 +86,7 @@ import type { WwEconomy } from "../economy/WwEconomy";
 import { type LandSeaAirHooks, NEUTRAL_HOOKS } from "../navy/NavyAirHooks";
 import type { WorldWar } from "../WorldWar";
 import { aiLandTick } from "./AiLand";
+import { dailyAutoCompanies, setTemplateAuto } from "./AutoCompanies";
 import { dailyBands, depthOf } from "./Bands";
 import {
   battleExtras,
@@ -104,7 +105,6 @@ import { applyArmyOrders, issueArmyOrder } from "./Orders";
 import { directView, oddsOf } from "./Plans";
 import { dmzBlocks } from "./PoliticsBridge";
 import { dailyPositions, resetPosition } from "./Positions";
-import { dailyAutoCompanies, setTemplateAuto } from "./AutoCompanies";
 import { autoAddPresets } from "./Presets";
 import { startOob } from "./StartOob";
 import { dailySupply } from "./Supply";
@@ -1680,7 +1680,9 @@ export class WwLand {
   ): Pick<DivisionData, "companies"> {
     const def = this.defOf(owner, this.divisions.template[row]);
     if (def === null || def.support.length === 0) return {};
-    const companies = companyFills(def.support, fill).filter((c) => c.pm < 1000);
+    const companies = companyFills(def.support, fill).filter(
+      (c) => c.pm < 1000,
+    );
     return companies.length === 0 ? {} : { companies };
   }
 

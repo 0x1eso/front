@@ -648,9 +648,7 @@ export const USA_FOCUSES: FocusDef[] = [
     days: 70,
     branch: "army",
     icon: "infantry",
-    effects: [
-      { kind: "army_xp", amount: 25 },
-    ],
+    effects: [{ kind: "army_xp", amount: 25 }],
     ai: { base: 10 },
   },
   {
@@ -663,9 +661,7 @@ export const USA_FOCUSES: FocusDef[] = [
     icon: "tank",
     prereq: [["usa_army_expansion"]],
     available: any(after("1940-07-01"), { kind: "at_war" }),
-    effects: [
-      { kind: "research_bonus", branch: "armour", pct: 100, uses: 1 },
-    ],
+    effects: [{ kind: "research_bonus", branch: "armour", pct: 100, uses: 1 }],
     ai: { base: 10 },
   },
   {
@@ -1571,9 +1567,7 @@ export const USA_FOCUSES: FocusDef[] = [
     prereq: [["usa_pacific_first", "usa_europe_first"]],
     exclusive: ["usa_central_pacific_drive"],
     available: { kind: "at_war_with", of: T("JPN") },
-    effects: [
-      { kind: "army_xp", amount: 20 },
-    ],
+    effects: [{ kind: "army_xp", amount: 20 }],
     ai: { base: 8 },
   },
   {
@@ -1765,9 +1759,7 @@ export const USA_FOCUSES: FocusDef[] = [
     group: "usa_european_war",
     prereq: [["usa_europe_first"]],
     available: { kind: "at_war" },
-    effects: [
-      { kind: "army_xp", amount: 30 },
-    ],
+    effects: [{ kind: "army_xp", amount: 30 }],
     ai: { base: 15 },
   },
   {
@@ -1830,9 +1822,7 @@ export const USA_FOCUSES: FocusDef[] = [
     icon: "infantry",
     group: "usa_european_war",
     prereq: [["usa_airborne"]],
-    effects: [
-      { kind: "army_xp", amount: 20 },
-    ],
+    effects: [{ kind: "army_xp", amount: 20 }],
     ai: { base: 8 },
   },
   {

@@ -593,9 +593,7 @@ export const BAL_FOCUSES: readonly FocusDef[] = [
     branch: "army",
     icon: "tank",
     prereq: [["bal_royal_army"]],
-    effects: [
-      { kind: "research_bonus", branch: "armour", pct: 50, uses: 1 },
-    ],
+    effects: [{ kind: "research_bonus", branch: "armour", pct: 50, uses: 1 }],
     ai: { base: 10 },
   },
   {

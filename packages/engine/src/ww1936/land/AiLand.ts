@@ -55,7 +55,6 @@ import {
 } from "@openfront/engine-api/ww1936/LandTypes";
 import { WW_INVASION_MAX_KM } from "@openfront/engine-api/ww1936/NavyTypes";
 import { wwAiWarPlanDue } from "@openfront/engine-lib/ww1936/AiDifficulty";
-import { AI_TRAIN_FILL_PM } from "@openfront/engine-lib/ww1936/AutoCompanies";
 import {
   AI_LINE_SHAPES,
   AI_PLAN_DEFAULT,
@@ -68,6 +67,7 @@ import {
   type ShapeRows,
   wantsPeaceFort,
 } from "@openfront/engine-lib/ww1936/AiPlans";
+import { AI_TRAIN_FILL_PM } from "@openfront/engine-lib/ww1936/AutoCompanies";
 import { BATTALIONS } from "@openfront/engine-lib/ww1936/Battalions";
 import {
   combatWidth,
@@ -5269,7 +5269,10 @@ class AiDay {
       }
     }
     // ww107: the default light armour stands until medium tanks open.
-    if (shape !== undefined && (lightShape || researched.has("medium_tank_1"))) {
+    if (
+      shape !== undefined &&
+      (lightShape || researched.has("medium_tank_1"))
+    ) {
       for (const tpl of cl.templates) {
         if (AI_SHAPED_ARMOUR.includes(tpl.key)) {
           this.refitShape(tpl, shape.armour);

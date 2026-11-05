@@ -164,7 +164,9 @@ export function coastalFortBp(
   engineers: boolean,
   engineerPm = 1000,
 ): number {
-  return level * (engineers ? 1500 - Math.floor((375 * engineerPm) / 1000) : 1500);
+  return (
+    level * (engineers ? 1500 - Math.floor((375 * engineerPm) / 1000) : 1500)
+  );
 }
 
 /**

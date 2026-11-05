@@ -298,9 +298,7 @@ export const CCP_FOCUSES: FocusDef[] = [
     branch: "army",
     icon: "infantry",
     prereq: [["ccp_hundred_regiments"]],
-    effects: [
-      { kind: "army_xp", amount: 30 },
-    ],
+    effects: [{ kind: "army_xp", amount: 30 }],
     ai: { base: 10 },
   },
   {

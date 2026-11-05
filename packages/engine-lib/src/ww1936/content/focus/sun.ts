@@ -735,9 +735,7 @@ export const SUN_FOCUSES = [
     branch: "army",
     icon: "tank",
     prereq: [["sun_rkka_expansion"]],
-    effects: [
-      { kind: "research_bonus", branch: "armour", pct: 100, uses: 1 },
-    ],
+    effects: [{ kind: "research_bonus", branch: "armour", pct: 100, uses: 1 }],
     ai: { base: 10 },
   },
   {

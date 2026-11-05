@@ -699,9 +699,7 @@ export const JPN_FOCUSES: FocusDef[] = [
     group: "jpn_doctrine",
     icon: "tank",
     prereq: [["jpn_army_modernisation"]],
-    effects: [
-      { kind: "research_bonus", branch: "armour", pct: 100, uses: 1 },
-    ],
+    effects: [{ kind: "research_bonus", branch: "armour", pct: 100, uses: 1 }],
     ai: { base: 10 },
   },
   {

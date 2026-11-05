@@ -308,9 +308,7 @@ export const START_OOB: Readonly<
     {
       // Home islands: Tokyo, Ōsaka.
       regions: [758, 766],
-      divisions: [
-        ["square", 16],
-      ],
+      divisions: [["square", 16]],
     },
     {
       // Chōsen Army: Seoul (Keijō), else P'yŏngyang.

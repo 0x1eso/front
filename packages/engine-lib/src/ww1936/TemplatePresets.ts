@@ -514,9 +514,7 @@ export function sameBattalions(
   templates: readonly { def: TemplateDef }[],
 ): boolean {
   const want = [...presetDef(x).battalions].sort().join();
-  return templates.some(
-    (t) => [...t.def.battalions].sort().join() === want,
-  );
+  return templates.some((t) => [...t.def.battalions].sort().join() === want);
 }
 
 /** Auto-add skips a preset whose signature battalion some template already uses. */

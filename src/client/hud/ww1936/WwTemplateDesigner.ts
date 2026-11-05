@@ -334,7 +334,9 @@ export class WwTemplateDesigner extends LitElement {
     >
       <span class="font-semibold"
         >${translateText(
-          on ? "ww1936.land.auto_companies_on" : "ww1936.land.auto_companies_off",
+          on
+            ? "ww1936.land.auto_companies_on"
+            : "ww1936.land.auto_companies_off",
         )}</span
       >
       <span class="text-white/60"

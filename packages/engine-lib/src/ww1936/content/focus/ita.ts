@@ -686,9 +686,7 @@ export const ITA_FOCUSES: FocusDef[] = [
     icon: "tank",
     group: "ita_modern_forces",
     prereq: [["ita_army_reform"]],
-    effects: [
-      { kind: "research_bonus", branch: "armour", pct: 100, uses: 1 },
-    ],
+    effects: [{ kind: "research_bonus", branch: "armour", pct: 100, uses: 1 }],
     ai: { base: 10 },
   },
   {

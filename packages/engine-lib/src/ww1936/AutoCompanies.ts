@@ -2,9 +2,7 @@
 // carries only what the stock can equip; its other companies join one at a
 // time, once their tech is open and the stock can fill them. The pure rule,
 // called by the engine (land/AutoCompanies) and read by the template card.
-import {
-  WwTechId,
-} from "@openfront/engine-api/ww1936/EconomyTypes";
+import { WwTechId } from "@openfront/engine-api/ww1936/EconomyTypes";
 import {
   NEED_GROUPS,
   NeedGroup,
@@ -55,8 +53,7 @@ export const hasAutoCompanies = (key: string): boolean =>
   autoCompanyTarget(key).length > 0;
 
 /** The bit of `s` in a template's `autoDropped`. */
-export const companyBit = (s: SupportId): number =>
-  1 << SUPPORT_IDS.indexOf(s);
+export const companyBit = (s: SupportId): number => 1 << SUPPORT_IDS.indexOf(s);
 
 const groupOf = (t: NeedGroup): number => NEED_GROUPS.indexOf(t);
 
