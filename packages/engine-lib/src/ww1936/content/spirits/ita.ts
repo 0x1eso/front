@@ -46,7 +46,7 @@ export const SPIRITS_ITA: SpiritDef[] = [
   {
     id: "ita_desert_war",
     icon: "compass",
-    stats: { desertAttackPct: 10, supplyUsePct: -5 },
+    stats: { attackPct: 3, supplyUsePct: -5 },
   },
   // ita_war_booty: captured equipment +5%p (P5 spec §14).
   { id: "ita_war_booty_spirit", icon: "medal", stats: { capturePct: 5 } },

@@ -14,10 +14,9 @@ import {
   type Weather,
 } from "@openfront/engine-api/ww1936/LandTypes";
 import { IDEOLOGIES } from "@openfront/engine-api/ww1936/PoliticsTypes";
-import { TERRAIN } from "@openfront/engine-lib/ww1936/CombatRules";
 import { regionSlots } from "@openfront/engine-lib/ww1936/EconomyRules";
 import type { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
-import { WEATHER, weatherAt } from "@openfront/engine-lib/ww1936/Weather";
+import { weatherAt } from "@openfront/engine-lib/ww1936/Weather";
 import {
   OCC_BLINK,
   OCC_HATCH,
@@ -624,11 +623,6 @@ function terrainRows(): LegendRow[] {
   return LAND_TERRAINS.map((t) => ({
     rgb: TERRAIN_RGB[t],
     label: translateText(TERRAIN_KEYS[t]),
-    detail: translateText("ww1936.lens.terrain_fx", {
-      atk: `${TERRAIN[t].attackBp / 100}`,
-      move: TERRAIN[t].movePct,
-      sup: TERRAIN[t].supplyPct,
-    }),
   }));
 }
 
@@ -636,11 +630,6 @@ function weatherRows(): LegendRow[] {
   return WEATHERS.map((w) => ({
     rgb: WEATHER_RGB[w],
     label: translateText(WEATHER_KEYS[w]),
-    detail: translateText("ww1936.lens.weather_fx", {
-      move: WEATHER[w].movePct,
-      atk: `${WEATHER[w].attackBp / 100}`,
-      sup: WEATHER[w].supplyPct,
-    }),
   }));
 }
 
@@ -878,25 +867,11 @@ export function lensReadout(
     case "terrain": {
       const t = c.s.landOf(region);
       lines.push(translateText(TERRAIN_KEYS[t]));
-      lines.push(
-        translateText("ww1936.lens.terrain_fx", {
-          atk: `${TERRAIN[t].attackBp / 100}`,
-          move: TERRAIN[t].movePct,
-          sup: TERRAIN[t].supplyPct,
-        }),
-      );
       break;
     }
     case "weather": {
       const w = weatherIn(c, region);
       lines.push(translateText(WEATHER_KEYS[w]));
-      lines.push(
-        translateText("ww1936.lens.weather_fx", {
-          move: WEATHER[w].movePct,
-          atk: `${WEATHER[w].attackBp / 100}`,
-          sup: WEATHER[w].supplyPct,
-        }),
-      );
       break;
     }
     case "vp": {

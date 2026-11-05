@@ -24,10 +24,15 @@ import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { dayOfDate, dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
 import {
   applyBp,
-  armorProtectPm,
   attackValue,
+  bandProtectPm,
+  defenderOrgPct,
+  hitProtectPm,
+  PREP_FIRE_ROUNDS,
+  prepKeepPm,
   roundDamage,
   roundHits,
+  trenchCutPm,
 } from "@openfront/engine-lib/ww1936/CombatRules";
 import { CONTENT } from "@openfront/engine-lib/ww1936/content/registry";
 import {
@@ -215,14 +220,25 @@ describe("World War 1936 P2: land battles (spec §9)", () => {
         side,
       );
     stepBattles(l, g.ticks());
+    // (Foot defending take 85 % of the org damage, ww84.)
     expect(def0 - l.divisions.org[rowOf(l, d.divisions[0])]).toBe(
-      roundDamage(
-        roundHits(
-          applyBp(9200, luck(0)),
-          19_800,
-          modsOf(l, rowOf(l, d.divisions[0]), WARSAW, false).prepBp ?? 0,
-        ),
-      ).orgMilli,
+      Math.floor(
+        (roundDamage(
+          // Soft 82 (ww84), and two battalions of guns in nine open the band.
+          roundHits(
+            applyBp(applyBp(8200, luck(0)), 12_222),
+            19_800,
+            Math.floor(
+              ((modsOf(l, rowOf(l, d.divisions[0]), WARSAW, false).prepBp ??
+                0) *
+                prepKeepPm(0, 2222)) /
+                1000,
+            ),
+          ),
+        ).orgMilli *
+          85) /
+          100,
+      ),
     );
     expect(att0 - l.divisions.org[rowOf(l, a.divisions[0])]).toBe(
       roundDamage(roundHits(applyBp(5400, luck(1)), 6450)).orgMilli,
@@ -574,7 +590,7 @@ describe("World War 1936 P2: land battles (spec §9)", () => {
     ]);
   }, 60_000);
 
-  test("armour halves the damage it takes", async () => {
+  test("armour stops most of a rifle's hard part", async () => {
     const { g, l } = await juneWar();
     const tank = placeArmy(g, "DEU", 3, 1, 2);
     const d = placeArmy(g, "POL", WARSAW, 1);
@@ -606,9 +622,20 @@ describe("World War 1936 P2: land battles (spec §9)", () => {
       applyBp(ts.brk, tankMods.defenseBp),
     );
     expect(hits).toBeGreaterThan(0);
-    expect(lost).toBe(roundDamage(hits, 500).orgMilli);
-    const unarmoured = roundDamage(hits).orgMilli;
-    expect(Math.abs(lost * 2 - unarmoured)).toBeLessThanOrEqual(1);
+    const protect = hitProtectPm(
+      ps.soft,
+      ps.hard,
+      ts.hardnessPm,
+      bandProtectPm(
+        ps.bandPierce,
+        ps.bandHard,
+        ts.armor,
+        trenchCutPm(ps.flags, l.divisions.entrench[pr] + l.posLevel[WARSAW]),
+      ),
+    );
+    expect(protect).toBeGreaterThan(0);
+    expect(lost).toBe(roundDamage(hits, protect).orgMilli);
+    expect(lost).toBeLessThan(roundDamage(hits).orgMilli);
   }, 60_000);
 
   test("the line holds its width and reserves wait a round", async () => {
@@ -732,20 +759,36 @@ describe("World War 1936 ww7 lane A: tactics, luck and reserves in a battle (des
       const ds = l.statsOf(dr);
       const am = battleMods(l, b, ar).mods;
       const dm = battleMods(l, b, dr).mods;
+      // (The opening barrage, while this next round is one of its eight.)
+      const fire = b.round < PREP_FIRE_ROUNDS ? as.prepFireBp : 0;
+      const prep = Math.floor(((dm.prepBp ?? 0) * prepKeepPm(0, fire)) / 1000);
       const hitsOnDef = roundHits(
         applyBp(
           applyBp(
-            attackValue(
-              applyBp(as.soft, 10_000 + fx.attSoftBp),
-              as.hard,
-              ds.hardnessPm,
+            applyBp(
+              attackValue(
+                applyBp(as.soft, 10_000 + fx.attSoftBp),
+                as.hard,
+                ds.hardnessPm,
+              ),
+              am.attackBp,
             ),
-            am.attackBp,
+            mulA,
           ),
-          mulA,
+          10_000 + fire,
         ),
-        applyBp(applyBp(ds.def, dm.defenseBp), 10_000 + fx.defBlockBp),
-        (dm.prepBp ?? 0) + fx.defBlockBp,
+        applyBp(
+          applyBp(
+            ds.def,
+            dm.defenseBp -
+              Math.floor(
+                (((dm.prepBp ?? 0) - prep) * (dm.defCutMulBp ?? 10_000)) /
+                  10_000,
+              ),
+          ),
+          10_000 + fx.defBlockBp,
+        ),
+        prep + fx.defBlockBp,
       );
       const hitsOnAtt = roundHits(
         applyBp(
@@ -754,17 +797,36 @@ describe("World War 1936 ww7 lane A: tactics, luck and reserves in a battle (des
         ),
         applyBp(as.brk, am.defenseBp),
       );
-      const wantDef = applyBp(
-        roundDamage(
-          hitsOnDef,
-          armorProtectPm(ds.armor, ds.hardnessPm, as.pierce),
-        ).orgMilli,
-        10_000 + fx.defOrgBp,
+      const wantDef = Math.floor(
+        (applyBp(
+          roundDamage(
+            hitsOnDef,
+            hitProtectPm(
+              as.soft,
+              as.hard,
+              ds.hardnessPm,
+              bandProtectPm(as.bandPierceAtk, as.bandHard, ds.armor),
+            ),
+          ).orgMilli,
+          10_000 + fx.defOrgBp,
+        ) *
+          defenderOrgPct(ds.flags)) /
+          100,
       );
       const wantAtt = applyBp(
         roundDamage(
           hitsOnAtt,
-          armorProtectPm(as.armor, as.hardnessPm, ds.pierce),
+          hitProtectPm(
+            ds.soft,
+            ds.hard,
+            as.hardnessPm,
+            bandProtectPm(
+              ds.bandPierce,
+              ds.bandHard,
+              as.armor,
+              trenchCutPm(ds.flags, t.entrench[dr] + l.posLevel[WARSAW]),
+            ),
+          ),
         ).orgMilli,
         10_000 + fx.attOrgBp,
       );

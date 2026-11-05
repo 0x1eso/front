@@ -9,6 +9,7 @@ import {
   GENERAL_TRAITS,
   type GeneralData,
   type GeneralTrait,
+  RETIRED_GENERAL_TRAITS,
   traitBit,
 } from "@openfront/engine-api/ww1936/LandTypes";
 import {
@@ -152,7 +153,9 @@ export interface GroupRow {
 }
 
 export function generalTraitIds(mask: number): GeneralTrait[] {
-  return GENERAL_TRAITS.filter((t) => (mask & traitBit(t)) !== 0);
+  return GENERAL_TRAITS.filter(
+    (t) => (mask & traitBit(t)) !== 0 && !RETIRED_GENERAL_TRAITS.includes(t),
+  );
 }
 
 /** Lane D's field marshal flag (GeneralData.fm; a marshal's army is -1). */

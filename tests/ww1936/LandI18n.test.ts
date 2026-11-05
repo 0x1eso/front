@@ -2,6 +2,7 @@ import {
   BATTALION_IDS,
   GENERAL_TRAITS,
   LAND_TERRAINS,
+  RETIRED_GENERAL_TRAITS,
   STANCES,
   SUPPORT_IDS,
   WEATHERS,
@@ -47,6 +48,9 @@ const TEMPLATE_KEYS = (() => {
   return [...keys];
 })();
 
+const LIVE_TRAITS = GENERAL_TRAITS.filter(
+  (t) => !RETIRED_GENERAL_TRAITS.includes(t),
+);
 const EXP_LEVELS = ["recruit", "regular", "veteran", "elite"];
 const MODS = [
   "general",
@@ -54,18 +58,13 @@ const MODS = [
   "doctrine",
   "exp",
   "plan",
-  "recon",
   "engineer",
   "mountain",
-  "marine",
-  "armor_terrain",
-  "terrain",
   "river",
   "strait",
   "fort",
   "excess",
   "supply",
-  "weather",
   "encircled",
   "entrench",
   "position",
@@ -189,8 +188,8 @@ const KEYS = [
   ...TEMPLATE_KEYS.map((k) => `ww1936.tpl.${k}`),
   ...LAND_TERRAINS.map((k) => `ww1936.terrain.${k}`),
   ...WEATHERS.map((k) => `ww1936.weather.${k}`),
-  ...GENERAL_TRAITS.map((k) => `ww1936.trait.${k}`),
-  ...GENERAL_TRAITS.map((k) => `ww1936.trait_desc.${k}`),
+  ...LIVE_TRAITS.map((k) => `ww1936.trait.${k}`),
+  ...LIVE_TRAITS.map((k) => `ww1936.trait_desc.${k}`),
   ...STANCES.map((k) => `ww1936.stance.${k}`),
   ...EXP_LEVELS.map((k) => `ww1936.exp.${k}`),
   ...MODS.map((k) => `ww1936.mod.${k}`),

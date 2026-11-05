@@ -33,6 +33,8 @@ export interface LandSeaAirHooks {
   casWingsNow(battleRegion: number, side: number): number;
   /** Spec §14.6: movement of `side` into `region`, ‰. */
   airMoveFactorPm(region: number, side: number): number;
+  /** ww84: what enemy superiority leaves of a region's supply, ‰. */
+  airSupplyFactorPm(region: number, side: number): number;
   /** Spec §15.4: yesterday's fuel ratio of `owner`, ‰. */
   fuelFactorPm(owner: number): number;
   /** Spec §10.3: a working port's sea-hub capacity for `side`, milli a day. */
@@ -57,6 +59,7 @@ export const NEUTRAL_HOOKS: LandSeaAirHooks = {
   casNowCenti: () => 0,
   casWingsNow: () => 0,
   airMoveFactorPm: () => 1000,
+  airSupplyFactorPm: () => 1000,
   fuelFactorPm: () => 1000,
   seaHubCapacity: () => hubCapacityMilli(HUB_SEA, 0),
   beachheadCapacity: () => 0,
@@ -85,6 +88,10 @@ export class NavyAirHooks implements LandSeaAirHooks {
   }
   airMoveFactorPm(region: number, side: number): number {
     return this.air.airMoveFactorPm(region, side); // A1
+  }
+
+  airSupplyFactorPm(region: number, side: number): number {
+    return this.air.airSupplyFactorPm(region, side);
   }
   fuelFactorPm(owner: number): number {
     return this.navy.econ.country(owner)?.fuelRatioPm ?? 1000; // E

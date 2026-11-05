@@ -84,10 +84,10 @@ describe("air rules", () => {
     expect(rangeEffPm(650, 650)).toBe(750);
     expect(rangeEffPm(651, 650)).toBe(0);
     expect(rangeEffPm(487, 650)).toBe(876);
-    expect(sortieEffPm(1000, 1000, 1000, 0, null)).toBe(1000);
-    expect(sortieEffPm(800, 1000, 750, 0, null)).toBe(600);
-    expect(sortieEffPm(800, 1000, 750, 0, 0)).toBe(180);
-    expect(sortieEffPm(800, 1000, 750, 0, 1000)).toBe(600);
+    expect(sortieEffPm(1000, 1000, 0, null)).toBe(1000);
+    expect(sortieEffPm(800, 750, 0, null)).toBe(600);
+    expect(sortieEffPm(800, 750, 0, 0)).toBe(180);
+    expect(sortieEffPm(800, 750, 0, 1000)).toBe(600);
   });
 
   it("detection and agility", () => {
@@ -100,11 +100,11 @@ describe("air rules", () => {
   });
 
   it("the land war's penalty and movement (spec §14.6)", () => {
-    expect(airPenaltyBp(1000, 0)).toBe(-3500);
+    expect(airPenaltyBp(1000, 0)).toBe(-2000);
     expect(airPenaltyBp(500, 0)).toBe(0);
     expect(airPenaltyBp(750, 0)).toBe(-1750);
-    expect(airPenaltyBp(1000, 20)).toBe(-2450);
-    expect(airPenaltyBp(1000, 100)).toBe(-1050);
+    expect(airPenaltyBp(1000, 20)).toBe(-1400);
+    expect(airPenaltyBp(1000, 100)).toBe(-600);
     expect(airMoveFactorPm(1000)).toBe(500);
     expect(airMoveFactorPm(900)).toBe(600);
   });

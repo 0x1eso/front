@@ -32,7 +32,7 @@ import {
 } from "@openfront/engine-lib/ww1936/CombatRules";
 import { landOrderBlockOf } from "@openfront/engine-lib/ww1936/LandOrderChecks";
 import { effectiveLevel } from "../economy/Buildings";
-import { joinBattle, modsOf } from "./Battles";
+import { fearCutOf, joinBattle, modsOf } from "./Battles";
 import { generalOf } from "./GeneralsRun";
 import { enemyDivisionsIn, startHopInto } from "./Movement";
 import { leaveAttack, orderCheckWorld } from "./Orders";
@@ -647,6 +647,8 @@ function gatherAttack(
     defenderAttackBp: dm.attackBp,
     defenderBlockBp: dm.defenseBp,
     defenderPrepBp: dm.prepBp ?? 0,
+    defenderCutMulBp: dm.defCutMulBp,
+    tankFearCutPp: firstDef < 0 ? 0 : fearCutOf(land, firstDef),
   };
   // ww8: the wings on station over a battle already there count in the odds.
   if (firstDef >= 0 && attackers.length > 0 && land.battles.has(region)) {

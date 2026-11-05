@@ -21,7 +21,6 @@ import {
   supplyRatePm,
   supplyUseMilli,
 } from "@openfront/engine-lib/ww1936/SupplyRules";
-import { weatherAt } from "@openfront/engine-lib/ww1936/Weather";
 import type { Game } from "@openfront/engine/game/Game";
 import { createGameRunner, GameRunner } from "@openfront/engine/GameRunner";
 import { dailySupply, liveHubs } from "@openfront/engine/ww1936/land/Supply";
@@ -61,11 +60,9 @@ async function germany(): Promise<{ runner: GameRunner; g: Game; l: WwLand }> {
 const id = (g: Game, tag: Parameters<typeof byTag>[1]) =>
   byTag(g, tag).smallID();
 
-/** The weather's supply % applied to a region's hub share and local share. */
+/** A region's hub share and local share. */
 function regionSupply(l: WwLand, r: number, hub: number, core: boolean) {
-  const sc = l.scenario;
-  const w = weatherAt(l.day(), sc.latC(r), sc.landOf(r), sc.wcell(r));
-  return regionSupplyMilli(hub, localSupplyMilli(core, l.econ.infra[r]), w);
+  return regionSupplyMilli(hub, localSupplyMilli(core, l.econ.infra[r]));
 }
 
 /** Supply cost ×100 of the edge a → b for the side, from the map table. */
@@ -75,7 +72,6 @@ function cost(l: WwLand, a: number, b: number): number {
     sc.edge(sc.edgeBetween(a, b)).km,
     l.econ.rail[a],
     l.econ.rail[b],
-    sc.landOf(b),
     l.econ.infra[b],
   );
 }
@@ -265,20 +261,20 @@ describe("supply (P2 spec §11)", () => {
     takeRegion(g, WARSAW, "DEU");
     takeRegion(g, KRAKOW, "DEU");
     clearLand(g);
-    // Forty-five divisions in Krakow use more than it gets.
+    // Sixty divisions in Krakow use more than it gets.
     const a = placeArmy(g, "DEU", KRAKOW, 30);
-    const a2 = placeArmy(g, "DEU", KRAKOW, 15);
+    const a2 = placeArmy(g, "DEU", KRAKOW, 30);
     const rows = [...a.divisions, ...a2.divisions].map((d) =>
       l.divisions.rowOf(d),
     );
     // One of them on a train: it eats there but adds no use (pre-flight S2).
-    l.divisions.mode[rows[44]] = MOVE_RAIL;
+    l.divisions.mode[rows[59]] = MOVE_RAIL;
     // One in Soviet Kiev, a region the side does not hold: nothing.
     const b = placeArmy(g, "DEU", BERLIN, 1);
     const lost = l.divisions.rowOf(b.divisions[0]);
     l.setDivisionRegion(lost, KIEV);
     dailySupply(l, l.sideOf(id(g, "DEU")));
-    const use = rows.slice(0, 44).reduce((n, r) => n + useOf(l, r), 0);
+    const use = rows.slice(0, 59).reduce((n, r) => n + useOf(l, r), 0);
     expect(l.useMilli[KRAKOW]).toBe(use);
     expect(use).toBeGreaterThan(l.supplyMilli[KRAKOW]);
     const rate = Math.floor((l.supplyMilli[KRAKOW] * 1000) / use);

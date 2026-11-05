@@ -271,14 +271,7 @@ function runHub(
       }
       if (ours[to] === 0) continue;
       const nd =
-        du +
-        supplyEdgeCost(
-          sc.edge(e.edge).km,
-          rail[u],
-          rail[to],
-          sc.landOf(to),
-          infra[to],
-        );
+        du + supplyEdgeCost(sc.edge(e.edge).km, rail[u], rail[to], infra[to]);
       if (nd < dist[to]) {
         dist[to] = nd;
         heap.push(nd, to);
@@ -310,7 +303,6 @@ export function dailySupply(land: WwLand, side: number): void {
     cache.epoch = land.derivedEpoch;
   }
   const { ours, regions } = cache.regionsView;
-  const day = land.day();
   // What the hubs, the reach and the runs read: the side's regions, their
   // rail, infrastructure and built hubs, the members' capitals.
   const rail = land.ww.air.wingsLive ? land.econ.railEff : land.econ.rail;
@@ -374,14 +366,16 @@ export function dailySupply(land: WwLand, side: number): void {
     if (!cut) {
       const core =
         sc.region(r)!.core && land.sameSide(owners[r], land.controller[r]);
-      const w = land.weatherOn(r, day);
-      s = regionSupplyMilli(best[r], localSupplyMilli(core, infra[r]), w);
+      s = regionSupplyMilli(best[r], localSupplyMilli(core, infra[r]));
       // P5 hook (O, spec §8.6): resistance cuts an administered region's supply.
       const f = land.ww.endgame.supplyFactorPm(r);
       if (f !== 1000) s = Math.floor((s * f) / 1000);
       // P6 hook (W1, pre-flight §D): flood, scorch and nuke status.
       const d = land.depthHooks.supplyPm(r);
       if (d !== 1000) s = Math.floor((s * Math.max(0, d)) / 1000);
+      // ww84: an enemy-held sky thins out what comes up the road.
+      const sky = land.hooks.airSupplyFactorPm(r, side);
+      if (sky !== 1000) s = Math.floor((s * sky) / 1000);
     }
     // P4 spec §14.10: air supply, encircled regions too.
     s += land.hooks.airSupply(r, side);

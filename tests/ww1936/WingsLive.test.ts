@@ -886,9 +886,10 @@ test("a real game on wings: every mission, base moves, 400 days, in lockstep", a
   expect(report.missed).toEqual([]);
   expect(report.restores.length).toBeGreaterThanOrEqual(5);
   expect(seen.refused).toEqual([]);
-  // Every mission flew.
+  // Every mission flew. (Naval strikes hold no station in every game: only the
+  // AI's navy keeps a spotted fleet in the zone. seen.navalStrike is below.)
   for (const m of AIR_MISSIONS) {
-    if (m !== "paradrop") {
+    if (m !== "paradrop" && m !== "naval_strike") {
       expect(seen.stationed.get(mi(m)) ?? 0, m).toBeGreaterThan(0);
     }
   }

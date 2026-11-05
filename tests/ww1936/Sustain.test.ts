@@ -12,21 +12,13 @@ import {
   groundSlotOf,
   MOVE_NONE,
   MOVE_WALK,
-  traitBit,
 } from "@openfront/engine-api/ww1936/LandTypes";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { dayOfDate, dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
-import {
-  climateOf,
-  WEATHER,
-  weatherAt,
-} from "@openfront/engine-lib/ww1936/Weather";
-import {
-  assignGeneral,
-  canServe,
-} from "@openfront/engine/ww1936/land/GeneralsRun";
+import { climateOf, weatherAt } from "@openfront/engine-lib/ww1936/Weather";
 import { atSea, liftDivisions } from "@openfront/engine/ww1936/land/SeaLift";
 import {
+  attritionPpm,
   dailySustain,
   foughtTest,
 } from "@openfront/engine/ww1936/land/Sustain";
@@ -181,51 +173,20 @@ describe("sustaining divisions (P2 spec §5.3, §5.4)", () => {
     expect(ce.manpower).toBe(manpower);
   });
 
-  test("winter attrition: full on the move, in a battle or short of supply, a quarter at rest", async () => {
+  test("winter takes nobody: no attrition from the weather (ww84)", async () => {
     // Warsaw: a continental winter (Berlin's is temperate since Task 11).
-    const { l, id, a, r, cl } = await oneDivision("DEU", WARSAW);
+    const { l, id, r } = await oneDivision("DEU", WARSAW);
     const t = l.divisions;
     const sc = l.scenario;
-    const weather = (d: number) =>
-      weatherAt(d, sc.latC(WARSAW), sc.landOf(WARSAW), sc.wcell(WARSAW));
-    const w = weather(WINTER);
-    expect(["snow", "frozen"]).toContain(w);
-    const ppm = WEATHER[w].attritionPm * 1000;
-    expect(ppm).toBeGreaterThan(0);
-    const after = (p: number) => 10_500 - Math.floor((10_500 * p) / 1_000_000);
-    // At rest in full supply: a quarter (Task 11, controller ruling 1).
-    t.supply[r] = 1000;
-    dailySustain(l, id, WINTER);
-    expect(t.men[r]).toBe(after(Math.floor((ppm * 25) / 100)));
-    // Short of supply: all of it (reinforced back to 10,500 first).
-    t.lossMen[r] = 0;
-    t.supply[r] = 999;
-    dailySustain(l, id, WINTER + 1);
-    const w1 = weather(WINTER + 1);
-    expect(t.men[r]).toBe(after(WEATHER[w1].attritionPm * 1000));
-    // On the move: all of it (round 2: the mode branch).
-    t.lossMen[r] = 0;
-    t.supply[r] = 1000;
-    t.mode[r] = MOVE_WALK;
-    dailySustain(l, id, WINTER + 3);
-    t.mode[r] = MOVE_NONE;
-    const w3 = weather(WINTER + 3);
-    expect(t.men[r]).toBe(after(WEATHER[w3].attritionPm * 1000));
-    // In a battle: all of it, halved by a winter specialist at the head.
-    // One who serves and is no field marshal (K5's start rows; P6 lane D:
-    // a marshal leads no army).
-    const g = cl.generals.find((x) => !x.fm && canServe(l, x, l.day()))!;
-    g.traits |= traitBit("winter_specialist");
-    expect(assignGeneral(l, cl, a.id, g.id)).toBeNull();
-    t.lossMen[r] = 0;
-    t.supply[r] = 1000;
-    t.battle[r] = WARSAW;
-    dailySustain(l, id, WINTER + 2);
-    t.battle[r] = 0;
-    const w2 = weather(WINTER + 2);
-    expect(t.men[r]).toBe(
-      after(Math.floor((WEATHER[w2].attritionPm * 1000) / 2)),
+    expect(["snow", "frozen"]).toContain(
+      weatherAt(WINTER, sc.latC(WARSAW), sc.landOf(WARSAW), sc.wcell(WARSAW)),
     );
+    t.supply[r] = 999;
+    t.mode[r] = MOVE_WALK;
+    expect(attritionPpm(l, r, WINTER)).toBe(0);
+    t.mode[r] = MOVE_NONE;
+    dailySustain(l, id, WINTER);
+    expect(t.men[r]).toBe(10_500);
   });
 
   test("Paris, London and Berlin winters are temperate; Warsaw's continental (Task 11)", async () => {

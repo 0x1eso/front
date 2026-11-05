@@ -237,7 +237,7 @@ export class PlanArrowPass {
           army.region,
           p,
           (r) => world.sameSide(me, view.controller[r]),
-          (e, to) => moveNeed(sc.edge(e), sc.landOf(to)),
+          (e, to) => moveNeed(sc.edge(e)),
         );
       }
       if (this.previewPath.length > 1) {

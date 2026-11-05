@@ -210,9 +210,10 @@ export const WW_PARADROP_AIRSUP_PM = 700;
 export const WW_PARADROP_PLANES_PER_WEIGHT = 20;
 export const WW_AIR_SUPPLY_PER_SORTIE_MILLI = 20;
 export const WW_AIR_PENALTY_BP_PER_PM = 7;
-export const WW_AIR_PENALTY_MAX_BP = 3_500;
-/** Spec §14.6 with the enemy's battlefield support (+5%p): −35% − 5%p. */
-export const WW_AIR_PENALTY_BONUS_MAX_BP = 4_000;
+/** ww84: the sky costs a land battle at most 20 % (was 35). */
+export const WW_AIR_PENALTY_MAX_BP = 2_000;
+/** Spec §14.6 with the enemy's battlefield support: ww84, the same 20 % (was 40). */
+export const WW_AIR_PENALTY_BONUS_MAX_BP = 2_000;
 /** ww67: 1000 (was 600): under 90 % enemy superiority, −40 %. */
 export const WW_AIR_MOVE_PER_PM = 1000;
 export const WW_AA_CUT_MAX_PCT = 70;

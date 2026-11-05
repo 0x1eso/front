@@ -15,7 +15,7 @@ import {
   TemplateData,
   TrainingData,
 } from "@openfront/engine-api/ww1936/LandTypes";
-import { emptySide } from "@openfront/engine-lib/ww1936/CombatRules";
+import { addToSide, emptySide } from "@openfront/engine-lib/ww1936/CombatRules";
 import { startTemplates } from "@openfront/engine-lib/ww1936/LandStart";
 import {
   GEN1,
@@ -56,22 +56,10 @@ export function sideOf(t: TemplateData, n: number): SideSum {
     techTotals(new Set()),
     GEN1,
   );
+  const one = emptySide();
+  addToSide(one, s, s.orgMilli);
   let sum = emptySide();
-  for (let i = 0; i < n; i++) {
-    sum = mergeSides(sum, {
-      divisions: 1,
-      width: s.width,
-      soft: s.soft,
-      hard: s.hard,
-      def: s.def,
-      brk: s.brk,
-      armor: s.armor,
-      pierce: s.pierce,
-      hardnessPm: s.hardnessPm,
-      orgMilli: s.orgMilli,
-      hpMilli: s.hpMilli,
-    });
-  }
+  for (let i = 0; i < n; i++) sum = mergeSides(sum, one);
   return sum;
 }
 

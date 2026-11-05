@@ -270,7 +270,7 @@ describe("generals (P2 spec §6.2)", () => {
     expect(detail.generals.find((x) => x.id === g.id)!.xp).toBe(3);
   });
 
-  test("60 winter battle days give winter_specialist", async () => {
+  test("60 battle days across rivers give river_crosser; ground and weather teach nothing", async () => {
     const { l, id, cl, first, second } = await germany();
     const t = l.divisions;
     const sc = l.scenario;
@@ -289,8 +289,8 @@ describe("generals (P2 spec §6.2)", () => {
     t.role[r] = ROLE_DEFEND;
     t.battle[r] = WARSAW;
     dailySustain(l, id, WINTER);
-    expect(g.terrainDays[0]).toBe(60);
-    expect(g.traits & traitBit("winter_specialist")).not.toBe(0);
+    expect(g.terrainDays[0]).toBe(59);
+    expect(g.traits & traitBit("winter_specialist")).toBe(0);
     // Attacking across a river (Warsaw–Moscow) counts for river_crosser.
     const b = cl.generals.find((x) => x.id === second.general)!;
     const s = t.rowOf(second.divisions[0]);
@@ -304,42 +304,14 @@ describe("generals (P2 spec §6.2)", () => {
     expect(b.traits & traitBit("river_crosser")).not.toBe(0);
     // Three traits at most.
     g.traits =
-      traitBit("winter_specialist") |
+      traitBit("offensive_doctrine") |
       traitBit("organizer") |
       traitBit("defensive_doctrine");
-    g.terrainDays = [60, 0, 59, 0];
-    t.battle[r] = 5; // Rome: mountains
+    g.level = 1;
+    g.terrainDays = [0, 0, 0, 60];
     t.lastFight[r] = fightOn(WINTER + 2);
     dailySustain(l, id, WINTER + 2);
-    expect(g.terrainDays[2]).toBe(60);
-    expect(g.traits & traitBit("mountaineer")).toBe(0);
-  });
-
-  test("P6: forest days give forest_expert; a level's trait slots (traitSlots)", async () => {
-    const { l, id, cl, first } = await germany();
-    const t = l.divisions;
-    const g = cl.generals.find((x) => x.id === first.general)!;
-    const r = t.rowOf(first.divisions[0]);
-    // Munich is forest: the fifth ground (spec §4.2).
-    g.traits = 0;
-    g.level = 1;
-    g.terrainDays = [0, 0, 0, 0, 59, 0, 0];
-    t.lastFight[r] = fightOn(SUMMER);
-    t.role[r] = ROLE_DEFEND;
-    t.battle[r] = 4;
-    dailySustain(l, id, SUMMER);
-    expect(g.terrainDays[4]).toBe(60);
-    expect(g.traits & traitBit("forest_expert")).not.toBe(0);
-    // Level 2 has four slots (P2's cap was three).
-    g.level = 2;
-    g.traits =
-      traitBit("winter_specialist") |
-      traitBit("organizer") |
-      traitBit("defensive_doctrine");
-    g.terrainDays = [0, 0, 0, 0, 60, 0, 0];
-    t.lastFight[r] = fightOn(SUMMER + 1);
-    dailySustain(l, id, SUMMER + 1);
-    expect(g.traits & traitBit("forest_expert")).not.toBe(0);
+    expect(g.traits & traitBit("river_crosser")).toBe(0);
   });
 
   test("P6: trait slots above level one follow traitSlots (3/4/4/5/5)", async () => {
@@ -348,25 +320,25 @@ describe("generals (P2 spec §6.2)", () => {
     const g = cl.generals.find((x) => x.id === first.general)!;
     const r = t.rowOf(first.divisions[0]);
     t.role[r] = ROLE_DEFEND;
-    t.battle[r] = 4; // Munich: forest
+    t.battle[r] = 4;
     const four =
-      traitBit("winter_specialist") |
+      traitBit("offensive_doctrine") |
       traitBit("organizer") |
       traitBit("defensive_doctrine") |
-      traitBit("desert_fox");
+      traitBit("logistics_wizard");
     const learn = (level: number, traits: number, day: number) => {
       g.level = level;
       g.traits = traits;
-      g.terrainDays = [0, 0, 0, 0, 60, 0, 0];
+      g.terrainDays = [0, 0, 0, 60, 0, 0, 0];
       t.lastFight[r] = fightOn(day);
       dailySustain(l, id, day);
-      return (g.traits & traitBit("forest_expert")) !== 0;
+      return (g.traits & traitBit("river_crosser")) !== 0;
     };
     expect([1, 2, 3, 4, 5].map(traitSlots)).toEqual([3, 4, 4, 5, 5]);
     // Four traits: level 3 (four slots) learns none, level 4 (five) a fifth.
     expect(learn(3, four, SUMMER + 2)).toBe(false);
     expect(learn(4, four, SUMMER + 3)).toBe(true);
     // Five traits at level 5: full.
-    expect(learn(5, four | traitBit("river_crosser"), SUMMER + 4)).toBe(false);
+    expect(learn(5, four | traitBit("armor_expert"), SUMMER + 4)).toBe(false);
   });
 });

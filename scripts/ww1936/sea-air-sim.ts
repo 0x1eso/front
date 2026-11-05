@@ -1696,7 +1696,7 @@ async function navalDuels(): Promise<void> {
  * and with forty destroyers.
  */
 async function airDuels(): Promise<void> {
-  const { dailyAirZone, zoneWeather } =
+  const { dailyAirZone } =
     await import("@openfront/engine/ww1936/air/AirCombat");
   const { EQUIPMENT_GENS: GENS, equipKey: key } =
     await import("@openfront/engine-api/ww1936/EconomyTypes");
@@ -1741,8 +1741,7 @@ async function airDuels(): Promise<void> {
       );
       if (block !== null) throw new Error(`air_deploy: ${block}`);
     }
-    let day = ww.day(runner.game.ticks()) + 1;
-    while (zoneWeather(air, SR.central, day) !== "clear") day++;
+    const day = ww.day(runner.game.ticks()) + 1;
     // Yesterday's superiority comes first (an even day), then the duel.
     dailyAirZone(air, SR.central, day - 1);
     const before = air.planesLostTotal;

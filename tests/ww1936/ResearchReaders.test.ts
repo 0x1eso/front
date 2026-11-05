@@ -45,7 +45,7 @@ describe("unread stat keys now change a division", () => {
     });
   }
 
-  it("reconPct raises the recon company's bonus", () => {
+  it("reconPct gives a recon company no attack bonus (ww84: it reads tactics)", () => {
     const inf = tpl(["infantry", "infantry"]);
     const flags = templateStats(
       { ...inf, support: ["recon"] },
@@ -55,7 +55,7 @@ describe("unread stat keys now change a division", () => {
     const mods = (reconPct: number) =>
       divisionMods({ ...NEUTRAL, flags, tech: { ...ZERO, reconPct } as never })
         .mods.attackBp;
-    expect(mods(20)).toBeGreaterThan(mods(0));
+    expect(mods(20)).toBe(mods(0));
   });
 
   it("the techs carry the keys", () => {
@@ -81,8 +81,6 @@ const NEUTRAL = {
   tech: ZERO,
   exp: 0,
   planBp: 0,
-  land: "plains",
-  weather: "clear",
   river: 0,
   strait: false,
   fort: 0,

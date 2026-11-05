@@ -91,7 +91,6 @@ describe("World War 1936 P4: air supply (spec §14.10)", () => {
     const air = ww.air;
     const deu = byTag(g, "DEU").smallID();
     const side = l.sideOf(deu);
-    expect(l.weatherOn(REGION.krakow, l.day())).toBe("clear");
     // Kiev German and cut off (no port left); Warsaw German, next to Berlin.
     takeRegion(g, REGION.kiev, "DEU");
     takeRegion(g, REGION.warsaw, "DEU");

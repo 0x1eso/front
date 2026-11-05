@@ -88,6 +88,19 @@ export const GENERAL_TRAITS = [
   "ambusher",
 ] as const;
 export type GeneralTrait = (typeof GENERAL_TRAITS)[number];
+/**
+ * ww84: the ground and the weather decide nothing, so these do nothing. They
+ * stay in GENERAL_TRAITS because a trait's bit is its place in the list; no
+ * general gets one and the screens skip them.
+ */
+export const RETIRED_GENERAL_TRAITS: readonly GeneralTrait[] = [
+  "winter_specialist",
+  "desert_fox",
+  "mountaineer",
+  "forest_expert",
+  "urban_expert",
+  "swamp_expert",
+];
 /** Bit of a trait in a trait mask. */
 export function traitBit(t: GeneralTrait): number {
   return 1 << GENERAL_TRAITS.indexOf(t);
@@ -265,6 +278,16 @@ export const TPL_FLAME = 1 << 15;
 export const TPL_AMPHIBIOUS = 1 << 16;
 export const TPL_FLAIL = 1 << 17;
 export const TPL_TD_DEFEND = 1 << 18;
+/** ww84: at least half its battalions are foot (infantry, cavalry, special or motorized). */
+export const TPL_FOOT_MAJOR = 1 << 19;
+/** ww84: armour-major with under a third of foot: tanks on their own. */
+export const TPL_BARE_ARMOR = 1 << 20;
+/** ww84: heavy tanks are at least half its armour: built to break forts and trenches. */
+export const TPL_HEAVY_LEAD = 1 << 21;
+/** ww84: light tanks are at least half its battalions. */
+export const TPL_LIGHT_MAJOR = 1 << 22;
+/** ww84: fast enough to run through a broken line: at least half fast battalions, heavy tanks not leading. */
+export const TPL_EXPLOIT = 1 << 23;
 
 /**
  * A division's numbers (spec §4.3, §16.2): attack and defence values and
@@ -309,6 +332,23 @@ export interface DivisionStats {
   fuelHourMilli: number;
   /** P6 (pre-flight §0-3c): TPL_FLAME … TPL_TD_DEFEND of the designs it holds. */
   designFlags: number;
+  /**
+   * ww84: its hard attack by what pierces (at most four bands, least pierce
+   * first): each band's pierce defending and attacking (anti-tank guns are
+   * ambushers, half as good on the attack), and its hard attack. A rifle
+   * can't dilute a gun: each band meets the armour on its own.
+   */
+  bandPierce: number[];
+  bandPierceAtk: number[];
+  bandHard: number[];
+  /** [band, need group, hard attack] of each carrier: divisionStats scales bandHard by that group's fill. */
+  bandParts: number[];
+  /**
+   * ww84: its opening barrage, bp: the attack it adds in a band's first rounds
+   * and the share of the enemy's prepared ground it takes (artillery's share
+   * of its battalions, a support company a third of one, at most +30 %).
+   */
+  prepFireBp: number;
 }
 
 export interface CombatMods {
@@ -316,6 +356,8 @@ export interface CombatMods {
   defenseBp: number;
   /** ww7 lane F: a defender's prepared ground (entrenchment + positions), bp; absent: 0 (CombatRules.roundHits). */
   prepBp?: number;
+  /** ww84: the cuts' factor in defenseBp, bp (10,000 + the cuts): what a point of prepared ground is worth in it; absent: 10,000. */
+  defCutMulBp?: number;
 }
 
 /** One modifier line for the battle card (key ww1936.mod.<id>). */
@@ -338,6 +380,20 @@ export interface SideSum {
   hardnessPm: number;
   orgMilli: number;
   hpMilli: number;
+  /** ww84: the side's hard attack by pierce (DivisionStats' bands, summed); absent: all of it at `pierce`. */
+  bandPierce?: number[];
+  bandPierceAtk?: number[];
+  bandHard?: number[];
+  /** ww84, width-weighted: the org damage it takes defending, % (absent: 100). */
+  defOrgPct?: number;
+  /** ww84: the share of its width that is foot-major and armour-major divisions, ‰ (absent: 0). */
+  footPm?: number;
+  armorMajorPm?: number;
+  /** ww84: width-weighted opening barrage, bp, and the share of its width led by heavy tanks, ‰ (absent: 0). */
+  prepFireBp?: number;
+  heavyPm?: number;
+  /** ww84: a recon company somewhere on the side: the enemy's ambush doesn't land. */
+  recon?: boolean;
 }
 
 export interface BattleCtx {
@@ -352,6 +408,14 @@ export interface BattleCtx {
   defenderBlockBp: number;
   /** ww7 lane F: the defenders' prepared ground, bp (CombatRules.roundHits); absent: 0. */
   defenderPrepBp?: number;
+  /** ww84: points of the defenders' country off the tank fear penalty; absent: 0. */
+  tankFearCutPp?: number;
+  /** ww84: the cuts' factor of the defender's block (CombatMods.defCutMulBp); absent: 10,000. */
+  defenderCutMulBp?: number;
+  /** ww84: rounds of the opening barrage left; absent: all of them (a battle not begun). */
+  prepFireRounds?: number;
+  /** ww84: rounds left of armour running through, the defenders' prepared ground not counting; absent: 0. */
+  exploitRounds?: number;
   /** ww8: close air support a round now, after the anti-air cut (casCutHits), centi; absent: 0. */
   casAttCenti?: number;
   casDefCenti?: number;

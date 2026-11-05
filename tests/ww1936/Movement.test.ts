@@ -48,16 +48,15 @@ describe("World War 1936 P2: movement (P2 spec §7)", () => {
     const runner = await wwRunner({}, DEU_POL);
     const g = runner.game;
     const l = land(g);
-    const ww = g.worldWar()!;
     stepTo(runner, WW_PREP_TICKS + 1);
     clearLand(g);
     const deu = byTag(g, "DEU").smallID();
     const a = placeArmy(g, "DEU", 3, 1);
     const r = rowOf(g, a);
     const sc = l.scenario;
-    // Munich: forest (+25%) over 140 km; infrastructure 5 (+20%).
-    const need = moveNeed(sc.edge(sc.edgeBetween(3, 4)), sc.landOf(4));
-    expect(need).toBe(175_000);
+    // Munich: forest (no extra since ww84) over 140 km; infrastructure 5 (+20%).
+    const need = moveNeed(sc.edge(sc.edgeBetween(3, 4)));
+    expect(need).toBe(140_000);
     expect(l.econ.infra[4]).toBe(5);
     const speed = l.baseStatsOf(r).speedCenti;
     const bonus = l.econ.country(deu)!.tech.speedPct * 100;
@@ -66,17 +65,8 @@ describe("World War 1936 P2: movement (P2 spec §7)", () => {
     expect(l.issue(deu, { kind: "army_move", army: a.id, region: 4 })).toBe(
       null,
     );
-    let sum = 0;
-    let arrival = t0 - 1;
-    while (sum < need) {
-      arrival++;
-      const w = weatherAt(ww.day(arrival), sc.latC(4), "forest", sc.wcell(4));
-      sum += moveStep(speed, 5, w, 1000, bonus);
-    }
-    // January in Berlin (temperate since Task 11): never faster than on
-    // clear days.
-    const clear = moveStep(speed, 5, "clear", 1000, bonus);
-    expect(arrival - t0 + 1).toBeGreaterThanOrEqual(Math.ceil(need / clear));
+    // ww84: the same pace whatever the weather.
+    const arrival = t0 - 1 + Math.ceil(need / moveStep(speed, 5, 1000, bonus));
     while (g.ticks() <= arrival - 1) {
       step(runner);
       expect(l.divisions.region[rowOf(g, a)]).toBe(3);
@@ -100,7 +90,7 @@ describe("World War 1936 P2: movement (P2 spec §7)", () => {
     const pol = byTag(g, "POL").smallID();
     const a = placeArmy(g, "POL", 6, 1);
     const sc = l.scenario;
-    const need = moveNeed(sc.edge(sc.edgeBetween(6, 7)), sc.landOf(7));
+    const need = moveNeed(sc.edge(sc.edgeBetween(6, 7)));
     const r = rowOf(g, a);
     const speed = l.baseStatsOf(r).speedCenti;
     const bonus = l.econ.country(pol)!.stats.speedPct * 100;
@@ -109,21 +99,11 @@ describe("World War 1936 P2: movement (P2 spec §7)", () => {
     expect(l.issue(pol, { kind: "army_move", army: a.id, region: 7 })).toBe(
       null,
     );
-    let sum = 0;
-    let arrival = t0 - 1;
-    while (sum < need) {
-      arrival++;
-      const w = weatherAt(
-        ww.day(arrival),
-        sc.latC(7),
-        sc.landOf(7),
-        sc.wcell(7),
-      );
-      expect(["snow", "frozen"]).toContain(w);
-      sum += moveStep(speed, infra, w, 1000, bonus);
-    }
-    const clear = moveStep(speed, infra, "clear", 1000, bonus);
-    expect(arrival - t0 + 1).toBeGreaterThan(Math.ceil(need / clear));
+    const w = weatherAt(ww.day(t0), sc.latC(7), sc.landOf(7), sc.wcell(7));
+    expect(["snow", "frozen"]).toContain(w);
+    // ww84: snow or not, the march takes what a clear day's does.
+    const clear = moveStep(speed, infra, 1000, bonus);
+    const arrival = t0 - 1 + Math.ceil(need / clear);
     while (g.ticks() <= arrival) step(runner);
     expect(l.divisions.region[rowOf(g, a)]).toBe(7);
   });

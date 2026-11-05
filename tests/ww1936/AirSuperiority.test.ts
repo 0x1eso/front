@@ -18,10 +18,7 @@ import { dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
 import { planeStats } from "@openfront/engine-lib/ww1936/PlaneStats";
 import { emptyStats } from "@openfront/engine-lib/ww1936/Stats";
 import type { GameRunner } from "@openfront/engine/GameRunner";
-import {
-  dailyAirZone,
-  zoneWeather,
-} from "@openfront/engine/ww1936/air/AirCombat";
+import { dailyAirZone } from "@openfront/engine/ww1936/air/AirCombat";
 import { radarPmAt } from "@openfront/engine/ww1936/air/AirSuperiority";
 import { drawPlanes } from "@openfront/engine/ww1936/economy/Buildings";
 import type { WorldWar } from "@openfront/engine/ww1936/WorldWar";
@@ -84,8 +81,7 @@ async function channelWar() {
     clearStartSetup(ww.economy, ww.economy.country(id)!);
   }
   warAfterPrep(runner, HUMAN, "ITA");
-  let day = ww.day(runner.game.ticks()) + 1;
-  while (zoneWeather(ww.air, SR.central, day) !== "clear") day++;
+  const day = ww.day(runner.game.ticks()) + 1;
   stepTo(runner, dayStartTick(day, ww.prepEndTick()));
   return { runner, ww, day };
 }

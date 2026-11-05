@@ -22,10 +22,7 @@ import {
   WW_PARADROP_PLANES_PER_WEIGHT,
 } from "@openfront/engine-api/ww1936/AirTypes";
 import type { WwOrderBlock } from "@openfront/engine-api/ww1936/EconomyTypes";
-import {
-  Weather,
-  WW_ROUND_HOUR_MILLI,
-} from "@openfront/engine-api/ww1936/LandTypes";
+import { WW_ROUND_HOUR_MILLI } from "@openfront/engine-api/ww1936/LandTypes";
 
 const clamp = (v: number, lo: number, hi: number) =>
   Math.max(lo, Math.min(hi, v));
@@ -37,26 +34,14 @@ export function rangeEffPm(km: number, rangeKm: number): number {
   return 1000 - Math.floor((250 * (2 * km - rangeKm)) / rangeKm);
 }
 
-/** Spec §14.2: the weather's share of the sorties, ‰. ww67: at least 85 %. */
-export const WEATHER_SORTIE_PM: Readonly<Record<Weather, number>> = {
-  clear: 1000,
-  rain: 850,
-  mud: 900,
-  snow: 850,
-  frozen: 850,
-  heat: 1000,
-};
-
 /** Spec §14.2. airSupPm: our superiority yesterday, null for superiority and interception. */
 export function sortieEffPm(
-  weatherPm: number,
   fuelPm: number,
   rangePm: number,
   baseDamagePm: number,
   airSupPm: number | null,
 ): number {
-  let e = Math.floor((weatherPm * fuelPm) / 1000);
-  e = Math.floor((e * rangePm) / 1000);
+  let e = Math.floor((fuelPm * rangePm) / 1000);
   e = Math.floor((e * (1000 - baseDamagePm)) / 1000);
   if (airSupPm !== null) {
     e = Math.floor((e * (300 + Math.floor((700 * airSupPm) / 1000))) / 1000);
@@ -122,12 +107,17 @@ export function airMoveFactorPm(enemySupPm: number): number {
   );
 }
 
+/** ww84: supply under an enemy-held sky, ‰: half a percent for each percent over 50. */
+export function airSupplyFactorPm(enemySupPm: number): number {
+  return 1000 - Math.floor(Math.max(0, enemySupPm - 500) / 2);
+}
+
 /**
  * Spec §14.6 with the enemy's battlefield support: the cut, bp ≤ 0, of the
  * worst enemy superiority less the division's anti-air (airPenaltyBp), then
  * that enemy's bonus `bonusPp` (supPenaltyPp: +100 bp a point) on top — the
  * spec lists it as a row of its own, after the anti-air cut (A1 review
- * ruling) — up to −40% in all. No bonus without enemy superiority. With no
+ * ruling) — up to −20% in all (ww84). No bonus without enemy superiority. With no
  * bonus it is airPenaltyBp. The engine's hook and the battle card both call
  * it.
  */

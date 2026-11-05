@@ -38,13 +38,12 @@ import {
   MEDAL_STATS,
   NEW_GENERAL_TRAITS,
   promoteFmBlock,
-  TERRAIN_TRAIT_DAYS,
   traitAssignBlock,
   traitSlots,
 } from "@openfront/engine-lib/ww1936/CommandRules";
 import { GENERALS } from "@openfront/engine-lib/ww1936/Generals";
 import { historicalAiActive } from "@openfront/engine-lib/ww1936/Pace";
-import { canServe, TERRAIN_TRAITS } from "../land/GeneralsRun";
+import { canServe } from "../land/GeneralsRun";
 import type { Army, CountryLand, GeneralState, WwLand } from "../land/WwLand";
 import { payPp } from "../politics/PayPp";
 import {
@@ -61,9 +60,6 @@ import {
   NEUTRAL_ARMY_MODS,
   WwDepth,
 } from "./WwDepth";
-
-/** The P6 terrain traits (spec §4.2): terrainDays 4..6. */
-const P6_TERRAIN_FIRST = 4;
 
 const GUERRILLA = traitBit("guerrilla_fighter");
 const TRICKSTER = traitBit("trickster");
@@ -118,7 +114,6 @@ export function dailyCommand(d: WwDepth, id: number, day: number): void {
   let changed = false;
   for (const g of cl.generals) {
     if (g.fm) changed = keepMarshal(d, id, g, day) || changed;
-    changed = terrainTraits(d, id, g) || changed;
     changed = autoGeneralTrait(d, id, g) || changed;
   }
   autoAdmiralTraits(d, id);
@@ -188,70 +183,6 @@ export function stripMarshal(d: WwDepth, id: number, g: GeneralState): void {
   disbandGroupsOf(d, id, g.id);
   d.ww.land.markCountry(id);
   touchCommand(d);
-}
-
-/** Spec §4.2 terrain traits 5–7 and their notice (once per trait, cmd.traitsSeen). True when it changed something. */
-function terrainTraits(d: WwDepth, id: number, g: GeneralState): boolean {
-  let changed = false;
-  let count = 0;
-  for (let b = 0; b < GENERAL_TRAITS.length; b++) {
-    if ((g.traits & (1 << b)) !== 0) count++;
-  }
-  const bits = terrainBits();
-  for (let i = P6_TERRAIN_FIRST; i < TERRAIN_TRAITS.length; i++) {
-    const bit = bits[i];
-    if (
-      (g.traits & bit) === 0 &&
-      !g.fm &&
-      (g.terrainDays[i] ?? 0) >= TERRAIN_TRAIT_DAYS &&
-      count < traitSlots(g.level)
-    ) {
-      g.traits |= bit;
-      count++;
-      changed = true;
-    }
-  }
-  const seen = seenBits(d, id, g.id);
-  let now = seen;
-  for (let i = P6_TERRAIN_FIRST; i < TERRAIN_TRAITS.length; i++) {
-    const bit = bits[i];
-    if ((g.traits & bit) === 0 || (seen & bit) !== 0) continue;
-    now |= bit;
-    // WwPolitics.message adds "events_display."; the client names the
-    // general from `general` (EventsDisplay), never from `name`.
-    d.message(id, "ww1936_trait_unlocked", {
-      general: g.id,
-      trait: TERRAIN_TRAITS[i],
-    });
-  }
-  if (now !== seen) setSeenBits(d, id, g.id, now);
-  return changed;
-}
-
-/** TERRAIN_TRAITS' bits (final perf lane: each general's day read them by name). */
-let terrainBitsMemo: number[] | null = null;
-function terrainBits(): number[] {
-  terrainBitsMemo ??= TERRAIN_TRAITS.map((t) => traitBit(t));
-  return terrainBitsMemo;
-}
-
-function seenBits(d: WwDepth, id: number, general: number): number {
-  return d.country(id)?.cmd.traitsSeen.find((x) => x[0] === general)?.[1] ?? 0;
-}
-
-function setSeenBits(
-  d: WwDepth,
-  id: number,
-  general: number,
-  bits: number,
-): void {
-  const list = d.country(id)!.cmd.traitsSeen;
-  const e = list.find((x) => x[0] === general);
-  if (e !== undefined) e[1] = bits;
-  else {
-    list.push([general, bits]);
-    list.sort((a, b) => a[0] - b[0]);
-  }
 }
 
 // ---- orders ----

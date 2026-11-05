@@ -32,7 +32,6 @@ import {
   strengthPm,
   templateStats,
 } from "@openfront/engine-lib/ww1936/TemplateStats";
-import { weatherAt } from "@openfront/engine-lib/ww1936/Weather";
 import {
   createGameRunnerFromSnapshot,
   GameRunner,
@@ -294,14 +293,6 @@ function checkCaches(l: WwLand): void {
     expect([...l.rowsOf(cl.smallID)], cl.tag).toEqual(rows);
     expect(l.fieldMen(cl.smallID), cl.tag).toBe(men);
   }
-  // Weather.
-  const sc = l.scenario;
-  const day = l.day();
-  for (const reg of sc.landRegions) {
-    expect(l.weatherOn(reg.id, day)).toBe(
-      weatherAt(day, sc.latC(reg.id), sc.landOf(reg.id), sc.wcell(reg.id)),
-    );
-  }
 }
 
 describe("the land caches are derived (P2 Task 11)", () => {
@@ -538,30 +529,11 @@ describe("the land caches follow every input (P2 Task 11, at the P3 merge)", () 
     const runner = await warGame();
     const g = runner.game;
     const l = land(g);
-    const sc = l.scenario;
-    let winter = 0;
     for (let d = 0; d < 6; d++) {
       // Warm the caches, then cross into the next day.
       checkCaches(l);
-      const day = l.day();
-      for (const reg of sc.landRegions) {
-        const w = l.weatherOn(reg.id, day);
-        if (w !== "clear") winter++;
-        // An old day read again (a screen, a test) does not poison today.
-        expect(l.weatherOn(reg.id, day - 1)).toBe(
-          weatherAt(
-            day - 1,
-            sc.latC(reg.id),
-            sc.landOf(reg.id),
-            sc.wcell(reg.id),
-          ),
-        );
-        expect(l.weatherOn(reg.id, day)).toBe(w);
-      }
       step(runner, 8);
     }
-    // January 1936: Moscow and Kiev are continental (snow, frost).
-    expect(winter).toBeGreaterThan(0);
     checkCaches(l);
   }, 120_000);
 });
@@ -581,7 +553,6 @@ function referenceSupply(
   const members = l.sideMembers(side);
   const ours = (r: number) => members.includes(l.controller[r]);
   const regions = sc.landRegions.map((r) => r.id).filter(ours);
-  const day = l.day();
   const capitals = members
     .map((m) => capitalRegion(l, m))
     .filter((r) => r !== 0);
@@ -650,7 +621,6 @@ function referenceSupply(
             sc.edge(e.edge).km,
             l.econ.rail[u],
             l.econ.rail[e.to],
-            sc.landOf(e.to),
             l.econ.infra[e.to],
           );
         if (nd >= range) continue;
@@ -666,7 +636,6 @@ function referenceSupply(
   const owners = sc.ownerByRegion();
   for (const r of regions) {
     const core = sc.region(r)!.core && l.sameSide(owners[r], l.controller[r]);
-    const w = weatherAt(day, sc.latC(r), sc.landOf(r), sc.wcell(r));
     const cut = !reached.has(r);
     out.set(r, [
       cut
@@ -674,7 +643,6 @@ function referenceSupply(
         : SR.regionSupplyMilli(
             best.get(r) ?? 0,
             SR.localSupplyMilli(core, l.econ.infra[r]),
-            w,
           ),
       cut ? 1 : 0,
     ]);

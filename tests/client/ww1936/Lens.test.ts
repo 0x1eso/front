@@ -68,13 +68,13 @@ describe("map lenses (w14)", () => {
     }
   });
 
-  it("names a region's value: terrain effect, victory points and the surrender line", () => {
+  it("names a region's value: terrain, victory points and the surrender line", () => {
     const g = fogGame({ level: 100 });
     const game = g.game as never;
     const t = lensReadout(game, sel({ regionLens: "terrain" }), 4)!;
     expect(t.title).toBe(scenario.region(4)!.name);
     expect(t.lines.join("|")).toContain("[ww1936.terrain.forest]");
-    expect(t.lines.join("|")).toContain("atk=-5"); // ww67: forest cuts the attack by 5 %
+    expect(t.lines.length).toBe(1); // ww84: the ground has no effect to name
     const vp = lensReadout(game, sel({ regionLens: "vp" }), 3)!;
     expect(vp.lines[0]).toBe("[ww1936.lens.vp_here] n=21");
     expect(vp.lines.join("|")).toContain("[ww1936.lens.vp_is_capital]");

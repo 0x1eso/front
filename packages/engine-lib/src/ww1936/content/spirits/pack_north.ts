@@ -28,14 +28,14 @@ export const SPIRITS_PACK_NORTH: readonly SpiritDef[] = [
   {
     id: "nor_winter_warfare",
     icon: "compass",
-    stats: { winterPenaltyPct: -30 },
+    stats: { recoveryPct: 10 },
   },
   // nor_ski_troops: spec "forest and snow attack +10%". Winter penalty −10%
   // (the snow half) and infantry attack +3% (the forest half) stand in.
   {
     id: "nor_ski_warfare",
     icon: "infantry",
-    stats: { winterPenaltyPct: -10, infAttackPct: 3 },
+    stats: { recoveryPct: 3, infAttackPct: 3 },
   },
   // nor_home_guard: recruitable +5%; spec "core defence +5%" has no key of its
   // own, so defence +3% stands in.
@@ -62,7 +62,7 @@ export const SPIRITS_PACK_NORTH: readonly SpiritDef[] = [
   {
     id: "fin_motti_tactics",
     icon: "sword",
-    stats: { forestDefensePct: 10 },
+    stats: { defensePct: 3 },
   },
   // fin_civil_guard: recruitable +10%.
   {

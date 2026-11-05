@@ -8,6 +8,7 @@ import type { WwOrderBlock } from "@openfront/engine-api/ww1936/EconomyTypes";
 import {
   GENERAL_TRAITS,
   GeneralTrait,
+  RETIRED_GENERAL_TRAITS,
   type Stance,
   STANCES,
   traitBit,
@@ -164,22 +165,16 @@ const AUTO_LEVEL_HINTS: Readonly<Record<AutoLevel, string>> = {
 };
 
 /** The general's traits as small icons (pre-flight R7.7: emoji, no new images). */
-export const TRAIT_ICONS: Readonly<Record<GeneralTrait, string>> = {
+export const TRAIT_ICONS: Readonly<Partial<Record<GeneralTrait, string>>> = {
   panzer_leader: "🛡",
   infantry_officer: "🎖",
   cavalry_officer: "🐎",
   offensive_doctrine: "⚔",
   defensive_doctrine: "🏰",
-  winter_specialist: "❄",
-  desert_fox: "🏜",
-  mountaineer: "⛰",
   river_crosser: "🌊",
   logistics_wizard: "📦",
   organizer: "📋",
   // P6 (spec §4.2).
-  forest_expert: "🌲",
-  urban_expert: "🏙",
-  swamp_expert: "🐊",
   infantry_expert: "🎖",
   armor_expert: "🛡",
   artillery_officer: "💥",
@@ -198,7 +193,9 @@ const STANCE_KEYS = {
 } as const;
 
 export function traitsOf(mask: number): GeneralTrait[] {
-  return GENERAL_TRAITS.filter((t) => (mask & traitBit(t)) !== 0);
+  return GENERAL_TRAITS.filter(
+    (t) => (mask & traitBit(t)) !== 0 && !RETIRED_GENERAL_TRAITS.includes(t),
+  );
 }
 
 /** "+12%" / "−8%" from basis points. */

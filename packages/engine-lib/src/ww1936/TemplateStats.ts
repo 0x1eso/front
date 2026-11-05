@@ -34,10 +34,15 @@ import {
   TPL_AMPHIBIOUS,
   TPL_ARMOR_ANY,
   TPL_ARMOR_MAJOR,
+  TPL_BARE_ARMOR,
   TPL_CAVALRY_MAJOR,
+  TPL_EXPLOIT,
   TPL_FLAIL,
   TPL_FLAME,
+  TPL_FOOT_MAJOR,
+  TPL_HEAVY_LEAD,
   TPL_INFANTRY_DIV,
+  TPL_LIGHT_MAJOR,
   TPL_MARINE_ANY,
   TPL_MARINE_MAJOR,
   TPL_MOTOR_ANY,
@@ -516,8 +521,129 @@ function designTplFlags(ds: number): number {
   );
 }
 
-/** ww67: a battalion's weight in a division's pierce, a support company's being 1. */
-const BATTALION_PIERCE_WEIGHT = 3;
+/** ww84: the most pierce bands a division keeps. */
+export const MAX_PIERCE_BANDS = 4;
+/** ww84: anti-tank guns are ambushers: their pierce on the attack, percent. */
+export const GUN_ATTACK_PIERCE_PCT = 50;
+const AMBUSH_GUNS: ReadonlySet<string> = new Set([
+  "anti_tank",
+  "tank_destroyer",
+  "support_anti_tank",
+]);
+const gunAttackPierce = (p: number) =>
+  Math.floor((p * GUN_ATTACK_PIERCE_PCT) / 100);
+
+/** ww84: the most an opening barrage adds, bp. */
+export const PREP_FIRE_MAX_BP = 3000;
+
+/** ww84: the battalions that run through a broken line. */
+const FAST_BATTALIONS: ReadonlySet<string> = new Set([
+  "light_armor",
+  "medium_armor",
+  "motorized",
+  "mot_artillery",
+  "sp_artillery",
+  "sp_anti_air",
+]);
+
+/** ww84: foot battalions: what an infantry-line tech reaches. */
+const FOOT_KINDS: ReadonlySet<string> = new Set([
+  "infantry",
+  "cavalry",
+  "special",
+  "motor",
+]);
+
+// One carrier of hard attack each: need group, pierce defending and attacking,
+// hard attack (scratch: templateStats fills them and pierceBands reads them).
+const C_GROUP: number[] = [];
+const C_PIERCE: number[] = [];
+const C_ATK: number[] = [];
+const C_HARD: number[] = [];
+const C_BAND: number[] = [];
+
+function addCarrier(
+  group: number,
+  pierce: number,
+  atk: number,
+  hard: number,
+): void {
+  C_GROUP.push(group);
+  C_PIERCE.push(pierce);
+  C_ATK.push(atk);
+  C_HARD.push(hard);
+}
+
+/**
+ * ww84: the division's carriers of hard attack as pierce bands: one band for
+ * each pierce, then the two nearest bands merged (weighted by hard attack)
+ * until at most MAX_PIERCE_BANDS are left. Empties the carriers.
+ */
+function pierceBands(): Pick<
+  DivisionStats,
+  "bandPierce" | "bandPierceAtk" | "bandHard" | "bandParts"
+> {
+  const bandPierce: number[] = [];
+  const bandPierceAtk: number[] = [];
+  const bandHard: number[] = [];
+  const n = C_GROUP.length;
+  C_BAND.length = n;
+  for (let i = 0; i < n; i++) {
+    const p = C_PIERCE[i];
+    const a = C_ATK[i];
+    // Least pierce first: find its place, or the band that has it.
+    let k = 0;
+    while (
+      k < bandPierce.length &&
+      (bandPierce[k] < p || (bandPierce[k] === p && bandPierceAtk[k] < a))
+    ) {
+      k++;
+    }
+    if (
+      k < bandPierce.length &&
+      bandPierce[k] === p &&
+      bandPierceAtk[k] === a
+    ) {
+      bandHard[k] += C_HARD[i];
+    } else {
+      bandPierce.splice(k, 0, p);
+      bandPierceAtk.splice(k, 0, a);
+      bandHard.splice(k, 0, C_HARD[i]);
+      for (let j = 0; j < i; j++) if (C_BAND[j] >= k) C_BAND[j]++;
+    }
+    C_BAND[i] = k;
+  }
+  while (bandPierce.length > MAX_PIERCE_BANDS) {
+    let k = 0;
+    for (let i = 1; i + 1 < bandPierce.length; i++) {
+      if (
+        bandPierce[i + 1] - bandPierce[i] <
+        bandPierce[k + 1] - bandPierce[k]
+      ) {
+        k = i;
+      }
+    }
+    const [ha, hb] = [bandHard[k], bandHard[k + 1]];
+    const hard = ha + hb;
+    const mean = (x: number, y: number) =>
+      hard === 0 ? Math.max(x, y) : Math.floor((x * ha + y * hb) / hard);
+    bandPierce[k] = mean(bandPierce[k], bandPierce[k + 1]);
+    bandPierceAtk[k] = mean(bandPierceAtk[k], bandPierceAtk[k + 1]);
+    bandHard[k] = hard;
+    bandPierce.splice(k + 1, 1);
+    bandPierceAtk.splice(k + 1, 1);
+    bandHard.splice(k + 1, 1);
+    for (let j = 0; j < n; j++) if (C_BAND[j] > k) C_BAND[j]--;
+  }
+  const bandParts = new Array<number>(n * 3);
+  for (let i = 0; i < n; i++) {
+    bandParts[i * 3] = C_BAND[i];
+    bandParts[i * 3 + 1] = C_GROUP[i];
+    bandParts[i * 3 + 2] = C_HARD[i];
+  }
+  C_GROUP.length = C_PIERCE.length = C_ATK.length = C_HARD.length = 0;
+  return { bandPierce, bandPierceAtk, bandHard, bandParts };
+}
 
 /** Each type's static slots, generation 1 first. */
 const STATIC_SLOTS_OF: readonly (readonly number[])[] = Array.from(
@@ -594,14 +720,18 @@ export function templateStats(
   let armorSum = 0;
   let armoured = 0;
   let pierceMax = 0;
-  let pierceSum = 0;
-  let pierceN = 0;
   let speed = Number.MAX_SAFE_INTEGER;
   let supply = 0;
   let train = 0;
   let flags = 0;
   let special = 0;
   let armorN = 0;
+  let footN = 0;
+  // Battalions of guns ×3 (a support company counts one), and heavy tanks.
+  let gunN = 0;
+  let heavyN = 0;
+  let lightN = 0;
+  let fastN = 0;
   let motorN = 0;
   let mountainN = 0;
   let marineN = 0;
@@ -613,6 +743,9 @@ export function templateStats(
   let fuelWidth = 0;
   let fuelHour = 0;
   const st = tech as unknown as Partial<Record<WwStatKey, number>>;
+  // ww84: what the portable anti-tank line adds to a foot battalion, centi.
+  const atPierce = st.infAtPierce ?? 0;
+  const atHard = st.infAtHard ?? 0;
   for (const id of def.battalions) {
     const d = BATTALIONS[id];
     const main = TYPE_INDEX.get(d.equip[0][0])!;
@@ -659,19 +792,19 @@ export function templateStats(
       ),
       bp.armor,
     );
-    const pierce = pctOf(
-      mix(
-        keyed(ks, main, g, KS.pierce, Math.floor((d.pierce * ga) / 100)),
-        KS.pierce,
-      ),
-      bp.pierce,
-    );
+    const foot = FOOT_KINDS.has(d.kind);
+    const pierce =
+      pctOf(
+        mix(
+          keyed(ks, main, g, KS.pierce, Math.floor((d.pierce * ga) / 100)),
+          KS.pierce,
+        ),
+        bp.pierce,
+      ) + (foot ? atPierce : 0);
     armorMax = Math.max(armorMax, armor);
     armorSum += armor;
     if (armor > 0) armoured++;
     pierceMax = Math.max(pierceMax, pierce);
-    pierceSum += pierce * BATTALION_PIERCE_WEIGHT;
-    pierceN += BATTALION_PIERCE_WEIGHT;
     let soft = mix(
       keyed(ks, main, g, KS.soft, Math.floor((d.soft * gp) / 100)),
       KS.soft,
@@ -680,12 +813,20 @@ export function templateStats(
       soft = Math.floor((soft * (100 + tech.artillerySoftPct)) / 100);
     }
     parts[main * 4] += pctOf(soft, bp.soft);
-    parts[main * 4 + 1] += pctOf(
-      mix(
-        keyed(ks, main, g, KS.hard, Math.floor((d.hard * gp) / 100)),
-        KS.hard,
-      ),
-      bp.hard,
+    const hard =
+      pctOf(
+        mix(
+          keyed(ks, main, g, KS.hard, Math.floor((d.hard * gp) / 100)),
+          KS.hard,
+        ),
+        bp.hard,
+      ) + (foot ? atHard : 0);
+    parts[main * 4 + 1] += hard;
+    addCarrier(
+      main,
+      pierce,
+      AMBUSH_GUNS.has(id) ? gunAttackPierce(pierce) : pierce,
+      hard,
     );
     parts[main * 4 + 2] += pctOf(
       mix(keyed(ks, main, g, KS.def, Math.floor((d.def * gp) / 100)), KS.def),
@@ -719,6 +860,11 @@ export function templateStats(
     for (const [t, k] of d.equip) need[TYPE_INDEX.get(t)!] += k;
     if (d.special) special++;
     if (d.kind === "armor") armorN++;
+    if (foot) footN++;
+    if (d.artillery) gunN += 3;
+    if (id === "heavy_armor") heavyN++;
+    if (id === "light_armor") lightN++;
+    if (FAST_BATTALIONS.has(id)) fastN++;
     if (d.kind === "motor" || id === "mot_artillery") motorN++;
     if (id === "mountain") mountainN++;
     if (id === "marine") marineN++;
@@ -742,10 +888,11 @@ export function templateStats(
       soft = Math.floor((soft * (100 + tech.artillerySoftPct)) / 100);
     }
     parts[main * 4] += pctOf(soft, supPct + sbp.soft);
-    parts[main * 4 + 1] += pctOf(
+    const hard = pctOf(
       keyed(ks, main, sg, KS.hard, Math.floor((d.hard * gp) / 100)),
       supPct + sbp.hard,
     );
+    parts[main * 4 + 1] += hard;
     parts[main * 4 + 2] += pctOf(
       keyed(ks, main, sg, KS.def, Math.floor((d.def * gp) / 100)),
       supPct + sbp.def,
@@ -766,14 +913,20 @@ export function templateStats(
         sbp.pierce,
       );
       pierceMax = Math.max(pierceMax, p);
-      pierceSum += p;
-      pierceN++;
+      addCarrier(main, p, AMBUSH_GUNS.has(id) ? gunAttackPierce(p) : p, hard);
     }
     for (const [t, k] of d.equip) need[TYPE_INDEX.get(t)!] += k;
+    if (d.artillery) gunN++;
     flags |= d.flag;
   }
   if (armorN > 0) flags |= TPL_ARMOR_ANY;
   if (armorN * 2 >= n && n > 0) flags |= TPL_ARMOR_MAJOR;
+  if (footN * 2 >= n && n > 0) flags |= TPL_FOOT_MAJOR;
+  const heavyLead = heavyN > 0 && heavyN * 2 >= armorN;
+  if (heavyLead) flags |= TPL_HEAVY_LEAD;
+  if (lightN * 2 >= n && n > 0) flags |= TPL_LIGHT_MAJOR;
+  if (fastN * 2 >= n && n > 0 && !heavyLead) flags |= TPL_EXPLOIT;
+  if (armorN * 2 >= n && n > 0 && footN * 3 < n) flags |= TPL_BARE_ARMOR;
   if (motorN > 0) flags |= TPL_MOTOR_ANY;
   if (mountainN > 0) flags |= TPL_MOUNTAIN_ANY;
   if (marineN > 0) flags |= TPL_MARINE_ANY;
@@ -799,21 +952,16 @@ export function templateStats(
     def: sum(2),
     brk: sum(3),
     // HOI4: 30% max + 70% average armour, ww67: of the armoured battalions
-    // alone (how much of the division they are is its hardness, armorProtectPm).
-    // Pierce is what the division can actually bring to bear, 1.75 times its
-    // weighted average up to its best gun: four sevenths of it able to hit is
-    // the gun's whole number, and a support company counts a third of a
-    // battalion, so it adds a little.
+    // alone (how much of the division they are is its hardness: what is soft
+    // in a hit goes through it). Pierce is its best gun, ww84; what fights is
+    // each band on its own (pierceBands).
     armor:
       armoured === 0
         ? 0
         : Math.floor(
             (30 * armorMax * armoured + 70 * armorSum) / (100 * armoured),
           ),
-    pierce:
-      pierceN === 0
-        ? 0
-        : Math.min(pierceMax, Math.floor((7 * pierceSum) / (4 * pierceN))),
+    pierce: pierceMax,
     hardnessPm: n === 0 ? 0 : Math.floor(hardSum / n),
     speedCenti: n === 0 ? 0 : speed,
     supplyMilli: supply,
@@ -828,6 +976,11 @@ export function templateStats(
     fuelWidthPm: width === 0 ? 0 : Math.floor((fuelWidth * 1000) / width),
     fuelHourMilli: fuelHour,
     designFlags,
+    ...pierceBands(),
+    prepFireBp:
+      n === 0
+        ? 0
+        : Math.min(PREP_FIRE_MAX_BP, Math.floor((gunN * 10_000) / (3 * n))),
   };
 }
 
@@ -912,12 +1065,19 @@ export function divisionStatsAt(
   }
   const menPm =
     s.men === 0 ? 1000 : Math.min(1000, Math.floor((men * 1000) / s.men));
+  // ww84: a gun without its crew and gun pierces nothing.
+  const bandHard = new Array<number>(s.bandHard.length).fill(0);
+  const bp = s.bandParts;
+  for (let i = 0; i < bp.length; i += 3) {
+    bandHard[bp[i]] += Math.floor((bp[i + 2] * fill[bp[i + 1]]) / 1000);
+  }
   return {
     ...s,
     soft,
     hard,
     def,
     brk,
+    bandHard,
     hpMilli: Math.floor((s.hpMilli * menPm) / 1000),
   };
 }

@@ -1,12 +1,6 @@
 // World War 1936 P2: supply v1 formulas (P2 spec §11.1–§11.3). The engine's
 // daily supply and the region card call the same functions.
-import {
-  LandTerrain,
-  Weather,
-  WW_SUPPLY_RANGE,
-} from "@openfront/engine-api/ww1936/LandTypes";
-import { TERRAIN } from "./CombatRules";
-import { WEATHER } from "./Weather";
+import { WW_SUPPLY_RANGE } from "@openfront/engine-api/ww1936/LandTypes";
 
 export const HUB_CAPITAL = 0;
 export const HUB_CITY = 1;
@@ -45,15 +39,12 @@ export function supplyEdgeCost(
   km: number,
   railFrom: number,
   railTo: number,
-  toLand: LandTerrain,
   toInfra: number,
 ): number {
   if (railFrom >= 1 && railTo >= 1) {
     return Math.floor((km * 100) / (2 + Math.min(railFrom, railTo)));
   }
-  return Math.floor(
-    (km * TERRAIN[toLand].supplyPct * 100) / (ROAD_SUPPLY_BASE + 10 * toInfra),
-  );
+  return Math.floor((km * 10_000) / (ROAD_SUPPLY_BASE + 10 * toInfra));
 }
 
 /** Spec §11.2: what a hub of `capacityMilli` gives at `costCenti` supply-km ×100. */
@@ -67,13 +58,9 @@ export function localSupplyMilli(core: boolean, infra: number): number {
   return (core ? 2 * infra : infra) * 1000;
 }
 
-/** Best hub share + local share, × the weather's supply %. */
-export function regionSupplyMilli(
-  bestHub: number,
-  local: number,
-  weather: Weather,
-): number {
-  return Math.floor(((bestHub + local) * WEATHER[weather].supplyPct) / 100);
+/** Best hub share + local share. */
+export function regionSupplyMilli(bestHub: number, local: number): number {
+  return bestHub + local;
 }
 
 /** Spec §11.3: a division's use after the general, companies, traits and P3's supplyUsePct. */

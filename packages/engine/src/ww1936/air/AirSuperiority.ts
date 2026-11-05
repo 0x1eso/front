@@ -12,6 +12,7 @@ import {
 import {
   airGroundPenaltyBp,
   airMoveFactorPm,
+  airSupplyFactorPm,
 } from "@openfront/engine-lib/ww1936/AirRules";
 import { effectiveLevel } from "../economy/Buildings";
 import { hasMagnetron, MAGNETRON_RADAR_PM } from "./ProjectEffects";
@@ -69,6 +70,17 @@ export function airPenaltyFor(
 /** The worst enemy superiority over `region`'s zone as yesterday left it, ‰ (the AI's main sector). */
 export function enemySkyPm(air: WwAir, region: number, side: number): number {
   return landZoneOf(air, region)?.enemySup.get(side) ?? 0;
+}
+
+/** ww84: supply of `region` under enemy superiority, ‰ (WwAir.airSupplyFactorPm). */
+export function airSupplyFactorFor(
+  air: WwAir,
+  region: number,
+  side: number,
+): number {
+  const z = landZoneOf(air, region);
+  if (z === null) return 1000;
+  return airSupplyFactorPm(z.enemySup.get(side) ?? 0);
 }
 
 /** Spec §14.6: movement into `region` under enemy superiority, ‰ (WwAir.airMoveFactorPm). */

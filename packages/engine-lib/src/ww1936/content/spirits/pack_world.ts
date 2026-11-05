@@ -45,7 +45,7 @@ export const SPIRITS_PACK_WORLD: SpiritDef[] = [
   { id: "dom_mining_drive", icon: "mine", stats: { extractionPct: 10 } },
   // aus_jungle_training: "정글 공격 +15%" — no jungle key; the forest and
   // jungle terrain key (report: approximation)
-  { id: "aus_jungle_warfare", icon: "map", stats: { forestDefensePct: 15 } },
+  { id: "aus_jungle_warfare", icon: "map", stats: { defensePct: 5 } },
   // nzl_coastwatchers: "바다 탐지 +10%, 해군 정보 +10%p" — no naval
   // intelligence key; the intelligence key (report: approximation)
   {

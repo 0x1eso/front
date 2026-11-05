@@ -97,18 +97,9 @@ async function war() {
     notices.push(key);
     message(to, key, params);
   };
-  // A tick on a day clear over both ends of the map.
-  const land = air.land;
-  let day = ww.day(g.ticks()) + 1;
-  while (
-    land.weatherOn(REGION.berlin, day) !== "clear" ||
-    land.weatherOn(REGION.krakow, day) !== "clear" ||
-    land.weatherOn(REGION.warsaw, day) !== "clear"
-  ) {
-    day++;
-  }
+  const day = ww.day(g.ticks()) + 1;
   const tick = dayStartTick(day, ww.prepEndTick());
-  return { runner, g, ww, air, land, rows, notices, tick };
+  return { runner, g, ww, air, land: air.land, rows, notices, tick };
 }
 
 type Air = Awaited<ReturnType<typeof war>>["air"];

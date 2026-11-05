@@ -48,6 +48,8 @@ import {
 } from "@openfront/engine-api/ww1936/LandTypes";
 import { BATTALIONS } from "@openfront/engine-lib/ww1936/Battalions";
 import {
+  addSideBands,
+  addToSide,
   combatWidth,
   divisionMods,
   emptySide,
@@ -1226,7 +1228,7 @@ export function mergeSides(a: SideSum, b: SideSum): SideSum {
   const w = a.width + b.width;
   const mix = (x: number, y: number) =>
     w === 0 ? 0 : Math.floor((x * a.width + y * b.width) / w);
-  return {
+  const sum: SideSum = {
     divisions: a.divisions + b.divisions,
     width: w,
     soft: a.soft + b.soft,
@@ -1238,6 +1240,34 @@ export function mergeSides(a: SideSum, b: SideSum): SideSum {
     hardnessPm: mix(a.hardnessPm, b.hardnessPm),
     orgMilli: a.orgMilli + b.orgMilli,
     hpMilli: a.hpMilli + b.hpMilli,
+    defOrgPct: mix(a.defOrgPct ?? 100, b.defOrgPct ?? 100),
+    footPm: mix(a.footPm ?? 0, b.footPm ?? 0),
+    armorMajorPm: mix(a.armorMajorPm ?? 0, b.armorMajorPm ?? 0),
+    prepFireBp: mix(a.prepFireBp ?? 0, b.prepFireBp ?? 0),
+    heavyPm: mix(a.heavyPm ?? 0, b.heavyPm ?? 0),
+    recon: a.recon === true || b.recon === true,
+  };
+  addSideBands(sum, a);
+  addSideBands(sum, b);
+  return sum;
+}
+
+/** The shares of one division's flags (addToSide over an empty side). */
+function sideShares(
+  s: DivisionStats,
+): Pick<
+  SideSum,
+  "defOrgPct" | "footPm" | "armorMajorPm" | "prepFireBp" | "heavyPm" | "recon"
+> {
+  const one = emptySide();
+  addToSide(one, s, 0);
+  return {
+    defOrgPct: one.defOrgPct,
+    footPm: one.footPm,
+    armorMajorPm: one.armorMajorPm,
+    prepFireBp: one.prepFireBp,
+    heavyPm: one.heavyPm,
+    recon: one.recon,
   };
 }
 
@@ -1255,6 +1285,10 @@ function sideOfStats(s: DivisionStats, n: number): SideSum {
     hardnessPm: s.hardnessPm,
     orgMilli: s.orgMilli * n,
     hpMilli: s.hpMilli * n,
+    bandPierce: s.bandPierce,
+    bandPierceAtk: s.bandPierceAtk,
+    bandHard: s.bandHard.map((h) => h * n),
+    ...sideShares(s),
   };
 }
 
@@ -1310,11 +1344,7 @@ function attackOrigins(
 }
 
 /** A division the screen can only guess at: no general, no plan, full supply. */
-function plainInput(
-  attacking: boolean,
-  land: LandTerrain,
-  weather: Weather,
-): ModInput {
+function plainInput(attacking: boolean): ModInput {
   return {
     attacking,
     genAtt: 0,
@@ -1324,8 +1354,6 @@ function plainInput(
     tech: NEUTRAL_TECH,
     exp: 0,
     planBp: 0,
-    land,
-    weather,
     river: 0,
     strait: false,
     fort: 0,
@@ -1432,8 +1460,6 @@ function armyInput(
   me: number,
   a: ArmySummary,
   attacking: boolean,
-  land: LandTerrain,
-  weather: Weather,
   region: number,
   sides: LandSides,
   opponent: number,
@@ -1448,7 +1474,7 @@ function armyInput(
       ? 0
       : Math.floor(divs.reduce((s, d) => s + d.exp, 0) / divs.length);
   return {
-    ...plainInput(attacking, land, weather),
+    ...plainInput(attacking),
     genAtt: g?.att ?? 0,
     genDef: g?.def ?? 0,
     traits: g?.traits ?? 0,
@@ -1510,6 +1536,15 @@ export function sideScaledTo(s: SideSum, n: number): SideSum {
     hardnessPm: s.hardnessPm,
     orgMilli: k(s.orgMilli),
     hpMilli: k(s.hpMilli),
+    bandPierce: s.bandPierce,
+    bandPierceAtk: s.bandPierceAtk,
+    bandHard: s.bandHard?.map(k),
+    defOrgPct: s.defOrgPct,
+    footPm: s.footPm,
+    armorMajorPm: s.armorMajorPm,
+    prepFireBp: s.prepFireBp,
+    heavyPm: s.heavyPm,
+    recon: s.recon,
   };
 }
 
@@ -1537,7 +1572,6 @@ export function attackPreview(
   if (a === null || view.scenario.region(region) === undefined) return null;
   const s = view.scenario;
   const land = s.landOf(region);
-  const weather = weatherOf(s, region, day);
   const origins = attackOrigins(view, me, a, region, sides);
   const directions = Math.max(1, Math.min(4, origins.length));
   const { river, strait } = crossing(s, origins, region);
@@ -1553,25 +1587,14 @@ export function attackPreview(
           enemyValue(seen.divisions, sides.sameSide(me, holder) ? 0 : holder),
         );
   const att = divisionMods({
-    ...armyInput(
-      view,
-      economy,
-      me,
-      a,
-      true,
-      land,
-      weather,
-      region,
-      sides,
-      holder,
-    ),
+    ...armyInput(view, economy, me, a, true, region, sides, holder),
     river,
     strait,
     fort,
     excessBp: excessWidthBp(a.sum.width, width),
   }).mods;
   const dm = divisionMods({
-    ...plainInput(false, land, weather),
+    ...plainInput(false),
     ...p4Fields(view, economy, me, sides, holder, region, false, me, null, []),
     excessBp: excessWidthBp(def.width, width),
     encircled: view.regions.get(region)?.encircled ?? false,
@@ -1587,6 +1610,7 @@ export function attackPreview(
     defenderAttackBp: dm.attackBp,
     defenderBlockBp: dm.defenseBp,
     defenderPrepBp: dm.prepBp ?? 0,
+    defenderCutMulBp: dm.defCutMulBp,
     casAttCenti:
       battle !== undefined && sides.sameSide(me, battle.attacker)
         ? (battle.casAttCenti ?? 0)
@@ -1752,17 +1776,11 @@ export function movePreview(
       : 1000;
     pass = ours;
     cost = (e, to) => {
-      let step = moveStep(
-        speed,
-        economy.infra[to] ?? 1,
-        day < 0 ? "clear" : weatherOf(s, to, day),
-        supply,
-        0,
-      );
+      let step = moveStep(speed, economy.infra[to] ?? 1, supply, 0);
       const air = airMoveOf(p4, s, to, me);
       if (air !== 1000) step = Math.floor((step * air) / 1000);
       if (fuel < 1000) step = Math.floor((step * landFuelSpeedPm(fuel)) / 1000);
-      return edgeTicks(moveNeed(s.edge(e), s.landOf(to)), step);
+      return edgeTicks(moveNeed(s.edge(e)), step);
     };
   }
   const path = shortestPath(s, from, region, pass, cost);
@@ -1814,7 +1832,7 @@ export function battleCard(
     .map((e) => e.to)
     .filter((r) => sides.sameSide(b.attacker, view.controller[r]));
   let att: ModInput = {
-    ...plainInput(true, land, weather),
+    ...plainInput(true),
     ...p4Fields(
       view,
       economy,
@@ -1832,7 +1850,7 @@ export function battleCard(
     excessBp: excessWidthBp(b.attWidth, b.width),
   };
   let def: ModInput = {
-    ...plainInput(false, land, weather),
+    ...plainInput(false),
     ...p4Fields(
       view,
       economy,
@@ -1859,18 +1877,7 @@ export function battleCard(
     const ts = t === null ? null : templateStats(templateDef(t), tech, GEN1);
     const opponent = attacking ? b.defender : b.attacker;
     return {
-      ...armyInput(
-        view,
-        economy,
-        me,
-        a,
-        attacking,
-        land,
-        weather,
-        region,
-        sides,
-        opponent,
-      ),
+      ...armyInput(view, economy, me, a, attacking, region, sides, opponent),
       flags: ts?.flags ?? 0,
       exp: d.exp,
       supplyPm: d.supplyPm,

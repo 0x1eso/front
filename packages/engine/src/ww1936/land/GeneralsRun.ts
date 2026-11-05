@@ -5,7 +5,6 @@
 import type { WwOrderBlock } from "@openfront/engine-api/ww1936/EconomyTypes";
 import {
   GENERAL_TRAITS,
-  GeneralTrait,
   ROLE_ATTACK,
   ROLE_DEFEND,
   traitBit,
@@ -25,8 +24,8 @@ import type { Army, CountryLand, GeneralState, WwLand } from "./WwLand";
 /** Skills a general can reach (spec §6.2). */
 export const GENERAL_SKILL_MAX = 5;
 export const GENERAL_LEVEL_MAX = 5;
-/** Battle days on one kind of ground that teach its trait (spec §6.2). */
-export const TERRAIN_TRAIT_DAYS = 60;
+/** Battle days of attacks across a river that teach river_crosser (spec §6.2). */
+export const RIVER_TRAIT_DAYS = 60;
 /** P2's cap; P6 (spec §4.2): CommandRules.traitSlots(level) — 3/4/4/5/5. */
 export const GENERAL_TRAITS_MAX = 3;
 /**
@@ -36,19 +35,11 @@ export const GENERAL_TRAITS_MAX = 3;
  */
 export const GENERAL_XP_CENTI = 100;
 /**
- * GeneralState.terrainDays order: snow or frost, desert, hills or
- * mountains, attacks across a river; P6 (spec §4.2): forest or jungle,
- * urban, marsh.
+ * ww84: the one slot of GeneralState.terrainDays still counted, attacks across
+ * a river. The others were the ground and the weather, which teach nothing now;
+ * the array keeps its length for snapshots.
  */
-export const TERRAIN_TRAITS: readonly GeneralTrait[] = [
-  "winter_specialist",
-  "desert_fox",
-  "mountaineer",
-  "river_crosser",
-  "forest_expert",
-  "urban_expert",
-  "swamp_expert",
-];
+export const RIVER_DAYS_SLOT = 3;
 
 /** The roster entry of a named general; undefined for a titled one. */
 export function rosterDefOf(g: GeneralState): GeneralDef | undefined {
@@ -226,7 +217,7 @@ export function dailyGenerals(
     let fight = false;
     let att = false;
     let dfn = false;
-    const ground = [false, false, false, false, false, false, false];
+    let crossed = false;
     let rows = 0;
     let shortRows = 0;
     for (const id of a.divisions) {
@@ -241,18 +232,9 @@ export function dailyGenerals(
       if (role === ROLE_DEFEND) dfn = true;
       const b = t.battle[r];
       if (b === 0 || sc.region(b) === undefined) continue;
-      const w = land.weatherOn(b, day);
-      if (w === "snow" || w === "frozen") ground[0] = true;
-      const terrain = sc.landOf(b);
-      if (terrain === "desert") ground[1] = true;
-      if (terrain === "hills" || terrain === "mountain") ground[2] = true;
-      // P6 (spec §4.2): forest or jungle, urban, marsh.
-      if (terrain === "forest" || terrain === "jungle") ground[4] = true;
-      if (terrain === "urban") ground[5] = true;
-      if (terrain === "marsh") ground[6] = true;
       if (role === ROLE_ATTACK) {
         const e = sc.edgeBetween(t.region[r], b);
-        if (e >= 0 && sc.edge(e).river > 0) ground[3] = true;
+        if (e >= 0 && sc.edge(e).river > 0) crossed = true;
       }
     }
     // Task 11: the skill uses balance the fights against the rest. A day
@@ -271,9 +253,10 @@ export function dailyGenerals(
     if (short) g.use[3]++;
     if (fight) {
       g.xp += Math.max(1, 100 + ce.stats.generalXpPct);
-      ground.forEach((on, i) => {
-        if (on) g.terrainDays[i] = (g.terrainDays[i] ?? 0) + 1;
-      });
+      if (crossed) {
+        g.terrainDays[RIVER_DAYS_SLOT] =
+          (g.terrainDays[RIVER_DAYS_SLOT] ?? 0) + 1;
+      }
     }
     levelUp(g);
     learnTraits(g);
@@ -300,20 +283,18 @@ export function levelUp(g: GeneralState): void {
 }
 
 /**
- * Spec §6.2: 60 battle days on a ground teach its trait; P6 (spec §4.2):
+ * Spec §6.2: 60 battle days across rivers teach river_crosser; P6 (spec §4.2):
  * as many traits as the level's slots (traitSlots), not three.
  */
 function learnTraits(g: GeneralState): void {
-  TERRAIN_TRAITS.forEach((trait, i) => {
-    const bit = traitBit(trait);
-    if (
-      (g.terrainDays[i] ?? 0) >= TERRAIN_TRAIT_DAYS &&
-      (g.traits & bit) === 0 &&
-      traitCount(g.traits) < traitSlots(g.level)
-    ) {
-      g.traits |= bit;
-    }
-  });
+  const bit = traitBit("river_crosser");
+  if (
+    (g.terrainDays[RIVER_DAYS_SLOT] ?? 0) >= RIVER_TRAIT_DAYS &&
+    (g.traits & bit) === 0 &&
+    traitCount(g.traits) < traitSlots(g.level)
+  ) {
+    g.traits |= bit;
+  }
 }
 
 function traitCount(mask: number): number {

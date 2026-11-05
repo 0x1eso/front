@@ -130,8 +130,6 @@ const neutral = (over: Partial<ModInput>): ModInput => ({
   tech: ZERO_TECH,
   exp: 0,
   planBp: 0,
-  land: "plains",
-  weather: "clear",
   river: 0,
   strait: false,
   fort: 0,
@@ -170,7 +168,7 @@ describe("templates (P2 spec §4.3, §4.4)", () => {
       men: 8500,
       hpMilli: 176_200,
       orgMilli: 46_666,
-      soft: 9200,
+      soft: 8200,
       hard: 1100,
       def: 17_400,
       brk: 6450,
@@ -200,7 +198,7 @@ describe("templates (P2 spec §4.3, §4.4)", () => {
     );
     expect(s).toMatchObject({
       width: 15,
-      soft: 8500,
+      soft: 8000,
       hard: 2000,
       def: 7000,
       brk: 11_400,
@@ -228,7 +226,7 @@ describe("templates (P2 spec §4.3, §4.4)", () => {
       return out as unknown as TechTotals;
     };
     const art = def([["artillery", 1]]);
-    expect(templateStats(art, gd("gd_firepower", false), GEN1).soft).toBe(3000);
+    expect(templateStats(art, gd("gd_firepower", false), GEN1).soft).toBe(2400);
     const inf = def([["infantry", 1]]);
     expect(templateStats(inf, gd("gd_mass", true), GEN1).orgMilli).toBe(70_000);
     const armour = def([
@@ -247,7 +245,7 @@ describe("templates (P2 spec §4.3, §4.4)", () => {
     const slots = fullSlots(INF72);
     slots[groundSlotOf(equipKey("artillery", 1))] = 12;
     const half = divisionStats(s, slots, 4250);
-    expect(half.soft).toBe(6700);
+    expect(half.soft).toBe(6200);
     expect(half.hpMilli).toBe(88_100);
     expect(strengthPm(s, slots, 8500)).toBe(926);
     expect(strengthPm(s, fullSlots(INF72), 8500)).toBe(1000);
@@ -372,10 +370,10 @@ describe("combat (P2 spec §9)", () => {
   });
 
   test("divisionMods", () => {
-    // Plains, clear, full supply, no general: recon's +5%.
-    expect(divisionMods(neutral({})).mods.attackBp).toBe(10_500);
+    // Full supply, no general: nothing (ww84: a recon company adds none).
+    expect(divisionMods(neutral({})).mods.attackBp).toBe(10_000);
     // A big river, halved by the engineers.
-    expect(divisionMods(neutral({ river: 2 })).mods.attackBp).toBe(8400);
+    expect(divisionMods(neutral({ river: 2 })).mods.attackBp).toBe(8000);
     // Task 11: a small river −10% (halved by the engineers: −5%), a big
     // one −40%; moving over them +15% and +50%.
     expect(RIVER_ATTACK_BP).toEqual([0, -1000, -4000]);
@@ -387,10 +385,10 @@ describe("combat (P2 spec §9)", () => {
     expect(line(divisionMods(neutral({ fort: 3 })).attackLines, "fort")).toBe(
       -3825,
     );
-    // The defender's entrenchment (ww7: 5% a level, was 3%), engineers and recon.
+    // The defender's entrenchment (ww7: 5% a level, was 3%) and engineers.
     expect(
       divisionMods(neutral({ attacking: false, entrench: 4 })).mods.defenseBp,
-    ).toBe(13_000);
+    ).toBe(12_500);
     expect(
       line(divisionMods(neutral({ supplyPm: 500 })).attackLines, "supply"),
     ).toBe(-2500);
@@ -419,15 +417,16 @@ describe("combat (P2 spec §9)", () => {
     // one on one: ww67, with foot breakthrough ×2 its guns win the exchange of
     // org, though it can't break a whole line alone (Battles.test).
     const one = predictBattle(side(INF72, 1), side(POL9, 1), ctx(1));
-    expect(one.ratioPm).toBeGreaterThanOrEqual(1200);
-    expect(one.ratioPm).toBeLessThanOrEqual(1450);
-    // Seven against five, from two directions: the attacker wins in ~51 rounds
-    // (ww7 lane F: a hit takes 0.4 of the spec's org, which said ~20).
+    expect(one.ratioPm).toBeGreaterThanOrEqual(1020);
+    expect(one.ratioPm).toBeLessThanOrEqual(1230);
+    // Seven against five, from two directions: the attacker wins in ~65 rounds
+    // (ww7 lane F: a hit takes 0.4 of the spec's org, which said ~20; ww84:
+    // foot defend at 85 % org damage).
     const seven = predictBattle(side(INF72, 7), side(POL9, 5), ctx(2));
-    expect(seven.ratioPm).toBeGreaterThanOrEqual(2300);
-    expect(seven.ratioPm).toBeLessThanOrEqual(2700);
-    expect(seven.rounds).toBeGreaterThanOrEqual(50);
-    expect(seven.rounds).toBeLessThanOrEqual(53);
+    expect(seven.ratioPm).toBeGreaterThanOrEqual(1800);
+    expect(seven.ratioPm).toBeLessThanOrEqual(2300);
+    expect(seven.rounds).toBeGreaterThanOrEqual(62);
+    expect(seven.rounds).toBeLessThanOrEqual(68);
     expect(predictBattle(emptySide(), side(POL9, 1), ctx(1)).ratioPm).toBe(0);
     expect(predictBattle(side(POL9, 1), emptySide(), ctx(1)).ratioPm).toBe(
       1_000_000,
@@ -446,15 +445,14 @@ describe("movement, supply and weather (P2 spec §7, §10, §11)", () => {
   });
 
   test("movement (spec §7.2)", () => {
-    expect(moveNeed(edge(180), "plains")).toBe(180_000);
-    const step = moveStep(400, 1, "clear", 1000, 0);
+    expect(moveNeed(edge(180))).toBe(180_000);
+    const step = moveStep(400, 1, 1000, 0);
     expect(step).toBe(7316);
     expect(edgeTicks(180_000, step)).toBe(25);
-    expect(moveStep(400, 3, "clear", 1000, 0)).toBe(8047);
+    expect(moveStep(400, 3, 1000, 0)).toBe(8047);
     expect(edgeTicks(180_000, 8047)).toBe(23);
-    expect(moveNeed(edge(180, 2), "hills")).toBe(329_400);
-    expect(moveStep(400, 1, "mud", 1000, 0)).toBe(3658);
-    expect(moveStep(400, 1, "clear", 0, 0)).toBe(3658);
+    expect(moveNeed(edge(180, 2))).toBe(270_000);
+    expect(moveStep(400, 1, 0, 0)).toBe(3658);
     expect(railStep(0)).toBe(91_450);
     expect(edgeTicks(600_000, railStep(0))).toBe(7);
     expect(railStep(20)).toBe(109_740);
@@ -466,9 +464,9 @@ describe("movement, supply and weather (P2 spec §7, §10, §11)", () => {
     expect(hubCapacityMilli(HUB_CAPITAL, 3)).toBe(65_000);
     expect(hubCapacityMilli(HUB_CITY, 3)).toBe(32_000);
     expect(hubCapacityMilli(HUB_SEA, 3)).toBe(SEA_HUB_MILLI);
-    expect(supplyEdgeCost(300, 3, 3, "plains", 5)).toBe(6000);
+    expect(supplyEdgeCost(300, 3, 3, 5)).toBe(6000);
     // A road: 300 km × 100% / (100 + 10 × 1), Task 11's doubled reach.
-    expect(supplyEdgeCost(300, 0, 3, "plains", 1)).toBe(27_272);
+    expect(supplyEdgeCost(300, 0, 3, 1)).toBe(27_272);
     expect(supplyFrom(65_000, 6000)).toBe(58_500);
     expect(supplyFrom(65_000, 60_000)).toBe(0);
     expect(supplyRatePm(8500, 17_000)).toBe(500);

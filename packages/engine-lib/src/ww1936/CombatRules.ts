@@ -13,21 +13,22 @@ import {
   TPL_AMPHIBIOUS,
   TPL_ARMOR_ANY,
   TPL_ARMOR_MAJOR,
+  TPL_BARE_ARMOR,
   TPL_CAVALRY_MAJOR,
   TPL_ENGINEER,
   TPL_FLAIL,
   TPL_FLAME,
+  TPL_FOOT_MAJOR,
+  TPL_HEAVY_LEAD,
   TPL_INFANTRY_DIV,
   TPL_MARINE_ANY,
   TPL_MARINE_MAJOR,
   TPL_MOTOR_ANY,
-  TPL_MOUNTAIN_ANY,
   TPL_MOUNTAIN_MAJOR,
   TPL_PARA_ANY,
   TPL_RECON,
   TPL_TD_DEFEND,
   traitBit,
-  Weather,
   WW_ROUND_HOUR_MILLI,
 } from "@openfront/engine-api/ww1936/LandTypes";
 import type {
@@ -40,7 +41,6 @@ import {
   RANGE_LOW_DEF_ATK_BP,
   RANGE_LUCK_BP,
 } from "./TacticRules";
-import { WEATHER } from "./Weather";
 import { TechTotals } from "./WwTechs";
 
 /** A P6 stat of a TechTotals that is the country's WwStats (0 when absent: a neutral tech). */
@@ -51,74 +51,21 @@ function stat(t: TechTotals, k: WwStatKey): number {
 export interface TerrainDef {
   width: number;
   perDirection: number;
-  /** Attacker's attack, bp (≤ 0). */
-  attackBp: number;
-  /** Extra distance to enter, % (spec §7.2). */
-  movePct: number;
-  /** Supply cost of a road edge into it, % (spec §11.2). */
-  supplyPct: number;
 }
 
-// Spec §7.2, §11.2. ww67 (owner): terrain must not call for its own army. One
-// width everywhere, the attack cut stops at −10 %, a road's supply cost at
-// 130 %; movement keeps its old numbers (it costs time, not a different army).
+// Spec §7.2. ww84 (owner): terrain decides nothing. No attack cut, no extra
+// distance, no supply cost; every region has the one width (rivers, straits
+// and forts are what is left of the ground).
+const ONE_WIDTH: TerrainDef = { width: 90, perDirection: 45 };
 export const TERRAIN: Readonly<Record<LandTerrain, TerrainDef>> = {
-  plains: {
-    width: 90,
-    perDirection: 45,
-    attackBp: 0,
-    movePct: 0,
-    supplyPct: 100,
-  },
-  desert: {
-    width: 90,
-    perDirection: 45,
-    attackBp: 0,
-    movePct: 10,
-    supplyPct: 100,
-  },
-  forest: {
-    width: 90,
-    perDirection: 45,
-    attackBp: -500,
-    movePct: 25,
-    supplyPct: 120,
-  },
-  hills: {
-    width: 90,
-    perDirection: 45,
-    attackBp: -500,
-    movePct: 33,
-    supplyPct: 120,
-  },
-  mountain: {
-    width: 90,
-    perDirection: 45,
-    attackBp: -1000,
-    movePct: 100,
-    supplyPct: 130,
-  },
-  marsh: {
-    width: 90,
-    perDirection: 45,
-    attackBp: -1000,
-    movePct: 66,
-    supplyPct: 130,
-  },
-  jungle: {
-    width: 90,
-    perDirection: 45,
-    attackBp: -1000,
-    movePct: 66,
-    supplyPct: 130,
-  },
-  urban: {
-    width: 90,
-    perDirection: 45,
-    attackBp: -1000,
-    movePct: 10,
-    supplyPct: 120,
-  },
+  plains: ONE_WIDTH,
+  desert: ONE_WIDTH,
+  forest: ONE_WIDTH,
+  hills: ONE_WIDTH,
+  mountain: ONE_WIDTH,
+  marsh: ONE_WIDTH,
+  jungle: ONE_WIDTH,
+  urban: ONE_WIDTH,
 };
 
 /**
@@ -147,10 +94,17 @@ export const FORT_ATTACK_BP = -1700;
 export const ENTRENCH_DEF_BP = 500;
 /** ww7: defence per position level (Positions.ts), bp. */
 export const POSITION_DEF_BP = 500;
+/** ww84: marines recover org at this percent of the normal rate for this many days after a landing. */
+export const MARINE_LANDED_RECOVERY_PCT = 150;
+export const MARINE_LANDED_DAYS = 3;
+
+/** ww84: assault infantry's breakthrough when it attacks, bp. */
+export const ASSAULT_BREAK_BP = 2000;
+/** ww84: the share of the river and fort penalties assault infantry pays, percent. */
+export const ASSAULT_OBSTACLE_PCT = 85;
+
 /** ww7: a defended region with a fort of this level or more halves the extra width of the attack directions. */
 export const FORT_HALF_WIDTH_FROM = 3;
-/** The share of org damage the defenders of an urban region take, percent (street fighting; ww67: −5 %, was −15 %). */
-export const URBAN_DEFENDER_ORG_PCT = 95;
 
 /**
  * Spec §9.2: base width plus one step for every direction after the first
@@ -167,13 +121,6 @@ export function combatWidth(
   return (
     t.width + (fort >= FORT_HALF_WIDTH_FROM ? Math.floor(extra / 2) : extra)
   );
-}
-
-/** ww7: org damage (milli) a defender of a `land` region takes; urban −5 %. */
-export function defenderOrgDamage(land: LandTerrain, orgMilli: number): number {
-  return land === "urban"
-    ? Math.floor((orgMilli * URBAN_DEFENDER_ORG_PCT) / 100)
-    : orgMilli;
 }
 
 export function applyBp(x: number, bp: number): number {
@@ -218,30 +165,163 @@ export function roundHits(attack: number, block: number, prepBp = 0): number {
 export const ORG_PER_HIT_E3 = 52;
 export const HP_PER_HIT_E3 = 36;
 
-/** The most armour takes off the damage, ‰ (spec §9.3-5's halving). */
-export const ARMOR_PROTECT_MAX_PM = 500;
-/** ww67: from this hardness, ‰, a division is armoured enough for the full protection. */
-export const ARMOR_FULL_HARDNESS_PM = 500;
+/** ww84: the org damage a foot division takes defending, and tanks with no infantry, %. */
+export const FOOT_DEFENCE_ORG_PCT = 85;
+export const BARE_ARMOR_ORG_PCT = 125;
+
+/** ww84: what a defender with `flags` takes of the org damage dealt to it, %. */
+export function defenderOrgPct(flags: number): number {
+  return has(flags, TPL_BARE_ARMOR)
+    ? BARE_ARMOR_ORG_PCT
+    : has(flags, TPL_FOOT_MAJOR)
+      ? FOOT_DEFENCE_ORG_PCT
+      : 100;
+}
+
+/** ww84: what a trench takes off a tank's protection, ‰ a level, at most. */
+export const TRENCH_ANTI_TANK_PM = 50;
+export const TRENCH_ANTI_TANK_MAX_PM = 250;
+
+/** ww84: rounds of the next band that armour running through ignores trenches, and what it costs the enemy's reserves, points. */
+export const EXPLOIT_ROUNDS = 4;
+export const EXPLOIT_RESERVE_PP = -20;
+/** ww84: the org a division needs left to run through, percent of its maximum. */
+export const EXPLOIT_ORG_PCT = 50;
+/** ww84: its pace into a taken region, percent; light tanks' more. */
+export const EXPLOIT_ADVANCE_PCT = 200;
+export const EXPLOIT_ADVANCE_LIGHT_PCT = 250;
+
+/** ww84: the rounds of a band its attackers' guns open with. */
+export const PREP_FIRE_ROUNDS = 8;
+/** ww84: what heavy tanks take off the enemy's prepared ground and forts, ‰ and percent kept. */
+export const HEAVY_PREP_CUT_PM = 250;
+export const HEAVY_FORT_PCT = 75;
+
+/** ww84: `keepPm` of the prepared ground, less the share a barrage of `fireBp` takes. */
+function keepAfterFire(keepPm: number, fireBp: number): number {
+  return Math.floor((keepPm * (10_000 - fireBp)) / 10_000);
+}
 
 /**
- * Spec §9.3-5, the share of the damage armour stops, ‰ (0..500). ww67: not a
- * switch at armour > pierce. It grows with the target's tank share, full from
- * hardness 500 ‰, so one tank battalion doesn't armour an infantry division;
- * and it fades from full, at pierce two thirds of the armour, to nothing, at
- * pierce equal to it, so a few guns chip at it rather than end it.
+ * ww84: the share of a defender's prepared ground, ‰, that counts against a
+ * division with `flags` whose barrage is at `fireBp` this round.
  */
-export function armorProtectPm(
-  armor: number,
-  hardnessPm: number,
-  pierce: number,
-): number {
-  if (armor <= 0 || pierce >= armor) return 0;
-  const share = Math.min(
-    1000,
-    Math.floor((Math.max(0, hardnessPm) * 1000) / ARMOR_FULL_HARDNESS_PM),
+export function prepKeepPm(flags: number, fireBp: number): number {
+  return keepAfterFire(
+    has(flags, TPL_HEAVY_LEAD) ? 1000 - HEAVY_PREP_CUT_PM : 1000,
+    fireBp,
   );
-  const fade = Math.min(1000, Math.floor(((armor - pierce) * 3000) / armor));
-  return Math.floor((ARMOR_PROTECT_MAX_PM * share * fade) / 1_000_000);
+}
+
+/** ww84: entrenched foot get at tanks close up: ‰ off the protection of what they hit. */
+export function trenchCutPm(flags: number, levels: number): number {
+  return has(flags, TPL_FOOT_MAJOR)
+    ? Math.min(TRENCH_ANTI_TANK_MAX_PM, TRENCH_ANTI_TANK_PM * levels)
+    : 0;
+}
+
+/** ww84: what tanks do to defenders with nothing to stop them, extra org damage, %. */
+export const TANK_FEAR_PCT = 25;
+
+/** The side's best pierce with something left to fire it. */
+function bestPierce(
+  pierce: readonly number[],
+  hard: readonly number[],
+): number {
+  let best = 0;
+  for (let i = 0; i < hard.length; i++) {
+    if (hard[i] > 0 && pierce[i] > best) best = pierce[i];
+  }
+  return best;
+}
+
+/** ww84: the points anti-tank research takes off the tank fear penalty. */
+export function tankFearCutPp(tech: TechTotals): number {
+  return stat(tech, "tankFearCutPp");
+}
+
+/**
+ * ww84: tank fear, extra org damage % a defender takes from an armour-major
+ * attacker when its best pierce is at most a third of the attacker's armour,
+ * less `cutPp` (anti-tank research).
+ */
+export function tankFearPct(
+  bandPierce: readonly number[],
+  bandHard: readonly number[],
+  attackerArmor: number,
+  cutPp: number,
+): number {
+  if (
+    attackerArmor <= 0 ||
+    bestPierce(bandPierce, bandHard) * 3 > attackerArmor
+  ) {
+    return 0;
+  }
+  return Math.max(0, TANK_FEAR_PCT - cutPp);
+}
+
+/** ww84: what armour stops of the hard part of a hit, ‰, with pierce at or below a third of it. */
+export const ARMOR_PROTECT_MAX_PM = 850;
+/** ww84: and at two thirds of it; nothing at pierce equal to it. */
+export const ARMOR_PROTECT_MID_PM = 500;
+
+/**
+ * Spec §9.3-5, ww84: the share of a hard hit armour stops, ‰: 850 up to pierce
+ * a third of the armour, falling in a straight line to 500 at two thirds and to
+ * nothing at pierce equal to it. How armoured the target is shows elsewhere:
+ * the soft part of a hit goes through (hitProtectPm).
+ */
+export function armorProtectPm(armor: number, pierce: number): number {
+  if (armor <= 0 || pierce >= armor) return 0;
+  const p3 = pierce * 3;
+  if (p3 <= armor) return ARMOR_PROTECT_MAX_PM;
+  return p3 <= 2 * armor
+    ? ARMOR_PROTECT_MAX_PM -
+        Math.floor(
+          ((ARMOR_PROTECT_MAX_PM - ARMOR_PROTECT_MID_PM) * (p3 - armor)) /
+            armor,
+        )
+    : Math.floor((ARMOR_PROTECT_MID_PM * (3 * armor - p3)) / armor);
+}
+
+/**
+ * ww84: what armour stops of a division's hard attack, ‰: each pierce band
+ * against the armour on its own, weighted by its hard attack. `cutPm` comes
+ * off every band's protection.
+ */
+export function bandProtectPm(
+  pierce: readonly number[],
+  hard: readonly number[],
+  armor: number,
+  cutPm = 0,
+): number {
+  if (armor <= 0) return 0;
+  let sum = 0;
+  let all = 0;
+  for (let i = 0; i < hard.length; i++) {
+    const h = hard[i];
+    if (h <= 0) continue;
+    all += h;
+    sum += h * Math.max(0, armorProtectPm(armor, pierce[i]) - cutPm);
+  }
+  return all === 0 ? 0 : Math.floor(sum / all);
+}
+
+/**
+ * ww84: the share of a whole hit armour stops, ‰: a hit is split as the attack
+ * value is (attackValue), soft goes through, the hard part meets the armour.
+ */
+export function hitProtectPm(
+  soft: number,
+  hard: number,
+  targetHardnessPm: number,
+  hardProtectPm: number,
+): number {
+  if (hardProtectPm <= 0) return 0;
+  const h = Math.max(0, Math.min(1000, targetHardnessPm));
+  const hardPart = hard * h;
+  const all = soft * (1000 - h) + hardPart;
+  return all <= 0 ? 0 : Math.floor((hardProtectPm * hardPart) / all);
 }
 
 /**
@@ -317,9 +397,6 @@ export interface ModInput {
   exp: number;
   /** The army's readiness when the division fights in or from its front region; else 0. */
   planBp: number;
-  /** The battle region's terrain and weather. */
-  land: LandTerrain;
-  weather: Weather;
   /** Attacker only: the edge it attacks over (0 when dropped in), the region's fort level. */
   river: 0 | 1 | 2;
   strait: boolean;
@@ -390,9 +467,9 @@ const has = (mask: number, bit: number) => (mask & bit) !== 0;
 const TB = (t: Parameters<typeof traitBit>[0]) => traitBit(t);
 
 /**
- * Spec §9.4 (and §4.1 terrain specialities, §4.2 companies, §6.2 traits,
- * §10 weather, §11.5 encirclement): a division's attack and defence
- * modifiers in one battle. "defense" multiplies its block value (defence
+ * Spec §9.4 (and §4.2 companies, §6.2 traits, §11.5 encirclement): a
+ * division's attack and defence modifiers in one battle. ww84: the ground and
+ * the weather are not among them. "defense" multiplies its block value (defence
  * when it defends, breakthrough when it attacks).
  */
 export function divisionMods(i: ModInput): ModResult {
@@ -403,7 +480,8 @@ export function divisionMods(i: ModInput): ModResult {
   const push = (l: ModLine[], id: string, bp: number) => {
     if (bp !== 0) l.push({ id, bp });
   };
-  const hillsOrMountain = i.land === "hills" || i.land === "mountain";
+  // ww84: assault infantry pays a sixth less for rivers and forts.
+  const assault = has(i.flags, TPL_MOUNTAIN_MAJOR) ? ASSAULT_OBSTACLE_PCT : 100;
   // Attack
   push(aAdd, "general", i.genAtt * 500);
   let trait = 0;
@@ -420,13 +498,7 @@ export function divisionMods(i: ModInput): ModResult {
     trait += 1000;
   }
   if (has(i.traits, TB("offensive_doctrine"))) trait += 500;
-  if (has(i.traits, TB("desert_fox")) && i.land === "desert") trait += 1000;
-  if (has(i.traits, TB("mountaineer")) && hillsOrMountain) trait += 1000;
   // P6 (spec §4.2): the new general traits.
-  const forest = i.land === "forest" || i.land === "jungle";
-  if (has(i.traits, TB("forest_expert")) && forest) trait += 1000;
-  if (has(i.traits, TB("urban_expert")) && i.land === "urban") trait += 1000;
-  if (has(i.traits, TB("swamp_expert")) && i.land === "marsh") trait += 1000;
   if (has(i.traits, TB("infantry_expert")) && has(i.flags, TPL_INFANTRY_DIV)) {
     trait += 1000;
   }
@@ -449,12 +521,7 @@ export function divisionMods(i: ModInput): ModResult {
   push(aAdd, "field_marshal", i.fmAtt * 250);
   push(aAdd, "fm_trait", fmTraitBp(i.fmTraits, "attackBp"));
   push(aAdd, "command", i.cmdAttBp);
-  push(
-    aAdd,
-    "doctrine",
-    i.tech.attackPct * 100 +
-      (i.land === "desert" ? i.tech.desertAttackPct * 100 : 0),
-  );
+  push(aAdd, "doctrine", i.tech.attackPct * 100);
   push(aAdd, "exp", expBp(i.exp));
   // P6: the enemy's recon and trickster cut the readiness (never below 0);
   // the field marshal's part above the country's cap is its own line.
@@ -466,30 +533,7 @@ export function divisionMods(i: ModInput): ModResult {
   const planBp = planTotal - fmPlanBp;
   push(aAdd, "plan", planBp);
   push(aAdd, "fm_plan", fmPlanBp);
-  push(
-    aAdd,
-    "recon",
-    has(i.flags, TPL_RECON) ? 500 + 5 * stat(i.tech, "reconPct") : 0,
-  );
-  push(
-    aAdd,
-    "mountain",
-    has(i.flags, TPL_MOUNTAIN_MAJOR) && hillsOrMountain ? 1000 : 0,
-  );
-  push(
-    aAdd,
-    "marine",
-    has(i.flags, TPL_MARINE_MAJOR) && i.land === "marsh" ? 1500 : 0,
-  );
   if (i.attacking) {
-    if (has(i.flags, TPL_ARMOR_MAJOR)) {
-      if (i.land === "plains" || i.land === "desert") {
-        push(aAdd, "armor_terrain", 500);
-      } else {
-        push(aCut, "armor_terrain", -500);
-      }
-    }
-    push(aCut, "terrain", TERRAIN[i.land].attackBp);
     // P6 (spec §4.2, §5.2.2, §21.2): engineer officers, amphibious and
     // flail tanks, the river and fort penalty cuts.
     const engOfficer = has(i.traits, TB("engineer_officer")) ? 85 : 100;
@@ -504,10 +548,13 @@ export function divisionMods(i: ModInput): ModResult {
         "river",
         cutBy(
           cutBy(
-            halve(RIVER_ATTACK_BP[i.river], n),
-            100 - stat(i.tech, "riverPenaltyCutPct"),
+            cutBy(
+              halve(RIVER_ATTACK_BP[i.river], n),
+              100 - stat(i.tech, "riverPenaltyCutPct"),
+            ),
+            engOfficer,
           ),
-          engOfficer,
+          assault,
         ),
       );
     }
@@ -525,22 +572,13 @@ export function divisionMods(i: ModInput): ModResult {
           100,
       );
       if (has(i.designFlags, TPL_FLAIL)) f = cutBy(f, 75);
+      if (has(i.flags, TPL_HEAVY_LEAD)) f = cutBy(f, HEAVY_FORT_PCT);
       f = cutBy(f, 100 - stat(i.tech, "fortPenaltyCutPct"));
-      push(aCut, "fort", cutBy(f, engOfficer));
+      push(aCut, "fort", cutBy(cutBy(f, engOfficer), assault));
     }
-    if (has(i.designFlags, TPL_FLAME) && (i.land === "urban" || fort > 0)) {
+    if (has(i.designFlags, TPL_FLAME) && fort > 0) {
       push(aAdd, "flame", 1000);
     }
-    let w = WEATHER[i.weather].attackBp;
-    if (i.weather === "snow" || i.weather === "frozen") {
-      if (has(i.traits, TB("winter_specialist"))) w = halve(w, 1);
-      if (i.weather === "snow" && has(i.flags, TPL_MOUNTAIN_ANY)) {
-        w = halve(w, 1);
-      }
-      w = -Math.floor((-w * Math.max(0, 100 - i.tech.winterPenaltyPct)) / 100);
-    }
-    if (i.weather === "heat" && has(i.traits, TB("desert_fox"))) w = 0;
-    push(aCut, "weather", w);
   }
   // P6 (spec §21.2, review L2): excessWidthCutPct shrinks the excess-width penalty.
   push(
@@ -572,13 +610,6 @@ export function divisionMods(i: ModInput): ModResult {
   }
   if (has(i.traits, TB("defensive_doctrine"))) dTrait += 1000;
   // P6 (spec §4.2).
-  if (
-    has(i.traits, TB("forest_expert")) &&
-    (i.land === "forest" || i.land === "jungle")
-  ) {
-    dTrait += 500;
-  }
-  if (has(i.traits, TB("urban_expert")) && i.land === "urban") dTrait += 1000;
   if (has(i.traits, TB("infantry_expert")) && has(i.flags, TPL_INFANTRY_DIV)) {
     dTrait += 1000;
   }
@@ -601,13 +632,14 @@ export function divisionMods(i: ModInput): ModResult {
       ? i.tech.mechBreakPct
       : 0;
     push(dAdd, "doctrine", (i.tech.breakthroughPct + mech) * 100);
-  } else {
+    // ww84: assault infantry breaks through a fifth harder.
     push(
       dAdd,
-      "doctrine",
-      i.tech.defensePct * 100 +
-        (i.land === "forest" ? i.tech.forestDefensePct * 100 : 0),
+      "mountain",
+      has(i.flags, TPL_MOUNTAIN_MAJOR) ? ASSAULT_BREAK_BP : 0,
     );
+  } else {
+    push(dAdd, "doctrine", i.tech.defensePct * 100);
     push(dAdd, "entrench", i.entrench * ENTRENCH_DEF_BP);
     push(dAdd, "position", (i.posLevel ?? 0) * POSITION_DEF_BP);
     // P6 (spec §21.2): the fort's defence per level (its own region's fort).
@@ -616,11 +648,6 @@ export function divisionMods(i: ModInput): ModResult {
   push(dAdd, "exp", expBp(i.exp));
   push(dAdd, "plan", planBp);
   push(dAdd, "fm_plan", fmPlanBp);
-  push(
-    dAdd,
-    "recon",
-    has(i.flags, TPL_RECON) ? 500 + 5 * stat(i.tech, "reconPct") : 0,
-  );
   // P6 (spec §21.2): engineerMulPct scales the engineers' line.
   push(
     dAdd,
@@ -630,11 +657,6 @@ export function divisionMods(i: ModInput): ModResult {
           (500 * Math.max(0, 100 + stat(i.tech, "engineerMulPct"))) / 100,
         )
       : 0,
-  );
-  push(
-    dAdd,
-    "mountain",
-    has(i.flags, TPL_MOUNTAIN_MAJOR) && hillsOrMountain ? 500 : 0,
   );
   push(dCut, "supply", supplyCut);
   push(dCut, "encircled", i.encircled ? -5000 : 0);
@@ -659,6 +681,7 @@ export function divisionMods(i: ModInput): ModResult {
       attackBp: combineMods(sum(aAdd), sum(aCut)),
       defenseBp: combineMods(sum(dAdd), sum(dCut)),
       prepBp,
+      defCutMulBp: combineMods([], sum(dCut)),
     },
     attackLines: [...aAdd, ...aCut],
     defenseLines: [...dAdd, ...dCut],
@@ -690,9 +713,13 @@ export function planMaxBp(tech: TechTotals): number {
   return 3000 + tech.planMaxBp;
 }
 
-/** Entrenchment cap (spec §9.4): 5, +5 engineers, +2 battleplan_2 (tech.entrenchMax). */
+/**
+ * Entrenchment cap (spec §9.4): 5, +5 engineers, +2 battleplan_2
+ * (tech.entrenchMax). ww84: tanks with no infantry dig in half as deep.
+ */
 export function entrenchMax(flags: number, tech: TechTotals): number {
-  return 5 + (has(flags, TPL_ENGINEER) ? 5 : 0) + tech.entrenchMax;
+  const max = 5 + (has(flags, TPL_ENGINEER) ? 5 : 0) + tech.entrenchMax;
+  return has(flags, TPL_BARE_ARMOR) ? Math.floor(max / 2) : max;
 }
 
 /**
@@ -706,6 +733,61 @@ export function casCutHits(
 ): number {
   const h = Math.floor((hits * (100 - Math.min(60, targetAirAtk))) / 100);
   return Math.floor((h * Math.max(0, 100 - 5 * aaLevel)) / 100);
+}
+
+/**
+ * ww84: what armour stops of close air support, ‰: half what it stops of a
+ * shot with no pierce to speak of, on the armoured share of the target.
+ */
+export function casProtectPm(armor: number, hardnessPm: number): number {
+  const h = Math.max(0, Math.min(1000, hardnessPm));
+  return Math.floor((armorProtectPm(armor, 0) * h) / 2000);
+}
+
+/** ww84: what a side under close air support loses of its reserves' chance, points. */
+export const CAS_RESERVE_PP = -10;
+
+/** ww84: hitProtectPm from side sums: what `to`'s armour stops of `from`'s hits. */
+function sideProtectPm(
+  from: SideSum,
+  to: SideSum,
+  attacking: boolean,
+  cutPm = 0,
+): number {
+  if (to.armor <= 0) return 0;
+  const pierce = attacking ? from.bandPierceAtk : from.bandPierce;
+  const hard = from.bandHard;
+  return hitProtectPm(
+    from.soft,
+    from.hard,
+    to.hardnessPm,
+    pierce === undefined || hard === undefined
+      ? Math.max(0, armorProtectPm(to.armor, from.pierce) - cutPm)
+      : bandProtectPm(pierce, hard, to.armor, cutPm),
+  );
+}
+
+/** ww84: a round's org damage to a defending side, by what it is made of and the attackers' tanks. */
+function sideDefOrg(
+  org: number,
+  att: SideSum,
+  def: SideSum,
+  ctx: BattleCtx,
+): number {
+  const fear =
+    def.bandPierce === undefined || def.bandHard === undefined
+      ? 0
+      : Math.floor(
+          (tankFearPct(
+            def.bandPierce,
+            def.bandHard,
+            att.armor,
+            ctx.tankFearCutPp ?? 0,
+          ) *
+            (att.armorMajorPm ?? 0)) /
+            1000,
+        );
+  return Math.floor((org * ((def.defOrgPct ?? 100) + fear)) / 100);
 }
 
 /**
@@ -739,7 +821,6 @@ export function predictBattle(
     ),
     ctx.attackerAttackBp,
   );
-  const dD = applyBp(per(def.def, def.divisions), ctx.defenderBlockBp);
   const aD = applyBp(
     attackValue(
       per(def.soft, def.divisions),
@@ -749,30 +830,96 @@ export function predictBattle(
     ctx.defenderAttackBp,
   );
   const dA = applyBp(per(att.brk, att.divisions), ctx.attackerBlockBp);
-  // ww7: the defenders of an urban region take less org damage.
-  const toDef = defenderOrgDamage(
-    ctx.land,
-    roundDamage(
-      roundHits(aA, dD, ctx.defenderPrepBp ?? 0),
-      armorProtectPm(def.armor, def.hardnessPm, att.pierce),
-    ).orgMilli,
+  const prepBp = ctx.defenderPrepBp ?? 0;
+  // Only the foot on the defending side reach the tanks from a trench.
+  const trench = Math.floor(
+    (Math.min(
+      TRENCH_ANTI_TANK_MAX_PM,
+      TRENCH_ANTI_TANK_PM * Math.floor(prepBp / POSITION_DEF_BP),
+    ) *
+      (def.footPm ?? 0)) /
+      1000,
   );
   const toAtt = roundDamage(
     roundHits(aD, dA),
-    armorProtectPm(att.armor, att.hardnessPm, def.pierce),
+    sideProtectPm(def, att, false, trench),
   ).orgMilli;
   // ww8: close air support, a round's hits on one division with no block value.
   const casDef = ctx.casAttCenti ?? 0;
   const casAtt = ctx.casDefCenti ?? 0;
-  const dmgDef =
-    Math.floor((toDef * lineA) / 1000) +
-    (casDef > 0
-      ? defenderOrgDamage(ctx.land, roundDamage(casDef).orgMilli)
-      : 0);
+  const casOrg =
+    casDef > 0
+      ? Math.floor(
+          (roundDamage(casDef, casProtectPm(def.armor, def.hardnessPm))
+            .orgMilli *
+            (def.defOrgPct ?? 100)) /
+            100,
+        )
+      : 0;
+  // A round's org off the defenders with `fireBp` of barrage and `keepPm` of
+  // their prepared ground left.
+  const perDef = per(def.def, def.divisions);
+  const cutMul = ctx.defenderCutMulBp ?? 10_000;
+  const roundOnDef = (fireBp: number, keepPm: number): number => {
+    const prep = Math.floor((prepBp * keepPm) / 1000);
+    const block =
+      ctx.defenderBlockBp - Math.floor(((prepBp - prep) * cutMul) / 10_000);
+    const toDef = sideDefOrg(
+      roundDamage(
+        roundHits(
+          fireBp > 0 ? applyBp(aA, 10_000 + fireBp) : aA,
+          applyBp(perDef, block),
+          prep,
+        ),
+        sideProtectPm(att, def, true),
+      ).orgMilli,
+      att,
+      def,
+      ctx,
+    );
+    return Math.floor((toDef * lineA) / 1000) + casOrg;
+  };
+  const heavyKeep =
+    1000 - Math.floor((HEAVY_PREP_CUT_PM * (att.heavyPm ?? 0)) / 1000);
+  const plainRound = roundOnDef(0, heavyKeep);
+  const fire = att.prepFireBp ?? 0;
+  const fireRounds = fire > 0 ? (ctx.prepFireRounds ?? PREP_FIRE_ROUNDS) : 0;
+  const exploitRounds = ctx.exploitRounds ?? 0;
+  let rounds: number;
+  let dmgDef = plainRound;
+  if (fireRounds === 0 && exploitRounds === 0) {
+    rounds = dmgDef <= 0 ? 999_999 : Math.ceil(def.orgMilli / dmgDef);
+  } else {
+    // ww84: the first rounds as they will go, then the plain ones.
+    let org = def.orgMilli;
+    let n = 0;
+    const stage = (length: number, dmg: number) => {
+      if (org <= 0 || length <= 0) return;
+      if (dmg * length >= org) {
+        n += Math.ceil(org / Math.max(1, dmg));
+        org = 0;
+      } else {
+        n += length;
+        org -= dmg * length;
+      }
+    };
+    const both = Math.min(fireRounds, exploitRounds);
+    stage(both, roundOnDef(fire, 0));
+    stage(exploitRounds - both, roundOnDef(0, 0));
+    stage(fireRounds - both, roundOnDef(fire, keepAfterFire(heavyKeep, fire)));
+    rounds =
+      org <= 0
+        ? n
+        : plainRound <= 0
+          ? 999_999
+          : n + Math.ceil(org / plainRound);
+    dmgDef = rounds >= 999_999 ? 0 : Math.floor(def.orgMilli / rounds);
+  }
   const dmgAtt =
     Math.floor((toAtt * lineD) / 1000) +
-    (casAtt > 0 ? roundDamage(casAtt).orgMilli : 0);
-  const rounds = dmgDef <= 0 ? 999_999 : Math.ceil(def.orgMilli / dmgDef);
+    (casAtt > 0
+      ? roundDamage(casAtt, casProtectPm(att.armor, att.hardnessPm)).orgMilli
+      : 0);
   const ratioPm =
     dmgAtt <= 0
       ? 1_000_000
@@ -864,10 +1011,11 @@ export function predictBattleRange(
   const low = predictBattle(att, def, {
     ...ctx,
     attackerAttackBp: scaleBp(ctx.attackerAttackBp, 10_000 - RANGE_LUCK_BP),
-    defenderAttackBp: scaleBp(
-      ctx.defenderAttackBp,
-      10_000 + RANGE_LOW_DEF_ATK_BP,
-    ),
+    // (Recon: the ambush the low bound assumes finds nobody.)
+    defenderAttackBp:
+      att.recon === true
+        ? ctx.defenderAttackBp
+        : scaleBp(ctx.defenderAttackBp, 10_000 + RANGE_LOW_DEF_ATK_BP),
   });
   const high = predictBattle(att, def, {
     ...ctx,
@@ -896,6 +1044,64 @@ export interface SideStats {
   pierce: number;
   hardnessPm: number;
   hpMilli: number;
+  bandPierce?: readonly number[];
+  bandPierceAtk?: readonly number[];
+  bandHard?: readonly number[];
+  /** TPL_* flags (absent: no division rule counts). */
+  flags?: number;
+  prepFireBp?: number;
+}
+
+/** ww84: the most pierce bands a side sum keeps; the rest join the band nearest in pierce. */
+const SIDE_BANDS_MAX = 8;
+
+/** ww84: `hard` hard attack at this pierce into a side's bands. */
+function addSideBand(
+  sum: SideSum,
+  pierce: number,
+  atk: number,
+  hard: number,
+): void {
+  const ps = (sum.bandPierce ??= []);
+  const as = (sum.bandPierceAtk ??= []);
+  const hs = (sum.bandHard ??= []);
+  let k = -1;
+  for (let i = 0; i < ps.length; i++) {
+    if (ps[i] === pierce && as[i] === atk) {
+      k = i;
+      break;
+    }
+  }
+  if (k < 0 && ps.length >= SIDE_BANDS_MAX) {
+    k = 0;
+    for (let i = 1; i < ps.length; i++) {
+      if (Math.abs(ps[i] - pierce) < Math.abs(ps[k] - pierce)) k = i;
+    }
+  }
+  if (k >= 0) {
+    hs[k] += hard;
+    return;
+  }
+  ps.push(pierce);
+  as.push(atk);
+  hs.push(hard);
+}
+
+/** ww84: every pierce band of `from` into `sum` (a screen joining two sides). */
+export function addSideBands(sum: SideSum, from: SideSum): void {
+  const ps = from.bandPierce;
+  const as = from.bandPierceAtk;
+  const hs = from.bandHard;
+  if (ps === undefined || as === undefined || hs === undefined) {
+    addSideBand(sum, from.pierce, from.pierce, from.hard);
+    return;
+  }
+  for (let i = 0; i < hs.length; i++) addSideBand(sum, ps[i], as[i], hs[i]);
+}
+
+/** `old` over width `w0` and `x` over width `w`, width-weighted (no closure: addToSide runs per division). */
+function byWidth(old: number, x: number, w0: number, w: number): number {
+  return w0 + w === 0 ? 0 : Math.floor((old * w0 + x * w) / (w0 + w));
 }
 
 /** Adds one division's numbers to a side sum (armour, pierce, hardness width-weighted). */
@@ -909,6 +1115,36 @@ export function addToSide(sum: SideSum, s: SideStats, orgMilli: number): void {
     w1 === 0 ? 0 : Math.floor((sum.pierce * w0 + s.pierce * sw) / w1);
   sum.hardnessPm =
     w1 === 0 ? 0 : Math.floor((sum.hardnessPm * w0 + s.hardnessPm * sw) / w1);
+  const fl = s.flags ?? 0;
+  sum.defOrgPct = byWidth(sum.defOrgPct ?? 100, defenderOrgPct(fl), w0, sw);
+  sum.footPm = byWidth(
+    sum.footPm ?? 0,
+    has(fl, TPL_FOOT_MAJOR) ? 1000 : 0,
+    w0,
+    sw,
+  );
+  sum.armorMajorPm = byWidth(
+    sum.armorMajorPm ?? 0,
+    has(fl, TPL_ARMOR_MAJOR) ? 1000 : 0,
+    w0,
+    sw,
+  );
+  sum.prepFireBp = byWidth(sum.prepFireBp ?? 0, s.prepFireBp ?? 0, w0, sw);
+  sum.heavyPm = byWidth(
+    sum.heavyPm ?? 0,
+    has(fl, TPL_HEAVY_LEAD) ? 1000 : 0,
+    w0,
+    sw,
+  );
+  if (has(fl, TPL_RECON)) sum.recon = true;
+  const hs = s.bandHard;
+  if (hs === undefined || s.bandPierce === undefined) {
+    addSideBand(sum, s.pierce, s.pierce, s.hard);
+  } else {
+    const ps = s.bandPierce;
+    const as = s.bandPierceAtk ?? ps;
+    for (let i = 0; i < hs.length; i++) addSideBand(sum, ps[i], as[i], hs[i]);
+  }
   sum.divisions++;
   sum.width = w1;
   sum.soft += s.soft;
@@ -932,5 +1168,8 @@ export function emptySide(): SideSum {
     hardnessPm: 0,
     orgMilli: 0,
     hpMilli: 0,
+    bandPierce: [],
+    bandPierceAtk: [],
+    bandHard: [],
   };
 }

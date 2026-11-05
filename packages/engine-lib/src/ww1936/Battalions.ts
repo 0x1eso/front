@@ -225,7 +225,8 @@ export const BATTALIONS: Readonly<Record<BattalionId, BattalionDef>> = {
       equip: [["artillery", 12]],
       hpMilli: 600,
       orgMilli: 0,
-      soft: 2500,
+      // ww84: 2000 (was 2500): the opening barrage is what guns are for now.
+      soft: 2000,
       hard: 200,
       def: 1000,
       brk: 600,
@@ -253,7 +254,7 @@ export const BATTALIONS: Readonly<Record<BattalionId, BattalionDef>> = {
       ],
       hpMilli: 600,
       orgMilli: 0,
-      soft: 2500,
+      soft: 2000,
       hard: 200,
       def: 1000,
       brk: 600,

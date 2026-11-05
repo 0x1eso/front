@@ -1,27 +1,9 @@
 // World War 1936 P2: weather v1 (P2 spec §10). Stateless: a region's
-// weather is a function of the day and its place, so the engine and every
-// screen roll the same.
+// weather is a function of the day and its place, so every screen rolls the
+// same. ww84 (owner): it is a picture on the map and nothing else; no battle,
+// march, supply line, plane or ship reads it.
 import { LandTerrain, Weather } from "@openfront/engine-api/ww1936/LandTypes";
 import { dateOfDay } from "./Calendar";
-
-export interface WeatherDef {
-  movePct: number;
-  attackBp: number;
-  /** Daily attrition, ‰ of men and equipment. */
-  attritionPm: number;
-  supplyPct: number;
-}
-
-// ww67 (owner): weather must not call for its own army. The attack cut stops
-// at −10 %, attrition at 0.1 % a day, supply at 90 %; speed keeps its numbers.
-export const WEATHER: Readonly<Record<Weather, WeatherDef>> = {
-  clear: { movePct: 100, attackBp: 0, attritionPm: 0, supplyPct: 100 },
-  rain: { movePct: 80, attackBp: -1000, attritionPm: 0, supplyPct: 90 },
-  mud: { movePct: 50, attackBp: -1000, attritionPm: 0, supplyPct: 90 },
-  snow: { movePct: 70, attackBp: -1000, attritionPm: 1, supplyPct: 90 },
-  frozen: { movePct: 60, attackBp: -1000, attritionPm: 1, supplyPct: 90 },
-  heat: { movePct: 90, attackBp: -1000, attritionPm: 1, supplyPct: 100 },
-};
 
 export type Climate =
   | "polar"

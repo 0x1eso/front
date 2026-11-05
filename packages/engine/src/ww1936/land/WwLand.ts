@@ -48,8 +48,6 @@ import {
   TemplateDef,
   TERRAIN_DAY_SLOTS,
   TrainingData,
-  Weather,
-  WEATHERS,
   WW_DEPLOY_MIN_FILL_PM,
   WW_MAX_ARMIES,
   WwLandData,
@@ -77,7 +75,6 @@ import {
   templateCounts,
   templateStats,
 } from "@openfront/engine-lib/ww1936/TemplateStats";
-import { weatherAt } from "@openfront/engine-lib/ww1936/Weather";
 import { techTotals } from "@openfront/engine-lib/ww1936/WwTechs";
 import { z } from "zod";
 import type { Game, Player } from "../../game/Game";
@@ -446,6 +443,10 @@ export interface Battle {
   capEq?: number[];
   /** P5: men each country killed in it, by smallID ascending ([country, men]). */
   dmgBy?: [number, number][];
+  /** ww84: defenders broken in this band by cavalry or armour running through: [division, rout loss %]. */
+  routBy?: [number, number][];
+  /** ww84: divisions running through from the band before; gone after EXPLOIT_ROUNDS rounds. */
+  exploit?: number[];
 }
 
 export const SPREAD_BATTLE = 0;
@@ -606,6 +607,7 @@ export const WwLandStateSchema = z.object({
   // ww7: region arrays, each written only when any entry is not 0.
   bandProg: zInts().optional(),
   bandTaker: zInts().optional(),
+  landedUntil: z.array(z.tuple([zInt(), zInt()])).optional(),
   /** The tick the next band of a region with no defenders left falls (lane B). */
   bandDue: zInts().optional(),
   posLevel: zInts().optional(),
@@ -662,6 +664,8 @@ export const WwLandStateSchema = z.object({
       phaseRound: zInt().optional(),
       capEq: zInts().optional(),
       dmgBy: z.array(z.tuple([zInt(), zInt()])).optional(),
+      routBy: z.array(z.tuple([zInt(), zInt()])).optional(),
+      exploit: zInts().optional(),
     }),
   ),
   spreads: z.array(
@@ -939,6 +943,8 @@ export class WwLand {
    */
   readonly bandProg: Uint8Array;
   readonly bandTaker: Uint16Array;
+  /** ww84: marines just ashore, division id to the last day of their faster recovery. */
+  readonly landedUntil = new Map<number, number>();
   /** The tick the next band falls in a region its taker walks through (no defenders left); 0: none. */
   readonly bandDue: Int32Array;
   /**
@@ -1108,6 +1114,9 @@ export class WwLand {
   }
 
   private dailyCommon(): void {
+    for (const [id, until] of this.landedUntil) {
+      if (until < this.day()) this.landedUntil.delete(id);
+    }
     if (this.divisions.compact()) this.regionRowsDirty = true;
     for (const cl of this.countries()) cl.casualtiesToday = 0;
     dailyBands(this);
@@ -1623,31 +1632,6 @@ export class WwLand {
   /** flagsOf with the owner's stats epoch from statsEpochs (this pass). */
   flagsAt(row: number, epoch: number): number {
     return this.rowOrgEntry(row, epoch) ? this.rowStats.flags[row] : 0;
-  }
-
-  /** Spec §10: `region`'s weather on `day` (weatherAt, kept by region for the last day read). */
-  weatherOn(region: number, day: number): Weather {
-    const sc = this.scenario;
-    let c = this.weatherCache;
-    if (c === null) {
-      const n = sc.maxRegionId() + 1;
-      c = { day: new Int32Array(n).fill(-0x80000000), w: new Uint8Array(n) };
-      this.weatherCache = c;
-    }
-    if (region >= 0 && region < c.day.length && c.day[region] === day) {
-      return WEATHERS[c.w[region]];
-    }
-    const w = weatherAt(
-      day,
-      sc.latC(region),
-      sc.landOf(region),
-      sc.wcell(region),
-    );
-    if (region >= 0 && region < c.day.length) {
-      c.day[region] = day;
-      c.w[region] = WEATHERS.indexOf(w);
-    }
-    return w;
   }
 
   /** The template's flags (TPL_*) of a division: they read only its template def. */
@@ -2803,6 +2787,17 @@ export class WwLand {
         mix(b.tacticAtt * 64 + b.tacticDef);
         mix(b.phaseRound);
       }
+      if (b.routBy !== undefined) for (const e of b.routBy) fold(e);
+      if (b.exploit !== undefined) fold(b.exploit);
+    }
+    // ww84: marines just ashore, only when any are.
+    if (this.landedUntil.size > 0) {
+      for (const [id, day] of [...this.landedUntil].sort(
+        (x, y) => x[0] - y[0],
+      )) {
+        mix(id);
+        mix(day);
+      }
     }
     for (const s of this.spreads.values()) {
       mix(s.by * 4 + s.kind);
@@ -2898,6 +2893,11 @@ export class WwLand {
       nextDivisionId: this.nextDivisionId,
       nextArmyId: this.nextArmyId,
       controlChanges: this.controlChanges,
+      ...(this.landedUntil.size === 0
+        ? {}
+        : {
+            landedUntil: [...this.landedUntil].sort((x, y) => x[0] - y[0]),
+          }),
       divisions: this.divisions.snapshot(),
       armies: [...this.armies.values()].map((a) => ({
         id: a.id,
@@ -2941,6 +2941,10 @@ export class WwLand {
         ...(b.dmgBy === undefined
           ? {}
           : { dmgBy: b.dmgBy.map(([c, m]): [number, number] => [c, m]) }),
+        ...(b.routBy === undefined
+          ? {}
+          : { routBy: b.routBy.map(([d, p]): [number, number] => [d, p]) }),
+        ...(b.exploit === undefined ? {} : { exploit: [...b.exploit] }),
       })),
       spreads: [...this.spreads.values()].map((s) => ({
         region: s.region,
@@ -3016,6 +3020,10 @@ export class WwLand {
     this.nextDivisionId = s.nextDivisionId;
     this.nextArmyId = s.nextArmyId;
     this.controlChanges = s.controlChanges;
+    this.landedUntil.clear();
+    for (const [id, day] of s.landedUntil ?? []) {
+      this.landedUntil.set(id, day);
+    }
     this.divisions.restore(s.divisions);
     this.armies.clear();
     for (const a of s.armies) {
@@ -3066,6 +3074,10 @@ export class WwLand {
         ...(b.dmgBy === undefined
           ? {}
           : { dmgBy: b.dmgBy.map(([c, m]): [number, number] => [c, m]) }),
+        ...(b.routBy === undefined
+          ? {}
+          : { routBy: b.routBy.map(([d, p]): [number, number] => [d, p]) }),
+        ...(b.exploit === undefined ? {} : { exploit: [...b.exploit] }),
       });
     }
     this.spreads.clear();

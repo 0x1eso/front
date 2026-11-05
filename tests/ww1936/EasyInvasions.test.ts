@@ -186,7 +186,7 @@ describe("easy naval invasions (human countries)", () => {
     // From where most of the force stands, at its slowest pace.
     const m = forceMarch(landingForce(divs, 3), () => true, 0);
     expect(m.from).toBe(REGION.london);
-    expect(m.walkStep).toBe(moveStep(300, 1, "clear", 1000, 0));
+    expect(m.walkStep).toBe(moveStep(300, 1, 1000, 0));
     expect(m.railOk).toBe(true);
     expect(forceMarch(divs, (r) => r === REGION.london, 0).railOk).toBe(false);
   });
