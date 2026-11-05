@@ -1,7 +1,11 @@
 // World War 1936 ww91 section 8: the plans wired into the AI's day, on the test
 // map (a human's Poland, Germany the AI). The rule functions are in AiPlans.test.
 import { GameMapSize, GameMapType } from "@openfront/engine-api/game/GameTypes";
-import { WW_DAY_SPLIT } from "@openfront/engine-api/ww1936/EconomyTypes";
+import {
+  EQUIP_KEYS,
+  WW_DAY_SPLIT,
+  type WwTechId,
+} from "@openfront/engine-api/ww1936/EconomyTypes";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import {
   AI_PLANS,
@@ -12,6 +16,7 @@ import { startDoctrinePick } from "@openfront/engine-lib/ww1936/DoctrineRules";
 import { createGameRunner, GameRunner } from "@openfront/engine/GameRunner";
 import { declareWar } from "@openfront/engine/ww1936/Diplomacy";
 import { aiLandTick } from "@openfront/engine/ww1936/land/AiLand";
+import { unlockTemplate } from "@openfront/engine/ww1936/politics/EffectsEcon";
 import {
   AI_UNIT_FOCUSES,
   aiPickFocus,
@@ -28,12 +33,22 @@ import {
   HUMAN,
   land,
   placeArmy,
+  pol,
   stepTo,
   takeRegion,
   warAfterPrep,
   wwGameStart,
   wwRunner,
 } from "./util";
+
+/** What a line's four companies ask of the tree. */
+const COMPANY_TECHS: readonly WwTechId[] = [
+  "artillery_1",
+  "support_eq_1",
+  "anti_tank_1",
+  "engineer_company",
+  "recon_company",
+];
 
 function finishDay(runner: GameRunner, d: number) {
   stepTo(runner, dayStartTick(d, WW_PREP_TICKS) + WW_DAY_SPLIT);
@@ -192,6 +207,63 @@ describe("the plan's small rules in the game", () => {
     expect(line.filter((b) => b === "infantry")).toHaveLength(8);
     expect(line.filter((b) => b === "artillery")).toHaveLength(2);
     expect(line).toHaveLength(10);
+  }, 60_000);
+
+  it("ww105: a major's line, and its focus line, take their guns as companies", async () => {
+    const runner = await wwRunner({ historicalAi: false }, []);
+    const g = runner.game;
+    const l = land(g);
+    const sun = byTag(g, "SUN").smallID();
+    const ce = l.econ.country(sun)!;
+    for (let k = 0; k < ce.stock.length; k++) ce.stock[k] += 1_000_000;
+    for (const t of COMPANY_TECHS) ce.researched.add(t);
+    const focus = unlockTemplate(pol(g), sun, "sun_rifle_ii")!;
+    for (let i = 0; i < 8; i++) aiLandTick(l, sun, sun);
+    for (const tpl of [l.country(sun)!.templates[0], focus]) {
+      const { battalions, support } = tpl.def;
+      expect(battalions.filter((b) => b === "infantry")).toHaveLength(6);
+      expect(battalions.filter((b) => b === "artillery")).toHaveLength(1);
+      expect(battalions).toHaveLength(7);
+      expect([...support].sort()).toEqual([
+        "engineer",
+        "recon",
+        "support_anti_tank",
+        "support_artillery",
+      ]);
+    }
+  }, 60_000);
+
+  it("ww105: a line out of company gear gives the company up and takes it back", async () => {
+    const runner = await wwRunner({ historicalAi: false }, []);
+    const g = runner.game;
+    const l = land(g);
+    const sun = byTag(g, "SUN").smallID();
+    const ce = l.econ.country(sun)!;
+    for (let k = 0; k < ce.stock.length; k++) ce.stock[k] += 1_000_000;
+    for (const t of COMPANY_TECHS) ce.researched.add(t);
+    for (let i = 0; i < 8; i++) aiLandTick(l, sun, sun);
+    const line = l.country(sun)!.templates[0];
+    expect(line.def.support).toContain("engineer");
+    const setGear = (n: number) => {
+      EQUIP_KEYS.forEach(([t], k) => {
+        if (t === "support_equipment") ce.stock[k] = n;
+      });
+    };
+    setGear(0);
+    aiLandTick(l, sun, sun);
+    // Only the companies on the empty gear go; the guns stay. None comes back
+    // while the stock is empty, whatever the gear the divisions gave back.
+    setGear(0);
+    aiLandTick(l, sun, sun);
+    expect(line.def.support).not.toContain("engineer");
+    expect(line.def.support).not.toContain("recon");
+    expect(line.def.support).toContain("support_artillery");
+    expect(line.def.support).toContain("support_anti_tank");
+    setGear(1_000_000);
+    aiLandTick(l, sun, sun);
+    aiLandTick(l, sun, sun);
+    expect(line.def.support).toContain("engineer");
+    expect(line.def.support).toContain("recon");
   }, 60_000);
 });
 

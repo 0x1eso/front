@@ -458,13 +458,19 @@ export interface LineShape {
 
 /**
  * Section 8.4's shapes for the seven majors, set where one changes on the
- * width rule: only widths 15 and 22 cost no attack (widthPenaltyBp), so each
+ * width rule: only widths 9, 15 and 22 cost no attack (widthPenaltyBp), so each
  * shape moves to them where its reason stays true. Against the design's table:
- * line, DEU one more infantry, SUN one infantry for an anti-tank battalion, USA,
- * GBR, FRA one anti-tank battalion added, ITA one gun less, JPN one infantry
- * less (width 17, not free: 15 would cost a quarter of its rifles); armour,
- * DEU, SUN, FRA more motorized, USA a second SP gun, GBR two mobile guns, JPN
- * and ITA two motorized for a mobile gun.
+ * line, DEU one more infantry, ITA one gun less, JPN one infantry less (width
+ * 17, not free: 15 would cost a quarter of its rifles); armour, DEU, SUN, FRA
+ * more motorized, USA a second SP gun, GBR two mobile guns, JPN and ITA two
+ * motorized for a mobile gun.
+ *
+ * ww105: the line of SUN, USA, GBR and FRA was six infantry, three guns and an
+ * anti-tank battalion. A gun battalion has no organisation and a division's is
+ * the mean of its battalions, so that shape stood at 36 and won 48 % where eight
+ * infantry and two guns won 83 %, and six and one with four companies 95 %. It
+ * also ate twice the supply. Their guns and anti-tank now come as companies,
+ * which cost no organisation: 7 battalions are the fewest that carry four.
  */
 export const AI_LINE_SHAPES: Readonly<
   Partial<Record<CountryTag, Readonly<LineShape>>>
@@ -481,19 +487,18 @@ export const AI_LINE_SHAPES: Readonly<
   },
   SUN: {
     line: [
-      ["artillery", 3],
-      ["anti_tank", 1],
+      ["artillery", 1],
       ["infantry", 6],
     ],
     armour: [
       ["motorized", 5],
       ["medium_armor", 6],
     ],
+    company: "support_anti_tank",
   },
   USA: {
     line: [
-      ["artillery", 3],
-      ["anti_tank", 1],
+      ["artillery", 1],
       ["infantry", 6],
     ],
     armour: [
@@ -501,11 +506,11 @@ export const AI_LINE_SHAPES: Readonly<
       ["medium_armor", 4],
       ["sp_artillery", 2],
     ],
+    company: "support_anti_tank",
   },
   GBR: {
     line: [
-      ["artillery", 3],
-      ["anti_tank", 1],
+      ["artillery", 1],
       ["infantry", 6],
     ],
     armour: [
@@ -513,11 +518,11 @@ export const AI_LINE_SHAPES: Readonly<
       ["medium_armor", 4],
       ["mot_artillery", 2],
     ],
+    company: "support_anti_tank",
   },
   FRA: {
     line: [
-      ["artillery", 3],
-      ["anti_tank", 1],
+      ["artillery", 1],
       ["infantry", 6],
     ],
     armour: [

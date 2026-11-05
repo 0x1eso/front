@@ -2,6 +2,8 @@ import {
   type BattalionId,
   TPL_BARE_ARMOR,
   TPL_EXPLOIT,
+  WW_MAX_SUPPORT,
+  wwMaxSupport,
 } from "@openfront/engine-api/ww1936/LandTypes";
 import {
   AI_LINE_SHAPES,
@@ -435,6 +437,17 @@ describe("the division shapes (8.4, the table decides)", () => {
     }
     expect(width(AI_LINE_SHAPES.JPN!.line)).toBe(17);
     expect(widthPenaltyBp(17)).toBeLessThan(widthPenaltyBp(19));
+  });
+
+  it("ww105: a line keeps its organisation: guns come as companies, and four fit", () => {
+    for (const [tag, s] of Object.entries(AI_LINE_SHAPES)) {
+      const stats = templateStats(def(s.line), emptyStats(), GEN1);
+      expect(stats.orgMilli, `${tag} org`).toBeGreaterThanOrEqual(48_000);
+      expect(wwMaxSupport(flat(s.line).length), tag).toBe(WW_MAX_SUPPORT);
+    }
+    for (const tag of ["SUN", "USA", "GBR", "FRA"] as const) {
+      expect(AI_LINE_SHAPES[tag]!.company).toBe("support_anti_tank");
+    }
   });
 
   it("armour shapes run through and are never bare", () => {

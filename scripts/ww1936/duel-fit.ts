@@ -29,6 +29,14 @@
  * row's attacker win %, the table's win % at its predicted ratio, the mean
  * days of a won battle and the ratios.
  *
+ *   npx tsx scripts/ww1936/duel-fit.ts --lines [--duels 40]
+ *
+ * instead plays the AI's line shapes (AI_LINE_SHAPES, ww105): the shape the
+ * AI refits to, with its four companies, against the old six infantry, three
+ * guns and an anti-tank battalion and eight and two, on a dug-in line: at equal
+ * width, as the divisions a front can use, and at equal count, as an army that
+ * was refitted has them.
+ *
  *   npx tsx scripts/ww1936/duel-fit.ts --plan [--duels 300]
  *
  * instead plays the combat overhaul's targets (ww84 plan section 6), each row
@@ -44,6 +52,7 @@ import {
   type EquipmentType,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
 import {
+  type BattalionId,
   GROUND_EQUIP_KEYS,
   GROUND_STATIC_SLOTS,
   idleOrder,
@@ -51,6 +60,10 @@ import {
   MOVE_RETREAT,
 } from "@openfront/engine-api/ww1936/LandTypes";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
+import {
+  AI_LINE_SHAPES,
+  type ShapeRows,
+} from "@openfront/engine-lib/ww1936/AiPlans";
 import { dayOfDate, dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
 import {
   WIN_PCT_AT,
@@ -93,6 +106,7 @@ interface Options {
   out: string;
   targets: boolean;
   plan: boolean;
+  lines: boolean;
   only: string;
 }
 
@@ -103,6 +117,7 @@ function parseArgs(argv: string[]): Options {
     out: "",
     targets: false,
     plan: false,
+    lines: false,
     only: "",
   };
   for (let i = 0; i < argv.length; i++) {
@@ -117,6 +132,7 @@ function parseArgs(argv: string[]): Options {
     else if (arg === "--out") o.out = next();
     else if (arg === "--targets") o.targets = true;
     else if (arg === "--plan") o.plan = true;
+    else if (arg === "--lines") o.lines = true;
     else if (arg === "--only") o.only = next();
     else throw new Error(`unknown argument: ${arg}`);
   }
@@ -147,8 +163,42 @@ const INF72 = [
   "artillery",
 ] as const;
 
+/** The AI's four companies on a line (AiDay.refitCompanies with everything researched). */
+const LINE_COMPANIES = [
+  "support_artillery",
+  "engineer",
+  "support_anti_tank",
+  "recon",
+] as const;
+const flatRows = (rows: ShapeRows) =>
+  rows.flatMap(([b, n]) => new Array<BattalionId>(n).fill(b));
+
 /** Templates as battalion lists (the land-sim duels': spec §9.10, §4.5). */
 const TEMPLATES = {
+  /** ww105: the line of SUN, USA, GBR and FRA, as the table has it now. */
+  lineNew: {
+    battalions: flatRows(AI_LINE_SHAPES.SUN!.line),
+    support: LINE_COMPANIES,
+  },
+  /** ww105: the line that replaced: three gun battalions and an anti-tank one. */
+  lineOld: {
+    battalions: flatRows([
+      ["artillery", 3],
+      ["anti_tank", 1],
+      ["infantry", 6],
+    ]),
+    support: ["engineer", "recon", "support_artillery"],
+  },
+  /** ww105: Germany's line. */
+  line82: {
+    battalions: flatRows(AI_LINE_SHAPES.DEU!.line),
+    support: LINE_COMPANIES,
+  },
+  /** ww105: a dug-in eight and two with its engineers: what the lines attack. */
+  line82eng: {
+    battalions: flatRows(AI_LINE_SHAPES.DEU!.line),
+    support: ["engineer"],
+  },
   inf72: {
     battalions: [
       ...Array<"infantry">(7).fill("infantry"),
@@ -423,6 +473,19 @@ const row = (
   pos,
 });
 
+/** ww105: the AI's line shapes on a dug-in line, at 3:1 by width and at equal count. */
+const LINES: readonly Target[] = [
+  row("new line x36 (width 540)", "lineNew", 36, 8, 1, 0, 5, 0, "line82eng"),
+  row("old line x24 (width 528)", "lineOld", 24, 8, 1, 0, 5, 0, "line82eng"),
+  row("8 and 2 x24 (width 528)", "line82", 24, 8, 1, 0, 5, 0, "line82eng"),
+  row("new line x24, equal count", "lineNew", 24, 8, 1, 0, 5, 0, "line82eng"),
+  row("new line x16", "lineNew", 16, 8, 1, 0, 5, 0, "line82eng"),
+  row("old line x16", "lineOld", 16, 8, 1, 0, 5, 0, "line82eng"),
+  row("new holds x12 against 8 and 2 x16", "line82", 16, 12, 1, 0, 5, 0, "lineNew"),
+  row("old holds x8 against 8 and 2 x16", "line82", 16, 8, 1, 0, 5, 0, "lineOld"),
+  row("new holds x8, equal count", "line82", 16, 8, 1, 0, 5, 0, "lineNew"),
+];
+
 /** Design §5: 1:1 < 20 %; 2:1 ~50 % in 4-7 days; 3:1 ≥ 80 %; the Maginot's 50 % only at 5:1 with guns and engineers. */
 const TARGETS: readonly Target[] = [
   row("1:1 plains entrench 5 (want <20)", "inf72", 3, 3, 1, 0, 5, 0),
@@ -610,9 +673,9 @@ async function main(): Promise<void> {
     planReport(o, play, useKeys, deuKeys, l);
     return;
   }
-  if (o.targets) {
-    const n = o.duels === 2000 ? 300 : o.duels;
-    for (const target of TARGETS) {
+  if (o.targets || o.lines) {
+    const n = o.duels === 2000 ? (o.lines ? 40 : 300) : o.duels;
+    for (const target of o.lines ? LINES : TARGETS) {
       const rs: Outcome[] = [];
       for (let i = 0; i < n; i++) {
         const rnd = prng(

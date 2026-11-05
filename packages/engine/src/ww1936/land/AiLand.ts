@@ -64,6 +64,7 @@ import {
   type PlanStance,
   planStance,
   resourceWorth,
+  type LineShape,
   type ShapeRows,
   wantsPeaceFort,
 } from "@openfront/engine-lib/ww1936/AiPlans";
@@ -5016,9 +5017,9 @@ class AiDay {
 
   /**
    * Spec §14.5: every 180 days, with the army experience for it, one more
-   * support company on the infantry template (support artillery, then
-   * engineers, anti-tank when an enemy at war fields armour, field
-   * hospital, logistics); and medium tanks for light ones once researched.
+   * support company on the line templates (refitCompanies); and medium tanks
+   * for light ones once researched. ww105: a major's focus line divisions are
+   * its line too: half of what it trains.
    */
   refitTemplates(): void {
     const cl = this.cl;
@@ -5027,31 +5028,15 @@ class AiDay {
     // ww91 8.4: a major's shapes come from its table; the width rule is the minors'.
     const shape = AI_LINE_SHAPES[cl.tag];
     if (inf !== undefined && shape === undefined) this.refitWidth(inf);
-    if (
-      inf !== undefined &&
-      inf.def.support.length < wwMaxSupport(inf.def.battalions.length)
-    ) {
-      const wanted: readonly (readonly [SupportId, readonly WwTechId[]])[] = [
-        ["support_artillery", ["artillery_1", "support_eq_1"]],
-        ["engineer", ["engineer_company"]],
-        ["support_anti_tank", ["anti_tank_1", "support_eq_1"]],
-        ["field_hospital", ["field_hospital"]],
-        ["logistics", ["logistics_company"]],
-      ];
-      for (const [s, techs] of wanted) {
-        if (inf.def.support.includes(s)) continue;
-        if (!techs.every((x) => researched.has(x))) continue;
-        if (
-          s === "support_anti_tank" &&
-          shape?.company !== s &&
-          !this.enemyArmour()
-        ) {
-          continue;
-        }
-        this.saveTemplate(inf.id, inf.def.battalions, [...inf.def.support, s]);
-        break;
-      }
+    const lines = cl.templates.filter(
+      (t) =>
+        t === inf || (shape !== undefined && FOCUS_LINE_INFANTRY.has(t.key)),
+    );
+    if (shape !== undefined) {
+      // First: the guns a line gives up pay for the companies it takes.
+      for (const tpl of lines) this.refitShape(tpl, shape.line);
     }
+    for (const tpl of lines) this.refitCompanies(tpl, shape);
     const lightShape =
       shape?.armour.some(([b]) => b === "light_armor") === true;
     if (researched.has("medium_tank_1") && !lightShape) {
@@ -5065,7 +5050,6 @@ class AiDay {
       }
     }
     if (shape !== undefined) {
-      if (inf !== undefined) this.refitShape(inf, shape.line);
       for (const tpl of cl.templates) {
         if (AI_SHAPED_ARMOUR.includes(tpl.key)) {
           this.refitShape(tpl, shape.armour);
@@ -5085,6 +5069,63 @@ class AiDay {
       bns[i] = "motorized";
       this.saveTemplate(tpl.id, bns, tpl.def.support);
     }
+  }
+
+  /**
+   * ww105: one company more on line template `tpl` (support artillery, then
+   * engineers, anti-tank when an enemy at war fields armour or its table keeps
+   * it, on a major's shape recon, then field hospital, logistics), when the
+   * stock equips it (saveTemplate). A line whose company gear has run out gives
+   * those companies up instead: under half a division's need all of its training
+   * stops, for the sake of a company. It takes them back once the stock can.
+   */
+  private refitCompanies(
+    tpl: LandTemplate,
+    shape: Readonly<LineShape> | undefined,
+  ): void {
+    const researched = this.ce.researched;
+    const { battalions, support } = tpl.def;
+    const fed = support.filter((s) => !this.companyShort(tpl, s));
+    if (fed.length < support.length) {
+      this.saveTemplate(tpl.id, battalions, fed);
+      return;
+    }
+    if (support.length >= wwMaxSupport(battalions.length)) return;
+    const wanted: readonly (readonly [SupportId, readonly WwTechId[]])[] = [
+      ["support_artillery", ["artillery_1", "support_eq_1"]],
+      ["engineer", ["engineer_company"]],
+      ["support_anti_tank", ["anti_tank_1", "support_eq_1"]],
+      ...(shape === undefined
+        ? []
+        : ([["recon", ["recon_company"]]] as const)),
+      ["field_hospital", ["field_hospital"]],
+      ["logistics", ["logistics_company"]],
+    ];
+    for (const [s, techs] of wanted) {
+      if (support.includes(s)) continue;
+      if (!techs.every((x) => researched.has(x))) continue;
+      if (
+        s === "support_anti_tank" &&
+        shape?.company !== s &&
+        !this.enemyArmour()
+      ) {
+        continue;
+      }
+      this.saveTemplate(tpl.id, battalions, [...support, s]);
+      break;
+    }
+  }
+
+  /** ww105: the stock can't fill one division's need of a type company `s` of `tpl` uses. */
+  private companyShort(tpl: LandTemplate, s: SupportId): boolean {
+    const stats = this.ce.stats;
+    const need = templateStats(tpl.def, stats, GEN1).need;
+    const without = templateStats(
+      { ...tpl.def, support: tpl.def.support.filter((x) => x !== s) },
+      stats,
+      GEN1,
+    ).need;
+    return need.some((n, i) => n > without[i] && this.stockOf(i) < n);
   }
 
   /** The battalion can be fielded on its own techs. */
