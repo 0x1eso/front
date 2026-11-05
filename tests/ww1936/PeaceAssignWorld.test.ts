@@ -14,17 +14,18 @@ import type { Game, Player } from "@openfront/engine/game/Game";
 import { createGameRunner } from "@openfront/engine/GameRunner";
 import { capitulate } from "@openfront/engine/ww1936/Capitulation";
 import {
+  aiAskTermsDay,
   askForTerms,
   askTermsBlock,
   termsPoolPct,
 } from "@openfront/engine/ww1936/endgame/AskTerms";
 import { conferenceView } from "@openfront/engine/ww1936/endgame/Conference";
+import { addWarScore } from "@openfront/engine/ww1936/endgame/Wars";
 import {
   replyPeace,
   surrenderPm,
   truceUntil,
 } from "@openfront/engine/ww1936/endgame/WhitePeace";
-import { addWarScore } from "@openfront/engine/ww1936/endgame/Wars";
 import type { Conference } from "@openfront/engine/ww1936/endgame/WwEndgame";
 import type { WorldWar } from "@openfront/engine/ww1936/WorldWar";
 import { loadMapFiles } from "@openfront/shared/GameMapLoader";
@@ -87,7 +88,9 @@ const playerOf = (g: Game, id: number): Player => {
 const srOf = (t: T, sr: number) =>
   t.sc.landRegions
     .filter(
-      (r) => t.sc.regionSr(r.id) === sr && t.ww.politics.legalOwner[r.id] === idOf(t, "FRA"),
+      (r) =>
+        t.sc.regionSr(r.id) === sr &&
+        t.ww.politics.legalOwner[r.id] === idOf(t, "FRA"),
     )
     .map((r) => r.id);
 
@@ -113,7 +116,13 @@ function beatFrance(
     for (const r of regions) ww.land.setController(r, idOf(t, tag), g.ticks());
   }
   const before = eg.conferences.length;
-  capitulate(g, ww as WorldWar, playerOf(g, fra), g.ticks(), playerOf(g, idOf(t, to)));
+  capitulate(
+    g,
+    ww as WorldWar,
+    playerOf(g, fra),
+    g.ticks(),
+    playerOf(g, idOf(t, to)),
+  );
   expect(eg.conferences).toHaveLength(before + 1);
   return eg.conferences[before];
 }
@@ -154,7 +163,11 @@ describe("World War 1936 ww88: the assignment on the real map", () => {
     for (const r of srOf(t, EAST)) expect(a.get(r)).toBe(deu);
     expect(a.get(PARIS)).toBe(deu);
     // Everything of France is someone's: no land goes back.
-    expect(t.sc.landRegions.filter((r) => t.ww.politics.legalOwner[r.id] === fra).every((r) => a.has(r.id))).toBe(true);
+    expect(
+      t.sc.landRegions
+        .filter((r) => t.ww.politics.legalOwner[r.id] === fra)
+        .every((r) => a.has(r.id)),
+    ).toBe(true);
     // The treaty keeps to it: AI demands may buy, but nobody revives France.
     step(t.runner);
     step(t.runner);
@@ -205,7 +218,10 @@ describe("World War 1936 ww88: the assignment on the real map", () => {
       expect(a.get(r)).toBe(ita);
     }
     const of = (id: number) =>
-      valueOf(c, [...a].filter(([, p]) => p === id).map(([r]) => r));
+      valueOf(
+        c,
+        [...a].filter(([, p]) => p === id).map(([r]) => r),
+      );
     expect(of(ita)).toBeGreaterThan(of(deu) * 2);
     // Hand-over land pays nobody.
     expect((c.comp ?? []).find(([p]) => p === deu)).toBeUndefined();
@@ -289,8 +305,7 @@ describe("World War 1936 ww88: the assignment on the real map", () => {
     const west = srOf(t, WEST);
     const rest = t.sc.landRegions
       .filter(
-        (r) =>
-          t.ww.politics.legalOwner[r.id] === fra && !west.includes(r.id),
+        (r) => t.ww.politics.legalOwner[r.id] === fra && !west.includes(r.id),
       )
       .map((r) => r.id);
     const c = beatFrance(t, [
@@ -363,6 +378,19 @@ describe("World War 1936 ww88: the assignment on the real map", () => {
     expect(v.assign).toEqual(c.assign);
     expect(v.comp).toEqual([[ita, 8]]);
     expect(v.handed!.length).toBe(c.handed!.length);
+  });
+
+  it("a hand-over waiting for its conference is hashed and survives a snapshot", async () => {
+    const t = await start();
+    const h = t.eg.hash();
+    t.eg.handedOver = [[PARIS, 1]];
+    const moved = t.eg.hash();
+    expect(moved).not.toBe(h);
+    const saved = t.eg.snapshot();
+    t.eg.handedOver = [];
+    t.eg.restoreState(saved);
+    expect(t.eg.handedOver).toEqual([[PARIS, 1]]);
+    expect(t.eg.hash()).toBe(moved);
   });
 
   it("the assignment moves the hash and survives a snapshot", async () => {
@@ -451,6 +479,55 @@ describe("World War 1936 ww88: Ask for terms on the real map", () => {
     expect([...t.ww.land.rowsOf(fra)].length).toBe(divisions);
     const day = t.ww.day(t.g.ticks());
     expect(truceUntil(t.eg, deu, fra)).toBeGreaterThan(day);
+  });
+
+  it("a loser left under a tenth of its land can't stand, and capitulates after the treaty", async () => {
+    const t = await start();
+    const [deu, tur] = [idOf(t, "DEU"), idOf(t, "TUR")];
+    const { g, ww, eg } = t;
+    ww.setWar(deu, tur, g.ticks());
+    const w = eg.war(eg.warOfPair(deu, tur))!;
+    w.startDay = ww.day(g.ticks()) - WW_WHITE_PEACE_MIN_DAYS;
+    ww.politics.country(tur)!.ppMilli = 100_000;
+    addWarScore(eg, w.id, deu, 1000);
+    const tile = t.sc.capitalTileOrNull("TUR")!;
+    const cap = t.sc.regionAt(tile);
+    for (const r of t.sc.landRegions) {
+      if (ww.politics.legalOwner[r.id] === tur && r.id !== cap) {
+        ww.land.setController(r.id, deu, g.ticks());
+      }
+    }
+    expect(askForTerms(eg, tur, w.id, g.ticks())).toBeNull();
+    const offer = eg.peaceOffers.find((o) => o.ask === true)!;
+    expect(replyPeace(eg, deu, offer.id, true, g.ticks())).toBeNull();
+    const c = eg.conferences[eg.conferences.length - 1];
+    expect(c.stake.includes(cap)).toBe(false);
+    passAll(t, c);
+    expect(ww.isCapitulated(tur)).toBe(true);
+    expect(ww.land.controller[cap]).toBe(deu);
+  });
+
+  it("an AI side leader asks from 70 %, and not before", async () => {
+    const t = await start();
+    const fra = idOf(t, "FRA");
+    const w = warOn(t, [...srOf(t, NORTH)]);
+    const pm = surrenderPm(t.eg, fra);
+    const day = t.ww.day(t.g.ticks());
+    aiAskTermsDay(t.eg, fra, day, t.g.ticks());
+    expect(t.eg.peaceOffers.some((o) => o.ask === true)).toBe(pm >= 700);
+    if (pm < 700) {
+      for (const r of [
+        ...srOf(t, EAST),
+        ...srOf(t, WEST),
+        ...srOf(t, CENTRE),
+      ]) {
+        t.ww.land.setController(r, idOf(t, "DEU"), t.g.ticks());
+      }
+      expect(surrenderPm(t.eg, fra)).toBeGreaterThanOrEqual(700);
+      aiAskTermsDay(t.eg, fra, day, t.g.ticks());
+      expect(t.eg.peaceOffers.some((o) => o.ask === true)).toBe(true);
+    }
+    expect(w.ended).toBeNull();
   });
 
   it("an AI winner refuses when it isn't clearly ahead", async () => {

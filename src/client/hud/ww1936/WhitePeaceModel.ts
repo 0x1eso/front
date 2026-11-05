@@ -178,10 +178,10 @@ export function whitePeaceCardModel(
       o.ask === true
         ? "ww1936.wpeace.card_title_ask"
         : o.line !== undefined
-        ? "ww1936.lpeace.card_title"
-        : o.terms === null || o.terms === undefined
-          ? "ww1936.wpeace.card_title"
-          : "ww1936.wpeace.card_title_terms",
+          ? "ww1936.lpeace.card_title"
+          : o.terms === null || o.terms === undefined
+            ? "ww1936.wpeace.card_title"
+            : "ww1936.wpeace.card_title_terms",
       { country: from },
     ),
     war: w === null ? "" : warName(game, w),

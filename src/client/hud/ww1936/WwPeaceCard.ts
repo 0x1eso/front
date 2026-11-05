@@ -635,7 +635,7 @@ export class WwPeaceCard extends LitElement implements Controller {
       >`;
     return html`<div
       data-ww-peace-split
-      class="flex flex-col gap-0.5 rounded-md bg-white/5 p-1"
+      class="flex max-h-28 shrink-0 flex-col gap-0.5 overflow-y-auto rounded-md bg-white/5 p-1"
     >
       <span class="font-semibold text-white/80"
         >${translateText("ww1936.peace.split_title")}</span

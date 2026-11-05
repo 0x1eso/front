@@ -115,11 +115,9 @@ const regions: AssignRegion[] = [...stake]
     value: value(r),
     group: r.sr,
     holder: holder.get(r.id) ?? 0,
-    handedTo:
-      rest !== undefined && !holder.has(r.id) ? idOf(rest) : 0,
+    handedTo: rest !== undefined && !holder.has(r.id) ? idOf(rest) : 0,
     port: r.port === true,
-    keyCity:
-      caps.get(idOf(r.owner)) === r.id || r.vp >= WW_PEACE_BIG_CITY_VP,
+    keyCity: caps.get(idOf(r.owner)) === r.id || r.vp >= WW_PEACE_BIG_CITY_VP,
   }));
 const owner = new Map(data.regions.map((r) => [r.id, idOf(r.owner)]));
 const out = peaceAssignment({
@@ -167,7 +165,9 @@ for (const r of regions) {
 }
 console.log("\nWho gets what");
 for (const [id, [n, v]] of [...sum].sort((a, b) => b[1][1] - a[1][1])) {
-  console.log(`  ${id === 0 ? "the loser" : tagOf(id)}: ${n} regions, value ${v}`);
+  console.log(
+    `  ${id === 0 ? "the loser" : tagOf(id)}: ${n} regions, value ${v}`,
+  );
 }
 for (const [L, d] of out.puppets) {
   console.log(`${tagOf(L)} goes on as a puppet of ${tagOf(d)}.`);

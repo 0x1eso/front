@@ -26,11 +26,11 @@ import { turnOrder } from "@openfront/engine-lib/ww1936/EndgameRules";
 import {
   demandKindIndex,
   expandPeaceDemand,
+  peaceAssignedTo,
   type PeaceBlock,
   peaceBlockKey,
   type PeaceDemandIn,
   type PeaceFacts,
-  peaceAssignedTo,
   peaceRegionCost,
   type PeaceSettledRow,
   type PeaceShip,

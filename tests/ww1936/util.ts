@@ -27,16 +27,16 @@ import {
   GameRunner,
 } from "@openfront/engine/GameRunner";
 import { removeLine } from "@openfront/engine/ww1936/economy/Production";
-import { aiDemands } from "@openfront/engine/ww1936/endgame/PeaceAi";
-import type {
-  Conference,
-  WwEndgame,
-} from "@openfront/engine/ww1936/endgame/WwEndgame";
 import { cancelResearch } from "@openfront/engine/ww1936/economy/ResearchRun";
 import type {
   CountryEconomy,
   WwEconomy,
 } from "@openfront/engine/ww1936/economy/WwEconomy";
+import { aiDemands } from "@openfront/engine/ww1936/endgame/PeaceAi";
+import type {
+  Conference,
+  WwEndgame,
+} from "@openfront/engine/ww1936/endgame/WwEndgame";
 import { fieldDivision } from "@openfront/engine/ww1936/land/LandStartRun";
 import { capture } from "@openfront/engine/ww1936/land/Occupation";
 import type { Army, WwLand } from "@openfront/engine/ww1936/land/WwLand";

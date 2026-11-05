@@ -1,8 +1,9 @@
 // P5 lane W (plan Task 2): the peace conference (spec §6; plan decisions
-// 11–16, 33, 34). A conference opens the tick its wars end; its
-// participants get points by war score; four rounds of up to five demands
-// in snake order, control first; then the treaty. Integers only;
-// participants by smallID, regions by id, demands by slot.
+// 11–16, 33, 34). A conference opens the tick its wars end; held land is
+// assigned at once (ww88, PeaceAssign) and points only buy changes; its
+// participants get points by war score; rounds of up to five demands in
+// snake order, control first; then the treaty. Integers only; participants
+// by smallID, regions by id, demands by slot.
 import {
   COUNTRIES,
   NAMED_DORMANT_TAGS,
@@ -404,8 +405,7 @@ function termsStake(
 /** ww88: an AI democracy gets zones or a puppet; a human keeps what it holds. */
 function keepsLand(eg: WwEndgame, id: number): boolean {
   return (
-    eg.isHumanControlled(id) ||
-    eg.ww.politics.country(id)?.ruling !== IDEO_DEM
+    eg.isHumanControlled(id) || eg.ww.politics.country(id)?.ruling !== IDEO_DEM
   );
 }
 
@@ -1107,9 +1107,7 @@ function assignmentRows(
   const zones = new Map<number, number[]>();
   // A puppet with nothing of its own lives on in what its master gives back.
   const bare = (L: number) =>
-    c.stake.every(
-      (r) => legal[r] !== L || assignedOf.has(r) || spoken.has(r),
-    );
+    c.stake.every((r) => legal[r] !== L || assignedOf.has(r) || spoken.has(r));
   for (const [r, p] of c.assign) {
     if (spoken.has(r) || !eg.isActor(p)) continue;
     const L = legal[r] ?? 0;
@@ -1148,7 +1146,12 @@ function assignmentRows(
       cost: 0,
     });
   }
-  const free = (kind: number, by: number, regions: number[], target: number) => ({
+  const free = (
+    kind: number,
+    by: number,
+    regions: number[],
+    target: number,
+  ) => ({
     kind,
     by,
     regions,

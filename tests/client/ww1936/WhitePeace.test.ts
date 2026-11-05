@@ -19,6 +19,7 @@ import type {
   WwWarSummary,
 } from "@openfront/engine-api/ww1936/EndgameTypes";
 import {
+  askTermsButton,
   whitePeaceButton,
   whitePeaceCardModel,
   type WhitePeaceGame,
@@ -83,6 +84,30 @@ function offer(deadlineTick: number): WwPeaceOfferView {
     terms: null,
   };
 }
+
+describe("ask for terms", () => {
+  const rowAt = (capPm: number) => ({
+    war: 4,
+    from: ID("DEU"),
+    to: ID("POL"),
+    gain: [],
+    lose: [],
+    chance: 0,
+    capPm,
+  });
+  it("shows for a side's leader from 40 % of the way to surrender, for a member never", () => {
+    const eg = new WwEndgameView();
+    const w = war(0);
+    eg.apply({ news: [], wars: [w], linePeace: [rowAt(399) as never] });
+    expect(askTermsButton(game("DEU", eg), ID("DEU"), w)).toBeNull();
+    eg.apply({ news: [], linePeace: [rowAt(400) as never] });
+    expect(askTermsButton(game("DEU", eg), ID("DEU"), w)).toEqual({
+      block: null,
+      order: { kind: "peace_surrender", war: 4 },
+    });
+    expect(askTermsButton(game("ITA", eg), ID("ITA"), w)).toBeNull();
+  });
+});
 
 describe("the white peace button", () => {
   it("the side leader offers the whole war, a member a separate peace, to the other leader", () => {

@@ -19,7 +19,6 @@ import {
   WwPeaceTerms,
   WwWar,
 } from "@openfront/engine-api/ww1936/EndgameTypes";
-import { askTermsAccepted, openTermsConference } from "./AskTerms";
 import { sharePm } from "@openfront/engine-lib/ww1936/EndgameRules";
 import {
   hasPeaceTerms,
@@ -32,6 +31,7 @@ import { leaveFaction } from "../politics/Factions";
 import { payPp } from "../politics/PayPp";
 import { endWarBetween } from "../politics/Territory";
 import { landRegained } from "./Activate";
+import { askTermsAccepted, openTermsConference } from "./AskTerms";
 import { applyLinePeace, lineAiAccepts, linePeaceOfferView } from "./LinePeace";
 import {
   aiPeaceTerms,

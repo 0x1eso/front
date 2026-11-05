@@ -14,8 +14,8 @@ import {
   WW_WHITE_PEACE_PP,
 } from "@openfront/engine-api/ww1936/EndgameTypes";
 import { wwRealTicks } from "@openfront/engine-lib/ww1936/Pace";
-import { endWarBetween } from "../politics/Territory";
 import { payPp } from "../politics/PayPp";
+import { endWarBetween } from "../politics/Territory";
 import { openConference } from "./Conference";
 import { peaceOfferBlock, surrenderPm } from "./WhitePeace";
 import type { PeaceOffer, WwEndgame } from "./WwEndgame";
@@ -26,9 +26,7 @@ export function termsPoolPct(pm: number): number {
   const got = Math.max(0, Math.min(span, pm - WW_ASK_TERMS_MIN_PM));
   return (
     WW_ASK_TERMS_MIN_POOL_PCT +
-    Math.floor(
-      (got * (WW_PEACE_POOL_PCT - WW_ASK_TERMS_MIN_POOL_PCT)) / span,
-    )
+    Math.floor((got * (WW_PEACE_POOL_PCT - WW_ASK_TERMS_MIN_POOL_PCT)) / span)
   );
 }
 

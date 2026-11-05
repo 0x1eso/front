@@ -45,6 +45,7 @@ import type { WorldWar } from "../WorldWar";
 import { aiAidDay, aiAidEventChoice } from "./AiAid";
 import { aiOccupationDay } from "./AiOccupation";
 import { aiSubjectsDay } from "./AiSubjects";
+import { aiAskTermsDay, askForTerms } from "./AskTerms";
 import { capitulate } from "./Capitulate";
 import { conferenceView, stepConferences, submitDemands } from "./Conference";
 import { wakePending } from "./Executions";
@@ -66,7 +67,6 @@ import {
 } from "./LendLease";
 import { returnLiberated } from "./Liberation";
 import { aiLinePeaceDay, linePeaceData, offerLinePeace } from "./LinePeace";
-import { aiAskTermsDay, askForTerms } from "./AskTerms";
 import { peaceJudgeData } from "./NegPeace";
 import {
   garrisonOrder,

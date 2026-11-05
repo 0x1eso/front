@@ -338,10 +338,7 @@ function dropEnclaves(w: Work): void {
 }
 
 /** A list's connected pieces, by its smallest region. */
-function connected(
-  w: Work,
-  list: readonly AssignRegion[],
-): AssignRegion[][] {
+function connected(w: Work, list: readonly AssignRegion[]): AssignRegion[][] {
   const left = new Map(list.map((r) => [r.region, r]));
   const out: AssignRegion[][] = [];
   for (const r of list) {
