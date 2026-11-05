@@ -244,8 +244,10 @@ describe("laws (spec §5)", () => {
 });
 
 describe("research (spec §9)", () => {
-  test("a year early doubles the time; the penalty shrinks by day", () => {
-    expect(aheadPct(1937, yearStartDay(1936))).toBe(100);
+  test("a year early doubles the time, more turns steep; it shrinks by day", () => {
+    expect(aheadPct(1937, yearStartDay(1937) - 365)).toBe(100);
+    expect(aheadPct(1938, yearStartDay(1938) - 730)).toBe(700);
+    expect(aheadPct(1938, yearStartDay(1938) - 183)).toBe(50);
     expect(aheadPct(1937, yearStartDay(1937))).toBe(0);
     expect(researchProgress(0, 100)).toBe(500);
     expect(researchProgress(10, 0)).toBe(1100);
@@ -260,11 +262,12 @@ describe("research (spec §9)", () => {
     expect(researchSlotCount(4, 4)).toBe(6);
   });
 
-  test("256 techs; prerequisites exist and come no later", () => {
+  test("263 techs; prerequisites exist and come no later", () => {
     // P1's 46, P2's 10 (P2 spec §4.6), P4's 56 (P4 spec §4.3, §12.3),
     // P5's military police (P5 spec §8.5), P6's 33 (P6 spec §1.4) and the
-    // research overhaul's 108 (changes §2.3), w28's 2 (metal substitutes).
-    expect(WW_TECH_IDS.length).toBe(256);
+    // research overhaul's 108 (changes §2.3), w28's 2 (metal substitutes),
+    // ww82's 7 merged techs.
+    expect(WW_TECH_IDS.length).toBe(263);
     for (const id of WW_TECH_IDS) {
       expect(WW_TECHS[id].id).toBe(id);
       for (const p of WW_TECHS[id].prereqs) {

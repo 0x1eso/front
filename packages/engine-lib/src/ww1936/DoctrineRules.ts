@@ -499,6 +499,7 @@ export function battalionStatPct(
       def: s("armorDefensePct"),
       armor: s("armorArmorPct"),
       pierce: s("armorPiercePct"),
+      speed: s("armorSpeedPct"),
     };
   }
   if (AT_LIKE.has(bat)) {

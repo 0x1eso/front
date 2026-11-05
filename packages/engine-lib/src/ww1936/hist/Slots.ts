@@ -3,9 +3,12 @@
 import type { DesignKind } from "@openfront/engine-api/ww1936/DepthTypes";
 import {
   EQUIPMENT_GENS,
+  WW_TECH_IDS,
   type EquipmentType,
+  type WwTechId,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
-import { EQUIPMENT, unitCostMilli } from "../Equipment";
+import { EQUIPMENT, genTech, unitCostMilli } from "../Equipment";
+import { WW_TECHS } from "../WwTechs";
 import { tankGroupOf } from "./ConvertTank";
 import { HIST_CATALOGUE } from "./index";
 import type { HistCountry, HistEntry, TankEntry } from "./Types";
@@ -94,9 +97,9 @@ export function histStaticName(
 }
 
 /**
- * The entries a tech helps to unlock (it is one of their techs), of one
- * country or all, in catalogue order: what a tech's effect text lists now
- * that the designer's modules and chassis are gates.
+ * The entries a tech helps to unlock, of one country or all, in catalogue
+ * order: what a tech's effect text lists now that the designer's modules and
+ * chassis are gates. Gear counts only where it really stands in (histGatesOf).
  */
 export function histEntriesGatedBy(
   tech: string,
@@ -106,7 +109,7 @@ export function histEntriesGatedBy(
   for (const c of Object.keys(HIST_CATALOGUE) as HistCountry[]) {
     if (country !== undefined && c !== country) continue;
     for (const e of HIST_CATALOGUE[c]) {
-      if ((e.techs as readonly string[]).includes(tech)) out.push(e);
+      if ((histGatesOf(e) as readonly string[]).includes(tech)) out.push(e);
     }
   }
   return out;
@@ -119,6 +122,114 @@ const GEAR_TYPES: readonly EquipmentType[] = [
   "anti_tank",
   "anti_air",
 ];
+
+let gearGates: ReadonlyMap<HistEntry, readonly WwTechId[]> | undefined;
+
+/** Every gear entry standing in for a static key, and the techs of those keys. */
+function gearGatesMap(): ReadonlyMap<HistEntry, readonly WwTechId[]> {
+  if (gearGates !== undefined) return gearGates;
+  const out = new Map<HistEntry, WwTechId[]>();
+  for (const c of Object.keys(HIST_CATALOGUE) as HistCountry[]) {
+    for (const type of GEAR_TYPES) {
+      for (let g = 1; g <= EQUIPMENT_GENS[type]; g++) {
+        const e = histStaticEntry(c, type, g);
+        const tech = genTech(type, g);
+        if (e === undefined || tech === null) continue;
+        out.set(e, [...(out.get(e) ?? []), tech]);
+      }
+    }
+  }
+  gearGates = out;
+  return out;
+}
+
+/**
+ * The techs that really open an entry. A tank, plane or ship: its `techs`. A
+ * gear entry is only a stand-in for a static key, so its gate is that key's
+ * tech, and an entry standing in for nothing has none: no tech ever gives it.
+ */
+export function histGatesOf(e: HistEntry): readonly WwTechId[] {
+  return histKindOf(e) !== null ? e.techs : (gearGatesMap().get(e) ?? []);
+}
+
+/** Whether the country really gets this entry from some tech. */
+function histInUse(e: HistEntry): boolean {
+  return histKindOf(e) !== null || gearGatesMap().has(e);
+}
+
+/** A country's entries that can be fielded, in catalogue order. */
+export function histUsable(country: HistCountry): readonly HistEntry[] {
+  return HIST_CATALOGUE[country].filter(histInUse);
+}
+
+/** What a generation tech is to a country (ww82 §9). */
+export type TechRelevance = "own" | "pass" | "generic";
+
+/** Gear generations: every country's battalions use them, entry or not. */
+const GEAR_GEN = /^(inf_eq|support_eq|artillery|anti_tank|anti_air|motorized)_/;
+
+/** The tank, plane and ship generation techs a major may have no entry for, tank guns too. */
+export function isGenerationTech(id: WwTechId): boolean {
+  if (id.startsWith("tank_gun_") || id === "transport_plane_2") return true;
+  return WW_TECHS[id].role === "gen" && !GEAR_GEN.test(id);
+}
+
+const RELEVANCE = new Map<HistCountry, ReadonlyMap<WwTechId, TechRelevance>>();
+
+/** Each generation tech that is not `own` for `country`. */
+function relevanceOf(
+  country: HistCountry,
+): ReadonlyMap<WwTechId, TechRelevance> {
+  const m = RELEVANCE.get(country);
+  if (m !== undefined) return m;
+  const own = new Set<WwTechId>();
+  for (const e of histUsable(country))
+    histGatesOf(e).forEach((t) => own.add(t));
+  // What leads to an entry: the prerequisites of a gate, all the way back.
+  const leads = new Set<WwTechId>();
+  const walk = (t: WwTechId) => {
+    for (const p of WW_TECHS[t].prereqs) {
+      if (leads.has(p)) continue;
+      leads.add(p);
+      walk(p);
+    }
+  };
+  own.forEach(walk);
+  const out = new Map<WwTechId, TechRelevance>();
+  for (const t of WW_TECH_IDS) {
+    if (WW_TECHS[t].retired === true || !isGenerationTech(t) || own.has(t)) {
+      continue;
+    }
+    out.set(t, leads.has(t) ? "pass" : "generic");
+  }
+  RELEVANCE.set(country, out);
+  return out;
+}
+
+/**
+ * The entries of `country` that need `tech` on the way, its own gates aside:
+ * what a pass-through tech's card names.
+ */
+export function histEntriesBehind(
+  tech: WwTechId,
+  country: HistCountry,
+): HistEntry[] {
+  const leadsThere = (t: WwTechId): boolean =>
+    WW_TECHS[t].prereqs.some((p) => p === tech || leadsThere(p));
+  return histUsable(country).filter((e) => histGatesOf(e).some(leadsThere));
+}
+
+/**
+ * ww82 §9: `own` when the tech gives `country` a named entry, `pass` when it
+ * gives none but leads to one, `generic` when it gives only the generic
+ * equipment. Only generation and tank gun techs can be other than `own`: every
+ * other tech's effect is real for everyone. A minor has no catalogue, so all
+ * of its techs are `own`.
+ */
+export function techRelevance(tech: WwTechId, country: string): TechRelevance {
+  if (!(country in HIST_CATALOGUE)) return "own";
+  return relevanceOf(country as HistCountry).get(tech) ?? "own";
+}
 
 /**
  * B8: the milli industry points production really charges for a gear

@@ -1,4 +1,4 @@
-// Research overhaul (changes §2): the 234-tech tree, its pacing, the
+// Research overhaul (changes §2), ww82's merges: the tree, its pacing, the
 // either/or pair and the project gates.
 import { SPECIAL_PROJECTS } from "@openfront/engine-api/ww1936/DepthTypes";
 import {
@@ -27,16 +27,20 @@ const NEW = WW_TECH_IDS.slice(146);
 const LIVE = WW_TECH_IDS.filter((t) => WW_TECHS[t].retired !== true);
 
 describe("the research tree (research overhaul)", () => {
-  it("110 new techs: a def, a tab, a cost, en/ko names, valid prerequisites", () => {
-    expect(NEW).toHaveLength(110);
-    expect(LIVE).toHaveLength(236);
+  it("117 new techs: a def, a tab, a cost, en/ko names, valid prerequisites", () => {
+    expect(NEW).toHaveLength(117);
+    expect(LIVE).toHaveLength(211);
     const stats = new Set<string>(WW_STAT_KEYS);
     for (const id of WW_TECH_IDS) {
       const d = WW_TECHS[id];
       expect(d.id).toBe(id);
       expect(TECH_TABS).toContain(d.tab);
       expect(d.tab).toBe(d.branch);
-      expect([COST_IMP, COST_NORMAL, COST_BIG]).toContain(d.costPm);
+      // A merged tech costs the days of its members; the portable weapon
+      // keeps the tree's total.
+      if (d.absorbs === undefined && id !== "inf_at_2") {
+        expect([COST_IMP, COST_NORMAL, COST_BIG]).toContain(d.costPm);
+      }
       expect(d.year >= 1936 && d.year <= 1945, id).toBe(true);
       for (const k of Object.keys(d.effects))
         expect(stats.has(k), k).toBe(true);
@@ -79,10 +83,10 @@ describe("the research tree (research overhaul)", () => {
     expect(tabs).toEqual({
       infantry: 21,
       support: 17,
-      armour: 28,
+      armour: 18,
       artillery: 19,
-      naval: 49,
-      air: 41,
+      naval: 40,
+      air: 35,
       electronics: 22,
       industry: 39,
     });
@@ -91,28 +95,29 @@ describe("the research tree (research overhaul)", () => {
       years[WW_TECHS[t].year] = (years[WW_TECHS[t].year] ?? 0) + 1;
     expect(years).toEqual({
       1937: 5,
-      1938: 14,
-      1939: 13,
-      1940: 16,
-      1941: 19,
-      1942: 16,
-      1943: 11,
-      1944: 10,
+      1938: 16,
+      1939: 18,
+      1940: 20,
+      1941: 20,
+      1942: 14,
+      1943: 10,
+      1944: 8,
       1945: 6,
     });
-    // The tree without one either/or line: 38,434 days.
-    const milli = LIVE.filter((t) => WW_TECHS[t].exclusive?.line !== 1).reduce(
-      (n, t) => n + techCostMilli(t),
-      0,
-    );
-    expect(Math.round(milli / 1000)).toBe(31_023);
+    // The tree without one either/or line: ww82's merges kept its days at
+    // the old knob, 31,023 then; ResearchPace.test.ts works out what it buys.
+    const live = LIVE.filter((t) => WW_TECHS[t].exclusive?.line !== 1);
+    const days = (knob: number) =>
+      Math.round(live.reduce((n, t) => n + techCostMilli(t, knob), 0) / 1000);
+    expect(days(800)).toBe(31_024);
+    expect(days(WW_RESEARCH_COST_PM)).toBe(13_573);
   });
 
   it("research days: the year's days × the multiplier × the knob", () => {
-    expect(WW_RESEARCH_COST_PM).toBe(800);
-    expect(techCostMilli("inf_eq_2")).toBe(techDays(1939) * 800);
-    expect(techCostMilli("art_imp_2")).toBe(108_000);
-    expect(techCostMilli("modern_tank_1")).toBe(255_000);
+    expect(WW_RESEARCH_COST_PM).toBe(350);
+    expect(techCostMilli("inf_eq_2")).toBe(techDays(1939) * 350);
+    expect(techCostMilli("art_imp_2")).toBe(47_250);
+    expect(techCostMilli("modern_tank_1")).toBe(111_562);
     expect(techCostMilli("inf_eq_2", 1100)).toBe(techDays(1939) * 1100);
     expect(techCostMilli("art_imp_2", 900)).toBe(121_500);
   });

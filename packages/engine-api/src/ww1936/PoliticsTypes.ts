@@ -240,6 +240,15 @@ export const WW_STAT_KEYS = [
   "rsSupportPct",
   "infHardPct",
   "casualtyReturnPp",
+  // Research rework (ww82 design), appended. armorSpeedPct: tank battalions'
+  // speed, percent. infAtPierce and infAtHard: the portable anti-tank weapon,
+  // centi-points added to an infantry battalion's pierce (4 -> 25 is 2100) and
+  // hard attack (+1 is 100). tankFearCutPp: points off the tank fear penalty.
+  // Combat reads these keys and never names a tech.
+  "armorSpeedPct",
+  "infAtPierce",
+  "infAtHard",
+  "tankFearCutPp",
 ] as const;
 export type WwStatKey = (typeof WW_STAT_KEYS)[number];
 export type WwStats = Record<WwStatKey, number>;

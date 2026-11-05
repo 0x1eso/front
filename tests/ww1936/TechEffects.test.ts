@@ -25,17 +25,14 @@ import { techTotals, WW_TECHS } from "@openfront/engine-lib/ww1936/WwTechs";
 import { FIRE_CONTROL_2_HIT_PCT } from "@openfront/engine/ww1936/navy/NavalBattles";
 import { describe, expect, it } from "vitest";
 
-/** The 36 techs of w77 and the one stat key each now gives (rules: see below). */
+/** w77's techs, as ww82 merged them, and the stat keys each gives (rules: see below). */
 const KEYS: Readonly<Record<string, readonly string[]>> = {
-  cast_armor: ["armorArmorPct"],
-  sloped_armor: ["armorArmorPct"],
-  torsion_bar: ["armorBrkPct"],
-  interleaved_wheels: ["armorBrkPct"],
-  tank_radio: ["mechOrg"],
-  flame_tank: ["fortPenaltyCutPct"],
-  diesel_engine: ["mechOrg"],
-  tank_engine_2: ["mechOrg"],
-  tank_engine_3: ["mechOrg"],
+  tank_armour_1: ["armorArmorPct"],
+  tank_armour_2: ["armorArmorPct"],
+  tank_drive_1: ["armorSpeedPct", "armorBrkPct", "mechOrg", "armorRelPp"],
+  tank_drive_2: ["armorSpeedPct", "armorBrkPct", "mechOrg", "armorRelPp"],
+  tank_command: ["armorBrkPct", "mechOrg"],
+  engineer_3: ["fortPenaltyCutPct"],
   heavy_tank_2: ["armorAttackPct"],
   heavy_tank_3: ["armorAttackPct"],
   tank_gun_2: ["armorPiercePct"],
@@ -43,26 +40,23 @@ const KEYS: Readonly<Record<string, readonly string[]>> = {
   tank_gun_4: ["armorPiercePct"],
   super_heavy_tank: ["armorDefensePct"],
   modern_tank_1: ["armorAttackPct", "armorBrkPct"],
-  amphibious_drive: ["invasionPrepPct"],
+  marines_2: ["invasionPrepPct"],
   naval_radar_2: ["navalDetectPct"],
   armored_deck: ["navalDamageTakenPct"],
   snorkel: ["subVisibilityPct"],
   super_heavy_battleship: ["capitalHpPct"],
   aircraft_cannon_1: ["fighterAttackPct"],
   aircraft_cannon_2: ["fighterAttackPct"],
-  drop_tanks: ["airRangePct"],
-  self_sealing_tanks: ["airLossCutPct"],
-  bomb_sight_1: ["stratBombPct"],
-  air_rockets_1: ["casPct"],
-  air_radar_1: ["airDetectPct"],
+  air_range: ["airRangePct"],
+  air_protection: ["airLossCutPct"],
+  bomb_sight_2: ["stratBombPct"],
+  air_rockets_2: ["casPct"],
   air_radar_2: ["airDetectPct"],
   jet_airframe_2: ["airAgilityPct"],
   jet_bomber_1: ["bomberDefensePct"],
   // By rule (ShipStats' NAVAL_AA_PCT, NavalBattles' fire control, Mines): no stat key.
   mine_warfare_1: [],
   dual_purpose_guns: [],
-  naval_aa_1: [],
-  naval_aa_2: [],
   fire_control_2: [],
 };
 
@@ -76,9 +70,9 @@ const def = (comp: Partial<Record<BattalionId, number>>): TemplateDef => ({
 const tot = (...t: WwTechId[]) => techTotals(new Set(t));
 const stat = (...t: WwTechId[]) => techStats(tot(...t));
 
-describe("the 36 techs w77 gave an effect", () => {
-  it("there are 36 and each gives what the table says", () => {
-    expect(Object.keys(KEYS).length).toBe(36);
+describe("the techs w77 gave an effect, as merged", () => {
+  it("each gives what the table says", () => {
+    expect(Object.keys(KEYS).length).toBe(30);
     for (const [id, keys] of Object.entries(KEYS)) {
       const fx = WW_TECHS[id as WwTechId].effects as Record<string, number>;
       expect(Object.keys(fx).sort(), id).toEqual([...keys].sort());
@@ -86,11 +80,11 @@ describe("the 36 techs w77 gave an effect", () => {
     }
   });
 
-  it("the small ones stay small (3-5 %, neighbours' size)", () => {
+  it("the small ones stay small (a merged one: the sum of its members)", () => {
     for (const id of Object.keys(KEYS)) {
       for (const [k, v] of Object.entries(WW_TECHS[id as WwTechId].effects)) {
         if (k === "mechOrg") continue;
-        expect(Math.abs(v as number), `${id}.${k}`).toBeLessThanOrEqual(10);
+        expect(Math.abs(v as number), `${id}.${k}`).toBeLessThanOrEqual(15);
       }
     }
   });
@@ -99,18 +93,15 @@ describe("the 36 techs w77 gave an effect", () => {
     const med = def({ medium_armor: 2 });
     const base = templateStats(med, tot(), GEN1);
     const a = (t: WwTechId) => templateStats(med, tot(t), GEN1);
-    expect(a("cast_armor").armor).toBeGreaterThan(base.armor);
-    expect(a("sloped_armor").armor).toBeGreaterThan(base.armor);
-    expect(a("torsion_bar").brk).toBeGreaterThan(base.brk);
-    expect(a("interleaved_wheels").brk).toBeGreaterThan(base.brk);
-    for (const t of [
-      "tank_radio",
-      "diesel_engine",
-      "tank_engine_2",
-      "tank_engine_3",
-    ] as const) {
+    expect(a("tank_armour_1").armor).toBeGreaterThan(base.armor);
+    expect(a("tank_armour_2").armor).toBeGreaterThan(base.armor);
+    for (const t of ["tank_drive_1", "tank_drive_2"] as const) {
+      expect(a(t).brk, t).toBeGreaterThan(base.brk);
+      expect(a(t).speedCenti, t).toBeGreaterThan(base.speedCenti);
       expect(a(t).orgMilli, t).toBeGreaterThan(base.orgMilli);
     }
+    expect(a("tank_command").brk).toBeGreaterThan(base.brk);
+    expect(a("tank_command").orgMilli).toBeGreaterThan(base.orgMilli);
     // Heavy tanks have no generic row: they come as catalogue (or design)
     // slots, which templateStats scales with the same battalionStatPct line
     // as a medium tank's static row (the medium checks above).
@@ -167,7 +158,7 @@ describe("the 36 techs w77 gave an effect", () => {
       planeStats("fighter", 1, stat("aircraft_cannon_2"), none).airAtk,
     ).toBeGreaterThan(planeStats("fighter", 1, z, none).airAtk);
     expect(
-      planeStats("fighter", 1, stat("drop_tanks"), none).rangeKm,
+      planeStats("fighter", 1, stat("air_range"), none).rangeKm,
     ).toBeGreaterThan(planeStats("fighter", 1, z, none).rangeKm);
     expect(
       planeStats("fighter", 1, stat("jet_airframe_2"), none).agility,
@@ -176,10 +167,10 @@ describe("the 36 techs w77 gave an effect", () => {
       planeStats("strat_bomber", 1, stat("jet_bomber_1"), none).airDef,
     ).toBeGreaterThan(planeStats("strat_bomber", 1, z, none).airDef);
     // Read straight off the country's stats in the air war.
-    expect(stat("bomb_sight_1").stratBombPct).toBe(5);
-    expect(stat("air_rockets_1").casPct).toBe(5);
-    expect(stat("self_sealing_tanks").airLossCutPct).toBe(3);
-    expect(stat("air_radar_1", "air_radar_2").airDetectPct).toBe(10);
+    expect(stat("bomb_sight_2").stratBombPct).toBe(15);
+    expect(stat("air_rockets_2").casPct).toBe(15);
+    expect(stat("air_protection").airLossCutPct).toBe(8);
+    expect(stat("air_radar_2").airDetectPct).toBe(10);
   });
 
   it("every live tech has some effect of its own in the stat table or an id rule", () => {
@@ -188,8 +179,6 @@ describe("the 36 techs w77 gave an effect", () => {
     const byRule = new Set([
       "mine_warfare_1",
       "dual_purpose_guns",
-      "naval_aa_1",
-      "naval_aa_2",
       "fire_control_2",
     ]);
     for (const id of WW_TECH_IDS) {

@@ -569,10 +569,11 @@ function rankByScore(scores: readonly (number | null)[]): number[] {
 /** Spec §12.2: an AI starts a tech at most this far ahead of its year. */
 export const AI_MAX_AHEAD_PCT = 50;
 /**
- * When nothing is that close, a slot takes a tech up to nine months early
- * rather than idle (Task 9; a full year early nearly doubles its time).
+ * When nothing is that close, a slot takes a tech up to a year early rather
+ * than idle: ww83's short techs run out of close ones in 1936 and 1937. Past
+ * a year the penalty turns steep (aheadPct), so this is as far as it goes.
  */
-export const AI_FALLBACK_AHEAD_PCT = 75;
+export const AI_FALLBACK_AHEAD_PCT = 100;
 
 // ---- The plan (pure) ----
 
@@ -826,7 +827,7 @@ export function aiReactPlan(input: AiInput, react: AiReact): AiPlan {
  */
 export function aiStartPlan(input: AiInput): AiPlan {
   const orders: AiOrder[] = [...planLines(input, false).orders];
-  planResearch(input, orders, true);
+  planResearch(input, orders);
   return orders;
 }
 
@@ -1392,15 +1393,11 @@ export function warSituation(
 /**
  * The research turn (changes §5): every free slot takes the best-scored
  * tech (researchScores, shared with a human's auto-research) within the
- * ahead-of-time tiers — 50% first, then 75%, then the land/sea/air caps
- * off; a start plan or a human's auto-research then fills what is left
- * with the least early tech.
+ * ahead-of-time tiers — 50% first, then a year, then the land/sea/air caps
+ * off; what is left takes the least early tech, so no slot waits (ww83: an
+ * early tech is short, and a slot's progress is never lost).
  */
-function planResearch(
-  i: AiInput,
-  orders: AiOrder[],
-  fill = i.fillSlots === true,
-): void {
+export function planResearch(i: AiInput, orders: AiOrder[]): void {
   const researched = new Set(i.researched);
   const slots: (WwTechId | null)[] = [...i.slots];
   while (slots.length < i.slotCount) slots.push(null);
@@ -1507,8 +1504,8 @@ function planResearch(
       tech =
         pick(ranked, AI_MAX_AHEAD_PCT) ??
         pick(ranked, AI_FALLBACK_AHEAD_PCT) ??
-        pick(ranked, AI_MAX_AHEAD_PCT, false) ??
-        (fill ? leastAhead(ranked) : undefined);
+        pick(ranked, AI_FALLBACK_AHEAD_PCT, false) ??
+        leastAhead(ranked);
     } else {
       // Strict: its area only, no shares; when the area has nothing left
       // the slot takes any tech rather than sit empty.
