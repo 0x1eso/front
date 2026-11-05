@@ -165,7 +165,7 @@ export const FRA_HIST: readonly HistEntry[] = [
     country: "FRA",
     family: "tank",
     role: "light",
-    techs: ["light_tank_1", "tank_gun_2"],
+    techs: ["light_tank_2"],
     year: 1940,
     // R35 hull with the long 37 mm SA 38 L/33; 120 built.
     source:
@@ -190,7 +190,8 @@ export const FRA_HIST: readonly HistEntry[] = [
     country: "FRA",
     family: "tank",
     role: "light",
-    techs: ["light_tank_2", "tank_gun_2"],
+    techs: ["light_tank_2"],
+    staticFor: "light_tank:2",
     year: 1939,
     // H35 with the SA 38 gun and a more powerful engine; the best French light infantry tank.
     // Audit w66: No better record than the H35: reliability 3.
@@ -240,7 +241,7 @@ export const FRA_HIST: readonly HistEntry[] = [
     country: "FRA",
     family: "tank",
     role: "medium",
-    techs: ["medium_tank_1", "tank_gun_2"],
+    techs: ["medium_tank_1"],
     year: 1936,
     // 47 mm SA 35 (sources 40-56 mm at 500 m, 42 used), 47 mm cast hull front, 42 mm turret (Wikipedia), 982,000 francs. Estimate: against the Pz III E class.
     // Audit w66: Fine tank but a demanding suspension: reliability 3.
@@ -293,7 +294,7 @@ export const FRA_HIST: readonly HistEntry[] = [
     country: "FRA",
     family: "tank",
     role: "heavy",
-    techs: ["heavy_tank_2", "tank_gun_3"],
+    techs: ["heavy_tank_3", "tank_gun_3"],
     year: 1946,
     // 90 mm SA 44 (US M3-class, APC pen. about 120-130 mm), 120 mm front, 60 built, poor reliability. Estimate: against the US M26.
     source:
@@ -318,7 +319,7 @@ export const FRA_HIST: readonly HistEntry[] = [
     country: "FRA",
     family: "tank",
     role: "td",
-    techs: ["motorized_1", "anti_tank_1"],
+    techs: ["motorized_1", "tank_gun_2"],
     year: 1940,
     // 47 mm SA 37 on a Laffly truck, gun shield only; pen. 60 mm at 550 m (Wikipedia 47 mm APX). Estimate: cost like a truck plus gun.
     source: "Memory (Touzin; Wikipedia).",
@@ -397,7 +398,7 @@ export const FRA_HIST: readonly HistEntry[] = [
     country: "FRA",
     family: "plane",
     type: "fighter",
-    techs: ["fighter_1"],
+    techs: ["fighter_1", "aero_engine_2"],
     year: 1939,
     // Cannon version with two HS.404 and two MAC 1934; the four-MG version was weaker.
     // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
@@ -451,7 +452,7 @@ export const FRA_HIST: readonly HistEntry[] = [
     country: "FRA",
     family: "plane",
     type: "fighter",
-    techs: ["fighter_1"],
+    techs: ["fighter_1", "aero_engine_2"],
     year: 1939,
     // US export fighter bought by France 1938-40 (about 290 delivered).
     // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
@@ -501,7 +502,7 @@ export const FRA_HIST: readonly HistEntry[] = [
     country: "FRA",
     family: "plane",
     type: "heavy_fighter",
-    techs: ["heavy_fighter_1"],
+    techs: ["heavy_fighter_1", "aero_engine_2"],
     year: 1939,
     // Twin-engine heavy fighter, two 20 mm in a belly pod; the French counterpart to the Bf 110.
     // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
@@ -528,7 +529,7 @@ export const FRA_HIST: readonly HistEntry[] = [
     country: "FRA",
     family: "plane",
     type: "cas",
-    techs: ["cas_1"],
+    techs: ["cas_2"],
     year: 1940,
     // Twin-engine ground-attack bomber, one fixed 20 mm and two MACs forward.
     // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
@@ -555,7 +556,7 @@ export const FRA_HIST: readonly HistEntry[] = [
     country: "FRA",
     family: "plane",
     type: "cas",
-    techs: ["cas_1"],
+    techs: ["cas_1", "aero_engine_2"],
     year: 1939,
     // Gull-wing dive bomber; only 15 LN.401 (68 in the family) built.
     // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
@@ -680,7 +681,7 @@ export const FRA_HIST: readonly HistEntry[] = [
     country: "FRA",
     family: "plane",
     type: "transport_plane",
-    techs: ["transport_plane_1"],
+    techs: ["transport_plane_2"],
     year: 1947,
     // French postwar production of the Ju 52/3m.
     // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
@@ -704,7 +705,7 @@ export const FRA_HIST: readonly HistEntry[] = [
     country: "FRA",
     family: "plane",
     type: "cv_cas",
-    techs: ["cas_1", "carrier_aviation"],
+    techs: ["cas_2", "carrier_aviation"],
     year: 1940,
     // US dive bomber ordered by France 1939; used from land bases in 1940.
     source:

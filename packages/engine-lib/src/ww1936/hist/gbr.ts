@@ -118,7 +118,7 @@ export const GBR_HIST: readonly HistEntry[] = [
     country: "GBR",
     family: "tank",
     role: "light",
-    techs: ["light_tank_2"],
+    techs: ["light_tank_2", "tank_drive_2"],
     year: 1941,
     // Light Tank Mk VII: 7.6 t, 14-16 mm, 2-pdr and a coaxial Besa, 64 km/h;
     // air-portable by glider. Cost estimate.
@@ -143,7 +143,7 @@ export const GBR_HIST: readonly HistEntry[] = [
     country: "GBR",
     family: "tank",
     role: "light",
-    techs: ["light_tank_2"],
+    techs: ["light_tank_2", "tank_drive_2"],
     year: 1941,
     // Daimler Armoured Car: 7.5 t, 16 mm front, 2-pdr and a coaxial Besa,
     // 80 km/h, four-wheel drive and steering. Cost estimate.
@@ -445,7 +445,7 @@ export const GBR_HIST: readonly HistEntry[] = [
     country: "GBR",
     family: "tank",
     role: "heavy",
-    techs: ["heavy_tank_2", "tank_gun_2"],
+    techs: ["heavy_tank_3", "tank_gun_2"],
     year: 1944,
     // Churchill VII: 40.7 t, 152 mm hull and turret, 75 mm (68 mm at
     // 500 m), two Besa, 20 km/h; reliable by then. Cost estimate.
@@ -785,7 +785,7 @@ export const GBR_HIST: readonly HistEntry[] = [
     country: "GBR",
     family: "plane",
     type: "heavy_fighter",
-    techs: ["heavy_fighter_1"],
+    techs: ["heavy_fighter_2"],
     year: 1940,
     // Bristol Beaufighter IF: twin Hercules, 520 km/h, four 20 mm and six
     // .303, AI Mk IV radar; range 1,750 km (sources 1,500-2,000). Cost
@@ -891,7 +891,7 @@ export const GBR_HIST: readonly HistEntry[] = [
     country: "GBR",
     family: "plane",
     type: "bomber",
-    techs: ["bomber_1"],
+    techs: ["bomber_1", "aero_engine_2"],
     year: 1939,
     // Bristol Blenheim IV: 428 km/h, 454 kg of bombs, one fixed .303 and
     // three flexible; range 1,950 km (sources 1,800-2,350). Cost estimate.
@@ -939,7 +939,7 @@ export const GBR_HIST: readonly HistEntry[] = [
     country: "GBR",
     family: "plane",
     type: "naval_bomber",
-    techs: ["naval_bomber_1"],
+    techs: ["naval_bomber_1", "aero_engine_2"],
     year: 1939,
     // Bristol Beaufort I: twin torpedo bomber, 418 km/h, one 730 kg torpedo
     // or 680 kg of bombs, one fixed and two flexible .303; 1,600 km (sources
@@ -986,7 +986,7 @@ export const GBR_HIST: readonly HistEntry[] = [
     country: "GBR",
     family: "plane",
     type: "strat_bomber",
-    techs: ["strat_bomber_1"],
+    techs: ["strat_bomber_1", "aero_engine_2"],
     year: 1939,
     // Armstrong Whitworth Whitley V: 357 km/h, up to 3,175 kg of bombs, one
     // nose and four tail .303; 2,650 km (sources 2,400-2,650). Cost estimate.
@@ -1085,7 +1085,7 @@ export const GBR_HIST: readonly HistEntry[] = [
     country: "GBR",
     family: "plane",
     type: "cv_fighter",
-    techs: ["carrier_aviation", "fighter_1"],
+    techs: ["fighter_2", "carrier_aviation"],
     year: 1940,
     // Fairey Fulmar I: two-seat carrier fighter, 398 km/h, eight .303,
     // 1,300 km; slow but long-legged. Cost estimate.
@@ -1186,7 +1186,7 @@ export const GBR_HIST: readonly HistEntry[] = [
     country: "GBR",
     family: "plane",
     type: "cv_naval_bomber",
-    techs: ["carrier_aviation", "naval_bomber_2"],
+    techs: ["naval_bomber_1", "carrier_aviation", "aero_engine_3"],
     year: 1943,
     // Fairey Barracuda II: monoplane torpedo and dive bomber, 367 km/h, one
     // 730 kg torpedo or 725 kg of bombs, two flexible .303; 1,100 km. Cost
@@ -1845,7 +1845,7 @@ export const GBR_HIST: readonly HistEntry[] = [
     country: "GBR",
     family: "gun",
     role: "anti_tank",
-    techs: ["anti_tank_2", "tank_gun_4"],
+    techs: ["anti_tank_2"],
     year: 1943,
     // QF 17-pounder: 76.2 mm, 10 rounds a minute, APCBC 7.7 kg and about
     // 140 mm at 500 m (sources 130-150), 3,040 kg; the strongest Allied AT

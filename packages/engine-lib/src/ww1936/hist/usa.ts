@@ -54,7 +54,7 @@ export const USA_HIST: readonly HistEntry[] = [
     country: "USA",
     family: "tank",
     role: "light",
-    techs: ["light_tank_2"],
+    techs: ["light_tank_2", "tank_gun_2"],
     year: 1941,
     // 37 mm M6 gun, 38 mm hull front, 5 MGs, 12.7 t; 13,859 built. Hunnicutt
     // cost about $33.5k. Reliable but short-ranged.
@@ -81,7 +81,7 @@ export const USA_HIST: readonly HistEntry[] = [
     country: "USA",
     family: "tank",
     role: "light",
-    techs: ["light_tank_2"],
+    techs: ["light_tank_2", "tank_gun_2"],
     year: 1942,
     // Twin Cadillac engines, 64 mm sloped front, 37 mm M6; 6,800 built.
     // Audit w66: Same 37 mm M6.
@@ -108,7 +108,7 @@ export const USA_HIST: readonly HistEntry[] = [
     country: "USA",
     family: "tank",
     role: "light",
-    techs: ["light_tank_2", "tank_gun_2"],
+    techs: ["light_tank_2", "tank_gun_2", "tank_drive_2"],
     year: 1944,
     // 75 mm M6 (lightened tank gun, about 70 mm at 500 m), 25 mm front at
     // 60 degrees, 38 mm turret; 4,731 built. Cost about $55k (sources 50-60).
@@ -136,7 +136,7 @@ export const USA_HIST: readonly HistEntry[] = [
     country: "USA",
     family: "tank",
     role: "light",
-    techs: ["light_tank_2"],
+    techs: ["light_tank_2", "tank_gun_2", "tank_drive_2"],
     year: 1943,
     // Six-wheeled armoured car, 37 mm M6, 19 mm front, 89 km/h; 8,523 built.
     // Cost about $20k (estimate).
@@ -164,7 +164,7 @@ export const USA_HIST: readonly HistEntry[] = [
     country: "USA",
     family: "tank",
     role: "medium",
-    techs: ["medium_tank_1", "artillery_1"],
+    techs: ["medium_tank_1", "tank_gun_2"],
     year: 1941,
     // 75 mm M2 L/31 in a sponson (about 60 mm at 500 m), 37 mm turret gun,
     // 51 mm front, tall and riveted; 6,258 built. Cost about $50k.
@@ -272,7 +272,7 @@ export const USA_HIST: readonly HistEntry[] = [
     country: "USA",
     family: "tank",
     role: "heavy",
-    techs: ["heavy_tank_2", "tank_gun_3"],
+    techs: ["heavy_tank_3", "tank_gun_3"],
     year: 1945,
     // Classed a heavy tank in 1945. 90 mm M3 (M82 APC about 112-143 mm at
     // 500 m, mid 125), 102 mm front at 46 degrees, 102 mm turret; 2,000
@@ -384,7 +384,7 @@ export const USA_HIST: readonly HistEntry[] = [
     country: "USA",
     family: "tank",
     role: "spa",
-    techs: ["medium_tank_1", "artillery_2"],
+    techs: ["medium_tank_2", "artillery_2"],
     year: 1942,
     // 105 mm M2A1 howitzer on the M3 chassis (HE filler about 2.1 kg),
     // open-topped, 51 mm front; 4,316 built. Cost about $40k (estimate).
@@ -410,7 +410,7 @@ export const USA_HIST: readonly HistEntry[] = [
     country: "USA",
     family: "tank",
     role: "spaa",
-    techs: ["motorized_1", "anti_air_1"],
+    techs: ["motorized_3", "anti_air_1"],
     year: 1943,
     // Half-track M3 with the M45 quad .50 in (M2HB, 450-575 rounds per
     // minute each, 500 used), 12 mm armour; 2,877 built. Cost about $10k
@@ -439,7 +439,7 @@ export const USA_HIST: readonly HistEntry[] = [
     country: "USA",
     family: "tank",
     role: "spaa",
-    techs: ["light_tank_2", "anti_air_2"],
+    techs: ["light_tank_2", "anti_air_2", "tank_drive_2"],
     year: 1945,
     // Twin 40 mm Bofors (about 120 rounds per minute each, pierces about
     // 42 mm at 500 m) on the Chaffee chassis, open turret; 285 built.
@@ -567,7 +567,7 @@ export const USA_HIST: readonly HistEntry[] = [
     country: "USA",
     family: "plane",
     type: "fighter",
-    techs: ["fighter_3", "drop_tanks"],
+    techs: ["fighter_3", "air_range"],
     year: 1944,
     // North American P-51D Mustang: six .50 in MGs, Packard Merlin, long
     // range with drop tanks (1,650 km internal). Cost about $51k.
@@ -690,7 +690,7 @@ export const USA_HIST: readonly HistEntry[] = [
     country: "USA",
     family: "plane",
     type: "heavy_fighter",
-    techs: ["heavy_fighter_2"],
+    techs: ["heavy_fighter_1", "aero_engine_3"],
     year: 1943,
     // Lockheed P-38J Lightning: one 20 mm and four .50 in the nose, twin
     // Allisons, 1,450 kg of bombs. Cost $97-134k, mid 115.
@@ -740,7 +740,7 @@ export const USA_HIST: readonly HistEntry[] = [
     country: "USA",
     family: "plane",
     type: "cas",
-    techs: ["cas_2"],
+    techs: ["cas_1", "aero_engine_3"],
     year: 1943,
     // Douglas A-20G Havoc: six .50 in nose guns, three more defensive,
     // 1,800 kg of bombs. Cost about $100k (estimate).
@@ -763,7 +763,7 @@ export const USA_HIST: readonly HistEntry[] = [
     country: "USA",
     family: "plane",
     type: "cv_cas",
-    techs: ["cas_1", "carrier_aviation"],
+    techs: ["cas_2", "carrier_aviation"],
     year: 1941,
     // Douglas SBD-3 Dauntless: two .50 forward, twin .30 flexible, one
     // 450 kg and two 45 kg bombs; sank four Japanese carriers at Midway.
@@ -788,7 +788,7 @@ export const USA_HIST: readonly HistEntry[] = [
     country: "USA",
     family: "plane",
     type: "cv_cas",
-    techs: ["cas_2", "carrier_aviation"],
+    techs: ["cas_3", "carrier_aviation"],
     year: 1944,
     // Curtiss SB2C-3 Helldiver: two 20 mm forward, twin .30 flexible, 1,800
     // kg of bombs; troubled development ("Beast"). Cost about $70k
@@ -838,7 +838,7 @@ export const USA_HIST: readonly HistEntry[] = [
     country: "USA",
     family: "plane",
     type: "bomber",
-    techs: ["bomber_2"],
+    techs: ["bomber_1", "aero_engine_3"],
     year: 1943,
     // North American B-25J Mitchell: four fixed .50, six more defensive,
     // 1,360 kg of bombs. Cost $120-142k, mid 130.
@@ -861,7 +861,7 @@ export const USA_HIST: readonly HistEntry[] = [
     country: "USA",
     family: "plane",
     type: "naval_bomber",
-    techs: ["naval_bomber_1"],
+    techs: ["naval_bomber_2"],
     year: 1941,
     // Consolidated PBY-5A Catalina: amphibious flying boat, two .50 and
     // three .30 defensive, 1,800 kg of bombs or depth charges, a torpedo
@@ -932,7 +932,7 @@ export const USA_HIST: readonly HistEntry[] = [
     country: "USA",
     family: "plane",
     type: "strat_bomber",
-    techs: ["strat_bomber_1"],
+    techs: ["strat_bomber_2"],
     year: 1941,
     // First B-17 with a tail gun: the strat_bomber_1 step, gated like the Wellington and the TB-3.
     source:
@@ -955,7 +955,7 @@ export const USA_HIST: readonly HistEntry[] = [
     country: "USA",
     family: "plane",
     type: "strat_bomber",
-    techs: ["strat_bomber_2"],
+    techs: ["strat_bomber_1", "aero_engine_3"],
     year: 1943,
     // Boeing B-17G Flying Fortress: thirteen .50 in MGs, 3,600 kg normal
     // load on a short mission (2,000 kg long range, 7,800 maximum). Cost
@@ -981,7 +981,7 @@ export const USA_HIST: readonly HistEntry[] = [
     country: "USA",
     family: "plane",
     type: "strat_bomber",
-    techs: ["strat_bomber_2"],
+    techs: ["strat_bomber_1", "aero_engine_3"],
     year: 1943,
     // Consolidated B-24J Liberator: ten .50 in MGs, 3,600 kg of bombs, long
     // range; most built US aircraft (18,000). Cost about $215k.
@@ -1028,7 +1028,7 @@ export const USA_HIST: readonly HistEntry[] = [
     country: "USA",
     family: "plane",
     type: "transport_plane",
-    techs: ["transport_plane_1"],
+    techs: ["transport_plane_2"],
     year: 1941,
     // Douglas C-47 Skytrain (DC-3): 28 troops or 2,700 kg, 10,000 built, very
     // reliable. Cost $100-138k, mid 120.
@@ -1670,7 +1670,7 @@ export const USA_HIST: readonly HistEntry[] = [
     country: "USA",
     family: "gun",
     role: "anti_tank",
-    techs: ["anti_tank_2", "tank_gun_3"],
+    techs: ["anti_tank_2"],
     year: 1943,
     // 3-inch gun M5 (towed M7): 12 rounds per minute, 6.8 kg APC, about 98
     // mm at 500 m, 2,540 kg. Cost about $6k (estimate).

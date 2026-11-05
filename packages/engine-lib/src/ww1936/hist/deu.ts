@@ -159,7 +159,7 @@ export const DEU_HIST: readonly HistEntry[] = [
     country: "DEU",
     family: "tank",
     role: "medium",
-    techs: ["medium_tank_1", "artillery_1"],
+    techs: ["medium_tank_1"],
     year: 1939,
     // Support tank with the short 75 mm KwK 37 L/24 (PzGr about 38 mm at
     // 500 m, HE shell 680 g filler), 30 mm armour. RM about 103,000.
@@ -214,7 +214,7 @@ export const DEU_HIST: readonly HistEntry[] = [
     country: "DEU",
     family: "tank",
     role: "medium",
-    techs: ["medium_tank_3", "tank_gun_4"],
+    techs: ["medium_tank_3", "tank_gun_3"],
     year: 1943,
     // 75 mm KwK 42 L/70 (PzGr 39/42 about 138 mm at 500 m), 80 mm glacis at
     // 55 degrees, 110 mm turret front; poor early reliability. RM 117,100.
@@ -353,7 +353,7 @@ export const DEU_HIST: readonly HistEntry[] = [
     country: "DEU",
     family: "tank",
     role: "spaa",
-    techs: ["medium_tank_2", "anti_air_1"],
+    techs: ["medium_tank_3", "anti_air_1"],
     year: 1944,
     // Quad 2 cm Flakvierling 38 in an open turret on a Pz IV chassis (about
     // 450 rounds per minute per barrel); RM about 80,000.
@@ -438,7 +438,7 @@ export const DEU_HIST: readonly HistEntry[] = [
     country: "DEU",
     family: "tank",
     role: "light",
-    techs: ["light_tank_2", "tank_gun_2"],
+    techs: ["light_tank_2", "tank_gun_2", "tank_drive_2"],
     year: 1943,
     // Sd.Kfz. 234/2 eight-wheel armoured car, 50 mm KwK 39/1 L/60 (PzGr 39
     // 59-86 mm at 500 m by source, 75 used), 30 mm sloped front; complex and
@@ -467,7 +467,7 @@ export const DEU_HIST: readonly HistEntry[] = [
     country: "DEU",
     family: "tank",
     role: "medium",
-    techs: ["medium_tank_2", "tank_gun_2"],
+    techs: ["medium_tank_2", "tank_gun_3"],
     year: 1942,
     // First Pz IV with the long 75 mm KwK 40 L/43 (PzGr 39 about 82 mm at
     // 500 m; L/48 89 mm), 50 mm front and turret; price as the other Pz IV.
@@ -494,7 +494,7 @@ export const DEU_HIST: readonly HistEntry[] = [
     country: "DEU",
     family: "tank",
     role: "td",
-    techs: ["medium_tank_1", "artillery_1"],
+    techs: ["medium_tank_1"],
     year: 1940,
     // Early assault gun, short 75 mm StuK 37 L/24 (PzGr about 38 mm at 500 m,
     // 680 g HE filler), 50 mm front; RM about 80,000 (Spielberger, mid).
@@ -547,7 +547,7 @@ export const DEU_HIST: readonly HistEntry[] = [
     country: "DEU",
     family: "tank",
     role: "td",
-    techs: ["medium_tank_3", "tank_gun_4"],
+    techs: ["medium_tank_3", "tank_gun_3"],
     year: 1944,
     // Jagdpanzer IV/70(V): 75 mm StuK 42 L/70 (as the Panther's, 138 mm at
     // 500 m), 80 mm front at about 50 degrees; front-heavy, wore its drive.
@@ -601,7 +601,7 @@ export const DEU_HIST: readonly HistEntry[] = [
     country: "DEU",
     family: "tank",
     role: "spa",
-    techs: ["light_tank_2", "artillery_1"],
+    techs: ["light_tank_2", "artillery_1", "tank_drive_2"],
     year: 1943,
     // 10.5 cm leFH 18/2 on a Pz II chassis, open-topped, about 20 mm front;
     // HE shell about 1.4 kg filler. Price about RM 52,000.
@@ -653,7 +653,7 @@ export const DEU_HIST: readonly HistEntry[] = [
     country: "DEU",
     family: "tank",
     role: "spaa",
-    techs: ["medium_tank_2", "anti_air_2"],
+    techs: ["medium_tank_3", "anti_air_2"],
     year: 1944,
     // 3.7 cm Flak 43 (about 250 rounds per minute) in an open box on a Pz IV
     // chassis, 25 mm shield; price estimated at RM 90,000.
@@ -710,7 +710,7 @@ export const DEU_HIST: readonly HistEntry[] = [
     country: "DEU",
     family: "plane",
     type: "fighter",
-    techs: ["fighter_1"],
+    techs: ["fighter_1", "aero_engine_2"],
     year: 1939,
     // Bf 109 E-3: 2 x MG 17 + 2 x 20 mm MG FF/M; about RM 58,000 (estimate).
     // Audit w66: Cost rebased to the one table in the ww66 report (was the lane's own estimate, kept above if it says so).
@@ -736,7 +736,7 @@ export const DEU_HIST: readonly HistEntry[] = [
     country: "DEU",
     family: "plane",
     type: "cv_fighter",
-    techs: ["fighter_1", "carrier_aviation"],
+    techs: ["fighter_2", "carrier_aviation"],
     year: 1940,
     // Bf 109 T-1, the carrier version for the Graf Zeppelin (long wing, arrester
     // hook), same guns as the E; only land-based in the end. Range and weights
@@ -790,7 +790,7 @@ export const DEU_HIST: readonly HistEntry[] = [
     country: "DEU",
     family: "plane",
     type: "fighter",
-    techs: ["fighter_2", "aero_engine_2"],
+    techs: ["fighter_1", "aero_engine_3"],
     year: 1943,
     // Bf 109 G-6: 1 x 20 mm MG 151/20 + 2 x 13 mm MG 131 (cowl bulges); 642 km/h
     // at 6,300 m, 2,247 kg empty (Wikipedia).
@@ -953,7 +953,7 @@ export const DEU_HIST: readonly HistEntry[] = [
     country: "DEU",
     family: "plane",
     type: "heavy_fighter",
-    techs: ["heavy_fighter_1"],
+    techs: ["heavy_fighter_1", "aero_engine_2"],
     year: 1939,
     // Bf 110 C-4 "Zerstorer": 2 x 20 mm MG FF + 4 x MG 17 forward, one MG 15
     // aft. Price about RM 80,000 (estimate).
@@ -980,7 +980,7 @@ export const DEU_HIST: readonly HistEntry[] = [
     country: "DEU",
     family: "plane",
     type: "heavy_fighter",
-    techs: ["heavy_fighter_2", "air_radar_1"],
+    techs: ["heavy_fighter_2", "air_radar_2"],
     year: 1943,
     // Bf 110 G-4 night fighter: 2 x 30 mm MK 108, 2 x 20 mm MG 151/20, FuG 202
     // Lichtenstein radar, twin MG 81Z aft. Price estimated at RM 100,000.
@@ -1008,7 +1008,7 @@ export const DEU_HIST: readonly HistEntry[] = [
     country: "DEU",
     family: "plane",
     type: "heavy_fighter",
-    techs: ["heavy_fighter_2", "aircraft_cannon_1"],
+    techs: ["heavy_fighter_1", "aircraft_cannon_1", "aero_engine_3"],
     year: 1943,
     // Me 410 A-1 Hornisse: 2 x 20 mm MG 151/20 + 2 x MG 17, two remote 13 mm
     // MG 131 barbettes, 1,000 kg bombs; 624 km/h. Price estimated at RM 120,000.
@@ -1086,7 +1086,7 @@ export const DEU_HIST: readonly HistEntry[] = [
     country: "DEU",
     family: "plane",
     type: "bomber",
-    techs: ["bomber_1"],
+    techs: ["bomber_1", "aero_engine_2"],
     year: 1939,
     // Do 17 Z-2 "Flying Pencil": 1,000 kg, four MG 15 in the nose and
     // gondola; 410 km/h. Price about RM 150,000 (estimate).
@@ -1110,7 +1110,7 @@ export const DEU_HIST: readonly HistEntry[] = [
     country: "DEU",
     family: "plane",
     type: "bomber",
-    techs: ["bomber_1"],
+    techs: ["bomber_2"],
     year: 1940,
     // He 111 H-6: 2,000 kg, 5 to 6 defensive guns incl. one 20 mm MG FF;
     // 440 km/h. Price about RM 215,000 (estimate).
@@ -1210,7 +1210,7 @@ export const DEU_HIST: readonly HistEntry[] = [
     country: "DEU",
     family: "plane",
     type: "naval_bomber",
-    techs: ["naval_bomber_1"],
+    techs: ["naval_bomber_1", "aero_engine_2"],
     year: 1939,
     // He 115 B-1 floatplane: one LT F5b torpedo (765 kg) or 1,250 kg bombs,
     // one MG 17 forward, MG 15 aft; 328 km/h, 2,080 km. Estimated RM 180,000.
@@ -1234,7 +1234,7 @@ export const DEU_HIST: readonly HistEntry[] = [
     country: "DEU",
     family: "plane",
     type: "naval_bomber",
-    techs: ["naval_bomber_1", "long_range_1"],
+    techs: ["naval_bomber_1", "air_range"],
     year: 1941,
     // Fw 200 C-3 Condor, converted airliner: 3,550 km, 2,100 kg bombs, about
     // five defensive guns; the hull cracked on hard landings. Estimated RM
@@ -1333,7 +1333,7 @@ export const DEU_HIST: readonly HistEntry[] = [
     country: "DEU",
     family: "ship",
     cls: "dd",
-    techs: [],
+    techs: ["dd_3"],
     year: 1939,
     // Torpedo boat Type 1935 (T1-T8): 844 t, 3 x 10.5 cm, 6 tubes, 35 kn.
     // About RM 5.5 million (estimate).
@@ -1507,7 +1507,7 @@ export const DEU_HIST: readonly HistEntry[] = [
     country: "DEU",
     family: "ship",
     cls: "ca",
-    techs: ["ca_2"],
+    techs: ["ca_3"],
     year: 1939,
     // Admiral Hipper class: 14,050 t design standard (16,170 t later figures),
     // 8 x 20.3 cm, 12 x 10.5 cm, 80 mm belt, 32.5 kn, 12 tubes. About RM 86
@@ -1537,7 +1537,7 @@ export const DEU_HIST: readonly HistEntry[] = [
     country: "DEU",
     family: "ship",
     cls: "bc",
-    techs: ["bc_2"],
+    techs: ["bc_3"],
     year: 1939,
     // Scharnhorst class: 32,100 t standard, 9 x 28.3 cm, 12 x 15 cm, 14 x
     // 10.5 cm, 350 mm belt, 31 kn, 6 tubes. RM 143 million (Gröner).
@@ -1655,7 +1655,7 @@ export const DEU_HIST: readonly HistEntry[] = [
     country: "DEU",
     family: "ship",
     cls: "ss",
-    techs: ["ss_2"],
+    techs: ["ss_3"],
     year: 1941,
     // Type VIIC: 769 t surfaced, 5 tubes (4 bow, 1 stern), 17.7 kn, 8,500 nm;
     // the workhorse. About RM 4.5 million (estimate).
@@ -1780,7 +1780,7 @@ export const DEU_HIST: readonly HistEntry[] = [
     id: "deu_kuebelwagen",
     country: "DEU",
     family: "support",
-    techs: ["support_eq_1", "motorized_1"],
+    techs: ["support_eq_1"],
     year: 1940,
     // Volkswagen Type 82 Kübelwagen light utility car, about 400 km range;
     // about RM 3,500.
@@ -1855,7 +1855,7 @@ export const DEU_HIST: readonly HistEntry[] = [
     country: "DEU",
     family: "gun",
     role: "anti_tank",
-    techs: ["anti_tank_1", "at_imp_1"],
+    techs: ["anti_tank_1"],
     year: 1940,
     // 5 cm Pak 38 L/60: 2.06 kg PzGr 39, 14 rpm, 70 mm at 500 m (sources 59-86),
     // 1,000 kg; about RM 8,500.
@@ -1877,7 +1877,7 @@ export const DEU_HIST: readonly HistEntry[] = [
     country: "DEU",
     family: "gun",
     role: "anti_tank",
-    techs: ["anti_tank_2", "at_imp_2"],
+    techs: ["anti_tank_2"],
     year: 1942,
     // 7.5 cm Pak 40 L/46: 6.8 kg PzGr 39, 12 rpm, about 85 mm at 500 m,
     // 1,425 kg; about RM 12,000.
@@ -1899,7 +1899,7 @@ export const DEU_HIST: readonly HistEntry[] = [
     country: "DEU",
     family: "gun",
     role: "anti_tank",
-    techs: ["anti_tank_2", "at_imp_3"],
+    techs: ["anti_tank_2"],
     year: 1943,
     // 8.8 cm Pak 43 L/71: 10.2 kg PzGr 39/43, 10 rpm, about 210 mm at 500 m
     // (as the KwK 43), 4,400 kg; price estimated at RM 16,000.
@@ -1942,7 +1942,7 @@ export const DEU_HIST: readonly HistEntry[] = [
     country: "DEU",
     family: "gun",
     role: "anti_air",
-    techs: ["anti_air_1", "aa_imp_1"],
+    techs: ["anti_air_1"],
     year: 1936,
     // 8.8 cm Flak 36: 9.4 kg shell, 15 rpm, 8,000 m effective ceiling, about
     // 5,000 kg in action; about RM 33,000.
