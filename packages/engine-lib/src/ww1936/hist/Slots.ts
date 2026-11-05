@@ -207,6 +207,19 @@ function relevanceOf(
 }
 
 /**
+ * The entries of `country` that need `tech` on the way, its own gates aside:
+ * what a pass-through tech's card names.
+ */
+export function histEntriesBehind(
+  tech: WwTechId,
+  country: HistCountry,
+): HistEntry[] {
+  const leadsThere = (t: WwTechId): boolean =>
+    WW_TECHS[t].prereqs.some((p) => p === tech || leadsThere(p));
+  return histUsable(country).filter((e) => histGatesOf(e).some(leadsThere));
+}
+
+/**
  * ww82 §9: `own` when the tech gives `country` a named entry, `pass` when it
  * gives none but leads to one, `generic` when it gives only the generic
  * equipment. Only generation and tank gun techs can be other than `own`: every

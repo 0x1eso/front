@@ -11,6 +11,16 @@ import {
 } from "@openfront/engine-api/ww1936/EconomyTypes";
 import { aheadPct } from "@openfront/engine-lib/ww1936/EconomyRules";
 import {
+  histEntriesBehind,
+  histEntriesGatedBy,
+  TechRelevance,
+  techRelevance,
+} from "@openfront/engine-lib/ww1936/hist/Slots";
+import {
+  HIST_COUNTRIES,
+  HistCountry,
+} from "@openfront/engine-lib/ww1936/hist/Types";
+import {
   leanHasTab,
   researchPersonaOf,
   researchScores,
@@ -79,7 +89,59 @@ export interface TreeNode {
   crossTab: WwTechId | null;
   /** Reserved in a slot's queue (slot index, 1-based place), or null. */
   queued: { slot: number; pos: number } | null;
+  /** What it gives a major with the designer off, or null: today's look. */
+  gear: TechGear | null;
 }
+
+/** One catalogue entry a tech opens. */
+export interface GearEntry {
+  /** Text key ww1936.hist.<id>. */
+  id: string;
+  /** Service year. */
+  year: number;
+  /** The other techs it still needs. */
+  needs: readonly WwTechId[];
+}
+
+/** ww82 §9: a tech as one major sees it. */
+export interface TechGear {
+  relevance: TechRelevance;
+  /** What it opens, its main line first. */
+  entries: readonly GearEntry[];
+  /** A pass-through tech: the entries it leads to (text ids). */
+  leads: readonly string[];
+}
+
+/** A major's view of a tech; null for a minor, which has no catalogue. */
+export function techGear(
+  tech: WwTechId,
+  country: string | null,
+  researched: ReadonlySet<WwTechId>,
+): TechGear | null {
+  if (!(HIST_COUNTRIES as readonly (string | null)[]).includes(country)) {
+    return null;
+  }
+  const tag = country as HistCountry;
+  const list = histEntriesGatedBy(tech, tag);
+  const first = (e: (typeof list)[number]) => (e.techs[0] === tech ? 0 : 1);
+  const relevance = techRelevance(tech, tag);
+  return {
+    relevance,
+    entries: list
+      .map((e, k) => ({ e, k }))
+      .sort((a, b) => first(a.e) - first(b.e) || a.k - b.k)
+      .map(({ e }) => ({
+        id: e.id,
+        year: e.year,
+        needs: e.techs.filter((t) => t !== tech && !researched.has(t)),
+      })),
+    leads:
+      relevance === "pass" ? histEntriesBehind(tech, tag).map((e) => e.id) : [],
+  };
+}
+
+/** D4: what the portable anti-tank weapon is called in each major. */
+export const PORTABLE_AT_TECH: WwTechId = "inf_at_2";
 
 export interface TreeEdge {
   from: WwTechId;
@@ -141,8 +203,11 @@ export function treeLayout(
   branch: (typeof TECH_BRANCHES)[number],
   day: number,
   bonuses: readonly BonusSource[],
+  /** My country when the catalogue applies (the designer off), else null. */
+  country: string | null = null,
 ): TreeLayout {
   const cards = researchCards(d, branch, day);
+  const researched = new Set(d.researched);
   const ids = new Set(cards.map((c) => c.id));
   const byYear = [...cards].sort(
     (a, b) =>
@@ -189,6 +254,7 @@ export function treeLayout(
       y: PAD + row * ROW_H,
       crossTab: cross,
       queued: queuedAt(d, card.id),
+      gear: techGear(card.id, country, researched),
     });
   }
   return {
