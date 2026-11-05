@@ -305,6 +305,14 @@ export function coupNeedBp(targetStabilityBp: number): number {
   return targetStabilityBp < 5_000 ? 3_000 : 4_000;
 }
 
+/**
+ * ww100: the success of a coup, ‰, in a country with `resistPct` coup
+ * resistance (spirits): +30 % makes it 1.3 times as hard, +100 % twice.
+ */
+export function coupSuccessPm(pm: number, resistPct: number): number {
+  return Math.floor((pm * 100) / (100 + Math.max(0, resistPct)));
+}
+
 /** Spec §8.2: upgrade prerequisites (computing_1 for ag_crypto_2 is checked by the caller). */
 export const UPGRADE_NEEDS: Readonly<
   Partial<Record<AgencyUpgrade, AgencyUpgrade>>

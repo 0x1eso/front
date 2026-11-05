@@ -2,6 +2,7 @@
 // rolls (wwRoll, pre-flight §A13: milli‰), effects through P3, the
 // captured operative's cancelled operation. Plan decision 30: a human
 // country, the lane functions called directly, findRoll for the rolls.
+import { INTEL_OPERATIONS } from "@openfront/engine-api/ww1936/DepthTypes";
 import { equipKey } from "@openfront/engine-api/ww1936/EconomyTypes";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import {
@@ -102,6 +103,32 @@ function runOp(
 }
 
 describe("World War 1936 P6: intelligence operations (lane I)", () => {
+  it("coup resistance cuts a coup's odds, the card's too, and no other operation's", async () => {
+    const r = await game();
+    const ww = r.game.worldWar()!;
+    const d = ww.depth;
+    const [a, b] = agency(d, [11, 12]);
+    d.setNetMilli(GBR, ITA, 900_000);
+    const ops = [a.uid, b.uid];
+    const coup = () =>
+      operationSuccessPm(d, GBR, {
+        kind: INTEL_OPERATIONS.indexOf("op_coup"),
+        target: ITA,
+        operatives: ops,
+      });
+    const other = () =>
+      operationSuccessPm(d, GBR, {
+        kind: INTEL_OPERATIONS.indexOf("op_steal_blueprints"),
+        target: ITA,
+        operatives: ops,
+      });
+    const was = coup();
+    expect(other()).toBe(was);
+    ww.politics.country(ITA)!.stats.coupResistPct = 30;
+    expect(coup()).toBe(Math.floor((was * 100) / 130));
+    expect(other()).toBe(was);
+  });
+
   it("coup operation succeeds or fails by wwRoll and applies P3 coup effects", async () => {
     for (const pass of [true, false]) {
       const r = await game();

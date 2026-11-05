@@ -25,6 +25,7 @@ import {
 } from "@openfront/engine-lib/ww1936/DepthRules";
 import {
   coupNeedBp,
+  coupSuccessPm,
   externalResistPp,
   OPERATION_DEFS,
   operationDays,
@@ -69,6 +70,7 @@ const K = (op: IntelOperation) => INTEL_OPERATIONS.indexOf(op);
 /** The brief's tie order of the newest design (review 2): tank, plane, ship. */
 const STEAL_KIND_ORDER: readonly DesignKind[] = ["tank", "plane", "ship"];
 const OP_UPRISING = K("op_uprising");
+const OP_COUP = K("op_coup");
 /** The domain (ID_ARMY, ID_NAVY, ID_AIR) of each infiltration. */
 const INFILTRATE_DOMAIN: ReadonlyMap<number, number> = new Map([
   [K("op_infiltrate_army"), 1],
@@ -511,7 +513,7 @@ export function intelResistancePp(d: WwDepth, region: number): number {
 export function operationSuccessPm(
   d: WwDepth,
   id: number,
-  op: { target: number; operatives: readonly number[] },
+  op: { kind?: number; target: number; operatives: readonly number[] },
 ): number {
   const c = d.country(id);
   const ops = c?.intel.operatives ?? [];
@@ -524,12 +526,16 @@ export function operationSuccessPm(
     n++;
   }
   const avgSkillMilli = n === 0 ? 1000 : Math.floor((skill * 1000) / n);
-  return opSuccessPm(
+  const pm = opSuccessPm(
     d.netPm(id, op.target),
     avgSkillMilli,
     hasUp(c, "ag_civil_dept"),
     counterHalfOf(d, op.target),
   );
+  if (op.kind !== OP_COUP) return pm;
+  // ww100: the spirits' coup resistance, the card's odds too.
+  const stats = d.ww.politics.country(op.target)?.stats;
+  return coupSuccessPm(pm, stats?.coupResistPct ?? 0);
 }
 
 // ---- the resistance table (pre-flight §0-8: state) ----
