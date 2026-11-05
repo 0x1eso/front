@@ -79,15 +79,16 @@ describe("manpower (spec §6; P2 spec §13.2)", () => {
     expect(ce.manpower).toBe(1_219_250 - winter);
   });
 
-  test("a continental winter takes men even at rest: Poland in January (Task 11)", async () => {
-    // Warsaw and Krakow are continental (snow or frost all January); a
-    // division at rest in full supply takes a quarter of it, never 0.
+  test("a continental winter takes no men: Poland in January (ww84)", async () => {
+    // Warsaw and Krakow are continental (snow or frost all January), but
+    // weather left attrition with the overhaul: an army at rest in supply
+    // loses nobody.
     const runner = await wwRunner({}, [{ clientID: HUMAN, country: "POL" }]);
     const ww = runner.game.worldWar()!;
     const pol = byTag(runner.game, "POL");
     finishDay(runner, 0);
     finishDay(runner, 1);
-    expect(ww.land.country(pol.smallID())!.casualtiesToday).toBeGreaterThan(0);
+    expect(ww.land.country(pol.smallID())!.casualtiesToday).toBe(0);
   });
 
   test("the dead do not come back: casualties leave the pool for good", async () => {
