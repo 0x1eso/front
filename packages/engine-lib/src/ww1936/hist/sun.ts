@@ -1951,4 +1951,29 @@ export const SUN_HIST: readonly HistEntry[] = [
       costK: 45,
     },
   },
+  {
+    id: "sun_ognevoy",
+    country: "SUN",
+    family: "ship",
+    cls: "dd",
+    techs: ["dd_4"],
+    year: 1945,
+    // ww85: Ognevoy commissioned 22 March 1945, the only one done in the war. Tubes: the article says both two triple and two quadruple, kept triple. No price found: cost at the Tashkent's rate per tonne. Warhead as sun_tashkent.
+    source:
+      "Checked 2026-11-05 on Wikipedia: Ognevoy-class destroyer (2,125 t standard, 4 x 130 mm, 2 x 85 mm, 6 x 37 mm, 36.5 kn, 2,950 nm at 16.9 kn).",
+    spec: {
+      dispT: 2125,
+      main: { count: 4, mm: 130 },
+      beltMm: 0,
+      speedKn: 36.5,
+      rangeNm: 2950,
+      torpTubes: 6,
+      torpWarheadKg: 300,
+      asw: 1,
+      aaLight: [{ count: 6, mm: 37 }],
+      aaHeavy: 2,
+      aircraft: 0,
+      costM: 6.6,
+    },
+  },
 ];

@@ -2152,4 +2152,32 @@ export const DEU_HIST: readonly HistEntry[] = [
       costK: 40,
     },
   },
+  {
+    id: "deu_z1936b",
+    country: "DEU",
+    family: "ship",
+    cls: "dd",
+    techs: ["dd_4"],
+    year: 1944,
+    // ww85: Z43 commissioned 31 May 1944: back to 12.7 cm guns after the 1936A's 15 cm. No price found: cost at the Z1936A's rate per tonne. Warhead as deu_z1936a.
+    source:
+      "Checked 2026-11-05 on Wikipedia: German destroyer Z43 (2,519 LT standard, 5 x 12.7 cm, 4 x 3.7 cm, 15 x 2 cm, 8 tubes, 36 kn, 2,600 nm at 19 kn, depth charge throwers and sonar).",
+    spec: {
+      dispT: 2559,
+      main: { count: 5, mm: 127 },
+      beltMm: 0,
+      speedKn: 36,
+      rangeNm: 2600,
+      torpTubes: 8,
+      torpWarheadKg: 280,
+      asw: 2,
+      aaLight: [
+        { count: 4, mm: 37 },
+        { count: 15, mm: 20 },
+      ],
+      aaHeavy: 0,
+      aircraft: 0,
+      costM: 8.8,
+    },
+  },
 ];
