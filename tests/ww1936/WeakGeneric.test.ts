@@ -120,6 +120,9 @@ describe("generic use is below every real entry of its group", () => {
           scratch[KS.pierce] = s.pierce;
           scratch[KS.armor] = s.armor;
           scratch[KS.aa] = s.aa;
+          // The rule is on the fighting numbers: the score's speed factor
+          // (ww84) is the same on both sides, the generic row's.
+          scratch[KS.speedCenti] = t.stats[j * KS_FIELDS + KS.speedCenti];
           expect(t.score[j]).toBeLessThan(
             rowScore(scratch, 0, t.group[j], t.year[j]),
           );
