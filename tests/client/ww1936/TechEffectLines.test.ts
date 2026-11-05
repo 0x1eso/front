@@ -304,6 +304,8 @@ describe("the lines come from the rule tables", () => {
     expect(effectLines("logistics_2").join("|")).toContain("보급 소모 −5%");
     expect(effectLines("winter_gear_1").join("|")).toContain("조직력 +3");
     expect(effectLines("recon_2").join("|")).toContain("+5");
+    expect(effectLines("inf_at_2").join("|")).toContain("관통력 +21");
+    expect(effectLines("inf_at_2").join("|")).toContain("경성 공격 +1");
   });
 
   it("what a tech opens is listed, short", () => {

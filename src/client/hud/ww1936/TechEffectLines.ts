@@ -238,6 +238,8 @@ const SHOWN: Readonly<Partial<Record<string, (v: number) => number>>> = {
   nightBombBp: (v) => v / 100,
   fortDefPerLevelBp: (v) => v / 100,
   armyXpMilli: (v) => v / 1000,
+  infAtPierce: (v) => v / 100,
+  infAtHard: (v) => v / 100,
   // Battles' tactic reading: a point for every 5 of the key, at most 10.
   reconPct: (v) => v / 5,
 };
