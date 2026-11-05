@@ -46,7 +46,11 @@ export interface EffortRegion {
  * for the fort level, so that nobody at all behind a fort is not free. Under
  * an enemy sky the score halves (C4).
  */
-export function effortScore(r: EffortRegion, breaksForts = false): number {
+export function effortScore(
+  r: EffortRegion,
+  breaksForts = false,
+  skyBarPm = AI_EFFORT_SKY_PM,
+): number {
   const value = 1 + r.vp + (r.capital ? AI_EFFORT_CAPITAL_VALUE : 0) + r.extra;
   const fort = r.fort * r.width;
   const score = Math.floor(
@@ -59,7 +63,7 @@ export function effortScore(r: EffortRegion, breaksForts = false): number {
             : fort),
       ),
   );
-  return (r.skyPm ?? 0) >= AI_EFFORT_SKY_PM ? Math.floor(score / 2) : score;
+  return (r.skyPm ?? 0) >= skyBarPm ? Math.floor(score / 2) : score;
 }
 
 /**
@@ -69,13 +73,14 @@ export function effortScore(r: EffortRegion, breaksForts = false): number {
  * AI_EFFORT_CLOSE_PCT of the best, so games differ. 0 with no region.
  * `keep`, the sector standing now, stays while it is that close to the best:
  * armies do not march off for a coin. `breaksForts`: ww90, the force has heavy
- * tanks or assault infantry.
+ * tanks or assault infantry. `keepPct`: ww91, the plan's "that close".
  */
 export function pickMainSector(
   regions: readonly EffortRegion[],
   roll: number,
   keep = 0,
   breaksForts = false,
+  keepPct = AI_EFFORT_CLOSE_PCT,
 ): number {
   const bar = breaksForts ? AI_EFFORT_BREAK_FORT_BAR : AI_EFFORT_FORT_BAR;
   const open = regions.filter((r) => r.fort < bar);
@@ -87,7 +92,7 @@ export function pickMainSector(
   const kept = list.find((r) => r.region === keep);
   if (
     kept !== undefined &&
-    kept.score * 100 >= first.score * (100 - AI_EFFORT_CLOSE_PCT)
+    kept.score * 100 >= first.score * (100 - keepPct)
   ) {
     return keep;
   }

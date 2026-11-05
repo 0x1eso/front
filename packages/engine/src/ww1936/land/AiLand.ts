@@ -53,6 +53,12 @@ import {
 } from "@openfront/engine-api/ww1936/LandTypes";
 import { WW_INVASION_MAX_KM } from "@openfront/engine-api/ww1936/NavyTypes";
 import { wwAiWarPlanDue } from "@openfront/engine-lib/ww1936/AiDifficulty";
+import {
+  type NationalPlan,
+  planOf,
+  type PlanStance,
+  planStance,
+} from "@openfront/engine-lib/ww1936/AiPlans";
 import { BATTALIONS } from "@openfront/engine-lib/ww1936/Battalions";
 import { combatWidth } from "@openfront/engine-lib/ww1936/CombatRules";
 import { splitFront } from "@openfront/engine-lib/ww1936/CommandRules";
@@ -79,6 +85,7 @@ import { enemySkyPm } from "../air/AirSuperiority";
 import { type AiPersonality, aiPersonality } from "../economy/AiEconomy";
 import { convoysOf, effectiveLevel } from "../economy/Buildings";
 import { queueBuild } from "../economy/Construction";
+import { fuelCapOf } from "../economy/Fuel";
 import type { CountryEconomy } from "../economy/WwEconomy";
 import { seaReach } from "../navy/AiNavy";
 import { navalPort, navalPortsOf } from "../navy/Ports";
@@ -305,18 +312,27 @@ export function aiBorderDemand(i: {
   land: LandTerrain;
   dirs: number;
   fort: number;
+  /** ww91: the plan's offensive demand, %; none: AI_OFFENSE_DEMAND_PCT. */
+  offensePct?: number;
+  /** ww91: the plan's held widths, hundredths; none: AI_HOLD_WIDTHS. */
+  holdCenti?: number;
 }): number {
   const d = Math.max(
     DEMAND_MIN,
     Math.floor((DEMAND_PER_DIVISION * i.facingMilli) / 1000),
   );
-  if (i.offensive) return Math.floor((d * AI_OFFENSE_DEMAND_PCT) / 100);
+  if (i.offensive) {
+    return Math.floor((d * (i.offensePct ?? AI_OFFENSE_DEMAND_PCT)) / 100);
+  }
   // ww7 (lane B2's open item): a fort of level 3+ halves the directions' extra width.
   const width = combatWidth(i.land, i.dirs, i.fort);
   const fort = Math.max(0, Math.min(5, i.fort));
   const cap = Math.floor(
-    (AI_HOLD_WIDTHS * width * 10 * (100 - AI_HOLD_FORT_PCT * fort)) /
-      (AI_HOLD_DIV_WIDTH * 100),
+    ((i.holdCenti ?? AI_HOLD_WIDTHS * 100) *
+      width *
+      10 *
+      (100 - AI_HOLD_FORT_PCT * fort)) /
+      (AI_HOLD_DIV_WIDTH * 100 * 100),
   );
   return Math.max(DEMAND_MIN, Math.min(d, cap));
 }
@@ -681,16 +697,6 @@ function roleShares(i: AiTrainInput): Record<AiRole, number> {
   return s;
 }
 
-/** ww92: the share of special troops (national unit, marines) an AI major trains, % (ww91 section 8). */
-const AI_UNIT_PCT: Readonly<Record<string, number>> = {
-  SUN: 5,
-  USA: 5,
-  GBR: 3,
-  FRA: 3,
-  JPN: 8,
-  ITA: 8,
-};
-
 /** How many divisions an AI keeps in training. */
 function trainTarget(
   major: boolean,
@@ -967,6 +973,8 @@ class AiDay {
   readonly tag: CountryTag;
   readonly personality: AiPersonality;
   readonly major: boolean;
+  /** ww91: the plan this country plays (the defaults for a human or a minor). */
+  readonly plan: Readonly<NationalPlan>;
   /** At war and able to fight, ascending. */
   readonly atWar: number[];
   /**
@@ -1007,6 +1015,8 @@ class AiDay {
   private skyArmies = new Set<number>();
   /** ww81 C3: today's cuts of each enemy read (on the period's day or for a new sector). */
   private cutsMemo = new Map<number, EnemyCuts>();
+  /** ww91 rule 2: today's stance. */
+  private stanceMemo: PlanStance | null = null;
 
   constructor(
     readonly land: WwLand,
@@ -1019,6 +1029,7 @@ class AiDay {
     this.tag = cl.tag;
     this.personality = aiPersonality(cl.tag);
     this.major = COUNTRIES[cl.tag].major;
+    this.plan = planOf(cl.tag, land.ww.politics.seed, cl.smallID, human);
     this.atWar = land.ww
       .enemiesOf(this.me)
       .filter((e) => this.fights(e) && land.isEnemy(this.me, e));
@@ -1086,6 +1097,51 @@ class AiDay {
       this.offensiveCache = set;
     }
     return this.offensiveCache.has(enemy);
+  }
+
+  /** ww91 rule 2: fuel stock against its cap, ‰, no better than what covered yesterday's need. */
+  private fuelPm(): number {
+    const cap = fuelCapOf(this.land.econ, this.ce);
+    const stock =
+      cap <= 0 ? 1000 : Math.floor((this.ce.fuelMilli * 1000) / cap);
+    return Math.min(stock, this.ce.fuelRatioPm);
+  }
+
+  /** ww91 rule 2: the armoured divisions' mean strength, ‰ (1000 with none). */
+  private armourPm(): number {
+    const land = this.land;
+    let n = 0;
+    let sum = 0;
+    for (const r of land.rowsOf(this.me)) {
+      if ((land.baseStatsOf(r).flags & TPL_ARMOR_ANY) === 0) continue;
+      n++;
+      sum += land.strengthOf(r);
+    }
+    return n === 0 ? 1000 : Math.floor(sum / n);
+  }
+
+  /** ww91 rule 2: strike while strong (no reads for a plan that doesn't care). */
+  private stance(): PlanStance {
+    if (this.stanceMemo === null) {
+      const p = this.plan;
+      const fuel = p.fuelStopPm > 0 || p.gateMidPct < 100;
+      this.stanceMemo = planStance(
+        p,
+        fuel ? this.fuelPm() : 1000,
+        p.gateMidPct < 100 ? this.armourPm() : 1000,
+      );
+    }
+    return this.stanceMemo;
+  }
+
+  /** The personality's bars, leaned by the plan. */
+  private gate(): AiGate {
+    const base = aiGatePm(this.personality);
+    const st = this.stance();
+    return {
+      midPm: Math.floor((base.midPm * st.midPct) / 100),
+      lowPm: Math.floor((base.lowPm * st.lowPct) / 100),
+    };
   }
 
   private issue(order: WwOrder): boolean {
@@ -1264,7 +1320,7 @@ class AiDay {
     const out: number[] = [];
     if (cap !== 0 && near[cap] !== FAR) out.push(cap);
     const slots = Math.floor(
-      Math.floor((this.cl.peakDivisions * AI_RESERVE_PCT) / 100) /
+      Math.floor((this.cl.peakDivisions * this.plan.reservePct) / 100) /
         AI_GUARD_DIVISIONS,
     );
     if (slots === 0) return out;
@@ -1622,6 +1678,8 @@ class AiDay {
             land: sc.landOf(b),
             dirs,
             fort: land.econ.fort[b] ?? 0,
+            offensePct: this.stance().offensePct,
+            holdCenti: this.plan.holdCenti,
           });
         }
         fronts.push({ enemy, comp: c, border: order, demand });
@@ -1907,7 +1965,9 @@ class AiDay {
     const mayShorten =
       atWar &&
       !shared &&
-      (outnumbered ? !pursuing : !attacking && !this.offensive(f.enemy));
+      (outnumbered
+        ? !pursuing
+        : !attacking && (!this.offensive(f.enemy) || this.stance().stopped));
     const ring = mayShorten
       ? this.shorterLine(f, armies, divisions, outnumbered)
       : null;
@@ -2337,6 +2397,7 @@ class AiDay {
       wwRoll(land.ww.politics.seed, P_AXIS, this.me, period, f.enemy),
       waiting,
       this.breaksForts(able),
+      this.plan.effortKeepPct,
     );
   }
 
@@ -2967,7 +3028,7 @@ class AiDay {
         // Ruling 5: under 40% org it regroups; spec §14.4: under 0.7 it
         // holds; Task 11 (ruling 6): the attack over, a worn army regroups.
         const stop = () => {
-          if (org < AI_REGROUP_ORG_PM) return true;
+          if (org < this.plan.regroupPm) return true;
           const fighting = rows.some(
             (r) =>
               land.divisions.battle[r] !== 0 ||
@@ -2976,7 +3037,9 @@ class AiDay {
           const ratio = this.strikeRatio(a);
           if (ratio < STOP_RATIO_PM) return true;
           return (
-            !fighting && org < AI_ATTACK_ORG_PM && ratio < AI_PURSUIT_RATIO_PM
+            !fighting &&
+            org < this.plan.reattackPm &&
+            ratio < AI_PURSUIT_RATIO_PM
           );
         };
         if (stop()) {
@@ -2986,7 +3049,7 @@ class AiDay {
         }
         continue;
       }
-      if (org < AI_ATTACK_ORG_PM || this.formedPm(a, rows) < FORMED_PM) {
+      if (org < this.plan.reattackPm || this.formedPm(a, rows) < FORMED_PM) {
         continue;
       }
       let list = ready.get(o.enemy);
@@ -3100,7 +3163,7 @@ class AiDay {
       rest = rest.filter((a) => !best.some((s) => s.a === a));
     }
     // A planned attack that has lost its reason goes back to Defend.
-    const bar = aiGatePm(this.personality);
+    const bar = this.gate();
     for (const a of ready) {
       if (a.order.kind !== "plan" || !this.ripe(a, enemy, 0)) continue;
       if (fixed.some((s) => s.a === a) || this.effortOf.has(a.id)) continue;
@@ -3298,7 +3361,7 @@ class AiDay {
       if (hold) return false;
       return this.nobodyAcross(s.a, enemy) || this.ripe(s.a, enemy, 0);
     }
-    const gate = aiGatePm(this.personality);
+    const gate = this.gate();
     // C3 rule 3: a pocket waits for no readiness, as a broken enemy doesn't.
     const floor = pocket ? AI_PURSUIT_RATIO_PM : r.midPm;
     if (!this.ripe(s.a, enemy, floor)) return false;
@@ -3812,7 +3875,7 @@ class AiDay {
       major: this.major,
       dev: land.scenario.devOf(cl.tag, civ),
       hasArmorTech: this.ce.researched.has("light_tank_1"),
-      unitPct: AI_UNIT_PCT[cl.tag] ?? 0,
+      unitPct: this.plan.unitPct,
       hasAssault: this.ce.researched.has("mountaineers"),
       training,
       atPeace,
