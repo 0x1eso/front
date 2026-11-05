@@ -124,7 +124,7 @@ export function openTermsConference(
  * France's 139 divisions unfought. It fights on, and the war outlives it.
  */
 function majorAllyStands(eg: WwEndgame, w: WwWar, id: number): boolean {
-  return w.sides[eg.sideIndex(w, id)].members.some(
+  return w.sides[eg.sideIndex(w, id) as 0 | 1].members.some(
     (m) =>
       m.id !== id &&
       fighting(m) &&
