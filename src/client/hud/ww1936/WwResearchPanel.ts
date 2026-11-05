@@ -1349,7 +1349,7 @@ export class WwResearchPanel extends WwDrawerBase {
       <button
         type="button"
         data-ww-next-start
-        class="min-h-9 rounded-md bg-emerald-700 px-3 font-bold"
+        class="min-h-10 rounded-md bg-emerald-700 px-3 font-bold"
         @click=${() => {
           this.send(t);
           this.nextPick = null;
@@ -1361,7 +1361,7 @@ export class WwResearchPanel extends WwDrawerBase {
         type="button"
         data-ww-next-close
         aria-label=${translateText("common.close")}
-        class="size-8 rounded-md hover:bg-white/10"
+        class="size-10 rounded-md hover:bg-white/10"
         @click=${() => (this.nextPick = null)}
       >
         ✕
