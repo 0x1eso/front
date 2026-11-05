@@ -530,7 +530,17 @@ const ROLE_KEYS: Readonly<Record<AiRole, readonly string[]>> = {
   infantry: [],
   armor: ["armored", "mobile", "dlm", "celere", "tank_brigade"],
   motorized: ["motorized"],
-  mountain: ["mountain", "alpini", "mountain_rifle"],
+  mountain: [
+    "mountain",
+    "alpini",
+    "mountain_rifle",
+    // ww92: the focus templates of the special units.
+    "sun_guards_rifle",
+    "ita_alpini_ii",
+    "usa_marine_division",
+    "fra_mountain_division",
+    "deu_mountain_ii",
+  ],
   cavalry: ["cavalry", "cavalry_brigade"],
 };
 
@@ -590,6 +600,8 @@ export interface AiTrainInput {
   dev: number;
   hasArmorTech: boolean;
   hasMountains: boolean;
+  /** ww92: % of the divisions that are the country's special troops (marines, guards, alpini); 0 or missing: the old rule. */
+  unitPct?: number;
   /** Divisions in training (queued and started). */
   training: number;
   manpower: number;
@@ -632,6 +644,11 @@ function roleShares(i: AiTrainInput): Record<AiRole, number> {
       s.cavalry = i.dev <= 2 ? 10 : 0;
       break;
   }
+  // ww92: a democracy's marines (F4) and every major's special troops.
+  if ((i.unitPct ?? 0) > 0) {
+    s.infantry += s.mountain - (i.unitPct ?? 0);
+    s.mountain = i.unitPct ?? 0;
+  }
   // ww81 (T2): the armour share reacts to stock, fuel and national character.
   if (i.hasArmorTech && s.armor > 0) {
     const armor = i.fuelLow
@@ -642,6 +659,16 @@ function roleShares(i: AiTrainInput): Record<AiRole, number> {
   }
   return s;
 }
+
+/** ww92: the share of special troops (national unit, marines) an AI major trains, % (ww91 section 8). */
+const AI_UNIT_PCT: Readonly<Record<string, number>> = {
+  SUN: 5,
+  USA: 5,
+  GBR: 3,
+  FRA: 3,
+  JPN: 8,
+  ITA: 8,
+};
 
 /** How many divisions an AI keeps in training. */
 function trainTarget(
@@ -3718,6 +3745,7 @@ class AiDay {
       major: this.major,
       dev: land.scenario.devOf(cl.tag, civ),
       hasArmorTech: this.ce.researched.has("light_tank_1"),
+      unitPct: AI_UNIT_PCT[cl.tag] ?? 0,
       hasMountains: land.econ
         .regionsOf(this.me)
         .some((r) => land.scenario.landOf(r) === "mountain"),

@@ -289,6 +289,26 @@ describe("the AI's land decisions (spec §14, pure)", () => {
     expect(aiTargets({ regions: [] })).toEqual([]);
   });
 
+  test("a democracy with a marine share trains marines (ww92)", () => {
+    const input: AiTrainInput = {
+      personality: "democracy",
+      major: true,
+      dev: 5,
+      hasArmorTech: false,
+      hasMountains: false,
+      unitPct: 5,
+      training: 0,
+      manpower: 1_000_000,
+      counts: { infantry: 20, armor: 0, motorized: 0, mountain: 0, cavalry: 0 },
+      templates: [
+        { id: 1, key: "infantry", men: 10_000, fillPm: 1000 },
+        { id: 2, key: "usa_marine_division", men: 8_000, fillPm: 1000 },
+      ],
+    };
+    expect(aiTrainPlan(input)).toContain(2);
+    expect(aiTrainPlan({ ...input, unitPct: 0 })).not.toContain(2);
+  });
+
   test("train plan respects manpower, equipment and the per-day cap", () => {
     const counts = (o: Partial<Record<AiRole, number>> = {}) => ({
       infantry: 0,
@@ -799,7 +819,7 @@ describe("the AI's land war on world1936 (controller ruling 3)", () => {
     const sc = l.scenario;
     const jpn = sc.smallIdOf("JPN");
     const chn = sc.smallIdOf("CHN");
-    stepTo(runner, dayStartTick(dayOfDate("1938-01-01"), WW_PREP_TICKS));
+    stepTo(runner, dayStartTick(dayOfDate("1937-10-01"), WW_PREP_TICKS));
     // The calendar's war of 1937 is on, and China stands too.
     expect(ww.isAtWar(jpn, chn)).toBe(true);
     // (ww15: with free designs and a general for every army the stalemate
