@@ -1546,4 +1546,29 @@ export const JPN_HIST: readonly HistEntry[] = [
       costK: 5,
     },
   },
+  {
+    id: "jpn_type5_chiri",
+    country: "JPN",
+    family: "tank",
+    role: "medium",
+    techs: ["modern_tank_1", "medium_tank_3"],
+    year: 1945,
+    // ww85: One prototype by May 1945; the 75 mm gun was never fitted, so gun figures are those it was built for, as on jpn_type4_chito. No price found: estimate at the Chi-To's rate per tonne. Speed off road and hull slope as the Chi-To (no source gives them).
+    source:
+      "Checked 2026-11-05 on Wikipedia: Type 5 Chi-Ri (1 built, unarmed, 37.6 t, 75 mm hull front, 50 mm turret, Type 5 75 mm L/56.4, 2 MG, 45 km/h, petrol). Turret front disputed: GlobalSecurity says 75 mm. Tanks Encyclopedia: based on the Chi-To.",
+    spec: {
+      massT: 37.6,
+      hullFrontMm: 75,
+      hullSlopeDeg: 15,
+      turretFrontMm: 50,
+      gunMm: 75,
+      penMm500: 85,
+      heFillerG: 500,
+      mgs: 2,
+      offroadKmh: 25,
+      roadKmh: 45,
+      reliability: 3,
+      costK: 105,
+    },
+  },
 ];

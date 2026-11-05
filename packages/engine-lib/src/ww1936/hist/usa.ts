@@ -1729,4 +1729,53 @@ export const USA_HIST: readonly HistEntry[] = [
       costK: 40,
     },
   },
+  {
+    id: "usa_t28",
+    country: "USA",
+    family: "tank",
+    role: "td",
+    techs: ["super_heavy_tank", "tank_gun_4"],
+    year: 1945,
+    // ww85: Casemate 105 mm assault gun, two prototypes built 1945, trials to 1947, never in service. No price found: estimate at the Pershing's 1.9 per tonne. Off-road speed estimated at the Black Prince's ratio to road speed. Slope left at 0: no source gives one.
+    source:
+      "Checked 2026-11-05 on Wikipedia: T28 Super Heavy Tank (2 built, 86 t, up to 305 mm front, 105 mm T5E1, one .50, 13 km/h, no turret). 105 mm gun T5: 177 mm at 914 m, 30 deg, so about 190 at 500 m. HE filler as the 105 mm on usa_m7_priest.",
+    spec: {
+      massT: 86,
+      hullFrontMm: 305,
+      hullSlopeDeg: 0,
+      gunMm: 105,
+      penMm500: 190,
+      heFillerG: 2100,
+      mgs: 1,
+      offroadKmh: 9,
+      roadKmh: 13,
+      reliability: 2,
+      costK: 165,
+    },
+  },
+  {
+    id: "usa_t26e4",
+    country: "USA",
+    family: "tank",
+    role: "heavy",
+    techs: ["heavy_tank_3", "tank_gun_4"],
+    year: 1945,
+    // ww85: Pershing with the long 90 mm T15: 25 built, one fought in Germany in 1945. Armour and speed as usa_m26_pershing without the field add-on plates. Mass is the middle of the M26's 41.9 t and the pilot's added 5 t. Cost is an estimate above the Pershing's 80.
+    source:
+      "Checked 2026-11-05 on Wikipedia: Super Pershing (25 T26E4, one in action April 1945). LOW CONFIDENCE on penetration: no 30 deg table found. T43 APBC is 193 mm at 500 m, 0 deg on a game wiki, about 155 at 30 deg; period comparisons put it near the 88 mm KwK 43's 185; 170 is the middle.",
+    spec: {
+      massT: 44,
+      hullFrontMm: 102,
+      hullSlopeDeg: 46,
+      turretFrontMm: 102,
+      gunMm: 90,
+      penMm500: 170,
+      heFillerG: 1000,
+      mgs: 3,
+      offroadKmh: 22,
+      roadKmh: 40,
+      reliability: 3,
+      costK: 90,
+    },
+  },
 ];

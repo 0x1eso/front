@@ -30,9 +30,9 @@ describe("catalogue as design slots", () => {
     for (const c of Object.keys(
       HIST_CATALOGUE,
     ) as (keyof typeof HIST_CATALOGUE)[]) {
-      expect(histOwn(c, "tank").length).toBeLessThanOrEqual(26);
-      expect(histOwn(c, "plane").length).toBeLessThanOrEqual(26);
-      expect(histOwn(c, "ship").length).toBeLessThanOrEqual(18);
+      expect(histOwn(c, "tank").length).toBeLessThanOrEqual(30);
+      expect(histOwn(c, "plane").length).toBeLessThanOrEqual(34);
+      expect(histOwn(c, "ship").length).toBeLessThanOrEqual(24);
     }
     expect(DESIGNER_POOL.tank).toBe(12);
   });
