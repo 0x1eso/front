@@ -20,7 +20,11 @@ export const SPIRITS_NATIONAL: readonly SpiritDef[] = [
     icon: "tank",
     stats: { mechBreakPct: 15, mechOrg: 4, armorBrkPct: 15 },
   },
-  { id: "nat_deu_workshop", icon: "industry", stats: { effCapBp: 800 } },
+  {
+    id: "nat_deu_workshop",
+    icon: "industry",
+    stats: { effCapBp: 800, effGrowthPct: -25, retentionBp: -1000 },
+  },
   {
     id: "nat_deu_strain",
     icon: "mine",
@@ -38,6 +42,8 @@ export const SPIRITS_NATIONAL: readonly SpiritDef[] = [
       mioCostPct_armor: -15,
       mioStatPct_armor: -10,
       mioStatPct_air_light: -10,
+      retentionBp: 1000,
+      effGrowthPct: 15,
     },
   },
   {
@@ -68,6 +74,9 @@ export const SPIRITS_NATIONAL: readonly SpiritDef[] = [
       mioCostPct_air_light: -10,
       mioCostPct_air_heavy: -10,
       mioCostPct_naval: -10,
+      effCapBp: 500,
+      effGrowthPct: 25,
+      retentionBp: 1000,
     },
   },
   {
@@ -140,7 +149,12 @@ export const SPIRITS_NATIONAL: readonly SpiritDef[] = [
   {
     id: "nat_jpn_scarce",
     icon: "oil",
-    stats: { extractionPct: -10, tradeCostPct: -10, mioStatPct_armor: -10 },
+    stats: {
+      extractionPct: -10,
+      tradeCostPct: -10,
+      mioStatPct_armor: -10,
+      effGrowthPct: -15,
+    },
   },
 
   // ---- Italy: the Mediterranean and light mobility ----

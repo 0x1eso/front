@@ -1807,6 +1807,7 @@ export class WwArmyCard extends LitElement implements Controller {
           this.panel = "main";
         },
         () => (this.panel = "more"),
+        c.navy?.stats.harborRaidPm ?? 0,
       ),
     ];
   }

@@ -16,12 +16,14 @@ import {
   WW_ESCORT_CUT_MAX_PM,
   WW_ROOKIE_XP,
   WW_WING_MAX_PLANES,
+  WW_WING_START_XP,
   WwBombClass,
 } from "@openfront/engine-api/ww1936/AirTypes";
 import type {
   BuildingId,
   WwOrderBlock,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
+import type { WwStats } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { casPoolCenti, casRoundHits } from "./AirRules";
 import { PLANE_BASE } from "./PlaneStats";
 import { idHash, wwRoll } from "./Roll";
@@ -409,10 +411,30 @@ export function xpAfterRefill(
   xpMilli: number,
   kept: number,
   added: number,
+  rookieXp = WW_ROOKIE_XP,
 ): number {
   const n = kept + added;
   if (added <= 0 || n <= 0) return xpMilli;
-  return Math.floor((xpMilli * kept + WW_ROOKIE_XP * added) / n);
+  return Math.floor((xpMilli * kept + rookieXp * added) / n);
+}
+
+// ww91 N3: the national pilot keys (wingStartXpMilli, wingRookieXpMilli,
+// wingXpCapMilli), read where a wing is made, refilled and trained.
+
+/** A replacement plane's experience: 100 plus the country's rookie key, never below 0. */
+export function rookieXpOf(stats: WwStats): number {
+  return Math.max(0, WW_ROOKIE_XP + stats.wingRookieXpMilli);
+}
+
+/** A new wing's experience: 300, plus the start key on day 0 or the rookie key after. */
+export function newWingXp(stats: WwStats, dayZero: boolean): number {
+  const add = dayZero ? stats.wingStartXpMilli : stats.wingRookieXpMilli;
+  return Math.max(0, Math.min(WING_XP_MAX, WW_WING_START_XP + add));
+}
+
+/** The experience ceiling: 1000 plus the (never positive) cap key. */
+export function wingXpCapOf(stats: WwStats): number {
+  return WING_XP_MAX + Math.min(0, stats.wingXpCapMilli);
 }
 
 // ---- Lane C: the raid report's effect lines (design §5.2) ----

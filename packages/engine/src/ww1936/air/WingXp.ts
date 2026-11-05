@@ -15,6 +15,7 @@ import {
   WING_XP_REST_CAP,
   WING_XP_REST_DAYS,
   WING_XP_STATION,
+  wingXpCapOf,
   xpTier,
 } from "@openfront/engine-lib/ww1936/WingRules";
 import { aceOnFight, aceRetireIfForeign } from "../depth/Aces";
@@ -31,6 +32,10 @@ function planesIn(w: Wing): number {
 /** Adds experience; the screen hears of it only when the tier changes. */
 function gain(air: WwAir, w: Wing, milli: number, cap = WING_XP_MAX): void {
   if (milli <= 0 || w.xpMilli >= cap) return;
+  // ww91 N3: the country's ceiling key (the US stops at 799).
+  const st = air.econ.country(w.owner)?.stats;
+  if (st !== undefined) cap = Math.min(cap, wingXpCapOf(st));
+  if (w.xpMilli >= cap) return;
   const before = xpTier(w.xpMilli);
   w.xpMilli = Math.min(cap, w.xpMilli + milli);
   if (xpTier(w.xpMilli) !== before) air.markWing(w.id);

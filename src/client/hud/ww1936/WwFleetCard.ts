@@ -12,6 +12,7 @@ import {
   FleetMission,
   RETURN_AT_PCTS,
 } from "@openfront/engine-api/ww1936/NavyTypes";
+import { WOLF_PACK_BOATS } from "@openfront/engine-lib/ww1936/ConvoyRules";
 import { EventBus } from "@openfront/shared/EventBus";
 import { html, LitElement, nothing, TemplateResult } from "lit";
 import { customElement, state } from "lit/decorators.js";
@@ -644,6 +645,15 @@ export class WwFleetCard extends LitElement implements Controller {
               n: fog.previewEnemyValue(Math.round(p.enemyPower / 100), 0),
             })}</span
           >
+          ${d.mission === "raid" && c.ctx.stats.wolfPackPct !== 0
+            ? html`<span data-ww-preview-pack
+                >${translateText("ww1936.navy.preview_pack", {
+                  n: f.ships.filter((x) => x.cls === "ss").length,
+                  need: WOLF_PACK_BOATS,
+                  pct: c.ctx.stats.wolfPackPct,
+                })}</span
+              >`
+            : nothing}
           ${p.oddsHidden
             ? html`<span data-ww-preview-odds="?"
                 >${translateText("ww1936.navy.preview_odds", {

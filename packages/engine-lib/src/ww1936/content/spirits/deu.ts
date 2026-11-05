@@ -58,7 +58,7 @@ export const SPIRITS_DEU: SpiritDef[] = [
   {
     id: "deu_speer_rationalisation",
     icon: "industry",
-    stats: { outputPct: 8 },
+    stats: { outputPct: 8, effGrowthPct: 25 },
   },
   {
     id: "deu_goering_works",

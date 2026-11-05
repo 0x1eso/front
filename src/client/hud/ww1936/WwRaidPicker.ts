@@ -22,6 +22,7 @@ export function renderRaidPicker(
   onKind: (k: RaidKind) => void,
   onTarget: (b: BuildingId) => void,
   onClose: () => void,
+  harborPm = 0,
 ): TemplateResult {
   return html`<div data-ww-raid-picker class="col-span-5 flex flex-col gap-1">
     <div class="flex flex-wrap gap-1">
@@ -52,7 +53,11 @@ export function renderRaidPicker(
                 class=${BUTTON}
                 @click=${() => onTarget(t.building)}
               >
-                ${buildingName(t.building)}
+                ${buildingName(t.building)}${harborPm > 0 &&
+                kind === "raid_commando" &&
+                (t.building === "naval_base" || t.building === "dock")
+                  ? ` ${translateText("ww1936.raid.frogmen", { pct: harborPm / 10 })}`
+                  : ""}
               </button>`,
           )}
         </div>`}

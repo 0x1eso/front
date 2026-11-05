@@ -151,15 +151,24 @@ export const EFF_GROWTH_DEN = 7;
 /**
  * One day of efficiency growth: +0.001 × (20 / 7) × cap² / eff (fractions), in
  * bp rounded to the nearest point. 10% → 50% takes about 168 days (it was 482).
+ * `growthPct` (effGrowthPct) scales the day's gain.
  */
-export function efficiencyGrowth(effBp: number, capBp: number): number {
+export function efficiencyGrowth(
+  effBp: number,
+  capBp: number,
+  growthPct = 0,
+): number {
   if (effBp >= capBp) return capBp;
   const e = Math.max(1, effBp);
   const per = 1000 * e * EFF_GROWTH_DEN;
-  const gain = Math.max(
+  let gain = Math.max(
     1,
     Math.floor((capBp * capBp * EFF_GROWTH_NUM + Math.floor(per / 2)) / per),
   );
+  // ww91 N4: the national growth key, a share of the day's gain, at least 1.
+  if (growthPct !== 0) {
+    gain = Math.max(1, Math.floor((gain * (100 + growthPct)) / 100));
+  }
   return Math.min(capBp, effBp + gain);
 }
 

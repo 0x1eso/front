@@ -41,6 +41,16 @@ function isBig(cls: number): boolean {
   return role === "capital" || role === "carrier";
 }
 
+/** ww91 N3: a carrier's repair percent, the country's plus its carrier key. */
+function repairPctOf(
+  cls: number,
+  stats: { repairPct: number; carrierRepairPct: number },
+): number {
+  return SHIP_ROLE[SHIP_CLASSES[cls]] === "carrier"
+    ? stats.repairPct + stats.carrierRepairPct
+    : stats.repairPct;
+}
+
 /**
  * Spec §7.1: a day's repair, HP milli: (1% + 0.3% × level) of the maximum
  * × (100 + repairPct) / 100, slowed to the share of the dockyards lent.
@@ -111,7 +121,13 @@ export function dailyRepair(navy: WwNavy, smallID: number, day: number): void {
       places -= need;
       const lent = Math.max(0, Math.min(need, lendDocks(ce, need)));
       t.docks[x.r] = lent;
-      const add = repairDayMilli(x.max, level, ce.stats.repairPct, lent, need);
+      const add = repairDayMilli(
+        x.max,
+        level,
+        repairPctOf(t.cls[x.r], ce.stats),
+        lent,
+        need,
+      );
       if (add <= 0) continue;
       t.hp[x.r] = Math.min(x.max, t.hp[x.r] + add);
       navy.markFleet(t.fleet[x.r]);
@@ -165,7 +181,13 @@ export function fleetRepairDays(navy: WwNavy, f: Fleet): number {
     if (miss <= 0) continue;
     const need = isBig(t.cls[r]) ? 2 : 1;
     const lent = t.docks[r] > 0 ? t.docks[r] : need;
-    const add = repairDayMilli(max, level, ce.stats.repairPct, lent, need);
+    const add = repairDayMilli(
+      max,
+      level,
+      repairPctOf(t.cls[r], ce.stats),
+      lent,
+      need,
+    );
     if (add <= 0) return -1;
     days = Math.max(days, Math.ceil(miss / add));
   }

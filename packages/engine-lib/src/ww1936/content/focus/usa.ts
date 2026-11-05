@@ -893,6 +893,8 @@ export const USA_FOCUSES: FocusDef[] = [
         else: [{ kind: "research_bonus", tech: "ss_3", pct: 100, uses: 1 }],
       },
       { kind: "add_spirit", id: "usa_unrestricted_subs" },
+      // ww91 N3: the Mark 14 is fixed.
+      { kind: "remove_spirit", id: "nat_usa_mk14" },
     ],
     ai: { base: 10 },
   },

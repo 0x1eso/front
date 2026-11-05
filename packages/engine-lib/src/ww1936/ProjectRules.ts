@@ -242,6 +242,8 @@ export function raidSuccessPm(
     enemyDivision: boolean;
     coastalFort: number;
     bombers: number;
+    /** ww91 N3: harborRaidPm, added on a commando raid at a port or dock. */
+    harborPm?: number;
   },
 ): number {
   const v =
@@ -255,7 +257,8 @@ export function raidSuccessPm(
         ? 650 -
           80 * i.coastalFort -
           (i.enemyDivision ? 200 : 0) +
-          50 * i.expLevel
+          50 * i.expLevel +
+          (i.harborPm ?? 0)
         : 550 +
           Math.floor(i.bombers / 10) -
           50 * i.aa -

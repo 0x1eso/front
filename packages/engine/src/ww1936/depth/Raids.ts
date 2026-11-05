@@ -369,6 +369,9 @@ function resolveRaid(d: WwDepth, raid: Raid, day: number, tick: number): void {
   const enemyDivision = land
     .rowsIn(raid.target)
     .some((r) => land.isEnemy(owner, land.fightOwner(r)));
+  // ww91 N3: frogmen (harborRaidPm) on a commando raid at a naval base or dock.
+  const frogmen =
+    raid.kind === 1 && (building === "naval_base" || building === "dock");
   const pm = raidSuccessPm(raid.kind as 0 | 1 | 2, {
     expLevel: row >= 0 ? raidExpLevel(t.exp[row]) : 0,
     aa: effectiveLevel(econ, raid.target, "anti_air"),
@@ -376,11 +379,15 @@ function resolveRaid(d: WwDepth, raid: Raid, day: number, tick: number): void {
     enemyDivision,
     coastalFort: effectiveLevel(econ, raid.target, "coastal_fort"),
     bombers: raidBombersIn(d, owner, sc.regionSr(raid.target)),
+    harborPm: frogmen ? econ.country(owner)?.stats.harborRaidPm : 0,
   });
   const roll = wwRoll(ww.politics.seed, P_RAID, raid.uid) % 1_000_000;
   let hit = 0;
   if (roll < pm * 1000) {
     hit = raidHit(d, owner, kind, raid.target, building, tick);
+    if (frogmen && (econ.country(owner)?.stats.harborRaidPm ?? 0) > 0) {
+      sinkHarborShip(d, owner, raid.target);
+    }
     if (division) {
       damageDivisions(land, [raid.unit], RAID_SUCCESS_LOSS_PM);
       rejoin(d, owner, raid.unit);
@@ -453,6 +460,46 @@ function raidHit(
   const n = Math.min(have, raidLevelCut(kind));
   if (n > 0) ww.economy.addBuilding(target, building, -n);
   return n;
+}
+
+/** ww91 N3: a share of the largest enemy ship docked in the region lost to frogmen, %. */
+export const FROGMEN_HP_PCT = 30;
+
+/** The largest ship (most HP; ties the lower id) docked in `region` by an enemy of `owner` loses 30 % of its HP, to 1 at least. */
+export function sinkHarborShip(
+  d: WwDepth,
+  owner: number,
+  region: number,
+): void {
+  const navy = d.ww.navy;
+  const harbor = d.ww.scenario.harborOf(region);
+  if (harbor === 0) return;
+  const t = navy.ships;
+  let best = -1;
+  let bestMax = 0;
+  for (const fid of navy.fleetsIn(harbor)) {
+    const f = navy.fleets.get(fid);
+    if (f === undefined || f.docked !== region) continue;
+    if (!d.ww.land.isEnemy(owner, f.owner)) continue;
+    for (const id of f.ships) {
+      const r = t.rowOf(id);
+      if (r < 0) continue;
+      const max = navy.shipStatsOf(r).hpMilli;
+      if (
+        max > bestMax ||
+        (max === bestMax && best >= 0 && t.id[r] < t.id[best])
+      ) {
+        best = r;
+        bestMax = max;
+      }
+    }
+  }
+  if (best < 0) return;
+  t.hp[best] = Math.max(
+    1,
+    t.hp[best] - Math.floor((bestMax * FROGMEN_HP_PCT) / 100),
+  );
+  navy.markFleet(t.fleet[best]);
 }
 
 /** Spec §10: a failed precision raid costs the deployment a tenth of its planes. */

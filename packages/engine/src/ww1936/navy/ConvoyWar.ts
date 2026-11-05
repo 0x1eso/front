@@ -81,6 +81,7 @@ export function convoyWar(navy: WwNavy, sr: number, day: number): void {
   fleets.sort((a, b) => a.id - b.id);
   const raidFleets = new Map<number, Fleet[]>();
   const sub = new Map<number, number>();
+  const boats = new Map<number, number>();
   const surf = new Map<number, number>();
   const dd = new Map<number, number>();
   const cl = new Map<number, number>();
@@ -105,8 +106,10 @@ export function convoyWar(navy: WwNavy, sr: number, day: number): void {
       const x = navy.shipStatsOf(r);
       const c = navy.ships.cls[r];
       if (raid) {
-        if (c === SS) add(sub, f.owner, x.torpedo);
-        else add(surf, f.owner, x.light + x.heavy);
+        if (c === SS) {
+          add(sub, f.owner, x.torpedo);
+          add(boats, f.owner, 1);
+        } else add(surf, f.owner, x.light + x.heavy);
       } else if (c === DD) {
         fdd += x.depth * 2 + x.light;
       } else if (c === CL) {
@@ -139,6 +142,7 @@ export function convoyWar(navy: WwNavy, sr: number, day: number): void {
       ce.stats,
       ce.researched,
       ce.fuelRatioPm,
+      boats.get(m) ?? 0,
     );
     if (p > 0) raidPow.set(m, p);
   }

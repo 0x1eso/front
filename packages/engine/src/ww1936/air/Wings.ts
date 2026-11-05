@@ -41,6 +41,7 @@ import {
 } from "@openfront/engine-lib/ww1936/hist/Wear";
 import {
   ferryTicks,
+  rookieXpOf,
   wingFullOf,
   wingMaxPlanes,
   wingOrderBlock,
@@ -373,7 +374,9 @@ export function dailyWingCountry(
     if (w.phase === WP_GROUND && ce !== null) {
       const had = wingPlanes(w);
       const added = refillWing(air, ce, w, Number.MAX_SAFE_INTEGER);
-      if (added > 0) w.xpMilli = xpAfterRefill(w.xpMilli, had, added);
+      if (added > 0) {
+        w.xpMilli = xpAfterRefill(w.xpMilli, had, added, rookieXpOf(ce.stats));
+      }
     }
     noteWingRest(air, w, day); // lane D filters by phase
   }
@@ -439,7 +442,12 @@ export function rearmWing(air: WwAir, w: Wing, tick: number): void {
   );
   const swapped = swapOld(air, ce, w, WING_UPGRADE_PER_REARM);
   if (added + swapped > 0) {
-    w.xpMilli = xpAfterRefill(w.xpMilli, had - swapped, added + swapped);
+    w.xpMilli = xpAfterRefill(
+      w.xpMilli,
+      had - swapped,
+      added + swapped,
+      rookieXpOf(ce.stats),
+    );
   }
 }
 
