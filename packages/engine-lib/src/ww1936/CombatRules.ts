@@ -195,7 +195,7 @@ export function attackValue(
 /**
  * Spec §9.3-4: hits an hour, centi: 10% of the attack within the block value,
  * 40% of the rest. ww7 lane F: `prepBp` is the defender's prepared ground
- * (entrenchment and positions, +5 % a level, and the hold tactic): the hits
+ * (entrenchment and positions, +25 % a level, and the hold tactic): the hits
  * inside the block land ÷ (1 + prep). A division's attack rarely passes its
  * target's block (1936 infantry: 138 against 261), and then a bigger block
  * alone would change nothing: an entrenched line took what an open one did.

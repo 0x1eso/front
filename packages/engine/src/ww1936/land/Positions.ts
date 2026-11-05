@@ -1,6 +1,6 @@
 // World War 1936 ww7: positions (war overhaul brief §4, design §5). The
 // longer a side stands in a region, the better prepared it is there: a
-// level 0..3 a region (WwLand.posLevel), +5% defence a level for the
+// level 0..3 a region (WwLand.posLevel), +25% defence a level for the
 // controller's defending divisions (CombatRules POSITION_DEF_BP, the
 // battle card's "position" line). A position belongs to the region, not to
 // the divisions: it stays when others take over, and goes when the region
