@@ -1554,7 +1554,7 @@ export const JPN_HIST: readonly HistEntry[] = [
     country: "JPN",
     family: "tank",
     role: "medium",
-    techs: ["modern_tank_1", "medium_tank_3"],
+    techs: ["modern_tank_1", "medium_tank_3", "tank_gun_3"],
     year: 1945,
     // ww85: One prototype by May 1945; the 75 mm gun was never fitted, so gun figures are those it was built for, as on jpn_type4_chito. No price found: estimate at the Chi-To's rate per tonne. Speed off road and hull slope as the Chi-To (no source gives them).
     source:

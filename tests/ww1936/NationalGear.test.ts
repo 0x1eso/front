@@ -12,6 +12,7 @@ import {
   equipKey,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
 import { GROUND_EQUIP_KEYS } from "@openfront/engine-api/ww1936/LandTypes";
+import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { unitCostMilli } from "@openfront/engine-lib/ww1936/Equipment";
 import { HIST_CATALOGUE } from "@openfront/engine-lib/ww1936/hist/index";
 import { histStaticEntry } from "@openfront/engine-lib/ww1936/hist/Slots";
@@ -25,7 +26,11 @@ import { histStaticKeyTable } from "@openfront/engine-lib/ww1936/hist/StaticKeys
 import { HIST_COUNTRIES } from "@openfront/engine-lib/ww1936/hist/Types";
 import { breakdownPpm } from "@openfront/engine-lib/ww1936/hist/Wear";
 import { aiRetools } from "@openfront/engine/ww1936/economy/AiEconomy";
+import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSource";
 import { describe, expect, test } from "vitest";
+import { DEEP } from "./deepFixture";
+import { depthFixture } from "./depthFixture";
+import { step, stepTo, wwRunner } from "./util";
 
 const TRUCK = {
   DEU: "deu_opel_blitz",
@@ -114,5 +119,63 @@ describe("per-major gear", () => {
       key === k1 ? 4000 : key === equipKey("anti_air", 2) ? g : 0;
     expect(aiRetools(lines, researched, 5000, price(6000))).toEqual(order);
     expect(aiRetools(lines, researched, 5000, price(6100))).toEqual([]);
+  });
+});
+
+describe("better guns follow the techs", () => {
+  const have = (...t: string[]) => new Set<string>(t);
+
+  test("the stand-in is the best entry whose techs are done", () => {
+    const id = (c: "DEU" | "SUN", type: string, g: number, r?: Set<string>) =>
+      histStaticEntry(c, type, g, r)?.id;
+    expect(id("DEU", "anti_tank", 1)).toBe("deu_pak36");
+    expect(id("DEU", "anti_tank", 1, have("anti_tank_1"))).toBe("deu_pak36");
+    expect(id("DEU", "anti_tank", 1, have("anti_tank_1", "at_imp_1"))).toBe(
+      "deu_pak38",
+    );
+    // The improvement alone is not enough: the key's own tech comes first.
+    expect(id("DEU", "anti_tank", 1, have("at_imp_1"))).toBe("deu_pak36");
+    expect(id("DEU", "anti_tank", 2, have("anti_tank_2", "at_imp_2"))).toBe(
+      "deu_pak43",
+    );
+    expect(id("DEU", "anti_air", 1, have("anti_air_1", "aa_imp_1"))).toBe(
+      "deu_flak36_88",
+    );
+    // Same tech, better gun: the Soviet ML-20 behind art_imp_2.
+    expect(id("SUN", "artillery", 2, have("artillery_2", "art_imp_2"))).toBe(
+      "sun_ml20",
+    );
+  });
+
+  test("a tech alone rebuilds the key table, and an anti-air key carries its air attack", async () => {
+    usePoliticsContent(depthFixture());
+    try {
+      const runner = await wwRunner(
+        { ww1936Designer: false },
+        [{ clientID: "HUMAN001", country: "DEU" }],
+        DEEP.map,
+      );
+      stepTo(runner, WW_PREP_TICKS + 2);
+      const ww = runner.game.worldWar()!;
+      const DEU = DEEP.tag.DEU;
+      const ce = ww.economy.country(DEU)!;
+      const at = GROUND_EQUIP_KEYS.indexOf(equipKey("anti_tank", 1));
+      const aa = GROUND_EQUIP_KEYS.indexOf(equipKey("anti_air", 1));
+      const before = ww.depth.keyStats(DEU);
+      const pierce0 = before.stats[at * KS_FIELDS + KS.pierce];
+      const air0 = before.stats[aa * KS_FIELDS + KS.aa];
+      expect(air0).toBeGreaterThan(0);
+      ce.addTech("anti_tank_1");
+      ce.addTech("anti_air_1");
+      ce.addTech("at_imp_1");
+      ce.addTech("aa_imp_1");
+      step(runner, 2);
+      const after = ww.depth.keyStats(DEU);
+      expect(after).not.toBe(before);
+      expect(after.stats[at * KS_FIELDS + KS.pierce]).toBeGreaterThan(pierce0);
+      expect(after.stats[aa * KS_FIELDS + KS.aa]).toBeGreaterThan(air0);
+    } finally {
+      usePoliticsContent(null);
+    }
   });
 });

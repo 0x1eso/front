@@ -230,17 +230,24 @@ export class GameView implements GameLike {
       const econ = this._wwEconomy;
       const pol = this._wwPolitics;
       econ.statsSource = (id) => pol.detail(id)?.stats ?? null;
-      const ksMemo = new Map<string, KeyStatsTable>();
+      const ksMemo = new Map<
+        string,
+        { done: readonly string[] | undefined; t: KeyStatsTable }
+      >();
       econ.keyStatsSource = (id) => {
         const tag = scenario.tagOfSmallId(id);
         if (tag === undefined) return null;
         // Designer on: the generic table (a fresh division holds no designs).
         if (this._config.gameConfig().ww1936Designer === true) return null;
-        let t = ksMemo.get(tag);
-        if (t === undefined) {
-          t = histStaticKeyTable(tag);
-          ksMemo.set(tag, t);
-        }
+        // ww91: a gun key follows the techs researched (human countries only).
+        const done = econ.detail(id)?.researched;
+        const hit = ksMemo.get(tag);
+        if (hit !== undefined && hit.done === done) return hit.t;
+        const t = histStaticKeyTable(
+          tag,
+          done === undefined ? undefined : new Set<string>(done),
+        );
+        ksMemo.set(tag, { done, t });
         return t;
       };
     }

@@ -1181,7 +1181,7 @@ export const FRA_HIST: readonly HistEntry[] = [
     country: "FRA",
     family: "gun",
     role: "artillery",
-    techs: ["artillery_1"],
+    techs: ["artillery_1", "art_imp_1"],
     year: 1913,
     // Estimate: against the US 105 mm M2.
     source: "Memory (Schneider 105 L; 15.7 kg shell, 12,100 m, 2,300 kg).",
@@ -1201,7 +1201,7 @@ export const FRA_HIST: readonly HistEntry[] = [
     country: "FRA",
     family: "gun",
     role: "artillery",
-    techs: ["artillery_1"],
+    techs: ["artillery_1", "art_imp_1"],
     year: 1917,
     // Estimate: against the US 155 mm M1.
     source:

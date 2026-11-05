@@ -1412,7 +1412,7 @@ export const ITA_HIST: readonly HistEntry[] = [
     country: "ITA",
     family: "gun",
     role: "artillery",
-    techs: ["artillery_1"],
+    techs: ["artillery_1", "art_imp_1"],
     year: 1913,
     // Cannone da 105/28: 6 rounds a minute, range 13,000 m, shell 15.1 kg,
     // about 2,300 kg.
@@ -1454,7 +1454,7 @@ export const ITA_HIST: readonly HistEntry[] = [
     country: "ITA",
     family: "gun",
     role: "artillery",
-    techs: ["artillery_2"],
+    techs: ["artillery_2", "art_imp_2"],
     year: 1935,
     // Cannone da 149/40 Mod. 35: heavy gun, 2 rounds a minute, range
     // 23,700 m, shell 46 kg, about 11,300 kg.
@@ -1519,7 +1519,7 @@ export const ITA_HIST: readonly HistEntry[] = [
     country: "ITA",
     family: "gun",
     role: "anti_air",
-    techs: ["anti_air_1"],
+    techs: ["anti_air_1", "aa_imp_1"],
     year: 1939,
     // Cannone-mitragliera da 37/54 (Breda): 120 rounds a minute, effective
     // ceiling about 3,000 m, 0.82 kg shell.
@@ -1540,7 +1540,7 @@ export const ITA_HIST: readonly HistEntry[] = [
     country: "ITA",
     family: "gun",
     role: "anti_air",
-    techs: ["anti_air_1"],
+    techs: ["anti_air_1", "aa_imp_1"],
     year: 1934,
     // Cannone da 75/46 C.A. Mod. 34 (Ansaldo): 15 rounds a minute, ceiling
     // about 9,000 m, shell 6.5 kg, about 3,000 kg.

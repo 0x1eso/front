@@ -20,7 +20,8 @@ import { histStaticEntry } from "./Slots";
 import { HIST_COUNTRIES, type HistCountry } from "./Types";
 import { weakKeyRow } from "./WeakGeneric";
 
-const GEAR_FIELDS = [KS.soft, KS.hard, KS.def, KS.brk] as const;
+// ww91 (B16): an anti-air key also carries its air attack (the gun row of a country scales it).
+const GEAR_FIELDS = [KS.soft, KS.hard, KS.def, KS.brk, KS.aa] as const;
 
 /**
  * A major's static keys take their numbers from its catalogue (rule 7). A tank
@@ -36,6 +37,7 @@ const GEAR_FIELDS = [KS.soft, KS.hard, KS.def, KS.brk] as const;
 export function fillStaticKeys(
   country: HistCountry | null,
   t: KeyStatsTable,
+  researched?: ReadonlySet<string>,
 ): void {
   if (country === null) {
     for (let j = 0; j < GROUND_STATIC_SLOTS; j++) weakKeyRow(t, j);
@@ -46,7 +48,7 @@ export function fillStaticKeys(
   const lastGear = new Map<string, { pct: number; pierceRow: number }>();
   for (let j = 0; j < GROUND_STATIC_SLOTS; j++) {
     const [type, gen] = EQUIP_KEYS[GROUND_EQUIP_KEYS[j]];
-    const e = histStaticEntry(country, type, gen);
+    const e = histStaticEntry(country, type, gen, researched);
     const o = j * KS_FIELDS;
     const generic = STATIC_KEY_STATS.stats;
     if (e === undefined) {
@@ -122,7 +124,10 @@ export function fillStaticKeys(
 }
 
 /** The static key table of a country with the designer off (what the engine's buildKeyStats makes for a fresh division). */
-export function histStaticKeyTable(tag: CountryTag): KeyStatsTable {
+export function histStaticKeyTable(
+  tag: CountryTag,
+  researched?: ReadonlySet<string>,
+): KeyStatsTable {
   const t: KeyStatsTable = {
     group: STATIC_KEY_STATS.group.slice(),
     year: STATIC_KEY_STATS.year.slice(),
@@ -134,6 +139,7 @@ export function histStaticKeyTable(tag: CountryTag): KeyStatsTable {
       ? (tag as HistCountry)
       : null,
     t,
+    researched,
   );
   return t;
 }

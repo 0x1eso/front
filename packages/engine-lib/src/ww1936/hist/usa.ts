@@ -1672,7 +1672,7 @@ export const USA_HIST: readonly HistEntry[] = [
     country: "USA",
     family: "gun",
     role: "anti_tank",
-    techs: ["anti_tank_2"],
+    techs: ["anti_tank_2", "at_imp_2"],
     year: 1943,
     // 3-inch gun M5 (towed M7): 12 rounds per minute, 6.8 kg APC, about 98
     // mm at 500 m, 2,540 kg. Cost about $6k (estimate).

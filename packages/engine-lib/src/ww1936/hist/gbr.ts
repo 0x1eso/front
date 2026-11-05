@@ -1847,7 +1847,7 @@ export const GBR_HIST: readonly HistEntry[] = [
     country: "GBR",
     family: "gun",
     role: "anti_tank",
-    techs: ["anti_tank_2"],
+    techs: ["anti_tank_2", "at_imp_2"],
     year: 1943,
     // QF 17-pounder: 76.2 mm, 10 rounds a minute, APCBC 7.7 kg and about
     // 140 mm at 500 m (sources 130-150), 3,040 kg; the strongest Allied AT
@@ -1989,7 +1989,7 @@ export const GBR_HIST: readonly HistEntry[] = [
     country: "GBR",
     family: "tank",
     role: "medium",
-    techs: ["modern_tank_1", "medium_tank_3"],
+    techs: ["modern_tank_1", "medium_tank_3", "tank_gun_4"],
     year: 1946,
     // ww85: A41: six reached Germany in May 1945 too late to fight; in service December 1946. The published prices are 1950s pounds (35,000 in 1950), so not converted: estimate at the Cromwell's 1.45 per tonne. Off-road speed estimated from the Comet's.
     source:

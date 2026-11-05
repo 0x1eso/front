@@ -169,7 +169,9 @@ export function fillHistStatics(
   t: KeyStatsTable,
 ): void {
   if (designerOn(d)) return;
-  fillStaticKeys(histCountryOf(d, id), t);
+  // ww91: the stand-in of a gun key follows the techs researched; the table
+  // is rebuilt when they change (WwDepth.checkDesignCache).
+  fillStaticKeys(histCountryOf(d, id), t, d.ww.economy.country(id)?.researched);
 }
 
 /**

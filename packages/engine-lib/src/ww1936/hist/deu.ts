@@ -1857,7 +1857,7 @@ export const DEU_HIST: readonly HistEntry[] = [
     country: "DEU",
     family: "gun",
     role: "anti_tank",
-    techs: ["anti_tank_1"],
+    techs: ["anti_tank_1", "at_imp_1"],
     year: 1940,
     // 5 cm Pak 38 L/60: 2.06 kg PzGr 39, 14 rpm, 70 mm at 500 m (sources 59-86),
     // 1,000 kg; about RM 8,500.
@@ -1901,7 +1901,7 @@ export const DEU_HIST: readonly HistEntry[] = [
     country: "DEU",
     family: "gun",
     role: "anti_tank",
-    techs: ["anti_tank_2"],
+    techs: ["anti_tank_2", "at_imp_2"],
     year: 1943,
     // 8.8 cm Pak 43 L/71: 10.2 kg PzGr 39/43, 10 rpm, about 210 mm at 500 m
     // (as the KwK 43), 4,400 kg; price estimated at RM 16,000.
@@ -1944,7 +1944,7 @@ export const DEU_HIST: readonly HistEntry[] = [
     country: "DEU",
     family: "gun",
     role: "anti_air",
-    techs: ["anti_air_1"],
+    techs: ["anti_air_1", "aa_imp_1"],
     year: 1936,
     // 8.8 cm Flak 36: 9.4 kg shell, 15 rpm, 8,000 m effective ceiling, about
     // 5,000 kg in action; about RM 33,000.

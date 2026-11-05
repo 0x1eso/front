@@ -264,7 +264,7 @@ export function histGearItem(
   gen: number,
   researched: ReadonlySet<string>,
 ): HistPickItem | null {
-  const e = histStaticEntry(country, type, gen);
+  const e = histStaticEntry(country, type, gen, researched);
   if (e === undefined || histKindOf(e) !== null) return null;
   return itemOf(e, type, gen, lacking(e, researched), false);
 }
@@ -341,8 +341,9 @@ export function staticItemName(
   country: HistCountry | null,
   type: string,
   gen: number,
+  researched?: ReadonlySet<string>,
 ): string | null {
   if (country === null) return null;
-  const key = histStaticName(country, type, gen);
+  const key = histStaticName(country, type, gen, researched);
   return key === null ? null : translateText(key);
 }
