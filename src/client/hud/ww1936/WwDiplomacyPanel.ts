@@ -20,7 +20,11 @@ import type { WarCard } from "./EndgameModel";
 import { countryBadges, endgameKey } from "./EndgameModel";
 import { countryText } from "./EndgameNames";
 import { linePeacePreview, linePeaceUiOf } from "./LinePeaceModel";
-import { negPeaceComposer, negPeaceUiOf } from "./NegPeaceModel";
+import {
+  negPeaceComposer,
+  negPeaceUiOf,
+  peaceWhyForWar,
+} from "./NegPeaceModel";
 import {
   canAct,
   factionTab,
@@ -623,6 +627,11 @@ export class WwDiplomacyPanel extends LitElement implements Controller {
       // The offer went (or can't go now): the draft goes.
       ui.close();
     }
+    // After a refusal the war row keeps the reason and the price.
+    const why =
+      b.blockId === "cooldown" ? peaceWhyForWar(this.game, me, b.war) : null;
+    // War weariness of the other side's leader: a small bar (ww88).
+    const weary = this.game.wwEndgame?.()?.judgeFor(me, b.war)?.weary ?? null;
     const key = `wpeace:${b.war}:${b.target}`;
     const armed = this.armed(key);
     const redraw = () => this.requestUpdate();
@@ -635,7 +644,29 @@ export class WwDiplomacyPanel extends LitElement implements Controller {
       b.pending || b.block !== null ? null : linePeacePreview(this.game, me, w);
     if (line === null && lui.war === b.war) lui.close();
     const lineKey = `lpeace:${b.war}:${b.target}`;
-    return html`<div
+    return html`${weary === null
+        ? nothing
+        : html`<div
+            data-ww-weary=${weary}
+            class="mt-1 flex items-center gap-1.5 text-xs text-white/70"
+            title=${translateText("ww1936.wpeace.weary_title")}
+          >
+            <span class="shrink-0"
+              >${translateText("ww1936.wpeace.weary", { pct: weary })}</span
+            >
+            <span
+              class="h-1.5 min-w-12 flex-1 overflow-hidden rounded bg-white/15"
+              role="progressbar"
+              aria-valuemin="0"
+              aria-valuemax="30"
+              aria-valuenow=${weary}
+              ><span
+                class="block h-full bg-amber-300"
+                style="width:${Math.round((weary * 100) / 30)}%"
+              ></span
+            ></span>
+          </div>`}
+      <div
         data-ww-wpeace-row=${b.war}
         class="mt-1 flex flex-wrap items-center gap-1.5"
       >
@@ -679,6 +710,11 @@ export class WwDiplomacyPanel extends LitElement implements Controller {
               >${b.block}</span
             >`}
       </div>
+      ${why === null
+        ? nothing
+        : html`<div data-ww-wpeace-why class="text-xs text-amber-200">
+            ${why}
+          </div>`}
       ${composer === null
         ? nothing
         : negPeaceComposerTemplate(composer, {

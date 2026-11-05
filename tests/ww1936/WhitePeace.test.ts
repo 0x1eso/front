@@ -437,7 +437,7 @@ describe("World War 1936: white peace", { timeout: 60_000 }, () => {
     expect(ww.land.controller[6]).toBe(pl);
   });
 
-  it("only a war with a land front stalemates", async () => {
+  it("a war with no land front counts its stalemate from its start too", async () => {
     const { runner, g, ww, eg } = await started();
     const [deu, pl, est] = [id("DEU"), id("POL"), id("EST")];
     // Germany and Poland touch; Estonia (an island here) touches nobody.
@@ -448,7 +448,10 @@ describe("World War 1936: white peace", { timeout: 60_000 }, () => {
     expect(stalemateDays(eg, wp, day)).toBeGreaterThanOrEqual(
       WW_WHITE_PEACE_MIN_DAYS,
     );
-    expect(stalemateDays(eg, we, day)).toBe(0);
+    // ww88: no front is no reset; the count runs from the war's start.
+    expect(stalemateDays(eg, we, day)).toBeGreaterThanOrEqual(
+      WW_WHITE_PEACE_MIN_DAYS,
+    );
   });
 
   it("a human target's card refuses at its deadline", async () => {

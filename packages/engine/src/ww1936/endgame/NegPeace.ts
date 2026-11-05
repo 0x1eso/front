@@ -14,6 +14,7 @@ import {
   WW_NEG_REPARATIONS_MAX_LEVEL,
   WwPeaceJudgeRow,
   WwPeaceOfferView,
+  WwPeaceReason,
   WwPeaceTerms,
   WwWar,
 } from "@openfront/engine-api/ww1936/EndgameTypes";
@@ -32,14 +33,19 @@ import {
   negPeaceValue,
   negPeaceWinNeed,
   noPeaceTerms,
+  warWearinessPct,
 } from "@openfront/engine-lib/ww1936/NegPeaceRules";
 import { evictDivisions, transferRegionPeaceful } from "../land/PoliticsBridge";
 import { regionBase } from "./Conference";
 import { endSubject } from "./Subjects";
 import {
   acceptPct,
+  AI_PEACE_REFUSE_CAP_PM,
+  AI_PEACE_REFUSE_HELD_PM,
   fighting,
+  frontCounts,
   heldPm,
+  muchStronger,
   proposerGroup,
   sideIds,
   surrenderPm,
@@ -199,6 +205,42 @@ export function peaceJudgeOf(
     winNeed: negPeaceWinNeed(pct, lead, pBase),
   };
 }
+
+/**
+ * Why the AI target `to` is hard to move in `w` (ww88: the composer's one
+ * line, with the points still missing) and how weary of the war it is.
+ * `reason` is absent when its white-peace chance `pct` is already
+ * AI_REASON_OK_PCT or more.
+ */
+export function peaceReasonOf(
+  eg: WwEndgame,
+  w: WwWar,
+  from: number,
+  to: number,
+  whole: boolean,
+  day: number,
+  pct: number,
+): { reason?: WwPeaceReason; weary: number } {
+  const sTo = eg.sideIndex(w, to);
+  const stronger = sTo !== -1 && muchStronger(eg, w, sTo as 0 | 1);
+  const weary = warWearinessPct(day - w.startDay, stronger);
+  const gp = proposerGroup(eg, w, from, whole);
+  const s = eg.sideIndex(w, from);
+  const gt = s < 0 ? [] : sideIds(w, s === 0 ? 1 : 0);
+  if (
+    surrenderPm(eg, from) >= AI_PEACE_REFUSE_CAP_PM ||
+    heldPm(eg, gt, gp) >= AI_PEACE_REFUSE_HELD_PM
+  ) {
+    return { reason: "winning", weary };
+  }
+  if (pct >= AI_REASON_OK_PCT) return { weary };
+  if (stronger) return { reason: "stronger", weary };
+  if (!frontCounts(eg, w)[2]) return { reason: "no_front", weary };
+  return { reason: "not_hurt", weary };
+}
+
+/** A white-peace chance from which the composer gives no reason (percent). */
+export const AI_REASON_OK_PCT = 30;
 
 /** The offer's terms' worth to the target's side, points (a white peace: 0). */
 export function offerValue(
@@ -362,7 +404,13 @@ export function peaceJudgeData(
         f ??= negPeaceFacts(eg);
         const whole = w.sides[s].leader === m.id;
         const j = peaceJudgeOf(eg, w, m.id, target, whole, day, f);
-        rows.push({ war: w.id, from: m.id, to: target, ...j });
+        rows.push({
+          war: w.id,
+          from: m.id,
+          to: target,
+          ...j,
+          ...peaceReasonOf(eg, w, m.id, target, whole, day, j.pct),
+        });
       }
     }
   }

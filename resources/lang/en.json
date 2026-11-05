@@ -11154,7 +11154,11 @@
       "send": "Send offer",
       "title": "Peace offer to {country}",
       "vp": "{country} cedes {pct}% of its victory points (at most 40%)",
-      "white": "No terms: a white peace"
+      "white": "No terms: a white peace",
+      "why_no_front": "You share no front, so they see no reason: about {pts} more points would do it.",
+      "why_not_hurt": "They are not hurt: offer about {pts} more points.",
+      "why_stronger": "They are far stronger: about {pts} more points would do it.",
+      "why_winning": "They are winning: no price will stop them."
     },
     "nuke": {
       "band": "Atomic bombs {n}",
@@ -14304,7 +14308,9 @@
       "pending": "Waiting for their answer",
       "refuse": "Refuse",
       "scope_separate": "Separate peace (leaves the faction)",
-      "scope_whole": "Whole war"
+      "scope_whole": "Whole war",
+      "weary": "War weariness {pct}%",
+      "weary_title": "After a year of war their chance to accept rises 1% every 30 days, up to 30%."
     }
   }
 }

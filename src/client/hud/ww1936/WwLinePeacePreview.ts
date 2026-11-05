@@ -85,6 +85,9 @@ export function linePeacePreviewTemplate(
           class="font-semibold ${lineHintTone(v.hintLevel)}"
           >${v.hint}</span
         >`}
+    ${v.why === null
+      ? nothing
+      : html`<span data-ww-lpeace-why class="text-amber-200">${v.why}</span>`}
     <div class="flex gap-1">
       <button
         type="button"

@@ -24,7 +24,11 @@ import {
 } from "../../render/gl/passes/PeaceMapPass";
 import { translateText } from "../../Utils";
 import { countryText } from "./EndgameNames";
-import { type NegPeaceGame, wwPeaceMapSource } from "./NegPeaceModel";
+import {
+  type NegPeaceGame,
+  peaceWhyLine,
+  wwPeaceMapSource,
+} from "./NegPeaceModel";
 import { peaceColor, peaceRegionName } from "./PeaceModel";
 import type { WhitePeaceGame } from "./WhitePeaceModel";
 
@@ -161,6 +165,8 @@ export interface LinePeacePreviewView extends LinePeaceSummary {
   hint: string;
   /** The level (null: a human target, or no row yet). */
   hintLevel: NegPeaceHint | null;
+  /** Why they are hard to move, with the points missing (null: they may agree). */
+  why: string | null;
   order: WwOrder;
 }
 
@@ -186,9 +192,11 @@ export function linePeacePreview(
   const sum = lineSummary(game, split);
   let hint = "";
   let hintLevel: NegPeaceHint | null = null;
+  let why: string | null = null;
   if (isHuman(game, target)) {
     hint = translateText("ww1936.npeace.chance_human");
   } else if (ready) {
+    why = peaceWhyLine(row.reason, row.missing ?? 0);
     hintLevel = negPeaceHint(row.chance);
     hint =
       hintLevel === "none"
@@ -210,6 +218,7 @@ export function linePeacePreview(
     empty: ready ? sum.empty : null,
     hint,
     hintLevel,
+    why,
     order: { kind: "line_peace_offer", war: w.id, target },
   };
 }

@@ -21,6 +21,7 @@ import {
   negPeaceValue,
   negPeaceWinNeed,
   noPeaceTerms,
+  warWearinessPct,
 } from "@openfront/engine-lib/ww1936/NegPeaceRules";
 
 // Countries: 1 the proposer, 2 the target, 3 Japan (excluded), 4 China, 5
@@ -165,10 +166,26 @@ describe("negotiated peace rules", () => {
         expect(negPeaceChance(j, value)).toBe(yes);
       }
     }
-    // A clearly winning side (chance 0) needs its lead's share on top.
-    expect(negPeaceWinNeed(10, 900, 200)).toBe(0);
-    expect(negPeaceWinNeed(0, 500, 200)).toBe(60);
+    // A side ahead needs its lead's share on top: nothing up to a lead of
+    // 300‰, then smoothly more, fading as its white-peace chance rises.
+    expect(negPeaceWinNeed(30, 900, 200)).toBe(0);
+    expect(negPeaceWinNeed(0, 300, 200)).toBe(0);
+    expect(negPeaceWinNeed(0, 500, 200)).toBe(34);
+    expect(negPeaceWinNeed(0, 1000, 200)).toBe(120);
     expect(negPeaceWinNeed(0, 2000, 200)).toBe(120);
+    expect(negPeaceWinNeed(10, 900, 200)).toBe(68);
+    let last = -1;
+    for (let lead = 0; lead <= 1000; lead += 25) {
+      const n = negPeaceWinNeed(0, lead, 200);
+      expect(n).toBeGreaterThanOrEqual(last);
+      last = n;
+    }
+    // War weariness: a year in, then a percent per 30 days to 30; half for the stronger.
+    expect(warWearinessPct(364, false)).toBe(0);
+    expect(warWearinessPct(365, false)).toBe(1);
+    expect(warWearinessPct(395, false)).toBe(2);
+    expect(warWearinessPct(5000, false)).toBe(30);
+    expect(warWearinessPct(5000, true)).toBe(15);
     const win: NegPeaceJudge = { pct: 0, unit: 250, winNeed: 60 };
     expect(negPeaceChance(win, 59)).toBe(0);
     expect(negPeaceChance(win, 60)).toBe(0);

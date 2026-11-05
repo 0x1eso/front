@@ -32,13 +32,15 @@ import {
   negPeaceChance,
   NegPeaceFacts,
   NegPeaceJudge,
+  negPeaceMissing,
 } from "@openfront/engine-lib/ww1936/NegPeaceRules";
 import { wwRealTicks } from "@openfront/engine-lib/ww1936/Pace";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { evictDivisions, transferRegionPeaceful } from "../land/PoliticsBridge";
 import { payPp } from "../politics/PayPp";
-import { negPeaceFacts, peaceJudgeOf } from "./NegPeace";
+import { negPeaceFacts, peaceJudgeOf, peaceReasonOf } from "./NegPeace";
 import {
+  AI_PEACE_REFUSE_CAP_PM,
   AI_PROPOSE_CAP_PM,
   AI_PROPOSE_LOST_PM,
   fighting,
@@ -203,6 +205,8 @@ export function applyLinePeace(
 // ---- The AI's judge ----
 
 const P_LINE = idHash("line_peace");
+/** The extra points a flat refusal asks (no line is worth them). */
+export const LINE_REFUSED_NEED = 1_000_000;
 
 /** A line offer's seeded roll, 0..99 (its own, not the white peace's). */
 export function lineOfferRoll(eg: WwEndgame, o: PeaceOffer): number {
@@ -226,13 +230,20 @@ export function lineJudgeOf(
   f: LinePeaceFacts = linePeaceFacts(eg),
 ): { j: NegPeaceJudge; value: number; moves: LineMove[]; mine: number[] } {
   const { moves, mine, theirs } = lineMovesOf(eg, w, from, whole, f);
-  const j = peaceJudgeOf(eg, w, from, to, whole, day, f);
+  let j = peaceJudgeOf(eg, w, from, to, whole, day, f);
+  // A proposer past its way to the surrender line is refused outright, as
+  // a white peace is (ww88: the line is judged at full value, so this
+  // guard keeps a beaten side from getting peace on what it lost).
+  if (surrenderPm(eg, from) >= AI_PEACE_REFUSE_CAP_PM) {
+    j = { ...j, pct: 0, winNeed: LINE_REFUSED_NEED };
+  }
   const t = new Set(theirs);
   const value = linePeaceValue(
     f,
     moves,
     (x) => t.has(x),
     linePeaceReliefPm(surrenderPm(eg, to)),
+    true,
   );
   return { j, value, moves, mine };
 }
@@ -295,13 +306,14 @@ export function aiWantsLinePeace(
   if (!losing) {
     const own = new Set(t.mine);
     const mine = (x: number) => own.has(x);
-    if (linePeaceValue(f, t.moves, mine, 0) <= 0) return false;
+    if (linePeaceValue(f, t.moves, mine, 0, true) <= 0) return false;
     const self = peaceJudgeOf(eg, w, target, id, true, day, f);
     const selfValue = linePeaceValue(
       f,
       t.moves,
       mine,
       linePeaceReliefPm(surrenderPm(eg, id)),
+      true,
     );
     if (!negPeaceAccepts(self, selfValue, AI_LINE_SELF_ROLL)) return false;
   }
@@ -381,6 +393,8 @@ export function linePeaceData(
           to: target,
           ...linePeaceSplit(f, t.moves, (x) => own.has(x)),
           chance: negPeaceChance(t.j, t.value),
+          missing: negPeaceMissing(t.j, t.value),
+          ...peaceReasonOf(eg, w, m.id, target, whole, day, t.j.pct),
         });
       }
     }

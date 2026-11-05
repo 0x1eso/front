@@ -13645,7 +13645,9 @@
       "card_title_terms": "조건부 평화 제안: {country}",
       "card_cedes": "{country} 측 양도: {regions}",
       "card_pays": "{country} 측 배상: 공장 {pct}% (하루 {k} 개), {days} 일간",
-      "card_frees": "{country} 측이 {subject} 측을 독립시킵니다"
+      "card_frees": "{country} 측이 {subject} 측을 독립시킵니다",
+      "weary": "전쟁 피로 {pct}%",
+      "weary_title": "전쟁이 1년을 넘기면 30일마다 상대가 받아들일 확률이 1%씩 올라 최대 30%까지 오릅니다."
     },
     "npeace": {
       "title": "평화 제안: {country}",
@@ -13670,7 +13672,11 @@
       "vp": "{country} 측 승점 {pct}% 양도 (최대 40%)",
       "band": "내 주를 누르면 내주기, 상대 주를 누르면 요구 · {n} 개 선택",
       "done": "완료",
-      "remove": "{region} 빼기"
+      "remove": "{region} 빼기",
+      "why_winning": "상대가 이기고 있어 어떤 대가로도 멈추지 않습니다.",
+      "why_stronger": "상대가 훨씬 강합니다. {pts}점쯤 더 내면 받아들입니다.",
+      "why_no_front": "맞닿은 전선이 없어 상대가 평화할 이유를 못 느낍니다. {pts}점쯤 더 내면 받아들입니다.",
+      "why_not_hurt": "상대는 타격을 받지 않았습니다. {pts}점쯤 더 내놓아야 합니다."
     },
     "lpeace": {
       "offer": "현 점령선 평화",

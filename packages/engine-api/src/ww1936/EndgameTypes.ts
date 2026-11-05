@@ -517,12 +517,18 @@ export interface WwLinePeaceSplit {
  * Peace on the current line: what my offer in a war would settle now and
  * the chance the other side's AI leader takes it (the preview's hint).
  */
+export type WwPeaceReason = "winning" | "stronger" | "no_front" | "not_hurt";
 export interface WwLinePeaceRow extends WwLinePeaceSplit {
   war: number;
   from: number;
   to: number;
   /** The AI judge's accept chance, percent (NegPeaceRules.negPeaceChance of the line's value). */
   chance: number;
+  /** Why the target is hard to move (ww88; absent: it may agree), and the points still missing for a "high" chance. */
+  reason?: WwPeaceReason;
+  missing?: number;
+  /** War weariness the target has now (percent, 0..30). */
+  weary?: number;
 }
 /**
  * Negotiated peace: what the AI judge reads of the war for an offer from a
@@ -538,6 +544,10 @@ export interface WwPeaceJudgeRow {
   unit: number;
   /** The extra a clearly winning side needs (points). */
   winNeed: number;
+  /** Why the target is hard to move (ww88; absent: it may agree). */
+  reason?: WwPeaceReason;
+  /** War weariness the target has now (percent, 0..30). */
+  weary?: number;
 }
 export interface WwEndgameData {
   countries?: WwCountryView[];
