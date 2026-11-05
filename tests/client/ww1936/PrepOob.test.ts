@@ -54,8 +54,8 @@ describe("the stored start army plan", () => {
     expect(prepPlanOf("DEU").map((t) => t.name)).toEqual(["Old"]);
     expect(prepArmiesOf("DEU")).toBeNull();
     const m = oobModel("DEU", prepPlanOf("DEU"), prepArmiesOf("DEU"))!;
-    expect(m.armies.map((a) => a.original)).toEqual([18, 14, 11]);
-    expect(m.armies.map((a) => a.total)).toEqual([18, 14, 11]);
+    expect(m.armies.map((a) => a.original)).toEqual([23, 18, 20]);
+    expect(m.armies.map((a) => a.total)).toEqual([23, 18, 20]);
   });
 
   it("round-trips armies and new templates; bad data cannot break it", () => {

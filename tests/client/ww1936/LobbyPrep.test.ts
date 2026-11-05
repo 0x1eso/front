@@ -89,7 +89,7 @@ function prep() {
 describe("the start templates of the lobby", () => {
   it("a major lists its 1936 templates, a minor its main one only", () => {
     expect(lobbyStartTemplates("DEU").map((t) => t.key)).toEqual(
-      expect.arrayContaining(["infantry", "armored", "mountain", "cavalry"]),
+      expect.arrayContaining(["infantry", "armored", "mountain"]),
     );
     expect(lobbyStartTemplates("POL")).toHaveLength(1);
     expect(lobbyStartTemplates("POL")[0].key).toBe("infantry");
@@ -140,10 +140,10 @@ describe("the preview", () => {
 
   it("Germany with one more infantry battalion: the men budget sets the count, not support equipment", () => {
     const p = startPreviews("DEU", [plus("infantry")]).get("infantry")!;
-    expect(p.original).toBe(36);
+    expect(p.original).toBe(50);
     // 18 while the support equipment cut the count (browser, 2026-11-03);
     // now the men budget does, and no equipment.
-    expect(p.count).toBe(32);
+    expect(p.count).toBe(43);
     expect(p.limitedBy).toBeNull();
   });
 
@@ -210,7 +210,7 @@ describe("applying the plan at the start", () => {
     const infantry = sent[0].templates.findIndex(
       (t: any) => t.key === "infantry",
     );
-    expect(sent[0].armies[0][0]).toEqual({ template: infantry, count: 14 });
+    expect(sent[0].armies[0][0]).toEqual({ template: infantry, count: 20 });
     // The success text waits for the game to show the plan applied.
     expect(notes).toEqual([]);
     g.wwLand().details.get(1).startOob = true;

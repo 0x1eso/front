@@ -32,6 +32,9 @@ const RESEARCHED = [
   ...detail("DEU").researched,
   "engineer_company",
   "recon_company",
+  "artillery_1",
+  "support_eq_1",
+  "anti_tank_1",
 ] as const;
 
 async function mount(templateId: number, o: LandOptions = {}) {
@@ -74,16 +77,16 @@ describe("<ww-template-designer> (spec §15.5)", () => {
     vi.useFakeTimers();
     vi.setSystemTime(100_000);
     const m = await mount(1);
-    // German infantry: 11 battalions and the next empty cell, 25 places.
+    // The German line: 7 battalions and the next empty cell, 25 places.
     expect(m.el.querySelectorAll("[data-ww-battalion-grid] > *")).toHaveLength(
       25,
     );
     expect(
       m.el.querySelectorAll("[data-ww-slot-kind='battalion']"),
-    ).toHaveLength(12);
+    ).toHaveLength(8);
     expect(m.q("[data-ww-designer-xp]")).toBeNull();
     // The empty cell: the battalion list; tanks need their tech.
-    await m.click(slot("battalion", 11));
+    await m.click(slot("battalion", 7));
     expect(m.q("[data-ww-pick='medium_armor']")!.dataset.locked).toBe("true");
     expect(m.q("[data-ww-pick='medium_armor']")!.textContent).toContain(
       "[ww1936.land.locked_by] tech=[ww1936.tech.medium_tank_1]",
@@ -91,16 +94,16 @@ describe("<ww-template-designer> (spec §15.5)", () => {
     await m.click("[data-ww-pick='medium_armor']");
     expect(
       m.el.querySelectorAll("[data-ww-slot-kind='battalion']"),
-    ).toHaveLength(12);
+    ).toHaveLength(8);
     await m.click("[data-ww-pick='artillery']");
-    expect(m.q(slot("battalion", 11))!.dataset.changed).toBe("true");
+    expect(m.q(slot("battalion", 7))!.dataset.changed).toBe("true");
     expect(m.q(slot("battalion", 0))!.dataset.changed).toBe("false");
     expect(m.q("[data-ww-stat='width'] [data-changed]")!.dataset.changed).toBe(
       "true",
     );
     expect(
       m.q("[data-ww-stat='width'] td:last-child")!.textContent!.trim(),
-    ).toBe("27");
+    ).toBe("18");
     expect(m.q("[data-ww-need='artillery']")!.textContent).toContain(
       "[ww1936.land.factory_days]",
     );
@@ -126,14 +129,12 @@ describe("<ww-template-designer> (spec §15.5)", () => {
     await m.click("[data-ww-slot-remove]");
     expect(
       m.el.querySelectorAll("[data-ww-slot-kind='battalion']"),
-    ).toHaveLength(11);
-    // Engineers and recon already in: the third slot offers neither.
+    ).toHaveLength(7);
+    // Support guns and anti-tank already in: the third slot offers neither.
     await m.click(slot("support", 2));
-    expect(m.q("[data-ww-pick='engineer']")).toBeNull();
-    expect(m.q("[data-ww-pick='support_artillery']")).not.toBeNull();
-    expect(
-      m.q("[data-ww-pick='support_artillery'] [data-ww-support-note]"),
-    ).not.toBeNull();
+    expect(m.q("[data-ww-pick='support_artillery']")).toBeNull();
+    expect(m.q("[data-ww-pick='support_anti_tank']")).toBeNull();
+    expect(m.q("[data-ww-pick='engineer']")).not.toBeNull();
   });
 
   it("copy saves a new template in one tap when nothing changed; delete takes two", async () => {
@@ -170,6 +171,33 @@ describe("<ww-template-designer> (spec §15.5)", () => {
     await used.click("[data-ww-designer-delete]");
     expect(used.q("[data-ww-block='template_in_use']")).not.toBeNull();
     expect(used.sent).toEqual([]);
+  });
+
+  it("the automatic companies' switch: a saved template with something to add, on from what the engine says", async () => {
+    const on = await mount(1, {
+      landDetails: [
+        landDetail("DEU", {
+          templates: [startTemplate("DEU", 1, { auto: true })],
+        }),
+      ],
+    });
+    const button = () => on.q("[data-ww-auto-companies]")!;
+    expect(button().getAttribute("aria-pressed")).toBe("true");
+    await on.click("[data-ww-auto-companies]");
+    expect(on.sent).toEqual([
+      { kind: "template_auto", template: 1, on: false },
+    ]);
+    expect(button().getAttribute("aria-pressed")).toBe("false");
+    const garrison = await mount(1, {
+      landDetails: [
+        landDetail("DEU", {
+          templates: [startTemplate("DEU", 1, { key: "garrison" })],
+        }),
+      ],
+    });
+    expect(garrison.q("[data-ww-auto-companies]")).toBeNull();
+    const fresh = await mount(0);
+    expect(fresh.q("[data-ww-auto-companies]")).toBeNull();
   });
 
   it("a new template needs a name; no title attributes", async () => {
