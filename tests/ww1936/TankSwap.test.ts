@@ -200,6 +200,7 @@ describe("generation swap", () => {
         row[KS.brk] = st.brk;
         row[KS.pierce] = st.pierce;
         row[KS.armor] = st.armor;
+        row[KS.speedCenti] = st.speedCenti;
         const sc = rowScore(row, 0, st.group, st.year);
         if (def === null && sc < target && sc * 100 >= target * 85) def = cand;
       }
