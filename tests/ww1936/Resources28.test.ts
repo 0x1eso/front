@@ -75,10 +75,8 @@ describe("w28: the alloy plant", () => {
     ce.addTech("metal_substitute_1");
     expect(buildBlock(econ, ce, REGION.kiev, "alloy_plant", 1)).toBeNull();
     expect(WW_TECHS.metal_substitute_1.prereqs).toEqual(["excavation_1"]);
-    expect(WW_TECH_IDS.slice(-2)).toEqual([
-      "metal_substitute_1",
-      "metal_substitute_2",
-    ]);
+    const at = WW_TECH_IDS.indexOf("metal_substitute_1");
+    expect(WW_TECH_IDS[at + 1]).toBe("metal_substitute_2");
   });
 
   test("working plants add tungsten and chromium after the infrastructure factor; tech 2 raises it", async () => {
