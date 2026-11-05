@@ -22,7 +22,6 @@ afterEach(() => usePoliticsContent(null));
 const H = "HUMANDEU";
 const DEU = DEEP.tag.DEU;
 const BERLIN = DEEP.region.berlin;
-const MUNICH = DEEP.region.munich;
 const BASE = Math.floor((300 * WW_ROUND_HOUR_MILLI) / 1000);
 
 async function germany() {

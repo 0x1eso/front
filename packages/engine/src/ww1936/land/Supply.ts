@@ -303,7 +303,6 @@ export function dailySupply(land: WwLand, side: number): void {
     cache.epoch = land.derivedEpoch;
   }
   const { ours, regions } = cache.regionsView;
-  const day = land.day();
   // What the hubs, the reach and the runs read: the side's regions, their
   // rail, infrastructure and built hubs, the members' capitals.
   const rail = land.ww.air.wingsLive ? land.econ.railEff : land.econ.rail;

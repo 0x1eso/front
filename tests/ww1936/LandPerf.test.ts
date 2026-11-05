@@ -553,7 +553,6 @@ function referenceSupply(
   const members = l.sideMembers(side);
   const ours = (r: number) => members.includes(l.controller[r]);
   const regions = sc.landRegions.map((r) => r.id).filter(ours);
-  const day = l.day();
   const capitals = members
     .map((m) => capitalRegion(l, m))
     .filter((r) => r !== 0);

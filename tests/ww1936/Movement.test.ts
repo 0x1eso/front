@@ -48,7 +48,6 @@ describe("World War 1936 P2: movement (P2 spec §7)", () => {
     const runner = await wwRunner({}, DEU_POL);
     const g = runner.game;
     const l = land(g);
-    const ww = g.worldWar()!;
     stepTo(runner, WW_PREP_TICKS + 1);
     clearLand(g);
     const deu = byTag(g, "DEU").smallID();
