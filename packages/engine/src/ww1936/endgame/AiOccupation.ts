@@ -232,7 +232,7 @@ function frontHeavy(eg: WwEndgame, id: number): boolean {
  * drops and volunteering. ww106: and fed: the weakest go first, so a pocket's
  * starving divisions were picked, and no relief moves a garrison.
  */
-function garrisonable(land: WwLand, row: number): boolean {
+export function garrisonable(land: WwLand, row: number): boolean {
   const t = land.divisions;
   if (t.id[row] === 0 || t.battle[row] !== 0) return false;
   if (t.supply[row] < ATTRITION_SUPPLY_PM) return false;

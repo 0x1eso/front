@@ -21,10 +21,13 @@ import { peaceJudgeData } from "@openfront/engine/ww1936/endgame/NegPeace";
 import { aiDemands } from "@openfront/engine/ww1936/endgame/PeaceAi";
 import { addWarScore } from "@openfront/engine/ww1936/endgame/Wars";
 import {
+  AI_PEACE_REFUSE_CAP_PM,
+  AI_PROPOSE_CAP_PM,
   aiAccepts,
   aiWantsPeace,
   democracyFightsOn,
   offerPeace,
+  surrenderPm,
 } from "@openfront/engine/ww1936/endgame/WhitePeace";
 import type {
   Conference,
@@ -203,7 +206,7 @@ describe(
         eg.war(w)!.sides[eg.sideIndex(eg.war(w)!, sun) as 0 | 1].leader,
       ).toBe(sun);
       takeRegion(g, MUNICH, "SUN");
-      const day = board(ww, w, g, { SUN: 600, FRA: 100, DEU: 100 }, 10);
+      const day = board(ww, w, g, { SUN: 150, FRA: 100, DEU: 100 }, 10);
       expect(
         democracyFightsOn(
           eg,
@@ -221,9 +224,35 @@ describe(
       );
       // Without a democracy in the fight the leader's judge answers as before.
       ww.politics.country(id("FRA"))!.ruling = IDEO_FAS;
+      expect(yes(o, (x) => aiAccepts(eg, x, day))).toBeGreaterThan(0);
       expect(
         yes(o, (x) => lineAiAccepts(eg, { ...x, line: true }, day)),
       ).toBeGreaterThan(0);
+    });
+
+    it("hurt but ahead it doesn't ask for peace, while a losing one does", async () => {
+      const { g, ww, eg } = await started();
+      const fra = id("FRA");
+      const w = warOn(g, ww, "FRA");
+      const rec = eg.war(w)!;
+      // A small French region lost, its surrender line near: a losing side's
+      // reason to offer. France holds as much of Germany, and more factories.
+      const lost = Object.keys(END.owner)
+        .map(Number)
+        .filter((r) => END.owner[r] === "FRA" && END.vp[r] > 0)
+        .sort((a, b) => END.vp[a] - END.vp[b])[0];
+      takeRegion(g, lost, "DEU");
+      takeRegion(g, MUNICH, "FRA");
+      const pct = [...Array(100).keys()].find((p) => {
+        ww.politics.surrenderPct = () => p + 1;
+        const cap = surrenderPm(eg, fra);
+        return cap >= AI_PROPOSE_CAP_PM && cap < AI_PEACE_REFUSE_CAP_PM;
+      });
+      expect(pct).toBeDefined();
+      const day = board(ww, w, g, { FRA: 200, DEU: 100 }, 10);
+      expect(aiWantsPeace(eg, rec, fra, day)).toBe(false);
+      board(ww, w, g, { FRA: 50, DEU: 100 }, 10);
+      expect(aiWantsPeace(eg, rec, fra, day)).toBe(true);
     });
 
     it("it neither asks for peace nor offers the line while it wins", async () => {
