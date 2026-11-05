@@ -322,7 +322,7 @@ export function openConference(
   const stake = ww.scenario.landRegions
     .map((r) => r.id)
     .filter((r) => loserSet.has(pol.legalOwner[r] ?? 0))
-    .filter((r) => terms === undefined || termsStake(eg, r, ids0))
+    .filter((r) => terms === undefined || termsStake(eg, r, ids0, loserSet))
     .sort(asc);
   const base = stake.map((r) => regionBase(eg, r));
   let total = 0;
@@ -383,13 +383,18 @@ export interface TermsOpening {
   poolPct: number;
 }
 
-/** Ask for terms: at stake is what a winner holds, and what borders it. */
+/**
+ * Ask for terms: at stake is what a winner holds, and what borders it, but
+ * no capital of a loser (it goes back, as on a line peace).
+ */
 function termsStake(
   eg: WwEndgame,
   r: number,
   winners: ReadonlySet<number>,
+  losers: ReadonlySet<number>,
 ): boolean {
   const ctrl = eg.ww.land.controller;
+  for (const L of losers) if (legalCapital(eg, L) === r) return false;
   if (winners.has(ctrl[r] ?? 0)) return true;
   return eg.ww.scenario
     .regionNeighbours(r)
@@ -431,7 +436,6 @@ export function assignInput(eg: WwEndgame, c: Conference): AssignIn {
   const winners = c.parts.filter((p) => eg.isActor(p.id));
   const isWinner = new Set(winners.map((p) => p.id));
   const caps = new Map(c.losers.map((L) => [L, legalCapital(eg, L)]));
-  const keptCapitals = livingAsked(eg, c);
   return {
     regions: c.stake.map((r, i) => {
       const L = legal[r] ?? 0;
@@ -443,11 +447,7 @@ export function assignInput(eg: WwEndgame, c: Conference): AssignIn {
         loser: L,
         value: c.base[i],
         group: sc.regionSr(r),
-        // Ask for terms: its capital goes back, as on a line peace.
-        holder:
-          handed.has(r) || !isWinner.has(held) || (isCap && keptCapitals.has(L))
-            ? 0
-            : held,
+        holder: handed.has(r) || !isWinner.has(held) ? 0 : held,
         handedTo: handed.get(r) ?? 0,
         port: sc.isPort(r),
         keyCity: isCap || (reg?.vp ?? 0) >= WW_PEACE_BIG_CITY_VP,
@@ -1044,6 +1044,8 @@ function finishTerms(
   const parts = c.parts.filter((p) => eg.isActor(p.id));
   for (const L of asked) {
     for (const p of parts) setTruce(eg, L, p.id, day + WW_TRUCE_DAYS);
+    const cap = legalCapital(eg, L);
+    if (cap !== 0) transferRegionPeaceful(eg.ww.land, cap, L, tick);
   }
   const now = legalValues(eg, asked);
   const victor = peaceMainVictor(parts);
@@ -1085,11 +1087,18 @@ function assignmentRows(
   }
   for (const r of c.stake) if (eg.isZone(r)) spoken.add(r);
   const assign = new Map<number, number>();
+  const assignedOf = new Set(c.assign.map(([r]) => r));
+  // A puppet with nothing of its own lives on in what its master gives back.
+  const bare = (L: number) =>
+    c.stake.every(
+      (r) => legal[r] !== L || assignedOf.has(r) || spoken.has(r),
+    );
   for (const [r, p] of c.assign) {
     if (spoken.has(r) || !eg.isActor(p)) continue;
     const L = legal[r] ?? 0;
     const givesBack =
       puppetBy.get(L) === p &&
+      bare(L) &&
       !eg.hasCore(p, r) &&
       !c.claims.some(([x, y]) => x === p && y === r);
     if (!givesBack) assign.set(r, p);

@@ -495,14 +495,7 @@ function generalAi(
       Math.floor((restV * puppetPct) / 100),
       L,
       stored("puppet", 0, [], { target: L }),
-      settledOn("annex_rest", "puppet") || rest.length === 0
-        ? 0
-        : aggregateCost(
-            all
-              .filter((r) => assignee(r) === 0 || assignee(r) === id)
-              .map((r) => peaceRegionCost(ctx.facts, ctx.table, r, id, id)),
-            AGG_PCT.puppet,
-          ),
+      settledOn("annex_rest", "puppet") ? 0 : restCost(AGG_PCT.puppet),
     );
     const lr = pol.country(L)?.ruling ?? IDEO_NEU;
     if (lr !== ruling) {
@@ -541,7 +534,7 @@ function generalAi(
         rest.length === 0 ? 0 : reparationsCost(k),
       );
     }
-    if (major) {
+    if (major && c.asked !== true) {
       add(
         "disarm",
         100,

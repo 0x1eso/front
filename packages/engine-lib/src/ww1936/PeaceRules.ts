@@ -72,6 +72,8 @@ export interface PeaceTable {
   readonly settled: readonly PeaceSettledRow[];
   /** ww88: [region, winner], what each winner gets without paying (PeaceAssign). */
   readonly assign?: readonly (readonly [number, number])[];
+  /** ww88: the losers asked for terms: they keep their army. */
+  readonly asked?: boolean;
 }
 
 /** A demand spelled out (plan decision 11): its regions, target, receiver, k, pct. */
@@ -95,7 +97,8 @@ export type PeaceBlock =
   | "no_faction"
   | "lost_capital"
   | "already_used"
-  | "already_yours";
+  | "already_yours"
+  | "keeps_army";
 
 /** The translation key of a reason (the card shows it). */
 export function peaceBlockKey(block: PeaceBlock): string {
@@ -414,11 +417,15 @@ export function planPeaceDemand(
       if (!loser || peaceSettledOn(t, L, "annex_rest", "puppet")) {
         return "bad_demand";
       }
-      // ww88: what it keeps, and what the puppet's master gives back to it.
-      const regs = peaceRest(f, t, L, free).filter((r) => {
-        const a = peaceAssignedTo(t, r);
-        return a === 0 || a === p;
-      });
+      // ww88: what it keeps; a loser left with nothing lives on in what its
+      // master gives back to it.
+      const kept = peaceKept(f, t, L, free);
+      const regs =
+        kept.length > 0
+          ? kept
+          : peaceRest(f, t, L, free).filter(
+              (r) => peaceAssignedTo(t, r) === p,
+            );
       if (regs.length === 0) return "no_target";
       return all([], aggregateCost(costs(regs), AGG_PCT.puppet));
     }
@@ -484,6 +491,7 @@ export function planPeaceDemand(
     }
     case "disarm": {
       if (!loser || peaceSettledOn(t, L, "disarm")) return "bad_demand";
+      if (t.asked === true) return "keeps_army";
       const regs = peaceKept(f, t, L, free);
       if (regs.length === 0) return "no_target";
       return all([], aggregateCost(costs(regs), AGG_PCT.disarm));
