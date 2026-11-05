@@ -53,6 +53,7 @@ import {
   ownEffectLines,
   TECH_RULE_LINES,
   techOpens,
+  techParts,
   unlockLines,
 } from "../../../src/client/hud/ww1936/TechEffectLines";
 
@@ -83,8 +84,8 @@ describe("every researchable tech says what it does", () => {
     });
   }
 
-  it("a retired doctrine tech is not on the screens", () => {
-    expect(shown.length).toBe(WW_TECH_IDS.length - 20);
+  it("a retired tech is not on the screens", () => {
+    expect(shown.length).toBe(WW_TECH_IDS.length - 20 - 32);
   });
 
   it("the messages follow the Korean spacing rule", () => {
@@ -139,8 +140,8 @@ describe("w77: with the designer off every live tech does something", () => {
       expect(one("mine_warfare_1").join("|")).toMatch(
         lang === "ko" ? /기뢰 부설.*소해/ : /mine laying.*sweeping/,
       );
-      expect(one("naval_aa_1")[0]).toBe(
-        lang === "ko" ? "함선 대공 화력 +15%" : "Ship anti-air +15%",
+      expect(one("dual_purpose_guns")[0]).toBe(
+        lang === "ko" ? "함선 대공 화력 +45%" : "Ship anti-air +45%",
       );
       expect(one("snorkel")[0]).toBe(
         lang === "ko" ? "잠수함 피발견도 −10%" : "Submarine visibility −10%",
@@ -148,14 +149,14 @@ describe("w77: with the designer off every live tech does something", () => {
       expect(one("armored_deck")[0]).toBe(
         lang === "ko" ? "함선이 받는 피해 −4%" : "Damage taken by ships −4%",
       );
-      expect(one("amphibious_drive")[0]).toBe(
-        lang === "ko" ? "상륙 준비 시간 −5%" : "Landing preparation time −5%",
+      expect(one("marines_2")[0]).toBe(
+        lang === "ko" ? "상륙 준비 시간 −15%" : "Landing preparation time −15%",
       );
       expect(one("tank_gun_2")[0]).toBe(
         lang === "ko" ? "전차포 관통 +4%" : "Tank gun piercing +4%",
       );
       expect(one("fire_control_2")[0]).toBe(
-        lang === "ko" ? "해전 함포 명중 +5%" : "Naval gun hit chance +5%",
+        lang === "ko" ? "해전 함포 명중 +15%" : "Naval gun hit chance +15%",
       );
     }
   });
@@ -290,11 +291,19 @@ describe("the lines come from the rule tables", () => {
     }
   });
 
+  it("a merged tech lists the designer parts of the old techs it holds", () => {
+    expect(techParts("tank_drive_1").tankModules).toContain("engine_2");
+    expect(techParts("dual_purpose_guns").shipModules.map((m) => m.id)).toEqual(
+      expect.arrayContaining(["aa_2", "aa_3"]),
+    );
+  });
+
   it("bonuses show real numbers", () => {
     LANG = "ko";
     expect(effectLines("tools_1")).toContain("효율 상한 +10%");
     expect(effectLines("logistics_2").join("|")).toContain("보급 소모 −5%");
-    expect(effectLines("winter_gear_1").join("|")).toContain("25%");
+    expect(effectLines("winter_gear_1").join("|")).toContain("조직력 +3");
+    expect(effectLines("recon_2").join("|")).toContain("+5");
   });
 
   it("what a tech opens is listed, short", () => {

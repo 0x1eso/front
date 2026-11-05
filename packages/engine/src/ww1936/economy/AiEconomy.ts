@@ -827,7 +827,7 @@ export function aiReactPlan(input: AiInput, react: AiReact): AiPlan {
  */
 export function aiStartPlan(input: AiInput): AiPlan {
   const orders: AiOrder[] = [...planLines(input, false).orders];
-  planResearch(input, orders, true);
+  planResearch(input, orders);
   return orders;
 }
 
@@ -1393,15 +1393,11 @@ export function warSituation(
 /**
  * The research turn (changes §5): every free slot takes the best-scored
  * tech (researchScores, shared with a human's auto-research) within the
- * ahead-of-time tiers — 50% first, then 75%, then the land/sea/air caps
- * off; a start plan or a human's auto-research then fills what is left
- * with the least early tech.
+ * ahead-of-time tiers — 50% first, then a year, then the land/sea/air caps
+ * off; what is left takes the least early tech, so no slot waits (ww83: an
+ * early tech is short, and a slot's progress is never lost).
  */
-export function planResearch(
-  i: AiInput,
-  orders: AiOrder[],
-  fill = i.fillSlots === true,
-): void {
+export function planResearch(i: AiInput, orders: AiOrder[]): void {
   const researched = new Set(i.researched);
   const slots: (WwTechId | null)[] = [...i.slots];
   while (slots.length < i.slotCount) slots.push(null);
@@ -1509,7 +1505,7 @@ export function planResearch(
         pick(ranked, AI_MAX_AHEAD_PCT) ??
         pick(ranked, AI_FALLBACK_AHEAD_PCT) ??
         pick(ranked, AI_FALLBACK_AHEAD_PCT, false) ??
-        (fill ? leastAhead(ranked) : undefined);
+        leastAhead(ranked);
     } else {
       // Strict: its area only, no shares; when the area has nothing left
       // the slot takes any tech rather than sit empty.

@@ -252,9 +252,9 @@ describe("World War 1936 P6: designs in the game", () => {
     expect(s.hard).toBe(ds.hard + td.hard);
     expect(s.brk).toBe(ds.brk + td.brk);
     expect(s.speedCenti).toBe(Math.min(ds.speedCenti, td.speedCenti));
-    // Radio: +2 organisation over the heavy battalion's 20, and ww77's
-    // tank_radio tech adds its own +3 for any mechanised division.
-    expect(s.orgMilli).toBe(24_000);
+    // Radio: +1 organisation over the heavy battalion's 20. The old tank_radio
+    // id opens the module; its +3 for mechanised divisions is tank_command's now.
+    expect(s.orgMilli).toBe(21_000);
     // It fights with them: the tank destroyer's +10% when defending.
     expect(s.designFlags & TPL_TD_DEFEND).not.toBe(0);
     const here = land.divisions.region[r];
@@ -760,8 +760,8 @@ describe("World War 1936 P6: design planes for P4's deployments", () => {
     const ce = ww.economy.country(GBR)!;
     for (const t of [
       "fighter_2",
-      "self_sealing_tanks",
-      "drop_tanks",
+      "air_protection",
+      "air_range",
     ] as const) {
       ce.addTech(t);
     }

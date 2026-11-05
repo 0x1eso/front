@@ -89,6 +89,73 @@ describe("research tree", () => {
     }
   });
 
+  it("a major's view of a tech: own names, pass-through, generic; a minor and a designer game see none", () => {
+    const d = detail("DEU");
+    const node = (tag: string | null, tab: "armour", id: string) =>
+      treeLayout(d, tab, 1500, [], tag).nodes.find((n) => n.card.id === id)!;
+    const own = node("DEU", "armour", "medium_tank_3").gear!;
+    expect(own.relevance).toBe("own");
+    expect(own.entries.map((e) => e.id)).toContain("deu_panther_a");
+    expect(
+      own.entries.find((e) => e.id === "deu_panther_a")!.needs,
+    ).toContain("tank_gun_3");
+    const pass = node("DEU", "armour", "heavy_tank_2").gear!;
+    expect(pass.relevance).toBe("pass");
+    expect(pass.leads.length).toBeGreaterThan(0);
+    expect(node("ITA", "armour", "medium_tank_3").gear!.relevance).toBe(
+      "generic",
+    );
+    expect(node("POL", "armour", "medium_tank_3").gear).toBeNull();
+    expect(node(null, "armour", "medium_tank_3").gear).toBeNull();
+  });
+
+  it("the designer off: nodes carry the names, generic ones dim, the sheet says what they give", async () => {
+    const m = await mount({
+      designer: false,
+      summaries: [summary("DEU")],
+      details: [detail("DEU")],
+    });
+    await m.click("[data-ww-tab='armour']");
+    const panther = m.q("[data-ww-tech='medium_tank_3']")!;
+    expect(panther.dataset.relevance).toBe("own");
+    expect(panther.textContent).toContain("[ww1936.hist.deu_panther_a]");
+    expect(panther.querySelector("[data-ww-node-tech]")!.textContent).toContain(
+      "[ww1936.tech.medium_tank_3]",
+    );
+    await m.click("[data-ww-tech='medium_tank_3']");
+    expect(m.q("[data-ww-gear='own']")).not.toBeNull();
+    expect(
+      m.q("[data-ww-gear-entry='deu_panther_a']")!.textContent,
+    ).toContain("gear_needs");
+    await m.click("[data-ww-tab='air']");
+    const generic = m.q("[data-ww-tech='heavy_fighter_3']")!;
+    expect(generic.dataset.relevance).toBe("generic");
+    expect(generic.parentElement!.getAttribute("style")).toContain(
+      "opacity:0.45",
+    );
+    await m.click("[data-ww-tech='heavy_fighter_3']");
+    expect(m.q("[data-ww-gear='generic']")).not.toBeNull();
+    await m.click("[data-ww-tab='infantry']");
+    expect(m.q("[data-ww-tech='inf_at_2']")!.textContent).toContain(
+      "[ww1936.tech_portable.DEU]",
+    );
+  });
+
+  it("the card list folds generic techs under one row and adds the names", async () => {
+    vi.stubGlobal("innerWidth", 800);
+    vi.stubGlobal("innerHeight", 280);
+    const m = await mount({
+      designer: false,
+      summaries: [summary("DEU")],
+      details: [detail("DEU")],
+    });
+    await m.click("[data-ww-tab='air']");
+    expect(m.q("[data-ww-card='heavy_fighter_3']")).toBeNull();
+    expect(m.q("[data-ww-card='fighter_2'] [data-ww-card-gear]")).not.toBeNull();
+    await m.click("[data-ww-generic-row]");
+    expect(m.q("[data-ww-card='heavy_fighter_3']")).not.toBeNull();
+  });
+
   it("badges and the sheet: ahead, bonus, joint, project, exclusive; sources and percent", async () => {
     const m = await mount(
       {
@@ -105,7 +172,7 @@ describe("research tree", () => {
     const node = m.q("[data-ww-tech='support_eq_2']")!;
     expect(
       node.querySelector("[data-ww-badge='ahead']")!.textContent,
-    ).toContain("+400%");
+    ).toContain("+1901%");
     expect(
       node.querySelector("[data-ww-badge='joint']")!.textContent,
     ).toContain("20%");

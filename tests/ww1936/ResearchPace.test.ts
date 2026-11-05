@@ -202,15 +202,13 @@ describe("research pace (ww83)", () => {
     }
   });
 
-  it("every AI major researches 80% of the tree, its slots busy from 1937", () => {
+  it("every AI major researches 80% of the tree, no slot waiting", () => {
     for (const tag of HIST_COUNTRIES) {
       for (const seed of [1, 987_654]) {
         const r = runTree(tag, DEV_MAJOR, aiPlan(tag, seed));
         expect(r.pct, `${tag} ${seed}`).toBeGreaterThanOrEqual(80);
-        // A 1937 tech is within a year all through 1936, so what stays empty
-        // is the first year's tail; from 1937 to 1944 no slot waits.
-        expect(r.idle[0], tag).toBeLessThanOrEqual(420);
-        expect(r.idle.slice(1, 9).every((n) => n === 0), tag).toBe(true);
+        // Empty only when its list ends, in the last years.
+        expect(r.idle.slice(0, 9).every((n) => n === 0), tag).toBe(true);
       }
     }
   });

@@ -85,16 +85,16 @@ describe("research (spec §9)", () => {
     ]);
     throughDay(runner, deu, 0);
     expect(ce.slots[0]).toEqual({ tech: "electronics_1", progress: 1000 });
-    // The 119th day processed: not yet.
+    // The day before the last processed: not yet.
     const days = Math.ceil(techCostMilli("electronics_1") / 1000);
-    expect(days).toBe(96);
+    expect(days).toBe(42);
     throughDay(runner, deu, days - 2);
     expect(ce.slots[0]).toEqual({
       tech: "electronics_1",
       progress: (days - 1) * 1000,
     });
     expect(ce.researched.has("electronics_1")).toBe(false);
-    // The 120th: done, the slot is free and the tech counts.
+    // The last: done, the slot is free and the tech counts.
     throughDay(runner, deu, days - 1);
     expect(ce.slots).toEqual([null, null, null]);
     expect(ce.researched.has("electronics_1")).toBe(true);
@@ -105,17 +105,17 @@ describe("research (spec §9)", () => {
   test("a tech years ahead goes slower, a little less so every day", async () => {
     const { runner, econ, deu, ce } = await germany();
     expect(startResearch(econ, ce, "inf_eq_2")).toBeNull();
-    // 1939 seen from 1 January 1936: three years ahead, a quarter speed.
-    expect(aheadPct(1939, 0)).toBe(300);
+    // 1939 seen from 1 January 1936: three years ahead, the steep part.
+    expect(aheadPct(1939, 0)).toBe(1301);
     throughDay(runner, deu, 0);
     expect(ce.slots[0]!.progress).toBe(researchProgress(0, aheadPct(1939, 0)));
-    expect(ce.slots[0]!.progress).toBe(250);
+    expect(ce.slots[0]!.progress).toBe(71);
     // The penalty is worked out again every day.
     throughDay(runner, deu, 9);
     let sum = 0;
     for (let d = 0; d <= 9; d++) sum += researchProgress(0, aheadPct(1939, d));
     expect(ce.slots[0]!.progress).toBe(sum);
-    expect(researchProgress(0, aheadPct(1939, 400))).toBeGreaterThan(250);
+    expect(researchProgress(0, aheadPct(1939, 400))).toBeGreaterThan(71);
   });
 
   test("slots, prerequisites; the doctrine techs are retired (P6)", async () => {

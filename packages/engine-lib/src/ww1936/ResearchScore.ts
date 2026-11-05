@@ -5,7 +5,7 @@
 //
 //   score = area weight (personality, country, a human's lines and leaning)
 //         + role + need + bonus + catch-up + favoured + catalogue value
-//           + situation − ahead ÷ 2 + jitter
+//           + situation − early ÷ 2 + jitter
 //
 // Integers only, no state: the jitter is wwRoll(seed, P_RESEARCH, country,
 // tech index) and the either/or line wwRoll(seed, P_RESEARCH_EXCL, …), so
@@ -19,7 +19,7 @@ import {
   WW_TECH_IDS,
   WwTechId,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
-import { aheadPct, yearStartDay } from "./EconomyRules";
+import { earlyPct, yearStartDay } from "./EconomyRules";
 import { HIST_CATALOGUE } from "./hist/index";
 import { techRelevance } from "./hist/Slots";
 import { catalogueTechValues } from "./hist/TechValue";
@@ -611,7 +611,7 @@ export function researchScores(i: ResearchScoreInput): (number | null)[] {
     if (catalogue && techRelevance(id, i.tag) === "generic")
       s -= GENERIC_TECH_CUT;
     if (sit !== undefined) s += situationBonus(sit, id);
-    s -= Math.floor(aheadPct(d.year, i.day) / 2);
+    s -= Math.floor(earlyPct(d.year, i.day) / 2);
     return s + (wwRoll(i.seed, P_RESEARCH, i.smallID, k) % 11);
   });
 }

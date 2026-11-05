@@ -387,6 +387,11 @@ export function aheadPct(techYear: number, day: number): number {
     : 100 + Math.floor(((early - 365) * AHEAD_LATE_PCT) / 365);
 }
 
+/** How early a day is for a tech's year, percent of a year: the scores' scale, not a cost. */
+export function earlyPct(techYear: number, day: number): number {
+  return Math.max(0, Math.floor(((yearStartDay(techYear) - day) * 100) / 365));
+}
+
 /** Milli-days a slot gains in a day. */
 export function researchProgress(speedPct: number, ahead: number): number {
   return Math.floor((1000 * (100 + speedPct)) / (100 + ahead));
