@@ -91,7 +91,7 @@ describe("research tree", () => {
 
   it("a major's view of a tech: own names, pass-through, generic; a minor and a designer game see none", () => {
     const d = detail("DEU");
-    const node = (tag: string | null, tab: "armour", id: string) =>
+    const node = (tag: string | null, tab: "armour" | "air", id: string) =>
       treeLayout(d, tab, 1500, [], tag).nodes.find((n) => n.card.id === id)!;
     const own = node("DEU", "armour", "medium_tank_3").gear!;
     expect(own.relevance).toBe("own");
@@ -99,7 +99,7 @@ describe("research tree", () => {
     expect(own.entries.find((e) => e.id === "deu_panther_a")!.needs).toContain(
       "tank_gun_3",
     );
-    const pass = node("DEU", "armour", "heavy_tank_2").gear!;
+    const pass = node("DEU", "air", "strat_bomber_1").gear!;
     expect(pass.relevance).toBe("pass");
     expect(pass.leads.length).toBeGreaterThan(0);
     expect(node("ITA", "armour", "medium_tank_3").gear!.relevance).toBe(
@@ -128,12 +128,12 @@ describe("research tree", () => {
       "gear_needs",
     );
     await m.click("[data-ww-tab='air']");
-    const generic = m.q("[data-ww-tech='heavy_fighter_3']")!;
+    const generic = m.q("[data-ww-tech='strat_bomber_3']")!;
     expect(generic.dataset.relevance).toBe("generic");
     expect(generic.parentElement!.getAttribute("style")).toContain(
       "opacity:0.45",
     );
-    await m.click("[data-ww-tech='heavy_fighter_3']");
+    await m.click("[data-ww-tech='strat_bomber_3']");
     expect(m.q("[data-ww-gear='generic']")).not.toBeNull();
     await m.click("[data-ww-tab='infantry']");
     expect(m.q("[data-ww-tech='inf_at_2']")!.textContent).toContain(
@@ -150,12 +150,12 @@ describe("research tree", () => {
       details: [detail("DEU")],
     });
     await m.click("[data-ww-tab='air']");
-    expect(m.q("[data-ww-card='heavy_fighter_3']")).toBeNull();
+    expect(m.q("[data-ww-card='strat_bomber_3']")).toBeNull();
     expect(
       m.q("[data-ww-card='fighter_2'] [data-ww-card-gear]"),
     ).not.toBeNull();
     await m.click("[data-ww-generic-row]");
-    expect(m.q("[data-ww-card='heavy_fighter_3']")).not.toBeNull();
+    expect(m.q("[data-ww-card='strat_bomber_3']")).not.toBeNull();
   });
 
   it("badges and the sheet: ahead, bonus, joint, project, exclusive; sources and percent", async () => {
