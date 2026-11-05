@@ -4442,6 +4442,7 @@
       "border_all": "국경 수비: 전부 공격",
       "border_keep": "국경 수비: 남김",
       "favorable": "유리할 때만 공격",
+      "merge": "자동 훈련 사단 수용 및 병합 허용",
       "part_atk": "공격 {n}",
       "part_atk_where": "공격 {n} ({where})",
       "part_hold": "국경 수비 {n}",

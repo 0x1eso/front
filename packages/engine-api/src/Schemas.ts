@@ -1626,6 +1626,8 @@ export const WwOrderSchema = z.discriminatedUnion("kind", [
     favorable: z.boolean().optional(),
     allIn: z.boolean().optional(),
     advance: z.boolean().optional(),
+    // ww81, appended: the army may take auto-trained divisions and be merged.
+    merge: z.boolean().optional(),
   }),
   // ww48, appended: a major's whole start army planned in the lobby, once,
   // in the preparation minute. `armies` are in the country's start order;

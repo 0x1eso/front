@@ -8,6 +8,7 @@ import {
   DIRECT_ADVANCE,
   DIRECT_ALL_IN,
   DIRECT_FAVORABLE,
+  DIRECT_MERGE,
   idleOrder,
   type LandOrderSource,
   MOVE_ADVANCE,
@@ -206,6 +207,7 @@ function setDirect(
   bit(DIRECT_FAVORABLE, order.favorable);
   bit(DIRECT_ALL_IN, order.allIn);
   bit(DIRECT_ADVANCE, order.advance);
+  bit(DIRECT_MERGE, order.merge);
   if (order.targets === undefined) {
     // The next day's layout reads the settings; a running attack is redrawn now.
     if (a.order.direct === true) a.pending = true;

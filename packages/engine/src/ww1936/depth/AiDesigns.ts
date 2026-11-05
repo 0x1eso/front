@@ -96,13 +96,13 @@ export function aiDesignsDay(d: WwDepth, id: number, day: number): void {
   // catalogue (AiHist).
   if (!designerOn(d)) {
     aiTankLines(d, id, ce);
-    aiRoleTemplates(d, id, ce, day);
+    aiRoleTemplates(d, id, ce);
     aiHistDay(d, id, ce);
     return;
   }
   aiTankDesigns(d, id, ce, day);
   aiTankLines(d, id, ce);
-  aiRoleTemplates(d, id, ce, day);
+  aiRoleTemplates(d, id, ce);
   aiShipDesigns(d, id, ce, day);
 }
 
@@ -469,13 +469,9 @@ function groupStock(d: WwDepth, id: number, ce: CountryEconomy, g: number) {
  * one (a medium one replaced) once the stock holds a battalion's worth
  * for each of its divisions; P2's template order judges the rest.
  */
-function aiRoleTemplates(
-  d: WwDepth,
-  id: number,
-  ce: CountryEconomy,
-  day: number,
-): void {
-  if (!roleMajor(d, id, ce) || day < AI_TD_DAY) return;
+function aiRoleTemplates(d: WwDepth, id: number, ce: CountryEconomy): void {
+  // ww81 (T4): no date: the battalion joins once the stock covers it.
+  if (!roleMajor(d, id, ce)) return;
   const land = d.ww.land;
   const cl = land.country(id);
   if (cl === null) return;
