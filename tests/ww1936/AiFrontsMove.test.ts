@@ -354,6 +354,29 @@ describe("the AI's fronts move (ww103)", () => {
     expect(sailed).toBe(true);
   }, 300_000);
 
+  it("ww105: a hungry army walks when no rail line reaches where it's fed", async () => {
+    // A war with no land front, so the armies stand idle at the end of the line.
+    const { runner, g, l, ww } = await realWar("SUN", "USA");
+    const sc = l.scenario;
+    const start = sc.landRegions.find(
+      (r) => r.name === "Chukchi Autonomous Okrug",
+    )!.id;
+    // Bombed: the lines are on the map, and no train runs.
+    expect(ww.air.wingsLive).toBe(true);
+    l.econ.railEff.fill(0);
+    const armies = [0, 1].map(() => placeArmy(g, "SUN", start, 24));
+    const d0 = ww.day(g.ticks());
+    const t = l.divisions;
+    let walked = false;
+    for (let d = d0; d <= d0 + 14 && !walked; d++) {
+      finishDay(runner, d);
+      walked = armies.some((a) =>
+        a.divisions.some((id) => t.mode[t.rowOf(id)] !== MOVE_NONE),
+      );
+    }
+    expect(walked).toBe(true);
+  }, 300_000);
+
   it("at peace an army starving with no way out disbands; men come home", async () => {
     const runner = await wwRunner({ historicalAi: false });
     const g = runner.game;

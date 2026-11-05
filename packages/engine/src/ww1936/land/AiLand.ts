@@ -3764,7 +3764,12 @@ class AiDay {
     );
     if (!still) return false;
     if (a.order.kind === "move" && a.order.to === to) return true;
-    return this.issue({ kind: "army_rail", army: a.id, region: to });
+    // ww105: a rail line that doesn't reach is no transit: the order stands and
+    // nobody boards, and 61 French divisions starved in Silesia that way.
+    return (
+      this.issue({ kind: "army_rail", army: a.id, region: to }) &&
+      a.path.length > 1
+    );
   }
 
   /**
