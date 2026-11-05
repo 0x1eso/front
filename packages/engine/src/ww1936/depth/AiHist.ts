@@ -80,6 +80,14 @@ export function aiHistDay(d: WwDepth, id: number, ce: CountryEconomy): void {
 
 const AIR_SET: ReadonlySet<string> = new Set(AIR_TYPES);
 
+/**
+ * ww85: a fighter shorter-ranged than this is a point-defence rocket (Me 163,
+ * Shusui, 70-80 km): the duel score ignores range, so without this floor the
+ * AI would turn its fighter lines to planes that cannot reach the front. The
+ * next shortest fighter flies 510 km.
+ */
+export const AI_MIN_FIGHTER_RANGE = 300;
+
 function planeCands(
   d: WwDepth,
   id: number,
@@ -96,6 +104,7 @@ function planeCands(
     if (planeType(s.def) !== type) return;
     const st = d.designStatsOf(id, "plane", i + 1) as PlaneDesignStats | null;
     if (st === null) return;
+    if (FIGHTERS.has(type) && st.range < AI_MIN_FIGHTER_RANGE) return;
     const key = EQUIP_KEYS.findIndex(
       (k) => k[0] === "plane_design" && k[1] === i + 1,
     );

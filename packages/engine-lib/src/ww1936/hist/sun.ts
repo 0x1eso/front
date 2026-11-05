@@ -1900,4 +1900,55 @@ export const SUN_HIST: readonly HistEntry[] = [
       aa: { barrels: 1, rpm: 120, mm: 37 },
     },
   },
+  {
+    id: "sun_yak15",
+    country: "SUN",
+    family: "plane",
+    type: "fighter",
+    techs: ["fighter_3", "jet_airframe_2"],
+    year: 1947,
+    // ww85: A jet on the Yak-3's airframe, first flew 24 April 1946, 280 built. NS-23 rate as sun_il10. Price a Soviet estimate, under twice a Yak-9.
+    source:
+      "Checked 2026-11-05 on Wikipedia: Yakovlev Yak-15 (1,852 kg empty, 2,638 kg gross, 14.85 m2, 786 km/h, 510 km, 2 x 23 mm NS-23, service 1947).",
+    spec: {
+      maxKmh: 786,
+      rangeKm: 510,
+      emptyKg: 1852,
+      wingLoad: 178,
+      guns: [{ mm: 23, count: 2, rpm: 550 }],
+      defGuns: 0,
+      bombKg: 0,
+      torpedoKg: 0,
+      jet: true,
+      reliability: 3,
+      costK: 32,
+    },
+  },
+  {
+    id: "sun_mig9",
+    country: "SUN",
+    family: "plane",
+    type: "fighter",
+    techs: ["fighter_3", "jet_airframe_2"],
+    year: 1948,
+    // ww85: First flew 24 April 1946, 610 built; engines flamed out when the guns fired high up, so reliability 2. N-37 rate from memory. Price a Soviet estimate above the Yak-15.
+    source:
+      "Checked 2026-11-05 on Wikipedia: Mikoyan-Gurevich MiG-9 (3,283 kg empty, 4,860 kg gross, 18.2 m2, 910 km/h at 4,500 m, 800 km, 1 x 37 mm N-37, 2 x 23 mm NS-23, service 1948).",
+    spec: {
+      maxKmh: 910,
+      rangeKm: 800,
+      emptyKg: 3283,
+      wingLoad: 267,
+      guns: [
+        { mm: 37, count: 1, rpm: 400 },
+        { mm: 23, count: 2, rpm: 550 },
+      ],
+      defGuns: 0,
+      bombKg: 0,
+      torpedoKg: 0,
+      jet: true,
+      reliability: 2,
+      costK: 45,
+    },
+  },
 ];

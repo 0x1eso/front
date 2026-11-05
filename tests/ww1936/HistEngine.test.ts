@@ -329,6 +329,45 @@ describe("start stock by generation (B4)", () => {
   });
 });
 
+// ww85: the rocket interceptors stay a player's choice.
+describe("the AI and point-defence fighters", () => {
+  test("only the two rocket planes fall under the floor", async () => {
+    const { AI_MIN_FIGHTER_RANGE } =
+      await import("@openfront/engine/ww1936/depth/AiHist");
+    const { HIST_ALL, histStatsOf } =
+      await import("@openfront/engine-lib/ww1936/hist/index");
+    const short = HIST_ALL.filter(
+      (e) =>
+        e.family === "plane" &&
+        e.type.endsWith("fighter") &&
+        (histStatsOf(e) as { range: number }).range < AI_MIN_FIGHTER_RANGE,
+    ).map((e) => e.id);
+    expect(short.sort()).toEqual(["deu_me163_b", "jpn_shusui"]);
+  });
+
+  test("a German AI fighter line never moves to the Me 163", async () => {
+    const { aiPickNewPlaneLines } =
+      await import("@openfront/engine/ww1936/depth/AiHist");
+    const { equipKey } =
+      await import("@openfront/engine-api/ww1936/EconomyTypes");
+    const { ww, d, runner } = await game(false);
+    const ce = ww.economy.country(DEU)!;
+    const own = histOwn("DEU", "plane");
+    const fighters = own.filter(
+      (e) => (e as { type?: string }).type === "fighter",
+    );
+    for (const e of fighters) for (const t of e.techs) ce.addTech(t);
+    step(runner, 30);
+    const komet = equipKey(
+      "plane_design",
+      own.findIndex((e) => e.id === "deu_me163_b") + 1,
+    );
+    expect(ce.lines.some((l) => l.key === equipKey("fighter", 1))).toBe(true);
+    aiPickNewPlaneLines(d, DEU, ce);
+    expect(ce.lines.some((l) => l.key === komet)).toBe(false);
+  });
+});
+
 // ww73: a catalogue line is never slower than the generic line of its type.
 describe("catalogue line against the generic line", () => {
   test("the Panzer II line asks what the generic light tank asks and makes as many", async () => {

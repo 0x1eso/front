@@ -1575,4 +1575,30 @@ export const ITA_HIST: readonly HistEntry[] = [
       costK: 28,
     },
   },
+  {
+    id: "ita_re2001_or",
+    country: "ITA",
+    family: "plane",
+    type: "cv_fighter",
+    techs: ["fighter_2", "carrier_aviation"],
+    year: 1942,
+    // ww85: Named for the Organizzazione Roma, which built Italy's carriers: 50 ordered, 12 fitted with hooks for Aquila and Sparviero, which never served. Figures as ita_re2001. Price a little above it for the hook and catapult fittings.
+    source:
+      "Checked 2026-11-05: Italian Wikipedia Reggiane Re.2001 (order, hooks, catapult trials), English Wikipedia (figures, tagged citation needed; it says 50 built, the Italian page does not confirm that).",
+    spec: {
+      maxKmh: 542,
+      rangeKm: 1100,
+      emptyKg: 2300,
+      wingLoad: 159,
+      guns: [
+        { mm: 12.7, count: 2, rpm: 700 },
+        { mm: 7.7, count: 2, rpm: 900 },
+      ],
+      defGuns: 0,
+      bombKg: 0,
+      torpedoKg: 0,
+      reliability: 3,
+      costK: 48,
+    },
+  },
 ];
