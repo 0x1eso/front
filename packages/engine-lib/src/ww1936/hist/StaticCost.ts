@@ -39,6 +39,9 @@ export function halfGapCostMilli(generic: number, catalogue: number): number {
   );
 }
 
+/** ww103: the catalogue never changes, and every line asks this every day. */
+const GEAR_COST = new Map<string, number>();
+
 /** Milli industry points one unit of static key (type, gen) costs `country`, before MIO and licence; the generic cost for no country or no entry. */
 export function staticGearCostMilli(
   country: HistCountry | null,
@@ -47,8 +50,14 @@ export function staticGearCostMilli(
 ): number {
   const generic = unitCostMilli(type, gen);
   if (country === null) return generic;
-  const e = histStaticEntry(country, type, gen);
-  if (e === undefined) return generic;
-  const cat = catalogueGearCostMilli(e, type, generic);
-  return cat === null ? generic : halfGapCostMilli(generic, cat);
+  const key = `${country}:${type}:${gen}`;
+  let cost = GEAR_COST.get(key);
+  if (cost === undefined) {
+    const e = histStaticEntry(country, type, gen);
+    const cat =
+      e === undefined ? null : catalogueGearCostMilli(e, type, generic);
+    cost = cat === null ? generic : halfGapCostMilli(generic, cat);
+    GEAR_COST.set(key, cost);
+  }
+  return cost;
 }
