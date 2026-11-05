@@ -11,7 +11,11 @@ import { dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
 import { startDoctrinePick } from "@openfront/engine-lib/ww1936/DoctrineRules";
 import { createGameRunner, GameRunner } from "@openfront/engine/GameRunner";
 import { declareWar } from "@openfront/engine/ww1936/Diplomacy";
-import { AI_UNIT_FOCUSES } from "@openfront/engine/ww1936/politics/AiFocus";
+import { aiLandTick } from "@openfront/engine/ww1936/land/AiLand";
+import {
+  AI_UNIT_FOCUSES,
+  aiPickFocus,
+} from "@openfront/engine/ww1936/politics/AiFocus";
 import { loadMapFiles } from "@openfront/shared/GameMapLoader";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -25,6 +29,7 @@ import {
   land,
   placeArmy,
   stepTo,
+  takeRegion,
   warAfterPrep,
   wwGameStart,
   wwRunner,
@@ -154,6 +159,40 @@ describe("rule 1 in the AI's day", () => {
         .filter((a) => a.order.kind === "plan" && a.order.enemy === fra).length,
     ).toBeGreaterThan(0);
   }, 240_000);
+});
+
+describe("the plan's small rules in the game", () => {
+  it("the Soviet Union takes its evacuation path when the west is threatened", async () => {
+    const { g } = await war();
+    const ww = g.worldWar()!;
+    const pol = ww.politics;
+    const sun = byTag(g, "SUN").smallID();
+    dropPact(g, "DEU", "SUN");
+    declareWar(g, ww, byTag(g, "DEU"), byTag(g, "SUN"), g.ticks());
+    const c = pol.country(sun)!;
+    c.focus = null;
+    c.queue = [];
+    const day = ww.day(g.ticks());
+    const west = [...pol.content.groupIdx.get("soviet_west_industry")!.regions];
+    expect(west.length).toBeGreaterThan(0);
+    takeRegion(g, west[0], "DEU");
+    expect(aiPickFocus(pol, sun, day)).toBe("sun_patriotic_war");
+  }, 120_000);
+
+  it("a major's refit walks to its table; the width rule leaves it alone", async () => {
+    const runner = await wwRunner({ historicalAi: false }, []);
+    const g = runner.game;
+    const l = land(g);
+    const deu = byTag(g, "DEU").smallID();
+    const ce = l.econ.country(deu)!;
+    for (let k = 0; k < ce.stock.length; k++) ce.stock[k] += 1_000_000;
+    ce.researched.add("artillery_1");
+    for (let i = 0; i < 6; i++) aiLandTick(l, deu, deu);
+    const line = l.country(deu)!.templates[0].def.battalions;
+    expect(line.filter((b) => b === "infantry")).toHaveLength(8);
+    expect(line.filter((b) => b === "artillery")).toHaveLength(2);
+    expect(line).toHaveLength(10);
+  }, 60_000);
 });
 
 describe("the switch (ww91 8.1)", () => {

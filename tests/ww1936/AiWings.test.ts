@@ -112,6 +112,27 @@ const isDown = (o: MissionOrder | undefined) =>
   o.escort === undefined;
 
 describe("aiWingPlan", () => {
+  test("ww91: worn veterans rest, at most half the wings", () => {
+    const zones = [zone(2, { front: true, enemyDivisions: 2 })];
+    const up = { mission: "air_superiority" as const, sr: 2 };
+    const plan = aiWingPlan(
+      input({
+        wings: [
+          { ...wing(1, "fighter"), ...up, planes: 10, worn: true },
+          { ...wing(2, "fighter"), ...up, planes: 20, worn: true },
+          { ...wing(3, "fighter"), ...up },
+          { ...wing(4, "fighter"), ...up },
+          { ...wing(5, "fighter"), planes: 5, worn: true },
+        ],
+        zones,
+      }),
+    );
+    // The two weakest of the worn: five wings, two may rest; a resting one
+    // already idle gets no order.
+    expect(of(plan, 5)).toBeUndefined();
+    expect(of(plan, 1)).toMatchObject({ kind: "wing_mission", target: 0 });
+  });
+
   test("ww91: the plan's sky bar and weights steer the bombers", () => {
     const zones = [
       zone(2, {

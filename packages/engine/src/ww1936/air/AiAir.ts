@@ -53,6 +53,7 @@ import { NAVAL_BEATS } from "@openfront/engine-lib/ww1936/NavalBeats";
 import { isNoStrike } from "@openfront/engine-lib/ww1936/NoStrike";
 import { historicalAiActive } from "@openfront/engine-lib/ww1936/Pace";
 import {
+  WING_XP_TIER_FROM,
   wingMaxPlanes,
   wingUnderStrength,
 } from "@openfront/engine-lib/ww1936/WingRules";
@@ -989,7 +990,12 @@ export interface AiWingView {
   flying: boolean;
   /** Its fuel a day if it flies (one sortie a plane, the reference distance's rate). */
   fuelMilli: number;
+  /** ww91: a veteran wing bled under the plan's share: it wants its rest. */
+  worn?: boolean;
 }
+
+/** ww91: the experience from which a wing counts as veterans (the second tier's). */
+const AI_WING_VETERAN_XP = WING_XP_TIER_FROM[1];
 
 /** w50: the free room the plan sees at every usable base. */
 const AI_BASE_ROOM = 1_000_000;
@@ -1300,6 +1306,25 @@ function holdsOrder(w: AiWingView, d: WingDemand): boolean {
 
 /** Pure: the country's wing orders for this turn (design §7). */
 export function aiWingPlan(i: AiWingInput): WingOrder[] {
+  // ww91: worn veterans stay down and refill, at most half the wings at a time.
+  const worn = i.atWar
+    ? i.wings
+        .filter((w) => w.worn === true)
+        .sort((a, b) => a.planes - b.planes || a.id - b.id)
+        .slice(0, Math.floor(i.wings.length / 2))
+    : [];
+  if (worn.length > 0) {
+    const rest = new Set(worn);
+    return [
+      ...worn.filter((w) => w.mission !== null).map((w) => standDown(w.id)),
+      ...aiWingPlan({
+        ...i,
+        wings: i.wings
+          .filter((w) => !rest.has(w))
+          .map((w) => ({ ...w, worn: false })),
+      }),
+    ];
+  }
   const orders: WingOrder[] = [];
   if (!i.atWar) {
     // Peace: nobody up. A wing with an order goes idle and is ready for the next war.
@@ -2003,6 +2028,12 @@ export function aiWingInput(
   const atWar = aiAtWar(navy, viewer);
   const ce = econ.country(owner)!;
   const ca = air.country(viewer);
+  const plan = planOf(
+    ce.tag,
+    ww.politics.seed,
+    owner,
+    ww.isHumanControlled(owner),
+  );
   const views: AiWingView[] = wings.map((w) => {
     const st = wingStats(air, w);
     const planes = wingPlanes(w);
@@ -2021,6 +2052,9 @@ export function aiWingInput(
       lastFerryDay: w.lastFerryDay,
       flying: AIRBORNE_PHASES.has(w.phase),
       fuelMilli: planes * st.fuelPerSortieMilli,
+      worn:
+        w.xpMilli >= AI_WING_VETERAN_XP &&
+        planes * 100 < wingMaxPlanes(AIR_TYPES[w.type]) * plan.restWingPct,
     };
   });
   const threat = new Map<number, boolean>();
@@ -2264,7 +2298,7 @@ export function aiWingInput(
       : undefined;
   return {
     ...base,
-    plan: planOf(ce.tag, ww.politics.seed, owner, ww.isHumanControlled(owner)),
+    plan,
     zones,
     armies,
     capitalSr,

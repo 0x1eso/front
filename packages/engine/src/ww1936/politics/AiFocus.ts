@@ -2,6 +2,7 @@
 // (Task 2). With historical AI on, an AI follows its tree's history path
 // (with the branch points rolled at the start, spec §18.4); off the path,
 // or with it off, it picks by weight (spec §18.5).
+import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
 import {
   FocusBranch,
   FocusId,
@@ -136,6 +137,31 @@ export const AI_UNIT_FOCUSES: ReadonlySet<FocusId> = new Set([
   "ita_alpini",
 ]);
 
+/**
+ * ww91: the focuses a major takes the moment a region group of its is under
+ * threat: the Soviet Union moves its factories when the west is. They still
+ * have to be startable: their prerequisites and rules stand.
+ */
+const AI_THREAT_FOCUSES: Readonly<
+  Partial<Record<CountryTag, { group: string; focuses: readonly FocusId[] }>>
+> = {
+  SUN: {
+    group: "soviet_west_industry",
+    focuses: ["sun_patriotic_war", "sun_evacuation", "sun_evacuate_east"],
+  },
+};
+
+/** At war, an enemy holds a region of the group or stands next to one. */
+function groupThreatened(pol: WwPolitics, id: number, group: string): boolean {
+  const land = pol.ww.land;
+  const sc = pol.ww.scenario;
+  const hostile = (r: number) => land.isEnemy(id, land.controller[r]);
+  for (const r of pol.content.groupIdx.get(group)?.regions ?? []) {
+    if (hostile(r) || sc.edgesOf(r).some((e) => hostile(e.to))) return true;
+  }
+  return false;
+}
+
 /** Spec §18.5 common factors, percent: war, few military factories, the P1 persona (controller ruling R17). */
 function branchFactor(
   pol: WwPolitics,
@@ -172,6 +198,16 @@ export function aiPickFocus(
   const startable = (fid: FocusId) =>
     focusBlock(pol, id, fid, false) === null &&
     !holds(ctx, focusDef(pol, fid)!.cancelIf);
+  const urgent = AI_THREAT_FOCUSES[c.tag];
+  if (
+    urgent !== undefined &&
+    pol.ww.hasWar(id) &&
+    groupThreatened(pol, id, urgent.group)
+  ) {
+    for (const fid of urgent.focuses) {
+      if (!focusFinished(pol, c, fid) && startable(fid)) return fid;
+    }
+  }
   if (historicalAiActive(pol.mg.config(), day)) {
     let blocked = 0;
     for (const fid of historyPath(pol, c)) {

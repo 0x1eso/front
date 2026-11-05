@@ -1777,6 +1777,11 @@ export const AI_NAVAL_BATCH: Readonly<Record<AiNavalSlot, number>> = {
   convoy: 0,
 };
 
+/** ww91: where the escorts' points come from, in this order. */
+const AI_ESCORT_FROM: readonly AiNavalSlot[] = ["bb", "bc", "ca", "ss", "cv"];
+/** ww91: convoys lost in 30 days, % of the stock, from which the plan builds escorts. */
+export const AI_ESCORT_LOSS_PCT = 5;
+
 /** Whether the convoys run short: the routes need more than 90% of the stock. */
 export function aiConvoyShort(need: number, stock: number): boolean {
   return need * 10 > stock * 9;
@@ -1786,11 +1791,21 @@ export function aiConvoyShort(need: number, stock: number): boolean {
 export function aiNavalShares(
   tag: CountryTag,
   convoyShort: boolean,
+  /** ww91: points the plan moves to destroyers and convoys while it loses convoys. */
+  escortPts = 0,
 ): Record<AiNavalSlot, number> {
   const base = AI_NAVAL_SHARES[tag] ?? AI_NAVAL_SHARES_OTHER;
   const out = Object.fromEntries(
     NAVAL_SLOTS.map((k) => [k, base[k] ?? 0]),
   ) as Record<AiNavalSlot, number>;
+  let moved = 0;
+  for (const k of AI_ESCORT_FROM) {
+    const take = Math.min(out[k], escortPts - moved);
+    out[k] -= take;
+    moved += take;
+  }
+  out.dd += Math.ceil(moved / 2);
+  out.convoy += Math.floor(moved / 2);
   if (!convoyShort || out.convoy >= AI_CONVOY_RUSH_PCT) return out;
   const ships = NAVAL_SLOTS.filter((k) => k !== "convoy");
   const scaled = shareOut(
@@ -1821,6 +1836,8 @@ export interface AiNavalLineInput {
   convoyNeed: number;
   /** The launch port of a new line (the best naval base); 0: none, no new line. */
   port: number;
+  /** ww91: points moved to destroyers and convoys (aiNavalShares). */
+  escortPts?: number;
 }
 
 /** The newest generation `tag` may build of a class (gen 1 is always open). */
@@ -1846,7 +1863,7 @@ export function newestShipGen(
 export function aiNavalLinePlan(i: AiNavalLineInput): NavalLineOrder[] {
   const orders: NavalLineOrder[] = [];
   const short = aiConvoyShort(i.convoyNeed, i.convoyStock);
-  const shares = aiNavalShares(i.tag, short);
+  const shares = aiNavalShares(i.tag, short, i.escortPts ?? 0);
   const assigned = new Map<AiNavalSlot, number>();
   let used = 0;
   for (const l of i.lines) {
@@ -2448,8 +2465,18 @@ function aiNavalLinesTurn(
     convoyStock: convoysOf(ce),
     convoyNeed: need,
     port: aiMainBase(econ.ww, ce.smallID),
+    escortPts: escortPtsOf(econ, ce),
   });
   for (const o of orders) navy.issue(ce.smallID, o, tick, "ai");
+}
+
+/** ww91: the plan's escort points while convoys go down at the rate that calls for them. */
+function escortPtsOf(econ: WwEconomy, ce: CountryEconomy): number {
+  const pts = planOfCountry(econ, ce).escortLossPts;
+  if (pts === 0) return 0;
+  let lost = 0;
+  for (const m of econ.ww.navy.country(ce.smallID)?.convoyLoss ?? []) lost += m;
+  return lost >= convoysOf(ce) * AI_ESCORT_LOSS_PCT * 10 ? pts : 0;
 }
 
 /** P4 spec §17.5: sea and air buildings a turn (the factories keep the rest of the queue). */

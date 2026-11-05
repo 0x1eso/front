@@ -1,4 +1,10 @@
 import {
+  type BattalionId,
+  TPL_BARE_ARMOR,
+  TPL_EXPLOIT,
+} from "@openfront/engine-api/ww1936/LandTypes";
+import {
+  AI_LINE_SHAPES,
   AI_PLAN_DEFAULT,
   AI_PLAN_STOP_OFFENSE_PCT,
   AI_PLANS,
@@ -6,14 +12,25 @@ import {
   type FactoryView,
   nextFactory,
   planOf,
+  planPrepared,
   planStance,
   planStrengthPct,
   resourceWorth,
   wantsPeaceFort,
 } from "@openfront/engine-lib/ww1936/AiPlans";
+import { BATTALIONS } from "@openfront/engine-lib/ww1936/Battalions";
+import { emptyStats } from "@openfront/engine-lib/ww1936/Stats";
+import {
+  GEN1,
+  templateStats,
+} from "@openfront/engine-lib/ww1936/TemplateStats";
+import { aiNavalShares } from "@openfront/engine/ww1936/economy/AiEconomy";
 import {
   choosePool,
+  marchTargets,
+  shapeStep,
   trainTargetArmy,
+  widthPenaltyBp,
 } from "@openfront/engine/ww1936/land/AiArmies";
 import {
   effortScore,
@@ -396,5 +413,78 @@ describe("rule 7: build for the plan", () => {
     expect(wantsPeaceFort(fra, 4, true)).toBe(false);
     expect(wantsPeaceFort(fra, 0, false)).toBe(false);
     expect(wantsPeaceFort(AI_PLAN_DEFAULT, 0, true)).toBe(false);
+  });
+});
+
+describe("the division shapes (8.4, the table decides)", () => {
+  const flat = (rows: readonly (readonly [BattalionId, number])[]) =>
+    rows.flatMap(([b, n]) => new Array<BattalionId>(n).fill(b));
+  const def = (rows: readonly (readonly [BattalionId, number])[]) => ({
+    name: "",
+    battalions: flat(rows),
+    support: [],
+  });
+  const width = (rows: readonly (readonly [BattalionId, number])[]) =>
+    flat(rows).reduce((w, b) => w + BATTALIONS[b].width, 0);
+
+  it("every shape sits on a free width; Japan's line is the one exception", () => {
+    for (const [tag, s] of Object.entries(AI_LINE_SHAPES)) {
+      expect(widthPenaltyBp(width(s.armour)) === 0, `${tag} armour`).toBe(true);
+      if (tag === "JPN") continue;
+      expect(widthPenaltyBp(width(s.line)) === 0, `${tag} line`).toBe(true);
+    }
+    expect(width(AI_LINE_SHAPES.JPN!.line)).toBe(17);
+    expect(widthPenaltyBp(17)).toBeLessThan(widthPenaltyBp(19));
+  });
+
+  it("armour shapes run through and are never bare", () => {
+    for (const s of Object.values(AI_LINE_SHAPES)) {
+      const flags = templateStats(def(s.armour), emptyStats(), GEN1).flags;
+      expect(flags & TPL_EXPLOIT).not.toBe(0);
+      expect(flags & TPL_BARE_ARMOR).toBe(0);
+    }
+  });
+
+  it("one step at a time: the excess goes, one battalion comes", () => {
+    const target = [
+      ["artillery", 2],
+      ["infantry", 8],
+    ] as const;
+    const now = new Array<BattalionId>(12).fill("infantry");
+    now.push("artillery");
+    const next = shapeStep(now, target)!;
+    expect(next.filter((b) => b === "artillery")).toHaveLength(2);
+    expect(next.filter((b) => b === "infantry")).toHaveLength(8);
+    expect(shapeStep(next, target)).toBeNull();
+    expect(shapeStep(["cavalry", "infantry"], [["infantry", 1]])).toEqual([
+      "infantry",
+    ]);
+  });
+});
+
+describe("the plan's small situation rules", () => {
+  it("Germany's foot marches a region at a time", () => {
+    expect(marchTargets(4, [5, 6], true)).toEqual([4]);
+    expect(marchTargets(4, [5, 6], false)).toEqual([4, 5, 6]);
+  });
+
+  it("France waits for its readiness; others have no such wait", () => {
+    const fra = { ...AI_PLAN_DEFAULT, readyPct: 90 };
+    expect(planPrepared(fra, 2699, 3000)).toBe(false);
+    expect(planPrepared(fra, 2700, 3000)).toBe(true);
+    expect(planPrepared(AI_PLAN_DEFAULT, 0, 3000)).toBe(true);
+    expect(planOf("FRA", seedAt(3, 140), 3).readyPct).toBe(95);
+  });
+
+  it("Japan's escorts rise with losses, out of the big ships first", () => {
+    const calm = aiNavalShares("JPN", false);
+    const hit = aiNavalShares("JPN", false, 20);
+    expect(hit.dd).toBe(calm.dd + 10);
+    expect(hit.convoy).toBe(calm.convoy + 10);
+    expect(hit.bb).toBe(0);
+    expect(hit.cv).toBeLessThan(calm.cv);
+    const sum = (o: Record<string, number>) =>
+      Object.values(o).reduce((a, b) => a + b, 0);
+    expect(sum(hit)).toBe(sum(calm));
   });
 });

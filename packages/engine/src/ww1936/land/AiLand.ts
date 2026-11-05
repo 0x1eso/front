@@ -59,14 +59,18 @@ import {
   AI_PLAN_DEFAULT,
   type NationalPlan,
   planOf,
+  planPrepared,
   type PlanStance,
   planStance,
   resourceWorth,
-  wantsPeaceFort,
   type ShapeRows,
+  wantsPeaceFort,
 } from "@openfront/engine-lib/ww1936/AiPlans";
 import { BATTALIONS } from "@openfront/engine-lib/ww1936/Battalions";
-import { combatWidth } from "@openfront/engine-lib/ww1936/CombatRules";
+import {
+  combatWidth,
+  planMaxBp,
+} from "@openfront/engine-lib/ww1936/CombatRules";
 import { splitFront } from "@openfront/engine-lib/ww1936/CommandRules";
 import { queuedInRegion } from "@openfront/engine-lib/ww1936/EconomyChecks";
 import {
@@ -86,11 +90,11 @@ import {
   GEN1,
   groupStock,
   specialCap,
+  templateBlock,
   templateStats,
 } from "@openfront/engine-lib/ww1936/TemplateStats";
 import { enemySkyPm } from "../air/AirSuperiority";
 import {
-  templateBlock,
   type AiPersonality,
   aiPersonality,
   aiResourceGap,
@@ -107,17 +111,18 @@ import {
   choosePool,
   chooseShape,
   judgeRole,
+  marchTargets,
   type MergeFacts,
   MERGES_PER_DAY,
   mostlyApart,
   type PoolFacts,
   type ShapeCandidate,
+  shapeStep,
   trainTargetArmy,
 } from "./AiArmies";
 import {
   AI_EFFORT_CAPITAL_VALUE,
   AI_EFFORT_FORT_BAR,
-  shapeStep,
   AI_EFFORT_PERIOD_DAYS,
   AI_ONE_ENEMY_HOLD_PCT,
   effortFed,
@@ -621,11 +626,6 @@ const PRESET_AI_ROLE: Readonly<Record<PresetRole, AiRole>> = {
   mixed: "armor",
 };
 
-/** How many of a role's templates the AI mixes: the medium tank division carries most of the armour. */
-const PRESET_AI_WEIGHT: Readonly<Record<string, number>> = {
-  pre_medium_armored: 4,
-  pre_light_armored: 2,
-  pre_mot_infantry: 3,
 /** ww91 8.4: the armour templates a major's shape applies to (not its heavy, gun or special ones). */
 const AI_SHAPED_ARMOUR: readonly string[] = [
   "armored",
@@ -643,6 +643,11 @@ const AI_SHAPE_STAND_IN: Readonly<Partial<Record<BattalionId, BattalionId>>> = {
   sp_artillery: "mot_artillery",
 };
 
+/** How many of a role's templates the AI mixes: the medium tank division carries most of the armour. */
+const PRESET_AI_WEIGHT: Readonly<Record<string, number>> = {
+  pre_medium_armored: 4,
+  pre_light_armored: 2,
+  pre_mot_infantry: 3,
 };
 
 /** The anti-tank infantry preset's template key. */
@@ -3643,6 +3648,13 @@ class AiDay {
     if (a.planBp < READY_BP && this.warDays(enemy) < WAR_READY_DAYS) {
       return false;
     }
+    // ww91: France's long preparation: a broken enemy only cuts it short.
+    if (
+      midPm < AI_PURSUIT_RATIO_PM &&
+      !planPrepared(this.warPlan, a.planBp, planMaxBp(this.ce.stats))
+    ) {
+      return false;
+    }
     return midPm >= AI_PURSUIT_RATIO_PM || a.planBp >= AI_REATTACK_READY_BP;
   }
 
@@ -3750,9 +3762,11 @@ class AiDay {
         !sc.edgesOf(t).some((e) => zone.includes(e.to)) &&
         (!r.free || enemyDivisionsIn(land, this.me, t) === 0),
     );
+    // ww91: a foot army of a plan with slow guns goes a region at a time.
+    const step = this.warPlan.footStep > 0 && !this.mostly(s.a, TPL_EXPLOIT);
     this.plan(
       s.a,
-      [x, ...beyond].slice(0, WW_MAX_TARGETS),
+      marchTargets(x, beyond, step).slice(0, WW_MAX_TARGETS),
       AI_STANCE,
       r.free || pocket || r.midPm >= AI_PURSUIT_RATIO_PM,
     );
@@ -4529,6 +4543,14 @@ class AiDay {
         this.saveTemplate(tpl.id, bns, tpl.def.support);
       }
     }
+    if (shape !== undefined) {
+      if (inf !== undefined) this.refitShape(inf, shape.line);
+      for (const tpl of cl.templates) {
+        if (AI_SHAPED_ARMOUR.includes(tpl.key)) {
+          this.refitShape(tpl, shape.armour);
+        }
+      }
+    }
     // ww90: no armour without its infantry: a tank battalion gives way.
     for (const tpl of cl.templates) {
       const flags = templateStats(tpl.def, this.ce.stats, GEN1).flags;
@@ -4543,29 +4565,7 @@ class AiDay {
       this.saveTemplate(tpl.id, bns, tpl.def.support);
     }
   }
-    if (shape !== undefined) {
-      if (inf !== undefined) this.refitShape(inf, shape.line);
-      for (const tpl of cl.templates) {
-        if (AI_SHAPED_ARMOUR.includes(tpl.key)) {
-          this.refitShape(tpl, shape.armour);
-        }
-      }
-    }
 
-  /**
-   * ww81 (T1): the infantry template moves one battalion off a width that
-   * costs attack against the combat widths (the battle's own fill rule):
-   * the majority kind removed (mass: aggressors) or a minority kind added
-   * (firepower: the rest), whichever pays least. The stock check of
-   * saveTemplate guards an added battalion.
-   */
-  private refitWidth(inf: LandTemplate): void {
-    const bns = inf.def.battalions;
-    const count = new Map<BattalionId, number>();
-    for (const b of bns) count.set(b, (count.get(b) ?? 0) + 1);
-    let major: BattalionId | null = null;
-    for (const [b, n] of count) {
-      if (major === null || n > count.get(major)!) major = b;
   /** The battalion can be fielded on its own techs. */
   private canField(b: BattalionId): boolean {
     const def = { name: "", battalions: [b], support: [] };
@@ -4591,6 +4591,20 @@ class AiDay {
     if (next !== null) this.saveTemplate(tpl.id, next, tpl.def.support);
   }
 
+  /**
+   * ww81 (T1): the infantry template moves one battalion off a width that
+   * costs attack against the combat widths (the battle's own fill rule):
+   * the majority kind removed (mass: aggressors) or a minority kind added
+   * (firepower: the rest), whichever pays least. The stock check of
+   * saveTemplate guards an added battalion.
+   */
+  private refitWidth(inf: LandTemplate): void {
+    const bns = inf.def.battalions;
+    const count = new Map<BattalionId, number>();
+    for (const b of bns) count.set(b, (count.get(b) ?? 0) + 1);
+    let major: BattalionId | null = null;
+    for (const [b, n] of count) {
+      if (major === null || n > count.get(major)!) major = b;
     }
     if (major === null) return;
     const stats = this.ce.stats;
