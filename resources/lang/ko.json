@@ -9924,7 +9924,8 @@
       "wait_low_odds": "승산이 낮아 대기 중",
       "waiting_equipment": "장비 대기 중 {pct}%",
       "waiting_manpower": "인력 대기 중",
-      "battle_running": "기갑 전과 확대: 참호 무시, {n}라운드 남음"
+      "battle_running": "기갑 전과 확대: 참호 무시, {n}라운드 남음",
+      "battle_worn": "포격으로 잃은 참호: {n}단계"
     },
     "landmark": {
       "lm_brandenburg": "브란덴부르크 문",
@@ -10244,7 +10245,7 @@
       "command": "지휘",
       "doctrine": "교리",
       "encircled": "포위",
-      "engineer": "공병",
+      "engineer": "적 공병 (참호·진지)",
       "entrench": "참호",
       "excess": "초과 폭",
       "exp": "경험",
@@ -10260,6 +10261,7 @@
       "mountain": "돌격보병",
       "plan": "준비도",
       "position": "진지",
+      "recon_position": "적 정찰 (진지)",
       "river": "강",
       "shore_bombard": "해안 포격",
       "strait": "해협",
@@ -13014,6 +13016,17 @@
       "support_anti_air": "지원 대공",
       "support_anti_tank": "지원 대전차",
       "support_artillery": "지원 포병"
+    },
+    "support_note": {
+      "engineer": "강 페널티 절반, 요새 페널티 −25%, 참호 상한 +5. 참호와 진지를 더 빨리 만듭니다. 공격 시 적의 참호와 진지 효과 −30%.",
+      "field_hospital": "잃은 병력의 절반이 인력으로 돌아오고, 신병 보충으로 경험을 덜 잃습니다. 소모 −25%.",
+      "logistics": "보급 사용량 −20%, 연료 사용량 −10%.",
+      "military_police": "점령지를 진정시킵니다. 전투 효과는 없습니다.",
+      "recon": "주도권 +5, 적 전술을 보고 고를 확률이 오르고 적 매복을 무효로 합니다. 공격 시 적 진지 효과 −10%. 전투 카드의 예측 범위가 좁아집니다.",
+      "signal": "주도권 +10, 예비대가 더 빨리 전선에 들어와 바로 싸웁니다. 조직력 회복 +10%.",
+      "support_anti_air": "대공 사격. 이 사단이 받는 적 근접 지원 피해 −20%, 적 제공권 전투 페널티 −25%.",
+      "support_anti_tank": "사단 안의 대전차포, 공격 시 위력 절반. 이 사단이 받는 전차 공포를 절반으로 줄입니다.",
+      "support_artillery": "준비 포격에 포병 대대의 1/3로 계산됩니다. 공격 시 적 참호를 한 단계씩 깎습니다(전투당 최대 3단계). 깎인 참호는 전투 뒤에도 그대로입니다."
     },
     "tactic": {
       "ambush": "매복",

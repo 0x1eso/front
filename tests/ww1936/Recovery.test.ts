@@ -178,14 +178,15 @@ describe("World War 1936 P2: org recovery and entrenchment (spec §9.8)", () => 
     expect(t.entrench[d]).toBe(10);
     days(deu, 30);
     expect(t.entrench[d]).toBe(10);
-    // A defensive general: two levels every two days.
+    // A defensive general: two levels every two days, and these engineers
+    // their level on the day between (ww98).
     const a = placeArmy(g, "DEU", BERLIN, 1);
     const gen = l.country(deu)!.generals[1];
     gen.traits |= traitBit("defensive_doctrine");
     a.general = gen.id;
     gen.army = a.id;
     days(deu, 2);
-    expect(t.entrench[first(l, a)]).toBe(2);
+    expect(t.entrench[first(l, a)]).toBe(3);
     // On the move: none.
     startHopInto(l, d, 4, MOVE_WALK);
     days(deu, 1);

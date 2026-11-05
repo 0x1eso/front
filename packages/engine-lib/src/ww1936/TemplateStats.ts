@@ -43,6 +43,7 @@ import {
   TPL_HEAVY_LEAD,
   TPL_INFANTRY_DIV,
   TPL_LIGHT_MAJOR,
+  TPL_LOGISTICS,
   TPL_MARINE_ANY,
   TPL_MARINE_MAJOR,
   TPL_MOTOR_ANY,
@@ -60,7 +61,12 @@ import {
 } from "@openfront/engine-api/ww1936/LandTypes";
 import type { WwStatKey } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { BATTALIONS, SUPPORTS } from "./Battalions";
-import { defenderOrgPct, researchedArmor } from "./CombatRules";
+import {
+  defenderOrgPct,
+  engineerCutPm,
+  LOGISTICS_FUEL_PCT,
+  researchedArmor,
+} from "./CombatRules";
 import { battalionStatPct, pctOf } from "./DoctrineRules";
 import { EQUIPMENT, unitCostMilli } from "./Equipment";
 import { LAND_FUEL_PER_HOUR_MILLI } from "./FuelRules";
@@ -1029,7 +1035,10 @@ export function templateStats(
     weightCenti: weight,
     airAtk,
     fuelWidthPm: width === 0 ? 0 : Math.floor((fuelWidth * 1000) / width),
-    fuelHourMilli: fuelHour,
+    fuelHourMilli:
+      (flags & TPL_LOGISTICS) !== 0
+        ? Math.floor((fuelHour * LOGISTICS_FUEL_PCT) / 100)
+        : fuelHour,
     designFlags,
     ...pierceBands(),
     // ww91: prepFirePct scales the barrage and its cap alike.
@@ -1041,6 +1050,7 @@ export function templateStats(
             pctOf(Math.floor((gunN * 10_000) / (3 * n)), prepFirePct),
           ),
     defOrgPct: defenderOrgPct(flags, st.footDefOrgPp ?? 0),
+    engineerCutPm: engineerCutPm(flags, st.engineerMulPct ?? 0),
   };
 }
 

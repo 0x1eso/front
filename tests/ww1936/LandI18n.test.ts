@@ -68,6 +68,7 @@ const MODS = [
   "encircled",
   "entrench",
   "position",
+  "recon_position",
 ];
 const LAND = [
   "presets",
@@ -186,6 +187,7 @@ const NOTICES = [
 const KEYS = [
   ...BATTALION_IDS.map((b) => `ww1936.battalion.${b}`),
   ...SUPPORT_IDS.map((b) => `ww1936.support.${b}`),
+  ...SUPPORT_IDS.map((b) => `ww1936.support_note.${b}`),
   ...TEMPLATE_KEYS.map((k) => `ww1936.tpl.${k}`),
   ...LAND_TERRAINS.map((k) => `ww1936.terrain.${k}`),
   ...WEATHERS.map((k) => `ww1936.weather.${k}`),

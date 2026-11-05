@@ -38,6 +38,7 @@ import {
   TPL_LIGHT_MAJOR,
   TPL_RECON,
   TPL_SIGNAL,
+  TPL_SUPPORT_GUNS,
   TPL_TANK_FORCE,
   traitBit,
   WW_ROUND_HOUR_MILLI,
@@ -62,6 +63,8 @@ import {
   defenderOrgPct,
   divisionMods,
   emptySide,
+  ENTRENCH_WEAR_MAX,
+  ENTRENCH_WEAR_ROUNDS,
   entrenchMax,
   excessWidthBp,
   EXPLOIT_ADVANCE_LIGHT_PCT,
@@ -69,6 +72,7 @@ import {
   EXPLOIT_ORG_PCT,
   EXPLOIT_RESERVE_PP,
   EXPLOIT_ROUNDS,
+  fearTakenPct,
   hitProtectPm,
   MARINE_LANDED_RECOVERY_PCT,
   ModInput,
@@ -76,7 +80,7 @@ import {
   planMaxBp,
   predictBattleRange,
   PREP_FIRE_ROUNDS,
-  prepKeepPm,
+  prepLeftBp,
   roundDamage,
   roundHits,
   sideFearPct,
@@ -397,7 +401,13 @@ function fight(land: WwLand, b: Battle, tick: number): void {
     const prep =
       prep0 <= 0 || running?.has(t.id[from]) === true
         ? 0
-        : Math.floor((prep0 * prepKeepPm(s.flags, fire)) / 1000);
+        : prepLeftBp(
+            prep0,
+            toMods.posBp ?? 0,
+            s.flags,
+            fire,
+            s.engineerCutPm ?? 0,
+          );
     const blockBp =
       toMods.defenseBp -
       Math.floor(((prep0 - prep) * (toMods.defCutMulBp ?? 10_000)) / 10_000);
@@ -425,7 +435,15 @@ function fight(land: WwLand, b: Battle, tick: number): void {
     // ww84: tanks through a line that can't stop them.
     const fear =
       toDefends && (s.flags & TPL_TANK_FORCE) !== 0
-        ? tankFearPct(ts.bandPierce, ts.bandHard, s.armor, fearCutOf(land, to))
+        ? fearTakenPct(
+            tankFearPct(
+              ts.bandPierce,
+              ts.bandHard,
+              s.armor,
+              fearCutOf(land, to),
+            ),
+            ts.flags,
+          )
         : 0;
     org.set(
       to,
@@ -464,7 +482,7 @@ function fight(land: WwLand, b: Battle, tick: number): void {
     const to = targets[b.round % targets.length];
     const aa = effectiveLevel(land.econ, R, "anti_air");
     const ts = stats.get(to)!;
-    const h = casCutHits(hits, ts.airAtk, aa);
+    const h = casCutHits(hits, ts.airAtk, aa, ts.flags);
     const dmg = roundDamage(h, casProtectPm(ts.armor, ts.hardnessPm));
     org.set(to, (org.get(to) ?? 0) + dmg.orgMilli);
     hp.set(to, (hp.get(to) ?? 0) + dmg.hpMilli);
@@ -488,6 +506,7 @@ function fight(land: WwLand, b: Battle, tick: number): void {
     b.attLead,
   );
   guns(land.depthHooks.railGunHits(R, land.sideOf(ctrl)), att.active, ctrl);
+  wearEntrenchment(land, b, att.active, stats);
   const destroyed: DestroyedSink = { battle: b, counts: new Map() };
   sink = destroyed;
   try {
@@ -547,6 +566,45 @@ function fight(land: WwLand, b: Battle, tick: number): void {
   ) {
     won(land, b, tick);
   }
+}
+
+/**
+ * ww98 (owner): the support guns in line wear the defenders' entrenchment down:
+ * a level off each of them, reserves too, every ENTRENCH_WEAR_ROUNDS rounds with
+ * the whole line firing, longer by the share that is. One clock a battle, so
+ * more guns never pass the rate or ENTRENCH_WEAR_MAX. What's gone is gone:
+ * nothing gives it back when the battle ends (dailyEntrench digs it again).
+ */
+function wearEntrenchment(
+  land: WwLand,
+  b: Battle,
+  active: readonly number[],
+  stats: ReadonlyMap<number, DivisionStats>,
+): void {
+  if ((b.wornLevels ?? 0) >= ENTRENCH_WEAR_MAX || active.length === 0) return;
+  let guns = 0;
+  for (const r of active) {
+    if ((stats.get(r)!.flags & TPL_SUPPORT_GUNS) !== 0) guns++;
+  }
+  if (guns === 0) return;
+  const pm = (b.wearPm ?? 0) + Math.floor((guns * 1000) / active.length);
+  if (pm < ENTRENCH_WEAR_ROUNDS * 1000) {
+    b.wearPm = pm;
+    return;
+  }
+  const t = land.divisions;
+  let worn = false;
+  for (const id of b.defenders) {
+    const r = t.rowOf(id);
+    if (r >= 0 && t.entrench[r] > 0) {
+      t.entrench[r]--;
+      worn = true;
+    }
+  }
+  // (Nothing dug in: the guns have nothing to wear, the clock waits.)
+  if (!worn) return;
+  b.wearPm = pm - ENTRENCH_WEAR_ROUNDS * 1000;
+  b.wornLevels = (b.wornLevels ?? 0) + 1;
 }
 
 // ---- ww7 lane A: the luck of a battle round (design ww6 §2) ----
@@ -1499,7 +1557,9 @@ function landedGain(land: WwLand, row: number, gain: number): number {
  * Spec §9.8, the country's day: a division that stood still all day
  * entrenches a level every two days (ww7: was three; two levels with a
  * defensive general), up to entrenchMax; a moving one has none (arrive
- * zeroes both too). A level is worth ENTRENCH_DEF_BP (ww7: 5%, was 3%).
+ * zeroes both too). A level is worth CombatRules.entrenchBp. ww98: engineers
+ * dig a level more every other day, on the days in between; nobody digs under
+ * guns wearing its trench down (Battle.wornLevels).
  */
 export function dailyEntrench(land: WwLand, smallID: number): void {
   const t = land.divisions;
@@ -1532,7 +1592,10 @@ export function dailyEntrench(land: WwLand, smallID: number): void {
         pct === 0 ? 2 : Math.max(1, Math.floor(200 / Math.max(10, 100 + pct)));
       everyOf.set(army, entrenchEvery);
     }
-    if (t.stillDays[r] % entrenchEvery !== 0) continue;
+    const flags = land.flagsOf(r);
+    const dug = (flags & TPL_ENGINEER) !== 0 && t.stillDays[r] % 2 === 1;
+    if (t.stillDays[r] % entrenchEvery !== 0 && !dug) continue;
+    if (t.role[r] === ROLE_DEFEND && underWear(land, r)) continue;
     let step = stepOf.get(army);
     if (step === undefined) {
       const a = land.armies.get(army);
@@ -1541,9 +1604,16 @@ export function dailyEntrench(land: WwLand, smallID: number): void {
         g !== null && (g.traits & traitBit("defensive_doctrine")) !== 0 ? 2 : 1;
       stepOf.set(army, step);
     }
-    const max = entrenchMax(land.flagsOf(r), ce.stats);
-    t.entrench[r] = Math.min(max, t.entrench[r] + step);
+    const gain =
+      (t.stillDays[r] % entrenchEvery === 0 ? step : 0) + (dug ? 1 : 0);
+    const max = entrenchMax(flags, ce.stats);
+    t.entrench[r] = Math.min(max, t.entrench[r] + gain);
   }
+}
+
+/** ww98: whether the battle division `row` defends in has worn entrenchment away. */
+function underWear(land: WwLand, row: number): boolean {
+  return (land.battles.get(land.divisions.battle[row])?.wornLevels ?? 0) > 0;
 }
 
 /**
@@ -1621,6 +1691,9 @@ export function battleExtras(
     defenderAttackBp: dm.attackBp,
     defenderBlockBp: dm.defenseBp,
     defenderPrepBp: dm.prepBp ?? 0,
+    defenderPosBp: dm.posBp ?? 0,
+    defenderEntrench: t.entrench[firstDef],
+    wornLevels: b.wornLevels ?? 0,
     defenderCutMulBp: dm.defCutMulBp,
     tankFearCutPp: fearCutOf(land, firstDef),
     prepFireRounds: Math.max(0, PREP_FIRE_ROUNDS - b.round),
@@ -1634,8 +1707,10 @@ export function battleExtras(
   const casD = land.hooks.casNowCenti(b.region, defSide);
   if (casA > 0 || casD > 0) {
     const aa = effectiveLevel(land.econ, b.region, "anti_air");
-    ctx.casAttCenti = casCutHits(casA, land.statsOf(firstDef).airAtk, aa);
-    ctx.casDefCenti = casCutHits(casD, land.statsOf(firstAtt).airAtk, aa);
+    const fd = land.statsOf(firstDef);
+    const fa = land.statsOf(firstAtt);
+    ctx.casAttCenti = casCutHits(casA, fd.airAtk, aa, fd.flags);
+    ctx.casDefCenti = casCutHits(casD, fa.airAtk, aa, fa.flags);
     if (ctx.casAttCenti > 0) out.casAttCenti = ctx.casAttCenti;
     if (ctx.casDefCenti > 0) out.casDefCenti = ctx.casDefCenti;
   }
@@ -1648,6 +1723,13 @@ export function battleExtras(
   const fear = sideFearPct(att, def, ctx.tankFearCutPp ?? 0);
   if (fear > 0) out.fearPct = fear;
   if ((def.defOrgPct ?? 100) !== 100) out.defOrgPct = def.defOrgPct;
+  if ((dm.prepBp ?? 0) > 0 && (att.engineerCutPm ?? 0) > 0) {
+    out.engineerCutPm = att.engineerCutPm;
+  }
+  if ((dm.posBp ?? 0) > 0 && (att.reconCutPm ?? 0) > 0) {
+    out.reconCutPm = att.reconCutPm;
+  }
+  if ((b.wornLevels ?? 0) > 0) out.wornLevels = b.wornLevels;
   out.winPct = range.winPct;
   out.lowPm = range.lowPm;
   out.midPm = range.midPm;

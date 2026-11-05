@@ -14,6 +14,9 @@ import {
   TPL_LOGISTICS,
   TPL_RECON,
   TPL_SIGNAL,
+  TPL_SUPPORT_AA,
+  TPL_SUPPORT_AT,
+  TPL_SUPPORT_GUNS,
 } from "@openfront/engine-api/ww1936/LandTypes";
 
 export type BattalionKind =
@@ -497,6 +500,7 @@ export const SUPPORTS: Readonly<Record<SupportId, SupportDef>> = {
     def: 500,
     brk: 200,
     pierce: 500,
+    flag: TPL_SUPPORT_GUNS,
     techs: ["artillery_1", "support_eq_1"],
     artillery: true,
   }),
@@ -507,6 +511,7 @@ export const SUPPORTS: Readonly<Record<SupportId, SupportDef>> = {
     hard: 800,
     def: 200,
     pierce: 4500,
+    flag: TPL_SUPPORT_AT,
     techs: ["anti_tank_1", "support_eq_1"],
   }),
   support_anti_air: s({
@@ -517,6 +522,7 @@ export const SUPPORTS: Readonly<Record<SupportId, SupportDef>> = {
     soft: 200,
     hard: 400,
     pierce: 2000,
+    flag: TPL_SUPPORT_AA,
     techs: ["anti_air_1", "support_eq_1"],
   }),
   field_hospital: s({

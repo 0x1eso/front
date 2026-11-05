@@ -19,6 +19,7 @@ import {
 } from "@openfront/engine-api/ww1936/LandTypes";
 import type { WwStatKey } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
+import { HOSPITAL_ATTRITION_PCT } from "@openfront/engine-lib/ww1936/CombatRules";
 import { breakdownPpm } from "@openfront/engine-lib/ww1936/hist/Wear";
 import {
   isTankGroup,
@@ -292,7 +293,7 @@ export function upgrade(land: WwLand, ce: CountryEconomy, r: number): void {
 /**
  * Spec §5.3, §10, §11.5 attrition, ppm of men and of every equipment slot:
  * below 50% supply `(500 − supply) / 500 × 1%`, encircled 1% (ww84: no
- * weather). The remainders build up in lossMen / lossEq (milli) as HP
+ * weather; ww98: less with a field hospital). The remainders build up in lossMen / lossEq (milli) as HP
  * losses do; nothing goes back, the men lost are dead.
  */
 export function attritionPpm(land: WwLand, r: number, day: number): number {
@@ -305,7 +306,10 @@ export function attritionPpm(land: WwLand, r: number, day: number): number {
         ATTRITION_SUPPLY_PM,
     );
   }
-  return ppm;
+  // ww98: a field hospital keeps a quarter of it.
+  return ppm > 0 && (land.flagsOf(r) & TPL_HOSPITAL) !== 0
+    ? Math.floor((ppm * HOSPITAL_ATTRITION_PCT) / 100)
+    : ppm;
 }
 
 /**

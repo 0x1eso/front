@@ -299,6 +299,10 @@ export const TPL_LIGHT_MAJOR = 1 << 22;
 export const TPL_EXPLOIT = 1 << 23;
 /** ww90: tanks with motorized around them are at least half its battalions: what the plan calls armour. */
 export const TPL_TANK_FORCE = 1 << 24;
+/** ww98: the support companies with a rule of their own: guns, anti-tank, anti-air. */
+export const TPL_SUPPORT_GUNS = 1 << 25;
+export const TPL_SUPPORT_AT = 1 << 26;
+export const TPL_SUPPORT_AA = 1 << 27;
 
 /**
  * A division's numbers (spec §4.3, §16.2): attack and defence values and
@@ -360,6 +364,8 @@ export interface DivisionStats {
    * of its battalions, a support company a third of one, at most +30 %).
    */
   prepFireBp: number;
+  /** ww98: the share of the enemy's prepared ground its engineers take when it attacks, ‰ (research included; absent: none). */
+  engineerCutPm?: number;
   /** ww91: the org damage the division takes defending, % (absent: from its flags, CombatRules.defenderOrgPct). */
   defOrgPct?: number;
 }
@@ -369,6 +375,8 @@ export interface CombatMods {
   defenseBp: number;
   /** ww7 lane F: a defender's prepared ground (entrenchment + positions), bp; absent: 0 (CombatRules.roundHits). */
   prepBp?: number;
+  /** ww98: the part of prepBp that is the region's position, bp; absent: 0 (recon reads it). */
+  posBp?: number;
   /** ww84: the cuts' factor in defenseBp, bp (10,000 + the cuts): what a point of prepared ground is worth in it; absent: 10,000. */
   defCutMulBp?: number;
 }
@@ -409,6 +417,13 @@ export interface SideSum {
   heavyPm?: number;
   /** ww84: a recon company somewhere on the side: the enemy's ambush doesn't land. */
   recon?: boolean;
+  /** ww98, width-weighted: what its engineers and its recon take off the enemy's prepared ground and position, ‰ (absent: 0). */
+  engineerCutPm?: number;
+  reconCutPm?: number;
+  /** ww98: the share of its width with support guns, wearing the enemy's entrenchment down, ‰ (absent: 0). */
+  wearPm?: number;
+  /** ww98: the share of its width with support anti-tank, tank fear halved, ‰ (absent: 0). */
+  fearHalfPm?: number;
 }
 
 export interface BattleCtx {
@@ -423,6 +438,11 @@ export interface BattleCtx {
   defenderBlockBp: number;
   /** ww7 lane F: the defenders' prepared ground, bp (CombatRules.roundHits); absent: 0. */
   defenderPrepBp?: number;
+  /** ww98: the part of it that is the region's position, bp; absent: 0. */
+  defenderPosBp?: number;
+  /** ww98: the defenders' entrenchment level, and the levels the battle's guns have worn already; absent: 0. */
+  defenderEntrench?: number;
+  wornLevels?: number;
   /** ww84: points of the defenders' country off the tank fear penalty; absent: 0. */
   tankFearCutPp?: number;
   /** ww84: the cuts' factor of the defender's block (CombatMods.defCutMulBp); absent: 10,000. */
@@ -614,6 +634,11 @@ export interface BattleSummary {
   fearPct?: number;
   /** ww90: what the defenders take of the org damage dealt them, % (absent: 100). */
   defOrgPct?: number;
+  /** ww98: what the attackers' engineers and recon take off the prepared ground and the position, ‰. */
+  engineerCutPm?: number;
+  reconCutPm?: number;
+  /** ww98: the levels of entrenchment the attackers' guns have worn away in this battle. */
+  wornLevels?: number;
 }
 
 export interface RegionLandData {

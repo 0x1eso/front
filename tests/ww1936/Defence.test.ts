@@ -112,20 +112,22 @@ const lineBp = (m: ModInput, id: string) =>
   divisionMods(m).defenseLines.find((l) => l.id === id)?.bp ?? 0;
 
 describe("ww7 B2: defence values", () => {
-  test("entrenchment and position are +5% a level for the defender only", () => {
-    expect(ENTRENCH_DEF_BP).toBe(500);
-    expect(POSITION_DEF_BP).toBe(500);
+  test("entrenchment and position are +25% a level for the defender only, entrenchment half above 5", () => {
+    expect(ENTRENCH_DEF_BP).toBe(2500);
+    expect(POSITION_DEF_BP).toBe(2500);
     for (let lv = 1; lv <= 10; lv++) {
-      expect(lineBp({ ...NEUTRAL, entrench: lv }, "entrench")).toBe(lv * 500);
+      expect(lineBp({ ...NEUTRAL, entrench: lv }, "entrench")).toBe(
+        lv <= 5 ? lv * 2500 : 12_500 + (lv - 5) * 1250,
+      );
     }
     for (let lv = 1; lv <= 3; lv++) {
-      expect(lineBp({ ...NEUTRAL, posLevel: lv }, "position")).toBe(lv * 500);
+      expect(lineBp({ ...NEUTRAL, posLevel: lv }, "position")).toBe(lv * 2500);
     }
     expect(lineBp(NEUTRAL, "position")).toBe(0);
-    // Together they add: entrench 5 and position 3 are +40%.
+    // Together they add: entrench 5 and position 3 are +200%.
     expect(
       divisionMods({ ...NEUTRAL, entrench: 5, posLevel: 3 }).mods.defenseBp,
-    ).toBe(14_000);
+    ).toBe(30_000);
     // An attacker has neither.
     const att = divisionMods({
       ...NEUTRAL,

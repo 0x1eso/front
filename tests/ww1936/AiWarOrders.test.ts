@@ -220,10 +220,11 @@ describe("ww7 lane D: the AI's army objective orders", () => {
   }, 300_000);
 
   test("the gate reads all that would go in: one army alone holds where two converging attack, and they go together for one region", async () => {
-    // Dug in (ww90: a trench takes about three to one), nine in Warsaw and
-    // eleven in Krakow: eighteen would not do, and the front stands
-    // outnumbered; with nine more the main effort takes both armies to one
-    // region: the holder of the rest sends its spare too.
+    // Dug in (ww90: a trench takes about three to one; ww98: less for these
+    // divisions' engineers and recon), nine in Warsaw and eleven in Krakow:
+    // fourteen would not do, and the front stands outnumbered; with seven more
+    // the main effort takes both armies to one region: the holder of the rest
+    // sends its spare too.
     const run = async (armies: [number, number][]) => {
       const c = await atWar();
       placeArmy(c.g, "POL", WARSAW, 9);
@@ -232,12 +233,12 @@ describe("ww7 lane D: the AI's army objective orders", () => {
       c.days(30, () => c.l.battles.size > 0);
       return { c, mine, fought: c.l.battles.size > 0 };
     };
-    const alone = await run([[MUNICH, 18]]);
+    const alone = await run([[MUNICH, 14]]);
     expect(alone.fought).toBe(false);
     expect(alone.mine[0].order.executing).toBe(false);
     const both = await run([
-      [BERLIN, 9],
-      [MUNICH, 18],
+      [BERLIN, 7],
+      [MUNICH, 14],
     ]);
     expect(both.fought).toBe(true);
     expect(both.c.l.battles.size).toBe(1);
@@ -264,8 +265,8 @@ describe("ww7 lane D: the AI's army objective orders", () => {
 
   test("C1: only the main sector is attacked, in force, and a level 1 army holds", async () => {
     const c = await atWar();
-    placeArmy(c.g, "POL", WARSAW, 8);
-    placeArmy(c.g, "POL", KRAKOW, 8);
+    placeArmy(c.g, "POL", WARSAW, 11);
+    placeArmy(c.g, "POL", KRAKOW, 11);
     const big = autoArmy(c, MUNICH, 24, 2);
     const hold = autoArmy(c, BERLIN, 9, 1);
     c.days(30, () => c.l.battles.size > 0);

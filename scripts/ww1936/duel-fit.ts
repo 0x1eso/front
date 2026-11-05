@@ -141,6 +141,12 @@ const BERLIN = 3;
 const MUNICH = 4;
 const WARSAW = 6;
 
+const INF72 = [
+  ...Array<"infantry">(7).fill("infantry"),
+  "artillery",
+  "artillery",
+] as const;
+
 /** Templates as battalion lists (the land-sim duels': spec §9.10, §4.5). */
 const TEMPLATES = {
   inf72: {
@@ -240,6 +246,22 @@ const TEMPLATES = {
       "anti_tank",
     ],
     support: [],
+  },
+  // Infantry and guns with the companies that go at a deep line (ww98).
+  inf72eng: { battalions: INF72, support: ["engineer"] },
+  inf72recon: { battalions: INF72, support: ["recon"] },
+  inf72sup: { battalions: INF72, support: ["support_artillery"] },
+  inf72noeng: {
+    battalions: INF72,
+    support: ["recon", "support_artillery"],
+  },
+  inf72all: {
+    battalions: INF72,
+    support: ["engineer", "recon", "support_artillery"],
+  },
+  inf9eng: {
+    battalions: Array<"infantry">(9).fill("infantry"),
+    support: ["engineer"],
   },
 } as const;
 type TemplateKey = keyof typeof TEMPLATES;
@@ -717,8 +739,41 @@ const plan = (
 /** A full line and more on both sides: 1:1 is ten against ten (five fit the width), 3:1 thirty against ten. */
 const EVEN: [number, number] = [10, 10];
 const THREE: [number, number] = [30, 10];
+const FIVE: [number, number] = [50, 10];
+
+/** ww98: a deep line, entrench 10 and positions 3, against what is meant to break it. */
+const deep = (
+  name: string,
+  att: TemplateKey,
+  n: [number, number],
+  gen: number,
+  keys: PlanRow["keys"],
+): PlanRow => ({
+  ...plan(`deep ${keys} g${gen} ${name}`, att, "inf9", n, 10, 0, gen, keys),
+  pos: 3,
+});
+
+const DEEP_ROWS: readonly PlanRow[] = (["generic", "deu"] as const).flatMap(
+  (k) =>
+    [1, 2].flatMap((gen) => [
+      deep("infantry 3:1", "inf9", THREE, gen, k),
+      deep("infantry 5:1", "inf9", FIVE, gen, k),
+      deep("infantry + engineers 3:1", "inf9eng", THREE, gen, k),
+      deep("guns 3:1", "inf72", THREE, gen, k),
+      deep("guns 5:1", "inf72", FIVE, gen, k),
+      deep("guns + engineers 3:1", "inf72eng", THREE, gen, k),
+      deep("guns + recon 3:1", "inf72recon", THREE, gen, k),
+      deep("guns + support guns 3:1", "inf72sup", THREE, gen, k),
+      deep("guns + recon + support guns 3:1", "inf72noeng", THREE, gen, k),
+      deep("guns + all three 3:1", "inf72all", THREE, gen, k),
+      deep("guns + all three 5:1", "inf72all", FIVE, gen, k),
+      deep("armour 3:1", "tank45", THREE, gen, k),
+      deep("armour 5:1", "tank45", FIVE, gen, k),
+    ]),
+);
 
 const PLAN_ROWS: readonly PlanRow[] = [
+  ...DEEP_ROWS,
   ...(["generic", "deu"] as const).flatMap((k) =>
     [1, 2].flatMap((gen) => {
       const tag = `${k} g${gen}`;

@@ -10184,6 +10184,7 @@
       "battle_running": "Armour running through: trenches ignored, {n} rounds left",
       "battle_tactic_cancel": "Cancelled",
       "battle_width": "Width {used}/{width}",
+      "battle_worn": "Entrenchment lost to the guns: {n}",
       "block_no_target": "Pick a target first",
       "block_split_single": "One division: nothing to split off",
       "btn_attack": "Attack",
@@ -10747,7 +10748,7 @@
       "command": "Command",
       "doctrine": "Doctrine",
       "encircled": "Encircled",
-      "engineer": "Engineers",
+      "engineer": "Enemy engineers on prepared ground",
       "entrench": "Entrenchment",
       "excess": "Overcrowded front",
       "exp": "Experience",
@@ -10763,6 +10764,7 @@
       "mountain": "Assault infantry",
       "plan": "Planning",
       "position": "Prepared position",
+      "recon_position": "Enemy recon on the position",
       "river": "River",
       "shore_bombard": "Shore bombardment",
       "strait": "Strait",
@@ -13602,6 +13604,17 @@
       "support_anti_air": "Support Anti-Air",
       "support_anti_tank": "Support Anti-Tank",
       "support_artillery": "Support Artillery"
+    },
+    "support_note": {
+      "engineer": "River penalty halved, fort penalty −25%, entrenchment cap +5. Digs in and builds positions faster. Attacking: the enemy's entrenchment and position count 30% less.",
+      "field_hospital": "Half the men it loses go back to the pool and new men cost less experience. Attrition −25%.",
+      "logistics": "Supply use −20%, fuel use −10%.",
+      "military_police": "Keeps occupied regions quiet. No effect in battle.",
+      "recon": "Initiative +5, picks tactics with the enemy's in view, no ambush lands on it. Attacking: the enemy's position counts 10% less. A narrower forecast on the battle card.",
+      "signal": "Initiative +10, reserves enter the line sooner and fight at once, org recovers 10% faster.",
+      "support_anti_air": "Anti-air fire. Enemy close air support on this division −20%, the penalty for enemy air superiority −25%.",
+      "support_anti_tank": "Anti-tank guns in the division, half as good attacking. Halves the tank fear this division takes.",
+      "support_artillery": "A third of a gun battalion in the opening barrage. Attacking: wears the enemy's entrenchment down a level at a time, at most 3 a battle. The loss stays after the battle."
     },
     "tactic": {
       "ambush": "Ambush",

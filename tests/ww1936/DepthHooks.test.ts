@@ -7,6 +7,7 @@ import {
   RESOURCE_IDS,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
 import {
+  BattalionId,
   GROUND_STATIC_SLOTS,
   MOVE_ADVANCE,
   MOVE_NONE,
@@ -194,8 +195,22 @@ describe("P6 hooks: the land war (stat keys and lane D's per-army values)", () =
   }
 
   it("entrenchSpeedPct (country) and the army's field marshal speed entrenchment", async () => {
-    const { ww, l, a, r, id } = await army();
+    const { runner, ww, l, id } = await army();
     const t = l.divisions;
+    // (No engineers: they dig on the days between, ww98.)
+    const cl = l.country(id)!;
+    const plain = cl.nextTemplateId++;
+    cl.templates.push({
+      id: plain,
+      key: "",
+      def: {
+        name: "plain",
+        battalions: new Array<BattalionId>(9).fill("infantry"),
+        support: [],
+      },
+    });
+    const a = placeArmy(runner.game, "DEU", DEEP.region.berlin, 1, plain);
+    const r = t.rowOf(a.divisions[0]);
     const days = (every: number) => {
       t.stillDays[r] = 0;
       t.entrench[r] = 0;

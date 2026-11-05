@@ -581,6 +581,7 @@ export class WwTemplateDesigner extends LitElement {
       pick: () => void,
       designOnly: string | null = null,
       note: string | null = null,
+      help: string | null = null,
     ) =>
       html`<li>
         <button
@@ -612,6 +613,13 @@ export class WwTemplateDesigner extends LitElement {
                   data-ww-nat-unit
                   class="block text-[11px] text-emerald-200"
                   >${note}</span
+                >`
+              : nothing}
+            ${help !== null
+              ? html`<span
+                  data-ww-support-note
+                  class="block text-[11px] text-white/60"
+                  >${help}</span
                 >`
               : nothing}
             ${designOnly
@@ -665,6 +673,9 @@ export class WwTemplateDesigner extends LitElement {
             `${translateText("ww1936.land.stat_men")} ${s.men}`,
             s.techs.find((t) => !researched.has(t)),
             () => this.setSupport(p.index, id),
+            null,
+            null,
+            translateText(`ww1936.support_note.${id}`),
           );
         })}
       </ul>

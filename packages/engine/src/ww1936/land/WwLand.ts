@@ -447,6 +447,9 @@ export interface Battle {
   routBy?: [number, number][];
   /** ww84: divisions running through from the band before; gone after EXPLOIT_ROUNDS rounds. */
   exploit?: number[];
+  /** ww98: the support guns' clock towards the next level, ‰ of a round, and the levels worn in this battle, bands included. */
+  wearPm?: number;
+  wornLevels?: number;
 }
 
 export const SPREAD_BATTLE = 0;
@@ -666,6 +669,8 @@ export const WwLandStateSchema = z.object({
       dmgBy: z.array(z.tuple([zInt(), zInt()])).optional(),
       routBy: z.array(z.tuple([zInt(), zInt()])).optional(),
       exploit: zInts().optional(),
+      wearPm: zInt().optional(),
+      wornLevels: zInt().optional(),
     }),
   ),
   spreads: z.array(
@@ -2789,6 +2794,8 @@ export class WwLand {
       }
       if (b.routBy !== undefined) for (const e of b.routBy) fold(e);
       if (b.exploit !== undefined) fold(b.exploit);
+      if (b.wearPm !== undefined) mix(b.wearPm);
+      if (b.wornLevels !== undefined) mix(b.wornLevels);
     }
     // ww84: marines just ashore, only when any are.
     if (this.landedUntil.size > 0) {
@@ -2945,6 +2952,8 @@ export class WwLand {
           ? {}
           : { routBy: b.routBy.map(([d, p]): [number, number] => [d, p]) }),
         ...(b.exploit === undefined ? {} : { exploit: [...b.exploit] }),
+        ...(b.wearPm === undefined ? {} : { wearPm: b.wearPm }),
+        ...(b.wornLevels === undefined ? {} : { wornLevels: b.wornLevels }),
       })),
       spreads: [...this.spreads.values()].map((s) => ({
         region: s.region,
@@ -3078,6 +3087,8 @@ export class WwLand {
           ? {}
           : { routBy: b.routBy.map(([d, p]): [number, number] => [d, p]) }),
         ...(b.exploit === undefined ? {} : { exploit: [...b.exploit] }),
+        ...(b.wearPm === undefined ? {} : { wearPm: b.wearPm }),
+        ...(b.wornLevels === undefined ? {} : { wornLevels: b.wornLevels }),
       });
     }
     this.spreads.clear();
