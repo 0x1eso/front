@@ -16,6 +16,7 @@
  * without armies.
  */
 
+import { wrapMidX } from "./WrapMid";
 import {
   ARMY_AUTO,
   ARMY_EXECUTING,
@@ -435,7 +436,7 @@ export class ArmyTokenPass {
     for (const [from, to, n] of dv.atk) {
       const [fx, fy] = xy(from);
       const [tx, ty] = xy(to);
-      row((fx + tx) / 2, (fy + ty) / 2, CODE_ATK, n, 0);
+      row(wrapMidX(fx, tx, w), (fy + ty) / 2, CODE_ATK, n, 0);
     }
     for (const [region, kind, n] of dv.at) {
       put(region, kind === 3 ? CODE_WALK : CODE_ATK + 1 + kind, n);
