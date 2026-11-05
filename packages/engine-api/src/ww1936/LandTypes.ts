@@ -288,6 +288,8 @@ export const TPL_HEAVY_LEAD = 1 << 21;
 export const TPL_LIGHT_MAJOR = 1 << 22;
 /** ww84: fast enough to run through a broken line: at least half fast battalions, heavy tanks not leading. */
 export const TPL_EXPLOIT = 1 << 23;
+/** ww90: tanks with motorized around them are at least half its battalions: what the plan calls armour. */
+export const TPL_TANK_FORCE = 1 << 24;
 
 /**
  * A division's numbers (spec §4.3, §16.2): attack and defence values and
@@ -386,9 +388,11 @@ export interface SideSum {
   bandHard?: number[];
   /** ww84, width-weighted: the org damage it takes defending, % (absent: 100). */
   defOrgPct?: number;
-  /** ww84: the share of its width that is foot-major and armour-major divisions, ‰ (absent: 0). */
+  /** ww84: the share of its width that is foot-major and tank force divisions, ‰ (absent: 0). */
   footPm?: number;
   armorMajorPm?: number;
+  /** ww90: the share of its width that is armour with no infantry, ‰ (absent: 0). */
+  barePm?: number;
   /** ww84: width-weighted opening barrage, bp, and the share of its width led by heavy tanks, ‰ (absent: 0). */
   prepFireBp?: number;
   heavyPm?: number;
@@ -591,6 +595,14 @@ export interface BattleSummary {
   initDef?: number;
   /** Chance a reserve division enters the line this round, percent. */
   reinfPct?: number;
+  /** ww90: the attackers' opening barrage while it lasts, bp. */
+  fireBp?: number;
+  /** ww90: rounds left of armour running through. */
+  runRounds?: number;
+  /** ww90: the extra org damage tank fear does to the defenders, %. */
+  fearPct?: number;
+  /** ww90: what the defenders take of the org damage dealt them, % (absent: 100). */
+  defOrgPct?: number;
 }
 
 export interface RegionLandData {

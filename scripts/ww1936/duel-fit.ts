@@ -45,6 +45,7 @@ import {
 } from "@openfront/engine-api/ww1936/EconomyTypes";
 import {
   GROUND_EQUIP_KEYS,
+  GROUND_STATIC_SLOTS,
   idleOrder,
   type LandTerrain,
   MOVE_RETREAT,
@@ -56,8 +57,13 @@ import {
   WIN_RATIO_AT_PM,
   winPctOf,
 } from "@openfront/engine-lib/ww1936/CombatRules";
+import { tankStatsOfEntry } from "@openfront/engine-lib/ww1936/hist/ConvertTank";
 import { histOwn } from "@openfront/engine-lib/ww1936/hist/Slots";
-import { STATIC_KEY_STATS } from "@openfront/engine-lib/ww1936/TemplateStats";
+import type { TankEntry } from "@openfront/engine-lib/ww1936/hist/Types";
+import {
+  rowScore,
+  STATIC_KEY_STATS,
+} from "@openfront/engine-lib/ww1936/TemplateStats";
 import { clearBands } from "@openfront/engine/ww1936/land/Bands";
 import {
   closeBattle,
@@ -243,9 +249,17 @@ const ATT_TEMPLATES: TemplateKey[] = [
   "inf72",
   "inf92",
   "panzer",
+  "tank45",
   "guns",
 ];
-const DEF_TEMPLATES: TemplateKey[] = ["inf9", "inf9", "inf93", "inf72", "cav"];
+const DEF_TEMPLATES: TemplateKey[] = [
+  "inf9",
+  "inf9",
+  "inf93",
+  "inf72",
+  "inf6at2",
+  "cav",
+];
 const TERRAINS: LandTerrain[] = [
   "plains",
   "plains",
@@ -273,6 +287,11 @@ interface Duel {
   /** --plan: both sides' gear generation, and the tank catalogue entry (the attacker's) in place of static tanks. */
   gen?: number;
   tank?: string;
+  /** --plan: the defender's tank entry. */
+  defTank?: string;
+  /** --plan: a second attacking template (an army's mix), and how many of it. */
+  att2?: TemplateKey;
+  nAtt2?: number;
 }
 
 /** Log-uniform integer in [lo, hi]. */
@@ -417,7 +436,8 @@ function pctStr(a: number, b: number): string {
 
 async function main(): Promise<void> {
   const o = parseArgs(process.argv.slice(2));
-  const runner = await wwRunner({}, [
+  // (The plan's rows run on the catalogue: the designer's fixture has generic gear.)
+  const runner = await wwRunner(o.plan ? { ww1936Designer: false } : {}, [
     { clientID: "HUMAN001", country: "DEU" },
     { clientID: "HUMAN002", country: "POL" },
   ]);
@@ -467,15 +487,17 @@ async function main(): Promise<void> {
       }
       ce.manpower = 2_000_000_000;
       if (d.gen !== undefined) {
-        const slot = d.tank === undefined ? 0 : tankSlot(d.tank);
+        const name = id === deu ? d.tank : d.defTank;
+        const slot = name === undefined ? 0 : tankSlot(name);
         for (let k = 0; k < ce.stock.length; k++) {
           const [type, gen] = EQUIP_KEYS[k];
           ce.stock[k] =
             type === "tank_design"
-              ? gen === slot && id === deu
+              ? gen === slot
                 ? 2_000_000_000
                 : 0
-              : gen === Math.min(d.gen, EQUIPMENT_GENS[type])
+              : gen === Math.min(d.gen, EQUIPMENT_GENS[type]) &&
+                  (slot === 0 || !type.endsWith("_tank"))
                 ? 2_000_000_000
                 : 0;
         }
@@ -501,6 +523,10 @@ async function main(): Promise<void> {
             ? Math.ceil(d.nAtt / 2)
             : Math.floor(d.nAtt / 2);
       if (n > 0) attArmies.push(placeArmy(g, "DEU", from[w], n, attTpl));
+    }
+    if (d.att2 !== undefined && (d.nAtt2 ?? 0) > 0) {
+      const tpl = addTemplate(l, deu, d.att2);
+      attArmies.push(placeArmy(g, "DEU", from[0], d.nAtt2!, tpl));
     }
     const defArmy = placeArmy(g, "POL", WARSAW, d.nDef, defTpl);
     const attIds = attArmies.flatMap((a) => [...a.divisions]);
@@ -616,15 +642,34 @@ function tankSlot(id: string): number {
   return i + 1;
 }
 
-/** `ks` with its generation-2 anti-tank gun at `pierceCenti`, as Pak 43 or the 17-pounder would be. */
-function withAtGun(ks: KeyStatsTable, pierceCenti: number): KeyStatsTable {
+/** `ks` with every German catalogue tank in its slot, whatever is researched, and its generation-2 gun at `pierceCenti` (0: as it is). */
+function planTable(ks: KeyStatsTable, pierceCenti: number): KeyStatsTable {
   const t: KeyStatsTable = {
     group: ks.group.slice(),
     year: ks.year.slice(),
     score: ks.score.slice(),
     stats: ks.stats.slice(),
   };
-  t.stats[slotOf("anti_tank", 2) * KS_FIELDS + KS.pierce] = pierceCenti;
+  if (pierceCenti > 0) {
+    t.stats[slotOf("anti_tank", 2) * KS_FIELDS + KS.pierce] = pierceCenti;
+  }
+  histOwn("DEU", "tank").forEach((e, i) => {
+    const s = tankStatsOfEntry(e as TankEntry);
+    const j = GROUND_STATIC_SLOTS + i;
+    const o = j * KS_FIELDS;
+    t.group[j] = s.group;
+    t.year[j] = s.year;
+    t.stats[o + KS.soft] = s.soft;
+    t.stats[o + KS.hard] = s.hard;
+    t.stats[o + KS.def] = s.def;
+    t.stats[o + KS.brk] = s.brk;
+    t.stats[o + KS.pierce] = s.pierce;
+    t.stats[o + KS.armor] = s.armor;
+    t.stats[o + KS.hardnessPm] = s.hardnessPm;
+    t.stats[o + KS.speedCenti] = s.speedCenti;
+    t.stats[o + KS.relPm] = s.relPm;
+    t.score[j] = rowScore(t.stats, j, s.group, s.year);
+  });
   return t;
 }
 
@@ -638,6 +683,9 @@ interface PlanRow extends Target {
   gen: number;
   keys: "generic" | "deu" | "pak43" | "17pdr";
   tank?: string;
+  defTank?: string;
+  att2?: TemplateKey;
+  nAtt2?: number;
 }
 
 const plan = (
@@ -666,94 +714,50 @@ const plan = (
   tank,
 });
 
+/** A full line and more on both sides: 1:1 is ten against ten (five fit the width), 3:1 thirty against ten. */
+const EVEN: [number, number] = [10, 10];
+const THREE: [number, number] = [30, 10];
+
 const PLAN_ROWS: readonly PlanRow[] = [
   ...(["generic", "deu"] as const).flatMap((k) =>
-    [1, 2, 3].flatMap((gen) => {
+    [1, 2].flatMap((gen) => {
       const tag = `${k} g${gen}`;
       return [
+        plan(`${tag} tank on inf9 (95)`, "tank45", "inf9", EVEN, 0, 0, gen, k),
         plan(
-          `${tag} tank on inf9 (95)`,
-          "tank45",
-          "inf9",
-          [3, 3],
-          0,
-          0,
-          gen,
-          k,
-        ),
-        plan(`${tag} tank on inf72`, "tank45", "inf72", [3, 3], 0, 0, gen, k),
-        plan(
-          `${tag} tank on dug-in AT (40-55)`,
+          `${tag} tank on AT e5 (40-55)`,
           "tank45",
           "inf6at2",
-          [3, 3],
+          EVEN,
           5,
           0,
           gen,
           k,
         ),
         plan(
-          `${tag} inf72 3:1 dug-in (60-70)`,
+          `${tag} inf72 3:1 e5 (60-70)`,
           "inf72",
           "inf9",
-          [6, 2],
+          THREE,
           5,
           0,
           gen,
           k,
         ),
-        plan(
-          `${tag} inf9 on bare9 (60)`,
-          "inf9",
-          "bare9",
-          [3, 3],
-          0,
-          0,
-          gen,
-          k,
-        ),
-        plan(
-          `${tag} inf72 on bare9 (60)`,
-          "inf72",
-          "bare9",
-          [3, 3],
-          0,
-          0,
-          gen,
-          k,
-        ),
-        plan(
-          `${tag} inf9 on bare6 (60)`,
-          "inf9",
-          "bare6",
-          [3, 3],
-          0,
-          0,
-          gen,
-          k,
-        ),
-        plan(`${tag} inf9 on inf9 (<15)`, "inf9", "inf9", [3, 3], 0, 0, gen, k),
-        plan(
-          `${tag} inf9 on dug-in inf9 (<15)`,
-          "inf9",
-          "inf9",
-          [3, 3],
-          5,
-          0,
-          gen,
-          k,
-        ),
+        plan(`${tag} inf9 on bare9 (60)`, "inf9", "bare9", EVEN, 0, 0, gen, k),
+        plan(`${tag} inf9 on bare6 (60)`, "inf9", "bare6", EVEN, 0, 0, gen, k),
+        plan(`${tag} inf9 on inf9 (<15)`, "inf9", "inf9", EVEN, 0, 0, gen, k),
         plan(
           `${tag} inf72 on inf72 (<15)`,
           "inf72",
           "inf72",
-          [3, 3],
+          EVEN,
           0,
           0,
           gen,
           k,
         ),
-        plan(`${tag} tank on fort 3`, "tank45", "inf9", [3, 3], 0, 3, gen, k),
+        plan(`${tag} tank on fort 3`, "tank45", "inf9", EVEN, 0, 3, gen, k),
       ];
     }),
   ),
@@ -761,7 +765,7 @@ const PLAN_ROWS: readonly PlanRow[] = [
     "deu 1942 Pz IV F2 on fort 3",
     "tank45",
     "inf9",
-    [3, 3],
+    EVEN,
     0,
     3,
     2,
@@ -772,7 +776,7 @@ const PLAN_ROWS: readonly PlanRow[] = [
     "deu 1942 Tiger I on fort 3",
     "heavy45",
     "inf9",
-    [3, 3],
+    EVEN,
     0,
     3,
     2,
@@ -780,10 +784,10 @@ const PLAN_ROWS: readonly PlanRow[] = [
     "deu_tiger1_e",
   ),
   plan(
-    "deu 1942 Pz IV F2 on dug-in fort 3",
+    "deu 1942 Pz IV F2 on e5 fort 3",
     "tank45",
     "inf9",
-    [3, 3],
+    EVEN,
     5,
     3,
     2,
@@ -791,10 +795,10 @@ const PLAN_ROWS: readonly PlanRow[] = [
     "deu_pz4_f2",
   ),
   plan(
-    "deu 1942 Tiger I on dug-in fort 3",
+    "deu 1942 Tiger I on e5 fort 3",
     "heavy45",
     "inf9",
-    [3, 3],
+    EVEN,
     5,
     3,
     2,
@@ -805,7 +809,7 @@ const PLAN_ROWS: readonly PlanRow[] = [
     "deu 1942 Pz IV F2 on inf9 (95)",
     "tank45",
     "inf9",
-    [3, 3],
+    EVEN,
     0,
     0,
     2,
@@ -813,10 +817,10 @@ const PLAN_ROWS: readonly PlanRow[] = [
     "deu_pz4_f2",
   ),
   plan(
-    "deu 1942 Pz IV F2 on dug-in AT",
+    "deu 1942 Pz IV F2 on AT e5",
     "tank45",
     "inf6at2",
-    [3, 3],
+    EVEN,
     5,
     0,
     2,
@@ -824,10 +828,10 @@ const PLAN_ROWS: readonly PlanRow[] = [
     "deu_pz4_f2",
   ),
   plan(
-    "Pak 43: Pz IV F2 on dug-in AT",
+    "Pak 43: Pz IV F2 on AT e5",
     "tank45",
     "inf6at2",
-    [3, 3],
+    EVEN,
     5,
     0,
     2,
@@ -835,10 +839,10 @@ const PLAN_ROWS: readonly PlanRow[] = [
     "deu_pz4_f2",
   ),
   plan(
-    "Pak 43: Panther on dug-in AT",
+    "Pak 43: Panther on AT e5",
     "tank45",
     "inf6at2",
-    [3, 3],
+    EVEN,
     5,
     0,
     2,
@@ -846,10 +850,10 @@ const PLAN_ROWS: readonly PlanRow[] = [
     "deu_panther_a",
   ),
   plan(
-    "17-pdr: Pz IV F2 on dug-in AT",
+    "17-pdr: Pz IV F2 on AT e5",
     "tank45",
     "inf6at2",
-    [3, 3],
+    EVEN,
     5,
     0,
     2,
@@ -857,10 +861,10 @@ const PLAN_ROWS: readonly PlanRow[] = [
     "deu_pz4_f2",
   ),
   plan(
-    "17-pdr: Panther on dug-in AT",
+    "17-pdr: Panther on AT e5",
     "tank45",
     "inf6at2",
-    [3, 3],
+    EVEN,
     5,
     0,
     2,
@@ -868,18 +872,185 @@ const PLAN_ROWS: readonly PlanRow[] = [
     "deu_panther_a",
   ),
   plan(
-    "Pak 43: Panther 2:1 on dug-in AT",
+    "Pak 43: Panther 2:1 on AT e5",
     "tank45",
     "inf6at2",
-    [6, 3],
+    [20, 10],
     5,
     0,
     2,
     "pak43",
     "deu_panther_a",
   ),
-  plan("Pz I (light45) on inf9", "light45", "inf9", [3, 3], 0, 0, 1, "deu"),
-  plan("inf9 on Pz I (light45)", "inf9", "light45", [3, 3], 0, 0, 1, "deu"),
+  ...(
+    [
+      [12, 12],
+      [8, 16],
+      [4, 20],
+      [16, 8],
+      [24, 0],
+    ] as const
+  ).map(
+    ([tanks, line]): PlanRow => ({
+      ...plan(
+        `mix ${tanks}:${line} on AT e5`,
+        "tank45",
+        "inf6at2",
+        [tanks, 10],
+        5,
+        0,
+        2,
+        "deu",
+        "deu_pz4_f2",
+      ),
+      att2: "inf72",
+      nAtt2: line,
+    }),
+  ),
+  {
+    ...plan(
+      "deu 1942 inf9 on bare9 Pz IV F2 (60)",
+      "inf9",
+      "bare9",
+      EVEN,
+      0,
+      0,
+      2,
+      "deu",
+    ),
+    defTank: "deu_pz4_f2",
+  },
+  {
+    ...plan(
+      "deu 1943 inf9 on bare9 Panther (60)",
+      "inf9",
+      "bare9",
+      EVEN,
+      0,
+      0,
+      2,
+      "deu",
+    ),
+    defTank: "deu_panther_a",
+  },
+  {
+    ...plan(
+      "deu 1942 inf9 on tank45 Pz IV F2",
+      "inf9",
+      "tank45",
+      EVEN,
+      0,
+      0,
+      2,
+      "deu",
+    ),
+    defTank: "deu_pz4_f2",
+  },
+  plan("deep inf72 3:1 e10", "inf72", "inf9", THREE, 10, 0, 1, "generic"),
+  plan("deep inf72 5:1 e10", "inf72", "inf9", [50, 10], 10, 0, 1, "generic"),
+  {
+    ...plan(
+      "deep inf72 3:1 e5 pos 3",
+      "inf72",
+      "inf9",
+      THREE,
+      5,
+      0,
+      1,
+      "generic",
+    ),
+    pos: 3,
+  },
+  {
+    ...plan(
+      "deep inf72 5:1 e5 pos 3",
+      "inf72",
+      "inf9",
+      [50, 10],
+      5,
+      0,
+      1,
+      "generic",
+    ),
+    pos: 3,
+  },
+  {
+    ...plan(
+      "deep inf72 5:1 e10 pos 3",
+      "inf72",
+      "inf9",
+      [50, 10],
+      10,
+      0,
+      1,
+      "generic",
+    ),
+    pos: 3,
+  },
+  plan("deep tank 2:1 e10", "tank45", "inf9", [20, 10], 10, 0, 1, "generic"),
+  {
+    ...plan(
+      "deep tank 3:1 e10 pos 3",
+      "tank45",
+      "inf9",
+      THREE,
+      10,
+      0,
+      1,
+      "generic",
+    ),
+    pos: 3,
+  },
+  plan("open inf72 2:1", "inf72", "inf9", [20, 10], 0, 0, 1, "generic"),
+  plan("open inf72 3:1", "inf72", "inf9", THREE, 0, 0, 1, "generic"),
+  plan("e5 inf72 2:1", "inf72", "inf9", [20, 10], 5, 0, 1, "generic"),
+  plan("e5 inf72 1:1", "inf72", "inf9", EVEN, 5, 0, 1, "generic"),
+  plan(
+    "deu 1942 Pz IV F2 on open AT",
+    "tank45",
+    "inf6at2",
+    EVEN,
+    0,
+    0,
+    2,
+    "deu",
+    "deu_pz4_f2",
+  ),
+  plan(
+    "deu 1943 Panther on AT e5",
+    "tank45",
+    "inf6at2",
+    EVEN,
+    5,
+    0,
+    2,
+    "deu",
+    "deu_panther_a",
+  ),
+  plan(
+    "Pak 43: Tiger II on AT e5",
+    "heavy45",
+    "inf6at2",
+    EVEN,
+    5,
+    0,
+    2,
+    "pak43",
+    "deu_tiger2_b",
+  ),
+  plan(
+    "deu 1939 Pz III E 2:1 on AT e5",
+    "tank45",
+    "inf6at2",
+    [20, 10],
+    5,
+    0,
+    2,
+    "deu",
+    "deu_pz3_e",
+  ),
+  plan("Pz I (light45) on inf9", "light45", "inf9", EVEN, 0, 0, 1, "deu"),
+  plan("inf9 on Pz I (light45)", "inf9", "light45", EVEN, 0, 0, 1, "deu"),
 ];
 
 function planReport(
@@ -903,14 +1074,16 @@ function planReport(
   }
   const tables: Record<PlanRow["keys"], KeyStatsTable> = {
     generic: STATIC_KEY_STATS,
-    deu: deuKeys,
-    pak43: withAtGun(deuKeys, 18_500),
-    "17pdr": withAtGun(deuKeys, 14_000),
+    deu: planTable(deuKeys, 0),
+    pak43: planTable(deuKeys, 18_500),
+    "17pdr": planTable(deuKeys, 14_000),
   };
   const mean = (xs: number[]) =>
     xs.length === 0 ? 0 : xs.reduce((a, b) => a + b, 0) / xs.length;
   for (const r of PLAN_ROWS) {
-    if (o.only !== "" && !r.name.includes(o.only)) continue;
+    if (o.only !== "" && !o.only.split("|").some((x) => r.name.includes(x))) {
+      continue;
+    }
     useKeys(tables[r.keys]);
     const rs: Outcome[] = [];
     for (let i = 0; i < n; i++) {

@@ -30,7 +30,7 @@ import {
   ROLE_DEFEND,
   ROLE_NONE,
   TemplateDef,
-  TPL_ARMOR_MAJOR,
+  TPL_BARE_ARMOR,
   TPL_CAVALRY_MAJOR,
   TPL_ENGINEER,
   TPL_EXPLOIT,
@@ -38,6 +38,7 @@ import {
   TPL_LIGHT_MAJOR,
   TPL_RECON,
   TPL_SIGNAL,
+  TPL_TANK_FORCE,
   traitBit,
   WW_ROUND_HOUR_MILLI,
 } from "@openfront/engine-api/ww1936/LandTypes";
@@ -51,10 +52,12 @@ import {
   applyBp,
   attackValue,
   bandProtectPm,
+  BARE_DEFENCE_ATTACK_CUT_BP,
   CAS_RESERVE_PP,
   casCutHits,
   casProtectPm,
   combatWidth,
+  defenderHardnessPm,
   defenderOrgPct,
   divisionMods,
   emptySide,
@@ -75,6 +78,7 @@ import {
   prepKeepPm,
   roundDamage,
   roundHits,
+  sideFearPct,
   tankFearCutPp,
   tankFearPct,
   trenchCutPm,
@@ -367,15 +371,24 @@ function fight(land: WwLand, b: Battle, tick: number): void {
     // ww84: an attacker's guns open the band: more attack, and that share of
     // the prepared ground gone; heavy tanks go through a part of it as well.
     const fire = toDefends && barrage ? s.prepFireBp : 0;
+    // ww90: tanks with no infantry don't hold ground: they fire less and are
+    // reached at close quarters.
+    const hardness = toDefends
+      ? defenderHardnessPm(ts.hardnessPm, ts.flags)
+      : ts.hardnessPm;
+    const bareCut =
+      !toDefends && (s.flags & TPL_BARE_ARMOR) !== 0
+        ? BARE_DEFENCE_ATTACK_CUT_BP
+        : 0;
     const a = applyBp(
       applyBp(
         applyBp(
-          applyBp(attackValue(soft, s.hard, ts.hardnessPm), fromMods.attackBp),
+          applyBp(attackValue(soft, s.hard, hardness), fromMods.attackBp),
           10_000 + excess,
         ),
         toDefends ? attMul : defMul,
       ),
-      10_000 + fire,
+      10_000 + fire - bareCut,
     );
     const prep0 = toDefends ? (toMods.prepBp ?? 0) : 0;
     const prep =
@@ -395,7 +408,7 @@ function fight(land: WwLand, b: Battle, tick: number): void {
         : hitProtectPm(
             soft,
             s.hard,
-            ts.hardnessPm,
+            hardness,
             bandProtectPm(
               toDefends ? s.bandPierceAtk : s.bandPierce,
               s.bandHard,
@@ -408,7 +421,7 @@ function fight(land: WwLand, b: Battle, tick: number): void {
     );
     // ww84: tanks through a line that can't stop them.
     const fear =
-      toDefends && (s.flags & TPL_ARMOR_MAJOR) !== 0
+      toDefends && (s.flags & TPL_TANK_FORCE) !== 0
         ? tankFearPct(ts.bandPierce, ts.bandHard, s.armor, fearCutOf(land, to))
         : 0;
     org.set(
@@ -1577,6 +1590,14 @@ export function battleExtras(
     if (ctx.casDefCenti > 0) out.casDefCenti = ctx.casDefCenti;
   }
   const range = predictBattleRange(att, def, ctx);
+  // ww90: what the card names on top of the modifiers.
+  if ((ctx.prepFireRounds ?? 0) > 0 && (att.prepFireBp ?? 0) > 0) {
+    out.fireBp = att.prepFireBp;
+  }
+  if ((ctx.exploitRounds ?? 0) > 0) out.runRounds = ctx.exploitRounds;
+  const fear = sideFearPct(att, def, ctx.tankFearCutPp ?? 0);
+  if (fear > 0) out.fearPct = fear;
+  if ((def.defOrgPct ?? 100) !== 100) out.defOrgPct = def.defOrgPct;
   out.winPct = range.winPct;
   out.lowPm = range.lowPm;
   out.midPm = range.midPm;

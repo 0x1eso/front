@@ -220,7 +220,7 @@ describe("World War 1936 P2: land battles (spec §9)", () => {
         side,
       );
     stepBattles(l, g.ticks());
-    // (Foot defending take 85 % of the org damage, ww84.)
+    // (Foot defending take 82 % of the org damage, ww90.)
     expect(def0 - l.divisions.org[rowOf(l, d.divisions[0])]).toBe(
       Math.floor(
         (roundDamage(
@@ -236,7 +236,7 @@ describe("World War 1936 P2: land battles (spec §9)", () => {
             ),
           ),
         ).orgMilli *
-          85) /
+          82) /
           100,
       ),
     );
@@ -848,16 +848,16 @@ describe("World War 1936 ww7 lane A: tactics, luck and reserves in a battle (des
     attack(l, a, WARSAW);
     const b = l.battles.get(WARSAW)!;
     const dr = rowOf(l, d.divisions[0]);
-    l.divisions.entrench[dr] = 4; // ww7 B2: +5% a level
+    l.divisions.entrench[dr] = 4; // ww90: +25% a level
     const entrench = () =>
       battleMods(l, b, dr).defenseLines.find((x) => x.id === "entrench")?.bp;
     b.tacticAtt = AT_ATTACK;
     b.tacticDef = DT_DEFEND;
-    expect(entrench()).toBe(2000);
+    expect(entrench()).toBe(10_000);
     b.tacticAtt = AT_BLITZ;
-    expect(entrench()).toBe(1000);
+    expect(entrench()).toBe(5000);
     b.tacticDef = DT_DEPTH;
-    expect(entrench()).toBe(2000);
+    expect(entrench()).toBe(10_000);
     // The attacker's own lines never carry it.
     b.tacticDef = DT_DEFEND;
     const ar = rowOf(l, a.divisions[0]);

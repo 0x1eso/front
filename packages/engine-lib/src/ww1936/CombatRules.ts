@@ -12,7 +12,6 @@ import {
   SideSum,
   TPL_AMPHIBIOUS,
   TPL_ARMOR_ANY,
-  TPL_ARMOR_MAJOR,
   TPL_BARE_ARMOR,
   TPL_CAVALRY_MAJOR,
   TPL_ENGINEER,
@@ -27,6 +26,7 @@ import {
   TPL_MOUNTAIN_MAJOR,
   TPL_PARA_ANY,
   TPL_RECON,
+  TPL_TANK_FORCE,
   TPL_TD_DEFEND,
   traitBit,
   WW_ROUND_HOUR_MILLI,
@@ -90,10 +90,14 @@ export const RIVER_ATTACK_BP: readonly [number, number, number] = [
  */
 export const FORT_ATTACK_BP = -1700;
 
-/** ww7: defence per entrenchment level, bp (was 300; ww6 design §5). */
-export const ENTRENCH_DEF_BP = 500;
-/** ww7: defence per position level (Positions.ts), bp. */
-export const POSITION_DEF_BP = 500;
+/**
+ * ww7: defence per entrenchment level, bp (was 300; ww6 design §5). ww90: 25 %
+ * (was 5 %): with no ground left to hide in, a dug-in line is what holds. Three
+ * to one with guns takes it two times in three (plan section 6).
+ */
+export const ENTRENCH_DEF_BP = 2500;
+/** ww7: defence per position level (Positions.ts), bp. Equal to a level of entrenchment: predictBattle counts levels by it. */
+export const POSITION_DEF_BP = 2500;
 /** ww84: marines recover org at this percent of the normal rate for this many days after a landing. */
 export const MARINE_LANDED_RECOVERY_PCT = 150;
 export const MARINE_LANDED_DAYS = 3;
@@ -166,8 +170,19 @@ export const ORG_PER_HIT_E3 = 52;
 export const HP_PER_HIT_E3 = 36;
 
 /** ww84: the org damage a foot division takes defending, and tanks with no infantry, %. */
-export const FOOT_DEFENCE_ORG_PCT = 85;
+export const FOOT_DEFENCE_ORG_PCT = 82;
 export const BARE_ARMOR_ORG_PCT = 125;
+
+/** ww90: what armour with no infantry loses of its attack defending, bp, and the share of its hardness that counts then, %. */
+export const BARE_DEFENCE_ATTACK_CUT_BP = 6500;
+export const BARE_HARDNESS_PCT = 50;
+
+/** ww90: how hard a defender with `flags` is to hit: tanks with no infantry are reached at close quarters. */
+export function defenderHardnessPm(hardnessPm: number, flags: number): number {
+  return has(flags, TPL_BARE_ARMOR)
+    ? Math.floor((hardnessPm * BARE_HARDNESS_PCT) / 100)
+    : hardnessPm;
+}
 
 /** ww84: what a defender with `flags` takes of the org damage dealt to it, %. */
 export function defenderOrgPct(flags: number): number {
@@ -191,10 +206,21 @@ export const EXPLOIT_ORG_PCT = 50;
 export const EXPLOIT_ADVANCE_PCT = 200;
 export const EXPLOIT_ADVANCE_LIGHT_PCT = 250;
 
+/**
+ * ww90: what a blitz is worth to the prediction, on the tanks' share of the
+ * attackers: armour picks it about half the time, +35 % attack and half the
+ * trench, and predictBattle reads no tactics. A trench deep enough to stop
+ * infantry made tanks read far worse than they fought (0.72 won six in ten).
+ */
+const BLITZ_ATTACK_BP = 1500;
+const BLITZ_PREP_CUT_PM = 250;
+
 /** ww84: the rounds of a band its attackers' guns open with. */
 export const PREP_FIRE_ROUNDS = 8;
 /** ww84: what heavy tanks take off the enemy's prepared ground and forts, ‰ and percent kept. */
 export const HEAVY_PREP_CUT_PM = 250;
+/** ww90: tanks with their motorized roll over a part of a trench that stops infantry, ‰. */
+export const TANK_PREP_CUT_PM = 400;
 export const HEAVY_FORT_PCT = 75;
 
 /** ww84: `keepPm` of the prepared ground, less the share a barrage of `fireBp` takes. */
@@ -208,7 +234,9 @@ function keepAfterFire(keepPm: number, fireBp: number): number {
  */
 export function prepKeepPm(flags: number, fireBp: number): number {
   return keepAfterFire(
-    has(flags, TPL_HEAVY_LEAD) ? 1000 - HEAVY_PREP_CUT_PM : 1000,
+    1000 -
+      (has(flags, TPL_TANK_FORCE) ? TANK_PREP_CUT_PM : 0) -
+      (has(flags, TPL_HEAVY_LEAD) ? HEAVY_PREP_CUT_PM : 0),
     fireBp,
   );
 }
@@ -221,7 +249,7 @@ export function trenchCutPm(flags: number, levels: number): number {
 }
 
 /** ww84: what tanks do to defenders with nothing to stop them, extra org damage, %. */
-export const TANK_FEAR_PCT = 25;
+export const TANK_FEAR_PCT = 30;
 
 /** The side's best pierce with something left to fire it. */
 function bestPierce(
@@ -771,6 +799,7 @@ function sideProtectPm(
   to: SideSum,
   attacking: boolean,
   cutPm = 0,
+  hardnessPm = to.hardnessPm,
 ): number {
   if (to.armor <= 0) return 0;
   const pierce = attacking ? from.bandPierceAtk : from.bandPierce;
@@ -778,11 +807,22 @@ function sideProtectPm(
   return hitProtectPm(
     from.soft,
     from.hard,
-    to.hardnessPm,
+    hardnessPm,
     pierce === undefined || hard === undefined
       ? Math.max(0, armorProtectPm(to.armor, from.pierce) - cutPm)
       : bandProtectPm(pierce, hard, to.armor, cutPm),
   );
+}
+
+/** ww90: the extra org damage a side's tanks do to `def` by fear, %, by their share of its width. */
+export function sideFearPct(att: SideSum, def: SideSum, cutPp: number): number {
+  return def.bandPierce === undefined || def.bandHard === undefined
+    ? 0
+    : Math.floor(
+        (tankFearPct(def.bandPierce, def.bandHard, att.armor, cutPp) *
+          (att.armorMajorPm ?? 0)) /
+          1000,
+      );
 }
 
 /** ww84: a round's org damage to a defending side, by what it is made of and the attackers' tanks. */
@@ -792,19 +832,7 @@ function sideDefOrg(
   def: SideSum,
   ctx: BattleCtx,
 ): number {
-  const fear =
-    def.bandPierce === undefined || def.bandHard === undefined
-      ? 0
-      : Math.floor(
-          (tankFearPct(
-            def.bandPierce,
-            def.bandHard,
-            att.armor,
-            ctx.tankFearCutPp ?? 0,
-          ) *
-            (att.armorMajorPm ?? 0)) /
-            1000,
-        );
+  const fear = sideFearPct(att, def, ctx.tankFearCutPp ?? 0);
   return Math.floor((org * ((def.defOrgPct ?? 100) + fear)) / 100);
 }
 
@@ -831,21 +859,33 @@ export function predictBattle(
     Math.floor((1000 * def.divisions * width) / Math.max(1, def.width)),
   );
   const per = (x: number, n: number) => Math.floor(x / n);
+  // ww90: tanks with no infantry fire less and are reached at close quarters.
+  const bare = def.barePm ?? 0;
+  const defHardnessPm =
+    def.hardnessPm -
+    Math.floor((def.hardnessPm * (100 - BARE_HARDNESS_PCT) * bare) / 100_000);
+  const tanks = att.armorMajorPm ?? 0;
   const aA = applyBp(
-    attackValue(
-      per(att.soft, att.divisions),
-      per(att.hard, att.divisions),
-      def.hardnessPm,
+    applyBp(
+      attackValue(
+        per(att.soft, att.divisions),
+        per(att.hard, att.divisions),
+        defHardnessPm,
+      ),
+      ctx.attackerAttackBp,
     ),
-    ctx.attackerAttackBp,
+    10_000 + Math.floor((BLITZ_ATTACK_BP * tanks) / 1000),
   );
   const aD = applyBp(
-    attackValue(
-      per(def.soft, def.divisions),
-      per(def.hard, def.divisions),
-      att.hardnessPm,
+    applyBp(
+      attackValue(
+        per(def.soft, def.divisions),
+        per(def.hard, def.divisions),
+        att.hardnessPm,
+      ),
+      ctx.defenderAttackBp,
     ),
-    ctx.defenderAttackBp,
+    10_000 - Math.floor((BARE_DEFENCE_ATTACK_CUT_BP * bare) / 1000),
   );
   const dA = applyBp(per(att.brk, att.divisions), ctx.attackerBlockBp);
   const prepBp = ctx.defenderPrepBp ?? 0;
@@ -889,7 +929,7 @@ export function predictBattle(
           applyBp(perDef, block),
           prep,
         ),
-        sideProtectPm(att, def, true),
+        sideProtectPm(att, def, true, 0, defHardnessPm),
       ).orgMilli,
       att,
       def,
@@ -897,8 +937,15 @@ export function predictBattle(
     );
     return Math.floor((toDef * lineA) / 1000) + casOrg;
   };
-  const heavyKeep =
-    1000 - Math.floor((HEAVY_PREP_CUT_PM * (att.heavyPm ?? 0)) / 1000);
+  const heavyKeep = Math.floor(
+    ((1000 -
+      Math.floor(
+        (HEAVY_PREP_CUT_PM * (att.heavyPm ?? 0) + TANK_PREP_CUT_PM * tanks) /
+          1000,
+      )) *
+      (1000 - Math.floor((BLITZ_PREP_CUT_PM * tanks) / 1000))) /
+      1000,
+  );
   const plainRound = roundOnDef(0, heavyKeep);
   const fire = att.prepFireBp ?? 0;
   const fireRounds = fire > 0 ? (ctx.prepFireRounds ?? PREP_FIRE_ROUNDS) : 0;
@@ -966,8 +1013,9 @@ export function predictBattle(
  * rivers, forts, entrenchment, one or two directions), buckets them by the
  * predicted ratio's log, fits a monotone curve (pool adjacent violators) and
  * prints WIN_PCT_AT; paste it here. The fit is deterministic (seed 1). The
- * current table (ww67, `--duels 6000`): the even fight is won about half the
- * time, 1.2 three in four, 1.4 nine in ten, 2 always, 0.7 one in eleven.
+ * current table (ww90, `--duels 4000`, tank and anti-tank divisions in the
+ * draw): the even fight is won six times in ten, 1.2 five in six, 1.4 nine in
+ * ten, 2 nearly always, 0.7 one in seven.
  */
 export const WIN_RATIO_AT_PM: readonly number[] = [
   63, 74, 88, 105, 125, 149, 177, 210, 250, 297, 354, 420, 500, 595, 707, 841,
@@ -975,7 +1023,7 @@ export const WIN_RATIO_AT_PM: readonly number[] = [
   9514, 11314, 13454, 16000,
 ];
 export const WIN_PCT_AT: readonly number[] = [
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 3, 9, 24, 52, 73, 89, 97, 100, 100,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 4, 14, 30, 60, 84, 92, 98, 99, 100,
   100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100,
 ];
 
@@ -1143,7 +1191,13 @@ export function addToSide(sum: SideSum, s: SideStats, orgMilli: number): void {
   );
   sum.armorMajorPm = byWidth(
     sum.armorMajorPm ?? 0,
-    has(fl, TPL_ARMOR_MAJOR) ? 1000 : 0,
+    has(fl, TPL_TANK_FORCE) ? 1000 : 0,
+    w0,
+    sw,
+  );
+  sum.barePm = byWidth(
+    sum.barePm ?? 0,
+    has(fl, TPL_BARE_ARMOR) ? 1000 : 0,
     w0,
     sw,
   );

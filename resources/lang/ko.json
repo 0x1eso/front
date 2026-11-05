@@ -9917,7 +9917,8 @@
       "wait_go_aggressive": "과감으로 전환",
       "wait_low_odds": "승산이 낮아 대기 중",
       "waiting_equipment": "장비 대기 중 {pct}%",
-      "waiting_manpower": "인력 대기 중"
+      "waiting_manpower": "인력 대기 중",
+      "battle_running": "기갑 전과 확대: 참호 무시, {n}라운드 남음"
     },
     "landmark": {
       "lm_brandenburg": "브란덴부르크 문",
@@ -10231,6 +10232,8 @@
     },
     "mod": {
       "air": "항공 지원",
+      "bare_armor": "보병 없는 기갑",
+      "barrage": "준비 포격",
       "coastal_fort": "해안 요새",
       "command": "지휘",
       "doctrine": "교리",
@@ -10242,6 +10245,7 @@
       "field_marshal": "원수",
       "flame": "화염 전차",
       "fm_trait": "원수 특성",
+      "foot_line": "보병 전선 유지",
       "fort": "요새",
       "fort_def": "요새 방어",
       "fuel": "연료",
@@ -10255,6 +10259,7 @@
       "strait": "해협",
       "supply": "보급",
       "tank_destroyer": "구축전차",
+      "tank_fear": "전차 공포",
       "trait": "특성"
     },
     "module": {
@@ -13349,7 +13354,7 @@
       "jpn_garrison_ii": "독립 수비대 II",
       "jpn_tank_division": "전차 사단",
       "mobile": "기동 사단",
-      "mountain": "산악 사단",
+      "mountain": "돌격 사단",
       "mountain_rifle": "산악 소총 사단",
       "new_infantry_division": "국군 보병 사단",
       "nor_ski_division": "스키 사단",
@@ -13374,7 +13379,7 @@
       "pre_medium_armored": "기갑",
       "pre_mot_artillery_div": "차량화 포병 지원 사단",
       "pre_mot_infantry": "차량화 보병",
-      "pre_mountain_div": "산악",
+      "pre_mountain_div": "돌격보병",
       "pre_spg_armored": "자주포 기갑",
       "pre_tank_destroyer_div": "구축전차 사단",
       "rifle": "소총 사단",
