@@ -5,6 +5,7 @@ import {
   KS,
   KS_FIELDS,
 } from "@openfront/engine-api/ww1936/DepthTypes";
+import type { WwTechId } from "@openfront/engine-api/ww1936/EconomyTypes";
 import {
   EQUIPMENT_GENS,
   EQUIPMENT_TYPES,
@@ -23,6 +24,7 @@ import {
 import { histStaticKeyTable } from "@openfront/engine-lib/ww1936/hist/StaticKeys";
 import { HIST_COUNTRIES } from "@openfront/engine-lib/ww1936/hist/Types";
 import { breakdownPpm } from "@openfront/engine-lib/ww1936/hist/Wear";
+import { aiRetools } from "@openfront/engine/ww1936/economy/AiEconomy";
 import { describe, expect, test } from "vitest";
 
 const TRUCK = {
@@ -96,5 +98,21 @@ describe("per-major gear", () => {
     expect(wear("USA")).toBe(0);
     expect(wear("POL")).toBe(0);
     expect(Object.keys(HIST_CATALOGUE)).toHaveLength(7);
+  });
+
+  test("the AI does not retool a line to a generation that costs over 150 %", () => {
+    const researched = new Set<WwTechId>(["anti_air_1", "anti_air_2"]);
+    const k1 = equipKey("anti_air", 1);
+    const lines = [{ id: 7, key: k1, effBp: 5000 }] as unknown as Parameters<
+      typeof aiRetools
+    >[0];
+    const order = [
+      { kind: "change_line", line: 7, equipment: "anti_air", gen: 2 },
+    ];
+    expect(aiRetools(lines, researched, 5000)).toEqual(order);
+    const price = (g: number) => (key: number) =>
+      key === k1 ? 4000 : key === equipKey("anti_air", 2) ? g : 0;
+    expect(aiRetools(lines, researched, 5000, price(6000))).toEqual(order);
+    expect(aiRetools(lines, researched, 5000, price(6100))).toEqual([]);
   });
 });

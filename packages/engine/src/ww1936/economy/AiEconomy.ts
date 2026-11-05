@@ -85,7 +85,11 @@ import { WW_TECHS } from "@openfront/engine-lib/ww1936/WwTechs";
 import type { Player } from "../../game/Game";
 import { baseThreatened, wingBaseWants } from "../air/AiAir";
 import { aiPickNewPlaneLines, aiShipLines } from "../depth/AiHist";
-import { designShareType, equipResources } from "../depth/Designs";
+import {
+  designShareType,
+  equipCostMilli,
+  equipResources,
+} from "../depth/Designs";
 import { sharedResearchPct } from "../depth/FactionRules";
 import { histCountryOf } from "../depth/Hist";
 import type { WwDepth } from "../depth/WwDepth";
@@ -697,6 +701,8 @@ export interface AiInput {
    * project's uranium). None: nothing.
    */
   priorityDemand?: readonly number[];
+  /** ww91: a static key's cost to this country (halved-gap gear), for the retool value rule; absent: generic cost. */
+  keyCost?: (key: number) => number;
   /**
    * Automation (a human handed its research over): every free slot takes
    * a tech — the least early of its list when none is close to its year
@@ -1085,7 +1091,7 @@ function planLines(i: AiInput, retool = true): PlannedLines {
   // R6.7: one line a turn moves to a newer generation once it is nearly
   // at its efficiency cap (aiEconomyTick tries the next one if refused).
   if (retool) {
-    const [first] = aiRetools(i.lines, researched, i.effCapBp);
+    const [first] = aiRetools(i.lines, researched, i.effCapBp, i.keyCost);
     if (first !== undefined) orders.push(first);
   }
   return { orders, working };
@@ -1099,16 +1105,47 @@ export function aiRetools(
   lines: readonly AiLine[],
   researched: ReadonlySet<WwTechId>,
   effCapBp: number,
+  keyCost?: (key: number) => number,
 ): Extract<AiOrder, { kind: "change_line" }>[] {
   const out: Extract<AiOrder, { kind: "change_line" }>[] = [];
   for (const l of lines) {
     const [t, gen] = EQUIP_KEYS[l.key];
     const newest = newestGen(t, researched);
     if (newest > gen && l.effBp >= effCapBp - 500) {
+      // ww91: a newer generation of a major's gear can cost far more than
+      // it gives (halved-gap costs): not for more than 150 % of the old.
+      if (keyCost !== undefined && retoolTooDear(keyCost, l.key, t, newest)) {
+        continue;
+      }
       out.push({ kind: "change_line", line: l.id, equipment: t, gen: newest });
     }
   }
   return out;
+}
+
+/** The most the AI pays more per unit to retool a line to a newer generation, %. */
+export const AI_RETOOL_MAX_COST_PCT = 150;
+
+function retoolTooDear(
+  keyCost: (key: number) => number,
+  oldKey: number,
+  type: EquipmentType,
+  newest: number,
+): boolean {
+  const next = equipKey(type, newest);
+  if (next < 0) return false;
+  return keyCost(next) * 100 > keyCost(oldKey) * AI_RETOOL_MAX_COST_PCT;
+}
+
+/** The retool rule's cost of a key for a country; undefined without a depth layer (generic costs: no rule). */
+function retoolCostOf(
+  econ: WwEconomy,
+  me: number,
+): ((key: number) => number) | undefined {
+  const depth = econ.ww.depth as WwDepth | undefined;
+  return depth === undefined
+    ? undefined
+    : (key) => equipCostMilli(depth, me, key);
 }
 
 /** Resources a day the lines need, RESOURCE_IDS order (P6: a design's own). */
@@ -1939,6 +1976,7 @@ export function aiInput(
     dockTarget: aiDockTarget(ce.tag, warDays >= 0),
     fuelOil: fuelOilOf(econ, ce),
     priorityDemand: (econ.ww.depth as WwDepth | undefined)?.priorityDemand(me),
+    keyCost: retoolCostOf(econ, me),
     research: researchInputOf(econ, ce),
   };
 }
@@ -2191,7 +2229,12 @@ export function aiEconomyTick(
     }
     // R6.7: the retooling was refused; the next line nearly at its cap.
     const lines = ce.lines.map((l) => ({ ...l }));
-    for (const alt of aiRetools(lines, ce.researched, effCapBp(ce.stats))) {
+    for (const alt of aiRetools(
+      lines,
+      ce.researched,
+      effCapBp(ce.stats),
+      retoolCostOf(econ, ce.smallID),
+    )) {
       if (alt.line === o.line) continue;
       if (applyAiOrder(econ, ce, alt, day) === null) break;
     }
