@@ -271,6 +271,7 @@ export function stepProduction(econ: WwEconomy, ce: CountryEconomy): void {
     line.effBp = efficiencyGrowth(
       line.effBp,
       lineCapBp(depth, ce, cap, line.key),
+      ce.stats.effGrowthPct,
     );
   });
 }
