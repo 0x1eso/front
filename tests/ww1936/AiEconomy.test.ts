@@ -11,8 +11,8 @@ import {
   WwTechId,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
-import { dayOfDate, dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
 import { planOf } from "@openfront/engine-lib/ww1936/AiPlans";
+import { dayOfDate, dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
 import { aheadPct } from "@openfront/engine-lib/ww1936/EconomyRules";
 import { navalStartTechs } from "@openfront/engine-lib/ww1936/EconomyStart";
 import {
@@ -49,11 +49,11 @@ import {
   withPriorityDemand,
 } from "@openfront/engine/ww1936/economy/AiEconomy";
 import { addLine, moveLine } from "@openfront/engine/ww1936/economy/Production";
+import { exportRoom } from "@openfront/engine/ww1936/economy/Trade";
 import type {
   CountryEconomy,
   WwEconomy,
 } from "@openfront/engine/ww1936/economy/WwEconomy";
-import { exportRoom } from "@openfront/engine/ww1936/economy/Trade";
 import { removeSpirit } from "@openfront/engine/ww1936/politics/Spirits";
 import { byTag, HUMAN, stamped, step, stepTo, wwRunner } from "./util";
 

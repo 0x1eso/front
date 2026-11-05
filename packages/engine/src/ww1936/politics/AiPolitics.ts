@@ -54,10 +54,10 @@ import {
 import { aiWeight, idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { declareWar, declareWarBlock } from "../Diplomacy";
 import {
-  aiResourceGap,
   AiPersonality,
   aiLawTarget,
   aiPersonality,
+  aiResourceGap,
 } from "../economy/AiEconomy";
 import type { CountryEconomy } from "../economy/WwEconomy";
 import { aiOverseasWarScore, homeSeaSrs } from "../navy/AiNavy";

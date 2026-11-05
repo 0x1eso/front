@@ -142,8 +142,6 @@ export const AI_ALERT_WT_BP: Readonly<Record<AiPersonality, number>> = {
   minor: 1200,
 };
 
-/** P4 spec §17.5: military factories queued to one dockyard while short of the target. */
-export const AI_MIL_PER_DOCK = 4;
 /** ww91 rule 7: at this `milPerDock` or under, docks rank with the factories in the queue. */
 const AI_SEA_FIRST_MIL_PER_DOCK = 2;
 /** ww91 rule 7: at this `fortLevel` or over, forts rank with the factories in the queue. */

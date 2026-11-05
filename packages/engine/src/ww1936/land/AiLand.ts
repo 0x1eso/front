@@ -1049,8 +1049,8 @@ class AiDay {
   private pressed = new Set<number>();
   /** ww91 rule 5: today's resource gap. */
   private gapMemo: number[] | null = null;
-  /** ww91 rule 1: the one enemy that gets the offensive today; 0: no such choice. */
-  private mainEnemy = 0;
+  /** ww91 rule 1: the one enemy of each land stretch that gets the offensive today. */
+  private mainEnemy = new Map<number, number>();
 
   constructor(
     readonly land: WwLand,
@@ -1906,70 +1906,85 @@ class AiDay {
   }
 
   /**
-   * ww91 rule 1, one enemy at a time: with two or more enemies on land, the
-   * best one gets an offensive's demand, and the others keep only what the
-   * plan leaves them, unless they outnumber us there. It keeps no memory: the
-   * enemy most of the army faces stays while it is nearly as good.
+   * ww91 rule 1, one enemy at a time: on each land stretch of ours with two or
+   * more enemies, the best one gets an offensive's demand, and the others keep
+   * only what the plan leaves them, unless they outnumber us there. Our own
+   * offensives go first. An enemy with nobody facing us is no choice: it is walked into anyway, and picked
+   * it would hold up the real war. It keeps no memory: the enemy most of the
+   * army faces stays while it is nearly as good.
    */
   private oneEnemy(fronts: Front[], armies: readonly Army[]): void {
     if (this.warPlan.oneEnemyPct === 0) return;
     const land = this.land;
-    const sc = land.scenario;
-    const ids = [...new Set(fronts.map((f) => f.enemy))];
-    if (ids.length < 2) return;
-    const on = new Map<number, number>();
-    for (const a of armies) {
-      const o = a.order;
-      if (o.kind !== "front" && o.kind !== "plan") continue;
-      on.set(o.enemy, (on.get(o.enemy) ?? 0) + a.divisions.length);
-    }
-    let keep = 0;
-    for (const e of ids) {
-      if ((on.get(e) ?? 0) > (on.get(keep) ?? 0)) keep = e;
-    }
-    const list: EnemyFront[] = ids.map((enemy) => {
-      const border = fronts.flatMap((f) => (f.enemy === enemy ? f.border : []));
-      const reached = this.bfsReach(
-        border,
-        (r) => land.controller[r] === enemy,
-        WW_TARGET_REACH_EDGES,
-      );
-      const capital = land.ww.capitalRegion(enemy);
-      const dist = this.reachDist!;
-      const out: EnemyFront = { enemy, vp: 0, capital: false, divisions: 0 };
-      for (const r of reached) {
-        if (land.controller[r] !== enemy) continue;
-        out.vp += sc.region(r)?.vp ?? 0;
-        if (r === capital) out.capital = true;
-        if (dist[r] === 1) out.divisions += this.enemyCount(r, enemy);
-      }
-      this.reachDone(reached);
-      return out;
-    });
-    const period = Math.floor((this.day + this.me) / AI_EFFORT_PERIOD_DAYS);
     const seed = land.ww.politics.seed;
-    this.mainEnemy = pickMainEnemy(
-      list,
-      (e) => wwRoll(seed, P_MAIN_ENEMY, this.me, period, e),
-      keep,
-    );
+    const period = Math.floor((this.day + this.me) / AI_EFFORT_PERIOD_DAYS);
+    const on = new Map<number, number>();
     const ours = new Map<number, number>();
     for (const a of armies) {
-      const k = a.order.enemy * 65_536 + this.armyComp(a);
+      const o = a.order;
+      const k = o.enemy * 65_536 + this.armyComp(a);
       ours.set(k, (ours.get(k) ?? 0) + this.armyPower(a));
-    }
-    for (const f of fronts) {
-      if (f.enemy === this.mainEnemy) {
-        f.demand = f.full;
-        continue;
+      if (o.kind === "front" || o.kind === "plan") {
+        on.set(k, (on.get(k) ?? 0) + a.divisions.length);
       }
-      const mine = ours.get(f.enemy * 65_536 + f.comp) ?? 0;
-      const outnumbered =
-        this.atWar.includes(f.enemy) &&
-        this.facingPower(f) * 100 > mine * AI_OUTNUMBERED_PCT;
-      if (outnumbered || !this.offensive(f.enemy)) continue;
-      f.demand = offMainDemand(f.held, f.full, this.warPlan.oneEnemyPct);
     }
+    for (const c of new Set(fronts.map((f) => f.comp))) {
+      const here = fronts.filter((f) => f.comp === c);
+      if (here.length < 2) continue;
+      const facing = here
+        .map((f) => this.enemyFront(f))
+        .filter((e) => e.divisions > 0);
+      // A war of ours comes first: France joining Germany's war is not
+      // Germany's choice of enemy.
+      const own = facing.filter((e) => this.offensive(e.enemy));
+      const list = own.length > 0 ? own : facing;
+      let keep = 0;
+      for (const e of list) {
+        const n = on.get(e.enemy * 65_536 + c) ?? 0;
+        if (n > (on.get(keep * 65_536 + c) ?? 0)) keep = e.enemy;
+      }
+      const main = pickMainEnemy(
+        list,
+        (e) => wwRoll(seed, P_MAIN_ENEMY, this.me, period, e),
+        keep,
+      );
+      if (main === 0) continue;
+      this.mainEnemy.set(c, main);
+      for (const f of here) {
+        if (f.enemy === main) {
+          f.demand = f.full;
+          continue;
+        }
+        const mine = ours.get(f.enemy * 65_536 + c) ?? 0;
+        const outnumbered =
+          this.atWar.includes(f.enemy) &&
+          this.facingPower(f) * 100 > mine * AI_OUTNUMBERED_PCT;
+        if (outnumbered || !this.offensive(f.enemy)) continue;
+        f.demand = offMainDemand(f.held, f.full, this.warPlan.oneEnemyPct);
+      }
+    }
+  }
+
+  /** ww91 rule 1: what the AI sees of an enemy across a front. */
+  private enemyFront(f: Front): EnemyFront {
+    const land = this.land;
+    const enemy = f.enemy;
+    const reached = this.bfsReach(
+      f.border,
+      (r) => land.controller[r] === enemy,
+      WW_TARGET_REACH_EDGES,
+    );
+    const capital = land.ww.capitalRegion(enemy);
+    const dist = this.reachDist!;
+    const out: EnemyFront = { enemy, vp: 0, capital: false, divisions: 0 };
+    for (const r of reached) {
+      if (land.controller[r] !== enemy) continue;
+      out.vp += land.scenario.region(r)?.vp ?? 0;
+      if (r === capital) out.capital = true;
+      if (dist[r] === 1) out.divisions += this.enemyCount(r, enemy);
+    }
+    this.reachDone(reached);
+    return out;
   }
 
   /**
@@ -2108,10 +2123,9 @@ class AiDay {
       : null;
     const line = ring ?? border;
     // ww91 rule 1: off the main enemy a front holds: walks and a broken enemy only.
+    const main = this.mainEnemy.get(f.comp) ?? f.enemy;
     const offMain =
-      this.mainEnemy !== 0 &&
-      f.enemy !== this.mainEnemy &&
-      this.warPlan.oneEnemyPct >= AI_ONE_ENEMY_HOLD_PCT;
+      f.enemy !== main && this.warPlan.oneEnemyPct >= AI_ONE_ENEMY_HOLD_PCT;
     const judged = atWar && ring === null && !outnumbered && !offMain;
     const per = outnumbered ? AI_OUTNUMBERED_PER_REGION : 1;
     const reserve = atWar ? this.reserveOf(line, standing, per, judged) : null;

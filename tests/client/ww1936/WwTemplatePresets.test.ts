@@ -41,7 +41,7 @@ async function mount(researched: string[], tag?: string) {
       ? g.game
       : Object.assign(g.game, {
           worldWarScenario: () => ({ tagOfSmallId: () => tag }),
-        config: () => ({ gameConfig: () => ({ ww1936Designer: false }) }),
+          config: () => ({ gameConfig: () => ({ ww1936Designer: false }) }),
         })
   ) as never;
   el.eventBus = new EventBus();
@@ -75,10 +75,10 @@ describe("template presets in the designer", () => {
       "false",
     );
     await m.click("[data-ww-preset='pre_light_armored']");
-    // 4 light + 2 motorized + 1 mot_artillery, and the next empty cell.
+    // 4 light + 3 motorized (ww90) + 1 mot_artillery, and the next empty cell.
     expect(
       m.el.querySelectorAll("[data-ww-slot-kind='battalion']"),
-    ).toHaveLength(8);
+    ).toHaveLength(9);
     expect(m.q("[data-ww-preset-list]")).toBeNull();
   });
 

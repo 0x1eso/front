@@ -63,8 +63,6 @@ import type { WwNavy } from "./WwNavy";
 export const AI_INVASION_MIN = 3;
 /** 내 판단: an army of 3 would be merged back by the land AI's grouping (≤ 3); gather 4 or more. */
 export const AI_INVASION_GATHER = 4;
-/** Spec §17.4: with a land front, invade only when this share of divisions is on no front. */
-export const AI_INVASION_SPARE_PCT = 20;
 /** Spec §11.3: the launch needs this supremacy on every route region. */
 export const AI_LAUNCH_SUP_PM = 500;
 /** 내 판단: the walk to a port turns to rail beyond this (the land AI's AI_RAIL_MIN_KM). */

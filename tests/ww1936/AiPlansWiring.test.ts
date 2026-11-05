@@ -5,12 +5,12 @@ import { WW_DAY_SPLIT } from "@openfront/engine-api/ww1936/EconomyTypes";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import {
   AI_PLANS,
-  planOf,
   type NationalPlan,
 } from "@openfront/engine-lib/ww1936/AiPlans";
 import { dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
 import { startDoctrinePick } from "@openfront/engine-lib/ww1936/DoctrineRules";
 import { createGameRunner, GameRunner } from "@openfront/engine/GameRunner";
+import { declareWar } from "@openfront/engine/ww1936/Diplomacy";
 import { AI_UNIT_FOCUSES } from "@openfront/engine/ww1936/politics/AiFocus";
 import { loadMapFiles } from "@openfront/shared/GameMapLoader";
 import path from "path";
@@ -20,6 +20,7 @@ import { NodeGameMapLoader } from "../perf/fullgame/NodeGameMapLoader";
 import {
   byTag,
   clearLand,
+  dropPact,
   HUMAN,
   land,
   placeArmy,
@@ -112,11 +113,50 @@ describe("rule 3 in the AI's day", () => {
   }, 120_000);
 });
 
-describe("the switch (ww91 8.1)", () => {
-  it("planOf ignores it: it reads the tag and the seed only", () => {
-    expect(planOf("JPN", 11, 4)).toEqual(planOf("JPN", 11, 4));
-  });
+describe("rule 1 in the AI's day", () => {
+  it("many enemies on land: the one that matters gets the effort", async () => {
+    const { runner, g, l, deu, pol, front, across } = await war();
+    const ww = g.worldWar()!;
+    dropPact(g, "DEU", "FRA");
+    declareWar(g, ww, byTag(g, "DEU"), byTag(g, "FRA"), g.ticks());
+    const fra = byTag(g, "FRA").smallID();
+    const sc = l.scenario;
+    const west = sc.landRegions
+      .map((r) => r.id)
+      .filter(
+        (r) =>
+          l.controller[r] === deu &&
+          sc.edgesOf(r).some((e) => l.controller[e.to] === fra),
+      );
+    expect(west.length).toBeGreaterThan(0);
+    const ce = l.econ.country(fra)!;
+    ce.manpower += 10_000_000;
+    for (let k = 0; k < ce.stock.length; k++) ce.stock[k] += 100_000;
+    for (let i = 0; i < 4; i++) {
+      placeArmy(g, "DEU", front[i % front.length], 12);
+      placeArmy(g, "DEU", west[i % west.length], 12);
+    }
+    placeArmy(g, "POL", across(front[0]), 16);
+    placeArmy(
+      g,
+      "FRA",
+      sc.edgesOf(west[0]).find((e) => l.controller[e.to] === fra)!.to,
+      16,
+    );
+    const day = ww.day(g.ticks());
+    for (let d = day + 1; d <= day + 75; d++) finishDay(runner, d);
+    // France's small allies (no division facing us) don't hold up the war:
+    // with Poland gone an effort stands on France.
+    expect(ww.isAtWar(deu, pol)).toBe(false);
+    expect(
+      l
+        .armiesOf(deu)
+        .filter((a) => a.order.kind === "plan" && a.order.enemy === fra).length,
+    ).toBeGreaterThan(0);
+  }, 240_000);
+});
 
+describe("the switch (ww91 8.1)", () => {
   it("a major keeps its own doctrine row with the historical AI off", () => {
     const table = [
       { tag: "DEU", gd: ["gd_a", null, null], sub: [null, null, null] },
