@@ -1297,7 +1297,10 @@ export function researchScoreInput(
     running,
     // ww81: fuel short stands for a resource shortage; the war situation
     // (armour gap, wing losses) comes from the research input.
-    situation: (i.fuelOil ?? 0) > 0 ? { shortResource: true } : undefined,
+    situation: mergeSituation(
+      r?.situation,
+      (i.fuelOil ?? 0) > 0 ? { shortResource: true } : undefined,
+    ),
   };
 }
 
