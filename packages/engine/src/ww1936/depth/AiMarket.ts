@@ -37,7 +37,7 @@ import {
   groupStock,
 } from "@openfront/engine-lib/ww1936/TemplateStats";
 import { aiPersonality } from "../economy/AiEconomy";
-import { changeLine, setLineFactories } from "../economy/Production";
+import { addLine, changeLine, setLineFactories } from "../economy/Production";
 import { payPp } from "../politics/PayPp";
 import { embargoBlock, setEmbargo } from "./Embargo";
 import {
@@ -186,7 +186,7 @@ function mainFamily(d: WwDepth, id: number): number {
 
 // ---- The market ----
 
-interface GroundNeeds {
+export interface GroundNeeds {
   /** NEED_GROUPS-ordered units the divisions' templates need. */
   need: number[];
   /** …and hold. */
@@ -194,7 +194,7 @@ interface GroundNeeds {
 }
 
 /** What the country's divisions need and hold, by need group. */
-function groundNeeds(d: WwDepth, id: number): GroundNeeds {
+export function groundNeeds(d: WwDepth, id: number): GroundNeeds {
   const land = d.ww.land;
   const need = new Array<number>(NEED_GROUP_COUNT).fill(0);
   const have = new Array<number>(NEED_GROUP_COUNT).fill(0);
@@ -351,7 +351,35 @@ function aiUseLicences(d: WwDepth, id: number): void {
     if (line !== null && changeLine(econ, ce, line.id, t, gen) === null) {
       return;
     }
+    // ww81 (B11): a licence for a type the country has no line of runs a
+    // line of 1-3 factories, from idle ones or the biggest ground line.
+    if (line === null && licenceLine(d, id, ce, t, gen)) return;
   }
+}
+
+/** A new line for a licensed generation: up to 3 factories (idle ones first, else from the biggest line of 4+). */
+function licenceLine(
+  d: WwDepth,
+  id: number,
+  ce: NonNullable<ReturnType<WwDepth["ww"]["economy"]["country"]>>,
+  t: EquipmentType,
+  gen: number,
+): boolean {
+  const econ = d.ww.economy;
+  let n = Math.min(3, ce.totals.idleMil);
+  let from: (typeof ce.lines)[number] | null = null;
+  if (n < 1) {
+    for (const x of ce.lines) {
+      if (x.factories >= 4 && (from === null || x.factories > from.factories)) {
+        from = x;
+      }
+    }
+    if (from === null) return false;
+    n = Math.min(3, Math.floor(from.factories / 4));
+  }
+  if (addLine(econ, ce, t, gen, n) !== null) return false;
+  if (from !== null) setLineFactories(econ, ce, from.id, from.factories - n);
+  return true;
 }
 
 /**

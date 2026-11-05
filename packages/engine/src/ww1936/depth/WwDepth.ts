@@ -61,14 +61,16 @@ import { addSparseInto } from "@openfront/engine-lib/ww1936/Stats";
 import { STATIC_KEY_STATS } from "@openfront/engine-lib/ww1936/TemplateStats";
 import { z } from "zod";
 import type { Game } from "../../game/Game";
+import { isAiTurn } from "../economy/AiEconomy";
 import type { LandDepthHooks } from "../land/DepthHooks";
 import type { WorldWar } from "../WorldWar";
 import { dailyIntel, dayCommonIntel, issueIntel, mixIntel } from "./Agency";
 import { aiCommandDay } from "./AiCommand";
-import { aiDesignsDay } from "./AiDesigns";
+import { aiDesignsDay, aiProductionAutoDay } from "./AiDesigns";
 import { aiIntelDay } from "./AiIntel";
 import { aiMarketDay } from "./AiMarket";
 import { aiMechDay } from "./AiMech";
+import { aiLineMix } from "./AiMix";
 import { aiProjectsDay } from "./AiProjects";
 import { airZoneDay, issueSeaAir, reconPlanCutBp } from "./AirExtras";
 import { aiSeaAirDay, aiSeaMines } from "./AiSeaAir";
@@ -696,6 +698,8 @@ export class WwDepth implements LandDepthHooks {
     if (!this.ww.isHumanControlled(id)) {
       aiCommandDay(this, id, day);
       aiDesignsDay(this, id, day);
+      const ce = this.ww.economy.country(id);
+      if (ce !== null && isAiTurn(id, day, ce.major)) aiLineMix(this, id, ce);
       aiMarketDay(this, id, day);
       aiIntelDay(this, id, day);
       aiProjectsDay(this, id, day);
@@ -706,6 +710,12 @@ export class WwDepth implements LandDepthHooks {
       // Automation (intel switch): a human's agency, at the AI's own point of
       // the day and rhythm (no coup; founding at once, see aiFound).
       if (this.ww.autoOn(id, "intel")) aiIntelDay(this, id, day);
+      // Automation (production switch): the catalogue pick and the line mix.
+      if (this.ww.autoOn(id, "production")) {
+        aiProductionAutoDay(this, id, day);
+        const ce = this.ww.economy.country(id);
+        if (ce !== null && isAiTurn(id, day, ce.major)) aiLineMix(this, id, ce);
+      }
       // Automation (navy switch): a human's mine fleets.
       if (this.ww.autoOn(id, "navy")) aiSeaMines(this, id, day);
     }

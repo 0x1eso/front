@@ -98,11 +98,15 @@ describe("World War 1936 P6: the AI's designs", () => {
     ce.addTech("medium_tank_1");
     step(runner, 12 * 15);
     list = tanks(d, DEU);
-    expect(list.map((s) => s.def.base)).toEqual(["light_1", "medium_1"]);
+    expect(list.map((s) => s.def.base)).toEqual([
+      "light_1",
+      "medium_1",
+      "medium_1", // ww81: the tank destroyer no longer waits for 1940
+    ]);
     expect(list[1].def.name).toBe("@rec_medium_1");
     // Nothing more while the techs stay: one design a chassis.
     step(runner, 30 * 15);
-    expect(tanks(d, DEU)).toHaveLength(2);
+    expect(tanks(d, DEU)).toHaveLength(3);
     // The cell rule: the light tank line moved into the light design when it
     // was first saved (the static light I is absorbed), keeping 60 % of its
     // efficiency at most.
@@ -120,7 +124,7 @@ describe("World War 1936 P6: the AI's designs", () => {
     ce.addTech("medium_tank_1");
     step(runner, 12 * 15);
     const list = tanks(d, DEU);
-    expect(list.map((s) => s.def.base)).toEqual(["medium_1"]);
+    expect(list.map((s) => s.def.base)).toEqual(["medium_1", "medium_1"]);
     expect(list[0].def.name).toBe("@preset_medium_1");
     // No torsion bar, radio or turret_3 limit: torsion and radio wait.
     expect(list[0].def.modules).toEqual([
@@ -136,12 +140,12 @@ describe("World War 1936 P6: the AI's designs", () => {
     ce.addTech("tank_radio");
     ce.addTech("torsion_bar");
     step(runner, 30 * 15);
-    expect(tanks(d, DEU)).toHaveLength(1);
+    expect(tanks(d, DEU)).toHaveLength(2);
     // … and a reworked design once it is a year old.
     list[0].savedDay -= 365;
     step(runner, 12 * 15);
     const now = tanks(d, DEU).filter((s) => !s.obsolete);
-    expect(now).toHaveLength(1);
+    expect(now).toHaveLength(2);
     expect(now[0].def.modules).toEqual(PRESET.def.modules);
     expect(now[0].def.name).toBe("@preset_medium_1");
   });

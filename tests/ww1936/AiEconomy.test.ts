@@ -21,12 +21,13 @@ import {
 } from "@openfront/engine-lib/ww1936/WwTechs";
 import type { GameRunner } from "@openfront/engine/GameRunner";
 import {
+  AI_ALERT_WT_BP,
   AI_ARTILLERY_SHORT_PTS,
   AI_FALLBACK_AHEAD_PCT,
   AI_FUEL_OIL_MAX,
   AI_SUPPORT_RESERVE,
   AI_SUPPORT_SHORT_PTS,
-  AI_SWITCH_DAY,
+  aiAlerted,
   aiInput,
   AiInput,
   aiLineShares,
@@ -147,15 +148,20 @@ describe("the AI's plan (spec §12, pre-flight R6)", () => {
     expect(aiPersonality("RAJ")).toBe("democracy");
     expect(aiPersonality("IRL")).toBe("minor");
     expect(aiPersonality("POL")).toBe("minor");
-    // Task 9: the aggressors rearm from mid-1936 (spec §16 balance record).
-    expect(AI_SWITCH_DAY).toEqual({
-      aggressor: dayOfDate("1936-07-01"),
-      democracy: dayOfDate("1939-01-01"),
-      minor: dayOfDate("1938-01-01"),
+    // ww81: no dates; the situation arms an AI, aggressors first.
+    expect(AI_ALERT_WT_BP).toEqual({
+      aggressor: 0,
+      democracy: 2000,
+      minor: 1200,
     });
+    expect(aiAlerted("aggressor", -1, 0)).toBe(true);
+    expect(aiAlerted("minor", -1, 1199)).toBe(false);
+    expect(aiAlerted("minor", -1, 1200)).toBe(true);
+    expect(aiAlerted("democracy", -1, 1999)).toBe(false);
+    expect(aiAlerted("democracy", 0, 0)).toBe(true);
   });
 
-  test("the switch date decides civ or mil", () => {
+  test("the situation decides civ or mil", () => {
     // 20 free civilian factories: ceil(20/15) + 1 = 3 entries.
     const deu = (day: number, over: Partial<AiInput> = {}) =>
       aiPlan(
@@ -169,9 +175,10 @@ describe("the AI's plan (spec §12, pre-flight R6)", () => {
           ...over,
         }),
       );
-    const sw = AI_SWITCH_DAY.aggressor;
-    // Infrastructure first, then free slots, then the id; three at most.
-    expect(builds(deu(sw - 1))).toEqual(["3:civx3", "3:civx3", "1:civx3"]);
+    const sw = 200;
+    // An aggressor builds military from the start; infrastructure first,
+    // then free slots, then the id; three at most.
+    expect(builds(deu(sw - 1))).toEqual(["3:milx3", "3:milx3", "1:milx3"]);
     expect(builds(deu(sw))).toEqual(["3:milx3", "3:milx3", "1:milx3"]);
     // Three military entries for each civilian one.
     const threeMil = Array.from({ length: 3 }, () => ({
@@ -193,24 +200,25 @@ describe("the AI's plan (spec §12, pre-flight R6)", () => {
     );
     // Democracies wait until 1939, minors until 1938 (no free factory:
     // one entry).
-    const gbr = (day: number) =>
+    const gbr = (wtBp: number) =>
       builds(
         aiPlan(
           input({
             tag: "GBR",
             personality: "democracy",
             major: true,
-            day,
+            day: sw,
+            wtBp,
             regions: TWO_REGIONS,
           }),
         ),
       );
-    expect(gbr(sw)).toEqual(["3:civx3"]);
-    expect(gbr(dayOfDate("1939-01-01"))).toEqual(["3:milx3"]);
-    const pol = (day: number) =>
-      builds(aiPlan(input({ day, regions: TWO_REGIONS })));
-    expect(pol(dayOfDate("1937-12-31"))).toEqual(["3:civx3"]);
-    expect(pol(dayOfDate("1938-01-01"))).toEqual(["3:milx3"]);
+    expect(gbr(1999)).toEqual(["3:civx3"]);
+    expect(gbr(2000)).toEqual(["3:milx3"]);
+    const pol = (wtBp: number) =>
+      builds(aiPlan(input({ wtBp, regions: TWO_REGIONS })));
+    expect(pol(1199)).toEqual(["3:civx3"]);
+    expect(pol(1200)).toEqual(["3:milx3"]);
     // No slot anywhere: infrastructure where something is mined.
     expect(
       builds(
@@ -735,8 +743,6 @@ describe("the AI's plan (spec §12, pre-flight R6)", () => {
   test("laws follow the personality, as far as P3's conditions allow", () => {
     const laws = (over: Partial<AiInput>) =>
       only(aiPlan(input(over)), "set_law").map((o) => `${o.law}:${o.value}`);
-    const day1938 = dayOfDate("1938-01-01");
-    const day1939 = dayOfDate("1939-01-01");
     const aggressor = {
       tag: "DEU" as const,
       personality: "aggressor" as const,
@@ -764,11 +770,11 @@ describe("the AI's plan (spec §12, pre-flight R6)", () => {
       "conscription:extensive",
     ]);
     // In peace only aggressors draft more, from 1938.
-    expect(laws({ ...aggressor, day: day1938 })).toEqual([
+    expect(laws({ ...aggressor, wtBp: 1000 })).toEqual([
       "economy:partial_mobilization",
       "conscription:extensive",
     ]);
-    expect(laws({ day: day1938 })).toEqual(["economy:early_mobilization"]);
+    expect(laws({ wtBp: 1200 })).toEqual(["economy:early_mobilization"]);
     // Democracies: early in 1938, partial in 1939 (with 25% tension) or at
     // war, war economy after 180 days of war.
     const democracy = {
@@ -776,14 +782,11 @@ describe("the AI's plan (spec §12, pre-flight R6)", () => {
       personality: "democracy" as const,
       ruling: 0,
     };
-    expect(laws({ ...democracy, day: day1938 - 1 })).toEqual([]);
-    expect(laws({ ...democracy, day: day1938 })).toEqual([
+    expect(laws({ ...democracy, wtBp: 1999 })).toEqual([]);
+    expect(laws({ ...democracy, wtBp: 2000 })).toEqual([
       "economy:early_mobilization",
     ]);
-    expect(laws({ ...democracy, day: day1939 })).toEqual([
-      "economy:early_mobilization",
-    ]);
-    expect(laws({ ...democracy, day: day1939, wtBp: 2500 })).toEqual([
+    expect(laws({ ...democracy, wtBp: 3500 })).toEqual([
       "economy:partial_mobilization",
     ]);
     expect(laws({ ...democracy, warDays: 179 })).toEqual([
@@ -1124,10 +1127,7 @@ describe("between its turns an AI takes up what fell free (Task 9)", () => {
           regions: TWO_REGIONS,
         }),
       );
-    expect(only(deu(AI_SWITCH_DAY.aggressor - 1), "military_first")).toEqual(
-      [],
-    );
-    expect(only(deu(AI_SWITCH_DAY.aggressor), "military_first")).toEqual([
+    expect(only(deu(200), "military_first")).toEqual([
       { kind: "military_first" },
     ]);
   });
@@ -1170,7 +1170,7 @@ async function allAi() {
 }
 
 describe("the AI economy in a game (spec §12)", () => {
-  test("an AI fills its queue with civilian factories before its switch", async () => {
+  test("an aggressor queues military factories from the start", async () => {
     const { runner, ce } = await allAi();
     const deu = ce("DEU");
     // Day 0 is every country's first turn (Task 9), on its own tick.
@@ -1181,7 +1181,7 @@ describe("the AI economy in a game (spec §12)", () => {
     // Munich (2), both infra 5.
     expect(
       deu.queue.map((q) => `${q.region}:${q.building}x${q.count}`),
-    ).toEqual(["3:civx3", "4:civx2"]);
+    ).toEqual(["3:milx3", "4:milx2"]);
     // Rome has no free slot: Italy builds infrastructure there instead.
     throughDay(runner, 0);
     const ita = ce("ITA");
@@ -1198,13 +1198,13 @@ describe("the AI economy in a game (spec §12)", () => {
     const { runner, ce } = await allAi();
     const deu = ce("DEU");
     const gbr = ce("GBR");
-    const day = aiDay(deu.smallID, AI_SWITCH_DAY.aggressor);
+    const day = aiDay(deu.smallID, 182);
     expect(day).toBe(189);
     stepTo(runner, dayStart(day));
     deu.queue = [];
     throughDay(runner, day);
     expect(deu.queue.length).toBeGreaterThan(0);
-    expect(deu.queue.every((q) => q.building === "mil")).toBe(true);
+    expect(deu.queue.some((q) => q.building === "mil")).toBe(true);
     // Britain is a democracy: still civilian factories on its next turn.
     const gday = aiDay(gbr.smallID, day);
     stepTo(runner, dayStart(gday));
@@ -1520,7 +1520,7 @@ describe("the AI economy in a game (spec §12)", () => {
       expect(c.researched.size).toBeGreaterThan(before.researched);
     }
     // Germany and the Soviet Union built civilian factories.
-    for (const tag of ["DEU", "SUN"] as const) {
+    for (const tag of ["GBR", "FRA"] as const) {
       const c = a.econ.country(byTag(a.g, tag).smallID())!;
       expect(c.totals.civ).toBeGreaterThan(a.start[c.smallID - 1].civ);
     }

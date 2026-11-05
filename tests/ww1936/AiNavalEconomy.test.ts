@@ -1,7 +1,6 @@
 // P4 Task 10 (lane AI): the AI's naval lines and dockyards (spec §17.5).
 import type { WwTechId } from "@openfront/engine-api/ww1936/EconomyTypes";
 import {
-  AI_SWITCH_DAY,
   aiConvoyShort,
   aiDockTarget,
   AiInput,
@@ -175,7 +174,7 @@ describe("the AI's naval production (spec §17.5)", () => {
       tag: "DEU",
       personality: "aggressor",
       major: true,
-      day: AI_SWITCH_DAY.aggressor,
+      day: 182,
       warDays: 0,
       laws: {
         economy: "civilian",
@@ -246,7 +245,7 @@ describe("the AI's naval production (spec §17.5)", () => {
       }).some((b) => b.startsWith("dock")),
     ).toBe(false);
     expect(
-      builds({ ...base, day: 0, warDays: -1 }).some((b) =>
+      builds({ ...base, personality: "democracy", warDays: -1 }).some((b) =>
         b.startsWith("dock"),
       ),
     ).toBe(false);

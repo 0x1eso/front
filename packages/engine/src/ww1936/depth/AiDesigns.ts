@@ -14,10 +14,12 @@
 //
 // Plane designs stay the players' for now: P4's deployments and decks do
 // not draw design planes yet (T1b), so the AI keeps its static types.
-import type {
-  AiDesignPreset,
-  DesignDef,
-  TankRole,
+import {
+  KS,
+  KS_FIELDS,
+  type AiDesignPreset,
+  type DesignDef,
+  type TankRole,
 } from "@openfront/engine-api/ww1936/DepthTypes";
 import {
   EQUIP_KEYS,
@@ -56,9 +58,19 @@ import {
   oldInfoOf,
 } from "@openfront/engine-lib/ww1936/TemplateStats";
 import { aiPersonality } from "../economy/AiEconomy";
-import { changeLine } from "../economy/Production";
+import { addLine, changeLine, setLineFactories } from "../economy/Production";
 import type { CountryEconomy } from "../economy/WwEconomy";
-import { aiHistDay, pickValue, valueNear } from "./AiHist";
+import { aiHistDay } from "./AiHist";
+import type { PickCand } from "./AiPick";
+import {
+  aiKeeps,
+  aiPickEntry,
+  enemyThreshold,
+  lineDraw,
+  qualityLean,
+  resourceMultPm,
+  thresholdPm,
+} from "./AiPick";
 import { saveTankCell } from "./DesignCells";
 import {
   equipCostMilli,
@@ -68,13 +80,16 @@ import {
   saveDesign,
 } from "./Designs";
 import { designerOn, histCountryOf } from "./Hist";
+import { topThreats } from "./Licences";
 import { treatyEscalated, treatyMember } from "./NavalTreaty";
 import type { DesignSlot, WwDepth } from "./WwDepth";
 
-/** Spec §19.3: aggressor majors field a tank destroyer line from this day. */
+/**
+ * Spec §19.3 once gated tank destroyers (here) and heavy tanks on dates.
+ * ww81: no gate any more; an open slot, a researched chassis and the stock
+ * decide. Kept as the day the tests start from.
+ */
 export const AI_TD_DAY = dayOfDate("1940-01-01");
-/** Spec §19.3: … and a heavy tank line from this day. */
-export const AI_HEAVY_DAY = dayOfDate("1942-01-01");
 /** Spec §19.3: a snorkel on the AI's submarines from this day. */
 export const AI_SNORKEL_DAY = dayOfDate("1944-01-01");
 /** Spec §19.3: a reworked design (new modules) at most once a year a base. */
@@ -104,6 +119,20 @@ export function aiDesignsDay(d: WwDepth, id: number, day: number): void {
   aiTankLines(d, id, ce);
   aiRoleTemplates(d, id, ce, day);
   aiShipDesigns(d, id, ce, day);
+}
+
+/**
+ * ww81 (B5): the catalogue pick for a human's country under the production
+ * switch: the tank lines and, with a catalogue, the plane and ship lines. No
+ * designs, no templates; the AI's rhythm.
+ */
+export function aiProductionAutoDay(d: WwDepth, id: number, day: number): void {
+  const atWar = d.ww.enemiesOf(id).length > 0;
+  if (!atWar && day % 10 !== id % 10) return;
+  const ce = d.ww.economy.country(id);
+  if (ce === null || d.country(id) === null) return;
+  aiTankLines(d, id, ce);
+  aiHistDay(d, id, ce);
 }
 
 /** The newest chassis of a list the country has researched; null without one. */
@@ -149,11 +178,9 @@ function wantedTanks(
   if (medium === null && light !== null) out.push([light, "tank"]);
   if (medium !== null) out.push([medium, "tank"]);
   if (roleMajor(d, id, ce)) {
-    if (day >= AI_TD_DAY && medium !== null) {
-      out.push([medium, "tank_destroyer"]);
-    }
+    if (medium !== null) out.push([medium, "tank_destroyer"]);
     const heavy = newestBase(techs, HEAVY_BASES);
-    if (day >= AI_HEAVY_DAY && heavy !== null) out.push([heavy, "tank"]);
+    if (heavy !== null) out.push([heavy, "tank"]);
   }
   return out;
 }
@@ -336,12 +363,19 @@ function bestOfGroups(
   d: WwDepth,
   id: number,
   ce: CountryEconomy,
+  cands: Map<number, PickCand[]> = new Map(),
 ): Map<number, number> {
   const ks = d.keyStats(id);
   const usableSlots = new Set(usable(d, id, "tank").map(([slot]) => slot));
   const best = new Map<number, number>();
   const hist = histCountryOf(d, id) !== null;
-  const cands = new Map<number, { key: number; score: number }[]>();
+  const enemies = d.ww.enemiesOf(id);
+  const thr = enemyThreshold(
+    d,
+    id,
+    enemies.length > 0 ? enemies : topThreats(d, id, 2),
+  );
+  const draw = lineDraw(d, id, ce);
   for (let j = 0; j < GROUND_SLOTS; j++) {
     const g = ks.group[j];
     if (g < 0 || !isTankGroup(g)) continue;
@@ -356,7 +390,19 @@ function bestOfGroups(
     if (hist) {
       let l = cands.get(g);
       if (l === undefined) cands.set(g, (l = []));
-      l.push({ key, score: ks.score[j] });
+      const o = j * KS_FIELDS;
+      l.push({
+        key,
+        score: ks.score[j],
+        cost: equipCostMilli(d, id, key),
+        relPm: ks.stats[o + KS.relPm],
+        resPm: resourceMultPm(d, id, ce, key, draw),
+        scorePm: thresholdPm(
+          ks.stats[o + KS.armor],
+          ks.stats[o + KS.pierce],
+          thr,
+        ),
+      });
       continue;
     }
     const was = best.get(g);
@@ -367,16 +413,10 @@ function bestOfGroups(
       best.set(g, key);
     }
   }
-  // ww61: with the catalogue, the value rule (AiHist.pickValue): good
-  // enough and cheap beats the best and dear.
-  for (const [g, list] of cands) {
-    best.set(
-      g,
-      pickValue(
-        list.map((c) => ({ ...c, cost: equipCostMilli(d, id, c.key) })),
-      ),
-    );
-  }
+  // ww81: with the catalogue, the value rule (AiPick): nothing old, wear,
+  // resources, the national lean and the enemy's threshold.
+  const q = qualityLean(d, id);
+  for (const [g, list] of cands) best.set(g, aiPickEntry(list, q));
   return best;
 }
 
@@ -392,7 +432,9 @@ const MEDIUM_G = EQUIPMENT_TYPES.indexOf("medium_tank");
  * one medium line at least.
  */
 function aiTankLines(d: WwDepth, id: number, ce: CountryEconomy): void {
-  const best = bestOfGroups(d, id, ce);
+  const cands = new Map<number, PickCand[]>();
+  const best = bestOfGroups(d, id, ce, cands);
+  const q = qualityLean(d, id);
   const ks = d.keyStats(id);
   const info = oldInfoOf(ks, ce.researched);
   const cap = effCapBp(ce.stats);
@@ -428,18 +470,7 @@ function aiTankLines(d: WwDepth, id: number, ce: CountryEconomy): void {
     const j = GROUND_EQUIP_KEYS.indexOf(l.key);
     if (histCountryOf(d, id) !== null) {
       // ww61: keep a line whose key is nearly as good a value as the best.
-      const jb = GROUND_EQUIP_KEYS.indexOf(key);
-      if (
-        j >= 0 &&
-        valueNear(
-          ks.score[j],
-          equipCostMilli(d, id, l.key),
-          ks.score[jb],
-          equipCostMilli(d, id, key),
-        )
-      ) {
-        continue;
-      }
+      if (j >= 0 && aiKeeps(cands.get(g) ?? [], q, l.key)) continue;
     } else if (
       j >= 0 &&
       ks.score[j] >= ks.score[GROUND_EQUIP_KEYS.indexOf(key)]
@@ -449,6 +480,54 @@ function aiTankLines(d: WwDepth, id: number, ce: CountryEconomy): void {
     if (info.old[j] !== 1 && l.effBp < cap - NEAR_CAP_BP) continue;
     if (retool(l.id, key)) return;
   }
+  lightToMedium(d, id, ce, best, groupOfLine);
+}
+
+/** ww81: light lines are at most 25% of the tank factories (Italy 50%) once a medium is as good; one factory a turn moves. */
+function lightToMedium(
+  d: WwDepth,
+  id: number,
+  ce: CountryEconomy,
+  best: ReadonlyMap<number, number>,
+  groupOfLine: (key: number) => number,
+): void {
+  const medKey = best.get(MEDIUM_G);
+  const lightKey = best.get(LIGHT_G);
+  if (medKey === undefined || lightKey === undefined) return;
+  const ks = d.keyStats(id);
+  if (
+    ks.score[GROUND_EQUIP_KEYS.indexOf(medKey)] <
+    ks.score[GROUND_EQUIP_KEYS.indexOf(lightKey)]
+  ) {
+    return;
+  }
+  let light: (typeof ce.lines)[number] | null = null;
+  let medium: (typeof ce.lines)[number] | null = null;
+  let lightN = 0;
+  let total = 0;
+  for (const l of ce.lines) {
+    const g = groupOfLine(l.key);
+    if (g < 0) continue;
+    total += l.factories;
+    if (g === LIGHT_G) {
+      lightN += l.factories;
+      if (light === null || l.factories > light.factories) light = l;
+    } else if (g === MEDIUM_G && (medium === null || l.effBp > medium.effBp)) {
+      medium = l;
+    }
+  }
+  const cap = d.ww.tagOf(id) === "ITA" ? 50 : 25;
+  if (light === null || light.factories < 1 || lightN * 100 <= cap * total) {
+    return;
+  }
+  const econ = d.ww.economy;
+  if (medium !== null) {
+    setLineFactories(econ, ce, medium.id, medium.factories + 1);
+  } else {
+    const [t, g] = EQUIP_KEYS[medKey];
+    if (addLine(econ, ce, t, g, 1) !== null) return;
+  }
+  setLineFactories(econ, ce, light.id, light.factories - 1);
 }
 
 /** Units of a need group's design slots in the stock. */
@@ -475,7 +554,7 @@ function aiRoleTemplates(
   ce: CountryEconomy,
   day: number,
 ): void {
-  if (!roleMajor(d, id, ce) || day < AI_TD_DAY) return;
+  if (!roleMajor(d, id, ce)) return;
   const land = d.ww.land;
   const cl = land.country(id);
   if (cl === null) return;
@@ -549,7 +628,7 @@ function shipFit(
   const radar = hist ? tag === "GBR" || tag === "USA" : who === "democracy";
   const torp = hist ? tag === "JPN" : who === "aggressor";
   const snorkel = hist ? tag === "DEU" : who === "aggressor";
-  if (radar && day >= AI_TD_DAY) {
+  if (radar) {
     put("secondary", "sec_dp");
     put("fire_control", "radar_surface");
   }
