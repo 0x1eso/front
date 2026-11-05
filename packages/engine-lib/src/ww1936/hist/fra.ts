@@ -1316,4 +1316,76 @@ export const FRA_HIST: readonly HistEntry[] = [
       costK: 14,
     },
   },
+  {
+    id: "fra_d376",
+    country: "FRA",
+    family: "plane",
+    type: "cv_fighter",
+    techs: ["fighter_1", "carrier_aviation"],
+    year: 1938,
+    // ww85: Folding-wing parasol for the Béarn, 25 built, accepted 1938, grounded April 1940; the fold never worked well, so reliability 2. Price just above the D.510's 14. Figures are the D.37 type's.
+    source:
+      "Checked 2026-11-05: French Wikipedia Dewoitine D.371 (D.373 and D.376: 380 km/h, 900 km, 1,295 kg empty, 1,860 kg loaded, 17.8 m2, 4 x 7.5 mm Darne). English Wikipedia gives 400 km/h and 1,150 km for the land D.371.",
+    spec: {
+      maxKmh: 380,
+      rangeKm: 900,
+      emptyKg: 1295,
+      wingLoad: 104,
+      guns: [{ mm: 7.5, count: 4, rpm: 1200 }],
+      defGuns: 0,
+      bombKg: 0,
+      torpedoKg: 0,
+      reliability: 2,
+      costK: 16,
+    },
+  },
+  {
+    id: "fra_pl7",
+    country: "FRA",
+    family: "plane",
+    type: "cv_naval_bomber",
+    techs: ["naval_bomber_1", "carrier_aviation"],
+    year: 1930,
+    // ww85: The Béarn's torpedo biplane, in service from 1930 and still aboard, obsolete, in 1939. Torpedo mass from memory. Price above the Swordfish's 22 for a much bigger airframe.
+    source:
+      "Checked 2026-11-05 on Wikipedia: Levasseur PL.7 (46-51 built, 2,800 kg empty, 3,650 kg gross, 77.5 m2, 170 km/h, 645 km, 2 rear guns, one 400 or 450 mm torpedo).",
+    spec: {
+      maxKmh: 170,
+      rangeKm: 645,
+      emptyKg: 2800,
+      wingLoad: 47,
+      guns: [],
+      defGuns: 2,
+      bombKg: 0,
+      torpedoKg: 670,
+      reliability: 2,
+      costK: 28,
+    },
+  },
+  {
+    id: "fra_mb157",
+    country: "FRA",
+    family: "plane",
+    type: "fighter",
+    techs: ["fighter_3"],
+    year: 1942,
+    // ww85: One prototype, unfinished at the armistice, finished and flown under German control, tested 1942. Its guns were never fitted: two 20 mm and two 7.5 mm were planned (some say four). Price above the MB.152's 30.
+    source:
+      "Checked 2026-11-05: Wikipedia Bloch MB.150 (710 km/h in German tests, one built), all-aero.com (2,390 kg empty, 3,250 kg maximum, 19.4 m2, 1,095 km). Normal weight 3,230 kg (William Green).",
+    spec: {
+      maxKmh: 710,
+      rangeKm: 1095,
+      emptyKg: 2390,
+      wingLoad: 166,
+      guns: [
+        { mm: 20, count: 2, rpm: 650 },
+        { mm: 7.5, count: 2, rpm: 1200 },
+      ],
+      defGuns: 0,
+      bombKg: 0,
+      torpedoKg: 0,
+      reliability: 3,
+      costK: 38,
+    },
+  },
 ];
