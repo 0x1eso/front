@@ -14,6 +14,7 @@ import {
   garrisonNeed,
 } from "@openfront/engine-lib/ww1936/EndgameRules";
 import { startNextHop } from "../land/Movement";
+import { ATTRITION_SUPPLY_PM } from "../land/Sustain";
 import type { WwLand } from "../land/WwLand";
 import type { WwEndgame } from "./WwEndgame";
 
@@ -74,6 +75,22 @@ export function supplyOf(eg: WwEndgame, region: number): number {
   return sup;
 }
 
+/**
+ * ww107: a region can hold a garrison division only when its supply covers
+ * the division's use at the attrition line (so one that can't feed it is
+ * not a post, and a division standing in one leaves). Judged on the
+ * region's supply against one division, not on who stands there, so
+ * leaving does not make it look fed again and bring them back.
+ */
+export function regionFeeds(
+  land: WwLand,
+  region: number,
+  useMilli: number,
+): boolean {
+  if (useMilli <= 0) return true;
+  return land.supplyMilli[region] * 1000 >= ATTRITION_SUPPLY_PM * useMilli;
+}
+
 /** A busy division moves to another short region only when that one is this many times as short. */
 export const GARRISON_MOVE_FACTOR = 2;
 
@@ -120,7 +137,12 @@ export function assignGarrisons(
   };
   for (const a of armies) {
     const scope = a.order.enemy;
-    const regs = admin.filter((r) => scope === 0 || legal[r] === scope);
+    const first = a.divisions.length > 0 ? t.rowOf(a.divisions[0]) : -1;
+    const use = first >= 0 ? land.supplyBaseOf(first) : 0;
+    const regs = admin.filter(
+      (r) =>
+        (scope === 0 || legal[r] === scope) && regionFeeds(land, r, use),
+    );
     if (regs.length === 0) continue;
     const inScope = new Set(regs);
     const mostShort = () => {

@@ -15,6 +15,7 @@ import {
   rowSuppression,
   supplyOf,
 } from "@openfront/engine/ww1936/endgame/Garrison";
+import { assignGarrisons } from "@openfront/engine/ww1936/endgame/Garrison";
 import { garrisonOrder } from "@openfront/engine/ww1936/endgame/Occupation";
 import { startHopInto } from "@openfront/engine/ww1936/land/Movement";
 import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSource";
@@ -54,6 +55,10 @@ async function garrisonGame() {
   for (const t of EQUIPMENT_TYPES) ce.stock[equipKey(t, 1)] += 100_000;
   ce.manpower += 1_000_000;
   for (const r of CZECH) ww.land.setController(r, deu, g.ticks());
+  // ww107: garrisons need a fed region. The end map's Berlin joins no
+  // road to the chain, so Germany's capital falls back to the chain.
+  ww.land.setController(END.region["berlin"], endId("POL"), g.ticks());
+  ww.politics.setLegalOwner(END.region["berlin"], endId("POL"));
   // Czechoslovakia has capitulated (its legal owner stays until a peace):
   // a playing owner at peace would get its land back (lane X, spec §5.3).
   ww.addCapitulation(endId("CSK"), deu, g.ticks());
@@ -114,6 +119,27 @@ describe("World War 1936 P5: garrisons", () => {
         needOf(eg, deu, r),
       );
     }
+  }, 60_000);
+
+  it("ww107: no post where the supply can't feed a division, and a division leaves one that stops feeding", async () => {
+    const { runner, eg, land, deu } = await garrisonGame();
+    eg.resBp[KOSICE] = 9000;
+    const a = placeArmy(runner.game, "DEU", PRAGUE, 2);
+    expect(garrisonOrder(eg, deu, a.id, 0)).toBeNull();
+    days(runner, 25);
+    const t = land.divisions;
+    const where = () =>
+      [...a.divisions].map((id) => t.region[t.rowOf(id)]).sort((x, y) => x - y);
+    expect(where()).toContain(KOSICE);
+    // Kosice's supply fails: its division is sent on to a fed region.
+    land.supplyMilli[KOSICE] = 0;
+    assignGarrisons(eg, deu, 0);
+    for (const id of a.divisions) expect(t.dest[t.rowOf(id)]).not.toBe(KOSICE);
+    // A new army never gets sent there either.
+    const b = placeArmy(runner.game, "DEU", PRAGUE, 2);
+    expect(garrisonOrder(eg, deu, b.id, 0)).toBeNull();
+    assignGarrisons(eg, deu, 0);
+    for (const id of b.divisions) expect(t.dest[t.rowOf(id)]).not.toBe(KOSICE);
   }, 60_000);
 
   it("a scoped garrison stays on its legal owner's regions", async () => {
