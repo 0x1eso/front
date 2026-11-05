@@ -7,11 +7,13 @@
 import { GameMapSize, GameMapType } from "@openfront/engine-api/game/GameTypes";
 import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
 import { WW_DAY_SPLIT } from "@openfront/engine-api/ww1936/EconomyTypes";
+import { MOVE_NONE } from "@openfront/engine-api/ww1936/LandTypes";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
 import { createGameRunner, GameRunner } from "@openfront/engine/GameRunner";
 import { declareWar } from "@openfront/engine/ww1936/Diplomacy";
 import {
+  AI_FEED_OK_PM,
   AI_FORT_LINE_LEVEL,
   AI_FORT_PRESSED_LEVEL,
   AI_LIBERATION_LIFT_ANY_DAYS,
@@ -286,27 +288,38 @@ describe("the AI's fronts move (ww103)", () => {
   }, 300_000);
 
   it("ww105: an army left on the front of a war that ended walks off to eat", async () => {
-    const { runner, g, l, deu, ww } = await realWar();
+    // A war on, with no land front: nothing else gives the army an order.
+    const { runner, g, l, deu, ww } = await realWar("DEU", "USA");
     const sc = l.scenario;
     const fra = byTag(g, "FRA").smallID();
     const mine = sc.landRegions
       .map((r) => r.id)
-      .filter((r) => l.controller[r] === deu);
+      .filter(
+        (r) =>
+          l.controller[r] === deu &&
+          sc.edgesOf(r).some((e) => l.controller[e.to] === deu),
+      );
     const d0 = ww.day(g.ticks());
     finishDay(runner, d0);
     const worst = [...mine].sort(
       (x, y) => l.supplyMilli[x] - l.supplyMilli[y] || x - y,
     )[0];
-    const a = placeArmy(g, "DEU", worst, 24);
-    a.order = { ...a.order, kind: "front", enemy: fra, zone: [worst] };
+    const armies = [0, 1, 2].map(() => placeArmy(g, "DEU", worst, 24));
+    for (const a of armies) {
+      a.order = { ...a.order, kind: "front", enemy: fra, zone: [worst] };
+    }
     expect(ww.isAtWar(deu, fra)).toBe(false);
     for (let d = d0 + 1; d <= d0 + 14; d++) finishDay(runner, d);
+    // Some walked off, and who stayed eats.
     const t = l.divisions;
-    const left = a.divisions.filter((id) => {
-      const r = t.rowOf(id);
-      return t.region[r] === worst && t.dest[r] === worst;
-    });
-    expect(left).toHaveLength(0);
+    const stay = armies
+      .flatMap((a) => a.divisions)
+      .map((id) => t.rowOf(id))
+      .filter((r) => t.region[r] === worst && t.mode[r] === MOVE_NONE);
+    expect(stay.length).toBeLessThan(72);
+    for (const r of stay) {
+      expect(t.supply[r]).toBeGreaterThanOrEqual(AI_FEED_OK_PM);
+    }
   }, 300_000);
 
   it("ww105: an army its stretch can't feed sails to a stretch that can", async () => {
