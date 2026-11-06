@@ -862,6 +862,7 @@ const RAW: readonly object[] = [
           },
           { kind: "person_trust", who: { person: "rus_brusilov" }, delta: 1 },
           { kind: "flag", flag: "f_rus_brusilov_goes" },
+          { kind: "schedule", scene: "rus_w_lutsk", chapters: 2 },
         ],
       },
       {
@@ -898,27 +899,13 @@ const RAW: readonly object[] = [
     id: "rus_w_lutsk",
     nation: ["RUS"],
     kind: "report",
-    when: {
-      kind: "all",
-      of: [
-        { kind: "chose", scene: "rus_w_april_council", pick: "brusilov_goes" },
-        {
-          kind: "world",
-          of: {
-            is: "battle",
-            theatre: "east",
-            of: ["advance", "break"],
-            by: "entente",
-          },
-        },
-      ],
-    },
     cast: {},
     salience: 8,
     tags: ["war", "tension_down"],
     once: true,
     stamp: "confirmed",
     source: "staff",
+    scheduledOnly: true,
     variants: [
       {
         id: "vienna",
@@ -946,6 +933,13 @@ const RAW: readonly object[] = [
         when: {
           kind: "world",
           of: { is: "battle", theatre: "east", of: ["break"], by: "entente" },
+        },
+      },
+      {
+        id: "advance",
+        when: {
+          kind: "world",
+          of: { is: "battle", theatre: "east", of: ["advance"], by: "entente" },
         },
       },
       { id: "base" },
@@ -1046,7 +1040,19 @@ const RAW: readonly object[] = [
     tags: ["war"],
     once: true,
     variants: [
-      { id: "rotten", when: { kind: "secret", id: "rus_garrison_rotten" } },
+      {
+        id: "rotten",
+        when: {
+          kind: "all",
+          of: [
+            { kind: "secret", id: "rus_garrison_rotten" },
+            {
+              kind: "world",
+              of: { is: "regime", of: ["tsar", "crown", "regency"] },
+            },
+          ],
+        },
+      },
       {
         id: "prov",
         when: {
@@ -1226,14 +1232,12 @@ const RAW: readonly object[] = [
       kind: "all",
       of: [
         { kind: "world", of: { is: "war" } },
-        { kind: "world", of: { is: "date", from: "1915-01", to: "1915-06" } },
+        { kind: "world", of: { is: "date", from: "1915-03", to: "1915-06" } },
         {
-          kind: "world",
+          kind: "not",
           of: {
-            is: "battle",
-            theatre: "east",
-            of: ["advance", "break"],
-            by: "entente",
+            kind: "world",
+            of: { is: "front", theatre: "east", from: "vistula" },
           },
         },
       ],
@@ -2142,6 +2146,41 @@ const RAW: readonly object[] = [
             effects: [],
             next: "people",
           },
+          {
+            id: "duke",
+            stance: "cold",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "duke",
+          },
+        ],
+      },
+      duke: {
+        says: [
+          { id: "cand", when: { kind: "candid", who: { role: "p" } } },
+          { id: "base" },
+        ],
+        replies: [
+          {
+            id: "ok",
+            stance: "frank",
+            kind: "ask",
+            tell: ["ministers:-1"],
+            effects: [
+              { kind: "remember", key: "k_alek_retreat" },
+              { kind: "inst", inst: "ministers", delta: -1 },
+            ],
+            next: null,
+          },
+          {
+            id: "end",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
         ],
       },
       people: {
@@ -2366,6 +2405,60 @@ const RAW: readonly object[] = [
             next: null,
           },
           {
+            id: "ivanov",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "ivanov",
+          },
+          {
+            id: "end",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      ivanov: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "deal",
+            stance: "frank",
+            kind: "deal",
+            tell: ["stavka:+1", "court:-1"],
+            effects: [
+              { kind: "inst", inst: "stavka", delta: 1 },
+              { kind: "inst", inst: "court", delta: -1 },
+              { kind: "remember", key: "k_alek_terms" },
+              {
+                kind: "promise",
+                who: { role: "p" },
+                key: "p_alek_no_leak",
+                chapters: 8,
+                keep: {
+                  kind: "any",
+                  of: [
+                    {
+                      kind: "chose",
+                      scene: "rus_h_keys",
+                      pick: "council_rules",
+                    },
+                    {
+                      kind: "chose",
+                      scene: "rus_h_keys",
+                      pick: "krivoshein_runs",
+                    },
+                  ],
+                },
+              },
+            ],
+            next: "promised",
+          },
+          {
             id: "end",
             stance: "cold",
             kind: "leave",
@@ -2563,6 +2656,27 @@ const RAW: readonly object[] = [
             effects: [],
             next: "mud",
           },
+          {
+            id: "brus",
+            stance: "cold",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "brus",
+          },
+          {
+            id: "end",
+            stance: "warm",
+            kind: "leave",
+            tell: [],
+            effects: [{ kind: "person_trust", who: { role: "p" }, delta: 1 }],
+            next: null,
+          },
+        ],
+      },
+      brus: {
+        says: [{ id: "base" }],
+        replies: [
           {
             id: "end",
             stance: "warm",
@@ -3121,11 +3235,49 @@ const RAW: readonly object[] = [
             next: null,
           },
           {
+            id: "ivanov",
+            stance: "cold",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "ivanov",
+          },
+          {
             id: "end",
             stance: "cold",
             kind: "leave",
             tell: [],
             effects: [],
+            next: null,
+          },
+        ],
+      },
+      ivanov: {
+        says: [
+          {
+            id: "arr",
+            when: { kind: "temperament", who: { role: "p" }, of: ["arrogant"] },
+          },
+          { id: "base" },
+        ],
+        replies: [
+          {
+            id: "ok",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [
+              { kind: "remember", key: "k_brus_pass" },
+              { kind: "person_trust", who: { role: "p" }, delta: 1 },
+            ],
+            next: null,
+          },
+          {
+            id: "end",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [{ kind: "person_trust", who: { role: "p" }, delta: -1 }],
             next: null,
           },
         ],
@@ -3277,6 +3429,35 @@ const RAW: readonly object[] = [
           { id: "cand", when: { kind: "candid", who: { role: "p" } } },
           { id: "base" },
         ],
+        replies: [
+          {
+            id: "ok",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [{ kind: "remember", key: "k_brus_plan" }],
+            next: null,
+          },
+          {
+            id: "evert",
+            stance: "cold",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "evert",
+          },
+          {
+            id: "end",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      evert: {
+        says: [{ id: "base" }],
         replies: [
           {
             id: "ok",
@@ -4346,6 +4527,44 @@ const RAW: readonly object[] = [
             next: null,
           },
           {
+            id: "before",
+            stance: "cold",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "before",
+          },
+          {
+            id: "end",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      before: {
+        says: [
+          {
+            id: "cun",
+            when: { kind: "temperament", who: { role: "p" }, of: ["cunning"] },
+          },
+          { id: "base" },
+        ],
+        replies: [
+          {
+            id: "ok",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [
+              { kind: "remember", key: "k_poli_council" },
+              { kind: "person_trust", who: { role: "p" }, delta: 1 },
+            ],
+            next: null,
+          },
+          {
             id: "end",
             stance: "cold",
             kind: "leave",
@@ -4787,12 +5006,41 @@ const RAW: readonly object[] = [
             next: "edge",
           },
           {
+            id: "mukden",
+            stance: "warm",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "mukden",
+          },
+          {
             id: "end",
             stance: "cold",
             kind: "leave",
             tell: [],
             effects: [],
             next: null,
+          },
+        ],
+      },
+      mukden: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "end",
+            stance: "frank",
+            kind: "leave",
+            tell: [],
+            effects: [{ kind: "person_trust", who: { role: "p" }, delta: 1 }],
+            next: null,
+          },
+          {
+            id: "who",
+            stance: "cold",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "edge",
           },
         ],
       },
@@ -4945,11 +5193,40 @@ const RAW: readonly object[] = [
             next: null,
           },
           {
+            id: "poli",
+            stance: "cold",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "poli",
+          },
+          {
             id: "end",
             stance: "cold",
             kind: "leave",
             tell: [],
             effects: [],
+            next: null,
+          },
+        ],
+      },
+      poli: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "end",
+            stance: "frank",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+          {
+            id: "ok",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [{ kind: "remember", key: "k_guch_wic" }],
             next: null,
           },
         ],
@@ -5621,6 +5898,35 @@ const RAW: readonly object[] = [
             next: null,
           },
           {
+            id: "alek",
+            stance: "cold",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "alek",
+          },
+          {
+            id: "end",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      alek: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "ok",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [{ kind: "remember", key: "k_danilov_nw" }],
+            next: null,
+          },
+          {
             id: "end",
             stance: "cold",
             kind: "leave",
@@ -6073,6 +6379,35 @@ const RAW: readonly object[] = [
         ],
       },
       both: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "ok",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [{ kind: "remember", key: "k_evert_doubt" }],
+            next: null,
+          },
+          {
+            id: "brus",
+            stance: "cold",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "brus",
+          },
+          {
+            id: "end",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      brus: {
         says: [{ id: "base" }],
         replies: [
           {

@@ -85,7 +85,7 @@ describe("the 전선 share of 러시아", () => {
     expect(problems.filter((p) => !expected(p))).toEqual([]);
   });
 
-  test("every talk has an ask, a push or a deal, and a way to leave", () => {
+  test("every talk opens with an ask, a deal and a way to leave", () => {
     for (const s of scenes.filter((x) => x.kind === "talk")) {
       const kinds = s.nodes![s.start!].replies.map((r) => r.kind);
       for (const k of ["ask", "deal", "leave"] as const) {
