@@ -423,7 +423,13 @@ export function applyEconEffect(
       const pct = e.recruitablePct ?? 0;
       const add =
         (e.amount ?? 0) + Math.floor((pct * ce.totals.recruitable) / 100);
-      ce.manpower = Math.max(0, ce.manpower + add);
+      // ww120: a rise stops at the ceiling, or a yearly draft grows a pool
+      // for good; men past it (land lost) stay.
+      const ceiling = ce.totals.recruitable - land.armyMen(actor);
+      ce.manpower =
+        add > 0
+          ? Math.min(ce.manpower + add, Math.max(ce.manpower, ceiling))
+          : Math.max(0, ce.manpower + add);
       break;
     }
     case "equipment": {

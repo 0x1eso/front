@@ -269,12 +269,23 @@ describe("economy and military effects", () => {
   });
 
   it("manpower, equipment, send_equipment", async () => {
-    const { econ, pl, ce, run } = await game();
-    const men = ce.manpower;
-    run([{ kind: "manpower", amount: 1000, recruitablePct: 10 }]);
+    const { econ, pl, ce, deu, land, run } = await game();
+    const ceiling = ce.totals.recruitable - land.armyMen(deu);
+    const men = ceiling - 200_000;
+    ce.manpower = men;
+    run([{ kind: "manpower", amount: 1000, recruitablePct: 1 }]);
     expect(ce.manpower).toBe(
-      men + 1000 + Math.floor(ce.totals.recruitable / 10),
+      men + 1000 + Math.floor(ce.totals.recruitable / 100),
     );
+    // ww120: a rise stops at the ceiling; past it, a draft adds nothing and
+    // the men already there (land lost) stay.
+    run([{ kind: "manpower", amount: 500_000 }]);
+    expect(ce.manpower).toBe(ceiling);
+    ce.manpower = ceiling + 5000;
+    run([{ kind: "manpower", recruitablePct: 2 }]);
+    expect(ce.manpower).toBe(ceiling + 5000);
+    run([{ kind: "manpower", amount: -6000 }]);
+    expect(ce.manpower).toBe(ceiling - 1000);
     const g1 = equipKey("infantry_equipment", 1);
     const g2 = equipKey("infantry_equipment", 2);
     const have2 = ce.stock[g2];
