@@ -23,6 +23,7 @@ const NATIONS: GwInstitution = "reichstag";
 /** `FJ`, `K`, `FFT`: plan §0. Lane Y has `regime` for the first two. */
 const KARL: GwCond = { kind: "flag", flag: "w_auh_karl" };
 const OLD_EMPEROR: GwCond = { kind: "not", of: KARL };
+const FF_THRONE: GwCond = { kind: "flag", flag: "w_auh_ff_throne" };
 
 /** Plan's `동부 밀림`: wants `world battle` with `by`. Until then, our score says who gave ground. */
 const EAST_SLIPPING: GwCond = {
@@ -2480,7 +2481,7 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
       },
       {
         id: "interpreters",
-        tell: ["morale:+1", "manpower:-1"],
+        tell: ["morale:+1", "manpower:-2"],
         effects: [
           {
             kind: "gauge",
@@ -2491,7 +2492,7 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
             kind: "world",
             of: {
               do: "manpower",
-              delta: -1,
+              delta: -2,
             },
           },
         ],
@@ -2702,7 +2703,7 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
     options: [
       {
         id: "call_older",
-        tell: ["manpower:+2", "bread:-1", "hungary:-1"],
+        tell: ["manpower:+10", "bread:-1", "hungary:-1"],
         effects: [
           {
             kind: "world",
@@ -2733,7 +2734,7 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
           kind: "memory",
           key: "k_krob_men",
         },
-        tell: ["manpower:+1", "hungary:+1", "war:-1"],
+        tell: ["manpower:+5", "hungary:+1", "war:-1"],
         effects: [
           {
             kind: "world",
@@ -2758,7 +2759,7 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
       },
       {
         id: "call_only_austria",
-        tell: ["manpower:+1", "hungary:+1", "nations:-2", "order:-1"],
+        tell: ["manpower:+5", "hungary:+1", "nations:-2", "order:-1"],
         effects: [
           {
             kind: "world",
@@ -4277,6 +4278,14 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
             next: "haggle",
           },
           {
+            id: "on_conrad",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "on_conrad",
+          },
+          {
             id: "no",
             stance: "cold",
             kind: "leave",
@@ -4354,6 +4363,51 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
             kind: "leave",
             tell: [],
             effects: [],
+            next: null,
+          },
+        ],
+      },
+      on_conrad: {
+        says: [
+          {
+            id: "arr",
+            when: {
+              kind: "temperament",
+              who: {
+                role: "p",
+              },
+              of: ["arrogant"],
+            },
+          },
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "back",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [
+              {
+                kind: "remember",
+                key: "k_tisza_terms",
+              },
+            ],
+            next: "noted",
+          },
+          {
+            id: "enough",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [
+              {
+                kind: "remember",
+                key: "k_tisza_terms",
+              },
+            ],
             next: null,
           },
         ],
@@ -4514,6 +4568,14 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
             next: "done",
           },
           {
+            id: "on_ber",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "on_ber",
+          },
+          {
             id: "berlin",
             stance: "cold",
             kind: "ask",
@@ -4643,6 +4705,38 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
             kind: "leave",
             tell: [],
             effects: [],
+            next: null,
+          },
+        ],
+      },
+      on_ber: {
+        says: [
+          {
+            id: "cold",
+            when: {
+              kind: "temperament",
+              who: {
+                role: "p",
+              },
+              of: ["cold"],
+            },
+          },
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "enough",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [
+              {
+                kind: "remember",
+                key: "k_tisza_wait",
+              },
+            ],
             next: null,
           },
         ],
@@ -4794,6 +4888,14 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
             next: "limit",
           },
           {
+            id: "on_karolyi",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "on_karolyi",
+          },
+          {
             id: "more",
             stance: "cold",
             kind: "ask",
@@ -4888,6 +4990,36 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
         replies: [
           {
             id: "end",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      on_karolyi: {
+        says: [
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "back",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [
+              {
+                kind: "remember",
+                key: "k_tisza_romania",
+              },
+            ],
+            next: "limit",
+          },
+          {
+            id: "enough",
             stance: "cold",
             kind: "leave",
             tell: [],
@@ -5187,6 +5319,14 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
         ],
         replies: [
           {
+            id: "on_vienna",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "on_vienna",
+          },
+          {
             id: "end",
             stance: "warm",
             kind: "leave",
@@ -5230,6 +5370,33 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
           },
         ],
       },
+      on_vienna: {
+        says: [
+          {
+            id: "arr",
+            when: {
+              kind: "temperament",
+              who: {
+                role: "p",
+              },
+              of: ["arrogant"],
+            },
+          },
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "enough",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
     },
   },
   {
@@ -5257,6 +5424,10 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
     nodes: {
       open: {
         says: [
+          {
+            id: "ff",
+            when: FF_THRONE,
+          },
           {
             id: "karl",
             when: KARL,
@@ -5344,6 +5515,14 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
               },
             ],
             next: "plain",
+          },
+          {
+            id: "on_koerber",
+            stance: "cold",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "on_koerber",
           },
           {
             id: "clause2",
@@ -5445,6 +5624,31 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
         replies: [
           {
             id: "end",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      on_koerber: {
+        says: [
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "back",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "before",
+          },
+          {
+            id: "enough",
             stance: "cold",
             kind: "leave",
             tell: [],
@@ -5577,6 +5781,14 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
             next: "stand",
           },
           {
+            id: "on_karolyi",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "on_karolyi",
+          },
+          {
             id: "end",
             stance: "cold",
             kind: "leave",
@@ -5629,6 +5841,36 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
         replies: [
           {
             id: "end",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      on_karolyi: {
+        says: [
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "back",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [
+              {
+                kind: "remember",
+                key: "k_tisza_franchise",
+              },
+            ],
+            next: "stand",
+          },
+          {
+            id: "enough",
             stance: "cold",
             kind: "leave",
             tell: [],
@@ -5759,6 +6001,14 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
             next: "grain",
           },
           {
+            id: "on_ber",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "on_ber",
+          },
+          {
             id: "temper",
             stance: "frank",
             kind: "ask",
@@ -5840,6 +6090,38 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
           {
             id: "end",
             stance: "warm",
+            kind: "leave",
+            tell: [],
+            effects: [
+              {
+                kind: "remember",
+                key: "k_bur_tisza",
+              },
+            ],
+            next: null,
+          },
+        ],
+      },
+      on_ber: {
+        says: [
+          {
+            id: "cold",
+            when: {
+              kind: "temperament",
+              who: {
+                role: "p",
+              },
+              of: ["cold"],
+            },
+          },
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "enough",
+            stance: "cold",
             kind: "leave",
             tell: [],
             effects: [
@@ -5958,6 +6240,16 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
       time: {
         says: [
           {
+            id: "cold",
+            when: {
+              kind: "temperament",
+              who: {
+                role: "p",
+              },
+              of: ["cold"],
+            },
+          },
+          {
             id: "base",
           },
         ],
@@ -5974,6 +6266,14 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
               },
             ],
             next: "write",
+          },
+          {
+            id: "on_conrad",
+            stance: "cold",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "on_conrad",
           },
           {
             id: "end",
@@ -6064,6 +6364,36 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
           {
             id: "end",
             stance: "warm",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      on_conrad: {
+        says: [
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "back",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [
+              {
+                kind: "remember",
+                key: "k_bur_rome",
+              },
+            ],
+            next: "write",
+          },
+          {
+            id: "enough",
+            stance: "cold",
             kind: "leave",
             tell: [],
             effects: [],
@@ -6216,6 +6546,14 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
             next: "end1",
           },
           {
+            id: "on_tisza",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "on_tisza",
+          },
+          {
             id: "russia",
             stance: "cold",
             kind: "ask",
@@ -6302,6 +6640,28 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
             kind: "leave",
             tell: [],
             effects: [],
+            next: null,
+          },
+        ],
+      },
+      on_tisza: {
+        says: [
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "enough",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [
+              {
+                kind: "remember",
+                key: "k_bur_serbia",
+              },
+            ],
             next: null,
           },
         ],
@@ -6430,6 +6790,14 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
             next: "poles",
           },
           {
+            id: "on_czernin",
+            stance: "cold",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "on_czernin",
+          },
+          {
             id: "end",
             stance: "cold",
             kind: "leave",
@@ -6466,6 +6834,36 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
           {
             id: "end",
             stance: "frank",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      on_czernin: {
+        says: [
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "back",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [
+              {
+                kind: "remember",
+                key: "k_bur_poland",
+              },
+            ],
+            next: "poles",
+          },
+          {
+            id: "enough",
+            stance: "cold",
             kind: "leave",
             tell: [],
             effects: [],
@@ -6586,6 +6984,14 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
         ],
         replies: [
           {
+            id: "on_czernin",
+            stance: "cold",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "on_czernin",
+          },
+          {
             id: "end",
             stance: "cold",
             kind: "leave",
@@ -6676,6 +7082,31 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
         replies: [
           {
             id: "end",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      on_czernin: {
+        says: [
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "back",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "line",
+          },
+          {
+            id: "enough",
             stance: "cold",
             kind: "leave",
             tell: [],
@@ -6807,6 +7238,14 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
             next: "note",
           },
           {
+            id: "on_andrassy",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "on_andrassy",
+          },
+          {
             id: "end",
             stance: "cold",
             kind: "leave",
@@ -6843,6 +7282,31 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
           {
             id: "end",
             stance: "warm",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      on_andrassy: {
+        says: [
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "back",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "note",
+          },
+          {
+            id: "enough",
+            stance: "cold",
             kind: "leave",
             tell: [],
             effects: [],
@@ -7008,6 +7472,16 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
       },
       song: {
         says: [
+          {
+            id: "arr",
+            when: {
+              kind: "temperament",
+              who: {
+                role: "p",
+              },
+              of: ["arrogant"],
+            },
+          },
           {
             id: "base",
           },
@@ -7251,6 +7725,14 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
             next: "truth",
           },
           {
+            id: "on_sturgkh",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "on_sturgkh",
+          },
+          {
             id: "end",
             stance: "cold",
             kind: "leave",
@@ -7328,6 +7810,41 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
         replies: [
           {
             id: "end",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      on_sturgkh: {
+        says: [
+          {
+            id: "arr",
+            when: {
+              kind: "temperament",
+              who: {
+                role: "p",
+              },
+              of: ["arrogant"],
+            },
+          },
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "back",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "truth",
+          },
+          {
+            id: "enough",
             stance: "cold",
             kind: "leave",
             tell: [],
@@ -7609,8 +8126,8 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
       of: [
         during("15b", "17a"),
         {
-          kind: "seen",
-          scene: "auh_h_kramar_arrest",
+          kind: "flag",
+          flag: "f_auh_kramar_held",
         },
       ],
     },
@@ -7758,6 +8275,14 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
         ],
         replies: [
           {
+            id: "on_rasin",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "on_rasin",
+          },
+          {
             id: "end",
             stance: "warm",
             kind: "leave",
@@ -7789,6 +8314,23 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
           },
           {
             id: "end",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      on_rasin: {
+        says: [
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "enough",
             stance: "cold",
             kind: "leave",
             tell: [],
@@ -7830,11 +8372,21 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
           {
             id: "free",
             when: {
-              kind: "not",
-              of: {
-                kind: "flag",
-                flag: "f_auh_kramar_held",
-              },
+              kind: "any",
+              of: [
+                {
+                  kind: "not",
+                  of: {
+                    kind: "flag",
+                    flag: "f_auh_kramar_held",
+                  },
+                },
+                {
+                  kind: "chose",
+                  scene: "auh_h_kramar_verdict",
+                  pick: "pardon_now",
+                },
+              ],
             },
           },
           {
@@ -7939,6 +8491,14 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
         ],
         replies: [
           {
+            id: "on_army",
+            stance: "cold",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "on_army",
+          },
+          {
             id: "end",
             stance: "warm",
             kind: "leave",
@@ -7957,6 +8517,23 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
         replies: [
           {
             id: "end",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      on_army: {
+        says: [
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "enough",
             stance: "cold",
             kind: "leave",
             tell: [],
@@ -8111,8 +8688,33 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
         ],
         replies: [
           {
+            id: "on_korosec",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "on_korosec",
+          },
+          {
             id: "end",
             stance: "warm",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      on_korosec: {
+        says: [
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "enough",
+            stance: "cold",
             kind: "leave",
             tell: [],
             effects: [],
@@ -8218,6 +8820,16 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
       pulse: {
         says: [
           {
+            id: "stub",
+            when: {
+              kind: "temperament",
+              who: {
+                role: "p",
+              },
+              of: ["stubborn"],
+            },
+          },
+          {
             id: "base",
           },
         ],
@@ -8234,6 +8846,14 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
               },
             ],
             next: "figure",
+          },
+          {
+            id: "on_chancellor",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "on_chancellor",
           },
           {
             id: "end",
@@ -8271,6 +8891,36 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
         replies: [
           {
             id: "end",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      on_chancellor: {
+        says: [
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "back",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [
+              {
+                kind: "remember",
+                key: "k_adl_pulse",
+              },
+            ],
+            next: "figure",
+          },
+          {
+            id: "enough",
             stance: "cold",
             kind: "leave",
             tell: [],
@@ -8415,6 +9065,14 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
             next: "table",
           },
           {
+            id: "on_krobatin",
+            stance: "cold",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "on_krobatin",
+          },
+          {
             id: "end",
             stance: "cold",
             kind: "leave",
@@ -8450,6 +9108,36 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
         replies: [
           {
             id: "end",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      on_krobatin: {
+        says: [
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "back",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [
+              {
+                kind: "remember",
+                key: "k_adl_factory",
+              },
+            ],
+            next: "table",
+          },
+          {
+            id: "enough",
             stance: "cold",
             kind: "leave",
             tell: [],
@@ -8698,6 +9386,16 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
     nodes: {
       open: {
         says: [
+          {
+            id: "stub",
+            when: {
+              kind: "temperament",
+              who: {
+                role: "p",
+              },
+              of: ["stubborn"],
+            },
+          },
           {
             id: "base",
           },
@@ -9000,6 +9698,14 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
             next: "note",
           },
           {
+            id: "on_party",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "on_party",
+          },
+          {
             id: "peace",
             stance: "cold",
             kind: "ask",
@@ -9079,6 +9785,41 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
             tell: [],
             effects: [],
             next: "how",
+          },
+        ],
+      },
+      on_party: {
+        says: [
+          {
+            id: "weary",
+            when: {
+              kind: "temperament",
+              who: {
+                role: "p",
+              },
+              of: ["weary"],
+            },
+          },
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "back",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "note",
+          },
+          {
+            id: "enough",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
           },
         ],
       },
@@ -9207,6 +9948,14 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
             next: "seat",
           },
           {
+            id: "on_germany",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "on_germany",
+          },
+          {
             id: "end",
             stance: "cold",
             kind: "leave",
@@ -9272,6 +10021,31 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
             tell: [],
             effects: [],
             next: "after",
+          },
+        ],
+      },
+      on_germany: {
+        says: [
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "back",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "seat",
+          },
+          {
+            id: "enough",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
           },
         ],
       },
