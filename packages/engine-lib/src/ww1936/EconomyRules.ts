@@ -234,8 +234,9 @@ export interface Allocation {
   /** Per resource. */
   used: number[];
   /**
-   * Per line, the resources (RESOURCE_IDS indices, in that order) it got
-   * less of than it needs — what the screens mark short on the line.
+   * Per line, the resources (RESOURCE_IDS indices, in that order) there
+   * was not enough of for its need — what the screens mark short on the
+   * line.
    */
   short: number[][];
   /** P4: the fill ‰ of each extra demand (naval lines), in order. */
@@ -245,8 +246,39 @@ export interface Allocation {
 }
 
 /**
- * HOI4 allocation: lines in order take what they need (spec §7.3); P4
- * spec §5.2: then `extra` (naval lines: resources a day each), in order.
+ * ww115 T8: one consumer's take. Its fill is measured first, by the
+ * resource it can get least of, and it takes that share of every resource
+ * (rounded up, which never passes what is left: the fill is floored). A
+ * line held at 20 % by one resource leaves the rest of the others to the
+ * lines below. Returns the fill ‰; `lacks` gets what the pool could not
+ * cover in full.
+ */
+function takeAtFill(
+  left: number[],
+  used: number[],
+  want: readonly number[],
+  lacks: number[] | null,
+): number {
+  let f = 1000;
+  for (let r = 0; r < RESOURCE_COUNT; r++) {
+    if (want[r] <= 0) continue;
+    f = Math.min(f, Math.floor((Math.max(0, left[r]) * 1000) / want[r]));
+  }
+  for (let r = 0; r < RESOURCE_COUNT; r++) {
+    const need = want[r];
+    if (need <= 0) continue;
+    if (lacks !== null && left[r] < need) lacks.push(r);
+    const give = Math.floor((need * f + 999) / 1000);
+    left[r] -= give;
+    used[r] += give;
+  }
+  return f;
+}
+
+/**
+ * HOI4 allocation: lines in order take what they need (spec §7.3), each
+ * at the fill it can reach (takeAtFill); P4 spec §5.2: then `extra` (naval
+ * lines: resources a day each), in order, the same way.
  */
 export function allocateResources(
   available: readonly number[],
@@ -269,34 +301,20 @@ export function allocateResources(
     used[r] += give;
     preGot[r] = give;
   }
+  const want = new Array<number>(RESOURCE_COUNT).fill(0);
   for (const line of lines) {
     const per = line.per ?? EQUIPMENT[EQUIP_KEYS[line.key][0]].resources;
-    let f = 1000;
-    const lacks: number[] = [];
     for (let r = 0; r < RESOURCE_COUNT; r++) {
-      const need = (per[r] ?? 0) * line.factories;
-      if (need === 0) continue;
-      const give = Math.min(need, Math.max(0, left[r]));
-      left[r] -= give;
-      used[r] += give;
-      f = Math.min(f, Math.floor((give * 1000) / need));
-      if (give < need) lacks.push(r);
+      want[r] = (per[r] ?? 0) * line.factories;
     }
-    fill.push(f);
+    const lacks: number[] = [];
+    fill.push(takeAtFill(left, used, want, lacks));
     short.push(lacks);
   }
   const extraFill: number[] = [];
   for (const need of extra) {
-    let f = 1000;
-    for (let r = 0; r < RESOURCE_COUNT; r++) {
-      const n = need[r] ?? 0;
-      if (n <= 0) continue;
-      const give = Math.min(n, Math.max(0, left[r]));
-      left[r] -= give;
-      used[r] += give;
-      f = Math.min(f, Math.floor((give * 1000) / n));
-    }
-    extraFill.push(f);
+    for (let r = 0; r < RESOURCE_COUNT; r++) want[r] = need[r] ?? 0;
+    extraFill.push(takeAtFill(left, used, want, null));
   }
   return { fill, used, short, extraFill, preGot };
 }

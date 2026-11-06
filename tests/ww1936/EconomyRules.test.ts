@@ -165,11 +165,12 @@ describe("resources (spec §7)", () => {
       { key: art, factories: 10 },
       { key: inf, factories: 20 },
     ]);
-    expect(a.fill).toEqual([500, 500]); // tungsten 5/10, then steel 10/20
+    // ww115 T8: artillery at half its tungsten takes half its steel, so
+    // the rifles get all 20 they need.
+    expect(a.fill).toEqual([500, 1000]);
     expect(a.used).toEqual([0, 0, 0, 5, 30, 0, 0, 0]);
-    // Which resources each line lacks (RESOURCE_IDS indices): artillery
-    // gets all 20 steel but half its tungsten; the rifles the 10 steel left.
-    expect(a.short).toEqual([[3], [4]]);
+    // Which resources each line lacks (RESOURCE_IDS indices).
+    expect(a.short).toEqual([[3], []]);
     // Enough of everything: no line lacks anything.
     expect(
       allocateResources(
@@ -184,6 +185,50 @@ describe("resources (spec §7)", () => {
     expect(allocateResources(avail, [{ key: art, factories: 0 }]).fill).toEqual(
       [1000],
     );
+  });
+
+  test("T8: a line takes only the share its scarcest resource allows", () => {
+    const art = equipKey("artillery", 1); // 2 steel, 1 tungsten per factory
+    const inf = equipKey("infantry_equipment", 1); // 1 steel
+    // No tungsten at all: the artillery line takes no steel.
+    const none = allocateResources(
+      [0, 0, 0, 0, 20, 0, 0, 0],
+      [
+        { key: art, factories: 10 },
+        { key: inf, factories: 20 },
+      ],
+    );
+    expect(none.fill).toEqual([0, 1000]);
+    expect(none.used[4]).toBe(20);
+    expect(none.short).toEqual([[3], []]);
+    // Rounding up never takes past what is left, or below zero.
+    const odd = allocateResources(
+      [0, 0, 0, 1, 3, 0, 0, 0],
+      [{ key: art, factories: 3 }],
+    );
+    expect(odd.fill).toEqual([333]);
+    expect(odd.used[3]).toBe(1);
+    expect(odd.used[4]).toBe(2);
+    // The naval lines behind them go the same way.
+    const sea = allocateResources(
+      [0, 0, 0, 1, 10, 0, 0, 0],
+      [],
+      [
+        [0, 0, 0, 2, 10, 0, 0, 0],
+        [0, 0, 0, 0, 5, 0, 0, 0],
+      ],
+    );
+    expect(sea.extraFill).toEqual([500, 1000]);
+  });
+
+  test("T7: the casualty debt falls 5 % a year, at least a man a day", () => {
+    expect(casualtyRelease(0)).toBe(0);
+    expect(casualtyRelease(1)).toBe(1);
+    expect(casualtyRelease(1_000_000)).toBe(137);
+    let debt = 1_000_000;
+    for (let d = 0; d < 365; d++) debt -= casualtyRelease(debt);
+    expect(debt).toBeGreaterThan(950_000);
+    expect(debt).toBeLessThan(952_000);
   });
 
   test("infrastructure and occupation scale extraction", () => {
