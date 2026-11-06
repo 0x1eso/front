@@ -64,7 +64,7 @@ const MINOR_ROSTERS: readonly CountryTag[] = [
 /** ww107: the guide's start plans, divisions per template key. */
 const OOB_TOTALS: Readonly<Record<string, Readonly<Record<string, number>>>> = {
   DEU: { infantry: 50, armored: 8, mountain: 3 },
-  ITA: { binary: 61, alpini: 6, celere: 5, colonial: 12 },
+  ITA: { binary: 63, alpini: 4, celere: 5, colonial: 12 },
   JPN: { square: 36, pre_light_armored: 2, garrison: 1 },
   GBR: { infantry: 21, mobile: 2, colonial_garrison: 5 },
   FRA: { infantry: 67, dlm: 8, colonial: 16 },

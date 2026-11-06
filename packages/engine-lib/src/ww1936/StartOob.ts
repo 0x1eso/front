@@ -6,11 +6,15 @@
 import { WW_MAX_ARMY_DIVISIONS } from "@openfront/engine-api/ww1936/LandTypes";
 import type { OobArmy } from "./LandStart";
 import { CUTTING_GROUP, FILLABLE_GROUP } from "./StartReform";
+import { specialCap } from "./TemplateStats";
 
 /** What one division of a template takes: men, and equipment per need group. */
 export interface OobTemplateCost {
   men: number;
   need: readonly number[];
+  /** Battalions and special ones in a division (omitted: no special ones). */
+  battalions?: number;
+  special?: number;
 }
 
 /** One army of the plan: its template counts, and whether it must be staffed. */
@@ -19,7 +23,7 @@ export interface OobArmyAsk {
   items: readonly { template: number; count: number }[];
 }
 
-export type OobCut = "none" | "men" | "cap" | "equip";
+export type OobCut = "none" | "men" | "cap" | "equip" | "special";
 
 export interface OobItemResult {
   asked: number;
@@ -52,6 +56,11 @@ export interface OobResult {
   limitedGroup: number;
   /** The indices of required armies that field nothing. */
   emptyRequired: number[];
+  /** Special battalions the plan fields, and the most the fielded army may hold (spec §4.1). */
+  specialUsed: number;
+  specialLimit: number;
+  /** True when the special cap cut a division. */
+  specialCut: boolean;
   /** True when something asked for was not fielded. */
   cutAny: boolean;
 }
@@ -117,6 +126,9 @@ export function planStartOob(
   let menUsed = 0;
   let asked = 0;
   let limitedGroup = -1;
+  let battalions = 0;
+  let special = 0;
+  let specialCut = false;
   for (const a of armies) {
     for (const it of a.items) {
       const t = templates[it.template];
@@ -143,6 +155,14 @@ export function planStartOob(
           r.cut = "men";
           return;
         }
+        // The special cap: max(24, 5 % of all battalions), as training holds it.
+        const nb = t.battalions ?? 0;
+        const ns = t.special ?? 0;
+        if (ns > 0 && special + ns > specialCap(battalions + nb)) {
+          r.cut = "special";
+          specialCut = true;
+          return;
+        }
         let short = -1;
         for (let g = 0; g < groups; g++) {
           const need = t.need[g] ?? 0;
@@ -158,6 +178,8 @@ export function planStartOob(
           return;
         }
         menLeft -= t.men;
+        battalions += nb;
+        special += ns;
         menUsed += t.men;
         for (let g = 0; g < groups; g++) {
           const need = FILLABLE_GROUP[g]
@@ -188,6 +210,9 @@ export function planStartOob(
     groupStock: [...groupStock],
     limitedGroup,
     emptyRequired,
+    specialUsed: special,
+    specialLimit: specialCap(battalions),
+    specialCut,
     cutAny: total < asked,
   };
 }

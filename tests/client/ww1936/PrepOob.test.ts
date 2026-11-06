@@ -187,3 +187,21 @@ describe("the start regions' names", () => {
     }
   });
 });
+
+describe("the special battalion cap in the lobby plan", () => {
+  it("every major's default plan is within it; an over-cap plan says why", () => {
+    for (const tag of Object.keys(START_OOB) as (keyof typeof START_OOB)[]) {
+      const m = oobModel(tag, [], null)!;
+      expect(m.result.specialCut, tag).toBe(false);
+      expect(m.problems, tag).toEqual([]);
+    }
+    const base = oobModel("SUN", [], null)!;
+    const k = base.templates.findIndex((t) => t.special > 0);
+    const over = base.armies.map(() => [
+      { key: base.templates[k].key, count: WW_MAX_ARMY_DIVISIONS },
+    ]);
+    const m = oobModel("SUN", [], over)!;
+    expect(m.result.specialCut).toBe(true);
+    expect(m.problems[0]).toContain("ww1936.prep.oob_special_cap");
+  });
+});
