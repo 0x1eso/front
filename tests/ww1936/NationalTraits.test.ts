@@ -3,7 +3,10 @@
 // consumers read are compared; the Soviet early weakness is timed.
 import { GameMapSize, GameMapType } from "@openfront/engine-api/game/GameTypes";
 import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
-import { EQUIP_KEYS } from "@openfront/engine-api/ww1936/EconomyTypes";
+import {
+  EQUIP_KEYS,
+  RESOURCE_IDS,
+} from "@openfront/engine-api/ww1936/EconomyTypes";
 import { TPL_ARMOR_ANY } from "@openfront/engine-api/ww1936/LandTypes";
 import type { WwStatKey } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
@@ -25,7 +28,10 @@ import { techTotals } from "@openfront/engine-lib/ww1936/WwTechs";
 import { createGameRunner, GameRunner } from "@openfront/engine/GameRunner";
 import { equipCostMilli } from "@openfront/engine/ww1936/depth/Designs";
 import { designCtxOf } from "@openfront/engine/ww1936/depth/WwDepth";
-import { stepProduction } from "@openfront/engine/ww1936/economy/Production";
+import {
+  lineStops,
+  stepProduction,
+} from "@openfront/engine/ww1936/economy/Production";
 import { trainDaysOf } from "@openfront/engine/ww1936/land/Training";
 import * as Spirits from "@openfront/engine/ww1936/politics/Spirits";
 import { loadMapFiles } from "@openfront/shared/GameMapLoader";
@@ -303,9 +309,17 @@ describe("w69 national traits", () => {
     const real = eg.isExile.bind(eg);
     eg.isExile = (x: number) => x === idOf("FRA") || real(x);
     expect(make()).toBe(0);
+    // ww115 T12: each locked line says why, and takes no steel either.
+    expect(lineStops(econ, ce).every((s) => s === "licence_only")).toBe(true);
+    const naval = ce.navalLines;
+    ce.navalLines = [];
+    make();
+    expect(ce.totals.used[RESOURCE_IDS.indexOf("steel")]).toBe(0);
+    ce.navalLines = naval;
     // Without the spirit an exile makes gear as any country.
     removeSpirit(ww().politics, idOf("FRA"), "nat_fra_stripped_arsenal");
     expect(make()).toBeGreaterThan(0);
+    expect(lineStops(econ, ce)).not.toContain("licence_only");
     eg.isExile = real;
   });
 

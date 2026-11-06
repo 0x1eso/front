@@ -4708,6 +4708,11 @@
         "total_mobilization": "전쟁 1년 뒤",
         "war_economy": "전쟁 중"
       },
+      "line_stop": {
+        "licence_only": "멈춤: 망명 정부는 면허 장비만 만듭니다",
+        "no_factories": "멈춤: 이 라인에 남은 군수 공장이 없습니다",
+        "not_allowed": "멈춤: 더는 만들 수 없는 장비입니다. 라인을 바꾸세요"
+      },
       "manpower": "인력",
       "mil_factories": "군수 공장 {n} (놀고 있음 {idle})",
       "more": "늘리기",

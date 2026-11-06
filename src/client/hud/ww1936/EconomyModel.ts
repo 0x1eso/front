@@ -43,6 +43,7 @@ import {
   WwCountryDetail,
   WwCountrySummary,
   WwLineData,
+  WwLineStop,
   WwOrderBlock,
   WwTechId,
   WwTradeData,
@@ -1657,7 +1658,16 @@ export interface LineRow {
   daysEach: number;
   /** Resources this line gets less of than it needs. */
   shortage: ResourceId[];
+  /** ww115 T12: the text key of why it makes nothing; null when it works. */
+  stopKey: string | null;
 }
+
+/** ww115 T12: the reason text of a line that makes nothing. */
+const LINE_STOP_KEYS: Record<WwLineStop, string> = {
+  licence_only: "ww1936.econ.line_stop.licence_only",
+  no_factories: "ww1936.econ.line_stop.no_factories",
+  not_allowed: "ww1936.econ.line_stop.not_allowed",
+};
 
 /**
  * Per line, the resources it is short of (pre-flight R7.9): the engine's
@@ -1674,7 +1684,8 @@ export function lineShortages(detail: WwCountryDetail): ResourceId[][] {
     available,
     detail.lines.map((l) => ({
       key: equipKey(l.equipment, l.gen),
-      factories: l.active,
+      // ww115 T12: a locked line takes nothing, as stepProduction has it.
+      factories: l.stop === "licence_only" ? 0 : l.active,
       ...(l.per === undefined ? {} : { per: l.per }),
     })),
   ).short.map((lacks) => lacks.map((r) => RESOURCE_IDS[r]));
@@ -1694,6 +1705,7 @@ export function lineRows(detail: WwCountryDetail): LineRow[] {
     perDay: linePerDay(l),
     daysEach: lineDaysEach(linePerDay(l)),
     shortage: shortages[index],
+    stopKey: l.stop === undefined ? null : LINE_STOP_KEYS[l.stop],
   }));
 }
 
@@ -2092,6 +2104,7 @@ export interface ResourceRowView {
 export function resourceRows(detail: WwCountryDetail): ResourceRowView[] {
   const need = RESOURCE_IDS.map(() => 0);
   for (const l of detail.lines) {
+    if (l.stop === "licence_only") continue;
     const per = EQUIPMENT[l.equipment].resources;
     RESOURCE_IDS.forEach((_, r) => {
       need[r] += per[r] * l.active;

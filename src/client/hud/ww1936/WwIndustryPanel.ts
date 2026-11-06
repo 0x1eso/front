@@ -1103,6 +1103,11 @@ export class WwIndustryPanel extends WwDrawerBase {
               >${RESOURCE_ICONS[res]} ${resourceName(res)}</span
             >`,
         )}
+        ${r.stopKey === null
+          ? nothing
+          : html`<span data-ww-line-stop class="text-xs text-amber-300"
+              >${translateText(r.stopKey)}</span
+            >`}
       </div>
       <div class="relative mt-1.5 h-1.5 rounded bg-white/10">
         <div

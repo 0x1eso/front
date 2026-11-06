@@ -7,6 +7,7 @@ import {
   equipKey,
   EquipmentType,
   WW_MAX_LINE_FACTORIES,
+  WwLineStop,
   WwOrderBlock,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
 import type { WwStatKey } from "@openfront/engine-api/ww1936/PoliticsTypes";
@@ -229,6 +230,10 @@ export function stepProduction(
   // P6 hook (E, S, W1; plan decision 22): designs' resources per factory,
   // and uranium and coal taken first.
   const depth = econ.ww.depth as WwDepth | undefined;
+  // w69: an exile under licence_gear_only (France) makes only licensed gear;
+  // ww115: a locked line makes nothing, so it takes no resources either.
+  const licensed = gearLicences(econ, depth, ce.smallID);
+  const makes = (l: Line) => licensed === null || licensed.has(l.key);
   const alloc = allocateResources(
     available,
     ce.lines.map((l) =>
@@ -236,7 +241,7 @@ export function stepProduction(
         ? { key: l.key, factories: l.active }
         : {
             key: l.key,
-            factories: l.active,
+            factories: makes(l) ? l.active : 0,
             per: equipResources(depth, ce.smallID, l.key),
           },
     ),
@@ -255,11 +260,9 @@ export function stepProduction(
     ce.stats.outputPct +
     (depth?.energyOutputPct(ce.smallID) ?? 0);
   const cap = effCapBp(ce.stats);
-  // w69: an exile under licence_gear_only (France) makes only licensed gear.
-  const licensed = gearLicences(econ, depth, ce.smallID);
   ce.lines.forEach((line, i) => {
     line.fill = alloc.fill[i];
-    if (line.active === 0 || (licensed !== null && !licensed.has(line.key))) {
+    if (line.active === 0 || !makes(line)) {
       line.lastOutput = 0;
       return;
     }
@@ -347,6 +350,36 @@ export function lineDepthCtx(
     ce.smallID,
     depth.country(ce.smallID)?.proj.done ?? 0,
   );
+}
+
+/**
+ * ww115 T12: why each line of `ce` makes nothing now, in line order;
+ * undefined for a line that works or one simply set to no factories.
+ */
+export function lineStops(
+  econ: WwEconomy,
+  ce: CountryEconomy,
+): (WwLineStop | undefined)[] {
+  const depth = econ.ww.depth as WwDepth | undefined;
+  const licensed = gearLicences(econ, depth, ce.smallID);
+  // The factories as stepProduction hands them out, so a line added today or
+  // in the preparation minute (active 0 until its first day) is not "stopped".
+  let avail = ce.totals.mil;
+  return ce.lines.map((l) => {
+    const now = Math.min(l.factories, avail);
+    avail -= now;
+    if (licensed !== null && !licensed.has(l.key)) return "licence_only";
+    if (l.factories > 0) return now === 0 ? "no_factories" : undefined;
+    const [type, gen] = EQUIP_KEYS[l.key];
+    return equipmentTechBlock(
+      ce.researched,
+      type,
+      gen,
+      lineDepthCtx(econ, ce),
+    ) === null
+      ? undefined
+      : "not_allowed";
+  });
 }
 
 /**

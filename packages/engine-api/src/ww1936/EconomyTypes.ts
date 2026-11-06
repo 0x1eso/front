@@ -977,6 +977,14 @@ export interface WwProjectData {
   speedPct: number;
 }
 
+/**
+ * ww115 T12: why a line makes nothing. "licence_only": an exile under the
+ * licence lock holds no licence for it. "no_factories": it asks for
+ * factories and none are left for it. "not_allowed": it was stopped and
+ * its equipment may not be made now (a licence ended).
+ */
+export type WwLineStop = "licence_only" | "no_factories" | "not_allowed";
+
 export interface WwLineData {
   id: number;
   equipment: EquipmentType;
@@ -988,6 +996,8 @@ export interface WwLineData {
   costMilli: number;
   fill: number;
   outputMilli: number;
+  /** ww115 T12: why it makes nothing; absent when it works or simply has no factories. */
+  stop?: WwLineStop;
   /** A design line's resources per factory (RESOURCE_IDS order); absent for a static type. */
   per?: number[];
 }

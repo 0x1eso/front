@@ -101,7 +101,7 @@ import {
 } from "./Fuel";
 import { stepManpower } from "./Manpower";
 import { stepNavalLines } from "./NavalLines";
-import { stepProduction } from "./Production";
+import { lineStops, stepProduction } from "./Production";
 import { repairCostMilli, stepRepairs } from "./Repairs";
 import { hasQueues, queueView, stepQueues } from "./ResearchQueue";
 import { projectsDone, stepResearch } from "./ResearchRun";
@@ -1463,6 +1463,7 @@ export class WwEconomy {
       civs: tr.civs,
       units: tr.units,
     });
+    const stops = lineStops(this, ce);
     return {
       smallID: ce.smallID,
       laws: { ...ce.laws },
@@ -1476,8 +1477,9 @@ export class WwEconomy {
         assignedMilli: q.lastAssigned,
         speedPct: q.lastSpeedPct,
       })),
-      lines: ce.lines.map((l) => {
+      lines: ce.lines.map((l, i) => {
         const [equipment, gen] = EQUIP_KEYS[l.key];
+        const stop = stops[i];
         // A design's cost and resources are the design's own (the static
         // table holds 0 for the design types): the screens read them here.
         const depth = this.ww.depth as WwDepth | undefined;
@@ -1498,6 +1500,7 @@ export class WwEconomy {
               : unitCostMilli(equipment, gen),
           fill: l.fill,
           outputMilli: l.lastOutput,
+          ...(stop === undefined ? {} : { stop }),
           ...(isDesign && depth !== undefined
             ? { per: equipResources(depth, ce.smallID, l.key) }
             : {}),

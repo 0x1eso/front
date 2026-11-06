@@ -5089,6 +5089,11 @@
         "total_mobilization": "After a year of war",
         "war_economy": "At war"
       },
+      "line_stop": {
+        "licence_only": "Stopped: an exile makes licensed gear only",
+        "no_factories": "Stopped: no military factory is left for this line",
+        "not_allowed": "Stopped: this equipment may no longer be made; retool the line"
+      },
       "manpower": "Manpower",
       "mil_factories": "{n} military factories ({idle} idle)",
       "more": "More",
