@@ -64,7 +64,6 @@ const ai = (tag: GwTag, ...of: string[]) => w({ is: "ai", tag, of });
 const score = (min?: number, max?: number) => w({ is: "score", min, max });
 /** The great war has begun, whoever is in it. */
 const BIG_WAR = w({ is: "war_age", min: 0 });
-const WAR = w({ is: "war" });
 const USA_IN = flagged("w_america_in");
 const atGbr: GwCond = { kind: "at_war", tag: "GBR" };
 
@@ -199,9 +198,12 @@ interface TalkOpts {
 function talk(id: string, person: string, o: TalkOpts): GwScene {
   return {
     id,
-    nation: o.nation ?? everyone,
+    // A later seat's own people are its own: they don't call on it as foreigners.
+    nation: (o.nation ?? everyone).filter(
+      (t) => t !== person.slice(0, 3).toUpperCase(),
+    ),
     kind: "talk",
-    when: all(dated(o.from, o.to), ...o.when),
+    when: all(dated(o.from, o.to), not(ARMISTICE), ...o.when),
     cast: { who: { person } },
     salience: o.salience,
     tags: o.tags ?? ["foreign"],
@@ -359,7 +361,12 @@ const AMERICA: readonly GwScene[] = [
     variants: [v("seat", seatGbr), v("base")],
     nodes: {
       open: n(
-        [["seat", seatGbr], ["cunning", mood("cunning")], "base"],
+        [
+          ["bryan", seen("gw_f_bryan_goes")],
+          ["seat", seatGbr],
+          ["cunning", mood("cunning")],
+          "base",
+        ],
         ask("mean", "cold", "mean", { miss: "note" }),
         ask("loans", "frank", "loans", {
           reacts: [react(mood("cold"), "loans", [])],
@@ -460,7 +467,7 @@ const GO_BETWEENS: readonly GwScene[] = [
   talk("gw_f_benedict_letter", "vat_benedict", {
     from: "1915-01",
     to: "1917-12",
-    when: [WAR],
+    when: [BIG_WAR],
     salience: 5,
     tags: ["foreign", "tension_down"],
     nodes: {
@@ -497,7 +504,7 @@ const GO_BETWEENS: readonly GwScene[] = [
   talk("gw_f_alfonso_office", "esp_alfonso", {
     from: "1915-01",
     to: "1918-06",
-    when: [WAR],
+    when: [BIG_WAR],
     salience: 5,
     tags: ["foreign", "tension_down"],
     cooldown: 16,
@@ -537,7 +544,7 @@ const GO_BETWEENS: readonly GwScene[] = [
   talk("gw_f_ador_lists", "che_ador", {
     from: "1915-01",
     to: "1918-06",
-    when: [WAR],
+    when: [BIG_WAR],
     salience: 5,
     tags: ["foreign", "tension_down"],
     cooldown: 16,
@@ -571,7 +578,7 @@ const GO_BETWEENS: readonly GwScene[] = [
   talk("gw_f_andersen_cousins", "dnk_andersen", {
     from: "1915-01",
     to: "1916-12",
-    when: [WAR, not(seen("deu_v2_andersen_call"))],
+    when: [BIG_WAR, not(seen("deu_v2_andersen_call"))],
     salience: 5,
     tags: ["foreign", "tension_down"],
     variants: [v("central", central), v("base")],
@@ -645,7 +652,11 @@ const FRANCE: readonly GwScene[] = [
     variants: [v("spring", dated("1918-03", "1918-06")), v("base")],
     nodes: {
       open: n(
-        [["arrogant", mood("arrogant")], "base"],
+        [
+          ["pershing", seen("gw_f_pershing_no")],
+          ["arrogant", mood("arrogant")],
+          "base",
+        ],
         ask("one", "flatter", "one", {
           gain: [key("k_foch_unity")],
           miss: "lecture",
@@ -733,6 +744,7 @@ const PRICES: readonly GwScene[] = [
     nodes: {
       open: n(
         [
+          ["giolitti", memory("k_giolitti_word")],
           ["hard_vienna", all(seatDeu, ai("AUH", "hardline"))],
           ["stubborn", mood("stubborn")],
           "base",
@@ -770,7 +782,12 @@ const PRICES: readonly GwScene[] = [
     variants: [v("central", central), v("base")],
     nodes: {
       open: n(
-        [["weary", mood("weary")], ["cunning", mood("cunning")], "base"],
+        [
+          ["heard", memory("k_sonnino_bill")],
+          ["weary", mood("weary")],
+          ["cunning", mood("cunning")],
+          "base",
+        ],
         ask("house", "frank", "house", { gain: [key("k_giolitti_word")] }),
         ask("old", "warm", "old", { miss: "house" }),
         push("promise", "threat", "cavour", { effects: [trustOf(who, -1)] }),
@@ -880,6 +897,7 @@ const PRICES: readonly GwScene[] = [
     nodes: {
       open: n(
         [
+          ["heard_king", memory("k_constantine_no")],
           ["thessaloniki", dated("1916-09", "1916-12")],
           ["stubborn", mood("stubborn")],
           "base",
@@ -907,7 +925,11 @@ const PRICES: readonly GwScene[] = [
     variants: [v("central", central), v("base")],
     nodes: {
       open: n(
-        [["cold", mood("cold")], "base"],
+        [
+          ["heard_cretan", memory("k_venizelos_call")],
+          ["cold", mood("cold")],
+          "base",
+        ],
         ask("army", "frank", "army", { gain: [key("k_constantine_no")] }),
         push("fleet", "threat", "greek", {
           effects: [trustOf(who, -1)],
@@ -979,7 +1001,12 @@ const PRICES: readonly GwScene[] = [
     salience: 6,
     nodes: {
       open: n(
-        [["cold", mood("cold")], ["cunning", mood("cunning")], "base"],
+        [
+          ["queen", memory("k_marie_letter")],
+          ["cold", mood("cold")],
+          ["cunning", mood("cunning")],
+          "base",
+        ],
         ask("map", "cold", "map", { gain: [key("k_bratianu_maps")] }),
         ask("shells", "frank", "shells", { miss: "salon" }),
         push("date", "threat", "salon", { effects: [trustOf(who, -1)] }),
@@ -1028,7 +1055,11 @@ const PRICES: readonly GwScene[] = [
     variants: [v("late", dated("1916-03", "1916-12")), v("base")],
     nodes: {
       open: n(
-        [["arrogant", mood("arrogant")], "base"],
+        [
+          ["heard_maps", memory("k_bratianu_maps")],
+          ["arrogant", mood("arrogant")],
+          "base",
+        ],
         ask("king", "flatter", "king", { gain: [key("k_marie_letter")] }),
         push("hurry", "cold", "proud", {
           reacts: [react(mood("stubborn"), "king", [])],
@@ -1174,7 +1205,11 @@ const SMALL_KINGS: readonly GwScene[] = [
     variants: [v("late", dated("1917-01", "1918-06")), v("base")],
     nodes: {
       open: n(
-        [["arrogant", mood("arrogant")], "base"],
+        [
+          ["talat", memory("k_talat_hedge")],
+          ["arrogant", mood("arrogant")],
+          "base",
+        ],
         ask("map", "flatter", "map"),
         ask("forts", "cold", "forts", {
           miss: "wide",
