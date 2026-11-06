@@ -11,7 +11,12 @@ import {
   GwSecret,
   GwTheatre,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
-import { all, GwCond } from "@openfront/engine-api/ww1914/SceneDsl";
+import {
+  all,
+  flag,
+  GwCond,
+  not,
+} from "@openfront/engine-api/ww1914/SceneDsl";
 import { world } from "@openfront/engine-api/ww1914/WorldDsl";
 
 export type GwInstRule =
@@ -201,8 +206,9 @@ const britishRules: GwInstRule[] = [
     scene: "gw_gbr_conscription",
     once: true,
     when: all(
-      world({ is: "manpower", max: 45 }),
+      world({ is: "manpower", max: 65 }),
       world({ is: "war_age", min: 10 }),
+      not(flag("f_gbr_conscript")),
     ),
   },
   ...asked,

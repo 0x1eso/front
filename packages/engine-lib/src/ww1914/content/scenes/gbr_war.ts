@@ -900,7 +900,7 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
     id: "gbr_w_naval_only",
     kind: "dispute",
     stage: WAR,
-    when: all(war, during("15a"), flag("f_straits_chosen"), open("straits")),
+    when: all(war, during("15a", "15b"), flag("f_straits_chosen"), open("straits")),
     cast: { navy: holder("navy"), sea_lord: holder("sea_lord") },
     salience: 8,
     tags: ["war", "tension_up"],
@@ -943,7 +943,7 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
     stage: WAR,
     when: all(
       war,
-      during("15a", "15b"),
+      during("15a", "16a"),
       open("straits"),
       { kind: "seen", scene: "gbr_w_naval_only" },
       not(chose("gbr_w_naval_only", "hear_fisher")),
@@ -967,7 +967,7 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
     id: "gbr_w_landing",
     kind: "crisis",
     stage: WAR,
-    when: all(war, during("15a", "15b"), {
+    when: all(war, during("15a", "16a"), {
       kind: "seen",
       scene: "gbr_w_narrows",
     }),
@@ -1126,7 +1126,7 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
     stage: WAR,
     when: all(
       war,
-      during("15b", "16a"),
+      during("15b", "16b"),
       open("straits"),
       flag("f_landed"),
       not(flag("f_straits_left")),

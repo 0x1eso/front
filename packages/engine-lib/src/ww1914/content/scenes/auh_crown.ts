@@ -1177,8 +1177,8 @@ const CROWN_END: readonly GwScene[] = [
     kind: "crisis",
     when: all(
       any(K, FFT),
-      nationsAt({ min: 2 }),
-      hungaryAt({ min: 0 }),
+      nationsAt({ min: 1 }),
+      hungaryAt({ min: -1 }),
       k("k_lam_federal"),
       period("17a", "18b"),
     ),

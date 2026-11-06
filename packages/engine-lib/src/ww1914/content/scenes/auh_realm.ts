@@ -2586,7 +2586,7 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
               kind: "world",
               of: {
                 is: "manpower",
-                max: 40,
+                max: 55,
               },
             },
           ],

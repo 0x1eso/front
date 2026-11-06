@@ -436,7 +436,7 @@ const SCENES: readonly GwScene[] = [
     { fm: { office: "foreign" } },
     all(
       any(opening("no_sarajevo"), not(crisis)),
-      { kind: "pressure", topic: "balkan", min: 3 },
+      { kind: "pressure", topic: "balkan", min: 1 },
       during("c"),
     ),
     [v("wire", { kind: "trust", tag: "ITA", max: -1 }), base],

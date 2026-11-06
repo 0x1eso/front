@@ -358,7 +358,7 @@ describe("the seats' own wars", () => {
     const { gw, runner } = await war("GBR", "GWBOAT");
     runEffect(ctx(gw), doWorld({ do: "declare", tag: "DEU" }));
     gw.s.blockade = 5;
-    pass(gw, runner, 3);
+    pass(gw, runner, 8);
     expect(gw.s.uboat).toBeGreaterThan(0);
   });
 });

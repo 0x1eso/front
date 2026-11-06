@@ -3042,12 +3042,14 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
           },
         },
         {
-          kind: "world",
-          of: {
-            is: "front",
-            theatre: "italy",
-            from: "piave",
-          },
+          kind: "any",
+          of: [
+            {
+              kind: "world",
+              of: { is: "front", theatre: "italy", from: "piave" },
+            },
+            { kind: "seen", scene: "auh_w_caporetto" },
+          ],
         },
       ],
     },
@@ -7427,12 +7429,14 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
       of: [
         during("17b", "18a"),
         {
-          kind: "world",
-          of: {
-            is: "front",
-            theatre: "italy",
-            from: "piave",
-          },
+          kind: "any",
+          of: [
+            {
+              kind: "world",
+              of: { is: "front", theatre: "italy", from: "piave" },
+            },
+            { kind: "seen", scene: "auh_w_caporetto" },
+          ],
         },
       ],
     },

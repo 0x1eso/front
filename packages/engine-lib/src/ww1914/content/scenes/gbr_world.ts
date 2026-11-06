@@ -494,8 +494,8 @@ export const GBR_WORLD_SCENES: readonly GwScene[] = [
     id: "gbr_f_armistice",
     nation: NATION,
     kind: "crisis",
-    stage: WAR,
-    when: all(warOn, during("18b"), askedPeace),
+    stage: ["war", "closing"],
+    when: all(warOn, askedPeace),
     cast: {
       fm: { office: "foreign" },
       cos: { office: "chief_of_staff" },

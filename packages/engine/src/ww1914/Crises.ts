@@ -130,13 +130,22 @@ export function closeChain(gw: GreatWar, outcome: GwChainOutcome): void {
 /** How a character moves a crisis, by country; a seat moves it by its scenes. */
 function moves(gw: GreatWar, link: number): number {
   const s = gw.s;
-  const kind = (t: "AUH" | "RUS" | "GBR" | "FRA") =>
+  const kind = (t: "AUH" | "RUS" | "GBR" | "FRA" | "DEU") =>
     seatsOf(gw, t).length > 0 ? undefined : gw.nation(t)?.ai;
   let d = (wwRoll(s.seed, P_CRISIS, s.chapter) % 3) - 1;
   if (link === 1 && kind("AUH") === "hardline") d++;
   if (link === 1 && kind("AUH") === "cautious") d--;
   if (link === 2 && s.secrets.includes("srb_officers_plot")) d++;
   if (link === 3) d++;
+  // A Berlin nobody plays writes the blank cheque unless it is afraid to.
+  const berlin = kind("DEU");
+  if (link === 2 && berlin !== undefined && berlin !== "cautious") d++;
+  if (link === 5 && (berlin === "hardline" || berlin === "opportunist")) d++;
+  // Vienna and Berlin both unplayed: nobody at the desk can hold them back.
+  const vienna = kind("AUH");
+  if (link === 4 && berlin !== undefined && vienna !== undefined) {
+    if (vienna !== "cautious") d++;
+  }
   if (link === 4 && kind("RUS") === "hardline") d++;
   if (link === 4 && kind("RUS") === "cautious") d--;
   if (link === 4 && kind("GBR") === "principled") d--;

@@ -28,6 +28,8 @@ export interface GwRegimeRow {
   readonly appoint: readonly (readonly [string, GwOffice])[];
   /** A flag every seat of the country gets, for scenes to read. */
   readonly flag?: string;
+  /** Old ministers it lets go; the office goes to the next in line. */
+  readonly retires?: readonly string[];
 }
 
 const form = (
@@ -65,6 +67,7 @@ export const GW_REGIMES: Readonly<
       floor: {},
       appoint: [["auh_czernin", "foreign"]],
       flag: "w_auh_karl",
+      retires: ["auh_krobatin"],
     }),
     form("ff_throne", "federation", {
       unrest: 0,
@@ -135,6 +138,10 @@ export function changeRegime(gw: GreatWar, tag: GwTag, to: string): void {
     p.status = "active";
     p.office = office;
     onAppointed(gw, id);
+  }
+  for (const id of row.retires ?? []) {
+    const p = gw.person(id);
+    if (p !== null) p.office = null;
   }
   news(gw, `regime_${to}`, tag);
   turn(gw, `regime_${to}`);
