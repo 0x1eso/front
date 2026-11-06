@@ -16,6 +16,7 @@ import {
   setLineFactories,
   stepProduction,
 } from "@openfront/engine/ww1936/economy/Production";
+import { stabilityLines } from "@openfront/engine/ww1936/politics/Stability";
 import {
   byTag,
   clearStartSetup,
@@ -71,6 +72,38 @@ async function workingLine(n: number) {
   };
   return { ...s, line, day };
 }
+
+describe("T2: civilian factories never reach a dead end", () => {
+  test("goods short: stability and war support pay, construction keeps its floor", async () => {
+    const { econ, ww, deu, ce } = await germany();
+    const pol = ww.politics;
+    const id = deu.smallID();
+    const line = (which: "stab" | "ws", key: string) =>
+      stabilityLines(pol, id, which).find((l) => l.key === key)?.bp ?? 0;
+    expect(line("stab", "ww1936.pol.line.stab_goods")).toBe(0);
+    // A shortfall of a quarter: goods take half the factories, no more.
+    ce.totals.civ = 30;
+    ce.totals.cgMilli = 20_000;
+    expect(line("stab", "ww1936.pol.line.stab_goods")).toBe(-500);
+    expect(line("ws", "ww1936.pol.line.ws_goods")).toBe(-250);
+    // At its worst 15 %p and half that.
+    ce.totals.civ = 5;
+    expect(line("stab", "ww1936.pol.line.stab_goods")).toBe(-1500);
+    expect(line("ws", "ww1936.pol.line.ws_goods")).toBe(-750);
+    // Construction keeps 20 % whatever is due.
+    ww.endgame.reparations.push({ from: id, to: 2, k: 500, untilDay: 9999 });
+    econ.refreshTotals(ce, 1, 0);
+    expect(ce.totals.freeCivMilli).toBe(ce.totals.civ * 200);
+  });
+
+  test("a country with no civilian factory still builds with one", async () => {
+    const { econ, deu, ce } = await germany();
+    for (const r of econ.regionsOf(deu.smallID())) econ.civ[r] = 0;
+    econ.refreshTotals(ce, 1, 0);
+    expect(ce.totals.civ).toBe(0);
+    expect(ce.totals.freeCivMilli).toBe(1000);
+  });
+});
 
 describe("T6: a repaired factory rejoins its line without a penalty", () => {
   test("factories lost and repaired leave the efficiency alone", async () => {

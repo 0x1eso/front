@@ -36,16 +36,70 @@ export function consumerGoodsMilli(
   return (civ + mil) * cgPct * 10;
 }
 
-export function freeCivMilli(
-  civ: number,
-  cgMilli: number,
-  paidCivs: number,
-  receivedCivs: number,
-): number {
+/** ww120: consumer goods take at most this share of the civilian factories. */
+export const WW_GOODS_MAX_PCT = 50;
+/** ww120: consumer goods and payments together take at most this share. */
+export const WW_CLAIMS_MAX_PCT = 80;
+/** ww120: construction keeps at least this share. */
+export const WW_BUILD_FLOOR_PCT = 20;
+
+/** The consumer goods the factories make: what is needed, up to half of them. */
+export function goodsMilliOf(civ: number, cgMilli: number): number {
+  return Math.min(cgMilli, civ * WW_GOODS_MAX_PCT * 10);
+}
+
+/** Percent of the consumer goods needed that the factories do not make. */
+export function goodsShortPct(civ: number, cgMilli: number): number {
+  if (cgMilli <= 0) return 0;
+  return Math.floor(
+    ((cgMilli - goodsMilliOf(civ, cgMilli)) * 100) / cgMilli,
+  );
+}
+
+/** What construction always keeps: at least one factory on any land. */
+export function buildFloorMilli(civ: number, hasLand: boolean): number {
+  return Math.max(civ * WW_BUILD_FLOOR_PCT * 10, hasLand ? 1000 : 0);
+}
+
+/** The most a country pays a day, milli: 80 % of its factories less the goods. */
+export function payRoomMilli(civ: number, cgMilli: number): number {
   return Math.max(
     0,
-    civ * 1000 - cgMilli - paidCivs * 1000 + receivedCivs * 1000,
+    civ * WW_CLAIMS_MAX_PCT * 10 - goodsMilliOf(civ, cgMilli),
   );
+}
+
+export interface CivSplit {
+  /** What leaves the country today, milli (at most what is due). */
+  paidMilli: number;
+  /** ‰ of what is due that it pays. */
+  payPm: number;
+  /** What the construction queue gets, milli. */
+  freeMilli: number;
+}
+
+/**
+ * ww120 T2, T4, T10: who gets the civilian factories. Goods come first, then
+ * what is due, and construction keeps its floor, so no claim ends a country's
+ * building. What is short of goods costs stability (goodsShortPct), what is
+ * short of payments scales every payment (payPm); neither stops a factory.
+ */
+export function civSplit(
+  civ: number,
+  cgMilli: number,
+  dueMilli: number,
+  receivedMilli: number,
+  hasLand: boolean,
+): CivSplit {
+  const paidMilli = Math.min(dueMilli, payRoomMilli(civ, cgMilli));
+  return {
+    paidMilli,
+    payPm: dueMilli <= 0 ? 1000 : Math.floor((paidMilli * 1000) / dueMilli),
+    freeMilli: Math.max(
+      civ * 1000 - goodsMilliOf(civ, cgMilli) - paidMilli + receivedMilli,
+      buildFloorMilli(civ, hasLand),
+    ),
+  };
 }
 
 /** Milli-factories each queue entry gets, front first, at most 15 each. */

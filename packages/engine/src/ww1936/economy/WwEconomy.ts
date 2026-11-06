@@ -38,7 +38,7 @@ import {
   consumerGoodsMilli,
   effCapBp,
   extraction,
-  freeCivMilli,
+  civSplit,
   recruitableMen,
   regionSlots,
   researchSlotCount,
@@ -1011,9 +1011,16 @@ export class WwEconomy {
       Math.min(50, law.consumerGoodsPct + ce.stats.consumerGoodsPp),
     );
     t.cgMilli = consumerGoodsMilli(civ, mil, cgPct);
+    const split = civSplit(
+      civ,
+      t.cgMilli,
+      paid * 1000,
+      received * 1000,
+      this.regionsOf(ce.smallID).length > 0,
+    );
     t.paidCivs = paid;
     t.receivedCivs = received;
-    t.freeCivMilli = freeCivMilli(civ, t.cgMilli, paid, received);
+    t.freeCivMilli = split.freeMilli;
     // Research overhaul (changes §1.1): the start slots and the research_slot
     // effects only; factories, bombing and occupation do not count.
     t.slotCount = researchSlotCount(

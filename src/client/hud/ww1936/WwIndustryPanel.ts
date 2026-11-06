@@ -19,6 +19,7 @@ import {
 } from "@openfront/engine-api/ww1936/EconomyTypes";
 import { renderNumber } from "@openfront/engine-lib/Format";
 import type { LineDepthCtx } from "@openfront/engine-lib/ww1936/EconomyChecks";
+import { goodsMilliOf } from "@openfront/engine-lib/ww1936/EconomyRules";
 import { genTech, isDesignType } from "@openfront/engine-lib/ww1936/Equipment";
 import type { HistCountry } from "@openfront/engine-lib/ww1936/hist/Types";
 import type { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
@@ -36,6 +37,7 @@ import { designerOn } from "./DesignerFlag";
 import {
   addLineBlock,
   armyMenOf,
+  atBuildFloor,
   autoPlace,
   blockedSellers,
   blockText,
@@ -534,12 +536,17 @@ export class WwIndustryPanel extends WwDrawerBase {
         >
         ·
         ${translateText("ww1936.econ.consumer_goods", {
-          n: milliText(d.consumerGoodsMilli),
+          n: milliText(goodsMilliOf(c.summary.civ, d.consumerGoodsMilli)),
         })}
         ·
         ${translateText("ww1936.econ.trade_civs", {
           n: signedText(trade, true),
         })}
+        ${atBuildFloor(d, c.summary)
+          ? html`<span data-ww-build-floor class="block text-amber-300"
+              >${translateText("ww1936.econ.build_floor")}</span
+            >`
+          : nothing}
       </p>
       ${this.renderNewBuild(c)}
       <ul data-ww-queue class="m-0 mt-3 flex list-none flex-col gap-1.5 p-0">

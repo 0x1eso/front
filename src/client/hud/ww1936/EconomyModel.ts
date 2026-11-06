@@ -90,7 +90,9 @@ import {
   allocateResources,
   constructionDaysLeft,
   constructionProgress,
+  buildFloorMilli,
   consumerGoodsMilli,
+  goodsMilliOf,
   effAfterSwitch,
   exportCapacity,
   regionSlots,
@@ -2255,6 +2257,18 @@ function sumCivs(deals: readonly WwTradeData[]): number {
   // ww115 T13: a paused deal pays nothing.
   for (const t of deals) if (t.pausedLeft === undefined) n += t.civs;
   return n;
+}
+
+/** ww120 T2: goods and payments would leave less than construction keeps. */
+export function atBuildFloor(
+  detail: WwCountryDetail,
+  summary: WwCountrySummary,
+): boolean {
+  const left =
+    summary.civ * 1000 -
+    goodsMilliOf(summary.civ, detail.consumerGoodsMilli) +
+    (detail.receivedCivs - detail.paidCivs) * 1000;
+  return left < buildFloorMilli(summary.civ, true);
 }
 
 /** What the engine's openTrade checks, from the view (Trade.openTrade). */

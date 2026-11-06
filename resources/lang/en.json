@@ -5055,6 +5055,7 @@
         "volunteer_conditions": "Volunteers cannot be sent now",
         "volunteer_limit": "Too many volunteer divisions"
       },
+      "build_floor": "Construction floor: goods and payments leave only this",
       "build_here": "Build here",
       "buy": "Buy",
       "cancel_project": "Cancel construction",
@@ -11794,6 +11795,7 @@
       },
       "line": {
         "stab_base": "Base",
+        "stab_goods": "Consumer goods shortfall",
         "stab_modifiers": "Spirits, laws and advisors",
         "stab_no_pp": "Political power below zero",
         "stab_occupation": "Land under foreign control",
@@ -11804,6 +11806,7 @@
         "ws_capital": "Enemy holds the capital region",
         "ws_casualties": "Casualties",
         "ws_defense": "Being attacked",
+        "ws_goods": "Consumer goods shortfall",
         "ws_lost_vp": "Land lost",
         "ws_modifiers": "Spirits, laws and advisors",
         "ws_tension": "World tension"

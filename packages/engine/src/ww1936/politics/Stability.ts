@@ -6,6 +6,7 @@ import {
   IDEO_NEU,
   WwPolLine,
 } from "@openfront/engine-api/ww1936/PoliticsTypes";
+import { goodsShortPct } from "@openfront/engine-lib/ww1936/EconomyRules";
 import {
   rulingPartyBp,
   wearinessBp,
@@ -91,6 +92,13 @@ function defensiveWar(pol: WwPolitics, id: number): boolean {
   return false;
 }
 
+/** ww120 T2: what a shortfall of consumer goods costs stability, bp, 15 %p at most. */
+function goodsStrainBp(pol: WwPolitics, id: number): number {
+  const t = pol.econ.country(id)?.totals;
+  if (t === undefined) return 0;
+  return Math.min(1500, goodsShortPct(t.civ, t.cgMilli) * 20);
+}
+
 /**
  * The lines of one of the two values, bp: the base first, then each line
  * that is not 0 (into `out` when given). Returns their sum clamped to
@@ -123,6 +131,7 @@ function lines(
     }
     add("ww1936.pol.line.stab_occupation", 0 - Math.min(2000, lostPct * 20));
     if (c.ppMilli < 0) add("ww1936.pol.line.stab_no_pp", -1000);
+    add("ww1936.pol.line.stab_goods", 0 - goodsStrainBp(pol, id));
   } else {
     sum = c.wsBaseBp;
     out?.push({ key: "ww1936.pol.line.ws_base", bp: c.wsBaseBp });
@@ -147,6 +156,10 @@ function lines(
     add("ww1936.pol.line.ws_lost_vp", 0 - lostPct * 20);
     // P4 spec §14.8: the last 30 days' bombing (lane A2's bombFatigueBp).
     add("ww1936.pol.line.ws_bomb_fatigue", bombFatigueBp(pol.ww.air, id));
+    add(
+      "ww1936.pol.line.ws_goods",
+      0 - Math.floor(goodsStrainBp(pol, id) / 2),
+    );
   }
   return Math.max(0, Math.min(10_000, sum));
 }

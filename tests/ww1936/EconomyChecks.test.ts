@@ -235,8 +235,8 @@ describe("shared judgements (plan decision 3)", () => {
     expect(openTradeBlockOf({ ...ok, paidCivs: 4 })).toBe("no_civs");
     expect(exportRoomOf(40, 25, 8)).toBe(2);
     expect(exportRoomOf(40, 25, 16)).toBe(-6);
-    // 9 civ + 6 mil at 25%: 3.75 factories of consumer goods.
-    expect(payableCivs(9, 3750)).toBe(5);
+    // 9 civ + 6 mil at 25%: 3.75 of goods, 80 % of 9 leaves 3.45 to pay.
+    expect(payableCivs(9, 3750)).toBe(3);
     expect(payableCivs(1, 3750)).toBe(0);
   });
 });

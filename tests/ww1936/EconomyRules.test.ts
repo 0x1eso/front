@@ -15,13 +15,15 @@ import {
   constructionDaysLeft,
   constructionProgress,
   consumerGoodsMilli,
+  goodsMilliOf,
+  goodsShortPct,
   EFF_FLOOR_BP,
   effAfterAdding,
   effAfterSwitch,
   effCapBp,
   efficiencyGrowth,
   extraction,
-  freeCivMilli,
+  civSplit,
   lineOutputMilli,
   projectSpeedPct,
   recruitableMen,
@@ -118,9 +120,34 @@ describe("construction (spec §4.3)", () => {
   test("consumer goods and trade take their share of civilian factories", () => {
     // 32 civ + 16 mil at 25%: 12 factories of consumer goods.
     expect(consumerGoodsMilli(32, 16, 25)).toBe(12_000);
-    expect(freeCivMilli(32, 12_000, 2, 0)).toBe(18_000);
-    expect(freeCivMilli(32, 12_000, 0, 3)).toBe(23_000);
-    expect(freeCivMilli(5, 12_000, 0, 0)).toBe(0);
+    const free = (civ: number, cg: number, due: number, got: number) =>
+      civSplit(civ, cg, due, got, true).freeMilli;
+    expect(free(32, 12_000, 2000, 0)).toBe(18_000);
+    expect(free(32, 12_000, 0, 3000)).toBe(23_000);
+  });
+
+  test("ww120: no claim takes construction below its floor", () => {
+    // 20 civ + 80 mil at 20 %: 20 needed, half of 20 made, half short.
+    expect(goodsMilliOf(20, 20_000)).toBe(10_000);
+    expect(goodsShortPct(20, 20_000)).toBe(50);
+    // Goods 10, room to pay 6, 4 left to build: 20 %.
+    const s = civSplit(20, 20_000, 12_000, 0, true);
+    expect(s).toEqual({ paidMilli: 6_000, payPm: 500, freeMilli: 4_000 });
+    // What comes in builds on top of that.
+    expect(civSplit(20, 20_000, 12_000, 3_000, true).freeMilli).toBe(7_000);
+    // One factory, and none at all: one factory's worth while there is land.
+    expect(civSplit(1, 5_000, 1_000, 0, true).freeMilli).toBe(1_000);
+    expect(civSplit(0, 0, 0, 0, true).freeMilli).toBe(1_000);
+    // An exile has no land and no floor.
+    expect(civSplit(0, 0, 2_000, 0, false)).toEqual({
+      paidMilli: 0,
+      payPm: 0,
+      freeMilli: 0,
+    });
+    // Nothing due: all is paid; goods within reach cost nothing.
+    expect(civSplit(32, 12_000, 0, 0, true).payPm).toBe(1000);
+    expect(goodsShortPct(32, 12_000)).toBe(0);
+    expect(goodsShortPct(0, 0)).toBe(0);
   });
 
   test("speed: infrastructure, construction tech, trade law, military only for mil", () => {

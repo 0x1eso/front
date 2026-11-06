@@ -12,7 +12,7 @@ import {
 } from "@openfront/engine-api/ww1936/EconomyTypes";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
-import { freeCivMilli } from "@openfront/engine-lib/ww1936/EconomyRules";
+import { civSplit } from "@openfront/engine-lib/ww1936/EconomyRules";
 import type { Player } from "@openfront/engine/game/Game";
 import { GameRunner } from "@openfront/engine/GameRunner";
 import {
@@ -347,6 +347,7 @@ describe("trade (spec §7.4–§7.5)", () => {
     // Free trade: 28 a day for sale. Three factories ask for 24, a fourth
     // takes the last 4 (a part factory pays a whole one, as in HOI4).
     sun.laws.trade = "free_trade";
+    deu.totals.cgMilli = 0;
     expect(buy("DEU", "SUN", "steel", 3)).toBeNull();
     // Two more factories would need 9 or more.
     expect(buy("DEU", "SUN", "steel", 2)).toBe("no_room");
@@ -366,22 +367,19 @@ describe("trade (spec §7.4–§7.5)", () => {
   test("the buyer cannot pay: newest close first", async () => {
     const { runner, econ, id, ce, buy, notices } = await game();
     const ita = ce("ITA");
-    // Italy: 4 civilian factories less 25% consumer goods of 7 → 2 to pay.
+    // Italy: 80 % of 4 civilian factories less 1.75 of consumer goods → 1.
     expect(buy("ITA", "GBR", "tungsten")).toBeNull();
-    expect(buy("ITA", "DEU", "steel")).toBeNull();
+    expect(buy("ITA", "DEU", "steel")).toBe("no_civs");
     throughDay(runner, 0);
-    expect(econ.trades()).toHaveLength(2);
-    expect(ita.totals.paidCivs).toBe(2);
-    // A civilian economy takes 35% for consumer goods: one factory left.
+    expect(econ.trades()).toHaveLength(1);
+    expect(ita.totals.paidCivs).toBe(1);
+    // A civilian economy takes 35% for consumer goods: half the factories
+    // at most, so one still pays.
     ita.laws.economy = "civilian";
-    throughDay(runner, 1);
-    expect(ita.totals.cgMilli).toBe(2450);
-    expect(econ.trades()).toHaveLength(2);
     throughDay(runner, 2);
+    expect(ita.totals.cgMilli).toBe(2450);
     expect(dealsOf(econ)).toEqual([[id("ITA"), id("GBR"), "tungsten", 1]]);
-    expect(notices()).toEqual([
-      { to: id("ITA"), params: { sellerTag: "DEU", resource: "steel" } },
-    ]);
+    expect(notices()).toEqual([]);
   });
 
   test("buying moves civs and resources", async () => {
@@ -412,7 +410,7 @@ describe("trade (spec §7.4–§7.5)", () => {
     expect(ita.totals.freeCivMilli).toBe(itaFree - 1000);
     expect(gbr.totals.freeCivMilli).toBe(gbrFree + 1000);
     expect(ita.totals.freeCivMilli).toBe(
-      freeCivMilli(ita.totals.civ, ita.totals.cgMilli, 1, 0),
+      civSplit(ita.totals.civ, ita.totals.cgMilli, 1000, 0, true).freeMilli,
     );
     // The buyer closes it; the next day nothing moves.
     const [deal] = econ.trades();
