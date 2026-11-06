@@ -39,7 +39,10 @@ describe("the cast of the test build", () => {
         expect(ids.has(other), `${p.id} -> ${other}`).toBe(true);
         expect(other, p.id).not.toBe(p.id);
       }
-      expect(p.rivals.filter((r) => p.allies.includes(r)), p.id).toEqual([]);
+      expect(
+        p.rivals.filter((r) => p.allies.includes(r)),
+        p.id,
+      ).toEqual([]);
     }
   });
 
