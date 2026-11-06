@@ -405,7 +405,7 @@ describe("aiWingPlan", () => {
 describe("the wing planner in a game", () => {
   const humans = [{ clientID: HUMAN, country: "DEU" as const }];
 
-  test("the AI flies its wings through air.issue and pins nothing; no auto flag", async () => {
+  test("the AI flies its wings through air.issue and pins nothing; no auto flag on loose wings", async () => {
     const r = await wwRunner();
     const g = r.game;
     const ww = g.worldWar()!;
@@ -415,7 +415,8 @@ describe("the wing planner in a game", () => {
     const wings = ww.air.wingsOf(deu);
     expect(ww.hasWar(deu)).toBe(true);
     expect(wings.some((w) => w.mission >= 0)).toBe(true);
-    expect(wings.every((w) => !w.auto)).toBe(true);
+    // The AI's group wings run under the planner (auto); its loose wings have no flag.
+    expect(wings.every((w) => w.group !== 0 || !w.auto)).toBe(true);
     let flying = 0;
     for (let i = 0; i < 40; i++) {
       step(r);

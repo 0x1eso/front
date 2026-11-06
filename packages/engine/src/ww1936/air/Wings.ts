@@ -2,6 +2,7 @@
 // field strips (design §3.1, §3.2). WwAir's tickWings and issueWingOrder
 // call these in the wing model only.
 import {
+  AIR_GROUP_TYPES,
   AIR_TYPES,
   WING_FERRY_REST,
   WING_FORM_FRONT_KM,
@@ -276,8 +277,16 @@ export function formWings(air: WwAir, owner: number, day: number): void {
   let near: ((region: number) => number) | null = null;
   let count = 0;
   for (const w of air.wingsOf(owner)) if (!isCarrierWing(w)) count++;
+  // The AI keeps its fighters and bombers in template groups (AiAir.aiGroupTemplate).
+  const grouped = c.templates.length > 0 && !air.ww.isHumanControlled(owner);
   for (let ti = 0; ti < AIR_TYPES.length && count < WW_MAX_WINGS; ti++) {
     if (deckSlotOf(ti) >= 0 || day < c.reformDay[ti]) continue;
+    if (
+      grouped &&
+      (AIR_GROUP_TYPES as readonly string[]).includes(AIR_TYPES[ti])
+    ) {
+      continue;
+    }
     const t = AIR_TYPES[ti];
     const max = wingMaxPlanes(t);
     let has = false;
