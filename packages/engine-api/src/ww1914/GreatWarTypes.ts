@@ -612,6 +612,21 @@ export const GW_SECRETS = [
 ] as const;
 export type GwSecret = (typeof GW_SECRETS)[number];
 
+/**
+ * Flags the world sets on every seat (`flag` conds read them, scene plan §1):
+ * what the AI and the fronts did, which a scene can't set for itself.
+ */
+export const GW_WORLD_FLAGS = [
+  "w_ultimatum_out",
+  "w_aut_at_war",
+  "w_rus_partial",
+  "w_rus_general",
+  "w_tannenberg",
+  "w_marne_stopped",
+  "w_bad_luck_east",
+] as const;
+export type GwWorldFlag = (typeof GW_WORLD_FLAGS)[number];
+
 /** Long threads (design §2.6): three run hot in a game. */
 export const GW_THREADS = [
   "ireland",

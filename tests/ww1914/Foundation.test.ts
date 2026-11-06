@@ -9,14 +9,19 @@ import {
   GW_CALENDARS,
   gwChapters,
 } from "@openfront/engine-lib/ww1914/Calendars";
+import { useGwContent } from "@openfront/engine-lib/ww1914/content/Content";
 import {
   applyGreatWar1914Rules,
   normalizeModeConfig,
 } from "@openfront/engine-lib/ww1914/ModeConfig";
-import { describe, expect, test } from "vitest";
+import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import { testGameConfig } from "../util/Wire";
 import { stamped, step, stepTo } from "../ww1936/util";
+import { FOUNDATION_CONTENT } from "./foundationFixture";
 import { gwRunner, HUMAN, order, playChapter, seat, view } from "./util";
+
+beforeAll(() => useGwContent(FOUNDATION_CONTENT));
+afterAll(() => useGwContent(null));
 
 describe("the config key", () => {
   test("is the last of the schema but its calendar and recent list", () => {
@@ -138,8 +143,8 @@ describe("the chapter clock", () => {
     stepTo(runner, v.deadlineTick! + 2);
     expect(view(runner).chapter).toBe(1);
     expect(seat(runner).log.map((l) => l.key)).toContain("proxy_signed");
-    // `wait` is the sample's fallback.
-    expect(seat(runner).log.map((l) => l.key)).toContain("sample_waited");
+    // `wait` is the fixture's fallback.
+    expect(seat(runner).log.map((l) => l.key)).toContain("fx_waited");
   });
 
   test("a pause keeps the time left", async () => {
@@ -165,11 +170,10 @@ describe("the chapter clock", () => {
   });
 });
 
-describe("the two sample scenes", () => {
+describe("the fixture's two scenes", () => {
   test("a decision: the talk opens an option", async () => {
     const { runner } = await gwRunner();
-    const envoy = () =>
-      seat(runner).desk.find((c) => c.scene === "deu_sample_envoy")!;
+    const envoy = () => seat(runner).desk.find((c) => c.scene === "fx_envoy")!;
     expect(envoy().variant).toBe("base");
     const limit = envoy().options.find((o) => o.id === "term_limit")!;
     expect(limit.open).toBe(false);
@@ -182,12 +186,12 @@ describe("the two sample scenes", () => {
     expect(envoy()).toBeDefined();
 
     const person = seat(runner).people.find((p) => p.id === "deu_bethmann")!;
-    expect(person.topics).toEqual(["deu_sample_talk"]);
+    expect(person.topics).toEqual(["fx_talk"]);
     const before = seat(runner).audiences;
     order(runner, {
       kind: "summon",
       person: person.id,
-      topic: "deu_sample_talk",
+      topic: "fx_talk",
     });
     expect(seat(runner).audiences).toBe(before - 1);
     const card = seat(runner).desk.find((c) => c.kind === "talk")!;
@@ -206,9 +210,7 @@ describe("the two sample scenes", () => {
     expect(envoy().options.find((o) => o.id === "term_limit")!.open).toBe(true);
     order(runner, { kind: "choose", card: envoy().uid, option: "term_limit" });
     expect(envoy()).toBeUndefined();
-    expect(runner.game.greatWar()!.s.seats[0].flags).toContain(
-      "deu_sample_backed",
-    );
+    expect(runner.game.greatWar()!.s.seats[0].flags).toContain("fx_backed");
   });
 
   test("the person's temperament changes what a push does", async () => {
@@ -218,7 +220,7 @@ describe("the two sample scenes", () => {
       order(runner, {
         kind: "summon",
         person: "deu_bethmann",
-        topic: "deu_sample_talk",
+        topic: "fx_talk",
       });
       const card = seat(runner).desk.find((c) => c.kind === "talk")!;
       const mood = gw.person("deu_bethmann")!.temperament;
@@ -240,7 +242,7 @@ describe("the two sample scenes", () => {
       order(runner, {
         kind: "summon",
         person: "deu_bethmann",
-        topic: "deu_sample_talk",
+        topic: "fx_talk",
       });
     const talk = () => seat(runner).desk.find((c) => c.kind === "talk");
     summon();
@@ -251,7 +253,7 @@ describe("the two sample scenes", () => {
     summon();
     expect(talk()).toBeUndefined();
     expect(seat(runner).audiences).toBe(2);
-    delete st.seen["deu_sample_talk"];
+    delete st.seen["fx_talk"];
     st.audiences = 0;
     summon();
     expect(talk()).toBeUndefined();

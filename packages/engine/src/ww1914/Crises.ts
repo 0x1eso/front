@@ -1,13 +1,17 @@
 import {
+  GW_FRONT_UP,
   GW_TEMP_MAX,
   GW_TOPICS,
   GwChainOutcome,
+  GwSeatState,
+  GwTheatre,
   GwTopic,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import type { GreatWar } from "./GreatWar";
+import { GW_MOBILISE, GW_PLAN_FLAGS } from "./Tables";
 import { openWar } from "./Wars";
-import { clampTo, isLongChapter, news, turn } from "./World";
+import { clampTo, isLongChapter, news, reason, turn } from "./World";
 
 const P_CRISIS = idHash("gw_crisis");
 const P_SPARK = idHash("gw_spark");
@@ -25,8 +29,13 @@ export const GW_LINKS = [
 export const GW_SHORT_START = 3;
 
 /** Temperature a crisis needs to go on at its last two links. */
-const LOCAL_WAR_AT = 5;
+export const LOCAL_WAR_AT = 5;
 const GENERAL_WAR_AT = 6;
+
+/** Times mobilisation can be put off before the world stops waiting. */
+const PUT_OFF_LIMIT = 2;
+/** The fronts a side that mobilised first gains a step on. */
+const FIRST_MOVER_FRONTS: readonly GwTheatre[] = ["west", "east"];
 
 /** A topic's pressure that lights a crisis by itself. */
 const SPARK_AT = 9;
@@ -128,6 +137,19 @@ function moves(gw: GreatWar, link: number): number {
   return d;
 }
 
+/** Petersburg keeps its own time: the hand on the table, the rails under it. */
+function russiaStirs(gw: GreatWar, name: "draft" | "ultimatum"): void {
+  const rus = gw.nation("RUS");
+  if (rus === null) return;
+  const hard = rus.ai === "hardline";
+  const rails = gw.s.secrets.includes("rus_rail_ahead");
+  const stirs =
+    name === "draft"
+      ? hard && rails
+      : hard || rails || gw.s.temp >= LOCAL_WAR_AT;
+  if (stirs) rus.mob = Math.max(rus.mob, 1);
+}
+
 function runLink(gw: GreatWar): void {
   const s = gw.s;
   const c = s.chain!;
@@ -135,9 +157,13 @@ function runLink(gw: GreatWar): void {
   heat(gw, moves(gw, c.step));
   news(gw, `link_${name}`);
   switch (name) {
+    case "draft":
+      russiaStirs(gw, name);
+      break;
     case "ultimatum": {
       const auh = gw.nation("AUH");
       if (auh !== null) auh.mob = Math.max(auh.mob, 1);
+      russiaStirs(gw, name);
       break;
     }
     case "local_war": {
@@ -160,14 +186,75 @@ function runLink(gw: GreatWar): void {
   c.step++;
 }
 
+/** Scenes sign by flag: to the world that is the plan and the mobilisation. */
+function readSignatures(gw: GreatWar): void {
+  const s = gw.s;
+  for (const seat of s.seats) {
+    for (const flag of seat.flags) {
+      const plan = GW_PLAN_FLAGS[flag];
+      if (plan === undefined) continue;
+      s.plan ??= plan;
+      const n = gw.nation(seat.tag);
+      if (n !== null) n.mob = 2;
+    }
+  }
+}
+
+function timesPutOff(seat: GwSeatState): number {
+  const m = GW_MOBILISE[seat.tag];
+  if (m === undefined) return 0;
+  return seat.choices.filter((c) => c.scene === m.scene && c.pick === m.wait)
+    .length;
+}
+
+/**
+ * Mobilisation put off twice (scene plan §1): nobody brings the paper a third
+ * time. If the crisis is still hot, France and Russia move first; no plan was
+ * ever signed, so the seat's army waits at the frontier a step behind and
+ * Belgium is left alone. If it has cooled, the waiting was the answer.
+ */
+function stopWaiting(gw: GreatWar, seat: GwSeatState): void {
+  const s = gw.s;
+  if (s.temp < GENERAL_WAR_AT) {
+    turn(gw, "mob_waited_out");
+    reason(gw, seat, "mob_waited_out");
+    closeChain(gw, "compromise");
+    return;
+  }
+  for (const tag of ["RUS", "FRA"] as const) {
+    const n = gw.nation(tag);
+    if (n !== null) n.mob = 2;
+  }
+  s.plan = "wait";
+  news(gw, "mob_first");
+  turn(gw, "mob_first");
+  reason(gw, seat, "mob_late_war");
+  closeChain(gw, "war");
+  const side = gw.nation(seat.tag)?.side ?? null;
+  for (const t of s.theatres) {
+    if (!t.open || !FIRST_MOVER_FRONTS.includes(t.id)) continue;
+    const back = GW_FRONT_UP[t.id] === side ? -1 : 1;
+    t.progress = clampTo(t.progress + back, -2, 2);
+  }
+}
+
 /** Chapter step: pressure climbs, sparks light, the open crisis takes a link. */
 export function crisisStep(gw: GreatWar): void {
   const s = gw.s;
+  readSignatures(gw);
   if (s.warChapter !== null) return;
   if (isLongChapter(gw)) {
     for (const t of GW_TOPICS) s.pressure[t]++;
   }
   if (s.chain !== null) {
+    const waited =
+      s.plan === null
+        ? s.seats.find((x) => timesPutOff(x) >= PUT_OFF_LIMIT)
+        : undefined;
+    if (waited !== undefined) {
+      stopWaiting(gw, waited);
+      return;
+    }
     if (s.chain.hold > 0) {
       s.chain.hold--;
       return;

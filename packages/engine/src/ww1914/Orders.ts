@@ -102,6 +102,7 @@ export function applyGwOrder(
     case "dismiss": {
       const p = gw.person(o.person);
       if (!ownPerson(seat, o.person) || p === null) return "no_person";
+      if (p.office === null || p.status !== "active") return "no_person";
       const n = gw.nation(seat.tag);
       if (n === null || n.authority < dismissPrice(p.id)) return "no_authority";
       dismissPerson(gw, seat, p);
@@ -110,6 +111,7 @@ export function applyGwOrder(
     case "appoint": {
       const p = gw.person(o.person);
       if (!ownPerson(seat, o.person) || p === null) return "no_person";
+      if (p.status !== "active") return "no_person";
       setOffice({ gw, seat, cast: {} }, p, o.office);
       return null;
     }

@@ -24,6 +24,7 @@ import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { createGameRunner, GameRunner } from "@openfront/engine/GameRunner";
 import { advanceChapter } from "@openfront/engine/ww1914/Chapters";
 import { DeskTrace, watchDesk } from "@openfront/engine/ww1914/Desk";
+import { proposalsFor } from "@openfront/engine/ww1914/Fronts";
 import type { GreatWar } from "@openfront/engine/ww1914/GreatWar";
 import { applyGwOrder, openTopics } from "@openfront/engine/ww1914/Orders";
 import { ctxOf, optionOpen, sceneOf } from "@openfront/engine/ww1914/SceneRun";
@@ -246,6 +247,25 @@ function clearDesk(
   }
 }
 
+/** The chapter's war paper: any of the open ones, as a client sends it. */
+function signPaper(
+  gw: GreatWar,
+  seat: GwSeatState,
+  roll: (below: number) => number,
+): void {
+  const open = proposalsFor(gw, seat).filter((p) => p.open);
+  if (open.length === 0) return;
+  const { main, posture, scale, allyShare } = open[roll(open.length)];
+  applyGwOrder(gw, seat, {
+    kind: "allocate",
+    main,
+    posture,
+    scale,
+    allyShare,
+    research: seat.alloc.research,
+  });
+}
+
 /**
  * One game, start to end, by the orders a client sends. Summons come first, so
  * what a talk opens is open when the decisions are taken. A desk that can't be
@@ -298,6 +318,7 @@ export async function playRun(
       if (seat.desk.length > 0) {
         throw new Error(`${gameID}: desk stuck on ${seat.desk[0].scene}`);
       }
+      signPaper(gw, seat, roll);
       seat.ready = true;
       advanceChapter(gw, runner.game.ticks(), false);
     }

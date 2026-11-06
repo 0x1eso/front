@@ -2,6 +2,7 @@ import { IntentSchema } from "@openfront/engine-api/Schemas";
 import {
   GW_LINES,
   GW_THEATRES,
+  GW_WORLD_FLAGS,
   GwPersonDefSchema,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import { GW_TAGS, gwCountry } from "@openfront/engine-api/ww1914/GwCountries";
@@ -27,6 +28,7 @@ import { loadGwPack } from "@openfront/shared/ww1914/GwPackLoader";
 import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
+import { FOUNDATION_CONTENT } from "./foundationFixture";
 
 const ROOT = path.join(__dirname, "../..");
 const res = (p: string) => path.join(ROOT, "resources", p);
@@ -69,20 +71,19 @@ describe("content", () => {
 
   test("no reference leads nowhere, no line is missing, no holes unfilled", async () => {
     const { scenes, people } = GW_CONTENT;
-    // The world lane's scenes that only its code schedules.
-    expect(gwContentProblems(scenes, people, ["gw_world_called_only"])).toEqual(
-      [],
-    );
+    // Set by the world's code: what its own scenes wait on, and scene plan §1.
+    const outside = ["gw_world_called_only", ...GW_WORLD_FLAGS];
+    expect(gwContentProblems(scenes, people, outside)).toEqual([]);
     const pack = await loadGwPack("DEU", async (p) => json(p));
     const lang = json("lang/en.json").gw.reason as Record<string, string>;
     expect(gwPackProblems(scenes, pack, Object.keys(lang))).toEqual([]);
   });
 
   test("talks open decisions' options, and the check sees it", () => {
-    expect(gwTalkLinks(GW_CONTENT.scenes)).toContainEqual({
-      talk: "deu_sample_talk",
+    expect(gwTalkLinks(FOUNDATION_CONTENT.scenes)).toContainEqual({
+      talk: "fx_talk",
       key: "heard_chancellor",
-      scene: "deu_sample_envoy",
+      scene: "fx_envoy",
       option: "term_limit",
     });
   });

@@ -43,20 +43,24 @@ describe("snapshot and hash", () => {
   test("a restored game is the same game, mid-talk and through the end", async () => {
     const { runner } = await gwRunner();
     playChapter(runner);
+    // Whoever can be called: this test is about the talk, not the content.
+    const person = seat(runner).people.find((p) => p.topics.length > 0)!;
     order(runner, {
       kind: "summon",
-      person: "deu_bethmann",
-      topic: "deu_sample_talk",
+      person: person.id,
+      topic: person.topics[0],
     });
     const copy = await restore(runner);
     expect(diffSnapshots(runner.snapshot(), copy.snapshot())).toEqual([]);
     expect(hash(copy)).toBe(hash(runner));
     const card = seat(runner).desk.find((c) => c.kind === "talk")!;
+    const open = card.replies.filter((r) => r.open);
+    const reply = (open.find((r) => r.kind === "leave") ?? open[0]).id;
     const turns: StampedIntent[][] = [
       [
         stamped(HUMAN, {
           type: "gw_order",
-          order: { kind: "reply", card: card.uid, reply: "leave" },
+          order: { kind: "reply", card: card.uid, reply },
         }),
       ],
       [

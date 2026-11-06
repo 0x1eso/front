@@ -2,7 +2,7 @@
 // alone is checked by gwSceneProblems; a pack by gwPackProblems (GwPack.ts).
 // Pure functions over content: the content test and the simulation report use
 // them, the engine doesn't.
-import type { GwPersonDef } from "./GreatWarTypes";
+import { GW_LINES, GW_SECRETS, type GwPersonDef } from "./GreatWarTypes";
 import { GwCond, GwEffect, GwScene, GwWho } from "./SceneDsl";
 
 function walkCond(c: GwCond | undefined, f: (x: GwCond) => void): void {
@@ -86,6 +86,7 @@ export function gwContentProblems(
   const flags = new Set<string>(outside);
   const memories = new Set<string>([...GW_ENGINE_MEMORY, ...outside]);
   const called = new Set<string>();
+  const secrets = new Set<string>(GW_SECRETS);
   for (const s of scenes) {
     for (const e of gwSceneEffects(s)) {
       if (e.kind === "flag") flags.add(e.flag);
@@ -122,6 +123,20 @@ export function gwContentProblems(
       }
       if (c.kind === "seen" && !ids.has(c.scene)) {
         out.push(`${s.id}: seen ${c.scene} is no scene`);
+      }
+      if (c.kind === "secret" && !secrets.has(c.id)) {
+        out.push(`${s.id}: secret ${c.id} is not in GW_SECRETS`);
+      }
+      // Line numbers move when a front is laid out again; names don't.
+      if (c.kind === "line") {
+        out.push(`${s.id}: name the line with world \`front\`, not a number`);
+      }
+      if (c.kind === "world" && c.of.is === "front") {
+        for (const name of [c.of.from, c.of.to]) {
+          if (name !== undefined && !GW_LINES[c.of.theatre].includes(name)) {
+            out.push(`${s.id}: ${c.of.theatre} has no line ${name}`);
+          }
+        }
       }
       if (c.kind === "chose") {
         const target = ids.get(c.scene);

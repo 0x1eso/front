@@ -87,6 +87,25 @@ export function mergeGwPacks(packs: readonly GwPack[]): GwPack {
   return out;
 }
 
+/** Ids two packs both hold: `mergeGwPacks` would keep only the later one. */
+export function gwPackOverlaps(packs: readonly GwPack[]): string[] {
+  const out = new Set<string>();
+  const seen = new Set<string>();
+  for (const p of packs) {
+    const ids = [
+      ...Object.keys(p.scenes).map((x) => `scene ${x}`),
+      ...Object.keys(p.people).map((x) => `person ${x}`),
+      ...Object.keys(p.reasons ?? {}).map((x) => `reason ${x}`),
+      ...Object.keys(p.promises ?? {}).map((x) => `promise ${x}`),
+    ];
+    for (const id of ids) {
+      if (seen.has(id)) out.add(id);
+      seen.add(id);
+    }
+  }
+  return [...out];
+}
+
 const firstSentence = (t: string) => t.split(/(?<=[.!?…])\s/)[0].trim();
 
 /** Two bodies of one scene opening alike read as a template (design §13). */

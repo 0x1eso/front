@@ -22,6 +22,8 @@ const GW_TURNS: readonly string[] = [
   "war_began",
   "belgium_invaded",
   "new_chief_of_staff",
+  "mob_first",
+  "mob_waited_out",
   "crisis_war",
   "crisis_compromise",
   "crisis_humiliation",

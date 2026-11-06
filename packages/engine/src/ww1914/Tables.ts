@@ -3,6 +3,7 @@
 import {
   GW_THEATRES,
   GwGauge,
+  GwPlan,
   GwSide,
   GwTheatre,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
@@ -178,3 +179,19 @@ export const GW_ENTRY_BAR = {
   opportunist: 60,
   principled: 70,
 } as const;
+
+/**
+ * The scene a country signs mobilisation on, and the option that puts it off.
+ * Twice put off, the world decides (Crises.ts): scene plan §1.
+ */
+export const GW_MOBILISE: Readonly<
+  Partial<Record<GwTag, { scene: string; wait: string }>>
+> = {
+  DEU: { scene: "deu_c_mobilise", wait: "wait_day" },
+};
+
+/** A scene's flag is the war plan signed: scenes set flags, the world reads. */
+export const GW_PLAN_FLAGS: Readonly<Partial<Record<string, GwPlan>>> = {
+  f_west_plan: "west",
+  f_east_first: "east",
+};

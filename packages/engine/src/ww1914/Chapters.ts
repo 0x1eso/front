@@ -11,6 +11,7 @@ import { intelStep } from "./Intel";
 import { peopleStep } from "./People";
 import { closeUndecided } from "./SceneRun";
 import { trimLines } from "./World";
+import { worldFlagsStep } from "./WorldFlags";
 
 /**
  * What runs when a chapter closes, in this order, after open cards took
@@ -24,6 +25,7 @@ export const GW_CHAPTER_STEPS: readonly ((gw: GreatWar) => void)[] = [
   peopleStep,
   aiStep,
   intelStep,
+  worldFlagsStep,
   endingStep,
 ];
 
