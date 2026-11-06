@@ -123,7 +123,7 @@ export const AUH_PEOPLE: readonly GwPersonDef[] = [
     allies: ["auh_zita", "auh_arz"],
     fame: 4,
     source:
-      "b. 17 Aug 1887, Persenbeug; heir after Sarajevo; at Teschen without influence, XX Corps 1916, an army group in the east; emperor 21 Nov 1916; supreme command 2 Dec 1916; crowned at Budapest 30 Dec; devout, affable (en.wikipedia Charles I of Austria). The person is the heir: once he takes the throne he is the seat and leaves the list",
+      "b. 17 Aug 1887, Persenbeug; heir after Sarajevo; at Teschen without influence, XX Corps 1916, an army group in the east; emperor 21 Nov 1916; supreme command 2 Dec 1916; crowned at Budapest 30 Dec; devout, affable (en.wikipedia Charles I of Austria). Franz Joseph's great-nephew (memory). The person is the heir: once he takes the throne he is the seat and leaves the list",
   },
   {
     id: "auh_zita",
@@ -201,7 +201,7 @@ export const AUH_PEOPLE: readonly GwPersonDef[] = [
     allies: [],
     fame: 3,
     source:
-      "b. 24 Jun 1852, Prague; physician, neurologist; founded the Social Democrats at Hainfeld 1888-1889, chairman to Nov 1918; backed the war in public with private misgivings; his son Friedrich shot Stürgkh; foreign minister 30 Oct 1918; d. 11 Nov 1918 (en.wikipedia Victor Adler). The party's part in ending the January strike, the Workers' Council and the party proposal (dynamic-rsnz.natlib.govt.nz, Dominion 23 Jan 1918 and en.wikipedia Austro-Hungarian strike of January 1918, as summarised by a search)",
+      "b. 24 Jun 1852, Prague; physician, neurologist; founded the Social Democrats at Hainfeld 1888-1889, chairman to Nov 1918; backed the war in public with private misgivings; his son Friedrich shot Stürgkh; foreign minister 30 Oct 1918; d. 11 Nov 1918 (en.wikipedia Victor Adler). Friedrich on the party's left (memory). The party's part in ending the January strike, the Workers' Council and the party proposal (dynamic-rsnz.natlib.govt.nz, Dominion 23 Jan 1918 and en.wikipedia Austro-Hungarian strike of January 1918, as summarised by a search)",
   },
   // The second row: successors, commanders, rare doors. Visits and voices.
   {
@@ -228,7 +228,7 @@ export const AUH_PEOPLE: readonly GwPersonDef[] = [
     allies: ["auh_bolfras"],
     fame: 2,
     source:
-      "b. 16 Sep 1854; grandson's line of Marie-Louise by Neipperg; first Obersthofmeister 1909-Feb 1917; enemy of Franz Ferdinand; Sophie's coffin set a step lower, fan and gloves, two hours in the chapel, Artstetten after dark; dismissed by Karl (de.wikipedia Alfred von Montenuovo). Holds no office in the game's list: `court` is Bolfras; a scene casts him by name",
+      "b. 16 Sep 1854; descends from Marie-Louise by Neipperg; first Obersthofmeister 1909-Feb 1917; enemy of Franz Ferdinand; Sophie's coffin set a step lower, fan and gloves, two hours in the chapel, Artstetten after dark; dismissed by Karl (de.wikipedia Alfred von Montenuovo). Holds no office in the game's list: `court` is Bolfras; a scene casts him by name",
   },
   {
     id: "auh_haus",
@@ -410,7 +410,7 @@ export const AUH_PEOPLE: readonly GwPersonDef[] = [
     allies: ["auh_bilinski"],
     fame: 3,
     source:
-      "First Cadre Company 3 Aug 1914, Kielce 12 Aug; Legions in the Austrian army 27 Aug, First Brigade; stretched orders to the utmost, told the British he fought only Russia; demanded a guarantee after Kostiuchnówka 1916; forbade the oath Jul 1917, Magdeburg, released 8 Nov 1918 (en.wikipedia Józef Piłsudski). A Russian subject by birth (memory); kept in this list because he stands in Austrian ranks",
+      "First Cadre Company 3 Aug 1914, Kielce 12 Aug; Legions in the Austrian army 27 Aug, First Brigade; stretched orders to the utmost, told the British he fought only Russia; demanded a guarantee after Kostiuchnówka 1916; forbade the oath Jul 1917, Magdeburg, released 8 Nov 1918 (en.wikipedia Józef Piłsudski). A Russian subject by birth, the riflemen's associations at Kraków (memory); kept in this list because he stands in Austrian ranks",
   },
 ];
 

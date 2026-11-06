@@ -35,7 +35,10 @@ describe("the Austro-Hungarian cast", () => {
   test("sixteen principals, all of the empire", () => {
     expect(new Set(AUH_PRINCIPALS).size).toBe(16);
     for (const id of AUH_PRINCIPALS) {
-      expect(austrians.some((p) => p.id === id), id).toBe(true);
+      expect(
+        austrians.some((p) => p.id === id),
+        id,
+      ).toBe(true);
     }
   });
 
@@ -54,7 +57,9 @@ describe("the Austro-Hungarian cast", () => {
   });
 
   test("an office has one holder who fits it, and nobody holds interior", () => {
-    const held = austrians.flatMap((p) => (p.office === null ? [] : [p.office]));
+    const held = austrians.flatMap((p) =>
+      p.office === null ? [] : [p.office],
+    );
     expect(new Set(held).size).toBe(held.length);
     expect(held).not.toContain("interior");
     for (const p of austrians) {
