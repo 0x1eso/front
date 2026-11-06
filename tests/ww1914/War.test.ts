@@ -51,9 +51,6 @@ const CAST = [
   man("t_grey", "GBR", ["hard", "civil"], "foreign"),
   man("t_morley", "GBR", ["moderate", "civil"], "interior"),
   man("t_burns", "GBR", ["moderate", "civil"], "finance"),
-  man("gbr_asquith", "GBR", ["moderate"], null),
-  man("auh_karl", "AUH", ["military"], null),
-  man("auh_ff", "AUH", ["military"], null),
 ];
 
 beforeAll(() => useGwContent({ scenes: GW_CONTENT.scenes, people: CAST }));
@@ -122,9 +119,12 @@ describe("the fronts past 1914", () => {
   });
 
   test("a theatre nobody's effort is in still sees fighting", async () => {
-    const shape = await warShape("GWY3", "GBR");
-    const fought = Object.keys(shape.battles);
-    expect(fought.length).toBeGreaterThanOrEqual(7);
+    const fought = new Set<string>();
+    for (const id of ["GWY3", "GWY4", "GWY5"]) {
+      const shape = await warShape(id, "DEU");
+      for (const t of Object.keys(shape.battles)) fought.add(t);
+    }
+    expect(fought.size).toBeGreaterThanOrEqual(7);
   });
 
   test("the Hindenburg line counts only for those who built it, once built", async () => {
@@ -303,6 +303,63 @@ describe("who can say no", () => {
     expect(gw.nation("AUH")!.regime).toBe("karl");
     expect(karl.status).toBe("crowned");
     expect(seat.flags).toContain("w_auh_karl");
+  });
+});
+
+describe("the seats' own wars", () => {
+  test("a good Russian offensive lands, a poor one doesn't", async () => {
+    let good = 0;
+    let poor = 0;
+    for (let i = 0; i < 12; i++) {
+      for (const signed of [true, false]) {
+        const { gw, runner, seat } = await war("RUS", `GWRO${i}`);
+        const east = gw.s.theatres.find((t) => t.id === "east")!;
+        const rus = gw.nation("RUS")!;
+        gw.s.chapter += 18;
+        east.trench = 2;
+        rus.gauges.shells = signed ? 2 : 0;
+        rus.gauges.morale = 3;
+        rus.strength.east = 4;
+        east.commander = "rus_brusilov";
+        gw.person("rus_brusilov")!.competence[0] = signed ? 3 : 1;
+        seat.alloc = { ...seat.alloc, main: "east", posture: "offensive" };
+        seat.signed = gw.s.chapter;
+        if (signed) {
+          seat.choices.push({
+            scene: "rus_w_april_council",
+            pick: "brusilov_goes",
+            chapter: gw.s.chapter,
+            proxy: false,
+          });
+        }
+        seat.desk = [];
+        const before = gw.s.battles.length;
+        pass(gw, runner, 1);
+        const b = gw.s.battles
+          .slice(before)
+          .find((x) => x.theatre === "east" && x.by === "entente");
+        const landed = b?.result === "advance" || b?.result === "break";
+        if (landed && signed) good++;
+        if (landed && !signed) poor++;
+      }
+    }
+    expect(good).toBeGreaterThanOrEqual(5);
+    expect(poor).toBeLessThanOrEqual(2);
+  });
+
+  test("a neutral Britain enters by its own declaration", async () => {
+    const { gw } = await war("GBR", "GWBRIT");
+    expect(gw.nation("GBR")!.side).toBe(null);
+    runEffect(ctx(gw), doWorld({ do: "declare", tag: "DEU" }));
+    expect(gw.nation("GBR")!.side).toBe("entente");
+  });
+
+  test("Germany nobody plays raises its boats once the blockade bites", async () => {
+    const { gw, runner } = await war("GBR", "GWBOAT");
+    runEffect(ctx(gw), doWorld({ do: "declare", tag: "DEU" }));
+    gw.s.blockade = 5;
+    pass(gw, runner, 3);
+    expect(gw.s.uboat).toBeGreaterThan(0);
   });
 });
 

@@ -13,7 +13,7 @@ import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { dismissalFallout } from "./Authority";
 import type { GreatWar } from "./GreatWar";
 import { holderOf } from "./SceneRun";
-import { GW_NO_COMMAND } from "./Tables";
+import { GW_NO_COMMAND, GW_PASSING } from "./Tables";
 import { clampTo, defOf, ownPeople, reason, turn } from "./World";
 
 const P_HEALTH_FAIL = idHash("gw_health_fail");
@@ -287,10 +287,23 @@ function arrivals(gw: GreatWar): void {
   }
 }
 
+/** Age does what it does: they leave any office they held and the cast. */
+function passing(gw: GreatWar): void {
+  for (const row of GW_PASSING) {
+    const p = gw.person(row.person);
+    const [y, m, d] = row.on.split("-").map(Number);
+    if (p === null || p.status === "dead") continue;
+    if (gw.s.day < daysFromCivil(y, m, d)) continue;
+    p.status = "dead";
+    p.office = null;
+  }
+}
+
 /** Chapter step: arrivals, letters, health, envy, succession. */
 export function peopleStep(gw: GreatWar): void {
   const s = gw.s;
   arrivals(gw);
+  passing(gw);
   for (const seat of s.seats) {
     const own = ownPeople(gw, seat.tag);
     for (const p of own) {

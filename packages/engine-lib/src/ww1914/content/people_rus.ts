@@ -498,6 +498,7 @@ export const RUS_PEOPLE: readonly GwPersonDef[] = [
   },
   {
     id: "rus_kornilov",
+    arrives: "1916-09-01",
     tag: "RUS",
     office: null,
     fit: [],
@@ -537,6 +538,7 @@ export const RUS_PEOPLE: readonly GwPersonDef[] = [
   },
   {
     id: "rus_lenin",
+    arrives: "1917-04-16",
     tag: "RUS",
     office: null,
     fit: [],
@@ -563,6 +565,7 @@ export const RUS_PEOPLE: readonly GwPersonDef[] = [
   },
   {
     id: "rus_michael",
+    arrives: "1914-08-15",
     tag: "RUS",
     office: null,
     fit: [],

@@ -1931,12 +1931,10 @@ export const GBR_CRISIS_SCENES: readonly GwScene[] = [
   talk(
     "gbr_t_king_tsar",
     "gbr_george_v",
-    all(during("17a"), {
-      kind: "nation_gauge",
-      tag: "RUS",
-      gauge: "order",
-      max: 1,
-    }),
+    all(
+      during("17a"),
+      world({ is: "regime", tag: "RUS", of: ["provisional", "rep", "soviet"] }),
+    ),
     {
       open: node(
         moods("anxious"),

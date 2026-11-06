@@ -367,6 +367,15 @@ export const GW_OPENING_DEAD: readonly {
   readonly openings: readonly GwOpening[];
 }[] = [{ person: "auh_ff", openings: ["sarajevo", "sarajevo_delayed"] }];
 
+/** Those whose day comes whatever the seat does: the record, no more. */
+export const GW_PASSING: readonly {
+  readonly person: string;
+  readonly on: string;
+}[] = [
+  { person: "rus_witte", on: "1915-03-13" },
+  { person: "rus_durnovo", on: "1915-09-24" },
+];
+
 /** Court people who don't take an army, whatever their rank. */
 export const GW_NO_COMMAND: readonly string[] = [
   "auh_karl",
@@ -447,4 +456,53 @@ export const GW_WAR_ORDERS: readonly GwWarOrder[] = [
   order("deu_w_shell_crisis", "cut_west", "west", -4, 2),
   order("deu_w_fleet_out", "sortie", "sea", 7, 1, { losses: 150 }),
   order("deu_w_fleet_out", "raid_coast", "sea", 4, 1),
+  // Russia. One planned blow on a wide front is what the east was broken by.
+  order("rus_w_april_council", "brusilov_goes", "east", 45, 4),
+  order("rus_w_april_council", "both_fronts", "east", 20, 3),
+  order("rus_w_april_council", "west_front", "east", 12, 2),
+  order("rus_w_evert_holds", "reserves_south", "east", 15, 2),
+  order("rus_w_evert_holds", "wait_evert", "east", -10, 2),
+  order("rus_w_kovel", "press_guard", "east", 12, 2, { losses: 140 }),
+  order("rus_w_naroch", "attack_now", "east", 8, 1, { losses: 140 }),
+  order("rus_w_carpathians", "over_the_pass", "east", 12, 2),
+  order("rus_w_spring_promise", "keep_promise", "east", 12, 2),
+  order("rus_w_gorlice", "trade_space", "east", -4, 2, { steps: -2 }),
+  order("rus_w_gorlice", "hold_ground", "east", 5, 2, { losses: 140 }),
+  order("rus_w_warsaw", "leave_all", "east", -4, 2, {
+    steps: -2,
+    losses: 70,
+  }),
+  order("rus_w_caucasus_snow", "go_in_snow", "caucasus", 15, 2, {
+    losses: 150,
+  }),
+  // Austria-Hungary.
+  order("auh_w_galicia_plan", "attack", "east", 8, 2, { losses: 130 }),
+  order("auh_w_lemberg", "fall_back_san", "east", -4, 2, {
+    steps: -2,
+    losses: 70,
+  }),
+  order("auh_w_lemberg", "call_germans", "east", 8, 2),
+  order("auh_w_carpathian", "push_on", "east", 6, 2, { losses: 150 }),
+  order("auh_w_carpathian", "ask_germans", "east", 8, 2),
+  order("auh_w_italy_war", "boroevic_to_isonzo", "italy", 10, 3),
+  order("auh_w_tyrol_strike", "strike", "italy", 12, 2, { losses: 130 }),
+  order("auh_w_tyrol_strike", "strike", "east", -8, 2),
+  order("auh_w_brusilov", "call_germans", "east", 12, 2),
+  order("auh_w_brusilov", "strip_italy", "east", 10, 2),
+  order("auh_w_brusilov", "strip_italy", "italy", -10, 2),
+  order("auh_w_brusilov", "fall_back_far", "east", -4, 2, { steps: -3 }),
+  order("auh_w_caporetto", "ask_germans", "italy", 25, 2),
+  order("auh_w_piave", "both_prongs", "italy", 8, 1, { losses: 150 }),
+  // Britain.
+  order("gbr_w_council", "west", "west", 6, 3),
+  order("gbr_w_council", "straits", "straits", 12, 3),
+  order("gbr_w_new_armies", "to_france", "west", 8, 3),
+  order("gbr_w_new_armies", "to_straits", "straits", 12, 3),
+  order("gbr_w_landing", "more_men", "straits", 12, 2, { losses: 130 }),
+  order("gbr_w_somme_first", "agreed_date", "west", 6, 2, { losses: 150 }),
+  order("gbr_w_somme_first", "new_weapon", "west", 8, 2),
+  order("gbr_w_flanders", "approve", "west", 6, 2, { losses: 150 }),
+  order("gbr_w_flanders", "small_bites", "west", 2, 2, { losses: 80 }),
+  order("gbr_w_march", "send_all", "west", 12, 2),
+  order("gbr_w_doullens", "foch", "west", 10, 3),
 ];

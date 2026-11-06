@@ -129,6 +129,22 @@ describe("content", () => {
     }
   });
 
+  test("every tell has its word and every ending its title", () => {
+    const words = [json("lang/ko.json").gw, json("lang/en.json").gw];
+    const tells = GW_CONTENT.scenes.flatMap((s) => [
+      ...(s.options ?? []).flatMap((o) => o.tell),
+      ...Object.values(s.nodes ?? {}).flatMap((n) =>
+        n.replies.flatMap((r) => r.tell),
+      ),
+    ]);
+    for (const lang of words) {
+      for (const t of new Set(tells.map((x) => x.split(":")[0]))) {
+        expect(lang.tell[t], t).toBeTruthy();
+      }
+      for (const id of GW_ENDINGS) expect(lang.ending[id], id).toBeTruthy();
+    }
+  });
+
   test("talks open decisions' options, and the check sees it", () => {
     expect(gwTalkLinks(FOUNDATION_CONTENT.scenes)).toContainEqual({
       talk: "fx_talk",

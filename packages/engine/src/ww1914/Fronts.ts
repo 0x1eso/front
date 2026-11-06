@@ -574,7 +574,9 @@ function judge(gw: GreatWar, t: GwTheatreState): void {
   const ups = GW_FRONT_UP[t.id];
   const aUp = attacks(gw, t, ups);
   const aDown = attacks(gw, t, other(ups));
-  const local = !aUp && !aDown ? localPush(gw, t) : null;
+  // Where a retreat was ordered the line is on the move: nobody tries anything.
+  const moving = ordersOn(gw, t.id).some((x) => x.o.steps !== undefined);
+  const local = !aUp && !aDown && !moving ? localPush(gw, t) : null;
   if (!aUp && !aDown && local === null) {
     s.battles.push({
       theatre: t.id,

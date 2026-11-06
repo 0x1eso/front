@@ -2821,6 +2821,7 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
       during("16b", "17a"),
       memory("k_hall_room40"),
       not(fighting("USA")),
+      { kind: "secret", id: "deu_zimmermann_wire" },
     ),
     7,
     {
