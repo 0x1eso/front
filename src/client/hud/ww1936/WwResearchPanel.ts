@@ -1343,7 +1343,7 @@ export class WwResearchPanel extends WwDrawerBase {
       data-ww-next
       class="${this.open
         ? ""
-        : "fixed bottom-[calc(var(--ww-dock-h,0px)+env(safe-area-inset-bottom)+8px)] right-3 max-w-[calc(100vw-24px)] max-sm:bottom-[calc(var(--ww-dock-above,0px)+var(--ww-dock-h,0px)+env(safe-area-inset-bottom)+8px)] max-sm:left-1/2 max-sm:right-auto max-sm:-translate-x-1/2 [@media(max-height:420px)]:top-12 [@media(max-height:420px)]:bottom-auto "}z-[1003] flex items-center gap-2 break-keep rounded-lg border border-emerald-300/70 bg-gray-900/95 p-2 text-xs text-white shadow-lg"
+        : "fixed bottom-[calc(var(--ww-dock-h,0px)+env(safe-area-inset-bottom)+8px)] right-3 xl:left-3 xl:right-auto max-w-[calc(100vw-24px)] max-sm:bottom-[calc(var(--ww-dock-above,0px)+var(--ww-dock-h,0px)+env(safe-area-inset-bottom)+8px)] max-sm:left-1/2 max-sm:right-auto max-sm:-translate-x-1/2 [@media(max-height:420px)]:top-12 [@media(max-height:420px)]:bottom-auto "}z-[1003] flex items-center gap-2 break-keep rounded-lg border border-emerald-300/70 bg-gray-900/95 p-2 text-xs text-white shadow-lg"
     >
       <span>${translateText("ww1936.rtree.next_title")}</span>
       <button

@@ -345,7 +345,7 @@ export const FRA_HIST: readonly HistEntry[] = [
     country: "FRA",
     family: "tank",
     role: "medium",
-    techs: ["medium_tank_3", "tank_gun_2"],
+    techs: ["medium_tank_3", "tank_gun_3"],
     staticFor: "medium_tank:3",
     year: 1942,
     // SARL 42: clandestine ARL medium tank design of 1942, ARL 3 turret with a 75 mm L/32 or L/44 gun and a rangefinder, side armour cut to 30 mm to save weight; paper project only. Figures other than the gun and the side plate are my estimates (L/44 pen. like the other 75 mm of the period).

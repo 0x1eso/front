@@ -107,7 +107,7 @@ describe("the catalogue's gates (ww82 §5)", () => {
         }
       }
     }
-    expect(found).toBe(107); // ww91: the seven trucks stand in for the motorized key; ww107: Italy's 90/53
+    expect(found).toBe(109); // ww91: the seven trucks stand in for the motorized key; ww107: Italy's 90/53; ww122: France's medium gens 2-3
   });
 
   it("a tank's gun tech follows its penetration at 500 m", () => {
