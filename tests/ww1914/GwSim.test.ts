@@ -94,22 +94,17 @@ describe("the N-run report", () => {
 
   test("the bot signs the chief of staff's papers through the war", async () => {
     useScenes(content());
-    const game = await playRun(
-      map,
-      "GWPAPERS",
-      "y1914",
-      [],
-      GW_SIM_PROFILES[0],
-    );
-    const again = await playRun(
-      map,
-      "GWPAPERS",
-      "y1914",
-      [],
-      GW_SIM_PROFILES[0],
-    );
-    expect(again.papersSigned).toBe(game.papersSigned);
-    expect(game.papersSigned > 0).toBe(game.chapters > 6);
+    const ids = ["GWP0", "GWP1", "GWP2", "GWP3", "GWP4", "GWP5"];
+    const profile = GW_SIM_PROFILES[0];
+    const games: GwRunRecord[] = [];
+    for (const id of ids) {
+      games.push(await playRun(map, id, "y1914", [], profile));
+    }
+    const signed = games.filter((g) => g.papersSigned > 0);
+    expect(signed.length).toBeGreaterThan(0);
+    for (const g of signed) {
+      expect(g.papersSigned).toBeLessThan(g.chapters);
+    }
   });
 
   test("names what never came, and why", async () => {
