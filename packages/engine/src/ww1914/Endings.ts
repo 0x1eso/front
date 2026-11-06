@@ -14,6 +14,7 @@ import { warScore } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
 import { GW_MANDATES } from "./Mandates";
 import { holds } from "./SceneRun";
+import { closeTreaties } from "./Treaties";
 import { defOf, fights } from "./World";
 
 const P_UNKNOWN = idHash("gw_unknown");
@@ -233,6 +234,7 @@ export function memoirOf(gw: GreatWar, seat: GwSeatState): GwMemoir {
 
 /** Runs once when `s.ended` is set, whoever set it. */
 export function closeGame(gw: GreatWar): void {
+  if (gw.s.seats.some((x) => x.memoir === null)) closeTreaties(gw);
   for (const seat of gw.s.seats) {
     seat.memoir ??= memoirOf(gw, seat);
   }

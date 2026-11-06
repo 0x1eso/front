@@ -1,4 +1,3 @@
-import { GwSeatState } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import { gwChapters } from "@openfront/engine-lib/ww1914/Calendars";
 import { aiStep } from "./Ai";
 import { crisisStep } from "./Crises";
@@ -10,6 +9,9 @@ import { homeStep } from "./Home";
 import { intelStep } from "./Intel";
 import { peopleStep } from "./People";
 import { closeUndecided } from "./SceneRun";
+import { closeSeats, regentStep, waitedFor } from "./Seats";
+import { telegramStep } from "./Telegrams";
+import { treatyStep } from "./Treaties";
 import { trimLines } from "./World";
 import { worldFlagsStep } from "./WorldFlags";
 
@@ -27,16 +29,13 @@ export const GW_CHAPTER_STEPS: readonly ((gw: GreatWar) => void)[] = [
   intelStep,
   worldFlagsStep,
   endingStep,
+  treatyStep,
+  regentStep,
+  telegramStep,
 ];
 
-/** Seats that count for "everyone is ready": a dropped friend doesn't. */
-function waitedFor(gw: GreatWar, seat: GwSeatState): boolean {
-  const p = gw.mg.playerBySmallID(seat.smallID);
-  return !(p.isPlayer() && p.isDisconnected());
-}
-
 export function allReady(gw: GreatWar): boolean {
-  const seats = gw.s.seats.filter((x) => waitedFor(gw, x));
+  const seats = gw.s.seats.filter(waitedFor);
   return seats.length > 0 && seats.every((x) => x.ready);
 }
 
@@ -46,8 +45,11 @@ export function openChapter(gw: GreatWar, ticks: number): void {
   const ch = gwChapters(s.calendar)[s.chapter];
   s.day = ch.day + s.dayShift;
   s.deadlineTick = gw.deadlineFrom(ticks);
+  s.slowAsked = [];
+  s.slowGranted = 0;
   for (const seat of s.seats) {
     seat.ready = false;
+    seat.wired = 0;
     seat.audiences = ch.summons;
     dealDesk(gw, seat);
   }
@@ -61,7 +63,11 @@ export function advanceChapter(
   late: boolean,
 ): void {
   const s = gw.s;
-  for (const seat of s.seats) closeUndecided(gw, seat, late);
+  // Nobody decided for a seat that isn't there: that is the proxy's stamp too.
+  for (const seat of s.seats) {
+    closeUndecided(gw, seat, late || !waitedFor(seat));
+  }
+  closeSeats(gw);
   for (const seat of s.seats) trimLines(gw, seat);
   for (const step of GW_CHAPTER_STEPS) {
     step(gw);

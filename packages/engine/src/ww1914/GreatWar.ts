@@ -1,5 +1,6 @@
 import type { GameMap } from "@openfront/engine-api/game/GameMap";
 import { GameType } from "@openfront/engine-api/game/GameTypes";
+import type { ClientID } from "@openfront/engine-api/Schemas";
 import {
   GreatWarState,
   GreatWarStateSchema,
@@ -27,6 +28,7 @@ import { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
 import type { Game } from "../game/Game";
 import { advanceChapter, allReady } from "./Chapters";
 import { closeGame } from "./Endings";
+import { watchSeats } from "./Seats";
 import { GW_ACTORS } from "./Tables";
 import { gwView } from "./View";
 
@@ -71,6 +73,11 @@ export class GreatWar {
   readonly world: GwWorld;
   /** Not state: whether the screens need an update. */
   private dirty = true;
+  /**
+   * Not state: whose client this worker serves. Every client runs the whole
+   * game, but what leaves the worker for the page is this seat's and no other's.
+   */
+  private viewer: ClientID | null = null;
 
   constructor(
     readonly mg: Game,
@@ -144,6 +151,12 @@ export class GreatWar {
       nextReport: 1,
       battles: [],
       news: [],
+      slowAsked: [],
+      slowGranted: 0,
+      telegrams: [],
+      nextTelegram: 1,
+      treaties: [],
+      nextTreaty: 1,
     };
   }
 
@@ -184,6 +197,12 @@ export class GreatWar {
         signed: -1,
         lines: [],
         memoir: null,
+        acted: false,
+        idle: 0,
+        regent: false,
+        regentGone: false,
+        wired: 0,
+        away: false,
       });
     }
     this.s.seats.sort((a, b) => a.smallID - b.smallID);
@@ -216,12 +235,15 @@ export class GreatWar {
       this.mg.config().gameConfig().gameType === GameType.Singleplayer;
     if (solo) return null;
     const ch = gwChapters(this.s.calendar)[this.s.chapter];
-    return tick + ch.timerSec * 10;
+    const host = this.mg.config().gameConfig().greatWar1914TimerSec;
+    const sec = ch.stage === "closing" ? ch.timerSec : (host ?? ch.timerSec);
+    return tick + sec * 10;
   }
 
   /** The chapter clock: every seat ready, or the deadline, closes a chapter. */
   tick(ticks: number): void {
     const s = this.s;
+    watchSeats(this);
     if (s.ended !== null) {
       // A scene can end the game between chapters.
       if (s.seats.some((x) => x.memoir === null)) closeGame(this);
@@ -249,11 +271,22 @@ export class GreatWar {
     this.dirty = true;
   }
 
+  /** Whose client this is; null a spectator or a replay. */
+  setViewer(clientID: ClientID | null): void {
+    this.viewer = clientID;
+  }
+
+  /** The seat this worker may show, by smallID; null shows none. */
+  private viewerSeat(): number | null {
+    if (this.viewer === null) return null;
+    return this.mg.playerByClientID(this.viewer)?.smallID() ?? null;
+  }
+
   /** The view when something changed, else null. */
   takeData(): GreatWarData | null {
     if (!this.dirty) return null;
     this.dirty = false;
-    return gwView(this);
+    return gwView(this, this.viewerSeat());
   }
 }
 

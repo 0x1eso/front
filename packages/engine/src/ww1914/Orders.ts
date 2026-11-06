@@ -30,7 +30,10 @@ import {
   setOffice,
   takeOption,
 } from "./SceneRun";
+import { answerSlow, askSlow, noteActed } from "./Seats";
 import { applyReply, summonScenes } from "./Talk";
+import { sendTelegram } from "./Telegrams";
+import { answerTreaty, breakOrder, enterWar, offerTreaty } from "./Treaties";
 
 /** Why this seat can't say ready; null when it can. */
 export function readyBlock(seat: GwSeatState): GwOrderBlock | null {
@@ -136,6 +139,20 @@ export function applyGwOrder(
       };
       return null;
     }
+    case "slow":
+      return askSlow(gw, seat);
+    case "slow_answer":
+      return answerSlow(gw, seat, o.grant);
+    case "telegram":
+      return sendTelegram(gw, seat, o.to, o.cipher, o.text);
+    case "treaty_offer":
+      return offerTreaty(gw, seat, o.to, o.clauses);
+    case "treaty_answer":
+      return answerTreaty(gw, seat, o.treaty, o.sign);
+    case "treaty_break":
+      return breakOrder(gw, seat, o.treaty);
+    case "enter_war":
+      return enterWar(gw, seat, o.side);
   }
 }
 
@@ -192,6 +209,7 @@ export class GwOrderExecution implements Execution {
     const gw = mg.greatWar();
     const seat = gw?.seatOf(this.player.smallID()) ?? null;
     if (gw === null || seat === null) return;
+    noteActed(gw, seat);
     applyGwOrder(gw, seat, this.order);
     gw.touch();
   }

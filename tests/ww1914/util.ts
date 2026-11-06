@@ -22,6 +22,7 @@ export async function gwRunner(
     [{ clientID: HUMAN, country: "DEU" }],
     undefined,
     gameID,
+    HUMAN,
   );
   step(made.runner, 2);
   return made;

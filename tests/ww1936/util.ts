@@ -16,6 +16,7 @@ import {
   StampedIntent,
   WwOrder,
 } from "@openfront/engine-api/Schemas";
+import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
 import type { BattalionId } from "@openfront/engine-api/ww1936/LandTypes";
 import type { WwStats } from "@openfront/engine-api/ww1936/PoliticsTypes";
@@ -62,6 +63,8 @@ export const HUMAN = "HUMAN001";
 export interface WwHuman {
   clientID: string;
   country?: CountryTag;
+  /** Great War 1914: the seat picked. */
+  gwCountry?: GwTag;
 }
 
 export function wwGameStart(
@@ -97,6 +100,7 @@ export function wwGameStart(
       clanTag: null,
       isLobbyCreator: i === 0,
       ...(h.country === undefined ? {} : { country: h.country }),
+      ...(h.gwCountry === undefined ? {} : { gwCountry: h.gwCountry }),
     })),
   };
 }
@@ -107,6 +111,8 @@ export async function wwRunnerCapture(
   humans: WwHuman[] = [],
   map: string = MINI,
   gameID?: string,
+  /** Whose client this runner is: Great War 1914 shows only that seat. */
+  viewer?: string,
 ): Promise<{ runner: GameRunner; updates: GameUpdateViewData[] }> {
   const start = wwGameStart(config, humans);
   // P3: the game id seeds politics' roll (plan decision 2).
@@ -114,7 +120,7 @@ export async function wwRunnerCapture(
   const updates: GameUpdateViewData[] = [];
   const runner = await createGameRunner(
     start,
-    undefined,
+    viewer,
     await loadMapFiles(
       new TestDataMapLoader(map),
       GameMapType.World1936,

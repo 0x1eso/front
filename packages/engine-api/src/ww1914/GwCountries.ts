@@ -72,6 +72,28 @@ export function isGwTag(v: string): v is GwTag {
   return (GW_TAGS as readonly string[]).includes(v);
 }
 
+/**
+ * The seats a lobby offers (design §9: up to eight friends), the countries of
+ * the first release first. A country here without text plays common scenes.
+ */
+export const GW_SEAT_TAGS = [
+  "DEU",
+  "GBR",
+  "AUH",
+  "RUS",
+  "FRA",
+  "ITA",
+  "OTT",
+  "USA",
+] as const satisfies readonly GwTag[];
+export const GW_MAX_SEATS = GW_SEAT_TAGS.length;
+/** Seats with their own desk and people: the rest wait for their writers. */
+export const GW_WRITTEN_TAGS: readonly GwTag[] = ["DEU", "GBR", "AUH", "RUS"];
+
+export function isGwSeatTag(v: string): boolean {
+  return (GW_SEAT_TAGS as readonly string[]).includes(v);
+}
+
 export interface GwCountryDef {
   /** English name: the engine's player name. Screens use `gw.country.<TAG>`. */
   readonly name: string;

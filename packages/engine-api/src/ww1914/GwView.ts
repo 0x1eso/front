@@ -4,14 +4,17 @@
 import type {
   GwAlloc,
   GwCalendarId,
+  GwClause,
   GwGauge,
   GwInstitution,
+  GwMemoir,
   GwOffice,
   GwOpening,
   GwReason,
   GwStage,
   GwStamp,
   GwTheatre,
+  GwTreatyState,
 } from "./GreatWarTypes";
 import type { GwTag } from "./GwCountries";
 import type { GwOrderBlock } from "./GwOrders";
@@ -98,6 +101,47 @@ export interface GwTheatreView {
   defender: GwTag | null;
 }
 
+/** A telegram as this seat holds it. */
+export interface GwTelegramView {
+  uid: number;
+  from: GwTag;
+  to: GwTag;
+  /** "sent" my own, "in" for me, "copy" my listeners took it. */
+  box: "sent" | "in" | "copy";
+  /** The grade: shown on my own, on the others only as the copy's quality. */
+  cipher: number;
+  text: string;
+  /** YYYY-MM-DD it was sent. */
+  date: string;
+  /** Sent ones: arrived yet. */
+  delivered: boolean;
+}
+
+/** A treaty this seat is party to, or the world knows of. */
+export interface GwTreatyView {
+  uid: number;
+  from: GwTag;
+  to: GwTag;
+  clauses: readonly GwClause[];
+  state: GwTreatyState;
+  date: string;
+  signed: string | null;
+  leaked: boolean;
+  brokenBy: GwTag | null;
+  why: string | null;
+  /** A party to it. */
+  mine: boolean;
+  /** An offer waiting for my answer. */
+  answer: boolean;
+}
+
+export interface GwDiploView {
+  telegrams: readonly GwTelegramView[];
+  treaties: readonly GwTreatyView[];
+  /** Telegrams this seat can still send this chapter. */
+  wiresLeft: number;
+}
+
 export interface GwSeatView {
   smallID: number;
   tag: GwTag;
@@ -118,6 +162,41 @@ export interface GwSeatView {
   /** Every body dealt, "<scene>.<variant>": the lobby's recent list. */
   shown?: readonly string[];
   world: GwWorldView;
+  diplo: GwDiploView;
+}
+
+/** Who sits at the table: everyone may see this much. */
+export interface GwRosterView {
+  smallID: number;
+  tag: GwTag;
+  ready: boolean;
+  /** The seat's AI is running it. */
+  regent: boolean;
+  /** The connection is down. */
+  away: boolean;
+  host: boolean;
+}
+
+/** The slow-reading vote this chapter. */
+export interface GwSlowView {
+  /** smallIDs that asked. */
+  asked: readonly number[];
+  granted: number;
+  max: number;
+}
+
+/** What opens to everyone at the end (design §9: the memoirs side by side). */
+export interface GwFinaleView {
+  memoirs: readonly { smallID: number; tag: GwTag; memoir: GwMemoir }[];
+  treaties: readonly GwTreatyView[];
+  /** Telegrams somebody else read. */
+  intercepted: readonly {
+    from: GwTag;
+    to: GwTag;
+    by: readonly GwTag[];
+    text: string;
+    date: string;
+  }[];
 }
 
 /** The whole mode as sent worker -> main thread. Never mutated. */
@@ -133,5 +212,14 @@ export interface GreatWarData {
   ended: string | null;
   opening: GwOpening;
   temp: number;
+  /**
+   * The viewer's own seat and no other: the worker sends a client only what
+   * that seat may know. Empty for a spectator or a replay.
+   */
   seats: readonly GwSeatView[];
+  /** Friends at the table, in seat order. One entry alone. */
+  roster: readonly GwRosterView[];
+  slow: GwSlowView;
+  /** Set once the game has closed and there are friends to compare. */
+  finale: GwFinaleView | null;
 }
