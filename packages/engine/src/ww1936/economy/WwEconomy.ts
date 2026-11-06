@@ -1051,8 +1051,8 @@ export class WwEconomy {
     for (const { tr, units, shipPm } of bought) {
       imported[tr.res] += Math.floor((units * split.payPm) / 1000);
       const gotPm = Math.floor((shipPm * split.payPm) / 1000);
-      if (gotPm === 1000) delete tr.gotPm;
-      else tr.gotPm = gotPm;
+      if (gotPm !== 1000) tr.gotPm = gotPm;
+      else if (tr.gotPm !== undefined) delete tr.gotPm;
     }
     t.exported = exported;
     t.imported = imported;
