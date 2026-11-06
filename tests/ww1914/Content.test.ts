@@ -24,6 +24,7 @@ import {
 } from "@openfront/engine-api/ww1914/SceneDsl";
 import { ScenarioDataSchema } from "@openfront/engine-api/ww1936/ScenarioTypes";
 import { GW_CONTENT } from "@openfront/engine-lib/ww1914/content/Content";
+import { GW_PEOPLE } from "@openfront/engine-lib/ww1914/content/people";
 import { gwOwnerOf, gwWorldOf } from "@openfront/engine-lib/ww1914/World1914";
 import { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
 import { loadGwPack } from "@openfront/shared/ww1914/GwPackLoader";
@@ -79,7 +80,8 @@ describe("content", () => {
       }
       if (s.summon === true) expect(t.topic, s.id).toBeDefined();
     }
-    for (const p of GW_CONTENT.people) {
+    // This pack is a German seat's; each later cast has its own Cast test.
+    for (const p of GW_PEOPLE) {
       expect(pack.people[p.id], p.id).toBeDefined();
     }
   });

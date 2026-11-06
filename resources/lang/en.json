@@ -2411,6 +2411,7 @@
       "4": "Certain."
     },
     "office": {
+      "agriculture": "Minister of Agriculture",
       "ambassador_london": "Ambassador in London",
       "ambassador_paris": "Ambassador in Paris",
       "ambassador_petersburg": "Ambassador in St Petersburg",
@@ -2427,6 +2428,7 @@
       "munitions": "Munitions",
       "navy": "Navy",
       "sea_lord": "First Sea Lord",
+      "supreme_commander": "Supreme Commander",
       "war": "War"
     },
     "panel": {

@@ -14624,7 +14624,9 @@
       "ambassador_washington": "주미 대사",
       "ireland": "아일랜드 장관",
       "munitions": "군수대신",
-      "sea_lord": "제1해군경"
+      "sea_lord": "제1해군경",
+      "agriculture": "농업대신",
+      "supreme_commander": "최고 사령관"
     },
     "panel": {
       "chapter": "{date}, {total}장 중 {n}장",
