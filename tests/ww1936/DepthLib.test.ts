@@ -462,7 +462,8 @@ describe("resources: the priority part and the v5 padding", () => {
     // 4 coal left for 8 factories: half.
     expect(a.fill).toEqual([500]);
     expect(a.used[coal]).toBe(10);
-    expect(a.used[steel]).toBe(8);
+    // A half-filled line takes half its steel; the rest stays for other lines.
+    expect(a.used[steel]).toBe(4);
     expect(a.short).toEqual([[coal]]);
   });
 
