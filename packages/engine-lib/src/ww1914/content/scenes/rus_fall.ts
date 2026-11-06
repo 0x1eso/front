@@ -2796,6 +2796,10 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
             is: "war",
           },
         },
+        {
+          kind: "seen",
+          scene: "rus_r_dual_power",
+        },
       ],
     },
     cast: {
@@ -3117,6 +3121,14 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
             },
           ],
         },
+        {
+          kind: "not",
+          of: {
+            kind: "chose",
+            scene: "rus_r_dual_power",
+            within: 2,
+          },
+        },
       ],
     },
     cast: {
@@ -3303,6 +3315,22 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
             },
           ],
         },
+        {
+          kind: "not",
+          of: {
+            kind: "chose",
+            scene: "rus_r_offensive",
+            within: 1,
+          },
+        },
+        {
+          kind: "not",
+          of: {
+            kind: "chose",
+            scene: "rus_r_dual_power",
+            within: 2,
+          },
+        },
       ],
     },
     cast: {
@@ -3428,6 +3456,14 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
         {
           kind: "seen",
           scene: "rus_r_july",
+        },
+        {
+          kind: "not",
+          of: {
+            kind: "chose",
+            scene: "rus_r_july",
+            within: 2,
+          },
         },
       ],
     },
@@ -3580,11 +3616,24 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
     nation: ["RUS"],
     kind: "proposal",
     when: {
-      kind: "world",
-      of: {
-        is: "regime",
-        of: ["provisional", "rep"],
-      },
+      kind: "all",
+      of: [
+        {
+          kind: "world",
+          of: {
+            is: "regime",
+            of: ["provisional", "rep"],
+          },
+        },
+        {
+          kind: "not",
+          of: {
+            kind: "chose",
+            scene: "rus_r_dual_power",
+            within: 3,
+          },
+        },
+      ],
     },
     cast: {
       interior: {
@@ -3765,6 +3814,14 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
               },
             },
           ],
+        },
+        {
+          kind: "not",
+          of: {
+            kind: "chose",
+            scene: "rus_r_kornilov",
+            within: 2,
+          },
         },
       ],
     },
@@ -4380,6 +4437,22 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
                 next: "what",
                 effects: [],
               },
+              {
+                when: {
+                  kind: "temperament",
+                  who: {
+                    role: "p",
+                  },
+                  of: ["arrogant"],
+                },
+                next: "hurt",
+                effects: [
+                  {
+                    kind: "reason",
+                    key: "t_rodz_session_r1",
+                  },
+                ],
+              },
             ],
           },
           {
@@ -4430,6 +4503,16 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
       },
       what: {
         says: [
+          {
+            id: "anx",
+            when: {
+              kind: "temperament",
+              who: {
+                role: "p",
+              },
+              of: ["anxious"],
+            },
+          },
           {
             id: "arr",
             when: {
@@ -4484,6 +4567,16 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
       },
       gor: {
         says: [
+          {
+            id: "arr",
+            when: {
+              kind: "temperament",
+              who: {
+                role: "p",
+              },
+              of: ["arrogant"],
+            },
+          },
           {
             id: "cand",
             when: {
@@ -4728,11 +4821,39 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
               },
             ],
             next: null,
+            reacts: [
+              {
+                when: {
+                  kind: "temperament",
+                  who: {
+                    role: "p",
+                  },
+                  of: ["anxious"],
+                },
+                next: null,
+                effects: [
+                  {
+                    kind: "reason",
+                    key: "t_rodz_friend_r1",
+                  },
+                ],
+              },
+            ],
           },
         ],
       },
       file: {
         says: [
+          {
+            id: "arr",
+            when: {
+              kind: "temperament",
+              who: {
+                role: "p",
+              },
+              of: ["arrogant"],
+            },
+          },
           {
             id: "stub",
             when: {
@@ -4967,6 +5088,31 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
             tell: [],
             effects: [],
             next: "plan",
+            reacts: [
+              {
+                when: {
+                  kind: "temperament",
+                  who: {
+                    role: "p",
+                  },
+                  of: ["arrogant"],
+                },
+                next: "plan",
+                effects: [
+                  {
+                    kind: "person_trust",
+                    who: {
+                      role: "p",
+                    },
+                    delta: 1,
+                  },
+                  {
+                    kind: "reason",
+                    key: "t_rodz_shells_r2",
+                  },
+                ],
+              },
+            ],
           },
           {
             id: "deal",
@@ -5037,6 +5183,16 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
       },
       plan: {
         says: [
+          {
+            id: "anx",
+            when: {
+              kind: "temperament",
+              who: {
+                role: "p",
+              },
+              of: ["anxious"],
+            },
+          },
           {
             id: "base",
           },
@@ -5145,6 +5301,16 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
     nodes: {
       open: {
         says: [
+          {
+            id: "anx",
+            when: {
+              kind: "temperament",
+              who: {
+                role: "p",
+              },
+              of: ["anxious"],
+            },
+          },
           {
             id: "stub",
             when: {
@@ -5619,6 +5785,16 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
       end: {
         says: [
           {
+            id: "arr",
+            when: {
+              kind: "temperament",
+              who: {
+                role: "p",
+              },
+              of: ["arrogant"],
+            },
+          },
+          {
             id: "base",
           },
         ],
@@ -5760,6 +5936,31 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
             tell: [],
             effects: [],
             next: "hear",
+            reacts: [
+              {
+                when: {
+                  kind: "temperament",
+                  who: {
+                    role: "p",
+                  },
+                  of: ["stubborn"],
+                },
+                next: "hear",
+                effects: [
+                  {
+                    kind: "person_trust",
+                    who: {
+                      role: "p",
+                    },
+                    delta: 1,
+                  },
+                  {
+                    kind: "reason",
+                    key: "t_rodz_last_r1",
+                  },
+                ],
+              },
+            ],
           },
           {
             id: "short",
@@ -5815,6 +6016,16 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
       },
       hear: {
         says: [
+          {
+            id: "anx",
+            when: {
+              kind: "temperament",
+              who: {
+                role: "p",
+              },
+              of: ["anxious"],
+            },
+          },
           {
             id: "cand",
             when: {
@@ -6121,6 +6332,16 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
       law: {
         says: [
           {
+            id: "cold",
+            when: {
+              kind: "temperament",
+              who: {
+                role: "p",
+              },
+              of: ["cold"],
+            },
+          },
+          {
             id: "stub",
             when: {
               kind: "temperament",
@@ -6381,6 +6602,24 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
               },
             ],
             next: "allies",
+            reacts: [
+              {
+                when: {
+                  kind: "temperament",
+                  who: {
+                    role: "p",
+                  },
+                  of: ["arrogant"],
+                },
+                next: "allies",
+                effects: [
+                  {
+                    kind: "reason",
+                    key: "t_mil_straits_r1",
+                  },
+                ],
+              },
+            ],
           },
           {
             id: "leave",
@@ -6394,6 +6633,16 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
       },
       allies: {
         says: [
+          {
+            id: "cold",
+            when: {
+              kind: "temperament",
+              who: {
+                role: "p",
+              },
+              of: ["cold"],
+            },
+          },
           {
             id: "cand",
             when: {
@@ -6576,6 +6825,24 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
               },
             ],
             next: "line",
+            reacts: [
+              {
+                when: {
+                  kind: "temperament",
+                  who: {
+                    role: "p",
+                  },
+                  of: ["cold"],
+                },
+                next: "line",
+                effects: [
+                  {
+                    kind: "reason",
+                    key: "t_mil_bloc_r1",
+                  },
+                ],
+              },
+            ],
           },
           {
             id: "leave",
@@ -6589,6 +6856,16 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
       },
       why: {
         says: [
+          {
+            id: "arr",
+            when: {
+              kind: "temperament",
+              who: {
+                role: "p",
+              },
+              of: ["arrogant"],
+            },
+          },
           {
             id: "base",
           },
@@ -6723,6 +7000,16 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
     nodes: {
       open: {
         says: [
+          {
+            id: "cold",
+            when: {
+              kind: "temperament",
+              who: {
+                role: "p",
+              },
+              of: ["cold"],
+            },
+          },
           {
             id: "arr",
             when: {
@@ -7041,6 +7328,24 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
               },
             ],
             next: null,
+            reacts: [
+              {
+                when: {
+                  kind: "temperament",
+                  who: {
+                    role: "p",
+                  },
+                  of: ["arrogant"],
+                },
+                next: null,
+                effects: [
+                  {
+                    kind: "reason",
+                    key: "t_mil_speech_r1",
+                  },
+                ],
+              },
+            ],
           },
         ],
       },
@@ -7091,6 +7396,16 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
       },
       dare: {
         says: [
+          {
+            id: "cold",
+            when: {
+              kind: "temperament",
+              who: {
+                role: "p",
+              },
+              of: ["cold"],
+            },
+          },
           {
             id: "base",
           },
@@ -7267,6 +7582,16 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
       wall: {
         says: [
           {
+            id: "cold",
+            when: {
+              kind: "temperament",
+              who: {
+                role: "p",
+              },
+              of: ["cold"],
+            },
+          },
+          {
             id: "base",
           },
         ],
@@ -7368,6 +7693,16 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
       open: {
         says: [
           {
+            id: "arr",
+            when: {
+              kind: "temperament",
+              who: {
+                role: "p",
+              },
+              of: ["arrogant"],
+            },
+          },
+          {
             id: "anx",
             when: {
               kind: "temperament",
@@ -7407,6 +7742,24 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
               },
             ],
             next: "lena",
+            reacts: [
+              {
+                when: {
+                  kind: "temperament",
+                  who: {
+                    role: "p",
+                  },
+                  of: ["anxious"],
+                },
+                next: "lena",
+                effects: [
+                  {
+                    kind: "reason",
+                    key: "t_ker_first_r1",
+                  },
+                ],
+              },
+            ],
           },
           {
             id: "ask",
@@ -7701,6 +8054,24 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
               },
             ],
             next: "who",
+            reacts: [
+              {
+                when: {
+                  kind: "temperament",
+                  who: {
+                    role: "p",
+                  },
+                  of: ["arrogant"],
+                },
+                next: "who",
+                effects: [
+                  {
+                    kind: "reason",
+                    key: "t_ker_amnesty_r1",
+                  },
+                ],
+              },
+            ],
           },
           {
             id: "leave",
@@ -7714,6 +8085,16 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
       },
       who: {
         says: [
+          {
+            id: "anx",
+            when: {
+              kind: "temperament",
+              who: {
+                role: "p",
+              },
+              of: ["anxious"],
+            },
+          },
           {
             id: "cand",
             when: {
@@ -7842,6 +8223,16 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
     nodes: {
       open: {
         says: [
+          {
+            id: "anx",
+            when: {
+              kind: "temperament",
+              who: {
+                role: "p",
+              },
+              of: ["anxious"],
+            },
+          },
           {
             id: "arr",
             when: {
@@ -8162,6 +8553,16 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
       old: {
         says: [
           {
+            id: "anx",
+            when: {
+              kind: "temperament",
+              who: {
+                role: "p",
+              },
+              of: ["anxious"],
+            },
+          },
+          {
             id: "arr",
             when: {
               kind: "temperament",
@@ -8383,6 +8784,16 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
       },
       after: {
         says: [
+          {
+            id: "arr",
+            when: {
+              kind: "temperament",
+              who: {
+                role: "p",
+              },
+              of: ["arrogant"],
+            },
+          },
           {
             id: "cand",
             when: {
@@ -8620,11 +9031,39 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
             tell: [],
             effects: [],
             next: null,
+            reacts: [
+              {
+                when: {
+                  kind: "temperament",
+                  who: {
+                    role: "p",
+                  },
+                  of: ["anxious"],
+                },
+                next: null,
+                effects: [
+                  {
+                    kind: "reason",
+                    key: "t_ker_last_r1",
+                  },
+                ],
+              },
+            ],
           },
         ],
       },
       land: {
         says: [
+          {
+            id: "arr",
+            when: {
+              kind: "temperament",
+              who: {
+                role: "p",
+              },
+              of: ["arrogant"],
+            },
+          },
           {
             id: "cand",
             when: {
@@ -8806,6 +9245,24 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
             tell: [],
             effects: [],
             next: "room",
+            reacts: [
+              {
+                when: {
+                  kind: "temperament",
+                  who: {
+                    role: "p",
+                  },
+                  of: ["cunning"],
+                },
+                next: "fog",
+                effects: [
+                  {
+                    kind: "reason",
+                    key: "t_proto_stockholm_r1",
+                  },
+                ],
+              },
+            ],
           },
           {
             id: "push",
@@ -8948,6 +9405,16 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
       fog: {
         says: [
           {
+            id: "anx",
+            when: {
+              kind: "temperament",
+              who: {
+                role: "p",
+              },
+              of: ["anxious"],
+            },
+          },
+          {
             id: "base",
           },
         ],
@@ -9044,6 +9511,16 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
     nodes: {
       open: {
         says: [
+          {
+            id: "cun",
+            when: {
+              kind: "temperament",
+              who: {
+                role: "p",
+              },
+              of: ["cunning"],
+            },
+          },
           {
             id: "anx",
             when: {
@@ -9333,6 +9810,16 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
       why: {
         says: [
           {
+            id: "cun",
+            when: {
+              kind: "temperament",
+              who: {
+                role: "p",
+              },
+              of: ["cunning"],
+            },
+          },
+          {
             id: "cand",
             when: {
               kind: "candid",
@@ -9523,6 +10010,16 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
       },
       num: {
         says: [
+          {
+            id: "cun",
+            when: {
+              kind: "temperament",
+              who: {
+                role: "p",
+              },
+              of: ["cunning"],
+            },
+          },
           {
             id: "cand",
             when: {
@@ -9802,6 +10299,16 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
       plan: {
         says: [
           {
+            id: "anx",
+            when: {
+              kind: "temperament",
+              who: {
+                role: "p",
+              },
+              of: ["anxious"],
+            },
+          },
+          {
             id: "base",
           },
         ],
@@ -9949,6 +10456,24 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
             tell: [],
             effects: [],
             next: "doc",
+            reacts: [
+              {
+                when: {
+                  kind: "temperament",
+                  who: {
+                    role: "p",
+                  },
+                  of: ["cunning"],
+                },
+                next: "doc",
+                effects: [
+                  {
+                    kind: "reason",
+                    key: "t_proto_spirits_r1",
+                  },
+                ],
+              },
+            ],
           },
           {
             id: "deal",
@@ -9997,6 +10522,16 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
       },
       doc: {
         says: [
+          {
+            id: "anx",
+            when: {
+              kind: "temperament",
+              who: {
+                role: "p",
+              },
+              of: ["anxious"],
+            },
+          },
           {
             id: "sick",
             when: {
@@ -10249,6 +10784,14 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
             next: null,
           },
           {
+            id: "who",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "london",
+          },
+          {
             id: "end",
             stance: "threat",
             kind: "leave",
@@ -10260,6 +10803,53 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
                 delta: -1,
               },
             ],
+            next: null,
+          },
+        ],
+      },
+      london: {
+        says: [
+          {
+            id: "trust",
+            when: {
+              kind: "person_trust",
+              who: {
+                role: "p",
+              },
+              min: 1,
+            },
+          },
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "ok",
+            stance: "warm",
+            kind: "leave",
+            tell: ["trust:+1"],
+            effects: [
+              {
+                kind: "remember",
+                key: "k_buchanan_warn",
+              },
+              {
+                kind: "person_trust",
+                who: {
+                  role: "p",
+                },
+                delta: 1,
+              },
+            ],
+            next: null,
+          },
+          {
+            id: "end",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
             next: null,
           },
         ],
@@ -10429,11 +11019,39 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
             tell: [],
             effects: [],
             next: null,
+            reacts: [
+              {
+                when: {
+                  kind: "temperament",
+                  who: {
+                    role: "p",
+                  },
+                  of: ["weary"],
+                },
+                next: null,
+                effects: [
+                  {
+                    kind: "reason",
+                    key: "t_michael_r1",
+                  },
+                ],
+              },
+            ],
           },
         ],
       },
       names: {
         says: [
+          {
+            id: "anx",
+            when: {
+              kind: "temperament",
+              who: {
+                role: "p",
+              },
+              of: ["anxious"],
+            },
+          },
           {
             id: "cand",
             when: {
@@ -10595,6 +11213,26 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
       },
       rule: {
         says: [
+          {
+            id: "stub",
+            when: {
+              kind: "temperament",
+              who: {
+                role: "p",
+              },
+              of: ["stubborn"],
+            },
+          },
+          {
+            id: "weary",
+            when: {
+              kind: "temperament",
+              who: {
+                role: "p",
+              },
+              of: ["weary"],
+            },
+          },
           {
             id: "cand",
             when: {
@@ -10766,6 +11404,16 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
       },
       who: {
         says: [
+          {
+            id: "stub",
+            when: {
+              kind: "temperament",
+              who: {
+                role: "p",
+              },
+              of: ["stubborn"],
+            },
+          },
           {
             id: "cand",
             when: {
