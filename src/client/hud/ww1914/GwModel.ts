@@ -1,7 +1,6 @@
 // Great War 1914 screens: the plain logic behind them (no DOM), so it can be
 // tested. Everything here reads only what GreatWarData holds.
 import type {
-  GwCalendarId,
   GwGauge,
   GwOffice,
   GwTheatre,
@@ -256,12 +255,3 @@ export function shelveEnding(
 export function endingsOf(shelf: Shelf, tag: string): number {
   return shelf.endings.filter((e) => e.startsWith(`${tag}:`)).length;
 }
-
-// ---- Calendar choice in the lobby (design §15 #6) ----
-
-/**
- * Calendar rows that have scenes to play, in the order the lobby lists them.
- * A row without content in its war chapters is not offered; the world lane
- * appends "full" here when its chapters have writing.
- */
-export const GW_PLAYABLE_CALENDARS: readonly GwCalendarId[] = ["y1914"];

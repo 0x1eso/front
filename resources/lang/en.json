@@ -2075,6 +2075,16 @@
         "stale_chapter": "That chapter has already passed.",
         "wrong_kind": "That does not fit this paper."
       },
+      "calendar": {
+        "full": "The full game",
+        "y1914": "The 1914 game"
+      },
+      "calendar_chapters": "{n} chapters",
+      "calendar_label": "Length of the game",
+      "calendar_time": {
+        "full": "3 to 4 hours",
+        "y1914": "about 30 minutes alone"
+      },
       "chapter_n": "Chapter {n}",
       "desk_empty": "Nothing waits on the desk. You may call someone or close the chapter.",
       "dismiss": "Dismiss",

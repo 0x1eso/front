@@ -14292,6 +14292,16 @@
         "stale_chapter": "그 장은 이미 넘어갔습니다.",
         "wrong_kind": "그 서류에는 맞지 않는 조치입니다."
       },
+      "calendar": {
+        "full": "긴 판",
+        "y1914": "1914년 판"
+      },
+      "calendar_chapters": "{n}장",
+      "calendar_label": "판의 길이",
+      "calendar_time": {
+        "full": "3~4시간",
+        "y1914": "혼자 약 30분"
+      },
       "chapter_n": "{n}장",
       "desk_empty": "책상 위에 놓인 서류가 없습니다. 사람을 부르거나 장을 마칠 수 있습니다.",
       "dismiss": "해임한다",

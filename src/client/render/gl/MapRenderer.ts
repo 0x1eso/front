@@ -72,6 +72,7 @@ export class MapRenderer {
   private storedPeaceMap: PeaceMapSource | null = null;
   /** World War 1936 P6: the depth view (lanes U3, U4 hand it to their passes). */
   private storedWwDepth: WwDepthView | null = null;
+  private troopNumbersHidden = false;
   private storedStrikeSound: ((loud: boolean) => void) | null = null;
   // Layer state that survives context loss (GPU textures do not).
   private layerVisibility = new Map<string, boolean>();
@@ -184,6 +185,7 @@ export class MapRenderer {
     if (this.storedWwLand !== null) {
       this.renderer?.setWwLand(...this.storedWwLand);
     }
+    if (this.troopNumbersHidden) this.renderer?.hideTroopNumbers();
     if (this.storedWwNavy !== null) this.renderer?.setWwNavy(this.storedWwNavy);
     if (this.storedWwAir !== null) this.renderer?.setWwAir(this.storedWwAir);
     if (this.storedWingFocus !== null) {
@@ -505,6 +507,12 @@ export class MapRenderer {
   setOccupationMap(source: OccupationSource): void {
     this.storedOccupationMap = source;
     this.renderer?.setOccupationMap(source);
+  }
+
+  /** Great War 1914: the name plates show no troop count (nobody has a troop count there). */
+  hideTroopNumbers(): void {
+    this.troopNumbersHidden = true;
+    this.renderer?.hideTroopNumbers();
   }
 
   /** World War 1936 P5 (spec §20.2): the peace conference's map mode (PeaceModel.peaceMapSource). */

@@ -1169,7 +1169,11 @@ export class ClientGameRunner {
           this.userSettings.goToPlayer()
         ) {
           hasGoneToPlayer = true;
-          this.eventBus.emit(new GoToPlayerEvent(this.gameView.myPlayer()!, 8));
+          // Great War 1914 opens on Europe, not on the capital's streets.
+          const zoom = this.gameView.isGreatWar?.() === true ? 3 : 8;
+          this.eventBus.emit(
+            new GoToPlayerEvent(this.gameView.myPlayer()!, zoom),
+          );
         }
 
         // Track when we receive the turn to calculate delay

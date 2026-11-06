@@ -9,6 +9,7 @@ import {
 } from "@openfront/engine-api/game/GameTypes";
 import type { SnapshotHeader } from "@openfront/engine-api/game/SnapshotHeader";
 import { GameConfig, TeamCountConfig } from "@openfront/engine-api/Schemas";
+import type { GwCalendarId } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
 import {
   CONQUEST_PERCENT_MAX,
@@ -44,6 +45,7 @@ import "./components/ww1936/CountryPicker";
 import { getPlayerCosmetics, prewarmCosmetics } from "./Cosmetics";
 import { gamePortal } from "./GamePortal";
 import { GameStartingModal } from "./GameStartingModal";
+import { gwCalendarPicker } from "./GwLobby";
 import { showInGameAlert } from "./InGameModal";
 import { JoinLobbyEvent } from "./Main";
 import { fallbackPlayerName, ResolvedPlayerName } from "./PlayerName";
@@ -272,6 +274,7 @@ export class SinglePlayerModal extends BaseModal {
   @state() private worldWar1936: boolean = DEFAULT_OPTIONS.worldWar1936;
   /** Great War 1914: solo as Germany for now; the map and rules are fixed. */
   @state() private greatWar1914 = false;
+  @state() private greatWar1914Calendar: GwCalendarId = "y1914";
   @state() private historicalAi: boolean = DEFAULT_OPTIONS.historicalAi;
   @state() private ww1936Unlimited: boolean = DEFAULT_OPTIONS.ww1936Unlimited;
   @state() private ww1936FastTempo: boolean = DEFAULT_OPTIONS.ww1936FastTempo;
@@ -749,9 +752,10 @@ export class SinglePlayerModal extends BaseModal {
               ...(this.greatWar1914
                 ? {
                     worldWar: {
-                      picker: html`<div class="text-sm text-white">
-                        ${translateText("gw.country.DEU")}
-                      </div>`,
+                      picker: gwCalendarPicker(
+                        this.greatWar1914Calendar,
+                        (id) => (this.greatWar1914Calendar = id),
+                      ),
                       fixed: true,
                     },
                   }
@@ -934,6 +938,7 @@ export class SinglePlayerModal extends BaseModal {
     this.strategicWeapons = DEFAULT_OPTIONS.strategicWeapons;
     this.worldWar1936 = DEFAULT_OPTIONS.worldWar1936;
     this.greatWar1914 = false;
+    this.greatWar1914Calendar = "y1914";
     this.historicalAi = DEFAULT_OPTIONS.historicalAi;
     this.ww1936Unlimited = DEFAULT_OPTIONS.ww1936Unlimited;
     this.ww1936FastTempo = DEFAULT_OPTIONS.ww1936FastTempo;
@@ -1468,7 +1473,12 @@ export class SinglePlayerModal extends BaseModal {
               },
             }
           : {}),
-        ...(this.greatWar1914 ? { greatWar1914: true } : {}),
+        ...(this.greatWar1914
+          ? {
+              greatWar1914: true,
+              greatWar1914Calendar: this.greatWar1914Calendar,
+            }
+          : {}),
         ...(this.worldWar1936
           ? {
               worldWar1936: true,

@@ -198,6 +198,6 @@ export function frontsTab(c: GwCtx): TemplateResult {
               >`,
           )}
         </div>`}
-    ${allocForm(c)}
+    ${open.length === 0 ? nothing : allocForm(c)}
   </div>`;
 }

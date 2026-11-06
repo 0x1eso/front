@@ -748,6 +748,7 @@ export function createRenderer(
   if (game.isGreatWar?.() === true) {
     const gwPanel = document.querySelector("gw-panel");
     if (!(gwPanel instanceof GwPanel)) throw new Error("gw-panel not found");
+    view.hideTroopNumbers();
     gwPanel.game = game;
     gwPanel.eventBus = eventBus;
     return new GameRenderer(

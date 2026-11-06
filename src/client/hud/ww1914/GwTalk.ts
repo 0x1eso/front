@@ -110,10 +110,10 @@ export function talkView(
   const groups = card === undefined ? [] : groupReplies(card.replies);
   return html`<div
     data-gw-talk=${t.scene}
-    class="pointer-events-auto fixed inset-0 z-[1001] overflow-y-auto bg-gradient-to-b from-black/50 via-black/70 to-black/85 text-white"
+    class="pointer-events-auto fixed inset-0 z-[1001] overflow-y-auto bg-gradient-to-b from-black/65 via-black/75 to-black/90 text-white"
   >
     <div
-      class="mx-auto flex min-h-full max-w-3xl flex-col gap-4 px-4 pb-8 pt-14"
+      class="mx-auto flex min-h-full max-w-3xl flex-col justify-center gap-5 px-4 pb-8 pt-14"
     >
       <header class="flex items-center gap-4">
         <div
@@ -144,7 +144,7 @@ export function talkView(
       ${bio === "" || t.turns.length > 1
         ? nothing
         : html`<p class="${MUTED} italic">${bio}</p>`}
-      <div class="flex flex-1 flex-col gap-3" data-gw-turns>
+      <div class="flex flex-col gap-3" data-gw-turns>
         ${t.turns.map((turn, i) => {
           const last = i === t.turns.length - 1;
           return html`<div class="space-y-2">

@@ -203,9 +203,9 @@ export class GwPanel extends LitElement implements Controller {
       )}
       <aside
         data-gw-drawer
-        class="${GLASS} pointer-events-auto fixed inset-x-0 bottom-0 z-[898] flex h-[56vh] flex-col text-white sm:inset-x-auto sm:left-0 sm:top-10 sm:h-auto sm:w-[400px] sm:border-b-0 sm:border-l-0 ${ui.folded
-          ? "!h-9 sm:!bottom-auto"
-          : ""}"
+        class="${GLASS} pointer-events-auto fixed inset-x-0 bottom-0 z-[898] flex h-[56vh] flex-col text-white sm:inset-x-auto sm:left-0 sm:bottom-auto sm:top-10 sm:h-auto sm:max-h-[calc(100vh-2.5rem)] sm:w-[400px] sm:border-b-0 sm:border-l-0 ${ui.folded
+          ? "!h-9"
+          : ""} ${talk === null ? "" : "invisible"}"
       >
         <nav
           class="flex shrink-0 items-center gap-1 border-b border-white/10 p-1.5"
