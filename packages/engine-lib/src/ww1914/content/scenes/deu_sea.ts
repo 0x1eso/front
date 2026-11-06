@@ -315,7 +315,6 @@ const navyMinister = (delta: number): GwEffect => ({
 
 const TIRPITZ = byName("deu_tirpitz");
 const HOLTZ = byName("deu_holtzendorff");
-const ZIMM = byName("deu_zimmermann");
 const BERN = byName("deu_bernstorff");
 const CAPELLE = byName("deu_capelle");
 const SCHEER = byName("deu_scheer");
