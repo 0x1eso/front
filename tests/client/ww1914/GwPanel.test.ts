@@ -22,7 +22,7 @@ const SCENES = {
         "사절은 아직 응접실에 있다. {chancellor}이(가) 어제 한 말이 귓가에 남아 있다. 빈은 답을 재촉하고, 답에는 날짜를 적을 수도 있다.",
     },
     opt: {
-      back_vienna: "빈을 지지한다. 조건은 달지 않는다.",
+      back_vienna: "빈을 지지한다. {cos}이(가) 표를 편다.",
       term_limit: "지지하되 기한을 단다.",
       wait: "답을 미룬다.",
     },
@@ -226,6 +226,9 @@ describe("the screens", () => {
     by("[data-gw-open='1']").click();
     await panel.updateComplete;
     expect(by("[data-gw-option=term_limit]").disabled).toBe(true);
+    expect(by("[data-gw-option=back_vienna]").textContent).toContain(
+      "몰트케가 표를 편다",
+    );
     expect(panel.textContent).toContain("수상의 속내를 아직 듣지 못했다");
     by("[data-gw-option=back_vienna]").click();
     await panel.updateComplete;

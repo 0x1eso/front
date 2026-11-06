@@ -41,8 +41,8 @@ export const GW_DESK_WEIGHTS = {
   /** Dealt before in this game. */
   repeat: 10,
   /** Shown in the seat's last two games, with or without a fresh body. */
-  recent: 15,
-  recentFreshBody: 6,
+  recent: 30,
+  recentFreshBody: 10,
 } as const;
 
 /** Tension from which the next desk must calm down (design §5.2). */
