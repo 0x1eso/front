@@ -55,7 +55,6 @@ const cos = role("cos");
 const war_ = role("war");
 const navy = role("navy");
 const lord = role("sea_lord");
-const fm = role("foreign");
 
 const CRISIS_ON: GwStage[] = ["crisis", "y1914", "war"];
 const Y14_ON: GwStage[] = ["y1914", "war"];
@@ -1730,6 +1729,7 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
           tell: ["trust:+1"],
           effects: [remember("k_kit_long"), trustOf(who, 1)],
         }),
+        r("tell_table", "frank", "push", "table", { miss: "shut" }),
         bye("noted"),
       ),
       million: plain(
@@ -1739,6 +1739,14 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
         bye("too_many"),
       ),
       shut: plain(bye("end")),
+      table: node(
+        moods("arrogant"),
+        r("i_will", "warm", "deal", null, {
+          tell: ["trust:+1"],
+          effects: [remember("k_kit_long"), trustOf(who, 1)],
+        }),
+        bye("end"),
+      ),
     },
   ),
 
@@ -1754,15 +1762,19 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
     {
       open: node(
         moods("cold", "arrogant"),
-        r("read_it", "cold", "ask", "letter"),
         r("go_yourself", "frank", "push", "go", {
           tell: ["trust:-1"],
           effects: [pride(who, 1)],
           miss: "cross",
         }),
+        r("read_it", "cold", "ask", "letter"),
         r("leave_it", "warm", "leave", null),
       ),
-      letter: plain(r("what_do", "frank", "ask", "go"), bye("enough")),
+      letter: plain(
+        r("what_do", "frank", "ask", "go"),
+        r("joffre", "cold", "ask", "joffre"),
+        bye("enough"),
+      ),
       go: plain(
         r("uniform", "frank", "deal", null, {
           tell: ["army:-1"],
@@ -1776,6 +1788,7 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
         }),
       ),
       cross: plain(r("sorry", "warm", "ask", "go"), bye("end")),
+      joffre: plain(r("go_now", "frank", "ask", "go"), bye("end")),
     },
   ),
 
@@ -1791,6 +1804,10 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
           ["cold", moody(who, "cold")],
           "base",
         ),
+        r("factories", "warm", "deal", "factories", {
+          tell: ["money:-1", "shells:+1"],
+          effects: [gauge("money", -1), gauge("shells", 1)],
+        }),
         r("number", "cold", "ask", "number", {
           reacts: [ifCold("no_number", [])],
         }),
@@ -1798,10 +1815,6 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
           tell: ["trust:-1"],
           effects: [trustOf(who, -1)],
           miss: "no_number",
-        }),
-        r("factories", "warm", "deal", "factories", {
-          tell: ["money:-1", "shells:+1"],
-          effects: [gauge("money", -1), gauge("shells", 1)],
         }),
         bye("later", "warm"),
       ),
@@ -1818,9 +1831,18 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
           tell: ["trust:-1"],
           effects: [trustOf(who, -1), remember("k_kit_shells")],
         }),
+        r("lg_asks", "frank", "ask", "minister"),
         bye("end", "warm"),
       ),
       no_number: plain(bye("end")),
+      minister: node(
+        moods("arrogant"),
+        r("half", "warm", "deal", null, {
+          tell: ["trust:-1"],
+          effects: [trustOf(who, -1), remember("k_kit_shells")],
+        }),
+        bye("end", "warm"),
+      ),
     },
   ),
 
@@ -1854,6 +1876,7 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
             remember("v_straits", who),
           ],
         }),
+        r("fleet_first", "cold", "ask", "navy_first"),
         bye("end"),
       ),
       east: plain(
@@ -1869,6 +1892,18 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
         bye("end"),
       ),
       storm: plain(bye("end")),
+      navy_first: plain(
+        r("take_order", "frank", "deal", null, {
+          tell: ["army:-1", "fra:-1"],
+          effects: [
+            army(-1),
+            nation("FRA", -1),
+            remember("k_kit_29th"),
+            remember("v_straits", who),
+          ],
+        }),
+        bye("end"),
+      ),
     },
   ),
 
@@ -1885,9 +1920,6 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
           ["cold", moody(who, "cold")],
           "base",
         ),
-        r("why_silent", "warm", "ask", "map", {
-          reacts: [ifTrust(2, "map", [{ kind: "mood", delta: 1 }])],
-        }),
         r("table_asks", "frank", "push", "table", {
           tell: ["trust:-1"],
           effects: [trustOf(who, -1)],
@@ -1901,16 +1933,23 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
             }),
           ],
         }),
+        r("why_silent", "warm", "ask", "map", {
+          reacts: [ifTrust(2, "map", [{ kind: "mood", delta: 1 }])],
+        }),
         bye("leave", "warm"),
       ),
       map: node(
         line(["straight", candid(who)], "base"),
         r("noted", "frank", "ask", "only_you"),
+        r("whose_mouth", "cold", "ask", "mouths", {
+          reacts: [ifMood("wall", [], "arrogant")],
+        }),
         bye("end", "warm"),
       ),
       table: plain(r("thank", "cold", "leave", null)),
       only_you: plain(bye("end", "warm")),
       wall: plain(bye("end")),
+      mouths: node(line(["straight", candid(who)], "base"), bye("end", "warm")),
     },
     { cd: 8 },
   ),
@@ -1942,10 +1981,18 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
           effects: [remember("k_kit_russia")],
           miss: "sting",
         }),
+        r("after_trip", "warm", "ask", "after"),
         bye("think"),
       ),
       other: plain(bye("end", "warm")),
       sting: plain(bye("end")),
+      after: plain(
+        r("yes_seat", "warm", "deal", null, {
+          tell: ["trust:+1"],
+          effects: [trustOf(who, 1), remember("k_kit_russia")],
+        }),
+        bye("end"),
+      ),
     },
   ),
 
@@ -1980,6 +2027,9 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
           tell: ["trust:+1"],
           effects: [trustOf(who, 1), remember("m_haig_wrote")],
         }),
+        r("who_next", "cold", "ask", "next", {
+          reacts: [ifMood("next", [{ kind: "mood", delta: 1 }], "stubborn")],
+        }),
         bye("end"),
       ),
       morale: plain(
@@ -1997,6 +2047,7 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
         bye("end", "warm"),
       ),
       shut: plain(bye("end")),
+      next: plain(bye("end")),
     },
     { cd: 8 },
   ),
@@ -2009,15 +2060,15 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
     {
       open: node(
         moods("cold"),
-        r("how_see", "frank", "ask", "reserves", {
-          reacts: [ifCold("shut", [])],
-        }),
         r("flatter", "flatter", "ask", "duty", {
           reacts: [ifMood("reserves", [], "stubborn")],
         }),
         r("offer", "warm", "deal", "duty", {
           tell: ["trust:+1"],
           effects: [trustOf(who, 1)],
+        }),
+        r("how_see", "frank", "ask", "reserves", {
+          reacts: [ifCold("shut", [])],
         }),
         bye("leave", "warm"),
       ),
@@ -2029,24 +2080,32 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
       ),
       duty: plain(
         r("king_too", "frank", "ask", "reserves"),
+        r("take_it", "frank", "ask", "if_you"),
         bye("end", "warm"),
       ),
       shut: plain(bye("end")),
+      if_you: plain(
+        r("noted", "frank", "deal", null, {
+          tell: ["trust:+1"],
+          effects: [trustOf(who, 1), remember("k_haig_on_french")],
+        }),
+        bye("end"),
+      ),
     },
   ),
 
   talk("gbr_t_haig_wait", "gbr_haig", WAR, all(war, during("16a")), {
     open: node(
       moods("cold"),
+      r("give_time", "warm", "deal", "august", {
+        tell: ["trust:+1", "fra:-1"],
+        effects: [trustOf(who, 1), nation("FRA", -1), remember("k_haig_wait")],
+      }),
       r("when", "cold", "ask", "august"),
       r("paris_says", "frank", "push", "august", {
         tell: ["fra:-1"],
         effects: [nation("FRA", -1)],
         miss: "stiff",
-      }),
-      r("give_time", "warm", "deal", "august", {
-        tell: ["trust:+1", "fra:-1"],
-        effects: [trustOf(who, 1), nation("FRA", -1), remember("k_haig_wait")],
       }),
       bye("later", "warm"),
     ),
@@ -2054,9 +2113,17 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
       r("understood", "cold", "deal", null, {
         effects: [remember("k_haig_wait")],
       }),
+      r("joffre_rage", "frank", "ask", "joffre"),
       bye("end"),
     ),
     stiff: plain(r("ask_again", "warm", "ask", "august"), bye("end")),
+    joffre: plain(
+      r("mine", "frank", "deal", null, {
+        tell: ["fra:-1"],
+        effects: [nation("FRA", -1), remember("k_haig_wait")],
+      }),
+      bye("end"),
+    ),
   }),
 
   talk("gbr_t_haig_tanks", "gbr_haig", WAR, all(war, during("16a", "16b")), {
@@ -2077,9 +2144,11 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
       r("use_them", "frank", "deal", null, {
         effects: [remember("k_haig_tanks")],
       }),
+      r("surprise", "cold", "ask", "secret"),
       bye("end"),
     ),
     few: plain(r("wait_more", "warm", "ask", "machine"), bye("end")),
+    secret: plain(bye("end")),
   }),
 
   talk("gbr_t_haig_flanders", "gbr_haig", WAR, all(war, during("17a")), {
@@ -2089,7 +2158,6 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
         ["cold", moody(who, "cold")],
         "base",
       ),
-      r("how_far", "cold", "ask", "bites"),
       r("the_mud", "frank", "push", "mud", {
         tell: ["trust:-1"],
         effects: [trustOf(who, -1), remember("v_flanders", who)],
@@ -2107,16 +2175,19 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
           }),
         ],
       }),
+      r("how_far", "cold", "ask", "bites"),
       bye("later", "warm"),
     ),
     bites: plain(
       r("understood", "frank", "deal", null, {
         effects: [remember("k_haig_flanders"), remember("v_flanders", who)],
       }),
+      r("ask_table", "frank", "ask", "frock"),
       bye("end"),
     ),
     mud: plain(r("still", "cold", "ask", "bites"), bye("end")),
     stiff: plain(bye("end")),
+    frock: node(line(["lg", flag("f_pm_lg")], "base"), bye("end")),
   }),
 
   talk("gbr_t_haig_reserve", "gbr_haig", WAR, all(war, during("18a")), {
@@ -2126,15 +2197,15 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
         ["cold", moody(who, "cold")],
         "base",
       ),
+      r("mine_to_ask", "warm", "deal", "foch", {
+        tell: ["trust:+1"],
+        effects: [trustOf(who, 1)],
+      }),
       r("no_reserve", "frank", "ask", "foch"),
       r("your_fault", "threat", "push", "stiff", {
         tell: ["trust:-1"],
         effects: [trustOf(who, -1)],
         miss: "stiff",
-      }),
-      r("mine_to_ask", "warm", "deal", "foch", {
-        tell: ["trust:+1"],
-        effects: [trustOf(who, 1)],
       }),
       bye("later", "warm"),
     ),
@@ -2142,9 +2213,11 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
       r("write_foch", "frank", "deal", null, {
         effects: [remember("k_haig_foch")],
       }),
+      r("petain", "cold", "ask", "petain"),
       bye("end"),
     ),
     stiff: plain(r("pardon", "warm", "ask", "foch"), bye("end")),
+    petain: plain(bye("end")),
   }),
 
   // ---- Robertson ----
@@ -2174,6 +2247,7 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
       r("agreed", "frank", "deal", null, {
         effects: [remember("k_rob_terms")],
       }),
+      r("why_you", "frank", "ask", "why_you"),
       bye("end"),
     ),
     war_minister: plain(
@@ -2184,6 +2258,12 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
     ),
     yes: plain(bye("end", "warm")),
     out: plain(bye("end")),
+    why_you: plain(
+      r("agreed", "frank", "deal", null, {
+        effects: [remember("k_rob_terms")],
+      }),
+      bye("end"),
+    ),
   }),
 
   talk(
@@ -2194,7 +2274,6 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
     {
       open: node(
         line(["evac", flag("f_landed")], ["cold", moody(who, "cold")], "base"),
-        r("why_west", "frank", "ask", "why"),
         r("east_door", "cold", "push", "heard", {
           tell: ["trust:-1"],
           effects: [trustOf(who, -1)],
@@ -2208,16 +2287,19 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
             remember("v_evacuate", who),
           ],
         }),
+        r("why_west", "frank", "ask", "why"),
         bye("later", "warm"),
       ),
       why: plain(
         r("noted", "frank", "deal", null, {
           effects: [remember("k_rob_west"), remember("v_evacuate", who)],
         }),
+        r("who_chose", "cold", "ask", "chose"),
         bye("end"),
       ),
       heard: plain(r("try_again", "frank", "ask", "why"), bye("end")),
       good: plain(bye("end", "warm")),
+      chose: plain(bye("end")),
     },
   ),
 
@@ -2234,6 +2316,10 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
           ["cold", moody(who, "cold")],
           "base",
         ),
+        r("stand_with", "warm", "deal", "stand", {
+          tell: ["trust:+1", "cabinet:-1"],
+          effects: [trustOf(who, 1), cabinet(-1)],
+        }),
         r("who_talks", "cold", "ask", "leaks", {
           reacts: [ifCold("shut", [])],
         }),
@@ -2242,10 +2328,6 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
           effects: [trustOf(who, -1)],
           miss: "shut",
         }),
-        r("stand_with", "warm", "deal", "stand", {
-          tell: ["trust:+1", "cabinet:-1"],
-          effects: [trustOf(who, 1), cabinet(-1)],
-        }),
         bye("later", "warm"),
       ),
       leaks: node(
@@ -2253,10 +2335,12 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
         r("thanks", "frank", "ask", null, {
           effects: [remember("m_rob_named_leaks")],
         }),
+        r("wilson_too", "cold", "ask", "wilson"),
         bye("end"),
       ),
       stand: plain(bye("end", "warm")),
       shut: plain(bye("end")),
+      wilson: plain(bye("end")),
     },
     { cd: 8 },
   ),
@@ -2287,10 +2371,17 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
         r("key", "cold", "deal", null, {
           effects: [remember("k_rob_salonika")],
         }),
+        r("who_holds", "frank", "ask", "general"),
         bye("end"),
       ),
       paris: plain(r("how_many", "cold", "ask", "count"), bye("end")),
       good: plain(bye("end", "warm")),
+      general: plain(
+        r("key", "frank", "deal", null, {
+          effects: [remember("k_rob_salonika")],
+        }),
+        bye("end"),
+      ),
     },
   ),
 
@@ -2306,7 +2397,6 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
           ["cold", moody(who, "cold")],
           "base",
         ),
-        r("how_many", "cold", "ask", "number"),
         r("where_gone", "threat", "push", "stiff", {
           tell: ["trust:-1"],
           effects: [trustOf(who, -1)],
@@ -2322,15 +2412,18 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
             }),
           ],
         }),
+        r("how_many", "cold", "ask", "number"),
         bye("later", "warm"),
       ),
       number: plain(
         r("comb", "frank", "deal", null, {
           effects: [remember("k_rob_men"), remember("v_flanders", who)],
         }),
+        r("factories", "cold", "ask", "works"),
         bye("end"),
       ),
       stiff: plain(r("how_many", "cold", "ask", "number"), bye("end")),
+      works: plain(bye("end")),
     },
   ),
 
@@ -2342,6 +2435,7 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
     {
       open: node(
         moods("cold"),
+        r("two_heads", "frank", "ask", "heads"),
         r("would_go", "warm", "ask", "versailles"),
         r("must_bend", "threat", "push", "out", {
           tell: ["trust:-1"],
@@ -2349,7 +2443,6 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
           reacts: [ifMood("versailles", [], "cold")],
           miss: "out",
         }),
-        r("two_heads", "frank", "ask", "heads"),
         bye("later", "warm"),
       ),
       versailles: plain(
@@ -2363,9 +2456,11 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
           tell: ["trust:-1"],
           effects: [trustOf(who, -1)],
         }),
+        r("wilson", "cold", "ask", "wilson"),
         bye("end"),
       ),
       out: plain(bye("end")),
+      wilson: plain(bye("end")),
     },
   ),
 
@@ -2397,10 +2492,12 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
       r("understood", "frank", "deal", null, {
         effects: [remember("k_jel_risk")],
       }),
+      r("chu_knows", "cold", "ask", "first_lord"),
       bye("end"),
     ),
     nelson: plain(r("go_on", "frank", "ask", "count"), bye("end")),
     promise: plain(bye("end", "warm")),
+    first_lord: node(moods("anxious"), bye("end")),
   }),
 
   talk(
@@ -2416,7 +2513,6 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
           ["weary", moody(who, "weary")],
           "base",
         ),
-        r("nets", "cold", "ask", "nets"),
         r("afraid", "frank", "ask", "fear", {
           reacts: [ifCold("shut", [])],
         }),
@@ -2424,12 +2520,18 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
           tell: ["money:-1", "trust:+1"],
           effects: [gauge("money", -1), trustOf(who, 1), force("sea", 1)],
         }),
+        r("nets", "cold", "ask", "nets"),
         bye("later", "warm"),
       ),
-      nets: plain(r("fear_too", "warm", "ask", "fear"), bye("end")),
+      nets: plain(
+        r("fear_too", "warm", "ask", "fear"),
+        r("blame", "frank", "ask", "before"),
+        bye("end"),
+      ),
       fear: node(line(["straight", candid(who)], "base"), bye("end", "warm")),
       thanks: plain(bye("end", "warm")),
       shut: plain(bye("end")),
+      before: plain(bye("end")),
     },
     { cd: 8 },
   ),
@@ -2442,15 +2544,15 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
     {
       open: node(
         moods("anxious", "weary"),
+        r("fleet_held", "flatter", "deal", "evening", {
+          tell: ["trust:+1"],
+          effects: [trustOf(who, 1), remember("k_jel_jutland")],
+        }),
         r("that_evening", "warm", "ask", "evening"),
         r("why_turned", "cold", "push", "turned", {
           tell: ["trust:-1"],
           effects: [trustOf(who, -1)],
           miss: "turned",
-        }),
-        r("fleet_held", "flatter", "deal", "evening", {
-          tell: ["trust:+1"],
-          effects: [trustOf(who, 1), remember("k_jel_jutland")],
         }),
         bye("later", "warm"),
       ),
@@ -2458,9 +2560,11 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
         r("understood", "frank", "deal", null, {
           effects: [remember("k_jel_jutland")],
         }),
+        r("beatty", "cold", "ask", "beatty"),
         bye("end", "warm"),
       ),
       turned: plain(r("forgive", "warm", "ask", "evening"), bye("end")),
+      beatty: node(moods("anxious", "weary"), bye("end", "warm")),
     },
   ),
 
@@ -2493,9 +2597,11 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
         r("still_come", "frank", "deal", "terms", {
           effects: [remember("k_jel_sealord")],
         }),
+        r("ask_admiralty", "cold", "ask", "admiralty"),
         bye("end"),
       ),
       terms: plain(bye("end", "warm")),
+      admiralty: plain(bye("end")),
     },
   ),
 
@@ -2507,9 +2613,6 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
     {
       open: node(
         moods("anxious", "weary"),
-        r("which_ships", "cold", "ask", "table", {
-          reacts: [ifCold("shut", [])],
-        }),
         r("hankey_says", "frank", "push", "table", {
           tell: ["trust:-1"],
           effects: [trustOf(who, -1)],
@@ -2519,15 +2622,30 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
           tell: ["trust:+1"],
           effects: [trustOf(who, 1)],
         }),
+        r("which_ships", "cold", "ask", "table", {
+          reacts: [ifCold("shut", [])],
+        }),
         bye("later", "warm"),
       ),
       table: plain(
         r("recount", "frank", "deal", null, {
           effects: [remember("k_jel_figures"), remember("m_sailings_found")],
         }),
+        r("who_counted", "cold", "ask", "young"),
         bye("end"),
       ),
       shut: plain(bye("end")),
+      young: plain(
+        r("protect", "warm", "deal", null, {
+          tell: ["trust:+1"],
+          effects: [
+            trustOf(who, 1),
+            remember("k_jel_figures"),
+            remember("m_sailings_found"),
+          ],
+        }),
+        bye("end"),
+      ),
     },
   ),
 
@@ -2544,12 +2662,6 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
           ["weary", moody(who, "weary")],
           "base",
         ),
-        r("sleep", "warm", "ask", "sleep"),
-        r("delegate", "frank", "push", "desk", {
-          tell: ["trust:-1"],
-          effects: [trustOf(who, -1)],
-          miss: "desk",
-        }),
         r("rest_soon", "warm", "deal", "rest", {
           tell: ["promise", "trust:+1"],
           effects: [
@@ -2560,6 +2672,12 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
             }),
           ],
         }),
+        r("sleep", "warm", "ask", "sleep"),
+        r("delegate", "frank", "push", "desk", {
+          tell: ["trust:-1"],
+          effects: [trustOf(who, -1)],
+          miss: "desk",
+        }),
         bye("later", "warm"),
       ),
       sleep: node(
@@ -2569,8 +2687,13 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
         }),
         bye("end", "warm"),
       ),
-      desk: plain(r("sorry", "warm", "ask", "sleep"), bye("end")),
+      desk: plain(
+        r("sorry", "warm", "ask", "sleep"),
+        r("first_lord", "cold", "ask", "first_lord"),
+        bye("end"),
+      ),
       rest: plain(bye("end", "warm")),
+      first_lord: plain(bye("end")),
     },
   ),
 
@@ -2599,8 +2722,10 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
       r("understood", "cold", "deal", null, {
         effects: [remember("k_french_shells")],
       }),
+      r("attack", "cold", "ask", "attack"),
       bye("end", "warm"),
     ),
+    attack: plain(bye("end")),
   }),
 
   visit(
@@ -2612,7 +2737,6 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
     {
       open: node(
         moods("arrogant", "cunning"),
-        r("say_it", "frank", "ask", "baltic"),
         r("sit_down", "threat", "push", "threat", {
           tell: ["trust:-1"],
           effects: [trustOf(who, -1)],
@@ -2623,6 +2747,7 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
           gain: [trustOf(who, 1)],
           reacts: [ifMood("threat", [], "cunning")],
         }),
+        r("say_it", "frank", "ask", "baltic"),
         bye("later", "warm"),
       ),
       baltic: plain(
@@ -2638,8 +2763,15 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
         r("noted", "cold", "ask", null, {
           effects: [remember("k_fisher_no")],
         }),
+        r("churchill", "warm", "ask", "love"),
       ),
       threat: plain(r("calm", "warm", "ask", "baltic"), bye("end")),
+      love: node(
+        moods("cunning"),
+        r("hear_too", "frank", "deal", null, {
+          effects: [remember("k_fisher_no")],
+        }),
+      ),
     },
   ),
 
@@ -2656,12 +2788,6 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
           ["cunning", moody(who, "cunning")],
           "base",
         ),
-        r("who_told", "cold", "ask", "dinner"),
-        r("arm_off", "threat", "push", "laugh", {
-          tell: ["trust:-1"],
-          effects: [trustOf(who, -1)],
-          miss: "laugh",
-        }),
         r("what_want", "frank", "deal", "place", {
           tell: ["promise"],
           effects: [
@@ -2670,6 +2796,12 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
               keep: chose("gbr_w_versailles", "replace_wilson"),
             }),
           ],
+        }),
+        r("who_told", "cold", "ask", "dinner"),
+        r("arm_off", "threat", "push", "laugh", {
+          tell: ["trust:-1"],
+          effects: [trustOf(who, -1)],
+          miss: "laugh",
         }),
         bye("later", "warm"),
       ),
@@ -2680,10 +2812,12 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
             remember("k_wilson_versailles"),
           ],
         }),
+        r("foch_too", "cold", "ask", "france"),
         bye("end"),
       ),
       laugh: plain(r("again", "cold", "ask", "dinner"), bye("end")),
       place: plain(bye("end", "warm")),
+      france: plain(bye("end")),
     },
     { cd: 10 },
   ),
@@ -2705,6 +2839,7 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
       r("key", "frank", "deal", null, {
         effects: [remember("k_hall_room40")],
       }),
+      r("fo", "frank", "ask", "fo"),
       bye("end"),
     ),
     who: plain(
@@ -2714,6 +2849,7 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
       bye("end"),
     ),
     use: plain(bye("end", "warm")),
+    fo: plain(bye("end")),
   }),
 
   visit(
@@ -2730,7 +2866,6 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
     {
       open: node(
         moods("cunning", "cold"),
-        r("show_it", "frank", "ask", "wire"),
         r("whose_wire", "cold", "ask", "wire", {
           reacts: [ifMood("wait", [], "cunning")],
         }),
@@ -2738,15 +2873,23 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
           tell: ["trust:+1"],
           effects: [trustOf(who, 1)],
         }),
+        r("show_it", "frank", "ask", "wire"),
         bye("later", "warm"),
       ),
       wire: plain(
         r("how_out", "frank", "deal", null, {
           effects: [remember("k_hall_wire")],
         }),
+        r("page", "frank", "ask", "page"),
         bye("end"),
       ),
       wait: plain(r("now", "frank", "ask", "wire"), bye("end")),
+      page: plain(
+        r("how_out", "frank", "deal", null, {
+          effects: [remember("k_hall_wire")],
+        }),
+        bye("end"),
+      ),
     },
   ),
 ];
