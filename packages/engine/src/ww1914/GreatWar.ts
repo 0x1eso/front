@@ -107,7 +107,7 @@ export class GreatWar {
       people: gwContent().people.map((p) => ({
         id: p.id,
         office: p.office,
-        status: "active",
+        status: p.arrives === undefined ? "active" : "waiting",
         temperament: p.temperaments[0],
         competence: [2, 2, 2],
         trust: 0,

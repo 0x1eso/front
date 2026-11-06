@@ -58,7 +58,14 @@ export const GW_TEMPERAMENTS = [
 ] as const;
 export type GwTemperament = (typeof GW_TEMPERAMENTS)[number];
 
-export const GW_PERSON_STATUS = ["active", "fallen", "exiled", "dead"] as const;
+export const GW_PERSON_STATUS = [
+  "active",
+  "fallen",
+  "exiled",
+  "dead",
+  // Not on the scene yet: see `arrives`. Nothing reads them but the arrival.
+  "waiting",
+] as const;
 export type GwPersonStatus = (typeof GW_PERSON_STATUS)[number];
 
 /** Fields of the hidden competence band, 1..3. */
@@ -87,6 +94,15 @@ export const GwPersonDefSchema = z
     fame: z.number().int().min(1).max(5),
     /** Where the facts come from (the design's source line). */
     source: z.string().min(1),
+    /**
+     * YYYY-MM-DD: not in the game before this day (engine People.ts). Absent:
+     * there from June 1914. A floor for the people screen, not a scripted
+     * event, and it reads the date so that every calendar row agrees.
+     */
+    arrives: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/)
+      .optional(),
   })
   .strict();
 export type GwPersonDef = z.infer<typeof GwPersonDefSchema>;

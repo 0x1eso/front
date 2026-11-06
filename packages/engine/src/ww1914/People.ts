@@ -8,6 +8,7 @@ import {
   GwTheatre,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
+import { daysFromCivil } from "@openfront/engine-lib/ww1936/Calendar";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import type { GreatWar } from "./GreatWar";
 import { holderOf } from "./SceneRun";
@@ -273,9 +274,19 @@ function succeed(gw: GreatWar, seat: GwSeatState): void {
   }
 }
 
-/** Chapter step: letters, health, envy, succession. */
+/** Those whose day has come join the game, for every country at once. */
+function arrivals(gw: GreatWar): void {
+  for (const p of gw.s.people) {
+    if (p.status !== "waiting") continue;
+    const [y, m, d] = (defOf(p.id)?.arrives ?? "").split("-").map(Number);
+    if (gw.s.day >= daysFromCivil(y, m, d)) p.status = "active";
+  }
+}
+
+/** Chapter step: arrivals, letters, health, envy, succession. */
 export function peopleStep(gw: GreatWar): void {
   const s = gw.s;
+  arrivals(gw);
   for (const seat of s.seats) {
     const own = ownPeople(gw, seat.tag);
     for (const p of own) {

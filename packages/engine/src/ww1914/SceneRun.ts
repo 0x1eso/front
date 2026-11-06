@@ -419,6 +419,8 @@ export function setOffice(
   const old = holderOf(ctx.gw, ctx.seat, office);
   if (old !== null) old.office = null;
   person.office = office;
+  // Named before their day: the office brings them on.
+  if (person.status === "waiting") person.status = "active";
   onAppointed(ctx.gw, person.id);
 }
 
