@@ -16,7 +16,7 @@ import {
   DOMESTIC_CONQUEST_PERCENT,
 } from "@openfront/engine-lib/domestic/Balance";
 import { DoomsdayClockSpeed } from "@openfront/engine-lib/game/DoomsdayClock";
-import { normalizeWorldWar1936Config } from "@openfront/engine-lib/ww1936/ModeConfig";
+import { normalizeModeConfig } from "@openfront/engine-lib/ww1914/ModeConfig";
 import { WwLength, wwLengthKeys } from "@openfront/engine-lib/ww1936/Pace";
 import { UserMeResponse } from "@openfront/shared/ApiSchemas";
 import { assetUrl } from "@openfront/shared/AssetUrls";
@@ -1443,7 +1443,7 @@ export class SinglePlayerModal extends BaseModal {
       };
       // World War 1936 (spec §2.2): the client loads the map named here, so
       // the mode's fixed map and rules are applied before the start.
-      const config = normalizeWorldWar1936Config(baseConfig);
+      const config = normalizeModeConfig(baseConfig);
       return {
         gameID: gameID,
         gameStartInfo: {

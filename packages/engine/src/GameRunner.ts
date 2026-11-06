@@ -22,6 +22,7 @@ import {
 import { MapFiles } from "@openfront/engine-api/game/MapFiles";
 import { ClientID, GameStartInfo, Turn } from "@openfront/engine-api/Schemas";
 import { isDormantTag } from "@openfront/engine-api/ww1936/Countries";
+import { gwWorldOf } from "@openfront/engine-lib/ww1914/World1914";
 import { loadTerrainMap } from "@openfront/engine-lib/game/TerrainMapLoader";
 import { PseudoRandom } from "@openfront/engine-lib/PseudoRandom";
 import { simpleHash } from "@openfront/engine-lib/Util";
@@ -45,6 +46,8 @@ import {
   snapshotGame,
 } from "./snapshot/GameSnapshot";
 import { StrategicExecution } from "./strategic/StrategicExecution";
+import { GreatWarExecution } from "./ww1914/GreatWarExecution";
+import { gwPlayers } from "./ww1914/GwPlayers";
 import { declareWarBlock } from "./ww1936/Diplomacy";
 import { scenarioPlayers } from "./ww1936/ScenarioPlayers";
 import { WorldWarExecution } from "./ww1936/WorldWarExecution";
@@ -63,7 +66,22 @@ export async function createGameRunner(
   const random = new PseudoRandom(simpleHash(gameStart.gameID));
 
   let game: Game;
-  if (config.worldWar1936()) {
+  if (config.greatWar1914()) {
+    // Great War 1914: every country of 1914 is a player, on the 1936 regions.
+    const scenario = gameMap.scenario;
+    if (scenario === undefined) {
+      throw new Error("Great War 1914 needs the world1936 scenario files");
+    }
+    game = createGame(
+      gwPlayers(gameStart.players, gwWorldOf(scenario), random),
+      [],
+      gameMap.gameMap,
+      gameMap.miniGameMap,
+      config,
+      gameMap.teamGameSpawnAreas,
+      scenario,
+    );
+  } else if (config.worldWar1936()) {
     // World War 1936 (spec §7.1): every country of the scenario is a player.
     const scenario = gameMap.scenario;
     if (scenario === undefined) {
@@ -209,6 +227,15 @@ export class GameRunner {
   }
 
   init() {
+    // Great War 1914: no spawn phase and nothing moves on the map but the
+    // chapter clock: no player, nation or win-check executions.
+    if (this.game.greatWar() !== null) {
+      this.game.addExecution(new WorldWarStartExecution());
+      this.game.addExecution(
+        new GreatWarExecution(simpleHash(this.execManager.gameID()) + 1914),
+      );
+      return;
+    }
     // World War 1936 (plan decision 6): no spawn phase, no tribes, its own
     // clock before the win check.
     const ww = this.game.worldWar();

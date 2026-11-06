@@ -1,0 +1,198 @@
+import { GwSeatState } from "@openfront/engine-api/ww1914/GreatWarTypes";
+import {
+  GwOrder,
+  GwOrderBlock,
+  GwOrderSchema,
+} from "@openfront/engine-api/ww1914/GwOrders";
+import { GW_READ_ONLY_KINDS } from "@openfront/engine-api/ww1914/SceneDsl";
+import { zPlayerRef } from "@openfront/engine-lib/snapshot/SnapshotType";
+import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
+import { z } from "zod";
+import { Execution, Game, Player } from "../game/Game";
+import { execSnapshotType } from "../snapshot/ExecutionSnapshot";
+import type {
+  ExecRecord,
+  SnapshotReader,
+  SnapshotWriter,
+} from "../snapshot/SnapshotContext";
+import { makeCard } from "./Desk";
+import type { GreatWar } from "./GreatWar";
+import {
+  castOf,
+  ctxOf,
+  holds,
+  needsDecision,
+  optionOpen,
+  removeCard,
+  runEffects,
+  sceneOf,
+  setOffice,
+} from "./SceneRun";
+
+/** Why this seat can't say ready; null when it can. */
+export function readyBlock(seat: GwSeatState): GwOrderBlock | null {
+  return seat.desk.some(needsDecision) ? "open_cards" : null;
+}
+
+/** Applies one order for `seat`; null when it took effect. */
+export function applyGwOrder(
+  gw: GreatWar,
+  seat: GwSeatState,
+  o: GwOrder,
+): GwOrderBlock | null {
+  if (gw.s.ended !== null) return "ended";
+  switch (o.kind) {
+    case "ready": {
+      if (o.chapter !== gw.s.chapter) return "stale_chapter";
+      if (o.on) {
+        const block = readyBlock(seat);
+        if (block !== null) return block;
+      }
+      seat.ready = o.on;
+      return null;
+    }
+    case "read": {
+      const card = seat.desk.find((c) => c.uid === o.card);
+      const scene = card === undefined ? null : sceneOf(card.scene);
+      if (scene === null) return "no_card";
+      if (!GW_READ_ONLY_KINDS.includes(scene.kind)) return "wrong_kind";
+      removeCard(seat, o.card);
+      return null;
+    }
+    case "choose": {
+      const card = seat.desk.find((c) => c.uid === o.card);
+      const scene = card === undefined ? null : sceneOf(card.scene);
+      if (card === undefined || scene === null) return "no_card";
+      const opt = scene.options?.find((x) => x.id === o.option);
+      if (opt === undefined) return "no_option";
+      const ctx = ctxOf(gw, seat, card);
+      if (!optionOpen(ctx, opt)) return "closed";
+      removeCard(seat, card.uid);
+      runEffects(ctx, opt.effects);
+      return null;
+    }
+    case "reply": {
+      const card = seat.desk.find((c) => c.uid === o.card);
+      const scene = card === undefined ? null : sceneOf(card.scene);
+      if (card === undefined || scene === null) return "no_card";
+      if (scene.kind !== "talk" || card.node === null) return "wrong_kind";
+      const reply = scene.nodes?.[card.node].replies.find(
+        (r) => r.id === o.reply,
+      );
+      if (reply === undefined) return "no_option";
+      const ctx = ctxOf(gw, seat, card);
+      if (!optionOpen(ctx, reply)) return "closed";
+      // The reply's own price, then how this person takes it.
+      runEffects(ctx, reply.effects);
+      const react = reply.reacts?.find((r) => holds(ctx, r.when));
+      if (react !== undefined) runEffects(ctx, react.effects);
+      const next = react !== undefined ? react.next : reply.next;
+      if (next === null) removeCard(seat, card.uid);
+      else card.node = next;
+      return null;
+    }
+    case "summon": {
+      if (seat.audiences <= 0) return "no_audience";
+      const scene = sceneOf(o.topic);
+      if (scene?.kind !== "talk" || scene.summon !== true) return "no_topic";
+      if (!summonable(gw, seat, o.person, o.topic)) return "no_topic";
+      const card = makeCard(gw, seat, scene, "summon");
+      if (card === null) return "no_topic";
+      seat.audiences--;
+      seat.desk.push(card);
+      seat.seen[scene.id] = gw.s.chapter;
+      return null;
+    }
+    case "dismiss": {
+      const p = gw.person(o.person);
+      if (!ownPerson(seat, o.person) || p === null) return "no_person";
+      p.office = null;
+      return null;
+    }
+    case "appoint": {
+      const p = gw.person(o.person);
+      if (!ownPerson(seat, o.person) || p === null) return "no_person";
+      setOffice({ gw, seat, cast: {} }, p, o.office);
+      return null;
+    }
+    case "allocate":
+      seat.alloc = {
+        main: o.main,
+        posture: o.posture,
+        scale: o.scale,
+        allyShare: o.allyShare,
+        research: o.research,
+      };
+      return null;
+  }
+}
+
+function ownPerson(seat: GwSeatState, id: string): boolean {
+  return gwContent().people.some((d) => d.id === id && d.tag === seat.tag);
+}
+
+/** Whether `person` can be called on `topic` now. */
+export function summonable(
+  gw: GreatWar,
+  seat: GwSeatState,
+  person: string,
+  topic: string,
+): boolean {
+  const scene = sceneOf(topic);
+  if (scene === null || scene.who === undefined) return false;
+  if (!scene.nation.includes(seat.tag)) return false;
+  if (seat.desk.some((c) => c.scene === topic)) return false;
+  const cast = castOf(gw, seat, scene);
+  if (cast === null || cast[scene.who] !== person) return false;
+  return scene.when === undefined || holds({ gw, seat, cast }, scene.when);
+}
+
+export class GwOrderExecution implements Execution {
+  constructor(
+    private player: Player,
+    private order: GwOrder,
+  ) {}
+
+  init(mg: Game, _ticks: number): void {
+    const gw = mg.greatWar();
+    const seat = gw?.seatOf(this.player.smallID()) ?? null;
+    if (gw === null || seat === null) return;
+    applyGwOrder(gw, seat, this.order);
+    gw.touch();
+  }
+
+  tick(_ticks: number): void {}
+
+  isActive(): boolean {
+    return false;
+  }
+
+  activeDuringSpawnPhase(): boolean {
+    return false;
+  }
+
+  snapshot(w: SnapshotWriter): ExecRecord {
+    return GwOrderExecutionSnapshot.write({
+      player: w.player(this.player),
+      order: JSON.stringify(this.order),
+    });
+  }
+
+  restoreSnapshot(s: GwOrderState, r: SnapshotReader): void {
+    this.player = r.player(s.player);
+    this.order = GwOrderSchema.parse(JSON.parse(s.order));
+  }
+}
+
+const GwOrderStateSchema = z.object({
+  player: zPlayerRef(),
+  order: z.string(),
+});
+type GwOrderState = z.infer<typeof GwOrderStateSchema>;
+
+export const GwOrderExecutionSnapshot = execSnapshotType({
+  name: "GwOrder",
+  version: 1,
+  schema: GwOrderStateSchema,
+  cls: () => GwOrderExecution,
+});

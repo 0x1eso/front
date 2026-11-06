@@ -71,6 +71,8 @@ import {
   WwOrderExecutionSnapshot,
   WwTakeoverPickExecutionSnapshot,
 } from "../ww1936/economy/WwOrderExecution";
+import { GreatWarExecutionSnapshot } from "../ww1914/GreatWarExecution";
+import { GwOrderExecutionSnapshot } from "../ww1914/Orders";
 import { WorldWarExecutionSnapshot } from "../ww1936/WorldWarExecution";
 import { WorldWarStartExecutionSnapshot } from "../ww1936/WorldWarStartExecution";
 import type { ExecutionSnapshotType } from "./ExecutionSnapshot";
@@ -152,5 +154,7 @@ export const EXECUTION_SNAPSHOT_TYPES = [
   WorldWarExecutionSnapshot,
   WorldWarStartExecutionSnapshot,
   WwOrderExecutionSnapshot,
+  GreatWarExecutionSnapshot,
+  GwOrderExecutionSnapshot,
   WwTakeoverPickExecutionSnapshot,
 ] as unknown as readonly ExecutionSnapshotType<unknown>[];

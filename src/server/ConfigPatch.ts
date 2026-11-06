@@ -1,5 +1,6 @@
 import { GameMapType } from "@openfront/engine-api/game/GameTypes";
 import { GameConfig, GameConfigPatch } from "@openfront/engine-api/Schemas";
+import { applyGreatWar1914Rules } from "@openfront/engine-lib/ww1914/ModeConfig";
 import { applyWorldWar1936Rules } from "@openfront/engine-lib/ww1936/ModeConfig";
 
 // The host edits its lobby through update_game_config, which carries a
@@ -45,6 +46,9 @@ const COPIED_KEYS = [
   "ww1936Unlimited",
   // The unlimited game at the timed game's tempo.
   "ww1936FastTempo",
+  // Great War 1914 and the row of its chapter table.
+  "greatWar1914",
+  "greatWar1914Calendar",
 ] as const satisfies readonly (keyof GameConfig)[];
 
 // `.nullable().optional()` in the schema: the wire says null to clear a
@@ -120,7 +124,9 @@ export function applyGameConfigPatch(
  * the rules and the other modes. Without the mode its map is not offered.
  */
 export function applyWorldWar1936ServerRules(target: GameConfig): void {
-  if (target.worldWar1936 === true) {
+  if (target.greatWar1914 === true) {
+    applyGreatWar1914Rules(target);
+  } else if (target.worldWar1936 === true) {
     applyWorldWar1936Rules(target);
   } else if (target.gameMap === GameMapType.World1936) {
     target.gameMap = GameMapType.World;

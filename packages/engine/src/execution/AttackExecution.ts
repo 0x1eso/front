@@ -161,6 +161,12 @@ export class AttackExecution implements Execution {
       return;
     }
 
+    // Great War 1914: the map is a background; the same refusal, silently.
+    if (mg.greatWar() !== null) {
+      this.active = false;
+      return;
+    }
+
     // World War 1936 (spec §7.2): no war, no attack, refused before it can
     // leave an embargo behind. A boat whose war ended on the way lands here.
     const ww = mg.worldWar();

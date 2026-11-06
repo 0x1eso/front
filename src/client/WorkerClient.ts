@@ -21,7 +21,7 @@ import {
   ReadSnapshotHeaderMessage,
   WorkerMessage,
 } from "@openfront/engine-api/worker/WorkerMessages";
-import { normalizeWorldWar1936Config } from "@openfront/engine-lib/ww1936/ModeConfig";
+import { normalizeModeConfig } from "@openfront/engine-lib/ww1914/ModeConfig";
 import {
   loadMapFiles,
   mapFilesTransfer,
@@ -136,7 +136,7 @@ export class WorkerClient {
     // The engine fetches nothing: it gets the map in the init message. The
     // map of the normalized config: World War 1936 fixes its own map and
     // size, as the engine's Config does.
-    const { gameMap, gameMapSize } = normalizeWorldWar1936Config(
+    const { gameMap, gameMapSize } = normalizeModeConfig(
       this.gameStartInfo.config,
     );
     const created = createGameWorker();

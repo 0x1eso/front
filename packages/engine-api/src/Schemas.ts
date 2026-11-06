@@ -51,6 +51,8 @@ import {
   WW_MAX_GROUP_PLANES,
   WW_MAX_KEEP_GROUPS,
 } from "./ww1936/AirTypes";
+import { GW_CALENDAR_IDS } from "./ww1914/GreatWarTypes";
+import { GwOrderIntentSchema } from "./ww1914/GwOrders";
 import { COUNTRY_TAGS } from "./ww1936/Countries";
 import {
   AGENCY_UPGRADES,
@@ -181,7 +183,8 @@ export type Intent =
   | CongressVoteIntent
   | ConveneEmergencyIntent
   | DeclareWarIntent
-  | WwOrderIntent;
+  | WwOrderIntent
+  | GwOrderIntent;
 
 export type AttackIntent = z.infer<typeof AttackIntentSchema>;
 export type CancelAttackIntent = z.infer<typeof CancelAttackIntentSchema>;
@@ -243,6 +246,7 @@ export type ConveneEmergencyIntent = z.infer<
 >;
 export type DeclareWarIntent = z.infer<typeof DeclareWarIntentSchema>;
 export type WwOrderIntent = z.infer<typeof WwOrderIntentSchema>;
+export type GwOrderIntent = z.infer<typeof GwOrderIntentSchema>;
 
 export type Turn = z.infer<typeof TurnSchema>;
 export type GameConfig = z.infer<typeof GameConfigSchema>;
@@ -533,6 +537,12 @@ export const GameConfigSchema = z.object({
   // On keeps the designer's behaviour (and its tests). No lobby option.
   // Appended last (zbin field order).
   ww1936Designer: z.boolean().optional(),
+  // Great War 1914 (this fork): the political game of the First World War on
+  // the 1936 map. Exclusive with every other fork mode, worldWar1936 included
+  // (engine-lib/ww1914/ModeConfig.ts). Appended last (zbin field order).
+  greatWar1914: z.boolean().optional(),
+  // Great War 1914: which row of the chapter table (engine-lib/ww1914/Calendars).
+  greatWar1914Calendar: z.enum(GW_CALENDAR_IDS).optional(),
 });
 
 // What a host sends in update_game_config. maxPlayers is the private-lobby
@@ -1758,6 +1768,7 @@ export const IntentSchema = z.discriminatedUnion("type", [
   ConveneEmergencyIntentSchema,
   DeclareWarIntentSchema,
   WwOrderIntentSchema,
+  GwOrderIntentSchema,
 ]);
 
 // StampedIntent = Intent with server-stamped clientID (used in turns and execution)

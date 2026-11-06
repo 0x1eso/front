@@ -1,0 +1,232 @@
+import { GameType } from "@openfront/engine-api/game/GameTypes";
+import {
+  GreatWarState,
+  GreatWarStateSchema,
+  GW_THEATRES,
+  GW_TOPICS,
+  GwNationState,
+  GwPersonState,
+  GwSeatState,
+} from "@openfront/engine-api/ww1914/GreatWarTypes";
+import { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
+import type { GreatWarData } from "@openfront/engine-api/ww1914/GwView";
+import { snapshotType } from "@openfront/engine-lib/snapshot/SnapshotType";
+import { gwCalendarOf, gwChapters } from "@openfront/engine-lib/ww1914/Calendars";
+import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
+import {
+  fillGreatWarOwners,
+  GwWorld,
+  gwWorldOf,
+} from "@openfront/engine-lib/ww1914/World1914";
+import { idHash } from "@openfront/engine-lib/ww1936/Roll";
+import { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
+import type { Game } from "../game/Game";
+import type { GameMap } from "@openfront/engine-api/game/GameMap";
+import { advanceChapter, allReady } from "./Chapters";
+import { gwView } from "./View";
+
+/**
+ * The record a snapshot stores. A change of GreatWarState's layout bumps
+ * `version` and adds a migration.
+ */
+export const GreatWarSnapshot = snapshotType({
+  name: "GreatWar",
+  version: 1,
+  schema: GreatWarStateSchema,
+});
+
+/** Every value of the state, whatever its shape; key order doesn't count. */
+function fold(h: number, v: unknown): number {
+  if (typeof v === "number") return (Math.imul(h, 31) + v) | 0;
+  if (typeof v === "string") return (Math.imul(h, 31) + idHash(v)) | 0;
+  if (typeof v === "boolean") return (Math.imul(h, 31) + (v ? 1 : 2)) | 0;
+  if (v === null || v === undefined) return (Math.imul(h, 31) + 3) | 0;
+  if (Array.isArray(v)) {
+    let out = (Math.imul(h, 31) + v.length) | 0;
+    for (const x of v) out = fold(out, x);
+    return out;
+  }
+  const o = v as Record<string, unknown>;
+  let out = h;
+  for (const k of Object.keys(o).sort()) {
+    out = fold((Math.imul(out, 31) + idHash(k)) | 0, o[k]);
+  }
+  return out;
+}
+
+/**
+ * Great War 1914: the chapters, the seats and everything the scenes read.
+ * All state is the plain object `s`: snapshot, restore and hash cover a new
+ * field with no further code. The systems (Chapters, Desk, SceneRun, Orders)
+ * are functions over this object.
+ */
+export class GreatWar {
+  s: GreatWarState;
+  /** Derived from the map files, never stored. */
+  readonly world: GwWorld;
+  /** Not state: whether the screens need an update. */
+  private dirty = true;
+
+  constructor(
+    readonly mg: Game,
+    readonly scenario: ScenarioIndex,
+  ) {
+    this.world = gwWorldOf(scenario);
+    this.s = this.blank();
+  }
+
+  private blank(): GreatWarState {
+    const calendar = gwCalendarOf(this.mg.config().gameConfig());
+    const pressure = Object.fromEntries(
+      GW_TOPICS.map((t) => [t, 0]),
+    ) as GreatWarState["pressure"];
+    return {
+      seed: 0,
+      rolled: false,
+      calendar,
+      chapter: 0,
+      dayShift: 0,
+      day: gwChapters(calendar)[0].day,
+      deadlineTick: null,
+      ended: null,
+      opening: "sarajevo",
+      temp: 0,
+      crisis: null,
+      pressure,
+      secrets: [],
+      sources: [],
+      nations: this.world.tags.map(blankNation),
+      people: gwContent().people.map((p) => ({
+        id: p.id,
+        office: p.office,
+        status: "active",
+        temperament: p.temperaments[0],
+        competence: [2, 2, 2],
+        trust: 0,
+        pride: 2,
+        health: 3,
+        memory: [],
+      })),
+      theatres: GW_THEATRES.map((id) => ({
+        id,
+        line: 0,
+        progress: 0,
+        trench: 0,
+        open: false,
+        attacker: null,
+        defender: null,
+        commander: null,
+      })),
+      seats: [],
+      nextCard: 1,
+    };
+  }
+
+  /** Gives the map its owners; the players must exist. */
+  fillOwners(map: GameMap): void {
+    fillGreatWarOwners(map, this.scenario, this.world);
+  }
+
+  /** The seats: every human's player. */
+  start(): void {
+    for (const p of this.mg.players()) {
+      if (p.clientID() === null) continue;
+      this.s.seats.push({
+        smallID: p.smallID(),
+        tag: this.tagOf(p.smallID()),
+        ready: false,
+        audiences: 0,
+        desk: [],
+        flags: [],
+        memory: [],
+        promises: [],
+        seen: {},
+        scheduled: [],
+        alloc: {
+          main: "west",
+          posture: "hold",
+          scale: "limited",
+          allyShare: 0,
+          research: "artillery",
+        },
+        log: [],
+      });
+    }
+    this.s.seats.sort((a, b) => a.smallID - b.smallID);
+  }
+
+  tagOf(smallID: number): GwTag {
+    return this.world.tags[smallID - 1];
+  }
+
+  seatOf(smallID: number): GwSeatState | null {
+    return this.s.seats.find((x) => x.smallID === smallID) ?? null;
+  }
+
+  nation(tag: GwTag): GwNationState | null {
+    return this.s.nations.find((n) => n.tag === tag) ?? null;
+  }
+
+  person(id: string): GwPersonState | null {
+    return this.s.people.find((p) => p.id === id) ?? null;
+  }
+
+  /** Any change the screens should see. */
+  touch(): void {
+    this.dirty = true;
+  }
+
+  /** The tick the chapter opened now closes at; null with no timer. */
+  deadlineFrom(tick: number): number | null {
+    const solo =
+      this.mg.config().gameConfig().gameType === GameType.Singleplayer;
+    if (solo) return null;
+    const ch = gwChapters(this.s.calendar)[this.s.chapter];
+    return tick + ch.timerSec * 10;
+  }
+
+  /** The chapter clock: every seat ready, or the deadline, closes a chapter. */
+  tick(ticks: number): void {
+    const s = this.s;
+    if (s.ended !== null) return;
+    if (this.mg.isPaused()) {
+      // Time left stays as it was.
+      if (s.deadlineTick !== null) s.deadlineTick++;
+      return;
+    }
+    const late = s.deadlineTick !== null && ticks >= s.deadlineTick;
+    if (late || allReady(this)) advanceChapter(this, ticks, late);
+  }
+
+  hash(): number {
+    return fold(1914, this.s) >>> 0;
+  }
+
+  snapshot(): GreatWarState {
+    return this.s;
+  }
+
+  restoreState(s: GreatWarState): void {
+    this.s = s;
+    this.dirty = true;
+  }
+
+  /** The view when something changed, else null. */
+  takeData(): GreatWarData | null {
+    if (!this.dirty) return null;
+    this.dirty = false;
+    return gwView(this);
+  }
+}
+
+function blankNation(tag: GwTag): GwNationState {
+  return {
+    tag,
+    gauges: { shells: 2, bread: 2, money: 2, morale: 3, order: 3 },
+    inst: tag === "DEU" ? { army: 0, reichstag: 0, countersign: 0 } : {},
+    strength: {},
+    trust: {},
+    atWar: [],
+    ai: "cautious",
+  };
+}

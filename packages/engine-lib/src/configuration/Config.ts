@@ -27,7 +27,7 @@ import {
   COASTAL_BATTERY_BUILD_TICKS,
   WARFARE_ONLY_UNITS,
 } from "../warfare/Warfare";
-import { normalizeWorldWar1936Config } from "../ww1936/ModeConfig";
+import { normalizeModeConfig } from "../ww1914/ModeConfig";
 import { msPerTickOf, wwTempo, wwUnlimited } from "../ww1936/Pace";
 
 export interface NukeMagnitude {
@@ -113,7 +113,7 @@ export class Config {
   ) {
     // World War 1936 (spec §2.2): one normalization for the engine, the
     // server and the lobby. The same object comes back when the mode is off.
-    this._gameConfig = normalizeWorldWar1936Config(gameConfig);
+    this._gameConfig = normalizeModeConfig(gameConfig);
   }
 
   isReplay(): boolean {
@@ -227,6 +227,11 @@ export class Config {
   /** World War 1936 (spec §2): exclusive with every other fork mode. */
   worldWar1936(): boolean {
     return this._gameConfig.worldWar1936 === true;
+  }
+
+  /** Great War 1914: exclusive with every other fork mode. */
+  greatWar1914(): boolean {
+    return this._gameConfig.greatWar1914 === true;
   }
 
   /** World War 1936: nations follow the historical calendar (spec §7.4). */

@@ -1,0 +1,60 @@
+{
+  "version": 1,
+  "byOwner": {
+    "SUN": "RUS",
+    "FIN": "RUS",
+    "EST": "RUS",
+    "LVA": "RUS",
+    "TTU": "RUS",
+    "LTU": { "to": "RUS", "except": { "DEU": [242] } },
+    "POL": {
+      "to": "RUS",
+      "except": {
+        "DEU": [272, 297, 308, 355],
+        "AUH": [360, 362, 366, 372, 391]
+      }
+    },
+    "DZG": "DEU",
+    "CSK": "AUH",
+    "AUT": "AUH",
+    "HUN": "AUH",
+    "YUG": {
+      "to": "SRB",
+      "except": {
+        "AUH": [467, 471, 474, 498, 506, 516, 525, 529],
+        "MNE": [557]
+      }
+    },
+    "ROU": {
+      "to": "ROU",
+      "except": {
+        "AUH": [418, 435, 449, 450, 475, 476, 489],
+        "RUS": [422, 437, 479]
+      }
+    },
+    "ITA": { "to": "ITA", "except": { "AUH": [462, 478, 534] } },
+    "FRA": { "to": "FRA", "except": { "DEU": [390], "OTT": [729, 1368] } },
+    "TUR": { "to": "OTT", "except": { "RUS": [608, 610] } },
+    "IRQ": "OTT",
+    "SAU": "OTT",
+    "YEM": "OTT",
+    "ESR": "ESP",
+    "ESN": "ESP",
+    "IRL": "GBR",
+    "ISL": "DNK",
+    "CAN": "GBR",
+    "AUS": "GBR",
+    "NZL": "GBR",
+    "ZAF": "GBR",
+    "RAJ": "GBR",
+    "MNG": "CHN",
+    "TIB": "CHN",
+    "MCK": "CHN",
+    "CCP": "CHN",
+    "GXC": "CHN",
+    "SXI": "CHN",
+    "YUN": "CHN",
+    "XBM": "CHN",
+    "SIK": "CHN"
+  }
+}

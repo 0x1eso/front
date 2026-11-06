@@ -51,6 +51,7 @@ import { AbstractGraph } from "../pathfinding/algorithms/AbstractGraph";
 import { PathFinder } from "../pathfinding/types";
 import type { ExecRecord, SnapshotWriter } from "../snapshot/SnapshotContext";
 import type { PlayerStrategic } from "../strategic/PlayerStrategic";
+import type { GreatWar } from "../ww1914/GreatWar";
 import type { WorldWar } from "../ww1936/WorldWar";
 import { RailNetwork } from "./RailNetwork";
 import { Stats } from "./Stats";
@@ -702,6 +703,8 @@ export interface Game extends GameLike {
 
   /** World War 1936; null when the mode is off. */
   worldWar(): WorldWar | null;
+  /** Great War 1914; null when the mode is off. */
+  greatWar(): GreatWar | null;
 
   // Nations
   nations(): Nation[];

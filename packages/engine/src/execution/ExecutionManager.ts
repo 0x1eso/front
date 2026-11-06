@@ -26,6 +26,7 @@ import {
   WwOrderExecution,
   WwTakeoverPickExecution,
 } from "../ww1936/economy/WwOrderExecution";
+import { GwOrderExecution } from "../ww1914/Orders";
 import { AllianceExtensionExecution } from "./alliance/AllianceExtensionExecution";
 import { AllianceRejectExecution } from "./alliance/AllianceRejectExecution";
 import { AllianceRequestExecution } from "./alliance/AllianceRequestExecution";
@@ -87,6 +88,16 @@ export class Executor {
     if (!player) {
       console.warn(`player with clientID ${intent.clientID} not found`);
       return new NoOpExecution();
+    }
+
+    // Great War 1914: only its orders, the pause and a client dropping out.
+    if (this.mg.greatWar() !== null) {
+      if (intent.type === "gw_order") {
+        return new GwOrderExecution(player, intent.order);
+      }
+      if (intent.type !== "toggle_pause" && intent.type !== "mark_disconnected") {
+        return new NoOpExecution();
+      }
     }
 
     // create execution
@@ -223,6 +234,8 @@ export class Executor {
         return new DeclareWarExecution(player, intent.target);
       case "ww_order":
         return new WwOrderExecution(player, intent.order);
+      case "gw_order":
+        return new NoOpExecution();
       default:
         throw new Error(`intent type ${intent} not found`);
     }

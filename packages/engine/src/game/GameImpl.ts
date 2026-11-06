@@ -83,6 +83,7 @@ import type {
   SnapshotReader,
   SnapshotWriter,
 } from "../snapshot/SnapshotContext";
+import { GreatWar, GreatWarSnapshot } from "../ww1914/GreatWar";
 import { WorldWar, WorldWarStateSchema } from "../ww1936/WorldWar";
 import { AllianceImpl } from "./AllianceImpl";
 import { AllianceRequestImpl } from "./AllianceRequestImpl";
@@ -186,6 +187,8 @@ export class GameImpl implements Game {
   private _congress: Congress | null;
   /** World War 1936; null when the mode is off. */
   private _worldWar: WorldWar | null;
+  /** Great War 1914; null when the mode is off. */
+  private _greatWar: GreatWar | null;
 
   constructor(
     private _humans: PlayerInfo[],
@@ -217,6 +220,9 @@ export class GameImpl implements Game {
     this._worldWar = _config.worldWar1936()
       ? new WorldWar(this, requireScenario(scenario))
       : null;
+    this._greatWar = _config.greatWar1914()
+      ? new GreatWar(this, requireScenario(scenario))
+      : null;
 
     if (!restoring) {
       if (_config.gameConfig().gameMode === GameMode.Team) {
@@ -224,8 +230,14 @@ export class GameImpl implements Game {
       }
       this.addPlayers();
       if (this._worldWar !== null) {
-        this.assignScenarioTerritory(this._worldWar.scenario);
+        const scenario = this._worldWar.scenario;
+        this.assignTerritory(() => fillScenarioOwners(this._map, scenario));
         this._worldWar.start();
+      }
+      if (this._greatWar !== null) {
+        const gw = this._greatWar;
+        this.assignTerritory(() => gw.fillOwners(this._map));
+        gw.start();
       }
     }
 
@@ -245,7 +257,7 @@ export class GameImpl implements Game {
   private addPlayers() {
     // World War 1936 (plan decision 2): _humans holds every country's
     // player, humans and nations, in scenario order.
-    if (this._worldWar !== null) {
+    if (this._worldWar !== null || this._greatWar !== null) {
       this._humans.forEach((p) => this.addPlayer(p));
       return;
     }
@@ -288,9 +300,9 @@ export class GameImpl implements Game {
    * World War 1936 (spec §5.3, plan decision 5): every land tile gets its
    * 1936 owner at once. No tile updates: the screens fill the same owners.
    */
-  private assignScenarioTerritory(index: ScenarioIndex): void {
+  private assignTerritory(fillOwners: () => void): void {
     // Every owner is set first: isBorder reads the neighbours' owners.
-    fillScenarioOwners(this._map, index);
+    fillOwners();
     const n = this._width * this._height;
     for (let t = 0; t < n; t++) {
       const owner = this._map.ownerID(t);
@@ -785,6 +797,7 @@ export class GameImpl implements Game {
     });
     if (this._congress !== null) hash += this._congress.hash();
     if (this._worldWar !== null) hash += this._worldWar.hash();
+    if (this._greatWar !== null) hash += this._greatWar.hash();
     return hash;
   }
 
@@ -1555,6 +1568,9 @@ export class GameImpl implements Game {
   worldWar(): WorldWar | null {
     return this._worldWar;
   }
+  greatWar(): GreatWar | null {
+    return this._greatWar;
+  }
   /** The PlayerInfo object this game holds for a player id, if any. */
   findPlayerInfo(id: PlayerID): PlayerInfo | undefined {
     return (
@@ -1639,6 +1655,11 @@ export class GameImpl implements Game {
       ...(this._worldWar === null
         ? {}
         : { worldWar: this._worldWar.snapshot() }),
+      ...(this._greatWar === null
+        ? {}
+        : {
+            greatWar: w.versioned(GreatWarSnapshot, this._greatWar.snapshot()),
+          }),
     };
   }
 
@@ -1709,6 +1730,12 @@ export class GameImpl implements Game {
         throw new Error("World War 1936 snapshot without its worldWar state");
       }
       this._worldWar.restoreState(s.worldWar);
+    }
+    if (this._greatWar !== null) {
+      if (s.greatWar === undefined) {
+        throw new Error("Great War 1914 snapshot without its greatWar state");
+      }
+      this._greatWar.restoreState(readVersioned(GreatWarSnapshot, s.greatWar));
     }
   }
 
@@ -1837,6 +1864,7 @@ export const GameSnapshot = snapshotType({
     stats: VersionedSchema,
     congress: CongressStateSchema.optional(),
     worldWar: WorldWarStateSchema.optional(),
+    greatWar: VersionedSchema.optional(),
   }),
 });
 export type GameState = z.infer<typeof GameSnapshot.schema>;

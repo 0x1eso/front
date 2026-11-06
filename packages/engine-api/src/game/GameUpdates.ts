@@ -6,6 +6,7 @@ import type { DomesticData, WinReason } from "../domestic/DomesticTypes";
 import { AllPlayersStats, ClientID, Winner } from "../Schemas";
 import type { StrategicData } from "../strategic/StrategicTypes";
 import type { WwAirData } from "../ww1936/AirTypes";
+import type { GreatWarData } from "../ww1914/GwView";
 import type { WwDepthData } from "../ww1936/DepthTypes";
 import type { WwEconomyData } from "../ww1936/EconomyTypes";
 import type { WwEndgameData } from "../ww1936/EndgameTypes";
@@ -143,6 +144,8 @@ export enum GameUpdateType {
   WwEndgame,
   // World War 1936 P6 (P6 spec §21.5, plan decision 36)
   WwDepth,
+  // Great War 1914
+  GreatWar,
 }
 
 export type GameUpdate =
@@ -179,7 +182,8 @@ export type GameUpdate =
   | WwNavyUpdate
   | WwAirUpdate
   | WwEndgameUpdate
-  | WwDepthUpdate;
+  | WwDepthUpdate
+  | GreatWarUpdate;
 
 export interface BonusEventUpdate {
   type: GameUpdateType.BonusEvent;
@@ -525,4 +529,10 @@ export interface WwEndgameUpdate {
 export interface WwDepthUpdate {
   type: GameUpdateType.WwDepth;
   data: WwDepthData;
+}
+
+/** Great War 1914: the whole view, when it changed. */
+export interface GreatWarUpdate {
+  type: GameUpdateType.GreatWar;
+  data: GreatWarData;
 }
