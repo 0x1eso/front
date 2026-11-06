@@ -32,7 +32,7 @@ import { doWorld, world } from "@openfront/engine-api/ww1914/WorldDsl";
 /**
  * 「오스트리아-헝가리」, the crown share (plan: ww135-plan-auh.md §7, §8, §9):
  * the auh_k_ scenes, the talks of Karl, Zita, Czernin and Károlyi, and the
- * visits of Korošec, Lammasch, Archduke Wilhelm, Koerber and Ludendorff. Data
+ * visits of Korošec, Lammasch, Archduke Wilhelm, Koerber and Piłsudski. Data
  * only; the text is in resources/ww1914/ko/AUH.crown.json.
  */
 
@@ -1380,7 +1380,7 @@ const KARL_TALKS: readonly GwScene[] = [
         r("rule", "cold", "push", "stand", {
           tell: ["trust:-1"],
           effects: [pt("p", -1)],
-          reacts: [rx(T("anxious"), "fold")],
+          reacts: [rx(T("anxious"), "fold", reason("auh_t_karl_folded"))],
         }),
         r("terms", "warm", "deal", "bargain", {
           effects: [heard("k_karl_funeral")],
@@ -1474,7 +1474,7 @@ const KARL_TALKS: readonly GwScene[] = [
       bye("off", "cold"),
     ]),
     swap_t: node([bye("go")]),
-    peace: node([bye("keep"), bye("silent", "threat")]),
+    peace: node([bye("keep"), bye("silent", "threat")], v("anx", T("anxious"))),
   }),
   talk(
     "auh_t_karl_xx",
@@ -1556,7 +1556,10 @@ const KARL_TALKS: readonly GwScene[] = [
         ],
         v("stub", T("stubborn")),
       ),
-      berlin: node([bye("know"), bye("fool", "cold")]),
+      berlin: node(
+        [bye("know"), bye("fool", "cold")],
+        v("stub", T("stubborn")),
+      ),
       men: node([bye("know"), bye("fool", "cold")]),
       sworn: node([bye("go")]),
     },
@@ -1641,7 +1644,9 @@ const ZITA_TALKS: readonly GwScene[] = [
         [
           r("who", "frank", "ask", "who"),
           r("ignore", "cold", "push", "icy", {
-            reacts: [rx(T("stubborn"), "icy", well(-1))],
+            reacts: [
+              rx(T("stubborn"), "icy", well(-1), reason("auh_t_zita_shut")),
+            ],
           }),
           r("stop", "warm", "deal", "pledge", {
             effects: [
@@ -1700,7 +1705,10 @@ const ZITA_TALKS: readonly GwScene[] = [
         r("yes", "frank", "ask", "risk", { effects: [heard("k_zita_sixtus")] }),
         bye("no", "cold"),
       ]),
-      risk: node([r("fm", "frank", "ask", "fm"), bye("go")]),
+      risk: node(
+        [r("fm", "frank", "ask", "fm"), bye("go")],
+        v("cold", T("cold")),
+      ),
       term: node([bye("go")]),
       fm: node([bye("think"), bye("hide", "cold")]),
     },
@@ -1726,6 +1734,7 @@ const ZITA_TALKS: readonly GwScene[] = [
         }),
         bye(),
       ],
+      v("out", not(holds("foreign", "auh_czernin"))),
       v("stub", T("stubborn")),
     ),
     judge: node(
@@ -1772,7 +1781,10 @@ const ZITA_TALKS: readonly GwScene[] = [
         ],
         v("letter", chose("auh_k_sixtus", "letter_alsace")),
       ),
-      weigh: node([bye("hard"), r("god", "frank", "ask", "god")]),
+      weigh: node(
+        [bye("hard"), r("god", "frank", "ask", "god")],
+        v("cold", T("cold")),
+      ),
       no: node([
         r("then", "frank", "ask", "weigh", { effects: [heard("k_zita_word")] }),
         bye("end", "cold"),
@@ -1795,7 +1807,10 @@ const ZITA_TALKS: readonly GwScene[] = [
       ],
       v("late", score({ max: -20 })),
     ),
-    stay: node([r("kids", "frank", "ask", "kids"), bye("hear")]),
+    stay: node(
+      [r("kids", "frank", "ask", "kids"), bye("hear")],
+      v("cold", T("cold")),
+    ),
     tired: node([
       r("again", "frank", "ask", "stay", { effects: [heard("k_zita_stay")] }),
       bye("enough"),
@@ -1857,7 +1872,7 @@ const CZERNIN_TALKS: readonly GwScene[] = [
           r("how", "frank", "ask", "king", { effects: [heard("k_cz_king")] }),
           r("press", "cold", "push", "pushed", {
             reacts: [
-              rx(T("arrogant"), "sour"),
+              rx(T("arrogant"), "sour", reason("auh_t_cz_shorter")),
               rx(T("anxious"), "king", heard("k_cz_king")),
             ],
             effects: [heard("k_cz_king")],
@@ -1929,7 +1944,11 @@ const CZERNIN_TALKS: readonly GwScene[] = [
       ],
       v("anx", T("anxious")),
     ),
-    why: node([bye("thanks"), bye("cold", "cold")]),
+    why: node(
+      [bye("thanks"), bye("cold", "cold")],
+      v("anx", T("anxious")),
+      v("cun", T("cunning")),
+    ),
     blame: node([
       r("again", "frank", "ask", "why", { effects: [heard("k_cz_king")] }),
       bye("end", "cold"),
@@ -1955,7 +1974,11 @@ const CZERNIN_TALKS: readonly GwScene[] = [
     seen: node([r("chelm", "frank", "ask", "chelm"), bye("go")]),
     sum: node([r("chelm", "frank", "ask", "chelm"), bye("go", "cold")]),
     hand: node([bye("go")]),
-    chelm: node([bye("hm"), bye("noted", "cold")]),
+    chelm: node(
+      [bye("hm"), bye("noted", "cold")],
+      v("anx", T("anxious")),
+      v("arr", T("arrogant")),
+    ),
   }),
   talk(
     "auh_t_cz_speech",
@@ -1970,7 +1993,14 @@ const CZERNIN_TALKS: readonly GwScene[] = [
           r("order", "cold", "push", "draft", {
             tell: ["trust:-1"],
             effects: [pt("p", -1), heard("k_cz_speech")],
-            reacts: [rx(T("arrogant"), "huff", heard("k_cz_speech"))],
+            reacts: [
+              rx(
+                T("arrogant"),
+                "huff",
+                heard("k_cz_speech"),
+                reason("auh_t_cz_huffed"),
+              ),
+            ],
           }),
           r("read", "warm", "deal", "read", {
             effects: [heard("k_cz_speech"), setFlag("f_auh_read_speech")],
@@ -1982,7 +2012,11 @@ const CZERNIN_TALKS: readonly GwScene[] = [
       draft: node([r("clem", "frank", "ask", "clem"), bye("later")]),
       huff: node([bye("calm"), bye("end", "cold")]),
       read: node([bye("go")]),
-      clem: node([bye("hm"), bye("noted", "cold")]),
+      clem: node(
+        [bye("hm"), bye("noted", "cold")],
+        v("anx", T("anxious")),
+        v("arr", T("arrogant")),
+      ),
     },
   ),
 ];
@@ -1997,7 +2031,15 @@ const KAROLYI_TALKS: readonly GwScene[] = [
         r("hear", "warm", "ask", "hear", { effects: [heard("k_kar_met")] }),
         r("rebuke", "cold", "push", "stiff", {
           effects: [heard("k_kar_met")],
-          reacts: [rx(T("arrogant"), "stiff", well(-1), heard("k_kar_met"))],
+          reacts: [
+            rx(
+              T("arrogant"),
+              "stiff",
+              well(-1),
+              heard("k_kar_met"),
+              reason("auh_t_kar_papers"),
+            ),
+          ],
         }),
         r("seat", "frank", "deal", "seat", {
           tell: ["hun:-1"],
@@ -2052,7 +2094,10 @@ const KAROLYI_TALKS: readonly GwScene[] = [
       ],
       v("arr", T("arrogant")),
     ),
-    how: node([r("tisza", "frank", "ask", "tisza"), bye("thanks")]),
+    how: node(
+      [r("tisza", "frank", "ask", "tisza"), bye("thanks")],
+      v("arr", T("arrogant")),
+    ),
     own: node([bye("hm"), r("how", "frank", "ask", "how")]),
     draft: node([bye("go")]),
     tisza: node([bye("noted")]),
@@ -2062,7 +2107,9 @@ const KAROLYI_TALKS: readonly GwScene[] = [
       [
         r("count", "frank", "ask", "count"),
         r("stay", "warm", "push", "stay", {
-          reacts: [rx(T("stubborn"), "stay", well(-1))],
+          reacts: [
+            rx(T("stubborn"), "stay", well(-1), reason("auh_t_kar_left")),
+          ],
         }),
         r("sound", "frank", "deal", "sound", {
           tell: ["promise"],
@@ -2104,7 +2151,11 @@ const KAROLYI_TALKS: readonly GwScene[] = [
       ],
       v("k", K),
     ),
-    trench: node([r("tisza", "frank", "ask", "tisza"), bye("thanks")]),
+    trench: node(
+      [r("tisza", "frank", "ask", "tisza"), bye("thanks")],
+      v("anx", T("anxious")),
+      v("stub", T("stubborn")),
+    ),
     doubt: node([
       r("again", "frank", "ask", "trench", { effects: [heard("k_kar_vote")] }),
       bye("end", "cold"),
@@ -2121,7 +2172,9 @@ const KAROLYI_TALKS: readonly GwScene[] = [
         [
           r("if", "frank", "ask", "if", { effects: [heard("k_kar_pm")] }),
           r("test", "cold", "ask", "test", {
-            reacts: [rx(T("arrogant"), "test", well(-1))],
+            reacts: [
+              rx(T("arrogant"), "test", well(-1), reason("auh_t_kar_stung")),
+            ],
           }),
           r("offer", "warm", "deal", "offer", {
             tell: ["hungary:+1"],
@@ -2131,7 +2184,11 @@ const KAROLYI_TALKS: readonly GwScene[] = [
         ],
         v("anx", T("anxious")),
       ),
-      if: node([r("crown", "frank", "ask", "crown"), bye("thanks")]),
+      if: node(
+        [r("crown", "frank", "ask", "crown"), bye("thanks")],
+        v("arr", T("arrogant")),
+        v("stub", T("stubborn")),
+      ),
       test: node([
         r("if", "frank", "ask", "if", { effects: [heard("k_kar_pm")] }),
         bye("end", "cold"),
@@ -2160,7 +2217,10 @@ const VISITS: readonly GwScene[] = [
       ],
       v("cun", T("cunning")),
     ),
-    text: node([r("croatia", "frank", "ask", "cro"), bye("thanks")]),
+    text: node(
+      [r("croatia", "frank", "ask", "cro"), bye("thanks")],
+      v("cun", T("cunning")),
+    ),
     firm: node([bye("end", "cold")]),
     first: node([bye("go")]),
     cro: node([bye("noted")]),
@@ -2186,7 +2246,10 @@ const VISITS: readonly GwScene[] = [
         ],
         v("weary", T("weary")),
       ),
-      plan: node([r("peace", "frank", "ask", "peace"), bye("thanks")]),
+      plan: node(
+        [r("peace", "frank", "ask", "peace"), bye("thanks")],
+        v("weary", T("weary")),
+      ),
       short: node([
         r("read", "warm", "ask", "plan", { effects: [heard("k_lam_federal")] }),
         bye("end", "cold"),
@@ -2211,7 +2274,9 @@ const VISITS: readonly GwScene[] = [
             effects: [heard("k_wil_vasyl")],
           }),
           r("shirt", "cold", "push", "soldier", {
-            reacts: [rx(T("arrogant"), "soldier", well(-1))],
+            reacts: [
+              rx(T("arrogant"), "soldier", well(-1), reason("auh_v_wil_stung")),
+            ],
             effects: [heard("k_wil_vasyl")],
           }),
           r("back", "frank", "deal", "backed", {
@@ -2222,7 +2287,10 @@ const VISITS: readonly GwScene[] = [
         ],
         v("anx", T("anxious")),
       ),
-      dream: node([r("poles", "frank", "ask", "poles"), bye("thanks")]),
+      dream: node(
+        [r("poles", "frank", "ask", "poles"), bye("thanks")],
+        v("anx", T("anxious")),
+      ),
       soldier: node([bye("go"), bye("end", "cold")]),
       backed: node([bye("go")]),
       poles: node([bye("noted")]),
@@ -2243,7 +2311,10 @@ const VISITS: readonly GwScene[] = [
       ],
       v("k", K),
     ),
-    sum: node([r("tisza", "frank", "ask", "tisza"), bye("thanks")]),
+    sum: node(
+      [r("tisza", "frank", "ask", "tisza"), bye("thanks")],
+      v("cold", T("cold")),
+    ),
     teach: node([
       r("yes", "frank", "ask", "sum", { effects: [heard("k_koer_quota")] }),
       bye("end", "cold"),
@@ -2252,35 +2323,49 @@ const VISITS: readonly GwScene[] = [
     tisza: node([bye("noted")]),
   }),
   visit(
-    "auh_v_lud_grain",
-    "deu_ludendorff",
-    all(out("RUS"), period("y17b", "y18b")),
-    6,
+    "auh_v_pil_terms",
+    "auh_pilsudski",
+    all({ kind: "at_war", tag: "RUS" }, period("y15b", "y17a")),
+    5,
     {
       open: node(
         [
-          r("whose", "frank", "ask", "whose"),
-          r("no", "threat", "push", "hard", {
-            tell: ["deu:-1", "bread:-1"],
-            effects: [trust("DEU", -1), gauge("bread", -1)],
+          r("terms", "frank", "ask", "terms", {
+            effects: [heard("k_pil_terms")],
           }),
-          r("share", "cold", "deal", "share", {
-            tell: ["berlin:+1", "bread:+1"],
-            effects: [...debtUp, gauge("bread", 1)],
+          r("oath", "threat", "push", "stone", {
+            tell: ["trust:-1"],
+            effects: [pt("p", -1)],
+            reacts: [rx(T("cunning"), "terms", heard("k_pil_terms"))],
           }),
-          bye("leave", "cold"),
+          r("words", "warm", "deal", "words", {
+            tell: ["nations:+1", "cos:-1"],
+            effects: [
+              nations(1),
+              {
+                kind: "person_trust",
+                who: { office: "chief_of_staff" },
+                delta: -1,
+              },
+              heard("k_pil_terms"),
+            ],
+          }),
+          bye("no", "cold"),
         ],
-        v("hungry", gaugeAt("bread", 1)),
+        v("cun", T("cunning")),
       ),
-      whose: node([
-        r("share2", "cold", "deal", "share", {
-          tell: ["berlin:+1", "bread:+1"],
-          effects: [...debtUp, gauge("bread", 1)],
+      terms: node(
+        [r("russia", "cold", "ask", "russia"), bye("noted")],
+        v("stub", T("stubborn")),
+      ),
+      stone: node([
+        r("again", "frank", "ask", "terms", {
+          effects: [heard("k_pil_terms")],
         }),
-        bye("leave", "cold"),
+        bye("out", "cold"),
       ]),
-      hard: node([bye("leave", "cold")]),
-      share: node([bye("leave", "cold")]),
+      words: node([bye("go")]),
+      russia: node([bye("hm"), bye("cool", "cold")]),
     },
   ),
 ];
