@@ -15,8 +15,8 @@ import {
   GW_OFFICES,
   GW_TRUST_MAX,
   GW_TRUST_MIN,
+  gwSecretsFor,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
-import { gwSecretsFor } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import type { GwPack } from "@openfront/engine-api/ww1914/GwPack";
 import type {
@@ -26,9 +26,9 @@ import type {
   GwReplyView,
   GwSeatView,
 } from "@openfront/engine-api/ww1914/GwView";
-import { gwEndingsOf } from "@openfront/engine-lib/ww1914/EndingRows";
 import type { GwReplyKind } from "@openfront/engine-api/ww1914/SceneDsl";
 import { GW_REPLY_KINDS } from "@openfront/engine-api/ww1914/SceneDsl";
+import { gwEndingsOf } from "@openfront/engine-lib/ww1914/EndingRows";
 
 /** The drawer's tabs, in order (design §11). */
 export const GW_TABS = [

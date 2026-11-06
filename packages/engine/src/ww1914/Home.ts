@@ -2,9 +2,9 @@ import {
   GwNationState,
   GwSide,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
+import { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
 import { civilFromDays } from "@openfront/engine-lib/ww1936/Calendar";
-import { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { authorityStep } from "./Authority";
 import { warMonths } from "./Eras";
@@ -97,7 +97,10 @@ function strains(gw: GreatWar, n: GwNationState): void {
     }
     if (r.thread !== undefined && !s.threads.includes(r.thread)) continue;
     if (r.secret !== undefined && !s.secrets.includes(r.secret)) continue;
-    if (r.unless !== undefined && (n.inst[r.unless.inst] ?? 0) >= r.unless.min) {
+    if (
+      r.unless !== undefined &&
+      (n.inst[r.unless.inst] ?? 0) >= r.unless.min
+    ) {
       continue;
     }
     moveGauge(gw, n.tag, r.gauge, r.delta, r.key);

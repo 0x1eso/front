@@ -73,7 +73,13 @@ export const GW_HOME: Readonly<Partial<Record<GwTag, GwHomeRow>>> = {
     rungs: rungs("gbr"),
     concedes: 85,
     strains: [
-      { gauge: "order", delta: -1, every: 12, from: 18, key: "order_shop_floor" },
+      {
+        gauge: "order",
+        delta: -1,
+        every: 12,
+        from: 18,
+        key: "order_shop_floor",
+      },
       {
         gauge: "order",
         delta: -1,
@@ -111,7 +117,13 @@ export const GW_HOME: Readonly<Partial<Record<GwTag, GwHomeRow>>> = {
         key: "bread_two_halves",
         unless: { inst: "hungary", min: 2 },
       },
-      { gauge: "morale", delta: -1, every: 8, from: 16, key: "morale_regiments" },
+      {
+        gauge: "morale",
+        delta: -1,
+        every: 8,
+        from: 16,
+        key: "morale_regiments",
+      },
     ],
   },
   RUS: {
@@ -127,7 +139,13 @@ export const GW_HOME: Readonly<Partial<Record<GwTag, GwHomeRow>>> = {
     strains: [
       { gauge: "bread", delta: -1, every: 7, from: 12, key: "bread_rail" },
       { gauge: "order", delta: -1, every: 6, from: 14, key: "order_capital" },
-      { gauge: "shells", delta: -1, every: 8, from: 6, key: "shells_no_factories" },
+      {
+        gauge: "shells",
+        delta: -1,
+        every: 8,
+        from: 6,
+        key: "shells_no_factories",
+      },
       {
         gauge: "bread",
         delta: -1,
@@ -157,7 +175,9 @@ export const GW_HOME: Readonly<Partial<Record<GwTag, GwHomeRow>>> = {
   ITA: {
     rungs: COMMON,
     concedes: 60,
-    strains: [{ gauge: "order", delta: -1, every: 8, from: 8, key: "order_weary" }],
+    strains: [
+      { gauge: "order", delta: -1, every: 8, from: 8, key: "order_weary" },
+    ],
   },
   OTT: {
     rungs: COMMON,
@@ -170,7 +190,9 @@ export const GW_HOME: Readonly<Partial<Record<GwTag, GwHomeRow>>> = {
   BGR: {
     rungs: COMMON,
     concedes: 50,
-    strains: [{ gauge: "order", delta: -1, every: 7, from: 8, key: "order_weary" }],
+    strains: [
+      { gauge: "order", delta: -1, every: 7, from: 8, key: "order_weary" },
+    ],
   },
   SRB: { rungs: COMMON, concedes: 60, strains: [] },
 };

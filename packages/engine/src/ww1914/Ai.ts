@@ -77,7 +77,10 @@ function bids(gw: GreatWar, e: GwEntry, n: GwNationState): void {
     const held = n.offers[side] ?? 0;
     if (held >= e.offers[side]) continue;
     const i = s.nations.indexOf(n);
-    if (wwRoll(s.seed, P_OFFER, s.chapter, i, side === "central" ? 1 : 2) % 100 < 18) {
+    if (
+      wwRoll(s.seed, P_OFFER, s.chapter, i, side === "central" ? 1 : 2) % 100 <
+      18
+    ) {
       n.offers[side] = held + 1;
     }
   }

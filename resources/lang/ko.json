@@ -14960,12 +14960,14 @@
       },
       "calendar": {
         "full": "긴 판",
+        "standard": "보통 판",
         "y1914": "1914년 판"
       },
       "calendar_chapters": "{n}장",
       "calendar_label": "판의 길이",
       "calendar_time": {
         "full": "3~4시간",
+        "standard": "약 2시간",
         "y1914": "혼자 약 30분"
       },
       "casualties": "잃은 사람 {n}천 명",

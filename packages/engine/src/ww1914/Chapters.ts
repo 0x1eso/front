@@ -45,7 +45,8 @@ export function allReady(gw: GreatWar): boolean {
 }
 
 /** What the ticker says when a chapter is one the cabinet will want to talk of. */
-const BIG_NEWS = /^(entered_war|america_entered|britain_entered|nation_|sued_|regime_|front_break|unrest_[34])/;
+const BIG_NEWS =
+  /^(entered_war|america_entered|britain_entered|nation_|sued_|regime_|front_break|unrest_[34])/;
 /** Chapters between two big ones, so a bad autumn isn't all talk. */
 const BIG_EVERY = 6;
 

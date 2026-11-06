@@ -2802,12 +2802,14 @@
       "blockade": "Blockade",
       "calendar": {
         "full": "The full game",
+        "standard": "Standard Game",
         "y1914": "The 1914 game"
       },
       "calendar_chapters": "{n} chapters",
       "calendar_label": "Length of the game",
       "calendar_time": {
         "full": "3 to 4 hours",
+        "standard": "About two hours",
         "y1914": "about 30 minutes alone"
       },
       "casualties": "{n} thousand lost",

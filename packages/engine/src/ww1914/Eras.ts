@@ -50,10 +50,38 @@ export interface GwTechRow {
 }
 
 export const GW_TECH_TABLE: readonly GwTechRow[] = [
-  { id: "gas_heavy", track: "artillery", month: 8, need: 5, attack: 8, defence: 0 },
-  { id: "barrage", track: "artillery", month: 20, need: 12, attack: 10, defence: 0 },
-  { id: "predicted_fire", track: "artillery", month: 38, need: 20, attack: 12, defence: 0 },
-  { id: "assault_groups", track: "infantry", month: 14, need: 5, attack: 6, defence: 0 },
+  {
+    id: "gas_heavy",
+    track: "artillery",
+    month: 8,
+    need: 5,
+    attack: 8,
+    defence: 0,
+  },
+  {
+    id: "barrage",
+    track: "artillery",
+    month: 20,
+    need: 12,
+    attack: 10,
+    defence: 0,
+  },
+  {
+    id: "predicted_fire",
+    track: "artillery",
+    month: 38,
+    need: 20,
+    attack: 12,
+    defence: 0,
+  },
+  {
+    id: "assault_groups",
+    track: "infantry",
+    month: 14,
+    need: 5,
+    attack: 6,
+    defence: 0,
+  },
   {
     id: "tanks",
     track: "infantry",
@@ -63,8 +91,22 @@ export const GW_TECH_TABLE: readonly GwTechRow[] = [
     defence: 0,
     only: ["GBR", "FRA", "USA"],
   },
-  { id: "depth_defence", track: "infantry", month: 28, need: 8, attack: 0, defence: 15 },
-  { id: "infiltration", track: "infantry", month: 36, need: 12, attack: 15, defence: 0 },
+  {
+    id: "depth_defence",
+    track: "infantry",
+    month: 28,
+    need: 8,
+    attack: 0,
+    defence: 15,
+  },
+  {
+    id: "infiltration",
+    track: "infantry",
+    month: 36,
+    need: 12,
+    attack: 15,
+    defence: 0,
+  },
   { id: "mine_nets", track: "sea", month: 10, need: 4, attack: 0, defence: 0 },
   {
     id: "ocean_boats",

@@ -167,9 +167,7 @@ export function worldHolds(ctx: SceneCtx, c: GwWorldCond): boolean {
     case "in_war": {
       const n = gw.nation(c.tag ?? seat.tag);
       return (
-        n !== null &&
-        n.entered !== null &&
-        inRange(s.chapter - n.entered, c)
+        n !== null && n.entered !== null && inRange(s.chapter - n.entered, c)
       );
     }
     case "neutral":

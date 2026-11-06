@@ -28,7 +28,11 @@ const ANY_WAR: readonly GwEnding[] = [
   "armistice_conference",
   "compromise_peace",
 ];
-const ANY_END: readonly GwEnding[] = [...ANY_WAR, "home_collapse", "long_peace"];
+const ANY_END: readonly GwEnding[] = [
+  ...ANY_WAR,
+  "home_collapse",
+  "long_peace",
+];
 
 export const GW_ENDING_ROWS: Readonly<
   Partial<Record<GwTag, readonly GwEndingRow[]>>
@@ -171,7 +175,11 @@ export const GW_ENDING_ROWS: Readonly<
       of: ["victory_peace", "compromise_peace"],
       when: regime("crown"),
     },
-    { id: "rus_tsar_at_conference", of: ["victory_peace"], when: regime("tsar") },
+    {
+      id: "rus_tsar_at_conference",
+      of: ["victory_peace"],
+      when: regime("tsar"),
+    },
     { id: "rus_provisional_holds", of: ANY_WAR, when: regime("provisional") },
     {
       id: "rus_october",

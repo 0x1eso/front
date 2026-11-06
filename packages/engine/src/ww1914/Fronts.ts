@@ -310,7 +310,11 @@ function oddsOf(
     10000;
   const def =
     ((bandOf(gw, t.id, foe) + 12 + reservesOf(gw, t.id, foe)) *
-      (100 + t.trench * 24 + groundOf(gw, t, foe) + eraOf(gw).defence + shield) *
+      (100 +
+        t.trench * 24 +
+        groundOf(gw, t, foe) +
+        eraOf(gw).defence +
+        shield) *
       (50 + fireOf(gw, t.id, foe) / 2) *
       commandOf(gw, t, foe)) /
     1000000;
@@ -392,11 +396,7 @@ function lossesOf(
     const a = allocOf(gw, tag);
     return a?.scale === "major" && a.main === t;
   });
-  const scale = local
-    ? SCALE_LOCAL
-    : major
-      ? SCALE_MAJOR
-      : SCALE_LIMITED;
+  const scale = local ? SCALE_LOCAL : major ? SCALE_MAJOR : SCALE_LIMITED;
   const size = ((SCALE_OF[t] ?? 20) * scale) / 100;
   const lead = gw.nation(membersOf(gw, t, by)[0])!;
   const dry = lead.gauges.shells === 0 ? 140 : 100;
@@ -548,7 +548,8 @@ function judge(gw: GreatWar, t: GwTheatreState): void {
   const lead = membersOf(gw, t.id, by)[0];
   if (local === null) {
     for (const tag of membersOf(gw, t.id, by)) {
-      if (allocOf(gw, tag)?.scale === "major") gw.nation(tag)!.spent = s.chapter;
+      if (allocOf(gw, tag)?.scale === "major")
+        gw.nation(tag)!.spent = s.chapter;
     }
   }
   if (result === "break") news(gw, "front_break", lead, null, t.id);
@@ -751,7 +752,13 @@ export function proposalsFor(gw: GreatWar, seat: GwSeatState): GwProposal[] {
     no: string | null,
   ) => {
     const kind =
-      posture === "hold" ? (allyShare > 0 ? "ally" : "hold") : id === "other_front" ? "other" : "attack";
+      posture === "hold"
+        ? allyShare > 0
+          ? "ally"
+          : "hold"
+        : id === "other_front"
+          ? "other"
+          : "attack";
     const why = no ?? paperClosed(gw, n, kind, sc);
     out.push({
       id,

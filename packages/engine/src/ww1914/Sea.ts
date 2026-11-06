@@ -52,7 +52,12 @@ function blockadeStep(gw: GreatWar): void {
   }
   // America is a neutral too, and the list of contraband grows.
   const usa = gw.nation("USA");
-  if (usa !== null && usa.side === null && s.blockade >= 6 && everyMonths(gw, 3)) {
+  if (
+    usa !== null &&
+    usa.side === null &&
+    s.blockade >= 6 &&
+    everyMonths(gw, 3)
+  ) {
     usa.readiness = clampTo(usa.readiness - 2, 0, 100);
   }
 }
@@ -63,14 +68,20 @@ function aiUboats(gw: GreatWar): void {
   const deu = gw.nation("DEU");
   if (deu === null || !fights(deu) || seatsOf(gw, "DEU").length > 0) return;
   const months = warMonths(gw);
-  if (s.uboat === 0 && s.blockade >= 3 && gw.nation("GBR")?.side === "entente") {
+  if (
+    s.uboat === 0 &&
+    s.blockade >= 3 &&
+    gw.nation("GBR")?.side === "entente"
+  ) {
     if (deu.ai !== "principled" || s.blockade >= 5) setUboats(gw, 1);
     return;
   }
   if (s.uboat !== 1 || months < 24) return;
   const roll = wwRoll(s.seed, P_UBOAT, s.chapter) % 100;
   const hungry = deu.gauges.bread <= 1 || s.blockade >= 6;
-  const bar = { hardline: 50, opportunist: 30, principled: 8, cautious: 12 }[deu.ai];
+  const bar = { hardline: 50, opportunist: 30, principled: 8, cautious: 12 }[
+    deu.ai
+  ];
   if (hungry && roll < bar) setUboats(gw, 2);
 }
 
@@ -111,7 +122,9 @@ function incidents(gw: GreatWar): void {
       if (seat.tag === "DEU") reason(gw, seat, "liner_sunk");
     }
   }
-  const pct = s.secrets.includes("deu_zimmermann_wire") ? NOTE_PCT * 3 : NOTE_PCT;
+  const pct = s.secrets.includes("deu_zimmermann_wire")
+    ? NOTE_PCT * 3
+    : NOTE_PCT;
   if (s.uboat === 2 && wwRoll(s.seed, P_NOTE, s.chapter) % 100 < pct) {
     if (!s.news.some((x) => x.key === "note_decoded")) {
       usa.readiness = clampTo(usa.readiness + 15, 0, 100);

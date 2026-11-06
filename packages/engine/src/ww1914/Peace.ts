@@ -216,7 +216,11 @@ export function sue(gw: GreatWar, tag: GwTag): void {
   if (LEADERS[n.side].includes(tag)) {
     const left = leadersLeft(gw, n.side).filter((t) => t !== tag);
     if (left.length === 0) {
-      armistice(gw, n.side === "central" ? "central_lost" : "entente_lost", tag);
+      armistice(
+        gw,
+        n.side === "central" ? "central_lost" : "entente_lost",
+        tag,
+      );
       return;
     }
   }

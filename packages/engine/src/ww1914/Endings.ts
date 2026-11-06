@@ -99,7 +99,11 @@ export function endingStep(gw: GreatWar): void {
   if (s.ended !== null || s.armistice !== null) return;
   for (const seat of s.seats) {
     if (seat.memoir !== null || gw.nation(seat.tag)?.out !== true) continue;
-    closeSeat(gw, seat, gw.nation(seat.tag)?.side === null ? "deadline" : outEnding(gw, seat));
+    closeSeat(
+      gw,
+      seat,
+      gw.nation(seat.tag)?.side === null ? "deadline" : outEnding(gw, seat),
+    );
   }
   // Peace past hope of war: two years on, the long peace has been had.
   if (s.ended === null && s.warChapter === null && s.day >= LONG_PEACE_DAY) {
@@ -116,11 +120,13 @@ function outEnding(gw: GreatWar, seat: GwSeatState): GwEnding {
 }
 
 /** How the war stood for this seat when the game ran out. */
-export function generalEnding(gw: GreatWar, seat: GwSeatState | null): GwEnding {
+export function generalEnding(
+  gw: GreatWar,
+  seat: GwSeatState | null,
+): GwEnding {
   const s = gw.s;
   if (s.warChapter === null) return "long_peace";
-  const side =
-    (seat === null ? null : gw.nation(seat.tag)?.side) ?? "central";
+  const side = (seat === null ? null : gw.nation(seat.tag)?.side) ?? "central";
   if (s.armistice !== null) {
     if (s.armistice.kind === "compromise") return "compromise_peace";
     const lost = (s.armistice.kind === "central_lost") === (side === "central");

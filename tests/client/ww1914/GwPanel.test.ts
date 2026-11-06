@@ -301,6 +301,9 @@ describe("the screens", () => {
       },
     ];
     const { panel, orders } = await mount(data([], { proposals }));
+    panel.querySelector<HTMLButtonElement>("[data-gw-tab=country]")!.click();
+    await panel.updateComplete;
+    expect(panel.querySelector("[data-gw-war]")).not.toBeNull();
     panel.querySelector<HTMLButtonElement>("[data-gw-tab=fronts]")!.click();
     await panel.updateComplete;
     expect(panel.querySelector("[data-gw-paper-why]")).not.toBeNull();

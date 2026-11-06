@@ -1,7 +1,7 @@
-import { gwSecretsFor } from "@openfront/engine-api/ww1914/GreatWarTypes";
-import { gwEndingsOf } from "@openfront/engine-lib/ww1914/EndingRows";
 import type { GwMemoir } from "@openfront/engine-api/ww1914/GreatWarTypes";
+import { gwSecretsFor } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import type { GwSeatView } from "@openfront/engine-api/ww1914/GwView";
+import { gwEndingsOf } from "@openfront/engine-lib/ww1914/EndingRows";
 import { describe, expect, test } from "vitest";
 import {
   appointable,

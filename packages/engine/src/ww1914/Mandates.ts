@@ -1,5 +1,11 @@
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
-import { all, any, flag, GwCond, not } from "@openfront/engine-api/ww1914/SceneDsl";
+import {
+  all,
+  any,
+  flag,
+  GwCond,
+  not,
+} from "@openfront/engine-api/ww1914/SceneDsl";
 import { world } from "@openfront/engine-api/ww1914/WorldDsl";
 
 /** A task of a game: judged at the end by plain conditions, shown from start. */

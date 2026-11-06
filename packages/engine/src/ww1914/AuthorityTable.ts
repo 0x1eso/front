@@ -36,7 +36,13 @@ export type GwInstRule =
       key: string;
     }
   /** The body cools when the country's order is this low. */
-  | { rule: "low_order"; inst: GwInstitution; at: number; delta: number; key: string }
+  | {
+      rule: "low_order";
+      inst: GwInstitution;
+      at: number;
+      delta: number;
+      key: string;
+    }
   /** A front lost in this chapter moves the body. */
   | { rule: "lost_front"; inst: GwInstitution; delta: number; key: string }
   /** A body this low with morale this low: men walk over, a band wears. */
@@ -108,7 +114,10 @@ const asked: GwInstRule[] = [
     rule: "call",
     scene: "gw_sue",
     every: 3,
-    when: all(world({ is: "score", max: -60 }), world({ is: "war_age", min: 30 })),
+    when: all(
+      world({ is: "score", max: -60 }),
+      world({ is: "war_age", min: 30 }),
+    ),
   },
 ];
 
@@ -129,7 +138,13 @@ const germanRules: GwInstRule[] = [
     key: "army_grows",
     flag: "f_third_ohl",
   },
-  { rule: "low_order", inst: "reichstag", at: 1, delta: -1, key: "reichstag_cools" },
+  {
+    rule: "low_order",
+    inst: "reichstag",
+    at: 1,
+    delta: -1,
+    key: "reichstag_cools",
+  },
   {
     rule: "tracks",
     inst: "countersign",
@@ -142,7 +157,10 @@ const germanRules: GwInstRule[] = [
     rule: "call",
     scene: "gw_uboat_first",
     once: true,
-    when: all(world({ is: "blockade", min: 3 }), world({ is: "uboat", max: 0 })),
+    when: all(
+      world({ is: "blockade", min: 3 }),
+      world({ is: "uboat", max: 0 }),
+    ),
   },
   {
     rule: "call",
@@ -162,7 +180,13 @@ const britishPapers: GwPaperBar[] = [
 ];
 
 const britishRules: GwInstRule[] = [
-  { rule: "low_order", inst: "commons", at: 1, delta: -1, key: "commons_cools" },
+  {
+    rule: "low_order",
+    inst: "commons",
+    at: 1,
+    delta: -1,
+    key: "commons_cools",
+  },
   { rule: "lost_front", inst: "cabinet", delta: -1, key: "cabinet_shaken" },
   { rule: "call", scene: "gw_gbr_budget", every: 6, offset: 2 },
   {
@@ -176,14 +200,23 @@ const britishRules: GwInstRule[] = [
     rule: "call",
     scene: "gw_gbr_conscription",
     once: true,
-    when: all(world({ is: "manpower", max: 45 }), world({ is: "war_age", min: 10 })),
+    when: all(
+      world({ is: "manpower", max: 45 }),
+      world({ is: "war_age", min: 10 }),
+    ),
   },
   ...asked,
 ];
 
 const austrianRules: GwInstRule[] = [
   { rule: "lost_front", inst: "nations", delta: -1, key: "nations_stir" },
-  { rule: "low_order", inst: "hungary", at: 1, delta: -1, key: "hungary_cools" },
+  {
+    rule: "low_order",
+    inst: "hungary",
+    at: 1,
+    delta: -1,
+    key: "hungary_cools",
+  },
   {
     rule: "levy",
     inst: "hungary",
@@ -217,7 +250,14 @@ const austrianRules: GwInstRule[] = [
 
 const russianRules: GwInstRule[] = [
   { rule: "drift", inst: "stavka", delta: 1, every: 8, key: "stavka_grows" },
-  { rule: "drift", inst: "duma", delta: -1, every: 7, offset: 3, key: "duma_cools" },
+  {
+    rule: "drift",
+    inst: "duma",
+    delta: -1,
+    every: 7,
+    offset: 3,
+    key: "duma_cools",
+  },
   { rule: "lost_front", inst: "ministers", delta: -1, key: "ministers_shaken" },
   { rule: "low_order", inst: "duma", at: 1, delta: -1, key: "duma_cools" },
   {
@@ -260,7 +300,15 @@ export const GW_AUTHORITY: Readonly<Record<string, GwAuthorityRow>> = {
   },
   republic: {
     inst: { army: -2, reichstag: 3 },
-    rules: [{ rule: "low_order", inst: "reichstag", at: 1, delta: -1, key: "reichstag_cools" }],
+    rules: [
+      {
+        rule: "low_order",
+        inst: "reichstag",
+        at: 1,
+        delta: -1,
+        key: "reichstag_cools",
+      },
+    ],
     papers: [],
     dismiss: [{ camp: "military", inst: "army", delta: -1 }],
   },
@@ -268,7 +316,13 @@ export const GW_AUTHORITY: Readonly<Record<string, GwAuthorityRow>> = {
     inst: { cabinet: 1, commons: 1, opposition: 0, irish: 1 },
     rules: [
       ...britishRules,
-      { rule: "drift", inst: "opposition", delta: -1, every: 5, key: "opposition_presses" },
+      {
+        rule: "drift",
+        inst: "opposition",
+        delta: -1,
+        every: 5,
+        key: "opposition_presses",
+      },
       {
         rule: "call",
         scene: "gw_gbr_coalition",
@@ -339,16 +393,34 @@ export const GW_AUTHORITY: Readonly<Record<string, GwAuthorityRow>> = {
     dismiss: [{ camp: "military", inst: "council", delta: -1 }],
   },
   federation: {
-    inst: { hungary: -3, nations: 1 },
+    inst: { hungary: -3, nations: 1, berlin: 0 },
     rules: asked,
     papers: [{ inst: "hungary", max: -2, closes: ["major"], why: "hungary" }],
+    dismiss: [],
+  },
+  austria_republic: {
+    inst: { nations: 0, berlin: 0 },
+    rules: asked,
+    papers: [],
+    dismiss: [],
+  },
+  crown_remnant: {
+    inst: { council: 0, berlin: 0 },
+    rules: asked,
+    papers: [],
     dismiss: [],
   },
   tsar: {
     inst: { court: 1, stavka: 1, duma: 0, ministers: 0 },
     rules: russianRules,
     papers: [
-      { inst: "stavka", min: 3, closes: ["hold"], why: "stavka", unlessCommand: true },
+      {
+        inst: "stavka",
+        min: 3,
+        closes: ["hold"],
+        why: "stavka",
+        unlessCommand: true,
+      },
       { inst: "court", max: -3, closes: ["other"], why: "court" },
     ],
     dismiss: [
@@ -382,7 +454,13 @@ export const GW_AUTHORITY: Readonly<Record<string, GwAuthorityRow>> = {
   provisional: {
     inst: { duma: 2, soviet: 0, stavka: -1 },
     rules: [
-      { rule: "drift", inst: "soviet", delta: 1, every: 2, key: "soviet_grows" },
+      {
+        rule: "drift",
+        inst: "soviet",
+        delta: 1,
+        every: 2,
+        key: "soviet_grows",
+      },
       { rule: "drift", inst: "stavka", delta: -1, every: 3, key: "army_melts" },
       {
         rule: "levy",

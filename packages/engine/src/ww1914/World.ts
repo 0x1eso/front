@@ -64,7 +64,9 @@ export function fights(n: GwNationState | null): boolean {
 /** The person who is the seat now: never on its own cast tab. */
 export function seatPerson(seat: GwSeatState): string | null {
   const rows = GW_SEAT_PERSON[seat.tag] ?? [];
-  const row = rows.find((r) => r.flag === undefined || seat.flags.includes(r.flag));
+  const row = rows.find(
+    (r) => r.flag === undefined || seat.flags.includes(r.flag),
+  );
   return row?.person ?? null;
 }
 

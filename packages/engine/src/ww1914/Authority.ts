@@ -1,10 +1,10 @@
 import {
+  GW_INST_MAX,
+  GW_INST_MIN,
   GwInstitution,
   GwIssue,
   GwNationState,
   GwSeatState,
-  GW_INST_MAX,
-  GW_INST_MIN,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
 import {
@@ -60,16 +60,15 @@ function runCall(
   const s = gw.s;
   if (!known(r.scene)) return;
   const first =
-    r.first === true &&
-    s.warChapter !== null &&
-    s.chapter - s.warChapter === 1;
+    r.first === true && s.warChapter !== null && s.chapter - s.warChapter === 1;
   const due =
     r.every === undefined ? true : everyMonths(gw, r.every, r.offset ?? 0);
   if (!first && !due) return;
   for (const seat of seatsOf(gw, n.tag)) {
     if (r.once === true && seat.seen[r.scene] !== undefined) continue;
     if (waiting(seat, r.scene)) continue;
-    if (r.when !== undefined && !holds({ gw, seat, cast: {} }, r.when)) continue;
+    if (r.when !== undefined && !holds({ gw, seat, cast: {} }, r.when))
+      continue;
     seat.scheduled.push({ scene: r.scene, chapter: s.chapter + 1 });
   }
 }
@@ -77,7 +76,8 @@ function runCall(
 function lostFront(gw: GreatWar, n: GwNationState): boolean {
   const s = gw.s;
   return s.battles.some((b) => {
-    if (b.chapter !== s.chapter || b.by === null || n.side === null) return false;
+    if (b.chapter !== s.chapter || b.by === null || n.side === null)
+      return false;
     const won = b.result === "advance" || b.result === "break";
     const t = s.theatres.find((x) => x.id === b.theatre)!;
     const mine = t.attacker === n.tag || t.defender === n.tag;
@@ -211,7 +211,8 @@ function voice(
   // What was said to them about it: a scene's `v_<issue>` memory.
   for (const m of p.memory) if (m.key === `v_${issue}`) out += m.weight;
   for (const m of seat.memory) {
-    if (m.key === `v_${issue}` && m.who === id) out += m.weight === 0 ? 1 : m.weight;
+    if (m.key === `v_${issue}` && m.who === id)
+      out += m.weight === 0 ? 1 : m.weight;
   }
   if (p.temperament === "stubborn" && out !== 0) out += out > 0 ? 1 : -1;
   return out;
@@ -234,7 +235,11 @@ export function voteCount(
  * The cabinet votes. Carried or not goes on the record as a flag; those voted
  * down remember, and the sorest and proudest of them may write.
  */
-export function holdVote(gw: GreatWar, seat: GwSeatState, issue: GwIssue): void {
+export function holdVote(
+  gw: GreatWar,
+  seat: GwSeatState,
+  issue: GwIssue,
+): void {
   const margin = voteCount(gw, seat, issue);
   const table = cabinetOf(gw, seat).length;
   const carried = margin >= 0;
