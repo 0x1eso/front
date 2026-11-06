@@ -669,7 +669,7 @@ export function stepSubject(eg: WwEndgame, subject: number, day: number): void {
   }
   const mine: EconAdjust = {
     res: new Array<number>(RESOURCE_COUNT).fill(0),
-    civIn: 0,
+    civInMilli: 0,
     civOut: 0,
     manpower: 0,
     virtualMil: 0,
@@ -709,7 +709,7 @@ export function subjectEconomy(
       out.manpower -= s.flowMp;
     } else if (s.overlord === id && eg.isActor(s.subject)) {
       for (let k = 0; k < RESOURCE_COUNT; k++) out.res[k] += s.flowRes[k];
-      out.civIn += s.flowCiv;
+      out.civInMilli += s.flowCiv * eg.ww.economy.payPmOf(s.subject);
       out.manpower += s.flowMp;
     }
   }

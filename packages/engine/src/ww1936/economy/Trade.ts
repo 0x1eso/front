@@ -274,25 +274,28 @@ function closeBroken(econ: WwEconomy, tr: Trade): void {
 
 /**
  * ww115 T13: a deal whose route is cut stops, moving nothing and paying
- * nothing; a human buyer is told once, the day it stops.
+ * nothing; a human buyer is told once, the day it stops. ww120 T4: the same
+ * for a deal whose seller has nothing left to sell.
  */
-function pauseDeal(econ: WwEconomy, tr: Trade, day: number): void {
+function pauseDeal(
+  econ: WwEconomy,
+  tr: Trade,
+  day: number,
+  notice:
+    | "events_display.ww1936_trade_paused"
+    | "events_display.ww1936_trade_paused_output",
+): void {
   tr.pausedDay = day;
+  delete tr.gotPm;
   econ.markCountryDirty(tr.buyer);
   econ.markCountryDirty(tr.seller);
   const b = econ.mg.playerBySmallID(tr.buyer);
   if (!b.isPlayer() || !econ.ww.isHumanControlled(tr.buyer)) return;
-  econ.mg.displayMessage(
-    "events_display.ww1936_trade_paused",
-    MessageType.WORLD_WAR,
-    b.id(),
-    undefined,
-    {
-      sellerTag: econ.ww.tagOf(tr.seller),
-      resource: RESOURCE_IDS[tr.res],
-      days: WW_TRADE_PAUSE_DAYS,
-    },
-  );
+  econ.mg.displayMessage(notice, MessageType.WORLD_WAR, b.id(), undefined, {
+    sellerTag: econ.ww.tagOf(tr.seller),
+    resource: RESOURCE_IDS[tr.res],
+    days: WW_TRADE_PAUSE_DAYS,
+  });
 }
 
 /** Groups trades in id order by `key`, each group in id order. */
@@ -313,12 +316,13 @@ function groupBy(
 /**
  * The day's common check (spec §7.5), in deal-number order: deals whose
  * partners broke (war, embargo, capitulation, death) close; ww115 T13: a
- * deal whose route is cut pauses, runs again the day the route is back,
- * and closes after WW_TRADE_PAUSE_DAYS without one. Then, newest first,
- * deals past the seller's export room for that resource give up the excess
- * (P4 Task 15: a deal shrinks to what is left and pays dealCivsOf of it; one
- * with nothing left closes), and deals past the civilian factories the
- * buyer can pay close.
+ * deal whose route is cut pauses and closes after WW_TRADE_PAUSE_DAYS
+ * without one. Then, newest first, deals past the seller's export room for
+ * that resource give up the excess (P4 Task 15: a deal shrinks to what is
+ * left and pays dealCivsOf of it; ww120 T4: one with nothing left pauses).
+ * Oldest first, a paused deal with its route back runs again once the room
+ * holds all of it, and closes when the wait runs out. A buyer short of
+ * factories closes nothing: its deals move what it pays for (payPm).
  * The trade list is kept in id order (addTrade appends rising ids).
  */
 export function validateTrades(econ: WwEconomy, tick: number): void {
@@ -327,6 +331,7 @@ export function validateTrades(econ: WwEconomy, tick: number): void {
     number,
     (seller: number) => "partner" | "route" | null
   >();
+  const cut = new Set<number>();
   for (const tr of [...econ.trades()]) {
     let judge = judges.get(tr.buyer);
     if (judge === undefined) {
@@ -337,12 +342,12 @@ export function validateTrades(econ: WwEconomy, tick: number): void {
     if (broken === "partner") {
       closeBroken(econ, tr);
     } else if (broken === "route") {
-      if (tr.pausedDay === undefined) pauseDeal(econ, tr, day);
-      else if (day - tr.pausedDay >= WW_TRADE_PAUSE_DAYS) closeBroken(econ, tr);
-    } else if (tr.pausedDay !== undefined) {
-      delete tr.pausedDay;
-      econ.markCountryDirty(tr.buyer);
-      econ.markCountryDirty(tr.seller);
+      cut.add(tr.id);
+      if (tr.pausedDay === undefined) {
+        pauseDeal(econ, tr, day, "events_display.ww1936_trade_paused");
+      } else if (day - tr.pausedDay >= WW_TRADE_PAUSE_DAYS) {
+        closeBroken(econ, tr);
+      }
     }
   }
 
@@ -357,14 +362,21 @@ export function validateTrades(econ: WwEconomy, tick: number): void {
       s === null
         ? 0
         : exportCapacity(s.totals.produced[res], s.law().exportPct);
+    // Paused with its route back: it holds no room until it runs again.
+    const waiting = deals.filter(
+      (t) => t.pausedDay !== undefined && !cut.has(t.id),
+    );
     let sold = 0;
-    for (const tr of deals) sold += tr.units;
+    for (const tr of deals) if (!waiting.includes(tr)) sold += tr.units;
     for (let i = deals.length - 1; i >= 0 && sold > cap; i--) {
       const tr = deals[i];
+      if (waiting.includes(tr)) continue;
       const excess = sold - cap;
       if (tr.units <= excess) {
         sold -= tr.units;
-        closeBroken(econ, tr);
+        if (tr.pausedDay === undefined) {
+          pauseDeal(econ, tr, day, "events_display.ww1936_trade_paused_output");
+        }
         continue;
       }
       tr.units -= excess;
@@ -373,20 +385,15 @@ export function validateTrades(econ: WwEconomy, tick: number): void {
       econ.markCountryDirty(tr.buyer);
       econ.markCountryDirty(seller);
     }
-  }
-
-  const byBuyer = groupBy(econ.trades(), (t) => t.buyer);
-  for (const deals of byBuyer) {
-    const b = econ.country(deals[0].buyer);
-    const payable =
-      b === null ? 0 : payableCivs(b.totals.civ, b.totals.cgMilli);
-    let paid = 0;
-    for (const tr of deals) paid += tradePaidCivs(econ, tr);
-    for (let i = deals.length - 1; i >= 0 && paid > payable; i--) {
-      // A paused deal pays nothing: closing it frees nothing.
-      if (deals[i].pausedDay !== undefined) continue;
-      paid -= tradePaidCivs(econ, deals[i]);
-      closeBroken(econ, deals[i]);
+    for (const tr of waiting) {
+      if (sold + tr.units <= cap) {
+        sold += tr.units;
+        delete tr.pausedDay;
+        econ.markCountryDirty(tr.buyer);
+        econ.markCountryDirty(seller);
+      } else if (day - tr.pausedDay! >= WW_TRADE_PAUSE_DAYS) {
+        closeBroken(econ, tr);
+      }
     }
   }
 }

@@ -1572,6 +1572,7 @@
     "ww1936_takeover": "{fromTag}을(를) 대신해 {toTag}을(를) 맡습니다",
     "ww1936_trade_closed": "{seller} — {resource} 거래가 끝났습니다",
     "ww1936_trade_paused": "{seller} — {resource} 거래가 멈췄습니다. 길이 끊겼습니다. {days}일 안에 돌아오지 않으면 닫힙니다",
+    "ww1936_trade_paused_output": "{seller} — {resource} 거래가 멈췄습니다. 판매국의 산출이 줄었습니다. {days}일 안에 돌아오지 않으면 닫힙니다",
     "ww1936_train_target_lost": "지정한 군이 없거나 가득 차서 사단이 다른 군에 배치되었습니다",
     "ww1936_trait_unlocked": "{general}: 특성 {trait} 획득",
     "ww1936_treaty": "{a}·{b} 사이에 {kind} 체결",
@@ -4675,6 +4676,7 @@
         "peace_not_beaten": "강화를 청할 만큼 밀리지 않았습니다: 항복선의 40%부터 가능",
         "peace_not_leader": "같은 편 지도국만 강화를 청할 수 있습니다"
       },
+      "build_floor": "건설 바닥: 소비재와 대금에 밀려 이만큼만 남습니다",
       "build_here": "여기 짓기",
       "buy": "사기",
       "cancel_project": "건설 취소",
@@ -4687,7 +4689,9 @@
       "cooldown": "{n}일 기다려야 함",
       "days_left": "{n}일",
       "days_per_unit": "한 대에 {n}일",
-      "deal_paused": "길 끊김: {n}일 뒤 닫힘",
+      "deal_arrived": "도착 {n}%",
+      "deal_paused": "멈춤: {n}일 뒤 닫힘",
+      "deal_short_pay": "대금 부족: 도착 {n}%",
       "design_group": "{name} (내 설계)",
       "efficiency": "효율 {n}% (상한 {cap}%)",
       "export_room": "하루 {n} 판매 가능",
@@ -4700,7 +4704,7 @@
       "idle_factories": "놀고 있는 군수 공장 {n}개",
       "imported": "수입",
       "industry": "산업",
-      "law_closes_deals": "거래가 닫힙니다 — 다시 누르기",
+      "law_closes_deals": "거래가 줄거나 멈춥니다 — 다시 누르기",
       "law_need": {
         "all_adults": "전쟁 1년 뒤",
         "extensive": "1938년부터 또는 전쟁 중",
@@ -11253,6 +11257,7 @@
       },
       "line": {
         "stab_base": "바탕",
+        "stab_goods": "소비재 부족",
         "stab_modifiers": "정신·법·고문",
         "stab_no_pp": "정치력 부족",
         "stab_occupation": "남이 통제하는 영토",
@@ -11263,6 +11268,7 @@
         "ws_capital": "수도 주를 적이 통제",
         "ws_casualties": "사상자",
         "ws_defense": "공격받는 중",
+        "ws_goods": "소비재 부족",
         "ws_lost_vp": "잃은 영토",
         "ws_modifiers": "정신·법·고문",
         "ws_tension": "세계 긴장도"

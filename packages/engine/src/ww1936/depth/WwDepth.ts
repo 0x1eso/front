@@ -911,6 +911,13 @@ export class WwDepth implements LandDepthHooks {
       : civFlow(this, id).in;
   }
 
+  /** ww120 T4: what actually comes in, milli: each payer pays its payPm. */
+  civsInMilli(id: number): number {
+    return this.countries[id] === null || this.countries[id] === undefined
+      ? 0
+      : civFlow(this, id).inMilli;
+  }
+
   embargoed(a: number, b: number): boolean {
     return this.market.embargoes.some(
       ([x, y]) => (x === a && y === b) || (x === b && y === a),
@@ -1900,24 +1907,36 @@ function buildKeyStats(d: WwDepth, id: number): KeyStatsTable {
  * Plan decision 23: civilian factories leaving (market payments as the
  * buyer, licence fees as the licensee, an agency upgrade's 2) and coming
  * in (market payments as the seller, licence fees as the licensor). Same
- * faction licences cost nothing.
+ * faction licences cost nothing. ww120 T4: `in` is what is owed, `inMilli`
+ * what the payers really hand over.
  */
-function civFlow(d: WwDepth, id: number): { in: number; out: number } {
+function civFlow(
+  d: WwDepth,
+  id: number,
+): { in: number; inMilli: number; out: number } {
+  const econ = d.ww.economy;
   let inn = 0;
+  let inMilli = 0;
   let out = 0;
   for (const deal of d.market.deals) {
     if (deal.paidMilli >= deal.priceMilli) continue;
     if (deal.buyer === id) out += deal.civs;
-    if (deal.seller === id) inn += deal.civs;
+    if (deal.seller === id) {
+      inn += deal.civs;
+      inMilli += deal.civs * econ.payPmOf(deal.buyer);
+    }
   }
   for (const l of d.market.licences) {
     if (d.ww.sameFaction(l.from, l.to)) continue;
     if (l.to === id) out += 1;
-    if (l.from === id) inn += 1;
+    if (l.from === id) {
+      inn += 1;
+      inMilli += econ.payPmOf(l.to);
+    }
   }
   const c = d.countries[id];
   if (c !== null && c !== undefined && c.intel.upId >= 0) out += 2;
-  return { in: inn, out };
+  return { in: inn, inMilli, out };
 }
 
 /** P1 stock of atomic bombs (plan decision 20). */

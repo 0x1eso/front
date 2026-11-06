@@ -1005,15 +1005,13 @@ describe("the World War 1936 economy screens' model (spec §13)", () => {
         },
       ],
     });
-    const s = summary("DEU", { civ: 9, mil: 6 });
     // Limited exports: 25% of 40 = 10 < 16. Closed economy: 0.
-    expect(lawClosesDeals(d, s, "trade", "limited_exports")).toBe(true);
-    expect(lawClosesDeals(d, s, "trade", "closed_economy")).toBe(true);
-    expect(lawClosesDeals(d, s, "trade", "free_trade")).toBe(false);
-    // Civilian economy: 35% of 15 factories → 3 left to pay with, under 5.
-    expect(lawClosesDeals(d, s, "economy", "civilian")).toBe(true);
-    expect(lawClosesDeals(d, s, "economy", "total_mobilization")).toBe(false);
-    expect(lawClosesDeals(d, s, "conscription", "service")).toBe(false);
+    expect(lawClosesDeals(d, "trade", "limited_exports")).toBe(true);
+    expect(lawClosesDeals(d, "trade", "closed_economy")).toBe(true);
+    expect(lawClosesDeals(d, "trade", "free_trade")).toBe(false);
+    // ww120 T4: a law that leaves less to pay with stops no deal.
+    expect(lawClosesDeals(d, "economy", "civilian")).toBe(false);
+    expect(lawClosesDeals(d, "conscription", "service")).toBe(false);
   });
 
   it("numbers below zero get a real minus sign", () => {

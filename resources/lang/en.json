@@ -1690,6 +1690,7 @@
     "ww1936_template_added": "New division template \"{template}\" was added",
     "ww1936_trade_closed": "Deal with {seller} for {resource} closed",
     "ww1936_trade_paused": "Deal with {seller} for {resource} paused: the route is cut. It closes in {days} days unless the route returns",
+    "ww1936_trade_paused_output": "Deal with {seller} for {resource} paused: the seller has nothing left to sell. It closes in {days} days unless its output returns",
     "ww1936_train_target_lost": "The chosen army is gone or full: the division joined another army",
     "ww1936_trait_unlocked": "{general} gained the trait {trait}",
     "ww1936_treaty": "New {kind} between {a} and {b}",
@@ -5055,6 +5056,7 @@
         "volunteer_conditions": "Volunteers cannot be sent now",
         "volunteer_limit": "Too many volunteer divisions"
       },
+      "build_floor": "Construction floor: goods and payments leave only this",
       "build_here": "Build here",
       "buy": "Buy",
       "cancel_project": "Cancel construction",
@@ -5067,7 +5069,9 @@
       "cooldown": "{n} days to wait",
       "days_left": "{n} days",
       "days_per_unit": "{n} days each",
-      "deal_paused": "Route cut: closes in {n} days",
+      "deal_arrived": "{n}% arrives",
+      "deal_paused": "Paused: closes in {n} days",
+      "deal_short_pay": "Payment short: {n}% arrives",
       "design_group": "{name} (own designs)",
       "eff_traits": "Growth {growth, number, ::sign-always}%, a retool keeps {keep, number, ::sign-always} points",
       "efficiency": "Efficiency {n}% (cap {cap}%)",
@@ -5081,7 +5085,7 @@
       "idle_factories": "{n} idle military factories",
       "imported": "Imported",
       "industry": "Industry",
-      "law_closes_deals": "Closes deals — tap again",
+      "law_closes_deals": "Cuts or pauses deals — tap again",
       "law_need": {
         "all_adults": "After a year of war",
         "extensive": "From 1938, or at war",
@@ -11794,6 +11798,7 @@
       },
       "line": {
         "stab_base": "Base",
+        "stab_goods": "Consumer goods shortfall",
         "stab_modifiers": "Spirits, laws and advisors",
         "stab_no_pp": "Political power below zero",
         "stab_occupation": "Land under foreign control",
@@ -11804,6 +11809,7 @@
         "ws_capital": "Enemy holds the capital region",
         "ws_casualties": "Casualties",
         "ws_defense": "Being attacked",
+        "ws_goods": "Consumer goods shortfall",
         "ws_lost_vp": "Land lost",
         "ws_modifiers": "Spirits, laws and advisors",
         "ws_tension": "World tension"

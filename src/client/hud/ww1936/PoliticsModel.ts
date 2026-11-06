@@ -1556,9 +1556,7 @@ export function lawTab(i: PoliticsModelInput): LawLadderView[] | null {
             st.current || shown || st.block === null
               ? null
               : blockText(st.block),
-          closes:
-            st.block === null &&
-            lawClosesDeals(detail, summary, kind, st.value),
+          closes: st.block === null && lawClosesDeals(detail, kind, st.value),
           effects: lawEffectLines(kind, st.value),
           diff: st.current
             ? []

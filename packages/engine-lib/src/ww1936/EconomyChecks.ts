@@ -29,7 +29,7 @@ import {
   WwOrderBlock,
   WwTechId,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
-import { exportCapacity } from "./EconomyRules";
+import { exportCapacity, payRoomMilli } from "./EconomyRules";
 import {
   equipmentBuildable,
   genTech,
@@ -549,9 +549,9 @@ export function dealCivsOf(units: number): number {
   return Math.ceil(Math.max(0, units) / WW_TRADE_UNITS_PER_CIV);
 }
 
-/** Civilian factories a buyer can pay with: its own, less consumer goods. */
+/** Civilian factories a buyer can pay with: 80 % of its own, less consumer goods. */
 export function payableCivs(civ: number, cgMilli: number): number {
-  return Math.max(0, Math.floor((civ * 1000 - cgMilli) / 1000));
+  return Math.floor(payRoomMilli(civ, cgMilli) / 1000);
 }
 
 export interface TradeCheck {

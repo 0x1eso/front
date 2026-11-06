@@ -44,6 +44,10 @@ describe("politics on the clock", () => {
   it("each country's stats are summed again once a day, on its own tick", async () => {
     const runner = await wwRunner({}, DEU_HUMAN, POL);
     const g = runner.game;
+    // Goods for all: Czechoslovakia's shortfall would take stability.
+    const econ = g.worldWar()!.economy;
+    const csk = byTag(g, "CSK").smallID();
+    econ.addBuilding(econ.regionsOf(csk)[0], "civ", 20);
     let first = 2;
     for (const tag of ["DEU", "CSK", "EST"] as const) {
       const id = byTag(g, tag).smallID();

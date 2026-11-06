@@ -308,6 +308,7 @@ describe("World War 1936 P6: the arms market", () => {
     const deu = econ.country(DEU)!;
     const fra = econ.country(FRA)!;
     deu.addTech("medium_tank_1");
+    fra.totals.cgMilli = 0;
     econ.addTrade(FRA, DEU, 0, 1);
     econ.addTrade(DEU, FRA, 1, 1);
     const pairTrades = () =>
@@ -434,11 +435,10 @@ describe("World War 1936 P6: the arms market", () => {
     expect(d.market.embargoes).toEqual([]);
   });
 
-  it("a buyer that can no longer pay ends its newest deal", async () => {
+  it("a buyer that can no longer pay pays short, the goods still come", async () => {
     const { ww, d, tick, day } = await deep();
-    const deu = ww.economy.country(DEU)!;
     const fra = ww.economy.country(FRA)!;
-    const deuStock = deu.stock[INF1];
+    fra.totals.cgMilli = 0;
     d.issue(DEU, { kind: "market_list", key: INF1, count: 600 }, tick);
     const listing = d.market.listings[0].id;
     for (const count of [300, 300]) {
@@ -449,12 +449,14 @@ describe("World War 1936 P6: the arms market", () => {
     const [first, second] = d.market.deals;
     dayCommonMarket(d, day + 1, tick);
     expect(d.market.deals).toEqual([first, second]);
-    // France loses its civilian factories: the newest deal goes first,
-    // then the other, its rifles back to Germany.
+    // France loses its civilian factories: both deals stay, and Germany
+    // gets the share France could pay.
+    const owed = d.civsOut(FRA);
     fra.totals.civ = 1;
+    fra.payPm = 400;
     dayCommonMarket(d, day + 2, tick);
-    expect(d.market.deals).toEqual([]);
-    expect(deu.stock[INF1]).toBe(deuStock);
+    expect(d.market.deals.map((x) => x.id)).toEqual([first.id, second.id]);
+    expect(d.civsInMilli(DEU)).toBe(owed * 400);
   });
 
   it("deals, licences and listings in progress survive a snapshot", async () => {

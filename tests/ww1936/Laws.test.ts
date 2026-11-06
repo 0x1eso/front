@@ -199,6 +199,7 @@ describe("laws (spec §5)", () => {
     finishDay(runner, 1);
     expect(ce.totals.cgMilli).toBe((ce.totals.civ + ce.totals.mil) * 35 * 10);
     expect(ce.totals.cgMilli).toBe(5_250);
-    expect(ce.totals.freeCivMilli).toBe(9_000 - 5_250);
+    // ww120 T2: goods take half the 9 factories at most, the rest is short.
+    expect(ce.totals.freeCivMilli).toBe(9_000 - 4_500);
   });
 });

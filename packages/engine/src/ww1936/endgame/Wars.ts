@@ -331,7 +331,8 @@ export function dailyWarScore(eg: WwEndgame, day: number): void {
 
 /**
  * Spec §6.4 reparations (plan decision 19): while both still play, the
- * loser pays `k` civilian factories a day to the winner's construction.
+ * loser owes `k` civilian factories a day to the winner's construction.
+ * ww120 T10: the winner gets what the loser paid; the rest is gone, no debt.
  */
 export function reparationsEconomy(
   eg: WwEndgame,
@@ -342,7 +343,7 @@ export function reparationsEconomy(
     if (x.from !== id && x.to !== id) continue;
     if (!eg.isActor(x.from) || !eg.isActor(x.to)) continue;
     if (x.from === id) out.civOut += x.k;
-    if (x.to === id) out.civIn += x.k;
+    if (x.to === id) out.civInMilli += x.k * eg.ww.economy.payPmOf(x.from);
   }
 }
 

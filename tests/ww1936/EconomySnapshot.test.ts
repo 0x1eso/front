@@ -239,7 +239,7 @@ describe("the economy restores exactly (P1 plan Task 9)", () => {
     }
   }, 120_000);
 
-  test("a line's memory and a paused deal restore (ww115 T6, T13)", async () => {
+  test("a line's memory, a paused deal and a short payment restore (ww115 T6, T13; ww120 T4)", async () => {
     const files = await miniFiles();
     const a = await wwRunner({}, DEU_HUMAN);
     const g = a.game;
@@ -250,8 +250,13 @@ describe("the economy restores exactly (P1 plan Task 9)", () => {
     deu.lines[0].peak = deu.lines[0].active + 5;
     const tr = econ.addTrade(p.smallID(), byTag(g, "SUN").smallID(), 4, 1);
     tr.pausedDay = 2;
+    const short = econ.addTrade(p.smallID(), byTag(g, "SUN").smallID(), 5, 1);
+    short.gotPm = 600;
+    deu.payPm = 600;
     const b = await restore(a, DEU_HUMAN, files);
     const econB = econOf(b.game);
+    expect(econB.country(p.smallID())!.payPm).toBe(600);
+    expect(econB.trades().find((t) => t.id === short.id)?.gotPm).toBe(600);
     expect(econB.country(p.smallID())!.lines[0].peak).toBe(
       deu.lines[0].active + 5,
     );
@@ -444,6 +449,16 @@ describe("the economy restores exactly (P1 plan Task 9)", () => {
         "paused deal (ww115 T13)",
         () => ((econ.trades()[0] as { pausedDay?: number }).pausedDay = 7),
         () => delete (econ.trades()[0] as { pausedDay?: number }).pausedDay,
+      ],
+      [
+        "short payment (ww120 T4)",
+        () => (deu.payPm = 700),
+        () => (deu.payPm = 1000),
+      ],
+      [
+        "part of a deal moved (ww120 T5)",
+        () => ((econ.trades()[0] as { gotPm?: number }).gotPm = 700),
+        () => delete (econ.trades()[0] as { gotPm?: number }).gotPm,
       ],
     ];
     for (const [what, change, undo] of changes) {

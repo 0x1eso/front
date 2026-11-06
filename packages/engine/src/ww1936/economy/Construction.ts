@@ -315,14 +315,17 @@ function depthBuildPct(
  * One day of construction for `ce` (spec §4.3): the free civilian factories
  * go front first, at most 15 to an entry; progress past a building's cost
  * rolls on to the entry's next one and is dropped when the entry ends.
+ * Returns the milli-factories the queue had no use for (ww120 T1: repairs).
  */
 export function stepConstruction(
   econ: WwEconomy,
   ce: CountryEconomy,
   p: Player,
-): void {
+): number {
   const law = ce.law();
   const assigned = assignCivs(ce.totals.freeCivMilli, ce.queue.length);
+  let spare = ce.totals.freeCivMilli;
+  for (const a of assigned) spare -= a;
   let built = 0;
   ce.queue.forEach((q, i) => {
     const speed = projectSpeedPct({
@@ -366,4 +369,5 @@ export function stepConstruction(
       { count: built },
     );
   }
+  return spare;
 }
