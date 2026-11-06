@@ -45,15 +45,19 @@ import type { GwWorldEffect } from "@openfront/engine-api/ww1914/WorldDsl";
  */
 
 const NATION: GwScene["nation"] = ["GBR"];
+/**
+ * A crisis can close and a later spark bring it back: the world's chain is not
+ * a calendar. What July's scenes wait on is the state, up to about 1916.
+ */
+const LATE: GwScene["stage"] = ["crisis", "y1914", "war"];
+const LATE_END = 24;
 const p = role("p");
 const fm = role("fm");
 const navy = role("navy");
 const fin = role("fin");
-const ire = role("ire");
 const lord = role("lord");
 const home = role("home");
 const cos = role("cos");
-const war = role("war");
 const king = byName("gbr_george_v");
 
 /** Each move writes a flag; the tell shows the word. Swap for `inst` at the merge. */
@@ -404,7 +408,7 @@ export const GBR_CRISIS_SCENES: readonly GwScene[] = [
   scene(
     "gbr_c_sarajevo_wire",
     "wire",
-    3,
+    5,
     ["foreign"],
     { fm: { office: "foreign" } },
     all(chapters(0, 0), sarajevo),
@@ -490,7 +494,7 @@ export const GBR_CRISIS_SCENES: readonly GwScene[] = [
     9,
     ["foreign", "tension_up"],
     { fm: { office: "foreign" }, navy: { office: "navy" } },
-    all(chapters(3, 4), hot, flag("w_ultimatum_out")),
+    all(chapters(3, LATE_END), hot, flag("w_ultimatum_out")),
     [
       v("settled", hr),
       v("survived", opening("sarajevo_survived")),
@@ -498,6 +502,7 @@ export const GBR_CRISIS_SCENES: readonly GwScene[] = [
       base,
     ],
     {
+      stage: LATE,
       fallback: "back_to_ulster",
       options: [
         opt(
@@ -536,7 +541,7 @@ export const GBR_CRISIS_SCENES: readonly GwScene[] = [
     8,
     ["foreign", "tension_up"],
     { fm: { office: "foreign" }, cambon: { person: "fra_cambon" } },
-    all(chapters(4, 5), hot, tempMin(5)),
+    all(chapters(4, LATE_END), hot, tempMin(3)),
     [
       v("conference", flag("f_grey_conference")),
       v("warned", flag("f_warned_berlin")),
@@ -544,6 +549,7 @@ export const GBR_CRISIS_SCENES: readonly GwScene[] = [
       base,
     ],
     {
+      stage: LATE,
       fallback: "say_nothing",
       options: [
         opt(
@@ -594,7 +600,7 @@ export const GBR_CRISIS_SCENES: readonly GwScene[] = [
       navy: { office: "navy" },
       morley: { person: "gbr_morley" },
     },
-    all(chapters(4, 5), hot),
+    all(chapters(4, LATE_END), hot),
     [
       v("heard_cambon", seen("gbr_c_cambon")),
       v("warned", flag("f_warned_berlin")),
@@ -602,6 +608,7 @@ export const GBR_CRISIS_SCENES: readonly GwScene[] = [
       base,
     ],
     {
+      stage: LATE,
       fallback: "free_hand",
       options: [
         opt(
@@ -654,7 +661,7 @@ export const GBR_CRISIS_SCENES: readonly GwScene[] = [
       lg: { person: "gbr_lloyd_george" },
       law: { person: "gbr_bonar_law" },
     },
-    all(chapters(5, 7), hot, notInWar),
+    all(chapters(5, LATE_END), hot, notInWar, seen("gbr_c_cabinet_one")),
     [
       v("treaty", flag("f_lich_understanding")),
       v("belg_split", all(belg, flag("f_split"))),
@@ -664,6 +671,7 @@ export const GBR_CRISIS_SCENES: readonly GwScene[] = [
       base,
     ],
     {
+      stage: LATE,
       fallback: "wait_day",
       options: [
         opt(
@@ -750,9 +758,10 @@ export const GBR_CRISIS_SCENES: readonly GwScene[] = [
       redmond: { person: "gbr_redmond" },
       law: { person: "gbr_bonar_law" },
     },
-    all(chapters(5, 7), hot, notInWar),
+    all(chapters(5, LATE_END), hot, notInWar),
     [v("belg", belg), v("east1", east1), base],
     {
+      stage: LATE,
       fallback: "plain_speech",
       options: [
         opt(
@@ -796,7 +805,7 @@ export const GBR_CRISIS_SCENES: readonly GwScene[] = [
       goschen: { person: "gbr_goschen" },
     },
     all(
-      chapters(5, 8),
+      chapters(5, LATE_END),
       any(belg, flag("f_stand_france")),
       notInWar,
       not(flag("f_ult_lapsed")),
@@ -810,6 +819,7 @@ export const GBR_CRISIS_SCENES: readonly GwScene[] = [
     {
       once: false,
       cooldown: 1,
+      stage: LATE,
       fallback: "send",
       options: [
         opt(
@@ -867,13 +877,14 @@ export const GBR_CRISIS_SCENES: readonly GwScene[] = [
       kit: { person: "gbr_kitchener" },
       hal: { person: "gbr_haldane" },
     },
-    all(chapters(5, 9), inWar, { kind: "office_empty", office: "war" }),
+    all(chapters(5, LATE_END), inWar, { kind: "office_empty", office: "war" }),
     [
       v("held", chose("gbr_c_war_office_held", "keep_it")),
       v("offered", chose("gbr_c_war_office_held", "give_haldane")),
       base,
     ],
     {
+      stage: LATE,
       fallback: "kitchener",
       options: [
         opt(
@@ -917,7 +928,7 @@ export const GBR_CRISIS_SCENES: readonly GwScene[] = [
       wilson: { person: "gbr_wilson" },
       french: { person: "gbr_french" },
     },
-    all(chapters(5, 9), inWar),
+    all(chapters(5, LATE_END), inWar),
     [
       v("east1", east1),
       v("long", heardFrom("k_kit_long")),
@@ -928,6 +939,7 @@ export const GBR_CRISIS_SCENES: readonly GwScene[] = [
       base,
     ],
     {
+      stage: LATE,
       fallback: "four_divisions",
       options: [
         opt(
@@ -970,7 +982,7 @@ export const GBR_CRISIS_SCENES: readonly GwScene[] = [
       french: { person: "gbr_french" },
     },
     all(
-      chapters(7, 9),
+      chapters(7, LATE_END),
       inWar,
       world({
         is: "battle",
@@ -985,6 +997,7 @@ export const GBR_CRISIS_SCENES: readonly GwScene[] = [
       base,
     ],
     {
+      stage: LATE,
       fallback: "wire_french",
       options: [
         opt(
@@ -1030,7 +1043,7 @@ export const GBR_CRISIS_SCENES: readonly GwScene[] = [
       carson: { person: "gbr_carson" },
       redmond: { person: "gbr_redmond" },
     },
-    all(chapters(7, 10), inWar, not(hr)),
+    all(chapters(7, LATE_END), inWar, not(hr)),
     [
       v("county", flag("f_amend_county")),
       v("clean", flag("f_amend_clean")),
@@ -1038,6 +1051,7 @@ export const GBR_CRISIS_SCENES: readonly GwScene[] = [
       base,
     ],
     {
+      stage: LATE,
       fallback: "sign_suspend",
       options: [
         opt(
@@ -1109,7 +1123,7 @@ export const GBR_CRISIS_SCENES: readonly GwScene[] = [
     6,
     ["home", "tension_up"],
     {},
-    all(chapters(0, 1), irishPress(2)),
+    all(chapters(1, 2), irishPress(2)),
     [v("swollen", { kind: "source_band", source: "agents", max: 1 }), base],
     { stamp: "unconfirmed", source: "agents" },
   ),
@@ -1119,7 +1133,7 @@ export const GBR_CRISIS_SCENES: readonly GwScene[] = [
     6,
     ["people"],
     { cos: { office: "chief_of_staff" } },
-    chapters(0, 2),
+    chapters(1, 2),
     [v("tired", moody(cos, "weary")), base],
     {
       fallback: "keep_it",
@@ -1158,7 +1172,7 @@ export const GBR_CRISIS_SCENES: readonly GwScene[] = [
     5,
     ["home", "tension_down"],
     { home: { office: "interior" } },
-    chapters(0, 2),
+    chapters(1, 2),
     [v("hard", moody(home, "stubborn")), base],
     {
       fallback: "polite_reply",
@@ -1190,7 +1204,7 @@ export const GBR_CRISIS_SCENES: readonly GwScene[] = [
     5,
     ["home"],
     { fin: { office: "finance" } },
-    chapters(0, 2),
+    chapters(1, 2),
     [v("sly", moody(fin, "cunning")), base],
     {
       fallback: "cut_clauses",
@@ -1229,7 +1243,7 @@ export const GBR_CRISIS_SCENES: readonly GwScene[] = [
     5,
     ["foreign", "tension_down"],
     { fm: { office: "foreign" } },
-    all(chapters(0, 3), not(crisis)),
+    all(chapters(1, 3), not(crisis)),
     [v("rail", world({ is: "thread", id: "baghdad_rail" })), base],
     {
       fallback: "initial",
@@ -1254,7 +1268,7 @@ export const GBR_CRISIS_SCENES: readonly GwScene[] = [
     6,
     ["foreign", "tension_up"],
     { fm: { office: "foreign" }, navy: { office: "navy" } },
-    all(chapters(0, 3), { kind: "secret", id: "anglo_russian_naval_talks" }),
+    all(chapters(1, 3), { kind: "secret", id: "anglo_russian_naval_talks" }),
     [v("known", heardFrom("k_grey_naval")), base],
     {
       fallback: "deny",
@@ -1440,9 +1454,12 @@ export const GBR_CRISIS_SCENES: readonly GwScene[] = [
       war: { any_of: [{ office: "war" }, { person: "gbr_haldane" }] },
     },
     all(
-      chapters(7, 9),
+      chapters(7, LATE_END),
       inWar,
-      world({ is: "front", theatre: "west", from: "aisne" }),
+      any(
+        world({ is: "front", theatre: "west", from: "aisne" }),
+        flag("f_bef_antwerp"),
+      ),
     ),
     [
       v("north", flag("f_bef_antwerp")),
@@ -1450,6 +1467,7 @@ export const GBR_CRISIS_SCENES: readonly GwScene[] = [
       base,
     ],
     {
+      stage: LATE,
       fallback: "marines_only",
       options: [
         opt(
@@ -1618,7 +1636,7 @@ export const GBR_CRISIS_SCENES: readonly GwScene[] = [
       stiff: plain(close("end", "cold")),
     },
   ),
-  talk("gbr_t_grey_conf", "gbr_grey", all(chapters(3, 4), hot), {
+  talk("gbr_t_grey_conf", "gbr_grey", all(chapters(3, LATE_END), hot), {
     open: node(
       moods("cold"),
       r("why", "frank", "ask", [], [], "plan", {
@@ -1654,45 +1672,50 @@ export const GBR_CRISIS_SCENES: readonly GwScene[] = [
     doubted: plain(close("end", "cold")),
     lich: plain(close("end", "frank")),
   }),
-  talk("gbr_t_grey_leave", "gbr_grey", all(chapters(4, 5), tempMin(5)), {
-    open: node(
-      [v("hard", distrusted(p, -1)), v("cold", moody(p, "cold")), base],
-      r("ask", "frank", "ask", [], [], "fog", {
-        reacts: [straight("yes", remember("v_entry", p))],
-      }),
-      r("fear", "frank", "push", ["grey:+1"], [trustOf(p, 1)], "yes", {
-        gain: [remember("v_entry", p)],
-        miss: "fog",
-      }),
-      r(
-        "deal",
-        "warm",
-        "deal",
-        ["grey:+1"],
-        [
-          trustOf(p, 1),
-          remember("v_entry", p),
-          promise(p, "p_grey_stay", 2, {
-            keep: any(
-              chose("gbr_c_cabinet_two", "belgium_condition"),
-              chose("gbr_c_cabinet_two", "stand_with_france"),
-            ),
-          }),
-        ],
-        "bound",
+  talk(
+    "gbr_t_grey_leave",
+    "gbr_grey",
+    all(chapters(4, LATE_END), hot, tempMin(4)),
+    {
+      open: node(
+        [v("hard", distrusted(p, -1)), v("cold", moody(p, "cold")), base],
+        r("ask", "frank", "ask", [], [], "fog", {
+          reacts: [straight("yes", remember("v_entry", p))],
+        }),
+        r("fear", "frank", "push", ["grey:+1"], [trustOf(p, 1)], "yes", {
+          gain: [remember("v_entry", p)],
+          miss: "fog",
+        }),
+        r(
+          "deal",
+          "warm",
+          "deal",
+          ["grey:+1"],
+          [
+            trustOf(p, 1),
+            remember("v_entry", p),
+            promise(p, "p_grey_stay", 2, {
+              keep: any(
+                chose("gbr_c_cabinet_two", "belgium_condition"),
+                chose("gbr_c_cabinet_two", "stand_with_france"),
+              ),
+            }),
+          ],
+          "bound",
+        ),
+        r("threat", "threat", "push", ["grey:-2"], [trustOf(p, -2)], "stone"),
+        close("leave", "warm"),
       ),
-      r("threat", "threat", "push", ["grey:-2"], [trustOf(p, -2)], "stone"),
-      close("leave", "warm"),
-    ),
-    fog: plain(close("end", "warm")),
-    yes: plain(
-      r("who", "frank", "ask", [], [], "who_else"),
-      close("end", "warm"),
-    ),
-    who_else: plain(close("end", "cold")),
-    bound: plain(close("end", "warm")),
-    stone: plain(close("end", "cold")),
-  }),
+      fog: plain(close("end", "warm")),
+      yes: plain(
+        r("who", "frank", "ask", [], [], "who_else"),
+        close("end", "warm"),
+      ),
+      who_else: plain(close("end", "cold")),
+      bound: plain(close("end", "warm")),
+      stone: plain(close("end", "cold")),
+    },
+  ),
   talk(
     "gbr_t_grey_eyes",
     "gbr_grey",
@@ -1835,7 +1858,7 @@ export const GBR_CRISIS_SCENES: readonly GwScene[] = [
     hurt: plain(close("end", "cold")),
     said: plain(close("end", "frank")),
   }),
-  talk("gbr_t_king_cousin", "gbr_george_v", all(chapters(3, 5), hot), {
+  talk("gbr_t_king_cousin", "gbr_george_v", all(chapters(3, LATE_END), hot), {
     open: node(
       moods("anxious"),
       r("ask", "frank", "ask", [], [], "vague", {
@@ -2057,7 +2080,7 @@ export const GBR_CRISIS_SCENES: readonly GwScene[] = [
   talk(
     "gbr_t_carson_war",
     "gbr_carson",
-    all(chapters(4, 6), any(tempMin(5), inWar)),
+    all(chapters(4, LATE_END), any(all(hot, tempMin(4)), inWar)),
     {
       open: node(
         moods("stubborn", "weary"),
@@ -2286,83 +2309,101 @@ export const GBR_CRISIS_SCENES: readonly GwScene[] = [
     thin: plain(r("who", "frank", "ask", [], [], "who"), close("end", "warm")),
     who: plain(close("end", "warm")),
   }),
-  talk("gbr_t_redmond_speech", "gbr_redmond", all(chapters(4, 5), tempMin(5)), {
-    open: node(
-      moods("anxious"),
-      r("ask", "frank", "ask", [], [], "think", {
-        gain: [remember("k_red_speech")],
-      }),
-      r(
-        "deal",
-        "warm",
-        "deal",
-        ["irish:+1"],
-        [
-          irish(1),
-          remember("k_red_speech"),
-          promise(p, "p_redmond_act", 6, {
-            keep: any(flag("f_act_suspended"), hr),
-          }),
-        ],
-        "offer",
+  talk(
+    "gbr_t_redmond_speech",
+    "gbr_redmond",
+    all(chapters(4, LATE_END), hot, tempMin(4)),
+    {
+      open: node(
+        moods("anxious"),
+        r("ask", "frank", "ask", [], [], "think", {
+          gain: [remember("k_red_speech")],
+        }),
+        r(
+          "deal",
+          "warm",
+          "deal",
+          ["irish:+1"],
+          [
+            irish(1),
+            remember("k_red_speech"),
+            promise(p, "p_redmond_act", 6, {
+              keep: any(flag("f_act_suspended"), hr),
+            }),
+          ],
+          "offer",
+        ),
+        r("flatter", "flatter", "push", [], [], "offer", {
+          gain: [remember("k_red_speech")],
+          miss: "think",
+          reacts: [
+            {
+              when: moody(p, "anxious"),
+              next: "think",
+              effects: [reason("t_redmond_speech_r1")],
+            },
+          ],
+        }),
+        close("leave", "warm"),
       ),
-      r("flatter", "flatter", "push", [], [], "offer", {
-        gain: [remember("k_red_speech")],
-        miss: "think",
-        reacts: [
-          {
-            when: moody(p, "anxious"),
-            next: "think",
-            effects: [reason("t_redmond_speech_r1")],
-          },
-        ],
-      }),
-      close("leave", "warm"),
-    ),
-    think: plain(close("end", "warm")),
-    offer: plain(
-      r("dillon", "frank", "ask", [], [], "dillon"),
-      close("end", "warm"),
-    ),
-    dillon: plain(close("end", "frank")),
-  }),
-  talk("gbr_t_redmond_division", "gbr_redmond", all(chapters(6, 10), inWar), {
-    open: node(
-      moods("weary"),
-      r("ask", "frank", "ask", [], [], "badge", {
-        gain: [remember("k_red_division")],
-      }),
-      r(
-        "deal",
-        "warm",
-        "deal",
-        ["irish:+1"],
-        [
-          irish(1),
-          remember("k_red_division"),
-          promise(p, "p_redmond_badge", 14, {
-            keep: chose("gbr_h_irish_division", "keep_word"),
-            back: "gbr_v_redmond_badge",
-          }),
-        ],
-        "word",
+      think: plain(close("end", "warm")),
+      offer: plain(
+        r("dillon", "frank", "ask", [], [], "dillon"),
+        close("end", "warm"),
       ),
-      r("army", "cold", "push", ["redmond:-1"], [trustOf(p, -1)], "kitchener", {
-        gain: [remember("k_red_division")],
-        reacts: [
+      dillon: plain(close("end", "frank")),
+    },
+  ),
+  talk(
+    "gbr_t_redmond_division",
+    "gbr_redmond",
+    all(chapters(6, LATE_END), inWar),
+    {
+      open: node(
+        moods("weary"),
+        r("ask", "frank", "ask", [], [], "badge", {
+          gain: [remember("k_red_division")],
+        }),
+        r(
+          "deal",
+          "warm",
+          "deal",
+          ["irish:+1"],
+          [
+            irish(1),
+            remember("k_red_division"),
+            promise(p, "p_redmond_badge", 14, {
+              keep: chose("gbr_h_irish_division", "keep_word"),
+              back: "gbr_v_redmond_badge",
+            }),
+          ],
+          "word",
+        ),
+        r(
+          "army",
+          "cold",
+          "push",
+          ["redmond:-1"],
+          [trustOf(p, -1)],
+          "kitchener",
           {
-            when: moody(p, "stubborn"),
-            next: "kitchener",
-            effects: [irish(-1), reason("t_redmond_division_r1")],
+            gain: [remember("k_red_division")],
+            reacts: [
+              {
+                when: moody(p, "stubborn"),
+                next: "kitchener",
+                effects: [irish(-1), reason("t_redmond_division_r1")],
+              },
+            ],
           },
-        ],
-      }),
-      close("leave", "cold"),
-    ),
-    badge: plain(close("end", "warm")),
-    word: plain(close("end", "warm")),
-    kitchener: plain(close("end", "cold")),
-  }),
+        ),
+        close("leave", "cold"),
+      ),
+      badge: plain(close("end", "warm")),
+      word: plain(close("end", "warm")),
+      kitchener: plain(close("end", "cold")),
+    },
+  ),
   talk(
     "gbr_t_redmond_amnesty",
     "gbr_redmond",
@@ -2458,7 +2499,7 @@ export const GBR_CRISIS_SCENES: readonly GwScene[] = [
   visit(
     "gbr_v_lichnowsky_tears",
     "deu_lichnowsky",
-    all(chapters(4, 5), hot, tempMin(5)),
+    all(chapters(4, LATE_END), hot, tempMin(4)),
     6,
     ["foreign", "people"],
     {
@@ -2504,7 +2545,7 @@ export const GBR_CRISIS_SCENES: readonly GwScene[] = [
   visit(
     "gbr_v_morley_letter",
     "gbr_morley",
-    all(chapters(4, 5), hot, tempMin(5)),
+    all(chapters(4, LATE_END), hot, tempMin(4)),
     6,
     ["people", "home"],
     {
@@ -2546,7 +2587,7 @@ export const GBR_CRISIS_SCENES: readonly GwScene[] = [
       gladstone: plain(close("end", "cold")),
     },
   ),
-  visit("gbr_v_haldane_army", "gbr_haldane", chapters(0, 5), 5, ["people"], {
+  visit("gbr_v_haldane_army", "gbr_haldane", chapters(1, 5), 5, ["people"], {
     open: node(
       moods("weary"),
       r("hear", "warm", "ask", [], [], "table", {
@@ -2631,7 +2672,7 @@ export const GBR_CRISIS_SCENES: readonly GwScene[] = [
   visit(
     "gbr_v_goschen_home",
     "gbr_goschen",
-    all(chapters(6, 8), inWar),
+    all(chapters(6, LATE_END), inWar),
     5,
     ["people", "foreign"],
     {
