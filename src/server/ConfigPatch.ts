@@ -49,6 +49,7 @@ const COPIED_KEYS = [
   // Great War 1914 and the row of its chapter table.
   "greatWar1914",
   "greatWar1914Calendar",
+  "greatWar1914Recent",
 ] as const satisfies readonly (keyof GameConfig)[];
 
 // `.nullable().optional()` in the schema: the wire says null to clear a

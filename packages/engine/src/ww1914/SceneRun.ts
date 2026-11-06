@@ -1,4 +1,5 @@
 import {
+  GW_FIELDS,
   GW_GAUGE_MAX,
   GW_INST_MAX,
   GW_INST_MIN,
@@ -7,11 +8,15 @@ import {
   GW_TRUST_MIN,
   GwCard,
   GwOffice,
+  GwPersonDef,
   GwPersonState,
+  GwPromise,
   GwSeatState,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
+import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import {
   GW_READ_ONLY_KINDS,
+  GwCastRule,
   GwCond,
   GwEffect,
   GwOption,
@@ -21,8 +26,21 @@ import {
   GwWho,
 } from "@openfront/engine-api/ww1914/SceneDsl";
 import { gwChapters } from "@openfront/engine-lib/ww1914/Calendars";
-import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
+import {
+  GwContent,
+  gwContent,
+} from "@openfront/engine-lib/ww1914/content/Content";
+import {
+  fadedWeight,
+  GW_MOOD_MOVES_TRUST,
+  isCandid,
+} from "@openfront/engine-lib/ww1914/TalkRules";
+import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import type { GreatWar } from "./GreatWar";
+
+const P_CAST = idHash("gw_cast");
+const P_VARIANT = idHash("gw_variant");
+const P_EFFECT_ROLL = idHash("gw_effect_roll");
 
 /** What conditions and effects run against. */
 export interface SceneCtx {
@@ -30,6 +48,8 @@ export interface SceneCtx {
   seat: GwSeatState;
   /** role -> person id. */
   cast: Readonly<Record<string, string>>;
+  /** The card it runs for: a talk's mood lives there. */
+  card?: GwCard;
 }
 
 const clamp = (v: number, lo: number, hi: number) =>
@@ -37,53 +57,181 @@ const clamp = (v: number, lo: number, hi: number) =>
 const inRange = (v: number, c: { min?: number; max?: number }) =>
   v >= (c.min ?? -Infinity) && v <= (c.max ?? Infinity);
 
-export function sceneOf(id: string): GwScene | null {
-  return gwContent().scenes.find((x) => x.id === id) ?? null;
+interface ContentIndex {
+  scenes: Map<string, GwScene>;
+  people: Map<string, GwPersonDef>;
+}
+const indexes = new WeakMap<GwContent, ContentIndex>();
+
+/** Lookups by id; derived from the content object, so never state. */
+function index(): ContentIndex {
+  const c = gwContent();
+  let i = indexes.get(c);
+  if (i === undefined) {
+    i = {
+      scenes: new Map(c.scenes.map((x) => [x.id, x])),
+      people: new Map(c.people.map((x) => [x.id, x])),
+    };
+    indexes.set(c, i);
+  }
+  return i;
 }
 
-function holderOf(gw: GreatWar, seat: GwSeatState, o: GwOffice) {
-  const mine = new Set(
-    gwContent()
-      .people.filter((p) => p.tag === seat.tag)
-      .map((p) => p.id),
-  );
+export function sceneOf(id: string): GwScene | null {
+  return index().scenes.get(id) ?? null;
+}
+
+export function personDef(id: string): GwPersonDef | null {
+  return index().people.get(id) ?? null;
+}
+
+function holderOf(gw: GreatWar, tag: GwTag, o: GwOffice) {
   return (
     gw.s.people.find(
-      (p) => p.office === o && p.status === "active" && mine.has(p.id),
+      (p) =>
+        p.office === o &&
+        p.status === "active" &&
+        personDef(p.id)?.tag === tag,
     ) ?? null
   );
 }
 
-/** The scene's cast; null when a role has nobody. */
+/** The seat's people in office, in content order. */
+function ministers(gw: GreatWar, seat: GwSeatState): GwPersonState[] {
+  return gw.s.people.filter(
+    (x) =>
+      x.office !== null &&
+      x.status === "active" &&
+      personDef(x.id)?.tag === seat.tag,
+  );
+}
+
+/** A seeded pick, the same all chapter, so the view and the deal agree. */
+function pickOne(
+  gw: GreatWar,
+  scene: GwScene,
+  role: string,
+  from: readonly GwPersonState[],
+): GwPersonState | null {
+  if (from.length === 0) return null;
+  const roll = wwRoll(
+    gw.s.seed,
+    P_CAST,
+    gw.s.chapter,
+    idHash(scene.id),
+    idHash(role),
+  );
+  return from[roll % from.length];
+}
+
+/** The people `id` names as rivals or allies, or who name `id` so. */
+function linked(
+  gw: GreatWar,
+  id: string,
+  link: "rivals" | "allies",
+): GwPersonState[] {
+  const own = personDef(id)?.[link] ?? [];
+  return gw.s.people.filter(
+    (p) =>
+      p.status === "active" &&
+      (own.includes(p.id) || personDef(p.id)?.[link].includes(id) === true),
+  );
+}
+
+type BaseCastRule = Exclude<GwCastRule, { any_of: unknown }>;
+
+/** Fixed roles: who they are doesn't depend on the rest of the cast. */
+function isFixed(rule: GwCastRule): boolean {
+  if ("any_of" in rule) return rule.any_of.every(isFixed);
+  return "office" in rule || "person" in rule || "called" in rule;
+}
+
+/** The person a rule finds, skipping whoever `taken` holds. */
+function fill(
+  gw: GreatWar,
+  seat: GwSeatState,
+  scene: GwScene,
+  role: string,
+  rule: BaseCastRule,
+  cast: Readonly<Record<string, string>>,
+  called: string | null,
+): GwPersonState | null {
+  const free = (p: GwPersonState) => !Object.values(cast).includes(p.id);
+  if ("office" in rule) {
+    return holderOf(gw, "tag" in rule ? rule.tag : seat.tag, rule.office);
+  }
+  if ("person" in rule) {
+    const named = gw.person(rule.person);
+    return named?.status === "active" ? named : null;
+  }
+  if ("called" in rule) {
+    const p = called === null ? null : gw.person(called);
+    return p?.status === "active" ? p : null;
+  }
+  if ("rival" in rule || "favourite" in rule) {
+    const sign = "rival" in rule ? 1 : -1;
+    const list = ministers(gw, seat)
+      .filter(free)
+      .sort((a, b) => sign * (a.trust - b.trust) || (a.id < b.id ? -1 : 1));
+    return list[0] ?? null;
+  }
+  if ("camp" in rule) {
+    const inCamp = (p: GwPersonState) =>
+      personDef(p.id)?.camps.includes(rule.camp) === true && free(p);
+    const inOffice = ministers(gw, seat).filter(inCamp);
+    if (inOffice.length > 0) return pickOne(gw, scene, role, inOffice);
+    const others = gw.s.people.filter(
+      (p) =>
+        p.status === "active" &&
+        personDef(p.id)?.tag === seat.tag &&
+        inCamp(p),
+    );
+    return pickOne(gw, scene, role, others);
+  }
+  const to = "rival_of" in rule ? rule.rival_of : rule.ally_of;
+  const id = cast[to];
+  if (id === undefined) return null;
+  const list = linked(gw, id, "rival_of" in rule ? "rivals" : "allies").filter(
+    free,
+  );
+  const inOffice = list.filter((p) => p.office !== null);
+  return pickOne(gw, scene, role, inOffice.length > 0 ? inOffice : list);
+}
+
+/**
+ * The scene's cast; null when a role has nobody. `called` is who fills a
+ * `called` role. Fixed roles first; the rest skip whoever is in the scene.
+ */
 export function castOf(
   gw: GreatWar,
   seat: GwSeatState,
   scene: GwScene,
+  called: string | null = null,
 ): Record<string, string> | null {
   const out: Record<string, string> = {};
-  for (const [role, rule] of Object.entries(scene.cast)) {
-    let p: GwPersonState | null;
-    if ("office" in rule) {
-      p = holderOf(gw, seat, rule.office);
-    } else if ("person" in rule) {
-      const named = gw.person(rule.person);
-      p = named?.status === "active" ? named : null;
-    } else {
-      const defs = gwContent().people.filter((d) => d.tag === seat.tag);
-      const ministers = gw.s.people
-        .filter(
-          (x) =>
-            x.office !== null &&
-            x.status === "active" &&
-            defs.some((d) => d.id === x.id),
-        )
-        .sort((a, b) => a.trust - b.trust || (a.id < b.id ? -1 : 1));
-      p = ministers[0] ?? null;
+  const roles = Object.entries(scene.cast);
+  const ordered = [
+    ...roles.filter(([, rule]) => isFixed(rule)),
+    ...roles.filter(([, rule]) => !isFixed(rule)),
+  ];
+  // The chain role of rival_of comes before it, whatever the order written.
+  ordered.sort(([, a], [, b]) => linkDepth(a) - linkDepth(b));
+  for (const [role, rule] of ordered) {
+    let p: GwPersonState | null = null;
+    for (const r of "any_of" in rule ? rule.any_of : [rule]) {
+      p = fill(gw, seat, scene, role, r, out, called);
+      if (p !== null) break;
     }
     if (p === null) return null;
     out[role] = p.id;
   }
-  return out;
+  // Cast order as written: the pack's voices read in this order.
+  return Object.fromEntries(roles.map(([role]) => [role, out[role]]));
+}
+
+function linkDepth(rule: GwCastRule): number {
+  const list = "any_of" in rule ? rule.any_of : [rule];
+  return list.some((r) => "rival_of" in r || "ally_of" in r) ? 1 : 0;
 }
 
 function who(ctx: SceneCtx, w: GwWho): GwPersonState | null {
@@ -91,9 +239,12 @@ function who(ctx: SceneCtx, w: GwWho): GwPersonState | null {
     const id = ctx.cast[w.role];
     return id === undefined ? null : ctx.gw.person(id);
   }
-  if ("office" in w) return holderOf(ctx.gw, ctx.seat, w.office);
+  if ("office" in w) return holderOf(ctx.gw, ctx.seat.tag, w.office);
   return ctx.gw.person(w.person);
 }
+
+/** Who a `GwWho` is now, for the talk engine. */
+export const personOf = who;
 
 /** Exhaustive: a new kind in the DSL fails to compile here until it runs. */
 export function holds(ctx: SceneCtx, c: GwCond): boolean {
@@ -112,7 +263,10 @@ export function holds(ctx: SceneCtx, c: GwCond): boolean {
     case "memory": {
       const id = c.who === undefined ? null : (who(ctx, c.who)?.id ?? null);
       return seat.memory.some(
-        (m) => m.key === c.key && (c.who === undefined || m.who === id),
+        (m) =>
+          m.key === c.key &&
+          (c.who === undefined || m.who === id) &&
+          (c.within === undefined || s.chapter - m.chapter <= c.within),
       );
     }
     case "seen":
@@ -144,7 +298,7 @@ export function holds(ctx: SceneCtx, c: GwCond): boolean {
     case "trench":
       return inRange(s.theatres.find((t) => t.id === c.theatre)!.trench, c);
     case "holder":
-      return holderOf(gw, seat, c.office)?.id === c.person;
+      return holderOf(gw, seat.tag, c.office)?.id === c.person;
     case "person_trust": {
       const p = who(ctx, c.who);
       return p !== null && inRange(p.trust, c);
@@ -159,8 +313,8 @@ export function holds(ctx: SceneCtx, c: GwCond): boolean {
     }
     case "leans": {
       const p = who(ctx, c.who);
-      const def = gwContent().people.find((d) => d.id === p?.id);
-      return def?.camps.includes(c.camp) === true;
+      if (p === null) return false;
+      return personDef(p.id)?.camps.includes(c.camp) === true;
     }
     case "promise": {
       const id = who(ctx, c.who)?.id;
@@ -168,10 +322,79 @@ export function holds(ctx: SceneCtx, c: GwCond): boolean {
         (x) =>
           x.key === c.key &&
           x.who === id &&
-          (c.kept === undefined || x.kept === c.kept),
+          (c.kept === undefined || x.kept === c.kept) &&
+          (c.broken === undefined || x.broken === c.broken),
       );
     }
+    case "span":
+      return inRange(gwChapters(s.calendar)[s.chapter].spanDays, c);
+    case "tension":
+      return inRange(seat.tension, c);
+    case "chose":
+      return seat.choices.some(
+        (x) =>
+          x.scene === c.scene &&
+          (c.pick === undefined || x.pick === c.pick) &&
+          (c.within === undefined || s.chapter - x.chapter <= c.within),
+      );
+    case "grudge": {
+      const p = who(ctx, c.who);
+      return p !== null && inRange(grudgeOf(p, s.chapter), c);
+    }
+    case "competence": {
+      const p = who(ctx, c.who);
+      const band = p?.competence[GW_FIELDS.indexOf(c.field)];
+      return band !== undefined && inRange(band, c);
+    }
+    case "health": {
+      const p = who(ctx, c.who);
+      return p !== null && inRange(p.health, c);
+    }
+    case "source_band": {
+      const src = s.sources.find((x) => x.id === c.source);
+      return src !== undefined && inRange(src.band, c);
+    }
+    case "source_record": {
+      const src = s.sources.find((x) => x.id === c.source);
+      return src !== undefined && inRange(src.right - src.wrong, c);
+    }
+    case "strength": {
+      const band = gw.nation(c.tag)?.strength[c.theatre];
+      return band !== undefined && inRange(band, c);
+    }
+    case "candid": {
+      const p = who(ctx, c.who);
+      return p !== null && isCandid(p, ctx.card?.mood ?? 0);
+    }
+    case "mood":
+      return inRange(ctx.card?.mood ?? 0, c);
+    case "in_office": {
+      const p = who(ctx, c.who);
+      return p !== null && p.office !== null && p.status === "active";
+    }
+    case "office_empty":
+      return holderOf(gw, seat.tag, c.office) === null;
+    case "rival_in_office": {
+      const p = who(ctx, c.who);
+      if (p === null) return false;
+      return linked(gw, p.id, "rivals").some((x) => x.office !== null);
+    }
+    case "ai": {
+      const n = gw.nation(c.tag);
+      return n !== null && c.of.includes(n.ai);
+    }
+    case "nation_gauge": {
+      const n = gw.nation(c.tag);
+      return n !== null && inRange(n.gauges[c.gauge], c);
+    }
   }
+}
+
+/** What a person holds for or against the seat now, faded. */
+export function grudgeOf(p: GwPersonState, chapter: number): number {
+  let sum = 0;
+  for (const m of p.memory) sum += fadedWeight(m.weight, chapter - m.chapter);
+  return sum;
 }
 
 /** Gives `person` the office; whoever held it loses it. */
@@ -180,7 +403,7 @@ export function setOffice(
   person: GwPersonState,
   office: GwOffice,
 ): void {
-  const old = holderOf(ctx.gw, ctx.seat, office);
+  const old = holderOf(ctx.gw, ctx.seat.tag, office);
   if (old !== null) old.office = null;
   person.office = office;
 }
@@ -260,6 +483,9 @@ export function runEffect(ctx: SceneCtx, e: GwEffect): void {
           who: p.id,
           due: s.chapter + e.chapters,
           kept: false,
+          broken: false,
+          keep: e.keep === undefined ? null : JSON.stringify(e.keep),
+          back: e.back ?? null,
         });
       }
       return;
@@ -267,12 +493,16 @@ export function runEffect(ctx: SceneCtx, e: GwEffect): void {
     case "keep_promise": {
       const id = who(ctx, e.who)?.id;
       for (const x of seat.promises) {
-        if (x.key === e.key && x.who === id) x.kept = true;
+        if (x.key === e.key && x.who === id) keepPromise(gw, seat, x);
       }
       return;
     }
     case "schedule":
-      seat.scheduled.push({ scene: e.scene, chapter: s.chapter + e.chapters });
+      seat.scheduled.push({
+        scene: e.scene,
+        chapter: s.chapter + e.chapters,
+        who: e.who === undefined ? null : (who(ctx, e.who)?.id ?? null),
+      });
       return;
     case "delay":
       s.dayShift += e.days;
@@ -299,7 +529,11 @@ export function runEffect(ctx: SceneCtx, e: GwEffect): void {
       return;
     }
     case "reason":
-      seat.log.push({ key: e.key, chapter: s.chapter });
+      seat.log.push({
+        key: e.key,
+        chapter: s.chapter,
+        who: e.who === undefined ? null : (who(ctx, e.who)?.id ?? null),
+      });
       return;
     case "end":
       s.ended = e.ending;
@@ -307,22 +541,78 @@ export function runEffect(ctx: SceneCtx, e: GwEffect): void {
     case "maybe":
       if (holds(ctx, e.when)) runEffects(ctx, e.then);
       return;
+    case "forget": {
+      const id = e.who === undefined ? null : (who(ctx, e.who)?.id ?? null);
+      const stays = (m: { key: string; who: string | null }) =>
+        m.key !== e.key || (e.who !== undefined && m.who !== id);
+      seat.memory = seat.memory.filter(stays);
+      for (const p of s.people) p.memory = p.memory.filter(stays);
+      return;
+    }
+    case "roll": {
+      const roll = wwRoll(s.seed, P_EFFECT_ROLL, idHash(e.key), s.chapter);
+      runEffects(ctx, roll % 100 < e.pct ? e.then : (e.otherwise ?? []));
+      return;
+    }
+    case "mood":
+      if (ctx.card !== undefined) ctx.card.mood += e.delta;
+      return;
   }
+}
+
+/** A promise made good: once, and the person is told. */
+export function keepPromise(
+  gw: GreatWar,
+  seat: GwSeatState,
+  x: GwPromise,
+): void {
+  if (x.kept || x.broken) return;
+  x.kept = true;
+  const ctx: SceneCtx = { gw, seat, cast: { who: x.who } };
+  const w: GwWho = { role: "who" };
+  runEffects(ctx, [
+    { kind: "person_trust", who: w, delta: 1 },
+    { kind: "remember", key: `kept_${x.key}`, who: w, weight: 1 },
+    { kind: "reason", key: "promise_kept", who: w },
+  ]);
 }
 
 export function runEffects(ctx: SceneCtx, list: readonly GwEffect[]): void {
   for (const e of list) runEffect(ctx, e);
 }
 
-/** The first variant that holds; the base has no `when`. */
+/** How much a condition asks: more leaves, more specific. */
+export function specificity(c: GwCond | undefined): number {
+  if (c === undefined) return 0;
+  if (c.kind === "all") return c.of.reduce((n, x) => n + specificity(x), 0);
+  if (c.kind === "any") {
+    return c.of.reduce((n, x) => Math.min(n, specificity(x)), 9);
+  }
+  if (c.kind === "not") return specificity(c.of);
+  return 1;
+}
+
+/**
+ * The variant to use: the most specific that holds. Equals take turns: first
+ * those `stale` doesn't name, then a roll by `salt`. Stateless, so the view
+ * can ask again and get the same line.
+ */
 export function pickVariant(
   ctx: SceneCtx,
   variants: readonly GwVariant[],
+  salt = 0,
+  stale: (id: string) => number = () => 0,
 ): string {
-  for (const v of variants) {
-    if (v.when === undefined || holds(ctx, v.when)) return v.id;
-  }
-  return variants[variants.length - 1].id;
+  const open = variants.filter(
+    (v) => v.when === undefined || holds(ctx, v.when),
+  );
+  if (open.length === 0) return variants[variants.length - 1].id;
+  const best = Math.max(...open.map((v) => specificity(v.when)));
+  const top = open.filter((v) => specificity(v.when) === best);
+  const freshest = Math.min(...top.map((v) => stale(v.id)));
+  const fresh = top.filter((v) => stale(v.id) === freshest);
+  const roll = wwRoll(ctx.gw.s.seed, P_VARIANT, salt, ctx.gw.s.chapter);
+  return fresh[roll % fresh.length].id;
 }
 
 export function optionOpen(ctx: SceneCtx, o: GwOption | GwReply): boolean {
@@ -335,16 +625,72 @@ export function needsDecision(card: GwCard): boolean {
 }
 
 export function ctxOf(gw: GreatWar, seat: GwSeatState, card: GwCard): SceneCtx {
-  return { gw, seat, cast: card.cast };
+  return { gw, seat, cast: card.cast, card };
 }
 
 export function removeCard(seat: GwSeatState, uid: number): void {
   seat.desk = seat.desk.filter((c) => c.uid !== uid);
 }
 
+/** Runs an option and writes it down (design §5.4). */
+export function takeOption(
+  ctx: SceneCtx,
+  scene: GwScene,
+  o: GwOption,
+  proxy: boolean,
+): void {
+  ctx.seat.choices.push({
+    scene: scene.id,
+    pick: o.id,
+    chapter: ctx.gw.s.chapter,
+    proxy,
+  });
+  runEffects(ctx, o.effects);
+}
+
+/** The person a talk is with. */
+export function talkerOf(ctx: SceneCtx, scene: GwScene): GwPersonState | null {
+  const id = scene.who === undefined ? undefined : ctx.cast[scene.who];
+  return id === undefined ? null : ctx.gw.person(id);
+}
+
+export function rememberTalk(
+  ctx: SceneCtx,
+  scene: GwScene,
+  key: string,
+  weight: number,
+): void {
+  const w: GwWho | undefined =
+    scene.who === undefined ? undefined : { role: scene.who };
+  runEffect(ctx, { kind: "remember", key, who: w, weight });
+}
+
+/** Closes a talk: its mood moves trust, its reasons reach the log. */
+export function endTalk(
+  gw: GreatWar,
+  seat: GwSeatState,
+  card: GwCard,
+  scene: GwScene,
+): void {
+  removeCard(seat, card.uid);
+  const ctx = ctxOf(gw, seat, card);
+  const p = talkerOf(ctx, scene);
+  const m = card.mood;
+  const sign = m > 0 ? 1 : -1;
+  if (m !== 0) rememberTalk(ctx, scene, m > 0 ? "talk_well" : "talk_ill", sign);
+  if (p !== null && Math.abs(m) >= GW_MOOD_MOVES_TRUST) {
+    p.trust = clamp(p.trust + sign, GW_TRUST_MIN, GW_TRUST_MAX);
+  }
+  for (const key of card.notes) {
+    seat.log.push({ key, chapter: gw.s.chapter, who: p?.id ?? null });
+  }
+  card.notes = [];
+}
+
 /**
  * Closes a chapter's cards. A decision left open takes its fallback, or the
- * first open option; a talk just ends. `late` writes the proxy line (대행).
+ * first open option; a talk ends, and a visitor left waiting remembers it.
+ * `late` writes the proxy line (대행).
  */
 export function closeUndecided(
   gw: GreatWar,
@@ -352,15 +698,22 @@ export function closeUndecided(
   late: boolean,
 ): void {
   for (const card of [...seat.desk]) {
-    removeCard(seat, card.uid);
     const scene = sceneOf(card.scene);
-    if (scene === null || scene.options === undefined) continue;
-    if (scene.options.length === 0) continue;
+    if (scene === null) {
+      removeCard(seat, card.uid);
+      continue;
+    }
     const ctx = ctxOf(gw, seat, card);
-    const open = scene.options.filter((o) => optionOpen(ctx, o));
+    if (scene.kind === "talk") {
+      rememberTalk(ctx, scene, "talk_left", card.origin === "summon" ? 0 : -1);
+      endTalk(gw, seat, card, scene);
+      continue;
+    }
+    removeCard(seat, card.uid);
+    const open = (scene.options ?? []).filter((o) => optionOpen(ctx, o));
     const pick = open.find((o) => o.id === scene.fallback) ?? open[0];
     if (pick === undefined) continue;
-    runEffects(ctx, pick.effects);
+    takeOption(ctx, scene, pick, late);
     if (late) seat.log.push({ key: "proxy_signed", chapter: gw.s.chapter });
   }
 }

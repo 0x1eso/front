@@ -43,6 +43,7 @@ import { modalHeader } from "./components/ui/ModalHeader";
 import "./components/ww1936/CountryPicker";
 import { getPlayerCosmetics, prewarmCosmetics } from "./Cosmetics";
 import { gamePortal } from "./GamePortal";
+import { gwRecentBodies } from "./GwRecentRuns";
 import { GameStartingModal } from "./GameStartingModal";
 import { showInGameAlert } from "./InGameModal";
 import { JoinLobbyEvent } from "./Main";
@@ -1468,7 +1469,9 @@ export class SinglePlayerModal extends BaseModal {
               },
             }
           : {}),
-        ...(this.greatWar1914 ? { greatWar1914: true } : {}),
+        ...(this.greatWar1914
+          ? { greatWar1914: true, greatWar1914Recent: gwRecentBodies() }
+          : {}),
         ...(this.worldWar1936
           ? {
               worldWar1936: true,

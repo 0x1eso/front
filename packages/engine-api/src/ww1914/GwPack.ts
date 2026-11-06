@@ -2,10 +2,13 @@
 // One file per country plus common.json; the client fetches common and the
 // seat's country (shared/ww1914/GwPackLoader). The engine never reads a pack.
 //
-// Text may hold {role} (the cast's name), {role.title} (their office) and
-// {date}. Josa markers follow src/client/Josa.ts: {cos}이(가).
+// Text may hold {role} (the cast's name), {role.title} (their office), {date},
+// and two callbacks: {mem.<key>} is the date of that memory, {chose.<scene>}
+// the date of that decision. A reason line holds {who}. Josa markers follow
+// src/client/Josa.ts: {cos}이(가).
 import { z } from "zod";
 import { GwIdSchema } from "./GreatWarTypes";
+import type { GwEffect, GwScene } from "./SceneDsl";
 
 const Text = z.string().min(1);
 const ById = z.record(GwIdSchema, Text);
@@ -32,6 +35,8 @@ export const GwScenePackSchema = z
     why: ById.optional(),
     /** cast role -> person id -> that person's paragraph. */
     voice: z.record(GwIdSchema, ById).optional(),
+    /** cast role -> person id -> voice variant id -> paragraph; wins over `voice`. */
+    voiceBy: z.record(GwIdSchema, z.record(GwIdSchema, ById)).optional(),
     /** node id -> its lines. */
     nodes: z.record(GwIdSchema, GwNodePackSchema).optional(),
     /** A summonable talk's topic as listed on the people screen. */
@@ -55,16 +60,157 @@ export const GwPackSchema = z
     version: z.literal(1),
     scenes: z.record(GwIdSchema, GwScenePackSchema),
     people: z.record(GwIdSchema, GwPersonPackSchema),
+    /** `reason` effect key -> the line, may hold {who}. */
+    reasons: ById.optional(),
+    /** Promise key -> how the people screen lists it, may hold {who}. */
+    promises: ById.optional(),
   })
   .strict();
 export type GwPack = z.infer<typeof GwPackSchema>;
 
 /** Later packs add to earlier ones; an id in two packs is a content bug. */
 export function mergeGwPacks(packs: readonly GwPack[]): GwPack {
-  const out: GwPack = { version: 1, scenes: {}, people: {} };
+  const out: GwPack = {
+    version: 1,
+    scenes: {},
+    people: {},
+    reasons: {},
+    promises: {},
+  };
   for (const p of packs) {
     Object.assign(out.scenes, p.scenes);
     Object.assign(out.people, p.people);
+    Object.assign(out.reasons!, p.reasons);
+    Object.assign(out.promises!, p.promises);
+  }
+  return out;
+}
+
+const firstSentence = (t: string) => t.split(/(?<=[.!?…])\s/)[0].trim();
+
+/** Two bodies of one scene opening alike read as a template (design §13). */
+function sameOpenings(where: string, texts: Readonly<Record<string, string>>) {
+  const by = new Map<string, string>();
+  const out: string[] = [];
+  for (const [id, t] of Object.entries(texts)) {
+    const first = firstSentence(t);
+    const other = by.get(first);
+    if (other !== undefined) out.push(`${where}: ${other} and ${id} open alike`);
+    by.set(first, id);
+  }
+  return out;
+}
+
+function holeProblems(where: string, t: string, roles: readonly string[]) {
+  const out: string[] = [];
+  for (const m of t.matchAll(/\{([a-z_0-9]+)(?:\.([a-z_0-9]+))?\}/g)) {
+    const [hole, head, tail] = m;
+    if (head === "date" && tail === undefined) continue;
+    if ((head === "mem" || head === "chose") && tail !== undefined) continue;
+    if (roles.includes(head) && (tail === undefined || tail === "title")) {
+      continue;
+    }
+    out.push(`${where}: ${hole} fills from nothing`);
+  }
+  return out;
+}
+
+function walkEffects(list: readonly GwEffect[], f: (e: GwEffect) => void) {
+  for (const e of list) {
+    f(e);
+    if (e.kind === "maybe") walkEffects(e.then, f);
+    if (e.kind === "roll") {
+      walkEffects(e.then, f);
+      walkEffects(e.otherwise ?? [], f);
+    }
+  }
+}
+
+/** All the effects a scene can run. */
+export function gwSceneEffects(s: GwScene): GwEffect[] {
+  const out: GwEffect[] = [];
+  const add = (e: GwEffect) => out.push(e);
+  for (const o of s.options ?? []) walkEffects(o.effects, add);
+  for (const n of Object.values(s.nodes ?? {})) {
+    for (const r of n.replies) {
+      walkEffects(r.effects, add);
+      walkEffects(r.gain ?? [], add);
+      for (const x of r.reacts ?? []) walkEffects(x.effects, add);
+    }
+  }
+  return out;
+}
+
+/**
+ * Every line a scene can show that the pack lacks, and the template smells a
+ * machine can find; a content test requires an empty list. `reasonKeys` are
+ * those that have text outside the pack (gw.reason.* in the language files).
+ */
+export function gwPackProblems(
+  scenes: readonly GwScene[],
+  pack: GwPack,
+  reasonKeys: readonly string[] = [],
+): string[] {
+  const out: string[] = [];
+  for (const s of scenes) {
+    const t = pack.scenes[s.id];
+    if (t === undefined) {
+      out.push(`${s.id}: not in the pack`);
+      continue;
+    }
+    const roles = Object.keys(s.cast);
+    const need = (ok: unknown, what: string) => {
+      if (ok === undefined) out.push(`${s.id}: no text for ${what}`);
+    };
+    const check = (where: string, text: string | undefined) => {
+      if (text !== undefined) out.push(...holeProblems(where, text, roles));
+    };
+    for (const v of s.variants) {
+      need(t.text[v.id], `variant ${v.id}`);
+      check(`${s.id}.${v.id}`, t.text[v.id]);
+    }
+    out.push(...sameOpenings(s.id, t.text));
+    for (const o of s.options ?? []) {
+      need(t.opt?.[o.id], `option ${o.id}`);
+      check(`${s.id}.${o.id}`, t.opt?.[o.id]);
+      if (o.when !== undefined) need(t.why?.[o.id], `why ${o.id}`);
+    }
+    for (const [id, n] of Object.entries(s.nodes ?? {})) {
+      const nt = t.nodes?.[id];
+      for (const v of n.says) {
+        const by = Object.values(nt?.saysBy ?? {}).some(
+          (x) => x[v.id] !== undefined,
+        );
+        if (!by) need(nt?.says[v.id], `${id}.says.${v.id}`);
+        check(`${s.id}.${id}.${v.id}`, nt?.says[v.id]);
+      }
+      if (nt !== undefined) out.push(...sameOpenings(`${s.id}.${id}`, nt.says));
+      for (const r of n.replies) {
+        need(nt?.replies[r.id], `${id}.reply.${r.id}`);
+        check(`${s.id}.${id}.${r.id}`, nt?.replies[r.id]);
+      }
+    }
+    for (const [role, list] of Object.entries(s.voices ?? {})) {
+      for (const v of list) {
+        const has = Object.values(t.voiceBy?.[role] ?? {}).some(
+          (x) => x[v.id] !== undefined,
+        );
+        if (!has) need(t.voice?.[role], `voice ${role}.${v.id}`);
+      }
+    }
+    if (s.summon === true) need(t.topic, "topic");
+    for (const e of gwSceneEffects(s)) {
+      if (
+        e.kind === "reason" &&
+        pack.reasons?.[e.key] === undefined &&
+        !reasonKeys.includes(e.key)
+      ) {
+        out.push(`${s.id}: no text for reason ${e.key}`);
+      }
+      if (e.kind === "promise" && pack.promises?.[e.key] === undefined) {
+        out.push(`${s.id}: no text for promise ${e.key}`);
+      }
+    }
   }
   return out;
 }

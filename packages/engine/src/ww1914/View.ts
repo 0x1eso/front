@@ -9,12 +9,13 @@ import type {
 } from "@openfront/engine-api/ww1914/GwView";
 import { gwChapters } from "@openfront/engine-lib/ww1914/Calendars";
 import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
+import { idHash } from "@openfront/engine-lib/ww1936/Roll";
 import {
   civilFromDays,
   formatIsoDate,
 } from "@openfront/engine-lib/ww1936/Calendar";
 import type { GreatWar } from "./GreatWar";
-import { readyBlock, summonable } from "./Orders";
+import { openTopics, readyBlock } from "./Orders";
 import { ctxOf, optionOpen, pickVariant, sceneOf } from "./SceneRun";
 
 function cardView(
@@ -40,7 +41,10 @@ function cardView(
     })),
     who: scene.who === undefined ? null : (c.cast[scene.who] ?? null),
     node: c.node,
-    says: node === null ? null : pickVariant(ctx, node.says),
+    says:
+      node === null
+        ? null
+        : pickVariant(ctx, node.says, c.uid ^ idHash(c.node ?? "")),
     replies: (node?.replies ?? []).map((r) => ({
       id: r.id,
       open: optionOpen(ctx, r),
@@ -48,12 +52,19 @@ function cardView(
       stance: r.stance,
       kind: r.kind,
     })),
+    voice: c.voice,
+    folded: c.folded,
   };
+}
+
+/** The date a chapter opened on, for text like "7월 5일에 반려하신 안". */
+function dateOf(gw: GreatWar, chapter: number): string {
+  const day = gwChapters(gw.s.calendar)[chapter].day + gw.s.dayShift;
+  return formatIsoDate(civilFromDays(day));
 }
 
 function seatView(gw: GreatWar, seat: GwSeatState): GwSeatView {
   const nation = gw.nation(seat.tag)!;
-  const topics = gwContent().scenes.filter((x) => x.summon === true);
   const defs = gwContent().people.filter((d) => d.tag === seat.tag);
   return {
     smallID: seat.smallID,
@@ -69,9 +80,7 @@ function seatView(gw: GreatWar, seat: GwSeatState): GwSeatView {
           id: p.id,
           office: p.office,
           trust: p.trust,
-          topics: topics
-            .filter((x) => summonable(gw, seat, p.id, x.id))
-            .map((x) => x.id),
+          topics: openTopics(gw, seat, p.id),
         },
       ];
     }),
@@ -87,6 +96,25 @@ function seatView(gw: GreatWar, seat: GwSeatState): GwSeatView {
     alloc: seat.alloc,
     log: seat.log,
     readyBlock: readyBlock(seat),
+    promises: seat.promises.map((x) => ({
+      key: x.key,
+      who: x.who,
+      due: dateOf(gw, Math.min(x.due, gwChapters(gw.s.calendar).length - 1)),
+      kept: x.kept,
+      broken: x.broken,
+    })),
+    memory: seat.memory.map((m) => ({
+      key: m.key,
+      who: m.who,
+      date: dateOf(gw, m.chapter),
+    })),
+    choices: seat.choices.map((x) => ({
+      scene: x.scene,
+      pick: x.pick,
+      date: dateOf(gw, x.chapter),
+      proxy: x.proxy,
+    })),
+    shown: seat.shown,
   };
 }
 

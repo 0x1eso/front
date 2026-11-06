@@ -153,6 +153,9 @@ export class GreatWar {
           research: "artillery",
         },
         log: [],
+        tension: 0,
+        shown: [],
+        choices: [],
       });
     }
     this.s.seats.sort((a, b) => a.smallID - b.smallID);
