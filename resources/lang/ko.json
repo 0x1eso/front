@@ -14466,6 +14466,7 @@
       "4": "틀림없습니다."
     },
     "office": {
+      "agriculture": "농업대신",
       "ambassador_london": "주영 대사",
       "ambassador_paris": "주불 대사",
       "ambassador_petersburg": "주러 대사",
@@ -14478,6 +14479,7 @@
       "hun_pm": "헝가리 수상",
       "interior": "내무대신",
       "navy": "해군대신",
+      "supreme_commander": "최고 사령관",
       "war": "육군대신"
     },
     "panel": {

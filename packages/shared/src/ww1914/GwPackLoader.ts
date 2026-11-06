@@ -23,6 +23,7 @@ export const GW_PACK_SHARES: Readonly<
   Partial<Record<GwTag, readonly string[]>>
 > = {
   DEU: ["crisis", "war", "people"],
+  RUS: ["people", "crisis", "front", "home", "fall"],
 };
 
 /** A share not written yet is no share: only the files that are there count. */

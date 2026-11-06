@@ -34,6 +34,9 @@ export const GW_OFFICES = [
   "ambassador_petersburg",
   "ambassador_vienna",
   "hun_pm",
+  // Russia: nobody holds it in June 1914; empty means the Tsar leads himself.
+  "supreme_commander",
+  "agriculture",
 ] as const;
 export type GwOffice = (typeof GW_OFFICES)[number];
 
@@ -45,6 +48,9 @@ export const GW_CAMPS = [
   "west",
   "hard",
   "moderate",
+  // Russia: whose person they are.
+  "court",
+  "duma",
 ] as const;
 export type GwCamp = (typeof GW_CAMPS)[number];
 
