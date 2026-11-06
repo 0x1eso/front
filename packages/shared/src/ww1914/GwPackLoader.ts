@@ -23,10 +23,16 @@ export const GW_PACK_SHARES: Readonly<
   Partial<Record<GwTag, readonly string[]>>
 > = {
   DEU: ["crisis", "war", "people", "back", "peace"],
+  GBR: ["crisis", "war", "home", "world"],
 };
 
 /** The same for `common.json`: every seat loads these. */
 export const GW_COMMON_SHARES: readonly string[] = ["war"];
+/**
+ * Casts in a file of their own, `<TAG>.people.json`. Every seat loads them: a
+ * scene can cast another country's minister, and a name is all it needs.
+ */
+export const GW_PEOPLE_PACKS: readonly GwTag[] = ["GBR"];
 
 /** A share not written yet is no share: only the files that are there count. */
 async function fragment(path: string, get: GwPackFetch): Promise<unknown> {
@@ -38,7 +44,7 @@ async function fragment(path: string, get: GwPackFetch): Promise<unknown> {
   }
 }
 
-/** Common text, the seat's country and their shares, validated, as one pack. */
+/** Common text, the seat's country, its shares and the casts, as one pack. */
 export async function loadGwPack(
   tag: GwTag,
   get: GwPackFetch = fetchJson,
@@ -47,6 +53,7 @@ export async function loadGwPack(
   const shares = [
     ...GW_COMMON_SHARES.map((x) => `common.${x}`),
     ...(GW_PACK_SHARES[tag] ?? []).map((x) => `${tag}.${x}`),
+    ...GW_PEOPLE_PACKS.map((t) => `${t}.people`),
   ];
   const [main, parts] = await Promise.all([
     Promise.all(["common", tag].map((f) => get(file(f)))),

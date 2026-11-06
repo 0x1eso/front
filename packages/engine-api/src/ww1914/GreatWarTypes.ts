@@ -34,6 +34,10 @@ export const GW_OFFICES = [
   "ambassador_petersburg",
   "ambassador_vienna",
   "hun_pm",
+  "munitions",
+  "sea_lord",
+  "ireland",
+  "ambassador_washington",
 ] as const;
 export type GwOffice = (typeof GW_OFFICES)[number];
 
@@ -45,6 +49,10 @@ export const GW_CAMPS = [
   "west",
   "hard",
   "moderate",
+  "liberal",
+  "unionist",
+  "labour",
+  "irish",
 ] as const;
 export type GwCamp = (typeof GW_CAMPS)[number];
 

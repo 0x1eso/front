@@ -1,6 +1,7 @@
 import type { GwPersonDef } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import type { GwScene } from "@openfront/engine-api/ww1914/SceneDsl";
 import { GW_PEOPLE } from "./people";
+import { GBR_PEOPLE } from "./people_gbr";
 import { COMMON_SCENES } from "./scenes/common";
 import { DEU_SCENES } from "./scenes/deu";
 import { DEU_BACK_SCENES, withPromiseTerms } from "./scenes/deu_back";
@@ -33,7 +34,7 @@ export const GW_CONTENT: GwContent = {
     ...WORLD_SCENES,
     ...WARTIME_SCENES,
   ],
-  people: GW_PEOPLE,
+  people: [...GW_PEOPLE, ...GBR_PEOPLE],
 };
 
 let current = GW_CONTENT;
