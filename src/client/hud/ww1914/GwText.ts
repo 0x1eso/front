@@ -1,5 +1,5 @@
-import type { GwPack } from "@openfront/engine-api/ww1914/GwPack";
 import type { GwReason } from "@openfront/engine-api/ww1914/GreatWarTypes";
+import type { GwPack } from "@openfront/engine-api/ww1914/GwPack";
 import type {
   GwCardView,
   GwPromiseView,

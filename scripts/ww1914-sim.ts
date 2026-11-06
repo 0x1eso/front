@@ -9,10 +9,7 @@
  *                                 [--overused 80] [--label sim] [--no-control]
  *                                 [--json report.json]
  */
-import {
-  GameMapSize,
-  GameMapType,
-} from "@openfront/engine-api/game/GameTypes";
+import { GameMapSize, GameMapType } from "@openfront/engine-api/game/GameTypes";
 import {
   GW_CALENDAR_IDS,
   GwCalendarId,
@@ -31,7 +28,9 @@ import {
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
-function parse(argv: readonly string[]): GwSimOptions & { json: string | null } {
+function parse(
+  argv: readonly string[],
+): GwSimOptions & { json: string | null } {
   const value = (flag: string) => {
     const i = argv.indexOf(flag);
     return i < 0 ? undefined : argv[i + 1];
@@ -70,7 +69,8 @@ async function main(): Promise<void> {
   console.log = log;
   console.log(formatReport(r));
   console.log(`\n${((performance.now() - started) / 1000).toFixed(1)} s`);
-  if (opts.json !== null) fs.writeFileSync(opts.json, JSON.stringify(r, null, 2));
+  if (opts.json !== null)
+    fs.writeFileSync(opts.json, JSON.stringify(r, null, 2));
 }
 
 main().catch((e) => {

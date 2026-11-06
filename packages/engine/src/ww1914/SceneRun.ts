@@ -85,13 +85,15 @@ export function personDef(id: string): GwPersonDef | null {
   return index().people.get(id) ?? null;
 }
 
-function holderOf(gw: GreatWar, tag: GwTag, o: GwOffice) {
+export function holderOf(gw: GreatWar, seat: GwSeatState, o: GwOffice) {
+  return holderIn(gw, seat.tag, o);
+}
+
+function holderIn(gw: GreatWar, tag: GwTag, o: GwOffice) {
   return (
     gw.s.people.find(
       (p) =>
-        p.office === o &&
-        p.status === "active" &&
-        personDef(p.id)?.tag === tag,
+        p.office === o && p.status === "active" && personDef(p.id)?.tag === tag,
     ) ?? null
   );
 }
@@ -158,7 +160,7 @@ function fill(
 ): GwPersonState | null {
   const free = (p: GwPersonState) => !Object.values(cast).includes(p.id);
   if ("office" in rule) {
-    return holderOf(gw, "tag" in rule ? rule.tag : seat.tag, rule.office);
+    return holderIn(gw, "tag" in rule ? rule.tag : seat.tag, rule.office);
   }
   if ("person" in rule) {
     const named = gw.person(rule.person);
@@ -182,9 +184,7 @@ function fill(
     if (inOffice.length > 0) return pickOne(gw, scene, role, inOffice);
     const others = gw.s.people.filter(
       (p) =>
-        p.status === "active" &&
-        personDef(p.id)?.tag === seat.tag &&
-        inCamp(p),
+        p.status === "active" && personDef(p.id)?.tag === seat.tag && inCamp(p),
     );
     return pickOne(gw, scene, role, others);
   }
@@ -239,12 +239,9 @@ function who(ctx: SceneCtx, w: GwWho): GwPersonState | null {
     const id = ctx.cast[w.role];
     return id === undefined ? null : ctx.gw.person(id);
   }
-  if ("office" in w) return holderOf(ctx.gw, ctx.seat.tag, w.office);
+  if ("office" in w) return holderOf(ctx.gw, ctx.seat, w.office);
   return ctx.gw.person(w.person);
 }
-
-/** Who a `GwWho` is now, for the talk engine. */
-export const personOf = who;
 
 /** Exhaustive: a new kind in the DSL fails to compile here until it runs. */
 export function holds(ctx: SceneCtx, c: GwCond): boolean {
@@ -298,7 +295,7 @@ export function holds(ctx: SceneCtx, c: GwCond): boolean {
     case "trench":
       return inRange(s.theatres.find((t) => t.id === c.theatre)!.trench, c);
     case "holder":
-      return holderOf(gw, seat.tag, c.office)?.id === c.person;
+      return holderOf(gw, seat, c.office)?.id === c.person;
     case "person_trust": {
       const p = who(ctx, c.who);
       return p !== null && inRange(p.trust, c);
@@ -373,7 +370,7 @@ export function holds(ctx: SceneCtx, c: GwCond): boolean {
       return p !== null && p.office !== null && p.status === "active";
     }
     case "office_empty":
-      return holderOf(gw, seat.tag, c.office) === null;
+      return holderOf(gw, seat, c.office) === null;
     case "rival_in_office": {
       const p = who(ctx, c.who);
       if (p === null) return false;
@@ -403,7 +400,7 @@ export function setOffice(
   person: GwPersonState,
   office: GwOffice,
 ): void {
-  const old = holderOf(ctx.gw, ctx.seat.tag, office);
+  const old = holderOf(ctx.gw, ctx.seat, office);
   if (old !== null) old.office = null;
   person.office = office;
 }

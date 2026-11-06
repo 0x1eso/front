@@ -1239,6 +1239,23 @@ describe("zbin wire: server messages", () => {
     expect(decoded.gameStartInfo.config.ww1936Designer).toBe(true);
   });
 
+  it("round-trips the Great War's recent list", () => {
+    const [sctx, cctx] = ctxPair();
+    const sample = SERVER_MESSAGES.find((m) => m.type === "start")!;
+    if (sample.type !== "start") throw new Error("no start sample");
+    const recent = ["deu_cheque.base", "gw_quiet_week.hot"];
+    const msg: ServerMessage = {
+      ...sample,
+      gameStartInfo: {
+        ...sample.gameStartInfo,
+        config: { ...CONFIG, greatWar1914: true, greatWar1914Recent: recent },
+      },
+    };
+    const decoded = decodeServerMessage(encodeServerMessage(msg, sctx), cctx);
+    if (decoded.type !== "start") throw new Error("not a start message");
+    expect(decoded.gameStartInfo.config.greatWar1914Recent).toEqual(recent);
+  });
+
   it("keeps an empty turn under 8 bytes", () => {
     const [sctx] = ctxPair();
     const bytes = encodeServerMessage(

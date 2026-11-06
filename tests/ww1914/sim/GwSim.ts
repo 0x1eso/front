@@ -11,7 +11,7 @@ import {
   GameMode,
   GameType,
 } from "@openfront/engine-api/game/GameTypes";
-import type { MapFiles } from "@openfront/shared/GameMapLoader";
+import type { MapFiles } from "@openfront/engine-api/game/MapFiles";
 import type { GameStartInfo } from "@openfront/engine-api/Schemas";
 import type {
   GwCalendarId,
@@ -25,15 +25,8 @@ import { createGameRunner, GameRunner } from "@openfront/engine/GameRunner";
 import { advanceChapter } from "@openfront/engine/ww1914/Chapters";
 import { DeskTrace, watchDesk } from "@openfront/engine/ww1914/Desk";
 import type { GreatWar } from "@openfront/engine/ww1914/GreatWar";
-import {
-  applyGwOrder,
-  openTopics,
-} from "@openfront/engine/ww1914/Orders";
-import {
-  ctxOf,
-  optionOpen,
-  sceneOf,
-} from "@openfront/engine/ww1914/SceneRun";
+import { applyGwOrder, openTopics } from "@openfront/engine/ww1914/Orders";
+import { ctxOf, optionOpen, sceneOf } from "@openfront/engine/ww1914/SceneRun";
 
 /** How a bot plays: percent of summons used, percent of talks walked out of. */
 export interface GwSimProfile {
@@ -526,9 +519,7 @@ export function report(
     perGame: {
       cards: mean(games.map((g) => g.bodies.length)),
       talks: mean(
-        games.map((g) =>
-          Object.values(g.summoned).reduce((a, b) => a + b, 0),
-        ),
+        games.map((g) => Object.values(g.summoned).reduce((a, b) => a + b, 0)),
       ),
       quietChapters: mean(games.map((g) => g.quietChapters)),
       deskMin: sizes.length === 0 ? 0 : Math.min(...sizes),
@@ -591,7 +582,9 @@ export function formatReport(r: GwSimReport): string {
   out.push(`  endings ${JSON.stringify(r.endings)}`);
   out.push("", `Overused (${r.overused.length})`);
   for (const s of r.overused) {
-    out.push(`  ${pct(s.share).padStart(4)} ${s.id} [${s.kind}] bodies ${s.bodies}`);
+    out.push(
+      `  ${pct(s.share).padStart(4)} ${s.id} [${s.kind}] bodies ${s.bodies}`,
+    );
   }
   out.push("", `Unseen scenes (${r.unseen.length})`);
   for (const s of r.unseen) out.push(`  ${s.id} [${s.kind}]: ${s.why}`);

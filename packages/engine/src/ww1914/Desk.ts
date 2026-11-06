@@ -18,13 +18,7 @@ import { gwChapters } from "@openfront/engine-lib/ww1914/Calendars";
 import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import type { GreatWar } from "./GreatWar";
-import {
-  castOf,
-  holds,
-  pickVariant,
-  SceneCtx,
-  specificity,
-} from "./SceneRun";
+import { castOf, holds, pickVariant, SceneCtx, specificity } from "./SceneRun";
 import { settlePromises } from "./Talk";
 
 export const GW_DESK_MIN = 2;
@@ -102,6 +96,16 @@ function wornness(gw: GreatWar, seat: GwSeatState, scene: GwScene) {
   };
 }
 
+/** How worn a scene is for the people screen: 0 fresh, 1 last games, 2 here. */
+export function sceneWear(
+  gw: GreatWar,
+  seat: GwSeatState,
+  scene: GwScene,
+): number {
+  if (seat.seen[scene.id] !== undefined) return 2;
+  return recentOf(gw).scenes.has(scene.id) ? 1 : 0;
+}
+
 /** A card for `scene`, or null when a cast role has nobody. */
 export function makeCard(
   gw: GreatWar,
@@ -122,12 +126,7 @@ export function makeCard(
   return {
     uid,
     scene: scene.id,
-    variant: pickVariant(
-      ctx,
-      scene.variants,
-      salt,
-      wornness(gw, seat, scene),
-    ),
+    variant: pickVariant(ctx, scene.variants, salt, wornness(gw, seat, scene)),
     cast,
     origin,
     node: scene.kind === "talk" ? (scene.start ?? null) : null,
@@ -213,7 +212,7 @@ function scoreOf(
   return v;
 }
 
-/** Everything that could be drawn this chapter, best first of no mix. */
+/** Everything that could be drawn this chapter, scored before the mix. */
 export function deskCandidates(
   gw: GreatWar,
   seat: GwSeatState,
@@ -235,7 +234,10 @@ export function deskCandidates(
 function deskTarget(gw: GreatWar): number {
   const stage = gwChapters(gw.s.calendar)[gw.s.chapter].stage;
   const hot = gw.s.temp >= GW_TEMP_HOT ? 1 : 0;
-  return Math.min(GW_DESK_MAX, GW_DESK_MIN + (stage === "crisis" ? 1 : 0) + hot);
+  return Math.min(
+    GW_DESK_MAX,
+    GW_DESK_MIN + (stage === "crisis" ? 1 : 0) + hot,
+  );
 }
 
 /** The score once the cards already picked have had their say. */
@@ -328,9 +330,7 @@ function quietCard(gw: GreatWar, seat: GwSeatState): GwCard | null {
 }
 
 function isSmall(x: GwScene): boolean {
-  return (
-    GW_READ_ONLY_KINDS.includes(x.kind) && x.salience <= GW_SALIENCE_SMALL
-  );
+  return GW_READ_ONLY_KINDS.includes(x.kind) && x.salience <= GW_SALIENCE_SMALL;
 }
 
 /** What the desk did, for the simulation report. Not state. */
@@ -357,7 +357,7 @@ function takeDue(
   seat.scheduled = seat.scheduled.filter((q) => {
     if (q.chapter > gw.s.chapter || out.length >= GW_DESK_MAX) return true;
     const scene = scenes.find((x) => x.id === q.scene);
-    if (scene !== undefined) out.push({ scene, who: q.who });
+    if (scene !== undefined) out.push({ scene, who: q.who ?? null });
     return false;
   });
   return out;
@@ -388,9 +388,7 @@ export function dealDesk(gw: GreatWar, seat: GwSeatState): void {
   const cands = deskCandidates(gw, seat);
   const drawn = draw(gw, seat, cands, dueScenes);
   const quiet =
-    dueCards.length === 0 && drawn.every(isSmall)
-      ? quietCard(gw, seat)
-      : null;
+    dueCards.length === 0 && drawn.every(isSmall) ? quietCard(gw, seat) : null;
   let dealt = [...dueScenes, ...drawn];
   if (quiet !== null) {
     quiet.folded = drawn.map((x) => x.id);

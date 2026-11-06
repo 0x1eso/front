@@ -1,7 +1,4 @@
-import {
-  GameMapSize,
-  GameMapType,
-} from "@openfront/engine-api/game/GameTypes";
+import { GameMapSize, GameMapType } from "@openfront/engine-api/game/GameTypes";
 import type { MapFiles } from "@openfront/engine-api/game/MapFiles";
 import {
   GwScene,

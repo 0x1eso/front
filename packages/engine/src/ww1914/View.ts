@@ -9,11 +9,11 @@ import type {
 } from "@openfront/engine-api/ww1914/GwView";
 import { gwChapters } from "@openfront/engine-lib/ww1914/Calendars";
 import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
-import { idHash } from "@openfront/engine-lib/ww1936/Roll";
 import {
   civilFromDays,
   formatIsoDate,
 } from "@openfront/engine-lib/ww1936/Calendar";
+import { idHash } from "@openfront/engine-lib/ww1936/Roll";
 import type { GreatWar } from "./GreatWar";
 import { openTopics, readyBlock } from "./Orders";
 import { ctxOf, optionOpen, pickVariant, sceneOf } from "./SceneRun";

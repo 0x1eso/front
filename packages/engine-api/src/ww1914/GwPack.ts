@@ -96,7 +96,8 @@ function sameOpenings(where: string, texts: Readonly<Record<string, string>>) {
   for (const [id, t] of Object.entries(texts)) {
     const first = firstSentence(t);
     const other = by.get(first);
-    if (other !== undefined) out.push(`${where}: ${other} and ${id} open alike`);
+    if (other !== undefined)
+      out.push(`${where}: ${other} and ${id} open alike`);
     by.set(first, id);
   }
   return out;

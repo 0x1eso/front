@@ -359,7 +359,7 @@ export const GwSeatStateSchema = z.object({
       scene: GwIdSchema,
       chapter: z.number().int(),
       /** Who fills its `called` role. */
-      who: GwIdSchema.nullable(),
+      who: GwIdSchema.nullable().optional(),
     }),
   ),
   alloc: GwAllocSchema,

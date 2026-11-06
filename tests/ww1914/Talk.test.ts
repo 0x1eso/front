@@ -1,10 +1,11 @@
+import { GameType } from "@openfront/engine-api/game/GameTypes";
 import type { GwOrder } from "@openfront/engine-api/ww1914/GwOrders";
 import {
   byName,
   byOffice,
   candid,
-  gwSceneProblems,
   GwScene,
+  gwSceneProblems,
   keepPromise,
   memory,
   promise,
@@ -20,9 +21,15 @@ import {
 } from "@openfront/engine-lib/ww1914/TalkRules";
 import type { GameRunner } from "@openfront/engine/GameRunner";
 import { describe, expect, test } from "vitest";
-import { GameType } from "@openfront/engine-api/game/GameTypes";
 import { stepTo } from "../ww1936/util";
-import { decision, node, reply, scene, talk, useScenes } from "./narrativeFixture";
+import {
+  decision,
+  node,
+  reply,
+  scene,
+  talk,
+  useScenes,
+} from "./narrativeFixture";
 import { gwRunner, order, playChapter, seat, view } from "./util";
 
 const x = role("x");
@@ -38,8 +45,7 @@ async function game(scenes: GwScene[], gameType?: GameType) {
 const summon = (r: GameRunner, person: string, topic: string) =>
   order(r, { kind: "summon", person, topic });
 
-const openTalk = (r: GameRunner) =>
-  seat(r).desk.find((c) => c.kind === "talk");
+const openTalk = (r: GameRunner) => seat(r).desk.find((c) => c.kind === "talk");
 
 const say = (r: GameRunner, id: string) =>
   order(r, { kind: "reply", card: openTalk(r)!.uid, reply: id });
@@ -489,9 +495,7 @@ describe("promises", () => {
   test("the conditions see it: made, kept, broken", async () => {
     const { runner, gw, st } = await game([offer(), back()]);
     const ctxHolds = (broken?: boolean) =>
-      st.promises.some(
-        (p) => broken === undefined || p.broken === broken,
-      );
+      st.promises.some((p) => broken === undefined || p.broken === broken);
     expect(ctxHolds()).toBe(false);
     summon(runner, "deu_stubborn", "t");
     say(runner, "swear");
@@ -566,7 +570,10 @@ describe("what the checker refuses", () => {
   test("a node nothing reaches, and a node with no way out", () => {
     const s = talk("t", "a", {
       open: node(reply("r", { next: "loop" }), reply("end")),
-      loop: node(reply("r", { next: "open", when: memory("x") }), reply("s", { next: "loop" })),
+      loop: node(
+        reply("r", { next: "open", when: memory("x") }),
+        reply("s", { next: "loop" }),
+      ),
       lost: bye(),
     });
     const list = problems(s).join();

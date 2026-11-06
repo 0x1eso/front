@@ -91,7 +91,13 @@ export type GwCond =
   /** What a person holds against the seat, faded: negative a grudge. */
   | { kind: "grudge"; who: GwWho; min?: number; max?: number }
   /** Hidden; a variant on it is how the answer shows. */
-  | { kind: "competence"; who: GwWho; field: GwField; min?: number; max?: number }
+  | {
+      kind: "competence";
+      who: GwWho;
+      field: GwField;
+      min?: number;
+      max?: number;
+    }
   | { kind: "health"; who: GwWho; min?: number; max?: number }
   | { kind: "source_band"; source: GwSource; min?: number; max?: number }
   /** A source's record: right minus wrong. */
@@ -114,7 +120,13 @@ export type GwCond =
   | { kind: "rival_in_office"; who: GwWho }
   | { kind: "ai"; tag: GwTag; of: GwAiKind[] }
   /** Another country's gauge, true value: use for variants, not for a tell. */
-  | { kind: "nation_gauge"; tag: GwTag; gauge: GwGauge; min?: number; max?: number };
+  | {
+      kind: "nation_gauge";
+      tag: GwTag;
+      gauge: GwGauge;
+      min?: number;
+      max?: number;
+    };
 
 export type GwEffect =
   | { kind: "flag"; flag: string }

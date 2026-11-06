@@ -69,7 +69,10 @@ describe("content", () => {
 
   test("no reference leads nowhere, no line is missing, no holes unfilled", async () => {
     const { scenes, people } = GW_CONTENT;
-    expect(gwContentProblems(scenes, people)).toEqual([]);
+    // The world lane's scenes that only its code schedules.
+    expect(gwContentProblems(scenes, people, ["gw_world_called_only"])).toEqual(
+      [],
+    );
     const pack = await loadGwPack("DEU", async (p) => json(p));
     const lang = json("lang/en.json").gw.reason as Record<string, string>;
     expect(gwPackProblems(scenes, pack, Object.keys(lang))).toEqual([]);

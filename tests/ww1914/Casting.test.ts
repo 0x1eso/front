@@ -264,9 +264,9 @@ describe("memory", () => {
     });
     expect(grudgeOf(p, 0)).toBe(-2);
     expect(grudgeOf(p, 5)).toBe(-1);
-    expect(holds(ctx, { kind: "grudge", who: byName("deu_cold"), max: -2 })).toBe(
-      true,
-    );
+    expect(
+      holds(ctx, { kind: "grudge", who: byName("deu_cold"), max: -2 }),
+    ).toBe(true);
   });
 
   test("forget takes it off the seat and the person", async () => {
@@ -291,9 +291,9 @@ describe("conditions on hidden values", () => {
     p.competence = [3, 1, 1];
     p.health = 1;
     const who = byName("deu_anxious");
-    expect(
-      holds(ctx, { kind: "competence", who, field: "war", min: 3 }),
-    ).toBe(true);
+    expect(holds(ctx, { kind: "competence", who, field: "war", min: 3 })).toBe(
+      true,
+    );
     expect(
       holds(ctx, { kind: "competence", who, field: "politics", min: 2 }),
     ).toBe(false);
@@ -308,9 +308,9 @@ describe("conditions on hidden values", () => {
       }),
     ).toBe(true);
     runEffect(ctx, { kind: "source", source: src.id, right: true });
-    expect(
-      holds(ctx, { kind: "source_record", source: src.id, min: 1 }),
-    ).toBe(true);
+    expect(holds(ctx, { kind: "source_record", source: src.id, min: 1 })).toBe(
+      true,
+    );
     expect(JSON.stringify(seat(runner))).not.toContain("competence");
   });
 

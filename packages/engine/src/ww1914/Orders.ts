@@ -15,7 +15,7 @@ import type {
   SnapshotReader,
   SnapshotWriter,
 } from "../snapshot/SnapshotContext";
-import { inStage, makeCard, placeCard, repeatable } from "./Desk";
+import { inStage, makeCard, placeCard, repeatable, sceneWear } from "./Desk";
 import type { GreatWar } from "./GreatWar";
 import {
   castOf,
@@ -122,8 +122,9 @@ export function applyGwOrder(
 }
 
 /**
- * The topics `person` can be called on now, for the people screen: the
- * weightiest first, those not yet talked through before those that were.
+ * The topics `person` can be called on now, for the people screen: fresh ones
+ * before those of the last games, those before what was talked through here,
+ * the weightiest first in each.
  */
 export function openTopics(
   gw: GreatWar,
@@ -133,12 +134,12 @@ export function openTopics(
   return summonScenes()
     .filter((x) => summonable(gw, seat, person, x.id))
     .map((x, i) => ({ x, i }))
-    .sort((a, b) => {
-      const told = (y: typeof a) => (seat.seen[y.x.id] === undefined ? 0 : 1);
-      return (
-        told(a) - told(b) || b.x.salience - a.x.salience || a.i - b.i
-      );
-    })
+    .sort(
+      (a, b) =>
+        sceneWear(gw, seat, a.x) - sceneWear(gw, seat, b.x) ||
+        b.x.salience - a.x.salience ||
+        a.i - b.i,
+    )
     .map(({ x }) => x.id);
 }
 

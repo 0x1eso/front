@@ -1,8 +1,5 @@
 import type { GameConfig } from "@openfront/engine-api/Schemas";
-import {
-  GwScene,
-  schedule,
-} from "@openfront/engine-api/ww1914/SceneDsl";
+import { GwScene, schedule } from "@openfront/engine-api/ww1914/SceneDsl";
 import type { GameRunner } from "@openfront/engine/GameRunner";
 import {
   GW_COOLDOWN_DEFAULT,
