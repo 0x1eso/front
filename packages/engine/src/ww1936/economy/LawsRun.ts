@@ -91,9 +91,10 @@ export function setLaw(
  * The change itself, with no condition, cost or cooldown (P3 controller
  * ruling R10: setLaw and P3's free set_law / law_step share it). A
  * conscription change moves manpower by the difference in the recruitable
- * pool the same day (never below zero, spec §6.2); the consumer goods and
- * the other effects follow from the next daily step; the law's stability
- * line (P3 spec §7.2) at once.
+ * pool the same day (never below zero, spec §6.2; ww115 T7: a rise stops at
+ * the ceiling, as stepManpower no longer cuts what is past it); the consumer
+ * goods and the other effects follow from the next daily step; the law's
+ * stability line (P3 spec §7.2) at once.
  */
 export function applyLawChange(
   econ: WwEconomy,
@@ -110,7 +111,11 @@ export function applyLawChange(
       ce.smallID,
       conscriptionPermille(value as ConscriptionLaw),
     );
-    ce.manpower = Math.max(0, ce.manpower + after - before);
+    const ceiling = after - ce.casualties - econ.ww.land.armyMen(ce.smallID);
+    ce.manpower =
+      after > before
+        ? Math.min(ce.manpower + after - before, Math.max(ce.manpower, ceiling))
+        : Math.max(0, ce.manpower + after - before);
   }
   (ce.laws as unknown as Record<LawKind, LawValue>)[kind] = value;
   econ.ww.politics.recomputeStats(ce.smallID);

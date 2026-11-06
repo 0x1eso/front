@@ -1,7 +1,9 @@
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
 import { manpowerRegrowth } from "@openfront/engine-lib/ww1936/EconomyRules";
+import { lawEffects } from "@openfront/engine-lib/ww1936/WwLaws";
 import type { GameRunner } from "@openfront/engine/GameRunner";
+import { applyLawChange } from "@openfront/engine/ww1936/economy/LawsRun";
 import { stepManpower } from "@openfront/engine/ww1936/economy/Manpower";
 import { byTag, clearStartSetup, HUMAN, stepTo, wwRunner } from "./util";
 
@@ -102,6 +104,36 @@ describe("manpower (spec §6; P2 spec §13.2)", () => {
     finishDay(runner, 0);
     finishDay(runner, 1);
     expect(ww.land.country(pol.smallID())!.casualtiesToday).toBe(0);
+  });
+
+  test("T7: a conscription law's rise stops at the ceiling", async () => {
+    const { runner, econ, deu, ce } = await germany();
+    finishDay(runner, 0);
+    const up = "extensive";
+    const after = econ.recruitableWith(
+      deu.smallID(),
+      lawEffects({ ...ce.laws, conscription: up }).conscriptionPermille,
+    );
+    // A debt that leaves room for only ten men under the new law.
+    ce.casualties = after - econ.armyMen(deu) - 10;
+    ce.manpower = 0;
+    applyLawChange(econ, ce, "conscription", up);
+    expect(ce.manpower).toBe(10);
+    // No debt: the whole difference, and past-the-ceiling men stay.
+    const free = await germany();
+    finishDay(free.runner, 0);
+    const before = free.econ.recruitableWith(
+      free.deu.smallID(),
+      free.ce.law().conscriptionPermille,
+    );
+    free.ce.manpower = 0;
+    applyLawChange(free.econ, free.ce, "conscription", up);
+    expect(free.ce.manpower).toBe(
+      free.econ.recruitableWith(
+        free.deu.smallID(),
+        free.ce.law().conscriptionPermille,
+      ) - before,
+    );
   });
 
   test("T7: the casualty debt opens the ceiling again, 5 % a year", async () => {
