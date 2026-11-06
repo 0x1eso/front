@@ -1322,7 +1322,7 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
         {
           kind: "chapter",
           min: 7,
-          max: 8,
+          max: 7,
         },
         {
           kind: "any",
@@ -1347,7 +1347,7 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
         office: "foreign",
       },
     },
-    salience: 8,
+    salience: 9,
     tags: ["home"],
     once: true,
     variants: [
