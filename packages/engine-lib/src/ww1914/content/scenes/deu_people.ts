@@ -1848,7 +1848,7 @@ export const DEU_PEOPLE_SCENES: readonly GwScene[] = [
             reacts: [{ when: trusts(who, null, -2), next: "law", effects: [] }],
           },
           {
-            id: "fetch",
+            id: "bring",
             stance: "threat",
             kind: "push",
             tell: ["trust:-1"],
@@ -3939,7 +3939,7 @@ export const DEU_PEOPLE_SCENES: readonly GwScene[] = [
             next: "use",
           },
           {
-            id: "fetch",
+            id: "bring",
             stance: "threat",
             kind: "push",
             tell: ["trust:-1"],
