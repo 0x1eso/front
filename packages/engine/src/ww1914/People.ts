@@ -9,8 +9,10 @@ import {
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
+import { dismissalFallout } from "./Authority";
 import type { GreatWar } from "./GreatWar";
 import { holderOf } from "./SceneRun";
+import { GW_NO_COMMAND } from "./Tables";
 import { clampTo, defOf, ownPeople, reason, turn } from "./World";
 
 const P_HEALTH_FAIL = idHash("gw_health_fail");
@@ -88,9 +90,7 @@ export function dismissPerson(
   const n = gw.nation(seat.tag);
   if (n !== null) {
     n.authority = Math.max(0, n.authority - dismissPrice(p.id));
-    if (n.inst.army !== undefined && defOf(p.id)?.camps.includes("military")) {
-      n.inst.army = clampTo(n.inst.army - 1, -5, 5);
-    }
+    dismissalFallout(n, defOf(p.id)?.camps ?? []);
   }
   const held = p.office;
   p.office = null;
@@ -185,6 +185,7 @@ export function armyCommander(
   }
   const soldiers = ownPeople(gw, seat.tag).filter((p) => {
     const d = defOf(p.id);
+    if (GW_NO_COMMAND.includes(p.id)) return false;
     return d?.camps.includes("military") === true && p.office === null;
   });
   const taken = new Set(gw.s.theatres.map((x) => x.commander));

@@ -6,28 +6,36 @@
 import { z } from "zod";
 import {
   GW_AI_KINDS,
+  GW_ARMISTICE_KINDS,
   GW_CHAIN_OUTCOMES,
+  GW_ERAS,
   GW_FACT_KINDS,
   GW_FIELDS,
+  GW_ISSUES,
   GW_OFFICES,
   GW_PLANS,
   GW_RESULTS,
   GW_SECRETS,
   GW_SIDES,
   GW_SOURCES,
+  GW_TECHS,
   GW_THEATRES,
   GW_THREADS,
   GwAiKind,
+  GwArmisticeKind,
   GwChainOutcome,
+  GwEra,
   GwFactKind,
   GwField,
   GwIdSchema,
+  GwIssue,
   GwOffice,
   GwPlan,
   GwResult,
   GwSecret,
   GwSide,
   GwSource,
+  GwTech,
   GwTheatre,
   GwThread,
 } from "./GreatWarTypes";
@@ -62,8 +70,13 @@ export type GwWorldCond =
   /** A theatre is at or past a named line (`to`: not past it). */
   | { is: "front"; theatre: GwTheatre; from?: string; to?: string }
   | { is: "open"; theatre: GwTheatre }
-  /** The theatre's last result. */
-  | { is: "battle"; theatre: GwTheatre; of: GwResult[] }
+  /** The theatre's last result; `by`: who attacked (seat: the seat's side). */
+  | {
+      is: "battle";
+      theatre: GwTheatre;
+      of: GwResult[];
+      by?: GwSide | "seat" | "foe";
+    }
   | { is: "plan"; of: GwPlan[] }
   | { is: "aside" }
   | ({ is: "mob"; tag: GwTag } & Range)
@@ -92,7 +105,37 @@ export type GwWorldCond =
   | ({ is: "competence"; who: GwWorldWho; field: GwField } & Range)
   /** This source's last report on the seat's desk is wrong. */
   | { is: "report_wrong"; source: GwSource }
-  | ({ is: "source_record"; source: GwSource } & Range);
+  | ({ is: "source_record"; source: GwSource } & Range)
+  /** The form of government of a country, the seat's when no tag is named. */
+  | { is: "regime"; tag?: GwTag; of: string[] }
+  /** The period of the war. */
+  | { is: "era"; of: GwEra[] }
+  /** Research has reached this, the seat's country when no tag is named. */
+  | { is: "tech"; id: GwTech; tag?: GwTag }
+  | ({ is: "blockade" } & Range)
+  | ({ is: "shipping" } & Range)
+  /** How near America is to coming in, 0..100. */
+  | ({ is: "america" } & Range)
+  /** The fighting has stopped. */
+  | { is: "armistice"; of?: GwArmisticeKind[] }
+  /** The seat's side won, lost or neither: from the armistice. */
+  | { is: "peace_side"; of: ("won" | "lost" | "even")[] }
+  /** Ayes less noes if the cabinet voted on this now. */
+  | ({ is: "votes"; issue: GwIssue } & Range)
+  /** The last vote on this issue carried; a vote never held does not. */
+  | { is: "carried"; issue: GwIssue }
+  /** The head of state leads the army himself. */
+  | { is: "command" }
+  /** Chapters since this country came in, the seat's when no tag is named. */
+  | ({ is: "in_war"; tag?: GwTag } & Range)
+  /** A country stands neutral. */
+  | { is: "neutral"; tag: GwTag }
+  /** Which side the seat's country is on. */
+  | { is: "side"; of: (GwSide | "neutral")[] }
+  /** The game's date, "YYYY-MM", both ends included: any calendar. */
+  | { is: "date"; from?: string; to?: string }
+  /** The best price on the table for a neutral, from the seat's side. */
+  | ({ is: "offered"; tag: GwTag } & Range);
 
 export type GwWorldEffect =
   /** Germany's plan for the war to come. */
@@ -137,9 +180,34 @@ export type GwWorldEffect =
   | { do: "calm" }
   /** Results in their field, for what the seat comes to see of them. */
   | { do: "result"; who: GwWorldWho; won: boolean }
-  | { do: "news"; key: string; a?: GwTag; b?: GwTag; theatre?: GwTheatre };
+  | { do: "news"; key: string; a?: GwTag; b?: GwTag; theatre?: GwTheatre }
+  /** The seat's country comes in, on `side`. */
+  | { do: "join"; side: GwSide }
+  /** The form of government changes (engine/ww1914/Regimes). */
+  | { do: "regime"; to: string }
+  /** The revolution is met by going on in the next form, if it has one. */
+  | { do: "next_regime" }
+  /** The ladder at the top: this seat's game ends with its memoir. */
+  | { do: "close_seat" }
+  /** The head of state takes or gives up the army. */
+  | { do: "personal_command"; on: boolean }
+  | { do: "blockade"; delta: number }
+  | { do: "shipping"; delta: number }
+  /** The cabinet votes: dissenters remember, the record says how it went. */
+  | { do: "vote"; issue: GwIssue }
+  /** Peace is offered to the other side: it answers next chapter. */
+  | { do: "talks" }
+  /** The seat's country asks for an armistice. */
+  | { do: "sue" }
+  /** Both sides stop as they stand. */
+  | { do: "armistice"; kind: GwArmisticeKind }
+  /** The seat's country alone makes peace. */
+  | { do: "separate_peace" }
+  /** A person's life ends; a neutral line in the record, no more. */
+  | { do: "passes"; who: GwWorldWho };
 
 const int = z.number().int();
+const yearMonth = z.string().regex(/^19[0-9]{2}-[01][0-9]$/);
 const range = { min: int.optional(), max: int.optional() };
 const tag = z.enum(GW_TAGS);
 const theatre = z.enum(GW_THEATRES);
@@ -170,7 +238,11 @@ export const GwWorldCondSchema = z.union([
     to: GwIdSchema.optional(),
   }),
   is("open", { theatre }),
-  is("battle", { theatre, of: z.array(z.enum(GW_RESULTS)) }),
+  is("battle", {
+    theatre,
+    of: z.array(z.enum(GW_RESULTS)),
+    by: z.enum([...GW_SIDES, "seat", "foe"]).optional(),
+  }),
   is("plan", { of: z.array(z.enum(GW_PLANS)) }),
   is("aside", {}),
   is("mob", { tag, ...range }),
@@ -193,6 +265,22 @@ export const GwWorldCondSchema = z.union([
   is("competence", { who, field: z.enum(GW_FIELDS), ...range }),
   is("report_wrong", { source }),
   is("source_record", { source, ...range }),
+  is("regime", { tag: tag.optional(), of: z.array(GwIdSchema) }),
+  is("era", { of: z.array(z.enum(GW_ERAS)) }),
+  is("tech", { id: z.enum(GW_TECHS), tag: tag.optional() }),
+  is("blockade", range),
+  is("shipping", range),
+  is("america", range),
+  is("armistice", { of: z.array(z.enum(GW_ARMISTICE_KINDS)).optional() }),
+  is("peace_side", { of: z.array(z.enum(["won", "lost", "even"])) }),
+  is("votes", { issue: z.enum(GW_ISSUES), ...range }),
+  is("carried", { issue: z.enum(GW_ISSUES) }),
+  is("command", {}),
+  is("in_war", { tag: tag.optional(), ...range }),
+  is("neutral", { tag }),
+  is("side", { of: z.array(z.enum([...GW_SIDES, "neutral"])) }),
+  is("date", { from: yearMonth.optional(), to: yearMonth.optional() }),
+  is("offered", { tag, ...range }),
 ]) as unknown as z.ZodType<GwWorldCond>;
 
 export const GwWorldEffectSchema = z.union([
@@ -228,6 +316,19 @@ export const GwWorldEffectSchema = z.union([
     b: tag.optional(),
     theatre: theatre.optional(),
   }),
+  act("join", { side: z.enum(GW_SIDES) }),
+  act("regime", { to: GwIdSchema }),
+  act("next_regime", {}),
+  act("close_seat", {}),
+  act("personal_command", { on: z.boolean() }),
+  act("blockade", { delta: int }),
+  act("shipping", { delta: int }),
+  act("vote", { issue: z.enum(GW_ISSUES) }),
+  act("talks", {}),
+  act("sue", {}),
+  act("armistice", { kind: z.enum(GW_ARMISTICE_KINDS) }),
+  act("separate_peace", {}),
+  act("passes", { who }),
 ]) as unknown as z.ZodType<GwWorldEffect>;
 
 // ---- Authoring helpers ----

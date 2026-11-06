@@ -58,7 +58,14 @@ export const GW_TEMPERAMENTS = [
 ] as const;
 export type GwTemperament = (typeof GW_TEMPERAMENTS)[number];
 
-export const GW_PERSON_STATUS = ["active", "fallen", "exiled", "dead"] as const;
+export const GW_PERSON_STATUS = [
+  "active",
+  "fallen",
+  "exiled",
+  "dead",
+  // Came to the throne: now the seat itself, off every list of the cast.
+  "crowned",
+] as const;
 export type GwPersonStatus = (typeof GW_PERSON_STATUS)[number];
 
 /** Fields of the hidden competence band, 1..3. */
@@ -145,7 +152,27 @@ export const GW_GAUGE_MAX: Readonly<Record<GwGauge, number>> = {
 };
 
 /** The bodies that can say no (design §6). */
-export const GW_INSTITUTIONS = ["army", "reichstag", "countersign"] as const;
+export const GW_INSTITUTIONS = [
+  "army",
+  "reichstag",
+  "countersign",
+  // Britain
+  "cabinet",
+  "commons",
+  "opposition",
+  "irish",
+  // Austria-Hungary; `berlin` is a debt: higher is worse.
+  "hungary",
+  "council",
+  "nations",
+  "berlin",
+  // Russia
+  "court",
+  "stavka",
+  "duma",
+  "ministers",
+  "soviet",
+] as const;
 export type GwInstitution = (typeof GW_INSTITUTIONS)[number];
 export const GW_INST_MIN = -5;
 export const GW_INST_MAX = 5;
@@ -260,6 +287,56 @@ export const GW_PLANS = ["west", "east", "wait"] as const;
 export type GwPlan = (typeof GW_PLANS)[number];
 
 export const GW_LINE_STEP = 3;
+export const GW_SEA_MAX = 10;
+
+/** Periods of the war (engine/ww1914/Eras): each shifts what attacks can do. */
+export const GW_ERAS = [
+  "movement",
+  "trenches",
+  "material",
+  "depth",
+  "storm",
+] as const;
+export type GwEra = (typeof GW_ERAS)[number];
+
+/** What research reaches, in GW_RESEARCH's three tracks. Text: gw.tech.<id>. */
+export const GW_TECHS = [
+  "gas_heavy",
+  "barrage",
+  "predicted_fire",
+  "assault_groups",
+  "tanks",
+  "depth_defence",
+  "infiltration",
+  "mine_nets",
+  "ocean_boats",
+  "convoys",
+] as const;
+export type GwTech = (typeof GW_TECHS)[number];
+
+/** How a war closed: which side lost, or neither. */
+export const GW_ARMISTICE_KINDS = [
+  "central_lost",
+  "entente_lost",
+  "compromise",
+] as const;
+export type GwArmisticeKind = (typeof GW_ARMISTICE_KINDS)[number];
+
+/** What a head of state lays before the cabinet (engine/ww1914/Authority). */
+export const GW_ISSUES = [
+  "entry",
+  "bef",
+  "straits",
+  "evacuate",
+  "conscription",
+  "home_rule",
+  "committee",
+  "flanders",
+  "coalition",
+  "tighten_blockade",
+  "peace_talks",
+] as const;
+export type GwIssue = (typeof GW_ISSUES)[number];
 
 export const GwTheatreStateSchema = z.object({
   id: z.enum(GW_THEATRES),
@@ -333,6 +410,16 @@ export const GwNationStateSchema = z.object({
   tech: z.partialRecord(z.enum(GW_RESEARCH), z.number().int()),
   /** Beaten or collapsed: no longer in the war. */
   out: z.boolean(),
+  /** Its form of government (engine/ww1914/Regimes); "" where there is one. */
+  regime: z.string(),
+  /** The head of state leads the army himself. */
+  command: z.boolean(),
+  /** What research has reached (GW_TECHS). */
+  techs: z.array(z.string()),
+  /** Chapter of its last major offensive; -9 none. */
+  spent: z.number().int(),
+  /** Chapter it first entered the war; null while neutral. */
+  entered: z.number().int().nullable(),
 });
 export type GwNationState = z.infer<typeof GwNationStateSchema>;
 
@@ -347,6 +434,8 @@ export const GW_SOURCES = [
   "staff",
   "press",
   "agents",
+  "embassy_berlin",
+  "embassy_rome",
 ] as const;
 export type GwSource = (typeof GW_SOURCES)[number];
 export const GW_STAMPS = ["confirmed", "unconfirmed", "estimate"] as const;
@@ -483,6 +572,50 @@ export const GW_ENDINGS = [
   "first_winter_ahead",
   "first_winter_level",
   "first_winter_behind",
+  // Germany
+  "deu_paris_dictated",
+  "deu_east_won",
+  "deu_peace_of_exhaustion",
+  "deu_november",
+  "deu_republic_signs",
+  "deu_hunger_peace",
+  // Britain
+  "gbr_end_master",
+  "gbr_end_dear_win",
+  "gbr_end_compromise",
+  "gbr_end_neutral",
+  "gbr_end_outside",
+  "gbr_end_long_peace",
+  "gbr_end_island",
+  "gbr_end_fell",
+  "gbr_end_other_hands",
+  "gbr_end_deadline",
+  // Austria-Hungary
+  "auh_e_long_peace",
+  "auh_e_serbia_punished",
+  "auh_e_victor_carried",
+  "auh_e_vassal",
+  "auh_e_compromise",
+  "auh_e_separate_peace",
+  "auh_e_federal",
+  "auh_e_personal_union",
+  "auh_e_dissolution",
+  "auh_e_army_gone",
+  "auh_e_remnant",
+  "auh_e_deadline",
+  // Russia
+  "rus_straits_won",
+  "rus_tsar_at_conference",
+  "rus_provisional_holds",
+  "rus_separate_peace",
+  "rus_october",
+  "rus_tsar_falls",
+  "rus_crown_of_duma",
+  "rus_boy_tsar",
+  "rus_great_programme",
+  "rus_serbia_abandoned",
+  "rus_assembly_republic",
+  "rus_civil_war",
 ] as const;
 export type GwEnding = (typeof GW_ENDINGS)[number];
 
@@ -587,6 +720,17 @@ export const GwSeatStateSchema = z.object({
   known: z.array(GwIdSchema),
   /** Scene id -> the person a world scene is about (cast rule `subject`). */
   subjects: z.record(z.string(), GwIdSchema),
+  /** The last big chapter (more summons); -9 none. */
+  big: z.number().int(),
+  /** The cabinet's votes, for the record and the reason lines. */
+  votes: z.array(
+    z.object({
+      issue: z.enum(GW_ISSUES),
+      ayes: z.number().int(),
+      noes: z.number().int(),
+      chapter: z.number().int(),
+    }),
+  ),
   /** The chapter the plan was last signed; -1 never. */
   signed: z.number().int(),
   /** Why the gauges moved, last chapters first dropped. */
@@ -609,8 +753,59 @@ export const GW_SECRETS = [
   "anglo_russian_naval_talks",
   "srb_officers_plot",
   "bgr_loan_berlin",
+  "auh_redl_plans",
+  "auh_hun_grain_hidden",
+  "auh_czech_regiments_sound",
+  "auh_sixtus_copy",
+  "gbr_wilson_leaks",
+  "gbr_haig_letters",
+  "gbr_sailings_count",
+  "deu_zimmermann_wire",
+  "fra_army_refusals",
+  "ott_forts_short",
+  "usa_credit_cliff",
+  "rus_garrison_rotten",
+  "rus_palace_plot",
+  "rus_german_feeler",
+  "rus_myasoedov_spy",
+  "deu_table_wrong",
+  "deu_heir_ring",
+  "deu_tirpitz_press",
+  "deu_food_books",
+  "deu_fleet_plan_oct",
+  "ita_price_list",
+  "bgr_macedonia_signed",
+  "rou_shell_gap",
+  "grc_king_letters",
+  "ott_peace_feelers",
+  "jpn_china_list",
 ] as const;
 export type GwSecret = (typeof GW_SECRETS)[number];
+
+/** Secrets only one seat's country can find: off every other shelf. */
+const GW_SECRET_SEATS: Readonly<Partial<Record<GwSecret, string>>> = {
+  auh_redl_plans: "AUH",
+  auh_hun_grain_hidden: "AUH",
+  auh_czech_regiments_sound: "AUH",
+  auh_sixtus_copy: "AUH",
+  gbr_wilson_leaks: "GBR",
+  gbr_haig_letters: "GBR",
+  gbr_sailings_count: "GBR",
+  rus_garrison_rotten: "RUS",
+  rus_palace_plot: "RUS",
+  rus_german_feeler: "RUS",
+  rus_myasoedov_spy: "RUS",
+  deu_table_wrong: "DEU",
+  deu_heir_ring: "DEU",
+  deu_tirpitz_press: "DEU",
+  deu_food_books: "DEU",
+  deu_fleet_plan_oct: "DEU",
+};
+
+/** The secrets a seat of this country can come to know. */
+export function gwSecretsFor(tag: string): readonly GwSecret[] {
+  return GW_SECRETS.filter((id) => (GW_SECRET_SEATS[id] ?? tag) === tag);
+}
 
 /**
  * Flags the world sets on every seat (`flag` conds read them, scene plan §1):
@@ -624,6 +819,20 @@ export const GW_WORLD_FLAGS = [
   "w_tannenberg",
   "w_marne_stopped",
   "w_bad_luck_east",
+  "w_serbia_fallen",
+  "w_italy_in",
+  "w_america_in",
+  "w_russia_out",
+  "w_unrestricted",
+  "w_liner_sunk",
+  "w_france_falling",
+  "w_auh_karl",
+  "w_auh_ff_throne",
+  "w_auh_sturgkh_shot",
+  "w_ottoman_in",
+  "w_romania_in",
+  "w_warsaw_lost",
+  "w_german_offer",
 ] as const;
 export type GwWorldFlag = (typeof GW_WORLD_FLAGS)[number];
 
@@ -659,6 +868,15 @@ export const GwChainSchema = z.object({
   short: z.boolean(),
 });
 export type GwChain = z.infer<typeof GwChainSchema>;
+
+/** The fighting has stopped; the conference is the next chapter. */
+export const GwArmisticeSchema = z.object({
+  kind: z.enum(GW_ARMISTICE_KINDS),
+  chapter: z.number().int(),
+  /** Who asked first; null when both were spent. */
+  by: z.enum(GW_TAGS).nullable(),
+});
+export type GwArmistice = z.infer<typeof GwArmisticeSchema>;
 
 export const GwChainEndSchema = z.object({
   topic: z.enum(GW_TOPICS),
@@ -737,6 +955,15 @@ export const GreatWarStateSchema = z.object({
   uboat: z.number().int(),
   /** Chapter the great war began; null at peace. */
   warChapter: z.number().int().nullable(),
+  /** How tight the blockade is, 0..GW_SEA_MAX. */
+  blockade: z.number().int(),
+  /** What the submarines have cost Britain's shipping, 0..GW_SEA_MAX. */
+  shipping: z.number().int(),
+  armistice: GwArmisticeSchema.nullable(),
+  /** The conference's date, once an armistice brought it forward. */
+  closingDay: z.number().int().nullable(),
+  /** Chapter a peace offer was last made; -9 none. */
+  talks: z.number().int(),
   reports: z.array(GwReportSchema),
   nextReport: z.number().int(),
   battles: z.array(GwBattleSchema),

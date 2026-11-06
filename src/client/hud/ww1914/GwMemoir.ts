@@ -142,7 +142,10 @@ function shelfBox(c: GwCtx): TemplateResult {
   const { seat, ui } = c;
   const shelf = ui.shelf;
   const memoir = seat.world.memoir;
-  const total = shelfTotals(memoir?.people.length ?? seat.people.length);
+  const total = shelfTotals(
+    memoir?.people.length ?? seat.people.length,
+    seat.tag,
+  );
   return html`<section class=${BOX} data-gw-shelf>
     <h3 class=${HEAD}>${translateText("gw.ui.shelf_title")}</h3>
     <p class=${MUTED}>${translateText("gw.ui.shelf_hint")}</p>

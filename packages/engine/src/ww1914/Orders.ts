@@ -31,6 +31,7 @@ import {
   takeOption,
 } from "./SceneRun";
 import { applyReply, summonScenes } from "./Talk";
+import { seatPerson } from "./World";
 
 /** Why this seat can't say ready; null when it can. */
 export function readyBlock(seat: GwSeatState): GwOrderBlock | null {
@@ -162,6 +163,7 @@ export function openTopics(
 }
 
 function ownPerson(seat: GwSeatState, id: string): boolean {
+  if (id === seatPerson(seat)) return false;
   return gwContent().people.some((d) => d.id === id && d.tag === seat.tag);
 }
 

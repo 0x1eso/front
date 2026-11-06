@@ -1,5 +1,6 @@
 import {
   GwCard,
+  GwPersonState,
   GwSeatState,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import type {
@@ -17,6 +18,8 @@ import { idHash } from "@openfront/engine-lib/ww1936/Roll";
 import type { GreatWar } from "./GreatWar";
 import { openTopics, readyBlock } from "./Orders";
 import { ctxOf, optionOpen, pickVariant, sceneOf } from "./SceneRun";
+import { GW_HIDE_UNMET } from "./Tables";
+import { seatPerson } from "./World";
 import { worldView } from "./WorldView";
 
 function cardView(
@@ -64,9 +67,26 @@ function dateOf(gw: GreatWar, chapter: number): string {
   return formatIsoDate(civilFromDays(day));
 }
 
+/** Someone far off stays off the tab until they hold a desk or have come up. */
+function metYet(
+  seat: GwSeatState,
+  p: GwPersonState,
+  topics: readonly string[],
+): boolean {
+  return (
+    p.office !== null ||
+    topics.length > 0 ||
+    seat.memory.some((m) => m.who === p.id) ||
+    seat.desk.some((c) => Object.values(c.cast).includes(p.id))
+  );
+}
+
 function seatView(gw: GreatWar, seat: GwSeatState): GwSeatView {
   const nation = gw.nation(seat.tag)!;
-  const defs = gwContent().people.filter((d) => d.tag === seat.tag);
+  const self = seatPerson(seat);
+  const defs = gwContent().people.filter(
+    (d) => d.tag === seat.tag && d.id !== self,
+  );
   return {
     smallID: seat.smallID,
     tag: seat.tag,
@@ -76,12 +96,16 @@ function seatView(gw: GreatWar, seat: GwSeatState): GwSeatView {
     people: defs.flatMap((d) => {
       const p = gw.person(d.id);
       if (p === null || p.status !== "active") return [];
+      const topics = openTopics(gw, seat, p.id);
+      if (GW_HIDE_UNMET.includes(seat.tag) && !metYet(seat, p, topics)) {
+        return [];
+      }
       return [
         {
           id: p.id,
           office: p.office,
           trust: p.trust,
-          topics: openTopics(gw, seat, p.id),
+          topics,
           fit: d.fit,
           rivals: d.rivals,
         },

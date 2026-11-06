@@ -3,6 +3,7 @@ import type { GwScene } from "@openfront/engine-api/ww1914/SceneDsl";
 import { GW_PEOPLE } from "./people";
 import { COMMON_SCENES } from "./scenes/common";
 import { DEU_SCENES } from "./scenes/deu";
+import { WARTIME_SCENES } from "./scenes/wartime";
 import { WORLD_SCENES } from "./scenes/world";
 
 export interface GwContent {
@@ -12,7 +13,7 @@ export interface GwContent {
 
 /** All content. A new country's file adds one line here. */
 export const GW_CONTENT: GwContent = {
-  scenes: [...COMMON_SCENES, ...DEU_SCENES, ...WORLD_SCENES],
+  scenes: [...COMMON_SCENES, ...DEU_SCENES, ...WORLD_SCENES, ...WARTIME_SCENES],
   people: GW_PEOPLE,
 };
 

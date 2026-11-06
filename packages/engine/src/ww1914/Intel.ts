@@ -138,7 +138,8 @@ const EMBASSY: Readonly<Partial<Record<GwTag, GwSource>>> = {
   FRA: "embassy_paris",
   RUS: "embassy_petersburg",
   AUH: "embassy_vienna",
-  ITA: "embassy_vienna",
+  ITA: "embassy_rome",
+  DEU: "embassy_berlin",
 };
 
 function neutralsToWatch(gw: GreatWar): GwTag[] {

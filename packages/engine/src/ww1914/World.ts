@@ -12,6 +12,7 @@ import { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import { gwChapters } from "@openfront/engine-lib/ww1914/Calendars";
 import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
 import type { GreatWar } from "./GreatWar";
+import { GW_SEAT_PERSON } from "./Tables";
 
 /** Small helpers every world system shares. Stateless. */
 
@@ -51,22 +52,34 @@ export function lastOf<T>(list: readonly T[]): T | undefined {
   return list[list.length - 1];
 }
 
+/** Seats still at the desk: a closed one's country is the AI's. */
 export function seatsOf(gw: GreatWar, tag: GwTag): GwSeatState[] {
-  return gw.s.seats.filter((x) => x.tag === tag);
+  return gw.s.seats.filter((x) => x.tag === tag && x.memoir === null);
 }
 
 export function fights(n: GwNationState | null): boolean {
   return n !== null && n.side !== null && !n.out;
 }
 
-/** A person's country people, those still in play. */
+/** The person who is the seat now: never on its own cast tab. */
+export function seatPerson(seat: GwSeatState): string | null {
+  const rows = GW_SEAT_PERSON[seat.tag] ?? [];
+  const row = rows.find((r) => r.flag === undefined || seat.flags.includes(r.flag));
+  return row?.person ?? null;
+}
+
+/** A person's country people, those still in play, the seat itself left out. */
 export function ownPeople(gw: GreatWar, tag: GwTag): GwPersonState[] {
   const ids = new Set(
     gwContent()
       .people.filter((d) => d.tag === tag)
       .map((d) => d.id),
   );
-  return gw.s.people.filter((p) => ids.has(p.id) && p.status === "active");
+  const seat = gw.s.seats.find((x) => x.tag === tag);
+  const self = seat === undefined ? null : seatPerson(seat);
+  return gw.s.people.filter(
+    (p) => ids.has(p.id) && p.status === "active" && p.id !== self,
+  );
 }
 
 export function defOf(id: string) {

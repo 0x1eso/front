@@ -1,11 +1,14 @@
 import {
+  GW_LINES,
   GwBattle,
   GwSeatState,
   GwSide,
   GwTheatre,
   GwWorldFlag,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
+import { civilFromDays } from "@openfront/engine-lib/ww1936/Calendar";
 import { GW_LINKS, LOCAL_WAR_AT } from "./Crises";
+import { warMonths } from "./Eras";
 import type { GreatWar } from "./GreatWar";
 import { lastOf } from "./World";
 
@@ -49,6 +52,42 @@ function flagsNow(gw: GreatWar): GwWorldFlag[] {
   const west = openingBattle(gw, "west");
   if (s.plan === "west" && west !== null && winnerOf(west) !== "central") {
     out.push("w_marne_stopped");
+  }
+  if (gw.nation("SRB")?.out === true) out.push("w_serbia_fallen");
+  if (gw.nation("ITA")?.side === "entente") out.push("w_italy_in");
+  if (gw.nation("USA")?.side === "entente") out.push("w_america_in");
+  if (gw.nation("RUS")?.out === true) out.push("w_russia_out");
+  if (s.uboat === 2) out.push("w_unrestricted");
+  if (gw.nation("OTT")?.side === "central") out.push("w_ottoman_in");
+  if (gw.nation("ROU")?.side === "entente") out.push("w_romania_in");
+  const eastFront = s.theatres.find((t) => t.id === "east")!;
+  if (
+    eastFront.since !== null &&
+    eastFront.line >= GW_LINES.east.indexOf("warsaw")
+  ) {
+    out.push("w_warsaw_lost");
+  }
+  // Berlin sounds Petersburg out once the east has cost it enough.
+  if (
+    warMonths(gw) >= 18 &&
+    gw.nation("RUS")?.out === false &&
+    (s.secrets.includes("rus_german_feeler") ||
+      eastFront.line >= GW_LINES.east.indexOf("vistula"))
+  ) {
+    out.push("w_german_offer");
+  }
+  const front = s.theatres.find((t) => t.id === "west")!;
+  if (front.since !== null && front.line >= GW_LINES.west.indexOf("aisne")) {
+    out.push("w_france_falling");
+  }
+  const auh = gw.nation("AUH");
+  if (
+    auh !== null &&
+    civilFromDays(s.day).year >= 1916 &&
+    civilFromDays(s.day).month >= 7 &&
+    (auh.unrest >= 1 || (auh.inst.nations ?? 0) < 0)
+  ) {
+    out.push("w_auh_sturgkh_shot");
   }
   return out;
 }

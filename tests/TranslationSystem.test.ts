@@ -50,10 +50,10 @@ const DYNAMIC_KEY_PATTERNS: RegExp[] = [
   /^gw\.(?:country|office|reason|tell)\.[A-Za-z0-9_]+$/,
   // The world's words (engine/ww1914): gauges, fronts, reports, endings and
   // the ticker, all named by ids and numbers the view carries.
-  /^gw\.(?:ai|ending|fact|front|gauge|gauge_name|line|mandate|news|odds|plan|plan_why|result|secret|source|stamp|theatre|thread|turn|unknown)\.[A-Za-z0-9_.]+$/,
+  /^gw\.(?:ai|ending|era|fact|front|gauge|gauge_name|issue|line|mandate|news|odds|plan|plan_why|regime|result|secret|source|stamp|tech|theatre|thread|turn|unknown)\.[A-Za-z0-9_.]+$/,
   // Great War 1914 screens: words picked by an id or a level (gauge words,
   // kinds, stamps, stances, theatres and their named lines).
-  /^gw\.ui\.(?:stage|temp|news\.temp|gauge_name|kind|stamp|block|trust|stance|reply|tab|theatre|trench_word|posture|scale|research|inst_name|inst|calendar|calendar_time|side|fact|person_status|repute)\.[a-z_0-9]+$/,
+  /^gw\.ui\.(?:stage|temp|news\.temp|gauge_name|kind|stamp|block|trust|stance|reply|tab|theatre|trench_word|posture|scale|research|inst_name|inst|calendar|calendar_time|side|fact|person_status|repute|sea|uboat|america_word)\.[a-z_0-9]+$/,
   /^gw\.ui\.gauge\.[a-z]+\.\d$/,
   // ww73: a focus group's name by its id (FocusGroups.groupLabel).
   /^ww1936\.focusui\.group\.[a-z0-9_]+$/,
