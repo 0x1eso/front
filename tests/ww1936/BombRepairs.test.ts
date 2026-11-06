@@ -16,6 +16,7 @@ import {
   buildingIndex,
   damageBuilding,
   effectiveBuildings,
+  repairBuilding,
 } from "@openfront/engine/ww1936/economy/Buildings";
 import {
   buildingSpeedPct,
@@ -146,6 +147,33 @@ describe("World War 1936 P4: bomb damage repairs (spec §14.8)", () => {
     stepRepairs(econ, ce, 0);
     expect(econ.repair[cell(paris, "rail")]).toBeGreaterThan(0);
     expect(econ.repair[cell(paris, "civ")]).toBe(0);
+  });
+
+  test("the damaged cells follow the damage, and a restore rebuilds them", async () => {
+    const { econ } = await france();
+    const { paris, lyon } = REGION;
+    // One bit a building, in an Int32Array.
+    expect(BUILDING_IDS.length).toBeLessThanOrEqual(31);
+    expect(econ.damagedRegions).toBe(0);
+    damageBuilding(econ, paris, "civ", 1000);
+    damageBuilding(econ, paris, "mil", 500);
+    damageBuilding(econ, lyon, "civ", 1000);
+    expect(econ.damagedRegions).toBe(2);
+    const civBit = 1 << buildingIndex("civ");
+    const milBit = 1 << buildingIndex("mil");
+    expect(econ.damagedBits[paris]).toBe(civBit | milBit);
+    repairBuilding(econ, paris, "civ", 1000);
+    expect(econ.damagedBits[paris]).toBe(milBit);
+    // A building torn down takes its damage with it.
+    econ.addBuilding(lyon, "civ", -econ.civ[lyon]);
+    expect(econ.damagedBits[lyon]).toBe(0);
+    expect(econ.damagedRegions).toBe(1);
+    const snap = econ.snapshot();
+    econ.damagedBits.fill(0);
+    econ.damagedRegions = 0;
+    econ.restoreState(snap);
+    expect(econ.damagedBits[paris]).toBe(milBit);
+    expect(econ.damagedRegions).toBe(1);
   });
 
   test("what the queue leaves goes to the worst-hit area alone", async () => {

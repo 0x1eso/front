@@ -646,6 +646,14 @@ export class WwEconomy {
   private dirtyRegions = new Set<number>();
   /** P4 (derived): 1 where the naval base works now (afterBuildingChange's portVer). */
   private portBits = new Uint8Array(0);
+  /**
+   * ww120 (derived; compared after a restore): the damaged cells, one bit a building
+   * (BUILDING_IDS index) by region, so the daily repairs look only at them.
+   * afterBuildingChange keeps it, a restore rebuilds it from `damage`.
+   */
+  readonly damagedBits: Int32Array;
+  /** Derived, as damagedBits: the regions with a bit set there. */
+  damagedRegions = 0;
 
   constructor(
     readonly mg: Game,
@@ -684,6 +692,7 @@ export class WwEconomy {
     };
     this.damage = new Int32Array(size * BUILDING_IDS.length);
     this.repair = new Int32Array(size * BUILDING_IDS.length);
+    this.damagedBits = new Int32Array(size);
     this.infraEff = new Uint8Array(size);
     this.railEff = new Uint8Array(size);
     this.hubEff = new Uint8Array(size);
@@ -1228,6 +1237,7 @@ export class WwEconomy {
   afterBuildingChange(region: number, b: BuildingId): void {
     this.dirtyRegions.add(region);
     this.buildVer++;
+    this.noteDamagedCell(region, buildingIndex(b));
     if (b === "radar") this.radarVer++;
     if (b === "rail" || b === "naval_base") this.railPortVer++;
     if (b === "infra") {
@@ -1282,6 +1292,18 @@ export class WwEconomy {
     if (this.damage[i] > arr[region] * 1000)
       this.damage[i] = arr[region] * 1000;
     this.afterBuildingChange(region, b);
+  }
+
+  /** Keeps damagedBits true of one cell. */
+  private noteDamagedCell(region: number, bi: number): void {
+    const was = this.damagedBits[region];
+    const bit = 1 << bi;
+    const hit = this.damage[region * BUILDING_IDS.length + bi] > 0;
+    const now = hit ? was | bit : was & ~bit;
+    if (now === was) return;
+    this.damagedBits[region] = now;
+    if (was === 0) this.damagedRegions++;
+    else if (now === 0) this.damagedRegions--;
   }
 
   trades(): readonly Trade[] {
@@ -1425,6 +1447,7 @@ export class WwEconomy {
    * its next whole building (1,000 of damage at most).
    */
   private repairPmOf(region: number): { repairPm?: number } {
+    if (this.damagedBits[region] === 0) return {};
     const n = BUILDING_IDS.length;
     for (const bi of REPAIR_ORDER) {
       const i = region * n + bi;
@@ -1950,6 +1973,13 @@ export class WwEconomy {
           this.repair[r * BUILDING_IDS.length + i] =
             s.repair[r * oldStride + i];
         }
+      }
+    }
+    this.damagedBits.fill(0);
+    this.damagedRegions = 0;
+    for (let r = 0; r < size; r++) {
+      for (let bi = 0; bi < BUILDING_IDS.length; bi++) {
+        this.noteDamagedCell(r, bi);
       }
     }
     this._trades = s.trades.map((t) => ({ ...t }));

@@ -75,20 +75,23 @@ interface Area {
 
 /** `smallID`'s areas with damage, by strategic region id. */
 function damagedAreas(econ: WwEconomy, smallID: number): Area[] {
+  if (econ.damagedRegions === 0) return [];
   const sc = econ.scenario;
   const n = BUILDING_IDS.length;
   const regions = econ.regionsOf(smallID);
   const areas = new Map<number, Area>();
   for (const r of regions) {
+    const cells = econ.damagedBits[r];
+    if (cells === 0) continue;
+    const sr = sc.regionSr(r);
+    let a = areas.get(sr);
+    if (a === undefined) {
+      a = { sr, cells: [], damage: 0, civ100: 0 };
+      areas.set(sr, a);
+    }
     for (let bi = 0; bi < n; bi++) {
+      if ((cells & (1 << bi)) === 0) continue;
       const i = r * n + bi;
-      if (econ.damage[i] <= 0) continue;
-      const sr = sc.regionSr(r);
-      let a = areas.get(sr);
-      if (a === undefined) {
-        a = { sr, cells: [], damage: 0, civ100: 0 };
-        areas.set(sr, a);
-      }
       a.cells.push(i);
       a.damage += econ.damage[i];
     }

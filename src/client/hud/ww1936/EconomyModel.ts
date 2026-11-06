@@ -15,7 +15,6 @@ import {
 import {
   BuildingId,
   DoctrineSchool,
-  EconomyLaw,
   EQUIP_KEYS,
   equipKey,
   EQUIPMENT_GENS,
