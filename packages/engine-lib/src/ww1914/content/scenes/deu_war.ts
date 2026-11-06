@@ -1310,7 +1310,7 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
         {
           kind: "chapter",
           min: 7,
-          max: 7,
+          max: 8,
         },
         {
           kind: "any",
@@ -1985,7 +1985,7 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
         office: "chief_of_staff",
       },
     },
-    salience: 7,
+    salience: 9,
     tags: ["war", "tension_up"],
     once: true,
     variants: [

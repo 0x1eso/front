@@ -654,7 +654,7 @@ export const DEU_CRISIS_SCENES: readonly GwScene[] = [
     },
     salience: 9,
     tags: ["war", "tension_up"],
-    cooldown: 1,
+    cooldown: 0,
     variants: [
       { id: "waited", when: { kind: "flag", flag: "f_mob_waited" } },
       { id: "hague", when: { kind: "flag", flag: "f_hague" } },

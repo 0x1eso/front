@@ -304,7 +304,7 @@ const SCENES: readonly GwScene[] = [
     salience: 9,
     tags: ["war"],
     once: false,
-    cooldown: 1,
+    cooldown: 0,
     variants: [
       { id: "first", when: { kind: "world", of: { is: "war_age", max: 1 } } },
       { id: "base" },

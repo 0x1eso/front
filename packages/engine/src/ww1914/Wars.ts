@@ -10,7 +10,7 @@ import { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import type { GreatWar } from "./GreatWar";
 import { armyCommander } from "./People";
 import { GW_THEATRE_SIDES } from "./Tables";
-import { fights, news, other, turn } from "./World";
+import { fights, news, other, reason, seatsOf, turn } from "./World";
 
 /** Who fights a theatre now on `side`, the lead first. */
 export function membersOf(gw: GreatWar, t: GwTheatre, side: GwSide): GwTag[] {
@@ -85,6 +85,15 @@ export function leaveWar(gw: GreatWar, tag: GwTag, why: string): void {
   refreshTheatres(gw);
 }
 
+/** Nobody signed: the staff moves on the plan in the safe. */
+function standingPlan(gw: GreatWar): void {
+  gw.s.plan = "west";
+  for (const seat of seatsOf(gw, "DEU")) {
+    if (!seat.flags.includes("f_west_plan")) seat.flags.push("f_west_plan");
+    reason(gw, seat, "plan_standing");
+  }
+}
+
 /**
  * The great war begins (design §2.4): the alliances pull each other in, then
  * Germany's plan says whether Belgium goes with them. Britain, Italy and the
@@ -94,7 +103,7 @@ export function openWar(gw: GreatWar): void {
   const s = gw.s;
   if (s.warChapter !== null) return;
   s.warChapter = s.chapter;
-  s.plan ??= "west";
+  if (s.plan === null) standingPlan(gw);
   turn(gw, "war_began");
   enter(gw, "AUH", "central", "war_declared");
   enter(gw, "SRB", "entente", "war_declared");

@@ -455,8 +455,8 @@ export const GwSceneSchema = z
     tags: z.array(z.enum(GW_SCENE_TAGS)),
     /** Dealt at most once a game. */
     once: z.boolean().optional(),
-    /** Chapters before it can come again. */
-    cooldown: int.min(1).optional(),
+    /** Chapters it stays away after coming; 0: it can come the next chapter. */
+    cooldown: int.min(0).optional(),
     /** Read-only report: its stamp and source. */
     stamp: z.enum(GW_STAMPS).optional(),
     source: z.enum(GW_SOURCES).optional(),
