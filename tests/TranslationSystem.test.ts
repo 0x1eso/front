@@ -48,6 +48,11 @@ const DYNAMIC_KEY_PATTERNS: RegExp[] = [
   // Great War 1914: names built from ids (gw.country.<TAG>, gw.office.<id>,
   // gw.tell.<word>) and the why-log, whose keys are in the engine's scenes.
   /^gw\.(?:country|office|reason|tell)\.[A-Za-z_]+$/,
+  // Great War 1914 screens: words picked by an id or a level (gauge words,
+  // kinds, stamps, stances, theatres and their named lines).
+  /^gw\.ui\.(?:stage|temp|news\.temp|gauge_name|kind|stamp|block|trust|stance|reply|tab|theatre|trench_word|posture|scale|ally_share|research|inst_name|inst)\.[a-z_0-9]+$/,
+  /^gw\.ui\.gauge\.[a-z]+\.\d$/,
+  /^gw\.ui\.line\.[a-z]+\.[a-z_]+$/,
   // ww73: a focus group's name by its id (FocusGroups.groupLabel).
   /^ww1936\.focusui\.group\.[a-z0-9_]+$/,
 ];

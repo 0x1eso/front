@@ -72,6 +72,8 @@ function seatView(gw: GreatWar, seat: GwSeatState): GwSeatView {
           topics: topics
             .filter((x) => summonable(gw, seat, p.id, x.id))
             .map((x) => x.id),
+          fit: d.fit,
+          rivals: d.rivals,
         },
       ];
     }),
@@ -83,6 +85,8 @@ function seatView(gw: GreatWar, seat: GwSeatState): GwSeatView {
       progress: t.progress,
       trench: t.trench,
       open: t.open,
+      attacker: t.attacker,
+      defender: t.defender,
     })),
     alloc: seat.alloc,
     log: seat.log,

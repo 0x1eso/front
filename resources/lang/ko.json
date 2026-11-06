@@ -14251,10 +14251,7 @@
     "panel": {
       "chapter": "{date}, {total}장 중 {n}장",
       "ended": "이 판이 끝났다.",
-      "not_ready": "준비 취소",
-      "people": "사람들 (남은 접견 {n}번)",
-      "read": "읽음",
-      "ready": "준비"
+      "not_ready": "준비 취소"
     },
     "reason": {
       "proxy_signed": "시간이 다 되어 서류가 대행으로 처리되었다.",
@@ -14264,6 +14261,296 @@
       "army": "군부",
       "temp": "온도",
       "trust": "신뢰"
+    },
+    "ui": {
+      "alloc_allies": "동맹에 나눔",
+      "alloc_main": "주력",
+      "alloc_now": "지금: {main}, {posture}, {scale}",
+      "alloc_posture": "자세",
+      "alloc_research": "연구",
+      "alloc_scale": "규모",
+      "alloc_send": "배분을 확정한다",
+      "alloc_title": "어디에 힘을 싣는가",
+      "ally_share": {
+        "0": "없음",
+        "1": "조금",
+        "2": "절반",
+        "3": "대부분"
+      },
+      "appoint": "{office} 자리에 앉힌다",
+      "audiences": "남은 접견 {n}번",
+      "audiences_hint": "사람을 부르면 한 번씩 씁니다.",
+      "block": {
+        "closed": "그 선택지는 아직 닫혀 있습니다.",
+        "ended": "이미 끝난 게임입니다.",
+        "no_audience": "이번 장의 접견을 다 썼습니다.",
+        "no_card": "그 서류는 이미 없습니다.",
+        "no_option": "그런 선택지는 없습니다.",
+        "no_person": "그 사람은 지금 부를 수 없습니다.",
+        "no_topic": "지금은 그 이야기를 꺼낼 수 없습니다.",
+        "open_cards": "열린 서류가 남아 있습니다. 읽거나 정한 뒤에 마칠 수 있습니다.",
+        "stale_chapter": "그 장은 이미 넘어갔습니다.",
+        "wrong_kind": "그 서류에는 맞지 않는 조치입니다."
+      },
+      "chapter_n": "{n}장",
+      "desk_empty": "책상 위에 놓인 서류가 없습니다. 사람을 부르거나 장을 마칠 수 있습니다.",
+      "dismiss": "해임한다",
+      "dismiss_sure": "한 번 더 누르면 해임합니다",
+      "ending_default": "판이 끝났다",
+      "fold": "접기 / 펴기",
+      "front_quiet": "아직 전투가 없습니다.",
+      "gauge": {
+        "bread": {
+          "0": "굶주림",
+          "1": "모자람",
+          "2": "버팀",
+          "3": "넉넉함"
+        },
+        "money": {
+          "0": "바닥남",
+          "1": "빠듯함",
+          "2": "견딤",
+          "3": "넉넉함"
+        },
+        "morale": {
+          "0": "무너짐",
+          "1": "가라앉음",
+          "2": "흔들림",
+          "3": "보통",
+          "4": "높음",
+          "5": "드높음"
+        },
+        "order": {
+          "0": "폭동",
+          "1": "소요",
+          "2": "불안",
+          "3": "보통",
+          "4": "안정",
+          "5": "굳건함"
+        },
+        "shells": {
+          "0": "바닥남",
+          "1": "빠듯함",
+          "2": "충분함",
+          "3": "넉넉함"
+        }
+      },
+      "gauge_name": {
+        "bread": "빵",
+        "money": "재정",
+        "morale": "사기",
+        "order": "질서",
+        "shells": "포탄"
+      },
+      "gauges_title": "나라의 형편",
+      "inst": {
+        "0": "적대",
+        "1": "냉담",
+        "2": "중립",
+        "3": "호의",
+        "4": "굳건"
+      },
+      "inst_name": {
+        "army": "군부",
+        "countersign": "재상의 부서",
+        "reichstag": "제국의회"
+      },
+      "inst_title": "발목을 잡을 수 있는 곳",
+      "kind": {
+        "audience": "알현",
+        "crisis": "위기",
+        "dispute": "다툼",
+        "ledger": "결산",
+        "proposal": "제안서",
+        "report": "보고",
+        "talk": "대화",
+        "wire": "전보"
+      },
+      "line": {
+        "balkan": {
+          "belgrade": "베오그라드",
+          "drina": "드리나강",
+          "nis": "니시",
+          "salonika": "살로니카"
+        },
+        "caucasus": {
+          "erzurum": "에르주룸",
+          "kars": "카르스",
+          "trabzon": "트라브존",
+          "van": "반"
+        },
+        "colonies": {
+          "east_africa": "동아프리카",
+          "kamerun": "카메룬",
+          "southwest": "남서아프리카",
+          "togo": "토고"
+        },
+        "east": {
+          "dvina": "두나강",
+          "east_prussia": "동프로이센",
+          "kiev": "키예프",
+          "riga": "리가",
+          "vistula": "비스와강",
+          "warsaw": "바르샤바"
+        },
+        "italy": {
+          "adige": "아디제강",
+          "isonzo": "이손초",
+          "piave": "피아베강",
+          "trentino": "트렌티노"
+        },
+        "mesopotamia": {
+          "baghdad": "바그다드",
+          "basra": "바스라",
+          "kut": "쿠트",
+          "mosul": "모술"
+        },
+        "palestine": {
+          "damascus": "다마스쿠스",
+          "gaza": "가자",
+          "jerusalem": "예루살렘",
+          "suez": "수에즈"
+        },
+        "sea": {
+          "atlantic": "대서양",
+          "blockade": "봉쇄",
+          "channel": "해협",
+          "north_sea": "북해"
+        },
+        "straits": {
+          "constantinople": "콘스탄티노플",
+          "dardanelles": "다르다넬스",
+          "gallipoli": "갈리폴리",
+          "narrows": "좁은 목"
+        },
+        "west": {
+          "aisne": "엔강",
+          "hindenburg": "힌덴부르크선",
+          "liege": "리에주",
+          "marne": "마른",
+          "rhine": "라인강",
+          "somme": "솜강"
+        }
+      },
+      "memoir_open": "회고록은 판이 끝나면 쓰입니다. 그때까지는 아래 기록이 쌓입니다.",
+      "news": {
+        "front": "{theatre} 전선: {line}",
+        "quiet": "오늘은 큰 소식이 없다.",
+        "temp": {
+          "0": "유럽은 아직 조용하다.",
+          "1": "각국 외무부의 전보가 쌓이고 있다.",
+          "2": "유럽의 신경이 곤두서 있다.",
+          "3": "말 한마디면 불이 붙을 정세다."
+        }
+      },
+      "no_fronts": "열린 전선이 아직 없습니다.",
+      "no_office": "자리 없음",
+      "no_topics": "지금은 꺼낼 이야기가 없습니다.",
+      "options": "선택",
+      "outside": "자리 밖의 사람들",
+      "posture": {
+        "hold": "방어",
+        "offensive": "공세"
+      },
+      "quiet_fronts": "아직 조용한 곳",
+      "read_decide": "읽고 정한다",
+      "read_done": "읽었다. 치워 둔다.",
+      "read_on": "읽는다",
+      "ready_chapter": "이 장을 마친다",
+      "record_title": "기록",
+      "reply": {
+        "ask": "묻기",
+        "deal": "약속·거래",
+        "leave": "물러서기",
+        "push": "밀어붙이기"
+      },
+      "research": {
+        "artillery": "포병",
+        "infantry": "보병",
+        "sea": "해군"
+      },
+      "rivals": "사이가 나쁜 사람",
+      "scale": {
+        "limited": "제한적",
+        "major": "대규모"
+      },
+      "shelf_documents": "본 문서 {n}/{max}",
+      "shelf_endings": "결말 {n}/{max}",
+      "shelf_hint": "이 브라우저에서 여러 판에 걸쳐 본 것입니다. 힘을 주지는 않고 빈 곳만 보여 줍니다.",
+      "shelf_people": "만난 사람 {n}/{max}",
+      "shelf_title": "서가",
+      "sign": "서명한다",
+      "since_last": "지난 장 이후",
+      "stage": {
+        "closing": "결산",
+        "crisis": "위기",
+        "war": "전쟁",
+        "y1914": "1914년"
+      },
+      "stamp": {
+        "confirmed": "확인됨",
+        "estimate": "추정",
+        "unconfirmed": "미확인"
+      },
+      "stance": {
+        "cold": "냉정",
+        "flatter": "아첨",
+        "frank": "솔직",
+        "threat": "위협",
+        "warm": "다정"
+      },
+      "tab": {
+        "country": "나라",
+        "desk": "서류함",
+        "fronts": "전황",
+        "memoir": "회고",
+        "people": "사람"
+      },
+      "talk_done": "자리를 일어선다",
+      "talk_ended": "대화가 끝났다.",
+      "talk_open": "마주 앉는다",
+      "talk_step_out": "잠시 자리를 비운다",
+      "talk_waiting": "{name}이(가) 생각에 잠긴다.",
+      "talk_waits": "{name}이(가) 말씀을 나누려고 기다립니다.",
+      "temp": {
+        "0": "위기: 잔잔함",
+        "1": "위기: 긴장",
+        "2": "위기: 위험",
+        "3": "위기: 일촉즉발"
+      },
+      "theatre": {
+        "balkan": "발칸",
+        "caucasus": "캅카스",
+        "colonies": "식민지",
+        "east": "동부",
+        "italy": "이탈리아",
+        "mesopotamia": "메소포타미아",
+        "palestine": "팔레스타인",
+        "sea": "바다",
+        "straits": "해협",
+        "west": "서부"
+      },
+      "trench": "참호 {n}/{max}단계",
+      "trench_word": {
+        "0": "움직이는 전선",
+        "1": "참호를 파기 시작함",
+        "2": "얕은 참호",
+        "3": "참호선",
+        "4": "깊은 참호망",
+        "5": "철조망과 포대의 벽"
+      },
+      "trust": {
+        "0": "등 돌림",
+        "1": "불신",
+        "2": "의심",
+        "3": "무난",
+        "4": "신임",
+        "5": "깊은 신임",
+        "6": "전적인 신뢰"
+      },
+      "trust_label": "당신에 대한 신임",
+      "why_none": "아직 기록이 없습니다.",
+      "why_title": "이렇게 된 까닭"
     }
   }
 }

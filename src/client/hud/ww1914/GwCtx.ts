@@ -1,0 +1,67 @@
+import type { GwAlloc } from "@openfront/engine-api/ww1914/GreatWarTypes";
+import type { GwOrder } from "@openfront/engine-api/ww1914/GwOrders";
+import type { GwPack } from "@openfront/engine-api/ww1914/GwPack";
+import type {
+  GreatWarData,
+  GwCardView,
+  GwSeatView,
+} from "@openfront/engine-api/ww1914/GwView";
+import type { GwTab, Shelf } from "./GwModel";
+
+/** One line of a talk as it stood: the card at that node, what I answered. */
+export interface TalkTurn {
+  /** The card as it was at this node: its text is looked up when drawn. */
+  card: GwCardView;
+  /** The reply I gave (its id), null while it is my turn. */
+  reply: string | null;
+  /** The price I was shown for the reply. */
+  tell: readonly string[];
+  /** Date.now() when the reply went; a reply the engine refused comes back. */
+  sentAt?: number;
+}
+
+export interface Transcript {
+  uid: number;
+  who: string;
+  scene: string;
+  cast: Readonly<Record<string, string>>;
+  turns: TalkTurn[];
+  /** The last node's id, so a new node is told from a repeat. */
+  node: string | null;
+  closed: boolean;
+  /** How long the why-log was when it began: lines after are its reasons. */
+  logAt: number;
+  /** The reasons that came while it ran, as translation keys. */
+  reasons: string[];
+}
+
+/** What the screens may change; the panel owns the instance. */
+export interface GwUi {
+  tab: GwTab;
+  /** The drawer is folded to its tab strip. */
+  folded: boolean;
+  readerUid: number | null;
+  /** An option picked in the reader and waiting for its signature. */
+  armed: { uid: number; option: string } | null;
+  talkUid: number | null;
+  talks: Map<number, Transcript>;
+  openPerson: string | null;
+  /** Date.now() of the last summon sent; a talk that appears soon after opens itself. */
+  summoned: number;
+  /** A dismissal waiting for its second tap. */
+  armedDismiss: string | null;
+  alloc: GwAlloc | null;
+  shelf: Shelf;
+}
+
+export interface GwCtx {
+  data: GreatWarData;
+  seat: GwSeatView;
+  pack: GwPack | null;
+  ui: GwUi;
+  tick: number;
+  send(order: GwOrder): void;
+  /** Redraw after a change of ui state. */
+  redraw(): void;
+  card(uid: number): GwCardView | undefined;
+}
