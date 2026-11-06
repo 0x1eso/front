@@ -14935,8 +14935,8 @@
       "ai": "{country}의 원수는 {word}이었다.",
       "force": "{theatre}의 {country}은(는) 보기보다 강했다.",
       "lean": "{country}의 속내: {fact}.",
-      "person": "{person}의 실제 역량은 3 중 {value}이었다.",
-      "source": "{source}의 실제 믿음직함은 3 중 {value}이었다.",
+      "person": "{person}의 실제 역량은 세 단계 중 {value}단계였다.",
+      "source": "{source}의 실제 믿음직함은 세 단계 중 {value}단계였다.",
       "wrong_report": "{country}에 관한 보고 하나는 틀렸고 끝내 정정되지 않았다."
     }
   }
