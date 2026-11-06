@@ -5,6 +5,7 @@ import { GW_PEOPLE_COMMON } from "./people_common";
 import { GW_PEOPLE_DEU } from "./people_deu";
 import { COMMON_SCENES } from "./scenes/common";
 import { DEU_SCENES } from "./scenes/deu";
+import { GW_DIP_SCENES } from "./scenes/gw_dip";
 import { WORLD_SCENES } from "./scenes/world";
 
 export interface GwContent {
@@ -14,7 +15,7 @@ export interface GwContent {
 
 /** All content. A new country's file adds one line here. */
 export const GW_CONTENT: GwContent = {
-  scenes: [...COMMON_SCENES, ...DEU_SCENES, ...WORLD_SCENES],
+  scenes: [...COMMON_SCENES, ...DEU_SCENES, ...WORLD_SCENES, ...GW_DIP_SCENES],
   people: [...GW_PEOPLE, ...GW_PEOPLE_DEU, ...GW_PEOPLE_COMMON],
 };
 
