@@ -237,7 +237,10 @@ export class SettingsModal extends LitElement implements Controller {
               ? "saved_games.save_desc_local"
               : "saved_games.save_desc",
           )
-        : translateText(`saved_games.save_status.${status}`);
+        : status === "saved" &&
+            this.game?.config().gameConfig().gameType !== GameType.Singleplayer
+          ? translateText("gw.lobby.saved_friends")
+          : translateText(`saved_games.save_status.${status}`);
     return html`
       <button
         class="flex gap-3 items-center w-full text-left p-3 hover:bg-slate-700 rounded-sm text-white transition-colors disabled:opacity-60"

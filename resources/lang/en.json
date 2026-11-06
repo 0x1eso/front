@@ -2239,6 +2239,7 @@
       "resume_not_friends": "That save is a solo game.",
       "resume_note": "Resuming a saved game: {date}, chapter {n}. Take your old seat.",
       "resume_open": "Resume a saved game",
+      "saved_friends": "Saved. Bring it back from a new lobby: Resume a saved game.",
       "seat_free": "Free",
       "seat_unwritten": "Common scenes only for now",
       "seats_hint": "Pick a seat. The AI runs every country nobody takes.",

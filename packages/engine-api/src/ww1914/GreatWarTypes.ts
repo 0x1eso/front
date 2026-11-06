@@ -598,8 +598,6 @@ export const GwSeatStateSchema = z.object({
   idle: z.number().int(),
   /** Friends: the seat's own AI is running it (design §9). */
   regent: z.boolean(),
-  /** The regency began with the player gone: coming back ends it. */
-  regentGone: z.boolean(),
   /** Telegrams sent this chapter. */
   wired: z.number().int(),
   /** The player's connection is down. */

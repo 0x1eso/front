@@ -205,7 +205,6 @@ export class GreatWar {
         acted: false,
         idle: 0,
         regent: false,
-        regentGone: false,
         wired: 0,
         away: false,
       });

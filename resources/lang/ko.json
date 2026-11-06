@@ -14975,7 +14975,8 @@
       "seats_hint": "자리를 고르세요. 아무도 안 고른 나라는 AI가 맡습니다.",
       "timer_label": "장 타이머",
       "timer_sec": "{n}초",
-      "timer_table": "장마다 다르게"
+      "timer_table": "장마다 다르게",
+      "saved_friends": "저장했습니다. 새 방의 「저장한 판 이어하기」에서 이어 합니다."
     },
     "diplo": {
       "clause_add": "조항 더하기",

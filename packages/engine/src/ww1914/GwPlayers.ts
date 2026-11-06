@@ -4,6 +4,7 @@ import { gwCountry, GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import { PseudoRandom } from "@openfront/engine-lib/PseudoRandom";
 import type { GwWorld } from "@openfront/engine-lib/ww1914/World1914";
 import type { Game } from "../game/Game";
+import { takeBack } from "./Seats";
 
 /**
  * Every country as a player, GW_TAGS order. Humans take their pick if it is
@@ -60,6 +61,7 @@ export function rebindGwSeats(
     const taker = players.find((x) => x.gwCountry === seat.tag);
     if (taker !== undefined) {
       p.rebindClient(taker.clientID, taker.isLobbyCreator ?? false);
+      takeBack(gw, seat);
     }
     p.markDisconnected(taker === undefined);
   }

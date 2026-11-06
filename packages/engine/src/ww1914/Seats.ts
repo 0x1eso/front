@@ -29,7 +29,6 @@ export function waitedFor(seat: GwSeatState): boolean {
 export function takeBack(gw: GreatWar, seat: GwSeatState): void {
   if (!seat.regent) return;
   seat.regent = false;
-  seat.regentGone = false;
   seat.idle = 0;
   reason(gw, seat, "seat_taken_back");
   gw.touch();
@@ -41,7 +40,7 @@ export function watchSeats(gw: GreatWar): void {
     const away = isAway(gw, seat);
     if (away === seat.away) continue;
     seat.away = away;
-    if (!away && seat.regentGone) takeBack(gw, seat);
+    if (!away) takeBack(gw, seat);
     gw.touch();
   }
 }
@@ -60,7 +59,6 @@ export function closeSeats(gw: GreatWar): void {
     seat.acted = false;
     if (!clocked || seat.regent || seat.idle < GW_REGENT_AFTER) continue;
     seat.regent = true;
-    seat.regentGone = seat.away;
     reason(gw, seat, "regent_took_over");
     news(gw, "regent_took_over", seat.tag);
   }

@@ -15,6 +15,7 @@ import type { GreatWar } from "./GreatWar";
 import { GW_MANDATES } from "./Mandates";
 import { holds } from "./SceneRun";
 import { closeTreaties } from "./Treaties";
+import { leaveWar } from "./Wars";
 import { defOf, fights } from "./World";
 
 const P_UNKNOWN = idHash("gw_unknown");
@@ -58,21 +59,30 @@ export function endingStep(gw: GreatWar): void {
   for (const seat of s.seats) {
     const n = gw.nation(seat.tag);
     if (n !== null && n.unrest >= 4) {
-      s.ended = "home_collapse";
-      return;
+      // A friend's collapse is that country's end, not the table's.
+      if (s.seats.length === 1) {
+        s.ended = "home_collapse";
+        return;
+      }
+      leaveWar(gw, seat.tag, "nation_beaten");
     }
     if (enemiesBeaten(gw, seat)) {
       s.ended = "victory_peace";
       return;
     }
   }
+  if (s.seats.length > 1 && s.seats.every((x) => gw.nation(x.tag)?.out)) {
+    s.ended = "home_collapse";
+  }
 }
 
-/** Past the last chapter, whatever stands. */
-export function finalEnding(gw: GreatWar): GwEnding {
+/** Past the last chapter, whatever stands, as `seat` sees it. */
+export function finalEnding(
+  gw: GreatWar,
+  seat: GwSeatState | undefined = gw.s.seats[0],
+): GwEnding {
   const s = gw.s;
   if (s.warChapter === null) return "long_peace";
-  const seat = s.seats[0];
   const side = seat === undefined ? "central" : gw.nation(seat.tag)?.side;
   const score = warScore(gw, side ?? "central");
   if (gwChapters(s.calendar).length <= FIRST_WINTER_CHAPTERS) {
@@ -184,6 +194,15 @@ function turnOf(key: string): { key: string; tag: GwTag | null } | null {
   return GW_TURNS.includes(key) ? { key, tag: null } : null;
 }
 
+/**
+ * The ending on this seat's page. "Ahead" and "behind" are a side's words, so
+ * friends on two sides read their own; the rest are the game's.
+ */
+function endingOf(gw: GreatWar, seat: GwSeatState): string {
+  const ended = gw.s.ended ?? "closing";
+  return ended.startsWith("first_winter_") ? finalEnding(gw, seat) : ended;
+}
+
 export function memoirOf(gw: GreatWar, seat: GwSeatState): GwMemoir {
   const s = gw.s;
   const ownDefs = gwContent().people.filter((d) => d.tag === seat.tag);
@@ -205,7 +224,7 @@ export function memoirOf(gw: GreatWar, seat: GwSeatState): GwMemoir {
     id,
     met: mandateMet(gw, seat, id),
   }));
-  const ending = s.ended ?? "closing";
+  const ending = endingOf(gw, seat);
   return {
     ending,
     chapter: s.chapter,

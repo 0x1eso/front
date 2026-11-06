@@ -42,10 +42,11 @@ export async function loadGwPack(
 ): Promise<GwPack> {
   const file = (f: string) => `ww1914/ko/${f}.json`;
   const shares = (GW_PACK_SHARES[tag] ?? []).map((x) => `${tag}.${x}`);
-  const [main, parts] = await Promise.all([
-    Promise.all(["common", tag].map((f) => get(file(f)))),
-    Promise.all(shares.map((f) => fragment(file(f), get))),
+  // A seat's country may have no text yet: it plays the common scenes.
+  const [common, parts] = await Promise.all([
+    get(file("common")),
+    Promise.all([tag, ...shares].map((f) => fragment(file(f), get))),
   ]);
   const found = parts.filter((r) => r !== null);
-  return mergeGwPacks([...main, ...found].map((r) => GwPackSchema.parse(r)));
+  return mergeGwPacks([common, ...found].map((r) => GwPackSchema.parse(r)));
 }

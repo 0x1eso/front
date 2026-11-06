@@ -1,13 +1,37 @@
-import { GameType } from "@openfront/engine-api/game/GameTypes";
+import {
+  GameMapSize,
+  GameMapType,
+  GameType,
+} from "@openfront/engine-api/game/GameTypes";
 import { GameUpdateType } from "@openfront/engine-api/game/GameUpdates";
 import { GwOrderSchema } from "@openfront/engine-api/ww1914/GwOrders";
 import type { GwOrder } from "@openfront/engine-api/ww1914/GwOrders";
 import type { GreatWarData } from "@openfront/engine-api/ww1914/GwView";
 import { gwPlayers } from "@openfront/engine/ww1914/GwPlayers";
-import type { GameRunner } from "@openfront/engine/GameRunner";
+import {
+  createGameRunnerFromSnapshot,
+  GameRunner,
+} from "@openfront/engine/GameRunner";
+import { readSnapshotHeader } from "@openfront/engine/snapshot/GameSnapshot";
+import {
+  endingStep,
+  finalEnding,
+  memoirOf,
+} from "@openfront/engine/ww1914/Endings";
+import { warScore } from "@openfront/engine/ww1914/Fronts";
+import { regentStep } from "@openfront/engine/ww1914/Seats";
 import { gwView } from "@openfront/engine/ww1914/View";
+import { ruledBySeat } from "@openfront/engine/ww1914/World";
 import { describe, expect, it } from "vitest";
-import { stamped, step, wwRunnerCapture } from "../ww1936/util";
+import { loadMapFiles } from "@openfront/shared/GameMapLoader";
+import { TestDataMapLoader } from "../util/ScriptedGame";
+import {
+  MINI,
+  stamped,
+  step,
+  wwGameStart,
+  wwRunnerCapture,
+} from "../ww1936/util";
 
 const A = "AAAAAAA1";
 const B = "BBBBBBB2";
@@ -218,6 +242,39 @@ describe("proxy and regency", () => {
     expect(seatOf(runner, "GBR").log.map((l) => l.key)).toContain(
       "seat_taken_back",
     );
+  });
+
+  it("gives back a seat emptied before the friend dropped", async () => {
+    const { runner } = await friends({ greatWar1914TimerSec: 60 });
+    timeOut(runner);
+    timeOut(runner);
+    expect(seatOf(runner, "GBR").regent).toBe(true);
+    const drop = (isDisconnected: boolean) => {
+      step(runner, 1, [
+        stamped(C, { type: "mark_disconnected", isDisconnected } as never),
+      ]);
+      step(runner, 2);
+    };
+    drop(true);
+    drop(false);
+    expect(seatOf(runner, "GBR").regent).toBe(false);
+  });
+
+  it("signs the AI's plan for a regent's country", async () => {
+    const { runner } = await friends({ greatWar1914TimerSec: 60 });
+    const gw = gwOf(runner);
+    const seat = seatOf(runner, "DEU");
+    seat.regent = true;
+    gw.nation("DEU")!.alloc = {
+      main: "east",
+      posture: "offensive",
+      scale: "major",
+      allyShare: 0,
+      research: "sea",
+    };
+    regentStep(gw);
+    expect(seat.alloc.main).toBe("east");
+    expect(ruledBySeat(gw, "DEU")).toBe(false);
   });
 
   it("does not wait for a regent's seat", async () => {
@@ -455,7 +512,105 @@ describe("secret treaties", () => {
   });
 });
 
+describe("a save between friends", () => {
+  const bring = async (made: Awaited<ReturnType<typeof friends>>, me: string) =>
+    createGameRunnerFromSnapshot(
+      wwGameStart({ greatWar1914: true, gameType: GameType.Private }, [
+        { clientID: "NEWAAAA1", gwCountry: "RUS" },
+        { clientID: "NEWBBBB2", gwCountry: "DEU" },
+      ]),
+      made.runner.snapshot(),
+      me,
+      await loadMapFiles(
+        new TestDataMapLoader(MINI),
+        GameMapType.World1936,
+        GameMapSize.Normal,
+      ),
+      () => {},
+    );
+  const turn = (r: GameRunner, who: string, o: GwOrder) => {
+    step(r, 1, [stamped(who, { type: "gw_order", order: o })]);
+    step(r, 2);
+  };
+
+  it("names its seats in the header", async () => {
+    const made = await friends();
+    closeChapter(made.runner);
+    const h = readSnapshotHeader(made.runner.snapshot());
+    expect(h.greatWar?.seats.sort()).toEqual(["DEU", "GBR", "RUS"]);
+    expect(h.greatWar?.chapter).toBe(1);
+    expect(h.greatWar?.date).toMatch(/^1914-/);
+  });
+
+  it("seats new connections by country, swapped or not, and stays in step", async () => {
+    const made = await friends();
+    const one = await bring(made, "NEWAAAA1");
+    const two = await bring(made, "NEWBBBB2");
+    for (const r of [one, two]) {
+      const gw = gwOf(r);
+      expect(r.game.playerByClientID("NEWAAAA1")!.smallID()).toBe(
+        seatOf(r, "RUS").smallID,
+      );
+      expect(r.game.playerByClientID("NEWBBBB2")!.smallID()).toBe(
+        seatOf(r, "DEU").smallID,
+      );
+      // Nobody took Britain: its seat is away and its regent will come.
+      step(r, 2);
+      expect(seatOf(r, "GBR").away).toBe(true);
+      turn(r, "NEWAAAA1", {
+        kind: "telegram",
+        to: "DEU",
+        cipher: 0,
+        text: "다시 만났소",
+      });
+      expect(gw.s.telegrams).toHaveLength(1);
+    }
+    expect(gwOf(one).hash()).toBe(gwOf(two).hash());
+  });
+
+  it("gives the viewer only the new seat", async () => {
+    const made = await friends();
+    const r = await bring(made, "NEWAAAA1");
+    step(r, 2);
+    const gw = gwOf(r);
+    gw.touch();
+    expect(gw.takeData()!.seats.map((s) => s.tag)).toEqual(["RUS"]);
+  });
+
+  it("hands a seat under a regent back to whoever takes it", async () => {
+    const made = await friends();
+    seatOf(made.runner, "RUS").regent = true;
+    const r = await bring(made, "NEWAAAA1");
+    expect(seatOf(r, "RUS").regent).toBe(false);
+  });
+});
+
+describe("a friend's collapse", () => {
+  it("takes that country out and leaves the table playing", async () => {
+    const { runner: r } = await friends();
+    const gw = gwOf(r);
+    gw.nation("RUS")!.unrest = 4;
+    endingStep(gw);
+    expect(gw.s.ended).toBe(null);
+    expect(gw.nation("RUS")!.out).toBe(true);
+  });
+});
+
 describe("the end", () => {
+  it("reads ahead and behind from each seat's side", async () => {
+    const { runner: r } = await friends();
+    const gw = gwOf(r);
+    gw.s.warChapter = 0;
+    gw.nation("DEU")!.side = "central";
+    gw.nation("RUS")!.side = "entente";
+    gw.s.ended = "first_winter_level";
+    const of = (tag: string) => finalEnding(gw, seatOf(r, tag));
+    const scoreDeu = warScore(gw, "central");
+    expect(scoreDeu).toBe(-warScore(gw, "entente"));
+    if (Math.abs(scoreDeu) >= 15) expect(of("DEU")).not.toBe(of("RUS"));
+    expect(memoirOf(gw, seatOf(r, "DEU")).ending).toBe(of("DEU"));
+  });
+
   it("opens everyone's memoir and every treaty to all", async () => {
     const { runner: r } = await friends();
     const gw = gwOf(r);
