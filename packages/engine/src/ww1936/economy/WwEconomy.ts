@@ -126,6 +126,11 @@ export interface Line {
   lastOutput: number;
   /** P6 (spec §5.5, lane E): the EQUIP_KEYS index a converting line takes from stock; -1 none. */
   convertFrom: number;
+  /**
+   * ww115 T6: the working factories it lately had, while that is above
+   * `active`: those come back without an efficiency penalty. Absent: none.
+   */
+  peak?: number;
 }
 
 /** P4 plan decision 12: the buildings P4 adds, kept by building id (P6 appends its six). */
@@ -389,6 +394,8 @@ const LineSchema = z.object({
   lastOutput: zInt(),
   /** P6: written always; absent reads -1. */
   convertFrom: zInt().optional(),
+  /** ww115 T6: written only while the line remembers lost factories. */
+  peak: zInt().optional(),
 });
 const ProjectSchema = z.object({
   region: zInt(),
@@ -806,7 +813,7 @@ export class WwEconomy {
     if (!p.isPlayer() || !this.ww.isActor(id)) return;
     this.refreshTotals(ce, day, tick);
     stepManpower(this, ce, p);
-    stepProduction(this, ce);
+    stepProduction(this, ce, day);
     // P4 spec §16.1: naval lines and repairs before construction, fuel after research.
     stepNavalLines(this, ce, day);
     stepRepairs(this, ce, day);
@@ -1577,6 +1584,8 @@ export class WwEconomy {
         // Lane E review minor 8 (batch P6-4): what the line builds and the
         // stock it converts from (-1: none).
         h = (Math.imul(h, 31) + l.key + (l.convertFrom + 1) * 4096) | 0;
+        // ww115 T6 (nothing while a line remembers no lost factories).
+        if (l.peak !== undefined) h = (Math.imul(h, 31) + l.peak * 7 + 3) | 0;
       }
       // Progress, so a desync in construction or research shows the same
       // day (not when a building or tech completes).

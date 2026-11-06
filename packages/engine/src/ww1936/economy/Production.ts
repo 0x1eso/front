@@ -121,6 +121,8 @@ export function changeLine(
   line.key = toKey;
   line.progress = 0;
   line.convertFrom = -1;
+  // ww115 T6: what it remembers it ran on the old equipment.
+  delete line.peak;
   return null;
 }
 
@@ -178,21 +180,46 @@ export function moveLine(
   return null;
 }
 
+/** ww115 T6: a line forgets one factory it lost every this many days. */
+export const LINE_PEAK_FORGET_DAYS = 30;
+
+/**
+ * ww115 T6: the line's working factories become `now`. Factories coming
+ * back within the recent count (bombed, taken or trimmed, then repaired)
+ * rejoin without a penalty; only ones past it join at the floor. An order
+ * for fewer factories gives the memory up (it is capped by line.factories),
+ * so moving factories between lines by hand costs what it always did.
+ */
+function staffLine(line: Line, now: number, day: number): void {
+  const had = line.active;
+  const known = Math.max(line.peak ?? 0, had);
+  if (now > had) {
+    const back = Math.min(now, known);
+    line.effBp = effAfterAdding(line.effBp, back, now - back);
+  }
+  line.active = now;
+  let peak = Math.min(known, line.factories);
+  if (peak > now && day % LINE_PEAK_FORGET_DAYS === 0) peak--;
+  if (peak > now) line.peak = peak;
+  else if (line.peak !== undefined) delete line.peak;
+}
+
 /**
  * One day of resource allocation and production for `ce` (spec §7.3,
  * §8.2–§8.3): trim the lines to the working military factories from the
  * bottom, allocate resources in line order, produce, then grow efficiency.
  */
-export function stepProduction(econ: WwEconomy, ce: CountryEconomy): void {
+export function stepProduction(
+  econ: WwEconomy,
+  ce: CountryEconomy,
+  day = econ.day(),
+): void {
   const t = ce.totals;
   let avail = t.mil;
   for (const line of ce.lines) {
     const now = Math.min(line.factories, avail);
     avail -= now;
-    if (now > line.active) {
-      line.effBp = effAfterAdding(line.effBp, line.active, now - line.active);
-    }
-    line.active = now;
+    staffLine(line, now, day);
   }
   t.idleMil = avail;
   const available = t.produced.map((v, k) => v - t.exported[k] + t.imported[k]);
