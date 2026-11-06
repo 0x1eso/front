@@ -61,7 +61,7 @@ export function renderOobTop(m: PrepOobModel): TemplateResult {
         : "";
   return html`<div
     data-ww-oob-top
-    class="z-10 flex flex-col md:sticky md:top-0 gap-1 rounded-md border border-white/15 bg-gray-900/95 p-2 text-xs"
+    class="z-10 flex flex-col md:sticky md:top-0 gap-1 rounded-md border border-white/15 bg-gray-900 p-2 text-xs"
   >
     <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
       <span
