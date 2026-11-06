@@ -397,6 +397,7 @@ describe("pack shares", () => {
       }),
       "ww1914/ko/DEU.war.json": pack({ scenes: { c: scene } }),
       "ww1914/ko/DEU.people.json": pack({ promises: { p: "promise" } }),
+      "ww1914/ko/GBR.people.json": pack(),
     };
     const got = await loadGwPack("DEU", async (p) => files[p]);
     expect(Object.keys(got.scenes).sort()).toEqual(["a", "b", "c"]);
@@ -416,13 +417,17 @@ describe("pack shares", () => {
     await expect(loadGwPack("DEU", get({ version: 2 }))).rejects.toThrow();
   });
 
-  test("the main files stay required, and countries with no shares ask for none", async () => {
+  test("the main files stay required, and countries with no shares ask only for the casts", async () => {
     const asked: string[] = [];
     await loadGwPack("FRA", async (p) => {
       asked.push(p);
       return pack();
     });
-    expect(asked).toEqual(["ww1914/ko/common.json", "ww1914/ko/FRA.json"]);
+    expect(asked).toEqual([
+      "ww1914/ko/common.json",
+      "ww1914/ko/FRA.json",
+      "ww1914/ko/GBR.people.json",
+    ]);
     await expect(
       loadGwPack("DEU", async () => {
         throw new Error("404");

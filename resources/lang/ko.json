@@ -14478,7 +14478,11 @@
       "hun_pm": "헝가리 수상",
       "interior": "내무대신",
       "navy": "해군대신",
-      "war": "육군대신"
+      "war": "육군대신",
+      "ambassador_washington": "주미 대사",
+      "ireland": "아일랜드 장관",
+      "munitions": "군수대신",
+      "sea_lord": "제1해군경"
     },
     "panel": {
       "chapter": "{date}, {total}장 중 {n}장",

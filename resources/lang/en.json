@@ -2253,6 +2253,7 @@
       "ambassador_paris": "Ambassador in Paris",
       "ambassador_petersburg": "Ambassador in St Petersburg",
       "ambassador_vienna": "Ambassador in Vienna",
+      "ambassador_washington": "Ambassador in Washington",
       "chancellor": "Chancellor",
       "chief_of_staff": "Chief of the General Staff",
       "court": "Court",
@@ -2260,7 +2261,10 @@
       "foreign": "Foreign Secretary",
       "hun_pm": "Hungarian Prime Minister",
       "interior": "Interior",
+      "ireland": "Ireland",
+      "munitions": "Munitions",
       "navy": "Navy",
+      "sea_lord": "First Sea Lord",
       "war": "War"
     },
     "panel": {
