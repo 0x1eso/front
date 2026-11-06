@@ -2164,6 +2164,7 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
           v("arrogant", mood("arrogant")),
           v("cunning", mood("cunning")),
           v("anxious", mood("anxious")),
+          v("base"),
         ],
         r("ask", "cold", "ask", "price", {
           reacts: [when_(sour, "shut", reason("north_hung_up"))],
@@ -2928,7 +2929,7 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
           ...fillVacant(() => "gbr_churchill"),
           keepPromise(byName("gbr_churchill"), "p_chu_back"),
         ],
-        memory("k_chu_back"),
+        all(memory("k_chu_back"), anyEmpty),
       ),
     ],
   }),

@@ -1,3 +1,4 @@
+import { GameType } from "@openfront/engine-api/game/GameTypes";
 import { GwPack, gwPackProblems } from "@openfront/engine-api/ww1914/GwPack";
 import { gwContentProblems } from "@openfront/engine-api/ww1914/SceneCheck";
 import {
@@ -10,6 +11,8 @@ import { GBR_HOME_SCENES } from "@openfront/engine-lib/ww1914/content/scenes/gbr
 import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
+import { HUMAN, step, wwRunnerCapture } from "../ww1936/util";
+import { order, seat, view } from "./util";
 
 // The fragment joins the GBR pack at merge, so this test reads it on its own.
 const pack: GwPack = JSON.parse(
@@ -129,5 +132,26 @@ describe("the home share of Britain", () => {
     }
     const record = scenes.find((s) => s.id === "gbr_h_dublin_record")!;
     expect(record.options ?? []).toEqual([]);
+  });
+
+  test("a British seat summons Lloyd George and walks the budget talk", async () => {
+    const { runner } = await wwRunnerCapture(
+      { greatWar1914: true, gameType: GameType.Singleplayer },
+      [{ clientID: HUMAN, country: "GBR" }],
+    );
+    step(runner, 2);
+    expect(view(runner).chapter).toBe(0);
+    order(runner, {
+      kind: "summon",
+      person: "gbr_lloyd_george",
+      topic: "gbr_t_lg_budget",
+    });
+    const card = seat(runner).desk.find((c) => c.scene === "gbr_t_lg_budget")!;
+    expect(card.node).toBe("open");
+    order(runner, { kind: "reply", card: card.uid, reply: "stand" });
+    const memories = runner.game
+      .greatWar()!
+      .s.seats[0].memory.map((m) => m.key);
+    expect(memories).toContain("k_lg_budget");
   });
 });
