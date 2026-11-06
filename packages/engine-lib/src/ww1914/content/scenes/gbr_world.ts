@@ -441,6 +441,7 @@ export const GBR_WORLD_SCENES: readonly GwScene[] = [
     salience: 8,
     tags: ["foreign", "tension_down"],
     variants: [
+      { id: "house", when: chose("gbr_f_house", "initial") },
       { id: "lg", when: lg },
       { id: "behind", when: score(undefined, -10) },
       { id: "base" },
@@ -776,7 +777,11 @@ export const GBR_WORLD_SCENES: readonly GwScene[] = [
     start: "open",
     nodes: {
       open: {
-        says: [{ id: "cold", when: moody(who, "cold") }, { id: "base" }],
+        says: [
+          { id: "shut", when: shut },
+          { id: "cold", when: moody(who, "cold") },
+          { id: "base" },
+        ],
         replies: [
           {
             id: "show",
@@ -1205,6 +1210,7 @@ export const GBR_WORLD_SCENES: readonly GwScene[] = [
     nodes: {
       open: {
         says: [
+          { id: "shut", when: shut },
           { id: "stubborn", when: moody(who, "stubborn") },
           { id: "base" },
         ],
@@ -1321,7 +1327,11 @@ export const GBR_WORLD_SCENES: readonly GwScene[] = [
     start: "open",
     nodes: {
       open: {
-        says: [{ id: "cunning", when: moody(who, "cunning") }, { id: "base" }],
+        says: [
+          { id: "cold", when: moody(who, "cold") },
+          { id: "cunning", when: moody(who, "cunning") },
+          { id: "base" },
+        ],
         replies: [
           {
             id: "thick",
@@ -1644,7 +1654,11 @@ export const GBR_WORLD_SCENES: readonly GwScene[] = [
     start: "open",
     nodes: {
       open: {
-        says: [{ id: "weary", when: moody(who, "weary") }, { id: "base" }],
+        says: [
+          { id: "fm", when: holds("foreign", "gbr_balfour") },
+          { id: "weary", when: moody(who, "weary") },
+          { id: "base" },
+        ],
         replies: [
           {
             id: "aim",
@@ -1678,7 +1692,7 @@ export const GBR_WORLD_SCENES: readonly GwScene[] = [
             id: "grant",
             stance: "warm",
             kind: "deal",
-            tell: ["usa:+1", "fm:+1"],
+            tell: ["usa:+1", "trust:+1"],
             effects: [
               nation("USA", 1),
               trustOf(who, 1),
@@ -1778,7 +1792,7 @@ export const GBR_WORLD_SCENES: readonly GwScene[] = [
             id: "yes",
             stance: "warm",
             kind: "deal",
-            tell: ["fm:+1", "cabinet:-1"],
+            tell: ["trust:+1", "cabinet:-1"],
             effects: [trustOf(who, 1), cabinet(-1), remember("k_bal_zion")],
             next: "use",
           },
@@ -2372,6 +2386,7 @@ export const GBR_WORLD_SCENES: readonly GwScene[] = [
     nodes: {
       open: {
         says: [
+          { id: "shut", when: shut },
           { id: "money", when: gaugeAt("money", 1) },
           { id: "bread", when: gaugeAt("bread", 1) },
           { id: "shells", when: gaugeAt("shells", 1) },
@@ -3345,8 +3360,10 @@ export const GBR_WORLD_SCENES: readonly GwScene[] = [
     nodes: {
       open: {
         says: [
+          { id: "shut", when: shut },
           { id: "broke", when: promiseBroken(who, "p_chu_back") },
           { id: "lg", when: lg },
+          { id: "stubborn", when: moody(who, "stubborn") },
           { id: "anxious", when: moody(who, "anxious") },
           { id: "base" },
         ],
@@ -3463,6 +3480,7 @@ export const GBR_WORLD_SCENES: readonly GwScene[] = [
       open: {
         says: [
           { id: "money", when: gaugeAt("money", 1) },
+          { id: "weary", when: moody(who, "weary") },
           { id: "anxious", when: moody(who, "anxious") },
           { id: "base" },
         ],
@@ -3589,6 +3607,7 @@ export const GBR_WORLD_SCENES: readonly GwScene[] = [
       open: {
         says: [
           { id: "fall", when: isOut("RUS") },
+          { id: "weary", when: moody(who, "weary") },
           { id: "anxious", when: moody(who, "anxious") },
           { id: "base" },
         ],
@@ -3687,6 +3706,7 @@ export const GBR_WORLD_SCENES: readonly GwScene[] = [
     nodes: {
       open: {
         says: [
+          { id: "cold", when: moody(who, "cold") },
           { id: "arrogant", when: moody(who, "arrogant") },
           { id: "base" },
         ],
@@ -3806,7 +3826,11 @@ export const GBR_WORLD_SCENES: readonly GwScene[] = [
     start: "open",
     nodes: {
       open: {
-        says: [{ id: "cold", when: moody(who, "cold") }, { id: "base" }],
+        says: [
+          { id: "stubborn", when: moody(who, "stubborn") },
+          { id: "cold", when: moody(who, "cold") },
+          { id: "base" },
+        ],
         replies: [
           {
             id: "who",
@@ -3911,7 +3935,11 @@ export const GBR_WORLD_SCENES: readonly GwScene[] = [
     start: "open",
     nodes: {
       open: {
-        says: [{ id: "weary", when: moody(who, "weary") }, { id: "base" }],
+        says: [
+          { id: "cold", when: moody(who, "cold") },
+          { id: "weary", when: moody(who, "weary") },
+          { id: "base" },
+        ],
         replies: [
           {
             id: "sorry",
@@ -4507,7 +4535,11 @@ export const GBR_WORLD_SCENES: readonly GwScene[] = [
     cast: { fm: { office: "foreign" } },
     salience: 7,
     tags: ["foreign", "tension_down"],
-    variants: [{ id: "bolshevik", when: isOut("RUS") }, { id: "base" }],
+    variants: [
+      { id: "written", when: chose("gbr_f_peace_notes", "state_aims") },
+      { id: "bolshevik", when: isOut("RUS") },
+      { id: "base" },
+    ],
     fallback: "old_aims",
     options: [
       {
@@ -4688,7 +4720,14 @@ export const GBR_WORLD_SCENES: readonly GwScene[] = [
     tags: ["foreign", "tension_up"],
     once: false,
     cooldown: 6,
-    variants: [{ id: "falling", when: franceFalling }, { id: "base" }],
+    variants: [
+      {
+        id: "armed",
+        when: all(chose("gbr_f_neutral_line", "armed_mediator"), franceFalling),
+      },
+      { id: "falling", when: franceFalling },
+      { id: "base" },
+    ],
     fallback: "stay_out",
     options: [
       {
