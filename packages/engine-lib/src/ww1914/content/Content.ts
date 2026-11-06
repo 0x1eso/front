@@ -4,6 +4,7 @@ import { GW_PEOPLE } from "./people";
 import { COMMON_SCENES } from "./scenes/common";
 import { DEU_SCENES } from "./scenes/deu";
 import { DEU_CRISIS_SCENES } from "./scenes/deu_crisis";
+import { DEU_WAR_SCENES } from "./scenes/deu_war";
 import { WORLD_SCENES } from "./scenes/world";
 
 export interface GwContent {
@@ -17,6 +18,7 @@ export const GW_CONTENT: GwContent = {
     ...COMMON_SCENES,
     ...DEU_SCENES,
     ...DEU_CRISIS_SCENES,
+    ...DEU_WAR_SCENES,
     ...WORLD_SCENES,
   ],
   people: GW_PEOPLE,
