@@ -97,7 +97,12 @@ describe("content", () => {
   test("no id sits in two of the country's pack files", () => {
     const files = fs
       .readdirSync(res("ww1914/ko"))
-      .filter((f) => f === "common.json" || f.startsWith("DEU."));
+      .filter(
+        (f) =>
+          f === "common.json" ||
+          f.startsWith("common.") ||
+          f.startsWith("DEU."),
+      );
     const packs = files.map((f) => GwPackSchema.parse(json(`ww1914/ko/${f}`)));
     expect(gwPackOverlaps(packs)).toEqual([]);
   });

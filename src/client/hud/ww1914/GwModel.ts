@@ -8,16 +8,16 @@ import type {
   GwTheatre,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import {
-  GW_ENDINGS,
   GW_GAUGE_MAX,
   GW_INST_MAX,
   GW_INST_MIN,
   GW_LINES,
   GW_OFFICES,
-  GW_SECRETS,
   GW_TRUST_MAX,
   GW_TRUST_MIN,
+  gwSecretsFor,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
+import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import type { GwPack } from "@openfront/engine-api/ww1914/GwPack";
 import type {
   GreatWarData,
@@ -28,6 +28,7 @@ import type {
 } from "@openfront/engine-api/ww1914/GwView";
 import type { GwReplyKind } from "@openfront/engine-api/ww1914/SceneDsl";
 import { GW_REPLY_KINDS } from "@openfront/engine-api/ww1914/SceneDsl";
+import { gwEndingsOf } from "@openfront/engine-lib/ww1914/EndingRows";
 
 /** The drawer's tabs, in order (design §11). */
 export const GW_TABS = [
@@ -200,16 +201,18 @@ export interface Shelf {
 export const SHELF_KEY = "gw1914.shelf";
 
 /** The shelf's empty boxes, for a seat whose cast has `people` names. */
-export function shelfTotals(people: number): {
+export function shelfTotals(
+  people: number,
+  tag: GwTag = "DEU",
+): {
   endings: number;
   people: number;
   secrets: number;
 } {
-  // "closing" is a game with no ending of its own.
   return {
-    endings: GW_ENDINGS.length - 1,
+    endings: gwEndingsOf(tag).length,
     people,
-    secrets: GW_SECRETS.length,
+    secrets: gwSecretsFor(tag).length,
   };
 }
 

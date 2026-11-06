@@ -5,6 +5,7 @@ import {
   GW_LINES,
   GW_SIDES,
   GwAlloc,
+  GwResearch,
   GwResult,
   GwSeatState,
   GwSide,
@@ -13,11 +14,25 @@ import {
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import type { GwProposal } from "@openfront/engine-api/ww1914/GwWorldView";
+import { gwChapters } from "@openfront/engine-lib/ww1914/Calendars";
+import { civilFromDays } from "@openfront/engine-lib/ww1936/Calendar";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
+import { paperClosed } from "./Authority";
+import {
+  eraOf,
+  GW_SEASON,
+  posOf,
+  researchStep,
+  techEdge,
+  techShield,
+  warMonths,
+} from "./Eras";
 import type { GreatWar } from "./GreatWar";
 import { officeHolder, recordResult } from "./People";
 import {
+  GW_AI_RESEARCH,
   GW_ARMY_QUALITY,
+  GW_NEW_ARMIES,
   GW_THEATRE_SIDES,
   GW_WAR_ORDERS,
   GwWarOrder,
@@ -39,29 +54,103 @@ import {
 
 const P_BATTLE = idHash("gw_battle");
 const P_ESTIMATE = idHash("gw_estimate");
+const P_LOCAL = idHash("gw_local");
 
 /** Ratio of attack to defence, percent, for each result (design §4.2). */
 /** Percent an attack loses for each line past its own frontier. */
 const REACH_COST = 9;
 /** Percent an attack loses going over the other's own frontier. */
-const HOME_SOIL = 40;
+const HOME_SOIL = 55;
 const BREAK_AT = 175;
 const ADVANCE_AT = 112;
 const STALEMATE_AT = 78;
 
 /** Shells: what a side's fire is worth at 0..3. */
 const SHELL_FIRE = [55, 80, 100, 110];
+/** Thousands a local action is worth next to a limited or major one. */
+const SCALE_LOCAL = 40;
+const SCALE_LIMITED = 90;
+const SCALE_MAJOR = 200;
+/** Band lost for so much wear; a wear is MEN_PER_POINT thousand men. */
+const WEAR_PER_BAND = 8;
+/** Thousands lost in a chapter for one point of manpower. */
+const MEN_PER_POINT = 60;
+/** Below this a side has nobody to send. */
+const MEN_LOW = 12;
+/** A side won't try a local action on worse odds than this. */
+const LOCAL_FLOOR = 58;
+/** A chief won't press a theatre on odds worse than these, unless he's bold. */
+const PRESS_FLOOR = 90;
+const BOLD_FLOOR = 75;
+/** Chapters of the opening, when plans run on what was drawn up in peace. */
+const OPENING_CHAPTERS = 3;
 /** The narrow roll: it sways a result, never reverses a plain one. */
 const ROLL_SPAN = 31;
 const ROLL_LOW = 85;
 
 /** A chapter's chance to dig in further, by theatre. */
 const TRENCH_EVERY: Readonly<Partial<Record<GwTheatre, number>>> = {
-  west: 1,
+  west: 2,
+  east: 4,
+  italy: 3,
+  straits: 3,
+  balkan: 5,
+  caucasus: 6,
+  mesopotamia: 6,
+  palestine: 5,
+};
+
+/** How deep a theatre ever digs: there is too much ground in the east. */
+const TRENCH_MAX: Readonly<Partial<Record<GwTheatre, number>>> = {
+  west: 5,
+  italy: 4,
+  straits: 4,
   east: 3,
-  italy: 2,
-  straits: 2,
-  balkan: 3,
+  balkan: 1,
+  caucasus: 2,
+  mesopotamia: 2,
+  palestine: 2,
+};
+
+/**
+ * What the ground adds to a defence where it stands, percent: forts, ridges,
+ * rivers and the fortified lines an army falls back on.
+ */
+const GROUND: Readonly<Partial<Record<GwTheatre, Record<string, number>>>> = {
+  west: { liege: 25, somme: 12, aisne: 20, marne: 30 },
+  east: { east_prussia: 15, warsaw: 15, riga: 15 },
+  italy: { isonzo: 30, piave: 25, trentino: 30 },
+  caucasus: { erzurum: 25 },
+  straits: { gallipoli: 40, narrows: 50 },
+  mesopotamia: { kut: 15 },
+  palestine: { gaza: 25 },
+  balkan: { salonika: 20, belgrade: 15 },
+};
+
+/** Percent chance a theatre nobody's main effort sees a local action. */
+const LOCAL_PCT: Readonly<Record<GwTheatre, number>> = {
+  west: 25,
+  east: 45,
+  balkan: 40,
+  italy: 45,
+  caucasus: 45,
+  straits: 40,
+  mesopotamia: 50,
+  palestine: 50,
+  sea: 6,
+  colonies: 15,
+};
+
+/** Percent an attack loses for each line past its frontier, where that's hard. */
+const REACH_BY: Readonly<Partial<Record<GwTheatre, number>>> = {
+  west: 14,
+  east: 16,
+  mesopotamia: 22,
+  palestine: 20,
+  caucasus: 16,
+  colonies: 16,
+  italy: 15,
+  balkan: 12,
 };
 
 /** How much war a theatre holds next to the west: casualties, percent. */
@@ -115,6 +204,22 @@ function effortOf(gw: GreatWar, t: GwTheatre, side: GwSide): number {
   return out;
 }
 
+/** What a side keeps behind the line: a theatre it put its men in holds better. */
+function reservesOf(gw: GreatWar, t: GwTheatre, side: GwSide): number {
+  const s = gw.s;
+  // In the first weeks everyone is on the march: nothing stands behind yet.
+  if (s.warChapter === null || s.chapter <= s.warChapter + OPENING_CHAPTERS) {
+    return 0;
+  }
+  let out = 0;
+  for (const tag of membersOf(gw, t, side)) {
+    const a = allocOf(gw, tag);
+    if (a?.main !== t) continue;
+    out += a.posture === "hold" ? 18 : 6;
+  }
+  return out;
+}
+
 /** The lead's worth multipliers, percent, attack or defence. */
 function fireOf(gw: GreatWar, t: GwTheatre, side: GwSide): number {
   const lead = membersOf(gw, t, side)[0];
@@ -123,10 +228,41 @@ function fireOf(gw: GreatWar, t: GwTheatre, side: GwSide): number {
   const shells = SHELL_FIRE[n.gauges.shells];
   const morale = 80 + n.gauges.morale * 8;
   const men =
-    (n.manpower < 20 ? 80 : 100) * ((GW_ARMY_QUALITY[lead] ?? 90) / 100);
-  const art = Math.floor((n.tech.artillery ?? 0) / 6) * 4;
-  const inf = Math.floor((n.tech.infantry ?? 0) / 6) * 4;
-  return Math.floor(((shells + art + inf) * morale * men) / 10000);
+    (n.manpower < MEN_LOW ? 75 : 100) * ((GW_ARMY_QUALITY[lead] ?? 90) / 100);
+  return Math.floor((shells * morale * men) / 10000);
+}
+
+/** The lead on a side of a theatre, or null. */
+function leadOf(gw: GreatWar, t: GwTheatre, side: GwSide) {
+  const tag = membersOf(gw, t, side)[0];
+  return tag === undefined ? null : gw.nation(tag);
+}
+
+/** Lines built in the war: they count from their period, for their builders. */
+const BUILT: readonly {
+  readonly theatre: GwTheatre;
+  readonly line: string;
+  readonly by: GwSide;
+  readonly from: number;
+  readonly pct: number;
+}[] = [
+  { theatre: "west", line: "hindenburg", by: "central", from: 30, pct: 50 },
+];
+
+function groundOf(gw: GreatWar, t: GwTheatreState, foe: GwSide): number {
+  const line = GW_LINES[t.id][t.line];
+  const built = BUILT.find(
+    (b) =>
+      b.theatre === t.id &&
+      b.line === line &&
+      b.by === foe &&
+      warMonths(gw) >= b.from,
+  );
+  return (GROUND[t.id]?.[line] ?? 0) + (built?.pct ?? 0);
+}
+
+function seasonOf(gw: GreatWar, t: GwTheatre): number {
+  return GW_SEASON[t]?.[civilFromDays(gw.s.day).month] ?? 0;
 }
 
 function commandOf(gw: GreatWar, t: GwTheatreState, side: GwSide): number {
@@ -141,7 +277,8 @@ function commandOf(gw: GreatWar, t: GwTheatreState, side: GwSide): number {
 /** The first weeks' plan and the world's secrets, percent. */
 function openingBias(gw: GreatWar, t: GwTheatre, by: GwSide): number {
   const s = gw.s;
-  const first = s.warChapter !== null && s.chapter <= s.warChapter + 2;
+  const first =
+    s.warChapter !== null && s.chapter <= s.warChapter + OPENING_CHAPTERS;
   if (first && by === "central" && t === s.plan) return 25;
   if (t === "west" && by === "central" && first) {
     if (s.secrets.includes("bel_forts_strong")) return -12;
@@ -183,27 +320,51 @@ function orderBias(gw: GreatWar, t: GwTheatre, by: GwSide): number {
   );
 }
 
-/** Attack against defence, percent, before the roll. */
-function oddsOf(gw: GreatWar, t: GwTheatreState, by: GwSide): number {
+/**
+ * Attack against defence, percent, before the roll. `planned`: what the effort
+ * signed this chapter adds; without it, what the theatre would do if pressed.
+ */
+function oddsOf(
+  gw: GreatWar,
+  t: GwTheatreState,
+  by: GwSide,
+  planned = true,
+): number {
   const foe = other(by);
+  const effort = planned ? effortOf(gw, t.id, by) : 25;
+  const a = leadOf(gw, t.id, by);
+  const d = leadOf(gw, t.id, foe);
+  const edge = a === null || d === null ? 0 : techEdge(a, d);
+  const shield = d === null ? 0 : techShield(d);
   const att =
-    ((bandOf(gw, t.id, by) + effortOf(gw, t.id, by)) *
+    ((bandOf(gw, t.id, by) + effort) *
       fireOf(gw, t.id, by) *
       commandOf(gw, t, by)) /
     10000;
   const def =
-    ((bandOf(gw, t.id, foe) + 12) *
-      (100 + t.trench * 24) *
+    ((bandOf(gw, t.id, foe) + 12 + reservesOf(gw, t.id, foe)) *
+      (100 +
+        t.trench * 24 +
+        groundOf(gw, t, foe) +
+        eraOf(gw).defence +
+        shield) *
       (50 + fireOf(gw, t.id, foe) / 2) *
       commandOf(gw, t, foe)) /
     1000000;
   const home = t.line <= GW_FRONT_START[t.id] && by !== GW_FRONT_UP[t.id];
   const bias =
     openingBias(gw, t.id, by) +
-    orderBias(gw, t.id, by) -
-    reachOf(t, by) * REACH_COST -
+    orderBias(gw, t.id, by) +
+    edge -
+    seasonOf(gw, t.id) -
+    reachOf(t, by) * (REACH_BY[t.id] ?? REACH_COST) -
     (home && t.id !== "sea" ? HOME_SOIL : 0);
   return Math.floor((att * 100) / Math.max(1, def)) + bias;
+}
+
+/** What a theatre would do if pressed: the AI's and the chief's eye. */
+export function pressOdds(gw: GreatWar, t: GwTheatre, by: GwSide): number {
+  return oddsOf(gw, gw.s.theatres.find((x) => x.id === t)!, by, false);
 }
 
 /** Lines past the frontier: an advance outruns its railheads and stops. */
@@ -212,11 +373,25 @@ function reachOf(t: GwTheatreState, by: GwSide): number {
   return Math.max(0, by === GW_FRONT_UP[t.id] ? past : -past);
 }
 
-function attacks(gw: GreatWar, t: GwTheatre, side: GwSide): boolean {
-  return membersOf(gw, t, side).some((tag) => {
+/** Nothing left to take: the far end of the theatre's lines. */
+function atEnd(t: GwTheatreState, by: GwSide): boolean {
+  const up = by === GW_FRONT_UP[t.id];
+  return up
+    ? posOf(t) >= (GW_LINES[t.id].length - 1) * GW_LINE_STEP
+    : posOf(t) <= 0;
+}
+
+function attacks(gw: GreatWar, t: GwTheatreState, side: GwSide): boolean {
+  if (atEnd(t, side)) return false;
+  return membersOf(gw, t.id, side).some((tag) => {
     const a = allocOf(gw, tag);
-    return a !== null && a.main === t && a.posture === "offensive";
+    return a !== null && a.main === t.id && a.posture === "offensive";
   });
+}
+
+/** The trench an attack really meets: the storm looks past some of it. */
+function trenchFaced(gw: GreatWar, t: GwTheatreState): number {
+  return Math.max(0, t.trench - eraOf(gw).open);
 }
 
 function resultOf(ratio: number, trench: number): GwResult {
@@ -228,25 +403,19 @@ function resultOf(ratio: number, trench: number): GwResult {
 
 /** Steps gained: an open front moves far, a dug-in one barely. */
 function gainOf(result: GwResult, trench: number): number {
-  if (result === "break") return trench === 0 ? 7 : 4;
+  if (result === "break") return trench === 0 ? 4 : 3;
   if (result !== "advance") return 0;
-  return [5, 3, 2, 1, 1, 1][trench];
+  return [3, 2, 2, 1, 1, 1][trench];
 }
 
 function move(gw: GreatWar, t: GwTheatreState, by: GwSide, gain: number): void {
   const dir = by === GW_FRONT_UP[t.id] ? 1 : -1;
   const top = GW_LINES[t.id].length - 1;
-  // The rail: the Rhine falls to a Germany breaking at home, not to a push.
-  const rhine = t.id === "west" && (gw.nation("DEU")?.unrest ?? 0) < 2;
-  const floor = rhine ? GW_FRONT_START.west : 0;
-  let pos = t.line * GW_LINE_STEP + t.progress + dir * gain;
-  pos = clampTo(
-    pos,
-    Math.min(floor * GW_LINE_STEP, t.line * GW_LINE_STEP + t.progress),
-    top * GW_LINE_STEP,
-  );
+  const pos = clampTo(posOf(t) + dir * gain, 0, top * GW_LINE_STEP);
   t.line = Math.floor(pos / GW_LINE_STEP);
   t.progress = pos - t.line * GW_LINE_STEP;
+  // Ground lost to a break is ground the new line has not been dug on.
+  if (gain >= GW_LINE_STEP) t.trench = Math.max(0, t.trench - 1);
 }
 
 /** Thousands lost by attacker and defender. */
@@ -255,12 +424,13 @@ function lossesOf(
   t: GwTheatre,
   by: GwSide,
   result: GwResult,
+  local: boolean,
 ): [number, number] {
-  const scale = membersOf(gw, t, by).some(
-    (tag) => allocOf(gw, tag)?.scale === "major",
-  )
-    ? 140
-    : 60;
+  const major = membersOf(gw, t, by).some((tag) => {
+    const a = allocOf(gw, tag);
+    return a?.scale === "major" && a.main === t;
+  });
+  const scale = local ? SCALE_LOCAL : major ? SCALE_MAJOR : SCALE_LIMITED;
   const size = ((SCALE_OF[t] ?? 20) * scale) / 100;
   const lead = gw.nation(membersOf(gw, t, by)[0])!;
   const dry = lead.gauges.shells === 0 ? 140 : 100;
@@ -273,21 +443,24 @@ function lossesOf(
   ];
 }
 
+/** A side's losses fall on who is there, by what each has there. */
 function bleed(gw: GreatWar, t: GwTheatre, side: GwSide, lost: number): void {
   const members = membersOf(gw, t, side);
-  const lead = gw.nation(members[0]);
-  if (lead === null) return;
-  lead.casualties += lost;
-  lead.lostNow += lost;
-  lead.manpower = Math.max(0, lead.manpower - Math.floor(lost / 12));
-  lead.wear[t] = (lead.wear[t] ?? 0) + Math.floor(lost / 40);
-  if ((lead.wear[t] ?? 0) >= 5) {
-    lead.wear[t] = 0;
-    lead.strength[t] = Math.max(1, (lead.strength[t] ?? 1) - 1);
-  }
-  if (lost >= 150) {
-    moveGauge(gw, lead.tag, "morale", -1, "casualty_lists");
-  }
+  const bands = members.map((tag) => gw.nation(tag)!.strength[t] ?? 1);
+  const all = bands.reduce((a, b) => a + b, 0);
+  members.forEach((tag, i) => {
+    const n = gw.nation(tag)!;
+    const share = Math.floor((lost * bands[i]) / Math.max(1, all));
+    n.casualties += share;
+    n.lostNow += share;
+    n.manpower = Math.max(0, n.manpower - Math.floor(share / MEN_PER_POINT));
+    n.wear[t] = (n.wear[t] ?? 0) + Math.floor(share / MEN_PER_POINT);
+    if ((n.wear[t] ?? 0) >= WEAR_PER_BAND) {
+      n.wear[t] = 0;
+      n.strength[t] = Math.max(1, (n.strength[t] ?? 1) - 1);
+    }
+    if (share >= 250) moveGauge(gw, tag, "morale", -1, "casualty_lists");
+  });
 }
 
 /** A theatre's effect on the people who lead it and the country's mood. */
@@ -320,6 +493,7 @@ function settle(
         if (up) reason(gw, seat, `front_${t.id}_won`);
         else reason(gw, seat, `front_${t.id}_lost`);
       }
+      commandBlame(gw, tag, t.id, up);
     }
   }
 }
@@ -339,13 +513,47 @@ function lossShare(gw: GreatWar, t: GwTheatre, side: GwSide): number {
   );
 }
 
+/** A sovereign at the head of his army wears its results himself. */
+function commandBlame(
+  gw: GreatWar,
+  tag: GwTag,
+  t: GwTheatre,
+  won: boolean,
+): void {
+  const n = gw.nation(tag);
+  if (n === null || !n.command || allocOf(gw, tag)?.main !== t) return;
+  n.authority = clampTo(n.authority + (won ? 4 : -8), 0, 100);
+  if (won) return;
+  moveGauge(gw, tag, "order", -1, "order_command");
+  for (const seat of seatsOf(gw, tag)) reason(gw, seat, "command_blamed");
+}
+
+/**
+ * A theatre nobody put his main effort in still has generals: now and then the
+ * side with the better of it tries something, on its own scale.
+ */
+function localPush(gw: GreatWar, t: GwTheatreState): GwSide | null {
+  const s = gw.s;
+  const i = s.theatres.indexOf(t);
+  if (wwRoll(s.seed, P_LOCAL, s.chapter, i) % 100 >= LOCAL_PCT[t.id]) {
+    return null;
+  }
+  const ups = GW_FRONT_UP[t.id];
+  const up = atEnd(t, ups) ? 0 : oddsOf(gw, t, ups, false);
+  const down = atEnd(t, other(ups)) ? 0 : oddsOf(gw, t, other(ups), false);
+  const best = Math.max(up, down);
+  if (best < LOCAL_FLOOR) return null;
+  return up >= down ? ups : other(ups);
+}
+
 function judge(gw: GreatWar, t: GwTheatreState): void {
   const s = gw.s;
   orderSteps(gw, t);
   const ups = GW_FRONT_UP[t.id];
-  const aUp = attacks(gw, t.id, ups);
-  const aDown = attacks(gw, t.id, other(ups));
-  if (!aUp && !aDown) {
+  const aUp = attacks(gw, t, ups);
+  const aDown = attacks(gw, t, other(ups));
+  const local = !aUp && !aDown ? localPush(gw, t) : null;
+  if (!aUp && !aDown && local === null) {
     s.battles.push({
       theatre: t.id,
       chapter: s.chapter,
@@ -359,19 +567,21 @@ function judge(gw: GreatWar, t: GwTheatreState): void {
   }
   // Both attack: the stronger push is the one that counts.
   const by =
-    aUp && aDown
+    local ??
+    (aUp && aDown
       ? oddsOf(gw, t, ups) >= oddsOf(gw, t, other(ups))
         ? ups
         : other(ups)
       : aUp
         ? ups
-        : other(ups);
+        : other(ups));
   const i = gw.s.theatres.indexOf(t);
   const roll = ROLL_LOW + (wwRoll(s.seed, P_BATTLE, s.chapter, i) % ROLL_SPAN);
-  const ratio = Math.floor((oddsOf(gw, t, by) * roll) / 100);
-  const result = resultOf(ratio, t.trench);
-  move(gw, t, by, gainOf(result, t.trench));
-  const [rawA, rawD] = lossesOf(gw, t.id, by, result);
+  const ratio = Math.floor((oddsOf(gw, t, by, local === null) * roll) / 100);
+  const faced = trenchFaced(gw, t);
+  const result = resultOf(ratio, faced);
+  move(gw, t, by, gainOf(result, faced));
+  const [rawA, rawD] = lossesOf(gw, t.id, by, result, local !== null);
   const lostA = Math.floor((rawA * lossShare(gw, t.id, by)) / 100);
   const lostD = Math.floor((rawD * lossShare(gw, t.id, other(by))) / 100);
   bleed(gw, t.id, by, lostA);
@@ -388,9 +598,17 @@ function judge(gw: GreatWar, t: GwTheatreState): void {
   });
   settle(gw, t, by, result);
   const lead = membersOf(gw, t.id, by)[0];
+  if (local === null) {
+    for (const tag of membersOf(gw, t.id, by)) {
+      if (allocOf(gw, tag)?.scale === "major")
+        gw.nation(tag)!.spent = s.chapter;
+    }
+  }
   if (result === "break") news(gw, "front_break", lead, null, t.id);
   if (result === "advance") news(gw, "front_advance", lead, null, t.id);
-  if (result === "repelled") news(gw, "front_repelled", lead, null, t.id);
+  if (result === "repelled" && local === null) {
+    news(gw, "front_repelled", lead, null, t.id);
+  }
   if (roll <= ROLL_LOW + 3 && result === "repelled") {
     for (const seat of seatsOf(gw, lead)) reason(gw, seat, "bad_luck");
   }
@@ -402,7 +620,7 @@ function dig(gw: GreatWar, t: GwTheatreState): void {
   const age = gw.s.chapter - t.since;
   const months = monthsOf(gw);
   if (age >= 1 && age % every === 0) {
-    t.trench = Math.min(5, t.trench + months);
+    t.trench = Math.min(TRENCH_MAX[t.id] ?? 5, t.trench + months);
   }
 }
 
@@ -410,7 +628,10 @@ function dig(gw: GreatWar, t: GwTheatreState): void {
 function refill(gw: GreatWar): void {
   const c = gw.s.chapter;
   for (const n of gw.s.nations) {
-    if (!fights(n) || c % 3 !== 0 || n.manpower < 15) continue;
+    if (!fights(n)) continue;
+    // The year's class, and the wounded coming back.
+    n.manpower = Math.min(100, n.manpower + monthsOf(gw));
+    if (c % 2 !== 0 || n.manpower < MEN_LOW) continue;
     for (const [t, base] of Object.entries(n.base)) {
       const id = t as GwTheatre;
       if ((n.strength[id] ?? 0) < (base ?? 0)) {
@@ -421,6 +642,32 @@ function refill(gw: GreatWar): void {
   }
 }
 
+/** Months a country has been in, at this chapter and at the one before. */
+function monthsIn(gw: GreatWar, entered: number): [number, number] {
+  const days = gwChapters(gw.s.calendar);
+  const now = days[gw.s.chapter].day - days[entered].day;
+  const was = now - days[gw.s.chapter].spanDays;
+  return [Math.floor(now / 30), Math.floor(was / 30)];
+}
+
+/** New armies reach the front on their time (Tables.GW_NEW_ARMIES). */
+function newArmies(gw: GreatWar): void {
+  for (const row of GW_NEW_ARMIES) {
+    const n = gw.nation(row.tag);
+    if (n === null || !fights(n) || n.entered === null) continue;
+    const [now, was] = monthsIn(gw, n.entered);
+    const steps = row.months.filter((m) => m > was && m <= now).length;
+    if (steps === 0) continue;
+    n.base[row.theatre] = clampTo((n.base[row.theatre] ?? 0) + steps, 1, 5);
+    n.strength[row.theatre] = clampTo(
+      (n.strength[row.theatre] ?? 0) + steps,
+      1,
+      5,
+    );
+    news(gw, "new_armies", row.tag, null, row.theatre);
+  }
+}
+
 function research(gw: GreatWar): void {
   for (const n of gw.s.nations) {
     if (!fights(n)) continue;
@@ -428,6 +675,14 @@ function research(gw: GreatWar): void {
     if (a === null) continue;
     n.tech[a.research] = (n.tech[a.research] ?? 0) + monthsOf(gw);
   }
+  researchStep(gw, monthsOf(gw));
+}
+
+/** A country's research this year, when nobody signs for it. */
+export function aiResearch(gw: GreatWar, tag: GwTag): GwResearch {
+  const list = GW_AI_RESEARCH[tag] ?? ["artillery"];
+  const year = Math.floor(gw.s.chapter / 12);
+  return list[year % list.length];
 }
 
 /** The chief's plan stands when nobody signed. */
@@ -470,6 +725,7 @@ export function frontsStep(gw: GreatWar): void {
   for (const t of s.theatres) if (t.open) judge(gw, t);
   for (const t of s.theatres) if (t.open) dig(gw, t);
   refill(gw);
+  newArmies(gw);
   research(gw);
   refreshTheatres(gw);
 }
@@ -480,7 +736,7 @@ export function warScore(gw: GreatWar, side: GwSide): number {
   for (const t of gw.s.theatres) {
     if (t.since === null) continue;
     const start = GW_FRONT_START[t.id];
-    const gained = t.line * GW_LINE_STEP + t.progress - start * GW_LINE_STEP;
+    const gained = posOf(t) - start * GW_LINE_STEP;
     const weight = t.id === "west" || t.id === "east" ? 5 : 2;
     up += (GW_FRONT_UP[t.id] === "central" ? gained : -gained) * weight;
   }
@@ -538,14 +794,13 @@ export function proposalsFor(gw: GreatWar, seat: GwSeatState): GwProposal[] {
     mine.map((t) => t.id),
     gw.s.plan === "east" || camps.includes("east") ? "east" : "west",
   );
-  const alt = mine.map((t) => t.id).find((t) => t !== wants) ?? null;
+  const alts = mine.map((t) => t.id).filter((t) => t !== wants);
   const bold =
     cos !== null &&
     (cos.temperament === "arrogant" ||
       cos.temperament === "stubborn" ||
       camps.includes("hard"));
   const dry = n.gauges.shells === 0;
-  const army = n.inst.army ?? 0;
   const by = cos?.id ?? null;
   const scale = bold && !dry ? "major" : "limited";
   const out: GwProposal[] = [];
@@ -555,8 +810,17 @@ export function proposalsFor(gw: GreatWar, seat: GwSeatState): GwProposal[] {
     posture: GwAlloc["posture"],
     sc: GwAlloc["scale"],
     allyShare: number,
-    why: string | null,
-  ) =>
+    no: string | null,
+  ) => {
+    const kind =
+      posture === "hold"
+        ? allyShare > 0
+          ? "ally"
+          : "hold"
+        : id === "other_front"
+          ? "other"
+          : "attack";
+    const why = no ?? paperClosed(gw, n, kind, sc);
     out.push({
       id,
       by,
@@ -569,6 +833,16 @@ export function proposalsFor(gw: GreatWar, seat: GwSeatState): GwProposal[] {
       estimate: estimate(gw, seat, main),
       tell: tellOf(posture, sc, allyShare),
     });
+  };
+  // A chief who can read his own odds doesn't send a paper he doesn't believe.
+  const floor = bold ? BOLD_FLOOR : PRESS_FLOOR;
+  const age = gw.s.chapter - (gw.s.warChapter ?? gw.s.chapter);
+  const believes =
+    age <= OPENING_CHAPTERS ||
+    (pressOdds(gw, wants, n.side) >= floor &&
+      gw.s.chapter - n.spent > 1 &&
+      n.manpower >= MEN_LOW);
+  if (!believes) add("hold_all", wants, "hold", "limited", 0, null);
   add("cos_plan", wants, "offensive", scale, 0, null);
   const other2 = scale === "major" ? "limited" : "major";
   add(
@@ -579,21 +853,14 @@ export function proposalsFor(gw: GreatWar, seat: GwSeatState): GwProposal[] {
     0,
     other2 === "major" && dry ? "no_shells" : null,
   );
-  if (alt !== null) {
-    add(
-      "other_front",
-      alt,
-      "offensive",
-      "limited",
-      0,
-      army >= 3 ? "army" : null,
-    );
+  for (const alt of alts) {
+    add("other_front", alt, "offensive", "limited", 0, null);
   }
-  add("hold_all", wants, "hold", "limited", 0, army >= 2 ? "army" : null);
+  if (believes) add("hold_all", wants, "hold", "limited", 0, null);
   if (
     gw.s.nations.some((x) => x.side === n.side && x.tag !== n.tag && fights(x))
   ) {
-    add("help_ally", wants, "hold", "limited", 2, army >= 3 ? "army" : null);
+    add("help_ally", wants, "hold", "limited", 2, null);
   }
   return out;
 }

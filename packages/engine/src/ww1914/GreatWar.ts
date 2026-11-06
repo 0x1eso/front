@@ -27,6 +27,7 @@ import { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
 import type { Game } from "../game/Game";
 import { advanceChapter, allReady } from "./Chapters";
 import { closeGame } from "./Endings";
+import { firstRegime, institutionsOf } from "./Regimes";
 import { GW_ACTORS } from "./Tables";
 import { gwView } from "./View";
 
@@ -140,6 +141,11 @@ export class GreatWar {
       aside: false,
       uboat: 0,
       warChapter: null,
+      blockade: 0,
+      shipping: 0,
+      armistice: null,
+      closingDay: null,
+      talks: -9,
       reports: [],
       nextReport: 1,
       battles: [],
@@ -181,6 +187,8 @@ export class GreatWar {
         mandates: [],
         known: [],
         subjects: {},
+        big: -9,
+        votes: [],
         signed: -1,
         lines: [],
         memoir: null,
@@ -261,7 +269,7 @@ function blankNation(tag: GwTag): GwNationState {
   return {
     tag,
     gauges: { shells: 2, bread: 2, money: 2, morale: 3, order: 3 },
-    inst: tag === "DEU" ? { army: 0, reichstag: 0, countersign: 0 } : {},
+    inst: institutionsOf(firstRegime(tag)),
     strength: {},
     trust: {},
     atWar: [],
@@ -282,5 +290,10 @@ function blankNation(tag: GwTag): GwNationState {
     wear: {},
     tech: {},
     out: false,
+    regime: firstRegime(tag),
+    command: false,
+    techs: [],
+    spent: -9,
+    entered: null,
   };
 }

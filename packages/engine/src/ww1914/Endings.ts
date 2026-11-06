@@ -1,20 +1,24 @@
 import {
-  GW_SECRETS,
+  GW_ENDINGS,
   GwEnding,
   GwMemoir,
   GwSeatState,
   GwTheatre,
   GwUnknown,
+  gwSecretsFor,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import { GwTag, isGwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import { gwChapters } from "@openfront/engine-lib/ww1914/Calendars";
+import { GW_ENDING_ROWS } from "@openfront/engine-lib/ww1914/EndingRows";
 import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
+import { daysFromCivil } from "@openfront/engine-lib/ww1936/Calendar";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { warScore } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
 import { GW_MANDATES } from "./Mandates";
 import { holds } from "./SceneRun";
-import { defOf, fights } from "./World";
+import { leaveWar } from "./Wars";
+import { defOf, fights, seatPerson } from "./World";
 
 const P_UNKNOWN = idHash("gw_unknown");
 
@@ -23,6 +27,7 @@ const GW_TURNS: readonly string[] = [
   "belgium_invaded",
   "new_chief_of_staff",
   "mob_first",
+  "mob_first_central",
   "mob_waited_out",
   "crisis_war",
   "crisis_compromise",
@@ -31,6 +36,27 @@ const GW_TURNS: readonly string[] = [
   "spark_balkan",
   "spark_straits",
   "spark_colonial",
+  "era_trenches",
+  "era_material",
+  "era_depth",
+  "era_storm",
+  "uboat_unrestricted",
+  "armistice_central_lost",
+  "armistice_entente_lost",
+  "armistice_compromise",
+  "regime_republic",
+  "regime_coalition",
+  "regime_war_cabinet",
+  "regime_national",
+  "regime_karl",
+  "regime_federation",
+  "regime_provisional",
+  "regime_crown",
+  "regime_regency",
+  "regime_rep",
+  "regime_ff_throne",
+  "regime_austria_republic",
+  "regime_crown_remnant",
 ];
 
 const LAST_TURNS = 24;
@@ -41,45 +67,99 @@ const AHEAD_AT = 15;
 
 /** A date past which a game that stopped was a whole war. */
 const FIRST_WINTER_CHAPTERS = 12;
+/** Peace held this long is the long peace: nothing more will light it. */
+const LONG_PEACE_DAY = daysFromCivil(1916, 7, 1);
 
-function enemiesBeaten(gw: GreatWar, seat: GwSeatState): boolean {
-  const n = gw.nation(seat.tag);
-  if (n === null || n.side === null) return false;
-  const majors: GwTag[] =
-    n.side === "central" ? ["FRA", "RUS"] : ["DEU", "AUH"];
-  return majors.every((t) => gw.nation(t)?.out === true);
-}
+/** The seat's own flag: it signed for itself, it wasn't beaten. */
+export const SEPARATE_PEACE = "f_separate_peace";
 
-/** Chapter step: a country falls, or the other side has. */
-export function endingStep(gw: GreatWar): void {
+/** A seat's game closes alone: its country is out, or it chose the memoir. */
+export function closeSeat(
+  gw: GreatWar,
+  seat: GwSeatState,
+  ending: GwEnding,
+): void {
   const s = gw.s;
-  if (s.ended !== null) return;
-  for (const seat of s.seats) {
-    const n = gw.nation(seat.tag);
-    if (n !== null && n.unrest >= 4) {
-      s.ended = "home_collapse";
-      return;
-    }
-    if (enemiesBeaten(gw, seat)) {
-      s.ended = "victory_peace";
-      return;
-    }
+  if (seat.memoir !== null) return;
+  seat.memoir = memoirOf(gw, seat, ending);
+  seat.desk = [];
+  seat.scheduled = [];
+  const n = gw.nation(seat.tag);
+  if (ending === "home_collapse" && n !== null) {
+    leaveWar(gw, seat.tag, "nation_collapsed");
+  }
+  if (s.ended === null && s.seats.every((x) => x.memoir !== null)) {
+    s.ended = ending;
   }
 }
 
-/** Past the last chapter, whatever stands. */
-export function finalEnding(gw: GreatWar): GwEnding {
+/** Chapter step: a seat whose country has left the war has no more to do. */
+export function endingStep(gw: GreatWar): void {
+  const s = gw.s;
+  if (s.ended !== null || s.armistice !== null) return;
+  for (const seat of s.seats) {
+    if (seat.memoir !== null || gw.nation(seat.tag)?.out !== true) continue;
+    closeSeat(
+      gw,
+      seat,
+      gw.nation(seat.tag)?.side === null ? "deadline" : outEnding(gw, seat),
+    );
+  }
+  // Peace past hope of war: two years on, the long peace has been had.
+  if (s.ended === null && s.warChapter === null && s.day >= LONG_PEACE_DAY) {
+    s.ended = "long_peace";
+  }
+}
+
+/** How a country that left early left: beaten or by its own peace. */
+function outEnding(gw: GreatWar, seat: GwSeatState): GwEnding {
+  const n = gw.nation(seat.tag);
+  if (n === null) return "deadline";
+  if (seat.flags.includes(SEPARATE_PEACE)) return "compromise_peace";
+  return n.unrest >= 2 ? "home_collapse" : "armistice_conference";
+}
+
+/** How the war stood for this seat when the game ran out. */
+export function generalEnding(
+  gw: GreatWar,
+  seat: GwSeatState | null,
+): GwEnding {
   const s = gw.s;
   if (s.warChapter === null) return "long_peace";
-  const seat = s.seats[0];
-  const side = seat === undefined ? "central" : gw.nation(seat.tag)?.side;
-  const score = warScore(gw, side ?? "central");
+  const side = (seat === null ? null : gw.nation(seat.tag)?.side) ?? "central";
+  if (s.armistice !== null) {
+    if (s.armistice.kind === "compromise") return "compromise_peace";
+    const lost = (s.armistice.kind === "central_lost") === (side === "central");
+    return lost ? "armistice_conference" : "victory_peace";
+  }
+  const score = warScore(gw, side);
   if (gwChapters(s.calendar).length <= FIRST_WINTER_CHAPTERS) {
     if (score >= AHEAD_AT) return "first_winter_ahead";
     if (score <= -AHEAD_AT) return "first_winter_behind";
     return "first_winter_level";
   }
-  return Math.abs(score) >= AHEAD_AT * 2 ? "armistice_conference" : "deadline";
+  if (score >= AHEAD_AT * 2) return "victory_peace";
+  return score <= -AHEAD_AT * 2 ? "armistice_conference" : "deadline";
+}
+
+/** Past the last chapter, whatever stands. */
+export function finalEnding(gw: GreatWar): GwEnding {
+  return generalEnding(gw, gw.s.seats[0] ?? null);
+}
+
+/** What the general ending was for this country (engine-lib EndingRows). */
+export function ownEnding(
+  gw: GreatWar,
+  seat: GwSeatState,
+  general: GwEnding,
+): string {
+  for (const row of GW_ENDING_ROWS[seat.tag] ?? []) {
+    if (!row.of.includes(general)) continue;
+    if (row.when === undefined || holds({ gw, seat, cast: {} }, row.when)) {
+      return row.id;
+    }
+  }
+  return general;
 }
 
 function mandateMet(gw: GreatWar, seat: GwSeatState, id: string): boolean {
@@ -98,7 +178,7 @@ function unknownsOf(gw: GreatWar, seat: GwSeatState): GwUnknown[] {
     word: string | null = null,
     theatre: GwTheatre | null = null,
   ) => out.push({ kind, id, theatre, value, word });
-  for (const id of GW_SECRETS) {
+  for (const id of gwSecretsFor(seat.tag)) {
     if (s.secrets.includes(id) && !seat.known.includes(id))
       add("secret", id, 1);
   }
@@ -183,9 +263,16 @@ function turnOf(key: string): { key: string; tag: GwTag | null } | null {
   return GW_TURNS.includes(key) ? { key, tag: null } : null;
 }
 
-export function memoirOf(gw: GreatWar, seat: GwSeatState): GwMemoir {
+export function memoirOf(
+  gw: GreatWar,
+  seat: GwSeatState,
+  general?: GwEnding,
+): GwMemoir {
   const s = gw.s;
-  const ownDefs = gwContent().people.filter((d) => d.tag === seat.tag);
+  const self = seatPerson(seat);
+  const ownDefs = gwContent().people.filter(
+    (d) => d.tag === seat.tag && d.id !== self,
+  );
   const people = ownDefs.flatMap((d) => {
     const p = gw.person(d.id);
     if (p === null) return [];
@@ -204,7 +291,7 @@ export function memoirOf(gw: GreatWar, seat: GwSeatState): GwMemoir {
     id,
     met: mandateMet(gw, seat, id),
   }));
-  const ending = s.ended ?? "closing";
+  const ending = ownEnding(gw, seat, general ?? generalOf(gw, seat));
   return {
     ending,
     chapter: s.chapter,
@@ -229,6 +316,15 @@ export function memoirOf(gw: GreatWar, seat: GwSeatState): GwMemoir {
       mandates: mandates.filter((m) => m.met).map((m) => m.id),
     },
   };
+}
+
+/** The world's word for this seat, unless a scene ended the game its own way. */
+function generalOf(gw: GreatWar, seat: GwSeatState): GwEnding {
+  const ended = gw.s.ended;
+  if (ended === null) return "closing";
+  const known = (GW_ENDINGS as readonly string[]).includes(ended);
+  if (!known) return ended as GwEnding;
+  return gw.s.seats.length > 1 ? generalEnding(gw, seat) : (ended as GwEnding);
 }
 
 /** Runs once when `s.ended` is set, whoever set it. */

@@ -4,12 +4,14 @@ import { aiStep } from "./Ai";
 import { crisisStep } from "./Crises";
 import { dealDesk } from "./Desk";
 import { closeGame, endingStep, finalEnding } from "./Endings";
-import { frontsStep } from "./Fronts";
+import { frontsStep, warScore } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
 import { homeStep } from "./Home";
 import { intelStep } from "./Intel";
+import { skipToConference } from "./Peace";
 import { peopleStep } from "./People";
 import { closeUndecided } from "./SceneRun";
+import { seaStep } from "./Sea";
 import { trimLines } from "./World";
 import { worldFlagsStep } from "./WorldFlags";
 
@@ -21,6 +23,7 @@ import { worldFlagsStep } from "./WorldFlags";
 export const GW_CHAPTER_STEPS: readonly ((gw: GreatWar) => void)[] = [
   crisisStep,
   frontsStep,
+  (gw) => seaStep(gw, warScore(gw, "central")),
   homeStep,
   peopleStep,
   aiStep,
@@ -31,6 +34,7 @@ export const GW_CHAPTER_STEPS: readonly ((gw: GreatWar) => void)[] = [
 
 /** Seats that count for "everyone is ready": a dropped friend doesn't. */
 function waitedFor(gw: GreatWar, seat: GwSeatState): boolean {
+  if (seat.memoir !== null) return false;
   const p = gw.mg.playerBySmallID(seat.smallID);
   return !(p.isPlayer() && p.isDisconnected());
 }
@@ -40,15 +44,32 @@ export function allReady(gw: GreatWar): boolean {
   return seats.length > 0 && seats.every((x) => x.ready);
 }
 
+/** What the ticker says when a chapter is one the cabinet will want to talk of. */
+const BIG_NEWS =
+  /^(entered_war|america_entered|britain_entered|nation_|sued_|regime_|front_break|unrest_[34])/;
+/** Chapters between two big ones, so a bad autumn isn't all talk. */
+const BIG_EVERY = 6;
+
+/** A big chapter: the world turned last chapter and the last big one is past. */
+function bigChapter(gw: GreatWar, seat: GwSeatState): boolean {
+  const s = gw.s;
+  if (s.chapter - seat.big < BIG_EVERY) return false;
+  const turned = s.news.some(
+    (x) => x.chapter === s.chapter - 1 && BIG_NEWS.test(x.key),
+  );
+  if (turned) seat.big = s.chapter;
+  return turned;
+}
+
 /** Opens chapter `s.chapter`: its date, summons, deadline and desk. */
 export function openChapter(gw: GreatWar, ticks: number): void {
   const s = gw.s;
   const ch = gwChapters(s.calendar)[s.chapter];
-  s.day = ch.day + s.dayShift;
+  s.day = s.closingDay ?? ch.day + s.dayShift;
   s.deadlineTick = gw.deadlineFrom(ticks);
   for (const seat of s.seats) {
     seat.ready = false;
-    seat.audiences = ch.summons;
+    seat.audiences = ch.summons + (bigChapter(gw, seat) ? ch.bigSummons : 0);
     dealDesk(gw, seat);
   }
   gw.touch();
@@ -75,6 +96,7 @@ export function advanceChapter(
     closeGame(gw);
     return;
   }
+  skipToConference(gw);
   s.chapter++;
   openChapter(gw, ticks);
 }

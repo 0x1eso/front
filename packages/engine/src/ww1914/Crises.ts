@@ -9,9 +9,9 @@ import {
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import type { GreatWar } from "./GreatWar";
-import { GW_MOBILISE, GW_PLAN_FLAGS } from "./Tables";
+import { GW_MOBILISE, GW_NOTE_FLAGS, GW_PLAN_FLAGS } from "./Tables";
 import { openWar } from "./Wars";
-import { clampTo, isLongChapter, news, reason, turn } from "./World";
+import { clampTo, isLongChapter, news, reason, seatsOf, turn } from "./World";
 
 const P_CRISIS = idHash("gw_crisis");
 const P_SPARK = idHash("gw_spark");
@@ -143,7 +143,8 @@ function moves(gw: GreatWar, link: number): number {
 /** Petersburg keeps its own time: the hand on the table, the rails under it. */
 function russiaStirs(gw: GreatWar, name: "draft" | "ultimatum"): void {
   const rus = gw.nation("RUS");
-  if (rus === null) return;
+  // A Tsar at the desk signs for himself.
+  if (rus === null || seatsOf(gw, "RUS").length > 0) return;
   const hard = rus.ai === "hardline";
   const rails = gw.s.secrets.includes("rus_rail_ahead");
   const stirs =
@@ -166,6 +167,10 @@ function runLink(gw: GreatWar): void {
     case "ultimatum": {
       const auh = gw.nation("AUH");
       if (auh !== null) auh.mob = Math.max(auh.mob, 1);
+      // A seat wrote the note itself: its wording heats or cools the link.
+      for (const seat of s.seats) {
+        for (const f of seat.flags) heat(gw, GW_NOTE_FLAGS[f] ?? 0);
+      }
       russiaStirs(gw, name);
       break;
     }
@@ -173,7 +178,7 @@ function runLink(gw: GreatWar): void {
       if (s.aside) return closeChain(gw, "humiliation");
       if (s.temp < LOCAL_WAR_AT) return closeChain(gw, "compromise");
       const rus = gw.nation("RUS");
-      if (rus !== null) {
+      if (rus !== null && seatsOf(gw, "RUS").length === 0) {
         // What Russia really did: reports about it may say otherwise.
         const full = rus.ai === "hardline" || s.temp >= 7;
         rus.mob = Math.max(rus.mob, rus.ai === "cautious" ? 1 : full ? 2 : 1);
@@ -224,13 +229,14 @@ function stopWaiting(gw: GreatWar, seat: GwSeatState): void {
     closeChain(gw, "compromise");
     return;
   }
-  for (const tag of ["RUS", "FRA"] as const) {
+  const row = GW_MOBILISE[seat.tag]!;
+  for (const tag of row.first) {
     const n = gw.nation(tag);
     if (n !== null) n.mob = 2;
   }
-  s.plan = "wait";
-  news(gw, "mob_first");
-  turn(gw, "mob_first");
+  if (seat.tag === "DEU") s.plan = "wait";
+  news(gw, row.news);
+  turn(gw, row.news);
   reason(gw, seat, "mob_late_war");
   closeChain(gw, "war");
   const side = gw.nation(seat.tag)?.side ?? null;

@@ -1,5 +1,7 @@
 import type { GwMemoir } from "@openfront/engine-api/ww1914/GreatWarTypes";
+import { gwSecretsFor } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import type { GwSeatView } from "@openfront/engine-api/ww1914/GwView";
+import { gwEndingsOf } from "@openfront/engine-lib/ww1914/EndingRows";
 import { describe, expect, test } from "vitest";
 import {
   appointable,
@@ -123,7 +125,12 @@ describe("GwModel", () => {
     expect(s.secrets).toEqual(["bel_forts_strong"]);
     expect(endingsOf(s, "DEU")).toBe(1);
     expect(s.runs.length).toBe(2);
-    expect(shelfTotals(16)).toEqual({ endings: 9, people: 16, secrets: 12 });
+    expect(shelfTotals(16)).toEqual({
+      endings: gwEndingsOf("DEU").length,
+      people: 16,
+      secrets: gwSecretsFor("DEU").length,
+    });
+    expect(gwSecretsFor("DEU")).not.toContain("rus_palace_plot");
     const mem: Record<string, string> = {};
     saveShelf(s, { setItem: (k, v) => void (mem[k] = v) });
     expect(loadShelf({ getItem: (k) => mem[k] ?? null })).toEqual(s);

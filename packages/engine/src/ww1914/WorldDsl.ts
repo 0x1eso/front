@@ -1,6 +1,7 @@
 import {
   GW_FIELDS,
   GW_LINES,
+  GW_SEA_MAX,
   GwPersonState,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import type {
@@ -8,12 +9,19 @@ import type {
   GwWorldEffect,
   GwWorldWho,
 } from "@openfront/engine-api/ww1914/WorldDsl";
+import { civilFromDays } from "@openfront/engine-lib/ww1936/Calendar";
+import { holdVote, voteCount } from "./Authority";
 import { closeChain } from "./Crises";
+import { closeSeat, SEPARATE_PEACE } from "./Endings";
+import { eraOf, hasTech } from "./Eras";
 import { signChief, warScore } from "./Fronts";
 import { sendReport } from "./Intel";
+import { armistice, openTalks, sue } from "./Peace";
 import { keepPerson, openLetter, personLeaves, recordResult } from "./People";
+import { changeRegime, regimeRow } from "./Regimes";
 import { SceneCtx, whoIn } from "./SceneRun";
-import { enter } from "./Wars";
+import { setUboats } from "./Sea";
+import { enter, leaveWar } from "./Wars";
 import { clampTo, lastOf, news, other, reason } from "./World";
 
 const inRange = (v: number, c: { min?: number; max?: number }) =>
@@ -57,7 +65,12 @@ export function worldHolds(ctx: SceneCtx, c: GwWorldCond): boolean {
       return s.theatres.find((x) => x.id === c.theatre)!.open;
     case "battle": {
       const last = lastOf(s.battles.filter((b) => b.theatre === c.theatre));
-      return last !== undefined && c.of.includes(last.result);
+      if (last === undefined || !c.of.includes(last.result)) return false;
+      if (c.by === undefined) return true;
+      const mine = nation?.side ?? null;
+      if (c.by === "seat") return last.by !== null && last.by === mine;
+      if (c.by === "foe") return last.by !== null && last.by !== mine;
+      return last.by === c.by;
     }
     case "plan":
       return s.plan !== null && c.of.includes(s.plan);
@@ -124,7 +137,61 @@ export function worldHolds(ctx: SceneCtx, c: GwWorldCond): boolean {
       const src = s.sources.find((x) => x.id === c.source);
       return src !== undefined && inRange(src.right - src.wrong, c);
     }
+    case "regime":
+      return c.of.includes(gw.nation(c.tag ?? seat.tag)?.regime ?? "");
+    case "era":
+      return c.of.includes(eraOf(gw).id);
+    case "tech": {
+      const n = gw.nation(c.tag ?? seat.tag);
+      return n !== null && hasTech(n, c.id);
+    }
+    case "blockade":
+      return inRange(s.blockade, c);
+    case "shipping":
+      return inRange(s.shipping, c);
+    case "america":
+      return inRange(gw.nation("USA")?.readiness ?? 0, c);
+    case "armistice":
+      return (
+        s.armistice !== null &&
+        (c.of === undefined || c.of.includes(s.armistice.kind))
+      );
+    case "peace_side":
+      return c.of.includes(peaceSide(ctx));
+    case "votes":
+      return inRange(voteCount(gw, seat, c.issue), c);
+    case "carried":
+      return seat.flags.includes(`carried_${c.issue}`);
+    case "command":
+      return nation?.command === true;
+    case "in_war": {
+      const n = gw.nation(c.tag ?? seat.tag);
+      return (
+        n !== null && n.entered !== null && inRange(s.chapter - n.entered, c)
+      );
+    }
+    case "neutral":
+      return gw.nation(c.tag)?.side === null;
+    case "side":
+      return c.of.includes(nation?.side ?? "neutral");
+    case "date": {
+      const d = civilFromDays(s.day);
+      const now = `${d.year}-${String(d.month).padStart(2, "0")}`;
+      return now >= (c.from ?? "") && now <= (c.to ?? "9");
+    }
+    case "offered": {
+      const side = nation?.side ?? "central";
+      return inRange(gw.nation(c.tag)?.offers[side] ?? 0, c);
+    }
   }
+}
+
+/** How the war came out for the seat, from the armistice. */
+function peaceSide(ctx: SceneCtx): "won" | "lost" | "even" {
+  const a = ctx.gw.s.armistice;
+  const side = ctx.gw.nation(ctx.seat.tag)?.side ?? null;
+  if (a === null || a.kind === "compromise" || side === null) return "even";
+  return (a.kind === "central_lost") === (side === "central") ? "lost" : "won";
 }
 
 /** Exhaustive. An effect on nobody does nothing. */
@@ -153,12 +220,12 @@ export function worldEffect(ctx: SceneCtx, e: GwWorldEffect): void {
     case "declare": {
       if (s.warChapter === null) closeChain(gw, "war");
       const foe = gw.nation(e.tag);
-      if (
-        foe !== null &&
-        foe.side === null &&
-        (nation?.side ?? null) !== null
-      ) {
-        enter(gw, e.tag, other(nation!.side!), "war_declared");
+      if (foe === null || nation === null) return;
+      if (foe.side === null && nation.side !== null) {
+        enter(gw, e.tag, other(nation.side), "war_declared");
+      } else if (foe.side !== null && nation.side === null) {
+        // A neutral seat comes in against a country already at war.
+        enter(gw, seat.tag, other(foe.side), "war_declared");
       }
       return;
     }
@@ -191,7 +258,7 @@ export function worldEffect(ctx: SceneCtx, e: GwWorldEffect): void {
       return;
     }
     case "uboat":
-      s.uboat = clampTo(e.level, 0, 2);
+      setUboats(gw, e.level);
       return;
     case "force": {
       const n = gw.nation(e.tag);
@@ -248,5 +315,57 @@ export function worldEffect(ctx: SceneCtx, e: GwWorldEffect): void {
     case "sign_chief":
       signChief(gw, seat);
       return;
+    case "join":
+      enter(gw, seat.tag, e.side, "war_declared");
+      return;
+    case "regime":
+      changeRegime(gw, seat.tag, e.to);
+      return;
+    case "next_regime": {
+      const next = nation === null ? null : (regimeRow(nation)?.next ?? null);
+      if (next === null) {
+        closeSeat(gw, seat, "home_collapse");
+        return;
+      }
+      changeRegime(gw, seat.tag, next);
+      if (regimeRow(nation!)?.seeksPeace === true) sue(gw, seat.tag);
+      return;
+    }
+    case "close_seat":
+      closeSeat(gw, seat, "home_collapse");
+      return;
+    case "personal_command":
+      if (nation !== null) nation.command = e.on;
+      return;
+    case "blockade":
+      s.blockade = clampTo(s.blockade + e.delta, 0, GW_SEA_MAX);
+      return;
+    case "shipping":
+      s.shipping = clampTo(s.shipping + e.delta, 0, GW_SEA_MAX);
+      return;
+    case "vote":
+      holdVote(gw, seat, e.issue);
+      return;
+    case "talks":
+      openTalks(gw, seat);
+      return;
+    case "sue":
+      sue(gw, seat.tag);
+      return;
+    case "armistice":
+      armistice(gw, e.kind, seat.tag);
+      return;
+    case "separate_peace":
+      if (!seat.flags.includes(SEPARATE_PEACE)) seat.flags.push(SEPARATE_PEACE);
+      leaveWar(gw, seat.tag, "sued_for_peace");
+      return;
+    case "passes": {
+      const p = person(ctx, e.who);
+      if (p !== null) {
+        personLeaves(gw, seat, p, "person_passed");
+        p.status = "dead";
+      }
+      return;
+    }
   }
 }

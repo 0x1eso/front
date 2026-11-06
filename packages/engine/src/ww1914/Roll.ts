@@ -17,7 +17,13 @@ import { openChapter } from "./Chapters";
 import { openFirstCrisis } from "./Crises";
 import type { GreatWar } from "./GreatWar";
 import { GW_MANDATES } from "./Mandates";
-import { GW_ENTRIES, GW_FORCE, GW_GAUGES_1914, GW_MANPOWER } from "./Tables";
+import {
+  GW_ENTRIES,
+  GW_FORCE,
+  GW_GAUGES_1914,
+  GW_MANPOWER,
+  GW_OPENING_DEAD,
+} from "./Tables";
 import { clampTo } from "./World";
 
 const P_OPENING = idHash("gw_opening");
@@ -44,6 +50,8 @@ const SECRET_FORCE: Readonly<
   fra_offensive_doctrine: ["FRA", "west", -1],
   bel_forts_strong: ["BEL", "west", 1],
   auh_rail_muddle: ["AUH", "east", -1],
+  auh_redl_plans: ["AUH", "east", -1],
+  ott_forts_short: ["OTT", "straits", -1],
 };
 
 /** Design §15 no. 7: Sarajevo 70, its variants 20, none 10. */
@@ -172,6 +180,10 @@ export function rollWorld(gw: GreatWar, seed: number, ticks: number): void {
     right: 0,
     wrong: 0,
   }));
+  for (const row of GW_OPENING_DEAD) {
+    const p = gw.person(row.person);
+    if (p !== null && row.openings.includes(s.opening)) p.status = "dead";
+  }
   s.nations.forEach((n, i) => rollNation(gw, n, i));
   rollThreads(gw);
   rollSecrets(gw);

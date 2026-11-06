@@ -8,6 +8,7 @@ import { DEU_CRISIS_SCENES } from "./scenes/deu_crisis";
 import { DEU_PEACE_SCENES, withSummerWar } from "./scenes/deu_peace";
 import { DEU_PEOPLE_SCENES } from "./scenes/deu_people";
 import { DEU_WAR_SCENES } from "./scenes/deu_war";
+import { WARTIME_SCENES } from "./scenes/wartime";
 import { WORLD_SCENES } from "./scenes/world";
 
 export interface GwContent {
@@ -30,6 +31,7 @@ export const GW_CONTENT: GwContent = {
       .map(withSummerWar),
     ...DEU_BACK_SCENES,
     ...WORLD_SCENES,
+    ...WARTIME_SCENES,
   ],
   people: GW_PEOPLE,
 };

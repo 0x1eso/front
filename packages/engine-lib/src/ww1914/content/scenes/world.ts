@@ -157,8 +157,8 @@ export const WORLD_SCENES: readonly GwScene[] = [
       },
       {
         id: "listen",
-        tell: ["ends_game"],
-        effects: [{ kind: "end", ending: "compromise_peace" }],
+        tell: ["talks"],
+        effects: [doWorld({ do: "talks" })],
       },
     ],
   },

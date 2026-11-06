@@ -134,7 +134,7 @@ describe("the rolled world", () => {
   test("three tasks, one of each group", async () => {
     const { runner } = await gwRunner({}, "GWTASK");
     const list = GW_MANDATES.DEU!;
-    expect(list).toHaveLength(12);
+    expect(list).toHaveLength(16);
     const got = seat(runner).world.mandates;
     expect(got).toHaveLength(3);
     const groups = got.map((id) => list.find((m) => m.id === id)!.group);
@@ -350,20 +350,23 @@ describe("gauges and the home front", () => {
     n.gauges.order = 0;
     playChapter(runner);
     expect(n.unrest).toBe(1);
-    expect(seat(runner).desk.map((c) => c.scene)).toContain("gw_unrest");
-    const card = seat(runner).desk.find((c) => c.scene === "gw_unrest")!;
-    order(runner, { kind: "choose", card: card.uid, option: "bread" });
+    const rung = "gw_home_deu_1";
+    expect(seat(runner).desk.map((c) => c.scene)).toContain(rung);
+    const card = seat(runner).desk.find((c) => c.scene === rung)!;
+    order(runner, { kind: "choose", card: card.uid, option: "ration" });
     expect(n.unrest).toBe(0);
     expect(n.gauges.order).toBeGreaterThan(0);
   });
 
-  test("revolution is the fourth rung and ends the game with a memoir", async () => {
+  test("revolution is the fourth rung: the seat can end it with a memoir", async () => {
     const { runner, gw } = await atWar();
     const n = gw.nation("DEU")!;
     n.unrest = 3;
     n.lowOrder = 7;
     n.gauges.order = 0;
     playChapter(runner);
+    const card = seat(runner).desk.find((c) => c.scene === "gw_home_deu_4")!;
+    order(runner, { kind: "choose", card: card.uid, option: "memoir" });
     expect(view(runner).ended).toBe("home_collapse");
     expect(seat(runner).world.memoir).not.toBeNull();
   });

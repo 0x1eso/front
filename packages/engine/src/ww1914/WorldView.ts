@@ -17,6 +17,7 @@ import type {
   GwReportView,
   GwWorldView,
 } from "@openfront/engine-api/ww1914/GwWorldView";
+import { eraOf } from "./Eras";
 import { ownFronts, proposalsFor } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
 import { candidatesFor, dismissPrice } from "./People";
@@ -24,6 +25,7 @@ import { GW_ACTORS } from "./Tables";
 import { lastOf, ownPeople } from "./World";
 
 const NEWS_SHOWN = 16;
+const VOTES_SHOWN = 6;
 const REPORTS_SHOWN = 16;
 /** Results before people have an opinion of someone. */
 const REPUTE_AFTER = 3;
@@ -32,6 +34,9 @@ const REPUTE_AFTER = 3;
 function wordOf(g: GwGauge, v: number): number {
   return GW_GAUGE_MAX[g] === 3 ? v : Math.floor((v * 3 + 4) / 5);
 }
+
+/** A sea scale in the words a paper would use, 0..3. */
+const seaWord = (v: number) => Math.min(3, Math.floor((v + 1) / 3));
 
 function gaugeView(gw: GreatWar, seat: GwSeatState): GwGaugeView[] {
   const n = gw.nation(seat.tag)!;
@@ -137,7 +142,20 @@ export function worldView(gw: GreatWar, seat: GwSeatState): GwWorldView {
       return list.length > 0 ? [[o, list]] : [];
     }),
   );
+  const usa = gw.nation("USA");
   return {
+    war: {
+      era: eraOf(gw).id,
+      regime: n.regime,
+      command: n.command,
+      blockade: seaWord(s.blockade),
+      shipping: seaWord(s.shipping),
+      uboat: s.uboat,
+      america: usa === null ? 0 : Math.min(3, Math.floor(usa.readiness / 25)),
+      techs: n.techs,
+      armistice: s.armistice?.kind ?? null,
+      votes: seat.votes.slice(-VOTES_SHOWN),
+    },
     gauges: gaugeView(gw, seat),
     authority: n.authority,
     manpower: n.manpower,

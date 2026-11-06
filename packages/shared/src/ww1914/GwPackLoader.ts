@@ -25,6 +25,9 @@ export const GW_PACK_SHARES: Readonly<
   DEU: ["crisis", "war", "people", "back", "peace"],
 };
 
+/** The same for `common.json`: every seat loads these. */
+export const GW_COMMON_SHARES: readonly string[] = ["war"];
+
 /** A share not written yet is no share: only the files that are there count. */
 async function fragment(path: string, get: GwPackFetch): Promise<unknown> {
   try {
@@ -35,17 +38,20 @@ async function fragment(path: string, get: GwPackFetch): Promise<unknown> {
   }
 }
 
-/** Common text, the seat's country and its shares, validated, as one pack. */
+/** Common text, the seat's country and their shares, validated, as one pack. */
 export async function loadGwPack(
   tag: GwTag,
   get: GwPackFetch = fetchJson,
 ): Promise<GwPack> {
   const file = (f: string) => `ww1914/ko/${f}.json`;
-  const shares = (GW_PACK_SHARES[tag] ?? []).map((x) => `${tag}.${x}`);
+  const shares = [
+    ...GW_COMMON_SHARES.map((x) => `common.${x}`),
+    ...(GW_PACK_SHARES[tag] ?? []).map((x) => `${tag}.${x}`),
+  ];
   const [main, parts] = await Promise.all([
     Promise.all(["common", tag].map((f) => get(file(f)))),
     Promise.all(shares.map((f) => fragment(file(f), get))),
   ]);
-  const found = parts.filter((r) => r !== null);
+  const found = parts.filter((r) => r !== null && r !== undefined);
   return mergeGwPacks([...main, ...found].map((r) => GwPackSchema.parse(r)));
 }

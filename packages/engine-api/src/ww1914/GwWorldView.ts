@@ -3,9 +3,12 @@
 // character, nothing of a report still unchecked but what it says.
 import type {
   GwAlloc,
+  GwArmisticeKind,
   GwChainOutcome,
+  GwEra,
   GwFactKind,
   GwGauge,
+  GwIssue,
   GwMemoir,
   GwNews,
   GwOffice,
@@ -109,8 +112,33 @@ export interface GwCountryView {
   mob: number;
 }
 
+/** The war at large: what the papers and the admiralty can tell anyone. */
+export interface GwWarView {
+  era: GwEra;
+  /** Text: gw.regime.<id>; "" for a country with no row. */
+  regime: string;
+  command: boolean;
+  /** 0..3 words: gw.ui.sea.<n>. */
+  blockade: number;
+  shipping: number;
+  uboat: number;
+  /** America as the papers read it, 0 cold .. 3 ready: gw.ui.america.<n>. */
+  america: number;
+  /** What the seat's country has reached: gw.tech.<id>. */
+  techs: readonly string[];
+  /** The fighting has stopped. */
+  armistice: GwArmisticeKind | null;
+  votes: readonly {
+    issue: GwIssue;
+    ayes: number;
+    noes: number;
+    chapter: number;
+  }[];
+}
+
 /** The seat's own country, and the world as it can see it. */
 export interface GwWorldView {
+  war: GwWarView;
   gauges: readonly GwGaugeView[];
   authority: number;
   manpower: number;

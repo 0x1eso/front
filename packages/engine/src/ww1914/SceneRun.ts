@@ -7,6 +7,7 @@ import {
   GW_TRUST_MAX,
   GW_TRUST_MIN,
   GwCard,
+  GwEnding,
   GwOffice,
   GwPersonDef,
   GwPersonState,
@@ -36,6 +37,7 @@ import {
   isCandid,
 } from "@openfront/engine-lib/ww1914/TalkRules";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
+import { closeSeat } from "./Endings";
 import type { GreatWar } from "./GreatWar";
 import { dismissPerson, onAppointed } from "./People";
 import { worldEffect, worldHolds } from "./WorldDsl";
@@ -550,7 +552,9 @@ export function runEffect(ctx: SceneCtx, e: GwEffect): void {
       });
       return;
     case "end":
-      s.ended = e.ending;
+      // With friends a seat's peace is its own; alone it ends the game.
+      if (s.seats.length > 1) closeSeat(gw, seat, e.ending as GwEnding);
+      else s.ended = e.ending;
       return;
     case "maybe":
       if (holds(ctx, e.when)) runEffects(ctx, e.then);

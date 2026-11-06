@@ -147,6 +147,43 @@ function powers(c: GwCtx): TemplateResult {
   </section>`;
 }
 
+/** The war at large: its period, the sea, America, what was reached and voted. */
+function war(c: GwCtx): TemplateResult {
+  const v = c.seat.world.war;
+  const row = (label: string, value: string) =>
+    html`<div class="flex justify-between text-sm">
+      <span class="text-white/70">${translateText(label)}</span>
+      <span>${value}</span>
+    </div>`;
+  return html`<section class=${BOX} data-gw-war>
+    <h3 class=${HEAD}>${translateText("gw.ui.war_title")}</h3>
+    ${v.regime === ""
+      ? nothing
+      : row("gw.ui.regime", translateText(`gw.regime.${v.regime}`))}
+    ${row("gw.ui.era", translateText(`gw.era.${v.era}`))}
+    ${row("gw.ui.blockade", translateText(`gw.ui.sea.${v.blockade}`))}
+    ${row("gw.ui.shipping", translateText(`gw.ui.sea.${v.shipping}`))}
+    ${row("gw.ui.uboats", translateText(`gw.ui.uboat.${v.uboat}`))}
+    ${row("gw.ui.america", translateText(`gw.ui.america_word.${v.america}`))}
+    ${v.command
+      ? html`<p class=${MUTED}>${translateText("gw.ui.command_self")}</p>`
+      : nothing}
+    ${v.techs.map(
+      (t) => html`<p class=${MUTED}>${translateText(`gw.tech.${t}`)}</p>`,
+    )}
+    ${v.votes.map(
+      (x) =>
+        html`<p class=${MUTED}>
+          ${translateText("gw.ui.vote_line", {
+            issue: translateText(`gw.issue.${x.issue}`),
+            ayes: x.ayes,
+            noes: x.noes,
+          })}
+        </p>`,
+    )}
+  </section>`;
+}
+
 /** The country tab: gauges and why, the bodies that can say no, what is known. */
 export function countryTab(c: GwCtx): TemplateResult {
   const { seat } = c;
@@ -154,7 +191,7 @@ export function countryTab(c: GwCtx): TemplateResult {
   const insts = GW_INSTITUTIONS.filter((i) => seat.inst[i] !== undefined);
   const log = logByChapter(seat.log);
   return html`<div class="space-y-3" data-gw-country>
-    ${standing(c)} ${gauges(c)}
+    ${standing(c)} ${war(c)} ${gauges(c)}
     ${insts.length === 0
       ? nothing
       : html`<section class=${BOX}>

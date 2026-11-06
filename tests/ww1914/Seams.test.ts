@@ -424,7 +424,11 @@ describe("pack shares", () => {
       asked.push(p);
       return pack();
     });
-    expect(asked).toEqual(["ww1914/ko/common.json", "ww1914/ko/FRA.json"]);
+    expect(asked).toEqual([
+      "ww1914/ko/common.json",
+      "ww1914/ko/FRA.json",
+      "ww1914/ko/common.war.json",
+    ]);
     await expect(
       loadGwPack("DEU", async () => {
         throw new Error("404");

@@ -5,10 +5,14 @@ import { translateText } from "./Utils";
 
 /**
  * Calendar rows that have scenes to play, in the order the lobby lists them.
- * A row without writing in its war chapters is not offered; the world lane
- * appends "full" here when its chapters have content.
+ * The war's own scenes run to the end of `full` and `standard`; the lobby's
+ * default stays on `y1914` until the 1915-18 writing is merged.
  */
-export const GW_PLAYABLE_CALENDARS: readonly GwCalendarId[] = ["y1914"];
+export const GW_PLAYABLE_CALENDARS: readonly GwCalendarId[] = [
+  "y1914",
+  "standard",
+  "full",
+];
 
 /** The lobby's length choice for the Great War: one button per row with content. */
 export function gwCalendarPicker(

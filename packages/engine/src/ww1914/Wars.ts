@@ -2,21 +2,31 @@ import {
   GW_FRONT_START,
   GW_FRONT_UP,
   GW_THEATRES,
+  GwPlan,
   GwSide,
   GwTheatre,
   GwTheatreState,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
+import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
+import { warMonths } from "./Eras";
 import type { GreatWar } from "./GreatWar";
 import { armyCommander } from "./People";
-import { GW_THEATRE_SIDES } from "./Tables";
-import { fights, news, other, reason, seatsOf, turn } from "./World";
+import { GW_BEHIND, GW_THEATRE_SIDES, GW_TRANSFERS } from "./Tables";
+import { clampTo, fights, news, other, reason, seatsOf, turn } from "./World";
+
+const P_PLAN = idHash("gw_ai_plan");
 
 /** Who fights a theatre now on `side`, the lead first. */
 export function membersOf(gw: GreatWar, t: GwTheatre, side: GwSide): GwTag[] {
+  const behind = GW_BEHIND[t];
+  const waiting =
+    behind !== undefined && gw.nation(behind.once)?.out !== true
+      ? behind.tags
+      : [];
   return GW_THEATRE_SIDES[t][side].filter((tag) => {
     const n = gw.nation(tag);
-    return fights(n) && n!.side === side;
+    return fights(n) && n!.side === side && !waiting.includes(tag);
   });
 }
 
@@ -32,6 +42,8 @@ function refreshTheatre(gw: GreatWar, t: GwTheatreState): void {
     if (t.since === null) {
       t.since = gw.s.chapter;
       t.line = GW_FRONT_START[t.id];
+      // A front opened in the machine-gun years is dug in from its first day.
+      t.trench = Math.min(3, Math.floor(warMonths(gw) / 5));
       news(gw, "front_opened", null, null, t.id);
     }
   } else if (!live) {
@@ -63,6 +75,7 @@ export function enter(
   if (n === null || n.side !== null) return;
   n.side = side;
   n.mob = 2;
+  n.entered = gw.s.chapter;
   for (const e of gw.s.nations) {
     if (e.side !== other(side)) continue;
     if (!n.atWar.includes(e.tag)) n.atWar.push(e.tag);
@@ -82,6 +95,7 @@ export function leaveWar(gw: GreatWar, tag: GwTag, why: string): void {
   for (const e of gw.s.nations) e.atWar = e.atWar.filter((x) => x !== tag);
   news(gw, why, tag);
   turn(gw, `out_${tag.toLowerCase()}`);
+  transfers(gw, tag);
   refreshTheatres(gw);
 }
 
@@ -94,6 +108,24 @@ function standingPlan(gw: GreatWar): void {
   }
 }
 
+/** The divisions a fallen enemy freed go to the fronts that are left. */
+function transfers(gw: GreatWar, out: GwTag): void {
+  for (const row of GW_TRANSFERS) {
+    const n = gw.nation(row.tag);
+    if (row.out !== out || n === null || !fights(n)) continue;
+    n.base[row.to] = clampTo((n.base[row.to] ?? 0) + row.bands, 1, 5);
+    n.strength[row.to] = clampTo((n.strength[row.to] ?? 0) + row.bands, 1, 5);
+  }
+}
+
+/** Germany nobody plays still has its generals: most go west, not all. */
+function germanPlan(gw: GreatWar): GwPlan {
+  const deu = gw.nation("DEU");
+  if (deu === null || gw.s.seats.some((x) => x.tag === "DEU")) return "west";
+  const east = { cautious: 25, principled: 15, opportunist: 10, hardline: 0 };
+  return wwRoll(gw.s.seed, P_PLAN, 0) % 100 < east[deu.ai] ? "east" : "west";
+}
+
 /**
  * The great war begins (design §2.4): the alliances pull each other in, then
  * Germany's plan says whether Belgium goes with them. Britain, Italy and the
@@ -103,7 +135,10 @@ export function openWar(gw: GreatWar): void {
   const s = gw.s;
   if (s.warChapter !== null) return;
   s.warChapter = s.chapter;
-  if (s.plan === null) standingPlan(gw);
+  if (s.plan === null) {
+    if (gw.s.seats.some((x) => x.tag === "DEU")) standingPlan(gw);
+    else s.plan = germanPlan(gw);
+  }
   turn(gw, "war_began");
   enter(gw, "AUH", "central", "war_declared");
   enter(gw, "SRB", "entente", "war_declared");

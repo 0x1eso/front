@@ -94,6 +94,18 @@ const card = (over: Partial<GwCardView> = {}): GwCardView => ({
 });
 
 const world = (over: Partial<GwWorldView> = {}): GwWorldView => ({
+  war: {
+    era: "movement",
+    regime: "empire",
+    command: false,
+    blockade: 0,
+    shipping: 0,
+    uboat: 0,
+    america: 0,
+    techs: [],
+    armistice: null,
+    votes: [],
+  },
   gauges: [],
   authority: 40,
   manpower: 90,
@@ -346,6 +358,9 @@ describe("the screens", () => {
       },
     ];
     const { panel, orders } = await mount(data([], { proposals }));
+    panel.querySelector<HTMLButtonElement>("[data-gw-tab=country]")!.click();
+    await panel.updateComplete;
+    expect(panel.querySelector("[data-gw-war]")).not.toBeNull();
     panel.querySelector<HTMLButtonElement>("[data-gw-tab=fronts]")!.click();
     await panel.updateComplete;
     expect(panel.querySelector("[data-gw-paper-why]")).not.toBeNull();
