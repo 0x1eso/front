@@ -137,7 +137,7 @@ const NEWS: readonly GwScene[] = [
   report("gw_n_easter", {
     nation: except("GBR"),
     when: all(
-      { kind: "pressure", topic: "ireland", min: 3 },
+      { kind: "pressure", topic: "ireland", min: 6 },
       date("1916-03", "1916-06"),
     ),
     salience: 5,
@@ -259,9 +259,16 @@ const NEWS: readonly GwScene[] = [
   }),
   report("gw_n_unity", {
     nation: [...GW_TAGS],
+    // AI Germany rarely attacks in the west after 1916: Russia's exit with
+    // America in calls this too, or a seat would almost never read it.
     when: all(
-      w({ is: "battle", theatre: "west", of: GAINED, by: "central" }),
-      date("1918-01", "1918-07"),
+      any(
+        w({ is: "battle", theatre: "west", of: BATTLE_ANY, by: "central" }),
+        flag("w_france_falling"),
+        all(w({ is: "out", tag: "RUS" }), flag("w_america_in")),
+      ),
+      w({ is: "entered", tag: "GBR", side: "entente" }),
+      date("1917-10", "1918-09"),
     ),
     salience: 5,
     tags: ["war"],
@@ -285,6 +292,7 @@ const NEWS: readonly GwScene[] = [
     nation: [...GW_TAGS],
     when: all(
       w({ is: "entered", tag: "OTT", side: "central" }),
+      w({ is: "in_war", tag: "OTT", min: 3 }),
       date("1915-06", "1915-12"),
     ),
     salience: 4,
@@ -307,7 +315,7 @@ const NEWS: readonly GwScene[] = [
   report("gw_n_record_kut", {
     nation: [...GW_TAGS],
     when: all(
-      w({ is: "front", theatre: "mesopotamia", from: "basra", to: "kut" }),
+      w({ is: "front", theatre: "mesopotamia", from: "kut", to: "kut" }),
       any(
         w({
           is: "battle",
@@ -426,9 +434,9 @@ const WARTIME_READS: readonly GwScene[] = [
     when: all(
       PEACE,
       any(
-        { kind: "pressure", topic: "balkan", min: 4 },
-        { kind: "pressure", topic: "straits", min: 4 },
-        { kind: "pressure", topic: "colonial", min: 4 },
+        { kind: "crisis", topic: "balkan" },
+        { kind: "crisis", topic: "straits" },
+        { kind: "crisis", topic: "colonial" },
       ),
       date("1915-01", "1917-06"),
     ),
@@ -437,14 +445,8 @@ const WARTIME_READS: readonly GwScene[] = [
     repeats: true,
     cooldown: 8,
     variants: [
-      {
-        id: "balkan",
-        when: { kind: "pressure", topic: "balkan", min: 4 },
-      },
-      {
-        id: "straits",
-        when: { kind: "pressure", topic: "straits", min: 4 },
-      },
+      { id: "balkan", when: { kind: "crisis", topic: "balkan" } },
+      { id: "straits", when: { kind: "crisis", topic: "straits" } },
       { id: "colonial" },
     ],
   }),
@@ -855,8 +857,7 @@ const DECISIONS: readonly GwScene[] = [
     when: all(
       PEACE,
       { kind: "temp", max: 3 },
-      not({ kind: "pressure", topic: "balkan", min: 4 }),
-      not({ kind: "pressure", topic: "straits", min: 4 }),
+      not(w({ is: "chain" })),
       date("1915-07", "1918-11"),
     ),
     cast: { fm: FM },
