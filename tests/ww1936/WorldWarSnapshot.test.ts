@@ -489,12 +489,13 @@ describe("World War 1936 snapshots (spec §7.8)", () => {
 // Re-pinned for historical equipment, national traits and the combat rework: three equal runs.
 // Re-pinned for w77 (36 techs gained effects, the AI researches and fights with them): three equal runs.
 // Re-pinned for the economy trap fixes (manpower, line shares, deals paused): three equal runs.
-const WW1936_DIGEST = "2ee15cfa08090551";
+// Re-pinned at 980f83868 after the economy, air and content lanes merged (equal in three runs).
+const WW1936_DIGEST = "0497737ca0c52993";
 /**
  * The same game on Easy (the lobby's default in this mode): the AI
  * handicaps and the slower war planning. Pinned with three equal runs.
  */
-const WW1936_EASY_DIGEST = "aacba0bfeb994083";
+const WW1936_EASY_DIGEST = "1dda72d8b545eec0";
 
 describe("World War 1936 stays deterministic", () => {
   // An all-AI game on the test map, long enough for the calendar's first
