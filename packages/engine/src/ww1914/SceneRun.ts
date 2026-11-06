@@ -62,7 +62,7 @@ export function castOf(
 ): Record<string, string> | null {
   const out: Record<string, string> = {};
   for (const [role, rule] of Object.entries(scene.cast)) {
-    let p: GwPersonState | null = null;
+    let p: GwPersonState | null;
     if ("office" in rule) {
       p = holderOf(gw, seat, rule.office);
     } else if ("person" in rule) {

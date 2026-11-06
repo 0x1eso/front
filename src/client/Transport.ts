@@ -30,6 +30,7 @@ import {
   InterceptorNuke,
   StockpiledNuke,
 } from "@openfront/engine-api/strategic/StrategicTypes";
+import type { GwOrder } from "@openfront/engine-api/ww1914/GwOrders";
 import {
   CloseCode,
   CloseReason,
@@ -199,6 +200,11 @@ export class SendDeclareWarIntentEvent implements GameEvent {
 // World War 1936 P1: one economy order of my country (plan decision 2).
 export class SendWwOrderIntentEvent implements GameEvent {
   constructor(public readonly order: WwOrder) {}
+}
+
+/** Great War 1914: one order of the seat. */
+export class SendGwOrderIntentEvent implements GameEvent {
+  constructor(public readonly order: GwOrder) {}
 }
 
 export class BuildUnitIntentEvent implements GameEvent {
@@ -546,6 +552,9 @@ export class Transport {
     });
     this.subscribe(SendDeclareWarIntentEvent, (e) =>
       this.sendIntent({ type: "declare_war", target: e.target.id() }),
+    );
+    this.subscribe(SendGwOrderIntentEvent, (e) =>
+      this.sendIntent({ type: "gw_order", order: e.order }),
     );
     this.subscribe(SendWwOrderIntentEvent, (e) =>
       this.sendIntent({ type: "ww_order", order: e.order }),

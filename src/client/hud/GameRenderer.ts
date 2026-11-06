@@ -58,6 +58,7 @@ import { TutorialPanel } from "./layers/TutorialPanel";
 import { UnitDisplay } from "./layers/UnitDisplay";
 import { WinModal } from "./layers/WinModal";
 import { loadAllSprites } from "./SpriteLoader";
+import { GwPanel } from "./ww1914/GwPanel";
 import { fogModelOf } from "./ww1936/FogModel";
 import { landSidesOf, landWarInputsOf, setLandSides } from "./ww1936/LandModel";
 import { setLandSeaAir } from "./ww1936/LandSeaAir";
@@ -740,6 +741,29 @@ export function createRenderer(
         eventBus.emit(new PlaySoundEffectEvent("atom-hit")),
       );
     }
+  }
+
+  // Great War 1914: the map is a background; only its panel and the sidebar
+  // that pauses and leaves. No vanilla or 1936 HUD, no map taps.
+  if (game.isGreatWar?.() === true) {
+    const gwPanel = document.querySelector("gw-panel");
+    if (!(gwPanel instanceof GwPanel)) throw new Error("gw-panel not found");
+    gwPanel.game = game;
+    gwPanel.eventBus = eventBus;
+    return new GameRenderer(
+      transformHandler,
+      uiState,
+      [
+        new ViewModeController(eventBus, view),
+        gwPanel,
+        gameRightSidebar,
+        mapControls,
+        settingsModal,
+        multiTabModal,
+        performanceOverlay,
+      ],
+      performanceOverlay,
+    );
   }
 
   const layers: Controller[] = [

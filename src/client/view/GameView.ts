@@ -20,6 +20,8 @@ import {
 } from "@openfront/engine-api/game/GameUpdates";
 import { GameLike, UnitPredicate } from "@openfront/engine-api/game/ReadViews";
 import { ClientID, GameID } from "@openfront/engine-api/Schemas";
+import { gwCountry, GwTag } from "@openfront/engine-api/ww1914/GwCountries";
+import type { GreatWarData } from "@openfront/engine-api/ww1914/GwView";
 import {
   CIVIL_WAR_SLOTS,
   COUNTRIES,
@@ -32,6 +34,11 @@ import { unpackMotionPlans } from "@openfront/engine-lib/game/MotionPlans";
 import { TerrainMapData } from "@openfront/engine-lib/game/TerrainMapLoader";
 import { TerraNulliusImpl } from "@openfront/engine-lib/game/TerraNulliusImpl";
 import { UnitGrid } from "@openfront/engine-lib/game/UnitGrid";
+import {
+  fillGreatWarOwners,
+  GwWorld,
+  gwWorldOf,
+} from "@openfront/engine-lib/ww1914/World1914";
 import { histStaticKeyTable } from "@openfront/engine-lib/ww1936/hist/StaticKeys";
 import {
   fillScenarioOwners,
@@ -140,6 +147,8 @@ export class GameView implements GameLike {
   private _congressData: CongressData | null = null;
   /** World War 1936: the last WorldWar update's data. */
   private _worldWarData: WorldWarData | null = null;
+  private _greatWarData: GreatWarData | null = null;
+  private _gwWorld: GwWorld | null = null;
   /** World War 1936: smallID → faction, for the relation matrix (decision 4). */
   private _worldWarTeams: Map<number, string> | null = null;
   /** World War 1936 P1: the merged economy updates; null when the mode is off. */
@@ -207,6 +216,10 @@ export class GameView implements GameLike {
     this._usernames = new Map(humans.map((h) => [h.clientID, h.username]));
     // World War 1936 (plan decision 5): the engine gave every land tile its
     // 1936 owner without tile updates; this view fills the same owners.
+    if (this.isGreatWar() && this._mapData.scenario !== undefined) {
+      this._gwWorld = gwWorldOf(this._mapData.scenario);
+      fillGreatWarOwners(this._map, this._mapData.scenario, this._gwWorld);
+    }
     const scenario = this.worldWarScenario();
     if (scenario !== null) {
       fillScenarioOwners(this._map, scenario);
@@ -322,6 +335,21 @@ export class GameView implements GameLike {
       : null;
   }
 
+  /** Great War 1914: the mode is on (the map is a background). */
+  isGreatWar(): boolean {
+    return this._config.greatWar1914?.() === true;
+  }
+
+  /** Great War 1914: what the screens read; null before the first tick. */
+  greatWarData(): GreatWarData | null {
+    return this._greatWarData;
+  }
+
+  /** Great War 1914: this player's country; null when the mode is off. */
+  gwTagOf(smallID: number): GwTag | null {
+    return this._gwWorld?.tags[smallID - 1] ?? null;
+  }
+
   /** World War 1936: wars, capitulations, the preparation end. */
   worldWarData(): WorldWarData | null {
     return this._worldWarData;
@@ -403,6 +431,18 @@ export class GameView implements GameLike {
   private countryCosmetics(
     smallID: number | undefined,
   ): PlayerCosmetics | null {
+    if (this._gwWorld !== null && smallID !== undefined) {
+      const gw = this.gwTagOf(smallID);
+      if (gw === null) return null;
+      const c = gwCountry(gw);
+      const part = (n: number) => n.toString(16).padStart(2, "0");
+      return {
+        flag: `/flags/${c.flag}.svg`,
+        color: {
+          color: `#${part(c.color[0])}${part(c.color[1])}${part(c.color[2])}`,
+        },
+      };
+    }
     const scenario = this.worldWarScenario();
     if (scenario === null || smallID === undefined) return null;
     const tag = scenario.tagOfSmallId(smallID);
@@ -525,6 +565,9 @@ export class GameView implements GameLike {
     // P6 (plan decision 36): after P5's.
     for (const u of gu.updates[GameUpdateType.WwDepth] ?? []) {
       this._wwDepth?.apply(u.data);
+    }
+    for (const u of gu.updates[GameUpdateType.GreatWar] ?? []) {
+      this._greatWarData = u.data;
     }
 
     const myDisplayName = formatPlayerDisplayName(

@@ -116,6 +116,8 @@ export const UPDATE_TYPE_ROUTING: Record<
   // the world devices (nuked, flooded, scorched, harbours, dams), the strike
   // effects and the news. A replay is fog-free and shows no depth panels.
   WwDepth: "misc",
+  // Great War 1914: a replay shows no panel.
+  GreatWar: "dropped",
 };
 
 /**

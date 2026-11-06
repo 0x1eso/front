@@ -66,10 +66,7 @@ export const DEU_SCENES: readonly GwScene[] = [
     start: "open",
     nodes: {
       open: {
-        says: [
-          { id: "worn", when: { kind: "temp", min: 5 } },
-          { id: "base" },
-        ],
+        says: [{ id: "worn", when: { kind: "temp", min: 5 } }, { id: "base" }],
         replies: [
           {
             id: "ask_vienna",

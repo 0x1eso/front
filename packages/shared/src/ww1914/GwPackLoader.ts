@@ -1,5 +1,9 @@
-import { GwPack, GwPackSchema, mergeGwPacks } from "@openfront/engine-api/ww1914/GwPack";
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
+import {
+  GwPack,
+  GwPackSchema,
+  mergeGwPacks,
+} from "@openfront/engine-api/ww1914/GwPack";
 import { assetUrl } from "../AssetUrls";
 
 /** Where a pack's JSON comes from: fetch in the browser, the disk in tests. */

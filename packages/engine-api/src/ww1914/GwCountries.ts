@@ -88,7 +88,11 @@ const OWN: Readonly<Partial<Record<GwTag, GwCountryDef>>> = {
     color: [205, 190, 120],
   },
   RUS: { name: "Russia", flag: "Romanov Russia", color: [90, 140, 90] },
-  OTT: { name: "Ottoman Empire", flag: "Ottoman Empire", color: [185, 145, 110] },
+  OTT: {
+    name: "Ottoman Empire",
+    flag: "Ottoman Empire",
+    color: [185, 145, 110],
+  },
   SRB: { name: "Serbia", flag: "rs", color: [150, 70, 90] },
   MNE: { name: "Montenegro", flag: "me", color: [170, 110, 60] },
   ESP: { name: "Spain", flag: "spain", color: [195, 155, 75] },

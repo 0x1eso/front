@@ -247,7 +247,8 @@ export interface GameConfigSettingsData {
    * fixes them). The difficulty offers the mode's own three levels
    * (engine-lib ww1936/AiDifficulty: the AI countries' handicaps).
    */
-  worldWar?: { picker: TemplateResult; length?: WwLength };
+  /** `fixed`: Great War 1914 has no difficulty or length to choose. */
+  worldWar?: { picker: TemplateResult; length?: WwLength; fixed?: boolean };
 }
 
 @customElement("game-config-settings")
@@ -592,11 +593,13 @@ export class GameConfigSettings extends LitElement {
               undefined,
               this.renderMapSearchInput(),
             )}
-        ${settings.worldWar
-          ? html`${this.renderWwDifficulty(settings)}${this.renderWwLength(
-              settings.worldWar.length ?? "timed",
-            )}`
-          : this.renderDifficulty(settings)}
+        ${settings.worldWar?.fixed === true
+          ? nothing
+          : settings.worldWar
+            ? html`${this.renderWwDifficulty(settings)}${this.renderWwLength(
+                settings.worldWar.length ?? "timed",
+              )}`
+            : this.renderDifficulty(settings)}
         ${settings.worldWar
           ? nothing
           : html`

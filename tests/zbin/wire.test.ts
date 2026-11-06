@@ -175,6 +175,23 @@ const SAMPLE_INTENTS: StampedIntent[] = [
   { type: "convene_emergency", clientID: P2, kind: "nuclear", target: P1 },
   { type: "declare_war", clientID: P1, target: P2 },
   {
+    type: "gw_order",
+    clientID: P1,
+    order: { kind: "reply", card: 7, reply: "ask_vienna" },
+  },
+  {
+    type: "gw_order",
+    clientID: P2,
+    order: {
+      kind: "allocate",
+      main: "east",
+      posture: "offensive",
+      scale: "major",
+      allyShare: 2,
+      research: "sea",
+    },
+  },
+  {
     type: "ww_order",
     clientID: P1,
     order: { kind: "build", region: 39_999, building: "infra", count: 10 },

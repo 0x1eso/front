@@ -5,8 +5,8 @@ import type {
 import type { DomesticData, WinReason } from "../domestic/DomesticTypes";
 import { AllPlayersStats, ClientID, Winner } from "../Schemas";
 import type { StrategicData } from "../strategic/StrategicTypes";
-import type { WwAirData } from "../ww1936/AirTypes";
 import type { GreatWarData } from "../ww1914/GwView";
+import type { WwAirData } from "../ww1936/AirTypes";
 import type { WwDepthData } from "../ww1936/DepthTypes";
 import type { WwEconomyData } from "../ww1936/EconomyTypes";
 import type { WwEndgameData } from "../ww1936/EndgameTypes";

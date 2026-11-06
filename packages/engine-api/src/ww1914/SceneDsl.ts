@@ -30,7 +30,10 @@ import {
 import { GW_TAGS, GwTag } from "./GwCountries";
 
 /** A person in a scene: a cast role, whoever holds an office, or a name. */
-export type GwWho = { role: string } | { office: GwOffice } | { person: string };
+export type GwWho =
+  | { role: string }
+  | { office: GwOffice }
+  | { person: string };
 
 export type GwCond =
   | { kind: "all"; of: GwCond[] }
@@ -220,7 +223,13 @@ export const GwOptionSchema = z
   .strict();
 export type GwOption = z.infer<typeof GwOptionSchema>;
 
-export const GW_STANCES = ["warm", "cold", "threat", "flatter", "frank"] as const;
+export const GW_STANCES = [
+  "warm",
+  "cold",
+  "threat",
+  "flatter",
+  "frank",
+] as const;
 export type GwStance = (typeof GW_STANCES)[number];
 export const GW_REPLY_KINDS = ["ask", "push", "deal", "leave"] as const;
 export type GwReplyKind = (typeof GW_REPLY_KINDS)[number];

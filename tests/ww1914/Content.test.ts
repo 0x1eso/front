@@ -1,20 +1,23 @@
-import { GwPackSchema, mergeGwPacks } from "@openfront/engine-api/ww1914/GwPack";
+import { IntentSchema } from "@openfront/engine-api/Schemas";
 import {
-  GwPersonDefSchema,
   GW_LINES,
   GW_THEATRES,
+  GwPersonDefSchema,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import { GW_TAGS, gwCountry } from "@openfront/engine-api/ww1914/GwCountries";
 import { GwOrderIntentSchema } from "@openfront/engine-api/ww1914/GwOrders";
 import {
+  GwPackSchema,
+  mergeGwPacks,
+} from "@openfront/engine-api/ww1914/GwPack";
+import {
   GwSceneSchema,
   gwSceneProblems,
 } from "@openfront/engine-api/ww1914/SceneDsl";
-import { IntentSchema } from "@openfront/engine-api/Schemas";
+import { ScenarioDataSchema } from "@openfront/engine-api/ww1936/ScenarioTypes";
 import { GW_CONTENT } from "@openfront/engine-lib/ww1914/content/Content";
 import { gwOwnerOf, gwWorldOf } from "@openfront/engine-lib/ww1914/World1914";
 import { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
-import { ScenarioDataSchema } from "@openfront/engine-api/ww1936/ScenarioTypes";
 import { loadGwPack } from "@openfront/shared/ww1914/GwPackLoader";
 import fs from "node:fs";
 import path from "node:path";

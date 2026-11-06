@@ -1,3 +1,4 @@
+import type { GameMap } from "@openfront/engine-api/game/GameMap";
 import { GameType } from "@openfront/engine-api/game/GameTypes";
 import {
   GreatWarState,
@@ -11,7 +12,10 @@ import {
 import { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import type { GreatWarData } from "@openfront/engine-api/ww1914/GwView";
 import { snapshotType } from "@openfront/engine-lib/snapshot/SnapshotType";
-import { gwCalendarOf, gwChapters } from "@openfront/engine-lib/ww1914/Calendars";
+import {
+  gwCalendarOf,
+  gwChapters,
+} from "@openfront/engine-lib/ww1914/Calendars";
 import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
 import {
   fillGreatWarOwners,
@@ -21,7 +25,6 @@ import {
 import { idHash } from "@openfront/engine-lib/ww1936/Roll";
 import { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
 import type { Game } from "../game/Game";
-import type { GameMap } from "@openfront/engine-api/game/GameMap";
 import { advanceChapter, allReady } from "./Chapters";
 import { gwView } from "./View";
 

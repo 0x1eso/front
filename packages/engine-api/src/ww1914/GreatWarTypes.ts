@@ -121,7 +121,13 @@ export type GwPersonState = z.infer<typeof GwPersonStateSchema>;
 
 // ---- The country (design §4.1) ----
 
-export const GW_GAUGES = ["shells", "bread", "money", "morale", "order"] as const;
+export const GW_GAUGES = [
+  "shells",
+  "bread",
+  "money",
+  "morale",
+  "order",
+] as const;
 export type GwGauge = (typeof GW_GAUGES)[number];
 export const GW_GAUGE_MAX: Readonly<Record<GwGauge, number>> = {
   shells: 3,
@@ -319,7 +325,9 @@ export const GwSeatStateSchema = z.object({
   /** scene id -> the last chapter it was dealt. */
   seen: z.record(z.string(), z.number().int()),
   /** Scenes an effect queued: dealt from `chapter` on. */
-  scheduled: z.array(z.object({ scene: GwIdSchema, chapter: z.number().int() })),
+  scheduled: z.array(
+    z.object({ scene: GwIdSchema, chapter: z.number().int() }),
+  ),
   alloc: GwAllocSchema,
   log: z.array(GwReasonSchema),
 });

@@ -270,6 +270,8 @@ export class SinglePlayerModal extends BaseModal {
   @state() private overtimeStartMinutes: number | undefined =
     DEFAULT_OPTIONS.overtimeStartMinutes;
   @state() private worldWar1936: boolean = DEFAULT_OPTIONS.worldWar1936;
+  /** Great War 1914: solo as Germany for now; the map and rules are fixed. */
+  @state() private greatWar1914 = false;
   @state() private historicalAi: boolean = DEFAULT_OPTIONS.historicalAi;
   @state() private ww1936Unlimited: boolean = DEFAULT_OPTIONS.ww1936Unlimited;
   @state() private ww1936FastTempo: boolean = DEFAULT_OPTIONS.ww1936FastTempo;
@@ -652,86 +654,108 @@ export class SinglePlayerModal extends BaseModal {
                 },
                 // With the mode on, only its own toggles and instant build
                 // stay: it fixes the rest (spec §2.1).
-                toggles: this.worldWar1936
+                toggles: this.greatWar1914
                   ? [
                       {
-                        labelKey: "game_settings.world_war_1936",
+                        labelKey: "game_settings.great_war_1914",
                         checked: true,
                       },
-                      {
-                        labelKey: "game_settings.historical_ai",
-                        checked: this.historicalAi,
-                      },
-                      {
-                        labelKey: "ww1936.lobby.nukes",
-                        checked: this.ww1936Nukes,
-                      },
-                      {
-                        labelKey: "game_settings.instant_build",
-                        checked: this.instantBuild,
-                      },
                     ]
-                  : [
-                      {
-                        labelKey: "game_settings.instant_build",
-                        checked: this.instantBuild,
-                      },
-                      {
-                        labelKey: "game_settings.random_spawn",
-                        checked: this.randomSpawn,
-                      },
-                      {
-                        labelKey: "game_settings.infinite_gold",
-                        checked: this.infiniteGold,
-                      },
-                      {
-                        labelKey: "game_settings.infinite_troops",
-                        checked: this.infiniteTroops,
-                      },
-                      {
-                        labelKey: "game_settings.compact_map",
-                        checked: this.compactMap,
-                      },
-                      {
-                        labelKey: "game_settings.water_nukes",
-                        checked: this.waterNukes,
-                      },
-                      {
-                        labelKey: "game_settings.domestic_mode",
-                        checked: this.domesticMode,
-                      },
-                      ...(this.domesticMode && this.gameMode === GameMode.FFA
-                        ? [
-                            {
-                              labelKey: "game_settings.congress",
-                              checked: this.congress,
-                            },
-                          ]
-                        : []),
-                      {
-                        labelKey: "game_settings.warfare_expansion",
-                        checked: this.warfareExpansion,
-                      },
-                      {
-                        labelKey: "game_settings.strategic_weapons",
-                        checked: this.strategicWeapons,
-                      },
-                      {
-                        labelKey: "game_settings.doomsday_clock",
-                        checked: this.doomsdayClock,
-                        doomsdayClockSpeed: this.doomsdayClockSpeed,
-                      },
-                      {
-                        labelKey: "game_settings.world_war_1936",
-                        checked: false,
-                      },
-                    ],
-                inputCards: this.worldWar1936 ? [] : inputCards,
+                  : this.worldWar1936
+                    ? [
+                        {
+                          labelKey: "game_settings.world_war_1936",
+                          checked: true,
+                        },
+                        {
+                          labelKey: "game_settings.historical_ai",
+                          checked: this.historicalAi,
+                        },
+                        {
+                          labelKey: "ww1936.lobby.nukes",
+                          checked: this.ww1936Nukes,
+                        },
+                        {
+                          labelKey: "game_settings.instant_build",
+                          checked: this.instantBuild,
+                        },
+                      ]
+                    : [
+                        {
+                          labelKey: "game_settings.instant_build",
+                          checked: this.instantBuild,
+                        },
+                        {
+                          labelKey: "game_settings.random_spawn",
+                          checked: this.randomSpawn,
+                        },
+                        {
+                          labelKey: "game_settings.infinite_gold",
+                          checked: this.infiniteGold,
+                        },
+                        {
+                          labelKey: "game_settings.infinite_troops",
+                          checked: this.infiniteTroops,
+                        },
+                        {
+                          labelKey: "game_settings.compact_map",
+                          checked: this.compactMap,
+                        },
+                        {
+                          labelKey: "game_settings.water_nukes",
+                          checked: this.waterNukes,
+                        },
+                        {
+                          labelKey: "game_settings.domestic_mode",
+                          checked: this.domesticMode,
+                        },
+                        ...(this.domesticMode && this.gameMode === GameMode.FFA
+                          ? [
+                              {
+                                labelKey: "game_settings.congress",
+                                checked: this.congress,
+                              },
+                            ]
+                          : []),
+                        {
+                          labelKey: "game_settings.warfare_expansion",
+                          checked: this.warfareExpansion,
+                        },
+                        {
+                          labelKey: "game_settings.strategic_weapons",
+                          checked: this.strategicWeapons,
+                        },
+                        {
+                          labelKey: "game_settings.doomsday_clock",
+                          checked: this.doomsdayClock,
+                          doomsdayClockSpeed: this.doomsdayClockSpeed,
+                        },
+                        {
+                          labelKey: "game_settings.world_war_1936",
+                          checked: false,
+                        },
+                        {
+                          labelKey: "game_settings.great_war_1914",
+                          checked: false,
+                        },
+                      ],
+                inputCards:
+                  this.worldWar1936 || this.greatWar1914 ? [] : inputCards,
               },
               unitTypes: {
                 titleKey: "game_settings.disable_units",
                 disabledUnits: this.disabledUnits,
               },
+              ...(this.greatWar1914
+                ? {
+                    worldWar: {
+                      picker: html`<div class="text-sm text-white">
+                        ${translateText("gw.country.DEU")}
+                      </div>`,
+                      fixed: true,
+                    },
+                  }
+                : {}),
               ...(this.worldWar1936
                 ? {
                     worldWar: {
@@ -825,6 +849,7 @@ export class SinglePlayerModal extends BaseModal {
       this.warfareExpansion !== DEFAULT_OPTIONS.warfareExpansion ||
       this.strategicWeapons !== DEFAULT_OPTIONS.strategicWeapons ||
       this.worldWar1936 !== DEFAULT_OPTIONS.worldWar1936 ||
+      this.greatWar1914 ||
       this.congress !== DEFAULT_OPTIONS.congress ||
       this.conquestPercent !== DEFAULT_OPTIONS.conquestPercent ||
       this.doomsdayClock !== DEFAULT_OPTIONS.doomsdayClock ||
@@ -908,6 +933,7 @@ export class SinglePlayerModal extends BaseModal {
     this.warfareExpansion = DEFAULT_OPTIONS.warfareExpansion;
     this.strategicWeapons = DEFAULT_OPTIONS.strategicWeapons;
     this.worldWar1936 = DEFAULT_OPTIONS.worldWar1936;
+    this.greatWar1914 = false;
     this.historicalAi = DEFAULT_OPTIONS.historicalAi;
     this.ww1936Unlimited = DEFAULT_OPTIONS.ww1936Unlimited;
     this.ww1936FastTempo = DEFAULT_OPTIONS.ww1936FastTempo;
@@ -1057,6 +1083,17 @@ export class SinglePlayerModal extends BaseModal {
         break;
       case "game_settings.doomsday_clock":
         this.doomsdayClock = checked;
+        break;
+      case "game_settings.great_war_1914":
+        // Exclusive with every other fork mode.
+        this.greatWar1914 = checked;
+        if (checked) {
+          this.worldWar1936 = false;
+          this.domesticMode = false;
+          this.congress = false;
+          this.warfareExpansion = false;
+          this.strategicWeapons = false;
+        }
         break;
       case "game_settings.world_war_1936":
         // Exclusive with the other fork modes (spec §2.1).
@@ -1350,7 +1387,7 @@ export class SinglePlayerModal extends BaseModal {
     // Validate and clamp maxTimer setting before starting
     let finalMaxTimerValue: number | undefined = undefined;
     // World War 1936 fixes the length (and hides the timer card).
-    if (this.maxTimer && !this.worldWar1936) {
+    if (this.maxTimer && !this.worldWar1936 && !this.greatWar1914) {
       if (!this.maxTimerValue || this.maxTimerValue <= 0) {
         console.error("Max timer is enabled but no valid value is set");
         await showInGameAlert(
@@ -1431,6 +1468,7 @@ export class SinglePlayerModal extends BaseModal {
               },
             }
           : {}),
+        ...(this.greatWar1914 ? { greatWar1914: true } : {}),
         ...(this.worldWar1936
           ? {
               worldWar1936: true,
@@ -1457,6 +1495,7 @@ export class SinglePlayerModal extends BaseModal {
               ...(this.worldWar1936 && this.country !== null
                 ? { country: this.country }
                 : {}),
+              ...(this.greatWar1914 ? { country: "DEU" as const } : {}),
             },
           ],
           config,

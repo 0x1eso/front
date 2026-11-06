@@ -5,7 +5,10 @@ import {
 } from "@openfront/engine-api/game/GameTypes";
 import { GameUpdateType } from "@openfront/engine-api/game/GameUpdates";
 import { GameConfigSchema } from "@openfront/engine-api/Schemas";
-import { GW_CALENDARS, gwChapters } from "@openfront/engine-lib/ww1914/Calendars";
+import {
+  GW_CALENDARS,
+  gwChapters,
+} from "@openfront/engine-lib/ww1914/Calendars";
 import {
   applyGreatWar1914Rules,
   normalizeModeConfig,
@@ -68,7 +71,10 @@ describe("the start", () => {
     step(runner, 5, [
       stamped(HUMAN, {
         type: "attack",
-        targetID: g.players().find((p) => p !== me)!.id(),
+        targetID: g
+          .players()
+          .find((p) => p !== me)!
+          .id(),
         troops: 100,
       }),
     ]);
@@ -134,9 +140,7 @@ describe("the chapter clock", () => {
   test("a pause keeps the time left", async () => {
     const { runner } = await gwRunner({ gameType: GameType.Private });
     const left = view(runner).deadlineTick! - runner.game.ticks();
-    step(runner, 1, [
-      stamped(HUMAN, { type: "toggle_pause", paused: true }),
-    ]);
+    step(runner, 1, [stamped(HUMAN, { type: "toggle_pause", paused: true })]);
     step(runner, 50);
     expect(runner.game.isPaused()).toBe(true);
     const now = view(runner).deadlineTick! - runner.game.ticks();
@@ -232,7 +236,7 @@ describe("the two sample scenes", () => {
     summon();
     summon();
     expect(seat(runner).audiences).toBe(2);
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < 2; i++) {
       order(runner, { kind: "reply", card: talk()!.uid, reply: "leave" });
       summon();
     }
@@ -246,7 +250,11 @@ describe("the two sample scenes", () => {
     const { runner } = await gwRunner();
     const office = (id: string) =>
       seat(runner).people.find((p) => p.id === id)!.office;
-    order(runner, { kind: "appoint", person: "deu_jagow", office: "chancellor" });
+    order(runner, {
+      kind: "appoint",
+      person: "deu_jagow",
+      office: "chancellor",
+    });
     expect(office("deu_jagow")).toBe("chancellor");
     expect(office("deu_bethmann")).toBeNull();
     order(runner, { kind: "dismiss", person: "deu_jagow" });

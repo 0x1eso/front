@@ -66,13 +66,13 @@ import { CargoPlaneExecutionSnapshot } from "../warfare/CargoPlaneExecution";
 import { CoastalBarrageExecutionSnapshot } from "../warfare/CoastalBarrageExecution";
 import { CoastalBatteryExecutionSnapshot } from "../warfare/CoastalBatteryExecution";
 import { ParadropExecutionSnapshot } from "../warfare/ParadropExecution";
+import { GreatWarExecutionSnapshot } from "../ww1914/GreatWarExecution";
+import { GwOrderExecutionSnapshot } from "../ww1914/Orders";
 import { DeclareWarExecutionSnapshot } from "../ww1936/DeclareWarExecution";
 import {
   WwOrderExecutionSnapshot,
   WwTakeoverPickExecutionSnapshot,
 } from "../ww1936/economy/WwOrderExecution";
-import { GreatWarExecutionSnapshot } from "../ww1914/GreatWarExecution";
-import { GwOrderExecutionSnapshot } from "../ww1914/Orders";
 import { WorldWarExecutionSnapshot } from "../ww1936/WorldWarExecution";
 import { WorldWarStartExecutionSnapshot } from "../ww1936/WorldWarStartExecution";
 import type { ExecutionSnapshotType } from "./ExecutionSnapshot";

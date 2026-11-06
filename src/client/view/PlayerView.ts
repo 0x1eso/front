@@ -32,6 +32,7 @@ import { PlayerCosmetics } from "@openfront/shared/WireSchemas";
 import { Colord, colord } from "colord";
 import { base64url } from "jose";
 import { UserSettings } from "../UserSettings";
+import { translateText } from "../Utils";
 import { wwMapName } from "../hud/ww1936/EndgameNames";
 import { PlayerState, PlayerStatic, PlayerTypeEnum } from "../render/types";
 import { themeProvider } from "../theme/ThemeProvider";
@@ -103,7 +104,8 @@ export class PlayerView implements PlayerLike {
     // World War 1936 (decision 3): a country's name is never anonymized.
     if (
       data.clientID === game.myClientID() ||
-      game.worldWarScenario() !== null
+      game.worldWarScenario() !== null ||
+      game.isGreatWar?.() === true
     ) {
       this.anonymousName = data.name!;
     } else {
@@ -122,7 +124,7 @@ export class PlayerView implements PlayerLike {
     // World War 1936 (spec §5.4, decision 4): the country's flag and colour
     // are its identity, the same for everyone, never hidden by a setting.
     this.cosmetics =
-      this.game.worldWarScenario() !== null
+      this.game.worldWarScenario() !== null || this.game.isGreatWar?.() === true
         ? this.equippedCosmetics
         : visibleCosmetics(
             this.equippedCosmetics,
@@ -429,6 +431,9 @@ export class PlayerView implements PlayerLike {
       : this.static.name;
   }
   displayName(): string {
+    // Great War 1914: every player is a country, named in the UI's language.
+    const gwTag = this.game.gwTagOf?.(this.smallID()) ?? null;
+    if (gwTag !== null) return translateText(`gw.country.${gwTag}`);
     if (this.anonymousName !== null && userSettings.anonymousNames()) {
       return this.anonymousName;
     }

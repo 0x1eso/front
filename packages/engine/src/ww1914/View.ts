@@ -17,7 +17,11 @@ import type { GreatWar } from "./GreatWar";
 import { readyBlock, summonable } from "./Orders";
 import { ctxOf, optionOpen, pickVariant, sceneOf } from "./SceneRun";
 
-function cardView(gw: GreatWar, seat: GwSeatState, c: GwCard): GwCardView | null {
+function cardView(
+  gw: GreatWar,
+  seat: GwSeatState,
+  c: GwCard,
+): GwCardView | null {
   const scene = sceneOf(c.scene);
   if (scene === null) return null;
   const ctx = ctxOf(gw, seat, c);

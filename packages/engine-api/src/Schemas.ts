@@ -40,6 +40,8 @@ import {
   INTERCEPTOR_NUKES,
   STOCKPILED_NUKES,
 } from "./strategic/StrategicTypes";
+import { GW_CALENDAR_IDS } from "./ww1914/GreatWarTypes";
+import { GwOrderIntentSchema } from "./ww1914/GwOrders";
 import {
   AIR_MISSIONS,
   AIR_TYPES,
@@ -51,8 +53,6 @@ import {
   WW_MAX_GROUP_PLANES,
   WW_MAX_KEEP_GROUPS,
 } from "./ww1936/AirTypes";
-import { GW_CALENDAR_IDS } from "./ww1914/GreatWarTypes";
-import { GwOrderIntentSchema } from "./ww1914/GwOrders";
 import { COUNTRY_TAGS } from "./ww1936/Countries";
 import {
   AGENCY_UPGRADES,

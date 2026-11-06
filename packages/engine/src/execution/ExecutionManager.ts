@@ -21,12 +21,12 @@ import {
   SatelliteTargetExecution,
 } from "../strategic/SatelliteOrders";
 import { ParadropExecution } from "../warfare/ParadropExecution";
+import { GwOrderExecution } from "../ww1914/Orders";
 import { DeclareWarExecution } from "../ww1936/DeclareWarExecution";
 import {
   WwOrderExecution,
   WwTakeoverPickExecution,
 } from "../ww1936/economy/WwOrderExecution";
-import { GwOrderExecution } from "../ww1914/Orders";
 import { AllianceExtensionExecution } from "./alliance/AllianceExtensionExecution";
 import { AllianceRejectExecution } from "./alliance/AllianceRejectExecution";
 import { AllianceRequestExecution } from "./alliance/AllianceRequestExecution";
@@ -95,7 +95,10 @@ export class Executor {
       if (intent.type === "gw_order") {
         return new GwOrderExecution(player, intent.order);
       }
-      if (intent.type !== "toggle_pause" && intent.type !== "mark_disconnected") {
+      if (
+        intent.type !== "toggle_pause" &&
+        intent.type !== "mark_disconnected"
+      ) {
         return new NoOpExecution();
       }
     }

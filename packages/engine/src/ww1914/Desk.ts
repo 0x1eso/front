@@ -1,4 +1,7 @@
-import { GwCard, GwSeatState } from "@openfront/engine-api/ww1914/GreatWarTypes";
+import {
+  GwCard,
+  GwSeatState,
+} from "@openfront/engine-api/ww1914/GreatWarTypes";
 import { GwScene } from "@openfront/engine-api/ww1914/SceneDsl";
 import { gwChapters } from "@openfront/engine-lib/ww1914/Calendars";
 import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";

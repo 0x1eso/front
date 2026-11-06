@@ -22,10 +22,10 @@ import {
 import { MapFiles } from "@openfront/engine-api/game/MapFiles";
 import { ClientID, GameStartInfo, Turn } from "@openfront/engine-api/Schemas";
 import { isDormantTag } from "@openfront/engine-api/ww1936/Countries";
-import { gwWorldOf } from "@openfront/engine-lib/ww1914/World1914";
 import { loadTerrainMap } from "@openfront/engine-lib/game/TerrainMapLoader";
 import { PseudoRandom } from "@openfront/engine-lib/PseudoRandom";
 import { simpleHash } from "@openfront/engine-lib/Util";
+import { gwWorldOf } from "@openfront/engine-lib/ww1914/World1914";
 import { EngineConfig } from "./configuration/EngineConfig";
 import { CongressExecution } from "./congress/CongressExecution";
 import { DomesticExecution } from "./domestic/DomesticExecution";
