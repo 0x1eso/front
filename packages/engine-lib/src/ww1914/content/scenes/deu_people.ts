@@ -4579,7 +4579,11 @@ export const DEU_PEOPLE_SCENES: readonly GwScene[] = [
     id: "deu_t_heir_falk",
     nation: ["DEU"],
     kind: "talk",
-    when: all(chapter(8, 9), any(atWar("RUS"), atWar("FRA"))),
+    when: all(
+      chapter(8, 9),
+      any(atWar("RUS"), atWar("FRA")),
+      not(holds("chief_of_staff", "deu_moltke")),
+    ),
     cast: { who: { person: "deu_heir" } },
     salience: 3,
     tags: ["people"],
@@ -7282,7 +7286,14 @@ export const DEU_PEOPLE_SCENES: readonly GwScene[] = [
     id: "deu_v_tirp_resign",
     nation: ["DEU"],
     kind: "talk",
-    when: all(chapter(5, 10), all(trusts(who, null, -2), proud(who, 3))),
+    when: all(
+      not({
+        kind: "world",
+        of: { is: "letter", who: { person: "deu_tirpitz" } },
+      }),
+      chapter(5, 10),
+      all(trusts(who, null, -2), proud(who, 3)),
+    ),
     cast: { who: { person: "deu_tirpitz" } },
     salience: 7,
     tags: ["people"],
@@ -7436,6 +7447,10 @@ export const DEU_PEOPLE_SCENES: readonly GwScene[] = [
     nation: ["DEU"],
     kind: "talk",
     when: all(
+      not({
+        kind: "world",
+        of: { is: "letter", who: { person: "deu_moltke" } },
+      }),
       chapter(4, 7),
       holds("chief_of_staff", "deu_moltke"),
       trusts(who, null, -2),
@@ -7556,11 +7571,19 @@ export const DEU_PEOPLE_SCENES: readonly GwScene[] = [
     id: "deu_v_beth_resign",
     nation: ["DEU"],
     kind: "talk",
-    when: all(chapter(4, 10), holds("chancellor", "deu_bethmann"), {
-      kind: "inst",
-      inst: "countersign",
-      max: -2,
-    }),
+    when: all(
+      not({
+        kind: "world",
+        of: { is: "letter", who: { person: "deu_bethmann" } },
+      }),
+      chapter(4, 10),
+      holds("chancellor", "deu_bethmann"),
+      {
+        kind: "inst",
+        inst: "countersign",
+        max: -2,
+      },
+    ),
     cast: { who: { person: "deu_bethmann" } },
     salience: 8,
     tags: ["people"],

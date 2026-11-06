@@ -7,7 +7,13 @@ import { translateText } from "../../Utils";
 import type { GwCtx } from "./GwCtx";
 import { gaugeFill, gaugeLevel, instBand, logByChapter } from "./GwModel";
 import { CHIP, fillColor, HEAD, MUTED } from "./GwStyle";
-import { factText, reasonText, reportText, textOrNull } from "./GwText";
+import {
+  countInMan,
+  factText,
+  reasonText,
+  reportText,
+  textOrNull,
+} from "./GwText";
 
 const BOX = "space-y-1.5 rounded border border-white/15 bg-black/35 p-2.5";
 
@@ -58,7 +64,10 @@ function standing(c: GwCtx): TemplateResult {
     ${w.casualties === 0
       ? nothing
       : html`<span class=${CHIP}
-          >${translateText("gw.ui.casualties", { n: w.casualties })}</span
+          >${translateText("gw.ui.casualties", {
+            n: w.casualties,
+            man: countInMan(w.casualties),
+          })}</span
         >`}
   </div>`;
 }

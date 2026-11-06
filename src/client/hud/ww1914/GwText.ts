@@ -38,6 +38,19 @@ export function shortDate(iso: string): string {
   return `${m}월 ${d}일`;
 }
 
+/** "1914-07-05" as the screen's headings write it. */
+export function fullDate(iso: string): string {
+  return `${iso.split("-")[0]}년 ${shortDate(iso)}`;
+}
+
+/** Thousands as a Korean count: 520 is 52만, 1234 is 123만 4천. */
+export function countInMan(thousands: number): string {
+  const man = Math.floor(thousands / 10);
+  const rest = thousands % 10;
+  if (man === 0) return `${rest}천`;
+  return rest === 0 ? `${man}만` : `${man}만 ${rest}천`;
+}
+
 /** The date of the latest memory or decision a callback hole names. */
 function callbackDate(seat: GwSeatView, head: string, id: string): string {
   const rows =
@@ -63,7 +76,7 @@ export function fillGw(
   const out = text.replace(
     /\{([a-z_0-9]+)(?:\.([a-z_0-9]+))?\}/g,
     (hole, role, title) => {
-      if (role === "date") return date;
+      if (role === "date") return shortDate(date);
       if ((role === "mem" || role === "chose") && title !== undefined) {
         return callbackDate(seat, role, title);
       }
@@ -160,7 +173,7 @@ export function endingText(
   return applyJosa(
     text
       .replace(/\{date\}/g, shortDate(date))
-      .replace(/\{casualties\}/g, String(memoir.casualties)),
+      .replace(/\{casualties\}/g, countInMan(memoir.casualties)),
   );
 }
 

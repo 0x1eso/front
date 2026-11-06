@@ -31,7 +31,10 @@ function condKeys(c: GwCond | undefined, out: Set<string>): void {
   }
 }
 
-function writes(list: readonly GwEffect[] | undefined, keys: Set<string>) {
+function writes(
+  list: readonly GwEffect[] | undefined,
+  keys: Set<string>,
+): boolean {
   return (list ?? []).some(
     (e) =>
       (e.kind === "remember" && keys.has(e.key)) ||

@@ -12,6 +12,7 @@ import {
   cardTitle,
   fillGw,
   foldedLines,
+  fullDate,
   optionText,
   personName,
   reasonText,
@@ -139,7 +140,15 @@ function optionButton(
         c.redraw();
       }}
     >
-      <span class="block">${optionText(c.pack, card, o.id)}</span>
+      <span class="block"
+        >${fillGw(
+          optionText(c.pack, card, o.id),
+          c.pack,
+          card,
+          c.seat,
+          c.data.date,
+        )}</span
+      >
       ${o.tell.length === 0
         ? nothing
         : html`<span class="mt-0.5 flex flex-wrap gap-1"
@@ -150,7 +159,9 @@ function optionButton(
     </button>
     ${why === undefined
       ? nothing
-      : html`<p class="${MUTED} pl-1" data-gw-why>${why}</p>`}
+      : html`<p class="${MUTED} pl-1" data-gw-why>
+          ${fillGw(why, c.pack, card, c.seat, c.data.date)}
+        </p>`}
   </div>`;
 }
 
@@ -182,14 +193,14 @@ export function reader(c: GwCtx, card: GwCardView): TemplateResult {
           : html`<span class=${CHIP} data-gw-stamp
               >${translateText(`gw.ui.stamp.${card.stamp}`)}</span
             >`}
-        <span class="${MUTED} ml-auto">${c.data.date}</span>
+        <span class="${MUTED} ml-auto">${fullDate(c.data.date)}</span>
         <button class="${MUTED} px-1 hover:text-white" @click=${close}>
           ✕
         </button>
       </header>
       <h2 class="text-lg font-bold leading-snug">${cardTitle(c.pack, card)}</h2>
       <div class="space-y-2.5 text-[15px] leading-7 text-white/90">
-        <p>${fill(cardBody(c.pack, card))}</p>
+        <p class="whitespace-pre-line">${fill(cardBody(c.pack, card))}</p>
         ${voices(c.pack, card).map(
           (v) =>
             html`<p class="border-l-2 border-white/25 pl-3 text-white/80">

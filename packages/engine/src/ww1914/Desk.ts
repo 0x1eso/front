@@ -424,7 +424,12 @@ export function dealDesk(gw: GreatWar, seat: GwSeatState): void {
     dealt = [];
   } else {
     for (const card of dueCards) placeCard(gw, seat, card);
-    for (const scene of drawn) {
+    // News before what it asks for: the ultimatum above Belgrade's answer.
+    const byRead = [
+      ...drawn.filter(isRead),
+      ...drawn.filter((x) => !isRead(x)),
+    ];
+    for (const scene of byRead) {
       const card = makeCard(gw, seat, scene, "desk");
       if (card !== null) placeCard(gw, seat, card);
     }

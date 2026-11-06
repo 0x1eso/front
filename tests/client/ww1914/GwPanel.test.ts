@@ -369,7 +369,7 @@ describe("the screens", () => {
   test("the band holds the date and five gauges in words", async () => {
     const { panel } = await mount(data([card()]));
     expect(panel.querySelector("[data-gw-date]")!.textContent).toBe(
-      "1914-06-28",
+      "1914년 6월 28일",
     );
     expect(panel.querySelectorAll("[data-gw-gauges] > span").length).toBe(5);
   });
@@ -377,7 +377,7 @@ describe("the screens", () => {
   test("holes and tells", () => {
     const d = data([card()]);
     const out = fillGw("{date}, {cos}", PACK, card(), d.seats[0], d.date);
-    expect(out).toBe("1914-06-28, 몰트케");
+    expect(out).toBe("6월 28일, 몰트케");
     expect(tellText("army:+1")).toContain("+1");
   });
 });

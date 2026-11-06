@@ -6,6 +6,7 @@ import { translateText } from "../../Utils";
 import type { GwCtx } from "./GwCtx";
 import { clock, gaugeFill, gaugeLevel, secondsLeft, tempBand } from "./GwModel";
 import { CHIP, fillColor, GLASS } from "./GwStyle";
+import { fullDate } from "./GwText";
 
 /** The top band: date, flag, chapter, timer, the crisis, five gauges in words. */
 export function band(c: GwCtx): TemplateResult {
@@ -21,7 +22,7 @@ export function band(c: GwCtx): TemplateResult {
       src=${assetUrl(`flags/${country.flag}.svg`)}
       alt=""
     />
-    <span class="text-sm font-bold" data-gw-date>${data.date}</span>
+    <span class="text-sm font-bold" data-gw-date>${fullDate(data.date)}</span>
     <span class="hidden text-xs text-white/60 sm:inline"
       >${translateText("gw.panel.chapter", {
         date: translateText(`gw.ui.stage.${data.stage}`),

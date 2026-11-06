@@ -605,6 +605,18 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
     once: true,
     variants: [
       {
+        id: "paris",
+        when: {
+          kind: "all",
+          of: [
+            { kind: "chapter", min: 11 },
+            { kind: "flag", flag: "w_summer_war" },
+            { kind: "world", of: { is: "out", tag: "FRA" } },
+            { kind: "world", of: { is: "war" } },
+          ],
+        },
+      },
+      {
         id: "late",
         when: {
           kind: "all",
@@ -4123,6 +4135,16 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
       kind: "all",
       of: [
         {
+          kind: "not",
+          of: {
+            kind: "all",
+            of: [
+              { kind: "opening", of: ["sarajevo_delayed"] },
+              { kind: "chapter", max: 6 },
+            ],
+          },
+        },
+        {
           kind: "chapter",
           min: 6,
           max: 10,
@@ -4494,7 +4516,7 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
       of: [
         {
           kind: "chapter",
-          min: 7,
+          min: 8,
           max: 8,
         },
         {
@@ -4624,14 +4646,14 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
     id: "deu_w_christmas",
     nation: ["DEU"],
     kind: "report",
-    stage: ["y1914"],
+    stage: ["y1914", "closing"],
     when: {
       kind: "all",
       of: [
         {
           kind: "chapter",
-          min: 10,
-          max: 10,
+          min: 11,
+          max: 11,
         },
         {
           kind: "all",
@@ -8638,6 +8660,7 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
+        { kind: "holder", office: "chief_of_staff", person: "deu_falkenhayn" },
         {
           kind: "chapter",
           min: 9,

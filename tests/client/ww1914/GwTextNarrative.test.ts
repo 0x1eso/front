@@ -67,9 +67,7 @@ describe("text filling", () => {
       "7월 5일에 폐하께서 반려하신 안입니다.",
     );
     expect(fill("{chose.budget_bill}의 일입니다.")).toBe("8월 9일의 일입니다.");
-    expect(fill("{cos}이(가) {date}에 왔다.")).toBe(
-      "몰트케가 1914-09-01에 왔다.",
-    );
+    expect(fill("{cos}이(가) {date}에 왔다.")).toBe("몰트케가 9월 1일에 왔다.");
   });
 
   test("the voice variant picks the paragraph, the plain one is the fallback", () => {

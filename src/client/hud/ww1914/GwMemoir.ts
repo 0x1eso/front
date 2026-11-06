@@ -5,6 +5,7 @@ import type { GwCtx } from "./GwCtx";
 import { endingsOf, logByChapter, shelfTotals } from "./GwModel";
 import { CHIP, HEAD, MUTED } from "./GwStyle";
 import {
+  countInMan,
   endingText,
   endingTitle,
   frontLine,
@@ -79,7 +80,10 @@ function reckoning(m: GwMemoir): TemplateResult | typeof nothing {
     ${m.casualties === 0
       ? nothing
       : html`<p class="text-sm text-white/85">
-          ${translateText("gw.ui.casualties", { n: m.casualties })}
+          ${translateText("gw.ui.casualties", {
+            n: m.casualties,
+            man: countInMan(m.casualties),
+          })}
         </p>`}
     ${m.fronts.map(
       (f) =>
@@ -181,7 +185,10 @@ function shelfBox(c: GwCtx): TemplateResult {
 export function memoirTab(c: GwCtx): TemplateResult {
   const { seat } = c;
   const m = seat.world.memoir;
-  const record = logByChapter(seat.log).reverse();
+  // How a talk went is told when it ends; the record keeps what happened.
+  const record = logByChapter(
+    seat.log.filter((r) => !/^talk_(fit|clash)_/.test(r.key)),
+  ).reverse();
   return html`<div class="space-y-3" data-gw-memoir>
     ${m === null
       ? html`<p class="text-sm text-white/70">

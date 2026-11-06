@@ -28,6 +28,9 @@ export const GW_LINKS = [
 /** A later spark runs the end of the same ladder. */
 export const GW_SHORT_START = 3;
 
+/** The delayed visit's shot: Vienna's week is one short, July keeps its days. */
+const DELAYED_START = 2;
+
 /** Temperature a crisis needs to go on at its last two links. */
 export const LOCAL_WAR_AT = 5;
 const GENERAL_WAR_AT = 6;
@@ -91,14 +94,14 @@ function light(gw: GreatWar, topic: GwTopic, short: boolean): void {
   s.chain = {
     topic,
     // A late shot skips Vienna's first week: the war still comes in summer.
-    step: short ? GW_SHORT_START : 1,
+    step: short ? GW_SHORT_START : DELAYED_START,
     hold: 0,
     short,
   };
   // Each crisis settled leaves the next one hotter.
   s.temp = Math.max(s.temp, short ? 3 + s.chains.length : 3);
   news(gw, short ? `spark_${topic}` : "shot_fired");
-  turn(gw, `spark_${topic}`);
+  if (short) turn(gw, `spark_${topic}`);
 }
 
 /** Closes the open crisis. Only `war` starts one. */

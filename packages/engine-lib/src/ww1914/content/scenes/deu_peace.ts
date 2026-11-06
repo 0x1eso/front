@@ -37,6 +37,13 @@ const war: GwCond = any(
   { kind: "at_war", tag: "FRA" },
 );
 const peace: GwCond = not(war);
+const crisisOpen: GwCond = any(
+  { kind: "crisis", topic: "balkan" },
+  { kind: "crisis", topic: "straits" },
+  { kind: "crisis", topic: "colonial" },
+);
+/** The summer has passed: a run on the delayed visit may still be in it. */
+const calm: GwCond = all(peace, not(crisisOpen));
 const chapter = (min: number, max: number): GwCond => ({
   kind: "chapter",
   min,
@@ -87,7 +94,7 @@ const decision = (
 const SCENES: readonly GwScene[] = [
   decision("deu_w_peace_summer", {
     kind: "wire",
-    when: all(chapter(6, 6), peace),
+    when: all(chapter(6, 6), calm),
     cast: { court: holder("court") },
     salience: 8,
     tags: ["home", "tension_down"],
@@ -98,7 +105,7 @@ const SCENES: readonly GwScene[] = [
     ],
   }),
   decision("deu_w_peace_congress", {
-    when: all(chapter(6, 6), peace),
+    when: all(chapter(6, 6), calm),
     cast: { interior: holder("interior"), chancellor: holder("chancellor") },
     salience: 7,
     tags: ["home", "foreign"],
@@ -257,11 +264,7 @@ const SCENES: readonly GwScene[] = [
     kind: "crisis",
     when: all(
       chapter(6, 10),
-      any(
-        { kind: "crisis", topic: "balkan" },
-        { kind: "crisis", topic: "straits" },
-        { kind: "crisis", topic: "colonial" },
-      ),
+      crisisOpen,
       { kind: "temp", min: 6 },
       { kind: "world", of: { is: "chain", min: 4 } },
       not(flag("f_west_plan")),

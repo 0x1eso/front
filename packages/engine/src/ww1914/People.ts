@@ -23,6 +23,8 @@ const AILING_FOR = 2;
 /** Design §6: a dismissal costs authority 25 + fame x 2. */
 const DISMISS_BASE = 25;
 const DISMISS_PER_FAME = 2;
+/** Fame from which a soldier with no desk is given an army. */
+const FIELD_FAME = 2;
 
 export function officeHolder(
   gw: GreatWar,
@@ -185,7 +187,8 @@ export function armyCommander(
   }
   const soldiers = ownPeople(gw, seat.tag).filter((p) => {
     const d = defOf(p.id);
-    return d?.camps.includes("military") === true && p.office === null;
+    const known = (d?.fame ?? 0) >= FIELD_FAME;
+    return d?.camps.includes("military") === true && p.office === null && known;
   });
   const taken = new Set(gw.s.theatres.map((x) => x.commander));
   const pool = soldiers.filter((p) => !taken.has(p.id));
