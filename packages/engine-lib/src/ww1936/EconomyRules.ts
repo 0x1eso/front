@@ -173,6 +173,11 @@ export function repairProgress(
   );
 }
 
+/** ww120 T1: an area's repair crew, milli, from its working civilian factories. */
+export function repairCrewMilli(workingCiv: number): number {
+  return 2000 + workingCiv * 500;
+}
+
 /** Days until an entry finishes at `perDay`; -1 when it gets nothing (UI). */
 export function constructionDaysLeft(
   costMilli: number,

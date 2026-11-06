@@ -24,6 +24,7 @@ import { DS_RECON } from "@openfront/engine-api/ww1936/DepthTypes";
 import {
   BUILDING_IDS,
   RESOURCE_IDS,
+  WW_MAX_CIVS_PER_PROJECT,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
 import { SEA_ZONE_BASE } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { bombDamageMilli } from "@openfront/engine-lib/ww1936/AirRules";
@@ -42,7 +43,7 @@ import {
 import { nightMods } from "../depth/AirExtras";
 import { buildingIndex, effectiveLevel } from "../economy/Buildings";
 import { buildingSpeedPct } from "../economy/Construction";
-import { repairCostMilli } from "../economy/Repairs";
+import { areaCrewOf, repairCostMilli } from "../economy/Repairs";
 import {
   type EffectTally,
   enemyOfSide,
@@ -690,13 +691,16 @@ function flushTally(
   }
 }
 
-/** The days to mend a hit at the victim's pace today (its free factories). */
+/** The days to mend a hit at the victim's pace today (ww120: its area's crew). */
 function repairDaysOf(air: WwAir, h: RunHit): number {
   const ce = air.econ.country(h.victim);
   if (ce === null || h.stopped.size === 0) return 0;
   let cost = 0;
   for (const [bi, m] of h.stopped) cost += repairCostMilli(BUILDING_IDS[bi], m);
-  const given = Math.max(1000, Math.min(15_000, ce.totals.freeCivMilli));
+  const given = Math.min(
+    WW_MAX_CIVS_PER_PROJECT * 1000,
+    areaCrewOf(air.econ, h.victim, h.region),
+  );
   const b = BUILDING_IDS[Math.min(...h.stopped.keys())];
   const speed = projectSpeedPct({
     building: b,

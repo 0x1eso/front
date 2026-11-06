@@ -103,7 +103,7 @@ import {
 import { stepManpower } from "./Manpower";
 import { stepNavalLines } from "./NavalLines";
 import { lineStops, stepProduction } from "./Production";
-import { repairCostMilli, stepRepairs } from "./Repairs";
+import { REPAIR_ORDER, repairCostMilli, stepRepairs } from "./Repairs";
 import { hasQueues, queueView, stepQueues } from "./ResearchQueue";
 import { projectsDone, stepResearch } from "./ResearchRun";
 import {
@@ -822,10 +822,9 @@ export class WwEconomy {
     this.refreshTotals(ce, day, tick);
     stepManpower(this, ce, p);
     stepProduction(this, ce, day);
-    // P4 spec §16.1: naval lines and repairs before construction, fuel after research.
+    // P4 spec §16.1: naval lines before construction, fuel after research.
     stepNavalLines(this, ce, day);
-    stepRepairs(this, ce, day);
-    stepConstruction(this, ce, p);
+    stepRepairs(this, ce, stepConstruction(this, ce, p));
     stepResearch(this, ce, p, day);
     stepQueues(this, ce, p);
     settleFuel(this, ce, day);
@@ -1387,12 +1386,12 @@ export class WwEconomy {
 
   /**
    * Lane U (the region card's "repairing N%"): the first damaged building's
-   * repair progress, BUILDING_IDS order (stepRepairs mends in that order),
-   * ‰ of its next whole building (1,000 of damage at most).
+   * repair progress, REPAIR_ORDER (stepRepairs mends in that order), ‰ of
+   * its next whole building (1,000 of damage at most).
    */
   private repairPmOf(region: number): { repairPm?: number } {
     const n = BUILDING_IDS.length;
-    for (let bi = 0; bi < n; bi++) {
+    for (const bi of REPAIR_ORDER) {
       const i = region * n + bi;
       const dmg = this.damage[i];
       if (dmg <= 0) continue;
