@@ -637,6 +637,7 @@ export interface StatusLine {
 /** Written out so the translation check sees every key. */
 const STATE_KEYS = {
   idle: "ww1936.land.state_idle",
+  idleNoReach: "ww1936.land.state_idle_noreach",
   moving: "ww1936.land.state_moving",
   battle: "ww1936.land.state_battle",
   encircled: "ww1936.land.state_encircled",
@@ -692,7 +693,40 @@ export function armyStatus(
     });
   }
   if (s & ARMY_EXECUTING) return line("executing");
-  return line("idle");
+  return line(cutOffFromEnemy(view, me, a.region) ? "idleNoReach" : "idle");
+}
+
+/**
+ * At war, but no enemy region touches the ground this army can walk over (my
+ * side's regions joined by land): the war is across the sea, and an army
+ * never boards ships on its own (a human's invasions are the human's), so it
+ * has nothing to do. False in peace and when anyone is in reach.
+ */
+export function cutOffFromEnemy(
+  view: WwLandView,
+  me: number,
+  from: number,
+): boolean {
+  const sides = sidesOf(view);
+  const at = view.controller;
+  let war = false;
+  for (let r = 0; r < at.length && !war; r++) {
+    war = at[r] !== 0 && sides.isEnemy(me, at[r]);
+  }
+  if (!war || from === 0) return false;
+  const seen = new Set([from]);
+  const stack = [from];
+  while (stack.length > 0) {
+    const r = stack.pop()!;
+    for (const e of view.scenario.edgesOf(r)) {
+      const c = at[e.to];
+      if (c !== 0 && sides.isEnemy(me, c)) return false;
+      if (seen.has(e.to) || c === 0 || !sides.sameSide(me, c)) continue;
+      seen.add(e.to);
+      stack.push(e.to);
+    }
+  }
+  return true;
 }
 
 /**

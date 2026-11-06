@@ -10305,6 +10305,7 @@
       "state_encircled": "Encircled",
       "state_executing": "Executing plan",
       "state_idle": "Idle",
+      "state_idle_noreach": "Idle (no enemy reachable by land)",
       "state_moving": "Moving → {region}, {days} d",
       "state_para": "Paradrop in {days} d",
       "state_rail": "By rail, {days} d",

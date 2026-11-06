@@ -9919,6 +9919,7 @@
       "state_encircled": "포위됨",
       "state_executing": "작전 수행 중",
       "state_idle": "대기",
+      "state_idle_noreach": "대기 (육로로 닿는 적 없음)",
       "state_moving": "{region}(으)로 이동, {days}일",
       "state_para": "{days}일 후 공수 강하",
       "state_rail": "철도 이동, {days}일",

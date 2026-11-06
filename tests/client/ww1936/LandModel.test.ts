@@ -151,6 +151,29 @@ describe("LandModel (spec §15)", () => {
     expect(rowGeneralName(rows[1])).toBe("[ww1936.land.titled_general] n=3");
   });
 
+  it("an idle army of a country whose enemy is across the sea says so, not plain idle", () => {
+    // Germany fights the Soviet Union, whose land touches Germany only
+    // through Poland (neutral): nothing an army can walk to.
+    const far = game({
+      ticks: 700,
+      wars: [["DEU", "SUN"]],
+      armies: [army(1, "DEU", 3)],
+    });
+    expect(armyCard(far.land, far.view, DEU, 1, DAY)!.status).toEqual({
+      key: "ww1936.land.state_idle_noreach",
+      params: {},
+    });
+    // The enemy borders our land: plain idle. Peace: plain idle.
+    const near = game({ ...AT_WAR, armies: [army(1, "DEU", 3)] });
+    expect(armyCard(near.land, near.view, DEU, 1, DAY)!.status.key).toBe(
+      "ww1936.land.state_idle",
+    );
+    const peace = game({ armies: [army(1, "DEU", 3)] });
+    expect(armyCard(peace.land, peace.view, DEU, 1, DAY)!.status.key).toBe(
+      "ww1936.land.state_idle",
+    );
+  });
+
   it("says what the army does: the most pressing state first", () => {
     const move = { ...idleOrder(), kind: "move" as const, to: 4 };
     const { land, view } = game({

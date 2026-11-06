@@ -99,6 +99,7 @@ const LAND = [
   "readiness",
   "supply",
   "state_idle",
+  "state_idle_noreach",
   "state_moving",
   "state_battle",
   "state_encircled",
