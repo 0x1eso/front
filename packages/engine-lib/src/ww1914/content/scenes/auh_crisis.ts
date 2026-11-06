@@ -135,10 +135,10 @@ const inOffice = (who: GwWho): GwCond => ({ kind: "in_office", who });
 /** The archduke lives (plan §0, `FF+`). */
 const ffAlive = opening("sarajevo_survived", "sarajevo_failed", "no_sarajevo");
 const ffDead = opening("sarajevo", "sarajevo_delayed");
-const eastPushed = {
+const eastPushed: GwCond = {
   kind: "world",
   of: { is: "battle", theatre: "east", of: ["advance", "break"] },
-} as const;
+};
 /** Serbia has been declared on, by the seat's paper or by the war itself. */
 const declared = any(flag("f_auh_declared"), atWar("SRB"));
 
@@ -1545,7 +1545,15 @@ const BERCHTOLD: readonly GwScene[] = [
           ["leaves"],
           [keepPromise(p, "ber_release"), act({ do: "leave", who: p })],
           "going",
-          { when: { kind: "promise", who: p, key: "ber_release" } },
+          {
+            when: {
+              kind: "promise",
+              who: p,
+              key: "ber_release",
+              kept: false,
+              broken: false,
+            },
+          },
         ),
         close("leave", "cold"),
       ),
@@ -2581,11 +2589,57 @@ const VISITS: readonly GwScene[] = [
   ),
 ];
 
+/**
+ * Where a talk turns to what the person makes of someone else (design §5.6):
+ * the reply opens at that node, and the answer is straight only if `candid`.
+ */
+const ASIDES: Readonly<Record<string, string>> = {
+  auh_t_ber_funeral: "kings",
+  auh_t_ber_clause: "clause",
+  auh_t_ber_rome: "article",
+  auh_t_ber_brake: "can",
+  auh_t_ber_trentino: "price",
+  auh_t_hoyos_term: "term",
+  auh_t_hoyos_partition: "map",
+  auh_t_hoyos_young: "names",
+  auh_t_hoyos_halt: "read",
+  auh_t_hoyos_zoll: "dinner",
+  auh_t_bil_bosnia: "heard",
+  auh_t_bil_inquiry: "first",
+  auh_t_bil_bill: "bill",
+  auh_t_bil_potiorek: "man",
+  auh_t_stu_closed: "why_shut",
+  auh_t_stu_decree: "paragraph",
+  auh_t_stu_bohemia: "prague",
+  auh_t_stu_grain: "bread",
+  auh_t_stu_open: "when",
+  auh_v_tsch_push: "wants",
+};
+
+function withAside(s: GwScene): GwScene {
+  const at = ASIDES[s.id];
+  if (at === undefined || s.nodes === undefined) return s;
+  const host = s.nodes[at];
+  return {
+    ...s,
+    nodes: {
+      ...s.nodes,
+      [at]: {
+        ...host,
+        replies: [r("aside", "cold", "ask", [], [], "aside"), ...host.replies],
+      },
+      aside: node(
+        [v("candid", candid(p)), base],
+        close("end", "frank"),
+        close("end2", "cold"),
+      ),
+    },
+  };
+}
+
 export const AUH_CRISIS_SCENES: readonly GwScene[] = [
   ...SCENES,
-  ...BERCHTOLD,
-  ...HOYOS,
-  ...BILINSKI,
-  ...STURGKH,
-  ...VISITS,
+  ...[...BERCHTOLD, ...HOYOS, ...BILINSKI, ...STURGKH, ...VISITS].map(
+    withAside,
+  ),
 ];
