@@ -1,43 +1,41 @@
-import { GW_LINES } from "@openfront/engine-api/ww1914/GreatWarTypes";
+import type { GwPack } from "@openfront/engine-api/ww1914/GwPack";
 import type {
   GreatWarData,
   GwSeatView,
 } from "@openfront/engine-api/ww1914/GwView";
 import { html, nothing, TemplateResult } from "lit";
 import { translateText } from "../../Utils";
-import { tempBand, theatreSpot } from "./GwModel";
+import { tempBand } from "./GwModel";
 import { GLASS } from "./GwStyle";
-
-/** A key's text, or null when it has none (a reason the content did not translate). */
-export function textOrNull(key: string): string | null {
-  const t = translateText(key);
-  return t === key ? null : t;
-}
+import { frontLine, newsText, reasonText } from "./GwText";
 
 /**
- * The world's news in one-line sentences, from what the view shows: the fronts
- * that are open, the temperature in a crisis, and the last why-lines.
+ * The world's news in one-line sentences: the temperature in a crisis, the
+ * wires of the last chapter, where the fronts stand, the last why-lines.
  */
-export function tickerLines(data: GreatWarData, seat: GwSeatView): string[] {
+export function tickerLines(
+  data: GreatWarData,
+  seat: GwSeatView,
+  pack: GwPack | null,
+): string[] {
   const out: string[] = [];
   if (data.stage === "crisis") {
     out.push(translateText(`gw.ui.news.temp.${tempBand(data.temp)}`));
   }
-  for (const t of seat.theatres) {
-    if (!t.open) continue;
-    const spot = theatreSpot(t.id, t.line, t.progress);
-    const name = textOrNull(`gw.ui.line.${t.id}.${GW_LINES[t.id][spot.line]}`);
+  const fresh = seat.world.news.filter((n) => n.chapter >= data.chapter - 1);
+  for (const n of [...fresh].reverse()) {
+    const text = newsText(n);
+    if (text !== null) out.push(text);
+  }
+  for (const f of seat.world.fronts) {
     out.push(
       translateText("gw.ui.news.front", {
-        theatre: translateText(`gw.ui.theatre.${t.id}`),
-        line: name ?? GW_LINES[t.id][spot.line],
+        theatre: translateText(`gw.ui.theatre.${f.id}`),
+        line: frontLine(f.id, f.line),
       }),
     );
   }
-  for (const r of seat.log.slice(-2).reverse()) {
-    const text = textOrNull(`gw.reason.${r.key}`);
-    if (text !== null) out.push(text);
-  }
+  for (const r of seat.log.slice(-2).reverse()) out.push(reasonText(pack, r));
   if (out.length === 0) out.push(translateText("gw.ui.news.quiet"));
   return out;
 }

@@ -2,15 +2,19 @@
 // tested. Everything here reads only what GreatWarData holds.
 import type {
   GwGauge,
+  GwMemoir,
   GwOffice,
+  GwReason,
   GwTheatre,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import {
+  GW_ENDINGS,
   GW_GAUGE_MAX,
   GW_INST_MAX,
   GW_INST_MIN,
   GW_LINES,
   GW_OFFICES,
+  GW_SECRETS,
   GW_TRUST_MAX,
   GW_TRUST_MIN,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
@@ -88,11 +92,25 @@ export function vacantOffices(seat: GwSeatView): GwOffice[] {
   );
 }
 
-/** Offices this person can be given now. */
+/** Offices this person can be given now: the world names who is on the list. */
 export function appointable(seat: GwSeatView, p: GwPersonView): GwOffice[] {
   if (p.office !== null) return [];
-  const vacant = new Set(vacantOffices(seat));
-  return p.fit.filter((o) => vacant.has(o));
+  return vacantOffices(seat).filter(
+    (o) => seat.world.candidates[o]?.includes(p.id) === true,
+  );
+}
+
+/** The office a dismissal has to be paid for, or null if it can't be. */
+export function dismissal(
+  seat: GwSeatView,
+  id: string,
+): { price: number; affordable: boolean } | null {
+  const w = seat.world.people.find((x) => x.id === id);
+  if (w === undefined) return null;
+  return {
+    price: w.dismissPrice,
+    affordable: seat.world.authority >= w.dismissPrice,
+  };
 }
 
 /** Talk cards on the desk, then the rest, each in dealt order. */
@@ -149,13 +167,13 @@ export function theatreSpot(
 
 /** One entry of the why-log, newest chapter first. */
 export function logByChapter(
-  log: GreatWarData["seats"][number]["log"],
-): { chapter: number; keys: string[] }[] {
-  const out: { chapter: number; keys: string[] }[] = [];
+  log: readonly GwReason[],
+): { chapter: number; reasons: GwReason[] }[] {
+  const out: { chapter: number; reasons: GwReason[] }[] = [];
   for (const r of log) {
     const last = out[out.length - 1];
-    if (last !== undefined && last.chapter === r.chapter) last.keys.push(r.key);
-    else out.push({ chapter: r.chapter, keys: [r.key] });
+    if (last !== undefined && last.chapter === r.chapter) last.reasons.push(r);
+    else out.push({ chapter: r.chapter, reasons: [r] });
   }
   return out.reverse();
 }
@@ -171,17 +189,32 @@ export interface Shelf {
   /** "DEU:ending_id" */
   endings: string[];
   people: string[];
-  documents: string[];
+  /** Hidden papers found: the world's secrets. */
+  secrets: string[];
+  /** Mandates carried out. */
+  mandates: string[];
   /** Games that reached their end (one entry per game). */
   runs: { tag: string; ending: string; date: string }[];
 }
 
 export const SHELF_KEY = "gw1914.shelf";
-/** The shelf's empty boxes: endings per country, cast, documents (design §2.8). */
-export const SHELF_TOTALS = { endings: 14, people: 32, documents: 12 } as const;
+
+/** The shelf's empty boxes, for a seat whose cast has `people` names. */
+export function shelfTotals(people: number): {
+  endings: number;
+  people: number;
+  secrets: number;
+} {
+  // "closing" is a game with no ending of its own.
+  return {
+    endings: GW_ENDINGS.length - 1,
+    people,
+    secrets: GW_SECRETS.length,
+  };
+}
 
 export function emptyShelf(): Shelf {
-  return { endings: [], people: [], documents: [], runs: [] };
+  return { endings: [], people: [], secrets: [], mandates: [], runs: [] };
 }
 
 export function loadShelf(
@@ -198,7 +231,8 @@ export function loadShelf(
     return {
       endings: list(v.endings),
       people: list(v.people),
-      documents: list(v.documents),
+      secrets: list(v.secrets),
+      mandates: list(v.mandates),
       runs: Array.isArray(v.runs) ? v.runs.slice(-50) : [],
     };
   } catch {
@@ -225,31 +259,41 @@ function safeStorage(): Storage | null {
   }
 }
 
-/** A new shelf with the person or document added (same shelf when known). */
+/** A new shelf with the ids added (the same shelf when all are known). */
 export function shelve(
   shelf: Shelf,
-  what: "people" | "documents",
-  id: string,
+  what: "people" | "secrets" | "mandates",
+  ids: readonly string[],
 ): Shelf {
-  return shelf[what].includes(id)
+  const fresh = ids.filter((id) => !shelf[what].includes(id));
+  return fresh.length === 0
     ? shelf
-    : { ...shelf, [what]: [...shelf[what], id] };
+    : { ...shelf, [what]: [...shelf[what], ...fresh] };
 }
 
-export function shelveEnding(
+/** What a finished game adds, from the memoir the engine wrote. */
+export function shelveMemoir(
   shelf: Shelf,
   tag: string,
-  ending: string,
+  memoir: GwMemoir,
   date: string,
 ): Shelf {
-  const key = `${tag}:${ending}`;
-  return {
+  const key = `${tag}:${memoir.shelf.ending}`;
+  const ended = {
     ...shelf,
     endings: shelf.endings.includes(key)
       ? shelf.endings
       : [...shelf.endings, key],
-    runs: [...shelf.runs, { tag, ending, date }].slice(-50),
+    runs: [...shelf.runs, { tag, ending: memoir.shelf.ending, date }].slice(
+      -50,
+    ),
   };
+  const met = shelve(ended, "people", memoir.shelf.people);
+  return shelve(
+    shelve(met, "secrets", memoir.shelf.secrets),
+    "mandates",
+    memoir.shelf.mandates,
+  );
 }
 
 export function endingsOf(shelf: Shelf, tag: string): number {

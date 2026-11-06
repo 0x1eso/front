@@ -21,8 +21,10 @@ import {
 import {
   formatReport,
   GW_SIM_DEFAULTS,
+  GW_SIM_PROFILES,
   GwRunRecord,
   GwSimOptions,
+  playRun,
   runSim,
   seenBefore,
 } from "./sim/GwSim";
@@ -88,6 +90,26 @@ describe("the N-run report", () => {
     const a = await play({ series: 3, control: false });
     const b = await play({ series: 3, control: false });
     expect(a).toEqual(b);
+  });
+
+  test("the bot signs the chief of staff's papers through the war", async () => {
+    useScenes(content());
+    const game = await playRun(
+      map,
+      "GWPAPERS",
+      "y1914",
+      [],
+      GW_SIM_PROFILES[0],
+    );
+    const again = await playRun(
+      map,
+      "GWPAPERS",
+      "y1914",
+      [],
+      GW_SIM_PROFILES[0],
+    );
+    expect(again.papersSigned).toBe(game.papersSigned);
+    expect(game.papersSigned > 0).toBe(game.chapters > 6);
   });
 
   test("names what never came, and why", async () => {

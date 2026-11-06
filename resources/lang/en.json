@@ -2266,10 +2266,7 @@
     "panel": {
       "chapter": "{date}, chapter {n} of {total}",
       "ended": "The game has closed.",
-      "not_ready": "Not ready",
-      "people": "People (summons left: {n})",
-      "read": "Read",
-      "ready": "Ready"
+      "not_ready": "Not ready"
     },
     "plan": {
       "cos_plan": "The chief's plan",
@@ -2432,32 +2429,25 @@
       "war_began": "The war began."
     },
     "ui": {
-      "alloc_allies": "Share for allies",
-      "alloc_main": "Main effort",
       "alloc_now": "Now: {main}, {posture}, {scale}",
-      "alloc_posture": "Posture",
       "alloc_research": "Research",
-      "alloc_scale": "Scale",
-      "alloc_send": "Confirm the allocation",
-      "alloc_title": "Where the weight goes",
-      "ally_share": {
-        "0": "None",
-        "1": "A little",
-        "2": "Half",
-        "3": "Most"
-      },
+      "alloc_title": "This chapter's war plan",
       "appoint": "Appoint as {office}",
       "audiences": "Audiences left: {n}",
       "audiences_hint": "Calling someone spends one.",
+      "authority": "Authority {n}",
       "block": {
         "closed": "That choice is not open yet.",
         "ended": "The game is over.",
         "no_audience": "You have used this chapter's audiences.",
+        "no_authority": "Not enough authority for this dismissal.",
         "no_card": "That paper is gone.",
         "no_option": "There is no such choice.",
         "no_person": "That person cannot be called now.",
         "no_topic": "That cannot be raised now.",
+        "not_proposed": "The chief of staff did not put this forward.",
         "open_cards": "Papers are still open: decide or read them first.",
+        "signed": "This chapter's paper is already signed.",
         "stale_chapter": "That chapter has already passed.",
         "wrong_kind": "That does not fit this paper."
       },
@@ -2471,13 +2461,24 @@
         "full": "3 to 4 hours",
         "y1914": "about 30 minutes alone"
       },
+      "casualties": "{n} thousand lost",
       "chapter_n": "Chapter {n}",
       "desk_empty": "Nothing waits on the desk. You may call someone or close the chapter.",
       "dismiss": "Dismiss",
+      "dismiss_price": "Authority {n}",
       "dismiss_sure": "Tap again to dismiss",
       "ending_default": "The game has ended",
+      "fact": {
+        "force": "forces",
+        "lean": "leaning",
+        "mob": "mobilisation",
+        "morale": "morale",
+        "shells": "shells"
+      },
       "fold": "Fold or unfold",
-      "front_quiet": "No fighting here yet.",
+      "folded_title": "Small news meanwhile",
+      "front_commander": "Commanded by {name}",
+      "front_last": "Last chapter: {result}. Our losses {ours} thousand, theirs {theirs} thousand",
       "gauge": {
         "bread": {
           "0": "Starving",
@@ -2545,73 +2546,13 @@
         "talk": "Talk",
         "wire": "Wire"
       },
-      "line": {
-        "balkan": {
-          "belgrade": "Belgrade",
-          "drina": "Drina",
-          "nis": "Niš",
-          "salonika": "Salonika"
-        },
-        "caucasus": {
-          "erzurum": "Erzurum",
-          "kars": "Kars",
-          "trabzon": "Trabzon",
-          "van": "Van"
-        },
-        "colonies": {
-          "east_africa": "East Africa",
-          "kamerun": "Kamerun",
-          "southwest": "South West Africa",
-          "togo": "Togo"
-        },
-        "east": {
-          "dvina": "Dvina",
-          "east_prussia": "East Prussia",
-          "kiev": "Kiev",
-          "riga": "Riga",
-          "vistula": "Vistula",
-          "warsaw": "Warsaw"
-        },
-        "italy": {
-          "adige": "Adige",
-          "isonzo": "Isonzo",
-          "piave": "Piave",
-          "trentino": "Trentino"
-        },
-        "mesopotamia": {
-          "baghdad": "Baghdad",
-          "basra": "Basra",
-          "kut": "Kut",
-          "mosul": "Mosul"
-        },
-        "palestine": {
-          "damascus": "Damascus",
-          "gaza": "Gaza",
-          "jerusalem": "Jerusalem",
-          "suez": "Suez"
-        },
-        "sea": {
-          "atlantic": "Atlantic",
-          "blockade": "Blockade",
-          "channel": "Channel",
-          "north_sea": "North Sea"
-        },
-        "straits": {
-          "constantinople": "Constantinople",
-          "dardanelles": "Dardanelles",
-          "gallipoli": "Gallipoli",
-          "narrows": "The Narrows"
-        },
-        "west": {
-          "aisne": "Aisne",
-          "hindenburg": "Hindenburg Line",
-          "liege": "Liège",
-          "marne": "Marne",
-          "rhine": "Rhine",
-          "somme": "Somme"
-        }
-      },
+      "mandate_met": "carried out",
+      "mandate_unmet": "not carried out",
+      "mandates_title": "Mandates of this game",
+      "manpower": "Manpower left {n}",
+      "memoir_date": "Ended on {date}, in chapter {n}",
       "memoir_open": "The memoir is written when the game ends. Until then the record below fills.",
+      "memoir_people": "The people around you",
       "news": {
         "front": "{theatre} front: {line}",
         "quiet": "No great news today.",
@@ -2627,21 +2568,46 @@
       "no_topics": "Nothing to raise with them now.",
       "options": "Your choices",
       "outside": "Outside the cabinet",
+      "paper_hint": "One paper is signed each chapter. If you sign none, the first goes out as it stands.",
+      "paper_odds": "{name}: \"{odds}\"",
+      "paper_signed": "This chapter's paper is signed.",
+      "person_ailing": "In poor health",
+      "person_letter": "Has sent a resignation",
+      "person_record": "{wins} wins, {losses} failures",
+      "person_status": {
+        "dead": "Dead",
+        "exiled": "Gone",
+        "fallen": "Stepped down"
+      },
       "posture": {
         "hold": "Hold",
         "offensive": "Offensive"
       },
+      "powers_title": "The powers",
+      "promise_broken": "broken",
+      "promise_due": "by {date}",
+      "promise_kept": "kept",
+      "promises_title": "Promises made",
       "quiet_fronts": "Still quiet",
       "read_decide": "Read and decide",
       "read_done": "Read. Put it aside.",
       "read_on": "Read",
       "ready_chapter": "Close the chapter",
+      "reckoning_title": "What was left",
       "record_title": "The record",
       "reply": {
         "ask": "Ask",
         "deal": "Promise or bargain",
         "leave": "Step back",
         "push": "Press"
+      },
+      "report_corrected": "Corrected later: {claim}",
+      "report_line": "{country} {fact}: {claim}",
+      "reports_title": "Reports received",
+      "repute": {
+        "1": "poorly thought of",
+        "2": "fairly thought of",
+        "3": "well thought of"
       },
       "research": {
         "artillery": "Artillery",
@@ -2653,13 +2619,24 @@
         "limited": "Limited",
         "major": "Major"
       },
+      "secrets_title": "What was found out",
       "shelf_documents": "Papers seen {n}/{max}",
       "shelf_endings": "Endings {n}/{max}",
       "shelf_hint": "What this browser has seen across games. Nothing here gives power; it only shows what is empty.",
+      "shelf_mandates": "Mandates carried out {n}",
       "shelf_people": "People met {n}/{max}",
+      "shelf_runs": "Games finished {n}",
       "shelf_title": "The shelf",
+      "side": {
+        "central": "Central Powers",
+        "entente": "Entente",
+        "neutral": "Neutral",
+        "out": "Out of the war"
+      },
       "sign": "Sign",
       "since_last": "Since the last chapter",
+      "source_record": "{source}: {right} right, {wrong} wrong",
+      "sources_title": "Their record so far",
       "stage": {
         "closing": "Closing",
         "crisis": "Crisis",
@@ -2709,6 +2686,7 @@
         "straits": "Straits",
         "west": "West"
       },
+      "threads_title": "Long-running matters",
       "trench": "Trench stage {n} of {max}",
       "trench_word": {
         "0": "Moving front",
@@ -2728,6 +2706,11 @@
         "6": "Wholly trusted"
       },
       "trust_label": "Trust in you",
+      "turns_title": "What happened",
+      "unknown_none": "Nothing stayed hidden in this game.",
+      "unknown_title": "What you never knew in this game",
+      "vacant_hint": "If nobody is chosen by the end of this chapter, the first name on the list takes it.",
+      "vacant_title": "Vacant offices",
       "why_none": "Nothing recorded yet.",
       "why_title": "Why things stand so"
     },

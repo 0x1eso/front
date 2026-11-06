@@ -65,6 +65,8 @@ export const GwPackSchema = z
     reasons: ById.optional(),
     /** Promise key -> how the people screen lists it, may hold {who}. */
     promises: ById.optional(),
+    /** Ending id -> the memoir's paragraph, may hold {date}, {casualties}. */
+    endings: ById.optional(),
   })
   .strict();
 export type GwPack = z.infer<typeof GwPackSchema>;
@@ -77,12 +79,14 @@ export function mergeGwPacks(packs: readonly GwPack[]): GwPack {
     people: {},
     reasons: {},
     promises: {},
+    endings: {},
   };
   for (const p of packs) {
     Object.assign(out.scenes, p.scenes);
     Object.assign(out.people, p.people);
     Object.assign(out.reasons!, p.reasons);
     Object.assign(out.promises!, p.promises);
+    Object.assign(out.endings!, p.endings);
   }
   return out;
 }
@@ -97,6 +101,7 @@ export function gwPackOverlaps(packs: readonly GwPack[]): string[] {
       ...Object.keys(p.people).map((x) => `person ${x}`),
       ...Object.keys(p.reasons ?? {}).map((x) => `reason ${x}`),
       ...Object.keys(p.promises ?? {}).map((x) => `promise ${x}`),
+      ...Object.keys(p.endings ?? {}).map((x) => `ending ${x}`),
     ];
     for (const id of ids) {
       if (seen.has(id)) out.add(id);

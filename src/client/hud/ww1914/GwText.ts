@@ -1,12 +1,31 @@
-import type { GwReason } from "@openfront/engine-api/ww1914/GreatWarTypes";
+import {
+  GW_LINES,
+  GwFactKind,
+  GwMemoir,
+  GwNews,
+  GwReason,
+  GwTheatre,
+  GwUnknown,
+} from "@openfront/engine-api/ww1914/GreatWarTypes";
+import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import type { GwPack } from "@openfront/engine-api/ww1914/GwPack";
 import type {
   GwCardView,
   GwPromiseView,
   GwSeatView,
 } from "@openfront/engine-api/ww1914/GwView";
+import type { GwReportView } from "@openfront/engine-api/ww1914/GwWorldView";
 import { applyJosa } from "../../Josa";
 import { translateText } from "../../Utils";
+
+/** A key's text, or null when it has none. */
+export function textOrNull(
+  key: string,
+  params: Record<string, string | number> = {},
+): string | null {
+  const t = translateText(key, params);
+  return t === key ? null : t;
+}
 
 /** A person's name; the id when the pack has no row. */
 export function personName(pack: GwPack | null, id: string): string {
@@ -130,16 +149,84 @@ export function tellText(tell: string): string {
   return value === undefined ? name : `${name} ${value}`;
 }
 
-/** The ending's text when the pack has one (an `ending_<id>` scene), else null. */
-export function endingText(pack: GwPack | null, id: string): string | null {
-  const s = pack?.scenes[`ending_${id}`];
-  return s === undefined ? null : (s.text.base ?? Object.values(s.text)[0]);
+/** The ending's paragraph, its holes filled; null when the pack has none. */
+export function endingText(
+  pack: GwPack | null,
+  memoir: GwMemoir,
+  date: string,
+): string | null {
+  const text = pack?.endings?.[memoir.ending];
+  if (text === undefined) return null;
+  return applyJosa(
+    text
+      .replace(/\{date\}/g, shortDate(date))
+      .replace(/\{casualties\}/g, String(memoir.casualties)),
+  );
 }
 
-export function endingTitle(pack: GwPack | null, id: string): string {
-  return (
-    pack?.scenes[`ending_${id}`]?.title ?? translateText("gw.ui.ending_default")
+export function endingTitle(id: string): string {
+  return textOrNull(`gw.ending.${id}`) ?? translateText("gw.ui.ending_default");
+}
+
+const country = (tag: string) => translateText(`gw.country.${tag}`);
+
+const theatreName = (t: GwTheatre) => translateText(`gw.theatre.${t}`);
+
+/** A front's named line: the index is the engine's, the name is the reader's. */
+export function frontLine(t: GwTheatre, line: string | number): string {
+  const name = typeof line === "number" ? GW_LINES[t][line] : line;
+  return textOrNull(`gw.front.${t}.${name}`) ?? name.replace(/_/g, " ");
+}
+
+/** What a fact's value reads as ("총동원"). */
+export function factText(fact: GwFactKind, value: number): string {
+  return textOrNull(`gw.fact.${fact}.${value}`) ?? String(value);
+}
+
+/** A line of the world's news; null for a key with no text. */
+export function newsText(n: GwNews): string | null {
+  const line = textOrNull(`gw.news.${n.key}`, {
+    a: n.a === null ? "" : country(n.a),
+    b: n.b === null ? "" : country(n.b),
+    theatre: n.theatre === null ? "" : theatreName(n.theatre),
+  });
+  return line === null ? null : applyJosa(line);
+}
+
+/** A turning point in the memoir. */
+export function turnText(t: { key: string; tag: GwTag | null }): string {
+  return applyJosa(
+    translateText(`gw.turn.${t.key}`, {
+      country: t.tag === null ? "" : country(t.tag),
+    }),
   );
+}
+
+/** One line of "이 판에서 당신이 몰랐던 것". */
+export function unknownText(pack: GwPack | null, u: GwUnknown): string {
+  if (u.kind === "secret") return translateText(`gw.secret.${u.id}`);
+  const word =
+    u.kind === "ai" && u.word !== null ? translateText(`gw.ai.${u.word}`) : "";
+  return applyJosa(
+    translateText(`gw.unknown.${u.kind}`, {
+      country: u.kind === "source" || u.kind === "person" ? "" : country(u.id),
+      theatre: u.theatre === null ? "" : theatreName(u.theatre),
+      person: u.kind === "person" ? personName(pack, u.id) : "",
+      source: u.kind === "source" ? translateText(`gw.source.${u.id}`) : "",
+      fact: u.kind === "lean" ? factText("lean", u.value) : "",
+      value: u.value,
+      word,
+    }),
+  );
+}
+
+/** A report as the seat got it: who it's about and what it says. */
+export function reportText(r: GwReportView): string {
+  return translateText("gw.ui.report_line", {
+    country: country(r.tag),
+    fact: translateText(`gw.ui.fact.${r.fact}`),
+    claim: factText(r.fact, r.claim),
+  });
 }
 
 /** A person's one-line lean, or "" when the pack has none. */

@@ -1,4 +1,7 @@
-import type { GwAlloc } from "@openfront/engine-api/ww1914/GreatWarTypes";
+import type {
+  GwReason,
+  GwResearch,
+} from "@openfront/engine-api/ww1914/GreatWarTypes";
 import type { GwOrder } from "@openfront/engine-api/ww1914/GwOrders";
 import type { GwPack } from "@openfront/engine-api/ww1914/GwPack";
 import type {
@@ -31,8 +34,8 @@ export interface Transcript {
   closed: boolean;
   /** How long the why-log was when it began: lines after are its reasons. */
   logAt: number;
-  /** The reasons that came while it ran, as translation keys. */
-  reasons: string[];
+  /** The reasons that came while it ran. */
+  reasons: readonly GwReason[];
 }
 
 /** What the screens may change; the panel owns the instance. */
@@ -50,7 +53,8 @@ export interface GwUi {
   summoned: number;
   /** A dismissal waiting for its second tap. */
   armedDismiss: string | null;
-  alloc: GwAlloc | null;
+  /** The research picked for the paper about to be signed. */
+  research: GwResearch | null;
   shelf: Shelf;
 }
 

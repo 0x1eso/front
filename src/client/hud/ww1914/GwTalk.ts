@@ -13,10 +13,10 @@ import {
   personBio,
   personLean,
   personName,
+  reasonText,
   saysText,
   tellText,
 } from "./GwText";
-import { textOrNull } from "./GwTicker";
 
 /**
  * Keeps one transcript per talk card: a new node adds the person's line, a
@@ -65,7 +65,7 @@ export function syncTranscripts(ui: GwUi, seat: GwSeatView): boolean {
   for (const t of ui.talks.values()) {
     if (live.has(t.uid) || t.closed) continue;
     t.closed = true;
-    t.reasons = seat.log.slice(t.logAt).map((r) => r.key);
+    t.reasons = seat.log.slice(t.logAt);
     changed = true;
   }
   return changed;
@@ -196,9 +196,12 @@ export function talkView(
             data-gw-after
           >
             <div class=${MUTED}>${translateText("gw.ui.talk_ended")}</div>
-            ${t.reasons
-              .flatMap((k) => textOrNull(`gw.reason.${k}`) ?? [])
-              .map((r) => html`<p class="text-sm text-white/80">${r}</p>`)}
+            ${t.reasons.map(
+              (r) =>
+                html`<p class="text-sm text-white/80">
+                  ${reasonText(c.pack, r)}
+                </p>`,
+            )}
           </div>`
         : t.turns[t.turns.length - 1]?.reply !== null
           ? html`<p class="${MUTED} animate-pulse" data-gw-waiting>

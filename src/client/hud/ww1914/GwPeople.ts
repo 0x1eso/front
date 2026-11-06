@@ -2,9 +2,21 @@ import type { GwPersonView } from "@openfront/engine-api/ww1914/GwView";
 import { html, nothing, TemplateResult } from "lit";
 import { translateText } from "../../Utils";
 import type { GwCtx } from "./GwCtx";
-import { appointable, topicLabel, trustIndex } from "./GwModel";
-import { BTN, BTN_ON, CHIP, MUTED } from "./GwStyle";
-import { personBio, personLean, personName } from "./GwText";
+import {
+  appointable,
+  dismissal,
+  topicLabel,
+  trustIndex,
+  vacantOffices,
+} from "./GwModel";
+import { BTN, BTN_ON, CHIP, HEAD, MUTED } from "./GwStyle";
+import {
+  personBio,
+  personLean,
+  personName,
+  promiseText,
+  shortDate,
+} from "./GwText";
 
 /** Seven pips for trust -3..3. */
 function pips(trust: number): TemplateResult {
@@ -19,12 +31,96 @@ function pips(trust: number): TemplateResult {
   >`;
 }
 
+/** What the seat can see of a person: a letter, an illness, their record. */
+function marks(c: GwCtx, p: GwPersonView): TemplateResult | typeof nothing {
+  const w = c.seat.world.people.find((x) => x.id === p.id);
+  if (w === undefined) return nothing;
+  const seen = w.wins + w.losses > 0;
+  if (!w.letter && !w.ailing && !seen) return nothing;
+  return html`<div class="mt-1 flex flex-wrap gap-1">
+    ${w.letter
+      ? html`<span class=${CHIP} data-gw-letter
+          >${translateText("gw.ui.person_letter")}</span
+        >`
+      : nothing}
+    ${w.ailing
+      ? html`<span class=${CHIP} data-gw-ailing
+          >${translateText("gw.ui.person_ailing")}</span
+        >`
+      : nothing}
+    ${seen
+      ? html`<span class=${CHIP}
+          >${translateText("gw.ui.person_record", {
+            wins: w.wins,
+            losses: w.losses,
+          })}${w.repute === 0
+            ? ""
+            : ` · ${translateText(`gw.ui.repute.${w.repute}`)}`}</span
+        >`
+      : nothing}
+  </div>`;
+}
+
+function promises(c: GwCtx, id: string): TemplateResult | typeof nothing {
+  const mine = (c.seat.promises ?? []).filter((x) => x.who === id);
+  if (mine.length === 0) return nothing;
+  return html`<div class="space-y-0.5" data-gw-promises>
+    <div class=${MUTED}>${translateText("gw.ui.promises_title")}</div>
+    ${mine.map(
+      (x) =>
+        html`<p class="text-sm text-white/80">
+          ${promiseText(c.pack, x)}
+          <span class=${MUTED}
+            >${x.kept
+              ? translateText("gw.ui.promise_kept")
+              : x.broken
+                ? translateText("gw.ui.promise_broken")
+                : translateText("gw.ui.promise_due", {
+                    date: shortDate(x.due),
+                  })}</span
+          >
+        </p>`,
+    )}
+  </div>`;
+}
+
+function dismissButton(c: GwCtx, p: GwPersonView): TemplateResult {
+  const armed = c.ui.armedDismiss === p.id;
+  const cost = dismissal(c.seat, p.id);
+  const short = cost !== null && !cost.affordable;
+  return html`<button
+      class="${armed ? BTN_ON : BTN} w-full"
+      data-gw-dismiss=${p.id}
+      ?disabled=${short}
+      @click=${() => {
+        if (!armed) {
+          c.ui.armedDismiss = p.id;
+          c.redraw();
+          return;
+        }
+        c.ui.armedDismiss = null;
+        c.send({ kind: "dismiss", person: p.id });
+      }}
+    >
+      ${translateText(armed ? "gw.ui.dismiss_sure" : "gw.ui.dismiss")}
+      ${cost === null
+        ? nothing
+        : html`<span class="${CHIP} ml-1"
+            >${translateText("gw.ui.dismiss_price", { n: cost.price })}</span
+          >`}
+    </button>
+    ${short
+      ? html`<p class="${MUTED} pl-1" data-gw-dismiss-why>
+          ${translateText("gw.ui.block.no_authority")}
+        </p>`
+      : nothing}`;
+}
+
 function row(c: GwCtx, p: GwPersonView): TemplateResult {
   const open = c.ui.openPerson === p.id;
   const lean = personLean(c.pack, p.id);
   const bio = personBio(c.pack, p.id);
   const offices = appointable(c.seat, p);
-  const armed = c.ui.armedDismiss === p.id;
   return html`<section
     data-gw-person=${p.id}
     class="rounded border border-white/15 bg-black/35 p-2.5"
@@ -56,6 +152,7 @@ function row(c: GwCtx, p: GwPersonView): TemplateResult {
         >
       </span>
     </button>
+    ${marks(c, p)}
     ${open
       ? html`<div class="mt-2 space-y-2 border-t border-white/10 pt-2">
           ${bio === ""
@@ -67,6 +164,7 @@ function row(c: GwCtx, p: GwPersonView): TemplateResult {
                 ${translateText("gw.ui.rivals")}:
                 ${p.rivals.map((r) => personName(c.pack, r)).join(", ")}
               </p>`}
+          ${promises(c, p.id)}
           <div class="space-y-1">
             ${p.topics.length === 0
               ? html`<p class=${MUTED}>${translateText("gw.ui.no_topics")}</p>`
@@ -98,25 +196,41 @@ function row(c: GwCtx, p: GwPersonView): TemplateResult {
                 })}
               </button>`,
           )}
-          ${p.office === null
-            ? nothing
-            : html`<button
-                class="${armed ? BTN_ON : BTN} w-full"
-                data-gw-dismiss=${p.id}
-                @click=${() => {
-                  if (!armed) {
-                    c.ui.armedDismiss = p.id;
-                    c.redraw();
-                    return;
-                  }
-                  c.ui.armedDismiss = null;
-                  c.send({ kind: "dismiss", person: p.id });
-                }}
-              >
-                ${translateText(armed ? "gw.ui.dismiss_sure" : "gw.ui.dismiss")}
-              </button>`}
+          ${p.office === null ? nothing : dismissButton(c, p)}
         </div>`
       : nothing}
+  </section>`;
+}
+
+/** Offices nobody holds: a successor is named at the chapter's close. */
+function vacancies(c: GwCtx): TemplateResult | typeof nothing {
+  const offices = vacantOffices(c.seat);
+  if (offices.length === 0) return nothing;
+  return html`<section
+    class="space-y-1.5 rounded border border-amber-200/40 bg-amber-200/10 p-2.5"
+    data-gw-vacant
+  >
+    <h3 class=${HEAD}>${translateText("gw.ui.vacant_title")}</h3>
+    <p class=${MUTED}>${translateText("gw.ui.vacant_hint")}</p>
+    ${offices.map((o) => {
+      const names = c.seat.world.candidates[o] ?? [];
+      return html`<div data-gw-vacant-office=${o}>
+        <div class="text-sm">${translateText(`gw.office.${o}`)}</div>
+        <div class="mt-1 flex flex-wrap gap-1">
+          ${names.map(
+            (id) =>
+              html`<button
+                class="${BTN} !px-2 !py-1"
+                data-gw-appoint-name=${id}
+                @click=${() =>
+                  c.send({ kind: "appoint", person: id, office: o })}
+              >
+                ${personName(c.pack, id)}
+              </button>`,
+          )}
+        </div>
+      </div>`;
+    })}
   </section>`;
 }
 
@@ -130,9 +244,12 @@ export function peopleTab(c: GwCtx): TemplateResult {
       <span class=${CHIP} data-gw-audiences
         >${translateText("gw.ui.audiences", { n: seat.audiences })}</span
       >
+      <span class=${CHIP} data-gw-authority
+        >${translateText("gw.ui.authority", { n: seat.world.authority })}</span
+      >
       <span class=${MUTED}>${translateText("gw.ui.audiences_hint")}</span>
     </div>
-    ${office.map((p) => row(c, p))}
+    ${vacancies(c)} ${office.map((p) => row(c, p))}
     ${rest.length === 0
       ? nothing
       : html`<div class=${MUTED}>${translateText("gw.ui.outside")}</div>

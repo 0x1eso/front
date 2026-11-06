@@ -1,8 +1,10 @@
+import type { GwMemoir } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import type { GwSeatView } from "@openfront/engine-api/ww1914/GwView";
 import { describe, expect, test } from "vitest";
 import {
   appointable,
   clock,
+  dismissal,
   emptyShelf,
   endingsOf,
   gaugeLevel,
@@ -12,8 +14,9 @@ import {
   logByChapter,
   saveShelf,
   secondsLeft,
+  shelfTotals,
   shelve,
-  shelveEnding,
+  shelveMemoir,
   tempBand,
   theatreSpot,
   trustIndex,
@@ -46,17 +49,29 @@ describe("GwModel", () => {
     ]);
   });
 
-  test("an office is open to those who fit it and have none", () => {
+  test("an office is open to those the world puts on its list", () => {
     const seat = {
       people: [
         person("a", "chancellor", ["chancellor"]),
         person("b", null, ["chancellor", "war"]),
         person("c", null, ["war"]),
       ],
+      world: { candidates: { war: ["b"], chancellor: ["b"] } },
     } as unknown as GwSeatView;
     expect(vacantOffices(seat)).toEqual(["war"]);
     expect(appointable(seat, seat.people[1])).toEqual(["war"]);
+    expect(appointable(seat, seat.people[2])).toEqual([]);
     expect(appointable(seat, seat.people[0])).toEqual([]);
+  });
+
+  test("a dismissal is priced by the world and refused short of authority", () => {
+    const seat = (authority: number) =>
+      ({
+        world: { authority, people: [{ id: "a", dismissPrice: 31 }] },
+      }) as unknown as GwSeatView;
+    expect(dismissal(seat(31), "a")).toEqual({ price: 31, affordable: true });
+    expect(dismissal(seat(30), "a")?.affordable).toBe(false);
+    expect(dismissal(seat(30), "b")).toBeNull();
   });
 
   test("the clock reads the deadline in seconds; none solo", () => {
@@ -70,7 +85,7 @@ describe("GwModel", () => {
     const b = theatreSpot("west", 1, 2);
     expect(a.at).toBe(0);
     expect(b.at).toBeGreaterThan(1 / 6);
-    expect(theatreSpot("west", 99, 0).line).toBe(5);
+    expect(theatreSpot("west", 99, 0).line).toBe(6);
   });
 
   test("the why-log groups by chapter, newest first", () => {
@@ -80,20 +95,35 @@ describe("GwModel", () => {
       { key: "c", chapter: 2 },
     ]);
     expect(out).toEqual([
-      { chapter: 2, keys: ["c"] },
-      { chapter: 0, keys: ["a", "b"] },
+      { chapter: 2, reasons: [{ key: "c", chapter: 2 }] },
+      {
+        chapter: 0,
+        reasons: [
+          { key: "a", chapter: 0 },
+          { key: "b", chapter: 0 },
+        ],
+      },
     ]);
   });
 
   test("the shelf keeps each thing once and survives broken storage", () => {
     let s = emptyShelf();
-    s = shelve(s, "people", "x");
-    s = shelve(s, "people", "x");
-    s = shelveEnding(s, "DEU", "long_peace", "1914-12-01");
-    s = shelveEnding(s, "DEU", "long_peace", "1914-12-02");
-    expect(s.people).toEqual(["x"]);
+    s = shelve(s, "people", ["x"]);
+    s = shelve(s, "people", ["x"]);
+    const shelf = {
+      ending: "long_peace",
+      people: ["x", "y"],
+      secrets: ["bel_forts_strong"],
+      mandates: [],
+    };
+    const memoir = { shelf } as unknown as GwMemoir;
+    s = shelveMemoir(s, "DEU", memoir, "1914-12-01");
+    s = shelveMemoir(s, "DEU", memoir, "1914-12-02");
+    expect(s.people).toEqual(["x", "y"]);
+    expect(s.secrets).toEqual(["bel_forts_strong"]);
     expect(endingsOf(s, "DEU")).toBe(1);
     expect(s.runs.length).toBe(2);
+    expect(shelfTotals(16)).toEqual({ endings: 9, people: 16, secrets: 12 });
     const mem: Record<string, string> = {};
     saveShelf(s, { setItem: (k, v) => void (mem[k] = v) });
     expect(loadShelf({ getItem: (k) => mem[k] ?? null })).toEqual(s);

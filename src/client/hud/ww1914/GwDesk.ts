@@ -11,18 +11,19 @@ import {
   cardBody,
   cardTitle,
   fillGw,
+  foldedLines,
   optionText,
   personName,
+  reasonText,
   tellText,
   voices,
 } from "./GwText";
-import { textOrNull } from "./GwTicker";
 
 /** The reasons that came with the last chapter's close, newest first. */
 function lastReasons(c: GwCtx): string[] {
   return c.seat.log
     .filter((r) => r.chapter >= c.data.chapter - 1)
-    .flatMap((r) => textOrNull(`gw.reason.${r.key}`) ?? [])
+    .map((r) => reasonText(c.pack, r))
     .reverse();
 }
 
@@ -196,6 +197,14 @@ export function reader(c: GwCtx, card: GwCardView): TemplateResult {
             </p>`,
         )}
       </div>
+      ${(card.folded ?? []).length === 0
+        ? nothing
+        : html`<div class="space-y-0.5" data-gw-folded>
+            <div class=${MUTED}>${translateText("gw.ui.folded_title")}</div>
+            ${foldedLines(c.pack, card).map(
+              (l) => html`<p class="text-sm text-white/75">${l}</p>`,
+            )}
+          </div>`}
       ${read
         ? html`<button
             class="${BTN} w-full text-center"

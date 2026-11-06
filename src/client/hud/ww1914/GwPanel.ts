@@ -25,7 +25,7 @@ import {
   loadShelf,
   saveShelf,
   shelve,
-  shelveEnding,
+  shelveMemoir,
   tabBadge,
 } from "./GwModel";
 import { peopleTab } from "./GwPeople";
@@ -80,7 +80,7 @@ export class GwPanel extends LitElement implements Controller {
     openPerson: null,
     summoned: 0,
     armedDismiss: null,
-    alloc: null,
+    research: null,
     shelf: loadShelf(),
   };
 
@@ -133,7 +133,7 @@ export class GwPanel extends LitElement implements Controller {
     const ui = this.ui;
     if (data.chapter !== this.chapter) {
       this.chapter = data.chapter;
-      ui.alloc = null;
+      ui.research = null;
       ui.readerUid = null;
       ui.armed = null;
     }
@@ -143,25 +143,23 @@ export class GwPanel extends LitElement implements Controller {
     for (const t of ui.talks.values()) {
       if (before.has(t.uid) || t.closed) continue;
       if (Date.now() - ui.summoned < SUMMON_OPEN_MS) ui.talkUid = t.uid;
-      ui.shelf = shelve(ui.shelf, "people", t.who);
+      ui.shelf = shelve(ui.shelf, "people", [t.who]);
       saveShelf(ui.shelf);
     }
     if (ui.talkUid !== null && !ui.talks.has(ui.talkUid)) ui.talkUid = null;
-    if (data.ended !== null && !this.recorded) {
+    const memoir = seat.world.memoir;
+    if (memoir !== null && !this.recorded) {
+      // The game is over: the memoir is what the seat has left to read.
       this.recorded = true;
-      ui.shelf = shelveEnding(ui.shelf, seat.tag, data.ended, data.date);
+      ui.shelf = shelveMemoir(ui.shelf, seat.tag, memoir, data.date);
       saveShelf(ui.shelf);
+      ui.tab = "memoir";
+      ui.folded = false;
+      ui.readerUid = null;
     }
   }
 
   private send(order: GwOrder): void {
-    if (order.kind === "read") {
-      const card = this.seat()?.desk.find((c) => c.uid === order.card);
-      if (card !== undefined) {
-        this.ui.shelf = shelve(this.ui.shelf, "documents", card.scene);
-        saveShelf(this.ui.shelf);
-      }
-    }
     this.eventBus.emit(new SendGwOrderIntentEvent(order));
   }
 
@@ -198,7 +196,7 @@ export class GwPanel extends LitElement implements Controller {
     const open = ui.readerUid === null ? undefined : c.card(ui.readerUid);
     const talk = activeTalk(c);
     return html`${KEYFRAMES}${band(c)}${ticker(
-        tickerLines(data, seat),
+        tickerLines(data, seat, this.pack),
         this.news,
       )}
       <aside

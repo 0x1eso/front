@@ -147,6 +147,7 @@ export interface GwRunRecord {
   quietChapters: number;
   promisesBroken: number;
   promisesKept: number;
+  papersSigned: number;
 }
 
 /** The bot's dice: stateless, as the game's are. */
@@ -252,11 +253,12 @@ function signPaper(
   gw: GreatWar,
   seat: GwSeatState,
   roll: (below: number) => number,
+  rec: GwRunRecord,
 ): void {
   const open = proposalsFor(gw, seat).filter((p) => p.open);
   if (open.length === 0) return;
   const { main, posture, scale, allyShare } = open[roll(open.length)];
-  applyGwOrder(gw, seat, {
+  const refused = applyGwOrder(gw, seat, {
     kind: "allocate",
     main,
     posture,
@@ -264,6 +266,7 @@ function signPaper(
     allyShare,
     research: seat.alloc.research,
   });
+  if (refused === null) rec.papersSigned++;
 }
 
 /**
@@ -296,6 +299,7 @@ export async function playRun(
     quietChapters: 0,
     promisesBroken: 0,
     promisesKept: 0,
+    papersSigned: 0,
   };
   const trace = (t: DeskTrace) => {
     for (const id of t.eligible) bump(rec.eligible, id);
@@ -318,7 +322,7 @@ export async function playRun(
       if (seat.desk.length > 0) {
         throw new Error(`${gameID}: desk stuck on ${seat.desk[0].scene}`);
       }
-      signPaper(gw, seat, roll);
+      signPaper(gw, seat, roll, rec);
       seat.ready = true;
       advanceChapter(gw, runner.game.ticks(), false);
     }

@@ -1,5 +1,6 @@
 import { IntentSchema } from "@openfront/engine-api/Schemas";
 import {
+  GW_ENDINGS,
   GW_LINES,
   GW_THEATRES,
   GW_WORLD_FLAGS,
@@ -9,6 +10,7 @@ import { GW_TAGS, gwCountry } from "@openfront/engine-api/ww1914/GwCountries";
 import { GwOrderIntentSchema } from "@openfront/engine-api/ww1914/GwOrders";
 import {
   GwPackSchema,
+  gwPackOverlaps,
   gwPackProblems,
   mergeGwPacks,
 } from "@openfront/engine-api/ww1914/GwPack";
@@ -77,6 +79,22 @@ describe("content", () => {
     const pack = await loadGwPack("DEU", async (p) => json(p));
     const lang = json("lang/en.json").gw.reason as Record<string, string>;
     expect(gwPackProblems(scenes, pack, Object.keys(lang))).toEqual([]);
+  });
+
+  test("no id sits in two of the country's pack files", () => {
+    const files = fs
+      .readdirSync(res("ww1914/ko"))
+      .filter((f) => f === "common.json" || f.startsWith("DEU."));
+    const packs = files.map((f) => GwPackSchema.parse(json(`ww1914/ko/${f}`)));
+    expect(gwPackOverlaps(packs)).toEqual([]);
+  });
+
+  test("every ending has its paragraph", async () => {
+    const pack = await loadGwPack("DEU", async (p) => json(p));
+    for (const id of GW_ENDINGS) expect(pack.endings?.[id], id).toBeTruthy();
+    for (const t of Object.values(pack.endings!)) {
+      expect(t.replace(/\{(date|casualties)\}/g, "")).not.toMatch(/[{}]/);
+    }
   });
 
   test("talks open decisions' options, and the check sees it", () => {

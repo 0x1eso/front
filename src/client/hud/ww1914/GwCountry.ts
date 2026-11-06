@@ -1,14 +1,15 @@
 import {
   GW_GAUGE_MAX,
-  GW_GAUGES,
   GW_INSTITUTIONS,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import { html, nothing, TemplateResult } from "lit";
 import { translateText } from "../../Utils";
 import type { GwCtx } from "./GwCtx";
 import { gaugeFill, gaugeLevel, instBand, logByChapter } from "./GwModel";
-import { fillColor, HEAD, MUTED } from "./GwStyle";
-import { textOrNull } from "./GwTicker";
+import { CHIP, fillColor, HEAD, MUTED } from "./GwStyle";
+import { factText, reasonText, reportText, textOrNull } from "./GwText";
+
+const BOX = "space-y-1.5 rounded border border-white/15 bg-black/35 p-2.5";
 
 function bar(fill: number): TemplateResult {
   return html`<span class="block h-1.5 w-full rounded bg-white/15"
@@ -19,33 +20,135 @@ function bar(fill: number): TemplateResult {
   ></span>`;
 }
 
-/** The country tab: five gauges in words, the bodies that can say no, the why-log. */
+function gauges(c: GwCtx): TemplateResult {
+  return html`<section class=${BOX}>
+    <h3 class=${HEAD}>${translateText("gw.ui.gauges_title")}</h3>
+    ${c.seat.world.gauges.map((w) => {
+      const v = gaugeLevel(w.gauge, w.value);
+      return html`<div class="space-y-0.5" data-gw-gauge=${w.gauge}>
+        <div class="flex justify-between text-sm">
+          <span class="text-white/70"
+            >${translateText(`gw.ui.gauge_name.${w.gauge}`)}</span
+          >
+          <span>${translateText(`gw.ui.gauge.${w.gauge}.${v}`)}</span>
+        </div>
+        ${bar(gaugeFill(w.gauge, v))}
+        <span class="sr-only">${v}/${GW_GAUGE_MAX[w.gauge]}</span>
+        ${w.lines.map(
+          (l) =>
+            html`<p class=${MUTED} data-gw-line=${l.key}>
+              ${l.delta > 0 ? "▲" : "▼"}
+              ${textOrNull(`gw.line.${l.key}`) ?? l.key}
+            </p>`,
+        )}
+      </div>`;
+    })}
+  </section>`;
+}
+
+function standing(c: GwCtx): TemplateResult {
+  const w = c.seat.world;
+  return html`<div class="flex flex-wrap gap-1.5" data-gw-standing>
+    <span class=${CHIP}
+      >${translateText("gw.ui.authority", { n: w.authority })}</span
+    >
+    <span class=${CHIP}
+      >${translateText("gw.ui.manpower", { n: w.manpower })}</span
+    >
+    ${w.casualties === 0
+      ? nothing
+      : html`<span class=${CHIP}
+          >${translateText("gw.ui.casualties", { n: w.casualties })}</span
+        >`}
+  </div>`;
+}
+
+function list(
+  title: string,
+  rows: readonly string[],
+  attr: string,
+): TemplateResult | typeof nothing {
+  if (rows.length === 0) return nothing;
+  return html`<section class=${BOX} data-gw-list=${attr}>
+    <h3 class=${HEAD}>${translateText(title)}</h3>
+    ${rows.map((r) => html`<p class="text-sm text-white/85">${r}</p>`)}
+  </section>`;
+}
+
+/** The reports on the desk, newest first: the stamp is all the seat is told. */
+function reports(c: GwCtx): TemplateResult | typeof nothing {
+  const { reports: all, sources } = c.seat.world;
+  if (all.length === 0) return nothing;
+  const known = sources.filter((s) => s.right + s.wrong > 0);
+  return html`<section class=${BOX} data-gw-reports>
+    <h3 class=${HEAD}>${translateText("gw.ui.reports_title")}</h3>
+    ${[...all].reverse().map(
+      (r) =>
+        html`<div class="text-sm" data-gw-report=${r.uid}>
+          <div class="flex items-center gap-1.5">
+            <span class=${CHIP}>${translateText(`gw.stamp.${r.stamp}`)}</span>
+            <span class="${MUTED} truncate"
+              >${translateText(`gw.source.${r.source}`)}</span
+            >
+          </div>
+          <p class="text-white/85">${reportText(r)}</p>
+          ${r.corrected === null
+            ? nothing
+            : html`<p class="text-amber-200" data-gw-corrected>
+                ${translateText("gw.ui.report_corrected", {
+                  claim: factText(r.fact, r.corrected),
+                })}
+              </p>`}
+        </div>`,
+    )}
+    ${known.length === 0
+      ? nothing
+      : html`<div class=${MUTED}>${translateText("gw.ui.sources_title")}</div>
+          ${known.map(
+            (s) =>
+              html`<p class=${MUTED}>
+                ${translateText("gw.ui.source_record", {
+                  source: translateText(`gw.source.${s.id}`),
+                  right: s.right,
+                  wrong: s.wrong,
+                })}
+              </p>`,
+          )}`}
+  </section>`;
+}
+
+/** Who stands where, as anyone can see it. */
+function powers(c: GwCtx): TemplateResult {
+  return html`<section class=${BOX} data-gw-powers>
+    <h3 class=${HEAD}>${translateText("gw.ui.powers_title")}</h3>
+    ${c.seat.world.countries.map(
+      (n) =>
+        html`<div class="flex justify-between text-sm">
+          <span class="text-white/70"
+            >${translateText(`gw.country.${n.tag}`)}</span
+          >
+          <span
+            >${translateText(
+              n.out ? "gw.ui.side.out" : `gw.ui.side.${n.side ?? "neutral"}`,
+            )}
+            · ${factText("mob", n.mob)}</span
+          >
+        </div>`,
+    )}
+  </section>`;
+}
+
+/** The country tab: gauges and why, the bodies that can say no, what is known. */
 export function countryTab(c: GwCtx): TemplateResult {
   const { seat } = c;
+  const w = seat.world;
   const insts = GW_INSTITUTIONS.filter((i) => seat.inst[i] !== undefined);
   const log = logByChapter(seat.log);
   return html`<div class="space-y-3" data-gw-country>
-    <section class="space-y-2 rounded border border-white/15 bg-black/35 p-2.5">
-      <h3 class=${HEAD}>${translateText("gw.ui.gauges_title")}</h3>
-      ${GW_GAUGES.map((g) => {
-        const v = gaugeLevel(g, seat.gauges[g] ?? 0);
-        return html`<div class="space-y-0.5" data-gw-gauge=${g}>
-          <div class="flex justify-between text-sm">
-            <span class="text-white/70"
-              >${translateText(`gw.ui.gauge_name.${g}`)}</span
-            >
-            <span>${translateText(`gw.ui.gauge.${g}.${v}`)}</span>
-          </div>
-          ${bar(gaugeFill(g, v))}
-          <span class="sr-only">${v}/${GW_GAUGE_MAX[g]}</span>
-        </div>`;
-      })}
-    </section>
+    ${standing(c)} ${gauges(c)}
     ${insts.length === 0
       ? nothing
-      : html`<section
-          class="space-y-1.5 rounded border border-white/15 bg-black/35 p-2.5"
-        >
+      : html`<section class=${BOX}>
           <h3 class=${HEAD}>${translateText("gw.ui.inst_title")}</h3>
           ${insts.map(
             (i) =>
@@ -61,9 +164,24 @@ export function countryTab(c: GwCtx): TemplateResult {
               </div>`,
           )}
         </section>`}
-    <section
-      class="space-y-1.5 rounded border border-white/15 bg-black/35 p-2.5"
-    >
+    ${list(
+      "gw.ui.mandates_title",
+      w.mandates.map((m) => translateText(`gw.mandate.${m}`)),
+      "mandates",
+    )}
+    ${reports(c)}
+    ${list(
+      "gw.ui.secrets_title",
+      w.secrets.map((m) => translateText(`gw.secret.${m}`)),
+      "secrets",
+    )}
+    ${list(
+      "gw.ui.threads_title",
+      w.threads.map((m) => translateText(`gw.thread.${m}`)),
+      "threads",
+    )}
+    ${powers(c)}
+    <section class=${BOX}>
       <h3 class=${HEAD}>${translateText("gw.ui.why_title")}</h3>
       ${log.length === 0
         ? html`<p class=${MUTED}>${translateText("gw.ui.why_none")}</p>`
@@ -73,10 +191,10 @@ export function countryTab(c: GwCtx): TemplateResult {
                 <div class=${MUTED}>
                   ${translateText("gw.ui.chapter_n", { n: g.chapter + 1 })}
                 </div>
-                ${g.keys.map(
-                  (k) =>
+                ${g.reasons.map(
+                  (r) =>
                     html`<p class="text-sm text-white/85">
-                      ${textOrNull(`gw.reason.${k}`) ?? k}
+                      ${reasonText(c.pack, r)}
                     </p>`,
                 )}
               </div>`,

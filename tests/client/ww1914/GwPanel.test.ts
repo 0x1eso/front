@@ -39,7 +39,46 @@ const card = (over: Partial<GwCardView> = {}): GwCardView => ({
   ...over,
 });
 
-const data = (desk: GwCardView[]): GreatWarData => ({
+const world = (over: Partial<GwWorldView> = {}): GwWorldView => ({
+  gauges: [],
+  authority: 40,
+  manpower: 90,
+  casualties: 0,
+  unrest: 0,
+  side: null,
+  plan: null,
+  signed: false,
+  proposals: [],
+  fronts: [],
+  chain: null,
+  chainEnds: [],
+  reports: [],
+  sources: [],
+  mandates: [],
+  secrets: [],
+  threads: [],
+  people: [
+    {
+      id: "deu_bethmann",
+      wins: 0,
+      losses: 0,
+      repute: 0,
+      letter: false,
+      ailing: false,
+      dismissPrice: 31,
+    },
+  ],
+  candidates: {},
+  countries: [],
+  news: [],
+  memoir: null,
+  ...over,
+});
+
+const data = (
+  desk: GwCardView[],
+  w: Partial<GwWorldView> = {},
+): GreatWarData => ({
   calendar: "y1914",
   chapter: 0,
   chapterCount: 12,
@@ -77,7 +116,7 @@ const data = (desk: GwCardView[]): GreatWarData => ({
         research: "artillery",
       },
       log: [],
-      world: {} as GwWorldView,
+      world: world(w),
       readyBlock: desk.length > 0 ? "open_cards" : null,
     },
   ],
@@ -208,6 +247,69 @@ describe("the screens", () => {
     expect(orders).toEqual([]);
     dismiss().click();
     expect(orders).toEqual([{ kind: "dismiss", person: "deu_bethmann" }]);
+  });
+
+  test("a dismissal shows its price and is shut short of authority", async () => {
+    const { panel } = await mount(data([], { authority: 30 }));
+    panel.querySelector<HTMLButtonElement>("[data-gw-tab=people]")!.click();
+    await panel.updateComplete;
+    panel.querySelector<HTMLButtonElement>("[data-gw-person] button")!.click();
+    await panel.updateComplete;
+    const dismiss =
+      panel.querySelector<HTMLButtonElement>("[data-gw-dismiss]")!;
+    expect(dismiss.disabled).toBe(true);
+    expect(panel.querySelector("[data-gw-dismiss-why]")).not.toBeNull();
+  });
+
+  test("the fronts tab signs a paper as it came, with the research picked", async () => {
+    const proposals: GwWorldView["proposals"] = [
+      {
+        id: "cos_plan",
+        by: "deu_moltke",
+        main: "west",
+        posture: "offensive",
+        scale: "major",
+        allyShare: 0,
+        open: true,
+        why: null,
+        estimate: 3,
+        tell: ["shells:-1"],
+      },
+      {
+        id: "hold_all",
+        by: "deu_moltke",
+        main: "west",
+        posture: "hold",
+        scale: "limited",
+        allyShare: 0,
+        open: false,
+        why: "army",
+        estimate: 3,
+        tell: [],
+      },
+    ];
+    const { panel, orders } = await mount(data([], { proposals }));
+    panel.querySelector<HTMLButtonElement>("[data-gw-tab=fronts]")!.click();
+    await panel.updateComplete;
+    expect(panel.querySelector("[data-gw-paper-why]")).not.toBeNull();
+    expect(panel.querySelector("[data-gw-sign-paper=hold_all]")).toBeNull();
+    panel
+      .querySelector<HTMLButtonElement>("[data-gw-pick='research:sea']")!
+      .click();
+    await panel.updateComplete;
+    panel
+      .querySelector<HTMLButtonElement>("[data-gw-sign-paper=cos_plan]")!
+      .click();
+    expect(orders).toEqual([
+      {
+        kind: "allocate",
+        main: "west",
+        posture: "offensive",
+        scale: "major",
+        allyShare: 0,
+        research: "sea",
+      },
+    ]);
   });
 
   test("the band holds the date and five gauges in words", async () => {
