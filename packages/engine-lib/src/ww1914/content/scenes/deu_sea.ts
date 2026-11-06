@@ -95,10 +95,6 @@ const reveal = (id: string): GwEffect => setFlag(`f_known_${id}`);
 /** Swap: `doWorld({ do: "talks" })`. */
 const offerTalks: GwEffect = setFlag("f_deu_talks_offered");
 
-/** Swap: `doWorld({ do: "blockade", delta })`. */
-const blockadeBy = (delta: number): GwEffect =>
-  setFlag(`f_deu_blockade_${delta < 0 ? "eased" : "tighter"}`);
-
 // ---- Shorthand ----
 
 const NATION: GwScene["nation"] = ["DEU"];
@@ -126,6 +122,8 @@ const rusOut: GwCond = any(
   world({ is: "out", tag: "RUS" }),
   flag("w_russia_out"),
 );
+/** Russia has stopped fighting, by a revolution or otherwise. */
+const russiaDone: GwCond = any(russiaSoviet, rusOut);
 const usIn: GwCond = flag("w_america_in");
 const linerSunk: GwCond = flag("w_liner_sunk");
 const pair: GwCond = flag("f_third_ohl");
@@ -331,7 +329,7 @@ export const DEU_SEA_SCENES: readonly GwScene[] = [
       war,
       atGBR,
       any(flag("f_zone_declared"), uboatMin(1)),
-      date("1915-02", "1915-06"),
+      date("1915-02", "1915-12"),
     ),
     cast: { navy: R_NAVY, fm: R_FM },
     salience: 6,
@@ -372,7 +370,11 @@ export const DEU_SEA_SCENES: readonly GwScene[] = [
   scene({
     id: "deu_s_liner",
     kind: "crisis",
-    when: all(war, linerSunk, date("1915-03", "1916-12")),
+    when: all(
+      war,
+      any(linerSunk, all(uboatMin(1), date("1915-05", "1915-09"))),
+      date("1915-03", "1916-12"),
+    ),
     cast: { fm: R_FM, navy: R_NAVY, chancellor: R_CHANCELLOR },
     salience: 9,
     tags: ["foreign", "tension_up"],
@@ -434,7 +436,7 @@ export const DEU_SEA_SCENES: readonly GwScene[] = [
       war,
       seen("deu_s_liner"),
       uboatMin(1),
-      date("1915-05", "1916-02"),
+      date("1915-05", "1916-06"),
     ),
     cast: { chancellor: R_CHANCELLOR, navy: R_NAVY },
     salience: 8,
@@ -521,7 +523,7 @@ export const DEU_SEA_SCENES: readonly GwScene[] = [
       v("kept", memory("navy_kept_cabinet")),
       v("base"),
     ],
-    fallback: "hold_port",
+    fallback: "let_scheer",
     options: [
       o(
         "let_scheer",
@@ -582,8 +584,8 @@ export const DEU_SEA_SCENES: readonly GwScene[] = [
     kind: "crisis",
     when: all(
       war,
-      seen("deu_s_restrict_order"),
-      americaAt({ min: 35 }),
+      uboatMin(1),
+      americaAt({ min: 15 }),
       date("1916-03", "1916-08"),
     ),
     cast: { chancellor: R_CHANCELLOR, navy: R_NAVY },
@@ -638,7 +640,11 @@ export const DEU_SEA_SCENES: readonly GwScene[] = [
     kind: "audience",
     when: all(
       holds("navy", "deu_tirpitz"),
-      any(seen("deu_s_restrict_order"), memory("broke_p_tirp_uboat_seat")),
+      any(
+        seen("deu_s_restrict_order"),
+        memory("broke_p_tirp_uboat_seat"),
+        memory("m_tirp_letter_known"),
+      ),
       date("1915-10", "1916-08"),
     ),
     cast: { navy: R_NAVY, court: R_COURT },
@@ -742,12 +748,7 @@ export const DEU_SEA_SCENES: readonly GwScene[] = [
       o(
         "secret_terms",
         ["america:-2", "fm:+1"],
-        [
-          america(-12),
-          trustOf(fm, 1),
-          setFlag("f_secret_terms"),
-          remember("m_terms_with_house"),
-        ],
+        [america(-12), trustOf(fm, 1), setFlag("f_secret_terms")],
         memory("k_bern_wilson"),
       ),
     ],
@@ -921,7 +922,10 @@ export const DEU_SEA_SCENES: readonly GwScene[] = [
     cast: { holtz: { person: "deu_holtzendorff" }, navy: R_NAVY },
     salience: 6,
     tags: ["people"],
-    variants: [v("convoys", britainConvoys), v("base")],
+    variants: [
+      v("convoys", any(britainConvoys, memory("m_convoy_heard"))),
+      v("base"),
+    ],
     fallback: "file_it",
     options: [
       o(
@@ -1237,7 +1241,7 @@ export const DEU_SEA_SCENES: readonly GwScene[] = [
   scene({
     id: "deu_s_brest_opens",
     kind: "crisis",
-    when: all(russiaSoviet, atRUS, date("1917-11", "1918-06")),
+    when: all(russiaDone, date("1917-03", "1918-10")),
     cast: { fm: R_FM, cos: R_COS },
     salience: 9,
     tags: ["foreign"],
@@ -1292,7 +1296,7 @@ export const DEU_SEA_SCENES: readonly GwScene[] = [
   scene({
     id: "deu_s_brest_no_peace",
     kind: "crisis",
-    when: all(seen("deu_s_brest_opens"), date("1917-12", "1918-08")),
+    when: all(seen("deu_s_brest_opens"), date("1917-04", "1918-11")),
     cast: { fm: R_FM, cos: R_COS },
     salience: 8,
     tags: ["foreign", "tension_up"],
@@ -1708,7 +1712,6 @@ export const DEU_SEA_SCENES: readonly GwScene[] = [
         moods("cunning", "stubborn"),
         r("who", "cold", "ask", "denies", {
           reacts: [shut, ifTrust(2, "owned", [reveal("deu_tirpitz_press")])],
-          gain: [remember("m_tirp_asked_press")],
         }),
         r("show", "threat", "push", "owned", {
           tell: ["trust:-1"],
@@ -1754,7 +1757,7 @@ export const DEU_SEA_SCENES: readonly GwScene[] = [
         }),
         r("use", "cold", "push", "stiff", {
           tell: ["trust:-1"],
-          effects: [trustOf(who, -1), remember("m_tirp_son_used")],
+          effects: [trustOf(who, -1)],
         }),
         r("send", "warm", "deal", "thanks", {
           tell: ["trust:+1", "gbr:+1"],
@@ -1815,7 +1818,10 @@ export const DEU_SEA_SCENES: readonly GwScene[] = [
     all(not(holds("navy", "deu_tirpitz")), date("1917-07", "1918-12")),
     {
       open: node(
-        moods("cunning", "stubborn"),
+        [
+          v("son", memory("m_tirp_son_helped")),
+          ...moods("cunning", "stubborn"),
+        ],
         r("fleet", "frank", "ask", "fleet", { reacts: [shut] }),
         r("capelle", "cold", "push", "capelle", {
           effects: [],
@@ -1895,7 +1901,7 @@ export const DEU_SEA_SCENES: readonly GwScene[] = [
         }),
         r("all", "cold", "push", "all", {
           tell: ["america:+1"],
-          effects: [america(5), remember("m_holtz_all_ships")],
+          effects: [america(5)],
         }),
         r("corridor", "warm", "deal", "corridor", {
           tell: ["navy:-1"],
@@ -2021,7 +2027,15 @@ export const DEU_SEA_SCENES: readonly GwScene[] = [
       open: node(
         moods("anxious"),
         r("mood", "frank", "ask", "mood", {
-          reacts: [shut, ifTrust(1, "plan", [reveal("deu_fleet_plan_oct")])],
+          reacts: [
+            shut,
+            ifTrust(1, "plan", [reveal("deu_fleet_plan_oct")]),
+            {
+              when: memory("m_capelle_weak"),
+              next: "plan",
+              effects: [reveal("deu_fleet_plan_oct")],
+            },
+          ],
         }),
         r("order", "threat", "push", "stiff", {
           tell: ["trust:-1"],
@@ -2050,7 +2064,6 @@ export const DEU_SEA_SCENES: readonly GwScene[] = [
         moods("cunning", "arrogant"),
         r("health", "warm", "ask", "health", { reacts: [shut] }),
         r("work", "cold", "push", "work", {
-          gain: [remember("m_zimm_does_it")],
           miss: "laugh",
         }),
         r("seat", "flatter", "deal", "seat", {
@@ -2255,10 +2268,7 @@ export const DEU_SEA_SCENES: readonly GwScene[] = [
         moods("cunning", "cold"),
         r("cabinet", "cold", "ask", "cabinet", {
           reacts: [shut],
-          gain: [
-            { kind: "source", source: "embassy_london", right: true },
-            remember("m_kuhl_window"),
-          ],
+          gain: [{ kind: "source", source: "embassy_london", right: true }],
           miss: "pictures",
         }),
         r("press", "threat", "push", "pictures", {
@@ -2271,7 +2281,6 @@ export const DEU_SEA_SCENES: readonly GwScene[] = [
             gauge("money", -1),
             trustOf(who, 1),
             { kind: "source", source: "embassy_london", right: true },
-            remember("m_kuhl_window"),
           ],
         }),
         bye(),
@@ -2357,7 +2366,7 @@ export const DEU_SEA_SCENES: readonly GwScene[] = [
   talk(
     "deu_t2_kuhl_brest",
     "deu_kuhlmann",
-    all(russiaSoviet, date("1917-11", "1918-06")),
+    all(russiaDone, date("1917-03", "1918-10")),
     {
       open: node(
         moods("cunning", "cold"),
@@ -2437,7 +2446,7 @@ export const DEU_SEA_SCENES: readonly GwScene[] = [
     "deu_t2_kuhl_after",
     "deu_kuhlmann",
     all(
-      seen("deu_s_brest_opens"),
+      memory("k_kuhl_arms"),
       not(holds("foreign", "deu_kuhlmann")),
       date("1918-03", "1918-12"),
     ),
@@ -2502,7 +2511,7 @@ export const DEU_SEA_SCENES: readonly GwScene[] = [
   visit(
     "deu_v2_bernstorff_house",
     "deu_bernstorff",
-    all(atGBR, americaAt({ min: 40 }), not(usIn), date("1916-07", "1917-04")),
+    all(atGBR, americaAt({ min: 25 }), not(usIn), date("1916-07", "1917-04")),
     6,
     {
       open: node(
@@ -2602,7 +2611,10 @@ export const DEU_SEA_SCENES: readonly GwScene[] = [
   visit(
     "deu_v2_hintze_spa",
     "deu_hintze",
-    all(scoreMax(-10), date("1918-01", "1918-12")),
+    all(
+      any(scoreMax(-10), memory("m_kuhl_hintze")),
+      date("1918-01", "1918-12"),
+    ),
     6,
     {
       open: node(
