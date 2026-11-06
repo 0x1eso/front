@@ -175,12 +175,7 @@ function signTreaty(gw: GreatWar, t: GwTreaty): void {
 }
 
 /** Every AI country remembers; the wronged one remembers more (design §9). */
-function breakTreaty(
-  gw: GreatWar,
-  t: GwTreaty,
-  by: GwTag,
-  why: string,
-): void {
+function breakTreaty(gw: GreatWar, t: GwTreaty, by: GwTag, why: string): void {
   const s = gw.s;
   const wronged = partnerOf(t, by);
   t.state = "broken";
@@ -245,8 +240,7 @@ export function treatyBars(gw: GreatWar, tag: GwTag, side: GwSide): boolean {
       return false;
     }
     return t.clauses.some(
-      (c) =>
-        c.kind === "alliance" || (c.kind === "neutrality" && c.by === tag),
+      (c) => c.kind === "alliance" || (c.kind === "neutrality" && c.by === tag),
     );
   });
 }

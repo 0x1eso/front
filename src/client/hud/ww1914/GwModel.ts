@@ -128,11 +128,7 @@ export function isReadOnly(c: GwCardView): boolean {
 }
 
 /** Tab badges: what waits on each tab. */
-export function tabBadge(
-  seat: GwSeatView,
-  tab: GwTab,
-  seenWires = 0,
-): number {
+export function tabBadge(seat: GwSeatView, tab: GwTab, seenWires = 0): number {
   switch (tab) {
     case "desk":
       return seat.desk.length;

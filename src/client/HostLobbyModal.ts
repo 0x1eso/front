@@ -25,9 +25,9 @@ import { GameEnv } from "@openfront/shared/configuration/Env";
 import { EventBus } from "@openfront/shared/EventBus";
 import {
   ClientInfo,
+  GwResumeInfo,
   LOBBY_QUEUE_CUTOFF_MS,
   LobbyInfoEvent,
-  GwResumeInfo,
 } from "@openfront/shared/WireSchemas";
 import { html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
@@ -796,118 +796,118 @@ export class HostLobbyModal extends BaseModal {
                       },
                     ]
                   : this.worldWar1936
-                  ? [
-                      {
-                        labelKey: "game_settings.world_war_1936",
-                        checked: true,
-                      },
-                      {
-                        labelKey: "game_settings.historical_ai",
-                        checked: this.historicalAi,
-                      },
-                      {
-                        labelKey: "ww1936.lobby.nukes",
-                        checked: this.ww1936Nukes,
-                      },
-                      {
-                        labelKey: "game_settings.instant_build",
-                        checked: this.instantBuild,
-                      },
-                      {
-                        labelKey: "host_modal.anonymous_players",
-                        checked: this.anonymizeNames,
-                      },
-                      ...(this.publiclyListed
-                        ? []
-                        : [
-                            {
-                              labelKey: "host_modal.host_cheats",
-                              checked: this.hostCheatsEnabled,
-                            },
-                          ]),
-                    ]
-                  : [
-                      {
-                        labelKey: "game_settings.instant_build",
-                        checked: this.instantBuild,
-                      },
-                      {
-                        labelKey: "game_settings.random_spawn",
-                        checked: this.randomSpawn,
-                      },
-                      {
-                        labelKey: "host_modal.donate_gold",
-                        checked: this.donateGold,
-                      },
-                      {
-                        labelKey: "host_modal.donate_troops",
-                        checked: this.donateTroops,
-                      },
-                      {
-                        labelKey: "game_settings.infinite_gold",
-                        checked: this.infiniteGold,
-                      },
-                      {
-                        labelKey: "game_settings.infinite_troops",
-                        checked: this.infiniteTroops,
-                      },
-                      {
-                        labelKey: "game_settings.compact_map",
-                        checked: this.compactMap,
-                      },
-                      {
-                        labelKey: "host_modal.anonymous_players",
-                        checked: this.anonymizeNames,
-                      },
-                      {
-                        labelKey: "game_settings.water_nukes",
-                        checked: this.waterNukes,
-                      },
-                      {
-                        labelKey: "game_settings.domestic_mode",
-                        checked: this.domesticMode,
-                      },
-                      ...(this.domesticMode && this.gameMode === GameMode.FFA
-                        ? [
-                            {
-                              labelKey: "game_settings.congress",
-                              checked: this.congress,
-                            },
-                          ]
-                        : []),
-                      {
-                        labelKey: "game_settings.warfare_expansion",
-                        checked: this.warfareExpansion,
-                      },
-                      {
-                        labelKey: "game_settings.strategic_weapons",
-                        checked: this.strategicWeapons,
-                      },
-                      {
-                        labelKey: "game_settings.doomsday_clock",
-                        checked: this.doomsdayClock,
-                        doomsdayClockSpeed: this.doomsdayClockSpeed,
-                      },
-                      {
-                        labelKey: "game_settings.world_war_1936",
-                        checked: false,
-                      },
-                      {
-                        labelKey: "game_settings.great_war_1914",
-                        checked: false,
-                      },
-                      // Host cheats and public listing are mutually exclusive
-                      // (the server rejects both combinations), so the controls
-                      // disappear while the lobby is listed.
-                      ...(this.publiclyListed
-                        ? []
-                        : [
-                            {
-                              labelKey: "host_modal.host_cheats",
-                              checked: this.hostCheatsEnabled,
-                            },
-                          ]),
-                    ],
+                    ? [
+                        {
+                          labelKey: "game_settings.world_war_1936",
+                          checked: true,
+                        },
+                        {
+                          labelKey: "game_settings.historical_ai",
+                          checked: this.historicalAi,
+                        },
+                        {
+                          labelKey: "ww1936.lobby.nukes",
+                          checked: this.ww1936Nukes,
+                        },
+                        {
+                          labelKey: "game_settings.instant_build",
+                          checked: this.instantBuild,
+                        },
+                        {
+                          labelKey: "host_modal.anonymous_players",
+                          checked: this.anonymizeNames,
+                        },
+                        ...(this.publiclyListed
+                          ? []
+                          : [
+                              {
+                                labelKey: "host_modal.host_cheats",
+                                checked: this.hostCheatsEnabled,
+                              },
+                            ]),
+                      ]
+                    : [
+                        {
+                          labelKey: "game_settings.instant_build",
+                          checked: this.instantBuild,
+                        },
+                        {
+                          labelKey: "game_settings.random_spawn",
+                          checked: this.randomSpawn,
+                        },
+                        {
+                          labelKey: "host_modal.donate_gold",
+                          checked: this.donateGold,
+                        },
+                        {
+                          labelKey: "host_modal.donate_troops",
+                          checked: this.donateTroops,
+                        },
+                        {
+                          labelKey: "game_settings.infinite_gold",
+                          checked: this.infiniteGold,
+                        },
+                        {
+                          labelKey: "game_settings.infinite_troops",
+                          checked: this.infiniteTroops,
+                        },
+                        {
+                          labelKey: "game_settings.compact_map",
+                          checked: this.compactMap,
+                        },
+                        {
+                          labelKey: "host_modal.anonymous_players",
+                          checked: this.anonymizeNames,
+                        },
+                        {
+                          labelKey: "game_settings.water_nukes",
+                          checked: this.waterNukes,
+                        },
+                        {
+                          labelKey: "game_settings.domestic_mode",
+                          checked: this.domesticMode,
+                        },
+                        ...(this.domesticMode && this.gameMode === GameMode.FFA
+                          ? [
+                              {
+                                labelKey: "game_settings.congress",
+                                checked: this.congress,
+                              },
+                            ]
+                          : []),
+                        {
+                          labelKey: "game_settings.warfare_expansion",
+                          checked: this.warfareExpansion,
+                        },
+                        {
+                          labelKey: "game_settings.strategic_weapons",
+                          checked: this.strategicWeapons,
+                        },
+                        {
+                          labelKey: "game_settings.doomsday_clock",
+                          checked: this.doomsdayClock,
+                          doomsdayClockSpeed: this.doomsdayClockSpeed,
+                        },
+                        {
+                          labelKey: "game_settings.world_war_1936",
+                          checked: false,
+                        },
+                        {
+                          labelKey: "game_settings.great_war_1914",
+                          checked: false,
+                        },
+                        // Host cheats and public listing are mutually exclusive
+                        // (the server rejects both combinations), so the controls
+                        // disappear while the lobby is listed.
+                        ...(this.publiclyListed
+                          ? []
+                          : [
+                              {
+                                labelKey: "host_modal.host_cheats",
+                                checked: this.hostCheatsEnabled,
+                              },
+                            ]),
+                      ],
                 inputCards: this.greatWar1914
                   ? [startDelayCard, ...whitelistCards]
                   : this.worldWar1936

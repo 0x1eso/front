@@ -1,5 +1,5 @@
-import type { SnapshotHeader } from "@openfront/engine-api/game/SnapshotHeader";
 import { GameType } from "@openfront/engine-api/game/GameTypes";
+import type { SnapshotHeader } from "@openfront/engine-api/game/SnapshotHeader";
 import type { GwResumeInfo } from "@openfront/shared/WireSchemas";
 import { getPlayToken } from "./Auth";
 import { ClientEnv } from "./ClientEnv";
@@ -36,7 +36,10 @@ export async function resumeInLobby(
     return { ok: false, key: "saved_games.error.unreadable" };
   }
   const gw = header.greatWar;
-  if (gw === undefined || header.gameConfig.gameType === GameType.Singleplayer) {
+  if (
+    gw === undefined ||
+    header.gameConfig.gameType === GameType.Singleplayer
+  ) {
     return { ok: false, key: "gw.lobby.resume_not_friends" };
   }
   const calendar = header.gameConfig.greatWar1914Calendar ?? "y1914";

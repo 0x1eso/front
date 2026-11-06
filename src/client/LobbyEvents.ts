@@ -1,5 +1,5 @@
-import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import { GameConfigPatch } from "@openfront/engine-api/Schemas";
+import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
 import { GameEvent } from "@openfront/shared/EventBus";
 

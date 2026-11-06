@@ -22,13 +22,13 @@ import {
   Winner,
 } from "@openfront/engine-api/Schemas";
 import {
+  isGwSeatTag,
+  type GwTag,
+} from "@openfront/engine-api/ww1914/GwCountries";
+import {
   isDormantTag,
   type CountryTag,
 } from "@openfront/engine-api/ww1936/Countries";
-import {
-  type GwTag,
-  isGwSeatTag,
-} from "@openfront/engine-api/ww1914/GwCountries";
 import {
   assignTeamsLobbyPreview,
   resolveTeamsList,
@@ -44,6 +44,7 @@ import {
   ClientSendLiveStatsMessage,
   ClientSendWinnerMessage,
   GameInfo,
+  GwResumeInfo,
   LobbyAccent,
   PartialGameRecord,
   PlayerLiveStats,
@@ -59,7 +60,6 @@ import {
   ServerRedirectMessage,
   ServerStartGameMessage,
   ServerTurnMessage,
-  GwResumeInfo,
   WireGameStartInfo,
   WireGameStartInfoSchema,
 } from "@openfront/shared/WireSchemas";
@@ -74,6 +74,7 @@ import { Logger } from "winston";
 import WebSocket from "ws";
 import { z } from "zod";
 import { archive, finalizeGameRecord } from "./Archive";
+import { censorTelegram } from "./Censor";
 import { Client } from "./Client";
 import {
   applyGameConfigPatch,
@@ -82,7 +83,6 @@ import {
 } from "./ConfigPatch";
 import { LiveStatsVote, voteKey, WinnerVote } from "./Consensus";
 import { fetchCustomTribes } from "./CustomTribes";
-import { censorTelegram } from "./Censor";
 import { DesyncDetector } from "./DesyncDetector";
 import {
   authorizeIntent,

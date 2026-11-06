@@ -1,12 +1,14 @@
 import { GameType } from "@openfront/engine-api/game/GameTypes";
 import type { GwOrder } from "@openfront/engine-api/ww1914/GwOrders";
-import { gwCleanTelegram } from "@openfront/engine-api/ww1914/GwOrders";
-import { GwOrderSchema } from "@openfront/engine-api/ww1914/GwOrders";
+import {
+  gwCleanTelegram,
+  GwOrderSchema,
+} from "@openfront/engine-api/ww1914/GwOrders";
 import type { GreatWarData } from "@openfront/engine-api/ww1914/GwView";
-import { EventBus } from "@openfront/shared/EventBus";
-import { loadGwPack } from "@openfront/shared/ww1914/GwPackLoader";
 import type { GameRunner } from "@openfront/engine/GameRunner";
 import { gwView } from "@openfront/engine/ww1914/View";
+import { EventBus } from "@openfront/shared/EventBus";
+import { loadGwPack } from "@openfront/shared/ww1914/GwPackLoader";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import { clauseText } from "../../../src/client/hud/ww1914/GwDiplo";
 import { tabsOf } from "../../../src/client/hud/ww1914/GwModel";
@@ -114,10 +116,10 @@ describe("the diplomacy tab", () => {
     const r = await friends();
     const { panel, orders } = await mount(viewOf(r, A));
     await openTab(panel);
-    expect(
-      panel.querySelectorAll("[data-gw-seat-row]").length,
-    ).toBe(2);
-    const box = panel.querySelector<HTMLTextAreaElement>("[data-gw-wire-text]")!;
+    expect(panel.querySelectorAll("[data-gw-seat-row]").length).toBe(2);
+    const box = panel.querySelector<HTMLTextAreaElement>(
+      "[data-gw-wire-text]",
+    )!;
     box.value = "  니키,​ 벨기에는 안 건드리네  ";
     box.dispatchEvent(new Event("input"));
     await panel.updateComplete;

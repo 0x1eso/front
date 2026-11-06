@@ -3,6 +3,7 @@ import { GameMode, GameType } from "@openfront/engine-api/game/GameTypes";
 import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
 import { assetUrl } from "@openfront/shared/AssetUrls";
 import { EventBus } from "@openfront/shared/EventBus";
+import type { GwResumeInfo } from "@openfront/shared/WireSchemas";
 import {
   ClientInfo,
   GameInfo,
@@ -24,8 +25,7 @@ import {
 } from "../client/Utils";
 import { getApiBase } from "./Api";
 import { gamePortal } from "./GamePortal";
-import type { GwResumeInfo } from "@openfront/shared/WireSchemas";
-import { GwSeatPick, gwResumeNote, gwSeatPicker } from "./GwLobby";
+import { gwResumeNote, GwSeatPick, gwSeatPicker } from "./GwLobby";
 import {
   SendPickCountryEvent,
   SendPickSeatEvent,

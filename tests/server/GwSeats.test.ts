@@ -139,7 +139,9 @@ describe("Great War 1914 seats on a private lobby", () => {
     );
     const queued = (game as unknown as { intents: { order: unknown }[] })
       .intents;
-    expect(queued[queued.length - 1].order).toMatchObject({ text: "** 벨기에" });
+    expect(queued[queued.length - 1].order).toMatchObject({
+      text: "** 벨기에",
+    });
   });
 });
 

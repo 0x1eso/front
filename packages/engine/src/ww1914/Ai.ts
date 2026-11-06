@@ -10,8 +10,8 @@ import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { warScore } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
 import { GW_AI_MAIN, GW_ENTRIES, GW_ENTRY_BAR, GwEntry } from "./Tables";
-import { enter, leaveWar, membersOf } from "./Wars";
 import { brokenWords, treatyBars } from "./Treaties";
+import { enter, leaveWar, membersOf } from "./Wars";
 import { clampTo, everyMonths, fights, other, ruledBySeat } from "./World";
 
 const P_AI_MOVE = idHash("gw_ai_move");

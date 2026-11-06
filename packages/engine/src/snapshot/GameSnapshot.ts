@@ -258,7 +258,9 @@ export function readSnapshotHeader(bytes: Uint8Array): SnapshotHeader {
     ...(game.greatWar === undefined
       ? {}
       : {
-          greatWar: gwSaveHeader(readVersioned(GreatWarSnapshot, game.greatWar)),
+          greatWar: gwSaveHeader(
+            readVersioned(GreatWarSnapshot, game.greatWar),
+          ),
         }),
   };
 }

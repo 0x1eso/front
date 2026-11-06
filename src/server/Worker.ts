@@ -2,10 +2,10 @@ import { ID, isValidGameID } from "@openfront/engine-api/Schemas";
 import { CloseCode, CloseReason } from "@openfront/shared/CloseCodes";
 import { generateID, replacer } from "@openfront/shared/SharedUtil";
 import {
-  GW_RESUME_MAX_BYTES,
-  GwResumeQuerySchema,
   ClientMessage,
   ClientPlatformSchema,
+  GW_RESUME_MAX_BYTES,
+  GwResumeQuerySchema,
   HOSTED_LOBBY_AUTO_START_MS,
   LevelBadge,
   MAX_HOSTED_LOBBIES,
@@ -409,7 +409,11 @@ export async function startWorker() {
         return res.status(401).json({ error: "Invalid token" });
       }
       const meta = GwResumeQuerySchema.safeParse(req.query);
-      if (!meta.success || !Buffer.isBuffer(req.body) || req.body.length === 0) {
+      if (
+        !meta.success ||
+        !Buffer.isBuffer(req.body) ||
+        req.body.length === 0
+      ) {
         return res.status(400).json({ error: "Invalid save" });
       }
       const game = gm.game(req.params.id);

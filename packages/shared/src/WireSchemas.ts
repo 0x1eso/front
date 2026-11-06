@@ -8,7 +8,10 @@ import {
   GW_TIMER_MAX_SEC,
   GW_TIMER_MIN_SEC,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
-import { GW_MAX_SEATS, GW_TAGS } from "@openfront/engine-api/ww1914/GwCountries";
+import {
+  GW_MAX_SEATS,
+  GW_TAGS,
+} from "@openfront/engine-api/ww1914/GwCountries";
 import { COUNTRY_TAGS } from "@openfront/engine-api/ww1936/Countries";
 import { LOBBY_LABEL_MAX } from "@openfront/engine-lib/Util";
 import { zb } from "@openfront/zbin";

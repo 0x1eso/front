@@ -195,8 +195,7 @@ export class SettingsModal extends LitElement implements Controller {
     const game = this.game;
     // Great War 1914 with friends: the host keeps the game (design §3).
     const hostOfFriends =
-      game?.isGreatWar() === true &&
-      game.myPlayer()?.isLobbyCreator() === true;
+      game?.isGreatWar() === true && game.myPlayer()?.isLobbyCreator() === true;
     return (
       game !== null &&
       (game.config().gameConfig().gameType === GameType.Singleplayer ||

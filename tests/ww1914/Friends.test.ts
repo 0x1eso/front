@@ -4,10 +4,9 @@ import {
   GameType,
 } from "@openfront/engine-api/game/GameTypes";
 import { GameUpdateType } from "@openfront/engine-api/game/GameUpdates";
-import { GwOrderSchema } from "@openfront/engine-api/ww1914/GwOrders";
 import type { GwOrder } from "@openfront/engine-api/ww1914/GwOrders";
+import { GwOrderSchema } from "@openfront/engine-api/ww1914/GwOrders";
 import type { GreatWarData } from "@openfront/engine-api/ww1914/GwView";
-import { gwPlayers } from "@openfront/engine/ww1914/GwPlayers";
 import {
   createGameRunnerFromSnapshot,
   GameRunner,
@@ -19,11 +18,12 @@ import {
   memoirOf,
 } from "@openfront/engine/ww1914/Endings";
 import { warScore } from "@openfront/engine/ww1914/Fronts";
+import { gwPlayers } from "@openfront/engine/ww1914/GwPlayers";
 import { regentStep } from "@openfront/engine/ww1914/Seats";
 import { gwView } from "@openfront/engine/ww1914/View";
 import { ruledBySeat } from "@openfront/engine/ww1914/World";
-import { describe, expect, it } from "vitest";
 import { loadMapFiles } from "@openfront/shared/GameMapLoader";
+import { describe, expect, it } from "vitest";
 import { TestDataMapLoader } from "../util/ScriptedGame";
 import {
   MINI,
@@ -111,11 +111,11 @@ describe("seats", () => {
 
   it("seats every human and leaves the rest to the AI", async () => {
     const { runner } = await friends();
-    expect(gwOf(runner).s.seats.map((x) => x.tag).sort()).toEqual([
-      "DEU",
-      "GBR",
-      "RUS",
-    ]);
+    expect(
+      gwOf(runner)
+        .s.seats.map((x) => x.tag)
+        .sort(),
+    ).toEqual(["DEU", "GBR", "RUS"]);
     expect(gwView(gwOf(runner)).roster).toHaveLength(3);
   });
 });
