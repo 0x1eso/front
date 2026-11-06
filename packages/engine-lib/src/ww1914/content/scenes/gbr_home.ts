@@ -915,6 +915,7 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
         [v("base")],
         r("fine", "warm", "leave", null),
         r("why", "frank", "ask", "moved"),
+        r("mck", "frank", "ask", "rival"),
       ),
       moved: node(
         [v("base")],
@@ -925,6 +926,11 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
         r("enough", "cold", "leave", null),
       ),
       shut: node([v("base")], r("end", "cold", "leave", null)),
+      rival: node(
+        [v("base")],
+        r("both", "warm", "leave", null),
+        r("hush", "cold", "leave", null),
+      ),
     },
   ),
   talk(
@@ -967,7 +973,7 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
         r("bye", "cold", "leave", null),
       ),
       cond: node(
-        [v("base")],
+        [v("arrogant", mood("arrogant")), v("base")],
         r("noted", "cold", "ask", "count", {
           effects: [remember("k_lg_belgium")],
         }),
@@ -975,12 +981,20 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
           tell: ["trust:+1"],
           effects: [trustOf(who, 1), remember("k_lg_belgium")],
         }),
+        r("grey", "frank", "ask", "grey"),
       ),
       count: node(
         [v("base")],
         r("end", "warm", "leave", null, { effects: [voteOf("entry", 1)] }),
       ),
       shut: node([v("base")], r("end", "cold", "leave", null)),
+      grey: node(
+        [v("base")],
+        r("hold", "warm", "leave", null, {
+          effects: [remember("k_lg_belgium")],
+        }),
+        r("hush", "cold", "leave", null),
+      ),
     },
   ),
   talk(
@@ -1014,8 +1028,14 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
           effects: [trustOf(who, 1), remember("k_lg_city")],
         }),
         r("hold", "cold", "leave", null),
+        r("doubt", "frank", "ask", "doubt"),
       ),
       shut: node([v("base")], r("end", "cold", "leave", null)),
+      doubt: node(
+        [v("cunning", mood("cunning")), v("base")],
+        r("note", "warm", "leave", null, { effects: [remember("k_lg_city")] }),
+        r("stop", "cold", "leave", null),
+      ),
     },
   ),
   talk(
@@ -1049,6 +1069,7 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
           effects: [trustOf(who, 1), remember("k_lg_balkans")],
         }),
         r("doubt", "frank", "ask", "doubt"),
+        r("kit", "frank", "ask", "kit"),
       ),
       doubt: node(
         [v("base")],
@@ -1058,6 +1079,13 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
         r("end", "cold", "leave", null),
       ),
       shut: node([v("base")], r("end", "cold", "leave", null)),
+      kit: node(
+        [v("base")],
+        r("smile", "warm", "leave", null, {
+          effects: [remember("k_lg_balkans")],
+        }),
+        r("end", "cold", "leave", null),
+      ),
     },
   ),
   talk(
@@ -1096,14 +1124,22 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
         r("end", "cold", "leave", null),
       ),
       plan: node(
-        [v("base")],
+        [v("arrogant", mood("arrogant")), v("base")],
         r("yes", "warm", "leave", null, {
           tell: ["trust:+1"],
           effects: [trustOf(who, 1), remember("k_lg_munitions")],
         }),
         r("no", "cold", "leave", null),
+        r("kit", "frank", "ask", "kit"),
       ),
       shut: node([v("base")], r("end", "cold", "leave", null)),
+      kit: node(
+        [v("base")],
+        r("hold", "frank", "leave", null, {
+          effects: [remember("k_lg_munitions")],
+        }),
+        r("stop", "cold", "leave", null),
+      ),
     },
   ),
   talk(
@@ -1114,6 +1150,9 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
     {
       open: node(
         [
+          v("munitions", holds("munitions", "gbr_lloyd_george")),
+          v("war_sec", holds("war", "gbr_lloyd_george")),
+          v("again", chose("gbr_t_lg_ambition")),
           v("cunning", mood("cunning")),
           v("arrogant", mood("arrogant")),
           v("base"),
@@ -1168,8 +1207,16 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
           tell: ["trust:+1"],
           effects: [trustOf(who, 1), remember("k_lg_committee")],
         }),
+        r("above", "frank", "ask", "above"),
       ),
       shut: node([v("base")], r("end", "cold", "leave", null)),
+      above: node(
+        [v("base")],
+        r("mark", "cold", "leave", null, {
+          effects: [remember("k_lg_committee")],
+        }),
+        r("bye", "warm", "leave", null),
+      ),
     },
     { cd: 8 },
   ),
@@ -1201,8 +1248,16 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
           effects: [remember("k_law_letter")],
         }),
         r("end", "cold", "leave", null),
+        r("carson", "frank", "ask", "carson"),
       ),
       shut: node([v("base")], r("end", "cold", "leave", null)),
+      carson: node(
+        [v("base")],
+        r("note", "frank", "leave", null, {
+          effects: [remember("k_law_letter")],
+        }),
+        r("stop", "cold", "leave", null),
+      ),
     },
   ),
   talk(
@@ -1228,14 +1283,22 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
         r("later", "cold", "leave", null),
       ),
       price: node(
-        [v("base")],
+        [v("stubborn", mood("stubborn")), v("base")],
         r("yes", "frank", "leave", null, {
           tell: ["trust:+1"],
           effects: [trustOf(who, 1), remember("k_law_truce")],
         }),
         r("no", "cold", "leave", null),
+        r("chu", "frank", "ask", "chu"),
       ),
       shut: node([v("base")], r("end", "cold", "leave", null)),
+      chu: node(
+        [v("base")],
+        r("note", "frank", "leave", null, {
+          effects: [remember("k_law_truce")],
+        }),
+        r("stop", "cold", "leave", null),
+      ),
     },
   ),
   talk(
@@ -1274,8 +1337,16 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
           effects: [remember("k_law_coalition")],
         }),
         r("no", "cold", "leave", null),
+        r("lg", "frank", "ask", "lg"),
       ),
       shut: node([v("base")], r("end", "cold", "leave", null)),
+      lg: node(
+        [v("base")],
+        r("mark", "cold", "leave", null, {
+          effects: [remember("k_law_coalition")],
+        }),
+        r("stop", "cold", "leave", null),
+      ),
     },
   ),
   talk(
@@ -1286,6 +1357,9 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
     {
       open: node(
         [
+          v("lists", bigLoss),
+          v("dollars", gaugeAt("money", 1)),
+          v("again", chose("gbr_t_law_backbench")),
           v("cold", mood("cold")),
           v("weary", mood("weary")),
           v("stubborn", mood("stubborn")),
@@ -1357,7 +1431,7 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
         r("later", "cold", "leave", null),
       ),
       terms: node(
-        [v("base")],
+        [v("weary", mood("weary")), v("base")],
         r("hold", "frank", "leave", null, {
           effects: [remember("k_law_december")],
         }),
@@ -1394,8 +1468,14 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
       [v("base")],
       r("yes", "frank", "leave", null, { effects: [remember("k_law_loan")] }),
       r("no", "cold", "leave", null),
+      r("mck", "frank", "ask", "mck"),
     ),
     shut: node([v("base")], r("end", "cold", "leave", null)),
+    mck: node(
+      [v("base")],
+      r("yes", "frank", "leave", null, { effects: [remember("k_law_loan")] }),
+      r("no", "cold", "leave", null),
+    ),
   }),
   talk(
     "gbr_t_henderson_truce",
@@ -1424,12 +1504,13 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
         r("later", "cold", "leave", null),
       ),
       terms: node(
-        [v("base")],
+        [v("stubborn", mood("stubborn")), v("base")],
         r("yes", "frank", "leave", null, {
           tell: ["trust:+1"],
           effects: [trustOf(who, 1), remember("k_hen_truce")],
         }),
         r("again", "cold", "ask", "writing"),
+        r("lg", "frank", "ask", "lg"),
       ),
       writing: node(
         [v("base")],
@@ -1439,6 +1520,13 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
         r("end", "cold", "leave", null),
       ),
       shut: node([v("base")], r("end", "cold", "leave", null)),
+      lg: node(
+        [v("base")],
+        r("note", "warm", "leave", null, {
+          effects: [remember("k_hen_truce")],
+        }),
+        r("end", "cold", "leave", null),
+      ),
     },
   ),
   talk(
@@ -1469,8 +1557,17 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
           effects: [remember("k_hen_cabinet")],
         }),
         r("no", "cold", "leave", null),
+        r("party", "frank", "ask", "party"),
       ),
       shut: node([v("base")], r("end", "cold", "leave", null)),
+      party: node(
+        [v("base")],
+        r("hold", "warm", "leave", null, {
+          tell: ["trust:+1"],
+          effects: [trustOf(who, 1), remember("k_hen_cabinet")],
+        }),
+        r("end", "cold", "leave", null),
+      ),
     },
   ),
   talk(
@@ -1502,12 +1599,20 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
           effects: [trustOf(who, 1), remember("k_hen_dilution")],
         }),
         r("end", "cold", "leave", null),
+        r("women", "frank", "ask", "women"),
       ),
       shut: node(
         [v("base")],
         r("end", "cold", "leave", null, {
           effects: [reason("hen_wrote_it_down")],
         }),
+      ),
+      women: node(
+        [v("base")],
+        r("note", "frank", "leave", null, {
+          effects: [remember("k_hen_dilution")],
+        }),
+        r("end", "cold", "leave", null),
       ),
     },
   ),
@@ -1538,7 +1643,7 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
         r("later", "warm", "leave", null),
       ),
       terms: node(
-        [v("base")],
+        [v("weary", mood("weary")), v("base")],
         r("yes", "frank", "leave", null, {
           tell: ["trust:+1"],
           effects: [
@@ -1548,8 +1653,17 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
           ],
         }),
         r("no", "cold", "leave", null),
+        r("son", "warm", "ask", "son"),
       ),
       shut: node([v("base")], r("end", "cold", "leave", null)),
+      son: node(
+        [v("base")],
+        r("hold", "warm", "leave", null, {
+          tell: ["trust:+1"],
+          effects: [trustOf(who, 1), remember("k_hen_cons")],
+        }),
+        r("end", "cold", "leave", null),
+      ),
     },
   ),
   talk(
@@ -1581,8 +1695,16 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
           effects: [trustOf(who, 1), remember("k_hen_russia")],
         }),
         r("end", "cold", "leave", null),
+        r("army", "frank", "ask", "army"),
       ),
       shut: node([v("base")], r("end", "cold", "leave", null)),
+      army: node(
+        [v("base")],
+        r("note", "frank", "leave", null, {
+          effects: [remember("k_hen_russia")],
+        }),
+        r("end", "cold", "leave", null),
+      ),
     },
   ),
   talk(
@@ -1592,7 +1714,23 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
     all(war, during("17b", "18a")),
     {
       open: node(
-        [v("stubborn", mood("stubborn")), v("weary", mood("weary")), v("base")],
+        [
+          v("strike", unrestAt(2)),
+          v("again", chose("gbr_t_henderson_after")),
+          v("stubborn", mood("stubborn")),
+          v(
+            "door",
+            all(
+              mood("weary"),
+              any(
+                chose("gbr_h_stockholm", "refuse"),
+                chose("gbr_h_stockholm", "leave_him_outside"),
+              ),
+            ),
+          ),
+          v("weary", mood("weary")),
+          v("base"),
+        ],
         r("ask", "frank", "ask", "votes", {
           reacts: [when_(sour, "shut", reason("hen_rose"))],
         }),
@@ -1621,8 +1759,21 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
           effects: [remember("k_hen_after"), reason("hen_kept_word")],
         }),
         r("end", "cold", "leave", null),
+        r("sorry", "warm", "ask", "bench", {
+          when: any(
+            chose("gbr_h_stockholm", "refuse"),
+            chose("gbr_h_stockholm", "leave_him_outside"),
+          ),
+        }),
       ),
       shut: node([v("base")], r("end", "cold", "leave", null)),
+      bench: node(
+        [v("base")],
+        r("note", "warm", "leave", null, {
+          effects: [remember("k_hen_after")],
+        }),
+        r("end", "cold", "leave", null),
+      ),
     },
     {
       cd: 8,
@@ -1646,6 +1797,9 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
     {
       open: node(
         [
+          v("first_war", war),
+          v("ulster", all(not(war), pressAt("ireland", 3))),
+          v("again_war", all(war, chose("gbr_t_venetia_friday"))),
           v("cold", mood("cold")),
           v("cunning", mood("cunning")),
           v("weary", mood("weary")),
@@ -1680,6 +1834,17 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
           tell: ["trust:+1"],
           effects: [trustOf(who, 1)],
         }),
+        r("lg", "frank", "ask", "lg"),
+      ),
+      lg: node(
+        [v("base")],
+        r("laugh", "warm", "leave", null, {
+          tell: ["trust:+1"],
+          effects: [trustOf(who, 1)],
+        }),
+        r("mark", "frank", "leave", null, {
+          effects: [remember("m_ven_counted"), reason("ven_counted")],
+        }),
       ),
     },
     { cd: 4, intro: [v("war_on", war), v("base")] },
@@ -1711,8 +1876,16 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
         effects: [remember("k_ven_franchise")],
       }),
       r("end", "warm", "leave", null),
+      r("why", "frank", "ask", "why"),
     ),
     joke: node([v("base")], r("end", "warm", "leave", null)),
+    why: node(
+      [v("base")],
+      r("mark", "warm", "leave", null, {
+        effects: [remember("k_ven_franchise")],
+      }),
+      r("end", "warm", "leave", null),
+    ),
   }),
   talk(
     "gbr_t_venetia_wards",
@@ -1725,6 +1898,7 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
           v("cold", mood("cold")),
           v("cunning", mood("cunning")),
           v("weary", mood("weary")),
+          v("base"),
         ],
         r("ask", "frank", "ask", "said", {
           reacts: [when_(sour, "joke", reason("ven_laughed"))],
@@ -1740,7 +1914,7 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
         r("later", "warm", "leave", null),
       ),
       said: node(
-        [v("base")],
+        [v("cold", mood("cold")), v("base")],
         r("mark", "frank", "leave", null, {
           effects: [remember("k_ven_wards")],
         }),
@@ -1748,8 +1922,16 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
           tell: ["trust:+1"],
           effects: [trustOf(who, 1)],
         }),
+        r("kit", "frank", "ask", "kit"),
       ),
       joke: node([v("base")], r("end", "warm", "leave", null)),
+      kit: node(
+        [v("base")],
+        r("note", "frank", "leave", null, {
+          effects: [remember("k_ven_wards")],
+        }),
+        r("end", "warm", "leave", null),
+      ),
     },
   ),
   talk(
@@ -1763,6 +1945,7 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
           v("cold", mood("cold")),
           v("cunning", mood("cunning")),
           v("weary", mood("weary")),
+          v("base"),
         ],
         r("ask", "frank", "ask", "what", {
           reacts: [when_(sour, "joke", reason("ven_laughed"))],
@@ -1797,9 +1980,17 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
           effects: [remember("m_ven_letters_read")],
         }),
         r("end", "warm", "leave", null),
+        r("who", "frank", "ask", "who"),
       ),
       stop: node([v("base")], r("end", "warm", "leave", null)),
       joke: node([v("base")], r("end", "warm", "leave", null)),
+      who: node(
+        [v("base")],
+        r("note", "frank", "leave", null, {
+          effects: [remember("m_ven_letters_read")],
+        }),
+        r("end", "warm", "leave", null),
+      ),
     },
   ),
   talk(
@@ -1813,6 +2004,7 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
           v("cold", mood("cold")),
           v("cunning", mood("cunning")),
           v("weary", mood("weary")),
+          v("base"),
         ],
         r("ask", "frank", "ask", "her", {
           reacts: [when_(sour, "joke", reason("ven_laughed"))],
@@ -1848,6 +2040,7 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
           v("cold", mood("cold")),
           v("cunning", mood("cunning")),
           v("weary", mood("weary")),
+          v("base"),
         ],
         r("ask", "frank", "ask", "old", {
           reacts: [when_(sour, null, reason("ven_laughed"))],
@@ -1865,6 +2058,15 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
       old: node(
         [v("base")],
         r("mark", "frank", "leave", null, {
+          tell: ["trust:+1"],
+          effects: [trustOf(who, 1), remember("k_ven_after")],
+        }),
+        r("end", "warm", "leave", null),
+        r("him", "warm", "ask", "him"),
+      ),
+      him: node(
+        [v("base")],
+        r("mark", "warm", "leave", null, {
           tell: ["trust:+1"],
           effects: [trustOf(who, 1), remember("k_ven_after")],
         }),
@@ -1930,13 +2132,21 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
         r("later", "cold", "leave", null),
       ),
       terms: node(
-        [v("base")],
+        [v("anxious", mood("anxious")), v("base")],
         r("yes", "frank", "leave", null, {
           effects: [remember("k_simon_stays"), reason("simon_filed")],
         }),
         r("no", "cold", "leave", null),
+        r("lg", "frank", "ask", "lg"),
       ),
       shut: node([v("base")], r("end", "cold", "leave", null)),
+      lg: node(
+        [v("base")],
+        r("yes", "frank", "leave", null, {
+          effects: [remember("k_simon_stays")],
+        }),
+        r("no", "cold", "leave", null),
+      ),
     },
   ),
   visit(
@@ -1948,6 +2158,9 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
     {
       open: node(
         [
+          v("coalition", co),
+          v("shells", chose("gbr_h_shells")),
+          v("again", chose("gbr_v_northcliffe_call")),
           v("arrogant", mood("arrogant")),
           v("cunning", mood("cunning")),
           v("anxious", mood("anxious")),
@@ -1972,10 +2185,18 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
           effects: [remember("k_north_press")],
         }),
         r("end", "cold", "leave", null),
+        r("why", "frank", "ask", "face"),
       ),
       shut: node(
         [v("base")],
         r("end", "cold", "leave", null, { effects: [reason("north_hung_up")] }),
+      ),
+      face: node(
+        [v("base")],
+        r("note", "cold", "leave", null, {
+          effects: [remember("k_north_press")],
+        }),
+        r("hang", "warm", "leave", null),
       ),
     },
     { cd: 8 },
@@ -2010,8 +2231,16 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
           effects: [trustOf(who, 1), remember("k_asq_return")],
         }),
         r("end", "cold", "leave", null),
+        r("book", "warm", "ask", "book"),
       ),
       shut: node([v("base")], r("end", "cold", "leave", null)),
+      book: node(
+        [v("base")],
+        r("mark", "warm", "leave", null, {
+          effects: [remember("k_asq_return")],
+        }),
+        r("end", "cold", "leave", null),
+      ),
     },
     { cd: 10 },
   ),
@@ -2052,12 +2281,21 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
           effects: [remember("m_redmond_asked")],
         }),
         r("end", "cold", "leave", null),
+        r("willie", "warm", "ask", "willie"),
       ),
       shut: node(
         [v("base")],
         r("end", "cold", "leave", null, {
           effects: [reason("redmond_stayed")],
         }),
+      ),
+      willie: node(
+        [v("base")],
+        r("mark", "warm", "leave", null, {
+          tell: ["irish:+1", "cabinet:-1"],
+          effects: [irish(1), cabinet(-1), trustOf(who, 1)],
+        }),
+        r("end", "cold", "leave", null),
       ),
     },
     { scheduledOnly: true, called: true },
@@ -2436,11 +2674,7 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
     id: "gbr_h_stockholm",
     kind: "crisis",
     stage: WAR,
-    when: all(war, during("17b"), labourIn, revolution, {
-      kind: "person_trust",
-      who: byName("gbr_henderson"),
-      min: -2,
-    }),
+    when: all(war, during("17b"), labourIn, revolution),
     cast: { fm: holder("foreign"), hen: { person: "gbr_henderson" } },
     salience: 7,
     tags: ["home", "tension_up"],
