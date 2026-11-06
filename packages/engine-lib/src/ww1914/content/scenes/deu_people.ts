@@ -1,4 +1,7 @@
-import type { GwTemperament } from "@openfront/engine-api/ww1914/GreatWarTypes";
+import type {
+  GwOffice,
+  GwTemperament,
+} from "@openfront/engine-api/ww1914/GreatWarTypes";
 import {
   all,
   any,
@@ -51,12 +54,12 @@ const moody = (w: GwWho, ...of: GwTemperament[]): GwCond => ({
   who: w,
   of,
 });
-const seen = (scene: string): GwCond => ({ kind: "seen", scene });
 const atWar = (tag: "RUS" | "FRA" | "GBR"): GwCond => ({ kind: "at_war", tag });
-const holds = (
-  office: "chief_of_staff" | "foreign" | "war" | "chancellor",
-  person: string,
-): GwCond => ({ kind: "holder", office, person });
+const holds = (office: GwOffice, person: string): GwCond => ({
+  kind: "holder",
+  office,
+  person,
+});
 const balkan: GwCond = { kind: "crisis", topic: "balkan" };
 const prideOf = (w: GwWho, delta: number): GwEffect => ({
   kind: "pride",
@@ -1132,7 +1135,7 @@ export const DEU_PEOPLE_SCENES: readonly GwScene[] = [
         ],
       },
       fear: {
-        says: [{ id: "base" }, { id: "whose", when: trusts(who, 2) }],
+        says: [{ id: "whose", when: trusts(who, 2) }, { id: "base" }],
         replies: [
           {
             id: "stop",
@@ -1495,6 +1498,14 @@ export const DEU_PEOPLE_SCENES: readonly GwScene[] = [
         says: [{ id: "base" }],
         replies: [
           {
+            id: "tirpitz",
+            stance: "cold",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "tirpitz",
+          },
+          {
             id: "keep",
             stance: "warm",
             kind: "leave",
@@ -1557,6 +1568,19 @@ export const DEU_PEOPLE_SCENES: readonly GwScene[] = [
             tell: [],
             effects: [],
             next: "least",
+          },
+        ],
+      },
+      tirpitz: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "end",
+            stance: "warm",
+            kind: "leave",
+            tell: [],
+            effects: [remember("k_beth_aims")],
+            next: null,
           },
         ],
       },
@@ -2171,6 +2195,14 @@ export const DEU_PEOPLE_SCENES: readonly GwScene[] = [
             next: "dry",
           },
           {
+            id: "kuhn",
+            stance: "cold",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "kuhn",
+          },
+          {
             id: "wait",
             stance: "cold",
             kind: "leave",
@@ -2224,6 +2256,32 @@ export const DEU_PEOPLE_SCENES: readonly GwScene[] = [
           {
             id: "end",
             stance: "warm",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      kuhn: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "relief",
+            stance: "warm",
+            kind: "deal",
+            tell: ["promise", "order:+1"],
+            effects: [
+              promise(who, "delb_relief", 3),
+              gauge("order", 1),
+              trustOf(who, 1),
+              trustOf(name("deu_kuhn"), -1),
+            ],
+            next: "thanks",
+          },
+          {
+            id: "end",
+            stance: "cold",
             kind: "leave",
             tell: [],
             effects: [],
@@ -2845,6 +2903,14 @@ export const DEU_PEOPLE_SCENES: readonly GwScene[] = [
             next: "cut",
           },
           {
+            id: "beth",
+            stance: "cold",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "beth",
+          },
+          {
             id: "end",
             stance: "cold",
             kind: "leave",
@@ -2857,6 +2923,27 @@ export const DEU_PEOPLE_SCENES: readonly GwScene[] = [
       stop: {
         says: [{ id: "base" }],
         replies: [
+          {
+            id: "end",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      beth: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "laugh",
+            stance: "warm",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "cut",
+          },
           {
             id: "end",
             stance: "cold",
@@ -3036,6 +3123,14 @@ export const DEU_PEOPLE_SCENES: readonly GwScene[] = [
             next: "dry",
           },
           {
+            id: "delb",
+            stance: "cold",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "delb",
+          },
+          {
             id: "banks",
             stance: "cold",
             kind: "leave",
@@ -3090,6 +3185,27 @@ export const DEU_PEOPLE_SCENES: readonly GwScene[] = [
       dry: {
         says: [{ id: "base" }],
         replies: [
+          {
+            id: "end",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      delb: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "laugh",
+            stance: "warm",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "small",
+          },
           {
             id: "end",
             stance: "cold",
@@ -3680,6 +3796,14 @@ export const DEU_PEOPLE_SCENES: readonly GwScene[] = [
             next: "how",
           },
           {
+            id: "falk",
+            stance: "cold",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "falk",
+          },
+          {
             id: "no",
             stance: "cold",
             kind: "leave",
@@ -3705,6 +3829,27 @@ export const DEU_PEOPLE_SCENES: readonly GwScene[] = [
       shut: {
         says: [{ id: "base" }],
         replies: [
+          {
+            id: "end",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      falk: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "how",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "how",
+          },
           {
             id: "end",
             stance: "cold",
@@ -5274,6 +5419,14 @@ export const DEU_PEOPLE_SCENES: readonly GwScene[] = [
             next: "treason",
           },
           {
+            id: "heir",
+            stance: "cold",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "heir",
+          },
+          {
             id: "later",
             stance: "cold",
             kind: "leave",
@@ -5325,6 +5478,27 @@ export const DEU_PEOPLE_SCENES: readonly GwScene[] = [
       treason: {
         says: [{ id: "base" }],
         replies: [
+          {
+            id: "end",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      heir: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "land",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "land",
+          },
           {
             id: "end",
             stance: "cold",
@@ -5393,6 +5567,14 @@ export const DEU_PEOPLE_SCENES: readonly GwScene[] = [
             next: "rights",
           },
           {
+            id: "delb",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "delb",
+          },
+          {
             id: "end",
             stance: "cold",
             kind: "leave",
@@ -5437,6 +5619,19 @@ export const DEU_PEOPLE_SCENES: readonly GwScene[] = [
         ],
       },
       rights: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "end",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      delb: {
         says: [{ id: "base" }],
         replies: [
           {
