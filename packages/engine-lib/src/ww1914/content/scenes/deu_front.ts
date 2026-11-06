@@ -2006,6 +2006,7 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
         r("push", "cold", "push", "whose", {
           tell: ["trust:-1"],
           effects: [T(-1)],
+          reacts: [ifTrust(2, "nails", [])],
         }),
         r("deal", "flatter", "deal", "promised", {
           tell: ["trust:+1"],
@@ -2136,7 +2137,9 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
           gain: [key("k_hind_truth")],
           miss: "duty",
         }),
-        r("push", "cold", "push", "duty"),
+        r("push", "cold", "push", "duty", {
+          reacts: [ifMood("wall", [T(-1)], "stubborn")],
+        }),
         r("deal", "warm", "deal", "name", {
           tell: ["trust:+1"],
           effects: [T(1), key("k_hind_truth")],
@@ -2151,6 +2154,7 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
       ),
       duty: plain(r("again", "frank", "ask", "said"), bye("end", "cold")),
       name: plain(bye("end", "warm")),
+      wall: plain(bye("end", "cold")),
     },
   ),
 
@@ -2203,6 +2207,7 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
         r("push", "threat", "push", "vienna", {
           tell: ["trust:-1"],
           effects: [T(-1)],
+          reacts: [ifMood("beseler", [T(-1), pride(who, 1)], "arrogant")],
         }),
         r("deal", "cold", "deal", "vienna", {
           tell: ["ally:-1"],
@@ -2217,6 +2222,7 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
         bye("end", "cold"),
       ),
       vienna: plain(bye("end", "cold")),
+      beseler: plain(r("then", "cold", "ask", "numbers"), bye("end", "cold")),
     },
   ),
   talk(
@@ -2232,6 +2238,7 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
         r("push", "cold", "push", "angry", {
           tell: ["trust:-1"],
           effects: [T(-1)],
+          reacts: [ifMood("fix", [], "stubborn")],
         }),
         r("deal", "frank", "deal", "fix", {
           tell: ["trust:+1"],
@@ -2320,7 +2327,7 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
   talk(
     "deu_t2_lud_nerves",
     "deu_ludendorff",
-    all(score(-5), date("1918-01", "1918-12")),
+    all(score(-5), date("1918-04", "1918-12")),
     {
       open: node(
         moods("anxious", "stubborn"),
@@ -2489,6 +2496,13 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
         r("key", "cold", "deal", null, {
           effects: [key("k_bauer_list")],
         }),
+        r("heir", "frank", "ask", "heir"),
+        bye("end", "cold"),
+      ),
+      heir: plain(
+        r("key", "cold", "deal", null, {
+          effects: [key("k_bauer_list"), reveal("deu_heir_ring")],
+        }),
         bye("end", "cold"),
       ),
       smile: plain(bye("end", "cold")),
@@ -2507,6 +2521,9 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
         r("push", "threat", "push", "papers", {
           tell: ["trust:-1"],
           effects: [T(-1), key("k_bauer_press")],
+          reacts: [
+            ifMood("soldiers", [T(-1), key("k_bauer_press")], "cunning"),
+          ],
         }),
         r("deal", "flatter", "deal", "soldiers", {
           tell: ["reichstag:-1"],
@@ -2517,7 +2534,8 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
         }),
         bye("leave", "cold"),
       ),
-      papers: plain(bye("end", "cold")),
+      papers: plain(r("who", "cold", "ask", "pays"), bye("end", "cold")),
+      pays: plain(bye("end", "cold")),
       soldiers: plain(bye("end", "cold")),
     },
   ),
@@ -2603,7 +2621,9 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
         r("ask", "frank", "ask", "fist", {
           gain: [key("k_hoff_home")],
         }),
-        r("push", "cold", "push", "home"),
+        r("push", "cold", "push", "lud", {
+          reacts: [ifMood("home", [key("k_hoff_home")], "cunning")],
+        }),
         r("deal", "warm", "deal", "home", {
           tell: ["trust:+1"],
           effects: [T(1), key("k_hoff_home")],
@@ -2617,6 +2637,7 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
         bye("end", "cold"),
       ),
       home: plain(bye("end", "warm")),
+      lud: plain(r("then", "frank", "ask", "fist"), bye("end", "cold")),
     },
   ),
   visit(
@@ -2647,7 +2668,14 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
         }),
         bye("end", "warm"),
       ),
-      polite: plain(bye("end", "cold")),
+      polite: plain(r("again", "warm", "ask", "prussia"), bye("end", "cold")),
+      prussia: plain(
+        r("key", "warm", "deal", null, {
+          tell: ["trust:+1"],
+          effects: [T(1), key("k_rupp_view")],
+        }),
+        bye("end", "cold"),
+      ),
     },
   ),
   visit(
@@ -2664,7 +2692,9 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
         r("ask", "cold", "ask", "vienna", {
           gain: [key("k_vienna_face")],
         }),
-        r("push", "cold", "push", "horses"),
+        r("push", "cold", "push", "horses", {
+          reacts: [ifMood("vienna", [key("k_vienna_face")], "cold")],
+        }),
         r("deal", "flatter", "deal", "vienna", {
           tell: ["trust:+1"],
           effects: [T(1), key("k_vienna_face")],
@@ -2673,6 +2703,12 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
       ),
       vienna: plain(
         r("key", "frank", "deal", null, {
+          effects: [key("k_vienna_face")],
+        }),
+        r("conrad", "cold", "ask", "conrad"),
+      ),
+      conrad: plain(
+        r("key", "cold", "deal", null, {
           effects: [key("k_vienna_face")],
         }),
         bye("end", "cold"),
