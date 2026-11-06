@@ -849,6 +849,7 @@ export const DEU_CRISIS_SCENES: readonly GwScene[] = [
     cast: {
       chancellor: { office: "chancellor" },
       interior: { office: "interior" },
+      finance: { office: "finance" },
     },
     salience: 9,
     tags: ["home"],
@@ -7268,6 +7269,7 @@ export const DEU_CRISIS_SCENES: readonly GwScene[] = [
     cast: {
       amb_london: { office: "ambassador_london" },
       cos: { office: "chief_of_staff" },
+      court: { office: "court" },
     },
     salience: 8,
     tags: ["foreign"],

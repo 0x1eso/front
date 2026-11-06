@@ -106,6 +106,17 @@ describe("the crisis share", () => {
     }
   });
 
+  test("whoever an effect or a condition names is in the scene", () => {
+    for (const s of SCENES) {
+      for (const x of [...effectsOf(s), ...condsOf(s)]) {
+        const who = (x as { who?: { role?: string } }).who;
+        if (who?.role !== undefined) {
+          expect(Object.keys(s.cast), s.id).toContain(who.role);
+        }
+      }
+    }
+  });
+
   test("two variants of a scene never open alike", () => {
     for (const s of SCENES) {
       const t = pack.scenes[s.id];
