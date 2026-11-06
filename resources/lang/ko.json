@@ -1604,7 +1604,8 @@
     "ww1936_declare_blocked_subject_restricted": "선전포고하지 못했습니다: 속국은 종주국의 적과만 싸울 수 있습니다",
     "ww1936_declare_blocked_exile": "선전포고하지 못했습니다: 망명 정부는 전쟁을 선포할 수 없습니다",
     "ww1936_declare_blocked_congress": "선전포고하지 못했습니다: 의회가 전쟁을 승인하지 않습니다",
-    "ww1936_declare_blocked_truce_active": "선전포고하지 못했습니다: 백지 평화 휴전 중입니다 (1년)"
+    "ww1936_declare_blocked_truce_active": "선전포고하지 못했습니다: 백지 평화 휴전 중입니다 (1년)",
+    "ww1936_company_added": "\"{template}\" 편제에 {company}이(가) 붙었습니다"
   },
   "featured_stream": {
     "expand": "펼치기",
@@ -8841,7 +8842,7 @@
       "decrypt": "{on} 암호 해독 {pm, number, ::sign-always}‰",
       "design_grant": "설계 {preset} 받음",
       "dissolve_faction": "진영 해체",
-      "divisions": "{where}에 {template} 사단 {count}개 창설",
+      "divisions": "{where}에 {template}에 가장 가까운 편제로 사단 {count}개 창설",
       "doctrine_mastery": "{domain, select, naval {수리 속도} other {사단 경험치 획득}} {amount, number, ::sign-always}% (영구)",
       "elections": "{suspend, plural, =0 {다음 선거 {postponeDays}일 연기} other {선거 중단}}",
       "else": "아니면:",
@@ -9940,7 +9941,11 @@
       "waiting_equipment": "장비 대기 중 {pct}%",
       "waiting_manpower": "인력 대기 중",
       "battle_running": "기갑 전과 확대: 참호 무시, {n}라운드 남음",
-      "battle_worn": "포격으로 잃은 참호: {n}단계"
+      "battle_worn": "포격으로 잃은 참호: {n}단계",
+      "auto_companies_hint": "재고가 채울 수 있으면 지원 중대가 스스로 붙습니다. 편제를 고치면 꺼집니다.",
+      "auto_companies_off": "자동 지원 중대: 끔",
+      "auto_companies_on": "자동 지원 중대: 켬",
+      "company_effect": "{company} 효과 {pct}%"
     },
     "landmark": {
       "lm_brandenburg": "브란덴부르크 문",
@@ -11347,7 +11352,7 @@
       "oob_applied_cut": "시작 군을 편성했습니다: 사단 {asked}개 중 {n}개 ({cut})",
       "oob_blocked": "시작 군 계획을 보내지 못했습니다: {reason}",
       "oob_empty_required": "{army}: 작전 중이라 사단이 최소 1개 있어야 합니다.",
-      "oob_intro": "시작 군 전체를 계획합니다. 편제를 고치거나 새로 만들고, 각 군에 편제별로 사단을 몇 개씩 둘지 정합니다. 인력은 원래 시작 사단들의 병력 합계이며, 사단은 모두 완전 편성으로 만들어지므로 장비가 모자라면 사단 수가 줄어듭니다.",
+      "oob_intro": "시작 군 전체를 계획합니다. 편제를 고치거나 새로 만들고, 각 군에 편제별로 사단을 몇 개씩 둘지 정합니다. 인력은 원래 시작 사단들의 병력 합계입니다. 사단은 병력과 주 장비를 다 갖춰 만들어지므로 이것이 모자라면 사단 수가 줄어듭니다. 지원 장비만은 예외여서 사단이 있는 만큼만 받고, 지원 중대는 장비가 있는 만큼만 효과를 냅니다.",
       "oob_refused": "게임이 시작 군 계획을 거부해서 기본 군대로 시작합니다.",
       "oob_unfilled_required": "{army}: 작전 중인데 비축 장비로는 편성할 수 없습니다.",
       "operation": "작전 중",
@@ -13435,7 +13440,7 @@
       "alpini": "알피니 사단",
       "armored": "기갑 사단",
       "bal_mountain_division": "산악 사단",
-      "binary": "이분 사단",
+      "binary": "보병 사단",
       "bra_feb_division": "원정 보병 사단",
       "cavalry": "기병 사단",
       "cavalry_brigade": "기병 여단",
@@ -13501,14 +13506,21 @@
       "spa_africa_division": "아프리카군 사단",
       "spa_mixed_brigades": "혼성 여단 사단",
       "spa_navarre_brigades": "나바라 여단 사단",
-      "square": "보병 사단(4단위)",
+      "square": "보병 사단",
       "sun_guards_rifle": "근위 소총 사단",
       "sun_rifle_ii": "소총 사단 II",
       "sun_tank_division": "전차 사단",
       "tank_brigade": "전차 여단",
       "usa_armored_division": "기갑 사단",
       "usa_infantry_ii": "보병 사단 II",
-      "usa_marine_division": "해병 사단"
+      "usa_marine_division": "해병 사단",
+      "pre_guide_armour": "주력 기갑",
+      "pre_guide_armour15": "경제 기갑",
+      "pre_guide_assault": "돌격 사단",
+      "pre_guide_assault9": "폭 9 돌격 사단",
+      "pre_guide_heavy": "돌파 기갑",
+      "pre_guide_marine": "해병 사단",
+      "pre_guide_motor": "기동 사단"
     },
     "trait": {
       "adv_ac_air_defense": "방공 지휘",

@@ -679,7 +679,7 @@ function landAntiAir(
         let enemyAa = 0;
         for (const id of weAttack ? b.defLine : b.attLine) {
           const row = t.rowOf(id);
-          if (row >= 0) enemyAa += land.baseStatsOf(row).airAtk;
+          if (row >= 0) enemyAa += land.statsOf(row).airAtk;
         }
         // The region's guns fire on us where we attack (its controller defends).
         const aa = weAttack ? effectiveLevel(econ, r, "anti_air") : 0;

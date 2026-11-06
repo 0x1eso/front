@@ -189,6 +189,13 @@ export function startOob(
       cl.templates.push(x);
       return x;
     }
+    // ww107: a plan that changes a template is a player's edit of it.
+    if (
+      target.def.battalions.join() !== def.battalions.join() ||
+      target.def.support.join() !== def.support.join()
+    ) {
+      delete target.auto;
+    }
     // A new def object: the stats caches see the change; a name replaces the default's.
     target.def = def;
     if (def.name !== "") target.key = "";

@@ -150,8 +150,8 @@ describe("World War 1936 start", () => {
       expect(p.troops()).toBe(ww.land.fieldMen(p.smallID()));
       expect(p.troops()).toBeGreaterThan(0);
     }
-    // Germany: 45 infantry divisions of 10,500 men (P1's 480,000 army).
-    expect(byTag(g, "DEU").troops()).toBe(472_500);
+    // Germany: 50 line divisions of 7,000 men (P1's 480,000 army, the cap of 50).
+    expect(byTag(g, "DEU").troops()).toBe(350_000);
     // Poland (dev 1): 30% of its 255,000-man army in 9,000-man divisions.
     expect(byTag(g, "POL").troops()).toBe(4 * 9_000); // volunteer Poland (balance fff0c4c33): 4 divisions
     step(runner);

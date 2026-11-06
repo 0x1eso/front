@@ -191,7 +191,6 @@ export const CHW_FOCUSES: FocusDef[] = [
     icon: "sword",
     countries: ["XBM"],
     effects: [
-      { kind: "unlock_template", template: "chw_cavalry_brigade" },
       {
         kind: "divisions",
         template: "chw_cavalry_brigade",

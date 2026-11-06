@@ -11,6 +11,7 @@ import {
   MOVE_WALK,
   ROLE_ATTACK,
   TPL_SIGNAL,
+  TPL_SUPPORT_AA,
   traitBit,
   WW_PLAN_DAY_BP,
   WW_PLAN_FIGHT_BP,
@@ -25,6 +26,7 @@ import {
 import {
   addToSide,
   casCutHits,
+  companyPmOf,
   emptySide,
   planMaxBp,
   predictBattle,
@@ -550,13 +552,17 @@ export function readinessDay(land: WwLand, army: Army): void {
   const rows = armyRows(land, army);
   let bp = army.planBp;
   if (!(o.kind === "plan" && o.executing)) {
-    const signal = rows.some((r) => (land.flagsOf(r) & TPL_SIGNAL) !== 0);
+    // ww107: the best-equipped signal company speaks for the army.
+    let signalPm = 0;
+    for (let i = 0; i < rows.length && signalPm < 1000; i++) {
+      signalPm = Math.max(signalPm, land.companyPm(rows[i], TPL_SIGNAL));
+    }
     const doctrine =
       g !== null && (g.traits & traitBit("offensive_doctrine")) !== 0;
     const pct =
       100 +
       plan * 10 +
-      (signal ? 10 : 0) +
+      Math.floor((10 * signalPm) / 1000) +
       (doctrine ? 10 : 0) +
       ce.stats.planSpeedPct +
       am.planSpeedPct;
@@ -667,12 +673,14 @@ function gatherAttack(
       fd.airAtk,
       aa,
       fd.flags,
+      companyPmOf(fd, TPL_SUPPORT_AA),
     );
     ctx.casDefCenti = casCutHits(
       land.hooks.casNowCenti(region, land.sideOf(land.controller[region] ?? 0)),
       fa.airAtk,
       aa,
       fa.flags,
+      companyPmOf(fa, TPL_SUPPORT_AA),
     );
   }
   return { att, def, ctx };

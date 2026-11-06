@@ -26,7 +26,7 @@ export const NEW_FOCUSES: FocusDef[] = [
     ai: { base: 10 },
   },
   {
-    // "Basic template": the generic minor division, nine infantry battalions.
+    // "Basic template": divisions of the country's own nearest template.
     id: "new_army",
     tree: "new",
     x: 24,
@@ -35,7 +35,6 @@ export const NEW_FOCUSES: FocusDef[] = [
     branch: "army",
     icon: "infantry",
     effects: [
-      { kind: "unlock_template", template: "new_infantry_division" },
       {
         kind: "divisions",
         template: "new_infantry_division",

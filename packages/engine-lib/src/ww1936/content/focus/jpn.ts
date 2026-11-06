@@ -699,10 +699,7 @@ export const JPN_FOCUSES: FocusDef[] = [
     group: "jpn_doctrine",
     icon: "tank",
     prereq: [["jpn_army_modernisation"]],
-    effects: [
-      { kind: "research_bonus", branch: "armour", pct: 100, uses: 1 },
-      { kind: "unlock_template", template: "jpn_tank_division" },
-    ],
+    effects: [{ kind: "research_bonus", branch: "armour", pct: 100, uses: 1 }],
     ai: { base: 10 },
   },
   {
@@ -766,8 +763,7 @@ export const JPN_FOCUSES: FocusDef[] = [
     ai: { base: 10 },
   },
   {
-    // The template needs the military-police tech (P2 templateBlock), so the
-    // focus grants it first.
+    // Opens the military-police company.
     id: "jpn_garrison_units",
     tree: "JPN",
     x: 16,
@@ -779,7 +775,6 @@ export const JPN_FOCUSES: FocusDef[] = [
     prereq: [["jpn_army_modernisation"]],
     effects: [
       { kind: "add_tech", tech: "military_police" },
-      { kind: "unlock_template", template: "jpn_garrison_ii" },
       { kind: "add_spirit", id: "jpn_garrison_system" },
     ],
     ai: { base: 10 },
@@ -1538,9 +1533,8 @@ export const JPN_FOCUSES: FocusDef[] = [
     icon: "ship",
     prereq: [["jpn_naval_landing_force"]],
     effects: [
-      // The other way to this template; without its company it wouldn't open.
+      // The other way to the military-police company.
       { kind: "add_tech", tech: "military_police" },
-      { kind: "unlock_template", template: "jpn_garrison_ii" },
       { kind: "army_xp", amount: 15 },
     ],
     ai: { base: 10 },

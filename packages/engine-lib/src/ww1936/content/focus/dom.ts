@@ -228,7 +228,6 @@ export const DOM_FOCUSES: FocusDef[] = [
     branch: "army",
     icon: "infantry",
     effects: [
-      { kind: "unlock_template", template: "dom_infantry_division" },
       {
         kind: "divisions",
         template: "dom_infantry_division",
@@ -267,7 +266,6 @@ export const DOM_FOCUSES: FocusDef[] = [
     icon: "medal",
     countries: ["NZL"],
     effects: [
-      { kind: "unlock_template", template: "dom_infantry_division" },
       {
         kind: "divisions",
         template: "dom_infantry_division",
@@ -412,7 +410,6 @@ export const DOM_FOCUSES: FocusDef[] = [
     countries: ["ZAF"],
     prereq: [["dom_volunteer_force"]],
     effects: [
-      { kind: "unlock_template", template: "dom_infantry_division" },
       {
         kind: "divisions",
         template: "dom_infantry_division",

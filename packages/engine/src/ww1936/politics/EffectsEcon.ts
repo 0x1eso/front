@@ -36,8 +36,12 @@ import type { WwDepth } from "../depth/WwDepth";
 import { noStrikeAt, usedSlots } from "../economy/Construction";
 import { drawManpower, drawTemplateEquip } from "../economy/Stock";
 import { capitalRegion, newTitledGeneralState } from "../land/LandStartRun";
-import { removeGeneral, restoreGeneral } from "../land/PoliticsBridge";
-import type { LandTemplate } from "../land/WwLand";
+import {
+  mostAlike,
+  removeGeneral,
+  restoreGeneral,
+} from "../land/PoliticsBridge";
+import type { CountryLand, LandTemplate } from "../land/WwLand";
 import { EffectCtx, makeCtx, resolveSelector } from "./Dispatch";
 import { addSpirit, dmzRegions } from "./Spirits";
 import type { WwPolitics } from "./WwPolitics";
@@ -270,6 +274,28 @@ function basicInfantry(
  * An exile's `capital` is its host's capital region (spec §10.4: its
  * divisions stand there).
  */
+/**
+ * ww107: which of the country's templates `divisions` raises. It never adds
+ * one: the named template when the country has it, else its closest in make-up.
+ */
+function divisionsTemplate(
+  pol: WwPolitics,
+  cl: CountryLand,
+  id: string,
+): LandTemplate | null {
+  const own = cl.templates.find((t) => t.key === id);
+  if (own !== undefined) return own;
+  const t = pol.content.templates.find((x) => x.id === id);
+  if (t === undefined || cl.templates.length === 0) {
+    return id === BASIC_INFANTRY ? basicInfantry(cl.templates) : null;
+  }
+  return mostAlike(cl, {
+    name: "",
+    battalions: [...t.battalions] as TemplateDef["battalions"],
+    support: [...t.support] as TemplateDef["support"],
+  });
+}
+
 function addDivisions(
   ctx: EffectCtx,
   actor: number,
@@ -286,10 +312,7 @@ function addDivisions(
       ? capitalRegion(land, host)
       : (pickRegions(pol, actor, e.where, 1, ctx)[0] ?? 0);
   if (region === 0) return;
-  const tpl =
-    cl.templates.find((t) => t.key === e.template) ??
-    unlockTemplate(pol, actor, e.template) ??
-    (e.template === BASIC_INFANTRY ? basicInfantry(cl.templates) : null);
+  const tpl = divisionsTemplate(pol, cl, e.template);
   if (tpl === null) return;
   const army = land.newArmy(actor);
   if (army === null) return;

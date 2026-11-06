@@ -610,10 +610,7 @@ export const DEU_FOCUSES: FocusDef[] = [
     branch: "army",
     icon: "tank",
     prereq: [["deu_wehrmacht"]],
-    effects: [
-      { kind: "research_bonus", branch: "armour", pct: 100, uses: 2 },
-      { kind: "unlock_template", template: "deu_panzer_ii" },
-    ],
+    effects: [{ kind: "research_bonus", branch: "armour", pct: 100, uses: 2 }],
     ai: { base: 10 },
   },
   {
@@ -633,7 +630,6 @@ export const DEU_FOCUSES: FocusDef[] = [
         count: 2000,
         item: "deu_opel_blitz",
       },
-      { kind: "unlock_template", template: "deu_motorized_div" },
       // ww91: the Panzergrenadiers, the motorized battalion renamed.
       { kind: "add_spirit", id: "nat_deu_unit" },
     ],
@@ -664,10 +660,7 @@ export const DEU_FOCUSES: FocusDef[] = [
     branch: "army",
     icon: "infantry",
     prereq: [["deu_wehrmacht"]],
-    effects: [
-      { kind: "unlock_template", template: "deu_mountain_ii" },
-      { kind: "army_xp", amount: 10 },
-    ],
+    effects: [{ kind: "army_xp", amount: 10 }],
     ai: { base: 10 },
   },
   {

@@ -6,7 +6,8 @@ import {
   TERRAIN_DAY_SLOTS,
   WW_MAX_ARMY_DIVISIONS,
 } from "@openfront/engine-api/ww1936/LandTypes";
-import { startArmy } from "@openfront/engine-lib/ww1936/EconomyStart";
+import { hasAutoCompanies } from "@openfront/engine-lib/ww1936/AutoCompanies";
+import { isMajor, startArmy } from "@openfront/engine-lib/ww1936/EconomyStart";
 import {
   GENERALS,
   generalServes,
@@ -15,6 +16,7 @@ import {
   traitMask,
 } from "@openfront/engine-lib/ww1936/Generals";
 import {
+  aiRoleTemplates,
   genericDivisions,
   OobArmy,
   START_OOB,
@@ -152,7 +154,22 @@ export function startLand(land: WwLand): void {
     // (Its land techs came with economy.start: landStartTechs.)
     const dev = sc.devOf(cl.tag, civ);
     for (const st of startTemplates(cl.tag, dev)) {
-      cl.templates.push({ id: cl.nextTemplateId++, key: st.key, def: st.def });
+      cl.templates.push({
+        id: cl.nextTemplateId++,
+        key: st.key,
+        def: st.def,
+        // ww107: a major's default templates take their companies themselves.
+        ...(isMajor(cl.tag) && hasAutoCompanies(st.key) ? { auto: true } : {}),
+      });
+    }
+    if (!land.ww.isHumanControlled(cl.smallID)) {
+      for (const st of aiRoleTemplates(cl.tag, dev)) {
+        cl.templates.push({
+          id: cl.nextTemplateId++,
+          key: st.key,
+          def: st.def,
+        });
+      }
     }
     // Presets usable now are not "new": auto-add waits for an unlock.
     markPresetsSeen(land, cl);

@@ -168,6 +168,8 @@ describe("World War 1936 P5 lists", () => {
     // ww48 appended start_oob last, ww42 army_direct before it; the older
     // pins read what is before them.
     // The peace conference appended peace_surrender after the air groups.
+    // ww107 appended template_auto after it.
+    expect(kinds.pop()).toBe("template_auto");
     expect(kinds.pop()).toBe("peace_surrender");
     expect(kinds.splice(-4)).toEqual([
       "air_template",

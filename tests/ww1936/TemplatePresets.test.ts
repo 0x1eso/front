@@ -11,6 +11,7 @@ import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { BATTALIONS } from "@openfront/engine-lib/ww1936/Battalions";
 import { startTechs } from "@openfront/engine-lib/ww1936/EconomyStart";
 import {
+  aiRoleTemplates,
   landStartTechs,
   startTemplates,
 } from "@openfront/engine-lib/ww1936/LandStart";
@@ -97,7 +98,7 @@ describe("template presets", () => {
     expect(upgradeDef(d, new Set())).toBeNull();
   });
 
-  test("every country starts with presets its start techs allow; USA and JPN get armor", () => {
+  test("every country starts with what its start techs allow; USA and JPN get armor", () => {
     for (const tag of [
       "DEU",
       "ITA",
@@ -107,9 +108,10 @@ describe("template presets", () => {
       "USA",
       "SUN",
     ] as const) {
-      const ts = startTemplates(tag, 4);
-      expect(ts.length).toBeGreaterThanOrEqual(4);
-      expect(ts.length).toBeLessThanOrEqual(6);
+      const ts = [...startTemplates(tag, 4), ...aiRoleTemplates(tag, 4)];
+      expect(startTemplates(tag, 4).length).toBeGreaterThanOrEqual(3);
+      expect(startTemplates(tag, 4).length).toBeLessThanOrEqual(4);
+      expect(ts.length).toBeLessThanOrEqual(7);
       const have = new Set([
         ...startTechs(tag, 0),
         ...landStartTechs(tag, true, 4),
@@ -149,20 +151,22 @@ describe("auto-add on unlock", () => {
     const keys = () => cl.templates.map((t) => t.key);
     autoAddPresets(l, cl);
     const start = cl.templates.length;
-    expect(keys()).not.toContain("pre_medium_armored");
+    expect(keys()).not.toContain("pre_guide_armour");
     ce.addTech("light_tank_2");
     ce.addTech("medium_tank_1");
     autoAddPresets(l, cl);
-    expect(keys()).toContain("pre_medium_armored");
-    // inf_tank_support also unlocked, but its medium_armor type is now used.
-    expect(keys()).not.toContain("pre_inf_tank_support");
-    expect(cl.templates.length).toBe(start + 1);
-    autoAddPresets(l, cl);
-    expect(cl.templates.length).toBe(start + 1);
-    // A deleted template is not added again.
-    cl.templates = cl.templates.filter((t) => t.key !== "pre_medium_armored");
-    autoAddPresets(l, cl);
+    // ww107: a human's are the guide's two, and the library's skip the type.
+    expect(keys()).toContain("pre_guide_armour");
+    expect(keys()).toContain("pre_guide_armour15");
     expect(keys()).not.toContain("pre_medium_armored");
+    expect(keys()).not.toContain("pre_inf_tank_support");
+    expect(cl.templates.length).toBe(start + 2);
+    autoAddPresets(l, cl);
+    expect(cl.templates.length).toBe(start + 2);
+    // A deleted template is not added again.
+    cl.templates = cl.templates.filter((t) => t.key !== "pre_guide_armour");
+    autoAddPresets(l, cl);
+    expect(keys()).not.toContain("pre_guide_armour");
     // At the cap nothing joins (the preset is still marked seen).
     ce.addTech("anti_air_1");
     while (cl.templates.length < WW_MAX_TEMPLATES) {

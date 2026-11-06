@@ -9,6 +9,7 @@ import {
   WW_MAX_TRAINING,
   WW_TEMPLATE_NAME_MAX,
 } from "@openfront/engine-api/ww1936/LandTypes";
+import { hasAutoCompanies } from "@openfront/engine-lib/ww1936/AutoCompanies";
 import { dateOfDay } from "@openfront/engine-lib/ww1936/Calendar";
 import { presetDef } from "@openfront/engine-lib/ww1936/TemplatePresets";
 import { techTotals } from "@openfront/engine-lib/ww1936/WwTechs";
@@ -546,6 +547,18 @@ export class WwArmyPanel extends WwDrawerBase {
                 : nothing}
             </div>
             ${this.bars(d.data.strengthPm, d.data.orgPm)}
+            ${(d.data.companies ?? []).length === 0
+              ? nothing
+              : html`<div data-ww-company-short class="text-amber-200">
+                  ${(d.data.companies ?? [])
+                    .map((x) =>
+                      translateText("ww1936.land.company_effect", {
+                        company: translateText(`ww1936.support.${x.id}`),
+                        pct: Math.floor(x.pm / 10),
+                      }),
+                    )
+                    .join(" · ")}
+                </div>`}
             <div class="text-white/60">
               ${translateText("ww1936.land.supply", {
                 pct: Math.floor(d.data.supplyPm / 10),
@@ -860,6 +873,29 @@ export class WwArmyPanel extends WwDrawerBase {
                   )}</span
                 >
               </button>
+              ${hasAutoCompanies(t.key)
+                ? html`<button
+                    type="button"
+                    data-ww-template-auto=${t.id}
+                    aria-pressed=${String(t.auto === true)}
+                    class="mt-0.5 min-h-9 w-full rounded-md border border-white/10 bg-white/5 px-1.5 text-left text-xs ${t.auto ===
+                    true
+                      ? "text-emerald-300"
+                      : "text-white/60"}"
+                    @click=${() =>
+                      this.send({
+                        kind: "template_auto",
+                        template: t.id,
+                        on: t.auto !== true,
+                      })}
+                  >
+                    ${translateText(
+                      t.auto === true
+                        ? "ww1936.land.auto_companies_on"
+                        : "ww1936.land.auto_companies_off",
+                    )}
+                  </button>`
+                : nothing}
               ${t.inUse > 0 && c.land.templates.length > 1
                 ? html`<button
                     type="button"

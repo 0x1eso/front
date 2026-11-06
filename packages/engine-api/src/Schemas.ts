@@ -1698,6 +1698,12 @@ export const WwOrderSchema = z.discriminatedUnion("kind", [
   // losing side's leader asks the other side's leader for a peace
   // conference now; answered by peace_reply.
   z.object({ kind: z.literal("peace_surrender"), war: WwId }),
+  // ww107, appended: a template's automatic support companies on or off.
+  z.object({
+    kind: z.literal("template_auto"),
+    template: WwTemplateId,
+    on: z.boolean(),
+  }),
 ]);
 export type WwOrder = z.infer<typeof WwOrderSchema>;
 /** The land war's orders (P2): what WwLand.issue takes. */

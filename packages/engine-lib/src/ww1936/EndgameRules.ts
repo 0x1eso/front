@@ -291,10 +291,14 @@ export const SUPPORT_SUPPRESS: Partial<Record<SupportId, number>> = {
 export function divisionSuppression(
   t: TemplateDef,
   strengthPm: number,
+  companyFillPm = 1000,
 ): number {
   let s = 0;
   for (const b of t.battalions) s += BATTALION_SUPPRESS[b] ?? 0;
-  for (const c of t.support) s += SUPPORT_SUPPRESS[c] ?? 0;
+  // ww107: a company suppresses as far as its gear goes.
+  for (const c of t.support) {
+    s += Math.floor(((SUPPORT_SUPPRESS[c] ?? 0) * companyFillPm) / 1000);
+  }
   return Math.floor((s * Math.max(0, Math.min(1000, strengthPm))) / 1000);
 }
 /** Spec §8.6: one milli of damage per day on the most numerous building. */

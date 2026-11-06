@@ -6,7 +6,7 @@ import { addLine } from "@openfront/engine/ww1936/economy/Production";
 import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSource";
 import { DEEP } from "./deepFixture";
 import { depthFixture } from "./depthFixture";
-import { HUMAN, stepTo, wwRunner } from "./util";
+import { HUMAN, stepTo, wideLine, wwRunner } from "./util";
 
 afterEach(() => usePoliticsContent(null));
 
@@ -22,6 +22,8 @@ describe("ww81 the AI's line mix", () => {
     const ww = runner.game.worldWar()!;
     const d = ww.depth;
     const DEU = DEEP.tag.DEU;
+    // Engineers and recon short of gear: the group the factory goes to.
+    wideLine(runner.game);
     const ce = ww.economy.country(DEU)!;
     ce.lines.length = 0;
     addLine(ww.economy, ce, "infantry_equipment", 1, 6);

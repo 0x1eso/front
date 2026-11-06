@@ -151,7 +151,6 @@ export const SPA_FOCUSES: FocusDef[] = [
     countries: ["ESR"],
     prereq: [["spa_mobilize"]],
     effects: [
-      { kind: "unlock_template", template: "spa_mixed_brigades" },
       {
         kind: "divisions",
         template: "spa_mixed_brigades",
@@ -244,7 +243,7 @@ export const SPA_FOCUSES: FocusDef[] = [
   },
   {
     // Infantry brigades, not mountain divisions: a 1936 Nationalist Spain has
-    // no mountaineers tech and the P2 template check would refuse them.
+    // no mountaineers tech.
     id: "spa_navarre_volunteers",
     tree: "spa",
     x: 27,
@@ -255,7 +254,6 @@ export const SPA_FOCUSES: FocusDef[] = [
     countries: ["ESN"],
     prereq: [["spa_mobilize"]],
     effects: [
-      { kind: "unlock_template", template: "spa_navarre_brigades" },
       // Final balance: 2 → 4 (the Republic's focuses give it 9).
       {
         kind: "divisions",
@@ -276,7 +274,6 @@ export const SPA_FOCUSES: FocusDef[] = [
     icon: "infantry",
     countries: ["ESN"],
     effects: [
-      { kind: "unlock_template", template: "spa_africa_division" },
       // Final balance: 4 → 6 (the Republic's focuses give it 9).
       {
         kind: "divisions",

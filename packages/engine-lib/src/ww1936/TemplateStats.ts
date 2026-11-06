@@ -36,6 +36,7 @@ import {
   TPL_ARMOR_MAJOR,
   TPL_BARE_ARMOR,
   TPL_CAVALRY_MAJOR,
+  TPL_ENGINEER,
   TPL_EXPLOIT,
   TPL_FLAIL,
   TPL_FLAME,
@@ -50,6 +51,8 @@ import {
   TPL_MOUNTAIN_ANY,
   TPL_MOUNTAIN_MAJOR,
   TPL_PARA_ANY,
+  TPL_SUPPORT_AA,
+  TPL_SUPPORT_GUNS,
   TPL_TANK_FORCE,
   TPL_TD_DEFEND,
   WW_MAX_BATTALIONS,
@@ -62,6 +65,7 @@ import {
 import type { WwStatKey } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { BATTALIONS, SUPPORTS } from "./Battalions";
 import {
+  companyPmOf,
   defenderOrgPct,
   engineerCutPm,
   LOGISTICS_FUEL_PCT,
@@ -784,6 +788,7 @@ export function templateStats(
   let footN = 0;
   // Battalions of guns ×3 (a support company counts one), and heavy tanks.
   let gunN = 0;
+  let gunCompanies = 0;
   let heavyN = 0;
   let lightN = 0;
   let fastN = 0;
@@ -795,6 +800,7 @@ export function templateStats(
   // P4 (spec §10.5, §14.6, §15.3).
   let weight = 0;
   let airAtk = 0;
+  let companyAirAtk = 0;
   let fuelWidth = 0;
   let fuelHour = 0;
   const st = tech as unknown as Partial<Record<WwStatKey, number>>;
@@ -940,7 +946,9 @@ export function templateStats(
     weight += d.weightCenti;
     const sg = gens[main];
     const aa = Math.floor((d.airAtk * gp) / 100);
-    airAtk += main === ANTI_AIR_G ? keyedAa(ks, sg, aa) : aa;
+    const companyAa = main === ANTI_AIR_G ? keyedAa(ks, sg, aa) : aa;
+    airAtk += companyAa;
+    companyAirAtk += companyAa;
     hp += Math.floor((d.hpMilli * gp) / 100);
     let soft = keyed(ks, main, sg, KS.soft, Math.floor((d.soft * gp) / 100));
     if (d.artillery) {
@@ -975,7 +983,10 @@ export function templateStats(
       addCarrier(main, p, AMBUSH_GUNS.has(id) ? gunAttackPierce(p) : p, hard);
     }
     for (const [t, k] of d.equip) need[TYPE_INDEX.get(t)!] += k;
-    if (d.artillery) gunN++;
+    if (d.artillery) {
+      gunN++;
+      gunCompanies++;
+    }
     flags |= d.flag;
   }
   if (armorN > 0) flags |= TPL_ARMOR_ANY;
@@ -996,6 +1007,14 @@ export function templateStats(
   if (paraN > 0) flags |= TPL_PARA_ANY;
   if (armorN === 0 && motorN === 0 && cavalryN === 0) flags |= TPL_INFANTRY_DIV;
   const prepFirePct = st.prepFirePct ?? 0;
+  // ww91: prepFirePct scales the barrage and its cap alike.
+  const fireOf = (guns: number) =>
+    n === 0
+      ? 0
+      : Math.min(
+          pctOf(PREP_FIRE_MAX_BP, prepFirePct),
+          pctOf(Math.floor((guns * 10_000) / (3 * n)), prepFirePct),
+        );
   const sum = (k: number) => {
     let x = 0;
     for (let i = 0; i < T; i++) x += parts[i * 4 + k];
@@ -1034,6 +1053,7 @@ export function templateStats(
     battalions: n,
     weightCenti: weight,
     airAtk,
+    companyAirAtk,
     fuelWidthPm: width === 0 ? 0 : Math.floor((fuelWidth * 1000) / width),
     fuelHourMilli:
       (flags & TPL_LOGISTICS) !== 0
@@ -1041,14 +1061,8 @@ export function templateStats(
         : fuelHour,
     designFlags,
     ...pierceBands(),
-    // ww91: prepFirePct scales the barrage and its cap alike.
-    prepFireBp:
-      n === 0
-        ? 0
-        : Math.min(
-            pctOf(PREP_FIRE_MAX_BP, prepFirePct),
-            pctOf(Math.floor((gunN * 10_000) / (3 * n)), prepFirePct),
-          ),
+    prepFireBp: fireOf(gunN),
+    companyFireBp: fireOf(gunN) - fireOf(gunN - gunCompanies),
     defOrgPct: defenderOrgPct(flags, st.footDefOrgPp ?? 0),
     engineerCutPm: engineerCutPm(flags, st.engineerMulPct ?? 0),
   };
@@ -1141,7 +1155,7 @@ export function divisionStatsAt(
   for (let i = 0; i < bp.length; i += 3) {
     bandHard[bp[i]] += Math.floor((bp[i + 2] * fill[bp[i + 1]]) / 1000);
   }
-  return {
+  const out: DivisionStats = {
     ...s,
     soft,
     hard,
@@ -1149,7 +1163,24 @@ export function divisionStatsAt(
     brk,
     bandHard,
     hpMilli: Math.floor((s.hpMilli * menPm) / 1000),
+    fill,
   };
+  // ww107: the companies' own numbers go by their gear, as their attack does.
+  if ((s.engineerCutPm ?? 0) > 0) {
+    out.engineerCutPm = Math.floor(
+      ((s.engineerCutPm ?? 0) * companyPmOf(out, TPL_ENGINEER)) / 1000,
+    );
+  }
+  if ((s.companyFireBp ?? 0) > 0) {
+    const gone = 1000 - companyPmOf(out, TPL_SUPPORT_GUNS);
+    out.prepFireBp =
+      s.prepFireBp - Math.ceil(((s.companyFireBp ?? 0) * gone) / 1000);
+  }
+  if ((s.companyAirAtk ?? 0) > 0) {
+    const gone = 1000 - companyPmOf(out, TPL_SUPPORT_AA);
+    out.airAtk = s.airAtk - Math.ceil(((s.companyAirAtk ?? 0) * gone) / 1000);
+  }
+  return out;
 }
 
 /**

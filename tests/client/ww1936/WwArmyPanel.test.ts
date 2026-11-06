@@ -55,7 +55,10 @@ async function mount(
         generals: [general(1, { army: 1 })],
         divisions: [
           division(1, 1, 3, { exp: 520 }),
-          division(2, 1, 3, { equipPm: 640 }),
+          division(2, 1, 3, {
+            equipPm: 640,
+            companies: [{ id: "engineer", pm: 500 }],
+          }),
           division(3, 2, 4),
         ],
       }),
@@ -159,6 +162,11 @@ describe("<ww-army-panel> (spec §15.5)", () => {
       m.q("[data-ww-division='2'] [data-ww-short-equipment]"),
     ).not.toBeNull();
     expect(m.q("[data-ww-division='1'] [data-ww-short-equipment]")).toBeNull();
+    // ww107: a company short of gear works that far, and the card says so.
+    expect(
+      m.q("[data-ww-division='2'] [data-ww-company-short]")!.textContent,
+    ).toContain("[ww1936.land.company_effect]");
+    expect(m.q("[data-ww-division='1'] [data-ww-company-short]")).toBeNull();
   });
 
   it("training: the 'deploy to' choice is sent as the order's target and shown on the row", async () => {
@@ -261,8 +269,15 @@ describe("<ww-army-panel> (spec §15.5)", () => {
       "[ww1936.tpl.infantry]",
     );
     expect(m.q("[data-ww-template='1']")!.textContent).toContain(
-      "[ww1936.battalion.infantry] ×9",
+      "[ww1936.battalion.infantry] ×6",
     );
+    // ww107: the automatic companies' switch sits on the card.
+    await m.click("[data-ww-template-auto='1']");
+    expect(m.sent).toContainEqual({
+      kind: "template_auto",
+      template: 1,
+      on: true,
+    });
     await m.click("[data-ww-template='1']");
     expect(m.q("ww-template-designer")).not.toBeNull();
     await m.click("[data-ww-designer-back]");

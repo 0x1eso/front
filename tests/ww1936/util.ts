@@ -17,6 +17,7 @@ import {
   WwOrder,
 } from "@openfront/engine-api/Schemas";
 import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
+import type { BattalionId } from "@openfront/engine-api/ww1936/LandTypes";
 import type { WwStats } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { dayOfDate, dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
@@ -203,6 +204,26 @@ export function clearLand(game: Game): void {
   for (let r = 0; r < l.divisions.rows; r++) {
     if (l.divisions.alive(r)) l.killDivision(r, false);
   }
+}
+
+/**
+ * Sets `tag`'s first template to nine infantry, two guns, engineers and recon
+ * (width 24, 10,500 men, the German line before ww107), its automatic
+ * companies off: for a test that pins a rule, not the default template.
+ */
+export function wideLine(game: Game, tag: CountryTag = "DEU"): void {
+  const cl = land(game).country(byTag(game, tag).smallID())!;
+  const tpl = cl.templates[0];
+  delete tpl.auto;
+  tpl.def = {
+    name: "",
+    battalions: [
+      ...new Array<BattalionId>(9).fill("infantry"),
+      "artillery",
+      "artillery",
+    ],
+    support: ["engineer", "recon"],
+  };
 }
 
 /**

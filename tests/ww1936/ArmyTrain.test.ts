@@ -27,6 +27,7 @@ import {
   land,
   step,
   stepTo,
+  wideLine,
   wwRestore,
   wwRunnerCapture,
 } from "./util";
@@ -36,7 +37,8 @@ const MUNICH = 4;
 const BERLIN = 3;
 const INFANTRY = 1; // DEU's templates: infantry, armored, mountain, cavalry
 const MOUNTAIN = 3;
-const CAVALRY = 4;
+/** ww107: no major starts with cavalry: germany() adds it. */
+const CAVALRY = 99;
 const ARMORED = 2;
 
 async function germany() {
@@ -51,6 +53,16 @@ async function germany() {
   const ce = l.econ.country(id)!;
   clearStartSetup(l.econ, ce);
   clearLand(g);
+  wideLine(g);
+  cl.templates.push({
+    id: CAVALRY,
+    key: "",
+    def: {
+      name: "Cavalry",
+      battalions: new Array(4).fill("cavalry"),
+      support: [],
+    },
+  });
   let day = SUMMER;
   ce.manpower = 500_000;
   for (const type of [
@@ -103,7 +115,7 @@ describe("train_army", () => {
       issue(
         army([
           [INFANTRY, 2],
-          [99, 1],
+          [98, 1],
         ]),
       ),
     ).toBe("bad_template");

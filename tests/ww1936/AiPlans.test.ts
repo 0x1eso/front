@@ -429,14 +429,12 @@ describe("the division shapes (8.4, the table decides)", () => {
   const width = (rows: readonly (readonly [BattalionId, number])[]) =>
     flat(rows).reduce((w, b) => w + BATTALIONS[b].width, 0);
 
-  it("every shape sits on a free width; Japan's line is the one exception", () => {
+  it("every shape sits on a free width; ww107: every major's line is the guide's", () => {
     for (const [tag, s] of Object.entries(AI_LINE_SHAPES)) {
       expect(widthPenaltyBp(width(s.armour)) === 0, `${tag} armour`).toBe(true);
-      if (tag === "JPN") continue;
+      expect(width(s.line), `${tag} line`).toBe(15);
       expect(widthPenaltyBp(width(s.line)) === 0, `${tag} line`).toBe(true);
     }
-    expect(width(AI_LINE_SHAPES.JPN!.line)).toBe(17);
-    expect(widthPenaltyBp(17)).toBeLessThan(widthPenaltyBp(19));
   });
 
   it("ww105: a line keeps its organisation: guns come as companies, and four fit", () => {
@@ -444,9 +442,6 @@ describe("the division shapes (8.4, the table decides)", () => {
       const stats = templateStats(def(s.line), emptyStats(), GEN1);
       expect(stats.orgMilli, `${tag} org`).toBeGreaterThanOrEqual(48_000);
       expect(wwMaxSupport(flat(s.line).length), tag).toBe(WW_MAX_SUPPORT);
-    }
-    for (const tag of ["SUN", "USA", "GBR", "FRA"] as const) {
-      expect(AI_LINE_SHAPES[tag]!.company).toBe("support_anti_tank");
     }
   });
 

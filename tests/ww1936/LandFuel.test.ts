@@ -59,16 +59,16 @@ describe("World War 1936 P4: the land fuel ledger (spec §15.3)", () => {
     clearLand(g);
     const a = placeArmy(g, "DEU", REGION.berlin, 2, ARMORED);
     const b = placeArmy(g, "DEU", REGION.berlin, 1, 1);
-    // 4 × 250 + 3 × 125 + 125 = 1,500 milli an hour → 2,743 a tick.
+    // 3 × 250 + 3 × 125 + 125 = 1,250 milli an hour → 2,286 a tick.
     const r = l.divisions.rowOf(a.divisions[0]);
     const hour = l.baseStatsOf(r).fuelHourMilli;
     expect(hour).toBe(
-      4 * LAND_FUEL_PER_HOUR_MILLI.light_armor! +
+      3 * LAND_FUEL_PER_HOUR_MILLI.light_armor! +
         3 * LAND_FUEL_PER_HOUR_MILLI.motorized! +
         LAND_FUEL_PER_HOUR_MILLI.mot_artillery!,
     );
     const tick = landFuelTickMilli(hour);
-    expect(tick).toBe(2743);
+    expect(tick).toBe(2286);
     // Standing still: nothing.
     before = ce.fuelLedgerMilli;
     noteLandFuel(l, g.ticks());

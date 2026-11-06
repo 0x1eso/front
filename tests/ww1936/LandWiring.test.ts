@@ -38,6 +38,7 @@ import {
   stepTo,
   takeRegion,
   warAfterPrep,
+  wideLine,
   wwRunner,
   wwRunnerCapture,
 } from "./util";
@@ -65,6 +66,8 @@ describe("World War 1936 P2: the land war's wiring", () => {
     const [deu, pol] = [byTag(g, "DEU"), byTag(g, "POL")];
     warAfterPrep(runner, HUMAN, "POL");
     expect(g.worldWar()!.isAtWar(deu.smallID(), pol.smallID())).toBe(true);
+    // (The automatic companies would bring men of their own.)
+    for (const t of land(g).country(deu.smallID())!.templates) delete t.auto;
     const polTiles = pol.numTilesOwned();
     const troops = deu.troops();
     const attack = stamped(HUMAN, {
@@ -128,7 +131,7 @@ describe("World War 1936 P2: the land war's wiring", () => {
     expect(deu.troops()).toBe(land(g).fieldMen(deu.smallID()));
     // The start's men less the day's winter attrition (P2 Task 5).
     expect(deu.troops()).toBe(
-      472_500 - land(g).country(deu.smallID())!.casualtiesToday,
+      350_000 - land(g).country(deu.smallID())!.casualtiesToday,
     );
     expect(g.config().maxTroops(deu)).toBe(deu.troops());
     expect(deu.wwTroopCap()).toBe(deu.troops());
@@ -162,13 +165,13 @@ describe("World War 1936 P2: the land war's wiring", () => {
       byTag(g, tag).smallID();
     const divisions = (tag: Parameters<typeof id>[0]) =>
       l.countrySummary(l.country(id(tag))!).divisions;
-    expect(divisions("DEU")).toBe(45);
+    expect(divisions("DEU")).toBe(50);
     expect(divisions("POL")).toBe(4); // volunteer Poland (balance fff0c4c33)
     expect(divisions("ITA")).toBe(50);
     expect(divisions("FRA")).toBe(50);
     expect(divisions("SUN")).toBe(50);
-    expect(divisions("GBR")).toBe(22);
-    // Germany: 1st Army (24, Berlin, Rundstedt), 2nd Army (21, Munich —
+    expect(divisions("GBR")).toBe(36);
+    // Germany: 1st Army (24, Berlin, Rundstedt), 2nd Army (24, Munich —
     // next to Italy, the smaller id of the two 50-division neighbours, Bock).
     const deu = l.armiesOf(id("DEU"));
     expect(
@@ -180,7 +183,8 @@ describe("World War 1936 P2: the land war's wiring", () => {
       ]),
     ).toEqual([
       [1, 24, 3, 1],
-      [2, 21, 4, 2],
+      [2, 24, 4, 2],
+      [3, 2, 3, 6],
     ]);
     // France: Paris, Lyon (next to Italy), Paris again.
     expect(l.armiesOf(id("FRA")).map((a) => l.armyRegion(a))).toEqual([
@@ -194,23 +198,22 @@ describe("World War 1936 P2: the land war's wiring", () => {
     ).toEqual([[4, 6, GENERALS.findIndex((x) => x.id === "sosnkowski") + 1]]);
     // Germany's men and rifles came from its pool and stock.
     const ce = l.econ.country(id("DEU"))!;
-    expect(ce.manpower).toBe(1_675_000 - 45 * 10_500);
+    expect(ce.manpower).toBe(1_675_000 - 50 * 7_000);
     expect(ce.stock[equipKey("infantry_equipment", 1)]).toBe(
-      MAJOR_START.DEU!.infReserve + 48_000 - 45 * 900,
+      MAJOR_START.DEU!.infReserve + 48_000 - 50 * 600,
     );
-    // Every division at full men and org; the equipment as far as the
-    // stock went (Germany's 1,000 support equipment fill the first 28).
+    // Every division at full men, org and equipment: ww107's line takes no
+    // support equipment until its engineers and recon come.
     const t = l.divisions;
     const strength: number[] = [];
     for (let r = 0; r < t.rows; r++) {
       if (!t.alive(r) || t.owner[r] !== id("DEU")) continue;
-      expect(t.men[r]).toBe(10_500);
+      expect(t.men[r]).toBe(7_000);
       expect(t.org[r]).toBe(l.orgMaxOf(r));
       strength.push(l.strengthOf(r));
     }
-    expect(strength.slice(0, 28).every((s) => s === 1000)).toBe(true);
-    expect(strength[44]).toBeLessThan(1000);
-    expect(ce.stock[equipKey("support_equipment", 1)]).toBeLessThan(35);
+    expect(strength.every((s) => s === 1000)).toBe(true);
+    expect(ce.stock[equipKey("support_equipment", 1)]).toBe(1000);
     // The land techs (spec §4.6).
     expect(ce.researched.has("engineer_company")).toBe(true);
     expect(ce.researched.has("mountaineers")).toBe(true);
@@ -444,6 +447,7 @@ describe("World War 1936 P2: the land war's state", () => {
     const g = runner.game;
     const l = land(g);
     clearLand(g);
+    wideLine(g);
     const a = placeArmy(g, "DEU", 3, 1);
     const r = l.divisions.rowOf(a.divisions[0]);
     const full = l.statsOf(r);
@@ -556,12 +560,9 @@ describe("World War 1936 P2: the land war's state", () => {
     expect(view.armies.get(itaArmy.id)!.mine).toBeNull();
     const detail = view.details.get(byTag(g, "DEU").smallID())!;
     expect(detail.templates.map((t) => [t.key, t.inUse])).toEqual([
-      ["infantry", 45],
+      ["infantry", 50],
       ["armored", 0],
       ["mountain", 0],
-      ["cavalry", 0],
-      ["pre_mot_infantry", 0],
-      ["pre_anti_tank_infantry", 0],
     ]);
     // Germany's whole roster (Task 10), best first; the two seed rows lead
     // the ones serving in 1936.
@@ -581,7 +582,7 @@ describe("World War 1936 P2: the land war's state", () => {
         "wietersheim",
       ]),
     );
-    expect(detail.divisions).toHaveLength(45);
+    expect(detail.divisions).toHaveLength(50);
     // Quiet ticks send nothing.
     const n = updates.length;
     step(runner, 3);

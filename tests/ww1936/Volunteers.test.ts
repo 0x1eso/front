@@ -62,6 +62,10 @@ async function game() {
   ww.setWar(pl, sun, g.ticks(), { kind: "declare" });
   const l = ww.land;
   const a = l.armies.get(SMALL_ARMY)!;
+  // ww107: the narrower line fields more; this army stands at two.
+  for (const id of a.divisions.slice(2)) {
+    l.killDivision(l.divisions.rowOf(id), false);
+  }
   expect([a.owner, a.divisions.length, l.armyRegion(a)]).toEqual([
     ita,
     2,

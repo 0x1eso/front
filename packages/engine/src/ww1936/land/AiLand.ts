@@ -58,7 +58,6 @@ import { wwAiWarPlanDue } from "@openfront/engine-lib/ww1936/AiDifficulty";
 import {
   AI_LINE_SHAPES,
   AI_PLAN_DEFAULT,
-  type LineShape,
   type NationalPlan,
   planOf,
   planPrepared,
@@ -68,6 +67,7 @@ import {
   type ShapeRows,
   wantsPeaceFort,
 } from "@openfront/engine-lib/ww1936/AiPlans";
+import { AI_TRAIN_FILL_PM } from "@openfront/engine-lib/ww1936/AutoCompanies";
 import { BATTALIONS } from "@openfront/engine-lib/ww1936/Battalions";
 import {
   combatWidth,
@@ -307,7 +307,7 @@ const TRAIN_TARGET_MINOR = 3;
 export const AI_DEMOCRACY_PEACE_TRAIN = 2;
 const TRAIN_PER_DAY = 3;
 const TRAIN_MEN_FACTOR = 2;
-const TRAIN_FILL_PM = 500;
+const TRAIN_FILL_PM = AI_TRAIN_FILL_PM;
 /** Spec §14.5: the template refit comes every 180 days. */
 export const AI_REFIT_DAYS = 180;
 /** Spec §14.2: armies of 1–3 divisions join a bigger one in their region; armies under 4 on one front merge. */
@@ -5232,9 +5232,9 @@ class AiDay {
 
   /**
    * Spec §14.5: every 180 days, with the army experience for it, one more
-   * support company on the line templates (refitCompanies); and medium tanks
-   * for light ones once researched. ww105: a major's focus line divisions are
-   * its line too: half of what it trains.
+   * support company on a minor's line (refitCompanies; a major's lines follow
+   * AutoCompanies); and medium tanks for light ones once researched. ww105: a
+   * major's focus line divisions are its line too: half of what it trains.
    */
   refitTemplates(): void {
     const cl = this.cl;
@@ -5251,7 +5251,11 @@ class AiDay {
       // First: the guns a line gives up pay for the companies it takes.
       for (const tpl of lines) this.refitShape(tpl, shape.line);
     }
-    for (const tpl of lines) this.refitCompanies(tpl, shape);
+    for (const tpl of lines) {
+      // ww107: a major's lines take the automatic companies, a human's rule too.
+      if (shape !== undefined) tpl.auto = true;
+      else this.refitCompanies(tpl);
+    }
     const lightShape =
       shape?.armour.some(([b]) => b === "light_armor") === true;
     if (researched.has("medium_tank_1") && !lightShape) {
@@ -5264,7 +5268,11 @@ class AiDay {
         this.saveTemplate(tpl.id, bns, tpl.def.support);
       }
     }
-    if (shape !== undefined) {
+    // ww107: the default light armour stands until medium tanks open.
+    if (
+      shape !== undefined &&
+      (lightShape || researched.has("medium_tank_1"))
+    ) {
       for (const tpl of cl.templates) {
         if (AI_SHAPED_ARMOUR.includes(tpl.key)) {
           this.refitShape(tpl, shape.armour);
@@ -5287,75 +5295,28 @@ class AiDay {
   }
 
   /**
-   * ww105: one company more on line template `tpl` (support artillery, then
-   * engineers, anti-tank when an enemy at war fields armour or its table keeps
-   * it, then field hospital, logistics), when the stock equips it (saveTemplate).
-   * A line whose table keeps a company takes its guns as companies: it adds recon
-   * after the anti-tank, and if it has stopped training for want of a company's
-   * gear it gives that company up, the last in first, one a refit: a division
-   * short of a company beats none. It takes it back once the stock can.
+   * One company more on a minor's line template `tpl` (support artillery, then
+   * engineers, anti-tank when an enemy at war fields armour, then field
+   * hospital, logistics), when the stock equips it (saveTemplate).
    */
-  private refitCompanies(
-    tpl: LandTemplate,
-    shape: Readonly<LineShape> | undefined,
-  ): void {
+  private refitCompanies(tpl: LandTemplate): void {
     const researched = this.ce.researched;
     const { battalions, support } = tpl.def;
-    const company = shape?.company;
-    for (let i = support.length - 1; i >= 0 && company !== undefined; i--) {
-      if (!this.stallsTraining(tpl, support[i])) continue;
-      const kept = support.filter((_, k) => k !== i);
-      this.saveTemplate(tpl.id, battalions, kept);
-      return;
-    }
     if (support.length >= wwMaxSupport(battalions.length)) return;
     const wanted: readonly (readonly [SupportId, readonly WwTechId[]])[] = [
       ["support_artillery", ["artillery_1", "support_eq_1"]],
       ["engineer", ["engineer_company"]],
       ["support_anti_tank", ["anti_tank_1", "support_eq_1"]],
-      ...(company === undefined
-        ? []
-        : ([["recon", ["recon_company"]]] as const)),
       ["field_hospital", ["field_hospital"]],
       ["logistics", ["logistics_company"]],
     ];
     for (const [s, techs] of wanted) {
       if (support.includes(s)) continue;
       if (!techs.every((x) => researched.has(x))) continue;
-      if (s === "support_anti_tank" && company !== s && !this.enemyArmour()) {
-        continue;
-      }
+      if (s === "support_anti_tank" && !this.enemyArmour()) continue;
       this.saveTemplate(tpl.id, battalions, [...support, s]);
       break;
     }
-  }
-
-  /**
-   * ww105: nothing of `tpl` is training and the stock of a type company `s`
-   * uses is under the training gate (aiTrainPlan's TRAIN_FILL_PM). A stock near
-   * nothing alone says little: a country short of support gear trains on what
-   * comes off the line.
-   */
-  private stallsTraining(tpl: LandTemplate, s: SupportId): boolean {
-    const cl = this.cl;
-    if (
-      cl.trainees.some((x) => x.template === tpl.id) ||
-      cl.training.some((e) => e.template === tpl.id)
-    ) {
-      return false;
-    }
-    const stats = this.ce.stats;
-    const need = templateStats(tpl.def, stats, GEN1).need;
-    const without = templateStats(
-      { ...tpl.def, support: tpl.def.support.filter((x) => x !== s) },
-      stats,
-      GEN1,
-    ).need;
-    return need.some(
-      (n, i) =>
-        n > without[i] &&
-        Math.floor((this.stockOf(i) * 1000) / n) < TRAIN_FILL_PM,
-    );
   }
 
   /** The battalion can be fielded on its own techs. */

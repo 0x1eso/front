@@ -2,6 +2,7 @@
 // data and pure functions: the engine (start templates, auto-add, the AI)
 // and the template designer call the same ones. Requirements are read off
 // the battalion and support tables, so they never drift from them.
+import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
 import { WwTechId } from "@openfront/engine-api/ww1936/EconomyTypes";
 import {
   BattalionId,
@@ -326,7 +327,142 @@ export const TEMPLATE_PRESETS: readonly TemplatePreset[] = [
     "Anti-Air Armoured",
     "대공 기갑",
   ),
+  // ww107: the guide's templates, appended (a bit each in presetSeen). A human
+  // is given them as their techs open; they start on the support guns and the
+  // automatic companies bring the rest.
+  p(
+    "guide_armour",
+    "armor",
+    "medium_armor",
+    [
+      ["medium_armor", 7],
+      ["motorized", 4],
+    ],
+    ["support_artillery"],
+    "Main Armour",
+    "주력 기갑",
+  ),
+  p(
+    "guide_armour15",
+    "armor",
+    "medium_armor",
+    [
+      ["medium_armor", 3],
+      ["motorized", 3],
+      ["mot_artillery", 1],
+    ],
+    ["support_artillery"],
+    "Economy Armour",
+    "경제 기갑",
+  ),
+  p(
+    "guide_heavy",
+    "heavy",
+    "heavy_armor",
+    [
+      ["heavy_armor", 4],
+      ["motorized", 5],
+    ],
+    ["support_artillery"],
+    "Breakthrough Armour",
+    "돌파 기갑",
+  ),
+  p(
+    "guide_motor",
+    "motor",
+    "motorized",
+    [
+      ["motorized", 6],
+      ["mot_artillery", 1],
+    ],
+    ["support_artillery"],
+    "Mobile Division",
+    "기동 사단",
+  ),
+  p(
+    "guide_assault9",
+    "infantry",
+    "infantry",
+    [
+      ["infantry", 3],
+      ["artillery", 1],
+    ],
+    ["support_artillery"],
+    "Narrow Assault Line",
+    "폭 9 돌격 사단",
+  ),
+  p(
+    "guide_assault",
+    "mountain",
+    "mountain",
+    [
+      ["mountain", 6],
+      ["artillery", 1],
+    ],
+    ["support_artillery"],
+    "Assault Line",
+    "돌격 사단",
+  ),
+  p(
+    "guide_marine",
+    "marine",
+    "marine",
+    [
+      ["marine", 6],
+      ["artillery", 1],
+    ],
+    ["support_artillery"],
+    "Marine Line",
+    "해병 사단",
+  ),
 ];
+
+/** ww107: the guide's templates: a human's as their techs open, never the AI's (it keeps its role templates). */
+export const GUIDE_PRESET_IDS: ReadonlySet<string> = new Set([
+  "pre_guide_armour",
+  "pre_guide_armour15",
+  "pre_guide_heavy",
+  "pre_guide_motor",
+  "pre_guide_assault9",
+  "pre_guide_assault",
+  "pre_guide_marine",
+]);
+const MAIN_ARMOUR = "pre_guide_armour";
+const ECONOMY_ARMOUR = "pre_guide_armour15";
+const NARROW_ASSAULT = "pre_guide_assault9";
+/** The assault line's preset id: it replaces the narrow one in a major's list. */
+export const ASSAULT_LINE_PRESET = "pre_guide_assault";
+/** Lane M: weak tanks do better on the width 15 armour: these nations take it first. */
+const ECONOMY_ARMOUR_FIRST: ReadonlySet<CountryTag> = new Set([
+  "FRA",
+  "GBR",
+  "ITA",
+]);
+
+/**
+ * ww107, lane M: the guide templates of `fresh` a country takes, in its order.
+ * France's medium armour is the width 15 one alone (S35: 71-93 % on the width
+ * 22, 99-100 % on it); a major with assault infantry has the assault line, not
+ * the narrow one (78-85 % against 65-68 %, for fewer losses).
+ */
+export function guidePresetsFor(
+  tag: CountryTag,
+  major: boolean,
+  researched: ReadonlySet<WwTechId>,
+  fresh: readonly TemplatePreset[],
+): TemplatePreset[] {
+  const out = fresh.filter(
+    (x) =>
+      GUIDE_PRESET_IDS.has(x.id) &&
+      !(tag === "FRA" && x.id === MAIN_ARMOUR) &&
+      !(major && researched.has("mountaineers") && x.id === NARROW_ASSAULT),
+  );
+  if (!ECONOMY_ARMOUR_FIRST.has(tag)) return out;
+  return [
+    ...out.filter((x) => x.id === ECONOMY_ARMOUR),
+    ...out.filter((x) => x.id !== ECONOMY_ARMOUR),
+  ];
+}
 
 const BY_ID: ReadonlyMap<string, TemplatePreset> = new Map(
   TEMPLATE_PRESETS.map((x) => [x.id, x]),
@@ -407,6 +543,15 @@ export function newlyUsable(
       (seen & (1 << i)) === 0 &&
       presetStatus(x, researched, designGroups).usable,
   );
+}
+
+/** A template of these battalions is already there, in any order. */
+export function sameBattalions(
+  x: TemplatePreset,
+  templates: readonly { def: TemplateDef }[],
+): boolean {
+  const want = [...presetDef(x).battalions].sort().join();
+  return templates.some((t) => [...t.def.battalions].sort().join() === want);
 }
 
 /** Auto-add skips a preset whose signature battalion some template already uses. */

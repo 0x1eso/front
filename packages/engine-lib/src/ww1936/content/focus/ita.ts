@@ -671,7 +671,6 @@ export const ITA_FOCUSES: FocusDef[] = [
     group: "ita_modern_forces",
     prereq: [["ita_army_reform"]],
     effects: [
-      { kind: "unlock_template", template: "ita_alpini_ii" },
       { kind: "add_spirit", id: "nat_ita_unit" },
       { kind: "army_xp", amount: 10 },
     ],
@@ -687,10 +686,7 @@ export const ITA_FOCUSES: FocusDef[] = [
     icon: "tank",
     group: "ita_modern_forces",
     prereq: [["ita_army_reform"]],
-    effects: [
-      { kind: "research_bonus", branch: "armour", pct: 100, uses: 1 },
-      { kind: "unlock_template", template: "ita_armoured_division" },
-    ],
+    effects: [{ kind: "research_bonus", branch: "armour", pct: 100, uses: 1 }],
     ai: { base: 10 },
   },
   {
@@ -704,7 +700,6 @@ export const ITA_FOCUSES: FocusDef[] = [
     group: "ita_modern_forces",
     prereq: [["ita_armoured_divisions"]],
     effects: [
-      { kind: "unlock_template", template: "ita_motorised_division" },
       {
         kind: "equipment",
         type: "motorized",

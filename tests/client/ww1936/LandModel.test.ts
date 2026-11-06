@@ -16,10 +16,7 @@ import {
   ROLE_ATTACK,
   TemplateDef,
 } from "@openfront/engine-api/ww1936/LandTypes";
-import {
-  combineMods,
-  predictBattle,
-} from "@openfront/engine-lib/ww1936/CombatRules";
+import { predictBattle } from "@openfront/engine-lib/ww1936/CombatRules";
 import { titledGeneralId } from "@openfront/engine-lib/ww1936/Generals";
 import { landOrderBlockOf } from "@openfront/engine-lib/ww1936/LandOrderChecks";
 import { startTemplates } from "@openfront/engine-lib/ww1936/LandStart";
@@ -371,13 +368,12 @@ describe("LandModel (spec §15)", () => {
       fort: 0,
       directions: 1,
     });
-    // German infantry: engineers +5% on its breakthrough. Poland's division:
-    // no modifier.
+    // Neither the German line nor Poland's division has a modifier here.
     const want = predictBattle(land.armies.get(1)!.sum, pol.sum, {
       land: "plains",
       directions: 1,
       attackerAttackBp: 10_000,
-      attackerBlockBp: combineMods([500], []),
+      attackerBlockBp: 10_000,
       defenderAttackBp: 10_000,
       defenderBlockBp: 10_000,
     });
@@ -840,11 +836,11 @@ describe("LandModel (spec §15)", () => {
         }),
       ],
     });
-    // Nothing in stock: every type German infantry needs is short.
+    // Nothing in stock: every type the German line needs is short.
     expect(shortTypes(land, view, DEU)).toEqual([
       "infantry_equipment",
-      "support_equipment",
       "artillery",
+      "anti_tank",
     ]);
   });
 });

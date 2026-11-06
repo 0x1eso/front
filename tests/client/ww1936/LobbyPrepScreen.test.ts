@@ -51,7 +51,7 @@ describe("the lobby preparation screen", () => {
     const el = await screen("DEU");
     expect(
       el.querySelectorAll("[data-ww-prep-tpl]").length,
-    ).toBeGreaterThanOrEqual(4);
+    ).toBeGreaterThanOrEqual(3);
     q(el, '[data-ww-prep-tab="designs"]').click();
     await flush(el);
     expect(q(el, "[data-ww-prep-draft-note]").textContent).toContain(
@@ -349,7 +349,7 @@ describe("the army presets screen in the lobby", () => {
     expect(armies).toHaveLength(3);
     // The first army is open: a row per template, with steppers.
     const row = q(el, '[data-ww-oob-army="0"] [data-ww-oob-row="infantry"]');
-    expect(q(row, "[data-ww-oob-count]").textContent).toBe("14");
+    expect(q(row, "[data-ww-oob-count]").textContent).toBe("20");
     q(row, "[data-ww-oob-minus]").click();
     await flush(el);
     expect(
@@ -357,10 +357,10 @@ describe("the army presets screen in the lobby", () => {
         el,
         '[data-ww-oob-army="0"] [data-ww-oob-row="infantry"] [data-ww-oob-count]',
       ).textContent,
-    ).toBe("13");
+    ).toBe("19");
     expect(
       prepArmiesOf("DEU")![0].find((i) => i.key === "infantry")!.count,
-    ).toBe(13);
+    ).toBe(19);
     // Fill with what the men allow: more than before.
     q(el, '[data-ww-oob-army="0"] [data-ww-oob-fill]').click();
     await flush(el);
@@ -380,7 +380,7 @@ describe("the army presets screen in the lobby", () => {
         el,
         '[data-ww-oob-army="0"] [data-ww-oob-row="infantry"] [data-ww-oob-count]',
       ).textContent,
-    ).toBe("14");
+    ).toBe("20");
   });
 
   it("Italy shows the two operation armies first, marked, and keeps them staffed", async () => {

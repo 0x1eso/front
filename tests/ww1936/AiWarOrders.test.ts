@@ -26,6 +26,7 @@ import {
   stepTo,
   takeRegion,
   warAfterPrep,
+  wideLine,
   wwGameStart,
   wwRunner,
 } from "./util";
@@ -52,6 +53,7 @@ async function atWar() {
   const g = runner.game;
   warAfterPrep(runner, HUMAN, "POL");
   clearLand(g);
+  wideLine(g);
   const l = land(g);
   const deu = byTag(g, "DEU").smallID();
   const pol = byTag(g, "POL").smallID();

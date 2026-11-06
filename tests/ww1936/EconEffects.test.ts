@@ -418,8 +418,13 @@ describe("economy and military effects", () => {
     expect(a.divisions).toHaveLength(2);
     const rows = a.divisions.map((d) => land.divisions.rowOf(d));
     expect(rows.map((r) => land.divisions.region[r])).toEqual([3, 3]);
+    // ww107: it raises the country's closest template, and adds none.
+    const count = land.country(deu)!.templates.length;
+    expect(land.country(deu)!.templates.map((t) => t.key)).not.toContain(
+      "t_inf",
+    );
     const men = land.divisions.men[rows[0]];
-    expect(men).toBe(6500);
+    expect(men).toBe(land.statsOf(rows[0]).men);
     // Short of men: a thin division, then none.
     ce.manpower = men + 10;
     run([{ kind: "divisions", template: "t_inf", count: 3, where: "capital" }]);
@@ -434,5 +439,6 @@ describe("economy and military effects", () => {
     const k = land.armiesOf(deu).length;
     run([{ kind: "divisions", template: "t_inf", count: 1, where: "capital" }]);
     expect(land.armiesOf(deu)).toHaveLength(k);
+    expect(land.country(deu)!.templates).toHaveLength(count);
   });
 });

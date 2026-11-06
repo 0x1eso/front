@@ -30,6 +30,7 @@ import {
   land,
   placeArmy,
   stepTo,
+  wideLine,
   wwRunner,
 } from "./util";
 
@@ -53,6 +54,7 @@ async function oneDivision(tag: CountryTag = "DEU", region = BERLIN) {
   const ce = l.econ.country(id)!;
   clearStartSetup(l.econ, ce);
   clearLand(g);
+  if (tag === "DEU") wideLine(g);
   // ww9: the thought sliders' start positions give Germany reinforcePct +4;
   // these tests pin the base rule, so they start from none.
   (ce.stats as { reinforcePct?: number }).reinforcePct = 0;

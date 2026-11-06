@@ -71,17 +71,17 @@ describe("economy wiring (spec §6, §14)", () => {
     const deu = byTag(g, "DEU");
     const econ = g.worldWar()!.economy;
     const ce = econ.country(deu.smallID())!;
-    // P2 spec §6.4: the 480,000-man army fields 45 divisions of 10,500
-    // men; the troops mirror them (P2 spec §13.2).
-    expect(deu.troops()).toBe(472_500);
+    // P2 spec §6.4: the 480,000-man army fields 50 divisions of 7,000 men
+    // (68, capped at 50); the troops mirror them (P2 spec §13.2).
+    expect(deu.troops()).toBe(350_000);
     // Berlin and Munich: 67 million people, 2.5% under limited conscription.
     expect(ce.totals.recruitable).toBe(1_675_000);
-    expect(ce.manpower).toBe(ce.totals.recruitable - 472_500);
-    expect(ce.manpower).toBe(1_202_500);
-    expect(g.config().maxTroops(deu)).toBe(472_500);
+    expect(ce.manpower).toBe(ce.totals.recruitable - 350_000);
+    expect(ce.manpower).toBe(1_325_000);
+    expect(g.config().maxTroops(deu)).toBe(350_000);
     expect(g.config().troopIncreaseRate(deu)).toBe(0);
-    // The reserve and the army's 48,000 rifles, less 45 × 900 in the field.
-    expect(ce.infStock()).toBe(15_000 + 48_000 - 40_500);
+    // The reserve and the army's 48,000 rifles, less 50 × 600 in the field.
+    expect(ce.infStock()).toBe(15_000 + 48_000 - 30_000);
     expect(ce.researched.has("tools_1")).toBe(true);
     expect(deu.wwTroopCap()).toBe(deu.troops());
     // A major has three research slots (none new on day 0), all at work

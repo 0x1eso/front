@@ -4,10 +4,7 @@
 // AI already has; nothing here names a date or a region. A plan is derived
 // from the seed and the tag, never stored: `planOf` works it out again.
 import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
-import type {
-  BattalionId,
-  SupportId,
-} from "@openfront/engine-api/ww1936/LandTypes";
+import type { BattalionId } from "@openfront/engine-api/ww1936/LandTypes";
 import { idHash, wwRoll } from "./Roll";
 
 export interface NationalPlan {
@@ -452,8 +449,6 @@ export type ShapeRows = readonly (readonly [BattalionId, number])[];
 export interface LineShape {
   line: ShapeRows;
   armour: ShapeRows;
-  /** A support company it keeps whatever the enemy fields. */
-  company?: SupportId;
 }
 
 /**
@@ -471,14 +466,17 @@ export interface LineShape {
  * infantry and two guns won 83 %, and six and one with four companies 95 %. It
  * also ate twice the supply. Their guns and anti-tank now come as companies,
  * which cost no organisation: 7 battalions are the fewest that carry four.
+ *
+ * ww107: the guide's line, six and one, is every major's now, Germany's and
+ * Japan's too: they start on it and the shape must not move them off it.
  */
 export const AI_LINE_SHAPES: Readonly<
   Partial<Record<CountryTag, Readonly<LineShape>>>
 > = {
   DEU: {
     line: [
-      ["artillery", 2],
-      ["infantry", 8],
+      ["artillery", 1],
+      ["infantry", 6],
     ],
     armour: [
       ["motorized", 5],
@@ -494,7 +492,6 @@ export const AI_LINE_SHAPES: Readonly<
       ["motorized", 5],
       ["medium_armor", 6],
     ],
-    company: "support_anti_tank",
   },
   USA: {
     line: [
@@ -506,7 +503,6 @@ export const AI_LINE_SHAPES: Readonly<
       ["medium_armor", 4],
       ["sp_artillery", 2],
     ],
-    company: "support_anti_tank",
   },
   GBR: {
     line: [
@@ -518,7 +514,6 @@ export const AI_LINE_SHAPES: Readonly<
       ["medium_armor", 4],
       ["mot_artillery", 2],
     ],
-    company: "support_anti_tank",
   },
   FRA: {
     line: [
@@ -529,12 +524,11 @@ export const AI_LINE_SHAPES: Readonly<
       ["motorized", 6],
       ["medium_armor", 5],
     ],
-    company: "support_anti_tank",
   },
   JPN: {
     line: [
       ["artillery", 1],
-      ["infantry", 7],
+      ["infantry", 6],
     ],
     armour: [
       ["motorized", 3],
