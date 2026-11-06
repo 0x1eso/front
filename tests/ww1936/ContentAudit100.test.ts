@@ -29,6 +29,17 @@ describe("ww100: rewards that do what they say", () => {
     expect(given).toEqual([]);
   });
 
+  test("ww122: no event gives a division template, and these two are not left empty", () => {
+    const given: string[] = [];
+    walk(CONTENT.events, (x) => {
+      if (x.kind === "unlock_template") given.push(x.template as string);
+    });
+    expect(given).toEqual([]);
+    for (const id of ["bra_feb_departure", "new_state_proclaimed"])
+      for (const o of CONTENT.events.find((e) => e.id === id)!.options)
+        expect(o.effects.length).toBeGreaterThan(0);
+  });
+
   test("ww107: every focus the template grant left still does something", () => {
     const empty = CONTENT.focuses
       .filter((f) => f.effects.length === 0)
