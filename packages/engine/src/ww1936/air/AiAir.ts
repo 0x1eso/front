@@ -12,6 +12,7 @@
 // screens show and orders through air.issue. No randomness.
 import type { WwOrder } from "@openfront/engine-api/Schemas";
 import {
+  AIR_GROUP_TYPES,
   AIR_MISSIONS,
   AIR_TYPES,
   AirMission,
@@ -25,7 +26,10 @@ import {
   WW_BOMB_CLASSES,
   WW_FIELD_STRIP_MAX,
   WW_FIELD_STRIP_PLANES,
+  WW_GROUP_STEP,
   WW_MAX_DEPLOY_COUNT,
+  WW_MAX_GROUP_PLANES,
+  WW_MAX_KEEP_GROUPS,
   WW_PARADROP_AIRSUP_PM,
   WW_WING_FORM_MIN,
   WW_WING_RESERVE_MIN,
@@ -75,6 +79,7 @@ import {
 } from "../navy/AiNavy";
 import { bombTableOf, tableWeight, type BombTable } from "./Bombing";
 import { deckSlotOf, isCarrierWing, stockOf } from "./Deploy";
+import { issueTemplate, rebaseGroup, zonesOf, type AirGroup } from "./Groups";
 import { paradropAskOf } from "./Paradrop";
 import { wingStats } from "./Sorties";
 import { baseUsesOf } from "./Wings";
@@ -995,6 +1000,10 @@ export interface AiWingView {
 }
 
 /** ww91: the experience from which a wing counts as veterans (the second tier's). */
+const GROUP_TYPE_INDEX: readonly number[] = AIR_GROUP_TYPES.map((t) =>
+  AIR_TYPES.indexOf(t),
+);
+
 const AI_WING_VETERAN_XP = WING_XP_TIER_FROM[1];
 
 /** w50: the free room the plan sees at every usable base. */
@@ -2317,6 +2326,10 @@ export function aiWingInput(
  * pinned wings (auto off) and carrier wings stay out: a carrier's wing flies
  * its fleet's mission (carrierWings). Volunteer wings plan over their host's
  * war. Only the AI raises and drops paratroopers (land orders, not the air's).
+ * A wing in an air group stays in it: the AI keeps its fighters and bombers in
+ * template groups (aiGroupTemplate), and a human's group on auto plans inside
+ * its own zones (planGroup); the planner never disbands a group's wing or moves
+ * it alone from its group's base.
  */
 export function aiWings(air: WwAir, smallID: number, day: number): void {
   if (air.country(smallID) === null || air.econ.country(smallID) === null) {
@@ -2326,13 +2339,26 @@ export function aiWings(air: WwAir, smallID: number, day: number): void {
   const atWar = aiAtWar(air.navy, smallID);
   if (!aiAirDue(smallID, day, atWar)) return;
   const tick = air.mg.ticks();
+  if (!human) aiGroupTemplate(air, smallID, day);
   const own: Wing[] = [];
+  const zoned = new Map<number, Wing[]>();
+  const inGroup = new Map<number, AirGroup>();
   let hosts: Map<number, Wing[]> | null = null;
   for (const w of air.wingsOf(smallID)) {
     if (isCarrierWing(w) || (human && !w.auto) || (w.group !== 0 && !w.auto)) {
       continue;
     }
     if (w.volunteerFor === 0) {
+      const g = w.group === 0 ? undefined : air.groups.get(w.group);
+      if (g !== undefined) {
+        inGroup.set(w.id, g);
+        if (g.zones.length > 0 || g.army !== 0) {
+          const list = zoned.get(g.id) ?? [];
+          list.push(w);
+          zoned.set(g.id, list);
+          continue;
+        }
+      }
       own.push(w);
       continue;
     }
@@ -2341,9 +2367,38 @@ export function aiWings(air: WwAir, smallID: number, day: number): void {
     if (list === undefined) hosts.set(w.volunteerFor, [w]);
     else list.push(w);
   }
-  if (own.length > 0) {
-    const plan = aiWingPlan(aiWingInput(air, smallID, smallID, own, day));
-    for (const o of plan) air.issue(smallID, o, tick);
+  let all = own.reduce((n, w) => n + wingPlanes(w), 0);
+  for (const l of zoned.values()) for (const w of l) all += wingPlanes(w);
+  const run = (input: AiWingInput, wings: readonly Wing[]) => {
+    const planes = wings.reduce((n, w) => n + wingPlanes(w), 0);
+    const share =
+      all > 0 && planes < all
+        ? {
+            fuelBudgetMilli: Math.floor((input.fuelBudgetMilli * planes) / all),
+          }
+        : {};
+    issueGroupPlan(
+      air,
+      smallID,
+      aiWingPlan({ ...input, ...share }),
+      inGroup,
+      tick,
+      day,
+    );
+  };
+  if (own.length > 0) run(aiWingInput(air, smallID, smallID, own, day), own);
+  for (const gid of [...zoned.keys()].sort((a, b) => a - b)) {
+    const g = air.groups.get(gid)!;
+    const wings = zoned.get(gid)!;
+    run(
+      groupWingInput(
+        air,
+        g,
+        aiWingInput(air, smallID, smallID, wings, day),
+        wings,
+      ),
+      wings,
+    );
   }
   if (hosts !== null) {
     for (const host of [...hosts.keys()].sort((a, b) => a - b)) {
@@ -2353,6 +2408,131 @@ export function aiWings(air: WwAir, smallID: number, day: number): void {
   }
   if (atWar) aiNightWings(air.ww.depth, smallID, human);
   if (!human) aiParadrops(air, smallID, day, atWar);
+}
+
+/**
+ * A zoned group on auto plans over its own zones only (its followed army's
+ * fight too), keeps the capital's defence only when the capital's zone is
+ * among them, and stays at the bases its members stand at.
+ */
+function groupWingInput(
+  air: WwAir,
+  g: AirGroup,
+  input: AiWingInput,
+  wings: readonly Wing[],
+): AiWingInput {
+  const zs = new Set(zonesOf(air, g));
+  const armies = input.armies.filter((a) => a.id === g.army);
+  for (const a of armies) zs.add(a.sr);
+  const bases = new Set<number>([g.base, ...wings.map((w) => w.base)]);
+  return {
+    ...input,
+    zones: input.zones.filter((z) => zs.has(z.sr)),
+    armies,
+    capitalSr: zs.has(input.capitalSr) ? input.capitalSr : 0,
+    bases: input.bases.filter((b) => bases.has(b.region)),
+    stripSpots: [],
+  };
+}
+
+/**
+ * Issues a plan: a group's wing never takes wing_disband, and the planner's
+ * wing_base for group wings moves the whole group (the largest wing's pick).
+ */
+function issueGroupPlan(
+  air: WwAir,
+  smallID: number,
+  plan: readonly WingOrder[],
+  inGroup: ReadonlyMap<number, AirGroup>,
+  tick: number,
+  day: number,
+): void {
+  void day;
+  const moves = new Map<number, { base: number; planes: number }>();
+  for (const o of plan) {
+    if (o.kind === "wing_disband") {
+      if (inGroup.has(o.wing)) continue;
+    } else if (o.kind === "wing_base") {
+      const gs = o.wings.map((id) => inGroup.get(id));
+      if (gs.some((g) => g !== undefined)) {
+        for (const id of o.wings) {
+          const g = inGroup.get(id);
+          const w = air.wings.get(id);
+          if (g === undefined || w === undefined) continue;
+          const planes = wingPlanes(w);
+          const m = moves.get(g.id);
+          if (m === undefined || planes > m.planes) {
+            moves.set(g.id, { base: o.base, planes });
+          }
+        }
+        continue;
+      }
+    }
+    air.issue(smallID, o, tick);
+  }
+  for (const gid of [...moves.keys()].sort((a, b) => a - b)) {
+    const g = air.groups.get(gid);
+    if (g !== undefined) rebaseGroup(air, g, moves.get(gid)!.base, tick);
+  }
+}
+
+/**
+ * The AI's one air template, "AI": its fighters and bombers (stock and wings)
+ * split into equal groups of at most WW_MAX_GROUP_PLANES, the types in the
+ * proportions the country holds. Retuned every 30 days; the groups form, fill
+ * and absorb its loose wings by the daily group code. A country with a
+ * template of its own choosing (more than one) is left alone.
+ */
+function aiGroupTemplate(air: WwAir, smallID: number, day: number): void {
+  const c = air.country(smallID);
+  const ce = air.econ.country(smallID);
+  if (c === null || ce === null) return;
+  if (c.templates.length > 1) return;
+  if (c.templates.length === 1 && (day + smallID) % 30 !== 0) return;
+  const have: number[] = AIR_TYPES.map(() => 0);
+  for (const ti of GROUP_TYPE_INDEX) have[ti] = stockOf(air, ce, smallID, ti);
+  for (const w of air.wingsOf(smallID)) {
+    if (isCarrierWing(w) || w.volunteerFor !== 0) continue;
+    if (GROUP_TYPE_INDEX.includes(w.type)) have[w.type] += wingPlanes(w);
+  }
+  let total = 0;
+  for (const ti of GROUP_TYPE_INDEX) total += have[ti];
+  if (total < WW_GROUP_STEP) return;
+  const keep = Math.min(
+    WW_MAX_KEEP_GROUPS,
+    Math.max(1, Math.ceil(total / WW_MAX_GROUP_PLANES)),
+  );
+  const per = Math.floor(total / keep);
+  const planes: number[] = AIR_TYPES.map(() => 0);
+  let sum = 0;
+  for (const ti of GROUP_TYPE_INDEX) {
+    let n =
+      Math.floor(
+        (Math.floor((have[ti] * per) / total) + WW_GROUP_STEP / 2) /
+          WW_GROUP_STEP,
+      ) * WW_GROUP_STEP;
+    if (n === 0 && have[ti] >= WW_WING_FORM_MIN) n = WW_GROUP_STEP;
+    planes[ti] = n;
+    sum += n;
+  }
+  while (sum > WW_MAX_GROUP_PLANES) {
+    let big = GROUP_TYPE_INDEX[0];
+    for (const ti of GROUP_TYPE_INDEX) if (planes[ti] > planes[big]) big = ti;
+    planes[big] -= WW_GROUP_STEP;
+    sum -= WW_GROUP_STEP;
+  }
+  if (sum <= 0) return;
+  const t = c.templates[0];
+  if (t !== undefined && t.keep === keep && t.planes.join() === planes.join()) {
+    return;
+  }
+  issueTemplate(air, smallID, {
+    kind: "air_template",
+    id: t?.id ?? 0,
+    name: "AI",
+    planes,
+    keep,
+  });
 }
 
 /** wing_auto: the sender's own wings ([auto] takes them again, or a direct order's pin stays). */

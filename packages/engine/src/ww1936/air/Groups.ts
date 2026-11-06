@@ -340,6 +340,27 @@ function syncBase(
   }
 }
 
+/**
+ * The auto planner moves a group as one: its base becomes `base` and the
+ * members on the ground ferry there. False when the base can't be used.
+ */
+export function rebaseGroup(
+  air: WwAir,
+  g: AirGroup,
+  base: number,
+  tick: number,
+): boolean {
+  if (base <= 0 || base === g.base || !air.baseUsable(base)) return false;
+  g.base = base;
+  air.markCountry(g.owner);
+  for (const w of groupWings(air, g)) {
+    if (w.base === base || isCarrierWing(w)) continue;
+    if (w.phase !== WP_GROUND && w.phase !== WP_REARM) continue;
+    ferryWing(air, w, base, tick);
+  }
+  return true;
+}
+
 // ---- Forming and refilling (rules 2, 3) ----
 
 const sizesFor = (want: number, max: number): number[] => {
@@ -854,7 +875,8 @@ export function dailyGroups(air: WwAir, owner: number, day: number): void {
         army: 0,
         cls: 0,
         target: 0,
-        auto: false,
+        // The AI's groups run under the planner (AiAir.aiWings).
+        auto: !air.ww.isHumanControlled(owner),
         night: false,
         base,
       };
