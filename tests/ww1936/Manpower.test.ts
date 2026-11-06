@@ -66,7 +66,9 @@ describe("manpower (spec §6; P2 spec §13.2)", () => {
     expect(ce.totals.recruitable).toBe(1_691_750);
     expect(ce.manpower).toBe(Math.floor(ce.totals.recruitable / 3650));
     expect(ce.manpower).toBe(463);
-    ce.manpower = ce.totals.recruitable;
+    // At the ceiling the pool stops growing.
+    const ceiling = ce.totals.recruitable - ww.economy.armyMen(deu);
+    ce.manpower = ceiling;
     finishDay(runner, 1);
     // P2 Task 5: after the economy's step the land's day reinforces the
     // divisions from manpower for yesterday's winter attrition (its dead
@@ -75,8 +77,19 @@ describe("manpower (spec §6; P2 spec §13.2)", () => {
     // rest takes a quarter, so a day may take none).
     const winter = ww.land.country(deu.smallID())!.casualtiesToday;
     expect(winter).toBeGreaterThanOrEqual(0);
-    expect(ce.manpower).toBe(ce.totals.recruitable - deu.troops() - winter);
-    expect(ce.manpower).toBe(1_341_750 - winter);
+    expect(ce.manpower).toBeLessThanOrEqual(ceiling);
+    expect(ce.manpower).toBeGreaterThanOrEqual(ceiling - winter);
+  });
+
+  test("T7: past the ceiling manpower stays; the growth stops", async () => {
+    const { runner, econ, deu, ce } = await germany();
+    finishDay(runner, 0);
+    // The land is lost: the pool's regions no longer cover the army.
+    const before = 1_000_000;
+    ce.manpower = before;
+    ce.totals.recruitable = econ.armyMen(deu) - 1;
+    stepManpower(econ, ce, deu);
+    expect(ce.manpower).toBe(before);
   });
 
   test("a continental winter takes no men: Poland in January (ww84)", async () => {
@@ -91,7 +104,23 @@ describe("manpower (spec §6; P2 spec §13.2)", () => {
     expect(ww.land.country(pol.smallID())!.casualtiesToday).toBe(0);
   });
 
-  test("the dead do not come back: casualties leave the pool for good", async () => {
+  test("T7: the casualty debt opens the ceiling again, 5 % a year", async () => {
+    const { runner, econ, deu, ce } = await germany();
+    finishDay(runner, 0);
+    ce.casualties = 1_000_000;
+    ce.manpower = 0;
+    const step = () => {
+      econ.refreshTotals(ce, 0, runner.game.ticks());
+      stepManpower(econ, ce, deu);
+    };
+    step();
+    const open = ce.totals.recruitable;
+    for (let d = 0; d < 365; d++) step();
+    expect(ce.casualties).toBeLessThan(952_000);
+    expect(ce.totals.recruitable - open).toBeGreaterThan(48_000);
+  });
+
+  test("the dead leave the pool: only the debt's slow fall gives them back", async () => {
     const { runner, ww, econ, deu, ce } = await germany();
     finishDay(runner, 0);
     const pool = ce.totals.recruitable;
@@ -120,17 +149,20 @@ describe("manpower (spec §6; P2 spec §13.2)", () => {
     finishDay(runner, 1);
     expect(ce.totals.recruitable).toBe(pool - winter - dead);
     // No manpower grew into the places of the dead, then or a month on
-    // (it only pays for the winter's losses).
-    expect(ce.manpower).toBeLessThanOrEqual(manpower);
+    // past the debt's fall, a few men a day (it only pays for the winter's
+    // losses).
+    expect(ce.manpower).toBeLessThanOrEqual(manpower + 10);
     finishDay(runner, 31);
-    expect(ce.manpower).toBeLessThanOrEqual(manpower);
-    // The pool is less every man dead (today's attrition counts tomorrow).
-    expect(ce.casualties).toBeGreaterThanOrEqual(winter + dead);
-    expect(ce.totals.recruitable).toBe(
-      pool - ce.casualties + cl.casualtiesToday,
+    expect(ce.manpower).toBeLessThanOrEqual(manpower + 31 * 10);
+    // The pool is less the debt: every man dead, less the days' falls
+    // (today's attrition and fall count tomorrow).
+    const debt = winter + dead;
+    expect(ce.casualties).toBeGreaterThanOrEqual(debt - 31 * 10);
+    expect(ce.totals.recruitable).toBeLessThanOrEqual(
+      pool - ce.casualties + cl.casualtiesToday + 10,
     );
     expect(econ.armyMen(deu) + ce.manpower).toBeLessThanOrEqual(
-      pool - ce.casualties,
+      pool - ce.casualties + 10,
     );
     expect(deu.troops()).toBe(ww.land.fieldMen(deu.smallID()));
     expect(deu.troops()).toBeLessThanOrEqual(472_500 - dead);
@@ -148,7 +180,8 @@ describe("manpower (spec §6; P2 spec §13.2)", () => {
       days: 0,
     });
     expect(econ.armyMen(deu)).toBe(field + 10_500);
-    ce.manpower = ce.totals.recruitable;
+    // One man under the ceiling: it grows that one man and no further.
+    ce.manpower = ce.totals.recruitable - field - 10_500 - 1;
     stepManpower(econ, ce, deu);
     expect(ce.manpower).toBe(ce.totals.recruitable - field - 10_500);
     // Below the ceiling it grows by the day's regrowth.

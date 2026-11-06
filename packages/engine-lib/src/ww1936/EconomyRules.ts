@@ -372,6 +372,15 @@ export function manpowerRegrowth(recruitable: number): number {
   return Math.floor(recruitable / 3650);
 }
 
+/**
+ * ww115 T7: men of the casualty debt that come back to the recruitable pool
+ * today: 5 % of it a year (a new generation comes of age), at least one man
+ * a day while any debt is left.
+ */
+export function casualtyRelease(debt: number): number {
+  return debt <= 0 ? 0 : Math.floor((debt * 5 + 36_499) / 36_500);
+}
+
 // ---- Research (spec §9) ----
 
 const DAY_1936 = daysFromCivil(1936, 1, 1);

@@ -11,6 +11,7 @@ import {
   aheadPct,
   allocateResources,
   assignCivs,
+  casualtyRelease,
   constructionDaysLeft,
   constructionProgress,
   consumerGoodsMilli,

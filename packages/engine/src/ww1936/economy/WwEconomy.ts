@@ -270,9 +270,9 @@ export class CountryEconomy {
   };
   manpower = 0;
   /**
-   * Men dead in combat since 1936 (spec §6.5; P2: WwLand.noteCasualties):
-   * gone from the recruitable pool for good, so the manpower ceiling does
-   * not refill as they die.
+   * The casualty debt (spec §6.5; P2: WwLand.noteCasualties): men dead in
+   * combat, off the recruitable pool, so the manpower ceiling does not
+   * refill as they die. ww115 T7: it falls 5 % a year (stepManpower).
    */
   casualties = 0;
   stock: number[] = new Array<number>(EQUIP_KEY_COUNT).fill(0);
@@ -973,8 +973,8 @@ export class WwEconomy {
     t.civ = civ;
     t.mil = mil + adj.virtualMil;
     t.dock = dock;
-    // The dead are gone from the pool for good (spec §6.5), so the
-    // ceiling recruitable − army never refills as men die.
+    // The dead leave the pool (spec §6.5), so the ceiling recruitable −
+    // army does not refill as men die; only the debt's yearly fall opens it.
     t.recruitable = Math.max(0, recruitable - ce.casualties);
     t.produced = produced;
     t.exported = exported;
