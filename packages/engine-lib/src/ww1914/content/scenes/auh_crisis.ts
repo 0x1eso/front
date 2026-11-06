@@ -1267,10 +1267,10 @@ const SCENES: readonly GwScene[] = [
   scene(
     "auh_c_decree",
     "proposal",
-    6,
+    7,
     ["home"],
     { chancellor: { office: "chancellor" }, war: { office: "war" } },
-    all(any(declared, inWar), during("c")),
+    all(any(declared, inWar), chapters(0, 8)),
     [v("delegations", flag("f_auh_sign_austria")), base],
     {
       fallback: "all_at_once",
