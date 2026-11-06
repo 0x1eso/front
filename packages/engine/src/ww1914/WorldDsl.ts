@@ -11,15 +11,10 @@ import type {
 import { closeChain } from "./Crises";
 import { warScore } from "./Fronts";
 import { sendReport } from "./Intel";
-import {
-  keepPerson,
-  openLetter,
-  personLeaves,
-  recordResult,
-} from "./People";
+import { keepPerson, openLetter, personLeaves, recordResult } from "./People";
 import { SceneCtx, whoIn } from "./SceneRun";
 import { enter } from "./Wars";
-import { clampTo, news, reason } from "./World";
+import { clampTo, news, other, reason } from "./World";
 
 const inRange = (v: number, c: { min?: number; max?: number }) =>
   v >= (c.min ?? -Infinity) && v <= (c.max ?? Infinity);
@@ -55,8 +50,7 @@ export function worldHolds(ctx: SceneCtx, c: GwWorldCond): boolean {
       const t = s.theatres.find((x) => x.id === c.theatre)!;
       const lines = GW_LINES[c.theatre];
       const from = c.from === undefined ? 0 : lines.indexOf(c.from);
-      const to =
-        c.to === undefined ? lines.length - 1 : lines.indexOf(c.to);
+      const to = c.to === undefined ? lines.length - 1 : lines.indexOf(c.to);
       return t.since !== null && t.line >= from && t.line <= to;
     }
     case "open":
@@ -84,15 +78,19 @@ export function worldHolds(ctx: SceneCtx, c: GwWorldCond): boolean {
     case "war_age":
       return s.warChapter !== null && inRange(s.chapter - s.warChapter, c);
     case "score":
-      return nation?.side != null && inRange(warScore(gw, nation.side), c);
+      return (
+        nation !== null &&
+        nation.side !== null &&
+        inRange(warScore(gw, nation.side), c)
+      );
     case "plan_signed":
       return seat.signed === s.chapter;
     case "main":
       return c.of.includes(seat.alloc.main);
     case "letter":
-      return person(ctx, c.who)?.letter != null;
+      return (person(ctx, c.who)?.letter ?? null) !== null;
     case "ailing":
-      return person(ctx, c.who)?.ailing != null;
+      return (person(ctx, c.who)?.ailing ?? null) !== null;
     case "wins": {
       const p = person(ctx, c.who);
       return p !== null && inRange(p.wins, c);
@@ -153,8 +151,12 @@ export function worldEffect(ctx: SceneCtx, e: GwWorldEffect): void {
     case "declare": {
       if (s.warChapter === null) closeChain(gw, "war");
       const foe = gw.nation(e.tag);
-      if (foe !== null && foe.side === null && nation?.side != null) {
-        enter(gw, e.tag, nation.side === "central" ? "entente" : "central", "war_declared");
+      if (
+        foe !== null &&
+        foe.side === null &&
+        (nation?.side ?? null) !== null
+      ) {
+        enter(gw, e.tag, other(nation!.side!), "war_declared");
       }
       return;
     }

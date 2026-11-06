@@ -106,10 +106,12 @@ export const WORLD_SCENES: readonly GwScene[] = [
       { id: "cold", when: { kind: "inst", inst: "reichstag", max: -2 } },
       { id: "base" },
     ],
-    fallback: "plain",
+    fallback: "short",
     options: [
       {
         id: "plain",
+        // Without a price the Reichstag says no.
+        when: { kind: "inst", inst: "reichstag", min: -2 },
         tell: ["money:+2", "reichstag:-1"],
         effects: [
           { kind: "gauge", gauge: "money", delta: 2 },
@@ -149,14 +151,14 @@ export const WORLD_SCENES: readonly GwScene[] = [
     fallback: "refuse",
     options: [
       {
-        id: "listen",
-        tell: ["ends_game"],
-        effects: [{ kind: "end", ending: "compromise_peace" }],
-      },
-      {
         id: "refuse",
         tell: [],
         effects: [{ kind: "reason", key: "peace_refused" }],
+      },
+      {
+        id: "listen",
+        tell: ["ends_game"],
+        effects: [{ kind: "end", ending: "compromise_peace" }],
       },
     ],
   },

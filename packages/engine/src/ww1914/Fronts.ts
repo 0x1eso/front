@@ -1,4 +1,5 @@
 import {
+  GW_FRONT_START,
   GW_FRONT_UP,
   GW_LINE_STEP,
   GW_LINES,
@@ -15,7 +16,7 @@ import type { GwProposal } from "@openfront/engine-api/ww1914/GwWorldView";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import type { GreatWar } from "./GreatWar";
 import { officeHolder, recordResult } from "./People";
-import { GW_THEATRE_SIDES, theatresOf } from "./Tables";
+import { GW_ARMY_QUALITY, GW_THEATRE_SIDES, theatresOf } from "./Tables";
 import { membersOf, refreshTheatres } from "./Wars";
 import {
   clampTo,
@@ -34,6 +35,10 @@ const P_BATTLE = idHash("gw_battle");
 const P_ESTIMATE = idHash("gw_estimate");
 
 /** Ratio of attack to defence, percent, for each result (design §4.2). */
+/** Percent an attack loses for each line past its own frontier. */
+const REACH_COST = 9;
+/** Percent an attack loses going over the other's own frontier. */
+const HOME_SOIL = 40;
 const BREAK_AT = 175;
 const ADVANCE_AT = 112;
 const STALEMATE_AT = 78;
@@ -111,7 +116,8 @@ function fireOf(gw: GreatWar, t: GwTheatre, side: GwSide): number {
   const n = gw.nation(lead)!;
   const shells = SHELL_FIRE[n.gauges.shells];
   const morale = 80 + n.gauges.morale * 8;
-  const men = n.manpower < 20 ? 80 : 100;
+  const men =
+    (n.manpower < 20 ? 80 : 100) * ((GW_ARMY_QUALITY[lead] ?? 90) / 100);
   const art = Math.floor((n.tech.artillery ?? 0) / 6) * 4;
   const inf = Math.floor((n.tech.infantry ?? 0) / 6) * 4;
   return Math.floor(((shells + art + inf) * morale * men) / 10000);
@@ -126,9 +132,11 @@ function commandOf(gw: GreatWar, t: GwTheatreState, side: GwSide): number {
   return [90, 100, 112][p.competence[0] - 1];
 }
 
-function secretBias(gw: GreatWar, t: GwTheatre, by: GwSide): number {
+/** The first weeks' plan and the world's secrets, percent. */
+function openingBias(gw: GreatWar, t: GwTheatre, by: GwSide): number {
   const s = gw.s;
   const first = s.warChapter !== null && s.chapter <= s.warChapter + 2;
+  if (first && by === "central" && t === s.plan) return 25;
   if (t === "west" && by === "central" && first) {
     if (s.secrets.includes("bel_forts_strong")) return -12;
   }
@@ -152,8 +160,18 @@ function oddsOf(gw: GreatWar, t: GwTheatreState, by: GwSide): number {
       (50 + fireOf(gw, t.id, foe) / 2) *
       commandOf(gw, t, foe)) /
     1000000;
-  const bias = secretBias(gw, t.id, by);
+  const home = t.line <= GW_FRONT_START[t.id] && by !== GW_FRONT_UP[t.id];
+  const bias =
+    openingBias(gw, t.id, by) -
+    reachOf(t, by) * REACH_COST -
+    (home && t.id !== "sea" ? HOME_SOIL : 0);
   return Math.floor((att * 100) / Math.max(1, def)) + bias;
+}
+
+/** Lines past the frontier: an advance outruns its railheads and stops. */
+function reachOf(t: GwTheatreState, by: GwSide): number {
+  const past = t.line - GW_FRONT_START[t.id];
+  return Math.max(0, by === GW_FRONT_UP[t.id] ? past : -past);
 }
 
 function attacks(gw: GreatWar, t: GwTheatre, side: GwSide): boolean {
@@ -215,6 +233,7 @@ function bleed(gw: GreatWar, t: GwTheatre, side: GwSide, lost: number): void {
   const lead = gw.nation(members[0]);
   if (lead === null) return;
   lead.casualties += lost;
+  lead.lostNow += lost;
   lead.manpower = Math.max(0, lead.manpower - Math.floor(lost / 12));
   lead.wear[t] = (lead.wear[t] ?? 0) + Math.floor(lost / 40);
   if ((lead.wear[t] ?? 0) >= 5) {
@@ -241,7 +260,13 @@ function settle(
     for (const tag of membersOf(gw, t.id, side).slice(0, 1)) {
       const up = side === winner;
       if (result === "break" || !up) {
-        moveGauge(gw, tag, "morale", up ? 1 : -1, up ? "front_won" : "front_lost");
+        moveGauge(
+          gw,
+          tag,
+          "morale",
+          up ? 1 : -1,
+          up ? "front_won" : "front_lost",
+        );
       } else if (t.id === "west" || t.id === "east") {
         moveGauge(gw, tag, "morale", 1, "front_won");
       }
@@ -369,6 +394,7 @@ export function frontsStep(gw: GreatWar): void {
   if (s.warChapter === null || s.warChapter === s.chapter) return;
   if (!isLongChapter(gw)) return;
   signDefaults(gw);
+  for (const n of s.nations) n.lostNow = 0;
   for (const t of s.theatres) if (t.open) judge(gw, t);
   for (const t of s.theatres) if (t.open) dig(gw, t);
   refill(gw);
@@ -381,7 +407,7 @@ export function warScore(gw: GreatWar, side: GwSide): number {
   let up = 0;
   for (const t of gw.s.theatres) {
     if (t.since === null) continue;
-    const start = t.since === null ? 0 : startOf(t);
+    const start = GW_FRONT_START[t.id];
     const gained = t.line * GW_LINE_STEP + t.progress - start * GW_LINE_STEP;
     const weight = t.id === "west" || t.id === "east" ? 5 : 2;
     up += (GW_FRONT_UP[t.id] === "central" ? gained : -gained) * weight;
@@ -393,12 +419,6 @@ export function warScore(gw: GreatWar, side: GwSide): number {
   return side === "central" ? central : -central;
 }
 
-function startOf(t: GwTheatreState): number {
-  return t.id === "west" || t.id === "east" || t.id === "sea" || t.id === "italy"
-    ? 1
-    : 0;
-}
-
 /** What the chief of staff says of the odds: 0 hopeless .. 4 sure. */
 function estimate(gw: GreatWar, seat: GwSeatState, main: GwTheatre): number {
   const t = gw.s.theatres.find((x) => x.id === main)!;
@@ -408,9 +428,14 @@ function estimate(gw: GreatWar, seat: GwSeatState, main: GwTheatre): number {
   const bias =
     cos === null
       ? 0
-      : { arrogant: 18, stubborn: 8, cold: 0, cunning: 4, weary: -6, anxious: -18 }[
-          cos.temperament
-        ];
+      : {
+          arrogant: 18,
+          stubborn: 8,
+          cold: 0,
+          cunning: 4,
+          weary: -6,
+          anxious: -18,
+        }[cos.temperament];
   const fog =
     (wwRoll(gw.s.seed, P_ESTIMATE, gw.s.chapter, gw.s.theatres.indexOf(t)) %
       41) -
@@ -483,10 +508,19 @@ export function proposalsFor(gw: GreatWar, seat: GwSeatState): GwProposal[] {
     other2 === "major" && dry ? "no_shells" : null,
   );
   if (alt !== null) {
-    add("other_front", alt, "offensive", "limited", 0, army >= 3 ? "army" : null);
+    add(
+      "other_front",
+      alt,
+      "offensive",
+      "limited",
+      0,
+      army >= 3 ? "army" : null,
+    );
   }
   add("hold_all", wants, "hold", "limited", 0, army >= 2 ? "army" : null);
-  if (gw.s.nations.some((x) => x.side === n.side && x.tag !== n.tag && fights(x))) {
+  if (
+    gw.s.nations.some((x) => x.side === n.side && x.tag !== n.tag && fights(x))
+  ) {
     add("help_ally", wants, "hold", "limited", 2, army >= 3 ? "army" : null);
   }
   return out;

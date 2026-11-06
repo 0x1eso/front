@@ -271,6 +271,7 @@ function blankNation(tag: GwTag): GwNationState {
     alloc: null,
     manpower: 0,
     casualties: 0,
+    lostNow: 0,
     authority: 60,
     unrest: 0,
     lowOrder: 0,

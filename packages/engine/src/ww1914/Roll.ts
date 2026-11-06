@@ -7,8 +7,8 @@ import {
   GW_THREADS,
   GwNationState,
   GwOpening,
-  GwSecret,
   GwSeatState,
+  GwSecret,
   GwTheatre,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
@@ -17,7 +17,7 @@ import { openChapter } from "./Chapters";
 import { openFirstCrisis } from "./Crises";
 import type { GreatWar } from "./GreatWar";
 import { GW_MANDATES } from "./Mandates";
-import { GW_FORCE, GW_GAUGES_1914, GW_MANPOWER } from "./Tables";
+import { GW_ENTRIES, GW_FORCE, GW_GAUGES_1914, GW_MANPOWER } from "./Tables";
 import { clampTo } from "./World";
 
 const P_OPENING = idHash("gw_opening");
@@ -60,6 +60,7 @@ function rollNation(gw: GreatWar, n: GwNationState, i: number): void {
   n.ai = GW_AI_KINDS[wwRoll(seed, P_AI, i) % GW_AI_KINDS.length];
   Object.assign(n.gauges, GW_GAUGES_1914[n.tag] ?? {});
   n.manpower = GW_MANPOWER[n.tag] ?? 20;
+  n.readiness = GW_ENTRIES.find((e) => e.tag === n.tag)?.start ?? 0;
   const force = GW_FORCE[n.tag] ?? {};
   for (const [t, band] of Object.entries(force)) {
     const id = t as GwTheatre;
@@ -103,16 +104,21 @@ function rollSecrets(gw: GreatWar): void {
     n.strength[f[1]] = band;
     n.base[f[1]] = band;
   }
-  if (s.secrets.includes("jpn_tsingtao_plan")) {
-    const n = gw.nation("JPN");
-    if (n !== null) n.readiness = 60;
-  }
+  const ready = (tag: GwNationState["tag"], delta: number) => {
+    const n = gw.nation(tag);
+    if (n !== null) n.readiness += delta;
+  };
+  if (s.secrets.includes("jpn_tsingtao_plan")) ready("JPN", 20);
+  if (s.secrets.includes("ott_fleet_late")) ready("OTT", 15);
+  if (s.secrets.includes("bgr_loan_berlin")) ready("BGR", 15);
+  if (s.secrets.includes("rou_treaty_dead")) ready("ROU", 10);
 }
 
 function rollThreads(gw: GreatWar): void {
   const s = gw.s;
   const order = [...GW_THREADS].sort(
-    (a, b) => wwRoll(s.seed, P_THREAD, idHash(a)) - wwRoll(s.seed, P_THREAD, idHash(b)),
+    (a, b) =>
+      wwRoll(s.seed, P_THREAD, idHash(a)) - wwRoll(s.seed, P_THREAD, idHash(b)),
   );
   s.threads = order.slice(0, THREADS_HOT);
   const heat = s.pressure;
@@ -124,7 +130,10 @@ function rollThreads(gw: GreatWar): void {
   if (s.threads.includes("rus_rail")) heat.balkan += 1;
   if (s.threads.includes("reichstag_left")) heat.home += 3;
   const deu = gw.nation("DEU");
-  if (deu?.inst.reichstag !== undefined && s.threads.includes("reichstag_left")) {
+  if (
+    deu?.inst.reichstag !== undefined &&
+    s.threads.includes("reichstag_left")
+  ) {
     deu.inst.reichstag = -1;
   }
 }

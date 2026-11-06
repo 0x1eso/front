@@ -1,6 +1,6 @@
 import {
-  GW_TOPICS,
   GW_TEMP_MAX,
+  GW_TOPICS,
   GwChainOutcome,
   GwTopic,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
@@ -30,6 +30,8 @@ const GENERAL_WAR_AT = 6;
 
 /** A topic's pressure that lights a crisis by itself. */
 const SPARK_AT = 9;
+/** The questions the powers would go to war over. */
+const SPARK_TOPICS: readonly GwTopic[] = ["straits", "colonial", "balkan"];
 
 const TEMP_BY_OPENING = {
   sarajevo: 3,
@@ -64,10 +66,8 @@ export function openFirstCrisis(gw: GreatWar): void {
 function setSpark(gw: GreatWar, from: number): void {
   const s = gw.s;
   const n = s.chains.length;
-  const topics: readonly GwTopic[] = ["straits", "colonial", "balkan"];
-  const hottest = [...GW_TOPICS]
-    .filter((t) => topics.includes(t))
-    .sort((a, b) => s.pressure[b] - s.pressure[a]);
+  const topics = SPARK_TOPICS;
+  const hottest = [...topics].sort((a, b) => s.pressure[b] - s.pressure[a]);
   const pick = wwRoll(s.seed, P_SPARK, n);
   s.spark = {
     topic: pick % 2 === 0 ? hottest[0] : topics[pick % 3],
@@ -86,7 +86,8 @@ function light(gw: GreatWar, topic: GwTopic, short: boolean): void {
     hold: 0,
     short,
   };
-  s.temp = Math.max(s.temp, short ? 4 : TEMP_BY_OPENING.sarajevo);
+  // Each crisis settled leaves the next one hotter.
+  s.temp = Math.max(s.temp, short ? 3 + s.chains.length : 3);
   news(gw, short ? `spark_${topic}` : "shot_fired");
   turn(gw, `spark_${topic}`);
 }
@@ -179,6 +180,6 @@ export function crisisStep(gw: GreatWar): void {
     light(gw, s.spark.topic, s.opening !== "sarajevo_delayed");
     return;
   }
-  const over = GW_TOPICS.find((t) => s.pressure[t] >= SPARK_AT);
+  const over = SPARK_TOPICS.find((t) => s.pressure[t] >= SPARK_AT);
   if (over !== undefined && s.spark === null) light(gw, over, true);
 }

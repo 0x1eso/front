@@ -79,6 +79,26 @@ describe("snapshot and hash", () => {
     ).toEqual([]);
   });
 
+  test("a game restored in the middle of the war plays on the same", async () => {
+    const { runner } = await gwRunner();
+    const gw = runner.game.greatWar()!;
+    gw.s.chain = null;
+    gw.s.spark = null;
+    while (gw.s.chapter < 5) playChapter(runner);
+    gw.s.chain = { topic: "balkan", step: 5, hold: 0, short: false };
+    gw.s.temp = 9;
+    for (let i = 0; i < 3; i++) playChapter(runner);
+    expect(gw.s.battles.length).toBeGreaterThan(0);
+    const copy = await restore(runner);
+    expect(hash(copy)).toBe(hash(runner));
+    while (view(runner).ended === null) {
+      playChapter(runner);
+      playChapter(copy);
+      expect(hash(copy)).toBe(hash(runner));
+    }
+    expect(view(copy)).toEqual(view(runner));
+  });
+
   test("the hash sees the state", async () => {
     const { runner } = await gwRunner();
     const before = hash(runner);

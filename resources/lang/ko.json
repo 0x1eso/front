@@ -14400,9 +14400,11 @@
       "front_lost": "전선이 밀렸다.",
       "front_won": "전선이 나아갔다.",
       "money_war_costs": "전쟁이 돈을 먹는다.",
+      "morale_steadied": "나라가 숨을 돌렸다.",
       "order_casualties": "전사 통지를 받은 집이 너무 많다.",
       "order_despair": "사람들이 공보를 믿지 않는다.",
       "order_hunger": "가게에 빵이 없다.",
+      "order_steadied": "거리가 가라앉았다.",
       "order_unpaid": "임금과 연금이 밀렸다.",
       "shells_badly_run": "육군부가 서류로 한 달을 잃었다.",
       "shells_made": "공장이 납품했다.",
@@ -14613,6 +14615,28 @@
       "reichstag_left": "제국의회의 좌파",
       "rus_rail": "러시아 철도 차관",
       "us_loans": "미국 차관"
+    },
+    "turn": {
+      "belgium_invaded": "군이 벨기에를 지났다.",
+      "crisis_compromise": "위기는 타협으로 끝났다.",
+      "crisis_fizzled": "위기가 잦아들었다.",
+      "crisis_humiliation": "빈은 홀로 물러서야 했다.",
+      "crisis_war": "위기는 전쟁으로 끝났다.",
+      "entered": "{country}이(가) 참전했다.",
+      "new_chief_of_staff": "참모총장이 바뀌었다.",
+      "out": "{country}이(가) 전쟁에서 빠졌다.",
+      "spark_balkan": "발칸에 다시 불이 붙었다.",
+      "spark_colonial": "모로코 문제가 돌아왔다.",
+      "spark_straits": "해협이 문제가 됐다.",
+      "war_began": "전쟁이 시작됐다."
+    },
+    "unknown": {
+      "ai": "{country}의 원수는 {word}이었다.",
+      "force": "{theatre}의 {country}은(는) 보기보다 강했다.",
+      "lean": "{country}의 속내: {fact}.",
+      "person": "{person}의 실제 역량은 3 중 {value}이었다.",
+      "source": "{source}의 실제 믿음직함은 3 중 {value}이었다.",
+      "wrong_report": "{country}에 관한 보고 하나는 틀렸고 끝내 정정되지 않았다."
     }
   }
 }

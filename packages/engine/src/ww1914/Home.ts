@@ -2,12 +2,14 @@ import { GwNationState } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import { civilFromDays } from "@openfront/engine-lib/ww1936/Calendar";
 import { allocOf } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
-import { officeHolder, recordResult } from "./People";
+import { officeHolder, openLetter, recordResult } from "./People";
 import { leaveWar } from "./Wars";
 import {
   clampTo,
+  everyMonths,
   fights,
   isLongChapter,
+  monthsOf,
   moveGauge,
   news,
   reason,
@@ -25,70 +27,75 @@ function shells(gw: GreatWar, n: GwNationState): void {
     moveGauge(gw, n.tag, "shells", -1, "shells_spent");
   }
   // War factories come slowly, and only with money behind them.
-  const c = gw.s.chapter;
-  const war = gw.s.warChapter ?? c;
-  const beat = n.gauges.money > 0 ? 3 : 5;
-  if ((c - war) % beat === beat - 1) {
+  if (everyMonths(gw, n.gauges.money > 0 ? 2 : 4)) {
     moveGauge(gw, n.tag, "shells", 1, "shells_made");
   }
   if (
     n.tag === "DEU" &&
     gw.s.secrets.includes("deu_shell_stock_thin") &&
-    c === war + 2
+    gw.s.chapter === (gw.s.warChapter ?? 0) + 2
   ) {
     moveGauge(gw, n.tag, "shells", -1, "shells_stock_thin");
   }
   for (const seat of seatsOf(gw, n.tag)) {
-    const war_ = officeHolder(gw, seat, "war");
-    if (war_ === null || (c - war) % 4 !== 3) continue;
-    const skill = war_.competence[2];
+    const minister = officeHolder(gw, seat, "war");
+    if (minister === null || !everyMonths(gw, 4, 1)) continue;
+    const skill = minister.competence[2];
     if (skill === 3) moveGauge(gw, n.tag, "shells", 1, "shells_well_run");
     if (skill === 1) moveGauge(gw, n.tag, "shells", -1, "shells_badly_run");
-    if (skill !== 2) recordResult(gw, war_.id, skill === 3);
+    if (skill !== 2) recordResult(gw, minister.id, skill === 3);
   }
 }
 
 function bread(gw: GreatWar, n: GwNationState): void {
   const s = gw.s;
-  const age = s.chapter - (s.warChapter ?? s.chapter);
   const month = civilFromDays(s.day).month;
-  if (month === 9 || month === 10) {
+  const harvest = month === 9 || (month === 10 && monthsOf(gw) > 1);
+  if (harvest) {
     moveGauge(gw, n.tag, "bread", 1, "bread_harvest");
   }
   const sea = s.theatres.find((t) => t.id === "sea")!;
   const blocked =
     n.side === "central" && gw.nation("GBR")?.side === "entente" && sea.open;
-  if (blocked) {
-    const every = sea.line === 0 ? 2 : 3;
-    if (age > 0 && age % every === 0) {
-      moveGauge(gw, n.tag, "bread", -1, "bread_blockade");
-    }
+  if (blocked && everyMonths(gw, sea.line === 0 ? 4 : 6)) {
+    moveGauge(gw, n.tag, "bread", -1, "bread_blockade");
   }
-  if (n.tag === "GBR" && s.uboat === 2 && age % 3 === 2) {
+  if (n.tag === "GBR" && s.uboat === 2 && everyMonths(gw, 4)) {
     moveGauge(gw, n.tag, "bread", -1, "bread_uboats");
   }
-  if (n.tag === "RUS" && age > 12 && age % 4 === 3) {
+  if (n.tag === "RUS" && everyMonths(gw, 8, 12)) {
     moveGauge(gw, n.tag, "bread", -1, "bread_rail");
   }
 }
 
 function money(gw: GreatWar, n: GwNationState): void {
-  const age = gw.s.chapter - (gw.s.warChapter ?? gw.s.chapter);
-  if (age > 0 && age % 3 === 0) {
-    moveGauge(gw, n.tag, "money", -1, "money_war_costs");
+  if (everyMonths(gw, 6)) moveGauge(gw, n.tag, "money", -1, "money_war_costs");
+  // AI treasuries borrow as a seat does through its scenes.
+  const borrows = seatsOf(gw, n.tag).length === 0 && n.gauges.money === 0;
+  if (borrows && everyMonths(gw, 6, 3)) {
+    moveGauge(gw, n.tag, "money", 1, "money_war_costs");
   }
 }
 
 function mood(gw: GreatWar, n: GwNationState): void {
-  if (n.gauges.bread === 0) moveGauge(gw, n.tag, "order", -1, "order_hunger");
-  if (n.gauges.morale === 0) moveGauge(gw, n.tag, "order", -1, "order_despair");
-  if (n.gauges.money === 0 && gw.s.chapter % 2 === 0) {
+  if (n.gauges.bread === 0 && everyMonths(gw, 2)) {
+    moveGauge(gw, n.tag, "order", -1, "order_hunger");
+  }
+  if (n.gauges.morale === 0 && everyMonths(gw, 2, 1)) {
+    moveGauge(gw, n.tag, "order", -1, "order_despair");
+  }
+  if (n.gauges.money === 0 && everyMonths(gw, 4)) {
     moveGauge(gw, n.tag, "order", -1, "order_unpaid");
   }
-  const last = gw.s.battles.filter((b) => b.chapter === gw.s.chapter);
-  const i = n.side === "central" ? 0 : 1;
-  const heavy = last.reduce((sum, b) => sum + (b.lost[i] ?? 0), 0);
-  if (heavy >= 250) moveGauge(gw, n.tag, "order", -1, "order_casualties");
+  const heavy = n.lostNow;
+  if (heavy >= 300) moveGauge(gw, n.tag, "order", -1, "order_casualties");
+  // A country gets its breath back when nothing is breaking.
+  if (everyMonths(gw, 3) && heavy < 150) {
+    moveGauge(gw, n.tag, "morale", 1, "morale_steadied");
+  }
+  if (everyMonths(gw, 4, 2) && n.gauges.bread > 0 && n.gauges.morale > 1) {
+    moveGauge(gw, n.tag, "order", 1, "order_steadied");
+  }
 }
 
 /** The ladder: each rung has its turn and its offer of a way down. */
@@ -118,7 +125,8 @@ function authority(gw: GreatWar, n: GwNationState): void {
   if (inst.army === undefined) return;
   const s = gw.s;
   const age = s.chapter - (s.warChapter ?? s.chapter);
-  if (s.warChapter !== null && age > 0 && age % 6 === 0) {
+  const halfYear = everyMonths(gw, 6);
+  if (halfYear) {
     inst.army = clampTo(inst.army + 1, -5, 5);
     for (const seat of seatsOf(gw, n.tag)) reason(gw, seat, "army_grows");
   }
@@ -133,14 +141,14 @@ function authority(gw: GreatWar, n: GwNationState): void {
     if (inst.countersign !== target) {
       inst.countersign += inst.countersign < target ? 1 : -1;
     }
+    // A chancellor who won't sign any more says so in writing.
     if (inst.countersign <= -3 && ch.letter === null) {
       reason(gw, seat, "countersign_refused");
+      openLetter(gw, seat, ch);
     }
     // War credits: the Reichstag's turn every half year of war.
-    if (s.warChapter !== null && inst.reichstag !== undefined) {
-      if (age === 1 || (age > 0 && age % 6 === 0)) {
-        seat.scheduled.push({ scene: "gw_credits", chapter: s.chapter + 1 });
-      }
+    if (inst.reichstag !== undefined && (age === 1 || halfYear)) {
+      seat.scheduled.push({ scene: "gw_credits", chapter: s.chapter + 1 });
     }
   }
 }

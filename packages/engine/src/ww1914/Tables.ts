@@ -31,9 +31,9 @@ export const GW_ACTORS: readonly GwTag[] = [
 export const GW_FORCE: Readonly<
   Partial<Record<GwTag, Partial<Record<GwTheatre, number>>>>
 > = {
-  DEU: { west: 4, east: 3, sea: 3, colonies: 1 },
+  DEU: { west: 5, east: 2, balkan: 1, sea: 3, colonies: 1 },
   AUH: { east: 2, balkan: 3, italy: 3 },
-  RUS: { east: 4, caucasus: 3 },
+  RUS: { east: 3, caucasus: 3 },
   FRA: { west: 4, colonies: 1, straits: 1 },
   GBR: {
     west: 2,
@@ -82,24 +82,25 @@ export function theatresOf(tag: GwTag): GwTheatre[] {
 }
 
 /** The AI's order of theatres to put its main effort in. */
-export const GW_AI_MAIN: Readonly<Partial<Record<GwTag, readonly GwTheatre[]>>> =
-  {
-    DEU: ["west", "east", "sea"],
-    AUH: ["balkan", "east", "italy"],
-    RUS: ["east", "caucasus"],
-    FRA: ["west", "straits"],
-    GBR: ["west", "straits", "mesopotamia", "palestine", "sea"],
-    ITA: ["italy"],
-    OTT: ["caucasus", "straits", "palestine", "mesopotamia"],
-    USA: ["west"],
-    JPN: ["colonies"],
-    SRB: ["balkan"],
-    MNE: ["balkan"],
-    BEL: ["west"],
-    ROU: ["east"],
-    BGR: ["balkan"],
-    GRC: ["balkan"],
-  };
+export const GW_AI_MAIN: Readonly<
+  Partial<Record<GwTag, readonly GwTheatre[]>>
+> = {
+  DEU: ["west", "east", "sea"],
+  AUH: ["balkan", "east", "italy"],
+  RUS: ["east", "caucasus"],
+  FRA: ["west", "straits"],
+  GBR: ["west", "straits", "mesopotamia", "palestine", "sea"],
+  ITA: ["italy"],
+  OTT: ["caucasus", "straits", "palestine", "mesopotamia"],
+  USA: ["west"],
+  JPN: ["colonies"],
+  SRB: ["balkan"],
+  MNE: ["balkan"],
+  BEL: ["west"],
+  ROU: ["east"],
+  BGR: ["balkan"],
+  GRC: ["balkan"],
+};
 
 export const GW_MANPOWER: Readonly<Partial<Record<GwTag, number>>> = {
   DEU: 80,
@@ -133,22 +134,41 @@ export const GW_GAUGES_1914: Readonly<
   SRB: { money: 0, shells: 1, morale: 4 },
 };
 
+/** What an army makes of its numbers, percent, in attack and defence. */
+export const GW_ARMY_QUALITY: Readonly<Partial<Record<GwTag, number>>> = {
+  DEU: 112,
+  GBR: 105,
+  SRB: 100,
+  FRA: 100,
+  USA: 95,
+  BEL: 90,
+  BGR: 95,
+  RUS: 85,
+  AUH: 85,
+  OTT: 85,
+  ITA: 85,
+  ROU: 80,
+  GRC: 85,
+};
+
 export interface GwEntry {
   readonly tag: GwTag;
   /** The earliest date it can come in, YYYY-MM-DD. */
   readonly earliest: string;
   /** Who it joins with no price and no lean: null, the likelier winner. */
   readonly natural: GwSide | null;
+  /** Readiness at the start. */
+  readonly start: number;
 }
 
 /** Neutrals that can come in (design §10), in the order they are asked. */
 export const GW_ENTRIES: readonly GwEntry[] = [
-  { tag: "JPN", earliest: "1914-08-20", natural: "entente" },
-  { tag: "OTT", earliest: "1914-10-15", natural: "central" },
-  { tag: "ITA", earliest: "1915-03-01", natural: null },
-  { tag: "BGR", earliest: "1915-08-01", natural: "central" },
-  { tag: "ROU", earliest: "1916-05-01", natural: "entente" },
-  { tag: "GRC", earliest: "1917-04-01", natural: "entente" },
+  { tag: "JPN", earliest: "1914-08-20", natural: "entente", start: 45 },
+  { tag: "OTT", earliest: "1914-10-15", natural: "central", start: 40 },
+  { tag: "ITA", earliest: "1915-03-01", natural: null, start: 20 },
+  { tag: "BGR", earliest: "1915-08-01", natural: "central", start: 20 },
+  { tag: "ROU", earliest: "1916-05-01", natural: "entente", start: 10 },
+  { tag: "GRC", earliest: "1917-04-01", natural: "entente", start: 5 },
 ];
 
 /** Readiness a neutral needs, by character (design §10). */

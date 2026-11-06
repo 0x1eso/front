@@ -316,6 +316,8 @@ export const GwNationStateSchema = z.object({
   manpower: z.number().int(),
   /** Thousands, all game. */
   casualties: z.number().int(),
+  /** Thousands, this chapter. */
+  lostNow: z.number().int(),
   /** 0..100: what the head of state can spend (a dismissal). */
   authority: z.number().int(),
   /** The ladder, 0..4: strikes, riots, army unrest, revolution. */
@@ -350,7 +352,13 @@ export const GW_STAMPS = ["confirmed", "unconfirmed", "estimate"] as const;
 export type GwStamp = (typeof GW_STAMPS)[number];
 
 /** What a report is about. Text: gw.fact.<kind>.<claim>. */
-export const GW_FACT_KINDS = ["force", "lean", "mob", "shells", "morale"] as const;
+export const GW_FACT_KINDS = [
+  "force",
+  "lean",
+  "mob",
+  "shells",
+  "morale",
+] as const;
 export type GwFactKind = (typeof GW_FACT_KINDS)[number];
 
 export const GwReportSchema = z.object({
@@ -485,8 +493,14 @@ export const GwMemoirSchema = z.object({
   fronts: z.array(
     z.object({ theatre: z.enum(GW_THEATRES), line: z.number().int() }),
   ),
-  /** What happened, in order: memory keys that matter and their chapters. */
-  turns: z.array(z.object({ key: GwIdSchema, chapter: z.number().int() })),
+  /** What happened, in order. Text: gw.turn.<key>, {country} from `tag`. */
+  turns: z.array(
+    z.object({
+      key: GwIdSchema,
+      tag: z.enum(GW_TAGS).nullable(),
+      chapter: z.number().int(),
+    }),
+  ),
   people: z.array(
     z.object({
       id: GwIdSchema,

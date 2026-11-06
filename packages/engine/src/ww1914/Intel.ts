@@ -164,14 +164,28 @@ function sendWarReports(gw: GreatWar, seat: GwSeatState): void {
   const t = s.theatres.find((x) => x.id === main);
   const foe = t === undefined ? null : foeOf(gw, seat, t.attacker, t.defender);
   if (t !== undefined && foe !== null) {
-    sendReport(gw, seat, "force", foe, t.id, s.chapter % 2 ? "attache" : "staff");
+    sendReport(
+      gw,
+      seat,
+      "force",
+      foe,
+      t.id,
+      s.chapter % 2 ? "attache" : "staff",
+    );
   }
   const watch = neutralsToWatch(gw);
   if (watch.length > 0) {
     const tag = watch[s.chapter % watch.length];
     sendReport(gw, seat, "lean", tag, null, EMBASSY[tag] ?? "agents");
   } else if (foe !== null) {
-    sendReport(gw, seat, "morale", foe, null, s.chapter % 2 ? "agents" : "press");
+    sendReport(
+      gw,
+      seat,
+      "morale",
+      foe,
+      null,
+      s.chapter % 2 ? "agents" : "press",
+    );
   }
 }
 

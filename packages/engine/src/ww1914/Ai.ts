@@ -11,7 +11,7 @@ import { warScore } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
 import { GW_AI_MAIN, GW_ENTRIES, GW_ENTRY_BAR, GwEntry } from "./Tables";
 import { enter, leaveWar, membersOf } from "./Wars";
-import { clampTo, fights, seatsOf } from "./World";
+import { clampTo, everyMonths, fights, seatsOf } from "./World";
 
 const P_AI_MOVE = idHash("gw_ai_move");
 const P_HISTORY = idHash("gw_ai_history");
@@ -36,7 +36,11 @@ function winning(gw: GreatWar): GwSide | null {
  * A neutral values both sides' prices with the war's state and its own lean;
  * the higher wins (design §10). A character changes what it pays attention to.
  */
-export function neutralChoice(gw: GreatWar, n: GwNationState, e: GwEntry): GwSide {
+export function neutralChoice(
+  gw: GreatWar,
+  n: GwNationState,
+  e: GwEntry,
+): GwSide {
   const best = winning(gw);
   let central = (n.offers.central ?? 0) * 10;
   let entente = (n.offers.entente ?? 0) * 10;
@@ -56,7 +60,11 @@ function neutralStep(gw: GreatWar, e: GwEntry): void {
   const late = s.day >= dayOf(e.earliest);
   const bold = n.ai === "hardline" ? 4 : n.ai === "cautious" ? 1 : 2;
   // The rail: nobody sits out for ever, the pressure of the war adds up.
-  n.readiness = clampTo(n.readiness + bold + (winning(gw) !== null ? 2 : 0), 0, 100);
+  n.readiness = clampTo(
+    n.readiness + bold + (winning(gw) !== null ? 2 : 0),
+    0,
+    100,
+  );
   if (!late) return;
   const offer = Math.max(n.offers.central ?? 0, n.offers.entente ?? 0);
   if (n.readiness + offer * 12 < GW_ENTRY_BAR[n.ai]) return;
@@ -86,6 +94,7 @@ function americaStep(gw: GreatWar): void {
   if (s.day < dayOf("1916-01-01")) return;
   const add =
     (s.uboat === 2 ? 12 : s.uboat === 1 ? 3 : 1) +
+    (s.day >= dayOf("1917-01-01") ? 3 : 0) +
     (s.threads.includes("us_loans") ? 2 : 0) +
     (warScore(gw, "central") >= 40 ? 4 : 0);
   n.readiness = clampTo(n.readiness + add, 0, 100);
@@ -113,7 +122,9 @@ function wantsAttack(gw: GreatWar, n: GwNationState, t: GwTheatre): boolean {
   if (n.tag === "BEL" || n.tag === "MNE") return false;
   const roll = wwRoll(s.seed, P_AI_MOVE, s.chapter, s.nations.indexOf(n)) % 100;
   const score = warScore(gw, n.side!);
-  const base = { hardline: 70, opportunist: 45, principled: 40, cautious: 25 }[n.ai];
+  const base = { hardline: 70, opportunist: 45, principled: 40, cautious: 25 }[
+    n.ai
+  ];
   const up = GW_FRONT_UP[t] === n.side;
   return roll < base + (score < 0 ? 10 : 0) + (up ? 0 : 5);
 }
@@ -176,9 +187,7 @@ function worstOff(gw: GreatWar): void {
 /** Late in a hard war, a quiet offer comes: the way out is always shown. */
 function peaceFeelers(gw: GreatWar): void {
   const s = gw.s;
-  if (s.warChapter === null) return;
-  const age = s.chapter - s.warChapter;
-  if (age < 3 || age % 6 !== 3) return;
+  if (!everyMonths(gw, 6, 3)) return;
   for (const seat of s.seats) {
     const side = gw.nation(seat.tag)?.side ?? null;
     if (side === null) continue;

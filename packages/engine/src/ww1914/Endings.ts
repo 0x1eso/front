@@ -6,7 +6,7 @@ import {
   GwTheatre,
   GwUnknown,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
-import { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
+import { GwTag, isGwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import { gwChapters } from "@openfront/engine-lib/ww1914/Calendars";
 import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
@@ -17,6 +17,19 @@ import { holds } from "./SceneRun";
 import { defOf, fights } from "./World";
 
 const P_UNKNOWN = idHash("gw_unknown");
+
+const GW_TURNS: readonly string[] = [
+  "war_began",
+  "belgium_invaded",
+  "new_chief_of_staff",
+  "crisis_war",
+  "crisis_compromise",
+  "crisis_humiliation",
+  "crisis_fizzled",
+  "spark_balkan",
+  "spark_straits",
+  "spark_colonial",
+];
 
 const LAST_TURNS = 24;
 const UNKNOWN_SHOWN = 3;
@@ -84,7 +97,8 @@ function unknownsOf(gw: GreatWar, seat: GwSeatState): GwUnknown[] {
     theatre: GwTheatre | null = null,
   ) => out.push({ kind, id, theatre, value, word });
   for (const id of GW_SECRETS) {
-    if (s.secrets.includes(id) && !seat.known.includes(id)) add("secret", id, 1);
+    if (s.secrets.includes(id) && !seat.known.includes(id))
+      add("secret", id, 1);
   }
   const told = (fact: string, tag: GwTag) =>
     s.reports.some(
@@ -157,6 +171,16 @@ function pickUnknowns(gw: GreatWar, seat: GwSeatState): GwUnknown[] {
   return out;
 }
 
+/** World turns have text (gw.turn.<key>); a scene's own memories don't. */
+function turnOf(key: string): { key: string; tag: GwTag | null } | null {
+  const m = /^(entered|out)_([a-z]+)$/.exec(key);
+  if (m !== null) {
+    const tag = m[2].toUpperCase();
+    return isGwTag(tag) ? { key: m[1], tag } : null;
+  }
+  return GW_TURNS.includes(key) ? { key, tag: null } : null;
+}
+
 export function memoirOf(gw: GreatWar, seat: GwSeatState): GwMemoir {
   const s = gw.s;
   const ownDefs = gwContent().people.filter((d) => d.tag === seat.tag);
@@ -189,9 +213,11 @@ export function memoirOf(gw: GreatWar, seat: GwSeatState): GwMemoir {
       .filter((t) => t.since !== null)
       .map((t) => ({ theatre: t.id, line: t.line })),
     turns: seat.memory
-      .filter((m) => m.who === null)
-      .slice(-LAST_TURNS)
-      .map((m) => ({ key: m.key, chapter: m.chapter })),
+      .flatMap((m) => {
+        const t = m.who === null ? turnOf(m.key) : null;
+        return t === null ? [] : [{ ...t, chapter: m.chapter }];
+      })
+      .slice(-LAST_TURNS),
     people,
     unknown: pickUnknowns(gw, seat),
     shelf: {
@@ -206,7 +232,7 @@ export function memoirOf(gw: GreatWar, seat: GwSeatState): GwMemoir {
 /** Runs once when `s.ended` is set, whoever set it. */
 export function closeGame(gw: GreatWar): void {
   for (const seat of gw.s.seats) {
-    if (seat.memoir === null) seat.memoir = memoirOf(gw, seat);
+    seat.memoir ??= memoirOf(gw, seat);
   }
   gw.s.deadlineTick = null;
 }

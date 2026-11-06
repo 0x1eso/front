@@ -121,6 +121,8 @@ export function personLeaves(
   p.office = null;
   p.letter = null;
   p.ailing = null;
+  p.status = "fallen";
+  for (const t of gw.s.theatres) if (t.commander === p.id) t.commander = null;
   seat.memory.push({ key, who: p.id, chapter: gw.s.chapter, weight: 0 });
   reason(gw, seat, key);
 }
@@ -177,20 +179,24 @@ export function armyCommander(
   seat: GwSeatState,
   t: GwTheatre,
 ): string | null {
+  if (t === "sea") {
+    const admiral = holderOf(gw, seat, "navy");
+    if (admiral !== null) return admiral.id;
+  }
   const soldiers = ownPeople(gw, seat.tag).filter((p) => {
     const d = defOf(p.id);
     return d?.camps.includes("military") === true && p.office === null;
   });
   const taken = new Set(gw.s.theatres.map((x) => x.commander));
   const pool = soldiers.filter((p) => !taken.has(p.id));
-  const wanted = pool.find((p) => defOf(p.id)?.camps.includes(t as never));
-  const pick =
-    wanted ??
-    pool.sort(
-      (a, b) =>
-        (defOf(b.id)?.fame ?? 0) - (defOf(a.id)?.fame ?? 0) ||
-        (a.id < b.id ? -1 : 1),
-    )[0];
+  const side = t === "east" ? "east" : "west";
+  const pick = pool.sort(
+    (a, b) =>
+      Number(defOf(b.id)?.camps.includes(side)) -
+        Number(defOf(a.id)?.camps.includes(side)) ||
+      (defOf(b.id)?.fame ?? 0) - (defOf(a.id)?.fame ?? 0) ||
+      (a.id < b.id ? -1 : 1),
+  )[0];
   return pick?.id ?? holderOf(gw, seat, "chief_of_staff")?.id ?? null;
 }
 
@@ -208,7 +214,8 @@ function fade(gw: GreatWar, p: GwPersonState): void {
 function health(gw: GreatWar, seat: GwSeatState, p: GwPersonState): void {
   const s = gw.s;
   if (p.ailing !== null) {
-    if (s.chapter - p.ailing >= AILING_FOR) personLeaves(gw, seat, p, "fell_ill");
+    if (s.chapter - p.ailing >= AILING_FOR)
+      personLeaves(gw, seat, p, "fell_ill");
     return;
   }
   if (p.health !== 1 || p.office === null || s.warChapter === null) return;
@@ -283,7 +290,10 @@ export function peopleStep(gw: GreatWar): void {
     const writer = own
       .filter(
         (p) =>
-          p.office !== null && p.letter === null && p.trust <= -2 && p.pride >= 3,
+          p.office !== null &&
+          p.letter === null &&
+          p.trust <= -2 &&
+          p.pride >= 3,
       )
       .sort((a, b) => a.trust - b.trust || (a.id < b.id ? -1 : 1))[0];
     if (writer !== undefined && !own.some((p) => p.letter !== null)) {

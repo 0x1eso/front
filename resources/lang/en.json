@@ -2183,9 +2183,11 @@
       "front_lost": "A front gave way.",
       "front_won": "A front moved forward.",
       "money_war_costs": "The war eats credit.",
+      "morale_steadied": "The country got its breath back.",
       "order_casualties": "Too many families have had the telegram.",
       "order_despair": "People have stopped believing the communiques.",
       "order_hunger": "There is no bread in the shops.",
+      "order_steadied": "The streets settled down.",
       "order_unpaid": "Wages and pensions are late.",
       "shells_badly_run": "The war ministry lost a month to its own papers.",
       "shells_made": "The factories delivered.",
@@ -2396,6 +2398,28 @@
       "reichstag_left": "The left in the Reichstag",
       "rus_rail": "Russian railway loans",
       "us_loans": "American loans"
+    },
+    "turn": {
+      "belgium_invaded": "The army went through Belgium.",
+      "crisis_compromise": "The crisis ended in compromise.",
+      "crisis_fizzled": "The crisis ran out.",
+      "crisis_humiliation": "Vienna was left to back down.",
+      "crisis_war": "The crisis ended in war.",
+      "entered": "{country} came into the war.",
+      "new_chief_of_staff": "A new chief of staff took over.",
+      "out": "{country} left the war.",
+      "spark_balkan": "The Balkans caught fire again.",
+      "spark_colonial": "Morocco came back.",
+      "spark_straits": "The Straits became the question.",
+      "war_began": "The war began."
+    },
+    "unknown": {
+      "ai": "The head of {country} was {word}.",
+      "force": "{country} was stronger than it looked: {theatre}.",
+      "lean": "{country}, in truth: {fact}.",
+      "person": "{person} had it in him: {value} of 3.",
+      "source": "{source} was worth {value} of 3.",
+      "wrong_report": "A report on {country} was wrong and nobody put it right."
     }
   },
   "heads_up_message": {

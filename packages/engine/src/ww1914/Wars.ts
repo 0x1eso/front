@@ -13,11 +13,7 @@ import { GW_THEATRE_SIDES } from "./Tables";
 import { fights, news, other, turn } from "./World";
 
 /** Who fights a theatre now on `side`, the lead first. */
-export function membersOf(
-  gw: GreatWar,
-  t: GwTheatre,
-  side: GwSide,
-): GwTag[] {
+export function membersOf(gw: GreatWar, t: GwTheatre, side: GwSide): GwTag[] {
   return GW_THEATRE_SIDES[t][side].filter((tag) => {
     const n = gw.nation(tag);
     return fights(n) && n!.side === side;
@@ -38,14 +34,14 @@ function refreshTheatre(gw: GreatWar, t: GwTheatreState): void {
       t.line = GW_FRONT_START[t.id];
       news(gw, "front_opened", null, null, t.id);
     }
-    for (const seat of gw.s.seats) {
-      const mine = [...a, ...d].includes(seat.tag);
-      if (mine && t.commander === null) {
-        t.commander = armyCommander(gw, seat, t.id);
-      }
-    }
   } else if (!live) {
     t.open = false;
+  }
+  for (const seat of gw.s.seats) {
+    const mine = [...a, ...d].includes(seat.tag);
+    if (t.open && mine && t.commander === null) {
+      t.commander = armyCommander(gw, seat, t.id);
+    }
   }
 }
 
@@ -111,4 +107,3 @@ export function openWar(gw: GreatWar): void {
     turn(gw, "belgium_invaded");
   }
 }
-

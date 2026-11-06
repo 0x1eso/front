@@ -35,6 +35,17 @@ export function monthsOf(gw: GreatWar): number {
   return Math.max(1, Math.floor(chapterOf(gw).spanDays / 30));
 }
 
+/** Whether a month count of the war, every `k` months, falls in this chapter. */
+export function everyMonths(gw: GreatWar, k: number, offset = 0): boolean {
+  const s = gw.s;
+  if (s.warChapter === null) return false;
+  const chapters = gwChapters(s.calendar);
+  const end = chapters[s.chapter].day - chapters[s.warChapter].day;
+  const start = end - chapters[s.chapter].spanDays;
+  const beats = (days: number) => Math.floor((days / 30 - offset) / k);
+  return end > 0 && beats(end) > beats(start);
+}
+
 export function seatsOf(gw: GreatWar, tag: GwTag): GwSeatState[] {
   return gw.s.seats.filter((x) => x.tag === tag);
 }
