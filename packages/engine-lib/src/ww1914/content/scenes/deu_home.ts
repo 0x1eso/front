@@ -304,6 +304,27 @@ const visit = (
   salience,
 });
 
+/** Kept by the plan's scene, or by him still sitting there after the vote. */
+const helfErzPromise = promise(who, "p_helf_erz", 16, {
+  keep: any(
+    chose("deu_k_peace_resolution", "ignore"),
+    all({ kind: "in_office", who }, date("1917-11", "1918-12")),
+  ),
+});
+/** Past August 1917 with him still at his desk is the promise kept. */
+const groeStayPromise = promise(who, "p_groe_stay", 9, {
+  keep: all(groeOffice, date("1917-09", "1918-12")),
+});
+/** Any strike ended without the list. */
+const noArrestsPromise = promise(who, "p_ebert_no_arrests", 12, {
+  keep: any(
+    chose("deu_h_strike_april", "meet_committee"),
+    chose("deu_h_strike_january", "talk_through_ebert"),
+    chose("deu_h_strike_january", "ask_peace_terms"),
+    chose("deu_h_strike_january", "grant_franchise"),
+  ),
+});
+
 const SCENES: readonly GwScene[] = [
   // ---- Bread ----
   scene({
@@ -1380,12 +1401,7 @@ const HELF_TALKS: readonly GwScene[] = [
       }),
       r("deal", "warm", "deal", "bargain", {
         tell: ["trust:+1"],
-        effects: [
-          T(1),
-          promise(who, "p_helf_erz", 10, {
-            keep: chose("deu_k_peace_resolution", "ignore"),
-          }),
-        ],
+        effects: [T(1), helfErzPromise],
       }),
       r("later", "frank", "leave", null),
     ),
@@ -1403,12 +1419,7 @@ const HELF_TALKS: readonly GwScene[] = [
       }),
       r("deal", "warm", "deal", "bargain", {
         tell: ["trust:+1"],
-        effects: [
-          T(1),
-          promise(who, "p_helf_erz", 10, {
-            keep: chose("deu_k_peace_resolution", "ignore"),
-          }),
-        ],
+        effects: [T(1), helfErzPromise],
       }),
     ),
     bargain: node(one, bye("end", "frank")),
@@ -1593,7 +1604,7 @@ const GROE_TALKS: readonly GwScene[] = [
             T(1),
             army(-1),
             remember("k_groe_profits"),
-            promise(who, "p_groe_stay", 6),
+            groeStayPromise,
           ],
         }),
         r("later", "cold", "leave", null),
@@ -1609,7 +1620,7 @@ const GROE_TALKS: readonly GwScene[] = [
         one,
         r("stay", "warm", "deal", "stay", {
           tell: ["trust:+1"],
-          effects: [T(1), promise(who, "p_groe_stay", 6)],
+          effects: [T(1), groeStayPromise],
         }),
         r("mark", "cold", "leave", null),
       ),
@@ -1922,9 +1933,7 @@ const EBERT_TALKS: readonly GwScene[] = [
             army(-1),
             T(1),
             remember("k_ebert_strike"),
-            promise(who, "p_ebert_no_arrests", 12, {
-              keep: chose("deu_h_strike_january", "talk_through_ebert"),
-            }),
+            noArrestsPromise,
           ],
         }),
         r("later", "cold", "leave", null),
@@ -1940,13 +1949,7 @@ const EBERT_TALKS: readonly GwScene[] = [
         one,
         r("pledge", "warm", "deal", "pledge", {
           tell: ["army:-1", "trust:+1"],
-          effects: [
-            army(-1),
-            T(1),
-            promise(who, "p_ebert_no_arrests", 12, {
-              keep: chose("deu_h_strike_january", "talk_through_ebert"),
-            }),
-          ],
+          effects: [army(-1), T(1), noArrestsPromise],
         }),
         r("mark", "cold", "leave", null),
       ),
