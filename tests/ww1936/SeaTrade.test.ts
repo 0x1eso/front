@@ -48,7 +48,6 @@ describe("sea trade (spec §10.2)", () => {
     const day = ww.day(runner.game.ticks());
     stepTo(runner, afterItaly(day + 1));
     expect(ita.totals.imported[TUNGSTEN]).toBe(8);
-    // The seller is paid whatever arrives.
     expect(g.ce("GBR").totals.receivedCivs).toBe(1);
     // No convoys: the next allocation gives none, the next turn gets none.
     ita.stock[CONVOY] = 0;
@@ -56,12 +55,26 @@ describe("sea trade (spec §10.2)", () => {
     expect(r.got).toBe(0);
     stepTo(runner, afterItaly(day + 3));
     expect(ita.totals.imported[TUNGSTEN]).toBe(0);
-    expect(g.ce("GBR").totals.receivedCivs).toBe(1);
-    // Half the need, half the units (floor).
+    // ww120 T5: nothing arrived, so nothing is paid and nothing leaves.
+    expect(tr.gotPm).toBe(0);
+    expect(ita.totals.paidCivs).toBe(0);
+    stepTo(runner, afterItaly(day + 4));
+    expect(g.ce("GBR").totals.receivedCivs).toBe(0);
+    expect(g.ce("GBR").totals.exported[TUNGSTEN]).toBe(0);
+    // Half the need, half the units (floor), half the bill on both sides.
     r.km = 700;
     r.got = 1;
     expect(convoysForTrade(8, 700)).toBe(2);
     expect(seaTradeUnits(navy, TAG_ID.ITA, tr.id, 8)).toBe(4);
+    const free = ita.totals.freeCivMilli;
+    const sold = g.ce("GBR").totals.freeCivMilli;
+    ww.economy.refreshTotals(ita, day + 4, 0);
+    ww.economy.refreshTotals(g.ce("GBR"), day + 4, 0);
+    expect(tr.gotPm).toBe(500);
+    expect(ita.totals.imported[TUNGSTEN]).toBe(4);
+    expect(ita.totals.freeCivMilli).toBe(free - 500);
+    expect(g.ce("GBR").totals.exported[TUNGSTEN]).toBe(4);
+    expect(g.ce("GBR").totals.freeCivMilli).toBe(sold + 500);
   });
 
   test("partners need a sea route", async () => {

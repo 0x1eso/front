@@ -584,6 +584,48 @@ describe("<ww-industry-panel> (spec §13.3)", () => {
     ).toContain("ww1936.econ.deal_paused");
   });
 
+  it("a deal says how much arrives, and why (ww120 T4, T5)", async () => {
+    const deal = {
+      buyer: ID("DEU"),
+      seller: ID("SUN"),
+      resource: "oil" as const,
+      civs: 1,
+      units: 8,
+      gotPm: 725,
+    };
+    const short = mount({
+      summaries: [summary("DEU")],
+      details: [detail("DEU", { buying: [{ ...deal, id: 7 }], payPm: 725 })],
+    });
+    await short.open("trade");
+    const text = short.q("[data-ww-deal='7'] [data-ww-deal-short]")!;
+    expect(text.textContent).toContain("ww1936.econ.deal_short_pay");
+    // A convoy shortfall: the bill is paid, part of the goods don't come.
+    const convoys = mount({
+      summaries: [summary("DEU")],
+      details: [detail("DEU", { buying: [{ ...deal, id: 8 }] })],
+    });
+    await convoys.open("trade");
+    expect(
+      convoys.q("[data-ww-deal='8'] [data-ww-deal-short]")!.textContent,
+    ).toContain("ww1936.econ.deal_arrived");
+  });
+
+  it("the free factories say when construction is on its floor (ww120 T2)", async () => {
+    const m = mount({
+      summaries: [summary("DEU", { civ: 20, freeCivMilli: 4000 })],
+      details: [detail("DEU", { consumerGoodsMilli: 20_000, paidCivs: 6 })],
+    });
+    await m.open("construction");
+    expect(m.q("[data-ww-build-floor]")).not.toBeNull();
+    const free = mount({
+      summaries: [summary("DEU", { civ: 20, freeCivMilli: 12_000 })],
+      details: [detail("DEU", { consumerGoodsMilli: 8000 })],
+    });
+    await free.open("construction");
+    expect(free.q("[data-ww-build-floor]")).toBeNull();
+  });
+
   it("holding + adds five, a tap one", async () => {
     vi.useFakeTimers({ toFake: ["Date", "setTimeout", "clearTimeout"] });
     const m = mount({

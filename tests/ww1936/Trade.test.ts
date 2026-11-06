@@ -291,8 +291,8 @@ describe("trade (spec §7.4–§7.5)", () => {
     ]);
   });
 
-  test("the seller's room shrinks: newest deals shrink, then close first", async () => {
-    const { runner, econ, ww, id, ce, buy, notices } = await game();
+  test("the seller's room shrinks: newest deals shrink, then pause", async () => {
+    const { runner, updates, econ, ww, id, ce, buy, notices } = await game();
     const sun = ce("SUN");
     const STEEL = RESOURCE_IDS.indexOf("steel");
     // Moscow 10 and Kiev 30 steel at infrastructure 3 give 36; free trade
@@ -328,14 +328,54 @@ describe("trade (spec §7.4–§7.5)", () => {
     expect(exportRoom(econ, sun.smallID, STEEL)).toBe(0);
     expect(notices()).toEqual([]);
     // Limited exports sell a quarter, 6 of 27: newest first, Poland's and
-    // Italy's deals have nothing left and close; Germany's keeps 6.
+    // Italy's deals have nothing left and pause; Germany's keeps 6.
     sun.laws.trade = "limited_exports";
     throughDay(runner, 3);
-    expect(dealsOf(econ)).toEqual([[id("DEU"), sun.smallID, "steel", 1]]);
-    expect(econ.trades()[0].units).toBe(6);
+    expect(econ.trades().map((t) => [t.units, t.pausedDay])).toEqual([
+      [6, undefined],
+      [8, 3],
+      [5, 3],
+    ]);
+    expect(notices()).toEqual([]);
+    expect(
+      updates
+        .flatMap((u) => u.updates[GameUpdateType.DisplayEvent])
+        .filter(
+          (e) => e.message === "events_display.ww1936_trade_paused_output",
+        ).length,
+    ).toBe(2);
+    throughDay(runner, 4);
+    expect(econ.trades().map((t) => t.pausedDay)).toEqual([undefined, 3, 3]);
+    // The room back: both run again, oldest first, with what they had.
+    sun.laws.trade = "free_trade";
+    throughDay(runner, 5);
+    expect(econ.trades().map((t) => t.pausedDay)).toEqual([
+      undefined,
+      undefined,
+      undefined,
+    ]);
+    expect(econ.trades().map((t) => t.units)).toEqual([6, 8, 5]);
+    expect(notices()).toEqual([]);
+  });
+
+  test("a deal paused by the seller's output closes when the wait runs out", async () => {
+    const { runner, econ, ce, buy, notices, id } = await game();
+    const sun = ce("SUN");
+    sun.laws.trade = "free_trade";
+    expect(buy("POL", "SUN", "steel")).toBeNull();
+    throughDay(runner, 0);
+    sun.laws.trade = "closed_economy";
+    throughDay(runner, 1);
+    const [deal] = econ.trades();
+    expect(deal.pausedDay).toBe(1);
+    // Paused: nobody pays.
+    throughDay(runner, 2);
+    expect(ce("POL").totals.paidCivs).toBe(0);
+    deal.pausedDay = 2 - WW_TRADE_PAUSE_DAYS;
+    throughDay(runner, 3);
+    expect(econ.trades()).toEqual([]);
     expect(notices()).toEqual([
       { to: id("POL"), params: { sellerTag: "SUN", resource: "steel" } },
-      { to: id("ITA"), params: { sellerTag: "SUN", resource: "steel" } },
     ]);
   });
 
@@ -347,7 +387,8 @@ describe("trade (spec §7.4–§7.5)", () => {
     // Free trade: 28 a day for sale. Three factories ask for 24, a fourth
     // takes the last 4 (a part factory pays a whole one, as in HOI4).
     sun.laws.trade = "free_trade";
-    deu.totals.cgMilli = 0;
+    econ.addBuilding(econ.regionsOf(deu.smallID)[0], "civ", 10);
+    deu.totals.civ += 10;
     expect(buy("DEU", "SUN", "steel", 3)).toBeNull();
     // Two more factories would need 9 or more.
     expect(buy("DEU", "SUN", "steel", 2)).toBe("no_room");
@@ -364,22 +405,41 @@ describe("trade (spec §7.4–§7.5)", () => {
     expect(sun.totals.receivedCivs).toBe(4);
   });
 
-  test("the buyer cannot pay: newest close first", async () => {
-    const { runner, econ, id, ce, buy, notices } = await game();
+  test("the buyer cannot pay: every deal scales, none closes", async () => {
+    const { runner, econ, ce, buy, notices } = await game();
     const ita = ce("ITA");
+    const gbr = ce("GBR");
+    const TUNGSTEN = RESOURCE_IDS.indexOf("tungsten");
     // Italy: 80 % of 4 civilian factories less 1.75 of consumer goods → 1.
     expect(buy("ITA", "GBR", "tungsten")).toBeNull();
     expect(buy("ITA", "DEU", "steel")).toBe("no_civs");
     throughDay(runner, 0);
-    expect(econ.trades()).toHaveLength(1);
+    expect(ita.payPm).toBe(1000);
     expect(ita.totals.paidCivs).toBe(1);
-    // A civilian economy takes 35% for consumer goods: half the factories
-    // at most, so one still pays.
-    ita.laws.economy = "civilian";
-    throughDay(runner, 2);
-    expect(ita.totals.cgMilli).toBe(2450);
-    expect(dealsOf(econ)).toEqual([[id("ITA"), id("GBR"), "tungsten", 1]]);
+    // The deal grows past what Italy pays: 1.45 of 2 go, 72 %.
+    const [deal] = econ.trades();
+    deal.units = 16;
+    deal.civs = 2;
+    throughDay(runner, 1);
+    expect(ita.payPm).toBe(725);
+    expect(deal.gotPm).toBe(725);
+    const moved = Math.floor((deal.units * 725) / 1000);
+    expect(moved).toBeLessThan(deal.units);
+    expect(ita.totals.imported[TUNGSTEN]).toBe(moved);
+    // 0.8 left would be, one factory is the floor.
+    expect(ita.totals.freeCivMilli).toBe(1000);
+    // The seller gets what was paid and keeps what was not sold.
+    expect(gbr.totals.exported[TUNGSTEN]).toBe(moved);
+    expect(gbr.totals.receivedCivs).toBe(1);
+    expect(econ.trades()).toHaveLength(1);
     expect(notices()).toEqual([]);
+    // Room again: all of it runs, with nothing to reopen.
+    deal.units = 8;
+    deal.civs = 1;
+    throughDay(runner, 2);
+    expect(ita.payPm).toBe(1000);
+    expect(deal.gotPm).toBeUndefined();
+    expect(gbr.totals.exported[TUNGSTEN]).toBe(8);
   });
 
   test("buying moves civs and resources", async () => {

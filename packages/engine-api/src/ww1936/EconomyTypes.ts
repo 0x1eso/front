@@ -1033,6 +1033,8 @@ export interface WwTradeData {
   units: number;
   /** ww115 T13: its route is cut; days until it closes. Absent: it runs. */
   pausedLeft?: number;
+  /** ww120: ‰ of the deal that moved the last day; absent: all of it. */
+  gotPm?: number;
 }
 
 export interface WwResourceRow {
@@ -1106,6 +1108,8 @@ export interface WwCountryDetail {
   consumerGoodsMilli: number;
   paidCivs: number;
   receivedCivs: number;
+  /** ww120: ‰ of what was due the last day that was paid; absent: all of it. */
+  payPm?: number;
   effCapBp: number;
   /** Days of the longest running war; -1 at peace. */
   warDays: number;

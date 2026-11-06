@@ -405,7 +405,7 @@ describe("World War 1936 P6: production licences", () => {
     expect(line.factories).toBe(3);
   });
 
-  it("a licensee that can no longer pay the fee loses the licence", async () => {
+  it("a licensee that can no longer pay keeps the licence and pays short", async () => {
     const { ww, d, tick, day } = await deep(["DEU", "FRA"]);
     const fra = ww.economy.country(FRA)!;
     ww.economy.country(DEU)!.addTech("medium_tank_1");
@@ -414,9 +414,13 @@ describe("World War 1936 P6: production licences", () => {
     ).toBeNull();
     dayCommonMarket(d, day + 1, tick);
     expect(d.market.licences).toHaveLength(1);
+    expect(d.civsInMilli(DEU)).toBe(1000);
     fra.totals.civ = 0;
+    fra.payPm = 0;
     dayCommonMarket(d, day + 2, tick);
-    expect(d.market.licences).toEqual([]);
-    expect(d.civsIn(DEU)).toBe(0);
+    expect(d.market.licences).toHaveLength(1);
+    // Owed still, but nothing arrives.
+    expect(d.civsIn(DEU)).toBe(1);
+    expect(d.civsInMilli(DEU)).toBe(0);
   });
 });

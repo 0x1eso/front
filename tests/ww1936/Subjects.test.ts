@@ -276,14 +276,14 @@ describe("World War 1936 P5: subjects in a game", () => {
     expect(s.flowCiv).toBeGreaterThan(0);
     const mine = {
       res: s.flowRes.map(() => 0),
-      civIn: 0,
+      civInMilli: 0,
       civOut: 0,
       manpower: 0,
       virtualMil: 0,
     };
     const theirs = {
       res: s.flowRes.map(() => 0),
-      civIn: 0,
+      civInMilli: 0,
       civOut: 0,
       manpower: 0,
       virtualMil: 0,
@@ -291,13 +291,13 @@ describe("World War 1936 P5: subjects in a game", () => {
     subjectEconomy(eg, ltu, mine);
     subjectEconomy(eg, deu, theirs);
     expect(mine.civOut).toBe(s.flowCiv);
-    expect(theirs.civIn).toBe(s.flowCiv);
+    expect(theirs.civInMilli).toBe(s.flowCiv * 1000);
     expect(mine.res.every((x, k) => x === -theirs.res[k])).toBe(true);
     // A paused bond moves nothing.
     s.suspended = true;
     const none = {
       res: s.flowRes.map(() => 0),
-      civIn: 0,
+      civInMilli: 0,
       civOut: 0,
       manpower: 0,
       virtualMil: 0,

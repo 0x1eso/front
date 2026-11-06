@@ -194,6 +194,8 @@ describe("World War 1936 P6: intelligence (lane I)", () => {
     ).toBe("no_agency");
     expect(d.issue(GBR, { kind: "intel_found" }, r.game.ticks())).toBeNull();
     const ce = ww.economy.country(GBR)!;
+    // Room to pay them whole.
+    ww.economy.addBuilding(ww.economy.regionsOf(GBR)[0], "civ", 10);
     const paid = ce.totals.paidCivs;
     expect(
       d.issue(GBR, { kind: "intel_upgrade", id: "ag_ops_2" }, r.game.ticks()),

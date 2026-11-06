@@ -91,7 +91,6 @@ import {
   constructionDaysLeft,
   constructionProgress,
   buildFloorMilli,
-  consumerGoodsMilli,
   goodsMilliOf,
   effAfterSwitch,
   exportCapacity,
@@ -2259,7 +2258,7 @@ function sumCivs(deals: readonly WwTradeData[]): number {
   return n;
 }
 
-/** ww120 T2: goods and payments would leave less than construction keeps. */
+/** ww120 T2: goods and payments leave construction only what it always keeps. */
 export function atBuildFloor(
   detail: WwCountryDetail,
   summary: WwCountrySummary,
@@ -2268,7 +2267,9 @@ export function atBuildFloor(
     summary.civ * 1000 -
     goodsMilliOf(summary.civ, detail.consumerGoodsMilli) +
     (detail.receivedCivs - detail.paidCivs) * 1000;
-  return left < buildFloorMilli(summary.civ, true);
+  return (
+    left < summary.civ * 1000 && left <= buildFloorMilli(summary.civ, true)
+  );
 }
 
 /** What the engine's openTrade checks, from the view (Trade.openTrade). */
@@ -2715,14 +2716,13 @@ export function lawLadder(
 }
 
 /**
- * Whether setting the law would close deals at the next daily check
+ * Whether setting the law would stop deals at the next daily check
  * (Trade.validateTrades): a trade law whose export share falls below what
- * I sell, or an economy law whose consumer goods leave fewer civilian
- * factories than my deals pay. Such a change takes two taps.
+ * I sell. Such a change takes two taps. An economy law stops none: a buyer
+ * short of factories pays short and its deals move less (ww120 T4).
  */
 export function lawClosesDeals(
   detail: WwCountryDetail,
-  summary: WwCountrySummary,
   kind: LawKind,
   value: LawValue,
 ): boolean {
@@ -2738,14 +2738,6 @@ export function lawClosesDeals(
       }
       return sold > exportCapacity(detail.resources[r]?.produced ?? 0, pct);
     });
-  }
-  if (kind === "economy") {
-    const pct = lawEffects({
-      ...detail.laws,
-      economy: value as EconomyLaw,
-    }).consumerGoodsPct;
-    const cg = consumerGoodsMilli(summary.civ, summary.mil, pct);
-    return paidCivsOf(detail) > payableCivs(summary.civ, cg);
   }
   return false;
 }

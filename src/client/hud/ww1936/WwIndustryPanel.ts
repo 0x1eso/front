@@ -1991,6 +1991,16 @@ export class WwIndustryPanel extends WwDrawerBase {
                     n: t.pausedLeft,
                   })}</span
                 >`}
+            ${t.gotPm === undefined
+              ? nothing
+              : html`<span data-ww-deal-short class="text-amber-300"
+                  >${translateText(
+                    kind === "buying" && c.detail.payPm !== undefined
+                      ? "ww1936.econ.deal_short_pay"
+                      : "ww1936.econ.deal_arrived",
+                    { n: Math.floor(t.gotPm / 10) },
+                  )}</span
+                >`}
             <span class="tabular-nums text-white/70"
               >${translateText("ww1936.econ.factories", { n: t.civs })}</span
             >

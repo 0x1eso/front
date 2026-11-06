@@ -219,10 +219,17 @@ export interface Trade {
    */
   units: number;
   /**
-   * ww115 T13: the day its route was cut. While set the deal moves nothing
-   * and pays nothing (validateTrades). Absent: it runs.
+   * ww115 T13: the day its route was cut, ww120 T4: or its seller's output
+   * fell short. While set the deal moves nothing and pays nothing
+   * (validateTrades). Absent: it runs.
    */
   pausedDay?: number;
+  /**
+   * ww120 T4, T5: ‰ of the deal that moved on the buyer's last day: what its
+   * convoys brought, times what the buyer could pay (payPm). What did not
+   * move stays with the seller, unpaid. Absent: all of it.
+   */
+  gotPm?: number;
 }
 
 /** The last daily step's results; state, because others read them between days. */
@@ -280,6 +287,12 @@ export class CountryEconomy {
     conscription: -1,
   };
   manpower = 0;
+  /**
+   * ww120 T4, T10: ‰ of what was due the last day that the country paid
+   * (civSplit). Whoever it pays reads this, so a payment that fell short is
+   * paid short, and what was not paid is gone.
+   */
+  payPm = 1000;
   /**
    * The casualty debt (spec §6.5; P2: WwLand.noteCasualties): men dead in
    * combat, off the recruitable pool, so the manpower ceiling does not
@@ -456,6 +469,8 @@ const CountrySchema = z.object({
     conscription: zInt(),
   }),
   manpower: zInt(),
+  /** ww120 T4: written only while the country pays less than it owes. */
+  payPm: zInt().optional(),
   casualties: zInt(),
   stock: z.array(zInt()),
   lines: z.array(LineSchema),
@@ -530,6 +545,8 @@ export const WwEconomyStateSchema = z.object({
       units: zInt(),
       /** ww115 T13: written only while the deal is paused. */
       pausedDay: zInt().optional(),
+      /** ww120 T5: written only while a deal moves less than all of it. */
+      gotPm: zInt().optional(),
     }),
   ),
   nextTradeId: zInt(),
@@ -963,21 +980,27 @@ export class WwEconomy {
     const dock = Math.floor(dock100 / 100);
     const exported = zeros();
     const imported = zeros();
-    let paid = 0;
-    let received = 0;
+    let dueMilli = 0;
+    let receivedMilli = 0;
+    const bought: { tr: Trade; units: number; shipPm: number }[] = [];
     // P4 spec §10.2 (lane C): a sea deal delivers by its convoys.
     const deliver = tradeDelivery(this, ce.smallID);
     for (const tr of this._trades) {
       // ww115 T13: a paused deal moves nothing and pays nothing.
       if (tr.pausedDay !== undefined) continue;
       if (tr.buyer === ce.smallID) {
-        paid += tradePaidCivs(this, tr);
         // P3 spec §3.2 tradeCostPct: the buyer's units per factory.
-        imported[tr.res] += deliver(tr, tradeUnitsBought(tr.units, ce.stats));
+        const want = tradeUnitsBought(tr.units, ce.stats);
+        const units = deliver(tr, want);
+        const shipPm = want <= 0 ? 1000 : Math.floor((units * 1000) / want);
+        // ww120 T5: only what arrives is owed.
+        dueMilli += tradePaidCivs(this, tr) * shipPm;
+        bought.push({ tr, units, shipPm });
       }
       if (tr.seller === ce.smallID) {
-        received += tr.civs;
-        exported[tr.res] += tr.units;
+        const pm = tr.gotPm ?? 1000;
+        receivedMilli += tr.civs * pm;
+        exported[tr.res] += Math.floor((tr.units * pm) / 1000);
       }
     }
     // P5 hook (S, W, X; plan decision 19): subjects' flows, reparations, an
@@ -986,14 +1009,14 @@ export class WwEconomy {
     for (let k = 0; k < RESOURCE_COUNT; k++) {
       if (adj.res[k] !== 0) produced[k] = Math.max(0, produced[k] + adj.res[k]);
     }
-    received += adj.civIn;
-    paid += adj.civOut;
+    receivedMilli += adj.civInMilli;
+    dueMilli += adj.civOut * 1000;
     recruitable += adj.manpower;
     // P6 hook (M, I; plan decision 23): market payments and licence fees
     // in and out, an agency upgrade's 2 — before the queue is assigned.
     if (depth !== undefined) {
-      received += depth.civsIn(ce.smallID);
-      paid += depth.civsOut(ce.smallID);
+      receivedMilli += depth.civsInMilli(ce.smallID);
+      dueMilli += depth.civsOut(ce.smallID) * 1000;
     }
     t.civ = civ;
     t.mil = mil + adj.virtualMil;
@@ -1002,8 +1025,6 @@ export class WwEconomy {
     // army does not refill as men die; only the debt's yearly fall opens it.
     t.recruitable = Math.max(0, recruitable - ce.casualties);
     t.produced = produced;
-    t.exported = exported;
-    t.imported = imported;
     // P3 spec §3.3: consumer goods with consumerGoodsPp, 0..50%.
     const cgPct = Math.max(
       0,
@@ -1013,12 +1034,21 @@ export class WwEconomy {
     const split = civSplit(
       civ,
       t.cgMilli,
-      paid * 1000,
-      received * 1000,
+      dueMilli,
+      receivedMilli,
       this.regionsOf(ce.smallID).length > 0,
     );
-    t.paidCivs = paid;
-    t.receivedCivs = received;
+    ce.payPm = split.payPm;
+    for (const { tr, units, shipPm } of bought) {
+      imported[tr.res] += Math.floor((units * split.payPm) / 1000);
+      const gotPm = Math.floor((shipPm * split.payPm) / 1000);
+      if (gotPm === 1000) delete tr.gotPm;
+      else tr.gotPm = gotPm;
+    }
+    t.exported = exported;
+    t.imported = imported;
+    t.paidCivs = Math.floor(split.paidMilli / 1000);
+    t.receivedCivs = Math.floor(receivedMilli / 1000);
     t.freeCivMilli = split.freeMilli;
     // Research overhaul (changes §1.1): the start slots and the research_slot
     // effects only; factories, bombing and occupation do not count.
@@ -1085,6 +1115,11 @@ export class WwEconomy {
 
   day(): number {
     return this.ww.day(this.mg.ticks());
+  }
+
+  /** ‰ of what it owed that `smallID` paid on its last day. */
+  payPmOf(smallID: number): number {
+    return this.country(smallID)?.payPm ?? 1000;
   }
 
   regionsOf(smallID: number): readonly number[] {
@@ -1479,6 +1514,7 @@ export class WwEconomy {
       resource: RESOURCE_IDS[tr.res],
       civs: tr.civs,
       units: tr.units,
+      ...(tr.gotPm === undefined ? {} : { gotPm: tr.gotPm }),
       ...(tr.pausedDay === undefined
         ? {}
         : {
@@ -1578,6 +1614,7 @@ export class WwEconomy {
       consumerGoodsMilli: t.cgMilli,
       paidCivs: t.paidCivs,
       receivedCivs: t.receivedCivs,
+      ...(ce.payPm === 1000 ? {} : { payPm: ce.payPm }),
       effCapBp: effCapBp(ce.stats),
       warDays: t.warDays,
       tradePartners: tradePartners(this, ce.smallID),
@@ -1643,6 +1680,8 @@ export class WwEconomy {
         for (const t of q) h = (Math.imul(h, 31) + WW_TECH_IDS.indexOf(t)) | 0;
       });
       h = (Math.imul(h, 31) + ce.casualties) | 0;
+      // ww120 T4 (nothing while the country pays in full).
+      if (ce.payPm !== 1000) h = (Math.imul(h, 31) + ce.payPm * 3 + 7) | 0;
       // P4: fuel and the naval lines.
       h = (Math.imul(h, 31) + ce.fuelMilli) | 0;
       h = (Math.imul(h, 31) + ce.fuelRatioPm * 7 + ce.fuelLedgerMilli) | 0;
@@ -1674,6 +1713,10 @@ export class WwEconomy {
       // ww115 T13 (nothing while the deal runs).
       if (tr.pausedDay !== undefined) {
         h = (Math.imul(h, 31) + tr.pausedDay * 3 + 5) | 0;
+      }
+      // ww120 T5 (nothing while all of the deal moves).
+      if (tr.gotPm !== undefined) {
+        h = (Math.imul(h, 31) + tr.gotPm * 5 + 9) | 0;
       }
     }
     // P4: the new buildings and the bomb damage, only where any is.
@@ -1724,6 +1767,7 @@ export class WwEconomy {
           conscription: ce.lawCooldownUntil.conscription,
         },
         manpower: ce.manpower,
+        ...(ce.payPm === 1000 ? {} : { payPm: ce.payPm }),
         casualties: ce.casualties,
         stock: [...ce.stock],
         lines: ce.lines.map((l) => ({ ...l })),
@@ -1804,6 +1848,7 @@ export class WwEconomy {
       ce.laws = { ...c.laws };
       ce.lawCooldownUntil = { ...c.lawCooldownUntil };
       ce.manpower = c.manpower;
+      ce.payPm = c.payPm ?? 1000;
       ce.casualties = c.casualties;
       // Padded with zeros: an equipment key appended later reads 0 in an
       // older snapshot (like WwStats).

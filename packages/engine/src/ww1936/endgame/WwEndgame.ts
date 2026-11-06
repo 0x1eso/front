@@ -388,7 +388,9 @@ export type WwEndgameState = z.infer<typeof WwEndgameStateSchema>;
 /** What a day of subjects, reparations and exiles moves (plan decision 19). */
 export interface EconAdjust {
   res: number[];
-  civIn: number;
+  /** ww120 T10: what actually arrives, milli (the payer's payPm). */
+  civInMilli: number;
+  /** What is due, civilian factories. */
   civOut: number;
   manpower: number;
   virtualMil: number;
@@ -1303,7 +1305,7 @@ export class WwEndgame {
   econAdjust(id: number): EconAdjust {
     const out: EconAdjust = {
       res: new Array<number>(RESOURCE_COUNT).fill(0),
-      civIn: 0,
+      civInMilli: 0,
       civOut: 0,
       manpower: 0,
       virtualMil: 0,

@@ -3,7 +3,9 @@
 // (market_unlist gives them back). A purchase is a deal: for MARKET_DAYS
 // the buyer hands the seller `civs` civilian factories (the foundation's
 // civFlow counts the deal while paidMilli < priceMilli) and each day a
-// 30th of the units leaves; it arrives MARKET_TRANSIT_DAYS later.
+// 30th of the units leaves; it arrives MARKET_TRANSIT_DAYS later. ww120 T4:
+// a buyer short of factories pays short (payPm), the seller gets what was
+// paid, and neither deals nor licences end over it.
 // deliveredMilli is the value arrived, so the units given so far are
 // floor(count × deliveredMilli / priceMilli). P5 has no transport helper
 // on this base (its lend-lease is a stub), so every delivery is that flat
@@ -33,7 +35,6 @@ import { issueEmbargo } from "./Embargo";
 import {
   dayLicences,
   designKindOf,
-  endLicence,
   freeCivsOf,
   issueLicence,
   keyYear,
@@ -353,39 +354,6 @@ export function dayCommonMarket(d: WwDepth, day: number, tick: number): void {
       } else {
         dealDay(d, x, day);
       }
-    }
-  }
-  settleCivs(d);
-}
-
-/**
- * P1 spec §7.5's rule for trade deals, for the market and licences: a
- * country that can no longer hand over the factories it owes (lost
- * factories, a new law) ends its newest market deal, then its newest
- * licence with a fee, until it can.
- */
-function settleCivs(d: WwDepth): void {
-  const m = d.market;
-  if (m.deals.length === 0 && m.licences.length === 0) return;
-  const payers = new Set<number>();
-  for (const x of m.deals) if (x.paidMilli < x.priceMilli) payers.add(x.buyer);
-  for (const l of m.licences) {
-    if (!d.ww.sameFaction(l.from, l.to)) payers.add(l.to);
-  }
-  for (const id of [...payers].sort((a, b) => a - b)) {
-    for (let guard = 0; guard < 64 && freeCivsOf(d, id) < 0; guard++) {
-      const deal = [...m.deals]
-        .reverse()
-        .find((x) => x.buyer === id && x.paidMilli < x.priceMilli);
-      if (deal !== undefined) {
-        endDeal(d, deal);
-        continue;
-      }
-      const lic = [...m.licences]
-        .reverse()
-        .find((l) => l.to === id && !d.ww.sameFaction(l.from, l.to));
-      if (lic === undefined) break;
-      endLicence(d, lic);
     }
   }
 }

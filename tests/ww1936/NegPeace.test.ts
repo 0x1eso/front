@@ -167,7 +167,12 @@ describe("World War 1936: negotiated peace", { timeout: 120_000 }, () => {
       { from: pl, to: deu, k, untilDay: day + WW_NEG_REPARATIONS_DAYS },
     ]);
     expect(eg.econAdjust(pl).civOut).toBe(k);
-    expect(eg.econAdjust(deu).civIn).toBe(k);
+    expect(eg.econAdjust(deu).civInMilli).toBe(k * 1000);
+    // ww120 T10: the winner gets what the loser paid, and the rest is gone.
+    ww.economy.country(pl)!.payPm = 250;
+    expect(eg.econAdjust(pl).civOut).toBe(k);
+    expect(eg.econAdjust(deu).civInMilli).toBe(k * 250);
+    ww.economy.country(pl)!.payPm = 1000;
     // The view of the offer read the factories a day too.
     toDay(runner, day + WW_NEG_REPARATIONS_DAYS - 1);
     expect(eg.reparations).toHaveLength(1);
