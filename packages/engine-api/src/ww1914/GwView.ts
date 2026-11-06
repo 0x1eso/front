@@ -15,6 +15,7 @@ import type {
 } from "./GreatWarTypes";
 import type { GwTag } from "./GwCountries";
 import type { GwOrderBlock } from "./GwOrders";
+import type { GwWorldView } from "./GwWorldView";
 import type { GwReplyKind, GwSceneKind, GwStance } from "./SceneDsl";
 
 export interface GwOptionView {
@@ -75,6 +76,7 @@ export interface GwSeatView {
   log: readonly GwReason[];
   /** Ready is refused while this is set. */
   readyBlock: GwOrderBlock | null;
+  world: GwWorldView;
 }
 
 /** The whole mode as sent worker -> main thread. Never mutated. */

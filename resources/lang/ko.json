@@ -14180,6 +14180,12 @@
     }
   },
   "gw": {
+    "ai": {
+      "cautious": "신중형",
+      "hardline": "강경형",
+      "opportunist": "기회주의형",
+      "principled": "원칙형"
+    },
     "country": {
       "AFG": "아프가니스탄",
       "ALB": "알바니아",
@@ -14233,6 +14239,229 @@
       "USA": "미국",
       "VEN": "베네수엘라"
     },
+    "ending": {
+      "armistice_conference": "휴전과 회의",
+      "closing": "끝",
+      "compromise_peace": "타협 강화",
+      "deadline": "기한이 다한 전쟁",
+      "first_winter_ahead": "첫 겨울: 앞서서",
+      "first_winter_behind": "첫 겨울: 뒤처져서",
+      "first_winter_level": "첫 겨울: 교착",
+      "home_collapse": "국내 붕괴",
+      "long_peace": "긴 평화",
+      "victory_peace": "승리의 강화"
+    },
+    "fact": {
+      "force": {
+        "1": "아주 약함",
+        "2": "약함",
+        "3": "보통",
+        "4": "강함",
+        "5": "아주 강함"
+      },
+      "lean": {
+        "0": "나서지 않거나 반대편에 선다",
+        "1": "갈려 있다",
+        "2": "들어온다"
+      },
+      "mob": {
+        "0": "동원 없음",
+        "1": "부분 동원",
+        "2": "총동원"
+      },
+      "morale": {
+        "0": "꺾임",
+        "1": "크게 가라앉음",
+        "2": "가라앉음",
+        "3": "버팀",
+        "4": "좋음",
+        "5": "드높음"
+      },
+      "shells": {
+        "0": "포탄 바닥",
+        "1": "포탄 빠듯함",
+        "2": "포탄 충분함",
+        "3": "포탄 넉넉함"
+      }
+    },
+    "front": {
+      "balkan": {
+        "belgrade": "베오그라드",
+        "drina": "드리나강",
+        "nis": "니시",
+        "salonika": "살로니카"
+      },
+      "caucasus": {
+        "erzurum": "에르주룸",
+        "kars": "카르스",
+        "trabzon": "트라브존",
+        "van": "반"
+      },
+      "colonies": {
+        "east_africa": "동아프리카",
+        "kamerun": "카메룬",
+        "southwest": "서남아프리카",
+        "togo": "토고"
+      },
+      "east": {
+        "dvina": "드비나강",
+        "east_prussia": "동프로이센",
+        "kiev": "키예프",
+        "oder": "오데르강",
+        "riga": "리가",
+        "vistula": "비스와강",
+        "warsaw": "바르샤바"
+      },
+      "italy": {
+        "adige": "아디제강",
+        "isonzo": "이손초강",
+        "piave": "피아베강",
+        "trentino": "트렌티노"
+      },
+      "mesopotamia": {
+        "baghdad": "바그다드",
+        "basra": "바스라",
+        "kut": "쿠트",
+        "mosul": "모술"
+      },
+      "palestine": {
+        "damascus": "다마스쿠스",
+        "gaza": "가자",
+        "jerusalem": "예루살렘",
+        "suez": "수에즈"
+      },
+      "sea": {
+        "atlantic": "대서양",
+        "blockade": "봉쇄 강화",
+        "channel": "영불해협",
+        "north_sea": "북해"
+      },
+      "straits": {
+        "constantinople": "콘스탄티노플",
+        "dardanelles": "다르다넬스",
+        "gallipoli": "갈리폴리",
+        "narrows": "해협 협수로"
+      },
+      "west": {
+        "aisne": "엔강",
+        "hindenburg": "힌덴부르크선",
+        "liege": "리에주",
+        "marne": "마른강",
+        "paris": "파리",
+        "rhine": "라인강",
+        "somme": "솜강"
+      }
+    },
+    "gauge": {
+      "bread": {
+        "0": "바닥",
+        "1": "빠듯함",
+        "2": "충분함",
+        "3": "넉넉함"
+      },
+      "money": {
+        "0": "바닥",
+        "1": "빠듯함",
+        "2": "괜찮음",
+        "3": "여유 있음"
+      },
+      "morale": {
+        "0": "꺾임",
+        "1": "가라앉음",
+        "2": "버팀",
+        "3": "드높음"
+      },
+      "order": {
+        "0": "무너짐",
+        "1": "술렁임",
+        "2": "잠잠함",
+        "3": "굳건함"
+      },
+      "shells": {
+        "0": "바닥",
+        "1": "빠듯함",
+        "2": "충분함",
+        "3": "넉넉함"
+      }
+    },
+    "gauge_name": {
+      "bread": "빵",
+      "money": "돈",
+      "morale": "사기",
+      "order": "질서",
+      "shells": "포탄"
+    },
+    "line": {
+      "bread_blockade": "봉쇄로 수입이 줄었다.",
+      "bread_harvest": "수확이 들어왔다.",
+      "bread_rail": "철도가 곡물을 도시로 나르지 못한다.",
+      "bread_uboats": "잠수함이 곡물선을 가라앉혔다.",
+      "casualty_lists": "사상자 명단이 길었다.",
+      "front_lost": "전선이 밀렸다.",
+      "front_won": "전선이 나아갔다.",
+      "money_war_costs": "전쟁이 돈을 먹는다.",
+      "order_casualties": "전사 통지를 받은 집이 너무 많다.",
+      "order_despair": "사람들이 공보를 믿지 않는다.",
+      "order_hunger": "가게에 빵이 없다.",
+      "order_unpaid": "임금과 연금이 밀렸다.",
+      "shells_badly_run": "육군부가 서류로 한 달을 잃었다.",
+      "shells_made": "공장이 납품했다.",
+      "shells_spent": "공세가 재고를 썼다.",
+      "shells_stock_thin": "예비 포탄이 장부보다 적었다.",
+      "shells_well_run": "육군부가 한 달 치를 더 짜냈다."
+    },
+    "mandate": {
+      "deu_bread_for_the_winter": "겨울 빵을 남기기",
+      "deu_chancellor_stays": "수상의 부서를 잃지 않기",
+      "deu_east_prussia_holds": "동프로이센을 지키기",
+      "deu_keep_britain_out": "영국을 전쟁 밖에 두기",
+      "deu_master_of_the_army": "군을 손에 쥐고 있기",
+      "deu_no_great_war": "큰 전쟁 없이 끝내기",
+      "deu_paris_by_winter": "끝날 때 엔강 너머에 서 있기",
+      "deu_quiet_streets": "거리를 조용히 두기",
+      "deu_reichstag_with_you": "제국의회를 곁에 두기",
+      "deu_shells_in_store": "포탄을 남기기",
+      "deu_small_butcher_bill": "사상자를 50만 아래로 두기",
+      "deu_vienna_stands": "빈을 세워 두기"
+    },
+    "news": {
+      "america_entered": "미국이 참전했다.",
+      "belgium_invaded": "독일군이 벨기에로 들어갔다.",
+      "britain_entered": "영국이 선전포고했다.",
+      "crisis_compromise": "위기는 타협으로 닫혔다.",
+      "crisis_fizzled": "위기가 잦아들었다.",
+      "crisis_humiliation": "빈이 물러섰다.",
+      "crisis_war": "열강이 전쟁에 들어갔다.",
+      "entered_war": "{a}이(가) 참전했다.",
+      "front_advance": "{a}이(가) 전진했다: {theatre}.",
+      "front_break": "{a}이(가) 돌파했다: {theatre}.",
+      "front_opened": "새 전선이 열렸다: {theatre}.",
+      "front_repelled": "{a}이(가) 격퇴됐다: {theatre}.",
+      "link_draft": "빈이 무언가를 쓰고 있다.",
+      "link_general": "열강이 동원에 들어간다.",
+      "link_local_war": "빈과 베오그라드가 맞섰다.",
+      "link_shot": "사라예보에서 대공이 저격됐다.",
+      "link_ultimatum": "통첩이 베오그라드로 갔다.",
+      "link_vienna": "빈이 베를린으로 사람을 보냈다.",
+      "nation_beaten": "{a}이(가) 전쟁에서 빠졌다.",
+      "nation_collapsed": "{a}이(가) 무너졌다.",
+      "shot_fired": "사라예보에서 총성이 났다.",
+      "spark_balkan": "발칸에 다시 불이 붙었다.",
+      "spark_colonial": "모로코 앞바다에 다시 포함이 섰다.",
+      "spark_straits": "해협이 문제가 됐다.",
+      "unrest_1": "{a}에서 파업이 일어났다.",
+      "unrest_2": "{a}에서 폭동이 일어났다.",
+      "unrest_3": "{a}의 군이 동요한다.",
+      "unrest_4": "{a}에서 혁명이 일어났다.",
+      "war_declared": "{a}이(가) 전쟁에 들어갔다."
+    },
+    "odds": {
+      "0": "될 일이 아닙니다.",
+      "1": "어렵습니다.",
+      "2": "반반입니다.",
+      "3": "될 만합니다.",
+      "4": "틀림없습니다."
+    },
     "office": {
       "ambassador_london": "주영 대사",
       "ambassador_paris": "주불 대사",
@@ -14256,14 +14485,134 @@
       "read": "읽음",
       "ready": "준비"
     },
+    "plan": {
+      "cos_plan": "참모총장의 안",
+      "cos_scale": "같은 안, 규모를 달리해",
+      "help_ally": "동맹 지원",
+      "hold_all": "전 전선 유지",
+      "other_front": "다른 전선"
+    },
+    "plan_why": {
+      "army": "참모본부가 이 안을 받지 않는다.",
+      "no_shells": "그만한 포탄이 없다."
+    },
     "reason": {
+      "army_grows": "군이 전쟁을 더 많이 쥐었다.",
+      "bad_luck": "그 공세는 운이 나빴다.",
+      "concession_made": "양보로 거리가 잠시 가라앉았다.",
+      "countersign_refused": "수상이 더는 부서하지 않으려 한다.",
+      "credits_for_reform": "공채는 개혁 약속을 값으로 통과했다.",
+      "fell_ill": "건강을 잃고 자리를 떠났다.",
+      "front_balkan_lost": "발칸: 우리에게 불리하게 갔다.",
+      "front_balkan_won": "발칸: 우리 쪽으로 기울었다.",
+      "front_caucasus_lost": "캅카스: 우리에게 불리하게 갔다.",
+      "front_caucasus_won": "캅카스: 우리 쪽으로 기울었다.",
+      "front_colonies_lost": "식민지: 우리에게 불리하게 갔다.",
+      "front_colonies_won": "식민지: 우리 쪽으로 기울었다.",
+      "front_east_lost": "동부 전선: 우리에게 불리하게 갔다.",
+      "front_east_won": "동부 전선: 우리 쪽으로 기울었다.",
+      "front_italy_lost": "이탈리아 전선: 우리에게 불리하게 갔다.",
+      "front_italy_won": "이탈리아 전선: 우리 쪽으로 기울었다.",
+      "front_mesopotamia_lost": "메소포타미아: 우리에게 불리하게 갔다.",
+      "front_mesopotamia_won": "메소포타미아: 우리 쪽으로 기울었다.",
+      "front_palestine_lost": "팔레스타인: 우리에게 불리하게 갔다.",
+      "front_palestine_won": "팔레스타인: 우리 쪽으로 기울었다.",
+      "front_sea_lost": "바다: 우리에게 불리하게 갔다.",
+      "front_sea_won": "바다: 우리 쪽으로 기울었다.",
+      "front_straits_lost": "해협: 우리에게 불리하게 갔다.",
+      "front_straits_won": "해협: 우리 쪽으로 기울었다.",
+      "front_west_lost": "서부 전선: 우리에게 불리하게 갔다.",
+      "front_west_won": "서부 전선: 우리 쪽으로 기울었다.",
+      "held_firm": "밀어붙였고, 거리는 그것을 기억한다.",
+      "letter_came": "사직서가 오고 있다.",
+      "letter_refused": "사직서를 돌려주었다.",
+      "peace_refused": "중개인을 돌려보냈다.",
+      "person_ailing": "가까운 사람의 건강이 기운다.",
+      "plan_by_default": "아무도 서명하지 않아 참모총장의 안대로 갔다.",
       "proxy_signed": "시간이 다 되어 서류가 대행으로 처리되었다.",
-      "sample_waited": "빈에 대한 답을 미뤘다."
+      "reichstag_cools": "어려운 때라 제국의회가 식었다.",
+      "report_corrected": "보고가 틀렸고 정정이 왔다.",
+      "resigned": "사직하고 떠났다.",
+      "rival_resents": "경쟁자가 그 총애를 언짢아한다.",
+      "sample_waited": "빈에 대한 답을 미뤘다.",
+      "successor_named": "빈자리를 후임이 맡았다.",
+      "unrest_1": "파업이 시작됐다.",
+      "unrest_2": "폭동이 났다.",
+      "unrest_3": "군이 동요한다.",
+      "unrest_4": "혁명이 됐다."
+    },
+    "result": {
+      "advance": "전진",
+      "break": "돌파",
+      "quiet": "조용함",
+      "repelled": "격퇴",
+      "stalemate": "교착"
+    },
+    "secret": {
+      "anglo_russian_naval_talks": "영국과 러시아는 해군 회담을 하고 있었다.",
+      "auh_rail_muddle": "빈의 철도 시간표는 엉켜 있었다.",
+      "bel_forts_strong": "벨기에 요새는 참모부 계산보다 단단했다.",
+      "bgr_loan_berlin": "불가리아 차관은 베를린에서 나왔다.",
+      "deu_shell_stock_thin": "예비 포탄은 장부보다 적었다.",
+      "fra_offensive_doctrine": "프랑스의 공세 교리는 국경에서 군을 소모할 것이었다.",
+      "ita_fra_understanding": "이탈리아는 프랑스와 사사로운 양해가 있었다.",
+      "jpn_tsingtao_plan": "일본에는 칭다오 계획이 준비되어 있었다.",
+      "ott_fleet_late": "오스만 군함 인도는 제때 오지 않을 일이었다.",
+      "rou_treaty_dead": "루마니아 조약은 이미 죽어 있었다.",
+      "rus_rail_ahead": "러시아 철도는 예정보다 빨랐다.",
+      "srb_officers_plot": "세르비아 장교들은 음모를 알고 있었다."
+    },
+    "source": {
+      "agents": "첩보원",
+      "attache": "무관",
+      "embassy_london": "런던 대사관",
+      "embassy_paris": "파리 대사관",
+      "embassy_petersburg": "페테르부르크 대사관",
+      "embassy_vienna": "빈 대사관",
+      "press": "신문",
+      "staff": "참모부 추정"
+    },
+    "stamp": {
+      "confirmed": "확인",
+      "estimate": "추정",
+      "unconfirmed": "미확인"
     },
     "tell": {
+      "ally": "동맹",
       "army": "군부",
+      "authority": "권위",
+      "casualties_high": "큰 사상자",
+      "casualties_low": "작은 사상자",
+      "ends_game": "판이 끝남",
+      "leaves": "자리를 떠남",
+      "money": "돈",
+      "order": "질서",
+      "reichstag": "제국의회",
+      "shells": "포탄",
       "temp": "온도",
       "trust": "신뢰"
+    },
+    "theatre": {
+      "balkan": "발칸",
+      "caucasus": "캅카스",
+      "colonies": "식민지",
+      "east": "동부 전선",
+      "italy": "이탈리아 전선",
+      "mesopotamia": "메소포타미아",
+      "palestine": "팔레스타인",
+      "sea": "바다",
+      "straits": "해협",
+      "west": "서부 전선"
+    },
+    "thread": {
+      "alsace_unrest": "알자스의 불안",
+      "baghdad_rail": "바그다드 철도",
+      "ireland": "아일랜드의 고비",
+      "naval_race": "해군 경쟁",
+      "poland": "폴란드 문제",
+      "reichstag_left": "제국의회의 좌파",
+      "rus_rail": "러시아 철도 차관",
+      "us_loans": "미국 차관"
     }
   }
 }

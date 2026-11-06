@@ -16,6 +16,7 @@ import {
 import type { GreatWar } from "./GreatWar";
 import { readyBlock, summonable } from "./Orders";
 import { ctxOf, optionOpen, pickVariant, sceneOf } from "./SceneRun";
+import { worldView } from "./WorldView";
 
 function cardView(
   gw: GreatWar,
@@ -87,6 +88,7 @@ function seatView(gw: GreatWar, seat: GwSeatState): GwSeatView {
     alloc: seat.alloc,
     log: seat.log,
     readyBlock: readyBlock(seat),
+    world: worldView(gw, seat),
   };
 }
 

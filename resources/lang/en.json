@@ -1963,6 +1963,12 @@
     "territory_sat_label": "Territory saturation"
   },
   "gw": {
+    "ai": {
+      "cautious": "cautious",
+      "hardline": "hardline",
+      "opportunist": "opportunist",
+      "principled": "principled"
+    },
     "country": {
       "AFG": "Afghanistan",
       "ALB": "Albania",
@@ -2016,6 +2022,229 @@
       "USA": "United States",
       "VEN": "Venezuela"
     },
+    "ending": {
+      "armistice_conference": "Armistice and Conference",
+      "closing": "The End",
+      "compromise_peace": "Peace by Compromise",
+      "deadline": "The War Runs Out",
+      "first_winter_ahead": "The First Winter: Ahead",
+      "first_winter_behind": "The First Winter: Behind",
+      "first_winter_level": "The First Winter: Deadlock",
+      "home_collapse": "Collapse at Home",
+      "long_peace": "The Long Peace",
+      "victory_peace": "Peace of Victory"
+    },
+    "fact": {
+      "force": {
+        "1": "very weak",
+        "2": "weak",
+        "3": "middling",
+        "4": "strong",
+        "5": "very strong"
+      },
+      "lean": {
+        "0": "will stay out or go the other way",
+        "1": "is divided",
+        "2": "will come in"
+      },
+      "mob": {
+        "0": "not mobilizing",
+        "1": "partial mobilization",
+        "2": "general mobilization"
+      },
+      "morale": {
+        "0": "broken",
+        "1": "very low",
+        "2": "low",
+        "3": "steady",
+        "4": "good",
+        "5": "high"
+      },
+      "shells": {
+        "0": "out of shells",
+        "1": "short of shells",
+        "2": "enough shells",
+        "3": "plenty of shells"
+      }
+    },
+    "front": {
+      "balkan": {
+        "belgrade": "Belgrade",
+        "drina": "the Drina",
+        "nis": "Niš",
+        "salonika": "Salonika"
+      },
+      "caucasus": {
+        "erzurum": "Erzurum",
+        "kars": "Kars",
+        "trabzon": "Trabzon",
+        "van": "Van"
+      },
+      "colonies": {
+        "east_africa": "East Africa",
+        "kamerun": "Kamerun",
+        "southwest": "South West Africa",
+        "togo": "Togoland"
+      },
+      "east": {
+        "dvina": "the Dvina",
+        "east_prussia": "East Prussia",
+        "kiev": "Kiev",
+        "oder": "the Oder",
+        "riga": "Riga",
+        "vistula": "the Vistula",
+        "warsaw": "Warsaw"
+      },
+      "italy": {
+        "adige": "the Adige",
+        "isonzo": "the Isonzo",
+        "piave": "the Piave",
+        "trentino": "Trentino"
+      },
+      "mesopotamia": {
+        "baghdad": "Baghdad",
+        "basra": "Basra",
+        "kut": "Kut",
+        "mosul": "Mosul"
+      },
+      "palestine": {
+        "damascus": "Damascus",
+        "gaza": "Gaza",
+        "jerusalem": "Jerusalem",
+        "suez": "Suez"
+      },
+      "sea": {
+        "atlantic": "the Atlantic",
+        "blockade": "Tight blockade",
+        "channel": "the Channel",
+        "north_sea": "the North Sea"
+      },
+      "straits": {
+        "constantinople": "Constantinople",
+        "dardanelles": "the Dardanelles",
+        "gallipoli": "Gallipoli",
+        "narrows": "the Narrows"
+      },
+      "west": {
+        "aisne": "the Aisne",
+        "hindenburg": "the Hindenburg line",
+        "liege": "Liège",
+        "marne": "the Marne",
+        "paris": "Paris",
+        "rhine": "the Rhine",
+        "somme": "the Somme"
+      }
+    },
+    "gauge": {
+      "bread": {
+        "0": "Gone",
+        "1": "Tight",
+        "2": "Enough",
+        "3": "Plenty"
+      },
+      "money": {
+        "0": "Empty",
+        "1": "Strained",
+        "2": "Sound",
+        "3": "Ample"
+      },
+      "morale": {
+        "0": "Broken",
+        "1": "Low",
+        "2": "Steady",
+        "3": "High"
+      },
+      "order": {
+        "0": "Breaking",
+        "1": "Uneasy",
+        "2": "Calm",
+        "3": "Firm"
+      },
+      "shells": {
+        "0": "Gone",
+        "1": "Tight",
+        "2": "Enough",
+        "3": "Plenty"
+      }
+    },
+    "gauge_name": {
+      "bread": "Bread",
+      "money": "Money",
+      "morale": "Morale",
+      "order": "Order",
+      "shells": "Shells"
+    },
+    "line": {
+      "bread_blockade": "The blockade cut imports.",
+      "bread_harvest": "The harvest came in.",
+      "bread_rail": "The railways can no longer carry grain to the cities.",
+      "bread_uboats": "Submarines sank the grain ships.",
+      "casualty_lists": "The casualty lists were long.",
+      "front_lost": "A front gave way.",
+      "front_won": "A front moved forward.",
+      "money_war_costs": "The war eats credit.",
+      "order_casualties": "Too many families have had the telegram.",
+      "order_despair": "People have stopped believing the communiques.",
+      "order_hunger": "There is no bread in the shops.",
+      "order_unpaid": "Wages and pensions are late.",
+      "shells_badly_run": "The war ministry lost a month to its own papers.",
+      "shells_made": "The factories delivered.",
+      "shells_spent": "The offensive used up the stock.",
+      "shells_stock_thin": "The reserve turned out smaller than the books said.",
+      "shells_well_run": "The war ministry found another month of output."
+    },
+    "mandate": {
+      "deu_bread_for_the_winter": "Have bread for the winter",
+      "deu_chancellor_stays": "Keep the chancellor signing",
+      "deu_east_prussia_holds": "Keep East Prussia",
+      "deu_keep_britain_out": "Keep Britain out of the war",
+      "deu_master_of_the_army": "Stay master of the army",
+      "deu_no_great_war": "End without a great war",
+      "deu_paris_by_winter": "Stand on the Aisne or beyond by the end",
+      "deu_quiet_streets": "Keep the streets quiet",
+      "deu_reichstag_with_you": "Keep the Reichstag with you",
+      "deu_shells_in_store": "Have shells in store",
+      "deu_small_butcher_bill": "Lose fewer than 500,000 men",
+      "deu_vienna_stands": "See Vienna stand"
+    },
+    "news": {
+      "america_entered": "America has entered the war.",
+      "belgium_invaded": "Germany has crossed into Belgium.",
+      "britain_entered": "Britain has declared war.",
+      "crisis_compromise": "The crisis closed with a compromise.",
+      "crisis_fizzled": "The crisis ran out.",
+      "crisis_humiliation": "Vienna backed down.",
+      "crisis_war": "The powers are at war.",
+      "entered_war": "{a} has entered the war.",
+      "front_advance": "{a} advances: {theatre}.",
+      "front_break": "{a} has broken through: {theatre}.",
+      "front_opened": "A new front has opened: {theatre}.",
+      "front_repelled": "{a} was thrown back: {theatre}.",
+      "link_draft": "Vienna is drafting something.",
+      "link_general": "The great powers are mobilizing.",
+      "link_local_war": "Vienna and Belgrade are at the brink.",
+      "link_shot": "An archduke was shot at Sarajevo.",
+      "link_ultimatum": "An ultimatum has gone to Belgrade.",
+      "link_vienna": "Vienna has sent to Berlin.",
+      "nation_beaten": "{a} is out of the war.",
+      "nation_collapsed": "{a} has collapsed.",
+      "shot_fired": "Shots at Sarajevo.",
+      "spark_balkan": "The Balkans have caught fire again.",
+      "spark_colonial": "Gunboats off Morocco again.",
+      "spark_straits": "The Straits are in question.",
+      "unrest_1": "Strikes in {a}.",
+      "unrest_2": "Riots in {a}.",
+      "unrest_3": "The army of {a} is restless.",
+      "unrest_4": "Revolution in {a}.",
+      "war_declared": "{a} is at war."
+    },
+    "odds": {
+      "0": "It cannot be done.",
+      "1": "Doubtful.",
+      "2": "Even.",
+      "3": "Likely.",
+      "4": "Certain."
+    },
     "office": {
       "ambassador_london": "Ambassador in London",
       "ambassador_paris": "Ambassador in Paris",
@@ -2039,14 +2268,134 @@
       "read": "Read",
       "ready": "Ready"
     },
+    "plan": {
+      "cos_plan": "The chief's plan",
+      "cos_scale": "The same, on another scale",
+      "help_ally": "Help the ally",
+      "hold_all": "Hold everywhere",
+      "other_front": "The other front"
+    },
+    "plan_why": {
+      "army": "The General Staff will not carry this out.",
+      "no_shells": "There are not the shells for it."
+    },
     "reason": {
+      "army_grows": "The army took more of the war into its own hands.",
+      "bad_luck": "The attack had bad luck.",
+      "concession_made": "A concession bought quiet in the streets.",
+      "countersign_refused": "The chancellor will not put his name to more.",
+      "credits_for_reform": "The credits passed at the price of a promise of reform.",
+      "fell_ill": "He left office, his health gone.",
+      "front_balkan_lost": "The Balkans: it went against us.",
+      "front_balkan_won": "The Balkans: it went our way.",
+      "front_caucasus_lost": "The Caucasus: it went against us.",
+      "front_caucasus_won": "The Caucasus: it went our way.",
+      "front_colonies_lost": "The Colonies: it went against us.",
+      "front_colonies_won": "The Colonies: it went our way.",
+      "front_east_lost": "Eastern Front: it went against us.",
+      "front_east_won": "Eastern Front: it went our way.",
+      "front_italy_lost": "Italian Front: it went against us.",
+      "front_italy_won": "Italian Front: it went our way.",
+      "front_mesopotamia_lost": "Mesopotamia: it went against us.",
+      "front_mesopotamia_won": "Mesopotamia: it went our way.",
+      "front_palestine_lost": "Palestine: it went against us.",
+      "front_palestine_won": "Palestine: it went our way.",
+      "front_sea_lost": "The Sea: it went against us.",
+      "front_sea_won": "The Sea: it went our way.",
+      "front_straits_lost": "The Straits: it went against us.",
+      "front_straits_won": "The Straits: it went our way.",
+      "front_west_lost": "Western Front: it went against us.",
+      "front_west_won": "Western Front: it went our way.",
+      "held_firm": "You held firm and the street remembers.",
+      "letter_came": "A resignation letter is on its way.",
+      "letter_refused": "You handed the letter back.",
+      "peace_refused": "You sent the go-between away.",
+      "person_ailing": "Someone close to you is failing.",
+      "plan_by_default": "Nobody signed, so the chief's own plan stood.",
       "proxy_signed": "The paper was signed by proxy when time ran out.",
-      "sample_waited": "You put off the answer to Vienna."
+      "reichstag_cools": "Hard times cost you the Reichstag.",
+      "report_corrected": "A report turned out wrong and was corrected.",
+      "resigned": "He resigned and left.",
+      "rival_resents": "A rival took your favour badly.",
+      "sample_waited": "You put off the answer to Vienna.",
+      "successor_named": "The empty office was filled.",
+      "unrest_1": "Strikes have started.",
+      "unrest_2": "There are riots.",
+      "unrest_3": "The army is restless.",
+      "unrest_4": "It has become a revolution."
+    },
+    "result": {
+      "advance": "Advance",
+      "break": "Breakthrough",
+      "quiet": "Quiet",
+      "repelled": "Repelled",
+      "stalemate": "Stalemate"
+    },
+    "secret": {
+      "anglo_russian_naval_talks": "Britain and Russia were talking about their navies.",
+      "auh_rail_muddle": "Vienna's railway timetable was in disorder.",
+      "bel_forts_strong": "Belgium's forts were stronger than the staff reckoned.",
+      "bgr_loan_berlin": "Bulgaria's loan came from Berlin.",
+      "deu_shell_stock_thin": "The shell reserve was thinner than the books said.",
+      "fra_offensive_doctrine": "France's doctrine would spend its army at the frontier.",
+      "ita_fra_understanding": "Italy had a private understanding with France.",
+      "jpn_tsingtao_plan": "Japan had a plan for Tsingtao ready.",
+      "ott_fleet_late": "The Ottoman warships were not going to arrive on time.",
+      "rou_treaty_dead": "The treaty with Romania was already dead.",
+      "rus_rail_ahead": "Russia's railways were ahead of schedule.",
+      "srb_officers_plot": "Serbian officers knew of the plot."
+    },
+    "source": {
+      "agents": "Agents",
+      "attache": "Military attaché",
+      "embassy_london": "London embassy",
+      "embassy_paris": "Paris embassy",
+      "embassy_petersburg": "St Petersburg embassy",
+      "embassy_vienna": "Vienna embassy",
+      "press": "The press",
+      "staff": "General Staff estimate"
+    },
+    "stamp": {
+      "confirmed": "Confirmed",
+      "estimate": "Estimate",
+      "unconfirmed": "Unconfirmed"
     },
     "tell": {
+      "ally": "Allies",
       "army": "Army",
+      "authority": "Authority",
+      "casualties_high": "Heavy casualties",
+      "casualties_low": "Light casualties",
+      "ends_game": "Ends the game",
+      "leaves": "Leaves office",
+      "money": "Money",
+      "order": "Order",
+      "reichstag": "Reichstag",
+      "shells": "Shells",
       "temp": "Crisis",
       "trust": "Trust"
+    },
+    "theatre": {
+      "balkan": "The Balkans",
+      "caucasus": "The Caucasus",
+      "colonies": "The Colonies",
+      "east": "Eastern Front",
+      "italy": "Italian Front",
+      "mesopotamia": "Mesopotamia",
+      "palestine": "Palestine",
+      "sea": "The Sea",
+      "straits": "The Straits",
+      "west": "Western Front"
+    },
+    "thread": {
+      "alsace_unrest": "Unrest in Alsace",
+      "baghdad_rail": "The Baghdad railway",
+      "ireland": "Ireland on the edge",
+      "naval_race": "The naval race",
+      "poland": "The Polish question",
+      "reichstag_left": "The left in the Reichstag",
+      "rus_rail": "Russian railway loans",
+      "us_loans": "American loans"
     }
   },
   "heads_up_message": {

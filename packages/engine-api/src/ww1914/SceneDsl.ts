@@ -28,6 +28,12 @@ import {
   GwTopic,
 } from "./GreatWarTypes";
 import { GW_TAGS, GwTag } from "./GwCountries";
+import {
+  GwWorldCond,
+  GwWorldCondSchema,
+  GwWorldEffect,
+  GwWorldEffectSchema,
+} from "./WorldDsl";
 
 /** A person in a scene: a cast role, whoever holds an office, or a name. */
 export type GwWho =
@@ -60,7 +66,8 @@ export type GwCond =
   | { kind: "pride"; who: GwWho; min?: number; max?: number }
   | { kind: "temperament"; who: GwWho; of: GwTemperament[] }
   | { kind: "leans"; who: GwWho; camp: GwCamp }
-  | { kind: "promise"; who: GwWho; key: string; kept?: boolean };
+  | { kind: "promise"; who: GwWho; key: string; kept?: boolean }
+  | { kind: "world"; of: GwWorldCond };
 
 export type GwEffect =
   | { kind: "flag"; flag: string }
@@ -83,7 +90,8 @@ export type GwEffect =
   | { kind: "source"; source: GwSource; right: boolean }
   | { kind: "reason"; key: string }
   | { kind: "end"; ending: string }
-  | { kind: "maybe"; when: GwCond; then: GwEffect[] };
+  | { kind: "maybe"; when: GwCond; then: GwEffect[] }
+  | { kind: "world"; of: GwWorldEffect };
 
 const int = z.number().int();
 const range = { min: int.optional(), max: int.optional() };
@@ -136,6 +144,7 @@ export const GwCondSchema: z.ZodType<GwCond> = z.lazy(() =>
       key: GwIdSchema,
       kept: z.boolean().optional(),
     }),
+    obj("world", { of: GwWorldCondSchema }),
   ]),
 ) as z.ZodType<GwCond>;
 
@@ -166,6 +175,7 @@ export const GwEffectSchema: z.ZodType<GwEffect> = z.lazy(() =>
     obj("reason", { key: GwIdSchema }),
     obj("end", { ending: GwIdSchema }),
     obj("maybe", { when: GwCondSchema, then: z.array(GwEffectSchema) }),
+    obj("world", { of: GwWorldEffectSchema }),
   ]),
 ) as z.ZodType<GwEffect>;
 
@@ -204,6 +214,8 @@ export const GwCastRuleSchema = z.union([
   z.object({ person: GwIdSchema }).strict(),
   /** The minister the head of state trusts least. */
   z.object({ rival: z.literal(true) }).strict(),
+  /** The person a world scene is about (seat.subjects[scene id]). */
+  z.object({ subject: z.literal(true) }).strict(),
 ]);
 export type GwCastRule = z.infer<typeof GwCastRuleSchema>;
 

@@ -1,15 +1,31 @@
 import { GwSeatState } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import { gwChapters } from "@openfront/engine-lib/ww1914/Calendars";
+import { aiStep } from "./Ai";
+import { crisisStep } from "./Crises";
 import { dealDesk } from "./Desk";
+import { closeGame, endingStep, finalEnding } from "./Endings";
+import { frontsStep } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
+import { homeStep } from "./Home";
+import { intelStep } from "./Intel";
+import { peopleStep } from "./People";
 import { closeUndecided } from "./SceneRun";
+import { trimLines } from "./World";
 
 /**
  * What runs when a chapter closes, in this order, after open cards took
  * their fallback and before the next chapter's date. The war, the home front
  * and the AI each add their step here (append; the order is the simulation).
  */
-export const GW_CHAPTER_STEPS: readonly ((gw: GreatWar) => void)[] = [];
+export const GW_CHAPTER_STEPS: readonly ((gw: GreatWar) => void)[] = [
+  crisisStep,
+  frontsStep,
+  homeStep,
+  peopleStep,
+  aiStep,
+  intelStep,
+  endingStep,
+];
 
 /** Seats that count for "everyone is ready": a dropped friend doesn't. */
 function waitedFor(gw: GreatWar, seat: GwSeatState): boolean {
@@ -44,12 +60,17 @@ export function advanceChapter(
 ): void {
   const s = gw.s;
   for (const seat of s.seats) closeUndecided(gw, seat, late);
-  for (const step of GW_CHAPTER_STEPS) step(gw);
+  for (const seat of s.seats) trimLines(gw, seat);
+  for (const step of GW_CHAPTER_STEPS) {
+    step(gw);
+    if (s.ended !== null) break;
+  }
   gw.touch();
-  if (s.ended !== null) return;
-  if (s.chapter + 1 >= gwChapters(s.calendar).length) {
-    s.ended = "closing";
-    s.deadlineTick = null;
+  if (s.ended === null && s.chapter + 1 >= gwChapters(s.calendar).length) {
+    s.ended = finalEnding(gw);
+  }
+  if (s.ended !== null) {
+    closeGame(gw);
     return;
   }
   s.chapter++;

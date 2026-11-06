@@ -23,6 +23,8 @@ import {
 import { gwChapters } from "@openfront/engine-lib/ww1914/Calendars";
 import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
 import type { GreatWar } from "./GreatWar";
+import { dismissPerson, onAppointed } from "./People";
+import { worldEffect, worldHolds } from "./WorldDsl";
 
 /** What conditions and effects run against. */
 export interface SceneCtx {
@@ -41,7 +43,7 @@ export function sceneOf(id: string): GwScene | null {
   return gwContent().scenes.find((x) => x.id === id) ?? null;
 }
 
-function holderOf(gw: GreatWar, seat: GwSeatState, o: GwOffice) {
+export function holderOf(gw: GreatWar, seat: GwSeatState, o: GwOffice) {
   const mine = new Set(
     gwContent()
       .people.filter((p) => p.tag === seat.tag)
@@ -68,6 +70,9 @@ export function castOf(
     } else if ("person" in rule) {
       const named = gw.person(rule.person);
       p = named?.status === "active" ? named : null;
+    } else if ("subject" in rule) {
+      const id = seat.subjects[scene.id];
+      p = id === undefined ? null : gw.person(id);
     } else {
       const defs = gwContent().people.filter((d) => d.tag === seat.tag);
       const ministers = gw.s.people
@@ -94,6 +99,8 @@ function who(ctx: SceneCtx, w: GwWho): GwPersonState | null {
   if ("office" in w) return holderOf(ctx.gw, ctx.seat, w.office);
   return ctx.gw.person(w.person);
 }
+
+export const whoIn = who;
 
 /** Exhaustive: a new kind in the DSL fails to compile here until it runs. */
 export function holds(ctx: SceneCtx, c: GwCond): boolean {
@@ -171,6 +178,8 @@ export function holds(ctx: SceneCtx, c: GwCond): boolean {
           (c.kept === undefined || x.kept === c.kept),
       );
     }
+    case "world":
+      return worldHolds(ctx, c.of);
   }
 }
 
@@ -183,6 +192,7 @@ export function setOffice(
   const old = holderOf(ctx.gw, ctx.seat, office);
   if (old !== null) old.office = null;
   person.office = office;
+  onAppointed(ctx.gw, person.id);
 }
 
 /** Exhaustive, as `holds` is. An effect on nobody does nothing. */
@@ -282,7 +292,7 @@ export function runEffect(ctx: SceneCtx, e: GwEffect): void {
       return;
     case "dismiss": {
       const p = who(ctx, e.who);
-      if (p !== null) p.office = null;
+      if (p !== null) dismissPerson(ctx.gw, ctx.seat, p);
       return;
     }
     case "appoint": {
@@ -306,6 +316,9 @@ export function runEffect(ctx: SceneCtx, e: GwEffect): void {
       return;
     case "maybe":
       if (holds(ctx, e.when)) runEffects(ctx, e.then);
+      return;
+    case "world":
+      worldEffect(ctx, e.of);
       return;
   }
 }

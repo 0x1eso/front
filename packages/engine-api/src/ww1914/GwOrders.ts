@@ -63,5 +63,8 @@ export const GW_ORDER_BLOCKS = [
   "no_person",
   "no_audience",
   "no_topic",
+  "no_authority",
+  "signed",
+  "not_proposed",
 ] as const;
 export type GwOrderBlock = (typeof GW_ORDER_BLOCKS)[number];
