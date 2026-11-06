@@ -452,6 +452,29 @@ describe("the automatic companies in the game", () => {
     expect(line.def.support).not.toContain("recon");
   }, 60_000);
 
+  it("a division short only of company gear shows its company, not a division at 0 % equipment", async () => {
+    const { l, id, cl, setGear, check } = await played();
+    const line = cl.templates[0];
+    setGear("support_equipment", 1_000_000);
+    check();
+    expect(line.def.support).toContain("engineer");
+    const rows = l
+      .rowsOf(id)
+      .filter((r) => l.divisions.template[r] === line.id)
+      .map((r) => l.divisions.id[r]);
+    expect(rows.length).toBeGreaterThan(0);
+    const mine = l
+      .countryDetail(cl)
+      .divisions.filter((d) => rows.includes(d.id));
+    expect(mine.length).toBe(rows.length);
+    // The refit hasn't brought any support gear yet: the company says so, the
+    // division itself isn't reported short of equipment.
+    for (const d of mine) {
+      expect(d.companies?.find((c) => c.id === "engineer")?.pm).toBe(0);
+      expect(d.equipPm).toBe(1000);
+    }
+  }, 60_000);
+
   it("a human's edit turns them off, the switch turns them on, a save by the rule doesn't", async () => {
     const { runner, l, id, cl, setGear, check } = await played();
     const line = cl.templates[0];
