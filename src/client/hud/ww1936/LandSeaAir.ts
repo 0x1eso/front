@@ -198,7 +198,8 @@ export function fleetShipsOf(
   }
   const out: [ShipClass, number, number, number][] = [];
   SHIP_CLASSES.forEach((cls, i) => {
-    for (let k = 0; k < (f.counts[i] ?? 0); k++) out.push([cls, 1, f.hpPm, 0]);
+    for (let k = 0; k < (f.counts[i] ?? 0); k++)
+      out.push([cls, 1, f.hpPm, f.designs?.[out.length] ?? 0]);
   });
   return out;
 }
