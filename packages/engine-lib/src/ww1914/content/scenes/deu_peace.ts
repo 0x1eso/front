@@ -226,7 +226,7 @@ const SCENES: readonly GwScene[] = [
     ],
   }),
   decision("deu_w_peace_vienna", {
-    when: all(chapter(9, 10), peace),
+    when: all(chapter(10, 10), peace),
     cast: {
       foreign: holder("foreign"),
       ambassador: holder("ambassador_vienna"),
@@ -250,7 +250,7 @@ const SCENES: readonly GwScene[] = [
     salience: 4,
     tags: ["foreign", "tension_down"],
     once: false,
-    cooldown: 1,
+    cooldown: 0,
     stamp: "confirmed",
     source: "press",
     variants: [
@@ -258,6 +258,7 @@ const SCENES: readonly GwScene[] = [
       { id: "caillaux" },
       { id: "ulster" },
       { id: "unions" },
+      { id: "budget" },
     ],
   }),
   decision("deu_w_late_mobilise", {
