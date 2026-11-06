@@ -156,7 +156,7 @@ const trustAny = (tags: GwTag[], max: number): Loose =>
   any(...tags.map((tag) => ({ kind: "trust", tag, max })));
 /** Our own tag is never below 0, so the list serves both of that side's seats. */
 const allyCold = any(
-  all(central, trustAny(["DEU", "AUH", "OTT", "BGR"], -1)),
+  all(central, trustAny(CENTRAL, -1)),
   all(entente, trustAny(["FRA", "GBR", "RUS", "ITA"], -1)),
 );
 
@@ -173,7 +173,7 @@ const trust = (tag: GwTag, delta: number): Loose => ({
 const ally = (delta: number): Loose[] => [
   maybe(
     central,
-    (["DEU", "AUH", "OTT", "BGR"] as GwTag[]).map((t) => trust(t, delta)),
+    CENTRAL.map((t) => trust(t, delta)),
   ),
   maybe(
     entente,
@@ -386,6 +386,7 @@ const RAW: Loose[] = [
         "pless",
         all(central, since("1916-09"), fighting("BGR"), fighting("OTT")),
       ),
+      v("central_late", all(central, since("1917-01"))),
       v("base"),
     ],
     [
@@ -417,10 +418,11 @@ const RAW: Loose[] = [
     cast: {},
     salience: 4,
     tags: foreignDown,
-    cooldown: 8,
+    cooldown: 14,
     variants: [
       v("shells", chose("gw_d_ally_shells", "refuse")),
       v("summit", chose("gw_d_ally_summit", "own_plan")),
+      v("second"),
       v("base"),
     ],
   },
@@ -612,7 +614,7 @@ const RAW: Loose[] = [
     but("RUS"),
     7,
     foreignDown,
-    all(redRussia, date("1917-11", "1918-01")),
+    all(redRussia, date("1917-11", "1918-06")),
     { fm },
     [v("central", central), v("entente", entente), v("base")],
     [
@@ -879,7 +881,12 @@ const RAW: Loose[] = [
     foreign,
     all(war, date("1915-01", "1917-06")),
     { fm, fin },
-    [v("central", central), v("base")],
+    [
+      v("central_late", all(central, since("1916-07"))),
+      v("central", central),
+      v("base_late", since("1916-07")),
+      v("base"),
+    ],
     [
       opt("leave", [], []),
       opt(
@@ -1124,6 +1131,7 @@ const RAW: Loose[] = [
       v("salonika", all(entente, since("1915-10"), until("1917-06"))),
       v("straits", all(entente, until("1915-09"))),
       v("trentino", all(central, date("1916-01", "1916-12"), inWar("ITA"))),
+      v("tired", since("1916-01")),
       v("base"),
     ],
     [
@@ -1161,6 +1169,10 @@ const RAW: Loose[] = [
     [
       v("borrow_rus", all(seatRUS, { kind: "gauge", gauge: "money", max: 1 })),
       v("borrow_auh", all(seatAUH, { kind: "gauge", gauge: "money", max: 1 })),
+      v(
+        "banker_late",
+        all({ kind: "gauge", gauge: "money", max: 1 }, since("1917-01")),
+      ),
       v("banker_poor", { kind: "gauge", gauge: "money", max: 1 }),
       v("base"),
     ],
@@ -1189,7 +1201,7 @@ const RAW: Loose[] = [
         [gauge("money", 1), ...ally(-1), why("d_money_gold")],
       ),
     ],
-    8,
+    12,
   ),
   paper(
     "gw_d_offer_card",
@@ -1207,6 +1219,7 @@ const RAW: Loose[] = [
     ),
     { fm },
     [
+      v("again", chose("gw_d_offer_card", "accept")),
       v(
         "ott_hard",
         all(central, {
@@ -1233,7 +1246,7 @@ const RAW: Loose[] = [
       ),
       opt("counter", ["manpower:+3", "ally:-1"], [manpower(3), ...ally(-1)]),
     ],
-    6,
+    10,
   ),
 
   // Treaties between friends (lane M's flags; alone at the table, none come).

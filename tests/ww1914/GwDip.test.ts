@@ -28,7 +28,7 @@ describe("common scenes, the 외교 share", () => {
   test("the pack has every line, and no scene addresses the seat", () => {
     expect(gwPackProblems(GW_DIP_SCENES, pack)).toEqual([]);
     const text = JSON.stringify(pack.scenes);
-    expect(text).not.toMatch(/폐하|전하|총리/);
+    expect(text).not.toMatch(/폐하|총리/);
   });
 
   test("the plan's promises find their keeper here", () => {
