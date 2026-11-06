@@ -5085,7 +5085,7 @@
       "idle_factories": "{n} idle military factories",
       "imported": "Imported",
       "industry": "Industry",
-      "law_closes_deals": "Closes deals — tap again",
+      "law_closes_deals": "Cuts or pauses deals — tap again",
       "law_need": {
         "all_adults": "After a year of war",
         "extensive": "From 1938, or at war",

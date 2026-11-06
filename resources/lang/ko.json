@@ -4704,7 +4704,7 @@
       "idle_factories": "놀고 있는 군수 공장 {n}개",
       "imported": "수입",
       "industry": "산업",
-      "law_closes_deals": "거래가 닫힙니다 — 다시 누르기",
+      "law_closes_deals": "거래가 줄거나 멈춥니다 — 다시 누르기",
       "law_need": {
         "all_adults": "전쟁 1년 뒤",
         "extensive": "1938년부터 또는 전쟁 중",

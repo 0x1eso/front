@@ -1447,7 +1447,6 @@ export class WwEconomy {
    * its next whole building (1,000 of damage at most).
    */
   private repairPmOf(region: number): { repairPm?: number } {
-    if (this.damagedBits[region] === 0) return {};
     const n = BUILDING_IDS.length;
     for (const bi of REPAIR_ORDER) {
       const i = region * n + bi;
