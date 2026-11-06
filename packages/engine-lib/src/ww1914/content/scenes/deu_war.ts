@@ -153,6 +153,13 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
         },
       },
       {
+        id: "ret",
+        when: {
+          kind: "memory",
+          key: "m_returned_aug",
+        },
+      },
+      {
         id: "east",
         when: {
           kind: "flag",
@@ -267,6 +274,13 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
         },
       },
       {
+        id: "pair",
+        when: {
+          kind: "flag",
+          flag: "f_east_pair",
+        },
+      },
+      {
         id: "sea",
         when: {
           kind: "all",
@@ -364,6 +378,13 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
     once: true,
     variants: [
       {
+        id: "ypres",
+        when: {
+          kind: "flag",
+          flag: "f_ypres_attack",
+        },
+      },
+      {
         id: "thin",
         when: {
           kind: "gauge",
@@ -458,6 +479,13 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
     tags: ["war"],
     once: true,
     variants: [
+      {
+        id: "uchi",
+        when: {
+          kind: "flag",
+          flag: "f_corps_east",
+        },
+      },
       {
         id: "east",
         when: {
@@ -829,6 +857,13 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
     tags: ["war", "tension_up"],
     once: true,
     variants: [
+      {
+        id: "corps",
+        when: {
+          kind: "flag",
+          flag: "f_east_two_corps",
+        },
+      },
       {
         id: "gap",
         when: {
@@ -1455,6 +1490,13 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
     once: true,
     variants: [
       {
+        id: "hold",
+        when: {
+          kind: "flag",
+          flag: "f_marne_hold",
+        },
+      },
+      {
         id: "empty",
         when: {
           kind: "gauge",
@@ -1632,6 +1674,13 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
     tags: ["foreign", "tension_down"],
     once: true,
     variants: [
+      {
+        id: "aims",
+        when: {
+          kind: "flag",
+          flag: "f_aims_full",
+        },
+      },
       {
         id: "falk",
         when: {
@@ -2647,6 +2696,13 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
     once: true,
     variants: [
       {
+        id: "raid",
+        when: {
+          kind: "flag",
+          flag: "f_coast_raid",
+        },
+      },
+      {
         id: "u9",
         when: {
           kind: "flag",
@@ -3078,6 +3134,13 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
     once: true,
     variants: [
       {
+        id: "asked",
+        when: {
+          kind: "memory",
+          key: "m_asked_vienna_east",
+        },
+      },
+      {
         id: "cry",
         when: {
           kind: "trust",
@@ -3298,6 +3361,13 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
     tags: ["home"],
     once: true,
     variants: [
+      {
+        id: "aims",
+        when: {
+          kind: "flag",
+          flag: "f_aims_full",
+        },
+      },
       {
         id: "broke",
         when: {
@@ -4264,7 +4334,7 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
         {
           kind: "chapter",
           min: 6,
-          max: 8,
+          max: 9,
         },
         {
           kind: "any",
@@ -4288,6 +4358,13 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
     stamp: "confirmed",
     source: "press",
     variants: [
+      {
+        id: "ypres",
+        when: {
+          kind: "flag",
+          flag: "f_ypres_attack",
+        },
+      },
       {
         id: "long",
         when: {
@@ -4643,6 +4720,35 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
             tell: [],
             effects: [],
             next: "heart",
+            reacts: [
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  max: -2,
+                },
+                next: "closed",
+                effects: [],
+              },
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  min: 2,
+                },
+                next: "trusted",
+                effects: [
+                  {
+                    kind: "remember",
+                    key: "m_moltke_ill",
+                  },
+                ],
+              },
+            ],
           },
           {
             id: "push_stay",
@@ -4709,6 +4815,16 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
       },
       heart: {
         says: [
+          {
+            id: "weary",
+            when: {
+              kind: "temperament",
+              who: {
+                role: "who",
+              },
+              of: ["weary"],
+            },
+          },
           {
             id: "base",
           },
@@ -4842,6 +4958,40 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
           },
         ],
       },
+      closed: {
+        says: [
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "end",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      trusted: {
+        says: [
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "end",
+            stance: "warm",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
     },
   },
   {
@@ -4895,6 +5045,35 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
             tell: [],
             effects: [],
             next: "when",
+            reacts: [
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  max: -2,
+                },
+                next: "closed",
+                effects: [],
+              },
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  min: 2,
+                },
+                next: "trusted",
+                effects: [
+                  {
+                    kind: "remember",
+                    key: "k_moltke_window",
+                  },
+                ],
+              },
+            ],
           },
           {
             id: "push_now",
@@ -4932,6 +5111,56 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
             tell: [],
             effects: [],
             next: "doubt",
+            reacts: [
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  max: -2,
+                },
+                next: "closed",
+                effects: [],
+              },
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  min: 2,
+                },
+                next: "trusted",
+                effects: [
+                  {
+                    kind: "remember",
+                    key: "k_moltke_window",
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            id: "deal_it",
+            stance: "warm",
+            kind: "deal",
+            tell: [],
+            effects: [
+              {
+                kind: "promise",
+                who: {
+                  role: "who",
+                },
+                key: "moltke_bill",
+                chapters: 3,
+              },
+              {
+                kind: "remember",
+                key: "k_moltke_window",
+              },
+            ],
+            next: "dealt",
           },
           {
             id: "leave",
@@ -4945,6 +5174,16 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
       },
       when: {
         says: [
+          {
+            id: "anx",
+            when: {
+              kind: "temperament",
+              who: {
+                role: "who",
+              },
+              of: ["anxious"],
+            },
+          },
           {
             id: "base",
           },
@@ -5026,6 +5265,57 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
                 delta: -1,
               },
             ],
+            next: null,
+          },
+        ],
+      },
+      closed: {
+        says: [
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "end",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      trusted: {
+        says: [
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "end",
+            stance: "warm",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      dealt: {
+        says: [
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "end",
+            stance: "warm",
+            kind: "leave",
+            tell: [],
+            effects: [],
             next: null,
           },
         ],
@@ -5145,6 +5435,35 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
             tell: [],
             effects: [],
             next: "rail",
+            reacts: [
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  max: -2,
+                },
+                next: "closed",
+                effects: [],
+              },
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  min: 2,
+                },
+                next: "trusted",
+                effects: [
+                  {
+                    kind: "remember",
+                    key: "k_moltke_east",
+                  },
+                ],
+              },
+            ],
           },
           {
             id: "warm",
@@ -5153,6 +5472,56 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
             tell: [],
             effects: [],
             next: "half",
+            reacts: [
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  max: -2,
+                },
+                next: "closed",
+                effects: [],
+              },
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  min: 2,
+                },
+                next: "trusted",
+                effects: [
+                  {
+                    kind: "remember",
+                    key: "k_moltke_east",
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            id: "deal_it",
+            stance: "frank",
+            kind: "deal",
+            tell: [],
+            effects: [
+              {
+                kind: "promise",
+                who: {
+                  role: "who",
+                },
+                key: "moltke_east_blame",
+                chapters: 2,
+              },
+              {
+                kind: "remember",
+                key: "k_moltke_east",
+              },
+            ],
+            next: "dealt",
           },
           {
             id: "leave",
@@ -5293,6 +5662,57 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
           },
         ],
       },
+      closed: {
+        says: [
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "end",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      trusted: {
+        says: [
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "end",
+            stance: "warm",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      dealt: {
+        says: [
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "end",
+            stance: "warm",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
     },
   },
   {
@@ -5373,6 +5793,35 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
             tell: [],
             effects: [],
             next: "pay",
+            reacts: [
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  max: -2,
+                },
+                next: "closed",
+                effects: [],
+              },
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  min: 2,
+                },
+                next: "trusted",
+                effects: [
+                  {
+                    kind: "remember",
+                    key: "k_moltke_liege",
+                  },
+                ],
+              },
+            ],
           },
           {
             id: "push_without",
@@ -5426,6 +5875,56 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
               },
             ],
             next: "treaty",
+            reacts: [
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  max: -2,
+                },
+                next: "closed",
+                effects: [],
+              },
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  min: 2,
+                },
+                next: "trusted",
+                effects: [
+                  {
+                    kind: "remember",
+                    key: "k_moltke_liege",
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            id: "deal_it",
+            stance: "frank",
+            kind: "deal",
+            tell: [],
+            effects: [
+              {
+                kind: "promise",
+                who: {
+                  role: "who",
+                },
+                key: "moltke_belgium_name",
+                chapters: 2,
+              },
+              {
+                kind: "remember",
+                key: "k_moltke_liege",
+              },
+            ],
+            next: "dealt",
           },
           {
             id: "leave",
@@ -5524,6 +6023,57 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
           },
         ],
       },
+      closed: {
+        says: [
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "end",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      trusted: {
+        says: [
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "end",
+            stance: "warm",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      dealt: {
+        says: [
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "end",
+            stance: "warm",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
     },
   },
   {
@@ -5603,6 +6153,35 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
               },
             ],
             next: "letters",
+            reacts: [
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  max: -2,
+                },
+                next: "closed",
+                effects: [],
+              },
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  min: 2,
+                },
+                next: "trusted",
+                effects: [
+                  {
+                    kind: "remember",
+                    key: "k_moltke_nerves",
+                  },
+                ],
+              },
+            ],
           },
           {
             id: "what",
@@ -5640,6 +6219,56 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
             tell: [],
             effects: [],
             next: "letters",
+            reacts: [
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  max: -2,
+                },
+                next: "closed",
+                effects: [],
+              },
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  min: 2,
+                },
+                next: "trusted",
+                effects: [
+                  {
+                    kind: "remember",
+                    key: "k_moltke_nerves",
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            id: "deal_it",
+            stance: "warm",
+            kind: "deal",
+            tell: [],
+            effects: [
+              {
+                kind: "promise",
+                who: {
+                  role: "who",
+                },
+                key: "moltke_aide",
+                chapters: 1,
+              },
+              {
+                kind: "remember",
+                key: "k_moltke_nerves",
+              },
+            ],
+            next: "dealt",
           },
           {
             id: "leave",
@@ -5781,6 +6410,57 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
           },
         ],
       },
+      closed: {
+        says: [
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "end",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      trusted: {
+        says: [
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "end",
+            stance: "warm",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      dealt: {
+        says: [
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "end",
+            stance: "warm",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
     },
   },
   {
@@ -5855,6 +6535,35 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
               },
             ],
             next: "books",
+            reacts: [
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  max: -2,
+                },
+                next: "closed",
+                effects: [],
+              },
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  min: 2,
+                },
+                next: "trusted",
+                effects: [
+                  {
+                    kind: "remember",
+                    key: "m_moltke_said_east",
+                  },
+                ],
+              },
+            ],
           },
           {
             id: "ask_succ",
@@ -5863,6 +6572,35 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
             tell: [],
             effects: [],
             next: "succ",
+            reacts: [
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  max: -2,
+                },
+                next: "closed",
+                effects: [],
+              },
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  min: 2,
+                },
+                next: "trusted",
+                effects: [
+                  {
+                    kind: "remember",
+                    key: "m_moltke_said_east",
+                  },
+                ],
+              },
+            ],
           },
           {
             id: "blame",
@@ -5892,6 +6630,27 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
                 effects: [],
               },
             ],
+          },
+          {
+            id: "deal_it",
+            stance: "warm",
+            kind: "deal",
+            tell: [],
+            effects: [
+              {
+                kind: "promise",
+                who: {
+                  role: "who",
+                },
+                key: "moltke_name",
+                chapters: 3,
+              },
+              {
+                kind: "remember",
+                key: "m_moltke_said_east",
+              },
+            ],
+            next: "dealt",
           },
           {
             id: "leave",
@@ -5990,6 +6749,57 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
           },
         ],
       },
+      closed: {
+        says: [
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "end",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      trusted: {
+        says: [
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "end",
+            stance: "warm",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      dealt: {
+        says: [
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "end",
+            stance: "warm",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
     },
   },
   {
@@ -6053,6 +6863,35 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
             tell: [],
             effects: [],
             next: "quiet",
+            reacts: [
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  max: -2,
+                },
+                next: "closed",
+                effects: [],
+              },
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  min: 2,
+                },
+                next: "trusted",
+                effects: [
+                  {
+                    kind: "remember",
+                    key: "k_falk_ready",
+                  },
+                ],
+              },
+            ],
           },
           {
             id: "flat",
@@ -6062,6 +6901,33 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
             effects: [],
             next: "dodge",
             reacts: [
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  max: -2,
+                },
+                next: "closed",
+                effects: [],
+              },
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  min: 2,
+                },
+                next: "trusted",
+                effects: [
+                  {
+                    kind: "remember",
+                    key: "k_falk_ready",
+                  },
+                ],
+              },
               {
                 when: {
                   kind: "temperament",
@@ -6113,6 +6979,27 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
             ],
           },
           {
+            id: "deal_it",
+            stance: "cold",
+            kind: "deal",
+            tell: [],
+            effects: [
+              {
+                kind: "promise",
+                who: {
+                  role: "who",
+                },
+                key: "falk_work",
+                chapters: 3,
+              },
+              {
+                kind: "remember",
+                key: "k_falk_ready",
+              },
+            ],
+            next: "dealt",
+          },
+          {
             id: "leave",
             stance: "warm",
             kind: "leave",
@@ -6158,6 +7045,16 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
       quiet: {
         says: [
           {
+            id: "cunn",
+            when: {
+              kind: "temperament",
+              who: {
+                role: "who",
+              },
+              of: ["cunning"],
+            },
+          },
+          {
             id: "base",
           },
         ],
@@ -6185,6 +7082,57 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
           {
             id: "end",
             stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      closed: {
+        says: [
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "end",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      trusted: {
+        says: [
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "end",
+            stance: "warm",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      dealt: {
+        says: [
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "end",
+            stance: "warm",
             kind: "leave",
             tell: [],
             effects: [],
@@ -6255,6 +7203,35 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
             tell: [],
             effects: [],
             next: "plain",
+            reacts: [
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  max: -2,
+                },
+                next: "closed",
+                effects: [],
+              },
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  min: 2,
+                },
+                next: "trusted",
+                effects: [
+                  {
+                    kind: "remember",
+                    key: "k_falk_on_moltke",
+                  },
+                ],
+              },
+            ],
           },
           {
             id: "ill",
@@ -6275,6 +7252,35 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
               },
             ],
             next: "ill",
+            reacts: [
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  max: -2,
+                },
+                next: "closed",
+                effects: [],
+              },
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  min: 2,
+                },
+                next: "trusted",
+                effects: [
+                  {
+                    kind: "remember",
+                    key: "k_falk_on_moltke",
+                  },
+                ],
+              },
+            ],
           },
           {
             id: "warn",
@@ -6314,6 +7320,27 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
             ],
           },
           {
+            id: "deal_it",
+            stance: "cold",
+            kind: "deal",
+            tell: [],
+            effects: [
+              {
+                kind: "promise",
+                who: {
+                  role: "who",
+                },
+                key: "falk_remembered",
+                chapters: 3,
+              },
+              {
+                kind: "remember",
+                key: "k_falk_on_moltke",
+              },
+            ],
+            next: "dealt",
+          },
+          {
             id: "leave",
             stance: "warm",
             kind: "leave",
@@ -6325,6 +7352,16 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
       },
       plain: {
         says: [
+          {
+            id: "cunn",
+            when: {
+              kind: "temperament",
+              who: {
+                role: "who",
+              },
+              of: ["cunning"],
+            },
+          },
           {
             id: "base",
           },
@@ -6452,6 +7489,57 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
           },
         ],
       },
+      closed: {
+        says: [
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "end",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      trusted: {
+        says: [
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "end",
+            stance: "warm",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      dealt: {
+        says: [
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "end",
+            stance: "warm",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
     },
   },
   {
@@ -6533,6 +7621,35 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
             tell: [],
             effects: [],
             next: "num",
+            reacts: [
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  max: -2,
+                },
+                next: "closed",
+                effects: [],
+              },
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  min: 2,
+                },
+                next: "trusted",
+                effects: [
+                  {
+                    kind: "remember",
+                    key: "k_falk_shells",
+                  },
+                ],
+              },
+            ],
           },
           {
             id: "blame",
@@ -6681,6 +7798,40 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
           },
         ],
       },
+      closed: {
+        says: [
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "end",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      trusted: {
+        says: [
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "end",
+            stance: "warm",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
     },
   },
   {
@@ -6744,6 +7895,35 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
             tell: [],
             effects: [],
             next: "why",
+            reacts: [
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  max: -2,
+                },
+                next: "closed",
+                effects: [],
+              },
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  min: 2,
+                },
+                next: "trusted",
+                effects: [
+                  {
+                    kind: "remember",
+                    key: "k_falk_chief",
+                  },
+                ],
+              },
+            ],
           },
           {
             id: "warn",
@@ -6975,6 +8155,40 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
           },
         ],
       },
+      closed: {
+        says: [
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "end",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      trusted: {
+        says: [
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "end",
+            stance: "warm",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
     },
   },
   {
@@ -7068,6 +8282,35 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
             tell: [],
             effects: [],
             next: "plain",
+            reacts: [
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  max: -2,
+                },
+                next: "closed",
+                effects: [],
+              },
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  min: 2,
+                },
+                next: "trusted",
+                effects: [
+                  {
+                    kind: "remember",
+                    key: "k_falk_ypres",
+                  },
+                ],
+              },
+            ],
           },
           {
             id: "push",
@@ -7118,6 +8361,16 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
       },
       plain: {
         says: [
+          {
+            id: "cold",
+            when: {
+              kind: "temperament",
+              who: {
+                role: "who",
+              },
+              of: ["cold"],
+            },
+          },
           {
             id: "base",
           },
@@ -7224,6 +8477,40 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
           },
         ],
       },
+      closed: {
+        says: [
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "end",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      trusted: {
+        says: [
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "end",
+            stance: "warm",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
     },
   },
   {
@@ -7305,6 +8592,35 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
             tell: [],
             effects: [],
             next: "how",
+            reacts: [
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  max: -2,
+                },
+                next: "closed",
+                effects: [],
+              },
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  min: 2,
+                },
+                next: "trusted",
+                effects: [
+                  {
+                    kind: "remember",
+                    key: "k_falk_peace",
+                  },
+                ],
+              },
+            ],
           },
           {
             id: "push",
@@ -7358,6 +8674,56 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
               },
             ],
             next: "how",
+            reacts: [
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  max: -2,
+                },
+                next: "closed",
+                effects: [],
+              },
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  min: 2,
+                },
+                next: "trusted",
+                effects: [
+                  {
+                    kind: "remember",
+                    key: "k_falk_peace",
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            id: "deal_it",
+            stance: "cold",
+            kind: "deal",
+            tell: [],
+            effects: [
+              {
+                kind: "promise",
+                who: {
+                  role: "who",
+                },
+                key: "falk_seat",
+                chapters: 2,
+              },
+              {
+                kind: "remember",
+                key: "k_falk_peace",
+              },
+            ],
+            next: "dealt",
           },
           {
             id: "leave",
@@ -7494,6 +8860,57 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
           },
         ],
       },
+      closed: {
+        says: [
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "end",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      trusted: {
+        says: [
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "end",
+            stance: "warm",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      dealt: {
+        says: [
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "end",
+            stance: "warm",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
     },
   },
   {
@@ -7555,6 +8972,35 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
               },
             ],
             next: "ground",
+            reacts: [
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  max: -2,
+                },
+                next: "closed",
+                effects: [],
+              },
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  min: 2,
+                },
+                next: "trusted",
+                effects: [
+                  {
+                    kind: "remember",
+                    key: "k_hind_ready",
+                  },
+                ],
+              },
+            ],
           },
           {
             id: "push",
@@ -7691,6 +9137,40 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
           },
         ],
       },
+      closed: {
+        says: [
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "end",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      trusted: {
+        says: [
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "end",
+            stance: "warm",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
     },
   },
   {
@@ -7744,6 +9224,35 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
             tell: [],
             effects: [],
             next: "lakes",
+            reacts: [
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  max: -2,
+                },
+                next: "closed",
+                effects: [],
+              },
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  min: 2,
+                },
+                next: "trusted",
+                effects: [
+                  {
+                    kind: "remember",
+                    key: "k_hind_masuria",
+                  },
+                ],
+              },
+            ],
           },
           {
             id: "push",
@@ -7797,6 +9306,56 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
               },
             ],
             next: "hunt",
+            reacts: [
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  max: -2,
+                },
+                next: "closed",
+                effects: [],
+              },
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  min: 2,
+                },
+                next: "trusted",
+                effects: [
+                  {
+                    kind: "remember",
+                    key: "k_hind_masuria",
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            id: "deal_it",
+            stance: "warm",
+            kind: "deal",
+            tell: [],
+            effects: [
+              {
+                kind: "promise",
+                who: {
+                  role: "who",
+                },
+                key: "hind_exercise",
+                chapters: 3,
+              },
+              {
+                kind: "remember",
+                key: "k_hind_masuria",
+              },
+            ],
+            next: "dealt",
           },
           {
             id: "leave",
@@ -7903,6 +9462,57 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
           },
         ],
       },
+      closed: {
+        says: [
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "end",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      trusted: {
+        says: [
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "end",
+            stance: "warm",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      dealt: {
+        says: [
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "end",
+            stance: "warm",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
     },
   },
   {
@@ -7974,6 +9584,35 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
             tell: [],
             effects: [],
             next: "two",
+            reacts: [
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  max: -2,
+                },
+                next: "closed",
+                effects: [],
+              },
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  min: 2,
+                },
+                next: "trusted",
+                effects: [
+                  {
+                    kind: "remember",
+                    key: "k_hind_ludendorff",
+                  },
+                ],
+              },
+            ],
           },
           {
             id: "push",
@@ -8019,6 +9658,56 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
               },
             ],
             next: "night",
+            reacts: [
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  max: -2,
+                },
+                next: "closed",
+                effects: [],
+              },
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  min: 2,
+                },
+                next: "trusted",
+                effects: [
+                  {
+                    kind: "remember",
+                    key: "k_hind_ludendorff",
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            id: "deal_it",
+            stance: "frank",
+            kind: "deal",
+            tell: [],
+            effects: [
+              {
+                kind: "promise",
+                who: {
+                  role: "who",
+                },
+                key: "hind_keep_lud",
+                chapters: 3,
+              },
+              {
+                kind: "remember",
+                key: "k_hind_ludendorff",
+              },
+            ],
+            next: "dealt",
           },
           {
             id: "leave",
@@ -8032,6 +9721,16 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
       },
       two: {
         says: [
+          {
+            id: "cold",
+            when: {
+              kind: "temperament",
+              who: {
+                role: "who",
+              },
+              of: ["cold"],
+            },
+          },
           {
             id: "base",
           },
@@ -8131,6 +9830,57 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
           },
         ],
       },
+      closed: {
+        says: [
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "end",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      trusted: {
+        says: [
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "end",
+            stance: "warm",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      dealt: {
+        says: [
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "end",
+            stance: "warm",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
     },
   },
   {
@@ -8193,6 +9943,35 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
             tell: [],
             effects: [],
             next: "whose",
+            reacts: [
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  max: -2,
+                },
+                next: "closed",
+                effects: [],
+              },
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  min: 2,
+                },
+                next: "trusted",
+                effects: [
+                  {
+                    kind: "remember",
+                    key: "k_hind_victory",
+                  },
+                ],
+              },
+            ],
           },
           {
             id: "flat",
@@ -8335,6 +10114,40 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
           },
         ],
       },
+      closed: {
+        says: [
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "end",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      trusted: {
+        says: [
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "end",
+            stance: "warm",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
     },
   },
   {
@@ -8406,6 +10219,35 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
             tell: [],
             effects: [],
             next: "why",
+            reacts: [
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  max: -2,
+                },
+                next: "closed",
+                effects: [],
+              },
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  min: 2,
+                },
+                next: "trusted",
+                effects: [
+                  {
+                    kind: "remember",
+                    key: "k_hind_falk",
+                  },
+                ],
+              },
+            ],
           },
           {
             id: "push",
@@ -8464,6 +10306,16 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
       },
       why: {
         says: [
+          {
+            id: "stub",
+            when: {
+              kind: "temperament",
+              who: {
+                role: "who",
+              },
+              of: ["stubborn"],
+            },
+          },
           {
             id: "base",
           },
@@ -8559,6 +10411,40 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
           },
         ],
       },
+      closed: {
+        says: [
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "end",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      trusted: {
+        says: [
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "end",
+            stance: "warm",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
     },
   },
   {
@@ -8636,6 +10522,30 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
             tell: [],
             effects: [],
             next: "what",
+            reacts: [
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  max: -2,
+                },
+                next: "closed",
+                effects: [],
+              },
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  min: 2,
+                },
+                next: "trusted",
+                effects: [],
+              },
+            ],
           },
           {
             id: "delay",
@@ -8751,6 +10661,40 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
           },
         ],
       },
+      closed: {
+        says: [
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "end",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      trusted: {
+        says: [
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "end",
+            stance: "warm",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
     },
   },
   {
@@ -8814,6 +10758,35 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
             tell: [],
             effects: [],
             next: "gap",
+            reacts: [
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  max: -2,
+                },
+                next: "closed",
+                effects: [],
+              },
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  min: 2,
+                },
+                next: "trusted",
+                effects: [
+                  {
+                    kind: "remember",
+                    key: "k_lud_bill",
+                  },
+                ],
+              },
+            ],
           },
           {
             id: "push",
@@ -8859,6 +10832,56 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
               },
             ],
             next: "gap",
+            reacts: [
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  max: -2,
+                },
+                next: "closed",
+                effects: [],
+              },
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  min: 2,
+                },
+                next: "trusted",
+                effects: [
+                  {
+                    kind: "remember",
+                    key: "k_lud_bill",
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            id: "deal_it",
+            stance: "cold",
+            kind: "deal",
+            tell: [],
+            effects: [
+              {
+                kind: "promise",
+                who: {
+                  role: "who",
+                },
+                key: "lud_return",
+                chapters: 3,
+              },
+              {
+                kind: "remember",
+                key: "k_lud_bill",
+              },
+            ],
+            next: "dealt",
           },
           {
             id: "leave",
@@ -8872,6 +10895,16 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
       },
       gap: {
         says: [
+          {
+            id: "arro",
+            when: {
+              kind: "temperament",
+              who: {
+                role: "who",
+              },
+              of: ["arrogant"],
+            },
+          },
           {
             id: "base",
           },
@@ -8962,6 +10995,57 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
           },
         ],
       },
+      closed: {
+        says: [
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "end",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      trusted: {
+        says: [
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "end",
+            stance: "warm",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      dealt: {
+        says: [
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "end",
+            stance: "warm",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
     },
   },
   {
@@ -9034,6 +11118,35 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
             tell: [],
             effects: [],
             next: "days",
+            reacts: [
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  max: -2,
+                },
+                next: "closed",
+                effects: [],
+              },
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  min: 2,
+                },
+                next: "trusted",
+                effects: [
+                  {
+                    kind: "remember",
+                    key: "k_lud_rail",
+                  },
+                ],
+              },
+            ],
           },
           {
             id: "push",
@@ -9079,6 +11192,56 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
               },
             ],
             next: "days",
+            reacts: [
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  max: -2,
+                },
+                next: "closed",
+                effects: [],
+              },
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  min: 2,
+                },
+                next: "trusted",
+                effects: [
+                  {
+                    kind: "remember",
+                    key: "k_lud_rail",
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            id: "deal_it",
+            stance: "cold",
+            kind: "deal",
+            tell: [],
+            effects: [
+              {
+                kind: "promise",
+                who: {
+                  role: "who",
+                },
+                key: "lud_rail_post",
+                chapters: 2,
+              },
+              {
+                kind: "remember",
+                key: "k_lud_rail",
+              },
+            ],
+            next: "dealt",
           },
           {
             id: "leave",
@@ -9152,6 +11315,57 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
           },
         ],
       },
+      closed: {
+        says: [
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "end",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      trusted: {
+        says: [
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "end",
+            stance: "warm",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      dealt: {
+        says: [
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "end",
+            stance: "warm",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
     },
   },
   {
@@ -9214,6 +11428,35 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
             tell: [],
             effects: [],
             next: "how",
+            reacts: [
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  max: -2,
+                },
+                next: "closed",
+                effects: [],
+              },
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  min: 2,
+                },
+                next: "trusted",
+                effects: [
+                  {
+                    kind: "remember",
+                    key: "k_lud_liege",
+                  },
+                ],
+              },
+            ],
           },
           {
             id: "push",
@@ -9391,6 +11634,40 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
           },
         ],
       },
+      closed: {
+        says: [
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "end",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      trusted: {
+        says: [
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "end",
+            stance: "warm",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
     },
   },
   {
@@ -9472,6 +11749,35 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
             tell: [],
             effects: [],
             next: "sum",
+            reacts: [
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  max: -2,
+                },
+                next: "closed",
+                effects: [],
+              },
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  min: 2,
+                },
+                next: "trusted",
+                effects: [
+                  {
+                    kind: "remember",
+                    key: "k_lud_east",
+                  },
+                ],
+              },
+            ],
           },
           {
             id: "push",
@@ -9590,6 +11896,40 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
           },
         ],
       },
+      closed: {
+        says: [
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "end",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      trusted: {
+        says: [
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "end",
+            stance: "warm",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
     },
   },
   {
@@ -9653,6 +11993,35 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
             tell: [],
             effects: [],
             next: "measure",
+            reacts: [
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  max: -2,
+                },
+                next: "closed",
+                effects: [],
+              },
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  min: 2,
+                },
+                next: "trusted",
+                effects: [
+                  {
+                    kind: "remember",
+                    key: "m_staff_measured",
+                  },
+                ],
+              },
+            ],
           },
           {
             id: "warm",
@@ -9669,6 +12038,35 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
               },
             ],
             next: "man",
+            reacts: [
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  max: -2,
+                },
+                next: "closed",
+                effects: [],
+              },
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  min: 2,
+                },
+                next: "trusted",
+                effects: [
+                  {
+                    kind: "remember",
+                    key: "m_staff_measured",
+                  },
+                ],
+              },
+            ],
           },
           {
             id: "push",
@@ -9706,6 +12104,27 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
                 ],
               },
             ],
+          },
+          {
+            id: "deal_it",
+            stance: "flatter",
+            kind: "deal",
+            tell: [],
+            effects: [
+              {
+                kind: "promise",
+                who: {
+                  role: "who",
+                },
+                key: "lud_honour",
+                chapters: 2,
+              },
+              {
+                kind: "remember",
+                key: "m_staff_measured",
+              },
+            ],
+            next: "dealt",
           },
           {
             id: "leave",
@@ -9797,6 +12216,57 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
           },
         ],
       },
+      closed: {
+        says: [
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "end",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      trusted: {
+        says: [
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "end",
+            stance: "warm",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      dealt: {
+        says: [
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "end",
+            stance: "warm",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
     },
   },
   {
@@ -9860,6 +12330,35 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
             tell: [],
             effects: [],
             next: "who",
+            reacts: [
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  max: -2,
+                },
+                next: "closed",
+                effects: [],
+              },
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  min: 2,
+                },
+                next: "trusted",
+                effects: [
+                  {
+                    kind: "remember",
+                    key: "k_lud_politics",
+                  },
+                ],
+              },
+            ],
           },
           {
             id: "push",
@@ -9913,6 +12412,56 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
               },
             ],
             next: "want",
+            reacts: [
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  max: -2,
+                },
+                next: "closed",
+                effects: [],
+              },
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  min: 2,
+                },
+                next: "trusted",
+                effects: [
+                  {
+                    kind: "remember",
+                    key: "k_lud_politics",
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            id: "deal_it",
+            stance: "cold",
+            kind: "deal",
+            tell: [],
+            effects: [
+              {
+                kind: "promise",
+                who: {
+                  role: "who",
+                },
+                key: "lud_ear",
+                chapters: 2,
+              },
+              {
+                kind: "remember",
+                key: "k_lud_politics",
+              },
+            ],
+            next: "dealt",
           },
           {
             id: "leave",
@@ -10008,6 +12557,57 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
           },
         ],
       },
+      closed: {
+        says: [
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "end",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      trusted: {
+        says: [
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "end",
+            stance: "warm",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      dealt: {
+        says: [
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "end",
+            stance: "warm",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
     },
   },
   {
@@ -10071,6 +12671,35 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
             tell: [],
             effects: [],
             next: "year",
+            reacts: [
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  max: -2,
+                },
+                next: "closed",
+                effects: [],
+              },
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  min: 2,
+                },
+                next: "trusted",
+                effects: [
+                  {
+                    kind: "remember",
+                    key: "k_tirp_fleet",
+                  },
+                ],
+              },
+            ],
           },
           {
             id: "flat",
@@ -10088,6 +12717,33 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
             ],
             next: "year",
             reacts: [
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  max: -2,
+                },
+                next: "closed",
+                effects: [],
+              },
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  min: 2,
+                },
+                next: "trusted",
+                effects: [
+                  {
+                    kind: "remember",
+                    key: "k_tirp_fleet",
+                  },
+                ],
+              },
               {
                 when: {
                   kind: "temperament",
@@ -10116,6 +12772,27 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
               },
             ],
             next: "side",
+          },
+          {
+            id: "deal_it",
+            stance: "warm",
+            kind: "deal",
+            tell: [],
+            effects: [
+              {
+                kind: "promise",
+                who: {
+                  role: "who",
+                },
+                key: "tirp_budget",
+                chapters: 3,
+              },
+              {
+                kind: "remember",
+                key: "k_tirp_fleet",
+              },
+            ],
+            next: "dealt",
           },
           {
             id: "leave",
@@ -10189,6 +12866,57 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
           },
         ],
       },
+      closed: {
+        says: [
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "end",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      trusted: {
+        says: [
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "end",
+            stance: "warm",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      dealt: {
+        says: [
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "end",
+            stance: "warm",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
     },
   },
   {
@@ -10252,6 +12980,35 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
             tell: [],
             effects: [],
             next: "far",
+            reacts: [
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  max: -2,
+                },
+                next: "closed",
+                effects: [],
+              },
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  min: 2,
+                },
+                next: "trusted",
+                effects: [
+                  {
+                    kind: "remember",
+                    key: "k_tirp_britain",
+                  },
+                ],
+              },
+            ],
           },
           {
             id: "flat",
@@ -10268,6 +13025,35 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
               },
             ],
             next: "far",
+            reacts: [
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  max: -2,
+                },
+                next: "closed",
+                effects: [],
+              },
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  min: 2,
+                },
+                next: "trusted",
+                effects: [
+                  {
+                    kind: "remember",
+                    key: "k_tirp_britain",
+                  },
+                ],
+              },
+            ],
           },
           {
             id: "push",
@@ -10299,6 +13085,27 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
             ],
           },
           {
+            id: "deal_it",
+            stance: "cold",
+            kind: "deal",
+            tell: [],
+            effects: [
+              {
+                kind: "promise",
+                who: {
+                  role: "who",
+                },
+                key: "tirp_direct",
+                chapters: 3,
+              },
+              {
+                kind: "remember",
+                key: "k_tirp_britain",
+              },
+            ],
+            next: "dealt",
+          },
+          {
             id: "leave",
             stance: "cold",
             kind: "leave",
@@ -10310,6 +13117,16 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
       },
       far: {
         says: [
+          {
+            id: "cunn",
+            when: {
+              kind: "temperament",
+              who: {
+                role: "who",
+              },
+              of: ["cunning"],
+            },
+          },
           {
             id: "base",
           },
@@ -10370,6 +13187,57 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
           },
         ],
       },
+      closed: {
+        says: [
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "end",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      trusted: {
+        says: [
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "end",
+            stance: "warm",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      dealt: {
+        says: [
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "end",
+            stance: "warm",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
     },
   },
   {
@@ -10423,6 +13291,35 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
             tell: [],
             effects: [],
             next: "port",
+            reacts: [
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  max: -2,
+                },
+                next: "closed",
+                effects: [],
+              },
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  min: 2,
+                },
+                next: "trusted",
+                effects: [
+                  {
+                    kind: "remember",
+                    key: "k_tirp_goeben",
+                  },
+                ],
+              },
+            ],
           },
           {
             id: "push",
@@ -10468,6 +13365,56 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
               },
             ],
             next: "port",
+            reacts: [
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  max: -2,
+                },
+                next: "closed",
+                effects: [],
+              },
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  min: 2,
+                },
+                next: "trusted",
+                effects: [
+                  {
+                    kind: "remember",
+                    key: "k_tirp_goeben",
+                  },
+                ],
+              },
+            ],
+          },
+          {
+            id: "deal_it",
+            stance: "frank",
+            kind: "deal",
+            tell: [],
+            effects: [
+              {
+                kind: "promise",
+                who: {
+                  role: "who",
+                },
+                key: "tirp_share",
+                chapters: 2,
+              },
+              {
+                kind: "remember",
+                key: "k_tirp_goeben",
+              },
+            ],
+            next: "dealt",
           },
           {
             id: "leave",
@@ -10534,6 +13481,57 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
           {
             id: "end",
             stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      closed: {
+        says: [
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "end",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      trusted: {
+        says: [
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "end",
+            stance: "warm",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      dealt: {
+        says: [
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "end",
+            stance: "warm",
             kind: "leave",
             tell: [],
             effects: [],
@@ -10621,6 +13619,35 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
               },
             ],
             next: "son",
+            reacts: [
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  max: -2,
+                },
+                next: "closed",
+                effects: [],
+              },
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  min: 2,
+                },
+                next: "trusted",
+                effects: [
+                  {
+                    kind: "remember",
+                    key: "k_tirp_command",
+                  },
+                ],
+              },
+            ],
           },
           {
             id: "ask",
@@ -10629,6 +13656,35 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
             tell: [],
             effects: [],
             next: "want",
+            reacts: [
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  max: -2,
+                },
+                next: "closed",
+                effects: [],
+              },
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  min: 2,
+                },
+                next: "trusted",
+                effects: [
+                  {
+                    kind: "remember",
+                    key: "k_tirp_command",
+                  },
+                ],
+              },
+            ],
           },
           {
             id: "refuse",
@@ -10666,6 +13722,27 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
                 ],
               },
             ],
+          },
+          {
+            id: "deal_it",
+            stance: "cold",
+            kind: "deal",
+            tell: [],
+            effects: [
+              {
+                kind: "promise",
+                who: {
+                  role: "who",
+                },
+                key: "tirp_review",
+                chapters: 3,
+              },
+              {
+                kind: "remember",
+                key: "k_tirp_command",
+              },
+            ],
+            next: "dealt",
           },
           {
             id: "leave",
@@ -10780,6 +13857,57 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
           },
         ],
       },
+      closed: {
+        says: [
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "end",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      trusted: {
+        says: [
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "end",
+            stance: "warm",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      dealt: {
+        says: [
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "end",
+            stance: "warm",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
     },
   },
   {
@@ -10852,6 +13980,35 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
             tell: [],
             effects: [],
             next: "count",
+            reacts: [
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  max: -2,
+                },
+                next: "closed",
+                effects: [],
+              },
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  min: 2,
+                },
+                next: "trusted",
+                effects: [
+                  {
+                    kind: "remember",
+                    key: "k_tirp_sub",
+                  },
+                ],
+              },
+            ],
           },
           {
             id: "law",
@@ -10860,6 +14017,35 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
             tell: [],
             effects: [],
             next: "law",
+            reacts: [
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  max: -2,
+                },
+                next: "closed",
+                effects: [],
+              },
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  min: 2,
+                },
+                next: "trusted",
+                effects: [
+                  {
+                    kind: "remember",
+                    key: "k_tirp_sub",
+                  },
+                ],
+              },
+            ],
           },
           {
             id: "push",
@@ -10899,6 +14085,27 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
             ],
           },
           {
+            id: "deal_it",
+            stance: "cold",
+            kind: "deal",
+            tell: [],
+            effects: [
+              {
+                kind: "promise",
+                who: {
+                  role: "who",
+                },
+                key: "tirp_uboats",
+                chapters: 3,
+              },
+              {
+                kind: "remember",
+                key: "k_tirp_sub",
+              },
+            ],
+            next: "dealt",
+          },
+          {
             id: "leave",
             stance: "cold",
             kind: "leave",
@@ -10910,6 +14117,16 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
       },
       count: {
         says: [
+          {
+            id: "arro",
+            when: {
+              kind: "temperament",
+              who: {
+                role: "who",
+              },
+              of: ["arrogant"],
+            },
+          },
           {
             id: "base",
           },
@@ -10995,6 +14212,57 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
           },
         ],
       },
+      closed: {
+        says: [
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "end",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      trusted: {
+        says: [
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "end",
+            stance: "warm",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      dealt: {
+        says: [
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "end",
+            stance: "warm",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
     },
   },
   {
@@ -11058,6 +14326,35 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
             tell: [],
             effects: [],
             next: "who",
+            reacts: [
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  max: -2,
+                },
+                next: "closed",
+                effects: [],
+              },
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  min: 2,
+                },
+                next: "trusted",
+                effects: [
+                  {
+                    kind: "remember",
+                    key: "m_tirp_camp",
+                  },
+                ],
+              },
+            ],
           },
           {
             id: "open",
@@ -11066,6 +14363,35 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
             tell: [],
             effects: [],
             next: "env",
+            reacts: [
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  max: -2,
+                },
+                next: "closed",
+                effects: [],
+              },
+              {
+                when: {
+                  kind: "person_trust",
+                  who: {
+                    role: "who",
+                  },
+                  min: 2,
+                },
+                next: "trusted",
+                effects: [
+                  {
+                    kind: "remember",
+                    key: "m_tirp_camp",
+                  },
+                ],
+              },
+            ],
           },
           {
             id: "silence",
@@ -11195,6 +14521,40 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
           {
             id: "end",
             stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      closed: {
+        says: [
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "end",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      trusted: {
+        says: [
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "end",
+            stance: "warm",
             kind: "leave",
             tell: [],
             effects: [],
