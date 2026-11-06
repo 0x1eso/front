@@ -125,7 +125,6 @@ export const LAT_EVENTS: EventDef[] = [
         history: true,
         ai: { base: 90 },
         effects: [
-          { kind: "unlock_template", template: "bra_feb_division" },
           { kind: "add_spirit", id: "bra_feb_veterans", days: 365 },
           { kind: "war_support", pct: 5 },
           { kind: "opinion", who: T("USA"), of: "self", value: 20, days: 365 },

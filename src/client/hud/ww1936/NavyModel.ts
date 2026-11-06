@@ -56,8 +56,13 @@ import {
   designStats,
   shipBase,
 } from "@openfront/engine-lib/ww1936/DesignRules";
+import { histShipMods } from "@openfront/engine-lib/ww1936/hist/AsDesign";
+import { histOwn } from "@openfront/engine-lib/ww1936/hist/Slots";
 import { shipIsStandIn } from "@openfront/engine-lib/ww1936/hist/StartShips";
-import { HIST_COUNTRIES } from "@openfront/engine-lib/ww1936/hist/Types";
+import {
+  HIST_COUNTRIES,
+  type HistCountry,
+} from "@openfront/engine-lib/ww1936/hist/Types";
 import { weakShipStats } from "@openfront/engine-lib/ww1936/hist/WeakGeneric";
 import {
   crossingDays,
@@ -421,8 +426,23 @@ function shipOf(
   }
   const plain = shipStats(cls, gen, statsFromArray(null), NO_TECHS);
   // A minor has no catalogue, so every ship of it is weak generic use; a
-  // major's design is hidden from here, so it stays plain.
+  // major's ship of a catalogue class (ww122) is that class on plain techs,
+  // since its owner's techs and stats are hidden from here.
   const tag = ctx.scenario.tagOfSmallId(f.owner);
+  if (!ctx.designerOn && design > 0 && tag !== undefined) {
+    const e = (HIST_COUNTRIES as readonly string[]).includes(tag)
+      ? histOwn(tag as HistCountry, "ship")[design - 1]
+      : undefined;
+    if (e !== undefined && e.family === "ship") {
+      const key = `${f.owner}:${cls}:${gen}:${design}`;
+      let s = ctx.shipMemo.get(key);
+      if (s === undefined) {
+        s = applyShipDesign(plain, histShipMods(e));
+        ctx.shipMemo.set(key, s);
+      }
+      return s;
+    }
+  }
   return !ctx.designerOn &&
     tag !== undefined &&
     !(HIST_COUNTRIES as readonly string[]).includes(tag)

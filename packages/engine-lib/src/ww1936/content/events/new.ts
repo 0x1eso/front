@@ -41,8 +41,8 @@ export const NEW_EVENTS: EventDef[] = [
         id: "b",
         ai: { base: 40 },
         effects: [
-          { kind: "unlock_template", template: "new_infantry_division" },
           { kind: "manpower", recruitablePct: 1 },
+          { kind: "war_support", pct: 3 },
         ],
       },
     ],

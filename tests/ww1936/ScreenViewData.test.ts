@@ -63,6 +63,25 @@ describe("the screens' view data (lane U)", () => {
     expect(other.mix).toBeUndefined();
   }, 60_000);
 
+  it("ww122: another country's fleet lists its ships' design slots, mine its ships", async () => {
+    const { ww } = await game();
+    const navy = ww.navy;
+    const fid = navy.createFleet(TAG_ID.GBR, REGION.london, [
+      ["dd", 1, 1],
+      ["bb", 1, 1],
+    ]);
+    const f = navy.fleets.get(fid)!;
+    const rows = f.ships.map((id) => navy.ships.rowOf(id));
+    navy.ships.design[rows[1]] = 3;
+    const other = navy.fleetSummary(f, new Set());
+    // Class order (dd before bb), one slot a ship.
+    expect(other.designs).toEqual([0, 3]);
+    expect(other.ships).toEqual([]);
+    expect(navy.fleetSummary(f, new Set([TAG_ID.GBR])).designs).toBeUndefined();
+    navy.ships.design[rows[1]] = 0;
+    expect(navy.fleetSummary(f, new Set()).designs).toBeUndefined();
+  }, 60_000);
+
   it("my admirals' skills now and my auto air zones", async () => {
     const { runner, g, ww } = await game();
     expect(newTitledAdmiral(ww.navy, TAG_ID.GBR)).not.toBeNull();

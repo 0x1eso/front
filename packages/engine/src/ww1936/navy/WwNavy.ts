@@ -1796,6 +1796,8 @@ export class WwNavy {
     let maxOrg = 0;
     const ships: FleetSummary["ships"] = [];
     const mine = humans.has(f.owner);
+    const byClass: number[][] = SHIP_CLASSES.map(() => []);
+    let designed = false;
     for (const id of f.ships) {
       const r = t.rowOf(id);
       if (r < 0) continue;
@@ -1805,6 +1807,10 @@ export class WwNavy {
       maxHp += s.hpMilli;
       org += t.org[r];
       maxOrg += s.orgMilli;
+      if (!mine) {
+        byClass[t.cls[r]].push(t.design[r]);
+        if (t.design[r] > 0) designed = true;
+      }
       if (mine) {
         ships.push({
           id,
@@ -1862,6 +1868,7 @@ export class WwNavy {
       engage: mine ? (ENGAGE_RULES[f.engage] ?? "always") : "always",
       returnAtPct: mine ? f.returnAtPct : 50,
       ships,
+      ...(designed ? { designs: byClass.flat() } : {}),
       ...(guns > 0
         ? {
             bombard: [guns, ce?.stats.shoreBombardPct ?? 0] as [number, number],

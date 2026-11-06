@@ -261,6 +261,12 @@ export interface FleetSummary {
    * shoreBombardPct — the battle card's bombardment at an ally's numbers.
    */
   bombard?: [number, number];
+  /**
+   * Another country's fleet only (ww122): the design slot of each ship in the
+   * order `counts` lists them (class by class), so the screens can name a
+   * major's catalogue class. Absent when no ship has a design.
+   */
+  designs?: number[];
 }
 export interface NavalBattleSummary {
   zone: number;
