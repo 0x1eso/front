@@ -1121,6 +1121,8 @@ const CLIENT_MESSAGES: ClientMessage[] = [
   },
   { type: "pick_country", tag: "SUN" },
   { type: "pick_country", tag: null },
+  { type: "pick_seat", tag: "AUH" },
+  { type: "pick_seat", tag: null },
 ];
 
 const LOBBY_MESSAGES: PublicLobbyMessage[] = [
