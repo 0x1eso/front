@@ -34,6 +34,13 @@ const ANY_END: readonly GwEnding[] = [
   "long_peace",
 ];
 
+/** The short calendar's endings: every country can close on them. */
+const FIRST_WINTER: readonly GwEnding[] = [
+  "first_winter_ahead",
+  "first_winter_level",
+  "first_winter_behind",
+];
+
 export const GW_ENDING_ROWS: Readonly<
   Partial<Record<GwTag, readonly GwEndingRow[]>>
 > = {
@@ -68,12 +75,12 @@ export const GW_ENDING_ROWS: Readonly<
   GBR: [
     {
       id: "gbr_end_outside",
-      of: ANY_WAR,
+      of: [...ANY_WAR, ...FIRST_WINTER],
       when: all(world({ is: "neutral", tag: "GBR" }), out("FRA")),
     },
     {
       id: "gbr_end_neutral",
-      of: ANY_WAR,
+      of: [...ANY_WAR, ...FIRST_WINTER],
       when: world({ is: "neutral", tag: "GBR" }),
     },
     { id: "gbr_end_long_peace", of: ["long_peace"] },
@@ -189,13 +196,6 @@ export const GW_ENDING_ROWS: Readonly<
     { id: "rus_tsar_falls", of: ["home_collapse"] },
   ],
 };
-
-/** The short calendar's endings: every country can close on them. */
-const FIRST_WINTER: readonly GwEnding[] = [
-  "first_winter_ahead",
-  "first_winter_level",
-  "first_winter_behind",
-];
 
 /** A country's endings, for the shelf's empty boxes. */
 export function gwEndingsOf(tag: GwTag): readonly GwEnding[] {

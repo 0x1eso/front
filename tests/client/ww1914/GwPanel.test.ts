@@ -65,13 +65,16 @@ const SCENES = {
   },
 };
 
-const PACK = GwPackSchema.parse({
-  ...JSON.parse(
+const packFile = (f: string) =>
+  JSON.parse(
     fs.readFileSync(
-      path.join(__dirname, "../../../resources/ww1914/ko/DEU.json"),
+      path.join(__dirname, `../../../resources/ww1914/ko/${f}`),
       "utf8",
     ),
-  ),
+  );
+const PACK = GwPackSchema.parse({
+  ...packFile("DEU.json"),
+  people: packFile("DEU.cast.json").people,
   scenes: SCENES,
 });
 

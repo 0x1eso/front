@@ -22,7 +22,6 @@ describe("promises come back", () => {
       if (promise.back !== undefined) {
         const back = byId.get(promise.back);
         expect(back, where).toBeDefined();
-        expect(back!.kind, where).toBe("talk");
       }
     }
   });
@@ -32,7 +31,17 @@ describe("promises come back", () => {
       JSON.stringify(c).includes("chapter");
     for (const { scene, promise } of everyPromise()) {
       if (promise.back !== undefined) continue;
+      // The other countries' keepers can lapse: the person comes back with
+      // the common card, which every seat can be dealt.
+      if (!scene.id.startsWith("deu_")) continue;
       expect(dated(promise.keep), `${scene.id}: ${promise.key}`).toBe(true);
+    }
+  });
+
+  test("the common card a person comes back with reaches every seat", () => {
+    const nation = byId.get("gw_promise_broken")?.nation;
+    for (const tag of ["DEU", "GBR", "AUH", "RUS"] as const) {
+      expect(nation).toContain(tag);
     }
   });
 

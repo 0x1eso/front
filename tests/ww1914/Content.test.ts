@@ -24,10 +24,13 @@ import {
 } from "@openfront/engine-api/ww1914/SceneDsl";
 import { ScenarioDataSchema } from "@openfront/engine-api/ww1936/ScenarioTypes";
 import { GW_CONTENT } from "@openfront/engine-lib/ww1914/content/Content";
-import { GW_PEOPLE } from "@openfront/engine-lib/ww1914/content/people";
+import { gwEndingsOf } from "@openfront/engine-lib/ww1914/EndingRows";
 import { gwOwnerOf, gwWorldOf } from "@openfront/engine-lib/ww1914/World1914";
 import { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
-import { loadGwPack } from "@openfront/shared/ww1914/GwPackLoader";
+import {
+  GW_PEOPLE_PACKS,
+  loadGwPack,
+} from "@openfront/shared/ww1914/GwPackLoader";
 import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
@@ -98,14 +101,14 @@ describe("content", () => {
     }
   });
 
-  test("no id sits in two of the country's pack files", () => {
+  test.each(SEATS)("no id sits in two of %s's pack files", (tag) => {
     const files = fs
       .readdirSync(res("ww1914/ko"))
       .filter(
         (f) =>
-          f === "common.json" ||
           f.startsWith("common.") ||
-          SEATS.some((t) => f.startsWith(`${t}.`)),
+          f.startsWith(`${tag}.`) ||
+          GW_PEOPLE_PACKS.some((x) => f === `${x}.json`),
       );
     const packs = files.map((f) => GwPackSchema.parse(json(`ww1914/ko/${f}`)));
     expect(gwPackOverlaps(packs)).toEqual([]);

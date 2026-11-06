@@ -7,13 +7,14 @@
  *
  *   npx tsx scripts/ww1914-sim.ts [--series 30] [--runs 3] [--calendar y1914]
  *                                 [--overused 80] [--label sim] [--no-control]
- *                                 [--json report.json]
+ *                                 [--seat DEU] [--json report.json]
  */
 import { GameMapSize, GameMapType } from "@openfront/engine-api/game/GameTypes";
 import {
   GW_CALENDAR_IDS,
   GwCalendarId,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
+import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import { loadMapFiles } from "@openfront/shared/GameMapLoader";
 import fs from "fs";
 import path from "path";
@@ -50,6 +51,7 @@ function parse(
     overusedAt: number("--overused", GW_SIM_DEFAULTS.overusedAt * 100) / 100,
     control: !argv.includes("--no-control"),
     label: value("--label") ?? GW_SIM_DEFAULTS.label,
+    seat: (value("--seat") ?? GW_SIM_DEFAULTS.seat) as GwTag,
     json: value("--json") ?? null,
   };
 }

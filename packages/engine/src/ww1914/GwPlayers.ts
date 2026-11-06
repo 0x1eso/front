@@ -15,7 +15,8 @@ export function gwPlayers(
 ): PlayerInfo[] {
   const taken = new Map<GwTag, StartPlayer>();
   for (const p of players) {
-    const tag = world.tags.find((t) => t === p.country);
+    const pick = p.gwCountry ?? p.country;
+    const tag = world.tags.find((t) => t === pick);
     if (tag !== undefined && !taken.has(tag)) taken.set(tag, p);
   }
   for (const p of players) {

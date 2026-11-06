@@ -72,7 +72,7 @@ describe("the cast of the test build", () => {
   test("everyone has a source, a voice note, a name, a lean and a bio", () => {
     // Foreigners sit in common.json so that any seat can read them.
     const common = pack("common.json");
-    const merged = mergeGwPacks([common, pack("DEU.json")]);
+    const merged = mergeGwPacks([common, pack("DEU.cast.json")]);
     for (const p of GW_PEOPLE) {
       expect(p.source.length, p.id).toBeGreaterThan(20);
       expect(GW_VOICE_NOTES[p.id]?.length ?? 0, p.id).toBeGreaterThan(20);

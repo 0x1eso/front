@@ -10,6 +10,7 @@ import {
 import type { SnapshotHeader } from "@openfront/engine-api/game/SnapshotHeader";
 import { GameConfig, TeamCountConfig } from "@openfront/engine-api/Schemas";
 import type { GwCalendarId } from "@openfront/engine-api/ww1914/GreatWarTypes";
+import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
 import {
   CONQUEST_PERCENT_MAX,
@@ -276,6 +277,7 @@ export class SinglePlayerModal extends BaseModal {
   /** Great War 1914: solo as Germany for now; the map and rules are fixed. */
   @state() private greatWar1914 = false;
   @state() private greatWar1914Calendar: GwCalendarId = "y1914";
+  @state() private greatWar1914Seat: GwTag = "DEU";
   @state() private historicalAi: boolean = DEFAULT_OPTIONS.historicalAi;
   @state() private ww1936Unlimited: boolean = DEFAULT_OPTIONS.ww1936Unlimited;
   @state() private ww1936FastTempo: boolean = DEFAULT_OPTIONS.ww1936FastTempo;
@@ -754,6 +756,8 @@ export class SinglePlayerModal extends BaseModal {
                 ? {
                     worldWar: {
                       picker: gwCalendarPicker(
+                        this.greatWar1914Seat,
+                        (tag) => (this.greatWar1914Seat = tag),
                         this.greatWar1914Calendar,
                         (id) => (this.greatWar1914Calendar = id),
                       ),
@@ -940,6 +944,7 @@ export class SinglePlayerModal extends BaseModal {
     this.worldWar1936 = DEFAULT_OPTIONS.worldWar1936;
     this.greatWar1914 = false;
     this.greatWar1914Calendar = "y1914";
+    this.greatWar1914Seat = "DEU";
     this.historicalAi = DEFAULT_OPTIONS.historicalAi;
     this.ww1936Unlimited = DEFAULT_OPTIONS.ww1936Unlimited;
     this.ww1936FastTempo = DEFAULT_OPTIONS.ww1936FastTempo;
@@ -1507,7 +1512,9 @@ export class SinglePlayerModal extends BaseModal {
               ...(this.worldWar1936 && this.country !== null
                 ? { country: this.country }
                 : {}),
-              ...(this.greatWar1914 ? { country: "DEU" as const } : {}),
+              ...(this.greatWar1914
+                ? { gwCountry: this.greatWar1914Seat }
+                : {}),
             },
           ],
           config,

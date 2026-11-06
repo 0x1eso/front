@@ -1,12 +1,15 @@
 import type { GwCalendarId } from "@openfront/engine-api/ww1914/GreatWarTypes";
+import {
+  GW_WRITTEN_TAGS,
+  GwTag,
+} from "@openfront/engine-api/ww1914/GwCountries";
 import { gwChapters } from "@openfront/engine-lib/ww1914/Calendars";
 import { html, TemplateResult } from "lit";
 import { translateText } from "./Utils";
 
 /**
  * Calendar rows that have scenes to play, in the order the lobby lists them.
- * The war's own scenes run to the end of `full` and `standard`; the lobby's
- * default stays on `y1914` until the 1915-18 writing is merged.
+ * The war's own scenes run to the end of `full` and `standard`.
  */
 export const GW_PLAYABLE_CALENDARS: readonly GwCalendarId[] = [
   "y1914",
@@ -14,13 +17,37 @@ export const GW_PLAYABLE_CALENDARS: readonly GwCalendarId[] = [
   "full",
 ];
 
-/** The lobby's length choice for the Great War: one button per row with content. */
+const rowClass = (on: boolean) =>
+  `rounded border px-3 py-1.5 text-left text-sm text-white ${
+    on
+      ? "border-amber-300/80 bg-amber-300/20"
+      : "border-white/25 bg-white/10 hover:bg-white/20"
+  }`;
+
+/** The lobby's seat and length for the Great War: one button per choice. */
 export function gwCalendarPicker(
+  seat: GwTag,
+  pickSeat: (tag: GwTag) => void,
   selected: GwCalendarId,
   pick: (id: GwCalendarId) => void,
 ): TemplateResult {
   return html`<div class="space-y-1.5" data-gw-calendar>
-    <div class="text-sm text-white">${translateText("gw.country.DEU")}</div>
+    <div class="text-xs text-white/70">
+      ${translateText("gw.ui.seat_label")}
+    </div>
+    <div class="flex flex-wrap gap-2">
+      ${GW_WRITTEN_TAGS.map(
+        (tag) =>
+          html`<button
+            type="button"
+            data-gw-seat=${tag}
+            class=${rowClass(tag === seat)}
+            @click=${() => pickSeat(tag)}
+          >
+            ${translateText(`gw.country.${tag}`)}
+          </button>`,
+      )}
+    </div>
     <div class="text-xs text-white/70">
       ${translateText("gw.ui.calendar_label")}
     </div>
@@ -30,10 +57,7 @@ export function gwCalendarPicker(
           html`<button
             type="button"
             data-gw-calendar-row=${id}
-            class="rounded border px-3 py-1.5 text-left text-sm text-white ${id ===
-            selected
-              ? "border-amber-300/80 bg-amber-300/20"
-              : "border-white/25 bg-white/10 hover:bg-white/20"}"
+            class=${rowClass(id === selected)}
             @click=${() => pick(id)}
           >
             <span class="block font-bold"

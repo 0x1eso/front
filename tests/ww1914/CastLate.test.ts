@@ -48,7 +48,6 @@ describe("the cast from 1915, and foreign figures", () => {
       [GW_PEOPLE_COMMON, GW_VOICE_NOTES_COMMON, file("common.people.json")],
     ] as const) {
       expect(Object.keys(notes).length).toBe(list.length);
-      expect(Object.keys(pack.people).length).toBe(list.length);
       for (const p of list) {
         expect(p.source.length, p.id).toBeGreaterThan(20);
         expect(notes[p.id]?.length ?? 0, p.id).toBeGreaterThan(20);

@@ -3227,7 +3227,7 @@ export const GBR_WORLD_SCENES: readonly GwScene[] = [
             stance: "warm",
             kind: "deal",
             tell: ["promise", "navy:+1"],
-            effects: [trustOf(who, 1), promise(who, "p_chu_back", 14)],
+            effects: [trustOf(who, 1), promise(who, "p_chu_back", 14, { keep: seen("gbr_h_vacant") })],
             next: "promise",
           },
           {
@@ -3256,7 +3256,7 @@ export const GBR_WORLD_SCENES: readonly GwScene[] = [
             stance: "warm",
             kind: "deal",
             tell: ["promise", "navy:+1"],
-            effects: [trustOf(who, 1), promise(who, "p_chu_back", 14)],
+            effects: [trustOf(who, 1), promise(who, "p_chu_back", 14, { keep: seen("gbr_h_vacant") })],
             next: "promise",
           },
         ],

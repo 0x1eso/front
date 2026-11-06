@@ -3020,6 +3020,7 @@
         "2": "Heavy",
         "3": "Crushing"
       },
+      "seat_label": "Your country",
       "secrets_title": "What was found out",
       "shelf_documents": "Papers seen {n}/{max}",
       "shelf_endings": "Endings {n}/{max}",

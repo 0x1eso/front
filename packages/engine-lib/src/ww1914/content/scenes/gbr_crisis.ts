@@ -1690,7 +1690,7 @@ export const GBR_CRISIS_SCENES: readonly GwScene[] = [
         r("ask", "warm", "ask", [], [], "dark", {
           reacts: [straight("honest", remember("m_grey_eyes"))],
         }),
-        r("deal", "warm", "deal", [], [promise(p, "p_grey_rest", 12)], "rest"),
+        r("deal", "warm", "deal", [], [promise(p, "p_grey_rest", 12, { keep: seen("gbr_h_vacant") })], "rest"),
         r("work", "cold", "push", ["grey:-1"], [trustOf(p, -1)], "dark"),
         close("leave", "warm"),
       ),

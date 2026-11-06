@@ -18,7 +18,9 @@ import type {
   GwCard,
   GwSeatState,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
+import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import { gwTalkLinks } from "@openfront/engine-api/ww1914/SceneCheck";
+import type { GwScene } from "@openfront/engine-api/ww1914/SceneDsl";
 import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { createGameRunner, GameRunner } from "@openfront/engine/GameRunner";
@@ -59,6 +61,8 @@ export interface GwSimOptions {
   control: boolean;
   /** Names the game ids: another label is another set of worlds. */
   label: string;
+  /** The country the bot sits in. */
+  seat: GwTag;
 }
 
 export const GW_SIM_DEFAULTS: GwSimOptions = {
@@ -68,6 +72,7 @@ export const GW_SIM_DEFAULTS: GwSimOptions = {
   overusedAt: 0.8,
   control: true,
   label: "sim",
+  seat: "DEU",
 };
 
 /** The design's bar: at most this share of run 2's bodies already seen. */
@@ -79,6 +84,7 @@ export function startOf(
   gameID: string,
   calendar: GwCalendarId,
   recent: readonly string[],
+  seat: GwTag = "DEU",
 ): GameStartInfo {
   return {
     gameID,
@@ -107,7 +113,7 @@ export function startOf(
         username: "sim",
         clanTag: null,
         isLobbyCreator: true,
-        country: "DEU",
+        gwCountry: seat,
       },
     ],
   };
@@ -293,6 +299,7 @@ export async function playRun(
   calendar: GwCalendarId,
   recent: readonly string[],
   profile: GwSimProfile,
+  seatTag: GwTag = "DEU",
 ): Promise<GwRunRecord> {
   const rec: GwRunRecord = {
     gameID,
@@ -324,7 +331,10 @@ export async function playRun(
   };
   watchDesk(trace);
   try {
-    const runner = await newGame(map, startOf(gameID, calendar, recent));
+    const runner = await newGame(
+      map,
+      startOf(gameID, calendar, recent, seatTag),
+    );
     const gw = runner.game.greatWar()!;
     const seat = gw.s.seats[0];
     const roll = dice(gameID);
@@ -369,7 +379,9 @@ export async function simulate(
         ? [...new Set(runs.slice(-2).flatMap((x) => x.bodies))]
         : [];
       const id = `${opts.label}-${s}-${r}`;
-      runs.push(await playRun(map, id, opts.calendar, recent, profile));
+      runs.push(
+        await playRun(map, id, opts.calendar, recent, profile, opts.seat),
+      );
     }
     out.push(runs);
   }
@@ -500,10 +512,13 @@ function whyUnseen(id: string, games: readonly GwRunRecord[]): string {
     : `eligible ${held} chapters, always lost the draw`;
 }
 
-function linkRows(games: readonly GwRunRecord[]): GwLinkRow[] {
+function linkRows(
+  games: readonly GwRunRecord[],
+  scenes: readonly GwScene[],
+): GwLinkRow[] {
   const talked = (g: GwRunRecord, t: string) =>
     (g.summoned[t] ?? 0) + (g.dealt[t] ?? 0) > 0;
-  return gwTalkLinks(gwContent().scenes).map((l) => {
+  return gwTalkLinks(scenes).map((l) => {
     const body = `${l.scene}.${l.option}`;
     const withCard = games.filter(
       (g) => (g.dealt[l.scene] ?? 0) + (g.summoned[l.scene] ?? 0) > 0,
@@ -530,7 +545,8 @@ export function report(
     (g.dealt[id] ?? 0) + (g.summoned[id] ?? 0) > 0;
   const allBodies = new Set(games.flatMap((g) => g.bodies));
   const allCasts = new Set(games.flatMap((g) => g.casts));
-  const scenes: GwSceneRow[] = gwContent().scenes.map((s) => {
+  const own = gwContent().scenes.filter((s) => s.nation.includes(opts.seat));
+  const scenes: GwSceneRow[] = own.map((s) => {
     const seen = s.variants.filter((v) => allBodies.has(`${s.id}.${v.id}`));
     return {
       id: s.id,
@@ -575,10 +591,10 @@ export function report(
       .filter((s) => s.share === 0)
       .map((s) => ({ id: s.id, kind: s.kind, why: whyUnseen(s.id, games) })),
     overused: scenes.filter((s) => s.share >= opts.overusedAt),
-    unseenBodies: gwContent()
-      .scenes.flatMap((s) => s.variants.map((v) => `${s.id}.${v.id}`))
+    unseenBodies: own
+      .flatMap((s) => s.variants.map((v) => `${s.id}.${v.id}`))
       .filter((b) => !allBodies.has(b)),
-    links: linkRows(games),
+    links: linkRows(games, own),
     openings: tally((g) => g.opening),
     endings: tally((g) => g.ending),
     byChapter: chapterRows(games),

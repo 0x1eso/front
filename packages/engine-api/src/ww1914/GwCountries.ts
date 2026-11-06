@@ -72,6 +72,14 @@ export function isGwTag(v: string): v is GwTag {
   return (GW_TAGS as readonly string[]).includes(v);
 }
 
+/** Seats with their own desk and people: the lobby offers these. */
+export const GW_WRITTEN_TAGS = [
+  "DEU",
+  "GBR",
+  "AUH",
+  "RUS",
+] as const satisfies readonly GwTag[];
+
 export interface GwCountryDef {
   /** English name: the engine's player name. Screens use `gw.country.<TAG>`. */
   readonly name: string;
