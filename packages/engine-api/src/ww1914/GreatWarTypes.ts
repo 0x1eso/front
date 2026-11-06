@@ -15,7 +15,7 @@ export const GW_STAGES = ["crisis", "y1914", "war", "closing"] as const;
 export type GwStage = (typeof GW_STAGES)[number];
 
 /** Lobby's choice of chapter table (engine-lib/ww1914/Calendars). */
-export const GW_CALENDAR_IDS = ["y1914", "full"] as const;
+export const GW_CALENDAR_IDS = ["y1914", "full", "standard"] as const;
 export type GwCalendarId = (typeof GW_CALENDAR_IDS)[number];
 
 // ---- People (design §6) ----
@@ -116,6 +116,13 @@ export const GwPersonStateSchema = z.object({
   /** 1 bad .. 3 good. Hidden. */
   health: z.number().int(),
   memory: z.array(GwMemorySchema),
+  /** Results in their field; what the seat sees of competence. */
+  wins: z.number().int(),
+  losses: z.number().int(),
+  /** Chapter a resignation letter came; null with none open. */
+  letter: z.number().int().nullable(),
+  /** Chapter they began to fail; null when well. The warning comes first. */
+  ailing: z.number().int().nullable(),
 });
 export type GwPersonState = z.infer<typeof GwPersonStateSchema>;
 
@@ -181,18 +188,54 @@ export const GW_THEATRES = [
 ] as const;
 export type GwTheatre = (typeof GW_THEATRES)[number];
 
-/** The named lines of a theatre, in order of the advance. */
+export const GW_SIDES = ["central", "entente"] as const;
+export type GwSide = (typeof GW_SIDES)[number];
+
+/**
+ * The named lines of a theatre, laid out on the ground: a theatre's `line`
+ * goes up as GW_FRONT_UP's side advances and down as the other side does.
+ * It starts at GW_FRONT_START. Scenes should name a line, not an index
+ * (world cond `front`).
+ */
 export const GW_LINES: Readonly<Record<GwTheatre, readonly string[]>> = {
-  west: ["liege", "marne", "aisne", "somme", "hindenburg", "rhine"],
-  east: ["east_prussia", "vistula", "warsaw", "riga", "dvina", "kiev"],
+  west: ["rhine", "liege", "hindenburg", "somme", "aisne", "marne", "paris"],
+  east: ["oder", "east_prussia", "vistula", "warsaw", "riga", "dvina", "kiev"],
   balkan: ["drina", "belgrade", "nis", "salonika"],
-  italy: ["isonzo", "trentino", "piave", "adige"],
+  italy: ["trentino", "isonzo", "piave", "adige"],
   caucasus: ["kars", "erzurum", "trabzon", "van"],
   straits: ["dardanelles", "gallipoli", "narrows", "constantinople"],
   mesopotamia: ["basra", "kut", "baghdad", "mosul"],
   palestine: ["suez", "gaza", "jerusalem", "damascus"],
-  sea: ["north_sea", "channel", "atlantic", "blockade"],
+  sea: ["blockade", "north_sea", "channel", "atlantic"],
   colonies: ["togo", "kamerun", "southwest", "east_africa"],
+};
+
+/** The side whose advance moves a theatre's line up. */
+export const GW_FRONT_UP: Readonly<Record<GwTheatre, GwSide>> = {
+  west: "central",
+  east: "central",
+  balkan: "central",
+  italy: "central",
+  caucasus: "entente",
+  straits: "entente",
+  mesopotamia: "entente",
+  palestine: "entente",
+  sea: "central",
+  colonies: "entente",
+};
+
+/** Index into GW_LINES where a theatre's war begins. */
+export const GW_FRONT_START: Readonly<Record<GwTheatre, number>> = {
+  west: 1,
+  east: 1,
+  balkan: 0,
+  italy: 1,
+  caucasus: 0,
+  straits: 0,
+  mesopotamia: 0,
+  palestine: 0,
+  sea: 1,
+  colonies: 0,
 };
 
 export const GW_POSTURES = ["offensive", "hold"] as const;
@@ -202,11 +245,27 @@ export type GwScale = (typeof GW_SCALES)[number];
 export const GW_RESEARCH = ["artillery", "infantry", "sea"] as const;
 export type GwResearch = (typeof GW_RESEARCH)[number];
 
+/** What a chapter of a theatre came to; `quiet` means nobody attacked. */
+export const GW_RESULTS = [
+  "break",
+  "advance",
+  "stalemate",
+  "repelled",
+  "quiet",
+] as const;
+export type GwResult = (typeof GW_RESULTS)[number];
+
+/** Germany's war plan, signed in the crisis (design §2.4). */
+export const GW_PLANS = ["west", "east", "wait"] as const;
+export type GwPlan = (typeof GW_PLANS)[number];
+
+export const GW_LINE_STEP = 3;
+
 export const GwTheatreStateSchema = z.object({
   id: z.enum(GW_THEATRES),
   /** Index into GW_LINES[id]. */
   line: z.number().int(),
-  /** Progress towards the next line, 0..3. */
+  /** Progress between lines, -2..2: at +-GW_LINE_STEP the line moves. */
   progress: z.number().int(),
   /** Trench stage, 0..5. */
   trench: z.number().int(),
@@ -216,8 +275,20 @@ export const GwTheatreStateSchema = z.object({
   defender: z.enum(GW_TAGS).nullable(),
   /** Person commanding on the seat's side, or null. */
   commander: GwIdSchema.nullable(),
+  /** Chapter it opened; null while closed. */
+  since: z.number().int().nullable(),
 });
 export type GwTheatreState = z.infer<typeof GwTheatreStateSchema>;
+
+export const GwAllocSchema = z.object({
+  main: z.enum(GW_THEATRES),
+  posture: z.enum(GW_POSTURES),
+  scale: z.enum(GW_SCALES),
+  /** Share sent to allies, 0..3. */
+  allyShare: z.number().int(),
+  research: z.enum(GW_RESEARCH),
+});
+export type GwAlloc = z.infer<typeof GwAllocSchema>;
 
 export const GwNationStateSchema = z.object({
   tag: z.enum(GW_TAGS),
@@ -230,6 +301,38 @@ export const GwNationStateSchema = z.object({
   trust: z.partialRecord(z.enum(GW_TAGS), z.number().int()),
   atWar: z.array(z.enum(GW_TAGS)),
   ai: z.enum(GW_AI_KINDS),
+  /** Which side it fights on; null while neutral. */
+  side: z.enum(GW_SIDES).nullable(),
+  /** Hidden. -1 towards the Central side (Britain: stay out), 1 the Entente. */
+  lean: z.number().int(),
+  /** Hidden. 0..100, how near a neutral is to coming in. */
+  readiness: z.number().int(),
+  /** The best price each side has offered this neutral. */
+  offers: z.partialRecord(z.enum(GW_SIDES), z.number().int()),
+  /** 0 peace, 1 partial, 2 general. */
+  mob: z.number().int(),
+  /** An AI's effort this chapter; a seat's is on the seat. */
+  alloc: GwAllocSchema.nullable(),
+  /** 0..100: men left to send. */
+  manpower: z.number().int(),
+  /** Thousands, all game. */
+  casualties: z.number().int(),
+  /** Thousands, this chapter. */
+  lostNow: z.number().int(),
+  /** 0..100: what the head of state can spend (a dismissal). */
+  authority: z.number().int(),
+  /** The ladder, 0..4: strikes, riots, army unrest, revolution. */
+  unrest: z.number().int(),
+  /** Chapters in a row with order at the bottom. */
+  lowOrder: z.number().int(),
+  /** Hidden. Strength the band returns to as it refills. */
+  base: z.partialRecord(z.enum(GW_THEATRES), z.number().int()),
+  /** Hidden. Losses towards the next band lost. */
+  wear: z.partialRecord(z.enum(GW_THEATRES), z.number().int()),
+  /** Chapters of research put in. */
+  tech: z.partialRecord(z.enum(GW_RESEARCH), z.number().int()),
+  /** Beaten or collapsed: no longer in the war. */
+  out: z.boolean(),
 });
 export type GwNationState = z.infer<typeof GwNationStateSchema>;
 
@@ -248,6 +351,35 @@ export const GW_SOURCES = [
 export type GwSource = (typeof GW_SOURCES)[number];
 export const GW_STAMPS = ["confirmed", "unconfirmed", "estimate"] as const;
 export type GwStamp = (typeof GW_STAMPS)[number];
+
+/** What a report is about. Text: gw.fact.<kind>.<claim>. */
+export const GW_FACT_KINDS = [
+  "force",
+  "lean",
+  "mob",
+  "shells",
+  "morale",
+] as const;
+export type GwFactKind = (typeof GW_FACT_KINDS)[number];
+
+export const GwReportSchema = z.object({
+  uid: z.number().int(),
+  fact: z.enum(GW_FACT_KINDS),
+  tag: z.enum(GW_TAGS),
+  theatre: z.enum(GW_THEATRES).nullable(),
+  source: z.enum(GW_SOURCES),
+  stamp: z.enum(GW_STAMPS),
+  /** What the report says. */
+  claim: z.number().int(),
+  /** Hidden until corrected: the truth when it was sent. */
+  truth: z.number().int(),
+  /** The seat it reached. */
+  smallID: z.number().int(),
+  chapter: z.number().int(),
+  /** Day an unconfirmed report is checked; null once it has been. */
+  checkDay: z.number().int().nullable(),
+});
+export type GwReport = z.infer<typeof GwReportSchema>;
 
 export const GwSourceStateSchema = z.object({
   id: z.enum(GW_SOURCES),
@@ -294,16 +426,6 @@ export const GwCardSchema = z.object({
 });
 export type GwCard = z.infer<typeof GwCardSchema>;
 
-export const GwAllocSchema = z.object({
-  main: z.enum(GW_THEATRES),
-  posture: z.enum(GW_POSTURES),
-  scale: z.enum(GW_SCALES),
-  /** Share sent to allies, 0..3. */
-  allyShare: z.number().int(),
-  research: z.enum(GW_RESEARCH),
-});
-export type GwAlloc = z.infer<typeof GwAllocSchema>;
-
 export const GwPromiseSchema = z.object({
   key: GwIdSchema,
   who: GwIdSchema,
@@ -339,6 +461,95 @@ export const GwChoiceSchema = z.object({
   proxy: z.boolean(),
 });
 export type GwChoice = z.infer<typeof GwChoiceSchema>;
+/** A gauge's move this chapter and why (a reason line of the country tab). */
+export const GwLineSchema = z.object({
+  gauge: z.enum(GW_GAUGES),
+  /** Text: gw.line.<key>. */
+  key: GwIdSchema,
+  delta: z.number().int(),
+  chapter: z.number().int(),
+});
+export type GwLine = z.infer<typeof GwLineSchema>;
+
+/** Ways a game can end. Text: gw.ending.<id>. "closing" is the old plain end. */
+export const GW_ENDINGS = [
+  "closing",
+  "long_peace",
+  "victory_peace",
+  "compromise_peace",
+  "armistice_conference",
+  "home_collapse",
+  "deadline",
+  "first_winter_ahead",
+  "first_winter_level",
+  "first_winter_behind",
+] as const;
+export type GwEnding = (typeof GW_ENDINGS)[number];
+
+/** What "이 판에서 당신이 몰랐던 것" can name. */
+export const GW_UNKNOWN_KINDS = [
+  "secret",
+  "lean",
+  "wrong_report",
+  "source",
+  "person",
+  "ai",
+  "force",
+] as const;
+
+export const GwUnknownSchema = z.object({
+  kind: z.enum(GW_UNKNOWN_KINDS),
+  /** A secret, a source, a person's id, or a country's tag. */
+  id: z.string(),
+  /** The theatre, for `force` and `wrong_report`. */
+  theatre: z.enum(GW_THEATRES).nullable(),
+  /** The hidden value. */
+  value: z.number().int(),
+  /** A word for it (GW_AI_KINDS, a fact kind), or null. */
+  word: z.string().nullable(),
+});
+export type GwUnknown = z.infer<typeof GwUnknownSchema>;
+
+/** The closing page's data (design §2.8). Hidden values are fair game here. */
+export const GwMemoirSchema = z.object({
+  ending: GwIdSchema,
+  chapter: z.number().int(),
+  day: z.number().int(),
+  mandates: z.array(z.object({ id: GwIdSchema, met: z.boolean() })),
+  /** The seat's own record: casualties in thousands, lines held. */
+  casualties: z.number().int(),
+  fronts: z.array(
+    z.object({ theatre: z.enum(GW_THEATRES), line: z.number().int() }),
+  ),
+  /** What happened, in order. Text: gw.turn.<key>, {country} from `tag`. */
+  turns: z.array(
+    z.object({
+      key: GwIdSchema,
+      tag: z.enum(GW_TAGS).nullable(),
+      chapter: z.number().int(),
+    }),
+  ),
+  people: z.array(
+    z.object({
+      id: GwIdSchema,
+      office: z.enum(GW_OFFICES).nullable(),
+      status: z.enum(GW_PERSON_STATUS),
+      trust: z.number().int(),
+      wins: z.number().int(),
+      losses: z.number().int(),
+    }),
+  ),
+  /** The closing page: at most three things the seat never learned. */
+  unknown: z.array(GwUnknownSchema),
+  /** What this game adds to the shelf between games (the client keeps it). */
+  shelf: z.object({
+    ending: GwIdSchema,
+    people: z.array(GwIdSchema),
+    secrets: z.array(GwIdSchema),
+    mandates: z.array(GwIdSchema),
+  }),
+});
+export type GwMemoir = z.infer<typeof GwMemoirSchema>;
 
 export const GwSeatStateSchema = z.object({
   /** The human's player. */
@@ -370,8 +581,100 @@ export const GwSeatStateSchema = z.object({
   shown: z.array(z.string()),
   /** Every option and reply taken, in order. */
   choices: z.array(GwChoiceSchema),
+  /** Three tasks of this game (design §2.3 no. 7), judged at the end. */
+  mandates: z.array(GwIdSchema),
+  /** World secrets this seat has found. */
+  known: z.array(GwIdSchema),
+  /** Scene id -> the person a world scene is about (cast rule `subject`). */
+  subjects: z.record(z.string(), GwIdSchema),
+  /** The chapter the plan was last signed; -1 never. */
+  signed: z.number().int(),
+  /** Why the gauges moved, last chapters first dropped. */
+  lines: z.array(GwLineSchema),
+  memoir: GwMemoirSchema.nullable(),
 });
 export type GwSeatState = z.infer<typeof GwSeatStateSchema>;
+
+/** World secrets (design §4.4): each is there or not in a game. */
+export const GW_SECRETS = [
+  "ita_fra_understanding",
+  "rus_rail_ahead",
+  "ott_fleet_late",
+  "fra_offensive_doctrine",
+  "bel_forts_strong",
+  "auh_rail_muddle",
+  "deu_shell_stock_thin",
+  "rou_treaty_dead",
+  "jpn_tsingtao_plan",
+  "anglo_russian_naval_talks",
+  "srb_officers_plot",
+  "bgr_loan_berlin",
+] as const;
+export type GwSecret = (typeof GW_SECRETS)[number];
+
+/** Long threads (design §2.6): three run hot in a game. */
+export const GW_THREADS = [
+  "ireland",
+  "rus_rail",
+  "us_loans",
+  "poland",
+  "reichstag_left",
+  "alsace_unrest",
+  "naval_race",
+  "baghdad_rail",
+] as const;
+export type GwThread = (typeof GW_THREADS)[number];
+
+export const GW_CHAIN_OUTCOMES = [
+  "war",
+  "compromise",
+  "humiliation",
+  "fizzled",
+] as const;
+export type GwChainOutcome = (typeof GW_CHAIN_OUTCOMES)[number];
+
+/** An open crisis (design §4.3): one link per chapter. */
+export const GwChainSchema = z.object({
+  topic: z.enum(GW_TOPICS),
+  /** Index into the crisis's links (eng/ww1914/Crises). */
+  step: z.number().int(),
+  /** Chapters the next link waits. */
+  hold: z.number().int(),
+  /** A spark's short chain, not July's. */
+  short: z.boolean(),
+});
+export type GwChain = z.infer<typeof GwChainSchema>;
+
+export const GwChainEndSchema = z.object({
+  topic: z.enum(GW_TOPICS),
+  outcome: z.enum(GW_CHAIN_OUTCOMES),
+  chapter: z.number().int(),
+});
+
+export const GwBattleSchema = z.object({
+  theatre: z.enum(GW_THEATRES),
+  chapter: z.number().int(),
+  result: z.enum(GW_RESULTS),
+  /** The attacking side; null when quiet. */
+  by: z.enum(GW_SIDES).nullable(),
+  /** Thousands lost, in GW_SIDES order. */
+  lost: z.array(z.number().int()),
+  /** The theatre's line after it. */
+  line: z.number().int(),
+  /** The roll went against the attacker (or for it): "운이 나빴다". */
+  luck: z.number().int(),
+});
+export type GwBattle = z.infer<typeof GwBattleSchema>;
+
+/** A line of the ticker. Text: gw.news.<key>, with {a}, {b}, {theatre}. */
+export const GwNewsSchema = z.object({
+  key: GwIdSchema,
+  chapter: z.number().int(),
+  a: z.enum(GW_TAGS).nullable(),
+  b: z.enum(GW_TAGS).nullable(),
+  theatre: z.enum(GW_THEATRES).nullable(),
+});
+export type GwNews = z.infer<typeof GwNewsSchema>;
 
 /** All of the mode's state. Version bumps go through GreatWarSnapshot. */
 export const GreatWarStateSchema = z.object({
@@ -403,5 +706,25 @@ export const GreatWarStateSchema = z.object({
   seats: z.array(GwSeatStateSchema),
   /** The next card uid. */
   nextCard: z.number().int(),
+  chain: GwChainSchema.nullable(),
+  /** Crises that closed, in order. */
+  chains: z.array(GwChainEndSchema),
+  /** A spark waiting to light: its topic and chapter. */
+  spark: z
+    .object({ topic: z.enum(GW_TOPICS), chapter: z.number().int() })
+    .nullable(),
+  /** The long threads hot in this game (design §2.6). */
+  threads: z.array(z.enum(GW_THREADS)),
+  plan: z.enum(GW_PLANS).nullable(),
+  /** Germany stayed out of its ally's war. */
+  aside: z.boolean(),
+  /** Submarine war, 0 cruiser rules, 1 restricted, 2 unrestricted. */
+  uboat: z.number().int(),
+  /** Chapter the great war began; null at peace. */
+  warChapter: z.number().int().nullable(),
+  reports: z.array(GwReportSchema),
+  nextReport: z.number().int(),
+  battles: z.array(GwBattleSchema),
+  news: z.array(GwNewsSchema),
 });
 export type GreatWarState = z.infer<typeof GreatWarStateSchema>;

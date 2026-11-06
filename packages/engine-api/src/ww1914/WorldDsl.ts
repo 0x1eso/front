@@ -1,0 +1,236 @@
+// Great War 1914: what a scene can read of the world and do to it. These ride
+// in SceneDsl as one condition kind and one effect kind, `world`, so the world
+// grows here without touching the narrative's lists. Kinds are APPEND ONLY.
+// engine/ww1914/WorldDsl.ts runs them. Conditions may read hidden values: a
+// variant can differ on a truth the seat doesn't know. Show those only as text.
+import { z } from "zod";
+import {
+  GW_AI_KINDS,
+  GW_CHAIN_OUTCOMES,
+  GW_FACT_KINDS,
+  GW_FIELDS,
+  GW_OFFICES,
+  GW_PLANS,
+  GW_RESULTS,
+  GW_SECRETS,
+  GW_SIDES,
+  GW_SOURCES,
+  GW_THEATRES,
+  GW_THREADS,
+  GwAiKind,
+  GwChainOutcome,
+  GwFactKind,
+  GwField,
+  GwIdSchema,
+  GwOffice,
+  GwPlan,
+  GwResult,
+  GwSecret,
+  GwSide,
+  GwSource,
+  GwTheatre,
+  GwThread,
+} from "./GreatWarTypes";
+import { GW_TAGS, GwTag } from "./GwCountries";
+
+/** A person, as in SceneDsl (a role, an office holder, a name). */
+export type GwWorldWho =
+  | { role: string }
+  | { office: GwOffice }
+  | { person: string };
+
+interface Range {
+  min?: number;
+  max?: number;
+}
+
+export type GwWorldCond =
+  | { is: "thread"; id: GwThread }
+  | { is: "mandate"; id: string }
+  /** A secret the seat has found. `secret` (SceneDsl) asks if it exists. */
+  | { is: "known"; id: GwSecret }
+  /** The open crisis's link. */
+  | ({ is: "chain" } & Range)
+  /** How a crisis closed, any crisis this game. */
+  | { is: "chain_end"; of: GwChainOutcome[] }
+  /** The seat's country is at war with anyone. */
+  | { is: "war" }
+  /** A country fights, on that side if named. */
+  | { is: "entered"; tag: GwTag; side?: GwSide }
+  /** A country has left the war. */
+  | { is: "out"; tag: GwTag }
+  /** A theatre is at or past a named line (`to`: not past it). */
+  | { is: "front"; theatre: GwTheatre; from?: string; to?: string }
+  | { is: "open"; theatre: GwTheatre }
+  /** The theatre's last result. */
+  | { is: "battle"; theatre: GwTheatre; of: GwResult[] }
+  | { is: "plan"; of: GwPlan[] }
+  | { is: "aside" }
+  | ({ is: "mob"; tag: GwTag } & Range)
+  | ({ is: "unrest" } & Range)
+  | ({ is: "authority" } & Range)
+  /** Thousands lost by the seat's country. */
+  | ({ is: "casualties" } & Range)
+  | ({ is: "manpower" } & Range)
+  | ({ is: "uboat" } & Range)
+  /** Chapters since the war began. */
+  | ({ is: "war_age" } & Range)
+  /** Whether the seat's side is ahead: warScore, about -100..100. */
+  | ({ is: "score" } & Range)
+  | { is: "plan_signed" }
+  /** The seat's plan this chapter. */
+  | { is: "main"; of: GwTheatre[] }
+  /** A resignation letter is open. */
+  | { is: "letter"; who: GwWorldWho }
+  | { is: "ailing"; who: GwWorldWho }
+  | ({ is: "wins"; who: GwWorldWho } & Range)
+  | ({ is: "losses"; who: GwWorldWho } & Range)
+  // Hidden truths: for variants and reacts, never to grey an option.
+  | { is: "ai"; tag: GwTag; of: GwAiKind[] }
+  | ({ is: "lean"; tag: GwTag } & Range)
+  | ({ is: "force"; tag: GwTag; theatre: GwTheatre } & Range)
+  | ({ is: "competence"; who: GwWorldWho; field: GwField } & Range)
+  /** This source's last report on the seat's desk is wrong. */
+  | { is: "report_wrong"; source: GwSource }
+  | ({ is: "source_record"; source: GwSource } & Range);
+
+export type GwWorldEffect =
+  /** Germany's plan for the war to come. */
+  | { do: "plan"; plan: GwPlan }
+  /** The seat refuses to follow its ally in. */
+  | { do: "aside" }
+  /** The next link of the crisis waits a chapter. */
+  | { do: "hold" }
+  /** Closes the open crisis at once. */
+  | { do: "close_chain"; outcome: GwChainOutcome }
+  | { do: "mobilize"; tag: GwTag; level: number }
+  /** The seat's country declares war on `tag`, its allies with it. */
+  | { do: "declare"; tag: GwTag }
+  /** A price for a neutral (1..5), in the seat's side's name. */
+  | { do: "offer"; tag: GwTag; value: number }
+  /** A neutral's readiness moves. */
+  | { do: "readiness"; tag: GwTag; delta: number }
+  /** The seat finds a secret. */
+  | { do: "reveal"; id: GwSecret }
+  /** A report reaches the seat by way of `source`. */
+  | {
+      do: "report";
+      fact: GwFactKind;
+      tag: GwTag;
+      theatre?: GwTheatre;
+      source: GwSource;
+    }
+  | { do: "thread"; id: GwThread }
+  | { do: "command"; who: GwWorldWho; theatre: GwTheatre }
+  | { do: "uboat"; level: number }
+  /** Hidden strength moves: a seat's choice with a shown price. */
+  | { do: "force"; tag: GwTag; theatre: GwTheatre; delta: number }
+  | { do: "authority"; delta: number }
+  | { do: "manpower"; delta: number }
+  /** A resignation letter arrives (it always comes before the leaving). */
+  | { do: "letter"; who: GwWorldWho }
+  /** The open letter is refused: they stay. */
+  | { do: "keep"; who: GwWorldWho }
+  /** They go; a successor takes the office at the chapter's close. */
+  | { do: "leave"; who: GwWorldWho }
+  /** A concession: the ladder steps down. */
+  | { do: "calm" }
+  /** Results in their field, for what the seat comes to see of them. */
+  | { do: "result"; who: GwWorldWho; won: boolean }
+  | { do: "news"; key: string; a?: GwTag; b?: GwTag; theatre?: GwTheatre };
+
+const int = z.number().int();
+const range = { min: int.optional(), max: int.optional() };
+const tag = z.enum(GW_TAGS);
+const theatre = z.enum(GW_THEATRES);
+const source = z.enum(GW_SOURCES);
+const is = <S extends z.ZodRawShape>(kind: string, shape: S) =>
+  z.object({ is: z.literal(kind), ...shape }).strict();
+const act = <S extends z.ZodRawShape>(kind: string, shape: S) =>
+  z.object({ do: z.literal(kind), ...shape }).strict();
+
+const who: z.ZodType<GwWorldWho> = z.union([
+  z.object({ role: GwIdSchema }).strict(),
+  z.object({ office: z.enum(GW_OFFICES) }).strict(),
+  z.object({ person: GwIdSchema }).strict(),
+]);
+
+export const GwWorldCondSchema = z.union([
+  is("thread", { id: z.enum(GW_THREADS) }),
+  is("mandate", { id: GwIdSchema }),
+  is("known", { id: z.enum(GW_SECRETS) }),
+  is("chain", range),
+  is("chain_end", { of: z.array(z.enum(GW_CHAIN_OUTCOMES)) }),
+  is("war", {}),
+  is("entered", { tag, side: z.enum(GW_SIDES).optional() }),
+  is("out", { tag }),
+  is("front", {
+    theatre,
+    from: GwIdSchema.optional(),
+    to: GwIdSchema.optional(),
+  }),
+  is("open", { theatre }),
+  is("battle", { theatre, of: z.array(z.enum(GW_RESULTS)) }),
+  is("plan", { of: z.array(z.enum(GW_PLANS)) }),
+  is("aside", {}),
+  is("mob", { tag, ...range }),
+  is("unrest", range),
+  is("authority", range),
+  is("casualties", range),
+  is("manpower", range),
+  is("uboat", range),
+  is("war_age", range),
+  is("score", range),
+  is("plan_signed", {}),
+  is("main", { of: z.array(theatre) }),
+  is("letter", { who }),
+  is("ailing", { who }),
+  is("wins", { who, ...range }),
+  is("losses", { who, ...range }),
+  is("ai", { tag, of: z.array(z.enum(GW_AI_KINDS)) }),
+  is("lean", { tag, ...range }),
+  is("force", { tag, theatre, ...range }),
+  is("competence", { who, field: z.enum(GW_FIELDS), ...range }),
+  is("report_wrong", { source }),
+  is("source_record", { source, ...range }),
+]) as unknown as z.ZodType<GwWorldCond>;
+
+export const GwWorldEffectSchema = z.union([
+  act("plan", { plan: z.enum(GW_PLANS) }),
+  act("aside", {}),
+  act("hold", {}),
+  act("close_chain", { outcome: z.enum(GW_CHAIN_OUTCOMES) }),
+  act("mobilize", { tag, level: int.min(0).max(2) }),
+  act("declare", { tag }),
+  act("offer", { tag, value: int.min(1).max(5) }),
+  act("readiness", { tag, delta: int }),
+  act("reveal", { id: z.enum(GW_SECRETS) }),
+  act("report", {
+    fact: z.enum(GW_FACT_KINDS),
+    tag,
+    theatre: theatre.optional(),
+    source,
+  }),
+  act("thread", { id: z.enum(GW_THREADS) }),
+  act("command", { who, theatre }),
+  act("uboat", { level: int.min(0).max(2) }),
+  act("force", { tag, theatre, delta: int }),
+  act("authority", { delta: int }),
+  act("manpower", { delta: int }),
+  act("letter", { who }),
+  act("keep", { who }),
+  act("leave", { who }),
+  act("calm", {}),
+  act("result", { who, won: z.boolean() }),
+  act("news", {
+    key: GwIdSchema,
+    a: tag.optional(),
+    b: tag.optional(),
+    theatre: theatre.optional(),
+  }),
+]) as unknown as z.ZodType<GwWorldEffect>;
+
+// ---- Authoring helpers ----
+
+export const world = (of: GwWorldCond) => ({ kind: "world" as const, of });
+export const doWorld = (of: GwWorldEffect) => ({ kind: "world" as const, of });

@@ -26,6 +26,8 @@ import { idHash } from "@openfront/engine-lib/ww1936/Roll";
 import { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
 import type { Game } from "../game/Game";
 import { advanceChapter, allReady } from "./Chapters";
+import { closeGame } from "./Endings";
+import { GW_ACTORS } from "./Tables";
 import { gwView } from "./View";
 
 /**
@@ -98,7 +100,10 @@ export class GreatWar {
       pressure,
       secrets: [],
       sources: [],
-      nations: this.world.tags.map(blankNation),
+      nations: [
+        ...this.world.tags,
+        ...GW_ACTORS.filter((t) => !this.world.tags.includes(t)),
+      ].map(blankNation),
       people: gwContent().people.map((p) => ({
         id: p.id,
         office: p.office,
@@ -109,6 +114,10 @@ export class GreatWar {
         pride: 2,
         health: 3,
         memory: [],
+        wins: 0,
+        losses: 0,
+        letter: null,
+        ailing: null,
       })),
       theatres: GW_THEATRES.map((id) => ({
         id,
@@ -119,9 +128,22 @@ export class GreatWar {
         attacker: null,
         defender: null,
         commander: null,
+        since: null,
       })),
       seats: [],
       nextCard: 1,
+      chain: null,
+      chains: [],
+      spark: null,
+      threads: [],
+      plan: null,
+      aside: false,
+      uboat: 0,
+      warChapter: null,
+      reports: [],
+      nextReport: 1,
+      battles: [],
+      news: [],
     };
   }
 
@@ -156,6 +178,12 @@ export class GreatWar {
         tension: 0,
         shown: [],
         choices: [],
+        mandates: [],
+        known: [],
+        subjects: {},
+        signed: -1,
+        lines: [],
+        memoir: null,
       });
     }
     this.s.seats.sort((a, b) => a.smallID - b.smallID);
@@ -194,7 +222,11 @@ export class GreatWar {
   /** The chapter clock: every seat ready, or the deadline, closes a chapter. */
   tick(ticks: number): void {
     const s = this.s;
-    if (s.ended !== null) return;
+    if (s.ended !== null) {
+      // A scene can end the game between chapters.
+      if (s.seats.some((x) => x.memoir === null)) closeGame(this);
+      return;
+    }
     if (this.mg.isPaused()) {
       // Time left stays as it was.
       if (s.deadlineTick !== null) s.deadlineTick++;
@@ -234,5 +266,21 @@ function blankNation(tag: GwTag): GwNationState {
     trust: {},
     atWar: [],
     ai: "cautious",
+    side: null,
+    lean: 0,
+    readiness: 0,
+    offers: {},
+    mob: 0,
+    alloc: null,
+    manpower: 0,
+    casualties: 0,
+    lostNow: 0,
+    authority: 60,
+    unrest: 0,
+    lowOrder: 0,
+    base: {},
+    wear: {},
+    tech: {},
+    out: false,
   };
 }

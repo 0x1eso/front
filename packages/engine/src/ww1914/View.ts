@@ -17,6 +17,7 @@ import { idHash } from "@openfront/engine-lib/ww1936/Roll";
 import type { GreatWar } from "./GreatWar";
 import { openTopics, readyBlock } from "./Orders";
 import { ctxOf, optionOpen, pickVariant, sceneOf } from "./SceneRun";
+import { worldView } from "./WorldView";
 
 function cardView(
   gw: GreatWar,
@@ -115,6 +116,7 @@ function seatView(gw: GreatWar, seat: GwSeatState): GwSeatView {
       proxy: x.proxy,
     })),
     shown: seat.shown,
+    world: worldView(gw, seat),
   };
 }
 

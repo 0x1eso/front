@@ -3,6 +3,7 @@ import type {
   GreatWarData,
   GwCardView,
 } from "@openfront/engine-api/ww1914/GwView";
+import type { GwWorldView } from "@openfront/engine-api/ww1914/GwWorldView";
 import { EventBus } from "@openfront/shared/EventBus";
 import fs from "node:fs";
 import path from "node:path";
@@ -74,6 +75,7 @@ const data = (desk: GwCardView[]): GreatWarData => ({
         research: "artillery",
       },
       log: [],
+      world: {} as GwWorldView,
       readyBlock: desk.length > 0 ? "open_cards" : null,
     },
   ],

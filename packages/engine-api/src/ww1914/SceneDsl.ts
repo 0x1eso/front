@@ -43,6 +43,12 @@ import {
   GwTopic,
 } from "./GreatWarTypes";
 import { GW_TAGS, GwTag } from "./GwCountries";
+import {
+  GwWorldCond,
+  GwWorldCondSchema,
+  GwWorldEffect,
+  GwWorldEffectSchema,
+} from "./WorldDsl";
 
 /** A person in a scene: a cast role, whoever holds an office, or a name. */
 export type GwWho =
@@ -126,7 +132,8 @@ export type GwCond =
       gauge: GwGauge;
       min?: number;
       max?: number;
-    };
+    }
+  | { kind: "world"; of: GwWorldCond };
 
 export type GwEffect =
   | { kind: "flag"; flag: string }
@@ -169,7 +176,8 @@ export type GwEffect =
       otherwise?: GwEffect[];
     }
   /** Moves this talk's mood. */
-  | { kind: "mood"; delta: number };
+  | { kind: "mood"; delta: number }
+  | { kind: "world"; of: GwWorldEffect };
 
 const int = z.number().int();
 const range = { min: int.optional(), max: int.optional() };
@@ -251,6 +259,7 @@ export const GwCondSchema: z.ZodType<GwCond> = z.lazy(() =>
     obj("rival_in_office", { who: GwWhoSchema }),
     obj("ai", { tag, of: z.array(z.enum(GW_AI_KINDS)) }),
     obj("nation_gauge", { tag, gauge, ...range }),
+    obj("world", { of: GwWorldCondSchema }),
   ]),
 ) as z.ZodType<GwCond>;
 
@@ -299,6 +308,7 @@ export const GwEffectSchema: z.ZodType<GwEffect> = z.lazy(() =>
       otherwise: z.array(GwEffectSchema).optional(),
     }),
     obj("mood", { delta: int }),
+    obj("world", { of: GwWorldEffectSchema }),
   ]),
 ) as z.ZodType<GwEffect>;
 
@@ -347,6 +357,8 @@ const GwBaseCastRuleSchema = z.union([
   z.object({ ally_of: GwIdSchema }).strict(),
   /** The person who came: a promise broken, or `schedule` with `who`. */
   z.object({ called: z.literal(true) }).strict(),
+  /** The person a world scene is about (seat.subjects[scene id]). */
+  z.object({ subject: z.literal(true) }).strict(),
 ]);
 
 /**

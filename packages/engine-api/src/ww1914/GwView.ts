@@ -15,6 +15,7 @@ import type {
 } from "./GreatWarTypes";
 import type { GwTag } from "./GwCountries";
 import type { GwOrderBlock } from "./GwOrders";
+import type { GwWorldView } from "./GwWorldView";
 import type { GwReplyKind, GwSceneKind, GwStance } from "./SceneDsl";
 
 export interface GwOptionView {
@@ -109,6 +110,7 @@ export interface GwSeatView {
   choices?: readonly GwChoiceView[];
   /** Every body dealt, "<scene>.<variant>": the lobby's recent list. */
   shown?: readonly string[];
+  world: GwWorldView;
 }
 
 /** The whole mode as sent worker -> main thread. Never mutated. */

@@ -37,6 +37,8 @@ import {
 } from "@openfront/engine-lib/ww1914/TalkRules";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import type { GreatWar } from "./GreatWar";
+import { dismissPerson, onAppointed } from "./People";
+import { worldEffect, worldHolds } from "./WorldDsl";
 
 const P_CAST = idHash("gw_cast");
 const P_VARIANT = idHash("gw_variant");
@@ -145,7 +147,12 @@ type BaseCastRule = Exclude<GwCastRule, { any_of: unknown }>;
 /** Fixed roles: who they are doesn't depend on the rest of the cast. */
 function isFixed(rule: GwCastRule): boolean {
   if ("any_of" in rule) return rule.any_of.every(isFixed);
-  return "office" in rule || "person" in rule || "called" in rule;
+  return (
+    "office" in rule ||
+    "person" in rule ||
+    "called" in rule ||
+    "subject" in rule
+  );
 }
 
 /** The person a rule finds, skipping whoever `taken` holds. */
@@ -169,6 +176,11 @@ function fill(
   if ("called" in rule) {
     const p = called === null ? null : gw.person(called);
     return p?.status === "active" ? p : null;
+  }
+  // Whoever the world scene is about: they may have left, that's the news.
+  if ("subject" in rule) {
+    const id = seat.subjects[scene.id];
+    return id === undefined ? null : gw.person(id);
   }
   if ("rival" in rule || "favourite" in rule) {
     const sign = "rival" in rule ? 1 : -1;
@@ -242,6 +254,8 @@ function who(ctx: SceneCtx, w: GwWho): GwPersonState | null {
   if ("office" in w) return holderOf(ctx.gw, ctx.seat, w.office);
   return ctx.gw.person(w.person);
 }
+
+export const whoIn = who;
 
 /** Exhaustive: a new kind in the DSL fails to compile here until it runs. */
 export function holds(ctx: SceneCtx, c: GwCond): boolean {
@@ -384,6 +398,8 @@ export function holds(ctx: SceneCtx, c: GwCond): boolean {
       const n = gw.nation(c.tag);
       return n !== null && inRange(n.gauges[c.gauge], c);
     }
+    case "world":
+      return worldHolds(ctx, c.of);
   }
 }
 
@@ -403,6 +419,7 @@ export function setOffice(
   const old = holderOf(ctx.gw, ctx.seat, office);
   if (old !== null) old.office = null;
   person.office = office;
+  onAppointed(ctx.gw, person.id);
 }
 
 /** Exhaustive, as `holds` is. An effect on nobody does nothing. */
@@ -509,7 +526,7 @@ export function runEffect(ctx: SceneCtx, e: GwEffect): void {
       return;
     case "dismiss": {
       const p = who(ctx, e.who);
-      if (p !== null) p.office = null;
+      if (p !== null) dismissPerson(ctx.gw, ctx.seat, p);
       return;
     }
     case "appoint": {
@@ -553,6 +570,9 @@ export function runEffect(ctx: SceneCtx, e: GwEffect): void {
     }
     case "mood":
       if (ctx.card !== undefined) ctx.card.mood += e.delta;
+      return;
+    case "world":
+      worldEffect(ctx, e.of);
       return;
   }
 }

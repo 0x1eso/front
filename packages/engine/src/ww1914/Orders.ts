@@ -16,7 +16,9 @@ import type {
   SnapshotWriter,
 } from "../snapshot/SnapshotContext";
 import { inStage, makeCard, placeCard, repeatable, sceneWear } from "./Desk";
+import { proposalsFor } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
+import { dismissPerson, dismissPrice } from "./People";
 import {
   castOf,
   ctxOf,
@@ -100,7 +102,9 @@ export function applyGwOrder(
     case "dismiss": {
       const p = gw.person(o.person);
       if (!ownPerson(seat, o.person) || p === null) return "no_person";
-      p.office = null;
+      const n = gw.nation(seat.tag);
+      if (n === null || n.authority < dismissPrice(p.id)) return "no_authority";
+      dismissPerson(gw, seat, p);
       return null;
     }
     case "appoint": {
@@ -109,7 +113,18 @@ export function applyGwOrder(
       setOffice({ gw, seat, cast: {} }, p, o.office);
       return null;
     }
-    case "allocate":
+    case "allocate": {
+      if (seat.signed === gw.s.chapter) return "signed";
+      const paper = proposalsFor(gw, seat).find(
+        (p) =>
+          p.main === o.main &&
+          p.posture === o.posture &&
+          p.scale === o.scale &&
+          p.allyShare === o.allyShare,
+      );
+      if (paper === undefined) return "not_proposed";
+      if (!paper.open) return "closed";
+      seat.signed = gw.s.chapter;
       seat.alloc = {
         main: o.main,
         posture: o.posture,
@@ -118,6 +133,7 @@ export function applyGwOrder(
         research: o.research,
       };
       return null;
+    }
   }
 }
 

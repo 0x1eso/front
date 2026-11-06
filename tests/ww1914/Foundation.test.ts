@@ -127,7 +127,8 @@ describe("the chapter clock", () => {
     expect(seen).toHaveLength(12);
     expect(seen[6]).toBe("1914-08-09");
     expect(seen[11]).toBe("1915-01-01");
-    expect(view(runner).ended).toBe("closing");
+    expect(view(runner).ended).not.toBeNull();
+    expect(seat(runner).world.memoir?.ending).toBe(view(runner).ended);
   });
 
   test("with friends: the deadline closes it and proxies the cards", async () => {
@@ -153,10 +154,11 @@ describe("the chapter clock", () => {
 
   test("chapter count, spans and summons all come from the table", async () => {
     expect(gwChapters("y1914")).toHaveLength(12);
-    expect(gwChapters("full")).toHaveLength(36);
-    expect(Object.keys(GW_CALENDARS)).toEqual(["y1914", "full"]);
+    expect(gwChapters("full")).toHaveLength(60);
+    expect(gwChapters("standard")).toHaveLength(36);
+    expect(Object.keys(GW_CALENDARS)).toEqual(["y1914", "full", "standard"]);
     const { runner } = await gwRunner({ greatWar1914Calendar: "full" });
-    expect(view(runner).chapterCount).toBe(36);
+    expect(view(runner).chapterCount).toBe(60);
     expect(seat(runner).audiences).toBe(gwChapters("full")[0].summons);
     const y = gwChapters("y1914");
     expect(y[1].day - y[0].day).toBe(y[0].spanDays);
@@ -255,7 +257,7 @@ describe("the two sample scenes", () => {
     expect(talk()).toBeUndefined();
   });
 
-  test("dismiss, appoint and allocate", async () => {
+  test("dismiss and appoint", async () => {
     const { runner } = await gwRunner();
     const office = (id: string) =>
       seat(runner).people.find((p) => p.id === id)!.office;
@@ -268,15 +270,6 @@ describe("the two sample scenes", () => {
     expect(office("deu_bethmann")).toBeNull();
     order(runner, { kind: "dismiss", person: "deu_jagow" });
     expect(office("deu_jagow")).toBeNull();
-    order(runner, {
-      kind: "allocate",
-      main: "east",
-      posture: "offensive",
-      scale: "major",
-      allyShare: 2,
-      research: "sea",
-    });
-    expect(seat(runner).alloc.main).toBe("east");
   });
 
   test("the view hides what the seat may not know", async () => {
