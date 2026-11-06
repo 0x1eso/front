@@ -858,9 +858,9 @@ export class WwEconomy {
   refreshTotals(ce: CountryEconomy, day: number, tick: number): void {
     const t = ce.totals;
     const law = ce.law();
-    let civ = 0;
-    let mil = 0;
-    let dock = 0;
+    let civ100 = 0;
+    let mil100 = 0;
+    let dock100 = 0;
     let recruitable = 0;
     const produced = zeros();
     // Most regions belong to one owner: ask whether it still fights once.
@@ -894,10 +894,12 @@ export class WwEconomy {
             };
       const cp = sh.controlPct;
       const rp = occ === null ? cp : occ.resourcePct;
-      // P4 plan decision 13: bombed-out buildings do not work.
-      civ += Math.floor((effectiveBuildings(this, id, "civ") * cp) / 100);
-      mil += Math.floor((effectiveBuildings(this, id, "mil") * cp) / 100);
-      dock += Math.floor((effectiveBuildings(this, id, "dock") * cp) / 100);
+      // P4 plan decision 13: bombed-out buildings do not work. ww115 T9:
+      // summed in hundredths and floored on the country's total, so a
+      // one-factory region under a share still counts.
+      civ100 += effectiveBuildings(this, id, "civ") * cp;
+      mil100 += effectiveBuildings(this, id, "mil") * cp;
+      dock100 += effectiveBuildings(this, id, "dock") * cp;
       recruitable += recruitableMen(
         r.pop,
         this.withNonCore(sh.manpowerPct, ce),
@@ -938,6 +940,9 @@ export class WwEconomy {
       produced[STEEL] += smelt;
       produced[ALUMINIUM] += smelt;
     }
+    const civ = Math.floor(civ100 / 100);
+    const mil = Math.floor(mil100 / 100);
+    const dock = Math.floor(dock100 / 100);
     const exported = zeros();
     const imported = zeros();
     let paid = 0;
