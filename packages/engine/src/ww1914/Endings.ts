@@ -275,7 +275,7 @@ export function memoirOf(
   );
   const people = ownDefs.flatMap((d) => {
     const p = gw.person(d.id);
-    if (p === null) return [];
+    if (p === null || p.status === "waiting") return [];
     return [
       {
         id: p.id,
