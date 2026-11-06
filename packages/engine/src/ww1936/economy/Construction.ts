@@ -245,19 +245,55 @@ export function moveBuild(
   return null;
 }
 
+/** ww115 T11: why a queue entry was dropped, as its notice (literal keys: EconomyI18n). */
+const DROP_NOTICE = {
+  lost: "events_display.ww1936_build_dropped_lost",
+  occupied: "events_display.ww1936_build_dropped_occupied",
+  full: "events_display.ww1936_build_dropped_full",
+} as const;
+type DropReason = keyof typeof DROP_NOTICE;
+
+/** ww115 T11: a human hears of every queue entry that ends unfinished. */
+export function noteBuildDropped(
+  econ: WwEconomy,
+  ce: CountryEconomy,
+  q: Project,
+  why: DropReason,
+): void {
+  if (!econ.ww.isHumanControlled(ce.smallID)) return;
+  const p = econ.mg.playerBySmallID(ce.smallID);
+  if (!p.isPlayer()) return;
+  econ.mg.displayMessage(
+    DROP_NOTICE[why],
+    MessageType.WORLD_WAR,
+    p.id(),
+    undefined,
+    { building: q.building, region: q.region },
+  );
+}
+
 /**
- * Whether the next building of `q` may appear now. Its own slot was
- * reserved while it waited, so only the built factories count; a region
- * lost and retaken, or occupied meanwhile, drops the entry (spec §4.3).
+ * Why the next building of `q` may not appear now; null when it may. Its
+ * own slot was reserved while it waited, so only the built factories
+ * count; a region lost and retaken, or occupied meanwhile, drops the entry
+ * (spec §4.3).
  */
-function canComplete(econ: WwEconomy, ce: CountryEconomy, q: Project): boolean {
-  if (econ.controllerOf(q.region) !== ce.smallID) return false;
+function completeBlock(
+  econ: WwEconomy,
+  ce: CountryEconomy,
+  q: Project,
+): DropReason | null {
+  if (econ.controllerOf(q.region) !== ce.smallID) return "lost";
   // Level buildings go up in occupied regions too (P2 spec §11.7).
   const max = LEVEL_MAX[q.building];
-  if (max !== undefined) return econ.buildingArray(q.building)[q.region] < max;
-  if (econ.isOccupied(q.region)) return false;
+  if (max !== undefined) {
+    return econ.buildingArray(q.building)[q.region] < max ? null : "full";
+  }
+  if (econ.isOccupied(q.region)) return "occupied";
   const built = slotBuildings(econ, q.region);
-  return built + 1 <= econ.regionSlots(q.region, ce.stats.slotPct);
+  return built + 1 <= econ.regionSlots(q.region, ce.stats.slotPct)
+    ? null
+    : "full";
 }
 
 const FACILITY_SET: ReadonlySet<BuildingId> = new Set(FACILITY_IDS);
@@ -304,7 +340,9 @@ export function stepConstruction(
     q.progress += constructionProgress(assigned[i], speed);
     const cost = BUILDING_COST[q.building] * 1000;
     while (q.count > 0 && q.progress >= cost) {
-      if (!canComplete(econ, ce, q)) {
+      const blocked = completeBlock(econ, ce, q);
+      if (blocked !== null) {
+        noteBuildDropped(econ, ce, q, blocked);
         q.count = 0;
         break;
       }

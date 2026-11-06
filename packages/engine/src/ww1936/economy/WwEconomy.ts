@@ -90,7 +90,7 @@ import type { WwPolitics } from "../politics/WwPolitics";
 import type { WorldWar } from "../WorldWar";
 import { aiEconomyTick, aiStartSetup } from "./AiEconomy";
 import { addConvoys, buildingIndex, effectiveBuildings } from "./Buildings";
-import { stepConstruction } from "./Construction";
+import { noteBuildDropped, stepConstruction } from "./Construction";
 import {
   alloyOf,
   fuelCapOf,
@@ -853,6 +853,10 @@ export class WwEconomy {
         if (ce.smallID === c) continue;
         const kept = ce.queue.filter((q) => q.region !== r.id);
         if (kept.length !== ce.queue.length) {
+          // ww115 T11: said aloud, like an entry that cannot complete.
+          for (const q of ce.queue) {
+            if (q.region === r.id) noteBuildDropped(this, ce, q, "lost");
+          }
           ce.queue = kept;
           this.dirtyCountries.add(ce.smallID);
         }

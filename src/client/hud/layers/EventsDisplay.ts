@@ -366,6 +366,16 @@ export class EventsDisplay extends LitElement implements Controller {
           resource: translateText("ww1936.res." + params.resource),
         };
       }
+      // ww115 T11: a dropped queue entry names its building.
+      if (
+        event.message.startsWith("events_display.ww1936_build_dropped_") &&
+        typeof params.building === "string"
+      ) {
+        params = {
+          ...params,
+          building: translateText("ww1936.building." + params.building),
+        };
+      }
       // P2 (pre-flight S3): a region by id (named in the viewer's
       // language), a general by id, an army by its number.
       const scenario = this.game?.worldWarScenario?.() ?? null;
