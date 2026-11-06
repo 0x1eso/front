@@ -16,6 +16,7 @@ import {
   GwScene,
   GwVariant,
   memory,
+  not,
   setFlag,
 } from "@openfront/engine-api/ww1914/SceneDsl";
 
@@ -173,6 +174,17 @@ function decision(
   };
 }
 
+/** Comes again, `cooldown` chapters on, only when `fresh` has a body to show. */
+function again(scene: GwScene, fresh: GwCond, cooldown: number): GwScene {
+  const seen: GwCond = { kind: "seen", scene: scene.id };
+  return {
+    ...scene,
+    once: false,
+    cooldown,
+    when: all(scene.when!, any(not(seen), fresh)),
+  };
+}
+
 /** Read only: what reached every desk, stamped. */
 function report(
   id: string,
@@ -241,42 +253,49 @@ const ITALY: GwScene[] = [
       ),
     ],
   ),
-  decision(
-    "gw_o_ita_trentino",
-    CENTRAL,
-    "1915-01",
-    "1915-05",
-    [neutral("ITA"), central],
-    { fm },
-    8,
-    ["foreign"],
-    [
-      v("vienna_seat", all(seatIs("AUH"), neutral("ITA"))),
-      v("late", dated("1915-04", "1915-05")),
-      v("base"),
-    ],
-    [
-      opt(
-        "press_vienna",
-        ["price_full", "ally:-1", "entry"],
-        [
-          ...price("ITA", 2, 0),
-          ...sway("ITA", -10, 0),
-          ...allies(-1),
-          why("o_trentino_pressed"),
-        ],
-      ),
-      opt(
-        "half_trentino",
-        ["price_modest", "entry"],
-        [...price("ITA", 1, 0), ...sway("ITA", -3, 0)],
-      ),
-      opt(
-        "refuse",
-        ["ally:+1", "entry"],
-        [...allies(1), ...sway("ITA", 5, 0), why("o_trentino_refused")],
-      ),
-    ],
+  again(
+    decision(
+      "gw_o_ita_trentino",
+      CENTRAL,
+      "1915-01",
+      "1915-05",
+      [neutral("ITA"), central],
+      { fm },
+      8,
+      ["foreign"],
+      [
+        v("vienna_seat", all(seatIs("AUH"), neutral("ITA"))),
+        v("late", dated("1915-04", "1915-05")),
+        v("base"),
+      ],
+      [
+        opt(
+          "press_vienna",
+          ["price_full", "ally:-1", "entry"],
+          [
+            ...price("ITA", 2, 0),
+            ...sway("ITA", -10, 0),
+            ...allies(-1),
+            why("o_trentino_pressed"),
+          ],
+        ),
+        opt(
+          "half_trentino",
+          ["price_modest", "entry"],
+          [...price("ITA", 1, 0), ...sway("ITA", -3, 0)],
+        ),
+        opt(
+          "refuse",
+          ["ally:+1", "entry"],
+          [...allies(1), ...sway("ITA", 5, 0), why("o_trentino_refused")],
+        ),
+      ],
+    ),
+    all(
+      dated("1915-04", "1915-05"),
+      not(chose("gw_o_ita_trentino", "press_vienna")),
+    ),
+    3,
   ),
   decision(
     "gw_o_ita_london",
@@ -431,7 +450,7 @@ const OTTOMAN: GwScene[] = [
     everyone,
     "1914-08",
     "1914-12",
-    [neutral("OTT")],
+    [neutral("OTT"), any(fighting, dated("1914-10", "1914-12"))],
     { fm },
     7,
     ["foreign"],
@@ -660,7 +679,10 @@ const ROMANIA: GwScene[] = [
     [
       neutral("ROU"),
       fighting,
-      w({ is: "battle", theatre: "east", of: ["advance", "break"] }),
+      any(
+        w({ is: "battle", theatre: "east", of: ["advance", "break"] }),
+        dated("1916-06", "1916-10"),
+      ),
     ],
     { fm, cos },
     8,
@@ -809,7 +831,6 @@ const GREECE: GwScene[] = [
           ...price("GRC", 1, 0),
           ...sway("GRC", -5, -5),
           reveal("grc_king_letters"),
-          setFlag("f_o_backed_king"),
           why("o_grc_king_backed"),
         ],
         memory("k_constantine_no"),
@@ -929,75 +950,86 @@ const JAPAN: GwScene[] = [
 ];
 
 const AMERICA: GwScene[] = [
-  decision(
-    "gw_o_usa_loans",
-    everyone,
-    "1915-01",
-    "1917-03",
-    [neutral("USA"), fighting, { kind: "gauge", gauge: "money", max: 2 }],
-    { fin, fm },
-    8,
-    ["foreign"],
-    [
-      v("cliff", all(known("usa_credit_cliff"), entente, neutral("USA"))),
-      v("deep", all(entente, dated("1916-07", "1917-03"))),
-      v("central", central),
-      v("base"),
-    ],
-    [
-      opt("small_loan", ["money:+1"], [money(1)]),
-      opt(
-        "big_loan",
-        ["money:+2", "america"],
-        [
-          money(2),
-          act({ do: "readiness", tag: "USA", delta: 4 }),
-          setFlag("f_o_usa_big_loan"),
-          why("o_usa_big"),
-        ],
-        entente,
-      ),
-      opt(
-        "refuse_terms",
-        ["authority:+5"],
-        [authority(5), why("o_usa_refused")],
-      ),
-    ],
+  again(
+    decision(
+      "gw_o_usa_loans",
+      everyone,
+      "1915-01",
+      "1917-03",
+      [neutral("USA"), fighting, { kind: "gauge", gauge: "money", max: 2 }],
+      { fin, fm },
+      8,
+      ["foreign"],
+      [
+        v("cliff", all(known("usa_credit_cliff"), entente, neutral("USA"))),
+        v("deep", all(entente, dated("1916-07", "1917-03"))),
+        v("central", central),
+        v("base"),
+      ],
+      [
+        opt("small_loan", ["money:+1"], [money(1)]),
+        opt(
+          "big_loan",
+          ["money:+2", "america"],
+          [
+            money(2),
+            act({ do: "readiness", tag: "USA", delta: 4 }),
+            setFlag("f_o_usa_big_loan"),
+            why("o_usa_big"),
+          ],
+          entente,
+        ),
+        opt(
+          "refuse_terms",
+          ["authority:+5"],
+          [authority(5), why("o_usa_refused")],
+        ),
+      ],
+    ),
+    all(entente, dated("1916-07", "1917-03")),
+    12,
   ),
-  decision(
-    "gw_o_usa_arms",
-    CENTRAL,
-    "1915-01",
-    "1916-06",
-    [neutral("USA"), central],
-    { fm },
-    6,
-    ["foreign", "tension_up"],
-    [
-      v("liner", flag("w_liner_sunk")),
-      v("second", dated("1915-07", "1916-06")),
-      v("base"),
-    ],
-    [
-      opt(
-        "protest",
-        ["america"],
-        [act({ do: "readiness", tag: "USA", delta: 2 }), why("o_arms_protest")],
-      ),
-      opt(
-        "buy_up_plants",
-        ["money:-1", "shells:+1"],
-        [money(-1), shells(1), why("o_arms_plants")],
-      ),
-      opt(
-        "sabotage_no",
-        ["america"],
-        [
-          act({ do: "readiness", tag: "USA", delta: -3 }),
-          why("o_arms_no_sabotage"),
-        ],
-      ),
-    ],
+  again(
+    decision(
+      "gw_o_usa_arms",
+      CENTRAL,
+      "1915-01",
+      "1916-06",
+      [neutral("USA"), central],
+      { fm },
+      6,
+      ["foreign", "tension_up"],
+      [
+        v("liner", flag("w_liner_sunk")),
+        v("second", dated("1915-07", "1916-06")),
+        v("base"),
+      ],
+      [
+        opt(
+          "protest",
+          ["america"],
+          [
+            act({ do: "readiness", tag: "USA", delta: 2 }),
+            why("o_arms_protest"),
+          ],
+        ),
+        opt(
+          "buy_up_plants",
+          ["money:-1", "shells:+1"],
+          [money(-1), shells(1), why("o_arms_plants")],
+        ),
+        opt(
+          "sabotage_no",
+          ["america"],
+          [
+            act({ do: "readiness", tag: "USA", delta: -3 }),
+            why("o_arms_no_sabotage"),
+          ],
+        ),
+      ],
+    ),
+    dated("1915-07", "1916-06"),
+    12,
   ),
   report(
     "gw_o_usa_election",
@@ -1017,33 +1049,37 @@ const AMERICA: GwScene[] = [
 ];
 
 const SMALL: GwScene[] = [
-  decision(
-    "gw_o_nld_food",
-    everyone,
-    "1915-01",
-    "1917-12",
-    [fighting, w({ is: "blockade", min: 2 })],
-    { fm, fin },
-    5,
-    ["foreign"],
-    [
-      v("unrestricted", all(flag("w_unrestricted"), fighting)),
-      v("central", central),
-      v("base"),
-    ],
-    [
-      opt("quota", ["blockade"], [...net(1), trust("NLD", 1)]),
-      opt(
-        "cut_off",
-        ["blockade", "trust:-1"],
-        [...net(2), trust("NLD", -1), why("o_nld_cut")],
-      ),
-      opt(
-        "buy_through",
-        ["money:-1", "blockade"],
-        [money(-1), ...net(1), why("o_nld_through")],
-      ),
-    ],
+  again(
+    decision(
+      "gw_o_nld_food",
+      everyone,
+      "1915-01",
+      "1917-12",
+      [fighting, w({ is: "blockade", min: 2 })],
+      { fm, fin },
+      5,
+      ["foreign"],
+      [
+        v("unrestricted", all(flag("w_unrestricted"), fighting)),
+        v("central", central),
+        v("base"),
+      ],
+      [
+        opt("quota", ["blockade"], [...net(1), trust("NLD", 1)]),
+        opt(
+          "cut_off",
+          ["blockade", "trust:-1"],
+          [...net(2), trust("NLD", -1), why("o_nld_cut")],
+        ),
+        opt(
+          "buy_through",
+          ["money:-1", "blockade"],
+          [money(-1), ...net(1), why("o_nld_through")],
+        ),
+      ],
+    ),
+    flag("w_unrestricted"),
+    12,
   ),
   decision(
     "gw_o_swe_iron",
@@ -1115,34 +1151,38 @@ const SMALL: GwScene[] = [
       ),
     ],
   ),
-  decision(
-    "gw_o_nor_tonnage",
-    everyone,
-    "1916-07",
-    "1917-12",
-    [fighting, w({ is: "shipping", min: 3 })],
-    { fm },
-    5,
-    ["foreign"],
-    [
-      v("sunk", all(entente, w({ is: "shipping", min: 5 }))),
-      v("central", central),
-      v("base"),
-    ],
-    [
-      opt(
-        "charter",
-        ["money:-1", "trust:+1"],
-        [money(-1), trust("NOR", 1), ...bySide([], [shipping(-1)])],
-      ),
-      opt("warn_off", ["trust:-1"], [trust("NOR", -1), why("o_nor_warned")]),
-      opt(
-        "buy_ships",
-        ["money:-2", "shipping:-2"],
-        [money(-2), shipping(-2), why("o_nor_bought")],
-        entente,
-      ),
-    ],
+  again(
+    decision(
+      "gw_o_nor_tonnage",
+      everyone,
+      "1916-07",
+      "1917-12",
+      [fighting, w({ is: "shipping", min: 3 })],
+      { fm },
+      5,
+      ["foreign"],
+      [
+        v("sunk", all(entente, w({ is: "shipping", min: 5 }))),
+        v("central", central),
+        v("base"),
+      ],
+      [
+        opt(
+          "charter",
+          ["money:-1", "trust:+1"],
+          [money(-1), trust("NOR", 1), ...bySide([], [shipping(-1)])],
+        ),
+        opt("warn_off", ["trust:-1"], [trust("NOR", -1), why("o_nor_warned")]),
+        opt(
+          "buy_ships",
+          ["money:-2", "shipping:-2"],
+          [money(-2), shipping(-2), why("o_nor_bought")],
+          entente,
+        ),
+      ],
+    ),
+    all(entente, w({ is: "shipping", min: 5 })),
+    12,
   ),
   decision(
     "gw_o_per_oil",
