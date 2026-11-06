@@ -45,6 +45,10 @@ export const GW_CAMPS = [
   "west",
   "hard",
   "moderate",
+  // Austria-Hungary's third axis (content/people_auh).
+  "magyar",
+  "dynasty",
+  "nations",
 ] as const;
 export type GwCamp = (typeof GW_CAMPS)[number];
 
