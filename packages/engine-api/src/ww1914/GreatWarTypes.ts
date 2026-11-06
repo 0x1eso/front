@@ -624,6 +624,7 @@ export const GW_WORLD_FLAGS = [
   "w_tannenberg",
   "w_marne_stopped",
   "w_bad_luck_east",
+  "w_summer_war",
 ] as const;
 export type GwWorldFlag = (typeof GW_WORLD_FLAGS)[number];
 

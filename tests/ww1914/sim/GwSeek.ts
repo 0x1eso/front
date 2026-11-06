@@ -127,6 +127,15 @@ function wanted(keys: Set<string>): Set<string> {
       condKeys(s.when, all);
       if (all.size > before) grew = true;
     }
+    // An option that writes one may be locked behind a talk in turn.
+    for (const s of gwContent().scenes) {
+      for (const o of s.options ?? []) {
+        if (!writes(o.effects, all)) continue;
+        const before = all.size;
+        condKeys(o.when, all);
+        if (all.size > before) grew = true;
+      }
+    }
   }
   return all;
 }
@@ -151,6 +160,7 @@ async function chase(
   const opt = target.options!.find((o) => o.id === option)!;
   const direct = new Set<string>();
   condKeys(opt.when, direct);
+  condKeys(target.when, direct);
   const keys = wanted(direct);
   const runner = await newGame(map, startOf(gameID, "y1914", []));
   const gw = runner.game.greatWar()!;
@@ -178,7 +188,8 @@ async function chase(
       }
     }
     for (let g = 0; g < 200 && seat.desk.length > 0; g++) {
-      const card = seat.desk[0];
+      // A person reads the whole desk: the visitor comes before the signature.
+      const card = seat.desk.find((c) => c.node !== null) ?? seat.desk[0];
       const scene = sceneOf(card.scene)!;
       if (card.node !== null) {
         talk(gw, seat, card, keys, roll);
@@ -226,12 +237,14 @@ async function chase(
 export async function seekOptions(
   map: MapFiles,
   tries: number,
+  only: string | null = null,
   label = "seek",
 ): Promise<GwSeekResult[]> {
   const out: GwSeekResult[] = [];
   for (const s of gwContent().scenes) {
     for (const o of s.options ?? []) {
       if (o.when === undefined) continue;
+      if (only !== null && !`${s.id}.${o.id}`.match(only)) continue;
       const r: GwSeekResult = {
         scene: s.id,
         option: o.id,

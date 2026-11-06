@@ -2,7 +2,7 @@
  * Great War 1914: can every locked option be opened by someone who goes after
  * it? Plays a bot per option on the real map and lists what never opened.
  *
- *   npx tsx scripts/ww1914-seek.ts [--tries 24]
+ *   npx tsx scripts/ww1914-seek.ts [--tries 24] [--only regexp]
  */
 import { GameMapSize, GameMapType } from "@openfront/engine-api/game/GameTypes";
 import { loadMapFiles } from "@openfront/shared/GameMapLoader";
@@ -23,7 +23,12 @@ async function main(): Promise<void> {
     GameMapType.World1936,
     GameMapSize.Normal,
   );
-  const rows = await seekOptions(map, tries);
+  const j = process.argv.indexOf("--only");
+  const rows = await seekOptions(
+    map,
+    tries,
+    j < 0 ? null : process.argv[j + 1],
+  );
   console.log = log;
   const shut = rows.filter((r) => !r.open);
   console.log(`${rows.length} locked options, ${shut.length} never opened`);

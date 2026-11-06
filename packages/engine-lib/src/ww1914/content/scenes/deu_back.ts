@@ -163,6 +163,7 @@ const WHO: GwWho = role("who");
 
 const TELL_TAGS: Readonly<Record<string, GwTag>> = {
   auh: "AUH",
+  fra: "FRA",
   gbr: "GBR",
   ita: "ITA",
   rus: "RUS",
@@ -180,12 +181,13 @@ const TELL_OFFICES: Readonly<Record<string, GwOffice>> = {
 };
 
 /** A tell token as the effect it shows. */
-function paid(token: string): GwEffect {
+export function paid(token: string): GwEffect {
   if (token === "leaves") {
     return { kind: "world", of: { do: "leave", who: WHO } };
   }
   const [key, value] = token.split(":");
   const delta = Number(value);
+  if (key === "temp") return { kind: "temp", delta };
   if (TELL_TAGS[key] !== undefined) {
     return { kind: "trust", tag: TELL_TAGS[key], delta };
   }

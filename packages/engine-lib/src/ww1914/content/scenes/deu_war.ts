@@ -605,6 +605,23 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
     once: true,
     variants: [
       {
+        id: "late",
+        when: {
+          kind: "all",
+          of: [
+            { kind: "chapter", min: 11 },
+            {
+              kind: "any",
+              of: [
+                { kind: "at_war", tag: "RUS" },
+                { kind: "at_war", tag: "FRA" },
+              ],
+            },
+            { kind: "not", of: { kind: "flag", flag: "w_summer_war" } },
+          ],
+        },
+      },
+      {
         id: "peace",
         when: {
           kind: "not",
@@ -3286,8 +3303,11 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
       {
         id: "joint_command",
         when: {
-          kind: "memory",
-          key: "k_conrad_winter",
+          kind: "any",
+          of: [
+            { kind: "memory", key: "k_conrad_winter" },
+            { kind: "memory", key: "k_conrad_cry" },
+          ],
         },
         tell: ["auh:-1", "army:+1"],
         effects: [
@@ -3815,6 +3835,10 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
       kind: "all",
       of: [
         {
+          kind: "world",
+          of: { is: "chain_end", of: ["compromise", "humiliation"] },
+        },
+        {
           kind: "chapter",
           min: 6,
           max: 8,
@@ -4100,7 +4124,7 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
       of: [
         {
           kind: "chapter",
-          min: 8,
+          min: 6,
           max: 10,
         },
         {
@@ -4125,6 +4149,9 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
             {
               kind: "any",
               of: [
+                { kind: "crisis", topic: "balkan" },
+                { kind: "crisis", topic: "straits" },
+                { kind: "crisis", topic: "colonial" },
                 {
                   kind: "pressure",
                   topic: "balkan",
@@ -4153,6 +4180,7 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
     tags: ["foreign", "tension_up"],
     once: true,
     variants: [
+      { id: "colonial", when: { kind: "crisis", topic: "colonial" } },
       {
         id: "straits",
         when: {
@@ -4896,6 +4924,14 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
       },
       heart: {
         says: [
+          {
+            id: "frail",
+            when: { kind: "health", who: { person: "deu_moltke" }, max: 1 },
+          },
+          {
+            id: "sound",
+            when: { kind: "health", who: { person: "deu_moltke" }, min: 3 },
+          },
           {
             id: "weary",
             when: {

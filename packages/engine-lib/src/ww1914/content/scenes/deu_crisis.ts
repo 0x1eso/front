@@ -3160,7 +3160,17 @@ export const DEU_CRISIS_SCENES: readonly GwScene[] = [
         ],
       },
       source: {
-        says: [{ id: "base" }],
+        says: [
+          {
+            id: "weak",
+            when: { kind: "source_band", source: "embassy_petersburg", max: 1 },
+          },
+          {
+            id: "strong",
+            when: { kind: "source_band", source: "embassy_petersburg", min: 3 },
+          },
+          { id: "base" },
+        ],
         replies: [
           {
             id: "more",
@@ -3534,7 +3544,13 @@ export const DEU_CRISIS_SCENES: readonly GwScene[] = [
         ],
       },
       truth: {
-        says: [{ id: "base" }],
+        says: [
+          {
+            id: "frail",
+            when: { kind: "health", who: { person: "deu_jagow" }, max: 1 },
+          },
+          { id: "base" },
+        ],
         replies: [
           {
             id: "zimm",
@@ -3869,7 +3885,13 @@ export const DEU_CRISIS_SCENES: readonly GwScene[] = [
         ],
       },
       odds: {
-        says: [{ id: "base" }],
+        says: [
+          {
+            id: "straight",
+            when: { kind: "candid", who: { person: "deu_zimmermann" } },
+          },
+          { id: "base" },
+        ],
         replies: [
           {
             id: "v",
@@ -4768,7 +4790,17 @@ export const DEU_CRISIS_SCENES: readonly GwScene[] = [
         ],
       },
       cut: {
-        says: [{ id: "base" }],
+        says: [
+          {
+            id: "weak",
+            when: { kind: "source_band", source: "embassy_london", max: 1 },
+          },
+          {
+            id: "strong",
+            when: { kind: "source_band", source: "embassy_london", min: 3 },
+          },
+          { id: "base" },
+        ],
         replies: [
           {
             id: "trust",
@@ -5647,7 +5679,13 @@ export const DEU_CRISIS_SCENES: readonly GwScene[] = [
         ],
       },
       honest: {
-        says: [{ id: "base" }],
+        says: [
+          {
+            id: "weak",
+            when: { kind: "source_band", source: "embassy_petersburg", max: 1 },
+          },
+          { id: "base" },
+        ],
         replies: [
           {
             id: "ok",
@@ -7275,12 +7313,12 @@ export const DEU_CRISIS_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        { kind: "chapter", min: 4, max: 4 },
+        { kind: "chapter", min: 4, max: 5 },
         { kind: "temp", min: 6 },
       ],
     },
     cast: { finance: { office: "finance" } },
-    salience: 5,
+    salience: 7,
     tags: ["home"],
     once: true,
     variants: [

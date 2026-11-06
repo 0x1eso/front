@@ -28,10 +28,16 @@ function openingBattle(gw: GreatWar, t: GwTheatre): GwBattle | null {
   return lastOf(s.battles.filter((b) => b.theatre === t)) ?? null;
 }
 
+/** The last chapter a war can begin in and still be the summer's war. */
+const SUMMER_ENDS = 6;
+
 /** What the world has done by now, in the words scenes ask for it. */
 function flagsNow(gw: GreatWar): GwWorldFlag[] {
   const s = gw.s;
   const out: GwWorldFlag[] = [];
+  if (s.warChapter !== null && s.warChapter <= SUMMER_ENDS) {
+    out.push("w_summer_war");
+  }
   const link = s.chain?.topic === "balkan" ? s.chain.step : -1;
   if (link >= GW_LINKS.indexOf("ultimatum")) out.push("w_ultimatum_out");
   const localWar = link >= GW_LINKS.indexOf("local_war");

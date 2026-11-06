@@ -5,6 +5,7 @@ import { COMMON_SCENES } from "./scenes/common";
 import { DEU_SCENES } from "./scenes/deu";
 import { DEU_BACK_SCENES, withPromiseTerms } from "./scenes/deu_back";
 import { DEU_CRISIS_SCENES } from "./scenes/deu_crisis";
+import { DEU_PEACE_SCENES, withSummerWar } from "./scenes/deu_peace";
 import { DEU_PEOPLE_SCENES } from "./scenes/deu_people";
 import { DEU_WAR_SCENES } from "./scenes/deu_war";
 import { WORLD_SCENES } from "./scenes/world";
@@ -19,9 +20,14 @@ export const GW_CONTENT: GwContent = {
   scenes: [
     ...COMMON_SCENES,
     ...DEU_SCENES,
-    ...[...DEU_CRISIS_SCENES, ...DEU_WAR_SCENES, ...DEU_PEOPLE_SCENES].map(
-      withPromiseTerms,
-    ),
+    ...[
+      ...DEU_CRISIS_SCENES,
+      ...DEU_WAR_SCENES,
+      ...DEU_PEOPLE_SCENES,
+      ...DEU_PEACE_SCENES,
+    ]
+      .map(withPromiseTerms)
+      .map(withSummerWar),
     ...DEU_BACK_SCENES,
     ...WORLD_SCENES,
   ],

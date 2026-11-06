@@ -26,6 +26,7 @@ const OUTSIDE_FLAGS = [
   "f_ottoman_signed",
   "f_tirpitz_command",
   "w_bad_luck_east",
+      "w_summer_war",
   "w_marne_stopped",
   "w_tannenberg",
 ];

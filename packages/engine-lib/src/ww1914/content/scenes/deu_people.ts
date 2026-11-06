@@ -273,7 +273,7 @@ export const DEU_PEOPLE_SCENES: readonly GwScene[] = [
     kind: "dispute",
     when: all(chapter(3, 4), balkan),
     cast: { fm: { office: "foreign" }, amb: { office: "ambassador_london" } },
-    salience: 7,
+    salience: 8,
     tags: ["people", "foreign", "tension_up"],
     once: true,
     variants: [{ id: "late", when: temp(6) }, { id: "base" }],
@@ -369,7 +369,7 @@ export const DEU_PEOPLE_SCENES: readonly GwScene[] = [
     kind: "dispute",
     when: all(chapter(5, 8), any(atWar("RUS"), atWar("FRA"))),
     cast: { navy: { office: "navy" }, court: { office: "court" } },
-    salience: 6,
+    salience: 7,
     tags: ["people", "war"],
     once: true,
     variants: [{ id: "britain_in", when: atWar("GBR") }, { id: "base" }],
@@ -2651,7 +2651,17 @@ export const DEU_PEOPLE_SCENES: readonly GwScene[] = [
         ],
       },
       press: {
-        says: [{ id: "base" }],
+        says: [
+          {
+            id: "weak",
+            when: { kind: "source_band", source: "press", max: 1 },
+          },
+          {
+            id: "strong",
+            when: { kind: "source_band", source: "press", min: 3 },
+          },
+          { id: "base" },
+        ],
         replies: [
           {
             id: "end",
@@ -3308,7 +3318,17 @@ export const DEU_PEOPLE_SCENES: readonly GwScene[] = [
         ],
       },
       moltke: {
-        says: [{ id: "base" }],
+        says: [
+          {
+            id: "frail",
+            when: { kind: "health", who: { person: "deu_moltke" }, max: 1 },
+          },
+          {
+            id: "sound",
+            when: { kind: "health", who: { person: "deu_moltke" }, min: 3 },
+          },
+          { id: "base" },
+        ],
         replies: [
           {
             id: "keep",
@@ -6903,7 +6923,7 @@ export const DEU_PEOPLE_SCENES: readonly GwScene[] = [
     id: "deu_v_conrad_winter",
     nation: ["DEU"],
     kind: "talk",
-    when: all(chapter(9, 10), atWar("RUS")),
+    when: all(chapter(8, 10), atWar("RUS")),
     cast: { who: { person: "auh_conrad" } },
     salience: 6,
     tags: ["people", "foreign", "war"],
