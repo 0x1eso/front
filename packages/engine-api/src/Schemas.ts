@@ -543,6 +543,13 @@ export const GameConfigSchema = z.object({
   greatWar1914: z.boolean().optional(),
   // Great War 1914: which row of the chapter table (engine-lib/ww1914/Calendars).
   greatWar1914Calendar: z.enum(GW_CALENDAR_IDS).optional(),
+  // Great War 1914: the bodies ("<scene>.<variant>") shown in the seat's last
+  // two games. The desk pushes them back (design §12): here and not in the
+  // browser, so a replay deals the same. Absent means none.
+  greatWar1914Recent: z
+    .array(zb.string({ min: 1, max: 100 }))
+    .max(1000)
+    .optional(),
 });
 
 // What a host sends in update_game_config. maxPlayers is the private-lobby

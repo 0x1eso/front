@@ -15,7 +15,7 @@ import type {
   SnapshotReader,
   SnapshotWriter,
 } from "../snapshot/SnapshotContext";
-import { makeCard } from "./Desk";
+import { inStage, makeCard, placeCard, repeatable, sceneWear } from "./Desk";
 import type { GreatWar } from "./GreatWar";
 import {
   castOf,
@@ -24,10 +24,11 @@ import {
   needsDecision,
   optionOpen,
   removeCard,
-  runEffects,
   sceneOf,
   setOffice,
+  takeOption,
 } from "./SceneRun";
+import { applyReply, summonScenes } from "./Talk";
 
 /** Why this seat can't say ready; null when it can. */
 export function readyBlock(seat: GwSeatState): GwOrderBlock | null {
@@ -68,7 +69,7 @@ export function applyGwOrder(
       const ctx = ctxOf(gw, seat, card);
       if (!optionOpen(ctx, opt)) return "closed";
       removeCard(seat, card.uid);
-      runEffects(ctx, opt.effects);
+      takeOption(ctx, scene, opt, false);
       return null;
     }
     case "reply": {
@@ -82,13 +83,7 @@ export function applyGwOrder(
       if (reply === undefined) return "no_option";
       const ctx = ctxOf(gw, seat, card);
       if (!optionOpen(ctx, reply)) return "closed";
-      // The reply's own price, then how this person takes it.
-      runEffects(ctx, reply.effects);
-      const react = reply.reacts?.find((r) => holds(ctx, r.when));
-      if (react !== undefined) runEffects(ctx, react.effects);
-      const next = react !== undefined ? react.next : reply.next;
-      if (next === null) removeCard(seat, card.uid);
-      else card.node = next;
+      applyReply(gw, seat, card, scene, reply);
       return null;
     }
     case "summon": {
@@ -99,8 +94,7 @@ export function applyGwOrder(
       const card = makeCard(gw, seat, scene, "summon");
       if (card === null) return "no_topic";
       seat.audiences--;
-      seat.desk.push(card);
-      seat.seen[scene.id] = gw.s.chapter;
+      placeCard(gw, seat, card);
       return null;
     }
     case "dismiss": {
@@ -127,6 +121,28 @@ export function applyGwOrder(
   }
 }
 
+/**
+ * The topics `person` can be called on now, for the people screen: fresh ones
+ * before those of the last games, those before what was talked through here,
+ * the weightiest first in each.
+ */
+export function openTopics(
+  gw: GreatWar,
+  seat: GwSeatState,
+  person: string,
+): string[] {
+  return summonScenes()
+    .filter((x) => summonable(gw, seat, person, x.id))
+    .map((x, i) => ({ x, i }))
+    .sort(
+      (a, b) =>
+        sceneWear(gw, seat, a.x) - sceneWear(gw, seat, b.x) ||
+        b.x.salience - a.x.salience ||
+        a.i - b.i,
+    )
+    .map(({ x }) => x.id);
+}
+
 function ownPerson(seat: GwSeatState, id: string): boolean {
   return gwContent().people.some((d) => d.id === id && d.tag === seat.tag);
 }
@@ -142,6 +158,7 @@ export function summonable(
   if (scene === null || scene.who === undefined) return false;
   if (!scene.nation.includes(seat.tag)) return false;
   if (seat.desk.some((c) => c.scene === topic)) return false;
+  if (!inStage(gw, scene) || !repeatable(gw, seat, scene)) return false;
   const cast = castOf(gw, seat, scene);
   if (cast === null || cast[scene.who] !== person) return false;
   return scene.when === undefined || holds({ gw, seat, cast }, scene.when);

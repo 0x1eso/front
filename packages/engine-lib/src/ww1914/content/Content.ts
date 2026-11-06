@@ -1,6 +1,7 @@
 import type { GwPersonDef } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import type { GwScene } from "@openfront/engine-api/ww1914/SceneDsl";
 import { GW_PEOPLE } from "./people";
+import { COMMON_SCENES } from "./scenes/common";
 import { DEU_SCENES } from "./scenes/deu";
 
 export interface GwContent {
@@ -10,7 +11,7 @@ export interface GwContent {
 
 /** All content. A new country's file adds one line here. */
 export const GW_CONTENT: GwContent = {
-  scenes: [...DEU_SCENES],
+  scenes: [...COMMON_SCENES, ...DEU_SCENES],
   people: GW_PEOPLE,
 };
 

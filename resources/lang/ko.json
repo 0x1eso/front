@@ -14257,8 +14257,21 @@
       "ready": "준비"
     },
     "reason": {
+      "promise_broken": "약속한 기한을 넘겼다. 상대가 찾아올 것이다.",
+      "promise_kept": "약속을 지켰다. 상대는 잊지 않을 것이다.",
+      "promise_mended": "약속을 어긴 일을 상대가 이번만은 넘기기로 했다.",
       "proxy_signed": "시간이 다 되어 서류가 대행으로 처리되었다.",
-      "sample_waited": "빈에 대한 답을 미뤘다."
+      "sample_waited": "빈에 대한 답을 미뤘다.",
+      "talk_clash_cold": "차가운 말에 상대가 마음을 닫았다.",
+      "talk_clash_flatter": "상대는 아첨을 꿰뚫어 보았다.",
+      "talk_clash_frank": "상대는 솔직한 말을 모욕으로 들었다.",
+      "talk_clash_threat": "상대는 위협을 되받았다.",
+      "talk_clash_warm": "다정한 말이 통하지 않았다.",
+      "talk_fit_cold": "상대는 군더더기 없는 말을 반겼다.",
+      "talk_fit_flatter": "상대는 칭찬을 그대로 받아들였다.",
+      "talk_fit_frank": "상대는 솔직한 말을 높이 샀다.",
+      "talk_fit_threat": "상대는 위협 앞에서 물러섰다.",
+      "talk_fit_warm": "다정한 말이 통했다."
     },
     "tell": {
       "army": "군부",

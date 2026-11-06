@@ -19,9 +19,13 @@ import { stamped, step, stepTo } from "../ww1936/util";
 import { gwRunner, HUMAN, order, playChapter, seat, view } from "./util";
 
 describe("the config key", () => {
-  test("is the last of the schema but its calendar", () => {
+  test("is the last of the schema but its calendar and recent list", () => {
     const keys = Object.keys(GameConfigSchema.shape);
-    expect(keys.slice(-2)).toEqual(["greatWar1914", "greatWar1914Calendar"]);
+    expect(keys.slice(-3)).toEqual([
+      "greatWar1914",
+      "greatWar1914Calendar",
+      "greatWar1914Recent",
+    ]);
   });
 
   test("off: the very object comes back", () => {
@@ -192,7 +196,10 @@ describe("the two sample scenes", () => {
     expect(next.node).toBe("vienna");
     order(runner, { kind: "reply", card: card.uid, reply: "thank" });
     expect(seat(runner).desk.some((c) => c.uid === card.uid)).toBe(false);
-    expect(seat(runner).people.find((p) => p.id === person.id)!.trust).toBe(1);
+    // Plus whatever the two replies did with this game's temperament.
+    expect(
+      seat(runner).people.find((p) => p.id === person.id)!.trust,
+    ).toBeGreaterThanOrEqual(1);
 
     expect(envoy().options.find((o) => o.id === "term_limit")!.open).toBe(true);
     order(runner, { kind: "choose", card: envoy().uid, option: "term_limit" });
@@ -224,8 +231,9 @@ describe("the two sample scenes", () => {
     expect(new Set(runs.map((r) => r.mood)).size).toBe(2);
   });
 
-  test("summons run out; a topic already open isn't opened twice", async () => {
+  test("summons run out; a topic isn't opened twice", async () => {
     const { runner } = await gwRunner();
+    const st = runner.game.greatWar()!.s.seats[0];
     const summon = () =>
       order(runner, {
         kind: "summon",
@@ -236,12 +244,13 @@ describe("the two sample scenes", () => {
     summon();
     summon();
     expect(seat(runner).audiences).toBe(2);
-    for (let i = 0; i < 2; i++) {
-      order(runner, { kind: "reply", card: talk()!.uid, reply: "leave" });
-      summon();
-    }
-    expect(seat(runner).audiences).toBe(0);
     order(runner, { kind: "reply", card: talk()!.uid, reply: "leave" });
+    // Closed: the topic is in its cooldown, and no summons goes on it.
+    summon();
+    expect(talk()).toBeUndefined();
+    expect(seat(runner).audiences).toBe(2);
+    delete st.seen["deu_sample_talk"];
+    st.audiences = 0;
     summon();
     expect(talk()).toBeUndefined();
   });

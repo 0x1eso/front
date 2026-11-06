@@ -2040,8 +2040,21 @@
       "ready": "Ready"
     },
     "reason": {
+      "promise_broken": "A promise went past its date. They will come to you.",
+      "promise_kept": "A promise kept. They won't forget it.",
+      "promise_mended": "They agreed to let the broken promise go, this once.",
       "proxy_signed": "The paper was signed by proxy when time ran out.",
-      "sample_waited": "You put off the answer to Vienna."
+      "sample_waited": "You put off the answer to Vienna.",
+      "talk_clash_cold": "They closed up at the cold words.",
+      "talk_clash_flatter": "They saw through the flattery.",
+      "talk_clash_frank": "They took plain speaking as an insult.",
+      "talk_clash_threat": "They answered the threat in kind.",
+      "talk_clash_warm": "Kind words got nowhere.",
+      "talk_fit_cold": "They welcomed words with nothing to spare.",
+      "talk_fit_flatter": "They took the praise at face value.",
+      "talk_fit_frank": "They valued plain speaking.",
+      "talk_fit_threat": "They gave way before the threat.",
+      "talk_fit_warm": "Kind words got through."
     },
     "tell": {
       "army": "Army",

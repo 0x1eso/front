@@ -155,6 +155,7 @@ export const GW_TOPICS = [
 ] as const;
 export type GwTopic = (typeof GW_TOPICS)[number];
 export const GW_TEMP_MAX = 10;
+export const GW_TENSION_MAX = 6;
 
 export const GW_AI_KINDS = [
   "cautious",
@@ -282,6 +283,14 @@ export const GwCardSchema = z.object({
   /** A talk's current node; null for other kinds. */
   node: GwIdSchema.nullable(),
   chapter: z.number().int(),
+  /** role -> the voice variant fixed when it was dealt (pack `voiceBy`). */
+  voice: z.record(z.string(), GwIdSchema),
+  /** A talk: what the replies have added up to with this person so far. */
+  mood: z.number().int(),
+  /** A talk: reason keys held back until it ends, so no reaction shows. */
+  notes: z.array(GwIdSchema),
+  /** A quiet card: the small scenes folded into it. */
+  folded: z.array(GwIdSchema),
 });
 export type GwCard = z.infer<typeof GwCardSchema>;
 
@@ -301,15 +310,35 @@ export const GwPromiseSchema = z.object({
   /** Chapter it is due; a later chapter without keep_promise breaks it. */
   due: z.number().int(),
   kept: z.boolean(),
+  /** Past due and not kept: the person has been told so. Set once. */
+  broken: z.boolean(),
+  /** A GwCond as JSON: kept by itself the chapter it holds. `who` is the person. */
+  keep: z.string().nullable(),
+  /** The scene they come back with; null for the common one. */
+  back: GwIdSchema.nullable(),
 });
 export type GwPromise = z.infer<typeof GwPromiseSchema>;
 
-/** A line of the why-log: a translation key under gw.reason, with a chapter. */
+/**
+ * A line of the why-log: pack `reasons.<key>`, else gw.reason.<key>, with a
+ * chapter and the person it is about, the text's {who}.
+ */
 export const GwReasonSchema = z.object({
   key: GwIdSchema,
   chapter: z.number().int(),
+  who: GwIdSchema.nullable().optional(),
 });
 export type GwReason = z.infer<typeof GwReasonSchema>;
+
+/** What the seat decided: an option or a reply (design §5.4). */
+export const GwChoiceSchema = z.object({
+  scene: GwIdSchema,
+  pick: GwIdSchema,
+  chapter: z.number().int(),
+  /** The timer took it. */
+  proxy: z.boolean(),
+});
+export type GwChoice = z.infer<typeof GwChoiceSchema>;
 
 export const GwSeatStateSchema = z.object({
   /** The human's player. */
@@ -326,10 +355,21 @@ export const GwSeatStateSchema = z.object({
   seen: z.record(z.string(), z.number().int()),
   /** Scenes an effect queued: dealt from `chapter` on. */
   scheduled: z.array(
-    z.object({ scene: GwIdSchema, chapter: z.number().int() }),
+    z.object({
+      scene: GwIdSchema,
+      chapter: z.number().int(),
+      /** Who fills its `called` role. */
+      who: GwIdSchema.nullable().optional(),
+    }),
   ),
   alloc: GwAllocSchema,
   log: z.array(GwReasonSchema),
+  /** The desk's tension curve, 0..GW_TENSION_MAX (design §5.2). */
+  tension: z.number().int(),
+  /** Every body dealt, as "<scene>.<variant>", in order. */
+  shown: z.array(z.string()),
+  /** Every option and reply taken, in order. */
+  choices: z.array(GwChoiceSchema),
 });
 export type GwSeatState = z.infer<typeof GwSeatStateSchema>;
 

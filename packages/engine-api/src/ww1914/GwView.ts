@@ -43,6 +43,35 @@ export interface GwCardView {
   node: string | null;
   says: string | null;
   replies: readonly GwReplyView[];
+  /** role -> which of that person's paragraphs (pack `voiceBy`). */
+  voice?: Readonly<Record<string, string>>;
+  /** A quiet card: the small scenes folded into it, shown by their titles. */
+  folded?: readonly string[];
+}
+
+/** A promise as the seat remembers it (pack `promises.<key>`). */
+export interface GwPromiseView {
+  key: string;
+  who: string;
+  /** YYYY-MM-DD: broken if not kept after this chapter's date. */
+  due: string;
+  kept: boolean;
+  broken: boolean;
+}
+
+/** What text can call back to: {mem.<key>} is its date. */
+export interface GwMemoryView {
+  key: string;
+  who: string | null;
+  date: string;
+}
+
+/** An option or reply taken: the memoir reads these. */
+export interface GwChoiceView {
+  scene: string;
+  pick: string;
+  date: string;
+  proxy: boolean;
 }
 
 export interface GwPersonView {
@@ -75,6 +104,11 @@ export interface GwSeatView {
   log: readonly GwReason[];
   /** Ready is refused while this is set. */
   readyBlock: GwOrderBlock | null;
+  promises?: readonly GwPromiseView[];
+  memory?: readonly GwMemoryView[];
+  choices?: readonly GwChoiceView[];
+  /** Every body dealt, "<scene>.<variant>": the lobby's recent list. */
+  shown?: readonly string[];
 }
 
 /** The whole mode as sent worker -> main thread. Never mutated. */
