@@ -190,8 +190,15 @@ describe("the war share of 독일 1914년", () => {
   test("no two variants of a scene open alike", () => {
     const first = (t: string) => t.split(/(?<=[.!?…])\s/)[0].trim();
     for (const s of scenes) {
-      const firsts = Object.values(pack.scenes[s.id].text).map(first);
-      expect(new Set(firsts).size, s.id).toBe(firsts.length);
+      const t = pack.scenes[s.id];
+      const groups = [
+        t.text,
+        ...Object.values(t.nodes ?? {}).map((n) => n.says),
+      ];
+      for (const g of groups) {
+        const firsts = Object.values(g).map(first);
+        expect(new Set(firsts).size, s.id).toBe(firsts.length);
+      }
     }
   });
 });
