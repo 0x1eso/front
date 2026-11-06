@@ -8,8 +8,13 @@ import { GW_TAGS, gwCountry } from "@openfront/engine-api/ww1914/GwCountries";
 import { GwOrderIntentSchema } from "@openfront/engine-api/ww1914/GwOrders";
 import {
   GwPackSchema,
+  gwPackProblems,
   mergeGwPacks,
 } from "@openfront/engine-api/ww1914/GwPack";
+import {
+  gwContentProblems,
+  gwTalkLinks,
+} from "@openfront/engine-api/ww1914/SceneCheck";
 import {
   GwSceneSchema,
   gwSceneProblems,
@@ -60,6 +65,23 @@ describe("content", () => {
     for (const p of GW_CONTENT.people) {
       expect(pack.people[p.id], p.id).toBeDefined();
     }
+  });
+
+  test("no reference leads nowhere, no line is missing, no holes unfilled", async () => {
+    const { scenes, people } = GW_CONTENT;
+    expect(gwContentProblems(scenes, people)).toEqual([]);
+    const pack = await loadGwPack("DEU", async (p) => json(p));
+    const lang = json("lang/en.json").gw.reason as Record<string, string>;
+    expect(gwPackProblems(scenes, pack, Object.keys(lang))).toEqual([]);
+  });
+
+  test("talks open decisions' options, and the check sees it", () => {
+    expect(gwTalkLinks(GW_CONTENT.scenes)).toContainEqual({
+      talk: "deu_sample_talk",
+      key: "heard_chancellor",
+      scene: "deu_sample_envoy",
+      option: "term_limit",
+    });
   });
 
   test("packs merge and a bad pack is refused", () => {

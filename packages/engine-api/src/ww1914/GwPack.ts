@@ -8,7 +8,8 @@
 // src/client/Josa.ts: {cos}이(가).
 import { z } from "zod";
 import { GwIdSchema } from "./GreatWarTypes";
-import type { GwEffect, GwScene } from "./SceneDsl";
+import { gwSceneEffects } from "./SceneCheck";
+import type { GwScene } from "./SceneDsl";
 
 const Text = z.string().min(1);
 const ById = z.record(GwIdSchema, Text);
@@ -111,32 +112,6 @@ function holeProblems(where: string, t: string, roles: readonly string[]) {
       continue;
     }
     out.push(`${where}: ${hole} fills from nothing`);
-  }
-  return out;
-}
-
-function walkEffects(list: readonly GwEffect[], f: (e: GwEffect) => void) {
-  for (const e of list) {
-    f(e);
-    if (e.kind === "maybe") walkEffects(e.then, f);
-    if (e.kind === "roll") {
-      walkEffects(e.then, f);
-      walkEffects(e.otherwise ?? [], f);
-    }
-  }
-}
-
-/** All the effects a scene can run. */
-export function gwSceneEffects(s: GwScene): GwEffect[] {
-  const out: GwEffect[] = [];
-  const add = (e: GwEffect) => out.push(e);
-  for (const o of s.options ?? []) walkEffects(o.effects, add);
-  for (const n of Object.values(s.nodes ?? {})) {
-    for (const r of n.replies) {
-      walkEffects(r.effects, add);
-      walkEffects(r.gain ?? [], add);
-      for (const x of r.reacts ?? []) walkEffects(x.effects, add);
-    }
   }
   return out;
 }
