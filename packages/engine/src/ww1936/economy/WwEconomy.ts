@@ -35,10 +35,10 @@ import {
   regionShares,
 } from "@openfront/engine-lib/ww1936/EconomyChecks";
 import {
+  civSplit,
   consumerGoodsMilli,
   effCapBp,
   extraction,
-  civSplit,
   recruitableMen,
   regionSlots,
   researchSlotCount,

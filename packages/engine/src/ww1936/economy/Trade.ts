@@ -291,17 +291,11 @@ function pauseDeal(
   econ.markCountryDirty(tr.seller);
   const b = econ.mg.playerBySmallID(tr.buyer);
   if (!b.isPlayer() || !econ.ww.isHumanControlled(tr.buyer)) return;
-  econ.mg.displayMessage(
-    notice,
-    MessageType.WORLD_WAR,
-    b.id(),
-    undefined,
-    {
-      sellerTag: econ.ww.tagOf(tr.seller),
-      resource: RESOURCE_IDS[tr.res],
-      days: WW_TRADE_PAUSE_DAYS,
-    },
-  );
+  econ.mg.displayMessage(notice, MessageType.WORLD_WAR, b.id(), undefined, {
+    sellerTag: econ.ww.tagOf(tr.seller),
+    resource: RESOURCE_IDS[tr.res],
+    days: WW_TRADE_PAUSE_DAYS,
+  });
 }
 
 /** Groups trades in id order by `key`, each group in id order. */

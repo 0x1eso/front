@@ -156,10 +156,7 @@ function lines(
     add("ww1936.pol.line.ws_lost_vp", 0 - lostPct * 20);
     // P4 spec §14.8: the last 30 days' bombing (lane A2's bombFatigueBp).
     add("ww1936.pol.line.ws_bomb_fatigue", bombFatigueBp(pol.ww.air, id));
-    add(
-      "ww1936.pol.line.ws_goods",
-      0 - Math.floor(goodsStrainBp(pol, id) / 2),
-    );
+    add("ww1936.pol.line.ws_goods", 0 - Math.floor(goodsStrainBp(pol, id) / 2));
   }
   return Math.max(0, Math.min(10_000, sum));
 }

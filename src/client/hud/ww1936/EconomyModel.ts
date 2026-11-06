@@ -87,12 +87,12 @@ import {
 import {
   aheadPct,
   allocateResources,
+  buildFloorMilli,
   constructionDaysLeft,
   constructionProgress,
-  buildFloorMilli,
-  goodsMilliOf,
   effAfterSwitch,
   exportCapacity,
+  goodsMilliOf,
   regionSlots,
   researchProgress,
 } from "@openfront/engine-lib/ww1936/EconomyRules";

@@ -51,9 +51,7 @@ export function goodsMilliOf(civ: number, cgMilli: number): number {
 /** Percent of the consumer goods needed that the factories do not make. */
 export function goodsShortPct(civ: number, cgMilli: number): number {
   if (cgMilli <= 0) return 0;
-  return Math.floor(
-    ((cgMilli - goodsMilliOf(civ, cgMilli)) * 100) / cgMilli,
-  );
+  return Math.floor(((cgMilli - goodsMilliOf(civ, cgMilli)) * 100) / cgMilli);
 }
 
 /** What construction always keeps: at least one factory on any land. */
@@ -63,10 +61,7 @@ export function buildFloorMilli(civ: number, hasLand: boolean): number {
 
 /** The most a country pays a day, milli: 80 % of its factories less the goods. */
 export function payRoomMilli(civ: number, cgMilli: number): number {
-  return Math.max(
-    0,
-    civ * WW_CLAIMS_MAX_PCT * 10 - goodsMilliOf(civ, cgMilli),
-  );
+  return Math.max(0, civ * WW_CLAIMS_MAX_PCT * 10 - goodsMilliOf(civ, cgMilli));
 }
 
 export interface CivSplit {
