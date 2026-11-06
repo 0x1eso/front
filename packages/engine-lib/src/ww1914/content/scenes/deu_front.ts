@@ -58,11 +58,6 @@ const WAR: GwStage[] = ["war"];
 
 const who = role("who");
 const cos = role("cos");
-const war_ = role("war");
-const chancellor = role("chancellor");
-const court = role("court");
-const envoy = role("envoy");
-const foreign = role("foreign");
 
 const FALK = byName("deu_falkenhayn");
 const HIND = byName("deu_hindenburg");
@@ -1873,7 +1868,7 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
           tell: ["trust:+1"],
           effects: [
             T(1),
-            promise(who, "p_falk_command", 6, {
+            promise(who, "p_falk_command", 10, {
               back: "deu_t2_falk_after",
             }),
           ],
@@ -1893,7 +1888,7 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
           tell: ["trust:+1"],
           effects: [
             T(1),
-            promise(who, "p_falk_command", 6, {
+            promise(who, "p_falk_command", 10, {
               back: "deu_t2_falk_after",
             }),
           ],
@@ -2010,7 +2005,7 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
         }),
         r("deal", "flatter", "deal", "promised", {
           tell: ["trust:+1"],
-          effects: [T(1), pride(who, 1), promise(who, "p_hind_name", 8)],
+          effects: [T(1), pride(who, 1), promise(who, "p_hind_name", 18)],
         }),
         bye("leave", "warm"),
       ),
@@ -2018,7 +2013,7 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
         [v("low", low("morale", 2)), v("base")],
         r("deal", "frank", "deal", "promised", {
           tell: ["trust:+1"],
-          effects: [T(1), promise(who, "p_hind_name", 8)],
+          effects: [T(1), promise(who, "p_hind_name", 18)],
         }),
         bye("end", "warm"),
       ),
@@ -2275,14 +2270,14 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
         }),
         r("deal", "flatter", "deal", "promised", {
           tell: ["army:+1", "trust:+1"],
-          effects: [army(1), T(1), promise(who, "p_lud_aims", 10)],
+          effects: [army(1), T(1), promise(who, "p_lud_aims", 14)],
         }),
         bye("leave", "cold"),
       ),
       least: plain(
         r("deal", "frank", "deal", "promised", {
           tell: ["army:+1", "trust:+1"],
-          effects: [army(1), T(1), promise(who, "p_lud_aims", 10)],
+          effects: [army(1), T(1), promise(who, "p_lud_aims", 14)],
         }),
         bye("end", "cold"),
       ),
@@ -2412,7 +2407,7 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
           effects: [
             T(1),
             { kind: "inst", inst: "countersign", delta: -1 },
-            promise(who, "p_bauer_access", 8),
+            promise(who, "p_bauer_access", 12),
           ],
         }),
         bye("leave", "cold"),
@@ -2423,7 +2418,7 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
           effects: [
             T(1),
             { kind: "inst", inst: "countersign", delta: -1 },
-            promise(who, "p_bauer_access", 8),
+            promise(who, "p_bauer_access", 12),
           ],
         }),
         bye("end", "cold"),
