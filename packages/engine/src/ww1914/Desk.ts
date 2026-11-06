@@ -250,12 +250,13 @@ function mixed(c: DeskCandidate, picked: readonly GwScene[]): number {
   return v;
 }
 
-/** A full desk of one subject is refused while anything else can come. */
+/** A desk all of one subject is refused while anything else can come. */
 function wouldFillOneSubject(
   c: DeskCandidate,
   picked: readonly GwScene[],
+  target: number,
 ): boolean {
-  if (picked.length < GW_DESK_MAX - 1) return false;
+  if (picked.length + 1 < target) return false;
   const shared = subjects(c.scene).filter((t) =>
     picked.every((p) => p.tags.includes(t)),
   );
@@ -303,7 +304,7 @@ function draw(
       (c) =>
         !(c.scene.kind === "talk" && picked.some((p) => p.kind === "talk")),
     );
-    const varied = open.filter((c) => !wouldFillOneSubject(c, picked));
+    const varied = open.filter((c) => !wouldFillOneSubject(c, picked, target));
     const c = best(gw, varied.length > 0 ? varied : open, picked);
     if (c === null) break;
     if (picked.length >= target && c.scene.salience < GW_SALIENCE_MUST) break;
