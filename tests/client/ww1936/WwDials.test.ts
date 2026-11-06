@@ -25,6 +25,7 @@ import {
   OpenWwResearchEvent,
   WwDrawerEvent,
 } from "../../../src/client/hud/ww1936/WwDrawer";
+import { WW_PANEL_STYLE } from "../../../src/client/hud/ww1936/WwPanelMode";
 import { WwSeaAirController } from "../../../src/client/hud/ww1936/WwSeaAirController";
 import "../../../src/client/hud/ww1936/WwTopBand";
 import type { WwTopBand } from "../../../src/client/hud/ww1936/WwTopBand";
@@ -394,6 +395,28 @@ describe("<ww-dials> P4: ⚓ and ✈ (spec §18.1)", () => {
       expect(b.className).toContain("h-full");
       expect(b.textContent).toContain("[ww1936.dock.");
     }
+  });
+
+  it("full-screen panels start below the top-right stack, so speed and pause stay in reach", async () => {
+    const stack = document.createElement("div");
+    stack.setAttribute("data-hud-top-right", "");
+    stack.getBoundingClientRect = () =>
+      ({
+        x: 165,
+        y: 0,
+        left: 165,
+        top: 0,
+        right: 390,
+        bottom: 47.2,
+        width: 225,
+        height: 47.2,
+      }) as DOMRect;
+    document.body.appendChild(stack);
+    await mountSea({ armies: [], landDetails: [] });
+    expect(document.documentElement.style.getPropertyValue("--ww-top-h")).toBe(
+      "48px",
+    );
+    expect(WW_PANEL_STYLE).toContain("top:var(--ww-top-h,0px)");
   });
 
   it("⚓: the first naval line's ring, fleets in battle in red; a tap opens the drawer", async () => {
