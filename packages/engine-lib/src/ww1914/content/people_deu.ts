@@ -8,6 +8,8 @@ import type { GwPersonDef } from "@openfront/engine-api/ww1914/GreatWarTypes";
  * Admirals carry no "military" camp, or People.armyCommander hands them a
  * land front. `source`: "(memory)" marks facts not checked against a page.
  *
+ * Wild is not here: the 1914 lane put him in people.ts on w130-gw.
+ *
  * Order matters to the seed rolls: append.
  */
 export const GW_PEOPLE_DEU: readonly GwPersonDef[] = [
@@ -278,20 +280,6 @@ export const GW_PEOPLE_DEU: readonly GwPersonDef[] = [
     arrives: "1915-01-01",
   },
   {
-    id: "deu_wild",
-    tag: "DEU",
-    office: null,
-    fit: ["war"],
-    camps: ["military", "west", "hard"],
-    temperaments: ["cold", "stubborn"],
-    rivals: ["deu_ludendorff"],
-    allies: ["deu_falkenhayn"],
-    fame: 1,
-    source:
-      "Prussian war minister 21 Jan 1915-29 Oct 1916 (en.wikipedia Adolf Wild von Hohenborn; 1914-1918-online gives 28 Oct). Falkenhayn's man, Quartermaster General beside him (memory)",
-    arrives: "1915-01-01",
-  },
-  {
     id: "deu_stein",
     tag: "DEU",
     office: null,
@@ -459,8 +447,6 @@ export const GW_VOICE_NOTES_DEU: Readonly<Record<string, string>> = {
     "교양 있는 귀족의 말. 조심스럽고 뜻은 곧다. 포로수용소에서 본 것을 낮은 목소리로 전한다. 황제를 '폐하'라 부르며 친척의 말을 섞는다.",
   deu_buelow:
     "오페라 같은 사교 말투. 인용, 칭찬, 그 뒤의 칼. 자기가 수상이었으면 없었을 일을 차례로 말한다. 폐하 앞에서 폐하의 옛 말씀을 외워 보인다.",
-  deu_wild:
-    "병참 장교의 말. 인원과 보충 일자를 말한다. 팔켄하인의 판단을 자기 판단처럼 옮긴다.",
   deu_stein:
     "공보문의 말. 무엇이든 짧고 좋게 적는다. 어려운 일은 사령부의 뜻을 받들겠다고 한다.",
   deu_mackensen:

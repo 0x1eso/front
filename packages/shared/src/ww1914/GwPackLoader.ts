@@ -52,6 +52,6 @@ export async function loadGwPack(
     Promise.all(["common", tag].map((f) => get(file(f)))),
     Promise.all(shares.map((f) => fragment(file(f), get))),
   ]);
-  const found = parts.filter((r) => r !== null);
+  const found = parts.filter((r) => r !== null && r !== undefined);
   return mergeGwPacks([...main, ...found].map((r) => GwPackSchema.parse(r)));
 }
