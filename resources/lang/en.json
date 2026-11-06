@@ -11895,6 +11895,7 @@
       "oob_empty_required": "{army}: an operation is running, so it needs at least one division.",
       "oob_intro": "Plan the whole start army: edit or add templates, set how many divisions of each every army holds. The men are those of the original start divisions. Every division is made with all its men and main equipment, so a shortage of those means fewer divisions. Support gear is the exception: a division takes what there is, and a company works only as far as its gear goes.",
       "oob_refused": "The game refused the start army plan, so your army is the default one.",
+      "oob_special_cap": "Special battalions are capped at {cap} (5% of all battalions, at least 24); remove some special divisions from the plan.",
       "oob_unfilled_required": "{army}: the stock cannot staff it, and an operation is running.",
       "operation": "Operation",
       "operation_guide": "Was {n} divisions; at least one must stay.",

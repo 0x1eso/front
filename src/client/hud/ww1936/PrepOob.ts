@@ -41,6 +41,13 @@ import {
 import { startRegionName } from "./StartRegionNames";
 import { isKoreanUi } from "./WorldWarModel";
 
+const costOf = (t: OobTemplateRow) => ({
+  men: t.men,
+  need: t.need,
+  battalions: t.battalions,
+  special: t.special,
+});
+
 /** A major (a country with a 1936 order of battle) plans its whole start army. */
 export const hasStartOob = (tag: CountryTag): boolean =>
   START_OOB[tag] !== undefined;
@@ -54,6 +61,8 @@ export interface OobTemplateRow {
   edited: boolean;
   men: number;
   need: readonly number[];
+  battalions: number;
+  special: number;
   /** Why it cannot be applied at the start, or null. */
   problem: string | null;
 }
@@ -157,7 +166,17 @@ export function oobTemplateRows(
     if (problem === null && (isNew || edited) && def.name.trim() === "") {
       problem = translateText("ww1936.prep.no_name");
     }
-    rows.push({ key, def, isNew, edited, men: s.men, need: s.need, problem });
+    rows.push({
+      key,
+      def,
+      isNew,
+      edited,
+      men: s.men,
+      need: s.need,
+      battalions: s.battalions,
+      special: s.special,
+      problem,
+    });
   };
   for (const st of lobbyStartTemplates(tag)) {
     const p = plan.find((x) => x.key === st.key);
@@ -251,7 +270,7 @@ export function oobModel(
     budget,
     Infinity,
     startGroupStock(tag),
-    templates.map((t) => ({ men: t.men, need: t.need })),
+    templates.map(costOf),
     asks,
   );
   const korean = isKoreanUi();
@@ -281,6 +300,15 @@ export function oobModel(
         }),
       );
     }
+  }
+  if (result.specialCut) {
+    problems.push(
+      translateText("ww1936.econ.block.special_cap") +
+        ". " +
+        translateText("ww1936.prep.oob_special_cap", {
+          cap: result.specialLimit,
+        }),
+    );
   }
   return {
     tag,
@@ -370,7 +398,7 @@ function fullAfter(
     m.result.menBudget,
     Infinity,
     m.result.groupStock,
-    m.templates.map((t) => ({ men: t.men, need: t.need })),
+    m.templates.map(costOf),
     asks,
   );
   const it = r.armies[army].items[k];

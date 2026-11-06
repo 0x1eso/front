@@ -93,7 +93,12 @@ export function startOob(
   }
   const costs: OobTemplateCost[] = defs.map((d) => {
     const s = templateStats(d, ce.stats, ZERO_MIX());
-    return { men: s.men, need: s.need };
+    return {
+      men: s.men,
+      need: s.need,
+      battalions: s.battalions,
+      special: s.special,
+    };
   });
 
   // ---- the plan ----
@@ -176,6 +181,11 @@ export function startOob(
     costs,
     plan,
   );
+  // The special cap holds for the start plan as it does for training.
+  if (res.specialCut) {
+    undo();
+    return "special_cap";
+  }
   if (res.emptyRequired.length > 0) {
     undo();
     return "no_army";

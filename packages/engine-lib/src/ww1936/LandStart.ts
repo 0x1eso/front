@@ -249,7 +249,7 @@ export const START_OOB: Readonly<
       ],
     },
   ],
-  // Italy: line 61, alpini 6, light armour 5, colonial 12 (84).
+  // Italy: line 63, alpini 4, light armour 5, colonial 12 (84).
   ITA: [
     {
       // Ethiopian front, north: Eritrea; marching on Addis Ababa.
@@ -281,8 +281,8 @@ export const START_OOB: Readonly<
       // North: Turin, Milano.
       regions: [494, 482],
       divisions: [
-        ["binary", 13],
-        ["alpini", 6],
+        ["binary", 15],
+        ["alpini", 4],
         ["celere", 5],
       ],
     },

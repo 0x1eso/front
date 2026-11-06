@@ -463,6 +463,20 @@ describe("start_oob keeps the country's own start templates (Soviet Union)", () 
     expect(armyCounts(g, 1)?.get("mountain_rifle")).toBe(2);
   }, 120_000);
 
+  test("a plan over the special cap is refused whole, as training refuses it", async () => {
+    const g = await game("SUN");
+    g.ce.stock.fill(1e6);
+    const n = START_OOB.SUN!.length;
+    const before = g.l.rowsOf(g.id).length;
+    const over = Array.from(
+      { length: n },
+      () => [["mountain_rifle", 24]] as [string, number][],
+    );
+    expect(g.l.issue(g.id, planOf(g, over))).toBe("special_cap");
+    expect(g.cl.startOob).toBe(false);
+    expect(g.l.rowsOf(g.id).length).toBe(before);
+  }, 120_000);
+
   test("every major's own start templates pass the plan check as they are", async () => {
     for (const tag of Object.keys(START_OOB) as CountryTag[]) {
       const g = await game(tag);
@@ -492,6 +506,36 @@ describe("start_oob support equipment does not cut counts", () => {
     }
     appendFileSync(process.env.W64_OUT ?? "/dev/null", out.join("\n") + "\n");
   }, 300_000);
+});
+
+describe("planStartOob special cap", () => {
+  const tpl = (special: number) => ({
+    men: 1,
+    need: [] as number[],
+    battalions: 9,
+    special,
+  });
+  test("cuts the divisions whose special battalions pass max(24, 5%)", () => {
+    const r = planStartOob(
+      1e6,
+      1e6,
+      [],
+      [tpl(0), tpl(4)],
+      [{ required: false, items: [{ template: 1, count: 10 }] }],
+    );
+    expect(r.armies[0].items[0].fielded).toBe(6);
+    expect(r.armies[0].items[0].cut).toBe("special");
+    expect(r.specialCut).toBe(true);
+    expect(r.specialUsed).toBe(24);
+    const ok = planStartOob(
+      1e6,
+      1e6,
+      [],
+      [tpl(0), tpl(4)],
+      [{ required: false, items: [{ template: 1, count: 6 }] }],
+    );
+    expect(ok.specialCut).toBe(false);
+  });
 });
 
 describe("support equipment in the pure rules", () => {
