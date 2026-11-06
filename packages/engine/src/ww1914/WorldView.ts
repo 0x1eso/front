@@ -21,7 +21,7 @@ import { ownFronts, proposalsFor } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
 import { candidatesFor, dismissPrice } from "./People";
 import { GW_ACTORS } from "./Tables";
-import { ownPeople } from "./World";
+import { lastOf, ownPeople } from "./World";
 
 const NEWS_SHOWN = 16;
 const REPORTS_SHOWN = 16;
@@ -53,7 +53,7 @@ function frontView(
 ): GwFrontView {
   const side = gw.nation(seat.tag)?.side ?? GW_SIDES[0];
   const mine = GW_SIDES.indexOf(side);
-  const b = gw.s.battles.filter((x) => x.theatre === t.id).at(-1);
+  const b = lastOf(gw.s.battles.filter((x) => x.theatre === t.id));
   return {
     id: t.id,
     line: GW_LINES[t.id][t.line],

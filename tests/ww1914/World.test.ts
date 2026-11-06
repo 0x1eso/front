@@ -165,7 +165,7 @@ describe("the crisis", () => {
     gw.s.chain = { topic: "balkan", step: 4, hold: 0, short: false };
     gw.s.temp = 1;
     playChapter(runner);
-    expect(gw.s.chains.at(-1)?.outcome).toBe("compromise");
+    expect(gw.s.chains[gw.s.chains.length - 1]?.outcome).toBe("compromise");
     expect(gw.s.warChapter).toBeNull();
     expect(gw.s.spark).not.toBeNull();
     expect(gw.s.spark!.chapter).toBeGreaterThan(gw.s.chapter);
@@ -181,7 +181,7 @@ describe("the crisis", () => {
     expect(gw.s.chain?.step).toBe(4);
     runEffect(ctx(gw), doWorld({ do: "aside" }));
     playChapter(runner);
-    expect(gw.s.chains.at(-1)?.outcome).toBe("humiliation");
+    expect(gw.s.chains[gw.s.chains.length - 1]?.outcome).toBe("humiliation");
     expect(gw.s.warChapter).toBeNull();
   });
 

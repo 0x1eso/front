@@ -14,7 +14,7 @@ import { sendReport } from "./Intel";
 import { keepPerson, openLetter, personLeaves, recordResult } from "./People";
 import { SceneCtx, whoIn } from "./SceneRun";
 import { enter } from "./Wars";
-import { clampTo, news, other, reason } from "./World";
+import { clampTo, lastOf, news, other, reason } from "./World";
 
 const inRange = (v: number, c: { min?: number; max?: number }) =>
   v >= (c.min ?? -Infinity) && v <= (c.max ?? Infinity);
@@ -56,7 +56,7 @@ export function worldHolds(ctx: SceneCtx, c: GwWorldCond): boolean {
     case "open":
       return s.theatres.find((x) => x.id === c.theatre)!.open;
     case "battle": {
-      const last = s.battles.filter((b) => b.theatre === c.theatre).at(-1);
+      const last = lastOf(s.battles.filter((b) => b.theatre === c.theatre));
       return last !== undefined && c.of.includes(last.result);
     }
     case "plan":
@@ -113,9 +113,11 @@ export function worldHolds(ctx: SceneCtx, c: GwWorldCond): boolean {
       return p !== null && inRange(p.competence[f], c);
     }
     case "report_wrong": {
-      const r = s.reports
-        .filter((x) => x.source === c.source && x.smallID === seat.smallID)
-        .at(-1);
+      const r = lastOf(
+        s.reports.filter(
+          (x) => x.source === c.source && x.smallID === seat.smallID,
+        ),
+      );
       return r !== undefined && r.claim !== r.truth;
     }
     case "source_record": {

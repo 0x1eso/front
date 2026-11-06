@@ -195,11 +195,18 @@ function gainOf(result: GwResult, trench: number): number {
   return [5, 3, 2, 1, 1, 1][trench];
 }
 
-function move(t: GwTheatreState, by: GwSide, gain: number): void {
+function move(gw: GreatWar, t: GwTheatreState, by: GwSide, gain: number): void {
   const dir = by === GW_FRONT_UP[t.id] ? 1 : -1;
   const top = GW_LINES[t.id].length - 1;
+  // The rail: the Rhine falls to a Germany breaking at home, not to a push.
+  const rhine = t.id === "west" && (gw.nation("DEU")?.unrest ?? 0) < 2;
+  const floor = rhine ? GW_FRONT_START.west : 0;
   let pos = t.line * GW_LINE_STEP + t.progress + dir * gain;
-  pos = clampTo(pos, 0, top * GW_LINE_STEP);
+  pos = clampTo(
+    pos,
+    Math.min(floor * GW_LINE_STEP, t.line * GW_LINE_STEP + t.progress),
+    top * GW_LINE_STEP,
+  );
   t.line = Math.floor(pos / GW_LINE_STEP);
   t.progress = pos - t.line * GW_LINE_STEP;
 }
@@ -309,7 +316,7 @@ function judge(gw: GreatWar, t: GwTheatreState): void {
   const roll = ROLL_LOW + (wwRoll(s.seed, P_BATTLE, s.chapter, i) % ROLL_SPAN);
   const ratio = Math.floor((oddsOf(gw, t, by) * roll) / 100);
   const result = resultOf(ratio, t.trench);
-  move(t, by, gainOf(result, t.trench));
+  move(gw, t, by, gainOf(result, t.trench));
   const [lostA, lostD] = lossesOf(gw, t.id, by, result);
   bleed(gw, t.id, by, lostA);
   bleed(gw, t.id, other(by), lostD);

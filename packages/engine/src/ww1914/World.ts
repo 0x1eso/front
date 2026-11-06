@@ -46,6 +46,11 @@ export function everyMonths(gw: GreatWar, k: number, offset = 0): boolean {
   return end > 0 && beats(end) > beats(start);
 }
 
+/** The last of a list, or undefined. */
+export function lastOf<T>(list: readonly T[]): T | undefined {
+  return list[list.length - 1];
+}
+
 export function seatsOf(gw: GreatWar, tag: GwTag): GwSeatState[] {
   return gw.s.seats.filter((x) => x.tag === tag);
 }
