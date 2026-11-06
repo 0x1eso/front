@@ -1950,7 +1950,8 @@ export function aiInput(
     const k = tr.seller * RESOURCE_COUNT + tr.res;
     sold.set(k, (sold.get(k) ?? 0) + tr.units);
     if (tr.buyer === me) {
-      paidCivs += tr.civs;
+      // ww115 T13: a paused deal pays nothing.
+      if (tr.pausedDay === undefined) paidCivs += tr.civs;
       buying.push({
         id: tr.id,
         seller: tr.seller,

@@ -8,6 +8,7 @@ import {
   RESOURCE_IDS,
   ResourceId,
   WW_MAX_TRADES,
+  WW_TRADE_PAUSE_DAYS,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
@@ -20,8 +21,10 @@ import {
   landReachOf,
   openTrade,
   partnerJudge,
+  tradePaidCivs,
   tradePartnerBlock,
   tradePartners,
+  validateTrades,
 } from "@openfront/engine/ww1936/economy/Trade";
 import type {
   CountryEconomy,
@@ -227,6 +230,11 @@ describe("trade (spec §7.4–§7.5)", () => {
     expect(ce("DEU").totals.imported[RESOURCE_IDS.indexOf("steel")]).toBe(8);
     ww.setWar(deu, id("POL"), runner.game.ticks());
     throughDay(runner, 2);
+    // ww115 T13: the way is cut, the deal waits for it.
+    const [tr] = econ.trades();
+    expect(tr.pausedDay).toBe(2);
+    tr.pausedDay = 2 - WW_TRADE_PAUSE_DAYS;
+    throughDay(runner, 3);
     expect(econ.trades()).toEqual([]);
     expect(notices()).toEqual([
       { to: deu, params: { sellerTag: "SUN", resource: "steel" } },
@@ -245,12 +253,14 @@ describe("trade (spec §7.4–§7.5)", () => {
     throughDay(runner, 2);
     expect(dealsOf(econ)).toEqual([[ita, gbr, "tungsten", 1]]);
     // P4 spec §10.2: the sea way is a route between working naval bases —
-    // Rome's bombed out, Italy is no partner of Britain's and the deal goes.
+    // Rome's bombed out, Italy is no partner of Britain's and the deal
+    // stops (ww115 T13: it waits for the route).
     econ.buildingArray("naval_base")[ROME] = 0;
     econ.afterBuildingChange(ROME, "naval_base");
     expect(tradePartnerBlock(econ, ita, gbr)).toBe("no_partner");
     throughDay(runner, 3);
-    expect(dealsOf(econ)).toEqual([]);
+    expect(dealsOf(econ)).toEqual([[ita, gbr, "tungsten", 1]]);
+    expect(econ.trades()[0].pausedDay).toBe(3);
   });
 
   test("war and embargo close a deal", async () => {
@@ -456,6 +466,87 @@ describe("trade (spec §7.4–§7.5)", () => {
     expect(buy("ITA", "GBR", "oil")).toBe("no_room");
     expect(buy("ITA", "GBR", "tungsten")).toBeNull();
     expect(econ.trades()).toHaveLength(WW_MAX_TRADES + 1);
+  });
+
+  test("T13: a cut route pauses a deal, and it runs again when the route is back", async () => {
+    const { runner, econ, id, buy, ce, updates, notices } = await game();
+    const [ita, gbr] = [ce("ITA"), ce("GBR")];
+    expect(buy("ITA", "GBR", "tungsten")).toBeNull();
+    const [tr] = econ.trades();
+    throughDay(runner, 0);
+    expect(ita.totals.paidCivs).toBe(1);
+    const res = RESOURCE_IDS.indexOf("tungsten");
+    expect(ita.totals.imported[res]).toBeGreaterThan(0);
+    // Rome's and Krakow's bases gone: no sea way to London.
+    for (const r of [ROME, KRAKOW]) {
+      econ.buildingArray("naval_base")[r] = 0;
+      econ.afterBuildingChange(r, "naval_base");
+    }
+    throughDay(runner, 1);
+    expect(econ.trades()).toHaveLength(1);
+    expect(tr.pausedDay).toBe(1);
+    throughDay(runner, 2);
+    // It stopped: it moves nothing and nobody pays.
+    expect(ita.totals.paidCivs).toBe(0);
+    expect(ita.totals.imported[res]).toBe(0);
+    expect(gbr.totals.exported[res]).toBe(0);
+    expect(gbr.totals.receivedCivs).toBe(0);
+    expect(notices()).toEqual([]);
+    const paused = updates
+      .flatMap((u) => u.updates[GameUpdateType.DisplayEvent])
+      .filter((e) => e.message === "events_display.ww1936_trade_paused");
+    expect(paused.map((e) => e.params)).toEqual([
+      { sellerTag: "GBR", resource: "tungsten", days: WW_TRADE_PAUSE_DAYS },
+    ]);
+    // The screens see it, with the days left.
+    econ.markCountryDirty(id("ITA"));
+    expect(
+      econ.takeData()?.details.find((d) => d.smallID === id("ITA"))?.buying,
+    ).toMatchObject([{ id: tr.id, pausedLeft: WW_TRADE_PAUSE_DAYS - 2 }]);
+    // The base back: it runs, the deal as it was.
+    for (const r of [ROME, KRAKOW]) {
+      econ.buildingArray("naval_base")[r] = 1;
+      econ.afterBuildingChange(r, "naval_base");
+    }
+    throughDay(runner, 3);
+    expect(tr.pausedDay).toBeUndefined();
+    throughDay(runner, 5);
+    expect(ita.totals.paidCivs).toBe(1);
+    expect(ita.totals.imported[res]).toBeGreaterThan(0);
+  });
+
+  test("T13: a route still cut after the wait closes the deal", async () => {
+    const { runner, econ, buy, notices } = await game();
+    expect(buy("ITA", "GBR", "tungsten")).toBeNull();
+    throughDay(runner, 0);
+    for (const r of [ROME, KRAKOW]) {
+      econ.buildingArray("naval_base")[r] = 0;
+      econ.afterBuildingChange(r, "naval_base");
+    }
+    throughDay(runner, WW_TRADE_PAUSE_DAYS);
+    expect(econ.trades()).toHaveLength(1);
+    expect(notices()).toEqual([]);
+    throughDay(runner, WW_TRADE_PAUSE_DAYS + 1);
+    expect(econ.trades()).toEqual([]);
+    expect(notices()).toHaveLength(1);
+  });
+
+  test("T13: a paused deal costs no room to pay for another", async () => {
+    const { runner, econ, buy, ce } = await game();
+    const ita = ce("ITA");
+    expect(buy("ITA", "GBR", "tungsten", 1)).toBeNull();
+    const [tr] = econ.trades();
+    throughDay(runner, 0);
+    econ.buildingArray("naval_base")[ROME] = 0;
+    econ.afterBuildingChange(ROME, "naval_base");
+    throughDay(runner, 1);
+    expect(tr.pausedDay).toBe(1);
+    expect(tradePaidCivs(econ, tr)).toBe(0);
+    // The payable pass closes nothing for a deal that pays nothing.
+    ita.totals.civ = 0;
+    ita.totals.cgMilli = 0;
+    validateTrades(econ, runner.game.ticks());
+    expect(econ.trades()).toHaveLength(1);
   });
 
   test("the day's check judges partners as tradePartnerBlock does", async () => {

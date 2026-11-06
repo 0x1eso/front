@@ -18,6 +18,7 @@ import {
   WW_DAY_SPLIT,
   WW_MEN_PER_INF_EQUIPMENT,
   WW_TECH_IDS,
+  WW_TRADE_PAUSE_DAYS,
   WW_TRADE_UNITS_PER_CIV,
   WwCountryDetail,
   WwCountrySummary,
@@ -217,6 +218,11 @@ export interface Trade {
    * fewer than 8, so a small seller can sell at all).
    */
   units: number;
+  /**
+   * ww115 T13: the day its route was cut. While set the deal moves nothing
+   * and pays nothing (validateTrades). Absent: it runs.
+   */
+  pausedDay?: number;
 }
 
 /** The last daily step's results; state, because others read them between days. */
@@ -522,6 +528,8 @@ export const WwEconomyStateSchema = z.object({
       res: zInt(),
       civs: zInt(),
       units: zInt(),
+      /** ww115 T13: written only while the deal is paused. */
+      pausedDay: zInt().optional(),
     }),
   ),
   nextTradeId: zInt(),
@@ -961,6 +969,8 @@ export class WwEconomy {
     // P4 spec §10.2 (lane C): a sea deal delivers by its convoys.
     const deliver = tradeDelivery(this, ce.smallID);
     for (const tr of this._trades) {
+      // ww115 T13: a paused deal moves nothing and pays nothing.
+      if (tr.pausedDay !== undefined) continue;
       if (tr.buyer === ce.smallID) {
         paid += tradePaidCivs(this, tr);
         // P3 spec §3.2 tradeCostPct: the buyer's units per factory.
@@ -1455,6 +1465,7 @@ export class WwEconomy {
 
   private detail(ce: CountryEconomy): WwCountryDetail {
     const t = ce.totals;
+    const today = this.day();
     const tradeData = (tr: Trade) => ({
       id: tr.id,
       buyer: tr.buyer,
@@ -1462,6 +1473,14 @@ export class WwEconomy {
       resource: RESOURCE_IDS[tr.res],
       civs: tr.civs,
       units: tr.units,
+      ...(tr.pausedDay === undefined
+        ? {}
+        : {
+            pausedLeft: Math.max(
+              0,
+              WW_TRADE_PAUSE_DAYS - (today - tr.pausedDay),
+            ),
+          }),
     });
     const stops = lineStops(this, ce);
     return {
@@ -1646,6 +1665,10 @@ export class WwEconomy {
     }
     for (const tr of this._trades) {
       h = (Math.imul(h, 31) + tr.id + tr.civs * 13 + tr.units * 7) | 0;
+      // ww115 T13 (nothing while the deal runs).
+      if (tr.pausedDay !== undefined) {
+        h = (Math.imul(h, 31) + tr.pausedDay * 3 + 5) | 0;
+      }
     }
     // P4: the new buildings and the bomb damage, only where any is.
     for (const r of this.scenario.landRegions) {

@@ -70,6 +70,7 @@ import {
   menText,
   NOT_PARTNER_KEYS,
   openTradeBlock,
+  paidCivsOf,
   REGION_CAT_KEYS,
   regionCard,
   researchCards,
@@ -640,6 +641,19 @@ describe("the World War 1936 economy screens' model (spec §13)", () => {
       ],
     }).view;
     expect(openTradeBlock(poor, me, seller, "steel", 2, true)).toBe("no_civs");
+    // ww115 T13: a paused deal pays nothing, as the engine's openTrade counts.
+    const deal = {
+      id: 1,
+      buyer: me,
+      seller: ID("FRA"),
+      resource: "oil",
+      civs: 4,
+      units: 32,
+    } as const;
+    expect(paidCivsOf(detail("DEU", { buying: [deal] }))).toBe(4);
+    expect(
+      paidCivsOf(detail("DEU", { buying: [{ ...deal, pausedLeft: 30 }] })),
+    ).toBe(0);
   });
 
   it("research cards mark done/running/available/prereq/doctrine", () => {

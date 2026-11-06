@@ -1,6 +1,9 @@
 // World War 1936 P4 (plan Task 5, lane C): sea trade (spec §10.2, P1 §7.4
 // partner rule 3) on ww1936sea, every country human.
-import { RESOURCE_IDS } from "@openfront/engine-api/ww1936/EconomyTypes";
+import {
+  RESOURCE_IDS,
+  WW_TRADE_PAUSE_DAYS,
+} from "@openfront/engine-api/ww1936/EconomyTypes";
 import { convoysForTrade } from "@openfront/engine-lib/ww1936/ConvoyRules";
 import { damageBuilding } from "@openfront/engine/ww1936/economy/Buildings";
 import {
@@ -87,7 +90,7 @@ describe("sea trade (spec §10.2)", () => {
     expect(navy.routes.size).toBe(0);
   });
 
-  test("a closed route closes the trade", async () => {
+  test("a closed route pauses the trade, then closes it (ww115 T13)", async () => {
     const g = await seaGame();
     const { ww, navy, runner, updates } = g;
     const ita = g.ce("ITA");
@@ -100,8 +103,13 @@ describe("sea trade (spec §10.2)", () => {
     expect(tradeRoute(navy, TAG_ID.ITA, TAG_ID.GBR)).toBeNull();
     const day = ww.day(runner.game.ticks());
     stepTo(runner, afterItaly(day + 1));
-    expect(ww.economy.trades()).toEqual([]);
+    expect(ww.economy.trades()).toEqual([tr]);
+    expect(tr.pausedDay).toBe(day + 1);
     expect(routeFor(navy, "trade", TAG_ID.ITA, tr.id)).toBeNull();
+    // Ninety days on (London's repairs would give the route back first).
+    tr.pausedDay = day + 1 - WW_TRADE_PAUSE_DAYS;
+    stepTo(runner, afterItaly(day + 2));
+    expect(ww.economy.trades()).toEqual([]);
     expect(
       messages(updates, "events_display.ww1936_trade_closed"),
     ).toContainEqual({
@@ -110,7 +118,7 @@ describe("sea trade (spec §10.2)", () => {
     });
   });
 
-  test("a faction's deal with no way left closes", async () => {
+  test("a faction's deal with no way left stops billing (ww115 T13)", async () => {
     const g = await seaGame();
     const { ww, navy, runner, updates } = g;
     const fra = g.ce("FRA");
@@ -120,8 +128,8 @@ describe("sea trade (spec §10.2)", () => {
     expect(tradeRoute(navy, TAG_ID.FRA, TAG_ID.GBR)?.km).toBe(0);
     expect(openTrade(ww.economy, fra, TAG_ID.GBR, TUNGSTEN, 1)).toBeNull();
     // Britain's bases bombed out: no sea route, and the faction alone
-    // carries nothing (spec §10.2) — the deal closes, the civilian
-    // factories are not billed for nothing.
+    // carries nothing (spec §10.2) — the deal pauses, then closes; the
+    // civilian factories are not billed for nothing.
     damageBuilding(ww.economy, REGION.london, "naval_base", 6_000);
     damageBuilding(ww.economy, REGION.malta, "naval_base", 1_000);
     expect(tradePartnerBlock(ww.economy, TAG_ID.FRA, TAG_ID.GBR)).toBe(
@@ -129,8 +137,22 @@ describe("sea trade (spec §10.2)", () => {
     );
     const day = ww.day(runner.game.ticks());
     stepTo(runner, dayTick(day + 2));
-    expect(ww.economy.trades()).toEqual([]);
+    expect(ww.economy.trades()).toHaveLength(1);
     expect(fra.totals.paidCivs).toBe(0);
+    expect(
+      messages(updates, "events_display.ww1936_trade_paused"),
+    ).toContainEqual({
+      to: TAG_ID.FRA,
+      params: {
+        sellerTag: "GBR",
+        resource: "tungsten",
+        days: WW_TRADE_PAUSE_DAYS,
+      },
+    });
+    // Ninety days on (London's repairs would give the route back first).
+    ww.economy.trades()[0].pausedDay = day + 1 - WW_TRADE_PAUSE_DAYS;
+    stepTo(runner, dayTick(day + 3));
+    expect(ww.economy.trades()).toEqual([]);
     expect(
       messages(updates, "events_display.ww1936_trade_closed"),
     ).toContainEqual({

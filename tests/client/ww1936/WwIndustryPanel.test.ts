@@ -553,6 +553,37 @@ describe("<ww-industry-panel> (spec §13.3)", () => {
     expect(full.q("[data-ww-block='infra_max']")).not.toBeNull();
   });
 
+  it("a line that makes nothing says why; a paused deal says so (ww115 T12, T13)", async () => {
+    const m = mount({
+      summaries: [summary("DEU")],
+      details: [
+        detail("DEU", {
+          lines: [{ ...line(1, 2), stop: "licence_only" }, line(2, 2)],
+          buying: [
+            {
+              id: 7,
+              buyer: ID("DEU"),
+              seller: ID("SUN"),
+              resource: "oil",
+              civs: 1,
+              units: 8,
+              pausedLeft: 40,
+            },
+          ],
+        }),
+      ],
+    });
+    await m.open("production");
+    expect(
+      m.q("[data-ww-line='1'] [data-ww-line-stop]")!.textContent,
+    ).toContain("ww1936.econ.line_stop.licence_only");
+    expect(m.q("[data-ww-line='2'] [data-ww-line-stop]")).toBeNull();
+    await m.open("trade");
+    expect(
+      m.q("[data-ww-deal='7'] [data-ww-deal-paused]")!.textContent,
+    ).toContain("ww1936.econ.deal_paused");
+  });
+
   it("holding + adds five, a tap one", async () => {
     vi.useFakeTimers({ toFake: ["Date", "setTimeout", "clearTimeout"] });
     const m = mount({

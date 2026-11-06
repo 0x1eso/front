@@ -1442,7 +1442,7 @@ export function tradeCivsWith(
   let paid = 0;
   let full = 0;
   for (const t of deals) {
-    if (t.seller !== seller) continue;
+    if (t.seller !== seller || t.pausedLeft !== undefined) continue;
     full += t.civs;
     paid += paidCivsAt(t.civs, pct);
   }

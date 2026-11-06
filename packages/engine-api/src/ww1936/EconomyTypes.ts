@@ -715,6 +715,8 @@ export const WW_MAX_LINE_FACTORIES = 500;
 export const WW_MAX_TRADES = 20;
 export const WW_MAX_TRADE_CIVS = 50;
 export const WW_TRADE_UNITS_PER_CIV = 8;
+/** ww115 T13: days a deal with a cut route waits for it before closing. */
+export const WW_TRADE_PAUSE_DAYS = 90;
 /**
  * Research slots (research overhaul changes §1): a country's start slots
  * (EconomyStart.startResearchSlots) plus the research_slot effects of its
@@ -1029,6 +1031,8 @@ export interface WwTradeData {
   civs: number;
   /** Units a day it moves (the last factory may buy fewer than 8). */
   units: number;
+  /** ww115 T13: its route is cut; days until it closes. Absent: it runs. */
+  pausedLeft?: number;
 }
 
 export interface WwResourceRow {

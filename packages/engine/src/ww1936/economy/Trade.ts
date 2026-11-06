@@ -7,6 +7,7 @@ import { MessageType } from "@openfront/engine-api/game/GameTypes";
 import {
   RESOURCE_COUNT,
   RESOURCE_IDS,
+  WW_TRADE_PAUSE_DAYS,
   WwOrderBlock,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
 import {
@@ -87,7 +88,7 @@ function landReachNow(econ: WwEconomy, buyer: number): Set<number> {
  * the goods — land through countries at peace (2) or, P4 spec §10.2, a sea
  * route between working naval bases (3). A faction (1) carries nothing by
  * itself any more: "같은 진영이라도 육로가 없으면 해로다", and a deal with
- * neither way closes (P1 §7.5) rather than bill its factories for nothing
+ * neither way stops (ww115 T13) rather than bill its factories for nothing
  * (P4 lane C review). The buyer's land reach and its convoys' reach are
  * each searched once, on the first seller that needs it (pre-flight D13).
  */
@@ -95,30 +96,43 @@ export function partnerJudge(
   econ: WwEconomy,
   buyer: number,
 ): (seller: number) => WwOrderBlock | null {
+  const breakOf = partnerBreakJudge(econ, buyer);
+  return (seller) => (breakOf(seller) === null ? null : "no_partner");
+}
+
+/**
+ * ww115 T13: partnerJudge's reasons. "partner": the two may not deal at all
+ * (one gone, an embargo, a war between them); "route": they may, but no land
+ * or sea way joins them today.
+ */
+function partnerBreakJudge(
+  econ: WwEconomy,
+  buyer: number,
+): (seller: number) => "partner" | "route" | null {
   const ww = econ.ww;
   const b = econ.mg.playerBySmallID(buyer);
   if (!b.isPlayer() || !ww.isActor(buyer)) {
-    return () => "no_partner";
+    return () => "partner";
   }
   const buyerPlayer = b;
   let reach: ReadonlySet<number> | null = null;
   let sea: ((seller: number) => boolean) | null = null;
   return (seller) => {
-    if (seller === buyer) return "no_partner";
+    if (seller === buyer) return "partner";
     const s = econ.mg.playerBySmallID(seller);
     if (!s.isPlayer() || !ww.isActor(seller)) {
-      return "no_partner";
+      return "partner";
     }
     if (econ.country(seller) === null || s.hasEmbargoAgainst(buyerPlayer)) {
-      return "no_partner";
+      return "partner";
     }
     // P6 hook (M, pre-flight §A9): the mode's embargo list.
-    if (ww.depth.embargoed(buyer, seller)) return "no_partner";
-    if (ww.isAtWar(buyer, seller)) return "no_partner";
+    if (ww.depth.embargoed(buyer, seller)) return "partner";
+    if (ww.isAtWar(buyer, seller)) return "partner";
     reach ??= landReachOf(econ, buyer);
     if (reach.has(seller)) return null;
     sea ??= seaNeighbourJudge(ww.navy, buyer);
-    return sea(seller) ? null : "no_partner";
+    return sea(seller) ? null : "route";
   };
 }
 
@@ -169,9 +183,11 @@ export function exportRoom(
 
 /**
  * The civilian factories a deal costs its buyer a day: its `civs`, times
- * P5's percent (spec §9.1: a dominion pays half; rounded up).
+ * P5's percent (spec §9.1: a dominion pays half; rounded up); nothing while
+ * it is paused (ww115 T13).
  */
 export function tradePaidCivs(econ: WwEconomy, tr: Trade): number {
+  if (tr.pausedDay !== undefined) return 0;
   // P5 hook (S).
   const pct = econ.ww.endgame.tradeCivFactorPct(tr.buyer, tr.seller);
   return pct === 100 ? tr.civs : Math.ceil((tr.civs * pct) / 100);
@@ -256,6 +272,29 @@ function closeBroken(econ: WwEconomy, tr: Trade): void {
   );
 }
 
+/**
+ * ww115 T13: a deal whose route is cut stops, moving nothing and paying
+ * nothing; a human buyer is told once, the day it stops.
+ */
+function pauseDeal(econ: WwEconomy, tr: Trade, day: number): void {
+  tr.pausedDay = day;
+  econ.markCountryDirty(tr.buyer);
+  econ.markCountryDirty(tr.seller);
+  const b = econ.mg.playerBySmallID(tr.buyer);
+  if (!b.isPlayer() || !econ.ww.isHumanControlled(tr.buyer)) return;
+  econ.mg.displayMessage(
+    "events_display.ww1936_trade_paused",
+    MessageType.WORLD_WAR,
+    b.id(),
+    undefined,
+    {
+      sellerTag: econ.ww.tagOf(tr.seller),
+      resource: RESOURCE_IDS[tr.res],
+      days: WW_TRADE_PAUSE_DAYS,
+    },
+  );
+}
+
 /** Groups trades in id order by `key`, each group in id order. */
 function groupBy(
   trades: readonly Trade[],
@@ -273,22 +312,38 @@ function groupBy(
 
 /**
  * The day's common check (spec §7.5), in deal-number order: deals whose
- * partners broke (war, embargo, a cut route, capitulation, death) close;
- * then, newest first, deals past the seller's export room for that
- * resource give up the excess (P4 Task 15: a deal shrinks to what is left
- * and pays dealCivsOf of it; one with nothing left closes), and deals past
- * the civilian factories the buyer can pay close.
+ * partners broke (war, embargo, capitulation, death) close; ww115 T13: a
+ * deal whose route is cut pauses, runs again the day the route is back,
+ * and closes after WW_TRADE_PAUSE_DAYS without one. Then, newest first,
+ * deals past the seller's export room for that resource give up the excess
+ * (P4 Task 15: a deal shrinks to what is left and pays dealCivsOf of it; one
+ * with nothing left closes), and deals past the civilian factories the
+ * buyer can pay close.
  * The trade list is kept in id order (addTrade appends rising ids).
  */
 export function validateTrades(econ: WwEconomy, tick: number): void {
-  const judges = new Map<number, (seller: number) => WwOrderBlock | null>();
+  const day = econ.ww.day(tick);
+  const judges = new Map<
+    number,
+    (seller: number) => "partner" | "route" | null
+  >();
   for (const tr of [...econ.trades()]) {
     let judge = judges.get(tr.buyer);
     if (judge === undefined) {
-      judge = partnerJudge(econ, tr.buyer);
+      judge = partnerBreakJudge(econ, tr.buyer);
       judges.set(tr.buyer, judge);
     }
-    if (judge(tr.seller) !== null) closeBroken(econ, tr);
+    const broken = judge(tr.seller);
+    if (broken === "partner") {
+      closeBroken(econ, tr);
+    } else if (broken === "route") {
+      if (tr.pausedDay === undefined) pauseDeal(econ, tr, day);
+      else if (day - tr.pausedDay >= WW_TRADE_PAUSE_DAYS) closeBroken(econ, tr);
+    } else if (tr.pausedDay !== undefined) {
+      delete tr.pausedDay;
+      econ.markCountryDirty(tr.buyer);
+      econ.markCountryDirty(tr.seller);
+    }
   }
 
   const bySeller = groupBy(
@@ -328,6 +383,8 @@ export function validateTrades(econ: WwEconomy, tick: number): void {
     let paid = 0;
     for (const tr of deals) paid += tradePaidCivs(econ, tr);
     for (let i = deals.length - 1; i >= 0 && paid > payable; i--) {
+      // A paused deal pays nothing: closing it frees nothing.
+      if (deals[i].pausedDay !== undefined) continue;
       paid -= tradePaidCivs(econ, deals[i]);
       closeBroken(econ, deals[i]);
     }

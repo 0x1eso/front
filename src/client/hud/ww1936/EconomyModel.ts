@@ -2252,7 +2252,8 @@ export function receivedCivsOf(detail: WwCountryDetail): number {
 
 function sumCivs(deals: readonly WwTradeData[]): number {
   let n = 0;
-  for (const t of deals) n += t.civs;
+  // ww115 T13: a paused deal pays nothing.
+  for (const t of deals) if (t.pausedLeft === undefined) n += t.civs;
   return n;
 }
 

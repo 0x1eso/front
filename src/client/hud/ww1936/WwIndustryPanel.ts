@@ -1977,6 +1977,13 @@ export class WwIndustryPanel extends WwDrawerBase {
               ${this.flag(other, c.scenario)} ${this.nameOf(other, c.scenario)}
               · ${RESOURCE_ICONS[t.resource]} ${resourceName(t.resource)}
             </span>
+            ${t.pausedLeft === undefined
+              ? nothing
+              : html`<span data-ww-deal-paused class="text-amber-300"
+                  >${translateText("ww1936.econ.deal_paused", {
+                    n: t.pausedLeft,
+                  })}</span
+                >`}
             <span class="tabular-nums text-white/70"
               >${translateText("ww1936.econ.factories", { n: t.civs })}</span
             >

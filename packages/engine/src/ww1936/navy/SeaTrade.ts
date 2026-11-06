@@ -114,8 +114,8 @@ export function tradeNeed(navy: WwNavy, r: SeaRoute): number {
 /**
  * The buyer's day (allocateConvoys): each of its deals the land does not
  * carry gets its sea route (found again; a cut one goes, and P1's day
- * check closes the deal when the sea was its only way); the land carries
- * the rest without convoys; closed deals' routes go.
+ * check pauses the deal when the sea was its only way, ww115 T13); the land
+ * carries the rest without convoys; closed deals' routes go.
  */
 export function syncTradeRoutes(
   navy: WwNavy,
