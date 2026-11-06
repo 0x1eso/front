@@ -3,35 +3,60 @@ import type { GwPack } from "@openfront/engine-api/ww1914/GwPack";
 import type {
   GreatWarData,
   GwCardView,
-  GwOptionView,
   GwSeatView,
 } from "@openfront/engine-api/ww1914/GwView";
 import { EventBus } from "@openfront/shared/EventBus";
 import { loadGwPack } from "@openfront/shared/ww1914/GwPackLoader";
-import { html, LitElement, nothing, TemplateResult } from "lit";
+import { html, LitElement, nothing } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import { Controller } from "../../Controller";
 import { SendGwOrderIntentEvent } from "../../Transport";
 import { translateText } from "../../Utils";
 import type { GameView } from "../../view";
+import { band } from "./GwBand";
+import { countryTab } from "./GwCountry";
+import type { GwCtx, GwUi } from "./GwCtx";
+import { deskTab, reader } from "./GwDesk";
+import { frontsTab } from "./GwFronts";
+import { memoirTab } from "./GwMemoir";
 import {
-  cardBody,
-  cardTitle,
-  fillGw,
-  optionText,
-  personName,
-  saysText,
-  tellText,
-  voices,
-} from "./GwText";
+  GW_TABS,
+  GwTab,
+  loadShelf,
+  saveShelf,
+  shelve,
+  shelveEnding,
+  tabBadge,
+} from "./GwModel";
+import { peopleTab } from "./GwPeople";
+import { GLASS } from "./GwStyle";
+import { activeTalk, syncTranscripts, talkView } from "./GwTalk";
+import { ticker, tickerLines } from "./GwTicker";
 
-const BUTTON =
-  "w-full rounded border border-white/30 bg-white/10 px-2 py-1 text-left text-sm text-white hover:bg-white/20 disabled:opacity-40";
+/** The ticker moves to its next line this often, ms. */
+const TICKER_MS = 7000;
+/** A talk that appears this soon after a summon opens on its own, ms. */
+const SUMMON_OPEN_MS = 6000;
+/** The talk view's line fades in. */
+const KEYFRAMES = html`<style>
+  @keyframes gwfade {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+</style>`;
 
 /**
- * Great War 1914: a plain placeholder so a game can be clicked through end to
- * end: the chapter, the desk, the talks, the people and "ready". The screens
- * lane replaces it; every engine read is in GreatWarData.
+ * Great War 1914: the screens (design §11). A top band, a one-line news
+ * ticker, a left drawer with five tabs (desk, people, fronts, country,
+ * memoir), the reader for a paper and the talk view for a conversation. The
+ * map stays the background. Every engine read is in GreatWarData; every
+ * action is one `gw_order`.
  */
 @customElement("gw-panel")
 export class GwPanel extends LitElement implements Controller {
@@ -40,6 +65,24 @@ export class GwPanel extends LitElement implements Controller {
   @state() private data: GreatWarData | null = null;
   @state() private pack: GwPack | null = null;
   private asked = false;
+  private ticks = 0;
+  private news = 0;
+  private newsAt = 0;
+  private recorded = false;
+  private chapter = -1;
+  private readonly ui: GwUi = {
+    tab: "desk",
+    folded: false,
+    readerUid: null,
+    armed: null,
+    talkUid: null,
+    talks: new Map(),
+    openPerson: null,
+    summoned: 0,
+    armedDismiss: null,
+    alloc: null,
+    shelf: loadShelf(),
+  };
 
   createRenderRoot() {
     return this;
@@ -53,16 +96,31 @@ export class GwPanel extends LitElement implements Controller {
 
   tick() {
     const data = this.game?.greatWarData?.() ?? null;
-    if (data === this.data) return;
-    this.data = data;
-    const seat = this.seat();
-    if (seat !== null && !this.asked) {
-      this.asked = true;
-      loadGwPack(seat.tag).then(
-        (p) => (this.pack = p),
-        (e) => console.error("Great War text pack", e),
-      );
+    const ticks = this.game?.ticks?.() ?? 0;
+    let dirty = false;
+    if (data !== this.data) {
+      this.data = data;
+      dirty = true;
+      const seat = this.seat();
+      if (seat !== null && !this.asked) {
+        this.asked = true;
+        loadGwPack(seat.tag).then(
+          (p) => (this.pack = p),
+          (e) => console.error("Great War text pack", e),
+        );
+      }
+      if (data !== null && seat !== null) this.onData(data, seat);
     }
+    // The band's clock moves with seconds, the ticker with its own timer.
+    if (Math.floor(ticks / 10) !== Math.floor(this.ticks / 10)) dirty = true;
+    this.ticks = ticks;
+    const now = Date.now();
+    if (now - this.newsAt >= TICKER_MS) {
+      this.newsAt = now;
+      this.news++;
+      dirty = true;
+    }
+    if (dirty) this.requestUpdate();
   }
 
   private seat(): GwSeatView | null {
@@ -70,136 +128,137 @@ export class GwPanel extends LitElement implements Controller {
     return this.data?.seats.find((s) => s.smallID === me) ?? null;
   }
 
+  /** What a fresh view changes on this side: transcripts, the shelf, the next chapter. */
+  private onData(data: GreatWarData, seat: GwSeatView): void {
+    const ui = this.ui;
+    if (data.chapter !== this.chapter) {
+      this.chapter = data.chapter;
+      ui.alloc = null;
+      ui.readerUid = null;
+      ui.armed = null;
+    }
+    // A talk that came after my summons opens by itself; a visitor waits on the desk.
+    const before = new Set(ui.talks.keys());
+    syncTranscripts(ui, seat);
+    for (const t of ui.talks.values()) {
+      if (before.has(t.uid) || t.closed) continue;
+      if (Date.now() - ui.summoned < SUMMON_OPEN_MS) ui.talkUid = t.uid;
+      ui.shelf = shelve(ui.shelf, "people", t.who);
+      saveShelf(ui.shelf);
+    }
+    if (ui.talkUid !== null && !ui.talks.has(ui.talkUid)) ui.talkUid = null;
+    if (data.ended !== null && !this.recorded) {
+      this.recorded = true;
+      ui.shelf = shelveEnding(ui.shelf, seat.tag, data.ended, data.date);
+      saveShelf(ui.shelf);
+    }
+  }
+
   private send(order: GwOrder): void {
+    if (order.kind === "read") {
+      const card = this.seat()?.desk.find((c) => c.uid === order.card);
+      if (card !== undefined) {
+        this.ui.shelf = shelve(this.ui.shelf, "documents", card.scene);
+        saveShelf(this.ui.shelf);
+      }
+    }
     this.eventBus.emit(new SendGwOrderIntentEvent(order));
   }
 
-  private optionRow(
-    card: GwCardView,
-    o: GwOptionView,
-    pick: () => void,
-  ): TemplateResult {
-    const why = o.open ? undefined : this.pack?.scenes[card.scene]?.why?.[o.id];
-    return html`<button
-        class=${BUTTON}
-        data-gw-option=${o.id}
-        ?disabled=${!o.open}
-        @click=${pick}
-      >
-        ${optionText(this.pack, card, o.id)}
-        ${o.tell.length === 0
-          ? nothing
-          : html`<span class="block text-xs text-white/60"
-              >${o.tell.map(tellText).join(" · ")}</span
-            >`}
-      </button>
-      ${why === undefined
-        ? nothing
-        : html`<div class="text-xs text-white/50">${why}</div>`}`;
-  }
-
-  private card(seat: GwSeatView, c: GwCardView): TemplateResult {
-    const fill = (t: string) => fillGw(t, this.pack, c, seat, this.data!.date);
-    const read = c.options.length === 0 && c.node === null;
-    return html`<section
-      data-gw-card=${c.scene}
-      class="space-y-1 rounded bg-black/40 p-2"
-    >
-      <h3 class="font-bold">${cardTitle(this.pack, c)}</h3>
-      <p class="text-sm">${fill(cardBody(this.pack, c))}</p>
-      ${voices(this.pack, c).map(
-        (v) => html`<p class="text-sm text-white/80">${fill(v)}</p>`,
-      )}
-      ${c.node === null
-        ? nothing
-        : html`<p class="text-sm italic">
-            ${personName(this.pack, c.who ?? "")}:
-            ${fill(saysText(this.pack, c))}
-          </p>`}
-      ${c.options.map((o) =>
-        this.optionRow(c, o, () =>
-          this.send({ kind: "choose", card: c.uid, option: o.id }),
-        ),
-      )}
-      ${c.replies.map((r) =>
-        this.optionRow(c, r, () =>
-          this.send({ kind: "reply", card: c.uid, reply: r.id }),
-        ),
-      )}
-      ${read
-        ? html`<button
-            class=${BUTTON}
-            @click=${() => this.send({ kind: "read", card: c.uid })}
-          >
-            ${translateText("gw.panel.read")}
-          </button>`
-        : nothing}
-    </section>`;
-  }
-
-  private people(seat: GwSeatView): TemplateResult {
-    return html`<section class="space-y-1 rounded bg-black/40 p-2">
-      <h3 class="font-bold">
-        ${translateText("gw.panel.people", { n: seat.audiences })}
-      </h3>
-      ${seat.people.map(
-        (p) =>
-          html`<div class="text-sm">
-            ${personName(this.pack, p.id)}
-            ${p.office === null
-              ? nothing
-              : html`<span class="text-white/60"
-                  >${translateText(`gw.office.${p.office}`)}</span
-                >`}
-            ${p.topics.map(
-              (t) =>
-                html`<button
-                  class=${BUTTON}
-                  data-gw-topic=${t}
-                  ?disabled=${seat.audiences <= 0}
-                  @click=${() =>
-                    this.send({ kind: "summon", person: p.id, topic: t })}
-                >
-                  ${this.pack?.scenes[t]?.topic ?? t}
-                </button>`,
-            )}
-          </div>`,
-      )}
-    </section>`;
+  private tabBody(c: GwCtx) {
+    switch (this.ui.tab) {
+      case "people":
+        return peopleTab(c);
+      case "fronts":
+        return frontsTab(c);
+      case "country":
+        return countryTab(c);
+      case "memoir":
+        return memoirTab(c);
+      default:
+        return deskTab(c);
+    }
   }
 
   render() {
-    const d = this.data;
+    const data = this.data;
     const seat = this.seat();
-    if (d === null || seat === null) return nothing;
-    return html`<div
-      class="fixed left-0 top-0 z-[900] max-h-full w-full max-w-sm space-y-2 overflow-y-auto bg-gray-900/90 p-2 text-white"
+    if (data === null || seat === null) return nothing;
+    const ui = this.ui;
+    const c: GwCtx = {
+      data,
+      seat,
+      pack: this.pack,
+      ui,
+      tick: this.ticks,
+      send: (o) => this.send(o),
+      redraw: () => this.requestUpdate(),
+      card: (uid) => seat.desk.find((x: GwCardView) => x.uid === uid),
+    };
+    const open = ui.readerUid === null ? undefined : c.card(ui.readerUid);
+    const talk = activeTalk(c);
+    return html`${KEYFRAMES}${band(c)}${ticker(
+        tickerLines(data, seat),
+        this.news,
+      )}
+      <aside
+        data-gw-drawer
+        class="${GLASS} pointer-events-auto fixed inset-x-0 bottom-0 z-[898] flex h-[56vh] flex-col text-white sm:inset-x-auto sm:left-0 sm:bottom-auto sm:top-10 sm:h-auto sm:max-h-[calc(100vh-2.5rem)] sm:w-[400px] sm:border-b-0 sm:border-l-0 ${ui.folded
+          ? "!h-9"
+          : ""} ${talk === null ? "" : "invisible"}"
+      >
+        <nav
+          class="flex shrink-0 items-center gap-1 border-b border-white/10 p-1.5"
+          data-gw-tabs
+        >
+          ${GW_TABS.map((tab) => this.tabButton(c, tab))}
+          <button
+            class="ml-auto px-2 text-white/60 hover:text-white"
+            data-gw-fold
+            title=${translateText("gw.ui.fold")}
+            @click=${() => {
+              ui.folded = !ui.folded;
+              this.requestUpdate();
+            }}
+          >
+            ${ui.folded ? "▾" : "▴"}
+          </button>
+        </nav>
+        ${ui.folded
+          ? nothing
+          : html`<div class="min-h-0 flex-1 overflow-y-auto p-2.5">
+              ${data.ended !== null && ui.tab === "desk"
+                ? html`<p class="mb-2 text-sm text-amber-200" data-gw-ended>
+                    ${translateText("gw.panel.ended")}
+                  </p>`
+                : nothing}
+              ${this.tabBody(c)}
+            </div>`}
+      </aside>
+      ${open === undefined ? nothing : reader(c, open)}
+      ${talk === null ? nothing : talkView(c, talk.t, talk.card)}`;
+  }
+
+  private tabButton(c: GwCtx, tab: GwTab) {
+    const on = this.ui.tab === tab;
+    const badge = tabBadge(c.seat, tab);
+    return html`<button
+      class="${on
+        ? "bg-white/20 text-white"
+        : "text-white/70 hover:bg-white/10"} rounded px-2 py-1 text-sm"
+      data-gw-tab=${tab}
+      @click=${() => {
+        this.ui.tab = tab;
+        this.ui.folded = false;
+        this.requestUpdate();
+      }}
     >
-      <h2 class="font-bold">
-        ${translateText("gw.panel.chapter", {
-          date: d.date,
-          n: d.chapter + 1,
-          total: d.chapterCount,
-        })}
-      </h2>
-      ${d.ended !== null
-        ? html`<p>${translateText("gw.panel.ended")}</p>`
-        : html`${seat.desk.map((c) => this.card(seat, c))}${this.people(seat)}
-            <button
-              class=${BUTTON}
-              data-gw-ready
-              ?disabled=${seat.readyBlock !== null}
-              @click=${() =>
-                this.send({
-                  kind: "ready",
-                  chapter: d.chapter,
-                  on: !seat.ready,
-                })}
-            >
-              ${translateText(
-                seat.ready ? "gw.panel.not_ready" : "gw.panel.ready",
-              )}
-            </button>`}
-    </div>`;
+      ${translateText(`gw.ui.tab.${tab}`)}${badge > 0
+        ? html`<span
+            class="ml-1 rounded-full bg-amber-300/90 px-1.5 text-xs font-bold text-slate-900"
+            >${badge}</span
+          >`
+        : nothing}
+    </button>`;
   }
 }

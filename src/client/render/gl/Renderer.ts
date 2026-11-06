@@ -2140,6 +2140,11 @@ export class GPURenderer {
     this.landFlagsStale = true;
   }
 
+  /** Great War 1914: the name plates' troop row is left empty. */
+  hideTroopNumbers(): void {
+    this.namePass.setTroopFog(() => ({ troopsLabel: () => "" }));
+  }
+
   private disposeWwLand(): void {
     if (this.wwPasses !== null) {
       this.wwPasses.tokens.dispose();

@@ -2426,6 +2426,306 @@
       "spark_straits": "The Straits became the question.",
       "war_began": "The war began."
     },
+    "ui": {
+      "alloc_allies": "Share for allies",
+      "alloc_main": "Main effort",
+      "alloc_now": "Now: {main}, {posture}, {scale}",
+      "alloc_posture": "Posture",
+      "alloc_research": "Research",
+      "alloc_scale": "Scale",
+      "alloc_send": "Confirm the allocation",
+      "alloc_title": "Where the weight goes",
+      "ally_share": {
+        "0": "None",
+        "1": "A little",
+        "2": "Half",
+        "3": "Most"
+      },
+      "appoint": "Appoint as {office}",
+      "audiences": "Audiences left: {n}",
+      "audiences_hint": "Calling someone spends one.",
+      "block": {
+        "closed": "That choice is not open yet.",
+        "ended": "The game is over.",
+        "no_audience": "You have used this chapter's audiences.",
+        "no_card": "That paper is gone.",
+        "no_option": "There is no such choice.",
+        "no_person": "That person cannot be called now.",
+        "no_topic": "That cannot be raised now.",
+        "open_cards": "Papers are still open: decide or read them first.",
+        "stale_chapter": "That chapter has already passed.",
+        "wrong_kind": "That does not fit this paper."
+      },
+      "calendar": {
+        "full": "The full game",
+        "y1914": "The 1914 game"
+      },
+      "calendar_chapters": "{n} chapters",
+      "calendar_label": "Length of the game",
+      "calendar_time": {
+        "full": "3 to 4 hours",
+        "y1914": "about 30 minutes alone"
+      },
+      "chapter_n": "Chapter {n}",
+      "desk_empty": "Nothing waits on the desk. You may call someone or close the chapter.",
+      "dismiss": "Dismiss",
+      "dismiss_sure": "Tap again to dismiss",
+      "ending_default": "The game has ended",
+      "fold": "Fold or unfold",
+      "front_quiet": "No fighting here yet.",
+      "gauge": {
+        "bread": {
+          "0": "Starving",
+          "1": "Scarce",
+          "2": "Getting by",
+          "3": "Plentiful"
+        },
+        "money": {
+          "0": "Empty",
+          "1": "Tight",
+          "2": "Holding",
+          "3": "Ample"
+        },
+        "morale": {
+          "0": "Broken",
+          "1": "Sunk",
+          "2": "Shaken",
+          "3": "Steady",
+          "4": "High",
+          "5": "Soaring"
+        },
+        "order": {
+          "0": "Rioting",
+          "1": "Unrest",
+          "2": "Uneasy",
+          "3": "Calm",
+          "4": "Stable",
+          "5": "Firm"
+        },
+        "shells": {
+          "0": "Empty",
+          "1": "Short",
+          "2": "Enough",
+          "3": "Plentiful"
+        }
+      },
+      "gauge_name": {
+        "bread": "Bread",
+        "money": "Treasury",
+        "morale": "Morale",
+        "order": "Order",
+        "shells": "Shells"
+      },
+      "gauges_title": "The country",
+      "inst": {
+        "0": "Hostile",
+        "1": "Cold",
+        "2": "Neutral",
+        "3": "Favourable",
+        "4": "Firm"
+      },
+      "inst_name": {
+        "army": "The army",
+        "countersign": "The chancellor's countersignature",
+        "reichstag": "The Reichstag"
+      },
+      "inst_title": "Who can say no",
+      "kind": {
+        "audience": "Audience",
+        "crisis": "Crisis",
+        "dispute": "Dispute",
+        "ledger": "Ledger",
+        "proposal": "Proposal",
+        "report": "Report",
+        "talk": "Talk",
+        "wire": "Wire"
+      },
+      "line": {
+        "balkan": {
+          "belgrade": "Belgrade",
+          "drina": "Drina",
+          "nis": "Niš",
+          "salonika": "Salonika"
+        },
+        "caucasus": {
+          "erzurum": "Erzurum",
+          "kars": "Kars",
+          "trabzon": "Trabzon",
+          "van": "Van"
+        },
+        "colonies": {
+          "east_africa": "East Africa",
+          "kamerun": "Kamerun",
+          "southwest": "South West Africa",
+          "togo": "Togo"
+        },
+        "east": {
+          "dvina": "Dvina",
+          "east_prussia": "East Prussia",
+          "kiev": "Kiev",
+          "riga": "Riga",
+          "vistula": "Vistula",
+          "warsaw": "Warsaw"
+        },
+        "italy": {
+          "adige": "Adige",
+          "isonzo": "Isonzo",
+          "piave": "Piave",
+          "trentino": "Trentino"
+        },
+        "mesopotamia": {
+          "baghdad": "Baghdad",
+          "basra": "Basra",
+          "kut": "Kut",
+          "mosul": "Mosul"
+        },
+        "palestine": {
+          "damascus": "Damascus",
+          "gaza": "Gaza",
+          "jerusalem": "Jerusalem",
+          "suez": "Suez"
+        },
+        "sea": {
+          "atlantic": "Atlantic",
+          "blockade": "Blockade",
+          "channel": "Channel",
+          "north_sea": "North Sea"
+        },
+        "straits": {
+          "constantinople": "Constantinople",
+          "dardanelles": "Dardanelles",
+          "gallipoli": "Gallipoli",
+          "narrows": "The Narrows"
+        },
+        "west": {
+          "aisne": "Aisne",
+          "hindenburg": "Hindenburg Line",
+          "liege": "Liège",
+          "marne": "Marne",
+          "rhine": "Rhine",
+          "somme": "Somme"
+        }
+      },
+      "memoir_open": "The memoir is written when the game ends. Until then the record below fills.",
+      "news": {
+        "front": "{theatre} front: {line}",
+        "quiet": "No great news today.",
+        "temp": {
+          "0": "Europe is still quiet.",
+          "1": "The foreign ministries' wires are piling up.",
+          "2": "Europe's nerves are on edge.",
+          "3": "One wrong word could set it alight."
+        }
+      },
+      "no_fronts": "No front is open yet.",
+      "no_office": "No office",
+      "no_topics": "Nothing to raise with them now.",
+      "options": "Your choices",
+      "outside": "Outside the cabinet",
+      "posture": {
+        "hold": "Hold",
+        "offensive": "Offensive"
+      },
+      "quiet_fronts": "Still quiet",
+      "read_decide": "Read and decide",
+      "read_done": "Read. Put it aside.",
+      "read_on": "Read",
+      "ready_chapter": "Close the chapter",
+      "record_title": "The record",
+      "reply": {
+        "ask": "Ask",
+        "deal": "Promise or bargain",
+        "leave": "Step back",
+        "push": "Press"
+      },
+      "research": {
+        "artillery": "Artillery",
+        "infantry": "Infantry",
+        "sea": "Navy"
+      },
+      "rivals": "At odds with",
+      "scale": {
+        "limited": "Limited",
+        "major": "Major"
+      },
+      "shelf_documents": "Papers seen {n}/{max}",
+      "shelf_endings": "Endings {n}/{max}",
+      "shelf_hint": "What this browser has seen across games. Nothing here gives power; it only shows what is empty.",
+      "shelf_people": "People met {n}/{max}",
+      "shelf_title": "The shelf",
+      "sign": "Sign",
+      "since_last": "Since the last chapter",
+      "stage": {
+        "closing": "Closing",
+        "crisis": "Crisis",
+        "war": "War",
+        "y1914": "1914"
+      },
+      "stamp": {
+        "confirmed": "Confirmed",
+        "estimate": "Estimate",
+        "unconfirmed": "Unconfirmed"
+      },
+      "stance": {
+        "cold": "Cold",
+        "flatter": "Flattery",
+        "frank": "Frank",
+        "threat": "Threat",
+        "warm": "Warm"
+      },
+      "tab": {
+        "country": "Country",
+        "desk": "Desk",
+        "fronts": "Fronts",
+        "memoir": "Memoir",
+        "people": "People"
+      },
+      "talk_done": "Leave the table",
+      "talk_ended": "The talk is over.",
+      "talk_open": "Sit down with them",
+      "talk_step_out": "Step away (the talk stays)",
+      "talk_waiting": "{name} considers it.",
+      "talk_waits": "{name} is waiting to speak with you.",
+      "temp": {
+        "0": "Crisis: calm",
+        "1": "Crisis: tense",
+        "2": "Crisis: dangerous",
+        "3": "Crisis: on a knife edge"
+      },
+      "theatre": {
+        "balkan": "Balkans",
+        "caucasus": "Caucasus",
+        "colonies": "Colonies",
+        "east": "East",
+        "italy": "Italy",
+        "mesopotamia": "Mesopotamia",
+        "palestine": "Palestine",
+        "sea": "Sea",
+        "straits": "Straits",
+        "west": "West"
+      },
+      "trench": "Trench stage {n} of {max}",
+      "trench_word": {
+        "0": "Moving front",
+        "1": "First trenches",
+        "2": "Shallow trenches",
+        "3": "Trench line",
+        "4": "Deep trench system",
+        "5": "A wall of wire and guns"
+      },
+      "trust": {
+        "0": "Turned away",
+        "1": "Distrust",
+        "2": "Doubt",
+        "3": "Even",
+        "4": "Trusted",
+        "5": "Deeply trusted",
+        "6": "Wholly trusted"
+      },
+      "trust_label": "Trust in you",
+      "why_none": "Nothing recorded yet.",
+      "why_title": "Why things stand so"
+    },
     "unknown": {
       "ai": "The head of {country} was {word}.",
       "force": "{country} was stronger than it looked: {theatre}.",

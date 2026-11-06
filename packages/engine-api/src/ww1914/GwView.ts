@@ -81,6 +81,10 @@ export interface GwPersonView {
   trust: number;
   /** Talk scenes open to summon this person now. */
   topics: readonly string[];
+  /** Offices they can be appointed to (public content). */
+  fit: readonly GwOffice[];
+  /** Person ids they are at odds with (public content). */
+  rivals: readonly string[];
 }
 
 export interface GwTheatreView {
@@ -89,6 +93,9 @@ export interface GwTheatreView {
   progress: number;
   trench: number;
   open: boolean;
+  /** The two sides by tag; null where nobody fights yet. */
+  attacker: GwTag | null;
+  defender: GwTag | null;
 }
 
 export interface GwSeatView {

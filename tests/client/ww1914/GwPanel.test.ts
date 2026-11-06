@@ -62,6 +62,8 @@ const data = (desk: GwCardView[]): GreatWarData => ({
           office: "chancellor",
           trust: 0,
           topics: ["deu_sample_talk"],
+          fit: [],
+          rivals: ["deu_moltke"],
         },
       ],
       gauges: { shells: 2, bread: 2, money: 2, morale: 3, order: 3 },
@@ -102,8 +104,9 @@ async function mount(d: GreatWarData) {
   document.body.appendChild(panel);
   panel.tick();
   await vi.waitFor(() => {
-    expect(panel.textContent).toContain("빈에서");
+    expect((panel as unknown as { pack: unknown }).pack).not.toBeNull();
   });
+  await panel.updateComplete;
   return { panel, orders };
 }
 
@@ -112,27 +115,37 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe("the placeholder panel", () => {
-  test("shows the pack's text with the cast filled in", async () => {
+describe("the screens", () => {
+  test("a paper shows on the desk and reads in full in the reader", async () => {
     const { panel } = await mount(data([card()]));
     expect(panel.textContent).toContain("빈에서 온 사절");
-    expect(panel.textContent).toContain("베트만홀베크는");
-    expect(panel.textContent).toContain("시간표는 기다려 주지 않습니다");
+    expect(panel.querySelector("[data-gw-reader]")).toBeNull();
+    panel.querySelector<HTMLButtonElement>("[data-gw-open='1']")!.click();
+    await panel.updateComplete;
+    const reader = panel.querySelector("[data-gw-reader]")!;
+    expect(reader.textContent).toContain("베트만홀베크는");
+    expect(reader.textContent).toContain("시간표는 기다려 주지 않습니다");
   });
 
-  test("a click sends the order; a closed option and ready stay shut", async () => {
+  test("an option is armed, then signed; a closed one stays shut and says why", async () => {
     const { panel, orders } = await mount(data([card()]));
     const by = (sel: string) => panel.querySelector<HTMLButtonElement>(sel)!;
+    by("[data-gw-open='1']").click();
+    await panel.updateComplete;
+    expect(by("[data-gw-option=term_limit]").disabled).toBe(true);
+    expect(panel.textContent).toContain("수상의 속내를 아직 듣지 못했다");
     by("[data-gw-option=back_vienna]").click();
+    await panel.updateComplete;
+    expect(orders).toEqual([]);
+    by("[data-gw-sign]").click();
     expect(orders).toEqual([
       { kind: "choose", card: 1, option: "back_vienna" },
     ]);
-    expect(by("[data-gw-option=term_limit]").disabled).toBe(true);
-    expect(panel.textContent).toContain("수상의 속내를 아직 듣지 못했다");
     expect(by("[data-gw-ready]").disabled).toBe(true);
+    expect(panel.querySelector("[data-gw-block]")).not.toBeNull();
   });
 
-  test("a talk shows its line and replies, a topic summons", async () => {
+  test("a talk opens as a table, keeps what was said, and a reply is one order", async () => {
     const talk = card({
       uid: 2,
       scene: "deu_sample_talk",
@@ -150,18 +163,59 @@ describe("the placeholder panel", () => {
           stance: "frank",
           kind: "ask",
         },
+        { id: "leave", open: true, tell: [], stance: "cold", kind: "leave" },
       ],
     });
-    const { panel, orders } = await mount(data([card(), talk]));
-    expect(panel.textContent).toContain("잠시 시간을 주십시오");
-    panel
-      .querySelector<HTMLButtonElement>("[data-gw-option=ask_vienna]")!
+    const { panel, orders } = await mount(data([talk]));
+    panel.querySelector<HTMLButtonElement>("[data-gw-open='2']")!.click();
+    await panel.updateComplete;
+    const view = panel.querySelector("[data-gw-talk]")!;
+    expect(view.textContent).toContain("잠시 시간을 주십시오");
+    expect(view.textContent).toContain("베트만홀베크");
+    expect(view.querySelectorAll("[data-gw-reply]").length).toBe(2);
+    view
+      .querySelector<HTMLButtonElement>("[data-gw-reply=ask_vienna]")!
       .click();
+    await panel.updateComplete;
+    expect(orders).toEqual([{ kind: "reply", card: 2, reply: "ask_vienna" }]);
+    // The answer is shown as said, and the replies wait for their next line.
+    expect(panel.textContent).toContain("빈이 정말 바라는 것이 무엇이오?");
+    expect(panel.querySelector("[data-gw-replies]")).toBeNull();
+  });
+
+  test("a person opens on the people tab and a topic summons", async () => {
+    const { panel, orders } = await mount(data([]));
+    panel.querySelector<HTMLButtonElement>("[data-gw-tab=people]")!.click();
+    await panel.updateComplete;
+    panel.querySelector<HTMLButtonElement>("[data-gw-person] button")!.click();
+    await panel.updateComplete;
     panel.querySelector<HTMLButtonElement>("[data-gw-topic]")!.click();
     expect(orders).toEqual([
-      { kind: "reply", card: 2, reply: "ask_vienna" },
       { kind: "summon", person: "deu_bethmann", topic: "deu_sample_talk" },
     ]);
+  });
+
+  test("a dismissal needs a second tap", async () => {
+    const { panel, orders } = await mount(data([]));
+    panel.querySelector<HTMLButtonElement>("[data-gw-tab=people]")!.click();
+    await panel.updateComplete;
+    panel.querySelector<HTMLButtonElement>("[data-gw-person] button")!.click();
+    await panel.updateComplete;
+    const dismiss = () =>
+      panel.querySelector<HTMLButtonElement>("[data-gw-dismiss]")!;
+    dismiss().click();
+    await panel.updateComplete;
+    expect(orders).toEqual([]);
+    dismiss().click();
+    expect(orders).toEqual([{ kind: "dismiss", person: "deu_bethmann" }]);
+  });
+
+  test("the band holds the date and five gauges in words", async () => {
+    const { panel } = await mount(data([card()]));
+    expect(panel.querySelector("[data-gw-date]")!.textContent).toBe(
+      "1914-06-28",
+    );
+    expect(panel.querySelectorAll("[data-gw-gauges] > span").length).toBe(5);
   });
 
   test("holes and tells", () => {

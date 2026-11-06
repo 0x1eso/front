@@ -121,9 +121,32 @@ export function promiseText(pack: GwPack | null, p: GwPromiseView): string {
   return withWho(pack?.promises?.[p.key] ?? p.key, pack, p.who);
 }
 
-/** "army:-1" as the player reads it. */
+/** "army:-1" as the player reads it; a word with no translation shows itself. */
 export function tellText(tell: string): string {
   const [key, value] = tell.split(":");
-  const name = translateText(`gw.tell.${key}`);
+  const k = `gw.tell.${key}`;
+  const t = translateText(k);
+  const name = t === k ? key.replace(/_/g, " ") : t;
   return value === undefined ? name : `${name} ${value}`;
+}
+
+/** The ending's text when the pack has one (an `ending_<id>` scene), else null. */
+export function endingText(pack: GwPack | null, id: string): string | null {
+  const s = pack?.scenes[`ending_${id}`];
+  return s === undefined ? null : (s.text.base ?? Object.values(s.text)[0]);
+}
+
+export function endingTitle(pack: GwPack | null, id: string): string {
+  return (
+    pack?.scenes[`ending_${id}`]?.title ?? translateText("gw.ui.ending_default")
+  );
+}
+
+/** A person's one-line lean, or "" when the pack has none. */
+export function personLean(pack: GwPack | null, id: string): string {
+  return pack?.people[id]?.lean ?? "";
+}
+
+export function personBio(pack: GwPack | null, id: string): string {
+  return pack?.people[id]?.bio ?? "";
 }

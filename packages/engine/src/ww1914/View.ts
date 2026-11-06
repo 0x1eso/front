@@ -82,6 +82,8 @@ function seatView(gw: GreatWar, seat: GwSeatState): GwSeatView {
           office: p.office,
           trust: p.trust,
           topics: openTopics(gw, seat, p.id),
+          fit: d.fit,
+          rivals: d.rivals,
         },
       ];
     }),
@@ -93,6 +95,8 @@ function seatView(gw: GreatWar, seat: GwSeatState): GwSeatView {
       progress: t.progress,
       trench: t.trench,
       open: t.open,
+      attacker: t.attacker,
+      defender: t.defender,
     })),
     alloc: seat.alloc,
     log: seat.log,
