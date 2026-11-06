@@ -22,7 +22,7 @@ const fetchJson: GwPackFetch = async (path) => {
 export const GW_PACK_SHARES: Readonly<
   Partial<Record<GwTag, readonly string[]>>
 > = {
-  DEU: ["crisis", "war", "people"],
+  DEU: ["crisis", "war", "people", "back"],
 };
 
 /** A share not written yet is no share: only the files that are there count. */

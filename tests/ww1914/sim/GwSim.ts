@@ -29,18 +29,22 @@ import type { GreatWar } from "@openfront/engine/ww1914/GreatWar";
 import { applyGwOrder, openTopics } from "@openfront/engine/ww1914/Orders";
 import { ctxOf, optionOpen, sceneOf } from "@openfront/engine/ww1914/SceneRun";
 
-/** How a bot plays: percent of summons used, percent of talks walked out of. */
+/**
+ * How a bot plays: percent of summons used, percent of talks walked out of,
+ * percent of offers to end the game taken (a person plays a game out).
+ */
 export interface GwSimProfile {
   name: string;
   summons: number;
   leaves: number;
+  ends: number;
 }
 
 /** Three habits, so the numbers aren't one way of playing. */
 export const GW_SIM_PROFILES: readonly GwSimProfile[] = [
-  { name: "talker", summons: 100, leaves: 10 },
-  { name: "balanced", summons: 60, leaves: 30 },
-  { name: "signer", summons: 20, leaves: 60 },
+  { name: "talker", summons: 100, leaves: 10, ends: 10 },
+  { name: "balanced", summons: 60, leaves: 30, ends: 15 },
+  { name: "signer", summons: 20, leaves: 60, ends: 25 },
 ];
 
 export interface GwSimOptions {
@@ -71,7 +75,7 @@ export const GW_SEEN_BEFORE_GOAL = 0.4;
 
 const HUMAN = "SIMHUMAN";
 
-function startOf(
+export function startOf(
   gameID: string,
   calendar: GwCalendarId,
   recent: readonly string[],
@@ -109,7 +113,7 @@ function startOf(
   };
 }
 
-async function newGame(
+export async function newGame(
   map: MapFiles,
   start: GameStartInfo,
 ): Promise<GameRunner> {
@@ -133,6 +137,8 @@ export interface GwRunRecord {
   eligible: Record<string, number>;
   /** Scene id -> chapters it was on the desk by the draw or a schedule. */
   dealt: Record<string, number>;
+  /** Per chapter, the scenes on the desk. */
+  desks: string[][];
   /** Scene id -> times it was called from the people screen. */
   summoned: Record<string, number>;
   /** Topic -> chapters it was open to be called. */
@@ -219,7 +225,7 @@ function talkThrough(
 }
 
 /** Reads, decides and talks everything on the desk. */
-function clearDesk(
+export function clearDesk(
   gw: GreatWar,
   seat: GwSeatState,
   profile: GwSimProfile,
@@ -237,7 +243,9 @@ function clearDesk(
     } else if ((scene.options ?? []).length > 0) {
       const open = scene.options!.filter((o) => optionOpen(ctx, o));
       for (const o of open) rec.openedOptions.push(`${scene.id}.${o.id}`);
-      const option = open[roll(open.length)];
+      const stays = open.filter((o) => !o.tell.includes("ends_game"));
+      const from = stays.length > 0 && roll(100) >= profile.ends ? stays : open;
+      const option = from[roll(from.length)];
       rec.picks.push(`${scene.id}.${option.id}`);
       const refused = applyGwOrder(gw, seat, {
         kind: "choose",
@@ -295,6 +303,7 @@ export async function playRun(
     bodies: [],
     eligible: {},
     dealt: {},
+    desks: [],
     summoned: {},
     openTopics: {},
     picks: [],
@@ -309,6 +318,7 @@ export async function playRun(
   const trace = (t: DeskTrace) => {
     for (const id of t.eligible) bump(rec.eligible, id);
     for (const id of t.dealt) bump(rec.dealt, id);
+    rec.desks[t.chapter] = [...t.dealt];
     rec.deskSizes.push(t.dealt.length);
     if (t.quiet) rec.quietChapters++;
   };
@@ -465,6 +475,8 @@ export interface GwSimReport {
   links: GwLinkRow[];
   openings: Record<string, number>;
   endings: Record<string, number>;
+  /** Chapter -> scene -> games it was on that chapter's desk. */
+  byChapter: Record<string, number>[];
 }
 
 const mean = (xs: readonly number[]) =>
@@ -569,7 +581,19 @@ export function report(
     links: linkRows(games),
     openings: tally((g) => g.opening),
     endings: tally((g) => g.ending),
+    byChapter: chapterRows(games),
   };
+}
+
+function chapterRows(games: readonly GwRunRecord[]) {
+  const out: Record<string, number>[] = [];
+  for (const g of games) {
+    g.desks.forEach((desk, ch) => {
+      out[ch] ??= {};
+      for (const id of desk) bump(out[ch], id);
+    });
+  }
+  return out;
 }
 
 /** Plays the series, and the control if asked, and reports. */

@@ -183,7 +183,7 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
               of: {
                 is: "front",
                 theatre: "west",
-                from: "aisne",
+                from: "somme",
               },
             },
             {
@@ -307,7 +307,7 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
               of: {
                 is: "front",
                 theatre: "west",
-                from: "hindenburg",
+                from: "liege",
               },
             },
             {
@@ -745,7 +745,7 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
         office: "war",
       },
     },
-    salience: 8,
+    salience: 9,
     tags: ["war", "tension_up"],
     once: true,
     variants: [
@@ -1934,7 +1934,7 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
         {
           kind: "chapter",
           min: 6,
-          max: 6,
+          max: 7,
         },
         {
           kind: "all",
@@ -2094,8 +2094,8 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
       of: [
         {
           kind: "chapter",
-          min: 6,
-          max: 7,
+          min: 7,
+          max: 8,
         },
         {
           kind: "flag",
@@ -2339,7 +2339,7 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
         {
           kind: "chapter",
           min: 7,
-          max: 7,
+          max: 8,
         },
         {
           kind: "any",

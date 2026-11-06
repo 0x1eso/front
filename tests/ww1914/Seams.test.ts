@@ -397,6 +397,7 @@ describe("pack shares", () => {
       }),
       "ww1914/ko/DEU.war.json": pack({ scenes: { c: scene } }),
       "ww1914/ko/DEU.people.json": pack({ promises: { p: "promise" } }),
+      "ww1914/ko/DEU.back.json": pack(),
     };
     const got = await loadGwPack("DEU", async (p) => files[p]);
     expect(Object.keys(got.scenes).sort()).toEqual(["a", "b", "c"]);

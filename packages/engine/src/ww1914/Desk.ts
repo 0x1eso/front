@@ -53,6 +53,10 @@ export const GW_SALIENCE_MUST = 8;
 export const GW_SALIENCE_SMALL = 1;
 /** Crisis temperature from which a chapter's desk grows by one. */
 export const GW_TEMP_HOT = 6;
+/** Scheduled cards that ride beside the draw instead of taking its places. */
+export const GW_DUE_BESIDE = 2;
+/** Must-read papers that ride beside a full desk. */
+export const GW_READS_BESIDE = 2;
 /** With no cooldown of its own, chapters before a scene can come again. */
 export const GW_COOLDOWN_DEFAULT = 2;
 
@@ -233,11 +237,9 @@ export function deskCandidates(
 /** How many cards this chapter usually has. */
 function deskTarget(gw: GreatWar): number {
   const stage = gwChapters(gw.s.calendar)[gw.s.chapter].stage;
+  const busy = stage === "crisis" || gw.s.warChapter !== null ? 1 : 0;
   const hot = gw.s.temp >= GW_TEMP_HOT ? 1 : 0;
-  return Math.min(
-    GW_DESK_MAX,
-    GW_DESK_MIN + (stage === "crisis" ? 1 : 0) + hot,
-  );
+  return Math.min(GW_DESK_MAX, GW_DESK_MIN + busy + hot);
 }
 
 /** The score once the cards already picked have had their say. */
@@ -281,7 +283,13 @@ function best(
   return tied.reduce((a, b) => (roll(b) > roll(a) ? b : a));
 }
 
-/** Fills the room left by what was scheduled. */
+const isRead = (x: GwScene) => GW_READ_ONLY_KINDS.includes(x.kind);
+
+/**
+ * Fills the room left by what was scheduled. Decisions take the places first;
+ * papers to read then ride along: they take a minute, and no decision's place.
+ * With no decisions to make, they fill the desk themselves.
+ */
 function draw(
   gw: GreatWar,
   seat: GwSeatState,
@@ -300,16 +308,35 @@ function draw(
     const c = best(gw, down, picked);
     if (c !== null && picked.length < GW_DESK_MAX) take(c);
   }
-  const target = deskTarget(gw);
-  while (picked.length < GW_DESK_MAX) {
+  const beside = Math.min(due.length, GW_DUE_BESIDE);
+  const target = deskTarget(gw) + beside;
+  const max = GW_DESK_MAX + beside;
+  const placed = () => picked.filter((x) => !isRead(x)).length;
+  const crisis = gwChapters(gw.s.calendar)[gw.s.chapter].stage === "crisis";
+  while (placed() < max) {
     const open = left.filter(
       (c) =>
+        !isRead(c.scene) &&
         !(c.scene.kind === "talk" && picked.some((p) => p.kind === "talk")),
     );
     const varied = open.filter((c) => !wouldFillOneSubject(c, picked, target));
     const c = best(gw, varied.length > 0 ? varied : open, picked);
     if (c === null) break;
-    if (picked.length >= target && c.scene.salience < GW_SALIENCE_MUST) break;
+    if (placed() >= target && c.scene.salience < GW_SALIENCE_MUST) break;
+    take(c);
+  }
+  for (let reads = 0; ; reads++) {
+    const open = left.filter((x) => isRead(x.scene));
+    const varied = open.filter((c) => !wouldFillOneSubject(c, picked, target));
+    const c = best(gw, varied.length > 0 ? varied : open, picked);
+    if (c === null) break;
+    const room = picked.length < target;
+    const must =
+      c.scene.salience >= GW_SALIENCE_MUST &&
+      (picked.length < max || reads < GW_READS_BESIDE);
+    const small = c.scene.salience <= GW_SALIENCE_SMALL;
+    const riding = reads < (crisis ? GW_READS_BESIDE : 1) && !small;
+    if (!room && !must && !riding) break;
     take(c);
   }
   return picked.slice(due.length);
@@ -330,7 +357,7 @@ function quietCard(gw: GreatWar, seat: GwSeatState): GwCard | null {
 }
 
 function isSmall(x: GwScene): boolean {
-  return GW_READ_ONLY_KINDS.includes(x.kind) && x.salience <= GW_SALIENCE_SMALL;
+  return isRead(x) && x.salience <= GW_SALIENCE_SMALL;
 }
 
 /** What the desk did, for the simulation report. Not state. */

@@ -906,6 +906,11 @@ export const DEU_CRISIS_SCENES: readonly GwScene[] = [
         when: { kind: "memory", key: "k_haase_promise" },
         tell: ["reichstag:+2", "army:-1", "order:+1"],
         effects: [
+          {
+            kind: "keep_promise",
+            who: { person: "deu_haase" },
+            key: "k_haase_promise",
+          },
           { kind: "inst", inst: "reichstag", delta: 2 },
           { kind: "inst", inst: "army", delta: -1 },
           { kind: "flag", flag: "f_pledged_haase" },
@@ -2379,6 +2384,21 @@ export const DEU_CRISIS_SCENES: readonly GwScene[] = [
             next: "laugh",
           },
           {
+            id: "deal",
+            stance: "warm",
+            kind: "deal",
+            tell: [],
+            effects: [
+              {
+                kind: "promise",
+                who: { role: "p" },
+                key: "zimm_speed_credit",
+                chapters: 2,
+              },
+            ],
+            next: "days",
+          },
+          {
             id: "leave",
             stance: "cold",
             kind: "leave",
@@ -3115,6 +3135,21 @@ export const DEU_CRISIS_SCENES: readonly GwScene[] = [
             ],
           },
           {
+            id: "deal",
+            stance: "frank",
+            kind: "deal",
+            tell: [],
+            effects: [
+              {
+                kind: "promise",
+                who: { role: "p" },
+                key: "jagow_russia_cover",
+                chapters: 3,
+              },
+            ],
+            next: "rail",
+          },
+          {
             id: "leave",
             stance: "warm",
             kind: "leave",
@@ -3809,6 +3844,21 @@ export const DEU_CRISIS_SCENES: readonly GwScene[] = [
             ],
           },
           {
+            id: "deal",
+            stance: "cold",
+            kind: "deal",
+            tell: [],
+            effects: [
+              {
+                kind: "promise",
+                who: { role: "p" },
+                key: "zimm_hoyos_cover",
+                chapters: 2,
+              },
+            ],
+            next: "vienna",
+          },
+          {
             id: "leave",
             stance: "warm",
             kind: "leave",
@@ -4207,6 +4257,21 @@ export const DEU_CRISIS_SCENES: readonly GwScene[] = [
                 effects: [{ kind: "remember", key: "k_zimm_ottoman" }],
               },
             ],
+          },
+          {
+            id: "deal",
+            stance: "warm",
+            kind: "deal",
+            tell: [],
+            effects: [
+              {
+                kind: "promise",
+                who: { role: "p" },
+                key: "zimm_bosporus",
+                chapters: 3,
+              },
+            ],
+            next: "price",
           },
           {
             id: "leave",
@@ -5362,6 +5427,21 @@ export const DEU_CRISIS_SCENES: readonly GwScene[] = [
                 effects: [{ kind: "reason", key: "t_pour_sazonov_r1" }],
               },
             ],
+          },
+          {
+            id: "deal",
+            stance: "warm",
+            kind: "deal",
+            tell: [],
+            effects: [
+              {
+                kind: "promise",
+                who: { role: "p" },
+                key: "pour_attache",
+                chapters: 3,
+              },
+            ],
+            next: "rumour",
           },
           {
             id: "leave",
@@ -6567,7 +6647,7 @@ export const DEU_CRISIS_SCENES: readonly GwScene[] = [
           kind: "all",
           of: [
             { kind: "opening", of: ["no_sarajevo"] },
-            { kind: "pressure", topic: "balkan", min: 3 },
+            { kind: "pressure", topic: "balkan", min: 0 },
           ],
         },
       ],
@@ -6630,7 +6710,7 @@ export const DEU_CRISIS_SCENES: readonly GwScene[] = [
           kind: "all",
           of: [
             { kind: "opening", of: ["no_sarajevo"] },
-            { kind: "pressure", topic: "straits", min: 3 },
+            { kind: "pressure", topic: "straits", min: 0 },
           ],
         },
       ],
@@ -6897,7 +6977,7 @@ export const DEU_CRISIS_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        { kind: "chapter", min: 3, max: 3 },
+        { kind: "chapter", min: 3, max: 4 },
         { kind: "crisis", topic: "balkan" },
       ],
     },

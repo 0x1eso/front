@@ -519,7 +519,7 @@ export const DEU_PEOPLE_SCENES: readonly GwScene[] = [
       holds("war", "deu_wild"),
     ),
     cast: { chancellor: { office: "chancellor" } },
-    salience: 5,
+    salience: 7,
     tags: ["people", "war"],
     once: true,
     variants: [
@@ -7016,12 +7016,7 @@ export const DEU_PEOPLE_SCENES: readonly GwScene[] = [
     id: "deu_v_haase_promise",
     nation: ["DEU"],
     kind: "talk",
-    when: all(chapter(6, 10), {
-      kind: "promise",
-      who: { person: "deu_haase" },
-      key: "k_haase_promise",
-      kept: false,
-    }),
+    scheduledOnly: true,
     cast: { who: { person: "deu_haase" } },
     salience: 7,
     tags: ["people", "home"],
@@ -7133,18 +7128,7 @@ export const DEU_PEOPLE_SCENES: readonly GwScene[] = [
     id: "deu_v_heir_promise",
     nation: ["DEU"],
     kind: "talk",
-    when: all(
-      chapter(6, 10),
-      all(
-        {
-          kind: "promise",
-          who: { person: "deu_heir" },
-          key: "heir_quiet",
-          kept: false,
-        },
-        not(flag("f_heir_army")),
-      ),
-    ),
+    scheduledOnly: true,
     cast: { who: { person: "deu_heir" } },
     salience: 6,
     tags: ["people"],
