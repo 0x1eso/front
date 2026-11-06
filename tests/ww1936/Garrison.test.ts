@@ -142,6 +142,24 @@ describe("World War 1936 P5: garrisons", () => {
     for (const id of b.divisions) expect(t.dest[t.rowOf(id)]).not.toBe(KOSICE);
   }, 60_000);
 
+  it("ww122: a region no division can reach is not counted covered, the division takes a reachable one", async () => {
+    const { eg, land, ww, g, deu } = await garrisonGame();
+    // Slovakia in enemy hands cuts Kosice off from the chain.
+    land.setController(SLOVAKIA, endId("POL"), g.ticks());
+    expect(eg.isAdministered(KOSICE)).toBe(true);
+    eg.resBp[KOSICE] = 9900;
+    eg.resBp[PRAGUE] = 0;
+    eg.resBp[SUDETEN] = 9000;
+    ww.land.supplyMilli[KOSICE] = 1_000_000;
+    ww.land.supplyMilli[PRAGUE] = 1_000_000;
+    ww.land.supplyMilli[SUDETEN] = 1_000_000;
+    const a = placeArmy(g, "DEU", PRAGUE, 1);
+    expect(garrisonOrder(eg, deu, a.id, 0)).toBeNull();
+    assignGarrisons(eg, deu, 0);
+    const t = land.divisions;
+    expect(t.dest[t.rowOf(a.divisions[0])]).toBe(SUDETEN);
+  }, 60_000);
+
   it("a scoped garrison stays on its legal owner's regions", async () => {
     const { runner, g, ww, eg, deu } = await garrisonGame();
     // Kosice taken (legal owner Germany): a Czechoslovak-scoped army skips it.

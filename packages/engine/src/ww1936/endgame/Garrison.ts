@@ -109,7 +109,8 @@ export const GARRISON_MOVE_FACTOR = 2;
  * most short region a division is headed to keeps it (no swaps when two
  * needs cross, no division walking back and forth). Once every region is
  * covered the rest stay where they are headed. Each walks there (P2
- * movement); a division fighting, retreating, advancing or at sea counts
+ * movement); one with no way to a region (an island, land behind the enemy)
+ * is not counted there and that region is left out for the day; a division fighting, retreating, advancing or at sea counts
  * where it is headed but is not moved.
  */
 export function assignGarrisons(
@@ -133,11 +134,14 @@ export function assignGarrisons(
   const gapOf = (r: number) => (need.get(r) ?? 0) - (got.get(r) ?? 0);
   const t = land.divisions;
   const tick = eg.mg.ticks();
-  const assign = (row: number, to: number) => {
-    got.set(to, (got.get(to) ?? 0) + rowSuppression(land, row));
+  // ww122: false when a standing division has no way to `to` (an island, a
+  // region behind enemy land): it waits where it is, so `to` is not covered.
+  const assign = (row: number, to: number): boolean => {
     if (t.region[row] !== to || t.dest[row] !== to) {
-      sendDivision(land, row, to, tick);
+      if (!sendDivision(land, row, to, tick)) return false;
     }
+    got.set(to, (got.get(to) ?? 0) + rowSuppression(land, row));
+    return true;
   };
   for (const a of armies) {
     const scope = a.order.enemy;
@@ -148,10 +152,13 @@ export function assignGarrisons(
     );
     if (regs.length === 0) continue;
     const inScope = new Set(regs);
+    // ww122: regions this army's divisions can't reach today.
+    const blocked = new Set<number>();
     const mostShort = () => {
-      let best = regs[0];
+      let best = -1;
       let bestGap = Number.NEGATIVE_INFINITY;
       for (const r of regs) {
+        if (blocked.has(r)) continue;
         const g = gapOf(r);
         if (g > bestGap) {
           best = r;
@@ -167,6 +174,7 @@ export function assignGarrisons(
     }
     while (left.length > 0) {
       const top = mostShort();
+      if (top < 0) break;
       const topGap = gapOf(top);
       if (topGap <= 0) break;
       let i = left.findIndex((row) => t.dest[row] === top);
@@ -192,11 +200,18 @@ export function assignGarrisons(
           to = t.dest[left[most]];
         }
       }
-      assign(left.splice(i, 1)[0], to);
+      const row = left.splice(i, 1)[0];
+      if (!assign(row, to)) {
+        // It stays where it is; another division may reach `to`, or this one
+        // another region: put it back and rule `to` out for this army.
+        blocked.add(to);
+        left.push(row);
+      }
     }
     // Everything covered: the rest stay, or go to the least covered region.
     for (const row of left) {
-      assign(row, inScope.has(t.dest[row]) ? t.dest[row] : mostShort());
+      const to = inScope.has(t.dest[row]) ? t.dest[row] : mostShort();
+      if (to >= 0) assign(row, to);
     }
   }
 }
@@ -211,12 +226,14 @@ function sendDivision(
   row: number,
   to: number,
   tick: number,
-): void {
+): boolean {
   const t = land.divisions;
   const m = t.mode[row];
-  if (t.battle[row] !== 0) return;
-  if (m === MOVE_RETREAT || m === MOVE_ADVANCE || m === MOVE_SEA) return;
+  if (t.battle[row] !== 0) return true;
+  if (m === MOVE_RETREAT || m === MOVE_ADVANCE || m === MOVE_SEA) return true;
   t.dest[row] = to;
   if (m === MOVE_NONE) startNextHop(land, row, tick);
   land.markArmy(t.army[row]);
+  // A standing division with no way to `to` has its dest back at its region.
+  return !(m === MOVE_NONE && t.region[row] !== to && t.dest[row] !== to);
 }
