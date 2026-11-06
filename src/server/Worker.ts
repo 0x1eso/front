@@ -2,6 +2,8 @@ import { ID, isValidGameID } from "@openfront/engine-api/Schemas";
 import { CloseCode, CloseReason } from "@openfront/shared/CloseCodes";
 import { generateID, replacer } from "@openfront/shared/SharedUtil";
 import {
+  GW_RESUME_MAX_BYTES,
+  GwResumeQuerySchema,
   ClientMessage,
   ClientPlatformSchema,
   HOSTED_LOBBY_AUTO_START_MS,
@@ -386,6 +388,52 @@ export async function startWorker() {
     });
     res.json({ listed });
   });
+
+  // Great War 1914: the host hands this private lobby a saved game. Raw
+  // snapshot bytes; the query says what the lobby shows of it.
+  app.post(
+    "/api/game/:id/gw_resume",
+    express.raw({
+      type: "application/octet-stream",
+      limit: GW_RESUME_MAX_BYTES,
+    }),
+    async (req, res) => {
+      const authHeader = req.headers.authorization;
+      if (!authHeader?.startsWith("Bearer ")) {
+        return res.status(400).json({ error: "Authorization header required" });
+      }
+      const auth = await verifyClientToken(
+        authHeader.substring("Bearer ".length),
+      );
+      if (auth.type !== "success") {
+        return res.status(401).json({ error: "Invalid token" });
+      }
+      const meta = GwResumeQuerySchema.safeParse(req.query);
+      if (!meta.success || !Buffer.isBuffer(req.body) || req.body.length === 0) {
+        return res.status(400).json({ error: "Invalid save" });
+      }
+      const game = gm.game(req.params.id);
+      if (game === null) {
+        return res.status(404).json({ error: "Game not found" });
+      }
+      if (!game.isCreator(auth.persistentId)) {
+        return res
+          .status(403)
+          .json({ error: "Only the lobby creator can resume a save" });
+      }
+      const { seats, chapter, date, calendar, timer } = meta.data;
+      const ok = game.setGwResume(
+        { seats, chapter, date },
+        new Uint8Array(req.body),
+        {
+          greatWar1914Calendar: calendar,
+          ...(timer === undefined ? {} : { greatWar1914TimerSec: timer }),
+        },
+      );
+      if (!ok) return res.status(409).json({ error: "Lobby cannot resume" });
+      res.json({ ok: true });
+    },
+  );
 
   // Self-hosted open rooms: the creator switches whether their lobby shows in
   // the homepage's open-rooms list. No subscription involved, and unlike

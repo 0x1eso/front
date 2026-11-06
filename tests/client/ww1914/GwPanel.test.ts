@@ -118,8 +118,21 @@ const data = (
       log: [],
       world: world(w),
       readyBlock: desk.length > 0 ? "open_cards" : null,
+      diplo: { telegrams: [], treaties: [], wiresLeft: 4 },
     },
   ],
+  roster: [
+    {
+      smallID: 1,
+      tag: "DEU",
+      ready: false,
+      regent: false,
+      away: false,
+      host: true,
+    },
+  ],
+  slow: { asked: [], granted: 0, max: 3 },
+  finale: null,
 });
 
 async function mount(d: GreatWarData) {

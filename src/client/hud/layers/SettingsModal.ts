@@ -193,9 +193,14 @@ export class SettingsModal extends LitElement implements Controller {
   // are kept in the browser (SavedGamesApi), for everyone.
   private canSave(): boolean {
     const game = this.game;
+    // Great War 1914 with friends: the host keeps the game (design §3).
+    const hostOfFriends =
+      game?.isGreatWar() === true &&
+      game.myPlayer()?.isLobbyCreator() === true;
     return (
       game !== null &&
-      game.config().gameConfig().gameType === GameType.Singleplayer &&
+      (game.config().gameConfig().gameType === GameType.Singleplayer ||
+        hostOfFriends) &&
       !game.config().isReplay() &&
       (isSelfHosted() ||
         responseHasLinkedIdentity(lastUserMeResponse()?.response ?? false))

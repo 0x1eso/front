@@ -3,6 +3,12 @@ import {
   ArchivedPlayerStatsSchema,
   PlayerStatsSchema,
 } from "@openfront/engine-api/StatsSchemas";
+import {
+  GW_CALENDAR_IDS,
+  GW_TIMER_MAX_SEC,
+  GW_TIMER_MIN_SEC,
+} from "@openfront/engine-api/ww1914/GreatWarTypes";
+import { GW_MAX_SEATS, GW_TAGS } from "@openfront/engine-api/ww1914/GwCountries";
 import { COUNTRY_TAGS } from "@openfront/engine-api/ww1936/Countries";
 import { LOBBY_LABEL_MAX } from "@openfront/engine-lib/Util";
 import { zb } from "@openfront/zbin";
@@ -41,7 +47,9 @@ export type ClientMessage =
   | ClientHashMessage
   | ClientSpectateMessage
   | ClientReportMessage
-  | ClientPickCountryMessage;
+  | ClientPickCountryMessage
+  | ClientPickSeatMessage
+  | ClientPickSeatMessage;
 
 export type ServerMessage =
   | ServerTurnMessage
@@ -112,6 +120,7 @@ export type ClientSpectateMessage = z.infer<typeof ClientSpectateMessageSchema>;
 export type ClientPickCountryMessage = z.infer<
   typeof ClientPickCountryMessageSchema
 >;
+export type ClientPickSeatMessage = z.infer<typeof ClientPickSeatMessageSchema>;
 
 export type PlayerCosmeticRefs = z.infer<typeof PlayerCosmeticRefsSchema>;
 
@@ -242,6 +251,34 @@ export const ClientInfoSchema = z.object({
   levelBadge: zb.uint().optional(),
 });
 
+// What a lobby shows of the save it resumes. The bytes stay on the server
+// until the start message.
+export const GwResumeInfoSchema = z.object({
+  seats: z.array(z.enum(GW_TAGS)).min(1).max(GW_MAX_SEATS),
+  chapter: zb.uint({ max: 1000 }),
+  date: zb.string({ min: 1, max: 10 }),
+});
+export type GwResumeInfo = z.infer<typeof GwResumeInfoSchema>;
+
+/** The query of POST /api/game/:id/gw_resume; the body is the snapshot. */
+export const GwResumeQuerySchema = z.object({
+  seats: z.preprocess(
+    (v) => (typeof v === "string" ? v.split(",") : v),
+    GwResumeInfoSchema.shape.seats,
+  ),
+  chapter: z.coerce.number().int().min(0).max(1000),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  calendar: z.enum(GW_CALENDAR_IDS),
+  timer: z.coerce
+    .number()
+    .int()
+    .min(GW_TIMER_MIN_SEC)
+    .max(GW_TIMER_MAX_SEC)
+    .optional(),
+});
+/** A late-game World snapshot is about 3 MB raw. */
+export const GW_RESUME_MAX_BYTES = 16 * 1024 * 1024;
+
 export const GameInfoSchema = z.object({
   gameID: z.string(),
   clients: z.array(ClientInfoSchema).optional(),
@@ -273,6 +310,12 @@ export const GameInfoSchema = z.object({
   countryPicks: z
     .array(z.object({ clientID: z.string(), tag: z.enum(COUNTRY_TAGS) }))
     .optional(),
+  // Great War 1914 lobbies only: who took which seat.
+  gwPicks: z
+    .array(z.object({ clientID: z.string(), tag: z.enum(GW_TAGS) }))
+    .optional(),
+  // Great War 1914: this lobby resumes a saved game (the host uploaded it).
+  gwResume: GwResumeInfoSchema.optional(),
 });
 
 // Browser-facing lobby info. Master/worker-internal fields (the creator hash
@@ -525,6 +568,18 @@ export const ServerPrestartMessageSchema = z.object({
 // this exists to prevent. It rides the two server->client messages instead.
 const GroupToken = z.string().min(1).max(64);
 
+const GwSnapshotBytes = zb.custom(
+  z.custom<Uint8Array>((v) => v instanceof Uint8Array),
+  {
+    enc: (w, v) => {
+      w.uint(v.length);
+      for (let i = 0; i < v.length; i++) w.u8(v[i]);
+    },
+    dec: (r) => r.readBytes(r.uint()),
+    minBytes: 1,
+  },
+);
+
 export const ServerStartGameMessageSchema = z.object({
   type: z.literal("start"),
   // Turns the client missed if they are late to the game.
@@ -539,6 +594,10 @@ export const ServerStartGameMessageSchema = z.object({
   // because singleplayer and replays synthesize this message locally with no
   // server game behind it, so they have no token and must send none.
   groupToken: GroupToken.optional(),
+  // Great War 1914, a friends' game resumed from a save: the snapshot every
+  // client restores before the turns (design §12). Raw bytes, on this message
+  // alone: never in the start info, which is archived.
+  snapshot: GwSnapshotBytes.optional(),
 });
 
 export const ServerDesyncSchema = z.object({
@@ -688,6 +747,13 @@ export const ClientPickCountryMessageSchema = z.object({
   tag: z.enum(COUNTRY_TAGS).nullable(),
 });
 
+// Great War 1914: take a seat in the lobby; null gives it up. Its own message:
+// pick_country's enum can't name AUH, RUS and the rest of 1914.
+export const ClientPickSeatMessageSchema = z.object({
+  type: z.literal("pick_seat"),
+  tag: z.enum(GW_TAGS).nullable(),
+});
+
 export const ClientHashSchema = z.object({
   type: z.literal("hash"),
   hash: zb.float(),
@@ -779,6 +845,7 @@ export const ClientMessageSchema = zb.discriminatedUnion("type", [
   ClientSpectateMessageSchema,
   ClientReportMessageSchema,
   ClientPickCountryMessageSchema,
+  ClientPickSeatMessageSchema,
 ]);
 
 //

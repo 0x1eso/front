@@ -26,6 +26,10 @@ import {
   type CountryTag,
 } from "@openfront/engine-api/ww1936/Countries";
 import {
+  type GwTag,
+  isGwSeatTag,
+} from "@openfront/engine-api/ww1914/GwCountries";
+import {
   assignTeamsLobbyPreview,
   resolveTeamsList,
 } from "@openfront/engine-lib/game/TeamAssignment";
@@ -55,6 +59,7 @@ import {
   ServerRedirectMessage,
   ServerStartGameMessage,
   ServerTurnMessage,
+  GwResumeInfo,
   WireGameStartInfo,
   WireGameStartInfoSchema,
 } from "@openfront/shared/WireSchemas";
@@ -77,6 +82,7 @@ import {
 } from "./ConfigPatch";
 import { LiveStatsVote, voteKey, WinnerVote } from "./Consensus";
 import { fetchCustomTribes } from "./CustomTribes";
+import { censorTelegram } from "./Censor";
 import { DesyncDetector } from "./DesyncDetector";
 import {
   authorizeIntent,
@@ -254,6 +260,10 @@ export class GameServer {
   private stage: "lobby" | "prestart" | "started" = "lobby";
   /** World War 1936 lobbies (spec §8.1): clientID → the country it picked. */
   private countryPicks = new Map<ClientID, CountryTag>();
+  /** Great War 1914 lobbies: clientID → the seat it took. */
+  private gwPicks = new Map<ClientID, GwTag>();
+  /** Great War 1914: the save this lobby resumes; the snapshot rides the start. */
+  private gwResume: { info: GwResumeInfo; snapshot: Uint8Array } | null = null;
   // Set when the delayed start found an empty roster (see deferStart).
   private startDeferred = false;
   private ended = false;
@@ -542,6 +552,10 @@ export class GameServer {
         // turn; tag it so telemetry can tell it apart from a queued intent.
         const paused = this.paused;
         const outcome = finish({ status: 200 }, paused ? "paused" : undefined);
+        // Every client gets the same text: censored here, before the relay.
+        if (stamped.type === "gw_order" && stamped.order.kind === "telegram") {
+          stamped.order.text = censorTelegram(stamped.order.text);
+        }
         if (!paused) this.addIntent(stamped);
         else if (this.pausedIntents.length < MAX_PAUSED_INTENTS) {
           this.pausedIntents.push(stamped);
@@ -888,6 +902,10 @@ export class GameServer {
         this.pickCountry(client, clientMsg.tag);
         break;
       }
+      case "pick_seat": {
+        this.pickSeat(client, clientMsg.tag);
+        break;
+      }
       case "winner": {
         this.handleWinner(client, clientMsg);
         break;
@@ -1198,6 +1216,7 @@ export class GameServer {
     const config = configWithoutPool(this.gameConfig);
     delete config.allowedPublicIds;
     delete config.nameRevealPublicIds;
+    const gwSeats = this.gwSeatsAtStart();
 
     const result = WireGameStartInfoSchema.safeParse({
       gameID: this.id,
@@ -1217,6 +1236,9 @@ export class GameServer {
         ...(this.gameConfig.worldWar1936 === true &&
         this.countryPicks.has(c.clientID)
           ? { country: this.countryPicks.get(c.clientID)! }
+          : {}),
+        ...(gwSeats.has(c.clientID)
+          ? { gwCountry: gwSeats.get(c.clientID)! }
           : {}),
       })),
       tribes: this.tribes,
@@ -1474,6 +1496,84 @@ export class GameServer {
     this.broadcastLobbyInfo();
   }
 
+  /**
+   * Great War 1914: a lobby player takes a seat, or gives it up with null. A
+   * seat another holds is refused, as in pickCountry; a resumed lobby offers
+   * only the saved seats.
+   */
+  private pickSeat(client: Client, tag: GwTag | null): void {
+    if (this.gameConfig.greatWar1914 !== true) return;
+    if (this.stage !== "lobby" || this.ended || client.spectator === true) {
+      return;
+    }
+    if (tag === null) {
+      if (this.gwPicks.delete(client.clientID)) this.broadcastLobbyInfo();
+      return;
+    }
+    const open =
+      this.gwResume === null
+        ? isGwSeatTag(tag)
+        : this.gwResume.info.seats.includes(tag);
+    if (!open) return;
+    if (
+      this.liveSeatPicks().some(
+        (p) => p.tag === tag && p.clientID !== client.clientID,
+      )
+    ) {
+      return;
+    }
+    for (const [id, held] of this.gwPicks) {
+      if (held === tag && id !== client.clientID) this.gwPicks.delete(id);
+    }
+    this.gwPicks.set(client.clientID, tag);
+    this.broadcastLobbyInfo();
+  }
+
+  private liveSeatPicks(): { clientID: ClientID; tag: GwTag }[] {
+    const playing = new Set(this.clients.players().map((c) => c.clientID));
+    return [...this.gwPicks]
+      .filter(([id]) => playing.has(id))
+      .map(([clientID, tag]) => ({ clientID, tag }));
+  }
+
+  /**
+   * Great War 1914: the seats as the game starts. In a resumed lobby, whoever
+   * picked nothing takes the first saved seat left: every seat in the
+   * snapshot is someone's or goes to its regent. A new game leaves that to
+   * the engine.
+   */
+  private gwSeatsAtStart(): Map<ClientID, GwTag> {
+    const seats = new Map<ClientID, GwTag>();
+    if (this.gameConfig.greatWar1914 !== true) return seats;
+    for (const p of this.liveSeatPicks()) seats.set(p.clientID, p.tag);
+    if (this.gwResume === null) return seats;
+    const taken = new Set(seats.values());
+    const free = this.gwResume.info.seats.filter((t) => !taken.has(t));
+    for (const c of this.clients.players()) {
+      if (seats.has(c.clientID)) continue;
+      const tag = free.shift();
+      if (tag !== undefined) seats.set(c.clientID, tag);
+    }
+    return seats;
+  }
+
+  /**
+   * Great War 1914: the host's save for this private lobby. The config comes
+   * with it, the map and the rest being the mode's own.
+   */
+  public setGwResume(
+    info: GwResumeInfo,
+    snapshot: Uint8Array,
+    config: GameConfigPatch,
+  ): boolean {
+    if (this.stage !== "lobby" || this.ended || this.isPublic()) return false;
+    this.updateGameConfig({ ...config, greatWar1914: true });
+    this.gwResume = { info, snapshot };
+    this.gwPicks.clear();
+    this.broadcastLobbyInfo();
+    return true;
+  }
+
   /** Picks of the players still in the lobby (not spectators), in pick order. */
   private livePicks(): { clientID: ClientID; tag: CountryTag }[] {
     const playing = new Set(this.clients.players().map((c) => c.clientID));
@@ -1585,6 +1685,9 @@ export class GameServer {
             // Repeated here for the late joiner, who connects after the
             // lobby broadcasts stopped and would otherwise never see it.
             groupToken: this.groupToken,
+            ...(this.gwResume === null
+              ? {}
+              : { snapshot: this.gwResume.snapshot }),
           } satisfies ServerStartGameMessage,
           this.zbinCtx,
         ),
@@ -1657,7 +1760,10 @@ export class GameServer {
     }
     this.log.info(`ending game with ${this.turns.length} turns`);
     try {
-      if (this.clients.all().size === 0) {
+      if (this.gwResume !== null) {
+        // Its turns start mid-game: the record could not replay.
+        this.log.info("resumed game, not archiving", { gameID: this.id });
+      } else if (this.clients.all().size === 0) {
         this.log.info("no clients joined, not archiving game", {
           gameID: this.id,
         });
@@ -1736,7 +1842,8 @@ export class GameServer {
   // game.
   pastMaxDuration(): boolean {
     const cap =
-      this.hasStarted() && wwUnlimited(this.gameConfig)
+      this.hasStarted() &&
+      (wwUnlimited(this.gameConfig) || this.gameConfig.greatWar1914 === true)
         ? this.unlimitedMaxGameDuration
         : this.maxGameDuration;
     return Date.now() > this.createdAt + cap;
@@ -1843,6 +1950,12 @@ export class GameServer {
       queued: this.listing.isQueued() ? true : undefined,
       ...(this.gameConfig.worldWar1936 === true
         ? { countryPicks: this.livePicks() }
+        : {}),
+      ...(this.gameConfig.greatWar1914 === true
+        ? {
+            gwPicks: this.liveSeatPicks(),
+            ...(this.gwResume === null ? {} : { gwResume: this.gwResume.info }),
+          }
         : {}),
     };
   }

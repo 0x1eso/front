@@ -20,16 +20,25 @@ const Id = zb.string({ min: 1, max: 48, regex: /^[a-z][a-z0-9_]*$/ });
 const Card = zb.uint({ max: 100_000_000 });
 
 /**
- * A telegram's text: Hangul, which SafeString leaves out, with the usual
- * letters, digits, punctuation and line breaks. No control characters. The
- * server runs it through Censor before anyone else sees it.
+ * A telegram's text. SafeString has no Hangul, and a message failing its
+ * schema gets the sender kicked, so this refuses only what can't be shown:
+ * control, format and unassigned characters, line breaks apart. The composer
+ * strips those (gwCleanTelegram), the server runs the rest through Censor.
  */
 export const GwTelegramTextSchema = zb.string({
   min: 1,
   max: GW_TELEGRAM_MAX,
-  regex:
-    /^[\p{Script=Hangul}\p{Script=Han}a-zA-Z0-9 \n.,!?@#$%&*()\-_+=[\]{}|;:"'/~·…‘’“”《》「」]+$/u,
+  regex: /^(?:\n|\P{C})+$/u,
 });
+
+/** What a composer sends: nothing the schema would refuse. */
+export function gwCleanTelegram(text: string): string {
+  return text
+    .replace(/\r\n?/g, "\n")
+    .replace(/(?!\n)\p{C}/gu, "")
+    .trim()
+    .slice(0, GW_TELEGRAM_MAX);
+}
 
 const ClauseSchema = z.object({
   kind: z.enum(GW_CLAUSE_KINDS),

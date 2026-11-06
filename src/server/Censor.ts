@@ -149,3 +149,26 @@ export function censorPlayer(
 
   return { username: censoredName, clanTag: censoredClanTag };
 }
+
+// Korean swear words: the English dataset has none, and a telegram is the
+// one place players write free Korean.
+const KOREAN_BANNED = ["씨발", "시발", "ㅅㅂ", "병신", "개새끼", "좆", "지랄"];
+
+/**
+ * Great War 1914 telegrams: free text between friends. Matches are starred
+ * out, not refused, so the rest of the message still gets through.
+ */
+export function censorTelegram(text: string): string {
+  const chars = [...text];
+  for (const m of profanityMatcher.getAllMatches(text)) {
+    // The matcher's indices are code points, and inclusive.
+    for (let i = m.startIndex; i <= m.endIndex; i++) {
+      if (chars[i] !== " " && chars[i] !== "\n") chars[i] = "*";
+    }
+  }
+  let out = chars.join("");
+  for (const w of KOREAN_BANNED) {
+    out = out.split(w).join("*".repeat(w.length));
+  }
+  return out;
+}

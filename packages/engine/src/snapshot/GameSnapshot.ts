@@ -37,6 +37,7 @@ import {
   TrainStationSnapshot,
 } from "../game/TrainStation";
 import { UnitImpl, UnitSnapshot } from "../game/UnitImpl";
+import { GreatWarSnapshot, gwSaveHeader } from "../ww1914/GreatWar";
 import { newCell, newPlayerInfo } from "./CommonSchemas";
 import { EXECUTION_SNAPSHOT_TYPES } from "./ExecutionRegistry";
 import { decodeSnapshotValue, encodeSnapshotValue } from "./SnapshotCodec";
@@ -243,7 +244,8 @@ function decodeRoot(bytes: Uint8Array): Root {
  */
 export function readSnapshotHeader(bytes: Uint8Array): SnapshotHeader {
   const root = decodeRoot(bytes);
-  const humans = readVersioned(GameSnapshot, root.game).humans.flatMap((h) =>
+  const game = readVersioned(GameSnapshot, root.game);
+  const humans = game.humans.flatMap((h) =>
     h.clientID === null ? [] : [{ clientID: h.clientID, name: h.name }],
   );
   return {
@@ -253,6 +255,11 @@ export function readSnapshotHeader(bytes: Uint8Array): SnapshotHeader {
     tick: root.tick,
     gameConfig: GameConfigSchema.parse(root.gameConfig),
     humans,
+    ...(game.greatWar === undefined
+      ? {}
+      : {
+          greatWar: gwSaveHeader(readVersioned(GreatWarSnapshot, game.greatWar)),
+        }),
   };
 }
 

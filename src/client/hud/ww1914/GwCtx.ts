@@ -1,7 +1,9 @@
 import type {
+  GwClause,
   GwReason,
   GwResearch,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
+import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import type { GwOrder } from "@openfront/engine-api/ww1914/GwOrders";
 import type { GwPack } from "@openfront/engine-api/ww1914/GwPack";
 import type {
@@ -56,6 +58,22 @@ export interface GwUi {
   /** The research picked for the paper about to be signed. */
   research: GwResearch | null;
   shelf: Shelf;
+  /** The diplomacy tab's drafts and how much of the inbox has been seen. */
+  diplo: GwDiploDraft;
+  /** The memoirs side by side are open. */
+  finale: boolean;
+}
+
+export interface GwDiploDraft {
+  wireTo: GwTag | null;
+  cipher: number;
+  text: string;
+  treatyTo: GwTag | null;
+  clauses: GwClause[];
+  /** A treaty waiting for the second tap of its break. */
+  armedBreak: number | null;
+  /** Telegrams received that were on screen. */
+  seenWires: number;
 }
 
 export interface GwCtx {
@@ -68,4 +86,6 @@ export interface GwCtx {
   /** Redraw after a change of ui state. */
   redraw(): void;
   card(uid: number): GwCardView | undefined;
+  /** The name of the friend in a seat; null with nobody known. */
+  holder(smallID: number): string | null;
 }

@@ -55,6 +55,9 @@ const DYNAMIC_KEY_PATTERNS: RegExp[] = [
   // kinds, stamps, stances, theatres and their named lines).
   /^gw\.ui\.(?:stage|temp|news\.temp|gauge_name|kind|stamp|block|trust|stance|reply|tab|theatre|trench_word|posture|scale|research|inst_name|inst|calendar|calendar_time|side|fact|person_status|repute)\.[a-z_0-9]+$/,
   /^gw\.ui\.gauge\.[a-z]+\.\d$/,
+  /^gw\.treaty\.(?:clause|kind|state|why)\.[a-z_]+$/,
+  /^gw\.wire\.(?:box|cipher)\.[a-z0-9]+$/,
+  /^gw\.diplo\.seat\.[a-z]+$/,
   // ww73: a focus group's name by its id (FocusGroups.groupLabel).
   /^ww1936\.focusui\.group\.[a-z0-9_]+$/,
 ];

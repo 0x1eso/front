@@ -2022,6 +2022,42 @@
       "USA": "United States",
       "VEN": "Venezuela"
     },
+    "diplo": {
+      "clause_add": "Add a clause",
+      "enter": "Join the {side}",
+      "enter_title": "Go to war",
+      "finale": "Everyone's memoirs",
+      "finale_close": "Close",
+      "finale_mandates": "Mandates met: {n} of {total}",
+      "finale_open": "Everyone's memoirs side by side",
+      "finale_read_by": "read by {who}",
+      "finale_treaties": "Treaties signed",
+      "finale_wires": "Telegrams someone else read",
+      "host": "Host",
+      "no_treaties": "No treaty yet.",
+      "ready_count": "Ready {n}/{total}",
+      "seat": {
+        "away": "Away",
+        "reading": "Reading",
+        "ready": "Ready",
+        "regent": "Regent"
+      },
+      "slow_ask": "Read slowly: ask for 30 more seconds",
+      "slow_asked": "{n} asked for more time.",
+      "slow_deny": "Refuse",
+      "slow_grant": "Agree",
+      "slow_hint": "The host agrees. {n} left this chapter.",
+      "table": "At the table",
+      "treaties": "Secret treaties",
+      "treaty_hint": "A treaty binds when both have signed. Secret until it leaks.",
+      "treaty_new": "Draft a treaty",
+      "treaty_send": "Send the offer",
+      "wire_hint": "It arrives next chapter. A weak cipher can be read by a third seat.",
+      "wire_left": "{chars} characters left, {n} telegrams this chapter",
+      "wire_placeholder": "Your telegram",
+      "wire_send": "Send",
+      "wires": "Telegrams"
+    },
     "ending": {
       "armistice_conference": "Armistice and Conference",
       "closing": "The End",
@@ -2193,7 +2229,22 @@
       "shells_made": "The factories delivered.",
       "shells_spent": "The offensive used up the stock.",
       "shells_stock_thin": "The reserve turned out smaller than the books said.",
-      "shells_well_run": "The war ministry found another month of output."
+      "shells_well_run": "The war ministry found another month of output.",
+      "treaty_loan_got": "A loan came in under a treaty",
+      "treaty_loan_paid": "A loan went out under a treaty"
+    },
+    "lobby": {
+      "resume_failed": "The save could not be handed to the lobby.",
+      "resume_none": "No saved game in this browser.",
+      "resume_not_friends": "That save is a solo game.",
+      "resume_note": "Resuming a saved game: {date}, chapter {n}. Take your old seat.",
+      "resume_open": "Resume a saved game",
+      "seat_free": "Free",
+      "seat_unwritten": "Common scenes only for now",
+      "seats_hint": "Pick a seat. The AI runs every country nobody takes.",
+      "timer_label": "Chapter timer",
+      "timer_sec": "{n}s",
+      "timer_table": "By the chapter"
     },
     "mandate": {
       "deu_bread_for_the_winter": "Have bread for the winter",
@@ -2231,10 +2282,13 @@
       "mob_first": "Russia and France mobilised first.",
       "nation_beaten": "{a} is out of the war.",
       "nation_collapsed": "{a} has collapsed.",
+      "regent_took_over": "{a}: a regent is running the government.",
       "shot_fired": "Shots at Sarajevo.",
       "spark_balkan": "The Balkans have caught fire again.",
       "spark_colonial": "Gunboats off Morocco again.",
       "spark_straits": "The Straits are in question.",
+      "treaty_broken": "{a} has broken its treaty with {b}.",
+      "treaty_leaked": "A secret treaty between {a} and {b} is out.",
       "unrest_1": "Strikes in {a}.",
       "unrest_2": "Riots in {a}.",
       "unrest_3": "The army of {a} is restless.",
@@ -2318,11 +2372,13 @@
       "promise_kept": "A promise kept. They won't forget it.",
       "promise_mended": "They agreed to let the broken promise go, this once.",
       "proxy_signed": "The paper was signed by proxy when time ran out.",
+      "regent_took_over": "The seat stood empty: a regent ran the government.",
       "reichstag_cools": "Hard times cost you the Reichstag.",
       "report_corrected": "A report turned out wrong and was corrected.",
       "resigned": "He resigned and left.",
       "rival_resents": "A rival took your favour badly.",
       "sample_waited": "You put off the answer to Vienna.",
+      "seat_taken_back": "The seat was taken back from the regent.",
       "successor_named": "The empty office was filled.",
       "talk_clash_cold": "They closed up at the cold words.",
       "talk_clash_flatter": "They saw through the flattery.",
@@ -2334,6 +2390,11 @@
       "talk_fit_frank": "They valued plain speaking.",
       "talk_fit_threat": "They gave way before the threat.",
       "talk_fit_warm": "Kind words got through.",
+      "treaty_broken": "A partner broke a secret treaty.",
+      "treaty_i_broke": "We broke a secret treaty.",
+      "treaty_lapsed": "A treaty offer lapsed unanswered.",
+      "treaty_refused": "A treaty offer was refused.",
+      "treaty_signed": "A secret treaty was signed.",
       "unrest_1": "Strikes have started.",
       "unrest_2": "There are riots.",
       "unrest_3": "The army is restless.",
@@ -2412,6 +2473,45 @@
       "rus_rail": "Russian railway loans",
       "us_loans": "American loans"
     },
+    "treaty": {
+      "break": "Break this treaty",
+      "break_sure": "Break it: the world will remember",
+      "clause": {
+        "alliance": "Alliance: they fight the same war. A neutral partner has {grace} chapters to come in.",
+        "entry": "{by} is at the side of {other} by chapter {n}.",
+        "loan": "{by} lends {other} {n} of money now and every six chapters.",
+        "neutrality": "{by} will not fight {other}.",
+        "passage": "{by} opens the way for {other} on the {theatre}.",
+        "territory": "{by} promises {other} {line} on the {theatre}."
+      },
+      "kind": {
+        "alliance": "Alliance",
+        "entry": "Date of entry",
+        "loan": "Loan",
+        "neutrality": "Neutrality",
+        "passage": "Passage",
+        "territory": "Territory"
+      },
+      "leaked": "The world knows of this treaty.",
+      "loan_amount": "{n} of money",
+      "refuse": "Refuse",
+      "sign": "Sign",
+      "state": {
+        "broken": "Broken",
+        "lapsed": "Lapsed",
+        "offered": "Offered",
+        "refused": "Refused",
+        "signed": "Signed"
+      },
+      "why": {
+        "ally_stayed_out": "{by} stayed out of the partner's war.",
+        "broken_openly": "{by} tore it up.",
+        "entry_late": "{by} did not come in by the date.",
+        "fought_partner": "{by} went to war with the partner.",
+        "loan_unpaid": "{by} could not pay.",
+        "territory_unmet": "{by} did not deliver the line."
+      }
+    },
     "turn": {
       "belgium_invaded": "The army went through Belgium.",
       "crisis_compromise": "The crisis ended in compromise.",
@@ -2426,6 +2526,7 @@
       "spark_balkan": "The Balkans caught fire again.",
       "spark_colonial": "Morocco came back.",
       "spark_straits": "The Straits became the question.",
+      "treaty_leaked": "A secret treaty came out.",
       "war_began": "The war began."
     },
     "ui": {
@@ -2437,18 +2538,29 @@
       "audiences_hint": "Calling someone spends one.",
       "authority": "Authority {n}",
       "block": {
+        "at_war": "You are at war with them.",
+        "bad_clause": "A clause does not hold.",
         "closed": "That choice is not open yet.",
         "ended": "The game is over.",
         "no_audience": "You have used this chapter's audiences.",
         "no_authority": "Not enough authority for this dismissal.",
+        "no_authority_cipher": "Not enough authority for that cipher.",
         "no_card": "That paper is gone.",
         "no_option": "There is no such choice.",
         "no_person": "That person cannot be called now.",
+        "no_seat": "No friend sits there.",
         "no_topic": "That cannot be raised now.",
+        "no_treaty": "No such treaty.",
+        "no_war": "There is no war to enter.",
+        "not_asked": "Nobody asked.",
+        "not_host": "Only the host answers.",
         "not_proposed": "The chief of staff did not put this forward.",
         "open_cards": "Papers are still open: decide or read them first.",
         "signed": "This chapter's paper is already signed.",
+        "slow_spent": "No more extensions this chapter.",
         "stale_chapter": "That chapter has already passed.",
+        "too_many": "That is enough for this chapter.",
+        "treaty_bars": "A signed treaty stands in the way.",
         "wrong_kind": "That does not fit this paper."
       },
       "calendar": {
@@ -2658,6 +2770,7 @@
       "tab": {
         "country": "Country",
         "desk": "Desk",
+        "diplo": "Diplomacy",
         "fronts": "Fronts",
         "memoir": "Memoir",
         "people": "People"
@@ -2721,6 +2834,21 @@
       "person": "{person} had it in him: {value} of 3.",
       "source": "{source} was worth {value} of 3.",
       "wrong_report": "A report on {country} was wrong and nobody put it right."
+    },
+    "wire": {
+      "box": {
+        "copy": "Copy taken by our listeners",
+        "in": "Received",
+        "sent": "Sent"
+      },
+      "cipher": {
+        "0": "Plain",
+        "1": "Diplomatic cipher",
+        "2": "Top cipher"
+      },
+      "cost": "authority {n}",
+      "delivered": "arrived",
+      "on_the_way": "on the wire"
     }
   },
   "heads_up_message": {

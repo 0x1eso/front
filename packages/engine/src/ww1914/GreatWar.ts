@@ -1,5 +1,6 @@
 import type { GameMap } from "@openfront/engine-api/game/GameMap";
 import { GameType } from "@openfront/engine-api/game/GameTypes";
+import type { GwSaveHeader } from "@openfront/engine-api/game/SnapshotHeader";
 import type { ClientID } from "@openfront/engine-api/Schemas";
 import {
   GreatWarState,
@@ -23,6 +24,10 @@ import {
   GwWorld,
   gwWorldOf,
 } from "@openfront/engine-lib/ww1914/World1914";
+import {
+  civilFromDays,
+  formatIsoDate,
+} from "@openfront/engine-lib/ww1936/Calendar";
 import { idHash } from "@openfront/engine-lib/ww1936/Roll";
 import { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
 import type { Game } from "../game/Game";
@@ -288,6 +293,15 @@ export class GreatWar {
     this.dirty = false;
     return gwView(this, this.viewerSeat());
   }
+}
+
+/** What a resume lobby shows of a save. */
+export function gwSaveHeader(s: GreatWarState): GwSaveHeader {
+  return {
+    seats: s.seats.map((x) => x.tag),
+    chapter: s.chapter,
+    date: formatIsoDate(civilFromDays(s.day)),
+  };
 }
 
 function blankNation(tag: GwTag): GwNationState {

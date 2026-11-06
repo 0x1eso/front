@@ -35,6 +35,7 @@ export const GW_TABS = [
   "people",
   "fronts",
   "country",
+  "diplo",
   "memoir",
 ] as const;
 export type GwTab = (typeof GW_TABS)[number];
@@ -127,15 +128,36 @@ export function isReadOnly(c: GwCardView): boolean {
 }
 
 /** Tab badges: what waits on each tab. */
-export function tabBadge(seat: GwSeatView, tab: GwTab): number {
+export function tabBadge(
+  seat: GwSeatView,
+  tab: GwTab,
+  seenWires = 0,
+): number {
   switch (tab) {
     case "desk":
       return seat.desk.length;
     case "people":
       return seat.audiences;
+    case "diplo":
+      return (
+        seat.diplo.treaties.filter((t) => t.answer).length +
+        Math.max(0, wiresIn(seat) - seenWires)
+      );
     default:
       return 0;
   }
+}
+
+/** Telegrams that reached this seat, its own and the listeners' copies. */
+export function wiresIn(seat: GwSeatView): number {
+  return seat.diplo.telegrams.filter((t) => t.box !== "sent").length;
+}
+
+/** The tabs this game shows: diplomacy is between friends. */
+export function tabsOf(data: GreatWarData): readonly GwTab[] {
+  return data.roster.length > 1
+    ? GW_TABS
+    : GW_TABS.filter((t) => t !== "diplo");
 }
 
 /** Seconds left in the chapter with a timer, else null. */
