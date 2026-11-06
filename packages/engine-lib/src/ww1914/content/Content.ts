@@ -6,6 +6,10 @@ import { GW_PEOPLE_COMMON } from "./people_common";
 import { GW_PEOPLE_DEU } from "./people_deu";
 import { GBR_PEOPLE } from "./people_gbr";
 import { RUS_PEOPLE } from "./people_rus";
+import { AUH_CRISIS_SCENES } from "./scenes/auh_crisis";
+import { AUH_CROWN_SCENES } from "./scenes/auh_crown";
+import { AUH_REALM_SCENES } from "./scenes/auh_realm";
+import { AUH_WAR_SCENES } from "./scenes/auh_war";
 import { COMMON_SCENES } from "./scenes/common";
 import { DEU_SCENES } from "./scenes/deu";
 import { DEU_BACK_SCENES, withPromiseTerms } from "./scenes/deu_back";
@@ -13,6 +17,13 @@ import { DEU_CRISIS_SCENES } from "./scenes/deu_crisis";
 import { DEU_PEACE_SCENES, withSummerWar } from "./scenes/deu_peace";
 import { DEU_PEOPLE_SCENES } from "./scenes/deu_people";
 import { DEU_WAR_SCENES } from "./scenes/deu_war";
+import { GBR_CRISIS_SCENES } from "./scenes/gbr_crisis";
+import { GBR_HOME_SCENES } from "./scenes/gbr_home";
+import { GBR_WAR_SCENES } from "./scenes/gbr_war";
+import { GBR_WORLD_SCENES } from "./scenes/gbr_world";
+import { RUS_CRISIS_SCENES } from "./scenes/rus_crisis";
+import { RUS_FRONT_SCENES } from "./scenes/rus_front";
+import { RUS_HOME_SCENES } from "./scenes/rus_home";
 import { WARTIME_SCENES } from "./scenes/wartime";
 import { WORLD_SCENES } from "./scenes/world";
 
@@ -37,6 +48,17 @@ export const GW_CONTENT: GwContent = {
     ...DEU_BACK_SCENES,
     ...WORLD_SCENES,
     ...WARTIME_SCENES,
+    ...AUH_CRISIS_SCENES,
+    ...AUH_WAR_SCENES,
+    ...AUH_REALM_SCENES,
+    ...AUH_CROWN_SCENES,
+    ...GBR_CRISIS_SCENES,
+    ...GBR_WAR_SCENES,
+    ...GBR_HOME_SCENES,
+    ...GBR_WORLD_SCENES,
+    ...RUS_CRISIS_SCENES,
+    ...RUS_FRONT_SCENES,
+    ...RUS_HOME_SCENES,
   ],
   people: [
     ...GW_PEOPLE,

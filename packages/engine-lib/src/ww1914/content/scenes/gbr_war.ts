@@ -1,5 +1,6 @@
 import type {
   GwGauge,
+  GwInstitution,
   GwStage,
   GwTemperament,
   GwTheatre,
@@ -35,18 +36,12 @@ import {
   trustOf,
 } from "@openfront/engine-api/ww1914/SceneDsl";
 import { doWorld, world } from "@openfront/engine-api/ww1914/WorldDsl";
+import { period, sinceChapter } from "./period";
 
 /**
  * Britain, the war share: the `gbr_w_` scenes, the summoned talks of Kitchener,
  * Haig, Robertson and Jellicoe, and five visits. Data only; the text is in
  * resources/ww1914/ko/GBR.war.json. Plan: ww135-plan-gbr.md sections 6, 9, 10.
- *
- * Stand-ins, each one line to swap when the world lane lands:
- * `during`/`since` (`{ is: "period" }`), `body` (the institutions `cabinet`,
- * `commons`, `opposition`), `signChief` (`{ do: "sign_chief" }`, on w130-gw,
- * and `screen: "fronts"` on return_chief), the flag `f_gbr_forts_short` and
- * the memories `m_wilson_leaks`, `m_sailings_found` (the secrets
- * `ott_forts_short`, `gbr_wilson_leaks`, `gbr_sailings_count`).
  */
 
 const NATION: GwScene["nation"] = ["GBR"];
@@ -60,39 +55,11 @@ const CRISIS_ON: GwStage[] = ["crisis", "y1914", "war"];
 const Y14_ON: GwStage[] = ["y1914", "war"];
 const WAR: GwStage[] = ["war"];
 
-const HALVES = [
-  "15a",
-  "15b",
-  "16a",
-  "16b",
-  "17a",
-  "17b",
-  "18a",
-  "18b",
-] as const;
-type Half = (typeof HALVES)[number];
-const monthly: GwCond = { kind: "span", max: 30 };
-const bimonthly: GwCond = { kind: "span", min: 31 };
-const fullEnd = (h: Half) => 16 + 6 * HALVES.indexOf(h);
-const standardEnd = (h: Half) => 13 + 3 * HALVES.indexOf(h);
-
-/** The plan's half-years on the `full` and `standard` calendars alike. */
-const during = (from: Half, to: Half = from): GwCond => {
-  const i = HALVES.indexOf(from);
-  return any(
-    all(monthly, { kind: "chapter", min: 11 + 6 * i, max: fullEnd(to) }),
-    all(bimonthly, { kind: "chapter", min: 11 + 3 * i, max: standardEnd(to) }),
-  );
-};
-
-/** From a chapter of 1914 up to the end of a half-year. */
-const since = (chapter: number, to: Half): GwCond =>
-  any(
-    all(monthly, { kind: "chapter", min: chapter, max: fullEnd(to) }),
-    all(bimonthly, { kind: "chapter", min: chapter, max: standardEnd(to) }),
-  );
+const during = period;
+const since = sinceChapter;
 
 const war: GwCond = { kind: "at_war", tag: "DEU" };
+const FORTS_SHORT: GwCond = { kind: "secret", id: "ott_forts_short" };
 const known = (...keys: string[]): GwCond => any(...keys.map((k) => memory(k)));
 const holds = (
   office: "war" | "sea_lord" | "chief_of_staff",
@@ -138,17 +105,16 @@ const men = (delta: number): GwEffect => doWorld({ do: "manpower", delta });
 const authority = (delta: number): GwEffect =>
   doWorld({ do: "authority", delta });
 
-/**
- * The table, the House and the opposition: no institutions on this branch, so
- * each move writes a flag and the tell shows the real word.
- */
-const body = (name: string, delta: number): GwEffect =>
-  setFlag(`f_gbr_${name}_${delta < 0 ? "down" : "up"}_${Math.abs(delta)}`);
+/** The table and the opposition. */
+const body = (inst: GwInstitution, delta: number): GwEffect => ({
+  kind: "inst",
+  inst,
+  delta,
+});
 const cabinet = (d: number) => body("cabinet", d);
 const opposition = (d: number) => body("opposition", d);
 
-/** The chief's plan stands when nobody signs, so signing moves nothing yet. */
-const signChief: GwEffect[] = [];
+const signChief: GwEffect[] = [doWorld({ do: "sign_chief" })];
 
 const v = (id: string, when?: GwCond): GwVariant =>
   when === undefined ? { id } : { id, when };
@@ -948,16 +914,7 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
       o(
         "ships_only",
         ["trust:+1", "cabinet:+1"],
-        [
-          trustOf(navy, 1),
-          cabinet(1),
-          {
-            kind: "roll",
-            key: "gbr_forts_short",
-            pct: 40,
-            then: [setFlag("f_gbr_forts_short")],
-          },
-        ],
+        [trustOf(navy, 1), cabinet(1)],
       ),
       o(
         "wait_troops",
@@ -999,7 +956,7 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
     variants: [
       v(
         "forts_short",
-        all(chose("gbr_w_naval_only", "ships_only"), flag("f_gbr_forts_short")),
+        all(chose("gbr_w_naval_only", "ships_only"), FORTS_SHORT),
       ),
       v("ships", chose("gbr_w_naval_only", "ships_only")),
       v("base"),
@@ -1021,7 +978,7 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
     salience: 8,
     tags: ["war", "tension_up"],
     variants: [
-      v("forts_rumour", flag("f_gbr_forts_short")),
+      v("forts_rumour", FORTS_SHORT),
       v("waited", memory("m_troops_first")),
       v("base"),
     ],
@@ -2629,7 +2586,10 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
       ),
       table: plain(
         r("recount", "frank", "deal", null, {
-          effects: [remember("k_jel_figures"), remember("m_sailings_found")],
+          effects: [
+            remember("k_jel_figures"),
+            doWorld({ do: "reveal", id: "gbr_sailings_count" }),
+          ],
         }),
         r("who_counted", "cold", "ask", "young"),
         bye("end"),
@@ -2641,7 +2601,7 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
           effects: [
             trustOf(who, 1),
             remember("k_jel_figures"),
-            remember("m_sailings_found"),
+            doWorld({ do: "reveal", id: "gbr_sailings_count" }),
           ],
         }),
         bye("end"),
@@ -2808,7 +2768,7 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
       dinner: plain(
         r("understood", "cold", "ask", null, {
           effects: [
-            remember("m_wilson_leaks"),
+            doWorld({ do: "reveal", id: "gbr_wilson_leaks" }),
             remember("k_wilson_versailles"),
           ],
         }),

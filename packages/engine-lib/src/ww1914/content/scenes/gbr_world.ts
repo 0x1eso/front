@@ -1,6 +1,9 @@
 import type {
   GwGauge,
+  GwInstitution,
+  GwIssue,
   GwOffice,
+  GwSecret,
   GwStage,
   GwTemperament,
   GwTheatre,
@@ -31,19 +34,13 @@ import {
   trustOf,
 } from "@openfront/engine-api/ww1914/SceneDsl";
 import { doWorld, world } from "@openfront/engine-api/ww1914/WorldDsl";
+import { period, sinceChapter } from "./period";
 
 /**
  * Britain, the world share: the `gbr_f_` scenes, the summoned talks of McKenna,
  * Balfour, Hankey and Churchill, five visits, and the ten endings. Data only;
  * the text is in resources/ww1914/ko/GBR.world.json. Plan: ww135-plan-gbr.md
  * sections 8, 9, 10, 14.
- *
- * Stand-ins, each one definition to swap when the world lane lands:
- * `during`/`since` (world `date`), `body` (the institutions `cabinet`,
- * `commons`, `opposition`, `irish`), `votes` (world `votes`, and a `vote` effect
- * on the option), `exists` (cond `secret`), `reveal`/`knows` (world `reveal` and
- * `known`), `neutral` (world `neutral`), `russiaBroke` (world `regime`),
- * `askedPeace` (world `armistice`), `franceFalling` (flag `w_france_falling`).
  */
 
 const NATION: GwScene["nation"] = ["GBR"];
@@ -54,37 +51,8 @@ const Y14: GwStage[] = ["y1914"];
 const Y14_ON: GwStage[] = ["y1914", "war"];
 const WAR: GwStage[] = ["war"];
 
-const HALVES = [
-  "15a",
-  "15b",
-  "16a",
-  "16b",
-  "17a",
-  "17b",
-  "18a",
-  "18b",
-] as const;
-type Half = (typeof HALVES)[number];
-const monthly: GwCond = { kind: "span", max: 30 };
-const bimonthly: GwCond = { kind: "span", min: 31 };
-const fullEnd = (h: Half) => 16 + 6 * HALVES.indexOf(h);
-const standardEnd = (h: Half) => 13 + 3 * HALVES.indexOf(h);
-
-/** The plan's half-years on the `full` and `standard` calendars alike. */
-const during = (from: Half, to: Half = from): GwCond => {
-  const i = HALVES.indexOf(from);
-  return any(
-    all(monthly, { kind: "chapter", min: 11 + 6 * i, max: fullEnd(to) }),
-    all(bimonthly, { kind: "chapter", min: 11 + 3 * i, max: standardEnd(to) }),
-  );
-};
-
-/** From a chapter of 1914 up to the end of a half-year. */
-const since = (chapter: number, to: Half): GwCond =>
-  any(
-    all(monthly, { kind: "chapter", min: chapter, max: fullEnd(to) }),
-    all(bimonthly, { kind: "chapter", min: chapter, max: standardEnd(to) }),
-  );
+const during = period;
+const since = sinceChapter;
 
 const ch = (min: number, max: number): GwCond => ({
   kind: "chapter",
@@ -107,32 +75,28 @@ const belg = world({ is: "plan", of: ["west"] });
 const east1 = world({ is: "plan", of: ["east"] });
 const noSarajevo: GwCond = { kind: "opening", of: ["no_sarajevo"] };
 
-/** The Continent fights and Britain stays out. Becomes world `neutral`. */
-const neutral = all(not(warOn), world({ is: "entered", tag: "FRA" }));
+/** The Continent fights and Britain stays out. */
+const neutral = all(
+  world({ is: "neutral", tag: "GBR" }),
+  world({ is: "entered", tag: "FRA" }),
+);
 /** The crisis closed without a great war. */
 const peace = all(
   not(world({ is: "war" })),
   world({ is: "chain_end", of: ["compromise", "humiliation", "fizzled"] }),
 );
-/** Russia's order gone. Becomes world `regime`. */
-const russiaBroke = any(isOut("RUS"), {
-  kind: "nation_gauge",
+/** Russia's order gone. */
+const russiaBroke = world({
+  is: "regime",
   tag: "RUS",
-  gauge: "order",
-  max: 1,
+  of: ["provisional", "rep", "soviet"],
 });
-/** The enemy is asking. Becomes world `armistice`. */
-const askedPeace = any(isOut("DEU"), world({ is: "score", min: 30 }));
-/** Becomes the flag `w_france_falling`. */
-const franceFalling = world({ is: "front", theatre: "west", from: "aisne" });
-/** Stands for the seat of the war: the table's count, `{ is: "votes" }`. */
-const votes = (_issue: string): GwCond => ({
-  kind: "person_trust",
-  who: { office: "foreign" },
-  min: 0,
-});
-/** Becomes cond `secret` once GW_SECRETS holds the plan's ids. */
-const exists = (_id: string): GwCond => all();
+/** The enemy is asking. */
+const askedPeace = any(isOut("DEU"), world({ is: "armistice" }));
+const franceFalling = flag("w_france_falling");
+/** The table would carry it. */
+const votes = (issue: GwIssue): GwCond => world({ is: "votes", issue, min: 0 });
+const exists = (id: GwSecret): GwCond => ({ kind: "secret", id });
 
 const gaugeAt = (gauge: GwGauge, max: number): GwCond => ({
   kind: "gauge",
@@ -220,12 +184,12 @@ const pride = (w: GwWho, delta: number): GwEffect => ({
 const readiness = (tag: GwTag, delta: number): GwEffect =>
   doWorld({ do: "readiness", tag, delta });
 
-/**
- * The table, the House, the opposition, the Irish: no institutions on this
- * branch, so each move writes a flag and the tell shows the real word.
- */
-const body = (name: string, delta: number): GwEffect =>
-  setFlag(`f_gbr_${name}_${delta < 0 ? "down" : "up"}_${Math.abs(delta)}`);
+/** The table, the House, the opposition, the Irish. */
+const body = (inst: GwInstitution, delta: number): GwEffect => ({
+  kind: "inst",
+  inst,
+  delta,
+});
 const cabinet = (d: number) => body("cabinet", d);
 const commons = (d: number) => body("commons", d);
 const opposition = (d: number) => body("opposition", d);
@@ -239,12 +203,8 @@ const vote = (issue: string, w: GwWho, weight: number): GwEffect => ({
   weight,
 });
 
-/** Becomes world `reveal`; the two the war share reads keep its names. */
-const reveal = (id: string): GwEffect =>
-  id === "ott_forts_short"
-    ? setFlag("f_gbr_forts_short")
-    : setFlag(`f_known_${id}`);
-const knows = (id: string): GwCond => flag(`f_known_${id}`);
+const reveal = (id: GwSecret): GwEffect => doWorld({ do: "reveal", id });
+const knows = (id: GwSecret): GwCond => world({ is: "known", id });
 
 // ---- Talks ----
 
@@ -2155,7 +2115,7 @@ export const GBR_WORLD_SCENES: readonly GwScene[] = [
       open: {
         says: [
           { id: "lg", when: lg },
-          { id: "after", when: { kind: "chapter", min: 23 } },
+          { id: "after", when: world({ is: "date", from: "1915-12" }) },
           { id: "cold", when: moody(who, "cold") },
           { id: "base" },
         ],
@@ -2411,7 +2371,7 @@ export const GBR_WORLD_SCENES: readonly GwScene[] = [
             next: "hidden",
             reacts: [
               ifThen(
-                all(open("straits"), { kind: "chapter", max: 28 }),
+                all(open("straits"), world({ is: "date", to: "1916-05" })),
                 "hidden",
                 [reveal("ott_forts_short")],
               ),
@@ -2450,7 +2410,7 @@ export const GBR_WORLD_SCENES: readonly GwScene[] = [
           { id: "casualties", when: casualties(500) },
           {
             id: "straits",
-            when: all(open("straits"), { kind: "chapter", max: 28 }),
+            when: all(open("straits"), world({ is: "date", to: "1916-05" })),
           },
           { id: "base" },
         ],
@@ -2477,7 +2437,7 @@ export const GBR_WORLD_SCENES: readonly GwScene[] = [
         says: [
           {
             id: "forts",
-            when: all(open("straits"), { kind: "chapter", max: 28 }),
+            when: all(open("straits"), world({ is: "date", to: "1916-05" })),
           },
           { id: "base" },
         ],
@@ -2565,7 +2525,7 @@ export const GBR_WORLD_SCENES: readonly GwScene[] = [
             tell: [],
             effects: [],
             next: "count",
-            gain: [remember("k_han_convoy"), remember("m_sailings_found")],
+            gain: [remember("k_han_convoy"), reveal("gbr_sailings_count")],
             miss: "guard",
           },
           {
@@ -2586,7 +2546,7 @@ export const GBR_WORLD_SCENES: readonly GwScene[] = [
             reacts: [
               ifMood(
                 "count",
-                [remember("k_han_convoy"), remember("m_sailings_found")],
+                [remember("k_han_convoy"), reveal("gbr_sailings_count")],
                 "cold",
               ),
             ],
@@ -2600,7 +2560,7 @@ export const GBR_WORLD_SCENES: readonly GwScene[] = [
               trustOf(who, 1),
               trustOf(byOffice("navy"), -1),
               remember("k_han_convoy"),
-              remember("m_sailings_found"),
+              reveal("gbr_sailings_count"),
             ],
             next: "count",
           },
@@ -2637,7 +2597,7 @@ export const GBR_WORLD_SCENES: readonly GwScene[] = [
             tell: [],
             effects: [],
             next: "count",
-            gain: [remember("k_han_convoy"), remember("m_sailings_found")],
+            gain: [remember("k_han_convoy"), reveal("gbr_sailings_count")],
           },
           {
             id: "end",

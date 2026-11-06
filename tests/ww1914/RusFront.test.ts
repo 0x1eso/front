@@ -1,4 +1,3 @@
-import { GW_INSTITUTIONS } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import { GwPack, gwPackProblems } from "@openfront/engine-api/ww1914/GwPack";
 import { gwContentProblems } from "@openfront/engine-api/ww1914/SceneCheck";
 import {
@@ -7,10 +6,7 @@ import {
 } from "@openfront/engine-api/ww1914/SceneDsl";
 import { GW_PEOPLE } from "@openfront/engine-lib/ww1914/content/people";
 import { RUS_PEOPLE } from "@openfront/engine-lib/ww1914/content/people_rus";
-import {
-  RUS_FRONT_SCENES,
-  RUS_FRONT_STOOD_IN,
-} from "@openfront/engine-lib/ww1914/content/scenes/rus_front";
+import { RUS_FRONT_SCENES } from "@openfront/engine-lib/ww1914/content/scenes/rus_front";
 import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
@@ -107,11 +103,5 @@ describe("the 전선 share of 러시아", () => {
         expect(lines.includes(word), `${s.id}: ${word}`).toBe(false);
       }
     }
-  });
-
-  test("once lane Y is here, nothing stands in but w130-gw's two forms", () => {
-    if (!(GW_INSTITUTIONS as readonly string[]).includes("stavka")) return;
-    const left = RUS_FRONT_STOOD_IN.filter((x) => !x.includes("sign_chief"));
-    expect(left).toEqual([]);
   });
 });

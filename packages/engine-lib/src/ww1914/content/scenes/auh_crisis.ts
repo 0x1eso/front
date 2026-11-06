@@ -1,4 +1,7 @@
-import type { GwOpening } from "@openfront/engine-api/ww1914/GreatWarTypes";
+import type {
+  GwInstitution,
+  GwOpening,
+} from "@openfront/engine-api/ww1914/GreatWarTypes";
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import {
   all,
@@ -27,14 +30,12 @@ import {
   trustOf,
 } from "@openfront/engine-api/ww1914/SceneDsl";
 import type { GwWorldEffect } from "@openfront/engine-api/ww1914/WorldDsl";
+import { period } from "./period";
 
 /**
  * 「오스트리아-헝가리」, the crisis share: the auh_c_ scenes, the talks of
  * Berchtold, Hoyos, Biliński and Stürgkh, and five visits. Data only; the text
  * is in resources/ww1914/ko/AUH.crisis.json. Plan: ww135-plan-auh.md §4, §8.
- *
- * Two stand-ins, one line each to swap when the world lane lands:
- * `body` (the empire's four bodies, plan §2) and `during` (`world date`).
  */
 
 const NATION: GwScene["nation"] = ["AUH"];
@@ -47,34 +48,17 @@ const war = role("war");
 const fin = role("finance");
 const court = role("court");
 
-/**
- * Hungary, the joint council, the nations, the debt to Berlin. They aren't
- * institutions on this branch, so each move writes a flag; the tell shows the
- * real word. Swap for `{ kind: "inst", inst: name, delta }` at the merge.
- */
-const body = (name: string, delta: number): GwEffect =>
-  setFlag(`f_auh_${name}_${delta < 0 ? "down" : "up"}_${Math.abs(delta)}`);
+/** Hungary, the joint council, the nations: the empire's bodies. */
+const body = (inst: GwInstitution, delta: number): GwEffect => ({
+  kind: "inst",
+  inst,
+  delta,
+});
 const hungary = (d: number) => body("hungary", d);
 const council = (d: number) => body("council", d);
 const nations = (d: number) => body("nations", d);
 
-/** `full` chapters by the plan's period marks. Swap for `world date`. */
-const PERIOD = {
-  c: [0, 6],
-  "14": [6, 10],
-  "15a": [11, 17],
-  "15b": [18, 22],
-  "16a": [23, 29],
-  "16b": [30, 35],
-  "17a": [36, 41],
-  "17b": [42, 47],
-} as const;
-type Period = keyof typeof PERIOD;
-const during = (from: Period, to: Period = from): GwCond => ({
-  kind: "chapter",
-  min: PERIOD[from][0],
-  max: PERIOD[to][1],
-});
+const during = period;
 
 const temp = (delta: number): GwEffect => ({ kind: "temp", delta });
 const trust = (tag: GwTag, delta: number): GwEffect => ({

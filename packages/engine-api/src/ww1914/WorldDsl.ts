@@ -147,6 +147,8 @@ export type GwWorldEffect =
   /** Closes the open crisis at once. */
   | { do: "close_chain"; outcome: GwChainOutcome }
   | { do: "mobilize"; tag: GwTag; level: number }
+  /** The order is recalled: mobilisation comes down to `level`. */
+  | { do: "stand_down"; tag: GwTag; level: number }
   /** The seat's country declares war on `tag`, its allies with it. */
   | { do: "declare"; tag: GwTag }
   /** A price for a neutral (1..5), in the seat's side's name. */
@@ -332,6 +334,7 @@ export const GwWorldEffectSchema = z.union([
   act("armistice", { kind: z.enum(GW_ARMISTICE_KINDS) }),
   act("separate_peace", {}),
   act("passes", { who }),
+  act("stand_down", { tag, level: int }),
 ]) as unknown as z.ZodType<GwWorldEffect>;
 
 // ---- Authoring helpers ----

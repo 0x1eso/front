@@ -217,6 +217,11 @@ export function worldEffect(ctx: SceneCtx, e: GwWorldEffect): void {
       if (n !== null) n.mob = Math.max(n.mob, e.level);
       return;
     }
+    case "stand_down": {
+      const n = gw.nation(e.tag);
+      if (n !== null) n.mob = Math.min(n.mob, e.level);
+      return;
+    }
     case "declare": {
       if (s.warChapter === null) closeChain(gw, "war");
       const foe = gw.nation(e.tag);

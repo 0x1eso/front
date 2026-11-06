@@ -4,117 +4,45 @@ import type {
   GwEffect,
   GwScene,
 } from "@openfront/engine-api/ww1914/SceneDsl";
+import { period } from "./period";
 
 /**
  * 「오스트리아-헝가리」, the realm share: the auh_h_ scenes, the talks of Tisza,
  * Burián, Kramář and Adler, and five visits. Data only; the text is in
  * resources/ww1914/ko/AUH.realm.json. Plan: ww135-plan-auh.md §6, §8, §9.
- *
- * The stand-ins below are what plan §2 asks for and this branch lacks. Each is
- * one line to change when the world lane lands; nothing further down names
- * the thing it stands for.
  */
 
-/** Plan's `hungary`. Lane Y's list spells it "hungary". */
-const HUNGARY: GwInstitution = "countersign";
-/** Plan's `nations`. Lane Y's list spells it "nationalities". */
-const NATIONS: GwInstitution = "reichstag";
+const HUNGARY: GwInstitution = "hungary";
+const NATIONS: GwInstitution = "nations";
 
 /** `FJ`, `K`, `FFT`: plan §0. Lane Y has `regime` for the first two. */
 const KARL: GwCond = { kind: "flag", flag: "w_auh_karl" };
 const OLD_EMPEROR: GwCond = { kind: "not", of: KARL };
 const FF_THRONE: GwCond = { kind: "flag", flag: "w_auh_ff_throne" };
 
-/** Plan's `동부 밀림`: wants `world battle` with `by`. Until then, our score says who gave ground. */
+/** Plan's `동부 밀림`: the Russians pushed last. */
 const EAST_SLIPPING: GwCond = {
-  kind: "all",
-  of: [
-    {
-      kind: "world",
-      of: { is: "battle", theatre: "east", of: ["advance", "break"] },
-    },
-    { kind: "world", of: { is: "score", max: 0 } },
-  ],
+  kind: "world",
+  of: {
+    is: "battle",
+    theatre: "east",
+    of: ["advance", "break"],
+    by: "entente",
+  },
 };
 
-/**
- * Plan's secrets `auh_hun_grain_hidden` and `auh_czech_regiments_sound`, not in
- * GW_SECRETS here: something rolled once a game and hidden stands in. Finding
- * one sets `f_auh_found_grain` or `f_auh_found_czechs`, `reveal` when they land.
- */
-const GRAIN_HIDDEN: GwCond = {
-  kind: "competence",
-  who: { person: "auh_tisza" },
-  field: "admin",
-  min: 2,
-};
+const GRAIN_HIDDEN: GwCond = { kind: "secret", id: "auh_hun_grain_hidden" };
 const CZECHS_SOUND: GwCond = {
-  kind: "competence",
-  who: { person: "auh_kramar" },
-  field: "politics",
-  min: 2,
+  kind: "secret",
+  id: "auh_czech_regiments_sound",
 };
 
-/** Plan's `berlin` scale, by its fallback: flags f_auh_debt_1..3. */
-const flagged = (n: number): GwCond => ({
-  kind: "flag",
-  flag: `f_auh_debt_${n}`,
-});
-const IN_DEBT = flagged(1);
-const DEBT_UP: GwEffect[] = [
-  {
-    kind: "maybe",
-    when: flagged(2),
-    then: [{ kind: "flag", flag: "f_auh_debt_3" }],
-  },
-  {
-    kind: "maybe",
-    when: flagged(1),
-    then: [{ kind: "flag", flag: "f_auh_debt_2" }],
-  },
-  { kind: "flag", flag: "f_auh_debt_1" },
-];
-const DEBT_DOWN: GwEffect[] = [
-  {
-    kind: "maybe",
-    when: {
-      kind: "all",
-      of: [
-        { kind: "not", of: flagged(2) },
-        { kind: "not", of: flagged(3) },
-      ],
-    },
-    then: [{ kind: "unflag", flag: "f_auh_debt_1" }],
-  },
-  {
-    kind: "maybe",
-    when: { kind: "not", of: flagged(3) },
-    then: [{ kind: "unflag", flag: "f_auh_debt_2" }],
-  },
-  { kind: "unflag", flag: "f_auh_debt_3" },
-];
+/** The debt to Berlin: an institution, higher is worse. */
+const IN_DEBT: GwCond = { kind: "inst", inst: "berlin", min: 1 };
+const DEBT_UP: GwEffect[] = [{ kind: "inst", inst: "berlin", delta: 1 }];
+const DEBT_DOWN: GwEffect[] = [{ kind: "inst", inst: "berlin", delta: -1 }];
 
-/** Plan §0's periods, as `full` chapters. World `date` replaces this. */
-const PERIODS = {
-  C: [0, 5],
-  "14": [6, 10],
-  "15a": [11, 17],
-  "15b": [18, 22],
-  "16a": [23, 29],
-  "16b": [30, 35],
-  "17a": [36, 41],
-  "17b": [42, 47],
-  "18a": [48, 53],
-  "18b": [54, 59],
-} as const;
-const during = (
-  from: keyof typeof PERIODS,
-  to: keyof typeof PERIODS,
-): GwCond => ({
-  kind: "chapter",
-  min: PERIODS[from][0],
-  max: PERIODS[to][1],
-});
+const during = period;
 
 export const AUH_REALM_SCENES: readonly GwScene[] = [
   {
@@ -571,8 +499,8 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
       {
         id: "exposed",
         when: {
-          kind: "flag",
-          flag: "f_auh_found_grain",
+          kind: "world",
+          of: { is: "known", id: "auh_hun_grain_hidden" },
         },
       },
       {
@@ -707,8 +635,8 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
                 delta: 2,
               },
               {
-                kind: "flag",
-                flag: "f_auh_found_grain",
+                kind: "world",
+                of: { do: "reveal", id: "auh_hun_grain_hidden" },
               },
               {
                 kind: "reason",
@@ -2253,8 +2181,8 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
       {
         id: "found",
         when: {
-          kind: "flag",
-          flag: "f_auh_found_czechs",
+          kind: "world",
+          of: { is: "known", id: "auh_czech_regiments_sound" },
         },
       },
       {
@@ -2311,8 +2239,8 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
             delta: -1,
           },
           {
-            kind: "flag",
-            flag: "f_auh_found_czechs",
+            kind: "world",
+            of: { do: "reveal", id: "auh_czech_regiments_sound" },
           },
           {
             kind: "maybe",
@@ -4061,7 +3989,7 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("C", "C"),
+        during("c", "c"),
         {
           kind: "crisis",
           topic: "balkan",
@@ -4422,7 +4350,7 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("C", "C"),
+        during("c", "c"),
         {
           kind: "crisis",
           topic: "balkan",
@@ -4748,7 +4676,7 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
     nation: ["AUH"],
     kind: "talk",
     stage: ["crisis", "y1914", "war"],
-    when: during("C", "15b"),
+    when: during("c", "15b"),
     cast: {
       p: {
         person: "auh_tisza",
@@ -5249,8 +5177,8 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
                 when: GRAIN_HIDDEN,
                 then: [
                   {
-                    kind: "flag",
-                    flag: "f_auh_found_grain",
+                    kind: "world",
+                    of: { do: "reveal", id: "auh_hun_grain_hidden" },
                   },
                 ],
               },
@@ -5279,8 +5207,8 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
                 when: GRAIN_HIDDEN,
                 then: [
                   {
-                    kind: "flag",
-                    flag: "f_auh_found_grain",
+                    kind: "world",
+                    of: { do: "reveal", id: "auh_hun_grain_hidden" },
                   },
                 ],
               },
@@ -5889,7 +5817,7 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("C", "C"),
+        during("c", "c"),
         {
           kind: "crisis",
           topic: "balkan",
@@ -8062,8 +7990,8 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
                 when: CZECHS_SOUND,
                 then: [
                   {
-                    kind: "flag",
-                    flag: "f_auh_found_czechs",
+                    kind: "world",
+                    of: { do: "reveal", id: "auh_czech_regiments_sound" },
                   },
                 ],
               },
@@ -8729,7 +8657,7 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
     nation: ["AUH"],
     kind: "talk",
     stage: ["crisis", "y1914"],
-    when: during("C", "14"),
+    when: during("c", "14"),
     cast: {
       p: {
         person: "auh_adler",
@@ -10059,7 +9987,7 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("C", "17a"),
+        during("c", "17a"),
         {
           kind: "all",
           of: [
@@ -10969,8 +10897,8 @@ export const AUH_REALM_SCENES: readonly GwScene[] = [
                 when: GRAIN_HIDDEN,
                 then: [
                   {
-                    kind: "flag",
-                    flag: "f_auh_found_grain",
+                    kind: "world",
+                    of: { do: "reveal", id: "auh_hun_grain_hidden" },
                   },
                 ],
               },

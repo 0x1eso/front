@@ -1,102 +1,11 @@
-import {
-  GwCond,
-  GwCondSchema,
-  GwEffect,
-  GwEffectSchema,
-  GwOptionSchema,
-  GwScene,
-} from "@openfront/engine-api/ww1914/SceneDsl";
+import type { GwScene } from "@openfront/engine-api/ww1914/SceneDsl";
 
 /**
  * 「러시아」, the 전선 share: `rus_w_` scenes, the summoned talks of Alekseyev,
  * Brusilov, Polivanov and Guchkov, and five visits. Data only. Text is in
  * resources/ww1914/ko/RUS.front.json. Plan: ww135-plan-rus.md sections 5, 8, 9.
- *
- * RAW is written in the forms lane Y (w135-world) and w130-gw settled: world
- * `date`, `era`, `regime`, `command`, the four ears as `inst`, `sign_chief`,
- * `screen`. This branch has none of them yet. `landed` lets through what the
- * schema here accepts and stands in for the rest with "always" or "nothing",
- * so the file needs no edit at the merge: every form then passes as written.
- * RUS_FRONT_STOOD_IN says what stood in; after the merge it is empty and
- * `landed` can go, with RAW typed as GwScene[].
  */
-export const RUS_FRONT_STOOD_IN: string[] = [];
-
-const ALWAYS: GwCond = { kind: "all", of: [] };
-const NOTHING: GwEffect = { kind: "maybe", when: ALWAYS, then: [] };
-
-type Loose = Record<string, unknown>;
-
-function cond(c: Loose): GwCond {
-  if (GwCondSchema.safeParse(c).success) return c as unknown as GwCond;
-  if (c.kind === "all" || c.kind === "any") {
-    return { kind: c.kind, of: (c.of as Loose[]).map(cond) };
-  }
-  RUS_FRONT_STOOD_IN.push(JSON.stringify(c));
-  return ALWAYS;
-}
-
-function effect(e: Loose): GwEffect {
-  if (e.kind === "maybe") {
-    return {
-      kind: "maybe",
-      when: cond(e.when as Loose),
-      then: (e.then as Loose[]).map(effect),
-    };
-  }
-  if (e.kind === "promise" && e.keep !== undefined) {
-    return { ...e, keep: cond(e.keep as Loose) } as unknown as GwEffect;
-  }
-  if (GwEffectSchema.safeParse(e).success) return e as unknown as GwEffect;
-  RUS_FRONT_STOOD_IN.push(JSON.stringify(e));
-  return NOTHING;
-}
-
-const conds = <T extends { when?: unknown }>(x: T): T =>
-  x.when === undefined ? x : { ...x, when: cond(x.when as Loose) };
-const effects = (list: unknown): GwEffect[] =>
-  (list as Loose[]).map((e) => effect(e));
-
-function landed(raw: object): GwScene {
-  const s = conds(raw as Loose & { when?: unknown });
-  const out: Loose = { ...s, variants: (s.variants as Loose[]).map(conds) };
-  if (s.options !== undefined) {
-    out.options = (s.options as Loose[]).map((o) => {
-      const { screen, ...rest } = conds(o);
-      const keep = "screen" in GwOptionSchema.shape ? { screen } : {};
-      return {
-        ...rest,
-        ...(screen === undefined ? {} : keep),
-        effects: effects(o.effects),
-      };
-    });
-  }
-  if (s.nodes !== undefined) {
-    const nodes = Object.entries(s.nodes as Record<string, Loose>);
-    out.nodes = Object.fromEntries(
-      nodes.map(([id, n]) => [
-        id,
-        {
-          says: (n.says as Loose[]).map(conds),
-          replies: (n.replies as Loose[]).map((r) => {
-            const x: Loose = { ...conds(r), effects: effects(r.effects) };
-            if (r.gain !== undefined) x.gain = effects(r.gain);
-            if (r.reacts !== undefined) {
-              x.reacts = (r.reacts as Loose[]).map((a) => ({
-                ...conds(a),
-                effects: effects(a.effects),
-              }));
-            }
-            return x;
-          }),
-        },
-      ]),
-    );
-  }
-  return out as unknown as GwScene;
-}
-
-const RAW: readonly object[] = [
+export const RUS_FRONT_SCENES: readonly GwScene[] = [
   {
     id: "rus_w_ledger",
     nation: ["RUS"],
@@ -6465,5 +6374,3 @@ const RAW: readonly object[] = [
     },
   },
 ];
-
-export const RUS_FRONT_SCENES: readonly GwScene[] = RAW.map(landed);

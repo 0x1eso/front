@@ -430,6 +430,7 @@ describe("pack shares", () => {
       "ww1914/ko/FRA.json",
       "ww1914/ko/common.war.json",
       "ww1914/ko/common.people.json",
+      "ww1914/ko/DEU.cast.json",
       "ww1914/ko/GBR.people.json",
       "ww1914/ko/AUH.people.json",
       "ww1914/ko/RUS.people.json",

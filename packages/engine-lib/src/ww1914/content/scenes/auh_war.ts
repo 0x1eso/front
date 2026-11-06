@@ -1,107 +1,59 @@
+import type { GwSecret } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import type {
   GwCond,
   GwEffect,
   GwScene,
 } from "@openfront/engine-api/ww1914/SceneDsl";
+import { period } from "./period";
 
 /**
  * 「오스트리아-헝가리」, the war share: `auh_w_` scenes, the summoned talks of
  * Conrad, Krobatin, Boroević and Bolfras, and five visits. Data only. Text is
  * in resources/ww1914/ko/AUH.war.json. Plan: ww135-plan-auh.md sections 5, 8, 9.
- *
- * The stand-ins below are what plan section 2 asks lane Y for and this branch
- * lacks. Each is one definition: replace it here when the real one lands, and
- * every scene follows.
  */
 
-/** Plan section 0's periods, as `full` chapters. Becomes world `date`. */
-const PERIODS: Readonly<Record<string, readonly [number, number]>> = {
-  C: [0, 5],
-  "14": [6, 10],
-  "15a": [11, 17],
-  "15b": [18, 22],
-  "16a": [23, 29],
-  "16b": [30, 35],
-  "17a": [36, 41],
-  "17b": [42, 47],
-  "18a": [48, 53],
-  "18b": [54, 59],
+const during = period;
+
+/** The Russians pushed us last. */
+const eastPushed: GwCond = {
+  kind: "world",
+  of: {
+    is: "battle",
+    theatre: "east",
+    of: ["advance", "break"],
+    by: "entente",
+  },
 };
-const during = (from: string, to: string): GwCond => ({
-  kind: "chapter",
-  min: PERIODS[from][0],
-  max: PERIODS[to][1],
+
+/** The debt to Berlin: an institution, higher is worse. */
+const debtAt = (n: number): GwCond => ({
+  kind: "inst",
+  inst: "berlin",
+  min: n,
+});
+const debt = (delta: 1 | -1): GwEffect => ({
+  kind: "inst",
+  inst: "berlin",
+  delta,
 });
 
-/** The Russians pushed us last. Becomes world `battle` with `by: "entente"`. */
-const eastPushed: GwCond = {
-  kind: "any",
-  of: [
-    { kind: "world", of: { is: "front", theatre: "east", to: "oder" } },
-    {
-      kind: "all",
-      of: [
-        {
-          kind: "world",
-          of: { is: "battle", theatre: "east", of: ["advance", "break"] },
-        },
-        { kind: "world", of: { is: "score", max: 0 } },
-      ],
-    },
-  ],
-};
-
-/** Plan's flag ladder for the debt to Berlin. Becomes `inst: "berlin"`. */
-const debtFlag = (n: number) => `f_auh_debt_${n}`;
-const debtAt = (n: number): GwCond => ({ kind: "flag", flag: debtFlag(n) });
-const always: GwCond = { kind: "all", of: [] };
-const debt = (delta: 1 | -1): GwEffect => {
-  const step = (n: number): GwEffect =>
-    delta > 0
-      ? {
-          kind: "maybe",
-          when: {
-            kind: "all",
-            of: [
-              ...(n > 1 ? [debtAt(n - 1)] : []),
-              { kind: "not", of: debtAt(n) },
-            ],
-          },
-          then: [{ kind: "flag", flag: debtFlag(n) }],
-        }
-      : {
-          kind: "maybe",
-          when: {
-            kind: "all",
-            of: [
-              debtAt(n),
-              ...(n < 3 ? [{ kind: "not", of: debtAt(n + 1) } as GwCond] : []),
-            ],
-          },
-          then: [{ kind: "unflag", flag: debtFlag(n) }],
-        };
-  // Top step first, so one call moves the ladder by one.
-  return { kind: "maybe", when: always, then: [step(3), step(2), step(1)] };
-};
-
-/** Become `inst: "hungary"` and `inst: "nations"`. */
 const hungary = (delta: number): GwEffect => ({
-  kind: "flag",
-  flag: delta < 0 ? "f_auh_hungary_down" : "f_auh_hungary_up",
+  kind: "inst",
+  inst: "hungary",
+  delta,
 });
 const nations = (delta: number): GwEffect => ({
-  kind: "flag",
-  flag: delta < 0 ? "f_auh_nations_down" : "f_auh_nations_up",
+  kind: "inst",
+  inst: "nations",
+  delta,
 });
 
-/** Becomes world `reveal` once GW_SECRETS holds the plan's new ids. */
-const reveal = (id: string): GwEffect => ({
-  kind: "flag",
-  flag: `f_known_${id}`,
+const reveal = (id: GwSecret): GwEffect => ({
+  kind: "world",
+  of: { do: "reveal", id },
 });
 
-/** Becomes world `sign_chief` (on w130-gw, not on this branch). */
-const signChief: GwEffect = { kind: "flag", flag: "f_auh_chief_signed" };
+const signChief: GwEffect = { kind: "world", of: { do: "sign_chief" } };
 
 export const AUH_WAR_SCENES: readonly GwScene[] = [
   {
@@ -174,6 +126,7 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
       },
       {
         id: "return_chief",
+        screen: "fronts",
         tell: ["trust:-1", "army:-1"],
         effects: [
           {
@@ -275,6 +228,7 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
       },
       {
         id: "return_chief",
+        screen: "fronts",
         tell: ["trust:-1", "army:-1"],
         effects: [
           {
@@ -369,6 +323,7 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
       },
       {
         id: "return_chief",
+        screen: "fronts",
         tell: ["trust:-1", "army:-1"],
         effects: [
           {
@@ -469,6 +424,7 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
       },
       {
         id: "return_chief",
+        screen: "fronts",
         tell: ["trust:-1", "army:-1"],
         effects: [
           {
@@ -566,6 +522,7 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
       },
       {
         id: "return_chief",
+        screen: "fronts",
         tell: ["trust:-1", "army:-1"],
         effects: [
           {
@@ -2219,10 +2176,7 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
         when: {
           kind: "any",
           of: [
-            {
-              kind: "flag",
-              flag: "f_auh_nations_down",
-            },
+            { kind: "inst", inst: "nations", max: -1 },
             {
               kind: "secret",
               id: "auh_czech_regiments_sound",
@@ -2791,16 +2745,13 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
       {
         id: "corrected",
         when: {
-          kind: "flag",
-          flag: "f_known_auh_czech_regiments_sound",
+          kind: "world",
+          of: { is: "known", id: "auh_czech_regiments_sound" },
         },
       },
       {
         id: "fear",
-        when: {
-          kind: "flag",
-          flag: "f_auh_nations_down",
-        },
+        when: { kind: "inst", inst: "nations", max: -1 },
       },
       {
         id: "base",
@@ -3327,12 +3278,7 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
         id: "hungary",
         when: {
           kind: "any",
-          of: [
-            {
-              kind: "flag",
-              flag: "f_auh_hungary_down",
-            },
-          ],
+          of: [{ kind: "inst", inst: "hungary", max: -1 }],
         },
       },
       {
@@ -3458,7 +3404,7 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("C", "C"),
+        during("c", "c"),
         {
           kind: "crisis",
           topic: "balkan",
@@ -3711,7 +3657,7 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
     id: "auh_t_con_moltke",
     nation: ["AUH"],
     kind: "talk",
-    when: during("C", "14"),
+    when: during("c", "14"),
     cast: {
       who: {
         person: "auh_conrad",
@@ -5068,7 +5014,7 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("C", "C"),
+        during("c", "c"),
         {
           kind: "crisis",
           topic: "balkan",
@@ -5288,7 +5234,7 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
     id: "auh_t_krob_rail",
     nation: ["AUH"],
     kind: "talk",
-    when: during("C", "C"),
+    when: during("c", "c"),
     cast: {
       who: {
         person: "auh_krobatin",
@@ -5781,10 +5727,7 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
         says: [
           {
             id: "fear",
-            when: {
-              kind: "flag",
-              flag: "f_auh_nations_down",
-            },
+            when: { kind: "inst", inst: "nations", max: -1 },
           },
           {
             id: "cold",
@@ -7966,7 +7909,7 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("C", "14"),
+        during("c", "14"),
         {
           kind: "not",
           of: {
@@ -8200,7 +8143,7 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        during("C", "C"),
+        during("c", "c"),
         {
           kind: "crisis",
           topic: "balkan",

@@ -1,6 +1,7 @@
 import type {
   GwGauge,
   GwInstitution,
+  GwIssue,
   GwOffice,
   GwStage,
   GwTemperament,
@@ -38,18 +39,13 @@ import {
   trustOf,
 } from "@openfront/engine-api/ww1914/SceneDsl";
 import { doWorld, world } from "@openfront/engine-api/ww1914/WorldDsl";
+import { period, sinceChapter } from "./period";
 
 /**
  * Britain, the share at home: the `gbr_h_` scenes, the summoned talks of Lloyd
  * George, Bonar Law, Henderson and Venetia Stanley, and five visits. Data only;
  * the text is in resources/ww1914/ko/GBR.home.json. Plan: ww135-plan-gbr.md
  * sections 7, 9, 10, 11.
- *
- * Stand-ins, each one definition to swap when the world lane lands:
- * `during`/`since` (`{ is: "date" }`), `body` (the institutions `cabinet`,
- * `commons`, `opposition`, `irish`), `oppHigh` (`inst: "opposition"`),
- * `votes` (`{ is: "votes" }`), `vote` (`{ do: "vote" }`), `revolution`
- * (`{ is: "regime", tag: "RUS" }`).
  */
 
 const NATION: GwScene["nation"] = ["GBR"];
@@ -60,37 +56,9 @@ const CRISIS_ON: GwStage[] = ["crisis", "y1914", "war"];
 const Y14_ON: GwStage[] = ["y1914", "war"];
 const WAR: GwStage[] = ["war"];
 
-const HALVES = [
-  "15a",
-  "15b",
-  "16a",
-  "16b",
-  "17a",
-  "17b",
-  "18a",
-  "18b",
-] as const;
-type Half = (typeof HALVES)[number];
-const monthly: GwCond = { kind: "span", max: 30 };
-const bimonthly: GwCond = { kind: "span", min: 31 };
-const fullEnd = (h: Half) => 16 + 6 * HALVES.indexOf(h);
-const standardEnd = (h: Half) => 13 + 3 * HALVES.indexOf(h);
+const during = period;
+const since = sinceChapter;
 
-/** The plan's half-years on the `full` and `standard` calendars alike. */
-const during = (from: Half, to: Half = from): GwCond => {
-  const i = HALVES.indexOf(from);
-  return any(
-    all(monthly, { kind: "chapter", min: 11 + 6 * i, max: fullEnd(to) }),
-    all(bimonthly, { kind: "chapter", min: 11 + 3 * i, max: standardEnd(to) }),
-  );
-};
-
-/** From a chapter of 1914 up to the end of a half-year. */
-const since = (chapter: number, to: Half): GwCond =>
-  any(
-    all(monthly, { kind: "chapter", min: chapter, max: fullEnd(to) }),
-    all(bimonthly, { kind: "chapter", min: chapter, max: standardEnd(to) }),
-  );
 const chapter = (min: number, max: number): GwCond => ({
   kind: "chapter",
   min,
@@ -106,15 +74,16 @@ const co = flag("f_coalition");
 const hr = flag("f_home_rule_lives");
 const notHr = not(hr);
 const labourIn = any(flag("f_gbr_labour_in"), lg);
-/** The opposition presses. Becomes `inst: "opposition"`, min 2. */
-const oppHigh = any(
-  flag("f_gbr_opposition_up_1"),
-  flag("f_gbr_opposition_up_2"),
-);
-/** Russia has had its revolution. Becomes world `regime`. */
-const revolution = any(world({ is: "out", tag: "RUS" }), during("17a", "18a"));
-/** The House grows short. Becomes `inst: "commons"`, max -1. */
-const commonsLow = flag("f_gbr_commons_down_1");
+/** The opposition presses. */
+const oppHigh: GwCond = { kind: "inst", inst: "opposition", min: 2 };
+/** Russia has had its revolution. */
+const revolution = world({
+  is: "regime",
+  tag: "RUS",
+  of: ["provisional", "rep", "soviet"],
+});
+/** The House grows short. */
+const commonsLow: GwCond = { kind: "inst", inst: "commons", max: -1 };
 const manLow: GwCond = world({ is: "manpower", max: 55 });
 const westBack: GwCond = world({ is: "front", theatre: "west", from: "somme" });
 const bigLoss: GwCond = world({ is: "casualties", min: 300 });
@@ -149,13 +118,8 @@ const greyWaits: GwCond = {
   broken: false,
 };
 const broke = (key: string): GwCond => memory(`broke_${key}`);
-/** The table would carry this. Becomes world `votes`, min 0. */
-const votes = (issue: string): GwCond =>
-  any(
-    memory(`v_${issue}`),
-    flag("f_gbr_cabinet_up_1"),
-    flag("f_gbr_cabinet_up_2"),
-  );
+/** The table would carry this. */
+const votes = (issue: GwIssue): GwCond => world({ is: "votes", issue, min: 0 });
 
 const gauge = (g: GwGauge, delta: number): GwEffect => ({
   kind: "gauge",
@@ -208,14 +172,17 @@ const inst = (name: GwInstitution, delta: number): GwEffect => ({
  * The table, the House, the opposition and the Irish: no institutions on this
  * branch, so each move writes a flag and the tell shows the real word.
  */
-const body = (name: string, delta: number): GwEffect =>
-  setFlag(`f_gbr_${name}_${delta < 0 ? "down" : "up"}_${Math.abs(delta)}`);
+const body = (inst: GwInstitution, delta: number): GwEffect => ({
+  kind: "inst",
+  inst,
+  delta,
+});
 const cabinet = (d: number) => body("cabinet", d);
 const commons = (d: number) => body("commons", d);
 const opposition = (d: number) => body("opposition", d);
 const irish = (d: number) => body("irish", d);
-/** The table votes. Becomes world `vote`. */
-const vote = (issue: string): GwEffect => setFlag(`f_gbr_voted_${issue}`);
+/** The table votes. */
+const vote = (issue: GwIssue): GwEffect => doWorld({ do: "vote", issue });
 
 /** `gbr_h_vacant`'s list: the office, the first name, the second name. */
 const VACANCIES: readonly (readonly [GwOffice, string, string])[] = [
@@ -1384,7 +1351,7 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
       ),
       hedge: node([v("base")], r("end", "cold", "leave", null)),
       deep: node(
-        [v("known", memory("m_wilson_leaks")), v("base")],
+        [v("known", world({ is: "known", id: "gbr_wilson_leaks" })), v("base")],
         r("thanks", "warm", "leave", null, {
           tell: ["trust:+1"],
           effects: [trustOf(who, 1), remember("m_law_shaking")],
@@ -2342,8 +2309,7 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
       notLg,
       any(
         seen("gbr_h_shells"),
-        all({ kind: "span", max: 30 }, chapter(15, 16)),
-        all({ kind: "span", min: 31 }, chapter(13, 13)),
+        world({ is: "date", from: "1915-05", to: "1915-06" }),
       ),
     ),
     cast: {},
@@ -2578,7 +2544,11 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
     when: all(
       notLg,
       during("16b"),
-      any(chose("gbr_h_committee", "refuse"), flag("f_gbr_cabinet_down_2")),
+      any(chose("gbr_h_committee", "refuse"), {
+        kind: "inst",
+        inst: "cabinet",
+        max: -2,
+      }),
     ),
     cast: {
       king: { person: "gbr_george_v" },

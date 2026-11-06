@@ -9,45 +9,33 @@ import type {
  * Sukhomlinov, the Grand Duke and Goremykin, and six visits. Data only; the
  * text is in resources/ww1914/ko/RUS.crisis.json. Plan: ww135-plan-rus.md
  * sections 4, 8, 9.
- *
- * The stand-ins below are what lane Y has on `w135-world` and this branch
- * lacks. Each is one definition: replace it here when the merge brings the
- * real one, and every scene follows.
  */
 
-/** Month from a "YYYY-MM", as a `full` chapter. Only for the stand-in below. */
-const fullChapter = (ym: string): number => {
-  const [y, m] = ym.split("-").map(Number);
-  const months = (y - 1915) * 12 + (m - 1);
-  return months < 0 ? 6 + Math.max(0, months + 5) : 11 + months;
-};
-
-/** Becomes `{ kind: "world", of: { is: "date", from, to } }`. */
 const date = (from?: string, to?: string): GwCond => ({
-  kind: "chapter",
-  ...(from === undefined ? {} : { min: fullChapter(from) }),
-  ...(to === undefined ? {} : { max: fullChapter(to) + 1 }),
+  kind: "world",
+  of: { is: "date", from, to },
 });
 
 type Ear = "court" | "stavka" | "duma" | "ministers";
 
-/** Becomes `{ kind: "inst", inst: i, delta }`. */
-const ear = (i: Ear, delta: number): GwEffect => ({
-  kind: "flag",
-  flag: `f_ear_${i}_${delta < 0 ? "down" : "up"}`,
+const ear = (inst: Ear, delta: number): GwEffect => ({
+  kind: "inst",
+  inst,
+  delta,
 });
 
-/** Becomes `{ kind: "inst", inst: i, ...range }`. */
-const earAt = (i: Ear, _range: { min?: number; max?: number }): GwCond => ({
-  kind: "flag",
-  flag: `f_ear_${i}_down`,
+const earAt = (inst: Ear, range: { min?: number; max?: number }): GwCond => ({
+  kind: "inst",
+  inst,
+  ...range,
 });
 
-/** Becomes `{ kind: "world", of: { is: "command" } }`. */
-const cmd: GwCond = { kind: "flag", flag: "f_rus_self_command" };
+const cmd: GwCond = { kind: "world", of: { is: "command" } };
 
-/** Becomes `{ kind: "world", of: { do: "personal_command", on: true } }`. */
-const selfCommand: GwEffect = { kind: "flag", flag: "f_rus_self_command" };
+const selfCommand: GwEffect = {
+  kind: "world",
+  of: { do: "personal_command", on: true },
+};
 
 /** Plan section 2: ministers are seen in the capital. */
 const atDesk: GwCond = {
@@ -824,7 +812,7 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
           { kind: "temp", delta: -2 },
           ear("stavka", -3),
           ear("court", 1),
-          { kind: "world", of: { do: "mobilize", tag: "RUS", level: 1 } },
+          { kind: "world", of: { do: "stand_down", tag: "RUS", level: 1 } },
           { kind: "flag", flag: "f_mob_torn" },
         ],
       },
@@ -877,7 +865,7 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
           ear("stavka", -2),
           { kind: "gauge", gauge: "order", delta: -1 },
           { kind: "flag", flag: "f_mob_recalled" },
-          { kind: "world", of: { do: "mobilize", tag: "RUS", level: 1 } },
+          { kind: "world", of: { do: "stand_down", tag: "RUS", level: 1 } },
           { kind: "unflag", flag: "f_rus_general" },
         ],
       },
@@ -1326,7 +1314,7 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        { kind: "chapter", min: 9, max: 14 },
+        date("1914-11", "1915-04"),
         { kind: "world", of: { is: "war" } },
         { kind: "gauge", gauge: "shells", max: 1 },
       ],
@@ -1406,7 +1394,7 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     nation: ["RUS"],
     kind: "ledger",
     stage: ["closing"],
-    when: { kind: "chapter", max: 11 },
+    when: date(undefined, "1915-01"),
     cast: { chancellor: { office: "chancellor" } },
     salience: 9,
     tags: ["home"],
@@ -3408,14 +3396,7 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
             stance: "frank",
             kind: "ask",
             tell: [],
-            effects: [
-              {
-                kind: "roll",
-                key: "rus_myasoedov",
-                pct: 50,
-                then: [{ kind: "flag", flag: "f_rus_myasoedov_true" }],
-              },
-            ],
+            effects: [],
             next: "spy",
           },
           {
@@ -3473,7 +3454,7 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
               kind: "all",
               of: [
                 { kind: "candid", who: { role: "p" } },
-                { kind: "flag", flag: "f_rus_myasoedov_true" },
+                { kind: "secret", id: "rus_myasoedov_spy" },
               ],
             },
           },

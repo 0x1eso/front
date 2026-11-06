@@ -5,12 +5,8 @@ import type { GwScene } from "@openfront/engine-api/ww1914/SceneDsl";
  * the rus_h_ scenes, the talks of Alexandra, Rasputin, Krivoshein and Bark, and
  * the visits of Fredericks, Maria, Samarin, Kokovtsov and Lvov. Data only; the
  * text is in resources/ww1914/ko/RUS.home.json.
- *
- * Lane Y's words (world date, regime, command; inst court, stavka, duma,
- * ministers; the new secrets) are on w135-world, not on this file's base, so
- * the list is cast once at its end. Drop the cast after the merge.
  */
-export const RUS_HOME_SCENES = [
+export const RUS_HOME_SCENES: readonly GwScene[] = [
   {
     id: "rus_h_roster",
     nation: ["RUS"],
@@ -11758,4 +11754,4 @@ export const RUS_HOME_SCENES = [
       },
     },
   },
-] as unknown as readonly GwScene[];
+];

@@ -28,6 +28,7 @@ import {
   trustOf,
 } from "@openfront/engine-api/ww1914/SceneDsl";
 import { doWorld, world } from "@openfront/engine-api/ww1914/WorldDsl";
+import { period } from "./period";
 
 /**
  * 「오스트리아-헝가리」, the crown share (plan: ww135-plan-auh.md §7, §8, §9):
@@ -36,38 +37,8 @@ import { doWorld, world } from "@openfront/engine-api/ww1914/WorldDsl";
  * only; the text is in resources/ww1914/ko/AUH.crown.json.
  */
 
-// ---- Stand-ins. Each is one place to change when the world catches up. ----
-
-/**
- * The plan's dates (§0), on the `full` calendar's chapters. Becomes the plan's
- * `world date` condition.
- */
-const PERIODS = {
-  C: [0, 5],
-  y14: [6, 10],
-  y15a: [11, 17],
-  y15b: [18, 22],
-  y16a: [23, 29],
-  y16b: [30, 35],
-  y17a: [36, 41],
-  y17b: [42, 47],
-  y18a: [48, 53],
-  y18b: [54, 59],
-} as const;
-type Period = keyof typeof PERIODS;
-const period = (from: Period, to: Period = from): GwCond => ({
-  kind: "chapter",
-  min: PERIODS[from][0],
-  max: PERIODS[to][1],
-});
-
-/**
- * The plan's institutions aren't in GW_INSTITUTIONS at this commit, so these
- * name the nearest that are. AUH has none of them yet: the effects do nothing
- * and the conditions read 0 until the row is added. Change the two names here.
- */
-const HUNGARY = "countersign";
-const NATIONS = "reichstag";
+const HUNGARY = "hungary";
+const NATIONS = "nations";
 const hungary = (delta: number): GwEffect => ({
   kind: "inst",
   inst: HUNGARY,
@@ -89,30 +60,13 @@ const nationsAt = (r: { min?: number; max?: number }): GwCond => ({
   ...r,
 });
 
-/** The debt to Berlin, counted in flags as the plan's §2 allows. */
-const DEBT1 = flag("f_auh_debt_1");
-const DEBT2 = flag("f_auh_debt_2");
-const debtUp: GwEffect[] = [
-  { kind: "maybe", when: DEBT2, then: [setFlag("f_auh_debt_3")] },
-  { kind: "maybe", when: DEBT1, then: [setFlag("f_auh_debt_2")] },
-  setFlag("f_auh_debt_1"),
-];
-const debtDown: GwEffect[] = [
-  {
-    kind: "maybe",
-    when: not(DEBT2),
-    then: [{ kind: "unflag", flag: "f_auh_debt_1" }],
-  },
-  {
-    kind: "maybe",
-    when: not(flag("f_auh_debt_3")),
-    then: [{ kind: "unflag", flag: "f_auh_debt_2" }],
-  },
-  { kind: "unflag", flag: "f_auh_debt_3" },
-];
+/** The debt to Berlin: an institution, higher is worse. */
+const DEBT1: GwCond = { kind: "inst", inst: "berlin", min: 1 };
+const DEBT2: GwCond = { kind: "inst", inst: "berlin", min: 2 };
+const debtUp: GwEffect[] = [{ kind: "inst", inst: "berlin", delta: 1 }];
+const debtDown: GwEffect[] = [{ kind: "inst", inst: "berlin", delta: -1 }];
 
-/** The secret `auh_sixtus_copy` isn't in GW_SECRETS yet: a seeded flag for now. */
-const COPY = flag("f_auh_sixtus_copy");
+const COPY: GwCond = { kind: "secret", id: "auh_sixtus_copy" };
 
 // ---- The run's branches (plan §0) ----
 
@@ -127,21 +81,6 @@ const heirDead: GwCond = {
   kind: "opening",
   of: ["sarajevo", "sarajevo_delayed"],
 };
-/**
- * The world raises w_auh_karl or w_auh_ff_throne on a seeded date (plan §2).
- * Until it does, the date falls by a hidden seeded value, in three places
- * inside the plan's fence: delete this and the `any` that uses it then.
- */
-const health = (max: number): GwCond => ({
-  kind: "health",
-  who: { person: "auh_friedrich" },
-  max,
-});
-const succession: GwCond = any(
-  all({ kind: "chapter", min: 21 }, health(1)),
-  all({ kind: "chapter", min: 27 }, health(2)),
-  { kind: "chapter", min: 33 },
-);
 /** The reign's first year, whenever it began. */
 const young = any(
   { kind: "chose", scene: "auh_k_succession", within: 12 },
@@ -287,7 +226,7 @@ const CROWN_THRONE: readonly GwScene[] = [
   scene({
     id: "auh_k_old_age",
     kind: "report",
-    when: all(FJ, period("y15b", "y16b")),
+    when: all(FJ, period("15b", "16b")),
     cast: { court: { office: "court" } },
     salience: 6,
     tags: ["people", "tension_down"],
@@ -299,7 +238,7 @@ const CROWN_THRONE: readonly GwScene[] = [
   scene({
     id: "auh_k_succession",
     kind: "crisis",
-    when: all(any(K, all(heirDead, not(FFT), succession)), not(FFT)),
+    when: all(K, not(FFT)),
     cast: { fm: { office: "foreign" } },
     salience: 9,
     tags: ["people", "tension_up"],
@@ -314,13 +253,12 @@ const CROWN_THRONE: readonly GwScene[] = [
       opt(
         "keep_old_men",
         ["army:+1", "nations:-1"],
-        [setFlag("w_auh_karl"), army(1), nations(-1), reason("auh_k_kept_men")],
+        [army(1), nations(-1), reason("auh_k_kept_men")],
       ),
       opt(
         "new_names",
         ["army:-1", "authority:+5"],
         [
-          setFlag("w_auh_karl"),
           setFlag("f_auh_new_names"),
           army(-1),
           authority(5),
@@ -332,7 +270,6 @@ const CROWN_THRONE: readonly GwScene[] = [
         "promise_peace",
         ["morale:+1", "order:+1", "berlin:+1"],
         [
-          setFlag("w_auh_karl"),
           setFlag("f_auh_peace_word"),
           gauge("morale", 1),
           gauge("order", 1),
@@ -347,7 +284,7 @@ const CROWN_THRONE: readonly GwScene[] = [
   scene({
     id: "auh_k_ff_throne",
     kind: "crisis",
-    when: any(FFT, all(ffAlive, not(K), succession)),
+    when: FFT,
     cast: { court: { office: "court" }, hun: { office: "hun_pm" } },
     salience: 9,
     tags: ["people", "tension_up"],
@@ -361,13 +298,12 @@ const CROWN_THRONE: readonly GwScene[] = [
       opt(
         "crown_first",
         ["hungary:+1", "nations:-1"],
-        [setFlag("w_auh_ff_throne"), hungary(1), nations(-1)],
+        [hungary(1), nations(-1)],
       ),
       opt(
         "program_before_oath",
         ["hungary:-3", "nations:+3", "trust:-2"],
         [
-          setFlag("w_auh_ff_throne"),
           setFlag("f_auh_ff_program"),
           hungary(-3),
           nations(3),
@@ -379,13 +315,7 @@ const CROWN_THRONE: readonly GwScene[] = [
       opt(
         "half_program",
         ["hungary:-1", "nations:+1", "court:-1"],
-        [
-          setFlag("w_auh_ff_throne"),
-          setFlag("f_auh_ff_half"),
-          hungary(-1),
-          nations(1),
-          pt("court", -1),
-        ],
+        [setFlag("f_auh_ff_half"), hungary(-1), nations(1), pt("court", -1)],
       ),
     ],
   }),
@@ -550,7 +480,7 @@ const CROWN_THRONE: readonly GwScene[] = [
   scene({
     id: "auh_k_tisza_out",
     kind: "dispute",
-    when: all(K, holds("hun_pm", "auh_tisza"), period("y17a", "y17b")),
+    when: all(K, holds("hun_pm", "auh_tisza"), period("17a", "17b")),
     cast: { hun: { office: "hun_pm" } },
     salience: 8,
     tags: ["home", "tension_up"],
@@ -597,7 +527,7 @@ const CROWN_THRONE: readonly GwScene[] = [
     when: all(
       K,
       any(k("k_kra_prison"), chose("auh_h_kramar_verdict")),
-      period("y17a", "y17b"),
+      period("17a", "17b"),
     ),
     cast: {
       chancellor: { office: "chancellor" },
@@ -635,7 +565,7 @@ const CROWN_THRONE: readonly GwScene[] = [
   scene({
     id: "auh_k_reichsrat_opens",
     kind: "crisis",
-    when: all(K, war, period("y17a")),
+    when: all(K, war, period("17a")),
     cast: { chancellor: { office: "chancellor" } },
     salience: 8,
     tags: ["home", "tension_up"],
@@ -674,7 +604,7 @@ const CROWN_THRONE: readonly GwScene[] = [
     kind: "proposal",
     when: all(
       { kind: "seen", scene: "auh_k_reichsrat_opens" },
-      period("y17a", "y17b"),
+      period("17a", "17b"),
     ),
     cast: { chancellor: { office: "chancellor" }, hun: { office: "hun_pm" } },
     salience: 7,
@@ -714,7 +644,7 @@ const CROWN_LETTER: readonly GwScene[] = [
   scene({
     id: "auh_k_sixtus",
     kind: "crisis",
-    when: all(K, war, any(period("y17a", "y17b"), all(period("y16b"), young))),
+    when: all(K, war, any(period("17a", "17b"), all(period("16b"), young))),
     cast: { fm: { office: "foreign" } },
     salience: 9,
     tags: ["foreign", "tension_down"],
@@ -741,12 +671,6 @@ const CROWN_LETTER: readonly GwScene[] = [
           setFlag("f_auh_letter_alsace"),
           trust("FRA", 2),
           tempBy(-1),
-          {
-            kind: "roll",
-            key: "auh_sixtus_copy",
-            pct: 50,
-            then: [setFlag("f_auh_sixtus_copy")],
-          },
           reason("auh_k_letter"),
         ],
         k("k_zita_sixtus"),
@@ -767,7 +691,7 @@ const CROWN_LETTER: readonly GwScene[] = [
   scene({
     id: "auh_k_bread_peace",
     kind: "crisis",
-    when: all(any(out("RUS"), k("k_cz_bread")), period("y17b", "y18a")),
+    when: all(any(out("RUS"), k("k_cz_bread")), period("17b", "18a")),
     cast: { fm: { office: "foreign" }, hun: { office: "hun_pm" } },
     salience: 8,
     tags: ["foreign"],
@@ -811,7 +735,7 @@ const CROWN_LETTER: readonly GwScene[] = [
   scene({
     id: "auh_k_jan_strike",
     kind: "crisis",
-    when: all(K, war, gaugeAt("bread", 1), period("y18a")),
+    when: all(K, war, gaugeAt("bread", 1), period("18a")),
     cast: { chancellor: { office: "chancellor" } },
     salience: 9,
     tags: ["home", "tension_up"],
@@ -869,7 +793,7 @@ const CROWN_LETTER: readonly GwScene[] = [
   scene({
     id: "auh_k_cattaro",
     kind: "proposal",
-    when: all(K, war, unrest(1), period("y18a")),
+    when: all(K, war, unrest(1), period("18a")),
     cast: { navy: { office: "navy" } },
     salience: 7,
     tags: ["war", "tension_up"],
@@ -902,7 +826,7 @@ const CROWN_LETTER: readonly GwScene[] = [
       K,
       chose("auh_k_sixtus"),
       holds("foreign", "auh_czernin"),
-      period("y18a"),
+      period("18a"),
     ),
     cast: { fm: { office: "foreign" } },
     salience: 8,
@@ -944,7 +868,7 @@ const CROWN_LETTER: readonly GwScene[] = [
       K,
       any(COPY, { kind: "seen", scene: "auh_k_czernin_speech" }),
       chose("auh_k_sixtus", "letter_alsace"),
-      period("y18a", "y18b"),
+      period("18a", "18b"),
     ),
     cast: { fm: { office: "foreign" } },
     salience: 9,
@@ -999,7 +923,7 @@ const CROWN_LETTER: readonly GwScene[] = [
       K,
       war,
       any(DEBT2, { kind: "seen", scene: "auh_k_word_of_honour" }),
-      period("y18a", "y18b"),
+      period("18a", "18b"),
     ),
     cast: { fm: { office: "foreign" } },
     salience: 8,
@@ -1045,7 +969,7 @@ const CROWN_LETTER: readonly GwScene[] = [
   scene({
     id: "auh_k_mutinies",
     kind: "report",
-    when: all(out("RUS"), unrest(1), period("y18a", "y18b")),
+    when: all(out("RUS"), unrest(1), period("18a", "18b")),
     cast: {},
     salience: 7,
     tags: ["war", "tension_up"],
@@ -1081,7 +1005,7 @@ const CROWN_END: readonly GwScene[] = [
     when: all(
       K,
       any(score({ max: -15 }), nationsAt({ max: -3 })),
-      period("y18b"),
+      period("18b"),
     ),
     cast: { chancellor: { office: "chancellor" }, hun: { office: "hun_pm" } },
     salience: 9,
@@ -1122,7 +1046,7 @@ const CROWN_END: readonly GwScene[] = [
   scene({
     id: "auh_k_wilson",
     kind: "crisis",
-    when: all(K, any(score({ max: -20 }), out("BGR")), period("y18b")),
+    when: all(K, any(score({ max: -20 }), out("BGR")), period("18b")),
     cast: { fm: { office: "foreign" } },
     salience: 9,
     tags: ["foreign", "tension_down"],
@@ -1172,7 +1096,7 @@ const CROWN_END: readonly GwScene[] = [
     when: all(
       war,
       any(score({ max: -30 }), { kind: "seen", scene: "auh_k_wilson" }),
-      period("y18b"),
+      period("18b"),
     ),
     cast: { cos: { office: "chief_of_staff" }, fm: { office: "foreign" } },
     salience: 9,
@@ -1256,7 +1180,7 @@ const CROWN_END: readonly GwScene[] = [
       nationsAt({ min: 2 }),
       hungaryAt({ min: 0 }),
       k("k_lam_federal"),
-      period("y17a", "y18b"),
+      period("17a", "18b"),
     ),
     cast: { chancellor: { office: "chancellor" }, hun: { office: "hun_pm" } },
     salience: 8,
@@ -1277,7 +1201,7 @@ const CROWN_END: readonly GwScene[] = [
   scene({
     id: "auh_k_personal_union",
     kind: "crisis",
-    when: all(hungaryAt({ max: -4 }), period("y17b", "y18b")),
+    when: all(hungaryAt({ max: -4 }), period("17b", "18b")),
     cast: { hun: { office: "hun_pm" } },
     salience: 8,
     tags: ["home", "tension_up"],
@@ -1310,7 +1234,7 @@ const CROWN_END: readonly GwScene[] = [
   scene({
     id: "auh_k_vasyl",
     kind: "proposal",
-    when: all(K, k("k_wil_vasyl"), out("RUS"), period("y18a", "y18b")),
+    when: all(K, k("k_wil_vasyl"), out("RUS"), period("18a", "18b")),
     cast: { fm: { office: "foreign" } },
     salience: 6,
     tags: ["foreign"],
@@ -1334,7 +1258,7 @@ const CROWN_END: readonly GwScene[] = [
   scene({
     id: "auh_k_peace_vote",
     kind: "crisis",
-    when: all(peace, period("y16b", "y18b")),
+    when: all(peace, period("16b", "18b")),
     cast: { hun: { office: "hun_pm" }, chancellor: { office: "chancellor" } },
     salience: 7,
     tags: ["home"],
@@ -1371,7 +1295,7 @@ const well = (d = 1): GwEffect => ({ kind: "mood", delta: d });
 const czernin: GwWho = { person: "auh_czernin" };
 
 const KARL_TALKS: readonly GwScene[] = [
-  talk("auh_t_karl_funeral", "auh_karl", all(period("C"), heirDead), {
+  talk("auh_t_karl_funeral", "auh_karl", all(period("c"), heirDead), {
     open: node(
       [
         r("why", "frank", "ask", "kids", {
@@ -1405,7 +1329,7 @@ const KARL_TALKS: readonly GwScene[] = [
     fold: node([bye("kind"), bye("done", "cold")]),
     bargain: node([bye("ok")]),
   }),
-  talk("auh_t_karl_teschen", "auh_karl", all(FJ, war, period("y14", "y15a")), {
+  talk("auh_t_karl_teschen", "auh_karl", all(FJ, war, period("14", "15a")), {
     open: node(
       [
         r("ask", "frank", "ask", "hq", {
@@ -1439,7 +1363,7 @@ const KARL_TALKS: readonly GwScene[] = [
     con: node([bye("thanks"), bye("careful", "cold")]),
     far: node([bye("noted"), bye("hush", "cold")]),
   }),
-  talk("auh_t_karl_front", "auh_karl", all(FJ, war, period("y15a", "y16a")), {
+  talk("auh_t_karl_front", "auh_karl", all(FJ, war, period("15a", "16a")), {
     open: node(
       [
         r("say", "warm", "ask", "words", {
@@ -1476,58 +1400,53 @@ const KARL_TALKS: readonly GwScene[] = [
     swap_t: node([bye("go")]),
     peace: node([bye("keep"), bye("silent", "threat")], v("anx", T("anxious"))),
   }),
-  talk(
-    "auh_t_karl_xx",
-    "auh_karl",
-    all(FJ, ent("ITA"), period("y15b", "y16a")),
-    {
-      open: node(
-        [
-          r("why", "frank", "ask", "why"),
-          r("no", "cold", "push", "sulk", {
-            tell: ["trust:-1"],
-            effects: [pt("p", -1)],
-            reacts: [rx(T("stubborn"), "again")],
-          }),
-          r("give", "warm", "deal", "given", {
-            tell: ["cos:-1"],
-            effects: [
-              {
-                kind: "person_trust",
-                who: { office: "chief_of_staff" },
-                delta: -1,
-              },
-              heard("k_karl_xx"),
-            ],
-          }),
-          bye(),
-        ],
-        v("stub", T("stubborn")),
-      ),
-      why: node([
-        r("ok", "warm", "ask", "given", { effects: [heard("k_karl_xx")] }),
-        r("conrad", "cold", "ask", "con"),
-        bye("later"),
-      ]),
-      sulk: node([bye("good"), bye("out", "cold")]),
-      again: node([
-        r("yield", "frank", "ask", "given", { effects: [heard("k_karl_xx")] }),
-        r("order", "threat", "push", null, {
+  talk("auh_t_karl_xx", "auh_karl", all(FJ, ent("ITA"), period("15b", "16a")), {
+    open: node(
+      [
+        r("why", "frank", "ask", "why"),
+        r("no", "cold", "push", "sulk", {
           tell: ["trust:-1"],
           effects: [pt("p", -1)],
+          reacts: [rx(T("stubborn"), "again")],
         }),
-      ]),
-      con: node([
-        r("then", "frank", "ask", "given", { effects: [heard("k_karl_xx")] }),
-        bye("drop"),
-      ]),
-      given: node([bye("go")]),
-    },
-  ),
+        r("give", "warm", "deal", "given", {
+          tell: ["cos:-1"],
+          effects: [
+            {
+              kind: "person_trust",
+              who: { office: "chief_of_staff" },
+              delta: -1,
+            },
+            heard("k_karl_xx"),
+          ],
+        }),
+        bye(),
+      ],
+      v("stub", T("stubborn")),
+    ),
+    why: node([
+      r("ok", "warm", "ask", "given", { effects: [heard("k_karl_xx")] }),
+      r("conrad", "cold", "ask", "con"),
+      bye("later"),
+    ]),
+    sulk: node([bye("good"), bye("out", "cold")]),
+    again: node([
+      r("yield", "frank", "ask", "given", { effects: [heard("k_karl_xx")] }),
+      r("order", "threat", "push", null, {
+        tell: ["trust:-1"],
+        effects: [pt("p", -1)],
+      }),
+    ]),
+    con: node([
+      r("then", "frank", "ask", "given", { effects: [heard("k_karl_xx")] }),
+      bye("drop"),
+    ]),
+    given: node([bye("go")]),
+  }),
   talk(
     "auh_t_karl_peace",
     "auh_karl",
-    all(FJ, heirDead, period("y15b", "y16b")),
+    all(FJ, heirDead, period("15b", "16b")),
     {
       open: node(
         [
@@ -1567,7 +1486,7 @@ const KARL_TALKS: readonly GwScene[] = [
   talk(
     "auh_t_karl_hungary",
     "auh_karl",
-    all(any(FJ, FFT), period("y16a", "y16b")),
+    all(any(FJ, FFT), period("16a", "16b")),
     {
       open: node(
         [
@@ -1600,7 +1519,7 @@ const KARL_TALKS: readonly GwScene[] = [
 ];
 
 const ZITA_TALKS: readonly GwScene[] = [
-  talk("auh_t_zita_brothers", "auh_zita", period("y15a", "y17a"), {
+  talk("auh_t_zita_brothers", "auh_zita", period("15a", "17a"), {
     open: node(
       [
         r("how", "warm", "ask", "news", {
@@ -1638,7 +1557,7 @@ const ZITA_TALKS: readonly GwScene[] = [
   talk(
     "auh_t_zita_italian",
     "auh_zita",
-    all(ent("ITA"), period("y15a", "y16b")),
+    all(ent("ITA"), period("15a", "16b")),
     {
       open: node(
         [
@@ -1684,7 +1603,7 @@ const ZITA_TALKS: readonly GwScene[] = [
   talk(
     "auh_t_zita_sixtus",
     "auh_zita",
-    all(K, k("k_zita_brothers"), any(period("y16b", "y17b"), young)),
+    all(K, k("k_zita_brothers"), any(period("16b", "17b"), young)),
     {
       open: node(
         [
@@ -1713,7 +1632,7 @@ const ZITA_TALKS: readonly GwScene[] = [
       fm: node([bye("think"), bye("hide", "cold")]),
     },
   ),
-  talk("auh_t_zita_czernin", "auh_zita", all(K, period("y17a", "y18a")), {
+  talk("auh_t_zita_czernin", "auh_zita", all(K, period("17a", "18a")), {
     open: node(
       [
         r("trust", "frank", "ask", "judge", {
@@ -1764,7 +1683,7 @@ const ZITA_TALKS: readonly GwScene[] = [
   talk(
     "auh_t_zita_word",
     "auh_zita",
-    all(K, chose("auh_k_sixtus"), period("y17b", "y18b")),
+    all(K, chose("auh_k_sixtus"), period("17b", "18b")),
     {
       open: node(
         [
@@ -1793,7 +1712,7 @@ const ZITA_TALKS: readonly GwScene[] = [
       god: node([bye("amen")]),
     },
   ),
-  talk("auh_t_zita_stay", "auh_zita", all(K, period("y18a", "y18b")), {
+  talk("auh_t_zita_stay", "auh_zita", all(K, period("18a", "18b")), {
     open: node(
       [
         r("what", "frank", "ask", "stay", { effects: [heard("k_zita_stay")] }),
@@ -1824,7 +1743,7 @@ const reveal = (id: "rou_treaty_dead"): GwEffect =>
   doWorld({ do: "reveal", id });
 
 const CZERNIN_TALKS: readonly GwScene[] = [
-  talk("auh_t_cz_bucharest", "auh_czernin", period("C"), {
+  talk("auh_t_cz_bucharest", "auh_czernin", period("c"), {
     open: node(
       [
         r("treaty", "frank", "ask", "treaty", {
@@ -1865,7 +1784,7 @@ const CZERNIN_TALKS: readonly GwScene[] = [
   talk(
     "auh_t_cz_king",
     "auh_czernin",
-    all(not(ent("ROU")), period("y14", "y15b")),
+    all(not(ent("ROU")), period("14", "15b")),
     {
       open: node(
         [
@@ -1897,7 +1816,7 @@ const CZERNIN_TALKS: readonly GwScene[] = [
   talk(
     "auh_t_cz_price",
     "auh_czernin",
-    all(not(ent("ROU")), period("y15a", "y16a")),
+    all(not(ent("ROU")), period("15a", "16a")),
     {
       open: node(
         [
@@ -1924,7 +1843,7 @@ const CZERNIN_TALKS: readonly GwScene[] = [
       tisza: node([bye("know")]),
     },
   ),
-  talk("auh_t_cz_rout", "auh_czernin", all(ent("ROU"), period("y16b")), {
+  talk("auh_t_cz_rout", "auh_czernin", all(ent("ROU"), period("16b")), {
     open: node(
       [
         r("why", "frank", "ask", "why", {
@@ -1955,7 +1874,7 @@ const CZERNIN_TALKS: readonly GwScene[] = [
     ]),
     post: node([bye("go")]),
   }),
-  talk("auh_t_cz_bread", "auh_czernin", all(K, period("y17b", "y18a")), {
+  talk("auh_t_cz_bread", "auh_czernin", all(K, period("17b", "18a")), {
     open: node(
       [
         r("seen", "frank", "ask", "seen", { effects: [heard("k_cz_bread")] }),
@@ -1983,7 +1902,7 @@ const CZERNIN_TALKS: readonly GwScene[] = [
   talk(
     "auh_t_cz_speech",
     "auh_czernin",
-    all(K, holds("foreign", "auh_czernin"), period("y18a")),
+    all(K, holds("foreign", "auh_czernin"), period("18a")),
     {
       open: node(
         [
@@ -2025,7 +1944,7 @@ const KAR_MET = k("k_kar_met");
 const inFrance = { kind: "chapter", min: 8 } as const;
 
 const KAROLYI_TALKS: readonly GwScene[] = [
-  talk("auh_t_kar_first", "auh_karolyi", period("C", "y14"), {
+  talk("auh_t_kar_first", "auh_karolyi", period("c", "14"), {
     open: node(
       [
         r("hear", "warm", "ask", "hear", { effects: [heard("k_kar_met")] }),
@@ -2057,7 +1976,7 @@ const KAROLYI_TALKS: readonly GwScene[] = [
     seat: node([bye("go")]),
     berlin: node([bye("noted"), bye("careful", "cold")]),
   }),
-  talk("auh_t_kar_paris", "auh_karolyi", all(KAR_MET, period("y14", "y15b")), {
+  talk("auh_t_kar_paris", "auh_karolyi", all(KAR_MET, period("14", "15b")), {
     open: node(
       [
         r("terms", "frank", "ask", "terms"),
@@ -2079,7 +1998,7 @@ const KAROLYI_TALKS: readonly GwScene[] = [
     stiff: node([bye("end", "cold")]),
     letter: node([bye("go")]),
   }),
-  talk("auh_t_kar_land", "auh_karolyi", all(KAR_MET, period("y15b", "y17a")), {
+  talk("auh_t_kar_land", "auh_karolyi", all(KAR_MET, period("15b", "17a")), {
     open: node(
       [
         r("how", "frank", "ask", "how", { effects: [heard("k_kar_land")] }),
@@ -2102,7 +2021,7 @@ const KAROLYI_TALKS: readonly GwScene[] = [
     draft: node([bye("go")]),
     tisza: node([bye("noted")]),
   }),
-  talk("auh_t_kar_split", "auh_karolyi", all(KAR_MET, period("y16a", "y17a")), {
+  talk("auh_t_kar_split", "auh_karolyi", all(KAR_MET, period("16a", "17a")), {
     open: node(
       [
         r("count", "frank", "ask", "count"),
@@ -2136,7 +2055,7 @@ const KAROLYI_TALKS: readonly GwScene[] = [
     stay: node([bye("end", "cold"), r("count", "frank", "ask", "count")]),
     sound: node([bye("yes")]),
   }),
-  talk("auh_t_kar_vote", "auh_karolyi", all(KAR_MET, period("y16b", "y18a")), {
+  talk("auh_t_kar_vote", "auh_karolyi", all(KAR_MET, period("16b", "18a")), {
     open: node(
       [
         r("how", "frank", "ask", "trench", { effects: [heard("k_kar_vote")] }),
@@ -2166,7 +2085,7 @@ const KAROLYI_TALKS: readonly GwScene[] = [
   talk(
     "auh_t_kar_pm",
     "auh_karolyi",
-    all(KAR_MET, score({ max: -10 }), period("y18a", "y18b")),
+    all(KAR_MET, score({ max: -10 }), period("18a", "18b")),
     {
       open: node(
         [
@@ -2200,7 +2119,7 @@ const KAROLYI_TALKS: readonly GwScene[] = [
 ];
 
 const VISITS: readonly GwScene[] = [
-  visit("auh_v_kor_may", "auh_korosec", all(K, period("y17a", "y17b")), 5, {
+  visit("auh_v_kor_may", "auh_korosec", all(K, period("17a", "17b")), 5, {
     open: node(
       [
         r("show", "frank", "ask", "text", { effects: [heard("k_kor_may")] }),
@@ -2228,7 +2147,7 @@ const VISITS: readonly GwScene[] = [
   visit(
     "auh_v_lam_plan",
     "auh_lammasch",
-    all(any(K, FFT), period("y17a", "y18b")),
+    all(any(K, FFT), period("17a", "18b")),
     5,
     {
       open: node(
@@ -2264,7 +2183,7 @@ const VISITS: readonly GwScene[] = [
     all(
       K,
       any({ kind: "at_war", tag: "RUS" }, out("RUS")),
-      period("y17b", "y18b"),
+      period("17b", "18b"),
     ),
     5,
     {
@@ -2296,7 +2215,7 @@ const VISITS: readonly GwScene[] = [
       poles: node([bye("noted")]),
     },
   ),
-  visit("auh_v_koer_quota", "auh_koerber", period("y16a", "y17a"), 5, {
+  visit("auh_v_koer_quota", "auh_koerber", period("16a", "17a"), 5, {
     open: node(
       [
         r("sum", "frank", "ask", "sum", { effects: [heard("k_koer_quota")] }),
@@ -2325,7 +2244,7 @@ const VISITS: readonly GwScene[] = [
   visit(
     "auh_v_pil_terms",
     "auh_pilsudski",
-    all({ kind: "at_war", tag: "RUS" }, period("y15b", "y17a")),
+    all({ kind: "at_war", tag: "RUS" }, period("15b", "17a")),
     5,
     {
       open: node(
