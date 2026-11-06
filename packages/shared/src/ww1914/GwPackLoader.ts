@@ -22,7 +22,7 @@ const fetchJson: GwPackFetch = async (path) => {
 export const GW_PACK_SHARES: Readonly<
   Partial<Record<GwTag, readonly string[]>>
 > = {
-  DEU: ["crisis", "war", "people", "cast"],
+  DEU: ["crisis", "war", "people", "cast", "court"],
 };
 
 /** The same for `common.json`: every seat loads these. */
