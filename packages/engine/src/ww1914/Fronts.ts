@@ -61,6 +61,8 @@ const P_LOCAL = idHash("gw_local");
 const REACH_COST = 9;
 /** Percent an attack loses going over the other's own frontier. */
 const HOME_SOIL = 55;
+/** The same where a frontier is a line on a plain: Galicia is no Rhine. */
+const HOME_SOIL_BY: Readonly<Partial<Record<GwTheatre, number>>> = { east: 10 };
 const BREAK_AT = 175;
 const ADVANCE_AT = 112;
 const STALEMATE_AT = 78;
@@ -99,6 +101,15 @@ const TRENCH_EVERY: Readonly<Partial<Record<GwTheatre, number>>> = {
   mesopotamia: 6,
   palestine: 5,
 };
+
+/** What a level of trench adds to a defence, percent. */
+const TRENCH_WORTH = 24;
+/** Too much ground in the east: a line that long is thin in places. */
+const TRENCH_WORTH_BY: Readonly<Partial<Record<GwTheatre, number>>> = {
+  east: 12,
+};
+/** Fronts so long that an attacker picks the weakest army to hit. */
+const WEAK_SECTOR: readonly GwTheatre[] = ["east"];
 
 /** How deep a theatre ever digs: there is too much ground in the east. */
 const TRENCH_MAX: Readonly<Partial<Record<GwTheatre, number>>> = {
@@ -220,16 +231,27 @@ function reservesOf(gw: GreatWar, t: GwTheatre, side: GwSide): number {
   return out;
 }
 
-/** The lead's worth multipliers, percent, attack or defence. */
-function fireOf(gw: GreatWar, t: GwTheatre, side: GwSide): number {
-  const lead = membersOf(gw, t, side)[0];
-  if (lead === undefined) return 100;
-  const n = gw.nation(lead)!;
+/** A country's worth multipliers, percent. */
+function fireOfNation(gw: GreatWar, tag: GwTag): number {
+  const n = gw.nation(tag)!;
   const shells = SHELL_FIRE[n.gauges.shells];
   const morale = 80 + n.gauges.morale * 8;
   const men =
-    (n.manpower < MEN_LOW ? 75 : 100) * ((GW_ARMY_QUALITY[lead] ?? 90) / 100);
+    (n.manpower < MEN_LOW ? 75 : 100) * ((GW_ARMY_QUALITY[tag] ?? 90) / 100);
   return Math.floor((shells * morale * men) / 10000);
+}
+
+/** The lead's worth multipliers, percent, attack or defence. */
+function fireOf(gw: GreatWar, t: GwTheatre, side: GwSide): number {
+  const lead = membersOf(gw, t, side)[0];
+  return lead === undefined ? 100 : fireOfNation(gw, lead);
+}
+
+/** What a defence is worth: on a long front, its weakest army's. */
+function holdingFire(gw: GreatWar, t: GwTheatre, side: GwSide): number {
+  if (!WEAK_SECTOR.includes(t)) return fireOf(gw, t, side);
+  const fires = membersOf(gw, t, side).map((tag) => fireOfNation(gw, tag));
+  return fires.length === 0 ? 100 : Math.min(...fires);
 }
 
 /** The lead on a side of a theatre, or null. */
@@ -344,11 +366,11 @@ function oddsOf(
   const def =
     ((bandOf(gw, t.id, foe) + 12 + reservesOf(gw, t.id, foe)) *
       (100 +
-        t.trench * 24 +
+        t.trench * (TRENCH_WORTH_BY[t.id] ?? TRENCH_WORTH) +
         groundOf(gw, t, foe) +
         eraOf(gw).defence +
         shield) *
-      (50 + fireOf(gw, t.id, foe) / 2) *
+      (50 + holdingFire(gw, t.id, foe) / 2) *
       commandOf(gw, t, foe)) /
     1000000;
   const home = t.line <= GW_FRONT_START[t.id] && by !== GW_FRONT_UP[t.id];
@@ -358,7 +380,7 @@ function oddsOf(
     edge -
     seasonOf(gw, t.id) -
     reachOf(t, by) * (REACH_BY[t.id] ?? REACH_COST) -
-    (home && t.id !== "sea" ? HOME_SOIL : 0);
+    (home && t.id !== "sea" ? (HOME_SOIL_BY[t.id] ?? HOME_SOIL) : 0);
   return Math.floor((att * 100) / Math.max(1, def)) + bias;
 }
 

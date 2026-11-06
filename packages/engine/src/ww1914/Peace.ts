@@ -53,6 +53,8 @@ const SPENT_MONTHS = 30;
 const LEVEL_SCORE = 30;
 /** Past this a side has lost, and knows it. */
 const LOST_SCORE = -40;
+/** Months before anyone will hear of stopping: the first year has no bill yet. */
+const TALKS_MONTHS = 10;
 
 function beatenBy(gw: GreatWar, row: GwBeaten): boolean {
   const n = gw.nation(row.tag);
@@ -163,6 +165,7 @@ export function talksAccepted(gw: GreatWar, seat: GwSeatState): boolean {
   if (n === null || n.side === null) return false;
   const foe = enemyLead(gw, n.side);
   if (foe === null) return true;
+  if (warMonths(gw) < TALKS_MONTHS) return false;
   const theirs = warScore(gw, foe.side!);
   const tired =
     (foe.gauges.morale <= 2 ? 1 : 0) +

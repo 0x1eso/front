@@ -31,6 +31,9 @@ export const GW_SHORT_START = 3;
 /** The delayed visit's shot: Vienna's week is one short, July keeps its days. */
 const DELAYED_START = 2;
 
+/** Vienna's seat has signed the war on Serbia (auh_c_war_serbia). */
+const AUH_DECLARED = "f_auh_declared";
+
 /** Temperature a crisis needs to go on at its last two links. */
 export const LOCAL_WAR_AT = 5;
 const GENERAL_WAR_AT = 6;
@@ -124,10 +127,11 @@ export function closeChain(gw: GreatWar, outcome: GwChainOutcome): void {
   setSpark(gw, s.chapter + 3);
 }
 
-/** How a character moves a crisis, by country. */
+/** How a character moves a crisis, by country; a seat moves it by its scenes. */
 function moves(gw: GreatWar, link: number): number {
   const s = gw.s;
-  const kind = (t: "AUH" | "RUS" | "GBR" | "FRA") => gw.nation(t)?.ai;
+  const kind = (t: "AUH" | "RUS" | "GBR" | "FRA") =>
+    seatsOf(gw, t).length > 0 ? undefined : gw.nation(t)?.ai;
   let d = (wwRoll(s.seed, P_CRISIS, s.chapter) % 3) - 1;
   if (link === 1 && kind("AUH") === "hardline") d++;
   if (link === 1 && kind("AUH") === "cautious") d--;
@@ -176,7 +180,13 @@ function runLink(gw: GreatWar): void {
     }
     case "local_war": {
       if (s.aside) return closeChain(gw, "humiliation");
-      if (s.temp < LOCAL_WAR_AT) return closeChain(gw, "compromise");
+      // With Vienna at the desk its signature decides, not the temperature.
+      const vienna = seatsOf(gw, "AUH")[0];
+      if (vienna?.flags.includes(AUH_DECLARED) === true) {
+        s.temp = Math.max(s.temp, LOCAL_WAR_AT);
+      }
+      const held = vienna !== undefined && !vienna.flags.includes(AUH_DECLARED);
+      if (held || s.temp < LOCAL_WAR_AT) return closeChain(gw, "compromise");
       const rus = gw.nation("RUS");
       if (rus !== null && seatsOf(gw, "RUS").length === 0) {
         // What Russia really did: reports about it may say otherwise.

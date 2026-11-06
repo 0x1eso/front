@@ -1127,7 +1127,7 @@ const CROWN_END: readonly GwScene[] = [
   scene({
     id: "auh_k_new_form",
     kind: "crisis",
-    when: any(unrest(4), nationsAt({ max: -5 })),
+    when: any(unrest(4), all(unrest(2), nationsAt({ max: -5 }))),
     cast: { chancellor: { office: "chancellor" } },
     salience: 9,
     tags: ["people", "tension_up"],

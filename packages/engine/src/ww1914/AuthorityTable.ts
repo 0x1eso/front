@@ -313,7 +313,7 @@ export const GW_AUTHORITY: Readonly<Record<string, GwAuthorityRow>> = {
     dismiss: [{ camp: "military", inst: "army", delta: -1 }],
   },
   liberal: {
-    inst: { cabinet: 1, commons: 1, opposition: 0, irish: 1 },
+    inst: { cabinet: 1, commons: 1, opposition: 0, irish: 1, army: 0 },
     rules: [
       ...britishRules,
       {
@@ -334,7 +334,7 @@ export const GW_AUTHORITY: Readonly<Record<string, GwAuthorityRow>> = {
     dismiss: [{ camp: "civil", inst: "cabinet", delta: -1 }],
   },
   coalition: {
-    inst: { cabinet: 0, commons: 2, opposition: 2, irish: 0 },
+    inst: { cabinet: 0, commons: 2, opposition: 2, irish: 0, army: 0 },
     rules: [
       ...britishRules,
       {
@@ -351,19 +351,19 @@ export const GW_AUTHORITY: Readonly<Record<string, GwAuthorityRow>> = {
     ],
   },
   war_cabinet: {
-    inst: { cabinet: 2, commons: 1, opposition: 1, irish: -1 },
+    inst: { cabinet: 2, commons: 1, opposition: 1, irish: -1, army: 0 },
     rules: britishRules,
     papers: [{ inst: "commons", max: -4, closes: ["other"], why: "commons" }],
     dismiss: [{ camp: "hard", inst: "opposition", delta: -1 }],
   },
   national: {
-    inst: { cabinet: 1, commons: 0, opposition: 3, irish: -2 },
+    inst: { cabinet: 1, commons: 0, opposition: 3, irish: -2, army: 0 },
     rules: britishRules,
     papers: [],
     dismiss: [{ camp: "any", inst: "opposition", delta: -1 }],
   },
   dual_monarchy: {
-    inst: { hungary: 0, council: 1, nations: 0 },
+    inst: { hungary: 1, council: 2, nations: 0, berlin: 0, army: 2 },
     rules: austrianRules,
     papers: [
       { inst: "hungary", max: -3, closes: ["major"], why: "hungary" },
@@ -378,7 +378,7 @@ export const GW_AUTHORITY: Readonly<Record<string, GwAuthorityRow>> = {
     dismiss: [{ camp: "magyar", inst: "hungary", delta: 1 }],
   },
   karl: {
-    inst: { hungary: -1, council: 0, nations: -1 },
+    inst: { hungary: -1, council: 0, nations: -1, berlin: 0, army: 0 },
     rules: [
       ...austrianRules,
       {

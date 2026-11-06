@@ -81,7 +81,7 @@ export async function warShape(
       gameType: GameType.Singleplayer,
       greatWar1914Calendar: calendar,
     },
-    [{ clientID: HUMAN, country: "DEU" }],
+    [{ clientID: HUMAN, gwCountry: tag }],
     undefined,
     id,
   );
@@ -90,7 +90,6 @@ export async function warShape(
     runner.executeNextTick();
   }
   const gw = runner.game.greatWar()!;
-  gw.s.seats[0].tag = tag;
   const shape: GwShape = {
     id,
     tag,
