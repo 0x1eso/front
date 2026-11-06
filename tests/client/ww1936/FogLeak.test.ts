@@ -737,6 +737,12 @@ describe("fog leaks (spec §8.9)", () => {
       renderRegionLand(t: number): unknown;
       renderRegionEconomy(t: number): unknown;
       wwTroopLabels(p: unknown, total: number, max: number): unknown;
+      renderTroopBar(
+        total: number,
+        attacking: number,
+        max: number,
+        fogged: [string, string] | null,
+      ): unknown;
     };
     const box = document.createElement("div");
     render(o.renderRegionLand(tileOf(NEAR)), box);
@@ -755,6 +761,11 @@ describe("fog leaks (spec §8.9)", () => {
     expect(
       o.wwTroopLabels(g.game.playerBySmallID(ID("DEU")), 480_000, 900_000),
     ).toBeNull();
+    // One range for both ends reads once, not twice side by side.
+    const bar = document.createElement("div");
+    render(o.renderTroopBar(0, 0, 900_000, ["900~2.70K", "900~2.70K"]), bar);
+    expect(bar.querySelectorAll("[data-troops-total]")).toHaveLength(1);
+    expect(bar.querySelector("[data-troops-max]")).toBeNull();
     g.setLevels([0, 20, 0, 0]);
     const rough = o.wwTroopLabels(pol, 480_000, 900_000) as string[];
     expect(rough[0]).toContain("~");

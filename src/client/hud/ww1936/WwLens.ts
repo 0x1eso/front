@@ -270,7 +270,7 @@ export class WwLens extends LitElement implements Controller {
         aria-expanded=${String(this.open)}
         aria-label=${translateText("ww1936.lens.button")}
         title=${translateText("ww1936.lens.button")}
-        class="fixed right-2 z-[1002] flex size-10 items-center justify-center rounded-lg text-white shadow-lg ${on
+        class="fixed right-2 z-[1000] flex size-10 items-center justify-center rounded-lg text-white shadow-lg ${on
           ? "bg-amber-700/90 ring-1 ring-amber-300"
           : "bg-gray-800/92 hover:bg-gray-700"}"
         style="top: calc(50% + 62px)"
@@ -298,7 +298,7 @@ export class WwLens extends LitElement implements Controller {
             type="button"
             data-ww-lens-off
             aria-label=${translateText("ww1936.lens.off")}
-            class="fixed right-14 z-[1002] h-10 w-10 rounded-lg bg-gray-800/92 text-sm text-white shadow-lg hover:bg-gray-700"
+            class="fixed right-14 z-[1000] h-10 w-10 rounded-lg bg-gray-800/92 text-sm text-white shadow-lg hover:bg-gray-700"
             style="top: calc(50% + 62px)"
             @click=${() => this.choose("none")}
           >

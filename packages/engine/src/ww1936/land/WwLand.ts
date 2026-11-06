@@ -2614,7 +2614,9 @@ export class WwLand {
       addShort(need, equipByType(t.equipOf(r), this.keyStatsOf(t.owner[r])));
       let equipPm = 1000;
       fill.forEach((f, i) => {
-        if (need[i] > 0) equipPm = Math.min(equipPm, f);
+        // Support gear is no shortage of the division: its companies say how
+        // little of it they have ("공병 중대 효과 0%"), the rest fights on.
+        if (need[i] > 0 && i !== SUPPORT_GROUP) equipPm = Math.min(equipPm, f);
       });
       divisions.push({
         id: t.id[r],

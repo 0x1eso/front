@@ -11,7 +11,7 @@ import { ID_ARMY } from "@openfront/engine-api/ww1936/DepthTypes";
 import { renderNumber, renderTroops } from "@openfront/engine-lib/Format";
 import { assetUrl } from "@openfront/shared/AssetUrls";
 import { EventBus } from "@openfront/shared/EventBus";
-import { html, LitElement, TemplateResult } from "lit";
+import { html, LitElement, nothing, TemplateResult } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import { Controller } from "../../Controller";
 import {
@@ -928,6 +928,9 @@ export class PlayerInfoOverlay extends LitElement implements Controller {
       0,
       Math.min(100 - greenPercent, orangePercentRaw),
     );
+    // A fogged bar often reads the same range twice ("900~2.70K" for the men
+    // and for the cap): it says it once, centred, with no icon between.
+    const single = fogged !== null && fogged[0] === fogged[1];
 
     return html`
       <div
@@ -945,7 +948,9 @@ export class PlayerInfoOverlay extends LitElement implements Controller {
           ></div>
         </div>
         <div
-          class="absolute inset-0 flex items-center justify-between px-1.5 text-sm font-bold leading-none pointer-events-none"
+          class="absolute inset-0 flex items-center ${single
+            ? "justify-center"
+            : "justify-between"} px-1.5 text-sm font-bold leading-none pointer-events-none"
           translate="no"
         >
           <span
@@ -953,20 +958,24 @@ export class PlayerInfoOverlay extends LitElement implements Controller {
             class="text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.8)]"
             >${fogged?.[0] ?? renderTroops(totalTroops)}</span
           >
-          <span
-            data-troops-max
-            class="text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.8)]"
-            >${fogged?.[1] ?? renderTroops(maxTroops)}</span
-          >
+          ${single
+            ? nothing
+            : html`<span
+                data-troops-max
+                class="text-white drop-shadow-[0_1px_1px_rgba(0,0,0,0.8)]"
+                >${fogged?.[1] ?? renderTroops(maxTroops)}</span
+              >`}
         </div>
-        <img
-          src=${soldierIcon}
-          alt=""
-          aria-hidden="true"
-          width="14"
-          height="14"
-          class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 brightness-0 invert drop-shadow-[0_1px_1px_rgba(0,0,0,0.8)] pointer-events-none"
-        />
+        ${single
+          ? nothing
+          : html`<img
+              src=${soldierIcon}
+              alt=""
+              aria-hidden="true"
+              width="14"
+              height="14"
+              class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 brightness-0 invert drop-shadow-[0_1px_1px_rgba(0,0,0,0.8)] pointer-events-none"
+            />`}
       </div>
     `;
   }
