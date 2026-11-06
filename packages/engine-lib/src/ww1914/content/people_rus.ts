@@ -7,6 +7,7 @@ import type { GwPersonDef } from "@openfront/engine-api/ww1914/GreatWarTypes";
  *
  * RUS_SUMMONED are the sixteen with summons talks, six each. The others come
  * through visits, voices and the vacancy box. Text is in RUS.people.json.
+ * Buchanan, whom the visits also cast, is in Britain's file.
  *
  * Offices are those of June 1914. Nobody held `supreme_commander` then, so
  * it stays empty until a scene fills it: the Tsar leading the army himself is
@@ -68,7 +69,7 @@ export const RUS_PEOPLE: readonly GwPersonDef[] = [
     camps: ["civil", "duma", "moderate"],
     temperaments: ["anxious", "stubborn"],
     rivals: ["rus_sturmer", "rus_goremykin", "rus_rasputin"],
-    allies: ["rus_krivoshein", "fra_paleologue", "gbr_buchanan"],
+    allies: ["rus_krivoshein", "fra_paleologue"],
     fame: 4,
     source:
       "b. 10 Aug 1860; foreign minister 11 Oct 1910-20 Jul 1916; Stolypin's brother-in-law; Tsarskoye Selo Lyceum, London embassy; Straits two-fifths of trade; written guarantee to Romania 1 Oct 1914; Allied assent on Constantinople Mar 1915; dismissed after proposing Polish autonomy; signed the ministers' protest 1915 (en.wikipedia Sergey Sazonov; Paléologue's memoirs, 1915). His protest at partial mobilisation (en.wikipedia July Crisis)",
@@ -171,7 +172,12 @@ export const RUS_PEOPLE: readonly GwPersonDef[] = [
     fit: [],
     camps: ["civil", "duma", "moderate"],
     temperaments: ["stubborn", "arrogant", "anxious"],
-    rivals: ["rus_rasputin", "rus_goremykin", "rus_protopopov", "rus_alexandra"],
+    rivals: [
+      "rus_rasputin",
+      "rus_goremykin",
+      "rus_protopopov",
+      "rus_alexandra",
+    ],
     allies: ["rus_lvov", "rus_krivoshein"],
     fame: 3,
     source:
@@ -620,19 +626,6 @@ export const RUS_PEOPLE: readonly GwPersonDef[] = [
     source:
       "b. 13 Jan 1859; French ambassador to Russia 1914-1917; writer, hated Germany, backed mobilisation in July 1914; Buchanan on him as a source of information (en.wikipedia Maurice Paléologue). Diary published as memoirs (byu.edu edition)",
   },
-  {
-    id: "gbr_buchanan",
-    tag: "GBR",
-    office: null,
-    fit: [],
-    camps: ["civil", "moderate"],
-    temperaments: ["cold", "weary"],
-    rivals: ["rus_sturmer"],
-    allies: ["rus_sazonov"],
-    fame: 3,
-    source:
-      "b. 25 Nov 1854; ambassador to Russia from 1910, knew the liberal reformers (en.wikipedia George Buchanan). The audience of Jan 1917, asylum for the family (memory)",
-  },
 ];
 
 /** The sixteen with six summons talks each (plan §2). */
@@ -707,8 +700,7 @@ export const RUS_VOICE_NOTES: Readonly<Record<string, string>> = {
     "철도 역장에서 수상까지 온 거인. 혀가 굵고 남을 깎는다. '내가 말했소'를 다른 꼴로 되풀이한다. 전쟁을 미친 짓이라 부른다.",
   rus_shuvaev:
     "보급의 노병. 정직하고 순하다. 대신 자리에서도 창고 얘기를 한다.",
-  rus_belyaev:
-    "책상의 장군. 작은 목소리, 꼼꼼한 메모. 책임을 위로 돌린다.",
+  rus_belyaev: "책상의 장군. 작은 목소리, 꼼꼼한 메모. 책임을 위로 돌린다.",
   rus_ivanov:
     "큰 수염의 노장. 폐하를 사랑한다는 말을 하고 말이 느리다. 낡은 교범을 믿는다.",
   rus_ruzsky:
@@ -737,6 +729,4 @@ export const RUS_VOICE_NOTES: Readonly<Record<string, string>> = {
     "외알 안경의 전 외무대신. 파리에서 자기가 만든 동맹을 자랑한다. 사조노프를 후배로 부른다.",
   fra_paleologue:
     "소설 쓰는 대사. 프랑스의 숨 가쁜 호소를 문학처럼 한다. 들은 말을 바로 일기에 옮긴다. 먼저 본국의 뜻을 밝히고 다음에 자기 뜻을 끼운다.",
-  gbr_buchanan:
-    "차분한 영국 대사. 황제에게도 할 말을 한다. 짧은 문장, 절제. 먼저 본국의 뜻을 밝히고 '외람되오나'를 쓴다.",
 };

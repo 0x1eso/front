@@ -1,9 +1,9 @@
+import { GwPersonDefSchema } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import {
   GwPack,
   GwPackSchema,
   mergeGwPacks,
 } from "@openfront/engine-api/ww1914/GwPack";
-import { GwPersonDefSchema } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import { GW_CONTENT } from "@openfront/engine-lib/ww1914/content/Content";
 import {
   RUS_PEOPLE,
