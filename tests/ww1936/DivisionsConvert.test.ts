@@ -29,7 +29,8 @@ const BERLIN = 3;
 const INFANTRY = 1; // DEU's templates: infantry, armored, mountain, cavalry
 const ARMORED = 2;
 const MOUNTAIN = 3;
-const CAVALRY = 4;
+/** ww107: no major starts with cavalry: germany() adds it. */
+const CAVALRY = 99;
 
 async function germany() {
   const { runner } = await wwRunnerCapture({}, [
@@ -43,6 +44,15 @@ async function germany() {
   const ce = l.econ.country(id)!;
   clearStartSetup(l.econ, ce);
   clearLand(g);
+  cl.templates.push({
+    id: CAVALRY,
+    key: "",
+    def: {
+      name: "Cavalry",
+      battalions: new Array(4).fill("cavalry"),
+      support: [],
+    },
+  });
   let day = SUMMER;
   ce.manpower = 500_000;
   for (const type of [
@@ -167,8 +177,8 @@ describe("divisions_convert", () => {
     const h = gameHash(runner);
     const tot = totals(w);
     expect(issue(convert(INFANTRY, INFANTRY))).toBe("bad_template");
-    expect(issue(convert(99, INFANTRY))).toBe("bad_template");
-    expect(issue(convert(ARMORED, 99))).toBe("bad_template");
+    expect(issue(convert(98, INFANTRY))).toBe("bad_template");
+    expect(issue(convert(ARMORED, 98))).toBe("bad_template");
     // Both or neither of from and army.
     expect(issue(convert(ARMORED))).toBe("bad_index");
     expect(issue(convert(ARMORED, INFANTRY, a.id))).toBe("bad_index");

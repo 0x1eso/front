@@ -291,12 +291,12 @@ describe("start division re-forming (preparation)", () => {
   test("a new template and a template no division uses are not re-formed", async () => {
     const a = await prepGame();
     const n0 = a.l.armiesOf(a.id).length;
-    // Template 4 (cavalry): no division uses it in the generic start.
-    expect(divisionsOf(a.l, a.id, 4)).toHaveLength(0);
+    // Template 3 (mountain): no division uses it in the generic start.
+    expect(divisionsOf(a.l, a.id, 3)).toHaveLength(0);
     expect(
       a.l.issue(
         a.id,
-        saveOf(a.l, a.id, 4, (b) => b.slice(0, 2)),
+        saveOf(a.l, a.id, 3, (b) => b.slice(0, 4)),
       ),
     ).toBeNull();
     expect(a.cl.startReform).toHaveLength(0);

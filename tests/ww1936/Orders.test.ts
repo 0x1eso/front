@@ -264,7 +264,7 @@ describe("World War 1936 P2: army orders (P2 spec §16.3)", () => {
       const e = l.divisions.equipOf(l.divisions.rowOf(id));
       for (let j = 0; j < GROUND_SLOTS; j++) equip[j] += e[j];
     }
-    expect(men).toBe(2 * 10_500);
+    expect(men).toBe(2 * 7_000);
     const manpower = ce.manpower;
     const stock = GROUND_EQUIP_KEYS.map((k) => ce.stock[k]);
     expect(l.issue(deu, { kind: "army_disband", army: a.id })).toBe(null);

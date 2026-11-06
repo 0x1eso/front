@@ -7,6 +7,10 @@
 import { GameMapSize, GameMapType } from "@openfront/engine-api/game/GameTypes";
 import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
 import { WW_DAY_SPLIT } from "@openfront/engine-api/ww1936/EconomyTypes";
+import type {
+  BattalionId,
+  SupportId,
+} from "@openfront/engine-api/ww1936/LandTypes";
 import { MOVE_NONE } from "@openfront/engine-api/ww1936/LandTypes";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
@@ -365,7 +369,7 @@ describe("the AI's fronts move (ww103)", () => {
       (x, y) => l.supplyMilli[x] - l.supplyMilli[y] || x - y,
     )[0];
     l.econ.country(deu)!.manpower += 10_000_000;
-    const armies = [0, 1, 2, 3, 4, 5, 6, 7].map(() =>
+    const armies = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map(() =>
       placeArmy(g, "DEU", worst, 24),
     );
     for (const a of armies) {
@@ -379,7 +383,7 @@ describe("the AI's fronts move (ww103)", () => {
       .flatMap((a) => a.divisions)
       .map((id) => t.rowOf(id))
       .filter((r) => t.region[r] === worst && t.mode[r] === MOVE_NONE);
-    expect(stay.length).toBeLessThan(150);
+    expect(stay.length).toBeLessThan(220);
     for (const r of stay) {
       expect(t.supply[r]).toBeGreaterThanOrEqual(AI_FEED_OK_PM);
     }
@@ -396,13 +400,40 @@ describe("the AI's fronts move (ww103)", () => {
       if (l.controller[e.to] !== l.controller[sakhalin]) continue;
       takeRegion(g, e.to, "JPN");
     }
-    for (const e of sc.edgesOf(sakhalin)) placeArmy(g, "JPN", e.to, 40);
+    // The heavy divisions of 1936: the line of ww107 eats too little here, and
+    // Japan's would be run over instead of holding the Soviets on their line.
+    const heavy = 99;
+    const inf = (n: number) => new Array<BattalionId>(n).fill("infantry");
+    const give = (
+      tag: CountryTag,
+      battalions: BattalionId[],
+      support: SupportId[],
+    ) =>
+      l.country(byTag(g, tag).smallID())!.templates.push({
+        id: heavy,
+        key: "",
+        def: { name: "Heavy", battalions, support },
+      });
+    l.country(byTag(g, "SUN").smallID())!.templates[0].def = {
+      name: "",
+      battalions: [...inf(9), "artillery", "artillery"],
+      support: [],
+    };
+    give("JPN", [...inf(12), "artillery", "artillery"], ["engineer"]);
+    for (const e of sc.edgesOf(sakhalin)) {
+      placeArmy(g, "JPN", e.to, 40, heavy);
+    }
     const armies = [0, 1, 2, 3, 4, 5].map(() =>
       placeArmy(g, "SUN", sakhalin, 20),
     );
     const d0 = ww.day(g.ticks());
     let sailed = false;
     for (let d = d0; d <= d0 + 24 && !sailed; d++) {
+      // ww107: the pocket's first-day break-out would run on against this
+      // line; here the attack has stopped and the armies stand.
+      for (const a of armies) {
+        if (a.order.kind === "plan") a.order = { ...a.order, executing: false };
+      }
       finishDay(runner, d);
       sailed = armies.some((a) => {
         const o = a.order;

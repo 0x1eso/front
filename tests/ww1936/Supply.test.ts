@@ -37,6 +37,7 @@ import {
   placeArmy,
   stepTo,
   takeRegion,
+  wideLine,
   wwGameStart,
   wwRunner,
   wwRunnerCapture,
@@ -261,6 +262,7 @@ describe("supply (P2 spec §11)", () => {
     takeRegion(g, WARSAW, "DEU");
     takeRegion(g, KRAKOW, "DEU");
     clearLand(g);
+    wideLine(g);
     // Sixty divisions in Krakow use more than it gets.
     const a = placeArmy(g, "DEU", KRAKOW, 30);
     const a2 = placeArmy(g, "DEU", KRAKOW, 30);

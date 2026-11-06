@@ -54,7 +54,7 @@ describe("manpower (spec §6; P2 spec §13.2)", () => {
     expect(deu.troops()).toBe(ww.land.fieldMen(deu.smallID()));
     // The start's men less the day's winter attrition (P2 Task 5).
     expect(deu.troops()).toBe(
-      472_500 - ww.land.country(deu.smallID())!.casualtiesToday,
+      350_000 - ww.land.country(deu.smallID())!.casualtiesToday,
     );
   });
 
@@ -76,7 +76,7 @@ describe("manpower (spec §6; P2 spec §13.2)", () => {
     const winter = ww.land.country(deu.smallID())!.casualtiesToday;
     expect(winter).toBeGreaterThanOrEqual(0);
     expect(ce.manpower).toBe(ce.totals.recruitable - deu.troops() - winter);
-    expect(ce.manpower).toBe(1_219_250 - winter);
+    expect(ce.manpower).toBe(1_341_750 - winter);
   });
 
   test("a continental winter takes no men: Poland in January (ww84)", async () => {
@@ -115,7 +115,7 @@ describe("manpower (spec §6; P2 spec §13.2)", () => {
         killed++;
       }
     }
-    expect(dead).toBe(10 * 10_500 - (winter * 10) / 45);
+    expect(dead).toBe(10 * 7_000 - (winter * 10) / 50);
     expect(cl.casualtiesToday).toBe(winter + dead);
     finishDay(runner, 1);
     expect(ce.totals.recruitable).toBe(pool - winter - dead);
