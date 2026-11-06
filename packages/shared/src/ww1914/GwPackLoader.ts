@@ -24,6 +24,7 @@ export const GW_PACK_SHARES: Readonly<
 > = {
   DEU: ["crisis", "war", "people", "back", "peace"],
   GBR: ["crisis", "war", "home", "world"],
+  AUH: ["crisis", "war", "realm", "crown"],
 };
 
 /** The same for `common.json`: every seat loads these. */
@@ -32,7 +33,7 @@ export const GW_COMMON_SHARES: readonly string[] = ["war"];
  * Casts in a file of their own, `<TAG>.people.json`. Every seat loads them: a
  * scene can cast another country's minister, and a name is all it needs.
  */
-export const GW_PEOPLE_PACKS: readonly GwTag[] = ["GBR"];
+export const GW_PEOPLE_PACKS: readonly GwTag[] = ["GBR", "AUH"];
 
 /** A share not written yet is no share: only the files that are there count. */
 async function fragment(path: string, get: GwPackFetch): Promise<unknown> {

@@ -53,6 +53,10 @@ export const GW_CAMPS = [
   "unionist",
   "labour",
   "irish",
+  // Austria-Hungary's third axis (content/people_auh).
+  "magyar",
+  "dynasty",
+  "nations",
 ] as const;
 export type GwCamp = (typeof GW_CAMPS)[number];
 
