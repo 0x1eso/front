@@ -27,6 +27,19 @@ const ROOT = path.join(__dirname, "../..");
 const res = (p: string) => path.join(ROOT, "resources", p);
 const json = (p: string) => JSON.parse(fs.readFileSync(res(p), "utf8"));
 
+/** DEU.json plus the writers' fragments, until the merge joins them. */
+function withFragments(p: string) {
+  const base = json(p);
+  if (!p.endsWith("/DEU.json")) return base;
+  const dir = res("ww1914/ko");
+  for (const f of fs.readdirSync(dir)) {
+    if (!/^DEU\..+\.json$/.test(f)) continue;
+    const frag = json(`ww1914/ko/${f}`);
+    Object.assign(base.scenes, frag.scenes);
+  }
+  return base;
+}
+
 describe("content", () => {
   test("every scene and person passes its schema and the cross checks", () => {
     for (const s of GW_CONTENT.scenes) {
@@ -39,7 +52,7 @@ describe("content", () => {
   });
 
   test("the pack holds every line a scene can show", async () => {
-    const pack = await loadGwPack("DEU", async (p) => json(p));
+    const pack = await loadGwPack("DEU", async (p) => withFragments(p));
     for (const s of GW_CONTENT.scenes) {
       const t = pack.scenes[s.id];
       expect(t, s.id).toBeDefined();
