@@ -385,6 +385,8 @@ export const GwOptionSchema = z
     when: GwCondSchema.optional(),
     tell: z.array(TellSchema),
     effects: z.array(GwEffectSchema),
+    /** The screen that opens once it is taken: the work goes on there. */
+    screen: z.enum(["fronts"]).optional(),
   })
   .strict();
 export type GwOption = z.infer<typeof GwOptionSchema>;

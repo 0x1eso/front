@@ -1,6 +1,10 @@
-import { GwPackSchema } from "@openfront/engine-api/ww1914/GwPack";
+import {
+  GwPackSchema,
+  mergeGwPacks,
+} from "@openfront/engine-api/ww1914/GwPack";
 import type { GreatWarData } from "@openfront/engine-api/ww1914/GwView";
 import { EventBus } from "@openfront/shared/EventBus";
+import { GW_PACK_SHARES } from "@openfront/shared/ww1914/GwPackLoader";
 import fs from "node:fs";
 import path from "node:path";
 import { afterEach, describe, expect, test, vi } from "vitest";
@@ -40,7 +44,9 @@ const read = (f: string) =>
       ),
     ),
   );
-const PACK = read("DEU.json");
+const PACK = mergeGwPacks(
+  ["DEU.json", ...GW_PACK_SHARES.DEU!.map((x) => `DEU.${x}.json`)].map(read),
+);
 
 /** The screens on a view the real engine made, not a hand-written one. */
 async function mount(d: GreatWarData) {

@@ -39,6 +39,7 @@ function cardView(
       id: o.id,
       open: optionOpen(ctx, o),
       tell: o.tell,
+      ...(o.screen === undefined ? {} : { screen: o.screen }),
     })),
     who: scene.who === undefined ? null : (c.cast[scene.who] ?? null),
     node: c.node,

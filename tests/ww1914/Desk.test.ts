@@ -247,8 +247,6 @@ describe("a quiet chapter", () => {
 
   test("the game's own quiet scenes fill an empty desk at every length", async () => {
     const { runner: r } = await gwRunner();
-    const gw = r.game.greatWar()!;
-    gw.s.seats[0].seen.deu_sample_envoy = 0;
     while (view(r).ended === null) {
       playChapter(r);
       if (view(r).ended !== null) break;

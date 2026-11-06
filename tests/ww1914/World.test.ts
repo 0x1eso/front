@@ -285,6 +285,8 @@ describe("the war", () => {
 
   test("an unsigned chapter runs on the chief's own plan, and says so", async () => {
     const { runner, gw } = await atWar();
+    // A ledger on the desk would sign it; a chapter with none runs on the plan.
+    gw.s.seats[0].desk = [];
     playChapter(runner);
     expect(gw.s.seats[0].alloc.posture).toBe("offensive");
     expect(seat(runner).log.map((l) => l.key)).toContain("plan_by_default");
@@ -582,6 +584,8 @@ describe("plausibility rails", () => {
   });
 
   test("the long war: Britain comes in, America comes late, it lasts past 1915", async () => {
+    // The real cast: the writers' scenes name its people.
+    useGwContent(null);
     let britain = 0;
     let america = 0;
     let long = 0;
@@ -597,6 +601,7 @@ describe("plausibility rails", () => {
     expect(britain).toBe(n);
     expect(america).toBeGreaterThan(0);
     expect(long).toBeGreaterThanOrEqual(n - 1);
+    useGwContent({ scenes: GW_CONTENT.scenes, people: CAST });
   });
 
   test("closing a chain with war twice opens one war", async () => {

@@ -2,7 +2,12 @@
 // alone is checked by gwSceneProblems; a pack by gwPackProblems (GwPack.ts).
 // Pure functions over content: the content test and the simulation report use
 // them, the engine doesn't.
-import { GW_LINES, GW_SECRETS, type GwPersonDef } from "./GreatWarTypes";
+import {
+  GW_LINES,
+  GW_OFFICES,
+  GW_SECRETS,
+  type GwPersonDef,
+} from "./GreatWarTypes";
 import { GwCond, GwEffect, GwScene, GwWho } from "./SceneDsl";
 
 function walkCond(c: GwCond | undefined, f: (x: GwCond) => void): void {
@@ -69,7 +74,12 @@ export function gwSceneConds(s: GwScene): GwCond[] {
 }
 
 /** Memory keys the engine writes by itself; `kept_` and `broke_` + a promise. */
-export const GW_ENGINE_MEMORY = ["talk_left", "talk_well", "talk_ill"] as const;
+export const GW_ENGINE_MEMORY = [
+  "talk_left",
+  "talk_well",
+  "talk_ill",
+  ...GW_OFFICES.map((o) => `succeeded_${o}`),
+] as const;
 
 /**
  * References that lead nowhere, across every scene. `outside` lists flags and

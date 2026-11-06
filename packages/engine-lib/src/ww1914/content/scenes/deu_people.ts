@@ -513,7 +513,11 @@ export const DEU_PEOPLE_SCENES: readonly GwScene[] = [
     id: "deu_p_two_hats",
     nation: ["DEU"],
     kind: "audience",
-    when: all(chapter(8, 9), holds("chief_of_staff", "deu_falkenhayn")),
+    when: all(
+      chapter(8, 9),
+      holds("chief_of_staff", "deu_falkenhayn"),
+      holds("war", "deu_wild"),
+    ),
     cast: { chancellor: { office: "chancellor" } },
     salience: 5,
     tags: ["people", "war"],

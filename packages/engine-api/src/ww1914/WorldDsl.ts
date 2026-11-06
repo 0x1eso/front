@@ -137,7 +137,9 @@ export type GwWorldEffect =
   | { do: "calm" }
   /** Results in their field, for what the seat comes to see of them. */
   | { do: "result"; who: GwWorldWho; won: boolean }
-  | { do: "news"; key: string; a?: GwTag; b?: GwTag; theatre?: GwTheatre };
+  | { do: "news"; key: string; a?: GwTag; b?: GwTag; theatre?: GwTheatre }
+  /** The chief of staff's first open paper is signed for this chapter. */
+  | { do: "sign_chief" };
 
 const int = z.number().int();
 const range = { min: int.optional(), max: int.optional() };
@@ -228,6 +230,7 @@ export const GwWorldEffectSchema = z.union([
     b: tag.optional(),
     theatre: theatre.optional(),
   }),
+  act("sign_chief", {}),
 ]) as unknown as z.ZodType<GwWorldEffect>;
 
 // ---- Authoring helpers ----

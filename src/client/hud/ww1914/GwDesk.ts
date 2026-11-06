@@ -230,6 +230,9 @@ export function reader(c: GwCtx, card: GwCardView): TemplateResult {
                       card: card.uid,
                       option: armedOpt.id,
                     });
+                    if (armedOpt.screen !== undefined) {
+                      c.ui.tab = armedOpt.screen;
+                    }
                     close();
                   }}
                 >

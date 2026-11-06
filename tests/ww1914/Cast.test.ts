@@ -26,8 +26,8 @@ const foreign = GW_PEOPLE.filter((p) => p.tag !== "DEU");
 const ids = new Set(GW_PEOPLE.map((p) => p.id));
 
 describe("the cast of the test build", () => {
-  test("16 Germans and 8 foreigners, each named once", () => {
-    expect(german.length).toBe(16);
+  test("17 Germans and 8 foreigners, each named once", () => {
+    expect(german.length).toBe(17);
     expect(foreign.length).toBe(8);
     expect(ids.size).toBe(GW_PEOPLE.length);
   });

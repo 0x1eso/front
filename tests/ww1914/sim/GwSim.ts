@@ -227,6 +227,8 @@ function clearDesk(
   rec: GwRunRecord,
 ): void {
   for (let guard = 0; guard < 500 && seat.desk.length > 0; guard++) {
+    // A decision can end the game; what is left on the desk stays unread.
+    if (gw.s.ended !== null) return;
     const card = seat.desk[0];
     const scene = sceneOf(card.scene)!;
     const ctx = ctxOf(gw, seat, card);
@@ -237,11 +239,14 @@ function clearDesk(
       for (const o of open) rec.openedOptions.push(`${scene.id}.${o.id}`);
       const option = open[roll(open.length)];
       rec.picks.push(`${scene.id}.${option.id}`);
-      applyGwOrder(gw, seat, {
+      const refused = applyGwOrder(gw, seat, {
         kind: "choose",
         card: card.uid,
         option: option.id,
       });
+      if (refused !== null) {
+        throw new Error(`${scene.id}.${option.id}: refused, ${refused}`);
+      }
     } else {
       applyGwOrder(gw, seat, { kind: "read", card: card.uid });
     }
@@ -319,6 +324,7 @@ export async function playRun(
       for (const c of seat.desk) rec.casts.push(castKey(c));
       summonAll(gw, seat, profile, roll, rec);
       clearDesk(gw, seat, profile, roll, rec);
+      if (gw.s.ended !== null) break;
       if (seat.desk.length > 0) {
         throw new Error(`${gameID}: desk stuck on ${seat.desk[0].scene}`);
       }

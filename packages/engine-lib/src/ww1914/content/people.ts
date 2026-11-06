@@ -2,7 +2,9 @@ import type { GwPersonDef } from "@openfront/engine-api/ww1914/GreatWarTypes";
 
 /**
  * The cast of the test build "독일 1914년": 16 Germans who can be summoned, 8
- * foreigners who come through visits and wires. Names, lean and bio are in
+ * foreigners who come through visits and wires, and Wild, who only sits in the
+ * war ministry once Falkenhayn has gone to the staff (one person, one office:
+ * he is the second hat of `deu_p_two_hats`). Names, lean and bio are in
  * the packs: Germans in DEU.json, foreigners in common.json, so a later
  * country's seat has them too.
  *
@@ -130,7 +132,7 @@ export const GW_PEOPLE: readonly GwPersonDef[] = [
     allies: ["deu_ludendorff", "deu_moltke"],
     fame: 3,
     source:
-      "b. 2 Oct 1847, Posen; retired 1911, lived in Hannover; recalled 22 Aug 1914 to the Eighth Army; commander in the east and field marshal 1 Nov 1914 (en.wikipedia Paul von Hindenburg). 1866 and 1870, the Masurian ground from staff rides (memory)",
+      "b. 2 Oct 1847, Posen; retired 1911, lived in Hannover; recalled 22 Aug 1914 to the Eighth Army; commander in the east 1 Nov 1914 (en.wikipedia Paul von Hindenburg), field marshal 27 Nov 1914 (checked by the war share). 1866 and 1870, the Masurian ground from staff rides (memory)",
   },
   {
     id: "deu_ludendorff",
@@ -328,6 +330,19 @@ export const GW_PEOPLE: readonly GwPersonDef[] = [
     source:
       "b. 8 Apr 1875; king from 23 Dec 1909; mother a Hohenzollern-Sigmaringen; wife Elisabeth of Bavaria (en.wikipedia Albert I of Belgium). Potsdam Nov 1913, told by the Kaiser and Moltke that war was near (Mental Floss; press on the Graham biography). Commanded in person, the 3 Aug refusal (memory)",
   },
+  {
+    id: "deu_wild",
+    tag: "DEU",
+    office: null,
+    fit: ["war"],
+    camps: ["military", "west"],
+    temperaments: ["cold", "stubborn"],
+    rivals: ["deu_ludendorff"],
+    allies: ["deu_falkenhayn"],
+    fame: 1,
+    source:
+      "b. 8 Jul 1860; Prussian war minister 21 Jan 1915-29 Oct 1916, after Falkenhayn; quartermaster general at the supreme command from the autumn of 1914 (en.wikipedia Adolf Wild von Hohenborn). Falkenhayn's man (memory)",
+  },
 ];
 
 /**
@@ -336,6 +351,8 @@ export const GW_PEOPLE: readonly GwPersonDef[] = [
  * mood, not this. The screen doesn't read it.
  */
 export const GW_VOICE_NOTES: Readonly<Record<string, string>> = {
+  deu_wild:
+    "남의 자리에 앉은 사무 장군. 숫자를 올리고 끝에 '총장 각하의 뜻입니다'를 붙인다. 자기 의견은 묻기 전에 내지 않는다.",
   deu_bethmann:
     "철학 책을 읽은 관료. 조건절을 겹치며 긴 문장으로 가다가 끝에서 한풀 꺾인다. '운명', '책임', '계산'을 쓴다. 남보다 자기를 먼저 탓한다. 큰 소리를 내지 않는다.",
   deu_moltke:

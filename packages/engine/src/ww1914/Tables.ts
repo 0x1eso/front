@@ -195,3 +195,58 @@ export const GW_PLAN_FLAGS: Readonly<Partial<Record<string, GwPlan>>> = {
   f_west_plan: "west",
   f_east_first: "east",
 };
+
+/**
+ * What the war's decisions do to the fronts. A scene sets its flag for the
+ * text; this reads the choice, which has a chapter. `odds`, percent, goes on
+ * the seat's side's attacks in `theatre` and off the enemy's, for `lasts`
+ * chapters from the one it was signed in. `steps` moves the line at once, by
+ * progress steps, on the side of the seat. `losses`: percent of the usual dead.
+ */
+export interface GwWarOrder {
+  scene: string;
+  pick: string;
+  theatre: GwTheatre;
+  odds: number;
+  lasts: number;
+  steps?: number;
+  losses?: number;
+}
+
+const order = (
+  scene: string,
+  pick: string,
+  theatre: GwTheatre,
+  odds: number,
+  lasts: number,
+  rest: { steps?: number; losses?: number } = {},
+): GwWarOrder => ({ scene, pick, theatre, odds, lasts, ...rest });
+
+export const GW_WAR_ORDERS: readonly GwWarOrder[] = [
+  order("deu_w_east_relief", "send_two", "west", -12, 2),
+  order("deu_w_east_relief", "send_two", "east", 11, 2),
+  order("deu_w_east_relief", "send_one", "west", -5, 2),
+  order("deu_w_east_relief", "send_one", "east", 5, 2),
+  order("deu_w_east_relief", "send_none", "west", 4, 2),
+  order("deu_w_east_relief", "send_none", "east", -8, 2),
+  order("deu_w_prittwitz", "recall_pair", "east", 6, 2),
+  order("deu_w_prittwitz", "recall_old_general", "east", 2, 2),
+  order("deu_w_prittwitz", "keep", "east", -5, 1),
+  order("deu_w_east_broken", "strip_west", "west", -6, 1),
+  order("deu_w_east_broken", "strip_west", "east", 7, 1),
+  order("deu_w_marne_order", "approve", "west", -4, 1, { steps: -2 }),
+  order("deu_w_marne_order", "go_to_front", "west", -1, 1, { steps: -2 }),
+  order("deu_w_marne_order", "limit_retreat", "west", -1, 1, { steps: -1 }),
+  order("deu_w_marne_order", "hold_line", "west", 6, 1, { losses: 140 }),
+  order("deu_w_ypres_boys", "attack", "west", 7, 1, { losses: 150 }),
+  order("deu_w_ypres_boys", "wait_guns", "west", 2, 1),
+  order("deu_w_ypres_boys", "pull_back", "west", -9, 1, { losses: 60 }),
+  order("deu_w_east_west", "west_again", "west", 6, 1),
+  order("deu_w_east_west", "east_corps", "east", 9, 2),
+  order("deu_w_east_west", "split", "west", 2, 1),
+  order("deu_w_east_west", "split", "east", 4, 1),
+  order("deu_w_conrad_help", "send_corps", "east", 4, 2),
+  order("deu_w_shell_crisis", "cut_west", "west", -4, 2),
+  order("deu_w_fleet_out", "sortie", "sea", 7, 1, { losses: 150 }),
+  order("deu_w_fleet_out", "raid_coast", "sea", 4, 1),
+];

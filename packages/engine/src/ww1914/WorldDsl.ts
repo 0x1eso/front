@@ -9,7 +9,7 @@ import type {
   GwWorldWho,
 } from "@openfront/engine-api/ww1914/WorldDsl";
 import { closeChain } from "./Crises";
-import { warScore } from "./Fronts";
+import { signChief, warScore } from "./Fronts";
 import { sendReport } from "./Intel";
 import { keepPerson, openLetter, personLeaves, recordResult } from "./People";
 import { SceneCtx, whoIn } from "./SceneRun";
@@ -244,6 +244,9 @@ export function worldEffect(ctx: SceneCtx, e: GwWorldEffect): void {
     }
     case "news":
       news(gw, e.key, e.a ?? null, e.b ?? null, e.theatre ?? null);
+      return;
+    case "sign_chief":
+      signChief(gw, seat);
       return;
   }
 }

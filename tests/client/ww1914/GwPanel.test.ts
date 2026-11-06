@@ -12,14 +12,68 @@ import { GwPanel } from "../../../src/client/hud/ww1914/GwPanel";
 import { fillGw, tellText } from "../../../src/client/hud/ww1914/GwText";
 import { SendGwOrderIntentEvent } from "../../../src/client/Transport";
 
-const PACK = GwPackSchema.parse(
-  JSON.parse(
+/** The format's two examples, here so the screens don't move with the writers. */
+const SCENES = {
+  deu_sample_envoy: {
+    title: "빈에서 온 사절",
+    text: {
+      base: "빈에서 사절이 왔다. 세르비아를 벌하겠으니 베를린이 뒤를 받쳐 주겠느냐고 묻는다. {chancellor}은(는) 서류를 내려놓고 폐하의 답을 기다린다.",
+      heard_chancellor:
+        "사절은 아직 응접실에 있다. {chancellor}이(가) 어제 한 말이 귓가에 남아 있다. 빈은 답을 재촉하고, 답에는 날짜를 적을 수도 있다.",
+    },
+    opt: {
+      back_vienna: "빈을 지지한다. 조건은 달지 않는다.",
+      term_limit: "지지하되 기한을 단다.",
+      wait: "답을 미룬다.",
+    },
+    why: {
+      term_limit: "수상의 속내를 아직 듣지 못했다.",
+    },
+    voice: {
+      cos: {
+        deu_moltke: "폐하, 시간표는 기다려 주지 않습니다.",
+      },
+    },
+  },
+  deu_sample_talk: {
+    title: "수상의 방문",
+    text: {
+      base: "{chancellor}이(가) 문가에 서 있다. 불러서 온 얼굴은 아니다.",
+    },
+    topic: "빈의 속내",
+    nodes: {
+      open: {
+        says: {
+          base: "폐하, 잠시 시간을 주십시오. 빈 일로 드릴 말씀이 있습니다.",
+          worn: "폐하, 어젯밤에도 잠을 이루지 못했습니다. 빈 일입니다.",
+        },
+        replies: {
+          ask_vienna: "빈이 정말 바라는 것이 무엇이오?",
+          press: "결론만 말하시오. 지금 당장.",
+          leave: "나중에 듣겠소.",
+        },
+      },
+      vienna: {
+        says: {
+          base: "빈은 전쟁을 바라면서 그 값은 우리에게 묻습니다. 답에 기한을 달아 두십시오.",
+        },
+        replies: {
+          thank: "알겠소. 고맙소.",
+        },
+      },
+    },
+  },
+};
+
+const PACK = GwPackSchema.parse({
+  ...JSON.parse(
     fs.readFileSync(
       path.join(__dirname, "../../../resources/ww1914/ko/DEU.json"),
       "utf8",
     ),
   ),
-);
+  scenes: SCENES,
+});
 
 const card = (over: Partial<GwCardView> = {}): GwCardView => ({
   uid: 1,

@@ -23,6 +23,8 @@ export interface GwOptionView {
   /** False: greyed, with the pack's `why.<id>`. */
   open: boolean;
   tell: readonly string[];
+  /** The screen to open once it is taken. */
+  screen?: "fronts";
 }
 
 export interface GwReplyView extends GwOptionView {

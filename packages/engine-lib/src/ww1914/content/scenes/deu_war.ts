@@ -76,6 +76,12 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
         tell: ["trust:+1"],
         effects: [
           {
+            kind: "world",
+            of: {
+              do: "sign_chief",
+            },
+          },
+          {
             kind: "person_trust",
             who: {
               role: "cos",
@@ -86,6 +92,7 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
       },
       {
         id: "return_chief",
+        screen: "fronts",
         tell: ["trust:-1", "army:-1"],
         effects: [
           {
@@ -172,9 +179,12 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
           kind: "all",
           of: [
             {
-              kind: "line",
-              theatre: "west",
-              min: 1,
+              kind: "world",
+              of: {
+                is: "front",
+                theatre: "west",
+                from: "aisne",
+              },
             },
             {
               kind: "not",
@@ -197,6 +207,12 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
         tell: ["trust:+1"],
         effects: [
           {
+            kind: "world",
+            of: {
+              do: "sign_chief",
+            },
+          },
+          {
             kind: "person_trust",
             who: {
               role: "cos",
@@ -207,6 +223,7 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
       },
       {
         id: "return_chief",
+        screen: "fronts",
         tell: ["trust:-1", "army:-1"],
         effects: [
           {
@@ -286,9 +303,12 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
           kind: "all",
           of: [
             {
-              kind: "line",
-              theatre: "west",
-              min: 2,
+              kind: "world",
+              of: {
+                is: "front",
+                theatre: "west",
+                from: "hindenburg",
+              },
             },
             {
               kind: "at_war",
@@ -308,6 +328,12 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
         tell: ["trust:+1"],
         effects: [
           {
+            kind: "world",
+            of: {
+              do: "sign_chief",
+            },
+          },
+          {
             kind: "person_trust",
             who: {
               role: "cos",
@@ -318,6 +344,7 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
       },
       {
         id: "return_chief",
+        screen: "fronts",
         tell: ["trust:-1", "army:-1"],
         effects: [
           {
@@ -410,6 +437,12 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
         tell: ["trust:+1"],
         effects: [
           {
+            kind: "world",
+            of: {
+              do: "sign_chief",
+            },
+          },
+          {
             kind: "person_trust",
             who: {
               role: "cos",
@@ -420,6 +453,7 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
       },
       {
         id: "return_chief",
+        screen: "fronts",
         tell: ["trust:-1", "army:-1"],
         effects: [
           {
@@ -512,6 +546,12 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
         tell: ["trust:+1"],
         effects: [
           {
+            kind: "world",
+            of: {
+              do: "sign_chief",
+            },
+          },
+          {
             kind: "person_trust",
             who: {
               role: "cos",
@@ -522,6 +562,7 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
       },
       {
         id: "return_chief",
+        screen: "fronts",
         tell: ["trust:-1", "army:-1"],
         effects: [
           {
@@ -840,9 +881,12 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
               },
             },
             {
-              kind: "line",
-              theatre: "west",
-              min: 1,
+              kind: "world",
+              of: {
+                is: "front",
+                theatre: "west",
+                from: "liege",
+              },
             },
           ],
         },
@@ -1085,6 +1129,13 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
             office: "chief_of_staff",
           },
           {
+            kind: "appoint",
+            who: {
+              person: "deu_wild",
+            },
+            office: "war",
+          },
+          {
             kind: "person_trust",
             who: {
               person: "deu_moltke",
@@ -1195,6 +1246,13 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
             office: "chief_of_staff",
           },
           {
+            kind: "appoint",
+            who: {
+              person: "deu_wild",
+            },
+            office: "war",
+          },
+          {
             kind: "flag",
             flag: "f_chief_changed",
           },
@@ -1274,9 +1332,12 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
       {
         id: "paris",
         when: {
-          kind: "line",
-          theatre: "west",
-          min: 1,
+          kind: "world",
+          of: {
+            is: "front",
+            theatre: "west",
+            from: "somme",
+          },
         },
       },
       {
@@ -1378,7 +1439,7 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
           kind: "memory",
           key: "k_haase_belgium",
         },
-        tell: ["reichstag:+2", "army:-2", "GBR:+1"],
+        tell: ["reichstag:+2", "army:-2", "gbr:+1"],
         effects: [
           {
             kind: "flag",
@@ -1414,7 +1475,7 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
           kind: "memory",
           key: "k_jagow_poland",
         },
-        tell: ["AUH:-1", "army:+1"],
+        tell: ["auh:-1", "army:+1"],
         effects: [
           {
             kind: "flag",
@@ -1711,9 +1772,12 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
       {
         id: "line",
         when: {
-          kind: "line",
-          theatre: "east",
-          min: 2,
+          kind: "world",
+          of: {
+            is: "front",
+            theatre: "east",
+            from: "vistula",
+          },
         },
       },
       {
@@ -1743,7 +1807,7 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
           kind: "memory",
           key: "k_falk_peace",
         },
-        tell: ["temp:-1", "army:-1", "trust:+1", "RUS:+1"],
+        tell: ["temp:-1", "army:-1", "trust:+1", "rus:+1"],
         effects: [
           {
             kind: "flag",
@@ -1778,7 +1842,7 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
           kind: "memory",
           key: "k_muller_denmark",
         },
-        tell: ["RUS:+1"],
+        tell: ["rus:+1"],
         effects: [
           {
             kind: "flag",
@@ -1801,7 +1865,7 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
           kind: "memory",
           key: "k_pour_home",
         },
-        tell: ["RUS:+1", "AUH:-1", "trust:+1"],
+        tell: ["rus:+1", "auh:-1", "trust:+1"],
         effects: [
           {
             kind: "flag",
@@ -1832,7 +1896,7 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
           kind: "memory",
           key: "k_lich_farewell",
         },
-        tell: ["GBR:+1", "trust:+1", "army:-1"],
+        tell: ["gbr:+1", "trust:+1", "army:-1"],
         effects: [
           {
             kind: "flag",
@@ -2111,7 +2175,7 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
       },
       {
         id: "ask_vienna",
-        tell: ["AUH:-1"],
+        tell: ["auh:-1"],
         effects: [
           {
             kind: "trust",
@@ -2637,7 +2701,7 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
           kind: "memory",
           key: "k_tirp_command",
         },
-        tell: ["morale:+1", "GBR:-1", "trust:+1"],
+        tell: ["morale:+1", "gbr:-1", "trust:+1"],
         effects: [
           {
             kind: "flag",
@@ -2743,11 +2807,18 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
           kind: "memory",
           key: "k_zimm_usa",
         },
-        tell: ["USA:+1", "trust:+1"],
+        tell: ["usa:+1", "trust:+1"],
         effects: [
           {
             kind: "flag",
             flag: "f_zone_study",
+          },
+          {
+            kind: "world",
+            of: {
+              do: "uboat",
+              level: 1,
+            },
           },
           {
             kind: "trust",
@@ -2769,11 +2840,18 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
           kind: "memory",
           key: "k_tirp_sub",
         },
-        tell: ["USA:-2", "countersign:-2", "army:+1", "morale:+1"],
+        tell: ["usa:-2", "countersign:-2", "army:+1", "morale:+1"],
         effects: [
           {
             kind: "flag",
             flag: "f_zone_declared",
+          },
+          {
+            kind: "world",
+            of: {
+              do: "uboat",
+              level: 2,
+            },
           },
           {
             kind: "trust",
@@ -3024,7 +3102,7 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
           kind: "memory",
           key: "k_hind_falk",
         },
-        tell: ["morale:+1", "trust:-1", "AUH:+1"],
+        tell: ["morale:+1", "trust:-1", "auh:+1"],
         effects: [
           {
             kind: "flag",
@@ -3156,7 +3234,7 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
     options: [
       {
         id: "words_only",
-        tell: ["AUH:-1"],
+        tell: ["auh:-1"],
         effects: [
           {
             kind: "trust",
@@ -3180,7 +3258,7 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
             },
           ],
         },
-        tell: ["AUH:+2", "trust:-1", "shells:-1"],
+        tell: ["auh:+2", "trust:-1", "shells:-1"],
         effects: [
           {
             kind: "trust",
@@ -3211,7 +3289,7 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
           kind: "memory",
           key: "k_conrad_winter",
         },
-        tell: ["AUH:-1", "army:+1"],
+        tell: ["auh:-1", "army:+1"],
         effects: [
           {
             kind: "trust",
@@ -3292,7 +3370,7 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
           kind: "memory",
           key: "k_zimm_irish",
         },
-        tell: ["money:-1", "USA:-1"],
+        tell: ["money:-1", "usa:-1"],
         effects: [
           {
             kind: "flag",
@@ -3511,7 +3589,7 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
     options: [
       {
         id: "push_warsaw",
-        tell: ["morale:+1", "army:+1", "shells:-1", "RUS:-1"],
+        tell: ["morale:+1", "army:+1", "shells:-1", "rus:-1"],
         effects: [
           {
             kind: "gauge",
@@ -3567,7 +3645,7 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
           kind: "memory",
           key: "k_cambon_read",
         },
-        tell: ["FRA:+1", "army:-1"],
+        tell: ["fra:+1", "army:-1"],
         effects: [
           {
             kind: "flag",
@@ -3654,7 +3732,7 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
     options: [
       {
         id: "no_price",
-        tell: ["GBR:-1"],
+        tell: ["gbr:-1"],
         effects: [
           {
             kind: "trust",
@@ -3672,7 +3750,7 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
       },
       {
         id: "fleet_stays",
-        tell: ["GBR:+2", "army:-1", "trust:-1"],
+        tell: ["gbr:+2", "army:-1", "trust:-1"],
         effects: [
           {
             kind: "trust",
@@ -3703,7 +3781,7 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
           kind: "memory",
           key: "k_lich_farewell",
         },
-        tell: ["GBR:+2", "reichstag:-1"],
+        tell: ["gbr:+2", "reichstag:-1"],
         effects: [
           {
             kind: "trust",
@@ -3787,7 +3865,7 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
     options: [
       {
         id: "hold_line",
-        tell: ["temp:-1", "GBR:+1", "AUH:-1"],
+        tell: ["temp:-1", "gbr:+1", "auh:-1"],
         effects: [
           {
             kind: "temp",
@@ -3807,7 +3885,7 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
       },
       {
         id: "press_vienna",
-        tell: ["AUH:+1", "temp:+1", "RUS:-1"],
+        tell: ["auh:+1", "temp:+1", "rus:-1"],
         effects: [
           {
             kind: "trust",
@@ -3836,7 +3914,7 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
           kind: "memory",
           key: "k_jagow_london",
         },
-        tell: ["GBR:+2", "army:-1"],
+        tell: ["gbr:+2", "army:-1"],
         effects: [
           {
             kind: "trust",
@@ -3944,7 +4022,7 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
       },
       {
         id: "full_bill",
-        tell: ["money:-2", "army:+2", "reichstag:-1", "temp:+1", "RUS:-1"],
+        tell: ["money:-2", "army:+2", "reichstag:-1", "temp:+1", "rus:-1"],
         effects: [
           {
             kind: "gauge",
@@ -3978,7 +4056,7 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
           kind: "memory",
           key: "k_kuhn_navy",
         },
-        tell: ["money:-1", "army:+1", "GBR:+1"],
+        tell: ["money:-1", "army:+1", "gbr:+1"],
         effects: [
           {
             kind: "gauge",
@@ -4091,7 +4169,7 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
     options: [
       {
         id: "restrain",
-        tell: ["temp:-2", "AUH:-1", "army:-1"],
+        tell: ["temp:-2", "auh:-1", "army:-1"],
         effects: [
           {
             kind: "temp",
@@ -4111,7 +4189,7 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
       },
       {
         id: "back_ally",
-        tell: ["temp:+3", "AUH:+2", "army:+2"],
+        tell: ["temp:+3", "auh:+2", "army:+2"],
         effects: [
           {
             kind: "temp",
@@ -4135,7 +4213,7 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
       },
       {
         id: "call_conference",
-        tell: ["temp:-1", "GBR:+1", "countersign:+1"],
+        tell: ["temp:-1", "gbr:+1", "countersign:+1"],
         effects: [
           {
             kind: "temp",
@@ -4659,9 +4737,12 @@ export const DEU_WAR_SCENES: readonly GwScene[] = [
       {
         id: "belgium",
         when: {
-          kind: "line",
-          theatre: "west",
-          min: 1,
+          kind: "world",
+          of: {
+            is: "front",
+            theatre: "west",
+            from: "hindenburg",
+          },
         },
       },
       {

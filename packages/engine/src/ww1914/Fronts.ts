@@ -16,7 +16,13 @@ import type { GwProposal } from "@openfront/engine-api/ww1914/GwWorldView";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import type { GreatWar } from "./GreatWar";
 import { officeHolder, recordResult } from "./People";
-import { GW_ARMY_QUALITY, GW_THEATRE_SIDES, theatresOf } from "./Tables";
+import {
+  GW_ARMY_QUALITY,
+  GW_THEATRE_SIDES,
+  GW_WAR_ORDERS,
+  GwWarOrder,
+  theatresOf,
+} from "./Tables";
 import { membersOf, refreshTheatres } from "./Wars";
 import {
   clampTo,
@@ -146,6 +152,37 @@ function openingBias(gw: GreatWar, t: GwTheatre, by: GwSide): number {
   return 0;
 }
 
+/** The war decisions signed lately that weigh on `t` (Tables.GW_WAR_ORDERS). */
+function ordersOn(
+  gw: GreatWar,
+  t: GwTheatre,
+): { o: GwWarOrder; side: GwSide }[] {
+  const out: { o: GwWarOrder; side: GwSide }[] = [];
+  for (const seat of gw.s.seats) {
+    const side = gw.nation(seat.tag)?.side ?? null;
+    if (side === null) continue;
+    for (const o of GW_WAR_ORDERS) {
+      if (o.theatre !== t) continue;
+      const taken = seat.choices.some(
+        (c) =>
+          c.scene === o.scene &&
+          c.pick === o.pick &&
+          gw.s.chapter - c.chapter < o.lasts,
+      );
+      if (taken) out.push({ o, side });
+    }
+  }
+  return out;
+}
+
+/** What those decisions add to an attack by `by`, percent. */
+function orderBias(gw: GreatWar, t: GwTheatre, by: GwSide): number {
+  return ordersOn(gw, t).reduce(
+    (sum, { o, side }) => sum + (side === by ? o.odds : -o.odds),
+    0,
+  );
+}
+
 /** Attack against defence, percent, before the roll. */
 function oddsOf(gw: GreatWar, t: GwTheatreState, by: GwSide): number {
   const foe = other(by);
@@ -162,7 +199,8 @@ function oddsOf(gw: GreatWar, t: GwTheatreState, by: GwSide): number {
     1000000;
   const home = t.line <= GW_FRONT_START[t.id] && by !== GW_FRONT_UP[t.id];
   const bias =
-    openingBias(gw, t.id, by) -
+    openingBias(gw, t.id, by) +
+    orderBias(gw, t.id, by) -
     reachOf(t, by) * REACH_COST -
     (home && t.id !== "sea" ? HOME_SOIL : 0);
   return Math.floor((att * 100) / Math.max(1, def)) + bias;
@@ -286,8 +324,24 @@ function settle(
   }
 }
 
+/** A retreat or a stand signed this chapter moves the line before the guns. */
+function orderSteps(gw: GreatWar, t: GwTheatreState): void {
+  for (const { o, side } of ordersOn(gw, t.id)) {
+    if (o.steps !== undefined) move(gw, t, side, o.steps);
+  }
+}
+
+/** Percent of the usual losses the seat's decisions cost on `t`. */
+function lossShare(gw: GreatWar, t: GwTheatre, side: GwSide): number {
+  return ordersOn(gw, t).reduce(
+    (pct, x) => (x.side === side ? (pct * (x.o.losses ?? 100)) / 100 : pct),
+    100,
+  );
+}
+
 function judge(gw: GreatWar, t: GwTheatreState): void {
   const s = gw.s;
+  orderSteps(gw, t);
   const ups = GW_FRONT_UP[t.id];
   const aUp = attacks(gw, t.id, ups);
   const aDown = attacks(gw, t.id, other(ups));
@@ -317,7 +371,9 @@ function judge(gw: GreatWar, t: GwTheatreState): void {
   const ratio = Math.floor((oddsOf(gw, t, by) * roll) / 100);
   const result = resultOf(ratio, t.trench);
   move(gw, t, by, gainOf(result, t.trench));
-  const [lostA, lostD] = lossesOf(gw, t.id, by, result);
+  const [rawA, rawD] = lossesOf(gw, t.id, by, result);
+  const lostA = Math.floor((rawA * lossShare(gw, t.id, by)) / 100);
+  const lostD = Math.floor((rawD * lossShare(gw, t.id, other(by))) / 100);
   bleed(gw, t.id, by, lostA);
   bleed(gw, t.id, other(by), lostD);
   const lost = by === GW_SIDES[0] ? [lostA, lostD] : [lostD, lostA];
@@ -383,6 +439,15 @@ function signDefaults(gw: GreatWar): void {
     seat.alloc = { ...seat.alloc, ...planOf(first) };
     reason(gw, seat, "plan_by_default");
   }
+}
+
+/** The chief's first open paper, signed; a paper already signed stands. */
+export function signChief(gw: GreatWar, seat: GwSeatState): void {
+  if (seat.signed === gw.s.chapter) return;
+  const first = proposalsFor(gw, seat).find((p) => p.open);
+  if (first === undefined) return;
+  seat.alloc = { ...seat.alloc, ...planOf(first) };
+  seat.signed = gw.s.chapter;
 }
 
 function planOf(p: GwProposal): Omit<GwAlloc, "research"> {
