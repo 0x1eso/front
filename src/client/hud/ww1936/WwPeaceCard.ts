@@ -82,6 +82,8 @@ import { WwDrawerEvent } from "./WwDrawer";
 
 /** The card's width: the event cards' (spec §20.1). */
 const CARD_WIDTH = "w-[min(46vw,380px)]";
+/** The card itself: on a phone the column's 46vw is 180 px, too narrow to read, so it takes the screen (the slot keeps the column's width). */
+const FRAME_WIDTH = "w-[min(calc(100vw-16px),380px)] md:w-[min(46vw,380px)]";
 /** Space kept below the band, in CSS px. */
 const TOP_GAP = 8;
 /** A round's results stay this long (spec §20.1). */
@@ -146,6 +148,8 @@ export class WwPeaceCard extends LitElement implements Controller {
   private mapTemplate: TemplateResult | null = null;
   private drawn: readonly unknown[] = [];
   private folded = false;
+  /** The quick-treaty button that filled my draft (null: none yet). */
+  private quickKind: PeaceQuick | null = null;
   private section: Section = null;
   /** The loser the country demands aim at. */
   private loser = 0;
@@ -247,6 +251,7 @@ export class WwPeaceCard extends LitElement implements Controller {
         this.folded = false;
         this.section = null;
         this.loser = 0;
+        this.quickKind = null;
       }
       this.seen = {
         conf: conf.id,
@@ -486,7 +491,7 @@ export class WwPeaceCard extends LitElement implements Controller {
   private frame(attrs: string, body: TemplateResult): TemplateResult {
     return html`<div
       data-ww-peace-card=${attrs}
-      class="${CARD_WIDTH} pointer-events-auto flex min-h-0 flex-col gap-1 overflow-hidden rounded-lg border border-sky-300/80 bg-gray-900/95 px-2 py-1.5 text-xs shadow-xl"
+      class="${FRAME_WIDTH} pointer-events-auto flex min-h-0 flex-col gap-1 overflow-hidden rounded-lg border border-sky-300/80 bg-gray-900/95 px-2 py-1.5 text-xs shadow-xl"
     >
       ${body}
     </div>`;
@@ -566,15 +571,23 @@ export class WwPeaceCard extends LitElement implements Controller {
     attr: string,
     label: string | TemplateResult,
     onClick: () => void,
-    opts: { disabled?: boolean; armed?: boolean; extra?: string } = {},
+    opts: {
+      disabled?: boolean;
+      armed?: boolean;
+      picked?: boolean;
+      extra?: string;
+    } = {},
   ): TemplateResult {
     return html`<button
       type="button"
       data-ww-peace-btn=${attr}
       data-armed=${String(opts.armed ?? false)}
+      aria-pressed=${opts.picked === undefined ? nothing : String(opts.picked)}
       class="min-h-9 rounded-md border px-2 py-1 text-left ${opts.armed
         ? "border-amber-300 bg-amber-900/60"
-        : "border-white/20 bg-gray-800 hover:bg-gray-700"} disabled:opacity-40 ${opts.extra ??
+        : opts.picked
+          ? "border-emerald-300 bg-emerald-900/50"
+          : "border-white/20 bg-gray-800 hover:bg-gray-700"} disabled:opacity-40 ${opts.extra ??
       ""}"
       ?disabled=${opts.disabled ?? false}
       @click=${onClick}
@@ -674,14 +687,24 @@ export class WwPeaceCard extends LitElement implements Controller {
   private renderQuick(m: PeaceModel, me: number): TemplateResult {
     const button = (kind: PeaceQuick, key: string) => {
       const draft = m.quickDraft(me, kind);
+      const json = JSON.stringify(draft);
       return this.btn(
         `quick-${kind}`,
         translateText(key),
         () => {
           peaceUiOf(this.game).setDraft(draft);
+          this.quickKind = kind;
           this.requestUpdate();
         },
-        { disabled: kind !== "hold" && draft.length === 0, extra: "flex-1" },
+        {
+          disabled: kind !== "hold" && draft.length === 0,
+          // The button I filled the draft from shows it still holds: "hold"
+          // leaves no demands, so without it the tap looks like it did nothing.
+          picked:
+            this.quickKind === kind &&
+            JSON.stringify(peaceUiOf(this.game).draft) === json,
+          extra: "flex-1",
+        },
       );
     };
     return html`<span class="font-semibold text-white/80"

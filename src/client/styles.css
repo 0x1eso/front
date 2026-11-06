@@ -853,6 +853,12 @@ unit-display .tutorial-highlight::after {
       ww-peace-card,
       ww-white-peace-card,
       ww-takeover-card,
+      [data-ww-peace-layer],
+      [data-ww-peace-map-layer],
+      [data-ww-wpeace-layer],
+      [data-ww-npeace-map-layer],
+      [data-ww-takeover-layer],
+      [data-ww-event-layer],
       ww-news-ticker,
       ww-exile-band
     )

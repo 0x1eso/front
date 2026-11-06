@@ -252,8 +252,12 @@ describe("<ww-peace-card> (P5 spec §20.1)", () => {
     m.q<HTMLButtonElement>("[data-ww-peace-btn='quick-hold']")!.click();
     await m.redraw();
     expect(peaceUiOf(m.game).draft).toEqual([]);
+    // "Keep what we hold" leaves no demands: the button shows it was chosen.
+    const hold = () => m.q("[data-ww-peace-btn='quick-hold']")!;
+    expect(hold().getAttribute("aria-pressed")).toBe("true");
     m.q<HTMLButtonElement>("[data-ww-peace-btn='quick-puppet']")!.click();
     await m.redraw();
+    expect(hold().getAttribute("aria-pressed")).toBe("false");
     expect(peaceUiOf(m.game).draft).toEqual([
       { kind: "puppet", target: ID("POL") },
     ]);
