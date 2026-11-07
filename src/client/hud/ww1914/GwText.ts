@@ -143,7 +143,8 @@ export function optionMarked(
   card: GwCardView,
   id: string,
 ): string {
-  return pack?.scenes[card.scene]?.opt?.[id] ?? id;
+  const scene = pack?.scenes[card.scene];
+  return scene?.optBy?.[card.variant]?.[id] ?? scene?.opt?.[id] ?? id;
 }
 
 /** An option's text, its **verb phrase** marked: the style guide's bold line. */
@@ -152,6 +153,21 @@ export function boldParts(text: string): { text: string; bold: boolean }[] {
     .split("**")
     .map((t, i) => ({ text: t, bold: i % 2 === 1 }))
     .filter((p) => p.text !== "");
+}
+
+/**
+ * An option split into what the player picks and what follows from it: the
+ * bold lead, or the first sentence when the share wrote no bold. Only the lead
+ * shows before the choice; the rest is the result note after it.
+ */
+export function optionSplit(text: string): { lead: string; rest: string } {
+  const bold = /^\s*\*\*([^*]+)\*\*\s*([\s\S]*)$/.exec(text);
+  if (bold !== null) return { lead: bold[1].trim(), rest: bold[2].trim() };
+  const plain = text.replace(/\*\*/g, "").trim();
+  const cut = plain.search(/(?<=[.!?\u2026])\s/);
+  return cut < 0
+    ? { lead: plain, rest: "" }
+    : { lead: plain.slice(0, cut), rest: plain.slice(cut + 1).trim() };
 }
 
 /** Each cast member's own paragraph on this card, in cast order. */
@@ -198,9 +214,7 @@ export function decisionLine(
 ): { title: string; pick: string } {
   const scene = pack?.scenes[d.scene];
   const text = scene?.opt?.[d.pick] ?? d.pick;
-  // Some shares wrote no bold line: the first sentence does the same work.
-  const lead =
-    boldParts(text).find((p) => p.bold)?.text ?? text.split(/(?<=[.!?])\s/)[0];
+  const { lead } = optionSplit(text);
   const pick = lead.replace(/\{([a-z_0-9]+)\}/g, (hole, role) => {
     const id = d.cast?.[role];
     return id === undefined ? hole : personName(pack, id);

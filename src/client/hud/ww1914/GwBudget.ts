@@ -325,7 +325,7 @@ function driftWord(points: number): string {
 }
 
 /** The expected year, in numbers and in words, before anyone signs. */
-function forecast(c: GwCtx, y: GwBudgetYear): TemplateResult {
+function forecast(c: GwCtx, y: GwBudgetYear, live: boolean): TemplateResult {
   const tag = c.seat.tag;
   const income = y.taxes + y.bonds + y.loans + y.print;
   return html`<section class=${BOX} data-gw-budget-forecast>
@@ -343,16 +343,18 @@ function forecast(c: GwCtx, y: GwBudgetYear): TemplateResult {
             sum: moneyText(tag, y.shortfall),
           })}
         </p>`}
-    <div class=${MUTED}>${translateText("gw.budget.effects")}</div>
-    <div class="flex flex-wrap gap-1" data-gw-budget-effects>
-      ${GW_BUDGET_DRIFTS.map(
-        (d) =>
-          html`<span class=${CHIP} data-gw-drift=${d}
-            >${translateText(`gw.budget.drift.${d}`)} ${stepsText(y.drift[d])}
-            ${driftWord(y.drift[d])}</span
-          >`,
-      )}
-    </div>
+    ${live
+      ? nothing
+      : html`<div class=${MUTED}>${translateText("gw.budget.effects")}</div>
+          <div class="flex flex-wrap gap-1" data-gw-budget-effects>
+            ${GW_BUDGET_DRIFTS.map(
+              (d) =>
+                html`<span class=${CHIP} data-gw-drift=${d}
+                  >${translateText(`gw.budget.drift.${d}`)}
+                  ${stepsText(y.drift[d])} ${driftWord(y.drift[d])}</span
+                >`,
+            )}
+          </div>`}
   </section>`;
 }
 
@@ -502,7 +504,7 @@ export function budgetPanel(c: GwCtx): TemplateResult {
           ${spending(c, v, plan, live)} ${revenue(c, v, plan, y, live)}
         </div>
         <div class="space-y-2.5">
-          ${numbers(c, v)} ${forecast(c, y)}
+          ${numbers(c, v)} ${forecast(c, y, live)}
           <section class=${BOX} data-gw-budget-vote>
             ${bodyLines(v, vote)}
             ${live

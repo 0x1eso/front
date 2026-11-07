@@ -2,8 +2,8 @@ import type { GwLawView } from "@openfront/engine-api/ww1914/GwLaw";
 import { html, nothing, TemplateResult } from "lit";
 import { translateText } from "../../Utils";
 import type { GwCtx } from "./GwCtx";
-import { BTN, BTN_ON, CHIP, HEAD, MUTED } from "./GwStyle";
-import { personName, tellText } from "./GwText";
+import { BTN, BTN_ON, HEAD, MUTED } from "./GwStyle";
+import { personName } from "./GwText";
 
 const BOX = "space-y-1.5 rounded border border-white/15 bg-black/35 p-2.5";
 
@@ -72,24 +72,28 @@ function repeal(c: GwCtx, v: GwLawView): TemplateResult | typeof nothing {
   if (r === null) return nothing;
   const armed = c.ui.armedRepeal === v.id;
   return html`<button
-      class="${armed ? BTN_ON : BTN} w-full"
-      data-gw-law-repeal=${v.id}
-      ?disabled=${!r.open}
-      @click=${() => {
-        if (!armed) {
-          c.ui.armedRepeal = v.id;
-          c.redraw();
-          return;
-        }
-        c.ui.armedRepeal = null;
-        c.send({ kind: "law", law: v.id, act: "repeal" });
-      }}
-    >
-      ${translateText(armed ? "gw.law.repeal_sure" : "gw.law.repeal")}
-    </button>
-    <div class="flex flex-wrap gap-1">
-      ${r.tell.map((t) => html`<span class=${CHIP}>${tellText(t)}</span>`)}
-    </div>`;
+    class="${armed ? BTN_ON : BTN} w-full"
+    data-gw-law-repeal=${v.id}
+    ?disabled=${!r.open}
+    @click=${() => {
+      if (!armed) {
+        c.ui.armedRepeal = v.id;
+        c.redraw();
+        return;
+      }
+      c.ui.armedRepeal = null;
+      c.ui.notes.push({
+        chapter: c.data.chapter,
+        title: billName(c, v.id),
+        pick: translateText("gw.law.repeal"),
+        rest: "",
+        tell: r.tell,
+      });
+      c.send({ kind: "law", law: v.id, act: "repeal" });
+    }}
+  >
+    ${translateText(armed ? "gw.law.repeal_sure" : "gw.law.repeal")}
+  </button> `;
 }
 
 function line(c: GwCtx, v: GwLawView): TemplateResult {

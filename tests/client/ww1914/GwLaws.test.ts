@@ -44,7 +44,7 @@ function ctx(rows: GwLawView[], audiences = 1) {
       world: { laws: rows },
     } as unknown as GwSeatView,
     pack: PACK,
-    ui: { armedRepeal: null, summoned: 0 } as unknown as GwUi,
+    ui: { armedRepeal: null, summoned: 0, notes: [] } as unknown as GwUi,
     tick: 0,
     send: (o: GwOrder) => sent.push(o),
     redraw: () => render(lawsSection(c), root),
@@ -98,8 +98,8 @@ describe("the country tab's lines", () => {
     expect(q(ctx([row], 0).root, "[data-gw-law-talk]")!.disabled).toBe(true);
   });
 
-  test("repeal takes a second tap and shows its price", () => {
-    const { root, sent } = ctx([
+  test("repeal takes a second tap; its price shows only after it", () => {
+    const { c, root, sent } = ctx([
       bill({
         stage: "force",
         how: "voted",
@@ -108,8 +108,10 @@ describe("the country tab's lines", () => {
     ]);
     q(root, "[data-gw-law-repeal]")!.click();
     expect(sent).toEqual([]);
+    expect(root.textContent).not.toContain("15");
     q(root, "[data-gw-law-repeal]")!.click();
     expect(sent).toEqual([{ kind: "law", law: "deu_censor", act: "repeal" }]);
+    expect(c.ui.notes[0].tell).toEqual(["authority:-15"]);
   });
 
   test("what moves comes before what stands", () => {

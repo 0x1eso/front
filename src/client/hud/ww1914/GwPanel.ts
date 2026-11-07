@@ -91,6 +91,7 @@ export class GwPanel extends LitElement implements Controller {
     budgetPlan: null,
     term: null,
     pressPick: null,
+    notes: [],
     shelf: loadShelf(),
   };
 

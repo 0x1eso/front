@@ -40,6 +40,16 @@ export interface Transcript {
   reasons: readonly GwReason[];
 }
 
+/** What a signed choice left, shown on the desk after the signature. */
+export interface GwResultNote {
+  chapter: number;
+  title: string;
+  pick: string;
+  /** The option's text after its lead: what follows from it. */
+  rest: string;
+  tell: readonly string[];
+}
+
 /** What the screens may change; the panel owns the instance. */
 export interface GwUi {
   tab: GwTab;
@@ -70,6 +80,8 @@ export interface GwUi {
   /** The list open under a press act. */
   pressPick: "invite" | "leak" | null;
   shelf: Shelf;
+  /** Choices signed lately, newest last; their results show on the desk. */
+  notes: GwResultNote[];
 }
 
 export interface GwCtx {

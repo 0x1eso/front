@@ -6,7 +6,7 @@ import { html, nothing, TemplateResult } from "lit";
 import { translateText } from "../../Utils";
 import { deskPapers } from "./GwBlocs";
 import { budgetStrip, openLedger } from "./GwBudget";
-import type { GwCtx } from "./GwCtx";
+import type { GwCtx, GwResultNote } from "./GwCtx";
 import { rich } from "./GwDict";
 import { lawStrip } from "./GwLaws";
 import {
@@ -21,13 +21,13 @@ import { BTN, BTN_ON, CHIP, GLASS, HEAD, MUTED } from "./GwStyle";
 import {
   bodyParts,
   bodyPlain,
-  boldParts,
   cardBody,
   cardTitle,
   fillGw,
   foldedLines,
   fullDate,
   optionMarked,
+  optionSplit,
   personName,
   reasonText,
   tellText,
@@ -137,6 +137,36 @@ function dangerBox(c: GwCtx): TemplateResult | typeof nothing {
   </div>`;
 }
 
+/** Signed choices of this chapter and the last: what they said and cost. */
+function resultsBox(c: GwCtx): TemplateResult | typeof nothing {
+  const rows = c.ui.notes.filter((n) => n.chapter >= c.data.chapter - 1);
+  if (rows.length === 0) return nothing;
+  return html`<div
+    class="space-y-1.5 rounded border border-white/10 bg-white/5 p-2"
+    data-gw-results
+  >
+    <div class=${MUTED}>${translateText("gw.ui.results_title")}</div>
+    ${rows.map(
+      (n: GwResultNote) =>
+        html`<div class="space-y-0.5" data-gw-result>
+          <p class="text-sm text-white/90">
+            <b>${n.title}</b> · ${rich(c, n.pick)}
+          </p>
+          ${n.rest === ""
+            ? nothing
+            : html`<p class="text-sm text-white/75">${rich(c, n.rest)}</p>`}
+          ${n.tell.length === 0
+            ? nothing
+            : html`<div class="flex flex-wrap gap-1">
+                ${n.tell.map(
+                  (t) => html`<span class=${CHIP}>${tellText(t)}</span>`,
+                )}
+              </div>`}
+        </div>`,
+    )}
+  </div>`;
+}
+
 /** The desk tab: what the last chapter left, the papers, the visitors, ready. */
 export function deskTab(c: GwCtx): TemplateResult {
   const { seat, data } = c;
@@ -153,7 +183,7 @@ export function deskTab(c: GwCtx): TemplateResult {
             (r) => html`<p class="text-sm text-white/80">${rich(c, r)}</p>`,
           )}
         </div>`}
-    ${deskPapers(c)}
+    ${resultsBox(c)} ${deskPapers(c)}
     ${papers.length + talks.length === 0
       ? html`<p class="text-sm text-white/65" data-gw-empty>
           ${translateText("gw.ui.desk_empty")}
@@ -183,6 +213,31 @@ export function deskTab(c: GwCtx): TemplateResult {
   </div>`;
 }
 
+function fillOption(c: GwCtx, card: GwCardView, id: string): string {
+  return fillGw(
+    optionMarked(c.pack, card, id),
+    c.pack,
+    card,
+    c.seat,
+    c.data.date,
+  );
+}
+
+/** What a signed option leaves on the next desk: its rest and its price. */
+export function resultNote(
+  c: GwCtx,
+  card: GwCardView,
+  o: GwOptionView,
+): GwResultNote {
+  return {
+    chapter: c.data.chapter,
+    title: cardTitle(c.pack, card),
+    pick: optionSplit(fillOption(c, card, o.id)).lead,
+    rest: optionSplit(fillOption(c, card, o.id)).rest,
+    tell: o.tell,
+  };
+}
+
 function optionButton(
   c: GwCtx,
   card: GwCardView,
@@ -206,25 +261,8 @@ function optionButton(
       }}
     >
       <span class="block"
-        >${boldParts(
-          fillGw(
-            optionMarked(c.pack, card, o.id),
-            c.pack,
-            card,
-            c.seat,
-            c.data.date,
-          ),
-        ).map((p) =>
-          p.bold ? html`<b>${rich(c, p.text)}</b>` : rich(c, p.text),
-        )}</span
+        ><b>${rich(c, optionSplit(fillOption(c, card, o.id)).lead)}</b></span
       >
-      ${o.tell.length === 0
-        ? nothing
-        : html`<span class="mt-0.5 flex flex-wrap gap-1"
-            >${o.tell.map(
-              (t) => html`<span class=${CHIP}>${tellText(t)}</span>`,
-            )}</span
-          >`}
     </button>
     ${why === undefined
       ? nothing
@@ -315,6 +353,7 @@ export function reader(c: GwCtx, card: GwCardView): TemplateResult {
                   class="w-full rounded border border-amber-300 bg-amber-300/90 px-3 py-2 text-center text-sm font-bold text-slate-900 hover:bg-amber-200"
                   data-gw-sign
                   @click=${() => {
+                    c.ui.notes.push(resultNote(c, card, armedOpt));
                     c.send({
                       kind: "choose",
                       card: card.uid,

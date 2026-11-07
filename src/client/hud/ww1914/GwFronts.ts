@@ -11,7 +11,7 @@ import { translateText } from "../../Utils";
 import type { GwCtx } from "./GwCtx";
 import { theatreSpot } from "./GwModel";
 import { BTN, BTN_ON, CHIP, HEAD, MUTED } from "./GwStyle";
-import { frontLine, personName, tellText } from "./GwText";
+import { frontLine, personName } from "./GwText";
 
 const TRENCH_MAX = 5;
 
@@ -80,7 +80,6 @@ function paper(c: GwCtx, p: GwProposal): TemplateResult {
     <div class="flex flex-wrap gap-1">
       <span class=${CHIP}>${translateText(`gw.ui.posture.${p.posture}`)}</span>
       <span class=${CHIP}>${translateText(`gw.ui.scale.${p.scale}`)}</span>
-      ${p.tell.map((t) => html`<span class=${CHIP}>${tellText(t)}</span>`)}
     </div>
     ${p.by === null
       ? nothing
@@ -96,6 +95,13 @@ function paper(c: GwCtx, p: GwProposal): TemplateResult {
           data-gw-sign-paper=${p.id}
           ?disabled=${signed}
           @click=${() => {
+            c.ui.notes.push({
+              chapter: c.data.chapter,
+              title: translateText("gw.ui.paper_title"),
+              pick: translateText(`gw.plan.${p.id}`),
+              rest: "",
+              tell: p.tell,
+            });
             c.send({
               kind: "allocate",
               main: p.main,

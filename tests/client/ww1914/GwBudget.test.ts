@@ -124,7 +124,9 @@ describe("the ledger", () => {
     expect(army.textContent).toContain("40");
     expect(army.textContent).toContain("72");
     expect(q(root, "[data-gw-budget-forecast]")).not.toBeNull();
-    expect(q(root, '[data-gw-drift="shells"]')).not.toBeNull();
+    // The treasury, debt and prices show; what the shares do to the gauges doesn't.
+    expect(q(root, "[data-gw-budget-effects]")).toBeNull();
+    expect(q(root, '[data-gw-drift="shells"]')).toBeNull();
     expect(q(root, '[data-gw-budget-note="outlay"]')).not.toBeNull();
     expect(q(root, "[data-gw-budget-interest]")).not.toBeNull();
     expect(q(root, '[data-gw-budget-pass="yes"]')).not.toBeNull();
@@ -157,6 +159,8 @@ describe("the ledger", () => {
     expect(q(root, "[data-gw-budget-sign]")).toBeNull();
     expect(q(root, "[data-gw-step]")).toBeNull();
     expect(q(root, "[data-gw-budget-next]")).not.toBeNull();
+    // Once a plan runs, what its shares did to the gauges shows.
+    expect(q(root, '[data-gw-drift="shells"]')).not.toBeNull();
   });
 
   test("the country tab opens it", () => {

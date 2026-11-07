@@ -283,9 +283,11 @@ describe("the screens", () => {
     by("[data-gw-open='1']").click();
     await panel.updateComplete;
     expect(by("[data-gw-option=term_limit]").disabled).toBe(true);
-    expect(by("[data-gw-option=back_vienna]").textContent).toContain(
-      "몰트케가 표를 편다",
-    );
+    // Before the signature the option names only what it does, never its result.
+    const label = by("[data-gw-option=back_vienna]").textContent!;
+    expect(label).toContain("빈을 지지한다");
+    expect(label).not.toContain("몰트케가 표를 편다");
+    expect(label).not.toContain("army");
     expect(panel.textContent).toContain("수상의 속내를 아직 듣지 못했다");
     by("[data-gw-option=back_vienna]").click();
     await panel.updateComplete;
@@ -294,6 +296,11 @@ describe("the screens", () => {
     expect(orders).toEqual([
       { kind: "choose", card: 1, option: "back_vienna" },
     ]);
+    await panel.updateComplete;
+    // Once signed, the rest of the text and the price show on the desk.
+    const note = panel.querySelector("[data-gw-results]")!.textContent!;
+    expect(note).toContain("몰트케가 표를 편다");
+    expect(note).toContain("+1");
     expect(by("[data-gw-ready]").disabled).toBe(true);
     expect(panel.querySelector("[data-gw-block]")).not.toBeNull();
   });

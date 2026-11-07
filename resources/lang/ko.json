@@ -15253,6 +15253,7 @@
       "paper_hint": "안은 한 장에 하나 서명합니다. 서명이 없으면 맨 위의 안이 그대로 나갑니다.",
       "paper_odds": "{name}: \"{odds}\"",
       "paper_signed": "이번 장의 안에는 서명했습니다.",
+      "paper_title": "이번 장의 안",
       "person_ailing": "몸이 좋지 않다",
       "person_letter": "사직서를 냈다",
       "person_record": "공 {wins}, 과 {losses}",
@@ -15300,6 +15301,7 @@
         "infantry": "보병",
         "sea": "해군"
       },
+      "results_title": "최근 서명한 일",
       "rivals": "사이가 나쁜 사람",
       "scale": {
         "limited": "제한적",

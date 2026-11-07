@@ -3354,6 +3354,7 @@
       "paper_hint": "One paper is signed each chapter. If you sign none, the first goes out as it stands.",
       "paper_odds": "{name}: \"{odds}\"",
       "paper_signed": "This chapter's paper is signed.",
+      "paper_title": "Plan of the chapter",
       "person_ailing": "In poor health",
       "person_letter": "Has sent a resignation",
       "person_record": "{wins} wins, {losses} failures",
@@ -3438,6 +3439,7 @@
         "infantry": "Infantry",
         "sea": "Navy"
       },
+      "results_title": "Signed lately",
       "rivals": "At odds with",
       "scale": {
         "limited": "Limited",

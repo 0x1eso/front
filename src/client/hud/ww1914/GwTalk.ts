@@ -273,16 +273,6 @@ export function talkView(
                           <span class="${CHIP} mr-2"
                             >${translateText(`gw.ui.stance.${r.stance}`)}</span
                           >${fillGw(text, c.pack, card!, c.seat, c.data.date)}
-                          ${r.tell.length === 0
-                            ? nothing
-                            : html`<span class="mt-1 flex flex-wrap gap-1"
-                                >${r.tell.map(
-                                  (x) =>
-                                    html`<span class=${CHIP}
-                                      >${tellText(x)}</span
-                                    >`,
-                                )}</span
-                              >`}
                         </button>
                         ${why === undefined
                           ? nothing
