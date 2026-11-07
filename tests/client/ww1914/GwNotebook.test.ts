@@ -27,7 +27,10 @@ const pack: GwPack = {
     s1: {
       title: "티서의 편지",
       text: { base: "x" },
-      opt: { go: "**{fm}에게 맡긴다.** 뒷말이다.", plain: "그냥 쓴 말" },
+      opt: {
+        go: "**{fm}에게 맡긴다.** 뒷말이다.",
+        plain: "그냥 쓴 말이다. 뒷말이다.",
+      },
     },
   },
   people: {
@@ -54,7 +57,10 @@ const pack: GwPack = {
 describe("the dictionary", () => {
   test("a name or term is found once, at the start of a word", () => {
     const idx = dictIndex(pack, "DEU", []);
-    const parts = splitTerms("몰트케가 사령부로 갔다. 몰트케는 총사령부에 있다.", idx);
+    const parts = splitTerms(
+      "몰트케가 사령부로 갔다. 몰트케는 총사령부에 있다.",
+      idx,
+    );
     const refs = parts.filter((p) => p.ref !== null);
     expect(refs.map((p) => p.text)).toEqual(["몰트케", "사령부"]);
     expect(parts.map((p) => p.text).join("")).toBe(
@@ -64,7 +70,9 @@ describe("the dictionary", () => {
 
   test("one letter is no name", () => {
     const idx = dictIndex(pack, "DEU", []);
-    expect(splitTerms("폴이 왔다", idx).every((p) => p.ref === null)).toBe(true);
+    expect(splitTerms("폴이 왔다", idx).every((p) => p.ref === null)).toBe(
+      true,
+    );
   });
 
   test("the same word means the seat's own body", () => {
@@ -128,7 +136,13 @@ describe("the notebook", () => {
 
   test("only the big decisions, the latest first", () => {
     const c = (scene: string, key: boolean) =>
-      ({ scene, pick: "go", date: "1914-07-05", proxy: false, key }) as GwChoiceView;
+      ({
+        scene,
+        pick: "go",
+        date: "1914-07-05",
+        proxy: false,
+        key,
+      }) as GwChoiceView;
     const rows = keyDecisions([c("a", true), c("b", false), c("c", true)]);
     expect(rows.map((x) => x.scene)).toEqual(["c", "a"]);
   });
@@ -146,7 +160,7 @@ describe("the notebook", () => {
       pick: "몰트케에게 맡긴다.",
     });
     const plain = { ...d, pick: "plain" };
-    expect(decisionLine(pack, plain).pick).toBe("그냥 쓴 말");
+    expect(decisionLine(pack, plain).pick).toBe("그냥 쓴 말이다.");
   });
 
   test("the tab is on the drawer, and a threat has a word for each step", () => {

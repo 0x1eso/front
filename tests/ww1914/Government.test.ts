@@ -2,16 +2,12 @@ import { GameMapSize, GameMapType } from "@openfront/engine-api/game/GameTypes";
 import type { MapFiles } from "@openfront/engine-api/game/MapFiles";
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import { gwSceneEffects } from "@openfront/engine-api/ww1914/SceneCheck";
-import { loadGwPack } from "@openfront/shared/ww1914/GwPackLoader";
-import { loadMapFiles } from "@openfront/shared/GameMapLoader";
-import { GW_ELECTIONS, GW_GOV } from "@openfront/engine/ww1914/GovTable";
+import { gwChapters } from "@openfront/engine-lib/ww1914/Calendars";
+import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
 import type { GameRunner } from "@openfront/engine/GameRunner";
 import { advanceChapter } from "@openfront/engine/ww1914/Chapters";
-import type { GreatWar } from "@openfront/engine/ww1914/GreatWar";
-import { GreatWarSnapshot } from "@openfront/engine/ww1914/GreatWar";
 import { dealDesk } from "@openfront/engine/ww1914/Desk";
-import { applyGwOrder } from "@openfront/engine/ww1914/Orders";
-import { castOf } from "@openfront/engine/ww1914/SceneRun";
+import { closeSeat } from "@openfront/engine/ww1914/Endings";
 import {
   govBeaten,
   govHeatBy,
@@ -19,10 +15,13 @@ import {
   govView,
   pollOf,
 } from "@openfront/engine/ww1914/Government";
-import { sceneOf } from "@openfront/engine/ww1914/SceneRun";
-import { closeSeat } from "@openfront/engine/ww1914/Endings";
-import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
-import { gwChapters } from "@openfront/engine-lib/ww1914/Calendars";
+import { GW_ELECTIONS, GW_GOV } from "@openfront/engine/ww1914/GovTable";
+import type { GreatWar } from "@openfront/engine/ww1914/GreatWar";
+import { GreatWarSnapshot } from "@openfront/engine/ww1914/GreatWar";
+import { applyGwOrder } from "@openfront/engine/ww1914/Orders";
+import { castOf, sceneOf } from "@openfront/engine/ww1914/SceneRun";
+import { loadMapFiles } from "@openfront/shared/GameMapLoader";
+import { loadGwPack } from "@openfront/shared/ww1914/GwPackLoader";
 import fs from "node:fs";
 import path from "node:path";
 import { beforeAll, describe, expect, test } from "vitest";
@@ -139,7 +138,9 @@ describe("the table", () => {
         for (const r of GW_GOV.filter((x) => x.tag === tag)) {
           expect(gov.name[r.id], r.id).toBeTruthy();
           for (const f of r.feeds) expect(gov.feed[f.key], f.key).toBeTruthy();
-          expect(json(`lang/${lang}.json`).gw.turn[`gov_held_${r.id}`]).toBeTruthy();
+          expect(
+            json(`lang/${lang}.json`).gw.turn[`gov_held_${r.id}`],
+          ).toBeTruthy();
         }
       }
       for (const r of GW_GOV.filter((x) => x.tag === tag)) {
@@ -257,30 +258,61 @@ describe("a threat", () => {
 
 describe("the reckoning", () => {
   const cases: [GwTag, string, string, string, () => object][] = [
-    ["GBR", "gov_gbr_table_3", "divide", "gbr_end_turned_out", () => ({ commons: -3 })],
-    ["DEU", "gov_deu_parliament_3", "face_them", "deu_end_set_aside", () => ({ reichstag: -4 })],
-    ["AUH", "gov_auh_court_3", "stand", "auh_e_regency", () => ({ council: -3, hungary: -3 })],
-    ["RUS", "gov_rus_court_3", "go_on", "rus_palace_coup", () => ({ stavka: -1 })],
+    [
+      "GBR",
+      "gov_gbr_table_3",
+      "divide",
+      "gbr_end_turned_out",
+      () => ({ commons: -3 }),
+    ],
+    [
+      "DEU",
+      "gov_deu_parliament_3",
+      "face_them",
+      "deu_end_set_aside",
+      () => ({ reichstag: -4 }),
+    ],
+    [
+      "AUH",
+      "gov_auh_court_3",
+      "stand",
+      "auh_e_regency",
+      () => ({ council: -3, hungary: -3 }),
+    ],
+    [
+      "RUS",
+      "gov_rus_court_3",
+      "go_on",
+      "rus_palace_coup",
+      () => ({ stavka: -1 }),
+    ],
   ];
 
-  test.each(cases)("%s can be lost, with its memoir", async (tag, scene, opt, ending, low) => {
-    const gw = await game(tag);
-    Object.assign(gw.nation(tag)!.inst, low());
-    take(gw, scene, opt);
-    expect(gw.s.ended).toBe(ending);
-    const pack = await loadGwPack(tag, async (p) => json(p));
-    expect(pack.endings?.[ending]).toBeTruthy();
-  });
+  test.each(cases)(
+    "%s can be lost, with its memoir",
+    async (tag, scene, opt, ending, low) => {
+      const gw = await game(tag);
+      Object.assign(gw.nation(tag)!.inst, low());
+      take(gw, scene, opt);
+      expect(gw.s.ended).toBe(ending);
+      const pack = await loadGwPack(tag, async (p) => json(p));
+      expect(pack.endings?.[ending]).toBeTruthy();
+    },
+  );
 
-  test.each(cases)("%s can be won, and the game goes on", async (tag, scene, opt, _e, low) => {
-    const gw = await game(tag);
-    const n = gw.nation(tag)!;
-    for (const k of Object.keys(low())) (n.inst as Record<string, number>)[k] = 2;
-    take(gw, scene, opt);
-    expect(gw.s.ended).toBeNull();
-    expect(gw.s.seats[0].memoir).toBeNull();
-    expect(gw.s.seats[0].gov.some((x) => x.beaten === 1)).toBe(true);
-  });
+  test.each(cases)(
+    "%s can be won, and the game goes on",
+    async (tag, scene, opt, _e, low) => {
+      const gw = await game(tag);
+      const n = gw.nation(tag)!;
+      for (const k of Object.keys(low()))
+        (n.inst as Record<string, number>)[k] = 2;
+      take(gw, scene, opt);
+      expect(gw.s.ended).toBeNull();
+      expect(gw.s.seats[0].memoir).toBeNull();
+      expect(gw.s.seats[0].gov.some((x) => x.beaten === 1)).toBe(true);
+    },
+  );
 
   test("the proxy never ends a game with a way out open", async () => {
     for (const r of GW_GOV.filter((x) => x.fatal && x.id !== "gbr_election")) {

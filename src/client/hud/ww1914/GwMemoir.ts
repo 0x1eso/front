@@ -10,9 +10,9 @@ import {
   endingText,
   endingTitle,
   frontLine,
+  fullDate,
   personName,
   reasonText,
-  fullDate,
   turnText,
   unknownText,
 } from "./GwText";

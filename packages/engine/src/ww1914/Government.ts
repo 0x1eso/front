@@ -1,14 +1,11 @@
-import {
-  GwGov,
-  GwSeatState,
-} from "@openfront/engine-api/ww1914/GreatWarTypes";
+import { GwGov, GwSeatState } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import type {
   GwGovView,
   GwPollView,
 } from "@openfront/engine-api/ww1914/GwView";
 import { world } from "@openfront/engine-api/ww1914/WorldDsl";
-import type { GreatWar } from "./GreatWar";
 import { GW_ELECTIONS, GW_GOV, GwGovRow } from "./GovTable";
+import type { GreatWar } from "./GreatWar";
 import { holds, SceneCtx } from "./SceneRun";
 import { clampTo, isLongChapter, monthsOf, reason } from "./World";
 

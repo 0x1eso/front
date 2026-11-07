@@ -4,8 +4,8 @@ import type {
 } from "@openfront/engine-api/ww1914/GwView";
 import { html, nothing, TemplateResult } from "lit";
 import { translateText } from "../../Utils";
-import { rich } from "./GwDict";
 import type { GwCtx, GwUi, Transcript } from "./GwCtx";
+import { rich } from "./GwDict";
 import { groupReplies, trustIndex } from "./GwModel";
 import { BTN, CHIP, MUTED } from "./GwStyle";
 import {

@@ -4,8 +4,8 @@ import type { GwCtx } from "./GwCtx";
 import {
   DictIndex,
   dictIndex,
-  DictRef,
   dictLines,
+  DictRef,
   splitTerms,
 } from "./GwDictModel";
 import { BTN, GLASS, HEAD, MUTED } from "./GwStyle";
@@ -58,9 +58,10 @@ function personCard(c: GwCtx, id: string) {
   const office = c.seat.people.find((p) => p.id === id)?.office;
   return {
     title: personName(c.pack, id),
-    sub: office === null || office === undefined
-      ? ""
-      : translateText(`gw.office.${office}`),
+    sub:
+      office === null || office === undefined
+        ? ""
+        : translateText(`gw.office.${office}`),
     lines: [personLean(c.pack, id), personBio(c.pack, id)].filter(
       (x) => x !== "",
     ),

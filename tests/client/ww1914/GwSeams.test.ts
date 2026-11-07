@@ -123,7 +123,7 @@ describe("the memoir on the world's data", () => {
       1,
     );
     expect(panel.querySelector("[data-gw-shelf]")!.textContent).toContain(
-      "결말 1/9",
+      "결말 1/10",
     );
   });
 });

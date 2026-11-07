@@ -107,10 +107,7 @@ export const GW_GOV: readonly GwGovRow[] = [
       {
         when: {
           kind: "all",
-          of: [
-            world({ is: "war_age", min: 16 }),
-            not(flag("f_gbr_conscript")),
-          ],
+          of: [world({ is: "war_age", min: 16 }), not(flag("f_gbr_conscript"))],
         },
         key: "gbr_no_conscription",
       },
@@ -156,15 +153,24 @@ export const GW_GOV: readonly GwGovRow[] = [
     from: "1914-10",
     feeds: [
       {
-        when: { kind: "all", of: [inOffice("chancellor"), inst("countersign", { max: -1 })] },
+        when: {
+          kind: "all",
+          of: [inOffice("chancellor"), inst("countersign", { max: -1 })],
+        },
         key: "deu_countersign",
       },
       {
-        when: { kind: "all", of: [inOffice("chancellor"), inst("reichstag", { max: -1 })] },
+        when: {
+          kind: "all",
+          of: [inOffice("chancellor"), inst("reichstag", { max: -1 })],
+        },
         key: "deu_reichstag",
       },
       {
-        when: { kind: "all", of: [inOffice("chancellor"), inst("army", { min: 3 })] },
+        when: {
+          kind: "all",
+          of: [inOffice("chancellor"), inst("army", { min: 3 })],
+        },
         key: "deu_army",
       },
     ],

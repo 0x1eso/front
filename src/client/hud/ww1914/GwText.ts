@@ -173,7 +173,9 @@ export function decisionLine(
 ): { title: string; pick: string } {
   const scene = pack?.scenes[d.scene];
   const text = scene?.opt?.[d.pick] ?? d.pick;
-  const lead = boldParts(text).find((p) => p.bold)?.text ?? text;
+  // Some shares wrote no bold line: the first sentence does the same work.
+  const lead =
+    boldParts(text).find((p) => p.bold)?.text ?? text.split(/(?<=[.!?])\s/)[0];
   const pick = lead.replace(/\{([a-z_0-9]+)\}/g, (hole, role) => {
     const id = d.cast?.[role];
     return id === undefined ? hole : personName(pack, id);

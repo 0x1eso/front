@@ -245,8 +245,7 @@ export class GwPanel extends LitElement implements Controller {
       </aside>
       ${open === undefined ? nothing : reader(c, open)}
       ${ui.budgetOpen ? budgetPanel(c) : nothing}
-      ${talk === null ? nothing : talkView(c, talk.t, talk.card)}
-      ${dictCard(c)}`;
+      ${talk === null ? nothing : talkView(c, talk.t, talk.card)} ${dictCard(c)}`;
   }
 
   private tabButton(c: GwCtx, tab: GwTab) {

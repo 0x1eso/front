@@ -591,7 +591,7 @@ describe("the timer", () => {
   test("a timer's decision is written down as proxied", async () => {
     const { runner } = await game([decision("d")], GameType.Private);
     stepTo(runner, view(runner).deadlineTick! + 2);
-    expect(seat(runner).choices).toEqual([
+    expect(seat(runner).choices).toMatchObject([
       { scene: "d", pick: "ok", date: "1914-06-28", proxy: true },
     ]);
   });

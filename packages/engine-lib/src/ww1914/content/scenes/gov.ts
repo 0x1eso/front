@@ -375,24 +375,16 @@ const GBR_SCENES: GwScene[] = [
           ],
           null,
         ),
-        r(
-          "flatter",
-          "flatter",
-          "push",
-          [],
-          [],
-          null,
-          {
-            gain: [inst("opposition", 1)],
-            reacts: [
-              {
-                when: moody(p, "cold", "stubborn"),
-                next: null,
-                effects: [reason("gov_gbr_u_flat")],
-              },
-            ],
-          },
-        ),
+        r("flatter", "flatter", "push", [], [], null, {
+          gain: [inst("opposition", 1)],
+          reacts: [
+            {
+              when: moody(p, "cold", "stubborn"),
+              next: null,
+              effects: [reason("gov_gbr_u_flat")],
+            },
+          ],
+        }),
         bye("think", "warm"),
       ),
     },
@@ -477,62 +469,56 @@ const GBR_SCENES: GwScene[] = [
       opt("go", ["gov_election"], [setFlag("f_gov_writ")]),
     ],
   ),
-  talk(
-    "gov_gbr_pact",
-    "GBR",
-    orTrusted(named("gbr_henderson")),
-    [v("base")],
-    {
-      open: node(
-        base,
-        r("how_many", "frank", "ask", [], [], "seats"),
-        r("old_pact", "warm", "ask", [], [], "pact"),
-        bye(),
+  talk("gov_gbr_pact", "GBR", orTrusted(named("gbr_henderson")), [v("base")], {
+    open: node(
+      base,
+      r("how_many", "frank", "ask", [], [], "seats"),
+      r("old_pact", "warm", "ask", [], [], "pact"),
+      bye(),
+    ),
+    seats: node(
+      straight,
+      r("old_pact", "warm", "ask", [], [], "pact"),
+      bye("enough"),
+    ),
+    pact: node(
+      base,
+      r(
+        "deal",
+        "frank",
+        "deal",
+        ["promise"],
+        [
+          setFlag("f_gov_lib_lab"),
+          promise(p, "p_gov_gbr_labour", 8, {
+            keep: flag("f_gov_new_parliament"),
+          }),
+        ],
+        null,
       ),
-      seats: node(
-        straight,
-        r("old_pact", "warm", "ask", [], [], "pact"),
-        bye("enough"),
-      ),
-      pact: node(
-        base,
-        r(
-          "deal",
-          "frank",
-          "deal",
-          ["promise"],
-          [
-            setFlag("f_gov_lib_lab"),
-            promise(p, "p_gov_gbr_labour", 8, {
-              keep: flag("f_gov_new_parliament"),
-            }),
+      r(
+        "seats_only",
+        "cold",
+        "deal",
+        ["cabinet:-1"],
+        [setFlag("f_gov_lib_lab"), inst("cabinet", -1)],
+        null,
+        {
+          reacts: [
+            {
+              when: moody(p, "stubborn", "arrogant"),
+              next: null,
+              effects: [
+                { kind: "unflag", flag: "f_gov_lib_lab" },
+                reason("gov_gbr_pact_failed"),
+              ],
+            },
           ],
-          null,
-        ),
-        r(
-          "seats_only",
-          "cold",
-          "deal",
-          ["cabinet:-1"],
-          [setFlag("f_gov_lib_lab"), inst("cabinet", -1)],
-          null,
-          {
-            reacts: [
-              {
-                when: moody(p, "stubborn", "arrogant"),
-                next: null,
-                effects: [
-                  { kind: "unflag", flag: "f_gov_lib_lab" },
-                  reason("gov_gbr_pact_failed"),
-                ],
-              },
-            ],
-          },
-        ),
-        bye("no_pact"),
+        },
       ),
-    },
-  ),
+      bye("no_pact"),
+    ),
+  }),
   paper(
     "gov_gbr_cry",
     "GBR",
@@ -541,10 +527,11 @@ const GBR_SCENES: GwScene[] = [
     [v("war", atWar), v("base")],
     "cry_home",
     [
-      opt("cry_home", ["irish:+1"], [
-        setFlag("f_gov_cry_home"),
-        inst("irish", 1),
-      ]),
+      opt(
+        "cry_home",
+        ["irish:+1"],
+        [setFlag("f_gov_cry_home"), inst("irish", 1)],
+      ),
       opt(
         "cry_war",
         ["opposition:-1"],
@@ -716,7 +703,10 @@ const DEU_SCENES: GwScene[] = [
     "gov_deu_chancellor_3",
     "DEU",
     "crisis",
-    { ch: orTrusted(office("chancellor")), cos: orTrusted(office("chief_of_staff")) },
+    {
+      ch: orTrusted(office("chancellor")),
+      cos: orTrusted(office("chief_of_staff")),
+    },
     [
       v("again", again("deu_chancellor")),
       v("army", at("army", { min: 3 })),
@@ -779,32 +769,31 @@ const DEU_SCENES: GwScene[] = [
       whom: node(
         straight,
         r("what", "frank", "ask", [], [], "what"),
-        r(
-          "note",
-          "cold",
-          "ask",
-          [],
-          [remember("k_gov_deu_split", p)],
-          "what",
-          { when: candid(p) },
-        ),
+        r("note", "cold", "ask", [], [remember("k_gov_deu_split", p)], "what", {
+          when: candid(p),
+        }),
         bye("enough"),
       ),
       what: node(
         [v("hungry", { kind: "gauge", gauge: "bread", max: 1 }), v("base")],
         r("price", "frank", "ask", [], [], "price"),
-        r("threat", "threat", "push", ["trust:-1", "gov_up"], [
-          trustOf(p, -1),
-          heat("deu_parliament", 1),
-        ], "price", {
-          reacts: [
-            {
-              when: moody(p, "cunning", "stubborn"),
-              next: null,
-              effects: [reason("gov_deu_p_threat")],
-            },
-          ],
-        }),
+        r(
+          "threat",
+          "threat",
+          "push",
+          ["trust:-1", "gov_up"],
+          [trustOf(p, -1), heat("deu_parliament", 1)],
+          "price",
+          {
+            reacts: [
+              {
+                when: moody(p, "cunning", "stubborn"),
+                next: null,
+                effects: [reason("gov_deu_p_threat")],
+              },
+            ],
+          },
+        ),
         bye("enough"),
       ),
       price: node(
@@ -832,7 +821,10 @@ const DEU_SCENES: GwScene[] = [
     "gov_deu_parliament_2",
     "DEU",
     "proposal",
-    { ch: orTrusted(office("chancellor")), cos: orTrusted(office("chief_of_staff")) },
+    {
+      ch: orTrusted(office("chancellor")),
+      cos: orTrusted(office("chief_of_staff")),
+    },
     [
       v("again", again("deu_parliament")),
       v("hungry", { kind: "gauge", gauge: "bread", max: 1 }),
@@ -882,7 +874,10 @@ const DEU_SCENES: GwScene[] = [
     "gov_deu_parliament_3",
     "DEU",
     "crisis",
-    { ch: orTrusted(office("chancellor")), cos: orTrusted(office("chief_of_staff")) },
+    {
+      ch: orTrusted(office("chancellor")),
+      cos: orTrusted(office("chief_of_staff")),
+    },
     [
       v("again", again("deu_parliament")),
       v("lost", world({ is: "score", max: -15 })),
@@ -1423,11 +1418,7 @@ const RUS_SCENES: GwScene[] = [
       opt(
         "blank_decree",
         ["court:+1", "gov_up"],
-        [
-          inst("court", 1),
-          setFlag("f_gov_rus_blank"),
-          heat("rus_duma", 1),
-        ],
+        [inst("court", 1), setFlag("f_gov_rus_blank"), heat("rus_duma", 1)],
       ),
       opt(
         "session_with_word",
@@ -1458,12 +1449,7 @@ const RUS_SCENES: GwScene[] = [
       opt(
         "prorogue",
         ["duma:-2", "court:+1", "authority:-10"],
-        [
-          inst("duma", -2),
-          inst("court", 1),
-          authority(-10),
-          beat("rus_duma"),
-        ],
+        [inst("duma", -2), inst("court", 1), authority(-10), beat("rus_duma")],
       ),
       opt(
         "dissolve",
@@ -1509,10 +1495,7 @@ const RUS_SCENES: GwScene[] = [
       ),
       who: node(
         [
-          v(
-            "real",
-            all({ kind: "secret", id: "rus_palace_plot" }, candid(p)),
-          ),
+          v("real", all({ kind: "secret", id: "rus_palace_plot" }, candid(p))),
           v("talk"),
         ],
         r(
@@ -1571,11 +1554,7 @@ const RUS_SCENES: GwScene[] = [
     ],
     "answer",
     [
-      opt(
-        "answer",
-        ["gov_down"],
-        [heat("rus_court", -2)],
-      ),
+      opt("answer", ["gov_down"], [heat("rus_court", -2)]),
       opt(
         "send_off",
         ["court:+1", "duma:-1", "gov_up"],
@@ -1604,7 +1583,10 @@ const RUS_SCENES: GwScene[] = [
     "gov_rus_court_3",
     "RUS",
     "crisis",
-    { aide: orTrusted(office("court")), cos: orTrusted(office("chief_of_staff")) },
+    {
+      aide: orTrusted(office("court")),
+      cos: orTrusted(office("chief_of_staff")),
+    },
     [
       v("real", { kind: "secret", id: "rus_palace_plot" }),
       v("again", again("rus_court")),

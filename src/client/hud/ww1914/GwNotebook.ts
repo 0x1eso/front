@@ -13,7 +13,9 @@ function promises(c: GwCtx): TemplateResult {
   return html`<section class=${BOX} data-gw-notebook-promises>
     <h3 class=${HEAD}>${translateText("gw.ui.notebook_promises")}</h3>
     ${rows.length === 0
-      ? html`<p class=${MUTED}>${translateText("gw.ui.notebook_no_promises")}</p>`
+      ? html`<p class=${MUTED}>
+          ${translateText("gw.ui.notebook_no_promises")}
+        </p>`
       : rows.map((p) => {
           const state = p.broken ? "broken" : p.kept ? "kept" : "open";
           return html`<div class="space-y-0.5" data-gw-promise=${p.key}>
@@ -45,7 +47,9 @@ function decisions(c: GwCtx): TemplateResult {
   return html`<section class=${BOX} data-gw-notebook-decisions>
     <h3 class=${HEAD}>${translateText("gw.ui.notebook_decisions")}</h3>
     ${rows.length === 0
-      ? html`<p class=${MUTED}>${translateText("gw.ui.notebook_no_decisions")}</p>`
+      ? html`<p class=${MUTED}>
+          ${translateText("gw.ui.notebook_no_decisions")}
+        </p>`
       : rows.map((d) => {
           const line = decisionLine(c.pack, d);
           return html`<div data-gw-decision=${d.scene}>
