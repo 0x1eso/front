@@ -1,4 +1,6 @@
-import type {
+import {
+  GW_FRONT_START,
+  GW_LINE_STEP,
   GwSide,
   GwTheatreState,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
@@ -8,6 +10,7 @@ import {
   frontLandAt,
   frontPlaces,
 } from "@openfront/engine-lib/ww1914/FrontLand";
+import { posOf } from "./Eras";
 import type { GreatWar } from "./GreatWar";
 import { membersOf } from "./Wars";
 
@@ -61,12 +64,24 @@ function takerOf(
   return membersOf(gw, t.id, side)[0] ?? now;
 }
 
+/**
+ * The line a theatre has truly reached. `t.line` rounds down, so one step
+ * back from a line already reads as the next one down: land waits for the
+ * whole step, either way from the start.
+ */
+function reachedLine(t: GwTheatreState): number {
+  const pos = posOf(t);
+  return pos >= GW_FRONT_START[t.id] * GW_LINE_STEP
+    ? Math.floor(pos / GW_LINE_STEP)
+    : Math.ceil(pos / GW_LINE_STEP);
+}
+
 /** The map follows the fronts: each theatre's land goes as its line stands. */
 export function frontLandStep(gw: GreatWar): void {
   gw.s.landMoves = [];
   for (const t of gw.s.theatres) {
     if (t.since === null) continue;
-    const held = frontLandAt(t.id, t.line);
+    const held = frontLandAt(t.id, reachedLine(t));
     for (const place of frontPlaces(t.id)) {
       moveLand(gw, place, takerOf(gw, t, place, held.get(place) ?? null), t.id);
     }

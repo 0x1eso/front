@@ -270,6 +270,22 @@ describe("fronts move land on the real map", () => {
     expect(copy.game.greatWar()!.hash()).toBe(gw.hash());
   }, 60000);
 
+  test("land waits for the whole step back from the start", () => {
+    gw.nation("RUS")!.side = "entente";
+    const east = gw.s.theatres.find((t) => t.id === "east")!;
+    east.since = 0;
+    east.line = 0;
+    east.progress = 1;
+    frontLandStep(gw);
+    expect(ownerAt(runner, "konigsberg")).toBe("DEU");
+    east.progress = 0;
+    frontLandStep(gw);
+    expect(ownerAt(runner, "konigsberg")).toBe("RUS");
+    east.line = 1;
+    frontLandStep(gw);
+    expect(ownerAt(runner, "konigsberg")).toBe("DEU");
+  });
+
   test("land goes home when the line goes back, and past it the war turns", () => {
     standAt("liege");
     expect(ownerAt(runner, "ypres")).toBe("BEL");
