@@ -16,6 +16,7 @@ import {
   GwOption,
   GwScene,
   GwVariant,
+  memory,
   moody,
   not,
   remember,
@@ -286,7 +287,7 @@ const VISIT_SCENES: GwScene[] = [
       o(
         "split",
         ["stavka:-1", "order:+1"],
-        [ear("stavka", -1), gauge("order", 1), setFlag("f_a_depots_split")],
+        [ear("stavka", -1), gauge("order", 1)],
       ),
     ],
   ),
@@ -523,6 +524,13 @@ const ORDER_SCENES: GwScene[] = [
           world({ is: "report_wrong", source: "staff" }),
         ),
       ),
+      v(
+        "notebook",
+        all(
+          picked("subject", "shells"),
+          any(memory("k_a_saw_crates"), memory("k_a_saw_front")),
+        ),
+      ),
       v("shells_low", all(picked("subject", "shells"), low("shells", 1))),
       v("shells", picked("subject", "shells")),
       v("bread_low", all(picked("subject", "bread"), low("bread", 1))),
@@ -673,7 +681,7 @@ const SPEECH_SCENES: GwScene[] = [
         all(picked("place", "rostrum"), picked("on", "trust")),
       ),
       v("rostrum", picked("place", "rostrum")),
-      v("hall_cold", earAt("duma", { max: -2 })),
+      v("hall_cold", all(picked("place", "hall"), earAt("duma", { max: -2 }))),
       v("base"),
     ],
   ),
@@ -684,7 +692,7 @@ const SPEECH_SCENES: GwScene[] = [
     [
       v("bread_low", all(picked("on", "bread"), low("bread", 1))),
       v("bread", picked("on", "bread")),
-      v("long_war", all(war, low("morale", 2))),
+      v("long_war", all(picked("on", "war"), low("morale", 2))),
       v("base"),
     ],
   ),
@@ -1037,8 +1045,7 @@ const AIM_SCENES: GwScene[] = [
 // ---- 고비: the moments that decide a run ----
 
 type Node = NonNullable<GwScene["nodes"]>[string];
-const says = (...variants: GwVariant[]) =>
-  variants.length === 0 ? [v("base")] : variants;
+const says = (...variants: GwVariant[]) => variants;
 
 /** A big scene; `nodes` each say who speaks. */
 const big = (
@@ -1099,15 +1106,22 @@ const mobilise = [
   { kind: "drop_card", scene: "rus_c_general_mob" } as GwEffect,
 ];
 
+/** The paper of a trusted cabinet comes, unless it has been. */
+const trustPaper: GwEffect = {
+  kind: "maybe",
+  when: not({ kind: "seen", scene: "rus_r_trust" }),
+  then: [schedule("rus_r_trust", 1)],
+};
+
 const BIG_SCENES: GwScene[] = [
   big(
     "rus_b_peterhof",
     all(
-      { kind: "chapter", min: 4, max: 6 },
+      { kind: "chapter", min: 3, max: 6 },
       { kind: "crisis", topic: "balkan" },
-      { kind: "temp", min: 6 },
+      { kind: "temp", min: 5 },
+      flag("w_ultimatum_out"),
       not(flag("f_rus_general")),
-      any({ kind: "seen", scene: "rus_c_partial" }, { kind: "temp", min: 8 }),
     ),
     {
       fm: { office: "foreign" },
@@ -1227,12 +1241,7 @@ const BIG_SCENES: GwScene[] = [
           decide(
             "plain",
             "n6",
-            [
-              ear("duma", 1),
-              ear("stavka", -1),
-              gauge("morale", -1),
-              setFlag("f_b_narew_told"),
-            ],
+            [ear("duma", 1), ear("stavka", -1), gauge("morale", -1)],
             ["duma:+1", "stavka:-1", "morale:-1"],
           ),
           decide(
@@ -1327,12 +1336,7 @@ const BIG_SCENES: GwScene[] = [
           decide(
             "amnesty",
             null,
-            [
-              ear("duma", 2),
-              ear("court", -1),
-              gauge("order", 1),
-              setFlag("f_b_amnesty"),
-            ],
+            [ear("duma", 2), ear("court", -1), gauge("order", 1)],
             ["duma:+2", "court:-1", "order:+1"],
           ),
           decide(
@@ -1363,8 +1367,11 @@ const BIG_SCENES: GwScene[] = [
     "rus_b_august",
     all(
       inWar,
-      date("1915-05", "1915-11"),
-      world({ is: "front", theatre: "east", from: "warsaw" }),
+      date("1915-05", "1916-06"),
+      any(
+        world({ is: "front", theatre: "east", from: "warsaw" }),
+        flag("w_warsaw_lost"),
+      ),
       not(headed),
       not({ kind: "seen", scene: "rus_w_command" }),
     ),
@@ -1400,11 +1407,7 @@ const BIG_SCENES: GwScene[] = [
           decide(
             "her_heard",
             null,
-            [
-              ear("court", 2),
-              ear("ministers", -2),
-              remember("k_b_august_hers"),
-            ],
+            [ear("court", 2), ear("ministers", -2)],
             ["court:+2", "ministers:-2"],
           ),
           decide(
@@ -1423,7 +1426,17 @@ const BIG_SCENES: GwScene[] = [
 
   big(
     "rus_b_lutsk",
-    all(reign, war, { kind: "seen", scene: "rus_w_lutsk" }),
+    all(
+      reign,
+      war,
+      any(
+        { kind: "seen", scene: "rus_w_lutsk" },
+        all(
+          date("1916-03"),
+          world({ is: "battle", theatre: "east", of: ["break"], by: "seat" }),
+        ),
+      ),
+    ),
     {
       cos: { office: "chief_of_staff" },
       brus: { person: "rus_brusilov" },
@@ -1564,8 +1577,8 @@ const BIG_SCENES: GwScene[] = [
             [
               ear("duma", 2),
               ear("court", -2),
-              setFlag("f_b_winter_trust"),
               doWorld({ do: "calm" }),
+              trustPaper,
             ],
             ["duma:+2", "court:-2"],
           ),
@@ -1638,7 +1651,7 @@ const BIG_SCENES: GwScene[] = [
           decide(
             "general",
             null,
-            [ear("stavka", 1), ear("duma", -2), setFlag("f_b_ivanov_sent")],
+            [ear("stavka", 1), ear("duma", -2)],
             ["stavka:+1", "duma:-2"],
           ),
           decide(
@@ -1648,7 +1661,7 @@ const BIG_SCENES: GwScene[] = [
               ear("duma", 3),
               ear("court", -2),
               doWorld({ do: "calm" }),
-              setFlag("f_b_night_cabinet"),
+              trustPaper,
             ],
             ["duma:+3", "court:-2"],
           ),
@@ -1910,6 +1923,10 @@ const hardKaiser = character(willy, "hardline");
 const slyKaiser = character(willy, "opportunist");
 const wary = character(willy, "cautious");
 const atWarKaiser: GwCond = { kind: "at_war_with", who: willy };
+const shot: GwCond = {
+  kind: "opening",
+  of: ["sarajevo", "sarajevo_survived", "sarajevo_failed"],
+};
 
 const THREAD_SCENES: GwScene[] = [
   letter(
@@ -1917,7 +1934,12 @@ const THREAD_SCENES: GwScene[] = [
     "kaiser",
     "DEU",
     all(reign, { kind: "chapter", min: 1, max: 3 }),
-    [v("hard", hardKaiser), v("sly", slyKaiser), v("wary", wary), v("base")],
+    [
+      v("hard", all(shot, hardKaiser)),
+      v("sly", slyKaiser),
+      v("wary", all(shot, wary)),
+      v("base"),
+    ],
     [
       o(
         "reply_warm",
@@ -1950,6 +1972,7 @@ const THREAD_SCENES: GwScene[] = [
         "cold_hard",
         all(hardKaiser, { kind: "letters", who: willy, tone: "cold" }),
       ),
+      v("quiet", { kind: "temp", max: 3 }),
       v("hard", hardKaiser),
       v("sly", slyKaiser),
       v("wary", wary),
@@ -1996,7 +2019,7 @@ const THREAD_SCENES: GwScene[] = [
     "king",
     "GBR",
     all(reign, { kind: "chapter", min: 2, max: 4 }),
-    [v("ulster", { kind: "chapter", min: 3 }), v("base")],
+    [v("ulster", all(shot, { kind: "chapter", min: 3 })), v("base")],
     [
       o(
         "reply_warm",
@@ -2022,6 +2045,7 @@ const THREAD_SCENES: GwScene[] = [
     [
       v("war_joined", world({ is: "entered", tag: "GBR", side: "entente" })),
       v("war_alone", war),
+      v("quiet", { kind: "temp", max: 3 }),
       v("base"),
     ],
     [
