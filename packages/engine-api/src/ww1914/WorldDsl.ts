@@ -152,7 +152,13 @@ export type GwWorldCond =
    * percent of taxes. prices: percent of June 1914. lent: percent of a year's
    * revenue owed abroad.
    */
-  | ({ is: "budget"; what: GwBudgetWhat } & Range);
+  | ({ is: "budget"; what: GwBudgetWhat } & Range)
+  /** How hot a threat to the government runs, by its row in GovTable. */
+  | ({ is: "gov"; id: string } & Range)
+  /** An election: the seats past a majority, friends counted. */
+  | ({ is: "poll"; id: string } & Range)
+  /** The same, the party alone. */
+  | ({ is: "poll_own"; id: string } & Range);
 
 export type GwWorldEffect =
   /** Germany's plan for the war to come. */
@@ -235,7 +241,11 @@ export type GwWorldEffect =
   /** treasury: percent of a year's revenue; debt, prices: percent of itself. */
   | { do: "budget_item"; item: GwBudgetItem; pct: number }
   /** Interest paid, percent of what is due; lenders shut for `shut` chapters. */
-  | { do: "budget_rate"; pct: number; shut: number };
+  | { do: "budget_rate"; pct: number; shut: number }
+  /** A threat runs hotter or cooler; it never goes below nothing. */
+  | { do: "gov_heat"; id: string; delta: number }
+  /** A threat is beaten: it lies quiet for its row's rest. */
+  | { do: "gov_beaten"; id: string };
 
 const int = z.number().int();
 const yearMonth = z.string().regex(/^19[0-9]{2}-[01][0-9]$/);
@@ -313,6 +323,9 @@ export const GwWorldCondSchema = z.union([
   is("date", { from: yearMonth.optional(), to: yearMonth.optional() }),
   is("offered", { tag, ...range }),
   is("budget", { what: z.enum(GW_BUDGET_WHATS), ...range }),
+  is("gov", { id: GwIdSchema, ...range }),
+  is("poll", { id: GwIdSchema, ...range }),
+  is("poll_own", { id: GwIdSchema, ...range }),
 ]) as unknown as z.ZodType<GwWorldCond>;
 
 export const GwWorldEffectSchema = z.union([
@@ -368,6 +381,8 @@ export const GwWorldEffectSchema = z.union([
   act("budget_mix", { source: z.enum(GW_BUDGET_SOURCES), delta: int }),
   act("budget_item", { item: z.enum(GW_BUDGET_ITEMS), pct: int }),
   act("budget_rate", { pct: int.min(0).max(100), shut: int.min(0) }),
+  act("gov_heat", { id: GwIdSchema, delta: int }),
+  act("gov_beaten", { id: GwIdSchema }),
 ]) as unknown as z.ZodType<GwWorldEffect>;
 
 // ---- Authoring helpers ----

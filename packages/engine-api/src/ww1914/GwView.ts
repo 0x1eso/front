@@ -75,6 +75,10 @@ export interface GwChoiceView {
   pick: string;
   date: string;
   proxy: boolean;
+  /** One of the game's big decisions: the notebook lists these. */
+  key?: boolean;
+  /** Who was in the scene, role -> person: its text names them. */
+  cast?: Readonly<Record<string, string>>;
 }
 
 export interface GwPersonView {
@@ -100,6 +104,32 @@ export interface GwTheatreView {
   defender: GwTag | null;
 }
 
+/** A threat to the government as the seat sees it (text: gw.gov.*). */
+export interface GwGovView {
+  id: string;
+  /** Scenes come so far, out of `steps`. */
+  step: number;
+  steps: number;
+  /** The last of them can lose the game. */
+  fatal: boolean;
+  /** What is feeding it now: gw.gov.feed.<key>. */
+  feeds: readonly string[];
+}
+
+/** The whips' count of an election. */
+export interface GwPollView {
+  id: string;
+  seats: number;
+  need: number;
+  total: number;
+  /** Seats past a majority: the party alone, and with friends. */
+  own: number;
+  margin: number;
+  friends: readonly { id: string; seats: number; with: boolean }[];
+  /** What moved the seats: gw.gov.swing.<key>. */
+  lines: readonly { key: string; seats: number }[];
+}
+
 export interface GwSeatView {
   smallID: number;
   tag: GwTag;
@@ -119,6 +149,8 @@ export interface GwSeatView {
   choices?: readonly GwChoiceView[];
   /** Every body dealt, "<scene>.<variant>": the lobby's recent list. */
   shown?: readonly string[];
+  gov?: readonly GwGovView[];
+  poll?: GwPollView | null;
   world: GwWorldView;
 }
 

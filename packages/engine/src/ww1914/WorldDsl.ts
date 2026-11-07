@@ -24,6 +24,7 @@ import { closeSeat, SEPARATE_PEACE } from "./Endings";
 import { eraOf, hasTech } from "./Eras";
 import { signChief, warScore } from "./Fronts";
 import { sendReport } from "./Intel";
+import { govBeaten, govHeat, govHeatBy, pollOf } from "./Government";
 import { armistice, openTalks, sue } from "./Peace";
 import { keepPerson, openLetter, personLeaves, recordResult } from "./People";
 import { changeRegime, regimeRow } from "./Regimes";
@@ -193,6 +194,12 @@ export function worldHolds(ctx: SceneCtx, c: GwWorldCond): boolean {
     }
     case "budget":
       return nation !== null && inRange(budgetFact(gw, nation, c.what), c);
+    case "gov":
+      return inRange(govHeat(seat, c.id), c);
+    case "poll":
+      return inRange(pollOf(ctx, c.id)?.margin ?? 0, c);
+    case "poll_own":
+      return inRange(pollOf(ctx, c.id)?.own ?? 0, c);
   }
 }
 
@@ -406,6 +413,12 @@ export function worldEffect(ctx: SceneCtx, e: GwWorldEffect): void {
         nation.budget.rate = e.pct;
         nation.budget.shutUntil = s.chapter + e.shut;
       }
+      return;
+    case "gov_heat":
+      govHeatBy(gw, seat, e.id, e.delta);
+      return;
+    case "gov_beaten":
+      govBeaten(gw, seat, e.id);
       return;
   }
 }

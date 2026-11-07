@@ -671,6 +671,7 @@ export function takeOption(
     pick: o.id,
     chapter: ctx.gw.s.chapter,
     proxy,
+    cast: { ...ctx.cast },
   });
   runEffects(ctx, o.effects);
 }

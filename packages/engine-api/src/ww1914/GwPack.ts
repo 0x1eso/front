@@ -56,6 +56,25 @@ export const GwPersonPackSchema = z
   .strict();
 export type GwPersonPack = z.infer<typeof GwPersonPackSchema>;
 
+/**
+ * A dictionary entry (hud/ww1914/GwDict): `terms` are how text writes it. An
+ * entry with `secret` doesn't exist for a seat that hasn't found that secret;
+ * `more` adds a line once its secret is found.
+ */
+export const GwDictEntrySchema = z
+  .object({
+    terms: z.array(Text).min(1),
+    text: Text,
+    secret: GwIdSchema.optional(),
+    /** Countries whose text means this by these words; absent means all. */
+    tags: z.array(z.string().regex(/^[A-Z]{3}$/)).optional(),
+    more: z
+      .array(z.object({ secret: GwIdSchema, text: Text }).strict())
+      .optional(),
+  })
+  .strict();
+export type GwDictEntry = z.infer<typeof GwDictEntrySchema>;
+
 export const GwPackSchema = z
   .object({
     version: z.literal(1),
@@ -67,6 +86,8 @@ export const GwPackSchema = z
     promises: ById.optional(),
     /** Ending id -> the memoir's paragraph, may hold {date}, {casualties}. */
     endings: ById.optional(),
+    /** Term id -> what the dictionary says of it. */
+    dict: z.record(GwIdSchema, GwDictEntrySchema).optional(),
   })
   .strict();
 export type GwPack = z.infer<typeof GwPackSchema>;
@@ -80,6 +101,7 @@ export function mergeGwPacks(packs: readonly GwPack[]): GwPack {
     reasons: {},
     promises: {},
     endings: {},
+    dict: {},
   };
   for (const p of packs) {
     Object.assign(out.scenes, p.scenes);
@@ -87,6 +109,7 @@ export function mergeGwPacks(packs: readonly GwPack[]): GwPack {
     Object.assign(out.reasons!, p.reasons);
     Object.assign(out.promises!, p.promises);
     Object.assign(out.endings!, p.endings);
+    Object.assign(out.dict!, p.dict);
   }
   return out;
 }
@@ -102,6 +125,7 @@ export function gwPackOverlaps(packs: readonly GwPack[]): string[] {
       ...Object.keys(p.reasons ?? {}).map((x) => `reason ${x}`),
       ...Object.keys(p.promises ?? {}).map((x) => `promise ${x}`),
       ...Object.keys(p.endings ?? {}).map((x) => `ending ${x}`),
+      ...Object.keys(p.dict ?? {}).map((x) => `dict ${x}`),
     ];
     for (const id of ids) {
       if (seen.has(id)) out.add(id);

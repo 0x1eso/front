@@ -101,6 +101,10 @@ export function gwContentProblems(
     for (const e of gwSceneEffects(s)) {
       if (e.kind === "flag") flags.add(e.flag);
       if (e.kind === "remember") memories.add(e.key);
+      // Government.ts keeps the day a threat was beaten.
+      if (e.kind === "world" && e.of.do === "gov_beaten") {
+        memories.add(`gov_held_${e.of.id}`);
+      }
       if (e.kind === "promise") {
         memories.add(`kept_${e.key}`);
         memories.add(`broke_${e.key}`);
