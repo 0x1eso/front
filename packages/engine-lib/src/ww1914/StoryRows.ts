@@ -11,7 +11,7 @@ export const GW_RIVAL_ROWS: Readonly<
 > = {
   DEU: ["deu_tirpitz", "deu_falkenhayn", "deu_heir", "deu_bethmann"],
   GBR: ["gbr_lloyd_george", "gbr_churchill", "gbr_kitchener", "gbr_bonar_law"],
-  AUH: ["auh_conrad", "auh_tisza", "auh_berchtold", "auh_ff"],
+  AUH: ["auh_conrad", "auh_tisza", "auh_berchtold", "auh_ff", "auh_czernin"],
   RUS: ["rus_nikolasha", "rus_rodzianko", "rus_sukhomlinov", "rus_krivoshein"],
 };
 

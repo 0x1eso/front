@@ -17,6 +17,7 @@ import { GW_PEOPLE_MONEY } from "./people_money";
 import { GW_PEOPLE_RULER } from "./people_ruler";
 import { RUS_PEOPLE } from "./people_rus";
 import { RUS_KIN } from "./people_rus_private";
+import { AUH_STORY_SCENES } from "./scenes/auh_act";
 import { AUH_QUIET_SCENES, withAuhBodies } from "./scenes/auh_bodies";
 import { AUH_CRISIS_SCENES } from "./scenes/auh_crisis";
 import { AUH_CROWN_SCENES } from "./scenes/auh_crown";
@@ -138,6 +139,7 @@ export const GW_CONTENT: GwContent = {
       ...GOV_SCENES,
       ...DEU_PRIVATE_SCENES,
       ...AUH_PRIVATE_SCENES,
+      ...AUH_STORY_SCENES,
       ...PRESS_SCENES,
       ...DEU_STORY_SCENES,
       ...[
