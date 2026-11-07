@@ -1,8 +1,8 @@
-import type { GameRunner } from "@openfront/engine/GameRunner";
 import {
   GW_CONTENT,
   useGwContent,
 } from "@openfront/engine-lib/ww1914/content/Content";
+import type { GameRunner } from "@openfront/engine/GameRunner";
 import { describe, expect, test } from "vitest";
 import { step } from "../ww1936/util";
 import { gwRunner, order, seat } from "./util";
@@ -34,7 +34,14 @@ describe("Wilhelm's prologue", () => {
   test("seven years in order, then chapter 0, with what they left", async () => {
     useGwContent(GW_CONTENT);
     const { runner: r } = await gwRunner(PLAY);
-    const seen = live(r, ["hide", "england", "wire", "fleet", "drawer", "name"]);
+    const seen = live(r, [
+      "hide",
+      "england",
+      "wire",
+      "fleet",
+      "drawer",
+      "name",
+    ]);
     expect(seen.filter((x) => !x.endsWith("_after")).slice(0, 3)).toEqual([
       "deu_pro_arm",
       "deu_pro_father",

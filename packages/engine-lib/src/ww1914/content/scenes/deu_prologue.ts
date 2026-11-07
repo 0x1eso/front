@@ -73,7 +73,10 @@ export const DEU_PROLOGUE_SCENES: readonly GwScene[] = [
       n1: {
         fallback: "go",
         says: [said()],
-        replies: [decide("go", "n2"), decide("wait", "n2", [temper("anxious")])],
+        replies: [
+          decide("go", "n2"),
+          decide("wait", "n2", [temper("anxious")]),
+        ],
       },
       n2: {
         alone: true,
@@ -607,9 +610,7 @@ export const DEU_PROLOGUE_SCENES: readonly GwScene[] = [
         who: "ballin",
         fallback: "trader",
         says: [said()],
-        replies: [
-          decide("trader", "n4", [trustOf(byName("deu_ballin"), 1)]),
-        ],
+        replies: [decide("trader", "n4", [trustOf(byName("deu_ballin"), 1)])],
       },
       n4: {
         who: "admiral",
