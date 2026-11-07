@@ -467,6 +467,25 @@ describe("the opening", () => {
     expect(desk(r).sort()).toEqual(["kiel", "near1"]);
   });
 
+  test("the place kept for the news goes to the news, whatever else came in", async () => {
+    const r = await start({ greatWar1914Played: [] }, [
+      by("near1", "deu_bethmann", { salience: 6, tags: ["war"] }),
+      by("kiel", "deu_jagow", {
+        kind: "wire",
+        options: undefined,
+        salience: 9,
+        tags: ["war"],
+      }),
+      by("gossip", "deu_jagow", {
+        kind: "wire",
+        options: undefined,
+        salience: 3,
+        tags: ["home"],
+      }),
+    ]);
+    expect(desk(r).sort()).toEqual(["kiel", "near1"]);
+  });
+
   test("a crowd comes only with a crisis", async () => {
     const two = {
       x: { person: "deu_stranger" },

@@ -362,10 +362,10 @@ function draw(
   const placed = () => picked.filter((x) => !isRead(x)).length;
   // A first game hears the news before it is asked anything: a place stays
   // for the paper that says what happened.
-  const news = left.some(
-    (c) => isRead(c.scene) && c.scene.salience >= GW_SALIENCE_MUST,
-  );
-  const places = limit !== null && news ? max - 1 : max;
+  const isNews = (c: DeskCandidate) =>
+    isRead(c.scene) && c.scene.salience >= GW_SALIENCE_MUST;
+  const news = limit !== null && left.some(isNews);
+  const places = news ? max - 1 : max;
   while (placed() < places) {
     const open = left.filter(
       (c) =>
@@ -379,7 +379,7 @@ function draw(
     take(c);
   }
   for (let reads = 0; limit === null || reads < 1; reads++) {
-    const open = left.filter((x) => isRead(x.scene));
+    const open = left.filter((x) => (news ? isNews(x) : isRead(x.scene)));
     const varied = open.filter((c) => !wouldFillOneSubject(c, picked, target));
     const c = best(gw, varied.length > 0 ? varied : open, picked);
     if (c === null) break;
