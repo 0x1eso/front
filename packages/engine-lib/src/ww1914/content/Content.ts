@@ -68,6 +68,7 @@ import { RUS_CRISIS_SCENES } from "./scenes/rus_crisis";
 import { RUS_FALL_SCENES } from "./scenes/rus_fall";
 import { RUS_FRONT_SCENES } from "./scenes/rus_front";
 import { RUS_HOME_SCENES } from "./scenes/rus_home";
+import { RUS_STORY_SCENES } from "./scenes/rus_act";
 import { RUS_PRIVATE_SCENES, withRusPrivate } from "./scenes/rus_private";
 import { WARTIME_SCENES } from "./scenes/wartime";
 import { WORLD_SCENES } from "./scenes/world";
@@ -138,6 +139,7 @@ export const GW_CONTENT: GwContent = {
       ...DEU_PRIVATE_SCENES,
       ...AUH_PRIVATE_SCENES,
       ...PRESS_SCENES,
+      ...RUS_STORY_SCENES,
       ...[
         ...COMMON_ACT_SCENES,
         ...DEU_ACT_SCENES,

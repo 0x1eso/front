@@ -78,6 +78,7 @@ export const GW_PACK_SHARES: Readonly<
     "private",
     "press",
     "acts",
+    "act",
   ],
 };
 
