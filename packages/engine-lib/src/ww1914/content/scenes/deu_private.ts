@@ -564,6 +564,16 @@ export const DEU_PRIVATE_SCENES: readonly GwScene[] = [
       open: {
         says: [
           {
+            id: "warm",
+            when: {
+              kind: "person_trust",
+              who: {
+                role: "who",
+              },
+              min: 2,
+            },
+          },
+          {
             id: "base",
           },
         ],
@@ -1633,6 +1643,13 @@ export const DEU_PRIVATE_SCENES: readonly GwScene[] = [
     nodes: {
       open: {
         says: [
+          {
+            id: "note",
+            when: {
+              kind: "memory",
+              key: "pv_mol_note",
+            },
+          },
           {
             id: "base",
           },
@@ -2740,6 +2757,13 @@ export const DEU_PRIVATE_SCENES: readonly GwScene[] = [
     nodes: {
       open: {
         says: [
+          {
+            id: "cold",
+            when: {
+              kind: "memory",
+              key: "pv_tir_thanks_cold",
+            },
+          },
           {
             id: "base",
           },
@@ -3934,6 +3958,13 @@ export const DEU_PRIVATE_SCENES: readonly GwScene[] = [
       open: {
         says: [
           {
+            id: "regiment",
+            when: {
+              kind: "memory",
+              key: "pv_mar_cold_first",
+            },
+          },
+          {
             id: "base",
           },
         ],
@@ -5060,6 +5091,13 @@ export const DEU_PRIVATE_SCENES: readonly GwScene[] = [
       open: {
         says: [
           {
+            id: "no_lunch",
+            when: {
+              kind: "memory",
+              key: "pv_bal_lunch_no",
+            },
+          },
+          {
             id: "base",
           },
         ],
@@ -5386,6 +5424,16 @@ export const DEU_PRIVATE_SCENES: readonly GwScene[] = [
     nodes: {
       open: {
         says: [
+          {
+            id: "cold",
+            when: {
+              kind: "person_trust",
+              who: {
+                role: "who",
+              },
+              max: -1,
+            },
+          },
           {
             id: "cunning",
             when: {
@@ -7256,6 +7304,16 @@ export const DEU_PRIVATE_SCENES: readonly GwScene[] = [
       open: {
         says: [
           {
+            id: "warm",
+            when: {
+              kind: "person_trust",
+              who: {
+                role: "who",
+              },
+              min: 2,
+            },
+          },
+          {
             id: "base",
           },
         ],
@@ -8373,6 +8431,27 @@ const DEU_ECHOES: Readonly<
       ],
     },
   },
+  deu_t_moltke_after: {
+    body: [],
+    says: {
+      open: [
+        {
+          id: "mocked",
+          when: {
+            kind: "memory",
+            key: "pv_mol_mocked",
+          },
+        },
+        {
+          id: "told",
+          when: {
+            kind: "memory",
+            key: "pv_mol_fear_told",
+          },
+        },
+      ],
+    },
+  },
   deu_t2_tirp_son: {
     body: [],
     says: {
@@ -8457,6 +8536,20 @@ const DEU_ECHOES: Readonly<
       ],
     },
   },
+  deu_v2_empress_heart: {
+    body: [],
+    says: {
+      open: [
+        {
+          id: "stayed",
+          when: {
+            kind: "memory",
+            key: "pv_mar_stayed",
+          },
+        },
+      ],
+    },
+  },
   deu_v2_ballin_last: {
     body: [],
     says: {
@@ -8494,6 +8587,20 @@ const DEU_ECHOES: Readonly<
           when: {
             kind: "memory",
             key: "pv_gra_left_out",
+          },
+        },
+      ],
+    },
+  },
+  deu_t2_heir_father: {
+    body: [],
+    says: {
+      open: [
+        {
+          id: "arm",
+          when: {
+            kind: "memory",
+            key: "pv_gra_arm",
           },
         },
       ],
