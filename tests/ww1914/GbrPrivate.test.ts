@@ -42,7 +42,7 @@ describe("Britain, private stories", () => {
     expect(gwPackProblems(GBR_PRIVATE_SCENES, read("GBR.private"))).toEqual([]);
     // The King's scenes and Churchill's belong to lines named for others.
     const of = (x: string) => lines.get(x) ?? 0;
-    expect(of("stam") + of("king")).toBe(5);
+    expect(of("stam") + of("king")).toBe(6);
     expect(of("clem") + of("chu")).toBe(6);
     for (const x of [
       "grey",

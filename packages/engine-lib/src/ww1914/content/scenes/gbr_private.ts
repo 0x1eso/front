@@ -246,7 +246,7 @@ const GREY: readonly GwScene[] = [
     "gbr_grey",
     CRISIS,
     all(chapter(3, 4), { kind: "crisis", topic: "balkan" }),
-    4,
+    5,
     {
       open: node(
         says(["cold", cold], "base"),
@@ -322,7 +322,7 @@ const GREY: readonly GwScene[] = [
     },
     { intro: says(["night2", cold], "base") },
   ),
-  comes("gbr_p_grey_six_weeks", "gbr_grey", WAR, during("15a", "15b"), 4, {
+  comes("gbr_p_grey_six_weeks", "gbr_grey", WAR, during("15a", "15b"), 5, {
     open: node(
       says(["read", greyRead], ["kept", greyKept], "base"),
       r("rest", "warm", "deal", "rest", {
@@ -357,7 +357,7 @@ const GREY: readonly GwScene[] = [
     rest: node(base, end("end", "warm", 0)),
     stay: node(base, end("end", "frank", 0)),
   }),
-  comes("gbr_p_grey_fire", "gbr_grey", WAR, between("1917-05", "1917-09"), 3, {
+  comes("gbr_p_grey_fire", "gbr_grey", WAR, between("1917-05", "1917-09"), 5, {
     open: node(
       says(["read", greyRead], ["cold", cold], "base"),
       r("book", "warm", "ask", "book", { when: greyRead }),
@@ -371,7 +371,7 @@ const GREY: readonly GwScene[] = [
     "gbr_p_grey_gravel",
     "gbr_grey",
     WAR,
-    all(during("18a", "18b"), seen("gbr_p_grey_fire")),
+    during("18a", "18b"),
     {
       open: node(
         says(["star", greyStar], ["no_rest", greyNoRest], "base"),
@@ -767,7 +767,7 @@ const LOUIS: readonly GwScene[] = [
     "gbr_battenberg",
     Y14_ON,
     all(war, chapter(8, 9), not(louisOut)),
-    5,
+    6,
     {
       open: node(
         base,
@@ -813,7 +813,7 @@ const LOUIS: readonly GwScene[] = [
     "gbr_battenberg",
     WAR,
     between("1917-07", "1917-12"),
-    2,
+    4,
     {
       open: node(
         says(["end", memory("m_p_louis_end")], "base"),
@@ -878,7 +878,7 @@ const STAMFORDHAM: readonly GwScene[] = [
     "gbr_george_v",
     WAR,
     between("1915-10", "1916-02"),
-    4,
+    5,
     {
       open: node(
         base,
@@ -904,11 +904,38 @@ const STAMFORDHAM: readonly GwScene[] = [
     wales: node(base, end("end", "warm", 1, "m_p_king_john")),
   }),
   comes(
+    "gbr_p_king_nicky",
+    "gbr_george_v",
+    WAR,
+    all(between("1918-07", "1918-10"), seen("gbr_t_king_tsar"), {
+      kind: "world",
+      of: { is: "regime", tag: "RUS", of: ["soviet"] },
+    }),
+    6,
+    {
+      open: node(
+        says(["john", memory("m_p_king_john")], "base"),
+        r("share", "warm", "ask", "share"),
+        r("note", "frank", "ask", "note"),
+        end("leave", "warm", 0),
+      ),
+      share: node(base, end("end", "warm", 1)),
+      note: node(base, end("end", "frank", 1)),
+    },
+  ),
+  comes(
     "gbr_p_stam_fifteenth",
     "gbr_stamfordham",
     WAR,
-    all(between("1917-05", "1917-06"), seen("gbr_p_stam_may")),
-    3,
+    all(
+      any(
+        between("1916-05", "1916-06"),
+        between("1917-05", "1917-06"),
+        between("1918-05", "1918-06"),
+      ),
+      seen("gbr_p_stam_may"),
+    ),
+    7,
     {
       open: node(
         base,
@@ -993,7 +1020,7 @@ const LAW: readonly GwScene[] = [
     "gbr_bonar_law",
     WAR,
     between("1917-04", "1917-07"),
-    5,
+    6,
     {
       open: node(
         says(["cold", cold], "base"),
@@ -1009,6 +1036,21 @@ const LAW: readonly GwScene[] = [
         end("home", "warm", 1),
       ),
       rome: node(base, end("end", "warm", 0)),
+    },
+  ),
+  comes(
+    "gbr_p_law_confirmed",
+    "gbr_bonar_law",
+    WAR,
+    all(memory("m_p_law_rome"), between("1917-05", "1917-09")),
+    7,
+    {
+      open: node(
+        base,
+        end("letter", "warm", 1, "m_p_law_told"),
+        r("sit", "warm", "ask", "sit"),
+      ),
+      sit: node(base, end("end", "warm", 2, "m_p_law_told")),
     },
   ),
   comes(
@@ -1059,7 +1101,7 @@ const LLOYD_GEORGE: readonly GwScene[] = [
     "gbr_lloyd_george",
     WAR,
     all(war, between("1915-03", "1915-05")),
-    5,
+    6,
     {
       open: node(
         says(["helen", memory("m_p_lg_helen")], "base"),
@@ -1171,7 +1213,7 @@ const CLEMENTINE: readonly GwScene[] = [
     "gbr_clementine",
     Y14_ON,
     all(war, chapter(7, 8)),
-    4,
+    5,
     {
       open: node(
         base,
@@ -1197,13 +1239,13 @@ const CLEMENTINE: readonly GwScene[] = [
   comes(
     "gbr_p_clem_fisher",
     "gbr_clementine",
-    WAR,
-    all(between("1915-02", "1915-05"), {
+    Y14_ON,
+    all(between("1914-11", "1915-05"), {
       kind: "holder",
       office: "sea_lord",
       person: "gbr_fisher",
     }),
-    4,
+    5,
     {
       open: node(
         base,
@@ -1303,8 +1345,11 @@ const CLEMENTINE: readonly GwScene[] = [
     "gbr_p_clem_last",
     "gbr_clementine",
     WAR,
-    all(seen("gbr_p_clem_lunch"), during("17a", "18a")),
-    3,
+    all(
+      any(seen("gbr_p_clem_lunch"), seen("gbr_p_clem_letter")),
+      during("17a", "18a"),
+    ),
+    4,
     {
       open: node(
         says(["kept", clemSpring(true)], ["broke", clemSpring(false)], "base"),
@@ -1357,7 +1402,7 @@ const REDMOND: readonly GwScene[] = [
     "gbr_redmond",
     WAR,
     between("1917-01", "1917-03"),
-    4,
+    5,
     {
       open: node(
         base,
@@ -1369,6 +1414,25 @@ const REDMOND: readonly GwScene[] = [
         end("none", "cold", 0),
       ),
       house: node(base, end("end", "warm", 1, "m_p_red_esther")),
+    },
+  ),
+  comes(
+    "gbr_p_red_speech",
+    "gbr_redmond",
+    WAR,
+    all(war, between("1917-03", "1917-05")),
+    5,
+    {
+      open: node(
+        says(["cold", cold], "base"),
+        r("supper", "warm", "deal", "supper", {
+          tell: [paid(1)],
+          effects: [trust(1), remember("m_p_red_supper")],
+        }),
+        end("rule", "frank", 0, "m_p_red_rule"),
+        end("leave", "warm", 0),
+      ),
+      supper: node(base, end("end", "warm", 0)),
     },
   ),
   comes(
@@ -1423,27 +1487,21 @@ const REDMOND: readonly GwScene[] = [
 // ---- 10. 헨더슨: 같은 날 ----
 
 const HENDERSON: readonly GwScene[] = [
-  meet(
-    "gbr_p_hen_water",
-    "gbr_henderson",
-    WAR,
-    all(flag("f_gbr_labour_in"), during("15a", "16a")),
-    {
-      open: node(
-        says(["warm", warm], ["cold", cold], "base"),
-        r("sons", "warm", "ask", "sons"),
-        r("preach", "frank", "ask", "preach"),
-        end("leave", "warm", 0),
-      ),
-      sons: node(base, end("end", "warm", 1, "m_p_hen_sons")),
-      preach: node(base, end("end", "warm", 1)),
-    },
-  ),
+  meet("gbr_p_hen_water", "gbr_henderson", Y14_ON, all(war, since(8, "16a")), {
+    open: node(
+      says(["warm", warm], ["cold", cold], "base"),
+      r("sons", "warm", "ask", "sons"),
+      r("preach", "frank", "ask", "preach"),
+      end("leave", "warm", 0),
+    ),
+    sons: node(base, end("end", "warm", 1, "m_p_hen_sons")),
+    preach: node(base, end("end", "warm", 1)),
+  }),
   meet(
     "gbr_p_hen_featherstone",
     "gbr_henderson",
     WAR,
-    all(flag("f_gbr_labour_in"), during("15b", "16a")),
+    all(war, during("15b", "16a")),
     {
       open: node(
         says(["cold", cold], "base"),
@@ -1463,7 +1521,7 @@ const HENDERSON: readonly GwScene[] = [
     "gbr_p_hen_david",
     "gbr_henderson",
     WAR,
-    all(war, flag("f_gbr_labour_in"), between("1916-01", "1916-09")),
+    all(war, between("1916-01", "1916-09")),
     {
       open: node(
         says(["sons", memory("m_p_hen_sons")], "base"),
@@ -1633,6 +1691,8 @@ const BACK: readonly Back[] = [
     scene: "gbr_t_lg_ambition",
     node: "open",
     says: [
+      v("p_son_stays", memory("m_p_lg_son_stays")),
+      v("p_son_out", memory("m_p_lg_son_out")),
       v("p_given", memory("m_p_lg_given")),
       v("p_drawer", memory("m_p_lg_drawer")),
       v("p_wiped", memory("m_p_lg_wiped")),
