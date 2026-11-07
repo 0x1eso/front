@@ -705,8 +705,13 @@ export function endTalk(
   if (p !== null && Math.abs(m) >= GW_MOOD_MOVES_TRUST) {
     p.trust = clamp(p.trust + sign, GW_TRUST_MIN, GW_TRUST_MAX);
   }
-  for (const key of card.notes) {
-    seat.log.push({ key, chapter: gw.s.chapter, who: p?.id ?? null });
+  // A note says why trust moved: with no move there is nothing to explain.
+  if (p !== null && Math.abs(m) >= GW_MOOD_MOVES_TRUST) {
+    const kind = m > 0 ? "talk_fit" : "talk_clash";
+    const key = card.notes.filter((k) => k.startsWith(kind)).pop();
+    if (key !== undefined) {
+      seat.log.push({ key, chapter: gw.s.chapter, who: p.id });
+    }
   }
   card.notes = [];
 }
