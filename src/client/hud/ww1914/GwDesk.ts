@@ -18,8 +18,10 @@ import {
   talkCards,
 } from "./GwModel";
 import { brokenLine } from "./GwRuler";
+import { aimNudge } from "./GwSchedule";
 import { BTN, BTN_ON, CHIP, GLASS, HEAD, MUTED } from "./GwStyle";
 import {
+  backText,
   bodyParts,
   bodyPlain,
   briefText,
@@ -90,6 +92,7 @@ function cardBox(c: GwCtx, card: GwCardView): TemplateResult {
     </div>
     <h3 class=${HEAD}>${cardTitle(c.pack, card)}</h3>
     ${brief === null ? nothing : briefLine(c, brief, pass)}
+    ${backLine(c, card, pass)}
     ${isTalk
       ? html`<p class="text-sm text-white/80">
           ${translateText("gw.ui.talk_waits", {
@@ -118,6 +121,86 @@ function cardBox(c: GwCtx, card: GwCardView): TemplateResult {
           : translateText("gw.ui.read_decide")}
     </button>
   </section>`;
+}
+
+/** A paper come back: what its author did with it. */
+function backLine(
+  c: GwCtx,
+  card: GwCardView,
+  pass: TextPass,
+): TemplateResult | typeof nothing {
+  const text = backText(c.pack, card, c.seat, c.data.date);
+  if (text === null) return nothing;
+  return html`<p
+    class="rounded-sm border-l-2 border-amber-300/60 bg-amber-300/10 px-2 py-1 text-[13px] leading-6 text-amber-100/90"
+    data-gw-back-line
+  >
+    ${rich(c, text, pass)}
+  </p>`;
+}
+
+/** "다시 써 오시오": beside sign and refuse, with the short list of directions. */
+function backControl(
+  c: GwCtx,
+  card: GwCardView,
+  close: () => void,
+): TemplateResult | typeof nothing {
+  const dirs = card.backTo ?? [];
+  if (dirs.length === 0) return nothing;
+  const { ui } = c;
+  return html`<div
+    class="space-y-1 border-t border-white/10 pt-1.5"
+    data-gw-back
+  >
+    <button
+      class="${ui.backOpen ? BTN_ON : BTN} w-full"
+      data-gw-back-open
+      @click=${() => {
+        ui.backOpen = !ui.backOpen;
+        ui.backArmed = null;
+        ui.armed = null;
+        c.redraw();
+      }}
+    >
+      ${translateText("gw.back.open")}
+    </button>
+    ${ui.backOpen
+      ? html`<p class="${MUTED} pl-1">
+            ${translateText("gw.back.hint", {
+              name: personName(c.pack, card.backWho ?? ""),
+            })}
+          </p>
+          ${dirs.map(
+            (d) =>
+              html`<button
+                class="${ui.backArmed === d ? BTN_ON : BTN} w-full"
+                data-gw-back-dir=${d}
+                @click=${() => {
+                  ui.backArmed = ui.backArmed === d ? null : d;
+                  c.redraw();
+                }}
+              >
+                ${translateText(`gw.back.dir.${d}`)}
+              </button>`,
+          )}
+          ${ui.backArmed === null
+            ? nothing
+            : html`<button
+                class="w-full rounded border border-amber-300 bg-amber-300/90 px-3 py-2 text-center text-sm font-bold text-slate-900 hover:bg-amber-200"
+                data-gw-back-go
+                @click=${() => {
+                  const direction = ui.backArmed;
+                  if (direction === null) return;
+                  c.send({ kind: "send_back", card: card.uid, direction });
+                  ui.backOpen = false;
+                  ui.backArmed = null;
+                  close();
+                }}
+              >
+                ${translateText("gw.back.go")}
+              </button>`}`
+      : nothing}
+  </div>`;
 }
 
 function dangerText(d: GwDanger): string {
@@ -179,7 +262,7 @@ export function deskTab(c: GwCtx): TemplateResult {
   const papers = paperCards(seat);
   const talks = talkCards(seat);
   return html`<div class="space-y-2.5" data-gw-desk>
-    ${dangerBox(c)}
+    ${dangerBox(c)} ${aimNudge(c)}
     ${reasons.length === 0
       ? nothing
       : html`<div class="rounded border border-white/10 bg-white/5 p-2">
@@ -295,6 +378,8 @@ export function reader(c: GwCtx, card: GwCardView): TemplateResult {
   const close = () => {
     c.ui.readerUid = null;
     c.ui.armed = null;
+    c.ui.backOpen = false;
+    c.ui.backArmed = null;
     c.redraw();
   };
   return html`<div
@@ -319,6 +404,7 @@ export function reader(c: GwCtx, card: GwCardView): TemplateResult {
       </header>
       <h2 class="text-lg font-bold leading-snug">${cardTitle(c.pack, card)}</h2>
       ${brief === null ? nothing : briefLine(c, brief, pass)}
+      ${backLine(c, card, pass)}
       <div class="space-y-2.5 text-[15px] leading-7 text-white/90">
         ${body.map(
           (p) =>
@@ -381,6 +467,7 @@ export function reader(c: GwCtx, card: GwCardView): TemplateResult {
                 >
                   ${translateText("gw.ui.sign")}
                 </button>`}
+            ${backControl(c, card, close)}
           </div>`}
     </article>
   </div>`;

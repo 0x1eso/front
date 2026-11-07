@@ -376,6 +376,9 @@ export function gwPackProblems(
         check(`${s.id}.brief.${v}`, b);
       }
     }
+    for (const [k, b] of Object.entries(t.back ?? {})) {
+      check(`${s.id}.back.${k}`, b);
+    }
     for (const o of s.options ?? []) {
       need(t.opt?.[o.id], `option ${o.id}`);
       check(`${s.id}.${o.id}`, t.opt?.[o.id]);

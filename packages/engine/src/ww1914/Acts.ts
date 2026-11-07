@@ -23,7 +23,7 @@ import {
   SceneCtx,
   sceneOf,
 } from "./SceneRun";
-import { ownPeople, seatPerson, stageOf } from "./World";
+import { lastOf, ownPeople, seatPerson, stageOf } from "./World";
 
 const P_CAUGHT = idHash("gw_act_caught");
 
@@ -40,7 +40,7 @@ function castBefore(gw: GreatWar, seat: GwSeatState, scene: GwScene) {
 }
 
 function rested(gw: GreatWar, seat: GwSeatState, a: GwAct): boolean {
-  const last = seat.acted.filter((x) => x.act === a.id).at(-1);
+  const last = lastOf(seat.acted.filter((x) => x.act === a.id));
   if (last === undefined) return true;
   if (a.once === true) return false;
   return gw.s.chapter - last.chapter > (a.cooldown ?? GW_ACT_COOLDOWN);
@@ -92,7 +92,10 @@ function fieldView(ctx: SceneCtx, f: GwActField) {
   const tones = f.tones ?? [];
   const size = people.length + options.length + tones.length;
   if (size < count) return null;
-  return { id: f.id, options, tones, people, count };
+  const tells = Object.fromEntries(
+    (f.options ?? []).flatMap((o) => (o.tell ? [[o.id, o.tell]] : [])),
+  );
+  return { id: f.id, options, tones, people, count, tells };
 }
 
 /** Everything on the schedule now, in content order. */
@@ -153,7 +156,7 @@ export function takeAct(
   const before = actCtx(gw, seat, a)!;
   if (picks === null || !picksFit(before, a, picks)) return "bad_pick";
   const chosen = pickedOptions(a, picks);
-  const scene = sceneOf(chosen.filter((o) => o.scene).at(-1)?.scene ?? a.scene);
+  const scene = sceneOf(lastOf(chosen.filter((o) => o.scene))?.scene ?? a.scene);
   if (scene === null) return "no_act";
   const row = seat.acted.length;
   seat.acted.push({ act: a.id, chapter: gw.s.chapter, picks });

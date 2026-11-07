@@ -1,8 +1,12 @@
 import type {
+  GwAskClause,
+  GwBackDirection,
+  GwGiveClause,
   GwReason,
   GwResearch,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import type { GwBudgetPlan } from "@openfront/engine-api/ww1914/GwBudget";
+import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import type { GwOrder } from "@openfront/engine-api/ww1914/GwOrders";
 import type { GwPack } from "@openfront/engine-api/ww1914/GwPack";
 import type {
@@ -79,6 +83,19 @@ export interface GwUi {
   term: DictRef | null;
   /** The list open under a press act. */
   pressPick: "invite" | "leak" | null;
+  /** The schedule entry open, and what is picked in it so far. */
+  actOpen: string | null;
+  actPicks: Record<string, string[]>;
+  /** The list of aims is open to change one; the aim waiting for its word. */
+  aimOpen: boolean;
+  aimArmed: string | null;
+  /** Terms being drawn up. */
+  termTag: GwTag | null;
+  termGive: GwGiveClause[];
+  termAsk: GwAskClause[];
+  /** "다시 써 오시오" is open in the reader; the direction waiting for its word. */
+  backOpen: boolean;
+  backArmed: GwBackDirection | null;
   shelf: Shelf;
   /** Choices signed lately, newest last; their results show on the desk. */
   notes: GwResultNote[];

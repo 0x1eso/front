@@ -214,8 +214,30 @@ describe("the schedule", () => {
     playChapter(runner);
     const card = seat(runner).desk.find((c) => c.scene === "t_letter_r");
     expect(card).toBeDefined();
-    // Threat lands on nobody here but the very trusted: the subject decides.
-    expect(["mobilise", "fits"]).toContain(card!.variant);
+  });
+
+  test("the tone is read against the person's temperament", async () => {
+    fixture();
+    const { runner } = await gwRunner();
+    const gw = runner.game.greatWar()!;
+    const p = gw.person("deu_bethmann")!;
+    p.trust = 0;
+    p.pride = 0;
+    const s = gw.s.seats[0];
+    const { holds } = await import("@openfront/engine/ww1914/SceneRun");
+    s.acted.push({ act: "t_letter", chapter: 0, picks: { tone: ["threat"] } });
+    const ctx = { gw, seat: s, cast: { to: p.id }, act: 0 };
+    const fits = { kind: "tone_fits", who: { role: "to" } } as const;
+    p.temperament = "cold";
+    expect(holds(ctx, fits)).toBe(false);
+    p.temperament = "anxious";
+    expect(holds(ctx, fits)).toBe(true);
+    const asked = { kind: "picked", field: "tone", of: ["threat"] } as const;
+    expect(holds(ctx, asked)).toBe(true);
+    expect(holds({ ...ctx, act: null }, asked)).toBe(false);
+    expect(holds({ ...ctx, act: null }, { ...asked, act: "t_letter" })).toBe(
+      true,
+    );
   });
 
   test("slots run out, and a picked person fills the scene", async () => {
@@ -501,36 +523,73 @@ function setAuthor(r: GameRunner, temperament: string, trust: number) {
   return p;
 }
 
-describe("sending a paper back", () => {
-  test("it comes again next chapter, changed, and pays out as changed", async () => {
+/** Tries seeds until the author, set up by `author`, answers as `changed`. */
+async function backAnswered(
+  changed: boolean,
+  author: (r: GameRunner) => void,
+  direction: "cheaper" | "gentler",
+): Promise<{ runner: GameRunner; uid: number }> {
+  for (let i = 0; i < 40; i++) {
     withPaper();
-    const { runner } = await gwRunner();
+    const { runner } = await gwRunner({}, `GWBACK${i}`);
     const card = dealPaper(runner);
-    expect(card.backTo).toEqual(["cheaper", "gentler", "firmer"]);
-    // The weary, trusted author: 5 percent. Find the seed's answer by state.
-    setAuthor(runner, "weary", 3);
-    order(runner, { kind: "send_back", card: card.uid, direction: "cheaper" });
+    author(runner);
+    order(runner, { kind: "send_back", card: card.uid, direction });
+    if (state(runner).returns[0].changed === changed) {
+      return { runner, uid: card.uid };
+    }
+  }
+  throw new Error("no seed answered so");
+}
+
+describe("sending a paper back", () => {
+  test("a paper rewritten comes next chapter and pays out as rewritten", async () => {
+    const { runner } = await backAnswered(
+      true,
+      (r) => setAuthor(r, "weary", 3),
+      "cheaper",
+    );
     expect(seat(runner).desk.some((c) => c.scene === "t_paper")).toBe(false);
-    const back = state(runner).returns[0];
-    expect(back.direction).toBe("cheaper");
     playChapter(runner);
     const again = seat(runner).desk.find((c) => c.scene === "t_paper")!;
-    expect(again.back).toEqual({ direction: "cheaper", changed: back.changed });
+    expect(again.back).toEqual({ direction: "cheaper", changed: true });
     expect(again.backTo).toEqual([]);
-    if (back.changed) {
-      expect(again.variant).toBe("rewritten");
-      expect(again.options[0].tell).toEqual([
-        "money:-1",
-        "morale:+1",
-        "temp:+1",
-      ]);
-    }
+    expect(again.variant).toBe("rewritten");
+    expect(again.options[0].tell).toEqual(["money:-1", "morale:+1", "temp:+1"]);
+    const gw = runner.game.greatWar()!;
+    const morale = gw.nation("DEU")!.gauges.morale;
+    order(runner, { kind: "choose", card: again.uid, option: "sign" });
+    expect(gw.nation("DEU")!.gauges.morale).toBe(Math.min(5, morale + 1));
+  });
+
+  test("someone who digs in sends it as it was, and holds it against the seat", async () => {
+    let pride = 0;
+    const { runner } = await backAnswered(
+      false,
+      (r) => {
+        const p = setAuthor(r, "stubborn", -3);
+        p.pride = 4;
+        pride = 4;
+      },
+      "gentler",
+    );
+    const gw = runner.game.greatWar()!;
+    const p = gw.s.people.find((x) => x.office === "chancellor")!;
+    expect(p.pride).toBe(pride + 1);
+    expect(p.memory.some((m) => m.key === "back_dug")).toBe(true);
+    playChapter(runner);
+    const again = seat(runner).desk.find((c) => c.scene === "t_paper")!;
+    expect(again.back).toEqual({ direction: "gentler", changed: false });
+    expect(again.variant).toBe("base");
+    expect(again.options[0].tell).toEqual(["money:-2", "morale:+2", "temp:+1"]);
+    expect(state(runner).log.map((l) => l.key)).toContain("paper_sent_back");
   });
 
   test("a paper can't go back twice, nor for a direction not on offer", async () => {
     withPaper();
     const { runner } = await gwRunner();
     const card = dealPaper(runner);
+    expect(card.backTo).toEqual(["cheaper", "gentler", "firmer"]);
     order(runner, { kind: "send_back", card: card.uid, direction: "kinder" });
     expect(state(runner).returns).toEqual([]);
     order(runner, { kind: "send_back", card: card.uid, direction: "firmer" });
@@ -540,7 +599,7 @@ describe("sending a paper back", () => {
     expect(state(runner).returns.length).toBe(1);
   });
 
-  test("a read-only card and a talk can't be sent back", async () => {
+  test("nothing to read or say goes back", async () => {
     withPaper();
     const { runner } = await gwRunner();
     for (const c of seat(runner).desk) {
@@ -548,20 +607,13 @@ describe("sending a paper back", () => {
     }
   });
 
-  test("someone who digs in holds it against the seat", async () => {
+  test("the last chapter sends nothing back", async () => {
     withPaper();
     const { runner } = await gwRunner();
     const card = dealPaper(runner);
-    const p = setAuthor(runner, "stubborn", -3);
-    p.pride = 4;
-    // 95 percent: seeds that give way are rare, so ask for the other result.
-    order(runner, { kind: "send_back", card: card.uid, direction: "gentler" });
-    const r = state(runner).returns[0];
-    if (!r.changed) {
-      expect(p.pride).toBe(5);
-      expect(p.memory.some((m) => m.key === "back_dug")).toBe(true);
-    }
-    expect(state(runner).log.map((l) => l.key)).toContain("paper_sent_back");
+    runner.game.greatWar()!.s.chapter = view(runner).chapterCount - 1;
+    order(runner, { kind: "send_back", card: card.uid, direction: "firmer" });
+    expect(state(runner).returns).toEqual([]);
   });
 });
 

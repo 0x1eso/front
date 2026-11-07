@@ -50,6 +50,10 @@ const DYNAMIC_KEY_PATTERNS: RegExp[] = [
   /^gw\.(?:country|office|reason|tell)\.[A-Za-z0-9_]+$/,
   // The budget's words, by line, source, lender and country (client/ww1914/GwBudget).
   /^gw\.budget\.[A-Za-z0-9_.]+$/,
+  // The schedule, papers sent back, terms (client/ww1914/GwSchedule, GwDesk).
+  /^gw\.act\.(?:kind|tone)\.[a-z]+$/,
+  /^gw\.back\.(?:changed|dir|dug)\.[a-z0-9]+$/,
+  /^gw\.terms\.(?:ask|give|why)\.[a-z_]+$/,
   // A bill's stage, outlook and how it came to be (client/ww1914/GwLaws).
   /^gw\.law\.(?:how|outlook|stage|waits)\.[a-z]+$/,
   /^gw\.ruler\.side\.[a-z]+$/,

@@ -48,7 +48,7 @@ import type { GreatWar } from "./GreatWar";
 import { dismissPerson, onAppointed } from "./People";
 import { moveCensor, moveOpinion, moveRumour } from "./Press";
 import { moveRuler, rulerHolds } from "./Ruler";
-import { stageOf } from "./World";
+import { lastOf, stageOf } from "./World";
 import { worldEffect, worldHolds } from "./WorldDsl";
 
 const P_CAST = idHash("gw_cast");
@@ -466,7 +466,7 @@ export function holds(ctx: SceneCtx, c: GwCond): boolean {
     case "aim":
       return seat.aim !== null && c.of.includes(seat.aim);
     case "aim_met": {
-      const aim = gwContent().aims?.find((x) => x.id === seat.aim);
+      const aim = (gwContent().aims ?? []).find((x) => x.id === seat.aim);
       return aim !== undefined && holds({ gw, seat, cast: {} }, aim.met);
     }
     case "aim_changed":
@@ -477,7 +477,7 @@ export function holds(ctx: SceneCtx, c: GwCond): boolean {
 /** The act a card was played from, or the last taking of `act`. */
 function actRow(ctx: SceneCtx, act?: string) {
   const { seat } = ctx;
-  if (act !== undefined) return seat.acted.filter((x) => x.act === act).at(-1);
+  if (act !== undefined) return lastOf(seat.acted.filter((x) => x.act === act));
   const row = ctx.card?.act ?? ctx.act ?? null;
   return row === null ? undefined : seat.acted[row];
 }

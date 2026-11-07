@@ -72,6 +72,8 @@ export interface GwActFieldView {
   tones: readonly GwStance[];
   people: readonly string[];
   count: number;
+  /** Option id -> what it moves: for after the pick. */
+  tells?: Readonly<Record<string, readonly string[]>>;
 }
 
 /** A schedule entry open now (pack `acts.<id>`). */
