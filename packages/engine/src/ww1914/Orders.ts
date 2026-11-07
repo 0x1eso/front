@@ -19,6 +19,7 @@ import { budgetOrder } from "./Budget";
 import { inStage, makeCard, placeCard, repeatable, sceneWear } from "./Desk";
 import { proposalsFor } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
+import { lawOrder } from "./Laws";
 import { dismissPerson, dismissPrice } from "./People";
 import {
   castOf,
@@ -140,6 +141,8 @@ export function applyGwOrder(
     }
     case "budget":
       return budgetOrder(gw, seat, { shares: o.shares, mix: o.mix }, o.force);
+    case "law":
+      return lawOrder(gw, seat, o.law, o.act);
   }
 }
 

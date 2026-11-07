@@ -14,6 +14,7 @@ import {
   GwInstRule,
 } from "./AuthorityTable";
 import type { GreatWar } from "./GreatWar";
+import { lawReplaces } from "./Laws";
 import { openLetter } from "./People";
 import { holds } from "./SceneRun";
 import {
@@ -66,7 +67,7 @@ function runCall(
   if (!first && !due) return;
   for (const seat of seatsOf(gw, n.tag)) {
     if (r.once === true && seat.seen[r.scene] !== undefined) continue;
-    if (waiting(seat, r.scene)) continue;
+    if (waiting(seat, r.scene) || lawReplaces(gw, seat, r.scene)) continue;
     if (r.when !== undefined && !holds({ gw, seat, cast: {} }, r.when))
       continue;
     seat.scheduled.push({ scene: r.scene, chapter: s.chapter + 1 });

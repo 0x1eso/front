@@ -48,6 +48,7 @@ import {
   GwBudgetSource,
 } from "./GwBudget";
 import { GW_TAGS, GwTag } from "./GwCountries";
+import { GW_LAW_STAGES, GwLawStage } from "./GwLaw";
 
 const GW_BUDGET_WHATS = ["treasury", "load", "prices", "lent"] as const;
 type GwBudgetWhat = (typeof GW_BUDGET_WHATS)[number];
@@ -152,7 +153,13 @@ export type GwWorldCond =
    * percent of taxes. prices: percent of June 1914. lent: percent of a year's
    * revenue owed abroad.
    */
-  | ({ is: "budget"; what: GwBudgetWhat } & Range);
+  | ({ is: "budget"; what: GwBudgetWhat } & Range)
+  /** A bill stands at one of these stages. */
+  | { is: "law"; id: string; of: GwLawStage[]; text?: string }
+  /** Its count against whoever must pass it: 0 or more carries. */
+  | ({ is: "law_count"; id: string } & Range)
+  /** The bill can go past the body, and there is the authority to pay for it. */
+  | { is: "law_decree"; id: string };
 
 export type GwWorldEffect =
   /** Germany's plan for the war to come. */
@@ -235,7 +242,19 @@ export type GwWorldEffect =
   /** treasury: percent of a year's revenue; debt, prices: percent of itself. */
   | { do: "budget_item"; item: GwBudgetItem; pct: number }
   /** Interest paid, percent of what is due; lenders shut for `shut` chapters. */
-  | { do: "budget_rate"; pct: number; shut: number };
+  | { do: "budget_rate"; pct: number; shut: number }
+  /** The draft is settled: this text of the bill goes out to be argued. */
+  | { do: "law_text"; law: string; text: string; support: number }
+  /** A talk or a favour moves the count. */
+  | { do: "law_support"; law: string; delta: number }
+  /** The bill goes to whoever must pass it. */
+  | { do: "law_put"; law: string }
+  /** The bill goes past them, at the body's price. */
+  | { do: "law_decree"; law: string }
+  /** The day is put off: another chapter of argument. */
+  | { do: "law_hold"; law: string }
+  /** The bill is taken back; it can come again. */
+  | { do: "law_withdraw"; law: string };
 
 const int = z.number().int();
 const yearMonth = z.string().regex(/^19[0-9]{2}-[01][0-9]$/);
@@ -313,6 +332,13 @@ export const GwWorldCondSchema = z.union([
   is("date", { from: yearMonth.optional(), to: yearMonth.optional() }),
   is("offered", { tag, ...range }),
   is("budget", { what: z.enum(GW_BUDGET_WHATS), ...range }),
+  is("law", {
+    id: GwIdSchema,
+    of: z.array(z.enum(GW_LAW_STAGES)),
+    text: GwIdSchema.optional(),
+  }),
+  is("law_count", { id: GwIdSchema, ...range }),
+  is("law_decree", { id: GwIdSchema }),
 ]) as unknown as z.ZodType<GwWorldCond>;
 
 export const GwWorldEffectSchema = z.union([
@@ -368,6 +394,12 @@ export const GwWorldEffectSchema = z.union([
   act("budget_mix", { source: z.enum(GW_BUDGET_SOURCES), delta: int }),
   act("budget_item", { item: z.enum(GW_BUDGET_ITEMS), pct: int }),
   act("budget_rate", { pct: int.min(0).max(100), shut: int.min(0) }),
+  act("law_text", { law: GwIdSchema, text: GwIdSchema, support: int }),
+  act("law_support", { law: GwIdSchema, delta: int }),
+  act("law_put", { law: GwIdSchema }),
+  act("law_decree", { law: GwIdSchema }),
+  act("law_hold", { law: GwIdSchema }),
+  act("law_withdraw", { law: GwIdSchema }),
 ]) as unknown as z.ZodType<GwWorldEffect>;
 
 // ---- Authoring helpers ----
