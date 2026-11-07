@@ -31,6 +31,7 @@ import { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
 import type { Game } from "../game/Game";
 import { advanceChapter, allReady } from "./Chapters";
 import { closeGame } from "./Endings";
+import { prologueStep } from "./Prologue";
 import { firstRegime, institutionsOf } from "./Regimes";
 import { GW_ACTORS } from "./Tables";
 import { gwView } from "./View";
@@ -256,6 +257,7 @@ export class GreatWar {
       if (s.deadlineTick !== null) s.deadlineTick++;
       return;
     }
+    if (prologueStep(this, ticks)) return;
     const late = s.deadlineTick !== null && ticks >= s.deadlineTick;
     if (late || allReady(this)) advanceChapter(this, ticks, late);
   }

@@ -53,6 +53,7 @@ import {
 } from "./GreatWarTypes";
 import { GW_TAGS, GwTag } from "./GwCountries";
 import { GW_BLOCS, GwBloc } from "./GwPress";
+import { GW_RULER_TEMPERS, GwRulerTemper } from "./GwPrologue";
 import { GW_RULER_SIDES, GwRulerSide } from "./GwRuler";
 import {
   GW_RIVAL_ACTS,
@@ -211,7 +212,9 @@ export type GwCond =
       max?: number;
     }
   /** The player's first game of this nation (the lobby's shelf). */
-  | { kind: "first_game" };
+  | { kind: "first_game" }
+  /** What the prologue made of the ruler; false with no prologue played. */
+  | { kind: "ruler_temper"; of: GwRulerTemper[] };
 
 export type GwEffect =
   | { kind: "flag"; flag: string }
@@ -270,7 +273,13 @@ export type GwEffect =
   /** Closes the rival's track: the memoir says how. */
   | { kind: "rival_end"; end: Exclude<GwRivalEnd, "gone"> }
   /** The seat writes to that person's country in this tone. */
-  | { kind: "letter"; who: GwWho; tone: GwStance };
+  | { kind: "letter"; who: GwWho; tone: GwStance }
+  /** Prologue: where the card starts. No reason line; stays above the bottom. */
+  | { kind: "ruler_start"; side: GwRulerSide; delta: number }
+  /** Prologue: a mark toward what the ruler becomes. */
+  | { kind: "temper"; of: GwRulerTemper }
+  /** Prologue: makes that person likelier (or less) to become the rival. */
+  | { kind: "rival_lean"; who: GwWho; delta: number };
 
 const int = z.number().int();
 const range = { min: int.optional(), max: int.optional() };
@@ -394,6 +403,7 @@ export const GwCondSchema: z.ZodType<GwCond> = z.lazy(() =>
       ...range,
     }),
     obj("first_game", {}),
+    obj("ruler_temper", { of: z.array(z.enum(GW_RULER_TEMPERS)).min(1) }),
   ]),
 ) as z.ZodType<GwCond>;
 
@@ -457,6 +467,9 @@ export const GwEffectSchema: z.ZodType<GwEffect> = z.lazy(() =>
       end: z.enum(["reconciled", "broken", "prevailed"] as const),
     }),
     obj("letter", { who: GwWhoSchema, tone: z.enum(GW_STANCES) }),
+    obj("ruler_start", { side: z.enum(GW_RULER_SIDES), delta: int }),
+    obj("temper", { of: z.enum(GW_RULER_TEMPERS) }),
+    obj("rival_lean", { who: GwWhoSchema, delta: int }),
   ]),
 ) as z.ZodType<GwEffect>;
 
@@ -516,6 +529,11 @@ const GwBaseCastRuleSchema = z.union([
   z.object({ rival_man: z.literal(true) }).strict(),
   /** The ruler of that country, if no seat holds it (StoryRows GW_HEADS). */
   z.object({ ruler_of: tag }).strict(),
+  /**
+   * Prologue: that person as they were, alive or dead by 1914, in the cast or
+   * only in the pack's `people`.
+   */
+  z.object({ past: GwIdSchema }).strict(),
 ]);
 
 /**
@@ -677,6 +695,8 @@ export const GwSceneSchema = z
     silent: z.boolean().optional(),
     /** Comes even in a chapter a big scene has quieted. */
     essential: z.boolean().optional(),
+    /** Its place in the nation's prologue, from 1 (engine/ww1914/Prologue). */
+    prologue: int.min(1).optional(),
   })
   .strict();
 export type GwScene = z.infer<typeof GwSceneSchema>;
@@ -710,7 +730,7 @@ export function gwSceneProblems(s: GwScene): string[] {
   if (s.scheduledOnly === true && s.summon === true) {
     out.push(`${s.id}: scheduledOnly and summon`);
   }
-  out.push(...storyProblems(s));
+  out.push(...storyProblems(s), ...prologueProblems(s));
   if (s.kind === "talk") {
     if (s.who === undefined || s.cast[s.who] === undefined) {
       out.push(`${s.id}: who is not a cast role`);
@@ -808,6 +828,64 @@ function storyProblems(s: GwScene): string[] {
   }
   return out;
 }
+
+/** What a prologue can't do: the world isn't open and nothing shows a price. */
+const NOT_IN_PROLOGUE: readonly GwEffect["kind"][] = [
+  "ruler",
+  "end",
+  "delay",
+  "audiences",
+  "drop_card",
+  "dismiss",
+  "appoint",
+  "promise",
+  "rival",
+  "rival_end",
+  // A skipped game replays the picks on another seed: no roll may tell them apart.
+  "roll",
+];
+
+/** What a prologue scene must be, and what only it can use. */
+function prologueProblems(s: GwScene): string[] {
+  const out: string[] = [];
+  const replies = Object.entries(s.nodes ?? {}).flatMap(([id, n]) =>
+    n.replies.map((r) => ({ at: `${s.id}.${id}.${r.id}`, r })),
+  );
+  const effects = replies.flatMap(({ r }) => [
+    ...r.effects,
+    ...(r.gain ?? []),
+    ...(r.reacts ?? []).flatMap((x) => x.effects),
+  ]);
+  if (s.prologue === undefined) {
+    const own = effects.find((e) => PROLOGUE_ONLY.includes(e.kind));
+    if (own !== undefined) out.push(`${s.id}: ${own.kind} outside a prologue`);
+    return out;
+  }
+  if (s.big !== true || s.scheduledOnly !== true) {
+    out.push(`${s.id}: a prologue scene is big and scheduledOnly`);
+  }
+  for (const [role, rule] of Object.entries(s.cast)) {
+    if (!("past" in rule)) out.push(`${s.id}.${role}: cast by \`past\``);
+  }
+  for (const e of effects) {
+    if (NOT_IN_PROLOGUE.includes(e.kind)) {
+      out.push(`${s.id}: ${e.kind} in a prologue`);
+    }
+  }
+  for (const { at, r } of replies) {
+    if (r.tell.length > 0) out.push(`${at}: a prologue shows no results`);
+    if (r.next === null && r.kind !== "decide") {
+      out.push(`${at}: a prologue scene ends on a decide`);
+    }
+  }
+  return out;
+}
+
+const PROLOGUE_ONLY: readonly GwEffect["kind"][] = [
+  "ruler_start",
+  "temper",
+  "rival_lean",
+];
 
 /** Every place a reply can go. */
 function nextsOf(r: GwReply): (string | null)[] {
@@ -924,6 +1002,33 @@ export const character = (who: GwWho, ...of: GwAiKind[]): GwCond => ({
   who,
   of,
 });
+/** Prologue: that person as they were (cast rule). */
+export const past = (id: string): GwCastRule => ({ past: id });
+export const startRuler = (side: GwRulerSide, delta: number): GwEffect => ({
+  kind: "ruler_start",
+  side,
+  delta,
+});
+export const temper = (of: GwRulerTemper): GwEffect => ({ kind: "temper", of });
+export const rivalLean = (who: GwWho, delta: number): GwEffect => ({
+  kind: "rival_lean",
+  who,
+  delta,
+});
+export const rulerTemper = (...of: GwRulerTemper[]): GwCond => ({
+  kind: "ruler_temper",
+  of,
+});
+/**
+ * A main-story body or line that only a prologue choice brings: a variant put
+ * first on `scene` (on `node`'s `says` if given). Its text is pack `over`.
+ */
+export interface GwEcho {
+  scene: string;
+  node?: string;
+  id: string;
+  when: GwCond;
+}
 /** A decision in a big scene. */
 export const decide = (
   id: string,

@@ -27,6 +27,7 @@ import type { GreatWar } from "./GreatWar";
 import { lawOrder } from "./Laws";
 import { dismissPerson, dismissPrice } from "./People";
 import { pressCensor, pressInvite, pressLeak } from "./Press";
+import { prologueRefuses } from "./Prologue";
 import {
   castOf,
   ctxOf,
@@ -56,6 +57,7 @@ export function applyGwOrder(
   o: GwOrder,
 ): GwOrderBlock | null {
   if (gw.s.ended !== null) return "ended";
+  if (prologueRefuses(gw, o.kind)) return "prologue";
   switch (o.kind) {
     case "ready": {
       if (o.chapter !== gw.s.chapter) return "stale_chapter";

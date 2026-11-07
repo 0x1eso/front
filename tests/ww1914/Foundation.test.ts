@@ -31,6 +31,7 @@ describe("the config key", () => {
       "greatWar1914Calendar",
       "greatWar1914Recent",
       "greatWar1914Played",
+      "greatWar1914Prologue",
     ]);
   });
 

@@ -31,6 +31,8 @@ import { personDef, SceneCtx, sceneOf, whoIn } from "./SceneRun";
 import { seatPerson, seatsOf } from "./World";
 
 const P_RIVAL = idHash("gw_rival");
+/** A row member's share of the roll once the prologue has pushed someone. */
+const LEAN_BASE = 2;
 
 /** Heat a seat's act moves, in tenths of the game: the same on every calendar. */
 const ACT_TENTHS = 2;
@@ -53,8 +55,24 @@ export function rollRival(gw: GreatWar, seat: GwSeatState): void {
   );
   if (rows.length === 0) return;
   const roll = wwRoll(gw.s.seed, P_RIVAL, seat.smallID);
-  seat.story.rival.who = rows[roll % rows.length];
+  const pool = leaningRows(rows, seat.prologue?.lean ?? {});
+  seat.story.rival.who = pool[roll % pool.length];
   seat.story.rival.stage = GW_RIVAL_SIGNS;
+}
+
+/**
+ * The row with the prologue's nudges: each person's share of the roll. Nobody
+ * pushed: the row as it is. A nudge weighs, it doesn't decide.
+ */
+function leaningRows(
+  rows: readonly string[],
+  lean: Readonly<Record<string, number>>,
+): readonly string[] {
+  if (!rows.some((id) => lean[id] !== undefined)) return rows;
+  const pool = rows.flatMap((id) =>
+    Array<string>(Math.max(0, LEAN_BASE + (lean[id] ?? 0))).fill(id),
+  );
+  return pool.length === 0 ? rows : pool;
 }
 
 /** The rival if the track is open and he is on his feet. */

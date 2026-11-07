@@ -18,6 +18,7 @@ import { openChapter } from "./Chapters";
 import { openFirstCrisis } from "./Crises";
 import type { GreatWar } from "./GreatWar";
 import { GW_MANDATES } from "./Mandates";
+import { startPrologue } from "./Prologue";
 import { rollRuler } from "./Ruler";
 import { rollRival } from "./Story";
 import {
@@ -196,5 +197,5 @@ export function rollWorld(gw: GreatWar, seed: number, ticks: number): void {
   for (const seat of s.seats) rollRuler(gw, seat);
   for (const seat of s.seats) rollRival(gw, seat);
   openFirstCrisis(gw);
-  openChapter(gw, ticks);
+  if (!startPrologue(gw)) openChapter(gw, ticks);
 }

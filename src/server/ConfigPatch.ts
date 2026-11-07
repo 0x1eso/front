@@ -51,6 +51,7 @@ const COPIED_KEYS = [
   "greatWar1914Calendar",
   "greatWar1914Recent",
   "greatWar1914Played",
+  "greatWar1914Prologue",
 ] as const satisfies readonly (keyof GameConfig)[];
 
 // `.nullable().optional()` in the schema: the wire says null to clear a

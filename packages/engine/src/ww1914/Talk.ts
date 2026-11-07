@@ -102,6 +102,7 @@ function moveTo(
 /**
  * A timer closed the chapter on a big scene: it plays out by each node's
  * `fallback`, else the first open reply that doesn't walk out. A loop stops.
+ * `picks`: reply ids to take first, in order, where a node offers them.
  */
 export function playOutBig(
   gw: GreatWar,
@@ -109,7 +110,9 @@ export function playOutBig(
   card: GwCard,
   scene: GwScene,
   late: boolean,
+  picks: readonly string[] = [],
 ): void {
+  const left = [...picks];
   const ctx = ctxOf(gw, seat, card);
   const been = new Set<string>();
   while (seat.desk.includes(card) && card.node !== null) {
@@ -117,7 +120,10 @@ export function playOutBig(
     been.add(card.node);
     const node = scene.nodes?.[card.node];
     const open = (node?.replies ?? []).filter((r) => optionOpen(ctx, r));
+    const named = left.findIndex((id) => open.some((r) => r.id === id));
+    const chosen = named < 0 ? null : left.splice(named, 1)[0];
     const pick =
+      open.find((r) => r.id === chosen) ??
       open.find((r) => r.id === node?.fallback) ??
       open.find((r) => r.kind !== "leave") ??
       open[0];
