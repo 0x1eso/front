@@ -25,7 +25,9 @@ export function band(c: GwCtx): TemplateResult {
     <span class="text-sm font-bold" data-gw-date>${fullDate(data.date)}</span>
     <span class="hidden text-xs text-white/60 sm:inline"
       >${translateText("gw.panel.chapter", {
-        date: translateText(`gw.ui.stage.${data.stage}`),
+        date: translateText(
+          `gw.ui.stage.${data.stage === "war" && seat.world.side === null ? "peace" : data.stage}`,
+        ),
         n: data.chapter + 1,
         total: data.chapterCount,
       })}</span

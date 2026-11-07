@@ -25,6 +25,8 @@ export const GW_LINKS = [
   "local_war",
   "general",
 ] as const;
+/** Links whose news names Serbia. */
+const FAR_LINKS: readonly string[] = ["ultimatum", "local_war"];
 /** A later spark runs the end of the same ladder. */
 export const GW_SHORT_START = 3;
 
@@ -174,7 +176,9 @@ function runLink(gw: GreatWar): void {
   const c = s.chain!;
   const name = GW_LINKS[c.step];
   heat(gw, moves(gw, c.step));
-  news(gw, `link_${name}`);
+  // Belgrade is in those two lines: another question has its own.
+  const far = c.topic !== "balkan" && FAR_LINKS.includes(name);
+  news(gw, far ? `link_${name}_far` : `link_${name}`);
   switch (name) {
     case "draft":
       russiaStirs(gw, name);
@@ -193,7 +197,8 @@ function runLink(gw: GreatWar): void {
       if (s.aside) return closeChain(gw, "humiliation");
       // With Vienna at the desk its signature decides, not the temperature:
       // relations broken off, the declaration comes on next chapter's desk.
-      const vienna = seatsOf(gw, "AUH")[0];
+      // July's papers come once: a later spark runs on its temperature.
+      const vienna = c.short ? undefined : seatsOf(gw, "AUH")[0];
       const going = AUH_GOING.some((f) => vienna?.flags.includes(f) === true);
       if (going) s.temp = Math.max(s.temp, LOCAL_WAR_AT);
       const held = vienna !== undefined && !going;
@@ -209,7 +214,10 @@ function runLink(gw: GreatWar): void {
     case "general":
       if (s.aside) return closeChain(gw, "humiliation");
       // Vienna never signed: there is no war for the others to join.
-      if (seatsOf(gw, "AUH")[0]?.flags.includes(AUH_DECLARED) === false) {
+      if (
+        !c.short &&
+        seatsOf(gw, "AUH")[0]?.flags.includes(AUH_DECLARED) === false
+      ) {
         return closeChain(gw, "compromise");
       }
       return closeChain(gw, s.temp >= GENERAL_WAR_AT ? "war" : "compromise");

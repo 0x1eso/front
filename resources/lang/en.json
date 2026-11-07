@@ -2605,8 +2605,10 @@
       "link_draft": "Vienna is drafting something.",
       "link_general": "The great powers are mobilizing.",
       "link_local_war": "Vienna and Belgrade are at the brink.",
+      "link_local_war_far": "The two sides stand at the brink.",
       "link_shot": "An archduke was shot at Sarajevo.",
       "link_ultimatum": "An ultimatum has gone to Belgrade.",
+      "link_ultimatum_far": "Notes are going round the legations.",
       "link_vienna": "Vienna has sent to Berlin.",
       "mob_first": "Russia and France mobilised first.",
       "mob_first_central": "Germany and Austria-Hungary mobilise first.",
@@ -3459,6 +3461,7 @@
         "closing": "Closing",
         "conference": "The peace conference",
         "crisis": "Crisis",
+        "peace": "Peace",
         "war": "War",
         "y1914": "1914"
       },

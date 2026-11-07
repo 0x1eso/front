@@ -272,7 +272,8 @@ const SCENES: readonly GwScene[] = [
     9,
     ["people", "tension_up"],
     { fm: { office: "foreign" } },
-    all(crisis, during("c")),
+    // The wire is the first paper of the crisis; this one answers it.
+    all(crisis, during("c"), chapters(1, 5)),
     [v("weary", moody(fm, "weary")), base],
     { stamp: "confirmed", source: "staff" },
   ),
@@ -1013,6 +1014,41 @@ const SCENES: readonly GwScene[] = [
             setFlag("f_auh_halt_belgrade"),
           ],
           memory("k_bol_halt"),
+        ),
+      ],
+    },
+  ),
+  // One clause more buys three days, and then the same two papers come back:
+  // without this card the crisis closes with nobody having said so.
+  scene(
+    "auh_c_serb_second",
+    "crisis",
+    9,
+    ["foreign", "tension_up"],
+    { fm: { office: "foreign" }, cos: { office: "chief_of_staff" } },
+    all(
+      crisis,
+      chose("auh_c_serb_reply", "ask_more"),
+      not(flag("f_auh_broke_off")),
+    ),
+    [base],
+    {
+      fallback: "break_now",
+      options: [
+        opt(
+          "break_now",
+          ["temp:+2", "army:+1"],
+          [temp(2), army(1), setFlag("f_auh_broke_off")],
+        ),
+        opt(
+          "take_it",
+          ["ends_crisis", "army:-2", "deu:-1"],
+          [
+            army(-2),
+            trust("DEU", -1),
+            setFlag("f_auh_reply_accepted"),
+            act({ do: "close_chain", outcome: "compromise" }),
+          ],
         ),
       ],
     },

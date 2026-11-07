@@ -130,7 +130,13 @@ export function talkView(
             ${person?.office === null || person === undefined
               ? nothing
               : translateText(`gw.office.${person.office}`)}
-            ${lean === "" ? nothing : html`<span> · ${lean}</span>`}
+            ${lean === ""
+              ? nothing
+              : html`<span
+                  >${person?.office === null || person === undefined
+                    ? ""
+                    : " · "}${lean}</span
+                >`}
           </div>
           <div class="${MUTED} mt-0.5" data-gw-trust>
             ${translateText("gw.ui.trust_label")}:
