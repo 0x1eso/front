@@ -402,6 +402,7 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
         },
       },
       { id: "cmd", when: { kind: "world", of: { is: "command" } } },
+      { id: "base2" },
       { id: "base" },
     ],
     fallback: "keep_sukh",
@@ -715,6 +716,7 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     tags: ["war", "tension_up"],
     once: true,
     variants: [
+      { id: "thin2", when: { kind: "gauge", gauge: "shells", max: 1 } },
       { id: "thin", when: { kind: "gauge", gauge: "shells", max: 1 } },
       { id: "cmd", when: { kind: "world", of: { is: "command" } } },
       { id: "base" },
@@ -1028,6 +1030,7 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
           of: { is: "regime", of: ["provisional", "rep"] },
         },
       },
+      { id: "base2" },
       { id: "base" },
     ],
     fallback: "leave_them",
@@ -1245,6 +1248,10 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     tags: ["war"],
     once: true,
     variants: [
+      {
+        id: "wounded2",
+        when: { kind: "world", of: { is: "casualties", min: 500 } },
+      },
       {
         id: "wounded",
         when: { kind: "world", of: { is: "casualties", min: 500 } },
@@ -1551,6 +1558,10 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     tags: ["war"],
     once: true,
     variants: [
+      {
+        id: "after_sarikamish2",
+        when: { kind: "seen", scene: "rus_w_sarikamish" },
+      },
       {
         id: "after_sarikamish",
         when: { kind: "seen", scene: "rus_w_sarikamish" },
@@ -1871,9 +1882,39 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     once: true,
     summon: true,
     who: "p",
-    variants: [{ id: "base" }],
+    variants: [{ id: "glasses" }, { id: "base" }],
     start: "open",
+    starts: { glasses: "a_glass" },
     nodes: {
+      a_glass: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "ask",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "galicia",
+          },
+          {
+            id: "deal",
+            stance: "warm",
+            kind: "deal",
+            tell: [],
+            effects: [{ kind: "remember", key: "k_alek_kiev" }],
+            next: "paper",
+          },
+          {
+            id: "go",
+            stance: "warm",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
       open: {
         says: [
           {
@@ -3097,9 +3138,39 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     once: true,
     summon: true,
     who: "p",
-    variants: [{ id: "base" }],
+    variants: [{ id: "drill" }, { id: "base" }],
     start: "open",
+    starts: { drill: "b_drill" },
     nodes: {
+      b_drill: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "cut",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "foe",
+          },
+          {
+            id: "keep",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+          {
+            id: "deal",
+            stance: "warm",
+            kind: "deal",
+            tell: [],
+            effects: [{ kind: "remember", key: "k_brus_met" }],
+            next: "deal",
+          },
+        ],
+      },
       open: {
         says: [
           {
@@ -4325,9 +4396,39 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     once: true,
     summon: true,
     who: "p",
-    variants: [{ id: "base" }],
+    variants: [{ id: "walk" }, { id: "base" }],
     start: "open",
+    starts: { walk: "p_walk" },
     nodes: {
+      p_walk: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "shut",
+            stance: "warm",
+            kind: "deal",
+            tell: [],
+            effects: [],
+            next: "who",
+          },
+          {
+            id: "open",
+            stance: "cold",
+            kind: "push",
+            tell: [],
+            effects: [],
+            next: "side",
+          },
+          {
+            id: "go",
+            stance: "warm",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
       open: {
         says: [
           {

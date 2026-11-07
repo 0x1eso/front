@@ -1749,6 +1749,7 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
       {
         id: "narva",
       },
+      { id: "tram" },
       {
         id: "base",
       },
@@ -4415,12 +4416,43 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
     summon: true,
     who: "p",
     variants: [
+      { id: "count" },
       {
         id: "base",
       },
     ],
     start: "open",
+    starts: { count: "r_count" },
     nodes: {
+      r_count: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "what",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "what",
+          },
+          {
+            id: "deal",
+            stance: "warm",
+            kind: "deal",
+            tell: [],
+            effects: [{ kind: "remember", key: "k_rodz_session" }],
+            next: "thanks",
+          },
+          {
+            id: "go",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
       open: {
         says: [
           {

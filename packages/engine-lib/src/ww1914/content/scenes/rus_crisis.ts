@@ -414,6 +414,16 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     once: true,
     variants: [
       {
+        id: "no_friend2",
+        when: {
+          kind: "all",
+          of: [
+            { kind: "flag", flag: "f_ras_wounded" },
+            { kind: "flag", flag: "f_heir_desk" },
+          ],
+        },
+      },
+      {
         id: "no_friend",
         when: {
           kind: "all",
@@ -435,6 +445,7 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
         id: "rodzianko_heard",
         when: { kind: "flag", flag: "f_door_rodzianko" },
       },
+      { id: "base2" },
       { id: "base" },
     ],
     fallback: "stand_firm",
@@ -525,6 +536,7 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     variants: [
       { id: "firm", when: { kind: "flag", flag: "f_stand_firm" } },
       { id: "delayed", when: { kind: "flag", flag: "f_asked_delay" } },
+      { id: "toast2", when: { kind: "flag", flag: "f_firm_toast" } },
       { id: "toast", when: { kind: "flag", flag: "f_firm_toast" } },
       { id: "base" },
     ],

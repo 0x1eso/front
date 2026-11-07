@@ -38,6 +38,14 @@ export const RUS_HOME_SCENES: readonly GwScene[] = [
         },
       },
       {
+        id: "one_page2",
+        when: {
+          kind: "temperament",
+          who: { role: "chancellor" },
+          of: ["weary"],
+        },
+      },
+      {
         id: "one_page",
         when: {
           kind: "temperament",
@@ -1935,6 +1943,10 @@ export const RUS_HOME_SCENES: readonly GwScene[] = [
         },
       },
       {
+        id: "cold_villages2",
+        when: { kind: "gauge", gauge: "morale", max: 2 },
+      },
+      {
         id: "cold_villages",
         when: {
           kind: "gauge",
@@ -3779,6 +3791,7 @@ export const RUS_HOME_SCENES: readonly GwScene[] = [
     stamp: "confirmed",
     source: "press",
     variants: [
+      { id: "rodz2", when: { kind: "memory", key: "k_rodz_friend" } },
       {
         id: "rodz",
         when: {
@@ -4076,6 +4089,7 @@ export const RUS_HOME_SCENES: readonly GwScene[] = [
           pick: "let_go",
         },
       },
+      { id: "straits2", when: { kind: "pressure", topic: "straits", min: 5 } },
       {
         id: "straits",
         when: {
@@ -5634,12 +5648,43 @@ export const RUS_HOME_SCENES: readonly GwScene[] = [
           },
         },
       },
+      { id: "cut" },
       {
         id: "base",
       },
     ],
     start: "open",
+    starts: { cut: "a_cut" },
     nodes: {
+      a_cut: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "know",
+            stance: "warm",
+            kind: "deal",
+            tell: [],
+            effects: [],
+            next: "glad",
+          },
+          {
+            id: "what",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "officers",
+          },
+          {
+            id: "rest",
+            stance: "flatter",
+            kind: "push",
+            tell: [],
+            effects: [],
+            next: "work",
+          },
+        ],
+      },
       open: {
         says: [
           {
@@ -7653,12 +7698,43 @@ export const RUS_HOME_SCENES: readonly GwScene[] = [
     summon: true,
     who: "p",
     variants: [
+      { id: "tea" },
       {
         id: "base",
       },
     ],
     start: "open",
+    starts: { tea: "r_tea" },
     nodes: {
+      r_tea: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "drink",
+            stance: "warm",
+            kind: "deal",
+            tell: [],
+            effects: [{ kind: "remember", key: "k_ras_gone" }],
+            next: "agreed",
+          },
+          {
+            id: "say",
+            stance: "frank",
+            kind: "push",
+            tell: [],
+            effects: [],
+            next: "price",
+          },
+          {
+            id: "no",
+            stance: "threat",
+            kind: "push",
+            tell: [],
+            effects: [],
+            next: "stare",
+          },
+        ],
+      },
       open: {
         says: [
           {
@@ -8578,12 +8654,43 @@ export const RUS_HOME_SCENES: readonly GwScene[] = [
     summon: true,
     who: "p",
     variants: [
+      { id: "menu" },
       {
         id: "base",
       },
     ],
     start: "open",
+    starts: { menu: "k_menu" },
     nodes: {
+      k_menu: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "lunch",
+            stance: "warm",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "want",
+          },
+          {
+            id: "plot",
+            stance: "threat",
+            kind: "push",
+            tell: [],
+            effects: [],
+            next: "shy",
+          },
+          {
+            id: "deal",
+            stance: "cold",
+            kind: "deal",
+            tell: [],
+            effects: [{ kind: "remember", key: "k_kriv_bloc" }],
+            next: "bridge",
+          },
+        ],
+      },
       open: {
         says: [
           {
@@ -9344,12 +9451,43 @@ export const RUS_HOME_SCENES: readonly GwScene[] = [
     summon: true,
     who: "p",
     variants: [
+      { id: "chair" },
       {
         id: "base",
       },
     ],
     start: "open",
+    starts: { chair: "k_chair" },
     nodes: {
+      k_chair: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "pm",
+            stance: "frank",
+            kind: "deal",
+            tell: [],
+            effects: [{ kind: "remember", key: "k_kriv_premier" }],
+            next: "terms",
+          },
+          {
+            id: "chair",
+            stance: "cold",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "evade",
+          },
+          {
+            id: "go",
+            stance: "warm",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
       open: {
         says: [
           {
@@ -10247,12 +10385,43 @@ export const RUS_HOME_SCENES: readonly GwScene[] = [
     summon: true,
     who: "p",
     variants: [
+      { id: "sealed" },
       {
         id: "base",
       },
     ],
     start: "open",
+    starts: { sealed: "b_seal" },
     nodes: {
+      b_seal: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "how",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "how",
+          },
+          {
+            id: "hold",
+            stance: "cold",
+            kind: "push",
+            tell: [],
+            effects: [],
+            next: "hold",
+          },
+          {
+            id: "deal",
+            stance: "warm",
+            kind: "deal",
+            tell: [],
+            effects: [{ kind: "remember", key: "k_bark_gold" }],
+            next: "rails",
+          },
+        ],
+      },
       open: {
         says: [
           {
