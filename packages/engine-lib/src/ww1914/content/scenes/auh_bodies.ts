@@ -2135,6 +2135,384 @@ const BODIES: Readonly<Record<string, GwBodies>> = {
       },
     },
   },
+  auh_t_ber_after: {
+    variants: [
+      {
+        id: "b2",
+      },
+    ],
+    starts: {
+      b2: "b2",
+    },
+    nodes: {
+      b2: {
+        replies: [
+          {
+            same: "ask",
+          },
+          {
+            same: "deal",
+          },
+          {
+            same: "leave",
+          },
+        ],
+      },
+    },
+  },
+  auh_t_hoyos_term: {
+    variants: [
+      {
+        id: "b2",
+      },
+    ],
+    starts: {
+      b2: "b2",
+    },
+    nodes: {
+      b2: {
+        replies: [
+          {
+            same: "ask",
+          },
+          {
+            same: "deal",
+          },
+          {
+            same: "leave",
+          },
+        ],
+      },
+    },
+  },
+  auh_t_tisza_wait: {
+    variants: [
+      {
+        id: "b2",
+      },
+    ],
+    starts: {
+      b2: "b2",
+    },
+    nodes: {
+      b2: {
+        replies: [
+          {
+            same: "ask",
+          },
+          {
+            same: "fear",
+          },
+          {
+            same: "leave",
+          },
+        ],
+      },
+    },
+    gate: {
+      kind: "any",
+      of: [
+        {
+          kind: "opening",
+          of: ["sarajevo", "sarajevo_survived", "sarajevo_failed"],
+        },
+        {
+          kind: "all",
+          of: [
+            {
+              kind: "opening",
+              of: ["sarajevo_delayed"],
+            },
+            {
+              kind: "chapter",
+              min: 2,
+            },
+          ],
+        },
+      ],
+    },
+  },
+  auh_t_karl_funeral: {
+    variants: [
+      {
+        id: "b2",
+      },
+    ],
+    starts: {
+      b2: "b2",
+    },
+    nodes: {
+      b2: {
+        replies: [
+          {
+            same: "why",
+          },
+          {
+            same: "terms",
+          },
+          {
+            same: "no",
+          },
+        ],
+      },
+    },
+    gate: {
+      kind: "any",
+      of: [
+        {
+          kind: "opening",
+          of: ["sarajevo", "sarajevo_survived", "sarajevo_failed"],
+        },
+        {
+          kind: "all",
+          of: [
+            {
+              kind: "opening",
+              of: ["sarajevo_delayed"],
+            },
+            {
+              kind: "chapter",
+              min: 2,
+            },
+          ],
+        },
+      ],
+    },
+  },
+  auh_t_krob_harvest: {
+    variants: [
+      {
+        id: "b2",
+      },
+    ],
+    starts: {
+      b2: "b2",
+    },
+    nodes: {
+      b2: {
+        replies: [
+          {
+            same: "ask",
+          },
+          {
+            same: "budget",
+          },
+          {
+            same: "leave",
+          },
+        ],
+      },
+    },
+  },
+  auh_t_hoyos_partition: {
+    variants: [
+      {
+        id: "b2",
+      },
+    ],
+    starts: {
+      b2: "b2",
+    },
+    nodes: {
+      b2: {
+        replies: [
+          {
+            same: "ask",
+          },
+          {
+            same: "deal",
+          },
+          {
+            same: "leave",
+          },
+        ],
+      },
+    },
+  },
+  auh_v_land_days: {
+    variants: [
+      {
+        id: "b2",
+      },
+    ],
+    starts: {
+      b2: "b2",
+    },
+    nodes: {
+      b2: {
+        replies: [
+          {
+            same: "ask",
+          },
+          {
+            same: "deal",
+          },
+          {
+            same: "leave",
+          },
+        ],
+      },
+    },
+    gate: {
+      kind: "world",
+      of: {
+        is: "war",
+      },
+    },
+  },
+  auh_v_lam_plan: {
+    variants: [
+      {
+        id: "b2",
+      },
+    ],
+    starts: {
+      b2: "b2",
+    },
+    nodes: {
+      b2: {
+        replies: [
+          {
+            same: "read",
+          },
+          {
+            same: "short",
+          },
+          {
+            same: "bye",
+          },
+        ],
+      },
+    },
+  },
+  auh_t_kra_amnesty: {
+    variants: [
+      {
+        id: "b2",
+      },
+    ],
+    starts: {
+      b2: "b2",
+    },
+    nodes: {
+      b2: {
+        replies: [
+          {
+            same: "ask",
+          },
+          {
+            same: "deal",
+          },
+          {
+            same: "leave",
+          },
+        ],
+      },
+    },
+  },
+  auh_t_bor_socks: {
+    variants: [
+      {
+        id: "b2",
+      },
+    ],
+    starts: {
+      b2: "b2",
+    },
+    nodes: {
+      b2: {
+        replies: [
+          {
+            same: "push",
+          },
+          {
+            same: "deal",
+          },
+          {
+            same: "ask",
+          },
+          {
+            same: "leave",
+          },
+        ],
+      },
+    },
+  },
+  auh_v_kor_may: {
+    variants: [
+      {
+        id: "b2",
+      },
+    ],
+    starts: {
+      b2: "b2",
+    },
+    nodes: {
+      b2: {
+        replies: [
+          {
+            same: "show",
+          },
+          {
+            same: "first",
+          },
+          {
+            same: "bye",
+          },
+        ],
+      },
+    },
+  },
+  auh_t_ber_brake: {
+    variants: [
+      {
+        id: "b2",
+      },
+    ],
+    starts: {
+      b2: "b2",
+    },
+    nodes: {
+      b2: {
+        replies: [
+          {
+            same: "ask",
+          },
+          {
+            same: "deal",
+          },
+          {
+            same: "leave",
+          },
+        ],
+      },
+    },
+  },
+  auh_t_tisza_grain: {
+    variants: [
+      {
+        id: "b2",
+      },
+    ],
+    starts: {
+      b2: "b2",
+    },
+    nodes: {
+      b2: {
+        replies: [
+          {
+            same: "ask",
+          },
+          {
+            same: "deal",
+          },
+          {
+            same: "leave",
+          },
+        ],
+      },
+    },
+  },
   auh_c_ischl_wire: {
     variants: [
       {
@@ -2431,14 +2809,6 @@ const BODIES: Readonly<Record<string, GwBodies>> = {
       },
     },
   },
-  auh_v_land_days: {
-    gate: {
-      kind: "world",
-      of: {
-        is: "war",
-      },
-    },
-  },
   auh_t_karl_teschen: {
     gate: {
       kind: "holder",
@@ -2451,54 +2821,6 @@ const BODIES: Readonly<Record<string, GwBodies>> = {
       kind: "holder",
       office: "chief_of_staff",
       person: "auh_conrad",
-    },
-  },
-  auh_t_tisza_wait: {
-    gate: {
-      kind: "any",
-      of: [
-        {
-          kind: "opening",
-          of: ["sarajevo", "sarajevo_survived", "sarajevo_failed"],
-        },
-        {
-          kind: "all",
-          of: [
-            {
-              kind: "opening",
-              of: ["sarajevo_delayed"],
-            },
-            {
-              kind: "chapter",
-              min: 2,
-            },
-          ],
-        },
-      ],
-    },
-  },
-  auh_t_karl_funeral: {
-    gate: {
-      kind: "any",
-      of: [
-        {
-          kind: "opening",
-          of: ["sarajevo", "sarajevo_survived", "sarajevo_failed"],
-        },
-        {
-          kind: "all",
-          of: [
-            {
-              kind: "opening",
-              of: ["sarajevo_delayed"],
-            },
-            {
-              kind: "chapter",
-              min: 2,
-            },
-          ],
-        },
-      ],
     },
   },
   auh_k_new_form: {
@@ -2628,6 +2950,24 @@ const BODIES: Readonly<Record<string, GwBodies>> = {
       },
       {
         id: "base3",
+      },
+    ],
+  },
+  auh_w_ledger_1915: {
+    variants: [
+      {
+        id: "base2",
+      },
+      {
+        id: "thin2",
+        like: "thin",
+      },
+    ],
+  },
+  auh_w_ledger_1916: {
+    variants: [
+      {
+        id: "base2",
       },
     ],
   },
