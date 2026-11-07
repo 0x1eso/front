@@ -380,7 +380,10 @@ export const GW_PASSING: readonly {
 export const GW_PASSING_BY_SCENE: readonly {
   readonly person: string;
   readonly scene: string;
-}[] = [{ person: "auh_sturgkh", scene: "auh_h_sturgkh_shot" }];
+}[] = [
+  { person: "auh_sturgkh", scene: "auh_h_sturgkh_shot" },
+  { person: "gbr_kitchener", scene: "gbr_w_kitchener_lost" },
+];
 
 /** Court people who don't take an army, whatever their rank. */
 export const GW_NO_COMMAND: readonly string[] = [

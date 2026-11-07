@@ -1,6 +1,8 @@
 import { GameType } from "@openfront/engine-api/game/GameTypes";
 import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
+import { advanceChapter } from "@openfront/engine/ww1914/Chapters";
 import { makeCard, placeCard } from "@openfront/engine/ww1914/Desk";
+import { memoirOf } from "@openfront/engine/ww1914/Endings";
 import { applyGwOrder } from "@openfront/engine/ww1914/Orders";
 import { castOf, holds, runEffect } from "@openfront/engine/ww1914/SceneRun";
 import { worldView } from "@openfront/engine/ww1914/WorldView";
@@ -74,6 +76,29 @@ describe("Britain, as played to the end", () => {
     gw.person("gbr_bonar_law")!.status = "dead";
     const cast = castOf(gw, st, sceneOf("gov_gbr_unionists_2"));
     expect(cast?.law).toBe("gbr_balfour");
+  });
+
+  test("Kitchener goes down with the Hampshire: dead, not retired", async () => {
+    const { runner, gw, st } = await britain();
+    st.seen.gbr_w_kitchener_lost = gw.s.chapter;
+    st.ready = true;
+    advanceChapter(gw, runner.game.ticks(), false);
+    expect(gw.person("gbr_kitchener")!.status).toBe("dead");
+  });
+
+  test("the memoir says whose form of government changed", async () => {
+    const { gw, st } = await britain();
+    st.memory.push({
+      key: "regime_republic@DEU",
+      who: null,
+      chapter: 3,
+      weight: 0,
+    });
+    st.memory.push({ key: "other", who: null, chapter: 3, weight: 0 });
+    const m = memoirOf(gw, st, "long_peace");
+    expect(m.turns.filter((t) => t.key === "regime_republic")).toEqual([
+      { key: "regime_republic", tag: "DEU", chapter: 3 },
+    ]);
   });
 
   test("neutrality isn't priced while the ultimatum is still open", async () => {
