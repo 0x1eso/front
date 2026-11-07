@@ -155,6 +155,7 @@ const LETTERS: GwAct[] = [
       { id: "tone", tones: ["flatter", "frank", "cold"] },
     ],
     effects: [
+      { kind: "letter", who: to },
       maybe(fits(to), doWorld({ do: "readiness", tag: "BGR", delta: 1 })),
     ],
   }),
@@ -169,6 +170,7 @@ const LETTERS: GwAct[] = [
   act("auh_a_l_alfonso", "letter", "auh_a_l_alfonso_r", 2, {
     when: inWar,
     cooldown: 8,
+    effects: [{ kind: "letter", who: to }],
     fields: [
       list("subject", "prisoners", "mediate"),
       { id: "tone", tones: ["warm", "frank"] },

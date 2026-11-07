@@ -490,7 +490,7 @@ export function holds(ctx: SceneCtx, c: GwCond): boolean {
 }
 
 /** The act a card was played from, or the last taking of `act`. */
-function actRow(ctx: SceneCtx, act?: string) {
+export function actRow(ctx: SceneCtx, act?: string) {
   const { seat } = ctx;
   if (act !== undefined)
     return seat.acted.filter((x) => x.act === act).slice(-1)[0];

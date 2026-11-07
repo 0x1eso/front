@@ -65,6 +65,8 @@ const visit = (
 });
 
 const tones: GwActField = { id: "tone", tones: ["warm", "frank", "threat"] };
+/** The letter joins the thread with this ruler, in the tone picked. */
+const wrote: GwEffect = { kind: "letter", who: role("other") };
 
 const speech = (
   id: string,
@@ -139,6 +141,7 @@ export const DEU_ACTS: readonly GwAct[] = [
     nation: ["DEU"],
     kind: "letter",
     scene: "deu_a_nicky_r",
+    effects: [wrote],
     wait: 1,
     cooldown: 4,
     fields: [
@@ -158,6 +161,7 @@ export const DEU_ACTS: readonly GwAct[] = [
     nation: ["DEU"],
     kind: "letter",
     scene: "deu_a_georgie_r",
+    effects: [wrote],
     wait: 1,
     cooldown: 4,
     fields: [
@@ -177,6 +181,7 @@ export const DEU_ACTS: readonly GwAct[] = [
     nation: ["DEU"],
     kind: "letter",
     scene: "deu_a_vienna_r",
+    effects: [wrote],
     wait: 1,
     cooldown: 4,
     fields: [
@@ -193,6 +198,7 @@ export const DEU_ACTS: readonly GwAct[] = [
     kind: "letter",
     when: all(war, world({ is: "neutral", tag: "USA" })),
     scene: "deu_a_wilson_r",
+    effects: [wrote],
     wait: 2,
     cooldown: 5,
     fields: [

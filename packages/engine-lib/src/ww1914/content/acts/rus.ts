@@ -8,6 +8,7 @@ import {
   GwCond,
   GwEffect,
   not,
+  role,
 } from "@openfront/engine-api/ww1914/SceneDsl";
 import { doWorld, world } from "@openfront/engine-api/ww1914/WorldDsl";
 
@@ -138,6 +139,7 @@ const LETTERS: GwAct[] = [
   }),
   act("rus_a_l_poincare", "letter", "rus_a_l_poincare_r", 1, {
     when: reign,
+    effects: [{ kind: "letter", who: role("pres") }],
     fields: [
       {
         id: "subject",
@@ -155,6 +157,7 @@ const LETTERS: GwAct[] = [
       not(atWarWith("BGR")),
       world({ is: "neutral", tag: "BGR" }),
     ),
+    effects: [{ kind: "letter", who: role("tsar_bg") }],
     fields: [
       { id: "subject", options: [{ id: "brothers" }, { id: "macedonia" }] },
     ],

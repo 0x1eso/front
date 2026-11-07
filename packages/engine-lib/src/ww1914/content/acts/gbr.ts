@@ -106,7 +106,7 @@ const LETTERS: GwAct[] = [
     kind: "letter",
     scene: "gbr_a_l_nicky_r",
     wait: 1,
-    effects: [{ kind: "letter", who: role("tsar"), tone: "frank" }],
+    effects: [{ kind: "letter", who: role("tsar") }],
     fields: [
       {
         id: "subject",
@@ -127,7 +127,7 @@ const LETTERS: GwAct[] = [
     when: not(atDeu),
     scene: "gbr_a_l_willy_r",
     wait: 1,
-    effects: [{ kind: "letter", who: role("kaiser"), tone: "frank" }],
+    effects: [{ kind: "letter", who: role("kaiser") }],
     fields: [
       {
         id: "subject",
@@ -146,6 +146,7 @@ const LETTERS: GwAct[] = [
     kind: "letter",
     when: all(war, not({ kind: "at_war", tag: "USA" })),
     scene: "gbr_a_l_wilson_r",
+    effects: [{ kind: "letter", who: role("pres") }],
     wait: 2,
     fields: [
       {
@@ -161,6 +162,7 @@ const LETTERS: GwAct[] = [
     kind: "letter",
     when: any(crisis, war),
     scene: "gbr_a_l_poincare_r",
+    effects: [{ kind: "letter", who: role("pres") }],
     wait: 1,
     fields: [
       {

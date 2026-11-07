@@ -15,7 +15,12 @@ import {
   GW_RIVAL_SIGNS,
   GwRivalAct,
 } from "@openfront/engine-api/ww1914/GwStory";
-import type { GwCond, GwEffect } from "@openfront/engine-api/ww1914/SceneDsl";
+import {
+  GW_STANCES,
+  GwCond,
+  GwEffect,
+  GwStance,
+} from "@openfront/engine-api/ww1914/SceneDsl";
 import { gwChapters } from "@openfront/engine-lib/ww1914/Calendars";
 import {
   GW_HEADS,
@@ -27,7 +32,7 @@ import {
 import { daysFromCivil } from "@openfront/engine-lib/ww1936/Calendar";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import type { GreatWar } from "./GreatWar";
-import { personDef, SceneCtx, sceneOf, whoIn } from "./SceneRun";
+import { actRow, personDef, SceneCtx, sceneOf, whoIn } from "./SceneRun";
 import { seatPerson, seatsOf } from "./World";
 
 const P_RIVAL = idHash("gw_rival");
@@ -209,6 +214,12 @@ export function storyHolds(ctx: SceneCtx, c: StoryCond): boolean {
   }
 }
 
+/** A 친서 takes its tone from the schedule: the field `tone`, if it has one. */
+function pickedTone(ctx: SceneCtx): GwStance | null {
+  const tone = actRow(ctx)?.picks.tone?.[0];
+  return GW_STANCES.find((x) => x === tone) ?? null;
+}
+
 type StoryEffect = Extract<
   GwEffect,
   { kind: "rival" | "rival_end" | "letter" }
@@ -231,7 +242,7 @@ export function storyEffect(ctx: SceneCtx, e: StoryEffect): void {
         out: true,
         scene: ctx.card?.scene ?? null,
         variant: ctx.card?.variant ?? null,
-        tone: e.tone,
+        tone: e.tone ?? pickedTone(ctx),
         chapter: gw.s.chapter,
       });
       return;

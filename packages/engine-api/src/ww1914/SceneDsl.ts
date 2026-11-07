@@ -269,8 +269,8 @@ export type GwEffect =
   | { kind: "rival"; act: GwRivalAct }
   /** Closes the rival's track: the memoir says how. */
   | { kind: "rival_end"; end: Exclude<GwRivalEnd, "gone"> }
-  /** The seat writes to that person's country in this tone. */
-  | { kind: "letter"; who: GwWho; tone: GwStance };
+  /** The seat writes to that person's country; no tone: the tone picked (GwAct). */
+  | { kind: "letter"; who: GwWho; tone?: GwStance };
 
 const int = z.number().int();
 const range = { min: int.optional(), max: int.optional() };
@@ -456,7 +456,7 @@ export const GwEffectSchema: z.ZodType<GwEffect> = z.lazy(() =>
     obj("rival_end", {
       end: z.enum(["reconciled", "broken", "prevailed"] as const),
     }),
-    obj("letter", { who: GwWhoSchema, tone: z.enum(GW_STANCES) }),
+    obj("letter", { who: GwWhoSchema, tone: z.enum(GW_STANCES).optional() }),
   ]),
 ) as z.ZodType<GwEffect>;
 

@@ -335,7 +335,7 @@ const VISIT_SCENES: GwScene[] = [
 const LETTER_SCENES: GwScene[] = [
   eyes(
     "auh_a_l_ferdinand_r",
-    { to: { person: "bgr_ferdinand" } },
+    { to: { ruler_of: "BGR" } },
     [
       v("kin_fits", all(picked("subject", "kin"), fits(to))),
       v("land_fits", all(picked("subject", "macedonia"), fits(to))),
@@ -358,7 +358,7 @@ const LETTER_SCENES: GwScene[] = [
   ),
   eyes(
     "auh_a_l_alfonso_r",
-    { to: { person: "esp_alfonso" } },
+    { to: { ruler_of: "ESP" } },
     [
       v("mediate_behind", all(picked("subject", "mediate"), behind)),
       v("mediate", picked("subject", "mediate")),

@@ -29,6 +29,7 @@ import {
   reworkEffects,
   reworkTell,
 } from "@openfront/engine-lib/ww1914/SendBackRules";
+import { GW_HEADS } from "@openfront/engine-lib/ww1914/StoryRows";
 import type { GameRunner } from "@openfront/engine/GameRunner";
 import { loadGwPack } from "@openfront/shared/ww1914/GwPackLoader";
 import fs from "node:fs";
@@ -542,6 +543,69 @@ async function backAnswered(
   }
   throw new Error("no seed answered so");
 }
+
+describe("친서", () => {
+  const LETTER_TARGET =
+    /_a_(l_)?(nicky|georgie|vienna|wilson|poincare|willy|ferdinand|alfonso)$/;
+  const heads = new Set(
+    Object.values(GW_HEADS).flatMap((rows) => rows.map((r) => r.person)),
+  );
+  const scenesById = new Map(GW_CONTENT.scenes.map((s) => [s.id, s]));
+
+  test("one to a ruler finds him by headOf and joins the thread", () => {
+    const letters = (GW_CONTENT.acts ?? []).filter(
+      (a) => a.kind === "letter" && LETTER_TARGET.test(a.id),
+    );
+    expect(letters.length).toBeGreaterThanOrEqual(12);
+    for (const a of letters) {
+      const cast = Object.values(scenesById.get(a.scene)!.cast);
+      expect(
+        cast.some((r) => "ruler_of" in r),
+        a.id,
+      ).toBe(true);
+      expect(
+        cast.some((r) => "person" in r && heads.has(r.person)),
+        a.id,
+      ).toBe(false);
+      const written = [
+        ...(a.effects ?? []),
+        ...(a.fields ?? []).flatMap((f) =>
+          (f.options ?? []).flatMap((o) => o.effects ?? []),
+        ),
+      ];
+      expect(
+        written.some((e) => e.kind === "letter"),
+        a.id,
+      ).toBe(true);
+    }
+  });
+
+  test("a letter from the schedule keeps the tone picked, and the reply knows", async () => {
+    const { runner } = await gwRunner();
+    order(runner, {
+      kind: "act",
+      act: "deu_a_nicky",
+      picks: ["family", "warm"],
+    });
+    const gw = runner.game.greatWar()!;
+    expect(gw.s.seats[0].story.letters).toEqual([
+      expect.objectContaining({ with: "RUS", out: true, tone: "warm" }),
+    ]);
+    playChapter(runner);
+    const reply = seat(runner).desk.find((c) => c.scene === "deu_a_nicky_r");
+    expect(reply?.letterFrom).toBe("RUS");
+  });
+
+  test("no ruler to write to: the entry isn't on the schedule", async () => {
+    const { runner } = await gwRunner();
+    const ids = () => (seat(runner).acts ?? []).map((a) => a.id);
+    expect(ids()).toContain("deu_a_nicky");
+    const gw = runner.game.greatWar()!;
+    gw.person("rus_nicholas")!.status = "dead";
+    playChapter(runner);
+    expect(ids()).not.toContain("deu_a_nicky");
+  });
+});
 
 describe("sending a paper back", () => {
   test("a paper rewritten comes next chapter and pays out as rewritten", async () => {
