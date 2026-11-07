@@ -36,8 +36,8 @@ import {
   setOffice,
   takeOption,
 } from "./SceneRun";
-import { applyReply, summonScenes } from "./Talk";
 import { inOpening, newcomers } from "./Story";
+import { applyReply, summonScenes } from "./Talk";
 import { seatPerson } from "./World";
 
 /** Why this seat can't say ready; null when it can. */
