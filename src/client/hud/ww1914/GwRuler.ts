@@ -37,6 +37,17 @@ export function brokenLine(c: GwCtx, card: GwCardView): string | null {
   return lines.length === 0 ? null : lines[card.uid % lines.length];
 }
 
+/** Two causes can read the same: the line shows once. */
+function oneEach<T>(rows: readonly T[], read: (row: T) => string) {
+  const seen = new Set<string>();
+  return rows.flatMap((row) => {
+    const text = read(row);
+    if (seen.has(text)) return [];
+    seen.add(text);
+    return [{ row, text }];
+  });
+}
+
 /** The person at the desk, at the head of the country tab. */
 export function rulerCard(c: GwCtx): TemplateResult | typeof nothing {
   const r = c.seat.ruler;
@@ -57,10 +68,15 @@ export function rulerCard(c: GwCtx): TemplateResult | typeof nothing {
           </p>
         </div>`,
     )}
-    ${r.lines.map(
-      (l) =>
+    ${r.atRisk === null || r.atRisk === undefined
+      ? nothing
+      : html`<p class="text-sm text-amber-200" data-gw-ruler-risk=${r.atRisk}>
+          ${translateText(`gw.ruler.at_risk.${r.atRisk}`)}
+        </p>`}
+    ${oneEach(r.lines, (l) => reasonText(c.pack, { ...l, chapter: 0 })).map(
+      ({ row: l, text }) =>
         html`<p class=${MUTED} data-gw-ruler-line=${l.key}>
-          ${l.delta > 0 ? "▲" : "▼"} ${reasonText(c.pack, { ...l, chapter: 0 })}
+          ${l.delta > 0 ? "▲" : "▼"} ${text}
         </p>`,
     )}
   </section>`;

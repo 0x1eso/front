@@ -542,6 +542,11 @@ export function budgetStrip(c: GwCtx): TemplateResult {
       )}
     </div>
     ${bodyLines(v, vote)}
+    ${v.body?.kind === "alone" && !vote.pass
+      ? html`<p class="text-sm text-amber-200" data-gw-budget-alone>
+          ${translateText("gw.budget.alone", { n: v.body.forcePrice })}
+        </p>`
+      : nothing}
   </div>`;
 }
 

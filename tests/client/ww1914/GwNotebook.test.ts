@@ -182,6 +182,8 @@ describe("the notebook", () => {
       }) as GwChoiceView;
     const rows = keyDecisions([c("a", true), c("b", false), c("c", true)]);
     expect(rows.map((x) => x.scene)).toEqual(["c", "a"]);
+    const again = keyDecisions([c("a", true), c("c", true), c("a", true)]);
+    expect(again.map((x) => x.scene)).toEqual(["a", "c"]);
   });
 
   test("a decision reads as its title and bold line, with the names in it", () => {

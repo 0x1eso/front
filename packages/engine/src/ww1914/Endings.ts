@@ -209,11 +209,14 @@ function unknownsOf(gw: GreatWar, seat: GwSeatState): GwUnknown[] {
   }
   for (const src of s.sources) {
     if (src.id === OWN_EMBASSY[seat.tag]) continue;
-    if (src.right + src.wrong < 3) add("source", src.id, src.band);
+    const mine = s.reports.some(
+      (r) => r.smallID === seat.smallID && r.source === src.id,
+    );
+    if (mine && src.right + src.wrong < 3) add("source", src.id, src.band);
   }
   for (const p of s.people) {
     const d = defOf(p.id);
-    if (d === null || d.tag !== seat.tag) continue;
+    if (d === null || d.tag !== seat.tag || d.fit.length === 0) continue;
     if (p.wins + p.losses >= 3) continue;
     const best = Math.max(...p.competence);
     const worst = Math.min(...p.competence);

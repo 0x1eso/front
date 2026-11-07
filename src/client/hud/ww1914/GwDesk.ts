@@ -19,6 +19,8 @@ import {
 import { brokenLine } from "./GwRuler";
 import { BTN, BTN_ON, CHIP, GLASS, HEAD, MUTED } from "./GwStyle";
 import {
+  bodyParts,
+  bodyPlain,
   boldParts,
   cardBody,
   cardTitle,
@@ -32,6 +34,13 @@ import {
   voices,
 } from "./GwText";
 
+/** A paper quoted in the scene's narration. */
+const QUOTE =
+  "whitespace-pre-line border-l-2 border-amber-200/40 pl-3 text-white/80";
+const PARA = "whitespace-pre-line";
+/** The desk's head stays short; the country tab keeps every line. */
+const REASONS_SHOWN = 6;
+
 /**
  * The reasons that came with the last chapter's close, newest first. What
  * comes every month says nothing new here: the country tab keeps the whole log.
@@ -43,10 +52,14 @@ export function lastReasons(c: GwCtx): string[] {
       .map((r) => reasonText(c.pack, r)),
   );
   return c.seat.log
-    .filter((r) => r.chapter >= c.data.chapter - 1)
+    .filter(
+      (r) =>
+        r.chapter >= c.data.chapter - 1 && !/^talk_(fit|clash)_/.test(r.key),
+    )
     .map((r) => reasonText(c.pack, r))
     .filter((t) => !before.has(t))
-    .reverse();
+    .reverse()
+    .slice(0, REASONS_SHOWN);
 }
 
 function sender(c: GwCtx, card: GwCardView): string {
@@ -79,7 +92,7 @@ function cardBox(c: GwCtx, card: GwCardView): TemplateResult {
           })}
         </p>`
       : html`<p class="line-clamp-3 text-sm text-white/85">
-          ${rich(c, fill(cardBody(c.pack, card)))}
+          ${rich(c, bodyPlain(fill(cardBody(c.pack, card))))}
         </p>`}
     <button
       class=${BTN}
@@ -226,7 +239,7 @@ export function reader(c: GwCtx, card: GwCardView): TemplateResult {
   const fill = (t: string) => fillGw(t, c.pack, card, c.seat, c.data.date);
   const after = brokenLine(c, card);
   const read = isReadOnly(card);
-  const body = rich(c, fill(cardBody(c.pack, card)));
+  const body = bodyParts(fill(cardBody(c.pack, card)));
   const armedOpt =
     c.ui.armed?.uid === card.uid
       ? card.options.find((o) => o.id === c.ui.armed?.option)
@@ -258,7 +271,10 @@ export function reader(c: GwCtx, card: GwCardView): TemplateResult {
       </header>
       <h2 class="text-lg font-bold leading-snug">${cardTitle(c.pack, card)}</h2>
       <div class="space-y-2.5 text-[15px] leading-7 text-white/90">
-        <p class="whitespace-pre-line">${body}</p>
+        ${body.map(
+          (p) =>
+            html`<p class=${p.quote ? QUOTE : PARA}>${rich(c, p.text)}</p>`,
+        )}
         ${voices(c.pack, card).map(
           (v) =>
             html`<p class="border-l-2 border-white/25 pl-3 text-white/80">

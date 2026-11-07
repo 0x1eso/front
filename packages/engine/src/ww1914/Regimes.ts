@@ -7,12 +7,14 @@ import {
   GwOffice,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
+import { GW_RULERS } from "@openfront/engine-lib/ww1914/RulerRows";
 import { daysFromCivil } from "@openfront/engine-lib/ww1936/Calendar";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { GW_AUTHORITY } from "./AuthorityTable";
+import { GW_GOV } from "./GovTable";
 import type { GreatWar } from "./GreatWar";
 import { onAppointed } from "./People";
-import { defOf, news, reason, seatsOf, turn } from "./World";
+import { defOf, news, reason, seatsOf } from "./World";
 
 export interface GwRegimeRow {
   readonly id: string;
@@ -90,6 +92,7 @@ export const GW_REGIMES: Readonly<
         ["rus_milyukov", "foreign"],
         ["rus_kerensky", "war"],
       ],
+      retires: ["rus_fredericks"],
     }),
   ],
 };
@@ -105,6 +108,20 @@ export function firstRegime(tag: GwTag): string {
 /** The bodies a form of government starts with. */
 export function institutionsOf(regime: string): GwNationState["inst"] {
   return { ...(GW_AUTHORITY[regime] ?? GW_AUTHORITY[""]).inst };
+}
+
+/** A paper of the old order: a threat that ended, a ruler's life that did. */
+function oldOrder(tag: GwTag, to: string, scene: string): boolean {
+  const seated = (GW_RULERS[tag] ?? []).some(
+    (r) => r.regimes === undefined || r.regimes.includes(to),
+  );
+  if (!seated && scene.includes("_life_")) return true;
+  return GW_GOV.some(
+    (r) =>
+      r.tag === tag &&
+      !r.regimes.includes(to) &&
+      scene.startsWith(`gov_${r.id}_`),
+  );
 }
 
 /** The country takes the form `to`. What it keeps of old bodies it keeps. */
@@ -147,6 +164,8 @@ export function changeRegime(gw: GreatWar, tag: GwTag, to: string): void {
   turn(gw, `regime_${to}@${tag}`);
   for (const seat of seatsOf(gw, tag)) {
     reason(gw, seat, `regime_${to}`);
+    seat.desk = seat.desk.filter((c) => !oldOrder(tag, to, c.scene));
+    seat.scheduled = seat.scheduled.filter((q) => !oldOrder(tag, to, q.scene));
     if (row.flag !== undefined && !seat.flags.includes(row.flag)) {
       seat.flags.push(row.flag);
     }
