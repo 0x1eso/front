@@ -848,7 +848,7 @@ const embrace = (extra: GwEffect[] = []) =>
     [
       rivalAct("embrace"),
       trustOf(role("rival_man"), 2),
-      reason("rival_taken_in"),
+      reason("rival_taken_in", role("rival_man")),
       ...extra,
     ],
     ["trust:+2"],
@@ -859,7 +859,7 @@ const push = (extra: GwEffect[] = []) =>
     [
       rivalAct("push"),
       trustOf(role("rival_man"), -1),
-      reason("rival_held_off"),
+      reason("rival_held_off", role("rival_man")),
       ...extra,
     ],
     ["trust:-1"],
@@ -870,7 +870,7 @@ const strike = (extra: GwEffect[] = []) =>
     [
       rivalAct("strike"),
       trustOf(role("rival_man"), -3),
-      reason("rival_struck"),
+      reason("rival_struck", role("rival_man")),
       ...extra,
     ],
     ["trust:-3"],
@@ -1744,7 +1744,7 @@ export const DEU_STORY_SCENES: readonly GwScene[] = [
               trustOf(role("rival_man"), 2),
               inst("army", 1),
               { kind: "rival_end", end: "reconciled" },
-              reason("rival_reconciled"),
+              reason("rival_reconciled", role("rival_man")),
             ],
             ["trust:+2", "army:+1"],
           ),
@@ -1756,9 +1756,10 @@ export const DEU_STORY_SCENES: readonly GwScene[] = [
               inst("army", -1),
               { kind: "rumour", delta: 1 },
               { kind: "rival_end", end: "broken" },
-              reason("rival_broken"),
+              reason("rival_broken", role("rival_man")),
+              { kind: "dismiss", who: role("rival_man") },
             ],
-            ["trust:-3", "army:-1"],
+            ["trust:-3", "army:-1", "leaves"],
           ),
           decide(
             "yield",
@@ -1766,7 +1767,7 @@ export const DEU_STORY_SCENES: readonly GwScene[] = [
             [
               doWorld({ do: "authority", delta: -10 }),
               { kind: "rival_end", end: "prevailed" },
-              reason("rival_prevailed"),
+              reason("rival_prevailed", role("rival_man")),
             ],
             ["authority:-10"],
           ),
