@@ -3,6 +3,7 @@ import {
   GwEnding,
   GwMemoir,
   GwSeatState,
+  GwSource,
   GwTheatre,
   GwUnknown,
   gwSecretsFor,
@@ -207,6 +208,7 @@ function unknownsOf(gw: GreatWar, seat: GwSeatState): GwUnknown[] {
     }
   }
   for (const src of s.sources) {
+    if (src.id === OWN_EMBASSY[seat.tag]) continue;
     if (src.right + src.wrong < 3) add("source", src.id, src.band);
   }
   for (const p of s.people) {
@@ -258,6 +260,16 @@ function pickUnknowns(gw: GreatWar, seat: GwSeatState): GwUnknown[] {
   }
   return out;
 }
+
+/** Nobody keeps an embassy in their own capital. */
+const OWN_EMBASSY: Partial<Record<GwTag, GwSource>> = {
+  AUH: "embassy_vienna",
+  DEU: "embassy_berlin",
+  FRA: "embassy_paris",
+  GBR: "embassy_london",
+  ITA: "embassy_rome",
+  RUS: "embassy_petersburg",
+};
 
 /** World turns have text (gw.turn.<key>); a scene's own memories don't. */
 function turnOf(key: string): { key: string; tag: GwTag | null } | null {

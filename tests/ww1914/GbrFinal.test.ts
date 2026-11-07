@@ -101,6 +101,15 @@ describe("Britain, as played to the end", () => {
     ]);
   });
 
+  test("a British memoir has no embassy in London", async () => {
+    const { gw, st } = await britain();
+    for (const src of gw.s.sources) {
+      src.right = src.id === "embassy_london" ? 0 : 3;
+    }
+    const m = memoirOf(gw, st, "long_peace");
+    expect(m.unknown.some((u) => u.id === "embassy_london")).toBe(false);
+  });
+
   test("neutrality isn't priced while the ultimatum is still open", async () => {
     const { gw, st } = await britain();
     const when = sceneOf("gbr_f_neutral_line").when!;
