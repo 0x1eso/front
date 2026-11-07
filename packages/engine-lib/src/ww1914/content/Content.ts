@@ -30,6 +30,7 @@ import { GBR_HOME_SCENES } from "./scenes/gbr_home";
 import { withMore } from "./scenes/gbr_more";
 import { GBR_WAR_SCENES } from "./scenes/gbr_war";
 import { GBR_WORLD_SCENES } from "./scenes/gbr_world";
+import { GOV_SCENES } from "./scenes/gov";
 import { GW_DIP_SCENES } from "./scenes/gw_dip";
 import { GW_FRAME_SCENES } from "./scenes/gw_frame";
 import { GW_NEUTRAL_SCENES } from "./scenes/gw_neutral";
@@ -92,6 +93,7 @@ export const GW_CONTENT: GwContent = {
         ...GW_FRAME_SCENES,
       ].map(withPromiseTerms),
       ...BUDGET_SCENES,
+      ...GOV_SCENES,
     ].map(withDeuReplay),
   ),
   people: [
