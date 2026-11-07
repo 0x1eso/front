@@ -22,10 +22,10 @@ import {
   shelfTotals,
   shelve,
   shelveMemoir,
+  tabBadge,
   tempBand,
   theatreSpot,
   trustIndex,
-  tabBadge,
   vacantOffices,
 } from "../../../src/client/hud/ww1914/GwModel";
 
