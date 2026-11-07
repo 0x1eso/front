@@ -35,7 +35,7 @@ export function headlineText(
   if (h.blank) return { head: press?.gaps[h.paper] ?? h.paper, deck: null };
   const t = press?.heads[e.story]?.[h.paper];
   const who = e.who === null ? "" : personName(pack, e.who);
-  const fill = (x: string) => applyJosa(x.replaceAll("{who}", who));
+  const fill = (x: string) => applyJosa(x.replace(/\{who\}/g, who));
   if (t === undefined) return { head: e.story, deck: null };
   return {
     head: fill(t.head),
@@ -43,7 +43,13 @@ export function headlineText(
   };
 }
 
-function headline(c: GwCtx, e: GwEdition, h: GwHeadline): TemplateResult {
+/** `tight`: on the desk a phone shows the headline alone. */
+function headline(
+  c: GwCtx,
+  e: GwEdition,
+  h: GwHeadline,
+  tight: boolean,
+): TemplateResult {
   const { head, deck } = headlineText(c.pack, e, h);
   return html`<div data-gw-head=${h.paper} ?data-gw-blank=${h.blank}>
     <div class=${MUTED}>${paperName(c.pack, h.paper)}</div>
@@ -56,7 +62,9 @@ function headline(c: GwCtx, e: GwEdition, h: GwHeadline): TemplateResult {
     </p>
     ${deck === null
       ? nothing
-      : html`<p class="text-sm text-white/75">${deck}</p>`}
+      : html`<p class="text-sm text-white/75 ${tight ? "hidden sm:block" : ""}">
+          ${deck}
+        </p>`}
     ${h.soft
       ? html`<p class=${MUTED}>${translateText("gw.ui.press.soft")}</p>`
       : nothing}
@@ -74,14 +82,14 @@ function rumourLine(c: GwCtx, e: GwEdition): TemplateResult | typeof nothing {
 }
 
 /** The chapter's papers: what they are about, then each one's take. */
-function frontPage(c: GwCtx, e: GwEdition): TemplateResult {
+function frontPage(c: GwCtx, e: GwEdition, tight = false): TemplateResult {
   const title = e.scene === null ? null : c.pack?.scenes[e.scene]?.title;
   return html`${title === null || title === undefined
     ? nothing
     : html`<p class=${MUTED}>
         ${translateText("gw.ui.press.about", { title })}
       </p>`}
-  ${e.heads.map((h) => headline(c, e, h))} ${rumourLine(c, e)}`;
+  ${e.heads.map((h) => headline(c, e, h, tight))} ${rumourLine(c, e)}`;
 }
 
 /** The papers at the head of the desk; a tap goes to the screen of blocs. */
@@ -102,7 +110,7 @@ export function deskPapers(c: GwCtx): TemplateResult | typeof nothing {
         ${translateText("gw.ui.press.to_blocs")}
       </button>
     </div>
-    ${frontPage(c, p.edition)}
+    ${frontPage(c, p.edition, true)}
   </section>`;
 }
 

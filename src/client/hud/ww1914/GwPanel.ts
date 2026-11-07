@@ -216,7 +216,7 @@ export class GwPanel extends LitElement implements Controller {
           : ""} ${talk === null ? "" : "invisible"}"
       >
         <nav
-          class="flex shrink-0 items-center gap-1 border-b border-white/10 p-1.5"
+          class="flex shrink-0 flex-wrap items-center gap-0.5 border-b border-white/10 p-1.5"
           data-gw-tabs
         >
           ${GW_TABS.map((tab) => this.tabButton(c, tab))}
@@ -254,7 +254,7 @@ export class GwPanel extends LitElement implements Controller {
     return html`<button
       class="${on
         ? "bg-white/20 text-white"
-        : "text-white/70 hover:bg-white/10"} rounded px-2 py-1 text-sm"
+        : "text-white/70 hover:bg-white/10"} rounded px-1.5 py-1 text-sm"
       data-gw-tab=${tab}
       @click=${() => {
         this.ui.tab = tab;

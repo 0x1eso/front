@@ -60,6 +60,8 @@ export interface GwPressRow {
   };
   /** Forms of government with no censor. */
   readonly free: readonly string[];
+  /** Decisions no paper can hear of: they call no story. */
+  readonly closed: readonly string[];
   readonly stories: readonly GwStory[];
   readonly rumours: readonly { readonly id: string; readonly when?: GwCond }[];
 }
@@ -127,6 +129,18 @@ const DEU: GwPressRow = {
   price: 8,
   bar: { inst: "reichstag", min: -3, why: "reichstag" },
   free: ["republic"],
+  closed: [
+    "deu_c_first_words",
+    "deu_c_blank_cheque",
+    "deu_c_ultimatum_text",
+    "deu_c_nicky",
+    "deu_c_lichnowsky_offer",
+    "deu_w_war_aims",
+    "deu_w_separate_peace",
+    "deu_s_separate_russia",
+    "deu_s_lenin_train",
+    "deu_k_last_sortie",
+  ],
   stories: [
     story(
       "censor",
@@ -289,6 +303,13 @@ const GBR: GwPressRow = {
   price: 14,
   bar: { inst: "commons", min: -2, why: "commons" },
   free: [],
+  closed: [
+    "gbr_c_cambon",
+    "gbr_c_cabinet_one",
+    "gbr_c_cabinet_two",
+    "gbr_f_tsar",
+    "gbr_f_zimmermann",
+  ],
   stories: [
     story(
       "censor",
@@ -555,6 +576,15 @@ const AUH: GwPressRow = {
   warLevel: 1,
   price: 6,
   free: ["austria_republic"],
+  closed: [
+    "auh_c_tisza_letter",
+    "auh_c_hoyos_mission",
+    "auh_c_council_july",
+    "auh_c_note_draft",
+    "auh_w_tyrol_strike",
+    "auh_k_sixtus",
+    "gw_auh_feeler",
+  ],
   stories: [
     story(
       "censor",
@@ -797,6 +827,17 @@ const RUS: GwPressRow = {
   warLevel: 1,
   price: 6,
   free: ["rep", "provisional"],
+  closed: [
+    "rus_c_door",
+    "rus_c_heir_fall",
+    "rus_c_council",
+    "rus_c_prep_period",
+    "rus_c_willy",
+    "rus_h_keys",
+    "rus_h_friend_file",
+    "rus_h_heir_bleed",
+    "rus_r_family_letter",
+  ],
   stories: [
     story(
       "censor",

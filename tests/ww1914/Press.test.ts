@@ -160,6 +160,25 @@ describe("the papers in a game", () => {
     expect(e.heads.map((h) => h.paper).sort()).toEqual(["dtz", "tag", "vor"]);
   });
 
+  test("what stays behind doors is on no page", async () => {
+    const { runner } = await gwRunner();
+    const g = gw(runner);
+    g.s.seats[0].choices.push({
+      scene: "deu_c_blank_cheque",
+      pick: "back_full",
+      chapter: g.s.chapter,
+      proxy: false,
+    });
+    playChapter(runner);
+    expect(pressOf(runner).edition!.scene).not.toBe("deu_c_blank_cheque");
+  });
+
+  test.each(TAGS)("%s: a closed scene is a scene", (tag) => {
+    for (const id of GW_PRESS_ROWS[tag]!.closed) {
+      expect(sceneOf(id)).not.toBeNull();
+    }
+  });
+
   test("the same decision moves the blocs its papers speak to", async () => {
     const { runner } = await gwRunner();
     const g = gw(runner);

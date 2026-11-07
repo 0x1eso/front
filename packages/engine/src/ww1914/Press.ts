@@ -157,10 +157,14 @@ export function pressLeak(
   return null;
 }
 
-/** The decisions of this chapter, talks left out. */
+/** The decisions of this chapter, talks and what stays behind doors left out. */
 function decisions(gw: GreatWar, seat: GwSeatState) {
+  const closed = GW_PRESS_ROWS[seat.tag]?.closed ?? [];
   return seat.choices.filter(
-    (x) => x.chapter === gw.s.chapter && sceneOf(x.scene)?.kind !== "talk",
+    (x) =>
+      x.chapter === gw.s.chapter &&
+      sceneOf(x.scene)?.kind !== "talk" &&
+      !closed.includes(x.scene),
   );
 }
 
