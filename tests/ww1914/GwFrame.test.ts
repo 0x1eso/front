@@ -64,8 +64,18 @@ describe("common share: frame", () => {
     expect(card.options).toBeUndefined();
   });
 
-  test("the six common endings have a paragraph", () => {
-    expect(Object.keys(pack.endings!).sort()).toEqual([
+  test("the six common endings have a paragraph, under the countries' own", () => {
+    // common.json loads before a country's file, so a country's own wins.
+    const common = GwPackSchema.parse(
+      JSON.parse(
+        fs.readFileSync(
+          path.join(__dirname, "../../resources/ww1914/ko/common.json"),
+          "utf8",
+        ),
+      ),
+    );
+    expect(pack.endings).toBeUndefined();
+    expect(Object.keys(common.endings!).sort()).toEqual([
       "armistice_conference",
       "compromise_peace",
       "deadline",

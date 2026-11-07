@@ -3,6 +3,7 @@ import {
   all,
   any,
   candid,
+  chose,
   GwCastRule,
   GwCond,
   GwEffect,
@@ -215,6 +216,30 @@ function talk(id: string, person: string, o: TalkOpts): GwScene {
   };
 }
 
+/**
+ * Kept by the deed in another share's decision, whichever comes first; past the
+ * date the person comes back with the common card. The dates reach the first
+ * chapters those decisions can come in.
+ */
+const houseWord = promise(who, "p_house_word", 14, {
+  keep: any(
+    chose("gw_d_aims_asked", "secret_answer"),
+    chose("gw_d_peace_reply", "ask_terms"),
+  ),
+});
+const alfonsoList = promise(who, "p_alfonso_list", 12, {
+  keep: chose("gw_d_prisoner_swap", "accept"),
+});
+const rouShells = promise(who, "p_rou_shells", 20, {
+  keep: any(
+    chose("gw_o_rou_moment", "supply_promise"),
+    chose("gw_d_ally_shells", "big_share"),
+  ),
+});
+const pasicReturn = promise(who, "p_pasic_return", 14, {
+  keep: chose("gw_d_ally_fallen", "promise_return"),
+});
+
 const houseCliff = learn(
   "usa_credit_cliff",
   all(STRAIGHT, exists("usa_credit_cliff")),
@@ -284,11 +309,7 @@ const AMERICA: readonly GwScene[] = [
         push("both", "threat", "cool", { effects: [trustOf(who, -1)] }),
         deal("word", "warm", "word", {
           tell: ["promise", "usa:+1"],
-          effects: [
-            trust("USA", 1),
-            key("k_house_second"),
-            promise(who, "p_house_word", 8),
-          ],
+          effects: [trust("USA", 1), key("k_house_second"), houseWord],
         }),
         bye("end", "cold"),
       ),
@@ -296,7 +317,7 @@ const AMERICA: readonly GwScene[] = [
         [["straight", STRAIGHT], "base"],
         deal("word", "frank", "word", {
           tell: ["promise"],
-          effects: [key("k_house_second"), promise(who, "p_house_word", 8)],
+          effects: [key("k_house_second"), houseWord],
         }),
         ask("paper", "flatter", "paper", {
           gain: [key("k_house_second")],
@@ -525,11 +546,7 @@ const GO_BETWEENS: readonly GwScene[] = [
             key: "p_alfonso_list",
           }),
           tell: ["promise", "trust:+1"],
-          effects: [
-            trustOf(who, 1),
-            key("k_alfonso_office"),
-            promise(who, "p_alfonso_list", 8),
-          ],
+          effects: [trustOf(who, 1), key("k_alfonso_office"), alfonsoList],
         }),
         bye("end", "cold"),
       ),
@@ -1013,11 +1030,7 @@ const PRICES: readonly GwScene[] = [
         deal("supply", "warm", "shells", {
           when: entente,
           tell: ["promise", "trust:+1"],
-          effects: [
-            trustOf(who, 1),
-            key("k_bratianu_maps"),
-            promise(who, "p_rou_shells", 14),
-          ],
+          effects: [trustOf(who, 1), key("k_bratianu_maps"), rouShells],
         }),
         deal("grain", "warm", "map", {
           when: not(entente),
@@ -1130,12 +1143,14 @@ const SMALL_KINGS: readonly GwScene[] = [
         ask("knew", "cold", "knew", { miss: "beard" }),
         push("yield", "threat", "beard", { effects: [trustOf(who, -1)] }),
         deal("return", "warm", "tomorrow", {
+          when: flagged("w_serbia_fallen"),
           tell: ["promise", "trust:+1"],
-          effects: [
-            trustOf(who, 1),
-            key("k_pasic_tomorrow"),
-            promise(who, "p_pasic_return", 14),
-          ],
+          effects: [trustOf(who, 1), key("k_pasic_tomorrow"), pasicReturn],
+        }),
+        deal("chair", "warm", "tomorrow", {
+          when: not(flagged("w_serbia_fallen")),
+          tell: ["trust:+1", "ally:-1"],
+          effects: [trustOf(who, 1), ...allies(-1), key("k_pasic_tomorrow")],
         }),
         bye(),
       ),
