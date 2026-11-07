@@ -1433,7 +1433,12 @@ const BIG_SCENES: GwScene[] = [
         { kind: "seen", scene: "rus_w_lutsk" },
         all(
           date("1916-03"),
-          world({ is: "battle", theatre: "east", of: ["break"], by: "seat" }),
+          world({
+            is: "battle",
+            theatre: "east",
+            of: ["break", "advance"],
+            by: "seat",
+          }),
         ),
       ),
     ),
