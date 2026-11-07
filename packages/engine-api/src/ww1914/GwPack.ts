@@ -99,6 +99,14 @@ export const GwDictEntrySchema = z
   .strict();
 export type GwDictEntry = z.infer<typeof GwDictEntrySchema>;
 
+/** A scene's lines laid over from another share: every table is optional. */
+const GwOverSchema = GwScenePackSchema.omit({ nodes: true })
+  .partial()
+  .extend({
+    nodes: z.record(GwIdSchema, GwNodePackSchema.partial()).optional(),
+  });
+type GwOver = z.infer<typeof GwOverSchema>;
+
 export const GwPackSchema = z
   .object({
     version: z.literal(1),
@@ -114,9 +122,10 @@ export const GwPackSchema = z
     rulers: z.record(GwIdSchema, GwRulerPackSchema).optional(),
     /**
      * Lines laid over a scene another share owns: a body, an option's wording,
-     * a why. Later shares can add to a scene without touching its file.
+     * a why, a node's line. A later share adds to a scene without touching its
+     * file.
      */
-    over: z.record(GwIdSchema, GwScenePackSchema.partial()).optional(),
+    over: z.record(GwIdSchema, GwOverSchema).optional(),
     /** Term id -> what the dictionary says of it. */
     dict: z.record(GwIdSchema, GwDictEntrySchema).optional(),
   })
@@ -154,13 +163,27 @@ export function mergeGwPacks(packs: readonly GwPack[]): GwPack {
 }
 
 /** Each of the scene's line tables with the laid-over lines added. */
-function layOver(s: GwScenePack, o: Partial<GwScenePack>): GwScenePack {
+function layOver(s: GwScenePack, o: GwOver): GwScenePack {
+  const nodes = { ...s.nodes };
+  for (const [id, n] of Object.entries(o.nodes ?? {})) {
+    const at = nodes[id];
+    if (at === undefined) continue;
+    nodes[id] = {
+      ...at,
+      says: { ...at.says, ...n.says },
+      ...(n.saysBy === undefined
+        ? {}
+        : { saysBy: { ...at.saysBy, ...n.saysBy } }),
+      replies: { ...at.replies, ...n.replies },
+    };
+  }
   return {
     ...s,
     text: { ...s.text, ...o.text },
     ...(o.opt === undefined ? {} : { opt: { ...s.opt, ...o.opt } }),
     ...(o.why === undefined ? {} : { why: { ...s.why, ...o.why } }),
     ...(o.optBy === undefined ? {} : { optBy: { ...s.optBy, ...o.optBy } }),
+    ...(s.nodes === undefined ? {} : { nodes }),
   };
 }
 

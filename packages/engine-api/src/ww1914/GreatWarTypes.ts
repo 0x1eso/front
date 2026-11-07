@@ -133,6 +133,8 @@ export const GwPersonDefSchema = z
       .string()
       .regex(/^\d{4}-\d{2}-\d{2}$/)
       .optional(),
+    /** Off the people screen until they have come up (private stories). */
+    unlisted: z.boolean().optional(),
   })
   .strict();
 export type GwPersonDef = z.infer<typeof GwPersonDefSchema>;
@@ -766,6 +768,8 @@ export const GwSeatStateSchema = z.object({
   ready: z.boolean(),
   /** Summons left this chapter. */
   audiences: z.number().int(),
+  /** Private meetings left this chapter (tag `private`). */
+  privates: z.number().int(),
   desk: z.array(GwCardSchema),
   flags: z.array(GwIdSchema),
   memory: z.array(GwMemorySchema),

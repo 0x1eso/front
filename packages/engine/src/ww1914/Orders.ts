@@ -4,7 +4,10 @@ import {
   GwOrderBlock,
   GwOrderSchema,
 } from "@openfront/engine-api/ww1914/GwOrders";
-import { GW_READ_ONLY_KINDS } from "@openfront/engine-api/ww1914/SceneDsl";
+import {
+  GW_READ_ONLY_KINDS,
+  GwScene,
+} from "@openfront/engine-api/ww1914/SceneDsl";
 import { zPlayerRef } from "@openfront/engine-lib/snapshot/SnapshotType";
 import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
 import { z } from "zod";
@@ -92,13 +95,16 @@ export function applyGwOrder(
       return null;
     }
     case "summon": {
-      if (seat.audiences <= 0) return "no_audience";
       const scene = sceneOf(o.topic);
+      const own = scene !== null && isPrivate(scene);
+      if (own && seat.privates <= 0) return "no_private";
+      if (!own && seat.audiences <= 0) return "no_audience";
       if (scene?.kind !== "talk" || scene.summon !== true) return "no_topic";
       if (!summonable(gw, seat, o.person, o.topic)) return "no_topic";
       const card = makeCard(gw, seat, scene, "summon");
       if (card === null) return "no_topic";
-      seat.audiences--;
+      if (own) seat.privates--;
+      else seat.audiences--;
       placeCard(gw, seat, card);
       return null;
     }
@@ -155,8 +161,10 @@ export function openTopics(
   gw: GreatWar,
   seat: GwSeatState,
   person: string,
+  own = false,
 ): string[] {
   return summonScenes()
+    .filter((x) => isPrivate(x) === own)
     .filter((x) => summonable(gw, seat, person, x.id))
     .map((x, i) => ({ x, i }))
     .sort(
@@ -166,6 +174,11 @@ export function openTopics(
         a.i - b.i,
     )
     .map(({ x }) => x.id);
+}
+
+/** Called with a private meeting, not a summons. */
+function isPrivate(scene: GwScene): boolean {
+  return scene.tags.includes("private");
 }
 
 function ownPerson(seat: GwSeatState, id: string): boolean {

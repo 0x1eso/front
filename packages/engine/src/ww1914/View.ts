@@ -104,20 +104,23 @@ function seatView(gw: GreatWar, seat: GwSeatState): GwSeatView {
     tag: seat.tag,
     ready: seat.ready,
     audiences: seat.audiences,
+    privates: seat.privates,
     desk: seat.desk.flatMap((c) => cardView(gw, seat, c) ?? []),
     people: defs.flatMap((d) => {
       const p = gw.person(d.id);
       if (p === null || p.status !== "active") return [];
       const topics = openTopics(gw, seat, p.id);
-      if (GW_HIDE_UNMET.includes(seat.tag) && !metYet(seat, p, topics)) {
-        return [];
-      }
+      const privateTopics = openTopics(gw, seat, p.id, true);
+      const heard = [...topics, ...privateTopics];
+      const hidden = GW_HIDE_UNMET.includes(seat.tag) || d.unlisted === true;
+      if (hidden && !metYet(seat, p, heard)) return [];
       return [
         {
           id: p.id,
           office: p.office,
           trust: p.trust,
           topics,
+          privateTopics,
           fit: d.fit,
           rivals: d.rivals,
         },

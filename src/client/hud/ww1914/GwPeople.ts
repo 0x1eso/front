@@ -235,6 +235,56 @@ function vacancies(c: GwCtx): TemplateResult | typeof nothing {
   </section>`;
 }
 
+/** "사적으로 만나기": only what the state has opened, across all the people. */
+function privateMeetings(c: GwCtx): TemplateResult | typeof nothing {
+  const { seat } = c;
+  const open = seat.people.flatMap((p) =>
+    (p.privateTopics ?? []).map((topic) => ({ who: p.id, topic })),
+  );
+  if (open.length === 0) return nothing;
+  const left = seat.privates ?? 0;
+  const shown = c.ui.privateOpen;
+  return html`<section
+    class="rounded border border-amber-200/25 bg-black/35 p-2.5"
+    data-gw-private
+  >
+    <button
+      class="flex w-full items-center gap-2 text-left"
+      data-gw-private-toggle
+      @click=${() => {
+        c.ui.privateOpen = !shown;
+        c.redraw();
+      }}
+    >
+      <span class="min-w-0 flex-1 text-sm font-bold"
+        >${translateText("gw.ui.private_title")}</span
+      >
+      <span class=${CHIP}
+        >${translateText("gw.ui.private_left", { n: left })}</span
+      >
+    </button>
+    ${shown
+      ? html`<div class="mt-2 space-y-1 border-t border-white/10 pt-2">
+          <p class=${MUTED}>${translateText("gw.ui.private_hint")}</p>
+          ${open.map(
+            (x) =>
+              html`<button
+                class="${BTN} w-full"
+                data-gw-private-topic=${x.topic}
+                ?disabled=${left <= 0}
+                @click=${() => {
+                  c.send({ kind: "summon", person: x.who, topic: x.topic });
+                  c.ui.summoned = Date.now();
+                }}
+              >
+                ${personName(c.pack, x.who)} · ${topicLabel(c.pack, x.topic)}
+              </button>`,
+          )}
+        </div>`
+      : nothing}
+  </section>`;
+}
+
 /** The people tab: the cabinet and the court, summons left, who to call. */
 export function peopleTab(c: GwCtx): TemplateResult {
   const { seat } = c;
@@ -250,7 +300,7 @@ export function peopleTab(c: GwCtx): TemplateResult {
       >
       <span class=${MUTED}>${translateText("gw.ui.audiences_hint")}</span>
     </div>
-    ${vacancies(c)} ${office.map((p) => row(c, p))}
+    ${privateMeetings(c)} ${vacancies(c)} ${office.map((p) => row(c, p))}
     ${rest.length === 0
       ? nothing
       : html`<div class=${MUTED}>${translateText("gw.ui.outside")}</div>

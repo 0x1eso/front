@@ -86,5 +86,6 @@ export const GW_ORDER_BLOCKS = [
   "bad_budget",
   "no_law",
   "law_busy",
+  "no_private",
 ] as const;
 export type GwOrderBlock = (typeof GW_ORDER_BLOCKS)[number];

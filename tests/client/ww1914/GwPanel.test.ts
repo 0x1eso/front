@@ -347,6 +347,32 @@ describe("the screens", () => {
     ]);
   });
 
+  test("a private meeting opens from its own entry, only if there is one", async () => {
+    const d = data([]);
+    const shut = await mount(d);
+    shut.panel
+      .querySelector<HTMLButtonElement>("[data-gw-tab=people]")!
+      .click();
+    await shut.panel.updateComplete;
+    expect(shut.panel.querySelector("[data-gw-private]")).toBeNull();
+    const open = data([]);
+    const me = open.seats[0];
+    const seat = {
+      ...me,
+      privates: 1,
+      people: [{ ...me.people[0], privateTopics: ["deu_sample_talk"] }],
+    };
+    const { panel, orders } = await mount({ ...open, seats: [seat] });
+    panel.querySelector<HTMLButtonElement>("[data-gw-tab=people]")!.click();
+    await panel.updateComplete;
+    panel.querySelector<HTMLButtonElement>("[data-gw-private-toggle]")!.click();
+    await panel.updateComplete;
+    panel.querySelector<HTMLButtonElement>("[data-gw-private-topic]")!.click();
+    expect(orders).toEqual([
+      { kind: "summon", person: "deu_bethmann", topic: "deu_sample_talk" },
+    ]);
+  });
+
   test("a dismissal needs a second tap", async () => {
     const { panel, orders } = await mount(data([]));
     panel.querySelector<HTMLButtonElement>("[data-gw-tab=people]")!.click();
