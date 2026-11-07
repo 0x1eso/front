@@ -76,6 +76,8 @@ export interface GwCardView {
   letterFrom?: GwTag;
   /** The place on the map it comes from. */
   place?: GwPlace;
+  /** With no place of its own: where the rules put it (theatre, office). */
+  near?: GwPlace;
 }
 
 /** A field of a schedule entry: pick `count` from what it holds. */

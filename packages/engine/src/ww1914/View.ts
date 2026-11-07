@@ -1,15 +1,22 @@
 import {
+  GW_FRONT_START,
   GwCard,
   GwPersonState,
   GwSeatState,
+  GwTheatre,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import type {
   GreatWarData,
   GwCardView,
   GwSeatView,
 } from "@openfront/engine-api/ww1914/GwView";
+import type { GwScene } from "@openfront/engine-api/ww1914/SceneDsl";
 import { gwChapters } from "@openfront/engine-lib/ww1914/Calendars";
 import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
+import {
+  GW_BIG_SCENE_PLACES,
+  sceneNear,
+} from "@openfront/engine-lib/ww1914/PlaceRules";
 import { reworkTell } from "@openfront/engine-lib/ww1914/SendBackRules";
 import {
   civilFromDays,
@@ -38,6 +45,20 @@ import { termsView } from "./Terms";
 import { seatPerson, stageOf } from "./World";
 import { worldView } from "./WorldView";
 
+/** Named by hand, or by rule: the screen reads the brief in between. */
+function cardPlace(
+  gw: GreatWar,
+  seat: GwSeatState,
+  scene: GwScene,
+): Pick<GwCardView, "place" | "near"> {
+  const place = scene.place ?? GW_BIG_SCENE_PLACES[scene.id];
+  if (place !== undefined) return { place };
+  const lineOf = (t: GwTheatre) =>
+    gw.s.theatres.find((x) => x.id === t)?.line ?? GW_FRONT_START[t];
+  const main = seat.alloc.main;
+  return { near: sceneNear(scene, { tag: seat.tag, main, lineOf }) };
+}
+
 function cardView(
   gw: GreatWar,
   seat: GwSeatState,
@@ -56,7 +77,7 @@ function cardView(
     uid: c.uid,
     scene: c.scene,
     kind: scene.kind,
-    ...(scene.place === undefined ? {} : { place: scene.place }),
+    ...cardPlace(gw, seat, scene),
     variant: c.variant,
     cast: c.cast,
     stamp: scene.stamp ?? null,

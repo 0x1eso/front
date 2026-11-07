@@ -153,6 +153,8 @@ export interface GwWorldView {
   signed: boolean;
   proposals: readonly GwProposal[];
   fronts: readonly GwFrontView[];
+  /** Generals who can be sent to a front. */
+  generals?: readonly string[];
   chain: { topic: string; step: number; hold: number } | null;
   chainEnds: readonly { topic: string; outcome: GwChainOutcome }[];
   reports: readonly GwReportView[];
