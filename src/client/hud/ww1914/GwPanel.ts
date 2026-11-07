@@ -27,7 +27,6 @@ import { memoirTab } from "./GwMemoir";
 import {
   GW_TABS,
   GwTab,
-  isReadOnly,
   loadShelf,
   saveShelf,
   shelve,
@@ -153,7 +152,7 @@ export class GwPanel extends LitElement implements Controller {
 
   /**
    * The years leave nothing else to look at: what is on the desk is on screen.
-   * When they end, the first paper opens by itself. True when it opened one.
+   * When they end, the first card of 1914 opens the same way. True when one did.
    */
   private keepYearsOpen(): boolean {
     const ui = this.ui;
@@ -161,18 +160,14 @@ export class GwPanel extends LitElement implements Controller {
     const years = seat?.prologue ?? null;
     if (seat === null || years === null) return false;
     if (ui.talkUid !== null || ui.readerUid !== null) return false;
-    if (!years.done) {
-      const card = seat.desk[0];
-      if (card === undefined) return false;
-      if (card.kind !== "talk") ui.readerUid = card.uid;
-      else if (ui.talks.has(card.uid)) ui.talkUid = card.uid;
-      return true;
-    }
-    if (!ui.pastDue) return false;
-    ui.pastDue = false;
-    const paper = seat.desk.find((x) => isReadOnly(x));
-    ui.readerUid = paper?.uid ?? null;
-    return paper !== undefined;
+    if (years.done && !ui.pastDue) return false;
+    const card = seat.desk[0];
+    if (card === undefined) return false;
+    if (card.kind !== "talk") ui.readerUid = card.uid;
+    else if (ui.talks.has(card.uid)) ui.talkUid = card.uid;
+    else return false;
+    if (years.done) ui.pastDue = false;
+    return true;
   }
 
   private seat(): GwSeatView | null {

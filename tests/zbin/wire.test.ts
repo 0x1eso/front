@@ -1290,6 +1290,21 @@ describe("zbin wire: server messages", () => {
     expect(send({ ...CONFIG })).toBeUndefined();
   });
 
+  it("carries the prologue's lobby field through the start message", () => {
+    const sample = SERVER_MESSAGES.find((m) => m.type === "start")!;
+    if (sample.type !== "start") throw new Error("no start sample");
+    const [sctx, cctx] = ctxPair();
+    const field = { play: false, picks: ["deu_pro_arm.hide"] };
+    const config = { ...CONFIG, greatWar1914Prologue: field };
+    const msg: ServerMessage = {
+      ...sample,
+      gameStartInfo: { ...sample.gameStartInfo, config },
+    };
+    const decoded = decodeServerMessage(encodeServerMessage(msg, sctx), cctx);
+    if (decoded.type !== "start") throw new Error("not a start message");
+    expect(decoded.gameStartInfo.config.greatWar1914Prologue).toEqual(field);
+  });
+
   it("keeps an empty turn under 8 bytes", () => {
     const [sctx] = ctxPair();
     const bytes = encodeServerMessage(

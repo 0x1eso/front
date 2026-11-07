@@ -99,7 +99,7 @@ export interface GwUi {
   shelf: Shelf;
   /** Choices signed lately, newest last; their results show on the desk. */
   notes: GwResultNote[];
-  /** The years were lived on this screen: their picks are kept, then the first paper opens. */
+  /** The years were lived on this screen: their picks are kept, the first card opens. */
   pastDue: boolean;
 }
 
