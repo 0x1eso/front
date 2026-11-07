@@ -44,6 +44,12 @@ export const GwScenePackSchema = z
     nodes: z.record(GwIdSchema, GwNodePackSchema).optional(),
     /** A summonable talk's topic as listed on the people screen. */
     topic: Text.optional(),
+    /**
+     * The secretary's note at the top of a card or talk: one line saying what
+     * this paper is. A string, or a map by variant id with a `base` row. Never
+     * required.
+     */
+    brief: z.union([Text, z.record(GwIdSchema, Text)]).optional(),
   })
   .strict();
 export type GwScenePack = z.infer<typeof GwScenePackSchema>;
@@ -211,8 +217,28 @@ function layOver(s: GwScenePack, o: GwOver): GwScenePack {
     ...(o.opt === undefined ? {} : { opt: { ...s.opt, ...o.opt } }),
     ...(o.why === undefined ? {} : { why: { ...s.why, ...o.why } }),
     ...(o.optBy === undefined ? {} : { optBy: { ...s.optBy, ...o.optBy } }),
+    ...(o.brief === undefined ? {} : { brief: mergeBrief(s.brief, o.brief) }),
     ...(s.nodes === undefined ? {} : { nodes }),
   };
+}
+
+function mergeBrief(
+  a: GwScenePack["brief"],
+  b: NonNullable<GwScenePack["brief"]>,
+): NonNullable<GwScenePack["brief"]> {
+  if (typeof b === "string") return b;
+  const base = typeof a === "string" ? { base: a } : a;
+  return { ...base, ...b };
+}
+
+/** The secretary's note for a card's variant: its row, else `base`, else the string. */
+export function gwBrief(
+  brief: GwScenePack["brief"],
+  variant: string,
+): string | null {
+  if (brief === undefined) return null;
+  if (typeof brief === "string") return brief;
+  return brief[variant] ?? brief.base ?? null;
 }
 
 /** Ids two packs both hold: `mergeGwPacks` would keep only the later one. */
@@ -296,6 +322,13 @@ export function gwPackProblems(
       check(`${s.id}.${v.id}`, t.text[v.id]);
     }
     out.push(...sameOpenings(s.id, t.text));
+    // `brief` is optional; when present its holes must be known roles.
+    if (typeof t.brief === "string") check(`${s.id}.brief`, t.brief);
+    else {
+      for (const [v, b] of Object.entries(t.brief ?? {})) {
+        check(`${s.id}.brief.${v}`, b);
+      }
+    }
     for (const o of s.options ?? []) {
       need(t.opt?.[o.id], `option ${o.id}`);
       check(`${s.id}.${o.id}`, t.opt?.[o.id]);
