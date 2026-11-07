@@ -77,6 +77,7 @@ import { RUS_FRONT_SCENES } from "./scenes/rus_front";
 import { RUS_HOME_SCENES } from "./scenes/rus_home";
 import { RUS_PRIVATE_SCENES, withRusPrivate } from "./scenes/rus_private";
 import { RUS_ECHOES, RUS_PROLOGUE_SCENES } from "./scenes/rus_prologue";
+import { TABLE_SCENES } from "./scenes/table";
 import { WARTIME_SCENES } from "./scenes/wartime";
 import { WORLD_SCENES } from "./scenes/world";
 
@@ -145,6 +146,7 @@ export const GW_CONTENT: GwContent = {
           ...DEU_COURT_SCENES,
           ...GW_DIP_SCENES,
           ...GW_NEUTRAL_SCENES,
+          ...TABLE_SCENES,
           ...GW_WORLD2_SCENES,
           ...GW_FRAME_SCENES,
         ].map(withPromiseTerms),

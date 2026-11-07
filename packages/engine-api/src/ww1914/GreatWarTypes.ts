@@ -16,6 +16,7 @@ import {
   gwStoryStart,
   GwStoryStateSchema,
 } from "./GwStory";
+import { GwMapRecordSchema, GwTableStateSchema } from "./GwTable";
 
 /** A content id: scene, person, flag, memory key. */
 export const GwIdSchema = z
@@ -810,6 +811,8 @@ export const GwMemoirSchema = z.object({
     })
     .nullable()
     .default(null),
+  /** What the map became. */
+  map: GwMapRecordSchema.nullable().default(null),
   /** The seat's own record: casualties in thousands, lines held. */
   casualties: z.number().int(),
   fronts: z.array(
@@ -938,6 +941,12 @@ export const GwSeatStateSchema = z.object({
   aimsDropped: z
     .array(z.object({ id: GwIdSchema, chapter: z.number().int() }))
     .default([]),
+  /** The land the seat wants, painted on the map; [] none yet. */
+  claims: z.array(GwPlaceSchema).default([]),
+  /** Chapter it was first signed; -1 never. */
+  claimsSigned: z.number().int().default(-1),
+  /** Times it has been changed since. */
+  claimsChanged: z.number().int().default(0),
   /** Papers sent back, in order: "다시 써 오시오". */
   returns: z
     .array(
@@ -1212,5 +1221,7 @@ export const GreatWarStateSchema = z.object({
   held: z.partialRecord(GwPlaceSchema, z.enum(GW_TAGS)).default({}),
   /** What changed hands as the last chapter closed. */
   landMoves: z.array(GwLandMoveSchema).default([]),
+  /** The peace table, from the armistice on; null before. */
+  table: GwTableStateSchema.nullable().default(null),
 });
 export type GreatWarState = z.infer<typeof GreatWarStateSchema>;

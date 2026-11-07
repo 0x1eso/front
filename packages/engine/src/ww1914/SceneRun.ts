@@ -43,6 +43,7 @@ import {
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { blocNow } from "./Blocs";
 import { moveMoney } from "./Budget";
+import { claimsHeld, claimsMet } from "./Claims";
 import { makeCard, placeCard } from "./Desk";
 import { closeSeat } from "./Endings";
 import type { GreatWar } from "./GreatWar";
@@ -478,8 +479,16 @@ export function holds(ctx: SceneCtx, c: GwCond): boolean {
       return seat.aim !== null && c.of.includes(seat.aim);
     case "aim_met": {
       const aim = (gwContent().aims ?? []).find((x) => x.id === seat.aim);
-      return aim !== undefined && holds({ gw, seat, cast: {} }, aim.met);
+      return (
+        aim !== undefined &&
+        holds({ gw, seat, cast: {} }, aim.met) &&
+        claimsMet(gw, seat)
+      );
     }
+    case "claims":
+      return inRange(seat.claims.length, c);
+    case "claims_held":
+      return inRange(claimsHeld(gw, seat).length, c);
     case "aim_changed":
       return inRange(seat.aimsDropped.length, c);
     case "rival_stage":

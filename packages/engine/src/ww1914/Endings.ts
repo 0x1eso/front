@@ -18,6 +18,7 @@ import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
 import { daysFromCivil } from "@openfront/engine-lib/ww1936/Calendar";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { aimRecord } from "./Aims";
+import { closeTable, mapRecord } from "./Table";
 import { warScore } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
 import { GW_MANDATES } from "./Mandates";
@@ -343,6 +344,7 @@ export function memoirOf(
     day: s.day,
     mandates,
     aim: aimRecord(gw, seat),
+    map: mapRecord(gw, seat),
     casualties: gw.nation(seat.tag)?.casualties ?? 0,
     fronts: s.theatres
       .filter((t) => t.since !== null)
@@ -375,6 +377,7 @@ function generalOf(gw: GreatWar, seat: GwSeatState): GwEnding {
 
 /** Runs once when `s.ended` is set, whoever set it. */
 export function closeGame(gw: GreatWar): void {
+  closeTable(gw);
   for (const seat of gw.s.seats) {
     seat.memoir ??= memoirOf(gw, seat);
   }

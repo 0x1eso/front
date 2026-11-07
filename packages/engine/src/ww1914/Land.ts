@@ -79,6 +79,8 @@ export function reachedLine(t: GwTheatreState): number {
 /** The map follows the fronts: each theatre's land goes as its line stands. */
 export function frontLandStep(gw: GreatWar): void {
   gw.s.landMoves = [];
+  // After the armistice only the table moves land.
+  if (gw.s.armistice !== null) return;
   for (const t of gw.s.theatres) {
     if (t.since === null) continue;
     const held = frontLandAt(t.id, reachedLine(t));

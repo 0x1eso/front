@@ -18,6 +18,7 @@ import {
 import { idHash } from "@openfront/engine-lib/ww1936/Roll";
 import { actViews } from "./Acts";
 import { aimsView } from "./Aims";
+import { claimsView } from "./Claims";
 import { govView, pollView } from "./Government";
 import type { GreatWar } from "./GreatWar";
 import { openTopics, readyBlock } from "./Orders";
@@ -33,6 +34,7 @@ import {
 } from "./SceneRun";
 import { backOpen, backWho } from "./SendBack";
 import { inOpening, newcomers } from "./Story";
+import { tableView } from "./Table";
 import { GW_HIDE_UNMET } from "./Tables";
 import { termsView } from "./Terms";
 import { seatPerson, stageOf } from "./World";
@@ -136,6 +138,8 @@ function seatView(gw: GreatWar, seat: GwSeatState): GwSeatView {
     actsLeft: seat.acts,
     acts: actViews(gw, seat),
     aims: aimsView(gw, seat),
+    claims: claimsView(gw, seat),
+    table: tableView(gw, seat),
     terms: termsView(gw, seat),
     desk: seat.desk.flatMap((c) => cardView(gw, seat, c) ?? []),
     people: defs.flatMap((d) => {

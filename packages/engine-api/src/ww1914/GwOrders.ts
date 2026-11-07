@@ -12,6 +12,7 @@ import {
   GW_SCALES,
   GW_THEATRES,
 } from "./GreatWarTypes";
+import { GW_TABLE_TRADES, GW_TABLE_WORDS } from "./GwTable";
 
 const Id = zb.string({ min: 1, max: 48, regex: /^[a-z][a-z0-9_]*$/ });
 const Card = zb.uint({ max: 100_000_000 });
@@ -92,6 +93,21 @@ export const GwOrderSchema = z.discriminatedUnion("kind", [
     give: z.array(z.enum(GW_GIVE_CLAUSES)).max(5),
     ask: z.array(z.enum(GW_ASK_CLAUSES)).max(7),
   }),
+  /** The land the seat wants, as painted: all of it, replacing what stood. */
+  z.object({ kind: z.literal("claims"), places: z.array(Id).max(64) }),
+  /** The seat's turn at the peace table: a place goes on it. */
+  z.object({ kind: z.literal("table_claim"), place: Id }),
+  /** The seat's turn at the peace table: nothing this time. */
+  z.object({ kind: z.literal("table_pass") }),
+  /** The seat's word on a claim. `trade`: what it offers, with `offer`. */
+  z.object({
+    kind: z.literal("table_word"),
+    claim: zb.uint({ max: 10_000 }),
+    word: z.enum(GW_TABLE_WORDS),
+    trade: z.enum(GW_TABLE_TRADES).nullable(),
+  }),
+  /** The next thing at the table now, without waiting for it. */
+  z.object({ kind: z.literal("table_next") }),
 ]);
 export type GwOrder = z.infer<typeof GwOrderSchema>;
 
@@ -131,5 +147,7 @@ export const GW_ORDER_BLOCKS = [
   "no_terms",
   "terms_sent",
   "prologue",
+  "no_claims",
+  "table_no",
 ] as const;
 export type GwOrderBlock = (typeof GW_ORDER_BLOCKS)[number];

@@ -11,10 +11,12 @@ import {
 import { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import { gwChapters } from "@openfront/engine-lib/ww1914/Calendars";
 import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
+import { GW_TABLE_SESSIONS } from "@openfront/engine-lib/ww1914/TableRows";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { warMonths } from "./Eras";
 import { warScore } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
+import { tableStart } from "./Table";
 import { GW_BEATEN, GwBeaten } from "./Tables";
 import { leaveWar } from "./Wars";
 import {
@@ -53,7 +55,7 @@ const SPENT_MONTHS = 30;
 /** Within this of level, a war can stop with neither side beaten. */
 const LEVEL_SCORE = 30;
 /** Chapters the peace takes before the closing one, and days in each. */
-const CONFERENCE_CHAPTERS = 3;
+const CONFERENCE_CHAPTERS = GW_TABLE_SESSIONS;
 const CONFERENCE_DAYS = 30;
 /** Past this a side has lost, and knows it. */
 const LOST_SCORE = -40;
@@ -246,6 +248,7 @@ export function skipToConference(gw: GreatWar): void {
   s.closingDay = s.day + chapterOf(gw).spanDays;
   s.conferenceLeft = CONFERENCE_CHAPTERS;
   s.chapter = last - 1;
+  s.table = tableStart(gw);
   // The war's papers stop with it; the jump mustn't bring them all at once.
   for (const seat of s.seats) {
     seat.scheduled = seat.scheduled.filter((q) => {

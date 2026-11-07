@@ -192,6 +192,9 @@ export type GwCond =
   | { kind: "aim_met" }
   /** How many aims the seat has given up. */
   | { kind: "aim_changed"; min?: number; max?: number }
+  /** How many places the seat has painted, and how many of them it holds. */
+  | { kind: "claims"; min?: number; max?: number }
+  | { kind: "claims_held"; min?: number; max?: number }
   /** The rival's stage, 1 signs .. 3 open clash; false once the track closed. */
   | { kind: "rival_stage"; min?: number; max?: number }
   /** What the seat last did about the rival. */
@@ -388,6 +391,8 @@ export const GwCondSchema: z.ZodType<GwCond> = z.lazy(() =>
     obj("aim", { of: z.array(GwIdSchema).min(1) }),
     obj("aim_met", {}),
     obj("aim_changed", range),
+    obj("claims", range),
+    obj("claims_held", range),
     obj("rival_stage", range),
     obj("rival_act", { of: z.array(z.enum(GW_RIVAL_ACTS)) }),
     obj("rival_end", { of: z.array(z.enum(GW_RIVAL_ENDS)) }),

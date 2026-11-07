@@ -19,6 +19,7 @@ import { rulerAudiences, rulerStep } from "./Ruler";
 import { closeUndecided } from "./SceneRun";
 import { seaStep } from "./Sea";
 import { storyStep } from "./Story";
+import { openSession, tableStep } from "./Table";
 import { termsStep } from "./Terms";
 import { trimLines } from "./World";
 import { worldFlagsStep } from "./WorldFlags";
@@ -45,6 +46,7 @@ export const GW_CHAPTER_STEPS: readonly ((gw: GreatWar) => void)[] = [
   rulerStep,
   pressStep,
   storyStep,
+  tableStep,
   endingStep,
 ];
 
@@ -95,6 +97,7 @@ export function openChapter(gw: GreatWar, ticks: number): void {
     firstEdition(gw, seat);
     dealDesk(gw, seat);
   }
+  openSession(gw, ticks);
   gw.touch();
 }
 

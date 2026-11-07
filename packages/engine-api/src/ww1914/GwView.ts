@@ -25,6 +25,7 @@ import type { GwOrderBlock } from "./GwOrders";
 import type { GwPlace } from "./GwPlaces";
 import type { GwPrologueView } from "./GwPrologue";
 import type { GwRulerView } from "./GwRuler";
+import type { GwClaimsView, GwTableView } from "./GwTable";
 import type { GwWorldView } from "./GwWorldView";
 import type { GwReplyKind, GwSceneKind, GwStance } from "./SceneDsl";
 
@@ -229,6 +230,10 @@ export interface GwSeatView {
   acts?: readonly GwActView[];
   /** Null where the country has no list: its three tasks stand. */
   aims?: GwAimsView | null;
+  /** The land painted as the war's aim. */
+  claims?: GwClaimsView;
+  /** The peace table; null before an armistice. */
+  table?: GwTableView | null;
   terms?: GwTermsView;
   desk: readonly GwCardView[];
   people: readonly GwPersonView[];

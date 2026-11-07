@@ -33,6 +33,7 @@ import { advanceChapter, allReady } from "./Chapters";
 import { closeGame } from "./Endings";
 import { prologueStep } from "./Prologue";
 import { firstRegime, institutionsOf } from "./Regimes";
+import { tableTick } from "./Table";
 import { GW_ACTORS } from "./Tables";
 import { gwView } from "./View";
 
@@ -158,6 +159,7 @@ export class GreatWar {
       news: [],
       held: {},
       landMoves: [],
+      table: null,
     };
   }
 
@@ -208,6 +210,9 @@ export class GreatWar {
         acted: [],
         aim: null,
         aimsDropped: [],
+        claims: [],
+        claimsSigned: -1,
+        claimsChanged: 0,
         returns: [],
         terms: [],
         story: gwStoryStart(),
@@ -260,6 +265,7 @@ export class GreatWar {
       return;
     }
     if (prologueStep(this, ticks)) return;
+    tableTick(this, ticks);
     const late = s.deadlineTick !== null && ticks >= s.deadlineTick;
     if (late || allReady(this)) advanceChapter(this, ticks, late);
   }

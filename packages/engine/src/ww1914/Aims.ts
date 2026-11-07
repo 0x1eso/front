@@ -7,6 +7,7 @@ import type { GwOrderBlock } from "@openfront/engine-api/ww1914/GwOrders";
 import type { GwAimsView } from "@openfront/engine-api/ww1914/GwView";
 import { gwChapters } from "@openfront/engine-lib/ww1914/Calendars";
 import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
+import { claimsMet } from "./Claims";
 import type { GreatWar } from "./GreatWar";
 import { moveRuler } from "./Ruler";
 import { holds, runEffects, SceneCtx } from "./SceneRun";
@@ -104,13 +105,21 @@ export function tasksShown(gw: GreatWar, seat: GwSeatState): boolean {
   return gw.s.chapter >= silenceChapter(gw);
 }
 
+/** The aim stands: its own word, and the land painted for it. */
+export function aimMet(gw: GreatWar, seat: GwSeatState): boolean {
+  const a = aimsOf(seat).find((x) => x.id === seat.aim);
+  return (
+    a !== undefined && holds(plain(gw, seat), a.met) && claimsMet(gw, seat)
+  );
+}
+
 /** The memoir's record. */
 export function aimRecord(gw: GreatWar, seat: GwSeatState) {
   const a = aimsOf(seat).find((x) => x.id === seat.aim);
   if (a === undefined) return null;
   return {
     id: a.id,
-    met: holds(plain(gw, seat), a.met),
+    met: aimMet(gw, seat),
     dropped: seat.aimsDropped.map((x) => x.id),
   };
 }

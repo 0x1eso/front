@@ -23,6 +23,7 @@ import type {
 } from "./GreatWarTypes";
 import type { GwBudgetView } from "./GwBudget";
 import type { GwTag } from "./GwCountries";
+import type { GwPlace } from "./GwPlaces";
 import type { GwLawView } from "./GwLaw";
 import type { GwPressView } from "./GwPress";
 
@@ -41,6 +42,8 @@ export interface GwProposal {
   /** His word for the odds, 0..4, gw.odds.<n>. His temperament colours it. */
   estimate: number;
   tell: readonly string[];
+  /** Painted land still to take on this paper's front. */
+  claimed?: readonly GwPlace[];
 }
 
 export interface GwGaugeView {

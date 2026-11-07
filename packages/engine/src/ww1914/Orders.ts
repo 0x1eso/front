@@ -21,6 +21,7 @@ import type {
 import { takeAct } from "./Acts";
 import { declareAim } from "./Aims";
 import { budgetOrder } from "./Budget";
+import { setClaims } from "./Claims";
 import { inStage, makeCard, placeCard, repeatable, sceneWear } from "./Desk";
 import { proposalsFor } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
@@ -41,6 +42,7 @@ import {
 } from "./SceneRun";
 import { sendBack } from "./SendBack";
 import { inOpening, newcomers } from "./Story";
+import { tableClaim, tableNext, tablePass, tableWord } from "./Table";
 import { applyReply, summonScenes } from "./Talk";
 import { offerTerms } from "./Terms";
 import { seatPerson } from "./World";
@@ -170,6 +172,16 @@ export function applyGwOrder(
       return sendBack(gw, seat, o.card, o.direction);
     case "aim":
       return declareAim(gw, seat, o.aim);
+    case "claims":
+      return setClaims(gw, seat, o.places);
+    case "table_claim":
+      return tableClaim(gw, seat, o.place);
+    case "table_pass":
+      return tablePass(gw, seat);
+    case "table_word":
+      return tableWord(gw, seat, o.claim, o.word, o.trade);
+    case "table_next":
+      return tableNext(gw);
     case "terms":
       return offerTerms(gw, seat, o.tag, o.give, o.ask);
   }

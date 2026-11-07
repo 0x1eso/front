@@ -17,6 +17,7 @@ import type { GwOrderBlock } from "@openfront/engine-api/ww1914/GwOrders";
 import type { GwTermsView } from "@openfront/engine-api/ww1914/GwView";
 import { daysFromCivil } from "@openfront/engine-lib/ww1936/Calendar";
 import { moveMoney } from "./Budget";
+import { claimsOn } from "./Claims";
 import { warMonths } from "./Eras";
 import { warScore } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
@@ -44,6 +45,9 @@ const ASK_COST: Readonly<Record<GwAskClause, number>> = {
 };
 /** Each step of its trust in the seat, and its leaning, count this much. */
 const TRUST_WORTH = 4;
+/** What each place of its own the seat has painted takes off, and the most. */
+const PAINTED_WORTH = 3;
+const PAINTED_MOST = 15;
 const LEAN_WORTH = 6;
 /** The side ahead by this much is the side worth being near. */
 const AHEAD_AT = 15;
@@ -208,8 +212,14 @@ function askCost(
 }
 
 /** What the country makes of the seat, apart from the clauses. */
-function goodwill(gw: GreatWar, me: GwNationState, n: GwNationState): number {
+function goodwill(
+  gw: GreatWar,
+  seat: GwSeatState,
+  me: GwNationState,
+  n: GwNationState,
+): number {
   let v = (n.trust[me.tag] ?? 0) * TRUST_WORTH;
+  v -= Math.min(PAINTED_MOST, claimsOn(seat, n.tag) * PAINTED_WORTH);
   if (me.side !== null) {
     const towards = me.side === "entente" ? n.lean : -n.lean;
     v += towards * LEAN_WORTH;
@@ -222,7 +232,7 @@ function goodwill(gw: GreatWar, me: GwNationState, n: GwNationState): number {
 }
 
 /** How tired a country at war is: what a peace is worth to it. */
-function weariness(n: GwNationState): number {
+export function weariness(n: GwNationState): number {
   return (
     (n.gauges.morale <= 2 ? 6 : 0) +
     (n.gauges.order <= 2 ? 6 : 0) +
@@ -246,7 +256,7 @@ function valuation(
   if (peace && warMonths(gw) < TALKS_MONTHS) return "too_soon";
   const given = t.give.reduce((v, c) => v + GIVE_WORTH[c], 0);
   const asked = t.ask.reduce((v, c) => v + askCost(seat, me, n, c), 0);
-  const will = goodwill(gw, me, n);
+  const will = goodwill(gw, seat, me, n);
   if (given + (peace ? weariness(n) : 0) + will >= asked) return null;
   const big = peace || t.ask.includes("join");
   const best = ahead(gw);

@@ -18,6 +18,7 @@ import { gwChapters } from "@openfront/engine-lib/ww1914/Calendars";
 import { civilFromDays } from "@openfront/engine-lib/ww1936/Calendar";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { paperClosed } from "./Authority";
+import { claimFront, claimsIn } from "./Claims";
 import {
   eraOf,
   GW_SEASON,
@@ -743,6 +744,8 @@ export function frontsStep(gw: GreatWar): void {
   const s = gw.s;
   // The war just opened: the first plans are signed next chapter.
   if (s.warChapter === null || s.warChapter === s.chapter) return;
+  // The guns have stopped: the lines stand until the table moves them.
+  if (s.armistice !== null) return;
   if (!isLongChapter(gw)) return;
   signDefaults(gw);
   for (const n of s.nations) n.lostNow = 0;
@@ -818,7 +821,14 @@ export function proposalsFor(gw: GreatWar, seat: GwSeatState): GwProposal[] {
     mine.map((t) => t.id),
     gw.s.plan === "east" || camps.includes("east") ? "east" : "west",
   );
-  const alts = mine.map((t) => t.id).filter((t) => t !== wants);
+  const painted = claimFront(
+    gw,
+    seat,
+    mine.map((t) => t.id),
+  );
+  const alts = mine
+    .map((t) => t.id)
+    .filter((t) => t !== wants && t !== painted);
   const bold =
     cos !== null &&
     (cos.temperament === "arrogant" ||
@@ -841,7 +851,7 @@ export function proposalsFor(gw: GreatWar, seat: GwSeatState): GwProposal[] {
         ? allyShare > 0
           ? "ally"
           : "hold"
-        : id === "other_front"
+        : id === "other_front" || id === "claim_front"
           ? "other"
           : "attack";
     const why = no ?? paperClosed(gw, n, kind, sc);
@@ -856,6 +866,7 @@ export function proposalsFor(gw: GreatWar, seat: GwSeatState): GwProposal[] {
       why,
       estimate: estimate(gw, seat, main),
       tell: tellOf(posture, sc, allyShare),
+      claimed: posture === "hold" ? [] : claimsIn(gw, seat, main),
     });
   };
   // A chief who can read his own odds doesn't send a paper he doesn't believe.
@@ -877,6 +888,10 @@ export function proposalsFor(gw: GreatWar, seat: GwSeatState): GwProposal[] {
     0,
     other2 === "major" && dry ? "no_shells" : null,
   );
+  // The land the seat painted is a paper of its own, if it isn't his already.
+  if (painted !== null && painted !== wants) {
+    add("claim_front", painted, "offensive", "limited", 0, null);
+  }
   for (const alt of alts) {
     add("other_front", alt, "offensive", "limited", 0, null);
   }

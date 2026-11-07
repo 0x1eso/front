@@ -8,6 +8,7 @@ import {
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import { GW_PLACES, GwPlace } from "@openfront/engine-api/ww1914/GwPlaces";
+import type { GwTableClaim } from "@openfront/engine-api/ww1914/GwTable";
 import { ScenarioDataSchema } from "@openfront/engine-api/ww1936/ScenarioTypes";
 import {
   frontLandAt,
@@ -24,6 +25,7 @@ import {
 } from "@openfront/engine/GameRunner";
 import type { GreatWar } from "@openfront/engine/ww1914/GreatWar";
 import { frontLandStep, holderOf } from "@openfront/engine/ww1914/Land";
+import { closeTable, tableStart } from "@openfront/engine/ww1914/Table";
 import { GW_THEATRE_SIDES } from "@openfront/engine/ww1914/Tables";
 import fs from "fs";
 import path from "path";
@@ -295,5 +297,34 @@ describe("fronts move land on the real map", () => {
     expect(ownerAt(runner, "strasbourg")).toBe("FRA");
     standAt("liege");
     expect(ownerAt(runner, "strasbourg")).toBe("DEU");
+  });
+
+  test("the table moves land at once; what wasn't agreed goes home at the end", () => {
+    gw.nation("BEL")!.side = "entente";
+    standAt("somme");
+    gw.s.armistice = { kind: "entente_lost", chapter: gw.s.chapter, by: "GBR" };
+    gw.s.conferenceLeft = 3;
+    gw.s.table = tableStart(gw);
+    const t = gw.s.table;
+    const claim = (place: GwPlace, state: GwTableClaim["state"]) =>
+      t.claims.push({
+        id: t.claims.length,
+        place,
+        by: "DEU",
+        against: "BEL",
+        session: 0,
+        state,
+        step: "asked",
+        offer: null,
+        offerBy: null,
+        offers: 0,
+        pressed: false,
+      });
+    claim("liege", "agreed");
+    closeTable(gw);
+    expect(ownerAt(runner, "liege")).toBe("DEU");
+    expect(ownerAt(runner, "ypres")).toBe("BEL");
+    expect(gw.s.held.ypres).toBeUndefined();
+    expect(gw.s.held.liege).toBe("DEU");
   });
 });

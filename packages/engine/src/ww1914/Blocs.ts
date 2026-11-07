@@ -12,6 +12,7 @@ import {
   GwTieView,
 } from "@openfront/engine-api/ww1914/GwPress";
 import { GW_BLOC_ROWS, GwBlocRow, GwBlocTerm } from "./BlocTable";
+import { greedTerm } from "./Claims";
 import type { GreatWar } from "./GreatWar";
 import { GW_PRESS_ROWS } from "./PressTable";
 import { holds, personDef } from "./SceneRun";
@@ -82,6 +83,8 @@ function score(
     const points = -seat.press.censor * POINTS;
     terms.push({ key: "censor_cuts", points });
   }
+  const greed = greedTerm(seat, bloc);
+  if (greed !== null) terms.push(greed);
   const sum = terms.reduce((a, x) => a + x.points, 0);
   return {
     support: clampTo(Math.trunc(sum / POINTS), -GW_SUPPORT_MAX, GW_SUPPORT_MAX),
