@@ -20,7 +20,7 @@ import type { GreatWar } from "./GreatWar";
 import { GW_MANDATES } from "./Mandates";
 import { startPrologue } from "./Prologue";
 import { rollRuler } from "./Ruler";
-import { rollRival } from "./Story";
+import { firstGame, rollRival } from "./Story";
 import {
   GW_ENTRIES,
   GW_FORCE,
@@ -169,7 +169,10 @@ export function rollWorld(gw: GreatWar, seed: number, ticks: number): void {
   const s = gw.s;
   s.seed = seed;
   s.rolled = true;
-  s.opening = openingOf(wwRoll(seed, P_OPENING, 0));
+  // A first game opens on the real Sarajevo: its prologue ends at that wire.
+  s.opening = s.seats.some((seat) => firstGame(gw, seat))
+    ? "sarajevo"
+    : openingOf(wwRoll(seed, P_OPENING, 0));
   const defs = gwContent().people;
   s.people.forEach((p, i) => {
     const t = defs[i].temperaments;
