@@ -443,10 +443,45 @@ describe("the opening", () => {
   });
 
   test("the state brings in whoever it needs, and they stay", async () => {
-    const must = by("must", "deu_stranger", { salience: 8, once: true });
+    const must = by("must", "deu_stranger", { salience: 9, once: true });
     const r = await start({ greatWar1914Played: [] }, [...scenes, must]);
     expect(desk(r)).toContain("must");
     expect(seat(r).people.map((p) => p.id)).toContain("deu_stranger");
+  });
+
+  test("the news comes first; private life and reports wait", async () => {
+    const r = await start({ greatWar1914Played: [] }, [
+      ...scenes,
+      by("kiel", "deu_jagow", {
+        kind: "wire",
+        options: undefined,
+        salience: 9,
+      }),
+      by("life", "deu_bethmann", { salience: 9, tags: ["private"] }),
+      by("roster", "deu_jagow", {
+        kind: "report",
+        options: undefined,
+        salience: 9,
+      }),
+    ]);
+    expect(desk(r).sort()).toEqual(["kiel", "near1"]);
+  });
+
+  test("a crowd comes only with a crisis", async () => {
+    const two = {
+      x: { person: "deu_stranger" },
+      y: { person: "deu_tirpitz" },
+    };
+    const r = await start({ greatWar1914Played: [] }, [
+      ...scenes,
+      decision("crowd", { salience: 9, cast: two }),
+    ]);
+    expect(desk(r)).not.toContain("crowd");
+    const s = await start({ greatWar1914Played: [] }, [
+      ...scenes,
+      decision("chain", { kind: "crisis", salience: 9, cast: two }),
+    ]);
+    expect(desk(s)).toContain("chain");
   });
 
   test("it ends after three chapters", async () => {
