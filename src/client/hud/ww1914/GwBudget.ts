@@ -450,8 +450,8 @@ function actions(
 
 function status(c: GwCtx, v: GwBudgetView): TemplateResult {
   return html`<div class="flex flex-wrap items-center gap-1.5">
-    <span class=${CHIP} data-gw-budget-how=${v.last}
-      >${translateText(`gw.budget.how.${v.last}`)}</span
+    <span class=${CHIP} data-gw-budget-how=${v.refused ? "refused" : v.last}
+      >${translateText(`gw.budget.how.${v.refused ? "refused" : v.last}`)}</span
     >
     ${v.holder === null
       ? nothing

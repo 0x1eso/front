@@ -9,7 +9,13 @@ import { budgetStrip, openLedger } from "./GwBudget";
 import type { GwCtx } from "./GwCtx";
 import { rich } from "./GwDict";
 import { lawStrip } from "./GwLaws";
-import { isReadOnly, paperCards, talkCards } from "./GwModel";
+import {
+  dangers,
+  GwDanger,
+  isReadOnly,
+  paperCards,
+  talkCards,
+} from "./GwModel";
 import { brokenLine } from "./GwRuler";
 import { BTN, BTN_ON, CHIP, GLASS, HEAD, MUTED } from "./GwStyle";
 import {
@@ -87,6 +93,28 @@ function cardBox(c: GwCtx, card: GwCardView): TemplateResult {
   </section>`;
 }
 
+function dangerText(d: GwDanger): string {
+  if (d.kind !== "gov") return translateText(`gw.ui.danger.${d.kind}`);
+  return translateText("gw.ui.danger.gov", {
+    name: translateText(`gw.gov.name.${d.id}`),
+    word: translateText(`gw.gov.word.${d.word}`),
+  });
+}
+
+/** What can end the game, on the desk where it can't be missed. */
+function dangerBox(c: GwCtx): TemplateResult | typeof nothing {
+  const rows = dangers(c.seat);
+  if (rows.length === 0 || c.data.ended !== null) return nothing;
+  return html`<div
+    class="rounded border border-amber-300/60 bg-amber-300/10 p-2"
+    data-gw-danger
+  >
+    ${rows.map(
+      (d) => html`<p class="text-sm text-amber-100">${dangerText(d)}</p>`,
+    )}
+  </div>`;
+}
+
 /** The desk tab: what the last chapter left, the papers, the visitors, ready. */
 export function deskTab(c: GwCtx): TemplateResult {
   const { seat, data } = c;
@@ -94,6 +122,7 @@ export function deskTab(c: GwCtx): TemplateResult {
   const papers = paperCards(seat);
   const talks = talkCards(seat);
   return html`<div class="space-y-2.5" data-gw-desk>
+    ${dangerBox(c)}
     ${reasons.length === 0
       ? nothing
       : html`<div class="rounded border border-white/10 bg-white/5 p-2">

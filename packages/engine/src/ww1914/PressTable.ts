@@ -165,6 +165,21 @@ const DEU: GwPressRow = {
       { vor: -1, kreuz: 1, tag: 0 },
       { free: true },
     ),
+    story("law_voted", 9, ownNews("law_passed"), {
+      tag: 1,
+      vor: 0,
+      kreuz: -1,
+    }),
+    story("law_decreed", 9, ownNews("law_decreed"), {
+      vor: -1,
+      tag: -1,
+      kreuz: 1,
+    }),
+    story("law_gone", 9, ownNews("law_repealed"), {
+      tag: 1,
+      vor: 1,
+      dtz: -1,
+    }),
     story(
       "mobilise",
       9,

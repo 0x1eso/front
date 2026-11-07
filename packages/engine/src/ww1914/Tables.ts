@@ -389,6 +389,18 @@ export const GW_NO_COMMAND: readonly string[] = [
   "auh_friedrich",
 ];
 
+/**
+ * People the war tab doesn't name at a front until the story has sent them
+ * there (any of these seat flags): a retired general isn't in the field while
+ * the desk still asks whether to call him.
+ */
+export const GW_COMMAND_NAMED_AFTER: Readonly<
+  Record<string, readonly string[]>
+> = {
+  deu_hindenburg: ["f_prittwitz_out", "f_third_ohl"],
+  deu_ludendorff: ["f_third_ohl"],
+};
+
 /** Countries whose long cast shows only those the seat has come across. */
 export const GW_HIDE_UNMET: readonly GwTag[] = ["RUS"];
 

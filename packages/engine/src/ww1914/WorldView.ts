@@ -22,9 +22,9 @@ import { eraOf } from "./Eras";
 import { ownFronts, proposalsFor } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
 import { lawViews } from "./Laws";
-import { candidatesFor, dismissPrice } from "./People";
+import { candidatesFor, dismissPrice, officeHolder } from "./People";
 import { pressView } from "./Press";
-import { GW_ACTORS } from "./Tables";
+import { GW_ACTORS, GW_COMMAND_NAMED_AFTER } from "./Tables";
 import { lastOf, ownPeople } from "./World";
 
 const NEWS_SHOWN = 16;
@@ -54,6 +54,23 @@ function gaugeView(gw: GreatWar, seat: GwSeatState): GwGaugeView[] {
   }));
 }
 
+/**
+ * The name the war tab gives a front. The sea is the navy minister's whoever
+ * has it now; a chief of staff filling a gap in the list commands nothing there.
+ */
+function namedCommander(
+  gw: GreatWar,
+  seat: GwSeatState,
+  t: GwTheatreState,
+): string | null {
+  if (t.id === "sea") return officeHolder(gw, seat, "navy")?.id ?? null;
+  const id = t.commander;
+  if (id === null || gw.person(id)?.office === "chief_of_staff") return null;
+  const after = GW_COMMAND_NAMED_AFTER[id];
+  if (after === undefined) return id;
+  return after.some((f) => seat.flags.includes(f)) ? id : null;
+}
+
 function frontView(
   gw: GreatWar,
   seat: GwSeatState,
@@ -70,7 +87,7 @@ function frontView(
     progress: t.progress,
     up: GW_FRONT_UP[t.id],
     trench: t.trench,
-    commander: t.commander,
+    commander: namedCommander(gw, seat, t),
     last:
       b === undefined
         ? null

@@ -6,6 +6,7 @@ import { describe, expect, test } from "vitest";
 import {
   appointable,
   clock,
+  dangers,
   dismissal,
   emptyShelf,
   endingsOf,
@@ -19,6 +20,7 @@ import {
   shelfTotals,
   shelve,
   shelveMemoir,
+  tabBadge,
   tempBand,
   theatreSpot,
   trustIndex,
@@ -29,6 +31,31 @@ const person = (id: string, office: string | null, fit: string[]) =>
   ({ id, office, trust: 0, topics: [], fit, rivals: [] }) as never;
 
 describe("GwModel", () => {
+  test("what can end the game warns on the desk and the country tab", () => {
+    const seat = (levels: number[], gov: object[]) =>
+      ({
+        tag: "DEU",
+        gov,
+        ruler: { id: "wilhelm", age: 57, levels, broken: false, lines: [] },
+      }) as unknown as GwSeatView;
+    const threat = (step: number, fatal: boolean) => ({
+      id: "deu_parliament",
+      step,
+      steps: 3,
+      fatal,
+      feeds: [],
+    });
+    expect(dangers(seat([2, 1, 0, 1], [threat(1, true)]))).toEqual([]);
+    expect(dangers(seat([2, 1, 1, 1], [threat(2, false)]))).toEqual([]);
+    const late = seat([0, 1, 1, 0], [threat(2, true)]);
+    expect(dangers(late)).toEqual([
+      { kind: "health" },
+      { kind: "reputation" },
+      { kind: "gov", id: "deu_parliament", word: 2 },
+    ]);
+    expect(tabBadge(late, "country")).toBe(3);
+  });
+
   test("words clamp to their ranges", () => {
     expect(gaugeLevel("shells", 9)).toBe(3);
     expect(gaugeLevel("morale", -2)).toBe(0);

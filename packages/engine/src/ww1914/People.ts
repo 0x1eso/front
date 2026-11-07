@@ -14,7 +14,7 @@ import { dismissalFallout } from "./Authority";
 import type { GreatWar } from "./GreatWar";
 import { holderOf } from "./SceneRun";
 import { GW_NO_COMMAND, GW_PASSING, GW_PASSING_BY_SCENE } from "./Tables";
-import { chapterOf, clampTo, defOf, ownPeople, reason, turn } from "./World";
+import { chapterOf, clampTo, defOf, ownPeople, reasonOf, turn } from "./World";
 
 const P_HEALTH_FAIL = idHash("gw_health_fail");
 const P_RIVAL = idHash("gw_rival");
@@ -127,7 +127,7 @@ export function personLeaves(
   p.status = "fallen";
   for (const t of gw.s.theatres) if (t.commander === p.id) t.commander = null;
   seat.memory.push({ key, who: p.id, chapter: gw.s.chapter, weight: 0 });
-  reason(gw, seat, key);
+  reasonOf(gw, seat, key, p.id);
 }
 
 /** A resignation letter: the warning that always comes first. */
@@ -140,7 +140,7 @@ export function openLetter(
   p.letter = gw.s.chapter;
   seat.subjects.gw_letter = p.id;
   seat.scheduled.push({ scene: "gw_letter", chapter: gw.s.chapter + 1 });
-  reason(gw, seat, "letter_came");
+  reasonOf(gw, seat, "letter_came", p.id);
 }
 
 /** The letter is refused: they stay, once, for a price in trust. */
@@ -236,7 +236,7 @@ function health(gw: GreatWar, seat: GwSeatState, p: GwPersonState): void {
       chapter: s.chapter,
       weight: 0,
     });
-    reason(gw, seat, "person_ailing");
+    reasonOf(gw, seat, "person_ailing", p.id);
   }
 }
 
@@ -250,7 +250,7 @@ function rivalry(gw: GreatWar, seat: GwSeatState, p: GwPersonState): void {
     if (q === null || q.status !== "active" || q.office === null) continue;
     if (wwRoll(s.seed, P_RIVAL, s.chapter, i) % 4 === 0) {
       trustBy(q, -1);
-      reason(gw, seat, "rival_resents");
+      reasonOf(gw, seat, "rival_resents", q.id);
     }
   }
 }
@@ -273,7 +273,7 @@ function succeed(gw: GreatWar, seat: GwSeatState): void {
       chapter: gw.s.chapter,
       weight: 0,
     });
-    reason(gw, seat, "successor_named");
+    reasonOf(gw, seat, "successor_named", p.id);
     if (o === "chief_of_staff") turn(gw, "new_chief_of_staff");
   }
 }

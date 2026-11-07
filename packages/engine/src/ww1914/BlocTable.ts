@@ -9,7 +9,13 @@ import {
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import type { GwBloc } from "@openfront/engine-api/ww1914/GwPress";
-import { all, chose, GwCond, not } from "@openfront/engine-api/ww1914/SceneDsl";
+import {
+  all,
+  chose,
+  flag,
+  GwCond,
+  not,
+} from "@openfront/engine-api/ww1914/SceneDsl";
 import { world } from "@openfront/engine-api/ww1914/WorldDsl";
 
 /** `key`: the reason as the screen gives it, pack press.why.<key>. */
@@ -83,6 +89,8 @@ const losing = world({ is: "score", max: -25 });
 const winning = world({ is: "score", min: 25 });
 const earlyWar = all(world({ is: "war" }), world({ is: "war_age", max: 12 }));
 const lateWar = world({ is: "war_age", min: 24 });
+/** Germany's truce: no such thing once the party's officers are in cells. */
+const truceHolds = all(earlyWar, not(flag("f_arrests_done")));
 
 const DEU: GwBlocRow = {
   blocs: {
@@ -128,7 +136,7 @@ const DEU: GwBlocRow = {
       terms: [
         base(-3, "shut_out"),
         inst("reichstag", 1, "reichstag_heard"),
-        when(earlyWar, 3, "truce"),
+        when(truceHolds, 3, "truce"),
         when(low("bread", 1), -3, "bread_short"),
         when(low("bread", 0), -2, "bread_gone"),
         when(chose("deu_h_aux_service", "unions_text"), 3, "unions_law"),
@@ -167,7 +175,7 @@ const DEU: GwBlocRow = {
       a: "workers",
       b: "court",
       key: "truce",
-      when: all(earlyWar, high("order", 2)),
+      when: all(truceHolds, high("order", 2)),
     },
     {
       a: "army",
