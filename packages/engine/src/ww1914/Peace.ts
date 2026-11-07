@@ -57,6 +57,8 @@ const CONFERENCE_CHAPTERS = 3;
 const CONFERENCE_DAYS = 30;
 /** Past this a side has lost, and knows it. */
 const LOST_SCORE = -40;
+/** Months before a staff nobody plays admits a lost war: 1914's men don't. */
+const LEADER_ASKS_MONTHS = 30;
 /** Months before anyone will hear of stopping: the first year has no bill yet. */
 const TALKS_MONTHS = 10;
 
@@ -120,6 +122,7 @@ function leaderAsks(gw: GreatWar, tag: GwTag): boolean {
   const n = gw.nation(tag);
   if (n === null || !fights(n) || n.side === null) return false;
   if (seatsOf(gw, tag).length > 0) return false;
+  if (warMonths(gw) < LEADER_ASKS_MONTHS) return false;
   const score = warScore(gw, n.side);
   const friends = gw.s.nations.filter(
     (x) => x.side === n.side && x.tag !== tag && fights(x),

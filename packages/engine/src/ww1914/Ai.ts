@@ -1,4 +1,5 @@
 import {
+  GW_FRONT_START,
   GW_FRONT_UP,
   GwAlloc,
   GwNationState,
@@ -141,6 +142,32 @@ function americaEnters(gw: GreatWar): void {
   enter(gw, "USA", "entente", "america_entered");
 }
 
+/** Russians past the frontier: no German staff leaves that alone. */
+function russiansOnGermanSoil(gw: GreatWar, n: GwNationState): boolean {
+  if (n.tag !== "DEU") return false;
+  const east = gw.s.theatres.find((t) => t.id === "east")!;
+  return east.open && east.line < GW_FRONT_START.east;
+}
+
+/**
+ * A seat sends corps east by a signed paper (GW_WAR_ORDERS); a Germany nobody
+ * plays does it by itself, a band a chapter, while the west can spare one.
+ */
+function corpsEast(gw: GreatWar): void {
+  const n = gw.nation("DEU");
+  if (n === null || !fights(n) || seatsOf(gw, "DEU").length > 0) return;
+  if (!russiansOnGermanSoil(gw, n)) return;
+  if ((n.base.west ?? 0) <= CORPS_WEST_KEEPS) return;
+  if ((n.base.east ?? 0) >= CORPS_EAST_WANTS) return;
+  for (const [t, step] of [
+    ["west", -1],
+    ["east", 1],
+  ] as const) {
+    n.base[t] = clampTo((n.base[t] ?? 1) + step, 1, 5);
+    n.strength[t] = clampTo((n.strength[t] ?? 1) + step, 1, 5);
+  }
+}
+
 /** Where it can do most: the first of its list that would answer a push. */
 function ownFront(gw: GreatWar, n: GwNationState): GwTheatre | null {
   const list = (GW_AI_MAIN[n.tag] ?? []).filter((t) => {
@@ -154,11 +181,16 @@ function ownFront(gw: GreatWar, n: GwNationState): GwTheatre | null {
   if (n.tag === "DEU" && age <= 3 && (plan === "west" || plan === "east")) {
     if (list.includes(plan)) return plan;
   }
+  if (russiansOnGermanSoil(gw, n) && list.includes("east")) return "east";
   const best = list
     .map((t, i) => ({ t, odds: pressOdds(gw, t, n.side!) - i * 15 }))
     .sort((a, b) => b.odds - a.odds)[0];
   return best.t;
 }
+
+/** What a Germany nobody plays leaves in the west, and wants in the east. */
+const CORPS_WEST_KEEPS = 4;
+const CORPS_EAST_WANTS = 4;
 
 /** Odds under which this character will not send men forward. */
 const ATTACK_FLOOR = {
@@ -187,6 +219,7 @@ function wantsAttack(gw: GreatWar, n: GwNationState, t: GwTheatre): boolean {
   // The doctrines of August: everyone attacks at first.
   const doctrine: readonly GwTag[] = ["FRA", "RUS", "DEU", "AUH"];
   if (age <= 3 && doctrine.includes(n.tag)) return true;
+  if (russiansOnGermanSoil(gw, n)) return true;
   if (n.tag === "BEL" || n.tag === "MNE") return false;
   // A great push wants time to count what it cost.
   const rested = s.chapter - n.spent;
@@ -240,6 +273,7 @@ export function aiStep(gw: GreatWar): void {
   britainStep(gw);
   seatEntry(gw);
   americaEnters(gw);
+  corpsEast(gw);
   for (const e of GW_ENTRIES) neutralStep(gw, e);
   s.nations.forEach((n, i) => {
     if (!fights(n) || seatsOf(gw, n.tag).length > 0) return;
