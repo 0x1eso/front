@@ -1767,6 +1767,7 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
             of: ["tsar"],
           },
         },
+        { kind: "world", of: { is: "date", from: "1916-02" } },
         {
           kind: "any",
           of: [
@@ -2275,6 +2276,7 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
     id: "rus_r_abdication",
     nation: ["RUS"],
     kind: "crisis",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
@@ -2515,6 +2517,7 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
     id: "rus_r_dual_power",
     nation: ["RUS"],
     kind: "crisis",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "world",
       of: {
@@ -2654,6 +2657,7 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
     id: "rus_r_old_master",
     nation: ["RUS"],
     kind: "proposal",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
@@ -2780,6 +2784,7 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
     id: "rus_r_aims_note",
     nation: ["RUS"],
     kind: "crisis",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
@@ -2949,6 +2954,7 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
     id: "rus_r_sealed_train",
     nation: ["RUS"],
     kind: "proposal",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
@@ -3086,6 +3092,7 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
     id: "rus_r_offensive",
     nation: ["RUS"],
     kind: "crisis",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
@@ -3289,6 +3296,7 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
     id: "rus_r_july",
     nation: ["RUS"],
     kind: "crisis",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
@@ -3443,6 +3451,7 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
     id: "rus_r_kornilov",
     nation: ["RUS"],
     kind: "crisis",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
@@ -3615,6 +3624,7 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
     id: "rus_r_assembly",
     nation: ["RUS"],
     kind: "proposal",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
@@ -3779,6 +3789,7 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
     id: "rus_r_october",
     nation: ["RUS"],
     kind: "crisis",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
@@ -3975,6 +3986,7 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
     id: "rus_r_brest",
     nation: ["RUS"],
     kind: "crisis",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
@@ -4142,6 +4154,7 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
     id: "rus_r_crown_war",
     nation: ["RUS"],
     kind: "proposal",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
@@ -10648,6 +10661,7 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
     id: "rus_v_buchanan_last",
     nation: ["RUS"],
     kind: "talk",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
@@ -10895,6 +10909,7 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
     id: "rus_v_michael_ready",
     nation: ["RUS"],
     kind: "talk",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
@@ -11120,6 +11135,7 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
     id: "rus_v_chkh_order",
     nation: ["RUS"],
     kind: "talk",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "world",
       of: {
@@ -11301,6 +11317,7 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
     id: "rus_v_kornilov_plan",
     nation: ["RUS"],
     kind: "talk",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [

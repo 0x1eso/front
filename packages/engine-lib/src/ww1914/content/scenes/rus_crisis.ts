@@ -230,6 +230,11 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
         id: "send_doctor",
         tell: ["court:+1", "duma:-1"],
         effects: [
+          {
+            kind: "maybe",
+            when: { kind: "crisis", topic: "balkan" },
+            then: [{ kind: "schedule", scene: "rus_c_poincare", chapters: 1 }],
+          },
           ear("court", 1),
           ear("duma", -1),
           { kind: "flag", flag: "f_ras_wounded" },
@@ -240,6 +245,11 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
         id: "send_police",
         tell: ["ministers:+1", "court:-1"],
         effects: [
+          {
+            kind: "maybe",
+            when: { kind: "crisis", topic: "balkan" },
+            then: [{ kind: "schedule", scene: "rus_c_poincare", chapters: 1 }],
+          },
           ear("ministers", 1),
           ear("court", -1),
           { kind: "flag", flag: "f_ras_wounded" },
@@ -250,6 +260,11 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
         id: "say_nothing",
         tell: ["duma:+1", "court:-1"],
         effects: [
+          {
+            kind: "maybe",
+            when: { kind: "crisis", topic: "balkan" },
+            then: [{ kind: "schedule", scene: "rus_c_poincare", chapters: 1 }],
+          },
           ear("duma", 1),
           ear("court", -1),
           { kind: "flag", flag: "f_ras_wounded" },
@@ -610,6 +625,14 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
       of: [
         { kind: "chapter", min: 4, max: 6 },
         { kind: "crisis", topic: "balkan" },
+        { kind: "not", of: { kind: "flag", flag: "f_rus_general" } },
+        {
+          kind: "any",
+          of: [
+            { kind: "chapter", max: 4 },
+            { kind: "temp", max: 7 },
+          ],
+        },
         {
           kind: "any",
           of: [
@@ -735,7 +758,13 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
           kind: "any",
           of: [
             { kind: "seen", scene: "rus_c_partial" },
-            { kind: "temp", min: 8 },
+            {
+              kind: "all",
+              of: [
+                { kind: "chapter", min: 5 },
+                { kind: "temp", min: 8 },
+              ],
+            },
           ],
         },
       ],
@@ -1231,8 +1260,15 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        { kind: "chapter", min: 7, max: 9 },
+        { kind: "chapter", min: 7, max: 10 },
         { kind: "world", of: { is: "war" } },
+        {
+          kind: "any",
+          of: [
+            { kind: "seen", scene: "rus_c_both_fronts" },
+            { kind: "chapter", min: 8 },
+          ],
+        },
       ],
     },
     cast: {},
@@ -1579,7 +1615,7 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        { kind: "chapter", min: 6, max: 8 },
+        { kind: "chapter", min: 7, max: 9 },
         { kind: "world", of: { is: "war" } },
       ],
     },
@@ -5187,6 +5223,7 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     id: "rus_v_durnovo_memo",
     nation: ["RUS"],
     kind: "talk",
+    stage: ["crisis", "y1914", "war"],
     when: { kind: "chapter", min: 1, max: 3 },
     cast: { p: { person: "rus_durnovo" } },
     salience: 6,
@@ -5306,6 +5343,7 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     id: "rus_v_witte_warn",
     nation: ["RUS"],
     kind: "talk",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
@@ -5428,6 +5466,7 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     id: "rus_v_paleo_toast",
     nation: ["RUS"],
     kind: "talk",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
@@ -5539,6 +5578,7 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     id: "rus_v_paleo_plea",
     nation: ["RUS"],
     kind: "talk",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
@@ -5659,6 +5699,7 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     id: "rus_v_buchanan_july",
     nation: ["RUS"],
     kind: "talk",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
@@ -5786,6 +5827,7 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     id: "rus_v_pourtales_tears",
     nation: ["RUS"],
     kind: "talk",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [

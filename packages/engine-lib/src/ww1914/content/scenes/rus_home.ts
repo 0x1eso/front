@@ -56,6 +56,7 @@ export const RUS_HOME_SCENES: readonly GwScene[] = [
     id: "rus_h_diary",
     nation: ["RUS"],
     kind: "report",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "world",
       of: {
@@ -139,6 +140,7 @@ export const RUS_HOME_SCENES: readonly GwScene[] = [
     id: "rus_h_wife_letter",
     nation: ["RUS"],
     kind: "wire",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
@@ -217,6 +219,7 @@ export const RUS_HOME_SCENES: readonly GwScene[] = [
     id: "rus_h_keys",
     nation: ["RUS"],
     kind: "crisis",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
@@ -391,6 +394,7 @@ export const RUS_HOME_SCENES: readonly GwScene[] = [
     id: "rus_h_friend_comes",
     nation: ["RUS"],
     kind: "audience",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
@@ -398,7 +402,7 @@ export const RUS_HOME_SCENES: readonly GwScene[] = [
           kind: "world",
           of: {
             is: "date",
-            from: "1914-08",
+            from: "1914-09",
             to: "1916-12",
           },
         },
@@ -451,6 +455,7 @@ export const RUS_HOME_SCENES: readonly GwScene[] = [
         when: {
           kind: "all",
           of: [
+            { kind: "world", of: { is: "war" } },
             {
               kind: "flag",
               flag: "f_ras_wounded",
@@ -577,6 +582,7 @@ export const RUS_HOME_SCENES: readonly GwScene[] = [
     id: "rus_h_friend_file",
     nation: ["RUS"],
     kind: "proposal",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
@@ -762,6 +768,7 @@ export const RUS_HOME_SCENES: readonly GwScene[] = [
     id: "rus_h_heir_bleed",
     nation: ["RUS"],
     kind: "audience",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
@@ -951,6 +958,7 @@ export const RUS_HOME_SCENES: readonly GwScene[] = [
     id: "rus_h_bloc",
     nation: ["RUS"],
     kind: "crisis",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
@@ -971,7 +979,7 @@ export const RUS_HOME_SCENES: readonly GwScene[] = [
           kind: "world",
           of: {
             is: "date",
-            from: "1915-01",
+            from: "1915-06",
             to: "1915-12",
           },
         },
@@ -1220,6 +1228,7 @@ export const RUS_HOME_SCENES: readonly GwScene[] = [
     id: "rus_h_ministers_letter",
     nation: ["RUS"],
     kind: "crisis",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
@@ -1446,6 +1455,7 @@ export const RUS_HOME_SCENES: readonly GwScene[] = [
     id: "rus_h_leapfrog",
     nation: ["RUS"],
     kind: "audience",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
@@ -1639,6 +1649,7 @@ export const RUS_HOME_SCENES: readonly GwScene[] = [
     id: "rus_h_wagons",
     nation: ["RUS"],
     kind: "proposal",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
@@ -1859,6 +1870,7 @@ export const RUS_HOME_SCENES: readonly GwScene[] = [
     id: "rus_h_grain_levy",
     nation: ["RUS"],
     kind: "proposal",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
@@ -2024,6 +2036,7 @@ export const RUS_HOME_SCENES: readonly GwScene[] = [
     id: "rus_h_rubles",
     nation: ["RUS"],
     kind: "proposal",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
@@ -2213,6 +2226,7 @@ export const RUS_HOME_SCENES: readonly GwScene[] = [
     id: "rus_h_straits_note",
     nation: ["RUS"],
     kind: "crisis",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
@@ -2374,6 +2388,7 @@ export const RUS_HOME_SCENES: readonly GwScene[] = [
     id: "rus_h_peace_programme",
     nation: ["RUS"],
     kind: "proposal",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
@@ -2390,7 +2405,7 @@ export const RUS_HOME_SCENES: readonly GwScene[] = [
           kind: "world",
           of: {
             is: "date",
-            from: "1914-08",
+            from: "1914-09",
             to: "1915-12",
           },
         },
@@ -2525,6 +2540,7 @@ export const RUS_HOME_SCENES: readonly GwScene[] = [
     id: "rus_h_friend_exile",
     nation: ["RUS"],
     kind: "crisis",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
@@ -2723,6 +2739,7 @@ export const RUS_HOME_SCENES: readonly GwScene[] = [
     id: "rus_h_heir_stavka",
     nation: ["RUS"],
     kind: "proposal",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
@@ -2831,6 +2848,7 @@ export const RUS_HOME_SCENES: readonly GwScene[] = [
     id: "rus_h_mother",
     nation: ["RUS"],
     kind: "wire",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
@@ -2880,6 +2898,7 @@ export const RUS_HOME_SCENES: readonly GwScene[] = [
     id: "rus_h_land_word",
     nation: ["RUS"],
     kind: "crisis",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
@@ -3036,6 +3055,7 @@ export const RUS_HOME_SCENES: readonly GwScene[] = [
     id: "rus_h_poland_charter",
     nation: ["RUS"],
     kind: "crisis",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
@@ -3218,6 +3238,7 @@ export const RUS_HOME_SCENES: readonly GwScene[] = [
     id: "rus_h_refugees",
     nation: ["RUS"],
     kind: "proposal",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
@@ -3363,6 +3384,7 @@ export const RUS_HOME_SCENES: readonly GwScene[] = [
     id: "rus_h_record_turkestan",
     nation: ["RUS"],
     kind: "report",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
@@ -3405,6 +3427,7 @@ export const RUS_HOME_SCENES: readonly GwScene[] = [
     id: "rus_h_zemgor",
     nation: ["RUS"],
     kind: "proposal",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
@@ -3530,6 +3553,7 @@ export const RUS_HOME_SCENES: readonly GwScene[] = [
     id: "rus_h_war_industry",
     nation: ["RUS"],
     kind: "proposal",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
@@ -3686,6 +3710,7 @@ export const RUS_HOME_SCENES: readonly GwScene[] = [
     id: "rus_h_moscow_riot",
     nation: ["RUS"],
     kind: "proposal",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
@@ -3826,6 +3851,7 @@ export const RUS_HOME_SCENES: readonly GwScene[] = [
     id: "rus_h_peace_duma",
     nation: ["RUS"],
     kind: "proposal",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
@@ -3962,6 +3988,7 @@ export const RUS_HOME_SCENES: readonly GwScene[] = [
     id: "rus_h_peace_straits",
     nation: ["RUS"],
     kind: "crisis",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
@@ -4125,6 +4152,7 @@ export const RUS_HOME_SCENES: readonly GwScene[] = [
     id: "rus_h_peace_heir",
     nation: ["RUS"],
     kind: "proposal",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
@@ -10641,6 +10669,7 @@ export const RUS_HOME_SCENES: readonly GwScene[] = [
     id: "rus_v_fred_list",
     nation: ["RUS"],
     kind: "talk",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
@@ -10862,6 +10891,7 @@ export const RUS_HOME_SCENES: readonly GwScene[] = [
     id: "rus_v_maria_kiev",
     nation: ["RUS"],
     kind: "talk",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
@@ -11169,6 +11199,7 @@ export const RUS_HOME_SCENES: readonly GwScene[] = [
     id: "rus_v_samarin_file",
     nation: ["RUS"],
     kind: "talk",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
@@ -11367,6 +11398,7 @@ export const RUS_HOME_SCENES: readonly GwScene[] = [
     id: "rus_v_kok_numbers",
     nation: ["RUS"],
     kind: "talk",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
@@ -11587,6 +11619,7 @@ export const RUS_HOME_SCENES: readonly GwScene[] = [
     id: "rus_v_lvov_train",
     nation: ["RUS"],
     kind: "talk",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [

@@ -10,7 +10,14 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     id: "rus_w_ledger",
     nation: ["RUS"],
     kind: "ledger",
-    when: { kind: "world", of: { is: "war" } },
+    stage: ["crisis", "y1914", "war"],
+    when: {
+      kind: "all",
+      of: [
+        { kind: "world", of: { is: "war" } },
+        { kind: "chapter", min: 7 },
+      ],
+    },
     cast: { cos: { office: "chief_of_staff" } },
     salience: 9,
     tags: ["war"],
@@ -90,6 +97,7 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     id: "rus_w_sarikamish",
     nation: ["RUS"],
     kind: "report",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
@@ -148,6 +156,7 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     id: "rus_w_carpathians",
     nation: ["RUS"],
     kind: "dispute",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
@@ -216,11 +225,14 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     id: "rus_w_gorlice",
     nation: ["RUS"],
     kind: "crisis",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
         { kind: "world", of: { is: "war" } },
         { kind: "world", of: { is: "era", of: ["trenches"] } },
+        { kind: "world", of: { is: "date", from: "1915-03" } },
+        { kind: "not", of: { kind: "seen", scene: "rus_w_berlin_road" } },
         {
           kind: "any",
           of: [
@@ -320,6 +332,7 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     id: "rus_w_shell_famine",
     nation: ["RUS"],
     kind: "crisis",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
@@ -419,6 +432,7 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     id: "rus_w_warsaw",
     nation: ["RUS"],
     kind: "crisis",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
@@ -494,6 +508,7 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     id: "rus_w_record_front",
     nation: ["RUS"],
     kind: "report",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
@@ -517,6 +532,7 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     id: "rus_w_command",
     nation: ["RUS"],
     kind: "crisis",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
@@ -646,6 +662,7 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     id: "rus_w_naroch",
     nation: ["RUS"],
     kind: "dispute",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
@@ -707,6 +724,7 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     id: "rus_w_april_council",
     nation: ["RUS"],
     kind: "crisis",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
@@ -808,6 +826,7 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     id: "rus_w_lutsk",
     nation: ["RUS"],
     kind: "report",
+    stage: ["crisis", "y1914", "war"],
     cast: {},
     salience: 8,
     tags: ["war", "tension_down"],
@@ -858,6 +877,7 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     id: "rus_w_romania",
     nation: ["RUS"],
     kind: "proposal",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
@@ -933,6 +953,7 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     id: "rus_w_depots",
     nation: ["RUS"],
     kind: "proposal",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
@@ -1017,6 +1038,7 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     id: "rus_w_letters",
     nation: ["RUS"],
     kind: "report",
+    stage: ["crisis", "y1914", "war"],
     when: { kind: "world", of: { is: "war" } },
     cast: {},
     salience: 5,
@@ -1036,6 +1058,7 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     id: "rus_w_spring_promise",
     nation: ["RUS"],
     kind: "crisis",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
@@ -1104,6 +1127,7 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     id: "rus_w_summer_line",
     nation: ["RUS"],
     kind: "report",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
@@ -1137,6 +1161,7 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     id: "rus_w_przemysl",
     nation: ["RUS"],
     kind: "report",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
@@ -1166,6 +1191,7 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     id: "rus_w_rifles",
     nation: ["RUS"],
     kind: "proposal",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
@@ -1218,6 +1244,7 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     id: "rus_w_mogilev",
     nation: ["RUS"],
     kind: "proposal",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
@@ -1274,6 +1301,7 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     id: "rus_w_train_back",
     nation: ["RUS"],
     kind: "proposal",
+    stage: ["crisis", "y1914", "war"],
     cast: { cos: { office: "chief_of_staff" } },
     salience: 5,
     tags: ["people"],
@@ -1305,6 +1333,7 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     id: "rus_w_evert_holds",
     nation: ["RUS"],
     kind: "dispute",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
@@ -1362,6 +1391,7 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     id: "rus_w_kovel",
     nation: ["RUS"],
     kind: "proposal",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
@@ -1428,6 +1458,7 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     id: "rus_w_erzurum",
     nation: ["RUS"],
     kind: "report",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "world",
       of: { is: "front", theatre: "caucasus", from: "erzurum" },
@@ -1454,6 +1485,7 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     id: "rus_w_caucasus_snow",
     nation: ["RUS"],
     kind: "proposal",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
@@ -1525,6 +1557,7 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     id: "rus_w_bosporus_plan",
     nation: ["RUS"],
     kind: "proposal",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
@@ -1592,6 +1625,7 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     id: "rus_w_bosporus_landing",
     nation: ["RUS"],
     kind: "crisis",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
@@ -1674,11 +1708,13 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     id: "rus_w_berlin_road",
     nation: ["RUS"],
     kind: "proposal",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
         { kind: "world", of: { is: "war" } },
         { kind: "world", of: { is: "front", theatre: "east", to: "oder" } },
+        { kind: "not", of: { kind: "seen", scene: "rus_w_gorlice" } },
         {
           kind: "world",
           of: { is: "era", of: ["trenches", "material", "depth", "storm"] },
@@ -1732,6 +1768,7 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     id: "rus_w_record_prisoners",
     nation: ["RUS"],
     kind: "report",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
@@ -1751,6 +1788,7 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     id: "rus_w_riga",
     nation: ["RUS"],
     kind: "report",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
@@ -5732,6 +5770,7 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     id: "rus_v_danilov_map",
     nation: ["RUS"],
     kind: "talk",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
@@ -5864,6 +5903,7 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     id: "rus_v_yan_letter",
     nation: ["RUS"],
     kind: "talk",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
@@ -5989,6 +6029,7 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     id: "rus_v_yud_snow",
     nation: ["RUS"],
     kind: "talk",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
@@ -6118,6 +6159,7 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     id: "rus_v_kolchak_bosporus",
     nation: ["RUS"],
     kind: "talk",
+    stage: ["crisis", "y1914", "war"],
     when: { kind: "world", of: { is: "date", from: "1916-02", to: "1917-12" } },
     cast: { p: { person: "rus_kolchak" } },
     salience: 6,
@@ -6224,6 +6266,7 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     id: "rus_v_evert_doubt",
     nation: ["RUS"],
     kind: "talk",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
