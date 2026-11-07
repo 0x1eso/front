@@ -136,11 +136,6 @@ const nation = (tag: GwTag, delta: number): GwEffect => ({
   tag,
   delta,
 });
-const pride = (w: { role: string }, delta: number): GwEffect => ({
-  kind: "pride",
-  who: w,
-  delta,
-});
 const appoint = (person: string, office: GwOffice): GwEffect => ({
   kind: "appoint",
   who: byName(person),
@@ -154,18 +149,12 @@ const maybe = (when: GwCond, ...then: GwEffect[]): GwEffect => ({
 const men = (delta: number): GwEffect => doWorld({ do: "manpower", delta });
 const authority = (delta: number): GwEffect =>
   doWorld({ do: "authority", delta });
-const temp = (delta: number): GwEffect => ({ kind: "temp", delta });
 /** What was said to this person on an issue: the table counts it. */
 const voteOf = (issue: string, weight = 1): GwEffect => ({
   kind: "remember",
   key: `v_${issue}`,
   who,
   weight,
-});
-const inst = (name: GwInstitution, delta: number): GwEffect => ({
-  kind: "inst",
-  inst: name,
-  delta,
 });
 
 /**

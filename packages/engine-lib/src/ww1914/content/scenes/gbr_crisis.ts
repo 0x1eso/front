@@ -147,7 +147,6 @@ const holds = (
   office,
   person,
 });
-const always: GwCond = { kind: "chapter", min: 0 };
 
 /** The war on the continent: the crisis may close before the cabinet does. */
 const continent = world({ is: "entered", tag: "FRA" });

@@ -45,7 +45,6 @@ const fm = role("fm");
 const pm = role("hun_pm");
 const chan = role("chancellor");
 const war = role("war");
-const fin = role("finance");
 const court = role("court");
 
 /** Hungary, the joint council, the nations: the empire's bodies. */
@@ -118,7 +117,6 @@ const inOffice = (who: GwWho): GwCond => ({ kind: "in_office", who });
 
 /** The archduke lives (plan §0, `FF+`). */
 const ffAlive = opening("sarajevo_survived", "sarajevo_failed", "no_sarajevo");
-const ffDead = opening("sarajevo", "sarajevo_delayed");
 const eastPushed: GwCond = {
   kind: "world",
   of: { is: "battle", theatre: "east", of: ["advance", "break"] },
@@ -1293,11 +1291,6 @@ const funeralTime = any(
 const fmIs = (person: string): GwCond => ({
   kind: "holder",
   office: "foreign",
-  person,
-});
-const isCos = (person: string): GwCond => ({
-  kind: "holder",
-  office: "chief_of_staff",
   person,
 });
 

@@ -61,7 +61,6 @@ const nationsAt = (r: { min?: number; max?: number }): GwCond => ({
 });
 
 /** The debt to Berlin: an institution, higher is worse. */
-const DEBT1: GwCond = { kind: "inst", inst: "berlin", min: 1 };
 const DEBT2: GwCond = { kind: "inst", inst: "berlin", min: 2 };
 const debtUp: GwEffect[] = [{ kind: "inst", inst: "berlin", delta: 1 }];
 const debtDown: GwEffect[] = [{ kind: "inst", inst: "berlin", delta: -1 }];
