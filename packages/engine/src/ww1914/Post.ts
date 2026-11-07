@@ -41,7 +41,12 @@ export function postGeneral(
   if (!generalsFor(gw, seat).includes(person)) return "no_person";
   if (t.commander === person) return "no_person";
   const relieved = t.commander === null ? null : gw.person(t.commander);
-  if (relieved !== null && relieved.office === null) {
+  // A general the story hasn't named at the front yet isn't named here either.
+  if (
+    relieved !== null &&
+    relieved.office === null &&
+    known(seat, relieved.id)
+  ) {
     trustBy(relieved, -RELIEVED_TRUST);
     reasonOf(gw, seat, "post_relieved", relieved.id);
   }

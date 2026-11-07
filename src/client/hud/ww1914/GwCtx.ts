@@ -30,8 +30,8 @@ export interface GwSpot {
 
 /** What the screens ask of the map; null with no renderer behind them. */
 export interface GwMapApi {
-  /** Moves the camera to a place and rings it. */
-  fly(place: GwPlace): void;
+  /** Moves the camera to a place and rings it; `beside`: clear of the reader. */
+  fly(place: GwPlace, beside?: boolean): void;
   /** Rings a region; null clears it. */
   ring(region: number | null): void;
   spotOfPlace(place: GwPlace): GwSpot | null;

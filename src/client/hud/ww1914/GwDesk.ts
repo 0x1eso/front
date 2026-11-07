@@ -458,7 +458,7 @@ export function reader(c: GwCtx, card: GwCardView): TemplateResult {
     c.redraw();
   };
   return html`<div
-    class="pointer-events-auto fixed inset-0 z-[1000] flex items-center justify-center bg-black/45 p-3"
+    class="pointer-events-auto fixed inset-0 z-[1000] flex items-center justify-center bg-black/25 p-3"
     @click=${(e: Event) => e.target === e.currentTarget && close()}
   >
     <article

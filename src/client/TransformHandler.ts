@@ -19,7 +19,6 @@ export class GoToPositionEvent implements GameEvent {
   constructor(
     public x: number,
     public y: number,
-    public zoom?: number,
   ) {}
 }
 
@@ -204,6 +203,17 @@ export class TransformHandler {
     };
   }
 
+  /** Puts the screen's centre on a point at a scale, for a caller that animates it. */
+  setCamera(x: number, y: number, scale: number) {
+    this.clearTarget();
+    const { width, height } = this.boundingRect();
+    const [w, h] = [this.game.width(), this.game.height()];
+    this.scale = scale;
+    this.offsetX = x - w / 2 - (width / 2 - w / 2) / scale;
+    this.offsetY = y - h / 2 - (height / 2 - h / 2) / scale;
+    this.changed = true;
+  }
+
   onGoToPlayer(event: GoToPlayerEvent) {
     this.clearTarget();
     const nameLocation = event.player.nameLocation();
@@ -218,7 +228,6 @@ export class TransformHandler {
   onGoToPosition(event: GoToPositionEvent) {
     this.clearTarget();
     this.target = new Cell(event.x, event.y);
-    this.targetScale = event.zoom ?? null;
     this.intervalID = setInterval(() => this.goTo(), GOTO_INTERVAL_MS);
   }
 

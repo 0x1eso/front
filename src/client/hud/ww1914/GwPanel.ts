@@ -137,13 +137,7 @@ export class GwPanel extends LitElement implements Controller {
     if (this.transformHandler === undefined || this.mapView === undefined) {
       return;
     }
-    const map = new GwMap(
-      this.game,
-      this.eventBus,
-      this.transformHandler,
-      this.mapView,
-      this,
-    );
+    const map = new GwMap(this.game, this.transformHandler, this.mapView, this);
     this.map = map;
     this.replay = new GwReplay(map, () => this.requestUpdate());
     const tap = (e: { x: number; y: number }) => this.tapMap(e.x, e.y);

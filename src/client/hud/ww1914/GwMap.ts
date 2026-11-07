@@ -2,12 +2,8 @@ import { Cell } from "@openfront/engine-api/game/GameTypes";
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import type { GwPlace } from "@openfront/engine-api/ww1914/GwPlaces";
 import { GW_PLACES } from "@openfront/engine-api/ww1914/GwPlaces";
-import type { EventBus } from "@openfront/shared/EventBus";
 import type { MapRenderer } from "../../render/gl/MapRenderer";
-import {
-  GoToPositionEvent,
-  type TransformHandler,
-} from "../../TransformHandler";
+import type { TransformHandler } from "../../TransformHandler";
 import type { GameView } from "../../view";
 import type { GwMapApi, GwSpot } from "./GwCtx";
 
@@ -16,6 +12,10 @@ const PLACE_ZOOM = 5;
 /** A pin's label, in pixels: labels this close push each other up. */
 const LABEL_W = 96;
 const LABEL_H = 24;
+/** What the panels take of a wide screen, in pixels. */
+const DRAWER_W = 400;
+const READER_HALF_W = 320;
+const MIN_STRIP_W = 200;
 
 /**
  * The map under the panel: the camera, the tiles held for a replay, and the
@@ -30,11 +30,12 @@ export class GwMap implements GwMapApi {
   private flashes = new Map<number, number>();
   private paths = new Map<number, Path2D>();
   private looping = false;
+  /** The camera on its way: by the clock, so a slow machine arrives on time. */
+  private glide: Glide | null = null;
   private lastTick = 0;
 
   constructor(
     private readonly game: GameView,
-    private readonly bus: EventBus,
     private readonly transform: TransformHandler,
     private readonly view: MapRenderer,
     private readonly root: HTMLElement,
@@ -58,9 +59,23 @@ export class GwMap implements GwMapApi {
       this.looping = false;
       return;
     }
+    this.moveCamera();
     this.placeMarks();
     this.ink();
     requestAnimationFrame(() => this.frame());
+  }
+
+  private moveCamera(): void {
+    const g = this.glide;
+    if (g === null) return;
+    const t = Math.min(1, (performance.now() - g.at) / GLIDE_MS);
+    const e = t * t * (3 - 2 * t);
+    this.transform.setCamera(
+      g.x0 + (g.x1 - g.x0) * e,
+      g.y0 + (g.y1 - g.y0) * e,
+      g.s0 * Math.pow(g.s1 / g.s0, e),
+    );
+    if (t === 1) this.glide = null;
   }
 
   /** Everything marked to sit on a tile goes to it. */
@@ -103,25 +118,40 @@ export class GwMap implements GwMapApi {
     return owner.isPlayer() ? this.game.gwTagOf(owner.smallID()) : null;
   }
 
-  fly(place: GwPlace): void {
+  fly(place: GwPlace, beside = false): void {
     const p = GW_PLACES[place];
     this.ring(p.id);
-    this.look(p.center[0], p.center[1], PLACE_ZOOM);
+    this.look(p.center[0], p.center[1], PLACE_ZOOM, beside);
   }
 
   /** Centres the camera with nothing in its way: the panels are put away. */
   lookWhole(x: number, y: number, zoom: number): void {
-    this.bus.emit(new GoToPositionEvent(x, y, zoom));
+    const { width, height } = this.transform.boundingRect();
+    const c = this.transform.screenToWorldCoordinatesFloat(
+      width / 2,
+      height / 2,
+    );
+    this.glide = {
+      x0: c.x,
+      y0: c.y,
+      s0: this.transform.scale,
+      x1: x,
+      y1: y,
+      s1: zoom,
+      at: performance.now(),
+    };
   }
 
   /** Centres the camera on the part of the screen the panels leave free. */
-  private look(x: number, y: number, zoom: number): void {
-    const phone = window.innerWidth < 640;
-    const dx = phone ? 0 : 200 / zoom;
+  private look(x: number, y: number, zoom: number, beside: boolean): void {
+    const w = window.innerWidth;
+    const phone = w < 640;
+    // The reader is centred: the strip right of it, where there is one.
+    const strip = beside && w / 2 - READER_HALF_W >= MIN_STRIP_W;
+    const right = strip ? (w / 2 + READER_HALF_W) / 2 : DRAWER_W / 2;
+    const dx = phone ? 0 : right / zoom;
     const dy = phone ? (window.innerHeight * 0.28) / zoom : 0;
-    this.bus.emit(
-      new GoToPositionEvent(Math.round(x - dx), Math.round(y + dy), zoom),
-    );
+    this.lookWhole(x - dx, y + dy, zoom);
   }
 
   ring(region: number | null): void {
@@ -224,6 +254,17 @@ export class GwMap implements GwMapApi {
 }
 
 const FLASH_MS = 1400;
+const GLIDE_MS = 800;
+
+interface Glide {
+  x0: number;
+  y0: number;
+  s0: number;
+  x1: number;
+  y1: number;
+  s1: number;
+  at: number;
+}
 
 function near(t: { x: number; y: number }, x: number, y: number): boolean {
   return Math.abs(t.x - x) < LABEL_W && Math.abs(t.y - y) < LABEL_H;

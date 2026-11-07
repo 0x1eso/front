@@ -1,4 +1,5 @@
 import type { GwTheatre } from "@openfront/engine-api/ww1914/GreatWarTypes";
+import { GW_ACT_KINDS } from "@openfront/engine-api/ww1914/GwActs";
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import { gwCountry } from "@openfront/engine-api/ww1914/GwCountries";
 import { GW_PLACES, GwPlace } from "@openfront/engine-api/ww1914/GwPlaces";
@@ -31,7 +32,7 @@ export function openCard(c: GwCtx, card: GwCardView): void {
   }
   c.ui.spot = null;
   const place = placeOfCard(card, c.pack, c.seat, c.data.date);
-  if (place !== null) c.map?.fly(place);
+  if (place !== null) c.map?.fly(place, card.kind !== "talk");
   c.redraw();
 }
 
@@ -262,6 +263,18 @@ function actsHere(
   return [...out.values()];
 }
 
+/** The entries under their schedule headings. */
+function actGroups(c: GwCtx, rows: ReturnType<typeof actsHere>) {
+  return GW_ACT_KINDS.map((k) => {
+    const own = rows.filter((r) => r.a.kind === k);
+    if (own.length === 0) return nothing;
+    return html`<div class="space-y-1">
+      <div class=${MUTED}>${translateText(`gw.act.kind.${k}`)}</div>
+      ${own.map((r) => actRow(c, r.a, r.preset))}
+    </div>`;
+  });
+}
+
 function termsButton(c: GwCtx, holder: GwTag | null) {
   const t = c.seat.terms;
   if (holder === null || t === undefined || t.sent) return nothing;
@@ -345,7 +358,7 @@ export function placeSheet(c: GwCtx, s: GwSpot): TemplateResult {
               >${translateText("gw.act.left", { n: left })}</span
             >
           </div>
-          ${general} ${rows.map((r) => actRow(c, r.a, r.preset))} ${terms}
+          ${general} ${actGroups(c, rows)} ${terms}
         </section>`}
   </aside>`;
 }

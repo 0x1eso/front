@@ -118,6 +118,17 @@ describe("a general sent to a front", () => {
     expect(gw.person(first)!.trust).toBe(trust - 1);
   });
 
+  test("a general the story hasn't named goes unnamed when replaced", async () => {
+    const { runner, gw, t } = await atWar();
+    const person = seat(runner).world.generals![0];
+    t.commander = "deu_ludendorff";
+    const trust = gw.person("deu_ludendorff")!.trust;
+    order(runner, { kind: "post", person, theatre: "east" });
+    expect(t.commander).toBe(person);
+    expect(gw.person("deu_ludendorff")!.trust).toBe(trust);
+    expect(gw.s.seats[0].log.map((l) => l.key)).not.toContain("post_relieved");
+  });
+
   test("no front, no general, no slot: nothing moves", async () => {
     const { runner, gw, t } = await atWar();
     const person = seat(runner).world.generals![0];
