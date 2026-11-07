@@ -15941,7 +15941,8 @@
         "entente": "협상국 진영",
         "neutral": "중립",
         "out": "전쟁에서 빠짐",
-        "own": "우리나라"
+        "own": "우리나라",
+        "peace": "평시"
       },
       "replay_line": "{from} → {to}",
       "replay_skip": "건너뛰기",

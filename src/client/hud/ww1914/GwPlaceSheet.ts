@@ -108,7 +108,8 @@ function standing(c: GwCtx, tag: GwTag): string {
   const them = c.seat.world.countries.find((x) => x.tag === tag);
   if (them?.out === true) return translateText("gw.map.rel.out");
   if (them === undefined || them.side === null) {
-    return translateText("gw.map.rel.neutral");
+    const peace = c.seat.world.side === null;
+    return translateText(peace ? "gw.map.rel.peace" : "gw.map.rel.neutral");
   }
   if (c.seat.world.side === null) {
     return translateText(`gw.map.rel.${them.side}`);
@@ -329,7 +330,7 @@ export function placeSheet(c: GwCtx, s: GwSpot): TemplateResult {
   const left = c.seat.actsLeft ?? 0;
   return html`<aside
     data-gw-sheet=${s.place ?? s.region}
-    class="${GLASS} pointer-events-auto fixed inset-x-0 bottom-0 z-[899] max-h-[56vh] space-y-2 overflow-y-auto p-3 text-white sm:inset-x-auto sm:bottom-auto sm:right-3 sm:top-24 sm:max-h-[calc(100vh-7rem)] sm:w-[320px] sm:rounded-md"
+    class="${GLASS} pointer-events-auto fixed inset-x-0 bottom-0 z-[905] h-[56vh] space-y-2 overflow-y-auto p-3 text-white sm:inset-x-auto sm:bottom-auto sm:right-3 sm:top-24 sm:h-auto sm:max-h-[calc(100vh-7rem)] sm:w-[320px] sm:rounded-md"
   >
     <header class="flex items-center gap-2">
       <h3 class="${HEAD} !text-base">${s.name}</h3>

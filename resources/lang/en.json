@@ -2655,7 +2655,8 @@
         "entente": "Entente",
         "neutral": "Neutral",
         "out": "Out of the war",
-        "own": "Your country"
+        "own": "Your country",
+        "peace": "At peace"
       },
       "replay_line": "{from} to {to}",
       "replay_skip": "Skip",
