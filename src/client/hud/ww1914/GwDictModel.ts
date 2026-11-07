@@ -26,6 +26,15 @@ const escape = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 /** Names of one letter are ordinary syllables in running Korean. */
 const SHORTEST = 2;
 
+/** A name that is also a common word: 버티 is Bertie and 버티다. */
+const NOT_NAMES: readonly string[] = ["버티"];
+/** Titles written as names: they mean the seat's own court. */
+const TITLES: readonly string[] = ["황태자", "황후", "모후"];
+/** One seat's text uses the name for two people: a card would often be wrong. */
+const TWO_PEOPLE: Readonly<Partial<Record<GwTag, readonly string[]>>> = {
+  GBR: ["윌슨"],
+};
+
 /** What can be looked up by this seat, with what it has found so far. */
 export function dictIndex(
   pack: GwPack | null,
@@ -38,10 +47,18 @@ export function dictIndex(
     if (e.tags !== undefined && !e.tags.includes(tag)) continue;
     for (const t of e.terms) byText.set(t, { kind: "term", id });
   }
-  for (const [id, p] of Object.entries(pack?.people ?? {})) {
-    if (p.name.length >= SHORTEST && !byText.has(p.name)) {
-      byText.set(p.name, { kind: "person", id });
-    }
+  const own = `${tag.toLowerCase()}_`;
+  const rank = (id: string) =>
+    id.startsWith(own) ? 0 : id.startsWith("usa_") ? 1 : 2;
+  const people = Object.entries(pack?.people ?? {}).sort(
+    ([a], [b]) => rank(a) - rank(b),
+  );
+  for (const [id, p] of people) {
+    if (p.name.length < SHORTEST || byText.has(p.name)) continue;
+    if (NOT_NAMES.includes(p.name)) continue;
+    if (TWO_PEOPLE[tag]?.includes(p.name)) continue;
+    if (TITLES.includes(p.name) && !id.startsWith(own)) continue;
+    byText.set(p.name, { kind: "person", id });
   }
   if (byText.size === 0) return { re: null, byText };
   const alts = [...byText.keys()]

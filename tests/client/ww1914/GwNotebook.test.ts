@@ -75,6 +75,27 @@ describe("the dictionary", () => {
     );
   });
 
+  test("a name means the seat's own person, a title only its own court", () => {
+    const people: GwPack["people"] = {
+      deu_ebert: { name: "에베르트", lean: "x" },
+      rus_evert: { name: "에베르트", lean: "x" },
+      deu_empress: { name: "황후", lean: "x" },
+      gbr_bertie: { name: "버티", lean: "x" },
+      gbr_wilson: { name: "윌슨", lean: "x" },
+      usa_wilson: { name: "윌슨", lean: "x" },
+    };
+    const p2 = { ...pack, people };
+    const of = (tag: "DEU" | "RUS" | "GBR", t: string) =>
+      splitTerms(t, dictIndex(p2, tag, []))[0].ref?.id;
+    expect(of("DEU", "에베르트")).toBe("deu_ebert");
+    expect(of("RUS", "에베르트")).toBe("rus_evert");
+    expect(of("DEU", "황후")).toBe("deu_empress");
+    expect(of("RUS", "황후")).toBeUndefined();
+    expect(of("DEU", "버티면 된다")).toBeUndefined();
+    expect(of("DEU", "윌슨")).toBe("usa_wilson");
+    expect(of("GBR", "윌슨")).toBeUndefined();
+  });
+
   test("the same word means the seat's own body", () => {
     const de = splitTerms("제국의회", dictIndex(pack, "DEU", []));
     const au = splitTerms("제국의회", dictIndex(pack, "AUH", []));
