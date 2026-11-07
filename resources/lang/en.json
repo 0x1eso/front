@@ -3202,6 +3202,7 @@
         "wrong_kind": "That does not fit this paper."
       },
       "blockade": "Blockade",
+      "brief_label": "Secretary's note",
       "calendar": {
         "full": "The full game",
         "standard": "Standard Game",

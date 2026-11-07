@@ -7,7 +7,8 @@ import { translateText } from "../../Utils";
 import { deskPapers } from "./GwBlocs";
 import { budgetStrip, openLedger } from "./GwBudget";
 import type { GwCtx, GwResultNote } from "./GwCtx";
-import { rich } from "./GwDict";
+import { briefLine, rich } from "./GwDict";
+import { newPass, TextPass } from "./GwDictModel";
 import { lawStrip } from "./GwLaws";
 import {
   dangers,
@@ -21,6 +22,7 @@ import { BTN, BTN_ON, CHIP, GLASS, HEAD, MUTED } from "./GwStyle";
 import {
   bodyParts,
   bodyPlain,
+  briefText,
   cardBody,
   cardTitle,
   fillGw,
@@ -71,6 +73,8 @@ function cardBox(c: GwCtx, card: GwCardView): TemplateResult {
   const fill = (t: string) => fillGw(t, c.pack, card, c.seat, c.data.date);
   const isTalk = card.kind === "talk";
   const read = isReadOnly(card);
+  const pass = newPass();
+  const brief = briefText(c.pack, card, c.seat, c.data.date);
   return html`<section
     data-gw-card=${card.scene}
     class="space-y-1.5 rounded border border-white/15 bg-black/35 p-2.5"
@@ -85,6 +89,7 @@ function cardBox(c: GwCtx, card: GwCardView): TemplateResult {
       <span class="${MUTED} ml-auto truncate">${sender(c, card)}</span>
     </div>
     <h3 class=${HEAD}>${cardTitle(c.pack, card)}</h3>
+    ${brief === null ? nothing : briefLine(c, brief, pass)}
     ${isTalk
       ? html`<p class="text-sm text-white/80">
           ${translateText("gw.ui.talk_waits", {
@@ -92,7 +97,7 @@ function cardBox(c: GwCtx, card: GwCardView): TemplateResult {
           })}
         </p>`
       : html`<p class="line-clamp-3 text-sm text-white/85">
-          ${rich(c, bodyPlain(fill(cardBody(c.pack, card))))}
+          ${rich(c, bodyPlain(fill(cardBody(c.pack, card))), pass)}
         </p>`}
     <button
       class=${BTN}
@@ -242,6 +247,7 @@ function optionButton(
   c: GwCtx,
   card: GwCardView,
   o: GwOptionView,
+  pass: TextPass,
 ): TemplateResult {
   const armed = c.ui.armed?.uid === card.uid && c.ui.armed.option === o.id;
   const why = o.open ? undefined : c.pack?.scenes[card.scene]?.why?.[o.id];
@@ -261,13 +267,15 @@ function optionButton(
       }}
     >
       <span class="block"
-        ><b>${rich(c, optionSplit(fillOption(c, card, o.id)).lead)}</b></span
+        ><b
+          >${rich(c, optionSplit(fillOption(c, card, o.id)).lead, pass)}</b
+        ></span
       >
     </button>
     ${why === undefined
       ? nothing
       : html`<p class="${MUTED} pl-1" data-gw-why>
-          ${rich(c, fillGw(why, c.pack, card, c.seat, c.data.date))}
+          ${rich(c, fillGw(why, c.pack, card, c.seat, c.data.date), pass)}
         </p>`}
   </div>`;
 }
@@ -278,6 +286,8 @@ export function reader(c: GwCtx, card: GwCardView): TemplateResult {
   const after = brokenLine(c, card);
   const read = isReadOnly(card);
   const body = bodyParts(fill(cardBody(c.pack, card)));
+  const pass = newPass();
+  const brief = briefText(c.pack, card, c.seat, c.data.date);
   const armedOpt =
     c.ui.armed?.uid === card.uid
       ? card.options.find((o) => o.id === c.ui.armed?.option)
@@ -308,15 +318,18 @@ export function reader(c: GwCtx, card: GwCardView): TemplateResult {
         </button>
       </header>
       <h2 class="text-lg font-bold leading-snug">${cardTitle(c.pack, card)}</h2>
+      ${brief === null ? nothing : briefLine(c, brief, pass)}
       <div class="space-y-2.5 text-[15px] leading-7 text-white/90">
         ${body.map(
           (p) =>
-            html`<p class=${p.quote ? QUOTE : PARA}>${rich(c, p.text)}</p>`,
+            html`<p class=${p.quote ? QUOTE : PARA}>
+              ${rich(c, p.text, pass)}
+            </p>`,
         )}
         ${voices(c.pack, card).map(
           (v) =>
             html`<p class="border-l-2 border-white/25 pl-3 text-white/80">
-              ${rich(c, fill(v))}
+              ${rich(c, fill(v), pass)}
             </p>`,
         )}
         ${after === null
@@ -346,7 +359,7 @@ export function reader(c: GwCtx, card: GwCardView): TemplateResult {
           </button>`
         : html`<div class="space-y-1.5">
             <div class=${MUTED}>${translateText("gw.ui.options")}</div>
-            ${card.options.map((o) => optionButton(c, card, o))}
+            ${card.options.map((o) => optionButton(c, card, o, pass))}
             ${armedOpt === undefined
               ? nothing
               : html`<button

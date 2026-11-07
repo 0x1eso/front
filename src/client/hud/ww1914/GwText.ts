@@ -8,7 +8,7 @@ import {
   GwUnknown,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
-import type { GwPack } from "@openfront/engine-api/ww1914/GwPack";
+import { gwBrief, type GwPack } from "@openfront/engine-api/ww1914/GwPack";
 import type {
   GwCardView,
   GwChoiceView,
@@ -96,6 +96,19 @@ export function fillGw(
 /** The card's text; its id when the pack has none (design §12). */
 export function cardBody(pack: GwPack | null, card: GwCardView): string {
   return pack?.scenes[card.scene]?.text[card.variant] ?? card.scene;
+}
+
+/** The secretary's note for the card, its holes filled; null when it has none. */
+export function briefText(
+  pack: GwPack | null,
+  card: GwCardView,
+  seat: GwSeatView,
+  date: string,
+): string | null {
+  const raw = gwBrief(pack?.scenes[card.scene]?.brief, card.variant);
+  return raw === null || raw.trim() === ""
+    ? null
+    : fillGw(raw, pack, card, seat, date);
 }
 
 /** A body in paragraphs; one that starts "> " is a paper quoted in the scene. */

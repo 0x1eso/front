@@ -5,11 +5,13 @@ import type {
 import { html, nothing, TemplateResult } from "lit";
 import { translateText } from "../../Utils";
 import type { GwCtx, GwUi, Transcript } from "./GwCtx";
-import { rich } from "./GwDict";
+import { briefLine, rich } from "./GwDict";
+import { newPass } from "./GwDictModel";
 import { groupReplies, trustIndex } from "./GwModel";
 import { BTN, CHIP, MUTED } from "./GwStyle";
 import {
   bodyPlain,
+  briefText,
   cardBody,
   fillGw,
   optionText,
@@ -110,6 +112,11 @@ export function talkView(
     if (t.closed) c.ui.talks.delete(t.uid);
     c.redraw();
   };
+  // The person across the table is introduced by the plate above.
+  const pass = newPass([t.who]);
+  const first = t.turns[0]?.card;
+  const brief =
+    first === undefined ? null : briefText(c.pack, first, c.seat, c.data.date);
   const groups = card === undefined ? [] : groupReplies(card.replies);
   return html`<div
     data-gw-talk=${t.scene}
@@ -150,9 +157,10 @@ export function talkView(
             : translateText("gw.ui.talk_step_out")}
         </button>
       </header>
+      ${brief === null ? nothing : briefLine(c, brief, pass)}
       ${bio === "" || t.turns.length > 1
         ? nothing
-        : html`<p class="${MUTED} italic">${rich(c, bio)}</p>`}
+        : html`<p class="${MUTED} italic">${rich(c, bio, pass)}</p>`}
       ${t.turns.length === 0
         ? nothing
         : html`<p class="text-[15px] leading-7 text-white/75" data-gw-room>
@@ -167,6 +175,7 @@ export function talkView(
                   c.data.date,
                 ),
               ),
+              pass,
             )}
           </p>`}
       <div class="flex flex-col gap-3" data-gw-turns>
@@ -190,6 +199,7 @@ export function talkView(
                   c.seat,
                   c.data.date,
                 ),
+                pass,
               )}
             </blockquote>
             ${turn.reply === null
@@ -227,7 +237,7 @@ export function talkView(
             ${t.reasons.map(
               (r) =>
                 html`<p class="text-sm text-white/80">
-                  ${rich(c, reasonText(c.pack, r))}
+                  ${rich(c, reasonText(c.pack, r), pass)}
                 </p>`,
             )}
           </div>`

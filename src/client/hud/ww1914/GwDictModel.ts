@@ -82,11 +82,73 @@ export function dictIndex(
   return { re: new RegExp(`(?<![가-힣])(?:${alts.join("|")})`, "g"), byText };
 }
 
-/** Marks the first time each thing is named, so a page isn't all underlines. */
-export function splitTerms(text: string, index: DictIndex): DictPart[] {
+/**
+ * What one card or talk has already shown: a thing is underlined the first time
+ * it is named, a person gets a title the first time (design: names with titles).
+ */
+export interface TextPass {
+  linked: Set<string>;
+  titled: Set<string>;
+}
+
+/** A fresh pass; `titled` are people the screen has already introduced. */
+export function newPass(titled: readonly string[] = []): TextPass {
+  return { linked: new Set(), titled: new Set(titled) };
+}
+
+/** Words that already make a title of what stands next to a name. */
+const TITLE_BEFORE =
+  /(대신|총장|대사|장관|제독|장군|원수|황제|국왕|수상|총리|사령관|백작|대령|의장|공사|차관|총재|총독|교수|박사|서기장|시종|참모|공작|대공|교황|왕|황후|왕비)\s*$/;
+const TITLE_AFTER =
+  /^\s?(폐하|전하|각하|대신|총장|대사|장관|제독|장군|원수|백작|대령|의장|공사|차관|총재|총독|씨|박사|교수|공작|대공|황제|국왕)/;
+/** A name that already carries its rank: 조지 왕, 막스 공. */
+const NAME_TITLED = /(\s(왕|공|대공|대공녀|부인)|^(황후|황태자|모후|교황))$/;
+
+/** True when the text next to the name already says this title. */
+export function alreadyTitled(
+  text: string,
+  at: number,
+  end: number,
+  title: string,
+): boolean {
+  const word = title.split(/\s+/).pop() ?? title;
+  const before = text.slice(Math.max(0, at - 14), at);
+  const after = text.slice(end, end + 10);
+  return (
+    before.includes(word) ||
+    TITLE_BEFORE.test(before) ||
+    TITLE_AFTER.test(after) ||
+    after.trimStart().startsWith(word)
+  );
+}
+
+/** A lean that reads as a post or a standing, else null: "공동 재무대신". */
+export function leanTitle(lean: string): string | null {
+  const first = lean
+    .split(/(?<=[.!?…])\s/)[0]
+    ?.trim()
+    .replace(/[.!?…]+$/, "");
+  if (first === undefined || first === "" || first.length > 14) return null;
+  if (/[,·]/.test(first)) return null;
+  if (/(다|요|나|까)$/.test(first)) return null;
+  if (/^(궁정|온건|강경|호랑이|폐하의)/.test(first)) return null;
+  return first;
+}
+
+/**
+ * Marks the first time each thing is named, so a page isn't all underlines.
+ * With a `pass` the memory spans every call that shares it (a whole card), and
+ * `titleOf` puts a person's title before their name the first time.
+ */
+export function splitTerms(
+  text: string,
+  index: DictIndex,
+  pass?: TextPass,
+  titleOf?: (id: string) => string | null,
+): DictPart[] {
   if (index.re === null) return [{ text, ref: null }];
   const out: DictPart[] = [];
-  const seen = new Set<string>();
+  const seen = pass?.linked ?? new Set<string>();
   let at = 0;
   for (const m of text.matchAll(index.re)) {
     const ref = index.byText.get(m[0]);
@@ -94,7 +156,23 @@ export function splitTerms(text: string, index: DictIndex): DictPart[] {
     const key = `${ref.kind}.${ref.id}`;
     if (seen.has(key)) continue;
     seen.add(key);
-    if (m.index > at) out.push({ text: text.slice(at, m.index), ref: null });
+    let lead = text.slice(at, m.index);
+    if (
+      pass !== undefined &&
+      titleOf !== undefined &&
+      ref.kind === "person" &&
+      !pass.titled.has(ref.id)
+    ) {
+      pass.titled.add(ref.id);
+      const title = NAME_TITLED.test(m[0]) ? null : titleOf(ref.id);
+      if (
+        title !== null &&
+        !alreadyTitled(text, m.index, m.index + m[0].length, title)
+      ) {
+        lead += `${title} `;
+      }
+    }
+    if (lead !== "") out.push({ text: lead, ref: null });
     out.push({ text: m[0], ref });
     at = m.index + m[0].length;
   }

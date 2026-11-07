@@ -6,7 +6,9 @@ import {
   dictIndex,
   dictLines,
   DictRef,
+  leanTitle,
   splitTerms,
+  TextPass,
 } from "./GwDictModel";
 import { BTN, GLASS, HEAD, MUTED } from "./GwStyle";
 import { personBio, personLean, personName } from "./GwText";
@@ -38,20 +40,50 @@ function open(c: GwCtx, ref: DictRef, e: Event): void {
   c.redraw();
 }
 
-/** Text with its names and terms tappable. */
-export function rich(c: GwCtx, text: string): TemplateResult {
-  return html`${splitTerms(text, indexOf(c)).map((p) =>
-    p.ref === null
-      ? p.text
-      : html`<span
-          role="button"
-          tabindex="0"
-          class=${TERM}
-          data-gw-term=${`${p.ref.kind}.${p.ref.id}`}
-          @click=${(e: Event) => open(c, p.ref!, e)}
-          >${p.text}</span
-        >`,
+/** A person's title as text shows it: their office, else what their lean says. */
+function titleOf(c: GwCtx, id: string): string | null {
+  const office = c.seat.people.find((p) => p.id === id)?.office;
+  if (office !== null && office !== undefined && office !== "court") {
+    return translateText(`gw.office.${office}`);
+  }
+  return leanTitle(personLean(c.pack, id));
+}
+
+/**
+ * Text with its names and terms tappable. Pass one `TextPass` through every
+ * piece of a card or talk and each name is underlined, and given its title,
+ * only the first time.
+ */
+export function rich(c: GwCtx, text: string, pass?: TextPass): TemplateResult {
+  return html`${splitTerms(text, indexOf(c), pass, (id) => titleOf(c, id)).map(
+    (p) =>
+      p.ref === null
+        ? p.text
+        : html`<span
+            role="button"
+            tabindex="0"
+            class=${TERM}
+            data-gw-term=${`${p.ref.kind}.${p.ref.id}`}
+            @click=${(e: Event) => open(c, p.ref!, e)}
+            >${p.text}</span
+          >`,
   )}`;
+}
+
+/** The secretary's note: set apart from the prose, labelled as hers. */
+export function briefLine(
+  c: GwCtx,
+  text: string,
+  pass: TextPass,
+): TemplateResult {
+  return html`<p
+    class="rounded-sm border-l-2 border-sky-300/60 bg-sky-300/10 px-2 py-1 text-[13px] leading-6 text-sky-100/90"
+    data-gw-brief
+  >
+    <span class="mr-1 font-bold text-sky-200/90"
+      >${translateText("gw.ui.brief_label")}</span
+    >${rich(c, text, pass)}
+  </p>`;
 }
 
 function personCard(c: GwCtx, id: string) {
