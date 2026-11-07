@@ -1,6 +1,7 @@
 import { GwSeatState } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import { gwChapters } from "@openfront/engine-lib/ww1914/Calendars";
 import { aiStep } from "./Ai";
+import { budgetStep } from "./Budget";
 import { crisisStep } from "./Crises";
 import { dealDesk } from "./Desk";
 import { closeGame, endingStep, finalEnding } from "./Endings";
@@ -24,6 +25,7 @@ export const GW_CHAPTER_STEPS: readonly ((gw: GreatWar) => void)[] = [
   crisisStep,
   frontsStep,
   (gw) => seaStep(gw, warScore(gw, "central")),
+  budgetStep,
   homeStep,
   peopleStep,
   aiStep,

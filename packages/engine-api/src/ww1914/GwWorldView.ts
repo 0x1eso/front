@@ -21,6 +21,7 @@ import type {
   GwTheatre,
   GwThread,
 } from "./GreatWarTypes";
+import type { GwBudgetView } from "./GwBudget";
 import type { GwTag } from "./GwCountries";
 
 /** One of the chief of staff's papers; send it back as an `allocate`. */
@@ -163,4 +164,5 @@ export interface GwWorldView {
   countries: readonly GwCountryView[];
   news: readonly GwNews[];
   memoir: GwMemoir | null;
+  budget: GwBudgetView;
 }

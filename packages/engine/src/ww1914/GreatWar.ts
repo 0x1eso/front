@@ -12,6 +12,7 @@ import {
 import { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import type { GreatWarData } from "@openfront/engine-api/ww1914/GwView";
 import { snapshotType } from "@openfront/engine-lib/snapshot/SnapshotType";
+import { budgetStart } from "@openfront/engine-lib/ww1914/BudgetRules";
 import {
   gwCalendarOf,
   gwChapters,
@@ -296,5 +297,6 @@ function blankNation(tag: GwTag): GwNationState {
     techs: [],
     spent: -9,
     entered: null,
+    budget: budgetStart(tag, 2),
   };
 }

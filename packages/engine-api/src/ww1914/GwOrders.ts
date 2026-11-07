@@ -43,6 +43,16 @@ export const GwOrderSchema = z.discriminatedUnion("kind", [
     allyShare: zb.uint({ max: 3 }),
     research: z.enum(GW_RESEARCH),
   }),
+  /**
+   * The year's budget goes to whoever must pass it. `force`: past them, with
+   * authority.
+   */
+  z.object({
+    kind: z.literal("budget"),
+    shares: z.array(zb.uint({ max: 100 })).max(8),
+    mix: z.array(zb.uint({ max: 300 })).max(8),
+    force: z.boolean(),
+  }),
 ]);
 export type GwOrder = z.infer<typeof GwOrderSchema>;
 
@@ -66,5 +76,7 @@ export const GW_ORDER_BLOCKS = [
   "no_authority",
   "signed",
   "not_proposed",
+  "no_meeting",
+  "bad_budget",
 ] as const;
 export type GwOrderBlock = (typeof GW_ORDER_BLOCKS)[number];

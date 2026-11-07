@@ -15,6 +15,7 @@ import type {
   SnapshotReader,
   SnapshotWriter,
 } from "../snapshot/SnapshotContext";
+import { budgetOrder } from "./Budget";
 import { inStage, makeCard, placeCard, repeatable, sceneWear } from "./Desk";
 import { proposalsFor } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
@@ -137,6 +138,8 @@ export function applyGwOrder(
       };
       return null;
     }
+    case "budget":
+      return budgetOrder(gw, seat, { shares: o.shares, mix: o.mix }, o.force);
   }
 }
 

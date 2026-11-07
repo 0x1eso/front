@@ -79,15 +79,6 @@ function bread(gw: GreatWar, n: GwNationState): void {
   seaFor(gw, n);
 }
 
-function money(gw: GreatWar, n: GwNationState): void {
-  if (everyMonths(gw, 6)) moveGauge(gw, n.tag, "money", -1, "money_war_costs");
-  // AI treasuries borrow as a seat does through its scenes.
-  const borrows = seatsOf(gw, n.tag).length === 0 && n.gauges.money === 0;
-  if (borrows && everyMonths(gw, 6, 3)) {
-    moveGauge(gw, n.tag, "money", 1, "money_war_costs");
-  }
-}
-
 function strains(gw: GreatWar, n: GwNationState): void {
   const s = gw.s;
   const months = warMonths(gw);
@@ -136,7 +127,7 @@ function aiConcedes(gw: GreatWar, n: GwNationState): void {
   const pct = (GW_HOME[n.tag]?.concedes ?? GW_CONCEDES) >> (broke ? 1 : 0);
   const roll = wwRoll(s.seed, P_CONCEDE, s.chapter, s.nations.indexOf(n)) % 100;
   if (roll >= pct) return;
-  if (!broke) n.gauges.money--;
+  if (!broke) moveGauge(gw, n.tag, "money", -1, "money_war_costs");
   n.unrest--;
   n.lowOrder = Math.max(0, n.lowOrder - 2);
   n.gauges.order = Math.min(5, n.gauges.order + 1);
@@ -188,7 +179,6 @@ export function homeStep(gw: GreatWar): void {
     if (FAR_FROM_IT.includes(n.tag)) continue;
     shells(gw, n);
     bread(gw, n);
-    money(gw, n);
     strains(gw, n);
     mood(gw, n);
     ladder(gw, n);
