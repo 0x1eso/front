@@ -1695,7 +1695,13 @@ const LETTERS: GwScene[] = [
   letter(
     "auh_letter_w1",
     "DEU",
-    [v("hard", hard), v("wary", wary), v("sly", sly), base],
+    [
+      v("alive", not({ kind: "opening", of: ["sarajevo"] })),
+      v("hard", hard),
+      v("wary", wary),
+      v("sly", sly),
+      base,
+    ],
     [
       answer(
         "reply_warm",
@@ -1768,7 +1774,13 @@ const LETTERS: GwScene[] = [
   letter(
     "auh_letter_n1",
     "RUS",
-    [v("hard", hard), v("wary", wary), v("sly", sly), base],
+    [
+      v("alive", not({ kind: "opening", of: ["sarajevo"] })),
+      v("hard", hard),
+      v("wary", wary),
+      v("sly", sly),
+      base,
+    ],
     [
       answer(
         "reply_warm",
