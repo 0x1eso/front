@@ -60,6 +60,8 @@ export interface GwUi {
   budgetOpen: boolean;
   /** The plan being changed there; null shows the draft. */
   budgetPlan: GwBudgetPlan | null;
+  /** The list open under a press act. */
+  pressPick: "invite" | "leak" | null;
   shelf: Shelf;
 }
 

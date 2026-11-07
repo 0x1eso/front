@@ -14478,7 +14478,8 @@
       "budget_national": "예산의 나라 몫.",
       "order_prices": "물가가 임금을 앞질렀다.",
       "money_budget_up": "한 해 수입이 지출을 넘었다.",
-      "money_scene": "결정이 금고를 움직였다."
+      "money_scene": "결정이 금고를 움직였다.",
+      "morale_rumour": "소문이 나라의 신경을 갉았다."
     },
     "mandate": {
       "deu_bread_for_the_winter": "겨울 빵을 남기기",
@@ -14659,7 +14660,8 @@
       "court": "궁정이 받지 않는다.",
       "stavka": "사령부가 이 안을 받지 않는다.",
       "soviet": "소비에트가 허락하지 않는다.",
-      "duma": "두마가 받지 않는다."
+      "duma": "두마가 받지 않는다.",
+      "reichstag": "제국의회가 이것을 참지 않는다."
     },
     "reason": {
       "army_grows": "군이 전쟁을 더 많이 쥐었다.",
@@ -14792,7 +14794,13 @@
       "budget_runs_on": "작년 예산이 그대로 이어진다.",
       "budget_shortfall": "금고가 비어 모자란 돈을 찍었다.",
       "budget_navy_up": "조선소가 수리를 따라잡았다.",
-      "budget_navy_down": "함대 수리가 밀렸다."
+      "budget_navy_down": "함대 수리가 밀렸다.",
+      "press_freed": "검열이 옛 정부와 함께 사라졌다.",
+      "press_invited": "편집인을 불러 만났다.",
+      "press_leaked": "각료의 일이 신문에 흘러갔다.",
+      "press_lifted": "검열을 풀었다.",
+      "press_tightened": "검열을 조였다.",
+      "press_war_censor": "전쟁과 함께 검열이 왔다."
     },
     "result": {
       "advance": "전진",
@@ -14961,7 +14969,8 @@
       "prices_up": "물가 상승",
       "prices_down": "물가 하락",
       "interest_half": "이자 절반",
-      "lenders_shut": "돈줄 닫힘"
+      "lenders_shut": "돈줄 닫힘",
+      "opinion": "여론"
     },
     "theatre": {
       "balkan": "발칸",
@@ -15046,7 +15055,10 @@
         "stale_chapter": "그 장은 이미 넘어갔습니다.",
         "wrong_kind": "그 서류에는 맞지 않는 조치입니다.",
         "no_meeting": "지금은 예산 회의가 없습니다.",
-        "bad_budget": "몫의 합이 100이 되어야 합니다."
+        "bad_budget": "몫의 합이 100이 되어야 합니다.",
+        "press_done": "이번 장의 신문 일은 끝났다.",
+        "press_closed": "지금은 신문에 그렇게 할 수 없다.",
+        "no_paper": "그 신문은 오지 않는다."
       },
       "calendar": {
         "full": "긴 판",
@@ -15274,7 +15286,8 @@
         "desk": "서류함",
         "fronts": "전황",
         "memoir": "회고",
-        "people": "사람"
+        "people": "사람",
+        "blocs": "정국"
       },
       "talk_done": "자리를 일어선다",
       "talk_ended": "대화가 끝났다.",
@@ -15353,7 +15366,50 @@
         "2": "화가 났다",
         "3": "참전에 가깝다"
       },
-      "seat_label": "나라"
+      "seat_label": "나라",
+      "press": {
+        "about": "「{title}」을(를) 두고",
+        "acted": "이번 장의 신문 일은 끝났다.",
+        "blocs_title": "세력",
+        "censor": "검열",
+        "censor_help": "흰 자리는 나쁜 소식을 가리고 입소문을 키운다.",
+        "friend": "{paper}이(가) 초대 뒤로 말을 아낀다.",
+        "invite": "편집인을 부른다",
+        "invite_help": "접견 한 번. 그 독자는 누그러지고 다른 쪽은 언짢아한다.",
+        "leak": "각료의 일을 흘린다",
+        "leak_help": "신문이 그를 문다. 그도 알게 된다.",
+        "loosen": "검열을 푼다",
+        "none": "이 나라의 신문은 아직 책상에 오지 않는다.",
+        "policy_title": "신문 정책",
+        "rumour": "거리의 소문",
+        "soft": "편집인을 만난 뒤라 논조가 한 걸음 물러섰다.",
+        "ties_title": "누가 누구와",
+        "tighten": "검열을 조인다 (권위 {n})",
+        "title": "오늘 신문",
+        "to_blocs": "정국 보기",
+        "turning_back": "돌아오는 중",
+        "turning_leaving": "곧 돌아선다"
+      },
+      "bloc_word": {
+        "0": "반대",
+        "1": "불만",
+        "2": "관망",
+        "3": "지지",
+        "4": "굳건"
+      },
+      "press_censor": {
+        "0": "열려 있음",
+        "1": "전시 규정",
+        "2": "엄격"
+      },
+      "press_rumour": {
+        "0": "잠잠",
+        "1": "웅성거림",
+        "2": "돌고 있음",
+        "3": "어디서나",
+        "4": "믿는 사람이 많음",
+        "5": "신문보다 빠름"
+      }
     },
     "unknown": {
       "ai": "{country}의 원수는 {word}이었다.",

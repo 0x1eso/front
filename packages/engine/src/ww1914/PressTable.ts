@@ -145,7 +145,7 @@ const DEU: GwPressRow = {
     ),
     story(
       "war_censor",
-      10,
+      7,
       event("war_censor"),
       { vor: -1, kreuz: 1, tag: 0 },
       { free: true },
@@ -313,7 +313,7 @@ const GBR: GwPressRow = {
     ),
     story(
       "war_censor",
-      10,
+      7,
       event("war_censor"),
       { times: 0, herald: -1, post: 1 },
       { free: true },
@@ -443,7 +443,7 @@ const GBR: GwPressRow = {
       { times: 0, herald: -1, guardian: 1 },
     ),
     story("front_won", 6, WON, { mail: 1, times: 1, herald: 0 }),
-    story("front_lost", 6, LOST, { mail: -1, times: -1, herald: -1 }),
+    story("front_lost", 6, LOST, { mail: -1, times: 0, herald: -1 }),
     story("temp_up", 5, moved("temp", 1), {
       mail: 1,
       guardian: -1,
@@ -461,7 +461,7 @@ const GBR: GwPressRow = {
     }),
     story("cabinet_down", 5, moved("cabinet", -1), {
       guardian: -1,
-      times: -1,
+      times: 0,
       mail: -1,
     }),
     story("opposition_up", 5, moved("opposition", 1), {
@@ -579,7 +579,7 @@ const AUH: GwPressRow = {
     ),
     story(
       "war_censor",
-      10,
+      7,
       event("war_censor"),
       { nfp: 0, az: -1, reichspost: 1 },
       { free: true },
@@ -815,7 +815,7 @@ const RUS: GwPressRow = {
     story("leak", 10, event("leak"), { nv: 0, rech: 0, zem: -1 }, { rest: 0 }),
     story(
       "war_censor",
-      10,
+      7,
       event("war_censor"),
       { nv: 1, rech: 0, pravda: -1 },
       { free: true },
@@ -929,7 +929,7 @@ const RUS: GwPressRow = {
       zem: 0,
     }),
     story("money_down", 4, moved("money", -1), { utro: -1, rech: 0, nv: 0 }),
-    story("bread_low", 4, low("bread", 1), { pravda: -1, rech: -1, utro: -1 }),
+    story("bread_low", 4, low("bread", 1), { pravda: -1, rech: -1, utro: 0 }),
     story("shells_low", 3, low("shells", 0), { nv: -1, rech: -1, utro: 0 }),
     story("money_low", 3, low("money", 0), { utro: -1, rech: 0, nv: 0 }),
     story("heavy", 3, HEAVY, { pravda: -1, rech: 0, nv: 0 }, { rest: 8 }),

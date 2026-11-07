@@ -137,6 +137,7 @@ const budget = (over: Partial<GwBudgetView> = {}): GwBudgetView => ({
 
 const world = (over: Partial<GwWorldView> = {}): GwWorldView => ({
   budget: budget(),
+  press: null,
   war: {
     era: "movement",
     regime: "empire",

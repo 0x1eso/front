@@ -350,6 +350,8 @@ function print(gw: GreatWar, seat: GwSeatState, row: GwPressRow): number {
   });
   const cuts = story.free === true ? 0 : cut(heads, p.censor);
   p.ran[story.id] = gw.s.chapter;
+  // An act waits for a page with room for it.
+  if ("event" in story.on) p.event = null;
   const edition: GwEdition = {
     chapter: gw.s.chapter,
     story: story.id,
@@ -423,7 +425,7 @@ function lawOfTheDay(gw: GreatWar, seat: GwSeatState, row: GwPressRow): void {
   const atWar = (gw.nation(seat.tag)?.atWar.length ?? 0) > 0;
   if (atWar && p.censor < row.warLevel && cap > 0 && !p.warBegun) {
     p.censor = Math.min(cap, row.warLevel);
-    p.event = "war_censor";
+    p.event ??= "war_censor";
     reason(gw, seat, "press_war_censor");
   }
   if (atWar) p.warBegun = true;
@@ -446,7 +448,6 @@ function crossings(
 function seatStep(gw: GreatWar, seat: GwSeatState, row: GwPressRow): void {
   lawOfTheDay(gw, seat, row);
   const cuts = print(gw, seat, row);
-  seat.press.event = null;
   readers(gw, seat, row);
   rumourStep(gw, seat, cuts);
   if (seat.press.edition !== null) {

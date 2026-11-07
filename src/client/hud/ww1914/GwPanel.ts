@@ -14,6 +14,7 @@ import { SendGwOrderIntentEvent } from "../../Transport";
 import { translateText } from "../../Utils";
 import type { GameView } from "../../view";
 import { band } from "./GwBand";
+import { blocsTab } from "./GwBlocs";
 import { budgetPanel } from "./GwBudget";
 import { countryTab } from "./GwCountry";
 import type { GwCtx, GwUi } from "./GwCtx";
@@ -54,8 +55,8 @@ const KEYFRAMES = html`<style>
 
 /**
  * Great War 1914: the screens (design §11). A top band, a one-line news
- * ticker, a left drawer with five tabs (desk, people, fronts, country,
- * memoir), the reader for a paper and the talk view for a conversation. The
+ * ticker, a left drawer with six tabs (desk, people, fronts, country,
+ * blocs, memoir), the reader for a paper and the talk view for a conversation. The
  * map stays the background. Every engine read is in GreatWarData; every
  * action is one `gw_order`.
  */
@@ -84,6 +85,7 @@ export class GwPanel extends LitElement implements Controller {
     research: null,
     budgetOpen: false,
     budgetPlan: null,
+    pressPick: null,
     shelf: loadShelf(),
   };
 
@@ -139,6 +141,7 @@ export class GwPanel extends LitElement implements Controller {
       ui.research = null;
       ui.budgetPlan = null;
       ui.budgetOpen = false;
+      ui.pressPick = null;
       ui.readerUid = null;
       ui.armed = null;
     }
@@ -176,6 +179,8 @@ export class GwPanel extends LitElement implements Controller {
         return frontsTab(c);
       case "country":
         return countryTab(c);
+      case "blocs":
+        return blocsTab(c);
       case "memoir":
         return memoirTab(c);
       default:

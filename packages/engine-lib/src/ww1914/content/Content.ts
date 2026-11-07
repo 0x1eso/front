@@ -35,6 +35,7 @@ import { GW_FRAME_SCENES } from "./scenes/gw_frame";
 import { GW_NEUTRAL_SCENES } from "./scenes/gw_neutral";
 import { withCommonBodies } from "./scenes/gw_replay";
 import { GW_WORLD2_SCENES } from "./scenes/gw_world2";
+import { PRESS_SCENES } from "./scenes/press";
 import { RUS_CRISIS_SCENES } from "./scenes/rus_crisis";
 import { RUS_FALL_SCENES } from "./scenes/rus_fall";
 import { RUS_FRONT_SCENES } from "./scenes/rus_front";
@@ -92,6 +93,7 @@ export const GW_CONTENT: GwContent = {
         ...GW_FRAME_SCENES,
       ].map(withPromiseTerms),
       ...BUDGET_SCENES,
+      ...PRESS_SCENES,
     ].map(withDeuReplay),
   ),
   people: [
