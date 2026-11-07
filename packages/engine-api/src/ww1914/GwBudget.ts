@@ -88,6 +88,8 @@ export const GwBudgetStateSchema = z.object({
   lastChapter: int,
   /** The meeting at the outbreak has been called. */
   outbreak: z.boolean(),
+  /** A budget made for war has been adopted. */
+  warPlan: z.boolean(),
   /** Points towards the next gauge step, in point-days (see BudgetRules). */
   drift: z.record(z.enum(GW_BUDGET_DRIFTS), int),
   /** Lender id -> what is owed to it. */
@@ -134,6 +136,8 @@ export interface GwBudgetBasis {
   news: number;
   /** The most the open lenders will give, percent of the outlay. */
   loanCap: number;
+  /** The first budget of the war: the country rallies to it. */
+  rally: boolean;
 }
 
 export interface GwLenderView {

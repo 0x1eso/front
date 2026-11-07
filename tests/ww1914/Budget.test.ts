@@ -1,3 +1,5 @@
+import { GameMapSize, GameMapType } from "@openfront/engine-api/game/GameTypes";
+import type { StampedIntent } from "@openfront/engine-api/Schemas";
 import { GW_BUDGET_LINES } from "@openfront/engine-api/ww1914/GwBudget";
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import type { GwPack } from "@openfront/engine-api/ww1914/GwPack";
@@ -20,17 +22,24 @@ import {
   gwChapters,
 } from "@openfront/engine-lib/ww1914/Calendars";
 import { GW_CONTENT } from "@openfront/engine-lib/ww1914/content/Content";
-import type { GameRunner } from "@openfront/engine/GameRunner";
+import {
+  createGameRunnerFromSnapshot,
+  GameRunner,
+} from "@openfront/engine/GameRunner";
 import { basisOf, budgetStep } from "@openfront/engine/ww1914/Budget";
 import { advanceChapter } from "@openfront/engine/ww1914/Chapters";
 import { closeChain } from "@openfront/engine/ww1914/Crises";
 import type { GreatWar } from "@openfront/engine/ww1914/GreatWar";
 import { applyGwOrder } from "@openfront/engine/ww1914/Orders";
+import { loadMapFiles } from "@openfront/shared/GameMapLoader";
 import { loadGwPack } from "@openfront/shared/ww1914/GwPackLoader";
 import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
-import { gwRunner } from "./util";
+import { TestDataMapLoader } from "../util/ScriptedGame";
+import { diffSnapshots } from "../util/Snapshot";
+import { MINI, stamped, step, wwGameStart } from "../ww1936/util";
+import { gwRunner, HUMAN, playChapter } from "./util";
 
 const SEATS: GwTag[] = ["DEU", "GBR", "AUH", "RUS"];
 const gwOf = (r: GameRunner): GreatWar => r.game.greatWar()!;
@@ -46,6 +55,7 @@ const basis = (over = {}) => ({
   morale: 3,
   news: 0,
   loanCap: 3,
+  rally: false,
   ...over,
 });
 const gauges = { shells: 2, bread: 2, money: 2, morale: 3, order: 3 };
@@ -157,7 +167,7 @@ describe("the rule", () => {
     const plan = { shares: [...budgetRow("DEU").war], mix: [180, 0, 0, 0] };
     const body = GW_BUDGET_BODIES.empire;
     expect(budgetVote(body, { reichstag: 0 }, basis(), plan).pass).toBe(true);
-    const no = budgetVote(body, { reichstag: -2 }, basis(), plan);
+    const no = budgetVote(body, { reichstag: -3 }, basis(), plan);
     expect(no.pass).toBe(false);
     expect(no.why).toContain("taxes_heavy");
   });
@@ -231,6 +241,7 @@ describe("the meeting", () => {
     const { runner, gw, seat, n } = await war();
     toMeeting(gw, runner, "DEU");
     n.inst.reichstag = -5;
+    n.budget.warPlan = true;
     const was = n.budget.plan;
     const d = n.budget.draft!;
     const bill = { kind: "budget" as const, ...d, force: false };
@@ -248,10 +259,21 @@ describe("the meeting", () => {
     expect(n.budget.plan.shares).toEqual(d.shares);
   });
 
+  test("the first war budget passes where a later one would not", async () => {
+    const { runner, gw, seat, n } = await war();
+    toMeeting(gw, runner, "DEU");
+    n.inst.reichstag = -5;
+    const bill = { kind: "budget" as const, ...n.budget.draft!, force: false };
+    expect(applyGwOrder(gw, seat, bill)).toBeNull();
+    expect(n.budget.last).toBe("signed");
+    expect(n.budget.warPlan).toBe(true);
+  });
+
   test("left refused, the year closes on last year's plan", async () => {
     const { runner, gw, seat, n } = await war();
     toMeeting(gw, runner, "DEU");
     n.inst.reichstag = -5;
+    n.budget.warPlan = true;
     const was = n.budget.plan;
     applyGwOrder(gw, seat, {
       kind: "budget",
@@ -271,6 +293,7 @@ describe("the meeting", () => {
     toMeeting(gw, runner, "RUS");
     n.regime = "tsar";
     n.inst.duma = -4;
+    n.budget.warPlan = true;
     const auth = n.authority;
     expect(
       applyGwOrder(gw, seat, {
@@ -289,6 +312,7 @@ describe("the meeting", () => {
     toMeeting(gw, runner, "AUH");
     n.regime = "dual_monarchy";
     n.inst.hungary = -5;
+    n.budget.warPlan = true;
     applyGwOrder(gw, seat, {
       kind: "budget",
       ...n.budget.draft!,
@@ -405,6 +429,44 @@ describe("the view", () => {
     expect(v.draft).toEqual(n.budget.draft);
     expect(v.body?.inst).toBe("reichstag");
     expect(JSON.stringify(v)).not.toContain("competence");
+  });
+});
+
+describe("a save", () => {
+  test("a game saved in a meeting comes back the same, through the signature", async () => {
+    const { runner } = await gwRunner({ greatWar1914Calendar: "y1914" });
+    const gw = gwOf(runner);
+    const n = gw.nation("DEU")!;
+    for (let i = 0; i < 12 && n.budget.meeting === null; i++) {
+      playChapter(runner);
+    }
+    expect(n.budget.meeting).not.toBeNull();
+    const copy = await createGameRunnerFromSnapshot(
+      wwGameStart({ greatWar1914: true, greatWar1914Calendar: "y1914" }, [
+        { clientID: HUMAN, country: "DEU" },
+      ]),
+      runner.snapshot(),
+      undefined,
+      await loadMapFiles(
+        new TestDataMapLoader(MINI),
+        GameMapType.World1936,
+        GameMapSize.Normal,
+      ),
+      () => {},
+    );
+    expect(diffSnapshots(runner.snapshot(), copy.snapshot())).toEqual([]);
+    expect(gwOf(copy).s.nations[0].budget).toEqual(gw.s.nations[0].budget);
+    const d = n.budget.draft!;
+    const bill: StampedIntent[] = [
+      stamped(HUMAN, {
+        type: "gw_order",
+        order: { kind: "budget", ...d, force: false },
+      }),
+    ];
+    step(runner, 1, bill);
+    step(copy, 1, bill);
+    expect(gwOf(copy).hash()).toBe(gw.hash());
+    expect(gwOf(copy).nation("DEU")!.budget.meeting).toBeNull();
   });
 });
 

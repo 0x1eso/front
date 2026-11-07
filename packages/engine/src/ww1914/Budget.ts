@@ -40,6 +40,7 @@ import {
   GW_DRIFT_STEP,
   GW_LOAD_CRUSHING,
   GW_PRICES_CRISIS,
+  GW_PRICES_MAX,
   GwBudgetBody,
   GwBudgetVote,
   GwLender,
@@ -155,6 +156,7 @@ export function basisOf(gw: GreatWar, n: GwNationState): GwBudgetBasis {
     morale: n.gauges.morale,
     news: newsOf(gw, n),
     loanCap: lenders(gw, n).reduce((a, l) => a + l.cap, 0),
+    rally: n.atWar.length > 0 && !b.warPlan,
   };
 }
 
@@ -191,7 +193,7 @@ export function moveMoney(
   b.treasury = Math.max(0, left);
   if (left < 0) {
     const up = printedPrices(n.tag, -left);
-    b.prices += up;
+    b.prices = Math.min(GW_PRICES_MAX, b.prices + up);
     note(n, "prices", "shortfall", up);
   }
   syncMoney(gw, n, key);
@@ -265,6 +267,7 @@ function adopt(
   const b = n.budget;
   const war = n.atWar.length > 0;
   b.plan = { shares: [...plan.shares], mix: [...plan.mix] };
+  b.warPlan = b.warPlan || war;
   closeMeeting(gw, n, how);
   signEffects(gw, n, b.plan, war);
   b.notes = [];
@@ -473,7 +476,10 @@ function flow(gw: GreatWar, n: GwNationState): void {
   const fromWar = basis.war
     ? part(Math.trunc((b.prices * budgetRow(n.tag).warPrices) / 1000))
     : 0;
-  b.prices += fromPrint + fromShort + fromWar;
+  b.prices = Math.min(
+    GW_PRICES_MAX,
+    b.prices + fromPrint + fromShort + fromWar,
+  );
   note(n, "prices", "print", fromPrint);
   note(n, "prices", "shortfall", fromShort);
   note(n, "prices", "war", fromWar);

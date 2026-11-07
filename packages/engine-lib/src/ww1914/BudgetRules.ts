@@ -36,7 +36,7 @@ export interface GwLender {
 }
 
 export interface GwBudgetRow {
-  /** Millions a year, in June 1914's prices. */
+  /** Millions a year, in June 1914's prices; `outlay` is before interest. */
   readonly revenue: number;
   readonly outlay: number;
   /** The first year of war; `growth` is percent more each year after. */
@@ -102,7 +102,7 @@ const berlin = (cap: number): GwLender => ({
 
 const OTHER: GwBudgetRow = {
   revenue: 1000,
-  outlay: 1000,
+  outlay: 925,
   warOutlay: 3000,
   growth: 20,
   debt: 1500,
@@ -128,7 +128,7 @@ export const GW_BUDGET: Readonly<Partial<Record<GwTag, GwBudgetRow>>> = {
   DEU: {
     ...OTHER,
     revenue: 3500,
-    outlay: 3500,
+    outlay: 3250,
     warOutlay: 22000,
     growth: 25,
     debt: 5000,
@@ -138,7 +138,7 @@ export const GW_BUDGET: Readonly<Partial<Record<GwTag, GwBudgetRow>>> = {
     peace: [40, 13, 12, 22, 13],
     war: [72, 8, 8, 6, 6],
     warTax: 100,
-    slack: 3,
+    slack: 2,
     loanDraft: 2,
     bondShare: 78,
     national: { inst: "reichstag", drift: "morale" },
@@ -156,7 +156,7 @@ export const GW_BUDGET: Readonly<Partial<Record<GwTag, GwBudgetRow>>> = {
   GBR: {
     ...OTHER,
     revenue: 200,
-    outlay: 200,
+    outlay: 174,
     warOutlay: 1100,
     growth: 35,
     debt: 650,
@@ -166,7 +166,7 @@ export const GW_BUDGET: Readonly<Partial<Record<GwTag, GwBudgetRow>>> = {
     peace: [22, 25, 13, 32, 8],
     war: [50, 22, 6, 6, 16],
     warTax: 130,
-    slack: 1,
+    slack: 0,
     loanDraft: 12,
     bondShare: 85,
     national: { trust: ["FRA", "RUS"], drift: "morale" },
@@ -176,7 +176,7 @@ export const GW_BUDGET: Readonly<Partial<Record<GwTag, GwBudgetRow>>> = {
   AUH: {
     ...OTHER,
     revenue: 3000,
-    outlay: 3100,
+    outlay: 2280,
     warOutlay: 11000,
     growth: 20,
     debt: 18000,
@@ -186,7 +186,7 @@ export const GW_BUDGET: Readonly<Partial<Record<GwTag, GwBudgetRow>>> = {
     peace: [24, 6, 14, 34, 22],
     war: [68, 3, 9, 6, 14],
     warTax: 100,
-    slack: 1,
+    slack: 0,
     loanDraft: 6,
     bondShare: 60,
     national: { inst: "hungary", drift: "bread" },
@@ -196,7 +196,7 @@ export const GW_BUDGET: Readonly<Partial<Record<GwTag, GwBudgetRow>>> = {
   RUS: {
     ...OTHER,
     revenue: 3400,
-    outlay: 3300,
+    outlay: 3050,
     warOutlay: 9000,
     growth: 40,
     debt: 8800,
@@ -206,7 +206,7 @@ export const GW_BUDGET: Readonly<Partial<Record<GwTag, GwBudgetRow>>> = {
     peace: [30, 8, 10, 30, 22],
     war: [68, 4, 8, 6, 14],
     warTax: 85,
-    slack: 1,
+    slack: 0,
     loanDraft: 20,
     bondShare: 45,
     national: { inst: "court", drift: "bread" },
@@ -216,7 +216,7 @@ export const GW_BUDGET: Readonly<Partial<Record<GwTag, GwBudgetRow>>> = {
   FRA: {
     ...OTHER,
     revenue: 5000,
-    outlay: 5100,
+    outlay: 4000,
     warOutlay: 20000,
     growth: 25,
     debt: 33000,
@@ -229,7 +229,7 @@ export const GW_BUDGET: Readonly<Partial<Record<GwTag, GwBudgetRow>>> = {
   ITA: {
     ...OTHER,
     revenue: 2500,
-    outlay: 2500,
+    outlay: 1900,
     warOutlay: 7000,
     debt: 15000,
     interest: 4,
@@ -240,7 +240,7 @@ export const GW_BUDGET: Readonly<Partial<Record<GwTag, GwBudgetRow>>> = {
   USA: {
     ...OTHER,
     revenue: 750,
-    outlay: 730,
+    outlay: 710,
     warOutlay: 9000,
     debt: 1200,
     interest: 3,
@@ -274,15 +274,15 @@ export interface GwBudgetBody {
 const commons: GwBudgetBody = {
   kind: "vote",
   inst: "commons",
-  need: -3,
-  second: { inst: "cabinet", need: -3 },
+  need: -4,
+  second: { inst: "cabinet", need: -4 },
   forcePrice: 35,
   fallout: 2,
 };
 const hungary: GwBudgetBody = {
   kind: "consent",
   inst: "hungary",
-  need: -2,
+  need: -3,
   forcePrice: 25,
   fallout: 2,
 };
@@ -291,7 +291,7 @@ export const GW_BUDGET_BODIES: Readonly<Record<string, GwBudgetBody>> = {
   empire: {
     kind: "vote",
     inst: "reichstag",
-    need: -3,
+    need: -4,
     forcePrice: 30,
     fallout: 2,
   },
@@ -340,6 +340,9 @@ const TAX_ORDER = 1;
 const PRICES_BITE = 1500;
 const PRICES_PER_POINT = 10;
 
+/** The first war budget: nobody refuses a country its first credits. */
+const RALLY = 3;
+
 /** Interest as a percent of taxes at which the country is carrying too much. */
 export const GW_LOAD_HEAVY = 50;
 export const GW_LOAD_CRUSHING = 100;
@@ -353,13 +356,16 @@ const clampTo = (v: number, lo: number, hi: number) =>
 export const budgetNorm = (tag: string, war: boolean): readonly number[] =>
   war ? budgetRow(tag).war : budgetRow(tag).peace;
 
+/** Half of a rise in prices reaches wages, contracts and taxes within the year. */
+const halfLift = (prices: number) => 1000 + trunc((prices - 1000) / 2);
+
 /** The year's outlay at today's prices. */
 export function outlayOf(b: GwBudgetBasis): number {
   const row = budgetRow(b.tag);
   const real = b.war
     ? trunc((row.warOutlay * (100 + row.growth * b.warYears)) / 100)
     : row.outlay;
-  return trunc((real * b.prices) / 1000);
+  return trunc((real * halfLift(b.prices)) / 1000);
 }
 
 export function interestOf(b: GwBudgetBasis): number {
@@ -369,7 +375,7 @@ export function interestOf(b: GwBudgetBasis): number {
 
 /** Taxes at this rate: half of a rise in prices comes in with them. */
 export function taxesOf(b: GwBudgetBasis, rate: number): number {
-  const lift = 1000 + trunc((b.prices - 1000) / 2);
+  const lift = halfLift(b.prices);
   return trunc((budgetRow(b.tag).revenue * rate * lift) / 100000);
 }
 
@@ -409,9 +415,14 @@ export interface GwBudgetYear {
   why: Record<GwBudgetDrift, string>;
 }
 
+/** The notes and deposits a country has, as years of revenue. */
+const SUPPLY_YEARS = 8;
+/** The most prices can reach: paper still buys something. */
+export const GW_PRICES_MAX = 12000;
+
 /** Prices (per mille) that this much printing adds. */
 export const printedPrices = (tag: string, printed: number): number =>
-  trunc((printed * 1000) / (budgetRow(tag).revenue * 3));
+  trunc((printed * 1000) / (budgetRow(tag).revenue * SUPPLY_YEARS));
 
 function driftOf(
   b: GwBudgetBasis,
@@ -490,7 +501,10 @@ export function budgetYear(b: GwBudgetBasis, plan: GwBudgetPlan): GwBudgetYear {
     shortfall,
     treasury: Math.max(0, left),
     debt: b.debt + bonds + loans,
-    prices: b.prices + base + printedPrices(b.tag, printed),
+    prices: Math.min(
+      GW_PRICES_MAX,
+      b.prices + base + printedPrices(b.tag, printed),
+    ),
     ...driftOf(b, plan),
   };
 }
@@ -620,6 +634,7 @@ export function budgetVote(
     mood += delta;
     why.push(key);
   };
+  if (b.rally) say(RALLY, "rally");
   if (plan.mix[0] >= 170) say(-2, "taxes_heavy");
   else if (plan.mix[0] >= 130 && plan.mix[0] > budgetRow(b.tag).warTax) {
     say(-1, "taxes_up");
@@ -654,6 +669,7 @@ export function budgetStart(tag: string, money: number): GwBudgetState {
     last: "none",
     lastChapter: -9,
     outbreak: false,
+    warPlan: false,
     drift: { shells: 0, bread: 0, morale: 0, order: 0, sea: 0 },
     lent: {},
     asked: {},

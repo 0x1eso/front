@@ -109,6 +109,7 @@ const budget = (over: Partial<GwBudgetView> = {}): GwBudgetView => ({
     morale: 3,
     news: 0,
     loanCap: 3,
+    rally: false,
   },
   plan: { shares: [40, 13, 12, 22, 13], mix: [100, 0, 0, 0] },
   draft: null,
