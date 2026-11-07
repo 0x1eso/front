@@ -6,6 +6,7 @@ import {
   GW_OFFICES,
   GW_SIDES,
   GwGauge,
+  GwOffice,
   GwSeatState,
   GwTheatreState,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
@@ -17,6 +18,7 @@ import type {
   GwReportView,
   GwWorldView,
 } from "@openfront/engine-api/ww1914/GwWorldView";
+import { world } from "@openfront/engine-api/ww1914/WorldDsl";
 import { budgetView } from "./Budget";
 import { eraOf } from "./Eras";
 import { ownFronts, proposalsFor } from "./Fronts";
@@ -24,6 +26,7 @@ import type { GreatWar } from "./GreatWar";
 import { lawViews } from "./Laws";
 import { candidatesFor, dismissPrice } from "./People";
 import { pressView } from "./Press";
+import { holds } from "./SceneRun";
 import { GW_ACTORS } from "./Tables";
 import { lastOf, ownPeople } from "./World";
 
@@ -136,11 +139,19 @@ function countries(gw: GreatWar): GwCountryView[] {
   });
 }
 
+/** Offices that don't exist until the war makes them. */
+const OFFICE_FROM: Partial<Record<GwOffice, string>> = { munitions: "1915-05" };
+
 export function worldView(gw: GreatWar, seat: GwSeatState): GwWorldView {
   const s = gw.s;
   const n = gw.nation(seat.tag)!;
   const candidates: GwWorldView["candidates"] = Object.fromEntries(
     GW_OFFICES.flatMap((o) => {
+      const from = OFFICE_FROM[o];
+      const ctx = { gw, seat, cast: {} };
+      if (from !== undefined && !holds(ctx, world({ is: "date", from }))) {
+        return [];
+      }
       const list = candidatesFor(gw, seat, o);
       return list.length > 0 ? [[o, list]] : [];
     }),

@@ -264,6 +264,10 @@ function who(ctx: SceneCtx, w: GwWho): GwPersonState | null {
 
 export const whoIn = who;
 
+/** On the scene, or named and on the way. */
+const about = (p: GwPersonState) =>
+  p.status === "active" || p.status === "waiting";
+
 /** Exhaustive: a new kind in the DSL fails to compile here until it runs. */
 export function holds(ctx: SceneCtx, c: GwCond): boolean {
   const { gw, seat } = ctx;
@@ -389,6 +393,10 @@ export function holds(ctx: SceneCtx, c: GwCond): boolean {
     case "in_office": {
       const p = who(ctx, c.who);
       return p !== null && p.office !== null && p.status === "active";
+    }
+    case "person_active": {
+      const p = gw.person(c.person);
+      return p !== null && about(p);
     }
     case "office_empty":
       return holderOf(gw, seat, c.office) === null;
@@ -557,8 +565,9 @@ export function runEffect(ctx: SceneCtx, e: GwEffect): void {
       return;
     }
     case "appoint": {
+      // A named paper can outlive the person: the office stays empty for a successor.
       const p = who(ctx, e.who);
-      if (p !== null) setOffice(ctx, p, e.office);
+      if (p !== null && about(p)) setOffice(ctx, p, e.office);
       return;
     }
     case "source": {

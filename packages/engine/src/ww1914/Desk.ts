@@ -251,7 +251,8 @@ function deskTarget(gw: GreatWar): number {
   const stage = stageOf(gw);
   const busy = stage === "closing" ? 0 : 1;
   const hot = gw.s.temp >= GW_TEMP_HOT ? 1 : 0;
-  return Math.min(GW_DESK_MAX, GW_DESK_MIN + busy + hot);
+  const lean = gwChapters(gw.s.calendar)[gw.s.chapter].lean ? 1 : 0;
+  return Math.min(GW_DESK_MAX, GW_DESK_MIN + busy + hot - lean);
 }
 
 /** The score once the cards already picked have had their say. */
@@ -320,11 +321,13 @@ function draw(
     const c = best(gw, down, picked);
     if (c !== null && picked.length < GW_DESK_MAX) take(c);
   }
-  const beside = Math.min(due.length, GW_DUE_BESIDE);
+  const chapter = gwChapters(gw.s.calendar)[gw.s.chapter];
+  const beside = chapter.lean ? 0 : Math.min(due.length, GW_DUE_BESIDE);
   const target = deskTarget(gw) + beside;
   const max = GW_DESK_MAX + beside;
   const placed = () => picked.filter((x) => !isRead(x)).length;
-  const crisis = gwChapters(gw.s.calendar)[gw.s.chapter].stage === "crisis";
+  const crisis = chapter.stage === "crisis";
+  const readsBeside = chapter.lean ? 1 : GW_READS_BESIDE;
   while (placed() < max) {
     const open = left.filter(
       (c) =>
@@ -345,9 +348,10 @@ function draw(
     const room = picked.length < target;
     const must =
       c.scene.salience >= GW_SALIENCE_MUST &&
-      (picked.length < max || reads < GW_READS_BESIDE);
+      (picked.length < max || reads < readsBeside);
     const small = c.scene.salience <= GW_SALIENCE_SMALL;
-    const riding = reads < (crisis ? GW_READS_BESIDE : 1) && !small;
+    const riding =
+      !chapter.lean && reads < (crisis ? GW_READS_BESIDE : 1) && !small;
     if (!room && !must && !riding) break;
     take(c);
   }

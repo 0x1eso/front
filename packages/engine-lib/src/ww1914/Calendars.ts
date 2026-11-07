@@ -23,6 +23,12 @@ export interface GwSegment {
   readonly bigSummons: number;
   /** Private meetings each chapter: apart from summons, tag `private`. */
   readonly privates: number;
+  /**
+   * A month of a long war: what is due takes the desk's places instead of
+   * riding beside them, and only what must be read rides along. Keeps the
+   * full row to its hours; the draw's order by salience does the thinning.
+   */
+  readonly lean: boolean;
 }
 
 /**
@@ -45,7 +51,7 @@ export const GW_CALENDARS: Readonly<
   full: [
     seg("crisis", "1914-06-28", 6, 7, 90, 3, 0, 1),
     seg("y1914", "1914-08-09", 5, 30, 120, 1, 1, 1),
-    seg("war", "1915-01-01", 48, 30, 120, 1, 1, 1),
+    seg("war", "1915-01-01", 48, 30, 120, 1, 1, 1, true),
     seg("closing", "1918-12-15", 1, 1, 180, 0),
   ],
   // The shorter war (design §3): 36 chapters, two months of war each.
@@ -86,6 +92,7 @@ function seg(
   summons: number,
   bigSummons = 0,
   privates = 0,
+  lean = false,
 ): GwSegment {
   return {
     stage,
@@ -96,6 +103,7 @@ function seg(
     summons,
     bigSummons,
     privates,
+    lean,
   };
 }
 
@@ -109,6 +117,7 @@ export interface GwChapter {
   readonly summons: number;
   readonly bigSummons: number;
   readonly privates: number;
+  readonly lean: boolean;
   /** The fiscal year whose budget meeting this chapter holds; null if none. */
   readonly budget: number | null;
 }
@@ -133,6 +142,7 @@ export function gwChapters(id: GwCalendarId): readonly GwChapter[] {
         summons: s.summons,
         privates: s.privates,
         bigSummons: s.bigSummons,
+        lean: s.lean,
         budget: null,
       });
     }

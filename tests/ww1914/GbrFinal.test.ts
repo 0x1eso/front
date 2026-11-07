@@ -2,7 +2,8 @@ import { GameType } from "@openfront/engine-api/game/GameTypes";
 import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
 import { makeCard, placeCard } from "@openfront/engine/ww1914/Desk";
 import { applyGwOrder } from "@openfront/engine/ww1914/Orders";
-import { holds } from "@openfront/engine/ww1914/SceneRun";
+import { castOf, holds, runEffect } from "@openfront/engine/ww1914/SceneRun";
+import { worldView } from "@openfront/engine/ww1914/WorldView";
 import { describe, expect, test } from "vitest";
 import { HUMAN, step, wwRunnerCapture } from "../ww1936/util";
 
@@ -34,6 +35,46 @@ describe("Britain, as played to the end", () => {
       applyGwOrder(gw, st, { kind: "choose", card: card.uid, option: "force_it" }),
     ).toBe(null);
     expect(st.desk).toEqual([]);
+  });
+
+  test("the vacancy paper names nobody who has gone", async () => {
+    const { gw, st } = await britain();
+    gw.s.chapter = 20;
+    const when = sceneOf("gbr_h_vacant").variants.find(
+      (v) => v.id === "finance",
+    )!.when!;
+    const ctx = { gw, seat: st, cast: {} };
+    const fin = gw.s.people.find((p) => p.office === "finance")!;
+    fin.office = null;
+    gw.person("gbr_mckenna")!.office = null;
+    expect(holds(ctx, when)).toBe(true);
+    gw.person("gbr_bonar_law")!.status = "dead";
+    expect(holds(ctx, when)).toBe(false);
+  });
+
+  test("a decision can't seat the dead", async () => {
+    const { gw, st } = await britain();
+    const law = gw.person("gbr_bonar_law")!;
+    law.status = "dead";
+    runEffect(
+      { gw, seat: st, cast: {} },
+      { kind: "appoint", who: { person: law.id }, office: "finance" },
+    );
+    expect(law.office).toBe(null);
+  });
+
+  test("no Ministry of Munitions to fill before the shells of 1915", async () => {
+    const { gw, st } = await britain();
+    expect(worldView(gw, st).candidates.munitions).toBeUndefined();
+    gw.s.day += 365;
+    expect(worldView(gw, st).candidates.munitions?.length).toBeGreaterThan(0);
+  });
+
+  test("the Unionists' letters come from a Unionist when Law has gone", async () => {
+    const { gw, st } = await britain();
+    gw.person("gbr_bonar_law")!.status = "dead";
+    const cast = castOf(gw, st, sceneOf("gov_gbr_unionists_2"));
+    expect(cast?.law).toBe("gbr_balfour");
   });
 
   test("neutrality isn't priced while the ultimatum is still open", async () => {
