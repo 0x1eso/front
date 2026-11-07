@@ -9,8 +9,13 @@ import { EventBus } from "@openfront/shared/EventBus";
 import fs from "node:fs";
 import path from "node:path";
 import { afterEach, describe, expect, test, vi } from "vitest";
+import { gwPlayedTags, SHELF_KEY } from "../../../src/client/GwRecentRuns";
 import { GwPanel } from "../../../src/client/hud/ww1914/GwPanel";
-import { fillGw, tellText } from "../../../src/client/hud/ww1914/GwText";
+import {
+  fillGw,
+  rivalLine,
+  tellText,
+} from "../../../src/client/hud/ww1914/GwText";
 import { SendGwOrderIntentEvent } from "../../../src/client/Transport";
 
 /** The format's two examples, here so the screens don't move with the writers. */
@@ -69,6 +74,42 @@ const SCENES = {
   },
 };
 
+/** The story shapes' text (ww150), for the same reason. */
+const STORY_SCENES = {
+  big_night: {
+    title: "칠월의 밤",
+    text: { base: "문이 닫혔다." },
+    nodes: {
+      n1: {
+        at: "밤 열 시",
+        room: "{a}이(가) 창가에 서 있다.",
+        says: { base: "폐하, 아직 답이 없습니다." },
+        replies: { ask: "언제 오겠소?" },
+      },
+      n2: {
+        at: "새벽 두 시",
+        says: { base: "아무도 오지 않는다." },
+        replies: { wait: "기다린다." },
+      },
+      n3: {
+        says: { base: "서명하십시오." },
+        replies: { sign: "서명한다." },
+      },
+    },
+  },
+  big_study: { title: "빈 서재", text: { base: "서재가 비어 있다." } },
+  letter_two: {
+    title: "페테르부르크에서",
+    text: { base: "사촌에게. 답을 기다리오." },
+    opt: { warm: "다정하게 답한다." },
+  },
+  letter_one: {
+    title: "첫 친서",
+    text: { base: "사촌에게. 잘 지내시오?" },
+    opt: { cold: "짧게 답한다." },
+  },
+};
+
 const packFile = (f: string) =>
   JSON.parse(
     fs.readFileSync(
@@ -79,7 +120,7 @@ const packFile = (f: string) =>
 const PACK = GwPackSchema.parse({
   ...packFile("DEU.json"),
   people: packFile("DEU.cast.json").people,
-  scenes: SCENES,
+  scenes: { ...SCENES, ...STORY_SCENES },
   acts: {
     t_krupp: { name: "크루프 공장", note: "포탄 공장을 직접 본다." },
     t_nicky: {
@@ -734,5 +775,183 @@ describe("the screens", () => {
     const line = panel.querySelector("[data-gw-back-line]")!;
     expect(line.textContent).toContain("베트만홀베크이(가)".slice(0, 6));
     expect(line.textContent).toContain("원안을 다시");
+  });
+});
+
+describe("the story", () => {
+  const big = (over: Partial<GwCardView> = {}) =>
+    card({
+      uid: 7,
+      scene: "big_night",
+      kind: "talk",
+      big: true,
+      cast: { a: "deu_bethmann", b: "deu_moltke" },
+      options: [],
+      who: "deu_bethmann",
+      node: "n1",
+      says: "base",
+      replies: [
+        { id: "ask", open: true, tell: [], stance: "warm", kind: "ask" },
+      ],
+      ...over,
+    });
+  const onward = (d: GreatWarData, panel: GwPanel) => {
+    panel.game = {
+      greatWarData: () => d,
+      myPlayer: () => ({ smallID: () => 1 }),
+    } as unknown as GwPanel["game"];
+    panel.tick();
+    return panel.updateComplete;
+  };
+
+  test("a big scene takes the screen by itself, with the hour and the room", async () => {
+    const { panel } = await mount(data([big()]));
+    await panel.updateComplete;
+    const view = panel.querySelector("[data-gw-talk]")!;
+    expect(view.hasAttribute("data-gw-big")).toBe(true);
+    expect(view.querySelector("[data-gw-big-title]")!.textContent).toContain(
+      "칠월의 밤",
+    );
+    expect(view.querySelector("[data-gw-at]")!.textContent).toContain(
+      "밤 열 시",
+    );
+    expect(view.querySelector("[data-gw-beat]")!.textContent).toContain(
+      "창가에 서 있다",
+    );
+  });
+
+  test("nobody in the room is narration, then the next person has the plate", async () => {
+    const { panel } = await mount(data([big()]));
+    await onward(
+      data([
+        big({
+          who: null,
+          node: "n2",
+          replies: [
+            {
+              id: "wait",
+              open: true,
+              tell: [],
+              stance: "frank",
+              kind: "decide",
+            },
+          ],
+        }),
+      ]),
+      panel,
+    );
+    const view = panel.querySelector("[data-gw-talk]")!;
+    expect(view.querySelector("[data-gw-who]")).toBeNull();
+    expect(view.querySelector("[data-gw-alone]")!.textContent).toContain(
+      "아무도 오지 않는다",
+    );
+    const button = view.querySelector("[data-gw-reply=wait]")!;
+    expect(button.textContent).not.toContain("gw.ui.stance");
+    await onward(
+      data([
+        big({
+          who: "deu_moltke",
+          node: "n3",
+          replies: [
+            {
+              id: "sign",
+              open: true,
+              tell: [],
+              stance: "frank",
+              kind: "decide",
+            },
+          ],
+        }),
+      ]),
+      panel,
+    );
+    const who = panel.querySelector("[data-gw-who]")!.textContent;
+    expect(who).toContain("몰트케");
+  });
+
+  test("what it leaves comes straight after, on a bare page", async () => {
+    const study = card({
+      uid: 8,
+      scene: "big_study",
+      kind: "wire",
+      silent: true,
+      cast: {},
+      options: [],
+    });
+    const { panel, orders } = await mount(data([big()]));
+    await onward(data([study]), panel);
+    panel.querySelector<HTMLButtonElement>("[data-gw-leave]")!.click();
+    await panel.updateComplete;
+    const page = panel.querySelector("[data-gw-silent]")!;
+    expect(page.textContent).toContain("서재가 비어 있다");
+    expect(page.textContent).not.toContain("빈 서재");
+    expect(panel.querySelector("[data-gw-reader]")).toBeNull();
+    page.querySelector<HTMLButtonElement>("[data-gw-silent-done]")!.click();
+    expect(orders).toContainEqual({ kind: "read", card: 8 });
+  });
+
+  test("a letter says who wrote and shows the thread so far", async () => {
+    const letter = card({
+      uid: 9,
+      scene: "letter_two",
+      kind: "letter",
+      letterFrom: "RUS",
+      who: "deu_moltke",
+      cast: { other_ruler: "deu_moltke" },
+      options: [{ id: "warm", open: true, tell: [] }],
+    });
+    const d = data([letter]);
+    const row = {
+      with: "RUS",
+      scene: "letter_one",
+      variant: "base",
+      date: "1914-06-28",
+    } as const;
+    const seat0 = {
+      ...d.seats[0],
+      letters: [
+        { ...row, out: false, tone: null },
+        { ...row, out: true, tone: "cold" },
+        { ...row, scene: "letter_two", out: false, tone: null },
+      ],
+      choices: [
+        { scene: "letter_one", pick: "cold", date: row.date, proxy: false },
+      ],
+    };
+    const { panel } = await mount({ ...d, seats: [seat0] });
+    panel.querySelector<HTMLButtonElement>("[data-gw-open='9']")!.click();
+    await panel.updateComplete;
+    const reader = panel.querySelector("[data-gw-reader]")!;
+    expect(reader.querySelector("[data-gw-letter-from]")).not.toBeNull();
+    const rows = reader.querySelectorAll("[data-gw-thread-row]");
+    expect(rows).toHaveLength(2);
+    expect(rows[0].textContent).toContain("잘 지내시오");
+    expect(rows[1].textContent).toContain("짧게 답한다");
+  });
+
+  test("the rival's line: his own by how it went, else one that names him", () => {
+    const r = { who: "deu_moltke", stage: 3, act: "push", end: null } as const;
+    expect(rivalLine(PACK, r)).toContain("gw.ui.rival.push");
+    const pack = {
+      ...PACK,
+      rivals: { deu_moltke: { stage3: "{who}은(는) 맞섰다." } },
+    };
+    expect(rivalLine(pack, r)).toBe("몰트케는 맞섰다.");
+  });
+
+  test("the lobby reads the shelf: an empty one is every nation's first game", () => {
+    localStorage.removeItem(SHELF_KEY);
+    expect(gwPlayedTags()).toEqual([]);
+    localStorage.setItem(
+      SHELF_KEY,
+      JSON.stringify({
+        played: ["GBR"],
+        runs: [{ tag: "DEU" }, { tag: "GBR" }],
+      }),
+    );
+    expect(gwPlayedTags()).toEqual(["GBR", "DEU"]);
+    localStorage.setItem(SHELF_KEY, "not json");
+    expect(gwPlayedTags()).toEqual([]);
+    localStorage.removeItem(SHELF_KEY);
   });
 });

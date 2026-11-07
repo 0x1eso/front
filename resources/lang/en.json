@@ -3267,6 +3267,8 @@
       "audiences": "Audiences left: {n}",
       "audiences_hint": "Calling someone spends one.",
       "authority": "Authority {n}",
+      "big_waiting": "The hour passes.",
+      "big_waits": "Tonight is not over.",
       "bloc_word": {
         "0": "Against",
         "1": "Cool",
@@ -3419,11 +3421,16 @@
         "crisis": "Crisis",
         "dispute": "Dispute",
         "ledger": "Ledger",
+        "letter": "Letter",
         "proposal": "Proposal",
         "report": "Report",
         "talk": "Talk",
         "wire": "Wire"
       },
+      "letter_came": "Came",
+      "letter_from": "From {name}, {country}",
+      "letter_sent": "Answered",
+      "letter_thread": "Letters so far",
       "mandate_met": "carried out",
       "mandate_unmet": "not carried out",
       "mandates_title": "Mandates of this game",
@@ -3527,6 +3534,7 @@
       "reply": {
         "ask": "Ask",
         "deal": "Promise or bargain",
+        "decide": "Decide",
         "leave": "Step back",
         "push": "Press"
       },
@@ -3544,6 +3552,18 @@
         "sea": "Navy"
       },
       "results_title": "Signed lately",
+      "rival": {
+        "broken": "You broke {name}.",
+        "embrace": "You took {name} in. He stayed close.",
+        "gone": "{name} left the stage before it came to anything.",
+        "prevailed": "{name} got his way in the end.",
+        "push": "You kept {name} at arm's length.",
+        "reconciled": "{name} and you came to terms.",
+        "stage1": "{name} never showed his hand. You may not have known there was one.",
+        "stage2": "{name} was gathering friends against you when the game ended.",
+        "stage3": "{name} had come out against you in the open.",
+        "strike": "You moved against {name} first."
+      },
       "rivals": "At odds with",
       "scale": {
         "limited": "Limited",
@@ -3572,6 +3592,7 @@
         "out": "Out of the war"
       },
       "sign": "Sign",
+      "silent_done": "Go on",
       "since_last": "Since the last chapter",
       "source_record": "{source}: {right} right, {wrong} wrong",
       "sources_title": "Their record so far",

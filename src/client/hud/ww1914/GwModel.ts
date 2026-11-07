@@ -25,6 +25,7 @@ import type {
   GwCardView,
   GwChoiceView,
   GwGovView,
+  GwLetterView,
   GwPersonView,
   GwPromiseView,
   GwReplyView,
@@ -34,6 +35,7 @@ import type { GwReplyKind } from "@openfront/engine-api/ww1914/SceneDsl";
 import { GW_REPLY_KINDS } from "@openfront/engine-api/ww1914/SceneDsl";
 import { gwEndingsOf } from "@openfront/engine-lib/ww1914/EndingRows";
 import { GW_RULERS } from "@openfront/engine-lib/ww1914/RulerRows";
+import { SHELF_KEY } from "../../GwRecentRuns";
 
 /** The drawer's tabs, in order (design §11). */
 export const GW_TABS = [
@@ -133,6 +135,18 @@ export function paperCards(seat: GwSeatView): GwCardView[] {
 
 export function isReadOnly(c: GwCardView): boolean {
   return c.options.length === 0 && c.node === null;
+}
+
+/** The letters before this one with the same ruler, oldest first. */
+export function letterThread(
+  seat: GwSeatView,
+  card: GwCardView,
+): GwLetterView[] {
+  const thread = (seat.letters ?? []).filter((x) => x.with === card.letterFrom);
+  const here = (x: GwLetterView) =>
+    !x.out && x.scene === card.scene && x.variant === card.variant;
+  const self = thread.map(here).lastIndexOf(true);
+  return self < 0 ? thread : thread.slice(0, self);
 }
 
 /** Tab badges: what waits on each tab. */
@@ -271,9 +285,11 @@ export interface Shelf {
   mandates: string[];
   /** Games that reached their end (one entry per game). */
   runs: { tag: string; ending: string; date: string }[];
+  /** Nations played past the opening, ended or not: no slow start again. */
+  played: string[];
 }
 
-export const SHELF_KEY = "gw1914.shelf";
+export { SHELF_KEY };
 
 /** The shelf's empty boxes, for a seat whose cast has `people` names. */
 export function shelfTotals(
@@ -292,7 +308,14 @@ export function shelfTotals(
 }
 
 export function emptyShelf(): Shelf {
-  return { endings: [], people: [], secrets: [], mandates: [], runs: [] };
+  return {
+    endings: [],
+    people: [],
+    secrets: [],
+    mandates: [],
+    runs: [],
+    played: [],
+  };
 }
 
 export function loadShelf(
@@ -312,6 +335,7 @@ export function loadShelf(
       secrets: list(v.secrets),
       mandates: list(v.mandates),
       runs: Array.isArray(v.runs) ? v.runs.slice(-50) : [],
+      played: list(v.played),
     };
   } catch {
     return emptyShelf();
@@ -340,7 +364,7 @@ function safeStorage(): Storage | null {
 /** A new shelf with the ids added (the same shelf when all are known). */
 export function shelve(
   shelf: Shelf,
-  what: "people" | "secrets" | "mandates",
+  what: "people" | "secrets" | "mandates" | "played",
   ids: readonly string[],
 ): Shelf {
   const fresh = ids.filter((id) => !shelf[what].includes(id));

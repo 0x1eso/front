@@ -5,6 +5,7 @@ import type {
   GwCardView,
   GwSeatView,
 } from "@openfront/engine-api/ww1914/GwView";
+import { GW_OPENING_CHAPTERS } from "@openfront/engine-lib/ww1914/StoryRows";
 import { EventBus } from "@openfront/shared/EventBus";
 import { loadGwPack } from "@openfront/shared/ww1914/GwPackLoader";
 import { html, LitElement, nothing } from "lit";
@@ -75,6 +76,8 @@ export class GwPanel extends LitElement implements Controller {
   private newsAt = 0;
   private recorded = false;
   private chapter = -1;
+  /** Lines in the open talk when last drawn: a new one scrolls into view. */
+  private talkTurns = 0;
   private readonly ui: GwUi = {
     tab: "desk",
     folded: false,
@@ -167,13 +170,20 @@ export class GwPanel extends LitElement implements Controller {
       ui.termAsk = [];
       ui.backOpen = false;
       ui.backArmed = null;
+      if (data.chapter >= GW_OPENING_CHAPTERS) {
+        ui.shelf = shelve(ui.shelf, "played", [seat.tag]);
+        saveShelf(ui.shelf);
+      }
     }
     // A talk that came after my summons opens by itself; a visitor waits on the desk.
     const before = new Set(ui.talks.keys());
     syncTranscripts(ui, seat);
     for (const t of ui.talks.values()) {
       if (before.has(t.uid) || t.closed) continue;
-      if (Date.now() - ui.summoned < SUMMON_OPEN_MS) ui.talkUid = t.uid;
+      // A big scene is the chapter: it takes the screen as it comes.
+      const big = t.turns[0]?.card.big === true;
+      if (big || Date.now() - ui.summoned < SUMMON_OPEN_MS) ui.talkUid = t.uid;
+      if (t.who === "") continue;
       ui.shelf = shelve(ui.shelf, "people", [t.who]);
       saveShelf(ui.shelf);
     }
@@ -188,6 +198,18 @@ export class GwPanel extends LitElement implements Controller {
       ui.folded = false;
       ui.readerUid = null;
     }
+  }
+
+  /** A talk grows downward: its newest line must not open below the fold. */
+  protected updated(): void {
+    const uid = this.ui.talkUid;
+    const turns =
+      uid === null ? 0 : (this.ui.talks.get(uid)?.turns.length ?? 0);
+    if (turns > this.talkTurns) {
+      const view = this.querySelector("[data-gw-talk]");
+      if (view !== null) view.scrollTop = view.scrollHeight;
+    }
+    this.talkTurns = turns;
   }
 
   private send(order: GwOrder): void {

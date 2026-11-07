@@ -14,6 +14,7 @@ import {
   dangers,
   GwDanger,
   isReadOnly,
+  letterThread,
   paperCards,
   talkCards,
 } from "./GwModel";
@@ -32,6 +33,7 @@ import {
   fullDate,
   optionMarked,
   optionSplit,
+  optionText,
   personName,
   reasonText,
   tellText,
@@ -42,6 +44,8 @@ import {
 const QUOTE =
   "whitespace-pre-line border-l-2 border-amber-200/40 pl-3 text-white/80";
 const PARA = "whitespace-pre-line";
+/** Tight on purpose: pre-line would keep a template's own line break as a gap. */
+const para = (cls: string, body: unknown) => html`<p class=${cls}>${body}</p>`;
 /** The desk's head stays short; the country tab keeps every line. */
 const REASONS_SHOWN = 6;
 
@@ -95,9 +99,11 @@ function cardBox(c: GwCtx, card: GwCardView): TemplateResult {
     ${backLine(c, card, pass)}
     ${isTalk
       ? html`<p class="text-sm text-white/80">
-          ${translateText("gw.ui.talk_waits", {
-            name: personName(c.pack, card.who ?? ""),
-          })}
+          ${card.big === true
+            ? translateText("gw.ui.big_waits")
+            : translateText("gw.ui.talk_waits", {
+                name: personName(c.pack, card.who ?? ""),
+              })}
         </p>`
       : html`<p class="line-clamp-3 text-sm text-white/85">
           ${rich(c, bodyPlain(fill(cardBody(c.pack, card))), pass)}
@@ -363,8 +369,82 @@ function optionButton(
   </div>`;
 }
 
+/** What a big scene leaves: the words on an empty page, and a way to go on. */
+function silentPage(c: GwCtx, card: GwCardView): TemplateResult {
+  const text = fillGw(
+    cardBody(c.pack, card),
+    c.pack,
+    card,
+    c.seat,
+    c.data.date,
+  );
+  return html`<div
+    class="pointer-events-auto fixed inset-0 z-[1000] flex flex-col items-center justify-center gap-6 bg-black p-6 text-white"
+    data-gw-silent=${card.scene}
+  >
+    <div class="max-w-[520px] space-y-3 text-[16px] leading-8 text-white/85">
+      ${bodyParts(text).map(
+        (p) => html`<p class=${p.quote ? QUOTE : PARA}>${p.text}</p>`,
+      )}
+    </div>
+    <button
+      class="${MUTED} px-3 py-2 hover:text-white"
+      data-gw-silent-done
+      @click=${() => {
+        c.send({ kind: "read", card: card.uid });
+        c.ui.readerUid = null;
+        c.redraw();
+      }}
+    >
+      ${translateText("gw.ui.silent_done")}
+    </button>
+  </div>`;
+}
+
+/** The letters so far with this ruler, what was answered under each. */
+function threadBox(
+  c: GwCtx,
+  card: GwCardView,
+  pass: TextPass,
+): TemplateResult | typeof nothing {
+  const rows = letterThread(c.seat, card);
+  if (rows.length === 0) return nothing;
+  const fill = (t: string) => fillGw(t, c.pack, card, c.seat, c.data.date);
+  const answer = (scene: string | null) => {
+    const taken = (c.seat.choices ?? []).filter((x) => x.scene === scene);
+    const pick = taken[taken.length - 1]?.pick;
+    if (scene === null || pick === undefined) return null;
+    return optionText(c.pack, { ...card, scene, node: null }, pick);
+  };
+  return html`<div
+    class="space-y-1.5 rounded border border-white/10 bg-white/5 p-2"
+    data-gw-thread
+  >
+    <div class=${MUTED}>${translateText("gw.ui.letter_thread")}</div>
+    ${rows.map((x) => {
+      const said = x.out
+        ? answer(x.scene)
+        : x.scene === null || x.variant === null
+          ? null
+          : (c.pack?.scenes[x.scene]?.text[x.variant] ?? null);
+      return html`<div class="space-y-0.5" data-gw-thread-row>
+        <div class=${MUTED}>
+          ${fullDate(x.date)} ·
+          ${translateText(x.out ? "gw.ui.letter_sent" : "gw.ui.letter_came")}
+        </div>
+        ${said === null
+          ? nothing
+          : html`<p class="line-clamp-3 text-sm text-white/75">
+              ${rich(c, bodyPlain(fill(said)), pass)}
+            </p>`}
+      </div>`;
+    })}
+  </div>`;
+}
+
 /** The reader: the whole document, the voices around the table, the options. */
 export function reader(c: GwCtx, card: GwCardView): TemplateResult {
+  if (card.silent === true) return silentPage(c, card);
   const fill = (t: string) => fillGw(t, c.pack, card, c.seat, c.data.date);
   const after = brokenLine(c, card);
   const read = isReadOnly(card);
@@ -405,12 +485,21 @@ export function reader(c: GwCtx, card: GwCardView): TemplateResult {
       <h2 class="text-lg font-bold leading-snug">${cardTitle(c.pack, card)}</h2>
       ${brief === null ? nothing : briefLine(c, brief, pass)}
       ${backLine(c, card, pass)}
+      ${card.letterFrom === undefined
+        ? nothing
+        : html`<div class=${MUTED} data-gw-letter-from>
+            ${translateText("gw.ui.letter_from", {
+              name: personName(c.pack, card.who ?? ""),
+              country: translateText(`gw.country.${card.letterFrom}`),
+            })}
+          </div>`}
+      ${card.letterFrom === undefined ? nothing : threadBox(c, card, pass)}
       <div class="space-y-2.5 text-[15px] leading-7 text-white/90">
-        ${body.map(
-          (p) =>
-            html`<p class=${p.quote ? QUOTE : PARA}>
-              ${rich(c, p.text, pass)}
-            </p>`,
+        ${body.map((p) =>
+          para(
+            p.quote || card.letterFrom !== undefined ? QUOTE : PARA,
+            rich(c, p.text, pass),
+          ),
         )}
         ${voices(c.pack, card).map(
           (v) =>

@@ -1272,6 +1272,24 @@ describe("zbin wire: server messages", () => {
     expect(decoded.gameStartInfo.config.greatWar1914Recent).toEqual(recent);
   });
 
+  it("tells an empty played list from none: empty is a first game", () => {
+    const sample = SERVER_MESSAGES.find((m) => m.type === "start")!;
+    if (sample.type !== "start") throw new Error("no start sample");
+    const send = (config: typeof CONFIG) => {
+      const [sctx, cctx] = ctxPair();
+      const msg: ServerMessage = {
+        ...sample,
+        gameStartInfo: { ...sample.gameStartInfo, config },
+      };
+      const decoded = decodeServerMessage(encodeServerMessage(msg, sctx), cctx);
+      if (decoded.type !== "start") throw new Error("not a start message");
+      return decoded.gameStartInfo.config.greatWar1914Played;
+    };
+    expect(send({ ...CONFIG, greatWar1914Played: [] })).toEqual([]);
+    expect(send({ ...CONFIG, greatWar1914Played: ["DEU"] })).toEqual(["DEU"]);
+    expect(send({ ...CONFIG })).toBeUndefined();
+  });
+
   it("keeps an empty turn under 8 bytes", () => {
     const [sctx] = ctxPair();
     const bytes = encodeServerMessage(

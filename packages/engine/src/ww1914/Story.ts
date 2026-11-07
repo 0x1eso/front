@@ -266,10 +266,6 @@ export function newcomers(
   const circle = GW_OPENING_CIRCLE[seat.tag] ?? [];
   const self = seatPerson(seat);
   return people.filter(
-    (id) =>
-      personDef(id)?.tag === seat.tag &&
-      id !== self &&
-      !circle.includes(id) &&
-      !seat.story.met.includes(id),
+    (id) => id !== self && !circle.includes(id) && !seat.story.met.includes(id),
   );
 }

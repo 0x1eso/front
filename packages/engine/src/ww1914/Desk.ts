@@ -71,6 +71,8 @@ export const GW_COOLDOWN_DEFAULT = 2;
 export const GW_BIG_EVERY = 3;
 /** What can't wait, at most, beside a big scene. */
 export const GW_BIG_BESIDE = 2;
+/** A first game: salience from which a scene may bring in one new person. */
+export const GW_OPENING_MUST = 9;
 
 const P_TIE = idHash("gw_desk_tie");
 const SUBJECTS = ["foreign", "home", "war", "people"] as const;
@@ -358,7 +360,13 @@ function draw(
   const target = limit ?? deskTarget(gw) + beside;
   const max = limit ?? GW_DESK_MAX + beside;
   const placed = () => picked.filter((x) => !isRead(x)).length;
-  while (placed() < max) {
+  // A first game hears the news before it is asked anything: a place stays
+  // for the paper that says what happened.
+  const news = left.some(
+    (c) => isRead(c.scene) && c.scene.salience >= GW_SALIENCE_MUST,
+  );
+  const places = limit !== null && news ? max - 1 : max;
+  while (placed() < places) {
     const open = left.filter(
       (c) =>
         !isRead(c.scene) &&
@@ -370,7 +378,7 @@ function draw(
     if (placed() >= target && c.scene.salience < GW_SALIENCE_MUST) break;
     take(c);
   }
-  for (let reads = 0; ; reads++) {
+  for (let reads = 0; limit === null || reads < 1; reads++) {
     const open = left.filter((x) => isRead(x.scene));
     const varied = open.filter((c) => !wouldFillOneSubject(c, picked, target));
     const c = best(gw, varied.length > 0 ? varied : open, picked);
@@ -542,17 +550,21 @@ function dealBig(
   return true;
 }
 
-/** A first game's desk: those it hasn't met stay away unless the state needs them. */
+/**
+ * A first game's desk: no private life or staff reports yet, and nobody new
+ * unless the state needs them, one at a time. A crisis brings whoever it names.
+ */
 function openingCands(
   gw: GreatWar,
   seat: GwSeatState,
   cands: readonly DeskCandidate[],
 ): DeskCandidate[] {
-  return cands.filter(
-    ({ scene }) =>
-      scene.salience >= GW_SALIENCE_MUST ||
-      newcomers(gw, seat, castIds(gw, seat, scene)).length === 0,
-  );
+  return cands.filter(({ scene }) => {
+    if (scene.tags.includes("private") || scene.kind === "report") return false;
+    if (cantWait(scene)) return true;
+    const fresh = newcomers(gw, seat, castIds(gw, seat, scene)).length;
+    return fresh === 0 || (fresh === 1 && scene.salience >= GW_OPENING_MUST);
+  });
 }
 
 function castIds(gw: GreatWar, seat: GwSeatState, scene: GwScene): string[] {
