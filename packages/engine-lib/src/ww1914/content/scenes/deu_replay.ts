@@ -4,7 +4,12 @@ import type {
   GwScene,
   GwVariant,
 } from "@openfront/engine-api/ww1914/SceneDsl";
-import { all, trustOf } from "@openfront/engine-api/ww1914/SceneDsl";
+import {
+  all,
+  not,
+  schedule,
+  trustOf,
+} from "@openfront/engine-api/ww1914/SceneDsl";
 import { world } from "@openfront/engine-api/ww1914/WorldDsl";
 
 /**
@@ -84,6 +89,15 @@ const OPENINGS: Readonly<Record<string, Opening>> = {
       effects: [trustOf(who, -1)],
       next: "o2_end",
     },
+    {
+      id: "friend",
+      stance: "warm",
+      kind: "ask",
+      when: not({ kind: "seen", scene: "deu_v2_rathenau_office" }),
+      tell: [],
+      effects: [schedule("deu_v2_rathenau_office", 1)],
+      next: "o2_friend",
+    },
     "later",
   ],
   deu_v2_rupprecht_letter: ["deal", "leave"],
@@ -94,7 +108,20 @@ const OPENINGS: Readonly<Record<string, Opening>> = {
   deu_v2_hoffmann_wine: ["ask", "push", "leave"],
   deu_t2_kuhl_paris: ["road", "cover", "end"],
   deu_t_heir_dig: ["trade", "shut", "go"],
-  deu_t2_muller_night: ["all_of_it", "door", "sleep"],
+  deu_t2_muller_night: [
+    "all_of_it",
+    "door",
+    {
+      id: "who_first",
+      stance: "frank",
+      kind: "ask",
+      when: not({ kind: "seen", scene: "deu_t2_bauer_doors" }),
+      tell: [],
+      effects: [schedule("deu_t2_bauer_doors", 1)],
+      next: "o2_who",
+    },
+    "sleep",
+  ],
   deu_t_kuhn_navy: ["swap", "stop", "pay"],
   deu_t2_erz_belgium: ["still", "quiet", "noted"],
   deu_t2_hind_name: ["deal", "leave"],
@@ -107,7 +134,20 @@ const OPENINGS: Readonly<Record<string, Opening>> = {
   deu_t_hind_letter: ["promise", "leave"],
   deu_t_muller_tirpitz: ["how", "hate", "end"],
   deu_t2_zimm_sofia: ["loan", "price", "end"],
-  deu_t2_heir_bauer: ["what_talk", "friends", "tell_mother"],
+  deu_t2_heir_bauer: [
+    "what_talk",
+    "friends",
+    {
+      id: "call_him",
+      stance: "cold",
+      kind: "push",
+      when: not({ kind: "seen", scene: "deu_t2_bauer_doors" }),
+      tell: [],
+      effects: [schedule("deu_t2_bauer_doors", 1)],
+      next: "o2_call",
+    },
+    "tell_mother",
+  ],
   deu_v_nicholas_wire: ["warm", "firm", "no"],
   deu_v_hoyos: ["date", "cold", "later"],
   deu_t_beth_vienna: ["first", "ask", "later"],
@@ -136,6 +176,49 @@ const OPENING_NODES: Readonly<
 > = {
   deu_v2_ballin_ships: {
     o2_end: {
+      says: [{ id: "base" }],
+      replies: [
+        {
+          id: "end",
+          stance: "cold",
+          kind: "leave",
+          tell: [],
+          effects: [],
+          next: null,
+        },
+      ],
+    },
+    o2_friend: {
+      says: [{ id: "base" }],
+      replies: [
+        {
+          id: "end",
+          stance: "warm",
+          kind: "leave",
+          tell: [],
+          effects: [],
+          next: null,
+        },
+      ],
+    },
+  },
+  deu_t2_muller_night: {
+    o2_who: {
+      says: [{ id: "base" }],
+      replies: [
+        {
+          id: "end",
+          stance: "warm",
+          kind: "leave",
+          tell: [],
+          effects: [],
+          next: null,
+        },
+      ],
+    },
+  },
+  deu_t2_heir_bauer: {
+    o2_call: {
       says: [{ id: "base" }],
       replies: [
         {
