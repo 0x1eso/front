@@ -8,7 +8,11 @@ import { GW_LAW_HOME } from "@openfront/engine-lib/ww1914/LawRows";
 import { GW_AUTHORITY } from "@openfront/engine/ww1914/AuthorityTable";
 import { advanceChapter } from "@openfront/engine/ww1914/Chapters";
 import type { GreatWar } from "@openfront/engine/ww1914/GreatWar";
-import { lawCount, lawViews } from "@openfront/engine/ww1914/Laws";
+import {
+  lawCanDecree,
+  lawCount,
+  lawViews,
+} from "@openfront/engine/ww1914/Laws";
 import { applyGwOrder } from "@openfront/engine/ww1914/Orders";
 import { loadMapFiles } from "@openfront/shared/GameMapLoader";
 import fs from "node:fs";
@@ -405,6 +409,27 @@ describe("a save", () => {
     expect(gw.hash()).toBe(hash);
   });
 
+  test("a repeal makes the news and the German papers", async () => {
+    const { gw, n, seat } = await atWar();
+    n.authority = 100;
+    n.laws.push({
+      id: "deu_censor",
+      stage: "force",
+      since: 3,
+      support: 0,
+      how: "decreed",
+      text: "one_office",
+      lost: 0,
+      after: false,
+    });
+    expect(
+      applyGwOrder(gw, seat, { kind: "law", law: "deu_censor", act: "repeal" }),
+    ).toBeNull();
+    expect(gw.s.news[gw.s.news.length - 1].key).toBe("law_repealed");
+    next(gw);
+    expect(seat.press.ran.law_gone).toBeDefined();
+  });
+
   test("an order goes through the worker path", async () => {
     const { runner } = await gwRunner({ greatWar1914Calendar: "full" });
     order(runner, { kind: "law", law: "deu_censor", act: "draft" });
@@ -443,6 +468,23 @@ describe("a whole game on the real map", () => {
             for (const x of n.laws) {
               if (x.stage === "force" && x.how !== "scene") passed.add(x.id);
             }
+            // The day of a vote is a person's: they count first, and a bill
+            // with no way through goes back in the drawer.
+            for (const c of [...seat.desk]) {
+              if (!c.scene.startsWith("gw_lv_")) continue;
+              const id = c.scene.slice("gw_lv_".length);
+              const pick =
+                lawCount(gw, seat, id) >= 0
+                  ? "put"
+                  : lawCanDecree(gw, seat, id)
+                    ? "decree"
+                    : "withdraw";
+              applyGwOrder(gw, seat, {
+                kind: "choose",
+                card: c.uid,
+                option: pick,
+              });
+            }
             const open = lawViews(gw, seat).find(
               (v) => v.stage === "open" && v.waits === null,
             );
@@ -458,10 +500,11 @@ describe("a whole game on the real map", () => {
             }
           },
         );
-        // A bot withdraws at random and a peace can stop a bill on its day.
-        if (brought >= 3 && passed.size >= 1) return;
+        if (brought < 3) continue;
+        expect(passed.size).toBeGreaterThanOrEqual(1);
+        return;
       }
-      throw new Error(`${tag}: no game brought three bills and passed one`);
+      throw new Error(`${tag}: no game brought three bills`);
     },
     240000,
   );

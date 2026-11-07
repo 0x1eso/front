@@ -113,6 +113,20 @@ export function reason(gw: GreatWar, seat: GwSeatState, key: string): void {
   seat.log.push({ key, chapter: c });
 }
 
+/** A why-line about one person: the line names them with {who}. */
+export function reasonOf(
+  gw: GreatWar,
+  seat: GwSeatState,
+  key: string,
+  who: string,
+): void {
+  const c = gw.s.chapter;
+  if (seat.log.some((l) => l.key === key && l.chapter === c && l.who === who)) {
+    return;
+  }
+  seat.log.push({ key, chapter: c, who });
+}
+
 /** A turning point of the game: every seat keeps it, the memoir reads it. */
 export function turn(gw: GreatWar, key: string): void {
   for (const seat of gw.s.seats) {

@@ -28,6 +28,20 @@ const SHORTEST = 2;
 
 /** A name that is also a common word: 버티 is Bertie and 버티다. */
 const NOT_NAMES: readonly string[] = ["버티"];
+/**
+ * Longer words that start with a name or a term: 카를스바트 isn't Karl, 부서진
+ * isn't a countersignature. They are matched so nothing inside them is.
+ */
+const NOT_TERMS: readonly string[] = [
+  "카를스바트",
+  "부서지",
+  "부서진",
+  "부서질",
+  "부서졌",
+  "황태자비",
+  "알베르트",
+  "알베르티나",
+];
 /** Titles written as names: they mean the seat's own court. */
 const TITLES: readonly string[] = ["황태자", "황후", "모후"];
 /** One seat's text uses the name for two people: a card would often be wrong. */
@@ -61,7 +75,7 @@ export function dictIndex(
     byText.set(p.name, { kind: "person", id });
   }
   if (byText.size === 0) return { re: null, byText };
-  const alts = [...byText.keys()]
+  const alts = [...byText.keys(), ...NOT_TERMS]
     .sort((a, b) => b.length - a.length)
     .map(escape);
   // A term starts a word: 사령부 isn't found inside 총사령부.
@@ -75,7 +89,8 @@ export function splitTerms(text: string, index: DictIndex): DictPart[] {
   const seen = new Set<string>();
   let at = 0;
   for (const m of text.matchAll(index.re)) {
-    const ref = index.byText.get(m[0])!;
+    const ref = index.byText.get(m[0]);
+    if (ref === undefined) continue;
     const key = `${ref.kind}.${ref.id}`;
     if (seen.has(key)) continue;
     seen.add(key);

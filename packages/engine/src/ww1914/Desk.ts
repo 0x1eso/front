@@ -57,6 +57,9 @@ export const GW_SALIENCE_SMALL = 1;
 export const GW_TEMP_HOT = 6;
 /** Scheduled cards that ride beside the draw instead of taking its places. */
 export const GW_DUE_BESIDE = 2;
+/** A war runs for years: a month's desk stays small, the crisis's doesn't. */
+export const GW_SALIENCE_MUST_WAR = 9;
+export const GW_DUE_BESIDE_WAR = 1;
 /** Must-read papers that ride beside a full desk. */
 export const GW_READS_BESIDE = 2;
 /** With no cooldown of its own, chapters before a scene can come again. */
@@ -320,11 +323,15 @@ function draw(
     const c = best(gw, down, picked);
     if (c !== null && picked.length < GW_DESK_MAX) take(c);
   }
-  const beside = Math.min(due.length, GW_DUE_BESIDE);
+  const crisis = gwChapters(gw.s.calendar)[gw.s.chapter].stage === "crisis";
+  const beside = Math.min(
+    due.length,
+    crisis ? GW_DUE_BESIDE : GW_DUE_BESIDE_WAR,
+  );
   const target = deskTarget(gw) + beside;
   const max = GW_DESK_MAX + beside;
+  const must = crisis ? GW_SALIENCE_MUST : GW_SALIENCE_MUST_WAR;
   const placed = () => picked.filter((x) => !isRead(x)).length;
-  const crisis = gwChapters(gw.s.calendar)[gw.s.chapter].stage === "crisis";
   while (placed() < max) {
     const open = left.filter(
       (c) =>
@@ -334,7 +341,7 @@ function draw(
     const varied = open.filter((c) => !wouldFillOneSubject(c, picked, target));
     const c = best(gw, varied.length > 0 ? varied : open, picked);
     if (c === null) break;
-    if (placed() >= target && c.scene.salience < GW_SALIENCE_MUST) break;
+    if (placed() >= target && c.scene.salience < must) break;
     take(c);
   }
   for (let reads = 0; ; reads++) {
@@ -343,12 +350,12 @@ function draw(
     const c = best(gw, varied.length > 0 ? varied : open, picked);
     if (c === null) break;
     const room = picked.length < target;
-    const must =
-      c.scene.salience >= GW_SALIENCE_MUST &&
+    const pressing =
+      c.scene.salience >= must &&
       (picked.length < max || reads < GW_READS_BESIDE);
     const small = c.scene.salience <= GW_SALIENCE_SMALL;
-    const riding = reads < (crisis ? GW_READS_BESIDE : 1) && !small;
-    if (!room && !must && !riding) break;
+    const riding = crisis && reads < GW_READS_BESIDE && !small;
+    if (!room && !pressing && !riding) break;
     take(c);
   }
   return picked.slice(due.length);

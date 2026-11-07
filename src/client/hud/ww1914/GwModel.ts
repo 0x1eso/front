@@ -19,6 +19,7 @@ import {
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import type { GwPack } from "@openfront/engine-api/ww1914/GwPack";
+import { GW_RULER_SIDES } from "@openfront/engine-api/ww1914/GwRuler";
 import type {
   GreatWarData,
   GwCardView,
@@ -32,6 +33,7 @@ import type {
 import type { GwReplyKind } from "@openfront/engine-api/ww1914/SceneDsl";
 import { GW_REPLY_KINDS } from "@openfront/engine-api/ww1914/SceneDsl";
 import { gwEndingsOf } from "@openfront/engine-lib/ww1914/EndingRows";
+import { GW_RULERS } from "@openfront/engine-lib/ww1914/RulerRows";
 
 /** The drawer's tabs, in order (design §11). */
 export const GW_TABS = [
@@ -144,9 +146,41 @@ export function tabBadge(seat: GwSeatView, tab: GwTab): number {
         seat.world.press?.blocs.filter((b) => b.turning === "leaving").length ??
         0
       );
+    case "country":
+      return dangers(seat).length;
     default:
       return 0;
   }
+}
+
+/** What can end the game from here, the warning the desk and the tab carry. */
+export type GwDanger =
+  | { kind: "health" | "reputation" }
+  | { kind: "gov"; id: string; word: 0 | 1 | 2 | 3 };
+
+/**
+ * A side of the person's card at its last word, where that side can end the
+ * game, and a threat that can end it past its first scene. The papers come
+ * later: this is for the player who hasn't opened the country tab.
+ */
+export function dangers(seat: GwSeatView): GwDanger[] {
+  const out: GwDanger[] = [];
+  const r = seat.ruler ?? null;
+  const row =
+    r === null ? undefined : GW_RULERS[seat.tag]?.find((x) => x.id === r.id);
+  if (r !== null && row !== undefined) {
+    if (row.mortal && r.levels[GW_RULER_SIDES.indexOf("health")] === 0) {
+      out.push({ kind: "health" });
+    }
+    const fame = r.levels[GW_RULER_SIDES.indexOf("reputation")];
+    if (row.removable && fame === 0) out.push({ kind: "reputation" });
+  }
+  for (const g of seat.gov ?? []) {
+    if (g.fatal && g.step >= 2) {
+      out.push({ kind: "gov", id: g.id, word: govWord(g) });
+    }
+  }
+  return out;
 }
 
 /** Open promises first, the nearest date on top; then the rest, as they came. */

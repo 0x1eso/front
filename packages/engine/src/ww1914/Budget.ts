@@ -344,6 +344,9 @@ export function budgetOrder(
   return null;
 }
 
+/** The year the writers gave a country's first war budget. */
+const GW_FIRST_WAR_YEAR = 1914;
+
 /** A meeting's scene for this country; a country with none writes the common. */
 function meetingScene(n: GwNationState, year: number, war: boolean): string {
   const own = `gw_bm_${n.tag.toLowerCase()}_${war ? year : "peace"}`;
@@ -363,7 +366,9 @@ function openMeeting(gw: GreatWar, n: GwNationState, year: number): void {
   b.draft = draft;
   b.meeting = s.chapter + 1;
   b.refused = false;
-  const scene = meetingScene(n, year, basis.war);
+  // A war that starts late still has its first budget, not the second year's.
+  const outbreak = s.warChapter !== null && s.chapter - s.warChapter <= 1;
+  const scene = meetingScene(n, outbreak ? GW_FIRST_WAR_YEAR : year, basis.war);
   for (const seat of seats) {
     if (!known(scene)) continue;
     seat.scheduled.push({ scene, chapter: s.chapter + 1 });

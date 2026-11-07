@@ -855,6 +855,7 @@ export const DEU_CRISIS_SCENES: readonly GwScene[] = [
     tags: ["home"],
     once: true,
     variants: [
+      { id: "arrests", when: { kind: "memory", key: "arrests_done" } },
       { id: "belgium", when: { kind: "flag", flag: "f_belgium_sent" } },
       { id: "gbr", when: { kind: "at_war", tag: "GBR" } },
       { id: "east", when: { kind: "flag", flag: "f_east_first" } },

@@ -297,6 +297,7 @@ function repeal(
   setFlags(gw, row, false);
   runEffects({ gw, seat, cast: {} }, row.repeal.effects);
   reason(gw, seat, `law_out_${row.id}`);
+  news(gw, "law_repealed", row.tag);
   return null;
 }
 

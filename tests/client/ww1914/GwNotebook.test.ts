@@ -75,6 +75,22 @@ describe("the dictionary", () => {
     );
   });
 
+  test("a longer word isn't the name it starts with", () => {
+    const p2: GwPack = {
+      ...pack,
+      people: { auh_karl: { name: "카를", lean: "x" } },
+      dict: { sign: { terms: ["부서"], text: "수상의 서명." } },
+    };
+    const idx = dictIndex(p2, "DEU", []);
+    const refs = (t: string) =>
+      splitTerms(t, idx).filter((p) => p.ref !== null);
+    expect(refs("몰트케는 카를스바트로 갔다. 다리가 부서졌다.")).toEqual([]);
+    expect(refs("카를이 부서를 거부했다.").map((p) => p.text)).toEqual([
+      "카를",
+      "부서",
+    ]);
+  });
+
   test("a name means the seat's own person, a title only its own court", () => {
     const people: GwPack["people"] = {
       deu_ebert: { name: "에베르트", lean: "x" },

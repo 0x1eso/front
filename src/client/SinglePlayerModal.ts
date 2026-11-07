@@ -276,7 +276,7 @@ export class SinglePlayerModal extends BaseModal {
   @state() private worldWar1936: boolean = DEFAULT_OPTIONS.worldWar1936;
   /** Great War 1914: solo as Germany for now; the map and rules are fixed. */
   @state() private greatWar1914 = false;
-  @state() private greatWar1914Calendar: GwCalendarId = "y1914";
+  @state() private greatWar1914Calendar: GwCalendarId = "full";
   @state() private greatWar1914Seat: GwTag = "DEU";
   @state() private historicalAi: boolean = DEFAULT_OPTIONS.historicalAi;
   @state() private ww1936Unlimited: boolean = DEFAULT_OPTIONS.ww1936Unlimited;
@@ -943,7 +943,7 @@ export class SinglePlayerModal extends BaseModal {
     this.strategicWeapons = DEFAULT_OPTIONS.strategicWeapons;
     this.worldWar1936 = DEFAULT_OPTIONS.worldWar1936;
     this.greatWar1914 = false;
-    this.greatWar1914Calendar = "y1914";
+    this.greatWar1914Calendar = "full";
     this.greatWar1914Seat = "DEU";
     this.historicalAi = DEFAULT_OPTIONS.historicalAi;
     this.ww1936Unlimited = DEFAULT_OPTIONS.ww1936Unlimited;
