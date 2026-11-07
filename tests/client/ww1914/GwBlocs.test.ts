@@ -154,6 +154,18 @@ describe("the blocs screen", () => {
     expect(tabBadge(c.seat, "blocs")).toBe(1);
   });
 
+  test("the country tab's badge counts what can end the game", () => {
+    const seat = {
+      gov: [
+        { fatal: true, step: 1 },
+        { fatal: false, step: 2 },
+        { fatal: true, step: 0 },
+      ],
+      ruler: { levels: [0, 0, 0, 1] },
+    } as unknown as GwCtx["seat"];
+    expect(tabBadge(seat, "country")).toBe(2);
+  });
+
   test("a country with no row says so", () => {
     const { root } = ctx(null);
     expect(q(root, "[data-gw-blocs-none]")).not.toBeNull();

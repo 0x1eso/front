@@ -340,6 +340,15 @@ function draw(
     if (placed() >= target && c.scene.salience < GW_SALIENCE_MUST) break;
     take(c);
   }
+  // A lean month doesn't lose someone's own story: a private visit still calls.
+  if (chapter.lean && !picked.some((p) => p.kind === "talk")) {
+    const c = best(
+      gw,
+      left.filter((x) => x.scene.tags.includes("private")),
+      picked,
+    );
+    if (c !== null) take(c);
+  }
   for (let reads = 0; ; reads++) {
     const open = left.filter((x) => isRead(x.scene));
     const varied = open.filter((c) => !wouldFillOneSubject(c, picked, target));
