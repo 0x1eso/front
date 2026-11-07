@@ -23,6 +23,8 @@ const PROSE = "whitespace-pre-line text-sm leading-7 text-white/90";
 
 function ending(c: GwCtx, m: GwMemoir): TemplateResult {
   const text = endingText(c.pack, m, c.data.date);
+  const man = m.rival ?? null;
+  const rival = man === null ? null : rich(c, rivalLine(c.pack, man));
   return html`<section
     class="space-y-1.5 rounded border border-amber-200/40 bg-amber-200/10 p-3"
     data-gw-ending=${m.ending}
@@ -35,11 +37,9 @@ function ending(c: GwCtx, m: GwMemoir): TemplateResult {
       })}
     </p>
     ${text === null ? nothing : html`<p class=${PROSE}>${rich(c, text)}</p>`}
-    ${(m.rival ?? null) === null
+    ${rival === null
       ? nothing
-      : html`<p class=${PROSE} data-gw-rival>
-          ${rich(c, rivalLine(c.pack, m.rival!))}
-        </p>`}
+      : html`<p class=${PROSE} data-gw-rival>${rival}</p>`}
   </section>`;
 }
 

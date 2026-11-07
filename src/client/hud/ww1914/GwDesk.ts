@@ -42,6 +42,8 @@ import {
 const QUOTE =
   "whitespace-pre-line border-l-2 border-amber-200/40 pl-3 text-white/80";
 const PARA = "whitespace-pre-line";
+/** Tight on purpose: pre-line would keep a template's own line break as a gap. */
+const para = (cls: string, body: unknown) => html`<p class=${cls}>${body}</p>`;
 /** The desk's head stays short; the country tab keeps every line. */
 const REASONS_SHOWN = 6;
 
@@ -294,7 +296,7 @@ function silentPage(c: GwCtx, card: GwCardView): TemplateResult {
     c.data.date,
   );
   return html`<div
-    class="pointer-events-auto fixed inset-0 z-[1000] flex flex-col items-center justify-center gap-6 bg-black/95 p-6 text-white"
+    class="pointer-events-auto fixed inset-0 z-[1000] flex flex-col items-center justify-center gap-6 bg-black p-6 text-white"
     data-gw-silent=${card.scene}
   >
     <div class="max-w-[520px] space-y-3 text-[16px] leading-8 text-white/85">
@@ -407,13 +409,11 @@ export function reader(c: GwCtx, card: GwCardView): TemplateResult {
           </div>`}
       ${card.letterFrom === undefined ? nothing : threadBox(c, card, pass)}
       <div class="space-y-2.5 text-[15px] leading-7 text-white/90">
-        ${body.map(
-          (p) =>
-            html`<p
-              class=${p.quote || card.letterFrom !== undefined ? QUOTE : PARA}
-            >
-              ${rich(c, p.text, pass)}
-            </p>`,
+        ${body.map((p) =>
+          para(
+            p.quote || card.letterFrom !== undefined ? QUOTE : PARA,
+            rich(c, p.text, pass),
+          ),
         )}
         ${voices(c.pack, card).map(
           (v) =>

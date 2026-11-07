@@ -90,6 +90,9 @@ export function activeTalk(c: GwCtx): {
   return { t, card: c.card(uid) };
 }
 
+/** The hour passing, nobody in the room. */
+const ALONE = "whitespace-pre-line text-[17px] leading-8 text-white/85";
+
 function monogram(name: string): string {
   return name.replace(/\s+/g, "").slice(0, 1);
 }
@@ -180,7 +183,7 @@ export function talkView(
     data-gw-talk=${t.scene}
     ?data-gw-big=${big}
     class="pointer-events-auto fixed inset-0 z-[1001] overflow-y-auto ${big
-      ? "bg-black/95"
+      ? "bg-black"
       : "bg-gradient-to-b from-black/65 via-black/75 to-black/90"} text-white"
   >
     <div
@@ -243,12 +246,7 @@ export function talkView(
                 </div>`
               : nothing}
             ${big && speaker === null
-              ? html`<p
-                  class="whitespace-pre-line text-[17px] leading-8 text-white/85"
-                  data-gw-alone
-                >
-                  ${said}
-                </p>`
+              ? html`<p class=${ALONE} data-gw-alone>${said}</p>`
               : html`<blockquote
                   class="${last
                     ? "animate-[gwfade_.7s_ease-out]"
