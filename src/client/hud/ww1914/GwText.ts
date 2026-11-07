@@ -117,7 +117,8 @@ export function optionText(
   const scene = pack?.scenes[card.scene];
   if (card.node !== null) return scene?.nodes?.[card.node]?.replies[id] ?? id;
   // Some shares wrote the lead of an option in **; the button shows plain text.
-  return (scene?.opt?.[id] ?? id).replace(/\*\*/g, "");
+  const line = scene?.optBy?.[card.variant]?.[id] ?? scene?.opt?.[id];
+  return (line ?? id).replace(/\*\*/g, "");
 }
 
 /** An option's text, its **verb phrase** marked: the style guide's bold line. */

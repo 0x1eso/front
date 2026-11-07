@@ -41,6 +41,7 @@ import { moveMoney } from "./Budget";
 import { closeSeat } from "./Endings";
 import type { GreatWar } from "./GreatWar";
 import { dismissPerson, onAppointed } from "./People";
+import { moveRuler, rulerHolds } from "./Ruler";
 import { stageOf } from "./World";
 import { worldEffect, worldHolds } from "./WorldDsl";
 
@@ -404,6 +405,12 @@ export function holds(ctx: SceneCtx, c: GwCond): boolean {
     }
     case "world":
       return worldHolds(ctx, c.of);
+    case "ruler":
+    case "ruler_is":
+    case "ruler_broken":
+    case "ruler_failing":
+    case "ruler_shaken":
+      return rulerHolds(gw, seat, c);
   }
 }
 
@@ -584,6 +591,9 @@ export function runEffect(ctx: SceneCtx, e: GwEffect): void {
     case "world":
       worldEffect(ctx, e.of);
       return;
+    case "ruler":
+      moveRuler(gw, seat, e.side, e.delta, e.key);
+      return;
   }
 }
 
@@ -608,6 +618,9 @@ export function runEffects(ctx: SceneCtx, list: readonly GwEffect[]): void {
   for (const e of list) runEffect(ctx, e);
 }
 
+/** More than any body's condition counts for. */
+const BROKEN_OUTRANKS = 99;
+
 /** How much a condition asks: more leaves, more specific. */
 export function specificity(c: GwCond | undefined): number {
   if (c === undefined) return 0;
@@ -616,6 +629,8 @@ export function specificity(c: GwCond | undefined): number {
     return c.of.reduce((n, x) => Math.min(n, specificity(x)), 9);
   }
   if (c.kind === "not") return specificity(c.of);
+  // A conscience that gave out changes how everything reads.
+  if (c.kind === "ruler_broken") return BROKEN_OUTRANKS;
   return 1;
 }
 

@@ -15,6 +15,7 @@ import type {
 } from "./GreatWarTypes";
 import type { GwTag } from "./GwCountries";
 import type { GwOrderBlock } from "./GwOrders";
+import type { GwRulerView } from "./GwRuler";
 import type { GwWorldView } from "./GwWorldView";
 import type { GwReplyKind, GwSceneKind, GwStance } from "./SceneDsl";
 
@@ -120,6 +121,8 @@ export interface GwSeatView {
   /** Every body dealt, "<scene>.<variant>": the lobby's recent list. */
   shown?: readonly string[];
   world: GwWorldView;
+  /** The person at the desk; null where the regime has no row. */
+  ruler?: GwRulerView | null;
 }
 
 /** The whole mode as sent worker -> main thread. Never mutated. */

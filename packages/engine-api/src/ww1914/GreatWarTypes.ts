@@ -5,6 +5,7 @@
 import { z } from "zod";
 import { GwBudgetStateSchema } from "./GwBudget";
 import { GW_TAGS } from "./GwCountries";
+import { GwRulerStateSchema } from "./GwRuler";
 
 /** A content id: scene, person, flag, memory key. */
 export const GwIdSchema = z
@@ -655,6 +656,15 @@ export const GW_ENDINGS = [
   "rus_serbia_abandoned",
   "rus_assembly_republic",
   "rus_civil_war",
+  // The person at the desk is gone (engine/ww1914/Ruler).
+  "deu_r_death",
+  "deu_r_removed",
+  "gbr_r_death",
+  "gbr_r_removed",
+  "auh_r_death",
+  "auh_r_removed",
+  "rus_r_death",
+  "rus_r_removed",
 ] as const;
 export type GwEnding = (typeof GW_ENDINGS)[number];
 
@@ -777,6 +787,8 @@ export const GwSeatStateSchema = z.object({
   /** Why the gauges moved, last chapters first dropped. */
   lines: z.array(GwLineSchema),
   memoir: GwMemoirSchema.nullable(),
+  /** The person at the desk (engine/ww1914/Ruler). */
+  ruler: GwRulerStateSchema,
 });
 export type GwSeatState = z.infer<typeof GwSeatStateSchema>;
 

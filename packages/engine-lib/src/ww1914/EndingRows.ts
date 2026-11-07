@@ -218,5 +218,7 @@ export const GW_ENDING_CODAS: Readonly<
 export function gwEndingsOf(tag: GwTag): readonly GwEnding[] {
   const rows = (GW_ENDING_ROWS[tag] ?? []).map((r) => r.id);
   if (rows.length === 0) return GW_ENDINGS.slice(1, 10);
-  return [...new Set(rows), ...FIRST_WINTER];
+  const own = `${tag.toLowerCase()}_r_`;
+  const gone = GW_ENDINGS.filter((e) => e.startsWith(own));
+  return [...new Set(rows), ...gone, ...FIRST_WINTER];
 }

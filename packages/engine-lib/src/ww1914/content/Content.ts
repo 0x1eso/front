@@ -1,10 +1,12 @@
 import type { GwPersonDef } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import type { GwScene } from "@openfront/engine-api/ww1914/SceneDsl";
+import { withRuler } from "../RulerRows";
 import { GW_PEOPLE } from "./people";
 import { AUH_PEOPLE } from "./people_auh";
 import { GW_PEOPLE_COMMON } from "./people_common";
 import { GW_PEOPLE_DEU } from "./people_deu";
 import { GW_PEOPLE_MONEY } from "./people_money";
+import { GW_PEOPLE_RULER } from "./people_ruler";
 import { GBR_PEOPLE } from "./people_gbr";
 import { RUS_PEOPLE } from "./people_rus";
 import { AUH_QUIET_SCENES, withAuhBodies } from "./scenes/auh_bodies";
@@ -39,6 +41,7 @@ import { RUS_CRISIS_SCENES } from "./scenes/rus_crisis";
 import { RUS_FALL_SCENES } from "./scenes/rus_fall";
 import { RUS_FRONT_SCENES } from "./scenes/rus_front";
 import { RUS_HOME_SCENES } from "./scenes/rus_home";
+import { RULER_SCENES } from "./scenes/ruler";
 import { WARTIME_SCENES } from "./scenes/wartime";
 import { WORLD_SCENES } from "./scenes/world";
 
@@ -92,7 +95,10 @@ export const GW_CONTENT: GwContent = {
         ...GW_FRAME_SCENES,
       ].map(withPromiseTerms),
       ...BUDGET_SCENES,
-    ].map(withDeuReplay),
+      ...RULER_SCENES,
+    ]
+      .map(withDeuReplay)
+      .map(withRuler),
   ),
   people: [
     ...GW_PEOPLE,
@@ -102,6 +108,7 @@ export const GW_CONTENT: GwContent = {
     ...AUH_PEOPLE,
     ...RUS_PEOPLE,
     ...GW_PEOPLE_MONEY,
+    ...GW_PEOPLE_RULER,
   ],
 };
 

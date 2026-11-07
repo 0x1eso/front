@@ -43,6 +43,7 @@ import {
   GwTopic,
 } from "./GreatWarTypes";
 import { GW_TAGS, GwTag } from "./GwCountries";
+import { GW_RULER_SIDES, GwRulerSide } from "./GwRuler";
 import {
   GwWorldCond,
   GwWorldCondSchema,
@@ -133,7 +134,17 @@ export type GwCond =
       min?: number;
       max?: number;
     }
-  | { kind: "world"; of: GwWorldCond };
+  | { kind: "world"; of: GwWorldCond }
+  /** A side of the seat's ruler card; false with no card. */
+  | { kind: "ruler"; side: GwRulerSide; min?: number; max?: number }
+  /** Whose card this is (RulerRows id). */
+  | { kind: "ruler_is"; of: string[] }
+  /** Conscience has given out. Beats every other variant (`specificity`). */
+  | { kind: "ruler_broken" }
+  /** Chapters since health hit the bottom; false when it hasn't. */
+  | { kind: "ruler_failing"; min?: number; max?: number }
+  /** Chapters since reputation hit the bottom; false when it hasn't. */
+  | { kind: "ruler_shaken"; min?: number; max?: number };
 
 export type GwEffect =
   | { kind: "flag"; flag: string }
@@ -177,7 +188,9 @@ export type GwEffect =
     }
   /** Moves this talk's mood. */
   | { kind: "mood"; delta: number }
-  | { kind: "world"; of: GwWorldEffect };
+  | { kind: "world"; of: GwWorldEffect }
+  /** Moves the ruler card; `key` is the reason line. */
+  | { kind: "ruler"; side: GwRulerSide; delta: number; key: string };
 
 const int = z.number().int();
 const range = { min: int.optional(), max: int.optional() };
@@ -260,6 +273,11 @@ export const GwCondSchema: z.ZodType<GwCond> = z.lazy(() =>
     obj("ai", { tag, of: z.array(z.enum(GW_AI_KINDS)) }),
     obj("nation_gauge", { tag, gauge, ...range }),
     obj("world", { of: GwWorldCondSchema }),
+    obj("ruler", { side: z.enum(GW_RULER_SIDES), ...range }),
+    obj("ruler_is", { of: z.array(GwIdSchema) }),
+    obj("ruler_broken", {}),
+    obj("ruler_failing", range),
+    obj("ruler_shaken", range),
   ]),
 ) as z.ZodType<GwCond>;
 
@@ -309,6 +327,11 @@ export const GwEffectSchema: z.ZodType<GwEffect> = z.lazy(() =>
     }),
     obj("mood", { delta: int }),
     obj("world", { of: GwWorldEffectSchema }),
+    obj("ruler", {
+      side: z.enum(GW_RULER_SIDES),
+      delta: int,
+      key: GwIdSchema,
+    }),
   ]),
 ) as z.ZodType<GwEffect>;
 

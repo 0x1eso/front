@@ -60,6 +60,8 @@ const GW_TURNS: readonly string[] = [
   "regime_ff_throne",
   "regime_austria_republic",
   "regime_crown_remnant",
+  "ruler_death",
+  "ruler_removed",
 ];
 
 const LAST_TURNS = 24;

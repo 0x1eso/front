@@ -7,6 +7,7 @@ import { translateText } from "../../Utils";
 import { budgetStrip, openLedger } from "./GwBudget";
 import type { GwCtx } from "./GwCtx";
 import { isReadOnly, paperCards, talkCards } from "./GwModel";
+import { brokenLine } from "./GwRuler";
 import { BTN, BTN_ON, CHIP, GLASS, HEAD, MUTED } from "./GwStyle";
 import {
   boldParts,
@@ -177,6 +178,7 @@ function optionButton(
 /** The reader: the whole document, the voices around the table, the options. */
 export function reader(c: GwCtx, card: GwCardView): TemplateResult {
   const fill = (t: string) => fillGw(t, c.pack, card, c.seat, c.data.date);
+  const after = brokenLine(c, card);
   const read = isReadOnly(card);
   const armedOpt =
     c.ui.armed?.uid === card.uid
@@ -216,6 +218,9 @@ export function reader(c: GwCtx, card: GwCardView): TemplateResult {
               ${fill(v)}
             </p>`,
         )}
+        ${after === null
+          ? nothing
+          : html`<p class="text-white/70" data-gw-broken-line>${after}</p>`}
       </div>
       ${card.scene.startsWith("gw_bm_") ? budgetStrip(c) : nothing}
       ${(card.folded ?? []).length === 0

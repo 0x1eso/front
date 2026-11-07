@@ -33,10 +33,11 @@ export const GW_PACK_SHARES: Readonly<
     "home",
     "court",
     "budget",
+    "ruler",
   ],
-  GBR: ["crisis", "war", "home", "world", "budget"],
-  AUH: ["crisis", "war", "realm", "crown", "budget"],
-  RUS: ["crisis", "front", "home", "fall", "budget"],
+  GBR: ["crisis", "war", "home", "world", "budget", "ruler"],
+  AUH: ["crisis", "war", "realm", "crown", "budget", "ruler"],
+  RUS: ["crisis", "front", "home", "fall", "budget", "ruler"],
 };
 
 /** The same for `common.json`: every seat loads these. */
@@ -48,6 +49,7 @@ export const GW_COMMON_SHARES: readonly string[] = [
   "world",
   "frame",
   "budget",
+  "ruler",
 ];
 /**
  * Casts in files of their own. Every seat loads them: a scene can cast another

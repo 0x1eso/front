@@ -82,8 +82,8 @@ export const GW_ENGINE_MEMORY = [
 ] as const;
 
 /**
- * References that lead nowhere, across every scene. `outside` lists flags and
- * memory keys set by code rather than by a scene's effect.
+ * References that lead nowhere, across every scene. `outside` lists flags,
+ * memory keys and scene ids set or called by code rather than by a scene.
  */
 export function gwContentProblems(
   scenes: readonly GwScene[],
@@ -95,7 +95,7 @@ export function gwContentProblems(
   const persons = new Set(people.map((p) => p.id));
   const flags = new Set<string>(outside);
   const memories = new Set<string>([...GW_ENGINE_MEMORY, ...outside]);
-  const called = new Set<string>();
+  const called = new Set<string>(outside);
   const secrets = new Set<string>(GW_SECRETS);
   for (const s of scenes) {
     for (const e of gwSceneEffects(s)) {
