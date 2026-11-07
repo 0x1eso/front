@@ -9,6 +9,7 @@ import type { GwBudgetPlan } from "@openfront/engine-api/ww1914/GwBudget";
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import type { GwOrder } from "@openfront/engine-api/ww1914/GwOrders";
 import type { GwPack } from "@openfront/engine-api/ww1914/GwPack";
+import type { GwPlace } from "@openfront/engine-api/ww1914/GwPlaces";
 import type {
   GreatWarData,
   GwCardView,
@@ -89,6 +90,14 @@ export interface GwUi {
   /** The list of aims is open to change one; the aim waiting for its word. */
   aimOpen: boolean;
   aimArmed: string | null;
+  /** The map being painted with the land wanted; null while it isn't. */
+  paint: GwPlace[] | null;
+  /** The place picked on the map at the seat's turn at the table. */
+  tableArmed: GwPlace | null;
+  /** A place tapped that this table can't ask for. */
+  tableBarred: GwPlace | null;
+  /** The list of what could stand in for the land is open. */
+  tableOffer: boolean;
   /** Terms being drawn up. */
   termTag: GwTag | null;
   termGive: GwGiveClause[];
@@ -112,5 +121,7 @@ export interface GwCtx {
   send(order: GwOrder): void;
   /** Redraw after a change of ui state. */
   redraw(): void;
+  /** Moves the camera to a place; absent with no map. */
+  fly?(place: GwPlace): void;
   card(uid: number): GwCardView | undefined;
 }

@@ -2053,6 +2053,12 @@ export class GPURenderer {
     this.makeRegionModes();
   }
 
+  /** Great War 1914: the regions for the map modes, with no lines between them. */
+  setRegionIds(regionIds: Uint16Array): void {
+    this.regionIds = regionIds;
+    this.makeRegionModes();
+  }
+
   /**
    * World War 1936 P5 (spec §20.3): the occupation map mode reads `source`
    * (EndgameModel.occupationMapSource) each frame; it draws only while on.

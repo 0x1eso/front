@@ -743,14 +743,16 @@ export function createRenderer(
     }
   }
 
-  // Great War 1914: the map is a background; only its panel and the sidebar
-  // that pauses and leaves. No vanilla or 1936 HUD, no map taps.
+  // Great War 1914: only its panel and the sidebar that pauses and leaves. No
+  // vanilla or 1936 HUD; the panel takes the map's taps.
   if (game.isGreatWar?.() === true) {
     const gwPanel = document.querySelector("gw-panel");
     if (!(gwPanel instanceof GwPanel)) throw new Error("gw-panel not found");
     view.hideTroopNumbers();
     gwPanel.game = game;
     gwPanel.eventBus = eventBus;
+    gwPanel.transformHandler = transformHandler;
+    gwPanel.mapView = view;
     return new GameRenderer(
       transformHandler,
       uiState,

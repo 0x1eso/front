@@ -11,7 +11,11 @@ import {
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import type { GwOrderBlock } from "@openfront/engine-api/ww1914/GwOrders";
-import { GW_PLACES, GwPlace } from "@openfront/engine-api/ww1914/GwPlaces";
+import {
+  GW_PLACE_KEYS,
+  GW_PLACES,
+  GwPlace,
+} from "@openfront/engine-api/ww1914/GwPlaces";
 import {
   GW_TABLE_TRADES,
   GwMapRecord,
@@ -285,7 +289,7 @@ function tradeWorth(gw: GreatWar, c: GwTableClaim, trade: GwTableTrade): number 
   const t = gw.s.table!;
   let v = TRADE_WORTH[trade];
   if (trade === "reparations") v -= (t.bill[c.against] ?? 0) * BILL_WEAR;
-  const seat = seatsOf(gw, dueBy(c))[0] ?? seatsOf(gw, c.offerBy ?? c.by)[0];
+  const seat = seatsOf(gw, c.offerBy ?? c.by)[0];
   if (seat?.flags.includes("f_e_traded_land") === true) v += TRADER_WORTH;
   return v;
 }
@@ -323,21 +327,23 @@ function nextChair(t: GwTableState): void {
   t.round++;
 }
 
-function overBy(gw: GreatWar, tag: GwTag): void {
+function overBy(gw: GreatWar, c: GwTableClaim): void {
   const t = gw.s.table!;
+  const tag = c.by;
   t.over[tag] = (t.over[tag] ?? 0) + 1;
   if (t.over[tag] !== OVER_WARN) return;
   const usa = t.order.includes("USA") && tag !== "USA";
   const voice = usa ? "USA" : t.order.find((x) => x !== tag);
-  if (voice !== undefined) say(t, "over", voice, -1);
+  if (voice !== undefined) say(t, "over", voice, c.id);
 }
 
 function give(gw: GreatWar, c: GwTableClaim, state: "agreed" | "imposed") {
   const t = gw.s.table!;
   c.state = state;
   moveLand(gw, c.place, c.by, null);
-  say(t, state === "agreed" ? "yes" : "impose", c.against, c.id);
-  if (claimsMade(t, c.by) > BEARS) overBy(gw, c.by);
+  if (state === "agreed") say(t, "yes", c.against, c.id);
+  else say(t, "impose", c.by, c.id);
+  if (claimsMade(t, c.by) > BEARS) overBy(gw, c);
 }
 
 /** Refused to the last: a loser can do that only so often, and it costs. */
@@ -407,7 +413,7 @@ function word(
       c.offer = null;
       c.offerBy = null;
       say(t, "press", tag, c.id);
-      overBy(gw, c.by);
+      overBy(gw, c);
       return;
     case "drop":
       c.state = "dropped";
@@ -740,9 +746,11 @@ function dueOf(gw: GreatWar, seat: GwSeatState): GwTableDue {
       trades: words.includes("offer") ? tradesFor(gw, c) : [],
     };
   }
-  return myTurn(gw, seat)
-    ? { kind: "turn", left: GW_TABLE_ROUNDS - t.round }
-    : null;
+  if (!myTurn(gw, seat)) return null;
+  const places = GW_PLACE_KEYS.filter(
+    (p) => !onTable(t, p) && againstOf(gw, seat.tag, p) !== null,
+  );
+  return { kind: "turn", left: GW_TABLE_ROUNDS - t.round, places };
 }
 
 function roleOf(gw: GreatWar, seat: GwSeatState): GwTableView["role"] {
@@ -769,6 +777,10 @@ export function tableView(
     done: t.done,
     role: roleOf(gw, seat),
     order: t.order,
+    losers: t.order.filter((tag) => {
+      const winner = winnerOf(gw);
+      return winner !== null && sideOf(gw, tag) !== winner;
+    }),
     speaker: c !== undefined ? dueBy(c) : idle ? null : t.order[t.at],
     claims: t.claims,
     lines: t.lines.slice(-LINES_SHOWN),

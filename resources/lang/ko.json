@@ -14630,7 +14630,8 @@
       "law_passed": "{a}에서 새 법이 통과됐다.",
       "law_repealed": "{a}에서 법 하나가 폐지됐다.",
       "law_decreed": "{a}에서 새 법이 칙령으로 나왔다.",
-      "terms_signed": "{a}와(과) {b}이(가) 조건에 합의했다."
+      "terms_signed": "{a}와(과) {b}이(가) 조건에 합의했다.",
+      "table_signed": "강화 조약이 서명되었다."
     },
     "odds": {
       "0": "될 일이 아닙니다.",
@@ -14670,7 +14671,8 @@
       "cos_scale": "같은 안, 규모를 달리해",
       "help_ally": "동맹 지원",
       "hold_all": "전 전선 유지",
-      "other_front": "다른 전선"
+      "other_front": "다른 전선",
+      "claim_front": "칠한 땅으로"
     },
     "plan_why": {
       "army": "참모본부가 이 안을 받지 않는다.",
@@ -15088,7 +15090,8 @@
       "gov_held_auh_court": "섭정 이야기를 물리쳤다",
       "gov_held_rus_cabinet": "각료들의 청원을 넘겼다",
       "gov_held_rus_duma": "두마와의 싸움을 넘겼다",
-      "gov_held_rus_court": "멈춘 기차를 움직였다"
+      "gov_held_rus_court": "멈춘 기차를 움직였다",
+      "table_signed": "강화 조약이 서명되고 지도가 다시 그려졌다."
     },
     "ui": {
       "alloc_now": "지금: {main}, {posture}, {scale}",
@@ -15127,7 +15130,9 @@
         "no_slot": "이번 장의 일정이 남지 않았다.",
         "no_terms": "이 조건은 보낼 수 없다.",
         "terms_sent": "이번 장의 조건은 이미 나갔다.",
-        "prologue": "아직 지난날이 끝나지 않았습니다."
+        "prologue": "아직 지난날이 끝나지 않았습니다.",
+        "no_claims": "이 지도에는 서명할 수 없습니다.",
+        "table_no": "지금 탁자에서 그 말은 할 수 없습니다."
       },
       "brief_label": "비서의 메모",
       "calendar": {
@@ -15372,7 +15377,8 @@
         "people": "사람",
         "notebook": "수첩",
         "blocs": "정국",
-        "schedule": "일정"
+        "schedule": "일정",
+        "table": "강화 회의"
       },
       "talk_done": "자리를 일어선다",
       "talk_ended": "대화가 끝났다.",
@@ -15531,7 +15537,8 @@
       "prologue_note_neutral": "지난날에서 이어지는 것 없이 시작합니다.",
       "prologue_note_play": "1914년 6월까지 이 통치자의 삶을 살고 나서 첫 전보를 받습니다.",
       "prologue_play": "지난날부터 산다",
-      "prologue_skip": "첫 전보부터 시작한다"
+      "prologue_skip": "첫 전보부터 시작한다",
+      "paper_claimed": "이 전선의 칠한 땅: {list}"
     },
     "unknown": {
       "ai": "{country}의 원수는 {word}이었다.",
@@ -15919,6 +15926,143 @@
         "winning": "제 편이 앞서는데 들을 까닭이 없다",
         "too_soon": "아직 그런 말을 꺼낼 때가 아니다"
       }
+    },
+    "claims": {
+      "ask": "이 전쟁으로 얻을 땅을 지도에 칠한다.",
+      "cancel": "그만둔다",
+      "held": "칠한 {total}곳 가운데 {n}곳을 쥐고 있다",
+      "how": "지도에서 땅을 누르면 칠해지고, 다시 누르면 지워진다.",
+      "lands": "땅 이름으로 칠하기",
+      "nudge": "전쟁이 시작됐는데 얻을 땅을 정하지 않았다. 지도에 칠한다.",
+      "paint": "지도에 칠한다",
+      "painted": "칠한 땅 {n}곳",
+      "priced": "서명한 지도를 고치면 값을 치른다.",
+      "repaint": "지도를 고친다",
+      "sign": "이 지도에 서명한다",
+      "title": "전쟁으로 얻을 땅"
+    },
+    "table": {
+      "agenda": "탁자 위의 땅",
+      "ask": {
+        "claim": "{by}이(가) {place}을(를) 내놓으라 한다.",
+        "counter": "{against}이(가) {place} 대신 {trade}을(를) 내놓는다.",
+        "pressed": "{by}이(가) {place}을(를) 다시 요구한다.",
+        "refused": "{against}이(가) {place}을(를) 거절했다.",
+        "their_offer": "{by}이(가) {place} 대신 {trade}을(를) 받겠다고 한다.",
+        "waiting": "저쪽의 답을 기다린다."
+      },
+      "close_month": "이번 달 회의를 닫는다",
+      "demand": "{place}을(를) 요구한다",
+      "leave_it": "남은 일은 대표단에 맡긴다",
+      "map": {
+        "got": "칠한 땅 {total}곳 가운데 {n}곳을 손에 넣었다.",
+        "held_by": "{country}: {list}",
+        "title": "지도가 이렇게 되었다",
+        "trade_mine": "{place}: {country}에게서 {trade}",
+        "trade_theirs": "{place}: {country}에게 {trade}",
+        "unchanged": "지도는 1914년 6월 그대로다."
+      },
+      "minute": {
+        "claim": "{by}이(가) {place}을(를) 요구합니다.",
+        "close": "이달 회의를 닫습니다.",
+        "drop": "{place} 요구를 거둡니다.",
+        "hold": "{place}은(는) 끝까지 거절합니다.",
+        "impose": "{place}을(를) 조문에 넣습니다.",
+        "no": "거절합니다.",
+        "offer": "{place} 대신 {trade}을(를) 내놓습니다.",
+        "open": "회의를 엽니다.",
+        "over": "{by}의 요구가 지나칩니다.",
+        "press": "{place}을(를) 다시 요구합니다.",
+        "traded": "{trade}(으)로 합의합니다.",
+        "yes": "{place}을(를) 내줍니다."
+      },
+      "month_done": "{n}번째 달의 회의가 할 말을 마쳤다.",
+      "next": "다음",
+      "papers": "먼저 볼 서류 {n}건",
+      "pass": "이번 차례는 말하지 않는다",
+      "session": "{total}달 중 {n}째 달",
+      "signed": "조약이 서명되었다",
+      "state": {
+        "agreed": "합의",
+        "dropped": "철회",
+        "imposed": "강요",
+        "open": "논의 중",
+        "refused": "거절",
+        "traded": "교환"
+      },
+      "tap": "지도에서 땅을 눌러 탁자에 올린다.",
+      "title": "강화 회의",
+      "trade": {
+        "guarantee": "보장",
+        "port": "자유항",
+        "recognition": "승인",
+        "reparations": "배상"
+      },
+      "trade_note": {
+        "guarantee": "{place}은(는) 남기되 요새와 주둔군을 두지 않는다.",
+        "port": "{place}은(는) 남기되 상대에게 자유항을 내준다.",
+        "recognition": "{place}은(는) 남기되 상대의 주장을 문서로 승인한다.",
+        "reparations": "{place}은(는) 남기고 배상금으로 치른다."
+      },
+      "word": {
+        "drop": "요구를 거둔다",
+        "no": "거절한다",
+        "offer": "다른 것을 내놓는다",
+        "press": "밀어붙인다",
+        "take": "그것을 받아들인다",
+        "yes": "내준다"
+      },
+      "your_turn": "우리 차례다.",
+      "barred": "{place}은(는) 이 탁자에서 부를 수 있는 땅이 아니다."
+    },
+    "land": {
+      "albania": "알바니아",
+      "alsace_lorraine": "알자스-로렌",
+      "austria": "오스트리아",
+      "baltic": "발트",
+      "banat": "바나트",
+      "belgium": "벨기에",
+      "bessarabia": "베사라비아",
+      "bohemia": "보헤미아",
+      "bosnia": "보스니아",
+      "bukovina": "부코비나",
+      "bulgaria": "불가리아",
+      "caucasus": "캅카스",
+      "colonies": "식민지",
+      "croatia": "크로아티아",
+      "dalmatia": "달마티아",
+      "east_prussia": "동프로이센",
+      "flanders": "플랑드르",
+      "france": "프랑스",
+      "galicia": "갈리치아",
+      "germany": "독일",
+      "greece": "그리스",
+      "hungary": "헝가리",
+      "macedonia": "마케도니아",
+      "mesopotamia": "메소포타미아",
+      "montenegro": "몬테네그로",
+      "moravia": "모라비아",
+      "palestine": "팔레스타인",
+      "piave": "베네토",
+      "posen": "포젠",
+      "rhineland": "라인란트",
+      "romania": "루마니아",
+      "russia": "러시아",
+      "russian_poland": "러시아령 폴란드",
+      "schleswig": "슐레스비히",
+      "serbia": "세르비아",
+      "silesia": "슐레지엔",
+      "straits": "해협",
+      "syria": "시리아",
+      "thrace": "트라키아",
+      "transylvania": "트란실바니아",
+      "trentino": "트렌티노",
+      "trieste": "트리에스테",
+      "ukraine": "우크라이나",
+      "upper_hungary": "상부 헝가리",
+      "west_prussia": "서프로이센",
+      "west_russia": "서부 러시아",
+      "western_front": "북프랑스"
     }
   }
 }

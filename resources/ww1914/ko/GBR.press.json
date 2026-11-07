@@ -177,7 +177,10 @@
       "dilution": "숙련공 자리에 들어온 희석 노동",
       "press_habit": "자유로운 신문의 전통",
       "opposition_papers": "야당과 보수계 신문의 사이",
-      "rumour_beats": "소문이 신문을 앞지른다"
+      "rumour_beats": "소문이 신문을 앞지른다",
+      "claims_modest": "칠한 땅이 적다",
+      "claims_wide": "제국이 더 넓어진다",
+      "claims_vast": "세계를 칠했다는 말이 돈다"
     },
     "ties": {
       "generals_papers": "프랑스의 장군들이 레핑턴과 노스클리프에게 직접 말한다.",

@@ -41,6 +41,7 @@ export const GW_PACK_SHARES: Readonly<
     "acts",
     "act",
     "prologue",
+    "table",
   ],
   GBR: [
     "crisis",
@@ -56,6 +57,7 @@ export const GW_PACK_SHARES: Readonly<
     "acts",
     "act",
     "prologue",
+    "table",
   ],
   AUH: [
     "crisis",
@@ -71,6 +73,7 @@ export const GW_PACK_SHARES: Readonly<
     "acts",
     "act",
     "prologue",
+    "table",
   ],
   RUS: [
     "crisis",
@@ -86,6 +89,7 @@ export const GW_PACK_SHARES: Readonly<
     "acts",
     "act",
     "prologue",
+    "table",
   ],
 };
 
@@ -102,6 +106,7 @@ export const GW_COMMON_SHARES: readonly string[] = [
   "ruler",
   "dict",
   "acts",
+  "table",
 ];
 /**
  * Casts in files of their own. Every seat loads them: a scene can cast another

@@ -175,7 +175,10 @@
       "talked_to": "1월 파업 때 나눈 말",
       "troops_called": "1월 파업에 부른 군대",
       "press_habit": "빈 편집실의 오랜 충성",
-      "rumour_beats": "소문이 신문을 앞지른다"
+      "rumour_beats": "소문이 신문을 앞지른다",
+      "claims_modest": "칠한 땅이 적다",
+      "claims_wide": "슬라브인이 더 늘어난다",
+      "claims_vast": "왕관이 감당 못 할 지도다"
     },
     "ties": {
       "house_army": "군대는 황제의 것이다. 왕가와 장교단이 서로를 지탱한다.",

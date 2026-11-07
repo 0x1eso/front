@@ -182,6 +182,40 @@ export const GwPressPackSchema = z
   .strict();
 export type GwPressPack = z.infer<typeof GwPressPackSchema>;
 
+const Lines = z.array(Text).min(1);
+const Roles = z.record(z.enum(["won", "lost", "even", "watch"]), Text);
+
+/** One man at the peace table (GwTable.ts): his lines by what is happening. */
+const GwEnvoyPackSchema = z
+  .object({
+    name: Text,
+    title: Text,
+    /** Where another man comes by how the war ended. */
+    nameBy: z.partialRecord(z.enum(["won", "lost", "even", "watch"]), Text).optional(),
+    /** Line kind, or `open_<role>` -> what he says. Holds {place}, {by}... */
+    lines: z.record(GwIdSchema, Lines),
+  })
+  .strict();
+
+/** The peace table's words. Envoys and `on` in common, the rest by country. */
+export const GwTablePackSchema = z
+  .object({
+    /** Country tag, or `minor` for the small ones -> the man at the table. */
+    envoys: z.record(z.string(), GwEnvoyPackSchema),
+    /** Land -> country tag -> line kind -> what he says of that land. */
+    on: z.record(GwIdSchema, z.record(z.string(), ById)),
+    /** Moment -> office -> what the seat's people say beside it. */
+    aides: z.record(GwIdSchema, z.record(GwIdSchema, Lines)),
+    /** How the seat comes to the table, and how it leaves. */
+    open: Roles,
+    close: Roles,
+    /** The memoir's paragraph: `<role>`, `over`, `held`. */
+    memoir: ById,
+  })
+  .partial()
+  .strict();
+export type GwTablePack = z.infer<typeof GwTablePackSchema>;
+
 export const GwPackSchema = z
   .object({
     version: z.literal(1),
@@ -189,6 +223,8 @@ export const GwPackSchema = z
     people: z.record(GwIdSchema, GwPersonPackSchema),
     /** `reason` effect key -> the line, may hold {who}. */
     reasons: ById.optional(),
+    /** The peace table's words. */
+    table: GwTablePackSchema.optional(),
     /** Promise key -> how the people screen lists it, may hold {who}. */
     promises: ById.optional(),
     /** Ending id -> the memoir's paragraph, may hold {date}, {casualties}. */
@@ -245,6 +281,7 @@ export function mergeGwPacks(packs: readonly GwPack[]): GwPack {
     Object.assign(out.aims!, p.aims);
     Object.assign(out.rivals!, p.rivals);
     if (p.press !== undefined) out.press = p.press;
+    if (p.table !== undefined) out.table = { ...out.table, ...p.table };
   }
   for (const p of packs) {
     for (const [id, o] of Object.entries(p.over ?? {})) {

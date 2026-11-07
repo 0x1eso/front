@@ -24,6 +24,7 @@ import {
 } from "@openfront/engine-api/ww1914/SceneDsl";
 import { ScenarioDataSchema } from "@openfront/engine-api/ww1936/ScenarioTypes";
 import { GW_CONTENT } from "@openfront/engine-lib/ww1914/content/Content";
+import { TABLE_SCENES } from "@openfront/engine-lib/ww1914/content/scenes/table";
 import { gwEndingsOf } from "@openfront/engine-lib/ww1914/EndingRows";
 import { gwRulerScenes } from "@openfront/engine-lib/ww1914/RulerRows";
 import { gwOwnerOf, gwWorldOf } from "@openfront/engine-lib/ww1914/World1914";
@@ -96,6 +97,7 @@ describe("content", () => {
       "gw_world_called_only",
       ...GW_WORLD_FLAGS,
       ...gwRulerScenes(),
+      ...TABLE_SCENES.map((x) => x.id),
     ];
     expect(gwContentProblems(scenes, people, outside)).toEqual([]);
     const lang = json("lang/en.json").gw.reason as Record<string, string>;

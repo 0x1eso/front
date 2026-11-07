@@ -6,6 +6,7 @@ import type {
   GwFrontView,
   GwProposal,
 } from "@openfront/engine-api/ww1914/GwWorldView";
+import { GW_PLACES } from "@openfront/engine-api/ww1914/GwPlaces";
 import { html, nothing, TemplateResult } from "lit";
 import { translateText } from "../../Utils";
 import type { GwCtx } from "./GwCtx";
@@ -87,6 +88,13 @@ function paper(c: GwCtx, p: GwProposal): TemplateResult {
           ${translateText("gw.ui.paper_odds", {
             name: personName(c.pack, p.by),
             odds: translateText(`gw.odds.${p.estimate}`),
+          })}
+        </p>`}
+    ${(p.claimed ?? []).length === 0
+      ? nothing
+      : html`<p class="text-sm text-amber-100" data-gw-paper-claimed>
+          ${translateText("gw.ui.paper_claimed", {
+            list: (p.claimed ?? []).map((x) => GW_PLACES[x].nameKo).join(", "),
           })}
         </p>`}
     ${p.open

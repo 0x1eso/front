@@ -346,6 +346,11 @@ export class GameView implements GameLike {
     return this._greatWarData;
   }
 
+  /** Great War 1914: the regions under the map; null when the mode is off. */
+  gwScenario(): ScenarioIndex | null {
+    return this._gwWorld === null ? null : (this._mapData.scenario ?? null);
+  }
+
   /** Great War 1914: this player's country; null when the mode is off. */
   gwTagOf(smallID: number): GwTag | null {
     return this._gwWorld?.tags[smallID - 1] ?? null;

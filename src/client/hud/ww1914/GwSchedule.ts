@@ -11,6 +11,7 @@ import type {
 import { html, nothing, TemplateResult } from "lit";
 import { translateText } from "../../Utils";
 import type { GwCtx } from "./GwCtx";
+import { claimsBox } from "./GwTable";
 import { rich } from "./GwDict";
 import { BTN, BTN_ON, CHIP, HEAD, MUTED } from "./GwStyle";
 import { personName } from "./GwText";
@@ -373,15 +374,32 @@ function termsBox(c: GwCtx): TemplateResult | typeof nothing {
 /** The schedule tab: what this reign is for, what to start, who to approach. */
 export function scheduleTab(c: GwCtx): TemplateResult {
   return html`<div class="space-y-2.5" data-gw-schedule-tab>
-    ${aimBox(c)} ${schedule(c)} ${termsBox(c)}
+    ${aimBox(c)} ${claimsBox(c)} ${schedule(c)} ${termsBox(c)}
   </div>`;
+}
+
+/** On the desk once the war is on and nothing is painted. */
+function claimsNudge(c: GwCtx): TemplateResult | typeof nothing {
+  const v = c.seat.claims;
+  if (v === undefined || !v.open || v.priced) return nothing;
+  return html`<button
+    class="w-full rounded border border-amber-200/40 bg-amber-200/10 p-2 text-left text-sm text-amber-100"
+    data-gw-claims-nudge
+    @click=${() => {
+      c.ui.tab = "schedule";
+      c.ui.paint = [];
+      c.redraw();
+    }}
+  >
+    ${translateText("gw.claims.nudge")}
+  </button>`;
 }
 
 /** On the desk until the seat has said what the war is for. */
 export function aimNudge(c: GwCtx): TemplateResult | typeof nothing {
   const a = c.seat.aims;
-  if (a === null || a === undefined || a.aim !== null) return nothing;
-  if (a.priced || a.open.length === 0) return nothing;
+  if (a === null || a === undefined || a.aim !== null) return claimsNudge(c);
+  if (a.priced || a.open.length === 0) return claimsNudge(c);
   return html`<button
     class="w-full rounded border border-amber-200/40 bg-amber-200/10 p-2 text-left text-sm text-amber-100"
     data-gw-aim-nudge

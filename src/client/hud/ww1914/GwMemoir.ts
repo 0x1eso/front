@@ -5,6 +5,7 @@ import type { GwCtx } from "./GwCtx";
 import { rich } from "./GwDict";
 import { endingsOf, logByChapter, shelfTotals } from "./GwModel";
 import { CHIP, HEAD, MUTED } from "./GwStyle";
+import { countryName, placeName } from "./GwTableModel";
 import {
   countInMan,
   endingText,
@@ -61,6 +62,58 @@ function aimBox(c: GwCtx, m: GwMemoir): TemplateResult | typeof nothing {
       : html`<p class=${MUTED}>
           ${translateText("gw.aim.dropped", { list: dropped.join(", ") })}
         </p>`}
+  </section>`;
+}
+
+/** What the map became: the land by who has it now, what stood in for land. */
+function mapBox(c: GwCtx, m: GwMemoir): TemplateResult | typeof nothing {
+  const r = m.map;
+  if (r === null || r === undefined) return nothing;
+  const words = c.pack?.table?.memoir;
+  const lines = [
+    r.role === null ? undefined : words?.[r.role],
+    r.over >= 3 ? words?.over : undefined,
+    r.held > 0 ? words?.held : undefined,
+  ].filter((x) => x !== undefined);
+  const holders = [...new Set(r.moves.map((x) => x.to))];
+  return html`<section class=${BOX} data-gw-memoir-map>
+    <h3 class=${HEAD}>${translateText("gw.table.map.title")}</h3>
+    ${lines.map((l) => html`<p class=${PROSE}>${rich(c, l)}</p>`)}
+    ${r.painted.length === 0
+      ? nothing
+      : html`<p class="text-sm text-amber-100" data-gw-memoir-got>
+          ${translateText("gw.table.map.got", {
+            n: r.got.length,
+            total: r.painted.length,
+          })}
+        </p>`}
+    ${holders.length === 0
+      ? html`<p class=${MUTED}>${translateText("gw.table.map.unchanged")}</p>`
+      : holders.map(
+          (tag) =>
+            html`<p class="text-sm text-white/85" data-gw-memoir-holder=${tag}>
+              ${translateText("gw.table.map.held_by", {
+                country: countryName(tag),
+                list: r.moves
+                  .filter((x) => x.to === tag)
+                  .map((x) => placeName(x.place))
+                  .join(", "),
+              })}
+            </p>`,
+        )}
+    ${r.trades.map(
+      (x) =>
+        html`<p class=${MUTED}>
+          ${translateText(
+            x.mine ? "gw.table.map.trade_mine" : "gw.table.map.trade_theirs",
+            {
+              place: placeName(x.place),
+              country: countryName(x.with),
+              trade: translateText(`gw.table.trade.${x.trade}`),
+            },
+          )}
+        </p>`,
+    )}
   </section>`;
 }
 
@@ -230,7 +283,7 @@ export function memoirTab(c: GwCtx): TemplateResult {
       ? html`<p class="text-sm text-white/70">
           ${translateText("gw.ui.memoir_open")}
         </p>`
-      : html`${ending(c, m)} ${aimBox(c, m)} ${mandates(m)} ${turns(m)}
+      : html`${ending(c, m)} ${mapBox(c, m)} ${aimBox(c, m)} ${mandates(m)} ${turns(m)}
         ${reckoning(m)} ${cast(c, m)} ${unknown(c, m)}`}
     <section class=${BOX}>
       <h3 class=${HEAD}>${translateText("gw.ui.record_title")}</h3>

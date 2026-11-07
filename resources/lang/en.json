@@ -2150,6 +2150,20 @@
         "taxes_up": "The taxes go up"
       }
     },
+    "claims": {
+      "ask": "Say on the map what land this war is for.",
+      "cancel": "Put the map away",
+      "held": "{n} of {total} places in hand",
+      "how": "Tap a place on the map to paint it; tap it again to take the paint off.",
+      "lands": "Whole lands",
+      "nudge": "The war is on and nobody has said what land it is for. Paint it on the map.",
+      "paint": "Paint the map",
+      "painted": "Painted: {n}",
+      "priced": "A map once signed can only be changed at a price.",
+      "repaint": "Change the map",
+      "sign": "Sign this map",
+      "title": "The land we want"
+    },
     "country": {
       "AFG": "Afghanistan",
       "ALB": "Albania",
@@ -2496,6 +2510,55 @@
       "straits": "The Straits",
       "tighten_blockade": "Tightening the blockade"
     },
+    "land": {
+      "albania": "Albania",
+      "alsace_lorraine": "Alsace-Lorraine",
+      "austria": "Austria",
+      "baltic": "The Baltic",
+      "banat": "The Banat",
+      "belgium": "Belgium",
+      "bessarabia": "Bessarabia",
+      "bohemia": "Bohemia",
+      "bosnia": "Bosnia",
+      "bukovina": "Bukovina",
+      "bulgaria": "Bulgaria",
+      "caucasus": "The Caucasus",
+      "colonies": "The colonies",
+      "croatia": "Croatia",
+      "dalmatia": "Dalmatia",
+      "east_prussia": "East Prussia",
+      "flanders": "Flanders",
+      "france": "France",
+      "galicia": "Galicia",
+      "germany": "Germany",
+      "greece": "Greece",
+      "hungary": "Hungary",
+      "macedonia": "Macedonia",
+      "mesopotamia": "Mesopotamia",
+      "montenegro": "Montenegro",
+      "moravia": "Moravia",
+      "palestine": "Palestine",
+      "piave": "Veneto",
+      "posen": "Posen",
+      "rhineland": "The Rhineland",
+      "romania": "Romania",
+      "russia": "Russia",
+      "russian_poland": "Russian Poland",
+      "schleswig": "Schleswig",
+      "serbia": "Serbia",
+      "silesia": "Silesia",
+      "straits": "The Straits",
+      "syria": "Syria",
+      "thrace": "Thrace",
+      "transylvania": "Transylvania",
+      "trentino": "Trentino",
+      "trieste": "Trieste and Istria",
+      "ukraine": "Ukraine",
+      "upper_hungary": "Upper Hungary",
+      "west_prussia": "West Prussia",
+      "west_russia": "Western Russia",
+      "western_front": "Northern France"
+    },
     "law": {
       "by_decree": "can go past them",
       "call": "Call {name}",
@@ -2696,6 +2759,7 @@
       "spark_colonial": "Gunboats off Morocco again.",
       "spark_straits": "The Straits are in question.",
       "sued_for_peace": "{a} makes its own peace.",
+      "table_signed": "The peace treaty has been signed.",
       "talks_refused": "Peace feelers from {a} are refused.",
       "tech_assault_groups": "{a} is first with: Assault groups.",
       "tech_barrage": "{a} is first with: The creeping barrage.",
@@ -2751,6 +2815,7 @@
       "not_ready": "Not ready"
     },
     "plan": {
+      "claim_front": "Toward the painted land",
       "cos_plan": "The chief's plan",
       "cos_scale": "The same, on another scale",
       "help_ally": "Help the ally",
@@ -3012,6 +3077,80 @@
       "estimate": "Estimate",
       "unconfirmed": "Unconfirmed"
     },
+    "table": {
+      "agenda": "On the table",
+      "ask": {
+        "claim": "{by} asks for {place}.",
+        "counter": "In place of {place} they offer {trade}.",
+        "pressed": "{by} asks for {place} again.",
+        "refused": "{against} refuses {place}.",
+        "their_offer": "{by} would take {trade} in place of {place}.",
+        "waiting": "Waiting for their answer."
+      },
+      "barred": "{place} is not for this table.",
+      "close_month": "Close this month",
+      "demand": "Demand {place}",
+      "leave_it": "Leave the rest to the delegation",
+      "map": {
+        "got": "Of {total} places painted, {n} ended in our hands.",
+        "held_by": "{country}: {list}",
+        "title": "What the map became",
+        "trade_mine": "{place}: {trade} from {country}",
+        "trade_theirs": "{place}: {trade} to {country}",
+        "unchanged": "The map stands as it stood in June 1914."
+      },
+      "minute": {
+        "claim": "{by} asks for {place}.",
+        "close": "The month's sitting closes.",
+        "drop": "{place} is withdrawn.",
+        "hold": "{place} is refused to the last.",
+        "impose": "{place} is written in.",
+        "no": "Refused.",
+        "offer": "{trade} is offered in place of {place}.",
+        "open": "The sitting opens.",
+        "over": "The table has heard enough from {by}.",
+        "press": "{place} again.",
+        "traded": "Agreed: {trade}.",
+        "yes": "{place} is given up."
+      },
+      "month_done": "Month {n} of the conference has said what it will say.",
+      "next": "Next",
+      "papers": "Papers waiting first: {n}",
+      "pass": "Say nothing this time",
+      "session": "Month {n} of {total}",
+      "signed": "The treaty is signed",
+      "state": {
+        "agreed": "given up",
+        "dropped": "withdrawn",
+        "imposed": "imposed",
+        "open": "on the table",
+        "refused": "refused",
+        "traded": "traded"
+      },
+      "tap": "Tap a place on the map to put it on the table.",
+      "title": "The peace table",
+      "trade": {
+        "guarantee": "a guarantee",
+        "port": "a free port",
+        "recognition": "recognition",
+        "reparations": "reparations"
+      },
+      "trade_note": {
+        "guarantee": "{place} stays, under a guarantee: no forts, no garrison.",
+        "port": "{place} stays, with a free port for the other side.",
+        "recognition": "{place} stays; the other side's claim is signed for in words.",
+        "reparations": "{place} stays, and it goes on the bill."
+      },
+      "word": {
+        "drop": "Let it go",
+        "no": "Refuse",
+        "offer": "Offer something else",
+        "press": "Insist",
+        "take": "Accept that",
+        "yes": "Give it up"
+      },
+      "your_turn": "Our turn to speak."
+    },
     "tech": {
       "assault_groups": "Assault groups",
       "barrage": "The creeping barrage",
@@ -3249,6 +3388,7 @@
       "spark_balkan": "The Balkans caught fire again.",
       "spark_colonial": "Morocco came back.",
       "spark_straits": "The Straits became the question.",
+      "table_signed": "The peace was signed and the map redrawn.",
       "uboat_unrestricted": "Unrestricted submarine war began.",
       "war_began": "The war began."
     },
@@ -3288,6 +3428,7 @@
         "no_authority": "Not enough authority for this dismissal.",
         "no_back": "This paper cannot go back.",
         "no_card": "That paper is gone.",
+        "no_claims": "That map can't be signed.",
         "no_law": "That bill can't be brought now.",
         "no_meeting": "There is no budget meeting now.",
         "no_option": "There is no such choice.",
@@ -3304,6 +3445,7 @@
         "prologue": "The years come first.",
         "signed": "This chapter's paper is already signed.",
         "stale_chapter": "That chapter has already passed.",
+        "table_no": "That can't be said at the table now.",
         "terms_sent": "Terms have already gone out this chapter.",
         "wrong_kind": "That does not fit this paper."
       },
@@ -3463,6 +3605,7 @@
       "notebook_proxy": "Proxy",
       "options": "Your choices",
       "outside": "Outside the cabinet",
+      "paper_claimed": "Painted land on this front: {list}",
       "paper_hint": "One paper is signed each chapter. If you sign none, the first goes out as it stands.",
       "paper_odds": "{name}: \"{odds}\"",
       "paper_signed": "This chapter's paper is signed.",
@@ -3633,7 +3776,8 @@
         "memoir": "Memoir",
         "notebook": "Notebook",
         "people": "People",
-        "schedule": "Schedule"
+        "schedule": "Schedule",
+        "table": "Peace"
       },
       "talk_done": "Leave the table",
       "talk_ended": "The talk is over.",

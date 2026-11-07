@@ -178,7 +178,10 @@
       "strikes": "공장의 파업",
       "press_habit": "편집실의 오랜 충성",
       "rumour_beats": "소문이 신문을 앞지른다",
-      "one_censor": "검열 창구를 하나로 모은 일"
+      "one_censor": "검열 창구를 하나로 모은 일",
+      "claims_modest": "칠한 땅이 적다",
+      "claims_wide": "칠한 땅이 넓다",
+      "claims_vast": "유럽 절반을 칠했다"
     },
     "ties": {
       "sword_throne": "군부와 궁정은 한 몸이다. 군사내각이 그 끈이다.",

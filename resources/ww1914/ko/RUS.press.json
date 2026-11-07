@@ -175,7 +175,10 @@
       "strikes": "공장의 파업",
       "wages_paid": "임금 인상",
       "rumour_beats": "소문이 신문을 앞지른다",
-      "press_free": "검열 폐지"
+      "press_free": "검열 폐지",
+      "claims_modest": "칠한 땅이 적다",
+      "claims_wide": "범슬라브의 꿈이 지도에 올랐다",
+      "claims_vast": "누가 이 땅을 위해 죽느냐는 물음"
     },
     "ties": {
       "oath": "장군들은 폐하께 서약했다. 궁정은 그 서약을 믿는다.",

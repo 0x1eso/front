@@ -1,5 +1,6 @@
 import type { GwOrder } from "@openfront/engine-api/ww1914/GwOrders";
 import type { GwPack } from "@openfront/engine-api/ww1914/GwPack";
+import { GW_PLACES, GwPlace } from "@openfront/engine-api/ww1914/GwPlaces";
 import type {
   GreatWarData,
   GwCardView,
@@ -12,6 +13,8 @@ import { html, LitElement, nothing } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import { Controller } from "../../Controller";
 import { noteGwPrologue } from "../../GwRecentRuns";
+import type { MapRenderer } from "../../render/gl/MapRenderer";
+import type { TransformHandler } from "../../TransformHandler";
 import { SendGwOrderIntentEvent } from "../../Transport";
 import { translateText } from "../../Utils";
 import type { GameView } from "../../view";
@@ -23,6 +26,7 @@ import type { GwCtx, GwUi } from "./GwCtx";
 import { deskTab, reader } from "./GwDesk";
 import { dictCard } from "./GwDict";
 import { frontsTab } from "./GwFronts";
+import { GwMapPaint } from "./GwMapPaint";
 import { memoirTab } from "./GwMemoir";
 import {
   GW_TABS,
@@ -37,11 +41,21 @@ import { notebookTab } from "./GwNotebook";
 import { peopleTab } from "./GwPeople";
 import { scheduleTab } from "./GwSchedule";
 import { GLASS } from "./GwStyle";
+import {
+  paintPane,
+  paintTags,
+  speech,
+  tableTab,
+  tableTags,
+} from "./GwTable";
+import { paintCells, tableCells, togglePlace } from "./GwTableModel";
 import { activeTalk, syncTranscripts, talkView } from "./GwTalk";
 import { ticker, tickerLines } from "./GwTicker";
 
 /** The ticker moves to its next line this often, ms. */
 const TICKER_MS = 7000;
+/** Where the camera goes as the table opens: the middle of Europe. */
+const TABLE_VIEW = [2150, 690] as const;
 /** A talk that appears this soon after a summon opens on its own, ms. */
 const SUMMON_OPEN_MS = 6000;
 /** The talk view's line fades in. */
@@ -69,6 +83,10 @@ const KEYFRAMES = html`<style>
 export class GwPanel extends LitElement implements Controller {
   public game: GameView;
   public eventBus: EventBus;
+  /** Absent in tests with no map. */
+  public transformHandler?: TransformHandler;
+  public mapView?: MapRenderer;
+  private map: GwMapPaint | null = null;
   @state() private data: GreatWarData | null = null;
   @state() private pack: GwPack | null = null;
   private asked = false;
@@ -77,6 +95,8 @@ export class GwPanel extends LitElement implements Controller {
   private newsAt = 0;
   private recorded = false;
   private chapter = -1;
+  private tableSeen = false;
+  private lineSeen = -1;
   /** Lines in the open talk when last drawn: a new one scrolls into view. */
   private talkTurns = 0;
   private readonly ui: GwUi = {
@@ -100,6 +120,10 @@ export class GwPanel extends LitElement implements Controller {
     actPicks: {},
     aimOpen: false,
     aimArmed: null,
+    paint: null,
+    tableArmed: null,
+    tableBarred: null,
+    tableOffer: false,
     termTag: null,
     termGive: [],
     termAsk: [],
@@ -114,7 +138,47 @@ export class GwPanel extends LitElement implements Controller {
     return this;
   }
 
-  init() {}
+  init() {
+    if (this.transformHandler === undefined || this.mapView === undefined) {
+      return;
+    }
+    this.map = new GwMapPaint(
+      this.game,
+      this.eventBus,
+      this.transformHandler,
+      this.mapView,
+      () => this.mapCells(),
+      (place) => this.onPlace(place),
+    );
+  }
+
+  /** What the map shows painted now; null while it is just the map. */
+  private mapCells() {
+    const seat = this.seat();
+    const ui = this.ui;
+    if (seat === null) return null;
+    if (ui.paint !== null) return paintCells(seat.tag, ui.paint);
+    const t = seat.table ?? null;
+    if (t === null || ui.tab !== "table") return null;
+    return tableCells(t, seat.claims?.places ?? [], ui.tableArmed);
+  }
+
+  /** A place tapped on the map while it is painted. */
+  private onPlace(place: GwPlace): void {
+    const ui = this.ui;
+    const seat = this.seat();
+    if (ui.paint !== null) {
+      if (GW_PLACES[place].owner === seat?.tag) return;
+      ui.paint = togglePlace(ui.paint, place);
+    } else if (seat?.table?.due?.kind === "turn") {
+      const open = seat.table.due.places.includes(place);
+      ui.tableBarred = open ? null : place;
+      ui.tableArmed = open && ui.tableArmed !== place ? place : null;
+    } else {
+      return;
+    }
+    this.requestUpdate();
+  }
 
   getTickIntervalMs() {
     return 100;
@@ -193,11 +257,13 @@ export class GwPanel extends LitElement implements Controller {
       ui.termAsk = [];
       ui.backOpen = false;
       ui.backArmed = null;
+      ui.paint = null;
       if (data.chapter >= GW_OPENING_CHAPTERS) {
         ui.shelf = shelve(ui.shelf, "played", [seat.tag]);
         saveShelf(ui.shelf);
       }
     }
+    this.followTable(seat);
     if (seat.prologue?.done === false) ui.pastDue = true;
     if (seat.prologue?.done === true && ui.pastDue) {
       noteGwPrologue(seat.tag, seat.prologue.picks);
@@ -231,8 +297,33 @@ export class GwPanel extends LitElement implements Controller {
     }
   }
 
+  /** The table takes the screen as it opens, and the camera follows what is said. */
+  private followTable(seat: GwSeatView): void {
+    const t = seat.table ?? null;
+    const ui = this.ui;
+    if (t === null) return;
+    if (!this.tableSeen) {
+      this.tableSeen = true;
+      ui.tab = "table";
+      ui.folded = false;
+      ui.readerUid = null;
+      this.map?.flyTo(TABLE_VIEW[0], TABLE_VIEW[1]);
+    }
+    if (t.due?.kind !== "turn") {
+      ui.tableArmed = null;
+      ui.tableBarred = null;
+    }
+    if (t.due?.kind !== "word") ui.tableOffer = false;
+    const line = t.lines[t.lines.length - 1];
+    if (line === undefined || line.n === this.lineSeen) return;
+    this.lineSeen = line.n;
+    const claim = t.claims.find((x) => x.id === line.claim);
+    if (claim !== undefined && ui.tab === "table") this.map?.fly(claim.place);
+  }
+
   /** A talk grows downward: its newest line must not open below the fold. */
   protected updated(): void {
+    if (this.querySelector("[data-gw-tag-at]") !== null) this.map?.keepTags();
     const uid = this.ui.talkUid;
     const turns =
       uid === null ? 0 : (this.ui.talks.get(uid)?.turns.length ?? 0);
@@ -248,7 +339,10 @@ export class GwPanel extends LitElement implements Controller {
   }
 
   private tabBody(c: GwCtx) {
+    if (this.ui.paint !== null) return paintPane(c);
     switch (this.ui.tab) {
+      case "table":
+        return tableTab(c);
       case "people":
         return peopleTab(c);
       case "schedule":
@@ -281,6 +375,7 @@ export class GwPanel extends LitElement implements Controller {
       tick: this.ticks,
       send: (o) => this.send(o),
       redraw: () => this.requestUpdate(),
+      fly: (p) => this.map?.fly(p),
       card: (uid) => seat.desk.find((x: GwCardView) => x.uid === uid),
     };
     const open = ui.readerUid === null ? undefined : c.card(ui.readerUid);
@@ -307,13 +402,17 @@ export class GwPanel extends LitElement implements Controller {
         data-gw-drawer
         class="${GLASS} pointer-events-auto fixed inset-x-0 bottom-0 z-[898] flex h-[56vh] flex-col text-white sm:inset-x-auto sm:left-0 sm:bottom-auto sm:top-10 sm:h-auto sm:max-h-[calc(100vh-2.5rem)] sm:w-[400px] sm:border-b-0 sm:border-l-0 ${ui.folded
           ? "!h-9"
-          : ""} ${talk === null ? "" : "invisible"}"
+          : ui.paint !== null || ui.tab === "table"
+            ? "max-sm:!h-[42vh]"
+            : ""} ${talk === null ? "" : "invisible"}"
       >
         <nav
           class="flex shrink-0 flex-wrap items-center gap-0.5 border-b border-white/10 p-1.5"
           data-gw-tabs
         >
-          ${GW_TABS.map((tab) => this.tabButton(c, tab))}
+          ${GW_TABS.filter((t) => t !== "table" || seat.table != null).map(
+            (tab) => this.tabButton(c, tab),
+          )}
           <button
             class="ml-auto px-2 text-white/60 hover:text-white"
             data-gw-fold
@@ -337,6 +436,7 @@ export class GwPanel extends LitElement implements Controller {
               ${this.tabBody(c)}
             </div>`}
       </aside>
+      ${paintTags(c)} ${tableTags(c)} ${speech(c)}
       ${open === undefined ? nothing : reader(c, open)}
       ${ui.budgetOpen ? budgetPanel(c) : nothing}
       ${talk === null ? nothing : talkView(c, talk.t, talk.card)} ${dictCard(c)}`;

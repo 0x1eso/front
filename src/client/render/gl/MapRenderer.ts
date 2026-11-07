@@ -69,6 +69,7 @@ export class MapRenderer {
   private storedWwEndgame: WwEndgameView | null = null;
   /** P5: the occupation and peace conference map modes' sources. */
   private storedOccupationMap: OccupationSource | null = null;
+  private storedRegionIds: Uint16Array | null = null;
   private storedPeaceMap: PeaceMapSource | null = null;
   /** World War 1936 P6: the depth view (lanes U3, U4 hand it to their passes). */
   private storedWwDepth: WwDepthView | null = null;
@@ -181,6 +182,9 @@ export class MapRenderer {
     }
     if (this.storedRegions !== null) {
       this.renderer?.setRegions(this.storedRegions);
+    }
+    if (this.storedRegionIds !== null) {
+      this.renderer?.setRegionIds(this.storedRegionIds);
     }
     if (this.storedWwLand !== null) {
       this.renderer?.setWwLand(...this.storedWwLand);
@@ -427,6 +431,12 @@ export class MapRenderer {
   setRegions(regionIds: Uint16Array): void {
     this.storedRegions = regionIds;
     this.renderer?.setRegions(regionIds);
+  }
+
+  /** Great War 1914: regions for the map modes; the map's look stays as it is. */
+  setRegionIds(regionIds: Uint16Array): void {
+    this.storedRegionIds = regionIds;
+    this.renderer?.setRegionIds(regionIds);
   }
 
   /**

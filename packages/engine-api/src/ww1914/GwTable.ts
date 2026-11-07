@@ -124,8 +124,8 @@ export interface GwTableClaimView {
 
 /** What the seat has to do at the table now. */
 export type GwTableDue =
-  /** Its turn: a place, or pass. */
-  | { kind: "turn"; left: number }
+  /** Its turn: a place of `places`, or pass. */
+  | { kind: "turn"; left: number; places: readonly GwPlace[] }
   /** A claim waits for its word. */
   | {
       kind: "word";
@@ -145,6 +145,8 @@ export interface GwTableView {
   role: "won" | "lost" | "even" | "watch";
   /** The chairs, in speaking order. */
   order: readonly GwTag[];
+  /** Those who came to the table beaten; [] when nobody was. */
+  losers: readonly GwTag[];
   /** Whose turn it is; null while nobody's. */
   speaker: GwTag | null;
   claims: readonly GwTableClaimView[];

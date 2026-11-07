@@ -47,6 +47,7 @@ export const GW_TABS = [
   "notebook",
   "blocs",
   "memoir",
+  "table",
 ] as const;
 export type GwTab = (typeof GW_TABS)[number];
 
@@ -165,6 +166,8 @@ export function tabBadge(seat: GwSeatView, tab: GwTab): number {
       );
     case "country":
       return dangers(seat).length;
+    case "table":
+      return (seat.table?.due ?? null) === null ? 0 : 1;
     default:
       return 0;
   }
