@@ -1,1 +1,512 @@
-{ "version": 1, "scenes": {}, "people": {}, "acts": {}, "aims": {} }
+{
+  "version": 1,
+  "scenes": {},
+  "people": {},
+  "acts": {
+    "gbr_a_fleet": {
+      "name": "함대 시찰",
+      "note": "해군대신과 함대를 보러 간다."
+    },
+    "gbr_a_woolwich": {
+      "name": "울리치 조병창",
+      "note": "런던의 조병창에 가서 포탄 사정을 본다."
+    },
+    "gbr_a_clyde": {
+      "name": "클라이드 조선소",
+      "note": "글래스고의 조선소를 본다."
+    },
+    "gbr_a_gq": {
+      "name": "프랑스 총사령부",
+      "note": "해협을 건너 영국군 사령부로 간다."
+    },
+    "gbr_a_netley": {
+      "name": "네틀리 병원",
+      "note": "육군 병원을 찾아간다."
+    },
+    "gbr_a_dublin": {
+      "name": "더블린",
+      "note": "아일랜드 장관과 더블린에 간다."
+    },
+    "gbr_a_belfast": {
+      "name": "벨파스트",
+      "note": "얼스터 의용군을 직접 보러 간다."
+    },
+    "gbr_a_city": {
+      "name": "잉글랜드 은행",
+      "note": "시티의 은행 총재를 찾아간다."
+    },
+    "gbr_a_room40": {
+      "name": "40호실",
+      "note": "해군성의 암호 해독실을 찾아간다."
+    },
+    "gbr_a_dover": {
+      "name": "도버 해협",
+      "note": "해협의 초계대를 보러 간다."
+    },
+    "gbr_a_liverpool": {
+      "name": "리버풀 부두",
+      "note": "곡물이 들어오는 부두를 본다."
+    },
+    "gbr_a_salisbury": {
+      "name": "솔즈베리 훈련장",
+      "note": "새로 모은 부대를 본다."
+    },
+    "gbr_a_gretna": {
+      "name": "그레트나 공장",
+      "note": "스코틀랜드 접경의 화약 공장을 본다."
+    },
+    "gbr_a_seat": {
+      "name": "지역구",
+      "note": "자기 지역구로 내려간다."
+    },
+    "gbr_a_l_nicky": {
+      "name": "왕의 이름으로 차르에게",
+      "note": "왕의 사촌에게 보낼 편지 문장을 잡는다.",
+      "fields": {
+        "subject": {
+          "label": "무엇을 쓰나",
+          "opt": {
+            "family": "집안 안부",
+            "mobilise": "동원을 멈춰 달라는 말",
+            "straits": "콘스탄티노폴 약속",
+            "shells": "러시아에 줄 군수품"
+          }
+        }
+      }
+    },
+    "gbr_a_l_willy": {
+      "name": "왕의 이름으로 빌헬름에게",
+      "note": "왕의 사촌에게 보낼 편지 문장을 잡는다.",
+      "fields": {
+        "subject": {
+          "label": "무엇을 쓰나",
+          "opt": {
+            "fleet": "함대 건조를 쉬자는 말",
+            "serbia": "세르비아 문제",
+            "belgium": "벨기에를 어떻게 할 것인가"
+          }
+        }
+      }
+    },
+    "gbr_a_l_wilson": {
+      "name": "윌슨 대통령에게",
+      "note": "미국 대통령에게 친서를 쓴다.",
+      "fields": {
+        "subject": {
+          "label": "무엇을 쓰나",
+          "opt": {
+            "cotton": "면화와 봉쇄",
+            "loans": "은행 대출",
+            "peace": "강화의 조건"
+          }
+        }
+      }
+    },
+    "gbr_a_l_poincare": {
+      "name": "푸앵카레 대통령에게",
+      "note": "프랑스 대통령에게 친서를 쓴다.",
+      "fields": {
+        "subject": {
+          "label": "무엇을 쓰나",
+          "opt": {
+            "coast": "프랑스 해안",
+            "divisions": "영국군 사단 수",
+            "command": "지휘의 통일"
+          }
+        }
+      }
+    },
+    "gbr_a_l_redmond": {
+      "name": "레드먼드에게",
+      "note": "아일랜드당 지도자에게 편지를 쓴다.",
+      "fields": {
+        "subject": {
+          "label": "무엇을 쓰나",
+          "opt": {
+            "counties": "얼스터의 주 수",
+            "division": "아일랜드 사단",
+            "amnesty": "갇힌 사람들의 사면"
+          }
+        }
+      }
+    },
+    "gbr_a_l_carson": {
+      "name": "카슨에게",
+      "note": "얼스터 지도자에게 편지를 쓴다.",
+      "fields": {
+        "subject": {
+          "label": "무엇을 쓰나",
+          "opt": {
+            "line": "얼스터의 선",
+            "rifles": "벨파스트의 소총",
+            "office": "내각의 자리"
+          }
+        }
+      }
+    },
+    "gbr_a_o_inquiry": {
+      "name": "조사 지시",
+      "note": "내각 서기실에 사실 조사를 시킨다.",
+      "fields": {
+        "subject": {
+          "label": "무엇을 조사하나",
+          "opt": {
+            "rifles": "아일랜드의 소총",
+            "shells": "포탄 납품",
+            "bread": "곡물 재고",
+            "recruits": "병력 숫자"
+          }
+        }
+      }
+    },
+    "gbr_a_o_commission": {
+      "name": "조사 위원회",
+      "note": "실패한 작전을 조사할 위원회를 세운다.",
+      "fields": {
+        "subject": {
+          "label": "무엇을 조사하나",
+          "opt": {
+            "shells": "포탄 사태",
+            "straits": "해협 작전",
+            "kut": "메소포타미아 원정"
+          }
+        }
+      }
+    },
+    "gbr_a_o_cid": {
+      "name": "제국 방위 위원회",
+      "note": "방위 위원회를 불러 안건을 올린다.",
+      "fields": {
+        "agenda": {
+          "label": "안건",
+          "opt": {
+            "belgium": "벨기에와 조약",
+            "war_book": "전쟁 교범",
+            "invasion": "본토 침공"
+          }
+        },
+        "attend": {
+          "label": "부를 사람"
+        }
+      }
+    },
+    "gbr_a_o_council": {
+      "name": "전쟁 위원회",
+      "note": "안건과 참석자를 정해 전쟁 위원회를 연다.",
+      "fields": {
+        "agenda": {
+          "label": "안건",
+          "opt": {
+            "west": "서부 전선",
+            "east": "동쪽 측면",
+            "sea": "바다"
+          }
+        },
+        "attend": {
+          "label": "부를 사람"
+        }
+      }
+    },
+    "gbr_a_o_dinner": {
+      "name": "다우닝가의 저녁",
+      "note": "각료 둘을 저녁에 부른다.",
+      "fields": {
+        "agenda": {
+          "label": "화제",
+          "opt": {
+            "nothing": "안건 없이",
+            "ireland": "아일랜드",
+            "war": "전쟁"
+          }
+        },
+        "attend": {
+          "label": "부를 사람"
+        }
+      }
+    },
+    "gbr_a_o_envoy": {
+      "name": "특사 파견",
+      "note": "사람을 정해 외국에 보낸다.",
+      "fields": {
+        "envoy": {
+          "label": "누구를"
+        },
+        "where": {
+          "label": "어디로",
+          "opt": {
+            "paris": "파리",
+            "washington": "워싱턴",
+            "rome": "로마"
+          }
+        }
+      }
+    },
+    "gbr_a_o_minutes": {
+      "name": "내각의 기록",
+      "note": "내각 회의에 기록을 남기게 한다.",
+      "fields": {
+        "how": {
+          "label": "어떻게 남기나",
+          "opt": {
+            "book": "서기가 공책에 적는다",
+            "conclusions": "결론만 종이로 돌린다"
+          }
+        }
+      }
+    },
+    "gbr_a_o_editors": {
+      "name": "편집장들을 부른다",
+      "note": "주요 신문의 편집장과 자리를 갖는다.",
+      "fields": {
+        "on": {
+          "label": "주제",
+          "opt": {
+            "lists": "사상자 명단",
+            "censor": "검열",
+            "recruiting": "모병 광고"
+          }
+        }
+      }
+    },
+    "gbr_a_s_commons": {
+      "name": "하원 연설",
+      "note": "하원에서 말한다.",
+      "fields": {
+        "place": {
+          "label": "어느 시간에",
+          "opt": {
+            "questions": "질문 시간",
+            "adjournment": "휴회 토론"
+          }
+        },
+        "on": {
+          "label": "무엇을 말하나",
+          "opt": {
+            "ireland": "아일랜드",
+            "war": "전쟁의 경과",
+            "money": "재정"
+          }
+        }
+      }
+    },
+    "gbr_a_s_guildhall": {
+      "name": "시티 연설",
+      "note": "런던 시티의 연회장에서 말한다.",
+      "fields": {
+        "place": {
+          "label": "어디서",
+          "opt": {
+            "guildhall": "길드홀",
+            "mansion_house": "맨션 하우스"
+          }
+        },
+        "on": {
+          "label": "무엇을 말하나",
+          "opt": {
+            "belgium": "벨기에",
+            "money": "공채와 저축",
+            "peace": "평화와 무역"
+          }
+        }
+      }
+    },
+    "gbr_a_s_recruit": {
+      "name": "모병 연설",
+      "note": "지방 도시에서 사람을 모으는 연설을 한다.",
+      "fields": {
+        "place": {
+          "label": "어디서",
+          "opt": {
+            "edinburgh": "에든버러",
+            "cardiff": "카디프",
+            "dublin": "더블린"
+          }
+        },
+        "on": {
+          "label": "무엇을 말하나",
+          "opt": {
+            "men": "나라에 필요한 사람",
+            "small_nations": "작은 나라의 권리"
+          }
+        }
+      }
+    },
+    "gbr_a_s_ireland": {
+      "name": "아일랜드 연설",
+      "note": "아일랜드에 가서 말한다.",
+      "fields": {
+        "place": {
+          "label": "어디서",
+          "opt": {
+            "dublin": "더블린",
+            "belfast": "벨파스트"
+          }
+        },
+        "on": {
+          "label": "무엇을 말하나",
+          "opt": {
+            "law": "법의 시행",
+            "deal": "양쪽의 합의"
+          }
+        }
+      }
+    },
+    "gbr_a_s_seat": {
+      "name": "지역구 연설",
+      "note": "자기 지역구에서 말한다.",
+      "fields": {
+        "place": {
+          "label": "어디서",
+          "opt": {
+            "hall": "지역구 강당",
+            "market": "장터"
+          }
+        },
+        "on": {
+          "label": "무엇을 말하나",
+          "opt": {
+            "bread": "빵 값",
+            "lists": "전사자",
+            "after": "전쟁 뒤의 살림"
+          }
+        }
+      }
+    },
+    "gbr_a_s_labour": {
+      "name": "노동자 앞의 연설",
+      "note": "공장 지대와 노동조합 앞에서 말한다.",
+      "fields": {
+        "place": {
+          "label": "어디서",
+          "opt": {
+            "clyde": "클라이드 강당",
+            "tuc": "노동조합 대회"
+          }
+        },
+        "on": {
+          "label": "무엇을 말하나",
+          "opt": {
+            "dilution": "숙련공 희석",
+            "rents": "집세",
+            "draft": "징병"
+          }
+        }
+      }
+    },
+    "gbr_a_i_leak": {
+      "name": "신문에 흘리기",
+      "note": "비서를 시켜 기자에게 말을 흘린다.",
+      "fields": {
+        "what": {
+          "label": "무엇을 흘리나",
+          "opt": {
+            "carson": "얼스터 지도부의 불안",
+            "war_office": "육군성 숫자의 의심",
+            "unionists": "보수당 안의 다툼"
+          }
+        }
+      }
+    },
+    "gbr_a_i_set_on": {
+      "name": "두 각료 사이",
+      "note": "두 각료 사이에 말을 넣는다.",
+      "fields": {
+        "pair": {
+          "label": "누구와 누구"
+        }
+      }
+    },
+    "gbr_a_i_whips": {
+      "name": "원내 총무의 일",
+      "note": "원내 총무를 시켜 뒷자리 의원의 표를 챙긴다.",
+      "fields": {
+        "offer": {
+          "label": "무엇으로",
+          "opt": {
+            "peerage": "서훈",
+            "post": "작은 자리"
+          }
+        }
+      }
+    },
+    "gbr_a_i_agents": {
+      "name": "비밀 요원",
+      "note": "외국에 비밀 요원을 보낸다.",
+      "fields": {
+        "where": {
+          "label": "어디로",
+          "opt": {
+            "newyork": "뉴욕",
+            "geneva": "제네바",
+            "petrograd": "페트로그라드"
+          }
+        }
+      }
+    },
+    "gbr_a_i_castle": {
+      "name": "더블린 성의 정보원",
+      "note": "의용군 안에 정보원을 넣는다.",
+      "fields": {
+        "where": {
+          "label": "어디에",
+          "opt": {
+            "belfast": "벨파스트",
+            "dublin": "더블린"
+          }
+        }
+      }
+    },
+    "gbr_a_i_press": {
+      "name": "신문왕과의 거래",
+      "note": "노스클리프 쪽과 뒷거래를 한다.",
+      "fields": {
+        "how": {
+          "label": "어떻게",
+          "opt": {
+            "feed": "소식을 먼저 준다",
+            "buy": "신문사 주식을 사들인다",
+            "warn": "검열로 넌지시 압박한다"
+          }
+        }
+      }
+    }
+  },
+  "aims": {
+    "gbr_aim_belgium": {
+      "name": "벨기에를 되찾는다",
+      "text": "벨기에가 잃은 것을 다 되찾을 때까지 이 나라는 칼을 넣지 않겠소. 조약 한 장이 이 전쟁의 까닭이오.",
+      "met": "벨기에는 되찾았다. 그 일에 든 것은 긴 명단이었다. 약속은 지켜졌다.",
+      "unmet": "벨기에는 끝까지 되찾지 못했다. 그날의 연설은 스크랩으로 남았다."
+    },
+    "gbr_aim_win": {
+      "name": "끝까지 이긴다",
+      "text": "이 전쟁을 무승부로 끝내면 다음 세대가 다시 싸우게 되오. 이기는 것 말고 다른 끝은 말하지 않겠소.",
+      "met": "영국은 이겼다. 끝까지 간다는 말은 지켜졌고, 그 말의 값을 세는 일은 이제 시작이다.",
+      "unmet": "이기겠다고 말한 전쟁은 그렇게 끝나지 않았다. 사람들은 그 말을 기억했다."
+    },
+    "gbr_aim_sea": {
+      "name": "바다와 제국을 지킨다",
+      "text": "영국은 대륙의 나라가 아니오. 바다가 이 나라의 빵이고 돈이오. 바다를 지키고 빚 없이 끝내겠소.",
+      "met": "바다는 지켰고 금고는 비지 않았다. 대륙의 일은 대륙이 치렀다는 말을 들었다.",
+      "unmet": "바다든 금고든 하나가 무너졌다. 섬나라의 계산은 맞지 않았다."
+    },
+    "gbr_aim_peace": {
+      "name": "전쟁 밖에 머문다",
+      "text": "유럽의 싸움에 이 나라 젊은이를 보낼 까닭을 찾지 못했소. 전쟁 밖에 머물고, 때가 오면 런던에서 양쪽을 앉히겠소.",
+      "met": "영국은 끝까지 밖에 머물렀다. 살아서 집에 돌아온 사람들은 그것이 왜 이상한지 몰랐다.",
+      "unmet": "밖에 머물겠다던 나라가 들어갔다. 그 선언을 인용하는 의원이 끝까지 있었다."
+    },
+    "gbr_aim_ireland": {
+      "name": "아일랜드를 푼다",
+      "text": "아일랜드를 풀지 못하면 이 정부가 무엇을 해도 소용없소. 내 시간을 먼저 거기 쓰겠소.",
+      "met": "아일랜드 문제는 풀렸다. 양쪽 모두 불만이었고, 그것이 풀렸다는 증거였다.",
+      "unmet": "아일랜드는 풀리지 않았다. 다음 총리가 그 지도를 물려받았다."
+    },
+    "gbr_aim_liberal": {
+      "name": "자유당의 영국을 지킨다",
+      "text": "이기고 나서 다른 나라가 되어 있으면 무엇을 얻은 것이오? 강제 징집 없이, 이 의자를 지키며 끝내겠소.",
+      "met": "자유당의 영국은 끝까지 살아남았다. 그 값을 묻는 사람들이 많았다.",
+      "unmet": "전쟁은 자유당의 영국을 그냥 두지 않았다. 원칙은 한 번에 하나씩 나갔다."
+    }
+  }
+}
