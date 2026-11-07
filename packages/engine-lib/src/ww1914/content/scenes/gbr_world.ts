@@ -4710,6 +4710,7 @@ export const GBR_WORLD_SCENES: readonly GwScene[] = [
       },
       {
         id: "ultimatum_first",
+        when: not(flag("f_late_ultimatum")),
         tell: ["deu:-2", "fra:+1"],
         effects: [
           nation("DEU", -2),

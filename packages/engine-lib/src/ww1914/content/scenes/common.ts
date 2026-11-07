@@ -15,6 +15,15 @@ import {
 // same line serves an emperor and a prime minister.
 
 const inTrenches: GwCond = { kind: "trench", theatre: "west", min: 1 };
+/** The continent is at war and this seat isn't: nothing is quiet but the desk. */
+const warElsewhere: GwCond = {
+  kind: "all",
+  of: [
+    { kind: "world", of: { is: "entered", tag: "FRA" } },
+    { kind: "not", of: { kind: "at_war", tag: "DEU" } },
+    { kind: "not", of: { kind: "at_war", tag: "FRA" } },
+  ],
+};
 
 /** A quiet chapter's card; the chapter's length picks which. */
 function quiet(id: string, span: { min?: number; max?: number }): GwScene {
@@ -28,6 +37,7 @@ function quiet(id: string, span: { min?: number; max?: number }): GwScene {
     tags: ["tension_down"],
     quiet: true,
     variants: [
+      { id: "abroad", when: warElsewhere },
       { id: "front", when: inTrenches },
       { id: "letters", when: inTrenches },
       { id: "hot", when: { kind: "temp", min: 6 } },

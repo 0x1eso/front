@@ -266,13 +266,19 @@ function peaceFeelers(gw: GreatWar): void {
   }
 }
 
+/** Chapters before a cabinet that put the vote off is asked again. */
+const GW_ENTRY_ASKS_EVERY = 4;
+
 /** The world's call on a seat's way in: Britain's cabinet, for one. */
-function seatEntry(gw: GreatWar): void {
+export function seatEntry(gw: GreatWar): void {
   const s = gw.s;
   for (const seat of seatsOf(gw, "GBR")) {
     const n = gw.nation("GBR");
     if (n === null || n.side !== null) continue;
     if (seat.scheduled.some((q) => q.scene === "gw_gbr_entry")) continue;
+    // A put-off vote comes back in months, not by every post.
+    const asked = seat.seen.gw_gbr_entry;
+    if (asked !== undefined && s.chapter - asked < GW_ENTRY_ASKS_EVERY) continue;
     const belgium = gw.nation("BEL")?.side === "entente";
     const west = s.theatres.find((t) => t.id === "west")!;
     if (belgium || west.line >= 3 || everyMonths(gw, 4, 1)) {

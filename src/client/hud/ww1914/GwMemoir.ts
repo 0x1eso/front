@@ -11,7 +11,7 @@ import {
   frontLine,
   personName,
   reasonText,
-  shortDate,
+  fullDate,
   turnText,
   unknownText,
 } from "./GwText";
@@ -27,7 +27,7 @@ function ending(c: GwCtx, m: GwMemoir): TemplateResult {
     <h3 class="text-base font-bold">${endingTitle(m.ending)}</h3>
     <p class=${MUTED}>
       ${translateText("gw.ui.memoir_date", {
-        date: shortDate(c.data.date),
+        date: fullDate(c.data.date),
         n: m.chapter + 1,
       })}
     </p>

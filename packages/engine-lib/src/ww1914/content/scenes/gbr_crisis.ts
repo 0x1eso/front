@@ -959,6 +959,8 @@ export const GBR_CRISIS_SCENES: readonly GwScene[] = [
         of: ["repelled", "stalemate", "advance", "break"],
       }),
       not(flag("f_bef_home")),
+      seen("gbr_c_bef"),
+      not(east1),
     ),
     [
       v("six", flag("f_bef_six")),

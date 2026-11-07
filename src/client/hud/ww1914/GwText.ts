@@ -116,7 +116,8 @@ export function optionText(
 ): string {
   const scene = pack?.scenes[card.scene];
   if (card.node !== null) return scene?.nodes?.[card.node]?.replies[id] ?? id;
-  return scene?.opt?.[id] ?? id;
+  // Some shares wrote the lead of an option in **; the button shows plain text.
+  return (scene?.opt?.[id] ?? id).replaceAll("**", "");
 }
 
 /** Each cast member's own paragraph on this card, in cast order. */
@@ -174,7 +175,7 @@ export function endingText(
   const text = coda === undefined ? own : `${own}\n\n${coda}`;
   return applyJosa(
     text
-      .replace(/\{date\}/g, shortDate(date))
+      .replace(/\{date\}/g, fullDate(date))
       .replace(/\{casualties\}/g, countInMan(memoir.casualties)),
   );
 }
