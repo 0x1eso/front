@@ -15257,7 +15257,7 @@
       "paper_title": "이번 장의 안",
       "person_ailing": "몸이 좋지 않다",
       "person_letter": "사직서를 냈다",
-      "person_record": "공 {wins}, 과 {losses}",
+      "person_record": "공로 {wins} · 실책 {losses}",
       "person_status": {
         "dead": "죽음",
         "exiled": "떠남",
