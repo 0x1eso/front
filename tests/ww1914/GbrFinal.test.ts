@@ -44,8 +44,7 @@ describe("Britain, as played to the end", () => {
       (v) => v.id === "finance",
     )!.when!;
     const ctx = { gw, seat: st, cast: {} };
-    const fin = gw.s.people.find((p) => p.office === "finance")!;
-    fin.office = null;
+    gw.person("gbr_lloyd_george")!.office = null;
     gw.person("gbr_mckenna")!.office = null;
     expect(holds(ctx, when)).toBe(true);
     gw.person("gbr_bonar_law")!.status = "dead";
