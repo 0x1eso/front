@@ -18,6 +18,7 @@ import {
   paperCards,
   talkCards,
 } from "./GwModel";
+import { openCard, placeChip } from "./GwPlaceSheet";
 import { brokenLine } from "./GwRuler";
 import { aimNudge } from "./GwSchedule";
 import { BTN, BTN_ON, CHIP, GLASS, HEAD, MUTED } from "./GwStyle";
@@ -92,6 +93,7 @@ function cardBox(c: GwCtx, card: GwCardView): TemplateResult {
         : html`<span class=${CHIP}
             >${translateText(`gw.ui.stamp.${card.stamp}`)}</span
           >`}
+      ${placeChip(c, card)}
       <span class="${MUTED} ml-auto truncate">${sender(c, card)}</span>
     </div>
     <h3 class=${HEAD}>${cardTitle(c.pack, card)}</h3>
@@ -111,14 +113,7 @@ function cardBox(c: GwCtx, card: GwCardView): TemplateResult {
     <button
       class=${BTN}
       data-gw-open=${card.uid}
-      @click=${() => {
-        if (isTalk) c.ui.talkUid = card.uid;
-        else {
-          c.ui.readerUid = card.uid;
-          c.ui.armed = null;
-        }
-        c.redraw();
-      }}
+      @click=${() => openCard(c, card)}
     >
       ${isTalk
         ? translateText("gw.ui.talk_open")
@@ -463,7 +458,7 @@ export function reader(c: GwCtx, card: GwCardView): TemplateResult {
     c.redraw();
   };
   return html`<div
-    class="pointer-events-auto fixed inset-0 z-[1000] flex items-center justify-center bg-black/45 p-3"
+    class="pointer-events-auto fixed inset-0 z-[1000] flex items-center justify-center bg-black/25 p-3"
     @click=${(e: Event) => e.target === e.currentTarget && close()}
   >
     <article
@@ -477,6 +472,7 @@ export function reader(c: GwCtx, card: GwCardView): TemplateResult {
           : html`<span class=${CHIP} data-gw-stamp
               >${translateText(`gw.ui.stamp.${card.stamp}`)}</span
             >`}
+        ${placeChip(c, card, close)}
         <span class="${MUTED} ml-auto">${fullDate(c.data.date)}</span>
         <button class="${MUTED} px-1 hover:text-white" @click=${close}>
           ✕

@@ -39,7 +39,7 @@ export function officeHolder(
   return holderOf(gw, seat, o);
 }
 
-function trustBy(p: GwPersonState, delta: number): void {
+export function trustBy(p: GwPersonState, delta: number): void {
   p.trust = clampTo(p.trust + delta, GW_TRUST_MIN, GW_TRUST_MAX);
 }
 
@@ -196,6 +196,19 @@ export function candidatesFor(
   return second === undefined ? [first.id] : [first.id, second.id];
 }
 
+/** Soldiers of the seat's country fit for the field: no desk, and known. */
+export function fieldCommanders(
+  gw: GreatWar,
+  seat: GwSeatState,
+): GwPersonState[] {
+  return ownPeople(gw, seat.tag).filter((p) => {
+    const d = defOf(p.id);
+    if (GW_NO_COMMAND.includes(p.id)) return false;
+    const known = (d?.fame ?? 0) >= FIELD_FAME;
+    return d?.camps.includes("military") === true && p.office === null && known;
+  });
+}
+
 /** Who leads an army in a theatre: a soldier with no desk, the best known. */
 export function armyCommander(
   gw: GreatWar,
@@ -206,12 +219,7 @@ export function armyCommander(
     const admiral = holderOf(gw, seat, "navy");
     if (admiral !== null) return admiral.id;
   }
-  const soldiers = ownPeople(gw, seat.tag).filter((p) => {
-    const d = defOf(p.id);
-    if (GW_NO_COMMAND.includes(p.id)) return false;
-    const known = (d?.fame ?? 0) >= FIELD_FAME;
-    return d?.camps.includes("military") === true && p.office === null && known;
-  });
+  const soldiers = fieldCommanders(gw, seat);
   const taken = new Set(gw.s.theatres.map((x) => x.commander));
   const pool = soldiers.filter((p) => !taken.has(p.id));
   const side = t === "east" ? "east" : "west";

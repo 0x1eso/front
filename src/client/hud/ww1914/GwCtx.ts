@@ -4,6 +4,7 @@ import type {
   GwGiveClause,
   GwReason,
   GwResearch,
+  GwTheatre,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import type { GwBudgetPlan } from "@openfront/engine-api/ww1914/GwBudget";
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
@@ -17,6 +18,25 @@ import type {
 } from "@openfront/engine-api/ww1914/GwView";
 import type { DictRef } from "./GwDictModel";
 import type { GwTab, Shelf } from "./GwModel";
+
+/** A region tapped on the map. */
+export interface GwSpot {
+  region: number;
+  /** A tile of it: who holds it is read from here. */
+  tile: number;
+  place: GwPlace | null;
+  name: string;
+}
+
+/** What the screens ask of the map; null with no renderer behind them. */
+export interface GwMapApi {
+  /** Moves the camera to a place and rings it; `beside`: clear of the reader. */
+  fly(place: GwPlace, beside?: boolean): void;
+  /** Rings a region; null clears it. */
+  ring(region: number | null): void;
+  spotOfPlace(place: GwPlace): GwSpot | null;
+  holderAt(tile: number): GwTag | null;
+}
 
 /** One line of a talk as it stood: the card at that node, what I answered. */
 export interface TalkTurn {
@@ -110,6 +130,11 @@ export interface GwUi {
   notes: GwResultNote[];
   /** The years were lived on this screen: their picks are kept, the first card opens. */
   pastDue: boolean;
+  /** The region tapped on the map: its sheet is open. */
+  spot: GwSpot | null;
+  /** The front a general is being picked for, and the one picked. */
+  postOpen: GwTheatre | null;
+  postArmed: string | null;
 }
 
 export interface GwCtx {
@@ -117,6 +142,7 @@ export interface GwCtx {
   seat: GwSeatView;
   pack: GwPack | null;
   ui: GwUi;
+  map?: GwMapApi | null;
   tick: number;
   send(order: GwOrder): void;
   /** Redraw after a change of ui state. */

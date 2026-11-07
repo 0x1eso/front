@@ -30,6 +30,7 @@ import {
   officeHolder,
   standingOffices,
 } from "./People";
+import { generalsFor } from "./Post";
 import { pressView } from "./Press";
 import { holds } from "./SceneRun";
 import { GW_ACTORS, GW_COMMAND_NAMED_AFTER } from "./Tables";
@@ -207,6 +208,7 @@ export function worldView(gw: GreatWar, seat: GwSeatState): GwWorldView {
     signed: seat.signed === s.chapter,
     proposals: proposalsFor(gw, seat),
     fronts: ownFronts(gw, seat).map((t) => frontView(gw, seat, t)),
+    generals: generalsFor(gw, seat),
     chain:
       s.chain === null
         ? null

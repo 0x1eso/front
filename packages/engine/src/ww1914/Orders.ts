@@ -27,6 +27,7 @@ import { proposalsFor } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
 import { lawOrder } from "./Laws";
 import { dismissPerson, dismissPrice } from "./People";
+import { postGeneral } from "./Post";
 import { pressCensor, pressInvite, pressLeak } from "./Press";
 import { prologueRefuses } from "./Prologue";
 import {
@@ -184,6 +185,8 @@ export function applyGwOrder(
       return tableNext(gw);
     case "terms":
       return offerTerms(gw, seat, o.tag, o.give, o.ask);
+    case "post":
+      return postGeneral(gw, seat, o.person, o.theatre);
   }
 }
 

@@ -14830,7 +14830,9 @@
       "aim_changed": "선언한 목표를 뒤집었다.",
       "paper_sent_back": "{who}에게 서류를 돌려보냈다.",
       "terms_no": "{country}이(가) 우리 조건을 거절했다.",
-      "terms_yes": "{country}이(가) 우리 조건을 받아들였다."
+      "terms_yes": "{country}이(가) 우리 조건을 받아들였다.",
+      "post_relieved": "{who}은(는) 자리를 빼앗긴 일을 언짢아했다.",
+      "post_sent": "{who}이(가) 명을 받고 전선으로 떠났다."
     },
     "result": {
       "advance": "전진",
@@ -16063,6 +16065,35 @@
       "west_prussia": "서프로이센",
       "west_russia": "서부 러시아",
       "western_front": "북프랑스"
+    },
+    "map": {
+      "do": "여기서 할 수 있는 일",
+      "fell": "{place} 함락",
+      "general": "이 전선에 장군을 보낸다",
+      "general_pick": "{name}, {front}으로",
+      "general_relieved": "{name}은(는) 자리를 내주었습니다.",
+      "general_send": "보낸다",
+      "general_title": "장군 파견",
+      "held": "점령지입니다. 1914년에는 {owner} 땅이었습니다.",
+      "moved": "이번 달에 {from}에서 {to}(으)로 넘어갔습니다.",
+      "none": "지금 여기서 시작할 수 있는 일이 없습니다.",
+      "papers": "여기서 온 서류",
+      "rel": {
+        "ally": "동맹",
+        "central": "동맹국 진영",
+        "enemy": "적국",
+        "entente": "협상국 진영",
+        "neutral": "중립",
+        "out": "전쟁에서 빠짐",
+        "own": "우리나라",
+        "peace": "평시"
+      },
+      "replay_line": "{from} → {to}",
+      "replay_skip": "건너뛰기",
+      "replay_title": "{year}년 {month}월의 전선",
+      "retaken": "{place} 탈환",
+      "terms": "조건을 보낸다",
+      "to_map": "지도에서 보기"
     }
   }
 }

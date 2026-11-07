@@ -16,7 +16,7 @@ import { frontLine, personName } from "./GwText";
 
 const TRENCH_MAX = 5;
 
-function lastBattle(f: GwFrontView): TemplateResult | typeof nothing {
+export function lastBattle(f: GwFrontView): TemplateResult | typeof nothing {
   if (f.last === null) return nothing;
   return html`<p class=${MUTED} data-gw-battle>
     ${translateText("gw.ui.front_last", {

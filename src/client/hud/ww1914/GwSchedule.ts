@@ -112,7 +112,12 @@ function actNote(c: GwCtx, a: GwActView) {
   };
 }
 
-function actRow(c: GwCtx, a: GwActView): TemplateResult {
+/** `preset`: what the map already filled in when it opens. */
+export function actRow(
+  c: GwCtx,
+  a: GwActView,
+  preset: Record<string, string[]> = {},
+): TemplateResult {
   const open = c.ui.actOpen === a.id;
   const left = c.seat.actsLeft ?? 0;
   const note = c.pack?.acts?.[a.id]?.note;
@@ -124,7 +129,7 @@ function actRow(c: GwCtx, a: GwActView): TemplateResult {
       ?disabled=${left <= 0}
       @click=${() => {
         c.ui.actOpen = open ? null : a.id;
-        c.ui.actPicks = {};
+        c.ui.actPicks = { ...preset };
         c.redraw();
       }}
     >

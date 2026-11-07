@@ -108,6 +108,12 @@ export const GwOrderSchema = z.discriminatedUnion("kind", [
   }),
   /** The next thing at the table now, without waiting for it. */
   z.object({ kind: z.literal("table_next") }),
+  /** A general goes to a front, from the map: spends a schedule slot. */
+  z.object({
+    kind: z.literal("post"),
+    person: Id,
+    theatre: z.enum(GW_THEATRES),
+  }),
 ]);
 export type GwOrder = z.infer<typeof GwOrderSchema>;
 
@@ -149,5 +155,6 @@ export const GW_ORDER_BLOCKS = [
   "prologue",
   "no_claims",
   "table_no",
+  "no_front",
 ] as const;
 export type GwOrderBlock = (typeof GW_ORDER_BLOCKS)[number];

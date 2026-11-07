@@ -42,6 +42,14 @@ export const GW_PLACES = {
     owner: "OTT",
     center: [2408, 915],
   },
+  amsterdam: {
+    id: 305,
+    name: "Amsterdam",
+    nameKo: "암스테르담",
+    group: "netherlands",
+    owner: "NLD",
+    center: [2063, 628],
+  },
   antwerp: {
     id: 2010,
     name: "Antwerp",
@@ -194,6 +202,14 @@ export const GW_PLACES = {
     owner: "DEU",
     center: [2148, 630],
   },
+  bern: {
+    id: 440,
+    name: "Bern",
+    nameKo: "베른",
+    group: "switzerland",
+    owner: "CHE",
+    center: [2087, 707],
+  },
   bialystok: {
     id: 2052,
     name: "Białystok",
@@ -289,6 +305,14 @@ export const GW_PLACES = {
     group: "bohemia",
     owner: "AUH",
     center: [2166, 678],
+  },
+  cairo: {
+    id: 767,
+    name: "Cairo",
+    nameKo: "카이로",
+    group: "egypt",
+    owner: "GBR",
+    center: [2328, 935],
   },
   calais: {
     id: 2016,
@@ -426,6 +450,14 @@ export const GW_PLACES = {
     owner: "BGR",
     center: [2286, 788],
   },
+  delhi: {
+    id: 839,
+    name: "Delhi",
+    nameKo: "델리",
+    group: "india",
+    owner: "GBR",
+    center: [2848, 940],
+  },
   dresden: {
     id: 340,
     name: "Dresden",
@@ -433,6 +465,14 @@ export const GW_PLACES = {
     group: "germany",
     owner: "DEU",
     center: [2148, 651],
+  },
+  dublin: {
+    id: 288,
+    name: "Dublin",
+    nameKo: "더블린",
+    group: "ireland",
+    owner: "GBR",
+    center: [1923, 618],
   },
   durazzo: {
     id: 2109,
@@ -514,6 +554,14 @@ export const GW_PLACES = {
     owner: "BEL",
     center: [2042, 652],
   },
+  glasgow: {
+    id: 239,
+    name: "Glasgow",
+    nameKo: "글래스고",
+    group: "britain",
+    owner: "GBR",
+    center: [1953, 585],
+  },
   gorizia: {
     id: 2038,
     name: "Gorizia",
@@ -553,6 +601,14 @@ export const GW_PLACES = {
     group: "germany",
     owner: "DEU",
     center: [2109, 605],
+  },
+  heligoland: {
+    id: 1365,
+    name: "Heligoland",
+    nameKo: "헬골란트",
+    group: "germany",
+    owner: "DEU",
+    center: [2087, 604],
   },
   iasi: {
     id: 426,
@@ -762,6 +818,14 @@ export const GW_PLACES = {
     owner: "RUS",
     center: [2243, 621],
   },
+  london: {
+    id: 329,
+    name: "London",
+    nameKo: "런던",
+    group: "britain",
+    owner: "GBR",
+    center: [1998, 646],
+  },
   lublin: {
     id: 2054,
     name: "Lublin",
@@ -777,6 +841,22 @@ export const GW_PLACES = {
     group: "west_russia",
     owner: "RUS",
     center: [2276, 649],
+  },
+  madrid: {
+    id: 617,
+    name: "Madrid",
+    nameKo: "마드리드",
+    group: "spain",
+    owner: "ESP",
+    center: [1966, 795],
+  },
+  manchester: {
+    id: 289,
+    name: "Manchester",
+    nameKo: "맨체스터",
+    group: "britain",
+    owner: "GBR",
+    center: [1981, 614],
   },
   marijampole: {
     id: 242,
@@ -962,6 +1042,14 @@ export const GW_PLACES = {
     owner: "AUH",
     center: [2217, 731],
   },
+  odessa: {
+    id: 429,
+    name: "Odessa",
+    nameKo: "오데사",
+    group: "ukraine",
+    owner: "RUS",
+    center: [2333, 706],
+  },
   olmutz: {
     id: 2086,
     name: "Olmütz",
@@ -1066,6 +1154,14 @@ export const GW_PLACES = {
     owner: "AUH",
     center: [2154, 734],
   },
+  portsmouth: {
+    id: 337,
+    name: "Portsmouth",
+    nameKo: "포츠머스",
+    group: "britain",
+    owner: "GBR",
+    center: [1977, 651],
+  },
   posen: {
     id: 2072,
     name: "Posen",
@@ -1154,6 +1250,14 @@ export const GW_PLACES = {
     owner: "OTT",
     center: [2307, 789],
   },
+  rome: {
+    id: 576,
+    name: "Rome",
+    nameKo: "로마",
+    group: "italy",
+    owner: "ITA",
+    center: [2148, 781],
+  },
   rovno: {
     id: 334,
     name: "Rovno",
@@ -1194,6 +1298,14 @@ export const GW_PLACES = {
     owner: "AUH",
     center: [2205, 755],
   },
+  scapa_flow: {
+    id: 172,
+    name: "Scapa Flow",
+    nameKo: "스캐파플로",
+    group: "britain",
+    owner: "GBR",
+    center: [1945, 551],
+  },
   scutari: {
     id: 2108,
     name: "Scutari",
@@ -1209,6 +1321,14 @@ export const GW_PLACES = {
     group: "western_front",
     owner: "FRA",
     center: [2052, 672],
+  },
+  sevastopol: {
+    id: 490,
+    name: "Sevastopol",
+    nameKo: "세바스토폴",
+    group: "ukraine",
+    owner: "RUS",
+    center: [2381, 733],
   },
   siauliai: {
     id: 243,
@@ -1265,6 +1385,14 @@ export const GW_PLACES = {
     group: "galicia",
     owner: "AUH",
     center: [2273, 686],
+  },
+  stockholm: {
+    id: 178,
+    name: "Stockholm",
+    nameKo: "스톡홀름",
+    group: "sweden",
+    owner: "SWE",
+    center: [2192, 524],
   },
   strasbourg: {
     id: 2005,
@@ -1338,6 +1466,14 @@ export const GW_PLACES = {
     owner: "DEU",
     center: [2202, 620],
   },
+  tiflis: {
+    id: 601,
+    name: "Tiflis",
+    nameKo: "티플리스",
+    group: "caucasus",
+    owner: "RUS",
+    center: [2489, 792],
+  },
   togo: {
     id: 2128,
     name: "Togo",
@@ -1345,6 +1481,14 @@ export const GW_PLACES = {
     group: "colonies",
     owner: "DEU",
     center: [2010, 1179],
+  },
+  tokyo: {
+    id: 758,
+    name: "Tokyo",
+    nameKo: "도쿄",
+    group: "japan",
+    owner: "JPN",
+    center: [3548, 860],
   },
   trabzon: {
     id: 2119,
@@ -1505,6 +1649,14 @@ export const GW_PLACES = {
     group: "russian_poland",
     owner: "RUS",
     center: [2234, 633],
+  },
+  washington: {
+    id: 662,
+    name: "Washington",
+    nameKo: "워싱턴",
+    group: "america",
+    owner: "USA",
+    center: [1147, 817],
   },
   windau: {
     id: 216,

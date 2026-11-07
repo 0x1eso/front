@@ -1,6 +1,5 @@
 import { GW_PLACES, GwPlace } from "@openfront/engine-api/ww1914/GwPlaces";
 import type { EventBus } from "@openfront/shared/EventBus";
-import { MouseUpEvent } from "../../InputHandler";
 import type { MapRenderer } from "../../render/gl/MapRenderer";
 import type {
   OccupationCell,
@@ -44,7 +43,6 @@ export class GwMapPaint implements OccupationSource {
       view.setRegionIds(scenario.regionIds);
       view.setOccupationMap(this);
     }
-    bus.on(MouseUpEvent, (e) => this.onTap(e.x, e.y));
   }
 
   on(): boolean {
@@ -63,8 +61,8 @@ export class GwMapPaint implements OccupationSource {
     return this.drawn;
   }
 
-  private onTap(x: number, y: number): void {
-    if (this.now() === null) return;
+  /** The panel's tap, while the paint has the map. */
+  tap(x: number, y: number): void {
     const cell = this.transform.screenToWorldCoordinates(x, y);
     if (!this.game.isValidCoord(cell.x, cell.y)) return;
     const scenario = this.game.gwScenario();

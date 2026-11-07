@@ -6,6 +6,7 @@ import type {
   GwCardView,
   GwSeatView,
 } from "@openfront/engine-api/ww1914/GwView";
+import type { GwFrontView } from "@openfront/engine-api/ww1914/GwWorldView";
 import { GW_OPENING_CHAPTERS } from "@openfront/engine-lib/ww1914/StoryRows";
 import { EventBus } from "@openfront/shared/EventBus";
 import { loadGwPack } from "@openfront/shared/ww1914/GwPackLoader";
@@ -13,6 +14,7 @@ import { html, LitElement, nothing } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import { Controller } from "../../Controller";
 import { noteGwPrologue } from "../../GwRecentRuns";
+import { ContextMenuEvent, MouseUpEvent, TouchEvent } from "../../InputHandler";
 import type { MapRenderer } from "../../render/gl/MapRenderer";
 import type { TransformHandler } from "../../TransformHandler";
 import { SendGwOrderIntentEvent } from "../../Transport";
@@ -26,6 +28,7 @@ import type { GwCtx, GwUi } from "./GwCtx";
 import { deskTab, reader } from "./GwDesk";
 import { dictCard } from "./GwDict";
 import { frontsTab } from "./GwFronts";
+import { GwMap } from "./GwMap";
 import { GwMapPaint } from "./GwMapPaint";
 import { memoirTab } from "./GwMemoir";
 import {
@@ -39,6 +42,9 @@ import {
 } from "./GwModel";
 import { notebookTab } from "./GwNotebook";
 import { peopleTab } from "./GwPeople";
+import { replayBeats } from "./GwPlaceModel";
+import { deskPinLayer, placeSheet } from "./GwPlaceSheet";
+import { GwReplay, replayOverlay } from "./GwReplay";
 import { scheduleTab } from "./GwSchedule";
 import { GLASS } from "./GwStyle";
 import { paintPane, paintTags, speech, tableTab, tableTags } from "./GwTable";
@@ -77,10 +83,9 @@ const KEYFRAMES = html`<style>
 export class GwPanel extends LitElement implements Controller {
   public game: GameView;
   public eventBus: EventBus;
-  /** Absent in tests with no map. */
+  /** The map under the panel; unset where nothing draws it. */
   public transformHandler?: TransformHandler;
   public mapView?: MapRenderer;
-  private map: GwMapPaint | null = null;
   @state() private data: GreatWarData | null = null;
   @state() private pack: GwPack | null = null;
   private asked = false;
@@ -92,8 +97,17 @@ export class GwPanel extends LitElement implements Controller {
   private tableSeen = false;
   private lineSeen = -1;
   private turnSeen = false;
+  /** The camera owes the table its view of Europe. */
+  private tableView = false;
   /** Lines in the open talk when last drawn: a new one scrolls into view. */
   private talkTurns = 0;
+  private map: GwMap | null = null;
+  /** The paint over it: the war aims and the table. */
+  private painted: GwMapPaint | null = null;
+  private replay: GwReplay | null = null;
+  /** The fronts and the date as the last chapter stood: what a replay starts from. */
+  private lastFronts: readonly GwFrontView[] = [];
+  private lastDate = "";
   private readonly ui: GwUi = {
     tab: "desk",
     folded: false,
@@ -126,6 +140,9 @@ export class GwPanel extends LitElement implements Controller {
     backArmed: null,
     notes: [],
     pastDue: false,
+    spot: null,
+    postOpen: null,
+    postArmed: null,
     shelf: loadShelf(),
   };
 
@@ -137,7 +154,10 @@ export class GwPanel extends LitElement implements Controller {
     if (this.transformHandler === undefined || this.mapView === undefined) {
       return;
     }
-    this.map = new GwMapPaint(
+    const map = new GwMap(this.game, this.transformHandler, this.mapView, this);
+    this.map = map;
+    this.replay = new GwReplay(map, () => this.requestUpdate());
+    this.painted = new GwMapPaint(
       this.game,
       this.eventBus,
       this.transformHandler,
@@ -145,6 +165,13 @@ export class GwPanel extends LitElement implements Controller {
       () => this.mapCells(),
       (place) => this.onPlace(place),
     );
+    const tap = (e: { x: number; y: number }) => this.tapMap(e.x, e.y);
+    this.eventBus.on(MouseUpEvent, tap);
+    this.eventBus.on(TouchEvent, tap);
+    this.eventBus.on(ContextMenuEvent, tap);
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") this.replay?.skip();
+    });
   }
 
   /** What the map shows painted now; null while it is just the map. */
@@ -173,6 +200,37 @@ export class GwPanel extends LitElement implements Controller {
       return;
     }
     this.requestUpdate();
+  }
+
+  /**
+   * A tap ends a replay. While the map is painted (war aims, the table) it
+   * belongs to the paint; otherwise land opens its sheet and the sea closes one.
+   */
+  private tapMap(x: number, y: number): void {
+    if (this.replay?.active === true) {
+      this.replay.skip();
+      return;
+    }
+    if (this.seat() === null || this.map === null) return;
+    if (this.mapCells() !== null) {
+      this.closeSpot();
+      this.painted?.tap(x, y);
+      return;
+    }
+    const spot = this.map.spotAt(x, y);
+    this.closeSpot();
+    this.ui.spot = spot;
+    this.map.ring(spot?.region ?? null);
+    this.requestUpdate();
+  }
+
+  /** The sheet, and what was being picked on it, go. */
+  private closeSpot(): void {
+    this.ui.spot = null;
+    this.ui.postOpen = null;
+    this.ui.postArmed = null;
+    this.ui.actOpen = null;
+    this.map?.ring(null);
   }
 
   getTickIntervalMs() {
@@ -206,6 +264,8 @@ export class GwPanel extends LitElement implements Controller {
       dirty = true;
     }
     if (this.keepYearsOpen()) dirty = true;
+    this.map?.beat();
+    if (this.replay?.active !== true) this.map?.drawHeld();
     if (dirty) this.requestUpdate();
   }
 
@@ -238,7 +298,11 @@ export class GwPanel extends LitElement implements Controller {
   private onData(data: GreatWarData, seat: GwSeatView): void {
     const ui = this.ui;
     if (data.chapter !== this.chapter) {
+      if (this.chapter !== -1) this.playMonth(data, seat);
       this.chapter = data.chapter;
+      ui.spot = null;
+      ui.postOpen = null;
+      ui.postArmed = null;
       ui.research = null;
       ui.budgetPlan = null;
       ui.budgetOpen = false;
@@ -259,6 +323,8 @@ export class GwPanel extends LitElement implements Controller {
       }
     }
     this.followTable(seat);
+    this.lastFronts = seat.world.fronts;
+    this.lastDate = data.date;
     if (seat.prologue?.done === false) ui.pastDue = true;
     if (seat.prologue?.done === true && ui.pastDue) {
       noteGwPrologue(seat.tag, seat.prologue.picks);
@@ -297,12 +363,14 @@ export class GwPanel extends LitElement implements Controller {
     const t = seat.table ?? null;
     const ui = this.ui;
     if (t === null) return;
+    // The month's replay has the camera; the table's view waits for it.
+    const replaying = this.replay?.active === true;
     if (!this.tableSeen) {
       this.tableSeen = true;
       ui.tab = "table";
       ui.folded = false;
       ui.readerUid = null;
-      this.map?.flyTo(TABLE_VIEW[0], TABLE_VIEW[1]);
+      this.tableView = true;
     }
     if (t.due?.kind !== "turn") {
       ui.tableArmed = null;
@@ -311,21 +379,45 @@ export class GwPanel extends LitElement implements Controller {
     } else if (!this.turnSeen) {
       // The last claim may have taken the camera to Africa: the choice is here.
       this.turnSeen = true;
-      this.map?.flyTo(TABLE_VIEW[0], TABLE_VIEW[1]);
+      this.tableView = true;
+    }
+    if (this.tableView && !replaying) {
+      this.tableView = false;
+      this.painted?.flyTo(TABLE_VIEW[0], TABLE_VIEW[1]);
     }
     if (t.due?.kind !== "word") ui.tableOffer = false;
     const line = t.lines[t.lines.length - 1];
     if (line === undefined || line.n === this.lineSeen) return;
     this.lineSeen = line.n;
     const claim = t.claims.find((x) => x.id === line.claim);
-    if (claim !== undefined && ui.tab === "table" && t.due?.kind !== "turn") {
-      this.map?.fly(claim.place);
+    if (
+      claim !== undefined &&
+      ui.tab === "table" &&
+      t.due?.kind !== "turn" &&
+      !replaying
+    ) {
+      this.painted?.fly(claim.place);
     }
+  }
+
+  /** The month just closed plays on the map, if the fronts did anything. */
+  private playMonth(data: GreatWarData, seat: GwSeatView): void {
+    const beats = replayBeats(
+      data.landMoves,
+      this.lastFronts,
+      seat.world.fronts,
+      Math.min(window.innerWidth, window.innerHeight),
+    );
+    if (beats.length > 0) this.replay?.start(beats, this.lastDate);
   }
 
   /** A talk grows downward: its newest line must not open below the fold. */
   protected updated(): void {
-    if (this.querySelector("[data-gw-tag-at]") !== null) this.map?.keepTags();
+    if (this.querySelector("[data-gw-tag-at]") !== null) {
+      this.painted?.keepTags();
+    }
+    // A pin can be reused for another place: it must not wait for the next frame.
+    this.map?.placeMarks();
     const uid = this.ui.talkUid;
     const turns =
       uid === null ? 0 : (this.ui.talks.get(uid)?.turns.length ?? 0);
@@ -374,14 +466,18 @@ export class GwPanel extends LitElement implements Controller {
       seat,
       pack: this.pack,
       ui,
+      map: this.map,
       tick: this.ticks,
       send: (o) => this.send(o),
       redraw: () => this.requestUpdate(),
-      fly: (p) => this.map?.fly(p),
+      fly: (p) => this.painted?.fly(p),
       card: (uid) => seat.desk.find((x: GwCardView) => x.uid === uid),
     };
-    const open = ui.readerUid === null ? undefined : c.card(ui.readerUid);
-    const talk = activeTalk(c);
+    const replaying = this.replay?.active === true;
+    const painting = this.mapCells() !== null;
+    const open =
+      ui.readerUid === null || replaying ? undefined : c.card(ui.readerUid);
+    const talk = replaying ? null : activeTalk(c);
     // The years: no desk, no map, nothing of 1914 yet.
     const years =
       seat.prologue?.done === false ||
@@ -400,13 +496,22 @@ export class GwPanel extends LitElement implements Controller {
         tickerLines(data, seat, this.pack),
         this.news,
       )}
+      <canvas
+        class="pointer-events-none fixed inset-0 z-[880] h-full w-full"
+        data-gw-ink
+      ></canvas>
+      ${replaying
+        ? replayOverlay(this.replay!)
+        : painting
+          ? nothing
+          : deskPinLayer(c)}
       <aside
         data-gw-drawer
         class="${GLASS} pointer-events-auto fixed inset-x-0 bottom-0 z-[898] flex h-[56vh] flex-col text-white sm:inset-x-auto sm:left-0 sm:bottom-auto sm:top-10 sm:h-auto sm:max-h-[calc(100vh-2.5rem)] sm:w-[400px] sm:border-b-0 sm:border-l-0 ${ui.folded
           ? "!h-9"
           : ui.paint !== null || ui.tab === "table"
             ? "max-sm:!h-[42vh]"
-            : ""} ${talk === null ? "" : "invisible"}"
+            : ""} ${talk === null && !replaying ? "" : "invisible"}"
       >
         <nav
           class="flex shrink-0 flex-wrap items-center gap-0.5 border-b border-white/10 p-1.5"
@@ -438,9 +543,14 @@ export class GwPanel extends LitElement implements Controller {
               ${this.tabBody(c)}
             </div>`}
       </aside>
-      ${paintTags(c)} ${tableTags(c)} ${speech(c)}
+      ${replaying
+        ? nothing
+        : html`${paintTags(c)} ${tableTags(c)} ${speech(c)}`}
       ${open === undefined ? nothing : reader(c, open)}
       ${ui.budgetOpen ? budgetPanel(c) : nothing}
+      ${ui.spot === null || replaying || painting
+        ? nothing
+        : placeSheet(c, ui.spot)}
       ${talk === null ? nothing : talkView(c, talk.t, talk.card)} ${dictCard(c)}`;
   }
 
