@@ -197,6 +197,24 @@ describe("the table of fronts", () => {
     expect(frontLandAt("west", 0).get("strasbourg")).toBe("entente");
     expect(frontLandAt("mesopotamia", 0).get("basra")).toBe("entente");
   });
+
+  test("a long line falls a share at a time, the front's own ground first", () => {
+    // The Oder line holds seventeen places: one step of the front does not
+    // hand them all over, and what falls first is listed first.
+    const whole = frontLandAt("east", 0).size;
+    expect(whole).toBe(17);
+    const third = frontLandAt("east", 1, -1);
+    const two = frontLandAt("east", 1, -2);
+    expect(third.size).toBe(6);
+    expect(two.size).toBe(12);
+    expect(third.get("gumbinnen")).toBe("entente");
+    expect(third.has("konigsberg")).toBe(false);
+    expect(two.has("konigsberg")).toBe(false);
+    expect(frontLandAt("east", 0).has("konigsberg")).toBe(true);
+    // Either way from the start, and a line with fewer places gives fewer.
+    expect(frontLandAt("west", 1, 1).size).toBe(5);
+    expect(frontLandAt("west", 1, 2).size).toBe(10);
+  });
 });
 
 describe("fronts move land on the real map", () => {
@@ -278,6 +296,9 @@ describe("fronts move land on the real map", () => {
     east.progress = 1;
     frontLandStep(gw);
     expect(ownerAt(runner, "konigsberg")).toBe("DEU");
+    // Two thirds of the way: the first twelve places are Russian, not all.
+    expect(ownerAt(runner, "gumbinnen")).toBe("RUS");
+    expect(ownerAt(runner, "breslau")).not.toBe("RUS");
     east.progress = 0;
     frontLandStep(gw);
     expect(ownerAt(runner, "konigsberg")).toBe("RUS");

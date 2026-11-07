@@ -76,12 +76,20 @@ export function reachedLine(t: GwTheatreState): number {
     : Math.ceil(pos / GW_LINE_STEP);
 }
 
+/**
+ * How far past `reachedLine` the front has gone towards the next line, away
+ * from the start: -2..2, the sign is the way (see frontLandAt).
+ */
+export function lineStep(t: GwTheatreState): number {
+  return posOf(t) - reachedLine(t) * GW_LINE_STEP;
+}
+
 /** The map follows the fronts: each theatre's land goes as its line stands. */
 export function frontLandStep(gw: GreatWar): void {
   gw.s.landMoves = [];
   for (const t of gw.s.theatres) {
     if (t.since === null) continue;
-    const held = frontLandAt(t.id, reachedLine(t));
+    const held = frontLandAt(t.id, reachedLine(t), lineStep(t));
     for (const place of frontPlaces(t.id)) {
       moveLand(gw, place, takerOf(gw, t, place, held.get(place) ?? null), t.id);
     }
