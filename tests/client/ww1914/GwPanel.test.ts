@@ -17,6 +17,7 @@ import { SendGwOrderIntentEvent } from "../../../src/client/Transport";
 const SCENES = {
   deu_sample_envoy: {
     title: "빈에서 온 사절",
+    brief: { base: "빈이 세르비아를 치겠다며 독일의 지지를 묻고 있습니다." },
     text: {
       base: "빈에서 사절이 왔다. 세르비아를 벌하겠으니 베를린이 뒤를 받쳐 주겠느냐고 묻는다. {chancellor}은(는) 서류를 내려놓고 폐하의 답을 기다린다.",
       heard_chancellor:
@@ -38,6 +39,7 @@ const SCENES = {
   },
   deu_sample_talk: {
     title: "수상의 방문",
+    brief: "{chancellor.title}이(가) 폐하께 직접 할 말이 있어 왔습니다.",
     text: {
       base: "{chancellor}이(가) 문가에 서 있다. 불러서 온 얼굴은 아니다.",
     },
@@ -274,6 +276,9 @@ describe("the screens", () => {
     await panel.updateComplete;
     const reader = panel.querySelector("[data-gw-reader]")!;
     expect(reader.textContent).toContain("베트만홀베크는");
+    const note = reader.querySelector("[data-gw-brief]")!;
+    expect(note.textContent).toContain("gw.ui.brief_label");
+    expect(note.textContent).toContain("독일의 지지를 묻고 있습니다");
     expect(reader.textContent).toContain("시간표는 기다려 주지 않습니다");
   });
 
@@ -331,6 +336,9 @@ describe("the screens", () => {
     await panel.updateComplete;
     const view = panel.querySelector("[data-gw-talk]")!;
     expect(view.textContent).toContain("잠시 시간을 주십시오");
+    expect(view.querySelector("[data-gw-brief]")!.textContent).toContain(
+      "폐하께 직접 할 말이",
+    );
     expect(view.textContent).toContain("베트만홀베크");
     expect(view.querySelectorAll("[data-gw-reply]").length).toBe(2);
     view

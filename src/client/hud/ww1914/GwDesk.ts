@@ -343,7 +343,8 @@ export function reader(c: GwCtx, card: GwCardView): TemplateResult {
         : html`<div class="space-y-0.5" data-gw-folded>
             <div class=${MUTED}>${translateText("gw.ui.folded_title")}</div>
             ${foldedLines(c.pack, card).map(
-              (l) => html`<p class="text-sm text-white/75">${l}</p>`,
+              (l) =>
+                html`<p class="text-sm text-white/75">${rich(c, l, pass)}</p>`,
             )}
           </div>`}
       ${read

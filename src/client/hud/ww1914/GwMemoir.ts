@@ -138,7 +138,7 @@ function unknown(c: GwCtx, m: GwMemoir): TemplateResult {
       : m.unknown.map(
           (u) =>
             html`<p class="text-sm leading-6 text-white/90">
-              ${unknownText(c.pack, u)}
+              ${rich(c, unknownText(c.pack, u))}
             </p>`,
         )}
   </section>`;

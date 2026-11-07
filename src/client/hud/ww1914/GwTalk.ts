@@ -208,12 +208,16 @@ export function talkView(
                   <p
                     class="rounded-l-md border-r-4 border-sky-300/70 bg-sky-300/10 px-4 py-2 text-[15px] leading-7 text-white/85"
                   >
-                    ${fillGw(
-                      optionText(c.pack, turn.card, turn.reply),
-                      c.pack,
-                      turn.card,
-                      c.seat,
-                      c.data.date,
+                    ${rich(
+                      c,
+                      fillGw(
+                        optionText(c.pack, turn.card, turn.reply),
+                        c.pack,
+                        turn.card,
+                        c.seat,
+                        c.data.date,
+                      ),
+                      pass,
                     )}
                   </p>
                   ${turn.tell.length === 0
@@ -282,11 +286,17 @@ export function talkView(
                         >
                           <span class="${CHIP} mr-2"
                             >${translateText(`gw.ui.stance.${r.stance}`)}</span
-                          >${fillGw(text, c.pack, card!, c.seat, c.data.date)}
+                          >${rich(
+                            c,
+                            fillGw(text, c.pack, card!, c.seat, c.data.date),
+                            pass,
+                          )}
                         </button>
                         ${why === undefined
                           ? nothing
-                          : html`<p class="${MUTED} pl-1">${why}</p>`}
+                          : html`<p class="${MUTED} pl-1">
+                              ${rich(c, why, pass)}
+                            </p>`}
                       </div>`;
                     })}
                   </div>`,
