@@ -51,7 +51,7 @@ export const RUS_LAWS: readonly GwLawRow[] = [
     flag: "f_law_censor",
     repeal: { authority: 10, tell: ["duma:+1", "court:-1"], effects: [inst("duma", 1), inst("court", -1)] },
     talk: lawTalk("rus_press", {
-      who: either(person("rus_milyukov"), person("rus_rodzianko"), held("interior")),
+      who: person("rus_milyukov"),
       ask: "frank",
       push: "cold",
       tell: ["court:-1"],
@@ -80,7 +80,7 @@ export const RUS_LAWS: readonly GwLawRow[] = [
     settled: chose("gw_bm_rus_1914", "dry_law"),
     repeal: { authority: 15, tell: ["money:+1", "court:-1"], effects: [gauge("money", 1), inst("court", -1)] },
     talk: lawTalk("rus_dry", {
-      who: either(person("rus_bark"), held("finance")),
+      who: held("finance"),
       ask: "cold",
       push: "frank",
       tell: ["money:-1"],
@@ -108,7 +108,7 @@ export const RUS_LAWS: readonly GwLawRow[] = [
     ],
     repeal: { authority: 20, tell: ["manpower:-8", "order:+1"], effects: [men(-8), gauge("order", 1)] },
     talk: lawTalk("rus_ratniki", {
-      who: either(person("rus_polivanov"), person("rus_rodzianko"), held("war")),
+      who: either(person("rus_polivanov"), held("war")),
       ask: "frank",
       push: "cold",
       tell: ["stavka:-1"],
@@ -139,7 +139,7 @@ export const RUS_LAWS: readonly GwLawRow[] = [
     term: [{ gauge: "shells", delta: 1, every: 5 }],
     repeal: { authority: 25, tell: ["duma:-2", "shells:-1"], effects: [inst("duma", -2), gauge("shells", -1)] },
     talk: lawTalk("rus_councils", {
-      who: either(person("rus_guchkov"), person("rus_rodzianko"), held("chancellor")),
+      who: person("rus_guchkov"),
       ask: "frank",
       push: "flatter",
       tell: ["court:-1"],
@@ -175,7 +175,7 @@ export const RUS_LAWS: readonly GwLawRow[] = [
     flag: "f_law_strike_ban",
     repeal: { authority: 15, tell: ["order:+1", "shells:-1"], effects: [gauge("order", 1), gauge("shells", -1)] },
     talk: lawTalk("rus_factories", {
-      who: either(person("rus_guchkov"), person("rus_chkheidze"), held("interior")),
+      who: person("rus_chkheidze"),
       ask: "cold",
       push: "threat",
       tell: ["duma:+1", "court:-1"],
@@ -202,7 +202,7 @@ export const RUS_LAWS: readonly GwLawRow[] = [
     ],
     repeal: { authority: 10, tell: ["bread:-1", "order:+1"], effects: [gauge("bread", -1), gauge("order", 1)] },
     talk: lawTalk("rus_grain", {
-      who: either(person("rus_rittikh"), person("rus_krivoshein"), held("agriculture")),
+      who: either(person("rus_rittikh"), held("agriculture")),
       ask: "frank",
       push: "cold",
       tell: ["money:-1"],
@@ -229,7 +229,7 @@ export const RUS_LAWS: readonly GwLawRow[] = [
     replaces: ["rus_h_poland_charter"],
     repeal: { authority: 25, tell: ["court:+1", "morale:-1"], effects: [inst("court", 1), gauge("morale", -1)] },
     talk: lawTalk("rus_poland", {
-      who: either(person("rus_sazonov"), held("foreign")),
+      who: held("foreign"),
       ask: "warm",
       push: "cold",
       tell: ["court:-1"],
@@ -254,7 +254,7 @@ export const RUS_LAWS: readonly GwLawRow[] = [
     term: [],
     repeal: { authority: 15, tell: ["duma:-1", "court:+1"], effects: [inst("duma", -1), inst("court", 1)] },
     talk: lawTalk("rus_finland", {
-      who: either(person("rus_milyukov"), held("chancellor")),
+      who: person("rus_milyukov"),
       ask: "frank",
       push: "cold",
       tell: ["court:-1"],
@@ -278,7 +278,7 @@ export const RUS_LAWS: readonly GwLawRow[] = [
     term: [],
     repeal: { authority: 20, tell: ["money:-1", "duma:-1"], effects: [gauge("money", -1), inst("duma", -1)] },
     talk: lawTalk("rus_pale", {
-      who: either(person("rus_shingarev"), person("rus_bark"), held("finance")),
+      who: person("rus_shingarev"),
       ask: "frank",
       push: "cold",
       tell: ["court:-1"],

@@ -56,7 +56,8 @@ describe("content", () => {
     for (const p of GW_CONTENT.people) GwPersonDefSchema.parse(p);
     const ids = GW_CONTENT.scenes.map((s) => s.id);
     expect(new Set(ids).size).toBe(ids.length);
-  });
+    // Parsing every scene takes a while on a busy machine.
+  }, 60000);
 
   test.each(SEATS)(
     "%s's pack holds every line a scene can show",

@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "scenes": {},
+  "people": {},
+  "reasons": {
+    "law_no_commons": "하원이 법안을 부결했다.",
+    "law_no_cabinet": "내각이 법안을 하원에 올리지 못했다.",
+    "law_no_reichstag": "의회가 안을 거부했다.",
+    "law_no_hungary": "부다페스트가 동의를 내주지 않았다.",
+    "law_no_council": "각료 회의가 안을 받지 않았다.",
+    "law_no_duma": "두마가 안을 부결했다.",
+    "law_no_body": "안이 표를 얻지 못했다.",
+    "law_withdrawn": "안을 거둬들였다."
+  }
+}

@@ -16,8 +16,17 @@ export const GW_LAW_STAGES = [
 ] as const;
 export type GwLawStage = (typeof GW_LAW_STAGES)[number];
 
-/** How a law came to be. `scene`: a decision of the desk had already made it. */
-export const GW_LAW_HOWS = ["none", "voted", "decreed", "scene"] as const;
+/**
+ * How a law came to be. `scene`: a decision of the desk had already made it.
+ * `repealed`: it was ended, so that decision doesn't make it law again.
+ */
+export const GW_LAW_HOWS = [
+  "none",
+  "voted",
+  "decreed",
+  "scene",
+  "repealed",
+] as const;
 export type GwLawHow = (typeof GW_LAW_HOWS)[number];
 
 /** What the count looks like, in words: the seat never sees a number. */

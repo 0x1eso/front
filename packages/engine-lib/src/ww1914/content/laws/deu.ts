@@ -58,7 +58,7 @@ export const DEU_LAWS: readonly GwLawRow[] = [
     replaces: ["deu_h_censor"],
     repeal: { authority: 15, tell: ["army:-1", "reichstag:+1"], effects: [inst("army", -1), inst("reichstag", 1)] },
     talk: lawTalk("deu_censor", {
-      who: either(person("deu_erzberger"), person("deu_haase"), held("interior")),
+      who: either(person("deu_erzberger"), person("deu_haase")),
       ask: "frank",
       push: "cold",
       tell: ["army:-1"],
@@ -86,7 +86,7 @@ export const DEU_LAWS: readonly GwLawRow[] = [
     ],
     repeal: { authority: 15, tell: ["bread:-2"], effects: [gauge("bread", -2)] },
     talk: lawTalk("deu_bread_cards", {
-      who: either(person("deu_delbruck"), held("interior")),
+      who: held("interior"),
       ask: "cold",
       push: "frank",
       tell: ["money:-1"],
@@ -119,7 +119,7 @@ export const DEU_LAWS: readonly GwLawRow[] = [
     term: [{ gauge: "bread", delta: 1, every: 8 }],
     repeal: { authority: 10, tell: ["bread:-1"], effects: [gauge("bread", -1)] },
     talk: lawTalk("deu_food_office", {
-      who: either(person("deu_batocki"), person("deu_wild"), held("interior")),
+      who: either(person("deu_batocki"), held("interior")),
       ask: "frank",
       push: "cold",
       tell: ["army:-1"],
@@ -148,7 +148,7 @@ export const DEU_LAWS: readonly GwLawRow[] = [
     flag: "f_law_strike_ban",
     repeal: { authority: 15, tell: ["order:+1", "army:-1"], effects: [gauge("order", 1), inst("army", -1)] },
     talk: lawTalk("deu_strike_ban", {
-      who: either(person("deu_ebert"), person("deu_haase"), held("interior")),
+      who: either(person("deu_ebert"), person("deu_haase")),
       ask: "frank",
       push: "threat",
       tell: ["reichstag:+1", "army:-1"],
@@ -183,7 +183,7 @@ export const DEU_LAWS: readonly GwLawRow[] = [
     replaces: ["deu_h_aux_service"],
     repeal: { authority: 20, tell: ["manpower:-3", "order:+1"], effects: [men(-3), gauge("order", 1)] },
     talk: lawTalk("deu_aux", {
-      who: either(person("deu_groener"), person("deu_ebert"), held("war")),
+      who: person("deu_groener"),
       ask: "frank",
       push: "cold",
       tell: ["army:-1"],
@@ -207,7 +207,7 @@ export const DEU_LAWS: readonly GwLawRow[] = [
     term: [{ gauge: "order", delta: 1, every: 10 }],
     repeal: { authority: 25, tell: ["order:-2", "reichstag:-1"], effects: [gauge("order", -2), inst("reichstag", -1)] },
     talk: lawTalk("deu_unions", {
-      who: either(person("deu_ebert"), person("deu_scheidemann"), held("interior")),
+      who: either(person("deu_ebert"), person("deu_scheidemann")),
       ask: "warm",
       push: "frank",
       tell: ["army:-1"],
@@ -230,7 +230,7 @@ export const DEU_LAWS: readonly GwLawRow[] = [
     term: [],
     repeal: { authority: 25, tell: ["reichstag:-2"], effects: [inst("reichstag", -2)] },
     talk: lawTalk("deu_jesuits", {
-      who: either(person("deu_erzberger"), person("deu_hertling"), held("chancellor")),
+      who: either(person("deu_erzberger"), person("deu_hertling")),
       ask: "warm",
       push: "cold",
       tell: ["countersign:-1"],
@@ -271,7 +271,7 @@ export const DEU_LAWS: readonly GwLawRow[] = [
     term: [],
     repeal: { authority: 45, tell: ["order:-3"], effects: [gauge("order", -3)] },
     talk: lawTalk("deu_three_class", {
-      who: either(person("deu_bethmann"), held("chancellor")),
+      who: held("chancellor"),
       ask: "frank",
       push: "cold",
       tell: ["army:-1", "countersign:+1"],
@@ -296,7 +296,7 @@ export const DEU_LAWS: readonly GwLawRow[] = [
     term: [],
     repeal: { authority: 20, tell: ["army:+1"], effects: [inst("army", 1)] },
     talk: lawTalk("deu_alsace", {
-      who: either(person("deu_wild"), held("war")),
+      who: held("war"),
       ask: "cold",
       push: "threat",
       tell: ["reichstag:-1"],

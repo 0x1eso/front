@@ -268,6 +268,7 @@ function takeUp(
   const st = touchRow(n, row.id);
   st.support = 0;
   st.text = null;
+  st.how = "none";
   toStage(gw, st, "draft");
   placeCard(gw, seat, card);
   return null;
@@ -284,7 +285,7 @@ function repeal(
   if (n.authority < row.repeal.authority) return "no_authority";
   n.authority -= row.repeal.authority;
   toStage(gw, st, "idle");
-  st.how = "none";
+  st.how = "repealed";
   st.support = 0;
   st.text = null;
   setFlags(gw, row, false);
@@ -313,8 +314,8 @@ function settle(gw: GreatWar, seat: GwSeatState, n: GwNationState): void {
   for (const row of GW_LAWS) {
     if (row.tag !== n.tag || row.settled === undefined) continue;
     const had = lawStage(n, row.id);
-    if (had?.stage === "force") continue;
-    if (had?.how === "scene" || !openSettled(gw, seat, row)) continue;
+    if (had?.stage === "force" || had?.how === "repealed") continue;
+    if (!openSettled(gw, seat, row)) continue;
     const st = touchRow(n, row.id);
     toStage(gw, st, "force");
     st.how = "scene";

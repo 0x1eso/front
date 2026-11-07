@@ -6,6 +6,7 @@ import { html, nothing, TemplateResult } from "lit";
 import { translateText } from "../../Utils";
 import { budgetSummary } from "./GwBudget";
 import type { GwCtx } from "./GwCtx";
+import { lawsSection } from "./GwLaws";
 import { gaugeFill, gaugeLevel, instBand, logByChapter } from "./GwModel";
 import { CHIP, fillColor, HEAD, MUTED } from "./GwStyle";
 import {
@@ -45,7 +46,9 @@ function gauges(c: GwCtx): TemplateResult {
           (l) =>
             html`<p class=${MUTED} data-gw-line=${l.key}>
               ${l.delta > 0 ? "▲" : "▼"}
-              ${textOrNull(`gw.line.${l.key}`) ?? l.key}
+              ${textOrNull(`gw.line.${l.key}`) ??
+              c.pack?.reasons?.[l.key] ??
+              l.key}
             </p>`,
         )}
       </div>`;
@@ -192,7 +195,7 @@ export function countryTab(c: GwCtx): TemplateResult {
   const insts = GW_INSTITUTIONS.filter((i) => seat.inst[i] !== undefined);
   const log = logByChapter(seat.log);
   return html`<div class="space-y-3" data-gw-country>
-    ${standing(c)} ${budgetSummary(c)} ${war(c)} ${gauges(c)}
+    ${standing(c)} ${budgetSummary(c)} ${lawsSection(c)} ${war(c)} ${gauges(c)}
     ${insts.length === 0
       ? nothing
       : html`<section class=${BOX}>

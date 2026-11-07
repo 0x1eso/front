@@ -81,6 +81,7 @@ export class GwPanel extends LitElement implements Controller {
     openPerson: null,
     summoned: 0,
     armedDismiss: null,
+    armedRepeal: null,
     research: null,
     budgetOpen: false,
     budgetPlan: null,

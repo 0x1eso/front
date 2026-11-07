@@ -61,7 +61,7 @@ export const AUH_LAWS: readonly GwLawRow[] = [
     replaces: ["auh_c_decree"],
     repeal: { authority: 15, tell: ["nations:+1", "army:-1"], effects: [inst("nations", 1), inst("army", -1)] },
     talk: lawTalk("auh_press", {
-      who: either(person("auh_adler"), held("chancellor")),
+      who: person("auh_adler"),
       ask: "frank",
       push: "cold",
       tell: ["army:-1"],
@@ -88,7 +88,7 @@ export const AUH_LAWS: readonly GwLawRow[] = [
     ],
     repeal: { authority: 20, tell: ["manpower:-8", "bread:+1"], effects: [men(-8), gauge("bread", 1)] },
     talk: lawTalk("auh_landsturm", {
-      who: either(person("auh_tisza"), held("hun_pm")),
+      who: held("hun_pm"),
       ask: "frank",
       push: "cold",
       tell: ["hungary:+1", "council:-1"],
@@ -119,7 +119,7 @@ export const AUH_LAWS: readonly GwLawRow[] = [
     flag: "f_law_strike_ban",
     repeal: { authority: 15, tell: ["order:+1", "shells:-1"], effects: [gauge("order", 1), gauge("shells", -1)] },
     talk: lawTalk("auh_factories", {
-      who: either(person("auh_adler"), held("chancellor")),
+      who: person("auh_adler"),
       ask: "warm",
       push: "frank",
       tell: ["army:-1"],
@@ -151,7 +151,7 @@ export const AUH_LAWS: readonly GwLawRow[] = [
     term: [{ gauge: "bread", delta: 1, every: 6 }],
     repeal: { authority: 10, tell: ["hungary:+1", "bread:-1"], effects: [inst("hungary", 1), gauge("bread", -1)] },
     talk: lawTalk("auh_food", {
-      who: either(person("auh_tisza"), held("hun_pm")),
+      who: held("hun_pm"),
       ask: "cold",
       push: "threat",
       tell: ["hungary:+1", "money:-1"],
@@ -183,7 +183,7 @@ export const AUH_LAWS: readonly GwLawRow[] = [
     term: [{ gauge: "morale", delta: 1, every: 12 }],
     repeal: { authority: 25, tell: ["nations:-2"], effects: [inst("nations", -2)] },
     talk: lawTalk("auh_galicia", {
-      who: either(person("auh_bilinski"), held("finance")),
+      who: held("finance"),
       ask: "warm",
       push: "cold",
       tell: ["council:-1"],
@@ -194,7 +194,7 @@ export const AUH_LAWS: readonly GwLawRow[] = [
   }),
   row({
     id: "auh_transylvania",
-    opens: allOf(until("1916-08"), world({ is: "neutral", tag: "ROU" })),
+    opens: allOf(war, until("1916-08"), world({ is: "neutral", tag: "ROU" })),
     lean: -2,
     decree: false,
     cast: both,
@@ -208,7 +208,7 @@ export const AUH_LAWS: readonly GwLawRow[] = [
     term: [],
     repeal: { authority: 20, tell: ["hungary:+1", "nations:-2"], effects: [inst("hungary", 1), inst("nations", -2)] },
     talk: lawTalk("auh_transylvania", {
-      who: either(person("auh_czernin"), person("auh_tisza"), held("hun_pm")),
+      who: person("auh_czernin"),
       ask: "frank",
       push: "flatter",
       tell: ["hungary:-1"],
@@ -233,7 +233,7 @@ export const AUH_LAWS: readonly GwLawRow[] = [
     term: [{ gauge: "order", delta: -1, every: 10 }],
     repeal: { authority: 5, tell: ["nations:+1", "army:-1"], effects: [inst("nations", 1), inst("army", -1)] },
     talk: lawTalk("auh_oktroi", {
-      who: either(person("auh_clam"), person("auh_koerber"), held("chancellor")),
+      who: held("chancellor"),
       ask: "cold",
       push: "frank",
       tell: ["nations:-1"],
@@ -260,7 +260,7 @@ export const AUH_LAWS: readonly GwLawRow[] = [
     replaces: ["auh_h_reichsrat_call"],
     repeal: { authority: 30, tell: ["nations:-2", "order:-1"], effects: [inst("nations", -2), gauge("order", -1)] },
     talk: lawTalk("auh_reichsrat", {
-      who: either(person("auh_koerber"), person("auh_clam"), held("chancellor")),
+      who: either(person("auh_koerber"), held("chancellor")),
       ask: "frank",
       push: "warm",
       tell: ["army:-1"],
@@ -286,7 +286,7 @@ export const AUH_LAWS: readonly GwLawRow[] = [
     settled: flag("f_auh_soldiers_vote"),
     repeal: { authority: 35, tell: ["morale:-1", "nations:-1"], effects: [gauge("morale", -1), inst("nations", -1)] },
     talk: lawTalk("auh_franchise", {
-      who: either(person("auh_karolyi"), person("auh_andrassy"), held("hun_pm")),
+      who: person("auh_karolyi"),
       ask: "frank",
       push: "flatter",
       tell: ["hungary:-1"],

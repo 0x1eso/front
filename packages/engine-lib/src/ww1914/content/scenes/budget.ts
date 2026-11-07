@@ -1,6 +1,8 @@
 import type {
   GwGauge,
   GwOffice,
+  GwSecret,
+  GwTemperament,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import type {
   GwBudgetLine,
@@ -20,6 +22,7 @@ import {
   GwReply,
   GwScene,
   memory,
+  moody,
   not,
   reason,
   remember,
@@ -147,6 +150,21 @@ const AFTER_FALL = (forms: string[]) => [
 ];
 const PEACE = [{ id: "base" }];
 
+/**
+ * What a money talk holds besides its deal: a thing to find out and a thing to
+ * trade. Asked further, they say what they know, straight only if they will;
+ * what was heard straight buys the trade cheaper.
+ */
+interface MoneyTalk {
+  /** The temper with a first line of its own. */
+  temper: GwTemperament;
+  /** The world's fact this talk can turn up. */
+  secret?: GwSecret;
+  /** The trade at its full price, and with what was found. */
+  full: { tell: string[]; effects: GwEffect[] };
+  sharp: { tell: string[]; effects: GwEffect[] };
+}
+
 /** A talk with whoever holds the purse, or a banker. */
 function talk(
   id: string,
@@ -155,15 +173,35 @@ function talk(
   when: GwCond,
   key: string,
   deal: { tell: string[]; effects: GwEffect[] },
+  deep: MoneyTalk,
   opts: { summon?: boolean; push?: GwEffect[] } = {},
 ): GwScene {
   const person = role("who");
+  const found = `b_found_${id.slice(6)}`;
   const reply = (
     r: Omit<GwReply, "next"> & { next?: string | null },
   ): GwReply => ({ ...r, next: r.next ?? null });
+  const sour = { kind: "person_trust", who: person, max: -2 } as const;
+  const learn: GwEffect[] = [
+    remember(found),
+    reason(`budget_found_${id.slice(6)}`),
+    ...(deep.secret === undefined
+      ? []
+      : [
+          {
+            kind: "maybe",
+            when: { kind: "secret", id: deep.secret },
+            then: [doWorld({ do: "reveal", id: deep.secret })],
+          } as GwEffect,
+        ]),
+  ];
   const nodes: Record<string, GwNode> = {
     open: {
-      says: [{ id: "straight", when: candid(person) }, { id: "base" }],
+      says: [
+        { id: "straight", when: candid(person) },
+        { id: deep.temper, when: moody(person, deep.temper) },
+        { id: "base" },
+      ],
       replies: [
         reply({
           id: "ask",
@@ -172,6 +210,7 @@ function talk(
           tell: [],
           effects: [],
           next: "hear",
+          reacts: [{ when: sour, next: "shut", effects: [] }],
         }),
         reply({
           id: "push",
@@ -180,6 +219,7 @@ function talk(
           tell: ["trust:-1"],
           effects: [trustOf(person, -1), ...(opts.push ?? [])],
           next: "hear",
+          miss: "shut",
         }),
         reply({
           id: "leave",
@@ -201,7 +241,74 @@ function talk(
           effects: [remember(key), ...deal.effects],
         }),
         reply({
+          id: "dig",
+          stance: "frank",
+          kind: "ask",
+          tell: [],
+          effects: [{ kind: "maybe", when: candid(person), then: learn }],
+          next: "find",
+        }),
+        reply({
           id: "enough",
+          stance: "cold",
+          kind: "leave",
+          tell: [],
+          effects: [],
+        }),
+      ],
+    },
+    find: {
+      says: [{ id: "straight", when: candid(person) }, { id: "base" }],
+      replies: [
+        reply({
+          id: "deal",
+          stance: "frank",
+          kind: "deal",
+          tell: [],
+          effects: [],
+          next: "barter",
+        }),
+        reply({
+          id: "back",
+          stance: "warm",
+          kind: "leave",
+          tell: [],
+          effects: [remember(key)],
+        }),
+      ],
+    },
+    barter: {
+      says: [{ id: "base" }],
+      replies: [
+        reply({
+          id: "give",
+          stance: "warm",
+          kind: "deal",
+          tell: deep.full.tell,
+          effects: [remember(key), ...deep.full.effects],
+        }),
+        reply({
+          id: "sharp",
+          stance: "cold",
+          kind: "deal",
+          when: memory(found),
+          tell: deep.sharp.tell,
+          effects: [remember(key), ...deep.sharp.effects],
+        }),
+        reply({
+          id: "refuse",
+          stance: "cold",
+          kind: "leave",
+          tell: [],
+          effects: [remember(key)],
+        }),
+      ],
+    },
+    shut: {
+      says: [{ id: "base" }],
+      replies: [
+        reply({
+          id: "end",
           stance: "cold",
           kind: "leave",
           tell: [],
@@ -227,6 +334,27 @@ function talk(
     ...(opts.summon === false ? { when: onlyCalled } : { summon: true }),
   };
 }
+
+/** A trade: `gain` for `price`, or for nothing with what was found. */
+const trade = (
+  temper: GwTemperament,
+  gain: { tell: string; effect: GwEffect },
+  price: { tell: string; effect: GwEffect },
+  secret?: GwSecret,
+): MoneyTalk => ({
+  temper,
+  ...(secret === undefined ? {} : { secret }),
+  full: { tell: [gain.tell, price.tell], effects: [gain.effect, price.effect] },
+  sharp: { tell: [gain.tell], effects: [gain.effect] },
+});
+const coin = { tell: "money:+1", effect: treasury(10) };
+const cost = (i: Extract<GwEffect, { kind: "inst" }>["inst"], d = -1) => ({
+  tell: `${i}:${d > 0 ? "+" : ""}${d}`,
+  effect: inst(i, d),
+});
+const gain = (i: Extract<GwEffect, { kind: "inst" }>["inst"]) => cost(i, 1);
+const cheaper = { tell: "prices_down", effect: prices(-4) };
+const loaf = { tell: "bread:+1", effect: gauge("bread", 1) };
 
 const atWar = world({ is: "war" });
 const since = (from: string) => all(atWar, world({ is: "date", from }));
@@ -373,11 +501,13 @@ export const BUDGET_SCENES: readonly GwScene[] = [
     since("1915-03"),
     "b_deu_profits",
     { tell: [], effects: [reason("budget_heard_profits")] },
+    trade("cold", coin, cost("army")),
   ),
   talk("gw_bt_deu_chest", "DEU", financeHolder, atWar, "b_deu_chest", {
     tell: ["money:+1", "army:-1"],
     effects: [treasury(10), inst("army", -1)],
-  }),
+  },
+    trade("cunning", coin, cost("reichstag"))),
   talk(
     "gw_bt_deu_after",
     "DEU",
@@ -385,6 +515,7 @@ export const BUDGET_SCENES: readonly GwScene[] = [
     all(since("1916-01"), heavy),
     "b_deu_after",
     { tell: [], effects: [reason("budget_heard_after")] },
+    trade("weary", gain("reichstag"), { tell: "money:-1", effect: treasury(-10) }),
   ),
   talk(
     "gw_bt_deu_notes",
@@ -393,6 +524,7 @@ export const BUDGET_SCENES: readonly GwScene[] = [
     since("1915-06"),
     "b_deu_notes",
     { tell: [], effects: [reason("budget_heard_notes")] },
+    trade("stubborn", cheaper, cost("reichstag")),
   ),
   bankruptcy("gw_bc_deu", ["DEU"], [inst("reichstag", -1)]),
 
@@ -478,7 +610,8 @@ export const BUDGET_SCENES: readonly GwScene[] = [
   talk("gw_bt_gbr_duties", "GBR", financeHolder, atWar, "b_gbr_duties", {
     tell: [],
     effects: [reason("budget_heard_duties")],
-  }),
+  },
+    trade("cunning", coin, cost("cabinet"))),
   talk(
     "gw_bt_gbr_allies",
     "GBR",
@@ -486,11 +619,13 @@ export const BUDGET_SCENES: readonly GwScene[] = [
     since("1915-06"),
     "b_gbr_allies",
     { tell: [], effects: [reason("budget_heard_allies")] },
+    trade("cold", coin, { tell: "ally:-1", effect: { kind: "trust", tag: "FRA", delta: -1 } }),
   ),
   talk("gw_bt_gbr_loan", "GBR", financeHolder, since("1916-01"), "b_gbr_loan", {
     tell: [],
     effects: [reason("budget_heard_loan")],
-  }),
+  },
+    trade("anxious", coin, { tell: "america:+1", effect: doWorld({ do: "readiness", tag: "USA", delta: 2 }) }, "usa_credit_cliff")),
   talk(
     "gw_bl_gbr",
     "GBR",
@@ -504,6 +639,7 @@ export const BUDGET_SCENES: readonly GwScene[] = [
         doWorld({ do: "readiness", tag: "USA", delta: 4 }),
       ],
     },
+    trade("cold", coin, { tell: "america:+1", effect: doWorld({ do: "readiness", tag: "USA", delta: 2 }) }, "usa_credit_cliff"),
     { summon: false },
   ),
   bankruptcy("gw_bc_gbr", ["GBR"], [inst("commons", -1)]),
@@ -584,7 +720,8 @@ export const BUDGET_SCENES: readonly GwScene[] = [
   talk("gw_bt_auh_loan", "AUH", financeHolder, atWar, "b_auh_loan", {
     tell: [],
     effects: [reason("budget_heard_loan_auh")],
-  }),
+  },
+    trade("cunning", coin, cost("hungary"))),
   talk(
     "gw_bt_auh_grain",
     "AUH",
@@ -592,6 +729,7 @@ export const BUDGET_SCENES: readonly GwScene[] = [
     since("1915-03"),
     "b_auh_grain",
     { tell: ["hungary:+1"], effects: [inst("hungary", 1)] },
+    trade("stubborn", loaf, cost("hungary"), "auh_hun_grain_hidden"),
   ),
   talk(
     "gw_bt_auh_halves",
@@ -600,6 +738,7 @@ export const BUDGET_SCENES: readonly GwScene[] = [
     all(since("1916-01"), any(dear, hungry)),
     "b_auh_halves",
     { tell: [], effects: [reason("budget_heard_halves")] },
+    trade("weary", loaf, cost("council")),
   ),
   talk(
     "gw_bl_auh",
@@ -611,6 +750,7 @@ export const BUDGET_SCENES: readonly GwScene[] = [
       tell: ["money:+2", "berlin:+1"],
       effects: [treasury(40), inst("berlin", 1)],
     },
+    trade("cold", coin, cost("berlin", 1)),
     { summon: false },
   ),
   bankruptcy("gw_bc_auh", ["AUH"], [inst("hungary", -1)]),
@@ -699,11 +839,13 @@ export const BUDGET_SCENES: readonly GwScene[] = [
   talk("gw_bt_rus_vodka", "RUS", financeHolder, atWar, "b_rus_income", {
     tell: [],
     effects: [reason("budget_heard_income")],
-  }),
+  },
+    trade("weary", coin, cost("court"))),
   talk("gw_bt_rus_gold", "RUS", financeHolder, since("1915-01"), "b_rus_gold", {
     tell: ["money:+1"],
     effects: [treasury(15)],
-  }),
+  },
+    trade("anxious", coin, { tell: "gbr:-1", effect: { kind: "trust", tag: "GBR", delta: -1 } })),
   talk(
     "gw_bt_rus_paper",
     "RUS",
@@ -711,6 +853,7 @@ export const BUDGET_SCENES: readonly GwScene[] = [
     all(since("1915-06"), dear),
     "b_rus_paper",
     { tell: [], effects: [reason("budget_heard_paper")] },
+    trade("weary", cheaper, { tell: "shells:-1", effect: gauge("shells", -1) }),
   ),
   talk(
     "gw_bt_rus_committee",
@@ -722,6 +865,7 @@ export const BUDGET_SCENES: readonly GwScene[] = [
     ),
     "b_rus_committee",
     { tell: ["duma:+1"], effects: [inst("duma", 1)] },
+    trade("stubborn", gain("duma"), cost("court")),
   ),
   talk(
     "gw_bl_rus",
@@ -733,6 +877,7 @@ export const BUDGET_SCENES: readonly GwScene[] = [
       tell: ["money:+2", "gbr:+1"],
       effects: [treasury(40), { kind: "trust", tag: "GBR", delta: 1 }],
     },
+    trade("cold", coin, { tell: "gbr:-1", effect: { kind: "trust", tag: "GBR", delta: -1 } }),
     { summon: false },
   ),
   bankruptcy("gw_bc_rus", ["RUS"], [inst("duma", -1)]),

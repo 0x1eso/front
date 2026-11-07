@@ -3,6 +3,7 @@ import type {
   GwOption,
   GwScene,
 } from "@openfront/engine-api/ww1914/SceneDsl";
+import { flag } from "@openfront/engine-api/ww1914/SceneDsl";
 import { doWorld, world } from "@openfront/engine-api/ww1914/WorldDsl";
 import { GW_LAW_HOME, GwLawRow, lawTermTell } from "../../LawRows";
 import { AUH_LAWS } from "../laws/auh";
@@ -18,6 +19,9 @@ export const GW_LAWS: readonly GwLawRow[] = [
   ...RUS_LAWS,
 ];
 
+/** Never drawn: the engine calls these (engine/ww1914/Laws). */
+const onlyCalled = flag("gw_world_called_only");
+
 const act = (e: Parameters<typeof doWorld>[0]): GwEffect => doWorld(e);
 
 /** The card of the drafting: each option is a text of the bill. */
@@ -29,7 +33,7 @@ function draftScene(row: GwLawRow): GwScene {
     cast: { ...row.cast },
     salience: 6,
     tags: ["home"],
-    scheduledOnly: true,
+    when: onlyCalled,
     variants: [...(row.variants ?? []), { id: "base" }],
     fallback: row.draft[0].id,
     options: row.draft.map((d) => {
@@ -73,7 +77,7 @@ function dayScene(row: GwLawRow): GwScene {
     cast: { ...row.cast },
     salience: 7,
     tags: ["home"],
-    scheduledOnly: true,
+    when: onlyCalled,
     variants: [
       { id: "short", when: world({ is: "law_count", id: law, max: -1 }) },
       { id: "base" },
@@ -111,7 +115,7 @@ function afterScene(row: GwLawRow): GwScene[] {
       cast: { ...(row.after.cast ?? row.cast) },
       salience: 6,
       tags: ["home"],
-      scheduledOnly: true,
+      when: onlyCalled,
       variants: [{ id: "base" }],
       fallback: row.after.options[0].id,
       options: [...row.after.options],

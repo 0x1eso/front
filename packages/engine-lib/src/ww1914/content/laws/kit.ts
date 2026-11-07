@@ -55,8 +55,10 @@ export const isText = (law: string, text: string): GwCond =>
   world({ is: "law", id: law, of: ["force", "vote"], text });
 export const office = (o: GwOffice): GwCastRule => ({ office: o });
 export const person = (p: string): GwCastRule => ({ person: p });
+type AnyOf = Extract<GwCastRule, { any_of: unknown }>["any_of"];
+/** The first that finds someone; a list inside a list is laid flat. */
 export const either = (...rules: GwCastRule[]): GwCastRule => ({
-  any_of: rules as Extract<GwCastRule, { any_of: unknown }>["any_of"],
+  any_of: rules.flatMap((r) => ("any_of" in r ? r.any_of : [r])) as AnyOf,
 });
 /** Whoever is at hand when the office stands empty. */
 export const held = (o: GwOffice): GwCastRule =>

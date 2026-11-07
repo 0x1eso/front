@@ -10,7 +10,6 @@ import { world } from "@openfront/engine-api/ww1914/WorldDsl";
 import type { GwLawRow } from "../../LawRows";
 import {
   draft,
-  either,
   gauge,
   held,
   inst,
@@ -52,7 +51,7 @@ export const GBR_LAWS: readonly GwLawRow[] = [
     flag: "f_law_censor",
     repeal: { authority: 10, tell: ["order:-1"], effects: [gauge("order", -1)] },
     talk: lawTalk("gbr_dora", {
-      who: either(person("gbr_simon"), held("interior")),
+      who: person("gbr_simon"),
       ask: "frank",
       push: "cold",
       tell: ["commons:+1"],
@@ -80,7 +79,7 @@ export const GBR_LAWS: readonly GwLawRow[] = [
     ],
     repeal: { authority: 5, tell: ["morale:+1", "shells:-1"], effects: [gauge("morale", 1), gauge("shells", -1)] },
     talk: lawTalk("gbr_drink", {
-      who: either(person("gbr_redmond"), held("ireland")),
+      who: person("gbr_redmond"),
       ask: "warm",
       push: "flatter",
       tell: ["irish:-1"],
@@ -109,7 +108,7 @@ export const GBR_LAWS: readonly GwLawRow[] = [
     flag: "f_law_strike_ban",
     repeal: { authority: 15, tell: ["order:+1", "shells:-1"], effects: [gauge("order", 1), gauge("shells", -1)] },
     talk: lawTalk("gbr_munitions", {
-      who: either(person("gbr_henderson"), held("interior")),
+      who: person("gbr_henderson"),
       ask: "frank",
       push: "cold",
       tell: ["money:-1"],
@@ -141,7 +140,7 @@ export const GBR_LAWS: readonly GwLawRow[] = [
     term: [{ gauge: "manpower", delta: 1, every: 6 }],
     repeal: { authority: 5, tell: ["manpower:-3"], effects: [men(-3)] },
     talk: lawTalk("gbr_register", {
-      who: either(person("gbr_kitchener"), held("war")),
+      who: person("gbr_kitchener"),
       ask: "cold",
       push: "threat",
       tell: ["opposition:+1"],
@@ -169,7 +168,7 @@ export const GBR_LAWS: readonly GwLawRow[] = [
     ],
     repeal: { authority: 20, tell: ["order:-2"], effects: [gauge("order", -2)] },
     talk: lawTalk("gbr_rent", {
-      who: either(person("gbr_bonar_law"), held("interior")),
+      who: person("gbr_bonar_law"),
       ask: "frank",
       push: "flatter",
       tell: ["money:-1"],
@@ -200,7 +199,7 @@ export const GBR_LAWS: readonly GwLawRow[] = [
     replaces: ["gbr_h_conscription", "gw_gbr_conscription"],
     repeal: { authority: 25, tell: ["manpower:-10", "order:+1"], effects: [men(-10), gauge("order", 1)] },
     talk: lawTalk("gbr_conscription", {
-      who: either(person("gbr_simon"), person("gbr_mckenna"), held("interior")),
+      who: person("gbr_simon"),
       ask: "frank",
       push: "threat",
       tell: ["cabinet:-1"],
@@ -238,7 +237,7 @@ export const GBR_LAWS: readonly GwLawRow[] = [
     replaces: ["gbr_h_food"],
     repeal: { authority: 10, tell: ["bread:-1", "morale:+1"], effects: [gauge("bread", -1), gauge("morale", 1)] },
     talk: lawTalk("gbr_food", {
-      who: either(person("gbr_milner"), held("interior")),
+      who: person("gbr_milner"),
       ask: "cold",
       push: "frank",
       tell: ["money:-1"],
@@ -269,7 +268,7 @@ export const GBR_LAWS: readonly GwLawRow[] = [
     replaces: ["gbr_h_franchise"],
     repeal: { authority: 40, tell: ["order:-2", "commons:-2"], effects: [gauge("order", -2), inst("commons", -2)] },
     talk: lawTalk("gbr_franchise", {
-      who: either(person("gbr_bonar_law"), person("gbr_henderson"), held("interior")),
+      who: person("gbr_bonar_law"),
       ask: "warm",
       push: "cold",
       tell: ["opposition:+1", "cabinet:-1"],
@@ -296,7 +295,7 @@ export const GBR_LAWS: readonly GwLawRow[] = [
     replaces: ["gbr_h_ireland_talks"],
     repeal: { authority: 30, tell: ["irish:-3", "order:-1"], effects: [inst("irish", -3), gauge("order", -1), { kind: "unflag", flag: "f_home_rule_lives" }] },
     talk: lawTalk("gbr_home_rule", {
-      who: either(person("gbr_carson"), person("gbr_redmond"), held("ireland")),
+      who: person("gbr_carson"),
       ask: "frank",
       push: "threat",
       tell: ["opposition:+1", "irish:-1"],

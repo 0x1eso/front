@@ -14607,7 +14607,9 @@
       "regime_crown": "{a}: 책임 내각 아래의 황제.",
       "regime_regency": "{a}: 섭정.",
       "regime_provisional": "{a}: 임시정부.",
-      "regime_rep": "{a}: 러시아 공화국."
+      "regime_rep": "{a}: 러시아 공화국.",
+      "law_passed": "{a}에서 새 법이 통과됐다.",
+      "law_decreed": "{a}에서 새 법이 칙령으로 나왔다."
     },
     "odds": {
       "0": "될 일이 아닙니다.",
@@ -14961,7 +14963,15 @@
       "prices_up": "물가 상승",
       "prices_down": "물가 하락",
       "interest_half": "이자 절반",
-      "lenders_shut": "돈줄 닫힘"
+      "lenders_shut": "돈줄 닫힘",
+      "support": "표",
+      "steady_shells": "포탄(꾸준히)",
+      "steady_bread": "빵(꾸준히)",
+      "steady_money": "돈(꾸준히)",
+      "steady_morale": "사기(꾸준히)",
+      "steady_order": "질서(꾸준히)",
+      "steady_manpower": "인력(꾸준히)",
+      "alsace_eases": "알자스 압력 완화"
     },
     "theatre": {
       "balkan": "발칸",
@@ -15046,7 +15056,9 @@
         "stale_chapter": "그 장은 이미 넘어갔습니다.",
         "wrong_kind": "그 서류에는 맞지 않는 조치입니다.",
         "no_meeting": "지금은 예산 회의가 없습니다.",
-        "bad_budget": "몫의 합이 100이 되어야 합니다."
+        "bad_budget": "몫의 합이 100이 되어야 합니다.",
+        "no_law": "지금은 낼 수 없는 법안이다.",
+        "law_busy": "다른 법안이 움직이고 있다."
       },
       "calendar": {
         "full": "긴 판",
@@ -15539,6 +15551,40 @@
         "prices": "물가가 높다",
         "rally": "첫 전쟁 예산이다"
       }
+    },
+    "law": {
+      "title": "법안과 법",
+      "take": "기초를 명한다",
+      "repeal": "폐지한다",
+      "repeal_sure": "한 번 더 누르면 폐지한다",
+      "call": "{name} 부르기",
+      "stops": "막을 수 있는 곳: {body}",
+      "stops_two": "막을 수 있는 곳: {body}, 그 뒤에 {second}",
+      "stage": {
+        "open": "낼 수 있음",
+        "draft": "기초 중",
+        "persuade": "설득 중",
+        "vote": "표결일",
+        "force": "시행 중",
+        "idle": "서랍 속"
+      },
+      "how": {
+        "voted": "시행 중, 표결로",
+        "decreed": "시행 중, 칙령으로",
+        "scene": "시행 중, 이미 정함",
+        "none": "시행 중"
+      },
+      "outlook": {
+        "easy": "넉넉히 넘는다",
+        "tight": "빠듯하게 넘는다",
+        "short": "조금 모자란다",
+        "blocked": "막혀 있다"
+      },
+      "waits": {
+        "busy": "다른 법안이 움직이고 있다.",
+        "shelved": "아직 다시 꺼낼 때가 아니다."
+      },
+      "by_decree": "칙령으로 넘을 수 있다"
     }
   }
 }

@@ -2360,6 +2360,40 @@
       "straits": "The Straits",
       "tighten_blockade": "Tightening the blockade"
     },
+    "law": {
+      "by_decree": "can go past them",
+      "call": "Call {name}",
+      "how": {
+        "decreed": "In force, by decree",
+        "none": "In force",
+        "scene": "In force, already decided",
+        "voted": "In force, voted"
+      },
+      "outlook": {
+        "blocked": "blocked",
+        "easy": "passes with room",
+        "short": "a little short",
+        "tight": "passes narrowly"
+      },
+      "repeal": "Repeal",
+      "repeal_sure": "Tap again to repeal",
+      "stage": {
+        "draft": "Being drafted",
+        "force": "In force",
+        "idle": "Shelved",
+        "open": "Can be brought",
+        "persuade": "Being argued",
+        "vote": "The day"
+      },
+      "stops": "Can be stopped by: {body}",
+      "stops_two": "Can be stopped by: {body}, then {second}",
+      "take": "Order a draft",
+      "title": "Bills and laws",
+      "waits": {
+        "busy": "Another bill is moving.",
+        "shelved": "Too soon to bring it again."
+      }
+    },
     "line": {
       "bread_bad_harvest": "The harvest failed.",
       "bread_blockade": "The blockade cut imports.",
@@ -2483,6 +2517,8 @@
       "front_break": "{a} has broken through: {theatre}.",
       "front_opened": "A new front has opened: {theatre}.",
       "front_repelled": "{a} was thrown back: {theatre}.",
+      "law_decreed": "{a}: a new law by decree.",
+      "law_passed": "{a}: a new law has passed.",
       "liner_sunk": "A liner goes down with Americans aboard.",
       "link_draft": "Vienna is drafting something.",
       "link_general": "The great powers are mobilizing.",
@@ -2820,6 +2856,7 @@
     },
     "tell": {
       "ally": "Allies",
+      "alsace_eases": "Alsace eases",
       "amb_london": "Ambassador to London",
       "amb_vienna": "Ambassador to Vienna",
       "america": "America",
@@ -2911,7 +2948,14 @@
       "soviet": "Soviet",
       "srb": "Belgrade",
       "stavka": "Stavka",
+      "steady_bread": "Bread, steadily",
+      "steady_manpower": "Manpower, steadily",
+      "steady_money": "Money, steadily",
+      "steady_morale": "Morale, steadily",
+      "steady_order": "Order, steadily",
+      "steady_shells": "Shells, steadily",
       "straits": "The Straits",
+      "support": "Votes",
       "talks": "Offers talks",
       "tax_rate": "Tax rate",
       "temp": "Crisis",
@@ -3002,9 +3046,11 @@
         "bad_budget": "The shares must sum to 100.",
         "closed": "That choice is not open yet.",
         "ended": "The game is over.",
+        "law_busy": "Another bill is moving.",
         "no_audience": "You have used this chapter's audiences.",
         "no_authority": "Not enough authority for this dismissal.",
         "no_card": "That paper is gone.",
+        "no_law": "That bill can't be brought now.",
         "no_meeting": "There is no budget meeting now.",
         "no_option": "There is no such choice.",
         "no_person": "That person cannot be called now.",
