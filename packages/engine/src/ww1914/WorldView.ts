@@ -167,7 +167,12 @@ export function worldView(gw: GreatWar, seat: GwSeatState): GwWorldView {
   const s = gw.s;
   const n = gw.nation(seat.tag)!;
   const candidates: GwWorldView["candidates"] = Object.fromEntries(
-    standingOffices(seat.tag).flatMap((o) => {
+    [
+      ...new Set([
+        ...standingOffices(seat.tag),
+        ...(Object.keys(OFFICE_FROM) as GwOffice[]),
+      ]),
+    ].flatMap((o) => {
       const from = OFFICE_FROM[o];
       const ctx = { gw, seat, cast: {} };
       if (from !== undefined && !holds(ctx, world({ is: "date", from }))) {

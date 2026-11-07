@@ -289,7 +289,7 @@ export const GwWorldCondSchema = z.union([
   is("thread", { id: z.enum(GW_THREADS) }),
   is("mandate", { id: GwIdSchema }),
   is("known", { id: z.enum(GW_SECRETS) }),
-  is("chain", range),
+  is("chain", { ...range, short: z.boolean().optional() }),
   is("chain_end", { of: z.array(z.enum(GW_CHAIN_OUTCOMES)) }),
   is("war", {}),
   is("entered", { tag, side: z.enum(GW_SIDES).optional() }),
