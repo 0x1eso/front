@@ -81,11 +81,7 @@ export const RULER_DEU: readonly GwScene[] = [
     nation: NATION,
     kind: "audience",
     stage,
-    when: all(
-      self,
-      { kind: "at_war", tag: "GBR" },
-      date("1915-05", "1915-10"),
-    ),
+    when: all(self, { kind: "at_war", tag: "GBR" }, date("1915-05", "1915-10")),
     cast: { court },
     tags: ["people", "foreign"],
     fallback: "say_nothing",
@@ -235,7 +231,7 @@ export const RULER_DEU: readonly GwScene[] = [
         { kind: "audiences", delta: -1 },
       ]),
       opt("half", [ruler("health", 1, "wilhelm_half_rest")]),
-      opt("go_on"),
+      opt("go_on", [{ kind: "reason", key: "wilhelm_went_on" }]),
     ],
   }),
   called({
@@ -256,7 +252,7 @@ export const RULER_DEU: readonly GwScene[] = [
         { kind: "inst", inst: "reichstag", delta: 1 },
         { kind: "inst", inst: "army", delta: -1 },
       ]),
-      opt("wait"),
+      opt("wait", [{ kind: "reason", key: "wilhelm_waited" }]),
     ],
   }),
   called({

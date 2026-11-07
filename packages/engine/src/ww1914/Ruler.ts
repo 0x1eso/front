@@ -3,9 +3,7 @@
 // them, each with a reason line. Each bottom comes with warnings first, the same
 // way a resignation does: the doctors, or the friends, come and say so. Only
 // what was ignored ends a game. Nothing here rolls a dice against the seat.
-import type {
-  GwSeatState,
-} from "@openfront/engine-api/ww1914/GreatWarTypes";
+import type { GwSeatState } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import {
   GW_RULER_MAX,
@@ -74,7 +72,8 @@ function layRow(gw: GreatWar, seat: GwSeatState, row: GwRulerRow | null): void {
   r.lines = [];
   if (row === null) return;
   GW_RULER_SIDES.forEach((side, i) => {
-    const roll = wwRoll(gw.s.seed, P_START, idHash(row.id), i) % (NUDGE * 2 + 1);
+    const roll =
+      wwRoll(gw.s.seed, P_START, idHash(row.id), i) % (NUDGE * 2 + 1);
     r[side] = clampTo(row.start[side] + roll - NUDGE, 1, GW_RULER_MAX);
   });
 }

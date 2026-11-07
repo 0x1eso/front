@@ -2,8 +2,8 @@ import { GameMapSize, GameMapType } from "@openfront/engine-api/game/GameTypes";
 import type { MapFiles } from "@openfront/engine-api/game/MapFiles";
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import { GW_RULER_SIDES } from "@openfront/engine-api/ww1914/GwRuler";
-import { loadMapFiles } from "@openfront/shared/GameMapLoader";
 import type { GreatWar } from "@openfront/engine/ww1914/GreatWar";
+import { loadMapFiles } from "@openfront/shared/GameMapLoader";
 import path from "node:path";
 import { beforeAll, describe, expect, test } from "vitest";
 import { NodeGameMapLoader } from "../perf/fullgame/NodeGameMapLoader";
@@ -27,7 +27,7 @@ describe("a whole game with the ruler's card", () => {
     "%s: the card moves, its scenes come, a game still ends",
     async (tag) => {
       for (let i = 0; i < TRIES; i++) {
-        let gw: GreatWar | null = null;
+        const box: { gw?: GreatWar } = {};
         const start: Record<string, number> = {};
         await playRun(
           map,
@@ -37,25 +37,25 @@ describe("a whole game with the ruler's card", () => {
           GW_SIM_PROFILES[1],
           tag,
           (g) => {
-            gw = g;
+            box.gw = g;
             const r = g.s.seats[0].ruler;
             if (start.health !== undefined) return;
             for (const x of GW_RULER_SIDES) start[x] = r[x];
           },
         );
-        const seat = (gw as GreatWar | null)?.s.seats[0];
+        const seat = box.gw?.s.seats[0];
         if (seat === undefined) continue;
         const life = Object.keys(seat.seen).filter((k) => k.includes("_life_"));
         if (life.length < 3) continue;
-        expect(seat.memoir !== null || (gw as GreatWar).s.ended !== null).toBe(
-          true,
-        );
+        expect(seat.memoir !== null || box.gw?.s.ended !== null).toBe(true);
         const r = seat.ruler;
         const moved = GW_RULER_SIDES.some((x) => r[x] !== start[x]);
         expect(moved || r.id === null).toBe(true);
         return;
       }
-      throw new Error(`${tag}: no game of ${TRIES} reached three of its scenes`);
+      throw new Error(
+        `${tag}: no game of ${TRIES} reached three of its scenes`,
+      );
     },
     240000,
   );

@@ -1,5 +1,5 @@
-import { GW_RULER_SIDES } from "@openfront/engine-api/ww1914/GwRuler";
 import { GwPackSchema } from "@openfront/engine-api/ww1914/GwPack";
+import { GW_RULER_SIDES } from "@openfront/engine-api/ww1914/GwRuler";
 import { GW_CONTENT } from "@openfront/engine-lib/ww1914/content/Content";
 import {
   GW_BROKEN_BODY,
@@ -9,10 +9,19 @@ import {
   GW_RULER_MARKS,
   GW_RULERS,
 } from "@openfront/engine-lib/ww1914/RulerRows";
-import { loadGwPack } from "@openfront/shared/ww1914/GwPackLoader";
 import { GreatWar, GreatWarSnapshot } from "@openfront/engine/ww1914/GreatWar";
-import { moveRuler, rulerAudiences, rulerStep } from "@openfront/engine/ww1914/Ruler";
-import { closeUndecided, holds, pickVariant, sceneOf } from "@openfront/engine/ww1914/SceneRun";
+import {
+  moveRuler,
+  rulerAudiences,
+  rulerStep,
+} from "@openfront/engine/ww1914/Ruler";
+import {
+  closeUndecided,
+  holds,
+  pickVariant,
+  sceneOf,
+} from "@openfront/engine/ww1914/SceneRun";
+import { loadGwPack } from "@openfront/shared/ww1914/GwPackLoader";
 import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
@@ -29,15 +38,6 @@ async function fresh(): Promise<GreatWar> {
   return runner.game.greatWar()!;
 }
 
-/** Closes a chapter's worth of the rule, and moves the clock on by hand. */
-function chapters(gw: GreatWar, n: number, each?: () => void): void {
-  for (let i = 0; i < n; i++) {
-    each?.();
-    rulerStep(gw);
-    gw.s.chapter++;
-  }
-}
-
 describe("the card", () => {
   test("every seat starts with a row, in words the view can carry", async () => {
     const gw = await fresh();
@@ -52,8 +52,7 @@ describe("the card", () => {
   test("the seed nudges the card, inside the row's range", async () => {
     const a = await gwRunner({}, "life-a");
     const b = await gwRunner({}, "life-b");
-    const take = (x: typeof a) =>
-      x.runner.game.greatWar()!.s.seats[0].ruler;
+    const take = (x: typeof a) => x.runner.game.greatWar()!.s.seats[0].ruler;
     const row = GW_RULERS.DEU![0];
     for (const x of [take(a), take(b)]) {
       for (const side of GW_RULER_SIDES) {
@@ -68,7 +67,7 @@ describe("the card", () => {
     s.ruler.family = 3;
     moveRuler(gw, s, "family", -1, "wilhelm_sons_stay");
     expect(s.ruler.family).toBe(2);
-    expect(s.ruler.lines.at(-1)?.key).toBe("wilhelm_sons_stay");
+    expect(s.ruler.lines.slice(-1)[0]?.key).toBe("wilhelm_sons_stay");
     expect(s.log.some((l) => l.key === "wilhelm_sons_stay")).toBe(true);
   });
 
@@ -88,7 +87,9 @@ describe("the card", () => {
     gw.nation("DEU")!.regime = "republic";
     rulerStep(gw);
     expect(s.ruler.id).toBeNull();
-    expect(view({ game: { greatWar: () => gw } } as never).seats[0].ruler).toBeNull();
+    expect(
+      view({ game: { greatWar: () => gw } } as never).seats[0].ruler,
+    ).toBeNull();
   });
 
   test("a card that is low shortens the working day, never to nothing", async () => {
@@ -159,7 +160,7 @@ describe("the bottoms come with warnings", () => {
     gw.s.chapter += 9;
     rulerStep(gw);
     expect(gw.s.ended).toBeNull();
-    expect(s.scheduled.at(-1)?.scene).toBe("deu_life_doctors");
+    expect(s.scheduled.slice(-1)[0]?.scene).toBe("deu_life_doctors");
   });
 
   test("reputation at the bottom, unanswered, puts the person out", async () => {
@@ -190,7 +191,9 @@ describe("the bottoms come with warnings", () => {
         if (scene === null) continue;
         const open = scene.options?.find((o) => o.id === scene.fallback);
         expect(open, id!).toBeDefined();
-        expect(open!.effects.some((e) => e.kind === "ruler" && e.delta > 0)).toBe(true);
+        expect(
+          open!.effects.some((e) => e.kind === "ruler" && e.delta > 0),
+        ).toBe(true);
         if (pick !== null) expect(scene.fallback).toBe(pick);
       }
     }
@@ -204,7 +207,7 @@ describe("conscience", () => {
     s.ruler.conscience = 0;
     rulerStep(gw);
     expect(s.ruler.broken).toBe(gw.s.chapter);
-    expect(s.scheduled.at(-1)?.scene).toBe("deu_life_broken");
+    expect(s.scheduled.slice(-1)[0]?.scene).toBe("deu_life_broken");
     moveRuler(gw, s, "conscience", 2, "wilhelm_prayed");
     expect(s.ruler.conscience).toBe(0);
   });
@@ -224,9 +227,7 @@ describe("conscience", () => {
   test("the hand stops before it breaks, and signs again after", async () => {
     const gw = await fresh();
     const s = gw.s.seats[0];
-    const scene = GW_CONTENT.scenes.find(
-      (x) => x.id === "deu_f_spring_plan",
-    )!;
+    const scene = GW_CONTENT.scenes.find((x) => x.id === "deu_f_spring_plan")!;
     const o = scene.options!.find((x) => x.id === "michael")!;
     const open = () => holds({ gw, seat: s, cast: {} }, o.when!);
     s.ruler.conscience = 4;
@@ -264,9 +265,13 @@ describe("the rows", () => {
     for (const m of GW_RULER_MARKS) {
       const s = scene(m.scene);
       expect(s, m.scene).toBeDefined();
-      expect(s!.options?.some((o) => o.id === m.option), m.option).toBe(true);
+      expect(
+        s!.options?.some((o) => o.id === m.option),
+        m.option,
+      ).toBe(true);
     }
-    for (const e of GW_RULER_EVENTS) expect(scene(e.scene), e.scene).toBeDefined();
+    for (const e of GW_RULER_EVENTS)
+      expect(scene(e.scene), e.scene).toBeDefined();
   });
 
   test("a gate leaves another way open and stands on no written `when`", () => {
@@ -292,30 +297,46 @@ describe("the rows", () => {
       const t = pack.scenes[id];
       expect(t.text[GW_BROKEN_BODY], id).toBeDefined();
       for (const o of s.options ?? []) {
-        expect(t.optBy?.[GW_BROKEN_BODY]?.[o.id], `${id}.${o.id}`).toBeDefined();
+        expect(
+          t.optBy?.[GW_BROKEN_BODY]?.[o.id],
+          `${id}.${o.id}`,
+        ).toBeDefined();
       }
     }
   });
 
-  test.each(SEATS)("%s: the card's words and reason lines are all written", async (tag) => {
-    const own = GwPackSchema.parse(res(`ww1914/ko/${tag}.ruler.json`));
-    for (const row of GW_RULERS[tag]!) {
-      const w = own.rulers?.[row.id];
-      expect(w, row.id).toBeDefined();
-      for (const k of ["age", "toll", "praised", "blamed", "failing", "broken"]) {
-        expect(own.reasons?.[`${row.id}_${k}`], `${row.id}_${k}`).toBeDefined();
+  test.each(SEATS)(
+    "%s: the card's words and reason lines are all written",
+    async (tag) => {
+      const own = GwPackSchema.parse(res(`ww1914/ko/${tag}.ruler.json`));
+      for (const row of GW_RULERS[tag]!) {
+        const w = own.rulers?.[row.id];
+        expect(w, row.id).toBeDefined();
+        for (const k of [
+          "age",
+          "toll",
+          "praised",
+          "blamed",
+          "failing",
+          "broken",
+        ]) {
+          expect(
+            own.reasons?.[`${row.id}_${k}`],
+            `${row.id}_${k}`,
+          ).toBeDefined();
+        }
+        if (row.seenEvery !== null) {
+          expect(own.reasons?.[`${row.id}_unseen`], row.id).toBeDefined();
+        }
+        if (row.shaken !== null) {
+          expect(own.reasons?.[`${row.id}_shaken`], row.id).toBeDefined();
+        }
       }
-      if (row.seenEvery !== null) {
-        expect(own.reasons?.[`${row.id}_unseen`], row.id).toBeDefined();
-      }
-      if (row.shaken !== null) {
-        expect(own.reasons?.[`${row.id}_shaken`], row.id).toBeDefined();
-      }
-    }
-    const low = tag.toLowerCase();
-    expect(own.endings?.[`${low}_r_death`]).toBeDefined();
-    expect(own.endings?.[`${low}_r_removed`]).toBeDefined();
-  });
+      const low = tag.toLowerCase();
+      expect(own.endings?.[`${low}_r_death`]).toBeDefined();
+      expect(own.endings?.[`${low}_r_removed`]).toBeDefined();
+    },
+  );
 
   test("no mark sits on anything but one's own men and people", () => {
     // Conscience marks are on offensives and call-ups only: nothing here is a
@@ -325,5 +346,4 @@ describe("the rows", () => {
       expect(m.scene).toMatch(/^(deu|gbr|auh|rus)_[wf]_/);
     }
   });
-
 });

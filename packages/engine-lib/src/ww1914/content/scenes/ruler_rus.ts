@@ -202,7 +202,7 @@ export const RULER_RUS: readonly GwScene[] = [
         { kind: "audiences", delta: -1 },
       ]),
       opt("half", [ruler("health", 1, "nicholas_half_rest")]),
-      opt("go_on"),
+      opt("go_on", [{ kind: "reason", key: "nicholas_went_on" }]),
     ],
   }),
   called({
@@ -223,7 +223,7 @@ export const RULER_RUS: readonly GwScene[] = [
         { kind: "inst", inst: "duma", delta: 1 },
         { kind: "inst", inst: "court", delta: -1 },
       ]),
-      opt("wait"),
+      opt("wait", [{ kind: "reason", key: "nicholas_waited" }]),
     ],
   }),
   called({

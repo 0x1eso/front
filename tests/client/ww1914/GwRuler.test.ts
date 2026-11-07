@@ -6,10 +6,7 @@ import type {
 import { render } from "lit";
 import { describe, expect, test } from "vitest";
 import type { GwCtx } from "../../../src/client/hud/ww1914/GwCtx";
-import {
-  brokenLine,
-  rulerCard,
-} from "../../../src/client/hud/ww1914/GwRuler";
+import { brokenLine, rulerCard } from "../../../src/client/hud/ww1914/GwRuler";
 import { optionText } from "../../../src/client/hud/ww1914/GwText";
 
 const band = (s: string): [string, string, string] => [

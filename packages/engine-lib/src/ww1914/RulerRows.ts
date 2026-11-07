@@ -210,7 +210,13 @@ export const GW_RULER_MARKS: readonly GwRulerMark[] = [
   sent("deu_f_spring_plan", "michael", "wilhelm"),
   sent("deu_f_offensive_month", "next_blow", "wilhelm"),
   sent("deu_f_last_classes", "call_class", "wilhelm"),
-  mark("deu_f_verdun_third_month", "stop_now", "conscience", 1, "wilhelm_stopped"),
+  mark(
+    "deu_f_verdun_third_month",
+    "stop_now",
+    "conscience",
+    1,
+    "wilhelm_stopped",
+  ),
   mark("deu_w_marne_order", "go_to_front", "reputation", 1, "wilhelm_at_front"),
   mark("deu_f_third_ohl", "call_pair", "reputation", -1, "wilhelm_pair_called"),
 
@@ -241,7 +247,13 @@ export const GW_RULER_MARKS: readonly GwRulerMark[] = [
   mark("rus_h_heir_bleed", "doctors_only", "family", -1, "nicholas_left_bed"),
   mark("rus_h_heir_stavka", "take_him", "family", -1, "nicholas_took_heir"),
   mark("rus_h_friend_exile", "send_home", "family", -2, "nicholas_sent_friend"),
-  mark("rus_h_friend_comes", "quietly", "reputation", -1, "nicholas_friend_seen"),
+  mark(
+    "rus_h_friend_comes",
+    "quietly",
+    "reputation",
+    -1,
+    "nicholas_friend_seen",
+  ),
   mark("rus_h_keys", "give_her_keys", "reputation", -1, "nicholas_keys"),
   mark("rus_w_command", "self_command", "reputation", 1, "nicholas_command"),
   mark("rus_w_mogilev", "map_every_day", "health", -1, "nicholas_map"),
@@ -256,8 +268,18 @@ export interface GwRulerEvent {
 }
 
 export const GW_RULER_EVENTS: readonly GwRulerEvent[] = [
-  { scene: "gbr_h_engagement", side: "family", delta: -1, key: "asquith_letter" },
-  { scene: "gbr_h_engagement", side: "health", delta: -1, key: "asquith_letter" },
+  {
+    scene: "gbr_h_engagement",
+    side: "family",
+    delta: -1,
+    key: "asquith_letter",
+  },
+  {
+    scene: "gbr_h_engagement",
+    side: "health",
+    delta: -1,
+    key: "asquith_letter",
+  },
   { scene: "gbr_h_raymond", side: "family", delta: -2, key: "asquith_raymond" },
   {
     scene: "gbr_h_raymond",

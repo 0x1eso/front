@@ -88,10 +88,7 @@ export const RULER_GBR: readonly GwScene[] = [
       ]),
       opt(
         "one_week_off",
-        [
-          ruler("health", 2, "asquith_week"),
-          { kind: "audiences", delta: -1 },
-        ],
+        [ruler("health", 2, "asquith_week"), { kind: "audiences", delta: -1 }],
         memory("k_life_hankey_week"),
       ),
     ],
@@ -187,7 +184,7 @@ export const RULER_GBR: readonly GwScene[] = [
         { kind: "audiences", delta: -1 },
       ]),
       opt("half", [ruler("health", 1, "gbr_life_half_rest")]),
-      opt("go_on"),
+      opt("go_on", [{ kind: "reason", key: "gbr_life_went_on" }]),
     ],
   }),
   called({
@@ -207,7 +204,7 @@ export const RULER_GBR: readonly GwScene[] = [
         ruler("reputation", 1, "gbr_life_gave_ground"),
         { kind: "inst", inst: "opposition", delta: -1 },
       ]),
-      opt("wait"),
+      opt("wait", [{ kind: "reason", key: "gbr_life_waited" }]),
     ],
   }),
   called({

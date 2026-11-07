@@ -324,7 +324,9 @@
     "wilhelm_said_it": "명단 이야기를 황후에게 털어놓았다.",
     "wilhelm_wrote_sons": "아들들에게 손수 답장을 썼다.",
     "wilhelm_prayed": "황후와 같이 기도했다.",
-    "wilhelm_slept": "일찍 잤다."
+    "wilhelm_slept": "일찍 잤다.",
+    "wilhelm_went_on": "시의의 말을 듣지 않고 일정표를 폈다.",
+    "wilhelm_waited": "복도의 말에 나서지 않았다."
   },
   "endings": {
     "deu_r_death": "황제는 {date}에 죽었다. 시의가 두 번 말했고 일정표는 두 번 펼쳐졌다. 왼손의 장갑은 관 위에 놓였다. 황태자가 그날로 맹세를 받았다. 전쟁은 다음 아침 표를 기다리지 않았다. 사령부의 그날 보고는 세 줄이었다.",

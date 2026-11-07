@@ -176,7 +176,7 @@ export const RULER_AUH: readonly GwScene[] = [
         { kind: "audiences", delta: -1 },
       ]),
       opt("half", [ruler("health", 1, "auh_life_half_rest")]),
-      opt("go_on"),
+      opt("go_on", [{ kind: "reason", key: "auh_life_went_on" }]),
     ],
   }),
   called({
@@ -196,7 +196,7 @@ export const RULER_AUH: readonly GwScene[] = [
         ruler("reputation", 1, "auh_life_gave_ground"),
         { kind: "inst", inst: "hungary", delta: 1 },
       ]),
-      opt("wait"),
+      opt("wait", [{ kind: "reason", key: "auh_life_waited" }]),
     ],
   }),
   called({
@@ -270,4 +270,3 @@ export const RULER_AUH: readonly GwScene[] = [
     },
   }),
 ];
-

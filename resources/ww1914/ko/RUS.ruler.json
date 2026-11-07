@@ -286,7 +286,9 @@
     "nicholas_gave_ground": "두마에 한 가지를 내주었다.",
     "nicholas_river": "강에 배를 띄웠다.",
     "nicholas_read_aloud": "저녁에 책을 읽어 주었다.",
-    "nicholas_sat_with_her": "그날 밤 황후 곁에 있었다."
+    "nicholas_sat_with_her": "그날 밤 황후 곁에 있었다.",
+    "nicholas_went_on": "표도로프의 말을 듣지 않고 담배를 껐다.",
+    "nicholas_waited": "섭정의 말에 나서지 않았다."
   },
   "endings": {
     "rus_r_death": "폐하는 {date}에 죽었다. 표도로프가 두 번 말했고 담배는 꺼지지 않았다. 황태자가 그날로 황제가 되었다. 황후가 섭정의 자리를 청했고 미하일 대공이 전보를 받았다. 책상의 공책 마지막 줄에는 날씨가 적혀 있었다. 맑음이었다.",
