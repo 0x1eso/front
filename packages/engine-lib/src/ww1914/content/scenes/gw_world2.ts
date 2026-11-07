@@ -5,8 +5,6 @@ import {
   chose,
   flag,
   GwCastRule,
-  GwCond,
-  GwCondSchema,
   GwEffect,
   GwScene,
   GwVariant,
@@ -17,25 +15,16 @@ import {
   setFlag,
   trustOf,
 } from "@openfront/engine-api/ww1914/SceneDsl";
+import { world } from "@openfront/engine-api/ww1914/WorldDsl";
 
 /**
  * Common share `world`: the `gw_n_` news and the `gw_x_` crises every seat
  * lives through. Data only; text is in resources/ww1914/ko/common.world.json.
  * Plan: ww135-plan-common.md sections 1 and 7. No form of address, no `voice`,
  * no `chancellor`: Britain has no holder, and one line serves four countries.
- *
- * `w` is written in the forms lane Y (w135-world) settled: `date`, `side`,
- * `era`, `regime`, `armistice`, `blockade`, `battle ... by`. This branch has few
- * of them, so a form its schema refuses stands in as "never" and these scenes
- * stay off the desk until the merge, when every form passes as written and
- * `w` can become WorldDsl's `world`.
  */
-const NEVER: GwCond = { kind: "any", of: [] };
-
-function w(of: Record<string, unknown>): GwCond {
-  const c = { kind: "world", of };
-  return GwCondSchema.safeParse(c).success ? (c as unknown as GwCond) : NEVER;
-}
+/** Plain data: Content.test holds every scene to its schema. */
+const w = (of: Record<string, unknown>) => world(of as never);
 
 const date = (from: string, to: string) => w({ is: "date", from, to });
 const except = (...tags: GwTag[]): GwTag[] =>

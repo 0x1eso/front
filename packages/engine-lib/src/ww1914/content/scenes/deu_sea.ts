@@ -2,6 +2,7 @@ import type {
   GwGauge,
   GwInstitution,
   GwOffice,
+  GwSecret,
   GwTemperament,
   GwTheatre,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
@@ -42,58 +43,24 @@ import { doWorld, world } from "@openfront/engine-api/ww1914/WorldDsl";
  * summoned talks of Tirpitz, Holtzendorff, Zimmermann and Kühlmann, and five
  * visits. Data only; the text is in resources/ww1914/ko/DEU.sea.json. Plan:
  * ww135-plan-deu.md sections 7, 10, 11, 12.
- *
- * The block below, "Words of the world lane", stands in for what `w135-world`
- * has and this branch's base doesn't. Each helper is one line to swap; the
- * comment on it gives the real form. Scenes never spell these out themselves.
  */
 
-// ---- Words of the world lane ----
-
-const monthsFrom1915 = (ym: string) =>
-  (Number(ym.slice(0, 4)) - 1915) * 12 + Number(ym.slice(5, 7)) - 1;
-
-/** Swap: `world({ is: "date", from, to })`. Same months, as chapters here. */
-const date = (from: string, to: string): GwCond => {
-  const a = monthsFrom1915(from);
-  const b = monthsFrom1915(to);
-  return any(
-    all(
-      { kind: "span", max: 30 },
-      { kind: "chapter", min: 11 + a, max: 11 + b },
-    ),
-    all(
-      { kind: "span", min: 31 },
-      { kind: "chapter", min: 11 + (a >> 1), max: 11 + (b >> 1) },
-    ),
-  );
-};
-
-/** Swap: `world({ is: "blockade", min })`. By the war's age here. */
-const blockadeAt = (min: number): GwCond =>
-  world({ is: "war_age", min: min * 4 });
-
-/** Swap: `world({ is: "america", min, max })`. Date fences do the work here. */
-const americaAt = (_range: { min?: number; max?: number }): GwCond => all();
-
-/** Swap: `world({ is: "regime", tag: "RUS", of: ["provisional"] })`. */
-const russiaProvisional: GwCond = date("1917-03", "1917-10");
-/** Swap: `world({ is: "regime", tag: "RUS", of: ["soviet"] })`. */
-const russiaSoviet: GwCond = date("1917-11", "1918-12");
-
-/** Swap: `not(world({ is: "armistice" }))`. */
-const noArmistice: GwCond = all();
-
-/** Swap: `world({ is: "tech", tag: "GBR", id: "convoys" })`. */
-const britainConvoys: GwCond = date("1917-05", "1918-12");
-
-/** Swap: `world({ is: "known", id })`. */
-const known = (id: string): GwCond => flag(`f_known_${id}`);
-/** Swap: `doWorld({ do: "reveal", id })`. */
-const reveal = (id: string): GwEffect => setFlag(`f_known_${id}`);
-
-/** Swap: `doWorld({ do: "talks" })`. */
-const offerTalks: GwEffect = setFlag("f_deu_talks_offered");
+const date = (from: string, to: string): GwCond =>
+  world({ is: "date", from, to });
+const blockadeAt = (min: number): GwCond => world({ is: "blockade", min });
+const americaAt = (range: { min?: number; max?: number }): GwCond =>
+  world({ is: "america", ...range });
+const russiaProvisional: GwCond = world({
+  is: "regime",
+  tag: "RUS",
+  of: ["provisional", "rep"],
+});
+const russiaSoviet: GwCond = world({ is: "out", tag: "RUS" });
+const noArmistice: GwCond = not(world({ is: "armistice" }));
+const britainConvoys: GwCond = world({ is: "tech", tag: "GBR", id: "convoys" });
+const known = (id: GwSecret): GwCond => world({ is: "known", id });
+const reveal = (id: GwSecret): GwEffect => doWorld({ do: "reveal", id });
+const offerTalks: GwEffect = doWorld({ do: "talks" });
 
 // ---- Shorthand ----
 

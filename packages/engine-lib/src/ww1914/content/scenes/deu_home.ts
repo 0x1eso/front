@@ -45,10 +45,6 @@ import { doWorld, world } from "@openfront/engine-api/ww1914/WorldDsl";
  *
  * Bread goes down by itself here, as shells do elsewhere. Every paper from the
  * army has a way to sign it as it stands and a way to bind it.
- *
- * Stand-ins, each one definition to swap when the world lane lands: `date`
- * (`world({ is: "date", from, to })`, on w135-world), `foodBooks` (the secret
- * `deu_food_books`), `m_table_wrong` (the secret `deu_table_wrong`).
  */
 
 const NATION: GwScene["nation"] = ["DEU"];
@@ -65,26 +61,8 @@ const RATH = "deu_rathenau";
 const BALLIN = "deu_ballin";
 const SCHEID = "deu_scheidemann";
 
-// ---- Stand-ins ----
-
-const monthly: GwCond = { kind: "span", max: 30 };
-const bimonthly: GwCond = { kind: "span", min: 31 };
-const monthOf = (d: string): number =>
-  (Number(d.slice(0, 4)) - 1915) * 12 + Number(d.slice(5, 7)) - 1;
-
-/** The game's date, both ends included: "YYYY-MM", on `full` and `standard`. */
-const date = (from: string, to: string): GwCond => {
-  const a = monthOf(from);
-  const b = monthOf(to);
-  return any(
-    all(monthly, { kind: "chapter", min: 11 + a, max: 11 + b }),
-    all(bimonthly, {
-      kind: "chapter",
-      min: 11 + Math.floor(a / 2),
-      max: 11 + Math.floor(b / 2),
-    }),
-  );
-};
+const date = (from: string, to: string): GwCond =>
+  world({ is: "date", from, to });
 
 // ---- States ----
 
@@ -130,6 +108,7 @@ const groeOffice: GwCond = all(
 );
 /** The food office's books don't add up, and the seat has seen that. */
 const foodBooks: GwCond = any(
+  world({ is: "known", id: "deu_food_books" }),
   memory("m_food_books"),
   memory("k_erz_numbers"),
   seen("deu_h_black_market"),
@@ -1349,7 +1328,7 @@ const HELF_TALKS: readonly GwScene[] = [
       convoy: node(
         [v("straight", candid(who)), v("base")],
         r("note", "frank", "leave", null, {
-          effects: [remember("m_table_wrong")],
+          effects: [doWorld({ do: "reveal", id: "deu_table_wrong" })],
         }),
         bye(),
       ),
@@ -1384,7 +1363,7 @@ const HELF_TALKS: readonly GwScene[] = [
     grain: node(
       [v("straight", candid(who)), v("base")],
       r("note", "cold", "leave", null, {
-        effects: [remember("m_food_books"), reason("h_books_found")],
+        effects: [remember("m_food_books"), doWorld({ do: "reveal", id: "deu_food_books" }), reason("h_books_found")],
       }),
       bye("drop", "warm"),
     ),
@@ -2387,7 +2366,10 @@ const VISITS: readonly GwScene[] = [
       rates: node(
         [v("straight", candid(who)), v("base")],
         r("mark", "frank", "leave", null, {
-          effects: [remember("m_table_wrong"), remember("m_ballin_rates")],
+          effects: [
+            doWorld({ do: "reveal", id: "deu_table_wrong" }),
+            remember("m_ballin_rates"),
+          ],
         }),
         r("deal", "warm", "deal", "ear", {
           tell: ["trust:+1"],

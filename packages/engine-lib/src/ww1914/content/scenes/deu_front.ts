@@ -1,6 +1,7 @@
 import type {
   GwGauge,
   GwStage,
+  GwTech,
   GwTemperament,
   GwTheatre,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
@@ -45,12 +46,6 @@ import { doWorld, world } from "@openfront/engine-api/ww1914/WorldDsl";
  * stands or bound with a condition. The monthly `deu_f_ledger` signs without
  * `army:+1`, or its 48 signatures would fill the scale by themselves; the big
  * papers carry it.
- *
- * Stand-ins, each one definition to swap when the world lane lands:
- * `date` (`world({ is: "date", from, to })`, on w135-world), `tech`
- * (`{ is: "tech" }`), `soviet` (`{ is: "regime", tag: "RUS", of: ["soviet"] }`),
- * `signChief` (`{ do: "sign_chief" }`, on w130-gw) and `FRONTS_SCREEN`
- * (`{ screen: "fronts" }`, on w130-gw), `f_talks_asked` (`{ do: "talks" }`).
  */
 
 const NATION: GwScene["nation"] = ["DEU"];
@@ -66,31 +61,14 @@ const HEIR = byName("deu_heir");
 const KUHL = byName("deu_kuhlmann");
 const MOLTKE = byName("deu_moltke");
 
-// ---- Stand-ins ----
-
-const monthly: GwCond = { kind: "span", max: 30 };
-const bimonthly: GwCond = { kind: "span", min: 31 };
-const monthOf = (d: string): number =>
-  (Number(d.slice(0, 4)) - 1915) * 12 + Number(d.slice(5, 7)) - 1;
-
-/** The game's date, both ends included: "YYYY-MM", on `full` and `standard`. */
-const date = (from: string, to: string): GwCond => {
-  const a = monthOf(from);
-  const b = monthOf(to);
-  return any(
-    all(monthly, { kind: "chapter", min: 11 + a, max: 11 + b }),
-    all(bimonthly, {
-      kind: "chapter",
-      min: 11 + Math.floor(a / 2),
-      max: 11 + Math.floor(b / 2),
-    }),
-  );
-};
-/** Research reached: for now the month the plan's tech can first be there. */
-const tech = (from: string): GwCond => date(from, "1918-12");
-const soviet: GwCond = date("1917-11", "1918-12");
-const signChief: GwEffect[] = [];
-const FRONTS_SCREEN = {};
+const date = (from: string, to: string): GwCond =>
+  world({ is: "date", from, to });
+/** Research reached, or the month it could be there at the latest. */
+const tech = (id: GwTech, from: string): GwCond =>
+  any(world({ is: "tech", id }), date(from, "1918-12"));
+const soviet: GwCond = world({ is: "out", tag: "RUS" });
+const signChief: GwEffect[] = [doWorld({ do: "sign_chief" })];
+const FRONTS_SCREEN = { screen: "fronts" as const };
 
 // ---- States ----
 
@@ -532,7 +510,7 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
     all(
       war,
       front("west", "liege"),
-      tech("1915-04"),
+      tech("gas_heavy", "1915-04"),
       date("1915-04", "1915-12"),
     ),
     [v("base")],
@@ -1254,7 +1232,11 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
   scene({
     id: "deu_f_new_arms",
     kind: "proposal",
-    when: all(war, tech("1916-10"), date("1916-10", "1918-06")),
+    when: all(
+      war,
+      tech("depth_defence", "1916-10"),
+      date("1916-10", "1918-06"),
+    ),
     cast: { cos: holder("chief_of_staff"), war: holder("war") },
     salience: 7,
     tags: ["war"],
@@ -1360,7 +1342,7 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
           authority(2),
           trustOf(cos, -2),
           setFlag("f_spring_stood"),
-          setFlag("f_talks_asked"),
+          doWorld({ do: "talks" }),
           reason("f_spring_stand"),
         ],
         known("k_groe_truth", "k_falk_after"),
@@ -1550,7 +1532,7 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
         [
           army(-1),
           authority(1),
-          setFlag("f_talks_asked"),
+          doWorld({ do: "talks" }),
           setFlag("f_black_talks"),
           reason("f_black_talks"),
         ],
@@ -1647,7 +1629,7 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
           army(-1),
           authority(1),
           setFlag("f_paris_dictated"),
-          setFlag("f_talks_asked"),
+          doWorld({ do: "talks" }),
           reason("f_paris_dictate"),
         ],
         memory("k_beth_terms"),
@@ -1661,7 +1643,7 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
           trustOf(cos, -1),
           ally("FRA", 1),
           setFlag("f_paris_offered"),
-          setFlag("f_talks_asked"),
+          doWorld({ do: "talks" }),
           reason("f_paris_offer"),
         ],
         memory("k_kuhl_paris"),
@@ -2407,7 +2389,9 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
           effects: [
             T(1),
             { kind: "inst", inst: "countersign", delta: -1 },
-            promise(who, "p_bauer_access", 12),
+            promise(who, "p_bauer_access", 12, {
+              keep: seen("deu_h_hindenburg_programme"),
+            }),
           ],
         }),
         bye("leave", "cold"),
@@ -2418,7 +2402,9 @@ export const DEU_FRONT_SCENES: readonly GwScene[] = [
           effects: [
             T(1),
             { kind: "inst", inst: "countersign", delta: -1 },
-            promise(who, "p_bauer_access", 12),
+            promise(who, "p_bauer_access", 12, {
+              keep: seen("deu_h_hindenburg_programme"),
+            }),
           ],
         }),
         bye("end", "cold"),

@@ -87,8 +87,9 @@ describe("content", () => {
     const { scenes, people } = GW_CONTENT;
     // Set by the world's code: what its own scenes wait on, and scene plan §1.
     const outside = ["gw_world_called_only", ...GW_WORLD_FLAGS];
-    // Russia's fall is still being written: its keys and scenes close then.
-    const pending = /rus_r_|k_(rodz|mil|ker|proto)_|p_rodz_/;
+    // The frame share, still being written, holds these talks' keys.
+    const pending =
+      /k_(joffre|foch|pasic|ferdinand|house|benedict|wilson|andersen|ador|hussein|sonnino|giolitti|talat|bratianu|marie|constantine|venizelos|kato|alfonso)_/;
     expect(
       gwContentProblems(scenes, people, outside).filter(
         (x) => !pending.test(x),

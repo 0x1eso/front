@@ -2,6 +2,7 @@ import type {
   GwGauge,
   GwInstitution,
   GwOffice,
+  GwSecret,
   GwTemperament,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import {
@@ -43,60 +44,22 @@ import { doWorld, world } from "@openfront/engine-api/ww1914/WorldDsl";
  * the twelve closing paragraphs. Data only; the text is in
  * resources/ww1914/ko/DEU.court.json. Plan: ww135-plan-deu.md sections 1, 9,
  * 10, 11, 12, 15.
- *
- * The block below, "Words of the world lane", stands in for what `w135-world`
- * has and this branch's base doesn't. Each is one definition to swap; the
- * comment gives the real form. Scenes never spell these out themselves. The
- * flag names are those of the sea share, so the shares agree until the swap.
  */
 
-// ---- Words of the world lane ----
-
-const monthsFrom1915 = (ym: string) =>
-  (Number(ym.slice(0, 4)) - 1915) * 12 + Number(ym.slice(5, 7)) - 1;
-
-/** Swap: `world({ is: "date", from, to })`. Same months, as chapters here. */
-const date = (from: string, to: string): GwCond => {
-  const a = monthsFrom1915(from);
-  const b = monthsFrom1915(to);
-  return any(
-    all(
-      { kind: "span", max: 30 },
-      { kind: "chapter", min: 11 + a, max: 11 + b },
-    ),
-    all(
-      { kind: "span", min: 31 },
-      { kind: "chapter", min: 11 + (a >> 1), max: 11 + (b >> 1) },
-    ),
-  );
-};
-
-/** Swap: `world({ is: "known", id })`. */
-const known = (id: string): GwCond => flag(`f_known_${id}`);
-/** Swap: `doWorld({ do: "reveal", id })`. */
-const reveal = (id: string): GwEffect => setFlag(`f_known_${id}`);
-
-/** Swap: `not(world({ is: "regime", tag: "RUS", of: ["tsar", "crown"] }))`. */
-const tsarGone: GwCond = date("1917-03", "1918-12");
-
-/** Swap: `world({ is: "armistice" })`. Set by `sign` below until then. */
-const stopped: GwCond = flag("f_deu_armistice");
-
-/** Swap: `doWorld({ do: "talks" })`. */
-const offerTalks: GwEffect = setFlag("f_deu_talks_offered");
-/** Swap: `doWorld({ do: "sue" })`. */
-const sue: GwEffect = setFlag("f_deu_sued");
-/** Swap: `doWorld({ do: "next_regime" })`. Read through `republic`. */
-const nextRegime: GwEffect = setFlag("f_deu_republic");
-/** Swap: `world({ is: "regime", of: ["republic"] })`. */
-const republic: GwCond = flag("f_deu_republic");
-/** Swap: `doWorld({ do: "close_seat" })`. */
-const closeSeat: GwEffect = { kind: "end", ending: "home_collapse" };
-/** Swap: `doWorld({ do: "armistice", kind: "central_lost" })`. */
-const sign: GwEffect[] = [
-  setFlag("f_deu_armistice"),
-  { kind: "end", ending: "armistice_conference" },
-];
+const date = (from: string, to: string): GwCond =>
+  world({ is: "date", from, to });
+const known = (id: GwSecret): GwCond => world({ is: "known", id });
+const reveal = (id: GwSecret): GwEffect => doWorld({ do: "reveal", id });
+const tsarGone: GwCond = not(
+  world({ is: "regime", tag: "RUS", of: ["tsar", "crown"] }),
+);
+const stopped: GwCond = world({ is: "armistice" });
+const offerTalks: GwEffect = doWorld({ do: "talks" });
+const sue: GwEffect = doWorld({ do: "sue" });
+const nextRegime: GwEffect = doWorld({ do: "next_regime" });
+const republic: GwCond = world({ is: "regime", of: ["republic"] });
+const closeSeat: GwEffect = doWorld({ do: "close_seat" });
+const sign: GwEffect[] = [doWorld({ do: "armistice", kind: "central_lost" })];
 
 // ---- Shorthand ----
 

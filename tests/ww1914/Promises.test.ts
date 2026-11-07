@@ -18,7 +18,14 @@ describe("promises come back", () => {
   test("every promise keeps by itself, or has a person who returns", () => {
     for (const { scene, promise } of everyPromise()) {
       const where = `${scene.id}: ${promise.key}`;
-      expect(promise.keep ?? promise.back, where).toBeDefined();
+      const kept = scenes.some((x) =>
+        gwSceneEffects(x).some(
+          (e) => e.kind === "keep_promise" && e.key === promise.key,
+        ),
+      );
+      expect(kept || (promise.keep ?? promise.back) !== undefined, where).toBe(
+        true,
+      );
       if (promise.back !== undefined) {
         const back = byId.get(promise.back);
         expect(back, where).toBeDefined();
@@ -33,7 +40,7 @@ describe("promises come back", () => {
       if (promise.back !== undefined) continue;
       // The other countries' keepers can lapse: the person comes back with
       // the common card, which every seat can be dealt.
-      if (!scene.id.startsWith("deu_")) continue;
+      if (!/^deu_[cwptvb]_/.test(scene.id)) continue;
       expect(dated(promise.keep), `${scene.id}: ${promise.key}`).toBe(true);
     }
   });

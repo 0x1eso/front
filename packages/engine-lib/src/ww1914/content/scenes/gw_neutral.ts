@@ -1,4 +1,5 @@
 import type {
+  GwSecret,
   GwSide,
   GwSource,
   GwStamp,
@@ -19,20 +20,16 @@ import {
   not,
   setFlag,
 } from "@openfront/engine-api/ww1914/SceneDsl";
+import { doWorld, world } from "@openfront/engine-api/ww1914/WorldDsl";
 
 /**
  * Common scenes, the neutrals' share (plan: ww135-plan-common.md §6): the
  * gw_o_ scenes any seat meets. Data only; the text is in
  * resources/ww1914/ko/common.neutral.json, written without a form of address
  * and with the seat's own people only as {fm}, {fin}, {cos}.
- *
- * Lane Y's words (world date, neutral, side, offered; offer by side, blockade,
- * shipping; the new secrets) are on w135-world, not on this file's base, so
- * they pass through `w` and `act`, the only casts here. Type those two after
- * the merge.
  */
-const w = (of: unknown) => ({ kind: "world", of }) as unknown as GwCond;
-const act = (of: unknown) => ({ kind: "world", of }) as unknown as GwEffect;
+const w = world;
+const act = doWorld;
 
 const everyone = [...GW_TAGS];
 /** Plan §0: the seats of a side, with the countries that come later. */
@@ -53,14 +50,14 @@ const REGIMES: Readonly<Partial<Record<GwTag, readonly string[]>>> = {
   ],
   RUS: ["tsar", "crown", "regency", "rep", "provisional"],
 };
-const seatIs = (tag: GwTag) => w({ is: "regime", of: REGIMES[tag] });
+const seatIs = (tag: GwTag) => w({ is: "regime", of: [...(REGIMES[tag] ?? [])] });
 
 const dated = (from: string, to: string) => w({ is: "date", from, to });
 const neutral = (tag: GwTag) => w({ is: "neutral", tag });
 const entered = (tag: GwTag, side?: GwSide) =>
   w(side === undefined ? { is: "entered", tag } : { is: "entered", tag, side });
 const side = (...of: (GwSide | "neutral")[]) => w({ is: "side", of });
-const known = (id: string) => w({ is: "known", id });
+const known = (id: GwSecret) => w({ is: "known", id });
 const exists = (id: string): GwCond => ({ kind: "secret", id });
 const central = side("central");
 const entente = side("entente");
@@ -87,7 +84,7 @@ const shells = (delta: number): GwEffect => ({
 const authority = (delta: number) => act({ do: "authority", delta });
 const manpower = (delta: number) => act({ do: "manpower", delta });
 const shipping = (delta: number) => act({ do: "shipping", delta });
-const reveal = (id: string): GwEffect => ({
+const reveal = (id: GwSecret): GwEffect => ({
   kind: "maybe",
   when: exists(id),
   then: [act({ do: "reveal", id })],

@@ -1,11 +1,5 @@
 import { GW_TAGS, GwTag } from "@openfront/engine-api/ww1914/GwCountries";
-import {
-  GwCond,
-  GwCondSchema,
-  GwEffect,
-  GwEffectSchema,
-  GwScene,
-} from "@openfront/engine-api/ww1914/SceneDsl";
+import type { GwScene } from "@openfront/engine-api/ww1914/SceneDsl";
 
 /**
  * Common scenes, the 외교 share: the 35 `gw_d_` scenes any seat can meet. Data
@@ -16,68 +10,15 @@ import {
  * seat can't be yet (Ottomans, Serbia, Italy, Romania), which stands in for the
  * `human` condition the plan wanted and no lane wrote. A greyed option that a
  * key from one side alone would open also has a way in for the other side.
- *
- * RAW is written in lane Y's forms (w135-world): world `date`, `side`,
- * `regime`, `blockade`, `armistice`, `america`, `neutral`, `reveal`, `talks`.
- * This branch has none of them, so `landed` lets through what the schema here
- * accepts. A condition it can't read is false and an effect does nothing, so
- * the share sleeps until the merge; then every form passes as written.
- * GW_DIP_STOOD_IN says what stood in; once empty, `landed` can go.
+
  */
-export const GW_DIP_STOOD_IN: string[] = [];
-
-type Loose = Record<string, unknown>;
-
-const NEVER: GwCond = { kind: "any", of: [] };
-const NOTHING: GwEffect = { kind: "maybe", when: NEVER, then: [] };
-
-function cond(c: Loose): GwCond {
-  if (c.kind === "all" || c.kind === "any") {
-    return { kind: c.kind, of: (c.of as Loose[]).map(cond) };
-  }
-  if (c.kind === "not") return { kind: "not", of: cond(c.of as Loose) };
-  if (GwCondSchema.safeParse(c).success) return c as unknown as GwCond;
-  GW_DIP_STOOD_IN.push(JSON.stringify(c));
-  return NEVER;
-}
-
-function effect(e: Loose): GwEffect {
-  if (e.kind === "maybe") {
-    return {
-      kind: "maybe",
-      when: cond(e.when as Loose),
-      then: (e.then as Loose[]).map(effect),
-    };
-  }
-  if (GwEffectSchema.safeParse(e).success) return e as unknown as GwEffect;
-  GW_DIP_STOOD_IN.push(JSON.stringify(e));
-  return NOTHING;
-}
-
-const gated = <T extends { when?: unknown }>(x: T): T =>
-  x.when === undefined ? x : { ...x, when: cond(x.when as Loose) };
-
-function landed(raw: Loose): GwScene {
-  const options = raw.options as Loose[] | undefined;
-  return {
-    ...gated(raw),
-    variants: (raw.variants as Loose[]).map(gated),
-    ...(options === undefined
-      ? {}
-      : {
-          options: options.map((o) => ({
-            ...gated(o),
-            effects: (o.effects as Loose[]).map(effect),
-          })),
-        }),
-  } as unknown as GwScene;
-}
-
 // ---- Words ----
 
 const everyone = [...GW_TAGS];
 const but = (...out: GwTag[]) => everyone.filter((t) => !out.includes(t));
 /** Plan section 0: the four seats and the countries that come after them. */
+type Loose = Record<string, unknown>;
+
 const CENTRAL: GwTag[] = ["DEU", "AUH", "OTT", "BGR"];
 const ENTENTE: GwTag[] = [
   "GBR",
@@ -1288,4 +1229,5 @@ function borrower(): Loose {
   return all({ kind: "gauge", gauge: "money", max: 1 }, any(seatRUS, seatAUH));
 }
 
-export const GW_DIP_SCENES: readonly GwScene[] = RAW.map(landed);
+/** Plain data: Content.test holds every scene to its schema. */
+export const GW_DIP_SCENES = RAW as unknown as readonly GwScene[];

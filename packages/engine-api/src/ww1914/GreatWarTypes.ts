@@ -865,6 +865,11 @@ export const GW_WORLD_FLAGS = [
   "w_romania_in",
   "w_warsaw_lost",
   "w_german_offer",
+  // Friends' treaties: set when multiplayer lands, so solo never reads them.
+  "w_treaty_kept",
+  "w_treaty_broken",
+  "w_treaty_leaked",
+  "w_treaty_i_broke",
 ] as const;
 export type GwWorldFlag = (typeof GW_WORLD_FLAGS)[number];
 

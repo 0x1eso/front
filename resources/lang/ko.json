@@ -14821,7 +14821,7 @@
       "rou_shell_gap": "루마니아의 포탄은 여섯 주 분이었다.",
       "grc_king_letters": "아테네의 왕은 베를린에 따로 편지를 보내고 있었다.",
       "ott_peace_feelers": "콘스탄티노폴은 스위스에서 단독 강화를 묻고 있었다.",
-      "jpn_china_list": "일본의 요구 목록에는 알린 것보다 다섯 조항이 더 있었다."
+      "jpn_china_list": "일본의 요구 목록에는 알린 것보다 일곱 조항이 더 있었다."
     },
     "source": {
       "agents": "첩보원",
@@ -14929,7 +14929,9 @@
       "goschen": "고션",
       "fin": "재무장관",
       "srb": "베오그라드",
-      "straits": "해협"
+      "straits": "해협",
+      "entry": "중립국이 움직임",
+      "shipping": "상선"
     },
     "theatre": {
       "balkan": "발칸",

@@ -22,14 +22,30 @@ const fetchJson: GwPackFetch = async (path) => {
 export const GW_PACK_SHARES: Readonly<
   Partial<Record<GwTag, readonly string[]>>
 > = {
-  DEU: ["crisis", "war", "people", "back", "peace"],
+  DEU: [
+    "crisis",
+    "war",
+    "people",
+    "back",
+    "peace",
+    "front",
+    "sea",
+    "home",
+    "court",
+  ],
   GBR: ["crisis", "war", "home", "world"],
   AUH: ["crisis", "war", "realm", "crown"],
   RUS: ["crisis", "front", "home", "fall"],
 };
 
 /** The same for `common.json`: every seat loads these. */
-export const GW_COMMON_SHARES: readonly string[] = ["war", "people"];
+export const GW_COMMON_SHARES: readonly string[] = [
+  "war",
+  "people",
+  "dip",
+  "neutral",
+  "world",
+];
 /**
  * Casts in files of their own. Every seat loads them: a scene can cast another
  * country's minister, and a name is all it needs.

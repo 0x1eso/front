@@ -14,7 +14,7 @@ import { dismissalFallout } from "./Authority";
 import type { GreatWar } from "./GreatWar";
 import { holderOf } from "./SceneRun";
 import { GW_NO_COMMAND, GW_PASSING } from "./Tables";
-import { clampTo, defOf, ownPeople, reason, turn } from "./World";
+import { chapterOf, clampTo, defOf, ownPeople, reason, turn } from "./World";
 
 const P_HEALTH_FAIL = idHash("gw_health_fail");
 const P_RIVAL = idHash("gw_rival");
@@ -283,7 +283,9 @@ function arrivals(gw: GreatWar): void {
   for (const p of gw.s.people) {
     if (p.status !== "waiting") continue;
     const [y, m, d] = (defOf(p.id)?.arrives ?? "").split("-").map(Number);
-    if (gw.s.day >= daysFromCivil(y, m, d)) p.status = "active";
+    // This runs as a chapter closes: the next chapter's date is what counts.
+    const next = gw.s.day + chapterOf(gw).spanDays;
+    if (next >= daysFromCivil(y, m, d)) p.status = "active";
   }
 }
 
