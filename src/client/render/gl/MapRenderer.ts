@@ -52,6 +52,9 @@ import type { RenderSettings } from "./RenderSettings";
 export class MapRenderer {
   private renderer: GPURenderer | null = null;
   private resizeObs: ResizeObserver | null = null;
+  /** Great War 1914: where tile changes wait while a replay plays them. */
+  private tileHold: ((tiles: readonly number[]) => void) | null = null;
+  private liveTiles: Uint16Array | null = null;
   // Stored layer data for context-restore re-creation.
   private storedLayers: MapLayer[] = [];
   private storedLayerImages: Map<string, ImageBitmap> = new Map();
@@ -234,7 +237,24 @@ export class MapRenderer {
     tileState: Uint16Array,
     changedTiles: readonly number[],
   ): void {
-    this.renderer?.uploadLiveDelta(tileState, changedTiles);
+    this.liveTiles = tileState;
+    if (this.tileHold !== null) this.tileHold(changedTiles);
+    else this.renderer?.uploadLiveDelta(tileState, changedTiles);
+  }
+
+  /**
+   * While set, tile changes wait with `hold` instead of reaching the map: a
+   * replay lets them through itself, with `releaseTiles`. The game's own state
+   * isn't touched, only what's drawn.
+   */
+  setTileHold(hold: ((tiles: readonly number[]) => void) | null): void {
+    this.tileHold = hold;
+  }
+
+  /** Draws tiles that were held, as they stand now. */
+  releaseTiles(tiles: readonly number[]): void {
+    if (this.liveTiles === null || tiles.length === 0) return;
+    this.renderer?.uploadLiveDelta(this.liveTiles, tiles);
   }
   uploadLiveTrailDelta(
     trailState: Uint16Array,
