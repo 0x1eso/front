@@ -10,6 +10,7 @@ import {
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import { gwChapters } from "@openfront/engine-lib/ww1914/Calendars";
+import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { warMonths } from "./Eras";
 import { warScore } from "./Fronts";
@@ -242,6 +243,13 @@ export function skipToConference(gw: GreatWar): void {
   s.closingDay = s.day + chapterOf(gw).spanDays;
   s.conferenceLeft = CONFERENCE_CHAPTERS;
   s.chapter = last - 1;
+  // The war's papers stop with it; the jump mustn't bring them all at once.
+  for (const seat of s.seats) {
+    seat.scheduled = seat.scheduled.filter((q) => {
+      const stage = gwContent().scenes.find((x) => x.id === q.scene)?.stage;
+      return stage === undefined || stage.includes("conference");
+    });
+  }
 }
 
 /** A chapter of the peace ends: the next opens a month on, in the same row. */

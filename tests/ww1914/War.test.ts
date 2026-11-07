@@ -392,6 +392,26 @@ describe("how it stops", () => {
     expect(seat.memoir).not.toBeNull();
   });
 
+  test("the jump to the peace breaks no promise and brings no war paper", async () => {
+    const { gw, runner, seat } = await war("DEU", "GWY14B");
+    seat.promises.push({
+      who: "deu_moltke",
+      key: "p_test",
+      made: gw.s.chapter,
+      due: gw.s.chapter + 2,
+      keep: null,
+      back: null,
+      kept: false,
+      broken: false,
+    } as (typeof seat.promises)[number]);
+    seat.scheduled.push({ scene: "deu_f_ledger", chapter: gw.s.chapter + 1 });
+    armistice(gw, "central_lost", "DEU");
+    pass(gw, runner, 1);
+    expect(seat.promises.some((p) => p.broken)).toBe(false);
+    expect(seat.desk.map((c) => c.scene)).not.toContain("deu_f_ledger");
+    expect(seat.desk.map((c) => c.scene)).not.toContain("gw_promise_broken");
+  });
+
   test("a separate peace closes the seat as a peace, not a defeat", async () => {
     const { gw, runner, seat } = await war("RUS", "GWY15");
     runEffect(ctx(gw), doWorld({ do: "separate_peace" }));

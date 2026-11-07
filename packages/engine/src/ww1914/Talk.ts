@@ -107,6 +107,8 @@ export function settlePromises(gw: GreatWar, seat: GwSeatState): void {
         continue;
       }
     }
+    // The calendar jumps to the peace: a date passed that way breaks nothing.
+    if (gw.s.armistice !== null) continue;
     if (gw.s.chapter > x.due) breakPromise(gw, seat, x);
   }
 }
