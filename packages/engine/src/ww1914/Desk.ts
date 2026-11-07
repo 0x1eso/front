@@ -449,15 +449,7 @@ export function dealDesk(gw: GreatWar, seat: GwSeatState): void {
   const dueCards: GwCard[] = [];
   const dueScenes: GwScene[] = [];
   for (const q of due) {
-    const card = makeCard(
-      gw,
-      seat,
-      q.scene,
-      "scheduled",
-      q.who,
-      q.act,
-      q.back,
-    );
+    const card = makeCard(gw, seat, q.scene, "scheduled", q.who, q.act, q.back);
     if (card === null) continue;
     dueCards.push(card);
     dueScenes.push(q.scene);

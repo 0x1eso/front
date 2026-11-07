@@ -21,7 +21,7 @@ import { warMonths } from "./Eras";
 import { warScore } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
 import { armistice, TALKS_MONTHS } from "./Peace";
-import { GW_ENTRIES, GW_ENTRY_BAR } from "./Tables";
+import { GW_ACTORS, GW_ENTRIES, GW_ENTRY_BAR } from "./Tables";
 import { enter, leaveWar } from "./Wars";
 import { clampTo, fights, moveGauge, news, other, seatsOf } from "./World";
 
@@ -128,6 +128,7 @@ function askOpen(
 function targets(gw: GreatWar, seat: GwSeatState): GwNationState[] {
   return gw.s.nations.filter(
     (n) =>
+      GW_ACTORS.includes(n.tag) &&
       n.tag !== seat.tag &&
       !n.out &&
       seatsOf(gw, n.tag).length === 0 &&

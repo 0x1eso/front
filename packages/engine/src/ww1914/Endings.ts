@@ -17,9 +17,9 @@ import {
 import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
 import { daysFromCivil } from "@openfront/engine-lib/ww1936/Calendar";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
+import { aimRecord } from "./Aims";
 import { warScore } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
-import { aimRecord } from "./Aims";
 import { GW_MANDATES } from "./Mandates";
 import { chaptersPlayed } from "./Peace";
 import { holds } from "./SceneRun";

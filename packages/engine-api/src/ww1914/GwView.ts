@@ -18,11 +18,11 @@ import type {
   GwTermRefusal,
   GwTheatre,
 } from "./GreatWarTypes";
+import type { GwActKind } from "./GwActs";
 import type { GwTag } from "./GwCountries";
 import type { GwOrderBlock } from "./GwOrders";
 import type { GwRulerView } from "./GwRuler";
 import type { GwWorldView } from "./GwWorldView";
-import type { GwActKind } from "./GwActs";
 import type { GwReplyKind, GwSceneKind, GwStance } from "./SceneDsl";
 
 export interface GwOptionView {

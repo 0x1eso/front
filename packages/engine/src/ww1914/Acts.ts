@@ -156,7 +156,9 @@ export function takeAct(
   const before = actCtx(gw, seat, a)!;
   if (picks === null || !picksFit(before, a, picks)) return "bad_pick";
   const chosen = pickedOptions(a, picks);
-  const scene = sceneOf(lastOf(chosen.filter((o) => o.scene))?.scene ?? a.scene);
+  const scene = sceneOf(
+    lastOf(chosen.filter((o) => o.scene))?.scene ?? a.scene,
+  );
   if (scene === null) return "no_act";
   const row = seat.acted.length;
   seat.acted.push({ act: a.id, chapter: gw.s.chapter, picks });

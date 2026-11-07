@@ -33,13 +33,13 @@ import {
   GwContent,
   gwContent,
 } from "@openfront/engine-lib/ww1914/content/Content";
+import { reworkEffects } from "@openfront/engine-lib/ww1914/SendBackRules";
 import {
   fadedWeight,
   GW_MOOD_MOVES_TRUST,
   isCandid,
   stanceFit,
 } from "@openfront/engine-lib/ww1914/TalkRules";
-import { reworkEffects } from "@openfront/engine-lib/ww1914/SendBackRules";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { blocNow } from "./Blocs";
 import { moveMoney } from "./Budget";
