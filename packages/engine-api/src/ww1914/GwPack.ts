@@ -50,6 +50,11 @@ export const GwScenePackSchema = z
      * required.
      */
     brief: z.union([Text, z.record(GwIdSchema, Text)]).optional(),
+    /**
+     * The line a paper sent back comes again with: direction -> text, or `dug`
+     * when the author would not change it. Absent: the rule's own line.
+     */
+    back: ById.optional(),
   })
   .strict();
 export type GwScenePack = z.infer<typeof GwScenePackSchema>;
@@ -104,6 +109,37 @@ export const GwDictEntrySchema = z
   })
   .strict();
 export type GwDictEntry = z.infer<typeof GwDictEntrySchema>;
+
+/** A schedule entry's words (GwActs.ts): pack `acts.<id>`. */
+export const GwActPackSchema = z
+  .object({
+    /** How the schedule lists it: "크루프 공장", "니콜라이에게 쓴다". */
+    name: Text,
+    /** One plain line under the name; no result, no hidden value. */
+    note: Text.optional(),
+    /** Field id -> its heading and its options' words. */
+    fields: z
+      .record(
+        GwIdSchema,
+        z.object({ label: Text, opt: ById.optional() }).strict(),
+      )
+      .optional(),
+  })
+  .strict();
+export type GwActPack = z.infer<typeof GwActPackSchema>;
+
+/** A national aim's words: pack `aims.<id>`. */
+export const GwAimPackSchema = z
+  .object({
+    name: Text,
+    /** What the seat declares, in the ruler's own words. */
+    text: Text,
+    /** The memoir's line, by how it ended. */
+    met: Text,
+    unmet: Text,
+  })
+  .strict();
+export type GwAimPack = z.infer<typeof GwAimPackSchema>;
 
 /** A scene's lines laid over from another share: every table is optional. */
 const GwOverSchema = GwScenePackSchema.omit({ nodes: true })
@@ -161,6 +197,10 @@ export const GwPackSchema = z
     dict: z.record(GwIdSchema, GwDictEntrySchema).optional(),
     /** Only the seat's own country's: its blocs and papers. */
     press: GwPressPackSchema.optional(),
+    /** Act id -> its words on the schedule. */
+    acts: z.record(GwIdSchema, GwActPackSchema).optional(),
+    /** Aim id -> its words. */
+    aims: z.record(GwIdSchema, GwAimPackSchema).optional(),
   })
   .strict();
 export type GwPack = z.infer<typeof GwPackSchema>;
@@ -176,6 +216,8 @@ export function mergeGwPacks(packs: readonly GwPack[]): GwPack {
     endings: {},
     rulers: {},
     dict: {},
+    acts: {},
+    aims: {},
   };
   for (const p of packs) {
     Object.assign(out.scenes, p.scenes);
@@ -185,6 +227,8 @@ export function mergeGwPacks(packs: readonly GwPack[]): GwPack {
     Object.assign(out.endings!, p.endings);
     Object.assign(out.rulers!, p.rulers);
     Object.assign(out.dict!, p.dict);
+    Object.assign(out.acts!, p.acts);
+    Object.assign(out.aims!, p.aims);
     if (p.press !== undefined) out.press = p.press;
   }
   for (const p of packs) {
@@ -218,6 +262,7 @@ function layOver(s: GwScenePack, o: GwOver): GwScenePack {
     ...(o.why === undefined ? {} : { why: { ...s.why, ...o.why } }),
     ...(o.optBy === undefined ? {} : { optBy: { ...s.optBy, ...o.optBy } }),
     ...(o.brief === undefined ? {} : { brief: mergeBrief(s.brief, o.brief) }),
+    ...(o.back === undefined ? {} : { back: { ...s.back, ...o.back } }),
     ...(s.nodes === undefined ? {} : { nodes }),
   };
 }
@@ -254,6 +299,8 @@ export function gwPackOverlaps(packs: readonly GwPack[]): string[] {
       ...Object.keys(p.endings ?? {}).map((x) => `ending ${x}`),
       ...Object.keys(p.rulers ?? {}).map((x) => `ruler ${x}`),
       ...Object.keys(p.dict ?? {}).map((x) => `dict ${x}`),
+      ...Object.keys(p.acts ?? {}).map((x) => `act ${x}`),
+      ...Object.keys(p.aims ?? {}).map((x) => `aim ${x}`),
     ];
     for (const id of ids) {
       if (seen.has(id)) out.add(id);

@@ -7,6 +7,7 @@
 // saying folds into one quiet card.
 import {
   GW_TENSION_MAX,
+  GwBack,
   GwCard,
   GwSeatState,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
@@ -121,10 +122,12 @@ export function makeCard(
   scene: GwScene,
   origin: GwCard["origin"],
   called: string | null = null,
+  act: number | null = null,
+  back: GwBack | null = null,
 ): GwCard | null {
-  const cast = castOf(gw, seat, scene, called);
+  const cast = castOf(gw, seat, scene, called, act);
   if (cast === null) return null;
-  const ctx: SceneCtx = { gw, seat, cast };
+  const ctx: SceneCtx = { gw, seat, cast, act, back };
   const uid = gw.s.nextCard++;
   const salt = idHash(scene.id);
   const voice: Record<string, string> = {};
@@ -152,6 +155,8 @@ export function makeCard(
     mood: 0,
     notes: [],
     folded: [],
+    act,
+    back,
   };
 }
 
@@ -399,21 +404,28 @@ export function watchDesk(fn: ((t: DeskTrace) => void) | null): void {
   watcher = fn;
 }
 
+interface DueScene {
+  scene: GwScene;
+  who: string | null;
+  act: number | null;
+  back: GwBack | null;
+}
+
 /** Scheduled scenes that have come, up to a full desk; the rest wait. */
-function takeDue(
-  gw: GreatWar,
-  seat: GwSeatState,
-): { scene: GwScene; who: string | null }[] {
-  const out: { scene: GwScene; who: string | null }[] = [];
+function takeDue(gw: GreatWar, seat: GwSeatState): DueScene[] {
+  const out: DueScene[] = [];
   const scenes = gwContent().scenes;
   seat.scheduled = seat.scheduled.filter((q) => {
     if (q.chapter > gw.s.chapter || out.length >= GW_DESK_MAX) return true;
     const scene = scenes.find((x) => x.id === q.scene);
     const who = q.who ?? null;
+    const act = q.act ?? null;
     // Two causes can call the same paper for the same day: it comes once.
-    const twice = out.some((x) => x.scene === scene && x.who === who);
+    const twice = out.some(
+      (x) => x.scene === scene && x.who === who && x.act === act,
+    );
     if (scene !== undefined && !twice && !overWithTheWar(gw, scene)) {
-      out.push({ scene, who });
+      out.push({ scene, who, act, back: q.back ?? null });
     }
     return false;
   });
@@ -437,7 +449,15 @@ export function dealDesk(gw: GreatWar, seat: GwSeatState): void {
   const dueCards: GwCard[] = [];
   const dueScenes: GwScene[] = [];
   for (const q of due) {
-    const card = makeCard(gw, seat, q.scene, "scheduled", q.who);
+    const card = makeCard(
+      gw,
+      seat,
+      q.scene,
+      "scheduled",
+      q.who,
+      q.act,
+      q.back,
+    );
     if (card === null) continue;
     dueCards.push(card);
     dueScenes.push(q.scene);

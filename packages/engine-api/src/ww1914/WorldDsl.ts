@@ -195,6 +195,11 @@ export type GwWorldEffect =
       theatre?: GwTheatre;
       source: GwSource;
     }
+  /**
+   * Seen with the seat's own eyes: a confirmed report of the truth, and any
+   * unchecked report of the same thing is put right now.
+   */
+  | { do: "inspect"; fact: GwFactKind; tag: GwTag; theatre?: GwTheatre }
   | { do: "thread"; id: GwThread }
   | { do: "command"; who: GwWorldWho; theatre: GwTheatre }
   | { do: "uboat"; level: number }
@@ -418,6 +423,11 @@ export const GwWorldEffectSchema = z.union([
   act("gov_heat", { id: GwIdSchema, delta: int }),
   act("gov_beaten", { id: GwIdSchema }),
   act("gov_soon", { id: GwIdSchema }),
+  act("inspect", {
+    fact: z.enum(GW_FACT_KINDS),
+    tag,
+    theatre: theatre.optional(),
+  }),
 ]) as unknown as z.ZodType<GwWorldEffect>;
 
 // ---- Authoring helpers ----

@@ -19,6 +19,7 @@ import { daysFromCivil } from "@openfront/engine-lib/ww1936/Calendar";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { warScore } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
+import { aimRecord } from "./Aims";
 import { GW_MANDATES } from "./Mandates";
 import { chaptersPlayed } from "./Peace";
 import { holds } from "./SceneRun";
@@ -331,6 +332,7 @@ export function memoirOf(
     chapter: chaptersPlayed(gw) - 1,
     day: s.day,
     mandates,
+    aim: aimRecord(gw, seat),
     casualties: gw.nation(seat.tag)?.casualties ?? 0,
     fronts: s.theatres
       .filter((t) => t.since !== null)

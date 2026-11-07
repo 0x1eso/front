@@ -3,6 +3,9 @@
 import { zb } from "@openfront/zbin";
 import { z } from "zod";
 import {
+  GW_ASK_CLAUSES,
+  GW_BACK_DIRECTIONS,
+  GW_GIVE_CLAUSES,
   GW_OFFICES,
   GW_POSTURES,
   GW_RESEARCH,
@@ -65,6 +68,30 @@ export const GwOrderSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("press_invite"), paper: Id }),
   /** Something about a minister finds its way into the papers. */
   z.object({ kind: z.literal("press_leak"), person: Id }),
+  /**
+   * The seat starts something from its schedule. `picks` holds the fields'
+   * values in field order, `count` of them each: option or person ids.
+   */
+  z.object({
+    kind: z.literal("act"),
+    act: Id,
+    picks: z.array(Id).max(12),
+  }),
+  /** "다시 써 오시오": a decision goes back to its author with a direction. */
+  z.object({
+    kind: z.literal("send_back"),
+    card: Card,
+    direction: z.enum(GW_BACK_DIRECTIONS),
+  }),
+  /** The aim of this war or reign is declared, or changed at a price. */
+  z.object({ kind: z.literal("aim"), aim: Id }),
+  /** Terms go to a country: it answers when the chapter closes. */
+  z.object({
+    kind: z.literal("terms"),
+    tag: zb.string({ min: 3, max: 3, regex: /^[A-Z]{3}$/ }),
+    give: z.array(z.enum(GW_GIVE_CLAUSES)).max(5),
+    ask: z.array(z.enum(GW_ASK_CLAUSES)).max(7),
+  }),
 ]);
 export type GwOrder = z.infer<typeof GwOrderSchema>;
 
@@ -96,5 +123,12 @@ export const GW_ORDER_BLOCKS = [
   "press_done",
   "press_closed",
   "no_paper",
+  "no_act",
+  "no_slot",
+  "bad_pick",
+  "no_back",
+  "no_aim",
+  "no_terms",
+  "terms_sent",
 ] as const;
 export type GwOrderBlock = (typeof GW_ORDER_BLOCKS)[number];

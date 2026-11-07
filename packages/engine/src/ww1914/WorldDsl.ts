@@ -24,7 +24,7 @@ import { closeSeat, SEPARATE_PEACE } from "./Endings";
 import { eraOf, hasTech } from "./Eras";
 import { signChief, warScore } from "./Fronts";
 import { govBeaten, govHeat, govHeatBy, govSoon, pollOf } from "./Government";
-import { sendReport } from "./Intel";
+import { inspect, sendReport } from "./Intel";
 import {
   lawCanDecree,
   lawCount,
@@ -290,6 +290,9 @@ export function worldEffect(ctx: SceneCtx, e: GwWorldEffect): void {
       return;
     case "report":
       sendReport(gw, seat, e.fact, e.tag, e.theatre ?? null, e.source);
+      return;
+    case "inspect":
+      inspect(gw, seat, e.fact, e.tag, e.theatre ?? null);
       return;
     case "thread":
       if (!s.threads.includes(e.id)) s.threads.push(e.id);

@@ -200,6 +200,12 @@ export class GreatWar {
         memoir: null,
         ruler: blankRuler(),
         press: gwPressStart(),
+        acts: 0,
+        acted: [],
+        aim: null,
+        aimsDropped: [],
+        returns: [],
+        terms: [],
       });
     }
     this.s.seats.sort((a, b) => a.smallID - b.smallID);
