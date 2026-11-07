@@ -365,8 +365,8 @@ describe("gauges and the home front", () => {
     n.lowOrder = 7;
     n.gauges.order = 0;
     playChapter(runner);
-    const card = seat(runner).desk.find((c) => c.scene === "gw_home_deu_4")!;
-    order(runner, { kind: "choose", card: card.uid, option: "memoir" });
+    const card = seat(runner).desk.find((c) => c.scene === "deu_k_republic")!;
+    order(runner, { kind: "choose", card: card.uid, option: "close_seat" });
     expect(view(runner).ended).toBe("home_collapse");
     expect(seat(runner).world.memoir).not.toBeNull();
   });
