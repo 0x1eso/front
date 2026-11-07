@@ -23,8 +23,14 @@ export const RUS_PRIVATE_SCENES: readonly GwScene[] = [
           kind: "world",
           of: {
             is: "date",
-            from: "1914-07",
+            from: "1914-08",
             to: "1914-12",
+          },
+        },
+        {
+          kind: "world",
+          of: {
+            is: "war",
           },
         },
         {
@@ -618,7 +624,7 @@ export const RUS_PRIVATE_SCENES: readonly GwScene[] = [
         person: "rus_botkin",
       },
     },
-    salience: 7,
+    salience: 8,
     tags: ["private", "people", "tension_down"],
     once: true,
     variants: [
@@ -1193,6 +1199,12 @@ export const RUS_PRIVATE_SCENES: readonly GwScene[] = [
             is: "date",
             from: "1914-08",
             to: "1915-03",
+          },
+        },
+        {
+          kind: "world",
+          of: {
+            is: "war",
           },
         },
         {
@@ -1920,7 +1932,7 @@ export const RUS_PRIVATE_SCENES: readonly GwScene[] = [
         person: "rus_olga_a",
       },
     },
-    salience: 6,
+    salience: 7,
     tags: ["private", "people", "tension_down"],
     once: true,
     variants: [
@@ -2047,7 +2059,7 @@ export const RUS_PRIVATE_SCENES: readonly GwScene[] = [
       ],
     },
     cast: {},
-    salience: 5,
+    salience: 6,
     tags: ["private", "people", "tension_down"],
     once: true,
     variants: [
@@ -2608,7 +2620,7 @@ export const RUS_PRIVATE_SCENES: readonly GwScene[] = [
         person: "rus_olga",
       },
     },
-    salience: 6,
+    salience: 7,
     tags: ["private", "people", "tension_down"],
     once: true,
     who: "p",
@@ -2755,7 +2767,7 @@ export const RUS_PRIVATE_SCENES: readonly GwScene[] = [
         person: "rus_olga",
       },
     },
-    salience: 5,
+    salience: 6,
     tags: ["private", "people", "tension_down"],
     once: true,
     variants: [
@@ -3262,10 +3274,6 @@ export const RUS_PRIVATE_SCENES: readonly GwScene[] = [
       kind: "all",
       of: [
         {
-          kind: "seen",
-          scene: "rus_p_kr_1",
-        },
-        {
           kind: "world",
           of: {
             is: "date",
@@ -3652,7 +3660,7 @@ export const RUS_PRIVATE_SCENES: readonly GwScene[] = [
         person: "rus_kr",
       },
     },
-    salience: 6,
+    salience: 8,
     tags: ["private", "people", "tension_down"],
     once: true,
     variants: [
@@ -3761,7 +3769,40 @@ export const RUS_PRIVATE_SCENES: readonly GwScene[] = [
             next: "kal",
           },
           {
+            id: "sergei",
+            stance: "warm",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "sergei",
+          },
+          {
             id: "go",
+            stance: "warm",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      sergei: {
+        says: [
+          {
+            id: "base",
+          },
+        ],
+        replies: [
+          {
+            id: "what",
+            stance: "warm",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "pow",
+          },
+          {
+            id: "end",
             stance: "warm",
             kind: "leave",
             tell: [],
@@ -3927,7 +3968,7 @@ export const RUS_PRIVATE_SCENES: readonly GwScene[] = [
         person: "rus_ella",
       },
     },
-    salience: 6,
+    salience: 7,
     tags: ["private", "people", "tension_down"],
     once: true,
     variants: [
@@ -4395,7 +4436,7 @@ export const RUS_PRIVATE_SCENES: readonly GwScene[] = [
         person: "rus_ella",
       },
     },
-    salience: 5,
+    salience: 6,
     tags: ["private", "people", "tension_down"],
     once: true,
     variants: [
@@ -4898,7 +4939,7 @@ export const RUS_PRIVATE_SCENES: readonly GwScene[] = [
         person: "rus_fredericks",
       },
     },
-    salience: 5,
+    salience: 6,
     tags: ["private", "people", "tension_down"],
     once: true,
     who: "p",
@@ -5066,7 +5107,7 @@ export const RUS_PRIVATE_SCENES: readonly GwScene[] = [
         person: "rus_fredericks",
       },
     },
-    salience: 5,
+    salience: 6,
     tags: ["private", "people", "tension_down"],
     once: true,
     variants: [
@@ -5306,10 +5347,13 @@ export const RUS_PRIVATE_SCENES: readonly GwScene[] = [
       ],
     },
     cast: {},
-    salience: 4,
+    salience: 6,
     tags: ["private", "tension_down"],
     once: true,
     variants: [
+      {
+        id: "album",
+      },
       {
         id: "base",
       },
@@ -5631,7 +5675,7 @@ export const RUS_PRIVATE_SCENES: readonly GwScene[] = [
         person: "rus_mathilde",
       },
     },
-    salience: 5,
+    salience: 6,
     tags: ["private", "people", "tension_down"],
     once: true,
     who: "p",
@@ -6201,7 +6245,7 @@ export const RUS_PRIVATE_SCENES: readonly GwScene[] = [
       ],
     },
     cast: {},
-    salience: 4,
+    salience: 6,
     tags: ["private", "tension_down"],
     once: true,
     variants: [
@@ -6855,7 +6899,7 @@ export const RUS_PRIVATE_SCENES: readonly GwScene[] = [
           of: {
             is: "date",
             from: "1914-06",
-            to: "1914-08",
+            to: "1914-07",
           },
         },
         {
@@ -7093,7 +7137,7 @@ export const RUS_PRIVATE_SCENES: readonly GwScene[] = [
         person: "rus_nilov",
       },
     },
-    salience: 5,
+    salience: 6,
     tags: ["private", "people", "tension_down"],
     once: true,
     variants: [
@@ -7211,6 +7255,13 @@ export const RUS_PRIVATE_SCENES: readonly GwScene[] = [
     nodes: {
       open: {
         says: [
+          {
+            id: "shared",
+            when: {
+              kind: "memory",
+              key: "k_p_nil_shared",
+            },
+          },
           {
             id: "dry",
             when: {
@@ -7483,7 +7534,7 @@ export const RUS_PRIVATE_SCENES: readonly GwScene[] = [
         person: "rus_nilov",
       },
     },
-    salience: 5,
+    salience: 6,
     tags: ["private", "people", "tension_down"],
     once: true,
     variants: [
@@ -7551,7 +7602,7 @@ export const RUS_PRIVATE_SCENES: readonly GwScene[] = [
           of: {
             is: "date",
             from: "1914-06",
-            to: "1914-09",
+            to: "1914-08",
           },
         },
         {
@@ -8036,6 +8087,13 @@ export const RUS_PRIVATE_SCENES: readonly GwScene[] = [
       open: {
         says: [
           {
+            id: "father",
+            when: {
+              kind: "memory",
+              key: "k_p_dmi_father",
+            },
+          },
+          {
             id: "ella",
             when: {
               kind: "memory",
@@ -8194,10 +8252,6 @@ export const RUS_PRIVATE_SCENES: readonly GwScene[] = [
       of: [
         {
           kind: "seen",
-          scene: "rus_p_dmi_1",
-        },
-        {
-          kind: "seen",
           scene: "rus_r_friend_dead",
         },
         {
@@ -8214,7 +8268,7 @@ export const RUS_PRIVATE_SCENES: readonly GwScene[] = [
         person: "rus_dmitri",
       },
     },
-    salience: 6,
+    salience: 8,
     tags: ["private", "people", "tension_down"],
     once: true,
     variants: [
@@ -8288,10 +8342,6 @@ export const RUS_PRIVATE_SCENES: readonly GwScene[] = [
       kind: "all",
       of: [
         {
-          kind: "seen",
-          scene: "rus_p_dmi_1",
-        },
-        {
           kind: "any",
           of: [
             {
@@ -8330,7 +8380,7 @@ export const RUS_PRIVATE_SCENES: readonly GwScene[] = [
       ],
     },
     cast: {},
-    salience: 5,
+    salience: 6,
     tags: ["private", "people", "tension_down"],
     once: true,
     variants: [
@@ -8910,6 +8960,196 @@ const RUS_PRIVATE_BACK: Readonly<
                 kind: "chose",
                 scene: "rus_r_trust",
               },
+            },
+            {
+              kind: "world",
+              of: {
+                is: "regime",
+                of: ["tsar", "crown"],
+              },
+            },
+          ],
+        },
+      },
+    ],
+    says: {},
+  },
+  rus_h_wife_letter: {
+    variants: [
+      {
+        id: "p_sister",
+        when: {
+          kind: "all",
+          of: [
+            {
+              kind: "any",
+              of: [
+                {
+                  kind: "memory",
+                  key: "k_p_ella_out",
+                },
+                {
+                  kind: "memory",
+                  key: "k_p_ella_inside",
+                },
+              ],
+            },
+            {
+              kind: "not",
+              of: {
+                kind: "any",
+                of: [
+                  {
+                    kind: "seen",
+                    scene: "rus_r_friend_dead",
+                  },
+                  {
+                    kind: "flag",
+                    flag: "f_friend_exiled",
+                  },
+                ],
+              },
+            },
+            {
+              kind: "world",
+              of: {
+                is: "regime",
+                of: ["tsar", "crown"],
+              },
+            },
+          ],
+        },
+      },
+      {
+        id: "p_nata",
+        when: {
+          kind: "all",
+          of: [
+            {
+              kind: "memory",
+              key: "k_p_sib_shown",
+            },
+            {
+              kind: "world",
+              of: {
+                is: "regime",
+                of: ["tsar", "crown"],
+              },
+            },
+          ],
+        },
+      },
+      {
+        id: "p_flask",
+        when: {
+          kind: "all",
+          of: [
+            {
+              kind: "memory",
+              key: "k_p_nil_shared",
+              within: 2,
+            },
+            {
+              kind: "world",
+              of: {
+                is: "regime",
+                of: ["tsar", "crown"],
+              },
+            },
+          ],
+        },
+      },
+    ],
+    says: {},
+  },
+  rus_r_train: {
+    variants: [
+      {
+        id: "p_nil",
+        when: {
+          kind: "all",
+          of: [
+            {
+              kind: "memory",
+              key: "k_p_nil_stays",
+            },
+            {
+              kind: "world",
+              of: {
+                is: "regime",
+                of: ["tsar", "crown"],
+              },
+            },
+          ],
+        },
+      },
+    ],
+    says: {},
+  },
+  rus_r_capital: {
+    variants: [
+      {
+        id: "p_nil",
+        when: {
+          kind: "all",
+          of: [
+            {
+              kind: "memory",
+              key: "k_p_nil_warned",
+            },
+            {
+              kind: "world",
+              of: {
+                is: "regime",
+                of: ["tsar", "crown"],
+              },
+            },
+          ],
+        },
+      },
+    ],
+    says: {},
+  },
+  rus_t_alek_sick: {
+    variants: [],
+    says: {
+      deal: [
+        {
+          id: "p_bot",
+          when: {
+            kind: "all",
+            of: [
+              {
+                kind: "memory",
+                key: "k_p_bot_stays",
+              },
+              {
+                kind: "world",
+                of: {
+                  is: "regime",
+                  of: ["tsar", "crown"],
+                },
+              },
+            ],
+          },
+        },
+      ],
+    },
+  },
+  rus_r_family_letter: {
+    variants: [
+      {
+        id: "p_san",
+        when: {
+          kind: "all",
+          of: [
+            {
+              kind: "memory",
+              key: "k_p_san_covered",
+            },
+            {
+              kind: "seen",
+              scene: "rus_r_friend_dead",
             },
             {
               kind: "world",
