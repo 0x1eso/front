@@ -872,6 +872,19 @@ const RUS: GwPressRow = {
     ),
     story("balcony", 9, decided("rus_c_balcony"), { nv: 1, zem: 1, rech: 1 }),
     story("vodka", 8, decided("rus_c_vodka"), { utro: 0, zem: 1, nv: 0 }),
+    // The day of a bill: the page says which one, above the headlines.
+    story(
+      "law",
+      8,
+      { chose: ["gw_lv_"], prefix: true, picks: ["put"] },
+      { rech: 0, zem: 0, utro: 0 },
+    ),
+    story(
+      "law_87",
+      9,
+      { chose: ["gw_lv_"], prefix: true, picks: ["decree"] },
+      { rech: -1, nv: 1, zem: 1 },
+    ),
     story("shell_famine", 9, decided("rus_w_shell_famine"), {
       rech: -1,
       utro: 0,

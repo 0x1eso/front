@@ -8,6 +8,9 @@ import {
   personLeaves,
   standingOffices,
 } from "@openfront/engine/ww1914/People";
+import { GW_PRESS_ROWS } from "@openfront/engine/ww1914/PressTable";
+import fs from "node:fs";
+import path from "node:path";
 import { describe, expect, test } from "vitest";
 import { gwRunner } from "./util";
 
@@ -73,6 +76,22 @@ describe("russia as played", () => {
     st.ready = true;
     advanceChapter(gw, 0, false);
     expect(st.desk.filter((c) => c.scene === scene.id).length).toBeLessThan(2);
+  });
+
+  test("the papers cover a bill's day, voted or signed by decree", () => {
+    const press = JSON.parse(
+      fs.readFileSync(
+        path.join(__dirname, "../../resources/ww1914/ko/RUS.press.json"),
+        "utf8",
+      ),
+    ).press;
+    for (const id of ["law", "law_87"]) {
+      const st = GW_PRESS_ROWS.RUS!.stories.find((x) => x.id === id)!;
+      expect(JSON.stringify(st.on)).toContain("gw_lv_");
+      for (const paper of Object.keys(st.tones)) {
+        expect(press.heads[id][paper].head, paper).toBeTruthy();
+      }
+    }
   });
 
   test("no neutral comes to bargain at the peace conference", () => {
