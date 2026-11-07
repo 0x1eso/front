@@ -174,6 +174,17 @@ describe("what the player learns, and when", () => {
     expect(seat(runner).log[0].who).toBe("deu_cold");
   });
 
+  test("a talk that moved nothing leaves no note", async () => {
+    const { runner } = await game([
+      talk("t", "deu_cold", {
+        open: node(reply("a", { stance: "frank", next: null })),
+      }),
+    ]);
+    summon(runner, "deu_cold", "t");
+    say(runner, "a");
+    expect(log(runner)).toEqual([]);
+  });
+
   test("a talk that went well or badly moves trust, once", async () => {
     const well = await game([twoSteps("deu_cold", "frank")]);
     summon(well.runner, "deu_cold", "t");
@@ -519,6 +530,36 @@ describe("promises", () => {
   }
 });
 
+describe("a body with its own first node", () => {
+  test("the talk opens where that body says; the next game the other", async () => {
+    const t: GwScene = {
+      ...talk("t", "deu_cold", {
+        open: node(reply("a", { kind: "leave", stance: "warm" })),
+        door: node(reply("b", { kind: "leave", stance: "warm" })),
+      }),
+      variants: [{ id: "door" }, { id: "base" }],
+      starts: { door: "door" },
+    };
+    expect(gwSceneProblems(t)).toEqual([]);
+    const { runner } = await game([t]);
+    summon(runner, "deu_cold", "t");
+    const card = openTalk(runner)!;
+    expect(card.node).toBe(card.variant === "door" ? "door" : "open");
+  });
+
+  test("a start that names no node or body is caught", () => {
+    const t = talk("t", "deu_cold", {
+      open: node(reply("a", { kind: "leave", stance: "warm" })),
+    });
+    expect(gwSceneProblems({ ...t, starts: { base: "gone" } })).toContain(
+      "t: starts base is not a node",
+    );
+    expect(gwSceneProblems({ ...t, starts: { other: "open" } })).toContain(
+      "t: starts names no variant other",
+    );
+  });
+});
+
 describe("the timer", () => {
   test("a visitor left waiting remembers; the talk's reasons still land", async () => {
     const { runner, gw } = await game(
@@ -543,7 +584,7 @@ describe("the timer", () => {
     expect(gw.person("deu_cold")!.memory.map((m) => m.key)).toContain(
       "talk_left",
     );
-    expect(log(runner)).toContain("talk_fit_frank");
+    expect(log(runner)).not.toContain("talk_fit_frank");
     expect(seat(runner).desk).toEqual([]);
   });
 

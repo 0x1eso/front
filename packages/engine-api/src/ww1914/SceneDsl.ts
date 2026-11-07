@@ -475,6 +475,8 @@ export const GwSceneSchema = z
     /** The player can open it from the people screen (else the desk deals it). */
     summon: z.boolean().optional(),
     start: GwIdSchema.optional(),
+    /** A body's own first node: variant id -> node. Others open at `start`. */
+    starts: z.record(GwIdSchema, GwIdSchema).optional(),
     nodes: z.record(GwIdSchema, GwNodeSchema).optional(),
     /** Never drawn: comes only by a `schedule` effect or a broken promise. */
     scheduledOnly: z.boolean().optional(),
@@ -542,7 +544,22 @@ export function gwSceneProblems(s: GwScene): string[] {
       }
     }
     if (s.options !== undefined) out.push(`${s.id}: talk with options`);
-    out.push(...talkGraphProblems(s.id, s.start, nodes));
+    const starts = Object.entries(s.starts ?? {});
+    for (const [variant, node] of starts) {
+      if (!s.variants.some((v) => v.id === variant)) {
+        out.push(`${s.id}: starts names no variant ${variant}`);
+      }
+      if (nodes[node] === undefined) {
+        out.push(`${s.id}: starts ${variant} is not a node`);
+      }
+    }
+    out.push(
+      ...talkGraphProblems(
+        s.id,
+        [s.start, ...starts.map(([, node]) => node)],
+        nodes,
+      ),
+    );
   } else {
     if (s.nodes !== undefined) out.push(`${s.id}: nodes on a non-talk`);
     const read = GW_READ_ONLY_KINDS.includes(s.kind);
@@ -573,7 +590,7 @@ function nextsOf(r: GwReply): (string | null)[] {
 /** Every node can be reached, and from every node the talk can end. */
 function talkGraphProblems(
   id: string,
-  start: string | undefined,
+  starts: readonly (string | undefined)[],
   nodes: Readonly<Record<string, GwNode>>,
 ): string[] {
   const out: string[] = [];
@@ -584,7 +601,7 @@ function talkGraphProblems(
     reached.add(n);
     nodes[n].replies.flatMap(nextsOf).forEach(walk);
   };
-  walk(start);
+  starts.forEach(walk);
   const ends = new Set<string>();
   for (let grew = true; grew; ) {
     grew = false;
