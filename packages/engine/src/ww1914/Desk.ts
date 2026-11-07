@@ -128,13 +128,22 @@ export function makeCard(
   for (const [role, list] of Object.entries(scene.voices ?? {})) {
     voice[role] = pickVariant(ctx, list, salt ^ idHash(role));
   }
+  const variant = pickVariant(
+    ctx,
+    scene.variants,
+    salt,
+    wornness(gw, seat, scene),
+  );
   return {
     uid,
     scene: scene.id,
-    variant: pickVariant(ctx, scene.variants, salt, wornness(gw, seat, scene)),
+    variant,
     cast,
     origin,
-    node: scene.kind === "talk" ? (scene.start ?? null) : null,
+    node:
+      scene.kind === "talk"
+        ? (scene.starts?.[variant] ?? scene.start ?? null)
+        : null,
     chapter: gw.s.chapter,
     voice,
     mood: 0,
