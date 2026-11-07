@@ -60,6 +60,7 @@ export class MapRenderer {
   private storedLayerImages: Map<string, ImageBitmap> = new Map();
   /** World War 1936 region ids, re-applied after a context restore. */
   private storedRegions: Uint16Array | null = null;
+  private storedRegionIds: Uint16Array | null = null;
   /** World War 1936 P2 land war inputs, re-applied after a context restore. */
   private storedWwLand: Parameters<GPURenderer["setWwLand"]> | null = null;
   /** World War 1936 P4 inputs, re-applied after a context restore. */
@@ -72,7 +73,6 @@ export class MapRenderer {
   private storedWwEndgame: WwEndgameView | null = null;
   /** P5: the occupation and peace conference map modes' sources. */
   private storedOccupationMap: OccupationSource | null = null;
-  private storedRegionIds: Uint16Array | null = null;
   private storedPeaceMap: PeaceMapSource | null = null;
   /** World War 1936 P6: the depth view (lanes U3, U4 hand it to their passes). */
   private storedWwDepth: WwDepthView | null = null;
@@ -453,7 +453,7 @@ export class MapRenderer {
     this.renderer?.setRegions(regionIds);
   }
 
-  /** Great War 1914: regions for the map modes; the map's look stays as it is. */
+  /** Great War 1914: regions for the map modes and lenses; the map's look stays as it is. */
   setRegionIds(regionIds: Uint16Array): void {
     this.storedRegionIds = regionIds;
     this.renderer?.setRegionIds(regionIds);

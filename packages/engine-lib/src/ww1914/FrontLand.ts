@@ -1,5 +1,6 @@
 import {
   GW_FRONT_START,
+  GW_LINE_STEP,
   GW_LINES,
   GwSide,
   GwTheatre,
@@ -58,25 +59,27 @@ export const GW_FRONT_LAND: Readonly<
     paris: { central: ["paris", "melun", "epinal", "belfort"] },
   },
   east: {
+    // Listed in the order the ground is reached: a third of the list falls
+    // with each step of the line, so the map does not jump (frontLandAt).
     oder: {
       entente: [
-        "konigsberg",
         "gumbinnen",
-        "masuria",
-        "tannenberg",
-        "memel",
-        "lemberg",
         "tarnopol",
+        "lemberg",
         "stanislau",
         "czernowitz",
+        "memel",
+        "masuria",
         "przemysl",
+        "tannenberg",
         "gorlice",
         "tarnow",
-        "krakow",
         "posen",
-        "thorn",
+        "krakow",
         "kattowitz",
         "breslau",
+        "thorn",
+        "konigsberg",
       ],
     },
     vistula: {
@@ -187,15 +190,33 @@ export function frontPlaces(t: GwTheatre): GwPlace[] {
   ]);
 }
 
-/** Who holds what with a theatre's line at index `line`: place -> side. */
-export function frontLandAt(t: GwTheatre, line: number): Map<GwPlace, GwSide> {
+/**
+ * Who holds what with a theatre's line at index `line`: place -> side.
+ * `step` (-2..2, default 0) is how far the front has gone on past that line,
+ * away from the start, towards the next one (negative: towards the lower
+ * index). The next line's places fall a share at a time, in list order, so a
+ * line of seventeen places does not change hands in one chapter.
+ */
+export function frontLandAt(
+  t: GwTheatre,
+  line: number,
+  step = 0,
+): Map<GwPlace, GwSide> {
   const start = GW_FRONT_START[t];
   const out = new Map<GwPlace, GwSide>();
-  const step = line >= start ? 1 : -1;
-  for (let i = start; ; i += step) {
+  const dir = line >= start ? 1 : -1;
+  for (let i = start; ; i += dir) {
     const land = GW_FRONT_LAND[t][GW_LINES[t][i]];
     for (const p of land?.central ?? []) out.set(p, "central");
     for (const p of land?.entente ?? []) out.set(p, "entente");
-    if (i === line) return out;
+    if (i === line) break;
   }
+  if (step === 0) return out;
+  const next = GW_FRONT_LAND[t][GW_LINES[t][line + Math.sign(step)]];
+  for (const side of ["central", "entente"] as const) {
+    const list = next?.[side] ?? [];
+    const n = Math.ceil((list.length * Math.abs(step)) / GW_LINE_STEP);
+    for (const p of list.slice(0, n)) out.set(p, side);
+  }
+  return out;
 }

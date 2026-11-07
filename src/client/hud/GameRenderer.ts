@@ -58,7 +58,9 @@ import { TutorialPanel } from "./layers/TutorialPanel";
 import { UnitDisplay } from "./layers/UnitDisplay";
 import { WinModal } from "./layers/WinModal";
 import { loadAllSprites } from "./SpriteLoader";
+import { GwLens } from "./ww1914/GwLens";
 import { GwPanel } from "./ww1914/GwPanel";
+import { GwRail } from "./ww1914/GwRail";
 import { fogModelOf } from "./ww1936/FogModel";
 import { landSidesOf, landWarInputsOf, setLandSides } from "./ww1936/LandModel";
 import { setLandSeaAir } from "./ww1936/LandSeaAir";
@@ -753,12 +755,29 @@ export function createRenderer(
     gwPanel.eventBus = eventBus;
     gwPanel.transformHandler = transformHandler;
     gwPanel.mapView = view;
+    // ww155: the map's lenses and the mobilisation trains. The lens paints
+    // through the same occupation source as the panel's map paint (GwMapPaint).
+    const gwLens = document.querySelector("gw-lens");
+    const gwRail = document.querySelector("gw-rail");
+    const gwExtra: Controller[] = [];
+    if (gwLens instanceof GwLens) {
+      gwLens.game = game;
+      gwLens.eventBus = eventBus;
+      gwExtra.push(gwLens);
+    }
+    if (gwRail instanceof GwRail) {
+      gwRail.game = game;
+      gwRail.eventBus = eventBus;
+      gwRail.transformHandler = transformHandler;
+      gwExtra.push(gwRail);
+    }
     return new GameRenderer(
       transformHandler,
       uiState,
       [
         new ViewModeController(eventBus, view),
         gwPanel,
+        ...gwExtra,
         gameRightSidebar,
         mapControls,
         settingsModal,

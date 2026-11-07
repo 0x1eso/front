@@ -136,7 +136,8 @@ const GROUND: Readonly<Partial<Record<GwTheatre, Record<string, number>>>> = {
   straits: { gallipoli: 40, narrows: 50 },
   mesopotamia: { kut: 15 },
   palestine: { gaza: 25 },
-  balkan: { salonika: 20, belgrade: 15 },
+  // Serbia's own hills and rivers: the Drina and the Morava held in 1914.
+  balkan: { drina: 35, belgrade: 25, nis: 25, salonika: 20 },
 };
 
 /** Percent chance a theatre nobody's main effort sees a local action. */

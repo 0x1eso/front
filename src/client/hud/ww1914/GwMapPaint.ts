@@ -10,6 +10,7 @@ import {
   type TransformHandler,
 } from "../../TransformHandler";
 import type { GameView } from "../../view";
+import { gwLensMapSource } from "./GwLensSource";
 import { placeOfRegion } from "./GwTableModel";
 
 /** How wide a name on the map is, and how tall: closer ones give way. */
@@ -23,12 +24,15 @@ const DRAWER_UP = 0.42;
 /**
  * The paint on the map for the war aims and the peace table: regions filled
  * through the occupation pass, names kept on their tiles, and a tap read as a
- * place. `cells` returns null while nothing is painted, and then the map is as
- * it always was.
+ * place. The renderer takes one occupation source, so this is it: `now` wins,
+ * and while it is null the lens under it (GwLensSource) has the pass; with no
+ * lens either, the map is as it always was.
  */
 export class GwMapPaint implements OccupationSource {
   private drawn: readonly OccupationCell[] = [];
+  private painting = false;
   private looping = false;
+  private readonly lens: OccupationSource;
 
   constructor(
     private readonly game: GameView,
@@ -38,6 +42,7 @@ export class GwMapPaint implements OccupationSource {
     private readonly now: () => readonly OccupationCell[] | null,
     private readonly tapped: (place: GwPlace) => void,
   ) {
+    this.lens = gwLensMapSource(game);
     const scenario = game.gwScenario();
     if (scenario !== null) {
       view.setRegionIds(scenario.regionIds);
@@ -48,17 +53,19 @@ export class GwMapPaint implements OccupationSource {
   on(): boolean {
     const cells = this.now();
     this.drawn = cells ?? [];
-    return cells !== null;
+    this.painting = cells !== null;
+    return this.painting || this.lens.on();
   }
 
   key(): string {
+    if (!this.painting) return `lens:${this.lens.key()}`;
     return this.drawn
       .map((c) => `${c.region}:${c.level}:${c.flags}:${c.rgb[0]}`)
       .join(",");
   }
 
   cells(): readonly OccupationCell[] {
-    return this.drawn;
+    return this.painting ? this.drawn : this.lens.cells();
   }
 
   /** The panel's tap, while the paint has the map. */

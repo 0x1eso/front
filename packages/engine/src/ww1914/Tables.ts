@@ -180,8 +180,8 @@ export interface GwBeaten {
 export const GW_BEATEN: readonly GwBeaten[] = [
   { tag: "FRA", theatre: "west", from: "paris", after: 2 },
   { tag: "RUS", theatre: "east", from: "kiev", after: 24 },
-  { tag: "SRB", theatre: "balkan", from: "nis", after: 9 },
-  { tag: "MNE", theatre: "balkan", from: "nis", after: 9 },
+  { tag: "SRB", theatre: "balkan", from: "nis", after: 13 },
+  { tag: "MNE", theatre: "balkan", from: "nis", after: 13 },
   { tag: "ROU", theatre: "east", from: "warsaw", after: 3 },
   { tag: "GRC", theatre: "balkan", from: "salonika", after: 3 },
   { tag: "ITA", theatre: "italy", from: "adige", after: 12 },
