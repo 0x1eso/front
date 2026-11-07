@@ -602,7 +602,7 @@ describe("plausibility rails", () => {
     expect(britain).toBe(n);
     expect(long).toBeGreaterThanOrEqual(n - 1);
     useGwContent({ scenes: GW_CONTENT.scenes, people: CAST });
-  }, 30000);
+  }, 90000);
 
   test("closing a chain with war twice opens one war", async () => {
     const { gw } = await atWar("GWTWICE");

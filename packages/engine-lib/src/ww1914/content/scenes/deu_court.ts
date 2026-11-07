@@ -55,7 +55,8 @@ const tsarGone: GwCond = not(
 );
 const stopped: GwCond = world({ is: "armistice" });
 const offerTalks: GwEffect = doWorld({ do: "talks" });
-const sue: GwEffect = doWorld({ do: "sue" });
+/** The wire to Wilson opens the notes; `sign` at their end stops the war. */
+const sue: GwEffect = setFlag("f_deu_sued");
 const nextRegime: GwEffect = doWorld({ do: "next_regime" });
 const republic: GwCond = world({ is: "regime", of: ["republic"] });
 const closeSeat: GwEffect = doWorld({ do: "close_seat" });
@@ -874,7 +875,7 @@ export const DEU_COURT_SCENES: readonly GwScene[] = [
   scene("deu_k_spa", "crisis", {
     when: all(
       war,
-      date("1918-01", "1918-12"),
+      date("1917-10", "1918-12"),
       any(lost, seen("deu_f_black_day")),
       not(stopped),
     ),

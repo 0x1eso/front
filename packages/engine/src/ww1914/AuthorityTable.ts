@@ -121,7 +121,7 @@ const asked: GwInstRule[] = [
     every: 3,
     when: all(
       world({ is: "score", max: -60 }),
-      world({ is: "war_age", min: 30 }),
+      world({ is: "war_age", min: 40 }),
     ),
   },
 ];
