@@ -10,6 +10,7 @@ import { govStep } from "./Government";
 import type { GreatWar } from "./GreatWar";
 import { homeStep } from "./Home";
 import { intelStep } from "./Intel";
+import { frontLandStep } from "./Land";
 import { lawStep } from "./Laws";
 import { nextConferenceChapter, skipToConference } from "./Peace";
 import { peopleStep } from "./People";
@@ -30,6 +31,7 @@ import { worldFlagsStep } from "./WorldFlags";
 export const GW_CHAPTER_STEPS: readonly ((gw: GreatWar) => void)[] = [
   crisisStep,
   frontsStep,
+  frontLandStep,
   (gw) => seaStep(gw, warScore(gw, "central")),
   budgetStep,
   lawStep,

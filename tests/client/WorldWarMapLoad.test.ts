@@ -15,7 +15,10 @@ const worker = vi.hoisted(() => ({
   posted: [] as Record<string, unknown>[],
   listeners: [] as ((e: MessageEvent) => void)[],
 }));
-const loader = vi.hoisted(() => ({ requested: [] as string[] }));
+const loader = vi.hoisted(() => ({
+  requested: [] as string[],
+  folders: [] as string[],
+}));
 
 vi.mock("@openfront/engine/worker/Worker.worker?worker&inline", () => ({
   default: class {
@@ -46,6 +49,10 @@ vi.mock("../../src/client/TerrainMapFileLoader", () => {
           map4xBin: () => read("map4x.bin"),
           map16xBin: () => read("map16x.bin"),
           file: read,
+          folderFile: (folder: string, name: string) => {
+            loader.folders.push(`${folder}/${name}`);
+            return read(name);
+          },
         };
       },
     },
@@ -56,6 +63,7 @@ beforeEach(() => {
   worker.posted = [];
   worker.listeners = [];
   loader.requested = [];
+  loader.folders = [];
 });
 
 /** Starts the client and returns the init message the worker got. */
@@ -97,6 +105,21 @@ describe("a World War 1936 game whose raw config names another map", () => {
     expect(map.scenario).toBeDefined();
     // The engine normalizes the config itself: it gets the one it was sent.
     expect(msg.gameStartInfo).toBe(start);
+  });
+
+  test("a Great War game takes 1914's regions on world1936's terrain", async () => {
+    const msg = await init({
+      ...start,
+      config: testGameConfig({ greatWar1914: true }),
+    } as unknown as GameStartInfo);
+    expect(loader.requested).toEqual([GameMapType.World1936]);
+    expect(loader.folders.sort()).toEqual([
+      "world1914/regions.bin",
+      "world1914/scenario.json",
+    ]);
+    expect((msg.map as Record<string, unknown>).regionsBin).toBeInstanceOf(
+      Uint8Array,
+    );
   });
 
   test("outside the mode the raw map is loaded", async () => {

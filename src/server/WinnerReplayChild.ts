@@ -2,6 +2,7 @@
 // start info and turns, replays them, sends back the result and exits.
 import { GameMapType } from "@openfront/engine-api/game/GameTypes";
 import { MapManifest } from "@openfront/engine-api/game/MapFiles";
+import { scenarioFolderOf } from "@openfront/engine-lib/ww1914/ModeConfig";
 import { replayWinner } from "@openfront/engine/WinnerReplay";
 import {
   GameMapLoader,
@@ -9,7 +10,7 @@ import {
   MapData,
 } from "@openfront/shared/GameMapLoader";
 import fs from "fs";
-import { readMapFile } from "./MapFiles";
+import { readMapFile, readMapFolderFile } from "./MapFiles";
 import type { ReplayRequest, ReplayResponse } from "./WinnerReplay";
 
 class ServerGameMapLoader implements GameMapLoader {
@@ -25,6 +26,8 @@ class ServerGameMapLoader implements GameMapLoader {
           (await readMapFile(map, "manifest.json")).toString("utf8"),
         ) as MapManifest,
       file: (name: string) => bin(name)(),
+      folderFile: async (folder: string, name: string) =>
+        new Uint8Array(await readMapFolderFile(folder, name)),
       webpPath: "",
       layerImage: async () => {
         throw new Error("the server never renders map layers");
@@ -55,6 +58,7 @@ async function replay(req: ReplayRequest) {
     new ServerGameMapLoader(),
     gameMap,
     gameMapSize,
+    scenarioFolderOf(req.gameStart.config),
   );
   return replayWinner(req.gameStart, req.turns, map);
 }

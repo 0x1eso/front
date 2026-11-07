@@ -37,6 +37,8 @@ const SIZES: AssetSizes = {
   "maps/world1936/regions.bin": 400,
   "maps/world1936/scenario.json": 1100,
   "maps/world1936/thumbnail.webp": 20,
+  "maps/world1914/regions.bin": 400,
+  "maps/world1914/scenario.json": 1100,
   "maps/brainrot/manifest.json": 1,
   "maps/brainrot/map.bin": 1,
   "maps/brainrot/map4x.bin": 1,
@@ -206,6 +208,33 @@ describe("what a game needs to start offline", () => {
     ).toBe(true);
   });
 
+  test("a Great War game needs 1914's regions, not 1936's", async () => {
+    const config = {
+      gameMap: GameMapType.World1936,
+      gameMapSize: GameMapSize.Normal,
+      greatWar1914: true,
+    };
+    const terrain = [
+      "maps/world1936/manifest.json",
+      "maps/world1936/map.bin",
+      "maps/world1936/map4x.bin",
+    ].map(url);
+    const regions = [
+      "maps/world1914/regions.bin",
+      "maps/world1914/scenario.json",
+    ].map(url);
+    expect(
+      await mapPlayableOffline(config, SIZES, fakeStore(terrain).store),
+    ).toBe(false);
+    expect(
+      await mapPlayableOffline(
+        config,
+        SIZES,
+        fakeStore([...terrain, ...regions]).store,
+      ),
+    ).toBe(true);
+  });
+
   test("with nothing to check against (no build sizes, no Cache API), it tries", async () => {
     const config = {
       gameMap: GameMapType.World,
@@ -213,6 +242,18 @@ describe("what a game needs to start offline", () => {
     };
     expect(await mapPlayableOffline(config, {}, fakeStore().store)).toBe(true);
     expect(await mapPlayableOffline(config, SIZES, null)).toBe(true);
+  });
+});
+
+describe("downloading world1936", () => {
+  test("brings Great War 1914's regions along", () => {
+    const plan = planOfflineMap(
+      GameMapType.World1936,
+      { ...WORLD, ww1936: true },
+      SIZES,
+    );
+    expect(plan.files).toContain("maps/world1914/regions.bin");
+    expect(plan.files).toContain("maps/world1914/scenario.json");
   });
 });
 

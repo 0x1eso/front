@@ -67,10 +67,10 @@ export async function createGameRunner(
 
   let game: Game;
   if (config.greatWar1914()) {
-    // Great War 1914: every country of 1914 is a player, on the 1936 regions.
+    // Great War 1914: every country of 1914 is a player, on the 1914 regions.
     const scenario = gameMap.scenario;
     if (scenario === undefined) {
-      throw new Error("Great War 1914 needs the world1936 scenario files");
+      throw new Error("Great War 1914 needs the world1914 scenario files");
     }
     game = createGame(
       gwPlayers(gameStart.players, gwWorldOf(scenario), random),

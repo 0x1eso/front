@@ -17,12 +17,13 @@ const terrainMaps = new Map<string, TerrainMapData>();
 export async function loadCachedTerrainMap(
   map: GameMapType,
   mapSize: GameMapSize,
+  scenarioFolder?: string,
 ): Promise<TerrainMapData> {
-  const key = `${map}:${mapSize}`;
+  const key = `${map}:${mapSize}:${scenarioFolder ?? ""}`;
   const cached = terrainMaps.get(key);
   if (cached !== undefined) return cached;
   const terrain = await loadTerrainMap(
-    await loadMapFiles(terrainMapFileLoader, map, mapSize),
+    await loadMapFiles(terrainMapFileLoader, map, mapSize, scenarioFolder),
   );
   terrainMaps.set(key, terrain);
   return terrain;

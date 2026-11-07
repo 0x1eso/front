@@ -156,6 +156,8 @@ export class GreatWar {
       nextReport: 1,
       battles: [],
       news: [],
+      held: {},
+      landMoves: [],
     };
   }
 

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { GW_TAGS } from "../ww1914/GwCountries";
 import { COUNTRY_TAGS } from "./Countries";
 import { DAMS, LANDMARKS } from "./DepthTypes";
 import { REGION_CATEGORIES } from "./EconomyTypes";
@@ -45,6 +46,10 @@ export const ScenarioRegionSchema = z.object({
   name: z.string().min(1),
   nameKo: z.string().min(1),
   owner: z.enum(COUNTRY_TAGS),
+  /** The 1914 set: the name content knows it by (ww1914/GwPlaces.gen.ts). */
+  place: z.string().min(1).optional(),
+  /** The 1914 set: its owner in June 1914. */
+  gwOwner: z.enum(GW_TAGS).optional(),
   // 0 for a region without a city (spec §7.5).
   vp: z.number().int().min(0),
   vpTile: XY,

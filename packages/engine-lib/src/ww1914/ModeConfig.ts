@@ -49,6 +49,16 @@ export function applyGreatWar1914Rules(c: GameConfig): void {
 }
 
 /**
+ * The map folder a game's regions come from when they aren't its map's own:
+ * Great War 1914 plays world1936's terrain with regions of its own.
+ */
+export function scenarioFolderOf(
+  c: Pick<GameConfig, "greatWar1914">,
+): string | undefined {
+  return c.greatWar1914 === true ? "world1914" : undefined;
+}
+
+/**
  * The config the engine, the server and the lobby play with, whichever fork
  * mode is on. Returns the very object it was given when none is (so vanilla
  * stays bit-identical), otherwise a fixed copy.

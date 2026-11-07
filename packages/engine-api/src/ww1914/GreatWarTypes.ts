@@ -6,6 +6,7 @@ import { z } from "zod";
 import { GwBudgetStateSchema } from "./GwBudget";
 import { GW_TAGS } from "./GwCountries";
 import { GwLawStateSchema } from "./GwLaw";
+import { GwPlaceSchema } from "./GwPlaces";
 import { gwPressStart, GwPressStateSchema } from "./GwPress";
 import { GwPrologueStateSchema } from "./GwPrologue";
 import { GwRulerStateSchema } from "./GwRuler";
@@ -386,6 +387,15 @@ export const GW_ISSUES = [
   "peace_talks",
 ] as const;
 export type GwIssue = (typeof GW_ISSUES)[number];
+
+/** A place changing hands; `theatre` null when no front moved it. */
+export const GwLandMoveSchema = z.object({
+  place: GwPlaceSchema,
+  theatre: z.enum(GW_THEATRES).nullable(),
+  from: z.enum(GW_TAGS),
+  to: z.enum(GW_TAGS),
+});
+export type GwLandMove = z.infer<typeof GwLandMoveSchema>;
 
 export const GwTheatreStateSchema = z.object({
   id: z.enum(GW_THEATRES),
@@ -1198,5 +1208,9 @@ export const GreatWarStateSchema = z.object({
   nextReport: z.number().int(),
   battles: z.array(GwBattleSchema),
   news: z.array(GwNewsSchema),
+  /** Places not in their 1914 owner's hands: place -> who holds it. */
+  held: z.partialRecord(GwPlaceSchema, z.enum(GW_TAGS)).default({}),
+  /** What changed hands as the last chapter closed. */
+  landMoves: z.array(GwLandMoveSchema).default([]),
 });
 export type GreatWarState = z.infer<typeof GreatWarStateSchema>;

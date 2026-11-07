@@ -28,6 +28,7 @@ import {
 import { MapFiles } from "@openfront/engine-api/game/MapFiles";
 import { GameStartInfo, Turn } from "@openfront/engine-api/Schemas";
 import { loadTerrainMap } from "@openfront/engine-lib/game/TerrainMapLoader";
+import { scenarioFolderOf } from "@openfront/engine-lib/ww1914/ModeConfig";
 import { GameMapLoader, loadMapFiles } from "@openfront/shared/GameMapLoader";
 import {
   decompressGameRecord,
@@ -158,6 +159,7 @@ export async function processGameRecord(
     opts.mapLoader,
     gameStart.config.gameMap,
     gameStart.config.gameMapSize,
+    scenarioFolderOf(gameStart.config),
   );
   // The map as the game starts, built from copies of the files, so the
   // engine can take the files over.

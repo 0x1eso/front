@@ -16,6 +16,7 @@ import {
 import type { MapManifest } from "@openfront/engine-api/game/MapFiles";
 import type { GameConfig } from "@openfront/engine-api/Schemas";
 import { COUNTRIES } from "@openfront/engine-api/ww1936/Countries";
+import { scenarioFolderOf } from "@openfront/engine-lib/ww1914/ModeConfig";
 import { assetUrl } from "@openfront/shared/AssetUrls";
 import { mapFolderName } from "@openfront/shared/FetchGameMapLoader";
 import { OFFLINE_CACHE } from "@openfront/shared/ServiceWorkerRules";
@@ -51,6 +52,14 @@ export function mapFolderFiles(map: GameMapType, sizes: AssetSizes): string[] {
     .sort();
 }
 
+/** The files of a scenario set (ModeConfig's scenarioFolderOf), as asset paths. */
+function scenarioFolderFiles(folder: string, sizes: AssetSizes): string[] {
+  const prefix = `maps/${folder}/`;
+  return Object.keys(sizes)
+    .filter((path) => path.startsWith(prefix))
+    .sort();
+}
+
 /** The flags a game on this map shows, as asset paths the build has. */
 export function mapFlags(manifest: MapManifest, sizes: AssetSizes): string[] {
   const stems =
@@ -77,7 +86,16 @@ export function planOfflineMap(
   manifest: MapManifest,
   sizes: AssetSizes,
 ): OfflineMapPlan {
-  const files = [...mapFolderFiles(map, sizes), ...mapFlags(manifest, sizes)];
+  // World War 1936's terrain is also Great War 1914's, on regions of its own.
+  const sets =
+    manifest.ww1936 === true
+      ? scenarioFolderFiles(scenarioFolderOf({ greatWar1914: true })!, sizes)
+      : [];
+  const files = [
+    ...mapFolderFiles(map, sizes),
+    ...sets,
+    ...mapFlags(manifest, sizes),
+  ];
   return { map, files, bytes: sumSizes(files, sizes) };
 }
 
@@ -123,16 +141,29 @@ function browserCaches(): CacheStore | null {
  * build lists no files (nothing to check against) or there is no Cache API.
  */
 export async function mapPlayableOffline(
-  config: Pick<GameConfig, "gameMap" | "gameMapSize">,
+  config: Pick<GameConfig, "gameMap" | "gameMapSize" | "greatWar1914">,
   sizes: AssetSizes = buildAssetSizes(),
   store: CacheStore | null = browserCaches(),
 ): Promise<boolean> {
   const folderFiles = mapFolderFiles(config.gameMap, sizes);
   if (store === null || folderFiles.length === 0) return true;
-  for (const path of requiredMapFiles(folderFiles, config.gameMapSize)) {
+  const folder = scenarioFolderOf(config);
+  const required = requiredMapFiles(folderFiles, config.gameMapSize);
+  const needed =
+    folder === undefined
+      ? required
+      : [
+          ...required.filter((p) => !isScenarioFile(p)),
+          ...scenarioFolderFiles(folder, sizes),
+        ];
+  for (const path of needed) {
     if (!(await store.match(assetUrl(path)))) return false;
   }
   return true;
+}
+
+function isScenarioFile(path: string): boolean {
+  return path.endsWith("/regions.bin") || path.endsWith("/scenario.json");
 }
 
 /** The files of a plan this browser does not have yet. */

@@ -15,6 +15,7 @@ import {
 import { findClosestBy } from "@openfront/engine-lib/Util";
 import { Config } from "@openfront/engine-lib/configuration/Config";
 import { TerrainMapData } from "@openfront/engine-lib/game/TerrainMapLoader";
+import { scenarioFolderOf } from "@openfront/engine-lib/ww1914/ModeConfig";
 import { EventBus } from "@openfront/shared/EventBus";
 import { GameMapLoader } from "@openfront/shared/GameMapLoader";
 import { replacer } from "@openfront/shared/SharedUtil";
@@ -701,10 +702,12 @@ async function createClientGame(
   const { gameMap: mapType, gameMapSize } = config.gameConfig();
   let gameMap: TerrainMapData;
 
-  if (terrainLoad) {
+  // The lobby's preload knows only the map, not a scenario set of its own.
+  const scenarioFolder = scenarioFolderOf(config.gameConfig());
+  if (terrainLoad && scenarioFolder === undefined) {
     gameMap = await terrainLoad;
   } else {
-    gameMap = await loadCachedTerrainMap(mapType, gameMapSize);
+    gameMap = await loadCachedTerrainMap(mapType, gameMapSize, scenarioFolder);
   }
   // Kick off the font-atlas fetch so it overlaps with worker init; the
   // render passes need it parsed before createWebGLView runs.

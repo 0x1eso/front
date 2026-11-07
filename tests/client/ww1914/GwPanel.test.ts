@@ -293,6 +293,8 @@ const data = (
   date: "1914-06-28",
   deadlineTick: null,
   ended: null,
+  held: {},
+  landMoves: [],
   opening: "sarajevo",
   temp: 3,
   seats: [

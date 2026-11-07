@@ -10,6 +10,7 @@ import type {
   GwGauge,
   GwGiveClause,
   GwInstitution,
+  GwLandMove,
   GwOffice,
   GwOpening,
   GwReason,
@@ -21,6 +22,7 @@ import type {
 import type { GwActKind } from "./GwActs";
 import type { GwTag } from "./GwCountries";
 import type { GwOrderBlock } from "./GwOrders";
+import type { GwPlace } from "./GwPlaces";
 import type { GwPrologueView } from "./GwPrologue";
 import type { GwRulerView } from "./GwRuler";
 import type { GwWorldView } from "./GwWorldView";
@@ -72,6 +74,8 @@ export interface GwCardView {
   past?: number;
   /** A letter: the country it came from. */
   letterFrom?: GwTag;
+  /** The place on the map it comes from. */
+  place?: GwPlace;
 }
 
 /** A field of a schedule entry: pick `count` from what it holds. */
@@ -264,4 +268,8 @@ export interface GreatWarData {
   opening: GwOpening;
   temp: number;
   seats: readonly GwSeatView[];
+  /** Places not in their 1914 owner's hands: place -> who holds it. */
+  held: Readonly<Partial<Record<GwPlace, GwTag>>>;
+  /** What changed hands as the last chapter closed. */
+  landMoves: readonly GwLandMove[];
 }

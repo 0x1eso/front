@@ -14,6 +14,8 @@ export interface MapData {
   manifest: () => Promise<MapManifest>;
   /** Any other file of the map's folder (World War 1936: regions.bin, scenario.json). */
   file: (name: string) => Promise<Uint8Array>;
+  /** A file of another folder under maps/ (a scenario set, see loadMapFiles). */
+  folderFile: (folder: string, name: string) => Promise<Uint8Array>;
   webpPath: string;
   /**
    * Load a map layer image by layer id. `compact` selects the map4x-sized
@@ -23,11 +25,16 @@ export interface MapData {
   layerImage: (layerId: string, compact: boolean) => Promise<ImageBitmap>;
 }
 
-/** Loads the files a game on this map and size reads (see MapFiles). */
+/**
+ * Loads the files a game on this map and size reads (see MapFiles).
+ * `scenarioFolder` (ModeConfig's scenarioFolderOf): the map's terrain with
+ * the regions and scenario of that folder.
+ */
 export async function loadMapFiles(
   loader: GameMapLoader,
   map: GameMapType,
   mapSize: GameMapSize,
+  scenarioFolder?: string,
 ): Promise<MapFiles> {
   const data = loader.getMapData(map);
   if (mapSize === GameMapSize.Normal) {
@@ -37,7 +44,9 @@ export async function loadMapFiles(
       data.map4xBin(),
     ]);
     const scenario =
-      manifest.ww1936 === true ? await loadScenarioFiles(data) : {};
+      manifest.ww1936 === true
+        ? await loadScenarioFiles(data, scenarioFolder)
+        : {};
     return { map, mapSize, manifest, mapBin, map4xBin, ...scenario };
   }
   const [manifest, map4xBin, map16xBin] = await Promise.all([
@@ -61,10 +70,13 @@ export function mapFilesTransfer(files: MapFiles): ArrayBuffer[] {
 /** World War 1936 (spec §4.7): regions.bin and the validated scenario.json. */
 async function loadScenarioFiles(
   data: MapData,
+  folder: string | undefined,
 ): Promise<Pick<MapFiles, "regionsBin" | "scenario">> {
+  const read = (name: string) =>
+    folder === undefined ? data.file(name) : data.folderFile(folder, name);
   const [regionsBin, scenarioBytes] = await Promise.all([
-    data.file("regions.bin"),
-    data.file("scenario.json"),
+    read("regions.bin"),
+    read("scenario.json"),
   ]);
   const scenario = ScenarioDataSchema.parse(
     JSON.parse(new TextDecoder().decode(scenarioBytes)),

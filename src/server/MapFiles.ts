@@ -23,7 +23,15 @@ export async function readMapFile(
   map: GameMapType,
   fileName: string,
 ): Promise<Buffer> {
-  const relativePath = `maps/${mapDirName(map)}/${fileName}`;
+  return readMapFolderFile(mapDirName(map), fileName);
+}
+
+// Reads a file of a folder under maps/ (a scenario set, or a map's own).
+export async function readMapFolderFile(
+  folder: string,
+  fileName: string,
+): Promise<Buffer> {
+  const relativePath = `maps/${folder}/${fileName}`;
 
   // Production: resolve via the asset manifest to the hashed file under static/_assets/.
   const assetManifest = await getRuntimeAssetManifest();

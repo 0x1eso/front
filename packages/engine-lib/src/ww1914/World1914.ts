@@ -22,7 +22,11 @@ export type GwOwners = z.infer<typeof GwOwnersSchema>;
 
 const OWNERS = GwOwnersSchema.parse(owners1914);
 
-/** A region's 1914 owner, from its 1936 owner; null if the table has no answer. */
+/**
+ * A region's 1914 owner on the 1936 regions, from its 1936 owner; null if the
+ * table has no answer. The 1914 set says it itself (`gwOwner`); this table is
+ * what the tool read for the regions that stayed, and what test maps use.
+ */
 export function gwOwnerOf(id: number, owner1936: string): GwTag | null {
   const rule = OWNERS.byOwner[owner1936];
   if (rule === undefined) {
@@ -37,30 +41,34 @@ export function gwOwnerOf(id: number, owner1936: string): GwTag | null {
   return rule.to;
 }
 
-/** The world of June 1914 on the 1936 map's regions. */
+/** The world of June 1914 on its regions. */
 export interface GwWorld {
   /** Countries with land, GW_TAGS order: smallID = index + 1. */
   readonly tags: readonly GwTag[];
   /** Region id -> owner's smallID (0: nobody). */
   readonly owners: Uint16Array;
+  /** Place name -> region id: empty on a map without the 1914 set. */
+  readonly places: ReadonlyMap<string, number>;
 }
 
 /** Read-only and derived from the map files, so not part of a snapshot. */
 export function gwWorldOf(index: ScenarioIndex): GwWorld {
   const regions = index.data.regions;
   const tagById = new Map<number, GwTag>();
+  const places = new Map<string, number>();
   let maxId = 0;
   for (const r of regions) {
-    const t = gwOwnerOf(r.id, r.owner);
+    const t = r.gwOwner ?? gwOwnerOf(r.id, r.owner);
     if (t === null) throw new Error(`no 1914 owner for region ${r.id}`);
     tagById.set(r.id, t);
+    if (r.place !== undefined) places.set(r.place, r.id);
     if (r.id > maxId) maxId = r.id;
   }
   const present = new Set(tagById.values());
   const tags = GW_TAGS.filter((t) => present.has(t));
   const owners = new Uint16Array(maxId + 1);
   for (const [id, t] of tagById) owners[id] = tags.indexOf(t) + 1;
-  return { tags, owners };
+  return { tags, owners, places };
 }
 
 /**

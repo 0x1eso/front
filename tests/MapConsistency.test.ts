@@ -520,6 +520,8 @@ describe("Map consistency", () => {
       .filter((d) => d.isDirectory())
       .map((d) => d.name);
     for (const dir of resourceDirs) {
+      // Great War 1914's regions: world1936's terrain, so no map of its own.
+      if (dir === "world1914") continue;
       if (!expectedFolders.has(dir)) {
         errors.push(`resources/maps/${dir}/ has no matching GameMapType entry`);
       }

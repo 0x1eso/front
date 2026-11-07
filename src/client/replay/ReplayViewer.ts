@@ -11,6 +11,7 @@
 import { Cell, PlayerType } from "@openfront/engine-api/game/GameTypes";
 import type { GameStartInfo } from "@openfront/engine-api/Schemas";
 import { Config } from "@openfront/engine-lib/configuration/Config";
+import { scenarioFolderOf } from "@openfront/engine-lib/ww1914/ModeConfig";
 import { EventBus } from "@openfront/shared/EventBus";
 import { html, LitElement, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
@@ -391,7 +392,11 @@ export class ReplayViewer extends LitElement {
     const header = playback.header;
     const gsi = header.gameStartInfo as GameStartInfo;
     const [terrain] = await Promise.all([
-      loadCachedTerrainMap(gsi.config.gameMap, gsi.config.gameMapSize),
+      loadCachedTerrainMap(
+        gsi.config.gameMap,
+        gsi.config.gameMapSize,
+        scenarioFolderOf(gsi.config),
+      ),
       preloadAtlasData(),
     ]);
     if (this.abort.signal.aborted) return;

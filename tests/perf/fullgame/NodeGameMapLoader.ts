@@ -30,6 +30,9 @@ export class NodeGameMapLoader implements GameMapLoader {
           fs.readFileSync(path.join(dir, "manifest.json"), "utf8"),
         ) as MapManifest,
       file: (name: string) => readBin(name)(),
+      folderFile: async () => {
+        throw new Error("no scenario sets here");
+      },
       webpPath: path.join(dir, "thumbnail.webp"),
       layerImage: async () => {
         throw new Error("Layer images are not supported in NodeGameMapLoader");

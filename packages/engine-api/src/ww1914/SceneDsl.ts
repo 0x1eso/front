@@ -52,6 +52,7 @@ import {
   GwTopic,
 } from "./GreatWarTypes";
 import { GW_TAGS, GwTag } from "./GwCountries";
+import { GwPlaceSchema } from "./GwPlaces";
 import { GW_BLOCS, GwBloc } from "./GwPress";
 import { GW_RULER_TEMPERS, GwRulerTemper } from "./GwPrologue";
 import { GW_RULER_SIDES, GwRulerSide } from "./GwRuler";
@@ -651,6 +652,8 @@ export const GwSceneSchema = z
     once: z.boolean().optional(),
     /** Chapters it stays away after coming; 0: it can come the next chapter. */
     cooldown: int.min(0).optional(),
+    /** The place on the map it comes from (GW_PLACES). */
+    place: GwPlaceSchema.optional(),
     /** Read-only report: its stamp and source. */
     stamp: z.enum(GW_STAMPS).optional(),
     source: z.enum(GW_SOURCES).optional(),

@@ -65,6 +65,9 @@ export class TestDataMapLoader implements GameMapLoader {
           fs.readFileSync(path.join(dir, "manifest.json"), "utf8"),
         ) as MapManifest,
       file: (name: string) => read(name)(),
+      folderFile: async () => {
+        throw new Error("no scenario sets here");
+      },
       webpPath: path.join(dir, "thumbnail.webp"),
       layerImage: async () => {
         throw new Error("no layers in test maps");
