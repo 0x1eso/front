@@ -150,6 +150,16 @@ export function beatOf(
   return { at: node?.at ?? null, room: node?.room ?? null };
 }
 
+/** A prologue scene's date, and who `who` was then. */
+export function pastOf(
+  pack: GwPack | null,
+  card: GwCardView,
+  who: string,
+): { dated: string | null; as: string | null } {
+  const t = pack?.scenes[card.scene];
+  return { dated: t?.dated ?? null, as: t?.as?.[who] ?? null };
+}
+
 /**
  * The memoir's line on the rival: his own by how it went (an end, else what
  * the seat did, else how far he got), else a plain one that names him.

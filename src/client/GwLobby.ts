@@ -5,6 +5,7 @@ import {
 } from "@openfront/engine-api/ww1914/GwCountries";
 import { gwChapters } from "@openfront/engine-lib/ww1914/Calendars";
 import { html, TemplateResult } from "lit";
+import { gwProloguePicks } from "./GwRecentRuns";
 import { translateText } from "./Utils";
 
 /**
@@ -24,12 +25,44 @@ const rowClass = (on: boolean) =>
       : "border-white/25 bg-white/10 hover:bg-white/20"
   }`;
 
-/** The lobby's seat and length for the Great War: one button per choice. */
+/** Live the ruler's earlier years, or start at the first telegram. */
+function prologuePicker(
+  on: boolean,
+  pick: (on: boolean) => void,
+  kept: boolean,
+): TemplateResult {
+  const row = (id: string, value: boolean, label: string) =>
+    html`<button
+      type="button"
+      data-gw-prologue=${id}
+      class=${rowClass(on === value)}
+      @click=${() => pick(value)}
+    >
+      ${label}
+    </button>`;
+  const note = on
+    ? translateText("gw.ui.prologue_note_play")
+    : kept
+      ? translateText("gw.ui.prologue_note_kept")
+      : translateText("gw.ui.prologue_note_neutral");
+  return html`<div class="text-xs text-white/70">
+      ${translateText("gw.ui.prologue_label")}
+    </div>
+    <div class="flex flex-wrap gap-2">
+      ${row("play", true, translateText("gw.ui.prologue_play"))}
+      ${row("skip", false, translateText("gw.ui.prologue_skip"))}
+    </div>
+    <div class="text-xs text-white/60" data-gw-prologue-note>${note}</div>`;
+}
+
+/** The lobby's seat, length and prologue for the Great War. */
 export function gwCalendarPicker(
   seat: GwTag,
   pickSeat: (tag: GwTag) => void,
   selected: GwCalendarId,
   pick: (id: GwCalendarId) => void,
+  prologue: boolean,
+  pickPrologue: (on: boolean) => void,
 ): TemplateResult {
   return html`<div class="space-y-1.5" data-gw-calendar>
     <div class="text-xs text-white/70">
@@ -72,5 +105,6 @@ export function gwCalendarPicker(
           </button>`,
       )}
     </div>
+    ${prologuePicker(prologue, pickPrologue, gwProloguePicks(seat).length > 0)}
   </div>`;
 }

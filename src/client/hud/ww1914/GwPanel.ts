@@ -11,6 +11,7 @@ import { loadGwPack } from "@openfront/shared/ww1914/GwPackLoader";
 import { html, LitElement, nothing } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import { Controller } from "../../Controller";
+import { noteGwPrologue } from "../../GwRecentRuns";
 import { SendGwOrderIntentEvent } from "../../Transport";
 import { translateText } from "../../Utils";
 import type { GameView } from "../../view";
@@ -26,6 +27,7 @@ import { memoirTab } from "./GwMemoir";
 import {
   GW_TABS,
   GwTab,
+  isReadOnly,
   loadShelf,
   saveShelf,
   shelve,
@@ -105,6 +107,7 @@ export class GwPanel extends LitElement implements Controller {
     backOpen: false,
     backArmed: null,
     notes: [],
+    pastDue: false,
     shelf: loadShelf(),
   };
 
@@ -144,7 +147,32 @@ export class GwPanel extends LitElement implements Controller {
       this.news++;
       dirty = true;
     }
+    if (this.keepYearsOpen()) dirty = true;
     if (dirty) this.requestUpdate();
+  }
+
+  /**
+   * The years leave nothing else to look at: what is on the desk is on screen.
+   * When they end, the first paper opens by itself. True when it opened one.
+   */
+  private keepYearsOpen(): boolean {
+    const ui = this.ui;
+    const seat = this.seat();
+    const years = seat?.prologue ?? null;
+    if (seat === null || years === null) return false;
+    if (ui.talkUid !== null || ui.readerUid !== null) return false;
+    if (!years.done) {
+      const card = seat.desk[0];
+      if (card === undefined) return false;
+      if (card.kind !== "talk") ui.readerUid = card.uid;
+      else if (ui.talks.has(card.uid)) ui.talkUid = card.uid;
+      return true;
+    }
+    if (!ui.pastDue) return false;
+    ui.pastDue = false;
+    const paper = seat.desk.find((x) => isReadOnly(x));
+    ui.readerUid = paper?.uid ?? null;
+    return paper !== undefined;
   }
 
   private seat(): GwSeatView | null {
@@ -175,15 +203,23 @@ export class GwPanel extends LitElement implements Controller {
         saveShelf(ui.shelf);
       }
     }
+    if (seat.prologue?.done === false) ui.pastDue = true;
+    if (seat.prologue?.done === true && ui.pastDue) {
+      noteGwPrologue(seat.tag, seat.prologue.picks);
+    }
     // A talk that came after my summons opens by itself; a visitor waits on the desk.
     const before = new Set(ui.talks.keys());
     syncTranscripts(ui, seat);
+    // A big scene just ended stays until it is left: its last words are on it.
+    const shown = ui.talkUid === null ? undefined : ui.talks.get(ui.talkUid);
+    const held = shown?.closed === true && shown.turns[0]?.card.big === true;
     for (const t of ui.talks.values()) {
       if (before.has(t.uid) || t.closed) continue;
       // A big scene is the chapter: it takes the screen as it comes.
-      const big = t.turns[0]?.card.big === true;
+      const first = t.turns[0]?.card;
+      const big = first?.big === true && !held;
       if (big || Date.now() - ui.summoned < SUMMON_OPEN_MS) ui.talkUid = t.uid;
-      if (t.who === "") continue;
+      if (t.who === "" || first?.past !== undefined) continue;
       ui.shelf = shelve(ui.shelf, "people", [t.who]);
       saveShelf(ui.shelf);
     }
@@ -254,6 +290,20 @@ export class GwPanel extends LitElement implements Controller {
     };
     const open = ui.readerUid === null ? undefined : c.card(ui.readerUid);
     const talk = activeTalk(c);
+    // The years: no desk, no map, nothing of 1914 yet.
+    const years =
+      seat.prologue?.done === false ||
+      talk?.t.turns[0]?.card.past !== undefined;
+    if (years) {
+      return html`${KEYFRAMES}
+        <div
+          class="pointer-events-auto fixed inset-0 z-[1000] bg-black"
+          data-gw-years
+        ></div>
+        ${open === undefined ? nothing : reader(c, open)}
+        ${talk === null ? nothing : talkView(c, talk.t, talk.card)}
+        ${dictCard(c)}`;
+    }
     return html`${KEYFRAMES}${band(c)}${ticker(
         tickerLines(data, seat, this.pack),
         this.news,

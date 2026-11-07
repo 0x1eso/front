@@ -47,7 +47,7 @@ import { getPlayerCosmetics, prewarmCosmetics } from "./Cosmetics";
 import { gamePortal } from "./GamePortal";
 import { GameStartingModal } from "./GameStartingModal";
 import { gwCalendarPicker } from "./GwLobby";
-import { gwPlayedTags, gwRecentBodies } from "./GwRecentRuns";
+import { gwPlayedTags, gwPrologueField, gwRecentBodies } from "./GwRecentRuns";
 import { showInGameAlert } from "./InGameModal";
 import { JoinLobbyEvent } from "./Main";
 import { fallbackPlayerName, ResolvedPlayerName } from "./PlayerName";
@@ -278,6 +278,8 @@ export class SinglePlayerModal extends BaseModal {
   @state() private greatWar1914 = false;
   @state() private greatWar1914Calendar: GwCalendarId = "full";
   @state() private greatWar1914Seat: GwTag = "DEU";
+  /** Null: the default for the seat, a first game plays it. */
+  @state() private greatWar1914Prologue: boolean | null = null;
   @state() private historicalAi: boolean = DEFAULT_OPTIONS.historicalAi;
   @state() private ww1936Unlimited: boolean = DEFAULT_OPTIONS.ww1936Unlimited;
   @state() private ww1936FastTempo: boolean = DEFAULT_OPTIONS.ww1936FastTempo;
@@ -757,9 +759,14 @@ export class SinglePlayerModal extends BaseModal {
                     worldWar: {
                       picker: gwCalendarPicker(
                         this.greatWar1914Seat,
-                        (tag) => (this.greatWar1914Seat = tag),
+                        (tag) => {
+                          this.greatWar1914Seat = tag;
+                          this.greatWar1914Prologue = null;
+                        },
                         this.greatWar1914Calendar,
                         (id) => (this.greatWar1914Calendar = id),
+                        this.playsPrologue(),
+                        (on) => (this.greatWar1914Prologue = on),
                       ),
                       fixed: true,
                     },
@@ -838,6 +845,14 @@ export class SinglePlayerModal extends BaseModal {
   }
 
   // Check if any options other than map and difficulty have been changed from defaults
+  /** A first game of a nation lives its years; the player can say otherwise. */
+  private playsPrologue(): boolean {
+    return (
+      this.greatWar1914Prologue ??
+      !gwPlayedTags().includes(this.greatWar1914Seat)
+    );
+  }
+
   private hasOptionsChanged(): boolean {
     return (
       this.nations !== this.defaultNationCount ||
@@ -945,6 +960,7 @@ export class SinglePlayerModal extends BaseModal {
     this.greatWar1914 = false;
     this.greatWar1914Calendar = "full";
     this.greatWar1914Seat = "DEU";
+    this.greatWar1914Prologue = null;
     this.historicalAi = DEFAULT_OPTIONS.historicalAi;
     this.ww1936Unlimited = DEFAULT_OPTIONS.ww1936Unlimited;
     this.ww1936FastTempo = DEFAULT_OPTIONS.ww1936FastTempo;
@@ -1485,6 +1501,10 @@ export class SinglePlayerModal extends BaseModal {
               greatWar1914Calendar: this.greatWar1914Calendar,
               greatWar1914Recent: gwRecentBodies(),
               greatWar1914Played: gwPlayedTags(),
+              greatWar1914Prologue: gwPrologueField(
+                this.greatWar1914Seat,
+                this.playsPrologue(),
+              ),
             }
           : {}),
         ...(this.worldWar1936

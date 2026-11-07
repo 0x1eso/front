@@ -5,7 +5,7 @@ import type {
 import { html, nothing, TemplateResult } from "lit";
 import { translateText } from "../../Utils";
 import type { GwCtx, GwUi, Transcript } from "./GwCtx";
-import { briefLine, rich } from "./GwDict";
+import { briefLine, pastLine, rich } from "./GwDict";
 import { newPass, TextPass } from "./GwDictModel";
 import { groupReplies, trustIndex } from "./GwModel";
 import { BTN, CHIP, MUTED } from "./GwStyle";
@@ -17,6 +17,7 @@ import {
   cardTitle,
   fillGw,
   optionText,
+  pastOf,
   personBio,
   personLean,
   personName,
@@ -97,6 +98,40 @@ function monogram(name: string): string {
   return name.replace(/\s+/g, "").slice(0, 1);
 }
 
+/** Someone in the years before 1914: a name, and who they were then. */
+function pastPlate(name: string, as: string | null): TemplateResult {
+  return html`<div
+      class="flex h-16 w-16 shrink-0 items-center justify-center rounded-full border border-white/30 bg-white/10 text-2xl font-bold"
+      aria-hidden="true"
+    >
+      ${monogram(name)}
+    </div>
+    <div class="min-w-0">
+      <h2 class="text-xl font-bold leading-tight" data-gw-who>${name}</h2>
+      ${as === null
+        ? nothing
+        : html`<div class="text-sm text-white/70" data-gw-past-as>${as}</div>`}
+    </div>`;
+}
+
+/** The date and the place in the row, above a prologue scene's title. */
+function pastHead(c: GwCtx, first: GwCardView): TemplateResult {
+  const { dated } = pastOf(c.pack, first, "");
+  return html`<div class="text-center" data-gw-past>
+    <div class="${MUTED} tracking-widest" data-gw-past-step>
+      ${translateText("gw.ui.past_step", {
+        n: first.past ?? 0,
+        total: c.seat.prologue?.total ?? 0,
+      })}
+    </div>
+    ${dated === null
+      ? nothing
+      : html`<div class="mt-1 text-sm text-amber-200/80" data-gw-past-date>
+          ${dated}
+        </div>`}
+  </div>`;
+}
+
 /** Who sits across: initial, name, office and lean, how they stand with you. */
 function plate(
   c: GwCtx,
@@ -173,9 +208,10 @@ export function talkView(
     }
     c.redraw();
   };
-  // The person across the table is introduced by the plate above.
-  const pass = newPass(who === "" ? [] : [who]);
   const first = t.turns[0]?.card;
+  const past = first?.past !== undefined;
+  // The person across the table is introduced by the plate above.
+  const pass = newPass(who === "" ? [] : [who], past);
   const brief =
     first === undefined ? null : briefText(c.pack, first, c.seat, c.data.date);
   const groups = card === undefined ? [] : groupReplies(card.replies);
@@ -189,20 +225,35 @@ export function talkView(
     <div
       class="mx-auto flex min-h-full max-w-3xl flex-col justify-center gap-5 px-4 pb-8 pt-14"
     >
+      ${past ? pastHead(c, first) : nothing}
       ${big && first !== undefined
         ? html`<h2 class="text-center text-lg font-bold" data-gw-big-title>
             ${cardTitle(c.pack, first)}
           </h2>`
         : nothing}
       <header class="flex items-center gap-4">
-        ${who === "" ? nothing : plate(c, name, lean, person, trust)}
-        <button class="${BTN} ml-auto shrink-0" data-gw-leave @click=${leave}>
-          ${t.closed
-            ? translateText("gw.ui.talk_done")
-            : translateText("gw.ui.talk_step_out")}
-        </button>
+        ${who === ""
+          ? nothing
+          : past
+            ? pastPlate(name, pastOf(c.pack, first, who).as)
+            : plate(c, name, lean, person, trust)}
+        ${past
+          ? nothing
+          : html`<button
+              class="${BTN} ml-auto shrink-0"
+              data-gw-leave
+              @click=${leave}
+            >
+              ${t.closed
+                ? translateText("gw.ui.talk_done")
+                : translateText("gw.ui.talk_step_out")}
+            </button>`}
       </header>
-      ${brief === null ? nothing : briefLine(c, brief, pass)}
+      ${brief === null
+        ? nothing
+        : past
+          ? pastLine(c, brief, pass)
+          : briefLine(c, brief, pass)}
       ${bio === "" || t.turns.length > 1
         ? nothing
         : html`<p class="${MUTED} italic">${rich(c, bio, pass)}</p>`}
@@ -287,82 +338,90 @@ export function talkView(
           </div>`;
         })}
       </div>
-      ${t.closed
-        ? html`<div
-            class="space-y-1 rounded border border-white/15 bg-black/30 p-3"
-            data-gw-after
+      ${t.closed && past
+        ? html`<button
+            class="${BTN} mx-auto px-6"
+            data-gw-past-next
+            @click=${leave}
           >
-            <div class=${MUTED}>${translateText("gw.ui.talk_ended")}</div>
-            ${t.reasons.map(
-              (r) =>
-                html`<p class="text-sm text-white/80">
-                  ${rich(c, reasonText(c.pack, r), pass)}
-                </p>`,
-            )}
-          </div>`
-        : t.turns[t.turns.length - 1]?.reply !== null
-          ? html`<p class="${MUTED} animate-pulse" data-gw-waiting>
-              ${name === ""
-                ? translateText("gw.ui.big_waiting")
-                : translateText("gw.ui.talk_waiting", { name })}
-            </p>`
-          : html`<div class="space-y-3" data-gw-replies>
-              ${groups.map(
-                (g) =>
-                  html`<div class="space-y-1.5">
-                    <div class=${MUTED}>
-                      ${translateText(`gw.ui.reply.${g.kind}`)}
-                    </div>
-                    ${g.replies.map((r) => {
-                      const text = optionText(c.pack, card!, r.id);
-                      const why = r.open
-                        ? undefined
-                        : c.pack?.scenes[card!.scene]?.why?.[r.id];
-                      return html`<div>
-                        <button
-                          class="${BTN} w-full"
-                          data-gw-reply=${r.id}
-                          ?disabled=${!r.open}
-                          @click=${() => {
-                            const turn = t.turns[t.turns.length - 1];
-                            // A visitor can wait on the desk: what came before
-                            // the first word isn't this talk's doing.
-                            if (t.turns.length === 1) {
-                              t.logAt = c.seat.log.length;
-                            }
-                            turn.reply = r.id;
-                            turn.tell = r.tell;
-                            turn.sentAt = Date.now();
-                            c.send({
-                              kind: "reply",
-                              card: card!.uid,
-                              reply: r.id,
-                            });
-                            c.redraw();
-                          }}
-                        >
-                          ${r.kind === "decide"
-                            ? nothing
-                            : html`<span class="${CHIP} mr-2"
-                                >${translateText(
-                                  `gw.ui.stance.${r.stance}`,
-                                )}</span
-                              >`}${rich(
-                            c,
-                            fillGw(text, c.pack, card!, c.seat, c.data.date),
-                            pass,
-                          )}
-                        </button>
-                        ${why === undefined
-                          ? nothing
-                          : html`<p class="${MUTED} pl-1">
-                              ${rich(c, why, pass)}
-                            </p>`}
-                      </div>`;
-                    })}
-                  </div>`,
+            ${translateText("gw.ui.past_next")}
+          </button>`
+        : t.closed
+          ? html`<div
+              class="space-y-1 rounded border border-white/15 bg-black/30 p-3"
+              data-gw-after
+            >
+              <div class=${MUTED}>${translateText("gw.ui.talk_ended")}</div>
+              ${t.reasons.map(
+                (r) =>
+                  html`<p class="text-sm text-white/80">
+                    ${rich(c, reasonText(c.pack, r), pass)}
+                  </p>`,
               )}
-            </div>`}
+            </div>`
+          : t.turns[t.turns.length - 1]?.reply !== null
+            ? html`<p class="${MUTED} animate-pulse" data-gw-waiting>
+                ${name === ""
+                  ? translateText("gw.ui.big_waiting")
+                  : translateText("gw.ui.talk_waiting", { name })}
+              </p>`
+            : html`<div class="space-y-3" data-gw-replies>
+                ${groups.map(
+                  (g) =>
+                    html`<div class="space-y-1.5">
+                      <div class=${MUTED}>
+                        ${translateText(`gw.ui.reply.${g.kind}`)}
+                      </div>
+                      ${g.replies.map((r) => {
+                        const text = optionText(c.pack, card!, r.id);
+                        const why = r.open
+                          ? undefined
+                          : c.pack?.scenes[card!.scene]?.why?.[r.id];
+                        return html`<div>
+                          <button
+                            class="${BTN} w-full"
+                            data-gw-reply=${r.id}
+                            ?disabled=${!r.open}
+                            @click=${() => {
+                              const turn = t.turns[t.turns.length - 1];
+                              // A visitor can wait on the desk: what came before
+                              // the first word isn't this talk's doing.
+                              if (t.turns.length === 1) {
+                                t.logAt = c.seat.log.length;
+                              }
+                              turn.reply = r.id;
+                              turn.tell = r.tell;
+                              turn.sentAt = Date.now();
+                              c.send({
+                                kind: "reply",
+                                card: card!.uid,
+                                reply: r.id,
+                              });
+                              c.redraw();
+                            }}
+                          >
+                            ${r.kind === "decide"
+                              ? nothing
+                              : html`<span class="${CHIP} mr-2"
+                                  >${translateText(
+                                    `gw.ui.stance.${r.stance}`,
+                                  )}</span
+                                >`}${rich(
+                              c,
+                              fillGw(text, c.pack, card!, c.seat, c.data.date),
+                              pass,
+                            )}
+                          </button>
+                          ${why === undefined
+                            ? nothing
+                            : html`<p class="${MUTED} pl-1">
+                                ${rich(c, why, pass)}
+                              </p>`}
+                        </div>`;
+                      })}
+                    </div>`,
+                )}
+              </div>`}
     </div>
   </div>`;
 }
