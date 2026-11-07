@@ -1,3 +1,4 @@
+import type { GameConfig } from "@openfront/engine-api/Schemas";
 import {
   GW_LINES,
   GW_THEATRES,
@@ -68,8 +69,12 @@ const gwOf = (r: GameRunner): GreatWar => r.game.greatWar()!;
 const ctx = (gw: GreatWar) => ({ gw, seat: gw.s.seats[0], cast: {} });
 
 /** A game with the war open, at the first chapter of plans. */
-async function atWar(id = "GWWAR", plan: "west" | "east" = "west") {
-  const { runner } = await gwRunner({}, id);
+async function atWar(
+  id = "GWWAR",
+  plan: "west" | "east" = "west",
+  config: Partial<GameConfig> = {},
+) {
+  const { runner } = await gwRunner(config, id);
   const gw = gwOf(runner);
   gw.s.chain = null;
   gw.s.spark = null;
@@ -359,11 +364,15 @@ describe("gauges and the home front", () => {
   });
 
   test("revolution is the fourth rung: the seat can end it with a memoir", async () => {
-    const { runner, gw } = await atWar();
+    const { runner, gw } = await atWar("GWWAR", "west", {
+      greatWar1914Calendar: "full",
+    });
+    gw.s.chapter = 40; // Germany's top rung waits for month 30.
     const n = gw.nation("DEU")!;
     n.unrest = 3;
     n.lowOrder = 7;
     n.gauges.order = 0;
+    n.gauges.bread = 0;
     playChapter(runner);
     const card = seat(runner).desk.find((c) => c.scene === "deu_k_republic")!;
     order(runner, { kind: "choose", card: card.uid, option: "close_seat" });
