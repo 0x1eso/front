@@ -184,6 +184,9 @@ const britishPapers: GwPaperBar[] = [
   { inst: "commons", max: -4, closes: ["other"], why: "commons" },
 ];
 
+/** War bills and a blockade are for a Britain that is in the war. */
+const britainIn = world({ is: "entered", tag: "GBR" });
+
 const britishRules: GwInstRule[] = [
   {
     rule: "low_order",
@@ -193,13 +196,19 @@ const britishRules: GwInstRule[] = [
     key: "commons_cools",
   },
   { rule: "lost_front", inst: "cabinet", delta: -1, key: "cabinet_shaken" },
-  { rule: "call", scene: "gw_gbr_budget", every: 6, offset: 2 },
+  {
+    rule: "call",
+    scene: "gw_gbr_budget",
+    every: 6,
+    offset: 2,
+    when: britainIn,
+  },
   {
     rule: "call",
     scene: "gw_blockade_paper",
     every: 8,
     offset: 3,
-    when: world({ is: "blockade", max: 8 }),
+    when: { kind: "all", of: [britainIn, world({ is: "blockade", max: 8 })] },
   },
   {
     rule: "call",

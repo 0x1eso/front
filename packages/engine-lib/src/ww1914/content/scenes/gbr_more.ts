@@ -62,6 +62,9 @@ const trust = (w: GwWho, d: number): GwEffect => trustOf(w, d);
 /** The cabinet has put the vote off at least once. */
 const putOff = all(chose("gw_gbr_entry", "wait"), { kind: "chapter", min: 7 });
 
+/** The same question, come back to a cabinet that answered it before. */
+const askedLate = all(chose("gbr_f_late_entry"), { kind: "chapter", min: 7 });
+
 const TALKS: Readonly<
   Record<string, (s: GwScene, w: GwWho) => readonly MoreTalk[]>
 > = {
@@ -1040,6 +1043,10 @@ const BODIES: Readonly<Record<string, readonly MoreBody[]>> = {
   gbr_w_jutland: [{ id: "base2", like: "base" }],
   gbr_w_new_armies: [{ id: "base2", like: "base" }],
   gbr_h_conscription: [{ id: "irish2", like: "irish_first" }],
+  gbr_f_late_entry: [
+    { id: "again1", when: askedLate },
+    { id: "again2", when: askedLate },
+  ],
 };
 
 function withBody(variants: readonly GwVariant[], b: MoreBody): GwVariant[] {

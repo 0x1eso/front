@@ -4674,7 +4674,12 @@ export const GBR_WORLD_SCENES: readonly GwScene[] = [
     nation: NATION,
     kind: "crisis",
     stage: Y14_ON,
-    when: all(neutral, since(8, "16a"), any(franceFalling, belg)),
+    when: all(
+      neutral,
+      since(8, "16a"),
+      any(franceFalling, belg),
+      world({ is: "war_age", min: 3 }),
+    ),
     cast: { fm: { office: "foreign" }, navy: { office: "navy" } },
     salience: 8,
     tags: ["foreign", "tension_up"],
