@@ -1,6 +1,6 @@
 import type { GwPack } from "@openfront/engine-api/ww1914/GwPack";
-import { GW_CONTENT } from "@openfront/engine-lib/ww1914/content/Content";
 import { gwPackProblems } from "@openfront/engine-api/ww1914/GwPack";
+import { GW_CONTENT } from "@openfront/engine-lib/ww1914/content/Content";
 import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, test } from "vitest";

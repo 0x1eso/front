@@ -38,7 +38,8 @@ const allOf = (...of: GwLawRow["opens"][]): GwLawRow["opens"] => ({
 export const DEU_LAWS: readonly GwLawRow[] = [
   row({
     id: "deu_censor",
-    opens: allOf(war, since("1915-02")),
+    // The siege law gave the corps commanders the censor in August 1914.
+    opens: allOf(war, since("1914-10")),
     lean: 0,
     decree: true,
     cast: home,
