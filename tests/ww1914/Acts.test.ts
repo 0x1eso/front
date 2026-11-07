@@ -475,6 +475,7 @@ describe("the rewrite rule", () => {
   test("a crisis link, a budget, a talk and a paper marked so stay", () => {
     expect(backable(paper)).toBe(true);
     expect(backable({ ...paper, kind: "crisis" })).toBe(false);
+    expect(backable({ ...paper, kind: "letter" })).toBe(false);
     expect(backable({ ...paper, noBack: true })).toBe(false);
     expect(backable({ ...paper, id: "gw_bm_x" })).toBe(false);
     expect(
@@ -583,6 +584,51 @@ describe("sending a paper back", () => {
     expect(again.variant).toBe("base");
     expect(again.options[0].tell).toEqual(["money:-2", "morale:+2", "temp:+1"]);
     expect(state(runner).log.map((l) => l.key)).toContain("paper_sent_back");
+  });
+
+  const dealtWith = async (over: Partial<GwScene>) => {
+    useGwContent({
+      scenes: [...GW_CONTENT.scenes, ...SCENES, { ...paper, ...over }],
+      people: GW_CONTENT.people,
+      acts: ACTS,
+      aims: AIMS,
+    });
+    const { runner } = await gwRunner();
+    return dealPaper(runner);
+  };
+
+  test("a foreign ruler's letter can't go back", async () => {
+    const letter = await dealtWith({
+      kind: "letter",
+      who: "tsar",
+      cast: { tsar: { ruler_of: "RUS" } },
+    });
+    expect(letter.backTo).toEqual([]);
+  });
+
+  test("a paper only foreigners are on has nobody to go back to", async () => {
+    const card = await dealtWith({ cast: { tsar: { ruler_of: "RUS" } } });
+    expect(card.cast.tsar).toBe("rus_nicholas");
+    expect(card.backTo).toEqual([]);
+    const named = await dealtWith({
+      author: "tsar",
+      cast: {
+        tsar: { ruler_of: "RUS" },
+        chan: { office: "chancellor" },
+      },
+    });
+    expect(named.backTo).toEqual([]);
+  });
+
+  test("a foreigner on the paper: it goes back to the seat's own man", async () => {
+    const card = await dealtWith({
+      cast: {
+        tsar: { ruler_of: "RUS" },
+        chan: { office: "chancellor" },
+      },
+    });
+    expect(card.backTo).not.toEqual([]);
+    expect(card.backWho).toBe(card.cast.chan);
   });
 
   test("a paper can't go back twice, nor for a direction not on offer", async () => {

@@ -17,7 +17,13 @@ import {
 } from "@openfront/engine-lib/ww1914/SendBackRules";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import type { GreatWar } from "./GreatWar";
-import { removeCard, runEffects, SceneCtx, sceneOf } from "./SceneRun";
+import {
+  personDef,
+  removeCard,
+  runEffects,
+  SceneCtx,
+  sceneOf,
+} from "./SceneRun";
 import { reasonOf, seatPerson } from "./World";
 
 const P_DIG = idHash("gw_back_dig");
@@ -25,7 +31,7 @@ const P_DIG = idHash("gw_back_dig");
 /** How far back a paper of theirs counts against the next. */
 const RECENT_CHAPTERS = 4;
 
-/** The role that answers for a paper: `author`, or the first who isn't the seat. */
+/** Who answers for a paper: `author`, or the first of the seat's own people. */
 function authorOf(
   gw: GreatWar,
   seat: GwSeatState,
@@ -33,11 +39,12 @@ function authorOf(
   scene: GwScene,
 ): string | null {
   const self = seatPerson(seat);
+  const own = (x: string) => x !== self && personDef(x)?.tag === seat.tag;
   const id =
     scene.author !== undefined
       ? card.cast[scene.author]
-      : Object.values(card.cast).find((x) => x !== self);
-  if (id === undefined || id === self) return null;
+      : Object.values(card.cast).find(own);
+  if (id === undefined || !own(id)) return null;
   return gw.person(id)?.status === "active" ? id : null;
 }
 

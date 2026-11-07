@@ -183,9 +183,13 @@ export function backDirections(scene: GwScene): GwBackDirection[] {
 /** Scene ids a system of its own answers for: a budget, a vote on a bill. */
 const OWN_MACHINERY = /^gw_(bm|lv)_/;
 
-/** Whether the rule lets this paper go back at all. */
+/**
+ * Whether the rule lets this paper go back at all. It is for what the seat's own
+ * people drafted: a ruler's letter is his, and nobody here can rewrite it.
+ */
 export function backable(scene: GwScene): boolean {
   if (scene.noBack === true || scene.kind === "crisis") return false;
+  if (scene.kind === "letter") return false;
   if (scene.kind === "talk" || (scene.options ?? []).length === 0) return false;
   if (OWN_MACHINERY.test(scene.id)) return false;
   return !(scene.options ?? []).some((o) => o.screen !== undefined);
