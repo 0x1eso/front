@@ -1599,7 +1599,7 @@ export const GBR_PRIVATE_PEOPLE: readonly GwPersonDef[] = [
     allies: ["gbr_churchill"],
     fame: 2,
     source:
-      "Clementine Churchill: Sarah born 7 Oct 1914; wrote to Asquith in May 1915 (memory, Soames); lunch with Asquith Jan 1916 (Churchill Archives); YMCA canteens for munition workers, CBE 1918 (en.wikipedia)",
+      "Clementine Churchill: Sarah born 7 Oct 1914; wrote to Asquith in May 1915 (memory, Soames; three searches found nothing); lunch with Asquith Jan 1916 (Churchill Archives); YMCA canteens for munition workers, CBE 1918 (en.wikipedia)",
   },
 ];
 
