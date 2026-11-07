@@ -28,6 +28,11 @@ import { DEU_WAR_SCENES } from "./scenes/deu_war";
 import { GBR_CRISIS_SCENES } from "./scenes/gbr_crisis";
 import { GBR_HOME_SCENES } from "./scenes/gbr_home";
 import { withMore } from "./scenes/gbr_more";
+import {
+  GBR_PRIVATE_PEOPLE,
+  GBR_PRIVATE_SCENES,
+  withGbrPrivate,
+} from "./scenes/gbr_private";
 import { GBR_WAR_SCENES } from "./scenes/gbr_war";
 import { GBR_WORLD_SCENES } from "./scenes/gbr_world";
 import { GW_DIP_SCENES } from "./scenes/gw_dip";
@@ -72,12 +77,15 @@ export const GW_CONTENT: GwContent = {
           ...AUH_CROWN_SCENES,
         ]),
         ...AUH_QUIET_SCENES,
-        ...withMore([
-          ...GBR_CRISIS_SCENES,
-          ...GBR_WAR_SCENES,
-          ...GBR_HOME_SCENES,
-          ...GBR_WORLD_SCENES,
-        ]),
+        ...withGbrPrivate(
+          withMore([
+            ...GBR_CRISIS_SCENES,
+            ...GBR_WAR_SCENES,
+            ...GBR_HOME_SCENES,
+            ...GBR_WORLD_SCENES,
+          ]),
+        ),
+        ...GBR_PRIVATE_SCENES,
         ...RUS_CRISIS_SCENES,
         ...RUS_FRONT_SCENES,
         ...RUS_HOME_SCENES,
@@ -102,6 +110,7 @@ export const GW_CONTENT: GwContent = {
     ...AUH_PEOPLE,
     ...RUS_PEOPLE,
     ...GW_PEOPLE_MONEY,
+    ...GBR_PRIVATE_PEOPLE,
   ],
 };
 
