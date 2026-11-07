@@ -3,7 +3,6 @@ import type {
   GwCond,
   GwEffect,
   GwNode,
-  GwReact,
   GwReply,
   GwScene,
   GwVariant,
@@ -102,11 +101,6 @@ const reveal = (id: "auh_rail_muddle"): GwEffect => ({
 
 const v = (id: string, c?: GwCond): GwVariant =>
   c === undefined ? { id } : { id, when: c };
-const rx = (
-  c: GwCond,
-  next: string | null,
-  ...effects: GwEffect[]
-): GwReact => ({ when: c, next, effects });
 type ReplyExtra = Partial<
   Pick<GwReply, "when" | "tell" | "effects" | "reacts" | "gain" | "miss">
 >;
@@ -407,7 +401,11 @@ const CONRAD: readonly GwScene[] = [
   visit(
     "con_list",
     "auh_bolfras",
-    all(FJ, war, isCos("auh_conrad"), { kind: "chapter", min: 3, max: 8 }),
+    all(FJ, world({ is: "entered", tag: "RUS" }), isCos("auh_conrad"), {
+      kind: "chapter",
+      min: 3,
+      max: 8,
+    }),
     6,
     {
       open: node([
@@ -783,7 +781,7 @@ const ZITA: readonly GwScene[] = [
       says: node([r("too_good2", "frank", "ask", "good"), bye("rest2")]),
     },
   ),
-  visit("zit_white", "auh_zita", all(K, fresh(2)), 7, {
+  visit("zit_white", "auh_zita", all(K, fresh(6)), 9, {
     open: node(
       [
         r("walks", "warm", "deal", "walk", { effects: [rem("zit_walked")] }),
@@ -1026,7 +1024,7 @@ const BERCHTOLD: readonly GwScene[] = [
     "ber_pheasant",
     "auh_berchtold",
     all(not(fmIs("auh_berchtold")), date("1915-02"), not(K)),
-    3,
+    4,
     {
       open: node(
         [

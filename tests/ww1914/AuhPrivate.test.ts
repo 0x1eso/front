@@ -1,3 +1,4 @@
+import { GameMapSize, GameMapType } from "@openfront/engine-api/game/GameTypes";
 import {
   GwPackSchema,
   gwPackProblems,
@@ -14,10 +15,14 @@ import {
   AUH_PRIVATE_SCENES,
   AUH_PRIVATE_VOICE_NOTES,
 } from "@openfront/engine-lib/ww1914/content/scenes/auh_private";
+import { applyGwOrder, openTopics } from "@openfront/engine/ww1914/Orders";
+import { loadMapFiles } from "@openfront/shared/GameMapLoader";
 import { loadGwPack } from "@openfront/shared/ww1914/GwPackLoader";
 import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
+import { NodeGameMapLoader } from "../perf/fullgame/NodeGameMapLoader";
+import { newGame, startOf } from "./sim/GwSim";
 
 const res = (p: string) => path.join(__dirname, "../../resources", p);
 const json = (p: string): unknown =>
@@ -81,4 +86,33 @@ describe("the Emperor's circle, outside work", () => {
       expect(cast.people[p.id]?.name, p.id).toBeTruthy();
     }
   });
+
+  test("a line plays from the people screen and leaves its memory", async () => {
+    const map = await loadMapFiles(
+      new NodeGameMapLoader(path.join(__dirname, "../../resources/maps")),
+      GameMapType.World1936,
+      GameMapSize.Normal,
+    );
+    const runner = await newGame(map, startOf("private", "full", [], "AUH"));
+    const gw = runner.game.greatWar()!;
+    const seat = gw.s.seats[0];
+    expect(seat.tag).toBe("AUH");
+    const topics = openTopics(gw, seat, "auh_schratt");
+    expect(topics).toContain("auh_p_sch_ischl");
+    seat.audiences = 3;
+    const block = applyGwOrder(gw, seat, {
+      kind: "summon",
+      person: "auh_schratt",
+      topic: "auh_p_sch_ischl",
+    });
+    expect(block).toBeNull();
+    const card = seat.desk.find((c) => c.scene === "auh_p_sch_ischl")!;
+    for (const reply of ["theatre", "toni", "called_up"]) {
+      expect(
+        applyGwOrder(gw, seat, { kind: "reply", card: card.uid, reply }),
+      ).toBeNull();
+    }
+    expect(seat.memory.some((x) => x.key === "auh_p_sch_toni")).toBe(true);
+    expect(seat.seen["auh_p_sch_ischl"]).toBeDefined();
+  }, 60000);
 });
