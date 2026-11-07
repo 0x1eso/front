@@ -4,6 +4,7 @@ import type {
 } from "@openfront/engine-api/ww1914/GwView";
 import { html, nothing, TemplateResult } from "lit";
 import { translateText } from "../../Utils";
+import { rich } from "./GwDict";
 import type { GwCtx, GwUi, Transcript } from "./GwCtx";
 import { groupReplies, trustIndex } from "./GwModel";
 import { BTN, CHIP, MUTED } from "./GwStyle";
@@ -144,16 +145,19 @@ export function talkView(
       </header>
       ${bio === "" || t.turns.length > 1
         ? nothing
-        : html`<p class="${MUTED} italic">${bio}</p>`}
+        : html`<p class="${MUTED} italic">${rich(c, bio)}</p>`}
       ${t.turns.length === 0
         ? nothing
         : html`<p class="text-[15px] leading-7 text-white/75" data-gw-room>
-            ${fillGw(
-              cardBody(c.pack, t.turns[0].card),
-              c.pack,
-              t.turns[0].card,
-              c.seat,
-              c.data.date,
+            ${rich(
+              c,
+              fillGw(
+                cardBody(c.pack, t.turns[0].card),
+                c.pack,
+                t.turns[0].card,
+                c.seat,
+                c.data.date,
+              ),
             )}
           </p>`}
       <div class="flex flex-col gap-3" data-gw-turns>
@@ -168,12 +172,15 @@ export function talkView(
                 : "text-white/70"}"
               data-gw-says
             >
-              ${fillGw(
-                saysText(c.pack, turn.card),
-                c.pack,
-                turn.card,
-                c.seat,
-                c.data.date,
+              ${rich(
+                c,
+                fillGw(
+                  saysText(c.pack, turn.card),
+                  c.pack,
+                  turn.card,
+                  c.seat,
+                  c.data.date,
+                ),
               )}
             </blockquote>
             ${turn.reply === null
@@ -211,7 +218,7 @@ export function talkView(
             ${t.reasons.map(
               (r) =>
                 html`<p class="text-sm text-white/80">
-                  ${reasonText(c.pack, r)}
+                  ${rich(c, reasonText(c.pack, r))}
                 </p>`,
             )}
           </div>`

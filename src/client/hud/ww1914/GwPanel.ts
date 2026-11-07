@@ -18,6 +18,7 @@ import { budgetPanel } from "./GwBudget";
 import { countryTab } from "./GwCountry";
 import type { GwCtx, GwUi } from "./GwCtx";
 import { deskTab, reader } from "./GwDesk";
+import { dictCard } from "./GwDict";
 import { frontsTab } from "./GwFronts";
 import { memoirTab } from "./GwMemoir";
 import {
@@ -29,6 +30,7 @@ import {
   shelveMemoir,
   tabBadge,
 } from "./GwModel";
+import { notebookTab } from "./GwNotebook";
 import { peopleTab } from "./GwPeople";
 import { GLASS } from "./GwStyle";
 import { activeTalk, syncTranscripts, talkView } from "./GwTalk";
@@ -54,8 +56,8 @@ const KEYFRAMES = html`<style>
 
 /**
  * Great War 1914: the screens (design §11). A top band, a one-line news
- * ticker, a left drawer with five tabs (desk, people, fronts, country,
- * memoir), the reader for a paper and the talk view for a conversation. The
+ * ticker, a left drawer with six tabs (desk, people, fronts, country,
+ * notebook, memoir), the reader for a paper and the talk view for a conversation. The
  * map stays the background. Every engine read is in GreatWarData; every
  * action is one `gw_order`.
  */
@@ -84,6 +86,7 @@ export class GwPanel extends LitElement implements Controller {
     research: null,
     budgetOpen: false,
     budgetPlan: null,
+    term: null,
     shelf: loadShelf(),
   };
 
@@ -176,6 +179,8 @@ export class GwPanel extends LitElement implements Controller {
         return frontsTab(c);
       case "country":
         return countryTab(c);
+      case "notebook":
+        return notebookTab(c);
       case "memoir":
         return memoirTab(c);
       default:
@@ -240,7 +245,8 @@ export class GwPanel extends LitElement implements Controller {
       </aside>
       ${open === undefined ? nothing : reader(c, open)}
       ${ui.budgetOpen ? budgetPanel(c) : nothing}
-      ${talk === null ? nothing : talkView(c, talk.t, talk.card)}`;
+      ${talk === null ? nothing : talkView(c, talk.t, talk.card)}
+      ${dictCard(c)}`;
   }
 
   private tabButton(c: GwCtx, tab: GwTab) {

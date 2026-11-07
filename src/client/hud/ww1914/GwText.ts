@@ -11,6 +11,7 @@ import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import type { GwPack } from "@openfront/engine-api/ww1914/GwPack";
 import type {
   GwCardView,
+  GwChoiceView,
   GwPromiseView,
   GwSeatView,
 } from "@openfront/engine-api/ww1914/GwView";
@@ -160,6 +161,24 @@ export function reasonText(pack: GwPack | null, r: GwReason): string {
 /** A promise as the people screen lists it. */
 export function promiseText(pack: GwPack | null, p: GwPromiseView): string {
   return withWho(pack?.promises?.[p.key] ?? p.key, pack, p.who);
+}
+
+/**
+ * A decision as the notebook lists it: the paper's title and the bold line of
+ * what was chosen, with the names of who was in the scene.
+ */
+export function decisionLine(
+  pack: GwPack | null,
+  d: GwChoiceView,
+): { title: string; pick: string } {
+  const scene = pack?.scenes[d.scene];
+  const text = scene?.opt?.[d.pick] ?? d.pick;
+  const lead = boldParts(text).find((p) => p.bold)?.text ?? text;
+  const pick = lead.replace(/\{([a-z_0-9]+)\}/g, (hole, role) => {
+    const id = d.cast?.[role];
+    return id === undefined ? hole : personName(pack, id);
+  });
+  return { title: scene?.title ?? d.scene, pick: applyJosa(pick) };
 }
 
 /** "army:-1" as the player reads it; a word with no translation shows itself. */

@@ -22,7 +22,10 @@ import type { GwPack } from "@openfront/engine-api/ww1914/GwPack";
 import type {
   GreatWarData,
   GwCardView,
+  GwChoiceView,
+  GwGovView,
   GwPersonView,
+  GwPromiseView,
   GwReplyView,
   GwSeatView,
 } from "@openfront/engine-api/ww1914/GwView";
@@ -36,6 +39,7 @@ export const GW_TABS = [
   "people",
   "fronts",
   "country",
+  "notebook",
   "memoir",
 ] as const;
 export type GwTab = (typeof GW_TABS)[number];
@@ -137,6 +141,30 @@ export function tabBadge(seat: GwSeatView, tab: GwTab): number {
     default:
       return 0;
   }
+}
+
+/** Open promises first, the nearest date on top; then the rest, as they came. */
+export function promisesInOrder(
+  list: readonly GwPromiseView[],
+): GwPromiseView[] {
+  const open = list.filter((p) => !p.kept && !p.broken);
+  const done = list.filter((p) => p.kept || p.broken);
+  return [
+    ...open.sort((a, b) => (a.due < b.due ? -1 : a.due > b.due ? 1 : 0)),
+    ...done.reverse(),
+  ];
+}
+
+/** The big decisions, the latest first. */
+export function keyDecisions(list: readonly GwChoiceView[]): GwChoiceView[] {
+  return list.filter((x) => x.key === true).reverse();
+}
+
+/** How close a threat stands, as a word: 0 talk .. 3 at the door. */
+export function govWord(g: GwGovView): 0 | 1 | 2 | 3 {
+  if (g.step >= g.steps) return 3;
+  if (g.step === 0) return 0;
+  return g.step === g.steps - 1 ? 2 : 1;
 }
 
 /** Seconds left in the chapter with a timer, else null. */

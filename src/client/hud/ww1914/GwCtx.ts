@@ -10,6 +10,7 @@ import type {
   GwCardView,
   GwSeatView,
 } from "@openfront/engine-api/ww1914/GwView";
+import type { DictRef } from "./GwDictModel";
 import type { GwTab, Shelf } from "./GwModel";
 
 /** One line of a talk as it stood: the card at that node, what I answered. */
@@ -60,6 +61,8 @@ export interface GwUi {
   budgetOpen: boolean;
   /** The plan being changed there; null shows the draft. */
   budgetPlan: GwBudgetPlan | null;
+  /** The name or term whose dictionary card is open. */
+  term: DictRef | null;
   shelf: Shelf;
 }
 
