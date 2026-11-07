@@ -47,7 +47,7 @@ import { getPlayerCosmetics, prewarmCosmetics } from "./Cosmetics";
 import { gamePortal } from "./GamePortal";
 import { GameStartingModal } from "./GameStartingModal";
 import { gwCalendarPicker } from "./GwLobby";
-import { gwRecentBodies } from "./GwRecentRuns";
+import { gwPlayedTags, gwRecentBodies } from "./GwRecentRuns";
 import { showInGameAlert } from "./InGameModal";
 import { JoinLobbyEvent } from "./Main";
 import { fallbackPlayerName, ResolvedPlayerName } from "./PlayerName";
@@ -1484,6 +1484,7 @@ export class SinglePlayerModal extends BaseModal {
               greatWar1914: true,
               greatWar1914Calendar: this.greatWar1914Calendar,
               greatWar1914Recent: gwRecentBodies(),
+              greatWar1914Played: gwPlayedTags(),
             }
           : {}),
         ...(this.worldWar1936

@@ -138,6 +138,36 @@ export function saysText(pack: GwPack | null, card: GwCardView): string {
   return by?.[card.says] ?? node?.says[card.says] ?? card.says;
 }
 
+/** A big scene's node: the hour, and the line of narration before the words. */
+export function beatOf(
+  pack: GwPack | null,
+  card: GwCardView,
+): { at: string | null; room: string | null } {
+  const node =
+    card.node === null
+      ? undefined
+      : pack?.scenes[card.scene]?.nodes?.[card.node];
+  return { at: node?.at ?? null, room: node?.room ?? null };
+}
+
+/**
+ * The memoir's line on the rival: his own by how it went (an end, else what
+ * the seat did, else how far he got), else a plain one that names him.
+ */
+export function rivalLine(
+  pack: GwPack | null,
+  r: NonNullable<GwMemoir["rival"]>,
+): string {
+  const name = personName(pack, r.who);
+  const keys = [r.end, r.act, `stage${r.stage}`].filter((k) => k !== null);
+  const own = pack?.rivals?.[r.who];
+  for (const k of keys) {
+    const line = own?.[k];
+    if (line !== undefined) return applyJosa(line.replace(/\{who\}/g, name));
+  }
+  return translateText(`gw.ui.rival.${keys[0]}`, { name });
+}
+
 export function optionText(
   pack: GwPack | null,
   card: GwCardView,

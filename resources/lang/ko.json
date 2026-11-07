@@ -15227,7 +15227,8 @@
         "proposal": "제안서",
         "report": "보고",
         "talk": "대화",
-        "wire": "전보"
+        "wire": "전보",
+        "letter": "친서"
       },
       "mandate_met": "이뤘다",
       "mandate_unmet": "못 이뤘다",
@@ -15287,7 +15288,8 @@
         "ask": "묻기",
         "deal": "약속·거래",
         "leave": "물러서기",
-        "push": "밀어붙이기"
+        "push": "밀어붙이기",
+        "decide": "결정"
       },
       "report_corrected": "뒤에 정정됨: {claim}",
       "report_line": "{country} {fact}: {claim}",
@@ -15485,6 +15487,25 @@
         "3": "어디서나",
         "4": "믿는 사람이 많음",
         "5": "신문보다 빠름"
+      },
+      "big_waiting": "시간이 흐른다.",
+      "big_waits": "이 밤은 아직 끝나지 않았다.",
+      "letter_came": "받은 친서",
+      "letter_from": "{country}의 {name}에게서",
+      "letter_sent": "보낸 답신",
+      "letter_thread": "지금까지의 친서",
+      "silent_done": "넘긴다",
+      "rival": {
+        "broken": "당신은 맞수 {name}을(를) 꺾었다.",
+        "embrace": "당신은 맞수 {name}을(를) 끌어안았고, 그는 곁에 남았다.",
+        "gone": "맞수 {name}은(는) 승부가 나기 전에 무대를 떠났다.",
+        "prevailed": "맞수 {name}이(가) 끝내 뜻을 이루었다.",
+        "push": "당신은 맞수 {name}을(를) 끝까지 멀리 두었다.",
+        "reconciled": "맞수 {name}과(와) 당신은 끝내 화해했다.",
+        "stage1": "{name}은(는) 끝내 속내를 드러내지 않았다. 당신의 맞수였다는 것을 몰랐을 수도 있다.",
+        "stage2": "{name}은(는) 당신에게 맞설 사람들을 모으던 참이었다.",
+        "stage3": "{name}은(는) 끝내 당신에게 공공연히 맞섰다.",
+        "strike": "당신은 맞수 {name}을(를) 먼저 쳤다."
       }
     },
     "unknown": {

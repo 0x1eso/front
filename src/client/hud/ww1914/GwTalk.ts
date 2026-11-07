@@ -6,13 +6,15 @@ import { html, nothing, TemplateResult } from "lit";
 import { translateText } from "../../Utils";
 import type { GwCtx, GwUi, Transcript } from "./GwCtx";
 import { briefLine, rich } from "./GwDict";
-import { newPass } from "./GwDictModel";
+import { newPass, TextPass } from "./GwDictModel";
 import { groupReplies, trustIndex } from "./GwModel";
 import { BTN, CHIP, MUTED } from "./GwStyle";
 import {
+  beatOf,
   bodyPlain,
   briefText,
   cardBody,
+  cardTitle,
   fillGw,
   optionText,
   personBio,
@@ -92,6 +94,54 @@ function monogram(name: string): string {
   return name.replace(/\s+/g, "").slice(0, 1);
 }
 
+/** Who sits across: initial, name, office and lean, how they stand with you. */
+function plate(
+  c: GwCtx,
+  name: string,
+  lean: string,
+  person: GwSeatView["people"][number] | undefined,
+  trust: number,
+): TemplateResult {
+  const office = person?.office ?? null;
+  return html`<div
+      class="flex h-16 w-16 shrink-0 items-center justify-center rounded-full border border-white/30 bg-white/10 text-2xl font-bold"
+      aria-hidden="true"
+    >
+      ${monogram(name)}
+    </div>
+    <div class="min-w-0">
+      <h2 class="text-xl font-bold leading-tight" data-gw-who>${name}</h2>
+      <div class="text-sm text-white/70">
+        ${office === null ? nothing : translateText(`gw.office.${office}`)}
+        ${lean === ""
+          ? nothing
+          : html`<span>${office === null ? "" : " · "}${lean}</span>`}
+      </div>
+      <div class="${MUTED} mt-0.5" data-gw-trust>
+        ${translateText("gw.ui.trust_label")}:
+        ${translateText(`gw.ui.trust.${trust}`)}
+      </div>
+    </div>`;
+}
+
+/** The hour and the room before a node's words, in a big scene. */
+function beat(c: GwCtx, card: GwCardView, pass: TextPass) {
+  const { at, room } = beatOf(c.pack, card);
+  return html`${at === null
+    ? nothing
+    : html`<div
+        class="pt-3 text-center text-sm tracking-widest text-amber-200/80"
+        data-gw-at
+      >
+        ${fillGw(at, c.pack, card, c.seat, c.data.date)}
+      </div>`}
+  ${room === null
+    ? nothing
+    : html`<p class="text-[15px] italic leading-7 text-white/70" data-gw-beat>
+        ${rich(c, fillGw(room, c.pack, card, c.seat, c.data.date), pass)}
+      </p>`}`;
+}
+
 /**
  * Sitting across from someone: the person's plate, the talk so far as it was
  * said, their line, and your replies by kind. Their reaction never shows as a
@@ -102,55 +152,47 @@ export function talkView(
   t: Transcript,
   card: GwCardView | undefined,
 ): TemplateResult {
-  const name = personName(c.pack, t.who);
-  const person = c.seat.people.find((p) => p.id === t.who);
-  const lean = personLean(c.pack, t.who);
-  const bio = personBio(c.pack, t.who);
+  const now = t.turns[t.turns.length - 1]?.card;
+  const big = now?.big === true;
+  // A big scene's plate is whoever is in the room; nobody, while the hour passes.
+  const who = big ? (now.who ?? "") : t.who;
+  const name = who === "" ? "" : personName(c.pack, who);
+  const person = c.seat.people.find((p) => p.id === who);
+  const lean = who === "" ? "" : personLean(c.pack, who);
+  const bio = big ? "" : personBio(c.pack, t.who);
   const trust = person === undefined ? 3 : trustIndex(person.trust);
   const leave = () => {
     c.ui.talkUid = null;
-    if (t.closed) c.ui.talks.delete(t.uid);
+    if (t.closed) {
+      c.ui.talks.delete(t.uid);
+      // What a big scene leaves behind comes straight after it.
+      if (big) c.ui.readerUid = c.seat.desk.find((x) => x.silent)?.uid ?? null;
+    }
     c.redraw();
   };
   // The person across the table is introduced by the plate above.
-  const pass = newPass([t.who]);
+  const pass = newPass(who === "" ? [] : [who]);
   const first = t.turns[0]?.card;
   const brief =
     first === undefined ? null : briefText(c.pack, first, c.seat, c.data.date);
   const groups = card === undefined ? [] : groupReplies(card.replies);
   return html`<div
     data-gw-talk=${t.scene}
-    class="pointer-events-auto fixed inset-0 z-[1001] overflow-y-auto bg-gradient-to-b from-black/65 via-black/75 to-black/90 text-white"
+    ?data-gw-big=${big}
+    class="pointer-events-auto fixed inset-0 z-[1001] overflow-y-auto ${big
+      ? "bg-black/95"
+      : "bg-gradient-to-b from-black/65 via-black/75 to-black/90"} text-white"
   >
     <div
       class="mx-auto flex min-h-full max-w-3xl flex-col justify-center gap-5 px-4 pb-8 pt-14"
     >
+      ${big && first !== undefined
+        ? html`<h2 class="text-center text-lg font-bold" data-gw-big-title>
+            ${cardTitle(c.pack, first)}
+          </h2>`
+        : nothing}
       <header class="flex items-center gap-4">
-        <div
-          class="flex h-16 w-16 shrink-0 items-center justify-center rounded-full border border-white/30 bg-white/10 text-2xl font-bold"
-          aria-hidden="true"
-        >
-          ${monogram(name)}
-        </div>
-        <div class="min-w-0">
-          <h2 class="text-xl font-bold leading-tight" data-gw-who>${name}</h2>
-          <div class="text-sm text-white/70">
-            ${person?.office === null || person === undefined
-              ? nothing
-              : translateText(`gw.office.${person.office}`)}
-            ${lean === ""
-              ? nothing
-              : html`<span
-                  >${person?.office === null || person === undefined
-                    ? ""
-                    : " · "}${lean}</span
-                >`}
-          </div>
-          <div class="${MUTED} mt-0.5" data-gw-trust>
-            ${translateText("gw.ui.trust_label")}:
-            ${translateText(`gw.ui.trust.${trust}`)}
-          </div>
-        </div>
+        ${who === "" ? nothing : plate(c, name, lean, person, trust)}
         <button class="${BTN} ml-auto shrink-0" data-gw-leave @click=${leave}>
           ${t.closed
             ? translateText("gw.ui.talk_done")
@@ -181,27 +223,42 @@ export function talkView(
       <div class="flex flex-col gap-3" data-gw-turns>
         ${t.turns.map((turn, i) => {
           const last = i === t.turns.length - 1;
+          const said = rich(
+            c,
+            fillGw(
+              saysText(c.pack, turn.card),
+              c.pack,
+              turn.card,
+              c.seat,
+              c.data.date,
+            ),
+            pass,
+          );
+          const speaker = turn.card.who;
           return html`<div class="space-y-2">
-            <blockquote
-              class="${last
-                ? "animate-[gwfade_.7s_ease-out]"
-                : ""} rounded-r-md border-l-4 border-amber-200/70 bg-white/8 px-4 py-3 text-[17px] leading-8 ${last
-                ? "text-white"
-                : "text-white/70"}"
-              data-gw-says
-            >
-              ${rich(
-                c,
-                fillGw(
-                  saysText(c.pack, turn.card),
-                  c.pack,
-                  turn.card,
-                  c.seat,
-                  c.data.date,
-                ),
-                pass,
-              )}
-            </blockquote>
+            ${big ? beat(c, turn.card, pass) : nothing}
+            ${big && speaker !== null
+              ? html`<div class=${MUTED} data-gw-speaker>
+                  ${personName(c.pack, speaker)}
+                </div>`
+              : nothing}
+            ${big && speaker === null
+              ? html`<p
+                  class="whitespace-pre-line text-[17px] leading-8 text-white/85"
+                  data-gw-alone
+                >
+                  ${said}
+                </p>`
+              : html`<blockquote
+                  class="${last
+                    ? "animate-[gwfade_.7s_ease-out]"
+                    : ""} rounded-r-md border-l-4 border-amber-200/70 bg-white/8 px-4 py-3 text-[17px] leading-8 ${last
+                    ? "text-white"
+                    : "text-white/70"}"
+                  data-gw-says
+                >
+                  ${said}
+                </blockquote>`}
             ${turn.reply === null
               ? nothing
               : html`<div class="ml-auto max-w-[85%] space-y-1 text-right">
@@ -247,7 +304,9 @@ export function talkView(
           </div>`
         : t.turns[t.turns.length - 1]?.reply !== null
           ? html`<p class="${MUTED} animate-pulse" data-gw-waiting>
-              ${translateText("gw.ui.talk_waiting", { name })}
+              ${name === ""
+                ? translateText("gw.ui.big_waiting")
+                : translateText("gw.ui.talk_waiting", { name })}
             </p>`
           : html`<div class="space-y-3" data-gw-replies>
               ${groups.map(
@@ -284,9 +343,13 @@ export function talkView(
                             c.redraw();
                           }}
                         >
-                          <span class="${CHIP} mr-2"
-                            >${translateText(`gw.ui.stance.${r.stance}`)}</span
-                          >${rich(
+                          ${r.kind === "decide"
+                            ? nothing
+                            : html`<span class="${CHIP} mr-2"
+                                >${translateText(
+                                  `gw.ui.stance.${r.stance}`,
+                                )}</span
+                              >`}${rich(
                             c,
                             fillGw(text, c.pack, card!, c.seat, c.data.date),
                             pass,

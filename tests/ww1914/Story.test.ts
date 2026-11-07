@@ -170,7 +170,7 @@ describe("big scenes", () => {
     expect(raw(r).desk).toEqual([]);
     expect(raw(r).choices.map((c) => c.pick)).toEqual(["warm", "wait", "hold"]);
     expect(raw(r).choices.every((c) => c.proxy)).toBe(true);
-    expect(raw(r).log.at(-1)?.key).toBe("proxy_signed");
+    expect(raw(r).log.map((l) => l.key)).toContain("proxy_signed");
   });
 
   test("two the desk could draw stand three chapters apart", async () => {

@@ -3,6 +3,8 @@
 // replay deals the same. Kept in the browser only between games. Small on
 // purpose: the lobby imports it, and the homepage must not pull in the game.
 const KEY = "gw1914.recentRuns";
+/** The shelf (hud/ww1914/GwModel): this module reads only who was played. */
+export const SHELF_KEY = "gw1914.shelf";
 /** Design §15 no. 9: the last two games. */
 const RUNS = 2;
 /** The schema's cap on the lobby field. */
@@ -39,4 +41,30 @@ export function noteGwRun(id: string, shown: readonly string[]): void {
 export function gwRecentBodies(): string[] | undefined {
   const all = new Set(load().flatMap((r) => r.shown));
   return all.size === 0 ? undefined : [...all].slice(0, MAX_BODIES);
+}
+
+/**
+ * The lobby field: the nations the shelf says were played. Always a list: an
+ * empty one means every nation's first game, absent means nobody asked.
+ */
+export function gwPlayedTags(): string[] {
+  try {
+    const raw = localStorage.getItem(SHELF_KEY);
+    const shelf = (raw === null ? {} : JSON.parse(raw)) as {
+      played?: unknown;
+      runs?: unknown;
+    };
+    const played = Array.isArray(shelf.played) ? shelf.played : [];
+    const runs = Array.isArray(shelf.runs) ? shelf.runs : [];
+    const tags = [...played, ...runs.map((r: { tag?: unknown }) => r?.tag)];
+    return [
+      ...new Set(
+        tags.filter(
+          (x): x is string => typeof x === "string" && x.length === 3,
+        ),
+      ),
+    ];
+  } catch {
+    return [];
+  }
 }

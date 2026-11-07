@@ -13,6 +13,7 @@ import {
   fullDate,
   personName,
   reasonText,
+  rivalLine,
   turnText,
   unknownText,
 } from "./GwText";
@@ -34,6 +35,11 @@ function ending(c: GwCtx, m: GwMemoir): TemplateResult {
       })}
     </p>
     ${text === null ? nothing : html`<p class=${PROSE}>${rich(c, text)}</p>`}
+    ${(m.rival ?? null) === null
+      ? nothing
+      : html`<p class=${PROSE} data-gw-rival>
+          ${rich(c, rivalLine(c.pack, m.rival!))}
+        </p>`}
   </section>`;
 }
 
