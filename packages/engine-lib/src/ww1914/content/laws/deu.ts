@@ -1,0 +1,405 @@
+import {
+  any,
+  byName,
+  chose,
+  flag,
+  keepPromise,
+  memory,
+  setFlag,
+} from "@openfront/engine-api/ww1914/SceneDsl";
+import { world } from "@openfront/engine-api/ww1914/WorldDsl";
+import type { GwLawRow } from "../../LawRows";
+import {
+  draft,
+  either,
+  gauge,
+  held,
+  inst,
+  lawTalk,
+  low,
+  men,
+  person,
+  since,
+  war,
+} from "./kit";
+
+const row = (r: Omit<GwLawRow, "tag">): GwLawRow => ({ ...r, tag: "DEU" });
+const home = { interior: held("interior"), chancellor: held("chancellor") };
+const allOf = (...of: GwLawRow["opens"][]): GwLawRow["opens"] => ({
+  kind: "all",
+  of,
+});
+
+/**
+ * Germany's bills. The door is the Reichstag. In war the Bundesrat can rule on
+ * the economy past it, by the powers it was given on 4 August; what touches the
+ * constitution or the vote, it can't.
+ */
+export const DEU_LAWS: readonly GwLawRow[] = [
+  row({
+    id: "deu_censor",
+    // The siege law gave the corps commanders the censor in August 1914.
+    opens: allOf(war, since("1914-10")),
+    lean: 0,
+    decree: true,
+    cast: home,
+    draft: [
+      draft("generals_keep", 1, ["army:+1"], [inst("army", 1)]),
+      draft("one_office", 0, ["army:-1"], [inst("army", -1)]),
+      draft(
+        "reichstag_reads",
+        -1,
+        ["reichstag:+1", "army:-1"],
+        [inst("reichstag", 1), inst("army", -1)],
+      ),
+    ],
+    passed: [gauge("order", 1)],
+    passedTell: ["order:+1"],
+    term: [
+      { gauge: "order", delta: 1, every: 10 },
+      { gauge: "morale", delta: -1, every: 14, offset: 4 },
+    ],
+    flag: "f_law_censor",
+    settled: any(
+      chose("deu_h_censor", "one_censor"),
+      chose("deu_h_censor", "press_office"),
+    ),
+    replaces: ["deu_h_censor"],
+    repeal: {
+      authority: 15,
+      tell: ["army:-1", "reichstag:+1"],
+      effects: [inst("army", -1), inst("reichstag", 1)],
+    },
+    talk: lawTalk("deu_censor", {
+      who: either(person("deu_erzberger"), person("deu_haase")),
+      ask: "frank",
+      push: "cold",
+      tell: ["army:-1"],
+      price: [inst("army", -1)],
+      wins: 1,
+      tempers: ["cunning"],
+    }),
+  }),
+  row({
+    id: "deu_bread_cards",
+    opens: allOf(war, since("1915-01")),
+    lean: 1,
+    decree: true,
+    cast: home,
+    draft: [
+      draft("city_cards", 1, []),
+      draft(
+        "reich_grain",
+        0,
+        ["bread:+1", "reichstag:-1"],
+        [gauge("bread", 1), inst("reichstag", -1)],
+      ),
+      draft("war_bread", 1, ["morale:-1"], [gauge("morale", -1)]),
+    ],
+    passed: [gauge("bread", 1)],
+    passedTell: ["bread:+1"],
+    term: [
+      { gauge: "bread", delta: 1, every: 6 },
+      { gauge: "morale", delta: -1, every: 13, offset: 3 },
+    ],
+    repeal: {
+      authority: 15,
+      tell: ["bread:-2"],
+      effects: [gauge("bread", -2)],
+    },
+    talk: lawTalk("deu_bread_cards", {
+      who: held("interior"),
+      ask: "cold",
+      push: "frank",
+      tell: ["money:-1"],
+      price: [gauge("money", -1)],
+      wins: 1,
+      tempers: ["weary"],
+    }),
+    after: {
+      chapters: 8,
+      options: [
+        {
+          id: "cut_ration",
+          tell: ["bread:+1", "morale:-1"],
+          effects: [gauge("bread", 1), gauge("morale", -1)],
+        },
+        {
+          id: "seize_farms",
+          tell: ["bread:+1", "reichstag:-1", "order:-1"],
+          effects: [
+            gauge("bread", 1),
+            inst("reichstag", -1),
+            gauge("order", -1),
+          ],
+        },
+        {
+          id: "wink_at_it",
+          tell: ["order:+1", "bread:-1"],
+          effects: [gauge("order", 1), gauge("bread", -1)],
+        },
+      ],
+    },
+  }),
+  row({
+    id: "deu_food_office",
+    opens: allOf(war, since("1916-02"), low("bread", 2)),
+    lean: 1,
+    decree: true,
+    cast: home,
+    draft: [
+      draft("food_dictator", 1, ["reichstag:+1"], [inst("reichstag", 1)]),
+      draft("states_keep", 0, []),
+      draft(
+        "army_seat",
+        0,
+        ["army:+1", "bread:+1"],
+        [inst("army", 1), gauge("bread", 1)],
+      ),
+    ],
+    passed: [gauge("bread", 1)],
+    passedTell: ["bread:+1"],
+    term: [{ gauge: "bread", delta: 1, every: 8 }],
+    repeal: {
+      authority: 10,
+      tell: ["bread:-1"],
+      effects: [gauge("bread", -1)],
+    },
+    talk: lawTalk("deu_food_office", {
+      who: either(person("deu_batocki"), held("interior")),
+      ask: "frank",
+      push: "cold",
+      tell: ["army:-1"],
+      price: [inst("army", -1)],
+      wins: 1,
+      tempers: ["cold"],
+    }),
+  }),
+  row({
+    id: "deu_strike_ban",
+    opens: allOf(war, since("1915-06")),
+    lean: -1,
+    decree: true,
+    cast: { chancellor: held("chancellor"), war: held("war") },
+    draft: [
+      draft("corps_commanders", 0, ["army:+1"], [inst("army", 1)]),
+      draft("arbitration", 2, ["shells:-1"], [gauge("shells", -1)]),
+      draft("courts_only", 1, []),
+    ],
+    passed: [gauge("shells", 1)],
+    passedTell: ["shells:+1"],
+    term: [
+      { gauge: "shells", delta: 1, every: 8 },
+      { gauge: "order", delta: -1, every: 8, offset: 3 },
+    ],
+    flag: "f_law_strike_ban",
+    repeal: {
+      authority: 15,
+      tell: ["order:+1", "army:-1"],
+      effects: [gauge("order", 1), inst("army", -1)],
+    },
+    talk: lawTalk("deu_strike_ban", {
+      who: either(person("deu_ebert"), person("deu_haase")),
+      ask: "frank",
+      push: "threat",
+      tell: ["reichstag:+1", "army:-1"],
+      price: [inst("reichstag", 1), inst("army", -1)],
+      wins: 2,
+    }),
+    after: {
+      chapters: 9,
+      options: [
+        {
+          id: "uniform_them",
+          tell: ["shells:+1", "order:-1"],
+          effects: [gauge("shells", 1), gauge("order", -1)],
+        },
+        {
+          id: "talk_to_shop",
+          tell: ["order:+1", "army:-1"],
+          effects: [gauge("order", 1), inst("army", -1)],
+        },
+      ],
+    },
+  }),
+  row({
+    id: "deu_aux",
+    opens: allOf(war, since("1916-08")),
+    lean: 0,
+    decree: false,
+    cast: home,
+    draft: [
+      draft("army_text", -1, ["army:+1"], [inst("army", 1)]),
+      draft(
+        "unions_text",
+        2,
+        ["army:-1"],
+        [inst("army", -1), setFlag("f_aux_unions")],
+      ),
+    ],
+    passed: [men(3), gauge("shells", 1)],
+    passedTell: ["manpower:+3", "shells:+1"],
+    term: [
+      { gauge: "manpower", delta: 1, every: 4 },
+      { gauge: "shells", delta: 1, every: 8 },
+    ],
+    settled: any(
+      chose("deu_h_aux_service", "army_text"),
+      chose("deu_h_aux_service", "unions_text"),
+    ),
+    replaces: ["deu_h_aux_service"],
+    repeal: {
+      authority: 20,
+      tell: ["manpower:-3", "order:+1"],
+      effects: [men(-3), gauge("order", 1)],
+    },
+    talk: lawTalk("deu_aux", {
+      who: person("deu_groener"),
+      ask: "frank",
+      push: "cold",
+      tell: ["army:-1"],
+      price: [inst("army", -1)],
+      wins: 2,
+    }),
+  }),
+  row({
+    id: "deu_unions",
+    opens: allOf(war, since("1916-01")),
+    lean: 1,
+    decree: false,
+    cast: home,
+    draft: [
+      draft("youth_clause", 1, []),
+      draft(
+        "paragraph_153",
+        0,
+        ["order:+1", "army:-1"],
+        [gauge("order", 1), inst("army", -1)],
+      ),
+      draft("words_only", 1, ["order:-1"], [gauge("order", -1)]),
+    ],
+    passed: [inst("reichstag", 1), inst("army", -1)],
+    passedTell: ["reichstag:+1", "army:-1"],
+    term: [{ gauge: "order", delta: 1, every: 10 }],
+    repeal: {
+      authority: 25,
+      tell: ["order:-2", "reichstag:-1"],
+      effects: [gauge("order", -2), inst("reichstag", -1)],
+    },
+    talk: lawTalk("deu_unions", {
+      who: either(person("deu_ebert"), person("deu_scheidemann")),
+      ask: "warm",
+      push: "frank",
+      tell: ["army:-1"],
+      price: [inst("army", -1)],
+      wins: 1,
+    }),
+  }),
+  row({
+    id: "deu_jesuits",
+    opens: allOf(war, since("1916-06")),
+    lean: 0,
+    decree: false,
+    cast: { chancellor: held("chancellor") },
+    draft: [
+      draft("whole_law", 1, ["countersign:-1"], [inst("countersign", -1)]),
+      draft("houses_only", 0, []),
+    ],
+    passed: [inst("reichstag", 1), gauge("morale", 1)],
+    passedTell: ["reichstag:+1", "morale:+1"],
+    term: [],
+    repeal: {
+      authority: 25,
+      tell: ["reichstag:-2"],
+      effects: [inst("reichstag", -2)],
+    },
+    talk: lawTalk("deu_jesuits", {
+      who: either(person("deu_erzberger"), person("deu_hertling")),
+      ask: "warm",
+      push: "cold",
+      tell: ["countersign:-1"],
+      price: [inst("countersign", -1)],
+      wins: 2,
+      tempers: ["cunning"],
+    }),
+  }),
+  row({
+    id: "deu_three_class",
+    opens: allOf(
+      war,
+      since("1916-06"),
+      any(
+        flag("f_franchise_word"),
+        flag("f_franchise_draft"),
+        memory("k_beth_reform"),
+        chose("deu_k_easter_message", "equal_vote_word"),
+        world({ is: "unrest", min: 1 }),
+      ),
+    ),
+    lean: -3,
+    decree: false,
+    cast: home,
+    draft: [
+      draft("plural_vote", 1, []),
+      draft(
+        "equal_vote",
+        0,
+        ["order:+1", "army:-1"],
+        [gauge("order", 1), inst("army", -1)],
+      ),
+      draft("after_the_peace", 2, ["order:-1"], [gauge("order", -1)]),
+    ],
+    passed: [
+      gauge("order", 2),
+      gauge("morale", 1),
+      inst("army", -1),
+      keepPromise(byName("deu_bethmann"), "p_beth_reform"),
+      keepPromise(byName("deu_ebert"), "p_ebert_franchise"),
+    ],
+    passedTell: ["order:+2", "morale:+1", "army:-1"],
+    term: [],
+    repeal: {
+      authority: 45,
+      tell: ["order:-3"],
+      effects: [gauge("order", -3)],
+    },
+    talk: lawTalk("deu_three_class", {
+      who: held("chancellor"),
+      ask: "frank",
+      push: "cold",
+      tell: ["army:-1", "countersign:+1"],
+      price: [inst("army", -1), inst("countersign", 1)],
+      wins: 2,
+      tempers: ["weary"],
+    }),
+  }),
+  row({
+    id: "deu_alsace",
+    opens: allOf(war, since("1917-01")),
+    lean: -1,
+    decree: false,
+    cast: { chancellor: held("chancellor"), cos: held("chief_of_staff") },
+    draft: [
+      draft("federal_state", 0, ["army:-1"], [inst("army", -1)]),
+      draft(
+        "share_out",
+        1,
+        ["army:+1", "order:-1"],
+        [inst("army", 1), gauge("order", -1)],
+      ),
+      draft("to_prussia", 1, ["reichstag:-1"], [inst("reichstag", -1)]),
+    ],
+    passed: [{ kind: "pressure", topic: "alsace", delta: -2 }],
+    passedTell: ["alsace_eases"],
+    term: [],
+    repeal: { authority: 20, tell: ["army:+1"], effects: [inst("army", 1)] },
+    talk: lawTalk("deu_alsace", {
+      who: held("war"),
+      ask: "cold",
+      push: "threat",
+      tell: ["reichstag:-1"],
+      price: [inst("reichstag", -1)],
+      wins: 1,
+    }),
+  }),
+];

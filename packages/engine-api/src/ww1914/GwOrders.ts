@@ -53,6 +53,12 @@ export const GwOrderSchema = z.discriminatedUnion("kind", [
     mix: z.array(zb.uint({ max: 300 })).max(8),
     force: z.boolean(),
   }),
+  /** A bill from the country tab: taken up, or a law in force ended. */
+  z.object({
+    kind: z.literal("law"),
+    law: Id,
+    act: z.enum(["draft", "repeal"]),
+  }),
 ]);
 export type GwOrder = z.infer<typeof GwOrderSchema>;
 
@@ -78,5 +84,7 @@ export const GW_ORDER_BLOCKS = [
   "not_proposed",
   "no_meeting",
   "bad_budget",
+  "no_law",
+  "law_busy",
 ] as const;
 export type GwOrderBlock = (typeof GW_ORDER_BLOCKS)[number];

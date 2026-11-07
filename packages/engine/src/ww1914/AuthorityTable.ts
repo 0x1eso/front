@@ -13,6 +13,7 @@ import {
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import { all, flag, GwCond, not } from "@openfront/engine-api/ww1914/SceneDsl";
 import { world } from "@openfront/engine-api/ww1914/WorldDsl";
+import { GW_LAW_BODIES, GwLawBody } from "@openfront/engine-lib/ww1914/LawRows";
 
 export type GwInstRule =
   /** The body's weight moves with the months of war. */
@@ -104,6 +105,8 @@ export interface GwAuthorityRow {
     readonly inst: GwInstitution;
     readonly delta: number;
   }[];
+  /** Who must pass a bill. Absent: nobody can stop one. */
+  readonly law?: GwLawBody;
 }
 
 const NOBODY: GwAuthorityRow = { inst: {}, rules: [], papers: [], dismiss: [] };
@@ -293,6 +296,7 @@ const russianRules: GwInstRule[] = [
 export const GW_AUTHORITY: Readonly<Record<string, GwAuthorityRow>> = {
   "": NOBODY,
   empire: {
+    law: GW_LAW_BODIES.reichstag,
     inst: { army: 0, reichstag: 0, countersign: 0 },
     rules: germanRules,
     papers: [
@@ -302,6 +306,7 @@ export const GW_AUTHORITY: Readonly<Record<string, GwAuthorityRow>> = {
     dismiss: [{ camp: "military", inst: "army", delta: -1 }],
   },
   republic: {
+    law: GW_LAW_BODIES.republic,
     inst: { army: -2, reichstag: 3 },
     rules: [
       {
@@ -316,6 +321,7 @@ export const GW_AUTHORITY: Readonly<Record<string, GwAuthorityRow>> = {
     dismiss: [{ camp: "military", inst: "army", delta: -1 }],
   },
   liberal: {
+    law: GW_LAW_BODIES.commons,
     inst: { cabinet: 1, commons: 1, opposition: 0, irish: 1, army: 0 },
     rules: [
       ...britishRules,
@@ -337,6 +343,7 @@ export const GW_AUTHORITY: Readonly<Record<string, GwAuthorityRow>> = {
     dismiss: [{ camp: "civil", inst: "cabinet", delta: -1 }],
   },
   coalition: {
+    law: GW_LAW_BODIES.commons,
     inst: { cabinet: 0, commons: 2, opposition: 2, irish: 0, army: 0 },
     rules: [
       ...britishRules,
@@ -354,18 +361,21 @@ export const GW_AUTHORITY: Readonly<Record<string, GwAuthorityRow>> = {
     ],
   },
   war_cabinet: {
+    law: GW_LAW_BODIES.commons,
     inst: { cabinet: 2, commons: 1, opposition: 1, irish: -1, army: 0 },
     rules: britishRules,
     papers: [{ inst: "commons", max: -4, closes: ["other"], why: "commons" }],
     dismiss: [{ camp: "hard", inst: "opposition", delta: -1 }],
   },
   national: {
+    law: GW_LAW_BODIES.commons,
     inst: { cabinet: 1, commons: 0, opposition: 3, irish: -2, army: 0 },
     rules: britishRules,
     papers: [],
     dismiss: [{ camp: "any", inst: "opposition", delta: -1 }],
   },
   dual_monarchy: {
+    law: GW_LAW_BODIES.hungary,
     inst: { hungary: 1, council: 2, nations: 0, berlin: 0, army: 2 },
     rules: austrianRules,
     papers: [
@@ -375,12 +385,14 @@ export const GW_AUTHORITY: Readonly<Record<string, GwAuthorityRow>> = {
     dismiss: [{ camp: "any", inst: "council", delta: -1 }],
   },
   ff_throne: {
+    law: GW_LAW_BODIES.hungary,
     inst: { hungary: -1, council: 1, nations: 1, berlin: 0, army: 2 },
     rules: austrianRules,
     papers: [{ inst: "hungary", max: -3, closes: ["major"], why: "hungary" }],
     dismiss: [{ camp: "magyar", inst: "hungary", delta: 1 }],
   },
   karl: {
+    law: GW_LAW_BODIES.hungary,
     inst: { hungary: -1, council: 0, nations: -1, berlin: 0, army: 0 },
     rules: [
       ...austrianRules,
@@ -396,6 +408,7 @@ export const GW_AUTHORITY: Readonly<Record<string, GwAuthorityRow>> = {
     dismiss: [{ camp: "military", inst: "council", delta: -1 }],
   },
   federation: {
+    law: GW_LAW_BODIES.hungary,
     inst: { hungary: -3, nations: 1, berlin: 0 },
     rules: asked,
     papers: [{ inst: "hungary", max: -2, closes: ["major"], why: "hungary" }],
@@ -414,6 +427,7 @@ export const GW_AUTHORITY: Readonly<Record<string, GwAuthorityRow>> = {
     dismiss: [],
   },
   tsar: {
+    law: GW_LAW_BODIES.tsar,
     inst: { court: 1, stavka: 1, duma: 0, ministers: 0 },
     rules: russianRules,
     papers: [
@@ -434,6 +448,7 @@ export const GW_AUTHORITY: Readonly<Record<string, GwAuthorityRow>> = {
     ],
   },
   crown: {
+    law: GW_LAW_BODIES.duma,
     inst: { court: -1, stavka: 1, duma: 2, ministers: 1 },
     rules: russianRules,
     papers: [{ inst: "duma", max: -3, closes: ["major"], why: "duma" }],
@@ -443,18 +458,21 @@ export const GW_AUTHORITY: Readonly<Record<string, GwAuthorityRow>> = {
     ],
   },
   regency: {
+    law: GW_LAW_BODIES.duma,
     inst: { court: -2, stavka: 0, duma: 1, ministers: 0 },
     rules: russianRules,
     papers: [{ inst: "stavka", min: 3, closes: ["hold"], why: "stavka" }],
     dismiss: [{ camp: "any", inst: "duma", delta: -1 }],
   },
   rep: {
+    law: GW_LAW_BODIES.duma,
     inst: { duma: 1, soviet: 2, stavka: -2 },
     rules: asked,
     papers: [{ inst: "soviet", min: 2, closes: ["major"], why: "soviet" }],
     dismiss: [{ camp: "any", inst: "soviet", delta: 1 }],
   },
   provisional: {
+    law: GW_LAW_BODIES.duma,
     inst: { duma: 2, soviet: 0, stavka: -1 },
     rules: [
       {

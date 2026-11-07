@@ -22,6 +22,7 @@ import type {
   GwThread,
 } from "./GreatWarTypes";
 import type { GwBudgetView } from "./GwBudget";
+import type { GwLawView } from "./GwLaw";
 import type { GwTag } from "./GwCountries";
 
 /** One of the chief of staff's papers; send it back as an `allocate`. */
@@ -165,4 +166,6 @@ export interface GwWorldView {
   news: readonly GwNews[];
   memoir: GwMemoir | null;
   budget: GwBudgetView;
+  /** Bills open, moving and in force. */
+  laws: readonly GwLawView[];
 }

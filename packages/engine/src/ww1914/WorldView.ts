@@ -18,6 +18,7 @@ import type {
   GwWorldView,
 } from "@openfront/engine-api/ww1914/GwWorldView";
 import { budgetView } from "./Budget";
+import { lawViews } from "./Laws";
 import { eraOf } from "./Eras";
 import { ownFronts, proposalsFor } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
@@ -187,5 +188,6 @@ export function worldView(gw: GreatWar, seat: GwSeatState): GwWorldView {
     news: s.news.slice(-NEWS_SHOWN),
     memoir: seat.memoir,
     budget: budgetView(gw, seat),
+    laws: lawViews(gw, seat),
   };
 }

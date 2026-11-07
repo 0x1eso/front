@@ -4,6 +4,7 @@
 // field needs no plumbing. Never store undefined: use null. Integers only.
 import { z } from "zod";
 import { GwBudgetStateSchema } from "./GwBudget";
+import { GwLawStateSchema } from "./GwLaw";
 import { GW_TAGS } from "./GwCountries";
 
 /** A content id: scene, person, flag, memory key. */
@@ -459,6 +460,8 @@ export const GwNationStateSchema = z.object({
   entered: z.number().int().nullable(),
   /** Its money: `gauges.money` follows from this (engine/ww1914/Budget). */
   budget: GwBudgetStateSchema,
+  /** Bills taken up and laws in force; a bill nobody has touched has no row. */
+  laws: z.array(GwLawStateSchema),
 });
 export type GwNationState = z.infer<typeof GwNationStateSchema>;
 

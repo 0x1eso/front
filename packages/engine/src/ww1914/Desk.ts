@@ -18,6 +18,7 @@ import { gwChapters } from "@openfront/engine-lib/ww1914/Calendars";
 import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import type { GreatWar } from "./GreatWar";
+import { lawReplaces } from "./Laws";
 import { castOf, holds, pickVariant, SceneCtx, specificity } from "./SceneRun";
 import { settlePromises } from "./Talk";
 import { stageOf } from "./World";
@@ -181,6 +182,7 @@ export function inStage(gw: GreatWar, scene: GwScene): boolean {
 function drawable(gw: GreatWar, seat: GwSeatState, scene: GwScene): boolean {
   if (scene.summon === true || scene.scheduledOnly === true) return false;
   if (scene.quiet === true || !scene.nation.includes(seat.tag)) return false;
+  if (lawReplaces(gw, seat, scene.id)) return false;
   return inStage(gw, scene) && repeatable(gw, seat, scene);
 }
 

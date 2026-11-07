@@ -298,5 +298,6 @@ function blankNation(tag: GwTag): GwNationState {
     spent: -9,
     entered: null,
     budget: budgetStart(tag, 2),
+    laws: [],
   };
 }

@@ -5,6 +5,7 @@ import type {
 import { html, nothing, TemplateResult } from "lit";
 import { translateText } from "../../Utils";
 import { budgetStrip, openLedger } from "./GwBudget";
+import { lawStrip } from "./GwLaws";
 import type { GwCtx } from "./GwCtx";
 import { isReadOnly, paperCards, talkCards } from "./GwModel";
 import { BTN, BTN_ON, CHIP, GLASS, HEAD, MUTED } from "./GwStyle";
@@ -218,6 +219,7 @@ export function reader(c: GwCtx, card: GwCardView): TemplateResult {
         )}
       </div>
       ${card.scene.startsWith("gw_bm_") ? budgetStrip(c) : nothing}
+      ${card.scene.startsWith("gw_lv_") ? lawStrip(c, card.scene) : nothing}
       ${(card.folded ?? []).length === 0
         ? nothing
         : html`<div class="space-y-0.5" data-gw-folded>

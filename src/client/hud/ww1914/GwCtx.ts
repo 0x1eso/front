@@ -54,6 +54,8 @@ export interface GwUi {
   summoned: number;
   /** A dismissal waiting for its second tap. */
   armedDismiss: string | null;
+  /** A repeal waiting for its second tap. */
+  armedRepeal: string | null;
   /** The research picked for the paper about to be signed. */
   research: GwResearch | null;
   /** The budget panel is open. */

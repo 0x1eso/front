@@ -1,0 +1,438 @@
+import {
+  any,
+  byName,
+  chose,
+  flag,
+  keepPromise,
+  memory,
+  setFlag,
+} from "@openfront/engine-api/ww1914/SceneDsl";
+import { doWorld, world } from "@openfront/engine-api/ww1914/WorldDsl";
+import type { GwLawRow } from "../../LawRows";
+import {
+  draft,
+  either,
+  gauge,
+  held,
+  inst,
+  lawTalk,
+  low,
+  men,
+  person,
+  since,
+  until,
+  war,
+} from "./kit";
+
+const row = (r: Omit<GwLawRow, "tag">): GwLawRow => ({ ...r, tag: "AUH" });
+const vienna = { chancellor: held("chancellor") };
+const both = { chancellor: held("chancellor"), hun: held("hun_pm") };
+const allOf = (...of: GwLawRow["opens"][]): GwLawRow["opens"] => ({
+  kind: "all",
+  of,
+});
+
+/**
+ * Austria-Hungary's bills. What touches both halves needs Hungary's consent and
+ * no paragraph replaces it. What touches Austria alone sits with the council of
+ * ministers (`body`): the Reichsrat is shut, and paragraph 14 goes past anyone.
+ */
+export const AUH_LAWS: readonly GwLawRow[] = [
+  row({
+    id: "auh_press",
+    opens: war,
+    lean: 1,
+    decree: true,
+    body: "council",
+    cast: { chancellor: held("chancellor"), war: held("war") },
+    draft: [
+      draft(
+        "surveillance_office",
+        1,
+        ["army:+1", "nations:-1"],
+        [inst("army", 1), inst("nations", -1)],
+      ),
+      draft("front_zone", 0, []),
+      draft("civil_censors", -1, ["nations:+1"], [inst("nations", 1)]),
+    ],
+    passed: [gauge("order", 1)],
+    passedTell: ["order:+1"],
+    term: [
+      { gauge: "order", delta: 1, every: 10 },
+      { gauge: "morale", delta: -1, every: 14, offset: 3 },
+    ],
+    flag: "f_law_censor",
+    settled: any(
+      flag("f_auh_decree_full"),
+      flag("f_auh_decree_narrow"),
+      flag("f_auh_decree_reichsrat"),
+    ),
+    replaces: ["auh_c_decree"],
+    repeal: {
+      authority: 15,
+      tell: ["nations:+1", "army:-1"],
+      effects: [inst("nations", 1), inst("army", -1)],
+    },
+    talk: lawTalk("auh_press", {
+      who: person("auh_adler"),
+      ask: "frank",
+      push: "cold",
+      tell: ["army:-1"],
+      price: [inst("army", -1)],
+      wins: 1,
+    }),
+  }),
+  row({
+    id: "auh_landsturm",
+    opens: allOf(war, since("1915-02")),
+    lean: 0,
+    decree: false,
+    cast: both,
+    draft: [
+      draft("to_fifty", 0, ["manpower:+4"], [men(4)]),
+      draft("to_forty_five", 1, []),
+      draft(
+        "harvest_leave",
+        1,
+        ["bread:+1", "manpower:-2"],
+        [gauge("bread", 1), men(-2)],
+      ),
+    ],
+    passed: [men(8)],
+    passedTell: ["manpower:+8"],
+    term: [
+      { gauge: "manpower", delta: 1, every: 5 },
+      { gauge: "bread", delta: -1, every: 12, offset: 4 },
+    ],
+    repeal: {
+      authority: 20,
+      tell: ["manpower:-8", "bread:+1"],
+      effects: [men(-8), gauge("bread", 1)],
+    },
+    talk: lawTalk("auh_landsturm", {
+      who: held("hun_pm"),
+      ask: "frank",
+      push: "cold",
+      tell: ["hungary:+1", "council:-1"],
+      price: [inst("hungary", 1), inst("council", -1)],
+      wins: 1,
+      tempers: ["stubborn"],
+    }),
+  }),
+  row({
+    id: "auh_factories",
+    opens: allOf(war, since("1915-01")),
+    lean: 1,
+    decree: true,
+    body: "council",
+    cast: { war: held("war"), chancellor: held("chancellor") },
+    draft: [
+      draft("military_direction", 0, ["army:+1"], [inst("army", 1)]),
+      draft("complaint_boards", 1, ["shells:-1"], [gauge("shells", -1)]),
+      draft(
+        "wage_floor",
+        -1,
+        ["money:-1", "order:+1"],
+        [gauge("money", -1), gauge("order", 1)],
+      ),
+    ],
+    passed: [gauge("shells", 1)],
+    passedTell: ["shells:+1"],
+    term: [
+      { gauge: "shells", delta: 1, every: 7 },
+      {
+        gauge: "order",
+        delta: -1,
+        every: 9,
+        offset: 3,
+        text: ["military_direction"],
+      },
+      {
+        gauge: "order",
+        delta: -1,
+        every: 14,
+        offset: 3,
+        text: ["complaint_boards", "wage_floor"],
+      },
+    ],
+    flag: "f_law_strike_ban",
+    repeal: {
+      authority: 15,
+      tell: ["order:+1", "shells:-1"],
+      effects: [gauge("order", 1), gauge("shells", -1)],
+    },
+    talk: lawTalk("auh_factories", {
+      who: person("auh_adler"),
+      ask: "warm",
+      push: "frank",
+      tell: ["army:-1"],
+      price: [inst("army", -1)],
+      wins: 1,
+      tempers: ["weary"],
+    }),
+    after: {
+      chapters: 8,
+      options: [
+        {
+          id: "officers_stay",
+          tell: ["shells:+1", "order:-1"],
+          effects: [gauge("shells", 1), gauge("order", -1)],
+        },
+        {
+          id: "boards_sit",
+          tell: ["order:+1", "army:-1"],
+          effects: [gauge("order", 1), inst("army", -1)],
+        },
+      ],
+    },
+  }),
+  row({
+    id: "auh_food",
+    opens: allOf(war, since("1916-02"), low("bread", 2)),
+    lean: -2,
+    decree: false,
+    cast: both,
+    draft: [
+      draft("common_committee", 1, ["council:-1"], [inst("council", -1)]),
+      draft(
+        "army_first",
+        0,
+        ["army:+1", "nations:-1"],
+        [inst("army", 1), inst("nations", -1)],
+      ),
+      draft("hungarian_price", 2, ["money:-1"], [gauge("money", -1)]),
+    ],
+    passed: [gauge("bread", 1), inst("hungary", -1)],
+    passedTell: ["bread:+1", "hungary:-1"],
+    term: [{ gauge: "bread", delta: 1, every: 6 }],
+    repeal: {
+      authority: 10,
+      tell: ["hungary:+1", "bread:-1"],
+      effects: [inst("hungary", 1), gauge("bread", -1)],
+    },
+    talk: lawTalk("auh_food", {
+      who: held("hun_pm"),
+      ask: "cold",
+      push: "threat",
+      tell: ["hungary:+1", "money:-1"],
+      price: [inst("hungary", 1), gauge("money", -1)],
+      wins: 2,
+    }),
+    after: {
+      chapters: 7,
+      options: [
+        {
+          id: "grain_by_rail",
+          tell: ["bread:+1", "hungary:-1"],
+          effects: [gauge("bread", 1), inst("hungary", -1)],
+        },
+        {
+          id: "vienna_waits",
+          tell: ["hungary:+1", "order:-1"],
+          effects: [inst("hungary", 1), gauge("order", -1)],
+        },
+      ],
+    },
+  }),
+  row({
+    id: "auh_galicia",
+    opens: allOf(war, since("1916-06")),
+    lean: 0,
+    decree: true,
+    body: "council",
+    cast: vienna,
+    draft: [
+      draft("special_status", 0, ["nations:+1"], [inst("nations", 1)]),
+      draft("after_the_war", 1, []),
+      draft(
+        "east_divided",
+        -1,
+        ["nations:+1", "berlin:+1"],
+        [inst("nations", 1), inst("berlin", 1)],
+      ),
+    ],
+    passed: [
+      inst("nations", 1),
+      keepPromise(byName("auh_bilinski"), "bil_galicia"),
+    ],
+    passedTell: ["nations:+1"],
+    term: [{ gauge: "morale", delta: 1, every: 12 }],
+    repeal: {
+      authority: 25,
+      tell: ["nations:-2"],
+      effects: [inst("nations", -2)],
+    },
+    talk: lawTalk("auh_galicia", {
+      who: held("finance"),
+      ask: "warm",
+      push: "cold",
+      tell: ["council:-1"],
+      price: [inst("council", -1)],
+      wins: 2,
+      tempers: ["cunning"],
+    }),
+  }),
+  row({
+    id: "auh_transylvania",
+    opens: allOf(war, until("1916-08"), world({ is: "neutral", tag: "ROU" })),
+    lean: -2,
+    decree: false,
+    cast: both,
+    draft: [
+      draft("schools", 1, []),
+      draft("language_and_seats", -1, ["nations:+1"], [inst("nations", 1)]),
+      draft("words_to_bucharest", 2, ["nations:-1"], [inst("nations", -1)]),
+    ],
+    passed: [
+      doWorld({ do: "readiness", tag: "ROU", delta: -10 }),
+      inst("nations", 1),
+      inst("hungary", -1),
+    ],
+    passedTell: ["rou:+1", "nations:+1", "hungary:-1"],
+    term: [],
+    repeal: {
+      authority: 20,
+      tell: ["hungary:+1", "nations:-2"],
+      effects: [inst("hungary", 1), inst("nations", -2)],
+    },
+    talk: lawTalk("auh_transylvania", {
+      who: person("auh_czernin"),
+      ask: "frank",
+      push: "flatter",
+      tell: ["hungary:-1"],
+      price: [inst("hungary", -1)],
+      wins: 2,
+      tempers: ["arrogant"],
+    }),
+  }),
+  row({
+    id: "auh_oktroi",
+    opens: allOf(war, since("1916-11"), until("1917-12")),
+    lean: 1,
+    decree: true,
+    body: "council",
+    cast: vienna,
+    draft: [
+      draft("bohemia_split", 1, ["nations:-1"], [inst("nations", -1)]),
+      draft(
+        "state_language",
+        0,
+        ["berlin:-1", "nations:-2"],
+        [inst("berlin", -1), inst("nations", -2)],
+      ),
+    ],
+    passed: [inst("army", 1), inst("nations", -1)],
+    passedTell: ["army:+1", "nations:-1"],
+    term: [{ gauge: "order", delta: -1, every: 10 }],
+    repeal: {
+      authority: 5,
+      tell: ["nations:+1", "army:-1"],
+      effects: [inst("nations", 1), inst("army", -1)],
+    },
+    talk: lawTalk("auh_oktroi", {
+      who: held("chancellor"),
+      ask: "cold",
+      push: "frank",
+      tell: ["nations:-1"],
+      price: [inst("nations", -1)],
+      wins: 1,
+    }),
+  }),
+  row({
+    id: "auh_reichsrat",
+    opens: allOf(war, since("1916-11")),
+    lean: -1,
+    decree: false,
+    body: "council",
+    cast: vienna,
+    draft: [
+      draft("open_with_oath", 1, ["nations:-1"], [inst("nations", -1)]),
+      draft(
+        "open_plainly",
+        0,
+        ["nations:+1", "army:-1"],
+        [inst("nations", 1), inst("army", -1)],
+      ),
+      draft(
+        "with_amnesty",
+        -1,
+        ["nations:+2", "army:-2"],
+        [inst("nations", 2), inst("army", -2), setFlag("f_auh_amnesty")],
+      ),
+    ],
+    passed: [
+      inst("nations", 1),
+      gauge("order", 1),
+      inst("council", -1),
+      setFlag("f_auh_sign_austria"),
+    ],
+    passedTell: ["nations:+1", "order:+1", "council:-1"],
+    term: [],
+    settled: any(chose("auh_h_reichsrat_call", "open_it"), {
+      kind: "seen",
+      scene: "auh_k_reichsrat_opens",
+    }),
+    replaces: ["auh_h_reichsrat_call"],
+    repeal: {
+      authority: 30,
+      tell: ["nations:-2", "order:-1"],
+      effects: [inst("nations", -2), gauge("order", -1)],
+    },
+    talk: lawTalk("auh_reichsrat", {
+      who: either(person("auh_koerber"), held("chancellor")),
+      ask: "frank",
+      push: "warm",
+      tell: ["army:-1"],
+      price: [inst("army", -1)],
+      wins: 2,
+      tempers: ["weary"],
+    }),
+  }),
+  row({
+    id: "auh_franchise",
+    opens: allOf(
+      war,
+      since("1917-01"),
+      any(memory("k_tisza_franchise"), memory("k_kar_vote"), {
+        kind: "gauge",
+        gauge: "morale",
+        max: 2,
+      }),
+    ),
+    lean: -3,
+    decree: false,
+    cast: both,
+    draft: [
+      draft("soldiers_vote", 2, ["hungary:-1"], [inst("hungary", -1)]),
+      draft("literate_vote", 1, ["nations:-1"], [inst("nations", -1)]),
+      draft(
+        "universal",
+        -1,
+        ["nations:+2", "hungary:-2"],
+        [inst("nations", 2), inst("hungary", -2)],
+      ),
+    ],
+    passed: [
+      gauge("morale", 1),
+      inst("nations", 1),
+      setFlag("f_auh_soldiers_vote"),
+    ],
+    passedTell: ["morale:+1", "nations:+1"],
+    term: [],
+    settled: flag("f_auh_soldiers_vote"),
+    repeal: {
+      authority: 35,
+      tell: ["morale:-1", "nations:-1"],
+      effects: [gauge("morale", -1), inst("nations", -1)],
+    },
+    talk: lawTalk("auh_franchise", {
+      who: person("auh_karolyi"),
+      ask: "frank",
+      push: "flatter",
+      tell: ["hungary:-1"],
+      price: [inst("hungary", -1)],
+      wins: 2,
+      tempers: ["arrogant"],
+    }),
+  }),
+];

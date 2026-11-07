@@ -24,6 +24,17 @@ import { closeSeat, SEPARATE_PEACE } from "./Endings";
 import { eraOf, hasTech } from "./Eras";
 import { signChief, warScore } from "./Fronts";
 import { sendReport } from "./Intel";
+import {
+  lawCount,
+  lawCanDecree,
+  lawDecree,
+  lawHold,
+  lawPut,
+  lawStage,
+  lawSupport,
+  lawText,
+  lawWithdraw,
+} from "./Laws";
 import { armistice, openTalks, sue } from "./Peace";
 import { keepPerson, openLetter, personLeaves, recordResult } from "./People";
 import { changeRegime, regimeRow } from "./Regimes";
@@ -193,6 +204,15 @@ export function worldHolds(ctx: SceneCtx, c: GwWorldCond): boolean {
     }
     case "budget":
       return nation !== null && inRange(budgetFact(gw, nation, c.what), c);
+    case "law": {
+      const st = nation === null ? null : lawStage(nation, c.id);
+      if (st === null || !c.of.includes(st.stage)) return false;
+      return c.text === undefined || st.text === c.text;
+    }
+    case "law_count":
+      return inRange(lawCount(gw, seat, c.id), c);
+    case "law_decree":
+      return lawCanDecree(gw, seat, c.id);
   }
 }
 
@@ -406,6 +426,24 @@ export function worldEffect(ctx: SceneCtx, e: GwWorldEffect): void {
         nation.budget.rate = e.pct;
         nation.budget.shutUntil = s.chapter + e.shut;
       }
+      return;
+    case "law_text":
+      lawText(gw, seat, e.law, e.text, e.support);
+      return;
+    case "law_support":
+      lawSupport(gw, seat, e.law, e.delta);
+      return;
+    case "law_put":
+      lawPut(ctx, e.law);
+      return;
+    case "law_decree":
+      lawDecree(ctx, e.law);
+      return;
+    case "law_hold":
+      lawHold(gw, seat, e.law);
+      return;
+    case "law_withdraw":
+      lawWithdraw(gw, seat, e.law);
       return;
   }
 }
