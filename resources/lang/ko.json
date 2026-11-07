@@ -15039,6 +15039,7 @@
         "no_card": "그 서류는 이미 없습니다.",
         "no_option": "그런 선택지는 없습니다.",
         "no_person": "그 사람은 지금 부를 수 없습니다.",
+        "no_private": "이번 장의 사적인 자리를 썼습니다.",
         "no_topic": "지금은 그 이야기를 꺼낼 수 없습니다.",
         "not_proposed": "참모총장이 올린 안이 아닙니다.",
         "open_cards": "열린 서류가 남아 있습니다. 읽거나 정한 뒤에 마칠 수 있습니다.",
@@ -15197,6 +15198,9 @@
         "offensive": "공세"
       },
       "powers_title": "열강의 형편",
+      "private_hint": "접견과는 따로입니다. 그 사람 삶에 일이 생겨야 여기에 뜹니다.",
+      "private_left": "남은 자리 {n}번",
+      "private_title": "사적으로 만나기",
       "promise_broken": "어겼다",
       "promise_due": "{date}까지",
       "promise_kept": "지켰다",

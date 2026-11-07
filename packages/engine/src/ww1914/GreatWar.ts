@@ -169,6 +169,7 @@ export class GreatWar {
         tag: this.tagOf(p.smallID()),
         ready: false,
         audiences: 0,
+        privates: 0,
         desk: [],
         flags: [],
         memory: [],

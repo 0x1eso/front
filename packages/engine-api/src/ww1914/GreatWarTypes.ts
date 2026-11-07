@@ -732,6 +732,8 @@ export const GwSeatStateSchema = z.object({
   ready: z.boolean(),
   /** Summons left this chapter. */
   audiences: z.number().int(),
+  /** Private meetings left this chapter (tag `private`). */
+  privates: z.number().int(),
   desk: z.array(GwCardSchema),
   flags: z.array(GwIdSchema),
   memory: z.array(GwMemorySchema),

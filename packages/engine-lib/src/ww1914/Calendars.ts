@@ -21,6 +21,8 @@ export interface GwSegment {
   readonly summons: number;
   /** More in a big chapter (eng/ww1914/Chapters: bigChapter). */
   readonly bigSummons: number;
+  /** Private meetings each chapter: apart from summons, tag `private`. */
+  readonly privates: number;
 }
 
 /**
@@ -33,24 +35,24 @@ export const GW_CALENDARS: Readonly<
 > = {
   // "1914년 판" (design §3): 12 chapters, about 30 minutes alone.
   y1914: [
-    seg("crisis", "1914-06-28", 6, 7, 90, 3),
-    seg("y1914", "1914-08-09", 5, 30, 120, 2),
+    seg("crisis", "1914-06-28", 6, 7, 90, 3, 0, 1),
+    seg("y1914", "1914-08-09", 5, 30, 120, 2, 0, 1),
     seg("closing", "1915-01-01", 1, 1, 180, 0),
   ],
   // The default (owner, design §15 no. 6): 60 chapters, a month of war each,
   // three to four hours. About 70 summons a game: fewer than the talks a
   // country has, so nobody hears them all in one game.
   full: [
-    seg("crisis", "1914-06-28", 6, 7, 90, 3),
-    seg("y1914", "1914-08-09", 5, 30, 120, 1, 1),
-    seg("war", "1915-01-01", 48, 30, 120, 1, 1),
+    seg("crisis", "1914-06-28", 6, 7, 90, 3, 0, 1),
+    seg("y1914", "1914-08-09", 5, 30, 120, 1, 1, 1),
+    seg("war", "1915-01-01", 48, 30, 120, 1, 1, 1),
     seg("closing", "1918-12-15", 1, 1, 180, 0),
   ],
   // The shorter war (design §3): 36 chapters, two months of war each.
   standard: [
-    seg("crisis", "1914-06-28", 6, 7, 90, 3),
-    seg("y1914", "1914-08-09", 5, 30, 120, 2),
-    seg("war", "1915-01-01", 24, 60, 120, 2),
+    seg("crisis", "1914-06-28", 6, 7, 90, 3, 0, 1),
+    seg("y1914", "1914-08-09", 5, 30, 120, 2, 0, 1),
+    seg("war", "1915-01-01", 24, 60, 120, 2, 0, 1),
     seg("closing", "1918-12-01", 1, 1, 180, 0),
   ],
 };
@@ -83,8 +85,18 @@ function seg(
   timerSec: number,
   summons: number,
   bigSummons = 0,
+  privates = 0,
 ): GwSegment {
-  return { stage, from, count, spanDays, timerSec, summons, bigSummons };
+  return {
+    stage,
+    from,
+    count,
+    spanDays,
+    timerSec,
+    summons,
+    bigSummons,
+    privates,
+  };
 }
 
 export interface GwChapter {
@@ -96,6 +108,7 @@ export interface GwChapter {
   readonly timerSec: number;
   readonly summons: number;
   readonly bigSummons: number;
+  readonly privates: number;
   /** The fiscal year whose budget meeting this chapter holds; null if none. */
   readonly budget: number | null;
 }
@@ -118,6 +131,7 @@ export function gwChapters(id: GwCalendarId): readonly GwChapter[] {
         spanDays: s.spanDays,
         timerSec: s.timerSec,
         summons: s.summons,
+        privates: s.privates,
         bigSummons: s.bigSummons,
         budget: null,
       });

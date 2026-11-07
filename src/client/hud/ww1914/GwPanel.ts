@@ -79,6 +79,7 @@ export class GwPanel extends LitElement implements Controller {
     talkUid: null,
     talks: new Map(),
     openPerson: null,
+    privateOpen: false,
     summoned: 0,
     armedDismiss: null,
     research: null,

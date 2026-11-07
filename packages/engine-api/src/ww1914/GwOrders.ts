@@ -78,5 +78,6 @@ export const GW_ORDER_BLOCKS = [
   "not_proposed",
   "no_meeting",
   "bad_budget",
+  "no_private",
 ] as const;
 export type GwOrderBlock = (typeof GW_ORDER_BLOCKS)[number];

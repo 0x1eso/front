@@ -3008,6 +3008,7 @@
         "no_meeting": "There is no budget meeting now.",
         "no_option": "There is no such choice.",
         "no_person": "That person cannot be called now.",
+        "no_private": "You have used this chapter's private meeting.",
         "no_topic": "That cannot be raised now.",
         "not_proposed": "The chief of staff did not put this forward.",
         "open_cards": "Papers are still open: decide or read them first.",
@@ -3167,6 +3168,9 @@
         "offensive": "Offensive"
       },
       "powers_title": "The powers",
+      "private_hint": "Apart from audiences. Only what has come up in their lives is here.",
+      "private_left": "{n} left",
+      "private_title": "Meet in private",
       "promise_broken": "broken",
       "promise_due": "by {date}",
       "promise_kept": "kept",

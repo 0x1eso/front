@@ -197,13 +197,37 @@ function summonAll(
   while (seat.audiences > 0 && open.length > 0) {
     if (roll(100) >= profile.summons) return;
     const [pick] = open.splice(roll(open.length), 1);
-    const before = seat.desk.length;
-    if (applyGwOrder(gw, seat, { kind: "summon", ...pick }) !== null) continue;
-    bump(rec.summoned, pick.topic);
-    const card = seat.desk[before];
-    rec.casts.push(castKey(card));
-    talkThrough(gw, seat, card, profile, roll, rec);
+    meet(gw, seat, pick, profile, roll, rec);
   }
+  const own = mine.flatMap((p) =>
+    gw.person(p.id)?.status === "active"
+      ? openTopics(gw, seat, p.id, true).map((topic) => ({
+          person: p.id,
+          topic,
+        }))
+      : [],
+  );
+  for (const x of own) bump(rec.openTopics, x.topic);
+  if (seat.privates > 0 && own.length > 0 && roll(100) < profile.summons) {
+    meet(gw, seat, own[roll(own.length)], profile, roll, rec);
+  }
+}
+
+/** One summons or private meeting, talked through. */
+function meet(
+  gw: GreatWar,
+  seat: GwSeatState,
+  pick: { person: string; topic: string },
+  profile: GwSimProfile,
+  roll: (below: number) => number,
+  rec: GwRunRecord,
+): void {
+  const before = seat.desk.length;
+  if (applyGwOrder(gw, seat, { kind: "summon", ...pick }) !== null) return;
+  bump(rec.summoned, pick.topic);
+  const card = seat.desk[before];
+  rec.casts.push(castKey(card));
+  talkThrough(gw, seat, card, profile, roll, rec);
 }
 
 /** One talk, reply by reply. */

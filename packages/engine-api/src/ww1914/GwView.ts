@@ -83,6 +83,8 @@ export interface GwPersonView {
   trust: number;
   /** Talk scenes open to summon this person now. */
   topics: readonly string[];
+  /** Talks open to a private meeting with them now. */
+  privateTopics?: readonly string[];
   /** Offices they can be appointed to (public content). */
   fit: readonly GwOffice[];
   /** Person ids they are at odds with (public content). */
@@ -105,6 +107,8 @@ export interface GwSeatView {
   tag: GwTag;
   ready: boolean;
   audiences: number;
+  /** Private meetings left this chapter. */
+  privates?: number;
   desk: readonly GwCardView[];
   people: readonly GwPersonView[];
   gauges: Readonly<Record<GwGauge, number>>;

@@ -50,6 +50,8 @@ export interface GwUi {
   talkUid: number | null;
   talks: Map<number, Transcript>;
   openPerson: string | null;
+  /** The list of private meetings is open on the people tab. */
+  privateOpen: boolean;
   /** Date.now() of the last summon sent; a talk that appears soon after opens itself. */
   summoned: number;
   /** A dismissal waiting for its second tap. */

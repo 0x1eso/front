@@ -67,6 +67,11 @@ export const GwPackSchema = z
     promises: ById.optional(),
     /** Ending id -> the memoir's paragraph, may hold {date}, {casualties}. */
     endings: ById.optional(),
+    /**
+     * Lines laid over a scene another share owns: a body, a node's line. A
+     * later share adds to a scene without touching its file.
+     */
+    over: z.record(GwIdSchema, GwScenePackSchema.partial()).optional(),
   })
   .strict();
 export type GwPack = z.infer<typeof GwPackSchema>;
@@ -88,7 +93,31 @@ export function mergeGwPacks(packs: readonly GwPack[]): GwPack {
     Object.assign(out.promises!, p.promises);
     Object.assign(out.endings!, p.endings);
   }
+  for (const p of packs) {
+    for (const [id, o] of Object.entries(p.over ?? {})) {
+      const s = out.scenes[id];
+      if (s !== undefined) out.scenes[id] = layOver(s, o);
+    }
+  }
   return out;
+}
+
+/** The scene with the laid-over lines added to its tables. */
+function layOver(s: GwScenePack, o: Partial<GwScenePack>): GwScenePack {
+  const nodes = { ...s.nodes };
+  for (const [id, n] of Object.entries(o.nodes ?? {})) {
+    const old = nodes[id];
+    nodes[id] = {
+      ...old,
+      says: { ...old?.says, ...n.says },
+      replies: { ...old?.replies, ...n.replies },
+    };
+  }
+  return {
+    ...s,
+    text: { ...s.text, ...o.text },
+    ...(o.nodes === undefined ? {} : { nodes }),
+  };
 }
 
 /** Ids two packs both hold: `mergeGwPacks` would keep only the later one. */

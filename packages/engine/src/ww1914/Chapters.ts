@@ -72,6 +72,7 @@ export function openChapter(gw: GreatWar, ticks: number): void {
   for (const seat of s.seats) {
     seat.ready = false;
     seat.audiences = ch.summons + (bigChapter(gw, seat) ? ch.bigSummons : 0);
+    seat.privates = ch.privates;
     dealDesk(gw, seat);
   }
   gw.touch();
