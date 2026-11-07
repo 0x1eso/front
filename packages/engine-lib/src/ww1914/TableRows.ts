@@ -159,17 +159,18 @@ export const GW_TABLE_CAPITALS: readonly GwPlace[] = [
 ];
 
 /** Land a country counts as itself, not as something it holds. */
-export const GW_TABLE_HEART: Readonly<Partial<Record<GwTag, readonly string[]>>> =
-  {
-    DEU: ["germany", "rhineland", "silesia", "east_prussia", "west_prussia"],
-    AUH: ["austria", "hungary", "bohemia", "moravia"],
-    RUS: ["russia", "baltic", "west_russia", "ukraine"],
-    FRA: ["france", "western_front"],
-    ITA: ["piave"],
-    OTT: ["straits"],
-    SRB: ["serbia"],
-    BEL: ["belgium", "flanders"],
-    ROU: ["romania"],
-    BGR: ["bulgaria"],
-    GRC: ["greece"],
-  };
+export const GW_TABLE_HEART: Readonly<
+  Partial<Record<GwTag, readonly string[]>>
+> = {
+  DEU: ["germany", "rhineland", "silesia", "east_prussia", "west_prussia"],
+  AUH: ["austria", "hungary", "bohemia", "moravia"],
+  RUS: ["russia", "baltic", "west_russia", "ukraine"],
+  FRA: ["france", "western_front"],
+  ITA: ["piave"],
+  OTT: ["straits"],
+  SRB: ["serbia"],
+  BEL: ["belgium", "flanders"],
+  ROU: ["romania"],
+  BGR: ["bulgaria"],
+  GRC: ["greece"],
+};

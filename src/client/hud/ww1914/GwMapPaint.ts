@@ -109,7 +109,10 @@ export class GwMapPaint implements OccupationSource {
     const taken: { x: number; y: number }[] = [];
     for (const el of tags) {
       const [wx, wy] = (el.dataset.gwTagAt ?? "0 0").split(" ").map(Number);
-      const p = this.transform.worldToScreenCoordinates({ x: wx, y: wy } as never);
+      const p = this.transform.worldToScreenCoordinates({
+        x: wx,
+        y: wy,
+      } as never);
       const crowded = taken.some(
         (o) => Math.abs(o.x - p.x) < TAG_W && Math.abs(o.y - p.y) < TAG_H,
       );

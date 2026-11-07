@@ -2,11 +2,11 @@ import {
   GW_RESEARCH,
   GW_THEATRES,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
+import { GW_PLACES } from "@openfront/engine-api/ww1914/GwPlaces";
 import type {
   GwFrontView,
   GwProposal,
 } from "@openfront/engine-api/ww1914/GwWorldView";
-import { GW_PLACES } from "@openfront/engine-api/ww1914/GwPlaces";
 import { html, nothing, TemplateResult } from "lit";
 import { translateText } from "../../Utils";
 import type { GwCtx } from "./GwCtx";

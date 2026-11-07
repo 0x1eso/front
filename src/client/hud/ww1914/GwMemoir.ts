@@ -283,8 +283,8 @@ export function memoirTab(c: GwCtx): TemplateResult {
       ? html`<p class="text-sm text-white/70">
           ${translateText("gw.ui.memoir_open")}
         </p>`
-      : html`${ending(c, m)} ${mapBox(c, m)} ${aimBox(c, m)} ${mandates(m)} ${turns(m)}
-        ${reckoning(m)} ${cast(c, m)} ${unknown(c, m)}`}
+      : html`${ending(c, m)} ${mapBox(c, m)} ${aimBox(c, m)} ${mandates(m)}
+        ${turns(m)} ${reckoning(m)} ${cast(c, m)} ${unknown(c, m)}`}
     <section class=${BOX}>
       <h3 class=${HEAD}>${translateText("gw.ui.record_title")}</h3>
       ${record.length === 0

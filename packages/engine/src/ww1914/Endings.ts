@@ -18,12 +18,12 @@ import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
 import { daysFromCivil } from "@openfront/engine-lib/ww1936/Calendar";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { aimRecord } from "./Aims";
-import { closeTable, mapRecord } from "./Table";
 import { warScore } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
 import { GW_MANDATES } from "./Mandates";
 import { chaptersPlayed } from "./Peace";
 import { holds } from "./SceneRun";
+import { closeTable, mapRecord } from "./Table";
 import { leaveWar } from "./Wars";
 import { defOf, fights, seatPerson } from "./World";
 

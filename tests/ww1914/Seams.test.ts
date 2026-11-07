@@ -439,6 +439,7 @@ describe("pack shares", () => {
       "ww1914/ko/common.ruler.json",
       "ww1914/ko/common.dict.json",
       "ww1914/ko/common.acts.json",
+      "ww1914/ko/common.table.json",
       "ww1914/ko/DEU.cast.json",
       "ww1914/ko/GBR.people.json",
       "ww1914/ko/AUH.people.json",

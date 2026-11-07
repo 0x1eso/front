@@ -11,9 +11,9 @@ import type {
 import { html, nothing, TemplateResult } from "lit";
 import { translateText } from "../../Utils";
 import type { GwCtx } from "./GwCtx";
-import { claimsBox } from "./GwTable";
 import { rich } from "./GwDict";
 import { BTN, BTN_ON, CHIP, HEAD, MUTED } from "./GwStyle";
+import { claimsBox } from "./GwTable";
 import { personName } from "./GwText";
 
 const BOX = "space-y-1.5 rounded border border-white/15 bg-black/35 p-2.5";

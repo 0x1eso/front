@@ -1,5 +1,5 @@
-import { GW_PLACES } from "@openfront/engine-api/ww1914/GwPlaces";
 import { GwTablePackSchema } from "@openfront/engine-api/ww1914/GwPack";
+import { GW_PLACES } from "@openfront/engine-api/ww1914/GwPlaces";
 import {
   GW_TABLE_LINES,
   type GwTableView,
@@ -163,7 +163,10 @@ describe("what is said", () => {
       const t = res(`ww1914/ko/${tag}.table.json`).table;
       GwTablePackSchema.parse(t);
       for (const m of MOMENTS) {
-        expect(Object.keys(t.aides[m] ?? {}).length, `${tag}.${m}`).toBeGreaterThan(0);
+        expect(
+          Object.keys(t.aides[m] ?? {}).length,
+          `${tag}.${m}`,
+        ).toBeGreaterThan(0);
       }
       for (const role of ["won", "lost", "even", "watch"]) {
         expect(t.open[role], `${tag}.${role}`).toBeDefined();

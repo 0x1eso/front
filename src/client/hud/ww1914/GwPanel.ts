@@ -41,13 +41,7 @@ import { notebookTab } from "./GwNotebook";
 import { peopleTab } from "./GwPeople";
 import { scheduleTab } from "./GwSchedule";
 import { GLASS } from "./GwStyle";
-import {
-  paintPane,
-  paintTags,
-  speech,
-  tableTab,
-  tableTags,
-} from "./GwTable";
+import { paintPane, paintTags, speech, tableTab, tableTags } from "./GwTable";
 import { paintCells, tableCells, togglePlace } from "./GwTableModel";
 import { activeTalk, syncTranscripts, talkView } from "./GwTalk";
 import { ticker, tickerLines } from "./GwTicker";
@@ -97,6 +91,7 @@ export class GwPanel extends LitElement implements Controller {
   private chapter = -1;
   private tableSeen = false;
   private lineSeen = -1;
+  private turnSeen = false;
   /** Lines in the open talk when last drawn: a new one scrolls into view. */
   private talkTurns = 0;
   private readonly ui: GwUi = {
@@ -312,13 +307,20 @@ export class GwPanel extends LitElement implements Controller {
     if (t.due?.kind !== "turn") {
       ui.tableArmed = null;
       ui.tableBarred = null;
+      this.turnSeen = false;
+    } else if (!this.turnSeen) {
+      // The last claim may have taken the camera to Africa: the choice is here.
+      this.turnSeen = true;
+      this.map?.flyTo(TABLE_VIEW[0], TABLE_VIEW[1]);
     }
     if (t.due?.kind !== "word") ui.tableOffer = false;
     const line = t.lines[t.lines.length - 1];
     if (line === undefined || line.n === this.lineSeen) return;
     this.lineSeen = line.n;
     const claim = t.claims.find((x) => x.id === line.claim);
-    if (claim !== undefined && ui.tab === "table") this.map?.fly(claim.place);
+    if (claim !== undefined && ui.tab === "table" && t.due?.kind !== "turn") {
+      this.map?.fly(claim.place);
+    }
   }
 
   /** A talk grows downward: its newest line must not open below the fold. */
@@ -410,9 +412,9 @@ export class GwPanel extends LitElement implements Controller {
           class="flex shrink-0 flex-wrap items-center gap-0.5 border-b border-white/10 p-1.5"
           data-gw-tabs
         >
-          ${GW_TABS.filter((t) => t !== "table" || seat.table != null).map(
-            (tab) => this.tabButton(c, tab),
-          )}
+          ${GW_TABS.filter(
+            (t) => t !== "table" || (seat.table ?? null) !== null,
+          ).map((tab) => this.tabButton(c, tab))}
           <button
             class="ml-auto px-2 text-white/60 hover:text-white"
             data-gw-fold

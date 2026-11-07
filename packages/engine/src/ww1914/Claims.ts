@@ -130,8 +130,7 @@ function heard(gw: GreatWar, seat: GwSeatState, added: readonly GwPlace[]) {
 function payForChange(gw: GreatWar, seat: GwSeatState): void {
   const n = gw.nation(seat.tag);
   if (n !== null) {
-    const price =
-      CHANGE_AUTHORITY + seat.claimsChanged * CHANGE_AUTHORITY_MORE;
+    const price = CHANGE_AUTHORITY + seat.claimsChanged * CHANGE_AUTHORITY_MORE;
     n.authority = clampTo(n.authority - price, 0, 100);
   }
   moveRuler(gw, seat, "reputation", CHANGE_REPUTATION, "claims_changed");

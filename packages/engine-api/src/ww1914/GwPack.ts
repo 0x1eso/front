@@ -191,7 +191,9 @@ const GwEnvoyPackSchema = z
     name: Text,
     title: Text,
     /** Where another man comes by how the war ended. */
-    nameBy: z.partialRecord(z.enum(["won", "lost", "even", "watch"]), Text).optional(),
+    nameBy: z
+      .partialRecord(z.enum(["won", "lost", "even", "watch"]), Text)
+      .optional(),
     /** Line kind, or `open_<role>` -> what he says. Holds {place}, {by}... */
     lines: z.record(GwIdSchema, Lines),
   })

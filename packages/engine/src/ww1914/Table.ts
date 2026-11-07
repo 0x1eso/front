@@ -249,8 +249,7 @@ function leverage(gw: GreatWar, c: GwTableClaim): number {
   const t = gw.s.table!;
   const n = gw.nation(c.against);
   const tired = n === null ? 0 : weariness(n);
-  const v =
-    standing(gw, c.by) + tired - (t.held[c.against] ?? 0) * HOLD_WORTH;
+  const v = standing(gw, c.by) + tired - (t.held[c.against] ?? 0) * HOLD_WORTH;
   return sideOf(gw, c.by) === sideOf(gw, c.against) ? Math.trunc(v / 2) : v;
 }
 
@@ -285,7 +284,11 @@ function placeCost(gw: GreatWar, c: GwTableClaim): number {
 const gapOf = (gw: GreatWar, c: GwTableClaim) =>
   leverage(gw, c) - placeCost(gw, c);
 
-function tradeWorth(gw: GreatWar, c: GwTableClaim, trade: GwTableTrade): number {
+function tradeWorth(
+  gw: GreatWar,
+  c: GwTableClaim,
+  trade: GwTableTrade,
+): number {
   const t = gw.s.table!;
   let v = TRADE_WORTH[trade];
   if (trade === "reparations") v -= (t.bill[c.against] ?? 0) * BILL_WEAR;
@@ -490,6 +493,8 @@ function pickFor(gw: GreatWar, tag: GwTag): GwPlace | null {
   if (made >= most) return null;
   for (const place of rows) {
     if (onTable(t, place) || againstOf(gw, tag, place) === null) continue;
+    // What it asked for and didn't get, it doesn't ask for again.
+    if (t.claims.some((c) => c.by === tag && c.place === place)) continue;
     // With nobody beaten, a country keeps at most what it stands on.
     if (winner === null && holderOf(gw, place) !== tag) continue;
     return place;
@@ -543,8 +548,7 @@ function stepTable(gw: GreatWar): boolean {
 function paceOf(gw: GreatWar): number {
   const t = gw.s.table!;
   const c = t.claims[t.claims.length - 1];
-  const mine =
-    c === undefined || hasSeat(gw, c.by) || hasSeat(gw, c.against);
+  const mine = c === undefined || hasSeat(gw, c.by) || hasSeat(gw, c.against);
   return mine ? PACE : QUICK;
 }
 
@@ -646,7 +650,11 @@ function seatCloses(gw: GreatWar, seat: GwSeatState): void {
   }
   if (seat.claims.length > 0) {
     const got = claimsHeld(gw, seat).length;
-    reason(gw, seat, got * 2 >= seat.claims.length ? "table_got" : "table_short");
+    reason(
+      gw,
+      seat,
+      got * 2 >= seat.claims.length ? "table_got" : "table_short",
+    );
   }
 }
 
@@ -694,7 +702,10 @@ export function tableClaim(
 }
 
 /** Applies `table_pass`. */
-export function tablePass(gw: GreatWar, seat: GwSeatState): GwOrderBlock | null {
+export function tablePass(
+  gw: GreatWar,
+  seat: GwSeatState,
+): GwOrderBlock | null {
   const t = gw.s.table;
   if (t === null || !myTurn(gw, seat)) return "table_no";
   nextChair(t);
@@ -762,10 +773,7 @@ function roleOf(gw: GreatWar, seat: GwSeatState): GwTableView["role"] {
 }
 
 /** The screen's copy; null before an armistice. */
-export function tableView(
-  gw: GreatWar,
-  seat: GwSeatState,
-): GwTableView | null {
+export function tableView(gw: GreatWar, seat: GwSeatState): GwTableView | null {
   const t = gw.s.table;
   if (t === null) return null;
   const c = openClaim(t);

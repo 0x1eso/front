@@ -144,7 +144,10 @@ export function tableCells(
 
 /** The claims with a name worth writing on the map, newest first. */
 export function tagged(t: GwTableView): GwTableClaimView[] {
-  return t.claims.filter((c) => c.state !== "dropped").slice().reverse();
+  return t.claims
+    .filter((c) => c.state !== "dropped")
+    .slice()
+    .reverse();
 }
 
 /** A country's name, or a place's. */

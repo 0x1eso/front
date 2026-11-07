@@ -23,8 +23,8 @@ import type {
 } from "./GreatWarTypes";
 import type { GwBudgetView } from "./GwBudget";
 import type { GwTag } from "./GwCountries";
-import type { GwPlace } from "./GwPlaces";
 import type { GwLawView } from "./GwLaw";
+import type { GwPlace } from "./GwPlaces";
 import type { GwPressView } from "./GwPress";
 
 /** One of the chief of staff's papers; send it back as an `allocate`. */

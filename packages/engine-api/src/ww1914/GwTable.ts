@@ -174,9 +174,7 @@ export const GwMapRecordSchema = z.object({
   painted: z.array(GwPlaceSchema),
   got: z.array(GwPlaceSchema),
   /** Everything out of its 1914 owner's hands at the end. */
-  moves: z.array(
-    z.object({ place: GwPlaceSchema, from: Tag, to: Tag }),
-  ),
+  moves: z.array(z.object({ place: GwPlaceSchema, from: Tag, to: Tag })),
   /** What the seat's claims came to, other than land. */
   trades: z.array(
     z.object({

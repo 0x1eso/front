@@ -1,3 +1,4 @@
+import { gwCountry, GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import { GW_PLACES, GwPlace } from "@openfront/engine-api/ww1914/GwPlaces";
 import type {
   GwTableClaimView,
@@ -5,7 +6,6 @@ import type {
   GwTableView,
   GwTableWord,
 } from "@openfront/engine-api/ww1914/GwTable";
-import { gwCountry, GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import { assetUrl } from "@openfront/shared/AssetUrls";
 import { html, nothing, TemplateResult } from "lit";
 import { translateText } from "../../Utils";
@@ -34,7 +34,11 @@ const TAG =
   "pointer-events-none fixed left-0 top-0 z-[880] whitespace-nowrap rounded bg-black/70 px-1 text-[11px] leading-4 text-white";
 
 const flag = (tag: GwTag) =>
-  html`<img class=${FLAG} src=${assetUrl(`flags/${gwCountry(tag).flag}.svg`)} alt="" />`;
+  html`<img
+    class=${FLAG}
+    src=${assetUrl(`flags/${gwCountry(tag).flag}.svg`)}
+    alt=""
+  />`;
 
 const ink = (name: string) => {
   const [r, g, b] = GW_MAP_INK[name];
@@ -186,13 +190,14 @@ function aides(c: GwCtx, t: GwTableView) {
   if (lines.length === 0) return nothing;
   return html`<section class="${BOX} border-amber-200/30" data-gw-aides>
     ${lines.map(
-      (l) => html`<div data-gw-aide=${l.office}>
-        <div class=${MUTED}>
-          ${personName(c.pack, l.who)} ·
-          ${translateText(`gw.office.${l.office}`)}
-        </div>
-        <p class="text-sm leading-6 text-white/90">“${rich(c, l.text)}”</p>
-      </div>`,
+      (l) =>
+        html`<div data-gw-aide=${l.office}>
+          <div class=${MUTED}>
+            ${personName(c.pack, l.who)} ·
+            ${translateText(`gw.office.${l.office}`)}
+          </div>
+          <p class="text-sm leading-6 text-white/90">“${rich(c, l.text)}”</p>
+        </div>`,
     )}
   </section>`;
 }
@@ -273,8 +278,7 @@ function question(x: GwTableClaimView, tag: GwTag): string {
     place: placeName(x.place),
     by: countryName(x.by),
     against: countryName(x.against),
-    trade:
-      x.offer === null ? "" : translateText(`gw.table.trade.${x.offer}`),
+    trade: x.offer === null ? "" : translateText(`gw.table.trade.${x.offer}`),
   });
 }
 
@@ -291,7 +295,9 @@ function wordBox(c: GwCtx, t: GwTableView) {
       ${due.words.map(
         (w) =>
           html`<button
-            class="${w === "offer" && c.ui.tableOffer ? BTN_ON : BTN} text-center"
+            class="${w === "offer" && c.ui.tableOffer
+              ? BTN_ON
+              : BTN} text-center"
             data-gw-word=${w}
             @click=${() => {
               if (w === "offer") {
@@ -450,9 +456,7 @@ function treaty(c: GwCtx, t: GwTableView) {
     <h3 class=${HEAD}>${translateText("gw.table.signed")}</h3>
     ${words === undefined
       ? nothing
-      : html`<p class="text-sm leading-6 text-white/90">
-          ${rich(c, words)}
-        </p>`}
+      : html`<p class="text-sm leading-6 text-white/90">${rich(c, words)}</p>`}
   </section>`;
 }
 
@@ -499,7 +503,7 @@ export function speech(c: GwCtx): TemplateResult | typeof nothing {
   const text = lineText(c.pack, t, line);
   const talking = !t.done && t.due === null;
   return html`<div
-    class="${GLASS} pointer-events-auto fixed inset-x-2 bottom-[calc(42vh+0.5rem)] z-[897] rounded p-2.5 text-white sm:bottom-3 sm:left-[416px] sm:right-3 sm:mx-auto sm:max-w-[720px]"
+    class="${GLASS} pointer-events-auto fixed bottom-[calc(42vh+0.5rem)] left-2 right-14 z-[897] rounded p-2.5 text-white sm:bottom-3 sm:left-[416px] sm:right-3 sm:mx-auto sm:max-w-[720px]"
     data-gw-speech
     data-gw-line=${line.n}
     data-gw-word=${line.word}

@@ -88,7 +88,9 @@ describe("the painted map", () => {
     order(runner, { kind: "claims", places: wide });
     expect(blocNow(gw, seat, "workers")).toBeLessThan(workers);
     expect(blocNow(gw, seat, "army")).toBeGreaterThanOrEqual(army);
-    const why = seatOf(runner).world.press?.blocs.find((b) => b.id === "workers");
+    const why = seatOf(runner).world.press?.blocs.find(
+      (b) => b.id === "workers",
+    );
     expect(why?.why.map((w) => w.key)).toContain("claims_wide");
   });
 
@@ -251,6 +253,15 @@ describe("the table", () => {
     pass(gw, runner, 5);
     const t = gw.s.table!;
     expect(t.claims.filter((c) => c.by !== "GBR")).toEqual([]);
+  });
+
+  test("what a country was refused it doesn't ask for again next month", async () => {
+    const { runner, gw } = await war("DEU", "GWT12");
+    armistice(gw, "compromise", null);
+    gw.s.held.togo = "FRA";
+    pass(gw, runner, 3);
+    const asked = gw.s.table!.claims.filter((c) => c.by === "FRA");
+    expect(new Set(asked.map((c) => c.place)).size).toBe(asked.length);
   });
 
   test("a country that left a war its side won has no chair", async () => {
