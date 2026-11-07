@@ -23,7 +23,7 @@ import {
   SceneCtx,
   sceneOf,
 } from "./SceneRun";
-import { ownPeople, seatPerson, stageOf } from "./World";
+import { lastOf, ownPeople, seatPerson, stageOf } from "./World";
 
 const P_CAUGHT = idHash("gw_act_caught");
 
@@ -92,7 +92,10 @@ function fieldView(ctx: SceneCtx, f: GwActField) {
   const tones = f.tones ?? [];
   const size = people.length + options.length + tones.length;
   if (size < count) return null;
-  return { id: f.id, options, tones, people, count };
+  const tells = Object.fromEntries(
+    (f.options ?? []).flatMap((o) => (o.tell ? [[o.id, o.tell]] : [])),
+  );
+  return { id: f.id, options, tones, people, count, tells };
 }
 
 /** Everything on the schedule now, in content order. */

@@ -88,6 +88,20 @@ async function finished(): Promise<GreatWarData> {
 }
 
 describe("the memoir on the world's data", () => {
+  test("the aim is judged on the closing page, with what was given up", async () => {
+    const d = await finished();
+    const s = d.seats[0];
+    const memoir = {
+      ...s.world.memoir!,
+      aim: { id: "deu_aim_x", met: false, dropped: ["deu_aim_y"] },
+    };
+    const world = { ...s.world, memoir };
+    const { panel } = await mount({ ...d, seats: [{ ...s, world }] });
+    const box = panel.querySelector("[data-gw-memoir-aim]")!;
+    expect(box.textContent).toContain("deu_aim_x");
+    expect(box.textContent).toContain("deu_aim_y");
+  });
+
   test("the end opens the memoir: ending, mandates, what you never knew", async () => {
     const d = await finished();
     const memoir = d.seats[0].world.memoir!;

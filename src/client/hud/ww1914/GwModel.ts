@@ -39,6 +39,7 @@ import { GW_RULERS } from "@openfront/engine-lib/ww1914/RulerRows";
 export const GW_TABS = [
   "desk",
   "people",
+  "schedule",
   "fronts",
   "country",
   "notebook",
@@ -141,6 +142,8 @@ export function tabBadge(seat: GwSeatView, tab: GwTab): number {
       return seat.desk.length;
     case "people":
       return seat.audiences;
+    case "schedule":
+      return (seat.acts ?? []).length === 0 ? 0 : (seat.actsLeft ?? 0);
     case "blocs":
       return (
         seat.world.press?.blocs.filter((b) => b.turning === "leaving").length ??

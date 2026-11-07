@@ -14493,7 +14493,9 @@
       "order_prices": "물가가 임금을 앞질렀다.",
       "money_budget_up": "한 해 수입이 지출을 넘었다.",
       "money_scene": "결정이 금고를 움직였다.",
-      "morale_rumour": "소문이 나라의 신경을 갉았다."
+      "morale_rumour": "소문이 나라의 신경을 갉았다.",
+      "terms_grain": "조약에 따라 곡물이 오갔다.",
+      "terms_shells": "조약에 따라 포탄이 오갔다."
     },
     "mandate": {
       "deu_bread_for_the_winter": "겨울 빵을 남기기",
@@ -14627,7 +14629,8 @@
       "regime_rep": "{a}: 러시아 공화국.",
       "law_passed": "{a}에서 새 법이 통과됐다.",
       "law_repealed": "{a}에서 법 하나가 폐지됐다.",
-      "law_decreed": "{a}에서 새 법이 칙령으로 나왔다."
+      "law_decreed": "{a}에서 새 법이 칙령으로 나왔다.",
+      "terms_signed": "{a}와(과) {b}이(가) 조건에 합의했다."
     },
     "odds": {
       "0": "될 일이 아닙니다.",
@@ -14821,7 +14824,11 @@
       "press_leaked": "각료의 일이 신문에 흘러갔다.",
       "press_lifted": "검열을 풀었다.",
       "press_tightened": "검열을 조였다.",
-      "press_war_censor": "전쟁과 함께 검열이 왔다."
+      "press_war_censor": "전쟁과 함께 검열이 왔다.",
+      "aim_changed": "선언한 목표를 뒤집었다.",
+      "paper_sent_back": "{who}에게 서류를 돌려보냈다.",
+      "terms_no": "{country}이(가) 우리 조건을 거절했다.",
+      "terms_yes": "{country}이(가) 우리 조건을 받아들였다."
     },
     "result": {
       "advance": "전진",
@@ -14880,7 +14887,8 @@
       "press": "신문",
       "staff": "참모부 추정",
       "embassy_berlin": "베를린 대사관",
-      "embassy_rome": "로마 대사관"
+      "embassy_rome": "로마 대사관",
+      "own_eyes": "직접 본 것"
     },
     "stamp": {
       "confirmed": "확인",
@@ -15111,7 +15119,14 @@
         "law_busy": "다른 법안이 움직이고 있다.",
         "press_done": "이번 장의 신문 일은 끝났다.",
         "press_closed": "지금은 신문에 그렇게 할 수 없다.",
-        "no_paper": "그 신문은 오지 않는다."
+        "no_paper": "그 신문은 오지 않는다.",
+        "bad_pick": "고를 수 없는 것이다.",
+        "no_act": "이제는 할 수 없는 일이다.",
+        "no_aim": "고를 수 없는 목표다.",
+        "no_back": "이 서류는 돌려보낼 수 없다.",
+        "no_slot": "이번 장의 일정이 남지 않았다.",
+        "no_terms": "이 조건은 보낼 수 없다.",
+        "terms_sent": "이번 장의 조건은 이미 나갔다."
       },
       "brief_label": "비서의 메모",
       "calendar": {
@@ -15353,7 +15368,8 @@
         "memoir": "회고",
         "people": "사람",
         "notebook": "수첩",
-        "blocs": "정국"
+        "blocs": "정국",
+        "schedule": "일정"
       },
       "talk_done": "자리를 일어선다",
       "talk_ended": "대화가 끝났다.",
@@ -15784,6 +15800,94 @@
         "cry_home": "자치 구호",
         "cry_war": "전쟁 구호",
         "cry_peace": "평화 구호"
+      }
+    },
+    "act": {
+      "go": "이대로 한다",
+      "left": "이번 장 남은 일정 {n}",
+      "none": "이번 장에 스스로 벌일 일이 없다.",
+      "people_label": "누구를",
+      "title": "원수의 일정",
+      "tone_label": "어조",
+      "kind": {
+        "intrigue": "뒷공작",
+        "letter": "친서",
+        "order": "칙령과 지시",
+        "speech": "연설",
+        "visit": "시찰"
+      },
+      "tone": {
+        "cold": "차갑게",
+        "flatter": "추어올려",
+        "frank": "솔직하게",
+        "threat": "위협하며",
+        "warm": "다정하게"
+      }
+    },
+    "aim": {
+      "ask": "이 전쟁이 무엇을 위한 것인지 말한다. 뒤의 서류와 회고록이 이 말로 판단한다.",
+      "change": "목표를 바꾼다",
+      "declare": "이것으로 선언한다",
+      "dropped": "버린 목표: {list}",
+      "nudge": "이 전쟁이 무엇을 위한 것인지 아직 말하지 않았다.",
+      "priced": "한 말을 뒤집으면 값을 치른다.",
+      "title": "국가 목표"
+    },
+    "back": {
+      "go": "돌려보낸다",
+      "hint": "{name}에게 돌아간다. 다음 장에 다시 올라온다.",
+      "open": "다시 써 오시오",
+      "changed": {
+        "calmer": "{who}이(가) 국내 반발이 덜하도록 고친 안을 올렸다.",
+        "cheaper": "{who}이(가) 돈이 덜 들도록 고친 안을 올렸다.",
+        "firmer": "{who}이(가) 더 세게 고친 안을 올렸다.",
+        "gentler": "{who}이(가) 외국을 덜 자극하도록 고친 안을 올렸다.",
+        "kinder": "{who}이(가) 걸린 사람들의 체면을 살려 고친 안을 올렸다."
+      },
+      "dir": {
+        "calmer": "국내 반발이 덜하게",
+        "cheaper": "돈이 덜 들게",
+        "firmer": "더 세게",
+        "gentler": "외국을 덜 자극하게",
+        "kinder": "걸린 사람들 체면을 살려"
+      },
+      "dug": {
+        "n0": "{who}이(가) 같은 안을 다시 올렸다. 고칠 데가 없다는 쪽지가 붙어 있다.",
+        "n1": "{who}은(는) 안을 고치지 않았다. 여백에 한 줄뿐이다. 원안대로.",
+        "n2": "{who}이(가) 손대지 않은 안을 그대로 되돌려 올렸다."
+      }
+    },
+    "terms": {
+      "ask_label": "우리가 요구한다",
+      "give_label": "우리가 내놓는다",
+      "go": "조건을 보낸다",
+      "hint": "나라를 고르고 탁자에 올릴 것을 고른다. 장이 닫힐 때 답이 온다.",
+      "sent": "이번 장의 조건은 이미 나갔다.",
+      "title": "먼저 움직이는 외교",
+      "waiting": "답을 기다린다",
+      "yes": "받아들였다",
+      "ask": {
+        "credit": "차관",
+        "grain": "곡물",
+        "join": "우리 편으로 참전",
+        "mediate": "위기 중재",
+        "peace": "단독 강화",
+        "shells": "포탄",
+        "stay_out": "중립 유지"
+      },
+      "give": {
+        "credit": "차관",
+        "grain": "곡물",
+        "guarantee": "국경 보장",
+        "price": "영토와 이권",
+        "shells": "포탄"
+      },
+      "why": {
+        "bound": "이미 매인 데가 있다",
+        "no_trust": "우리를 믿지 않는다",
+        "too_little": "내놓은 것이 모자란다",
+        "winning": "제 편이 앞서는데 들을 까닭이 없다",
+        "too_soon": "아직 그런 말을 꺼낼 때가 아니다"
       }
     }
   }

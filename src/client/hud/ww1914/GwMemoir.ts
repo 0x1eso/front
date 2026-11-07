@@ -37,6 +37,27 @@ function ending(c: GwCtx, m: GwMemoir): TemplateResult {
   </section>`;
 }
 
+/** What the seat said the war was for, and how that stands at the end. */
+function aimBox(c: GwCtx, m: GwMemoir): TemplateResult | typeof nothing {
+  if (m.aim === null || m.aim === undefined) return nothing;
+  const words = c.pack?.aims?.[m.aim.id];
+  const dropped = m.aim.dropped.map((id) => c.pack?.aims?.[id]?.name ?? id);
+  return html`<section class=${BOX} data-gw-memoir-aim>
+    <h3 class=${HEAD}>${translateText("gw.aim.title")}</h3>
+    <p class="text-sm font-bold text-amber-100">${words?.name ?? m.aim.id}</p>
+    ${words === undefined
+      ? nothing
+      : html`<p class=${PROSE}>
+          ${rich(c, m.aim.met ? words.met : words.unmet)}
+        </p>`}
+    ${dropped.length === 0
+      ? nothing
+      : html`<p class=${MUTED}>
+          ${translateText("gw.aim.dropped", { list: dropped.join(", ") })}
+        </p>`}
+  </section>`;
+}
+
 function mandates(m: GwMemoir): TemplateResult | typeof nothing {
   if (m.mandates.length === 0) return nothing;
   return html`<section class=${BOX} data-gw-memoir-mandates>
@@ -203,8 +224,8 @@ export function memoirTab(c: GwCtx): TemplateResult {
       ? html`<p class="text-sm text-white/70">
           ${translateText("gw.ui.memoir_open")}
         </p>`
-      : html`${ending(c, m)} ${mandates(m)} ${turns(m)} ${reckoning(m)}
-        ${cast(c, m)} ${unknown(c, m)}`}
+      : html`${ending(c, m)} ${aimBox(c, m)} ${mandates(m)} ${turns(m)}
+        ${reckoning(m)} ${cast(c, m)} ${unknown(c, m)}`}
     <section class=${BOX}>
       <h3 class=${HEAD}>${translateText("gw.ui.record_title")}</h3>
       ${record.length === 0

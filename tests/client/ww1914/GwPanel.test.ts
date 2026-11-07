@@ -17,6 +17,7 @@ import { SendGwOrderIntentEvent } from "../../../src/client/Transport";
 const SCENES = {
   deu_sample_envoy: {
     title: "빈에서 온 사절",
+    back: { dug: "{chancellor}이(가) 원안을 다시 올렸다." },
     brief: { base: "빈이 세르비아를 치겠다며 독일의 지지를 묻고 있습니다." },
     text: {
       base: "빈에서 사절이 왔다. 세르비아를 벌하겠으니 베를린이 뒤를 받쳐 주겠느냐고 묻는다. {chancellor}은(는) 서류를 내려놓고 폐하의 답을 기다린다.",
@@ -79,6 +80,33 @@ const PACK = GwPackSchema.parse({
   ...packFile("DEU.json"),
   people: packFile("DEU.cast.json").people,
   scenes: SCENES,
+  acts: {
+    t_krupp: { name: "크루프 공장", note: "포탄 공장을 직접 본다." },
+    t_nicky: {
+      name: "니콜라이에게 쓴다",
+      fields: {
+        subject: { label: "무엇을", opt: { serbia: "세르비아", mob: "동원" } },
+      },
+    },
+    t_council: {
+      name: "회의를 소집한다",
+      fields: { attend: { label: "누구를" } },
+    },
+  },
+  aims: {
+    t_aim_a: {
+      name: "빈을 지킨다",
+      text: "우리는 빈을 지키려 싸우오.",
+      met: "빈이 섰다.",
+      unmet: "빈이 무너졌다.",
+    },
+    t_aim_b: {
+      name: "전쟁은 없다",
+      text: "전쟁을 막겠소.",
+      met: "전쟁이 없었다.",
+      unmet: "전쟁이 왔다.",
+    },
+  },
 });
 
 const card = (over: Partial<GwCardView> = {}): GwCardView => ({
@@ -483,5 +511,228 @@ describe("the screens", () => {
     const out = fillGw("{date}, {cos}", PACK, card(), d.seats[0], d.date);
     expect(out).toBe("6월 28일, 몰트케");
     expect(tellText("army:+1")).toContain("+1");
+  });
+
+  const seatWith = (over: Partial<GreatWarData["seats"][0]>) => {
+    const d = data([]);
+    return { ...d, seats: [{ ...d.seats[0], ...over }] };
+  };
+  const SCHEDULE = {
+    actsLeft: 2,
+    acts: [
+      { id: "t_krupp", kind: "visit" as const, fields: [], tell: [] },
+      {
+        id: "t_nicky",
+        kind: "letter" as const,
+        tell: ["ally:+1"],
+        fields: [
+          {
+            id: "subject",
+            options: ["serbia", "mob"],
+            tones: [],
+            people: [],
+            count: 1,
+          },
+          {
+            id: "tone",
+            options: [],
+            tones: ["warm", "threat"] as const,
+            people: [],
+            count: 1,
+          },
+        ],
+      },
+      {
+        id: "t_council",
+        kind: "order" as const,
+        tell: [],
+        fields: [
+          {
+            id: "attend",
+            options: [],
+            tones: [],
+            people: ["deu_bethmann", "deu_moltke", "deu_jagow"],
+            count: 2,
+          },
+        ],
+      },
+    ],
+  };
+  const tab = async (panel: GwPanel, name: string) => {
+    panel.querySelector<HTMLButtonElement>(`[data-gw-tab=${name}]`)!.click();
+    await panel.updateComplete;
+  };
+  const tap = async (panel: GwPanel, sel: string) => {
+    panel.querySelector<HTMLButtonElement>(sel)!.click();
+    await panel.updateComplete;
+  };
+
+  test("the schedule sits beside the people tab and lists by kind", async () => {
+    const { panel } = await mount(seatWith(SCHEDULE));
+    const tabs = [...panel.querySelectorAll("[data-gw-tab]")].map((x) =>
+      x.getAttribute("data-gw-tab"),
+    );
+    expect(tabs.indexOf("schedule")).toBe(tabs.indexOf("people") + 1);
+    expect(
+      panel.querySelector("[data-gw-tab=schedule]")!.textContent,
+    ).toContain("2");
+    await tab(panel, "schedule");
+    expect(
+      panel.querySelector("[data-gw-act-kind=visit]")!.textContent,
+    ).toContain("크루프 공장");
+    expect(panel.querySelector("[data-gw-act-kind=letter]")).not.toBeNull();
+    expect(panel.querySelector("[data-gw-act-kind=speech]")).toBeNull();
+  });
+
+  test("a letter waits for every field, then goes as one order", async () => {
+    const { panel, orders } = await mount(seatWith(SCHEDULE));
+    await tab(panel, "schedule");
+    await tap(panel, "[data-gw-act-open=t_nicky]");
+    const go = () =>
+      panel.querySelector<HTMLButtonElement>("[data-gw-act-go]")!;
+    expect(go().disabled).toBe(true);
+    await tap(panel, "[data-gw-act-pick=mob]");
+    expect(go().disabled).toBe(true);
+    await tap(panel, "[data-gw-act-pick=warm]");
+    expect(go().disabled).toBe(false);
+    await tap(panel, "[data-gw-act-go]");
+    expect(orders).toEqual([
+      { kind: "act", act: "t_nicky", picks: ["mob", "warm"] },
+    ]);
+  });
+
+  test("a people field takes exactly its count", async () => {
+    const { panel, orders } = await mount(seatWith(SCHEDULE));
+    await tab(panel, "schedule");
+    await tap(panel, "[data-gw-act-open=t_council]");
+    await tap(panel, "[data-gw-act-pick=deu_bethmann]");
+    await tap(panel, "[data-gw-act-pick=deu_moltke]");
+    await tap(panel, "[data-gw-act-pick=deu_jagow]");
+    await tap(panel, "[data-gw-act-go]");
+    expect(orders).toEqual([
+      {
+        kind: "act",
+        act: "t_council",
+        picks: ["deu_bethmann", "deu_moltke"],
+      },
+    ]);
+  });
+
+  test("no slot left: the entries stay in view and can't be opened", async () => {
+    const { panel } = await mount(seatWith({ ...SCHEDULE, actsLeft: 0 }));
+    await tab(panel, "schedule");
+    const b = panel.querySelector<HTMLButtonElement>(
+      "[data-gw-act-open=t_krupp]",
+    )!;
+    expect(b.disabled).toBe(true);
+  });
+
+  test("the aim: asked on the desk, declared on the schedule", async () => {
+    const aims = {
+      aim: null,
+      open: ["t_aim_a", "t_aim_b"],
+      priced: false,
+      dropped: [],
+    };
+    const { panel, orders } = await mount(seatWith({ aims }));
+    await tap(panel, "[data-gw-aim-nudge]");
+    expect(panel.querySelector("[data-gw-aim-priced]")).toBeNull();
+    await tap(panel, "[data-gw-aim-pick=t_aim_a]");
+    expect(panel.querySelector("[data-gw-aims]")!.textContent).toContain(
+      "우리는 빈을 지키려",
+    );
+    await tap(panel, "[data-gw-aim-go]");
+    expect(orders).toEqual([{ kind: "aim", aim: "t_aim_a" }]);
+  });
+
+  test("a declared aim shows, and changing it warns of a price", async () => {
+    const aims = {
+      aim: "t_aim_a",
+      open: ["t_aim_a", "t_aim_b"],
+      priced: true,
+      dropped: [],
+    };
+    const { panel } = await mount(seatWith({ aims }));
+    expect(panel.querySelector("[data-gw-aim-nudge]")).toBeNull();
+    await tab(panel, "schedule");
+    expect(panel.querySelector("[data-gw-aim-now]")!.textContent).toContain(
+      "빈을 지킨다",
+    );
+    expect(panel.querySelector("[data-gw-aim-pick]")).toBeNull();
+    await tap(panel, "[data-gw-aim-change]");
+    expect(panel.querySelector("[data-gw-aim-priced]")).not.toBeNull();
+    expect(panel.querySelector("[data-gw-aim-pick=t_aim_a]")).toBeNull();
+    expect(panel.querySelector("[data-gw-aim-pick=t_aim_b]")).not.toBeNull();
+  });
+
+  test("terms: a country, clauses, one order; the answer shows after", async () => {
+    const terms = {
+      sent: false,
+      targets: [
+        {
+          tag: "ITA" as const,
+          give: ["price", "credit"] as const,
+          ask: ["stay_out"] as const,
+        },
+      ],
+      log: [
+        {
+          tag: "GBR" as const,
+          give: [],
+          ask: ["stay_out"] as const,
+          yes: false,
+          why: "no_trust" as const,
+        },
+      ],
+    };
+    const { panel, orders } = await mount(seatWith({ terms }));
+    await tab(panel, "schedule");
+    expect(panel.querySelector("[data-gw-term-log=GBR]")).not.toBeNull();
+    await tap(panel, "[data-gw-term-tag=ITA]");
+    const go = () =>
+      panel.querySelector<HTMLButtonElement>("[data-gw-term-go]")!;
+    expect(go().disabled).toBe(true);
+    await tap(panel, "[data-gw-clause='give.price']");
+    await tap(panel, "[data-gw-clause='ask.stay_out']");
+    await tap(panel, "[data-gw-term-go]");
+    expect(orders).toEqual([
+      { kind: "terms", tag: "ITA", give: ["price"], ask: ["stay_out"] },
+    ]);
+  });
+
+  test("a paper goes back with a direction, beside the signature", async () => {
+    const paper = card({
+      backTo: ["cheaper", "firmer"],
+      backWho: "deu_bethmann",
+    });
+    const { panel, orders } = await mount(data([paper]));
+    await tap(panel, "[data-gw-open='1']");
+    await tap(panel, "[data-gw-back-open]");
+    expect(panel.querySelectorAll("[data-gw-back-dir]").length).toBe(2);
+    expect(panel.querySelector("[data-gw-back-go]")).toBeNull();
+    await tap(panel, "[data-gw-back-dir=cheaper]");
+    await tap(panel, "[data-gw-back-go]");
+    expect(orders).toEqual([
+      { kind: "send_back", card: 1, direction: "cheaper" },
+    ]);
+  });
+
+  test("a paper that can't go back has no such button", async () => {
+    const { panel } = await mount(data([card()]));
+    await tap(panel, "[data-gw-open='1']");
+    expect(panel.querySelector("[data-gw-back]")).toBeNull();
+  });
+
+  test("a paper come again says what its author did", async () => {
+    const d = data([
+      card({
+        back: { direction: "cheaper", changed: false },
+        backWho: "deu_bethmann",
+      }),
+    ]);
+    const { panel } = await mount(d);
+    const line = panel.querySelector("[data-gw-back-line]")!;
+    expect(line.textContent).toContain("베트만홀베크이(가)".slice(0, 6));
+    expect(line.textContent).toContain("원안을 다시");
   });
 });

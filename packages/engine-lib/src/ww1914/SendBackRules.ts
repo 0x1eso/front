@@ -116,7 +116,7 @@ export function reworkEffects(
     const cost = up.find(isCost) as Numeric | undefined;
     return cost === undefined
       ? up
-      : stepFirst(up, isCost, cost.kind === "temp" ? 1 : -1);
+      : stepFirst(up, isCost, Math.sign(cost.delta));
   }
   if (!anyEased(list, d)) return [...list];
   return stepFirst(eased(list, d), isGain, -1);

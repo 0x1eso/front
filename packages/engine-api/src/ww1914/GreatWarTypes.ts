@@ -590,6 +590,7 @@ export const GW_TERM_REFUSALS = [
   "no_trust",
   "winning",
   "bound",
+  "too_soon",
 ] as const;
 export type GwTermRefusal = (typeof GW_TERM_REFUSALS)[number];
 

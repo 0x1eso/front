@@ -473,7 +473,7 @@ export function holds(ctx: SceneCtx, c: GwCond): boolean {
     case "aim":
       return seat.aim !== null && c.of.includes(seat.aim);
     case "aim_met": {
-      const aim = gwContent().aims?.find((x) => x.id === seat.aim);
+      const aim = (gwContent().aims ?? []).find((x) => x.id === seat.aim);
       return aim !== undefined && holds({ gw, seat, cast: {} }, aim.met);
     }
     case "aim_changed":

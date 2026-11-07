@@ -1963,11 +1963,66 @@
     "territory_sat_label": "Territory saturation"
   },
   "gw": {
+    "act": {
+      "go": "Do it",
+      "kind": {
+        "intrigue": "Behind the scenes",
+        "letter": "Letters",
+        "order": "Orders",
+        "speech": "Speeches",
+        "visit": "Visits"
+      },
+      "left": "{n} left this chapter",
+      "none": "Nothing is open to you this chapter.",
+      "people_label": "Who",
+      "title": "The ruler's schedule",
+      "tone": {
+        "cold": "Cold",
+        "flatter": "Flattering",
+        "frank": "Frank",
+        "threat": "Threatening",
+        "warm": "Warm"
+      },
+      "tone_label": "Tone"
+    },
     "ai": {
       "cautious": "cautious",
       "hardline": "hardline",
       "opportunist": "opportunist",
       "principled": "principled"
+    },
+    "aim": {
+      "ask": "Say what this war is for. Later papers and the memoir will hold you to it.",
+      "change": "Change the aim",
+      "declare": "Declare it",
+      "dropped": "Given up: {list}",
+      "nudge": "You have not yet said what this war is for.",
+      "priced": "Going back on your word has a price.",
+      "title": "National aim"
+    },
+    "back": {
+      "changed": {
+        "calmer": "{who} has rewritten the paper to stir less anger at home.",
+        "cheaper": "{who} has rewritten the paper to cost less.",
+        "firmer": "{who} has rewritten the paper in harder terms.",
+        "gentler": "{who} has rewritten the paper to give less offence abroad.",
+        "kinder": "{who} has rewritten the paper to spare the people it touches."
+      },
+      "dir": {
+        "calmer": "Less anger at home",
+        "cheaper": "Cheaper",
+        "firmer": "Firmer",
+        "gentler": "Less offence abroad",
+        "kinder": "Spare the people it touches"
+      },
+      "dug": {
+        "n0": "{who} has sent the same paper up again, with a note: nothing to change.",
+        "n1": "{who} did not change it. One line in the margin: as drafted.",
+        "n2": "{who} has returned the paper untouched."
+      },
+      "go": "Send it back",
+      "hint": "It goes back to {name}. It returns next chapter.",
+      "open": "Rewrite this"
     },
     "budget": {
       "alone": "Sign alone (authority -{n})",
@@ -2523,7 +2578,9 @@
       "shells_no_factories": "There are too few factories.",
       "shells_spent": "The offensive used up the stock.",
       "shells_stock_thin": "The reserve turned out smaller than the books said.",
-      "shells_well_run": "The war ministry found another month of output."
+      "shells_well_run": "The war ministry found another month of output.",
+      "terms_grain": "Grain moved under a treaty.",
+      "terms_shells": "Shells moved under a treaty."
     },
     "mandate": {
       "auh_bread_for_vienna": "Keep bread in Vienna",
@@ -2650,6 +2707,7 @@
       "tech_ocean_boats": "{a} is first with: Ocean-going submarines.",
       "tech_predicted_fire": "{a} is first with: Predicted fire.",
       "tech_tanks": "{a} is first with: Tanks.",
+      "terms_signed": "{a} and {b} have come to terms.",
       "uboat_0": "Germany returns to cruiser rules.",
       "uboat_1": "Germany declares a war zone around Britain.",
       "uboat_2": "Germany begins unrestricted submarine war.",
@@ -2713,6 +2771,7 @@
       "stavka": "Stavka will not take this paper."
     },
     "reason": {
+      "aim_changed": "You went back on the aim you declared.",
       "amnesty_granted": "The courts martial were withdrawn.",
       "army_grows": "The army took more of the war into its own hands.",
       "army_melts": "The army thinned out.",
@@ -2778,6 +2837,7 @@
       "mob_waited_out": "Mobilisation was put off twice, and by then the crisis had cooled. The waiting ended it.",
       "nations_stir": "The nationalities stirred at the defeat.",
       "opposition_presses": "The opposition pressed harder.",
+      "paper_sent_back": "A paper went back to {who}.",
       "peace_refused": "You sent the go-between away.",
       "person_ailing": "{who} is failing.",
       "person_passed": "{who} died.",
@@ -2845,6 +2905,8 @@
       "tech_ocean_boats": "Ocean-going submarines reached the army.",
       "tech_predicted_fire": "Predicted fire reached the army.",
       "tech_tanks": "Tanks reached the army.",
+      "terms_no": "{country} refused our terms.",
+      "terms_yes": "{country} accepted our terms.",
       "uboats_held": "The boats stayed under cruiser rules.",
       "unrest_1": "Strikes have started.",
       "unrest_2": "There are riots.",
@@ -2941,6 +3003,7 @@
       "embassy_petersburg": "St Petersburg embassy",
       "embassy_rome": "Rome embassy",
       "embassy_vienna": "Vienna embassy",
+      "own_eyes": "Seen in person",
       "press": "The press",
       "staff": "General Staff estimate"
     },
@@ -3084,6 +3147,39 @@
       "war_russia": "War with Russia",
       "west": "West"
     },
+    "terms": {
+      "ask": {
+        "credit": "A loan",
+        "grain": "Grain",
+        "join": "Enter the war with us",
+        "mediate": "Mediate the crisis",
+        "peace": "A separate peace",
+        "shells": "Shells",
+        "stay_out": "Stay neutral"
+      },
+      "ask_label": "We ask",
+      "give": {
+        "credit": "A loan",
+        "grain": "Grain",
+        "guarantee": "A guarantee of its borders",
+        "price": "Land and concessions",
+        "shells": "Shells"
+      },
+      "give_label": "We offer",
+      "go": "Send the terms",
+      "hint": "Choose a country and what to put on the table. It answers when the chapter closes.",
+      "sent": "Terms have gone out this chapter.",
+      "title": "Approach a country first",
+      "waiting": "waiting for an answer",
+      "why": {
+        "bound": "bound elsewhere",
+        "no_trust": "it does not trust us",
+        "too_little": "too little on offer",
+        "too_soon": "too early to speak of it",
+        "winning": "it sees no need while its side is ahead"
+      },
+      "yes": "accepted"
+    },
     "theatre": {
       "balkan": "The Balkans",
       "caucasus": "The Caucasus",
@@ -3180,11 +3276,15 @@
       },
       "block": {
         "bad_budget": "The shares must sum to 100.",
+        "bad_pick": "That choice is not open.",
         "closed": "That choice is not open yet.",
         "ended": "The game is over.",
         "law_busy": "Another bill is moving.",
+        "no_act": "That can no longer be done.",
+        "no_aim": "That aim is not open.",
         "no_audience": "You have used this chapter's audiences.",
         "no_authority": "Not enough authority for this dismissal.",
+        "no_back": "This paper cannot go back.",
         "no_card": "That paper is gone.",
         "no_law": "That bill can't be brought now.",
         "no_meeting": "There is no budget meeting now.",
@@ -3192,6 +3292,8 @@
         "no_paper": "That paper will not come.",
         "no_person": "That person cannot be called now.",
         "no_private": "You have used this chapter's private meeting.",
+        "no_slot": "No slot is left this chapter.",
+        "no_terms": "Those terms cannot be sent.",
         "no_topic": "That cannot be raised now.",
         "not_proposed": "The chief of staff did not put this forward.",
         "open_cards": "Papers are still open: decide or read them first.",
@@ -3199,6 +3301,7 @@
         "press_done": "The press has been handled this chapter.",
         "signed": "This chapter's paper is already signed.",
         "stale_chapter": "That chapter has already passed.",
+        "terms_sent": "Terms have already gone out this chapter.",
         "wrong_kind": "That does not fit this paper."
       },
       "blockade": "Blockade",
@@ -3499,7 +3602,8 @@
         "fronts": "Fronts",
         "memoir": "Memoir",
         "notebook": "Notebook",
-        "people": "People"
+        "people": "People",
+        "schedule": "Schedule"
       },
       "talk_done": "Leave the table",
       "talk_ended": "The talk is over.",

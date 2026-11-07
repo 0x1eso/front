@@ -33,6 +33,7 @@ import {
 } from "./GwModel";
 import { notebookTab } from "./GwNotebook";
 import { peopleTab } from "./GwPeople";
+import { scheduleTab } from "./GwSchedule";
 import { GLASS } from "./GwStyle";
 import { activeTalk, syncTranscripts, talkView } from "./GwTalk";
 import { ticker, tickerLines } from "./GwTicker";
@@ -57,7 +58,7 @@ const KEYFRAMES = html`<style>
 
 /**
  * Great War 1914: the screens (design §11). A top band, a one-line news
- * ticker, a left drawer with six tabs (desk, people, fronts, country,
+ * ticker, a left drawer of tabs (desk, people, schedule, fronts, country,
  * notebook, blocs, memoir), the reader for a paper and the talk view for a conversation. The
  * map stays the background. Every engine read is in GreatWarData; every
  * action is one `gw_order`.
@@ -91,6 +92,15 @@ export class GwPanel extends LitElement implements Controller {
     budgetPlan: null,
     term: null,
     pressPick: null,
+    actOpen: null,
+    actPicks: {},
+    aimOpen: false,
+    aimArmed: null,
+    termTag: null,
+    termGive: [],
+    termAsk: [],
+    backOpen: false,
+    backArmed: null,
     notes: [],
     shelf: loadShelf(),
   };
@@ -150,6 +160,13 @@ export class GwPanel extends LitElement implements Controller {
       ui.pressPick = null;
       ui.readerUid = null;
       ui.armed = null;
+      ui.actOpen = null;
+      ui.actPicks = {};
+      ui.termTag = null;
+      ui.termGive = [];
+      ui.termAsk = [];
+      ui.backOpen = false;
+      ui.backArmed = null;
     }
     // A talk that came after my summons opens by itself; a visitor waits on the desk.
     const before = new Set(ui.talks.keys());
@@ -181,6 +198,8 @@ export class GwPanel extends LitElement implements Controller {
     switch (this.ui.tab) {
       case "people":
         return peopleTab(c);
+      case "schedule":
+        return scheduleTab(c);
       case "fronts":
         return frontsTab(c);
       case "country":

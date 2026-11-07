@@ -181,6 +181,22 @@ const SAMPLE_INTENTS: StampedIntent[] = [
   },
   {
     type: "gw_order",
+    clientID: P1,
+    order: { kind: "act", act: "deu_a_nicky", picks: ["mob", "warm"] },
+  },
+  {
+    type: "gw_order",
+    clientID: P1,
+    order: { kind: "send_back", card: 7, direction: "cheaper" },
+  },
+  { type: "gw_order", clientID: P1, order: { kind: "aim", aim: "deu_aim_x" } },
+  {
+    type: "gw_order",
+    clientID: P2,
+    order: { kind: "terms", tag: "ITA", give: ["price"], ask: ["stay_out"] },
+  },
+  {
+    type: "gw_order",
     clientID: P2,
     order: {
       kind: "allocate",

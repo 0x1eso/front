@@ -663,6 +663,8 @@ export const GwSceneSchema = z
      * as `variants` are; a role not here uses the pack's plain `voice`.
      */
     voices: z.record(GwIdSchema, z.array(GwVariantSchema).min(1)).optional(),
+    /** Played from the schedule (GwActs): set by Content.ts for the acts files. */
+    byAct: z.boolean().optional(),
     /** Who answers "다시 써 오시오": a cast role. Absent: the first role. */
     author: GwIdSchema.optional(),
     /** This paper can't be sent back. */
