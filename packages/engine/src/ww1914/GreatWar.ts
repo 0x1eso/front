@@ -10,6 +10,7 @@ import {
   GwSeatState,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
+import { gwPressStart } from "@openfront/engine-api/ww1914/GwPress";
 import type { GreatWarData } from "@openfront/engine-api/ww1914/GwView";
 import { snapshotType } from "@openfront/engine-lib/snapshot/SnapshotType";
 import { budgetStart } from "@openfront/engine-lib/ww1914/BudgetRules";
@@ -194,6 +195,7 @@ export class GreatWar {
         signed: -1,
         lines: [],
         memoir: null,
+        press: gwPressStart(),
       });
     }
     this.s.seats.sort((a, b) => a.smallID - b.smallID);

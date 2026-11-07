@@ -11,6 +11,7 @@ import { homeStep } from "./Home";
 import { intelStep } from "./Intel";
 import { nextConferenceChapter, skipToConference } from "./Peace";
 import { peopleStep } from "./People";
+import { firstEdition, pressStep } from "./Press";
 import { closeUndecided } from "./SceneRun";
 import { seaStep } from "./Sea";
 import { trimLines } from "./World";
@@ -31,6 +32,7 @@ export const GW_CHAPTER_STEPS: readonly ((gw: GreatWar) => void)[] = [
   aiStep,
   intelStep,
   worldFlagsStep,
+  pressStep,
   endingStep,
 ];
 
@@ -72,6 +74,7 @@ export function openChapter(gw: GreatWar, ticks: number): void {
   for (const seat of s.seats) {
     seat.ready = false;
     seat.audiences = ch.summons + (bigChapter(gw, seat) ? ch.bigSummons : 0);
+    firstEdition(gw, seat);
     dealDesk(gw, seat);
   }
   gw.touch();

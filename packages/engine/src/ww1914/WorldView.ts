@@ -22,6 +22,7 @@ import { eraOf } from "./Eras";
 import { ownFronts, proposalsFor } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
 import { candidatesFor, dismissPrice } from "./People";
+import { pressView } from "./Press";
 import { GW_ACTORS } from "./Tables";
 import { lastOf, ownPeople } from "./World";
 
@@ -187,5 +188,6 @@ export function worldView(gw: GreatWar, seat: GwSeatState): GwWorldView {
     news: s.news.slice(-NEWS_SHOWN),
     memoir: seat.memoir,
     budget: budgetView(gw, seat),
+    press: pressView(gw, seat),
   };
 }

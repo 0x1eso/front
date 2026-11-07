@@ -33,10 +33,11 @@ export const GW_PACK_SHARES: Readonly<
     "home",
     "court",
     "budget",
+    "press",
   ],
-  GBR: ["crisis", "war", "home", "world", "budget"],
-  AUH: ["crisis", "war", "realm", "crown", "budget"],
-  RUS: ["crisis", "front", "home", "fall", "budget"],
+  GBR: ["crisis", "war", "home", "world", "budget", "press"],
+  AUH: ["crisis", "war", "realm", "crown", "budget", "press"],
+  RUS: ["crisis", "front", "home", "fall", "budget", "press"],
 };
 
 /** The same for `common.json`: every seat loads these. */

@@ -53,6 +53,12 @@ export const GwOrderSchema = z.discriminatedUnion("kind", [
     mix: z.array(zb.uint({ max: 300 })).max(8),
     force: z.boolean(),
   }),
+  /** The censor one step tighter, or looser. */
+  z.object({ kind: z.literal("press_censor"), up: z.boolean() }),
+  /** A paper's editor at the palace: spends an audience. */
+  z.object({ kind: z.literal("press_invite"), paper: Id }),
+  /** Something about a minister finds its way into the papers. */
+  z.object({ kind: z.literal("press_leak"), person: Id }),
 ]);
 export type GwOrder = z.infer<typeof GwOrderSchema>;
 
@@ -78,5 +84,8 @@ export const GW_ORDER_BLOCKS = [
   "not_proposed",
   "no_meeting",
   "bad_budget",
+  "press_done",
+  "press_closed",
+  "no_paper",
 ] as const;
 export type GwOrderBlock = (typeof GW_ORDER_BLOCKS)[number];

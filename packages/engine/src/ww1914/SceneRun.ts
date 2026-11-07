@@ -37,10 +37,12 @@ import {
   isCandid,
 } from "@openfront/engine-lib/ww1914/TalkRules";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
+import { blocNow } from "./Blocs";
 import { moveMoney } from "./Budget";
 import { closeSeat } from "./Endings";
 import type { GreatWar } from "./GreatWar";
 import { dismissPerson, onAppointed } from "./People";
+import { moveCensor, moveOpinion, moveRumour } from "./Press";
 import { stageOf } from "./World";
 import { worldEffect, worldHolds } from "./WorldDsl";
 
@@ -404,6 +406,12 @@ export function holds(ctx: SceneCtx, c: GwCond): boolean {
     }
     case "world":
       return worldHolds(ctx, c.of);
+    case "bloc":
+      return inRange(blocNow(gw, seat, c.bloc), c);
+    case "rumour":
+      return inRange(seat.press.rumour, c);
+    case "censor":
+      return inRange(seat.press.censor, c);
   }
 }
 
@@ -583,6 +591,15 @@ export function runEffect(ctx: SceneCtx, e: GwEffect): void {
       return;
     case "world":
       worldEffect(ctx, e.of);
+      return;
+    case "opinion":
+      moveOpinion(seat, e.bloc, e.delta);
+      return;
+    case "rumour":
+      moveRumour(seat, e.delta);
+      return;
+    case "censor":
+      moveCensor(gw, seat, e.delta);
       return;
   }
 }

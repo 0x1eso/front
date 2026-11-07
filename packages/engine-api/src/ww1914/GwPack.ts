@@ -56,6 +56,31 @@ export const GwPersonPackSchema = z
   .strict();
 export type GwPersonPack = z.infer<typeof GwPersonPackSchema>;
 
+/** One paper's take on a story: a headline and a line under it. */
+const GwHeadPackSchema = z
+  .object({ head: Text, deck: Text.optional() })
+  .strict();
+
+/** A country's blocs and papers (GwPress.ts). */
+export const GwPressPackSchema = z
+  .object({
+    /** Bloc id -> its name here and who is in it. */
+    blocs: z.record(GwIdSchema, z.object({ name: Text, who: Text }).strict()),
+    /** Paper id -> its name and its lean. */
+    papers: z.record(GwIdSchema, z.object({ name: Text, lean: Text }).strict()),
+    /** A support term's key -> the line, as the screen gives it. */
+    why: ById,
+    /** Tie key -> the line; <key>_off once it broke. */
+    ties: ById,
+    /** Story id -> paper id -> its take; may hold {who}. */
+    heads: z.record(GwIdSchema, z.record(GwIdSchema, GwHeadPackSchema)),
+    /** Paper id -> what its gap says when the censor has been. */
+    gaps: ById,
+    rumours: ById,
+  })
+  .strict();
+export type GwPressPack = z.infer<typeof GwPressPackSchema>;
+
 export const GwPackSchema = z
   .object({
     version: z.literal(1),
@@ -67,6 +92,8 @@ export const GwPackSchema = z
     promises: ById.optional(),
     /** Ending id -> the memoir's paragraph, may hold {date}, {casualties}. */
     endings: ById.optional(),
+    /** Only the seat's own country's: its blocs and papers. */
+    press: GwPressPackSchema.optional(),
   })
   .strict();
 export type GwPack = z.infer<typeof GwPackSchema>;
@@ -87,6 +114,7 @@ export function mergeGwPacks(packs: readonly GwPack[]): GwPack {
     Object.assign(out.reasons!, p.reasons);
     Object.assign(out.promises!, p.promises);
     Object.assign(out.endings!, p.endings);
+    if (p.press !== undefined) out.press = p.press;
   }
   return out;
 }

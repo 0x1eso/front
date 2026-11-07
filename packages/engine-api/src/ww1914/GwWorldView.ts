@@ -23,6 +23,7 @@ import type {
 } from "./GreatWarTypes";
 import type { GwBudgetView } from "./GwBudget";
 import type { GwTag } from "./GwCountries";
+import type { GwPressView } from "./GwPress";
 
 /** One of the chief of staff's papers; send it back as an `allocate`. */
 export interface GwProposal {
@@ -165,4 +166,6 @@ export interface GwWorldView {
   news: readonly GwNews[];
   memoir: GwMemoir | null;
   budget: GwBudgetView;
+  /** Null for a country with no bloc row yet. */
+  press: GwPressView | null;
 }

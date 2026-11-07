@@ -20,6 +20,7 @@ import { inStage, makeCard, placeCard, repeatable, sceneWear } from "./Desk";
 import { proposalsFor } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
 import { dismissPerson, dismissPrice } from "./People";
+import { pressCensor, pressInvite, pressLeak } from "./Press";
 import {
   castOf,
   ctxOf,
@@ -140,6 +141,13 @@ export function applyGwOrder(
     }
     case "budget":
       return budgetOrder(gw, seat, { shares: o.shares, mix: o.mix }, o.force);
+    case "press_censor":
+      return pressCensor(gw, seat, o.up);
+    case "press_invite":
+      return pressInvite(gw, seat, o.paper);
+    case "press_leak":
+      if (!ownPerson(seat, o.person)) return "no_person";
+      return pressLeak(gw, seat, o.person);
   }
 }
 

@@ -43,6 +43,7 @@ import {
   GwTopic,
 } from "./GreatWarTypes";
 import { GW_TAGS, GwTag } from "./GwCountries";
+import { GW_BLOCS, GwBloc } from "./GwPress";
 import {
   GwWorldCond,
   GwWorldCondSchema,
@@ -133,7 +134,11 @@ export type GwCond =
       min?: number;
       max?: number;
     }
-  | { kind: "world"; of: GwWorldCond };
+  | { kind: "world"; of: GwWorldCond }
+  /** A bloc's support now (engine/ww1914/Blocs). */
+  | { kind: "bloc"; bloc: GwBloc; min?: number; max?: number }
+  | { kind: "rumour"; min?: number; max?: number }
+  | { kind: "censor"; min?: number; max?: number };
 
 export type GwEffect =
   | { kind: "flag"; flag: string }
@@ -177,7 +182,12 @@ export type GwEffect =
     }
   /** Moves this talk's mood. */
   | { kind: "mood"; delta: number }
-  | { kind: "world"; of: GwWorldEffect };
+  | { kind: "world"; of: GwWorldEffect }
+  /** The papers' word with a bloc. */
+  | { kind: "opinion"; bloc: GwBloc; delta: number }
+  | { kind: "rumour"; delta: number }
+  /** The censor's level, within what the country allows. */
+  | { kind: "censor"; delta: number };
 
 const int = z.number().int();
 const range = { min: int.optional(), max: int.optional() };
@@ -260,6 +270,9 @@ export const GwCondSchema: z.ZodType<GwCond> = z.lazy(() =>
     obj("ai", { tag, of: z.array(z.enum(GW_AI_KINDS)) }),
     obj("nation_gauge", { tag, gauge, ...range }),
     obj("world", { of: GwWorldCondSchema }),
+    obj("bloc", { bloc: z.enum(GW_BLOCS), ...range }),
+    obj("rumour", range),
+    obj("censor", range),
   ]),
 ) as z.ZodType<GwCond>;
 
@@ -309,6 +322,9 @@ export const GwEffectSchema: z.ZodType<GwEffect> = z.lazy(() =>
     }),
     obj("mood", { delta: int }),
     obj("world", { of: GwWorldEffectSchema }),
+    obj("opinion", { bloc: z.enum(GW_BLOCS), delta: int }),
+    obj("rumour", { delta: int }),
+    obj("censor", { delta: int }),
   ]),
 ) as z.ZodType<GwEffect>;
 
