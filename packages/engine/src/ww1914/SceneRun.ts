@@ -37,6 +37,7 @@ import {
   isCandid,
 } from "@openfront/engine-lib/ww1914/TalkRules";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
+import { moveMoney } from "./Budget";
 import { closeSeat } from "./Endings";
 import type { GreatWar } from "./GreatWar";
 import { dismissPerson, onAppointed } from "./People";
@@ -440,7 +441,9 @@ export function runEffect(ctx: SceneCtx, e: GwEffect): void {
       seat.flags = seat.flags.filter((f) => f !== e.flag);
       return;
     case "gauge":
-      if (nation !== null) {
+      if (nation !== null && e.gauge === "money") {
+        moveMoney(gw, nation, e.delta, "money_scene");
+      } else if (nation !== null) {
         nation.gauges[e.gauge] = clamp(
           nation.gauges[e.gauge] + e.delta,
           0,

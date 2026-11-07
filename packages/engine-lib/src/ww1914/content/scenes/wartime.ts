@@ -338,28 +338,6 @@ const BODIES: GwScene[] = [
     },
   ),
   called(
-    "gw_gbr_budget",
-    ["GBR"],
-    ["home"],
-    [
-      opt(
-        "loans",
-        ["money:+2", "america:+1"],
-        [gauge("money", 2), doWorld({ do: "readiness", tag: "USA", delta: 3 })],
-      ),
-      opt(
-        "income_tax",
-        ["money:+1", "commons:-1"],
-        [gauge("money", 1), inst("commons", -1)],
-      ),
-      opt(
-        "hold",
-        ["money:+1", "shells:-1"],
-        [gauge("money", 1), gauge("shells", -1)],
-      ),
-    ],
-  ),
-  called(
     "gw_gbr_conscription",
     ["GBR"],
     ["home", "tension_up"],

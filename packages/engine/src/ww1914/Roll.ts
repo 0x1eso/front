@@ -12,6 +12,7 @@ import {
   GwTheatre,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
+import { budgetStart } from "@openfront/engine-lib/ww1914/BudgetRules";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { openChapter } from "./Chapters";
 import { openFirstCrisis } from "./Crises";
@@ -67,6 +68,7 @@ function rollNation(gw: GreatWar, n: GwNationState, i: number): void {
   const seed = gw.s.seed;
   n.ai = GW_AI_KINDS[wwRoll(seed, P_AI, i) % GW_AI_KINDS.length];
   Object.assign(n.gauges, GW_GAUGES_1914[n.tag] ?? {});
+  n.budget = budgetStart(n.tag, n.gauges.money);
   n.manpower = GW_MANPOWER[n.tag] ?? 20;
   n.readiness = GW_ENTRIES.find((e) => e.tag === n.tag)?.start ?? 0;
   const force = GW_FORCE[n.tag] ?? {};

@@ -14,6 +14,7 @@ import { SendGwOrderIntentEvent } from "../../Transport";
 import { translateText } from "../../Utils";
 import type { GameView } from "../../view";
 import { band } from "./GwBand";
+import { budgetPanel } from "./GwBudget";
 import { countryTab } from "./GwCountry";
 import type { GwCtx, GwUi } from "./GwCtx";
 import { deskTab, reader } from "./GwDesk";
@@ -81,6 +82,8 @@ export class GwPanel extends LitElement implements Controller {
     summoned: 0,
     armedDismiss: null,
     research: null,
+    budgetOpen: false,
+    budgetPlan: null,
     shelf: loadShelf(),
   };
 
@@ -134,6 +137,8 @@ export class GwPanel extends LitElement implements Controller {
     if (data.chapter !== this.chapter) {
       this.chapter = data.chapter;
       ui.research = null;
+      ui.budgetPlan = null;
+      ui.budgetOpen = false;
       ui.readerUid = null;
       ui.armed = null;
     }
@@ -234,6 +239,7 @@ export class GwPanel extends LitElement implements Controller {
             </div>`}
       </aside>
       ${open === undefined ? nothing : reader(c, open)}
+      ${ui.budgetOpen ? budgetPanel(c) : nothing}
       ${talk === null ? nothing : talkView(c, talk.t, talk.card)}`;
   }
 

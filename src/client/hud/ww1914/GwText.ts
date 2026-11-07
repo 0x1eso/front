@@ -120,6 +120,14 @@ export function optionText(
   return (scene?.opt?.[id] ?? id).replace(/\*\*/g, "");
 }
 
+/** An option's text, its **verb phrase** marked: the style guide's bold line. */
+export function boldParts(text: string): { text: string; bold: boolean }[] {
+  return text
+    .split("**")
+    .map((t, i) => ({ text: t, bold: i % 2 === 1 }))
+    .filter((p) => p.text !== "");
+}
+
 /** Each cast member's own paragraph on this card, in cast order. */
 export function voices(pack: GwPack | null, card: GwCardView): string[] {
   const scene = pack?.scenes[card.scene];

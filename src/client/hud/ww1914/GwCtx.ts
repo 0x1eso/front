@@ -2,6 +2,7 @@ import type {
   GwReason,
   GwResearch,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
+import type { GwBudgetPlan } from "@openfront/engine-api/ww1914/GwBudget";
 import type { GwOrder } from "@openfront/engine-api/ww1914/GwOrders";
 import type { GwPack } from "@openfront/engine-api/ww1914/GwPack";
 import type {
@@ -55,6 +56,10 @@ export interface GwUi {
   armedDismiss: string | null;
   /** The research picked for the paper about to be signed. */
   research: GwResearch | null;
+  /** The budget panel is open. */
+  budgetOpen: boolean;
+  /** The plan being changed there; null shows the draft. */
+  budgetPlan: GwBudgetPlan | null;
   shelf: Shelf;
 }
 

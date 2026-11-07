@@ -193,13 +193,6 @@ const britishRules: GwInstRule[] = [
   { rule: "lost_front", inst: "cabinet", delta: -1, key: "cabinet_shaken" },
   {
     rule: "call",
-    scene: "gw_gbr_budget",
-    every: 6,
-    offset: 2,
-    when: britainIn,
-  },
-  {
-    rule: "call",
     scene: "gw_blockade_paper",
     every: 8,
     offset: 3,

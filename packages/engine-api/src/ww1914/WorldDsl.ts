@@ -39,7 +39,18 @@ import {
   GwTheatre,
   GwThread,
 } from "./GreatWarTypes";
+import {
+  GW_BUDGET_ITEMS,
+  GW_BUDGET_LINES,
+  GW_BUDGET_SOURCES,
+  GwBudgetItem,
+  GwBudgetLine,
+  GwBudgetSource,
+} from "./GwBudget";
 import { GW_TAGS, GwTag } from "./GwCountries";
+
+const GW_BUDGET_WHATS = ["treasury", "load", "prices", "lent"] as const;
+type GwBudgetWhat = (typeof GW_BUDGET_WHATS)[number];
 
 /** A person, as in SceneDsl (a role, an office holder, a name). */
 export type GwWorldWho =
@@ -135,7 +146,13 @@ export type GwWorldCond =
   /** The game's date, "YYYY-MM", both ends included: any calendar. */
   | { is: "date"; from?: string; to?: string }
   /** The best price on the table for a neutral, from the seat's side. */
-  | ({ is: "offered"; tag: GwTag } & Range);
+  | ({ is: "offered"; tag: GwTag } & Range)
+  /**
+   * The seat's money. treasury: steps of the money gauge. load: interest as a
+   * percent of taxes. prices: percent of June 1914. lent: percent of a year's
+   * revenue owed abroad.
+   */
+  | ({ is: "budget"; what: GwBudgetWhat } & Range);
 
 export type GwWorldEffect =
   /** Germany's plan for the war to come. */
@@ -208,7 +225,17 @@ export type GwWorldEffect =
   /** The seat's country alone makes peace. */
   | { do: "separate_peace" }
   /** A person's life ends; a neutral line in the record, no more. */
-  | { do: "passes"; who: GwWorldWho };
+  | { do: "passes"; who: GwWorldWho }
+  /** The draft on the table goes to whoever must pass it. */
+  | { do: "budget_sign" }
+  /** The draft gives a line `delta` points, out of the fattest others. */
+  | { do: "budget_tilt"; line: GwBudgetLine; delta: number }
+  /** The draft asks `delta` more of a source. */
+  | { do: "budget_mix"; source: GwBudgetSource; delta: number }
+  /** treasury: percent of a year's revenue; debt, prices: percent of itself. */
+  | { do: "budget_item"; item: GwBudgetItem; pct: number }
+  /** Interest paid, percent of what is due; lenders shut for `shut` chapters. */
+  | { do: "budget_rate"; pct: number; shut: number };
 
 const int = z.number().int();
 const yearMonth = z.string().regex(/^19[0-9]{2}-[01][0-9]$/);
@@ -285,6 +312,7 @@ export const GwWorldCondSchema = z.union([
   is("side", { of: z.array(z.enum([...GW_SIDES, "neutral"])) }),
   is("date", { from: yearMonth.optional(), to: yearMonth.optional() }),
   is("offered", { tag, ...range }),
+  is("budget", { what: z.enum(GW_BUDGET_WHATS), ...range }),
 ]) as unknown as z.ZodType<GwWorldCond>;
 
 export const GwWorldEffectSchema = z.union([
@@ -335,6 +363,11 @@ export const GwWorldEffectSchema = z.union([
   act("separate_peace", {}),
   act("passes", { who }),
   act("stand_down", { tag, level: int }),
+  act("budget_sign", {}),
+  act("budget_tilt", { line: z.enum(GW_BUDGET_LINES), delta: int }),
+  act("budget_mix", { source: z.enum(GW_BUDGET_SOURCES), delta: int }),
+  act("budget_item", { item: z.enum(GW_BUDGET_ITEMS), pct: int }),
+  act("budget_rate", { pct: int.min(0).max(100), shut: int.min(0) }),
 ]) as unknown as z.ZodType<GwWorldEffect>;
 
 // ---- Authoring helpers ----

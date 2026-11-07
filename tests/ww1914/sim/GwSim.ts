@@ -300,6 +300,8 @@ export async function playRun(
   recent: readonly string[],
   profile: GwSimProfile,
   seatTag: GwTag = "DEU",
+  /** Called as each chapter opens, for a test that reads the state. */
+  onChapter?: (gw: GreatWar) => void,
 ): Promise<GwRunRecord> {
   const rec: GwRunRecord = {
     gameID,
@@ -341,6 +343,7 @@ export async function playRun(
     rec.opening = gw.s.opening;
     while (gw.s.ended === null) {
       rec.chapters++;
+      onChapter?.(gw);
       for (const c of seat.desk) rec.casts.push(castKey(c));
       summonAll(gw, seat, profile, roll, rec);
       clearDesk(gw, seat, profile, roll, rec);

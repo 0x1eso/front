@@ -9,8 +9,16 @@ import type {
   GwWorldEffect,
   GwWorldWho,
 } from "@openfront/engine-api/ww1914/WorldDsl";
+import { tilted } from "@openfront/engine-lib/ww1914/BudgetRules";
 import { civilFromDays } from "@openfront/engine-lib/ww1936/Calendar";
 import { holdVote, voteCount } from "./Authority";
+import {
+  budgetFact,
+  budgetItem,
+  budgetRaise,
+  draftOf,
+  submitBudget,
+} from "./Budget";
 import { closeChain } from "./Crises";
 import { closeSeat, SEPARATE_PEACE } from "./Endings";
 import { eraOf, hasTech } from "./Eras";
@@ -183,6 +191,8 @@ export function worldHolds(ctx: SceneCtx, c: GwWorldCond): boolean {
       const side = nation?.side ?? "central";
       return inRange(gw.nation(c.tag)?.offers[side] ?? 0, c);
     }
+    case "budget":
+      return nation !== null && inRange(budgetFact(gw, nation, c.what), c);
   }
 }
 
@@ -372,5 +382,30 @@ export function worldEffect(ctx: SceneCtx, e: GwWorldEffect): void {
       }
       return;
     }
+    case "budget_sign":
+      if (nation !== null && nation.budget.meeting !== null) {
+        submitBudget(gw, nation, draftOf(nation));
+      }
+      return;
+    case "budget_tilt":
+      if (nation !== null && nation.budget.draft !== null) {
+        const d = nation.budget.draft;
+        d.shares = tilted(d.shares, e.line, e.delta);
+      }
+      return;
+    case "budget_mix":
+      if (nation !== null && nation.budget.draft !== null) {
+        budgetRaise(nation.budget.draft, e.source, e.delta);
+      }
+      return;
+    case "budget_item":
+      if (nation !== null) budgetItem(gw, nation, e.item, e.pct);
+      return;
+    case "budget_rate":
+      if (nation !== null) {
+        nation.budget.rate = e.pct;
+        nation.budget.shutUntil = s.chapter + e.shut;
+      }
+      return;
   }
 }
