@@ -85,6 +85,12 @@ export function withAuhBodies(list: readonly GwScene[]): GwScene[] {
   });
 }
 
+/** The war ledgers lay out next month's war: under a truce there is none. */
+const noTruce: GwCond = {
+  kind: "not",
+  of: { kind: "world", of: { is: "armistice" } },
+};
+
 const BODIES: Readonly<Record<string, GwBodies>> = {
   auh_v_koer_quota: {
     variants: [
@@ -2955,7 +2961,15 @@ const BODIES: Readonly<Record<string, GwBodies>> = {
       },
     ],
   },
+  // With the heir alive the old emperor's death crowns him, not Karl.
+  gw_succession_auh: {
+    variants: [{ id: "ff", when: { kind: "flag", flag: "w_auh_ff_throne" } }],
+  },
+  auh_w_ledger_1914: { gate: noTruce },
+  auh_w_ledger_1917: { gate: noTruce },
+  auh_w_ledger_1918: { gate: noTruce },
   auh_w_ledger_1915: {
+    gate: noTruce,
     variants: [
       {
         id: "base2",
@@ -2967,6 +2981,7 @@ const BODIES: Readonly<Record<string, GwBodies>> = {
     ],
   },
   auh_w_ledger_1916: {
+    gate: noTruce,
     variants: [
       {
         id: "base2",

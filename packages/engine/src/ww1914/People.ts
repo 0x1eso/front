@@ -13,7 +13,7 @@ import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { dismissalFallout } from "./Authority";
 import type { GreatWar } from "./GreatWar";
 import { holderOf } from "./SceneRun";
-import { GW_NO_COMMAND, GW_PASSING } from "./Tables";
+import { GW_NO_COMMAND, GW_PASSING, GW_PASSING_BY_SCENE } from "./Tables";
 import { chapterOf, clampTo, defOf, ownPeople, reason, turn } from "./World";
 
 const P_HEALTH_FAIL = idHash("gw_health_fail");
@@ -296,6 +296,13 @@ function passing(gw: GreatWar): void {
     const [y, m, d] = row.on.split("-").map(Number);
     if (p === null || p.status === "dead") continue;
     if (gw.s.day < daysFromCivil(y, m, d)) continue;
+    p.status = "dead";
+    p.office = null;
+  }
+  for (const row of GW_PASSING_BY_SCENE) {
+    const p = gw.person(row.person);
+    if (p === null || p.status === "dead") continue;
+    if (!gw.s.seats.some((x) => x.seen[row.scene] !== undefined)) continue;
     p.status = "dead";
     p.office = null;
   }

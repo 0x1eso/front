@@ -376,6 +376,12 @@ export const GW_PASSING: readonly {
   { person: "rus_durnovo", on: "1915-09-24" },
 ];
 
+/** Those a card reports dead: once it has come, they are gone from the cast. */
+export const GW_PASSING_BY_SCENE: readonly {
+  readonly person: string;
+  readonly scene: string;
+}[] = [{ person: "auh_sturgkh", scene: "auh_h_sturgkh_shot" }];
+
 /** Court people who don't take an army, whatever their rank. */
 export const GW_NO_COMMAND: readonly string[] = [
   "auh_karl",

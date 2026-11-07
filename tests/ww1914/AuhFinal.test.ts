@@ -63,3 +63,19 @@ describe("Austria's last pass", () => {
     expect(list[0].when).toEqual({ kind: "opening", of: ["sarajevo"] });
   });
 });
+
+describe("what the Austrian browser run showed", () => {
+  it("the old emperor's death crowns the heir who is alive", () => {
+    const s = scene("gw_succession_auh");
+    const ff = s.variants.find((v) => v.id === "ff")!;
+    expect(ff.when).toEqual({ kind: "flag", flag: "w_auh_ff_throne" });
+    expect(s.variants[s.variants.length - 1].id).toBe("base");
+  });
+
+  it("no war ledger comes under a truce", () => {
+    for (const y of [1914, 1915, 1916, 1917, 1918]) {
+      const s = scene(`auh_w_ledger_${y}`);
+      expect(JSON.stringify(s.when)).toContain('"is":"armistice"');
+    }
+  });
+});
