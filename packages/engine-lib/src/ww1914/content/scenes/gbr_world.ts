@@ -3227,7 +3227,10 @@ export const GBR_WORLD_SCENES: readonly GwScene[] = [
             stance: "warm",
             kind: "deal",
             tell: ["promise", "navy:+1"],
-            effects: [trustOf(who, 1), promise(who, "p_chu_back", 14, { keep: seen("gbr_h_vacant") })],
+            effects: [
+              trustOf(who, 1),
+              promise(who, "p_chu_back", 14, { keep: seen("gbr_h_vacant") }),
+            ],
             next: "promise",
           },
           {
@@ -3256,7 +3259,10 @@ export const GBR_WORLD_SCENES: readonly GwScene[] = [
             stance: "warm",
             kind: "deal",
             tell: ["promise", "navy:+1"],
-            effects: [trustOf(who, 1), promise(who, "p_chu_back", 14, { keep: seen("gbr_h_vacant") })],
+            effects: [
+              trustOf(who, 1),
+              promise(who, "p_chu_back", 14, { keep: seen("gbr_h_vacant") }),
+            ],
             next: "promise",
           },
         ],
@@ -4674,7 +4680,12 @@ export const GBR_WORLD_SCENES: readonly GwScene[] = [
     nation: NATION,
     kind: "crisis",
     stage: Y14_ON,
-    when: all(neutral, since(8, "16a"), any(franceFalling, belg)),
+    when: all(
+      neutral,
+      since(8, "16a"),
+      any(franceFalling, belg),
+      world({ is: "war_age", min: 3 }),
+    ),
     cast: { fm: { office: "foreign" }, navy: { office: "navy" } },
     salience: 8,
     tags: ["foreign", "tension_up"],
@@ -4710,6 +4721,7 @@ export const GBR_WORLD_SCENES: readonly GwScene[] = [
       },
       {
         id: "ultimatum_first",
+        when: not(flag("f_late_ultimatum")),
         tell: ["deu:-2", "fra:+1"],
         effects: [
           nation("DEU", -2),

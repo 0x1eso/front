@@ -251,7 +251,11 @@ export const GW_MANDATES: Readonly<
     {
       id: "gbr_belgium_restored",
       group: "war",
-      met: world({ is: "front", theatre: "west", to: "liege" }),
+      // Never invaded, nothing to restore: a run of peace doesn't fail this.
+      met: any(
+        world({ is: "front", theatre: "west", to: "liege" }),
+        not(world({ is: "entered", tag: "BEL" })),
+      ),
     },
     {
       id: "gbr_sea_kept",

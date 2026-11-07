@@ -189,12 +189,20 @@ const promise_open_king: GwCond = {
   kept: false,
   broken: false,
 };
-const anyEmpty = any(...VACANCIES.map(([o]) => empty(o)));
+/** There is no Ministry of Munitions to fill before the shells of 1915. */
+const vacant = (office: GwOffice): GwCond =>
+  office === "munitions"
+    ? all(empty(office), world({ is: "date", from: "1915-05" }))
+    : empty(office);
+const anyEmpty = any(...VACANCIES.map(([o]) => vacant(o)));
 /** Fills the first office on the list that is empty, and no other. */
 const fillVacant = (pick: (row: (typeof VACANCIES)[number]) => string) =>
   VACANCIES.map((row, i) =>
     maybe(
-      all(empty(row[0]), ...VACANCIES.slice(0, i).map(([o]) => not(empty(o)))),
+      all(
+        vacant(row[0]),
+        ...VACANCIES.slice(0, i).map(([o]) => not(vacant(o))),
+      ),
       appoint(pick(row), row[0]),
     ),
   );
@@ -616,7 +624,13 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
     id: "gbr_h_easter",
     kind: "crisis",
     stage: WAR,
-    when: all(war, notHr, during("16a"), pressAt("ireland", 3)),
+    // Easter has its date: the record card names it.
+    when: all(
+      war,
+      notHr,
+      world({ is: "date", from: "1916-04", to: "1916-07" }),
+      pressAt("ireland", 3),
+    ),
     cast: { ireland: holder("ireland"), sec: holder("war") },
     salience: 9,
     tags: ["home", "tension_up"],
@@ -2857,7 +2871,7 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
     cooldown: 4,
     variants: [
       v("war_seat", empty("war")),
-      v("munitions", empty("munitions")),
+      v("munitions", all(vacant("munitions"), not(empty("war")))),
       v("navy", empty("navy")),
       v("finance", empty("finance")),
       v("foreign", empty("foreign")),

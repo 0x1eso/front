@@ -24,6 +24,7 @@ import { DEU_SEA_SCENES } from "./scenes/deu_sea";
 import { DEU_WAR_SCENES } from "./scenes/deu_war";
 import { GBR_CRISIS_SCENES } from "./scenes/gbr_crisis";
 import { GBR_HOME_SCENES } from "./scenes/gbr_home";
+import { withMore } from "./scenes/gbr_more";
 import { GBR_WAR_SCENES } from "./scenes/gbr_war";
 import { GBR_WORLD_SCENES } from "./scenes/gbr_world";
 import { GW_DIP_SCENES } from "./scenes/gw_dip";
@@ -57,7 +58,7 @@ export const GW_CONTENT: GwContent = {
       .map(withSummerWar),
     ...DEU_BACK_SCENES,
     ...WORLD_SCENES,
-    ...withAuhBodies(WARTIME_SCENES),
+    ...withAuhBodies(withMore(WARTIME_SCENES)),
     ...[
       ...withAuhBodies([
         ...AUH_CRISIS_SCENES,
@@ -66,10 +67,12 @@ export const GW_CONTENT: GwContent = {
         ...AUH_CROWN_SCENES,
       ]),
       ...AUH_QUIET_SCENES,
-      ...GBR_CRISIS_SCENES,
-      ...GBR_WAR_SCENES,
-      ...GBR_HOME_SCENES,
-      ...GBR_WORLD_SCENES,
+      ...withMore([
+        ...GBR_CRISIS_SCENES,
+        ...GBR_WAR_SCENES,
+        ...GBR_HOME_SCENES,
+        ...GBR_WORLD_SCENES,
+      ]),
       ...RUS_CRISIS_SCENES,
       ...RUS_FRONT_SCENES,
       ...RUS_HOME_SCENES,
