@@ -392,6 +392,12 @@ describe("how it stops", () => {
     expect(seat.memoir).not.toBeNull();
   });
 
+  test("the top of the ladder is one card: the country's own, if written", () => {
+    for (const tag of ["DEU", "AUH", "RUS"] as const) {
+      expect(Object.keys(GW_HOME[tag]?.top ?? {}).length).toBeGreaterThan(0);
+    }
+  });
+
   test("the jump to the peace breaks no promise and brings no war paper", async () => {
     const { gw, runner, seat } = await war("DEU", "GWY14B");
     seat.promises.push({

@@ -55,6 +55,7 @@ const COMMON: GwHomeRow["rungs"] = [
 export const GW_HOME: Readonly<Partial<Record<GwTag, GwHomeRow>>> = {
   DEU: {
     rungs: rungs("deu"),
+    top: { empire: "deu_k_republic" },
     concedes: 60,
     strains: [
       { gauge: "order", delta: -1, every: 8, from: 30, key: "order_weary" },
