@@ -20,10 +20,13 @@ import {
   endTalk,
   holds,
   keepPromise,
+  optionOpen,
   rememberTalk,
   runEffects,
   SceneCtx,
   sceneOf,
+  settleMood,
+  speakerRole,
   talkerOf,
 } from "./SceneRun";
 
@@ -39,9 +42,12 @@ export function applyReply(
   card: GwCard,
   scene: GwScene,
   reply: GwReply,
+  proxy = false,
 ): void {
   const ctx = ctxOf(gw, seat, card);
-  const p = talkerOf(ctx, scene);
+  // A decision in a big scene is the seat's own: nobody takes it well or ill.
+  const decided = reply.kind === "decide";
+  const p = decided ? null : talkerOf(ctx, scene);
   // Read before the price is paid: they answer the seat as it stood.
   const react = reply.reacts?.find((r) => holds(ctx, r.when));
   const fit = p === null ? 0 : stanceFit(p, reply.stance, reply.kind);
@@ -49,7 +55,7 @@ export function applyReply(
     scene: scene.id,
     pick: reply.id,
     chapter: gw.s.chapter,
-    proxy: false,
+    proxy,
   });
   runEffects(ctx, reply.effects);
   if (fit !== 0) {
@@ -77,7 +83,49 @@ export function applyReply(
     rememberTalk(ctx, scene, "talk_left", sharp ? -1 : 0);
   }
   if (next === null) endTalk(gw, seat, card, scene);
-  else card.node = next;
+  else moveTo(ctx, scene, card, next);
+}
+
+/** The next node; a big scene's mood closes with whoever goes out. */
+function moveTo(
+  ctx: SceneCtx,
+  scene: GwScene,
+  card: GwCard,
+  next: string,
+): void {
+  if (speakerRole(scene, card.node) !== speakerRole(scene, next)) {
+    settleMood(ctx, scene);
+  }
+  card.node = next;
+}
+
+/**
+ * A timer closed the chapter on a big scene: it plays out by each node's
+ * `fallback`, else the first open reply that doesn't walk out. A loop stops.
+ */
+export function playOutBig(
+  gw: GreatWar,
+  seat: GwSeatState,
+  card: GwCard,
+  scene: GwScene,
+  late: boolean,
+): void {
+  const ctx = ctxOf(gw, seat, card);
+  const been = new Set<string>();
+  while (seat.desk.includes(card) && card.node !== null) {
+    if (been.has(card.node)) break;
+    been.add(card.node);
+    const node = scene.nodes?.[card.node];
+    const open = (node?.replies ?? []).filter((r) => optionOpen(ctx, r));
+    const pick =
+      open.find((r) => r.id === node?.fallback) ??
+      open.find((r) => r.kind !== "leave") ??
+      open[0];
+    if (pick === undefined) break;
+    applyReply(gw, seat, card, scene, pick, late);
+  }
+  if (seat.desk.includes(card)) endTalk(gw, seat, card, scene);
+  if (late) seat.log.push({ key: "proxy_signed", chapter: gw.s.chapter });
 }
 
 /** A promise past due: they lose trust in the seat, and they come back. */

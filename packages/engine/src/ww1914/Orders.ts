@@ -37,6 +37,7 @@ import {
   takeOption,
 } from "./SceneRun";
 import { applyReply, summonScenes } from "./Talk";
+import { inOpening, newcomers } from "./Story";
 import { seatPerson } from "./World";
 
 /** Why this seat can't say ready; null when it can. */
@@ -204,6 +205,9 @@ export function summonable(
   const scene = sceneOf(topic);
   if (scene === null || scene.who === undefined) return false;
   if (!scene.nation.includes(seat.tag)) return false;
+  if (inOpening(gw, seat) && newcomers(gw, seat, [person]).length > 0) {
+    return false;
+  }
   if (seat.desk.some((c) => c.scene === topic)) return false;
   if (!inStage(gw, scene) || !repeatable(gw, seat, scene)) return false;
   const cast = castOf(gw, seat, scene);

@@ -51,6 +51,22 @@ export interface GwCardView {
   voice?: Readonly<Record<string, string>>;
   /** A quiet card: the small scenes folded into it, shown by their titles. */
   folded?: readonly string[];
+  /** A talk that takes the screen; `who` is null while nobody speaks. */
+  big?: boolean;
+  /** A short card with no chrome, laid after a big scene. */
+  silent?: boolean;
+  /** A letter: the country it came from. */
+  letterFrom?: GwTag;
+}
+
+/** A letter of a thread (pack: the scene's text by `variant`). */
+export interface GwLetterView {
+  with: GwTag;
+  out: boolean;
+  scene: string | null;
+  variant: string | null;
+  tone: string | null;
+  date: string;
 }
 
 /** A promise as the seat remembers it (pack `promises.<key>`). */
@@ -154,6 +170,7 @@ export interface GwSeatView {
   choices?: readonly GwChoiceView[];
   /** Every body dealt, "<scene>.<variant>": the lobby's recent list. */
   shown?: readonly string[];
+  letters?: readonly GwLetterView[];
   gov?: readonly GwGovView[];
   poll?: GwPollView | null;
   world: GwWorldView;

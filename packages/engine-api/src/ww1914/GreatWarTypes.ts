@@ -8,6 +8,12 @@ import { GW_TAGS } from "./GwCountries";
 import { GwLawStateSchema } from "./GwLaw";
 import { gwPressStart, GwPressStateSchema } from "./GwPress";
 import { GwRulerStateSchema } from "./GwRuler";
+import {
+  GW_RIVAL_ACTS,
+  GW_RIVAL_ENDS,
+  gwStoryStart,
+  GwStoryStateSchema,
+} from "./GwStory";
 
 /** A content id: scene, person, flag, memory key. */
 export const GwIdSchema = z
@@ -754,6 +760,16 @@ export const GwMemoirSchema = z.object({
   ),
   /** The closing page: at most three things the seat never learned. */
   unknown: z.array(GwUnknownSchema),
+  /** The rival, named at last; null where the country has none. */
+  rival: z
+    .object({
+      who: GwIdSchema,
+      stage: z.number().int(),
+      act: z.enum(GW_RIVAL_ACTS).nullable(),
+      end: z.enum(GW_RIVAL_ENDS).nullable(),
+    })
+    .nullable()
+    .default(null),
   /** What this game adds to the shelf between games (the client keeps it). */
   shelf: z.object({
     ending: GwIdSchema,
@@ -824,6 +840,8 @@ export const GwSeatStateSchema = z.object({
   ruler: GwRulerStateSchema,
   /** The censor, the rumour, the papers (engine/ww1914/Press). A save from before it has none. */
   press: GwPressStateSchema.default(gwPressStart),
+  /** The rival, the letters, the desk's pace (GwStory.ts). */
+  story: GwStoryStateSchema.default(gwStoryStart),
 });
 export type GwSeatState = z.infer<typeof GwSeatStateSchema>;
 

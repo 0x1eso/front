@@ -6,6 +6,7 @@ import { AUH_PEOPLE } from "./people_auh";
 import { GW_PEOPLE_COMMON } from "./people_common";
 import { GW_PEOPLE_DEU } from "./people_deu";
 import { GBR_PEOPLE } from "./people_gbr";
+import { GW_PEOPLE_HEADS } from "./people_heads";
 import { GW_PEOPLE_MONEY } from "./people_money";
 import { GW_PEOPLE_RULER } from "./people_ruler";
 import { RUS_PEOPLE } from "./people_rus";
@@ -146,6 +147,7 @@ export const GW_CONTENT: GwContent = {
     ...RUS_KIN,
     ...GBR_PRIVATE_PEOPLE,
     ...AUH_PRIVATE_PEOPLE,
+    ...GW_PEOPLE_HEADS,
   ],
 };
 

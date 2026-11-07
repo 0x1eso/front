@@ -22,6 +22,10 @@ export const GwNodePackSchema = z
     saysBy: z.record(GwIdSchema, ById).optional(),
     /** reply id -> text. */
     replies: ById,
+    /** A big scene: the hour here, "밤 열한 시". */
+    at: Text.optional(),
+    /** A big scene: a line of narration before this node's words. */
+    room: Text.optional(),
   })
   .strict();
 
@@ -161,6 +165,11 @@ export const GwPackSchema = z
     dict: z.record(GwIdSchema, GwDictEntrySchema).optional(),
     /** Only the seat's own country's: its blocs and papers. */
     press: GwPressPackSchema.optional(),
+    /**
+     * Rival's person id -> the memoir's line about him, by how it went: an end
+     * (`reconciled`...), else an act (`embrace`...), else `stage1`..`stage3`.
+     */
+    rivals: z.record(GwIdSchema, ById).optional(),
   })
   .strict();
 export type GwPack = z.infer<typeof GwPackSchema>;
@@ -176,6 +185,7 @@ export function mergeGwPacks(packs: readonly GwPack[]): GwPack {
     endings: {},
     rulers: {},
     dict: {},
+    rivals: {},
   };
   for (const p of packs) {
     Object.assign(out.scenes, p.scenes);
@@ -185,6 +195,7 @@ export function mergeGwPacks(packs: readonly GwPack[]): GwPack {
     Object.assign(out.endings!, p.endings);
     Object.assign(out.rulers!, p.rulers);
     Object.assign(out.dict!, p.dict);
+    Object.assign(out.rivals!, p.rivals);
     if (p.press !== undefined) out.press = p.press;
   }
   for (const p of packs) {
@@ -209,6 +220,8 @@ function layOver(s: GwScenePack, o: GwOver): GwScenePack {
         ? {}
         : { saysBy: { ...at.saysBy, ...n.saysBy } }),
       replies: { ...at.replies, ...n.replies },
+      ...(n.at === undefined ? {} : { at: n.at }),
+      ...(n.room === undefined ? {} : { room: n.room }),
     };
   }
   return {
@@ -254,6 +267,7 @@ export function gwPackOverlaps(packs: readonly GwPack[]): string[] {
       ...Object.keys(p.endings ?? {}).map((x) => `ending ${x}`),
       ...Object.keys(p.rulers ?? {}).map((x) => `ruler ${x}`),
       ...Object.keys(p.dict ?? {}).map((x) => `dict ${x}`),
+      ...Object.keys(p.rivals ?? {}).map((x) => `rival ${x}`),
     ];
     for (const id of ids) {
       if (seen.has(id)) out.add(id);
@@ -349,6 +363,8 @@ export function gwPackProblems(
         check(`${s.id}.${id}.${v.id}`, nt?.says[v.id]);
       }
       if (nt !== undefined) out.push(...sameOpenings(`${s.id}.${id}`, nt.says));
+      check(`${s.id}.${id}.at`, nt?.at);
+      check(`${s.id}.${id}.room`, nt?.room);
       for (const r of n.replies) {
         need(nt?.replies[r.id], `${id}.reply.${r.id}`);
         check(`${s.id}.${id}.${r.id}`, nt?.replies[r.id]);

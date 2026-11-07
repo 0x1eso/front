@@ -52,6 +52,7 @@ export function gwSceneEffects(s: GwScene): GwEffect[] {
 export function gwSceneConds(s: GwScene): GwCond[] {
   const out: GwCond[] = [];
   const add = (c: GwCond) => out.push(c);
+  for (const a of s.after ?? []) walkCond(a.when, add);
   const onEffect = (e: GwEffect) => {
     if (e.kind === "maybe") walkCond(e.when, add);
     if (e.kind === "promise") walkCond(e.keep, add);
@@ -112,6 +113,7 @@ export function gwContentProblems(
       if (e.kind === "schedule") called.add(e.scene);
       if (e.kind === "promise" && e.back !== undefined) called.add(e.back);
     }
+    for (const a of s.after ?? []) called.add(a.scene);
   }
   const person = (s: GwScene, w: GwWho | undefined) => {
     if (w !== undefined && "person" in w && !persons.has(w.person)) {
@@ -159,6 +161,11 @@ export function gwContentProblems(
         } else if (c.pick !== undefined && !picksOf(target).includes(c.pick)) {
           out.push(`${s.id}: ${c.scene} has no pick ${c.pick}`);
         }
+      }
+    }
+    for (const a of s.after ?? []) {
+      if (ids.get(a.scene)?.silent !== true) {
+        out.push(`${s.id}: after ${a.scene} is no silent card`);
       }
     }
     for (const e of gwSceneEffects(s)) {
