@@ -148,7 +148,9 @@ export function tabBadge(seat: GwSeatView, tab: GwTab): number {
       // What can end the game, on the tab that says why, before its paper comes.
       const threats = (seat.gov ?? []).filter((g) => g.fatal && g.step > 0);
       const [health, , , reputation] = seat.ruler?.levels ?? [];
-      return threats.length + (health === 0 ? 1 : 0) + (reputation === 0 ? 1 : 0);
+      return (
+        threats.length + (health === 0 ? 1 : 0) + (reputation === 0 ? 1 : 0)
+      );
     }
     default:
       return 0;

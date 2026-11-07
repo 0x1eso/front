@@ -34,7 +34,11 @@ describe("Britain, as played to the end", () => {
     }
     const card = st.desk.find((c) => c.scene === "gw_gbr_entry")!;
     expect(
-      applyGwOrder(gw, st, { kind: "choose", card: card.uid, option: "force_it" }),
+      applyGwOrder(gw, st, {
+        kind: "choose",
+        card: card.uid,
+        option: "force_it",
+      }),
     ).toBe(null);
     expect(st.desk).toEqual([]);
   });

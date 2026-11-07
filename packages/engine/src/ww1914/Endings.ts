@@ -282,7 +282,10 @@ function turnOf(key: string): { key: string; tag: GwTag | null } | null {
   // A form of government is someone's: the memoir says whose.
   const [base, whose] = key.split("@");
   if (!GW_TURNS.includes(base)) return null;
-  return { key: base, tag: whose !== undefined && isGwTag(whose) ? whose : null };
+  return {
+    key: base,
+    tag: whose !== undefined && isGwTag(whose) ? whose : null,
+  };
 }
 
 export function memoirOf(

@@ -3,6 +3,8 @@ import { gwSecretsFor } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import type { GwSeatView } from "@openfront/engine-api/ww1914/GwView";
 import { gwEndingsOf } from "@openfront/engine-lib/ww1914/EndingRows";
 import { describe, expect, test } from "vitest";
+import type { GwCtx } from "../../../src/client/hud/ww1914/GwCtx";
+import { lastReasons } from "../../../src/client/hud/ww1914/GwDesk";
 import {
   appointable,
   clock,
@@ -24,8 +26,6 @@ import {
   trustIndex,
   vacantOffices,
 } from "../../../src/client/hud/ww1914/GwModel";
-import type { GwCtx } from "../../../src/client/hud/ww1914/GwCtx";
-import { lastReasons } from "../../../src/client/hud/ww1914/GwDesk";
 
 const person = (id: string, office: string | null, fit: string[]) =>
   ({ id, office, trust: 0, topics: [], fit, rivals: [] }) as never;
