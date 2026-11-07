@@ -1477,6 +1477,16 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
       },
       { id: "ahead", when: { kind: "flag", flag: "w_bad_luck_east" } },
       { id: "tannenberg", when: { kind: "flag", flag: "w_tannenberg" } },
+      {
+        id: "no_shot",
+        when: {
+          kind: "all",
+          of: [
+            { kind: "opening", of: ["no_sarajevo"] },
+            { kind: "not", of: { kind: "world", of: { is: "war" } } },
+          ],
+        },
+      },
       { id: "base" },
     ],
     fallback: "close_year",
