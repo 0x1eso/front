@@ -15118,8 +15118,8 @@
       "calendar_label": "판의 길이",
       "calendar_time": {
         "full": "3~4시간",
-        "y1914": "혼자 약 30분",
-        "standard": "약 2시간"
+        "y1914": "혼자 약 1시간 반",
+        "standard": "약 3시간"
       },
       "casualties": "잃은 사람 {man} 명",
       "chapter_n": "{n}장",

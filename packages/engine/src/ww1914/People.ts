@@ -250,7 +250,11 @@ function rivalry(gw: GreatWar, seat: GwSeatState, p: GwPersonState): void {
     if (q === null || q.status !== "active" || q.office === null) continue;
     if (wwRoll(s.seed, P_RIVAL, s.chapter, i) % 4 === 0) {
       trustBy(q, -1);
-      reasonOf(gw, seat, "rival_resents", q.id);
+      // One line a chapter: a table of rivals isn't news.
+      const said = seat.log.some(
+        (l) => l.key === "rival_resents" && l.chapter === s.chapter,
+      );
+      if (!said) reasonOf(gw, seat, "rival_resents", q.id);
     }
   }
 }

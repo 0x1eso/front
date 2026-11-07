@@ -425,7 +425,7 @@ describe("a save", () => {
     expect(
       applyGwOrder(gw, seat, { kind: "law", law: "deu_censor", act: "repeal" }),
     ).toBeNull();
-    expect(gw.s.news.at(-1)?.key).toBe("law_repealed");
+    expect(gw.s.news[gw.s.news.length - 1].key).toBe("law_repealed");
     next(gw);
     expect(seat.press.ran.law_gone).toBeDefined();
   });
