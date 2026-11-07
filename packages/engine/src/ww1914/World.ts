@@ -1,4 +1,7 @@
-import type { GwStage } from "@openfront/engine-api/ww1914/GreatWarTypes";
+import type {
+  GwReason,
+  GwStage,
+} from "@openfront/engine-api/ww1914/GreatWarTypes";
 import {
   GW_GAUGE_MAX,
   GW_SIDES,
@@ -117,7 +120,9 @@ export function reason(
   const same = (l: GwReason) =>
     l.key === key && l.chapter === c && (l.who ?? undefined) === who;
   if (seat.log.some(same)) return;
-  seat.log.push(who === undefined ? { key, chapter: c } : { key, chapter: c, who });
+  seat.log.push(
+    who === undefined ? { key, chapter: c } : { key, chapter: c, who },
+  );
 }
 
 /** A turning point of the game: every seat keeps it, the memoir reads it. */

@@ -28,6 +28,10 @@ import {
   voices,
 } from "./GwText";
 
+/** A paper quoted in the scene's narration. */
+const QUOTE =
+  "whitespace-pre-line border-l-2 border-amber-200/40 pl-3 text-white/80";
+const PARA = "whitespace-pre-line";
 /** The desk's head stays short; the country tab keeps every line. */
 const REASONS_SHOWN = 6;
 
@@ -231,13 +235,7 @@ export function reader(c: GwCtx, card: GwCardView): TemplateResult {
       <div class="space-y-2.5 text-[15px] leading-7 text-white/90">
         ${body.map(
           (p) =>
-            html`<p
-              class="whitespace-pre-line ${p.quote
-                ? "border-l-2 border-amber-200/40 pl-3 text-white/80"
-                : ""}"
-            >
-              ${rich(c, p.text)}
-            </p>`,
+            html`<p class=${p.quote ? QUOTE : PARA}>${rich(c, p.text)}</p>`,
         )}
         ${voices(c.pack, card).map(
           (v) =>
