@@ -735,10 +735,22 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        { kind: "world", of: { is: "war" } },
-        { kind: "world", of: { is: "entered", tag: "FRA" } },
-        { kind: "trench", theatre: "west", min: 2 },
-        { kind: "world", of: { is: "date", from: "1916-02", to: "1916-04" } },
+        {
+          kind: "all",
+          of: [
+            { kind: "world", of: { is: "war" } },
+            { kind: "world", of: { is: "entered", tag: "FRA" } },
+            { kind: "trench", theatre: "west", min: 2 },
+            {
+              kind: "world",
+              of: { is: "date", from: "1916-02", to: "1916-04" },
+            },
+          ],
+        },
+        {
+          kind: "world",
+          of: { is: "front", theatre: "east", from: "vistula" },
+        },
       ],
     },
     cast: { cos: { office: "chief_of_staff" } },
