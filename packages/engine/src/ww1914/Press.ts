@@ -164,6 +164,7 @@ function decisions(gw: GreatWar, seat: GwSeatState) {
     (x) =>
       x.chapter === gw.s.chapter &&
       sceneOf(x.scene)?.kind !== "talk" &&
+      sceneOf(x.scene)?.tags.includes("private") !== true &&
       !closed.includes(x.scene),
   );
 }

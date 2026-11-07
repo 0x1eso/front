@@ -8,6 +8,7 @@ import {
   personLeaves,
   standingOffices,
 } from "@openfront/engine/ww1914/People";
+import { pressStep } from "@openfront/engine/ww1914/Press";
 import { GW_PRESS_ROWS } from "@openfront/engine/ww1914/PressTable";
 import fs from "node:fs";
 import path from "node:path";
@@ -92,6 +93,26 @@ describe("russia as played", () => {
         expect(press.heads[id][paper].head, paper).toBeTruthy();
       }
     }
+  });
+
+  test("what is decided in private never heads a paper", async () => {
+    const { gw, st } = await russia();
+    const lives = GW_CONTENT.scenes.filter(
+      (x) => x.tags.includes("private") && x.kind !== "talk" && x.options,
+    );
+    expect(lives.length).toBeGreaterThan(0);
+    for (const x of lives) {
+      for (const o of x.options!) {
+        st.choices.push({
+          scene: x.id,
+          pick: o.id,
+          chapter: gw.s.chapter,
+          proxy: false,
+        });
+      }
+    }
+    pressStep(gw);
+    expect(lives.map((x) => x.id)).not.toContain(st.press.edition?.scene);
   });
 
   test("no neutral comes to bargain at the peace conference", () => {
