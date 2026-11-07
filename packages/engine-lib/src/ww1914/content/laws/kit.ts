@@ -141,7 +141,10 @@ export function lawTalk(law: string, t: LawTalk): GwLawRow["talk"] {
         reply("no", "cold", "leave", null),
       ],
     },
-    shut: { says: [{ id: "base" }], replies: [reply("end", "cold", "leave", null)] },
+    shut: {
+      says: [{ id: "base" }],
+      replies: [reply("end", "cold", "leave", null)],
+    },
   };
   return { who: t.who, start: "open", nodes };
 }

@@ -35,11 +35,16 @@ export const GBR_LAWS: readonly GwLawRow[] = [
     id: "gbr_dora",
     opens: war,
     lean: 1,
-    decree: true,
+    decree: false,
     cast: home,
     draft: [
       draft("press_bureau", 0, ["morale:+1"], [gauge("morale", 1)]),
-      draft("courts_martial", 1, ["army:+1", "commons:-1"], [inst("commons", -1)]),
+      draft(
+        "courts_martial",
+        1,
+        ["army:+1", "commons:-1"],
+        [inst("commons", -1)],
+      ),
       draft("civil_trial", -1, ["commons:+1"], [inst("commons", 1)]),
     ],
     passed: [gauge("order", 1)],
@@ -49,7 +54,11 @@ export const GBR_LAWS: readonly GwLawRow[] = [
       { gauge: "morale", delta: -1, every: 14, offset: 3 },
     ],
     flag: "f_law_censor",
-    repeal: { authority: 10, tell: ["order:-1"], effects: [gauge("order", -1)] },
+    repeal: {
+      authority: 10,
+      tell: ["order:-1"],
+      effects: [gauge("order", -1)],
+    },
     talk: lawTalk("gbr_dora", {
       who: person("gbr_simon"),
       ask: "frank",
@@ -68,8 +77,18 @@ export const GBR_LAWS: readonly GwLawRow[] = [
     cast: treasury,
     draft: [
       draft("short_hours", 1, []),
-      draft("control_board", 0, ["shells:+1", "money:-1"], [gauge("shells", 1), gauge("money", -1)]),
-      draft("kings_pledge", -2, ["shells:+1", "morale:-1"], [gauge("shells", 1), gauge("morale", -1)]),
+      draft(
+        "control_board",
+        0,
+        ["shells:+1", "money:-1"],
+        [gauge("shells", 1), gauge("money", -1)],
+      ),
+      draft(
+        "kings_pledge",
+        -2,
+        ["shells:+1", "morale:-1"],
+        [gauge("shells", 1), gauge("morale", -1)],
+      ),
     ],
     passed: [],
     passedTell: [],
@@ -77,7 +96,11 @@ export const GBR_LAWS: readonly GwLawRow[] = [
       { gauge: "shells", delta: 1, every: 9 },
       { gauge: "morale", delta: -1, every: 12, offset: 5 },
     ],
-    repeal: { authority: 5, tell: ["morale:+1", "shells:-1"], effects: [gauge("morale", 1), gauge("shells", -1)] },
+    repeal: {
+      authority: 5,
+      tell: ["morale:+1", "shells:-1"],
+      effects: [gauge("morale", 1), gauge("shells", -1)],
+    },
     talk: lawTalk("gbr_drink", {
       who: person("gbr_redmond"),
       ask: "warm",
@@ -96,7 +119,12 @@ export const GBR_LAWS: readonly GwLawRow[] = [
     cast: treasury,
     draft: [
       draft("treasury_terms", 1, ["money:-1"], [gauge("money", -1)]),
-      draft("leaving_papers", -1, ["shells:+1", "order:-1"], [gauge("shells", 1), gauge("order", -1)]),
+      draft(
+        "leaving_papers",
+        -1,
+        ["shells:+1", "order:-1"],
+        [gauge("shells", 1), gauge("order", -1)],
+      ),
       draft("tribunals", 0, ["commons:+1"], [inst("commons", 1)]),
     ],
     passed: [gauge("shells", 1)],
@@ -106,7 +134,11 @@ export const GBR_LAWS: readonly GwLawRow[] = [
       { gauge: "order", delta: -1, every: 9, offset: 2 },
     ],
     flag: "f_law_strike_ban",
-    repeal: { authority: 15, tell: ["order:+1", "shells:-1"], effects: [gauge("order", 1), gauge("shells", -1)] },
+    repeal: {
+      authority: 15,
+      tell: ["order:+1", "shells:-1"],
+      effects: [gauge("order", 1), gauge("shells", -1)],
+    },
     talk: lawTalk("gbr_munitions", {
       who: person("gbr_henderson"),
       ask: "frank",
@@ -118,9 +150,21 @@ export const GBR_LAWS: readonly GwLawRow[] = [
     after: {
       chapters: 7,
       options: [
-        { id: "hold_firm", tell: ["shells:+1", "order:-1"], effects: [gauge("shells", 1), gauge("order", -1)] },
-        { id: "hear_them", tell: ["order:+1", "shells:-1"], effects: [gauge("order", 1), gauge("shells", -1)] },
-        { id: "send_stewards_off", tell: ["order:-1", "commons:-1"], effects: [gauge("order", -1), inst("commons", -1)] },
+        {
+          id: "hold_firm",
+          tell: ["shells:+1", "order:-1"],
+          effects: [gauge("shells", 1), gauge("order", -1)],
+        },
+        {
+          id: "hear_them",
+          tell: ["order:+1", "shells:-1"],
+          effects: [gauge("order", 1), gauge("shells", -1)],
+        },
+        {
+          id: "send_stewards_off",
+          tell: ["order:-1", "commons:-1"],
+          effects: [gauge("order", -1), inst("commons", -1)],
+        },
       ],
     },
   }),
@@ -133,7 +177,12 @@ export const GBR_LAWS: readonly GwLawRow[] = [
     draft: [
       draft("plain_census", 1, []),
       draft("with_trades", 0, ["shells:+1"], [gauge("shells", 1)]),
-      draft("canvass", -1, ["manpower:+3", "cabinet:-1"], [men(3), inst("cabinet", -1)]),
+      draft(
+        "canvass",
+        -1,
+        ["manpower:+3", "cabinet:-1"],
+        [men(3), inst("cabinet", -1)],
+      ),
     ],
     passed: [men(3)],
     passedTell: ["manpower:+3"],
@@ -151,7 +200,13 @@ export const GBR_LAWS: readonly GwLawRow[] = [
   }),
   row({
     id: "gbr_rent",
-    opens: { kind: "any", of: [{ kind: "all", of: [war, since("1915-09")] }, { kind: "all", of: [war, low("order", 2)] }] },
+    opens: {
+      kind: "any",
+      of: [
+        { kind: "all", of: [war, since("1915-09")] },
+        { kind: "all", of: [war, low("order", 2)] },
+      ],
+    },
     lean: 1,
     decree: false,
     cast: home,
@@ -166,7 +221,11 @@ export const GBR_LAWS: readonly GwLawRow[] = [
       { gauge: "order", delta: 1, every: 8 },
       { gauge: "money", delta: -1, every: 14, offset: 6 },
     ],
-    repeal: { authority: 20, tell: ["order:-2"], effects: [gauge("order", -2)] },
+    repeal: {
+      authority: 20,
+      tell: ["order:-2"],
+      effects: [gauge("order", -2)],
+    },
     talk: lawTalk("gbr_rent", {
       who: person("gbr_bonar_law"),
       ask: "frank",
@@ -178,14 +237,22 @@ export const GBR_LAWS: readonly GwLawRow[] = [
   }),
   row({
     id: "gbr_conscription",
-    opens: { kind: "all", of: [war, since("1915-08"), world({ is: "manpower", max: 75 })] },
+    opens: {
+      kind: "all",
+      of: [war, since("1915-08"), world({ is: "manpower", max: 75 })],
+    },
     lean: -1,
     decree: false,
     issue: "conscription",
     cast: { sec: held("war"), home: held("interior") },
     draft: [
       draft("single_men", 1, []),
-      draft("all_men", -1, ["manpower:+8", "order:-1"], [men(8), gauge("order", -1)]),
+      draft(
+        "all_men",
+        -1,
+        ["manpower:+8", "order:-1"],
+        [men(8), gauge("order", -1)],
+      ),
       draft("conscience", 2, ["manpower:-3"], [men(-3)]),
     ],
     passed: [men(10), gauge("order", -1)],
@@ -197,7 +264,11 @@ export const GBR_LAWS: readonly GwLawRow[] = [
     flag: "f_gbr_conscript",
     settled: flag("f_gbr_conscript"),
     replaces: ["gbr_h_conscription", "gw_gbr_conscription"],
-    repeal: { authority: 25, tell: ["manpower:-10", "order:+1"], effects: [men(-10), gauge("order", 1)] },
+    repeal: {
+      authority: 25,
+      tell: ["manpower:-10", "order:+1"],
+      effects: [men(-10), gauge("order", 1)],
+    },
     talk: lawTalk("gbr_conscription", {
       who: person("gbr_simon"),
       ask: "frank",
@@ -210,8 +281,16 @@ export const GBR_LAWS: readonly GwLawRow[] = [
     after: {
       chapters: 6,
       options: [
-        { id: "tribunals_stand", tell: ["manpower:+3", "commons:-1"], effects: [men(3), inst("commons", -1)] },
-        { id: "alternative_work", tell: ["order:+1", "manpower:-2"], effects: [gauge("order", 1), men(-2)] },
+        {
+          id: "tribunals_stand",
+          tell: ["manpower:+3", "commons:-1"],
+          effects: [men(3), inst("commons", -1)],
+        },
+        {
+          id: "alternative_work",
+          tell: ["order:+1", "manpower:-2"],
+          effects: [gauge("order", 1), men(-2)],
+        },
       ],
     },
   }),
@@ -223,8 +302,18 @@ export const GBR_LAWS: readonly GwLawRow[] = [
     cast: home,
     draft: [
       draft("sugar_first", 1, []),
-      draft("national_cards", 0, ["bread:+1", "money:-1"], [gauge("bread", 1), gauge("money", -1)]),
-      draft("price_only", 1, ["order:+1", "bread:-1"], [gauge("order", 1), gauge("bread", -1)]),
+      draft(
+        "national_cards",
+        0,
+        ["bread:+1", "money:-1"],
+        [gauge("bread", 1), gauge("money", -1)],
+      ),
+      draft(
+        "price_only",
+        1,
+        ["order:+1", "bread:-1"],
+        [gauge("order", 1), gauge("bread", -1)],
+      ),
     ],
     passed: [gauge("bread", 1)],
     passedTell: ["bread:+1"],
@@ -235,7 +324,11 @@ export const GBR_LAWS: readonly GwLawRow[] = [
     flag: "f_gbr_rationing",
     settled: flag("f_gbr_rationing"),
     replaces: ["gbr_h_food"],
-    repeal: { authority: 10, tell: ["bread:-1", "morale:+1"], effects: [gauge("bread", -1), gauge("morale", 1)] },
+    repeal: {
+      authority: 10,
+      tell: ["bread:-1", "morale:+1"],
+      effects: [gauge("bread", -1), gauge("morale", 1)],
+    },
     talk: lawTalk("gbr_food", {
       who: person("gbr_milner"),
       ask: "cold",
@@ -254,19 +347,50 @@ export const GBR_LAWS: readonly GwLawRow[] = [
     draft: [
       draft("soldiers_only", 1, ["morale:+1"], [gauge("morale", 1)]),
       draft("women_thirty", 0, ["order:+1"], [gauge("order", 1)]),
-      draft("women_equal", -2, ["order:+1", "opposition:-1"], [gauge("order", 1), inst("opposition", -1)]),
+      draft(
+        "women_equal",
+        -2,
+        ["order:+1", "opposition:-1"],
+        [gauge("order", 1), inst("opposition", -1)],
+      ),
     ],
     passed: [
       gauge("morale", 1),
-      { kind: "maybe", when: isText("gbr_franchise", "soldiers_only"), then: [setFlag("f_gbr_soldiers_vote")] },
-      { kind: "maybe", when: isText("gbr_franchise", "women_thirty"), then: [setFlag("f_gbr_women_thirty"), keepPromise(byName("gbr_henderson"), "p_hen_franchise")] },
-      { kind: "maybe", when: isText("gbr_franchise", "women_equal"), then: [setFlag("f_gbr_women_equal"), keepPromise(byName("gbr_henderson"), "p_hen_franchise")] },
+      {
+        kind: "maybe",
+        when: isText("gbr_franchise", "soldiers_only"),
+        then: [setFlag("f_gbr_soldiers_vote")],
+      },
+      {
+        kind: "maybe",
+        when: isText("gbr_franchise", "women_thirty"),
+        then: [
+          setFlag("f_gbr_women_thirty"),
+          keepPromise(byName("gbr_henderson"), "p_hen_franchise"),
+        ],
+      },
+      {
+        kind: "maybe",
+        when: isText("gbr_franchise", "women_equal"),
+        then: [
+          setFlag("f_gbr_women_equal"),
+          keepPromise(byName("gbr_henderson"), "p_hen_franchise"),
+        ],
+      },
     ],
     passedTell: ["morale:+1"],
     term: [],
-    settled: any(flag("f_gbr_soldiers_vote"), flag("f_gbr_women_thirty"), flag("f_gbr_women_equal")),
+    settled: any(
+      flag("f_gbr_soldiers_vote"),
+      flag("f_gbr_women_thirty"),
+      flag("f_gbr_women_equal"),
+    ),
     replaces: ["gbr_h_franchise"],
-    repeal: { authority: 40, tell: ["order:-2", "commons:-2"], effects: [gauge("order", -2), inst("commons", -2)] },
+    repeal: {
+      authority: 40,
+      tell: ["order:-2", "commons:-2"],
+      effects: [gauge("order", -2), inst("commons", -2)],
+    },
     talk: lawTalk("gbr_franchise", {
       who: person("gbr_bonar_law"),
       ask: "warm",
@@ -278,7 +402,10 @@ export const GBR_LAWS: readonly GwLawRow[] = [
   }),
   row({
     id: "gbr_home_rule",
-    opens: { kind: "all", of: [war, since("1916-05"), not(flag("f_home_rule_lives"))] },
+    opens: {
+      kind: "all",
+      of: [war, since("1916-05"), not(flag("f_home_rule_lives"))],
+    },
     lean: -1,
     decree: false,
     issue: "home_rule",
@@ -286,14 +413,32 @@ export const GBR_LAWS: readonly GwLawRow[] = [
     draft: [
       draft("six_counties_out", 1, ["irish:-1"], [inst("irish", -1)]),
       draft("convention", 0, ["cabinet:+1"], [inst("cabinet", 1)]),
-      draft("all_ireland", -2, ["irish:+2", "opposition:-2"], [inst("irish", 2), inst("opposition", -2)]),
+      draft(
+        "all_ireland",
+        -2,
+        ["irish:+2", "opposition:-2"],
+        [inst("irish", 2), inst("opposition", -2)],
+      ),
     ],
-    passed: [inst("irish", 2), inst("opposition", -1), setFlag("f_home_rule_lives"), { kind: "pressure", topic: "ireland", delta: -2 }],
+    passed: [
+      inst("irish", 2),
+      inst("opposition", -1),
+      setFlag("f_home_rule_lives"),
+      { kind: "pressure", topic: "ireland", delta: -2 },
+    ],
     passedTell: ["irish:+2", "opposition:-1"],
     term: [{ gauge: "order", delta: 1, every: 11 }],
     settled: flag("f_home_rule_lives"),
     replaces: ["gbr_h_ireland_talks"],
-    repeal: { authority: 30, tell: ["irish:-3", "order:-1"], effects: [inst("irish", -3), gauge("order", -1), { kind: "unflag", flag: "f_home_rule_lives" }] },
+    repeal: {
+      authority: 30,
+      tell: ["irish:-3", "order:-1"],
+      effects: [
+        inst("irish", -3),
+        gauge("order", -1),
+        { kind: "unflag", flag: "f_home_rule_lives" },
+      ],
+    },
     talk: lawTalk("gbr_home_rule", {
       who: person("gbr_carson"),
       ask: "frank",

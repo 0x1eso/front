@@ -46,7 +46,9 @@ function takeUp(c: GwCtx, v: GwLawView): TemplateResult {
     </button>
     ${v.waits === null
       ? nothing
-      : html`<p class=${MUTED}>${translateText(`gw.law.waits.${v.waits}`)}</p>`}`;
+      : html`<p class=${MUTED}>
+          ${translateText(`gw.law.waits.${v.waits}`)}
+        </p>`}`;
 }
 
 function call(c: GwCtx, v: GwLawView): TemplateResult | typeof nothing {
@@ -103,8 +105,7 @@ function line(c: GwCtx, v: GwLawView): TemplateResult {
     </div>
     ${about === null ? nothing : html`<p class=${MUTED}>${about}</p>`}
     ${v.stage === "force" ? nothing : standing(v)}
-    ${v.stage === "open" ? takeUp(c, v) : nothing} ${call(c, v)}
-    ${repeal(c, v)}
+    ${v.stage === "open" ? takeUp(c, v) : nothing} ${call(c, v)} ${repeal(c, v)}
   </div>`;
 }
 

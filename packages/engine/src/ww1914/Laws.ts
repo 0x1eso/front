@@ -20,16 +20,20 @@ import type {
 import type { GwOrderBlock } from "@openfront/engine-api/ww1914/GwOrders";
 import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
 import { GW_LAWS } from "@openfront/engine-lib/ww1914/content/scenes/laws";
-import type {
-  GwLawBody,
-  GwLawRow,
-} from "@openfront/engine-lib/ww1914/LawRows";
+import type { GwLawBody, GwLawRow } from "@openfront/engine-lib/ww1914/LawRows";
 import { authorityRow, holdVote, voteCount } from "./Authority";
 import { makeCard, placeCard } from "./Desk";
 import type { GreatWar } from "./GreatWar";
 import { summonable } from "./Orders";
 import { castOf, holds, runEffects, SceneCtx, sceneOf } from "./SceneRun";
-import { clampTo, everyMonths, moveGauge, news, reason, seatsOf } from "./World";
+import {
+  clampTo,
+  everyMonths,
+  moveGauge,
+  news,
+  reason,
+  seatsOf,
+} from "./World";
 
 /** Chapters a bill taken back or repealed stays off the table. */
 const SHELF = 4;
@@ -69,11 +73,7 @@ function tally(
   const won = row.lean + (lawStage(n, row.id)?.support ?? 0);
   // What the cabinet's camps make of it: a door the whole table stands in.
   const table =
-    row.issue === undefined
-      ? 0
-      : voteCount(gw, seat, row.issue) >= 0
-        ? 1
-        : -1;
+    row.issue === undefined ? 0 : voteCount(gw, seat, row.issue) >= 0 ? 1 : -1;
   const first = (n.inst[body.inst] ?? 0) + won + table - body.need;
   const second =
     body.second === undefined
@@ -105,11 +105,7 @@ export function lawCanDecree(
   return price !== undefined && n.authority >= price;
 }
 
-function shiftInst(
-  n: GwNationState,
-  inst: GwInstitution,
-  delta: number,
-): void {
+function shiftInst(n: GwNationState, inst: GwInstitution, delta: number): void {
   const v = n.inst[inst];
   if (v === undefined) return;
   n.inst[inst] = clampTo(v + delta, GW_INST_MIN, GW_INST_MAX);
@@ -151,7 +147,12 @@ function toStage(
   st.since = gw.s.chapter;
 }
 
-function enact(ctx: SceneCtx, st: GwLawState, row: GwLawRow, how: "voted" | "decreed") {
+function enact(
+  ctx: SceneCtx,
+  st: GwLawState,
+  row: GwLawRow,
+  how: "voted" | "decreed",
+) {
   const { gw, seat } = ctx;
   toStage(gw, st, "force");
   st.how = how;
@@ -304,9 +305,7 @@ export function lawOrder(
   const n = gw.nation(seat.tag);
   const row = rowOf(id);
   if (n === null || row === null || row.tag !== seat.tag) return "no_law";
-  return act === "draft"
-    ? takeUp(gw, seat, n, row)
-    : repeal(gw, seat, n, row);
+  return act === "draft" ? takeUp(gw, seat, n, row) : repeal(gw, seat, n, row);
 }
 
 /** A decision of the desk already made it law: it stands, and is listed. */
@@ -454,7 +453,8 @@ function view(
         : shelved(gw, st)
           ? "shelved"
           : null,
-    talk: st !== null && MOVING.includes(st.stage) ? talkOf(gw, seat, row) : null,
+    talk:
+      st !== null && MOVING.includes(st.stage) ? talkOf(gw, seat, row) : null,
     repeal: force
       ? {
           tell: [`authority:-${row.repeal.authority}`, ...row.repeal.tell],

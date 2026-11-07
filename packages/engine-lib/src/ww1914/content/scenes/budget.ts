@@ -503,11 +503,18 @@ export const BUDGET_SCENES: readonly GwScene[] = [
     { tell: [], effects: [reason("budget_heard_profits")] },
     trade("cold", coin, cost("army")),
   ),
-  talk("gw_bt_deu_chest", "DEU", financeHolder, atWar, "b_deu_chest", {
-    tell: ["money:+1", "army:-1"],
-    effects: [treasury(10), inst("army", -1)],
-  },
-    trade("cunning", coin, cost("reichstag"))),
+  talk(
+    "gw_bt_deu_chest",
+    "DEU",
+    financeHolder,
+    atWar,
+    "b_deu_chest",
+    {
+      tell: ["money:+1", "army:-1"],
+      effects: [treasury(10), inst("army", -1)],
+    },
+    trade("cunning", coin, cost("reichstag")),
+  ),
   talk(
     "gw_bt_deu_after",
     "DEU",
@@ -515,7 +522,10 @@ export const BUDGET_SCENES: readonly GwScene[] = [
     all(since("1916-01"), heavy),
     "b_deu_after",
     { tell: [], effects: [reason("budget_heard_after")] },
-    trade("weary", gain("reichstag"), { tell: "money:-1", effect: treasury(-10) }),
+    trade("weary", gain("reichstag"), {
+      tell: "money:-1",
+      effect: treasury(-10),
+    }),
   ),
   talk(
     "gw_bt_deu_notes",
@@ -607,11 +617,18 @@ export const BUDGET_SCENES: readonly GwScene[] = [
     ],
     LAST,
   ),
-  talk("gw_bt_gbr_duties", "GBR", financeHolder, atWar, "b_gbr_duties", {
-    tell: [],
-    effects: [reason("budget_heard_duties")],
-  },
-    trade("cunning", coin, cost("cabinet"))),
+  talk(
+    "gw_bt_gbr_duties",
+    "GBR",
+    financeHolder,
+    atWar,
+    "b_gbr_duties",
+    {
+      tell: [],
+      effects: [reason("budget_heard_duties")],
+    },
+    trade("cunning", coin, cost("cabinet")),
+  ),
   talk(
     "gw_bt_gbr_allies",
     "GBR",
@@ -619,13 +636,31 @@ export const BUDGET_SCENES: readonly GwScene[] = [
     since("1915-06"),
     "b_gbr_allies",
     { tell: [], effects: [reason("budget_heard_allies")] },
-    trade("cold", coin, { tell: "ally:-1", effect: { kind: "trust", tag: "FRA", delta: -1 } }),
+    trade("cold", coin, {
+      tell: "ally:-1",
+      effect: { kind: "trust", tag: "FRA", delta: -1 },
+    }),
   ),
-  talk("gw_bt_gbr_loan", "GBR", financeHolder, since("1916-01"), "b_gbr_loan", {
-    tell: [],
-    effects: [reason("budget_heard_loan")],
-  },
-    trade("anxious", coin, { tell: "america:+1", effect: doWorld({ do: "readiness", tag: "USA", delta: 2 }) }, "usa_credit_cliff")),
+  talk(
+    "gw_bt_gbr_loan",
+    "GBR",
+    financeHolder,
+    since("1916-01"),
+    "b_gbr_loan",
+    {
+      tell: [],
+      effects: [reason("budget_heard_loan")],
+    },
+    trade(
+      "anxious",
+      coin,
+      {
+        tell: "america:+1",
+        effect: doWorld({ do: "readiness", tag: "USA", delta: 2 }),
+      },
+      "usa_credit_cliff",
+    ),
+  ),
   talk(
     "gw_bl_gbr",
     "GBR",
@@ -639,7 +674,15 @@ export const BUDGET_SCENES: readonly GwScene[] = [
         doWorld({ do: "readiness", tag: "USA", delta: 4 }),
       ],
     },
-    trade("cold", coin, { tell: "america:+1", effect: doWorld({ do: "readiness", tag: "USA", delta: 2 }) }, "usa_credit_cliff"),
+    trade(
+      "cold",
+      coin,
+      {
+        tell: "america:+1",
+        effect: doWorld({ do: "readiness", tag: "USA", delta: 2 }),
+      },
+      "usa_credit_cliff",
+    ),
     { summon: false },
   ),
   bankruptcy("gw_bc_gbr", ["GBR"], [inst("commons", -1)]),
@@ -717,11 +760,18 @@ export const BUDGET_SCENES: readonly GwScene[] = [
     ],
     LAST,
   ),
-  talk("gw_bt_auh_loan", "AUH", financeHolder, atWar, "b_auh_loan", {
-    tell: [],
-    effects: [reason("budget_heard_loan_auh")],
-  },
-    trade("cunning", coin, cost("hungary"))),
+  talk(
+    "gw_bt_auh_loan",
+    "AUH",
+    financeHolder,
+    atWar,
+    "b_auh_loan",
+    {
+      tell: [],
+      effects: [reason("budget_heard_loan_auh")],
+    },
+    trade("cunning", coin, cost("hungary")),
+  ),
   talk(
     "gw_bt_auh_grain",
     "AUH",
@@ -836,16 +886,33 @@ export const BUDGET_SCENES: readonly GwScene[] = [
       ...LAST,
     ],
   ),
-  talk("gw_bt_rus_vodka", "RUS", financeHolder, atWar, "b_rus_income", {
-    tell: [],
-    effects: [reason("budget_heard_income")],
-  },
-    trade("weary", coin, cost("court"))),
-  talk("gw_bt_rus_gold", "RUS", financeHolder, since("1915-01"), "b_rus_gold", {
-    tell: ["money:+1"],
-    effects: [treasury(15)],
-  },
-    trade("anxious", coin, { tell: "gbr:-1", effect: { kind: "trust", tag: "GBR", delta: -1 } })),
+  talk(
+    "gw_bt_rus_vodka",
+    "RUS",
+    financeHolder,
+    atWar,
+    "b_rus_income",
+    {
+      tell: [],
+      effects: [reason("budget_heard_income")],
+    },
+    trade("weary", coin, cost("court")),
+  ),
+  talk(
+    "gw_bt_rus_gold",
+    "RUS",
+    financeHolder,
+    since("1915-01"),
+    "b_rus_gold",
+    {
+      tell: ["money:+1"],
+      effects: [treasury(15)],
+    },
+    trade("anxious", coin, {
+      tell: "gbr:-1",
+      effect: { kind: "trust", tag: "GBR", delta: -1 },
+    }),
+  ),
   talk(
     "gw_bt_rus_paper",
     "RUS",
@@ -877,7 +944,10 @@ export const BUDGET_SCENES: readonly GwScene[] = [
       tell: ["money:+2", "gbr:+1"],
       effects: [treasury(40), { kind: "trust", tag: "GBR", delta: 1 }],
     },
-    trade("cold", coin, { tell: "gbr:-1", effect: { kind: "trust", tag: "GBR", delta: -1 } }),
+    trade("cold", coin, {
+      tell: "gbr:-1",
+      effect: { kind: "trust", tag: "GBR", delta: -1 },
+    }),
     { summon: false },
   ),
   bankruptcy("gw_bc_rus", ["RUS"], [inst("duma", -1)]),

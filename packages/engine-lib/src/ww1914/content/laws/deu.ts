@@ -45,7 +45,12 @@ export const DEU_LAWS: readonly GwLawRow[] = [
     draft: [
       draft("generals_keep", 1, ["army:+1"], [inst("army", 1)]),
       draft("one_office", 0, ["army:-1"], [inst("army", -1)]),
-      draft("reichstag_reads", -1, ["reichstag:+1", "army:-1"], [inst("reichstag", 1), inst("army", -1)]),
+      draft(
+        "reichstag_reads",
+        -1,
+        ["reichstag:+1", "army:-1"],
+        [inst("reichstag", 1), inst("army", -1)],
+      ),
     ],
     passed: [gauge("order", 1)],
     passedTell: ["order:+1"],
@@ -54,9 +59,16 @@ export const DEU_LAWS: readonly GwLawRow[] = [
       { gauge: "morale", delta: -1, every: 14, offset: 4 },
     ],
     flag: "f_law_censor",
-    settled: any(chose("deu_h_censor", "one_censor"), chose("deu_h_censor", "press_office")),
+    settled: any(
+      chose("deu_h_censor", "one_censor"),
+      chose("deu_h_censor", "press_office"),
+    ),
     replaces: ["deu_h_censor"],
-    repeal: { authority: 15, tell: ["army:-1", "reichstag:+1"], effects: [inst("army", -1), inst("reichstag", 1)] },
+    repeal: {
+      authority: 15,
+      tell: ["army:-1", "reichstag:+1"],
+      effects: [inst("army", -1), inst("reichstag", 1)],
+    },
     talk: lawTalk("deu_censor", {
       who: either(person("deu_erzberger"), person("deu_haase")),
       ask: "frank",
@@ -75,7 +87,12 @@ export const DEU_LAWS: readonly GwLawRow[] = [
     cast: home,
     draft: [
       draft("city_cards", 1, []),
-      draft("reich_grain", 0, ["bread:+1", "reichstag:-1"], [gauge("bread", 1), inst("reichstag", -1)]),
+      draft(
+        "reich_grain",
+        0,
+        ["bread:+1", "reichstag:-1"],
+        [gauge("bread", 1), inst("reichstag", -1)],
+      ),
       draft("war_bread", 1, ["morale:-1"], [gauge("morale", -1)]),
     ],
     passed: [gauge("bread", 1)],
@@ -84,7 +101,11 @@ export const DEU_LAWS: readonly GwLawRow[] = [
       { gauge: "bread", delta: 1, every: 6 },
       { gauge: "morale", delta: -1, every: 13, offset: 3 },
     ],
-    repeal: { authority: 15, tell: ["bread:-2"], effects: [gauge("bread", -2)] },
+    repeal: {
+      authority: 15,
+      tell: ["bread:-2"],
+      effects: [gauge("bread", -2)],
+    },
     talk: lawTalk("deu_bread_cards", {
       who: held("interior"),
       ask: "cold",
@@ -97,9 +118,25 @@ export const DEU_LAWS: readonly GwLawRow[] = [
     after: {
       chapters: 8,
       options: [
-        { id: "cut_ration", tell: ["bread:+1", "morale:-1"], effects: [gauge("bread", 1), gauge("morale", -1)] },
-        { id: "seize_farms", tell: ["bread:+1", "reichstag:-1", "order:-1"], effects: [gauge("bread", 1), inst("reichstag", -1), gauge("order", -1)] },
-        { id: "wink_at_it", tell: ["order:+1", "bread:-1"], effects: [gauge("order", 1), gauge("bread", -1)] },
+        {
+          id: "cut_ration",
+          tell: ["bread:+1", "morale:-1"],
+          effects: [gauge("bread", 1), gauge("morale", -1)],
+        },
+        {
+          id: "seize_farms",
+          tell: ["bread:+1", "reichstag:-1", "order:-1"],
+          effects: [
+            gauge("bread", 1),
+            inst("reichstag", -1),
+            gauge("order", -1),
+          ],
+        },
+        {
+          id: "wink_at_it",
+          tell: ["order:+1", "bread:-1"],
+          effects: [gauge("order", 1), gauge("bread", -1)],
+        },
       ],
     },
   }),
@@ -112,12 +149,21 @@ export const DEU_LAWS: readonly GwLawRow[] = [
     draft: [
       draft("food_dictator", 1, ["reichstag:+1"], [inst("reichstag", 1)]),
       draft("states_keep", 0, []),
-      draft("army_seat", 0, ["army:+1", "bread:+1"], [inst("army", 1), gauge("bread", 1)]),
+      draft(
+        "army_seat",
+        0,
+        ["army:+1", "bread:+1"],
+        [inst("army", 1), gauge("bread", 1)],
+      ),
     ],
     passed: [gauge("bread", 1)],
     passedTell: ["bread:+1"],
     term: [{ gauge: "bread", delta: 1, every: 8 }],
-    repeal: { authority: 10, tell: ["bread:-1"], effects: [gauge("bread", -1)] },
+    repeal: {
+      authority: 10,
+      tell: ["bread:-1"],
+      effects: [gauge("bread", -1)],
+    },
     talk: lawTalk("deu_food_office", {
       who: either(person("deu_batocki"), held("interior")),
       ask: "frank",
@@ -146,7 +192,11 @@ export const DEU_LAWS: readonly GwLawRow[] = [
       { gauge: "order", delta: -1, every: 8, offset: 3 },
     ],
     flag: "f_law_strike_ban",
-    repeal: { authority: 15, tell: ["order:+1", "army:-1"], effects: [gauge("order", 1), inst("army", -1)] },
+    repeal: {
+      authority: 15,
+      tell: ["order:+1", "army:-1"],
+      effects: [gauge("order", 1), inst("army", -1)],
+    },
     talk: lawTalk("deu_strike_ban", {
       who: either(person("deu_ebert"), person("deu_haase")),
       ask: "frank",
@@ -158,8 +208,16 @@ export const DEU_LAWS: readonly GwLawRow[] = [
     after: {
       chapters: 9,
       options: [
-        { id: "uniform_them", tell: ["shells:+1", "order:-1"], effects: [gauge("shells", 1), gauge("order", -1)] },
-        { id: "talk_to_shop", tell: ["order:+1", "army:-1"], effects: [gauge("order", 1), inst("army", -1)] },
+        {
+          id: "uniform_them",
+          tell: ["shells:+1", "order:-1"],
+          effects: [gauge("shells", 1), gauge("order", -1)],
+        },
+        {
+          id: "talk_to_shop",
+          tell: ["order:+1", "army:-1"],
+          effects: [gauge("order", 1), inst("army", -1)],
+        },
       ],
     },
   }),
@@ -171,7 +229,12 @@ export const DEU_LAWS: readonly GwLawRow[] = [
     cast: home,
     draft: [
       draft("army_text", -1, ["army:+1"], [inst("army", 1)]),
-      draft("unions_text", 2, ["army:-1"], [inst("army", -1), setFlag("f_aux_unions")]),
+      draft(
+        "unions_text",
+        2,
+        ["army:-1"],
+        [inst("army", -1), setFlag("f_aux_unions")],
+      ),
     ],
     passed: [men(3), gauge("shells", 1)],
     passedTell: ["manpower:+3", "shells:+1"],
@@ -179,9 +242,16 @@ export const DEU_LAWS: readonly GwLawRow[] = [
       { gauge: "manpower", delta: 1, every: 4 },
       { gauge: "shells", delta: 1, every: 8 },
     ],
-    settled: any(chose("deu_h_aux_service", "army_text"), chose("deu_h_aux_service", "unions_text")),
+    settled: any(
+      chose("deu_h_aux_service", "army_text"),
+      chose("deu_h_aux_service", "unions_text"),
+    ),
     replaces: ["deu_h_aux_service"],
-    repeal: { authority: 20, tell: ["manpower:-3", "order:+1"], effects: [men(-3), gauge("order", 1)] },
+    repeal: {
+      authority: 20,
+      tell: ["manpower:-3", "order:+1"],
+      effects: [men(-3), gauge("order", 1)],
+    },
     talk: lawTalk("deu_aux", {
       who: person("deu_groener"),
       ask: "frank",
@@ -199,13 +269,22 @@ export const DEU_LAWS: readonly GwLawRow[] = [
     cast: home,
     draft: [
       draft("youth_clause", 1, []),
-      draft("paragraph_153", 0, ["order:+1", "army:-1"], [gauge("order", 1), inst("army", -1)]),
+      draft(
+        "paragraph_153",
+        0,
+        ["order:+1", "army:-1"],
+        [gauge("order", 1), inst("army", -1)],
+      ),
       draft("words_only", 1, ["order:-1"], [gauge("order", -1)]),
     ],
     passed: [inst("reichstag", 1), inst("army", -1)],
     passedTell: ["reichstag:+1", "army:-1"],
     term: [{ gauge: "order", delta: 1, every: 10 }],
-    repeal: { authority: 25, tell: ["order:-2", "reichstag:-1"], effects: [gauge("order", -2), inst("reichstag", -1)] },
+    repeal: {
+      authority: 25,
+      tell: ["order:-2", "reichstag:-1"],
+      effects: [gauge("order", -2), inst("reichstag", -1)],
+    },
     talk: lawTalk("deu_unions", {
       who: either(person("deu_ebert"), person("deu_scheidemann")),
       ask: "warm",
@@ -228,7 +307,11 @@ export const DEU_LAWS: readonly GwLawRow[] = [
     passed: [inst("reichstag", 1), gauge("morale", 1)],
     passedTell: ["reichstag:+1", "morale:+1"],
     term: [],
-    repeal: { authority: 25, tell: ["reichstag:-2"], effects: [inst("reichstag", -2)] },
+    repeal: {
+      authority: 25,
+      tell: ["reichstag:-2"],
+      effects: [inst("reichstag", -2)],
+    },
     talk: lawTalk("deu_jesuits", {
       who: either(person("deu_erzberger"), person("deu_hertling")),
       ask: "warm",
@@ -257,7 +340,12 @@ export const DEU_LAWS: readonly GwLawRow[] = [
     cast: home,
     draft: [
       draft("plural_vote", 1, []),
-      draft("equal_vote", 0, ["order:+1", "army:-1"], [gauge("order", 1), inst("army", -1)]),
+      draft(
+        "equal_vote",
+        0,
+        ["order:+1", "army:-1"],
+        [gauge("order", 1), inst("army", -1)],
+      ),
       draft("after_the_peace", 2, ["order:-1"], [gauge("order", -1)]),
     ],
     passed: [
@@ -269,7 +357,11 @@ export const DEU_LAWS: readonly GwLawRow[] = [
     ],
     passedTell: ["order:+2", "morale:+1", "army:-1"],
     term: [],
-    repeal: { authority: 45, tell: ["order:-3"], effects: [gauge("order", -3)] },
+    repeal: {
+      authority: 45,
+      tell: ["order:-3"],
+      effects: [gauge("order", -3)],
+    },
     talk: lawTalk("deu_three_class", {
       who: held("chancellor"),
       ask: "frank",
@@ -288,7 +380,12 @@ export const DEU_LAWS: readonly GwLawRow[] = [
     cast: { chancellor: held("chancellor"), cos: held("chief_of_staff") },
     draft: [
       draft("federal_state", 0, ["army:-1"], [inst("army", -1)]),
-      draft("share_out", 1, ["army:+1", "order:-1"], [inst("army", 1), gauge("order", -1)]),
+      draft(
+        "share_out",
+        1,
+        ["army:+1", "order:-1"],
+        [inst("army", 1), gauge("order", -1)],
+      ),
       draft("to_prussia", 1, ["reichstag:-1"], [inst("reichstag", -1)]),
     ],
     passed: [{ kind: "pressure", topic: "alsace", delta: -2 }],

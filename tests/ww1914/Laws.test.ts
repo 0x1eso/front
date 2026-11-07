@@ -2,14 +2,14 @@ import { GameMapSize, GameMapType } from "@openfront/engine-api/game/GameTypes";
 import type { MapFiles } from "@openfront/engine-api/game/MapFiles";
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import { GwPack, gwPackProblems } from "@openfront/engine-api/ww1914/GwPack";
+import { GW_CONTENT } from "@openfront/engine-lib/ww1914/content/Content";
+import { GW_LAWS } from "@openfront/engine-lib/ww1914/content/scenes/laws";
+import { GW_LAW_HOME } from "@openfront/engine-lib/ww1914/LawRows";
 import { GW_AUTHORITY } from "@openfront/engine/ww1914/AuthorityTable";
 import { advanceChapter } from "@openfront/engine/ww1914/Chapters";
 import type { GreatWar } from "@openfront/engine/ww1914/GreatWar";
 import { lawCount, lawViews } from "@openfront/engine/ww1914/Laws";
 import { applyGwOrder } from "@openfront/engine/ww1914/Orders";
-import { GW_CONTENT } from "@openfront/engine-lib/ww1914/content/Content";
-import { GW_LAWS } from "@openfront/engine-lib/ww1914/content/scenes/laws";
-import { GW_LAW_HOME } from "@openfront/engine-lib/ww1914/LawRows";
 import { loadMapFiles } from "@openfront/shared/GameMapLoader";
 import fs from "node:fs";
 import path from "node:path";
@@ -75,7 +75,15 @@ describe("the rows", () => {
   });
 
   test("every form of government that rules a seat names who passes a bill", () => {
-    for (const form of ["empire", "liberal", "coalition", "dual_monarchy", "karl", "tsar", "crown"]) {
+    for (const form of [
+      "empire",
+      "liberal",
+      "coalition",
+      "dual_monarchy",
+      "karl",
+      "tsar",
+      "crown",
+    ]) {
       expect(GW_AUTHORITY[form].law).toBeDefined();
     }
     expect(GW_AUTHORITY.empire.law?.inst).toBe("reichstag");
@@ -91,7 +99,9 @@ describe("the rows", () => {
       const pack = packOf(`${tag}.laws.json`);
       const rows = GW_LAWS.filter((r) => r.tag === tag);
       const ids = new Set(
-        rows.flatMap((r) => ["law", "lv", "lt", "lf"].map((p) => `gw_${p}_${r.id}`)),
+        rows.flatMap((r) =>
+          ["law", "lv", "lt", "lf"].map((p) => `gw_${p}_${r.id}`),
+        ),
       );
       const scenes = GW_CONTENT.scenes.filter((s) => ids.has(s.id));
       expect(gwPackProblems(scenes, pack)).toEqual([]);
@@ -103,7 +113,15 @@ describe("the rows", () => {
         }
       }
     }
-    for (const b of ["reichstag", "commons", "cabinet", "hungary", "council", "duma", "body"]) {
+    for (const b of [
+      "reichstag",
+      "commons",
+      "cabinet",
+      "hungary",
+      "council",
+      "duma",
+      "body",
+    ]) {
       expect(common.reasons?.[`law_no_${b}`]).toBeDefined();
     }
   });
@@ -120,11 +138,17 @@ describe("a bill's way", () => {
   test("draft, persuade, the day, in force, and the law works on its months", async () => {
     const { gw, n, seat: st } = await atWar();
     const row = rowOf("deu_bread_cards");
-    expect(applyGwOrder(gw, st, { kind: "law", law: row.id, act: "draft" })).toBe(null);
+    expect(
+      applyGwOrder(gw, st, { kind: "law", law: row.id, act: "draft" }),
+    ).toBe(null);
     const card = st.desk.find((c) => c.scene === `gw_law_${row.id}`)!;
     expect(card).toBeDefined();
     expect(n.laws[0].stage).toBe("draft");
-    applyGwOrder(gw, st, { kind: "choose", card: card.uid, option: "city_cards" });
+    applyGwOrder(gw, st, {
+      kind: "choose",
+      card: card.uid,
+      option: "city_cards",
+    });
     expect(n.laws[0].stage).toBe("persuade");
     expect(n.laws[0].text).toBe("city_cards");
     next(gw);
@@ -141,13 +165,23 @@ describe("a bill's way", () => {
 
   test("one bill moves at a time", async () => {
     const { gw, seat: st } = await atWar();
-    expect(applyGwOrder(gw, st, { kind: "law", law: "deu_bread_cards", act: "draft" })).toBe(null);
-    expect(applyGwOrder(gw, st, { kind: "law", law: "deu_censor", act: "draft" })).toBe("law_busy");
+    expect(
+      applyGwOrder(gw, st, {
+        kind: "law",
+        law: "deu_bread_cards",
+        act: "draft",
+      }),
+    ).toBe(null);
+    expect(
+      applyGwOrder(gw, st, { kind: "law", law: "deu_censor", act: "draft" }),
+    ).toBe("law_busy");
   });
 
   test("another country's bill is refused and nothing changes", async () => {
     const { gw, n, seat: st } = await atWar();
-    expect(applyGwOrder(gw, st, { kind: "law", law: "gbr_rent", act: "draft" })).toBe("no_law");
+    expect(
+      applyGwOrder(gw, st, { kind: "law", law: "gbr_rent", act: "draft" }),
+    ).toBe("no_law");
     expect(n.laws).toEqual([]);
   });
 
@@ -202,7 +236,11 @@ describe("a bill's way", () => {
     const v = lawViews(gw, st).find((x) => x.id === "deu_censor")!;
     expect(v.stage).toBe("vote");
     const card = st.desk.find((c) => c.scene === "gw_lv_deu_censor")!;
-    const blocked = applyGwOrder(gw, st, { kind: "choose", card: card.uid, option: "decree" });
+    const blocked = applyGwOrder(gw, st, {
+      kind: "choose",
+      card: card.uid,
+      option: "decree",
+    });
     expect(blocked).toBe("closed");
   });
 
@@ -213,11 +251,19 @@ describe("a bill's way", () => {
     next(gw);
     next(gw);
     const card = st.desk.find((c) => c.scene === `gw_lv_${id}`)!;
-    applyGwOrder(gw, st, { kind: "choose", card: card.uid, option: "withdraw" });
+    applyGwOrder(gw, st, {
+      kind: "choose",
+      card: card.uid,
+      option: "withdraw",
+    });
     expect(n.laws[0].stage).toBe("idle");
-    expect(applyGwOrder(gw, st, { kind: "law", law: id, act: "draft" })).toBe("law_busy");
+    expect(applyGwOrder(gw, st, { kind: "law", law: id, act: "draft" })).toBe(
+      "law_busy",
+    );
     for (let i = 0; i < 4; i++) next(gw);
-    expect(applyGwOrder(gw, st, { kind: "law", law: id, act: "draft" })).toBe(null);
+    expect(applyGwOrder(gw, st, { kind: "law", law: id, act: "draft" })).toBe(
+      null,
+    );
   });
 
   test("repeal has its price and takes the flag away", async () => {
@@ -230,9 +276,13 @@ describe("a bill's way", () => {
     next(gw);
     expect(st.flags).toContain("f_law_strike_ban");
     n.authority = 5;
-    expect(applyGwOrder(gw, st, { kind: "law", law: row.id, act: "repeal" })).toBe("no_authority");
+    expect(
+      applyGwOrder(gw, st, { kind: "law", law: row.id, act: "repeal" }),
+    ).toBe("no_authority");
     n.authority = 50;
-    expect(applyGwOrder(gw, st, { kind: "law", law: row.id, act: "repeal" })).toBe(null);
+    expect(
+      applyGwOrder(gw, st, { kind: "law", law: row.id, act: "repeal" }),
+    ).toBe(null);
     expect(n.authority).toBe(50 - row.repeal.authority);
     expect(st.flags).not.toContain("f_law_strike_ban");
     expect(n.laws[0].stage).toBe("idle");
@@ -248,7 +298,12 @@ describe("a bill's way", () => {
 
   test("a decision of the desk that made it law is listed as law", async () => {
     const { gw, n, seat: st } = await atWar();
-    st.choices.push({ scene: "deu_h_censor", pick: "one_censor", chapter: 1, proxy: false });
+    st.choices.push({
+      scene: "deu_h_censor",
+      pick: "one_censor",
+      chapter: 1,
+      proxy: false,
+    });
     next(gw);
     const v = lawViews(gw, st).find((x) => x.id === "deu_censor")!;
     expect(v.stage).toBe("force");
@@ -259,12 +314,34 @@ describe("a bill's way", () => {
 
   test("repealed, a decision of the desk doesn't make it law again", async () => {
     const { gw, n, seat: st } = await atWar();
-    st.choices.push({ scene: "deu_h_censor", pick: "one_censor", chapter: 1, proxy: false });
+    st.choices.push({
+      scene: "deu_h_censor",
+      pick: "one_censor",
+      chapter: 1,
+      proxy: false,
+    });
     next(gw);
-    expect(applyGwOrder(gw, st, { kind: "law", law: "deu_censor", act: "repeal" })).toBe(null);
+    expect(
+      applyGwOrder(gw, st, { kind: "law", law: "deu_censor", act: "repeal" }),
+    ).toBe(null);
     next(gw);
     expect(n.laws[0].stage).toBe("idle");
     expect(st.flags).not.toContain("f_law_censor");
+  });
+
+  test("in force, it comes back as a scene after its chapters", async () => {
+    const { gw, n, seat: st } = await atWar();
+    const row = rowOf("deu_bread_cards");
+    n.inst.reichstag = 3;
+    applyGwOrder(gw, st, { kind: "law", law: row.id, act: "draft" });
+    for (let i = 0; i < 3; i++) next(gw);
+    expect(n.laws[0].stage).toBe("force");
+    for (let i = 0; i < row.after!.chapters + 2; i++) {
+      if (st.desk.some((c) => c.scene === `gw_lf_${row.id}`)) break;
+      next(gw);
+    }
+    expect(st.seen[`gw_lf_${row.id}`]).toBeDefined();
+    expect(n.laws[0].after).toBe(true);
   });
 
   test("the view holds words, not the count", async () => {
@@ -294,7 +371,8 @@ describe("a save", () => {
       after: false,
     });
     expect(gw.hash()).not.toBe(before);
-    const { GreatWarSnapshot } = await import("@openfront/engine/ww1914/GreatWar");
+    const { GreatWarSnapshot } =
+      await import("@openfront/engine/ww1914/GreatWar");
     const saved = JSON.parse(JSON.stringify(gw.snapshot()));
     const back = GreatWarSnapshot.schema.parse(saved);
     expect(back.nations.find((x) => x.tag === "DEU")!.laws).toEqual(n.laws);
@@ -328,20 +406,34 @@ describe("a whole game on the real map", () => {
       for (let i = 0; i < 8; i++) {
         const passed = new Set<string>();
         let brought = 0;
-        await playRun(map, `laws-${tag}-${i}`, "full", [], GW_SIM_PROFILES[1], tag, (gw) => {
-          const seat = gw.s.seats[0];
-          const n = gw.nation(tag)!;
-          for (const x of n.laws) {
-            if (x.stage === "force" && x.how !== "scene") passed.add(x.id);
-          }
-          const open = lawViews(gw, seat).find(
-            (v) => v.stage === "open" && v.waits === null,
-          );
-          if (open === undefined) return;
-          if (applyGwOrder(gw, seat, { kind: "law", law: open.id, act: "draft" }) === null) {
-            brought++;
-          }
-        });
+        await playRun(
+          map,
+          `laws-${tag}-${i}`,
+          "full",
+          [],
+          GW_SIM_PROFILES[1],
+          tag,
+          (gw) => {
+            const seat = gw.s.seats[0];
+            const n = gw.nation(tag)!;
+            for (const x of n.laws) {
+              if (x.stage === "force" && x.how !== "scene") passed.add(x.id);
+            }
+            const open = lawViews(gw, seat).find(
+              (v) => v.stage === "open" && v.waits === null,
+            );
+            if (open === undefined) return;
+            if (
+              applyGwOrder(gw, seat, {
+                kind: "law",
+                law: open.id,
+                act: "draft",
+              }) === null
+            ) {
+              brought++;
+            }
+          },
+        );
         if (brought < 3) continue;
         expect(passed.size).toBeGreaterThanOrEqual(1);
         return;
