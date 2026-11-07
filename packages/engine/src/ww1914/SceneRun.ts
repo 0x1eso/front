@@ -534,6 +534,10 @@ export function runEffect(ctx: SceneCtx, e: GwEffect): void {
       }
       return;
     }
+    case "drop_card":
+      seat.desk = seat.desk.filter((c) => c.scene !== e.scene);
+      seat.scheduled = seat.scheduled.filter((q) => q.scene !== e.scene);
+      return;
     case "schedule":
       seat.scheduled.push({
         scene: e.scene,

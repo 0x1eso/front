@@ -4,6 +4,7 @@ import type {
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import { GW_TAGS, GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import {
+  dropCard,
   flag,
   GwCond,
   GwEffect,
@@ -298,6 +299,12 @@ const RUS_HOME: GwScene[] = [
   top("gw_home_rus_4", "RUS", ["tsar"], ["court:-3"]),
 ];
 
+/** Britain is in: the papers still asking whether it should be go. */
+const ENTRY_OVERTAKES = [
+  dropCard("gbr_c_ultimatum"),
+  dropCard("gbr_f_neutral_line"),
+];
+
 const BODIES: GwScene[] = [
   called(
     "gw_gbr_entry",
@@ -310,6 +317,7 @@ const BODIES: GwScene[] = [
         [
           doWorld({ do: "vote", issue: "entry" }),
           doWorld({ do: "join", side: "entente" }),
+          ...ENTRY_OVERTAKES,
         ],
         world({ is: "votes", issue: "entry", min: 0 }),
       ),
@@ -321,6 +329,7 @@ const BODIES: GwScene[] = [
           authority(-20),
           doWorld({ do: "vote", issue: "entry" }),
           doWorld({ do: "join", side: "entente" }),
+          ...ENTRY_OVERTAKES,
         ],
       ),
       opt(

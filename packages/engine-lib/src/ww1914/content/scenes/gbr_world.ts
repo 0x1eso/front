@@ -80,6 +80,12 @@ const neutral = all(
   world({ is: "neutral", tag: "GBR" }),
   world({ is: "entered", tag: "FRA" }),
 );
+/** The ultimatum is still on the table: nobody has settled for neutrality yet. */
+const entryOpen = all(
+  any(belg, flag("f_stand_france")),
+  not(flag("f_ult_lapsed")),
+  not(flag("f_neutral_declared")),
+);
 /** The crisis closed without a great war. */
 const peace = all(
   not(world({ is: "war" })),
@@ -4541,7 +4547,7 @@ export const GBR_WORLD_SCENES: readonly GwScene[] = [
     nation: NATION,
     kind: "crisis",
     stage: Y14,
-    when: all(neutral, ch(6, 8)),
+    when: all(neutral, ch(6, 10), not(entryOpen)),
     cast: { fm: { office: "foreign" }, navy: { office: "navy" } },
     salience: 9,
     tags: ["foreign"],
