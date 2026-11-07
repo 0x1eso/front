@@ -422,7 +422,10 @@ export function dealDesk(gw: GreatWar, seat: GwSeatState): void {
     dueCards.push(card);
     dueScenes.push(q.scene);
   }
-  const cands = deskCandidates(gw, seat);
+  // A scene that is due is not drawn beside itself.
+  const cands = deskCandidates(gw, seat).filter(
+    (c) => !dueScenes.includes(c.scene),
+  );
   const drawn = draw(gw, seat, cands, dueScenes);
   const quiet =
     dueCards.length === 0 && drawn.every(isSmall) ? quietCard(gw, seat) : null;

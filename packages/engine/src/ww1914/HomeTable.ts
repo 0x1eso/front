@@ -33,6 +33,8 @@ export interface GwHomeRow {
   readonly rungs: readonly [string, string, string, string];
   /** Form of government -> its own scene for the top, once it is written. */
   readonly top?: Readonly<Record<string, string>>;
+  /** Months of war before the top rung can come: the ladder waits on rung 3. */
+  readonly topFrom?: number;
   readonly strains: readonly GwStrain[];
   /** Percent chance an AI government calms a rung it can pay for. */
   readonly concedes: number;
@@ -56,6 +58,9 @@ export const GW_HOME: Readonly<Partial<Record<GwTag, GwHomeRow>>> = {
   DEU: {
     rungs: rungs("deu"),
     top: { empire: "deu_k_republic" },
+    // Rungs count chapters; a `full` chapter is a month. Eight months at the
+    // bottom ended a winning Germany in July 1915.
+    topFrom: 30,
     concedes: 60,
     strains: [
       { gauge: "order", delta: -1, every: 8, from: 30, key: "order_weary" },
