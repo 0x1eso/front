@@ -42,6 +42,16 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
         when: { kind: "world", of: { is: "era", of: ["depth"] } },
       },
       {
+        id: "material_cmd2",
+        when: {
+          kind: "all",
+          of: [
+            { kind: "world", of: { is: "era", of: ["material"] } },
+            { kind: "world", of: { is: "command" } },
+          ],
+        },
+      },
+      {
         id: "material_cmd",
         when: {
           kind: "all",
@@ -52,8 +62,26 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
         },
       },
       {
+        id: "material2",
+        when: { kind: "world", of: { is: "era", of: ["material"] } },
+      },
+      {
+        id: "material3",
+        when: { kind: "world", of: { is: "era", of: ["material"] } },
+      },
+      {
         id: "material",
         when: { kind: "world", of: { is: "era", of: ["material"] } },
+      },
+      {
+        id: "trenches_cmd2",
+        when: {
+          kind: "all",
+          of: [
+            { kind: "world", of: { is: "era", of: ["trenches"] } },
+            { kind: "world", of: { is: "command" } },
+          ],
+        },
       },
       {
         id: "trenches_cmd",
@@ -66,9 +94,18 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
         },
       },
       {
+        id: "trenches2",
+        when: { kind: "world", of: { is: "era", of: ["trenches"] } },
+      },
+      {
+        id: "trenches3",
+        when: { kind: "world", of: { is: "era", of: ["trenches"] } },
+      },
+      {
         id: "trenches",
         when: { kind: "world", of: { is: "era", of: ["trenches"] } },
       },
+      { id: "base2" },
       { id: "base" },
     ],
     fallback: "sign_chief",
@@ -149,6 +186,7 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
           },
         },
       },
+      { id: "tiflis" },
       { id: "base" },
     ],
   },
@@ -1051,6 +1089,8 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
       { id: "m1", when: { kind: "gauge", gauge: "morale", min: 1, max: 1 } },
       { id: "m2", when: { kind: "gauge", gauge: "morale", min: 2, max: 2 } },
       { id: "m3", when: { kind: "gauge", gauge: "morale", min: 3, max: 3 } },
+      { id: "base2" },
+      { id: "base3" },
       { id: "base" },
     ],
   },

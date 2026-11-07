@@ -1092,6 +1092,7 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
           flag: "f_friend_exiled",
         },
       },
+      { id: "visitors" },
       {
         id: "base",
       },
@@ -1384,6 +1385,7 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
           ],
         },
       },
+      { id: "memo" },
       {
         id: "base",
       },

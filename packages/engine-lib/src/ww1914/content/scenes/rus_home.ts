@@ -47,6 +47,7 @@ export const RUS_HOME_SCENES: readonly GwScene[] = [
           of: ["weary"],
         },
       },
+      { id: "three_inks" },
       {
         id: "base",
       },
@@ -123,6 +124,8 @@ export const RUS_HOME_SCENES: readonly GwScene[] = [
           },
         },
       },
+      { id: "duma2", when: { kind: "inst", inst: "duma", max: -1 } },
+      { id: "duma3", when: { kind: "inst", inst: "duma", max: -1 } },
       {
         id: "duma",
         when: {
@@ -131,6 +134,10 @@ export const RUS_HOME_SCENES: readonly GwScene[] = [
           max: -1,
         },
       },
+      { id: "plain1" },
+      { id: "plain2" },
+      { id: "plain3" },
+      { id: "plain4" },
       {
         id: "base",
       },
@@ -478,6 +485,8 @@ export const RUS_HOME_SCENES: readonly GwScene[] = [
           key: "k_ras_boy",
         },
       },
+      { id: "talk_town2", when: { kind: "inst", inst: "duma", max: 0 } },
+      { id: "talk_town3", when: { kind: "inst", inst: "duma", max: 0 } },
       {
         id: "talk_town",
         when: {
@@ -651,6 +660,7 @@ export const RUS_HOME_SCENES: readonly GwScene[] = [
           key: "k_rodz_file",
         },
       },
+      { id: "thick" },
       {
         id: "base",
       },
@@ -1510,6 +1520,8 @@ export const RUS_HOME_SCENES: readonly GwScene[] = [
           },
         },
       },
+      { id: "duma_low2", when: { kind: "inst", inst: "duma", max: -1 } },
+      { id: "duma_low3", when: { kind: "inst", inst: "duma", max: -1 } },
       {
         id: "duma_low",
         when: {
@@ -1757,6 +1769,7 @@ export const RUS_HOME_SCENES: readonly GwScene[] = [
           ],
         },
       },
+      { id: "sacks" },
       {
         id: "base",
       },
@@ -2109,6 +2122,7 @@ export const RUS_HOME_SCENES: readonly GwScene[] = [
           key: "k_bark_paper",
         },
       },
+      { id: "notes" },
       {
         id: "base",
       },
@@ -2276,6 +2290,10 @@ export const RUS_HOME_SCENES: readonly GwScene[] = [
     tags: ["foreign", "tension_up"],
     once: true,
     variants: [
+      {
+        id: "gallipoli2",
+        when: { kind: "world", of: { is: "open", theatre: "straits" } },
+      },
       {
         id: "gallipoli",
         when: {
@@ -2889,6 +2907,8 @@ export const RUS_HOME_SCENES: readonly GwScene[] = [
           },
         },
       },
+      { id: "easter" },
+      { id: "short_note" },
       {
         id: "base",
       },
@@ -3292,6 +3312,7 @@ export const RUS_HOME_SCENES: readonly GwScene[] = [
           key: "k_kriv_refugees",
         },
       },
+      { id: "station" },
       {
         id: "base",
       },
@@ -3470,6 +3491,7 @@ export const RUS_HOME_SCENES: readonly GwScene[] = [
           key: "k_lvov_zemgor",
         },
       },
+      { id: "tea" },
       {
         id: "base",
       },
@@ -3619,6 +3641,7 @@ export const RUS_HOME_SCENES: readonly GwScene[] = [
           key: "k_guch_wic",
         },
       },
+      { id: "moscow" },
       {
         id: "base",
       },
