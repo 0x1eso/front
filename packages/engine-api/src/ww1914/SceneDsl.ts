@@ -43,6 +43,7 @@ import {
   GwTopic,
 } from "./GreatWarTypes";
 import { GW_TAGS, GwTag } from "./GwCountries";
+import { GW_BLOCS, GwBloc } from "./GwPress";
 import { GW_RULER_SIDES, GwRulerSide } from "./GwRuler";
 import {
   GwWorldCond,
@@ -144,7 +145,11 @@ export type GwCond =
   /** Chapters since health hit the bottom; false when it hasn't. */
   | { kind: "ruler_failing"; min?: number; max?: number }
   /** Chapters since reputation hit the bottom; false when it hasn't. */
-  | { kind: "ruler_shaken"; min?: number; max?: number };
+  | { kind: "ruler_shaken"; min?: number; max?: number }
+  /** A bloc's support now (engine/ww1914/Blocs). */
+  | { kind: "bloc"; bloc: GwBloc; min?: number; max?: number }
+  | { kind: "rumour"; min?: number; max?: number }
+  | { kind: "censor"; min?: number; max?: number };
 
 export type GwEffect =
   | { kind: "flag"; flag: string }
@@ -190,7 +195,12 @@ export type GwEffect =
   | { kind: "mood"; delta: number }
   | { kind: "world"; of: GwWorldEffect }
   /** Moves the ruler card; `key` is the reason line. */
-  | { kind: "ruler"; side: GwRulerSide; delta: number; key: string };
+  | { kind: "ruler"; side: GwRulerSide; delta: number; key: string }
+  /** The papers' word with a bloc. */
+  | { kind: "opinion"; bloc: GwBloc; delta: number }
+  | { kind: "rumour"; delta: number }
+  /** The censor's level, within what the country allows. */
+  | { kind: "censor"; delta: number };
 
 const int = z.number().int();
 const range = { min: int.optional(), max: int.optional() };
@@ -278,6 +288,9 @@ export const GwCondSchema: z.ZodType<GwCond> = z.lazy(() =>
     obj("ruler_broken", {}),
     obj("ruler_failing", range),
     obj("ruler_shaken", range),
+    obj("bloc", { bloc: z.enum(GW_BLOCS), ...range }),
+    obj("rumour", range),
+    obj("censor", range),
   ]),
 ) as z.ZodType<GwCond>;
 
@@ -332,6 +345,9 @@ export const GwEffectSchema: z.ZodType<GwEffect> = z.lazy(() =>
       delta: int,
       key: GwIdSchema,
     }),
+    obj("opinion", { bloc: z.enum(GW_BLOCS), delta: int }),
+    obj("rumour", { delta: int }),
+    obj("censor", { delta: int }),
   ]),
 ) as z.ZodType<GwEffect>;
 

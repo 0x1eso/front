@@ -13,6 +13,7 @@ import { intelStep } from "./Intel";
 import { lawStep } from "./Laws";
 import { nextConferenceChapter, skipToConference } from "./Peace";
 import { peopleStep } from "./People";
+import { firstEdition, pressStep } from "./Press";
 import { rulerAudiences, rulerStep } from "./Ruler";
 import { closeUndecided } from "./SceneRun";
 import { seaStep } from "./Sea";
@@ -37,6 +38,7 @@ export const GW_CHAPTER_STEPS: readonly ((gw: GreatWar) => void)[] = [
   intelStep,
   worldFlagsStep,
   rulerStep,
+  pressStep,
   endingStep,
 ];
 
@@ -83,6 +85,7 @@ export function openChapter(gw: GreatWar, ticks: number): void {
       ch.summons + (bigChapter(gw, seat) ? ch.bigSummons : 0),
     );
     seat.privates = ch.privates;
+    firstEdition(gw, seat);
     dealDesk(gw, seat);
   }
   gw.touch();

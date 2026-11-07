@@ -4,6 +4,7 @@ import type {
 } from "@openfront/engine-api/ww1914/GwView";
 import { html, nothing, TemplateResult } from "lit";
 import { translateText } from "../../Utils";
+import { deskPapers } from "./GwBlocs";
 import { budgetStrip, openLedger } from "./GwBudget";
 import { lawStrip } from "./GwLaws";
 import type { GwCtx } from "./GwCtx";
@@ -101,6 +102,7 @@ export function deskTab(c: GwCtx): TemplateResult {
             (r) => html`<p class="text-sm text-white/80">${rich(c, r)}</p>`,
           )}
         </div>`}
+    ${deskPapers(c)}
     ${papers.length + talks.length === 0
       ? html`<p class="text-sm text-white/65" data-gw-empty>
           ${translateText("gw.ui.desk_empty")}

@@ -67,6 +67,8 @@ export interface GwUi {
   budgetPlan: GwBudgetPlan | null;
   /** The name or term whose dictionary card is open. */
   term: DictRef | null;
+  /** The list open under a press act. */
+  pressPick: "invite" | "leak" | null;
   shelf: Shelf;
 }
 

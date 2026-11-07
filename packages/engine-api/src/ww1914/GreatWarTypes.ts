@@ -6,6 +6,7 @@ import { z } from "zod";
 import { GwBudgetStateSchema } from "./GwBudget";
 import { GwLawStateSchema } from "./GwLaw";
 import { GW_TAGS } from "./GwCountries";
+import { gwPressStart, GwPressStateSchema } from "./GwPress";
 import { GwRulerStateSchema } from "./GwRuler";
 
 /** A content id: scene, person, flag, memory key. */
@@ -819,6 +820,8 @@ export const GwSeatStateSchema = z.object({
   memoir: GwMemoirSchema.nullable(),
   /** The person at the desk (engine/ww1914/Ruler). */
   ruler: GwRulerStateSchema,
+  /** The censor, the rumour, the papers (engine/ww1914/Press). A save from before it has none. */
+  press: GwPressStateSchema.default(gwPressStart),
 });
 export type GwSeatState = z.infer<typeof GwSeatStateSchema>;
 

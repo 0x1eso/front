@@ -37,6 +37,7 @@ export const GW_PACK_SHARES: Readonly<
     "ruler",
     "gov",
     "private",
+    "press",
   ],
   GBR: [
     "crisis",
@@ -48,6 +49,7 @@ export const GW_PACK_SHARES: Readonly<
     "ruler",
     "gov",
     "private",
+    "press",
   ],
   AUH: [
     "crisis",
@@ -59,6 +61,7 @@ export const GW_PACK_SHARES: Readonly<
     "ruler",
     "gov",
     "private",
+    "press",
   ],
   RUS: [
     "crisis",
@@ -70,6 +73,7 @@ export const GW_PACK_SHARES: Readonly<
     "ruler",
     "gov",
     "private",
+    "press",
   ],
 };
 

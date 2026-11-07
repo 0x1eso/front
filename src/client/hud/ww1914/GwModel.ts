@@ -40,6 +40,7 @@ export const GW_TABS = [
   "fronts",
   "country",
   "notebook",
+  "blocs",
   "memoir",
 ] as const;
 export type GwTab = (typeof GW_TABS)[number];
@@ -138,6 +139,11 @@ export function tabBadge(seat: GwSeatView, tab: GwTab): number {
       return seat.desk.length;
     case "people":
       return seat.audiences;
+    case "blocs":
+      return (
+        seat.world.press?.blocs.filter((b) => b.turning === "leaving").length ??
+        0
+      );
     default:
       return 0;
   }

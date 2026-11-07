@@ -55,6 +55,7 @@ import { GW_NEUTRAL_SCENES } from "./scenes/gw_neutral";
 import { withCommonBodies } from "./scenes/gw_replay";
 import { GW_WORLD2_SCENES } from "./scenes/gw_world2";
 import { LAW_SCENES } from "./scenes/laws";
+import { PRESS_SCENES } from "./scenes/press";
 import { RULER_SCENES } from "./scenes/ruler";
 import { RUS_CRISIS_SCENES } from "./scenes/rus_crisis";
 import { RUS_FALL_SCENES } from "./scenes/rus_fall";
@@ -125,6 +126,7 @@ export const GW_CONTENT: GwContent = {
       ...GOV_SCENES,
       ...DEU_PRIVATE_SCENES,
       ...AUH_PRIVATE_SCENES,
+      ...PRESS_SCENES,
     ]
       .map(withDeuReplay)
       .map(withDeuPrivate)

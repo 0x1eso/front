@@ -5,6 +5,7 @@ import type {
 } from "@openfront/engine-api/ww1914/GwView";
 import { html, nothing, TemplateResult } from "lit";
 import { translateText } from "../../Utils";
+import { tickerHead } from "./GwBlocs";
 import { tempBand } from "./GwModel";
 import { GLASS } from "./GwStyle";
 import { frontLine, newsText, reasonText } from "./GwText";
@@ -22,6 +23,8 @@ export function tickerLines(
   if (data.stage === "crisis") {
     out.push(translateText(`gw.ui.news.temp.${tempBand(data.temp)}`));
   }
+  const head = tickerHead({ pack, press: seat.world.press });
+  if (head !== null) out.push(head);
   const fresh = seat.world.news.filter((n) => n.chapter >= data.chapter - 1);
   for (const n of [...fresh].reverse()) {
     const text = newsText(n);

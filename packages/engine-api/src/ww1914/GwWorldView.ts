@@ -24,6 +24,7 @@ import type {
 import type { GwBudgetView } from "./GwBudget";
 import type { GwLawView } from "./GwLaw";
 import type { GwTag } from "./GwCountries";
+import type { GwPressView } from "./GwPress";
 
 /** One of the chief of staff's papers; send it back as an `allocate`. */
 export interface GwProposal {
@@ -168,4 +169,6 @@ export interface GwWorldView {
   budget: GwBudgetView;
   /** Bills open, moving and in force. */
   laws: readonly GwLawView[];
+  /** Null for a country with no bloc row yet. */
+  press: GwPressView | null;
 }

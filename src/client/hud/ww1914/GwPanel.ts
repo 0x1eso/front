@@ -14,6 +14,7 @@ import { SendGwOrderIntentEvent } from "../../Transport";
 import { translateText } from "../../Utils";
 import type { GameView } from "../../view";
 import { band } from "./GwBand";
+import { blocsTab } from "./GwBlocs";
 import { budgetPanel } from "./GwBudget";
 import { countryTab } from "./GwCountry";
 import type { GwCtx, GwUi } from "./GwCtx";
@@ -57,7 +58,7 @@ const KEYFRAMES = html`<style>
 /**
  * Great War 1914: the screens (design §11). A top band, a one-line news
  * ticker, a left drawer with six tabs (desk, people, fronts, country,
- * notebook, memoir), the reader for a paper and the talk view for a conversation. The
+ * notebook, blocs, memoir), the reader for a paper and the talk view for a conversation. The
  * map stays the background. Every engine read is in GreatWarData; every
  * action is one `gw_order`.
  */
@@ -89,6 +90,7 @@ export class GwPanel extends LitElement implements Controller {
     budgetOpen: false,
     budgetPlan: null,
     term: null,
+    pressPick: null,
     shelf: loadShelf(),
   };
 
@@ -144,6 +146,7 @@ export class GwPanel extends LitElement implements Controller {
       ui.research = null;
       ui.budgetPlan = null;
       ui.budgetOpen = false;
+      ui.pressPick = null;
       ui.readerUid = null;
       ui.armed = null;
     }
@@ -183,6 +186,8 @@ export class GwPanel extends LitElement implements Controller {
         return countryTab(c);
       case "notebook":
         return notebookTab(c);
+      case "blocs":
+        return blocsTab(c);
       case "memoir":
         return memoirTab(c);
       default:
@@ -218,7 +223,7 @@ export class GwPanel extends LitElement implements Controller {
           : ""} ${talk === null ? "" : "invisible"}"
       >
         <nav
-          class="flex shrink-0 items-center gap-1 border-b border-white/10 p-1.5"
+          class="flex shrink-0 flex-wrap items-center gap-0.5 border-b border-white/10 p-1.5"
           data-gw-tabs
         >
           ${GW_TABS.map((tab) => this.tabButton(c, tab))}
@@ -256,7 +261,7 @@ export class GwPanel extends LitElement implements Controller {
     return html`<button
       class="${on
         ? "bg-white/20 text-white"
-        : "text-white/70 hover:bg-white/10"} rounded px-2 py-1 text-sm"
+        : "text-white/70 hover:bg-white/10"} rounded px-1.5 py-1 text-sm"
       data-gw-tab=${tab}
       @click=${() => {
         this.ui.tab = tab;
