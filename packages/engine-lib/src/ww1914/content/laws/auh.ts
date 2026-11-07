@@ -56,12 +56,13 @@ export const AUH_LAWS: readonly GwLawRow[] = [
       draft("civil_censors", -1, ["nations:+1"], [inst("nations", 1)]),
     ],
     passed: [gauge("order", 1)],
-    passedTell: ["order:+1"],
+    passedTell: ["order:+1", "censor:+1"],
     term: [
       { gauge: "order", delta: 1, every: 10 },
       { gauge: "morale", delta: -1, every: 14, offset: 3 },
     ],
     flag: "f_law_censor",
+    censor: 1,
     settled: any(
       flag("f_auh_decree_full"),
       flag("f_auh_decree_narrow"),

@@ -329,6 +329,30 @@ describe("a bill's way", () => {
     expect(st.flags).not.toContain("f_law_censor");
   });
 
+  test("a censorship law moves the censor, on passing and on repeal", async () => {
+    const { gw, n, seat: st } = await atWar();
+    st.press.censor = 1;
+    st.press.warBegun = true;
+    st.choices.push({
+      scene: "deu_h_censor",
+      pick: "one_censor",
+      chapter: 1,
+      proxy: false,
+    });
+    next(gw);
+    expect(lawViews(gw, st).find((x) => x.id === "deu_censor")?.stage).toBe(
+      "force",
+    );
+    expect(st.press.censor).toBe(2);
+    next(gw);
+    expect(st.press.censor).toBe(2);
+    n.authority = 100;
+    expect(
+      applyGwOrder(gw, st, { kind: "law", law: "deu_censor", act: "repeal" }),
+    ).toBe(null);
+    expect(st.press.censor).toBe(1);
+  });
+
   test("in force, it comes back as a scene after its chapters", async () => {
     const { gw, n, seat: st } = await atWar();
     const row = rowOf("deu_bread_cards");
@@ -434,11 +458,10 @@ describe("a whole game on the real map", () => {
             }
           },
         );
-        if (brought < 3) continue;
-        expect(passed.size).toBeGreaterThanOrEqual(1);
-        return;
+        // A bot withdraws at random and a peace can stop a bill on its day.
+        if (brought >= 3 && passed.size >= 1) return;
       }
-      throw new Error(`${tag}: no game brought three bills`);
+      throw new Error(`${tag}: no game brought three bills and passed one`);
     },
     240000,
   );

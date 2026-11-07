@@ -25,6 +25,7 @@ import { authorityRow, holdVote, voteCount } from "./Authority";
 import { makeCard, placeCard } from "./Desk";
 import type { GreatWar } from "./GreatWar";
 import { summonable } from "./Orders";
+import { moveCensor } from "./Press";
 import { castOf, holds, runEffects, SceneCtx, sceneOf } from "./SceneRun";
 import {
   clampTo,
@@ -115,8 +116,12 @@ function setFlags(gw: GreatWar, row: GwLawRow, on: boolean): void {
   const f = row.flag;
   if (f === undefined) return;
   for (const seat of seatsOf(gw, row.tag)) {
+    const was = seat.flags.includes(f);
     seat.flags = seat.flags.filter((x) => x !== f);
     if (on) seat.flags.push(f);
+    if (row.censor !== undefined && was !== on) {
+      moveCensor(gw, seat, on ? row.censor : -row.censor);
+    }
   }
 }
 

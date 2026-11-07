@@ -255,6 +255,13 @@ export function skipToConference(gw: GreatWar): void {
   }
 }
 
+/** Chapters the game has had: the jump to the conference skips rows nobody saw. */
+export function chaptersPlayed(gw: GreatWar): number {
+  const s = gw.s;
+  if (s.armistice === null || s.closingDay === null) return s.chapter + 1;
+  return s.armistice.chapter + 2 + CONFERENCE_CHAPTERS - s.conferenceLeft;
+}
+
 /** A chapter of the peace ends: the next opens a month on, in the same row. */
 export function nextConferenceChapter(gw: GreatWar): void {
   gw.s.conferenceLeft--;

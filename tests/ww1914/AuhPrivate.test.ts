@@ -97,9 +97,9 @@ describe("the Emperor's circle, outside work", () => {
     const gw = runner.game.greatWar()!;
     const seat = gw.s.seats[0];
     expect(seat.tag).toBe("AUH");
-    const topics = openTopics(gw, seat, "auh_schratt");
+    const topics = openTopics(gw, seat, "auh_schratt", true);
     expect(topics).toContain("auh_p_sch_ischl");
-    seat.audiences = 3;
+    seat.privates = 3;
     const block = applyGwOrder(gw, seat, {
       kind: "summon",
       person: "auh_schratt",

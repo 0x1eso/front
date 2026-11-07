@@ -14302,7 +14302,8 @@
       "gbr_end_polls": "유권자의 말",
       "deu_end_set_aside": "두 장의 문서",
       "auh_e_regency": "보좌받는 황제",
-      "rus_palace_coup": "멈춘 기차"
+      "rus_palace_coup": "멈춘 기차",
+      "auh_e_conference": "회의장의 제국"
     },
     "fact": {
       "force": {
@@ -14882,6 +14883,7 @@
       "unconfirmed": "미확인"
     },
     "tell": {
+      "censor": "검열",
       "ally": "동맹",
       "amb_london": "주영 대사",
       "amb_vienna": "주오 대사",

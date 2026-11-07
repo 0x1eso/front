@@ -2,7 +2,8 @@ import type { GwPersonDef } from "@openfront/engine-api/ww1914/GreatWarTypes";
 
 /**
  * The people of the ruler's own life (ww142): those who see the person, not
- * the office. None holds a desk or can be given one. Text is in
+ * the office. None holds a desk or can be given one; `camps` is empty so that
+ * no camp role casts them into a work scene. Text is in
  * resources/ww1914/ko/common.ruler.json. `source`: "(memory)" marks facts not
  * checked against a page. Append: order matters to the seed rolls.
  */
@@ -12,7 +13,7 @@ export const GW_PEOPLE_RULER: readonly GwPersonDef[] = [
     tag: "GBR",
     office: null,
     fit: [],
-    camps: ["civil", "liberal"],
+    camps: [],
     temperaments: ["arrogant", "anxious"],
     rivals: ["gbr_lloyd_george", "gbr_northcliffe"],
     allies: ["gbr_haldane"],
@@ -25,7 +26,7 @@ export const GW_PEOPLE_RULER: readonly GwPersonDef[] = [
     tag: "AUH",
     office: null,
     fit: [],
-    camps: ["civil", "dynasty"],
+    camps: [],
     temperaments: ["weary", "cunning"],
     rivals: [],
     allies: [],
@@ -38,7 +39,7 @@ export const GW_PEOPLE_RULER: readonly GwPersonDef[] = [
     tag: "AUH",
     office: null,
     fit: [],
-    camps: ["civil", "dynasty"],
+    camps: [],
     temperaments: ["stubborn", "weary"],
     rivals: [],
     allies: [],
@@ -51,7 +52,7 @@ export const GW_PEOPLE_RULER: readonly GwPersonDef[] = [
     tag: "RUS",
     office: null,
     fit: [],
-    camps: ["civil", "court"],
+    camps: [],
     temperaments: ["cold", "anxious"],
     rivals: ["rus_rasputin"],
     allies: [],

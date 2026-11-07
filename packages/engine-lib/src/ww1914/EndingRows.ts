@@ -148,7 +148,12 @@ export const GW_ENDING_ROWS: Readonly<
       when: { kind: "inst", inst: "nations", max: -3 },
     },
     { id: "auh_e_army_gone", of: ["home_collapse"] },
-    { id: "auh_e_dissolution", of: ["armistice_conference"] },
+    {
+      id: "auh_e_dissolution",
+      of: ["armistice_conference"],
+      when: { kind: "inst", inst: "nations", max: -3 },
+    },
+    { id: "auh_e_conference", of: ["armistice_conference"] },
     { id: "auh_e_deadline", of: ["deadline"] },
   ],
   RUS: [

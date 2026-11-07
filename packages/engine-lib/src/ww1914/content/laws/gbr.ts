@@ -48,12 +48,13 @@ export const GBR_LAWS: readonly GwLawRow[] = [
       draft("civil_trial", -1, ["commons:+1"], [inst("commons", 1)]),
     ],
     passed: [gauge("order", 1)],
-    passedTell: ["order:+1"],
+    passedTell: ["order:+1", "censor:+1"],
     term: [
       { gauge: "order", delta: 1, every: 10 },
       { gauge: "morale", delta: -1, every: 14, offset: 3 },
     ],
     flag: "f_law_censor",
+    censor: 1,
     repeal: {
       authority: 10,
       tell: ["order:-1"],

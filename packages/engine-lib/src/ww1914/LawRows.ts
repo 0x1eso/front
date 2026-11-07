@@ -149,6 +149,8 @@ export interface GwLawRow {
   readonly replaces?: readonly string[];
   /** A seat flag held while it is law: what the older scenes read. */
   readonly flag?: string;
+  /** The censor's level while it is law: up on passing, down on repeal. */
+  readonly censor?: number;
 }
 
 /** What a law does on its months, as tell words: `steady_bread:+1`. */

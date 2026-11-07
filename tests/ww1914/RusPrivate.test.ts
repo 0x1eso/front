@@ -49,8 +49,11 @@ describe("Russia's private lines", () => {
   test("the pack holds every line, the laid-over ones too", async () => {
     const pack: GwPack = await loadGwPack("RUS", async (p) => read(p));
     expect(gwPackProblems(scenes, pack)).toEqual([]);
-    const touched = GW_CONTENT.scenes.filter((s) =>
-      JSON.stringify(s).includes('"id":"p_'),
+    // The other nations' lines use the same ids; their text is in their packs.
+    const touched = GW_CONTENT.scenes.filter(
+      (s) =>
+        !/^(?:auh|deu|gbr)_/.test(s.id) &&
+        JSON.stringify(s).includes('"id":"p_'),
     );
     expect(touched.length).toBeGreaterThanOrEqual(10);
     expect(gwPackProblems(touched, pack)).toEqual([]);

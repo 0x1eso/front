@@ -436,6 +436,31 @@ describe("how it stops", () => {
     expect(ownEnding(gw, seat, "victory_peace")).toBe("gbr_end_dear_win");
   });
 
+  test("Austria's lost peace is dissolution only if the peoples have gone", async () => {
+    const { gw, seat } = await war("AUH", "GWY17");
+    const n = gw.nation("AUH")!;
+    n.regime = "dual_monarchy";
+    n.inst.nations = -3;
+    expect(ownEnding(gw, seat, "armistice_conference")).toBe(
+      "auh_e_dissolution",
+    );
+    n.inst.nations = -2;
+    expect(ownEnding(gw, seat, "armistice_conference")).toBe(
+      "auh_e_conference",
+    );
+  });
+
+  test("the memoir counts the chapters played, not the rows jumped", async () => {
+    const { gw, runner, seat } = await war("DEU", "GWY18");
+    pass(gw, runner, 2);
+    const at = gw.s.chapter;
+    armistice(gw, "central_lost", "DEU");
+    pass(gw, runner, 5);
+    expect(gw.s.ended).toBe("armistice_conference");
+    expect(gw.s.chapter).toBe(gwChapters("full").length - 1);
+    expect(seat.memoir?.chapter).toBe(at + 4);
+  });
+
   test("every country's rows name an ending with a mandate list beside it", () => {
     for (const tag of ["DEU", "GBR", "AUH", "RUS"] as const) {
       expect(GW_ENDING_ROWS[tag]!.length).toBeGreaterThanOrEqual(6);

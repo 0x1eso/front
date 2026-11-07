@@ -47,12 +47,13 @@ export const RUS_LAWS: readonly GwLawRow[] = [
       ),
     ],
     passed: [gauge("order", 1)],
-    passedTell: ["order:+1"],
+    passedTell: ["order:+1", "censor:+1"],
     term: [
       { gauge: "order", delta: 1, every: 10 },
       { gauge: "morale", delta: -1, every: 12, offset: 2 },
     ],
     flag: "f_law_censor",
+    censor: 1,
     repeal: {
       authority: 10,
       tell: ["duma:+1", "court:-1"],

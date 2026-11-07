@@ -54,12 +54,13 @@ export const DEU_LAWS: readonly GwLawRow[] = [
       ),
     ],
     passed: [gauge("order", 1)],
-    passedTell: ["order:+1"],
+    passedTell: ["order:+1", "censor:+1"],
     term: [
       { gauge: "order", delta: 1, every: 10 },
       { gauge: "morale", delta: -1, every: 14, offset: 4 },
     ],
     flag: "f_law_censor",
+    censor: 1,
     settled: any(
       chose("deu_h_censor", "one_censor"),
       chose("deu_h_censor", "press_office"),

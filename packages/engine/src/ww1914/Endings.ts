@@ -19,6 +19,7 @@ import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { warScore } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
 import { GW_MANDATES } from "./Mandates";
+import { chaptersPlayed } from "./Peace";
 import { holds } from "./SceneRun";
 import { leaveWar } from "./Wars";
 import { defOf, fights, seatPerson } from "./World";
@@ -304,7 +305,7 @@ export function memoirOf(
   return {
     ending,
     coda: coda?.id ?? null,
-    chapter: s.chapter,
+    chapter: chaptersPlayed(gw) - 1,
     day: s.day,
     mandates,
     casualties: gw.nation(seat.tag)?.casualties ?? 0,

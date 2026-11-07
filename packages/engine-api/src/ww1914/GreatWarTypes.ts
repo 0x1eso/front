@@ -692,6 +692,8 @@ export const GW_ENDINGS = [
   "deu_end_set_aside",
   "auh_e_regency",
   "rus_palace_coup",
+  // Beaten at the table with the peoples still in the house.
+  "auh_e_conference",
 ] as const;
 export type GwEnding = (typeof GW_ENDINGS)[number];
 
