@@ -8,6 +8,7 @@ import type { GwCtx, GwUi, Transcript } from "./GwCtx";
 import { groupReplies, trustIndex } from "./GwModel";
 import { BTN, CHIP, MUTED } from "./GwStyle";
 import {
+  cardBody,
   fillGw,
   optionText,
   personBio,
@@ -144,6 +145,17 @@ export function talkView(
       ${bio === "" || t.turns.length > 1
         ? nothing
         : html`<p class="${MUTED} italic">${bio}</p>`}
+      ${t.turns.length === 0
+        ? nothing
+        : html`<p class="text-[15px] leading-7 text-white/75" data-gw-room>
+            ${fillGw(
+              cardBody(c.pack, t.turns[0].card),
+              c.pack,
+              t.turns[0].card,
+              c.seat,
+              c.data.date,
+            )}
+          </p>`}
       <div class="flex flex-col gap-3" data-gw-turns>
         ${t.turns.map((turn, i) => {
           const last = i === t.turns.length - 1;
