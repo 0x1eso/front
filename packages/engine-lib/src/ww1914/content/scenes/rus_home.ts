@@ -4329,12 +4329,43 @@ export const RUS_HOME_SCENES: readonly GwScene[] = [
     summon: true,
     who: "p",
     variants: [
+      { id: "door" },
       {
         id: "base",
       },
     ],
     start: "open",
+    starts: { door: "a_door" },
     nodes: {
+      a_door: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "stay",
+            stance: "warm",
+            kind: "deal",
+            tell: [],
+            effects: [],
+            next: "him",
+          },
+          {
+            id: "doctors",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "doctors",
+          },
+          {
+            id: "go",
+            stance: "warm",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
       open: {
         says: [
           {
@@ -10481,12 +10512,43 @@ export const RUS_HOME_SCENES: readonly GwScene[] = [
     summon: true,
     who: "p",
     variants: [
+      { id: "sugar" },
       {
         id: "base",
       },
     ],
     start: "open",
+    starts: { sugar: "b_sugar" },
     nodes: {
+      b_sugar: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "who",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "who",
+          },
+          {
+            id: "promise",
+            stance: "warm",
+            kind: "deal",
+            tell: [],
+            effects: [{ kind: "remember", key: "k_bark_paper" }],
+            next: "after",
+          },
+          {
+            id: "no",
+            stance: "cold",
+            kind: "push",
+            tell: [],
+            effects: [],
+            next: "later",
+          },
+        ],
+      },
       open: {
         says: [
           {

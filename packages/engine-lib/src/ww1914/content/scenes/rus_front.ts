@@ -5119,9 +5119,39 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     once: true,
     summon: true,
     who: "p",
-    variants: [{ id: "base" }],
+    variants: [{ id: "turn" }, { id: "base" }],
     start: "open",
+    starts: { turn: "g_turn" },
     nodes: {
+      g_turn: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "army",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [{ kind: "remember", key: "k_guch_met" }],
+            next: "army",
+          },
+          {
+            id: "work",
+            stance: "warm",
+            kind: "deal",
+            tell: [],
+            effects: [{ kind: "remember", key: "k_guch_met" }],
+            next: "deal",
+          },
+          {
+            id: "edge",
+            stance: "cold",
+            kind: "push",
+            tell: [],
+            effects: [{ kind: "remember", key: "k_guch_met" }],
+            next: "edge",
+          },
+        ],
+      },
       open: {
         says: [
           {
@@ -6390,9 +6420,39 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     tags: ["people"],
     once: true,
     who: "p",
-    variants: [{ id: "base" }],
+    variants: [{ id: "plain" }, { id: "base" }],
     start: "open",
+    starts: { plain: "y_plain" },
     nodes: {
+      y_plain: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "ask",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "snow",
+          },
+          {
+            id: "deal",
+            stance: "warm",
+            kind: "deal",
+            tell: [],
+            effects: [{ kind: "remember", key: "k_yud_snow" }],
+            next: "deal",
+          },
+          {
+            id: "go",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
       open: {
         says: [
           {

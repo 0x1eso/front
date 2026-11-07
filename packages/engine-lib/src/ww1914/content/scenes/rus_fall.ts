@@ -6372,12 +6372,43 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
     summon: true,
     who: "p",
     variants: [
+      { id: "three" },
       {
         id: "base",
       },
     ],
     start: "open",
+    starts: { three: "m_three" },
     nodes: {
+      m_three: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "alive",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "law",
+          },
+          {
+            id: "deal",
+            stance: "cold",
+            kind: "deal",
+            tell: [],
+            effects: [{ kind: "remember", key: "k_mil_met" }],
+            next: "law",
+          },
+          {
+            id: "go",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
       open: {
         says: [
           {
@@ -7843,12 +7874,43 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
     summon: true,
     who: "p",
     variants: [
+      { id: "count" },
       {
         id: "base",
       },
     ],
     start: "open",
+    starts: { count: "k_count" },
     nodes: {
+      k_count: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "know",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "lena",
+          },
+          {
+            id: "dont",
+            stance: "warm",
+            kind: "deal",
+            tell: [],
+            effects: [{ kind: "remember", key: "k_ker_met" }],
+            next: "lena",
+          },
+          {
+            id: "go",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
       open: {
         says: [
           {
@@ -11168,12 +11230,43 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
     once: true,
     who: "p",
     variants: [
+      { id: "wife" },
       {
         id: "base",
       },
     ],
     start: "open",
+    starts: { wife: "m_wife" },
     nodes: {
+      m_wife: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "yes",
+            stance: "warm",
+            kind: "deal",
+            tell: [],
+            effects: [{ kind: "remember", key: "k_michael_ready" }],
+            next: "wife",
+          },
+          {
+            id: "why",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "names",
+          },
+          {
+            id: "no",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
       open: {
         says: [
           {
