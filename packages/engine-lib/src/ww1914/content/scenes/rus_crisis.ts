@@ -1236,12 +1236,6 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
       of: [
         { kind: "chapter", min: 7, max: 9 },
         { kind: "world", of: { is: "war" } },
-        // The bill and the budget ask the same thing: one of them is enough.
-        { kind: "not", of: { kind: "chose", scene: "gw_law_rus_dry" } },
-        {
-          kind: "not",
-          of: { kind: "chose", scene: "gw_bm_rus_1914", pick: "dry_law" },
-        },
       ],
     },
     cast: {

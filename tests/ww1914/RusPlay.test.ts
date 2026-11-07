@@ -28,11 +28,8 @@ describe("russia as played", () => {
   });
 
   test("the vodka bill and the desk's vodka paper don't both run", () => {
-    const paper = GW_CONTENT.scenes.find((s) => s.id === "rus_c_vodka")!;
-    const asked = JSON.stringify(paper.when);
-    expect(asked).toContain("gw_law_rus_dry");
-    expect(asked).toContain("dry_law");
     const row = GW_LAWS.find((r) => r.id === "rus_dry")!;
+    expect(row.replaces).toContain("rus_c_vodka");
     expect(JSON.stringify(row.settled)).toContain("rus_c_vodka");
   });
 

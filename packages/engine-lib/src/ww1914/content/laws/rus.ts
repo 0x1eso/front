@@ -96,6 +96,7 @@ export const RUS_LAWS: readonly GwLawRow[] = [
       chose("rus_c_vodka", "whole_war"),
       chose("rus_c_vodka", "whole_war_tax"),
     ),
+    replaces: ["rus_c_vodka"],
     repeal: {
       authority: 15,
       tell: ["money:+1", "court:-1"],

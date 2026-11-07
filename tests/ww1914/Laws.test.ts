@@ -427,7 +427,7 @@ describe("a whole game on the real map", () => {
   test.each(NATIONS)(
     "%s brings its bills through a war",
     async (tag) => {
-      for (let i = 0; i < 8; i++) {
+      for (let i = 0; i < 40; i++) {
         const passed = new Set<string>();
         let brought = 0;
         await playRun(
@@ -442,6 +442,16 @@ describe("a whole game on the real map", () => {
             const n = gw.nation(tag)!;
             for (const x of n.laws) {
               if (x.stage === "force" && x.how !== "scene") passed.add(x.id);
+            }
+            // On its day the bill goes to its vote: the bot's random
+            // withdrawing isn't what this test is about.
+            for (const c of [...seat.desk]) {
+              if (!c.scene.startsWith("gw_lv_")) continue;
+              applyGwOrder(gw, seat, {
+                kind: "choose",
+                card: c.uid,
+                option: "put",
+              });
             }
             const open = lawViews(gw, seat).find(
               (v) => v.stage === "open" && v.waits === null,
@@ -458,10 +468,12 @@ describe("a whole game on the real map", () => {
             }
           },
         );
-        // A bot withdraws at random and a peace can stop a bill on its day.
-        if (brought >= 3 && passed.size >= 1) return;
+        // Austria keeps the peace in most games: it takes a while to find a war.
+        if (brought < 3) continue;
+        expect(passed.size).toBeGreaterThanOrEqual(1);
+        return;
       }
-      throw new Error(`${tag}: no game brought three bills and passed one`);
+      throw new Error(`${tag}: no game brought three bills`);
     },
     240000,
   );
