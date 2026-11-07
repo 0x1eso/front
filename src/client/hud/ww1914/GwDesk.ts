@@ -9,6 +9,7 @@ import type { GwCtx } from "./GwCtx";
 import { isReadOnly, paperCards, talkCards } from "./GwModel";
 import { BTN, BTN_ON, CHIP, GLASS, HEAD, MUTED } from "./GwStyle";
 import {
+  boldParts,
   cardBody,
   cardTitle,
   fillGw,
@@ -147,13 +148,15 @@ function optionButton(
       }}
     >
       <span class="block"
-        >${fillGw(
-          optionText(c.pack, card, o.id),
-          c.pack,
-          card,
-          c.seat,
-          c.data.date,
-        )}</span
+        >${boldParts(
+          fillGw(
+            optionText(c.pack, card, o.id),
+            c.pack,
+            card,
+            c.seat,
+            c.data.date,
+          ),
+        ).map((p) => (p.bold ? html`<b>${p.text}</b>` : p.text))}</span
       >
       ${o.tell.length === 0
         ? nothing

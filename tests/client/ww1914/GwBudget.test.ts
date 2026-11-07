@@ -17,6 +17,7 @@ import {
   stepsText,
 } from "../../../src/client/hud/ww1914/GwBudget";
 import type { GwCtx, GwUi } from "../../../src/client/hud/ww1914/GwCtx";
+import { boldParts } from "../../../src/client/hud/ww1914/GwText";
 
 const view = (over: Partial<GwBudgetView> = {}): GwBudgetView => ({
   basis: {
@@ -90,6 +91,15 @@ describe("the words", () => {
     expect(moneyText("GBR", 66)).toContain("6,600만");
     expect(moneyText("DEU", -2000)).toContain("-20억");
     expect(moneyText("DEU", 1998)).toContain("20억");
+    expect(moneyText("DEU", 0)).not.toContain("만");
+  });
+
+  test("an option's bold line is bold, and its marks don't show", () => {
+    expect(boldParts("**서명한다.** 공채로 간다.")).toEqual([
+      { text: "서명한다.", bold: true },
+      { text: " 공채로 간다.", bold: false },
+    ]);
+    expect(boldParts("그냥 글")).toEqual([{ text: "그냥 글", bold: false }]);
   });
 
   test("points read as steps, prices as June 1914 = 100", () => {

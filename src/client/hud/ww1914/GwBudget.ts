@@ -37,6 +37,7 @@ const unit = (tag: string) =>
 /** Whole millions as a Korean sum: 1559 is 15억 6천만, 66 is 6,600만. */
 export function moneyText(tag: string, millions: number): string {
   const v = Math.abs(millions);
+  if (v === 0) return `0 ${unit(tag)}`;
   const sign = millions < 0 ? "-" : "";
   const eok = Math.floor(v / 100);
   const rest = Math.round((v % 100) / 10);
