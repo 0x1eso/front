@@ -71,6 +71,19 @@ describe("the card", () => {
     expect(s.log.some((l) => l.key === "wilhelm_sons_stay")).toBe(true);
   });
 
+  test("a side that can end the game says so a step early, once", async () => {
+    const gw = await fresh();
+    const s = gw.s.seats[0];
+    const told = () =>
+      s.log.filter((l) => l.key === "ruler_thin_health").length;
+    s.ruler.health = 2;
+    moveRuler(gw, s, "health", -1, "wilhelm_slept");
+    expect(told()).toBe(1);
+    moveRuler(gw, s, "health", -1, "wilhelm_slept");
+    moveRuler(gw, s, "health", 1, "wilhelm_slept");
+    expect(told()).toBe(1);
+  });
+
   test("a side stops at its ends and says nothing when it can't move", async () => {
     const gw = await fresh();
     const s = gw.s.seats[0];

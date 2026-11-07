@@ -47,6 +47,8 @@ const LINES_SHOWN = 3;
 /** The nudge a seed gives a side, either way. */
 const NUDGE = 1;
 const DAYS_IN_MONTH = 30;
+/** One step above a bottom: the seat is told while it can still act. */
+const NEAR_BOTTOM = 1;
 
 /** The row that fits the seat now, or null where nobody has one. */
 export function rulerRow(gw: GreatWar, seat: GwSeatState): GwRulerRow | null {
@@ -102,6 +104,16 @@ export function moveRuler(
   r.lines.push({ side, key, delta: moved, chapter: gw.s.chapter });
   r.lines = r.lines.slice(-LINES_KEPT);
   reason(gw, seat, key);
+  if (r[side] === NEAR_BOTTOM && was > NEAR_BOTTOM) nearBottom(gw, seat, side);
+}
+
+/** A side that can end the game says so a step before the doctors or friends. */
+function nearBottom(gw: GreatWar, seat: GwSeatState, side: GwRulerSide): void {
+  const row = rulerRow(gw, seat);
+  const fatal =
+    (side === "health" && row?.mortal === true) ||
+    (side === "reputation" && row?.removable === true && row.shaken !== null);
+  if (fatal) reason(gw, seat, `ruler_thin_${side}`);
 }
 
 const inRange = (v: number, c: { min?: number; max?: number }) =>
