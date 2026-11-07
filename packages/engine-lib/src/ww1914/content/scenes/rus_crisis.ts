@@ -66,6 +66,8 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
         id: "grazed",
         when: { kind: "opening", of: ["sarajevo_survived", "sarajevo_failed"] },
       },
+      { id: "bell" },
+      { id: "two_lists" },
       { id: "base" },
     ],
     fallback: "family_first",
@@ -130,6 +132,8 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     variants: [
       { id: "failed", when: { kind: "opening", of: ["sarajevo_failed"] } },
       { id: "survived", when: { kind: "opening", of: ["sarajevo_survived"] } },
+      { id: "fog" },
+      { id: "tennis" },
       { id: "base" },
     ],
   },
@@ -167,6 +171,8 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     variants: [
       { id: "waiting_list", when: { kind: "flag", flag: "f_door_ministers" } },
       { id: "pencil_line", when: { kind: "flag", flag: "f_door_family" } },
+      { id: "bath" },
+      { id: "morning" },
       { id: "base" },
     ],
     fallback: "stay_night",
@@ -221,7 +227,10 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     once: true,
     variants: [
       { id: "answered", when: { kind: "flag", flag: "f_heir_friend" } },
+      { id: "night2", when: { kind: "flag", flag: "f_heir_night" } },
       { id: "night", when: { kind: "flag", flag: "f_heir_night" } },
+      { id: "wire_two" },
+      { id: "newspaper" },
       { id: "base" },
     ],
     fallback: "send_doctor",
@@ -230,6 +239,11 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
         id: "send_doctor",
         tell: ["court:+1", "duma:-1"],
         effects: [
+          {
+            kind: "maybe",
+            when: { kind: "crisis", topic: "balkan" },
+            then: [{ kind: "schedule", scene: "rus_c_poincare", chapters: 1 }],
+          },
           ear("court", 1),
           ear("duma", -1),
           { kind: "flag", flag: "f_ras_wounded" },
@@ -240,6 +254,11 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
         id: "send_police",
         tell: ["ministers:+1", "court:-1"],
         effects: [
+          {
+            kind: "maybe",
+            when: { kind: "crisis", topic: "balkan" },
+            then: [{ kind: "schedule", scene: "rus_c_poincare", chapters: 1 }],
+          },
           ear("ministers", 1),
           ear("court", -1),
           { kind: "flag", flag: "f_ras_wounded" },
@@ -250,6 +269,11 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
         id: "say_nothing",
         tell: ["duma:+1", "court:-1"],
         effects: [
+          {
+            kind: "maybe",
+            when: { kind: "crisis", topic: "balkan" },
+            then: [{ kind: "schedule", scene: "rus_c_poincare", chapters: 1 }],
+          },
           ear("duma", 1),
           ear("court", -1),
           { kind: "flag", flag: "f_ras_wounded" },
@@ -275,6 +299,7 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     tags: ["foreign", "tension_up"],
     once: true,
     variants: [
+      { id: "hint2", when: { kind: "memory", key: "k_paleo_hint" } },
       { id: "hint", when: { kind: "memory", key: "k_paleo_hint" } },
       {
         id: "after_night",
@@ -359,6 +384,8 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
           pick: "word_to_vienna",
         },
       },
+      { id: "phone", when: { kind: "seen", scene: "rus_c_hartwig" } },
+      { id: "late_copy", when: { kind: "seen", scene: "rus_c_hartwig" } },
       { id: "no_hartwig", when: { kind: "seen", scene: "rus_c_hartwig" } },
       { id: "base" },
     ],
@@ -387,6 +414,16 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     once: true,
     variants: [
       {
+        id: "no_friend2",
+        when: {
+          kind: "all",
+          of: [
+            { kind: "flag", flag: "f_ras_wounded" },
+            { kind: "flag", flag: "f_heir_desk" },
+          ],
+        },
+      },
+      {
         id: "no_friend",
         when: {
           kind: "all",
@@ -408,6 +445,7 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
         id: "rodzianko_heard",
         when: { kind: "flag", flag: "f_door_rodzianko" },
       },
+      { id: "base2" },
       { id: "base" },
     ],
     fallback: "stand_firm",
@@ -498,6 +536,7 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     variants: [
       { id: "firm", when: { kind: "flag", flag: "f_stand_firm" } },
       { id: "delayed", when: { kind: "flag", flag: "f_asked_delay" } },
+      { id: "toast2", when: { kind: "flag", flag: "f_firm_toast" } },
       { id: "toast", when: { kind: "flag", flag: "f_firm_toast" } },
       { id: "base" },
     ],
@@ -556,6 +595,7 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
       { id: "prep_read", when: { kind: "flag", flag: "f_prep_signed" } },
       { id: "told", when: { kind: "seen", scene: "rus_v_pourtales_tears" } },
       { id: "cold", when: { kind: "trust", tag: "DEU", max: -1 } },
+      { id: "cipher" },
       { id: "base" },
     ],
     fallback: "firm",
@@ -610,6 +650,14 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
       of: [
         { kind: "chapter", min: 4, max: 6 },
         { kind: "crisis", topic: "balkan" },
+        { kind: "not", of: { kind: "flag", flag: "f_rus_general" } },
+        {
+          kind: "any",
+          of: [
+            { kind: "chapter", max: 4 },
+            { kind: "temp", max: 7 },
+          ],
+        },
         {
           kind: "any",
           of: [
@@ -649,6 +697,7 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
         },
       },
       { id: "prep_signed", when: { kind: "flag", flag: "f_prep_signed" } },
+      { id: "belgrade2", when: { kind: "flag", flag: "w_aut_at_war" } },
       { id: "belgrade", when: { kind: "flag", flag: "w_aut_at_war" } },
       { id: "base" },
     ],
@@ -735,7 +784,13 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
           kind: "any",
           of: [
             { kind: "seen", scene: "rus_c_partial" },
-            { kind: "temp", min: 8 },
+            {
+              kind: "all",
+              of: [
+                { kind: "chapter", min: 5 },
+                { kind: "temp", min: 8 },
+              ],
+            },
           ],
         },
       ],
@@ -875,6 +930,7 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     id: "rus_c_declaration",
     nation: ["RUS"],
     kind: "wire",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
@@ -906,6 +962,7 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     id: "rus_c_balcony",
     nation: ["RUS"],
     kind: "crisis",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
@@ -991,6 +1048,7 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     id: "rus_c_supreme",
     nation: ["RUS"],
     kind: "crisis",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
@@ -1073,6 +1131,7 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     id: "rus_c_both_fronts",
     nation: ["RUS"],
     kind: "crisis",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
@@ -1171,6 +1230,7 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     id: "rus_c_vodka",
     nation: ["RUS"],
     kind: "proposal",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
@@ -1228,11 +1288,19 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     id: "rus_c_first_battles",
     nation: ["RUS"],
     kind: "report",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
-        { kind: "chapter", min: 7, max: 9 },
+        { kind: "chapter", min: 7, max: 10 },
         { kind: "world", of: { is: "war" } },
+        {
+          kind: "any",
+          of: [
+            { kind: "seen", scene: "rus_c_both_fronts" },
+            { kind: "chapter", min: 8 },
+          ],
+        },
       ],
     },
     cast: {},
@@ -1252,6 +1320,7 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     id: "rus_c_ottoman",
     nation: ["RUS"],
     kind: "crisis",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
@@ -1311,6 +1380,7 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     id: "rus_c_first_shells",
     nation: ["RUS"],
     kind: "proposal",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
@@ -1407,6 +1477,16 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
       },
       { id: "ahead", when: { kind: "flag", flag: "w_bad_luck_east" } },
       { id: "tannenberg", when: { kind: "flag", flag: "w_tannenberg" } },
+      {
+        id: "no_shot",
+        when: {
+          kind: "all",
+          of: [
+            { kind: "opening", of: ["no_sarajevo"] },
+            { kind: "not", of: { kind: "world", of: { is: "war" } } },
+          ],
+        },
+      },
       { id: "base" },
     ],
     fallback: "close_year",
@@ -1515,6 +1595,8 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
         id: "grazed",
         when: { kind: "opening", of: ["sarajevo_survived", "sarajevo_failed"] },
       },
+      { id: "funeral" },
+      { id: "cable" },
       { id: "base" },
     ],
   },
@@ -1537,6 +1619,8 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     once: true,
     variants: [
       { id: "advised", when: { kind: "flag", flag: "f_advised_belgrade" } },
+      { id: "seal" },
+      { id: "boy" },
       { id: "base" },
     ],
     fallback: "kind_words",
@@ -1576,10 +1660,11 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     id: "rus_c_poland_word",
     nation: ["RUS"],
     kind: "proposal",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
-        { kind: "chapter", min: 6, max: 8 },
+        { kind: "chapter", min: 7, max: 9 },
         { kind: "world", of: { is: "war" } },
       ],
     },
@@ -1643,6 +1728,7 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     id: "rus_c_rename",
     nation: ["RUS"],
     kind: "proposal",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
@@ -1675,6 +1761,7 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     id: "rus_c_pourtales_gone",
     nation: ["RUS"],
     kind: "report",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
@@ -1701,14 +1788,20 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        { kind: "chapter", min: 0, max: 2 },
         {
-          kind: "any",
+          kind: "all",
           of: [
-            { kind: "crisis", topic: "balkan" },
-            { kind: "opening", of: ["no_sarajevo", "sarajevo_delayed"] },
+            { kind: "chapter", min: 0, max: 2 },
+            {
+              kind: "any",
+              of: [
+                { kind: "crisis", topic: "balkan" },
+                { kind: "opening", of: ["no_sarajevo", "sarajevo_delayed"] },
+              ],
+            },
           ],
         },
+        { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
       ],
     },
     cast: { p: { person: "rus_sazonov" } },
@@ -1717,9 +1810,47 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     once: true,
     summon: true,
     who: "p",
-    variants: [{ id: "base" }],
+    variants: [{ id: "turn" }, { id: "base" }],
     start: "open",
+    starts: { turn: "s_turn" },
     nodes: {
+      s_turn: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "sov",
+            stance: "frank",
+            kind: "deal",
+            tell: [],
+            effects: [{ kind: "remember", key: "k_saz_limit" }],
+            next: "line",
+          },
+          {
+            id: "you",
+            stance: "warm",
+            kind: "push",
+            tell: [],
+            effects: [],
+            next: "flush",
+          },
+          {
+            id: "vienna",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "vienna",
+          },
+          {
+            id: "go",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
       open: {
         says: [
           {
@@ -1887,7 +2018,19 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     id: "rus_t_sazonov_attache",
     nation: ["RUS"],
     kind: "talk",
-    when: { kind: "chapter", min: 1, max: 3 },
+    when: {
+      kind: "all",
+      of: [
+        {
+          kind: "all",
+          of: [
+            { kind: "chapter", min: 1, max: 3 },
+            { kind: "not", of: { kind: "seen", scene: "rus_c_odd_opening" } },
+          ],
+        },
+        { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
+      ],
+    },
     cast: { p: { person: "rus_sazonov" } },
     salience: 2,
     tags: ["people"],
@@ -2003,8 +2146,20 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        { kind: "chapter", min: 2, max: 3 },
-        { kind: "crisis", topic: "balkan" },
+        {
+          kind: "all",
+          of: [
+            {
+              kind: "all",
+              of: [
+                { kind: "chapter", min: 2, max: 3 },
+                { kind: "crisis", topic: "balkan" },
+              ],
+            },
+            { kind: "not", of: { kind: "seen", scene: "rus_c_poincare" } },
+          ],
+        },
+        { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
       ],
     },
     cast: { p: { person: "rus_sazonov" } },
@@ -2167,9 +2322,21 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        { kind: "chapter", min: 3, max: 5 },
-        { kind: "flag", flag: "w_ultimatum_out" },
-        { kind: "crisis", topic: "balkan" },
+        {
+          kind: "all",
+          of: [
+            {
+              kind: "all",
+              of: [
+                { kind: "chapter", min: 3, max: 5 },
+                { kind: "flag", flag: "w_ultimatum_out" },
+                { kind: "crisis", topic: "balkan" },
+              ],
+            },
+            { kind: "not", of: { kind: "seen", scene: "rus_c_council" } },
+          ],
+        },
+        { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
       ],
     },
     cast: { p: { person: "rus_sazonov" } },
@@ -2299,7 +2466,23 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     kind: "talk",
     when: {
       kind: "all",
-      of: [date("1914-11", "1915-12"), { kind: "at_war", tag: "OTT" }, atDesk],
+      of: [
+        {
+          kind: "all",
+          of: [
+            {
+              kind: "all",
+              of: [
+                date("1914-11", "1915-12"),
+                { kind: "at_war", tag: "OTT" },
+                atDesk,
+              ],
+            },
+            { kind: "not", of: { kind: "seen", scene: "rus_h_straits_note" } },
+          ],
+        },
+        { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
+      ],
     },
     cast: { p: { person: "rus_sazonov" } },
     salience: 2,
@@ -2475,12 +2658,24 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        date("1915-01", "1916-12"),
         {
-          kind: "world",
-          of: { is: "front", theatre: "east", from: "vistula" },
+          kind: "all",
+          of: [
+            {
+              kind: "all",
+              of: [
+                date("1915-01", "1916-12"),
+                {
+                  kind: "world",
+                  of: { is: "front", theatre: "east", from: "vistula" },
+                },
+                atDesk,
+              ],
+            },
+            { kind: "not", of: { kind: "seen", scene: "rus_w_warsaw" } },
+          ],
         },
-        atDesk,
+        { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
       ],
     },
     cast: { p: { person: "rus_sazonov" } },
@@ -2631,16 +2826,58 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     id: "rus_t_sukh_ready",
     nation: ["RUS"],
     kind: "talk",
-    when: { kind: "chapter", min: 0, max: 3 },
+    when: {
+      kind: "all",
+      of: [
+        {
+          kind: "all",
+          of: [
+            { kind: "chapter", min: 0, max: 3 },
+            { kind: "not", of: { kind: "seen", scene: "rus_c_both_fronts" } },
+          ],
+        },
+        { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
+      ],
+    },
     cast: { p: { person: "rus_sukhomlinov" } },
     salience: 2,
     tags: ["people"],
     once: true,
     summon: true,
     who: "p",
-    variants: [{ id: "base" }],
+    variants: [{ id: "wife" }, { id: "base" }],
     start: "open",
+    starts: { wife: "s_wife" },
     nodes: {
+      s_wife: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "num",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "numbers",
+          },
+          {
+            id: "let",
+            stance: "warm",
+            kind: "deal",
+            tell: [],
+            effects: [{ kind: "remember", key: "k_sukh_ready" }],
+            next: "table",
+          },
+          {
+            id: "go",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
       open: {
         says: [
           {
@@ -2825,8 +3062,20 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        { kind: "chapter", min: 3, max: 5 },
-        { kind: "crisis", topic: "balkan" },
+        {
+          kind: "all",
+          of: [
+            {
+              kind: "all",
+              of: [
+                { kind: "chapter", min: 3, max: 5 },
+                { kind: "crisis", topic: "balkan" },
+              ],
+            },
+            { kind: "not", of: { kind: "seen", scene: "rus_c_partial" } },
+          ],
+        },
+        { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
       ],
     },
     cast: { p: { person: "rus_sukhomlinov" } },
@@ -2985,8 +3234,20 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        { kind: "chapter", min: 3, max: 5 },
-        { kind: "crisis", topic: "balkan" },
+        {
+          kind: "all",
+          of: [
+            {
+              kind: "all",
+              of: [
+                { kind: "chapter", min: 3, max: 5 },
+                { kind: "crisis", topic: "balkan" },
+              ],
+            },
+            { kind: "not", of: { kind: "seen", scene: "rus_c_prep_period" } },
+          ],
+        },
+        { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
       ],
     },
     cast: { p: { person: "rus_sukhomlinov" } },
@@ -3099,15 +3360,27 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        { kind: "chapter", min: 4, max: 8 },
         {
-          kind: "any",
+          kind: "all",
           of: [
-            { kind: "crisis", topic: "balkan" },
-            { kind: "world", of: { is: "war" } },
+            {
+              kind: "all",
+              of: [
+                { kind: "chapter", min: 4, max: 8 },
+                {
+                  kind: "any",
+                  of: [
+                    { kind: "crisis", topic: "balkan" },
+                    { kind: "world", of: { is: "war" } },
+                  ],
+                },
+                atDesk,
+              ],
+            },
+            { kind: "not", of: { kind: "seen", scene: "rus_c_supreme" } },
           ],
         },
-        atDesk,
+        { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
       ],
     },
     cast: { p: { person: "rus_sukhomlinov" } },
@@ -3252,11 +3525,23 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        { kind: "chapter", min: 8 },
-        date(undefined, "1915-12"),
-        { kind: "world", of: { is: "war" } },
-        { kind: "holder", office: "war", person: "rus_sukhomlinov" },
-        atDesk,
+        {
+          kind: "all",
+          of: [
+            {
+              kind: "all",
+              of: [
+                { kind: "chapter", min: 8 },
+                date(undefined, "1915-12"),
+                { kind: "world", of: { is: "war" } },
+                { kind: "holder", office: "war", person: "rus_sukhomlinov" },
+                atDesk,
+              ],
+            },
+            { kind: "not", of: { kind: "seen", scene: "rus_c_first_shells" } },
+          ],
+        },
+        { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
       ],
     },
     cast: { p: { person: "rus_sukhomlinov" } },
@@ -3368,9 +3653,21 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        date("1915-01", "1915-12"),
-        { kind: "holder", office: "war", person: "rus_sukhomlinov" },
-        atDesk,
+        {
+          kind: "all",
+          of: [
+            {
+              kind: "all",
+              of: [
+                date("1915-01", "1915-12"),
+                { kind: "holder", office: "war", person: "rus_sukhomlinov" },
+                atDesk,
+              ],
+            },
+            { kind: "not", of: { kind: "seen", scene: "rus_w_shell_famine" } },
+          ],
+        },
+        { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
       ],
     },
     cast: { p: { person: "rus_sukhomlinov" } },
@@ -3512,16 +3809,58 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     id: "rus_t_nik_sisters",
     nation: ["RUS"],
     kind: "talk",
-    when: { kind: "chapter", min: 0, max: 7 },
+    when: {
+      kind: "all",
+      of: [
+        {
+          kind: "all",
+          of: [
+            { kind: "chapter", min: 0, max: 7 },
+            { kind: "not", of: { kind: "seen", scene: "rus_c_poland_word" } },
+          ],
+        },
+        { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
+      ],
+    },
     cast: { p: { person: "rus_nikolasha" } },
     salience: 2,
     tags: ["people"],
     once: true,
     summon: true,
     who: "p",
-    variants: [{ id: "base" }],
+    variants: [{ id: "dogs" }, { id: "base" }],
     start: "open",
+    starts: { dogs: "n_dogs" },
     nodes: {
+      n_dogs: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "stand",
+            stance: "frank",
+            kind: "deal",
+            tell: [],
+            effects: [{ kind: "remember", key: "k_nik_sisters" }],
+            next: "table",
+          },
+          {
+            id: "wait",
+            stance: "warm",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "hunt",
+          },
+          {
+            id: "hurt",
+            stance: "cold",
+            kind: "push",
+            tell: [],
+            effects: [],
+            next: "hurt",
+          },
+        ],
+      },
       open: {
         says: [
           {
@@ -3658,9 +3997,15 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        { kind: "chapter", min: 5, max: 8 },
-        { kind: "world", of: { is: "war" } },
-        { kind: "not", of: { kind: "seen", scene: "rus_c_supreme" } },
+        {
+          kind: "all",
+          of: [
+            { kind: "chapter", min: 5, max: 8 },
+            { kind: "world", of: { is: "war" } },
+            { kind: "not", of: { kind: "seen", scene: "rus_c_supreme" } },
+          ],
+        },
+        { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
       ],
     },
     cast: { p: { person: "rus_nikolasha" } },
@@ -3818,9 +4163,21 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        { kind: "chapter", min: 5, max: 8 },
-        { kind: "world", of: { is: "war" } },
-        { kind: "at_war", tag: "DEU" },
+        {
+          kind: "all",
+          of: [
+            {
+              kind: "all",
+              of: [
+                { kind: "chapter", min: 5, max: 8 },
+                { kind: "world", of: { is: "war" } },
+                { kind: "at_war", tag: "DEU" },
+              ],
+            },
+            { kind: "not", of: { kind: "seen", scene: "rus_c_both_fronts" } },
+          ],
+        },
+        { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
       ],
     },
     cast: { p: { person: "rus_nikolasha" } },
@@ -3965,12 +4322,18 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        date("1915-01", "1915-12"),
         {
-          kind: "holder",
-          office: "supreme_commander",
-          person: "rus_nikolasha",
+          kind: "all",
+          of: [
+            date("1915-01", "1915-12"),
+            {
+              kind: "holder",
+              office: "supreme_commander",
+              person: "rus_nikolasha",
+            },
+          ],
         },
+        { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
       ],
     },
     cast: { p: { person: "rus_nikolasha" } },
@@ -4099,16 +4462,28 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        date("1915-01", "1915-12"),
         {
-          kind: "world",
-          of: { is: "front", theatre: "east", from: "vistula" },
+          kind: "all",
+          of: [
+            {
+              kind: "all",
+              of: [
+                date("1915-01", "1915-12"),
+                {
+                  kind: "world",
+                  of: { is: "front", theatre: "east", from: "vistula" },
+                },
+                {
+                  kind: "holder",
+                  office: "supreme_commander",
+                  person: "rus_nikolasha",
+                },
+              ],
+            },
+            { kind: "not", of: { kind: "seen", scene: "rus_w_gorlice" } },
+          ],
         },
-        {
-          kind: "holder",
-          office: "supreme_commander",
-          person: "rus_nikolasha",
-        },
+        { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
       ],
     },
     cast: { p: { person: "rus_nikolasha" } },
@@ -4243,16 +4618,22 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        date("1915-01", undefined),
         {
-          kind: "not",
-          of: {
-            kind: "holder",
-            office: "supreme_commander",
-            person: "rus_nikolasha",
-          },
+          kind: "all",
+          of: [
+            date("1915-01", undefined),
+            {
+              kind: "not",
+              of: {
+                kind: "holder",
+                office: "supreme_commander",
+                person: "rus_nikolasha",
+              },
+            },
+            { kind: "world", of: { is: "war" } },
+          ],
         },
-        { kind: "world", of: { is: "war" } },
+        { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
       ],
     },
     cast: { p: { person: "rus_nikolasha" } },
@@ -4261,9 +4642,39 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     once: true,
     summon: true,
     who: "p",
-    variants: [{ id: "base" }],
+    variants: [{ id: "wire" }, { id: "base" }],
     start: "open",
+    starts: { wire: "n_wire" },
     nodes: {
+      n_wire: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "ask",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "army",
+          },
+          {
+            id: "deal",
+            stance: "warm",
+            kind: "deal",
+            tell: [],
+            effects: [],
+            next: "dealt",
+          },
+          {
+            id: "none",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
       open: {
         says: [
           {
@@ -4394,16 +4805,52 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     id: "rus_t_gor_nothing",
     nation: ["RUS"],
     kind: "talk",
-    when: { kind: "chapter", min: 0, max: 2 },
+    when: {
+      kind: "all",
+      of: [
+        { kind: "chapter", min: 0, max: 2 },
+        { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
+      ],
+    },
     cast: { p: { person: "rus_goremykin" } },
     salience: 2,
     tags: ["people"],
     once: true,
     summon: true,
     who: "p",
-    variants: [{ id: "base" }],
+    variants: [{ id: "letter" }, { id: "base" }],
     start: "open",
+    starts: { letter: "g_letter" },
     nodes: {
+      g_letter: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "ask",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "minds",
+          },
+          {
+            id: "wait",
+            stance: "warm",
+            kind: "leave",
+            tell: ["trust:+1"],
+            effects: [{ kind: "person_trust", who: { role: "p" }, delta: 1 }],
+            next: null,
+          },
+          {
+            id: "go",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
       open: {
         says: [
           {
@@ -4512,16 +4959,58 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     id: "rus_t_gor_duma",
     nation: ["RUS"],
     kind: "talk",
-    when: { kind: "all", of: [{ kind: "chapter", min: 1, max: 7 }, atDesk] },
+    when: {
+      kind: "all",
+      of: [
+        {
+          kind: "all",
+          of: [
+            { kind: "all", of: [{ kind: "chapter", min: 1, max: 7 }, atDesk] },
+            { kind: "not", of: { kind: "seen", scene: "rus_c_balcony" } },
+          ],
+        },
+        { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
+      ],
+    },
     cast: { p: { person: "rus_goremykin" } },
     salience: 2,
     tags: ["people"],
     once: true,
     summon: true,
     who: "p",
-    variants: [{ id: "base" }],
+    variants: [{ id: "top" }, { id: "base" }],
     start: "open",
+    starts: { top: "g_top" },
     nodes: {
+      g_top: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "yes",
+            stance: "cold",
+            kind: "push",
+            tell: [],
+            effects: [{ kind: "remember", key: "k_gor_duma" }],
+            next: "day",
+          },
+          {
+            id: "why",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "use",
+          },
+          {
+            id: "no",
+            stance: "warm",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
       open: {
         says: [
           {
@@ -4667,7 +5156,13 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     kind: "talk",
     when: {
       kind: "all",
-      of: [{ kind: "chapter", min: 3 }, date(undefined, "1915-12"), atDesk],
+      of: [
+        {
+          kind: "all",
+          of: [{ kind: "chapter", min: 3 }, date(undefined, "1915-12"), atDesk],
+        },
+        { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
+      ],
     },
     cast: { p: { person: "rus_goremykin" } },
     salience: 2,
@@ -4675,9 +5170,52 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     once: true,
     summon: true,
     who: "p",
-    variants: [{ id: "base" }],
+    variants: [{ id: "doze" }, { id: "base" }],
     start: "open",
+    starts: { doze: "g_doze" },
     nodes: {
+      g_doze: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "ask",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "line",
+          },
+          {
+            id: "wake",
+            stance: "cold",
+            kind: "push",
+            tell: [],
+            effects: [],
+            next: "g_wake",
+          },
+          {
+            id: "let",
+            stance: "warm",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      g_wake: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "note",
+            stance: "frank",
+            kind: "leave",
+            tell: [],
+            effects: [{ kind: "remember", key: "k_gor_kriv" }],
+            next: null,
+          },
+        ],
+      },
       open: {
         says: [
           {
@@ -4782,15 +5320,21 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        date("1915-01", "1915-12"),
         {
-          kind: "any",
+          kind: "all",
           of: [
-            { kind: "seen", scene: "rus_h_bloc" },
-            earAt("duma", { max: 0 }),
+            date("1915-01", "1915-12"),
+            {
+              kind: "any",
+              of: [
+                { kind: "seen", scene: "rus_h_bloc" },
+                earAt("duma", { max: 0 }),
+              ],
+            },
+            atDesk,
           ],
         },
-        atDesk,
+        { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
       ],
     },
     cast: { p: { person: "rus_goremykin" } },
@@ -4799,9 +5343,39 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     once: true,
     summon: true,
     who: "p",
-    variants: [{ id: "base" }],
+    variants: [{ id: "seal" }, { id: "base" }],
     start: "open",
+    starts: { seal: "g_seal" },
     nodes: {
+      g_seal: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "ask",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [{ kind: "remember", key: "k_gor_prorogue" }],
+            next: "street",
+          },
+          {
+            id: "soft",
+            stance: "warm",
+            kind: "deal",
+            tell: [],
+            effects: [{ kind: "remember", key: "k_gor_prorogue" }],
+            next: "soft",
+          },
+          {
+            id: "go",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
       open: {
         says: [
           {
@@ -4918,15 +5492,21 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        date("1915-01", "1915-12"),
         {
-          kind: "any",
+          kind: "all",
           of: [
-            { kind: "health", who: { role: "p" }, max: 1 },
-            earAt("ministers", { max: -1 }),
+            date("1915-01", "1915-12"),
+            {
+              kind: "any",
+              of: [
+                { kind: "health", who: { role: "p" }, max: 1 },
+                earAt("ministers", { max: -1 }),
+              ],
+            },
+            atDesk,
           ],
         },
-        atDesk,
+        { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
       ],
     },
     cast: { p: { person: "rus_goremykin" } },
@@ -5050,9 +5630,24 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        date("1915-01", "1915-12"),
-        { kind: "seen", scene: "rus_w_command" },
-        atDesk,
+        {
+          kind: "all",
+          of: [
+            {
+              kind: "all",
+              of: [
+                date("1915-01", "1915-12"),
+                { kind: "seen", scene: "rus_w_command" },
+                atDesk,
+              ],
+            },
+            {
+              kind: "not",
+              of: { kind: "seen", scene: "rus_h_ministers_letter" },
+            },
+          ],
+        },
+        { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
       ],
     },
     cast: { p: { person: "rus_goremykin" } },
@@ -5187,15 +5782,147 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     id: "rus_v_durnovo_memo",
     nation: ["RUS"],
     kind: "talk",
-    when: { kind: "chapter", min: 1, max: 3 },
+    stage: ["crisis", "y1914", "war"],
+    when: {
+      kind: "all",
+      of: [
+        { kind: "chapter", min: 1, max: 3 },
+        { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
+      ],
+    },
     cast: { p: { person: "rus_durnovo" } },
     salience: 6,
     tags: ["people"],
     once: true,
     who: "p",
-    variants: [{ id: "base" }],
+    variants: [{ id: "asks" }, { id: "paper" }, { id: "base" }],
     start: "open",
+    starts: {
+      paper: "d_paper",
+      asks: "d_asks",
+    },
     nodes: {
+      d_paper: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "take",
+            stance: "warm",
+            kind: "deal",
+            tell: [],
+            effects: [{ kind: "remember", key: "k_durnovo_memo" }],
+            next: null,
+          },
+          {
+            id: "why",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "d_why",
+          },
+          {
+            id: "leave",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      d_why: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "end",
+            stance: "frank",
+            kind: "leave",
+            tell: [],
+            effects: [{ kind: "remember", key: "k_durnovo_memo" }],
+            next: null,
+          },
+        ],
+      },
+      d_asks: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "all",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "d_all",
+          },
+          {
+            id: "half",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "d_half",
+          },
+          {
+            id: "none",
+            stance: "warm",
+            kind: "deal",
+            tell: [],
+            effects: [{ kind: "remember", key: "k_durnovo_memo" }],
+            next: "steps",
+          },
+          {
+            id: "pride",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      d_all: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "again",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [{ kind: "remember", key: "k_durnovo_memo" }],
+            next: "steps",
+          },
+          {
+            id: "end",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      d_half: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "go",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [{ kind: "remember", key: "k_durnovo_memo" }],
+            next: "steps",
+          },
+          {
+            id: "end",
+            stance: "warm",
+            kind: "leave",
+            tell: [],
+            effects: [{ kind: "remember", key: "k_durnovo_memo" }],
+            next: null,
+          },
+        ],
+      },
       open: {
         says: [
           {
@@ -5306,17 +6033,24 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     id: "rus_v_witte_warn",
     nation: ["RUS"],
     kind: "talk",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
-        { kind: "chapter", min: 3, max: 6 },
         {
-          kind: "any",
+          kind: "all",
           of: [
-            { kind: "crisis", topic: "balkan" },
-            { kind: "world", of: { is: "war" } },
+            { kind: "chapter", min: 3, max: 6 },
+            {
+              kind: "any",
+              of: [
+                { kind: "crisis", topic: "balkan" },
+                { kind: "world", of: { is: "war" } },
+              ],
+            },
           ],
         },
+        { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
       ],
     },
     cast: { p: { person: "rus_witte" } },
@@ -5324,9 +6058,113 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     tags: ["people"],
     once: true,
     who: "p",
-    variants: [{ id: "base" }],
+    variants: [{ id: "sit" }, { id: "long" }, { id: "base" }],
     start: "open",
+    starts: {
+      long: "w_long",
+      sit: "w_sit",
+    },
     nodes: {
+      w_long: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "go",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "w_long2",
+          },
+          {
+            id: "stop",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      w_long2: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "go",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [{ kind: "remember", key: "k_witte_peace" }],
+            next: "price",
+          },
+          {
+            id: "cut",
+            stance: "threat",
+            kind: "push",
+            tell: [],
+            effects: [],
+            next: "insult",
+          },
+        ],
+      },
+      w_sit: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "truth",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "w_seat",
+          },
+          {
+            id: "sorry",
+            stance: "warm",
+            kind: "ask",
+            tell: ["trust:+1"],
+            effects: [{ kind: "person_trust", who: { role: "p" }, delta: 1 }],
+            next: "w_seat",
+          },
+          {
+            id: "sir",
+            stance: "cold",
+            kind: "push",
+            tell: [],
+            effects: [],
+            next: "insult",
+          },
+          {
+            id: "leave",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      w_seat: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "go",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [{ kind: "remember", key: "k_witte_peace" }],
+            next: "price",
+          },
+          {
+            id: "end",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
       open: {
         says: [
           {
@@ -5428,11 +6266,18 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     id: "rus_v_paleo_toast",
     nation: ["RUS"],
     kind: "talk",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
-        { kind: "chapter", min: 2, max: 3 },
-        { kind: "crisis", topic: "balkan" },
+        {
+          kind: "all",
+          of: [
+            { kind: "chapter", min: 2, max: 3 },
+            { kind: "crisis", topic: "balkan" },
+          ],
+        },
+        { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
       ],
     },
     cast: { p: { person: "fra_paleologue" } },
@@ -5440,9 +6285,95 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     tags: ["people"],
     once: true,
     who: "p",
-    variants: [{ id: "base" }],
+    variants: [{ id: "turn" }, { id: "cut" }, { id: "base" }],
     start: "open",
+    starts: {
+      cut: "p_cut",
+      turn: "p_turn",
+    },
     nodes: {
+      p_cut: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "ok",
+            stance: "warm",
+            kind: "leave",
+            tell: [],
+            effects: [{ kind: "remember", key: "k_paleo_hint" }],
+            next: null,
+          },
+          {
+            id: "end",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      p_turn: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "word",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [{ kind: "remember", key: "k_paleo_hint" }],
+            next: "hint",
+          },
+          {
+            id: "no",
+            stance: "cold",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "p_no",
+          },
+          {
+            id: "deal",
+            stance: "warm",
+            kind: "deal",
+            tell: ["fra:+1"],
+            effects: [
+              { kind: "remember", key: "k_paleo_hint" },
+              { kind: "trust", tag: "FRA", delta: 1 },
+            ],
+            next: "hint",
+          },
+          {
+            id: "leave",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      p_no: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "stop",
+            stance: "warm",
+            kind: "deal",
+            tell: [],
+            effects: [{ kind: "remember", key: "k_paleo_hint" }],
+            next: "hint",
+          },
+          {
+            id: "end",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
       open: {
         says: [{ id: "base" }],
         replies: [
@@ -5539,12 +6470,19 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     id: "rus_v_paleo_plea",
     nation: ["RUS"],
     kind: "talk",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
-        { kind: "chapter", min: 5, max: 8 },
-        { kind: "world", of: { is: "war" } },
-        { kind: "at_war", tag: "DEU" },
+        {
+          kind: "all",
+          of: [
+            { kind: "chapter", min: 5, max: 8 },
+            { kind: "world", of: { is: "war" } },
+            { kind: "at_war", tag: "DEU" },
+          ],
+        },
+        { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
       ],
     },
     cast: { p: { person: "fra_paleologue" } },
@@ -5552,9 +6490,39 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     tags: ["people"],
     once: true,
     who: "p",
-    variants: [{ id: "base" }],
+    variants: [{ id: "note" }, { id: "base" }],
     start: "open",
+    starts: { note: "p_note" },
     nodes: {
+      p_note: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "ask",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [{ kind: "remember", key: "k_paleo_plea" }],
+            next: "paris",
+          },
+          {
+            id: "deal",
+            stance: "warm",
+            kind: "deal",
+            tell: [],
+            effects: [{ kind: "remember", key: "k_paleo_plea" }],
+            next: "paris",
+          },
+          {
+            id: "go",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
       open: {
         says: [{ id: "base" }],
         replies: [
@@ -5659,17 +6627,24 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     id: "rus_v_buchanan_july",
     nation: ["RUS"],
     kind: "talk",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
-        { kind: "chapter", min: 4, max: 8 },
         {
-          kind: "any",
+          kind: "all",
           of: [
-            { kind: "crisis", topic: "balkan" },
-            { kind: "at_war", tag: "OTT" },
+            { kind: "chapter", min: 4, max: 8 },
+            {
+              kind: "any",
+              of: [
+                { kind: "crisis", topic: "balkan" },
+                { kind: "at_war", tag: "OTT" },
+              ],
+            },
           ],
         },
+        { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
       ],
     },
     cast: { p: { person: "gbr_buchanan" } },
@@ -5677,9 +6652,39 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     tags: ["people"],
     once: true,
     who: "p",
-    variants: [{ id: "base" }],
+    variants: [{ id: "silent" }, { id: "base" }],
     start: "open",
+    starts: { silent: "b_silent" },
     nodes: {
+      b_silent: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "ask",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [{ kind: "remember", key: "k_buchanan_line" }],
+            next: "cabinet",
+          },
+          {
+            id: "price",
+            stance: "cold",
+            kind: "push",
+            tell: [],
+            effects: [{ kind: "remember", key: "k_buchanan_line" }],
+            next: "correct",
+          },
+          {
+            id: "leave",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
       open: {
         says: [{ id: "base" }],
         replies: [
@@ -5786,11 +6791,18 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     id: "rus_v_pourtales_tears",
     nation: ["RUS"],
     kind: "talk",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
-        { kind: "chapter", min: 4, max: 5 },
-        { kind: "crisis", topic: "balkan" },
+        {
+          kind: "all",
+          of: [
+            { kind: "chapter", min: 4, max: 5 },
+            { kind: "crisis", topic: "balkan" },
+          ],
+        },
+        { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
       ],
     },
     cast: { p: { person: "deu_pourtales" } },
@@ -5798,9 +6810,60 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     tags: ["people"],
     once: true,
     who: "p",
-    variants: [{ id: "base" }],
+    variants: [{ id: "paper" }, { id: "base" }],
     start: "open",
+    starts: { paper: "p_paper" },
     nodes: {
+      p_paper: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "yes",
+            stance: "warm",
+            kind: "ask",
+            tell: [],
+            effects: [{ kind: "remember", key: "k_willy_trust" }],
+            next: "willy",
+          },
+          {
+            id: "no",
+            stance: "cold",
+            kind: "push",
+            tell: [],
+            effects: [],
+            next: "p_no",
+          },
+          {
+            id: "ask",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "berlin",
+          },
+        ],
+      },
+      p_no: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "end",
+            stance: "warm",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+          {
+            id: "end2",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
       open: {
         says: [
           { id: "low", when: { kind: "trust", tag: "DEU", max: -1 } },

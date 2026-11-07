@@ -10,7 +10,14 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     id: "rus_w_ledger",
     nation: ["RUS"],
     kind: "ledger",
-    when: { kind: "world", of: { is: "war" } },
+    stage: ["crisis", "y1914", "war"],
+    when: {
+      kind: "all",
+      of: [
+        { kind: "world", of: { is: "war" } },
+        { kind: "chapter", min: 7 },
+      ],
+    },
     cast: { cos: { office: "chief_of_staff" } },
     salience: 9,
     tags: ["war"],
@@ -35,6 +42,16 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
         when: { kind: "world", of: { is: "era", of: ["depth"] } },
       },
       {
+        id: "material_cmd2",
+        when: {
+          kind: "all",
+          of: [
+            { kind: "world", of: { is: "era", of: ["material"] } },
+            { kind: "world", of: { is: "command" } },
+          ],
+        },
+      },
+      {
         id: "material_cmd",
         when: {
           kind: "all",
@@ -45,8 +62,26 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
         },
       },
       {
+        id: "material2",
+        when: { kind: "world", of: { is: "era", of: ["material"] } },
+      },
+      {
+        id: "material3",
+        when: { kind: "world", of: { is: "era", of: ["material"] } },
+      },
+      {
         id: "material",
         when: { kind: "world", of: { is: "era", of: ["material"] } },
+      },
+      {
+        id: "trenches_cmd2",
+        when: {
+          kind: "all",
+          of: [
+            { kind: "world", of: { is: "era", of: ["trenches"] } },
+            { kind: "world", of: { is: "command" } },
+          ],
+        },
       },
       {
         id: "trenches_cmd",
@@ -59,9 +94,18 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
         },
       },
       {
+        id: "trenches2",
+        when: { kind: "world", of: { is: "era", of: ["trenches"] } },
+      },
+      {
+        id: "trenches3",
+        when: { kind: "world", of: { is: "era", of: ["trenches"] } },
+      },
+      {
         id: "trenches",
         when: { kind: "world", of: { is: "era", of: ["trenches"] } },
       },
+      { id: "base2" },
       { id: "base" },
     ],
     fallback: "sign_chief",
@@ -90,6 +134,7 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     id: "rus_w_sarikamish",
     nation: ["RUS"],
     kind: "report",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
@@ -141,6 +186,7 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
           },
         },
       },
+      { id: "tiflis" },
       { id: "base" },
     ],
   },
@@ -148,18 +194,28 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     id: "rus_w_carpathians",
     nation: ["RUS"],
     kind: "dispute",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
-        { kind: "world", of: { is: "war" } },
-        { kind: "world", of: { is: "date", from: "1914-12", to: "1915-04" } },
         {
-          kind: "not",
-          of: {
-            kind: "world",
-            of: { is: "front", theatre: "east", from: "vistula" },
-          },
+          kind: "all",
+          of: [
+            { kind: "world", of: { is: "war" } },
+            {
+              kind: "world",
+              of: { is: "date", from: "1914-12", to: "1915-04" },
+            },
+            {
+              kind: "not",
+              of: {
+                kind: "world",
+                of: { is: "front", theatre: "east", from: "vistula" },
+              },
+            },
+          ],
         },
+        { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
       ],
     },
     cast: { cos: { office: "chief_of_staff" } },
@@ -216,11 +272,14 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     id: "rus_w_gorlice",
     nation: ["RUS"],
     kind: "crisis",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
         { kind: "world", of: { is: "war" } },
         { kind: "world", of: { is: "era", of: ["trenches"] } },
+        { kind: "world", of: { is: "date", from: "1915-03" } },
+        { kind: "not", of: { kind: "seen", scene: "rus_w_berlin_road" } },
         {
           kind: "any",
           of: [
@@ -320,12 +379,19 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     id: "rus_w_shell_famine",
     nation: ["RUS"],
     kind: "crisis",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
-        { kind: "world", of: { is: "war" } },
-        { kind: "gauge", gauge: "shells", max: 1 },
-        { kind: "world", of: { is: "era", of: ["trenches"] } },
+        {
+          kind: "all",
+          of: [
+            { kind: "world", of: { is: "war" } },
+            { kind: "gauge", gauge: "shells", max: 1 },
+            { kind: "world", of: { is: "era", of: ["trenches"] } },
+          ],
+        },
+        { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
       ],
     },
     cast: { war: { office: "war" }, pm: { office: "chancellor" } },
@@ -351,6 +417,7 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
         },
       },
       { id: "cmd", when: { kind: "world", of: { is: "command" } } },
+      { id: "base2" },
       { id: "base" },
     ],
     fallback: "keep_sukh",
@@ -419,20 +486,27 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     id: "rus_w_warsaw",
     nation: ["RUS"],
     kind: "crisis",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
-        { kind: "world", of: { is: "war" } },
         {
-          kind: "any",
+          kind: "all",
           of: [
+            { kind: "world", of: { is: "war" } },
             {
-              kind: "world",
-              of: { is: "front", theatre: "east", from: "warsaw" },
+              kind: "any",
+              of: [
+                {
+                  kind: "world",
+                  of: { is: "front", theatre: "east", from: "warsaw" },
+                },
+                { kind: "flag", flag: "w_warsaw_lost" },
+              ],
             },
-            { kind: "flag", flag: "w_warsaw_lost" },
           ],
         },
+        { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
       ],
     },
     cast: { cos: { office: "chief_of_staff" } },
@@ -494,6 +568,7 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     id: "rus_w_record_front",
     nation: ["RUS"],
     kind: "report",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
@@ -517,18 +592,28 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     id: "rus_w_command",
     nation: ["RUS"],
     kind: "crisis",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
-        { kind: "world", of: { is: "war" } },
-        { kind: "world", of: { is: "front", theatre: "east", from: "warsaw" } },
-        { kind: "not", of: { kind: "world", of: { is: "command" } } },
-        { kind: "not", of: { kind: "seen", scene: "rus_h_keys" } },
         {
-          kind: "holder",
-          office: "supreme_commander",
-          person: "rus_nikolasha",
+          kind: "all",
+          of: [
+            { kind: "world", of: { is: "war" } },
+            {
+              kind: "world",
+              of: { is: "front", theatre: "east", from: "warsaw" },
+            },
+            { kind: "not", of: { kind: "world", of: { is: "command" } } },
+            { kind: "not", of: { kind: "seen", scene: "rus_h_keys" } },
+            {
+              kind: "holder",
+              office: "supreme_commander",
+              person: "rus_nikolasha",
+            },
+          ],
         },
+        { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
       ],
     },
     cast: { war: { office: "war" }, pm: { office: "chancellor" } },
@@ -646,13 +731,26 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     id: "rus_w_naroch",
     nation: ["RUS"],
     kind: "dispute",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
-        { kind: "world", of: { is: "war" } },
-        { kind: "world", of: { is: "entered", tag: "FRA" } },
-        { kind: "trench", theatre: "west", min: 2 },
-        { kind: "world", of: { is: "date", from: "1916-02", to: "1916-04" } },
+        {
+          kind: "all",
+          of: [
+            { kind: "world", of: { is: "war" } },
+            { kind: "world", of: { is: "entered", tag: "FRA" } },
+            { kind: "trench", theatre: "west", min: 2 },
+            {
+              kind: "world",
+              of: { is: "date", from: "1916-02", to: "1916-04" },
+            },
+          ],
+        },
+        {
+          kind: "world",
+          of: { is: "front", theatre: "east", from: "vistula" },
+        },
       ],
     },
     cast: { cos: { office: "chief_of_staff" } },
@@ -660,6 +758,7 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     tags: ["war", "tension_up"],
     once: true,
     variants: [
+      { id: "thin2", when: { kind: "gauge", gauge: "shells", max: 1 } },
       { id: "thin", when: { kind: "gauge", gauge: "shells", max: 1 } },
       { id: "cmd", when: { kind: "world", of: { is: "command" } } },
       { id: "base" },
@@ -707,6 +806,7 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     id: "rus_w_april_council",
     nation: ["RUS"],
     kind: "crisis",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
@@ -808,6 +908,7 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     id: "rus_w_lutsk",
     nation: ["RUS"],
     kind: "report",
+    stage: ["crisis", "y1914", "war"],
     cast: {},
     salience: 8,
     tags: ["war", "tension_down"],
@@ -858,6 +959,7 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     id: "rus_w_romania",
     nation: ["RUS"],
     kind: "proposal",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
@@ -933,6 +1035,7 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     id: "rus_w_depots",
     nation: ["RUS"],
     kind: "proposal",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
@@ -969,6 +1072,7 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
           of: { is: "regime", of: ["provisional", "rep"] },
         },
       },
+      { id: "base2" },
       { id: "base" },
     ],
     fallback: "leave_them",
@@ -1017,6 +1121,7 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     id: "rus_w_letters",
     nation: ["RUS"],
     kind: "report",
+    stage: ["crisis", "y1914", "war"],
     when: { kind: "world", of: { is: "war" } },
     cast: {},
     salience: 5,
@@ -1029,6 +1134,8 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
       { id: "m1", when: { kind: "gauge", gauge: "morale", min: 1, max: 1 } },
       { id: "m2", when: { kind: "gauge", gauge: "morale", min: 2, max: 2 } },
       { id: "m3", when: { kind: "gauge", gauge: "morale", min: 3, max: 3 } },
+      { id: "base2" },
+      { id: "base3" },
       { id: "base" },
     ],
   },
@@ -1036,6 +1143,7 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     id: "rus_w_spring_promise",
     nation: ["RUS"],
     kind: "crisis",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
@@ -1104,6 +1212,7 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     id: "rus_w_summer_line",
     nation: ["RUS"],
     kind: "report",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
@@ -1137,18 +1246,28 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     id: "rus_w_przemysl",
     nation: ["RUS"],
     kind: "report",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
-        { kind: "world", of: { is: "war" } },
-        { kind: "world", of: { is: "date", from: "1915-03", to: "1915-06" } },
         {
-          kind: "not",
-          of: {
-            kind: "world",
-            of: { is: "front", theatre: "east", from: "vistula" },
-          },
+          kind: "all",
+          of: [
+            { kind: "world", of: { is: "war" } },
+            {
+              kind: "world",
+              of: { is: "date", from: "1915-03", to: "1915-06" },
+            },
+            {
+              kind: "not",
+              of: {
+                kind: "world",
+                of: { is: "front", theatre: "east", from: "vistula" },
+              },
+            },
+          ],
         },
+        { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
       ],
     },
     cast: {},
@@ -1166,6 +1285,7 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     id: "rus_w_rifles",
     nation: ["RUS"],
     kind: "proposal",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
@@ -1179,6 +1299,10 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     tags: ["war"],
     once: true,
     variants: [
+      {
+        id: "wounded2",
+        when: { kind: "world", of: { is: "casualties", min: 500 } },
+      },
       {
         id: "wounded",
         when: { kind: "world", of: { is: "casualties", min: 500 } },
@@ -1218,11 +1342,18 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     id: "rus_w_mogilev",
     nation: ["RUS"],
     kind: "proposal",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
-        { kind: "world", of: { is: "command" } },
-        { kind: "world", of: { is: "war" } },
+        {
+          kind: "all",
+          of: [
+            { kind: "world", of: { is: "command" } },
+            { kind: "world", of: { is: "war" } },
+          ],
+        },
+        { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
       ],
     },
     cast: { cos: { office: "chief_of_staff" } },
@@ -1274,6 +1405,8 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     id: "rus_w_train_back",
     nation: ["RUS"],
     kind: "proposal",
+    stage: ["crisis", "y1914", "war"],
+    when: { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
     cast: { cos: { office: "chief_of_staff" } },
     salience: 5,
     tags: ["people"],
@@ -1305,11 +1438,18 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     id: "rus_w_evert_holds",
     nation: ["RUS"],
     kind: "dispute",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
-        { kind: "seen", scene: "rus_w_lutsk" },
-        { kind: "world", of: { is: "era", of: ["material"] } },
+        {
+          kind: "all",
+          of: [
+            { kind: "seen", scene: "rus_w_lutsk" },
+            { kind: "world", of: { is: "era", of: ["material"] } },
+          ],
+        },
+        { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
       ],
     },
     cast: { cos: { office: "chief_of_staff" } },
@@ -1362,12 +1502,19 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     id: "rus_w_kovel",
     nation: ["RUS"],
     kind: "proposal",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
-        { kind: "seen", scene: "rus_w_lutsk" },
-        { kind: "world", of: { is: "casualties", min: 300 } },
-        { kind: "world", of: { is: "era", of: ["material"] } },
+        {
+          kind: "all",
+          of: [
+            { kind: "seen", scene: "rus_w_lutsk" },
+            { kind: "world", of: { is: "casualties", min: 300 } },
+            { kind: "world", of: { is: "era", of: ["material"] } },
+          ],
+        },
+        { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
       ],
     },
     cast: { cos: { office: "chief_of_staff" } },
@@ -1428,6 +1575,7 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     id: "rus_w_erzurum",
     nation: ["RUS"],
     kind: "report",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "world",
       of: { is: "front", theatre: "caucasus", from: "erzurum" },
@@ -1454,6 +1602,7 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     id: "rus_w_caucasus_snow",
     nation: ["RUS"],
     kind: "proposal",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
@@ -1479,6 +1628,10 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     tags: ["war"],
     once: true,
     variants: [
+      {
+        id: "after_sarikamish2",
+        when: { kind: "seen", scene: "rus_w_sarikamish" },
+      },
       {
         id: "after_sarikamish",
         when: { kind: "seen", scene: "rus_w_sarikamish" },
@@ -1525,6 +1678,7 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     id: "rus_w_bosporus_plan",
     nation: ["RUS"],
     kind: "proposal",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
@@ -1592,6 +1746,7 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     id: "rus_w_bosporus_landing",
     nation: ["RUS"],
     kind: "crisis",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
@@ -1674,11 +1829,13 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     id: "rus_w_berlin_road",
     nation: ["RUS"],
     kind: "proposal",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
         { kind: "world", of: { is: "war" } },
         { kind: "world", of: { is: "front", theatre: "east", to: "oder" } },
+        { kind: "not", of: { kind: "seen", scene: "rus_w_gorlice" } },
         {
           kind: "world",
           of: { is: "era", of: ["trenches", "material", "depth", "storm"] },
@@ -1732,6 +1889,7 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     id: "rus_w_record_prisoners",
     nation: ["RUS"],
     kind: "report",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
@@ -1751,6 +1909,7 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     id: "rus_w_riga",
     nation: ["RUS"],
     kind: "report",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
@@ -1780,16 +1939,58 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     id: "rus_t_alek_kiev",
     nation: ["RUS"],
     kind: "talk",
-    when: { kind: "chapter", min: 1, max: 5 },
+    when: {
+      kind: "all",
+      of: [
+        {
+          kind: "all",
+          of: [
+            { kind: "chapter", min: 1, max: 5 },
+            { kind: "not", of: { kind: "seen", scene: "rus_c_both_fronts" } },
+          ],
+        },
+        { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
+      ],
+    },
     cast: { p: { person: "rus_alekseev" } },
     salience: 2,
     tags: ["people"],
     once: true,
     summon: true,
     who: "p",
-    variants: [{ id: "base" }],
+    variants: [{ id: "glasses" }, { id: "base" }],
     start: "open",
+    starts: { glasses: "a_glass" },
     nodes: {
+      a_glass: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "ask",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "galicia",
+          },
+          {
+            id: "deal",
+            stance: "warm",
+            kind: "deal",
+            tell: [],
+            effects: [{ kind: "remember", key: "k_alek_kiev" }],
+            next: "paper",
+          },
+          {
+            id: "go",
+            stance: "warm",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
       open: {
         says: [
           {
@@ -1945,25 +2146,46 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        { kind: "world", of: { is: "date", from: "1914-12", to: "1916-01" } },
         {
-          kind: "any",
+          kind: "all",
           of: [
             {
-              kind: "world",
-              of: { is: "front", theatre: "east", from: "vistula" },
+              kind: "all",
+              of: [
+                {
+                  kind: "world",
+                  of: { is: "date", from: "1914-12", to: "1916-01" },
+                },
+                {
+                  kind: "any",
+                  of: [
+                    {
+                      kind: "world",
+                      of: { is: "front", theatre: "east", from: "vistula" },
+                    },
+                    {
+                      kind: "world",
+                      of: {
+                        is: "battle",
+                        theatre: "east",
+                        of: ["break"],
+                        by: "central",
+                      },
+                    },
+                  ],
+                },
+              ],
             },
             {
-              kind: "world",
-              of: {
-                is: "battle",
-                theatre: "east",
-                of: ["break"],
-                by: "central",
-              },
+              kind: "any",
+              of: [
+                { kind: "not", of: { kind: "seen", scene: "rus_w_gorlice" } },
+                { kind: "not", of: { kind: "seen", scene: "rus_w_warsaw" } },
+              ],
             },
           ],
         },
+        { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
       ],
     },
     cast: { p: { person: "rus_alekseev" } },
@@ -2172,18 +2394,27 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        { kind: "world", of: { is: "date", from: "1915-02", to: "1916-02" } },
         {
-          kind: "any",
+          kind: "all",
           of: [
-            { kind: "world", of: { is: "command" } },
             {
-              kind: "holder",
-              office: "chief_of_staff",
-              person: "rus_alekseev",
+              kind: "world",
+              of: { is: "date", from: "1915-02", to: "1916-02" },
+            },
+            {
+              kind: "any",
+              of: [
+                { kind: "world", of: { is: "command" } },
+                {
+                  kind: "holder",
+                  office: "chief_of_staff",
+                  person: "rus_alekseev",
+                },
+              ],
             },
           ],
         },
+        { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
       ],
     },
     cast: { p: { person: "rus_alekseev" } },
@@ -2450,8 +2681,23 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        { kind: "world", of: { is: "war" } },
-        { kind: "world", of: { is: "date", from: "1916-01", to: "1916-12" } },
+        {
+          kind: "all",
+          of: [
+            {
+              kind: "all",
+              of: [
+                { kind: "world", of: { is: "war" } },
+                {
+                  kind: "world",
+                  of: { is: "date", from: "1916-01", to: "1916-12" },
+                },
+              ],
+            },
+            { kind: "not", of: { kind: "seen", scene: "rus_w_naroch" } },
+          ],
+        },
+        { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
       ],
     },
     cast: { p: { person: "rus_alekseev" } },
@@ -2628,16 +2874,52 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     id: "rus_t_alek_garrison",
     nation: ["RUS"],
     kind: "talk",
-    when: { kind: "world", of: { is: "date", from: "1916-02" } },
+    when: {
+      kind: "all",
+      of: [
+        { kind: "world", of: { is: "date", from: "1916-02" } },
+        { kind: "not", of: { kind: "seen", scene: "rus_w_depots" } },
+      ],
+    },
     cast: { p: { person: "rus_alekseev" } },
     salience: 2,
     tags: ["people"],
     once: true,
     summon: true,
     who: "p",
-    variants: [{ id: "base" }],
+    variants: [{ id: "count" }, { id: "base" }],
     start: "open",
+    starts: { count: "a_count" },
     nodes: {
+      a_count: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "ask",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "rot",
+          },
+          {
+            id: "deal",
+            stance: "warm",
+            kind: "deal",
+            tell: [],
+            effects: [{ kind: "remember", key: "k_alek_garrison" }],
+            next: "deal",
+          },
+          {
+            id: "leave",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
       open: {
         says: [
           {
@@ -2779,11 +3061,20 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        { kind: "world", of: { is: "date", from: "1916-11", to: "1917-12" } },
         {
-          kind: "world",
-          of: { is: "regime", of: ["tsar", "crown", "regency"] },
+          kind: "all",
+          of: [
+            {
+              kind: "world",
+              of: { is: "date", from: "1916-11", to: "1917-12" },
+            },
+            {
+              kind: "world",
+              of: { is: "regime", of: ["tsar", "crown", "regency"] },
+            },
+          ],
         },
+        { kind: "not", of: { kind: "seen", scene: "rus_w_spring_promise" } },
       ],
     },
     cast: { p: { person: "rus_alekseev" } },
@@ -2937,16 +3228,52 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     id: "rus_t_brus_cavalry",
     nation: ["RUS"],
     kind: "talk",
-    when: { kind: "chapter", min: 1, max: 7 },
+    when: {
+      kind: "all",
+      of: [
+        { kind: "chapter", min: 1, max: 7 },
+        { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
+      ],
+    },
     cast: { p: { person: "rus_brusilov" } },
     salience: 2,
     tags: ["people"],
     once: true,
     summon: true,
     who: "p",
-    variants: [{ id: "base" }],
+    variants: [{ id: "drill" }, { id: "base" }],
     start: "open",
+    starts: { drill: "b_drill" },
     nodes: {
+      b_drill: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "cut",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "foe",
+          },
+          {
+            id: "keep",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+          {
+            id: "deal",
+            stance: "warm",
+            kind: "deal",
+            tell: [],
+            effects: [{ kind: "remember", key: "k_brus_met" }],
+            next: "deal",
+          },
+        ],
+      },
       open: {
         says: [
           {
@@ -3071,7 +3398,22 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     id: "rus_t_brus_pass",
     nation: ["RUS"],
     kind: "talk",
-    when: { kind: "world", of: { is: "date", from: "1914-12", to: "1915-04" } },
+    when: {
+      kind: "all",
+      of: [
+        {
+          kind: "all",
+          of: [
+            {
+              kind: "world",
+              of: { is: "date", from: "1914-12", to: "1915-04" },
+            },
+            { kind: "not", of: { kind: "seen", scene: "rus_w_carpathians" } },
+          ],
+        },
+        { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
+      ],
+    },
     cast: { p: { person: "rus_brusilov" } },
     salience: 2,
     tags: ["people"],
@@ -3247,21 +3589,33 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        { kind: "world", of: { is: "war" } },
-        { kind: "world", of: { is: "date", to: "1916-12" } },
         {
-          kind: "any",
+          kind: "all",
           of: [
-            { kind: "world", of: { is: "date", from: "1916-01" } },
             {
               kind: "all",
               of: [
-                { kind: "memory", key: "k_brus_met" },
-                { kind: "world", of: { is: "date", from: "1915-10" } },
+                { kind: "world", of: { is: "war" } },
+                { kind: "world", of: { is: "date", to: "1916-12" } },
+                {
+                  kind: "any",
+                  of: [
+                    { kind: "world", of: { is: "date", from: "1916-01" } },
+                    {
+                      kind: "all",
+                      of: [
+                        { kind: "memory", key: "k_brus_met" },
+                        { kind: "world", of: { is: "date", from: "1915-10" } },
+                      ],
+                    },
+                  ],
+                },
               ],
             },
+            { kind: "not", of: { kind: "seen", scene: "rus_w_april_council" } },
           ],
         },
+        { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
       ],
     },
     cast: { p: { person: "rus_brusilov" } },
@@ -3270,9 +3624,39 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     once: true,
     summon: true,
     who: "p",
-    variants: [{ id: "base" }],
+    variants: [{ id: "paper" }, { id: "base" }],
     start: "open",
+    starts: { paper: "b_paper" },
     nodes: {
+      b_paper: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "tell",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "how",
+          },
+          {
+            id: "deal",
+            stance: "warm",
+            kind: "deal",
+            tell: [],
+            effects: [{ kind: "remember", key: "k_brus_plan" }],
+            next: "deal",
+          },
+          {
+            id: "go",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
       open: {
         says: [
           { id: "met", when: { kind: "memory", key: "k_brus_met" } },
@@ -3427,9 +3811,15 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     nation: ["RUS"],
     kind: "talk",
     when: {
-      kind: "chose",
-      scene: "rus_w_april_council",
-      pick: "brusilov_goes",
+      kind: "all",
+      of: [
+        {
+          kind: "chose",
+          scene: "rus_w_april_council",
+          pick: "brusilov_goes",
+        },
+        { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
+      ],
     },
     cast: { p: { person: "rus_brusilov" } },
     salience: 2,
@@ -3602,7 +3992,13 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     id: "rus_t_brus_depots",
     nation: ["RUS"],
     kind: "talk",
-    when: { kind: "world", of: { is: "date", from: "1916-02", to: "1917-12" } },
+    when: {
+      kind: "all",
+      of: [
+        { kind: "world", of: { is: "date", from: "1916-02", to: "1917-12" } },
+        { kind: "not", of: { kind: "seen", scene: "rus_w_depots" } },
+      ],
+    },
     cast: { p: { person: "rus_brusilov" } },
     salience: 2,
     tags: ["people"],
@@ -3913,17 +4309,36 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
       kind: "all",
       of: [
         {
-          kind: "any",
+          kind: "all",
           of: [
-            { kind: "not", of: { kind: "world", of: { is: "command" } } },
-            { kind: "flag", flag: "f_rus_in_capital" },
+            {
+              kind: "all",
+              of: [
+                {
+                  kind: "any",
+                  of: [
+                    {
+                      kind: "not",
+                      of: { kind: "world", of: { is: "command" } },
+                    },
+                    { kind: "flag", flag: "f_rus_in_capital" },
+                  ],
+                },
+                { kind: "world", of: { is: "date", to: "1916-01" } },
+                {
+                  kind: "not",
+                  of: {
+                    kind: "holder",
+                    office: "war",
+                    person: "rus_polivanov",
+                  },
+                },
+              ],
+            },
+            { kind: "not", of: { kind: "seen", scene: "rus_c_first_shells" } },
           ],
         },
-        { kind: "world", of: { is: "date", to: "1916-01" } },
-        {
-          kind: "not",
-          of: { kind: "holder", office: "war", person: "rus_polivanov" },
-        },
+        { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
       ],
     },
     cast: { p: { person: "rus_polivanov" } },
@@ -3932,9 +4347,84 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     once: true,
     summon: true,
     who: "p",
-    variants: [{ id: "base" }],
+    variants: [{ id: "sheet" }, { id: "base" }],
     start: "open",
+    starts: { sheet: "p_sheet" },
     nodes: {
+      p_sheet: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "book",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "books",
+          },
+          {
+            id: "man",
+            stance: "warm",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "p_man",
+          },
+          {
+            id: "read",
+            stance: "cold",
+            kind: "deal",
+            tell: [],
+            effects: [{ kind: "remember", key: "k_poli_books" }],
+            next: "books",
+          },
+          {
+            id: "go",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      p_man: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "who",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [
+              { kind: "remember", key: "k_poli_books" },
+              { kind: "remember", key: "k_guch_door" },
+            ],
+            next: "p_who",
+          },
+          {
+            id: "end",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [{ kind: "remember", key: "k_poli_books" }],
+            next: null,
+          },
+        ],
+      },
+      p_who: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "end",
+            stance: "frank",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
       open: {
         says: [
           {
@@ -4066,16 +4556,52 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     id: "rus_t_poli_duma",
     nation: ["RUS"],
     kind: "talk",
-    when: { kind: "chapter", min: 0, max: 5 },
+    when: {
+      kind: "all",
+      of: [
+        { kind: "chapter", min: 0, max: 5 },
+        { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
+      ],
+    },
     cast: { p: { person: "rus_polivanov" } },
     salience: 2,
     tags: ["people"],
     once: true,
     summon: true,
     who: "p",
-    variants: [{ id: "base" }],
+    variants: [{ id: "walk" }, { id: "base" }],
     start: "open",
+    starts: { walk: "p_walk" },
     nodes: {
+      p_walk: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "shut",
+            stance: "warm",
+            kind: "deal",
+            tell: [],
+            effects: [],
+            next: "who",
+          },
+          {
+            id: "open",
+            stance: "cold",
+            kind: "push",
+            tell: [],
+            effects: [],
+            next: "side",
+          },
+          {
+            id: "go",
+            stance: "warm",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
       open: {
         says: [
           {
@@ -4198,17 +4724,35 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
       kind: "all",
       of: [
         {
-          kind: "any",
+          kind: "all",
           of: [
-            { kind: "not", of: { kind: "world", of: { is: "command" } } },
-            { kind: "flag", flag: "f_rus_in_capital" },
+            {
+              kind: "all",
+              of: [
+                {
+                  kind: "any",
+                  of: [
+                    {
+                      kind: "not",
+                      of: { kind: "world", of: { is: "command" } },
+                    },
+                    { kind: "flag", flag: "f_rus_in_capital" },
+                  ],
+                },
+                {
+                  kind: "world",
+                  of: { is: "date", from: "1914-12", to: "1916-01" },
+                },
+                {
+                  kind: "world",
+                  of: { is: "front", theatre: "east", from: "vistula" },
+                },
+              ],
+            },
+            { kind: "not", of: { kind: "seen", scene: "rus_w_gorlice" } },
           ],
         },
-        { kind: "world", of: { is: "date", from: "1914-12", to: "1916-01" } },
-        {
-          kind: "world",
-          of: { is: "front", theatre: "east", from: "vistula" },
-        },
+        { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
       ],
     },
     cast: { p: { person: "rus_polivanov" } },
@@ -4358,14 +4902,32 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
       kind: "all",
       of: [
         {
-          kind: "any",
+          kind: "all",
           of: [
-            { kind: "not", of: { kind: "world", of: { is: "command" } } },
-            { kind: "flag", flag: "f_rus_in_capital" },
+            {
+              kind: "all",
+              of: [
+                {
+                  kind: "any",
+                  of: [
+                    {
+                      kind: "not",
+                      of: { kind: "world", of: { is: "command" } },
+                    },
+                    { kind: "flag", flag: "f_rus_in_capital" },
+                  ],
+                },
+                {
+                  kind: "world",
+                  of: { is: "date", from: "1914-12", to: "1916-01" },
+                },
+                { kind: "gauge", gauge: "shells", max: 1 },
+              ],
+            },
+            { kind: "not", of: { kind: "seen", scene: "rus_w_shell_famine" } },
           ],
         },
-        { kind: "world", of: { is: "date", from: "1914-12", to: "1916-01" } },
-        { kind: "gauge", gauge: "shells", max: 1 },
+        { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
       ],
     },
     cast: { p: { person: "rus_polivanov" } },
@@ -4506,15 +5068,36 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
       kind: "all",
       of: [
         {
-          kind: "any",
+          kind: "all",
           of: [
-            { kind: "not", of: { kind: "world", of: { is: "command" } } },
-            { kind: "flag", flag: "f_rus_in_capital" },
+            {
+              kind: "all",
+              of: [
+                {
+                  kind: "any",
+                  of: [
+                    {
+                      kind: "not",
+                      of: { kind: "world", of: { is: "command" } },
+                    },
+                    { kind: "flag", flag: "f_rus_in_capital" },
+                  ],
+                },
+                { kind: "not", of: { kind: "world", of: { is: "command" } } },
+                {
+                  kind: "world",
+                  of: { is: "date", from: "1915-01", to: "1916-01" },
+                },
+                {
+                  kind: "world",
+                  of: { is: "front", theatre: "east", from: "warsaw" },
+                },
+              ],
+            },
+            { kind: "not", of: { kind: "seen", scene: "rus_w_command" } },
           ],
         },
-        { kind: "not", of: { kind: "world", of: { is: "command" } } },
-        { kind: "world", of: { is: "date", from: "1915-01", to: "1916-01" } },
-        { kind: "world", of: { is: "front", theatre: "east", from: "warsaw" } },
+        { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
       ],
     },
     cast: { p: { person: "rus_polivanov" } },
@@ -4662,15 +5245,24 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
       kind: "all",
       of: [
         {
-          kind: "any",
+          kind: "all",
           of: [
-            { kind: "not", of: { kind: "world", of: { is: "command" } } },
-            { kind: "flag", flag: "f_rus_in_capital" },
+            {
+              kind: "any",
+              of: [
+                { kind: "not", of: { kind: "world", of: { is: "command" } } },
+                { kind: "flag", flag: "f_rus_in_capital" },
+              ],
+            },
+            {
+              kind: "world",
+              of: { is: "date", from: "1916-01", to: "1916-12" },
+            },
+            { kind: "holder", office: "war", person: "rus_polivanov" },
+            { kind: "inst", inst: "court", min: 1 },
           ],
         },
-        { kind: "world", of: { is: "date", from: "1916-01", to: "1916-12" } },
-        { kind: "holder", office: "war", person: "rus_polivanov" },
-        { kind: "inst", inst: "court", min: 1 },
+        { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
       ],
     },
     cast: { p: { person: "rus_polivanov" } },
@@ -4814,21 +5406,27 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
       kind: "all",
       of: [
         {
-          kind: "any",
+          kind: "all",
           of: [
-            { kind: "not", of: { kind: "world", of: { is: "command" } } },
-            { kind: "flag", flag: "f_rus_in_capital" },
+            {
+              kind: "any",
+              of: [
+                { kind: "not", of: { kind: "world", of: { is: "command" } } },
+                { kind: "flag", flag: "f_rus_in_capital" },
+              ],
+            },
+            { kind: "chapter", min: 1 },
+            { kind: "world", of: { is: "date", to: "1916-01" } },
+            {
+              kind: "any",
+              of: [
+                { kind: "memory", key: "k_guch_door" },
+                { kind: "seen", scene: "rus_w_shell_famine" },
+              ],
+            },
           ],
         },
-        { kind: "chapter", min: 1 },
-        { kind: "world", of: { is: "date", to: "1916-01" } },
-        {
-          kind: "any",
-          of: [
-            { kind: "memory", key: "k_guch_door" },
-            { kind: "seen", scene: "rus_w_shell_famine" },
-          ],
-        },
+        { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
       ],
     },
     cast: { p: { person: "rus_guchkov" } },
@@ -4837,9 +5435,39 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     once: true,
     summon: true,
     who: "p",
-    variants: [{ id: "base" }],
+    variants: [{ id: "turn" }, { id: "base" }],
     start: "open",
+    starts: { turn: "g_turn" },
     nodes: {
+      g_turn: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "army",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [{ kind: "remember", key: "k_guch_met" }],
+            next: "army",
+          },
+          {
+            id: "work",
+            stance: "warm",
+            kind: "deal",
+            tell: [],
+            effects: [{ kind: "remember", key: "k_guch_met" }],
+            next: "deal",
+          },
+          {
+            id: "edge",
+            stance: "cold",
+            kind: "push",
+            tell: [],
+            effects: [{ kind: "remember", key: "k_guch_met" }],
+            next: "edge",
+          },
+        ],
+      },
       open: {
         says: [
           {
@@ -5003,14 +5631,23 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
       kind: "all",
       of: [
         {
-          kind: "any",
+          kind: "all",
           of: [
-            { kind: "not", of: { kind: "world", of: { is: "command" } } },
-            { kind: "flag", flag: "f_rus_in_capital" },
+            {
+              kind: "any",
+              of: [
+                { kind: "not", of: { kind: "world", of: { is: "command" } } },
+                { kind: "flag", flag: "f_rus_in_capital" },
+              ],
+            },
+            {
+              kind: "world",
+              of: { is: "date", from: "1915-04", to: "1916-01" },
+            },
+            { kind: "memory", key: "k_guch_met" },
           ],
         },
-        { kind: "world", of: { is: "date", from: "1915-04", to: "1916-01" } },
-        { kind: "memory", key: "k_guch_met" },
+        { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
       ],
     },
     cast: { p: { person: "rus_guchkov" } },
@@ -5184,14 +5821,32 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
       kind: "all",
       of: [
         {
-          kind: "any",
+          kind: "all",
           of: [
-            { kind: "not", of: { kind: "world", of: { is: "command" } } },
-            { kind: "flag", flag: "f_rus_in_capital" },
+            {
+              kind: "all",
+              of: [
+                {
+                  kind: "any",
+                  of: [
+                    {
+                      kind: "not",
+                      of: { kind: "world", of: { is: "command" } },
+                    },
+                    { kind: "flag", flag: "f_rus_in_capital" },
+                  ],
+                },
+                {
+                  kind: "world",
+                  of: { is: "date", from: "1915-03", to: "1916-01" },
+                },
+                { kind: "memory", key: "k_guch_met" },
+              ],
+            },
+            { kind: "not", of: { kind: "seen", scene: "rus_w_shell_famine" } },
           ],
         },
-        { kind: "world", of: { is: "date", from: "1915-03", to: "1916-01" } },
-        { kind: "memory", key: "k_guch_met" },
+        { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
       ],
     },
     cast: { p: { person: "rus_guchkov" } },
@@ -5321,14 +5976,32 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
       kind: "all",
       of: [
         {
-          kind: "any",
+          kind: "all",
           of: [
-            { kind: "not", of: { kind: "world", of: { is: "command" } } },
-            { kind: "flag", flag: "f_rus_in_capital" },
+            {
+              kind: "all",
+              of: [
+                {
+                  kind: "any",
+                  of: [
+                    {
+                      kind: "not",
+                      of: { kind: "world", of: { is: "command" } },
+                    },
+                    { kind: "flag", flag: "f_rus_in_capital" },
+                  ],
+                },
+                {
+                  kind: "world",
+                  of: { is: "date", from: "1915-08", to: "1917-01" },
+                },
+                { kind: "memory", key: "k_guch_met" },
+              ],
+            },
+            { kind: "not", of: { kind: "seen", scene: "rus_h_war_industry" } },
           ],
         },
-        { kind: "world", of: { is: "date", from: "1915-08", to: "1917-01" } },
-        { kind: "memory", key: "k_guch_met" },
+        { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
       ],
     },
     cast: { p: { person: "rus_guchkov" } },
@@ -5457,14 +6130,23 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
       kind: "all",
       of: [
         {
-          kind: "any",
+          kind: "all",
           of: [
-            { kind: "not", of: { kind: "world", of: { is: "command" } } },
-            { kind: "flag", flag: "f_rus_in_capital" },
+            {
+              kind: "any",
+              of: [
+                { kind: "not", of: { kind: "world", of: { is: "command" } } },
+                { kind: "flag", flag: "f_rus_in_capital" },
+              ],
+            },
+            {
+              kind: "world",
+              of: { is: "date", from: "1916-02", to: "1917-01" },
+            },
+            { kind: "memory", key: "k_guch_met" },
           ],
         },
-        { kind: "world", of: { is: "date", from: "1916-02", to: "1917-01" } },
-        { kind: "memory", key: "k_guch_met" },
+        { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
       ],
     },
     cast: { p: { person: "rus_guchkov" } },
@@ -5732,6 +6414,7 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     id: "rus_v_danilov_map",
     nation: ["RUS"],
     kind: "talk",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
@@ -5745,9 +6428,60 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     tags: ["people"],
     once: true,
     who: "p",
-    variants: [{ id: "base" }],
+    variants: [{ id: "dates" }, { id: "base" }],
     start: "open",
+    starts: { dates: "d_dates" },
     nodes: {
+      d_dates: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "nw",
+            stance: "frank",
+            kind: "deal",
+            tell: [],
+            effects: [{ kind: "remember", key: "k_danilov_nw" }],
+            next: "deal",
+          },
+          {
+            id: "sw",
+            stance: "cold",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "alek",
+          },
+          {
+            id: "both",
+            stance: "warm",
+            kind: "push",
+            tell: [],
+            effects: [],
+            next: "d_both",
+          },
+        ],
+      },
+      d_both: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "back",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "rail",
+          },
+          {
+            id: "end",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
       open: {
         says: [
           {
@@ -5864,12 +6598,29 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     id: "rus_v_yan_letter",
     nation: ["RUS"],
     kind: "talk",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
-        { kind: "chapter", min: 9 },
-        { kind: "world", of: { is: "date", to: "1916-01" } },
-        { kind: "gauge", gauge: "shells", max: 1 },
+        {
+          kind: "all",
+          of: [
+            {
+              kind: "all",
+              of: [
+                { kind: "chapter", min: 9 },
+                { kind: "world", of: { is: "date", to: "1916-01" } },
+                { kind: "gauge", gauge: "shells", max: 1 },
+              ],
+            },
+            {
+              kind: "holder",
+              office: "supreme_commander",
+              person: "rus_nikolasha",
+            },
+          ],
+        },
+        { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
       ],
     },
     cast: { p: { person: "rus_yanushkevich" } },
@@ -5877,9 +6628,44 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     tags: ["people"],
     once: true,
     who: "p",
-    variants: [{ id: "base" }],
+    variants: [{ id: "hands" }, { id: "base" }],
     start: "open",
+    starts: { hands: "y_hands" },
     nodes: {
+      y_hands: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "took",
+            stance: "frank",
+            kind: "deal",
+            tell: [],
+            effects: [{ kind: "remember", key: "k_yan_letter" }],
+            next: null,
+          },
+          {
+            id: "ask",
+            stance: "warm",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "y_none",
+          },
+        ],
+      },
+      y_none: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "end",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [{ kind: "remember", key: "k_yan_letter" }],
+            next: null,
+          },
+        ],
+      },
       open: {
         says: [
           {
@@ -5989,11 +6775,21 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     id: "rus_v_yud_snow",
     nation: ["RUS"],
     kind: "talk",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
-        { kind: "world", of: { is: "open", theatre: "caucasus" } },
-        { kind: "world", of: { is: "date", from: "1915-01", to: "1917-01" } },
+        {
+          kind: "all",
+          of: [
+            { kind: "world", of: { is: "open", theatre: "caucasus" } },
+            {
+              kind: "world",
+              of: { is: "date", from: "1915-01", to: "1917-01" },
+            },
+          ],
+        },
+        { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
       ],
     },
     cast: { p: { person: "rus_yudenich" } },
@@ -6001,9 +6797,39 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     tags: ["people"],
     once: true,
     who: "p",
-    variants: [{ id: "base" }],
+    variants: [{ id: "plain" }, { id: "base" }],
     start: "open",
+    starts: { plain: "y_plain" },
     nodes: {
+      y_plain: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "ask",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "snow",
+          },
+          {
+            id: "deal",
+            stance: "warm",
+            kind: "deal",
+            tell: [],
+            effects: [{ kind: "remember", key: "k_yud_snow" }],
+            next: "deal",
+          },
+          {
+            id: "go",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
       open: {
         says: [
           {
@@ -6118,15 +6944,52 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     id: "rus_v_kolchak_bosporus",
     nation: ["RUS"],
     kind: "talk",
-    when: { kind: "world", of: { is: "date", from: "1916-02", to: "1917-12" } },
+    stage: ["crisis", "y1914", "war"],
+    when: {
+      kind: "all",
+      of: [
+        { kind: "world", of: { is: "date", from: "1916-02", to: "1917-12" } },
+        { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
+      ],
+    },
     cast: { p: { person: "rus_kolchak" } },
     salience: 6,
     tags: ["people"],
     once: true,
     who: "p",
-    variants: [{ id: "base" }],
+    variants: [{ id: "date" }, { id: "base" }],
     start: "open",
+    starts: { date: "k_date" },
     nodes: {
+      k_date: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "pick",
+            stance: "warm",
+            kind: "deal",
+            tell: [],
+            effects: [{ kind: "remember", key: "k_kolchak_bosporus" }],
+            next: "deal",
+          },
+          {
+            id: "why",
+            stance: "cold",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "how",
+          },
+          {
+            id: "go",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
       open: {
         says: [
           {
@@ -6224,11 +7087,21 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     id: "rus_v_evert_doubt",
     nation: ["RUS"],
     kind: "talk",
+    stage: ["crisis", "y1914", "war"],
     when: {
       kind: "all",
       of: [
-        { kind: "world", of: { is: "war" } },
-        { kind: "world", of: { is: "date", from: "1916-01", to: "1916-12" } },
+        {
+          kind: "all",
+          of: [
+            { kind: "world", of: { is: "war" } },
+            {
+              kind: "world",
+              of: { is: "date", from: "1916-01", to: "1916-12" },
+            },
+          ],
+        },
+        { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
       ],
     },
     cast: { p: { person: "rus_evert" } },
@@ -6236,9 +7109,47 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     tags: ["people"],
     once: true,
     who: "p",
-    variants: [{ id: "base" }],
+    variants: [{ id: "two_sheets" }, { id: "base" }],
     start: "open",
+    starts: { two_sheets: "e_two" },
     nodes: {
+      e_two: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "left",
+            stance: "cold",
+            kind: "push",
+            tell: [],
+            effects: [{ kind: "remember", key: "k_evert_doubt" }],
+            next: "both",
+          },
+          {
+            id: "right",
+            stance: "warm",
+            kind: "deal",
+            tell: [],
+            effects: [{ kind: "remember", key: "k_evert_doubt" }],
+            next: "deal",
+          },
+          {
+            id: "ask",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "both",
+          },
+          {
+            id: "leave",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
       open: {
         says: [
           {

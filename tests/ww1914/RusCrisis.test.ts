@@ -42,6 +42,8 @@ const OUTSIDE = [
 ];
 /** Scenes of the other shares that this one reads. */
 const OTHER_SHARES = [
+  "seen rus_h_",
+  "seen rus_w_",
   "rus_h_bloc",
   "rus_h_poland_charter",
   "rus_r_abdication",

@@ -256,6 +256,22 @@ describe("a quiet chapter", () => {
 });
 
 describe("what was scheduled", () => {
+  test("a scene that is due and could be drawn comes once", async () => {
+    const r = await dealt([
+      decision("first", {
+        once: true,
+        options: [{ id: "ok", tell: [], effects: [schedule("both", 1)] }],
+      }),
+      scene("both", {
+        salience: 9,
+        when: { kind: "chapter", min: 1 },
+      }),
+    ]);
+    order(r, { kind: "choose", card: seat(r).desk[0].uid, option: "ok" });
+    await playChapter(r);
+    expect(desk(r).filter((id) => id === "both")).toHaveLength(1);
+  });
+
   test("comes on its chapter, past its stage, whatever the draw", async () => {
     const r = await dealt([
       decision("start", {
