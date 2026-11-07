@@ -6,6 +6,8 @@ import { html, nothing, TemplateResult } from "lit";
 import { translateText } from "../../Utils";
 import { budgetSummary } from "./GwBudget";
 import type { GwCtx } from "./GwCtx";
+import { rich } from "./GwDict";
+import { govBox } from "./GwGov";
 import { lawsSection } from "./GwLaws";
 import { gaugeFill, gaugeLevel, instBand, logByChapter } from "./GwModel";
 import { rulerCard } from "./GwRuler";
@@ -196,8 +198,8 @@ export function countryTab(c: GwCtx): TemplateResult {
   const insts = GW_INSTITUTIONS.filter((i) => seat.inst[i] !== undefined);
   const log = logByChapter(seat.log);
   return html`<div class="space-y-3" data-gw-country>
-    ${rulerCard(c)} ${standing(c)} ${budgetSummary(c)} ${lawsSection(c)} ${war(c)}
-    ${gauges(c)}
+    ${rulerCard(c)} ${standing(c)} ${govBox(c)} ${budgetSummary(c)}
+    ${lawsSection(c)} ${war(c)} ${gauges(c)}
     ${insts.length === 0
       ? nothing
       : html`<section class=${BOX}>
@@ -246,7 +248,7 @@ export function countryTab(c: GwCtx): TemplateResult {
                 ${g.reasons.map(
                   (r) =>
                     html`<p class="text-sm text-white/85">
-                      ${reasonText(c.pack, r)}
+                      ${rich(c, reasonText(c.pack, r))}
                     </p>`,
                 )}
               </div>`,

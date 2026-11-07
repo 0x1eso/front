@@ -23,6 +23,7 @@ import { closeChain } from "./Crises";
 import { closeSeat, SEPARATE_PEACE } from "./Endings";
 import { eraOf, hasTech } from "./Eras";
 import { signChief, warScore } from "./Fronts";
+import { govBeaten, govHeat, govHeatBy, govSoon, pollOf } from "./Government";
 import { sendReport } from "./Intel";
 import {
   lawCount,
@@ -213,6 +214,12 @@ export function worldHolds(ctx: SceneCtx, c: GwWorldCond): boolean {
       return inRange(lawCount(gw, seat, c.id), c);
     case "law_decree":
       return lawCanDecree(gw, seat, c.id);
+    case "gov":
+      return inRange(govHeat(seat, c.id), c);
+    case "poll":
+      return inRange(pollOf(ctx, c.id)?.margin ?? 0, c);
+    case "poll_own":
+      return inRange(pollOf(ctx, c.id)?.own ?? 0, c);
   }
 }
 
@@ -444,6 +451,15 @@ export function worldEffect(ctx: SceneCtx, e: GwWorldEffect): void {
       return;
     case "law_withdraw":
       lawWithdraw(gw, seat, e.law);
+      return;
+    case "gov_heat":
+      govHeatBy(gw, seat, e.id, e.delta);
+      return;
+    case "gov_beaten":
+      govBeaten(gw, seat, e.id);
+      return;
+    case "gov_soon":
+      govSoon(gw, seat, e.id);
       return;
   }
 }

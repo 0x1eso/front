@@ -45,6 +45,7 @@ export const GW_ENDING_ROWS: Readonly<
   Partial<Record<GwTag, readonly GwEndingRow[]>>
 > = {
   DEU: [
+    { id: "deu_end_set_aside", of: ["deu_end_set_aside"] },
     { id: "deu_paris_dictated", of: ["victory_peace"], when: out("FRA") },
     {
       id: "deu_east_won",
@@ -73,6 +74,8 @@ export const GW_ENDING_ROWS: Readonly<
     },
   ],
   GBR: [
+    { id: "gbr_end_turned_out", of: ["gbr_end_turned_out"] },
+    { id: "gbr_end_polls", of: ["gbr_end_polls"] },
     {
       id: "gbr_end_outside",
       of: [...ANY_WAR, ...FIRST_WINTER],
@@ -109,6 +112,7 @@ export const GW_ENDING_ROWS: Readonly<
     { id: "gbr_end_deadline", of: ["deadline"] },
   ],
   AUH: [
+    { id: "auh_e_regency", of: ["auh_e_regency"] },
     { id: "auh_e_federal", of: ANY_END, when: flag("f_auh_federal") },
     {
       id: "auh_e_personal_union",
@@ -148,6 +152,7 @@ export const GW_ENDING_ROWS: Readonly<
     { id: "auh_e_deadline", of: ["deadline"] },
   ],
   RUS: [
+    { id: "rus_palace_coup", of: ["rus_palace_coup"] },
     {
       id: "rus_serbia_abandoned",
       of: ["long_peace"],

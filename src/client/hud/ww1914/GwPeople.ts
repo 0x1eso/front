@@ -2,6 +2,7 @@ import type { GwPersonView } from "@openfront/engine-api/ww1914/GwView";
 import { html, nothing, TemplateResult } from "lit";
 import { translateText } from "../../Utils";
 import type { GwCtx } from "./GwCtx";
+import { rich } from "./GwDict";
 import {
   appointable,
   dismissal,
@@ -69,7 +70,7 @@ function promises(c: GwCtx, id: string): TemplateResult | typeof nothing {
     ${mine.map(
       (x) =>
         html`<p class="text-sm text-white/80">
-          ${promiseText(c.pack, x)}
+          ${rich(c, promiseText(c.pack, x))}
           <span class=${MUTED}
             >${x.kept
               ? translateText("gw.ui.promise_kept")

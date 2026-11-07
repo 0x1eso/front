@@ -194,6 +194,7 @@ export class GreatWar {
         votes: [],
         signed: -1,
         lines: [],
+        gov: [],
         memoir: null,
         ruler: blankRuler(),
       });

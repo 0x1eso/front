@@ -2,6 +2,7 @@ import type { GwMemoir } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import { html, nothing, TemplateResult } from "lit";
 import { translateText } from "../../Utils";
 import type { GwCtx } from "./GwCtx";
+import { rich } from "./GwDict";
 import { endingsOf, logByChapter, shelfTotals } from "./GwModel";
 import { CHIP, HEAD, MUTED } from "./GwStyle";
 import {
@@ -9,14 +10,15 @@ import {
   endingText,
   endingTitle,
   frontLine,
+  fullDate,
   personName,
   reasonText,
-  fullDate,
   turnText,
   unknownText,
 } from "./GwText";
 
 const BOX = "space-y-1.5 rounded border border-white/15 bg-black/35 p-2.5";
+const PROSE = "whitespace-pre-line text-sm leading-7 text-white/90";
 
 function ending(c: GwCtx, m: GwMemoir): TemplateResult {
   const text = endingText(c.pack, m, c.data.date);
@@ -31,9 +33,7 @@ function ending(c: GwCtx, m: GwMemoir): TemplateResult {
         n: m.chapter + 1,
       })}
     </p>
-    ${text === null
-      ? nothing
-      : html`<p class="text-sm leading-7 text-white/90">${text}</p>`}
+    ${text === null ? nothing : html`<p class=${PROSE}>${rich(c, text)}</p>`}
   </section>`;
 }
 
@@ -212,7 +212,7 @@ export function memoirTab(c: GwCtx): TemplateResult {
                 ${g.reasons.map(
                   (r) =>
                     html`<p class="text-sm text-white/85">
-                      ${reasonText(c.pack, r)}
+                      ${rich(c, reasonText(c.pack, r))}
                     </p>`,
                 )}
               </div>`,

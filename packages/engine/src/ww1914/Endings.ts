@@ -265,6 +265,7 @@ function turnOf(key: string): { key: string; tag: GwTag | null } | null {
     const tag = m[2].toUpperCase();
     return isGwTag(tag) ? { key: m[1], tag } : null;
   }
+  if (key.startsWith("gov_held_")) return { key, tag: null };
   return GW_TURNS.includes(key) ? { key, tag: null } : null;
 }
 

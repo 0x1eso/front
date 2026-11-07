@@ -7,6 +7,7 @@ import { dealDesk } from "./Desk";
 import { closeGame, endingStep, finalEnding } from "./Endings";
 import { frontsStep, warScore } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
+import { govStep } from "./Government";
 import { homeStep } from "./Home";
 import { intelStep } from "./Intel";
 import { lawStep } from "./Laws";
@@ -31,6 +32,7 @@ export const GW_CHAPTER_STEPS: readonly ((gw: GreatWar) => void)[] = [
   lawStep,
   homeStep,
   peopleStep,
+  govStep,
   aiStep,
   intelStep,
   worldFlagsStep,

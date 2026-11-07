@@ -15,6 +15,7 @@ import {
   formatIsoDate,
 } from "@openfront/engine-lib/ww1936/Calendar";
 import { idHash } from "@openfront/engine-lib/ww1936/Roll";
+import { govView, pollView } from "./Government";
 import type { GreatWar } from "./GreatWar";
 import { openTopics, readyBlock } from "./Orders";
 import { ctxOf, optionOpen, pickVariant, sceneOf } from "./SceneRun";
@@ -83,6 +84,15 @@ function metYet(
   );
 }
 
+/** Scene weight from which a decision is one the notebook keeps. */
+const KEY_SALIENCE = 7;
+
+function isKeyDecision(id: string): boolean {
+  const scene = sceneOf(id);
+  if (scene === null || scene.kind === "talk") return false;
+  return scene.salience >= KEY_SALIENCE || scene.kind === "crisis";
+}
+
 function seatView(gw: GreatWar, seat: GwSeatState): GwSeatView {
   const nation = gw.nation(seat.tag)!;
   const self = seatPerson(seat);
@@ -144,8 +154,12 @@ function seatView(gw: GreatWar, seat: GwSeatState): GwSeatView {
       pick: x.pick,
       date: dateOf(gw, x.chapter),
       proxy: x.proxy,
+      key: isKeyDecision(x.scene),
+      ...(x.cast === undefined ? {} : { cast: x.cast }),
     })),
     shown: seat.shown,
+    gov: govView(gw, seat),
+    poll: pollView(gw, seat),
     world: worldView(gw, seat),
     ruler: rulerView(gw, seat),
   };

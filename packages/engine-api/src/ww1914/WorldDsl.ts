@@ -159,7 +159,13 @@ export type GwWorldCond =
   /** Its count against whoever must pass it: 0 or more carries. */
   | ({ is: "law_count"; id: string } & Range)
   /** The bill can go past the body, and there is the authority to pay for it. */
-  | { is: "law_decree"; id: string };
+  | { is: "law_decree"; id: string }
+  /** How hot a threat to the government runs, by its row in GovTable. */
+  | ({ is: "gov"; id: string } & Range)
+  /** An election: the seats past a majority, friends counted. */
+  | ({ is: "poll"; id: string } & Range)
+  /** The same, the party alone. */
+  | ({ is: "poll_own"; id: string } & Range);
 
 export type GwWorldEffect =
   /** Germany's plan for the war to come. */
@@ -254,7 +260,13 @@ export type GwWorldEffect =
   /** The day is put off: another chapter of argument. */
   | { do: "law_hold"; law: string }
   /** The bill is taken back; it can come again. */
-  | { do: "law_withdraw"; law: string };
+  | { do: "law_withdraw"; law: string }
+  /** A threat runs hotter or cooler; it never goes below nothing. */
+  | { do: "gov_heat"; id: string; delta: number }
+  /** A threat is beaten: it lies quiet for its row's rest. */
+  | { do: "gov_beaten"; id: string }
+  /** A deal made on a threat: its paper comes soon, whatever the heat. */
+  | { do: "gov_soon"; id: string };
 
 const int = z.number().int();
 const yearMonth = z.string().regex(/^19[0-9]{2}-[01][0-9]$/);
@@ -339,6 +351,9 @@ export const GwWorldCondSchema = z.union([
   }),
   is("law_count", { id: GwIdSchema, ...range }),
   is("law_decree", { id: GwIdSchema }),
+  is("gov", { id: GwIdSchema, ...range }),
+  is("poll", { id: GwIdSchema, ...range }),
+  is("poll_own", { id: GwIdSchema, ...range }),
 ]) as unknown as z.ZodType<GwWorldCond>;
 
 export const GwWorldEffectSchema = z.union([
@@ -400,6 +415,9 @@ export const GwWorldEffectSchema = z.union([
   act("law_decree", { law: GwIdSchema }),
   act("law_hold", { law: GwIdSchema }),
   act("law_withdraw", { law: GwIdSchema }),
+  act("gov_heat", { id: GwIdSchema, delta: int }),
+  act("gov_beaten", { id: GwIdSchema }),
+  act("gov_soon", { id: GwIdSchema }),
 ]) as unknown as z.ZodType<GwWorldEffect>;
 
 // ---- Authoring helpers ----

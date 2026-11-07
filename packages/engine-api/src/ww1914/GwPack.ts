@@ -80,6 +80,25 @@ export const GwRulerPackSchema = z
   .strict();
 export type GwRulerPack = z.infer<typeof GwRulerPackSchema>;
 
+/**
+ * A dictionary entry (hud/ww1914/GwDict): `terms` are how text writes it. An
+ * entry with `secret` doesn't exist for a seat that hasn't found that secret;
+ * `more` adds a line once its secret is found.
+ */
+export const GwDictEntrySchema = z
+  .object({
+    terms: z.array(Text).min(1),
+    text: Text,
+    secret: GwIdSchema.optional(),
+    /** Countries whose text means this by these words; absent means all. */
+    tags: z.array(z.string().regex(/^[A-Z]{3}$/)).optional(),
+    more: z
+      .array(z.object({ secret: GwIdSchema, text: Text }).strict())
+      .optional(),
+  })
+  .strict();
+export type GwDictEntry = z.infer<typeof GwDictEntrySchema>;
+
 export const GwPackSchema = z
   .object({
     version: z.literal(1),
@@ -98,6 +117,8 @@ export const GwPackSchema = z
      * a why. Later shares can add to a scene without touching its file.
      */
     over: z.record(GwIdSchema, GwScenePackSchema.partial()).optional(),
+    /** Term id -> what the dictionary says of it. */
+    dict: z.record(GwIdSchema, GwDictEntrySchema).optional(),
   })
   .strict();
 export type GwPack = z.infer<typeof GwPackSchema>;
@@ -112,6 +133,7 @@ export function mergeGwPacks(packs: readonly GwPack[]): GwPack {
     promises: {},
     endings: {},
     rulers: {},
+    dict: {},
   };
   for (const p of packs) {
     Object.assign(out.scenes, p.scenes);
@@ -120,6 +142,7 @@ export function mergeGwPacks(packs: readonly GwPack[]): GwPack {
     Object.assign(out.promises!, p.promises);
     Object.assign(out.endings!, p.endings);
     Object.assign(out.rulers!, p.rulers);
+    Object.assign(out.dict!, p.dict);
   }
   for (const p of packs) {
     for (const [id, o] of Object.entries(p.over ?? {})) {
@@ -153,6 +176,7 @@ export function gwPackOverlaps(packs: readonly GwPack[]): string[] {
       ...Object.keys(p.promises ?? {}).map((x) => `promise ${x}`),
       ...Object.keys(p.endings ?? {}).map((x) => `ending ${x}`),
       ...Object.keys(p.rulers ?? {}).map((x) => `ruler ${x}`),
+      ...Object.keys(p.dict ?? {}).map((x) => `dict ${x}`),
     ];
     for (const id of ids) {
       if (seen.has(id)) out.add(id);

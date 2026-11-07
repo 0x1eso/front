@@ -7,6 +7,7 @@ import { translateText } from "../../Utils";
 import { budgetStrip, openLedger } from "./GwBudget";
 import { lawStrip } from "./GwLaws";
 import type { GwCtx } from "./GwCtx";
+import { rich } from "./GwDict";
 import { isReadOnly, paperCards, talkCards } from "./GwModel";
 import { brokenLine } from "./GwRuler";
 import { BTN, BTN_ON, CHIP, GLASS, HEAD, MUTED } from "./GwStyle";
@@ -17,7 +18,7 @@ import {
   fillGw,
   foldedLines,
   fullDate,
-  optionText,
+  optionMarked,
   personName,
   reasonText,
   tellText,
@@ -62,7 +63,7 @@ function cardBox(c: GwCtx, card: GwCardView): TemplateResult {
           })}
         </p>`
       : html`<p class="line-clamp-3 text-sm text-white/85">
-          ${fill(cardBody(c.pack, card))}
+          ${rich(c, fill(cardBody(c.pack, card)))}
         </p>`}
     <button
       class=${BTN}
@@ -96,7 +97,9 @@ export function deskTab(c: GwCtx): TemplateResult {
       ? nothing
       : html`<div class="rounded border border-white/10 bg-white/5 p-2">
           <div class=${MUTED}>${translateText("gw.ui.since_last")}</div>
-          ${reasons.map((r) => html`<p class="text-sm text-white/80">${r}</p>`)}
+          ${reasons.map(
+            (r) => html`<p class="text-sm text-white/80">${rich(c, r)}</p>`,
+          )}
         </div>`}
     ${papers.length + talks.length === 0
       ? html`<p class="text-sm text-white/65" data-gw-empty>
@@ -152,13 +155,15 @@ function optionButton(
       <span class="block"
         >${boldParts(
           fillGw(
-            optionText(c.pack, card, o.id),
+            optionMarked(c.pack, card, o.id),
             c.pack,
             card,
             c.seat,
             c.data.date,
           ),
-        ).map((p) => (p.bold ? html`<b>${p.text}</b>` : p.text))}</span
+        ).map((p) =>
+          p.bold ? html`<b>${rich(c, p.text)}</b>` : rich(c, p.text),
+        )}</span
       >
       ${o.tell.length === 0
         ? nothing
@@ -171,7 +176,7 @@ function optionButton(
     ${why === undefined
       ? nothing
       : html`<p class="${MUTED} pl-1" data-gw-why>
-          ${fillGw(why, c.pack, card, c.seat, c.data.date)}
+          ${rich(c, fillGw(why, c.pack, card, c.seat, c.data.date))}
         </p>`}
   </div>`;
 }
@@ -181,6 +186,7 @@ export function reader(c: GwCtx, card: GwCardView): TemplateResult {
   const fill = (t: string) => fillGw(t, c.pack, card, c.seat, c.data.date);
   const after = brokenLine(c, card);
   const read = isReadOnly(card);
+  const body = rich(c, fill(cardBody(c.pack, card)));
   const armedOpt =
     c.ui.armed?.uid === card.uid
       ? card.options.find((o) => o.id === c.ui.armed?.option)
@@ -212,11 +218,11 @@ export function reader(c: GwCtx, card: GwCardView): TemplateResult {
       </header>
       <h2 class="text-lg font-bold leading-snug">${cardTitle(c.pack, card)}</h2>
       <div class="space-y-2.5 text-[15px] leading-7 text-white/90">
-        <p class="whitespace-pre-line">${fill(cardBody(c.pack, card))}</p>
+        <p class="whitespace-pre-line">${body}</p>
         ${voices(c.pack, card).map(
           (v) =>
             html`<p class="border-l-2 border-white/25 pl-3 text-white/80">
-              ${fill(v)}
+              ${rich(c, fill(v))}
             </p>`,
         )}
         ${after === null

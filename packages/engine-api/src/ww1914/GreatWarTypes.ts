@@ -584,6 +584,19 @@ export const GwReasonSchema = z.object({
 });
 export type GwReason = z.infer<typeof GwReasonSchema>;
 
+/**
+ * A threat to the seat's government (engine GovTable): how hot, how many of its
+ * scenes have come, the chapter it lies quiet until, how often it was beaten.
+ */
+export const GwGovSchema = z.object({
+  id: GwIdSchema,
+  heat: z.number().int(),
+  step: z.number().int(),
+  rest: z.number().int(),
+  beaten: z.number().int(),
+});
+export type GwGov = z.infer<typeof GwGovSchema>;
+
 /** What the seat decided: an option or a reply (design §5.4). */
 export const GwChoiceSchema = z.object({
   scene: GwIdSchema,
@@ -591,6 +604,8 @@ export const GwChoiceSchema = z.object({
   chapter: z.number().int(),
   /** The timer took it. */
   proxy: z.boolean(),
+  /** Who was in the scene, role -> person; a reply keeps none. */
+  cast: z.record(z.string(), GwIdSchema).optional(),
 });
 export type GwChoice = z.infer<typeof GwChoiceSchema>;
 /** A gauge's move this chapter and why (a reason line of the country tab). */
@@ -668,6 +683,12 @@ export const GW_ENDINGS = [
   "auh_r_removed",
   "rus_r_death",
   "rus_r_removed",
+  // Turned out by the country's own politics (engine GovTable).
+  "gbr_end_turned_out",
+  "gbr_end_polls",
+  "deu_end_set_aside",
+  "auh_e_regency",
+  "rus_palace_coup",
 ] as const;
 export type GwEnding = (typeof GW_ENDINGS)[number];
 
@@ -789,6 +810,8 @@ export const GwSeatStateSchema = z.object({
   signed: z.number().int(),
   /** Why the gauges moved, last chapters first dropped. */
   lines: z.array(GwLineSchema),
+  /** What threatens the government, by row of the engine's GovTable. */
+  gov: z.array(GwGovSchema),
   memoir: GwMemoirSchema.nullable(),
   /** The person at the desk (engine/ww1914/Ruler). */
   ruler: GwRulerStateSchema,

@@ -14297,7 +14297,12 @@
       "auh_r_death": "황제의 죽음",
       "auh_r_removed": "물러난 황제",
       "rus_r_death": "차르의 죽음",
-      "rus_r_removed": "물러난 차르"
+      "rus_r_removed": "물러난 차르",
+      "gbr_end_turned_out": "불신임",
+      "gbr_end_polls": "유권자의 말",
+      "deu_end_set_aside": "두 장의 문서",
+      "auh_e_regency": "보좌받는 황제",
+      "rus_palace_coup": "멈춘 기차"
     },
     "fact": {
       "force": {
@@ -14983,7 +14988,11 @@
       "conscience": "양심",
       "family": "집안",
       "health": "건강",
-      "reputation": "평판"
+      "reputation": "평판",
+      "gov_down": "불길이 잦아듦",
+      "gov_up": "불길이 커짐",
+      "gov_election": "총선으로 감",
+      "may_fall": "여기서 끝날 수 있음"
     },
     "theatre": {
       "balkan": "발칸",
@@ -15045,7 +15054,17 @@
       "regime_provisional": "정체가 바뀌었다: 임시정부.",
       "regime_rep": "정체가 바뀌었다: 러시아 공화국.",
       "ruler_death": "원수가 죽었다.",
-      "ruler_removed": "원수가 자리에서 밀려났다."
+      "ruler_removed": "원수가 자리에서 밀려났다.",
+      "gov_held_gbr_table": "내각이 표결을 넘겼다",
+      "gov_held_gbr_unionists": "연립의 위기를 넘겼다",
+      "gov_held_gbr_election": "총선을 치렀다",
+      "gov_held_deu_chancellor": "수상 문제를 넘겼다",
+      "gov_held_deu_parliament": "다수당의 요구를 넘겼다",
+      "gov_held_auh_cabinet": "내각의 사표를 넘겼다",
+      "gov_held_auh_court": "섭정 이야기를 물리쳤다",
+      "gov_held_rus_cabinet": "각료들의 청원을 넘겼다",
+      "gov_held_rus_duma": "두마와의 싸움을 넘겼다",
+      "gov_held_rus_court": "멈춘 기차를 움직였다"
     },
     "ui": {
       "alloc_now": "지금: {main}, {posture}, {scale}",
@@ -15300,7 +15319,8 @@
         "desk": "서류함",
         "fronts": "전황",
         "memoir": "회고",
-        "people": "사람"
+        "people": "사람",
+        "notebook": "수첩"
       },
       "talk_done": "자리를 일어선다",
       "talk_ended": "대화가 끝났다.",
@@ -15379,7 +15399,17 @@
         "2": "화가 났다",
         "3": "참전에 가깝다"
       },
-      "seat_label": "나라"
+      "seat_label": "나라",
+      "dict_close": "닫기",
+      "notebook_promises": "한 약속",
+      "notebook_no_promises": "아직 한 약속이 없다.",
+      "notebook_decisions": "내린 결정",
+      "notebook_no_decisions": "아직 큰 결정이 없다.",
+      "notebook_open": "기다리는 중",
+      "notebook_kept": "지켰다",
+      "notebook_broken": "어겼다",
+      "notebook_due": "{date}까지",
+      "notebook_proxy": "대행"
     },
     "unknown": {
       "ai": "{country}의 원수는 {word}이었다.",
@@ -15607,6 +15637,73 @@
         "family": "집안",
         "health": "건강",
         "reputation": "평판"
+      }
+    },
+    "gov": {
+      "title": "자리를 흔드는 것",
+      "name": {
+        "gbr_table": "내각의 표",
+        "gbr_unionists": "연립의 맞은편",
+        "gbr_election": "총선",
+        "deu_chancellor": "수상의 자리",
+        "deu_parliament": "다수당의 요구",
+        "auh_cabinet": "내각의 사표",
+        "auh_court": "대기실의 말",
+        "rus_cabinet": "각료회의",
+        "rus_duma": "두마",
+        "rus_court": "가족의 식탁"
+      },
+      "word": {
+        "0": "소문",
+        "1": "공공연함",
+        "2": "턱밑",
+        "3": "오늘내일"
+      },
+      "feed": {
+        "gbr_cabinet": "식탁이 갈렸다.",
+        "gbr_commons": "하원의 표가 얇다.",
+        "gbr_opposition": "야당이 문을 닫았다.",
+        "gbr_unionists": "통일당이 연립을 의심한다.",
+        "gbr_no_conscription": "의무 병역이 없다는 말이 나온다.",
+        "gbr_term": "의회의 임기가 끝나 간다.",
+        "gbr_called": "총선이 정해졌다.",
+        "war_bad": "전황이 나쁘다.",
+        "streets": "거리가 시끄럽다.",
+        "deu_countersign": "수상이 부서를 꺼린다.",
+        "deu_reichstag": "제국의회가 등을 돌렸다.",
+        "deu_army": "참모본부가 수상을 안 듣는다.",
+        "order_low": "질서가 바닥이다.",
+        "bread_low": "빵이 모자란다.",
+        "morale_low": "사기가 바닥이다.",
+        "auh_council": "공동 각료 회의가 흔들린다.",
+        "auh_hungary": "헝가리가 문을 닫았다.",
+        "auh_nations": "민족들이 등을 돌렸다.",
+        "auh_berlin": "베를린에 진 빚이 크다.",
+        "rus_ministers": "각료들이 말을 안 듣는다.",
+        "rus_duma": "두마가 등을 돌렸다.",
+        "rus_shells": "포탄이 모자란다.",
+        "rus_court": "궁정이 갈라졌다.",
+        "rus_plot": "식탁의 말이 끊이지 않는다."
+      },
+      "party": {
+        "irish": "아일랜드당",
+        "labour": "노동당"
+      },
+      "poll_line": "원내 총무의 어림: 자유당 {seats}석, 과반 {need}석",
+      "poll_with": "{party} {seats}석이 같이 앉는다",
+      "poll_without": "{party} {seats}석은 아직 우리 표가 아니다",
+      "swing": {
+        "commons_firm": "하원이 단단하다",
+        "commons_low": "하원이 약하다",
+        "table_split": "내각이 갈렸다",
+        "order_low": "질서가 바닥이다",
+        "bread_low": "빵이 모자란다",
+        "war_good": "전황이 좋다",
+        "war_bad": "전황이 나쁘다",
+        "no_pact": "노동당과 표가 갈린다",
+        "cry_home": "자치 구호",
+        "cry_war": "전쟁 구호",
+        "cry_peace": "평화 구호"
       }
     }
   }
