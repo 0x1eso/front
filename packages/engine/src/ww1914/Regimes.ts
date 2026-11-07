@@ -12,7 +12,7 @@ import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { GW_AUTHORITY } from "./AuthorityTable";
 import type { GreatWar } from "./GreatWar";
 import { onAppointed } from "./People";
-import { defOf, news, reason, seatsOf, turn } from "./World";
+import { defOf, news, reason, seatsOf } from "./World";
 
 export interface GwRegimeRow {
   readonly id: string;
@@ -144,8 +144,14 @@ export function changeRegime(gw: GreatWar, tag: GwTag, to: string): void {
     if (p !== null) p.office = null;
   }
   news(gw, `regime_${to}`, tag);
-  turn(gw, `regime_${to}`);
   for (const seat of seatsOf(gw, tag)) {
+    // The country's own memoir: the line names no country.
+    seat.memory.push({
+      key: `regime_${to}`,
+      who: null,
+      chapter: gw.s.chapter,
+      weight: 0,
+    });
     reason(gw, seat, `regime_${to}`);
     if (row.flag !== undefined && !seat.flags.includes(row.flag)) {
       seat.flags.push(row.flag);

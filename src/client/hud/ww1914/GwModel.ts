@@ -94,7 +94,10 @@ export function groupReplies(
 export function vacantOffices(seat: GwSeatView): GwOffice[] {
   const held = new Set(seat.people.map((p) => p.office));
   return GW_OFFICES.filter(
-    (o) => !held.has(o) && seat.people.some((p) => p.fit.includes(o)),
+    (o) =>
+      !held.has(o) &&
+      (seat.world.candidates[o] ?? []).length > 0 &&
+      seat.people.some((p) => p.fit.includes(o)),
   );
 }
 
@@ -161,9 +164,13 @@ export function promisesInOrder(
   ];
 }
 
-/** The big decisions, the latest first. */
+/** The big decisions, the latest first; a paper that recurs is listed once. */
 export function keyDecisions(list: readonly GwChoiceView[]): GwChoiceView[] {
-  return list.filter((x) => x.key === true).reverse();
+  const seen = new Set<string>();
+  return list
+    .filter((x) => x.key === true)
+    .reverse()
+    .filter((x) => !seen.has(x.scene) && seen.add(x.scene) !== null);
 }
 
 /** How close a threat stands, as a word: 0 talk .. 3 at the door. */

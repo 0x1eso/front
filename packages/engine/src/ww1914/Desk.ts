@@ -396,7 +396,10 @@ function takeDue(
   seat.scheduled = seat.scheduled.filter((q) => {
     if (q.chapter > gw.s.chapter || out.length >= GW_DESK_MAX) return true;
     const scene = scenes.find((x) => x.id === q.scene);
-    if (scene !== undefined) out.push({ scene, who: q.who ?? null });
+    const who = q.who ?? null;
+    // Two causes can call the same paper for the same day: it comes once.
+    const twice = out.some((x) => x.scene === scene && x.who === who);
+    if (scene !== undefined && !twice) out.push({ scene, who });
     return false;
   });
   return out;

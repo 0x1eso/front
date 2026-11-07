@@ -1549,6 +1549,10 @@ export const RUS_HOME_SCENES: readonly GwScene[] = [
         tell: ["court:+1", "duma:-1"],
         effects: [
           {
+            kind: "flag",
+            flag: "f_next_court",
+          },
+          {
             kind: "dismiss",
             who: {
               role: "rival",
@@ -1592,6 +1596,10 @@ export const RUS_HOME_SCENES: readonly GwScene[] = [
         tell: ["duma:+1", "court:-1", "trust:-1"],
         effects: [
           {
+            kind: "flag",
+            flag: "f_next_duma",
+          },
+          {
             kind: "dismiss",
             who: {
               role: "rival",
@@ -1628,6 +1636,10 @@ export const RUS_HOME_SCENES: readonly GwScene[] = [
         },
         tell: ["ministers:-1"],
         effects: [
+          {
+            kind: "flag",
+            flag: "f_next_none",
+          },
           {
             kind: "dismiss",
             who: {

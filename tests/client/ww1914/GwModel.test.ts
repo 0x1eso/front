@@ -61,6 +61,12 @@ describe("GwModel", () => {
       world: { candidates: { war: ["b"], chancellor: ["b"] } },
     } as unknown as GwSeatView;
     expect(vacantOffices(seat)).toEqual(["war"]);
+    expect(
+      vacantOffices({
+        ...seat,
+        world: { candidates: {} },
+      } as unknown as GwSeatView),
+    ).toEqual([]);
     expect(appointable(seat, seat.people[1])).toEqual(["war"]);
     expect(appointable(seat, seat.people[2])).toEqual([]);
     expect(appointable(seat, seat.people[0])).toEqual([]);

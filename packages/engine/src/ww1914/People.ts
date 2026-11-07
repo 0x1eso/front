@@ -2,11 +2,13 @@ import {
   GW_OFFICES,
   GW_TRUST_MAX,
   GW_TRUST_MIN,
+  GwCamp,
   GwOffice,
   GwPersonState,
   GwSeatState,
   GwTheatre,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
+import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
 import { daysFromCivil } from "@openfront/engine-lib/ww1936/Calendar";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
@@ -127,7 +129,7 @@ export function personLeaves(
   p.status = "fallen";
   for (const t of gw.s.theatres) if (t.commander === p.id) t.commander = null;
   seat.memory.push({ key, who: p.id, chapter: gw.s.chapter, weight: 0 });
-  reason(gw, seat, key);
+  reason(gw, seat, key, p.id);
 }
 
 /** A resignation letter: the warning that always comes first. */
@@ -150,12 +152,27 @@ export function keepPerson(p: GwPersonState): void {
   p.pride = Math.max(0, p.pride - 1);
 }
 
+/** A scene's word on the next name: its camp comes first, or nobody this time. */
+const NEXT_CAMP: Readonly<Record<string, GwCamp>> = {
+  f_next_duma: "duma",
+  f_next_court: "court",
+};
+const NEXT_NONE = "f_next_none";
+
+function nextCamp(seat: GwSeatState): GwCamp | null {
+  const f = seat.flags.find((x) => NEXT_CAMP[x] !== undefined);
+  return f === undefined ? null : NEXT_CAMP[f];
+}
+
 /** Up to two people for an office, of different camps where there are. */
 export function candidatesFor(
   gw: GreatWar,
   seat: GwSeatState,
   o: GwOffice,
 ): string[] {
+  const camp = nextCamp(seat);
+  const named = (p: GwPersonState) =>
+    camp !== null && defOf(p.id)?.camps.includes(camp) === true ? 1 : 0;
   const free = ownPeople(gw, seat.tag)
     .filter(
       (p) =>
@@ -163,7 +180,10 @@ export function candidatesFor(
         p.ailing === null &&
         defOf(p.id)?.fit.includes(o) === true,
     )
-    .sort((a, b) => b.trust - a.trust || (a.id < b.id ? -1 : 1));
+    .sort(
+      (a, b) =>
+        named(b) - named(a) || b.trust - a.trust || (a.id < b.id ? -1 : 1),
+    );
   const first = free[0];
   if (first === undefined) return [];
   const camps = defOf(first.id)?.camps ?? [];
@@ -255,12 +275,17 @@ function rivalry(gw: GreatWar, seat: GwSeatState, p: GwPersonState): void {
   }
 }
 
+/** Offices the country has in June 1914: only a scene fills any other. */
+export function standingOffices(tag: GwTag): GwOffice[] {
+  return GW_OFFICES.filter((o) =>
+    gwContent().people.some((d) => d.tag === tag && d.office === o),
+  );
+}
+
 /** An empty office is filled at the chapter's close; the seat could have. */
 function succeed(gw: GreatWar, seat: GwSeatState): void {
-  const wanted = GW_OFFICES.filter((o) =>
-    gwContent().people.some((d) => d.tag === seat.tag && d.office === o),
-  );
-  for (const o of wanted) {
+  const none = seat.flags.includes(NEXT_NONE);
+  for (const o of none ? [] : standingOffices(seat.tag)) {
     if (holderOf(gw, seat, o) !== null) continue;
     const next = candidatesFor(gw, seat, o)[0];
     const p = next === undefined ? null : gw.person(next);
@@ -276,6 +301,9 @@ function succeed(gw: GreatWar, seat: GwSeatState): void {
     reason(gw, seat, "successor_named");
     if (o === "chief_of_staff") turn(gw, "new_chief_of_staff");
   }
+  seat.flags = seat.flags.filter(
+    (f) => f !== NEXT_NONE && NEXT_CAMP[f] === undefined,
+  );
 }
 
 /** Those whose day has come join the game, for every country at once. */

@@ -6,6 +6,8 @@ import type {
 import { beforeEach, describe, expect, test } from "vitest";
 import { gwRecentBodies, noteGwRun } from "../../../src/client/GwRecentRuns";
 import {
+  bodyParts,
+  bodyPlain,
   fillGw,
   foldedLines,
   promiseText,
@@ -60,6 +62,16 @@ const seat = {
 } as unknown as GwSeatView;
 
 describe("text filling", () => {
+  test("a paper quoted in a scene loses its mark and stays apart", () => {
+    const text = "서류가 왔다.\n\n> 궁정은 평온합니다.\n\n끝이다.";
+    expect(bodyParts(text)).toEqual([
+      { quote: false, text: "서류가 왔다." },
+      { quote: true, text: "궁정은 평온합니다." },
+      { quote: false, text: "끝이다." },
+    ]);
+    expect(bodyPlain(text)).not.toContain(">");
+  });
+
   test("a callback is the date of the latest memory or decision", () => {
     expect(shortDate("1914-07-05")).toBe("7월 5일");
     const fill = (t: string) => fillGw(t, pack, card(), seat, "1914-09-01");

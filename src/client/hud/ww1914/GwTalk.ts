@@ -9,6 +9,7 @@ import { rich } from "./GwDict";
 import { groupReplies, trustIndex } from "./GwModel";
 import { BTN, CHIP, MUTED } from "./GwStyle";
 import {
+  bodyPlain,
   cardBody,
   fillGw,
   optionText,
@@ -151,12 +152,14 @@ export function talkView(
         : html`<p class="text-[15px] leading-7 text-white/75" data-gw-room>
             ${rich(
               c,
-              fillGw(
-                cardBody(c.pack, t.turns[0].card),
-                c.pack,
-                t.turns[0].card,
-                c.seat,
-                c.data.date,
+              bodyPlain(
+                fillGw(
+                  cardBody(c.pack, t.turns[0].card),
+                  c.pack,
+                  t.turns[0].card,
+                  c.seat,
+                  c.data.date,
+                ),
               ),
             )}
           </p>`}
@@ -245,6 +248,11 @@ export function talkView(
                           ?disabled=${!r.open}
                           @click=${() => {
                             const turn = t.turns[t.turns.length - 1];
+                            // A visitor can wait on the desk: what came before
+                            // the first word isn't this talk's doing.
+                            if (t.turns.length === 1) {
+                              t.logAt = c.seat.log.length;
+                            }
                             turn.reply = r.id;
                             turn.tell = r.tell;
                             turn.sentAt = Date.now();

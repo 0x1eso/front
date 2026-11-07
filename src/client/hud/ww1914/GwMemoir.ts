@@ -146,10 +146,9 @@ function shelfBox(c: GwCtx): TemplateResult {
   const { seat, ui } = c;
   const shelf = ui.shelf;
   const memoir = seat.world.memoir;
-  const total = shelfTotals(
-    memoir?.people.length ?? seat.people.length,
-    seat.tag,
-  );
+  const cast = memoir?.people ?? seat.people;
+  const total = shelfTotals(cast.length, seat.tag);
+  const met = cast.filter((p) => shelf.people.includes(p.id)).length;
   return html`<section class=${BOX} data-gw-shelf>
     <h3 class=${HEAD}>${translateText("gw.ui.shelf_title")}</h3>
     <p class=${MUTED}>${translateText("gw.ui.shelf_hint")}</p>
@@ -162,7 +161,7 @@ function shelfBox(c: GwCtx): TemplateResult {
       >
       <span class=${CHIP}
         >${translateText("gw.ui.shelf_people", {
-          n: shelf.people.length,
+          n: met,
           max: total.people,
         })}</span
       >

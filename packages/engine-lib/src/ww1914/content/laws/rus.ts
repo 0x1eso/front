@@ -91,7 +91,11 @@ export const RUS_LAWS: readonly GwLawRow[] = [
       { gauge: "money", delta: -1, every: 10 },
       { gauge: "order", delta: 1, every: 13, offset: 4 },
     ],
-    settled: chose("gw_bm_rus_1914", "dry_law"),
+    settled: any(
+      chose("gw_bm_rus_1914", "dry_law"),
+      chose("rus_c_vodka", "whole_war"),
+      chose("rus_c_vodka", "whole_war_tax"),
+    ),
     repeal: {
       authority: 15,
       tell: ["money:+1", "court:-1"],

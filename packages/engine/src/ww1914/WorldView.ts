@@ -3,7 +3,6 @@ import {
   GW_GAUGE_MAX,
   GW_GAUGES,
   GW_LINES,
-  GW_OFFICES,
   GW_SIDES,
   GwGauge,
   GwSeatState,
@@ -22,7 +21,7 @@ import { eraOf } from "./Eras";
 import { ownFronts, proposalsFor } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
 import { lawViews } from "./Laws";
-import { candidatesFor, dismissPrice } from "./People";
+import { candidatesFor, dismissPrice, standingOffices } from "./People";
 import { pressView } from "./Press";
 import { GW_ACTORS } from "./Tables";
 import { lastOf, ownPeople } from "./World";
@@ -140,7 +139,7 @@ export function worldView(gw: GreatWar, seat: GwSeatState): GwWorldView {
   const s = gw.s;
   const n = gw.nation(seat.tag)!;
   const candidates: GwWorldView["candidates"] = Object.fromEntries(
-    GW_OFFICES.flatMap((o) => {
+    standingOffices(seat.tag).flatMap((o) => {
       const list = candidatesFor(gw, seat, o);
       return list.length > 0 ? [[o, list]] : [];
     }),

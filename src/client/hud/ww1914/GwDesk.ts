@@ -13,6 +13,8 @@ import { isReadOnly, paperCards, talkCards } from "./GwModel";
 import { brokenLine } from "./GwRuler";
 import { BTN, BTN_ON, CHIP, GLASS, HEAD, MUTED } from "./GwStyle";
 import {
+  bodyParts,
+  bodyPlain,
   boldParts,
   cardBody,
   cardTitle,
@@ -64,7 +66,7 @@ function cardBox(c: GwCtx, card: GwCardView): TemplateResult {
           })}
         </p>`
       : html`<p class="line-clamp-3 text-sm text-white/85">
-          ${rich(c, fill(cardBody(c.pack, card)))}
+          ${rich(c, bodyPlain(fill(cardBody(c.pack, card))))}
         </p>`}
     <button
       class=${BTN}
@@ -188,7 +190,7 @@ export function reader(c: GwCtx, card: GwCardView): TemplateResult {
   const fill = (t: string) => fillGw(t, c.pack, card, c.seat, c.data.date);
   const after = brokenLine(c, card);
   const read = isReadOnly(card);
-  const body = rich(c, fill(cardBody(c.pack, card)));
+  const body = bodyParts(fill(cardBody(c.pack, card)));
   const armedOpt =
     c.ui.armed?.uid === card.uid
       ? card.options.find((o) => o.id === c.ui.armed?.option)
@@ -220,7 +222,16 @@ export function reader(c: GwCtx, card: GwCardView): TemplateResult {
       </header>
       <h2 class="text-lg font-bold leading-snug">${cardTitle(c.pack, card)}</h2>
       <div class="space-y-2.5 text-[15px] leading-7 text-white/90">
-        <p class="whitespace-pre-line">${body}</p>
+        ${body.map(
+          (p) =>
+            html`<p
+              class="whitespace-pre-line ${p.quote
+                ? "border-l-2 border-amber-200/40 pl-3 text-white/80"
+                : ""}"
+            >
+              ${rich(c, p.text)}
+            </p>`,
+        )}
         ${voices(c.pack, card).map(
           (v) =>
             html`<p class="border-l-2 border-white/25 pl-3 text-white/80">

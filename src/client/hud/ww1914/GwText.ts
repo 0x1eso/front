@@ -98,6 +98,21 @@ export function cardBody(pack: GwPack | null, card: GwCardView): string {
   return pack?.scenes[card.scene]?.text[card.variant] ?? card.scene;
 }
 
+/** A body in paragraphs; one that starts "> " is a paper quoted in the scene. */
+export function bodyParts(text: string): { quote: boolean; text: string }[] {
+  return text.split(/\n{2,}/).map((p) => {
+    const quote = p.startsWith("> ");
+    return { quote, text: quote ? p.slice(2) : p };
+  });
+}
+
+/** The same body as running text: a card's first lines, a talk's room. */
+export function bodyPlain(text: string): string {
+  return bodyParts(text)
+    .map((p) => p.text)
+    .join("\n\n");
+}
+
 export function cardTitle(pack: GwPack | null, card: GwCardView): string {
   return pack?.scenes[card.scene]?.title ?? card.scene;
 }

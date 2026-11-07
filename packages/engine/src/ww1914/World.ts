@@ -107,10 +107,17 @@ export function news(
 }
 
 /** A reason line on the seat's log, once a chapter. */
-export function reason(gw: GreatWar, seat: GwSeatState, key: string): void {
+export function reason(
+  gw: GreatWar,
+  seat: GwSeatState,
+  key: string,
+  who?: string,
+): void {
   const c = gw.s.chapter;
-  if (seat.log.some((l) => l.key === key && l.chapter === c)) return;
-  seat.log.push({ key, chapter: c });
+  const same = (l: GwReason) =>
+    l.key === key && l.chapter === c && (l.who ?? undefined) === who;
+  if (seat.log.some(same)) return;
+  seat.log.push(who === undefined ? { key, chapter: c } : { key, chapter: c, who });
 }
 
 /** A turning point of the game: every seat keeps it, the memoir reads it. */
