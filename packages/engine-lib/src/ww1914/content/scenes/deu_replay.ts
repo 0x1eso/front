@@ -28,8 +28,6 @@ const TWINS: Readonly<Record<string, readonly (readonly [string, string?])[]>> =
       ["storm2", "storm"],
       ["depth2", "depth"],
     ],
-    gw_home_deu_1: [["b2"], ["b3"]],
-    gw_home_deu_2: [["b2"]],
     deu_h_bread_report: [["b2"], ["b3"], ["y16a2", "y16a"]],
     deu_f_lists_late: [["b2"], ["y16a2", "y16a"]],
     deu_h_loan_drive: [["b2"], ["y16b", "y16"]],
@@ -64,6 +62,8 @@ const TWINS: Readonly<Record<string, readonly (readonly [string, string?])[]>> =
     deu_h_pig_cull: [["b2"]],
     deu_w_antwerp: [["british2", "british"]],
     deu_s_wilson_mediation: [["house2", "house"]],
+    gw_home_deu_1: [["b2"], ["b3"]],
+    gw_home_deu_2: [["b2"]],
   };
 
 /** A reply of the talk's first node by id, or a reply of the opening's own. */
@@ -110,6 +110,24 @@ const OPENINGS: Readonly<Record<string, Opening>> = {
   deu_t2_heir_bauer: ["what_talk", "friends", "tell_mother"],
   deu_v_nicholas_wire: ["warm", "firm", "no"],
   deu_v_hoyos: ["date", "cold", "later"],
+  deu_t_beth_vienna: ["first", "ask", "later"],
+  deu_t_beth_calc: ["share", "numbers", "rest"],
+  deu_t_moltke_east: ["uncle", "warm", "deal_it", "leave"],
+  deu_t_moltke_nerves: ["sit", "leave"],
+  deu_t_falk_shells: ["ask", "help", "leave"],
+  deu_t_falk_moltke: ["deal_it", "warn", "leave"],
+  deu_t_jagow_russia: ["ask", "press", "leave"],
+  deu_t_jagow_london: ["needle", "deal", "leave"],
+  deu_t_delb_bread: ["eat", "no_cards", "later"],
+  deu_t_lich_grey: ["deal", "push", "leave"],
+  deu_t_pour_sazonov: ["ask", "deal", "leave"],
+  deu_t_tsch_air: ["ask", "press", "leave"],
+  deu_t2_bauer_doors: ["ask", "push", "leave"],
+  deu_t2_holtz_neutrals: ["corridor", "all", "end"],
+  deu_t2_helf_erz: ["push", "deal", "later"],
+  deu_t2_haase_out: ["ask", "deal", "later"],
+  deu_v2_empress_table: ["hear_both", "pray"],
+  deu_t2_zimm_casement: ["men", "back", "end"],
 };
 
 /** Nodes an opening needs of its own. */
