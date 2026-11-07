@@ -627,6 +627,7 @@ describe("the aim", () => {
   });
 
   test("a country with no list keeps its three tasks", async () => {
+    useGwContent({ ...GW_CONTENT, aims: [] });
     const { runner } = await gwRunner();
     expect(seat(runner).aims).toBeNull();
     expect(seat(runner).world.mandates.length).toBe(3);

@@ -30,6 +30,7 @@ import { AUH_WAR_SCENES } from "./scenes/auh_war";
 import { BUDGET_SCENES } from "./scenes/budget";
 import { COMMON_SCENES } from "./scenes/common";
 import { DEU_SCENES } from "./scenes/deu";
+import { DEU_STORY_SCENES } from "./scenes/deu_act";
 import { DEU_BACK_SCENES, withPromiseTerms } from "./scenes/deu_back";
 import { DEU_COURT_SCENES } from "./scenes/deu_court";
 import { DEU_CRISIS_SCENES } from "./scenes/deu_crisis";
@@ -138,6 +139,7 @@ export const GW_CONTENT: GwContent = {
       ...DEU_PRIVATE_SCENES,
       ...AUH_PRIVATE_SCENES,
       ...PRESS_SCENES,
+      ...DEU_STORY_SCENES,
       ...[
         ...COMMON_ACT_SCENES,
         ...DEU_ACT_SCENES,
