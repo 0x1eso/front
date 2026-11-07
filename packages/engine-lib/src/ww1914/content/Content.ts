@@ -22,6 +22,11 @@ import { DEU_FRONT_SCENES } from "./scenes/deu_front";
 import { DEU_HOME_SCENES } from "./scenes/deu_home";
 import { DEU_PEACE_SCENES, withSummerWar } from "./scenes/deu_peace";
 import { DEU_PEOPLE_SCENES } from "./scenes/deu_people";
+import {
+  DEU_PRIVATE_PEOPLE,
+  DEU_PRIVATE_SCENES,
+  withDeuPrivate,
+} from "./scenes/deu_private";
 import { withDeuReplay } from "./scenes/deu_replay";
 import { DEU_SEA_SCENES } from "./scenes/deu_sea";
 import { DEU_WAR_SCENES } from "./scenes/deu_war";
@@ -92,7 +97,10 @@ export const GW_CONTENT: GwContent = {
         ...GW_FRAME_SCENES,
       ].map(withPromiseTerms),
       ...BUDGET_SCENES,
-    ].map(withDeuReplay),
+      ...DEU_PRIVATE_SCENES,
+    ]
+      .map(withDeuReplay)
+      .map(withDeuPrivate),
   ),
   people: [
     ...GW_PEOPLE,
@@ -102,6 +110,7 @@ export const GW_CONTENT: GwContent = {
     ...AUH_PEOPLE,
     ...RUS_PEOPLE,
     ...GW_PEOPLE_MONEY,
+    ...DEU_PRIVATE_PEOPLE,
   ],
 };
 

@@ -101,9 +101,8 @@ function seatView(gw: GreatWar, seat: GwSeatState): GwSeatView {
       const topics = openTopics(gw, seat, p.id);
       const privateTopics = openTopics(gw, seat, p.id, true);
       const heard = [...topics, ...privateTopics];
-      if (GW_HIDE_UNMET.includes(seat.tag) && !metYet(seat, p, heard)) {
-        return [];
-      }
+      const hidden = GW_HIDE_UNMET.includes(seat.tag) || d.unlisted === true;
+      if (hidden && !metYet(seat, p, heard)) return [];
       return [
         {
           id: p.id,

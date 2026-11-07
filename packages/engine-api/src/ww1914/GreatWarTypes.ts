@@ -131,6 +131,8 @@ export const GwPersonDefSchema = z
       .string()
       .regex(/^\d{4}-\d{2}-\d{2}$/)
       .optional(),
+    /** Off the people screen until they have come up (private stories). */
+    unlisted: z.boolean().optional(),
   })
   .strict();
 export type GwPersonDef = z.infer<typeof GwPersonDefSchema>;
