@@ -427,7 +427,7 @@ describe("a whole game on the real map", () => {
   test.each(NATIONS)(
     "%s brings its bills through a war",
     async (tag) => {
-      for (let i = 0; i < 8; i++) {
+      for (let i = 0; i < 24; i++) {
         const passed = new Set<string>();
         let brought = 0;
         await playRun(
@@ -442,6 +442,19 @@ describe("a whole game on the real map", () => {
             const n = gw.nation(tag)!;
             for (const x of n.laws) {
               if (x.stage === "force" && x.how !== "scene") passed.add(x.id);
+            }
+            // A sponsor reads the count, where the desk bot flinches at
+            // random: a bill with the votes is put, one without is taken back.
+            for (const c of seat.desk.filter((x) => /^gw_lv_/.test(x.scene))) {
+              const v = lawViews(gw, seat).find(
+                (x) => `gw_lv_${x.id}` === c.scene,
+              );
+              const ok = v?.outlook === "easy" || v?.outlook === "tight";
+              applyGwOrder(gw, seat, {
+                kind: "choose",
+                card: c.uid,
+                option: ok ? "put" : "withdraw",
+              });
             }
             const open = lawViews(gw, seat).find(
               (v) => v.stage === "open" && v.waits === null,
@@ -458,10 +471,11 @@ describe("a whole game on the real map", () => {
             }
           },
         );
-        // A bot withdraws at random and a peace can stop a bill on its day.
-        if (brought >= 3 && passed.size >= 1) return;
+        if (brought < 3) continue;
+        expect(passed.size).toBeGreaterThanOrEqual(1);
+        return;
       }
-      throw new Error(`${tag}: no game brought three bills and passed one`);
+      throw new Error(`${tag}: no game brought three bills`);
     },
     240000,
   );
