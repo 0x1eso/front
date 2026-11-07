@@ -287,7 +287,7 @@ export const DEU_COURT_SCENES: readonly GwScene[] = [
     salience: 7,
     tags: ["people"],
     once: false,
-    cooldown: 6,
+    cooldown: 10,
     stamp: "confirmed",
     source: "staff",
     variants: [
