@@ -91,6 +91,7 @@ type ZoneV4 struct {
 
 // StrategicInput is what buildStrategic reads beside the final map.
 type StrategicInput struct {
+	Loose   bool      // the 1914 overlay: two seeds may fall in one region
 	Regions []*Region // stable ids
 	Tags    []string  // countries.json order
 	Seas    []*Region // sea zones, ascending, Lake marked
@@ -506,6 +507,9 @@ func buildStrategic(p Projection, ids []uint16, lists tileLists, in StrategicInp
 		}
 		id := int(ids[px])
 		if other, twice := seedOf[id]; twice {
+			if in.Loose {
+				continue
+			}
 			bad = append(bad, fmt.Sprintf("seeds %q and %q are both in region %d", in.Seeds[other].Name, s.Name, id))
 			continue
 		}

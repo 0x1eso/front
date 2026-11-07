@@ -93,6 +93,7 @@ type RegionV5 struct {
 
 // V5Input is what buildV5 reads beside the final map.
 type V5Input struct {
+	Loose     bool // the 1914 overlay: no landmark or dam is required
 	Energy    EnergyTable
 	Landmarks LandmarkTable
 	Regions   []*Region      // stable ids
@@ -227,7 +228,7 @@ func buildV5(p Projection, final []uint16, in V5Input) (V5Result, error) {
 		}
 	}
 	for _, id := range landmarkIDs {
-		if !seen[id] {
+		if !seen[id] && !in.Loose {
 			bad = append(bad, "landmark "+id+" is missing")
 		}
 	}
@@ -280,7 +281,7 @@ func buildV5(p Projection, final []uint16, in V5Input) (V5Result, error) {
 		res.Report = append(res.Report, fmt.Sprintf("%s → %s, downstream [%s]", what, name(id), strings.Join(names, ", ")))
 	}
 	for _, id := range damIDs {
-		if !seen[id] {
+		if !seen[id] && !in.Loose {
 			bad = append(bad, "dam "+id+" is missing")
 		}
 	}

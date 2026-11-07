@@ -954,7 +954,9 @@ func buildEconomy(p Projection, land []bool, ids []uint16, regions []*Region, ca
 		row := rows[c]
 		tag := t.Countries[c].Tag
 		if len(list) == 0 {
-			errs = append(errs, tag+": no region stays on the map")
+			if !t.Loose {
+				errs = append(errs, tag+": no region stays on the map")
+			}
 			continue
 		}
 		var core, colonial []*EcoRegion

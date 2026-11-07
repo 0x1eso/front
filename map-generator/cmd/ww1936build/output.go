@@ -96,7 +96,7 @@ func assignVP(p Projection, land []bool, ids []uint16, regions []*Region, t *Tab
 			continue
 		}
 		r := byID[int(ids[px])]
-		if r == nil || r.Owner != i+1 {
+		if r == nil || (r.Owner != i+1 && !t.Loose) {
 			errs = append(errs, fmt.Sprintf("%s: capital (%.2f, %.2f) is not on its own land", c.Tag, c.Capital[0], c.Capital[1]))
 			continue
 		}
@@ -170,6 +170,8 @@ type srcRegionOut struct {
 	Fort        int      `json:"fort"`
 	Port        bool     `json:"port,omitempty"`
 	Island      string   `json:"island,omitempty"`
+	Place       string   `json:"place,omitempty"`
+	GwOwner     string   `json:"gwOwner,omitempty"`
 	SR          int      `json:"sr,omitempty"`
 	Harbor      int      `json:"harbor,omitempty"`
 	NavalBase   *int     `json:"navalBase,omitempty"`
@@ -212,6 +214,9 @@ type ScenarioSrcInput struct {
 	Bases    HandBases
 	RowTable Rows
 	V5       V5Result
+	// The 1914 overlay's place and owner by region id; nil without it.
+	PlaceOf map[int]OverlayPlace
+	GwOwner map[int]string
 }
 
 // writeScenarioSrc writes scenario.src.json (read by the map generator,
@@ -246,7 +251,16 @@ func writeScenarioSrc(path string, in ScenarioSrcInput) error {
 		}
 		return nil
 	}
+	held := map[int]bool{}
+	for _, r := range in.Regions {
+		held[r.Owner] = true
+	}
+	out.HistoricalOob = !in.T.Loose
 	for i, c := range in.T.Countries {
+		// The 1914 overlay can leave a 1936 country no region of its own.
+		if in.T.Loose && !held[i+1] {
+			continue
+		}
 		out.Countries = append(out.Countries, srcCountryOut{c.Tag, *xy(in.Capitals[i]), in.Rows[i].Dev})
 	}
 	hand := map[string]bool{}
@@ -260,6 +274,7 @@ func writeScenarioSrc(path string, in ScenarioSrcInput) error {
 			Cat: categories[e.Cat], Pop: e.Pop, Infra: e.Infra, Core: e.Core, Coastal: e.Coastal,
 			Civ: e.Civ, Mil: e.Mil, Dock: e.Dock, Res: e.Res, Island: r.Island, Port: hand[r.Island],
 		}
+		row.Place, row.GwOwner = in.PlaceOf[r.ID].Key, in.GwOwner[r.ID]
 		if r.VPTile >= 0 {
 			row.VPTile = xy(r.VPTile)
 		}

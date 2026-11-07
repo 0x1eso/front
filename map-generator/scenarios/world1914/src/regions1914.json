@@ -1,0 +1,1729 @@
+{
+  "rows": [
+    {
+      "group": "rhineland",
+      "owner": "DEU",
+      "adm0": ["BEL", "DEU"],
+      "polygon": [
+        [5.9, 50.75],
+        [6.5, 50.9],
+        [6.7, 50.4],
+        [6.3, 50.12],
+        [5.95, 50.3],
+        [5.9, 50.75]
+      ],
+      "parts": [
+        {
+          "key": "aachen",
+          "name": ["Aachen", "아헨"]
+        }
+      ]
+    },
+    {
+      "group": "rhineland",
+      "owner": "DEU",
+      "adm0": ["DEU"],
+      "polygon": [
+        [6.35, 49.1],
+        [7.45, 49.1],
+        [7.45, 49.65],
+        [6.35, 49.65],
+        [6.35, 49.1]
+      ],
+      "parts": [
+        {
+          "key": "saarbrucken",
+          "name": ["Saarbrücken", "자르브뤼켄"]
+        }
+      ]
+    },
+    {
+      "group": "schleswig",
+      "owner": "DEU",
+      "adm0": ["DNK"],
+      "polygon": [
+        [8.0, 54.7],
+        [10.15, 54.7],
+        [10.15, 55.47],
+        [8.0, 55.47],
+        [8.0, 54.7]
+      ],
+      "parts": [
+        {
+          "key": "north_schleswig",
+          "name": ["North Schleswig", "북슐레스비히"]
+        }
+      ]
+    },
+    {
+      "group": "alsace_lorraine",
+      "owner": "DEU",
+      "adm1": ["FRA:Moselle"],
+      "parts": [
+        {
+          "key": "metz",
+          "name": ["Metz", "메스"]
+        }
+      ]
+    },
+    {
+      "group": "alsace_lorraine",
+      "owner": "DEU",
+      "adm1": ["FRA:Bas-Rhin"],
+      "parts": [
+        {
+          "key": "strasbourg",
+          "name": ["Strasbourg", "슈트라스부르크"]
+        }
+      ]
+    },
+    {
+      "group": "alsace_lorraine",
+      "owner": "DEU",
+      "adm1": ["FRA:Haute-Rhin"],
+      "parts": [
+        {
+          "key": "mulhouse",
+          "name": ["Mülhausen", "뮐하우젠"]
+        }
+      ]
+    },
+    {
+      "group": "flanders",
+      "owner": "BEL",
+      "adm1": ["BEL:West Flanders"],
+      "parts": [
+        {
+          "key": "ypres",
+          "name": ["Ypres", "이프르"],
+          "at": [2.88, 50.85]
+        },
+        {
+          "key": "ostend",
+          "name": ["Ostend", "오스텐더"],
+          "at": [3.0, 51.2]
+        }
+      ]
+    },
+    {
+      "group": "flanders",
+      "owner": "BEL",
+      "adm1": ["BEL:East Flanders"],
+      "parts": [
+        {
+          "key": "ghent",
+          "name": ["Ghent", "겐트"]
+        }
+      ]
+    },
+    {
+      "group": "flanders",
+      "owner": "BEL",
+      "adm1": ["BEL:Antwerp", "BEL:Limburg"],
+      "parts": [
+        {
+          "key": "antwerp",
+          "name": ["Antwerp", "안트베르펜"]
+        }
+      ]
+    },
+    {
+      "group": "belgium",
+      "owner": "BEL",
+      "adm1": ["BEL:Brussels", "BEL:Flemish Brabant", "BEL:Walloon Brabant"],
+      "parts": [
+        {
+          "key": "brussels",
+          "name": ["Brussels", "브뤼셀"]
+        }
+      ]
+    },
+    {
+      "group": "belgium",
+      "owner": "BEL",
+      "adm1": ["BEL:Hainaut"],
+      "parts": [
+        {
+          "key": "mons",
+          "name": ["Mons", "몽스"]
+        }
+      ]
+    },
+    {
+      "group": "belgium",
+      "owner": "BEL",
+      "adm1": ["BEL:Namur"],
+      "parts": [
+        {
+          "key": "namur",
+          "name": ["Namur", "나뮈르"]
+        }
+      ]
+    },
+    {
+      "group": "belgium",
+      "owner": "BEL",
+      "adm1": ["BEL:Liege"],
+      "parts": [
+        {
+          "key": "liege",
+          "name": ["Liège", "리에주"]
+        }
+      ]
+    },
+    {
+      "group": "belgium",
+      "owner": "BEL",
+      "adm1": ["BEL:Luxembourg"],
+      "parts": [
+        {
+          "key": "arlon",
+          "name": ["Arlon", "아를롱"]
+        }
+      ]
+    },
+    {
+      "group": "western_front",
+      "owner": "FRA",
+      "adm1": [
+        "FRA:Nord",
+        "FRA:Pas-de-Calais",
+        "FRA:Somme",
+        "FRA:Aisne",
+        "FRA:Oise",
+        "FRA:Ardennes",
+        "FRA:Marne",
+        "FRA:Meuse",
+        "FRA:Meurthe-et-Moselle",
+        "FRA:Vosges",
+        "FRA:Seien-et-Marne"
+      ],
+      "parts": [
+        {
+          "key": "calais",
+          "name": ["Calais", "칼레"],
+          "at": [1.95, 50.7]
+        },
+        {
+          "key": "lille",
+          "name": ["Lille", "릴"],
+          "at": [3.06, 50.63]
+        },
+        {
+          "key": "maubeuge",
+          "name": ["Maubeuge", "모뵈주"],
+          "at": [3.97, 50.28]
+        },
+        {
+          "key": "arras",
+          "name": ["Arras", "아라스"],
+          "at": [2.6, 50.35]
+        },
+        {
+          "key": "cambrai",
+          "name": ["Cambrai", "캉브레"],
+          "at": [3.24, 50.17]
+        },
+        {
+          "key": "peronne",
+          "name": ["Péronne", "페론"],
+          "at": [2.93, 49.93]
+        },
+        {
+          "key": "amiens",
+          "name": ["Amiens", "아미앵"],
+          "at": [2.1, 49.95]
+        },
+        {
+          "key": "saint_quentin",
+          "name": ["Saint-Quentin", "생캉탱"],
+          "at": [3.4, 49.85]
+        },
+        {
+          "key": "laon",
+          "name": ["Laon", "랑"],
+          "at": [3.72, 49.56]
+        },
+        {
+          "key": "soissons",
+          "name": ["Soissons", "수아송"],
+          "at": [3.32, 49.3]
+        },
+        {
+          "key": "compiegne",
+          "name": ["Compiègne", "콩피에뉴"],
+          "at": [2.75, 49.42]
+        },
+        {
+          "key": "beauvais",
+          "name": ["Beauvais", "보베"],
+          "at": [2.0, 49.43]
+        },
+        {
+          "key": "reims",
+          "name": ["Reims", "랭스"],
+          "at": [4.1, 49.28]
+        },
+        {
+          "key": "sedan",
+          "name": ["Sedan", "스당"],
+          "at": [4.8, 49.72]
+        },
+        {
+          "key": "chalons",
+          "name": ["Châlons", "샬롱"],
+          "at": [4.37, 48.9]
+        },
+        {
+          "key": "verdun",
+          "name": ["Verdun", "베르됭"],
+          "at": [5.4, 49.16]
+        },
+        {
+          "key": "bar_le_duc",
+          "name": ["Bar-le-Duc", "바르르뒤크"],
+          "at": [5.2, 48.7]
+        },
+        {
+          "key": "nancy",
+          "name": ["Nancy", "낭시"],
+          "at": [6.18, 48.75]
+        },
+        {
+          "key": "epinal",
+          "name": ["Épinal", "에피날"],
+          "at": [6.45, 48.17]
+        },
+        {
+          "key": "meaux",
+          "name": ["Meaux", "모"],
+          "at": [2.95, 48.98]
+        },
+        {
+          "key": "melun",
+          "name": ["Melun", "믈룅"],
+          "at": [2.95, 48.45]
+        }
+      ]
+    },
+    {
+      "group": "western_front",
+      "owner": "FRA",
+      "adm1": ["FRA:Territoire de Belfort", "FRA:Haute-Saône"],
+      "parts": [
+        {
+          "key": "belfort",
+          "name": ["Belfort", "벨포르"]
+        }
+      ]
+    },
+    {
+      "group": "trieste",
+      "owner": "AUH",
+      "adm1": ["ITA:Gorizia"],
+      "adm0": ["SVN"],
+      "polygon": [
+        [13.3, 45.76],
+        [14.15, 45.76],
+        [14.15, 46.55],
+        [13.3, 46.55],
+        [13.3, 45.76]
+      ],
+      "parts": [
+        {
+          "key": "gorizia",
+          "name": ["Gorizia", "고리치아"]
+        }
+      ]
+    },
+    {
+      "group": "trieste",
+      "owner": "AUH",
+      "adm1": ["ITA:Trieste"],
+      "adm0": ["SVN"],
+      "polygon": [
+        [13.3, 45.3],
+        [14.25, 45.3],
+        [14.25, 45.76],
+        [13.3, 45.76],
+        [13.3, 45.3]
+      ],
+      "parts": [
+        {
+          "key": "trieste",
+          "name": ["Trieste", "트리에스테"]
+        }
+      ]
+    },
+    {
+      "group": "trieste",
+      "owner": "AUH",
+      "adm1": ["HRV:Istarska"],
+      "parts": [
+        {
+          "key": "pola",
+          "name": ["Pola", "폴라"]
+        }
+      ]
+    },
+    {
+      "group": "trieste",
+      "owner": "AUH",
+      "adm1": ["HRV:Primorsko-Goranska"],
+      "parts": [
+        {
+          "key": "fiume",
+          "name": ["Fiume", "피우메"]
+        }
+      ]
+    },
+    {
+      "group": "piave",
+      "owner": "ITA",
+      "adm1": ["ITA:Udine", "ITA:Pordenone"],
+      "parts": [
+        {
+          "key": "udine",
+          "name": ["Udine", "우디네"]
+        }
+      ]
+    },
+    {
+      "group": "piave",
+      "owner": "ITA",
+      "adm1": ["ITA:Belluno"],
+      "parts": [
+        {
+          "key": "belluno",
+          "name": ["Belluno", "벨루노"]
+        }
+      ]
+    },
+    {
+      "group": "piave",
+      "owner": "ITA",
+      "adm1": ["ITA:Treviso"],
+      "parts": [
+        {
+          "key": "treviso",
+          "name": ["Treviso", "트레비소"]
+        }
+      ]
+    },
+    {
+      "group": "piave",
+      "owner": "ITA",
+      "adm1": ["ITA:Venezia", "ITA:Padova", "ITA:Rovigo"],
+      "parts": [
+        {
+          "key": "venice",
+          "name": ["Venice", "베네치아"]
+        }
+      ]
+    },
+    {
+      "group": "piave",
+      "owner": "ITA",
+      "adm1": ["ITA:Vicenza"],
+      "parts": [
+        {
+          "key": "vicenza",
+          "name": ["Vicenza", "비첸차"]
+        }
+      ]
+    },
+    {
+      "group": "piave",
+      "owner": "ITA",
+      "adm1": ["ITA:Verona"],
+      "parts": [
+        {
+          "key": "verona",
+          "name": ["Verona", "베로나"]
+        }
+      ]
+    },
+    {
+      "group": "russian_poland",
+      "owner": "RUS",
+      "adm1": ["POL:Podlachian"],
+      "adm0": ["POL"],
+      "polygon": [
+        [24.2, 54.5],
+        [22.8, 54.38],
+        [22.5, 54.2],
+        [22.62, 53.97],
+        [22.6, 53.85],
+        [22.5, 53.72],
+        [22.2, 53.68],
+        [21.9, 53.5],
+        [21.6, 53.46],
+        [21.2, 53.42],
+        [20.95, 53.34],
+        [20.7, 53.28],
+        [20.45, 53.22],
+        [20.3, 53.15],
+        [19.95, 53.12],
+        [19.7, 53.15],
+        [19.4, 53.2],
+        [19.1, 53.08],
+        [18.95, 52.98],
+        [18.75, 52.92],
+        [18.6, 52.88],
+        [18.45, 52.75],
+        [18.4, 52.6],
+        [18.2, 52.45],
+        [17.95, 52.38],
+        [17.75, 52.25],
+        [17.62, 52.15],
+        [17.65, 52.0],
+        [17.95, 51.85],
+        [17.98, 51.7],
+        [18.1, 51.45],
+        [18.12, 51.25],
+        [18.35, 51.12],
+        [18.55, 50.95],
+        [18.75, 50.82],
+        [18.85, 50.6],
+        [19.0, 50.42],
+        [19.1, 50.26],
+        [19.2, 50.22],
+        [19.4, 50.2],
+        [19.7, 50.22],
+        [20.1, 50.2],
+        [20.4, 50.18],
+        [20.8, 50.25],
+        [21.1, 50.36],
+        [21.4, 50.45],
+        [21.7, 50.62],
+        [21.9, 50.62],
+        [22.1, 50.6],
+        [22.3, 50.55],
+        [22.6, 50.33],
+        [23.0, 50.33],
+        [23.3, 50.3],
+        [23.7, 50.3],
+        [24.2, 50.4],
+        [24.2, 54.5]
+      ],
+      "parts": [
+        {
+          "key": "warsaw",
+          "name": ["Warsaw", "바르샤바"],
+          "at": [21.01, 52.23]
+        },
+        {
+          "key": "plock",
+          "name": ["Płock", "프워츠크"],
+          "at": [19.7, 52.6]
+        },
+        {
+          "key": "lomza",
+          "name": ["Łomża", "워므자"],
+          "at": [22.07, 53.18]
+        },
+        {
+          "key": "suwalki",
+          "name": ["Suwałki", "수바우키"],
+          "at": [22.93, 54.0]
+        },
+        {
+          "key": "bialystok",
+          "name": ["Białystok", "비아위스토크"],
+          "at": [23.3, 53.13]
+        },
+        {
+          "key": "siedlce",
+          "name": ["Siedlce", "시에들체"],
+          "at": [22.6, 52.17]
+        },
+        {
+          "key": "lublin",
+          "name": ["Lublin", "루블린"],
+          "at": [22.45, 51.25]
+        },
+        {
+          "key": "chelm",
+          "name": ["Chełm", "헤움"],
+          "at": [23.5, 51.05]
+        },
+        {
+          "key": "radom",
+          "name": ["Radom", "라돔"],
+          "at": [21.15, 51.4]
+        },
+        {
+          "key": "kielce",
+          "name": ["Kielce", "키엘체"],
+          "at": [20.63, 50.75]
+        },
+        {
+          "key": "lodz",
+          "name": ["Łódź", "우치"],
+          "at": [19.46, 51.76]
+        },
+        {
+          "key": "kalisz",
+          "name": ["Kalisz", "칼리시"],
+          "at": [18.3, 51.9]
+        },
+        {
+          "key": "czestochowa",
+          "name": ["Częstochowa", "쳉스토호바"],
+          "at": [19.2, 50.81]
+        }
+      ]
+    },
+    {
+      "group": "galicia",
+      "owner": "AUH",
+      "adm0": ["POL"],
+      "polygon": [
+        [18.5, 49.4],
+        [19.45, 49.4],
+        [19.45, 49.97],
+        [18.5, 49.97],
+        [18.5, 49.4]
+      ],
+      "parts": [
+        {
+          "key": "teschen",
+          "name": ["Teschen", "테셴"]
+        }
+      ]
+    },
+    {
+      "group": "galicia",
+      "owner": "AUH",
+      "adm1": ["POL:Lesser Poland", "POL:Subcarpathian"],
+      "parts": [
+        {
+          "key": "krakow",
+          "name": ["Kraków", "크라쿠프"],
+          "at": [19.94, 50.0]
+        },
+        {
+          "key": "tarnow",
+          "name": ["Tarnów", "타르누프"],
+          "at": [20.98, 50.05]
+        },
+        {
+          "key": "gorlice",
+          "name": ["Gorlice", "고를리체"],
+          "at": [21.16, 49.55]
+        },
+        {
+          "key": "przemysl",
+          "name": ["Przemyśl", "프셰미실"],
+          "at": [22.4, 49.9]
+        }
+      ]
+    },
+    {
+      "group": "galicia",
+      "owner": "AUH",
+      "adm1": ["UKR:L'viv"],
+      "parts": [
+        {
+          "key": "lemberg",
+          "name": ["Lemberg", "렘베르크"]
+        }
+      ]
+    },
+    {
+      "group": "galicia",
+      "owner": "AUH",
+      "adm1": ["UKR:Ternopil'"],
+      "parts": [
+        {
+          "key": "tarnopol",
+          "name": ["Tarnopol", "타르노폴"]
+        }
+      ]
+    },
+    {
+      "group": "galicia",
+      "owner": "AUH",
+      "adm1": ["UKR:Ivano-Frankivs'k"],
+      "parts": [
+        {
+          "key": "stanislau",
+          "name": ["Stanislau", "스타니스와부프"]
+        }
+      ]
+    },
+    {
+      "group": "bukovina",
+      "owner": "AUH",
+      "adm1": ["ROU:Suceava", "UKR:Chernivtsi"],
+      "parts": [
+        {
+          "key": "czernowitz",
+          "name": ["Czernowitz", "체르노비츠"]
+        }
+      ]
+    },
+    {
+      "group": "west_prussia",
+      "owner": "DEU",
+      "adm1": ["POL:Pomeranian"],
+      "parts": [
+        {
+          "key": "danzig",
+          "name": ["Danzig", "단치히"]
+        }
+      ]
+    },
+    {
+      "group": "west_prussia",
+      "owner": "DEU",
+      "adm1": ["POL:Kuyavian-Pomeranian"],
+      "parts": [
+        {
+          "key": "thorn",
+          "name": ["Thorn", "토른"]
+        }
+      ]
+    },
+    {
+      "group": "posen",
+      "owner": "DEU",
+      "adm1": ["POL:Greater Poland", "POL:Łódź", "POL:Masovian"],
+      "parts": [
+        {
+          "key": "posen",
+          "name": ["Posen", "포젠"]
+        }
+      ]
+    },
+    {
+      "group": "silesia",
+      "owner": "DEU",
+      "adm1": ["POL:Silesian", "POL:Świętokrzyskie"],
+      "parts": [
+        {
+          "key": "kattowitz",
+          "name": ["Kattowitz", "카토비츠"]
+        }
+      ]
+    },
+    {
+      "group": "east_prussia",
+      "owner": "DEU",
+      "adm1": ["POL:Warmian-Masurian"],
+      "parts": [
+        {
+          "key": "tannenberg",
+          "name": ["Tannenberg", "타넨베르크"],
+          "at": [20.2, 53.65]
+        },
+        {
+          "key": "masuria",
+          "name": ["Masuria", "마주리아"],
+          "at": [21.8, 53.9]
+        }
+      ]
+    },
+    {
+      "group": "east_prussia",
+      "owner": "DEU",
+      "adm1": ["RUS:Kaliningrad"],
+      "parts": [
+        {
+          "key": "konigsberg",
+          "name": ["Königsberg", "쾨니히스베르크"],
+          "at": [20.6, 54.7]
+        },
+        {
+          "key": "gumbinnen",
+          "name": ["Gumbinnen", "굼비넨"],
+          "at": [22.0, 54.65]
+        }
+      ]
+    },
+    {
+      "group": "east_prussia",
+      "owner": "DEU",
+      "adm1": ["LTU:Klaipedos"],
+      "parts": [
+        {
+          "key": "memel",
+          "name": ["Memel", "메멜"]
+        }
+      ]
+    },
+    {
+      "group": "baltic",
+      "owner": "RUS",
+      "adm1": ["LTU:Taurages", "LTU:Telšiai"],
+      "parts": [
+        {
+          "key": "telsiai",
+          "name": ["Telšiai", "텔시아이"]
+        }
+      ]
+    },
+    {
+      "group": "bohemia",
+      "owner": "AUH",
+      "adm1": ["CZE:Prague", "CZE:Středočeský"],
+      "parts": [
+        {
+          "key": "prague",
+          "name": ["Prague", "프라하"]
+        }
+      ]
+    },
+    {
+      "group": "bohemia",
+      "owner": "AUH",
+      "adm1": ["CZE:Plzeňský", "CZE:Karlovarský"],
+      "parts": [
+        {
+          "key": "pilsen",
+          "name": ["Pilsen", "필젠"]
+        }
+      ]
+    },
+    {
+      "group": "bohemia",
+      "owner": "AUH",
+      "adm1": ["CZE:Ústecký", "CZE:Liberecký"],
+      "parts": [
+        {
+          "key": "reichenberg",
+          "name": ["Reichenberg", "라이헨베르크"]
+        }
+      ]
+    },
+    {
+      "group": "bohemia",
+      "owner": "AUH",
+      "adm1": ["CZE:Královéhradecký", "CZE:Pardubický"],
+      "parts": [
+        {
+          "key": "koniggratz",
+          "name": ["Königgrätz", "쾨니히그레츠"]
+        }
+      ]
+    },
+    {
+      "group": "bohemia",
+      "owner": "AUH",
+      "adm1": ["CZE:Jihočeský", "CZE:Vysočina"],
+      "parts": [
+        {
+          "key": "budweis",
+          "name": ["Budweis", "부트바이스"]
+        }
+      ]
+    },
+    {
+      "group": "moravia",
+      "owner": "AUH",
+      "adm1": ["CZE:Jihomoravský", "CZE:Zlínský"],
+      "parts": [
+        {
+          "key": "brunn",
+          "name": ["Brünn", "브륀"]
+        }
+      ]
+    },
+    {
+      "group": "moravia",
+      "owner": "AUH",
+      "adm1": ["CZE:Olomoucký", "CZE:Moravskoslezský"],
+      "parts": [
+        {
+          "key": "olmutz",
+          "name": ["Olmütz", "올뮈츠"]
+        }
+      ]
+    },
+    {
+      "group": "upper_hungary",
+      "owner": "AUH",
+      "adm1": [
+        "SVK:Bratislavský",
+        "SVK:Trnavský",
+        "SVK:Nitriansky",
+        "SVK:Trenciansky"
+      ],
+      "parts": [
+        {
+          "key": "pressburg",
+          "name": ["Pressburg", "프레스부르크"]
+        }
+      ]
+    },
+    {
+      "group": "upper_hungary",
+      "owner": "AUH",
+      "adm1": ["SVK:Žilinský", "SVK:Banskobystrický"],
+      "parts": [
+        {
+          "key": "neusohl",
+          "name": ["Neusohl", "노이졸"]
+        }
+      ]
+    },
+    {
+      "group": "upper_hungary",
+      "owner": "AUH",
+      "adm1": ["SVK:Košický", "SVK:Prešov"],
+      "parts": [
+        {
+          "key": "kaschau",
+          "name": ["Kaschau", "카샤우"]
+        }
+      ]
+    },
+    {
+      "group": "upper_hungary",
+      "owner": "AUH",
+      "adm1": ["UKR:Transcarpathia"],
+      "parts": [
+        {
+          "key": "ungvar",
+          "name": ["Ungvár", "웅바르"]
+        }
+      ]
+    },
+    {
+      "group": "transylvania",
+      "owner": "AUH",
+      "adm1": ["ROU:Cluj", "ROU:Bistrita-Nasaud", "ROU:Salaj", "ROU:Mures"],
+      "parts": [
+        {
+          "key": "kolozsvar",
+          "name": ["Kolozsvár", "콜로주바르"]
+        }
+      ]
+    },
+    {
+      "group": "transylvania",
+      "owner": "AUH",
+      "adm1": ["ROU:Bihor", "ROU:Satu Mare", "ROU:Maramures"],
+      "parts": [
+        {
+          "key": "nagyvarad",
+          "name": ["Nagyvárad", "너지바러드"]
+        }
+      ]
+    },
+    {
+      "group": "transylvania",
+      "owner": "AUH",
+      "adm1": ["ROU:Sibiu", "ROU:Alba", "ROU:Hunedoara"],
+      "parts": [
+        {
+          "key": "nagyszeben",
+          "name": ["Nagyszeben", "너지세벤"]
+        }
+      ]
+    },
+    {
+      "group": "transylvania",
+      "owner": "AUH",
+      "adm1": ["ROU:Brasov", "ROU:Covasna", "ROU:Harghita"],
+      "parts": [
+        {
+          "key": "brasso",
+          "name": ["Brassó", "브라쇼"]
+        }
+      ]
+    },
+    {
+      "group": "banat",
+      "owner": "AUH",
+      "adm1": [
+        "ROU:Timis",
+        "ROU:Arad",
+        "ROU:Caras-Severin",
+        "SRB:Severno-Banatski",
+        "SRB:Srednje-Banatski",
+        "SRB:Južno-Banatski"
+      ],
+      "parts": [
+        {
+          "key": "temesvar",
+          "name": ["Temesvár", "테메슈바르"]
+        }
+      ]
+    },
+    {
+      "group": "banat",
+      "owner": "AUH",
+      "adm1": [
+        "SRB:Južno-Backi",
+        "SRB:Severno-Backi",
+        "SRB:Zapadno-Backi",
+        "SRB:Sremski"
+      ],
+      "parts": [
+        {
+          "key": "novi_sad",
+          "name": ["Novi Sad", "노비사드"]
+        }
+      ]
+    },
+    {
+      "group": "montenegro",
+      "owner": "MNE",
+      "adm0": ["KOS"],
+      "polygon": [
+        [19.9, 42.1],
+        [20.58, 42.1],
+        [20.58, 42.95],
+        [19.9, 42.95],
+        [19.9, 42.1]
+      ],
+      "parts": [
+        {
+          "key": "pec",
+          "name": ["Peć", "페치"]
+        }
+      ]
+    },
+    {
+      "group": "montenegro",
+      "owner": "MNE",
+      "adm0": ["MNE"],
+      "parts": [
+        {
+          "key": "cetinje",
+          "name": ["Cetinje", "체티네"]
+        }
+      ]
+    },
+    {
+      "group": "serbia",
+      "owner": "SRB",
+      "adm0": ["KOS"],
+      "parts": [
+        {
+          "key": "pristina",
+          "name": ["Priština", "프리슈티나"]
+        }
+      ]
+    },
+    {
+      "group": "serbia",
+      "owner": "SRB",
+      "adm0": ["SRB"],
+      "parts": [
+        {
+          "key": "belgrade",
+          "name": ["Belgrade", "베오그라드"],
+          "at": [20.46, 44.78]
+        },
+        {
+          "key": "valjevo",
+          "name": ["Valjevo", "발예보"],
+          "at": [19.75, 44.3]
+        },
+        {
+          "key": "kragujevac",
+          "name": ["Kragujevac", "크라구예바츠"],
+          "at": [20.91, 44.05]
+        },
+        {
+          "key": "uzice",
+          "name": ["Užice", "우지체"],
+          "at": [20.0, 43.5]
+        },
+        {
+          "key": "nis",
+          "name": ["Niš", "니시"],
+          "at": [21.9, 43.25]
+        },
+        {
+          "key": "zajecar",
+          "name": ["Zaječar", "자이차르"],
+          "at": [22.2, 44.05]
+        }
+      ]
+    },
+    {
+      "group": "macedonia",
+      "owner": "SRB",
+      "adm0": ["MKD"],
+      "parts": [
+        {
+          "key": "skopje",
+          "name": ["Skopje", "스코페"],
+          "at": [21.5, 41.95]
+        },
+        {
+          "key": "bitola",
+          "name": ["Bitola", "비톨라"],
+          "at": [21.3, 41.2]
+        }
+      ]
+    },
+    {
+      "group": "albania",
+      "owner": "ALB",
+      "adm0": ["ALB"],
+      "parts": [
+        {
+          "key": "scutari",
+          "name": ["Scutari", "스쿠타리"],
+          "at": [19.8, 42.1]
+        },
+        {
+          "key": "durazzo",
+          "name": ["Durazzo", "두라초"],
+          "at": [19.9, 41.3]
+        },
+        {
+          "key": "valona",
+          "name": ["Valona", "발로나"],
+          "at": [20.0, 40.5]
+        }
+      ]
+    },
+    {
+      "group": "thrace",
+      "owner": "BGR",
+      "adm0": ["GRC"],
+      "polygon": [
+        [24.8, 40.6],
+        [26.8, 40.6],
+        [26.8, 41.8],
+        [24.8, 41.8],
+        [24.8, 40.6]
+      ],
+      "parts": [
+        {
+          "key": "dedeagach",
+          "name": ["Dedeagach", "데데아가치"]
+        }
+      ]
+    },
+    {
+      "group": "straits",
+      "owner": "OTT",
+      "adm0": ["TUR"],
+      "polygon": [
+        [25.9, 40.1],
+        [26.18, 40.03],
+        [26.4, 40.2],
+        [26.72, 40.42],
+        [26.85, 40.62],
+        [27.45, 40.72],
+        [27.55, 41.05],
+        [26.4, 41.05],
+        [25.9, 40.6],
+        [25.9, 40.1]
+      ],
+      "parts": [
+        {
+          "key": "gallipoli",
+          "name": ["Gallipoli", "갈리폴리"]
+        }
+      ]
+    },
+    {
+      "group": "straits",
+      "owner": "OTT",
+      "adm1": ["TUR:Çanakkale"],
+      "parts": [
+        {
+          "key": "canakkale",
+          "name": ["Çanakkale", "차나칼레"]
+        }
+      ]
+    },
+    {
+      "group": "straits",
+      "owner": "OTT",
+      "adm1": ["TUR:Edirne", "TUR:Kirklareli"],
+      "parts": [
+        {
+          "key": "edirne",
+          "name": ["Edirne", "에디르네"]
+        }
+      ]
+    },
+    {
+      "group": "straits",
+      "owner": "OTT",
+      "adm1": ["TUR:Tekirdag"],
+      "parts": [
+        {
+          "key": "rodosto",
+          "name": ["Rodosto", "로도스토"]
+        }
+      ]
+    },
+    {
+      "group": "straits",
+      "owner": "OTT",
+      "adm1": ["TUR:Istanbul"],
+      "parts": [
+        {
+          "key": "constantinople",
+          "name": ["Constantinople", "콘스탄티노플"]
+        }
+      ]
+    },
+    {
+      "group": "straits",
+      "owner": "OTT",
+      "adm1": ["TUR:Kocaeli", "TUR:Yalova"],
+      "parts": [
+        {
+          "key": "izmit",
+          "name": ["İzmit", "이즈미트"]
+        }
+      ]
+    },
+    {
+      "group": "caucasus",
+      "owner": "RUS",
+      "adm1": ["TUR:Artvin", "TUR:Ardahan"],
+      "parts": [
+        {
+          "key": "ardahan",
+          "name": ["Ardahan", "아르다한"]
+        }
+      ]
+    },
+    {
+      "group": "caucasus",
+      "owner": "OTT",
+      "adm1": [
+        "TUR:Trabzon",
+        "TUR:Rize",
+        "TUR:Gümüshane",
+        "TUR:Bayburt",
+        "TUR:Giresun"
+      ],
+      "parts": [
+        {
+          "key": "trabzon",
+          "name": ["Trebizond", "트라브존"]
+        }
+      ]
+    },
+    {
+      "group": "mesopotamia",
+      "owner": "OTT",
+      "adm1": ["IRQ:Al-Basrah", "IRQ:Dhi-Qar", "IRQ:Maysan"],
+      "parts": [
+        {
+          "key": "basra",
+          "name": ["Basra", "바스라"]
+        }
+      ]
+    },
+    {
+      "group": "mesopotamia",
+      "owner": "OTT",
+      "adm1": ["IRQ:Wasit"],
+      "parts": [
+        {
+          "key": "kut",
+          "name": ["Kut", "쿠트"]
+        }
+      ]
+    },
+    {
+      "group": "palestine",
+      "owner": "OTT",
+      "adm1": ["PSX:Gaza Strip", "ISR:HaDarom"],
+      "parts": [
+        {
+          "key": "gaza",
+          "name": ["Gaza", "가자"]
+        }
+      ]
+    },
+    {
+      "group": "palestine",
+      "owner": "OTT",
+      "adm0": ["ISR", "PSX"],
+      "parts": [
+        {
+          "key": "jerusalem",
+          "name": ["Jerusalem", "예루살렘"]
+        }
+      ]
+    },
+    {
+      "group": "palestine",
+      "owner": "OTT",
+      "adm0": ["JOR"],
+      "parts": [
+        {
+          "key": "amman",
+          "name": ["Amman", "암만"]
+        }
+      ]
+    },
+    {
+      "group": "syria",
+      "owner": "OTT",
+      "adm0": ["LBN"],
+      "parts": [
+        {
+          "key": "beirut",
+          "name": ["Beirut", "베이루트"]
+        }
+      ]
+    },
+    {
+      "group": "syria",
+      "owner": "OTT",
+      "adm0": ["SYR"],
+      "parts": [
+        {
+          "key": "damascus",
+          "name": ["Damascus", "다마스쿠스"],
+          "at": [36.6, 33.6]
+        },
+        {
+          "key": "aleppo",
+          "name": ["Aleppo", "알레포"],
+          "at": [38.0, 36.0]
+        }
+      ]
+    },
+    {
+      "group": "colonies",
+      "owner": "DEU",
+      "adm0": ["TGO"],
+      "parts": [
+        {
+          "key": "togo",
+          "name": ["Togo", "토고"]
+        }
+      ]
+    },
+    {
+      "group": "colonies",
+      "owner": "DEU",
+      "adm0": ["CMR"],
+      "parts": [
+        {
+          "key": "kamerun",
+          "name": ["Kamerun", "카메룬"]
+        }
+      ]
+    },
+    {
+      "group": "colonies",
+      "owner": "DEU",
+      "adm0": ["NAM"],
+      "parts": [
+        {
+          "key": "windhoek",
+          "name": ["Windhoek", "빈트후크"]
+        }
+      ]
+    },
+    {
+      "group": "colonies",
+      "owner": "DEU",
+      "adm0": ["TZA", "RWA", "BDI"],
+      "parts": [
+        {
+          "key": "dar_es_salaam",
+          "name": ["Dar es Salaam", "다르에스살람"]
+        }
+      ]
+    }
+  ],
+  "keep": [
+    {
+      "id": 1370,
+      "key": "zara",
+      "name": ["Zara", "자라"],
+      "group": "dalmatia",
+      "owner": "AUH"
+    },
+    {
+      "id": 242,
+      "key": "marijampole",
+      "name": ["Marijampolė", "마리얌폴레"],
+      "group": "baltic",
+      "owner": "RUS"
+    },
+    {
+      "id": 396,
+      "key": "paris",
+      "name": ["Paris", "파리"],
+      "group": "france"
+    },
+    {
+      "id": 356,
+      "key": "rhineland",
+      "name": ["Rhineland", "라인란트"],
+      "group": "rhineland"
+    },
+    {
+      "id": 478,
+      "key": "trento",
+      "name": ["Trento", "트렌토"],
+      "group": "trentino"
+    },
+    {
+      "id": 462,
+      "key": "bozen",
+      "name": ["Bozen", "보첸"],
+      "group": "trentino"
+    },
+    {
+      "id": 306,
+      "key": "berlin",
+      "name": ["Berlin", "베를린"],
+      "group": "germany"
+    },
+    {
+      "id": 267,
+      "key": "hamburg",
+      "name": ["Hamburg", "함부르크"],
+      "group": "germany"
+    },
+    {
+      "id": 322,
+      "key": "cologne",
+      "name": ["Cologne", "쾰른"],
+      "group": "germany"
+    },
+    {
+      "id": 363,
+      "key": "munich",
+      "name": ["Munich", "뮌헨"],
+      "group": "germany"
+    },
+    {
+      "id": 340,
+      "key": "dresden",
+      "name": ["Dresden", "드레스덴"],
+      "group": "germany"
+    },
+    {
+      "id": 335,
+      "key": "breslau",
+      "name": ["Breslau", "브레슬라우"],
+      "group": "silesia"
+    },
+    {
+      "id": 352,
+      "key": "oppeln",
+      "name": ["Oppeln", "오펠른"],
+      "group": "silesia"
+    },
+    {
+      "id": 404,
+      "key": "vienna",
+      "name": ["Vienna", "빈"],
+      "group": "austria"
+    },
+    {
+      "id": 436,
+      "key": "budapest",
+      "name": ["Budapest", "부다페스트"],
+      "group": "hungary"
+    },
+    {
+      "id": 474,
+      "key": "laibach",
+      "name": ["Laibach", "라이바흐"],
+      "group": "austria"
+    },
+    {
+      "id": 471,
+      "key": "zagreb",
+      "name": ["Agram", "아그람"],
+      "group": "croatia"
+    },
+    {
+      "id": 525,
+      "key": "sarajevo",
+      "name": ["Sarajevo", "사라예보"],
+      "group": "bosnia"
+    },
+    {
+      "id": 498,
+      "key": "banja_luka",
+      "name": ["Banja Luka", "바냐루카"],
+      "group": "bosnia"
+    },
+    {
+      "id": 529,
+      "key": "mostar",
+      "name": ["Mostar", "모스타르"],
+      "group": "bosnia"
+    },
+    {
+      "id": 516,
+      "key": "split",
+      "name": ["Spalato", "스팔라토"],
+      "group": "dalmatia"
+    },
+    {
+      "id": 614,
+      "key": "salonika",
+      "name": ["Salonika", "살로니카"],
+      "group": "greece"
+    },
+    {
+      "id": 707,
+      "key": "athens",
+      "name": ["Athens", "아테네"],
+      "group": "greece"
+    },
+    {
+      "id": 564,
+      "key": "sofia",
+      "name": ["Sofia", "소피아"],
+      "group": "bulgaria"
+    },
+    {
+      "id": 571,
+      "key": "plovdiv",
+      "name": ["Philippopolis", "필리포폴리스"],
+      "group": "bulgaria"
+    },
+    {
+      "id": 537,
+      "key": "varna",
+      "name": ["Varna", "바르나"],
+      "group": "bulgaria"
+    },
+    {
+      "id": 503,
+      "key": "bucharest",
+      "name": ["Bucharest", "부쿠레슈티"],
+      "group": "romania"
+    },
+    {
+      "id": 507,
+      "key": "ploesti",
+      "name": ["Ploiești", "플로이에슈티"],
+      "group": "romania"
+    },
+    {
+      "id": 513,
+      "key": "craiova",
+      "name": ["Craiova", "크라이오바"],
+      "group": "romania"
+    },
+    {
+      "id": 510,
+      "key": "constanta",
+      "name": ["Constanța", "콘스탄차"],
+      "group": "romania"
+    },
+    {
+      "id": 426,
+      "key": "iasi",
+      "name": ["Iași", "이아시"],
+      "group": "romania"
+    },
+    {
+      "id": 437,
+      "key": "kishinev",
+      "name": ["Kishinev", "키시뇨프"],
+      "group": "bessarabia"
+    },
+    {
+      "id": 422,
+      "key": "balti",
+      "name": ["Bălți", "벨치"],
+      "group": "bessarabia"
+    },
+    {
+      "id": 479,
+      "key": "akkerman",
+      "name": ["Akkerman", "아케르만"],
+      "group": "bessarabia"
+    },
+    {
+      "id": 256,
+      "key": "kovno",
+      "name": ["Kovno", "코브노"],
+      "group": "baltic"
+    },
+    {
+      "id": 257,
+      "key": "vilna",
+      "name": ["Vilna", "빌나"],
+      "group": "baltic"
+    },
+    {
+      "id": 243,
+      "key": "siauliai",
+      "name": ["Šiauliai", "샤울랴이"],
+      "group": "baltic"
+    },
+    {
+      "id": 244,
+      "key": "panevezys",
+      "name": ["Panevėžys", "파네베지스"],
+      "group": "baltic"
+    },
+    {
+      "id": 216,
+      "key": "windau",
+      "name": ["Windau", "빈다우"],
+      "group": "baltic"
+    },
+    {
+      "id": 213,
+      "key": "mitau",
+      "name": ["Mitau", "미타우"],
+      "group": "baltic"
+    },
+    {
+      "id": 218,
+      "key": "riga",
+      "name": ["Riga", "리가"],
+      "group": "baltic"
+    },
+    {
+      "id": 217,
+      "key": "dvinsk",
+      "name": ["Dvinsk", "드빈스크"],
+      "group": "baltic"
+    },
+    {
+      "id": 269,
+      "key": "grodno",
+      "name": ["Grodno", "그로드노"],
+      "group": "west_russia"
+    },
+    {
+      "id": 268,
+      "key": "baranovichi",
+      "name": ["Baranovichi", "바라노비치"],
+      "group": "west_russia"
+    },
+    {
+      "id": 311,
+      "key": "brest_litovsk",
+      "name": ["Brest-Litovsk", "브레스트리토프스크"],
+      "group": "west_russia"
+    },
+    {
+      "id": 333,
+      "key": "lutsk",
+      "name": ["Lutsk", "루츠크"],
+      "group": "west_russia"
+    },
+    {
+      "id": 334,
+      "key": "rovno",
+      "name": ["Rovno", "로브노"],
+      "group": "west_russia"
+    },
+    {
+      "id": 277,
+      "key": "minsk",
+      "name": ["Minsk", "민스크"],
+      "group": "west_russia"
+    },
+    {
+      "id": 247,
+      "key": "vitebsk",
+      "name": ["Vitebsk", "비텝스크"],
+      "group": "west_russia"
+    },
+    {
+      "id": 341,
+      "key": "zhitomir",
+      "name": ["Zhitomir", "지토미르"],
+      "group": "ukraine"
+    },
+    {
+      "id": 344,
+      "key": "kiev",
+      "name": ["Kiev", "키예프"],
+      "group": "ukraine"
+    },
+    {
+      "id": 364,
+      "key": "kamenets",
+      "name": ["Kamenets", "카메네츠"],
+      "group": "ukraine"
+    },
+    {
+      "id": 385,
+      "key": "vinnitsa",
+      "name": ["Vinnitsa", "빈니차"],
+      "group": "ukraine"
+    },
+    {
+      "id": 163,
+      "key": "petrograd",
+      "name": ["Petrograd", "페트로그라드"],
+      "group": "russia"
+    },
+    {
+      "id": 253,
+      "key": "moscow",
+      "name": ["Moscow", "모스크바"],
+      "group": "russia"
+    },
+    {
+      "id": 608,
+      "key": "kars",
+      "name": ["Kars", "카르스"],
+      "group": "caucasus"
+    },
+    {
+      "id": 632,
+      "key": "erzurum",
+      "name": ["Erzurum", "에르주룸"],
+      "group": "caucasus"
+    },
+    {
+      "id": 624,
+      "key": "erzincan",
+      "name": ["Erzincan", "에르진잔"],
+      "group": "caucasus"
+    },
+    {
+      "id": 656,
+      "key": "bayazid",
+      "name": ["Bayazid", "바야지드"],
+      "group": "caucasus"
+    },
+    {
+      "id": 677,
+      "key": "van",
+      "name": ["Van", "반"],
+      "group": "caucasus"
+    },
+    {
+      "id": 692,
+      "key": "bitlis",
+      "name": ["Bitlis", "비틀리스"],
+      "group": "caucasus"
+    },
+    {
+      "id": 804,
+      "key": "baghdad",
+      "name": ["Baghdad", "바그다드"],
+      "group": "mesopotamia"
+    },
+    {
+      "id": 737,
+      "key": "mosul",
+      "name": ["Mosul", "모술"],
+      "group": "mesopotamia"
+    },
+    {
+      "id": 726,
+      "key": "arbil",
+      "name": ["Erbil", "아르빌"],
+      "group": "mesopotamia"
+    }
+  ],
+  "aliases": {
+    "TUR:Istanbul": "constantinople"
+  }
+}

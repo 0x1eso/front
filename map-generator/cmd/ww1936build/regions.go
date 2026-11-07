@@ -407,7 +407,7 @@ func finishNames(regions []*Region, adm []int32, patch []uint16, admin []Feature
 		r.NameKo += r.suffixKo
 	}
 	for key := range t.RegionNames {
-		if !used[key] {
+		if !used[key] && !t.Loose {
 			return fmt.Errorf("region_names.json: %q matches no region", key)
 		}
 	}

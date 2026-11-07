@@ -70,7 +70,10 @@ type Tables struct {
 	// Optional src/region_names.json: "TAG:generated name" → [name, nameKo].
 	RegionNames map[string][2]string
 	tagIndex    map[string]int // 1-based
-	lowDetail   map[string]bool
+	// Loose: the 1914 overlay drew over 1936's borders, so a place on a
+	// table may lie in a region of another 1936 owner.
+	Loose     bool
+	lowDetail map[string]bool
 }
 
 func readJSON(path string, v any) error {

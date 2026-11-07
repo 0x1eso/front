@@ -215,7 +215,9 @@ func loadIDTable(path string) (map[string]int, error) {
 // owner tag, dropped[i] whether the generator drops it, islandOrder the
 // islands' list positions. Returns the new id of each region, by index, and
 // the new survivors that are not islands.
-func stableIDs(regions []*Region, tags []string, dropped []bool, table map[string]int, islandOrder map[string]int) ([]int, []int, error) {
+// pinned (the 1914 overlay) holds regions whose id is fixed. With it a region
+// of the table may be gone: the overlay drew over it.
+func stableIDs(regions []*Region, tags []string, dropped []bool, table map[string]int, islandOrder map[string]int, pinned map[*Region]int) ([]int, []int, error) {
 	out := make([]int, len(regions))
 	used := map[int]int{} // id → region index
 	next := 1
@@ -225,8 +227,17 @@ func stableIDs(regions []*Region, tags []string, dropped []bool, table map[strin
 	var bad []string
 	var islands, fresh, gone []int
 	for i, r := range regions {
+		if id, ok := pinned[r]; ok {
+			if dropped[i] {
+				bad = append(bad, fmt.Sprintf("place %q: the generator would drop it", r.Name))
+			}
+			out[i] = id
+			continue
+		}
 		id, ok := table[idKey(tags[i], r.Name)]
 		switch {
+		case ok && pinned != nil && dropped[i]:
+			gone = append(gone, i)
 		case ok && !dropped[i]:
 			if j, dup := used[id]; dup {
 				bad = append(bad, fmt.Sprintf("id %d twice: %q and %q", id, regions[j].Name, r.Name))
@@ -244,7 +255,7 @@ func stableIDs(regions []*Region, tags []string, dropped []bool, table map[strin
 		}
 	}
 	for k, id := range table {
-		if _, ok := used[id]; !ok {
+		if _, ok := used[id]; !ok && pinned == nil {
 			parts := strings.SplitN(k, "\x00", 2)
 			bad = append(bad, fmt.Sprintf("region %d %s %q of scenario.json has no region now", id, parts[0], parts[1]))
 		}

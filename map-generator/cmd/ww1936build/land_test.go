@@ -262,7 +262,7 @@ func TestExistingRegionIdsAreKept(t *testing.T) {
 	dropped := []bool{false, false, false, true, false, false}
 	table := map[string]int{idKey("AAA", "South"): 2, idKey("AAA", "North"): 5}
 	order := map[string]int{"reef": 0, "rock": 1}
-	ids, fresh, err := stableIDs(regions, tags, dropped, table, order)
+	ids, fresh, err := stableIDs(regions, tags, dropped, table, order, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -274,12 +274,12 @@ func TestExistingRegionIdsAreKept(t *testing.T) {
 	}
 	// A table region that is gone, or that the generator would drop, fails.
 	table[idKey("AAA", "East")] = 3
-	if _, _, err := stableIDs(regions, tags, dropped, table, order); err == nil || !strings.Contains(err.Error(), `"East" of scenario.json has no region now`) {
+	if _, _, err := stableIDs(regions, tags, dropped, table, order, nil); err == nil || !strings.Contains(err.Error(), `"East" of scenario.json has no region now`) {
 		t.Fatalf("err = %v", err)
 	}
 	delete(table, idKey("AAA", "East"))
 	table[idKey("AAA", "Islet")] = 4
-	if _, _, err := stableIDs(regions, tags, dropped, table, order); err == nil || !strings.Contains(err.Error(), "would drop it") {
+	if _, _, err := stableIDs(regions, tags, dropped, table, order, nil); err == nil || !strings.Contains(err.Error(), "would drop it") {
 		t.Fatalf("err = %v", err)
 	}
 }

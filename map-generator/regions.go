@@ -284,6 +284,10 @@ type srcRegion struct {
 	// formula of buildScenario adds the rest.
 	Port   bool   `json:"port,omitempty"`
 	Island string `json:"island,omitempty"`
+	// The 1914 set (scenarios/world1914): the place content names, and the
+	// region's owner in 1914.
+	Place   string `json:"place,omitempty"`
+	GwOwner string `json:"gwOwner,omitempty"`
 	// Version 4: the land strategic region, the harbour zone the tool
 	// computed (buildScenario checks it against the final tiles) and the
 	// hand start levels (navalBases1936.json, coastalForts1936.json, the
@@ -413,6 +417,8 @@ type outRegion struct {
 	VPTile  [2]int `json:"vpTile"`
 	Tiles   int    `json:"tiles"`
 	Terrain string `json:"terrain"`
+	Place   string `json:"place,omitempty"`
+	GwOwner string `json:"gwOwner,omitempty"`
 	Economy
 	outLand
 	*outV4
@@ -651,7 +657,7 @@ func buildScenario(src scenarioSrc, ids []uint16, packed []byte, w, h int) (scen
 				class = k
 			}
 		}
-		o := outRegion{ID: r.ID, Name: r.Name, NameKo: r.NameKo, Owner: r.Owner, VP: r.VP, VPTile: vpTile, Tiles: tiles[r.ID], Terrain: terrainClasses[class], Economy: r.Economy}
+		o := outRegion{ID: r.ID, Name: r.Name, NameKo: r.NameKo, Owner: r.Owner, VP: r.VP, VPTile: vpTile, Tiles: tiles[r.ID], Terrain: terrainClasses[class], Place: r.Place, GwOwner: r.GwOwner, Economy: r.Economy}
 		o.Coastal = coastal[r.ID]
 		o.outLand = outLand{Land: r.Land, Center: vpTile, LatC: r.LatC, WCell: r.WCell, Rail: r.Rail, Fort: r.Fort, Island: r.Island}
 		if o.Land == "" {

@@ -24,6 +24,7 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
@@ -53,6 +54,9 @@ func main() {
 	srTiles := flag.Int("sr-tiles", srMaxTiles, "most land tiles in a land strategic region's share while seeds are added")
 	crosscheck := flag.String("crosscheck", "", "a historical-basemaps GeoJSON to compare the owners with (prints a report, writes nothing)")
 	bootstrap := flag.Bool("bootstrap-cities", false, "write src/vp_cities.json from Natural Earth populated places and exit")
+	overlayPath := flag.String("overlay", "", "scenarios/world1914/src/regions1914.json: draw the 1914 places over the regions")
+	owners1914 := flag.String("owners1914", "../resources/maps/world1936/owners1914.json", "with -overlay: the 1914 owners of the regions that stay")
+	outPlaces := flag.String("out-places", "../packages/engine-api/src/ww1914/GwPlaces.gen.ts", "with -overlay: the places as TypeScript")
 	debugPNG := flag.String("debug-png", "", "also draw owners and region edges to this PNG")
 	flag.Parse()
 
@@ -152,6 +156,21 @@ func main() {
 	regions, donors := carveIslands(regions, landIDs, adm, owner, islandRows, places, t)
 	regions, carveDonors, err := carveUnits(regions, landIDs, adm, owner, admin, t)
 	must(err)
+	var overlay *Overlay
+	var pinned map[*Region]int
+	var overlayPlaces map[*Region]OverlayPlace
+	if *overlayPath != "" {
+		overlay, err = loadOverlay(*overlayPath)
+		must(err)
+		regions, pinned, overlayPlaces, err = applyOverlay(p, regions, landIDs, adm, owner, admin, overlay)
+		must(err)
+		// The 1914 set draws over 1936's borders and nothing reads 1936's
+		// economy on it: the tables that name 1936's places stay out.
+		t.Loose = true
+		sites, industry = nil, Industry{}
+		railTbl, fortTbl, terrTbl = RegionLevels{}, RegionLevels{}, TerrainTable{}
+		baseTbl, energyTbl, landmarkTbl = BaseTables{}, EnergyTable{}, LandmarkTable{}
+	}
 	islandOrder := map[string]int{}
 	for k, r := range islandRows {
 		islandOrder[r.Key] = k
@@ -191,7 +210,7 @@ func main() {
 		regionTags[i] = tags[r.Owner-1]
 		dropped[i] = eco[i].Dropped
 	}
-	newIDs, fresh, err := stableIDs(regions, regionTags, dropped, table, islandOrder)
+	newIDs, fresh, err := stableIDs(regions, regionTags, dropped, table, islandOrder, pinned)
 	must(err)
 	idOf := make([]uint16, len(regions)+1)
 	for i, r := range regions {
@@ -235,6 +254,15 @@ func main() {
 			byName[tags[r.Owner-1]+":"+r.Name] = r.ID
 		}
 	}
+	if overlay != nil {
+		for name, key := range overlay.Aliases {
+			for r, pl := range overlayPlaces {
+				if pl.Key == key {
+					byName[name] = r.ID
+				}
+			}
+		}
+	}
 	for _, r := range regions {
 		if r.Island != "" && len(lists.of(r.ID)) == 0 {
 			log.Fatalf("island %s (%s) does not survive the generator", r.Island, r.Name)
@@ -255,7 +283,7 @@ func main() {
 	must(err)
 	step("graphs")
 	sr, err := buildStrategic(p, final, lists, StrategicInput{
-		Regions: regions, Tags: tags, Seas: seas, Land: lg, Sea: sg, SeaRows: seaRegions, Seeds: seeds,
+		Loose: t.Loose, Regions: regions, Tags: tags, Seas: seas, Land: lg, Sea: sg, SeaRows: seaRegions, Seeds: seeds,
 		MaxRegions: *srRegions, MaxTiles: *srTiles,
 	})
 	must(err)
@@ -270,16 +298,33 @@ func main() {
 	rows := buildRows(p)
 	step("strategic regions")
 	v5, err := buildV5(p, final, V5Input{
-		Energy: energyTbl, Landmarks: landmarkTbl, Regions: regions, Tags: tags, Admin: admin, ByName: byName, Edges: lg.Edges,
+		Loose: t.Loose, Energy: energyTbl, Landmarks: landmarkTbl, Regions: regions, Tags: tags, Admin: admin, ByName: byName, Edges: lg.Edges,
 	})
 	must(err)
 
 	sort.Slice(regions, func(a, b int) bool { return regions[a].ID < regions[b].ID })
+	var placeOf map[int]OverlayPlace
+	var gwOwner map[int]string
+	if overlay != nil {
+		var o1914 Owners1914
+		data, err := os.ReadFile(*owners1914)
+		must(err)
+		must(json.Unmarshal(data, &o1914))
+		placeOf, gwOwner, err = overlayFinish(regions, tags, overlay, overlayPlaces, o1914)
+		must(err)
+		for id, pl := range placeOf {
+			if len(lists.of(id)) == 0 {
+				log.Fatalf("place %s (%d) has no tile on the final map", pl.Key, id)
+			}
+		}
+		must(writePlaces(*outPlaces, placeOf, func(id int) [2]int { c := lg.V3[id].Center; return [2]int{c % w, c / w} }))
+	}
 	must(os.MkdirAll(*outDir, 0755))
 	must(writeRegionsPNG(filepath.Join(*outDir, "regions.png"), p, landIDs, seaIDs))
 	must(writeScenarioSrc(filepath.Join(*outDir, "scenario.src.json"), ScenarioSrcInput{
 		P: p, T: t, Rows: ecoRows, Capitals: capitals, Regions: regions, Eco: ecoByID, Seas: seas,
 		Land: lg, Sea: sg, Islands: islandRows, Places: places, SR: sr, Bases: bases, RowTable: rows, V5: v5,
+		PlaceOf: placeOf, GwOwner: gwOwner,
 	}))
 	step("written")
 

@@ -55,6 +55,11 @@ func discoverMaps() ([]mapEntry, error) {
 // mapsFlag holds the comma-separated list of map names passed via the --maps command-line argument.
 var mapsFlag string
 
+// scenarioFlag is "<scenario>:<map>": only the files of scenarios/<scenario>,
+// on the terrain already written for <map>, into resources/maps/<scenario>.
+// The 1914 set has no terrain of its own, so it is no map of the game.
+var scenarioFlag string
+
 // workersFlag controls how many maps are processed concurrently, bounding peak memory usage.
 var workersFlag int
 
@@ -257,6 +262,45 @@ func processMap(ctx context.Context, name string, isTest bool) ([]string, error)
 	return append([]string{manifestOutPath}, written...), nil
 }
 
+// writeScenarioOnly writes a scenario's regions.bin and scenario.json on the
+// terrain of a map already generated.
+func writeScenarioOnly(arg string) error {
+	name, terrain, ok := strings.Cut(arg, ":")
+	if !ok {
+		return fmt.Errorf("--scenario wants <scenario>:<map>, not %q", arg)
+	}
+	base, err := outputMapDir(false)
+	if err != nil {
+		return err
+	}
+	packed, err := os.ReadFile(filepath.Join(base, terrain, "map.bin"))
+	if err != nil {
+		return err
+	}
+	data, err := os.ReadFile(filepath.Join(base, terrain, "manifest.json"))
+	if err != nil {
+		return err
+	}
+	var manifest struct {
+		Map struct {
+			Width  int `json:"width"`
+			Height int `json:"height"`
+		} `json:"map"`
+	}
+	if err := json.Unmarshal(data, &manifest); err != nil {
+		return err
+	}
+	dir := filepath.Join(base, name)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return err
+	}
+	_, notes, err := writeScenarioFiles(name, dir, packed, manifest.Map.Width, manifest.Map.Height)
+	for _, note := range notes {
+		log.Println(note)
+	}
+	return err
+}
+
 // parseMapsFlag validates and parses the --maps command-line argument.
 // It returns a set of selected map names or nil if no flag was provided (implying all maps).
 func parseMapsFlag() (map[string]bool, error) {
@@ -345,7 +389,15 @@ func main() {
 	flag.BoolVar(&logFlags.verbose, "v", false, "-verbose shorthand")
 	flag.BoolVar(&logFlags.performance, "log-performance", false, "Adds additional logging for performance-based recommendations, sets log-level=DEBUG")
 	flag.BoolVar(&logFlags.removal, "log-removal", false, "Adds additional logging of removed island and lake position/size, sets log-level=DEBUG")
+	flag.StringVar(&scenarioFlag, "scenario", "", "only a scenario's files on a map's terrain, ex: --scenario=world1914:world1936")
 	flag.Parse()
+
+	if scenarioFlag != "" {
+		if err := writeScenarioOnly(scenarioFlag); err != nil {
+			log.Fatal(err)
+		}
+		return
+	}
 
 	logger := slog.New(NewGeneratorLogger(
 		os.Stdout,
