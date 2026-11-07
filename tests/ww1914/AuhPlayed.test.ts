@@ -49,6 +49,22 @@ describe("what an Austrian run on the screen showed", () => {
     expect(s.warChapter).not.toBeNull();
   });
 
+  test("a later spark brings Vienna a paper that can end it, at a price", async () => {
+    const { gw, s, seat } = await game();
+    seat.tag = "AUH";
+    const id = "auh_c_spark_answer";
+    const dealt = () => deskCandidates(gw, seat).some((c) => c.scene.id === id);
+    s.chain = { topic: "straits", step: 3, hold: 0, short: false };
+    s.crisis = "straits";
+    expect(dealt()).toBe(false);
+    s.chain.short = true;
+    expect(dealt()).toBe(true);
+    expect(gwSceneProblems(scene(id))).toEqual([]);
+    const give = scene(id).options!.find((o) => o.id === "give_way")!;
+    expect(give.tell).toContain("ends_crisis");
+    expect(JSON.stringify(give.effects)).toContain("close_chain");
+  });
+
   test("with nothing signed, July still closes at Vienna's desk", async () => {
     const { gw, s, seat } = await game();
     seat.tag = "AUH";

@@ -1053,6 +1053,39 @@ const SCENES: readonly GwScene[] = [
       ],
     },
   ),
+  // July's papers come once. A later spark has its own: Vienna can still say no,
+  // and pay for it, or a careful seat has nothing to keep the peace with.
+  scene(
+    "auh_c_spark_answer",
+    "crisis",
+    9,
+    ["foreign", "tension_down"],
+    { fm: { office: "foreign" }, cos: { office: "chief_of_staff" } },
+    { kind: "world", of: { is: "chain", min: 3, max: 4, short: true } },
+    [
+      v("balkan", crisis),
+      v("straits", { kind: "crisis", topic: "straits" }),
+      base,
+    ],
+    {
+      stage: ["crisis", "y1914", "war"],
+      once: false,
+      cooldown: 3,
+      fallback: "stand",
+      options: [
+        opt("stand", ["temp:+1", "army:+1"], [temp(1), army(1)]),
+        opt(
+          "give_way",
+          ["ends_crisis", "army:-1", "deu:-1"],
+          [
+            army(-1),
+            trust("DEU", -1),
+            act({ do: "close_chain", outcome: "compromise" }),
+          ],
+        ),
+      ],
+    },
+  ),
   scene(
     "auh_c_grey_conference",
     "proposal",

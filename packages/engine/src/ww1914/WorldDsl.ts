@@ -63,7 +63,8 @@ export function worldHolds(ctx: SceneCtx, c: GwWorldCond): boolean {
     case "known":
       return seat.known.includes(c.id);
     case "chain":
-      return s.chain !== null && inRange(s.chain.step, c);
+      if (s.chain === null || !inRange(s.chain.step, c)) return false;
+      return c.short === undefined || s.chain.short === c.short;
     case "chain_end":
       return s.chains.some((x) => c.of.includes(x.outcome));
     case "war":

@@ -70,7 +70,7 @@ export type GwWorldCond =
   /** A secret the seat has found. `secret` (SceneDsl) asks if it exists. */
   | { is: "known"; id: GwSecret }
   /** The open crisis's link. */
-  | ({ is: "chain" } & Range)
+  | ({ is: "chain"; short?: boolean } & Range)
   /** How a crisis closed, any crisis this game. */
   | { is: "chain_end"; of: GwChainOutcome[] }
   /** The seat's country is at war with anyone. */
