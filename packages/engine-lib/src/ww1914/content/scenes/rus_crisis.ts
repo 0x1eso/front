@@ -3555,9 +3555,39 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     once: true,
     summon: true,
     who: "p",
-    variants: [{ id: "base" }],
+    variants: [{ id: "dogs" }, { id: "base" }],
     start: "open",
+    starts: { dogs: "n_dogs" },
     nodes: {
+      n_dogs: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "stand",
+            stance: "frank",
+            kind: "deal",
+            tell: [],
+            effects: [{ kind: "remember", key: "k_nik_sisters" }],
+            next: "table",
+          },
+          {
+            id: "wait",
+            stance: "warm",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "hunt",
+          },
+          {
+            id: "hurt",
+            stance: "cold",
+            kind: "push",
+            tell: [],
+            effects: [],
+            next: "hurt",
+          },
+        ],
+      },
       open: {
         says: [
           {
@@ -4555,9 +4585,39 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     once: true,
     summon: true,
     who: "p",
-    variants: [{ id: "base" }],
+    variants: [{ id: "top" }, { id: "base" }],
     start: "open",
+    starts: { top: "g_top" },
     nodes: {
+      g_top: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "yes",
+            stance: "cold",
+            kind: "push",
+            tell: [],
+            effects: [{ kind: "remember", key: "k_gor_duma" }],
+            next: "day",
+          },
+          {
+            id: "why",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "use",
+          },
+          {
+            id: "no",
+            stance: "warm",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
       open: {
         says: [
           {
@@ -4711,9 +4771,52 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     once: true,
     summon: true,
     who: "p",
-    variants: [{ id: "base" }],
+    variants: [{ id: "doze" }, { id: "base" }],
     start: "open",
+    starts: { doze: "g_doze" },
     nodes: {
+      g_doze: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "ask",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "line",
+          },
+          {
+            id: "wake",
+            stance: "cold",
+            kind: "push",
+            tell: [],
+            effects: [],
+            next: "g_wake",
+          },
+          {
+            id: "let",
+            stance: "warm",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      g_wake: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "note",
+            stance: "frank",
+            kind: "leave",
+            tell: [],
+            effects: [{ kind: "remember", key: "k_gor_kriv" }],
+            next: null,
+          },
+        ],
+      },
       open: {
         says: [
           {
@@ -5230,9 +5333,134 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     tags: ["people"],
     once: true,
     who: "p",
-    variants: [{ id: "base" }],
+    variants: [{ id: "asks" }, { id: "paper" }, { id: "base" }],
     start: "open",
+    starts: {
+      paper: "d_paper",
+      asks: "d_asks",
+    },
     nodes: {
+      d_paper: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "take",
+            stance: "warm",
+            kind: "deal",
+            tell: [],
+            effects: [{ kind: "remember", key: "k_durnovo_memo" }],
+            next: null,
+          },
+          {
+            id: "why",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "d_why",
+          },
+          {
+            id: "leave",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      d_why: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "end",
+            stance: "frank",
+            kind: "leave",
+            tell: [],
+            effects: [{ kind: "remember", key: "k_durnovo_memo" }],
+            next: null,
+          },
+        ],
+      },
+      d_asks: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "all",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "d_all",
+          },
+          {
+            id: "half",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "d_half",
+          },
+          {
+            id: "none",
+            stance: "warm",
+            kind: "deal",
+            tell: [],
+            effects: [{ kind: "remember", key: "k_durnovo_memo" }],
+            next: "steps",
+          },
+          {
+            id: "pride",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      d_all: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "again",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [{ kind: "remember", key: "k_durnovo_memo" }],
+            next: "steps",
+          },
+          {
+            id: "end",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      d_half: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "go",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [{ kind: "remember", key: "k_durnovo_memo" }],
+            next: "steps",
+          },
+          {
+            id: "end",
+            stance: "warm",
+            kind: "leave",
+            tell: [],
+            effects: [{ kind: "remember", key: "k_durnovo_memo" }],
+            next: null,
+          },
+        ],
+      },
       open: {
         says: [
           {
@@ -5362,9 +5590,113 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     tags: ["people"],
     once: true,
     who: "p",
-    variants: [{ id: "base" }],
+    variants: [{ id: "sit" }, { id: "long" }, { id: "base" }],
     start: "open",
+    starts: {
+      long: "w_long",
+      sit: "w_sit",
+    },
     nodes: {
+      w_long: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "go",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "w_long2",
+          },
+          {
+            id: "stop",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      w_long2: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "go",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [{ kind: "remember", key: "k_witte_peace" }],
+            next: "price",
+          },
+          {
+            id: "cut",
+            stance: "threat",
+            kind: "push",
+            tell: [],
+            effects: [],
+            next: "insult",
+          },
+        ],
+      },
+      w_sit: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "truth",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "w_seat",
+          },
+          {
+            id: "sorry",
+            stance: "warm",
+            kind: "ask",
+            tell: ["trust:+1"],
+            effects: [{ kind: "person_trust", who: { role: "p" }, delta: 1 }],
+            next: "w_seat",
+          },
+          {
+            id: "sir",
+            stance: "cold",
+            kind: "push",
+            tell: [],
+            effects: [],
+            next: "insult",
+          },
+          {
+            id: "leave",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      w_seat: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "go",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [{ kind: "remember", key: "k_witte_peace" }],
+            next: "price",
+          },
+          {
+            id: "end",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
       open: {
         says: [
           {
@@ -5479,9 +5811,95 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     tags: ["people"],
     once: true,
     who: "p",
-    variants: [{ id: "base" }],
+    variants: [{ id: "turn" }, { id: "cut" }, { id: "base" }],
     start: "open",
+    starts: {
+      cut: "p_cut",
+      turn: "p_turn",
+    },
     nodes: {
+      p_cut: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "ok",
+            stance: "warm",
+            kind: "leave",
+            tell: [],
+            effects: [{ kind: "remember", key: "k_paleo_hint" }],
+            next: null,
+          },
+          {
+            id: "end",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      p_turn: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "word",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [{ kind: "remember", key: "k_paleo_hint" }],
+            next: "hint",
+          },
+          {
+            id: "no",
+            stance: "cold",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "p_no",
+          },
+          {
+            id: "deal",
+            stance: "warm",
+            kind: "deal",
+            tell: ["fra:+1"],
+            effects: [
+              { kind: "remember", key: "k_paleo_hint" },
+              { kind: "trust", tag: "FRA", delta: 1 },
+            ],
+            next: "hint",
+          },
+          {
+            id: "leave",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      p_no: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "stop",
+            stance: "warm",
+            kind: "deal",
+            tell: [],
+            effects: [{ kind: "remember", key: "k_paleo_hint" }],
+            next: "hint",
+          },
+          {
+            id: "end",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
       open: {
         says: [{ id: "base" }],
         replies: [
@@ -5718,9 +6136,39 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     tags: ["people"],
     once: true,
     who: "p",
-    variants: [{ id: "base" }],
+    variants: [{ id: "silent" }, { id: "base" }],
     start: "open",
+    starts: { silent: "b_silent" },
     nodes: {
+      b_silent: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "ask",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [{ kind: "remember", key: "k_buchanan_line" }],
+            next: "cabinet",
+          },
+          {
+            id: "price",
+            stance: "cold",
+            kind: "push",
+            tell: [],
+            effects: [{ kind: "remember", key: "k_buchanan_line" }],
+            next: "correct",
+          },
+          {
+            id: "leave",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
       open: {
         says: [{ id: "base" }],
         replies: [
@@ -5840,9 +6288,60 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     tags: ["people"],
     once: true,
     who: "p",
-    variants: [{ id: "base" }],
+    variants: [{ id: "paper" }, { id: "base" }],
     start: "open",
+    starts: { paper: "p_paper" },
     nodes: {
+      p_paper: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "yes",
+            stance: "warm",
+            kind: "ask",
+            tell: [],
+            effects: [{ kind: "remember", key: "k_willy_trust" }],
+            next: "willy",
+          },
+          {
+            id: "no",
+            stance: "cold",
+            kind: "push",
+            tell: [],
+            effects: [],
+            next: "p_no",
+          },
+          {
+            id: "ask",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "berlin",
+          },
+        ],
+      },
+      p_no: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "end",
+            stance: "warm",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+          {
+            id: "end2",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
       open: {
         says: [
           { id: "low", when: { kind: "trust", tag: "DEU", max: -1 } },

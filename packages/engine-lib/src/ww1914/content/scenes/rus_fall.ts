@@ -4737,12 +4737,89 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
     summon: true,
     who: "p",
     variants: [
+      { id: "loud" },
+      { id: "asks" },
       {
         id: "base",
       },
     ],
     start: "open",
+    starts: {
+      asks: "r_asks",
+      loud: "r_loud",
+    },
     nodes: {
+      r_asks: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "no",
+            stance: "warm",
+            kind: "deal",
+            tell: [],
+            effects: [],
+            next: "file",
+          },
+          {
+            id: "maybe",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "file",
+          },
+          {
+            id: "leave",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      r_loud: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "sit",
+            stance: "warm",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "file",
+          },
+          {
+            id: "hold",
+            stance: "cold",
+            kind: "push",
+            tell: [],
+            effects: [],
+            next: "r_low",
+          },
+        ],
+      },
+      r_low: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "open",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "file",
+          },
+          {
+            id: "leave",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
       open: {
         says: [
           {
@@ -10696,12 +10773,43 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
     once: true,
     who: "p",
     variants: [
+      { id: "asks" },
       {
         id: "base",
       },
     ],
     start: "open",
+    starts: { asks: "b_asks" },
     nodes: {
+      b_asks: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "none",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "wall",
+          },
+          {
+            id: "reports",
+            stance: "cold",
+            kind: "push",
+            tell: [],
+            effects: [],
+            next: "wall",
+          },
+          {
+            id: "leave",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
       open: {
         says: [
           {

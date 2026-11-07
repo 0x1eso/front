@@ -2673,9 +2673,39 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     once: true,
     summon: true,
     who: "p",
-    variants: [{ id: "base" }],
+    variants: [{ id: "count" }, { id: "base" }],
     start: "open",
+    starts: { count: "a_count" },
     nodes: {
+      a_count: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "ask",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "rot",
+          },
+          {
+            id: "deal",
+            stance: "warm",
+            kind: "deal",
+            tell: [],
+            effects: [{ kind: "remember", key: "k_alek_garrison" }],
+            next: "deal",
+          },
+          {
+            id: "leave",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
       open: {
         says: [
           {
@@ -3970,9 +4000,84 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     once: true,
     summon: true,
     who: "p",
-    variants: [{ id: "base" }],
+    variants: [{ id: "sheet" }, { id: "base" }],
     start: "open",
+    starts: { sheet: "p_sheet" },
     nodes: {
+      p_sheet: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "book",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "books",
+          },
+          {
+            id: "man",
+            stance: "warm",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "p_man",
+          },
+          {
+            id: "read",
+            stance: "cold",
+            kind: "deal",
+            tell: [],
+            effects: [{ kind: "remember", key: "k_poli_books" }],
+            next: "books",
+          },
+          {
+            id: "go",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
+      p_man: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "who",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [
+              { kind: "remember", key: "k_poli_books" },
+              { kind: "remember", key: "k_guch_door" },
+            ],
+            next: "p_who",
+          },
+          {
+            id: "end",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [{ kind: "remember", key: "k_poli_books" }],
+            next: null,
+          },
+        ],
+      },
+      p_who: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "end",
+            stance: "frank",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
       open: {
         says: [
           {
@@ -5784,9 +5889,60 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     tags: ["people"],
     once: true,
     who: "p",
-    variants: [{ id: "base" }],
+    variants: [{ id: "dates" }, { id: "base" }],
     start: "open",
+    starts: { dates: "d_dates" },
     nodes: {
+      d_dates: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "nw",
+            stance: "frank",
+            kind: "deal",
+            tell: [],
+            effects: [{ kind: "remember", key: "k_danilov_nw" }],
+            next: "deal",
+          },
+          {
+            id: "sw",
+            stance: "cold",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "alek",
+          },
+          {
+            id: "both",
+            stance: "warm",
+            kind: "push",
+            tell: [],
+            effects: [],
+            next: "d_both",
+          },
+        ],
+      },
+      d_both: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "back",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "rail",
+          },
+          {
+            id: "end",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
       open: {
         says: [
           {
@@ -5917,9 +6073,44 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     tags: ["people"],
     once: true,
     who: "p",
-    variants: [{ id: "base" }],
+    variants: [{ id: "hands" }, { id: "base" }],
     start: "open",
+    starts: { hands: "y_hands" },
     nodes: {
+      y_hands: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "took",
+            stance: "frank",
+            kind: "deal",
+            tell: [],
+            effects: [{ kind: "remember", key: "k_yan_letter" }],
+            next: null,
+          },
+          {
+            id: "ask",
+            stance: "warm",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "y_none",
+          },
+        ],
+      },
+      y_none: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "end",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [{ kind: "remember", key: "k_yan_letter" }],
+            next: null,
+          },
+        ],
+      },
       open: {
         says: [
           {
@@ -6166,9 +6357,39 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     tags: ["people"],
     once: true,
     who: "p",
-    variants: [{ id: "base" }],
+    variants: [{ id: "date" }, { id: "base" }],
     start: "open",
+    starts: { date: "k_date" },
     nodes: {
+      k_date: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "pick",
+            stance: "warm",
+            kind: "deal",
+            tell: [],
+            effects: [{ kind: "remember", key: "k_kolchak_bosporus" }],
+            next: "deal",
+          },
+          {
+            id: "why",
+            stance: "cold",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "how",
+          },
+          {
+            id: "go",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
       open: {
         says: [
           {
@@ -6279,9 +6500,47 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     tags: ["people"],
     once: true,
     who: "p",
-    variants: [{ id: "base" }],
+    variants: [{ id: "two_sheets" }, { id: "base" }],
     start: "open",
+    starts: { two_sheets: "e_two" },
     nodes: {
+      e_two: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "left",
+            stance: "cold",
+            kind: "push",
+            tell: [],
+            effects: [{ kind: "remember", key: "k_evert_doubt" }],
+            next: "both",
+          },
+          {
+            id: "right",
+            stance: "warm",
+            kind: "deal",
+            tell: [],
+            effects: [{ kind: "remember", key: "k_evert_doubt" }],
+            next: "deal",
+          },
+          {
+            id: "ask",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "both",
+          },
+          {
+            id: "leave",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
       open: {
         says: [
           {
