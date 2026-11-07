@@ -1721,6 +1721,120 @@
       "key": "arbil",
       "name": ["Erbil", "아르빌"],
       "group": "mesopotamia"
+    },
+    {
+      "id": 329,
+      "key": "london",
+      "name": ["London", "런던"],
+      "group": "britain"
+    },
+    {
+      "id": 576,
+      "key": "rome",
+      "name": ["Rome", "로마"],
+      "group": "italy"
+    },
+    {
+      "id": 288,
+      "key": "dublin",
+      "name": ["Dublin", "더블린"],
+      "group": "ireland"
+    },
+    {
+      "id": 239,
+      "key": "glasgow",
+      "name": ["Glasgow", "글래스고"],
+      "group": "britain"
+    },
+    {
+      "id": 289,
+      "key": "manchester",
+      "name": ["Manchester", "맨체스터"],
+      "group": "britain"
+    },
+    {
+      "id": 337,
+      "key": "portsmouth",
+      "name": ["Portsmouth", "포츠머스"],
+      "group": "britain"
+    },
+    {
+      "id": 172,
+      "key": "scapa_flow",
+      "name": ["Scapa Flow", "스캐파플로"],
+      "group": "britain"
+    },
+    {
+      "id": 1365,
+      "key": "heligoland",
+      "name": ["Heligoland", "헬골란트"],
+      "group": "germany"
+    },
+    {
+      "id": 429,
+      "key": "odessa",
+      "name": ["Odessa", "오데사"],
+      "group": "ukraine"
+    },
+    {
+      "id": 490,
+      "key": "sevastopol",
+      "name": ["Sevastopol", "세바스토폴"],
+      "group": "ukraine"
+    },
+    {
+      "id": 601,
+      "key": "tiflis",
+      "name": ["Tiflis", "티플리스"],
+      "group": "caucasus"
+    },
+    {
+      "id": 662,
+      "key": "washington",
+      "name": ["Washington", "워싱턴"],
+      "group": "america"
+    },
+    {
+      "id": 758,
+      "key": "tokyo",
+      "name": ["Tokyo", "도쿄"],
+      "group": "japan"
+    },
+    {
+      "id": 767,
+      "key": "cairo",
+      "name": ["Cairo", "카이로"],
+      "group": "egypt"
+    },
+    {
+      "id": 839,
+      "key": "delhi",
+      "name": ["Delhi", "델리"],
+      "group": "india"
+    },
+    {
+      "id": 617,
+      "key": "madrid",
+      "name": ["Madrid", "마드리드"],
+      "group": "spain"
+    },
+    {
+      "id": 440,
+      "key": "bern",
+      "name": ["Bern", "베른"],
+      "group": "switzerland"
+    },
+    {
+      "id": 178,
+      "key": "stockholm",
+      "name": ["Stockholm", "스톡홀름"],
+      "group": "sweden"
+    },
+    {
+      "id": 305,
+      "key": "amsterdam",
+      "name": ["Amsterdam", "암스테르담"],
+      "group": "netherlands"
     }
   ],
   "aliases": {

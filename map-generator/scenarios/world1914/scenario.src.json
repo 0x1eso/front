@@ -4492,8 +4492,8 @@
     },
     {
       "id": 172,
-      "name": "Highland",
-      "nameKo": "하일랜드",
+      "name": "Scapa Flow",
+      "nameKo": "스캐파플로",
       "owner": "GBR",
       "vp": 0,
       "cat": "rural",
@@ -4511,6 +4511,7 @@
       "wcell": 413,
       "rail": 3,
       "fort": 0,
+      "place": "scapa_flow",
       "gwOwner": "GBR",
       "sr": 27,
       "harbor": 40040
@@ -4638,6 +4639,7 @@
       "wcell": 415,
       "rail": 3,
       "fort": 0,
+      "place": "stockholm",
       "gwOwner": "SWE",
       "sr": 26,
       "harbor": 40041
@@ -6121,6 +6123,7 @@
       "wcell": 413,
       "rail": 3,
       "fort": 0,
+      "place": "glasgow",
       "gwOwner": "GBR",
       "sr": 27,
       "harbor": 40151
@@ -7187,6 +7190,7 @@
       "wcell": 413,
       "rail": 1,
       "fort": 0,
+      "place": "dublin",
       "gwOwner": "GBR",
       "sr": 38,
       "harbor": 40151
@@ -7213,6 +7217,7 @@
       "wcell": 413,
       "rail": 3,
       "fort": 0,
+      "place": "manchester",
       "gwOwner": "GBR",
       "sr": 36,
       "harbor": 40046
@@ -7565,8 +7570,8 @@
     },
     {
       "id": 305,
-      "name": "Noord-Holland",
-      "nameKo": "노르트홀란트",
+      "name": "Amsterdam",
+      "nameKo": "암스테르담",
       "owner": "NLD",
       "vp": 21,
       "vpTile": [2054, 632],
@@ -7585,6 +7590,7 @@
       "wcell": 414,
       "rail": 3,
       "fort": 0,
+      "place": "amsterdam",
       "gwOwner": "NLD",
       "sr": 45,
       "harbor": 40046
@@ -8053,6 +8059,7 @@
       "wcell": 413,
       "rail": 4,
       "fort": 0,
+      "place": "london",
       "gwOwner": "GBR",
       "sr": 46,
       "harbor": 40046
@@ -8231,8 +8238,8 @@
     },
     {
       "id": 337,
-      "name": "Hampshire",
-      "nameKo": "햄프셔",
+      "name": "Portsmouth",
+      "nameKo": "포츠머스",
       "owner": "GBR",
       "vp": 0,
       "cat": "large_town",
@@ -8250,6 +8257,7 @@
       "wcell": 413,
       "rail": 3,
       "fort": 0,
+      "place": "portsmouth",
       "gwOwner": "GBR",
       "sr": 46,
       "harbor": 40150
@@ -9946,6 +9954,7 @@
       "wcell": 381,
       "rail": 2,
       "fort": 0,
+      "place": "odessa",
       "gwOwner": "RUS",
       "sr": 49,
       "harbor": 40059
@@ -10172,6 +10181,7 @@
       "wcell": 378,
       "rail": 3,
       "fort": 0,
+      "place": "bern",
       "gwOwner": "CHE",
       "sr": 53
     },
@@ -11181,8 +11191,8 @@
     },
     {
       "id": 490,
-      "name": "Crimea",
-      "nameKo": "크림 자치 공화국",
+      "name": "Sevastopol",
+      "nameKo": "세바스토폴",
       "owner": "SUN",
       "vp": 0,
       "cat": "town",
@@ -11200,6 +11210,7 @@
       "wcell": 381,
       "rail": 2,
       "fort": 0,
+      "place": "sevastopol",
       "gwOwner": "RUS",
       "sr": 67,
       "harbor": 40059
@@ -13161,8 +13172,8 @@
     },
     {
       "id": 576,
-      "name": "Roma",
-      "nameKo": "로마도",
+      "name": "Rome",
+      "nameKo": "로마",
       "owner": "ITA",
       "vp": 29,
       "vpTile": [2138, 779],
@@ -13181,6 +13192,7 @@
       "wcell": 379,
       "rail": 3,
       "fort": 0,
+      "place": "rome",
       "gwOwner": "ITA",
       "sr": 78,
       "harbor": 40066
@@ -13704,8 +13716,8 @@
     },
     {
       "id": 601,
-      "name": "Tbilisi",
-      "nameKo": "트빌리시",
+      "name": "Tiflis",
+      "nameKo": "티플리스",
       "owner": "SUN",
       "vp": 7,
       "vpTile": [2497, 781],
@@ -13724,6 +13736,7 @@
       "wcell": 382,
       "rail": 2,
       "fort": 0,
+      "place": "tiflis",
       "gwOwner": "RUS",
       "sr": 66
     },
@@ -14077,7 +14090,7 @@
     {
       "id": 617,
       "name": "Madrid",
-      "nameKo": "마드리드 지방",
+      "nameKo": "마드리드",
       "owner": "ESR",
       "vp": 26,
       "vpTile": [1958, 799],
@@ -14096,6 +14109,7 @@
       "wcell": 377,
       "rail": 2,
       "fort": 0,
+      "place": "madrid",
       "gwOwner": "ESP",
       "sr": 76
     },
@@ -15181,8 +15195,8 @@
     },
     {
       "id": 662,
-      "name": "District of Columbia",
-      "nameKo": "워싱턴 D.C.",
+      "name": "Washington",
+      "nameKo": "워싱턴",
       "owner": "USA",
       "vp": 21,
       "vpTile": [1144, 818],
@@ -15201,6 +15215,7 @@
       "wcell": 334,
       "rail": 3,
       "fort": 0,
+      "place": "washington",
       "gwOwner": "USA",
       "sr": 75,
       "harbor": 40069
@@ -17470,7 +17485,7 @@
     {
       "id": 758,
       "name": "Tokyo",
-      "nameKo": "도쿄도",
+      "nameKo": "도쿄",
       "owner": "JPN",
       "vp": 36,
       "vpTile": [3552, 860],
@@ -17489,6 +17504,7 @@
       "wcell": 355,
       "rail": 4,
       "fort": 0,
+      "place": "tokyo",
       "gwOwner": "JPN",
       "sr": 84,
       "harbor": 40065
@@ -17689,6 +17705,7 @@
       "wcell": 308,
       "rail": 0,
       "fort": 0,
+      "place": "cairo",
       "gwOwner": "GBR",
       "sr": 101,
       "harbor": 40160
@@ -19334,6 +19351,7 @@
       "wcell": 313,
       "rail": 0,
       "fort": 0,
+      "place": "delhi",
       "gwOwner": "GBR",
       "sr": 107
     },
@@ -30884,6 +30902,7 @@
       "fort": 0,
       "port": true,
       "island": "heligoland",
+      "place": "heligoland",
       "gwOwner": "DEU",
       "sr": 39,
       "harbor": 40046,
