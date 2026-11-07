@@ -9,7 +9,10 @@ import {
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import { GwTag, isGwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import { gwChapters } from "@openfront/engine-lib/ww1914/Calendars";
-import { GW_ENDING_ROWS } from "@openfront/engine-lib/ww1914/EndingRows";
+import {
+  GW_ENDING_CODAS,
+  GW_ENDING_ROWS,
+} from "@openfront/engine-lib/ww1914/EndingRows";
 import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
 import { daysFromCivil } from "@openfront/engine-lib/ww1936/Calendar";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
@@ -292,8 +295,12 @@ export function memoirOf(
     met: mandateMet(gw, seat, id),
   }));
   const ending = ownEnding(gw, seat, general ?? generalOf(gw, seat));
+  const coda = (GW_ENDING_CODAS[seat.tag] ?? []).find((c) =>
+    holds({ gw, seat, cast: {} }, c.when),
+  );
   return {
     ending,
+    coda: coda?.id ?? null,
     chapter: s.chapter,
     day: s.day,
     mandates,

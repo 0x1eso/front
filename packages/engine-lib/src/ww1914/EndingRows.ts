@@ -197,6 +197,23 @@ export const GW_ENDING_ROWS: Readonly<
   ],
 };
 
+/** A paragraph a country's memoir closes on: the first that holds. */
+export const GW_ENDING_CODAS: Readonly<
+  Partial<Record<GwTag, readonly { id: string; when: GwCond }[]>>
+> = {
+  GBR: [
+    {
+      id: "gbr_end_ireland_draft",
+      when: { kind: "seen", scene: "gbr_h_irish_draft" },
+    },
+    {
+      id: "gbr_end_ireland_easter",
+      when: { kind: "seen", scene: "gbr_h_easter" },
+    },
+    { id: "gbr_end_ireland_lives", when: flag("f_home_rule_lives") },
+  ],
+};
+
 /** A country's endings, for the shelf's empty boxes. */
 export function gwEndingsOf(tag: GwTag): readonly GwEnding[] {
   const rows = (GW_ENDING_ROWS[tag] ?? []).map((r) => r.id);

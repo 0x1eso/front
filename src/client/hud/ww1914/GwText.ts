@@ -168,8 +168,10 @@ export function endingText(
   memoir: GwMemoir,
   date: string,
 ): string | null {
-  const text = pack?.endings?.[memoir.ending];
-  if (text === undefined) return null;
+  const own = pack?.endings?.[memoir.ending];
+  if (own === undefined) return null;
+  const coda = memoir.coda === null ? undefined : pack?.endings?.[memoir.coda];
+  const text = coda === undefined ? own : `${own}\n\n${coda}`;
   return applyJosa(
     text
       .replace(/\{date\}/g, shortDate(date))

@@ -675,6 +675,8 @@ export type GwUnknown = z.infer<typeof GwUnknownSchema>;
 /** The closing page's data (design §2.8). Hidden values are fair game here. */
 export const GwMemoirSchema = z.object({
   ending: GwIdSchema,
+  /** A closing paragraph after the ending's own, or null. */
+  coda: GwIdSchema.nullable(),
   chapter: z.number().int(),
   day: z.number().int(),
   mandates: z.array(z.object({ id: GwIdSchema, met: z.boolean() })),

@@ -33,6 +33,8 @@ const DELAYED_START = 2;
 
 /** Vienna's seat has signed the war on Serbia (auh_c_war_serbia). */
 const AUH_DECLARED = "f_auh_declared";
+/** Vienna's seat has broken with Belgrade, or gone further. */
+const AUH_GOING = [AUH_DECLARED, "f_auh_broke_off"];
 
 /** Temperature a crisis needs to go on at its last two links. */
 export const LOCAL_WAR_AT = 5;
@@ -189,12 +191,12 @@ function runLink(gw: GreatWar): void {
     }
     case "local_war": {
       if (s.aside) return closeChain(gw, "humiliation");
-      // With Vienna at the desk its signature decides, not the temperature.
+      // With Vienna at the desk its signature decides, not the temperature:
+      // relations broken off, the declaration comes on next chapter's desk.
       const vienna = seatsOf(gw, "AUH")[0];
-      if (vienna?.flags.includes(AUH_DECLARED) === true) {
-        s.temp = Math.max(s.temp, LOCAL_WAR_AT);
-      }
-      const held = vienna !== undefined && !vienna.flags.includes(AUH_DECLARED);
+      const going = AUH_GOING.some((f) => vienna?.flags.includes(f) === true);
+      if (going) s.temp = Math.max(s.temp, LOCAL_WAR_AT);
+      const held = vienna !== undefined && !going;
       if (held || s.temp < LOCAL_WAR_AT) return closeChain(gw, "compromise");
       const rus = gw.nation("RUS");
       if (rus !== null && seatsOf(gw, "RUS").length === 0) {
@@ -206,6 +208,10 @@ function runLink(gw: GreatWar): void {
     }
     case "general":
       if (s.aside) return closeChain(gw, "humiliation");
+      // Vienna never signed: there is no war for the others to join.
+      if (seatsOf(gw, "AUH")[0]?.flags.includes(AUH_DECLARED) === false) {
+        return closeChain(gw, "compromise");
+      }
       return closeChain(gw, s.temp >= GENERAL_WAR_AT ? "war" : "compromise");
     default:
       break;

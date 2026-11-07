@@ -16,6 +16,7 @@ import {
   StampedIntent,
   WwOrder,
 } from "@openfront/engine-api/Schemas";
+import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
 import type { BattalionId } from "@openfront/engine-api/ww1936/LandTypes";
 import type { WwStats } from "@openfront/engine-api/ww1936/PoliticsTypes";
@@ -62,6 +63,7 @@ export const HUMAN = "HUMAN001";
 export interface WwHuman {
   clientID: string;
   country?: CountryTag;
+  gwCountry?: GwTag;
 }
 
 export function wwGameStart(
