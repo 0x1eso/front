@@ -183,6 +183,7 @@ function optionButton(
 export function reader(c: GwCtx, card: GwCardView): TemplateResult {
   const fill = (t: string) => fillGw(t, c.pack, card, c.seat, c.data.date);
   const read = isReadOnly(card);
+  const body = rich(c, fill(cardBody(c.pack, card)));
   const armedOpt =
     c.ui.armed?.uid === card.uid
       ? card.options.find((o) => o.id === c.ui.armed?.option)
@@ -214,9 +215,7 @@ export function reader(c: GwCtx, card: GwCardView): TemplateResult {
       </header>
       <h2 class="text-lg font-bold leading-snug">${cardTitle(c.pack, card)}</h2>
       <div class="space-y-2.5 text-[15px] leading-7 text-white/90">
-        <p class="whitespace-pre-line">
-          ${rich(c, fill(cardBody(c.pack, card)))}
-        </p>
+        <p class="whitespace-pre-line">${body}</p>
         ${voices(c.pack, card).map(
           (v) =>
             html`<p class="border-l-2 border-white/25 pl-3 text-white/80">
