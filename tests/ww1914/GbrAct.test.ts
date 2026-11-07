@@ -106,6 +106,24 @@ describe("Britain's own schedule and story", () => {
     expect(view(r).chapter).toBe(0);
   });
 
+  test("a first game's three chapters bring the three and one more", async () => {
+    const r = await britain([]);
+    const met = new Set<string>();
+    for (let i = 0; i < 3; i++) {
+      for (const c of seat(r).desk) {
+        for (const id of Object.values(c.cast)) met.add(id);
+      }
+      playChapter(r);
+    }
+    expect(view(r).chapter).toBe(3);
+    expect([...met].sort()).toEqual([
+      "gbr_birrell",
+      "gbr_churchill",
+      "gbr_grey",
+      "gbr_lloyd_george",
+    ]);
+  });
+
   test("a nation on the shelf doesn't", async () => {
     const r = await britain(["GBR"]);
     expect(seat(r).desk.map((c) => c.scene)).not.toContain("gbr_big_first");

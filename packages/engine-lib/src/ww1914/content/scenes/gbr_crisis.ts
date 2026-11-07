@@ -59,6 +59,8 @@ const lord = role("lord");
 const home = role("home");
 const cos = role("cos");
 const king = byName("gbr_george_v");
+const carson = byName("gbr_carson");
+const redmond = byName("gbr_redmond");
 
 const body = (inst: GwInstitution, delta: number): GwEffect => ({
   kind: "inst",
@@ -298,18 +300,15 @@ export const GBR_CRISIS_SCENES: readonly GwScene[] = [
     "crisis",
     9,
     ["home", "tension_up"],
-    {
-      ire: { office: "ireland" },
-      fm: { office: "foreign" },
-      carson: { person: "gbr_carson" },
-      redmond: { person: "gbr_redmond" },
-    },
+    // Carson and Redmond are named here, not cast: a first game meets them later.
+    { ire: { office: "ireland" }, fm: { office: "foreign" } },
     chapters(0, 1),
     [
+      v("first", all({ kind: "first_game" }, chapters(0, 1))),
       v("no_wire", opening("no_sarajevo")),
       v("hot", world({ is: "thread", id: "ireland" })),
-      v("proud", moody(role("carson"), "arrogant")),
-      v("worn", moody(role("carson"), "weary")),
+      v("proud", moody(carson, "arrogant")),
+      v("worn", moody(carson, "weary")),
       base,
     ],
     {
@@ -321,7 +320,7 @@ export const GBR_CRISIS_SCENES: readonly GwScene[] = [
           [
             vote("home_rule"),
             irish(-1),
-            trustOf(role("carson"), -1),
+            trustOf(carson, -1),
             irishHeat(1),
             setFlag("f_amend_six"),
           ],
@@ -333,7 +332,7 @@ export const GBR_CRISIS_SCENES: readonly GwScene[] = [
             vote("home_rule"),
             irish(1),
             cabinet(1),
-            trustOf(role("carson"), -1),
+            trustOf(carson, -1),
             setFlag("f_amend_county"),
           ],
           heardFrom("k_red_counties"),
@@ -345,7 +344,7 @@ export const GBR_CRISIS_SCENES: readonly GwScene[] = [
             vote("home_rule"),
             irish(-2),
             opposition(-1),
-            trustOf(role("redmond"), -2),
+            trustOf(redmond, -2),
             setFlag("f_amend_clean"),
           ],
           all(heardFrom("k_car_clean"), votes("home_rule")),
@@ -367,7 +366,7 @@ export const GBR_CRISIS_SCENES: readonly GwScene[] = [
           [
             irish(1),
             opposition(2),
-            trustOf(role("carson"), -2),
+            trustOf(carson, -2),
             irishHeat(2),
             setFlag("f_press_on"),
           ],
@@ -402,7 +401,8 @@ export const GBR_CRISIS_SCENES: readonly GwScene[] = [
       king: { person: "gbr_george_v" },
     },
     all(
-      chapters(2, 3),
+      // Five new faces at once: a first game has the room a chapter later.
+      any(chapters(3, 3), all(chapters(2, 2), not({ kind: "first_game" }))),
       any(
         heardFrom("k_king_conf"),
         irishPress(3),
