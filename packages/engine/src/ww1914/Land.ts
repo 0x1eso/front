@@ -69,7 +69,7 @@ function takerOf(
  * back from a line already reads as the next one down: land waits for the
  * whole step, either way from the start.
  */
-function reachedLine(t: GwTheatreState): number {
+export function reachedLine(t: GwTheatreState): number {
   const pos = posOf(t);
   return pos >= GW_FRONT_START[t.id] * GW_LINE_STEP
     ? Math.floor(pos / GW_LINE_STEP)
