@@ -24,6 +24,8 @@ import {
   trustIndex,
   vacantOffices,
 } from "../../../src/client/hud/ww1914/GwModel";
+import type { GwCtx } from "../../../src/client/hud/ww1914/GwCtx";
+import { lastReasons } from "../../../src/client/hud/ww1914/GwDesk";
 
 const person = (id: string, office: string | null, fit: string[]) =>
   ({ id, office, trust: 0, topics: [], fit, rivals: [] }) as never;
@@ -64,6 +66,21 @@ describe("GwModel", () => {
     expect(appointable(seat, seat.people[1])).toEqual(["war"]);
     expect(appointable(seat, seat.people[2])).toEqual([]);
     expect(appointable(seat, seat.people[0])).toEqual([]);
+  });
+
+  test("the head of the desk leaves out what comes every month", () => {
+    const c = {
+      data: { chapter: 5 },
+      pack: { reasons: { a: "A", b: "B" } },
+      seat: {
+        log: [
+          { key: "a", chapter: 3 },
+          { key: "a", chapter: 4 },
+          { key: "b", chapter: 4 },
+        ],
+      },
+    } as unknown as GwCtx;
+    expect(lastReasons(c)).toEqual(["B"]);
   });
 
   test("a dismissal is priced by the world and refused short of authority", () => {

@@ -26,11 +26,20 @@ import {
   voices,
 } from "./GwText";
 
-/** The reasons that came with the last chapter's close, newest first. */
-function lastReasons(c: GwCtx): string[] {
+/**
+ * The reasons that came with the last chapter's close, newest first. What
+ * comes every month says nothing new here: the country tab keeps the whole log.
+ */
+export function lastReasons(c: GwCtx): string[] {
+  const before = new Set(
+    c.seat.log
+      .filter((r) => r.chapter === c.data.chapter - 2)
+      .map((r) => reasonText(c.pack, r)),
+  );
   return c.seat.log
     .filter((r) => r.chapter >= c.data.chapter - 1)
     .map((r) => reasonText(c.pack, r))
+    .filter((t) => !before.has(t))
     .reverse();
 }
 
