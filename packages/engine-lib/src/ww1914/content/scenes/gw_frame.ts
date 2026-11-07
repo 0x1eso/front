@@ -1456,7 +1456,12 @@ const END: readonly GwScene[] = [
       cast: { fin },
       salience: 7,
       tags: ["foreign"],
-      variants: [v("won", WON), v("lost", LOST), v("base")],
+      variants: [
+        v("compromise", COMPROMISE),
+        v("won", WON),
+        v("lost", LOST),
+        v("base"),
+      ],
     },
     [
       opt(
@@ -1498,7 +1503,12 @@ const END: readonly GwScene[] = [
       cast: { fm },
       salience: 6,
       tags: ["foreign", "tension_down"],
-      variants: [v("won", WON), v("lost", LOST), v("base")],
+      variants: [
+        v("compromise", COMPROMISE),
+        v("won", WON),
+        v("lost", LOST),
+        v("base"),
+      ],
     },
     [
       opt("join", ["usa:+1"], [trust("USA", 1), setFlag("f_e_league")]),
@@ -1571,7 +1581,12 @@ const END: readonly GwScene[] = [
       cast: { cos },
       salience: 5,
       tags: ["home"],
-      variants: [v("won", WON), v("lost", LOST), v("base")],
+      variants: [
+        v("compromise", COMPROMISE),
+        v("won", WON),
+        v("lost", LOST),
+        v("base"),
+      ],
     },
     [
       opt(

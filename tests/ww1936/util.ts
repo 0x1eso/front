@@ -99,6 +99,7 @@ export function wwGameStart(
       clanTag: null,
       isLobbyCreator: i === 0,
       ...(h.country === undefined ? {} : { country: h.country }),
+      ...(h.gwCountry === undefined ? {} : { gwCountry: h.gwCountry }),
     })),
   };
 }

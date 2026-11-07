@@ -20,6 +20,7 @@ import { DEU_FRONT_SCENES } from "./scenes/deu_front";
 import { DEU_HOME_SCENES } from "./scenes/deu_home";
 import { DEU_PEACE_SCENES, withSummerWar } from "./scenes/deu_peace";
 import { DEU_PEOPLE_SCENES } from "./scenes/deu_people";
+import { withDeuReplay } from "./scenes/deu_replay";
 import { DEU_SEA_SCENES } from "./scenes/deu_sea";
 import { DEU_WAR_SCENES } from "./scenes/deu_war";
 import { GBR_CRISIS_SCENES } from "./scenes/gbr_crisis";
@@ -86,7 +87,7 @@ export const GW_CONTENT: GwContent = {
       ...GW_WORLD2_SCENES,
       ...GW_FRAME_SCENES,
     ].map(withPromiseTerms),
-  ],
+  ].map(withDeuReplay),
   people: [
     ...GW_PEOPLE,
     ...GW_PEOPLE_DEU,

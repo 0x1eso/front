@@ -152,11 +152,21 @@ function aiFalls(gw: GreatWar, n: GwNationState): void {
   leaveWar(gw, n.tag, "nation_collapsed");
 }
 
+/** The rung so many chapters at the bottom reach, `months` into the war. */
+export function ladderRung(
+  lowOrder: number,
+  months: number,
+  topFrom = 0,
+): number {
+  const rung = LADDER.filter((x, i) => i > 0 && lowOrder >= x).length;
+  return months < topFrom ? Math.min(rung, LADDER.length - 2) : rung;
+}
+
 /** The ladder: each rung has its turn and its offer of a way down. */
 function ladder(gw: GreatWar, n: GwNationState): void {
   const bottom = n.gauges.order === 0;
   n.lowOrder = bottom ? n.lowOrder + 1 : Math.max(0, n.lowOrder - 1);
-  const rung = LADDER.filter((x, i) => i > 0 && n.lowOrder >= x).length;
+  const rung = ladderRung(n.lowOrder, warMonths(gw), GW_HOME[n.tag]?.topFrom);
   if (rung <= n.unrest) {
     if (!bottom && n.unrest > 0 && n.lowOrder === 0) n.unrest--;
     return;
