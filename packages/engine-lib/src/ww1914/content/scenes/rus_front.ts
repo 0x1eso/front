@@ -6351,9 +6351,19 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        { kind: "chapter", min: 9 },
-        { kind: "world", of: { is: "date", to: "1916-01" } },
-        { kind: "gauge", gauge: "shells", max: 1 },
+        {
+          kind: "all",
+          of: [
+            { kind: "chapter", min: 9 },
+            { kind: "world", of: { is: "date", to: "1916-01" } },
+            { kind: "gauge", gauge: "shells", max: 1 },
+          ],
+        },
+        {
+          kind: "holder",
+          office: "supreme_commander",
+          person: "rus_nikolasha",
+        },
       ],
     },
     cast: { p: { person: "rus_yanushkevich" } },
