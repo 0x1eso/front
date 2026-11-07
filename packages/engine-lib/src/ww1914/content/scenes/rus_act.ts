@@ -1431,12 +1431,13 @@ const BIG_SCENES: GwScene[] = [
       war,
       any(
         { kind: "seen", scene: "rus_w_lutsk" },
+        // Any push: one sector breaks on a long front while the rest is held.
         all(
           date("1916-03"),
           world({
             is: "battle",
             theatre: "east",
-            of: ["break", "advance"],
+            of: ["break", "advance", "stalemate", "repelled"],
             by: "seat",
           }),
         ),

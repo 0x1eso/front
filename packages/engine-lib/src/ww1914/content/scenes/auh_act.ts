@@ -63,6 +63,13 @@ export const eastPushed = world({
   theatre: "east",
   of: ["advance", "break"],
 });
+/** The Russians came on in the east: trench lines barely show what one army lost. */
+const eastStruck = world({
+  is: "battle",
+  theatre: "east",
+  of: ["repelled", "stalemate", "advance", "break"],
+  by: "foe",
+});
 export const karl = flag("w_auh_karl");
 export const ffThrone = flag("w_auh_ff_throne");
 export const hungaryAt = (r: { min?: number; max?: number }): GwCond => ({
@@ -1196,7 +1203,7 @@ const BIG_SCENES: GwScene[] = [
       court: holder("court"),
     },
     "fred",
-    all(atWar("RUS"), eastPushed, between("1916-05", "1916-07")),
+    all(atWar("RUS"), eastStruck, between("1916-05", "1916-07")),
     {
       n1: node("fred", [
         say("what_news", "warm", "n2"),
@@ -1330,7 +1337,18 @@ const BIG_SCENES: GwScene[] = [
     "auh_big_honour",
     { fm: holder("foreign"), zita: { person: "auh_zita" } },
     "fm",
-    all(karl, seenScene("auh_k_word_of_honour")),
+    // The letter comes out in 1918 whatever brought it out; the denial is one way.
+    all(
+      karl,
+      any(
+        seenScene("auh_k_word_of_honour"),
+        all(
+          any(flag("f_auh_letter_alsace"), flag("f_auh_letter_general")),
+          inWar,
+          since("1918-01"),
+        ),
+      ),
+    ),
     {
       n1: node("fm", [
         say("what_paper", "cold", "n2"),

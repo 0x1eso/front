@@ -1,5 +1,6 @@
 import { GameMapSize, GameMapType } from "@openfront/engine-api/game/GameTypes";
 import type { MapFiles } from "@openfront/engine-api/game/MapFiles";
+import type { GwBattle } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import { gwSceneProblems } from "@openfront/engine-api/ww1914/SceneDsl";
 import {
   AUH_ACT_SCENES,
@@ -9,7 +10,9 @@ import {
 import { GW_CONTENT } from "@openfront/engine-lib/ww1914/content/Content";
 import { AUH_STORY_SCENES } from "@openfront/engine-lib/ww1914/content/scenes/auh_act";
 import { GW_RIVAL_ROWS } from "@openfront/engine-lib/ww1914/StoryRows";
+import { daysFromCivil } from "@openfront/engine-lib/ww1936/Calendar";
 import { dealDesk, deskCandidates } from "@openfront/engine/ww1914/Desk";
+import { holds } from "@openfront/engine/ww1914/SceneRun";
 import { loadMapFiles } from "@openfront/shared/GameMapLoader";
 import { loadGwPack } from "@openfront/shared/ww1914/GwPackLoader";
 import fs from "node:fs";
@@ -129,6 +132,50 @@ describe("Austria's own moves and story", () => {
     const runner = await newGame(map, start);
     const seat = runner.game.greatWar()!.s.seats[0];
     expect(seat.desk.map((c) => c.scene)).not.toContain("auh_open_three");
+  });
+
+  /** A game in `month`, at war with Russia, the last battle in the east as given. */
+  async function inTheWar(month: [number, number], battle?: Partial<GwBattle>) {
+    const { gw, seat } = await firstGame(`auh_war_${month.join("_")}`);
+    gw.s.day = daysFromCivil(month[0], month[1], 15);
+    const n = gw.nation("AUH")!;
+    n.side = "central";
+    n.atWar = ["RUS"];
+    if (battle !== undefined) {
+      gw.s.battles.push({
+        theatre: "east",
+        chapter: gw.s.chapter,
+        result: "repelled",
+        by: "entente",
+        lost: [0, 0],
+        line: 0,
+        luck: 0,
+        ...battle,
+      });
+    }
+    return { gw, seat, ctx: { gw, seat, cast: {} } };
+  }
+
+  test("the birthday comes when the Russians came on, however the line held", async () => {
+    const when = story("auh_big_birthday").when!;
+    const held = await inTheWar([1916, 6], { result: "repelled" });
+    expect(holds(held.ctx, when)).toBe(true);
+    const ours = await inTheWar([1916, 6], {
+      result: "advance",
+      by: "central",
+    });
+    expect(holds(ours.ctx, when)).toBe(false);
+    const late = await inTheWar([1916, 9], { result: "break" });
+    expect(holds(late.ctx, when)).toBe(false);
+  });
+
+  test("a letter written comes out in 1918, with or without the denial", async () => {
+    const when = story("auh_big_honour").when!;
+    const { seat, ctx } = await inTheWar([1918, 2]);
+    seat.flags.push("w_auh_karl");
+    expect(holds(ctx, when)).toBe(false);
+    seat.flags.push("f_auh_letter_general");
+    expect(holds(ctx, when)).toBe(true);
   });
 
   test("the Ischl night can be dealt and its signature stands for the card", async () => {

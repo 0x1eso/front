@@ -1,13 +1,16 @@
 import { GameMapSize, GameMapType } from "@openfront/engine-api/game/GameTypes";
 import type { MapFiles } from "@openfront/engine-api/game/MapFiles";
+import type { GwBattle } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import {
   RUS_ACTS,
   RUS_AIMS,
 } from "@openfront/engine-lib/ww1914/content/acts/rus";
 import { GW_CONTENT } from "@openfront/engine-lib/ww1914/content/Content";
 import { GW_RIVAL_ROWS } from "@openfront/engine-lib/ww1914/StoryRows";
+import { daysFromCivil } from "@openfront/engine-lib/ww1936/Calendar";
 import { actViews, takeAct } from "@openfront/engine/ww1914/Acts";
 import { advanceChapter } from "@openfront/engine/ww1914/Chapters";
+import { holds } from "@openfront/engine/ww1914/SceneRun";
 import { loadMapFiles } from "@openfront/shared/GameMapLoader";
 import { loadGwPack } from "@openfront/shared/ww1914/GwPackLoader";
 import fs from "node:fs";
@@ -39,6 +42,32 @@ const russia = async (id: string, played?: string[]) => {
   const gw = runner.game.greatWar()!;
   return { runner, gw, st: gw.s.seats[0] };
 };
+
+describe("the breakthrough night", () => {
+  const scene = GW_CONTENT.scenes.find((s) => s.id === "rus_b_lutsk")!;
+  const push = (result: GwBattle["result"], by: GwBattle["by"]): GwBattle => ({
+    theatre: "east",
+    chapter: 0,
+    result,
+    by,
+    lost: [0, 0],
+    line: 0,
+    luck: 0,
+  });
+
+  test("any push of 1916 can bring it; the foe's can't", async () => {
+    const { gw, st } = await russia("rus_lutsk");
+    const ctx = { gw, seat: st, cast: {} };
+    gw.s.day = daysFromCivil(1916, 6, 15);
+    const n = gw.nation("RUS")!;
+    n.side = "entente";
+    n.atWar = ["AUH"];
+    gw.s.battles.push(push("repelled", "entente"));
+    expect(holds(ctx, scene.when!)).toBe(true);
+    gw.s.battles.push(push("advance", "central"));
+    expect(holds(ctx, scene.when!)).toBe(false);
+  });
+});
 
 describe("russia's schedule", () => {
   test("the brief's counts", () => {
