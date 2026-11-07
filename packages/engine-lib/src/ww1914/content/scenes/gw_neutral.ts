@@ -1221,6 +1221,12 @@ const SMALL: GwScene[] = [
   ),
 ];
 
+/** The neutrals' bargains are the war's: a ceasefire closes them all. */
+const untilTheGuns = (s: GwScene): GwScene => {
+  const quiet = not(w({ is: "armistice" }));
+  return { ...s, when: s.when === undefined ? quiet : all(s.when, quiet) };
+};
+
 export const GW_NEUTRAL_SCENES: readonly GwScene[] = [
   ...ITALY,
   ...OTTOMAN,
@@ -1230,4 +1236,4 @@ export const GW_NEUTRAL_SCENES: readonly GwScene[] = [
   ...JAPAN,
   ...AMERICA,
   ...SMALL,
-];
+].map(untilTheGuns);

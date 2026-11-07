@@ -9,6 +9,7 @@ import {
   byName,
   candid,
   chose,
+  dropCard,
   flag,
   GwCond,
   GwEffect,
@@ -806,6 +807,8 @@ export const GBR_CRISIS_SCENES: readonly GwScene[] = [
               theatre: "sea",
             }),
             setFlag("f_war_aug"),
+            dropCard("gw_gbr_entry"),
+            dropCard("gbr_f_neutral_line"),
           ],
           any(
             chose("gbr_c_cabinet_two", "belgium_condition"),

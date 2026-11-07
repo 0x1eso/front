@@ -65,7 +65,9 @@ function turns(m: GwMemoir): TemplateResult | typeof nothing {
       (t) =>
         html`<div class="flex gap-2 text-sm">
           <span class="${MUTED} w-8 shrink-0"
-            >${translateText("gw.ui.chapter_n", { n: t.chapter + 1 })}</span
+            >${translateText("gw.ui.chapter_n", {
+              n: Math.min(t.chapter, m.chapter) + 1,
+            })}</span
           >
           <span class="text-white/85">${turnText(t)}</span>
         </div>`,
@@ -146,10 +148,10 @@ function shelfBox(c: GwCtx): TemplateResult {
   const { seat, ui } = c;
   const shelf = ui.shelf;
   const memoir = seat.world.memoir;
-  const total = shelfTotals(
-    memoir?.people.length ?? seat.people.length,
-    seat.tag,
-  );
+  const cast = memoir?.people ?? seat.people;
+  const total = shelfTotals(cast.length, seat.tag);
+  // The shelf runs across countries; the count is of this one's cast.
+  const met = cast.filter((p) => shelf.people.includes(p.id)).length;
   return html`<section class=${BOX} data-gw-shelf>
     <h3 class=${HEAD}>${translateText("gw.ui.shelf_title")}</h3>
     <p class=${MUTED}>${translateText("gw.ui.shelf_hint")}</p>
@@ -162,7 +164,7 @@ function shelfBox(c: GwCtx): TemplateResult {
       >
       <span class=${CHIP}
         >${translateText("gw.ui.shelf_people", {
-          n: shelf.people.length,
+          n: met,
           max: total.people,
         })}</span
       >
@@ -207,7 +209,10 @@ export function memoirTab(c: GwCtx): TemplateResult {
             (g) =>
               html`<div>
                 <div class=${MUTED}>
-                  ${translateText("gw.ui.chapter_n", { n: g.chapter + 1 })}
+                  ${translateText("gw.ui.chapter_n", {
+                    // The peace jumps the chapter to the last row.
+                    n: Math.min(g.chapter, m?.chapter ?? g.chapter) + 1,
+                  })}
                 </div>
                 ${g.reasons.map(
                   (r) =>

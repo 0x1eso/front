@@ -254,7 +254,8 @@ function deskTarget(gw: GreatWar): number {
   const stage = stageOf(gw);
   const busy = stage === "closing" ? 0 : 1;
   const hot = gw.s.temp >= GW_TEMP_HOT ? 1 : 0;
-  return Math.min(GW_DESK_MAX, GW_DESK_MIN + busy + hot);
+  const lean = gwChapters(gw.s.calendar)[gw.s.chapter].lean ? 1 : 0;
+  return Math.min(GW_DESK_MAX, GW_DESK_MIN + busy + hot - lean);
 }
 
 /** The score once the cards already picked have had their say. */
@@ -323,15 +324,16 @@ function draw(
     const c = best(gw, down, picked);
     if (c !== null && picked.length < GW_DESK_MAX) take(c);
   }
-  const crisis = gwChapters(gw.s.calendar)[gw.s.chapter].stage === "crisis";
-  const beside = Math.min(
-    due.length,
-    crisis ? GW_DUE_BESIDE : GW_DUE_BESIDE_WAR,
-  );
+  const chapter = gwChapters(gw.s.calendar)[gw.s.chapter];
+  const crisis = chapter.stage === "crisis";
+  const beside = chapter.lean
+    ? 0
+    : Math.min(due.length, crisis ? GW_DUE_BESIDE : GW_DUE_BESIDE_WAR);
   const target = deskTarget(gw) + beside;
   const max = GW_DESK_MAX + beside;
   const must = crisis ? GW_SALIENCE_MUST : GW_SALIENCE_MUST_WAR;
   const placed = () => picked.filter((x) => !isRead(x)).length;
+  const readsBeside = chapter.lean ? 1 : GW_READS_BESIDE;
   while (placed() < max) {
     const open = left.filter(
       (c) =>
@@ -344,6 +346,15 @@ function draw(
     if (placed() >= target && c.scene.salience < must) break;
     take(c);
   }
+  // A lean month doesn't lose someone's own story: a private visit still calls.
+  if (chapter.lean && !picked.some((p) => p.kind === "talk")) {
+    const c = best(
+      gw,
+      left.filter((x) => x.scene.tags.includes("private")),
+      picked,
+    );
+    if (c !== null) take(c);
+  }
   for (let reads = 0; ; reads++) {
     const open = left.filter((x) => isRead(x.scene));
     const varied = open.filter((c) => !wouldFillOneSubject(c, picked, target));
@@ -351,10 +362,10 @@ function draw(
     if (c === null) break;
     const room = picked.length < target;
     const pressing =
-      c.scene.salience >= must &&
-      (picked.length < max || reads < GW_READS_BESIDE);
+      c.scene.salience >= must && (picked.length < max || reads < readsBeside);
     const small = c.scene.salience <= GW_SALIENCE_SMALL;
-    const riding = crisis && reads < GW_READS_BESIDE && !small;
+    const riding =
+      !chapter.lean && crisis && reads < GW_READS_BESIDE && !small;
     if (!room && !pressing && !riding) break;
     take(c);
   }

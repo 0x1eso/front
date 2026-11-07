@@ -144,7 +144,7 @@ export function changeRegime(gw: GreatWar, tag: GwTag, to: string): void {
     if (p !== null) p.office = null;
   }
   news(gw, `regime_${to}`, tag);
-  turn(gw, `regime_${to}`);
+  turn(gw, `regime_${to}@${tag}`);
   for (const seat of seatsOf(gw, tag)) {
     reason(gw, seat, `regime_${to}`);
     if (row.flag !== undefined && !seat.flags.includes(row.flag)) {

@@ -3,6 +3,8 @@ import { gwSecretsFor } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import type { GwSeatView } from "@openfront/engine-api/ww1914/GwView";
 import { gwEndingsOf } from "@openfront/engine-lib/ww1914/EndingRows";
 import { describe, expect, test } from "vitest";
+import type { GwCtx } from "../../../src/client/hud/ww1914/GwCtx";
+import { lastReasons } from "../../../src/client/hud/ww1914/GwDesk";
 import {
   appointable,
   clock,
@@ -91,6 +93,21 @@ describe("GwModel", () => {
     expect(appointable(seat, seat.people[1])).toEqual(["war"]);
     expect(appointable(seat, seat.people[2])).toEqual([]);
     expect(appointable(seat, seat.people[0])).toEqual([]);
+  });
+
+  test("the head of the desk leaves out what comes every month", () => {
+    const c = {
+      data: { chapter: 5 },
+      pack: { reasons: { a: "A", b: "B" } },
+      seat: {
+        log: [
+          { key: "a", chapter: 3 },
+          { key: "a", chapter: 4 },
+          { key: "b", chapter: 4 },
+        ],
+      },
+    } as unknown as GwCtx;
+    expect(lastReasons(c)).toEqual(["B"]);
   });
 
   test("a dismissal is priced by the world and refused short of authority", () => {

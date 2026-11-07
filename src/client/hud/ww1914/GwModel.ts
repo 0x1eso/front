@@ -96,7 +96,7 @@ export function groupReplies(
 export function vacantOffices(seat: GwSeatView): GwOffice[] {
   const held = new Set(seat.people.map((p) => p.office));
   return GW_OFFICES.filter(
-    (o) => !held.has(o) && seat.people.some((p) => p.fit.includes(o)),
+    (o) => !held.has(o) && (seat.world.candidates[o]?.length ?? 0) > 0,
   );
 }
 

@@ -194,15 +194,19 @@ const vacant = (office: GwOffice): GwCond =>
   office === "munitions"
     ? all(empty(office), world({ is: "date", from: "1915-05" }))
     : empty(office);
-const anyEmpty = any(...VACANCIES.map(([o]) => vacant(o)));
-/** Fills the first office on the list that is empty, and no other. */
-const fillVacant = (pick: (row: (typeof VACANCIES)[number]) => string) =>
+type VacancyRow = (typeof VACANCIES)[number];
+const active = (person: string): GwCond => ({ kind: "person_active", person });
+/** The paper names two: with one of them gone, the people tab's list does it. */
+const offered = (row: VacancyRow): GwCond =>
+  all(vacant(row[0]), active(row[1]), active(row[2]));
+const offeredFor = (office: GwOffice): GwCond =>
+  offered(VACANCIES.find(([o]) => o === office)!);
+const anyEmpty = any(...VACANCIES.map(offered));
+/** Fills the first office on the list that is open, and no other. */
+const fillVacant = (pick: (row: VacancyRow) => string) =>
   VACANCIES.map((row, i) =>
     maybe(
-      all(
-        vacant(row[0]),
-        ...VACANCIES.slice(0, i).map(([o]) => not(vacant(o))),
-      ),
+      all(offered(row), ...VACANCIES.slice(0, i).map((r) => not(offered(r)))),
       appoint(pick(row), row[0]),
     ),
   );
@@ -2870,11 +2874,11 @@ export const GBR_HOME_SCENES: readonly GwScene[] = [
     tags: ["people"],
     cooldown: 4,
     variants: [
-      v("war_seat", empty("war")),
-      v("munitions", all(vacant("munitions"), not(empty("war")))),
-      v("navy", empty("navy")),
-      v("finance", empty("finance")),
-      v("foreign", empty("foreign")),
+      v("war_seat", offeredFor("war")),
+      v("munitions", all(offeredFor("munitions"), not(offeredFor("war")))),
+      v("navy", offeredFor("navy")),
+      v("finance", offeredFor("finance")),
+      v("foreign", offeredFor("foreign")),
       v("grey_rest", greyWaits),
       v("base"),
     ],

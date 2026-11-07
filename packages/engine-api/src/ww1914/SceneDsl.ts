@@ -124,6 +124,8 @@ export type GwCond =
   /** In office and on their feet. */
   | { kind: "in_office"; who: GwWho }
   | { kind: "office_empty"; office: GwOffice }
+  /** Still about, or on the way: not dead, fallen or gone abroad. */
+  | { kind: "person_active"; person: string }
   /** A rival of `who` holds an office. */
   | { kind: "rival_in_office"; who: GwWho }
   | { kind: "ai"; tag: GwTag; of: GwAiKind[] }
@@ -173,6 +175,8 @@ export type GwEffect =
       back?: string;
     }
   | { kind: "keep_promise"; who: GwWho; key: string }
+  /** A paper this decision has overtaken leaves the desk, unanswered. */
+  | { kind: "drop_card"; scene: string }
   | { kind: "schedule"; scene: string; chapters: number; who?: GwWho }
   | { kind: "delay"; days: number }
   | { kind: "audiences"; delta: number }
@@ -279,6 +283,7 @@ export const GwCondSchema: z.ZodType<GwCond> = z.lazy(() =>
     obj("mood", range),
     obj("in_office", { who: GwWhoSchema }),
     obj("office_empty", { office }),
+    obj("person_active", { person: GwIdSchema }),
     obj("rival_in_office", { who: GwWhoSchema }),
     obj("ai", { tag, of: z.array(z.enum(GW_AI_KINDS)) }),
     obj("nation_gauge", { tag, gauge, ...range }),
@@ -318,6 +323,7 @@ export const GwEffectSchema: z.ZodType<GwEffect> = z.lazy(() =>
       back: GwIdSchema.optional(),
     }),
     obj("keep_promise", { who: GwWhoSchema, key: GwIdSchema }),
+    obj("drop_card", { scene: GwIdSchema }),
     obj("schedule", {
       scene: GwIdSchema,
       chapters: int.min(0),
@@ -721,4 +727,8 @@ export const keepPromise = (who: GwWho, key: string): GwEffect => ({
   kind: "keep_promise",
   who,
   key,
+});
+export const dropCard = (scene: string): GwEffect => ({
+  kind: "drop_card",
+  scene,
 });

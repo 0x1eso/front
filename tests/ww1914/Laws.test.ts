@@ -452,7 +452,7 @@ describe("a whole game on the real map", () => {
   test.each(NATIONS)(
     "%s brings its bills through a war",
     async (tag) => {
-      for (let i = 0; i < 8; i++) {
+      for (let i = 0; i < 24; i++) {
         const passed = new Set<string>();
         let brought = 0;
         await playRun(

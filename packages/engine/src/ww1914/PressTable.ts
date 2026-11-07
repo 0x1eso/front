@@ -99,7 +99,8 @@ const LOST: GwStoryOn = {
   news: ["front_break", "front_advance"],
   side: "theirs",
 };
-const HOT: GwStoryOn = { when: { kind: "temp", min: 5 } };
+// The war's own temperature doesn't count: this is the last week of peace.
+const HOT: GwStoryOn = { when: all({ kind: "temp", min: 5 }, atPeace) };
 const CAME_IN: GwStoryOn = { when: world({ is: "in_war", min: 0, max: 0 }) };
 const COOLED = news(
   "crisis_compromise",

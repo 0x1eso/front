@@ -92,6 +92,12 @@ const office = (o: GwOffice): { office: GwOffice } => ({ office: o });
 const named = (person: string): { person: string } => ({ person });
 const trusted: GwCastRule = { favourite: true };
 const orTrusted = (...rules: GwCastRule[]) => anyOf(...rules, trusted);
+/** Who speaks for the Unionists: with Law gone, the next of them, not a friend. */
+const unionist = orTrusted(
+  named("gbr_bonar_law"),
+  named("gbr_balfour"),
+  named("gbr_milner"),
+);
 
 function paper(
   id: string,
@@ -261,7 +267,7 @@ const GBR_SCENES: GwScene[] = [
     "GBR",
     "crisis",
     {
-      law: orTrusted(named("gbr_bonar_law")),
+      law: unionist,
       rival: { rival: true },
     },
     [
@@ -389,7 +395,7 @@ const GBR_SCENES: GwScene[] = [
     "gov_gbr_unionists_2",
     "GBR",
     "crisis",
-    { law: orTrusted(named("gbr_bonar_law")) },
+    { law: unionist },
     [v("again", again("gbr_unionists")), v("base")],
     "meet_them",
     [
