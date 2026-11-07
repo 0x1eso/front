@@ -336,6 +336,8 @@ export const GW_SCENE_TAGS = [
   "people",
   "tension_up",
   "tension_down",
+  /** Time outside work: the people tab's private meeting lists these. */
+  "private",
 ] as const;
 
 /** What the player sees of a value: "army:-1", "delay:14", or a bare word. */

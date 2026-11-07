@@ -439,6 +439,7 @@ describe("pack shares", () => {
       "ww1914/ko/GBR.people.json",
       "ww1914/ko/AUH.people.json",
       "ww1914/ko/RUS.people.json",
+      "ww1914/ko/RUS.kin.json",
     ]);
     await expect(
       loadGwPack("DEU", async () => {

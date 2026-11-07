@@ -36,7 +36,7 @@ export const GW_PACK_SHARES: Readonly<
   ],
   GBR: ["crisis", "war", "home", "world", "budget"],
   AUH: ["crisis", "war", "realm", "crown", "budget"],
-  RUS: ["crisis", "front", "home", "fall", "budget"],
+  RUS: ["crisis", "front", "home", "fall", "budget", "private"],
 };
 
 /** The same for `common.json`: every seat loads these. */
@@ -58,6 +58,7 @@ export const GW_PEOPLE_PACKS: readonly string[] = [
   "GBR.people",
   "AUH.people",
   "RUS.people",
+  "RUS.kin",
 ];
 
 /** A share not written yet is no share: only the files that are there count. */

@@ -67,6 +67,20 @@ export const GwPackSchema = z
     promises: ById.optional(),
     /** Ending id -> the memoir's paragraph, may hold {date}, {casualties}. */
     endings: ById.optional(),
+    /**
+     * Lines laid over a scene another share owns: a body, a node's line. Later
+     * shares add to a scene without touching its file.
+     */
+    over: z
+      .record(
+        GwIdSchema,
+        GwScenePackSchema.omit({ nodes: true })
+          .partial()
+          .extend({
+            nodes: z.record(GwIdSchema, GwNodePackSchema.partial()).optional(),
+          }),
+      )
+      .optional(),
   })
   .strict();
 export type GwPack = z.infer<typeof GwPackSchema>;
@@ -88,7 +102,36 @@ export function mergeGwPacks(packs: readonly GwPack[]): GwPack {
     Object.assign(out.promises!, p.promises);
     Object.assign(out.endings!, p.endings);
   }
+  for (const p of packs) {
+    for (const [id, o] of Object.entries(p.over ?? {})) {
+      const s = out.scenes[id];
+      if (s !== undefined) out.scenes[id] = layOver(s, o);
+    }
+  }
   return out;
+}
+
+type GwOver = NonNullable<GwPack["over"]>[string];
+
+/** Each of the scene's line tables with the laid-over lines added. */
+function layOver(s: GwScenePack, o: GwOver): GwScenePack {
+  const nodes = { ...s.nodes };
+  for (const [id, n] of Object.entries(o.nodes ?? {})) {
+    const at = nodes[id];
+    if (at === undefined) continue;
+    nodes[id] = {
+      ...at,
+      says: { ...at.says, ...n.says },
+      replies: { ...at.replies, ...n.replies },
+    };
+  }
+  return {
+    ...s,
+    text: { ...s.text, ...o.text },
+    ...(o.opt === undefined ? {} : { opt: { ...s.opt, ...o.opt } }),
+    ...(o.why === undefined ? {} : { why: { ...s.why, ...o.why } }),
+    ...(s.nodes === undefined ? {} : { nodes }),
+  };
 }
 
 /** Ids two packs both hold: `mergeGwPacks` would keep only the later one. */

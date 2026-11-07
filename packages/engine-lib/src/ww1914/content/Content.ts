@@ -7,6 +7,7 @@ import { GW_PEOPLE_DEU } from "./people_deu";
 import { GW_PEOPLE_MONEY } from "./people_money";
 import { GBR_PEOPLE } from "./people_gbr";
 import { RUS_PEOPLE } from "./people_rus";
+import { RUS_KIN } from "./people_rus_private";
 import { AUH_QUIET_SCENES, withAuhBodies } from "./scenes/auh_bodies";
 import { AUH_CRISIS_SCENES } from "./scenes/auh_crisis";
 import { AUH_CROWN_SCENES } from "./scenes/auh_crown";
@@ -39,6 +40,7 @@ import { RUS_CRISIS_SCENES } from "./scenes/rus_crisis";
 import { RUS_FALL_SCENES } from "./scenes/rus_fall";
 import { RUS_FRONT_SCENES } from "./scenes/rus_front";
 import { RUS_HOME_SCENES } from "./scenes/rus_home";
+import { RUS_PRIVATE_SCENES, withRusPrivate } from "./scenes/rus_private";
 import { WARTIME_SCENES } from "./scenes/wartime";
 import { WORLD_SCENES } from "./scenes/world";
 
@@ -78,10 +80,13 @@ export const GW_CONTENT: GwContent = {
           ...GBR_HOME_SCENES,
           ...GBR_WORLD_SCENES,
         ]),
-        ...RUS_CRISIS_SCENES,
-        ...RUS_FRONT_SCENES,
-        ...RUS_HOME_SCENES,
-        ...RUS_FALL_SCENES,
+        ...[
+          ...RUS_CRISIS_SCENES,
+          ...RUS_FRONT_SCENES,
+          ...RUS_HOME_SCENES,
+          ...RUS_FALL_SCENES,
+        ].map(withRusPrivate),
+        ...RUS_PRIVATE_SCENES,
         ...DEU_FRONT_SCENES,
         ...DEU_SEA_SCENES,
         ...DEU_HOME_SCENES,
@@ -102,6 +107,7 @@ export const GW_CONTENT: GwContent = {
     ...AUH_PEOPLE,
     ...RUS_PEOPLE,
     ...GW_PEOPLE_MONEY,
+    ...RUS_KIN,
   ],
 };
 
