@@ -2,7 +2,7 @@ import type { GwScene } from "@openfront/engine-api/ww1914/SceneDsl";
 import { gwSceneProblems } from "@openfront/engine-api/ww1914/SceneDsl";
 import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
 import { crisisStep } from "@openfront/engine/ww1914/Crises";
-import { deskCandidates } from "@openfront/engine/ww1914/Desk";
+import { dealDesk, deskCandidates } from "@openfront/engine/ww1914/Desk";
 import { researchStep } from "@openfront/engine/ww1914/Eras";
 import { homeStep } from "@openfront/engine/ww1914/Home";
 import { describe, expect, test } from "vitest";
@@ -79,6 +79,10 @@ describe("what an Austrian run on the screen showed", () => {
     const war = (x: GwScene) => x.stage === undefined && x.tags.includes("war");
     s.armistice = { kind: "compromise", chapter: 30, by: null };
     expect(deskCandidates(gw, seat).filter((c) => war(c.scene))).toEqual([]);
+    seat.desk = [];
+    seat.scheduled = [{ scene: "gw_peace_feeler", chapter: s.chapter }];
+    dealDesk(gw, seat);
+    expect(seat.desk.some((c) => c.scene === "gw_peace_feeler")).toBe(false);
   });
 
   test("order that comes and goes doesn't bring the same paper monthly", async () => {

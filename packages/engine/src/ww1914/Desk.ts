@@ -181,15 +181,19 @@ export function inStage(gw: GreatWar, scene: GwScene): boolean {
   return scene.stage === undefined || scene.stage.includes(stage);
 }
 
+/** The guns have stopped: war papers with no stage, feelers and prices are over. */
+function overWithTheWar(gw: GreatWar, scene: GwScene): boolean {
+  if (gw.s.armistice === null) return false;
+  const war = scene.stage === undefined && scene.tags.includes("war");
+  return war || /^(gw_peace_feeler$|gw_price_)/.test(scene.id);
+}
+
 /** Whether the desk may draw `scene` now: everything but its `when`. */
 function drawable(gw: GreatWar, seat: GwSeatState, scene: GwScene): boolean {
   if (scene.summon === true || scene.scheduledOnly === true) return false;
   if (scene.quiet === true || !scene.nation.includes(seat.tag)) return false;
   if (lawReplaces(gw, seat, scene.id)) return false;
-  // The guns have stopped: a paper of the war with no stage of its own is over.
-  if (gw.s.armistice !== null && !scene.stage && scene.tags.includes("war")) {
-    return false;
-  }
+  if (overWithTheWar(gw, scene)) return false;
   return inStage(gw, scene) && repeatable(gw, seat, scene);
 }
 
@@ -405,7 +409,9 @@ function takeDue(
   seat.scheduled = seat.scheduled.filter((q) => {
     if (q.chapter > gw.s.chapter || out.length >= GW_DESK_MAX) return true;
     const scene = scenes.find((x) => x.id === q.scene);
-    if (scene !== undefined) out.push({ scene, who: q.who ?? null });
+    if (scene !== undefined && !overWithTheWar(gw, scene)) {
+      out.push({ scene, who: q.who ?? null });
+    }
     return false;
   });
   return out;
