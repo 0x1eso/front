@@ -6,7 +6,7 @@ import { GW_PEOPLE_COMMON } from "./people_common";
 import { GW_PEOPLE_DEU } from "./people_deu";
 import { GBR_PEOPLE } from "./people_gbr";
 import { RUS_PEOPLE } from "./people_rus";
-import { withAuhBodies } from "./scenes/auh_bodies";
+import { AUH_QUIET_SCENES, withAuhBodies } from "./scenes/auh_bodies";
 import { AUH_CRISIS_SCENES } from "./scenes/auh_crisis";
 import { AUH_CROWN_SCENES } from "./scenes/auh_crown";
 import { AUH_REALM_SCENES } from "./scenes/auh_realm";
@@ -65,6 +65,7 @@ export const GW_CONTENT: GwContent = {
         ...AUH_REALM_SCENES,
         ...AUH_CROWN_SCENES,
       ]),
+      ...AUH_QUIET_SCENES,
       ...GBR_CRISIS_SCENES,
       ...GBR_WAR_SCENES,
       ...GBR_HOME_SCENES,

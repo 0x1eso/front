@@ -27,6 +27,7 @@ interface GwBodies {
   nodes?: Readonly<Record<string, { replies: readonly GwBodyReply[] }>>;
   /** Added to the scene's `when`. */
   gate?: GwCond;
+  voices?: GwScene["voices"];
 }
 
 function sameReply(s: GwScene, x: GwSameReply): GwReply {
@@ -66,6 +67,7 @@ function apply(s: GwScene, b: GwBodies): GwScene {
               ? b.gate
               : ({ kind: "all", of: [s.when, b.gate] } as GwCond),
         }),
+    ...(b.voices === undefined ? {} : { voices: b.voices }),
     ...(b.starts === undefined ? {} : { starts: { ...s.starts, ...b.starts } }),
     ...(nodes.length === 0
       ? {}
@@ -1745,6 +1747,10 @@ const BODIES: Readonly<Record<string, GwBodies>> = {
         ],
       },
     },
+    gate: {
+      kind: "seen",
+      scene: "auh_c_serb_reply",
+    },
   },
   auh_t_tisza_terms: {
     variants: [
@@ -2138,6 +2144,20 @@ const BODIES: Readonly<Record<string, GwBodies>> = {
         id: "base3",
       },
     ],
+    voices: {
+      court: [
+        {
+          id: "on",
+          when: {
+            kind: "opening",
+            of: ["sarajevo"],
+          },
+        },
+        {
+          id: "off",
+        },
+      ],
+    },
   },
   auh_c_roster: {
     variants: [
@@ -2207,8 +2227,17 @@ const BODIES: Readonly<Record<string, GwBodies>> = {
       {
         id: "spark",
         when: {
-          kind: "opening",
-          of: ["no_sarajevo"],
+          kind: "all",
+          of: [
+            {
+              kind: "opening",
+              of: ["no_sarajevo"],
+            },
+            {
+              kind: "crisis",
+              topic: "balkan",
+            },
+          ],
         },
       },
       {
@@ -2304,8 +2333,17 @@ const BODIES: Readonly<Record<string, GwBodies>> = {
       {
         id: "spark",
         when: {
-          kind: "opening",
-          of: ["no_sarajevo"],
+          kind: "all",
+          of: [
+            {
+              kind: "opening",
+              of: ["no_sarajevo"],
+            },
+            {
+              kind: "crisis",
+              topic: "balkan",
+            },
+          ],
         },
       },
       {
@@ -2586,3 +2624,361 @@ const BODIES: Readonly<Record<string, GwBodies>> = {
     ],
   },
 };
+
+/** A summer with no shot: what the desk has instead. */
+export const AUH_QUIET_SCENES: readonly GwScene[] = [
+  {
+    nation: ["AUH"],
+    stage: ["crisis", "y1914"],
+    tags: ["foreign"],
+    once: true,
+    variants: [
+      {
+        id: "base",
+      },
+    ],
+    id: "auh_c_q_constanta",
+    kind: "report",
+    when: {
+      kind: "all",
+      of: [
+        {
+          kind: "opening",
+          of: ["no_sarajevo"],
+        },
+        {
+          kind: "not",
+          of: {
+            kind: "crisis",
+            topic: "balkan",
+          },
+        },
+        {
+          kind: "chapter",
+          min: 1,
+          max: 3,
+        },
+      ],
+    },
+    cast: {
+      fm: {
+        office: "foreign",
+      },
+    },
+    salience: 6,
+    stamp: "confirmed",
+    source: "staff",
+  },
+  {
+    nation: ["AUH"],
+    stage: ["crisis", "y1914"],
+    tags: ["home"],
+    once: true,
+    variants: [
+      {
+        id: "base",
+      },
+    ],
+    id: "auh_c_q_bosnia_rail",
+    kind: "proposal",
+    when: {
+      kind: "all",
+      of: [
+        {
+          kind: "opening",
+          of: ["no_sarajevo"],
+        },
+        {
+          kind: "not",
+          of: {
+            kind: "crisis",
+            topic: "balkan",
+          },
+        },
+        {
+          kind: "chapter",
+          min: 2,
+          max: 4,
+        },
+      ],
+    },
+    cast: {
+      fin: {
+        office: "finance",
+      },
+      fm: {
+        office: "foreign",
+      },
+    },
+    salience: 6,
+    options: [
+      {
+        id: "shelve",
+        tell: [],
+        effects: [],
+      },
+      {
+        id: "hungary_line",
+        tell: ["hungary:+1", "money:-1"],
+        effects: [
+          {
+            kind: "inst",
+            inst: "hungary",
+            delta: 1,
+          },
+          {
+            kind: "gauge",
+            gauge: "money",
+            delta: -1,
+          },
+        ],
+      },
+      {
+        id: "army_line",
+        tell: ["army:+1", "hungary:-1", "temp:+1"],
+        effects: [
+          {
+            kind: "inst",
+            inst: "army",
+            delta: 1,
+          },
+          {
+            kind: "inst",
+            inst: "hungary",
+            delta: -1,
+          },
+          {
+            kind: "temp",
+            delta: 1,
+          },
+        ],
+      },
+    ],
+    fallback: "shelve",
+  },
+  {
+    nation: ["AUH"],
+    stage: ["crisis", "y1914"],
+    tags: ["home", "tension_down"],
+    once: true,
+    variants: [
+      {
+        id: "base",
+      },
+    ],
+    id: "auh_c_q_bohemia",
+    kind: "proposal",
+    when: {
+      kind: "all",
+      of: [
+        {
+          kind: "opening",
+          of: ["no_sarajevo"],
+        },
+        {
+          kind: "not",
+          of: {
+            kind: "crisis",
+            topic: "balkan",
+          },
+        },
+        {
+          kind: "chapter",
+          min: 2,
+          max: 5,
+        },
+      ],
+    },
+    cast: {
+      chancellor: {
+        office: "chancellor",
+      },
+    },
+    salience: 6,
+    options: [
+      {
+        id: "leave",
+        tell: ["nations:-1"],
+        effects: [
+          {
+            kind: "inst",
+            inst: "nations",
+            delta: -1,
+          },
+        ],
+      },
+      {
+        id: "talks",
+        tell: ["nations:+1", "chancellor:-1"],
+        effects: [
+          {
+            kind: "inst",
+            inst: "nations",
+            delta: 1,
+          },
+          {
+            kind: "person_trust",
+            who: {
+              role: "chancellor",
+            },
+            delta: -1,
+          },
+        ],
+      },
+      {
+        id: "visit",
+        tell: ["money:-1"],
+        effects: [
+          {
+            kind: "gauge",
+            gauge: "money",
+            delta: -1,
+          },
+        ],
+      },
+    ],
+    fallback: "leave",
+  },
+  {
+    nation: ["AUH"],
+    stage: ["crisis", "y1914"],
+    tags: ["war", "people"],
+    once: true,
+    variants: [
+      {
+        id: "base",
+      },
+    ],
+    id: "auh_c_q_manoeuvre",
+    kind: "audience",
+    when: {
+      kind: "all",
+      of: [
+        {
+          kind: "opening",
+          of: ["no_sarajevo"],
+        },
+        {
+          kind: "not",
+          of: {
+            kind: "crisis",
+            topic: "balkan",
+          },
+        },
+        {
+          kind: "chapter",
+          min: 3,
+          max: 5,
+        },
+      ],
+    },
+    cast: {
+      cos: {
+        office: "chief_of_staff",
+      },
+      ff: {
+        person: "auh_ff",
+      },
+    },
+    salience: 6,
+    options: [
+      {
+        id: "ff_on_top",
+        tell: ["cos:-1"],
+        effects: [
+          {
+            kind: "person_trust",
+            who: {
+              role: "cos",
+            },
+            delta: -1,
+          },
+          {
+            kind: "person_trust",
+            who: {
+              role: "ff",
+            },
+            delta: 1,
+          },
+        ],
+      },
+      {
+        id: "chief_runs",
+        tell: ["cos:+1"],
+        effects: [
+          {
+            kind: "person_trust",
+            who: {
+              role: "cos",
+            },
+            delta: 1,
+          },
+          {
+            kind: "person_trust",
+            who: {
+              role: "ff",
+            },
+            delta: -1,
+          },
+        ],
+      },
+      {
+        id: "cut_short",
+        tell: ["money:+1", "army:-1"],
+        effects: [
+          {
+            kind: "gauge",
+            gauge: "money",
+            delta: 1,
+          },
+          {
+            kind: "inst",
+            inst: "army",
+            delta: -1,
+          },
+        ],
+      },
+    ],
+    fallback: "ff_on_top",
+  },
+  {
+    nation: ["AUH"],
+    stage: ["crisis", "y1914"],
+    tags: ["home", "tension_down"],
+    once: true,
+    variants: [
+      {
+        id: "base",
+      },
+    ],
+    id: "auh_c_q_birthday",
+    kind: "wire",
+    when: {
+      kind: "all",
+      of: [
+        {
+          kind: "opening",
+          of: ["no_sarajevo"],
+        },
+        {
+          kind: "not",
+          of: {
+            kind: "crisis",
+            topic: "balkan",
+          },
+        },
+        {
+          kind: "chapter",
+          min: 4,
+          max: 6,
+        },
+      ],
+    },
+    cast: {
+      court: {
+        office: "court",
+      },
+    },
+    salience: 6,
+  },
+];
