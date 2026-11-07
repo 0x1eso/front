@@ -39,6 +39,7 @@ import {
   isCandid,
   stanceFit,
 } from "@openfront/engine-lib/ww1914/TalkRules";
+import { reworkEffects } from "@openfront/engine-lib/ww1914/SendBackRules";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { blocNow } from "./Blocs";
 import { moveMoney } from "./Budget";
@@ -788,7 +789,13 @@ export function takeOption(
     proxy,
     cast: { ...ctx.cast },
   });
-  runEffects(ctx, o.effects);
+  const back = ctx.card?.back ?? null;
+  runEffects(
+    ctx,
+    back?.changed === true
+      ? reworkEffects(o.effects, back.direction)
+      : o.effects,
+  );
 }
 
 /** The person a talk is with. */

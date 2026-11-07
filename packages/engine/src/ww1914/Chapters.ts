@@ -17,6 +17,7 @@ import { firstEdition, pressStep } from "./Press";
 import { rulerAudiences, rulerStep } from "./Ruler";
 import { closeUndecided } from "./SceneRun";
 import { seaStep } from "./Sea";
+import { termsStep } from "./Terms";
 import { trimLines } from "./World";
 import { worldFlagsStep } from "./WorldFlags";
 
@@ -35,6 +36,7 @@ export const GW_CHAPTER_STEPS: readonly ((gw: GreatWar) => void)[] = [
   peopleStep,
   govStep,
   aiStep,
+  termsStep,
   intelStep,
   worldFlagsStep,
   rulerStep,

@@ -5,14 +5,9 @@
 // and `tone_fits` conditions and the `picked` cast rule. An aim (`GwAim`) is what
 // the seat declares this war is for. Text: pack `acts.<id>`, `aims.<id>`.
 import { z } from "zod";
-import { GwIdSchema, GW_STAGES } from "./GreatWarTypes";
+import { GW_STAGES, GwIdSchema } from "./GreatWarTypes";
 import { GW_TAGS } from "./GwCountries";
-import {
-  GW_STANCES,
-  GwCondSchema,
-  GwEffectSchema,
-  GwScene,
-} from "./SceneDsl";
+import { GW_STANCES, GwCondSchema, GwEffectSchema, GwScene } from "./SceneDsl";
 
 /** The schedule's sections. APPEND ONLY. */
 export const GW_ACT_KINDS = [
@@ -221,7 +216,8 @@ export function gwActPackProblems(
     }
   }
   for (const a of aims) {
-    if (pack.aims?.[a.id] === undefined) out.push(`${a.id}: aim not in the pack`);
+    if (pack.aims?.[a.id] === undefined)
+      out.push(`${a.id}: aim not in the pack`);
   }
   return out;
 }

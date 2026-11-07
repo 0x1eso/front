@@ -52,6 +52,7 @@ function payForChange(gw: GreatWar, seat: GwSeatState, old: GwAim | null) {
     const price = CHANGE_AUTHORITY + times * CHANGE_AUTHORITY_MORE;
     n.authority = clampTo(n.authority - price, 0, 100);
   }
+  // With no ruler card to move, the line still has to be said.
   moveRuler(gw, seat, "reputation", CHANGE_REPUTATION, "aim_changed");
   reason(gw, seat, "aim_changed");
   runEffects(plain(gw, seat), old?.dropped ?? []);

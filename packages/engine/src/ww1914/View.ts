@@ -10,6 +10,7 @@ import type {
 } from "@openfront/engine-api/ww1914/GwView";
 import { gwChapters } from "@openfront/engine-lib/ww1914/Calendars";
 import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
+import { reworkTell } from "@openfront/engine-lib/ww1914/SendBackRules";
 import {
   civilFromDays,
   formatIsoDate,
@@ -22,7 +23,9 @@ import type { GreatWar } from "./GreatWar";
 import { openTopics, readyBlock } from "./Orders";
 import { rulerView } from "./Ruler";
 import { ctxOf, optionOpen, pickVariant, sceneOf } from "./SceneRun";
+import { backOpen, backWho } from "./SendBack";
 import { GW_HIDE_UNMET } from "./Tables";
+import { termsView } from "./Terms";
 import { seatPerson, stageOf } from "./World";
 import { worldView } from "./WorldView";
 
@@ -45,7 +48,7 @@ function cardView(
     options: (scene.options ?? []).map((o) => ({
       id: o.id,
       open: optionOpen(ctx, o),
-      tell: o.tell,
+      tell: c.back?.changed ? reworkTell(o, c.back.direction) : o.tell,
       ...(o.screen === undefined ? {} : { screen: o.screen }),
     })),
     who: scene.who === undefined ? null : (c.cast[scene.who] ?? null),
@@ -63,6 +66,9 @@ function cardView(
     })),
     voice: c.voice,
     folded: c.folded,
+    backTo: backOpen(gw, seat, c, scene),
+    back: c.back,
+    backWho: backWho(gw, seat, c, scene),
   };
 }
 
@@ -110,6 +116,7 @@ function seatView(gw: GreatWar, seat: GwSeatState): GwSeatView {
     actsLeft: seat.acts,
     acts: actViews(gw, seat),
     aims: aimsView(gw, seat),
+    terms: termsView(gw, seat),
     desk: seat.desk.flatMap((c) => cardView(gw, seat, c) ?? []),
     people: defs.flatMap((d) => {
       const p = gw.person(d.id);

@@ -636,6 +636,8 @@ export const GwReasonSchema = z.object({
   key: GwIdSchema,
   chapter: z.number().int(),
   who: GwIdSchema.nullable().optional(),
+  /** The country it is about: the text's {country}. */
+  tag: z.enum(GW_TAGS).optional(),
 });
 export type GwReason = z.infer<typeof GwReasonSchema>;
 

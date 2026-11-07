@@ -3,14 +3,19 @@
 // source band. Text is looked up in the pack by these ids.
 import type {
   GwAlloc,
+  GwAskClause,
+  GwBack,
+  GwBackDirection,
   GwCalendarId,
   GwGauge,
+  GwGiveClause,
   GwInstitution,
   GwOffice,
   GwOpening,
   GwReason,
   GwStage,
   GwStamp,
+  GwTermRefusal,
   GwTheatre,
 } from "./GreatWarTypes";
 import type { GwTag } from "./GwCountries";
@@ -52,6 +57,12 @@ export interface GwCardView {
   voice?: Readonly<Record<string, string>>;
   /** A quiet card: the small scenes folded into it, shown by their titles. */
   folded?: readonly string[];
+  /** "다시 써 오시오": the directions open now; empty when it can't go back. */
+  backTo?: readonly GwBackDirection[];
+  /** A paper sent back, come again. */
+  back?: GwBack | null;
+  /** Who it went back to: the line's {who}. */
+  backWho?: string | null;
 }
 
 /** A field of a schedule entry: pick `count` from what it holds. */
@@ -80,6 +91,25 @@ export interface GwAimsView {
   /** Declaring now is a change of word, with a price shown afterwards. */
   priced: boolean;
   dropped: readonly string[];
+}
+
+/** Terms as the seat can offer them; text under gw.terms.*. */
+export interface GwTermsView {
+  /** Terms have gone out this chapter: one a chapter. */
+  sent: boolean;
+  targets: readonly {
+    tag: GwTag;
+    give: readonly GwGiveClause[];
+    ask: readonly GwAskClause[];
+  }[];
+  log: readonly {
+    tag: GwTag;
+    give: readonly GwGiveClause[];
+    ask: readonly GwAskClause[];
+    /** Null until the chapter closes. */
+    yes: boolean | null;
+    why: GwTermRefusal | null;
+  }[];
 }
 
 /** A promise as the seat remembers it (pack `promises.<key>`). */
@@ -174,6 +204,7 @@ export interface GwSeatView {
   acts?: readonly GwActView[];
   /** Null where the country has no list: its three tasks stand. */
   aims?: GwAimsView | null;
+  terms?: GwTermsView;
   desk: readonly GwCardView[];
   people: readonly GwPersonView[];
   gauges: Readonly<Record<GwGauge, number>>;

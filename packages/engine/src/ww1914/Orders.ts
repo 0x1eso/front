@@ -38,7 +38,9 @@ import {
   setOffice,
   takeOption,
 } from "./SceneRun";
+import { sendBack } from "./SendBack";
 import { applyReply, summonScenes } from "./Talk";
+import { offerTerms } from "./Terms";
 import { seatPerson } from "./World";
 
 /** Why this seat can't say ready; null when it can. */
@@ -162,11 +164,11 @@ export function applyGwOrder(
     case "act":
       return takeAct(gw, seat, o.act, o.picks);
     case "send_back":
-      return "no_back";
+      return sendBack(gw, seat, o.card, o.direction);
     case "aim":
       return declareAim(gw, seat, o.aim);
     case "terms":
-      return "no_terms";
+      return offerTerms(gw, seat, o.tag, o.give, o.ask);
   }
 }
 
