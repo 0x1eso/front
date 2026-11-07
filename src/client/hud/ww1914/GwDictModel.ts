@@ -122,6 +122,9 @@ export function alreadyTitled(
   );
 }
 
+const LEAN_POST =
+  /(대신|장관|수상|총리|총장|사령관|대사|공사|차관|총재|총독|대통령|국왕|왕|황제|차르|지도자|대표|의장|의원|장군|제독|대령|국장|서기|주치의|교수|교황|섭정|청장|주지사|왕세자|왕비|계승자)$/;
+
 /** A lean that reads as a post or a standing, else null: "공동 재무대신". */
 export function leanTitle(lean: string): string | null {
   const first = lean
@@ -132,6 +135,9 @@ export function leanTitle(lean: string): string | null {
   if (/[,·]/.test(first)) return null;
   if (/(다|요|나|까)$/.test(first)) return null;
   if (/^(궁정|온건|강경|호랑이|폐하의)/.test(first)) return null;
+  // Only a post: "막내딸" or "눈을 깜박이는 대령" describe, they aren't titles.
+  if (/[는은던의] /.test(first)) return null;
+  if (!LEAN_POST.test(first)) return null;
   return first;
 }
 
