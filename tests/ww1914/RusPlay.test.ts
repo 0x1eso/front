@@ -10,6 +10,7 @@ import {
 } from "@openfront/engine/ww1914/People";
 import { pressStep } from "@openfront/engine/ww1914/Press";
 import { GW_PRESS_ROWS } from "@openfront/engine/ww1914/PressTable";
+import { changeRegime } from "@openfront/engine/ww1914/Regimes";
 import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
@@ -119,6 +120,25 @@ describe("russia as played", () => {
     for (const s of GW_NEUTRAL_SCENES) {
       expect(s.stage, s.id).not.toContain("conference");
     }
+  });
+
+  test("the Tsar's papers leave with him, and his court minister", async () => {
+    const { gw, st } = await russia();
+    const n = gw.nation("RUS")!;
+    n.regime = "tsar";
+    gw.person("rus_fredericks")!.office = "court";
+    const card = (scene: string) =>
+      ({ uid: st.desk.length + 900, scene }) as (typeof st.desk)[number];
+    st.desk = [
+      card("gov_rus_court_3"),
+      card("rus_life_shaken"),
+      card("rus_w_ledger"),
+    ];
+    st.scheduled.push({ scene: "rus_life_broken", chapter: gw.s.chapter + 1 });
+    changeRegime(gw, "RUS", "provisional");
+    expect(st.desk.map((c) => c.scene)).toEqual(["rus_w_ledger"]);
+    expect(st.scheduled.map((q) => q.scene)).not.toContain("rus_life_broken");
+    expect(gw.person("rus_fredericks")!.office).toBe(null);
   });
 
   test("whoever leaves is named in the why-log", async () => {
