@@ -131,6 +131,7 @@ const DEU: GwPressRow = {
   free: ["republic"],
   closed: [
     "deu_c_first_words",
+    "deu_c_potsdam",
     "deu_c_blank_cheque",
     "deu_c_ultimatum_text",
     "deu_c_nicky",
@@ -304,6 +305,7 @@ const GBR: GwPressRow = {
   bar: { inst: "commons", min: -2, why: "commons" },
   free: [],
   closed: [
+    "gbr_c_war_office_held",
     "gbr_c_cambon",
     "gbr_c_cabinet_one",
     "gbr_c_cabinet_two",
@@ -578,6 +580,7 @@ const AUH: GwPressRow = {
   free: ["austria_republic"],
   closed: [
     "auh_c_tisza_letter",
+    "auh_c_no_annex",
     "auh_c_hoyos_mission",
     "auh_c_council_july",
     "auh_c_note_draft",
