@@ -55,6 +55,26 @@ export const GW_CALENDARS: Readonly<
   ],
 };
 
+/**
+ * The budget meetings (design ww140): the first chapter on or after each date
+ * holds the meeting for that fiscal year. The outbreak's own meeting comes on
+ * top, whenever the war does. Every row has its dates here.
+ */
+export const GW_BUDGET_DATES: Readonly<
+  Record<GwCalendarId, readonly { date: string; year: number }[]>
+> = {
+  y1914: [{ date: "1914-11-07", year: 1915 }],
+  full: yearly(),
+  standard: yearly(),
+};
+
+function yearly() {
+  return [1915, 1916, 1917, 1918].map((year) => ({
+    date: `${year}-01-01`,
+    year,
+  }));
+}
+
 function seg(
   stage: GwStage,
   from: string,
@@ -76,6 +96,8 @@ export interface GwChapter {
   readonly timerSec: number;
   readonly summons: number;
   readonly bigSummons: number;
+  /** The fiscal year whose budget meeting this chapter holds; null if none. */
+  readonly budget: number | null;
 }
 
 const expanded = new Map<GwCalendarId, readonly GwChapter[]>();
@@ -97,8 +119,15 @@ export function gwChapters(id: GwCalendarId): readonly GwChapter[] {
         timerSec: s.timerSec,
         summons: s.summons,
         bigSummons: s.bigSummons,
+        budget: null,
       });
     }
+  }
+  for (const b of GW_BUDGET_DATES[id]) {
+    const [y, m, d] = b.date.split("-").map(Number);
+    const day = daysFromCivil(y, m, d);
+    const i = out.findIndex((c) => c.day >= day);
+    if (i >= 0) out[i] = { ...out[i], budget: b.year };
   }
   expanded.set(id, out);
   return out;

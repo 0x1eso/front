@@ -3,6 +3,7 @@
 // GreatWar.snapshot() writes it as it is and hash() folds all of it, so a new
 // field needs no plumbing. Never store undefined: use null. Integers only.
 import { z } from "zod";
+import { GwBudgetStateSchema } from "./GwBudget";
 import { GW_TAGS } from "./GwCountries";
 
 /** A content id: scene, person, flag, memory key. */
@@ -456,6 +457,8 @@ export const GwNationStateSchema = z.object({
   spent: z.number().int(),
   /** Chapter it first entered the war; null while neutral. */
   entered: z.number().int().nullable(),
+  /** Its money: `gauges.money` follows from this (engine/ww1914/Budget). */
+  budget: GwBudgetStateSchema,
 });
 export type GwNationState = z.infer<typeof GwNationStateSchema>;
 

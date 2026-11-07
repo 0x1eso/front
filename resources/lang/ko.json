@@ -14469,7 +14469,16 @@
       "order_command": "패전이 군주에게 돌아갔다.",
       "bread_hungary_holds": "헝가리가 곡물을 쥐고 있다.",
       "order_duma_shut": "닫힌 두마가 거리에서 말한다.",
-      "morale_committees": "병사 위원회가 연대를 움직인다."
+      "morale_committees": "병사 위원회가 연대를 움직인다.",
+      "budget_army": "예산의 군비 몫.",
+      "budget_navy": "예산의 해군 몫.",
+      "budget_relief": "예산의 식량과 구호 몫.",
+      "budget_works": "예산의 공공사업과 복지 몫.",
+      "budget_taxes": "세율.",
+      "budget_national": "예산의 나라 몫.",
+      "order_prices": "물가가 임금을 앞질렀다.",
+      "money_budget_up": "한 해 수입이 지출을 넘었다.",
+      "money_scene": "결정이 금고를 움직였다."
     },
     "mandate": {
       "deu_bread_for_the_winter": "겨울 빵을 남기기",
@@ -14774,7 +14783,16 @@
       "tech_infiltration": "침투 전술이(가) 군에 닿았다.",
       "tech_mine_nets": "기뢰 장벽과 방잠망이(가) 군에 닿았다.",
       "tech_ocean_boats": "대양 잠수함이(가) 군에 닿았다.",
-      "tech_convoys": "호송 선단이(가) 군에 닿았다."
+      "tech_convoys": "호송 선단이(가) 군에 닿았다.",
+      "budget_signed": "올해 예산이 통과됐다.",
+      "budget_proxy": "재무 쪽 초안에 대리 서명이 찍혔다.",
+      "budget_forced": "예산을 권위로 밀어붙였다.",
+      "budget_alone": "기관을 넘어 혼자 서명했다.",
+      "budget_refused": "예산이 부결됐다.",
+      "budget_runs_on": "작년 예산이 그대로 이어진다.",
+      "budget_shortfall": "금고가 비어 모자란 돈을 찍었다.",
+      "budget_navy_up": "조선소가 수리를 따라잡았다.",
+      "budget_navy_down": "함대 수리가 밀렸다."
     },
     "result": {
       "advance": "전진",
@@ -14931,7 +14949,19 @@
       "srb": "베오그라드",
       "straits": "해협",
       "entry": "중립국이 움직임",
-      "shipping": "상선"
+      "shipping": "상선",
+      "army_line": "군비 몫",
+      "navy_line": "해군 몫",
+      "relief_line": "구호 몫",
+      "national_line": "나라 몫",
+      "tax_rate": "세율",
+      "bonds_ask": "공채",
+      "loans_ask": "차관",
+      "print_ask": "지폐",
+      "prices_up": "물가 상승",
+      "prices_down": "물가 하락",
+      "interest_half": "이자 절반",
+      "lenders_shut": "돈줄 닫힘"
     },
     "theatre": {
       "balkan": "발칸",
@@ -15014,7 +15044,9 @@
         "open_cards": "열린 서류가 남아 있습니다. 읽거나 정한 뒤에 마칠 수 있습니다.",
         "signed": "이번 장의 안에는 이미 서명했습니다.",
         "stale_chapter": "그 장은 이미 넘어갔습니다.",
-        "wrong_kind": "그 서류에는 맞지 않는 조치입니다."
+        "wrong_kind": "그 서류에는 맞지 않는 조치입니다.",
+        "no_meeting": "지금은 예산 회의가 없습니다.",
+        "bad_budget": "몫의 합이 100이 되어야 합니다."
       },
       "calendar": {
         "full": "긴 판",
@@ -15381,6 +15413,132 @@
       "coalition": "연립",
       "tighten_blockade": "봉쇄 강화",
       "peace_talks": "강화 회담"
+    },
+    "budget": {
+      "title": "나라 예산",
+      "open": "장부 펴기",
+      "close": "닫기",
+      "now": "지금",
+      "proposed": "안",
+      "left": "남은 몫: {n}",
+      "spending": "지출",
+      "revenue": "세입",
+      "forecast": "내년 전망",
+      "state": "돈의 사정",
+      "interest_next": "내년 이자",
+      "load": "이자가 세금의 {n}%를 먹는다",
+      "outlay": "지출",
+      "income": "수입",
+      "balance": "차액",
+      "treasury_end": "연말 금고",
+      "debt_end": "연말 빚",
+      "prices_end": "연말 물가",
+      "printed_more": "모자라서 더 찍는 돈: {sum}",
+      "percent": "{n}%",
+      "prices_value": "{n} (1914년 6월 = 100)",
+      "tax_note": "질서 연 {pts}",
+      "bonds_note": "청약 전망: 요청액의 {n}%",
+      "print_note": "물가 {n}포인트",
+      "no_lender": "지금 빌려줄 곳이 없다.",
+      "lender_line": "{name}: 지출의 {cap}%까지, 진 빚 {owed}",
+      "lender_shut": "{name}: 닫힘, 진 빚 {owed}",
+      "effects": "한 해 동안 달라지는 것",
+      "rises": "오른다",
+      "falls": "내린다",
+      "holds": "그대로",
+      "submit": "표결에 부친다",
+      "sign": "예산에 서명한다",
+      "alone": "혼자 서명한다 (권위 -{n})",
+      "force": "권위로 밀어붙인다 (권위 -{n})",
+      "reset": "초안으로 되돌린다",
+      "unsigned": "서명하지 않으면 재무 쪽 초안에 대리 서명이 찍힌다.",
+      "refused_now": "부결됐다. 고쳐서 다시 내거나, 밀어붙이거나, 작년 예산으로 간다.",
+      "no_meeting": "다음 회의: {date}",
+      "no_more": "남은 예산 회의가 없다.",
+      "holder": "재무: {name}",
+      "nobody": "이 예산을 막을 기관이 없다.",
+      "body_line": "{body}: {score} (필요 {need})",
+      "pass_yes": "통과한다.",
+      "pass_no": "부결된다.",
+      "line": {
+        "army": "군비와 군수",
+        "navy": "해군",
+        "relief": "식량과 구호",
+        "works": "공공사업과 복지"
+      },
+      "national": {
+        "DEU": "식민지와 제국의회 몫",
+        "GBR": "동맹 보조금",
+        "AUH": "헝가리 몫",
+        "RUS": "궁정과 철도",
+        "other": "나라 몫"
+      },
+      "source": {
+        "taxes": "세금 (세율, 1914년 6월 = 100)",
+        "bonds": "전쟁 공채 (지출의 %)",
+        "loans": "외국 차관 (지출의 %)",
+        "print": "지폐 발행 (지출의 %)"
+      },
+      "item": {
+        "treasury": "금고",
+        "debt": "빚",
+        "prices": "물가"
+      },
+      "how": {
+        "none": "평시 예산",
+        "signed": "통과",
+        "proxy": "대리 서명",
+        "forced": "권위로 통과",
+        "alone": "혼자 서명",
+        "refused": "부결: 작년 예산이 이어짐"
+      },
+      "unit": {
+        "DEU": "마르크",
+        "GBR": "파운드",
+        "AUH": "크로네",
+        "RUS": "루블",
+        "FRA": "프랑",
+        "ITA": "리라",
+        "USA": "달러",
+        "other": "단위"
+      },
+      "lender": {
+        "morgan": "모건 상회",
+        "london": "런던 재무부",
+        "paris": "파리 시장",
+        "berlin": "베를린",
+        "neutrals": "중립국 시장"
+      },
+      "drift": {
+        "shells": "포탄",
+        "bread": "빵",
+        "morale": "사기",
+        "order": "질서",
+        "sea": "함대"
+      },
+      "note": {
+        "taxes": "세금",
+        "bonds": "전쟁 공채",
+        "loans": "외국 차관",
+        "print": "지폐 발행",
+        "outlay": "지출",
+        "interest": "이자",
+        "scenes": "올해의 결정",
+        "gold": "담보로 보낸 금",
+        "shortfall": "모자라서 찍은 돈",
+        "war": "전쟁 자체"
+      },
+      "vote": {
+        "taxes_heavy": "세금이 무겁다",
+        "taxes_up": "세금이 오른다",
+        "home_up": "국내 몫이 늘었다",
+        "army_up": "군비가 지나치다",
+        "national_up": "자기 몫이 늘었다",
+        "national_down": "자기 몫이 줄었다",
+        "load": "이자가 무겁다",
+        "prices": "물가가 높다",
+        "rally": "첫 전쟁 예산이다"
+      }
     }
   }
 }

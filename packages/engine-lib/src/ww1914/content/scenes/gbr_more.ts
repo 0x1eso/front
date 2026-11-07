@@ -916,12 +916,6 @@ const BODIES: Readonly<Record<string, readonly MoreBody[]>> = {
     { id: "base2", like: "base" },
     { id: "base3", like: "base" },
   ],
-  gw_gbr_budget: [
-    { id: "b2", like: "base" },
-    { id: "b3", like: "base" },
-    { id: "b4", like: "base" },
-    { id: "b5", like: "base" },
-  ],
   gw_gbr_coalition: [
     { id: "b2", like: "base" },
     { id: "b3", like: "base" },

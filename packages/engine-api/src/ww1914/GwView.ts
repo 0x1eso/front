@@ -24,7 +24,7 @@ export interface GwOptionView {
   open: boolean;
   tell: readonly string[];
   /** The screen to open once it is taken. */
-  screen?: "fronts";
+  screen?: "fronts" | "budget";
 }
 
 export interface GwReplyView extends GwOptionView {

@@ -12,6 +12,7 @@ import {
 import { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import { gwChapters } from "@openfront/engine-lib/ww1914/Calendars";
 import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
+import { moveMoney } from "./Budget";
 import type { GreatWar } from "./GreatWar";
 import { GW_SEAT_PERSON } from "./Tables";
 
@@ -129,6 +130,10 @@ export function moveGauge(
 ): void {
   const n = gw.nation(tag);
   if (n === null || delta === 0) return;
+  if (gauge === "money") {
+    moveMoney(gw, n, delta, key);
+    return;
+  }
   const was = n.gauges[gauge];
   n.gauges[gauge] = clampTo(was + delta, 0, GW_GAUGE_MAX[gauge]);
   const moved = n.gauges[gauge] - was;
