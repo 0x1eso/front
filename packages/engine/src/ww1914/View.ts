@@ -15,6 +15,8 @@ import {
   formatIsoDate,
 } from "@openfront/engine-lib/ww1936/Calendar";
 import { idHash } from "@openfront/engine-lib/ww1936/Roll";
+import { actViews } from "./Acts";
+import { aimsView } from "./Aims";
 import { govView, pollView } from "./Government";
 import type { GreatWar } from "./GreatWar";
 import { openTopics, readyBlock } from "./Orders";
@@ -105,6 +107,9 @@ function seatView(gw: GreatWar, seat: GwSeatState): GwSeatView {
     ready: seat.ready,
     audiences: seat.audiences,
     privates: seat.privates,
+    actsLeft: seat.acts,
+    acts: actViews(gw, seat),
+    aims: aimsView(gw, seat),
     desk: seat.desk.flatMap((c) => cardView(gw, seat, c) ?? []),
     people: defs.flatMap((d) => {
       const p = gw.person(d.id);

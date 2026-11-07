@@ -6,6 +6,7 @@ import {
   GW_TEMP_MAX,
   GW_TRUST_MAX,
   GW_TRUST_MIN,
+  GwBack,
   GwCard,
   GwEnding,
   GwOffice,
@@ -23,6 +24,7 @@ import {
   GwOption,
   GwReply,
   GwScene,
+  GwStance,
   GwVariant,
   GwWho,
 } from "@openfront/engine-api/ww1914/SceneDsl";
@@ -35,6 +37,7 @@ import {
   fadedWeight,
   GW_MOOD_MOVES_TRUST,
   isCandid,
+  stanceFit,
 } from "@openfront/engine-lib/ww1914/TalkRules";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { blocNow } from "./Blocs";
@@ -59,6 +62,10 @@ export interface SceneCtx {
   cast: Readonly<Record<string, string>>;
   /** The card it runs for: a talk's mood lives there. */
   card?: GwCard;
+  /** Before a card exists: the `seat.acted` row it is played from. */
+  act?: number | null;
+  /** Before a card exists: how a paper sent back comes again. */
+  back?: GwBack | null;
 }
 
 const clamp = (v: number, lo: number, hi: number) =>
@@ -158,7 +165,8 @@ function isFixed(rule: GwCastRule): boolean {
     "office" in rule ||
     "person" in rule ||
     "called" in rule ||
-    "subject" in rule
+    "subject" in rule ||
+    "picked" in rule
   );
 }
 
@@ -171,6 +179,7 @@ function fill(
   rule: BaseCastRule,
   cast: Readonly<Record<string, string>>,
   called: string | null,
+  act: number | null,
 ): GwPersonState | null {
   const free = (p: GwPersonState) => !Object.values(cast).includes(p.id);
   if ("office" in rule) {
@@ -182,6 +191,12 @@ function fill(
   }
   if ("called" in rule) {
     const p = called === null ? null : gw.person(called);
+    return p?.status === "active" ? p : null;
+  }
+  if ("picked" in rule) {
+    const row = act === null ? undefined : seat.acted[act];
+    const id = row?.picks[rule.picked]?.[rule.nth ?? 0];
+    const p = id === undefined ? null : gw.person(id);
     return p?.status === "active" ? p : null;
   }
   // Whoever the world scene is about: they may have left, that's the news.
@@ -226,6 +241,7 @@ export function castOf(
   seat: GwSeatState,
   scene: GwScene,
   called: string | null = null,
+  act: number | null = null,
 ): Record<string, string> | null {
   const out: Record<string, string> = {};
   const roles = Object.entries(scene.cast);
@@ -238,7 +254,7 @@ export function castOf(
   for (const [role, rule] of ordered) {
     let p: GwPersonState | null = null;
     for (const r of "any_of" in rule ? rule.any_of : [rule]) {
-      p = fill(gw, seat, scene, role, r, out, called);
+      p = fill(gw, seat, scene, role, r, out, called, act);
       if (p !== null) break;
     }
     if (p === null) return null;
@@ -427,7 +443,61 @@ export function holds(ctx: SceneCtx, c: GwCond): boolean {
       return inRange(seat.press.rumour, c);
     case "censor":
       return inRange(seat.press.censor, c);
+    case "picked": {
+      const row = actRow(ctx, c.act);
+      return (row?.picks[c.field] ?? []).some((x) => c.of.includes(x));
+    }
+    case "acted":
+      return seat.acted.some(
+        (x) =>
+          x.act === c.act &&
+          (c.within === undefined || s.chapter - x.chapter <= c.within),
+      );
+    case "tone_fits": {
+      const p = who(ctx, c.who);
+      const tone = actRow(ctx)?.picks[c.field ?? "tone"]?.[0] as
+        | GwStance
+        | undefined;
+      return p !== null && tone !== undefined && stanceFit(p, tone, "ask") >= 0;
+    }
+    case "returned":
+      return sentBack(ctx, c);
+    case "aim":
+      return seat.aim !== null && c.of.includes(seat.aim);
+    case "aim_met": {
+      const aim = gwContent().aims?.find((x) => x.id === seat.aim);
+      return aim !== undefined && holds({ gw, seat, cast: {} }, aim.met);
+    }
+    case "aim_changed":
+      return inRange(seat.aimsDropped.length, c);
   }
+}
+
+/** The act a card was played from, or the last taking of `act`. */
+function actRow(ctx: SceneCtx, act?: string) {
+  const { seat } = ctx;
+  if (act !== undefined) return seat.acted.filter((x) => x.act === act).at(-1);
+  const row = ctx.card?.act ?? ctx.act ?? null;
+  return row === null ? undefined : seat.acted[row];
+}
+
+function sentBack(
+  ctx: SceneCtx,
+  c: Extract<GwCond, { kind: "returned" }>,
+): boolean {
+  const fits = (x: GwBack) =>
+    (c.of === undefined || c.of.includes(x.direction)) &&
+    (c.changed === undefined || x.changed === c.changed);
+  if (c.scene === undefined) {
+    const here = ctx.card?.back ?? ctx.back ?? null;
+    return here !== null && fits(here);
+  }
+  return ctx.seat.returns.some(
+    (x) =>
+      x.scene === c.scene &&
+      fits(x) &&
+      (c.within === undefined || ctx.gw.s.chapter - x.chapter <= c.within),
+  );
 }
 
 /** What a person holds for or against the seat now, faded. */

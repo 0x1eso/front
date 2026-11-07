@@ -482,6 +482,8 @@ export const GW_SOURCES = [
   "agents",
   "embassy_berlin",
   "embassy_rome",
+  /** The seat's own eyes: a visit. Never wrong. */
+  "own_eyes",
 ] as const;
 export type GwSource = (typeof GW_SOURCES)[number];
 export const GW_STAMPS = ["confirmed", "unconfirmed", "estimate"] as const;
@@ -539,6 +541,52 @@ export type GwOpening = (typeof GW_OPENINGS)[number];
 /** How a card reached the desk: drawn, summoned, or scheduled by an effect. */
 export const GW_CARD_ORIGINS = ["desk", "summon", "scheduled"] as const;
 
+/** "다시 써 오시오": what a paper can be sent back for (engine/ww1914/SendBack). */
+export const GW_BACK_DIRECTIONS = [
+  "cheaper",
+  "gentler",
+  "calmer",
+  "kinder",
+  "firmer",
+] as const;
+export type GwBackDirection = (typeof GW_BACK_DIRECTIONS)[number];
+
+/** A paper that came back: what it was sent back for, whether it changed. */
+export const GwBackSchema = z.object({
+  direction: z.enum(GW_BACK_DIRECTIONS),
+  changed: z.boolean(),
+});
+export type GwBack = z.infer<typeof GwBackSchema>;
+
+/** Terms a seat can offer a country, from what the game already keeps. */
+export const GW_GIVE_CLAUSES = [
+  "price",
+  "credit",
+  "grain",
+  "shells",
+  "guarantee",
+] as const;
+export type GwGiveClause = (typeof GW_GIVE_CLAUSES)[number];
+/** Terms a seat can ask of a country. */
+export const GW_ASK_CLAUSES = [
+  "peace",
+  "join",
+  "stay_out",
+  "credit",
+  "grain",
+  "shells",
+  "mediate",
+] as const;
+export type GwAskClause = (typeof GW_ASK_CLAUSES)[number];
+/** Why a country said no, in plain words: gw.terms.why.<id>. */
+export const GW_TERM_REFUSALS = [
+  "too_little",
+  "no_trust",
+  "winning",
+  "bound",
+] as const;
+export type GwTermRefusal = (typeof GW_TERM_REFUSALS)[number];
+
 export const GwCardSchema = z.object({
   uid: z.number().int(),
   scene: GwIdSchema,
@@ -558,6 +606,10 @@ export const GwCardSchema = z.object({
   notes: z.array(GwIdSchema),
   /** A quiet card: the small scenes folded into it. */
   folded: z.array(GwIdSchema),
+  /** Played from the schedule: its row in `seat.acted`. */
+  act: z.number().int().nullable().default(null),
+  /** A paper sent back and come again. */
+  back: GwBackSchema.nullable().default(null),
 });
 export type GwCard = z.infer<typeof GwCardSchema>;
 
@@ -729,6 +781,15 @@ export const GwMemoirSchema = z.object({
   chapter: z.number().int(),
   day: z.number().int(),
   mandates: z.array(z.object({ id: GwIdSchema, met: z.boolean() })),
+  /** The aim the seat stood on at the end, and those it gave up. */
+  aim: z
+    .object({
+      id: GwIdSchema,
+      met: z.boolean(),
+      dropped: z.array(GwIdSchema),
+    })
+    .nullable()
+    .default(null),
   /** The seat's own record: casualties in thousands, lines held. */
   casualties: z.number().int(),
   fronts: z.array(
@@ -786,6 +847,10 @@ export const GwSeatStateSchema = z.object({
       chapter: z.number().int(),
       /** Who fills its `called` role. */
       who: GwIdSchema.nullable().optional(),
+      /** Played from the schedule: its row in `acted`. */
+      act: z.number().int().nullable().optional(),
+      /** A paper sent back, coming again. */
+      back: GwBackSchema.nullable().optional(),
     }),
   ),
   alloc: GwAllocSchema,
@@ -824,6 +889,51 @@ export const GwSeatStateSchema = z.object({
   ruler: GwRulerStateSchema,
   /** The censor, the rumour, the papers (engine/ww1914/Press). A save from before it has none. */
   press: GwPressStateSchema.default(gwPressStart),
+  /** Schedule slots left this chapter (원수의 일정). */
+  acts: z.number().int().default(0),
+  /** What the seat has started, in order. */
+  acted: z
+    .array(
+      z.object({
+        act: GwIdSchema,
+        chapter: z.number().int(),
+        /** Field id -> what was picked: option ids or person ids. */
+        picks: z.record(z.string(), z.array(GwIdSchema)),
+      }),
+    )
+    .default([]),
+  /** The declared aim of this war or reign (국가 목표); null none yet. */
+  aim: GwIdSchema.nullable().default(null),
+  /** Every aim given up, in order. */
+  aimsDropped: z
+    .array(z.object({ id: GwIdSchema, chapter: z.number().int() }))
+    .default([]),
+  /** Papers sent back, in order: "다시 써 오시오". */
+  returns: z
+    .array(
+      z.object({
+        scene: GwIdSchema,
+        direction: z.enum(GW_BACK_DIRECTIONS),
+        chapter: z.number().int(),
+        changed: z.boolean(),
+        who: GwIdSchema.nullable(),
+      }),
+    )
+    .default([]),
+  /** Terms offered to other countries, and their answers. */
+  terms: z
+    .array(
+      z.object({
+        tag: z.enum(GW_TAGS),
+        give: z.array(z.enum(GW_GIVE_CLAUSES)),
+        ask: z.array(z.enum(GW_ASK_CLAUSES)),
+        chapter: z.number().int(),
+        /** Null until the chapter closes. */
+        yes: z.boolean().nullable(),
+        why: z.enum(GW_TERM_REFUSALS).nullable(),
+      }),
+    )
+    .default([]),
 });
 export type GwSeatState = z.infer<typeof GwSeatStateSchema>;
 

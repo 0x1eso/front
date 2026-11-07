@@ -38,6 +38,7 @@ export const GW_PACK_SHARES: Readonly<
     "gov",
     "private",
     "press",
+    "acts",
   ],
   GBR: [
     "crisis",
@@ -50,6 +51,7 @@ export const GW_PACK_SHARES: Readonly<
     "gov",
     "private",
     "press",
+    "acts",
   ],
   AUH: [
     "crisis",
@@ -62,6 +64,7 @@ export const GW_PACK_SHARES: Readonly<
     "gov",
     "private",
     "press",
+    "acts",
   ],
   RUS: [
     "crisis",
@@ -74,6 +77,7 @@ export const GW_PACK_SHARES: Readonly<
     "gov",
     "private",
     "press",
+    "acts",
   ],
 };
 
@@ -89,6 +93,7 @@ export const GW_COMMON_SHARES: readonly string[] = [
   "laws",
   "ruler",
   "dict",
+  "acts",
 ];
 /**
  * Casts in files of their own. Every seat loads them: a scene can cast another

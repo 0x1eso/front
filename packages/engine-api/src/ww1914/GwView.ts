@@ -17,6 +17,7 @@ import type { GwTag } from "./GwCountries";
 import type { GwOrderBlock } from "./GwOrders";
 import type { GwRulerView } from "./GwRuler";
 import type { GwWorldView } from "./GwWorldView";
+import type { GwActKind } from "./GwActs";
 import type { GwReplyKind, GwSceneKind, GwStance } from "./SceneDsl";
 
 export interface GwOptionView {
@@ -51,6 +52,34 @@ export interface GwCardView {
   voice?: Readonly<Record<string, string>>;
   /** A quiet card: the small scenes folded into it, shown by their titles. */
   folded?: readonly string[];
+}
+
+/** A field of a schedule entry: pick `count` from what it holds. */
+export interface GwActFieldView {
+  id: string;
+  options: readonly string[];
+  tones: readonly GwStance[];
+  people: readonly string[];
+  count: number;
+}
+
+/** A schedule entry open now (pack `acts.<id>`). */
+export interface GwActView {
+  id: string;
+  kind: GwActKind;
+  fields: readonly GwActFieldView[];
+  /** Shown after the pick. */
+  tell: readonly string[];
+}
+
+/** The national aim as the seat sees it (pack `aims.<id>`). */
+export interface GwAimsView {
+  aim: string | null;
+  /** What can be declared now. */
+  open: readonly string[];
+  /** Declaring now is a change of word, with a price shown afterwards. */
+  priced: boolean;
+  dropped: readonly string[];
 }
 
 /** A promise as the seat remembers it (pack `promises.<key>`). */
@@ -140,6 +169,11 @@ export interface GwSeatView {
   audiences: number;
   /** Private meetings left this chapter. */
   privates?: number;
+  /** Schedule slots left this chapter, and what is on the schedule. */
+  actsLeft?: number;
+  acts?: readonly GwActView[];
+  /** Null where the country has no list: its three tasks stand. */
+  aims?: GwAimsView | null;
   desk: readonly GwCardView[];
   people: readonly GwPersonView[];
   gauges: Readonly<Record<GwGauge, number>>;

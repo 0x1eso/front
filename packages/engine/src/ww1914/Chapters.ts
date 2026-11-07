@@ -85,6 +85,7 @@ export function openChapter(gw: GreatWar, ticks: number): void {
       ch.summons + (bigChapter(gw, seat) ? ch.bigSummons : 0),
     );
     seat.privates = ch.privates;
+    seat.acts = ch.acts;
     firstEdition(gw, seat);
     dealDesk(gw, seat);
   }

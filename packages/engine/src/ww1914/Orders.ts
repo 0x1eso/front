@@ -18,6 +18,8 @@ import type {
   SnapshotReader,
   SnapshotWriter,
 } from "../snapshot/SnapshotContext";
+import { takeAct } from "./Acts";
+import { declareAim } from "./Aims";
 import { budgetOrder } from "./Budget";
 import { inStage, makeCard, placeCard, repeatable, sceneWear } from "./Desk";
 import { proposalsFor } from "./Fronts";
@@ -157,6 +159,14 @@ export function applyGwOrder(
     case "press_leak":
       if (!ownPerson(seat, o.person)) return "no_person";
       return pressLeak(gw, seat, o.person);
+    case "act":
+      return takeAct(gw, seat, o.act, o.picks);
+    case "send_back":
+      return "no_back";
+    case "aim":
+      return declareAim(gw, seat, o.aim);
+    case "terms":
+      return "no_terms";
   }
 }
 

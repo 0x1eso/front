@@ -1,6 +1,12 @@
 import type { GwPersonDef } from "@openfront/engine-api/ww1914/GreatWarTypes";
+import type { GwAct, GwAim } from "@openfront/engine-api/ww1914/GwActs";
 import type { GwScene } from "@openfront/engine-api/ww1914/SceneDsl";
 import { withRuler } from "../RulerRows";
+import { AUH_ACT_SCENES, AUH_ACTS, AUH_AIMS } from "./acts/auh";
+import { COMMON_ACT_SCENES, COMMON_ACTS } from "./acts/common";
+import { DEU_ACT_SCENES, DEU_ACTS, DEU_AIMS } from "./acts/deu";
+import { GBR_ACT_SCENES, GBR_ACTS, GBR_AIMS } from "./acts/gbr";
+import { RUS_ACT_SCENES, RUS_ACTS, RUS_AIMS } from "./acts/rus";
 import { GW_PEOPLE } from "./people";
 import { AUH_PEOPLE } from "./people_auh";
 import { GW_PEOPLE_COMMON } from "./people_common";
@@ -68,6 +74,10 @@ import { WORLD_SCENES } from "./scenes/world";
 export interface GwContent {
   readonly scenes: readonly GwScene[];
   readonly people: readonly GwPersonDef[];
+  /** The schedule's entries (원수의 일정); fixtures may have none. */
+  readonly acts?: readonly GwAct[];
+  /** The aims a country can declare (국가 목표). */
+  readonly aims?: readonly GwAim[];
 }
 
 /** All content. A new country's file adds one line here. */
@@ -127,6 +137,11 @@ export const GW_CONTENT: GwContent = {
       ...DEU_PRIVATE_SCENES,
       ...AUH_PRIVATE_SCENES,
       ...PRESS_SCENES,
+      ...COMMON_ACT_SCENES,
+      ...DEU_ACT_SCENES,
+      ...GBR_ACT_SCENES,
+      ...AUH_ACT_SCENES,
+      ...RUS_ACT_SCENES,
     ]
       .map(withDeuReplay)
       .map(withDeuPrivate)
@@ -147,6 +162,8 @@ export const GW_CONTENT: GwContent = {
     ...GBR_PRIVATE_PEOPLE,
     ...AUH_PRIVATE_PEOPLE,
   ],
+  acts: [...COMMON_ACTS, ...DEU_ACTS, ...GBR_ACTS, ...AUH_ACTS, ...RUS_ACTS],
+  aims: [...DEU_AIMS, ...GBR_AIMS, ...AUH_AIMS, ...RUS_AIMS],
 };
 
 let current = GW_CONTENT;

@@ -21,6 +21,7 @@ import { world } from "@openfront/engine-api/ww1914/WorldDsl";
 import { budgetView } from "./Budget";
 import { eraOf } from "./Eras";
 import { ownFronts, proposalsFor } from "./Fronts";
+import { tasksShown } from "./Aims";
 import type { GreatWar } from "./GreatWar";
 import { lawViews } from "./Laws";
 import {
@@ -217,7 +218,7 @@ export function worldView(gw: GreatWar, seat: GwSeatState): GwWorldView {
       right: x.right,
       wrong: x.wrong,
     })),
-    mandates: seat.mandates,
+    mandates: tasksShown(gw, seat) ? seat.mandates : [],
     secrets: seat.known as GwWorldView["secrets"],
     threads: s.threads,
     people: personView(gw, seat),

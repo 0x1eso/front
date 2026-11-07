@@ -115,6 +115,38 @@ export function sendReport(
   return report;
 }
 
+/** Seen with the seat's own eyes: the truth, and any report of it is checked now. */
+export function inspect(
+  gw: GreatWar,
+  seat: GwSeatState,
+  fact: GwFactKind,
+  tag: GwTag,
+  theatre: GwTheatre | null,
+): void {
+  const s = gw.s;
+  for (const r of s.reports) {
+    const same = r.fact === fact && r.tag === tag && r.theatre === theatre;
+    if (same && r.smallID === seat.smallID && r.checkDay !== null) {
+      r.checkDay = s.day;
+    }
+  }
+  checkReports(gw);
+  const truth = factTruth(gw, fact, tag, theatre);
+  s.reports.push({
+    uid: s.nextReport++,
+    fact,
+    tag,
+    theatre,
+    source: "own_eyes",
+    stamp: "confirmed",
+    claim: truth,
+    truth,
+    smallID: seat.smallID,
+    chapter: s.chapter,
+    checkDay: null,
+  });
+}
+
 /** Checks what has come due: the source's record is what the seat learns from. */
 function checkReports(gw: GreatWar): void {
   const s = gw.s;

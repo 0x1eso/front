@@ -16,6 +16,7 @@
 import { z } from "zod";
 import {
   GW_AI_KINDS,
+  GW_BACK_DIRECTIONS,
   GW_CAMPS,
   GW_FIELDS,
   GW_GAUGES,
@@ -29,6 +30,7 @@ import {
   GW_THEATRES,
   GW_TOPICS,
   GwAiKind,
+  GwBackDirection,
   GwCamp,
   GwField,
   GwGauge,
@@ -151,7 +153,30 @@ export type GwCond =
   /** A bloc's support now (engine/ww1914/Blocs). */
   | { kind: "bloc"; bloc: GwBloc; min?: number; max?: number }
   | { kind: "rumour"; min?: number; max?: number }
-  | { kind: "censor"; min?: number; max?: number };
+  | { kind: "censor"; min?: number; max?: number }
+  /**
+   * What was picked in a schedule field. Without `act`: the act this card was
+   * played from; with it, the last time that act was taken.
+   */
+  | { kind: "picked"; field: string; of: string[]; act?: string }
+  /** The seat has started this act, `within` chapters if given. */
+  | { kind: "acted"; act: string; within?: number }
+  /** The tone picked in `field` ("tone" if absent) goes down well with `who`. */
+  | { kind: "tone_fits"; who: GwWho; field?: string }
+  /** A paper was sent back: this one if `scene` is absent and this is a card. */
+  | {
+      kind: "returned";
+      scene?: string;
+      of?: GwBackDirection[];
+      changed?: boolean;
+      within?: number;
+    }
+  /** The declared aim is one of these. */
+  | { kind: "aim"; of: string[] }
+  /** The declared aim's `met` holds now. */
+  | { kind: "aim_met" }
+  /** How many aims the seat has given up. */
+  | { kind: "aim_changed"; min?: number; max?: number };
 
 export type GwEffect =
   | { kind: "flag"; flag: string }
@@ -296,6 +321,22 @@ export const GwCondSchema: z.ZodType<GwCond> = z.lazy(() =>
     obj("bloc", { bloc: z.enum(GW_BLOCS), ...range }),
     obj("rumour", range),
     obj("censor", range),
+    obj("picked", {
+      field: GwIdSchema,
+      of: z.array(GwIdSchema).min(1),
+      act: GwIdSchema.optional(),
+    }),
+    obj("acted", { act: GwIdSchema, within: int.min(0).optional() }),
+    obj("tone_fits", { who: GwWhoSchema, field: GwIdSchema.optional() }),
+    obj("returned", {
+      scene: GwIdSchema.optional(),
+      of: z.array(z.enum(GW_BACK_DIRECTIONS)).optional(),
+      changed: z.boolean().optional(),
+      within: int.min(0).optional(),
+    }),
+    obj("aim", { of: z.array(GwIdSchema).min(1) }),
+    obj("aim_met", {}),
+    obj("aim_changed", range),
   ]),
 ) as z.ZodType<GwCond>;
 
@@ -406,6 +447,8 @@ const GwBaseCastRuleSchema = z.union([
   z.object({ called: z.literal(true) }).strict(),
   /** The person a world scene is about (seat.subjects[scene id]). */
   z.object({ subject: z.literal(true) }).strict(),
+  /** A person picked in a schedule field: the `nth` of them, from 0. */
+  z.object({ picked: GwIdSchema, nth: int.min(0).optional() }).strict(),
 ]);
 
 /**
@@ -534,6 +577,10 @@ export const GwSceneSchema = z
      * as `variants` are; a role not here uses the pack's plain `voice`.
      */
     voices: z.record(GwIdSchema, z.array(GwVariantSchema).min(1)).optional(),
+    /** Who answers "다시 써 오시오": a cast role. Absent: the first role. */
+    author: GwIdSchema.optional(),
+    /** This paper can't be sent back. */
+    noBack: z.boolean().optional(),
   })
   .strict();
 export type GwScene = z.infer<typeof GwSceneSchema>;
@@ -560,6 +607,9 @@ export function gwSceneProblems(s: GwScene): string[] {
   }
   if (s.quiet === true && s.kind !== "wire") {
     out.push(`${s.id}: a quiet scene is a wire`);
+  }
+  if (s.author !== undefined && s.cast[s.author] === undefined) {
+    out.push(`${s.id}: author is not a cast role`);
   }
   if (s.scheduledOnly === true && s.summon === true) {
     out.push(`${s.id}: scheduledOnly and summon`);
