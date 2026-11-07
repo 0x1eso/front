@@ -4,6 +4,7 @@ import type {
 } from "@openfront/engine-api/ww1914/GwView";
 import { html, nothing, TemplateResult } from "lit";
 import { translateText } from "../../Utils";
+import { budgetStrip, openLedger } from "./GwBudget";
 import type { GwCtx } from "./GwCtx";
 import { isReadOnly, paperCards, talkCards } from "./GwModel";
 import { BTN, BTN_ON, CHIP, GLASS, HEAD, MUTED } from "./GwStyle";
@@ -136,6 +137,11 @@ function optionButton(
       data-gw-option=${o.id}
       ?disabled=${!o.open}
       @click=${() => {
+        // The ledger is worked in its own panel; the card waits for the signature.
+        if (o.screen === "budget") {
+          openLedger(c);
+          return;
+        }
         c.ui.armed = { uid: card.uid, option: o.id };
         c.redraw();
       }}
@@ -208,6 +214,7 @@ export function reader(c: GwCtx, card: GwCardView): TemplateResult {
             </p>`,
         )}
       </div>
+      ${card.scene.startsWith("gw_bm_") ? budgetStrip(c) : nothing}
       ${(card.folded ?? []).length === 0
         ? nothing
         : html`<div class="space-y-0.5" data-gw-folded>
@@ -241,7 +248,7 @@ export function reader(c: GwCtx, card: GwCardView): TemplateResult {
                       card: card.uid,
                       option: armedOpt.id,
                     });
-                    if (armedOpt.screen !== undefined) {
+                    if (armedOpt.screen === "fronts") {
                       c.ui.tab = armedOpt.screen;
                     }
                     close();

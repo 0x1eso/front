@@ -1,3 +1,4 @@
+import type { GwBudgetView } from "@openfront/engine-api/ww1914/GwBudget";
 import { GwPackSchema } from "@openfront/engine-api/ww1914/GwPack";
 import type {
   GreatWarData,
@@ -96,7 +97,45 @@ const card = (over: Partial<GwCardView> = {}): GwCardView => ({
   ...over,
 });
 
+const budget = (over: Partial<GwBudgetView> = {}): GwBudgetView => ({
+  basis: {
+    tag: "DEU",
+    war: true,
+    warYears: 0,
+    treasury: 3000,
+    debt: 5000,
+    prices: 1000,
+    rate: 100,
+    morale: 3,
+    news: 0,
+    loanCap: 3,
+  },
+  plan: { shares: [40, 13, 12, 22, 13], mix: [100, 0, 0, 0] },
+  draft: null,
+  norm: [72, 8, 8, 6, 6],
+  meeting: false,
+  refused: false,
+  last: "none",
+  next: "1915-01-01",
+  notes: [],
+  lenders: [],
+  body: {
+    kind: "vote",
+    inst: "reichstag",
+    need: -3,
+    second: null,
+    secondNeed: 0,
+    value: 0,
+    secondValue: 0,
+    forcePrice: 30,
+  },
+  authority: 40,
+  holder: "deu_kuhn",
+  ...over,
+});
+
 const world = (over: Partial<GwWorldView> = {}): GwWorldView => ({
+  budget: budget(),
   war: {
     era: "movement",
     regime: "empire",

@@ -4,12 +4,14 @@ import { GW_PEOPLE } from "./people";
 import { AUH_PEOPLE } from "./people_auh";
 import { GW_PEOPLE_COMMON } from "./people_common";
 import { GW_PEOPLE_DEU } from "./people_deu";
+import { GW_PEOPLE_MONEY } from "./people_money";
 import { GBR_PEOPLE } from "./people_gbr";
 import { RUS_PEOPLE } from "./people_rus";
 import { AUH_CRISIS_SCENES } from "./scenes/auh_crisis";
 import { AUH_CROWN_SCENES } from "./scenes/auh_crown";
 import { AUH_REALM_SCENES } from "./scenes/auh_realm";
 import { AUH_WAR_SCENES } from "./scenes/auh_war";
+import { BUDGET_SCENES } from "./scenes/budget";
 import { COMMON_SCENES } from "./scenes/common";
 import { DEU_SCENES } from "./scenes/deu";
 import { DEU_BACK_SCENES, withPromiseTerms } from "./scenes/deu_back";
@@ -79,6 +81,7 @@ export const GW_CONTENT: GwContent = {
       ...GW_WORLD2_SCENES,
       ...GW_FRAME_SCENES,
     ].map(withPromiseTerms),
+    ...BUDGET_SCENES,
   ],
   people: [
     ...GW_PEOPLE,
@@ -87,6 +90,7 @@ export const GW_CONTENT: GwContent = {
     ...GBR_PEOPLE,
     ...AUH_PEOPLE,
     ...RUS_PEOPLE,
+    ...GW_PEOPLE_MONEY,
   ],
 };
 

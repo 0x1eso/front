@@ -48,6 +48,8 @@ const DYNAMIC_KEY_PATTERNS: RegExp[] = [
   // Great War 1914: names built from ids (gw.country.<TAG>, gw.office.<id>,
   // gw.tell.<word>) and the why-log, whose keys are in the engine's scenes.
   /^gw\.(?:country|office|reason|tell)\.[A-Za-z0-9_]+$/,
+  // The budget's words, by line, source, lender and country (client/ww1914/GwBudget).
+  /^gw\.budget\.[A-Za-z0-9_.]+$/,
   // The world's words (engine/ww1914): gauges, fronts, reports, endings and
   // the ticker, all named by ids and numbers the view carries.
   /^gw\.(?:ai|ending|era|fact|front|gauge|gauge_name|issue|line|mandate|news|odds|plan|plan_why|regime|result|secret|source|stamp|tech|theatre|thread|turn|unknown)\.[A-Za-z0-9_.]+$/,

@@ -4,6 +4,7 @@ import {
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import { html, nothing, TemplateResult } from "lit";
 import { translateText } from "../../Utils";
+import { budgetSummary } from "./GwBudget";
 import type { GwCtx } from "./GwCtx";
 import { gaugeFill, gaugeLevel, instBand, logByChapter } from "./GwModel";
 import { CHIP, fillColor, HEAD, MUTED } from "./GwStyle";
@@ -191,7 +192,7 @@ export function countryTab(c: GwCtx): TemplateResult {
   const insts = GW_INSTITUTIONS.filter((i) => seat.inst[i] !== undefined);
   const log = logByChapter(seat.log);
   return html`<div class="space-y-3" data-gw-country>
-    ${standing(c)} ${war(c)} ${gauges(c)}
+    ${standing(c)} ${budgetSummary(c)} ${war(c)} ${gauges(c)}
     ${insts.length === 0
       ? nothing
       : html`<section class=${BOX}>
