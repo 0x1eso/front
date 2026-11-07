@@ -13,6 +13,11 @@ import { RUS_KIN } from "./people_rus_private";
 import { AUH_QUIET_SCENES, withAuhBodies } from "./scenes/auh_bodies";
 import { AUH_CRISIS_SCENES } from "./scenes/auh_crisis";
 import { AUH_CROWN_SCENES } from "./scenes/auh_crown";
+import {
+  AUH_PRIVATE_PEOPLE,
+  AUH_PRIVATE_SCENES,
+  withAuhPrivate,
+} from "./scenes/auh_private";
 import { AUH_REALM_SCENES } from "./scenes/auh_realm";
 import { AUH_WAR_SCENES } from "./scenes/auh_war";
 import { BUDGET_SCENES } from "./scenes/budget";
@@ -119,9 +124,11 @@ export const GW_CONTENT: GwContent = {
       ...RULER_SCENES,
       ...GOV_SCENES,
       ...DEU_PRIVATE_SCENES,
+      ...AUH_PRIVATE_SCENES,
     ]
       .map(withDeuReplay)
       .map(withDeuPrivate)
+      .map(withAuhPrivate)
       .map(withRuler),
   ),
   people: [
@@ -136,6 +143,7 @@ export const GW_CONTENT: GwContent = {
     ...DEU_PRIVATE_PEOPLE,
     ...RUS_KIN,
     ...GBR_PRIVATE_PEOPLE,
+    ...AUH_PRIVATE_PEOPLE,
   ],
 };
 
