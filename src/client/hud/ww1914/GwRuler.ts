@@ -68,6 +68,11 @@ export function rulerCard(c: GwCtx): TemplateResult | typeof nothing {
           </p>
         </div>`,
     )}
+    ${r.atRisk === null || r.atRisk === undefined
+      ? nothing
+      : html`<p class="text-sm text-amber-200" data-gw-ruler-risk=${r.atRisk}>
+          ${translateText(`gw.ruler.at_risk.${r.atRisk}`)}
+        </p>`}
     ${oneEach(r.lines, (l) => reasonText(c.pack, { ...l, chapter: 0 })).map(
       ({ row: l, text }) =>
         html`<p class=${MUTED} data-gw-ruler-line=${l.key}>

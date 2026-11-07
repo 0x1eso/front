@@ -142,6 +142,12 @@ export function tabBadge(seat: GwSeatView, tab: GwTab): number {
       return seat.desk.length;
     case "people":
       return seat.audiences;
+    case "country":
+      // What can end the game soon: it must not wait for a look at the tab.
+      return (
+        (seat.ruler?.atRisk ? 1 : 0) +
+        (seat.gov ?? []).filter((g) => g.fatal && govWord(g) >= 2).length
+      );
     case "blocs":
       return (
         seat.world.press?.blocs.filter((b) => b.turning === "leaving").length ??

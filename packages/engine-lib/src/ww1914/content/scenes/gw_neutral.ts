@@ -1221,6 +1221,7 @@ const SMALL: GwScene[] = [
   ),
 ];
 
+/** The war's bargains: once the guns stop, nobody comes for iron or wheat. */
 export const GW_NEUTRAL_SCENES: readonly GwScene[] = [
   ...ITALY,
   ...OTTOMAN,
@@ -1230,4 +1231,4 @@ export const GW_NEUTRAL_SCENES: readonly GwScene[] = [
   ...JAPAN,
   ...AMERICA,
   ...SMALL,
-];
+].map((x) => ({ ...x, stage: x.stage ?? ["crisis", "y1914", "war"] }));

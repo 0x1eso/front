@@ -1,4 +1,5 @@
 import { GW_CONTENT } from "@openfront/engine-lib/ww1914/content/Content";
+import { GW_NEUTRAL_SCENES } from "@openfront/engine-lib/ww1914/content/scenes/gw_neutral";
 import { GW_LAWS } from "@openfront/engine-lib/ww1914/content/scenes/laws";
 import { advanceChapter } from "@openfront/engine/ww1914/Chapters";
 import { memoirOf } from "@openfront/engine/ww1914/Endings";
@@ -72,6 +73,12 @@ describe("russia as played", () => {
     st.ready = true;
     advanceChapter(gw, 0, false);
     expect(st.desk.filter((c) => c.scene === scene.id).length).toBeLessThan(2);
+  });
+
+  test("no neutral comes to bargain at the peace conference", () => {
+    for (const s of GW_NEUTRAL_SCENES) {
+      expect(s.stage, s.id).not.toContain("conference");
+    }
   });
 
   test("whoever leaves is named in the why-log", async () => {

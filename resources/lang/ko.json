@@ -15694,6 +15694,10 @@
     },
     "ruler": {
       "title": "{name}, {age}세",
+      "at_risk": {
+        "health": "몸이 버티지 못한다. 몇 달 안에 쉬지 못하면 여기서 끝난다.",
+        "reputation": "평판이 바닥이다. 몇 달 안에 되찾지 못하면 자리를 잃는다."
+      },
       "side": {
         "conscience": "양심",
         "family": "집안",

@@ -75,6 +75,8 @@ export interface GwRulerView {
   /** In GW_RULER_SIDES order: 0 low, 1 middling, 2 sound. */
   levels: readonly number[];
   broken: boolean;
+  /** A bottom that ends the game in a few chapters unless it is lifted. */
+  atRisk?: "health" | "reputation" | null;
   /** The last moves, newest first: reason keys. */
   lines: readonly { side: GwRulerSide; key: string; delta: number }[];
 }

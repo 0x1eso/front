@@ -28,12 +28,19 @@ import {
   voices,
 } from "./GwText";
 
+/** The desk's head stays short; the country tab keeps every line. */
+const REASONS_SHOWN = 6;
+
 /** The reasons that came with the last chapter's close, newest first. */
 function lastReasons(c: GwCtx): string[] {
   return c.seat.log
-    .filter((r) => r.chapter >= c.data.chapter - 1)
+    .filter(
+      (r) =>
+        r.chapter >= c.data.chapter - 1 && !/^talk_(fit|clash)_/.test(r.key),
+    )
     .map((r) => reasonText(c.pack, r))
-    .reverse();
+    .reverse()
+    .slice(0, REASONS_SHOWN);
 }
 
 function sender(c: GwCtx, card: GwCardView): string {

@@ -326,6 +326,12 @@ export function rulerView(gw: GreatWar, seat: GwSeatState): GwRulerView | null {
     age: ageOn(gw, row.born),
     levels: GW_RULER_SIDES.map((x) => level(r[x])),
     broken: r.broken !== null,
+    atRisk:
+      row.mortal && r.failing !== null
+        ? "health"
+        : row.removable && r.shaken !== null
+          ? "reputation"
+          : null,
     lines: r.lines
       .slice(-LINES_SHOWN)
       .reverse()

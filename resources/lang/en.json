@@ -2875,6 +2875,10 @@
       "stalemate": "Stalemate"
     },
     "ruler": {
+      "at_risk": {
+        "health": "The body will not hold. Without rest in a few months, this ends here.",
+        "reputation": "Standing has hit the bottom. Unless it is won back in a few months, the seat is lost."
+      },
       "side": {
         "conscience": "Conscience",
         "family": "Family",

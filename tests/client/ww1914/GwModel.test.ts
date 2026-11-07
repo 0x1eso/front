@@ -22,6 +22,7 @@ import {
   tempBand,
   theatreSpot,
   trustIndex,
+  tabBadge,
   vacantOffices,
 } from "../../../src/client/hud/ww1914/GwModel";
 
@@ -70,6 +71,18 @@ describe("GwModel", () => {
     expect(appointable(seat, seat.people[1])).toEqual(["war"]);
     expect(appointable(seat, seat.people[2])).toEqual([]);
     expect(appointable(seat, seat.people[0])).toEqual([]);
+  });
+
+  test("what can end the game soon shows on the country tab", () => {
+    const seat = {
+      ruler: { atRisk: "reputation" },
+      gov: [
+        { step: 2, steps: 3, fatal: true },
+        { step: 0, steps: 3, fatal: true },
+        { step: 3, steps: 3, fatal: false },
+      ],
+    } as unknown as GwSeatView;
+    expect(tabBadge(seat, "country")).toBe(2);
   });
 
   test("a dismissal is priced by the world and refused short of authority", () => {
