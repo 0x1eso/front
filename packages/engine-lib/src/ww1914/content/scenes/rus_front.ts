@@ -3506,9 +3506,39 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     once: true,
     summon: true,
     who: "p",
-    variants: [{ id: "base" }],
+    variants: [{ id: "paper" }, { id: "base" }],
     start: "open",
+    starts: { paper: "b_paper" },
     nodes: {
+      b_paper: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "tell",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "how",
+          },
+          {
+            id: "deal",
+            stance: "warm",
+            kind: "deal",
+            tell: [],
+            effects: [{ kind: "remember", key: "k_brus_plan" }],
+            next: "deal",
+          },
+          {
+            id: "go",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
       open: {
         says: [
           { id: "met", when: { kind: "memory", key: "k_brus_met" } },

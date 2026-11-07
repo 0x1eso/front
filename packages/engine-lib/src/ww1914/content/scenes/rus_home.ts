@@ -6247,12 +6247,43 @@ export const RUS_HOME_SCENES: readonly GwScene[] = [
     summon: true,
     who: "p",
     variants: [
+      { id: "short" },
       {
         id: "base",
       },
     ],
     start: "open",
+    starts: { short: "r_short" },
     nodes: {
+      r_short: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "why",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "why",
+          },
+          {
+            id: "keep",
+            stance: "warm",
+            kind: "deal",
+            tell: [],
+            effects: [{ kind: "remember", key: "k_ras_wire" }],
+            next: "keep",
+          },
+          {
+            id: "go",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
       open: {
         says: [
           {
@@ -6540,13 +6571,46 @@ export const RUS_HOME_SCENES: readonly GwScene[] = [
     who: "p",
     variants: [
       { id: "asleep" },
+      { id: "bread" },
       {
         id: "base",
       },
     ],
     start: "open",
-    starts: { asleep: "r_asleep" },
+    starts: {
+      bread: "r_bread",
+      asleep: "r_asleep",
+    },
     nodes: {
+      r_bread: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "eat",
+            stance: "warm",
+            kind: "deal",
+            tell: [],
+            effects: [{ kind: "remember", key: "k_ras_boy" }],
+            next: "room",
+          },
+          {
+            id: "how",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "how",
+          },
+          {
+            id: "go",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
       r_asleep: {
         says: [{ id: "base" }],
         replies: [
@@ -7160,13 +7224,46 @@ export const RUS_HOME_SCENES: readonly GwScene[] = [
     who: "p",
     variants: [
       { id: "read" },
+      { id: "list2" },
       {
         id: "base",
       },
     ],
     start: "open",
-    starts: { read: "r_read" },
+    starts: {
+      list2: "r_fingers",
+      read: "r_read",
+    },
     nodes: {
+      r_fingers: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "names",
+            stance: "cold",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "names",
+          },
+          {
+            id: "warn",
+            stance: "threat",
+            kind: "push",
+            tell: [],
+            effects: [],
+            next: "smile",
+          },
+          {
+            id: "go",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
       r_read: {
         says: [{ id: "base" }],
         replies: [
@@ -9925,12 +10022,43 @@ export const RUS_HOME_SCENES: readonly GwScene[] = [
     summon: true,
     who: "p",
     variants: [
+      { id: "bottle" },
       {
         id: "base",
       },
     ],
     start: "open",
+    starts: { bottle: "b_bottle" },
     nodes: {
+      b_bottle: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "fill",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "fill",
+          },
+          {
+            id: "deal",
+            stance: "cold",
+            kind: "deal",
+            tell: [],
+            effects: [{ kind: "remember", key: "k_bark_vodka" }],
+            next: "fill",
+          },
+          {
+            id: "go",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
       open: {
         says: [
           {
@@ -11226,13 +11354,46 @@ export const RUS_HOME_SCENES: readonly GwScene[] = [
     who: "p",
     variants: [
       { id: "old_list" },
+      { id: "ring" },
       {
         id: "base",
       },
     ],
     start: "open",
-    starts: { old_list: "f_old" },
+    starts: {
+      ring: "f_ring",
+      old_list: "f_old",
+    },
     nodes: {
+      f_ring: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "who",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "who",
+          },
+          {
+            id: "deal",
+            stance: "warm",
+            kind: "deal",
+            tell: [],
+            effects: [],
+            next: "pleased",
+          },
+          {
+            id: "go",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
       f_old: {
         says: [{ id: "base" }],
         replies: [
@@ -11891,13 +12052,46 @@ export const RUS_HOME_SCENES: readonly GwScene[] = [
     who: "p",
     variants: [
       { id: "asks" },
+      { id: "paper" },
       {
         id: "base",
       },
     ],
     start: "open",
-    starts: { asks: "s_asks" },
+    starts: {
+      paper: "s_paper",
+      asks: "s_asks",
+    },
     nodes: {
+      s_paper: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "what",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "moscow",
+          },
+          {
+            id: "deal",
+            stance: "cold",
+            kind: "deal",
+            tell: [],
+            effects: [{ kind: "remember", key: "k_samarin_file" }],
+            next: "moscow",
+          },
+          {
+            id: "go",
+            stance: "warm",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
       s_asks: {
         says: [{ id: "base" }],
         replies: [

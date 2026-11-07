@@ -1586,6 +1586,7 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
         when: { kind: "opening", of: ["sarajevo_survived", "sarajevo_failed"] },
       },
       { id: "funeral" },
+      { id: "cable" },
       { id: "base" },
     ],
   },
@@ -1609,6 +1610,7 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     variants: [
       { id: "advised", when: { kind: "flag", flag: "f_advised_belgrade" } },
       { id: "seal" },
+      { id: "boy" },
       { id: "base" },
     ],
     fallback: "kind_words",
@@ -4692,9 +4694,39 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     once: true,
     summon: true,
     who: "p",
-    variants: [{ id: "base" }],
+    variants: [{ id: "letter" }, { id: "base" }],
     start: "open",
+    starts: { letter: "g_letter" },
     nodes: {
+      g_letter: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "ask",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "minds",
+          },
+          {
+            id: "wait",
+            stance: "warm",
+            kind: "leave",
+            tell: ["trust:+1"],
+            effects: [{ kind: "person_trust", who: { role: "p" }, delta: 1 }],
+            next: null,
+          },
+          {
+            id: "go",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
       open: {
         says: [
           {
@@ -5169,9 +5201,39 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     once: true,
     summon: true,
     who: "p",
-    variants: [{ id: "base" }],
+    variants: [{ id: "seal" }, { id: "base" }],
     start: "open",
+    starts: { seal: "g_seal" },
     nodes: {
+      g_seal: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "ask",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [{ kind: "remember", key: "k_gor_prorogue" }],
+            next: "street",
+          },
+          {
+            id: "soft",
+            stance: "warm",
+            kind: "deal",
+            tell: [],
+            effects: [{ kind: "remember", key: "k_gor_prorogue" }],
+            next: "soft",
+          },
+          {
+            id: "go",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
       open: {
         says: [
           {
@@ -6247,9 +6309,39 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     tags: ["people"],
     once: true,
     who: "p",
-    variants: [{ id: "base" }],
+    variants: [{ id: "note" }, { id: "base" }],
     start: "open",
+    starts: { note: "p_note" },
     nodes: {
+      p_note: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "ask",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [{ kind: "remember", key: "k_paleo_plea" }],
+            next: "paris",
+          },
+          {
+            id: "deal",
+            stance: "warm",
+            kind: "deal",
+            tell: [],
+            effects: [{ kind: "remember", key: "k_paleo_plea" }],
+            next: "paris",
+          },
+          {
+            id: "go",
+            stance: "cold",
+            kind: "leave",
+            tell: [],
+            effects: [],
+            next: null,
+          },
+        ],
+      },
       open: {
         says: [{ id: "base" }],
         replies: [
