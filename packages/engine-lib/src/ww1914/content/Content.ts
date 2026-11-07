@@ -31,6 +31,7 @@ import { GBR_WORLD_SCENES } from "./scenes/gbr_world";
 import { GW_DIP_SCENES } from "./scenes/gw_dip";
 import { GW_FRAME_SCENES } from "./scenes/gw_frame";
 import { GW_NEUTRAL_SCENES } from "./scenes/gw_neutral";
+import { withCommonBodies } from "./scenes/gw_replay";
 import { GW_WORLD2_SCENES } from "./scenes/gw_world2";
 import { RUS_CRISIS_SCENES } from "./scenes/rus_crisis";
 import { RUS_FALL_SCENES } from "./scenes/rus_fall";
@@ -46,48 +47,50 @@ export interface GwContent {
 
 /** All content. A new country's file adds one line here. */
 export const GW_CONTENT: GwContent = {
-  scenes: [
-    ...COMMON_SCENES,
-    ...DEU_SCENES,
-    ...[
-      ...DEU_CRISIS_SCENES,
-      ...DEU_WAR_SCENES,
-      ...DEU_PEOPLE_SCENES,
-      ...DEU_PEACE_SCENES,
-    ]
-      .map(withPromiseTerms)
-      .map(withSummerWar),
-    ...DEU_BACK_SCENES,
-    ...WORLD_SCENES,
-    ...withAuhBodies(withMore(WARTIME_SCENES)),
-    ...[
-      ...withAuhBodies([
-        ...AUH_CRISIS_SCENES,
-        ...AUH_WAR_SCENES,
-        ...AUH_REALM_SCENES,
-        ...AUH_CROWN_SCENES,
-      ]),
-      ...AUH_QUIET_SCENES,
-      ...withMore([
-        ...GBR_CRISIS_SCENES,
-        ...GBR_WAR_SCENES,
-        ...GBR_HOME_SCENES,
-        ...GBR_WORLD_SCENES,
-      ]),
-      ...RUS_CRISIS_SCENES,
-      ...RUS_FRONT_SCENES,
-      ...RUS_HOME_SCENES,
-      ...RUS_FALL_SCENES,
-      ...DEU_FRONT_SCENES,
-      ...DEU_SEA_SCENES,
-      ...DEU_HOME_SCENES,
-      ...DEU_COURT_SCENES,
-      ...GW_DIP_SCENES,
-      ...GW_NEUTRAL_SCENES,
-      ...GW_WORLD2_SCENES,
-      ...GW_FRAME_SCENES,
-    ].map(withPromiseTerms),
-  ].map(withDeuReplay),
+  scenes: withCommonBodies(
+    [
+      ...COMMON_SCENES,
+      ...DEU_SCENES,
+      ...[
+        ...DEU_CRISIS_SCENES,
+        ...DEU_WAR_SCENES,
+        ...DEU_PEOPLE_SCENES,
+        ...DEU_PEACE_SCENES,
+      ]
+        .map(withPromiseTerms)
+        .map(withSummerWar),
+      ...DEU_BACK_SCENES,
+      ...WORLD_SCENES,
+      ...withAuhBodies(withMore(WARTIME_SCENES)),
+      ...[
+        ...withAuhBodies([
+          ...AUH_CRISIS_SCENES,
+          ...AUH_WAR_SCENES,
+          ...AUH_REALM_SCENES,
+          ...AUH_CROWN_SCENES,
+        ]),
+        ...AUH_QUIET_SCENES,
+        ...withMore([
+          ...GBR_CRISIS_SCENES,
+          ...GBR_WAR_SCENES,
+          ...GBR_HOME_SCENES,
+          ...GBR_WORLD_SCENES,
+        ]),
+        ...RUS_CRISIS_SCENES,
+        ...RUS_FRONT_SCENES,
+        ...RUS_HOME_SCENES,
+        ...RUS_FALL_SCENES,
+        ...DEU_FRONT_SCENES,
+        ...DEU_SEA_SCENES,
+        ...DEU_HOME_SCENES,
+        ...DEU_COURT_SCENES,
+        ...GW_DIP_SCENES,
+        ...GW_NEUTRAL_SCENES,
+        ...GW_WORLD2_SCENES,
+        ...GW_FRAME_SCENES,
+      ].map(withPromiseTerms),
+    ].map(withDeuReplay),
+  ),
   people: [
     ...GW_PEOPLE,
     ...GW_PEOPLE_DEU,
