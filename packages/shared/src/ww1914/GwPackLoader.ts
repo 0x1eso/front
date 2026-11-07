@@ -38,7 +38,7 @@ export const GW_PACK_SHARES: Readonly<
     "gov",
     "private",
   ],
-  GBR: ["crisis", "war", "home", "world", "budget", "laws", "ruler", "gov"],
+  GBR: ["crisis", "war", "home", "world", "budget", "laws", "ruler", "gov", "private"],
   AUH: ["crisis", "war", "realm", "crown", "budget", "laws", "ruler", "gov"],
   RUS: ["crisis", "front", "home", "fall", "budget", "laws", "ruler", "gov", "private"],
 };
