@@ -254,10 +254,13 @@ describe("the rival", () => {
   test("hidden: nothing in the view says who or how far", async () => {
     const r = await dealt([]);
     expect(raw(r).story.rival.who).not.toBeNull();
-    const text = JSON.stringify(view(r));
-    expect(text).not.toContain("rival_man");
-    expect(text).not.toContain('"heat"');
-    expect(text).not.toContain('"story"');
+    const before = JSON.stringify(view(r));
+    const rival = raw(r).story.rival;
+    rival.who = rival.who === "deu_tirpitz" ? "deu_falkenhayn" : "deu_tirpitz";
+    rival.stage = 3;
+    rival.heat = 99;
+    rival.act = "strike";
+    expect(JSON.stringify(view(r))).toBe(before);
   });
 
   test("the stages move with the game, faster at low trust", async () => {
