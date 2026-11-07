@@ -159,7 +159,11 @@ export const RUS_PROLOGUE_SCENES: readonly GwScene[] = [
     ...big,
     id: "rus_pro_khodynka",
     prologue: 3,
-    cast: { uncle: past("rus_p_sergei"), sandro: past("rus_sandro") },
+    cast: {
+      uncle: past("rus_p_sergei"),
+      sandro: past("rus_sandro"),
+      mother: past("rus_maria"),
+    },
     who: "uncle",
     after: [{ scene: "rus_pro_khodynka_after" }],
     nodes: {
@@ -174,8 +178,9 @@ export const RUS_PROLOGUE_SCENES: readonly GwScene[] = [
         replies: [decide("not_going", "n4")],
       },
       n4: { says, replies: [decide("tell_amb", "n5")] },
-      n5: {
-        alone: true,
+      n5: { alone: true, says, replies: [decide("dance", "inquiry")] },
+      inquiry: {
+        who: "mother",
         fallback: "ally",
         says,
         replies: [
@@ -235,8 +240,9 @@ export const RUS_PROLOGUE_SCENES: readonly GwScene[] = [
         ],
       },
       n6: { says, replies: [decide("call_him", "n7")] },
-      n7: {
-        who: "duke",
+      n7: { who: "duke", says, replies: [decide("sign", "duma")] },
+      duma: {
+        alone: true,
         fallback: "word",
         says,
         replies: [
@@ -288,7 +294,7 @@ export const RUS_PROLOGUE_SCENES: readonly GwScene[] = [
       n6: {
         who: "alix",
         fallback: "small",
-        says,
+        says: [{ id: "firm", when: flag("pro_rus_liv_firm") }, { id: "base" }],
         replies: [
           decide("small", null, [
             setFlag("pro_rus_kiev_small"),
@@ -377,6 +383,7 @@ export const RUS_PROLOGUE_SCENES: readonly GwScene[] = [
       speaker: past("rus_rodzianko"),
       fm: past("rus_sazonov"),
       war: past("rus_sukhomlinov"),
+      duke: past("rus_nikolasha"),
       alix: past("rus_alexandra"),
       court: past("rus_fredericks"),
     },
@@ -411,7 +418,7 @@ export const RUS_PROLOGUE_SCENES: readonly GwScene[] = [
       n3: {
         who: "speaker",
         fallback: "cut_short",
-        says,
+        says: [{ id: "word", when: flag("pro_rus_oct_word") }, { id: "base" }],
         replies: [
           decide("cut_short", "n4", [
             trustOf(byName("rus_rodzianko"), -1),
@@ -422,7 +429,8 @@ export const RUS_PROLOGUE_SCENES: readonly GwScene[] = [
       },
       n4: { who: "fm", says, replies: [decide("and_serbia", "n5")] },
       n5: { who: "fm", says, replies: [decide("call_war", "n6")] },
-      n6: { who: "war", says, replies: [decide("three_years", "n7")] },
+      n6: { who: "war", says, replies: [decide("three_years", "duke")] },
+      duke: { who: "duke", says, replies: [decide("not_yet", "n7")] },
       n7: {
         who: "alix",
         says: [
