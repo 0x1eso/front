@@ -25,11 +25,9 @@ export class WwClosePanelEvent implements GameEvent {}
 /**
  * The panel is full-screen: the dock row (fixed, z above) leaves room at the
  * bottom, and so does the research "next" card while it shows on a phone.
- * It starts below the top-right stack (--ww-top-h, set by the dock) so the
- * game's speed, pause, settings and exit stay in reach.
  */
 export const WW_PANEL_STYLE =
-  "inset:0;top:var(--ww-top-h,0px);padding-bottom:calc(var(--ww-dock-h,0px) + var(--ww-toast-h,0px) + env(safe-area-inset-bottom));";
+  "inset:0;padding-bottom:calc(var(--ww-dock-h,0px) + var(--ww-toast-h,0px) + env(safe-area-inset-bottom));";
 export const WW_PANEL_HIDDEN_STYLE = "display:none;";
 
 export function wwPanelStyle(minimized: boolean): string {

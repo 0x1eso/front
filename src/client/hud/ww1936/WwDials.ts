@@ -68,18 +68,6 @@ export const WW_DIAL_COUNT = 10;
 export function dockHeightPx(compact: boolean): number {
   return compact ? 40 : 44;
 }
-/** The top-right HUD stack (speed, pause, settings, exit; index.html). */
-const TOP_RIGHT_STACK = "[data-hud-top-right]";
-/**
- * Where a full-screen panel starts: the foot of the top-right stack, so the
- * game's speed and pause stay in reach; 0 when it is not shown.
- */
-export function topStackBottomPx(): number {
-  const r = document.querySelector(TOP_RIGHT_STACK)?.getBoundingClientRect();
-  return r !== undefined && r.width > 0 && r.height > 0
-    ? Math.ceil(r.bottom)
-    : 0;
-}
 /** A progress bar along a button's foot (0..1), tests read data-progress. */
 function progressBar(progress: number, color: DialColor): TemplateResult {
   const p = Number.isFinite(progress) ? Math.min(1, Math.max(0, progress)) : 0;
@@ -215,8 +203,6 @@ export class WwDials extends LitElement implements Controller {
     if (rows === null) return;
     this.rowsObserver = new ResizeObserver(() => this.place());
     this.rowsObserver.observe(rows);
-    const stack = document.querySelector(TOP_RIGHT_STACK);
-    if (stack !== null) this.rowsObserver.observe(stack);
   }
 
   disconnectedCallback() {
@@ -226,7 +212,6 @@ export class WwDials extends LitElement implements Controller {
     this.rowsObserver = null;
     document.documentElement.style.removeProperty("--ww-dock-h");
     document.documentElement.style.removeProperty("--ww-dock-above");
-    document.documentElement.style.removeProperty("--ww-top-h");
   }
 
   /**
@@ -240,11 +225,9 @@ export class WwDials extends LitElement implements Controller {
     if (m === null) {
       root.removeProperty("--ww-dock-h");
       root.removeProperty("--ww-dock-above");
-      root.removeProperty("--ww-top-h");
       return;
     }
     root.setProperty("--ww-dock-h", `${dockHeightPx(m.compact)}px`);
-    root.setProperty("--ww-top-h", `${topStackBottomPx()}px`);
     const rows = document.querySelector("[data-bottom-hud-rows]");
     const top = rows?.getBoundingClientRect().top ?? 0;
     const above = rows === null || top <= 0 ? 0 : window.innerHeight - top;
