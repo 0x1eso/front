@@ -33,21 +33,24 @@ import {
   GwContent,
   gwContent,
 } from "@openfront/engine-lib/ww1914/content/Content";
+import { reworkEffects } from "@openfront/engine-lib/ww1914/SendBackRules";
 import {
   fadedWeight,
   GW_MOOD_MOVES_TRUST,
   isCandid,
   stanceFit,
 } from "@openfront/engine-lib/ww1914/TalkRules";
-import { reworkEffects } from "@openfront/engine-lib/ww1914/SendBackRules";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { blocNow } from "./Blocs";
 import { moveMoney } from "./Budget";
+import { makeCard, placeCard } from "./Desk";
 import { closeSeat } from "./Endings";
 import type { GreatWar } from "./GreatWar";
 import { dismissPerson, onAppointed } from "./People";
 import { moveCensor, moveOpinion, moveRumour } from "./Press";
 import { moveRuler, rulerHolds } from "./Ruler";
+import { headOf, rivalMan, storyEffect, storyHolds } from "./Story";
+import { playOutBig } from "./Talk";
 import { stageOf } from "./World";
 import { worldEffect, worldHolds } from "./WorldDsl";
 
@@ -167,7 +170,9 @@ function isFixed(rule: GwCastRule): boolean {
     "person" in rule ||
     "called" in rule ||
     "subject" in rule ||
-    "picked" in rule
+    "picked" in rule ||
+    "rival_man" in rule ||
+    "ruler_of" in rule
   );
 }
 
@@ -205,6 +210,8 @@ function fill(
     const id = seat.subjects[scene.id];
     return id === undefined ? null : gw.person(id);
   }
+  if ("rival_man" in rule) return rivalMan(gw, seat);
+  if ("ruler_of" in rule) return headOf(gw, seat, rule.ruler_of);
   if ("rival" in rule || "favourite" in rule) {
     const sign = "rival" in rule ? 1 : -1;
     const list = ministers(gw, seat)
@@ -471,13 +478,22 @@ export function holds(ctx: SceneCtx, c: GwCond): boolean {
     }
     case "aim_changed":
       return inRange(seat.aimsDropped.length, c);
+    case "rival_stage":
+    case "rival_act":
+    case "rival_end":
+    case "character":
+    case "at_war_with":
+    case "letters":
+    case "first_game":
+      return storyHolds(ctx, c);
   }
 }
 
 /** The act a card was played from, or the last taking of `act`. */
 function actRow(ctx: SceneCtx, act?: string) {
   const { seat } = ctx;
-  if (act !== undefined) return seat.acted.filter((x) => x.act === act).at(-1);
+  if (act !== undefined)
+    return seat.acted.filter((x) => x.act === act).slice(-1)[0];
   const row = ctx.card?.act ?? ctx.act ?? null;
   return row === null ? undefined : seat.acted[row];
 }
@@ -695,6 +711,11 @@ export function runEffect(ctx: SceneCtx, e: GwEffect): void {
     case "censor":
       moveCensor(gw, seat, e.delta);
       return;
+    case "rival":
+    case "rival_end":
+    case "letter":
+      storyEffect(ctx, e);
+      return;
   }
 }
 
@@ -798,9 +819,17 @@ export function takeOption(
   );
 }
 
-/** The person a talk is with. */
+/** The role speaking at a talk's node; null when nobody is: the hour passing. */
+export function speakerRole(scene: GwScene, node: string | null) {
+  const n = node === null ? undefined : scene.nodes?.[node];
+  if (n?.alone === true) return null;
+  return n?.who ?? scene.who ?? null;
+}
+
+/** The person speaking now. */
 export function talkerOf(ctx: SceneCtx, scene: GwScene): GwPersonState | null {
-  const id = scene.who === undefined ? undefined : ctx.cast[scene.who];
+  const role = speakerRole(scene, ctx.card?.node ?? null);
+  const id = role === null ? undefined : ctx.cast[role];
   return id === undefined ? null : ctx.gw.person(id);
 }
 
@@ -810,9 +839,20 @@ export function rememberTalk(
   key: string,
   weight: number,
 ): void {
-  const w: GwWho | undefined =
-    scene.who === undefined ? undefined : { role: scene.who };
+  const role = speakerRole(scene, ctx.card?.node ?? null);
+  const w: GwWho | undefined = role === null ? undefined : { role };
   runEffect(ctx, { kind: "remember", key, who: w, weight });
+}
+
+/** The first card a big scene's `after` lays that holds. */
+function layAfter(ctx: SceneCtx, scene: GwScene): void {
+  const row = (scene.after ?? []).find(
+    (a) => a.when === undefined || holds(ctx, a.when),
+  );
+  const next = row === undefined ? null : sceneOf(row.scene);
+  if (next === null) return;
+  const card = makeCard(ctx.gw, ctx.seat, next, "scheduled");
+  if (card !== null) placeCard(ctx.gw, ctx.seat, card);
 }
 
 /** Closes a talk: its mood moves trust, its reasons reach the log. */
@@ -824,6 +864,18 @@ export function endTalk(
 ): void {
   removeCard(seat, card.uid);
   const ctx = ctxOf(gw, seat, card);
+  settleMood(ctx, scene);
+  layAfter(ctx, scene);
+}
+
+/**
+ * What the talk with the person speaking came to. A big scene does this each
+ * time someone else comes in, so mood is always with one person.
+ */
+export function settleMood(ctx: SceneCtx, scene: GwScene): void {
+  const { gw, seat } = ctx;
+  const card = ctx.card;
+  if (card === undefined) return;
   const p = talkerOf(ctx, scene);
   const m = card.mood;
   const sign = m > 0 ? 1 : -1;
@@ -839,6 +891,7 @@ export function endTalk(
       seat.log.push({ key, chapter: gw.s.chapter, who: p.id });
     }
   }
+  card.mood = 0;
   card.notes = [];
 }
 
@@ -859,6 +912,10 @@ export function closeUndecided(
       continue;
     }
     const ctx = ctxOf(gw, seat, card);
+    if (scene.big === true) {
+      playOutBig(gw, seat, card, scene, late);
+      continue;
+    }
     if (scene.kind === "talk") {
       rememberTalk(ctx, scene, "talk_left", card.origin === "summon" ? 0 : -1);
       endTalk(gw, seat, card, scene);

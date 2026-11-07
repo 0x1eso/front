@@ -551,6 +551,12 @@ export const GameConfigSchema = z.object({
     .array(zb.string({ min: 1, max: 100 }))
     .max(1000)
     .optional(),
+  // Great War 1914: the nations this browser's shelf has played, so a first
+  // game of one can open slowly. Absent means nobody asked: no slow opening.
+  greatWar1914Played: z
+    .array(zb.string({ min: 3, max: 3 }))
+    .max(64)
+    .optional(),
 });
 
 // What a host sends in update_game_config. maxPlayers is the private-lobby

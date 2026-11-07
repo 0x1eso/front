@@ -416,6 +416,8 @@ export const GW_SEAT_PERSON: Readonly<
     { person: "gbr_asquith" },
   ],
   RUS: [{ person: "rus_nicholas" }],
+  DEU: [{ person: "deu_wilhelm" }],
+  AUH: [{ person: "auh_franz_joseph" }],
 };
 
 /** A scene's flag is the war plan signed: scenes set flags, the world reads. */

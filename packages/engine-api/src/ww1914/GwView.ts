@@ -18,11 +18,11 @@ import type {
   GwTermRefusal,
   GwTheatre,
 } from "./GreatWarTypes";
+import type { GwActKind } from "./GwActs";
 import type { GwTag } from "./GwCountries";
 import type { GwOrderBlock } from "./GwOrders";
 import type { GwRulerView } from "./GwRuler";
 import type { GwWorldView } from "./GwWorldView";
-import type { GwActKind } from "./GwActs";
 import type { GwReplyKind, GwSceneKind, GwStance } from "./SceneDsl";
 
 export interface GwOptionView {
@@ -63,6 +63,12 @@ export interface GwCardView {
   back?: GwBack | null;
   /** Who it went back to: the line's {who}. */
   backWho?: string | null;
+  /** A talk that takes the screen; `who` is null while nobody speaks. */
+  big?: boolean;
+  /** A short card with no chrome, laid after a big scene. */
+  silent?: boolean;
+  /** A letter: the country it came from. */
+  letterFrom?: GwTag;
 }
 
 /** A field of a schedule entry: pick `count` from what it holds. */
@@ -110,6 +116,16 @@ export interface GwTermsView {
     yes: boolean | null;
     why: GwTermRefusal | null;
   }[];
+}
+
+/** A letter of a thread (pack: the scene's text by `variant`). */
+export interface GwLetterView {
+  with: GwTag;
+  out: boolean;
+  scene: string | null;
+  variant: string | null;
+  tone: string | null;
+  date: string;
 }
 
 /** A promise as the seat remembers it (pack `promises.<key>`). */
@@ -219,6 +235,7 @@ export interface GwSeatView {
   choices?: readonly GwChoiceView[];
   /** Every body dealt, "<scene>.<variant>": the lobby's recent list. */
   shown?: readonly string[];
+  letters?: readonly GwLetterView[];
   gov?: readonly GwGovView[];
   poll?: GwPollView | null;
   world: GwWorldView;

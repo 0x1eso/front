@@ -22,8 +22,16 @@ import { govView, pollView } from "./Government";
 import type { GreatWar } from "./GreatWar";
 import { openTopics, readyBlock } from "./Orders";
 import { rulerView } from "./Ruler";
-import { ctxOf, optionOpen, pickVariant, sceneOf } from "./SceneRun";
+import {
+  ctxOf,
+  optionOpen,
+  personDef,
+  pickVariant,
+  sceneOf,
+  speakerRole,
+} from "./SceneRun";
 import { backOpen, backWho } from "./SendBack";
+import { inOpening, newcomers } from "./Story";
 import { GW_HIDE_UNMET } from "./Tables";
 import { termsView } from "./Terms";
 import { seatPerson, stageOf } from "./World";
@@ -38,6 +46,11 @@ function cardView(
   if (scene === null) return null;
   const ctx = ctxOf(gw, seat, c);
   const node = c.node === null ? null : (scene.nodes?.[c.node] ?? null);
+  const speaker = speakerRole(scene, c.node);
+  const letterFrom =
+    scene.kind === "letter" && scene.who !== undefined
+      ? personDef(c.cast[scene.who])?.tag
+      : undefined;
   return {
     uid: c.uid,
     scene: c.scene,
@@ -51,7 +64,7 @@ function cardView(
       tell: c.back?.changed ? reworkTell(o, c.back.direction) : o.tell,
       ...(o.screen === undefined ? {} : { screen: o.screen }),
     })),
-    who: scene.who === undefined ? null : (c.cast[scene.who] ?? null),
+    who: speaker === null ? null : (c.cast[speaker] ?? null),
     node: c.node,
     says:
       node === null
@@ -69,6 +82,9 @@ function cardView(
     backTo: backOpen(gw, seat, c, scene),
     back: c.back,
     backWho: backWho(gw, seat, c, scene),
+    ...(scene.big === true ? { big: true } : {}),
+    ...(scene.silent === true ? { silent: true } : {}),
+    ...(letterFrom === undefined ? {} : { letterFrom }),
   };
 }
 
@@ -104,6 +120,7 @@ function isKeyDecision(id: string): boolean {
 function seatView(gw: GreatWar, seat: GwSeatState): GwSeatView {
   const nation = gw.nation(seat.tag)!;
   const self = seatPerson(seat);
+  const opening = inOpening(gw, seat);
   const defs = gwContent().people.filter(
     (d) => d.tag === seat.tag && d.id !== self,
   );
@@ -126,6 +143,7 @@ function seatView(gw: GreatWar, seat: GwSeatState): GwSeatView {
       const heard = [...topics, ...privateTopics];
       const hidden = GW_HIDE_UNMET.includes(seat.tag) || d.unlisted === true;
       if (hidden && !metYet(seat, p, heard)) return [];
+      if (opening && newcomers(gw, seat, [p.id]).length > 0) return [];
       return [
         {
           id: p.id,
@@ -173,6 +191,14 @@ function seatView(gw: GreatWar, seat: GwSeatState): GwSeatView {
       ...(x.cast === undefined ? {} : { cast: x.cast }),
     })),
     shown: seat.shown,
+    letters: seat.story.letters.map((x) => ({
+      with: x.with,
+      out: x.out,
+      scene: x.scene,
+      variant: x.variant,
+      tone: x.tone,
+      date: dateOf(gw, x.chapter),
+    })),
     gov: govView(gw, seat),
     poll: pollView(gw, seat),
     world: worldView(gw, seat),

@@ -40,7 +40,7 @@ function castBefore(gw: GreatWar, seat: GwSeatState, scene: GwScene) {
 }
 
 function rested(gw: GreatWar, seat: GwSeatState, a: GwAct): boolean {
-  const last = seat.acted.filter((x) => x.act === a.id).at(-1);
+  const last = seat.acted.filter((x) => x.act === a.id).slice(-1)[0];
   if (last === undefined) return true;
   if (a.once === true) return false;
   return gw.s.chapter - last.chapter > (a.cooldown ?? GW_ACT_COOLDOWN);
@@ -153,7 +153,9 @@ export function takeAct(
   const before = actCtx(gw, seat, a)!;
   if (picks === null || !picksFit(before, a, picks)) return "bad_pick";
   const chosen = pickedOptions(a, picks);
-  const scene = sceneOf(chosen.filter((o) => o.scene).at(-1)?.scene ?? a.scene);
+  const scene = sceneOf(
+    chosen.filter((o) => o.scene).slice(-1)[0]?.scene ?? a.scene,
+  );
   if (scene === null) return "no_act";
   const row = seat.acted.length;
   seat.acted.push({ act: a.id, chapter: gw.s.chapter, picks });

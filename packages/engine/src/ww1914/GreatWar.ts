@@ -12,6 +12,7 @@ import {
 import { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import { gwPressStart } from "@openfront/engine-api/ww1914/GwPress";
 import { blankRuler } from "@openfront/engine-api/ww1914/GwRuler";
+import { gwStoryStart } from "@openfront/engine-api/ww1914/GwStory";
 import type { GreatWarData } from "@openfront/engine-api/ww1914/GwView";
 import { snapshotType } from "@openfront/engine-lib/snapshot/SnapshotType";
 import { budgetStart } from "@openfront/engine-lib/ww1914/BudgetRules";
@@ -206,6 +207,7 @@ export class GreatWar {
         aimsDropped: [],
         returns: [],
         terms: [],
+        story: gwStoryStart(),
       });
     }
     this.s.seats.sort((a, b) => a.smallID - b.smallID);

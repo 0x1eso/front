@@ -4,7 +4,8 @@
 // back cards like them, so a desk is mixed; scenes seen lately, in this game
 // or in the seat's last two (a lobby field), lose ground; scores in the same
 // band are a tie, and a seeded roll settles it. A chapter with nothing worth
-// saying folds into one quiet card.
+// saying folds into one quiet card. A big scene quiets the desk: its chapter
+// deals it and what can't wait (고비). A first game of a nation starts small.
 import {
   GW_TENSION_MAX,
   GwBack,
@@ -17,10 +18,12 @@ import {
 } from "@openfront/engine-api/ww1914/SceneDsl";
 import { gwChapters } from "@openfront/engine-lib/ww1914/Calendars";
 import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
+import { GW_OPENING_DESK } from "@openfront/engine-lib/ww1914/StoryRows";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import type { GreatWar } from "./GreatWar";
 import { lawReplaces } from "./Laws";
 import { castOf, holds, pickVariant, SceneCtx, specificity } from "./SceneRun";
+import { inOpening, newcomers, noteLetterIn } from "./Story";
 import { settlePromises } from "./Talk";
 import { stageOf } from "./World";
 
@@ -64,6 +67,10 @@ export const GW_DUE_BESIDE_WAR = 1;
 export const GW_READS_BESIDE = 2;
 /** With no cooldown of its own, chapters before a scene can come again. */
 export const GW_COOLDOWN_DEFAULT = 2;
+/** Chapters between two big scenes the desk draws; a scheduled one doesn't wait. */
+export const GW_BIG_EVERY = 3;
+/** What can't wait, at most, beside a big scene. */
+export const GW_BIG_BESIDE = 2;
 
 const P_TIE = idHash("gw_desk_tie");
 const SUBJECTS = ["foreign", "home", "war", "people"] as const;
@@ -165,6 +172,10 @@ export function placeCard(gw: GreatWar, seat: GwSeatState, card: GwCard): void {
   seat.desk.push(card);
   seat.seen[card.scene] = gw.s.chapter;
   seat.shown.push(bodyId(card.scene, card.variant));
+  noteLetterIn(gw, seat, card);
+  if (inOpening(gw, seat)) {
+    seat.story.met.push(...newcomers(gw, seat, Object.values(card.cast)));
+  }
 }
 
 /** Not `once` and spent, not in its cooldown. */
@@ -198,6 +209,9 @@ function drawable(gw: GreatWar, seat: GwSeatState, scene: GwScene): boolean {
   if (scene.quiet === true || !scene.nation.includes(seat.tag)) return false;
   if (lawReplaces(gw, seat, scene.id)) return false;
   if (overWithTheWar(gw, scene)) return false;
+  if (scene.big === true && gw.s.chapter - seat.story.bigAt < GW_BIG_EVERY) {
+    return false;
+  }
   return inStage(gw, scene) && repeatable(gw, seat, scene);
 }
 
@@ -322,6 +336,7 @@ function draw(
   seat: GwSeatState,
   cands: readonly DeskCandidate[],
   due: readonly GwScene[],
+  limit: number | null = null,
 ): GwScene[] {
   const picked: GwScene[] = [...due];
   let left = [...cands];
@@ -340,8 +355,8 @@ function draw(
     due.length,
     crisis ? GW_DUE_BESIDE : GW_DUE_BESIDE_WAR,
   );
-  const target = deskTarget(gw) + beside;
-  const max = GW_DESK_MAX + beside;
+  const target = limit ?? deskTarget(gw) + beside;
+  const max = limit ?? GW_DESK_MAX + beside;
   const placed = () => picked.filter((x) => !isRead(x)).length;
   while (placed() < max) {
     const open = left.filter(
@@ -363,9 +378,10 @@ function draw(
     const room = picked.length < target;
     const must =
       c.scene.salience >= GW_SALIENCE_MUST &&
-      (picked.length < max || reads < GW_READS_BESIDE);
+      (picked.length < max || (limit === null && reads < GW_READS_BESIDE));
     const small = c.scene.salience <= GW_SALIENCE_SMALL;
-    const riding = reads < (crisis ? GW_READS_BESIDE : 1) && !small;
+    const riding =
+      limit === null && reads < (crisis ? GW_READS_BESIDE : 1) && !small;
     if (!room && !must && !riding) break;
     take(c);
   }
@@ -404,7 +420,7 @@ export function watchDesk(fn: ((t: DeskTrace) => void) | null): void {
   watcher = fn;
 }
 
-interface DueScene {
+interface Due {
   scene: GwScene;
   who: string | null;
   act: number | null;
@@ -412,8 +428,8 @@ interface DueScene {
 }
 
 /** Scheduled scenes that have come, up to a full desk; the rest wait. */
-function takeDue(gw: GreatWar, seat: GwSeatState): DueScene[] {
-  const out: DueScene[] = [];
+function takeDue(gw: GreatWar, seat: GwSeatState): Due[] {
+  const out: Due[] = [];
   const scenes = gwContent().scenes;
   seat.scheduled = seat.scheduled.filter((q) => {
     if (q.chapter > gw.s.chapter || out.length >= GW_DESK_MAX) return true;
@@ -442,31 +458,135 @@ function moveTension(seat: GwSeatState, dealt: readonly GwScene[]): void {
   seat.tension = Math.max(0, Math.min(GW_TENSION_MAX, t));
 }
 
+/** What a chapter's quiet doesn't hold back: the crisis, the accounts. */
+function cantWait(x: GwScene): boolean {
+  return x.essential === true || x.kind === "crisis" || x.kind === "ledger";
+}
+
+/** The big scene due this chapter: a scheduled one, else the best drawn. */
+function bigDue(
+  due: readonly Due[],
+  cands: readonly DeskCandidate[],
+): Due | null {
+  const called = due.find((q) => q.scene.big === true);
+  if (called !== undefined) return called;
+  const drawn = cands
+    .filter((c) => c.scene.big === true)
+    .reduce<DeskCandidate | null>(
+      (a, b) => (a === null || b.score > a.score ? b : a),
+      null,
+    );
+  return drawn === null
+    ? null
+    : { scene: drawn.scene, who: null, act: null, back: null };
+}
+
+/**
+ * 고비: the chapter is the big scene and what can't wait. Whatever else was due
+ * waits for the next chapter. False when the scene has lost its cast.
+ */
+function dealBig(
+  gw: GreatWar,
+  seat: GwSeatState,
+  big: Due,
+  due: readonly Due[],
+  cands: readonly DeskCandidate[],
+): boolean {
+  const origin = due.includes(big) ? "scheduled" : "desk";
+  const card = makeCard(
+    gw,
+    seat,
+    big.scene,
+    origin,
+    big.who,
+    big.act,
+    big.back,
+  );
+  if (card === null) return false;
+  placeCard(gw, seat, card);
+  seat.story.bigAt = gw.s.chapter;
+  const beside: Due[] = [];
+  for (const q of due) {
+    if (q === big) continue;
+    if (cantWait(q.scene) && beside.length < GW_BIG_BESIDE) {
+      beside.push(q);
+    } else {
+      seat.scheduled.push({
+        scene: q.scene.id,
+        chapter: gw.s.chapter,
+        who: q.who,
+        act: q.act,
+        back: q.back,
+      });
+    }
+  }
+  const drawn = cands
+    .filter((c) => cantWait(c.scene) && c.scene !== big.scene)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, GW_BIG_BESIDE - beside.length);
+  for (const q of beside) {
+    const c = makeCard(gw, seat, q.scene, "scheduled", q.who, q.act, q.back);
+    if (c !== null) placeCard(gw, seat, c);
+  }
+  for (const { scene } of drawn) {
+    const c = makeCard(gw, seat, scene, "desk");
+    if (c !== null) placeCard(gw, seat, c);
+  }
+  moveTension(seat, [big.scene, ...beside.map((q) => q.scene)]);
+  watcher?.({
+    chapter: gw.s.chapter,
+    eligible: cands.map((c) => c.scene.id),
+    dealt: seat.desk.map((c) => c.scene),
+    quiet: false,
+  });
+  return true;
+}
+
+/** A first game's desk: those it hasn't met stay away unless the state needs them. */
+function openingCands(
+  gw: GreatWar,
+  seat: GwSeatState,
+  cands: readonly DeskCandidate[],
+): DeskCandidate[] {
+  return cands.filter(
+    ({ scene }) =>
+      scene.salience >= GW_SALIENCE_MUST ||
+      newcomers(gw, seat, castIds(gw, seat, scene)).length === 0,
+  );
+}
+
+function castIds(gw: GreatWar, seat: GwSeatState, scene: GwScene): string[] {
+  return Object.values(castOf(gw, seat, scene) ?? {});
+}
+
 /** Deals the chapter's desk (design §5.2). */
 export function dealDesk(gw: GreatWar, seat: GwSeatState): void {
   settlePromises(gw, seat);
   const due = takeDue(gw, seat);
+  const all = deskCandidates(gw, seat).filter(
+    (c) => !due.some((q) => q.scene === c.scene),
+  );
+  const big = bigDue(due, all);
+  if (big !== null && dealBig(gw, seat, big, due, all)) return;
   const dueCards: GwCard[] = [];
   const dueScenes: GwScene[] = [];
   for (const q of due) {
-    const card = makeCard(
-      gw,
-      seat,
-      q.scene,
-      "scheduled",
-      q.who,
-      q.act,
-      q.back,
-    );
+    const card = makeCard(gw, seat, q.scene, "scheduled", q.who, q.act, q.back);
     if (card === null) continue;
     dueCards.push(card);
     dueScenes.push(q.scene);
   }
-  // A scene that is due is not drawn beside itself.
-  const cands = deskCandidates(gw, seat).filter(
-    (c) => !dueScenes.includes(c.scene),
+  // A big scene is never one card among others.
+  const open = all.filter((c) => c.scene.big !== true);
+  const opening = inOpening(gw, seat);
+  const cands = opening ? openingCands(gw, seat, open) : open;
+  const drawn = draw(
+    gw,
+    seat,
+    cands,
+    dueScenes,
+    opening ? GW_OPENING_DESK : null,
   );
-  const drawn = draw(gw, seat, cands, dueScenes);
   const quiet =
     dueCards.length === 0 && drawn.every(isSmall) ? quietCard(gw, seat) : null;
   let dealt = [...dueScenes, ...drawn];

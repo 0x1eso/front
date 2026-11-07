@@ -13,6 +13,13 @@
 // `health`, `source_band`, `secret`; a `deal` reply makes a `promise`; a
 // `leave` reply ends the talk and is remembered. A talk opens a decision's
 // option with `remember` + `memory` in that option's `when`.
+//
+// A big scene (`big: true` on a talk) takes the whole screen and the chapter:
+// the desk goes quiet for it (Desk.ts). Its nodes can each have their own
+// speaker (`who`), or nobody (`alone`), so people come in one after another;
+// the pack's `at` and `room` on a node say what hour it is and what has changed.
+// `decide` replies are the decisions in it: no stance, no reaction. After it
+// `after` can lay a `silent` card. See /home/eser/dev/ww150-format.md.
 import { z } from "zod";
 import {
   GW_AI_KINDS,
@@ -47,6 +54,12 @@ import {
 import { GW_TAGS, GwTag } from "./GwCountries";
 import { GW_BLOCS, GwBloc } from "./GwPress";
 import { GW_RULER_SIDES, GwRulerSide } from "./GwRuler";
+import {
+  GW_RIVAL_ACTS,
+  GW_RIVAL_ENDS,
+  GwRivalAct,
+  GwRivalEnd,
+} from "./GwStory";
 import {
   GwWorldCond,
   GwWorldCondSchema,
@@ -176,7 +189,29 @@ export type GwCond =
   /** The declared aim's `met` holds now. */
   | { kind: "aim_met" }
   /** How many aims the seat has given up. */
-  | { kind: "aim_changed"; min?: number; max?: number };
+  | { kind: "aim_changed"; min?: number; max?: number }
+  /** The rival's stage, 1 signs .. 3 open clash; false once the track closed. */
+  | { kind: "rival_stage"; min?: number; max?: number }
+  /** What the seat last did about the rival. */
+  | { kind: "rival_act"; of: GwRivalAct[] }
+  /** How the track closed. */
+  | { kind: "rival_end"; of: GwRivalEnd[] }
+  /** The hidden character of an AI ruler's country; false for a seat's. */
+  | { kind: "character"; who: GwWho; of: GwAiKind[] }
+  /** The seat is at war with that person's country. */
+  | { kind: "at_war_with"; who: GwWho }
+  /** Letters with that person's country; `out`: only those written or come. */
+  | {
+      kind: "letters";
+      who: GwWho;
+      out?: boolean;
+      tone?: GwStance;
+      within?: number;
+      min?: number;
+      max?: number;
+    }
+  /** The player's first game of this nation (the lobby's shelf). */
+  | { kind: "first_game" };
 
 export type GwEffect =
   | { kind: "flag"; flag: string }
@@ -229,7 +264,13 @@ export type GwEffect =
   | { kind: "opinion"; bloc: GwBloc; delta: number }
   | { kind: "rumour"; delta: number }
   /** The censor's level, within what the country allows. */
-  | { kind: "censor"; delta: number };
+  | { kind: "censor"; delta: number }
+  /** Embrace, push away or strike first (engine/ww1914/Story). */
+  | { kind: "rival"; act: GwRivalAct }
+  /** Closes the rival's track: the memoir says how. */
+  | { kind: "rival_end"; end: Exclude<GwRivalEnd, "gone"> }
+  /** The seat writes to that person's country in this tone. */
+  | { kind: "letter"; who: GwWho; tone: GwStance };
 
 const int = z.number().int();
 const range = { min: int.optional(), max: int.optional() };
@@ -337,6 +378,22 @@ export const GwCondSchema: z.ZodType<GwCond> = z.lazy(() =>
     obj("aim", { of: z.array(GwIdSchema).min(1) }),
     obj("aim_met", {}),
     obj("aim_changed", range),
+    obj("rival_stage", range),
+    obj("rival_act", { of: z.array(z.enum(GW_RIVAL_ACTS)) }),
+    obj("rival_end", { of: z.array(z.enum(GW_RIVAL_ENDS)) }),
+    obj("character", {
+      who: GwWhoSchema,
+      of: z.array(z.enum(GW_AI_KINDS)),
+    }),
+    obj("at_war_with", { who: GwWhoSchema }),
+    obj("letters", {
+      who: GwWhoSchema,
+      out: z.boolean().optional(),
+      tone: z.enum(GW_STANCES).optional(),
+      within: int.min(0).optional(),
+      ...range,
+    }),
+    obj("first_game", {}),
   ]),
 ) as z.ZodType<GwCond>;
 
@@ -395,6 +452,11 @@ export const GwEffectSchema: z.ZodType<GwEffect> = z.lazy(() =>
     obj("opinion", { bloc: z.enum(GW_BLOCS), delta: int }),
     obj("rumour", { delta: int }),
     obj("censor", { delta: int }),
+    obj("rival", { act: z.enum(GW_RIVAL_ACTS) }),
+    obj("rival_end", {
+      end: z.enum(["reconciled", "broken", "prevailed"] as const),
+    }),
+    obj("letter", { who: GwWhoSchema, tone: z.enum(GW_STANCES) }),
   ]),
 ) as z.ZodType<GwEffect>;
 
@@ -409,6 +471,7 @@ export const GW_SCENE_KINDS = [
   "crisis", // a link of a crisis chain
   "ledger", // the war's accounts
   "talk", // a conversation (design §5.6)
+  "letter", // a foreign ruler writes; the options are the answer
 ] as const;
 export type GwSceneKind = (typeof GW_SCENE_KINDS)[number];
 
@@ -449,6 +512,10 @@ const GwBaseCastRuleSchema = z.union([
   z.object({ subject: z.literal(true) }).strict(),
   /** A person picked in a schedule field: the `nth` of them, from 0. */
   z.object({ picked: GwIdSchema, nth: int.min(0).optional() }).strict(),
+  /** The seat's hidden rival; nobody once the track closed. */
+  z.object({ rival_man: z.literal(true) }).strict(),
+  /** The ruler of that country, if no seat holds it (StoryRows GW_HEADS). */
+  z.object({ ruler_of: tag }).strict(),
 ]);
 
 /**
@@ -489,7 +556,14 @@ export const GW_STANCES = [
   "frank",
 ] as const;
 export type GwStance = (typeof GW_STANCES)[number];
-export const GW_REPLY_KINDS = ["ask", "push", "deal", "leave"] as const;
+export const GW_REPLY_KINDS = [
+  "ask",
+  "push",
+  "deal",
+  "leave",
+  // A decision in a big scene: its stance is ignored and nobody reacts to it.
+  "decide",
+] as const;
 export type GwReplyKind = (typeof GW_REPLY_KINDS)[number];
 
 /** How the person takes a reply: the first `when` that holds replaces next and effects. */
@@ -527,9 +601,21 @@ export const GwNodeSchema = z
     /** The line said here: the first variant whose `when` holds, last is the default. */
     says: z.array(GwVariantSchema).min(1),
     replies: z.array(GwReplySchema).min(1),
+    // Big scenes only.
+    /** Who speaks here, a cast role; absent: the scene's `who`. */
+    who: GwIdSchema.optional(),
+    /** Nobody speaks: `says` is narration, the hour passing. */
+    alone: z.boolean().optional(),
+    /** The reply a timer takes here; absent: the first open. */
+    fallback: GwIdSchema.optional(),
   })
   .strict();
 export type GwNode = z.infer<typeof GwNodeSchema>;
+
+/** A card to lay after a big scene. */
+export const GwAfterSchema = z
+  .object({ scene: GwIdSchema, when: GwCondSchema.optional() })
+  .strict();
 
 export const GwSceneSchema = z
   .object({
@@ -581,6 +667,14 @@ export const GwSceneSchema = z
     author: GwIdSchema.optional(),
     /** This paper can't be sent back. */
     noBack: z.boolean().optional(),
+    /** A talk that takes the screen and the chapter: 고비. */
+    big: z.boolean().optional(),
+    /** A big scene: the first that holds is laid on the desk when it ends. */
+    after: z.array(GwAfterSchema).optional(),
+    /** A short card with no chrome: only ever laid by `after`. */
+    silent: z.boolean().optional(),
+    /** Comes even in a chapter a big scene has quieted. */
+    essential: z.boolean().optional(),
   })
   .strict();
 export type GwScene = z.infer<typeof GwSceneSchema>;
@@ -614,6 +708,7 @@ export function gwSceneProblems(s: GwScene): string[] {
   if (s.scheduledOnly === true && s.summon === true) {
     out.push(`${s.id}: scheduledOnly and summon`);
   }
+  out.push(...storyProblems(s));
   if (s.kind === "talk") {
     if (s.who === undefined || s.cast[s.who] === undefined) {
       out.push(`${s.id}: who is not a cast role`);
@@ -672,6 +767,41 @@ export function gwSceneProblems(s: GwScene): string[] {
     const ids = (s.options ?? []).map((o) => o.id);
     if (s.fallback !== undefined && !ids.includes(s.fallback)) {
       out.push(`${s.id}: fallback is not an option`);
+    }
+  }
+  return out;
+}
+
+/** What big scenes, silent cards and letters must be. */
+function storyProblems(s: GwScene): string[] {
+  const out: string[] = [];
+  if (s.big === true && (s.kind !== "talk" || s.summon === true)) {
+    out.push(`${s.id}: a big scene is a talk the desk deals`);
+  }
+  if (s.after !== undefined && s.big !== true) {
+    out.push(`${s.id}: after on a scene that isn't big`);
+  }
+  if (s.silent === true && (s.kind !== "wire" || s.scheduledOnly !== true)) {
+    out.push(`${s.id}: a silent card is a scheduledOnly wire`);
+  }
+  if (s.kind === "letter" && (s.who === undefined || !s.cast[s.who])) {
+    out.push(`${s.id}: who is not a cast role`);
+  }
+  for (const [id, n] of Object.entries(s.nodes ?? {})) {
+    if (s.big !== true && (n.who ?? n.alone ?? n.fallback) !== undefined) {
+      out.push(`${s.id}.${id}: who, alone and fallback are for big scenes`);
+    }
+    if (n.who !== undefined && s.cast[n.who] === undefined) {
+      out.push(`${s.id}.${id}: who is not a cast role`);
+    }
+    if (n.who !== undefined && n.alone === true) {
+      out.push(`${s.id}.${id}: alone with a speaker`);
+    }
+    if (
+      n.fallback !== undefined &&
+      !n.replies.some((r) => r.id === n.fallback)
+    ) {
+      out.push(`${s.id}.${id}: fallback is not a reply`);
     }
   }
   return out;
@@ -782,3 +912,20 @@ export const dropCard = (scene: string): GwEffect => ({
   kind: "drop_card",
   scene,
 });
+export const rivalStage = (min: number, max?: number): GwCond =>
+  max === undefined
+    ? { kind: "rival_stage", min }
+    : { kind: "rival_stage", min, max };
+export const rivalAct = (act: GwRivalAct): GwEffect => ({ kind: "rival", act });
+export const character = (who: GwWho, ...of: GwAiKind[]): GwCond => ({
+  kind: "character",
+  who,
+  of,
+});
+/** A decision in a big scene. */
+export const decide = (
+  id: string,
+  next: string | null,
+  effects: GwEffect[] = [],
+  tell: string[] = [],
+): GwReply => ({ id, stance: "frank", kind: "decide", tell, effects, next });

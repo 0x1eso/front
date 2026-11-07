@@ -39,6 +39,7 @@ import {
   takeOption,
 } from "./SceneRun";
 import { sendBack } from "./SendBack";
+import { inOpening, newcomers } from "./Story";
 import { applyReply, summonScenes } from "./Talk";
 import { offerTerms } from "./Terms";
 import { seatPerson } from "./World";
@@ -216,6 +217,9 @@ export function summonable(
   const scene = sceneOf(topic);
   if (scene === null || scene.who === undefined) return false;
   if (!scene.nation.includes(seat.tag)) return false;
+  if (inOpening(gw, seat) && newcomers(gw, seat, [person]).length > 0) {
+    return false;
+  }
   if (seat.desk.some((c) => c.scene === topic)) return false;
   if (!inStage(gw, scene) || !repeatable(gw, seat, scene)) return false;
   const cast = castOf(gw, seat, scene);

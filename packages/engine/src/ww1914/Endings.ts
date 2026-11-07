@@ -326,9 +326,19 @@ export function memoirOf(
   const coda = (GW_ENDING_CODAS[seat.tag] ?? []).find((c) =>
     holds({ gw, seat, cast: {} }, c.when),
   );
+  const rival = seat.story.rival;
   return {
     ending,
     coda: coda?.id ?? null,
+    rival:
+      rival.who === null
+        ? null
+        : {
+            who: rival.who,
+            stage: rival.stage,
+            act: rival.act,
+            end: rival.end,
+          },
     chapter: chaptersPlayed(gw) - 1,
     day: s.day,
     mandates,
