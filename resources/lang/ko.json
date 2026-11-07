@@ -15126,7 +15126,8 @@
         "no_back": "이 서류는 돌려보낼 수 없다.",
         "no_slot": "이번 장의 일정이 남지 않았다.",
         "no_terms": "이 조건은 보낼 수 없다.",
-        "terms_sent": "이번 장의 조건은 이미 나갔다."
+        "terms_sent": "이번 장의 조건은 이미 나갔다.",
+        "prologue": "아직 지난날이 끝나지 않았습니다."
       },
       "brief_label": "비서의 메모",
       "calendar": {
@@ -15522,7 +15523,15 @@
         "stage2": "{name}은(는) 당신에게 맞설 사람들을 모으던 참이었다.",
         "stage3": "{name}은(는) 끝내 당신에게 공공연히 맞섰다.",
         "strike": "당신은 맞수 {name}을(를) 먼저 쳤다."
-      }
+      },
+      "past_next": "다음으로",
+      "past_step": "지난날 {n} / {total}",
+      "prologue_label": "통치자의 지난날",
+      "prologue_note_kept": "지난번에 고른 대로 시작합니다.",
+      "prologue_note_neutral": "지난날에서 이어지는 것 없이 시작합니다.",
+      "prologue_note_play": "1914년 6월까지 이 통치자의 삶을 살고 나서 첫 전보를 받습니다.",
+      "prologue_play": "지난날부터 산다",
+      "prologue_skip": "첫 전보부터 시작한다"
     },
     "unknown": {
       "ai": "{country}의 원수는 {word}이었다.",

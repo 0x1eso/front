@@ -21,6 +21,7 @@ import type {
 import type { GwActKind } from "./GwActs";
 import type { GwTag } from "./GwCountries";
 import type { GwOrderBlock } from "./GwOrders";
+import type { GwPrologueView } from "./GwPrologue";
 import type { GwRulerView } from "./GwRuler";
 import type { GwWorldView } from "./GwWorldView";
 import type { GwReplyKind, GwSceneKind, GwStance } from "./SceneDsl";
@@ -67,6 +68,8 @@ export interface GwCardView {
   big?: boolean;
   /** A short card with no chrome, laid after a big scene. */
   silent?: boolean;
+  /** A prologue scene: its number in the row. */
+  past?: number;
   /** A letter: the country it came from. */
   letterFrom?: GwTag;
 }
@@ -243,6 +246,8 @@ export interface GwSeatView {
   world: GwWorldView;
   /** The person at the desk; null where the regime has no row. */
   ruler?: GwRulerView | null;
+  /** Null with no prologue. */
+  prologue?: GwPrologueView | null;
 }
 
 /** The whole mode as sent worker -> main thread. Never mutated. */

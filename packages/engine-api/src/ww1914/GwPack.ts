@@ -54,6 +54,10 @@ export const GwScenePackSchema = z
      * required.
      */
     brief: z.union([Text, z.record(GwIdSchema, Text)]).optional(),
+    /** A prologue scene: when and where, "1888년 6월 15일, 포츠담". */
+    dated: Text.optional(),
+    /** A prologue scene: person id -> who they were then, on the plate. */
+    as: ById.optional(),
     /**
      * The line a paper sent back comes again with: direction -> text, or `dug`
      * when the author would not change it. Absent: the rule's own line.
@@ -354,6 +358,25 @@ function holeProblems(where: string, t: string, roles: readonly string[]) {
   return out;
 }
 
+/** A date and a real person for each part; 1914's holes mean nothing here. */
+function prologuePackProblems(
+  s: GwScene,
+  t: GwScenePack,
+  pack: GwPack,
+): string[] {
+  const out: string[] = [];
+  if (t.dated === undefined) out.push(`${s.id}: no date (pack \`dated\`)`);
+  for (const rule of Object.values(s.cast)) {
+    if ("past" in rule && pack.people[rule.past] === undefined) {
+      out.push(`${s.id}: no person ${rule.past} in the pack`);
+    }
+  }
+  if (/\{date\}|\.title\}|\{mem\.|\{chose\./.test(JSON.stringify(t))) {
+    out.push(`${s.id}: a hole that reads 1914`);
+  }
+  return out;
+}
+
 /**
  * Every line a scene can show that the pack lacks, and the template smells a
  * machine can find; a content test requires an empty list. `reasonKeys` are
@@ -429,6 +452,7 @@ export function gwPackProblems(
       }
     }
     if (s.summon === true) need(t.topic, "topic");
+    if (s.prologue !== undefined) out.push(...prologuePackProblems(s, t, pack));
     for (const e of gwSceneEffects(s)) {
       if (
         e.kind === "reason" &&

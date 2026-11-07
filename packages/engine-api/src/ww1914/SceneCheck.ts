@@ -180,7 +180,11 @@ export function gwContentProblems(
   }
   for (const s of scenes) {
     const byPromise = s.cast !== undefined && isCalled(s);
-    const free = called.has(s.id) || byPromise || s.byAct === true;
+    const free =
+      called.has(s.id) ||
+      byPromise ||
+      s.byAct === true ||
+      s.prologue !== undefined;
     if (s.scheduledOnly === true && !free) {
       out.push(`${s.id}: scheduledOnly, and nothing schedules it`);
     }

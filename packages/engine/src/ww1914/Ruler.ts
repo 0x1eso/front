@@ -85,6 +85,16 @@ export function rollRuler(gw: GreatWar, seat: GwSeatState): void {
   layRow(gw, seat, rulerRow(gw, seat));
 }
 
+/** Where the card starts: what the years left, so no line and no bottom. */
+export function startRuler(
+  seat: GwSeatState,
+  side: GwRulerSide,
+  delta: number,
+): void {
+  const r = seat.ruler;
+  if (r.id !== null) r[side] = clampTo(r[side] + delta, 1, GW_RULER_MAX);
+}
+
 /** Moves a side and says why. A conscience that gave out doesn't come back. */
 export function moveRuler(
   gw: GreatWar,

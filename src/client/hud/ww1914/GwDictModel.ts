@@ -89,11 +89,16 @@ export function dictIndex(
 export interface TextPass {
   linked: Set<string>;
   titled: Set<string>;
+  /** The years before 1914: nobody holds the office the game gives them yet. */
+  noTitles: boolean;
 }
 
 /** A fresh pass; `titled` are people the screen has already introduced. */
-export function newPass(titled: readonly string[] = []): TextPass {
-  return { linked: new Set(), titled: new Set(titled) };
+export function newPass(
+  titled: readonly string[] = [],
+  noTitles = false,
+): TextPass {
+  return { linked: new Set(), titled: new Set(titled), noTitles };
 }
 
 /** Words that already make a title of what stands next to a name. */
@@ -165,6 +170,7 @@ export function splitTerms(
     let lead = text.slice(at, m.index);
     if (
       pass !== undefined &&
+      !pass.noTitles &&
       titleOf !== undefined &&
       ref.kind === "person" &&
       !pass.titled.has(ref.id)

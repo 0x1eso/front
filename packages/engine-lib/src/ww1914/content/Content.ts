@@ -1,6 +1,6 @@
 import type { GwPersonDef } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import type { GwAct, GwAim } from "@openfront/engine-api/ww1914/GwActs";
-import type { GwScene } from "@openfront/engine-api/ww1914/SceneDsl";
+import type { GwEcho, GwScene } from "@openfront/engine-api/ww1914/SceneDsl";
 import { withRuler } from "../RulerRows";
 import { AUH_ACT_SCENES, AUH_ACTS, AUH_AIMS } from "./acts/auh";
 import { COMMON_ACT_SCENES, COMMON_ACTS } from "./acts/common";
@@ -26,6 +26,7 @@ import {
   AUH_PRIVATE_SCENES,
   withAuhPrivate,
 } from "./scenes/auh_private";
+import { AUH_ECHOES, AUH_PROLOGUE_SCENES } from "./scenes/auh_prologue";
 import { AUH_REALM_SCENES } from "./scenes/auh_realm";
 import { AUH_WAR_SCENES } from "./scenes/auh_war";
 import { BUDGET_SCENES } from "./scenes/budget";
@@ -44,6 +45,7 @@ import {
   DEU_PRIVATE_SCENES,
   withDeuPrivate,
 } from "./scenes/deu_private";
+import { DEU_ECHOES, DEU_PROLOGUE_SCENES } from "./scenes/deu_prologue";
 import { withDeuReplay } from "./scenes/deu_replay";
 import { DEU_SEA_SCENES } from "./scenes/deu_sea";
 import { DEU_WAR_SCENES } from "./scenes/deu_war";
@@ -55,6 +57,7 @@ import {
   GBR_PRIVATE_SCENES,
   withGbrPrivate,
 } from "./scenes/gbr_private";
+import { GBR_ECHOES, GBR_PROLOGUE_SCENES } from "./scenes/gbr_prologue";
 import { GBR_WAR_SCENES } from "./scenes/gbr_war";
 import { GBR_WORLD_SCENES } from "./scenes/gbr_world";
 import { GOV_SCENES } from "./scenes/gov";
@@ -65,6 +68,7 @@ import { withCommonBodies } from "./scenes/gw_replay";
 import { GW_WORLD2_SCENES } from "./scenes/gw_world2";
 import { LAW_SCENES } from "./scenes/laws";
 import { PRESS_SCENES } from "./scenes/press";
+import { withEchoes } from "./scenes/prologue_echoes";
 import { RULER_SCENES } from "./scenes/ruler";
 import { RUS_STORY_SCENES } from "./scenes/rus_act";
 import { RUS_CRISIS_SCENES } from "./scenes/rus_crisis";
@@ -72,6 +76,7 @@ import { RUS_FALL_SCENES } from "./scenes/rus_fall";
 import { RUS_FRONT_SCENES } from "./scenes/rus_front";
 import { RUS_HOME_SCENES } from "./scenes/rus_home";
 import { RUS_PRIVATE_SCENES, withRusPrivate } from "./scenes/rus_private";
+import { RUS_ECHOES, RUS_PROLOGUE_SCENES } from "./scenes/rus_prologue";
 import { WARTIME_SCENES } from "./scenes/wartime";
 import { WORLD_SCENES } from "./scenes/world";
 
@@ -84,78 +89,93 @@ export interface GwContent {
   readonly aims?: readonly GwAim[];
 }
 
+/** Where the main story remembers the prologues. */
+export const GW_ECHOES: readonly GwEcho[] = [
+  ...DEU_ECHOES,
+  ...GBR_ECHOES,
+  ...AUH_ECHOES,
+  ...RUS_ECHOES,
+];
+
 /** All content. A new country's file adds one line here. */
 export const GW_CONTENT: GwContent = {
-  scenes: withCommonBodies(
-    [
-      ...COMMON_SCENES,
-      ...DEU_SCENES,
-      ...[
-        ...DEU_CRISIS_SCENES,
-        ...DEU_WAR_SCENES,
-        ...DEU_PEOPLE_SCENES,
-        ...DEU_PEACE_SCENES,
-      ]
-        .map(withPromiseTerms)
-        .map(withSummerWar),
-      ...DEU_BACK_SCENES,
-      ...WORLD_SCENES,
-      ...withAuhBodies(withMore(WARTIME_SCENES)),
-      ...[
-        ...withAuhBodies([
-          ...AUH_CRISIS_SCENES,
-          ...AUH_WAR_SCENES,
-          ...AUH_REALM_SCENES,
-          ...AUH_CROWN_SCENES,
-        ]),
-        ...AUH_QUIET_SCENES,
-        ...withGbrPrivate(
-          withMore([
-            ...GBR_CRISIS_SCENES,
-            ...GBR_WAR_SCENES,
-            ...GBR_HOME_SCENES,
-            ...GBR_WORLD_SCENES,
-          ]),
-        ),
-        ...GBR_PRIVATE_SCENES,
+  scenes: withEchoes(
+    withCommonBodies(
+      [
+        ...COMMON_SCENES,
+        ...DEU_SCENES,
         ...[
-          ...RUS_CRISIS_SCENES,
-          ...RUS_FRONT_SCENES,
-          ...RUS_HOME_SCENES,
-          ...RUS_FALL_SCENES,
-        ].map(withRusPrivate),
-        ...RUS_PRIVATE_SCENES,
-        ...DEU_FRONT_SCENES,
-        ...DEU_SEA_SCENES,
-        ...DEU_HOME_SCENES,
-        ...DEU_COURT_SCENES,
-        ...GW_DIP_SCENES,
-        ...GW_NEUTRAL_SCENES,
-        ...GW_WORLD2_SCENES,
-        ...GW_FRAME_SCENES,
-      ].map(withPromiseTerms),
-      ...BUDGET_SCENES,
-      ...LAW_SCENES,
-      ...RULER_SCENES,
-      ...GOV_SCENES,
-      ...DEU_PRIVATE_SCENES,
-      ...AUH_PRIVATE_SCENES,
-      ...AUH_STORY_SCENES,
-      ...PRESS_SCENES,
-      ...DEU_STORY_SCENES,
-      ...RUS_STORY_SCENES,
-      ...[
-        ...COMMON_ACT_SCENES,
-        ...DEU_ACT_SCENES,
-        ...GBR_ACT_SCENES,
-        ...AUH_ACT_SCENES,
-        ...RUS_ACT_SCENES,
-      ].map((s) => ({ ...s, byAct: true })),
-    ]
-      .map(withDeuReplay)
-      .map(withDeuPrivate)
-      .map(withAuhPrivate)
-      .map(withRuler),
+          ...DEU_CRISIS_SCENES,
+          ...DEU_WAR_SCENES,
+          ...DEU_PEOPLE_SCENES,
+          ...DEU_PEACE_SCENES,
+        ]
+          .map(withPromiseTerms)
+          .map(withSummerWar),
+        ...DEU_BACK_SCENES,
+        ...WORLD_SCENES,
+        ...withAuhBodies(withMore(WARTIME_SCENES)),
+        ...[
+          ...withAuhBodies([
+            ...AUH_CRISIS_SCENES,
+            ...AUH_WAR_SCENES,
+            ...AUH_REALM_SCENES,
+            ...AUH_CROWN_SCENES,
+          ]),
+          ...AUH_QUIET_SCENES,
+          ...withGbrPrivate(
+            withMore([
+              ...GBR_CRISIS_SCENES,
+              ...GBR_WAR_SCENES,
+              ...GBR_HOME_SCENES,
+              ...GBR_WORLD_SCENES,
+            ]),
+          ),
+          ...GBR_PRIVATE_SCENES,
+          ...[
+            ...RUS_CRISIS_SCENES,
+            ...RUS_FRONT_SCENES,
+            ...RUS_HOME_SCENES,
+            ...RUS_FALL_SCENES,
+          ].map(withRusPrivate),
+          ...RUS_PRIVATE_SCENES,
+          ...DEU_FRONT_SCENES,
+          ...DEU_SEA_SCENES,
+          ...DEU_HOME_SCENES,
+          ...DEU_COURT_SCENES,
+          ...GW_DIP_SCENES,
+          ...GW_NEUTRAL_SCENES,
+          ...GW_WORLD2_SCENES,
+          ...GW_FRAME_SCENES,
+        ].map(withPromiseTerms),
+        ...BUDGET_SCENES,
+        ...LAW_SCENES,
+        ...RULER_SCENES,
+        ...GOV_SCENES,
+        ...DEU_PRIVATE_SCENES,
+        ...AUH_PRIVATE_SCENES,
+        ...AUH_STORY_SCENES,
+        ...PRESS_SCENES,
+        ...DEU_STORY_SCENES,
+        ...RUS_STORY_SCENES,
+        ...[
+          ...COMMON_ACT_SCENES,
+          ...DEU_ACT_SCENES,
+          ...GBR_ACT_SCENES,
+          ...AUH_ACT_SCENES,
+          ...RUS_ACT_SCENES,
+        ].map((s) => ({ ...s, byAct: true })),
+        ...DEU_PROLOGUE_SCENES,
+        ...GBR_PROLOGUE_SCENES,
+        ...AUH_PROLOGUE_SCENES,
+        ...RUS_PROLOGUE_SCENES,
+      ]
+        .map(withDeuReplay)
+        .map(withDeuPrivate)
+        .map(withAuhPrivate)
+        .map(withRuler),
+    ),
+    GW_ECHOES,
   ),
   people: [
     ...GW_PEOPLE,

@@ -40,6 +40,7 @@ export const GW_PACK_SHARES: Readonly<
     "press",
     "acts",
     "act",
+    "prologue",
   ],
   GBR: [
     "crisis",
@@ -54,6 +55,7 @@ export const GW_PACK_SHARES: Readonly<
     "press",
     "acts",
     "act",
+    "prologue",
   ],
   AUH: [
     "crisis",
@@ -68,6 +70,7 @@ export const GW_PACK_SHARES: Readonly<
     "press",
     "acts",
     "act",
+    "prologue",
   ],
   RUS: [
     "crisis",
@@ -82,6 +85,7 @@ export const GW_PACK_SHARES: Readonly<
     "press",
     "acts",
     "act",
+    "prologue",
   ],
 };
 

@@ -5,6 +5,10 @@
 const KEY = "gw1914.recentRuns";
 /** The shelf (hud/ww1914/GwModel): this module reads only who was played. */
 export const SHELF_KEY = "gw1914.shelf";
+/** The last prologue's choices, by nation. */
+const PROLOGUE_KEY = "gw1914.prologue";
+/** The schema's cap on the lobby field. */
+const MAX_PICKS = 200;
 /** Design §15 no. 9: the last two games. */
 const RUNS = 2;
 /** The schema's cap on the lobby field. */
@@ -67,4 +71,40 @@ export function gwPlayedTags(): string[] {
   } catch {
     return [];
   }
+}
+
+function loadPrologues(): Record<string, readonly string[]> {
+  try {
+    const raw = localStorage.getItem(PROLOGUE_KEY);
+    const all: unknown = raw === null ? {} : JSON.parse(raw);
+    return typeof all === "object" && all !== null
+      ? (all as Record<string, readonly string[]>)
+      : {};
+  } catch {
+    return {};
+  }
+}
+
+/** Keeps what a played prologue chose, for the next game that skips it. */
+export function noteGwPrologue(tag: string, picks: readonly string[]): void {
+  try {
+    localStorage.setItem(
+      PROLOGUE_KEY,
+      JSON.stringify({ ...loadPrologues(), [tag]: [...picks] }),
+    );
+  } catch {
+    // Storage off: a later skip starts neutral.
+  }
+}
+
+/** What a skip of this nation would apply; empty: it starts neutral. */
+export function gwProloguePicks(tag: string): string[] {
+  const picks = loadPrologues()[tag];
+  if (!Array.isArray(picks)) return [];
+  return picks.filter((x) => typeof x === "string").slice(0, MAX_PICKS);
+}
+
+/** The lobby field. */
+export function gwPrologueField(tag: string, play: boolean) {
+  return { play, picks: play ? [] : gwProloguePicks(tag) };
 }

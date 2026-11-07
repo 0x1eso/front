@@ -7,6 +7,7 @@ import { GwBudgetStateSchema } from "./GwBudget";
 import { GW_TAGS } from "./GwCountries";
 import { GwLawStateSchema } from "./GwLaw";
 import { gwPressStart, GwPressStateSchema } from "./GwPress";
+import { GwPrologueStateSchema } from "./GwPrologue";
 import { GwRulerStateSchema } from "./GwRuler";
 import {
   GW_RIVAL_ACTS,
@@ -955,6 +956,8 @@ export const GwSeatStateSchema = z.object({
     .default([]),
   /** The rival, the letters, the desk's pace (GwStory.ts). */
   story: GwStoryStateSchema.default(gwStoryStart),
+  /** Absent unless the lobby asked for a prologue (GwPrologue.ts). */
+  prologue: GwPrologueStateSchema.optional(),
 });
 export type GwSeatState = z.infer<typeof GwSeatStateSchema>;
 

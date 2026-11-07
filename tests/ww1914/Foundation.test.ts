@@ -26,11 +26,12 @@ afterAll(() => useGwContent(null));
 describe("the config key", () => {
   test("is the last of the schema but its own lists", () => {
     const keys = Object.keys(GameConfigSchema.shape);
-    expect(keys.slice(-4)).toEqual([
+    expect(keys.slice(-5)).toEqual([
       "greatWar1914",
       "greatWar1914Calendar",
       "greatWar1914Recent",
       "greatWar1914Played",
+      "greatWar1914Prologue",
     ]);
   });
 

@@ -48,7 +48,8 @@ import { closeSeat } from "./Endings";
 import type { GreatWar } from "./GreatWar";
 import { dismissPerson, onAppointed } from "./People";
 import { moveCensor, moveOpinion, moveRumour } from "./Press";
-import { moveRuler, rulerHolds } from "./Ruler";
+import { prologueEffect, prologueHolds } from "./Prologue";
+import { moveRuler, rulerHolds, startRuler } from "./Ruler";
 import { headOf, rivalMan, storyEffect, storyHolds } from "./Story";
 import { playOutBig } from "./Talk";
 import { stageOf } from "./World";
@@ -160,7 +161,7 @@ function linked(
   );
 }
 
-type BaseCastRule = Exclude<GwCastRule, { any_of: unknown }>;
+type BaseCastRule = Exclude<GwCastRule, { any_of: unknown } | { past: string }>;
 
 /** Fixed roles: who they are doesn't depend on the rest of the cast. */
 function isFixed(rule: GwCastRule): boolean {
@@ -172,7 +173,8 @@ function isFixed(rule: GwCastRule): boolean {
     "subject" in rule ||
     "picked" in rule ||
     "rival_man" in rule ||
-    "ruler_of" in rule
+    "ruler_of" in rule ||
+    "past" in rule
   );
 }
 
@@ -260,13 +262,15 @@ export function castOf(
   // The chain role of rival_of comes before it, whatever the order written.
   ordered.sort(([, a], [, b]) => linkDepth(a) - linkDepth(b));
   for (const [role, rule] of ordered) {
-    let p: GwPersonState | null = null;
+    let id: string | null = null;
     for (const r of "any_of" in rule ? rule.any_of : [rule]) {
-      p = fill(gw, seat, scene, role, r, out, called, act);
-      if (p !== null) break;
+      // Someone as they were: nobody the rest of the game has to know of.
+      if ("past" in r) id = r.past;
+      else id = fill(gw, seat, scene, role, r, out, called, act)?.id ?? null;
+      if (id !== null) break;
     }
-    if (p === null) return null;
-    out[role] = p.id;
+    if (id === null) return null;
+    out[role] = id;
   }
   // Cast order as written: the pack's voices read in this order.
   return Object.fromEntries(roles.map(([role]) => [role, out[role]]));
@@ -486,6 +490,8 @@ export function holds(ctx: SceneCtx, c: GwCond): boolean {
     case "letters":
     case "first_game":
       return storyHolds(ctx, c);
+    case "ruler_temper":
+      return prologueHolds(seat, c);
   }
 }
 
@@ -715,6 +721,13 @@ export function runEffect(ctx: SceneCtx, e: GwEffect): void {
     case "rival_end":
     case "letter":
       storyEffect(ctx, e);
+      return;
+    case "ruler_start":
+      startRuler(seat, e.side, e.delta);
+      return;
+    case "temper":
+    case "rival_lean":
+      prologueEffect(ctx, e);
       return;
   }
 }

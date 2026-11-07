@@ -21,6 +21,7 @@ import { aimsView } from "./Aims";
 import { govView, pollView } from "./Government";
 import type { GreatWar } from "./GreatWar";
 import { openTopics, readyBlock } from "./Orders";
+import { prologueView } from "./Prologue";
 import { rulerView } from "./Ruler";
 import {
   ctxOf,
@@ -84,6 +85,7 @@ function cardView(
     backWho: backWho(gw, seat, c, scene),
     ...(scene.big === true ? { big: true } : {}),
     ...(scene.silent === true ? { silent: true } : {}),
+    ...(scene.prologue === undefined ? {} : { past: scene.prologue }),
     ...(letterFrom === undefined ? {} : { letterFrom }),
   };
 }
@@ -203,6 +205,7 @@ function seatView(gw: GreatWar, seat: GwSeatState): GwSeatView {
     poll: pollView(gw, seat),
     world: worldView(gw, seat),
     ruler: rulerView(gw, seat),
+    prologue: prologueView(gw, seat),
   };
 }
 

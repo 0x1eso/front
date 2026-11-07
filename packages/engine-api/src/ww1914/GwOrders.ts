@@ -130,5 +130,6 @@ export const GW_ORDER_BLOCKS = [
   "no_aim",
   "no_terms",
   "terms_sent",
+  "prologue",
 ] as const;
 export type GwOrderBlock = (typeof GW_ORDER_BLOCKS)[number];

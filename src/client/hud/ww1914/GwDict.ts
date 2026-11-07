@@ -86,6 +86,20 @@ export function briefLine(
   </p>`;
 }
 
+/** The line under a prologue scene's date: the years have no secretary. */
+export function pastLine(
+  c: GwCtx,
+  text: string,
+  pass: TextPass,
+): TemplateResult {
+  return html`<p
+    class="text-center text-[15px] leading-7 text-white/70"
+    data-gw-past-brief
+  >
+    ${rich(c, text, pass)}
+  </p>`;
+}
+
 function personCard(c: GwCtx, id: string) {
   const office = c.seat.people.find((p) => p.id === id)?.office;
   return {

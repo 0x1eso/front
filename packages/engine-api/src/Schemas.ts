@@ -557,6 +557,16 @@ export const GameConfigSchema = z.object({
     .array(zb.string({ min: 3, max: 3 }))
     .max(64)
     .optional(),
+  // Great War 1914: the ruler's earlier life. `play`: the seat lives it before
+  // chapter 0. Otherwise `picks` ("<scene>.<reply>", the last time, from the
+  // browser) are applied unseen; none leaves everything neutral. Here and not
+  // in the browser, so a replay gives the same. Absent means no prologue.
+  greatWar1914Prologue: z
+    .object({
+      play: z.boolean(),
+      picks: z.array(zb.string({ min: 1, max: 100 })).max(200),
+    })
+    .optional(),
 });
 
 // What a host sends in update_game_config. maxPlayers is the private-lobby

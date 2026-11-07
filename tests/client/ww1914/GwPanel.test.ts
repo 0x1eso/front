@@ -9,7 +9,13 @@ import { EventBus } from "@openfront/shared/EventBus";
 import fs from "node:fs";
 import path from "node:path";
 import { afterEach, describe, expect, test, vi } from "vitest";
-import { gwPlayedTags, SHELF_KEY } from "../../../src/client/GwRecentRuns";
+import {
+  gwPlayedTags,
+  gwPrologueField,
+  gwProloguePicks,
+  noteGwPrologue,
+  SHELF_KEY,
+} from "../../../src/client/GwRecentRuns";
 import { GwPanel } from "../../../src/client/hud/ww1914/GwPanel";
 import {
   fillGw,
@@ -20,6 +26,25 @@ import { SendGwOrderIntentEvent } from "../../../src/client/Transport";
 
 /** The format's two examples, here so the screens don't move with the writers. */
 const SCENES = {
+  pro_arm: {
+    title: "말",
+    dated: "1867년 봄, 포츠담",
+    brief: "소년은 왼팔을 쓰지 못한다.",
+    as: { deu_bethmann: "소년의 친구" },
+    text: { base: "말이 다시 움직인다." },
+    nodes: {
+      n1: {
+        says: { base: "다시 오르십시오." },
+        replies: { ride: "말에 오른다." },
+      },
+    },
+  },
+  pro_two: {
+    title: "다음",
+    dated: "1888년, 베를린",
+    text: { base: "시간이 지났다." },
+    nodes: { n1: { says: { base: "다음 일." }, replies: { go: "간다." } } },
+  },
   deu_sample_envoy: {
     title: "빈에서 온 사절",
     back: { dug: "{chancellor}이(가) 원안을 다시 올렸다." },
@@ -953,5 +978,113 @@ describe("the story", () => {
     localStorage.setItem(SHELF_KEY, "not json");
     expect(gwPlayedTags()).toEqual([]);
     localStorage.removeItem(SHELF_KEY);
+  });
+});
+
+describe("the years", () => {
+  const scene = (id: string, uid: number, past: number) =>
+    card({
+      uid,
+      scene: id,
+      kind: "talk",
+      big: true,
+      past,
+      cast: { a: "deu_bethmann" },
+      options: [],
+      who: "deu_bethmann",
+      node: "n1",
+      says: "base",
+      replies: [
+        {
+          id: id === "pro_arm" ? "ride" : "go",
+          open: true,
+          tell: [],
+          stance: "frank",
+          kind: "decide",
+        },
+      ],
+    });
+  const paper = card({ uid: 9, kind: "wire", options: [], cast: {} });
+  const years = (
+    desk: GwCardView[],
+    step: number,
+    done = false,
+    picks: string[] = [],
+  ) => {
+    const d = data(desk);
+    d.seats[0].prologue = { step, total: 2, done, picks };
+    return d;
+  };
+  const onward = (d: GreatWarData, panel: GwPanel) => {
+    panel.game = {
+      greatWarData: () => d,
+      myPlayer: () => ({ smallID: () => 1 }),
+    } as unknown as GwPanel["game"];
+    panel.tick();
+    panel.tick();
+    return panel.updateComplete;
+  };
+
+  test("nothing of 1914 shows: a date, who they were, no way out", async () => {
+    const { panel } = await mount(years([scene("pro_arm", 7, 1)], 1));
+    panel.tick();
+    await panel.updateComplete;
+    const view = panel.querySelector("[data-gw-talk]")!;
+    expect(view.querySelector("[data-gw-past-date]")!.textContent).toContain(
+      "1867년 봄",
+    );
+    expect(view.querySelector("[data-gw-past-as]")!.textContent).toContain(
+      "소년의 친구",
+    );
+    expect(view.querySelector("[data-gw-past-brief]")).not.toBeNull();
+    expect(view.querySelector("[data-gw-brief]")).toBeNull();
+    expect(view.querySelector("[data-gw-trust]")).toBeNull();
+    expect(view.querySelector("[data-gw-leave]")).toBeNull();
+    expect(panel.querySelector("[data-gw-band]")).toBeNull();
+    expect(panel.querySelector("[data-gw-drawer]")).toBeNull();
+  });
+
+  test("a scene ended stays until the player goes on; then the next, then the first paper", async () => {
+    localStorage.clear();
+    const { panel } = await mount(years([scene("pro_arm", 7, 1)], 1));
+    await onward(years([scene("pro_two", 8, 2)], 2), panel);
+    const next = () =>
+      panel.querySelector<HTMLButtonElement>("[data-gw-past-next]")!;
+    expect(
+      panel.querySelector("[data-gw-talk]")!.getAttribute("data-gw-talk"),
+    ).toBe("pro_arm");
+    next().click();
+    await onward(years([scene("pro_two", 8, 2)], 2), panel);
+    expect(
+      panel.querySelector("[data-gw-talk]")!.getAttribute("data-gw-talk"),
+    ).toBe("pro_two");
+    const picks = ["pro_arm.ride", "pro_two.go"];
+    await onward(years([paper], 2, true, picks), panel);
+    next().click();
+    await onward(years([paper], 2, true, picks), panel);
+    expect(panel.querySelector("[data-gw-talk]")).toBeNull();
+    expect(panel.querySelector("[data-gw-reader]")).not.toBeNull();
+    expect(panel.querySelector("[data-gw-band]")).not.toBeNull();
+    expect(gwProloguePicks("DEU")).toEqual(picks);
+  });
+
+  test("a skipped game keeps what it was given and opens no paper", async () => {
+    localStorage.clear();
+    const { panel } = await mount(years([paper], 2, true, ["pro_arm.ride"]));
+    await onward(years([paper], 2, true, ["pro_arm.ride"]), panel);
+    expect(panel.querySelector("[data-gw-reader]")).toBeNull();
+    expect(gwProloguePicks("DEU")).toEqual([]);
+  });
+
+  test("the lobby field: picks by nation when skipping, none when playing", () => {
+    localStorage.clear();
+    expect(gwPrologueField("DEU", false)).toEqual({ play: false, picks: [] });
+    noteGwPrologue("DEU", ["pro_arm.ride"]);
+    noteGwPrologue("GBR", ["x.y"]);
+    expect(gwPrologueField("DEU", false).picks).toEqual(["pro_arm.ride"]);
+    expect(gwPrologueField("DEU", true)).toEqual({ play: true, picks: [] });
+    localStorage.setItem("gw1914.prologue", "not json");
+    expect(gwProloguePicks("DEU")).toEqual([]);
+    localStorage.clear();
   });
 });
