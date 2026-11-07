@@ -11,6 +11,7 @@ import { closeSeat } from "@openfront/engine/ww1914/Endings";
 import {
   govBeaten,
   govHeatBy,
+  govSoon,
   govStep,
   govView,
   pollOf,
@@ -221,10 +222,42 @@ describe("a threat", () => {
     for (let i = 0; i < 11; i++) govStep(gw);
     govHeatBy(gw, seat, "gbr_table", -5);
     seat.scheduled = [];
-    for (let i = 0; i < 5; i++) govStep(gw);
-    expect(seat.scheduled.map((q) => q.scene)).toContain(
-      r.steps[r.steps.length - 1].scene,
-    );
+    const last = r.steps[r.steps.length - 1].scene;
+    const called = () => seat.scheduled.map((q) => q.scene).includes(last);
+    for (let i = 0; i < 3; i++) govStep(gw);
+    expect(called()).toBe(false);
+    for (let i = 0; i < 12; i++) {
+      gw.s.chapter++;
+      gw.s.day = gwChapters(gw.s.calendar)[gw.s.chapter].day;
+      govStep(gw);
+    }
+    expect(called()).toBe(true);
+  });
+
+  test("a talk had isn't had again; a scene is never on the desk twice", async () => {
+    const gw = await game("GBR");
+    late(gw);
+    const seat = gw.s.seats[0];
+    seat.seen.gov_gbr_table_1 = 3;
+    gw.nation("GBR")!.inst.cabinet = -2;
+    for (let i = 0; i < 7; i++) govStep(gw);
+    const calls = seat.scheduled.map((q) => q.scene);
+    expect(calls).not.toContain("gov_gbr_table_1");
+    expect(calls.filter((x) => x === "gov_gbr_table_2").length).toBe(1);
+  });
+
+  test("a deal brings its paper once, whatever the heat does", async () => {
+    const gw = await game("GBR");
+    late(gw);
+    const seat = gw.s.seats[0];
+    seat.scheduled = [];
+    govSoon(gw, seat, "gbr_table");
+    govSoon(gw, seat, "gbr_table");
+    gw.nation("GBR")!.inst.cabinet = -2;
+    for (let i = 0; i < 8; i++) govStep(gw);
+    const calls = seat.scheduled.map((q) => q.scene);
+    expect(calls.filter((x) => x === "gov_gbr_table_2").length).toBe(1);
+    expect(calls).not.toContain("gov_gbr_table_1");
   });
 
   test("beaten, it rests, and the memoir has the turn", async () => {

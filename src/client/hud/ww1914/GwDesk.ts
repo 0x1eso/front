@@ -16,7 +16,7 @@ import {
   fillGw,
   foldedLines,
   fullDate,
-  optionText,
+  optionMarked,
   personName,
   reasonText,
   tellText,
@@ -153,7 +153,7 @@ function optionButton(
       <span class="block"
         >${boldParts(
           fillGw(
-            optionText(c.pack, card, o.id),
+            optionMarked(c.pack, card, o.id),
             c.pack,
             card,
             c.seat,

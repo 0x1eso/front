@@ -6,13 +6,21 @@ import type {
 import { world } from "@openfront/engine-api/ww1914/WorldDsl";
 import { GW_ELECTIONS, GW_GOV, GwGovRow } from "./GovTable";
 import type { GreatWar } from "./GreatWar";
-import { holds, SceneCtx } from "./SceneRun";
+import { holds, SceneCtx, sceneOf } from "./SceneRun";
 import { clampTo, isLongChapter, monthsOf, reason } from "./World";
 
 const rowOf = (id: string): GwGovRow | null =>
   GW_GOV.find((r) => r.id === id) ?? null;
 
 const lastAt = (row: GwGovRow) => row.steps[row.steps.length - 1].at;
+
+/** Months a threat lies quiet after its last scene cooled it. */
+const GOV_BREATH = 4;
+/** Chapters until the paper a deal promised. */
+const SOON_CHAPTERS = 3;
+
+const chaptersOf = (gw: GreatWar, months: number) =>
+  Math.ceil(months / monthsOf(gw));
 
 function entry(seat: GwSeatState, id: string): GwGov {
   let e = seat.gov.find((x) => x.id === id);
@@ -38,9 +46,30 @@ export function govHeatBy(
   if (row === null) return;
   const e = entry(seat, id);
   e.heat = clampTo(e.heat + delta, 0, lastAt(row));
-  // Cooled below a step, it can climb to that step's scene again.
-  e.step = Math.min(e.step, row.steps.filter((x) => x.at <= e.heat).length);
+  // Cooled below the last step, it can climb to that scene again, after a
+  // breath: a crisis met isn't the same crisis next month.
+  if (e.step === row.steps.length && e.heat < lastAt(row)) {
+    e.step--;
+    e.rest = Math.max(e.rest, gw.s.chapter + chaptersOf(gw, GOV_BREATH));
+  }
   gw.touch();
+}
+
+/** Its row's paper comes in a few chapters, once, and isn't called again. */
+export function govSoon(gw: GreatWar, seat: GwSeatState, id: string): void {
+  const row = rowOf(id);
+  if (row === null || row.steps.length < 2) return;
+  const e = entry(seat, id);
+  e.step = Math.max(e.step, 2);
+  call(seat, row.steps[1].scene, gw.s.chapter + SOON_CHAPTERS);
+}
+
+/** Puts a scene on its way unless it is already waiting or on the desk. */
+function call(seat: GwSeatState, scene: string, chapter: number): void {
+  const waits =
+    seat.scheduled.some((q) => q.scene === scene) ||
+    seat.desk.some((c) => c.scene === scene);
+  if (!waits) seat.scheduled.push({ scene, chapter });
 }
 
 /** Fought off: it starts again from nothing, after its rest. */
@@ -51,7 +80,7 @@ export function govBeaten(gw: GreatWar, seat: GwSeatState, id: string): void {
   e.heat = 0;
   e.step = 0;
   e.beaten++;
-  e.rest = gw.s.chapter + Math.ceil(row.rest / monthsOf(gw));
+  e.rest = gw.s.chapter + chaptersOf(gw, row.rest);
   seat.memory.push({
     key: `gov_held_${id}`,
     who: null,
@@ -87,8 +116,15 @@ function rowStep(ctx: SceneCtx, row: GwGovRow): void {
   const next = row.steps[e.step];
   if (next === undefined || e.heat < next.at) return;
   e.step++;
+  // What was said in a talk stands: the same person doesn't come twice.
+  if (
+    sceneOf(next.scene)?.kind === "talk" &&
+    seat.seen[next.scene] !== undefined
+  ) {
+    return;
+  }
   reason(gw, seat, `gov_${row.id}_${e.step}`);
-  seat.scheduled.push({ scene: next.scene, chapter: s.chapter + 1 });
+  call(seat, next.scene, s.chapter + 1);
 }
 
 /** Chapter step: each threat to each seat's government has its month. */

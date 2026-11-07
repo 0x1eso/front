@@ -121,6 +121,15 @@ export function optionText(
   return (scene?.opt?.[id] ?? id).replace(/\*\*/g, "");
 }
 
+/** The option as written, its bold marks kept for `boldParts`. */
+export function optionMarked(
+  pack: GwPack | null,
+  card: GwCardView,
+  id: string,
+): string {
+  return pack?.scenes[card.scene]?.opt?.[id] ?? id;
+}
+
 /** An option's text, its **verb phrase** marked: the style guide's bold line. */
 export function boldParts(text: string): { text: string; bold: boolean }[] {
   return text

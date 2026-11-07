@@ -23,7 +23,7 @@ import { closeChain } from "./Crises";
 import { closeSeat, SEPARATE_PEACE } from "./Endings";
 import { eraOf, hasTech } from "./Eras";
 import { signChief, warScore } from "./Fronts";
-import { govBeaten, govHeat, govHeatBy, pollOf } from "./Government";
+import { govBeaten, govHeat, govHeatBy, govSoon, pollOf } from "./Government";
 import { sendReport } from "./Intel";
 import { armistice, openTalks, sue } from "./Peace";
 import { keepPerson, openLetter, personLeaves, recordResult } from "./People";
@@ -419,6 +419,9 @@ export function worldEffect(ctx: SceneCtx, e: GwWorldEffect): void {
       return;
     case "gov_beaten":
       govBeaten(gw, seat, e.id);
+      return;
+    case "gov_soon":
+      govSoon(gw, seat, e.id);
       return;
   }
 }

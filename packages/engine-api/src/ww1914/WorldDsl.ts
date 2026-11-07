@@ -245,7 +245,9 @@ export type GwWorldEffect =
   /** A threat runs hotter or cooler; it never goes below nothing. */
   | { do: "gov_heat"; id: string; delta: number }
   /** A threat is beaten: it lies quiet for its row's rest. */
-  | { do: "gov_beaten"; id: string };
+  | { do: "gov_beaten"; id: string }
+  /** A deal made on a threat: its paper comes soon, whatever the heat. */
+  | { do: "gov_soon"; id: string };
 
 const int = z.number().int();
 const yearMonth = z.string().regex(/^19[0-9]{2}-[01][0-9]$/);
@@ -383,6 +385,7 @@ export const GwWorldEffectSchema = z.union([
   act("budget_rate", { pct: int.min(0).max(100), shut: int.min(0) }),
   act("gov_heat", { id: GwIdSchema, delta: int }),
   act("gov_beaten", { id: GwIdSchema }),
+  act("gov_soon", { id: GwIdSchema }),
 ]) as unknown as z.ZodType<GwWorldEffect>;
 
 // ---- Authoring helpers ----

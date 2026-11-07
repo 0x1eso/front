@@ -63,12 +63,8 @@ const maybe = (when: GwCond, ...then: GwEffect[]): GwEffect => ({
   when,
   then,
 });
-/** A deal kept where its row's paper comes: it comes, whatever the heat. */
-const soon = (row: string): GwEffect => ({
-  kind: "schedule",
-  scene: `gov_${row}_2`,
-  chapters: 3,
-});
+/** A deal is kept where its row's paper comes: it comes, whatever the heat. */
+const soon = (row: string) => doWorld({ do: "gov_soon", id: row });
 const unflag = (f: string): GwEffect => ({ kind: "unflag", flag: f });
 const dismissChancellor: GwEffect = {
   kind: "dismiss",
