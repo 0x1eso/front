@@ -1310,6 +1310,7 @@ export const DEU_COURT_SCENES: readonly GwScene[] = [
     variants: [
       v("ebert", all(memory("k_ebert_breach"), flag("f_ebert_cabinet"))),
       v("abdicated", flag("f_abdicated")),
+      v("early", date("1914-07", "1916-12")),
       v("base"),
     ],
     fallback: "close_seat",
