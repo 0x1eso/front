@@ -278,7 +278,8 @@ export function seatEntry(gw: GreatWar): void {
     if (seat.scheduled.some((q) => q.scene === "gw_gbr_entry")) continue;
     // A put-off vote comes back in months, not by every post.
     const asked = seat.seen.gw_gbr_entry;
-    if (asked !== undefined && s.chapter - asked < GW_ENTRY_ASKS_EVERY) continue;
+    if (asked !== undefined && s.chapter - asked < GW_ENTRY_ASKS_EVERY)
+      continue;
     const belgium = gw.nation("BEL")?.side === "entente";
     const west = s.theatres.find((t) => t.id === "west")!;
     if (belgium || west.line >= 3 || everyMonths(gw, 4, 1)) {

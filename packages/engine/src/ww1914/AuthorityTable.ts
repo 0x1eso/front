@@ -11,12 +11,7 @@ import {
   GwSecret,
   GwTheatre,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
-import {
-  all,
-  flag,
-  GwCond,
-  not,
-} from "@openfront/engine-api/ww1914/SceneDsl";
+import { all, flag, GwCond, not } from "@openfront/engine-api/ww1914/SceneDsl";
 import { world } from "@openfront/engine-api/ww1914/WorldDsl";
 
 export type GwInstRule =

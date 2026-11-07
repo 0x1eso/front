@@ -68,7 +68,7 @@ const askedLate = all(chose("gbr_f_late_entry"), { kind: "chapter", min: 7 });
 const TALKS: Readonly<
   Record<string, (s: GwScene, w: GwWho) => readonly MoreTalk[]>
 > = {
-  gbr_v_haldane_army: (s, w) => [
+  gbr_v_haldane_army: (s, w): MoreTalk[] => [
     {
       id: "b",
       start: "b_open",
@@ -95,7 +95,7 @@ const TALKS: Readonly<
       },
     },
   ],
-  gbr_v_morley_letter: (s, w) => [
+  gbr_v_morley_letter: (s, w): MoreTalk[] => [
     {
       id: "b",
       start: "b_open",
@@ -115,7 +115,7 @@ const TALKS: Readonly<
       },
     },
   ],
-  gbr_t_hankey_minutes: (s, w) => [
+  gbr_t_hankey_minutes: (s, w): MoreTalk[] => [
     {
       id: "b",
       start: "b_open",
@@ -137,7 +137,7 @@ const TALKS: Readonly<
       },
     },
   ],
-  gbr_t_jellicoe_risk: (s, w) => [
+  gbr_t_jellicoe_risk: (s, w): MoreTalk[] => [
     {
       id: "b",
       start: "b_open",
@@ -154,7 +154,7 @@ const TALKS: Readonly<
       },
     },
   ],
-  gbr_v_lichnowsky_tears: (s, w) => [
+  gbr_v_lichnowsky_tears: (s, w): MoreTalk[] => [
     {
       id: "b",
       start: "b_open",
@@ -176,7 +176,7 @@ const TALKS: Readonly<
       },
     },
   ],
-  gbr_t_venetia_friday: (s, w) => [
+  gbr_t_venetia_friday: (s, w): MoreTalk[] => [
     {
       id: "b",
       start: "b_open",
@@ -203,7 +203,7 @@ const TALKS: Readonly<
       },
     },
   ],
-  gbr_v_birrell_warn: (s, w) => [
+  gbr_v_birrell_warn: (s, w): MoreTalk[] => [
     {
       id: "b",
       start: "b_open",
@@ -224,7 +224,7 @@ const TALKS: Readonly<
       },
     },
   ],
-  gbr_t_king_cousin: (s, w) => [
+  gbr_t_king_cousin: (s, w): MoreTalk[] => [
     {
       id: "b",
       start: "b_open",
@@ -238,7 +238,7 @@ const TALKS: Readonly<
       },
     },
   ],
-  gbr_v_montagu_asks: (s, w) => [
+  gbr_v_montagu_asks: (s, w): MoreTalk[] => [
     {
       id: "b",
       start: "b_open",
@@ -251,7 +251,7 @@ const TALKS: Readonly<
       },
     },
   ],
-  gbr_v_simon_resign: (s, w) => [
+  gbr_v_simon_resign: (s, w): MoreTalk[] => [
     {
       id: "b",
       start: "b_open",
@@ -269,7 +269,7 @@ const TALKS: Readonly<
       },
     },
   ],
-  gbr_t_carson_lastword: (s, w) => [
+  gbr_t_carson_lastword: (s, w): MoreTalk[] => [
     {
       id: "b",
       start: "b_open",
@@ -283,7 +283,7 @@ const TALKS: Readonly<
       },
     },
   ],
-  gbr_v_spring_rice_warn: (s, w) => [
+  gbr_v_spring_rice_warn: (s, w): MoreTalk[] => [
     {
       id: "b",
       start: "b_open",
@@ -296,7 +296,7 @@ const TALKS: Readonly<
       },
     },
   ],
-  gbr_t_grey_conf: (s, w) => [
+  gbr_t_grey_conf: (s, w): MoreTalk[] => [
     {
       id: "b",
       start: "b_open",
@@ -305,7 +305,7 @@ const TALKS: Readonly<
       },
     },
   ],
-  gbr_t_grey_leave: (s, w) => [
+  gbr_t_grey_leave: (s, w): MoreTalk[] => [
     {
       id: "b",
       start: "b_open",
@@ -320,7 +320,7 @@ const TALKS: Readonly<
       },
     },
   ],
-  gbr_t_carson_war: (s, w) => [
+  gbr_t_carson_war: (s, w): MoreTalk[] => [
     {
       id: "b",
       start: "b_open",
@@ -334,7 +334,7 @@ const TALKS: Readonly<
       },
     },
   ],
-  gbr_t_grey_eyes: (s, w) => [
+  gbr_t_grey_eyes: (s, w): MoreTalk[] => [
     {
       id: "b",
       start: "b_open",
@@ -351,7 +351,7 @@ const TALKS: Readonly<
       },
     },
   ],
-  gbr_t_redmond_speech: (s, w) => [
+  gbr_t_redmond_speech: (s, w): MoreTalk[] => [
     {
       id: "b",
       start: "b_open",
@@ -360,7 +360,7 @@ const TALKS: Readonly<
       },
     },
   ],
-  gbr_t_mckenna_lg: (s, w) => [
+  gbr_t_mckenna_lg: (s, w): MoreTalk[] => [
     {
       id: "b",
       start: "b_open",
@@ -374,7 +374,7 @@ const TALKS: Readonly<
       },
     },
   ],
-  gbr_v_wilson_gossip: (s, w) => [
+  gbr_v_wilson_gossip: (s, w): MoreTalk[] => [
     {
       id: "b",
       start: "b_open",
@@ -387,7 +387,7 @@ const TALKS: Readonly<
       },
     },
   ],
-  gbr_t_balfour_cid: (s, w) => [
+  gbr_t_balfour_cid: (s, w): MoreTalk[] => [
     {
       id: "b",
       start: "b_open",
@@ -401,7 +401,7 @@ const TALKS: Readonly<
       },
     },
   ],
-  gbr_t_churchill_fleet: (s, w) => [
+  gbr_t_churchill_fleet: (s, w): MoreTalk[] => [
     {
       id: "b",
       start: "b_open",
@@ -415,7 +415,7 @@ const TALKS: Readonly<
       },
     },
   ],
-  gbr_t_grey_france: (s, w) => [
+  gbr_t_grey_france: (s, w): MoreTalk[] => [
     {
       id: "b",
       start: "b_open",
@@ -432,7 +432,7 @@ const TALKS: Readonly<
       },
     },
   ],
-  gbr_t_redmond_counties: (s, w) => [
+  gbr_t_redmond_counties: (s, w): MoreTalk[] => [
     {
       id: "b",
       start: "b_open",
@@ -449,7 +449,7 @@ const TALKS: Readonly<
       },
     },
   ],
-  gbr_t_carson_clean: (s, w) => [
+  gbr_t_carson_clean: (s, w): MoreTalk[] => [
     {
       id: "b",
       start: "b_open",
@@ -465,7 +465,7 @@ const TALKS: Readonly<
       },
     },
   ],
-  gbr_t_hankey_truth: (s, w) => [
+  gbr_t_hankey_truth: (s, w): MoreTalk[] => [
     {
       id: "b",
       start: "b_open",
@@ -474,7 +474,7 @@ const TALKS: Readonly<
       },
     },
   ],
-  gbr_t_king_letters: (s, w) => [
+  gbr_t_king_letters: (s, w): MoreTalk[] => [
     {
       id: "b",
       start: "b_open",
@@ -491,7 +491,7 @@ const TALKS: Readonly<
       },
     },
   ],
-  gbr_t_king_ulster: (s, w) => [
+  gbr_t_king_ulster: (s, w): MoreTalk[] => [
     {
       id: "b",
       start: "b_open",
@@ -505,7 +505,7 @@ const TALKS: Readonly<
       },
     },
   ],
-  gbr_t_lg_budget: (s, w) => [
+  gbr_t_lg_budget: (s, w): MoreTalk[] => [
     {
       id: "shut",
       when: sour(w),
@@ -515,7 +515,7 @@ const TALKS: Readonly<
       },
     },
   ],
-  gbr_t_redmond_convention: (s, w) => [
+  gbr_t_redmond_convention: (s, w): MoreTalk[] => [
     {
       id: "b",
       start: "b_open",
@@ -524,7 +524,7 @@ const TALKS: Readonly<
       },
     },
   ],
-  gbr_t_redmond_volunteers: (s, w) => [
+  gbr_t_redmond_volunteers: (s, w): MoreTalk[] => [
     {
       id: "b",
       start: "b_open",
@@ -538,7 +538,7 @@ const TALKS: Readonly<
       },
     },
   ],
-  gbr_v_buchanan_warn: (s, w) => [
+  gbr_v_buchanan_warn: (s, w): MoreTalk[] => [
     {
       id: "b",
       start: "b_open",
@@ -547,7 +547,7 @@ const TALKS: Readonly<
       },
     },
   ],
-  gbr_t_carson_rifles: (s, w) => [
+  gbr_t_carson_rifles: (s, w): MoreTalk[] => [
     {
       id: "b",
       start: "b_open",
@@ -561,7 +561,7 @@ const TALKS: Readonly<
       },
     },
   ],
-  gbr_t_grey_house: (s, w) => [
+  gbr_t_grey_house: (s, w): MoreTalk[] => [
     {
       id: "b",
       start: "b_open",
@@ -570,7 +570,7 @@ const TALKS: Readonly<
       },
     },
   ],
-  gbr_t_lg_belgium: (s, w) => [
+  gbr_t_lg_belgium: (s, w): MoreTalk[] => [
     {
       id: "b",
       start: "b_open",
@@ -584,7 +584,7 @@ const TALKS: Readonly<
       },
     },
   ],
-  gbr_t_mckenna_police: (s, w) => [
+  gbr_t_mckenna_police: (s, w): MoreTalk[] => [
     {
       id: "b",
       start: "b_open",
@@ -593,7 +593,7 @@ const TALKS: Readonly<
       },
     },
   ],
-  gbr_t_robertson_frocks: (s, w) => [
+  gbr_t_robertson_frocks: (s, w): MoreTalk[] => [
     {
       id: "b",
       start: "b_open",
@@ -606,7 +606,7 @@ const TALKS: Readonly<
       },
     },
   ],
-  gbr_t_king_assent: (s, w) => [
+  gbr_t_king_assent: (s, w): MoreTalk[] => [
     {
       id: "b",
       start: "b_open",
@@ -620,7 +620,7 @@ const TALKS: Readonly<
       },
     },
   ],
-  gbr_t_venetia_montagu: (s, w) => [
+  gbr_t_venetia_montagu: (s, w): MoreTalk[] => [
     {
       id: "b",
       start: "b_open",
@@ -629,7 +629,7 @@ const TALKS: Readonly<
       },
     },
   ],
-  gbr_t_venetia_franchise: (s, w) => [
+  gbr_t_venetia_franchise: (s, w): MoreTalk[] => [
     {
       id: "b",
       start: "b_open",
@@ -638,7 +638,7 @@ const TALKS: Readonly<
       },
     },
   ],
-  gbr_t_henderson_cons: (s, w) => [
+  gbr_t_henderson_cons: (s, w): MoreTalk[] => [
     {
       id: "shut",
       when: sour(w),
@@ -648,7 +648,7 @@ const TALKS: Readonly<
       },
     },
   ],
-  gbr_t_kitchener_silence: (s, w) => [
+  gbr_t_kitchener_silence: (s, w): MoreTalk[] => [
     {
       id: "b",
       start: "b_open",
@@ -661,7 +661,7 @@ const TALKS: Readonly<
       },
     },
   ],
-  gbr_t_haig_corps: (s, w) => [
+  gbr_t_haig_corps: (s, w): MoreTalk[] => [
     {
       id: "b",
       start: "b_open",
@@ -674,7 +674,7 @@ const TALKS: Readonly<
       },
     },
   ],
-  gbr_t_haig_tanks: (s, w) => [
+  gbr_t_haig_tanks: (s, w): MoreTalk[] => [
     {
       id: "b",
       start: "b_open",
@@ -687,7 +687,7 @@ const TALKS: Readonly<
       },
     },
   ],
-  gbr_t_robertson_west: (s, w) => [
+  gbr_t_robertson_west: (s, w): MoreTalk[] => [
     {
       id: "b",
       start: "b_open",
@@ -701,7 +701,7 @@ const TALKS: Readonly<
       },
     },
   ],
-  gbr_t_robertson_men: (s, w) => [
+  gbr_t_robertson_men: (s, w): MoreTalk[] => [
     {
       id: "b",
       start: "b_open",
@@ -710,7 +710,7 @@ const TALKS: Readonly<
       },
     },
   ],
-  gbr_t_robertson_salonika: (s, w) => [
+  gbr_t_robertson_salonika: (s, w): MoreTalk[] => [
     {
       id: "b",
       start: "b_open",
@@ -719,7 +719,7 @@ const TALKS: Readonly<
       },
     },
   ],
-  gbr_v_goschen_home: (s, w) => [
+  gbr_v_goschen_home: (s, w): MoreTalk[] => [
     {
       id: "b",
       start: "b_open",
@@ -728,7 +728,7 @@ const TALKS: Readonly<
       },
     },
   ],
-  gbr_v_french_home: (s, w) => [
+  gbr_v_french_home: (s, w): MoreTalk[] => [
     {
       id: "b",
       start: "b_open",
@@ -741,7 +741,7 @@ const TALKS: Readonly<
       },
     },
   ],
-  gbr_v_bertie_paris: (s, w) => [
+  gbr_v_bertie_paris: (s, w): MoreTalk[] => [
     {
       id: "b",
       start: "b_open",
@@ -750,7 +750,7 @@ const TALKS: Readonly<
       },
     },
   ],
-  gbr_t_hankey_landship: (s, w) => [
+  gbr_t_hankey_landship: (s, w): MoreTalk[] => [
     {
       id: "b",
       start: "b_open",
@@ -764,7 +764,7 @@ const TALKS: Readonly<
       },
     },
   ],
-  gbr_t_redmond_division: (s, w) => [
+  gbr_t_redmond_division: (s, w): MoreTalk[] => [
     {
       id: "b",
       start: "b_open",
@@ -778,7 +778,7 @@ const TALKS: Readonly<
       },
     },
   ],
-  gbr_t_venetia_after: (s, w) => [
+  gbr_t_venetia_after: (s, w): MoreTalk[] => [
     {
       id: "b",
       start: "b_open",
@@ -792,7 +792,7 @@ const TALKS: Readonly<
       },
     },
   ],
-  gbr_t_balfour_old: (s, w) => [
+  gbr_t_balfour_old: (s, w): MoreTalk[] => [
     {
       id: "b",
       start: "b_open",
@@ -806,7 +806,7 @@ const TALKS: Readonly<
       },
     },
   ],
-  gbr_t_law_loan: (s, w) => [
+  gbr_t_law_loan: (s, w): MoreTalk[] => [
     {
       id: "b",
       start: "b_open",
@@ -815,7 +815,7 @@ const TALKS: Readonly<
       },
     },
   ],
-  gbr_v_northcliffe_call: (s, w) => [
+  gbr_v_northcliffe_call: (s, w): MoreTalk[] => [
     {
       id: "b",
       start: "b_open",
@@ -824,7 +824,7 @@ const TALKS: Readonly<
       },
     },
   ],
-  gbr_t_mckenna_duties: (s, w) => [
+  gbr_t_mckenna_duties: (s, w): MoreTalk[] => [
     {
       id: "b",
       start: "b_open",
@@ -833,7 +833,7 @@ const TALKS: Readonly<
       },
     },
   ],
-  gbr_t_law_letter: (s, w) => [
+  gbr_t_law_letter: (s, w): MoreTalk[] => [
     {
       id: "b",
       start: "b_open",
@@ -847,7 +847,7 @@ const TALKS: Readonly<
       },
     },
   ],
-  gbr_t_carson_office: (s, w) => [
+  gbr_t_carson_office: (s, w): MoreTalk[] => [
     {
       id: "b",
       start: "b_open",
@@ -856,7 +856,7 @@ const TALKS: Readonly<
       },
     },
   ],
-  gbr_t_lg_ambition: (s, w) => [
+  gbr_t_lg_ambition: (s, w): MoreTalk[] => [
     {
       id: "b",
       start: "b_open",
@@ -870,7 +870,7 @@ const TALKS: Readonly<
       },
     },
   ],
-  gbr_t_balfour_admiralty: (s, w) => [
+  gbr_t_balfour_admiralty: (s, w): MoreTalk[] => [
     {
       id: "b",
       start: "b_open",
@@ -879,7 +879,7 @@ const TALKS: Readonly<
       },
     },
   ],
-  gbr_t_mckenna_army: (s, w) => [
+  gbr_t_mckenna_army: (s, w): MoreTalk[] => [
     {
       id: "b",
       start: "b_open",
@@ -888,7 +888,7 @@ const TALKS: Readonly<
       },
     },
   ],
-  gbr_v_asquith_old: (s, w) => [
+  gbr_v_asquith_old: (s, w): MoreTalk[] => [
     {
       id: "b",
       start: "b_open",
@@ -897,7 +897,7 @@ const TALKS: Readonly<
       },
     },
   ],
-  gbr_t_henderson_after: (s, w) => [
+  gbr_t_henderson_after: (s, w): MoreTalk[] => [
     {
       id: "b",
       start: "b_open",
