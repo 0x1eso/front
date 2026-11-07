@@ -2254,6 +2254,10 @@ const BODIES: Readonly<Record<string, GwBodies>> = {
         id: "base3",
       },
     ],
+    gate: {
+      kind: "chapter",
+      max: 5,
+    },
   },
   auh_c_note_draft: {
     variants: [
@@ -2512,6 +2516,10 @@ const BODIES: Readonly<Record<string, GwBodies>> = {
         id: "base2",
       },
     ],
+    gate: {
+      kind: "chapter",
+      max: 5,
+    },
   },
   auh_c_decree: {
     variants: [
