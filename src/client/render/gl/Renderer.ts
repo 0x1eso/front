@@ -2054,6 +2054,15 @@ export class GPURenderer {
   }
 
   /**
+   * Great War 1914 (ww155): the region ids alone, for the map lenses. The
+   * region borders of setRegions are not drawn: the map keeps its look.
+   */
+  setRegionIds(regionIds: Uint16Array): void {
+    this.regionIds = regionIds;
+    this.makeRegionModes();
+  }
+
+  /**
    * World War 1936 P5 (spec §20.3): the occupation map mode reads `source`
    * (EndgameModel.occupationMapSource) each frame; it draws only while on.
    */

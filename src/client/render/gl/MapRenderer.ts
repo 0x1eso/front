@@ -57,6 +57,7 @@ export class MapRenderer {
   private storedLayerImages: Map<string, ImageBitmap> = new Map();
   /** World War 1936 region ids, re-applied after a context restore. */
   private storedRegions: Uint16Array | null = null;
+  private storedRegionIds: Uint16Array | null = null;
   /** World War 1936 P2 land war inputs, re-applied after a context restore. */
   private storedWwLand: Parameters<GPURenderer["setWwLand"]> | null = null;
   /** World War 1936 P4 inputs, re-applied after a context restore. */
@@ -178,6 +179,9 @@ export class MapRenderer {
       for (const [id, mask] of this.layerDestroyedMasks) {
         this.renderer?.setLayerDestroyedMask(id, mask);
       }
+    }
+    if (this.storedRegionIds !== null) {
+      this.renderer?.setRegionIds(this.storedRegionIds);
     }
     if (this.storedRegions !== null) {
       this.renderer?.setRegions(this.storedRegions);
@@ -427,6 +431,12 @@ export class MapRenderer {
   setRegions(regionIds: Uint16Array): void {
     this.storedRegions = regionIds;
     this.renderer?.setRegions(regionIds);
+  }
+
+  /** Great War 1914 (ww155): the region ids for the map lenses; no borders. */
+  setRegionIds(regionIds: Uint16Array): void {
+    this.storedRegionIds = regionIds;
+    this.renderer?.setRegionIds(regionIds);
   }
 
   /**

@@ -2530,6 +2530,64 @@
         "shelved": "Too soon to bring it again."
       }
     },
+    "lens": {
+      "hint": {
+        "bread": "Hunger comes to the cities first. Reads the bread of your own country.",
+        "nations": "Shows how hot the lands of many peoples run. The lower the order, the redder they are painted.",
+        "rumour": "You know other countries only as far as the papers print. Hatched land is rumour.",
+        "strikes": "Work stops first in the factories and cities. Reads your country's order and its stage of unrest."
+      },
+      "name": {
+        "bread": "Bread",
+        "nations": "Peoples",
+        "rail": "Mobilisation trains",
+        "rumour": "Rumour",
+        "strikes": "Strikes"
+      },
+      "nations_how": "Only lands with a people of their own are painted. The lower the order, the sooner they boil.",
+      "nations_none": "{country} has no peoples' question worth a colour.",
+      "own": "{country}: {step}",
+      "rail_belgium": "When the German trains in the west reach Aachen they stand at the Belgian border. Which road they take is decided when the plan is signed.",
+      "rail_days": "day {day} of {total}",
+      "rail_done": "gathered",
+      "rumour_line": "{country}: {what} rumoured",
+      "rumour_none": "No rumour from other countries has reached you yet.",
+      "rung": {
+        "1": "Strikes",
+        "2": "Riots",
+        "3": "Unrest in the army",
+        "4": "Revolution"
+      },
+      "step": {
+        "bread": {
+          "0": "Plenty",
+          "1": "Short",
+          "2": "Queues",
+          "3": "Hunger",
+          "4": "Famine"
+        },
+        "nations": {
+          "0": "Quiet",
+          "1": "Murmuring",
+          "2": "Protest",
+          "3": "Disorder",
+          "4": "Rising"
+        },
+        "rumour": {
+          "1": "Strikes rumoured",
+          "2": "Riots rumoured",
+          "3": "Army unrest rumoured",
+          "4": "Revolution rumoured"
+        },
+        "strikes": {
+          "0": "Quiet",
+          "1": "Restless",
+          "2": "Strikes",
+          "3": "Riots",
+          "4": "Revolt"
+        }
+      }
+    },
     "line": {
       "bread_bad_harvest": "The harvest failed.",
       "bread_blockade": "The blockade cut imports.",
@@ -2769,6 +2827,10 @@
       "reichstag": "The Reichstag will not stand for this.",
       "soviet": "The Soviet will not allow this.",
       "stavka": "Stavka will not take this paper."
+    },
+    "rail": {
+      "day": "{country}: {day}/{total}",
+      "ready": "{country}: gathered"
     },
     "reason": {
       "aim_changed": "You went back on the aim you declared.",

@@ -58,7 +58,10 @@ import { TutorialPanel } from "./layers/TutorialPanel";
 import { UnitDisplay } from "./layers/UnitDisplay";
 import { WinModal } from "./layers/WinModal";
 import { loadAllSprites } from "./SpriteLoader";
+import { GwLens } from "./ww1914/GwLens";
+import { gwLensMapSource } from "./ww1914/GwLensSource";
 import { GwPanel } from "./ww1914/GwPanel";
+import { GwRail } from "./ww1914/GwRail";
 import { fogModelOf } from "./ww1936/FogModel";
 import { landSidesOf, landWarInputsOf, setLandSides } from "./ww1936/LandModel";
 import { setLandSeaAir } from "./ww1936/LandSeaAir";
@@ -751,12 +754,35 @@ export function createRenderer(
     view.hideTroopNumbers();
     gwPanel.game = game;
     gwPanel.eventBus = eventBus;
+    // ww155: the map's lenses and the mobilisation trains. The lens paints the
+    // regions through the occupation pass; the region ids only (no borders),
+    // so the map keeps its look until a lens is on.
+    const gwLens = document.querySelector("gw-lens");
+    const gwRail = document.querySelector("gw-rail");
+    const gwScenario = game.greatWarScenario();
+    if (gwScenario !== null) {
+      view.setRegionIds(gwScenario.regionIds);
+      view.setOccupationMap(gwLensMapSource(game));
+    }
+    const gwExtra: Controller[] = [];
+    if (gwLens instanceof GwLens) {
+      gwLens.game = game;
+      gwLens.eventBus = eventBus;
+      gwExtra.push(gwLens);
+    }
+    if (gwRail instanceof GwRail) {
+      gwRail.game = game;
+      gwRail.eventBus = eventBus;
+      gwRail.transformHandler = transformHandler;
+      gwExtra.push(gwRail);
+    }
     return new GameRenderer(
       transformHandler,
       uiState,
       [
         new ViewModeController(eventBus, view),
         gwPanel,
+        ...gwExtra,
         gameRightSidebar,
         mapControls,
         settingsModal,

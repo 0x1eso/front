@@ -341,6 +341,11 @@ export class GameView implements GameLike {
     return this._config.greatWar1914?.() === true;
   }
 
+  /** Great War 1914: the map's regions (the lens and the rail read them); null off. */
+  greatWarScenario(): ScenarioIndex | null {
+    return this.isGreatWar() ? (this._mapData.scenario ?? null) : null;
+  }
+
   /** Great War 1914: what the screens read; null before the first tick. */
   greatWarData(): GreatWarData | null {
     return this._greatWarData;
