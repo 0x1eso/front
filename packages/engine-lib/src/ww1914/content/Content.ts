@@ -137,11 +137,13 @@ export const GW_CONTENT: GwContent = {
       ...DEU_PRIVATE_SCENES,
       ...AUH_PRIVATE_SCENES,
       ...PRESS_SCENES,
-      ...COMMON_ACT_SCENES,
-      ...DEU_ACT_SCENES,
-      ...GBR_ACT_SCENES,
-      ...AUH_ACT_SCENES,
-      ...RUS_ACT_SCENES,
+      ...[
+        ...COMMON_ACT_SCENES,
+        ...DEU_ACT_SCENES,
+        ...GBR_ACT_SCENES,
+        ...AUH_ACT_SCENES,
+        ...RUS_ACT_SCENES,
+      ].map((s) => ({ ...s, byAct: true })),
     ]
       .map(withDeuReplay)
       .map(withDeuPrivate)

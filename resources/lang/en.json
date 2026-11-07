@@ -3175,6 +3175,7 @@
         "bound": "bound elsewhere",
         "no_trust": "it does not trust us",
         "too_little": "too little on offer",
+        "too_soon": "too early to speak of it",
         "winning": "it sees no need while its side is ahead"
       },
       "yes": "accepted"

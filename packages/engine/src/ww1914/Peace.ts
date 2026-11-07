@@ -60,7 +60,7 @@ const LOST_SCORE = -40;
 /** Months before a staff nobody plays admits a lost war: 1914's men don't. */
 const LEADER_ASKS_MONTHS = 30;
 /** Months before anyone will hear of stopping: the first year has no bill yet. */
-const TALKS_MONTHS = 10;
+export const TALKS_MONTHS = 10;
 
 function beatenBy(gw: GreatWar, row: GwBeaten): boolean {
   const n = gw.nation(row.tag);

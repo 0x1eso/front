@@ -232,7 +232,7 @@ describe("the schedule", () => {
     expect(holds(ctx, fits)).toBe(false);
     p.temperament = "anxious";
     expect(holds(ctx, fits)).toBe(true);
-    const asked = { kind: "picked", field: "tone", of: ["threat"] } as const;
+    const asked = { kind: "picked" as const, field: "tone", of: ["threat"] };
     expect(holds(ctx, asked)).toBe(true);
     expect(holds({ ...ctx, act: null }, asked)).toBe(false);
     expect(holds({ ...ctx, act: null }, { ...asked, act: "t_letter" })).toBe(
@@ -747,6 +747,77 @@ describe("terms offered first", () => {
     order(runner, { kind: "terms", tag: "ITA", give: [], ask: ["credit"] });
     playChapter(runner);
     expect(seat(runner).terms!.log[0].why).toBe("no_trust");
+  });
+
+  test("nobody hears of peace in the first months", async () => {
+    const { runner, gw } = await neutralItaly();
+    const s = gw.s.seats[0];
+    gw.nation("DEU")!.side = "central";
+    const rus = gw.nation("RUS")!;
+    rus.side = "entente";
+    s.terms.push({
+      tag: "RUS",
+      give: [],
+      ask: ["peace"],
+      chapter: gw.s.chapter,
+      yes: null,
+      why: null,
+    });
+    playChapter(runner);
+    expect(state(runner).terms[0].why).toBe("too_soon");
+  });
+
+  test("a clause given once costs more the next time", async () => {
+    const { runner, gw, ita } = await neutralItaly();
+    ita.trust.DEU = 3;
+    ita.lean = 0;
+    const s = gw.s.seats[0];
+    for (const yes of [null, null]) {
+      s.terms.push({
+        tag: "ITA",
+        give: [],
+        ask: ["stay_out"],
+        chapter: gw.s.chapter,
+        yes,
+        why: null,
+      });
+      playChapter(runner);
+      ita.trust.DEU = 3;
+    }
+    expect(s.terms.map((t) => t.yes)).toEqual([true, false]);
+  });
+
+  test("a guarantee is given once", async () => {
+    const { runner, ita } = await neutralItaly();
+    ita.trust.DEU = 3;
+    expect(target(runner, "ITA")?.give).toContain("guarantee");
+    order(runner, {
+      kind: "terms",
+      tag: "ITA",
+      give: ["guarantee"],
+      ask: [],
+    });
+    playChapter(runner);
+    for (let i = 0; i < 4; i++) playChapter(runner);
+    expect(target(runner, "ITA")?.give).not.toContain("guarantee");
+  });
+
+  test("a neutral far from its bar is not bought cheaply", async () => {
+    const { runner, gw, ita } = await neutralItaly();
+    gw.nation("DEU")!.side = "central";
+    gw.s.day += 400;
+    ita.trust.DEU = 0;
+    ita.lean = 0;
+    ita.readiness = 0;
+    order(runner, {
+      kind: "terms",
+      tag: "ITA",
+      give: ["price"],
+      ask: ["join"],
+    });
+    playChapter(runner);
+    expect(state(runner).terms[0].yes).toBe(false);
+    expect(ita.side).toBeNull();
   });
 
   test("one a chapter, and the same country rests", async () => {

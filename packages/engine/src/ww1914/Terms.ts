@@ -17,10 +17,11 @@ import type { GwOrderBlock } from "@openfront/engine-api/ww1914/GwOrders";
 import type { GwTermsView } from "@openfront/engine-api/ww1914/GwView";
 import { daysFromCivil } from "@openfront/engine-lib/ww1936/Calendar";
 import { moveMoney } from "./Budget";
+import { warMonths } from "./Eras";
 import { warScore } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
-import { armistice } from "./Peace";
-import { GW_ENTRIES } from "./Tables";
+import { armistice, TALKS_MONTHS } from "./Peace";
+import { GW_ENTRIES, GW_ENTRY_BAR } from "./Tables";
 import { enter, leaveWar } from "./Wars";
 import { clampTo, fights, moveGauge, news, other, seatsOf } from "./World";
 
@@ -47,6 +48,10 @@ const LEAN_WORTH = 6;
 /** The side ahead by this much is the side worth being near. */
 const AHEAD_AT = 15;
 const AHEAD_WORTH = 8;
+/** Readiness short of its bar that makes one point of a neutral's price. */
+const READINESS_PER_POINT = 4;
+/** What going against a neutral's natural side costs. */
+const AGAINST_NATURE = 12;
 /** Chapters before the same country will hear terms again. */
 const TERMS_REST = 3;
 /** A gauge must keep this much to give any of it. */
@@ -65,8 +70,11 @@ function entryOf(tag: GwTag) {
   return GW_ENTRIES.find((e) => e.tag === tag) ?? null;
 }
 
+const guaranteeFlag = (n: GwNationState) =>
+  `f_guarantee_${n.tag.toLowerCase()}`;
+
 function giveOpen(
-  gw: GreatWar,
+  seat: GwSeatState,
   me: GwNationState,
   n: GwNationState,
   c: GwGiveClause,
@@ -85,7 +93,7 @@ function giveOpen(
     case "shells":
       return !foe && me.gauges.shells >= GIVE_FLOOR;
     case "guarantee":
-      return !foe;
+      return !foe && !seat.flags.includes(guaranteeFlag(n));
   }
 }
 
@@ -144,7 +152,7 @@ export function offerTerms(
   if (n === undefined || give.length + ask.length === 0) return "no_terms";
   if (new Set(give).size !== give.length) return "no_terms";
   if (new Set(ask).size !== ask.length) return "no_terms";
-  if (!give.every((c) => giveOpen(gw, me, n, c))) return "no_terms";
+  if (!give.every((c) => giveOpen(seat, me, n, c))) return "no_terms";
   if (!ask.every((c) => askOpen(gw, me, n, c))) return "no_terms";
   seat.terms.push({
     tag,
@@ -167,11 +175,35 @@ function ahead(gw: GreatWar): GwSide | null {
 
 /** What a character adds to the price of a clause. */
 function characterCost(n: GwNationState, c: GwAskClause): number {
-  if (c === "peace")
+  if (c === "peace") {
     return { hardline: 14, principled: 8, opportunist: 0, cautious: 0 }[n.ai];
-  if (c === "join")
+  }
+  if (c === "join") {
     return { hardline: 0, principled: 6, opportunist: 4, cautious: 12 }[n.ai];
+  }
   return 0;
+}
+
+/** How far a neutral is from coming in by itself, and against its nature. */
+function reluctance(n: GwNationState, me: GwNationState): number {
+  const gap = Math.max(0, GW_ENTRY_BAR[n.ai] - n.readiness);
+  const natural = entryOf(n.tag)?.natural ?? null;
+  const against = natural !== null && natural !== me.side;
+  return Math.floor(gap / READINESS_PER_POINT) + (against ? AGAINST_NATURE : 0);
+}
+
+/** What a clause costs this country now: each time it gave it, as much again. */
+function askCost(
+  seat: GwSeatState,
+  me: GwNationState,
+  n: GwNationState,
+  c: GwAskClause,
+): number {
+  const before = seat.terms.filter(
+    (t) => t.tag === n.tag && t.yes === true && t.ask.includes(c),
+  ).length;
+  const own = c === "join" ? reluctance(n, me) : 0;
+  return ASK_COST[c] * (1 + before) + characterCost(n, c) + own;
 }
 
 /** What the country makes of the seat, apart from the clauses. */
@@ -189,7 +221,7 @@ function goodwill(gw: GreatWar, me: GwNationState, n: GwNationState): number {
 }
 
 /** How tired a country at war is: what a peace is worth to it. */
-function weariness(gw: GreatWar, n: GwNationState): number {
+function weariness(n: GwNationState): number {
   return (
     (n.gauges.morale <= 2 ? 6 : 0) +
     (n.gauges.order <= 2 ? 6 : 0) +
@@ -203,24 +235,21 @@ type Term = GwSeatState["terms"][number];
 /** Its answer: null is yes, a word is why not. */
 function valuation(
   gw: GreatWar,
+  seat: GwSeatState,
   me: GwNationState,
   n: GwNationState,
   t: Term,
 ): GwTermRefusal | null {
   if (!t.ask.every((c) => askOpen(gw, me, n, c))) return "bound";
+  const peace = t.ask.includes("peace");
+  if (peace && warMonths(gw) < TALKS_MONTHS) return "too_soon";
   const given = t.give.reduce((v, c) => v + GIVE_WORTH[c], 0);
-  const asked = t.ask.reduce(
-    (v, c) => v + ASK_COST[c] + characterCost(n, c),
-    0,
-  );
-  const peace = t.ask.includes("peace") ? weariness(gw, n) : 0;
+  const asked = t.ask.reduce((v, c) => v + askCost(seat, me, n, c), 0);
   const will = goodwill(gw, me, n);
-  if (given + peace + will >= asked) return null;
-  const big = t.ask.includes("peace") || t.ask.includes("join");
-  if (big && n.side !== null && ahead(gw) === n.side) return "winning";
-  if (big && n.side === null && ahead(gw) !== me.side && ahead(gw) !== null) {
-    return "winning";
-  }
+  if (given + (peace ? weariness(n) : 0) + will >= asked) return null;
+  const big = peace || t.ask.includes("join");
+  const best = ahead(gw);
+  if (big && best !== null && best !== me.side) return "winning";
   if ((n.trust[me.tag] ?? 0) < 0) return "no_trust";
   return "too_little";
 }
@@ -245,13 +274,15 @@ function pay(
       return;
     case "grain":
       moveGauge(gw, me.tag, "bread", -1, "terms_grain");
+      moveGauge(gw, n.tag, "bread", 1, "terms_grain");
       return;
     case "shells":
       moveGauge(gw, me.tag, "shells", -1, "terms_shells");
+      moveGauge(gw, n.tag, "shells", 1, "terms_shells");
       return;
     case "guarantee":
       gw.s.temp = clampTo(gw.s.temp + (gw.s.chain === null ? 0 : 1), 0, 10);
-      seat.flags.push(`f_guarantee_${n.tag.toLowerCase()}`);
+      seat.flags.push(guaranteeFlag(n));
       return;
   }
 }
@@ -280,9 +311,11 @@ function collect(
       return;
     case "grain":
       moveGauge(gw, me.tag, "bread", 1, "terms_grain");
+      moveGauge(gw, n.tag, "bread", -1, "terms_grain");
       return;
     case "shells":
       moveGauge(gw, me.tag, "shells", 1, "terms_shells");
+      moveGauge(gw, n.tag, "shells", -1, "terms_shells");
       return;
     case "mediate":
       gw.s.temp = clampTo(gw.s.temp - MEDIATE_TEMP, 0, 10);
@@ -297,7 +330,7 @@ export function termsStep(gw: GreatWar): void {
     for (const t of seat.terms) {
       if (t.yes !== null || me === null) continue;
       const n = gw.nation(t.tag);
-      const why = n === null || n.out ? "bound" : valuation(gw, me, n, t);
+      const why = n === null || n.out ? "bound" : valuation(gw, seat, me, n, t);
       t.yes = why === null;
       t.why = why;
       seat.log.push({
@@ -325,7 +358,7 @@ export function termsView(gw: GreatWar, seat: GwSeatState): GwTermsView {
         ? []
         : targets(gw, seat).map((n) => ({
             tag: n.tag,
-            give: GW_GIVE_CLAUSES.filter((c) => giveOpen(gw, me, n, c)),
+            give: GW_GIVE_CLAUSES.filter((c) => giveOpen(seat, me, n, c)),
             ask: GW_ASK_CLAUSES.filter((c) => askOpen(gw, me, n, c)),
           })),
     log: seat.terms.slice(-TERMS_SHOWN).map((t) => ({
