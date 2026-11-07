@@ -14,7 +14,7 @@ import { GW_AUTHORITY } from "./AuthorityTable";
 import { GW_GOV } from "./GovTable";
 import type { GreatWar } from "./GreatWar";
 import { onAppointed } from "./People";
-import { defOf, news, reason, seatsOf } from "./World";
+import { defOf, news, reason, seatsOf, turn } from "./World";
 
 export interface GwRegimeRow {
   readonly id: string;

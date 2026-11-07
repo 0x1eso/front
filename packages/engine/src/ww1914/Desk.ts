@@ -21,7 +21,7 @@ import type { GreatWar } from "./GreatWar";
 import { lawReplaces } from "./Laws";
 import { castOf, holds, pickVariant, SceneCtx, specificity } from "./SceneRun";
 import { settlePromises } from "./Talk";
-import { chapterOf, stageOf } from "./World";
+import { stageOf } from "./World";
 
 export const GW_DESK_MIN = 2;
 export const GW_DESK_MAX = 4;
@@ -57,16 +57,12 @@ export const GW_SALIENCE_SMALL = 1;
 export const GW_TEMP_HOT = 6;
 /** Scheduled cards that ride beside the draw instead of taking its places. */
 export const GW_DUE_BESIDE = 2;
-/** A war runs for years: a month's desk stays small, the crisis's doesn't. */
-export const GW_SALIENCE_MUST_WAR = 9;
+/** Past the crisis one rides: two stacked seven cards on four months in ten. */
 export const GW_DUE_BESIDE_WAR = 1;
 /** Must-read papers that ride beside a full desk. */
 export const GW_READS_BESIDE = 2;
 /** With no cooldown of its own, chapters before a scene can come again. */
 export const GW_COOLDOWN_DEFAULT = 2;
-
-/** A war chapter this short is one of many: its desk is a card lighter. */
-const MONTHLY_DAYS = 30;
 
 const P_TIE = idHash("gw_desk_tie");
 const SUBJECTS = ["foreign", "home", "war", "people"] as const;
@@ -263,12 +259,9 @@ export function deskCandidates(
 /** How many cards this chapter usually has. */
 function deskTarget(gw: GreatWar): number {
   const stage = stageOf(gw);
-  // Month after month of war: what matters comes by salience, the rest waits.
-  const monthly = stage === "war" && chapterOf(gw).spanDays <= MONTHLY_DAYS;
-  const busy = stage === "closing" || monthly ? 0 : 1;
+  const busy = stage === "closing" ? 0 : 1;
   const hot = gw.s.temp >= GW_TEMP_HOT ? 1 : 0;
-  const lean = gwChapters(gw.s.calendar)[gw.s.chapter].lean ? 1 : 0;
-  return Math.min(GW_DESK_MAX, GW_DESK_MIN + busy + hot - lean);
+  return Math.min(GW_DESK_MAX, GW_DESK_MIN + busy + hot);
 }
 
 /** The score once the cards already picked have had their say. */
@@ -337,16 +330,14 @@ function draw(
     const c = best(gw, down, picked);
     if (c !== null && picked.length < GW_DESK_MAX) take(c);
   }
-  const chapter = gwChapters(gw.s.calendar)[gw.s.chapter];
-  const crisis = chapter.stage === "crisis";
-  const beside = chapter.lean
-    ? 0
-    : Math.min(due.length, crisis ? GW_DUE_BESIDE : GW_DUE_BESIDE_WAR);
+  const crisis = gwChapters(gw.s.calendar)[gw.s.chapter].stage === "crisis";
+  const beside = Math.min(
+    due.length,
+    crisis ? GW_DUE_BESIDE : GW_DUE_BESIDE_WAR,
+  );
   const target = deskTarget(gw) + beside;
   const max = GW_DESK_MAX + beside;
-  const must = crisis ? GW_SALIENCE_MUST : GW_SALIENCE_MUST_WAR;
   const placed = () => picked.filter((x) => !isRead(x)).length;
-  const readsBeside = chapter.lean ? 1 : GW_READS_BESIDE;
   while (placed() < max) {
     const open = left.filter(
       (c) =>
@@ -356,17 +347,8 @@ function draw(
     const varied = open.filter((c) => !wouldFillOneSubject(c, picked, target));
     const c = best(gw, varied.length > 0 ? varied : open, picked);
     if (c === null) break;
-    if (placed() >= target && c.scene.salience < must) break;
+    if (placed() >= target && c.scene.salience < GW_SALIENCE_MUST) break;
     take(c);
-  }
-  // A lean month doesn't lose someone's own story: a private visit still calls.
-  if (chapter.lean && !picked.some((p) => p.kind === "talk")) {
-    const c = best(
-      gw,
-      left.filter((x) => x.scene.tags.includes("private")),
-      picked,
-    );
-    if (c !== null) take(c);
   }
   for (let reads = 0; ; reads++) {
     const open = left.filter((x) => isRead(x.scene));
@@ -374,12 +356,12 @@ function draw(
     const c = best(gw, varied.length > 0 ? varied : open, picked);
     if (c === null) break;
     const room = picked.length < target;
-    const pressing =
-      c.scene.salience >= must && (picked.length < max || reads < readsBeside);
+    const must =
+      c.scene.salience >= GW_SALIENCE_MUST &&
+      (picked.length < max || reads < GW_READS_BESIDE);
     const small = c.scene.salience <= GW_SALIENCE_SMALL;
-    const riding =
-      !chapter.lean && crisis && reads < GW_READS_BESIDE && !small;
-    if (!room && !pressing && !riding) break;
+    const riding = reads < (crisis ? GW_READS_BESIDE : 1) && !small;
+    if (!room && !must && !riding) break;
     take(c);
   }
   return picked.slice(due.length);
