@@ -36,8 +36,10 @@ function sameReply(s: GwScene, x: GwSameReply): GwReply {
   if (from === undefined) throw new Error(`${s.id}: no reply ${x.same}`);
   if (x.next === undefined) return from;
   // A new road: the old reply's detours lead back to the old talk.
-  const { reacts: _r, miss: _m, ...rest } = from;
-  return { ...rest, next: x.next };
+  const road: GwReply = { ...from, next: x.next };
+  delete road.reacts;
+  delete road.miss;
+  return road;
 }
 
 function node(s: GwScene, replies: readonly GwBodyReply[]): GwNode {
