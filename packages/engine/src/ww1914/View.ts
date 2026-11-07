@@ -18,6 +18,7 @@ import { idHash } from "@openfront/engine-lib/ww1936/Roll";
 import type { GreatWar } from "./GreatWar";
 import { openTopics, readyBlock } from "./Orders";
 import { ctxOf, optionOpen, pickVariant, sceneOf } from "./SceneRun";
+import { rulerView } from "./Ruler";
 import { GW_HIDE_UNMET } from "./Tables";
 import { seatPerson, stageOf } from "./World";
 import { worldView } from "./WorldView";
@@ -146,6 +147,7 @@ function seatView(gw: GreatWar, seat: GwSeatState): GwSeatView {
     })),
     shown: seat.shown,
     world: worldView(gw, seat),
+    ruler: rulerView(gw, seat),
   };
 }
 

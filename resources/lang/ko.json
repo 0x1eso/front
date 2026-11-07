@@ -14289,7 +14289,15 @@
       "rus_great_programme": "1917년의 러시아",
       "rus_serbia_abandoned": "말을 삼킨 평화",
       "rus_assembly_republic": "제헌의회의 공화국",
-      "rus_civil_war": "끝나지 않은 나라"
+      "rus_civil_war": "끝나지 않은 나라",
+      "deu_r_death": "황제의 죽음",
+      "deu_r_removed": "물러난 황제",
+      "gbr_r_death": "총리의 죽음",
+      "gbr_r_removed": "끌려 내려온 총리",
+      "auh_r_death": "황제의 죽음",
+      "auh_r_removed": "물러난 황제",
+      "rus_r_death": "차르의 죽음",
+      "rus_r_removed": "물러난 차르"
     },
     "fact": {
       "force": {
@@ -14971,7 +14979,11 @@
       "steady_morale": "사기(꾸준히)",
       "steady_order": "질서(꾸준히)",
       "steady_manpower": "인력(꾸준히)",
-      "alsace_eases": "알자스 압력 완화"
+      "alsace_eases": "알자스 압력 완화",
+      "conscience": "양심",
+      "family": "집안",
+      "health": "건강",
+      "reputation": "평판"
     },
     "theatre": {
       "balkan": "발칸",
@@ -15031,7 +15043,9 @@
       "regime_crown": "정체가 바뀌었다: 책임 내각 아래의 황제.",
       "regime_regency": "정체가 바뀌었다: 섭정.",
       "regime_provisional": "정체가 바뀌었다: 임시정부.",
-      "regime_rep": "정체가 바뀌었다: 러시아 공화국."
+      "regime_rep": "정체가 바뀌었다: 러시아 공화국.",
+      "ruler_death": "원수가 죽었다.",
+      "ruler_removed": "원수가 자리에서 밀려났다."
     },
     "ui": {
       "alloc_now": "지금: {main}, {posture}, {scale}",
@@ -15585,6 +15599,15 @@
         "shelved": "아직 다시 꺼낼 때가 아니다."
       },
       "by_decree": "칙령으로 넘을 수 있다"
+    },
+    "ruler": {
+      "title": "{name}, {age}세",
+      "side": {
+        "conscience": "양심",
+        "family": "집안",
+        "health": "건강",
+        "reputation": "평판"
+      }
     }
   }
 }

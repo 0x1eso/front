@@ -25,6 +25,7 @@ import {
   GW_MANPOWER,
   GW_OPENING_DEAD,
 } from "./Tables";
+import { rollRuler } from "./Ruler";
 import { clampTo } from "./World";
 
 const P_OPENING = idHash("gw_opening");
@@ -191,6 +192,7 @@ export function rollWorld(gw: GreatWar, seed: number, ticks: number): void {
   rollSecrets(gw);
   rollLeans(gw);
   for (const seat of s.seats) rollMandates(gw, seat);
+  for (const seat of s.seats) rollRuler(gw, seat);
   openFirstCrisis(gw);
   openChapter(gw, ticks);
 }

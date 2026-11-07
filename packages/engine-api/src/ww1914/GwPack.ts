@@ -32,6 +32,8 @@ export const GwScenePackSchema = z
     text: ById,
     /** option id -> text. */
     opt: ById.optional(),
+    /** variant id -> option id -> text: that body's own wording; wins over `opt`. */
+    optBy: z.record(GwIdSchema, ById).optional(),
     /** option id -> why it is greyed. */
     why: ById.optional(),
     /** cast role -> person id -> that person's paragraph. */
@@ -56,6 +58,28 @@ export const GwPersonPackSchema = z
   .strict();
 export type GwPersonPack = z.infer<typeof GwPersonPackSchema>;
 
+/** Three lines, low to sound, for one side of a ruler's card. */
+const Bands = z.tuple([Text, Text, Text]);
+
+/** A ruler card's words: pack `rulers.<row id>`. */
+export const GwRulerPackSchema = z
+  .object({
+    name: Text,
+    health: Bands,
+    family: Bands,
+    conscience: Bands,
+    reputation: Bands,
+    /** Stands for `conscience` once it has given out. */
+    broken: Text,
+    /**
+     * Once it has, a decision with no body of its own ends on one of these:
+     * how that person now takes a paper. Hand-written, one per card.
+     */
+    after: z.array(Text).min(5),
+  })
+  .strict();
+export type GwRulerPack = z.infer<typeof GwRulerPackSchema>;
+
 export const GwPackSchema = z
   .object({
     version: z.literal(1),
@@ -67,6 +91,13 @@ export const GwPackSchema = z
     promises: ById.optional(),
     /** Ending id -> the memoir's paragraph, may hold {date}, {casualties}. */
     endings: ById.optional(),
+    /** Ruler row id -> the card's words. */
+    rulers: z.record(GwIdSchema, GwRulerPackSchema).optional(),
+    /**
+     * Lines laid over a scene another share owns: a body, an option's wording,
+     * a why. Later shares can add to a scene without touching its file.
+     */
+    over: z.record(GwIdSchema, GwScenePackSchema.partial()).optional(),
   })
   .strict();
 export type GwPack = z.infer<typeof GwPackSchema>;
@@ -80,6 +111,7 @@ export function mergeGwPacks(packs: readonly GwPack[]): GwPack {
     reasons: {},
     promises: {},
     endings: {},
+    rulers: {},
   };
   for (const p of packs) {
     Object.assign(out.scenes, p.scenes);
@@ -87,8 +119,26 @@ export function mergeGwPacks(packs: readonly GwPack[]): GwPack {
     Object.assign(out.reasons!, p.reasons);
     Object.assign(out.promises!, p.promises);
     Object.assign(out.endings!, p.endings);
+    Object.assign(out.rulers!, p.rulers);
+  }
+  for (const p of packs) {
+    for (const [id, o] of Object.entries(p.over ?? {})) {
+      const s = out.scenes[id];
+      if (s !== undefined) out.scenes[id] = layOver(s, o);
+    }
   }
   return out;
+}
+
+/** Each of the scene's line tables with the laid-over lines added. */
+function layOver(s: GwScenePack, o: Partial<GwScenePack>): GwScenePack {
+  return {
+    ...s,
+    text: { ...s.text, ...o.text },
+    ...(o.opt === undefined ? {} : { opt: { ...s.opt, ...o.opt } }),
+    ...(o.why === undefined ? {} : { why: { ...s.why, ...o.why } }),
+    ...(o.optBy === undefined ? {} : { optBy: { ...s.optBy, ...o.optBy } }),
+  };
 }
 
 /** Ids two packs both hold: `mergeGwPacks` would keep only the later one. */
@@ -102,6 +152,7 @@ export function gwPackOverlaps(packs: readonly GwPack[]): string[] {
       ...Object.keys(p.reasons ?? {}).map((x) => `reason ${x}`),
       ...Object.keys(p.promises ?? {}).map((x) => `promise ${x}`),
       ...Object.keys(p.endings ?? {}).map((x) => `ending ${x}`),
+      ...Object.keys(p.rulers ?? {}).map((x) => `ruler ${x}`),
     ];
     for (const id of ids) {
       if (seen.has(id)) out.add(id);
@@ -175,6 +226,11 @@ export function gwPackProblems(
       check(`${s.id}.${o.id}`, t.opt?.[o.id]);
       if (o.when !== undefined) need(t.why?.[o.id], `why ${o.id}`);
     }
+    for (const [v, opts] of Object.entries(t.optBy ?? {})) {
+      for (const [o, text] of Object.entries(opts)) {
+        check(`${s.id}.${v}.${o}`, text);
+      }
+    }
     for (const [id, n] of Object.entries(s.nodes ?? {})) {
       const nt = t.nodes?.[id];
       for (const v of n.says) {
@@ -206,6 +262,13 @@ export function gwPackProblems(
         !reasonKeys.includes(e.key)
       ) {
         out.push(`${s.id}: no text for reason ${e.key}`);
+      }
+      if (
+        e.kind === "ruler" &&
+        pack.reasons?.[e.key] === undefined &&
+        !reasonKeys.includes(e.key)
+      ) {
+        out.push(`${s.id}: no text for ruler line ${e.key}`);
       }
       if (e.kind === "promise" && pack.promises?.[e.key] === undefined) {
         out.push(`${s.id}: no text for promise ${e.key}`);

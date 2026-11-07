@@ -25,6 +25,7 @@ import {
 import { ScenarioDataSchema } from "@openfront/engine-api/ww1936/ScenarioTypes";
 import { GW_CONTENT } from "@openfront/engine-lib/ww1914/content/Content";
 import { gwEndingsOf } from "@openfront/engine-lib/ww1914/EndingRows";
+import { gwRulerScenes } from "@openfront/engine-lib/ww1914/RulerRows";
 import { gwOwnerOf, gwWorldOf } from "@openfront/engine-lib/ww1914/World1914";
 import { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
 import {
@@ -91,7 +92,11 @@ describe("content", () => {
   test("no reference leads nowhere, no line is missing, no holes unfilled", async () => {
     const { scenes, people } = GW_CONTENT;
     // Set by the world's code: what its own scenes wait on, and scene plan §1.
-    const outside = ["gw_world_called_only", ...GW_WORLD_FLAGS];
+    const outside = [
+      "gw_world_called_only",
+      ...GW_WORLD_FLAGS,
+      ...gwRulerScenes(),
+    ];
     expect(gwContentProblems(scenes, people, outside)).toEqual([]);
     const lang = json("lang/en.json").gw.reason as Record<string, string>;
     for (const tag of SEATS) {
