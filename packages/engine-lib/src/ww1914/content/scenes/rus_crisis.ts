@@ -1778,14 +1778,20 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        { kind: "chapter", min: 0, max: 2 },
         {
-          kind: "any",
+          kind: "all",
           of: [
-            { kind: "crisis", topic: "balkan" },
-            { kind: "opening", of: ["no_sarajevo", "sarajevo_delayed"] },
+            { kind: "chapter", min: 0, max: 2 },
+            {
+              kind: "any",
+              of: [
+                { kind: "crisis", topic: "balkan" },
+                { kind: "opening", of: ["no_sarajevo", "sarajevo_delayed"] },
+              ],
+            },
           ],
         },
+        { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
       ],
     },
     cast: { p: { person: "rus_sazonov" } },
@@ -2005,8 +2011,14 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        { kind: "chapter", min: 1, max: 3 },
-        { kind: "not", of: { kind: "seen", scene: "rus_c_odd_opening" } },
+        {
+          kind: "all",
+          of: [
+            { kind: "chapter", min: 1, max: 3 },
+            { kind: "not", of: { kind: "seen", scene: "rus_c_odd_opening" } },
+          ],
+        },
+        { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
       ],
     },
     cast: { p: { person: "rus_sazonov" } },
@@ -2127,11 +2139,17 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
         {
           kind: "all",
           of: [
-            { kind: "chapter", min: 2, max: 3 },
-            { kind: "crisis", topic: "balkan" },
+            {
+              kind: "all",
+              of: [
+                { kind: "chapter", min: 2, max: 3 },
+                { kind: "crisis", topic: "balkan" },
+              ],
+            },
+            { kind: "not", of: { kind: "seen", scene: "rus_c_poincare" } },
           ],
         },
-        { kind: "not", of: { kind: "seen", scene: "rus_c_poincare" } },
+        { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
       ],
     },
     cast: { p: { person: "rus_sazonov" } },
@@ -2297,12 +2315,18 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
         {
           kind: "all",
           of: [
-            { kind: "chapter", min: 3, max: 5 },
-            { kind: "flag", flag: "w_ultimatum_out" },
-            { kind: "crisis", topic: "balkan" },
+            {
+              kind: "all",
+              of: [
+                { kind: "chapter", min: 3, max: 5 },
+                { kind: "flag", flag: "w_ultimatum_out" },
+                { kind: "crisis", topic: "balkan" },
+              ],
+            },
+            { kind: "not", of: { kind: "seen", scene: "rus_c_council" } },
           ],
         },
-        { kind: "not", of: { kind: "seen", scene: "rus_c_council" } },
+        { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
       ],
     },
     cast: { p: { person: "rus_sazonov" } },
@@ -2436,12 +2460,18 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
         {
           kind: "all",
           of: [
-            date("1914-11", "1915-12"),
-            { kind: "at_war", tag: "OTT" },
-            atDesk,
+            {
+              kind: "all",
+              of: [
+                date("1914-11", "1915-12"),
+                { kind: "at_war", tag: "OTT" },
+                atDesk,
+              ],
+            },
+            { kind: "not", of: { kind: "seen", scene: "rus_h_straits_note" } },
           ],
         },
-        { kind: "not", of: { kind: "seen", scene: "rus_h_straits_note" } },
+        { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
       ],
     },
     cast: { p: { person: "rus_sazonov" } },
@@ -2621,15 +2651,21 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
         {
           kind: "all",
           of: [
-            date("1915-01", "1916-12"),
             {
-              kind: "world",
-              of: { is: "front", theatre: "east", from: "vistula" },
+              kind: "all",
+              of: [
+                date("1915-01", "1916-12"),
+                {
+                  kind: "world",
+                  of: { is: "front", theatre: "east", from: "vistula" },
+                },
+                atDesk,
+              ],
             },
-            atDesk,
+            { kind: "not", of: { kind: "seen", scene: "rus_w_warsaw" } },
           ],
         },
-        { kind: "not", of: { kind: "seen", scene: "rus_w_warsaw" } },
+        { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
       ],
     },
     cast: { p: { person: "rus_sazonov" } },
@@ -2783,8 +2819,14 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        { kind: "chapter", min: 0, max: 3 },
-        { kind: "not", of: { kind: "seen", scene: "rus_c_both_fronts" } },
+        {
+          kind: "all",
+          of: [
+            { kind: "chapter", min: 0, max: 3 },
+            { kind: "not", of: { kind: "seen", scene: "rus_c_both_fronts" } },
+          ],
+        },
+        { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
       ],
     },
     cast: { p: { person: "rus_sukhomlinov" } },
@@ -3013,11 +3055,17 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
         {
           kind: "all",
           of: [
-            { kind: "chapter", min: 3, max: 5 },
-            { kind: "crisis", topic: "balkan" },
+            {
+              kind: "all",
+              of: [
+                { kind: "chapter", min: 3, max: 5 },
+                { kind: "crisis", topic: "balkan" },
+              ],
+            },
+            { kind: "not", of: { kind: "seen", scene: "rus_c_partial" } },
           ],
         },
-        { kind: "not", of: { kind: "seen", scene: "rus_c_partial" } },
+        { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
       ],
     },
     cast: { p: { person: "rus_sukhomlinov" } },
@@ -3179,11 +3227,17 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
         {
           kind: "all",
           of: [
-            { kind: "chapter", min: 3, max: 5 },
-            { kind: "crisis", topic: "balkan" },
+            {
+              kind: "all",
+              of: [
+                { kind: "chapter", min: 3, max: 5 },
+                { kind: "crisis", topic: "balkan" },
+              ],
+            },
+            { kind: "not", of: { kind: "seen", scene: "rus_c_prep_period" } },
           ],
         },
-        { kind: "not", of: { kind: "seen", scene: "rus_c_prep_period" } },
+        { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
       ],
     },
     cast: { p: { person: "rus_sukhomlinov" } },
@@ -3299,18 +3353,24 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
         {
           kind: "all",
           of: [
-            { kind: "chapter", min: 4, max: 8 },
             {
-              kind: "any",
+              kind: "all",
               of: [
-                { kind: "crisis", topic: "balkan" },
-                { kind: "world", of: { is: "war" } },
+                { kind: "chapter", min: 4, max: 8 },
+                {
+                  kind: "any",
+                  of: [
+                    { kind: "crisis", topic: "balkan" },
+                    { kind: "world", of: { is: "war" } },
+                  ],
+                },
+                atDesk,
               ],
             },
-            atDesk,
+            { kind: "not", of: { kind: "seen", scene: "rus_c_supreme" } },
           ],
         },
-        { kind: "not", of: { kind: "seen", scene: "rus_c_supreme" } },
+        { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
       ],
     },
     cast: { p: { person: "rus_sukhomlinov" } },
@@ -3458,14 +3518,20 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
         {
           kind: "all",
           of: [
-            { kind: "chapter", min: 8 },
-            date(undefined, "1915-12"),
-            { kind: "world", of: { is: "war" } },
-            { kind: "holder", office: "war", person: "rus_sukhomlinov" },
-            atDesk,
+            {
+              kind: "all",
+              of: [
+                { kind: "chapter", min: 8 },
+                date(undefined, "1915-12"),
+                { kind: "world", of: { is: "war" } },
+                { kind: "holder", office: "war", person: "rus_sukhomlinov" },
+                atDesk,
+              ],
+            },
+            { kind: "not", of: { kind: "seen", scene: "rus_c_first_shells" } },
           ],
         },
-        { kind: "not", of: { kind: "seen", scene: "rus_c_first_shells" } },
+        { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
       ],
     },
     cast: { p: { person: "rus_sukhomlinov" } },
@@ -3580,12 +3646,18 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
         {
           kind: "all",
           of: [
-            date("1915-01", "1915-12"),
-            { kind: "holder", office: "war", person: "rus_sukhomlinov" },
-            atDesk,
+            {
+              kind: "all",
+              of: [
+                date("1915-01", "1915-12"),
+                { kind: "holder", office: "war", person: "rus_sukhomlinov" },
+                atDesk,
+              ],
+            },
+            { kind: "not", of: { kind: "seen", scene: "rus_w_shell_famine" } },
           ],
         },
-        { kind: "not", of: { kind: "seen", scene: "rus_w_shell_famine" } },
+        { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
       ],
     },
     cast: { p: { person: "rus_sukhomlinov" } },
@@ -3730,8 +3802,14 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        { kind: "chapter", min: 0, max: 7 },
-        { kind: "not", of: { kind: "seen", scene: "rus_c_poland_word" } },
+        {
+          kind: "all",
+          of: [
+            { kind: "chapter", min: 0, max: 7 },
+            { kind: "not", of: { kind: "seen", scene: "rus_c_poland_word" } },
+          ],
+        },
+        { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
       ],
     },
     cast: { p: { person: "rus_nikolasha" } },
@@ -3909,9 +3987,15 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        { kind: "chapter", min: 5, max: 8 },
-        { kind: "world", of: { is: "war" } },
-        { kind: "not", of: { kind: "seen", scene: "rus_c_supreme" } },
+        {
+          kind: "all",
+          of: [
+            { kind: "chapter", min: 5, max: 8 },
+            { kind: "world", of: { is: "war" } },
+            { kind: "not", of: { kind: "seen", scene: "rus_c_supreme" } },
+          ],
+        },
+        { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
       ],
     },
     cast: { p: { person: "rus_nikolasha" } },
@@ -4072,12 +4156,18 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
         {
           kind: "all",
           of: [
-            { kind: "chapter", min: 5, max: 8 },
-            { kind: "world", of: { is: "war" } },
-            { kind: "at_war", tag: "DEU" },
+            {
+              kind: "all",
+              of: [
+                { kind: "chapter", min: 5, max: 8 },
+                { kind: "world", of: { is: "war" } },
+                { kind: "at_war", tag: "DEU" },
+              ],
+            },
+            { kind: "not", of: { kind: "seen", scene: "rus_c_both_fronts" } },
           ],
         },
-        { kind: "not", of: { kind: "seen", scene: "rus_c_both_fronts" } },
+        { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
       ],
     },
     cast: { p: { person: "rus_nikolasha" } },
@@ -4222,12 +4312,18 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        date("1915-01", "1915-12"),
         {
-          kind: "holder",
-          office: "supreme_commander",
-          person: "rus_nikolasha",
+          kind: "all",
+          of: [
+            date("1915-01", "1915-12"),
+            {
+              kind: "holder",
+              office: "supreme_commander",
+              person: "rus_nikolasha",
+            },
+          ],
         },
+        { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
       ],
     },
     cast: { p: { person: "rus_nikolasha" } },
@@ -4359,19 +4455,25 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
         {
           kind: "all",
           of: [
-            date("1915-01", "1915-12"),
             {
-              kind: "world",
-              of: { is: "front", theatre: "east", from: "vistula" },
+              kind: "all",
+              of: [
+                date("1915-01", "1915-12"),
+                {
+                  kind: "world",
+                  of: { is: "front", theatre: "east", from: "vistula" },
+                },
+                {
+                  kind: "holder",
+                  office: "supreme_commander",
+                  person: "rus_nikolasha",
+                },
+              ],
             },
-            {
-              kind: "holder",
-              office: "supreme_commander",
-              person: "rus_nikolasha",
-            },
+            { kind: "not", of: { kind: "seen", scene: "rus_w_gorlice" } },
           ],
         },
-        { kind: "not", of: { kind: "seen", scene: "rus_w_gorlice" } },
+        { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
       ],
     },
     cast: { p: { person: "rus_nikolasha" } },
@@ -4506,16 +4608,22 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        date("1915-01", undefined),
         {
-          kind: "not",
-          of: {
-            kind: "holder",
-            office: "supreme_commander",
-            person: "rus_nikolasha",
-          },
+          kind: "all",
+          of: [
+            date("1915-01", undefined),
+            {
+              kind: "not",
+              of: {
+                kind: "holder",
+                office: "supreme_commander",
+                person: "rus_nikolasha",
+              },
+            },
+            { kind: "world", of: { is: "war" } },
+          ],
         },
-        { kind: "world", of: { is: "war" } },
+        { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
       ],
     },
     cast: { p: { person: "rus_nikolasha" } },
@@ -4687,7 +4795,13 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     id: "rus_t_gor_nothing",
     nation: ["RUS"],
     kind: "talk",
-    when: { kind: "chapter", min: 0, max: 2 },
+    when: {
+      kind: "all",
+      of: [
+        { kind: "chapter", min: 0, max: 2 },
+        { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
+      ],
+    },
     cast: { p: { person: "rus_goremykin" } },
     salience: 2,
     tags: ["people"],
@@ -4838,8 +4952,14 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        { kind: "all", of: [{ kind: "chapter", min: 1, max: 7 }, atDesk] },
-        { kind: "not", of: { kind: "seen", scene: "rus_c_balcony" } },
+        {
+          kind: "all",
+          of: [
+            { kind: "all", of: [{ kind: "chapter", min: 1, max: 7 }, atDesk] },
+            { kind: "not", of: { kind: "seen", scene: "rus_c_balcony" } },
+          ],
+        },
+        { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
       ],
     },
     cast: { p: { person: "rus_goremykin" } },
@@ -5026,7 +5146,13 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     kind: "talk",
     when: {
       kind: "all",
-      of: [{ kind: "chapter", min: 3 }, date(undefined, "1915-12"), atDesk],
+      of: [
+        {
+          kind: "all",
+          of: [{ kind: "chapter", min: 3 }, date(undefined, "1915-12"), atDesk],
+        },
+        { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
+      ],
     },
     cast: { p: { person: "rus_goremykin" } },
     salience: 2,
@@ -5184,15 +5310,21 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        date("1915-01", "1915-12"),
         {
-          kind: "any",
+          kind: "all",
           of: [
-            { kind: "seen", scene: "rus_h_bloc" },
-            earAt("duma", { max: 0 }),
+            date("1915-01", "1915-12"),
+            {
+              kind: "any",
+              of: [
+                { kind: "seen", scene: "rus_h_bloc" },
+                earAt("duma", { max: 0 }),
+              ],
+            },
+            atDesk,
           ],
         },
-        atDesk,
+        { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
       ],
     },
     cast: { p: { person: "rus_goremykin" } },
@@ -5350,15 +5482,21 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        date("1915-01", "1915-12"),
         {
-          kind: "any",
+          kind: "all",
           of: [
-            { kind: "health", who: { role: "p" }, max: 1 },
-            earAt("ministers", { max: -1 }),
+            date("1915-01", "1915-12"),
+            {
+              kind: "any",
+              of: [
+                { kind: "health", who: { role: "p" }, max: 1 },
+                earAt("ministers", { max: -1 }),
+              ],
+            },
+            atDesk,
           ],
         },
-        atDesk,
+        { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
       ],
     },
     cast: { p: { person: "rus_goremykin" } },
@@ -5485,12 +5623,21 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
         {
           kind: "all",
           of: [
-            date("1915-01", "1915-12"),
-            { kind: "seen", scene: "rus_w_command" },
-            atDesk,
+            {
+              kind: "all",
+              of: [
+                date("1915-01", "1915-12"),
+                { kind: "seen", scene: "rus_w_command" },
+                atDesk,
+              ],
+            },
+            {
+              kind: "not",
+              of: { kind: "seen", scene: "rus_h_ministers_letter" },
+            },
           ],
         },
-        { kind: "not", of: { kind: "seen", scene: "rus_h_ministers_letter" } },
+        { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
       ],
     },
     cast: { p: { person: "rus_goremykin" } },
@@ -5626,7 +5773,13 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     nation: ["RUS"],
     kind: "talk",
     stage: ["crisis", "y1914", "war"],
-    when: { kind: "chapter", min: 1, max: 3 },
+    when: {
+      kind: "all",
+      of: [
+        { kind: "chapter", min: 1, max: 3 },
+        { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
+      ],
+    },
     cast: { p: { person: "rus_durnovo" } },
     salience: 6,
     tags: ["people"],
@@ -5874,14 +6027,20 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        { kind: "chapter", min: 3, max: 6 },
         {
-          kind: "any",
+          kind: "all",
           of: [
-            { kind: "crisis", topic: "balkan" },
-            { kind: "world", of: { is: "war" } },
+            { kind: "chapter", min: 3, max: 6 },
+            {
+              kind: "any",
+              of: [
+                { kind: "crisis", topic: "balkan" },
+                { kind: "world", of: { is: "war" } },
+              ],
+            },
           ],
         },
+        { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
       ],
     },
     cast: { p: { person: "rus_witte" } },
@@ -6101,8 +6260,14 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        { kind: "chapter", min: 2, max: 3 },
-        { kind: "crisis", topic: "balkan" },
+        {
+          kind: "all",
+          of: [
+            { kind: "chapter", min: 2, max: 3 },
+            { kind: "crisis", topic: "balkan" },
+          ],
+        },
+        { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
       ],
     },
     cast: { p: { person: "fra_paleologue" } },
@@ -6299,9 +6464,15 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        { kind: "chapter", min: 5, max: 8 },
-        { kind: "world", of: { is: "war" } },
-        { kind: "at_war", tag: "DEU" },
+        {
+          kind: "all",
+          of: [
+            { kind: "chapter", min: 5, max: 8 },
+            { kind: "world", of: { is: "war" } },
+            { kind: "at_war", tag: "DEU" },
+          ],
+        },
+        { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
       ],
     },
     cast: { p: { person: "fra_paleologue" } },
@@ -6450,14 +6621,20 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        { kind: "chapter", min: 4, max: 8 },
         {
-          kind: "any",
+          kind: "all",
           of: [
-            { kind: "crisis", topic: "balkan" },
-            { kind: "at_war", tag: "OTT" },
+            { kind: "chapter", min: 4, max: 8 },
+            {
+              kind: "any",
+              of: [
+                { kind: "crisis", topic: "balkan" },
+                { kind: "at_war", tag: "OTT" },
+              ],
+            },
           ],
         },
+        { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
       ],
     },
     cast: { p: { person: "gbr_buchanan" } },
@@ -6608,8 +6785,14 @@ export const RUS_CRISIS_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        { kind: "chapter", min: 4, max: 5 },
-        { kind: "crisis", topic: "balkan" },
+        {
+          kind: "all",
+          of: [
+            { kind: "chapter", min: 4, max: 5 },
+            { kind: "crisis", topic: "balkan" },
+          ],
+        },
+        { kind: "world", of: { is: "regime", of: ["tsar", "crown"] } },
       ],
     },
     cast: { p: { person: "deu_pourtales" } },
