@@ -186,6 +186,8 @@ function unknownsOf(gw: GreatWar, seat: GwSeatState): GwUnknown[] {
     theatre: GwTheatre | null = null,
   ) => out.push({ kind, id, theatre, value, word });
   for (const id of gwSecretsFor(seat.tag)) {
+    // The Mexico wire is a thing of the war: no war, no wire.
+    if (id === "deu_zimmermann_wire" && s.warChapter === null) continue;
     if (s.secrets.includes(id) && !seat.known.includes(id))
       add("secret", id, 1);
   }

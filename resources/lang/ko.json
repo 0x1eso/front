@@ -14391,7 +14391,7 @@
         "north_sea": "북해"
       },
       "straits": {
-        "constantinople": "콘스탄티노플",
+        "constantinople": "콘스탄티노폴",
         "dardanelles": "다르다넬스",
         "gallipoli": "갈리폴리",
         "narrows": "해협 협수로"
@@ -14565,8 +14565,10 @@
       "link_draft": "빈이 무언가를 쓰고 있다.",
       "link_general": "열강이 동원에 들어간다.",
       "link_local_war": "빈과 베오그라드가 맞섰다.",
+      "link_local_war_far": "양쪽 군이 국경에서 맞섰다.",
       "link_shot": "사라예보에서 대공이 저격됐다.",
       "link_ultimatum": "통첩이 베오그라드로 갔다.",
+      "link_ultimatum_far": "각서가 공사관들을 돌고 있다.",
       "link_vienna": "빈이 베를린으로 사람을 보냈다.",
       "mob_first": "러시아와 프랑스가 먼저 동원에 들어갔다.",
       "nation_beaten": "{a}이(가) 전쟁에서 빠졌다.",
@@ -14724,6 +14726,8 @@
       "report_corrected": "보고가 틀렸고 정정이 왔다.",
       "resigned": "{who}이(가) 사직하고 떠났다.",
       "rival_resents": "{who}이(가) 경쟁자의 총애를 언짢아한다.",
+      "ruler_thin_health": "건강이 바닥 가까이 내려왔다.",
+      "ruler_thin_reputation": "평판이 바닥 가까이 내려왔다.",
       "sample_waited": "빈에 대한 답을 미뤘다.",
       "successor_named": "{who}이(가) 빈자리를 맡았다.",
       "talk_clash_cold": "차가운 말에 상대가 마음을 닫았다.",
@@ -14948,7 +14952,7 @@
       "montenuovo": "몬테누오보",
       "deu": "베를린",
       "archduke": "대공",
-      "hun_pm": "헝가리 총리",
+      "hun_pm": "헝가리 수상",
       "rou": "부쿠레슈티",
       "bgr": "소피아",
       "ends_crisis": "위기가 닫힘",
@@ -15322,6 +15326,7 @@
       "stage": {
         "closing": "결산",
         "crisis": "위기",
+        "peace": "평시",
         "war": "전쟁",
         "y1914": "1914년",
         "conference": "강화 회의"

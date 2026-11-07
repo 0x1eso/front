@@ -94,6 +94,14 @@ describe("the words", () => {
     expect(moneyText("DEU", 0)).not.toContain("만");
   });
 
+  test("a plan left on the screen ends with its meeting", () => {
+    const { c } = ctx(view());
+    c.ui.budgetPlan = { shares: [50, 0, 0, 0, 50], mix: [100, 0, 0, 0] };
+    expect(planOf(c)).toBe(c.ui.budgetPlan);
+    c.seat.world.budget.meeting = false;
+    expect(planOf(c)).toBe(c.seat.world.budget.plan);
+  });
+
   test("an option's bold line is bold, and its marks don't show", () => {
     expect(boldParts("**서명한다.** 공채로 간다.")).toEqual([
       { text: "서명한다.", bold: true },

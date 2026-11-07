@@ -64,6 +64,8 @@ export function stepsText(points: number): string {
 /** The plan on the screen: what is being changed, else the draft, else what runs. */
 export function planOf(c: GwCtx): GwBudgetPlan {
   const v = c.seat.world.budget;
+  // A plan left on the screen ends with its meeting, however that closed.
+  if (!v.meeting) return v.plan;
   return c.ui.budgetPlan ?? v.draft ?? v.plan;
 }
 

@@ -639,6 +639,7 @@ const DECISIONS: readonly GwScene[] = [
     when: all(
       { kind: "gauge", gauge: "money", max: 1 },
       date("1915-07", "1918-08"),
+      not(PEACE),
     ),
     cast: { fin: FIN },
     salience: 6,

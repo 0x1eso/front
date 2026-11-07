@@ -731,6 +731,12 @@ const AUH: GwPressRow = {
       { chose: ["gw_bm_auh_"], prefix: true },
       { nfp: 0, lloyd: -1, az: -1 },
     ),
+    story(
+      "law_day",
+      7,
+      { chose: ["gw_lv_auh_"], picks: ["put", "decree"], prefix: true },
+      { nfp: 0, lloyd: 0, az: -1 },
+    ),
     story("front_won", 6, WON, { reichspost: 1, nfp: 1, az: 0 }),
     story("front_lost", 6, LOST, { reichspost: -1, nfp: 0, narodni: 0 }),
     story("temp_up", 5, moved("temp", 1), { reichspost: 1, nfp: 0, az: -1 }),

@@ -699,7 +699,7 @@ function research(gw: GreatWar): void {
     if (a === null) continue;
     n.tech[a.research] = (n.tech[a.research] ?? 0) + monthsOf(gw);
   }
-  researchStep(gw, monthsOf(gw));
+  researchStep(gw);
 }
 
 /** A country's research this year, when nobody signs for it. */
