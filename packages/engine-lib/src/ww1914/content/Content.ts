@@ -10,6 +10,11 @@ import { RUS_PEOPLE } from "./people_rus";
 import { AUH_QUIET_SCENES, withAuhBodies } from "./scenes/auh_bodies";
 import { AUH_CRISIS_SCENES } from "./scenes/auh_crisis";
 import { AUH_CROWN_SCENES } from "./scenes/auh_crown";
+import {
+  AUH_PRIVATE_PEOPLE,
+  AUH_PRIVATE_SCENES,
+  withAuhPrivate,
+} from "./scenes/auh_private";
 import { AUH_REALM_SCENES } from "./scenes/auh_realm";
 import { AUH_WAR_SCENES } from "./scenes/auh_war";
 import { BUDGET_SCENES } from "./scenes/budget";
@@ -92,7 +97,10 @@ export const GW_CONTENT: GwContent = {
         ...GW_FRAME_SCENES,
       ].map(withPromiseTerms),
       ...BUDGET_SCENES,
-    ].map(withDeuReplay),
+      ...AUH_PRIVATE_SCENES,
+    ]
+      .map(withDeuReplay)
+      .map(withAuhPrivate),
   ),
   people: [
     ...GW_PEOPLE,
@@ -102,6 +110,7 @@ export const GW_CONTENT: GwContent = {
     ...AUH_PEOPLE,
     ...RUS_PEOPLE,
     ...GW_PEOPLE_MONEY,
+    ...AUH_PRIVATE_PEOPLE,
   ],
 };
 
