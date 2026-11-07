@@ -116,6 +116,9 @@ export interface GwCountryView {
   out: boolean;
   /** Mobilization as publicly seen: 0, 1, 2. */
   mob: number;
+  /** YYYY-MM-DD it began, and of the general order; absent until stamped. */
+  mobFrom?: string | null;
+  mobFull?: string | null;
 }
 
 /** The war at large: what the papers and the admiralty can tell anyone. */

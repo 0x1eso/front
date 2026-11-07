@@ -2,7 +2,7 @@ import { GwSeatState } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import { gwChapters } from "@openfront/engine-lib/ww1914/Calendars";
 import { aiStep } from "./Ai";
 import { budgetStep } from "./Budget";
-import { crisisStep } from "./Crises";
+import { crisisStep, stampMobilisation } from "./Crises";
 import { dealDesk } from "./Desk";
 import { closeGame, endingStep, finalEnding } from "./Endings";
 import { frontsStep, warScore } from "./Fronts";
@@ -30,6 +30,7 @@ import { worldFlagsStep } from "./WorldFlags";
  * and the AI each add their step here (append; the order is the simulation).
  */
 export const GW_CHAPTER_STEPS: readonly ((gw: GreatWar) => void)[] = [
+  stampMobilisation,
   crisisStep,
   frontsStep,
   frontLandStep,
@@ -84,6 +85,7 @@ export function openChapter(gw: GreatWar, ticks: number): void {
   const s = gw.s;
   const ch = gwChapters(s.calendar)[s.chapter];
   s.day = s.closingDay ?? ch.day + s.dayShift;
+  stampMobilisation(gw);
   s.deadlineTick = gw.deadlineFrom(ticks);
   for (const seat of s.seats) {
     seat.ready = false;

@@ -28,6 +28,7 @@ import type { GwCtx, GwUi } from "./GwCtx";
 import { deskTab, reader } from "./GwDesk";
 import { dictCard } from "./GwDict";
 import { frontsTab } from "./GwFronts";
+import { setMapBusy } from "./GwLensModel";
 import { GwMap } from "./GwMap";
 import { GwMapPaint } from "./GwMapPaint";
 import { memoirTab } from "./GwMemoir";
@@ -264,6 +265,7 @@ export class GwPanel extends LitElement implements Controller {
       dirty = true;
     }
     if (this.keepYearsOpen()) dirty = true;
+    setMapBusy(this.mapCells() !== null);
     this.map?.beat();
     if (this.replay?.active !== true) this.map?.drawHeld();
     if (dirty) this.requestUpdate();

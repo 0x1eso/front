@@ -11,6 +11,7 @@ import { gwMapState } from "./GwLensModel";
 import {
   pathOf,
   planSeen,
+  RAIL_LINGER_DAYS,
   railClock,
   running,
   share,
@@ -18,8 +19,6 @@ import {
   type Path,
 } from "./GwRailModel";
 
-/** Days past the last train after which the roads are taken off the map. */
-const LINGER_DAYS = 14;
 /** The timetable's days an eased clock gains in a second when the date jumps. */
 const DAYS_PER_SECOND = 1.6;
 /** Screen pixels between trains, and how fast they run. */
@@ -118,6 +117,7 @@ export class GwRail extends LitElement implements Controller {
       seat === null ||
       scenario === null ||
       !gwMapState.rail ||
+      gwMapState.busy ||
       seat.prologue?.done === false
     ) {
       return;
@@ -134,7 +134,7 @@ export class GwRail extends LitElement implements Controller {
       const gap = target - shown;
       shown += Math.sign(gap) * Math.min(Math.abs(gap), DAYS_PER_SECOND * dt);
       this.eased.set(row.tag, shown);
-      if (shown > row.days + LINGER_DAYS) continue;
+      if (shown > row.days + RAIL_LINGER_DAYS) continue;
       const done = share(shown, row);
       const rgb = CENTRAL.includes(row.tag) ? AMBER : BLUE;
       let labelAt: [number, number] | null = null;

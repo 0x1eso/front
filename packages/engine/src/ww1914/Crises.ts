@@ -227,6 +227,18 @@ function runLink(gw: GreatWar): void {
   c.step++;
 }
 
+/**
+ * The day each mobilisation is first on the books, which a resumed game's
+ * trains count from. Called as a chapter closes, for what its scenes ordered,
+ * and as the next opens, for what the steps ordered on its date.
+ */
+export function stampMobilisation(gw: GreatWar): void {
+  for (const n of gw.s.nations) {
+    if (n.mob >= 1) n.mobFrom ??= gw.s.day;
+    if (n.mob >= 2) n.mobFull ??= gw.s.day;
+  }
+}
+
 /** Scenes sign by flag: to the world that is the plan and the mobilisation. */
 function readSignatures(gw: GreatWar): void {
   const s = gw.s;

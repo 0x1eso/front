@@ -6,8 +6,11 @@ import {
 } from "@openfront/engine-api/ww1914/GwTable";
 import { GW_TABLE_AIMS } from "@openfront/engine-lib/ww1914/TableRows";
 import fs from "fs";
+import { render } from "lit";
 import path from "path";
 import { describe, expect, test } from "vitest";
+import type { GwCtx } from "../../../src/client/hud/ww1914/GwCtx";
+import { closeRow } from "../../../src/client/hud/ww1914/GwTable";
 import {
   aideMoment,
   envoyName,
@@ -187,6 +190,21 @@ describe("what is said", () => {
     const turn = view({ due: { kind: "turn", left: 2, places: ["metz"] } });
     expect(aideMoment(turn)).toBe("turn");
     expect(aideMoment(view())).toBeNull();
+  });
+});
+
+describe("the way out", () => {
+  test("a signed treaty leaves a button that goes on", () => {
+    const sent: unknown[] = [];
+    const c = {
+      data: { ended: null, chapter: 35 },
+      seat: { ready: false, readyBlock: null },
+      send: (o: unknown) => sent.push(o),
+    } as unknown as GwCtx;
+    const box = document.createElement("div");
+    render(closeRow(c, { closed: true } as GwTableView), box);
+    box.querySelector<HTMLElement>("[data-gw-table-end]")!.click();
+    expect(sent).toEqual([{ kind: "ready", chapter: 35, on: true }]);
   });
 });
 

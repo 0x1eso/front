@@ -12,7 +12,7 @@ import {
   sceneNear,
 } from "@openfront/engine-lib/ww1914/PlaceRules";
 import { describe, expect, test } from "vitest";
-import { gwRunner, order, seat } from "./util";
+import { gwRunner, order, playChapter, seat, view } from "./util";
 
 const scene = (id: string) => gwContent().scenes.find((s) => s.id === id)!;
 
@@ -138,5 +138,24 @@ describe("a general sent to a front", () => {
     gw.s.seats[0].acts = 0;
     order(runner, { kind: "post", person, theatre: "east" });
     expect(t.commander).toBeNull();
+  });
+});
+
+describe("the mobilisation's date", () => {
+  test("is kept in the game, for a resumed game's trains to count from", async () => {
+    const { runner } = await gwRunner();
+    const gw = runner.game.greatWar()!;
+    const rus = gw.nation("RUS")!;
+    const first = view(runner).date;
+    rus.mob = 1;
+    playChapter(runner);
+    const row = () =>
+      seat(runner).world.countries.find((c) => c.tag === "RUS")!;
+    expect(row().mobFrom).toBe(first);
+    const second = view(runner).date;
+    rus.mob = 2;
+    playChapter(runner);
+    expect(row().mobFrom).toBe(first);
+    expect(row().mobFull).toBe(second);
   });
 });

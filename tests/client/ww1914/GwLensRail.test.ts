@@ -11,12 +11,15 @@ import path from "node:path";
 import { describe, expect, test } from "vitest";
 import {
   breadStep,
+  gwMapState,
   industrial,
   lensCells,
   localStep,
   nationStep,
   orderStep,
   rumouredRung,
+  setLens,
+  setMapBusy,
 } from "../../../src/client/hud/ww1914/GwLensModel";
 import {
   GW_RAILS,
@@ -238,6 +241,24 @@ describe("mobilisation by rail", () => {
     // A country that has not mobilised has no trains.
     expect(running(general.seat).map((x) => x.row.tag)).toEqual(["RUS"]);
     expect(clock.elapsed("FRA", "1914-08-02")).toBe(0);
+  });
+
+  test("war aims and the table take the map from a lens", () => {
+    setLens("bread");
+    setMapBusy(true);
+    expect(gwMapState.lens).toBeNull();
+    setMapBusy(false);
+    expect(gwMapState.busy).toBe(false);
+  });
+
+  test("a resumed game reads the engine's dates, not the first it sees", () => {
+    const resumed = view({ mob: { RUS: 2 } }, "1914-08-09");
+    const rus = resumed.seat.world.countries.find((c) => c.tag === "RUS")!;
+    rus.mobFrom = "1914-07-19";
+    rus.mobFull = "1914-07-26";
+    const clock = new RailClock();
+    clock.observe(resumed.data, resumed.seat);
+    expect(clock.elapsed("RUS", "1914-08-09")).toBe(3.5 + 14);
   });
 
   test("Germany's road through Belgium follows the plan; a foreign seat sees it late", () => {

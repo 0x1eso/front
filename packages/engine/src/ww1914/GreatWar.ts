@@ -305,6 +305,8 @@ function blankNation(tag: GwTag): GwNationState {
     readiness: 0,
     offers: {},
     mob: 0,
+    mobFrom: null,
+    mobFull: null,
     alloc: null,
     manpower: 0,
     casualties: 0,

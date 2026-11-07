@@ -410,9 +410,21 @@ function turnBox(c: GwCtx, t: GwTableView) {
 }
 
 /** What closes the month, or leaves the rest of it to the delegation. */
-function closeRow(c: GwCtx, t: GwTableView) {
+export function closeRow(c: GwCtx, t: GwTableView) {
   const { seat, data } = c;
-  if (data.ended !== null || t.closed) return nothing;
+  if (data.ended !== null) return nothing;
+  // The treaty is signed: what is left of the game is the way home.
+  if (t.closed) {
+    return html`<button
+      class="${seat.ready ? BTN_ON : BTN} w-full text-center"
+      data-gw-table-end
+      ?disabled=${seat.readyBlock !== null}
+      @click=${() =>
+        c.send({ kind: "ready", chapter: data.chapter, on: !seat.ready })}
+    >
+      ${translateText(seat.ready ? "gw.panel.not_ready" : "gw.table.finish")}
+    </button>`;
+  }
   const papers = seat.readyBlock !== null;
   return html`<div class="space-y-1" data-gw-table-close>
     ${t.done

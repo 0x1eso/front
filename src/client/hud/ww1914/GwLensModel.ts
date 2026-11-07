@@ -40,14 +40,28 @@ export interface GwMapState {
   lens: GwLens | null;
   /** The mobilisation trains show (GwRailModel). */
   rail: boolean;
+  /** War aims or the table have the map: no lens, and their column steps aside. */
+  busy: boolean;
   /** Bumped on every change. */
   version: number;
 }
 
-export const gwMapState: GwMapState = { lens: null, rail: true, version: 0 };
+export const gwMapState: GwMapState = {
+  lens: null,
+  rail: true,
+  busy: false,
+  version: 0,
+};
 
 export function setLens(lens: GwLens | null): void {
   gwMapState.lens = gwMapState.lens === lens ? null : lens;
+  gwMapState.version++;
+}
+
+export function setMapBusy(busy: boolean): void {
+  if (gwMapState.busy === busy) return;
+  gwMapState.busy = busy;
+  if (busy) gwMapState.lens = null;
   gwMapState.version++;
 }
 

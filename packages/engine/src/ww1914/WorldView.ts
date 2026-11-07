@@ -18,6 +18,10 @@ import type {
   GwWorldView,
 } from "@openfront/engine-api/ww1914/GwWorldView";
 import { world } from "@openfront/engine-api/ww1914/WorldDsl";
+import {
+  civilFromDays,
+  formatIsoDate,
+} from "@openfront/engine-lib/ww1936/Calendar";
 import { tasksShown } from "./Aims";
 import { budgetView } from "./Budget";
 import { eraOf } from "./Eras";
@@ -154,11 +158,22 @@ function personView(gw: GreatWar, seat: GwSeatState): GwPersonWorldView[] {
   });
 }
 
+const isoOf = (day: number) => formatIsoDate(civilFromDays(day));
+
 function countries(gw: GreatWar): GwCountryView[] {
   return GW_ACTORS.flatMap((tag) => {
     const n = gw.nation(tag);
     if (n === null) return [];
-    return [{ tag, side: n.side, out: n.out, mob: n.mob }];
+    return [
+      {
+        tag,
+        side: n.side,
+        out: n.out,
+        mob: n.mob,
+        mobFrom: n.mobFrom === null ? null : isoOf(n.mobFrom),
+        mobFull: n.mobFull === null ? null : isoOf(n.mobFull),
+      },
+    ];
   });
 }
 

@@ -219,11 +219,21 @@ export function weightOf(route: RailRoute, plan: GwPlan | null): number {
 }
 
 /** Who has the trains running: public mobilisation 1 or 2, in order. */
-export function running(seat: GwSeatView): { row: RailRow; mob: number }[] {
-  const out: { row: RailRow; mob: number }[] = [];
+export function running(
+  seat: GwSeatView,
+): { row: RailRow; mob: number; from: string | null; full: string | null }[] {
+  const out = [];
   for (const row of GW_RAILS) {
-    const mob = seat.world.countries.find((c) => c.tag === row.tag)?.mob ?? 0;
-    if (mob > 0) out.push({ row, mob });
+    const c = seat.world.countries.find((x) => x.tag === row.tag);
+    const mob = c?.mob ?? 0;
+    if (mob > 0) {
+      out.push({
+        row,
+        mob,
+        from: c?.mobFrom ?? null,
+        full: c?.mobFull ?? null,
+      });
+    }
   }
   return out;
 }
@@ -247,10 +257,11 @@ interface Seen {
 }
 
 /**
- * Remembers on which date each country was first seen mobilising. A partial
- * mobilisation counts as half-speed days, the general order as whole days, so
- * the clock a player reads is the one the order started. Seen from the first
- * chapter that shows it; a resumed game counts from the first date it sees.
+ * On which date each country began mobilising: the engine's stamp, or the
+ * date in view while that is still to come, as it is in the chapter of the
+ * order itself. A partial mobilisation counts as half-speed days, the general
+ * order as whole days, so the clock a player reads is the one the order
+ * started, and a resumed game reads the same clock.
  */
 export class RailClock {
   private seen = new Map<GwTag, Seen>();
@@ -260,13 +271,14 @@ export class RailClock {
   observe(data: GreatWarData, seat: GwSeatView): void {
     if (data.chapter < this.lastChapter) this.seen.clear();
     this.lastChapter = data.chapter;
-    for (const { row, mob } of running(seat)) {
+    for (const { row, mob, from, full } of running(seat)) {
+      const two = mob >= 2 ? (full ?? data.date) : null;
       let s = this.seen.get(row.tag);
       if (s === undefined) {
-        s = { mob, one: data.date, two: mob >= 2 ? data.date : null };
+        s = { mob, one: from ?? data.date, two };
         this.seen.set(row.tag, s);
-      } else if (mob >= 2 && s.two === null) {
-        s.two = data.date;
+      } else {
+        s.two ??= two;
       }
       s.mob = mob;
     }
@@ -280,6 +292,9 @@ export class RailClock {
     return daysBetween(s.one, s.two) / 2 + daysBetween(s.two, date);
   }
 }
+
+/** Days past the last train after which the roads and the card leave the map. */
+export const RAIL_LINGER_DAYS = 14;
 
 /** The one clock the map's trains and the card beside them both read. */
 export const railClock = new RailClock();

@@ -20,7 +20,7 @@ import {
   setRail,
   type GwLens as Lens,
 } from "./GwLensModel";
-import { railClock, running } from "./GwRailModel";
+import { RAIL_LINGER_DAYS, railClock, running } from "./GwRailModel";
 import { GLASS, MUTED } from "./GwStyle";
 import { textOrNull } from "./GwText";
 
@@ -178,7 +178,10 @@ export class GwLens extends LitElement implements Controller {
 
   /** With no lens on: each mobilising country's days, and the German question. */
   private railCard(data: GreatWarData, seat: GwSeatView) {
-    const on = running(seat);
+    const on = running(seat).filter(
+      ({ row }) =>
+        railClock.elapsed(row.tag, data.date) < row.days + RAIL_LINGER_DAYS,
+    );
     if (!gwMapState.rail || on.length === 0) return nothing;
     const german =
       on.some((x) => x.row.tag === "DEU") && seat.world.plan === null;
@@ -216,6 +219,7 @@ export class GwLens extends LitElement implements Controller {
     if (data === null || seat === null || seat.prologue?.done === false) {
       return nothing;
     }
+    if (gwMapState.busy) return nothing;
     const lens = gwMapState.lens;
     return html`<div
       data-gw-lens

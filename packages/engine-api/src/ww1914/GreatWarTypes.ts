@@ -448,6 +448,9 @@ export const GwNationStateSchema = z.object({
   offers: z.partialRecord(z.enum(GW_SIDES), z.number().int()),
   /** 0 peace, 1 partial, 2 general. */
   mob: z.number().int(),
+  /** The day any mobilisation began, and the general order; null before. */
+  mobFrom: z.number().int().nullable().default(null),
+  mobFull: z.number().int().nullable().default(null),
   /** An AI's effort this chapter; a seat's is on the seat. */
   alloc: GwAllocSchema.nullable(),
   /** 0..100: men left to send. */
