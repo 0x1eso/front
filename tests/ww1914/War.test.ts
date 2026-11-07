@@ -373,7 +373,20 @@ describe("how it stops", () => {
     expect(gw.s.chapter).toBe(last);
     expect(gw.s.day).toBeGreaterThan(day);
     expect(gw.s.day).toBeLessThan(gwChapters("full")[last].day);
-    expect(seat.desk.map((c) => c.scene)).toContain("gw_conference");
+    const desks = [seat.desk.map((c) => c.scene)];
+    expect(desks[0]).toContain("gw_e_armistice_wire");
+    expect(desks[0]).toContain("gw_e_conference_seat");
+    expect(desks[0]).not.toContain("gw_e_borders");
+    for (let i = 0; i < 3; i++) {
+      expect(gw.s.ended).toBeNull();
+      const before = gw.s.day;
+      pass(gw, runner, 1);
+      expect(gw.s.day).toBeGreaterThan(before);
+      desks.push(seat.desk.map((c) => c.scene));
+    }
+    // The table's business comes after the seat at it, on desks of its own.
+    expect(desks[1].concat(desks[2])).toContain("gw_e_borders");
+    expect(desks[3]).toContain("gw_e_memoir_frame");
     pass(gw, runner, 1);
     expect(gw.s.ended).toBe("armistice_conference");
     expect(seat.memoir).not.toBeNull();
@@ -467,13 +480,16 @@ describe("hands-off wars", () => {
     const ends = new Set<string>();
     const years = new Set<string>();
     const wests = new Set<string>();
+    let america = 0;
     for (let i = 0; i < 10; i++) {
       const s = await warShape(`GWSH${i}`, "GBR");
       ends.add(s.armistice ?? "none");
+      if (s.entered.USA !== undefined) america++;
       years.add(s.endMonth.slice(0, 4));
       wests.add((s.lines.west ?? []).join(">"));
       expect(s.endMonth >= "1915-06").toBe(true);
     }
+    expect(america).toBeGreaterThan(0);
     expect(ends.size).toBeGreaterThanOrEqual(2);
     expect(years.size).toBeGreaterThanOrEqual(2);
     expect(wests.size).toBeGreaterThanOrEqual(4);

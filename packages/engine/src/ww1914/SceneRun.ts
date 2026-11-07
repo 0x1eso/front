@@ -40,6 +40,7 @@ import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { closeSeat } from "./Endings";
 import type { GreatWar } from "./GreatWar";
 import { dismissPerson, onAppointed } from "./People";
+import { stageOf } from "./World";
 import { worldEffect, worldHolds } from "./WorldDsl";
 
 const P_CAST = idHash("gw_cast");
@@ -287,7 +288,7 @@ export function holds(ctx: SceneCtx, c: GwCond): boolean {
     case "chapter":
       return inRange(s.chapter, c);
     case "stage":
-      return gwChapters(s.calendar)[s.chapter].stage === c.stage;
+      return stageOf(gw) === c.stage;
     case "opening":
       return c.of.includes(s.opening);
     case "secret":

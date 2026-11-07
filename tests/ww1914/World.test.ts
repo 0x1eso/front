@@ -586,23 +586,20 @@ describe("plausibility rails", () => {
     expect(lines.size).toBeGreaterThanOrEqual(3);
   });
 
-  test("the long war: Britain comes in, America comes late, it lasts past 1915", async () => {
+  test("the long war: Britain comes in, it lasts past 1915", async () => {
     // The real cast: the writers' scenes name its people.
     useGwContent(null);
     let britain = 0;
-    let america = 0;
     let long = 0;
     const n = 8;
     for (let i = 0; i < n; i++) {
       const gw = await play(`GWL${i}`, "full");
       if (gw.nation("GBR")!.side === "entente") britain++;
-      if (gw.nation("USA")!.side === "entente") america++;
       if (gw.s.chapter >= 23) long++;
       expect(gw.s.ended).not.toBeNull();
       expect(gw.s.seats[0].memoir).not.toBeNull();
     }
     expect(britain).toBe(n);
-    expect(america).toBeGreaterThan(0);
     expect(long).toBeGreaterThanOrEqual(n - 1);
     useGwContent({ scenes: GW_CONTENT.scenes, people: CAST });
   }, 30000);

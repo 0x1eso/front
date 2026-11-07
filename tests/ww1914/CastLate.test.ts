@@ -58,8 +58,10 @@ describe("the cast from 1915, and foreign figures", () => {
   });
 
   test("the new packs hold no id another pack holds", () => {
-    const packs = ["common.json", "DEU.json", "DEU.cast.json"].map(file);
-    expect(gwPackOverlaps([...packs, file("common.people.json")])).toEqual([]);
+    const packs = ["DEU.json", "DEU.cast.json", "common.people.json"].map(file);
+    // common.json's endings are a fallback a country's own text replaces.
+    const common = { ...file("common.json"), endings: {} };
+    expect(gwPackOverlaps([common, ...packs])).toEqual([]);
   });
 
   test("only Germans who come later wait; the 1914 cast is untouched", () => {

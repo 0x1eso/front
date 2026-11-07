@@ -1,3 +1,4 @@
+import type { GwStage } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import {
   GW_GAUGE_MAX,
   GW_SIDES,
@@ -50,6 +51,12 @@ export function everyMonths(gw: GreatWar, k: number, offset = 0): boolean {
 /** The last of a list, or undefined. */
 export function lastOf<T>(list: readonly T[]): T | undefined {
   return list[list.length - 1];
+}
+
+/** The stage the game is at: the table's, unless the peace is being made. */
+export function stageOf(gw: GreatWar): GwStage {
+  if (gw.s.conferenceLeft > 0) return "conference";
+  return gwChapters(gw.s.calendar)[gw.s.chapter].stage;
 }
 
 /** Seats still at the desk: a closed one's country is the AI's. */

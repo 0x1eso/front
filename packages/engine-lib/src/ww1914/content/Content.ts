@@ -26,6 +26,7 @@ import { GBR_HOME_SCENES } from "./scenes/gbr_home";
 import { GBR_WAR_SCENES } from "./scenes/gbr_war";
 import { GBR_WORLD_SCENES } from "./scenes/gbr_world";
 import { GW_DIP_SCENES } from "./scenes/gw_dip";
+import { GW_FRAME_SCENES } from "./scenes/gw_frame";
 import { GW_NEUTRAL_SCENES } from "./scenes/gw_neutral";
 import { GW_WORLD2_SCENES } from "./scenes/gw_world2";
 import { RUS_CRISIS_SCENES } from "./scenes/rus_crisis";
@@ -76,6 +77,7 @@ export const GW_CONTENT: GwContent = {
       ...GW_DIP_SCENES,
       ...GW_NEUTRAL_SCENES,
       ...GW_WORLD2_SCENES,
+      ...GW_FRAME_SCENES,
     ].map(withPromiseTerms),
   ],
   people: [

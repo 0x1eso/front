@@ -20,6 +20,7 @@ import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import type { GreatWar } from "./GreatWar";
 import { castOf, holds, pickVariant, SceneCtx, specificity } from "./SceneRun";
 import { settlePromises } from "./Talk";
+import { stageOf } from "./World";
 
 export const GW_DESK_MIN = 2;
 export const GW_DESK_MAX = 4;
@@ -163,7 +164,7 @@ export function repeatable(
 }
 
 export function inStage(gw: GreatWar, scene: GwScene): boolean {
-  const stage = gwChapters(gw.s.calendar)[gw.s.chapter].stage;
+  const stage = stageOf(gw);
   return scene.stage === undefined || scene.stage.includes(stage);
 }
 
@@ -236,7 +237,7 @@ export function deskCandidates(
 
 /** How many cards this chapter usually has. */
 function deskTarget(gw: GreatWar): number {
-  const stage = gwChapters(gw.s.calendar)[gw.s.chapter].stage;
+  const stage = stageOf(gw);
   const busy = stage === "closing" ? 0 : 1;
   const hot = gw.s.temp >= GW_TEMP_HOT ? 1 : 0;
   return Math.min(GW_DESK_MAX, GW_DESK_MIN + busy + hot);

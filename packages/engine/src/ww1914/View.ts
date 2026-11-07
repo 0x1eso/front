@@ -19,7 +19,7 @@ import type { GreatWar } from "./GreatWar";
 import { openTopics, readyBlock } from "./Orders";
 import { ctxOf, optionOpen, pickVariant, sceneOf } from "./SceneRun";
 import { GW_HIDE_UNMET } from "./Tables";
-import { seatPerson } from "./World";
+import { seatPerson, stageOf } from "./World";
 import { worldView } from "./WorldView";
 
 function cardView(
@@ -157,7 +157,7 @@ export function gwView(gw: GreatWar): GreatWarData {
     calendar: s.calendar,
     chapter: s.chapter,
     chapterCount: chapters.length,
-    stage: chapters[s.chapter].stage,
+    stage: stageOf(gw),
     date: formatIsoDate(civilFromDays(s.day)),
     deadlineTick: s.deadlineTick,
     ended: s.ended,

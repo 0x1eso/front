@@ -25,6 +25,7 @@ import {
   setFlag,
   trustOf,
 } from "@openfront/engine-api/ww1914/SceneDsl";
+import { doWorld, world } from "@openfront/engine-api/ww1914/WorldDsl";
 
 /**
  * Common share `frame` (plan ww135-plan-common.md section 8): the `gw_f_`
@@ -33,16 +34,12 @@ import {
  * six common ending paragraphs. No form of address, no `voice`, no `chancellor`:
  * one line serves four countries.
  *
- * The world's words (`date`, `side`, `armistice`, `peace_side`...) are on
- * w135-world, not on this file's base, so they pass through `w` and `act`, the
- * only casts here. Type those two after the merge.
- *
  * The plan's `gw_f_small_kings` is five talks here, one a person: a talk has one
  * `who`, and `any_of` always takes the first. An enemy doesn't call on a seat,
  * so each of the five has its own sides.
  */
-const w = (of: unknown) => ({ kind: "world", of }) as unknown as GwCond;
-const act = (of: unknown) => ({ kind: "world", of }) as unknown as GwEffect;
+const w = (of: Record<string, unknown>) => world(of as never);
+const act = (of: Record<string, unknown>) => doWorld(of as never);
 
 const everyone = [...GW_TAGS];
 /** Plan section 0: the seats of a side, with the countries that come later. */
@@ -1259,12 +1256,7 @@ const STOPPED: GwVariant[] = [
   v("base"),
 ];
 
-/**
- * After the conference opens. The world gives a peace one chapter, the closing
- * one, so today every `gw_e_` decision shares that desk and the desk's salience
- * picks them: that is why the plan's 5-7 are 8 here, so the seed turns over which
- * ones a game reaches. Given more chapters the plan's order holds by itself.
- */
+/** After the conference opens: each of these waits for the seat at the table. */
 const AT_THE_TABLE = all(ARMISTICE, any(seen("gw_e_conference_seat"), CLOSING));
 
 const opt = (
@@ -1341,7 +1333,7 @@ const END: readonly GwScene[] = [
     {
       when: ARMISTICE,
       cast: { fm },
-      salience: 9,
+      salience: 8,
       tags: ["foreign"],
       variants: [
         v(
@@ -1462,7 +1454,7 @@ const END: readonly GwScene[] = [
     {
       when: AT_THE_TABLE,
       cast: { fin },
-      salience: 8,
+      salience: 7,
       tags: ["foreign"],
       variants: [v("won", WON), v("lost", LOST), v("base")],
     },
@@ -1504,7 +1496,7 @@ const END: readonly GwScene[] = [
     {
       when: all(AT_THE_TABLE, any(wilsonRead, entered("USA"))),
       cast: { fm },
-      salience: 8,
+      salience: 6,
       tags: ["foreign", "tension_down"],
       variants: [v("won", WON), v("lost", LOST), v("base")],
     },
@@ -1577,7 +1569,7 @@ const END: readonly GwScene[] = [
     {
       when: ARMISTICE,
       cast: { cos },
-      salience: 8,
+      salience: 5,
       tags: ["home"],
       variants: [v("won", WON), v("lost", LOST), v("base")],
     },

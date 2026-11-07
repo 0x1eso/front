@@ -661,41 +661,6 @@ const ENDGAME: GwScene[] = [
       opt("refuse", [], [why("peace_refused")]),
     ],
   ),
-  called(
-    "gw_conference",
-    everyone,
-    ["foreign"],
-    [
-      opt(
-        "hard_terms",
-        ["trust:+1"],
-        [why("conference_hard")],
-        world({ is: "peace_side", of: ["won"] }),
-      ),
-      opt(
-        "league",
-        ["authority:+10"],
-        [authority(10), why("conference_league")],
-        world({ is: "peace_side", of: ["won", "even"] }),
-      ),
-      opt(
-        "protest",
-        [],
-        [why("conference_protest")],
-        world({ is: "peace_side", of: ["lost"] }),
-      ),
-      opt("sign", [], [why("conference_signed")]),
-    ],
-    {
-      stage: ["closing"],
-      salience: 9,
-      variants: [
-        { id: "won", when: world({ is: "peace_side", of: ["won"] }) },
-        { id: "lost", when: world({ is: "peace_side", of: ["lost"] }) },
-        { id: "base" },
-      ],
-    },
-  ),
 ];
 
 export const WARTIME_SCENES: readonly GwScene[] = [

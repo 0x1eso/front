@@ -11,7 +11,14 @@ export const GwIdSchema = z
   .regex(/^[a-z][a-z0-9_]*$/)
   .max(48);
 
-export const GW_STAGES = ["crisis", "y1914", "war", "closing"] as const;
+export const GW_STAGES = [
+  "crisis",
+  "y1914",
+  "war",
+  "closing",
+  // After an armistice: the chapters of the peace, before the closing one.
+  "conference",
+] as const;
 export type GwStage = (typeof GW_STAGES)[number];
 
 /** Lobby's choice of chapter table (engine-lib/ww1914/Calendars). */
@@ -999,6 +1006,8 @@ export const GreatWarStateSchema = z.object({
   armistice: GwArmisticeSchema.nullable(),
   /** The conference's date, once an armistice brought it forward. */
   closingDay: z.number().int().nullable(),
+  /** Chapters of the peace conference still to run, after an armistice. */
+  conferenceLeft: z.number().int(),
   /** Chapter a peace offer was last made; -9 none. */
   talks: z.number().int(),
   reports: z.array(GwReportSchema),

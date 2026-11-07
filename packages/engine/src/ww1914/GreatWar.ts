@@ -145,6 +145,7 @@ export class GreatWar {
       shipping: 0,
       armistice: null,
       closingDay: null,
+      conferenceLeft: 0,
       talks: -9,
       reports: [],
       nextReport: 1,

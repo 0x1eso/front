@@ -58,47 +58,46 @@ describe("content", () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
-  test.each(SEATS)("%s's pack holds every line a scene can show", async (tag) => {
-    const pack = await loadGwPack(tag, async (p) => json(p));
-    for (const s of scenesOf(tag)) {
-      const t = pack.scenes[s.id];
-      expect(t, s.id).toBeDefined();
-      for (const v of s.variants) expect(t.text[v.id], s.id).toBeDefined();
-      for (const o of s.options ?? []) {
-        expect(t.opt?.[o.id], `${s.id}.${o.id}`).toBeDefined();
-        if (o.when !== undefined) {
-          expect(t.why?.[o.id], `${s.id}.${o.id}`).toBeDefined();
+  test.each(SEATS)(
+    "%s's pack holds every line a scene can show",
+    async (tag) => {
+      const pack = await loadGwPack(tag, async (p) => json(p));
+      for (const s of scenesOf(tag)) {
+        const t = pack.scenes[s.id];
+        expect(t, s.id).toBeDefined();
+        for (const v of s.variants) expect(t.text[v.id], s.id).toBeDefined();
+        for (const o of s.options ?? []) {
+          expect(t.opt?.[o.id], `${s.id}.${o.id}`).toBeDefined();
+          if (o.when !== undefined) {
+            expect(t.why?.[o.id], `${s.id}.${o.id}`).toBeDefined();
+          }
         }
+        for (const [id, n] of Object.entries(s.nodes ?? {})) {
+          const nt = t.nodes?.[id];
+          for (const v of n.says) expect(nt?.says[v.id], id).toBeDefined();
+          for (const r of n.replies)
+            expect(nt?.replies[r.id], id).toBeDefined();
+        }
+        if (s.summon === true) expect(t.topic, s.id).toBeDefined();
       }
-      for (const [id, n] of Object.entries(s.nodes ?? {})) {
-        const nt = t.nodes?.[id];
-        for (const v of n.says) expect(nt?.says[v.id], id).toBeDefined();
-        for (const r of n.replies) expect(nt?.replies[r.id], id).toBeDefined();
+      // Every seat can name everyone: a scene casts whoever holds the office.
+      for (const p of GW_CONTENT.people) {
+        expect(pack.people[p.id], p.id).toBeDefined();
       }
-      if (s.summon === true) expect(t.topic, s.id).toBeDefined();
-    }
-    // Every seat can name everyone: a scene casts whoever holds the office.
-    for (const p of GW_CONTENT.people) {
-      expect(pack.people[p.id], p.id).toBeDefined();
-    }
-  });
+    },
+  );
 
   test("no reference leads nowhere, no line is missing, no holes unfilled", async () => {
     const { scenes, people } = GW_CONTENT;
     // Set by the world's code: what its own scenes wait on, and scene plan §1.
     const outside = ["gw_world_called_only", ...GW_WORLD_FLAGS];
-    // The frame share, still being written, holds these talks' keys.
-    const pending =
-      /k_(joffre|foch|pasic|ferdinand|house|benedict|wilson|andersen|ador|hussein|sonnino|giolitti|talat|bratianu|marie|constantine|venizelos|kato|alfonso)_/;
-    expect(
-      gwContentProblems(scenes, people, outside).filter(
-        (x) => !pending.test(x),
-      ),
-    ).toEqual([]);
+    expect(gwContentProblems(scenes, people, outside)).toEqual([]);
     const lang = json("lang/en.json").gw.reason as Record<string, string>;
     for (const tag of SEATS) {
       const pack = await loadGwPack(tag, async (p) => json(p));
-      expect(gwPackProblems(scenesOf(tag), pack, Object.keys(lang))).toEqual([]);
+      expect(gwPackProblems(scenesOf(tag), pack, Object.keys(lang))).toEqual(
+        [],
+      );
     }
   });
 
@@ -111,7 +110,11 @@ describe("content", () => {
           f.startsWith(`${tag}.`) ||
           GW_PEOPLE_PACKS.some((x) => f === `${x}.json`),
       );
-    const packs = files.map((f) => GwPackSchema.parse(json(`ww1914/ko/${f}`)));
+    const packs = files.map((f) => {
+      const pack = GwPackSchema.parse(json(`ww1914/ko/${f}`));
+      // common.json's endings are a fallback a country's own text replaces.
+      return f === "common.json" ? { ...pack, endings: {} } : pack;
+    });
     expect(gwPackOverlaps(packs)).toEqual([]);
   });
 

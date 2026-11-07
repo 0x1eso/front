@@ -8,7 +8,7 @@ import { frontsStep, warScore } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
 import { homeStep } from "./Home";
 import { intelStep } from "./Intel";
-import { skipToConference } from "./Peace";
+import { nextConferenceChapter, skipToConference } from "./Peace";
 import { peopleStep } from "./People";
 import { closeUndecided } from "./SceneRun";
 import { seaStep } from "./Sea";
@@ -89,6 +89,11 @@ export function advanceChapter(
     if (s.ended !== null) break;
   }
   gw.touch();
+  if (s.ended === null && s.conferenceLeft > 0) {
+    nextConferenceChapter(gw);
+    openChapter(gw, ticks);
+    return;
+  }
   if (s.ended === null && s.chapter + 1 >= gwChapters(s.calendar).length) {
     s.ended = finalEnding(gw);
   }

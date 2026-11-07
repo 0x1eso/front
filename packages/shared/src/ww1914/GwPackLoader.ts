@@ -45,6 +45,7 @@ export const GW_COMMON_SHARES: readonly string[] = [
   "dip",
   "neutral",
   "world",
+  "frame",
 ];
 /**
  * Casts in files of their own. Every seat loads them: a scene can cast another

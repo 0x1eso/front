@@ -503,7 +503,7 @@ const DECISIONS: readonly GwScene[] = [
     id: "gw_x_flu_autumn",
     nation: [...GW_TAGS],
     kind: "proposal",
-    stage: ["war", "closing"],
+    stage: ["war", "conference", "closing"],
     when: date("1918-08", "1918-12"),
     cast: { fin: FIN },
     salience: 8,

@@ -51,6 +51,9 @@ const FOLLOWERS: readonly GwTag[] = [
 const SPENT_MONTHS = 30;
 /** Within this of level, a war can stop with neither side beaten. */
 const LEVEL_SCORE = 30;
+/** Chapters the peace takes before the closing one, and days in each. */
+const CONFERENCE_CHAPTERS = 3;
+const CONFERENCE_DAYS = 30;
 /** Past this a side has lost, and knows it. */
 const LOST_SCORE = -40;
 /** Months before anyone will hear of stopping: the first year has no bill yet. */
@@ -237,8 +240,12 @@ export function skipToConference(gw: GreatWar): void {
   const last = chapters.length - 1;
   if (s.armistice === null || s.closingDay !== null) return;
   s.closingDay = s.day + chapterOf(gw).spanDays;
+  s.conferenceLeft = CONFERENCE_CHAPTERS;
   s.chapter = last - 1;
-  for (const seat of s.seats) {
-    seat.scheduled.push({ scene: "gw_conference", chapter: last });
-  }
+}
+
+/** A chapter of the peace ends: the next opens a month on, in the same row. */
+export function nextConferenceChapter(gw: GreatWar): void {
+  gw.s.conferenceLeft--;
+  gw.s.closingDay = (gw.s.closingDay ?? gw.s.day) + CONFERENCE_DAYS;
 }
