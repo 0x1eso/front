@@ -37,7 +37,7 @@ const russia = async (id: string, played?: string[]) => {
   }
   const runner = await newGame(map, start);
   const gw = runner.game.greatWar()!;
-  return { gw, st: gw.s.seats[0] };
+  return { runner, gw, st: gw.s.seats[0] };
 };
 
 describe("russia's schedule", () => {
@@ -62,7 +62,7 @@ describe("russia's schedule", () => {
   });
 
   test("what is open can be taken, and what it plays reaches the desk", async () => {
-    const { gw, st } = await russia("rus-act-play");
+    const { runner, gw, st } = await russia("rus-act-play");
     const taken = new Set<string>();
     for (let c = 0; c < 22 && gw.s.ended === null; c++) {
       if (c === 7) gw.nation("RUS")!.atWar.push("DEU");
@@ -74,7 +74,7 @@ describe("russia's schedule", () => {
         expect(takeAct(gw, st, a.id, flat), a.id).toBeNull();
         taken.add(a.id);
       }
-      advanceChapter(gw);
+      advanceChapter(gw, runner.game.ticks(), false);
     }
     expect(taken.size).toBeGreaterThan(30);
   });

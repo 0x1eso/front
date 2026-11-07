@@ -2019,7 +2019,12 @@ const THREAD_SCENES: GwScene[] = [
     "king",
     "GBR",
     all(reign, { kind: "chapter", min: 2, max: 4 }),
-    [v("ulster", all(shot, { kind: "chapter", min: 3 })), v("base")],
+    [
+      v("ulster", all(shot, { kind: "chapter", min: 3 })),
+      v("firm", character(georgie, "hardline", "principled")),
+      v("shy", character(georgie, "cautious")),
+      v("base"),
+    ],
     [
       o(
         "reply_warm",
