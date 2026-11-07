@@ -129,12 +129,12 @@ export const GW_TECH_TABLE: readonly GwTechRow[] = [
 ];
 
 /** Whole months since the war began; 0 at peace. */
-export function warMonths(gw: GreatWar): number {
+export function warMonths(gw: GreatWar, chapter = gw.s.chapter): number {
   const s = gw.s;
   if (s.warChapter === null) return 0;
   const days = gwChapters(s.calendar);
   const from = days[Math.max(0, s.warChapter)].day;
-  return Math.floor((days[s.chapter].day - from) / 30);
+  return Math.floor((days[chapter].day - from) / 30);
 }
 
 export function eraOf(gw: GreatWar): GwEraRow {
@@ -178,8 +178,9 @@ function reach(gw: GreatWar, n: GwNationState): void {
 }
 
 /** Chapter step of the fronts: what was put in, what it came to, the period. */
-export function researchStep(gw: GreatWar, months: number): void {
-  const was = eraOfMonth(warMonths(gw) - months);
+export function researchStep(gw: GreatWar): void {
+  // A 25-day chapter leaves the count where it was: ask the last chapter.
+  const was = eraOfMonth(warMonths(gw, Math.max(0, gw.s.chapter - 1)));
   for (const n of gw.s.nations) {
     if (fights(n)) reach(gw, n);
   }

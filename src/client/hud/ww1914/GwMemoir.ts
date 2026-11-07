@@ -188,9 +188,12 @@ function shelfBox(c: GwCtx): TemplateResult {
 export function memoirTab(c: GwCtx): TemplateResult {
   const { seat } = c;
   const m = seat.world.memoir;
-  // How a talk went is told when it ends; the record keeps what happened.
+  // How a talk went is told when it ends, and the same small lines come every
+  // other chapter of a game: the record keeps what happened.
   const record = logByChapter(
-    seat.log.filter((r) => !/^talk_(fit|clash)_/.test(r.key)),
+    seat.log.filter(
+      (r) => !/^(talk_(fit|clash)_|rival_resents$|report_corrected$)/.test(r.key),
+    ),
   ).reverse();
   return html`<div class="space-y-3" data-gw-memoir>
     ${m === null

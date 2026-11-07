@@ -21,7 +21,7 @@ import type { GreatWar } from "./GreatWar";
 import { lawReplaces } from "./Laws";
 import { castOf, holds, pickVariant, SceneCtx, specificity } from "./SceneRun";
 import { settlePromises } from "./Talk";
-import { stageOf } from "./World";
+import { chapterOf, stageOf } from "./World";
 
 export const GW_DESK_MIN = 2;
 export const GW_DESK_MAX = 4;
@@ -61,6 +61,9 @@ export const GW_DUE_BESIDE = 2;
 export const GW_READS_BESIDE = 2;
 /** With no cooldown of its own, chapters before a scene can come again. */
 export const GW_COOLDOWN_DEFAULT = 2;
+
+/** A war chapter this short is one of many: its desk is a card lighter. */
+const MONTHLY_DAYS = 30;
 
 const P_TIE = idHash("gw_desk_tie");
 const SUBJECTS = ["foreign", "home", "war", "people"] as const;
@@ -183,6 +186,10 @@ function drawable(gw: GreatWar, seat: GwSeatState, scene: GwScene): boolean {
   if (scene.summon === true || scene.scheduledOnly === true) return false;
   if (scene.quiet === true || !scene.nation.includes(seat.tag)) return false;
   if (lawReplaces(gw, seat, scene.id)) return false;
+  // The guns have stopped: a paper of the war with no stage of its own is over.
+  if (gw.s.armistice !== null && !scene.stage && scene.tags.includes("war")) {
+    return false;
+  }
   return inStage(gw, scene) && repeatable(gw, seat, scene);
 }
 
@@ -249,7 +256,9 @@ export function deskCandidates(
 /** How many cards this chapter usually has. */
 function deskTarget(gw: GreatWar): number {
   const stage = stageOf(gw);
-  const busy = stage === "closing" ? 0 : 1;
+  // Month after month of war: what matters comes by salience, the rest waits.
+  const monthly = stage === "war" && chapterOf(gw).spanDays <= MONTHLY_DAYS;
+  const busy = stage === "closing" || monthly ? 0 : 1;
   const hot = gw.s.temp >= GW_TEMP_HOT ? 1 : 0;
   return Math.min(GW_DESK_MAX, GW_DESK_MIN + busy + hot);
 }

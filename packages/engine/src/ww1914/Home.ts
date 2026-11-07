@@ -31,6 +31,8 @@ const P_CONCEDE = idHash("gw_concede");
 
 /** Chapters of order at the bottom for each rung (design §4.6). */
 const LADDER = [0, 2, 4, 6, 8];
+/** Months before the same rung's paper can come again. */
+const HOME_PAPER_MONTHS = 6;
 
 /** Countries the war never reaches at home. */
 const FAR_FROM_IT: readonly GwTag[] = ["JPN", "USA"];
@@ -171,6 +173,10 @@ function ladder(gw: GreatWar, n: GwNationState): void {
     rung === 4 && written ? own! : (row?.rungs[rung - 1] ?? "gw_unrest");
   for (const seat of seatsOf(gw, n.tag)) {
     reason(gw, seat, `unrest_${rung}`);
+    // Order that comes and goes: the same paper doesn't come every other month.
+    const last = seat.seen[scene];
+    const gap = Math.ceil(HOME_PAPER_MONTHS / monthsOf(gw));
+    if (rung < 4 && last !== undefined && gw.s.chapter - last < gap) continue;
     seat.scheduled.push({ scene, chapter: gw.s.chapter + 1 });
   }
   if (seatsOf(gw, n.tag).length === 0) {

@@ -172,7 +172,7 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
     },
     salience: 9,
     tags: ["war"],
-    cooldown: 1,
+    cooldown: 3,
     variants: [
       {
         id: "three",
@@ -274,7 +274,7 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
     },
     salience: 9,
     tags: ["war"],
-    cooldown: 1,
+    cooldown: 3,
     variants: [
       {
         id: "after_east",
@@ -369,7 +369,7 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
     },
     salience: 9,
     tags: ["war"],
-    cooldown: 1,
+    cooldown: 3,
     variants: [
       {
         id: "east_gone",
@@ -470,7 +470,7 @@ export const AUH_WAR_SCENES: readonly GwScene[] = [
     },
     salience: 9,
     tags: ["war"],
-    cooldown: 1,
+    cooldown: 3,
     variants: [
       {
         id: "boots",

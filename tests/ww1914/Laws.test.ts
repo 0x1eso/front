@@ -443,6 +443,16 @@ describe("a whole game on the real map", () => {
             for (const x of n.laws) {
               if (x.stage === "force" && x.how !== "scene") passed.add(x.id);
             }
+            // The bot takes bills back at random: this seat sees them through.
+            for (const c of seat.desk.filter((x) =>
+              x.scene.startsWith("gw_lv_"),
+            )) {
+              applyGwOrder(gw, seat, {
+                kind: "choose",
+                card: c.uid,
+                option: "put",
+              });
+            }
             const open = lawViews(gw, seat).find(
               (v) => v.stage === "open" && v.waits === null,
             );
@@ -458,10 +468,11 @@ describe("a whole game on the real map", () => {
             }
           },
         );
-        // A bot withdraws at random and a peace can stop a bill on its day.
-        if (brought >= 3 && passed.size >= 1) return;
+        if (brought < 3) continue;
+        expect(passed.size).toBeGreaterThanOrEqual(1);
+        return;
       }
-      throw new Error(`${tag}: no game brought three bills and passed one`);
+      throw new Error(`${tag}: no game brought three bills`);
     },
     240000,
   );
