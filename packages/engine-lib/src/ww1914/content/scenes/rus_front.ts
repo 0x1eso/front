@@ -1858,7 +1858,13 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     id: "rus_t_alek_kiev",
     nation: ["RUS"],
     kind: "talk",
-    when: { kind: "chapter", min: 1, max: 5 },
+    when: {
+      kind: "all",
+      of: [
+        { kind: "chapter", min: 1, max: 5 },
+        { kind: "not", of: { kind: "seen", scene: "rus_c_both_fronts" } },
+      ],
+    },
     cast: { p: { person: "rus_alekseev" } },
     salience: 2,
     tags: ["people"],
@@ -2023,23 +2029,38 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        { kind: "world", of: { is: "date", from: "1914-12", to: "1916-01" } },
         {
-          kind: "any",
+          kind: "all",
           of: [
             {
               kind: "world",
-              of: { is: "front", theatre: "east", from: "vistula" },
+              of: { is: "date", from: "1914-12", to: "1916-01" },
             },
             {
-              kind: "world",
-              of: {
-                is: "battle",
-                theatre: "east",
-                of: ["break"],
-                by: "central",
-              },
+              kind: "any",
+              of: [
+                {
+                  kind: "world",
+                  of: { is: "front", theatre: "east", from: "vistula" },
+                },
+                {
+                  kind: "world",
+                  of: {
+                    is: "battle",
+                    theatre: "east",
+                    of: ["break"],
+                    by: "central",
+                  },
+                },
+              ],
             },
+          ],
+        },
+        {
+          kind: "any",
+          of: [
+            { kind: "not", of: { kind: "seen", scene: "rus_w_gorlice" } },
+            { kind: "not", of: { kind: "seen", scene: "rus_w_warsaw" } },
           ],
         },
       ],
@@ -2528,8 +2549,17 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        { kind: "world", of: { is: "war" } },
-        { kind: "world", of: { is: "date", from: "1916-01", to: "1916-12" } },
+        {
+          kind: "all",
+          of: [
+            { kind: "world", of: { is: "war" } },
+            {
+              kind: "world",
+              of: { is: "date", from: "1916-01", to: "1916-12" },
+            },
+          ],
+        },
+        { kind: "not", of: { kind: "seen", scene: "rus_w_naroch" } },
       ],
     },
     cast: { p: { person: "rus_alekseev" } },
@@ -2706,7 +2736,13 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     id: "rus_t_alek_garrison",
     nation: ["RUS"],
     kind: "talk",
-    when: { kind: "world", of: { is: "date", from: "1916-02" } },
+    when: {
+      kind: "all",
+      of: [
+        { kind: "world", of: { is: "date", from: "1916-02" } },
+        { kind: "not", of: { kind: "seen", scene: "rus_w_depots" } },
+      ],
+    },
     cast: { p: { person: "rus_alekseev" } },
     salience: 2,
     tags: ["people"],
@@ -2887,11 +2923,20 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        { kind: "world", of: { is: "date", from: "1916-11", to: "1917-12" } },
         {
-          kind: "world",
-          of: { is: "regime", of: ["tsar", "crown", "regency"] },
+          kind: "all",
+          of: [
+            {
+              kind: "world",
+              of: { is: "date", from: "1916-11", to: "1917-12" },
+            },
+            {
+              kind: "world",
+              of: { is: "regime", of: ["tsar", "crown", "regency"] },
+            },
+          ],
         },
+        { kind: "not", of: { kind: "seen", scene: "rus_w_spring_promise" } },
       ],
     },
     cast: { p: { person: "rus_alekseev" } },
@@ -3179,7 +3224,13 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     id: "rus_t_brus_pass",
     nation: ["RUS"],
     kind: "talk",
-    when: { kind: "world", of: { is: "date", from: "1914-12", to: "1915-04" } },
+    when: {
+      kind: "all",
+      of: [
+        { kind: "world", of: { is: "date", from: "1914-12", to: "1915-04" } },
+        { kind: "not", of: { kind: "seen", scene: "rus_w_carpathians" } },
+      ],
+    },
     cast: { p: { person: "rus_brusilov" } },
     salience: 2,
     tags: ["people"],
@@ -3355,21 +3406,27 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     when: {
       kind: "all",
       of: [
-        { kind: "world", of: { is: "war" } },
-        { kind: "world", of: { is: "date", to: "1916-12" } },
         {
-          kind: "any",
+          kind: "all",
           of: [
-            { kind: "world", of: { is: "date", from: "1916-01" } },
+            { kind: "world", of: { is: "war" } },
+            { kind: "world", of: { is: "date", to: "1916-12" } },
             {
-              kind: "all",
+              kind: "any",
               of: [
-                { kind: "memory", key: "k_brus_met" },
-                { kind: "world", of: { is: "date", from: "1915-10" } },
+                { kind: "world", of: { is: "date", from: "1916-01" } },
+                {
+                  kind: "all",
+                  of: [
+                    { kind: "memory", key: "k_brus_met" },
+                    { kind: "world", of: { is: "date", from: "1915-10" } },
+                  ],
+                },
               ],
             },
           ],
         },
+        { kind: "not", of: { kind: "seen", scene: "rus_w_april_council" } },
       ],
     },
     cast: { p: { person: "rus_brusilov" } },
@@ -3710,7 +3767,13 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
     id: "rus_t_brus_depots",
     nation: ["RUS"],
     kind: "talk",
-    when: { kind: "world", of: { is: "date", from: "1916-02", to: "1917-12" } },
+    when: {
+      kind: "all",
+      of: [
+        { kind: "world", of: { is: "date", from: "1916-02", to: "1917-12" } },
+        { kind: "not", of: { kind: "seen", scene: "rus_w_depots" } },
+      ],
+    },
     cast: { p: { person: "rus_brusilov" } },
     salience: 2,
     tags: ["people"],
@@ -4021,17 +4084,23 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
       kind: "all",
       of: [
         {
-          kind: "any",
+          kind: "all",
           of: [
-            { kind: "not", of: { kind: "world", of: { is: "command" } } },
-            { kind: "flag", flag: "f_rus_in_capital" },
+            {
+              kind: "any",
+              of: [
+                { kind: "not", of: { kind: "world", of: { is: "command" } } },
+                { kind: "flag", flag: "f_rus_in_capital" },
+              ],
+            },
+            { kind: "world", of: { is: "date", to: "1916-01" } },
+            {
+              kind: "not",
+              of: { kind: "holder", office: "war", person: "rus_polivanov" },
+            },
           ],
         },
-        { kind: "world", of: { is: "date", to: "1916-01" } },
-        {
-          kind: "not",
-          of: { kind: "holder", office: "war", person: "rus_polivanov" },
-        },
+        { kind: "not", of: { kind: "seen", scene: "rus_c_first_shells" } },
       ],
     },
     cast: { p: { person: "rus_polivanov" } },
@@ -4381,17 +4450,26 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
       kind: "all",
       of: [
         {
-          kind: "any",
+          kind: "all",
           of: [
-            { kind: "not", of: { kind: "world", of: { is: "command" } } },
-            { kind: "flag", flag: "f_rus_in_capital" },
+            {
+              kind: "any",
+              of: [
+                { kind: "not", of: { kind: "world", of: { is: "command" } } },
+                { kind: "flag", flag: "f_rus_in_capital" },
+              ],
+            },
+            {
+              kind: "world",
+              of: { is: "date", from: "1914-12", to: "1916-01" },
+            },
+            {
+              kind: "world",
+              of: { is: "front", theatre: "east", from: "vistula" },
+            },
           ],
         },
-        { kind: "world", of: { is: "date", from: "1914-12", to: "1916-01" } },
-        {
-          kind: "world",
-          of: { is: "front", theatre: "east", from: "vistula" },
-        },
+        { kind: "not", of: { kind: "seen", scene: "rus_w_gorlice" } },
       ],
     },
     cast: { p: { person: "rus_polivanov" } },
@@ -4541,14 +4619,23 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
       kind: "all",
       of: [
         {
-          kind: "any",
+          kind: "all",
           of: [
-            { kind: "not", of: { kind: "world", of: { is: "command" } } },
-            { kind: "flag", flag: "f_rus_in_capital" },
+            {
+              kind: "any",
+              of: [
+                { kind: "not", of: { kind: "world", of: { is: "command" } } },
+                { kind: "flag", flag: "f_rus_in_capital" },
+              ],
+            },
+            {
+              kind: "world",
+              of: { is: "date", from: "1914-12", to: "1916-01" },
+            },
+            { kind: "gauge", gauge: "shells", max: 1 },
           ],
         },
-        { kind: "world", of: { is: "date", from: "1914-12", to: "1916-01" } },
-        { kind: "gauge", gauge: "shells", max: 1 },
+        { kind: "not", of: { kind: "seen", scene: "rus_w_shell_famine" } },
       ],
     },
     cast: { p: { person: "rus_polivanov" } },
@@ -4689,15 +4776,27 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
       kind: "all",
       of: [
         {
-          kind: "any",
+          kind: "all",
           of: [
+            {
+              kind: "any",
+              of: [
+                { kind: "not", of: { kind: "world", of: { is: "command" } } },
+                { kind: "flag", flag: "f_rus_in_capital" },
+              ],
+            },
             { kind: "not", of: { kind: "world", of: { is: "command" } } },
-            { kind: "flag", flag: "f_rus_in_capital" },
+            {
+              kind: "world",
+              of: { is: "date", from: "1915-01", to: "1916-01" },
+            },
+            {
+              kind: "world",
+              of: { is: "front", theatre: "east", from: "warsaw" },
+            },
           ],
         },
-        { kind: "not", of: { kind: "world", of: { is: "command" } } },
-        { kind: "world", of: { is: "date", from: "1915-01", to: "1916-01" } },
-        { kind: "world", of: { is: "front", theatre: "east", from: "warsaw" } },
+        { kind: "not", of: { kind: "seen", scene: "rus_w_command" } },
       ],
     },
     cast: { p: { person: "rus_polivanov" } },
@@ -5367,14 +5466,23 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
       kind: "all",
       of: [
         {
-          kind: "any",
+          kind: "all",
           of: [
-            { kind: "not", of: { kind: "world", of: { is: "command" } } },
-            { kind: "flag", flag: "f_rus_in_capital" },
+            {
+              kind: "any",
+              of: [
+                { kind: "not", of: { kind: "world", of: { is: "command" } } },
+                { kind: "flag", flag: "f_rus_in_capital" },
+              ],
+            },
+            {
+              kind: "world",
+              of: { is: "date", from: "1915-03", to: "1916-01" },
+            },
+            { kind: "memory", key: "k_guch_met" },
           ],
         },
-        { kind: "world", of: { is: "date", from: "1915-03", to: "1916-01" } },
-        { kind: "memory", key: "k_guch_met" },
+        { kind: "not", of: { kind: "seen", scene: "rus_w_shell_famine" } },
       ],
     },
     cast: { p: { person: "rus_guchkov" } },
@@ -5504,14 +5612,23 @@ export const RUS_FRONT_SCENES: readonly GwScene[] = [
       kind: "all",
       of: [
         {
-          kind: "any",
+          kind: "all",
           of: [
-            { kind: "not", of: { kind: "world", of: { is: "command" } } },
-            { kind: "flag", flag: "f_rus_in_capital" },
+            {
+              kind: "any",
+              of: [
+                { kind: "not", of: { kind: "world", of: { is: "command" } } },
+                { kind: "flag", flag: "f_rus_in_capital" },
+              ],
+            },
+            {
+              kind: "world",
+              of: { is: "date", from: "1915-08", to: "1917-01" },
+            },
+            { kind: "memory", key: "k_guch_met" },
           ],
         },
-        { kind: "world", of: { is: "date", from: "1915-08", to: "1917-01" } },
-        { kind: "memory", key: "k_guch_met" },
+        { kind: "not", of: { kind: "seen", scene: "rus_h_war_industry" } },
       ],
     },
     cast: { p: { person: "rus_guchkov" } },

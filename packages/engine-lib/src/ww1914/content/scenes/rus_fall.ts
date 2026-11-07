@@ -2034,7 +2034,7 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
       scene: "rus_r_capital",
     },
     cast: {},
-    salience: 6,
+    salience: 8,
     tags: ["home"],
     once: true,
     stamp: "confirmed",
@@ -2043,6 +2043,37 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
       {
         id: "base",
       },
+    ],
+  },
+  {
+    id: "rus_r_capital_after",
+    nation: ["RUS"],
+    kind: "report",
+    stage: ["war"],
+    when: {
+      kind: "all",
+      of: [
+        { kind: "seen", scene: "rus_r_capital" },
+        { kind: "not", of: { kind: "seen", scene: "rus_r_train" } },
+        { kind: "world", of: { is: "unrest", max: 2 } },
+      ],
+    },
+    cast: {},
+    salience: 8,
+    tags: ["home", "tension_down"],
+    once: true,
+    stamp: "confirmed",
+    source: "agents",
+    variants: [
+      {
+        id: "bread",
+        when: { kind: "chose", scene: "rus_r_capital", pick: "bread_first" },
+      },
+      {
+        id: "cabinet",
+        when: { kind: "chose", scene: "rus_r_capital", pick: "cabinet_now" },
+      },
+      { id: "base" },
     ],
   },
   {
@@ -5093,42 +5124,48 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
       kind: "all",
       of: [
         {
-          kind: "world",
-          of: {
-            is: "era",
-            of: ["trenches"],
-          },
-        },
-        {
-          kind: "gauge",
-          gauge: "shells",
-          max: 1,
-        },
-        {
-          kind: "world",
-          of: {
-            is: "regime",
-            of: ["tsar", "crown"],
-          },
-        },
-        {
-          kind: "any",
+          kind: "all",
           of: [
             {
-              kind: "not",
+              kind: "world",
               of: {
-                kind: "world",
-                of: {
-                  is: "command",
-                },
+                is: "era",
+                of: ["trenches"],
               },
             },
             {
-              kind: "flag",
-              flag: "f_rus_in_capital",
+              kind: "gauge",
+              gauge: "shells",
+              max: 1,
+            },
+            {
+              kind: "world",
+              of: {
+                is: "regime",
+                of: ["tsar", "crown"],
+              },
+            },
+            {
+              kind: "any",
+              of: [
+                {
+                  kind: "not",
+                  of: {
+                    kind: "world",
+                    of: {
+                      is: "command",
+                    },
+                  },
+                },
+                {
+                  kind: "flag",
+                  flag: "f_rus_in_capital",
+                },
+              ],
             },
           ],
         },
+        { kind: "not", of: { kind: "seen", scene: "rus_w_shell_famine" } },
       ],
     },
     cast: {
@@ -5341,37 +5378,43 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
       kind: "all",
       of: [
         {
-          kind: "world",
-          of: {
-            is: "era",
-            of: ["trenches"],
-          },
-        },
-        {
-          kind: "world",
-          of: {
-            is: "regime",
-            of: ["tsar"],
-          },
-        },
-        {
-          kind: "any",
+          kind: "all",
           of: [
             {
-              kind: "not",
+              kind: "world",
               of: {
-                kind: "world",
-                of: {
-                  is: "command",
-                },
+                is: "era",
+                of: ["trenches"],
               },
             },
             {
-              kind: "flag",
-              flag: "f_rus_in_capital",
+              kind: "world",
+              of: {
+                is: "regime",
+                of: ["tsar"],
+              },
+            },
+            {
+              kind: "any",
+              of: [
+                {
+                  kind: "not",
+                  of: {
+                    kind: "world",
+                    of: {
+                      is: "command",
+                    },
+                  },
+                },
+                {
+                  kind: "flag",
+                  flag: "f_rus_in_capital",
+                },
+              ],
             },
           ],
         },
+        { kind: "not", of: { kind: "seen", scene: "rus_h_bloc" } },
       ],
     },
     cast: {
@@ -6266,50 +6309,56 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
       kind: "all",
       of: [
         {
-          kind: "world",
-          of: {
-            is: "era",
-            of: ["movement", "trenches"],
-          },
-        },
-        {
-          kind: "world",
-          of: {
-            is: "regime",
-            of: ["tsar"],
-          },
-        },
-        {
-          kind: "any",
+          kind: "all",
           of: [
             {
-              kind: "seen",
-              scene: "rus_h_bloc",
-            },
-            {
-              kind: "memory",
-              key: "k_rodz_session",
-            },
-          ],
-        },
-        {
-          kind: "any",
-          of: [
-            {
-              kind: "not",
+              kind: "world",
               of: {
-                kind: "world",
-                of: {
-                  is: "command",
-                },
+                is: "era",
+                of: ["movement", "trenches"],
               },
             },
             {
-              kind: "flag",
-              flag: "f_rus_in_capital",
+              kind: "world",
+              of: {
+                is: "regime",
+                of: ["tsar"],
+              },
+            },
+            {
+              kind: "any",
+              of: [
+                {
+                  kind: "seen",
+                  scene: "rus_h_bloc",
+                },
+                {
+                  kind: "memory",
+                  key: "k_rodz_session",
+                },
+              ],
+            },
+            {
+              kind: "any",
+              of: [
+                {
+                  kind: "not",
+                  of: {
+                    kind: "world",
+                    of: {
+                      is: "command",
+                    },
+                  },
+                },
+                {
+                  kind: "flag",
+                  flag: "f_rus_in_capital",
+                },
+              ],
             },
           ],
         },
+        { kind: "not", of: { kind: "seen", scene: "rus_h_peace_heir" } },
       ],
     },
     cast: {
@@ -6807,41 +6856,47 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
       kind: "all",
       of: [
         {
-          kind: "world",
-          of: {
-            is: "era",
-            of: ["trenches"],
-          },
-        },
-        {
-          kind: "memory",
-          key: "k_mil_met",
-        },
-        {
-          kind: "world",
-          of: {
-            is: "regime",
-            of: ["tsar"],
-          },
-        },
-        {
-          kind: "any",
+          kind: "all",
           of: [
             {
-              kind: "not",
+              kind: "world",
               of: {
-                kind: "world",
-                of: {
-                  is: "command",
-                },
+                is: "era",
+                of: ["trenches"],
               },
             },
             {
-              kind: "flag",
-              flag: "f_rus_in_capital",
+              kind: "memory",
+              key: "k_mil_met",
+            },
+            {
+              kind: "world",
+              of: {
+                is: "regime",
+                of: ["tsar"],
+              },
+            },
+            {
+              kind: "any",
+              of: [
+                {
+                  kind: "not",
+                  of: {
+                    kind: "world",
+                    of: {
+                      is: "command",
+                    },
+                  },
+                },
+                {
+                  kind: "flag",
+                  flag: "f_rus_in_capital",
+                },
+              ],
             },
           ],
         },
+        { kind: "not", of: { kind: "seen", scene: "rus_h_bloc" } },
       ],
     },
     cast: {
@@ -7036,41 +7091,47 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
       kind: "all",
       of: [
         {
-          kind: "world",
-          of: {
-            is: "era",
-            of: ["material"],
-          },
-        },
-        {
-          kind: "memory",
-          key: "k_mil_met",
-        },
-        {
-          kind: "world",
-          of: {
-            is: "regime",
-            of: ["tsar", "crown"],
-          },
-        },
-        {
-          kind: "any",
+          kind: "all",
           of: [
             {
-              kind: "not",
+              kind: "world",
               of: {
-                kind: "world",
-                of: {
-                  is: "command",
-                },
+                is: "era",
+                of: ["material"],
               },
             },
             {
-              kind: "flag",
-              flag: "f_rus_in_capital",
+              kind: "memory",
+              key: "k_mil_met",
+            },
+            {
+              kind: "world",
+              of: {
+                is: "regime",
+                of: ["tsar", "crown"],
+              },
+            },
+            {
+              kind: "any",
+              of: [
+                {
+                  kind: "not",
+                  of: {
+                    kind: "world",
+                    of: {
+                      is: "command",
+                    },
+                  },
+                },
+                {
+                  kind: "flag",
+                  flag: "f_rus_in_capital",
+                },
+              ],
             },
           ],
         },
+        { kind: "not", of: { kind: "seen", scene: "rus_h_poland_charter" } },
       ],
     },
     cast: {
@@ -7282,46 +7343,52 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
       kind: "all",
       of: [
         {
-          kind: "world",
-          of: {
-            is: "era",
-            of: ["material"],
-          },
-        },
-        {
-          kind: "memory",
-          key: "k_mil_met",
-        },
-        {
-          kind: "world",
-          of: {
-            is: "regime",
-            of: ["tsar"],
-          },
-        },
-        {
-          kind: "inst",
-          inst: "duma",
-          max: 0,
-        },
-        {
-          kind: "any",
+          kind: "all",
           of: [
             {
-              kind: "not",
+              kind: "world",
               of: {
-                kind: "world",
-                of: {
-                  is: "command",
-                },
+                is: "era",
+                of: ["material"],
               },
             },
             {
-              kind: "flag",
-              flag: "f_rus_in_capital",
+              kind: "memory",
+              key: "k_mil_met",
+            },
+            {
+              kind: "world",
+              of: {
+                is: "regime",
+                of: ["tsar"],
+              },
+            },
+            {
+              kind: "inst",
+              inst: "duma",
+              max: 0,
+            },
+            {
+              kind: "any",
+              of: [
+                {
+                  kind: "not",
+                  of: {
+                    kind: "world",
+                    of: {
+                      is: "command",
+                    },
+                  },
+                },
+                {
+                  kind: "flag",
+                  flag: "f_rus_in_capital",
+                },
+              ],
             },
           ],
         },
+        { kind: "not", of: { kind: "seen", scene: "rus_r_treason" } },
       ],
     },
     cast: {
@@ -8022,32 +8089,38 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
       kind: "all",
       of: [
         {
-          kind: "chapter",
-          min: 3,
-          max: 5,
-        },
-        {
-          kind: "memory",
-          key: "k_ker_met",
-        },
-        {
-          kind: "any",
+          kind: "all",
           of: [
             {
-              kind: "not",
-              of: {
-                kind: "world",
-                of: {
-                  is: "command",
-                },
-              },
+              kind: "chapter",
+              min: 3,
+              max: 5,
             },
             {
-              kind: "flag",
-              flag: "f_rus_in_capital",
+              kind: "memory",
+              key: "k_ker_met",
+            },
+            {
+              kind: "any",
+              of: [
+                {
+                  kind: "not",
+                  of: {
+                    kind: "world",
+                    of: {
+                      is: "command",
+                    },
+                  },
+                },
+                {
+                  kind: "flag",
+                  flag: "f_rus_in_capital",
+                },
+              ],
             },
           ],
         },
+        { kind: "not", of: { kind: "seen", scene: "rus_c_balcony" } },
       ],
     },
     cast: {
@@ -8259,41 +8332,47 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
       kind: "all",
       of: [
         {
-          kind: "world",
-          of: {
-            is: "era",
-            of: ["material", "depth", "storm"],
-          },
-        },
-        {
-          kind: "memory",
-          key: "k_ker_met",
-        },
-        {
-          kind: "world",
-          of: {
-            is: "regime",
-            of: ["tsar", "crown"],
-          },
-        },
-        {
-          kind: "any",
+          kind: "all",
           of: [
             {
-              kind: "not",
+              kind: "world",
               of: {
-                kind: "world",
-                of: {
-                  is: "command",
-                },
+                is: "era",
+                of: ["material", "depth", "storm"],
               },
             },
             {
-              kind: "flag",
-              flag: "f_rus_in_capital",
+              kind: "memory",
+              key: "k_ker_met",
+            },
+            {
+              kind: "world",
+              of: {
+                is: "regime",
+                of: ["tsar", "crown"],
+              },
+            },
+            {
+              kind: "any",
+              of: [
+                {
+                  kind: "not",
+                  of: {
+                    kind: "world",
+                    of: {
+                      is: "command",
+                    },
+                  },
+                },
+                {
+                  kind: "flag",
+                  flag: "f_rus_in_capital",
+                },
+              ],
             },
           ],
         },
+        { kind: "not", of: { kind: "seen", scene: "rus_w_depots" } },
       ],
     },
     cast: {
@@ -8773,19 +8852,25 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
       kind: "all",
       of: [
         {
-          kind: "world",
-          of: {
-            is: "era",
-            of: ["depth", "storm"],
-          },
+          kind: "all",
+          of: [
+            {
+              kind: "world",
+              of: {
+                is: "era",
+                of: ["depth", "storm"],
+              },
+            },
+            {
+              kind: "world",
+              of: {
+                is: "regime",
+                of: ["provisional", "rep"],
+              },
+            },
+          ],
         },
-        {
-          kind: "world",
-          of: {
-            is: "regime",
-            of: ["provisional", "rep"],
-          },
-        },
+        { kind: "not", of: { kind: "seen", scene: "rus_r_offensive" } },
       ],
     },
     cast: {
@@ -9539,49 +9624,55 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
       kind: "all",
       of: [
         {
-          kind: "world",
-          of: {
-            is: "era",
-            of: ["material"],
-          },
-        },
-        {
-          kind: "seen",
-          scene: "rus_r_sturmer",
-        },
-        {
-          kind: "world",
-          of: {
-            is: "regime",
-            of: ["tsar", "crown"],
-          },
-        },
-        {
-          kind: "not",
-          of: {
-            kind: "holder",
-            office: "interior",
-            person: "rus_protopopov",
-          },
-        },
-        {
-          kind: "any",
+          kind: "all",
           of: [
             {
-              kind: "not",
+              kind: "world",
               of: {
-                kind: "world",
-                of: {
-                  is: "command",
-                },
+                is: "era",
+                of: ["material"],
               },
             },
             {
-              kind: "flag",
-              flag: "f_rus_in_capital",
+              kind: "seen",
+              scene: "rus_r_sturmer",
+            },
+            {
+              kind: "world",
+              of: {
+                is: "regime",
+                of: ["tsar", "crown"],
+              },
+            },
+            {
+              kind: "not",
+              of: {
+                kind: "holder",
+                office: "interior",
+                person: "rus_protopopov",
+              },
+            },
+            {
+              kind: "any",
+              of: [
+                {
+                  kind: "not",
+                  of: {
+                    kind: "world",
+                    of: {
+                      is: "command",
+                    },
+                  },
+                },
+                {
+                  kind: "flag",
+                  flag: "f_rus_in_capital",
+                },
+              ],
             },
           ],
         },
+        { kind: "not", of: { kind: "seen", scene: "rus_r_protopopov" } },
       ],
     },
     cast: {
@@ -9782,35 +9873,41 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
       kind: "all",
       of: [
         {
-          kind: "world",
-          of: {
-            is: "era",
-            of: ["material"],
-          },
-        },
-        {
-          kind: "holder",
-          office: "interior",
-          person: "rus_protopopov",
-        },
-        {
-          kind: "any",
+          kind: "all",
           of: [
             {
-              kind: "not",
+              kind: "world",
               of: {
-                kind: "world",
-                of: {
-                  is: "command",
-                },
+                is: "era",
+                of: ["material"],
               },
             },
             {
-              kind: "flag",
-              flag: "f_rus_in_capital",
+              kind: "holder",
+              office: "interior",
+              person: "rus_protopopov",
+            },
+            {
+              kind: "any",
+              of: [
+                {
+                  kind: "not",
+                  of: {
+                    kind: "world",
+                    of: {
+                      is: "command",
+                    },
+                  },
+                },
+                {
+                  kind: "flag",
+                  flag: "f_rus_in_capital",
+                },
+              ],
             },
           ],
         },
+        { kind: "not", of: { kind: "seen", scene: "rus_r_treason" } },
       ],
     },
     cast: {
@@ -10215,35 +10312,41 @@ export const RUS_FALL_SCENES: readonly GwScene[] = [
       kind: "all",
       of: [
         {
-          kind: "world",
-          of: {
-            is: "era",
-            of: ["depth", "storm"],
-          },
-        },
-        {
-          kind: "holder",
-          office: "interior",
-          person: "rus_protopopov",
-        },
-        {
-          kind: "any",
+          kind: "all",
           of: [
             {
-              kind: "not",
+              kind: "world",
               of: {
-                kind: "world",
-                of: {
-                  is: "command",
-                },
+                is: "era",
+                of: ["depth", "storm"],
               },
             },
             {
-              kind: "flag",
-              flag: "f_rus_in_capital",
+              kind: "holder",
+              office: "interior",
+              person: "rus_protopopov",
+            },
+            {
+              kind: "any",
+              of: [
+                {
+                  kind: "not",
+                  of: {
+                    kind: "world",
+                    of: {
+                      is: "command",
+                    },
+                  },
+                },
+                {
+                  kind: "flag",
+                  flag: "f_rus_in_capital",
+                },
+              ],
             },
           ],
         },
+        { kind: "not", of: { kind: "seen", scene: "rus_r_capital" } },
       ],
     },
     cast: {
