@@ -358,7 +358,12 @@ function draw(
   const target = limit ?? deskTarget(gw) + beside;
   const max = limit ?? GW_DESK_MAX + beside;
   const placed = () => picked.filter((x) => !isRead(x)).length;
-  while (placed() < max) {
+  // A first game's small desk keeps a place for the news that started it.
+  const news = left.some(
+    (c) => c.scene.kind === "wire" && c.scene.salience >= GW_SALIENCE_MUST,
+  );
+  const decisions = limit !== null && news ? max - 1 : max;
+  while (placed() < decisions) {
     const open = left.filter(
       (c) =>
         !isRead(c.scene) &&
