@@ -23,7 +23,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, test } from "vitest";
 import { HUMAN, step, wwRunnerCapture } from "../ww1936/util";
-import { seat, view } from "./util";
+import { order, playChapter, seat, view } from "./util";
 
 const read = async (f: string) =>
   JSON.parse(
@@ -109,6 +109,26 @@ describe("Britain's own schedule and story", () => {
   test("a nation on the shelf doesn't", async () => {
     const r = await britain(["GBR"]);
     expect(seat(r).desk.map((c) => c.scene)).not.toContain("gbr_big_first");
+  });
+
+  test("a letter out comes back as the Tsar's answer, picked subject and all", async () => {
+    const r = await britain();
+    order(r, { kind: "act", act: "gbr_a_l_nicky", picks: ["family", "warm"] });
+    playChapter(r);
+    const card = seat(r).desk.find((c) => c.scene === "gbr_a_l_nicky_r");
+    expect(card, "reply on the desk").toBeDefined();
+    expect(["family_fit", "base"]).toContain(card!.variant);
+  });
+
+  test("two ministers set on each other show in the card", async () => {
+    const r = await britain();
+    const a = seat(r).acts!.find((x) => x.id === "gbr_a_i_set_on")!;
+    const [one, two] = a.fields[0].people;
+    order(r, { kind: "act", act: "gbr_a_i_set_on", picks: [one, two] });
+    playChapter(r);
+    const card = seat(r).desk.find((c) => c.scene === "gbr_a_i_set_on_r");
+    expect(card!.cast.a).toBe(one);
+    expect(card!.cast.b).toBe(two);
   });
 
   test("the schedule opens with entries a Prime Minister can take", async () => {

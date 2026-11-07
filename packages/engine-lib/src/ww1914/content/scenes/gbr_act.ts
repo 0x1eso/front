@@ -398,8 +398,8 @@ const VISITS: GwScene[] = [
   ]),
   seenCard("gbr_a_seat_v", {}, [
     v("lg", lg),
-    v("lists", all(war, heavy)),
-    v("war", war),
+    v("lists", all(notLg, war, heavy)),
+    v("war", all(notLg, war)),
     v("base"),
   ]),
 ];
@@ -1173,6 +1173,9 @@ const big = (
 const b = [v("base")];
 const opening = (...of: GwOpening[]): GwCond => ({ kind: "opening", of });
 
+/** Two big scenes in two weeks: the draw's spacing would hold this one back. */
+const toSunday = schedule("gbr_big_sunday", 1);
+
 const BIG_SCENES: GwScene[] = [
   big(
     "gbr_big_first",
@@ -1250,7 +1253,7 @@ const BIG_SCENES: GwScene[] = [
   ),
   big(
     "gbr_big_nicky",
-    all(crisis, tempAt(7), chapters(3, 4), not(atDeu)),
+    all(crisis, tempAt(5), chapters(4, 4), not(atDeu)),
     { fm: holder("foreign"), king: { person: "gbr_george_v" } },
     "fm",
     {
@@ -1311,11 +1314,11 @@ const BIG_SCENES: GwScene[] = [
         "only_nicky",
       ),
       n6: alone(b, [
-        decide("read_cabinet", null, [cabinet(1)], ["cabinet:+1"]),
+        decide("read_cabinet", null, [cabinet(1), toSunday], ["cabinet:+1"]),
         decide(
           "keep_it",
           null,
-          [authority(1), cabinet(-1), remember("m_gbr_nicky_kept")],
+          [authority(1), cabinet(-1), remember("m_gbr_nicky_kept"), toSunday],
           ["authority:+1", "cabinet:-1"],
         ),
       ]),
@@ -1325,7 +1328,7 @@ const BIG_SCENES: GwScene[] = [
   ),
   big(
     "gbr_big_sunday",
-    all(crisis, tempAt(7), chapters(4, 5), not(atDeu)),
+    all(crisis, tempAt(6), chapters(5, 5), not(atDeu)),
     {
       fm: holder("foreign"),
       fin: holder("finance"),
@@ -1469,7 +1472,7 @@ const BIG_SCENES: GwScene[] = [
     ),
     {
       fin: holder("finance"),
-      war: holder("war"),
+      war: { any_of: [{ office: "war" }, { office: "foreign" }] },
       law: { person: "gbr_bonar_law" },
     },
     "war",
@@ -1586,7 +1589,10 @@ const BIG_SCENES: GwScene[] = [
     },
     "law",
     {
-      n1: alone(b, [decide("read_leader", "n2")]),
+      n1: alone(
+        [v("raymond", seen("gbr_h_raymond")), v("base")],
+        [decide("read_leader", "n2")],
+      ),
       n2: at(
         "law",
         b,
@@ -1690,16 +1696,14 @@ const BIG_SCENES: GwScene[] = [
     all(
       war,
       world({ is: "date", from: "1918-03", to: "1918-06" }),
-      world({
-        is: "battle",
-        theatre: "west",
-        of: ["break", "advance"],
-        by: "foe",
-      }),
+      any(
+        world({ is: "battle", theatre: "west", of: ["break", "advance"] }),
+        world({ is: "out", tag: "RUS" }),
+      ),
     ),
     {
       cos: holder("chief_of_staff"),
-      war: holder("war"),
+      war: { any_of: [{ office: "war" }, { office: "foreign" }] },
       king: { person: "gbr_george_v" },
     },
     "cos",
@@ -1772,7 +1776,10 @@ const QUIET_CARDS: GwScene[] = [
     v("spoke", chose("gbr_big_dublin", "speak_prisoners")),
     v("base"),
   ]),
-  silent("gbr_big_december_quiet", [v("base")]),
+  silent("gbr_big_december_quiet", [
+    v("raymond", seen("gbr_h_raymond")),
+    v("base"),
+  ]),
   silent("gbr_big_wheat_quiet", [
     v("paper", chose("gbr_big_wheat", "take_paper")),
     v("base"),
@@ -1798,26 +1805,27 @@ const sign = (id: string, when: GwCond): GwScene => ({
   tags: ["people"],
   variants: [v("base")],
 });
+const notHeld = not({ kind: "rival_act", of: ["embrace"] });
 const closed = (end: "reconciled" | "broken" | "prevailed"): GwEffect => ({
   kind: "rival_end",
   end,
 });
 
 const RIVAL_SCENES: GwScene[] = [
-  sign("gbr_r_sign_dinner", all(rivalStage(1, 1), chapters(1))),
+  sign("gbr_r_sign_dinner", all(rivalStage(1, 2), notHeld, chapters(1))),
   sign(
     "gbr_r_sign_paper",
-    all(rivalStage(1, 1), chapters(3), seen("gbr_r_sign_dinner")),
+    all(rivalStage(1, 2), notHeld, chapters(2), seen("gbr_r_sign_dinner")),
   ),
   sign(
     "gbr_r_sign_joke",
-    all(rivalStage(1, 1), chapters(7), seen("gbr_r_sign_paper")),
+    all(rivalStage(1, 3), notHeld, chapters(4), seen("gbr_r_sign_paper")),
   ),
   {
     id: "gbr_r_gather",
     nation: NATION,
     kind: "audience",
-    when: rivalStage(2, 2),
+    when: all(rivalStage(2, 3), seen("gbr_r_sign_paper")),
     once: true,
     cast: { rival_man, whip: holder("foreign") },
     author: "whip",
@@ -1913,7 +1921,7 @@ const RIVAL_SCENES: GwScene[] = [
     id: "gbr_r_clash",
     nation: NATION,
     kind: "crisis",
-    when: rivalStage(3),
+    when: all(rivalStage(3), seen("gbr_r_gather")),
     once: true,
     cast: { rival_man },
     salience: 8,
