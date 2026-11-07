@@ -117,7 +117,7 @@ export function optionText(
   const scene = pack?.scenes[card.scene];
   if (card.node !== null) return scene?.nodes?.[card.node]?.replies[id] ?? id;
   // Some shares wrote the lead of an option in **; the button shows plain text.
-  return (scene?.opt?.[id] ?? id).replaceAll("**", "");
+  return (scene?.opt?.[id] ?? id).replace(/\*\*/g, "");
 }
 
 /** Each cast member's own paragraph on this card, in cast order. */
