@@ -5,7 +5,7 @@
 import { z } from "zod";
 import { GwBudgetStateSchema } from "./GwBudget";
 import { GW_TAGS } from "./GwCountries";
-import { GwPressStateSchema } from "./GwPress";
+import { gwPressStart, GwPressStateSchema } from "./GwPress";
 
 /** A content id: scene, person, flag, memory key. */
 export const GwIdSchema = z
@@ -778,8 +778,8 @@ export const GwSeatStateSchema = z.object({
   /** Why the gauges moved, last chapters first dropped. */
   lines: z.array(GwLineSchema),
   memoir: GwMemoirSchema.nullable(),
-  /** The censor, the rumour, the papers (engine/ww1914/Press). */
-  press: GwPressStateSchema,
+  /** The censor, the rumour, the papers (engine/ww1914/Press). A save from before it has none. */
+  press: GwPressStateSchema.default(gwPressStart),
 });
 export type GwSeatState = z.infer<typeof GwSeatStateSchema>;
 
