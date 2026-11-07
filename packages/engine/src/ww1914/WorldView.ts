@@ -18,10 +18,10 @@ import type {
   GwWorldView,
 } from "@openfront/engine-api/ww1914/GwWorldView";
 import { budgetView } from "./Budget";
-import { lawViews } from "./Laws";
 import { eraOf } from "./Eras";
 import { ownFronts, proposalsFor } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
+import { lawViews } from "./Laws";
 import { candidatesFor, dismissPrice } from "./People";
 import { pressView } from "./Press";
 import { GW_ACTORS } from "./Tables";

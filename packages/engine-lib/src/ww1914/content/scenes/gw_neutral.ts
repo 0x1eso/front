@@ -50,7 +50,8 @@ const REGIMES: Readonly<Partial<Record<GwTag, readonly string[]>>> = {
   ],
   RUS: ["tsar", "crown", "regency", "rep", "provisional"],
 };
-const seatIs = (tag: GwTag) => w({ is: "regime", of: [...(REGIMES[tag] ?? [])] });
+const seatIs = (tag: GwTag) =>
+  w({ is: "regime", of: [...(REGIMES[tag] ?? [])] });
 
 const dated = (from: string, to: string) => w({ is: "date", from, to });
 const neutral = (tag: GwTag) => w({ is: "neutral", tag });

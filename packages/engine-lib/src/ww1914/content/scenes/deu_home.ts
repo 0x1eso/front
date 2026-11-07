@@ -1363,7 +1363,11 @@ const HELF_TALKS: readonly GwScene[] = [
     grain: node(
       [v("straight", candid(who)), v("base")],
       r("note", "cold", "leave", null, {
-        effects: [remember("m_food_books"), doWorld({ do: "reveal", id: "deu_food_books" }), reason("h_books_found")],
+        effects: [
+          remember("m_food_books"),
+          doWorld({ do: "reveal", id: "deu_food_books" }),
+          reason("h_books_found"),
+        ],
       }),
       bye("drop", "warm"),
     ),

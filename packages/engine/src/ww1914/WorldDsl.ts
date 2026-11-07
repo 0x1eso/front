@@ -26,8 +26,8 @@ import { signChief, warScore } from "./Fronts";
 import { govBeaten, govHeat, govHeatBy, govSoon, pollOf } from "./Government";
 import { sendReport } from "./Intel";
 import {
-  lawCount,
   lawCanDecree,
+  lawCount,
   lawDecree,
   lawHold,
   lawPut,

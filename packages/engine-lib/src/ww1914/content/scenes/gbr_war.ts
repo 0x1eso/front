@@ -900,7 +900,12 @@ export const GBR_WAR_SCENES: readonly GwScene[] = [
     id: "gbr_w_naval_only",
     kind: "dispute",
     stage: WAR,
-    when: all(war, during("15a", "15b"), flag("f_straits_chosen"), open("straits")),
+    when: all(
+      war,
+      during("15a", "15b"),
+      flag("f_straits_chosen"),
+      open("straits"),
+    ),
     cast: { navy: holder("navy"), sea_lord: holder("sea_lord") },
     salience: 8,
     tags: ["war", "tension_up"],

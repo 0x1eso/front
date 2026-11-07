@@ -11,13 +11,14 @@ import {
   GwSecret,
   GwTheatre,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
-import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
 import { budgetStart } from "@openfront/engine-lib/ww1914/BudgetRules";
+import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { openChapter } from "./Chapters";
 import { openFirstCrisis } from "./Crises";
 import type { GreatWar } from "./GreatWar";
 import { GW_MANDATES } from "./Mandates";
+import { rollRuler } from "./Ruler";
 import {
   GW_ENTRIES,
   GW_FORCE,
@@ -25,7 +26,6 @@ import {
   GW_MANPOWER,
   GW_OPENING_DEAD,
 } from "./Tables";
-import { rollRuler } from "./Ruler";
 import { clampTo } from "./World";
 
 const P_OPENING = idHash("gw_opening");

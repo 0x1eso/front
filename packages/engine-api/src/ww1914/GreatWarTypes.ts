@@ -4,8 +4,8 @@
 // field needs no plumbing. Never store undefined: use null. Integers only.
 import { z } from "zod";
 import { GwBudgetStateSchema } from "./GwBudget";
-import { GwLawStateSchema } from "./GwLaw";
 import { GW_TAGS } from "./GwCountries";
+import { GwLawStateSchema } from "./GwLaw";
 import { gwPressStart, GwPressStateSchema } from "./GwPress";
 import { GwRulerStateSchema } from "./GwRuler";
 
