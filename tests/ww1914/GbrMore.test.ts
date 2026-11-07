@@ -2,6 +2,8 @@ import { GameType } from "@openfront/engine-api/game/GameTypes";
 import { gwSceneProblems } from "@openfront/engine-api/ww1914/SceneDsl";
 import { gwContent } from "@openfront/engine-lib/ww1914/content/Content";
 import { seatEntry } from "@openfront/engine/ww1914/Ai";
+import { GW_MANDATES } from "@openfront/engine/ww1914/Mandates";
+import { holds } from "@openfront/engine/ww1914/SceneRun";
 import { describe, expect, test } from "vitest";
 import { HUMAN, step, wwRunnerCapture } from "../ww1936/util";
 import { order, seat } from "./util";
@@ -53,6 +55,16 @@ describe("Britain, the replay share", () => {
     gw.s.chapter += 4;
     seatEntry(gw);
     expect(asks()).toBe(1);
+  });
+
+  test("a Belgium never invaded isn't a mandate failed", async () => {
+    const { gw, st } = await britain();
+    const m = GW_MANDATES.GBR!.find((x) => x.id === "gbr_belgium_restored")!;
+    const ctx = { gw, seat: st, cast: {} };
+    expect(holds(ctx, m.met)).toBe(true);
+    gw.nation("BEL")!.side = "entente";
+    gw.s.theatres.find((t) => t.id === "west")!.line = 3;
+    expect(holds(ctx, m.met)).toBe(false);
   });
 
   test("the late ultimatum goes once", () => {
