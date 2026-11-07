@@ -192,7 +192,8 @@ export function memoirTab(c: GwCtx): TemplateResult {
   // other chapter of a game: the record keeps what happened.
   const record = logByChapter(
     seat.log.filter(
-      (r) => !/^(talk_(fit|clash)_|rival_resents$|report_corrected$)/.test(r.key),
+      (r) =>
+        !/^(talk_(fit|clash)_|rival_resents$|report_corrected$)/.test(r.key),
     ),
   ).reverse();
   return html`<div class="space-y-3" data-gw-memoir>
