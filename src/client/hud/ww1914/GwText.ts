@@ -145,7 +145,7 @@ function withWho(text: string, pack: GwPack | null, who?: string | null) {
 export function reasonText(pack: GwPack | null, r: GwReason): string {
   const line = pack?.reasons?.[r.key];
   if (line !== undefined) return withWho(line, pack, r.who);
-  return translateText(`gw.reason.${r.key}`);
+  return withWho(translateText(`gw.reason.${r.key}`), pack, r.who);
 }
 
 /** A promise as the people screen lists it. */
