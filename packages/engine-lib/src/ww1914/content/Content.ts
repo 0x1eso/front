@@ -57,7 +57,7 @@ export const GW_CONTENT: GwContent = {
       .map(withSummerWar),
     ...DEU_BACK_SCENES,
     ...WORLD_SCENES,
-    ...WARTIME_SCENES,
+    ...withAuhBodies(WARTIME_SCENES),
     ...[
       ...withAuhBodies([
         ...AUH_CRISIS_SCENES,

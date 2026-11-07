@@ -237,9 +237,13 @@ const BODIES: Readonly<Record<string, GwBodies>> = {
       {
         id: "b2",
       },
+      {
+        id: "b3",
+      },
     ],
     starts: {
       b2: "b2",
+      b3: "b3",
     },
     nodes: {
       b2: {
@@ -284,6 +288,29 @@ const BODIES: Readonly<Record<string, GwBodies>> = {
             stance: "frank",
             kind: "leave",
             next: null,
+            tell: [],
+            effects: [],
+          },
+        ],
+      },
+      b3: {
+        replies: [
+          {
+            id: "thanks",
+            stance: "warm",
+            kind: "leave",
+            next: null,
+            tell: [],
+            effects: [],
+          },
+          {
+            same: "take",
+          },
+          {
+            id: "why",
+            stance: "frank",
+            kind: "ask",
+            next: "why",
             tell: [],
             effects: [],
           },
@@ -365,9 +392,13 @@ const BODIES: Readonly<Record<string, GwBodies>> = {
       {
         id: "b2",
       },
+      {
+        id: "b3",
+      },
     ],
     starts: {
       b2: "b2",
+      b3: "b3",
     },
     nodes: {
       b2: {
@@ -396,6 +427,34 @@ const BODIES: Readonly<Record<string, GwBodies>> = {
           },
         ],
       },
+      b3: {
+        replies: [
+          {
+            id: "rebuked",
+            stance: "frank",
+            kind: "ask",
+            next: "wants",
+            tell: [],
+            effects: [
+              {
+                kind: "remember",
+                key: "k_tsch_push",
+              },
+            ],
+          },
+          {
+            same: "deal",
+          },
+          {
+            id: "end",
+            stance: "cold",
+            kind: "leave",
+            next: null,
+            tell: [],
+            effects: [],
+          },
+        ],
+      },
     },
   },
   auh_t_tisza_romania: {
@@ -403,9 +462,13 @@ const BODIES: Readonly<Record<string, GwBodies>> = {
       {
         id: "b2",
       },
+      {
+        id: "b3",
+      },
     ],
     starts: {
       b2: "b2",
+      b3: "b3",
     },
     nodes: {
       b2: {
@@ -440,6 +503,29 @@ const BODIES: Readonly<Record<string, GwBodies>> = {
             next: null,
             tell: [],
             effects: [],
+          },
+        ],
+      },
+      b3: {
+        replies: [
+          {
+            id: "medal",
+            stance: "warm",
+            kind: "ask",
+            next: "want",
+            tell: [],
+            effects: [
+              {
+                kind: "remember",
+                key: "k_tisza_romania",
+              },
+            ],
+          },
+          {
+            same: "deal",
+          },
+          {
+            same: "leave",
           },
         ],
       },
@@ -793,9 +879,13 @@ const BODIES: Readonly<Record<string, GwBodies>> = {
       {
         id: "b2",
       },
+      {
+        id: "b3",
+      },
     ],
     starts: {
       b2: "b2",
+      b3: "b3",
     },
     nodes: {
       b2: {
@@ -805,6 +895,19 @@ const BODIES: Readonly<Record<string, GwBodies>> = {
           },
           {
             same: "line",
+          },
+          {
+            same: "leave",
+          },
+        ],
+      },
+      b3: {
+        replies: [
+          {
+            same: "health",
+          },
+          {
+            same: "push",
           },
           {
             same: "leave",
@@ -849,9 +952,13 @@ const BODIES: Readonly<Record<string, GwBodies>> = {
       {
         id: "b2",
       },
+      {
+        id: "b3",
+      },
     ],
     starts: {
       b2: "b2",
+      b3: "b3",
     },
     nodes: {
       b2: {
@@ -893,6 +1000,19 @@ const BODIES: Readonly<Record<string, GwBodies>> = {
           },
         ],
       },
+      b3: {
+        replies: [
+          {
+            same: "ask",
+          },
+          {
+            same: "deal",
+          },
+          {
+            same: "leave",
+          },
+        ],
+      },
     },
   },
   auh_t_bil_bill: {
@@ -900,9 +1020,13 @@ const BODIES: Readonly<Record<string, GwBodies>> = {
       {
         id: "b2",
       },
+      {
+        id: "b3",
+      },
     ],
     starts: {
       b2: "b2",
+      b3: "b3",
     },
     nodes: {
       b2: {
@@ -961,6 +1085,34 @@ const BODIES: Readonly<Record<string, GwBodies>> = {
           },
         ],
       },
+      b3: {
+        replies: [
+          {
+            id: "answer",
+            stance: "frank",
+            kind: "ask",
+            next: "bill",
+            tell: [],
+            effects: [
+              {
+                kind: "remember",
+                key: "k_bil_bill",
+              },
+            ],
+          },
+          {
+            same: "deal",
+          },
+          {
+            id: "no",
+            stance: "cold",
+            kind: "leave",
+            next: null,
+            tell: [],
+            effects: [],
+          },
+        ],
+      },
     },
   },
   auh_t_kar_first: {
@@ -968,9 +1120,13 @@ const BODIES: Readonly<Record<string, GwBodies>> = {
       {
         id: "b2",
       },
+      {
+        id: "b3",
+      },
     ],
     starts: {
       b2: "b2",
+      b3: "b3",
     },
     nodes: {
       b2: {
@@ -990,6 +1146,19 @@ const BODIES: Readonly<Record<string, GwBodies>> = {
           },
           {
             same: "rebuke",
+          },
+          {
+            same: "seat",
+          },
+          {
+            same: "bye",
+          },
+        ],
+      },
+      b3: {
+        replies: [
+          {
+            same: "hear",
           },
           {
             same: "seat",
@@ -1321,9 +1490,13 @@ const BODIES: Readonly<Record<string, GwBodies>> = {
       {
         id: "b2",
       },
+      {
+        id: "b3",
+      },
     ],
     starts: {
       b2: "b2",
+      b3: "b3",
     },
     nodes: {
       b2: {
@@ -1333,6 +1506,19 @@ const BODIES: Readonly<Record<string, GwBodies>> = {
           },
           {
             same: "deal",
+          },
+          {
+            same: "hard",
+          },
+          {
+            same: "leave",
+          },
+        ],
+      },
+      b3: {
+        replies: [
+          {
+            same: "ask",
           },
           {
             same: "hard",
@@ -1375,6 +1561,574 @@ const BODIES: Readonly<Record<string, GwBodies>> = {
       },
     },
   },
+  auh_t_kar_land: {
+    variants: [
+      {
+        id: "b2",
+      },
+    ],
+    starts: {
+      b2: "b2",
+    },
+    nodes: {
+      b2: {
+        replies: [
+          {
+            same: "how",
+          },
+          {
+            same: "own",
+          },
+          {
+            same: "bye",
+          },
+        ],
+      },
+    },
+  },
+  auh_t_karl_hungary: {
+    variants: [
+      {
+        id: "b2",
+      },
+    ],
+    starts: {
+      b2: "b2",
+    },
+    nodes: {
+      b2: {
+        replies: [
+          {
+            same: "oath",
+          },
+          {
+            same: "warn",
+          },
+          {
+            same: "bye",
+          },
+        ],
+      },
+    },
+  },
+  auh_t_karl_peace: {
+    variants: [
+      {
+        id: "b2",
+      },
+    ],
+    starts: {
+      b2: "b2",
+    },
+    nodes: {
+      b2: {
+        replies: [
+          {
+            id: "lost",
+            stance: "frank",
+            kind: "ask",
+            next: "plan",
+            tell: [],
+            effects: [
+              {
+                kind: "remember",
+                key: "k_karl_peace",
+              },
+            ],
+          },
+          {
+            same: "test",
+          },
+          {
+            same: "bye",
+          },
+        ],
+      },
+    },
+  },
+  auh_t_hoyos_young: {
+    variants: [
+      {
+        id: "b2",
+      },
+    ],
+    starts: {
+      b2: "b2",
+    },
+    nodes: {
+      b2: {
+        replies: [
+          {
+            same: "ask",
+          },
+          {
+            same: "deal",
+          },
+          {
+            same: "leave",
+          },
+        ],
+      },
+    },
+  },
+  auh_t_kar_split: {
+    variants: [
+      {
+        id: "b2",
+      },
+    ],
+    starts: {
+      b2: "b2",
+    },
+    nodes: {
+      b2: {
+        replies: [
+          {
+            same: "count",
+          },
+          {
+            same: "stay",
+          },
+          {
+            same: "bye",
+          },
+        ],
+      },
+    },
+  },
+  auh_t_stu_closed: {
+    variants: [
+      {
+        id: "b2",
+      },
+    ],
+    starts: {
+      b2: "b2",
+    },
+    nodes: {
+      b2: {
+        replies: [
+          {
+            same: "ask",
+          },
+          {
+            same: "deal",
+          },
+          {
+            same: "leave",
+          },
+        ],
+      },
+    },
+  },
+  auh_t_hoyos_halt: {
+    variants: [
+      {
+        id: "b2",
+      },
+    ],
+    starts: {
+      b2: "b2",
+    },
+    nodes: {
+      b2: {
+        replies: [
+          {
+            same: "ask",
+          },
+          {
+            same: "deal",
+          },
+          {
+            same: "leave",
+          },
+        ],
+      },
+    },
+  },
+  auh_t_tisza_terms: {
+    variants: [
+      {
+        id: "b2",
+      },
+    ],
+    starts: {
+      b2: "b2",
+    },
+    nodes: {
+      b2: {
+        replies: [
+          {
+            same: "ask",
+          },
+          {
+            same: "deal",
+          },
+          {
+            same: "press",
+          },
+          {
+            same: "leave",
+          },
+        ],
+      },
+    },
+  },
+  auh_t_bol_halt: {
+    variants: [
+      {
+        id: "b2",
+      },
+    ],
+    starts: {
+      b2: "b2",
+    },
+    nodes: {
+      b2: {
+        replies: [
+          {
+            same: "ask",
+          },
+          {
+            same: "swap",
+          },
+          {
+            same: "push",
+          },
+        ],
+      },
+    },
+  },
+  auh_t_bur_between: {
+    variants: [
+      {
+        id: "b2",
+      },
+    ],
+    starts: {
+      b2: "b2",
+    },
+    nodes: {
+      b2: {
+        replies: [
+          {
+            same: "ask",
+          },
+          {
+            same: "deal",
+          },
+          {
+            same: "leave",
+          },
+        ],
+      },
+    },
+  },
+  auh_t_ber_clause: {
+    variants: [
+      {
+        id: "b2",
+      },
+    ],
+    starts: {
+      b2: "b2",
+    },
+    nodes: {
+      b2: {
+        replies: [
+          {
+            same: "ask",
+          },
+          {
+            same: "deal",
+          },
+          {
+            same: "leave",
+          },
+        ],
+      },
+    },
+  },
+  auh_t_bil_inquiry: {
+    variants: [
+      {
+        id: "b2",
+      },
+    ],
+    starts: {
+      b2: "b2",
+    },
+    nodes: {
+      b2: {
+        replies: [
+          {
+            same: "ask",
+          },
+          {
+            same: "deal",
+          },
+          {
+            same: "leave",
+          },
+        ],
+      },
+    },
+  },
+  auh_t_con_wait: {
+    variants: [
+      {
+        id: "b2",
+      },
+    ],
+    starts: {
+      b2: "b2",
+    },
+    nodes: {
+      b2: {
+        replies: [
+          {
+            id: "late",
+            stance: "frank",
+            kind: "ask",
+            next: "lose",
+            tell: [],
+            effects: [
+              {
+                kind: "remember",
+                key: "k_con_wait",
+              },
+            ],
+          },
+          {
+            same: "order",
+          },
+          {
+            same: "trade",
+          },
+          {
+            same: "leave",
+          },
+        ],
+      },
+    },
+  },
+  auh_t_ber_rome: {
+    variants: [
+      {
+        id: "b2",
+      },
+    ],
+    starts: {
+      b2: "b2",
+    },
+    nodes: {
+      b2: {
+        replies: [
+          {
+            same: "ask",
+          },
+          {
+            same: "deal",
+          },
+          {
+            same: "leave",
+          },
+        ],
+      },
+    },
+    gate: {
+      kind: "any",
+      of: [
+        {
+          kind: "world",
+          of: {
+            is: "war",
+          },
+        },
+        {
+          kind: "crisis",
+          topic: "balkan",
+        },
+      ],
+    },
+  },
+  auh_v_pil_terms: {
+    variants: [
+      {
+        id: "b2",
+      },
+    ],
+    starts: {
+      b2: "b2",
+    },
+    nodes: {
+      b2: {
+        replies: [
+          {
+            same: "terms",
+          },
+          {
+            same: "words",
+          },
+          {
+            same: "no",
+          },
+        ],
+      },
+    },
+  },
+  auh_t_stu_decree: {
+    variants: [
+      {
+        id: "b2",
+      },
+    ],
+    starts: {
+      b2: "b2",
+    },
+    nodes: {
+      b2: {
+        replies: [
+          {
+            same: "ask",
+          },
+          {
+            same: "deal",
+          },
+          {
+            same: "leave",
+          },
+        ],
+      },
+    },
+  },
+  auh_t_kar_vote: {
+    variants: [
+      {
+        id: "b2",
+      },
+    ],
+    starts: {
+      b2: "b2",
+    },
+    nodes: {
+      b2: {
+        replies: [
+          {
+            same: "how",
+          },
+          {
+            same: "doubt",
+          },
+          {
+            same: "say",
+          },
+          {
+            same: "bye",
+          },
+        ],
+      },
+    },
+  },
+  auh_v_ff_program: {
+    variants: [
+      {
+        id: "b2",
+      },
+    ],
+    starts: {
+      b2: "b2",
+    },
+    nodes: {
+      b2: {
+        replies: [
+          {
+            same: "ask",
+          },
+          {
+            same: "warm",
+          },
+          {
+            same: "leave",
+          },
+        ],
+      },
+    },
+  },
+  auh_v_rival_complaint: {
+    variants: [
+      {
+        id: "b2",
+      },
+    ],
+    starts: {
+      b2: "b2",
+    },
+    nodes: {
+      b2: {
+        replies: [
+          {
+            same: "hear",
+          },
+          {
+            same: "deal",
+          },
+          {
+            same: "out",
+          },
+        ],
+      },
+    },
+  },
+  auh_v_night_court_k: {
+    variants: [
+      {
+        id: "b2",
+      },
+      {
+        id: "b3",
+      },
+    ],
+    starts: {
+      b2: "b2",
+      b3: "b3",
+    },
+    nodes: {
+      b2: {
+        replies: [
+          {
+            same: "ask",
+          },
+          {
+            same: "deal",
+          },
+          {
+            same: "leave",
+          },
+        ],
+      },
+      b3: {
+        replies: [
+          {
+            id: "sit",
+            stance: "warm",
+            kind: "leave",
+            next: null,
+            tell: [],
+            effects: [],
+          },
+          {
+            id: "one",
+            stance: "frank",
+            kind: "ask",
+            next: "worst",
+            tell: [],
+            effects: [],
+          },
+        ],
+      },
+    },
+  },
   auh_c_ischl_wire: {
     variants: [
       {
@@ -1390,12 +2144,18 @@ const BODIES: Readonly<Record<string, GwBodies>> = {
       {
         id: "base2",
       },
+      {
+        id: "base3",
+      },
     ],
   },
   auh_c_who_signs: {
     variants: [
       {
         id: "base2",
+      },
+      {
+        id: "base3",
       },
     ],
   },
@@ -1404,12 +2164,18 @@ const BODIES: Readonly<Record<string, GwBodies>> = {
       {
         id: "base2",
       },
+      {
+        id: "base3",
+      },
     ],
   },
   auh_c_hoyos_mission: {
     variants: [
       {
         id: "base2",
+      },
+      {
+        id: "base3",
       },
     ],
   },
@@ -1418,12 +2184,18 @@ const BODIES: Readonly<Record<string, GwBodies>> = {
       {
         id: "base2",
       },
+      {
+        id: "base3",
+      },
     ],
   },
   auh_c_council_july: {
     variants: [
       {
         id: "base2",
+      },
+      {
+        id: "base3",
       },
     ],
   },
@@ -1439,12 +2211,18 @@ const BODIES: Readonly<Record<string, GwBodies>> = {
           of: ["no_sarajevo"],
         },
       },
+      {
+        id: "base3",
+      },
     ],
   },
   auh_c_harvest: {
     variants: [
       {
         id: "base2",
+      },
+      {
+        id: "base3",
       },
     ],
   },
@@ -1453,12 +2231,18 @@ const BODIES: Readonly<Record<string, GwBodies>> = {
       {
         id: "base2",
       },
+      {
+        id: "base3",
+      },
     ],
   },
   auh_c_note_out: {
     variants: [
       {
         id: "base2",
+      },
+      {
+        id: "base3",
       },
     ],
   },
@@ -1467,12 +2251,18 @@ const BODIES: Readonly<Record<string, GwBodies>> = {
       {
         id: "base2",
       },
+      {
+        id: "base3",
+      },
     ],
   },
   auh_c_mob_plan: {
     variants: [
       {
         id: "base2",
+      },
+      {
+        id: "base3",
       },
     ],
   },
@@ -1481,6 +2271,9 @@ const BODIES: Readonly<Record<string, GwBodies>> = {
       {
         id: "base2",
       },
+      {
+        id: "base3",
+      },
     ],
   },
   auh_c_tisza_letter: {
@@ -1488,12 +2281,18 @@ const BODIES: Readonly<Record<string, GwBodies>> = {
       {
         id: "base2",
       },
+      {
+        id: "base3",
+      },
     ],
   },
   auh_c_italy_art7: {
     variants: [
       {
         id: "base2",
+      },
+      {
+        id: "base3",
       },
     ],
   },
@@ -1508,6 +2307,9 @@ const BODIES: Readonly<Record<string, GwBodies>> = {
           kind: "opening",
           of: ["no_sarajevo"],
         },
+      },
+      {
+        id: "base3",
       },
     ],
   },
@@ -1595,23 +2397,6 @@ const BODIES: Readonly<Record<string, GwBodies>> = {
       },
     },
   },
-  auh_t_ber_rome: {
-    gate: {
-      kind: "any",
-      of: [
-        {
-          kind: "world",
-          of: {
-            is: "war",
-          },
-        },
-        {
-          kind: "crisis",
-          topic: "balkan",
-        },
-      ],
-    },
-  },
   auh_t_karl_teschen: {
     gate: {
       kind: "holder",
@@ -1673,5 +2458,131 @@ const BODIES: Readonly<Record<string, GwBodies>> = {
         },
       ],
     },
+  },
+  auh_k_new_form: {
+    gate: {
+      kind: "world",
+      of: {
+        is: "date",
+        from: "1917-07",
+      },
+    },
+  },
+  auh_c_note_timing: {
+    variants: [
+      {
+        id: "base2",
+      },
+    ],
+  },
+  auh_c_decree: {
+    variants: [
+      {
+        id: "base2",
+      },
+    ],
+  },
+  auh_k_peace_vote: {
+    variants: [
+      {
+        id: "base2",
+      },
+    ],
+  },
+  auh_h_peace_ausgleich: {
+    variants: [
+      {
+        id: "base2",
+      },
+    ],
+  },
+  auh_k_coronation: {
+    variants: [
+      {
+        id: "peace2",
+        like: "peace",
+      },
+    ],
+  },
+  auh_k_succession: {
+    variants: [
+      {
+        id: "peace2",
+        like: "peace",
+      },
+    ],
+  },
+  auh_k_new_men: {
+    variants: [
+      {
+        id: "peace2",
+        like: "peace",
+      },
+    ],
+  },
+  auh_w_lists: {
+    variants: [
+      {
+        id: "long2",
+        like: "long",
+      },
+      {
+        id: "long3",
+        like: "long",
+      },
+      {
+        id: "base2",
+      },
+    ],
+  },
+  auh_w_regiments: {
+    variants: [
+      {
+        id: "fear2",
+        like: "fear",
+      },
+    ],
+  },
+  auh_h_grain_border: {
+    variants: [
+      {
+        id: "again2",
+        like: "again",
+      },
+    ],
+  },
+  auh_h_strike_1: {
+    variants: [
+      {
+        id: "again2",
+        like: "again",
+      },
+    ],
+  },
+  gw_auh_quota: {
+    variants: [
+      {
+        id: "base2",
+      },
+      {
+        id: "base3",
+      },
+      {
+        id: "base4",
+      },
+      {
+        id: "base5",
+      },
+    ],
+  },
+  gw_home_auh_1: {
+    variants: [
+      {
+        id: "base2",
+      },
+      {
+        id: "base3",
+      },
+    ],
   },
 };
