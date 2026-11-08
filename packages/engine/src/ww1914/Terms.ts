@@ -24,7 +24,7 @@ import type { GreatWar } from "./GreatWar";
 import { armistice, TALKS_MONTHS } from "./Peace";
 import { GW_ACTORS, GW_ENTRIES, GW_ENTRY_BAR } from "./Tables";
 import { enter, leaveWar } from "./Wars";
-import { clampTo, fights, moveGauge, news, other, seatsOf } from "./World";
+import { clampTo, fights, moveGauge, news, other, ruledBySeat } from "./World";
 
 /** What a clause is worth to the country, by their measure. */
 const GIVE_WORTH: Readonly<Record<GwGiveClause, number>> = {
@@ -135,7 +135,7 @@ function targets(gw: GreatWar, seat: GwSeatState): GwNationState[] {
       GW_ACTORS.includes(n.tag) &&
       n.tag !== seat.tag &&
       !n.out &&
-      seatsOf(gw, n.tag).length === 0 &&
+      !ruledBySeat(gw, n.tag) &&
       !seat.terms.some(
         (t) => t.tag === n.tag && gw.s.chapter - t.chapter <= TERMS_REST,
       ),

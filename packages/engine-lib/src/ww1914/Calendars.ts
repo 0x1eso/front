@@ -57,6 +57,15 @@ export const GW_CALENDARS: Readonly<
     seg("war", "1915-01-01", 24, 60, 120, 2, 0, 1, 2),
     seg("closing", "1918-12-01", 1, 1, 180, 0),
   ],
+  // Friends at one table (owner's ww160 calls 2 and 3): 20 chapters to the
+  // spring of 1916, about an hour on the timer, 51.5 minutes at most at the
+  // normal pace. Existing stages only, so every scene of theirs plays.
+  friends: [
+    seg("crisis", "1914-06-28", 6, 7, 120, 3, 0, 1, 1),
+    seg("y1914", "1914-08-09", 5, 30, 150, 2, 1, 1, 2),
+    seg("war", "1915-01-01", 8, 60, 180, 2, 1, 1, 2),
+    seg("closing", "1916-04-25", 1, 1, 180, 0),
+  ],
 };
 
 /**
@@ -70,6 +79,10 @@ export const GW_BUDGET_DATES: Readonly<
   y1914: [{ date: "1914-11-07", year: 1915 }],
   full: yearly(),
   standard: yearly(),
+  friends: [
+    { date: "1915-01-01", year: 1915 },
+    { date: "1916-01-01", year: 1916 },
+  ],
 };
 
 function yearly() {

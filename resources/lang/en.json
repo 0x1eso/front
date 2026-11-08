@@ -2273,8 +2273,6 @@
     },
     "diplo": {
       "clause_add": "Add a clause",
-      "enter": "Join the {side}",
-      "enter_title": "Go to war",
       "finale": "Everyone's memoirs",
       "finale_close": "Close",
       "finale_mandates": "Mandates met: {n} of {total}",
@@ -2948,18 +2946,22 @@
       "treaty_loan_paid": "A loan went out under a treaty"
     },
     "lobby": {
+      "pace": {
+        "long": "Long",
+        "normal": "Normal",
+        "short": "Short"
+      },
+      "pace_label": "Pace",
+      "pace_note": "Each chapter's clock runs {min} to {max} seconds. Everyone ready ends it sooner.",
       "resume_failed": "The save could not be handed to the lobby.",
-      "resume_none": "No saved game in this browser.",
+      "resume_none": "No saved game with friends in this browser.",
       "resume_not_friends": "That save is a solo game.",
       "resume_note": "Resuming a saved game: {date}, chapter {n}. Take your old seat.",
       "resume_open": "Resume a saved game",
       "saved_friends": "Saved. Bring it back from a new lobby: Resume a saved game.",
       "seat_free": "Free",
-      "seat_unwritten": "Common scenes only for now",
       "seats_hint": "Pick a seat. The AI runs every country nobody takes.",
-      "timer_label": "Chapter timer",
-      "timer_sec": "{n}s",
-      "timer_table": "By the chapter"
+      "table_note": "{length}: {n} chapters, {time}. Pace: {pace}."
     },
     "mandate": {
       "auh_bread_for_vienna": "Keep bread in Vienna",
@@ -3757,16 +3759,14 @@
         "entry": "{by} is at the side of {other} by chapter {n}.",
         "loan": "{by} lends {other} {n} of money now and every six chapters.",
         "neutrality": "{by} will not fight {other}.",
-        "passage": "{by} opens the way for {other} on the {theatre}.",
-        "territory": "{by} promises {other} {line} on the {theatre}."
+        "passage": "{by} opens the way for {other} on the {theatre}."
       },
       "kind": {
         "alliance": "Alliance",
         "entry": "Date of entry",
         "loan": "Loan",
         "neutrality": "Neutrality",
-        "passage": "Passage",
-        "territory": "Territory"
+        "passage": "Passage"
       },
       "leaked": "The world knows of this treaty.",
       "loan_amount": "{n} of money",
@@ -3784,8 +3784,7 @@
         "broken_openly": "{by} tore it up.",
         "entry_late": "{by} did not come in by the date.",
         "fought_partner": "{by} went to war with the partner.",
-        "loan_unpaid": "{by} could not pay.",
-        "territory_unmet": "{by} did not deliver the line."
+        "loan_unpaid": "{by} could not pay."
       }
     },
     "turn": {
@@ -3893,7 +3892,6 @@
         "no_terms": "Those terms cannot be sent.",
         "no_topic": "That cannot be raised now.",
         "no_treaty": "No such treaty.",
-        "no_war": "There is no war to enter.",
         "not_asked": "Nobody asked.",
         "not_host": "Only the host answers.",
         "not_proposed": "The chief of staff did not put this forward.",
@@ -3907,12 +3905,12 @@
         "table_no": "That can't be said at the table now.",
         "terms_sent": "Terms have already gone out this chapter.",
         "too_many": "That is enough for this chapter.",
-        "treaty_bars": "A signed treaty stands in the way.",
         "wrong_kind": "That does not fit this paper."
       },
       "blockade": "Blockade",
       "brief_label": "Secretary's note",
       "calendar": {
+        "friends": "With friends",
         "full": "The full game",
         "standard": "Standard Game",
         "y1914": "The 1914 game"
@@ -3920,6 +3918,7 @@
       "calendar_chapters": "{n} chapters",
       "calendar_label": "Length of the game",
       "calendar_time": {
+        "friends": "about an hour",
         "full": "3 to 4 hours",
         "standard": "About three hours",
         "y1914": "about 90 minutes alone"
@@ -5387,6 +5386,8 @@
       "shared_not_found": "This shared game isn't available. It may have been deleted or made private.",
       "unreadable": "This saved game can't be loaded by this version of the game."
     },
+    "friends_badge": "With friends",
+    "friends_note": "A game with friends: host a lobby and pick it under Resume a saved game.",
     "link_copied": "Link copied",
     "loading": "Loading…",
     "open": "Open",

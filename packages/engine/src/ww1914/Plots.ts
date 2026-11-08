@@ -79,6 +79,23 @@ export function plotReset(gw: GreatWar, seat: GwSeatState, id: string): void {
 
 const lastOf = (row: GwPlotRow) => row.steps[row.steps.length - 1];
 
+/**
+ * A friend takes the seat back from the regent: every plot starts a new
+ * round, and one whose last step came while nobody sat there steps back to
+ * the one before, so the warning and the last step come to the friend.
+ */
+export function plotsAfterRegency(gw: GreatWar, seat: GwSeatState): void {
+  for (const p of seat.house?.plots ?? []) {
+    const row = plotRow(p.id);
+    plotReset(gw, seat, p.id);
+    if (row === null) continue;
+    const e = govEntry(seat, row.id);
+    if (e.step < row.steps.length) continue;
+    e.step = row.steps.length - 1;
+    e.heat = Math.min(e.heat, lastOf(row).at - 1);
+  }
+}
+
 /** Opened this round: dealt since it began (a card closes by its chapter's end). */
 function opened(seat: GwSeatState, p: GwPlotState, scene: string): boolean {
   const at = seat.seen[scene];
@@ -97,8 +114,12 @@ function call(seat: GwSeatState, scene: string, chapter: number): void {
   seat.scheduled.push({ scene, chapter });
 }
 
-/** Writes down the signs and the warning dealt this round. */
+/**
+ * Writes down the signs and the warning dealt this round. A regent's desk
+ * closes by itself: nobody read what came, so none of it warns anyone.
+ */
 function note(seat: GwSeatState, row: GwPlotRow, p: GwPlotState): void {
+  if (seat.regent) return;
   for (const s of row.plot.signs) {
     if (!p.signs.includes(s.scene) && opened(seat, p, s.scene)) {
       p.signs.push(s.scene);
@@ -109,10 +130,14 @@ function note(seat: GwSeatState, row: GwPlotRow, p: GwPlotState): void {
   }
 }
 
-/** Whether the last step may come now: the owner's fair-warning rule. */
+/**
+ * Whether the last step may come now: the owner's fair-warning rule. Never
+ * under a regent: a friend away can't lose the game to a plot.
+ */
 export function plotFair(gw: GreatWar, seat: GwSeatState, id: string): boolean {
   const p = stateOf(seat, id);
   return (
+    !seat.regent &&
     p !== null &&
     p.signs.length >= GW_PLOT_SIGNS &&
     p.warned >= 0 &&
@@ -227,7 +252,7 @@ function plotMonth(ctx: SceneCtx, row: GwPlotRow): void {
     const at = seat.seen[last.scene];
     const read =
       opened(seat, p, last.scene) && at !== undefined && at > p.warned;
-    if (read && e.heat >= last.at) plotEnds(gw, seat, row);
+    if (read && e.heat >= last.at && !seat.regent) plotEnds(gw, seat, row);
     return;
   }
   const by = row.feeds
@@ -305,6 +330,7 @@ export function plotEffect(ctx: SceneCtx, e: PlotEffect): void {
   const { gw, seat } = ctx;
   const p = ensure(gw, seat, e.id);
   if (p === null) return;
+  if (seat.regent) return;
   switch (e.do) {
     case "plot_sign": {
       const id = ctx.card?.scene ?? `sign_${gw.s.chapter}`;

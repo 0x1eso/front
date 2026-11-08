@@ -17,7 +17,7 @@ import {
   moveGauge,
   news,
   reason,
-  seatsOf,
+  ruledBySeat,
   turn,
 } from "./World";
 
@@ -66,7 +66,7 @@ function blockadeStep(gw: GreatWar): void {
 function aiUboats(gw: GreatWar): void {
   const s = gw.s;
   const deu = gw.nation("DEU");
-  if (deu === null || !fights(deu) || seatsOf(gw, "DEU").length > 0) return;
+  if (deu === null || !fights(deu) || ruledBySeat(gw, "DEU")) return;
   const months = warMonths(gw);
   if (
     s.uboat === 0 &&
@@ -137,7 +137,7 @@ function incidents(gw: GreatWar): void {
 function americaStep(gw: GreatWar, warScoreCentral: number): void {
   const s = gw.s;
   const n = gw.nation("USA");
-  if (n === null || n.side !== null || seatsOf(gw, "USA").length > 0) return;
+  if (n === null || n.side !== null || ruledBySeat(gw, "USA")) return;
   if (s.day < dayOf("1915-06-01")) return;
   const add =
     (s.uboat === 2 ? 6 : s.uboat === 1 ? 1 : 0) +

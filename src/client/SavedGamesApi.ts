@@ -28,6 +28,24 @@ export type SavedGameError =
   | "not_found"
   | "request_failed";
 
+/**
+ * A Great War 1914 game with friends is saved with this before its map, so
+ * the lists keep it apart: the solo menu can't load it, and the friends'
+ * resume list shows nothing else.
+ */
+export const FRIENDS_SAVE_MARK = "gw-friends:";
+
+export function isFriendsSave(save: Pick<SavedGame, "map">): boolean {
+  return save.map.startsWith(FRIENDS_SAVE_MARK);
+}
+
+/** The save's map, without the friends' mark. */
+export function saveMapOf(save: Pick<SavedGame, "map">): string {
+  return isFriendsSave(save)
+    ? save.map.slice(FRIENDS_SAVE_MARK.length)
+    : save.map;
+}
+
 let localBackend: ReturnType<typeof openIndexedDbSaves> | null = null;
 
 /** This browser's saves, for a self-hosted server. */

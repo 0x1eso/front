@@ -1,10 +1,12 @@
-import type { GwCalendarId } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import {
-  GW_TIMER_MAX_SEC,
-  GW_TIMER_MIN_SEC,
+  GW_PACE_PCT,
+  GW_PACES,
+  type GwCalendarId,
+  type GwPace,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import {
   GW_SEAT_TAGS,
+  GW_TAGS,
   GW_WRITTEN_TAGS,
   gwCountry,
   GwTag,
@@ -22,6 +24,7 @@ import { translateText } from "./Utils";
  */
 export const GW_PLAYABLE_CALENDARS: readonly GwCalendarId[] = [
   "y1914",
+  "friends",
   "standard",
   "full",
 ];
@@ -134,6 +137,11 @@ function calendarRows(
     </div>`;
 }
 
+/** The countries the AI runs: every country of 1914 nobody sits in. */
+export function gwAiCountries(humans: number): number {
+  return Math.max(0, GW_TAGS.length - humans);
+}
+
 export interface GwSeatPick {
   clientID: string;
   tag: GwTag;
@@ -192,35 +200,59 @@ export function gwSeatPicker(
   </div>`;
 }
 
-/** The host's chapter timer: the table's times, or one of these for all. */
-const TIMER_STEPS = [GW_TIMER_MIN_SEC, 90, 120, 180, GW_TIMER_MAX_SEC];
+/** The pace's chapter clocks for a row, shortest and longest, in seconds. */
+export function gwPaceRange(
+  calendar: GwCalendarId,
+  pace: GwPace,
+): { min: number; max: number } {
+  const secs = gwChapters(calendar).map((ch) =>
+    Math.floor((ch.timerSec * GW_PACE_PCT[pace]) / 100),
+  );
+  return { min: Math.min(...secs), max: Math.max(...secs) };
+}
 
-export function gwTimerPicker(
-  selected: number | undefined,
-  pick: (sec: number | undefined) => void,
+/** The host's pace (owner's ww160 call 2): the row's timer ×0.75, ×1, ×1.5. */
+export function gwPacePicker(
+  calendar: GwCalendarId,
+  selected: GwPace,
+  pick: (pace: GwPace) => void,
 ): TemplateResult {
-  const button = (sec: number | undefined, label: string) =>
-    html`<button
-      type="button"
-      data-gw-timer-row=${sec ?? "table"}
-      class="rounded border px-3 py-1.5 text-sm text-white ${sec === selected
-        ? "border-amber-300/80 bg-amber-300/20"
-        : "border-white/25 bg-white/10 hover:bg-white/20"}"
-      @click=${() => pick(sec)}
-    >
-      ${label}
-    </button>`;
-  return html`<div class="space-y-1.5" data-gw-timer-setting>
+  return html`<div class="space-y-1.5" data-gw-pace>
     <div class="text-xs text-white/70">
-      ${translateText("gw.lobby.timer_label")}
+      ${translateText("gw.lobby.pace_label")}
     </div>
     <div class="flex flex-wrap gap-2">
-      ${button(undefined, translateText("gw.lobby.timer_table"))}
-      ${TIMER_STEPS.map((sec) =>
-        button(sec, translateText("gw.lobby.timer_sec", { n: sec })),
+      ${GW_PACES.map(
+        (pace) =>
+          html`<button
+            type="button"
+            data-gw-pace-row=${pace}
+            class=${rowClass(pace === selected)}
+            @click=${() => pick(pace)}
+          >
+            ${translateText(`gw.lobby.pace.${pace}`)}
+          </button>`,
       )}
     </div>
+    <div class="text-xs text-white/60" data-gw-pace-note>
+      ${translateText("gw.lobby.pace_note", gwPaceRange(calendar, selected))}
+    </div>
   </div>`;
+}
+
+/** What a friend who joined reads of the host's length and pace. */
+export function gwTableNote(
+  calendar: GwCalendarId,
+  pace: GwPace,
+): TemplateResult {
+  return html`<p class="text-sm text-white/80" data-gw-table-note>
+    ${translateText("gw.lobby.table_note", {
+      length: translateText(`gw.ui.calendar.${calendar}`),
+      n: gwChapters(calendar).length,
+      time: translateText(`gw.ui.calendar_time.${calendar}`),
+      pace: translateText(`gw.lobby.pace.${pace}`),
+    })}
+  </p>`;
 }
 
 /** What everyone in a resume lobby reads: which save, how far it got. */

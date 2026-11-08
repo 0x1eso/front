@@ -26,6 +26,7 @@ import {
   news,
   other,
   reason,
+  ruledBySeat,
   seatsOf,
   turn,
 } from "./World";
@@ -88,7 +89,7 @@ function groundStep(gw: GreatWar): void {
 /** A follower with nothing left asks on its own. */
 function followerDone(gw: GreatWar, n: GwNationState): boolean {
   const side = n.side;
-  if (side === null || seatsOf(gw, n.tag).length > 0) return false;
+  if (side === null || ruledBySeat(gw, n.tag)) return false;
   const lost = warScore(gw, side) <= LOST_SCORE;
   const tired = n.gauges.morale <= 1 && n.gauges.order <= 1;
   const r = wwRoll(gw.s.seed, P_MINOR, gw.s.chapter, gw.s.nations.indexOf(n));
@@ -123,7 +124,7 @@ export function armistice(
 function leaderAsks(gw: GreatWar, tag: GwTag): boolean {
   const n = gw.nation(tag);
   if (n === null || !fights(n) || n.side === null) return false;
-  if (seatsOf(gw, tag).length > 0) return false;
+  if (ruledBySeat(gw, tag)) return false;
   if (warMonths(gw) < LEADER_ASKS_MONTHS) return false;
   const score = warScore(gw, n.side);
   const friends = gw.s.nations.filter(

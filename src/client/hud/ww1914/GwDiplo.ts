@@ -4,9 +4,7 @@ import {
   GW_ALLY_GRACE,
   GW_CIPHERS,
   GW_CLAUSE_KINDS,
-  GW_LINES,
   GW_LOAN_MAX,
-  GW_SIDES,
   GW_TELEGRAM_MAX,
   GW_THEATRES,
   GW_TREATY_CLAUSES_MAX,
@@ -30,7 +28,7 @@ import { html, nothing, TemplateResult } from "lit";
 import { translateText } from "../../Utils";
 import type { GwCtx } from "./GwCtx";
 import { BTN, BTN_ON, CHIP, GLASS, HEAD, MUTED } from "./GwStyle";
-import { endingTitle, frontLine, shortDate } from "./GwText";
+import { endingTitle, shortDate } from "./GwText";
 
 const BOX = "space-y-1.5 rounded border border-white/15 bg-black/35 p-2.5";
 const FIELD =
@@ -234,15 +232,10 @@ export function clauseText(cl: GwClause, a: GwTag, b: GwTag): string {
   const other = cl.by === a ? b : a;
   const theatre =
     cl.theatre === null ? "" : translateText(`gw.theatre.${cl.theatre}`);
-  const line =
-    cl.kind === "territory" && cl.theatre !== null
-      ? frontLine(cl.theatre, cl.value)
-      : "";
   return translateText(`gw.treaty.clause.${cl.kind}`, {
     by: countryName(cl.by),
     other: countryName(other),
     theatre,
-    line,
     n: cl.kind === "entry" ? cl.value + 1 : cl.value,
     grace: GW_ALLY_GRACE,
   });
@@ -317,7 +310,7 @@ function treaty(c: GwCtx, t: GwTreatyView): TemplateResult {
   </article>`;
 }
 
-const NEEDS_THEATRE: readonly GwClauseKind[] = ["territory", "passage"];
+const NEEDS_THEATRE: readonly GwClauseKind[] = ["passage"];
 
 /** A new clause of `kind`, with values that are valid from the start. */
 function blankClause(
@@ -403,20 +396,6 @@ function clauseRow(
               </option>`,
           )}
         </select>`}
-    ${cl.kind === "territory" && cl.theatre !== null
-      ? html`<select
-          class=${FIELD}
-          @change=${(e: Event) =>
-            set({ value: Number((e.target as HTMLSelectElement).value) })}
-        >
-          ${GW_LINES[cl.theatre].map(
-            (_, n) =>
-              html`<option value=${n} ?selected=${n === cl.value}>
-                ${frontLine(cl.theatre!, n)}
-              </option>`,
-          )}
-        </select>`
-      : nothing}
     ${cl.kind === "loan"
       ? html`<select
           class=${FIELD}
@@ -519,29 +498,6 @@ function treatyWriter(c: GwCtx): TemplateResult {
   </section>`;
 }
 
-function enterWar(c: GwCtx): TemplateResult | typeof nothing {
-  const { seat } = c;
-  const war = seat.world.countries.some((x) => x.side !== null);
-  if (!war || seat.world.side !== null) return nothing;
-  return html`<section class=${BOX} data-gw-enter-war>
-    <h3 class=${HEAD}>${translateText("gw.diplo.enter_title")}</h3>
-    <div class="flex gap-2">
-      ${GW_SIDES.map(
-        (side) =>
-          html`<button
-            class=${BTN}
-            data-gw-enter=${side}
-            @click=${() => c.send({ kind: "enter_war", side })}
-          >
-            ${translateText("gw.diplo.enter", {
-              side: translateText(`gw.ui.side.${side}`),
-            })}
-          </button>`,
-      )}
-    </div>
-  </section>`;
-}
-
 /** The diplomacy tab. */
 export function diploTab(c: GwCtx): TemplateResult {
   const treaties = c.seat.diplo.treaties;
@@ -553,7 +509,7 @@ export function diploTab(c: GwCtx): TemplateResult {
         ? html`<p class=${MUTED}>${translateText("gw.diplo.no_treaties")}</p>`
         : [...treaties].reverse().map((t) => treaty(c, t))}
     </section>
-    ${treatyWriter(c)}${enterWar(c)}
+    ${treatyWriter(c)}
   </div>`;
 }
 

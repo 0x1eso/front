@@ -6,9 +6,11 @@ import { showInGameConfirm } from "../InGameModal";
 import {
   deleteSavedGame,
   fetchSharedSavedGame,
+  isFriendsSave,
   listSavedGames,
-  type SavedGameError,
+  saveMapOf,
   updateSavedGame,
+  type SavedGameError,
 } from "../SavedGamesApi";
 import {
   copyToClipboard,
@@ -111,7 +113,14 @@ export class SavedGamesPanel extends LitElement {
     if (!this.signedIn || !this.expanded) return;
     this.saves = "loading";
     const saves = await listSavedGames();
-    this.saves = saves === false ? "error" : saves;
+    // Solo saves first; a friends' game is listed after them, kept apart.
+    this.saves =
+      saves === false
+        ? "error"
+        : [
+            ...saves.filter((s) => !isFriendsSave(s)),
+            ...saves.filter(isFriendsSave),
+          ];
   }
 
   private async loadShared(): Promise<void> {
@@ -273,7 +282,7 @@ export class SavedGamesPanel extends LitElement {
 
   private details(save: SavedGame): string {
     return [
-      getMapName(save.map) ?? save.map,
+      getMapName(saveMapOf(save)) ?? saveMapOf(save),
       renderDuration(save.tick / 10),
       new Date(save.createdAt).toLocaleDateString(),
     ].join(" · ");
@@ -390,6 +399,7 @@ export class SavedGamesPanel extends LitElement {
     const pending = this.pendingId === save.id;
     const renaming = this.renamingId === save.id;
     const error = this.rowError?.id === save.id ? this.rowError.message : null;
+    const friends = isFriendsSave(save);
     return html`<li
       class="flex flex-col gap-2 rounded-lg bg-white/5 border border-white/10 p-3"
       data-save-id=${save.id}
@@ -422,14 +432,28 @@ export class SavedGamesPanel extends LitElement {
                       >${translateText("saved_games.shared_badge")}</span
                     >`
                   : null}
+                ${friends
+                  ? html`<span
+                      class="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold tracking-wider bg-amber-500/20 text-amber-200"
+                      data-friends-badge
+                      >${translateText("saved_games.friends_badge")}</span
+                    >`
+                  : null}
               </div>`}
           <div class="text-xs text-white/50">${this.details(save)}</div>
+          ${friends
+            ? html`<div class="text-xs text-amber-200/80" data-friends-note>
+                ${translateText("saved_games.friends_note")}
+              </div>`
+            : null}
         </div>
-        ${this.button(
-          translateText("saved_games.play"),
-          () => this.load(save.id, false),
-          { primary: true, disabled: this.busy || pending, attr: "play" },
-        )}
+        ${friends
+          ? null
+          : this.button(
+              translateText("saved_games.play"),
+              () => this.load(save.id, false),
+              { primary: true, disabled: this.busy || pending, attr: "play" },
+            )}
       </div>
       <div class="flex flex-wrap gap-2">
         ${renaming

@@ -1,18 +1,27 @@
 import { GameType } from "@openfront/engine-api/game/GameTypes";
 import type { SnapshotHeader } from "@openfront/engine-api/game/SnapshotHeader";
+import type { GwPace } from "@openfront/engine-api/ww1914/GreatWarTypes";
+import type { SavedGame } from "@openfront/shared/ApiSchemas";
 import type { GwResumeInfo } from "@openfront/shared/WireSchemas";
 import { getPlayToken } from "./Auth";
 import { ClientEnv } from "./ClientEnv";
-import { downloadSavedGame, listSavedGames } from "./SavedGamesApi";
+import {
+  downloadSavedGame,
+  isFriendsSave,
+  listSavedGames,
+} from "./SavedGamesApi";
 import { ensureServerList } from "./ServerList";
 
 /** A friends' save the host can bring back; `key` names why it can't, if so. */
 export type GwResumeResult =
-  | { ok: true; info: GwResumeInfo; calendar: string; timer?: number }
+  | { ok: true; info: GwResumeInfo; calendar: string; pace?: GwPace }
   | { ok: false; key: string };
 
-/** Saves in this browser or on this account, for the resume list. */
-export const gwSaves = listSavedGames;
+/** Friends' saves in this browser or on this account, for the resume list. */
+export async function gwSaves(): Promise<SavedGame[] | false> {
+  const saves = await listSavedGames();
+  return saves === false ? false : saves.filter(isFriendsSave);
+}
 
 /**
  * Host's resume: reads the save (on a worker of its own: this page can't load
@@ -43,13 +52,13 @@ export async function resumeInLobby(
     return { ok: false, key: "gw.lobby.resume_not_friends" };
   }
   const calendar = header.gameConfig.greatWar1914Calendar ?? "y1914";
-  const timer = header.gameConfig.greatWar1914TimerSec;
+  const pace = header.gameConfig.greatWar1914Pace;
   const query = new URLSearchParams({
     seats: gw.seats.join(","),
     chapter: String(gw.chapter),
     date: gw.date,
     calendar,
-    ...(timer === undefined ? {} : { timer: String(timer) }),
+    ...(pace === undefined ? {} : { pace }),
   });
   try {
     await ensureServerList();
@@ -74,6 +83,6 @@ export async function resumeInLobby(
     ok: true,
     info: { seats: gw.seats, chapter: gw.chapter, date: gw.date },
     calendar,
-    timer,
+    pace,
   };
 }

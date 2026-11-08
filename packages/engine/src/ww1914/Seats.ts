@@ -6,6 +6,7 @@ import {
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import type { GwOrderBlock } from "@openfront/engine-api/ww1914/GwOrders";
 import type { GreatWar } from "./GreatWar";
+import { plotsAfterRegency } from "./Plots";
 import { news, reason } from "./World";
 
 /** Friends at one table (design §9): who is here, who is away, who runs what. */
@@ -28,11 +29,15 @@ export function waitedFor(seat: GwSeatState): boolean {
   return seat.memoir === null && !seat.away && !seat.regent;
 }
 
-/** The seat is back in the player's hands. */
+/**
+ * The seat is back in the player's hands. Plots start a new round: what
+ * came while the regent sat there was read by nobody, so it comes again.
+ */
 export function takeBack(gw: GreatWar, seat: GwSeatState): void {
   if (!seat.regent) return;
   seat.regent = false;
   seat.idle = 0;
+  plotsAfterRegency(gw, seat);
   reason(gw, seat, "seat_taken_back");
   gw.touch();
 }

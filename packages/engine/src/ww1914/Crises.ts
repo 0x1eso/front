@@ -11,7 +11,15 @@ import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import type { GreatWar } from "./GreatWar";
 import { GW_MOBILISE, GW_NOTE_FLAGS, GW_PLAN_FLAGS } from "./Tables";
 import { openWar } from "./Wars";
-import { clampTo, isLongChapter, news, reason, seatsOf, turn } from "./World";
+import {
+  clampTo,
+  isLongChapter,
+  news,
+  reason,
+  ruledBySeat,
+  seatsOf,
+  turn,
+} from "./World";
 
 const P_CRISIS = idHash("gw_crisis");
 const P_SPARK = idHash("gw_spark");
@@ -135,7 +143,7 @@ export function closeChain(gw: GreatWar, outcome: GwChainOutcome): void {
 function moves(gw: GreatWar, link: number): number {
   const s = gw.s;
   const kind = (t: "AUH" | "RUS" | "GBR" | "FRA" | "DEU") =>
-    seatsOf(gw, t).length > 0 ? undefined : gw.nation(t)?.ai;
+    ruledBySeat(gw, t) ? undefined : gw.nation(t)?.ai;
   let d = (wwRoll(s.seed, P_CRISIS, s.chapter) % 3) - 1;
   if (link === 1 && kind("AUH") === "hardline") d++;
   if (link === 1 && kind("AUH") === "cautious") d--;
@@ -161,7 +169,7 @@ function moves(gw: GreatWar, link: number): number {
 function russiaStirs(gw: GreatWar, name: "draft" | "ultimatum"): void {
   const rus = gw.nation("RUS");
   // A Tsar at the desk signs for himself.
-  if (rus === null || seatsOf(gw, "RUS").length > 0) return;
+  if (rus === null || ruledBySeat(gw, "RUS")) return;
   const hard = rus.ai === "hardline";
   const rails = gw.s.secrets.includes("rus_rail_ahead");
   const stirs =
@@ -204,7 +212,7 @@ function runLink(gw: GreatWar): void {
       const held = vienna !== undefined && !going;
       if (held || s.temp < LOCAL_WAR_AT) return closeChain(gw, "compromise");
       const rus = gw.nation("RUS");
-      if (rus !== null && seatsOf(gw, "RUS").length === 0) {
+      if (rus !== null && !ruledBySeat(gw, "RUS")) {
         // What Russia really did: reports about it may say otherwise.
         const full = rus.ai === "hardline" || s.temp >= 7;
         rus.mob = Math.max(rus.mob, rus.ai === "cautious" ? 1 : full ? 2 : 1);

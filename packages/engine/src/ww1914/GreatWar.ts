@@ -5,6 +5,7 @@ import type { ClientID } from "@openfront/engine-api/Schemas";
 import {
   GreatWarState,
   GreatWarStateSchema,
+  GW_PACE_PCT,
   GW_THEATRES,
   GW_TOPICS,
   GwNationState,
@@ -288,9 +289,8 @@ export class GreatWar {
       this.mg.config().gameConfig().gameType === GameType.Singleplayer;
     if (solo) return null;
     const ch = gwChapters(this.s.calendar)[this.s.chapter];
-    const host = this.mg.config().gameConfig().greatWar1914TimerSec;
-    const sec = ch.stage === "closing" ? ch.timerSec : (host ?? ch.timerSec);
-    return tick + sec * 10;
+    const pace = this.mg.config().gameConfig().greatWar1914Pace ?? "normal";
+    return tick + Math.floor((ch.timerSec * GW_PACE_PCT[pace]) / 10);
   }
 
   /** The chapter clock: every seat ready, or the deadline, closes a chapter. */

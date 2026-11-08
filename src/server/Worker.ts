@@ -425,13 +425,13 @@ export async function startWorker() {
           .status(403)
           .json({ error: "Only the lobby creator can resume a save" });
       }
-      const { seats, chapter, date, calendar, timer } = meta.data;
+      const { seats, chapter, date, calendar, pace } = meta.data;
       const ok = game.setGwResume(
         { seats, chapter, date },
         new Uint8Array(req.body),
         {
           greatWar1914Calendar: calendar,
-          ...(timer === undefined ? {} : { greatWar1914TimerSec: timer }),
+          ...(pace === undefined ? {} : { greatWar1914Pace: pace }),
         },
       );
       if (!ok) return res.status(409).json({ error: "Lobby cannot resume" });

@@ -37,7 +37,12 @@ export const GW_STAGES = [
 export type GwStage = (typeof GW_STAGES)[number];
 
 /** Lobby's choice of chapter table (engine-lib/ww1914/Calendars). */
-export const GW_CALENDAR_IDS = ["y1914", "full", "standard"] as const;
+export const GW_CALENDAR_IDS = [
+  "y1914",
+  "full",
+  "standard",
+  "friends",
+] as const;
 export type GwCalendarId = (typeof GW_CALENDAR_IDS)[number];
 
 // ---- People (design §6) ----
@@ -1232,8 +1237,6 @@ export const GW_CLAUSE_KINDS = [
   "alliance",
   /** `by` won't fight the other. */
   "neutrality",
-  /** `by` promises the other a line: `theatre`, `value` its index. Judged at the end. */
-  "territory",
   /** `by` pays `value` of money at signing and every GW_LOAN_EVERY chapters. */
   "loan",
   /** `by` opens the way: the other is a band stronger in `theatre`. */
@@ -1290,9 +1293,17 @@ export const GwTreatySchema = z.object({
 });
 export type GwTreaty = z.infer<typeof GwTreatySchema>;
 
-/** The host's chapter timer, seconds (design §9). */
-export const GW_TIMER_MIN_SEC = 60;
-export const GW_TIMER_MAX_SEC = 240;
+/**
+ * The host's pace with friends (owner's ww160 call 2): the row's chapter
+ * timer, shorter or longer by these hundredths. Absent means `normal`.
+ */
+export const GW_PACES = ["short", "normal", "long"] as const;
+export type GwPace = (typeof GW_PACES)[number];
+export const GW_PACE_PCT: Readonly<Record<GwPace, number>> = {
+  short: 75,
+  normal: 100,
+  long: 150,
+};
 /** The slow-reading vote: +GW_SLOW_SEC for everyone, the host agreeing. */
 export const GW_SLOW_SEC = 30;
 export const GW_SLOW_MAX = 3;

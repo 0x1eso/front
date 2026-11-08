@@ -513,7 +513,8 @@ export function lawStep(gw: GreatWar): void {
       const row = rowOf(st.id);
       if (row === null) continue;
       const argue = persuadeChapters(seat, st.id);
-      if (st.stage === "persuade" && c - st.since >= argue) {
+      // A regent takes no bill to the vote: it waits for the friend's return.
+      if (st.stage === "persuade" && c - st.since >= argue && !seat.regent) {
         toStage(gw, st, "vote");
       }
       // The Lords have put it off: the day waits for the delay to run out.

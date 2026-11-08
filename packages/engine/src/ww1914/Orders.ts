@@ -50,7 +50,7 @@ import { tableClaim, tableNext, tablePass, tableWord } from "./Table";
 import { applyReply, summonScenes } from "./Talk";
 import { sendTelegram } from "./Telegrams";
 import { offerTerms } from "./Terms";
-import { answerTreaty, breakOrder, enterWar, offerTreaty } from "./Treaties";
+import { answerTreaty, breakOrder, offerTreaty } from "./Treaties";
 import { seatPerson } from "./World";
 
 /** Why this seat can't say ready; null when it can. */
@@ -211,8 +211,6 @@ export function applyGwOrder(
       return answerTreaty(gw, seat, o.treaty, o.sign);
     case "treaty_break":
       return breakOrder(gw, seat, o.treaty);
-    case "enter_war":
-      return enterWar(gw, seat, o.side);
   }
 }
 

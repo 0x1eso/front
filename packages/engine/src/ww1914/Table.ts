@@ -47,6 +47,7 @@ import {
   news,
   other,
   reason,
+  ruledBySeat,
   seatsOf,
   turn,
 } from "./World";
@@ -177,7 +178,8 @@ export function openSession(gw: GreatWar, ticks: number): void {
   if (t.order.length > 0) say(t, "open", t.order[0], -1);
 }
 
-const hasSeat = (gw: GreatWar, tag: GwTag) => seatsOf(gw, tag).length > 0;
+/** A person speaks for this country at the table; a regent's delegation answers alone. */
+const hasSeat = (gw: GreatWar, tag: GwTag) => ruledBySeat(gw, tag);
 
 const openClaim = (t: GwTableState) => t.claims.find((c) => c.state === "open");
 

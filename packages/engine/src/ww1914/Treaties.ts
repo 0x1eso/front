@@ -1,6 +1,5 @@
 import {
   GW_ALLY_GRACE,
-  GW_LINES,
   GW_LOAN_EVERY,
   GW_LOAN_MAX,
   GW_OFFER_CHAPTERS,
@@ -78,8 +77,6 @@ function clauseOk(gw: GreatWar, t: GwTag, to: GwTag, c: GwClause): boolean {
       return c.value >= 1 && c.value <= GW_LOAN_MAX;
     case "passage":
       return c.theatre !== null;
-    case "territory":
-      return c.theatre !== null && c.value < GW_LINES[c.theatre].length;
     case "entry": {
       const last = gwChapters(gw.s.calendar).length - 1;
       return c.value > gw.s.chapter && c.value <= last;
@@ -138,25 +135,6 @@ function payLoan(gw: GreatWar, t: GwTreaty, c: GwClause): boolean {
   return true;
 }
 
-/** The side a neutral AI party is promised for: its price goes up. */
-function priceFor(gw: GreatWar, t: GwTreaty): void {
-  for (const [buyer, seller] of [
-    [t.from, t.to],
-    [t.to, t.from],
-  ] as const) {
-    const side = gw.nation(buyer)?.side ?? null;
-    const n = gw.nation(seller);
-    if (side === null || n === null || n.side !== null) continue;
-    if (ruledBySeat(gw, seller)) continue;
-    const promised = t.clauses.filter(
-      (c) => c.by === buyer && c.kind === "territory",
-    ).length;
-    if (promised > 0) {
-      n.offers[side] = Math.max(n.offers[side] ?? 0, 2 + promised);
-    }
-  }
-}
-
 function signTreaty(gw: GreatWar, t: GwTreaty): void {
   t.state = "signed";
   t.signed = gw.s.chapter;
@@ -168,7 +146,6 @@ function signTreaty(gw: GreatWar, t: GwTreaty): void {
       return;
     }
   }
-  priceFor(gw, t);
   moveTrust(gw, t.from, t.to, 1);
   moveTrust(gw, t.to, t.from, 1);
   tellBoth(gw, t, "treaty_signed");
@@ -245,27 +222,12 @@ export function treatyBars(gw: GreatWar, tag: GwTag, side: GwSide): boolean {
   });
 }
 
-export function enterWar(
-  gw: GreatWar,
-  seat: GwSeatState,
-  side: GwSide,
-): GwOrderBlock | null {
-  const n = gw.nation(seat.tag);
-  if (gw.s.warChapter === null) return "no_war";
-  if (n === null || n.side !== null || n.out) return "at_war";
-  if (treatyBars(gw, seat.tag, side)) return "treaty_bars";
-  enter(gw, seat.tag, side, "entered_war");
-  return null;
-}
-
 /** What a clause is worth to an AI party: paying out counts against. */
 function clauseValue(c: GwClause, ai: GwTag): number {
   const mine = c.by === ai;
   switch (c.kind) {
     case "loan":
       return (mine ? -20 : 15) * c.value;
-    case "territory":
-      return mine ? -25 : 15;
     case "passage":
       return mine ? -15 : 5;
     case "neutrality":
@@ -375,7 +337,6 @@ function checkClause(gw: GreatWar, t: GwTreaty, c: GwClause): boolean {
       return false;
     }
     case "passage":
-    case "territory":
       return true;
   }
 }
@@ -406,20 +367,6 @@ export function treatyStep(gw: GreatWar): void {
     t.sides = [gw.nation(t.from)!.side, gw.nation(t.to)!.side];
     if (t.leaked) continue;
     if (wwRoll(s.seed, P_LEAK, t.uid, s.chapter) % 100 < LEAK_PCT) leak(gw, t);
-  }
-}
-
-/** The promised line, judged when the game closes. */
-export function closeTreaties(gw: GreatWar): void {
-  for (const t of gw.s.treaties) {
-    if (t.state !== "signed") continue;
-    for (const c of t.clauses) {
-      if (c.kind !== "territory" || c.theatre === null) continue;
-      const th = gw.s.theatres.find((x) => x.id === c.theatre);
-      if (th === undefined || th.line === c.value) continue;
-      breakTreaty(gw, t, c.by, "territory_unmet");
-      break;
-    }
   }
 }
 

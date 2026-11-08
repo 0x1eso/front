@@ -10,7 +10,10 @@ import {
   isValidGameID,
   TeamCountConfig,
 } from "@openfront/engine-api/Schemas";
-import type { GwCalendarId } from "@openfront/engine-api/ww1914/GreatWarTypes";
+import type {
+  GwCalendarId,
+  GwPace,
+} from "@openfront/engine-api/ww1914/GreatWarTypes";
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
 import {
@@ -58,11 +61,12 @@ import "./components/ww1936/CountryPicker";
 import { fetchCosmetics, InsufficientCurrency } from "./Cosmetics";
 import { gamePortal } from "./GamePortal";
 import {
+  gwAiCountries,
   gwFriendsCalendarPicker,
+  gwPacePicker,
   gwResumeNote,
   GwSeatPick,
   gwSeatPicker,
-  gwTimerPicker,
 } from "./GwLobby";
 import { gwRecentBodies } from "./GwRecentRuns";
 import { gwSaves, resumeInLobby } from "./GwResume";
@@ -144,8 +148,9 @@ export class HostLobbyModal extends BaseModal {
   @state() private countryPicks: { clientID: string; tag: CountryTag }[] = [];
   /** Great War 1914 with friends (engine-lib/ww1914/ModeConfig.ts). */
   @state() private greatWar1914 = false;
-  @state() private greatWar1914Calendar: GwCalendarId = "y1914";
-  @state() private greatWar1914TimerSec: number | undefined = undefined;
+  /** Friends play the `friends` row by default (owner's ww160 call 3). */
+  @state() private greatWar1914Calendar: GwCalendarId = "friends";
+  @state() private greatWar1914Pace: GwPace = "normal";
   @state() private gwPicks: GwSeatPick[] = [];
   @state() private gwResume: GwResumeInfo | null = null;
   @state() private gwSaveList: SavedGame[] | null = null;
@@ -987,7 +992,9 @@ export class HostLobbyModal extends BaseModal {
             .lobbyCreatorClientID=${this.lobbyCreatorClientID}
             .currentClientID=${this.lobbyCreatorClientID}
             .teamCount=${this.teamCount}
-            .nationCount=${this.nations}
+            .nationCount=${this.greatWar1914
+              ? gwAiCountries(this.clients.filter((c) => !c.spectator).length)
+              : this.nations}
             .onKickPlayer=${this.publiclyListed
               ? undefined
               : (clientID: string) => this.kickPlayer(clientID)}
@@ -1276,8 +1283,8 @@ export class HostLobbyModal extends BaseModal {
     this.ww1936Nukes = true;
     this.countryPicks = [];
     this.greatWar1914 = false;
-    this.greatWar1914Calendar = "y1914";
-    this.greatWar1914TimerSec = undefined;
+    this.greatWar1914Calendar = "friends";
+    this.greatWar1914Pace = "normal";
     this.gwPicks = [];
     this.gwResume = null;
     this.gwSaveList = null;
@@ -1351,10 +1358,14 @@ export class HostLobbyModal extends BaseModal {
         this.greatWar1914Calendar = id;
         this.putGameConfig();
       })}
-      ${gwTimerPicker(this.greatWar1914TimerSec, (sec) => {
-        this.greatWar1914TimerSec = sec;
-        this.putGameConfig();
-      })}
+      ${gwPacePicker(
+        this.greatWar1914Calendar,
+        this.greatWar1914Pace,
+        (pace) => {
+          this.greatWar1914Pace = pace;
+          this.putGameConfig();
+        },
+      )}
       ${this.renderGwSaves()}
     </div>`;
   }
@@ -1407,7 +1418,7 @@ export class HostLobbyModal extends BaseModal {
     }
     this.gwResume = result.info;
     this.greatWar1914Calendar = result.calendar as GwCalendarId;
-    this.greatWar1914TimerSec = result.timer;
+    this.greatWar1914Pace = result.pace ?? "normal";
   }
 
   private wwLength(): WwLength {
@@ -2117,7 +2128,7 @@ export class HostLobbyModal extends BaseModal {
             ...(this.greatWar1914
               ? {
                   greatWar1914Calendar: this.greatWar1914Calendar,
-                  greatWar1914TimerSec: this.greatWar1914TimerSec,
+                  greatWar1914Pace: this.greatWar1914Pace,
                   greatWar1914Recent: gwRecentBodies(),
                 }
               : {}),

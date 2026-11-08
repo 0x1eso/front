@@ -63,6 +63,7 @@ import {
   fights,
   moveGauge,
   reason,
+  ruledBySeat,
   seatsOf,
 } from "./World";
 
@@ -535,8 +536,9 @@ function bankruptcy(gw: GreatWar, n: GwNationState): void {
   const b = n.budget;
   b.crisis = gw.s.chapter;
   const seats = seatsOf(gw, n.tag);
-  if (seats.length === 0) {
-    // Nobody to ask: the plain way, interest halved and the market shut.
+  // Nobody to ask, or a regent who answers nothing: the plain way, interest
+  // halved and the market shut.
+  if (!ruledBySeat(gw, n.tag)) {
     b.rate = 50;
     b.shutUntil = gw.s.chapter + 12;
     moveGauge(gw, n.tag, "order", -1, "order_prices");

@@ -32,7 +32,7 @@ describe("the config key", () => {
       "greatWar1914Recent",
       "greatWar1914Played",
       "greatWar1914Prologue",
-      "greatWar1914TimerSec",
+      "greatWar1914Pace",
     ]);
   });
 
@@ -164,7 +164,13 @@ describe("the chapter clock", () => {
     expect(gwChapters("y1914")).toHaveLength(12);
     expect(gwChapters("full")).toHaveLength(60);
     expect(gwChapters("standard")).toHaveLength(36);
-    expect(Object.keys(GW_CALENDARS)).toEqual(["y1914", "full", "standard"]);
+    expect(gwChapters("friends")).toHaveLength(20);
+    expect(Object.keys(GW_CALENDARS)).toEqual([
+      "y1914",
+      "full",
+      "standard",
+      "friends",
+    ]);
     const { runner } = await gwRunner({ greatWar1914Calendar: "full" });
     expect(view(runner).chapterCount).toBe(60);
     expect(seat(runner).audiences).toBe(gwChapters("full")[0].summons);

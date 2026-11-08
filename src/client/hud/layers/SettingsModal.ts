@@ -13,7 +13,11 @@ import {
   AlternateViewEvent,
   ToggleRenderDebugGuiEvent,
 } from "../../InputHandler";
-import { type SavedGameError, uploadSavedGame } from "../../SavedGamesApi";
+import {
+  FRIENDS_SAVE_MARK,
+  type SavedGameError,
+  uploadSavedGame,
+} from "../../SavedGamesApi";
 import { isSelfHosted } from "../../SelfHosted";
 import { lastUserMeResponse } from "../../UserMeBroadcast";
 import type { UserSettingModal } from "../../UserSettingModal";
@@ -214,9 +218,11 @@ export class SettingsModal extends LitElement implements Controller {
       // The menu has paused the game, so this is the moment the player sees.
       const snapshot = await game.worker.snapshot(ClientEnv.gitCommit());
       const map = game.config().gameConfig().gameMap;
+      const friends =
+        game.config().gameConfig().gameType !== GameType.Singleplayer;
       const result = await uploadSavedGame(snapshot, {
         name: defaultSaveName(getMapName(map) ?? map, new Date()),
-        map,
+        map: friends ? `${FRIENDS_SAVE_MARK}${map}` : map,
         tick: game.ticks(),
       });
       this.saveStatus = typeof result === "string" ? result : "saved";

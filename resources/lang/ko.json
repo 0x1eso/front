@@ -2761,7 +2761,9 @@
     "shared_badge": "공유됨",
     "shared_title": "공유된 게임",
     "title": "저장한 게임",
-    "unshare": "공유 해제"
+    "unshare": "공유 해제",
+    "friends_badge": "친구 판",
+    "friends_note": "친구들과 한 판입니다. 방을 만들고 「저장한 판 이어하기」에서 이어 하세요."
   },
   "select_lang": {
     "title": "언어 선택"
@@ -15238,25 +15240,25 @@
         "no_authority_cipher": "그 암호를 쓸 권위가 모자란다.",
         "not_host": "방장만 답할 수 있다.",
         "slow_spent": "이 장에는 더 늘릴 수 없다.",
-        "treaty_bars": "서명한 조약이 막고 있다.",
         "no_seat": "그 자리에 친구가 없다.",
         "bad_clause": "조항이 맞지 않는다.",
         "not_asked": "청한 자리가 없다.",
-        "too_many": "이 장에는 더 할 수 없다.",
-        "no_war": "들어갈 전쟁이 없다."
+        "too_many": "이 장에는 더 할 수 없다."
       },
       "brief_label": "비서의 메모",
       "calendar": {
         "full": "긴 판",
         "y1914": "1914년 판",
-        "standard": "보통 판"
+        "standard": "보통 판",
+        "friends": "친구들과"
       },
       "calendar_chapters": "{n}장",
       "calendar_label": "판의 길이",
       "calendar_time": {
         "full": "4~7시간",
         "y1914": "혼자 약 1시간 반",
-        "standard": "약 3시간"
+        "standard": "약 3시간",
+        "friends": "약 1시간"
       },
       "casualties": "잃은 사람 {man} 명",
       "chapter_n": "{n}장",
@@ -16458,17 +16460,21 @@
     },
     "lobby": {
       "resume_failed": "저장한 판을 로비에 올리지 못했습니다.",
-      "resume_none": "이 브라우저에 저장한 판이 없습니다.",
+      "resume_none": "이 브라우저에 친구들과 저장한 판이 없습니다.",
       "resume_not_friends": "그 판은 혼자 한 판입니다.",
       "resume_note": "저장한 판을 이어 합니다: {date}, {n}장. 예전 자리를 고르세요.",
       "resume_open": "저장한 판 이어하기",
       "seat_free": "비어 있음",
-      "seat_unwritten": "지금은 공통 장면만 있음",
       "seats_hint": "자리를 고르세요. 아무도 안 고른 나라는 AI가 맡습니다.",
-      "timer_label": "장 타이머",
-      "timer_sec": "{n}초",
-      "timer_table": "장마다 다르게",
-      "saved_friends": "저장했습니다. 새 방의 「저장한 판 이어하기」에서 이어 합니다."
+      "saved_friends": "저장했습니다. 새 방의 「저장한 판 이어하기」에서 이어 합니다.",
+      "pace_label": "진행 속도",
+      "pace": {
+        "short": "짧게",
+        "normal": "보통",
+        "long": "길게"
+      },
+      "pace_note": "한 장의 시간은 {min}~{max}초입니다. 모두 준비되면 더 일찍 넘어갑니다.",
+      "table_note": "{length}: {n}장, {time}. 진행 속도: {pace}."
     },
     "treaty": {
       "break": "이 조약을 깬다",
@@ -16478,16 +16484,14 @@
         "entry": "{by}은(는) {n}장까지 {other} 편에 선다.",
         "loan": "{by}은(는) {other}에 지금과 여섯 장마다 돈 {n}을 빌려준다.",
         "neutrality": "{by}은(는) {other}과(와) 싸우지 않는다.",
-        "passage": "{by}은(는) {theatre}에서 {other}에 길을 연다.",
-        "territory": "{by}은(는) {other}에 {theatre}의 {line}을(를) 약속한다."
+        "passage": "{by}은(는) {theatre}에서 {other}에 길을 연다."
       },
       "kind": {
         "alliance": "동맹",
         "entry": "참전 시기",
         "loan": "차관",
         "neutrality": "중립",
-        "passage": "통행",
-        "territory": "영토 약속"
+        "passage": "통행"
       },
       "leaked": "세계가 이 조약을 안다.",
       "loan_amount": "돈 {n}",
@@ -16505,14 +16509,11 @@
         "broken_openly": "{by}이(가) 조약을 찢었다.",
         "entry_late": "{by}은(는) 약속한 때까지 참전하지 않았다.",
         "fought_partner": "{by}이(가) 상대와 전쟁에 들어갔다.",
-        "loan_unpaid": "{by}은(는) 돈을 내지 못했다.",
-        "territory_unmet": "{by}은(는) 약속한 선을 주지 못했다."
+        "loan_unpaid": "{by}은(는) 돈을 내지 못했다."
       }
     },
     "diplo": {
       "clause_add": "조항 더하기",
-      "enter": "{side} 편으로 참전",
-      "enter_title": "참전",
       "finale": "모두의 회고록",
       "finale_close": "닫기",
       "finale_mandates": "이룬 과제 {n}/{total}",

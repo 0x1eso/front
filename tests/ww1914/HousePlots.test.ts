@@ -38,6 +38,7 @@ import type { GreatWar } from "@openfront/engine/ww1914/GreatWar";
 import { houseStep } from "@openfront/engine/ww1914/House";
 import { plotFair, plotsStep } from "@openfront/engine/ww1914/Plots";
 import { runEffects } from "@openfront/engine/ww1914/SceneRun";
+import { takeBack } from "@openfront/engine/ww1914/Seats";
 import { settlePromises } from "@openfront/engine/ww1914/Talk";
 import { afterEach, describe, expect, test } from "vitest";
 import { gwRunner, order, seat as seatView } from "./util";
@@ -243,6 +244,43 @@ describe("plots: the fair warning", () => {
     expect(p.signs).toEqual([]);
     expect(p.warned).toBe(-1);
     expect(heat(gw)).toBe(0);
+  });
+
+  test("under a regent nothing warns and no last step comes: the seat can't be lost", async () => {
+    const { gw, seat } = await game();
+    seat.flags.push("t_hot");
+    seat.regent = true;
+    for (let i = 0; i < 30; i++) month(gw);
+    expect(gw.s.ended).toBeNull();
+    expect(seat.seen.t_pl_2).toBeUndefined();
+    const p = seat.house!.plots[0];
+    expect(p.signs).toEqual([]);
+    expect(p.warned).toBe(-1);
+    expect(plotFair(gw, seat, "t_pl")).toBe(false);
+  });
+
+  test("a last step laid before the regent waits for the friend, who is warned afresh", async () => {
+    const { gw, seat } = await game();
+    seat.flags.push("t_hot");
+    for (let i = 0; i < 20 && seat.seen.t_pl_2 === undefined; i++) month(gw);
+    expect(seat.seen.t_pl_2).toBeDefined();
+    // The friend drops before the plot has its way.
+    seat.regent = true;
+    for (let i = 0; i < 5; i++) month(gw);
+    expect(gw.s.ended).toBeNull();
+    takeBack(gw, seat);
+    const p = seat.house!.plots[0];
+    expect(p.signs).toEqual([]);
+    expect(p.warned).toBe(-1);
+    expect(heat(gw)).toBe(5);
+    // Back at the desk, the signs and the warning come again before the end.
+    let warned = false;
+    for (let i = 0; i < 20 && gw.s.ended === null; i++) {
+      month(gw);
+      warned ||= p.warned >= 0;
+    }
+    expect(warned).toBe(true);
+    expect(gw.s.ended).toBe("deu_r_removed");
   });
 
   test("a red plot feeds the unrest ladder; the cabal feeds the fall track", async () => {

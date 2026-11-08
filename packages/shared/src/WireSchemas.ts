@@ -5,8 +5,7 @@ import {
 } from "@openfront/engine-api/StatsSchemas";
 import {
   GW_CALENDAR_IDS,
-  GW_TIMER_MAX_SEC,
-  GW_TIMER_MIN_SEC,
+  GW_PACES,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import {
   GW_MAX_SEATS,
@@ -272,12 +271,7 @@ export const GwResumeQuerySchema = z.object({
   chapter: z.coerce.number().int().min(0).max(1000),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   calendar: z.enum(GW_CALENDAR_IDS),
-  timer: z.coerce
-    .number()
-    .int()
-    .min(GW_TIMER_MIN_SEC)
-    .max(GW_TIMER_MAX_SEC)
-    .optional(),
+  pace: z.enum(GW_PACES).optional(),
 });
 /** A late-game World snapshot is about 3 MB raw. */
 export const GW_RESUME_MAX_BYTES = 16 * 1024 * 1024;

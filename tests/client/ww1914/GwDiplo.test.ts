@@ -179,7 +179,6 @@ describe("the diplomacy tab", () => {
     for (const c of [
       { kind: "alliance", by: "DEU", theatre: null, value: 0 },
       { kind: "neutrality", by: "RUS", theatre: null, value: 0 },
-      { kind: "territory", by: "DEU", theatre: "east", value: 2 },
       { kind: "loan", by: "DEU", theatre: null, value: 1 },
       { kind: "passage", by: "RUS", theatre: "west", value: 0 },
       { kind: "entry", by: "RUS", theatre: null, value: 7 },

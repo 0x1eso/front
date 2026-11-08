@@ -12,7 +12,6 @@ import {
   GW_POSTURES,
   GW_RESEARCH,
   GW_SCALES,
-  GW_SIDES,
   GW_TELEGRAM_MAX,
   GW_THEATRES,
   GW_TREATY_CLAUSES_MAX,
@@ -177,8 +176,6 @@ export const GwOrderSchema = z.discriminatedUnion("kind", [
     sign: z.boolean(),
   }),
   z.object({ kind: z.literal("treaty_break"), treaty: Card }),
-  /** A neutral seat goes to war on a side. */
-  z.object({ kind: z.literal("enter_war"), side: z.enum(GW_SIDES) }),
 ]);
 export type GwOrder = z.infer<typeof GwOrderSchema>;
 
@@ -231,8 +228,6 @@ export const GW_ORDER_BLOCKS = [
   "no_authority_cipher",
   "bad_clause",
   "no_treaty",
-  "treaty_bars",
-  "no_war",
   "at_war",
 ] as const;
 export type GwOrderBlock = (typeof GW_ORDER_BLOCKS)[number];

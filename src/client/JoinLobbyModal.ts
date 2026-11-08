@@ -1,6 +1,7 @@
 import { GAME_ID_REGEX, GameConfig } from "@openfront/engine-api/Schemas";
 import { GameMode, GameType } from "@openfront/engine-api/game/GameTypes";
 import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
+import { gwCalendarOf } from "@openfront/engine-lib/ww1914/Calendars";
 import { assetUrl } from "@openfront/shared/AssetUrls";
 import { EventBus } from "@openfront/shared/EventBus";
 import type { GwResumeInfo } from "@openfront/shared/WireSchemas";
@@ -25,7 +26,13 @@ import {
 } from "../client/Utils";
 import { getApiBase } from "./Api";
 import { gamePortal } from "./GamePortal";
-import { gwResumeNote, GwSeatPick, gwSeatPicker } from "./GwLobby";
+import {
+  gwAiCountries,
+  gwResumeNote,
+  GwSeatPick,
+  gwSeatPicker,
+  gwTableNote,
+} from "./GwLobby";
 import {
   SendPickCountryEvent,
   SendPickSeatEvent,
@@ -285,7 +292,10 @@ export class JoinLobbyModal extends BaseModal {
                 ${this.gameConfig?.greatWar1914 === true && !this.isSpectating
                   ? html`<div class="mt-6 space-y-2">
                       ${this.gwResume === null
-                        ? ""
+                        ? gwTableNote(
+                            gwCalendarOf(this.gameConfig),
+                            this.gameConfig.greatWar1914Pace ?? "normal",
+                          )
                         : gwResumeNote(this.gwResume)}
                       ${gwSeatPicker(
                         this.gwPicks,
@@ -312,10 +322,14 @@ export class JoinLobbyModal extends BaseModal {
                         .teamCount=${this.gameConfig?.playerTeams ?? 2}
                         .isPublicGame=${this.gameConfig?.gameType ===
                         GameType.Public}
-                        .nationCount=${nationsConfigToSlider(
-                          this.gameConfig?.nations ?? "default",
-                          this.nationCount,
-                        )}
+                        .nationCount=${this.gameConfig?.greatWar1914 === true
+                          ? gwAiCountries(
+                              this.players.filter((p) => !p.spectator).length,
+                            )
+                          : nationsConfigToSlider(
+                              this.gameConfig?.nations ?? "default",
+                              this.nationCount,
+                            )}
                       ></lobby-player-view>
                     `
                   : ""}
