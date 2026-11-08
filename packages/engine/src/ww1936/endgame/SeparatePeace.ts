@@ -121,11 +121,29 @@ export function targetLeft(
 
 // ---- The AI ----
 
-/** Side `s` of `w` is ahead on war score (its members' points against the other's). */
-export function scoreAhead(w: WwWar, s: 0 | 1): boolean {
-  const score = (x: 0 | 1) =>
-    w.sides[x].members.reduce((n, m) => n + Math.max(0, m.wsMilli), 0);
-  return score(s) > score(s === 0 ? 1 : 0);
+/**
+ * Side `s` of `w` is winning (ww161 Design B §1, "war score ahead"): its
+ * fighting members hold more victory points of the other side's legal land
+ * than the other side's fighting members hold of its own. Not the members'
+ * summed war score (casualties): that grows with a coalition's size, so the
+ * bigger side was always "ahead" and no leader of a smaller one ever offered.
+ */
+export function scoreAhead(eg: WwEndgame, w: WwWar, s: 0 | 1): boolean {
+  const side = (x: 0 | 1) =>
+    new Set(w.sides[x].members.filter((m) => fighting(m)).map((m) => m.id));
+  const ours = side(s);
+  const theirs = side(s === 0 ? 1 : 0);
+  const ctrl = eg.ww.land.controller;
+  const legal = eg.ww.politics.legalOwner;
+  let won = 0;
+  let lost = 0;
+  for (const r of eg.ww.scenario.landRegions) {
+    const owner = legal[r.id] ?? 0;
+    const holder = ctrl[r.id] ?? 0;
+    if (theirs.has(owner) && ours.has(holder)) won += r.vp;
+    else if (ours.has(owner) && theirs.has(holder)) lost += r.vp;
+  }
+  return won > lost;
 }
 
 /**
@@ -197,7 +215,7 @@ export function aiSeparatePeaceDay(
     const w = eg.war(wid);
     if (w === null || w.ended !== null || w.kind !== "normal") continue;
     const s = eg.sideIndex(w, id);
-    if (s === -1 || w.sides[s].leader !== id || !scoreAhead(w, s)) continue;
+    if (s === -1 || w.sides[s].leader !== id || !scoreAhead(eg, w, s)) continue;
     const other = w.sides[s === 0 ? 1 : 0];
     let goals: Set<number> | null = null;
     const minors = other.members

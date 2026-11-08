@@ -11,6 +11,7 @@ import {
   DIPLO_NOTICES,
   noticeId,
   WW_SEP_AI_DAYS,
+  WW_SEP_AI_TARGET_PM,
   WW_SEP_LOYAL_PTS,
 } from "@openfront/engine-api/ww1936/DiploTypes";
 import {
@@ -34,6 +35,7 @@ import {
 import {
   aiSeparatePeaceDay,
   offerHome,
+  scoreAhead,
 } from "@openfront/engine/ww1936/endgame/SeparatePeace";
 import { makeSubject } from "@openfront/engine/ww1936/endgame/Subjects";
 import {
@@ -44,6 +46,7 @@ import {
   peaceOfferView,
   replyPeace,
   stepPeaceOffers,
+  surrenderPm,
 } from "@openfront/engine/ww1936/endgame/WhitePeace";
 import type { WwEndgame } from "@openfront/engine/ww1936/endgame/WwEndgame";
 import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSource";
@@ -303,10 +306,9 @@ describe(
 
     it("a winning AI side leader offers a beaten minor a line peace, once per 60 days, never near its goals", async () => {
       const { g, ww, eg } = await started();
-      const { w, rec, deu, pl } = bigWar(g, ww);
+      const { w, deu, pl } = bigWar(g, ww);
       takeRegion(g, 6, "DEU");
       takeRegion(g, 7, "DEU");
-      eg.member(rec, deu)!.wsMilli = 10_000;
       const day = ww.day(g.ticks());
       const k = DIPLO_COOLDOWN_KINDS.indexOf("ai_separate");
       // A claim on Krakow: Poland borders the leader's goal.
@@ -335,15 +337,40 @@ describe(
       ]);
     });
 
-    it("an AI side leader ahead on score does nothing when it isn't", async () => {
+    it("an AI side leader that has lost more victory points than it holds does nothing", async () => {
       const { g, ww, eg } = await started();
-      const { rec, deu, gbr } = bigWar(g, ww);
-      takeRegion(g, 6, "DEU");
+      const { rec, deu } = bigWar(g, ww);
+      takeRegion(g, 6, "DEU"); // Warsaw and Krakow: 24 points held
       takeRegion(g, 7, "DEU");
-      eg.member(rec, gbr)!.wsMilli = 10_000;
+      takeRegion(g, 3, "GBR"); // Berlin and Munich: 25 points lost
+      takeRegion(g, 4, "FRA");
+      eg.member(rec, deu)!.wsMilli = 1_000_000;
+      expect(scoreAhead(eg, rec, 0)).toBe(false);
+      expect(scoreAhead(eg, rec, 1)).toBe(true);
       aiSeparatePeaceDay(eg, deu, ww.day(g.ticks()), g.ticks());
       expect(eg.peaceOffers).toEqual([]);
       expect(eg.diploCooldowns).toEqual([]);
+    });
+
+    it("a winning leader offers a minor a separate peace though the bigger coalition has more war score; under 40% of its line, not", async () => {
+      const { g, ww, eg } = await started();
+      const { w, rec, deu, gbr, fra, pl } = bigWar(g, ww);
+      // The bug (ww162 dint): the members' summed war score made the bigger
+      // coalition "ahead" for good. Britain's side scores far more here.
+      for (const x of [gbr, fra, pl]) eg.member(rec, x)!.wsMilli = 500_000;
+      eg.member(rec, deu)!.wsMilli = 10_000;
+      expect(scoreAhead(eg, rec, 0)).toBe(false); // nothing held yet
+      takeRegion(g, 7, "DEU"); // Krakow only
+      expect(scoreAhead(eg, rec, 0)).toBe(true);
+      expect(surrenderPm(eg, pl)).toBeLessThan(WW_SEP_AI_TARGET_PM);
+      const day = ww.day(g.ticks());
+      aiSeparatePeaceDay(eg, deu, day, g.ticks());
+      expect(eg.peaceOffers).toEqual([]);
+      takeRegion(g, 6, "DEU"); // and Warsaw: past 40%
+      expect(surrenderPm(eg, pl)).toBeGreaterThanOrEqual(WW_SEP_AI_TARGET_PM);
+      aiSeparatePeaceDay(eg, deu, day + WW_SEP_AI_DAYS, g.ticks());
+      const o = onlyOffer(eg);
+      expect([o.from, o.to, o.war, o.line]).toEqual([deu, pl, w, true]);
     });
 
     it("a winning AI side leader calls a weak exile home", async () => {
