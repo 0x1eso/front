@@ -2345,6 +2345,13 @@
       "trenches": "The trenches"
     },
     "fact": {
+      "count": {
+        "0": "plenty to spare",
+        "1": "should pass",
+        "2": "even",
+        "3": "short",
+        "4": "not a chance"
+      },
       "force": {
         "1": "very weak",
         "2": "weak",
@@ -2550,6 +2557,81 @@
         "2": "Close",
         "3": "Any day"
       }
+    },
+    "house": {
+      "calls": "Extra calls for this bill's people: {n}",
+      "chamber": {
+        "budapest": "Budapest Diet",
+        "bundesrat": "Bundesrat",
+        "commons": "Commons",
+        "council": "State Council",
+        "duma": "Duma",
+        "lords": "Lords",
+        "reichsrat": "Reichsrat",
+        "reichstag": "Reichstag"
+      },
+      "chambers": "Must pass: {list}",
+      "deal": "deal struck",
+      "delay": "The Lords have put it off until chapter {n}",
+      "leader": "Led by {name}",
+      "none": "No bill is before the house.",
+      "origin": {
+        "ally": "An ally's bill",
+        "faction": "A faction's bill",
+        "house": "The house brought it itself",
+        "seat": "The government's bill"
+      },
+      "out": {
+        "army": "Army sitting on orders",
+        "business": "Loans refused",
+        "court": "Court turned away",
+        "parliament": "Boycott",
+        "press": "Papers attacking",
+        "workers": "On strike"
+      },
+      "pick_sponsor": "Who drafts it?",
+      "record": "His count so far: right {right}, wrong {wrong}",
+      "said": {
+        "against": "against it, he says",
+        "away": "staying away, he says",
+        "for": "for it, he says"
+      },
+      "sponsor": "Drafted by {name}",
+      "sponsor_default": "The usual minister",
+      "stage": {
+        "draft": "Being drafted",
+        "persuade": "In the house",
+        "vote": "Vote day"
+      },
+      "strength": {
+        "0": "a handful",
+        "1": "a small band",
+        "2": "a force to reckon with",
+        "3": "a great force",
+        "4": "holds the house"
+      },
+      "temper": {
+        "0": "follows",
+        "1": "grumbles",
+        "2": "up in arms",
+        "3": "has turned its back",
+        "4": "silent"
+      },
+      "title": "The house",
+      "trend": {
+        "down": "losing ground",
+        "flat": "holding",
+        "up": "gaining"
+      },
+      "under": "driven underground",
+      "whip": {
+        "even": "Even",
+        "hopeless": "Not a chance",
+        "likely": "It should pass",
+        "short": "We are short",
+        "wide": "Plenty to spare"
+      },
+      "whip_line": "{name} counts: \"{word}\""
     },
     "issue": {
       "bef": "Sending the army to France",
@@ -2886,6 +2968,9 @@
       "front_break": "{a} has broken through: {theatre}.",
       "front_opened": "A new front has opened: {theatre}.",
       "front_repelled": "{a} was thrown back: {theatre}.",
+      "house_brought": "{a}'s parliament brought a bill of its own.",
+      "house_joined": "Factions joined forces in {a}'s parliament.",
+      "house_split": "A party split in {a}'s parliament.",
       "invent_fielded": "{a} has brought a new weapon to the front.",
       "invent_leaked": "{a} tried a new weapon too soon; word of it is out.",
       "law_decreed": "{a}: a new law by decree.",
@@ -3267,9 +3352,12 @@
       "embassy_petersburg": "St Petersburg embassy",
       "embassy_rome": "Rome embassy",
       "embassy_vienna": "Vienna embassy",
+      "envoy": "The envoy",
       "own_eyes": "Seen in person",
+      "police": "Political police",
       "press": "The press",
-      "staff": "General Staff estimate"
+      "staff": "General Staff estimate",
+      "whip": "The whip's count"
     },
     "stamp": {
       "confirmed": "Confirmed",

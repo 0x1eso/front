@@ -94,6 +94,8 @@ export interface GwUi {
   armedDismiss: string | null;
   /** A repeal waiting for its second tap. */
   armedRepeal: string | null;
+  /** A house bill whose sponsor is being picked (ww158). */
+  armedDraft?: string | null;
   /** An invention waiting for its second tap to be fielded. */
   armedField?: string | null;
   /** The research picked for the paper about to be signed. */

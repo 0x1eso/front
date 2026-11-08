@@ -12,6 +12,7 @@ import { html, nothing, TemplateResult } from "lit";
 import { applyJosa } from "../../Josa";
 import { translateText } from "../../Utils";
 import type { GwCtx } from "./GwCtx";
+import { blocFactions } from "./GwHouse";
 import { BTN, BTN_ON, CHIP, fillColor, HEAD, MUTED } from "./GwStyle";
 import { personName } from "./GwText";
 
@@ -166,6 +167,7 @@ function blocRow(c: GwCtx, b: GwBlocView): TemplateResult {
     ${people.length + papers.length === 0
       ? nothing
       : html`<p class=${MUTED}>${[...people, ...papers].join(" · ")}</p>`}
+    ${blocFactions(c, b.id)}
   </div>`;
 }
 

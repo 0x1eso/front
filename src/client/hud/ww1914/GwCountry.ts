@@ -9,6 +9,7 @@ import { craftSection } from "./GwCraft";
 import type { GwCtx } from "./GwCtx";
 import { rich } from "./GwDict";
 import { govBox } from "./GwGov";
+import { houseSection } from "./GwHouse";
 import { lawsSection } from "./GwLaws";
 import { gaugeFill, gaugeLevel, instBand, logByChapter } from "./GwModel";
 import { rulerCard } from "./GwRuler";
@@ -200,7 +201,8 @@ export function countryTab(c: GwCtx): TemplateResult {
   const log = logByChapter(seat.log);
   return html`<div class="space-y-3" data-gw-country>
     ${rulerCard(c)} ${standing(c)} ${govBox(c)} ${budgetSummary(c)}
-    ${lawsSection(c)} ${craftSection(c)} ${war(c)} ${gauges(c)}
+    ${houseSection(c)} ${lawsSection(c)} ${craftSection(c)} ${war(c)}
+    ${gauges(c)}
     ${insts.length === 0
       ? nothing
       : html`<section class=${BOX}>

@@ -35,12 +35,53 @@ function standing(v: GwLawView): TemplateResult | typeof nothing {
   </p>`;
 }
 
+/** A house bill: who drafts it, from the cabinet, or the usual minister. */
+function sponsorPick(c: GwCtx, v: GwLawView): TemplateResult {
+  const draft = (sponsor?: string) => {
+    c.ui.armedDraft = null;
+    c.send(
+      sponsor === undefined
+        ? { kind: "law", law: v.id, act: "draft" }
+        : { kind: "law", law: v.id, act: "draft", sponsor },
+    );
+  };
+  const cabinet = c.seat.people.filter((p) => p.office !== null);
+  return html`<div class="space-y-1" data-gw-law-sponsors=${v.id}>
+    <p class=${MUTED}>${translateText("gw.house.pick_sponsor")}</p>
+    <div class="flex flex-wrap gap-1">
+      <button class=${BTN} data-gw-law-sponsor="" @click=${() => draft()}>
+        ${translateText("gw.house.sponsor_default")}
+      </button>
+      ${cabinet.map(
+        (p) =>
+          html`<button
+            class=${BTN}
+            data-gw-law-sponsor=${p.id}
+            @click=${() => draft(p.id)}
+          >
+            ${personName(c.pack, p.id)}
+          </button>`,
+      )}
+    </div>
+  </div>`;
+}
+
 function takeUp(c: GwCtx, v: GwLawView): TemplateResult {
+  if (v.house === true && c.ui.armedDraft === v.id && v.waits === null) {
+    return sponsorPick(c, v);
+  }
   return html`<button
       class="${BTN} w-full"
       data-gw-law-draft=${v.id}
       ?disabled=${v.waits !== null}
-      @click=${() => c.send({ kind: "law", law: v.id, act: "draft" })}
+      @click=${() => {
+        if (v.house === true) {
+          c.ui.armedDraft = v.id;
+          c.redraw();
+          return;
+        }
+        c.send({ kind: "law", law: v.id, act: "draft" });
+      }}
     >
       ${translateText("gw.law.take")}
     </button>

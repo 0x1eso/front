@@ -59,6 +59,9 @@ const DYNAMIC_KEY_PATTERNS: RegExp[] = [
   /^gw\.ruler\.side\.[a-z]+$/,
   // Statecraft's words by footing, stage, phase and shortage (client/ww1914/GwCraft).
   /^gw\.craft\.(?:footing|phase|raise|shortage|stage|terms)\.[a-z]+$/,
+  // The house's words by stage, origin, chamber, whip, strength, temper, trend,
+  // what the whip says of a faction, and the band's chip (client/ww1914/GwHouse).
+  /^gw\.house\.(?:stage|origin|chamber|whip|strength|temper|trend|said|out)\.[a-z0-9_]+$/,
   /^gw\.ui\.danger\.[a-z]+$/,
   // Government threats: rows, feeds and swings come from the engine's GovTable.
   /^gw\.gov\.[A-Za-z0-9_.]+$/,
