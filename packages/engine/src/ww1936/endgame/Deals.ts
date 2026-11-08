@@ -112,6 +112,7 @@ import {
 } from "./LendLease";
 import {
   applyPromiseItem,
+  promiseDealBlock,
   promiseItemBlock,
   promiseItemValue,
 } from "./Promises";
@@ -333,7 +334,8 @@ export function dealBlock(
     const b = dealItemBlock(eg, to, from, i, day, f);
     if (b !== null) return b;
   }
-  return null;
+  // L3: a promise goes to one that joins the war in the deal, or fights it already.
+  return promiseDealBlock(eg, from, to, give, take);
 }
 
 // ---- Items: the AI's value points ----

@@ -100,6 +100,18 @@ function hooks(): WarEndHooks {
 }
 
 /**
+ * Diplomacy D4: what runs after every check of the wars' ends (daily, and
+ * on a capitulation), once the conferences opened. Promises.ts registers
+ * its lapse there when it loads, so this module stays light.
+ */
+let afterWarEnds: ((eg: WwEndgame, tick: number) => void) | null = null;
+export function registerAfterWarEnds(
+  f: (eg: WwEndgame, tick: number) => void,
+): void {
+  afterWarEnds = f;
+}
+
+/**
  * Spec §4.4: a member still fights for its side — active in the record and
  * playing (lane C: a country wiped off the map without capitulating, a
  * dead player, is out).
@@ -162,6 +174,8 @@ export function checkWarEnds(eg: WwEndgame, day: number, tick: number): void {
     );
   }
   if (changed) eg.dirtyWars = true;
+  // Diplomacy D4: promises whose war ended otherwise lapse.
+  afterWarEnds?.(eg, tick);
 }
 
 /** Spec §4.4 for one ongoing war: true when it ended (a conference's wars go in `ended`). */
