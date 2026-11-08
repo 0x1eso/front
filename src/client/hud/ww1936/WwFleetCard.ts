@@ -154,6 +154,11 @@ export class WwFleetCard extends LitElement implements Controller {
     return seaAirOf(this.game);
   }
 
+  /** ww162: while the game is paused too: the taps, the echoes and the layout still redraw. */
+  idleTick() {
+    this.tick();
+  }
+
   tick() {
     if ((this.game?.worldWarScenario() ?? null) === null) return;
     const { selection, draft } = this.state;

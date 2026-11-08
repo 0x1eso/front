@@ -24,4 +24,12 @@ export interface Controller {
 
   /** Optional throttle on tick frequency, in milliseconds. */
   getTickIntervalMs?: () => number;
+
+  /**
+   * Called (at the same throttle) while no game tick arrives — the game is
+   * paused — so a card that follows the player's taps and the page's layout
+   * still redraws. Only for work that needs no new game update: it must not
+   * read the updates of the last tick again.
+   */
+  idleTick?: () => void;
 }

@@ -195,8 +195,16 @@ export class WwArmyPanel extends WwDrawerBase {
   }
 
   tick() {
-    this.refitIfOpen();
     this.finishPendingTrain();
+    this.idleTick();
+  }
+
+  /**
+   * ww162: while the game is paused too (the selection, the layout); a
+   * pending training waits for the game, so its timeout runs only in tick().
+   */
+  idleTick() {
+    this.refitIfOpen();
     if (!this.open) return;
     const key = [
       this.game.wwLand?.()?.version,

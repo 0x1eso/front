@@ -109,6 +109,11 @@ export class WwBattleCard extends LitElement implements Controller {
     return 250;
   }
 
+  /** ww162: while the game is paused too: the taps, the echoes and the layout still redraw. */
+  idleTick() {
+    this.tick();
+  }
+
   tick() {
     if (this.region === null) return;
     this.refit();
