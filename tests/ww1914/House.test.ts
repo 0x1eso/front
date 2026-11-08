@@ -598,6 +598,15 @@ describe("a bill through the house", () => {
     expect(lines.some((l) => l.who === "deu_ebert")).toBe(true);
   });
 
+  test("a scene's reason line names a pack-only outsider cast in it", async () => {
+    const { gw, seat } = await atWar();
+    runEffects({ gw, seat, cast: { who: "deu_i_westarp" } }, [
+      { kind: "reason", key: "t_line", who: { role: "who" } },
+    ]);
+    const l = seat.log.find((x) => x.key === "t_line");
+    expect(l?.who).toBe("deu_i_westarp");
+  });
+
   test("short of the count it goes back to the house, whatever the day", async () => {
     const { gw, n, seat } = await atWar();
     n.inst.reichstag = -5;

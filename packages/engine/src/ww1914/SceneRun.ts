@@ -301,6 +301,13 @@ function who(ctx: SceneCtx, w: GwWho): GwPersonState | null {
 
 export const whoIn = who;
 
+/** Whom a reason line names: a pack-only outsider has no state, only his id. */
+function reasonWho(ctx: SceneCtx, w: GwWho): string | null {
+  const p = who(ctx, w);
+  if (p !== null) return p.id;
+  return "role" in w ? (ctx.cast[w.role] ?? null) : null;
+}
+
 /** On the scene, or named and on the way. */
 const about = (p: GwPersonState) =>
   p.status === "active" || p.status === "waiting";
@@ -660,7 +667,7 @@ export function runEffect(ctx: SceneCtx, e: GwEffect): void {
       seat.scheduled.push({
         scene: e.scene,
         chapter: s.chapter + e.chapters,
-        who: e.who === undefined ? null : (who(ctx, e.who)?.id ?? null),
+        who: e.who === undefined ? null : reasonWho(ctx, e.who),
       });
       return;
     case "delay":
@@ -692,7 +699,7 @@ export function runEffect(ctx: SceneCtx, e: GwEffect): void {
       seat.log.push({
         key: e.key,
         chapter: s.chapter,
-        who: e.who === undefined ? null : (who(ctx, e.who)?.id ?? null),
+        who: e.who === undefined ? null : reasonWho(ctx, e.who),
       });
       return;
     case "end":
