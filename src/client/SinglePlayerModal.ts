@@ -845,12 +845,9 @@ export class SinglePlayerModal extends BaseModal {
   }
 
   // Check if any options other than map and difficulty have been changed from defaults
-  /** A first game of a nation lives its years; the player can say otherwise. */
+  /** Every game lives the ruler's years first unless the player says otherwise. */
   private playsPrologue(): boolean {
-    return (
-      this.greatWar1914Prologue ??
-      !gwPlayedTags().includes(this.greatWar1914Seat)
-    );
+    return this.greatWar1914Prologue ?? true;
   }
 
   private hasOptionsChanged(): boolean {
