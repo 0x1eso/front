@@ -4782,6 +4782,10 @@
       "stock_unused": "사단이 쓰지 않음",
       "stock_show_rest": "나머지 보기 ({n})",
       "stock_hide_rest": "나머지 접기",
+      "stock_short_fronts": "전선 {n}",
+      "stock_short_training": "훈련 {n}",
+      "stock_sort_short": "부족순",
+      "stock_sort_type": "종류순",
       "tip": {
         "alloy_plant": "하루에 텅스텐 {n}, 크롬 {n}을(를) 생산합니다(대체 금속 공법 II 이후 각 {m}). 건물 칸을 하나 차지합니다. 에너지를 {e} 사용합니다.",
         "mine": "레벨마다 이 지역의 여섯 자원 산출이 {a} % 늘어납니다(1~3레벨에서 {a}, {b}, {c} %). 도로와 지배력 보정 전에 적용되며 합성·합금·제련 생산은 늘지 않습니다. 매장지가 있어야 하고 칸은 차지하지 않습니다.",
@@ -11029,6 +11033,27 @@
       "refuse_goal_far": "공세선은 군의 전선에서 시작해야 합니다",
       "refuse_goal_full": "공세선은 최대 {n}개 지역까지입니다",
       "region_divisions": "{region} ×{n}"
+    },
+    "army_hud": {
+      "block_no_fallback": "먼저 후퇴선을 그으세요",
+      "btn_whole_army": "군 전체",
+      "command_division": "이 사단 지휘",
+      "line_fallback": "후퇴선: 주 {n}개",
+      "line_front": "전선: {a} – {b}",
+      "line_goal": "공세선: 주 {n}개",
+      "line_goal_running": "공세선: 주 {n}개 (공격 중)",
+      "line_spear": "돌파: 경유지 {n}곳",
+      "line_spear_running": "돌파: 경유지 {n}곳 (공격 중)",
+      "picked": "사단 {n}개 선택",
+      "pinned_to": "고정: {region}",
+      "split_off": "한 점 집중",
+      "split_on": "군마다 나눠 맡기",
+      "supply_days": "다 차는 데 {n} 일",
+      "supply_from_stock": "비축분으로 채우는 중",
+      "supply_item": "{name} {n}",
+      "supply_no_output": "생산 없음",
+      "supply_short": "부족: {list}",
+      "supply_strength": "강도 {pct}%"
     },
     "pol": {
       "adv": {

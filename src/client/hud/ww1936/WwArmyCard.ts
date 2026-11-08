@@ -28,13 +28,22 @@ import type { GameView } from "../../view";
 import { zoneHueCss } from "../../view/WarBadges";
 import type { WwEconomyView } from "../../view/WwEconomyView";
 import type { WwLandView } from "../../view/WwLandView";
+import {
+  ARMY_HUD_KEYS,
+  divisionGroups,
+  pinOf,
+  planMaxPct,
+  supplyLine,
+  supplyWords,
+  togglePick,
+  WwStockLitEvent,
+} from "./ArmyHudModel";
 import { WwStrikeFlowEvent } from "./DepthEvents";
 import { DepthMiscModel } from "./DepthMiscModel";
-import { blockText } from "./EconomyModel";
+import { blockText, stockTable } from "./EconomyModel";
 import { garrisonScopes, myOccRows } from "./EndgameModel";
 import { fogModelOf } from "./FogModel";
 import {
-  ARMY_ACTIONS,
   ARMY_BUTTONS,
   ArmyButton,
   armyCard,
@@ -47,7 +56,7 @@ import {
   CardBlock,
   cardBlockText,
   daysOf,
-  defendAnchor,
+  divisionRows,
   landSidesOf,
   movePreview,
   orderBlock,
@@ -55,15 +64,21 @@ import {
   regionName,
   tapKind,
   tapOrder,
+  templateName,
   zoneOrder,
   zoneShown,
 } from "./LandModel";
+import { statsFromArray } from "./LandSeaAir";
 import {
+  type DrawMode,
   LandMode,
   landSelectionOf,
   OpenWwArmyEvent,
+  type PlannerAction,
+  WwDrawModeEvent,
   WwLandModeEvent,
   WwLandSelection,
+  WwPlannerEvent,
   WwSelectArmyEvent,
 } from "./LandSelection";
 import {
@@ -76,6 +91,7 @@ import {
   seaMoveLossPm,
   srName,
 } from "./NavyModel";
+import { PLANNER_KEYS } from "./PlannerKeys";
 import { armyPriority, wingsFollowing } from "./WingModel";
 import { today, TWO_TAP_MS, TwoTap, wwActive } from "./WorldWarModel";
 import { renderDirectPanel } from "./WwDirectPanel";
@@ -151,6 +167,48 @@ const BUTTON_MODES: Readonly<Partial<Record<ArmyButton, LandMode>>> = {
   rail: "rail",
   sea: "sea",
 };
+
+/**
+ * ww162 (design §2): the card's first row — the battle planner's line
+ * modes [전선] [공세선] [후퇴선] [사단]. A chip turns its mode on, the same
+ * chip again turns it off (the land controller keeps the mode).
+ */
+export const DRAW_CHIPS = ["front", "goal", "fallback", "divisions"] as const;
+type DrawChip = (typeof DRAW_CHIPS)[number];
+const DRAW_CHIP_KEYS: Readonly<Record<DrawChip, string>> = {
+  front: PLANNER_KEYS.btnFront,
+  goal: PLANNER_KEYS.btnGoal,
+  fallback: PLANNER_KEYS.btnFallback,
+  divisions: PLANNER_KEYS.btnDivisions,
+};
+const DRAW_CHIP_ICONS: Readonly<Record<DrawChip, string>> = {
+  front: "🛡",
+  goal: "⚔",
+  fallback: "↩",
+  divisions: "▦",
+};
+const DRAW_HINT_KEYS: Readonly<Record<DrawChip, string>> = {
+  front: PLANNER_KEYS.hintFront,
+  goal: PLANNER_KEYS.hintGoal,
+  fallback: PLANNER_KEYS.hintFallback,
+  divisions: PLANNER_KEYS.hintDivisions,
+};
+/**
+ * The order check a chip borrows (a greyed chip says why): a front or a
+ * fallback needs a border to hold, an offensive line an enemy to reach, the
+ * divisions a move.
+ */
+const DRAW_CHIP_CHECK: Readonly<Record<DrawChip, ArmyButton>> = {
+  front: "front",
+  goal: "plan",
+  fallback: "front",
+  divisions: "move",
+};
+
+/** A touch screen: the line hints add that two fingers move the map. */
+function coarsePointer(): boolean {
+  return window.matchMedia?.("(pointer: coarse)")?.matches === true;
+}
 
 /** ww7: the auto level buttons' text. */
 const AUTO_LEVEL_KEYS: Readonly<Record<AutoLevel, string>> = {
@@ -304,6 +362,15 @@ export function directWidthStyle(p: CardPlace): string {
   return `; width: ${p.maxWidth}px`;
 }
 
+/**
+ * ww162 (design §2): a line mode's card takes the whole quarter of the
+ * screen (the map's middle-half rule would cut its second row on a desktop
+ * of 900 px): the line is drawn on the map around it.
+ */
+export function drawMaxHeight(p: CardPlace): number {
+  return Math.max(p.maxHeight, Math.floor(window.innerHeight / 4));
+}
+
 export function samePlace(a: CardPlace, b: CardPlace): boolean {
   return (
     a.bottom === b.bottom &&
@@ -374,6 +441,15 @@ export class WwArmyCard extends LitElement implements Controller {
   private wasOrdering = false;
   private readonly twoTap = new TwoTap();
   private shownArmy: number | null = null;
+  /** ww162: the line mode on show; a new one opens the card. */
+  private shownDraw: DrawMode = "none";
+  /** ww162: the card folded to its strip by the toggle while a line mode is on. */
+  @state() private drawFolded = false;
+  /**
+   * ww162: [자동 후퇴] as tapped, per army, until the engine's order says it
+   * (the land controller sends it with the fallback line).
+   */
+  private readonly fbAuto = new Map<number, boolean>();
   private redrawKey: readonly unknown[] = [];
 
   createRenderRoot() {
@@ -438,6 +514,10 @@ export class WwArmyCard extends LitElement implements Controller {
         this.eventBus.emit(new WwSeaAirModeEvent("none"));
       }
     }
+    if (sel.draw !== this.shownDraw) {
+      this.shownDraw = sel.draw;
+      this.drawFolded = false;
+    }
     const ordering = this.isOrdering(sel);
     if (ordering !== this.wasOrdering) {
       this.wasOrdering = ordering;
@@ -486,8 +566,16 @@ export class WwArmyCard extends LitElement implements Controller {
     return d.mode === "invade" && d.army === sel.army;
   }
 
+  /** An order mode or a waiting tap (a line mode has its own card, not the strip). */
   private isOrdering(sel: WwLandSelection): boolean {
+    if (sel.draw !== "none") return false;
     return sel.mode !== "none" || sel.pending !== null || this.invading(sel);
+  }
+
+  /** ww162: the card's second row asks the land controller, which sends the orders. */
+  private planner(a: PlannerAction) {
+    this.eventBus.emit(new WwPlannerEvent(a));
+    this.requestUpdate();
   }
 
   private setInvade(on: boolean, army: number) {
@@ -522,10 +610,6 @@ export class WwArmyCard extends LitElement implements Controller {
     this.refused = null;
     const army = c.card.row.id;
     const mode = BUTTON_MODES[id];
-    if (id === "front") {
-      this.tapDefend(c, army);
-      return;
-    }
     if (mode !== undefined) {
       // A second press puts the map back to plain taps.
       this.setMode(c.sel.mode === mode ? "none" : mode);
@@ -560,30 +644,6 @@ export class WwArmyCard extends LitElement implements Controller {
         this.panel = "more";
         return;
     }
-  }
-
-  /**
-   * ww7: [방어] — the army holds the border around it (army_front, unless it
-   * already defends: its explicit zone stays), then a tap on one of our
-   * border regions adds it to the zone or drops it. A second press ends the
-   * zone mode.
-   */
-  private tapDefend(c: Ctx, army: number) {
-    if (c.sel.mode === "front") {
-      this.setMode("none");
-      return;
-    }
-    if (c.card.orderKind !== "front") {
-      const anchor = defendAnchor(
-        c.view,
-        c.me,
-        c.view.armies.get(army)?.region ?? 0,
-        landSidesOf(this.game),
-      );
-      if (anchor === null) return;
-      this.send({ kind: "army_front", army, anchor, enemy: 0 });
-    }
-    this.setMode("front");
   }
 
   /** ww7: the offensive stance. A plan that ran keeps running with it. */
@@ -628,6 +688,9 @@ export class WwArmyCard extends LitElement implements Controller {
   render() {
     const c = this.ctx();
     if (c === null) return nothing;
+    if (c.sel.draw !== "none") {
+      return this.drawFolded ? this.renderStrip(c, true) : this.renderDraw(c);
+    }
     const ordering = this.isOrdering(c.sel);
     const strip = ordering ? !this.openWhileOrdering : this.collapsed;
     return strip ? this.renderStrip(c, ordering) : this.renderFull(c);
@@ -690,15 +753,24 @@ export class WwArmyCard extends LitElement implements Controller {
       ${ordering
         ? this.button(
             "cancel",
-            // The attack and defend modes keep what the taps sent: "done".
+            // The attack and defend modes, and the line modes, keep what
+            // the taps sent: "done".
             translateText(
-              c.sel.mode === "plan" || c.sel.mode === "front"
+              c.sel.mode === "plan" ||
+                c.sel.mode === "front" ||
+                c.sel.draw !== "none"
                 ? "ww1936.land.btn_done"
                 : "common.cancel",
             ),
-            c.sel.mode === "plan" || c.sel.mode === "front" ? "✓" : "✕",
+            c.sel.mode === "plan" ||
+              c.sel.mode === "front" ||
+              c.sel.draw !== "none"
+              ? "✓"
+              : "✕",
             () => {
-              if (this.invading(c.sel)) this.setInvade(false, 0);
+              if (c.sel.draw !== "none") {
+                this.eventBus.emit(new WwDrawModeEvent("none"));
+              } else if (this.invading(c.sel)) this.setInvade(false, 0);
               else this.setMode("none");
             },
           )
@@ -748,7 +820,8 @@ export class WwArmyCard extends LitElement implements Controller {
         folded ? "ww1936.land.card_expand" : "ww1936.land.card_collapse",
       )}
       @click=${() => {
-        if (ordering) this.openWhileOrdering = folded;
+        if (c.sel.draw !== "none") this.drawFolded = !folded;
+        else if (ordering) this.openWhileOrdering = folded;
         else this.collapsed = !folded;
       }}
     >
@@ -829,13 +902,7 @@ export class WwArmyCard extends LitElement implements Controller {
               <span
                 >${translateText(c.card.status.key, c.card.status.params)}</span
               >
-              ${c.card.planBp > 0
-                ? html`<span data-ww-readiness class="text-sky-300"
-                    >${translateText("ww1936.land.readiness", {
-                      pct: Math.floor(c.card.planBp / 100),
-                    })}</span
-                  >`
-                : nothing}
+              ${this.renderPlanning(c)}
               <span
                 data-ww-supply
                 class=${c.card.supplyPm < 1000 ? "text-amber-300" : ""}
@@ -845,7 +912,7 @@ export class WwArmyCard extends LitElement implements Controller {
               >
               ${this.renderInvasion(c)} ${this.renderAirPriority(c)}
             </div>`}
-        ${this.renderOrderLine(c)} ${line}
+        ${this.renderOrderLine(c)} ${this.renderSupplyLine(c)} ${line}
       </div>
       <div
         data-ww-card-buttons=${this.panel}
@@ -874,6 +941,487 @@ export class WwArmyCard extends LitElement implements Controller {
                     : this.renderMedals(c)}
       </div>
     </section>`;
+  }
+
+  // ---- ww162: the battle planner (design §1.5, §2; Design A §3) ----
+
+  /** The first row: [전선] [공세선] [후퇴선] [사단], 44 px tall. */
+  private renderChips(c: Ctx): TemplateResult {
+    return html`<div
+      data-ww-draw-chips
+      role="group"
+      class="grid grid-cols-4 gap-1"
+    >
+      ${DRAW_CHIPS.map((m) => {
+        const block =
+          c.card.buttons.find((b) => b.id === DRAW_CHIP_CHECK[m])?.block ??
+          null;
+        const id = `draw_${m}`;
+        return this.button(
+          id,
+          translateText(DRAW_CHIP_KEYS[m]),
+          DRAW_CHIP_ICONS[m],
+          () => {
+            if (block !== null) {
+              this.refused = { id, block };
+              return;
+            }
+            this.refused = null;
+            this.eventBus.emit(new WwDrawModeEvent(m));
+          },
+          { grey: block !== null, pressed: c.sel.draw === m, tall: true },
+        );
+      })}
+    </div>`;
+  }
+
+  /**
+   * A line mode's card: the name's row (with the planning bar), the hint or
+   * the waiting tap, the chips and the mode's second row, which wraps on a
+   * phone. It keeps the card's quarter-screen cap and scrolls past it.
+   */
+  private renderDraw(c: Ctx): TemplateResult {
+    const r = c.card.row;
+    return html`<section
+      data-ww-army-card=${r.id}
+      data-collapsed="false"
+      data-ww-draw=${c.sel.draw}
+      aria-label=${armyName(r.nameNo)}
+      class="fixed z-[1001] flex max-h-[25vh] flex-col gap-1 overflow-y-auto rounded-lg border border-white/15 bg-gray-900/92 p-1.5 text-xs text-white shadow-xl"
+      style="${placeStyle({
+        ...this.place,
+        maxHeight: drawMaxHeight(this.place),
+      })}${directWidthStyle(this.place)}"
+      @contextmenu=${(e: Event) => e.preventDefault()}
+    >
+      <div class="flex min-w-0 items-center gap-x-1.5">
+        <span
+          data-ww-zone-dot
+          class="size-2.5 shrink-0 rounded-full"
+          style="background: ${zoneHueCss(r.id)}"
+        ></span>
+        <span class="min-w-0 shrink truncate text-sm font-bold"
+          >${armyName(r.nameNo)}</span
+        >
+        <span data-ww-army-divisions class="shrink-0 tabular-nums text-white/70"
+          >${translateText("ww1936.land.divisions_of", {
+            n: r.divisions,
+            max: WW_MAX_ARMY_DIVISIONS,
+          })}</span
+        >
+        <span class="min-w-0 flex-1">${this.renderPlanning(c)}</span>
+        ${this.foldButton(c, false)} ${this.closeButton()}
+      </div>
+      ${this.renderLine(c)} ${this.renderChips(c)}
+      <div
+        data-ww-draw-row=${c.sel.draw}
+        class="flex flex-wrap content-start items-center gap-1"
+      >
+        ${this.renderDrawRow(c)}
+      </div>
+    </section>`;
+  }
+
+  /** A line mode's hint; in [사단], the picks and a waiting tap's target. */
+  private renderDrawLine(
+    c: Ctx,
+    mode: DrawChip,
+    compact: boolean,
+  ): TemplateResult {
+    const sel = c.sel;
+    const cls = `${compact ? "" : "block "}text-amber-200`;
+    if (mode === "divisions" && sel.divisions.length > 0) {
+      const picked = translateText(ARMY_HUD_KEYS.picked, {
+        n: sel.divisions.length,
+      });
+      if (sel.pending !== null) {
+        return html`<span data-ww-preview="division_move" class=${cls}
+          >${picked} → ${regionName(c.view.scenario, sel.pending)} ·
+          <span data-ww-tap-again class="font-semibold"
+            >${translateText("ww1936.land.tap_again")}</span
+          ></span
+        >`;
+      }
+      return html`<span data-ww-hint="draw_divisions" class=${cls}
+        >${picked} · ${translateText(DRAW_HINT_KEYS.divisions)}</span
+      >`;
+    }
+    const pan =
+      mode !== "divisions" && coarsePointer()
+        ? ` · ${translateText(PLANNER_KEYS.hintPan)}`
+        : "";
+    return html`<span data-ww-hint=${`draw_${mode}`} class=${cls}
+      >${translateText(DRAW_HINT_KEYS[mode])}${pan}</span
+    >`;
+  }
+
+  /** The second row, by mode (design §2). */
+  private renderDrawRow(c: Ctx): TemplateResult | TemplateResult[] {
+    const sel = c.sel;
+    const army = c.card.row.id;
+    const order = c.view.armies.get(army)?.mine?.order;
+    switch (sel.draw) {
+      case "front":
+        return [
+          this.button(
+            "planner_undo",
+            translateText(PLANNER_KEYS.btnUndo),
+            "↶",
+            () => {
+              if (sel.undo.canUndo(army, "front")) {
+                this.planner({ kind: "undo" });
+              }
+            },
+            { grey: !sel.undo.canUndo(army, "front"), wide: true },
+          ),
+          this.button(
+            "planner_clear",
+            translateText(PLANNER_KEYS.btnClear),
+            "✕",
+            () => this.planner({ kind: "clear" }),
+            { wide: true },
+          ),
+        ];
+      case "goal": {
+        const drafted =
+          sel.line?.kind === "goal" && sel.line.army === army
+            ? sel.line.regions.length
+            : 0;
+        const hasGoal =
+          (order?.goal?.length ?? 0) > 0 ||
+          drafted > 0 ||
+          (order?.kind === "plan" && order.targets.length > 0);
+        return [
+          html`<div
+            data-ww-goal-kind
+            role="radiogroup"
+            class="grid grid-cols-2 gap-1"
+          >
+            ${this.button(
+              "goal_broad",
+              translateText(PLANNER_KEYS.goalBroad),
+              "═",
+              () => this.planner({ kind: "spear", on: false }),
+              { pressed: !sel.spear },
+            )}
+            ${this.button(
+              "goal_spear",
+              translateText(PLANNER_KEYS.goalSpear),
+              "➤",
+              () => this.planner({ kind: "spear", on: true }),
+              { pressed: sel.spear },
+            )}
+          </div>`,
+          html`<div
+            data-ww-goal-stance
+            role="radiogroup"
+            aria-label=${translateText("ww1936.land.stance_label")}
+            class="grid grid-cols-3 gap-1"
+          >
+            ${STANCES.map((st) =>
+              this.button(
+                `goal_stance_${st}`,
+                translateText(STANCE_KEYS[st]),
+                st === "careful" ? "🛡" : st === "balanced" ? "⚖" : "🔥",
+                () => this.planner({ kind: "stance", stance: st }),
+                { pressed: sel.stance === st },
+              ),
+            )}
+          </div>`,
+          c.card.executing
+            ? this.button(
+                "planner_halt",
+                translateText(PLANNER_KEYS.btnHalt),
+                "■",
+                () => this.planner({ kind: "execute", on: false }),
+                { danger: true },
+              )
+            : this.button(
+                "planner_execute",
+                translateText(PLANNER_KEYS.btnExecute),
+                "▶",
+                () => {
+                  if (!hasGoal) {
+                    this.refused = {
+                      id: "planner_execute",
+                      block: "no_target",
+                    };
+                    return;
+                  }
+                  this.refused = null;
+                  this.planner({ kind: "execute", on: true });
+                },
+                { grey: !hasGoal },
+              ),
+        ];
+      }
+      case "fallback": {
+        const auto = this.fbAuto.get(army) ?? order?.fbManual !== true;
+        const drafted =
+          sel.line?.kind === "fallback" && sel.line.army === army
+            ? sel.line.regions.length
+            : 0;
+        const hasLine = (order?.fallback?.length ?? 0) > 0 || drafted > 0;
+        const key = `fall_back:${army}`;
+        const armed = this.armed(key);
+        return [
+          this.button(
+            "planner_suggest",
+            translateText(PLANNER_KEYS.btnSuggest),
+            "✦",
+            () => this.planner({ kind: "suggest" }),
+          ),
+          this.button(
+            "planner_fb_auto",
+            translateText(PLANNER_KEYS.fbAuto),
+            auto ? "☑" : "☐",
+            () => {
+              this.fbAuto.set(army, !auto);
+              this.planner({ kind: "fb_auto", on: !auto });
+            },
+            { on: auto, wide: true },
+          ),
+          this.button(
+            "planner_fall_back",
+            translateText(
+              armed ? "ww1936.land.tap_again" : PLANNER_KEYS.btnFallBackNow,
+            ),
+            "⤺",
+            () => {
+              if (!hasLine) {
+                this.refused = {
+                  id: "planner_fall_back",
+                  block: "no_fallback",
+                };
+                return;
+              }
+              this.refused = null;
+              this.confirmTap(key, () =>
+                this.planner({ kind: "fall_back_now" }),
+              );
+            },
+            { grey: !hasLine, danger: armed, wide: true },
+          ),
+        ];
+      }
+      case "divisions":
+        return this.renderDivisionList(c);
+      default:
+        return [];
+    }
+  }
+
+  /**
+   * [사단] (design §2): the army's divisions by the region they stand in, a
+   * check each and a region header that checks them all; a pinned one shows
+   * its pin and [해제]; [군 전체] and [모두 해제] on top. The map's next tap
+   * sends the checked ones there (the land controller's two taps).
+   */
+  private renderDivisionList(c: Ctx): TemplateResult[] {
+    const sel = c.sel;
+    const army = c.card.row.id;
+    const pins = c.view.armies.get(army)?.mine?.pins ?? [];
+    const rows = divisionRows(c.view, c.me, army);
+    const tpl = new Map(rows.map((d) => [d.data.id, d.template]));
+    const groups = divisionGroups(
+      rows.map((d) => d.data),
+      army,
+    );
+    const picked = new Set(sel.divisions);
+    // A drawn check box: the "☐" glyph is a speck in the map's font.
+    const box = (on: boolean) =>
+      html`<span
+        aria-hidden="true"
+        class="inline-flex size-4 shrink-0 items-center justify-center rounded-sm border text-xs font-bold leading-none ${on
+          ? "border-amber-300 bg-amber-400 text-black"
+          : "border-white/60"}"
+        >${on ? "✓" : ""}</span
+      >`;
+    const pick = (ids: number[]) =>
+      this.planner({ kind: "pick", divisions: togglePick(sel.divisions, ids) });
+    const sc = c.view.scenario;
+    return [
+      html`<div data-ww-division-top class="flex w-full flex-wrap gap-1">
+        ${this.button(
+          "planner_whole_army",
+          translateText(ARMY_HUD_KEYS.btnWholeArmy),
+          "⬚",
+          () => this.planner({ kind: "whole_army" }),
+          { wide: true },
+        )}
+        ${pins.length > 0
+          ? this.button(
+              "planner_release_all",
+              translateText(PLANNER_KEYS.btnReleaseAll),
+              "📌",
+              () => this.planner({ kind: "release", divisions: [] }),
+              { wide: true },
+            )
+          : nothing}
+      </div>`,
+      html`<ul
+        data-ww-division-list
+        class="m-0 flex w-full list-none flex-col gap-0.5 p-0"
+      >
+        ${groups.map((g) => {
+          const ids = g.divisions.map((d) => d.id);
+          const all = ids.every((id) => picked.has(id));
+          return html`<li data-ww-division-group=${g.region}>
+            <button
+              type="button"
+              data-ww-division-region=${g.region}
+              aria-pressed=${String(all)}
+              class="flex h-10 w-full items-center gap-1.5 rounded-md border border-white/10 bg-white/10 px-1.5 text-left font-semibold hover:bg-white/20"
+              @click=${() => pick(ids)}
+            >
+              ${box(all)}
+              <span class="min-w-0 truncate"
+                >${translateText(PLANNER_KEYS.regionDivisions, {
+                  region: regionName(sc, g.region),
+                  n: ids.length,
+                })}</span
+              >
+            </button>
+            <ul class="m-0 flex list-none flex-col gap-0.5 p-0 pl-3">
+              ${g.divisions.map((d) => {
+                const on = picked.has(d.id);
+                const pin = pinOf(pins, d.id);
+                const t = tpl.get(d.id) ?? null;
+                return html`<li class="flex items-center gap-1">
+                  <button
+                    type="button"
+                    data-ww-division-pick=${d.id}
+                    aria-pressed=${String(on)}
+                    class="flex h-10 min-w-0 flex-1 items-center gap-1.5 rounded-md px-1 text-left hover:bg-white/10 ${on
+                      ? "bg-amber-700/30"
+                      : ""}"
+                    @click=${() => pick([d.id])}
+                  >
+                    ${box(on)}
+                    <span class="min-w-0 flex-1 truncate"
+                      >${t === null ? "" : templateName(t)}</span
+                    >
+                    ${pin === null
+                      ? nothing
+                      : html`<span
+                          data-ww-division-pin=${pin}
+                          class="shrink-0 text-amber-300"
+                          >📌
+                          ${translateText(ARMY_HUD_KEYS.pinnedTo, {
+                            region: regionName(sc, pin),
+                          })}</span
+                        >`}
+                    <span class="flex w-12 shrink-0 flex-col gap-0.5">
+                      <span class="h-1 rounded bg-white/10"
+                        ><span
+                          class="block h-1 rounded bg-emerald-400"
+                          style="width: ${Math.max(
+                            0,
+                            Math.min(1000, d.strengthPm),
+                          ) / 10}%"
+                        ></span
+                      ></span>
+                      <span class="h-1 rounded bg-white/10"
+                        ><span
+                          class="block h-1 rounded bg-sky-400"
+                          style="width: ${Math.max(0, Math.min(1000, d.orgPm)) /
+                          10}%"
+                        ></span
+                      ></span>
+                    </span>
+                  </button>
+                  ${pin === null
+                    ? nothing
+                    : this.button(
+                        `planner_release_${d.id}`,
+                        translateText(PLANNER_KEYS.btnRelease),
+                        "✕",
+                        () =>
+                          this.planner({ kind: "release", divisions: [d.id] }),
+                      )}
+                </li>`;
+              })}
+            </ul>
+          </li>`;
+        })}
+      </ul>`,
+    ];
+  }
+
+  /**
+   * The planning bar (design §1.5): every front and plan army builds it
+   * while it does not attack, up to the country's cap (30 % plus techs and
+   * spirits; a marshal can lift it further, the bar then stays full).
+   */
+  private renderPlanning(c: Ctx): TemplateResult | typeof nothing {
+    if (c.card.orderKind !== "front" && c.card.orderKind !== "plan") {
+      return nothing;
+    }
+    const stats = statsFromArray(
+      this.game.wwPolitics?.()?.detail(c.me)?.stats ?? null,
+    );
+    const max = planMaxPct(stats.planMaxBp);
+    const pct = Math.floor(c.card.planBp / 100);
+    return html`<span
+      data-ww-planning=${pct}
+      class="inline-flex min-w-0 items-center gap-1 text-sky-300"
+    >
+      <span
+        role="meter"
+        aria-valuemin="0"
+        aria-valuemax=${max}
+        aria-valuenow=${pct}
+        aria-label=${translateText("ww1936.land.readiness", { pct })}
+        class="h-1.5 w-12 shrink-0 rounded bg-white/10"
+        ><span
+          class="block h-1.5 rounded bg-sky-400"
+          style="width: ${Math.min(100, Math.floor((pct * 100) / max))}%"
+        ></span
+      ></span>
+      <span data-ww-readiness class="truncate"
+        >${translateText("ww1936.land.readiness", { pct })}</span
+      >
+    </span>`;
+  }
+
+  /**
+   * Design A §3: "강도 72 % · 부족: 포 140, 지원 60 · 다 차는 데 18일" — the army's
+   * two shortest need groups and the days the stock and today's output take
+   * to cover them ("생산 없음" in amber with none). A tap opens the industry
+   * drawer's production tab with those rows lit.
+   */
+  private renderSupplyLine(c: Ctx): TemplateResult | typeof nothing {
+    if (this.place.maxHeight <= CARD_MIN_PX) return nothing;
+    const a = c.view.armies.get(c.card.row.id);
+    const short = a?.mine?.short;
+    if (short === undefined || short.length === 0) return nothing;
+    const detail = c.economy.detail(c.me);
+    if (detail === null) return nothing;
+    const rows = stockTable(
+      detail,
+      c.view.details.get(c.me)?.equipShort ?? null,
+      this.game.wwDepth?.()?.detail(c.me)?.designs ?? [],
+    );
+    const line = supplyLine(short, rows);
+    if (line === null) return nothing;
+    const w = supplyWords(line, c.card.row.strengthPm);
+    return html`<button
+      type="button"
+      data-ww-army-short=${line.short.map(([g]) => g).join(",")}
+      class="flex min-h-10 w-full flex-wrap items-center gap-x-1.5 rounded-md text-left text-white/80 hover:bg-white/10"
+      @click=${() =>
+        this.eventBus.emit(new WwStockLitEvent(line.short.map(([g]) => g)))}
+    >
+      <span>${w.strength}</span>
+      <span aria-hidden="true">·</span>
+      <span class="text-amber-200">${w.short}</span>
+      <span aria-hidden="true">·</span>
+      <span
+        data-ww-short-days=${line.days ?? "none"}
+        class=${w.amber ? "font-semibold text-amber-300" : ""}
+        >${w.days}</span
+      >
+    </button>`;
   }
 
   /** The general under the name's row: name, the four skills, the traits. */
@@ -944,6 +1492,7 @@ export class WwArmyCard extends LitElement implements Controller {
       </span>`;
     }
     const sel = c.sel;
+    if (sel.draw !== "none") return this.renderDrawLine(c, sel.draw, compact);
     if (this.invading(sel)) return this.renderInvadeLine(c, compact);
     if (sel.pending !== null) {
       return this.renderPreview(c, sel.pending, compact);
@@ -1349,9 +1898,14 @@ export class WwArmyCard extends LitElement implements Controller {
   private renderOrderLine(c: Ctx): TemplateResult | typeof nothing {
     if (this.place.maxHeight <= CARD_MIN_PX) return nothing;
     const k = c.card.orderKind;
-    const names = c.card.targets
-      .map((t) => regionName(c.view.scenario, t))
-      .join(", ");
+    const sc = c.view.scenario;
+    const names = c.card.targets.map((t) => regionName(sc, t)).join(", ");
+    // ww162: the army's lines (design §1) and its pinned divisions.
+    const mine = c.view.armies.get(c.card.row.id)?.mine ?? null;
+    const o = mine?.order;
+    const goal = o?.goal ?? [];
+    const fallback = o?.fallback ?? [];
+    const pins = mine?.pins ?? [];
     return html`<div
       data-ww-order-line
       class="flex min-w-0 flex-wrap gap-x-2 text-white/80"
@@ -1363,7 +1917,7 @@ export class WwArmyCard extends LitElement implements Controller {
               n: c.card.zone.length,
             })}</span
           >`
-        : k === "plan"
+        : k === "plan" && goal.length === 0
           ? html`<span data-ww-order="plan" class="text-amber-200"
               >⚔
               ${translateText(
@@ -1374,6 +1928,45 @@ export class WwArmyCard extends LitElement implements Controller {
               )}</span
             >`
           : nothing}
+      ${o?.ends !== undefined
+        ? html`<span data-ww-line="front" class="text-sky-300"
+            >${translateText(ARMY_HUD_KEYS.lineFront, {
+              a: regionName(sc, o.ends[0]),
+              b: regionName(sc, o.ends[1]),
+            })}</span
+          >`
+        : nothing}
+      ${goal.length > 0
+        ? html`<span
+            data-ww-line=${o?.spear === true ? "spear" : "goal"}
+            class="text-amber-200"
+            >⚔
+            ${translateText(
+              o?.spear === true
+                ? c.card.executing
+                  ? ARMY_HUD_KEYS.lineSpearRunning
+                  : ARMY_HUD_KEYS.lineSpear
+                : c.card.executing
+                  ? ARMY_HUD_KEYS.lineGoalRunning
+                  : ARMY_HUD_KEYS.lineGoal,
+              { n: goal.length },
+            )}</span
+          >`
+        : nothing}
+      ${fallback.length > 0
+        ? html`<span data-ww-line="fallback" class="text-white/70"
+            >↩
+            ${translateText(ARMY_HUD_KEYS.lineFallback, {
+              n: fallback.length,
+            })}</span
+          >`
+        : nothing}
+      ${pins.length > 0
+        ? html`<span data-ww-pins=${pins.length} class="text-amber-300"
+            >📌
+            ${translateText(PLANNER_KEYS.pinnedCount, { n: pins.length })}</span
+          >`
+        : nothing}
       ${c.card.autoLevel > 0
         ? html`<span
             data-ww-auto-level=${c.card.autoLevel}
@@ -1458,15 +2051,13 @@ export class WwArmyCard extends LitElement implements Controller {
         },
       );
     };
-    const rest = ARMY_BUTTONS.filter(
-      (id) => !(ARMY_ACTIONS as readonly string[]).includes(id),
-    );
+    // ww162: [공격] and [방어] gave way to the line chips (a tap on an enemy
+    // region still attacks); [이동] and [자동] lead the rest.
+    const rest = ARMY_BUTTONS.filter((id) => id !== "plan" && id !== "front");
     return [
       this.renderDirect(c),
-      html`<div data-ww-action-row class="grid grid-cols-4 gap-1">
-        ${ARMY_ACTIONS.map((id) => one(id, true))}
-      </div>`,
-      html`<div class="grid grid-cols-5 gap-1">
+      this.renderChips(c),
+      html`<div data-ww-army-rest class="grid grid-cols-4 gap-1">
         ${rest.map((id) => one(id))}
       </div>`,
     ];
