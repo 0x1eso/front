@@ -54,6 +54,7 @@ import { joinFaction } from "../politics/Factions";
 import { addSpirit, removeSpirit } from "../politics/Spirits";
 import { landRegained } from "./Activate";
 import { captureOnCapitulation } from "./Capture";
+import { collabOriginReturned } from "./Collab";
 import { takeoverCandidates } from "./Takeover";
 import type { EconAdjust, WwEndgame } from "./WwEndgame";
 
@@ -610,6 +611,8 @@ export function endExile(
     }
     removeSpirit(pol, id, NO_ELECTIONS);
     landRegained(eg, id, tick);
+    // Diplomacy D2: a collaboration government standing for it folds back in.
+    if (reason === "returned") collabOriginReturned(eg, id, tick);
     pol.factionsChanged();
     if (reason === "returned") {
       eg.news("news_exile_returned", { tag });

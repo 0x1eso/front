@@ -4085,6 +4085,7 @@
       "target": "해독 중인 나라: {country}"
     },
     "cw_name": {
+      "collab": "{country} 국가",
       "communist": "{country} 인민 정부",
       "democratic": "자유 {country}",
       "fascist": "{country} 국민 정부",
