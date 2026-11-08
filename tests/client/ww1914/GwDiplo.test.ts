@@ -305,8 +305,8 @@ describe("the friends' lobby", () => {
       root,
     );
     expect(
-      [...root.querySelectorAll<HTMLElement>("[data-gw-pace-row]")].map(
-        (b) => b.textContent!.trim(),
+      [...root.querySelectorAll<HTMLElement>("[data-gw-pace-row]")].map((b) =>
+        b.textContent!.trim(),
       ),
     ).toEqual(["짧게", "보통", "길게", "제한 없음"]);
     const note = root.querySelector("[data-gw-pace-note]")!.textContent!;
