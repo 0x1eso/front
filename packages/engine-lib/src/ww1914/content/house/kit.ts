@@ -80,6 +80,7 @@ export const plotWarn = (id: string): GwEffect =>
   doWorld({ do: "plot_warn", id });
 export const gatherFile = (who: GwWho): GwEffect =>
   doWorld({ do: "file", who });
-export const hold = (who: GwWho): GwEffect => doWorld({ do: "hold", who });
+/** The `hold` reply's effect: the file on him is used in this talk. */
+export const hold = (who: GwWho): GwEffect => doWorld({ do: "use_file", who });
 export const answerAsk = (id: string, yes: boolean): GwEffect =>
   doWorld({ do: "ask", id, answer: yes ? "yes" : "no" });

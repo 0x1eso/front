@@ -2601,6 +2601,7 @@
       "stage": {
         "draft": "Being drafted",
         "persuade": "In the house",
+        "sign": "Awaiting signature",
         "vote": "Vote day"
       },
       "strength": {
@@ -2729,6 +2730,7 @@
         "idle": "Shelved",
         "open": "Can be brought",
         "persuade": "Being argued",
+        "sign": "Awaiting signature",
         "vote": "The day"
       },
       "stops": "Can be stopped by: {body}",

@@ -66,6 +66,11 @@ import {
 
 const P_WHIP = idHash("gw_whip");
 const P_SPONSOR = idHash("gw_sponsor");
+/**
+ * A whip's unconfirmed word waits to be put right until the vote: Intel's
+ * GW_CHECK_LATER (S2), the same value. A null checkDay reads as checked.
+ */
+const CHECK_LATER = 2_000_000_000;
 /** A chamber that doesn't sit can't pass anything. */
 const CLOSED = -9;
 /** Heat with no step rows. */
@@ -115,7 +120,12 @@ const ctxOf = (gw: GreatWar, seat: GwSeatState): SceneCtx => ({
 
 // ---- The moving bill ----
 
-const MOVING: readonly GwLawState["stage"][] = ["draft", "persuade", "vote"];
+const MOVING: readonly GwLawState["stage"][] = [
+  "draft",
+  "persuade",
+  "vote",
+  "sign",
+];
 
 function movingBill(
   gw: GreatWar,
@@ -319,6 +329,7 @@ function settleDeals(gw: GreatWar, seat: GwSeatState, st: GwFactionState) {
 /** Splits and joins, by state, never by date. */
 function splitsAndJoins(gw: GreatWar, seat: GwSeatState): void {
   const ctx = ctxOf(gw, seat);
+  const house = seat.house!;
   for (const row of factionRows(seat.tag)) {
     const st = factionOf(seat, row.id);
     if (st === null) continue;
@@ -333,6 +344,11 @@ function splitsAndJoins(gw: GreatWar, seat: GwSeatState): void {
         into.leader = factionLeader(gw, seat, sp.into);
         if (sp.scene !== undefined) call(seat, sp.scene, gw.s.chapter + 1);
         reason(gw, seat, "house_split", into.leader ?? undefined);
+        house.story = {
+          kind: "split",
+          faction: sp.into,
+          chapter: gw.s.chapter,
+        };
         news(gw, "house_split", seat.tag);
       }
     }
@@ -358,6 +374,7 @@ function splitsAndJoins(gw: GreatWar, seat: GwSeatState): void {
       into.leader = factionLeader(gw, seat, jn.into);
       if (jn.scene !== undefined) call(seat, jn.scene, gw.s.chapter + 1);
       reason(gw, seat, "house_joined", into.leader ?? undefined);
+      house.story = { kind: "joined", faction: jn.into, chapter: gw.s.chapter };
       news(gw, "house_joined", seat.tag);
     } else if (
       into.status === "in" &&
@@ -400,7 +417,10 @@ function sideOf(
   if (turned) return { side: -1, broke: deal };
   if (deal) return { side: 1, broke: false };
   const text = st.text === null ? undefined : bill.texts?.[st.text]?.[id];
-  return { side: text ?? bill.stance[id] ?? 0, broke: false };
+  const side = text ?? bill.stance[id] ?? 0;
+  // The sponsor's camp: a faction that would stay away comes in for him.
+  if (side === 0 && st.warm.includes(id)) return { side: 1, broke: false };
+  return { side, broke: false };
 }
 
 interface ChamberCount {
@@ -471,6 +491,7 @@ export function houseCounts(
     deals: [],
     whip: -1,
     delayTo: -1,
+    warm: [],
   };
   return chambersOf(house, bill)
     .filter((c) => !skip.includes(c.id))
@@ -579,7 +600,7 @@ function whipReport(gw: GreatWar, seat: GwSeatState, st: GwLawState): void {
     truth: GW_WHIP_WORDS.indexOf(wordOf(truth)),
     smallID: seat.smallID,
     chapter: s.chapter,
-    checkDay: null,
+    checkDay: sure ? null : CHECK_LATER,
     about: st.id,
   });
 }
@@ -599,7 +620,7 @@ function judgeWhip(
   reason(gw, seat, right ? "house_whip_right" : "house_whip_wrong");
   for (const r of gw.s.reports) {
     if (r.smallID !== seat.smallID || r.fact !== "count") continue;
-    if (r.about === st.id && r.checkDay === null && r.stamp === "unconfirmed") {
+    if (r.about === st.id && r.checkDay === CHECK_LATER) {
       r.checkDay = gw.s.day;
     }
   }
@@ -613,7 +634,7 @@ export function housePut(
   seat: GwSeatState,
   st: GwLawState,
   table: number,
-): { pass: boolean; stops: string | null } | null {
+): { pass: boolean; stops: string | null; sign: boolean } | null {
   const bill = billRow(seat, st.id);
   if (bill === null) return null;
   const counts = houseCounts(gw, seat, st.id, table);
@@ -622,10 +643,45 @@ export function housePut(
   if (t.count >= 0 && t.lords && bill.money !== true && st.delayTo === -1) {
     st.delayTo = gw.s.chapter + GW_LORDS_DELAY;
     reason(gw, seat, "house_lords_delay");
-    return { pass: false, stops: "lords_delay" };
+    return { pass: false, stops: "lords_delay", sign: false };
   }
   vote(gw, seat, bill, st, t.count);
-  return { pass: t.count >= 0, stops: t.stops };
+  const sign = t.count >= 0 && houseRow(seat.tag)?.signs === true;
+  return { pass: t.count >= 0, stops: t.stops, sign };
+}
+
+/** The house passed it: the sovereign's paper to sign or refuse. */
+export function houseSignCard(gw: GreatWar, seat: GwSeatState): void {
+  const scene = sceneOf(houseIds.sign(seat.tag));
+  const card = scene === null ? null : makeCard(gw, seat, scene, "scheduled");
+  if (card !== null) placeCard(gw, seat, card);
+}
+
+/** Refused: those who carried it take it ill, and the house's weight falls. */
+export function houseRefused(
+  gw: GreatWar,
+  seat: GwSeatState,
+  st: GwLawState,
+): void {
+  const bill = billRow(seat, st.id);
+  const house = houseRow(seat.tag);
+  const n = gw.nation(seat.tag);
+  if (bill === null || house === null || n === null) return;
+  const first = chambersOf(house, bill).find((c) => c.inst !== undefined);
+  if (first?.inst !== undefined && n.inst[first.inst] !== undefined) {
+    n.inst[first.inst] = clampTo(n.inst[first.inst]! - 1, -5, 5);
+  }
+  for (const row of factionRows(seat.tag)) {
+    if (sideOf(gw, seat, bill, st, row.id).side <= 0) continue;
+    heatBy(gw, seat, row.id, 2);
+    reason(
+      gw,
+      seat,
+      "house_refused_by",
+      factionOf(seat, row.id)?.leader ?? undefined,
+    );
+  }
+  reason(gw, seat, "house_refused");
 }
 
 /** Who voted how, which deal held, the result card. */
@@ -654,6 +710,9 @@ function vote(
     if (f?.status !== "in") continue;
     const { side, broke } = sideOf(gw, seat, bill, st, row.id);
     const who = f.leader ?? undefined;
+    if (st.warm.includes(row.id) && side > 0) {
+      reason(gw, seat, "house_warmed", who);
+    }
     const key =
       side > 0
         ? "house_voted_for"
@@ -777,6 +836,7 @@ export function houseBring(
       deals: [],
       whip: -1,
       delayTo: -1,
+      warm: [],
     };
     n.laws.push(st);
   }
@@ -791,15 +851,34 @@ export function houseBring(
   st.deals = [];
   st.whip = -1;
   st.delayTo = -1;
+  st.warm = [];
   if (seat.house !== undefined) seat.house.calls = GW_HOUSE_CALLS;
   reason(gw, seat, `house_brought_${origin}`);
   return true;
 }
 
-/** The bill moved into the house (a draft decided): the extra calls open. */
-export function houseOpened(seat: GwSeatState, law: string): void {
-  if (billRow(seat, law) !== null && seat.house !== undefined) {
-    seat.house.calls = GW_HOUSE_CALLS;
+/**
+ * The bill moved into the house (a draft decided): the extra calls open, and
+ * the factions of the sponsor's camp warm to it, quietly; the reason lines
+ * say so after the vote.
+ */
+export function houseOpened(
+  gw: GreatWar,
+  seat: GwSeatState,
+  law: string,
+): void {
+  if (billRow(seat, law) === null || seat.house === undefined) return;
+  seat.house.calls = GW_HOUSE_CALLS;
+  const st = gw.nation(seat.tag)?.laws.find((x) => x.id === law);
+  if (st === undefined || st.sponsor === null) return;
+  const camps =
+    gwContent().people.find((p) => p.id === st.sponsor)?.camps ?? [];
+  st.warm = factionRows(seat.tag)
+    .filter((f) => (f.camps ?? []).some((c) => camps.includes(c)))
+    .map((f) => f.id);
+  for (const id of st.warm) {
+    const f = factionOf(seat, id);
+    if (f !== null) f.heat = Math.max(0, f.heat - 1);
   }
 }
 
@@ -952,7 +1031,8 @@ export function houseStep(gw: GreatWar): void {
     unanswered(gw, seat);
     sponsorWorks(gw, seat);
     const m = movingBill(gw, seat);
-    const inHouse = m !== null && m.st.stage !== "draft";
+    const inHouse =
+      m !== null && (m.st.stage === "persuade" || m.st.stage === "vote");
     h.calls = inHouse ? GW_HOUSE_CALLS : 0;
     if (inHouse) whipReport(gw, seat, m.st);
     asksStep(gw, seat);
@@ -1030,9 +1110,8 @@ export function houseHolds(ctx: SceneCtx, c: HouseCond): boolean {
       const m = movingBill(gw, seat);
       const f = factionOf(seat, c.id);
       const row = factionRow(c.id);
-      if (m === null || m.st.stage === "draft" || f?.status !== "in") {
-        return false;
-      }
+      const open = m?.st.stage === "persuade" || m?.st.stage === "vote";
+      if (m === null || !open || f?.status !== "in") return false;
       const chambers = chambersOf(houseRow(seat.tag)!, m.bill);
       return chambers.some((ch) => (row?.seats[ch.id] ?? 0) > 0);
     }
@@ -1245,7 +1324,7 @@ function billView(
   });
   return {
     law: m.st.id,
-    stage: m.st.stage as "draft" | "persuade" | "vote",
+    stage: m.st.stage as "draft" | "persuade" | "vote" | "sign",
     origin: m.st.origin,
     sponsor: m.st.sponsor,
     chambers: chambers.map((c) => c.id),

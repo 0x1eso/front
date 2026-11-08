@@ -291,6 +291,11 @@ export const GwPackSchema = z
     plots: z.record(GwIdSchema, GwNamePackSchema).optional(),
     /** Ask id -> its name (S2). */
     asks: z.record(GwIdSchema, GwNamePackSchema).optional(),
+    /**
+     * Story id -> a headline any paper can carry: generated stories (ww158,
+     * `house_split`, `house_joined`; `<story>_<faction>` wins). Holds {faction}, {who}.
+     */
+    heads: z.record(GwIdSchema, GwHeadPackSchema).optional(),
   })
   .strict();
 export type GwPack = z.infer<typeof GwPackSchema>;
@@ -314,6 +319,7 @@ export function mergeGwPacks(packs: readonly GwPack[]): GwPack {
     weak: {},
     plots: {},
     asks: {},
+    heads: {},
   };
   for (const p of packs) {
     Object.assign(out.scenes, p.scenes);
@@ -333,6 +339,7 @@ export function mergeGwPacks(packs: readonly GwPack[]): GwPack {
     }
     Object.assign(out.plots!, p.plots);
     Object.assign(out.asks!, p.asks);
+    Object.assign(out.heads!, p.heads);
     if (p.press !== undefined) out.press = p.press;
     if (p.table !== undefined) out.table = { ...out.table, ...p.table };
   }
@@ -413,6 +420,7 @@ export function gwPackOverlaps(packs: readonly GwPack[]): string[] {
       ...Object.keys(p.factions ?? {}).map((x) => `faction ${x}`),
       ...Object.keys(p.plots ?? {}).map((x) => `plot ${x}`),
       ...Object.keys(p.asks ?? {}).map((x) => `ask ${x}`),
+      ...Object.keys(p.heads ?? {}).map((x) => `head ${x}`),
     ];
     for (const id of ids) {
       if (seen.has(id)) out.add(id);

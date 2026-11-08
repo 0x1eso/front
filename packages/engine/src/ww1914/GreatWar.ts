@@ -56,6 +56,7 @@ export const GreatWarSnapshot = snapshotType({
           l.deals ??= [];
           l.whip ??= -1;
           l.delayTo ??= -1;
+          l.warm ??= [];
         }
       }
       return d;

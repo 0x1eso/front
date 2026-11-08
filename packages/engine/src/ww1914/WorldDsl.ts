@@ -35,6 +35,7 @@ import {
   lawDecree,
   lawHold,
   lawPut,
+  lawSign,
   lawStage,
   lawSupport,
   lawText,
@@ -510,12 +511,15 @@ export function worldEffect(ctx: SceneCtx, e: GwWorldEffect): void {
     case "law_start":
       houseEffect(ctx, e);
       return;
+    case "house_sign":
+      lawSign(ctx, e.yes);
+      return;
     case "plot_sign":
     case "plot_warn":
       plotEffect(ctx, e);
       return;
     case "file":
-    case "hold":
+    case "use_file":
       fileEffect(ctx, e);
       return;
     case "ask":

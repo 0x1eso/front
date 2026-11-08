@@ -34,9 +34,17 @@ export function headlineText(
 ): { head: string; deck: string | null } {
   const press = pack?.press;
   if (h.blank) return { head: press?.gaps[h.paper] ?? h.paper, deck: null };
-  const t = press?.heads[e.story]?.[h.paper];
+  const faction = e.faction ?? null;
+  // A house story (ww158): every paper may carry the pack's generic head.
+  const t =
+    press?.heads[e.story]?.[h.paper] ??
+    (faction === null ? undefined : pack?.heads?.[`${e.story}_${faction}`]) ??
+    pack?.heads?.[e.story];
   const who = e.who === null ? "" : personName(pack, e.who);
-  const fill = (x: string) => applyJosa(x.replace(/\{who\}/g, who));
+  const name =
+    faction === null ? "" : (pack?.factions?.[faction]?.name ?? faction);
+  const fill = (x: string) =>
+    applyJosa(x.replace(/\{who\}/g, who).replace(/\{faction\}/g, name));
   if (t === undefined) return { head: e.story, deck: null };
   return {
     head: fill(t.head),

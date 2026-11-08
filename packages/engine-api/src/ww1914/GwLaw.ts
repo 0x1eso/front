@@ -14,6 +14,8 @@ export const GW_LAW_STAGES = [
   "persuade",
   "vote",
   "force",
+  /** Passed by the house, waiting for the sovereign's signature (RUS, AUH; ww158). */
+  "sign",
 ] as const;
 export type GwLawStage = (typeof GW_LAW_STAGES)[number];
 
@@ -64,6 +66,8 @@ export const GwLawStateSchema = z.object({
   whip: int.default(-1),
   /** The Lords put it off until this chapter; -1 not. */
   delayTo: int.default(-1),
+  /** Factions of the sponsor's camp, warmed to it (hidden; said after the vote). */
+  warm: z.array(z.string()).default([]),
 });
 export type GwLawState = z.infer<typeof GwLawStateSchema>;
 

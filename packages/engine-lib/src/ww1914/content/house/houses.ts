@@ -92,6 +92,8 @@ export const AUH_HOUSE: GwHouseRow = {
     ],
   },
   police: either(office("interior"), office("chancellor")),
+  // What the Reichsrat or the Diet passes goes to the Emperor-King to sign.
+  signs: true,
 };
 
 export const RUS_HOUSE: GwHouseRow = {
@@ -116,6 +118,8 @@ export const RUS_HOUSE: GwHouseRow = {
     ],
   },
   police: either(office("interior"), office("chancellor")),
+  // What the Duma and the State Council pass goes to the Tsar to sign.
+  signs: true,
 };
 
 export const GW_HOUSE_ROWS: readonly GwHouseRow[] = [

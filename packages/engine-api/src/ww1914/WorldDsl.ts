@@ -366,6 +366,8 @@ export type GwWorldEffect =
   | { do: "bill_answer"; id: string; yes: boolean }
   /** A bill starts in the house: from an ally's ask, a faction, the seat. */
   | { do: "law_start"; law: string; origin: GwLawOrigin }
+  /** The sovereign signs the bill the house passed, or refuses it. */
+  | { do: "house_sign"; yes: boolean }
   // ---- Plots, the dossier, allies (ww158, S2) ----
   /** A plot's sign has been read. */
   | { do: "plot_sign"; id: string }
@@ -373,8 +375,11 @@ export type GwWorldEffect =
   | { do: "plot_warn"; id: string }
   /** The police bring a file on the person. */
   | { do: "file"; who: GwWorldWho }
-  /** A file is used on the person in this talk. */
-  | { do: "hold"; who: GwWorldWho }
+  /**
+   * A file is used on the person in this talk (the `hold` reply). Not `hold`:
+   * that name is the crisis chain's wait.
+   */
+  | { do: "use_file"; who: GwWorldWho }
   /** The answer to an ally's ask. */
   | { do: "ask"; id: string; answer: "yes" | "no" };
 
@@ -587,10 +592,11 @@ export const GwWorldEffectSchema = z.union([
   act("amend", { id: GwIdSchema }),
   act("bill_answer", { id: GwIdSchema, yes: z.boolean() }),
   act("law_start", { law: GwIdSchema, origin: z.enum(GW_LAW_ORIGINS) }),
+  act("house_sign", { yes: z.boolean() }),
   act("plot_sign", { id: GwIdSchema }),
   act("plot_warn", { id: GwIdSchema }),
   act("file", { who }),
-  act("hold", { who }),
+  act("use_file", { who }),
   act("ask", { id: GwIdSchema, answer: z.enum(["yes", "no"]) }),
 ]) as unknown as z.ZodType<GwWorldEffect>;
 

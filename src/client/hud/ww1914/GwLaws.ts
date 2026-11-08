@@ -155,6 +155,7 @@ function line(c: GwCtx, v: GwLawView): TemplateResult {
 }
 
 const ORDER: readonly GwLawView["stage"][] = [
+  "sign",
   "vote",
   "persuade",
   "draft",

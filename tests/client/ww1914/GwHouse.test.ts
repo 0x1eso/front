@@ -7,6 +7,7 @@ import type {
 } from "@openfront/engine-api/ww1914/GwView";
 import { html, render, TemplateResult } from "lit";
 import { describe, expect, test } from "vitest";
+import { headlineText } from "../../../src/client/hud/ww1914/GwBlocs";
 import type { GwCtx, GwUi } from "../../../src/client/hud/ww1914/GwCtx";
 import {
   blocFactions,
@@ -145,5 +146,35 @@ describe("the house on the country tab", () => {
     ).toBe("");
     const chip = ctx(v, (c) => html`${houseChip(c)}`).root;
     expect(chip.querySelector("[data-gw-house-out=deu_spd]")).not.toBeNull();
+  });
+
+  test("a house story's headline falls back to the pack's heads, the faction named", () => {
+    const pack = {
+      ...PACK,
+      factions: { ...PACK.factions, deu_uspd: { name: "독립사민당" } },
+      heads: {
+        house_split: {
+          head: "{faction}, 따로 서다",
+          deck: "{who}이(가) 이끈다.",
+        },
+        house_joined_deu_bloc: { head: "{faction}만의 머리기사" },
+      },
+    } as unknown as GwPack;
+    const e = {
+      chapter: 20,
+      story: "house_split",
+      scene: null,
+      who: "deu_ebert",
+      faction: "deu_uspd",
+      heads: [],
+      rumour: null,
+    };
+    const h = { paper: "vorwaerts", tone: 1, blank: false, soft: false };
+    expect(headlineText(pack, e, h)).toEqual({
+      head: "독립사민당, 따로 서다",
+      deck: "에베르트가 이끈다.",
+    });
+    const joined = { ...e, story: "house_joined", faction: "deu_bloc" };
+    expect(headlineText(pack, joined, h).head).toBe("deu_bloc만의 머리기사");
   });
 });

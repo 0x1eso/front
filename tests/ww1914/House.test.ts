@@ -25,7 +25,10 @@ import {
   GwContent,
   useGwContent,
 } from "@openfront/engine-lib/ww1914/content/Content";
-import { DEU_HOUSE } from "@openfront/engine-lib/ww1914/content/house/houses";
+import {
+  DEU_HOUSE,
+  GW_HOUSE_ROWS,
+} from "@openfront/engine-lib/ww1914/content/house/houses";
 import {
   GW_HOUSE_CONTENT,
   GW_HOUSE_LAWS,
@@ -50,6 +53,7 @@ import {
   houseStep,
   houseTally,
   houseView,
+  whipOf,
 } from "@openfront/engine/ww1914/House";
 import {
   lawCanDecree,
@@ -59,6 +63,8 @@ import {
   lawWithdraw,
 } from "@openfront/engine/ww1914/Laws";
 import { applyGwOrder } from "@openfront/engine/ww1914/Orders";
+import { houseStories, pressStep } from "@openfront/engine/ww1914/Press";
+import { GW_PRESS_ROWS } from "@openfront/engine/ww1914/PressTable";
 import { runEffects } from "@openfront/engine/ww1914/SceneRun";
 import fs from "node:fs";
 import path from "node:path";
@@ -221,6 +227,24 @@ describe("the rows", () => {
     }
     for (const b of GW_HOUSE_CONTENT.bills ?? []) {
       expect([b.law, ids.has(b.law)]).toEqual([b.law, true]);
+    }
+  });
+
+  test("the common pack carries the sovereign's paper, the split and join stories and the engine's lines", () => {
+    const common = packOf("common.house.json");
+    const signed = gwHouseScenes(
+      { houses: GW_HOUSE_ROWS.filter((h) => h.signs === true), factions: [] },
+      GW_LAWS,
+    ).filter((x) => x.id.startsWith("gw_ls_"));
+    expect(signed.map((x) => x.id).sort()).toEqual(["gw_ls_auh", "gw_ls_rus"]);
+    expect(gwPackProblems(signed, common)).toEqual([]);
+    for (const x of signed) expect(common.scenes[x.id].brief).toBeDefined();
+    expect(Object.keys(common.heads ?? {}).sort()).toEqual([
+      "house_joined",
+      "house_split",
+    ]);
+    for (const k of ["house_warmed", "house_refused", "house_refused_by"]) {
+      expect(common.reasons?.[k]).toBeDefined();
     }
   });
 
@@ -432,6 +456,17 @@ describe("the papers the house makes", () => {
         for (const r of n.replies) expect(r.tell).toEqual([]);
       }
     }
+    // The lobby's hold reply uses a file; nothing here is the crisis's `hold`.
+    const lobby = made.find((s) => s.id === "gw_lb_t_spd")!;
+    const hold = lobby.nodes!.open.replies.find((r) => r.id === "hold")!;
+    expect(hold.effects).toEqual([
+      { kind: "world", of: { do: "use_file", who: { role: "who" } } },
+    ]);
+    for (const sc of made) {
+      for (const e of gwSceneEffects(sc)) {
+        expect(e.kind === "world" && e.of.do === "hold").toBe(false);
+      }
+    }
     expect(houseCalledScenes(rows)).toEqual(
       expect.arrayContaining(["gw_lr_deu", "gw_fv_t_spd", "t_spd_2"]),
     );
@@ -506,6 +541,8 @@ describe("a bill through the house", () => {
   test("the whip speaks each chapter, as a report that may be wrong, and is judged after the vote", async () => {
     const { gw, n, seat } = await atWar();
     n.inst.reichstag = 5;
+    // An anxious whip can be wrong: his word is stamped unconfirmed.
+    gw.person(whipOf(gw, seat)!)!.temperament = "anxious";
     drafted(gw, seat, "deu_aux", "unions_text");
     houseStep(gw);
     const r = gw.s.reports.filter(
@@ -513,12 +550,16 @@ describe("a bill through the house", () => {
     );
     expect(r.length).toBe(1);
     expect(r[0].source).toBe("whip");
+    expect(r[0].stamp).toBe("unconfirmed");
+    // Not put right, so not shown as checked, until the vote.
+    expect(r[0].checkDay).toBe(2_000_000_000);
     const st = n.laws.find((x) => x.id === "deu_aux")!;
     expect(st.whip).toBe(r[0].claim);
     expect(houseView(gw, seat)!.bill?.whip?.word).toBeDefined();
     st.stage = "vote";
     lawPut(ctxOf(gw, seat), "deu_aux");
     expect(st.stage).toBe("force");
+    expect(r[0].checkDay).toBe(gw.s.day);
     const h = seat.house!;
     expect(h.right + h.wrong).toBe(1);
     expect(h.last?.law).toBe("deu_aux");
@@ -695,6 +736,109 @@ describe("the factions", () => {
     ).toBe(null);
     expect(seat.house!.calls).toBe(GW_HOUSE_CALLS - 1);
     expect(seat.audiences).toBe(0);
+  });
+});
+
+describe("the approved rest of the design", () => {
+  test("the sponsor's camp quietly warms a faction that would stay away; the reason comes after", async () => {
+    const { gw, n, seat } = await atWar(HOUSE, {
+      factions: [SPD, USPD, CONS, { ...CENTRE, camps: ["military"] }],
+    });
+    n.inst.reichstag = 0;
+    expect(
+      applyGwOrder(gw, seat, {
+        kind: "law",
+        law: "deu_aux",
+        act: "draft",
+        sponsor: "deu_groener",
+      }),
+    ).toBe(null);
+    const card = seat.desk.find((c) => c.scene === "gw_ld_deu_aux")!;
+    applyGwOrder(gw, seat, { kind: "reply", card: card.uid, reply: "pick" });
+    applyGwOrder(gw, seat, {
+      kind: "reply",
+      card: card.uid,
+      reply: "army_text",
+    });
+    const st = n.laws.find((x) => x.id === "deu_aux")!;
+    expect(st.warm).toEqual(["t_centre"]);
+    expect(seat.log.some((l) => l.key === "house_warmed")).toBe(false);
+    // army_text: the SPD and the conservatives against, the centre warmed for.
+    expect(count(gw, seat, "deu_aux")).toBe(st.support - 6 + 2);
+    st.stage = "vote";
+    lawPut(ctxOf(gw, seat), "deu_aux");
+    expect(
+      seat.log.some(
+        (l) => l.key === "house_warmed" && l.who === "deu_erzberger",
+      ),
+    ).toBe(true);
+  });
+
+  test("where the sovereign signs, the passed bill waits for his paper; signed it is law", async () => {
+    const { gw, n, seat } = await atWar({ ...HOUSE, signs: true });
+    n.inst.reichstag = 5;
+    drafted(gw, seat, "deu_aux", "unions_text");
+    const st = n.laws.find((x) => x.id === "deu_aux")!;
+    st.stage = "vote";
+    lawPut(ctxOf(gw, seat), "deu_aux");
+    expect(st.stage).toBe("sign");
+    const card = seat.desk.find((c) => c.scene === houseIds.sign("DEU"))!;
+    expect(card).toBeDefined();
+    // Nothing else moves while it waits.
+    expect(
+      applyGwOrder(gw, seat, {
+        kind: "law",
+        law: "deu_bread_cards",
+        act: "draft",
+      }),
+    ).toBe("law_busy");
+    applyGwOrder(gw, seat, { kind: "choose", card: card.uid, option: "sign" });
+    expect([st.stage, st.how]).toEqual(["force", "voted"]);
+  });
+
+  test("refused, the bill is shelved and those who carried it take it ill", async () => {
+    const { gw, n, seat } = await atWar({ ...HOUSE, signs: true });
+    n.inst.reichstag = 5;
+    drafted(gw, seat, "deu_aux", "unions_text");
+    const st = n.laws.find((x) => x.id === "deu_aux")!;
+    st.stage = "vote";
+    lawPut(ctxOf(gw, seat), "deu_aux");
+    const heat = factionOf(seat, "t_spd")!.heat;
+    const card = seat.desk.find((c) => c.scene === houseIds.sign("DEU"))!;
+    applyGwOrder(gw, seat, {
+      kind: "choose",
+      card: card.uid,
+      option: "refuse",
+    });
+    expect(st.stage).toBe("idle");
+    expect(n.inst.reichstag).toBe(4);
+    expect(factionOf(seat, "t_spd")!.heat).toBe(heat + 2);
+    expect(seat.log.some((l) => l.key === "house_refused")).toBe(true);
+  });
+
+  test("a split is the edition's story, named from the faction's row", async () => {
+    const { gw, seat } = await atWar();
+    seat.flags.push("t_split");
+    houseStep(gw);
+    expect(seat.house!.story).toEqual({
+      kind: "split",
+      faction: "t_uspd",
+      chapter: gw.s.chapter,
+    });
+    const row = GW_PRESS_ROWS.DEU!;
+    const [story] = houseStories(gw, seat, row);
+    expect(story.id).toBe("house_split");
+    const workers = row.papers.filter((p) => p.blocs.includes("workers"));
+    for (const p of workers) expect(story.tones[p.id]).toBe(1);
+    pressStep(gw);
+    const e = seat.press.edition!;
+    expect([e.story, e.faction, e.who]).toEqual([
+      "house_split",
+      "t_uspd",
+      "deu_i_haase",
+    ]);
+    gw.s.chapter++;
+    expect(houseStories(gw, seat, row)).toEqual([]);
   });
 });
 

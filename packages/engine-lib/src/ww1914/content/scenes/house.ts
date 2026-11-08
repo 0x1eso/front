@@ -198,7 +198,7 @@ function lobbyTalk(f: GwFactionRow, bills: readonly GwBillRow[]): GwScene {
         reply("ask", "warm", "ask", "price"),
         reply("hold", "cold", "push", "held", {
           when: world({ is: "file", who }),
-          effects: [doWorld({ do: "hold", who })],
+          effects: [doWorld({ do: "use_file", who })],
         }),
         reply("leave", "warm", "leave", null),
       ],
@@ -313,6 +313,40 @@ function resultCard(tag: GwScene["nation"][number]): GwScene {
   };
 }
 
+/**
+ * The bill the house passed, for the sovereign to sign or refuse (RUS, AUH).
+ * One paper a country: its text is the common pack's, a country's file may
+ * lay its own over it. No price shows; the timer signs.
+ */
+function signCard(tag: GwScene["nation"][number]): GwScene {
+  return {
+    id: houseIds.sign(tag),
+    nation: [tag],
+    kind: "proposal",
+    scheduledOnly: true,
+    cast: {},
+    salience: 7,
+    tags: ["home"],
+    variants: [
+      { id: "wide", when: world({ is: "vote_band", of: ["wide"] }) },
+      { id: "base" },
+    ],
+    fallback: "sign",
+    options: [
+      {
+        id: "sign",
+        tell: [],
+        effects: [doWorld({ do: "house_sign", yes: true })],
+      },
+      {
+        id: "refuse",
+        tell: [],
+        effects: [doWorld({ do: "house_sign", yes: false })],
+      },
+    ],
+  };
+}
+
 /** The scenes the house makes from its rows. */
 export function gwHouseScenes(
   rows: GwHouseContent,
@@ -331,6 +365,7 @@ export function gwHouseScenes(
       .map((f) => lobbyTalk(f, bills)),
     ...fs.filter((f) => (f.bills ?? []).length > 0).map(visitTalk),
     ...houses.map((h) => resultCard(h.tag)),
+    ...houses.filter((h) => h.signs === true).map((h) => signCard(h.tag)),
   ];
 }
 

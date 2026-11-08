@@ -32,7 +32,9 @@ import {
   houseDraft,
   houseOpened,
   housePut,
+  houseRefused,
   houseRound,
+  houseSignCard,
   houseTally,
   persuadeChapters,
 } from "./House";
@@ -55,7 +57,12 @@ const LOST_PRICE = 5;
 /** The count a bill with no body to pass it has. */
 const NOBODY = 9;
 
-const MOVING: readonly GwLawState["stage"][] = ["draft", "persuade", "vote"];
+const MOVING: readonly GwLawState["stage"][] = [
+  "draft",
+  "persuade",
+  "vote",
+  "sign",
+];
 
 const rowOf = (id: string): GwLawRow | null =>
   GW_LAWS.find((r) => r.id === id) ?? null;
@@ -167,6 +174,7 @@ function touchRow(n: GwNationState, id: string): GwLawState {
     deals: [],
     whip: -1,
     delayTo: -1,
+    warm: [],
   };
   n.laws.push(st);
   return st;
@@ -217,7 +225,7 @@ export function lawText(
   st.text = text;
   st.support += support;
   toStage(gw, st, "persuade");
-  houseOpened(seat, id);
+  houseOpened(gw, seat, id);
 }
 
 export function lawSupport(
@@ -242,7 +250,10 @@ export function lawPut(ctx: SceneCtx, id: string): void {
   const house = housePut(gw, seat, st, tableOf(gw, seat, row));
   if (house !== null) {
     if (row.issue !== undefined) holdVote(gw, seat, row.issue);
-    if (house.pass) enact(ctx, st, row, "voted");
+    if (house.sign) {
+      toStage(gw, st, "sign");
+      houseSignCard(gw, seat);
+    } else if (house.pass) enact(ctx, st, row, "voted");
     else if (house.stops !== "lords_delay") lose(gw, seat, n, st, house.stops);
     return;
   }
@@ -275,6 +286,26 @@ export function lawDecree(ctx: SceneCtx, id: string): void {
   n.authority = clampTo(n.authority - d.price, 0, 100);
   shiftInst(n, d.inst, d.delta);
   enact(ctx, st, row, "decreed");
+}
+
+/** The sovereign's word on the bill the house passed (RUS, AUH). */
+export function lawSign(ctx: SceneCtx, yes: boolean): void {
+  const { gw, seat } = ctx;
+  const n = gw.nation(seat.tag);
+  const st = n?.laws.find((x) => x.stage === "sign") ?? null;
+  const row = st === null ? null : rowOf(st.id);
+  if (n === null || st === null || row === null) return;
+  if (yes) {
+    enact(ctx, st, row, "voted");
+    return;
+  }
+  houseRefused(gw, seat, st);
+  toStage(gw, st, "idle");
+  st.support = 0;
+  st.text = null;
+  st.deals = [];
+  st.whip = -1;
+  st.warm = [];
 }
 
 /** Thrown out: back to the house, at its sponsor's cost. */

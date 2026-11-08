@@ -15,6 +15,7 @@ import {
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { blocsNow, blocViews, tieViews } from "./Blocs";
 import type { GreatWar } from "./GreatWar";
+import { factionOf, factionRow } from "./House";
 import { GW_PRESS_ROWS, GwPressRow, GwStory } from "./PressTable";
 import { holds, sceneOf } from "./SceneRun";
 import { clampTo, everyMonths, moveGauge, reason } from "./World";
@@ -250,13 +251,37 @@ function rested(gw: GreatWar, seat: GwSeatState, st: GwStory): boolean {
   return last === undefined || gw.s.chapter - last >= (st.rest ?? STORY_REST);
 }
 
+/**
+ * A split or a join in the house this chapter (ww158): a story made from the
+ * faction's row. Papers its bloc reads take it well; the text is the pack's
+ * `heads`, by story and faction.
+ */
+export function houseStories(
+  gw: GreatWar,
+  seat: GwSeatState,
+  row: GwPressRow,
+): GwStory[] {
+  const st = seat.house?.story ?? null;
+  if (st === null || st.chapter !== gw.s.chapter) return [];
+  const bloc = factionRow(st.faction)?.bloc ?? null;
+  const tones = Object.fromEntries(
+    row.papers.map((p) => [
+      p.id,
+      bloc !== null && p.blocs.includes(bloc) ? 1 : 0,
+    ]),
+  );
+  return [{ id: `house_${st.kind}`, weight: 10, on: {}, tones, rest: 0 }];
+}
+
 /** The heaviest story of the chapter; among equals, the seed's. */
 function pickStory(
   gw: GreatWar,
   seat: GwSeatState,
   row: GwPressRow,
 ): Called | null {
-  const all = row.stories.flatMap((st) => calledBy(gw, seat, st) ?? []);
+  const all = [...row.stories, ...houseStories(gw, seat, row)].flatMap(
+    (st) => calledBy(gw, seat, st) ?? [],
+  );
   const fresh = all.filter((c) => rested(gw, seat, c.story));
   // Nothing fresh: whichever ran longest ago.
   const pool = fresh.length > 0 ? fresh : all;
@@ -354,6 +379,9 @@ function print(gw: GreatWar, seat: GwSeatState, row: GwPressRow): number {
     };
   });
   const cuts = story.free === true ? 0 : cut(heads, p.censor);
+  const house = story.id.startsWith("house_")
+    ? (seat.house?.story ?? null)
+    : null;
   p.ran[story.id] = gw.s.chapter;
   // An act waits for a page with room for it.
   if ("event" in story.on) p.event = null;
@@ -361,7 +389,13 @@ function print(gw: GreatWar, seat: GwSeatState, row: GwPressRow): number {
     chapter: gw.s.chapter,
     story: story.id,
     scene,
-    who: "event" in story.on && story.on.event === "leak" ? p.leaked : null,
+    who:
+      "event" in story.on && story.on.event === "leak"
+        ? p.leaked
+        : house === null
+          ? null
+          : (factionOf(seat, house.faction)?.leader ?? null),
+    ...(house === null ? {} : { faction: house.faction }),
     heads,
     rumour: null,
   };

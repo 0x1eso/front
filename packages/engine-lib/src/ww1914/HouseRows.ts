@@ -4,6 +4,7 @@
 // the count, the whip, the way round); the S2 files run plots, the dossier and
 // allies' asks. See /home/eser/dev/ww158-format.md.
 import type {
+  GwCamp,
   GwInstitution,
   GwOffice,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
@@ -71,6 +72,8 @@ export interface GwHouseRow {
   readonly around?: GwAroundRow;
   /** S2: who brings files and plot signs (the police's chief). */
   readonly police?: GwCastRule;
+  /** A bill the house passes goes to the sovereign to sign or refuse. */
+  readonly signs?: boolean;
 }
 
 /** A line that moves a faction's strength, every `every` months while it holds. */
@@ -156,6 +159,8 @@ export interface GwFactionRow {
   };
   /** S2: the plot behind it (a plot row id). */
   readonly plot?: string;
+  /** Camps it shares with ministers: a sponsor of one warms it to his bill. */
+  readonly camps?: readonly GwCamp[];
 }
 
 /** What the house makes of a bill: kept apart from the law row, by law id. */
@@ -273,6 +278,7 @@ export const houseIds = {
   lobby: (faction: string) => `gw_lb_${faction}`,
   visit: (faction: string) => `gw_fv_${faction}`,
   result: (tag: GwTag) => `gw_lr_${tag.toLowerCase()}`,
+  sign: (tag: GwTag) => `gw_ls_${tag.toLowerCase()}`,
 } as const;
 
 /** The office a cast rule names, if it names one (for the sponsor picker). */
@@ -303,6 +309,9 @@ export interface GwHouseContent {
 export function houseCalledScenes(rows: GwHouseContent): string[] {
   return [
     ...(rows.houses ?? []).map((h) => houseIds.result(h.tag)),
+    ...(rows.houses ?? []).flatMap((h) =>
+      h.signs === true ? [houseIds.sign(h.tag)] : [],
+    ),
     ...(rows.factions ?? []).flatMap((f) => [
       ...((f.bills ?? []).length > 0 ? [houseIds.visit(f.id)] : []),
       ...(f.steps ?? []).map((s) => s.scene),

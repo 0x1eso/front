@@ -165,6 +165,11 @@ export const GwHouseStateSchema = z.object({
     .nullable(),
   /** Times the way round has been used. */
   around: int,
+  /** A split or a join this chapter: the edition's story. */
+  story: z
+    .object({ kind: z.enum(["split", "joined"]), faction: Id, chapter: int })
+    .nullable()
+    .default(null),
   // ---- S2 ----
   files: z.array(GwFileSchema),
   nextFile: int,
@@ -181,6 +186,7 @@ export function gwHouseStart(): GwHouseState {
     wrong: 0,
     last: null,
     around: 0,
+    story: null,
     files: [],
     nextFile: 1,
     asks: [],
@@ -223,7 +229,7 @@ export interface GwBillFactionView {
 /** The moving bill as the house sees it. */
 export interface GwBillView {
   law: string;
-  stage: "draft" | "persuade" | "vote";
+  stage: "draft" | "persuade" | "vote" | "sign";
   origin: GwLawOrigin;
   sponsor: string | null;
   chambers: readonly GwChamber[];

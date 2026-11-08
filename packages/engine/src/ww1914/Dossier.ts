@@ -8,7 +8,7 @@ import type {
 import { SceneCtx, whoIn } from "./SceneRun";
 
 type FileCond = Extract<GwWorldCond, { is: "file" }>;
-type FileEffect = Extract<GwWorldEffect, { do: "file" | "hold" }>;
+type FileEffect = Extract<GwWorldEffect, { do: "file" | "use_file" }>;
 
 export function fileHolds(ctx: SceneCtx, c: FileCond): boolean {
   const id = whoIn(ctx, c.who)?.id ?? null;

@@ -54,6 +54,8 @@ export const GwEditionSchema = z.object({
   heads: z.array(GwHeadlineSchema),
   /** What goes round the queues: pack press.rumours.<id>. */
   rumour: Id.nullable(),
+  /** The faction a house story is about (ww158): the text's {faction}. */
+  faction: Id.nullable().optional(),
 });
 export type GwEdition = z.infer<typeof GwEditionSchema>;
 
