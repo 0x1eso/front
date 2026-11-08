@@ -30,6 +30,7 @@ import {
   MouseUpEvent,
   TouchEvent,
   WwStrokeEvent,
+  ZoomEvent,
 } from "../../InputHandler";
 import { SendWwOrderIntentEvent } from "../../Transport";
 import { showToast, translateText } from "../../Utils";
@@ -262,8 +263,10 @@ export class WwLandController implements Controller {
       this.down = { x: e.x, y: e.y };
       this.pressStart(e.x, e.y);
     });
-    // A map drag is no press.
+    // A map drag is no press, and neither is a pinch (its first finger
+    // may rest on a token; the zoom sends no DragEvent).
     this.eventBus.on(DragEvent, () => this.pressStop());
+    this.eventBus.on(ZoomEvent, () => this.pressStop());
     this.eventBus.on(MouseUpEvent, (e) => this.tap(e.x, e.y));
     this.eventBus.on(TouchEvent, (e) => this.tap(e.x, e.y));
     this.eventBus.on(WwSelectArmyEvent, (e) => this.select(e.army));

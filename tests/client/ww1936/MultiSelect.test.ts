@@ -49,6 +49,7 @@ import {
   DragEvent,
   MouseDownEvent,
   TouchEvent,
+  ZoomEvent,
 } from "../../../src/client/InputHandler";
 import { SendWwOrderIntentEvent } from "../../../src/client/Transport";
 import type { TokenPlacement } from "../../../src/client/view/LandTokenLayout";
@@ -210,6 +211,17 @@ describe("multi-select (spec §20.4)", () => {
     const [x, y] = center(3);
     m.bus.emit(new MouseDownEvent(x * SCALE, y * SCALE));
     m.bus.emit(new DragEvent(30, 0));
+    vi.advanceTimersByTime(600);
+    expect(multiSelectOf(m.sel).active).toBe(false);
+  });
+
+  it("a pinch that began on a token is no long press (ww162 browser check)", () => {
+    vi.useFakeTimers();
+    const m = setup({ armies: [army(1, "DEU", 3)] });
+    const [x, y] = center(3);
+    m.bus.emit(new MouseDownEvent(x * SCALE, y * SCALE));
+    // The second finger zooms: no DragEvent, only zooms.
+    m.bus.emit(new ZoomEvent(x * SCALE, y * SCALE, 40));
     vi.advanceTimersByTime(600);
     expect(multiSelectOf(m.sel).active).toBe(false);
   });
