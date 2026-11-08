@@ -16,15 +16,24 @@
 # scripts/selfhost/selfhost.env.example), or the file SELFHOST_ENV_FILE names.
 # Logs: .selfhost/server.log and tunnel.log; the previous run's are kept as
 # server.log.1 and tunnel.log.1.
+#
+# For tests only, from the environment: SELFHOST_RUN_DIR (pid files and logs,
+# default .selfhost), MASTER_PORT (default 3000; workers take the ports after
+# it) and SELFHOST_TEST_EXEC_DELAY (seconds the launched child waits before it
+# execs the server, to make the machine look slow).
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 ENV_FILE="${SELFHOST_ENV_FILE:-$REPO_ROOT/.env.selfhost}"
-RUN_DIR="$REPO_ROOT/.selfhost"
+RUN_DIR="${SELFHOST_RUN_DIR:-$REPO_ROOT/.selfhost}"
 SERVER_PID_FILE="$RUN_DIR/server.pid"
 TUNNEL_PID_FILE="$RUN_DIR/tunnel.pid"
 BUILD_STAMP="$REPO_ROOT/static/.selfhost-commit"
-MASTER_PORT=3000
+MASTER_PORT="${MASTER_PORT:-3000}"
+[[ "$MASTER_PORT" =~ ^[1-9][0-9]{0,4}$ ]] && ((MASTER_PORT <= 65535)) \
+    || { echo "game-night: MASTER_PORT must be a port number, got '$MASTER_PORT'" >&2; exit 1; }
+# The server reads it too (ServerEnv.masterPort).
+export MASTER_PORT
 HEALTH_URL="http://127.0.0.1:$MASTER_PORT/api/health"
 # What each pid file's process runs (`ps` args): a pid the system has since
 # handed to another program is not ours to signal.
@@ -282,8 +291,13 @@ start() {
     # Express answers a bad request without its stack trace.
     (
         cd "$REPO_ROOT"
-        NODE_ENV=production setsid node_modules/.bin/tsx src/server/Server.ts \
-            > "$RUN_DIR/server.log" 2>&1 &
+        (
+            if [[ -n "${SELFHOST_TEST_EXEC_DELAY:-}" ]]; then
+                sleep "$SELFHOST_TEST_EXEC_DELAY"
+            fi
+            export NODE_ENV=production
+            exec setsid node_modules/.bin/tsx src/server/Server.ts
+        ) > "$RUN_DIR/server.log" 2>&1 &
         echo $! > "$SERVER_PID_FILE"
     )
     say "server starting (log: $RUN_DIR/server.log)"
