@@ -7,13 +7,15 @@ import {
   all,
   any,
   chose,
+  decide,
   flag,
   not,
   reason,
   remember,
+  role,
   trustOf,
 } from "@openfront/engine-api/ww1914/SceneDsl";
-import { world } from "@openfront/engine-api/ww1914/WorldDsl";
+import { doWorld, world } from "@openfront/engine-api/ww1914/WorldDsl";
 import type {
   GwAskRow,
   GwBillRow,
@@ -36,12 +38,20 @@ import {
   war,
 } from "../laws/kit";
 import {
+  answerAsk,
+  aroundUsed,
+  beatPlot,
   cool,
+  coolPlot,
   faction,
   heat,
+  heatPlot,
   isLaw,
   leaderOf,
   low,
+  plotConfirmed,
+  plotHot,
+  temper,
   under,
   warAge,
 } from "./kit";
@@ -89,6 +99,7 @@ export const RUS_FACTIONS: readonly GwFactionRow[] = [
   {
     id: "rus_rights",
     tag: "RUS",
+    camps: ["court"],
     bloc: "court",
     start: "in",
     strength: 3,
@@ -153,6 +164,7 @@ export const RUS_FACTIONS: readonly GwFactionRow[] = [
   {
     id: "rus_pnat",
     tag: "RUS",
+    camps: ["duma"],
     bloc: "parliament",
     start: "out",
     strength: 1,
@@ -179,6 +191,8 @@ export const RUS_FACTIONS: readonly GwFactionRow[] = [
   {
     id: "rus_octob",
     tag: "RUS",
+    plot: "rus_pl_palace",
+    camps: ["duma"],
     bloc: "business",
     start: "in",
     strength: 2,
@@ -227,6 +241,7 @@ export const RUS_FACTIONS: readonly GwFactionRow[] = [
   {
     id: "rus_kadets",
     tag: "RUS",
+    camps: ["liberal"],
     bloc: "parliament",
     start: "in",
     strength: 2,
@@ -293,6 +308,7 @@ export const RUS_FACTIONS: readonly GwFactionRow[] = [
   {
     id: "rus_progress",
     tag: "RUS",
+    camps: ["duma"],
     bloc: "business",
     start: "in",
     strength: 1,
@@ -334,6 +350,7 @@ export const RUS_FACTIONS: readonly GwFactionRow[] = [
   {
     id: "rus_bloc",
     tag: "RUS",
+    camps: ["duma"],
     bloc: "parliament",
     start: "out",
     strength: 3,
@@ -456,6 +473,7 @@ export const RUS_FACTIONS: readonly GwFactionRow[] = [
     // they vote no on every war bill and nobody can buy them.
     id: "rus_bolsh",
     tag: "RUS",
+    plot: "rus_pl_red",
     bloc: "workers",
     start: "in",
     strength: 1,
@@ -486,6 +504,7 @@ export const RUS_FACTIONS: readonly GwFactionRow[] = [
   {
     id: "rus_nobles",
     tag: "RUS",
+    camps: ["court"],
     bloc: "court",
     start: "in",
     strength: 2,
@@ -519,6 +538,7 @@ export const RUS_FACTIONS: readonly GwFactionRow[] = [
   {
     id: "rus_stavka",
     tag: "RUS",
+    plot: "rus_pl_generals",
     bloc: "army",
     start: "in",
     strength: 3,
@@ -1391,9 +1411,663 @@ export const RUS_HOUSE_SCENES: readonly GwScene[] = [
   ]),
 ];
 
-// ---- S2 ----
-export const RUS_PLOTS: readonly GwPlotRow[] = [];
-export const RUS_WEAK: readonly GwWeakRow[] = [];
-export const RUS_ASKS: readonly GwAskRow[] = [];
-/** Plot signs, warnings, steps and ends; dossier scenes; asks; conferences. */
-export const RUS_PLOT_SCENES: readonly GwScene[] = [];
+// ---- S2: plots, weaknesses, allies' asks ----
+
+const plotSteps = (id: string) => [
+  { at: 6, scene: `${id}_1` },
+  { at: 12, scene: `${id}_2` },
+];
+const plotSigns = (id: string) => [
+  { at: 2, scene: `${id}_s1`, via: "paper" as const },
+  { at: 4, scene: `${id}_s2`, via: "talk" as const },
+  { at: 8, scene: `${id}_s3`, via: "report" as const },
+];
+const quiet = (when: GwCond, key: string, by?: number) =>
+  by === undefined
+    ? { when, key, quiet: true }
+    : { when, key, by, quiet: true };
+
+/**
+ * Three plots. The palace (Guchkov and some guards officers: stop the train,
+ * ask for the abdication) and the generals (the front commanders' telegrams)
+ * remove the ruler; the red one (the garrison and the Bolsheviks) feeds the
+ * unrest ladder. The favourite's death stays the news it is in rus_fall: a
+ * plot row ends only in removed, the fall track or unrest, none of which it is.
+ */
+export const RUS_PLOTS: readonly GwPlotRow[] = [
+  {
+    id: "rus_pl_palace",
+    tag: "RUS",
+    regimes: ["tsar"],
+    from: "1916-03",
+    rest: 12,
+    fatal: true,
+    feeds: [
+      quiet(temper("rus_octob", 3), "octob_silent"),
+      quiet(temper("rus_bloc", 3), "bloc_silent"),
+      quiet(aroundUsed(3), "round"),
+      quiet(all(retreat, low("shells", 0)), "defeats"),
+      quiet({ kind: "inst", inst: "court", max: -3 }, "court_low"),
+    ],
+    steps: plotSteps("rus_pl_palace"),
+    plot: {
+      by: ["rus_octob", "rus_bloc"],
+      signs: plotSigns("rus_pl_palace"),
+      warn: "rus_pl_palace_w",
+      end: "removed",
+    },
+  },
+  {
+    id: "rus_pl_generals",
+    tag: "RUS",
+    regimes: ["tsar"],
+    from: "1916-06",
+    rest: 12,
+    fatal: true,
+    feeds: [
+      quiet(temper("rus_stavka", 3), "stavka_silent", 2),
+      quiet(all(retreat, low("shells", 0)), "defeats"),
+      quiet({ kind: "inst", inst: "stavka", max: -3 }, "unheard"),
+      quiet({ kind: "gauge", gauge: "order", max: 1 }, "rear_shaking"),
+    ],
+    steps: plotSteps("rus_pl_generals"),
+    plot: {
+      by: ["rus_stavka"],
+      signs: plotSigns("rus_pl_generals"),
+      warn: "rus_pl_generals_w",
+      end: "removed",
+    },
+  },
+  {
+    id: "rus_pl_red",
+    tag: "RUS",
+    regimes: ["tsar", "crown", "regency"],
+    from: "1916-01",
+    rest: 12,
+    fatal: false,
+    feeds: [
+      quiet(temper("rus_bolsh", 2), "bolsh_astir"),
+      quiet(low("bread", 0), "bread_gone"),
+      quiet({ kind: "gauge", gauge: "order", max: 1 }, "streets"),
+      quiet(faction("rus_bolsh", { of: ["under"] }), "underground"),
+    ],
+    steps: plotSteps("rus_pl_red"),
+    plot: {
+      by: ["rus_bolsh"],
+      signs: plotSigns("rus_pl_red"),
+      warn: "rus_pl_red_w",
+      end: "unrest",
+    },
+  },
+];
+
+/** Our people the Okhrana can open a file on: never the Tsar or his family. */
+export const RUS_WEAK: readonly GwWeakRow[] = [
+  {
+    person: "rus_guchkov",
+    weak: [
+      { id: "foreign_ties", odds: 30 },
+      { id: "old_scandal", odds: 40 },
+    ],
+  },
+  {
+    person: "rus_milyukov",
+    weak: [
+      { id: "foreign_ties", odds: 35 },
+      { id: "letters", odds: 20 },
+    ],
+  },
+  {
+    person: "rus_rodzianko",
+    weak: [
+      { id: "industry_money", odds: 30 },
+      { id: "letters", odds: 25 },
+    ],
+  },
+  {
+    person: "rus_kerensky",
+    weak: [
+      { id: "health", odds: 50 },
+      { id: "letters", odds: 30 },
+    ],
+  },
+  {
+    person: "rus_protopopov",
+    weak: [
+      { id: "foreign_ties", odds: 45 },
+      { id: "health", odds: 40 },
+    ],
+  },
+  {
+    person: "rus_sukhomlinov",
+    weak: [
+      { id: "debts", odds: 50 },
+      { id: "old_scandal", odds: 45 },
+    ],
+  },
+  {
+    person: "rus_khvostov",
+    weak: [
+      { id: "old_scandal", odds: 40 },
+      { id: "debts", odds: 30 },
+    ],
+  },
+  {
+    person: "rus_rasputin",
+    weak: [
+      { id: "old_scandal", odds: 60 },
+      { id: "industry_money", odds: 35 },
+    ],
+  },
+  {
+    person: "rus_sturmer",
+    weak: [
+      { id: "industry_money", odds: 40 },
+      { id: "foreign_ties", odds: 20 },
+    ],
+  },
+  {
+    person: "rus_alekseev",
+    weak: [
+      { id: "letters", odds: 40 },
+      { id: "health", odds: 35 },
+    ],
+  },
+  {
+    person: "rus_chkheidze",
+    weak: [{ id: "foreign_ties", odds: 30 }],
+  },
+  {
+    person: "rus_lvov",
+    weak: [{ id: "industry_money", odds: 25 }],
+  },
+];
+
+const head = (tag: "FRA" | "GBR") => ({ head: { ruler_of: tag } });
+const letterTo = (tone: "warm" | "cold"): GwEffect => ({
+  kind: "letter",
+  who: role("head"),
+  tone,
+});
+
+/** What the Entente asks of Russia: four letters and the Petrograd conference. */
+export const RUS_ASKS: readonly GwAskRow[] = [
+  {
+    id: "rus_ask_relief",
+    tag: "RUS",
+    from: "FRA",
+    kind: "offensive",
+    when: all(warAge(17), world({ is: "date", from: "1916-02" })),
+    scene: "rus_ask_relief",
+    keep: world({ is: "main", of: ["east"] }),
+    chapters: 2,
+    kept: [gauge("shells", 1)],
+  },
+  {
+    id: "rus_ask_councils",
+    tag: "RUS",
+    from: "GBR",
+    kind: "law",
+    law: "rus_councils",
+    when: all(warAge(9), not(isLaw("rus_councils")), low("shells", 1)),
+    scene: "rus_ask_councils",
+    keep: isLaw("rus_councils"),
+    chapters: 6,
+    kept: [gauge("money", 1)],
+  },
+  {
+    id: "rus_ask_poland",
+    tag: "RUS",
+    from: "FRA",
+    kind: "law",
+    law: "rus_poland",
+    when: all(world({ is: "date", from: "1916-11" }), not(isLaw("rus_poland"))),
+    scene: "rus_ask_poland",
+    keep: isLaw("rus_poland"),
+    chapters: 6,
+    kept: [gauge("morale", 1)],
+  },
+  {
+    id: "rus_ask_romania",
+    tag: "RUS",
+    from: "FRA",
+    kind: "front",
+    when: world({ is: "entered", tag: "ROU" }),
+    scene: "rus_ask_romania",
+    keep: world({ is: "main", of: ["balkan"] }),
+    chapters: 3,
+    kept: [{ kind: "trust", tag: "GBR", delta: 1 }],
+  },
+  {
+    id: "rus_conf_petrograd",
+    tag: "RUS",
+    from: "GBR",
+    kind: "offensive",
+    conference: true,
+    when: all(
+      warAge(20),
+      any(
+        { kind: "trust", tag: "GBR", max: 0 },
+        { kind: "trust", tag: "FRA", max: 0 },
+        all(retreat, low("shells", 0)),
+      ),
+    ),
+    scene: "rus_conf_petrograd",
+    keep: world({ is: "main", of: ["east"] }),
+    chapters: 3,
+    kept: [gauge("shells", 1)],
+  },
+];
+
+const plotScene = (
+  id: string,
+  kind: GwScene["kind"],
+  cast: GwScene["cast"],
+  options?: GwScene["options"],
+  extra: Partial<GwScene> = {},
+): GwScene => ({
+  id,
+  nation: ["RUS"],
+  kind,
+  scheduledOnly: true,
+  cast,
+  salience: 7,
+  tags: ["home"],
+  variants: [{ id: "base" }],
+  ...(options === undefined ? {} : { options, fallback: options[0].id }),
+  ...extra,
+});
+const police = { police: either(office("interior"), office("chancellor")) };
+const report = { stamp: "unconfirmed" as const, source: "police" as const };
+/** An arrest on a sign that may be false: a cold plot makes it a wrong. */
+const onFalseSign = (id: string, f: string): GwEffect => ({
+  kind: "maybe",
+  when: plotHot(id, 0, 0),
+  then: [heat(f, 2), trustOf({ role: "police" }, -1)],
+});
+const trustMinistry = doWorld({ do: "regime", to: "crown" });
+
+/** Plot signs, warnings, steps; the asks' letters and the conference. */
+export const RUS_PLOT_SCENES: readonly GwScene[] = [
+  // ---- The palace ----
+  plotScene("rus_pl_palace_s1", "wire", {}),
+  plotScene(
+    "rus_pl_palace_s2",
+    "audience",
+    { who: either(person("rus_rodzianko"), office("chancellor")) },
+    [
+      opt("more", [remember("k_palace_heard"), why("rus_pl_palace_more")]),
+      opt("quiet", [why("rus_pl_palace_quiet")]),
+    ],
+  ),
+  plotScene("rus_pl_palace_s3", "report", police, undefined, report),
+  plotScene("rus_pl_palace_w", "audience", police, [
+    opt("guard", [coolPlot("rus_pl_palace", 3), why("rus_pl_palace_guard")]),
+    opt("word", [
+      coolPlot("rus_pl_palace", 3),
+      cool("rus_bloc", 1),
+      cool("rus_octob", 1),
+      heat("rus_circle", 2),
+      why("rus_pl_palace_word"),
+    ]),
+    opt(
+      "public",
+      [
+        coolPlot("rus_pl_palace", 4),
+        heat("rus_octob", 1),
+        why("rus_pl_palace_public"),
+      ],
+      plotConfirmed("rus_pl_palace"),
+    ),
+    opt("arrest", [
+      beatPlot("rus_pl_palace"),
+      heatPlot("rus_pl_generals", 3),
+      heat("rus_octob", 2),
+      heat("rus_kadets", 1),
+      onFalseSign("rus_pl_palace", "rus_octob"),
+      why("rus_pl_palace_arrest"),
+    ]),
+    opt("wait", [why("rus_pl_palace_wait")]),
+  ]),
+  plotScene(
+    "rus_pl_palace_1",
+    "audience",
+    { who: either(person("rus_guchkov"), office("chancellor")) },
+    [
+      opt("summon", [
+        coolPlot("rus_pl_palace", 2),
+        cool("rus_octob", 1),
+        why("rus_pl_palace_summon"),
+      ]),
+      opt("orders", [
+        coolPlot("rus_pl_palace", 3),
+        gauge("money", -1),
+        heat("rus_circle", 1),
+        why("rus_pl_palace_orders"),
+      ]),
+      opt("wait", [why("rus_pl_palace_wait")]),
+    ],
+  ),
+  plotScene(
+    "rus_pl_palace_2",
+    "proposal",
+    police,
+    [
+      opt("route", [coolPlot("rus_pl_palace", 5), why("rus_pl_palace_route")]),
+      opt("ministry", [
+        trustMinistry,
+        coolPlot("rus_pl_palace", 12),
+        heat("rus_circle", 2),
+        why("rus_pl_palace_ministry"),
+      ]),
+      opt("arrest", [
+        beatPlot("rus_pl_palace"),
+        heatPlot("rus_pl_generals", 3),
+        heat("rus_bloc", 2),
+        heat("rus_octob", 2),
+        why("rus_pl_palace_arrest"),
+      ]),
+      opt("wait", [why("rus_pl_palace_wait")]),
+    ],
+    { salience: 9, essential: true },
+  ),
+  // ---- The generals ----
+  plotScene("rus_pl_generals_s1", "wire", {}),
+  plotScene(
+    "rus_pl_generals_s2",
+    "audience",
+    { who: either(person("rus_fredericks"), office("court")) },
+    [
+      opt("more", [remember("k_generals_heard"), why("rus_pl_generals_more")]),
+      opt("quiet", [why("rus_pl_generals_quiet")]),
+    ],
+  ),
+  plotScene("rus_pl_generals_s3", "report", police, undefined, report),
+  plotScene(
+    "rus_pl_generals_w",
+    "audience",
+    { who: either(person("rus_ivanov"), office("war")) },
+    [
+      opt("go", [
+        coolPlot("rus_pl_generals", 3),
+        cool("rus_stavka", 1),
+        why("rus_pl_generals_go"),
+      ]),
+      opt("shells", [
+        coolPlot("rus_pl_generals", 2),
+        gauge("money", -1),
+        cool("rus_stavka", 2),
+        why("rus_pl_generals_shells"),
+      ]),
+      opt(
+        "public",
+        [
+          coolPlot("rus_pl_generals", 4),
+          heat("rus_stavka", 1),
+          why("rus_pl_generals_public"),
+        ],
+        plotConfirmed("rus_pl_generals"),
+      ),
+      opt("relieve", [
+        beatPlot("rus_pl_generals"),
+        heatPlot("rus_pl_palace", 3),
+        heat("rus_stavka", 2),
+        inst("stavka", -1),
+        why("rus_pl_generals_relieve"),
+      ]),
+      opt("wait", [why("rus_pl_generals_wait")]),
+    ],
+    { tags: ["war", "home"] },
+  ),
+  plotScene(
+    "rus_pl_generals_1",
+    "audience",
+    { who: leaderOf("rus_stavka") },
+    [
+      opt("minister", [
+        coolPlot("rus_pl_generals", 3),
+        inst("ministers", -1),
+        cool("rus_stavka", 1),
+        why("rus_pl_generals_minister"),
+      ]),
+      opt("call", [
+        coolPlot("rus_pl_generals", 2),
+        why("rus_pl_generals_call"),
+      ]),
+      opt("refuse", [heat("rus_stavka", 1), why("rus_pl_generals_refuse")]),
+    ],
+    { tags: ["war", "home"] },
+  ),
+  plotScene(
+    "rus_pl_generals_2",
+    "proposal",
+    { who: leaderOf("rus_stavka") },
+    [
+      opt("front", [
+        coolPlot("rus_pl_generals", 5),
+        why("rus_pl_generals_front"),
+      ]),
+      opt("ministry", [
+        trustMinistry,
+        coolPlot("rus_pl_generals", 12),
+        heat("rus_circle", 2),
+        why("rus_pl_generals_ministry"),
+      ]),
+      opt("relieve", [
+        beatPlot("rus_pl_generals"),
+        heatPlot("rus_pl_palace", 3),
+        heat("rus_stavka", 2),
+        inst("stavka", -1),
+        why("rus_pl_generals_relieve"),
+      ]),
+      opt("wait", [why("rus_pl_generals_wait")]),
+    ],
+    { salience: 9, essential: true, tags: ["war", "home"] },
+  ),
+  // ---- The red plot ----
+  plotScene("rus_pl_red_s1", "wire", {}),
+  plotScene(
+    "rus_pl_red_s2",
+    "audience",
+    { who: either(office("war"), office("interior")) },
+    [
+      opt("more", [remember("k_red_heard"), why("rus_pl_red_more")]),
+      opt("quiet", [why("rus_pl_red_quiet")]),
+    ],
+  ),
+  plotScene("rus_pl_red_s3", "report", police, undefined, report),
+  plotScene("rus_pl_red_w", "audience", police, [
+    opt("grain", [
+      coolPlot("rus_pl_red", 3),
+      gauge("shells", -1),
+      why("rus_pl_red_grain"),
+    ]),
+    opt("battalions", [
+      coolPlot("rus_pl_red", 2),
+      heat("rus_stavka", 1),
+      why("rus_pl_red_battalions"),
+    ]),
+    opt(
+      "public",
+      [coolPlot("rus_pl_red", 3), heat("rus_sd", 1), why("rus_pl_red_public")],
+      plotConfirmed("rus_pl_red"),
+    ),
+    opt("arrest", [
+      beatPlot("rus_pl_red"),
+      heatPlot("rus_pl_palace", 3),
+      heat("rus_sd", 1),
+      heat("rus_trud", 1),
+      onFalseSign("rus_pl_red", "rus_bolsh"),
+      why("rus_pl_red_arrest"),
+    ]),
+    opt("wait", [why("rus_pl_red_wait")]),
+  ]),
+  plotScene("rus_pl_red_1", "proposal", police, [
+    opt("bread", [
+      coolPlot("rus_pl_red", 2),
+      gauge("shells", -1),
+      why("rus_pl_red_bread"),
+    ]),
+    opt("wages", [
+      coolPlot("rus_pl_red", 2),
+      gauge("money", -1),
+      why("rus_pl_red_wages"),
+    ]),
+    opt("search", [
+      coolPlot("rus_pl_red", 1),
+      heat("rus_sd", 1),
+      why("rus_pl_red_search"),
+    ]),
+    opt("wait", [why("rus_pl_red_wait")]),
+  ]),
+  plotScene(
+    "rus_pl_red_2",
+    "proposal",
+    police,
+    [
+      opt("stores", [
+        coolPlot("rus_pl_red", 5),
+        gauge("shells", -1),
+        inst("stavka", -1),
+        why("rus_pl_red_stores"),
+      ]),
+      opt("commission", [
+        coolPlot("rus_pl_red", 4),
+        cool("rus_sd", 1),
+        cool("rus_trud", 1),
+        heat("rus_rights", 1),
+        why("rus_pl_red_commission"),
+      ]),
+      opt("arrest", [
+        beatPlot("rus_pl_red"),
+        heatPlot("rus_pl_palace", 3),
+        heat("rus_sd", 2),
+        why("rus_pl_red_arrest"),
+      ]),
+      opt("wait", [why("rus_pl_red_wait")]),
+    ],
+    { salience: 9, essential: true },
+  ),
+  // ---- The allies' asks ----
+  {
+    id: "rus_ask_relief",
+    nation: ["RUS"],
+    kind: "letter",
+    who: "head",
+    scheduledOnly: true,
+    once: true,
+    salience: 7,
+    tags: ["foreign", "war"],
+    cast: head("FRA"),
+    variants: [{ id: "base" }],
+    fallback: "yes",
+    options: [
+      opt("yes", [answerAsk("rus_ask_relief", true), letterTo("warm")]),
+      opt("no", [answerAsk("rus_ask_relief", false), letterTo("cold")]),
+    ],
+  },
+  {
+    id: "rus_ask_councils",
+    nation: ["RUS"],
+    kind: "letter",
+    who: "head",
+    scheduledOnly: true,
+    once: true,
+    salience: 7,
+    tags: ["foreign", "home"],
+    cast: head("GBR"),
+    variants: [{ id: "base" }],
+    fallback: "yes",
+    options: [
+      opt("yes", [answerAsk("rus_ask_councils", true), letterTo("warm")]),
+      opt("no", [answerAsk("rus_ask_councils", false), letterTo("cold")]),
+    ],
+  },
+  {
+    id: "rus_ask_poland",
+    nation: ["RUS"],
+    kind: "letter",
+    who: "head",
+    scheduledOnly: true,
+    once: true,
+    salience: 7,
+    tags: ["foreign", "home"],
+    cast: head("FRA"),
+    variants: [{ id: "base" }],
+    fallback: "no",
+    options: [
+      opt("yes", [answerAsk("rus_ask_poland", true), letterTo("warm")]),
+      opt("no", [answerAsk("rus_ask_poland", false), letterTo("cold")]),
+    ],
+  },
+  {
+    id: "rus_ask_romania",
+    nation: ["RUS"],
+    kind: "letter",
+    who: "head",
+    scheduledOnly: true,
+    once: true,
+    salience: 7,
+    tags: ["foreign", "war"],
+    cast: head("FRA"),
+    variants: [{ id: "base" }],
+    fallback: "yes",
+    options: [
+      opt("yes", [answerAsk("rus_ask_romania", true), letterTo("warm")]),
+      opt("no", [answerAsk("rus_ask_romania", false), letterTo("cold")]),
+    ],
+  },
+  // The Petrograd conference: the Allied missions in the capital, face to face.
+  {
+    id: "rus_conf_petrograd",
+    nation: ["RUS"],
+    kind: "talk",
+    big: true,
+    once: true,
+    scheduledOnly: true,
+    salience: 9,
+    tags: ["foreign", "war"],
+    cast: {
+      envoy: either({ office: "ambassador_petersburg", tag: "GBR" }),
+      cos: held("chief_of_staff"),
+    },
+    who: "envoy",
+    variants: [{ id: "base" }],
+    start: "n1",
+    nodes: {
+      n1: {
+        says: [{ id: "base" }],
+        replies: [
+          {
+            id: "ask",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "n2",
+          },
+        ],
+      },
+      n2: {
+        who: "cos",
+        says: [{ id: "base" }],
+        replies: [decide("hear", "n3")],
+      },
+      n3: {
+        who: "envoy",
+        fallback: "pledge",
+        says: [{ id: "base" }],
+        replies: [
+          decide("pledge", null, [
+            answerAsk("rus_conf_petrograd", true),
+            why("rus_conf_pledge"),
+          ]),
+          decide("own_time", null, [
+            answerAsk("rus_conf_petrograd", false),
+            why("rus_conf_own_time"),
+          ]),
+        ],
+      },
+    },
+  },
+];
