@@ -57,6 +57,8 @@ const DYNAMIC_KEY_PATTERNS: RegExp[] = [
   // A bill's stage, outlook and how it came to be (client/ww1914/GwLaws).
   /^gw\.law\.(?:how|outlook|stage|waits)\.[a-z]+$/,
   /^gw\.ruler\.side\.[a-z]+$/,
+  // Statecraft's words by footing, stage, phase and shortage (client/ww1914/GwCraft).
+  /^gw\.craft\.(?:footing|phase|raise|shortage|stage|terms)\.[a-z]+$/,
   /^gw\.ui\.danger\.[a-z]+$/,
   // Government threats: rows, feeds and swings come from the engine's GovTable.
   /^gw\.gov\.[A-Za-z0-9_.]+$/,

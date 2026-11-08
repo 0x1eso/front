@@ -5,6 +5,7 @@ import {
 import { html, nothing, TemplateResult } from "lit";
 import { translateText } from "../../Utils";
 import { budgetSummary } from "./GwBudget";
+import { craftSection } from "./GwCraft";
 import type { GwCtx } from "./GwCtx";
 import { rich } from "./GwDict";
 import { govBox } from "./GwGov";
@@ -199,7 +200,7 @@ export function countryTab(c: GwCtx): TemplateResult {
   const log = logByChapter(seat.log);
   return html`<div class="space-y-3" data-gw-country>
     ${rulerCard(c)} ${standing(c)} ${govBox(c)} ${budgetSummary(c)}
-    ${lawsSection(c)} ${war(c)} ${gauges(c)}
+    ${lawsSection(c)} ${craftSection(c)} ${war(c)} ${gauges(c)}
     ${insts.length === 0
       ? nothing
       : html`<section class=${BOX}>

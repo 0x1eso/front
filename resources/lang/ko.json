@@ -14495,7 +14495,21 @@
       "money_scene": "결정이 금고를 움직였다.",
       "morale_rumour": "소문이 나라의 신경을 갉았다.",
       "terms_grain": "조약에 따라 곡물이 오갔다.",
-      "terms_shells": "조약에 따라 포탄이 오갔다."
+      "terms_shells": "조약에 따라 포탄이 오갔다.",
+      "footing_war_shells": "전시 경제로 포탄이 더 나왔다.",
+      "footing_total_shells": "총동원으로 포탄이 더 나왔다.",
+      "footing_war_bread": "전시 경제로 빵이 줄었다.",
+      "footing_total_bread": "총동원으로 빵이 줄었다.",
+      "footing_war_money": "전시 경제로 돈이 움직였다.",
+      "footing_total_money": "총동원으로 돈이 움직였다.",
+      "footing_war_morale": "전시 경제로 사기가 움직였다.",
+      "footing_total_morale": "총동원으로 사기가 움직였다.",
+      "footing_war_order": "전시 경제로 질서가 흔들렸다.",
+      "footing_total_order": "총동원으로 질서가 흔들렸다.",
+      "shortage_copper": "구리 부족이 드러났다.",
+      "shortage_fats": "유지 부족이 드러났다.",
+      "shortage_nitrates": "질산염 부족이 드러났다.",
+      "shortage_rubber": "고무 부족이 드러났다."
     },
     "mandate": {
       "deu_bread_for_the_winter": "겨울 빵을 남기기",
@@ -14631,7 +14645,10 @@
       "law_repealed": "{a}에서 법 하나가 폐지됐다.",
       "law_decreed": "{a}에서 새 법이 칙령으로 나왔다.",
       "terms_signed": "{a}와(과) {b}이(가) 조건에 합의했다.",
-      "table_signed": "강화 조약이 서명되었다."
+      "table_signed": "강화 조약이 서명되었다.",
+      "footing_total": "{a}이(가) 총동원에 들어갔다.",
+      "invent_fielded": "{a}이(가) 새 무기를 전선에 내놓았다.",
+      "invent_leaked": "{a}이(가) 새 무기를 너무 일찍 써서 소문이 났다."
     },
     "odds": {
       "0": "될 일이 아닙니다.",
@@ -14832,7 +14849,31 @@
       "terms_no": "{country}이(가) 우리 조건을 거절했다.",
       "terms_yes": "{country}이(가) 우리 조건을 받아들였다.",
       "post_relieved": "{who}은(는) 자리를 빼앗긴 일을 언짢아했다.",
-      "post_sent": "{who}이(가) 명을 받고 전선으로 떠났다."
+      "post_sent": "{who}이(가) 명을 받고 전선으로 떠났다.",
+      "invent_back": "{who}의 발명을 밀어주었다.",
+      "invent_early": "{who}의 발명이 일찍 나가 적이 알아챘다.",
+      "invent_fielded": "{who}의 발명이 넉넉히 갖춰 전선에 나갔다.",
+      "invent_overruled": "반대를 누르고 {who}의 발명을 밀어주었다. 권위가 들었다.",
+      "invent_quiet": "{who}에게 작은 돈을 내주어 조용히 만들게 했다.",
+      "invent_refused": "{who}의 제안을 돌려보냈다.",
+      "invent_ripe": "{who}의 발명이 이제 넉넉히 갖춰졌다.",
+      "invent_trial_failed": "{who}의 시제품이 시험에서 실패했다.",
+      "invent_trial_ok": "{who}의 시제품이 시험을 통과했다.",
+      "project_done": "올해의 사업을 이뤘다.",
+      "project_dropped": "올해의 사업을 접었다.",
+      "project_failed": "올해의 사업이 실패했다. 책임자가 답해야 한다.",
+      "project_started": "올해의 사업을 시작했다.",
+      "footing_peace": "나라가 평시 경제로 돌아갔다.",
+      "footing_war": "나라가 전시 경제로 넘어갔다.",
+      "footing_total": "나라가 총동원에 들어갔다.",
+      "shortage_copper": "구리이(가) 모자라기 시작했다.",
+      "shortage_copper_solved": "구리 부족의 답을 찾았다.",
+      "shortage_fats": "유지이(가) 모자라기 시작했다.",
+      "shortage_fats_solved": "유지 부족의 답을 찾았다.",
+      "shortage_nitrates": "질산염이(가) 모자라기 시작했다.",
+      "shortage_nitrates_solved": "질산염 부족의 답을 찾았다.",
+      "shortage_rubber": "고무이(가) 모자라기 시작했다.",
+      "shortage_rubber_solved": "고무 부족의 답을 찾았다."
     },
     "result": {
       "advance": "전진",
@@ -15134,7 +15175,9 @@
         "terms_sent": "이번 장의 조건은 이미 나갔다.",
         "prologue": "아직 지난날이 끝나지 않았습니다.",
         "no_claims": "이 지도에는 서명할 수 없습니다.",
-        "table_no": "지금 탁자에서 그 말은 할 수 없습니다."
+        "table_no": "지금 탁자에서 그 말은 할 수 없습니다.",
+        "no_craft": "지금은 할 수 없다.",
+        "no_footing": "지금은 체제를 올릴 수 없다."
       },
       "brief_label": "비서의 메모",
       "calendar": {
@@ -16168,6 +16211,60 @@
     "rail": {
       "day": "{country} {day}/{total}일",
       "ready": "{country} 집결 완료"
+    },
+    "craft": {
+      "early": "일찍 나가 적이 대비하고 있었다.",
+      "field": "지금 투입한다",
+      "field_sure": "한 번 더 눌러 투입",
+      "footing": {
+        "peace": "평시 경제",
+        "war": "전시 경제",
+        "total": "총동원"
+      },
+      "footing_title": "나라의 체제",
+      "inventions_title": "발명",
+      "inventor": "발명가: {name}",
+      "lead": "책임자: {name}",
+      "past_title": "지난 해의 사업",
+      "phase": {
+        "done": "이뤘다",
+        "dropped": "접었다",
+        "exec": "실행 중",
+        "failed": "실패했다",
+        "idle": "시작 전",
+        "opp": "반대에 부딪힘",
+        "prep": "준비 중"
+      },
+      "project_none": "올해는 아직 정한 사업이 없다.",
+      "project_title": "올해의 사업",
+      "raise": {
+        "total": "총동원을 논의에 부친다",
+        "war": "전시 경제 회의를 연다"
+      },
+      "raise_asked": "이번 장에 이미 불렀다.",
+      "raise_closed": "아직 그럴 때가 아니다.",
+      "ripe": "넉넉히 갖춰짐",
+      "short_of": "모자라는 것: {list}",
+      "shortage": {
+        "copper": "구리",
+        "fats": "유지",
+        "nitrates": "질산염",
+        "rubber": "고무"
+      },
+      "shortage_solved": "{name} 문제의 답을 찾았다.",
+      "stage": {
+        "building": "시제품 제작 중",
+        "dropped": "접음",
+        "failed": "시험 실패",
+        "fielded": "전선에 나감",
+        "proposed": "제안 받음",
+        "ready": "투입 대기",
+        "refused": "돌려보냄"
+      },
+      "terms": {
+        "total": "포탄이 가장 빨리 나오고, 빵과 질서가 줄어든다.",
+        "war": "포탄이 더 빨리 나오고, 빵이 줄어든다."
+      }
     }
   }
 }

@@ -19,6 +19,7 @@ import { civilFromDays } from "@openfront/engine-lib/ww1936/Calendar";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
 import { paperClosed } from "./Authority";
 import { claimFront, claimsIn } from "./Claims";
+import { craftEdge } from "./Craft";
 import {
   eraOf,
   GW_SEASON,
@@ -28,7 +29,6 @@ import {
   techShield,
   warMonths,
 } from "./Eras";
-import { craftEdge } from "./Craft";
 import type { GreatWar } from "./GreatWar";
 import { officeHolder, recordResult } from "./People";
 import {

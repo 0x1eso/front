@@ -3,6 +3,7 @@ import { gwCountry } from "@openfront/engine-api/ww1914/GwCountries";
 import { assetUrl } from "@openfront/shared/AssetUrls";
 import { html, nothing, TemplateResult } from "lit";
 import { translateText } from "../../Utils";
+import { footingChip } from "./GwCraft";
 import type { GwCtx } from "./GwCtx";
 import { clock, gaugeFill, gaugeLevel, secondsLeft, tempBand } from "./GwModel";
 import { CHIP, fillColor, GLASS } from "./GwStyle";
@@ -32,6 +33,7 @@ export function band(c: GwCtx): TemplateResult {
         total: data.chapterCount,
       })}</span
     >
+    ${footingChip(c)}
     ${left === null
       ? nothing
       : html`<span class=${CHIP} data-gw-timer>${clock(left)}</span>`}
