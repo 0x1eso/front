@@ -11,6 +11,7 @@ import { EventBus } from "@openfront/shared/EventBus";
 import { render } from "lit";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import {
+  gwFriendsCalendarPicker,
   gwPacePicker,
   gwSeatPicker,
   gwTableNote,
@@ -302,7 +303,26 @@ describe("the friends' lobby", () => {
     expect(root.textContent).toContain("20장");
     expect(root.textContent).toContain("길게");
     render(gwTableNote("friends", "none"), root);
-    expect(root.textContent).toContain("제한 없음");
+    expect(root.textContent).toContain("20장, 시간 제한 없음.");
+    expect(root.textContent).not.toContain("약 1시간");
+  });
+
+  test("gives no time for a length when the pace has no limit", () => {
+    const root = document.createElement("div");
+    const row = () =>
+      root.querySelector("[data-gw-calendar-row=friends]")!.textContent!;
+    render(
+      gwFriendsCalendarPicker("friends", () => {}, "normal"),
+      root,
+    );
+    expect(row()).toContain("약 1시간");
+    render(
+      gwFriendsCalendarPicker("friends", () => {}, "none"),
+      root,
+    );
+    expect(row()).toContain("20장");
+    expect(row()).toContain("시간 제한 없음");
+    expect(row()).not.toContain("약 1시간");
   });
 
   test("offers no limit as a fourth pace, with its own note", () => {

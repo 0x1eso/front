@@ -1353,10 +1353,14 @@ export class HostLobbyModal extends BaseModal {
     }
     return html`<div class="space-y-3">
       ${seats}
-      ${gwFriendsCalendarPicker(this.greatWar1914Calendar, (id) => {
-        this.greatWar1914Calendar = id;
-        this.putGameConfig();
-      })}
+      ${gwFriendsCalendarPicker(
+        this.greatWar1914Calendar,
+        (id) => {
+          this.greatWar1914Calendar = id;
+          this.putGameConfig();
+        },
+        this.greatWar1914Pace,
+      )}
       ${gwPacePicker(
         this.greatWar1914Calendar,
         this.greatWar1914Pace,

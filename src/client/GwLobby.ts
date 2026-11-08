@@ -98,19 +98,31 @@ export function gwCalendarPicker(
   </div>`;
 }
 
-/** The friends' lobby: the length alone, seats and the timer are their own. */
+/**
+ * The friends' lobby: the length alone, seats and the timer are their own.
+ * With no timer (`pace` none) a row gives no time, which would be a guess.
+ */
 export function gwFriendsCalendarPicker(
   selected: GwCalendarId,
   pick: (id: GwCalendarId) => void,
+  pace: GwPace = "normal",
 ): TemplateResult {
   return html`<div class="space-y-1.5" data-gw-calendar>
-    ${calendarRows(selected, pick)}
+    ${calendarRows(selected, pick, pace)}
   </div>`;
+}
+
+/** How long a row plays, in words; with no timer, that there is none. */
+function calendarTime(id: GwCalendarId, pace: GwPace): string {
+  return translateText(
+    pace === "none" ? "gw.ui.calendar_untimed" : `gw.ui.calendar_time.${id}`,
+  );
 }
 
 function calendarRows(
   selected: GwCalendarId,
   pick: (id: GwCalendarId) => void,
+  pace: GwPace = "normal",
 ): TemplateResult {
   return html`<div class="text-xs text-white/70">
       ${translateText("gw.ui.calendar_label")}
@@ -131,7 +143,7 @@ function calendarRows(
               >${translateText("gw.ui.calendar_chapters", {
                 n: gwChapters(id).length,
               })}
-              · ${translateText(`gw.ui.calendar_time.${id}`)}</span
+              · ${calendarTime(id, pace)}</span
             >
           </button>`,
       )}
@@ -257,7 +269,7 @@ export function gwTableNote(
     ${translateText("gw.lobby.table_note", {
       length: translateText(`gw.ui.calendar.${calendar}`),
       n: gwChapters(calendar).length,
-      time: translateText(`gw.ui.calendar_time.${calendar}`),
+      time: calendarTime(calendar, pace),
       pace: translateText(`gw.lobby.pace.${pace}`),
     })}
   </p>`;

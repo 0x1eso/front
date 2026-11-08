@@ -15251,6 +15251,7 @@
         "standard": "약 3시간",
         "friends": "약 1시간"
       },
+      "calendar_untimed": "시간 제한 없음",
       "casualties": "잃은 사람 {man} 명",
       "chapter_n": "{n}장",
       "danger": {
