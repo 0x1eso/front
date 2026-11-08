@@ -57,7 +57,11 @@ const B = (i: number) => 100 + i;
 const C = (i: number) => 200 + i;
 const D = (i: number) => 300 + i;
 
-function strip(n: number, control: Record<number, number> = {}) {
+function strip(
+  n: number,
+  control: Record<number, number> = {},
+  extra: [number, number][] = [],
+) {
   const adj = new Map<number, number[]>();
   const link = (x: number, y: number) => {
     adj.set(x, [...(adj.get(x) ?? []), y]);
@@ -69,6 +73,7 @@ function strip(n: number, control: Record<number, number> = {}) {
     link(C(i), A(i));
     link(D(i), C(i));
   }
+  for (const [x, y] of extra) link(x, y);
   const ids = [...adj.keys()].sort((x, y) => x - y);
   const edges: { to: number; edge: number }[][] = [];
   for (const [u, vs] of adj) {
@@ -106,6 +111,20 @@ describe("ww162 L1: the front line between two ends (lib)", () => {
     expect(frontChainBetween(w, US, THEM, A(2), A(6))).toEqual([2, 3, 4, 5, 6]);
     expect(frontChainBetween(w, US, THEM, A(6), A(2))).toEqual([6, 5, 4, 3, 2]);
     expect(frontChainBetween(w, US, 0, A(3), A(3))).toEqual([3]);
+  });
+
+  test("a big enemy region both ends face never shortcuts the border between them", () => {
+    // Integration (browser): Pomerania and Upper Silesia both touch
+    // Greater Poland; the line between them still runs through Neumark
+    // and Lower Silesia.
+    const w = strip(8, {}, [
+      [A(2), B(6)],
+      [A(6), B(2)],
+    ]);
+    expect(frontChainBetween(w, US, THEM, A(2), A(6))).toEqual([2, 3, 4, 5, 6]);
+    // Border pieces joined only through a shared enemy region still join.
+    const cut = strip(8, { [A(4)]: NEUTRAL }, [[A(3), B(5)]]);
+    expect(frontChainBetween(cut, US, THEM, A(3), A(5))).toEqual([3, 5]);
   });
 
   test("an end off the border snaps to the nearest border region over our land", () => {

@@ -364,11 +364,14 @@ export interface FrontLine {
  * ww162 §1.1: the front line between `a` and `b` against `enemy` (0: every
  * enemy). Each end snaps to the border (snapFrontEnd; an end with none
  * reached takes the other's); the chain is the shortest path between the
- * snapped ends over the border graph (BFS, neighbours by id, so ties go to
- * the smaller id), from `a`'s end to `b`'s, at most WW_ZONE_MAX regions
- * (cut at `b`'s side). Ends in different border pieces: `a`'s piece by
- * zoneFrom. Null when neither end reaches the border. The engine, the AI
- * and the screen's preview all call this, so they agree.
+ * snapped ends along the border: first over border regions that touch
+ * each other, so a big enemy region two of them face never shortcuts the
+ * ones between; only when that does not join them, over the whole border
+ * graph (borderLinks). BFS, neighbours by id, so ties go to the smaller
+ * id; from `a`'s end to `b`'s, at most WW_ZONE_MAX regions (cut at `b`'s
+ * side). Ends in different border pieces: `a`'s piece by zoneFrom. Null
+ * when neither end reaches the border. The engine, the AI and the screen's
+ * preview all call this, so they agree.
  */
 export function frontLineBetween(
   w: FrontWorld,
@@ -384,15 +387,14 @@ export function frontLineBetween(
   if (sa === 0) sa = sb;
   if (sb === 0) sb = sa;
   if (sa === sb) return { ends: [sa, sb], chain: [sa] };
-  const parent = new Map<number, number>([[sa, 0]]);
-  const queue = [sa];
-  for (let i = 0; i < queue.length && !parent.has(sb); i++) {
-    for (const v of borderLinks(w, g, queue[i])) {
-      if (parent.has(v)) continue;
-      parent.set(v, queue[i]);
-      queue.push(v);
-    }
-  }
+  const touching = (u: number) =>
+    w.scenario
+      .edgesOf(u)
+      .map((e) => e.to)
+      .filter((v) => g.set.has(v))
+      .sort((x, y) => x - y);
+  let parent = pathTree(sa, sb, touching);
+  if (!parent.has(sb)) parent = pathTree(sa, sb, (u) => borderLinks(w, g, u));
   if (!parent.has(sb)) {
     return { ends: [sa, sb], chain: zoneFrom(w, g, sa, WW_ZONE_MAX) };
   }
@@ -400,6 +402,24 @@ export function frontLineBetween(
   for (let u = sb; u !== 0; u = parent.get(u)!) chain.push(u);
   chain.reverse();
   return { ends: [sa, sb], chain: chain.slice(0, WW_ZONE_MAX) };
+}
+
+/** BFS from `from` until `to` is reached: each region's parent (`from`'s is 0). */
+function pathTree(
+  from: number,
+  to: number,
+  next: (u: number) => readonly number[],
+): Map<number, number> {
+  const parent = new Map<number, number>([[from, 0]]);
+  const queue = [from];
+  for (let i = 0; i < queue.length && !parent.has(to); i++) {
+    for (const v of next(queue[i])) {
+      if (parent.has(v)) continue;
+      parent.set(v, queue[i]);
+      queue.push(v);
+    }
+  }
+  return parent;
 }
 
 /** ww162 §1.1: frontLineBetween's chain ([] when no end reaches the border). */
