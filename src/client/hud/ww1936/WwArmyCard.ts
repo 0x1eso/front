@@ -476,6 +476,11 @@ export class WwArmyCard extends LitElement implements Controller {
     return 250;
   }
 
+  /** ww162: while the game is paused too: the taps, the echoes and the layout still redraw. */
+  idleTick() {
+    this.tick();
+  }
+
   /**
    * Cheap: the version keys first; the card's data is built only in
    * render(), and the place measured once a tick while it shows.

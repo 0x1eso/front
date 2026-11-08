@@ -577,6 +577,8 @@ export class WwLandController implements Controller {
     }
     const zoom = Math.max(1e-6, this.transform.scale);
     const w = this.transform.screenToWorldCoordinatesFloat(x, y);
+    // ww162: an open "+N" fan closes on a tap anywhere but on it; the tap goes on.
+    this.closeFans(view, me, w, zoom);
     // P5 (lane U1, spec §20.2): the conference map mode takes every tap first.
     if (peaceMapTap(this.game, this.regionAt(view, w.x, w.y))) return true;
     // Negotiated peace: the composer's region pick mode, likewise.
@@ -696,6 +698,40 @@ export class WwLandController implements Controller {
     }
     this.pickDivision(hit.army, hit.division);
     return true;
+  }
+
+  /**
+   * ww162: a tap that is on neither a division counter of an open fan nor a
+   * fan's chip closes every open fan (its own chip toggles it in counterTap).
+   */
+  private closeFans(
+    view: WwLandView,
+    me: number,
+    w: { x: number; y: number },
+    zoom: number,
+  ): void {
+    const state = counterStateOf(view);
+    if (!state.anyOpen()) return;
+    const mine = this.deps
+      .layout(view, this.game.ticks(), zoom)
+      .filter(
+        (p) =>
+          (p.division !== undefined || p.more !== undefined) &&
+          view.armies.get(p.army)?.owner === me,
+      );
+    const hit = hitCounter(
+      mine,
+      w.x,
+      w.y,
+      TAP_RADIUS_PX / zoom,
+      this.selection.army,
+    );
+    if (hit?.kind === "more") return;
+    if (hit?.kind === "division") {
+      const p = mine.find((q) => q.division === hit.division);
+      if (p?.region !== undefined && state.isOpen(p.region)) return;
+    }
+    if (state.closeAll()) this.changed();
   }
 
   /** Chooses `army` with `division` picked, the card in [사단]; in [사단] on that army, the division toggles. */

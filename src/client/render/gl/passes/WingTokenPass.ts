@@ -132,6 +132,9 @@ export class WingTokenPass {
     expanded: ReadonlySet<number>,
     nowMs: number,
     chosenGroup = 0,
+    /** ww162: where land counters stand (the wings there step aside), and its version. */
+    landAt: ReadonlySet<number> | undefined = undefined,
+    landAtVersion = 0,
   ): void {
     const fog = fogOfAir(air);
     const tick = Math.floor(tickF);
@@ -148,6 +151,7 @@ export class WingTokenPass {
       [...chosen].join(","),
       [...expanded].join(","),
       chosenGroup,
+      landAt === undefined ? -1 : landAtVersion,
     ].join("|");
     if (key === this.key) return;
     this.key = key;
@@ -164,6 +168,7 @@ export class WingTokenPass {
         group: chosenGroup,
         tick,
         split: this.split,
+        landAt,
       },
       this.slots,
     );

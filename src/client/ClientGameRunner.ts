@@ -101,6 +101,9 @@ import { SoundManager } from "./sound/SoundManager";
 import { themeProvider } from "./theme/ThemeProvider";
 import { GameView, PlayerView } from "./view";
 
+/** ww162: with no game update for this long (paused), the HUD's idle ticks run, this often. */
+const IDLE_TICK_MS = 250;
+
 export interface LobbyConfig {
   cosmetics: PlayerCosmeticRefs;
   playerName: string;
@@ -949,6 +952,9 @@ export class ClientGameRunner {
 
   private lastMessageTime: number = 0;
   private connectionCheckInterval: NodeJS.Timeout | null = null;
+  /** ww162: the HUD's idle ticks while no game update arrives (paused). */
+  private idleTickInterval: ReturnType<typeof setInterval> | null = null;
+  private lastUpdateAtMs = 0;
   private goToPlayerTimeout: NodeJS.Timeout | null = null;
 
   private lastTickReceiveTime: number = 0;
@@ -1001,6 +1007,13 @@ export class ClientGameRunner {
         1000,
       );
     }, 20000);
+
+    this.lastUpdateAtMs = performance.now();
+    this.idleTickInterval = setInterval(() => {
+      if (performance.now() - this.lastUpdateAtMs >= IDLE_TICK_MS) {
+        this.renderer.idleTick();
+      }
+    }, IDLE_TICK_MS);
 
     this.eventBus.on(MouseUpEvent, this.inputEvent.bind(this));
     this.eventBus.on(MouseMoveEvent, this.onMouseMove.bind(this));
@@ -1059,6 +1072,7 @@ export class ClientGameRunner {
       }
       this.webglBuilder?.update(this.gameView);
       this.renderer.tick();
+      this.lastUpdateAtMs = performance.now();
       if (gu.tickExecutionDuration !== undefined) {
         this.metrics?.recordTickExecution(gu.tickExecutionDuration);
       }
@@ -1243,6 +1257,10 @@ export class ClientGameRunner {
     if (this.connectionCheckInterval) {
       clearInterval(this.connectionCheckInterval);
       this.connectionCheckInterval = null;
+    }
+    if (this.idleTickInterval !== null) {
+      clearInterval(this.idleTickInterval);
+      this.idleTickInterval = null;
     }
     if (this.goToPlayerTimeout) {
       clearTimeout(this.goToPlayerTimeout);

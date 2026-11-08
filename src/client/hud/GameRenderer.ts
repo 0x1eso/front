@@ -919,6 +919,25 @@ export class GameRenderer {
     this.transformHandler.centerAll(0.9);
   }
 
+  /**
+   * While no game tick arrives (the game paused): the controllers' idle
+   * ticks, at their usual throttle.
+   */
+  idleTick() {
+    const nowMs = performance.now();
+    for (const layer of this.layers) {
+      if (!layer.idleTick) continue;
+      const state = this.layerTickState.get(layer) ?? {
+        lastTickAtMs: -Infinity,
+      };
+      const intervalMs = layer.getTickIntervalMs?.() ?? 0;
+      if (intervalMs > 0 && nowMs - state.lastTickAtMs < intervalMs) continue;
+      state.lastTickAtMs = nowMs;
+      this.layerTickState.set(layer, state);
+      layer.idleTick();
+    }
+  }
+
   tick() {
     const nowMs = performance.now();
     const shouldProfileTick = FrameProfiler.isEnabled();

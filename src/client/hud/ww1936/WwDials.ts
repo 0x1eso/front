@@ -270,6 +270,11 @@ export class WwDials extends LitElement implements Controller {
     ].join("|");
   }
 
+  /** ww162: while the game is paused too: the taps, the echoes and the layout still redraw. */
+  idleTick() {
+    this.tick();
+  }
+
   tick() {
     if (!this.game?.worldWarScenario()) return;
     this.checkFlow();

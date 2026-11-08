@@ -103,6 +103,11 @@ export class WwWingCard extends LitElement implements Controller {
     return 250;
   }
 
+  /** ww162: while the game is paused too: the taps, the echoes and the layout still redraw. */
+  idleTick() {
+    this.tick();
+  }
+
   tick() {
     const ui = wingUiOf(this.game);
     if (ui.ids.length === 0 && ui.mode !== "field") return;

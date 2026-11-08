@@ -935,14 +935,40 @@ describe("counter levels by zoom (ww162 §3.1)", () => {
     });
     // hitToken still gives the army (today's taps choose it).
     expect(hitToken(taps, 65, 17, 1, null)).toBe(1);
-    // A tap on +N opens the region: all six show.
+    // A tap on +N opens the region: all six show, and the chip keeps its
+    // slot with N = 0 (drawn "−"): a second tap there closes the fan again.
     counterStateOf(v).toggleOpen(BERLIN);
     cache.update(v, 0, zoom, DEU);
+    const open = cache.counters.slice(0, cache.counterCount);
     expect(
-      cache.counters
-        .slice(0, cache.counterCount)
-        .filter((c) => c.type === C_DIVISION && c.region === BERLIN),
+      open.filter((c) => c.type === C_DIVISION && c.region === BERLIN),
     ).toHaveLength(6);
+    const close = open.find((c) => c.type === C_MORE)!;
+    expect(close).toMatchObject({ region: BERLIN, shown: 0 });
+    expect(close.y).toBe(17 + fanSlot(3) * step);
+    expect(
+      open
+        .filter((c) => c.type === C_DIVISION && c.region === BERLIN)
+        .map((c) => c.y),
+    ).toEqual([0, 1, 2, 4, 5, 6].map((k) => 17 + fanSlot(k) * step));
+    const openTaps = layoutTokens(v, 0, zoom, DEU);
+    expect(hitCounter(openTaps, 65, close.y, 1, null)).toEqual({
+      kind: "more",
+      army: 1,
+      region: BERLIN,
+    });
+    // A division counter's tap target names its region (a tap there keeps the fan open).
+    expect(openTaps.find((p) => p.division === 16)?.region).toBe(BERLIN);
+    expect(counterStateOf(v).anyOpen()).toBe(true);
+    expect(counterStateOf(v).closeAll()).toBe(true);
+    expect(counterStateOf(v).closeAll()).toBe(false);
+    cache.update(v, 0, zoom, DEU);
+    expect(
+      cache.counters.slice(0, cache.counterCount).find((c) => c.type === C_MORE)
+        ?.shown,
+    ).toBe(3);
+    counterStateOf(v).toggleOpen(BERLIN);
+    cache.update(v, 0, zoom, DEU);
     // Merging below 5 closes it again.
     cache.update(v, 0, 4.9, DEU);
     expect(cache.level).toBe(LEVEL_ARMY);
@@ -993,6 +1019,49 @@ describe("counter levels by zoom (ww162 §3.1)", () => {
     expect(d().y).toBeCloseTo((17 + 52) / 2, 9);
     cache.update(v, 11 + TOKEN_EASE_TICKS, 8, DEU);
     expect(d()).toMatchObject({ x: 65, y: 52 });
+  });
+
+  test("ww162: a division's glide runs on the ease clock, so it ends while the game is paused", () => {
+    const at = (region: number) =>
+      data({
+        armies: [army({ id: 1, divisions: 1, mine: mine() })],
+        details: [detailOf([div(11, 1, region)])],
+      });
+    const v = new WwLandView(scenario);
+    v.apply(at(BERLIN), 10);
+    const cache = new TokenLayoutCache();
+    cache.update(v, 10, 8, DEU, 500);
+    const d = () => cache.counters.find((c) => c.division === 11)!;
+    v.apply(at(MUNICH), 11);
+    cache.update(v, 11, 8, DEU, 501);
+    expect(d()).toMatchObject({ x: 65, y: 17 });
+    // Paused: the game's clock stops a tick ahead; the ease clock runs on.
+    cache.update(v, 12, 8, DEU, 501 + TOKEN_EASE_TICKS / 2);
+    expect(d().y).toBeCloseTo((17 + 52) / 2, 9);
+    expect(cache.update(v, 12, 8, DEU, 501 + TOKEN_EASE_TICKS)).toBe(true);
+    expect(d()).toMatchObject({ x: 65, y: 52 });
+    expect(cache.update(v, 12, 8, DEU, 502 + TOKEN_EASE_TICKS)).toBe(false);
+  });
+
+  test("ww162: landRegions holds where standing counters are, not a moving army's", () => {
+    const v = viewWith({
+      armies: [
+        army({ id: 1, divisions: 1, mine: mine() }),
+        army({ id: 5, owner: POL, region: WARSAW }),
+      ],
+      details: [detailOf([div(11, 1, MUNICH)])],
+    });
+    const cache = new TokenLayoutCache();
+    cache.update(v, 0, 8, DEU);
+    expect([...cache.landRegions].sort((a, b) => a - b)).toEqual(
+      [MUNICH, WARSAW].sort((a, b) => a - b),
+    );
+    const version = cache.landRegionsVersion;
+    cache.update(v, 0, 4, DEU);
+    // At the army level my army stands in Berlin.
+    expect(cache.landRegions.has(BERLIN)).toBe(true);
+    expect(cache.landRegions.has(MUNICH)).toBe(false);
+    expect(cache.landRegionsVersion).toBe(version + 1);
   });
 
   test("the pass draws region chips, division counters and +N with the hue rim and the pin", () => {

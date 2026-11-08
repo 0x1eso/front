@@ -62,6 +62,15 @@ export const STATION_KEY = 1 << 24;
 export const MERGED_STEP_PX = 28;
 /** w51: an air token's tap reach, smaller than an army's (screen px). */
 export const AIR_TAP_RADIUS_PX = 14;
+/**
+ * ww162: at a base where land counters stand (WingLayoutInput.landAt) the
+ * wings fan in a column of their own this many screen px east of the land
+ * column, so neither hides the other and both take taps: a wing token is
+ * 62 px wide, an army token 52, a division counter 39…
+ */
+export const WING_COLUMN_PX = 60;
+/** …and below zoom 3 a merged chip beside a region or army chip (44 px). */
+export const MERGED_COLUMN_PX = 52;
 
 export interface WingSlot {
   /** SLOT_TOKEN: one wing; SLOT_GROUP: several in a chip; SLOT_BASE: a base chip (air layer off). */
@@ -122,6 +131,8 @@ export interface WingLayoutInput {
   tick?: number;
   /** ww162: every wing a token (zoom 6 up, with the army counters' hysteresis); absent: zoom ≥ 6. */
   split?: boolean;
+  /** ww162: the regions where land counters stand (TokenLayoutCache.landRegions); the wings there step aside. */
+  landAt?: ReadonlySet<number>;
 }
 
 /** A wing's base tile (x, y), or false when it stands nowhere (no base, or a ship not found). */
@@ -375,9 +386,10 @@ export function layoutWings(
   for (const base of groupsAt.keys()) {
     if (!groups.has(base)) groups.set(base, []);
   }
+  const column = WING_COLUMN_PX / Math.max(input.zoom, 1e-6);
   for (const [base, list] of groups) {
     if (!wingBaseXY(air, navy, base, xy)) continue;
-    const x = xy[0];
+    const x = xy[0] + (base > 0 && input.landAt?.has(base) ? column : 0);
     const y = xy[1];
     const rest: Entry[] = [];
     const tokens: Entry[] = [];
@@ -486,8 +498,13 @@ function layoutMerged(
   /** Tokens per key, in the order they fan (a chosen one, or an opened key's). */
   const tokens = new Map<number, WingSlot[]>();
   const xy: [number, number] = [0, 0];
+  const column = MERGED_COLUMN_PX / z;
   const placeOf = (key: number): boolean => {
-    if (key < STATION_KEY) return wingBaseXY(air, navy, key, xy);
+    if (key < STATION_KEY) {
+      if (!wingBaseXY(air, navy, key, xy)) return false;
+      if (key > 0 && input.landAt?.has(key)) xy[0] += column;
+      return true;
+    }
     const t = targetTile(sc, 0, key - STATION_KEY);
     if (t < 0) return false;
     xy[0] = t % W;

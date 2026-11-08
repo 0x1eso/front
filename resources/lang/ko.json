@@ -14152,7 +14152,6 @@
       "name_hint": "템플릿 이름",
       "night": "야간",
       "none": "아직 항공단이 없습니다. 템플릿을 저장하고 유지 수를 정하면 여기에 편성됩니다.",
-      "pick_army": "{army}",
       "priority": "우선 구역",
       "range_km": "{km}km",
       "range_spread": "항속 {min}~{max}km.",
@@ -14185,7 +14184,6 @@
       "tpl_none": "아직 템플릿이 없습니다.",
       "type_dec": "25기 줄이기",
       "type_inc": "25기 늘리기",
-      "which": "무엇을?",
       "yesterday": "어제 격추 {kills}, 손실 {lost}",
       "zone_planes": "{n}기",
       "zone_sup": "제공 {mine}% 대 {enemy}%"

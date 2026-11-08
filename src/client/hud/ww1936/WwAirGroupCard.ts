@@ -1,7 +1,6 @@
 // World War 1936 w51 (air groups, design ww50 Part 2): the group card, in the
-// wing card's place, and the small chooser that asks "army or group?" when an
-// army token and a group token lie one on the other. A tap on a group token
-// chooses it; each map tap on a zone adds or removes it (WwWingController);
+// wing card's place. A tap on a group token chooses it (ww162: beside an
+// army's counters, the air layer decides who takes the tap); each map tap on a zone adds or removes it (WwWingController);
 // everything here is a button of 40 px.
 import {
   AIR_TYPES,
@@ -35,10 +34,9 @@ import {
   zoneRowsOf,
 } from "./AirGroupModel";
 import { armyName } from "./LandModel";
-import { landSelectionOf, WwSelectArmyEvent } from "./LandSelection";
 import { navyCtx, NavyCtx, NavyGame } from "./NavyModel";
 import { baseName } from "./WingModel";
-import { wingUiOf, WwSelectGroupEvent, WwWingChangedEvent } from "./WingUi";
+import { wingUiOf, WwWingChangedEvent } from "./WingUi";
 import { isCapitulated, TWO_TAP_MIN_MS } from "./WorldWarModel";
 import {
   CARD_MIN_PX,
@@ -91,9 +89,14 @@ export class WwAirGroupCard extends LitElement implements Controller {
     return 250;
   }
 
+  /** ww162: while the game is paused too: the taps, the echoes and the layout still redraw. */
+  idleTick() {
+    this.tick();
+  }
+
   tick() {
     const ui = wingUiOf(this.game);
-    if (ui.airGroup === 0 && ui.chooser === null) return;
+    if (ui.airGroup === 0) return;
     this.refit();
     const key = [
       ui.version,
@@ -142,7 +145,6 @@ export class WwAirGroupCard extends LitElement implements Controller {
     const ui = wingUiOf(this.game);
     const ctx = this.ctx();
     if (ctx === null) return nothing;
-    if (ui.chooser !== null) return this.renderChooser(ctx);
     if (ui.airGroup === 0) return nothing;
     const raw = groupById(ctx, ui.airGroup);
     if (raw === undefined) return nothing;
@@ -157,50 +159,6 @@ export class WwAirGroupCard extends LitElement implements Controller {
       ${this.renderHead(ctx, g)} ${this.renderZones(ctx, g)}
       ${this.renderTypes(g)} ${this.renderButtons(g)}
       ${this.more ? this.renderMore(g) : nothing}
-    </section>`;
-  }
-
-  private renderChooser(ctx: NavyCtx): TemplateResult {
-    const ui = wingUiOf(this.game);
-    const c = ui.chooser!;
-    const g = groupById(ctx, c.group);
-    return html`<section
-      data-ww-air-chooser
-      class="fixed z-[1002] flex items-center gap-1.5 rounded-lg border border-white/15 bg-gray-900/92 p-1.5 text-xs text-white shadow-xl"
-      style=${placeStyle(this.place)}
-    >
-      <span class="shrink-0">${translateText("ww1936.airgroup.which")}</span>
-      <button
-        type="button"
-        data-ww-choose="army"
-        class="${BTN} ${IDLE} min-w-0 flex-1"
-        @click=${() => {
-          ui.chooser = null;
-          this.eventBus.emit(new WwSelectArmyEvent(c.army));
-          this.changed();
-        }}
-      >
-        <span class="truncate"
-          >⚔
-          ${translateText("ww1936.airgroup.pick_army", {
-            army: armyName(c.army),
-          })}</span
-        >
-      </button>
-      <button
-        type="button"
-        data-ww-choose="group"
-        class="${BTN} ${IDLE} min-w-0 flex-1"
-        @click=${() => {
-          ui.chooser = null;
-          if (landSelectionOf(this.game).army !== null) {
-            this.eventBus.emit(new WwSelectArmyEvent(null));
-          }
-          this.eventBus.emit(new WwSelectGroupEvent(c.group));
-        }}
-      >
-        <span class="truncate">✈ ${g === undefined ? "" : groupName(g)}</span>
-      </button>
     </section>`;
   }
 

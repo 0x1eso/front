@@ -34,12 +34,14 @@ import {
   zoneRowsOf,
 } from "../../../src/client/hud/ww1936/AirGroupModel";
 import { entryStatus } from "../../../src/client/hud/ww1936/DesignLibraryStatus";
+import { WwSelectArmyEvent } from "../../../src/client/hud/ww1936/LandSelection";
 import { navyCtx, NavyGame } from "../../../src/client/hud/ww1936/NavyModel";
 import {
   WingUi,
   wingUiOf,
   WwSelectGroupEvent,
 } from "../../../src/client/hud/ww1936/WingUi";
+import { seaAirOf } from "../../../src/client/hud/ww1936/WwSeaAirController";
 import { WwWingController } from "../../../src/client/hud/ww1936/WwWingController";
 import { SendWwOrderIntentEvent } from "../../../src/client/Transport";
 import {
@@ -48,6 +50,7 @@ import {
   SLOT_AIRGROUP,
   SLOT_BASE,
   SLOT_TOKEN,
+  type WingFocus,
   type WingSlot,
 } from "../../../src/client/view/WingTokenLayout";
 import { REGION } from "../../ww1936/seaFixture";
@@ -518,20 +521,45 @@ describe("taps", () => {
     });
   });
 
-  it("an army token wins the tap; a truly overlapping pair asks which", () => {
+  it("an army and an air token in reach: the air layer on gives the air token the tap, off the army", () => {
     // Army in the base region: both tokens sit at the same place.
     const f = fixture(group(), { armies: [armyAt(REGION.london)] });
     const [x, y] = tileOf(REGION.london);
     f.setSlot({ ...groupSlot(), x: x - 0.5, y: y - 0.5 });
-    f.ctl.handleTap(x, y, 24 / 4);
-    expect(wingUiOf(f.s.game).chooser).toEqual({ army: 1, group: 7 });
+    expect(f.ctl.handleTap(x, y, 24 / 4)).toBe(false);
     expect(wingUiOf(f.s.game).airGroup).toBe(0);
+    seaAirOf(f.s.game).selection.setLayer("air");
+    expect(f.ctl.handleTap(x, y, 24 / 4)).toBe(true);
+    expect(wingUiOf(f.s.game).airGroup).toBe(7);
 
-    // Army a few tiles away from the air token: the army's tap, the controller leaves it.
+    // The air token beside the army (its own column): it takes the tap, layer or not.
     const g = fixture(group(), { armies: [armyAt(REGION.london)] });
-    g.setSlot({ ...groupSlot(), x: x - 0.5 + 5, y: y - 0.5 });
-    expect(g.ctl.handleTap(x, y, 24 / 4)).toBe(false);
-    expect(wingUiOf(g.s.game).chooser).toBeNull();
+    g.setSlot({ ...groupSlot(), x: x - 0.5 + 10, y: y - 0.5 });
+    expect(g.ctl.handleTap(x + 10, y, 24 / 4)).toBe(true);
+    expect(wingUiOf(g.s.game).airGroup).toBe(7);
+  });
+
+  it("ww162: choosing an army drops the group and clears its focus on the map (the range ellipse)", () => {
+    const s = seaGame({
+      air: airDetail("GBR", { groups: [group()] }),
+      wings: [],
+    });
+    const bus = new EventBus();
+    const focus: WingFocus[] = [];
+    const ctl = new WwWingController(
+      s.game as unknown as NavyGame,
+      bus,
+      () => 4,
+      () => 0,
+      () => null,
+      (f) => focus.push(f),
+    );
+    ctl.init();
+    bus.emit(new WwSelectGroupEvent(7));
+    expect(focus[focus.length - 1]?.group).toBe(7);
+    bus.emit(new WwSelectArmyEvent(1));
+    expect(wingUiOf(s.game).airGroup).toBe(0);
+    expect(focus[focus.length - 1]).toMatchObject({ group: 0, range: null });
   });
 
   it("the group event chooses it and drops the wing choice", () => {

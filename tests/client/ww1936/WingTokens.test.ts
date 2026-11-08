@@ -28,6 +28,7 @@ import {
 import {
   flightPose,
   layoutWings,
+  MERGED_COLUMN_PX,
   pickWingSlot,
   rangeEllipseTiles,
   SLOT_BASE,
@@ -35,6 +36,7 @@ import {
   SLOT_MERGED,
   SLOT_TOKEN,
   STATION_KEY,
+  WING_COLUMN_PX,
   wingPhase,
   type WingPose,
   type WingSlot,
@@ -267,6 +269,34 @@ describe("wing token layout", () => {
     );
     expect(n).toBe(4);
     expect(out.every((s) => s.kind === SLOT_TOKEN)).toBe(true);
+  });
+
+  it("ww162: at a base where land counters stand the wings take a column of their own", () => {
+    const g = seaGame({ wings: gbrWings(2) });
+    const out: WingSlot[] = [];
+    const lay = (zoom: number, landAt?: ReadonlySet<number>) => {
+      layoutWings(
+        g.air,
+        g.navy,
+        undefined,
+        { zoom, airLayer: true, chosen: none, expanded: none, landAt },
+        out,
+      );
+      return out.map((s) => [s.x, s.y]);
+    };
+    const free = lay(8);
+    // Land elsewhere: nothing moves.
+    expect(lay(8, new Set([REGION.paris]))).toEqual(free);
+    // Land at the base: the same fan, WING_COLUMN_PX east (a token wide and more).
+    expect(lay(8, new Set([REGION.london]))).toEqual(
+      free.map(([x, y]) => [x + WING_COLUMN_PX / 8, y]),
+    );
+    expect(WING_COLUMN_PX).toBeGreaterThanOrEqual(31 + 26);
+    // Below zoom 3 the merged chip steps aside as well.
+    const merged = lay(2);
+    expect(lay(2, new Set([REGION.london]))).toEqual(
+      merged.map(([x, y]) => [x + MERGED_COLUMN_PX / 2, y]),
+    );
   });
 
   it("a tap hits the nearest slot within the tap radius", () => {

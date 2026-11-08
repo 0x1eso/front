@@ -2227,7 +2227,15 @@ export class GPURenderer {
     const timeSec = now / 1000;
     const me = land.me();
     const view = land.view;
-    const changed = this.tokenLayout.update(view, this.landClock.at(now), zoom);
+    // ww162: the glides run on the wall clock (in ticks), so a counter a tap
+    // moved while the game is paused still glides home.
+    const changed = this.tokenLayout.update(
+      view,
+      this.landClock.at(now),
+      zoom,
+      undefined,
+      now / Math.max(1, this.msPerTick),
+    );
     passes.battles.update(view, tokenLod(zoom), land.selection, me);
     passes.arrows.update(view, land.selection, me, tilesPerPx, land.world);
     passes.tokens.update(view, this.tokenLayout, changed, land.selection, me);
@@ -2526,6 +2534,8 @@ export class GPURenderer {
         this.wingFocus.expanded,
         now,
         this.wingFocus.group ?? 0,
+        this.wwLand === null ? undefined : this.tokenLayout.landRegions,
+        this.tokenLayout.landRegionsVersion,
       );
       passes.wings.draw(cam, tilesPerPx, timeSec);
     }

@@ -261,3 +261,30 @@ describe("createRenderer", () => {
     expect(sides.stamp?.()).toBe("true:1:0");
   });
 });
+
+describe("GameRenderer.idleTick (ww162: the HUD while the game is paused)", () => {
+  it("runs only the controllers with an idle tick, at their throttle, never their game tick", () => {
+    let now = 1000;
+    const spy = vi.spyOn(performance, "now").mockImplementation(() => now);
+    const calls: string[] = [];
+    const card = {
+      tick: () => calls.push("card.tick"),
+      idleTick: () => calls.push("card.idle"),
+      getTickIntervalMs: () => 250,
+    };
+    const feed = { tick: () => calls.push("feed.tick") };
+    const r = new GameRenderer(
+      {} as never,
+      {} as never,
+      [card, feed],
+      {} as never,
+    );
+    r.idleTick();
+    now += 100;
+    r.idleTick(); // within the card's 250 ms
+    now += 200;
+    r.idleTick();
+    expect(calls).toEqual(["card.idle", "card.idle"]);
+    spy.mockRestore();
+  });
+});
