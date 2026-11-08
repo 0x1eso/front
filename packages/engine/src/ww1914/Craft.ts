@@ -35,6 +35,8 @@ import {
   GW_FOOTING_TERMS,
   GW_OVERRULE_PRICE,
   GW_PROJECT_AIM,
+  GW_PROJECT_ODDS_MAX,
+  GW_PROJECT_ODDS_MIN,
   GW_PROJECT_PUSH,
   GW_PROJECT_SKILL,
   GW_RETRY_BONUS,
@@ -501,8 +503,11 @@ function projectsClose(gw: GreatWar, seat: GwSeatState): void {
   schedule(gw, seat, `${p.id}_${ok ? "done" : "fail"}`, p.lead);
 }
 
-/** Percent the project gets done: the row, the chapters' choices, the aim, the man. */
-function projectOdds(
+/**
+ * Percent the project gets done: the row, the chapters' choices, the aim, the
+ * man; never below GW_PROJECT_ODDS_MIN or above GW_PROJECT_ODDS_MAX.
+ */
+export function projectOdds(
   gw: GreatWar,
   seat: GwSeatState,
   row: GwProjectRow,
@@ -511,7 +516,11 @@ function projectOdds(
   const aim = seat.aim !== null && (row.aims ?? []).includes(seat.aim);
   const lead = p.lead === null ? null : gw.person(p.lead);
   const skill = lead === null ? 0 : (lead.competence[2] - 2) * GW_PROJECT_SKILL;
-  return row.odds + p.push + (aim ? GW_PROJECT_AIM : 0) + skill;
+  return clampTo(
+    row.odds + p.push + (aim ? GW_PROJECT_AIM : 0) + skill,
+    GW_PROJECT_ODDS_MIN,
+    GW_PROJECT_ODDS_MAX,
+  );
 }
 
 function shortagesClose(
@@ -575,7 +584,9 @@ export function craftEdge(
   for (const seat of seatsOf(gw, n.tag)) {
     for (const st of seat.craft?.inventions ?? []) {
       if (st.stage !== "fielded") continue;
-      const edge = inventionRow(st.id)?.edge;
+      const row = inventionRow(st.id);
+      // A row with a research tech fights through the tech table alone.
+      const edge = row?.tech === undefined ? row?.edge : undefined;
       if (edge === undefined) continue;
       if (edge.theatres !== undefined && !edge.theatres.includes(theatre))
         continue;
