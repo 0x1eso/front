@@ -43,6 +43,28 @@ describe("GameLeftSidebar", () => {
     sidebar.remove();
   });
 
+  // ww164: a pinch that started on the leaderboard zoomed the page itself
+  // (html/body allow pinch-zoom); it scrolls, it never zooms the page.
+  it("lets the leaderboard scroll but not pinch-zoom the page", async () => {
+    const sidebar = new GameLeftSidebar();
+    sidebar.game = {
+      config: () => ({
+        gameConfig: () => ({ gameMode: GameMode.FFA }),
+        congress: () => false,
+      }),
+    } as unknown as GameView;
+    sidebar.eventBus = new EventBus();
+    document.body.append(sidebar);
+    await sidebar.updateComplete;
+
+    const aside = sidebar.querySelector("aside")!;
+    expect(aside.classList.contains("overflow-y-auto")).toBe(true);
+    expect(aside.classList.contains("touch-pan-x")).toBe(true);
+    expect(aside.classList.contains("touch-pan-y")).toBe(true);
+
+    sidebar.remove();
+  });
+
   it("renders the player stats table after toggling it", async () => {
     const player = {
       id: () => "player-1",

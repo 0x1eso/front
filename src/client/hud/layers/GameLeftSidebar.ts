@@ -192,9 +192,11 @@ export class GameLeftSidebar extends LitElement implements Controller {
   }
 
   render() {
+    // touch-pan-x/y: a pinch that starts here scrolls nothing and must not
+    // zoom the page (html/body allow pinch-zoom); a swipe still scrolls it.
     return html`
       <aside
-        class=${`fixed top-0 left-0 z-900 flex flex-col max-h-[calc(100vh-80px)] overflow-y-auto p-2 bg-gray-800/92 backdrop-blur-sm shadow-xs rounded-br-lg transition-all duration-300 ease-out transform ${
+        class=${`fixed top-0 left-0 z-900 flex flex-col max-h-[calc(100vh-80px)] overflow-y-auto touch-pan-x touch-pan-y p-2 bg-gray-800/92 backdrop-blur-sm shadow-xs rounded-br-lg transition-all duration-300 ease-out transform ${
           this.isVisible ? "translate-x-0" : "hidden"
         }`}
         style="margin-top: calc(${this.barOffset}px + ${WW_STRIP_BOTTOM});"
