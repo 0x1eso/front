@@ -16,6 +16,7 @@ import {
   sendCheckin,
 } from "./ClusterCheckin";
 import { getDescriptor } from "./DesktopRelease";
+import { exitOnListenError } from "./ExitOnListenError";
 import {
   coordinatorUrl,
   LobbyCoordinatorClient,
@@ -306,6 +307,7 @@ export async function startMaster() {
   }
 
   const PORT = ServerEnv.masterPort();
+  exitOnListenError(server, PORT);
   server.listen(PORT, () => {
     log.info(`Master HTTP server listening on port ${PORT}`);
   });
