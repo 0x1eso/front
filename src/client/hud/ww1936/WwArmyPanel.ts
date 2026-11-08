@@ -87,6 +87,7 @@ import { autoMaskOf, renderAutoSwitch } from "./WwAutoUi";
 import { convertOptions, renderConvertPicker } from "./WwConvertPicker";
 import { WwDrawerBase } from "./WwDrawer";
 import { WwLandChangedEvent } from "./WwLandController";
+import { wwMapFlowActive } from "./WwPanelMode";
 import "./WwTemplateDesigner";
 
 export const ARMY_TABS: readonly WwArmyTab[] = [
@@ -545,6 +546,9 @@ export class WwArmyPanel extends WwDrawerBase {
    */
   private commandDivision(army: number, division: number) {
     const sel = landSelectionOf(this.game);
+    // A map flow of this army already on (the drawer was opened over it)
+    // starts no new one, so the dock does not step the drawer aside: close it.
+    const flowOn = sel.army === army && wwMapFlowActive(this.game);
     if (sel.army !== army) this.eventBus.emit(new WwSelectArmyEvent(army));
     if (sel.draw !== "divisions") {
       this.eventBus.emit(new WwDrawModeEvent("divisions"));
@@ -552,6 +556,7 @@ export class WwArmyPanel extends WwDrawerBase {
     this.eventBus.emit(
       new WwPlannerEvent({ kind: "pick", divisions: [division] }),
     );
+    if (flowOn) this.setOpen(false);
   }
 
   private renderDivisions(c: Ctx, army: number): TemplateResult {

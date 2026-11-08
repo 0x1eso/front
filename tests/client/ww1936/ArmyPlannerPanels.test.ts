@@ -132,6 +132,11 @@ describe("ww162 L5b: the army drawer", () => {
     // a map flow is on) and stays open underneath.
     expect(wwMapFlowActive(m.game)).toBe(true);
     expect(m.q("[data-ww-drawer='army']")).not.toBeNull();
+    // Another command while that flow is on starts no new flow, so the
+    // dock would not step the drawer aside: it closes for the map tap.
+    await m.click("[data-ww-division-command='2']");
+    expect(m.sel.divisions).toEqual([2]);
+    expect(m.q("[data-ww-drawer='army']")).toBeNull();
   });
 });
 
