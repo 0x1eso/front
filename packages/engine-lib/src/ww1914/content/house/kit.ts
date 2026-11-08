@@ -16,6 +16,12 @@ import type {
 import { doWorld, world } from "@openfront/engine-api/ww1914/WorldDsl";
 
 // ---- Conditions ----
+export { low } from "../laws/kit";
+/** Chapters since the war began. */
+export const warAge = (min: number): GwCond => world({ is: "war_age", min });
+/** The law is in force. */
+export const isLaw = (law: string): GwCond =>
+  world({ is: "law", id: law, of: ["force"] });
 /** A faction's status (any if none given) and strength range. */
 export const faction = (
   id: string,
