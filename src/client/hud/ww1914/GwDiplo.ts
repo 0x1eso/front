@@ -549,7 +549,7 @@ export function finaleView(c: GwCtx): TemplateResult {
   const f = c.data.finale!;
   return html`<div
     data-gw-finale
-    class="${GLASS} pointer-events-auto fixed inset-2 z-[905] flex flex-col overflow-hidden rounded text-white sm:inset-10"
+    class="${GLASS} pointer-events-auto fixed inset-2 z-[1002] flex flex-col overflow-hidden rounded text-white sm:inset-10"
   >
     <header class="flex items-center border-b border-white/10 p-3">
       <h2 class="text-lg font-bold">${translateText("gw.diplo.finale")}</h2>
@@ -565,7 +565,7 @@ export function finaleView(c: GwCtx): TemplateResult {
       </button>
     </header>
     <div class="min-h-0 flex-1 space-y-3 overflow-y-auto p-3">
-      <div class="flex gap-2 overflow-x-auto">
+      <div class="flex flex-col gap-2 sm:flex-row">
         ${f.memoirs.map((m) => memoirColumn(c, m))}
       </div>
       <section class=${BOX} data-gw-finale-treaties>
