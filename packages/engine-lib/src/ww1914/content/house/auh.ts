@@ -9,6 +9,7 @@ import type {
 import {
   all,
   any,
+  decide,
   flag,
   memory,
   not,
@@ -37,12 +38,17 @@ import {
   war,
 } from "../laws/kit";
 import {
+  answerAsk,
+  beatPlot,
   cool,
+  coolPlot,
   faction,
   heat,
+  heatPlot,
   isLaw,
   leaderOf,
   low,
+  plotConfirmed,
   startLaw,
   temper,
   warAge,
@@ -221,6 +227,7 @@ export const AUH_FACTIONS: readonly GwFactionRow[] = [
   {
     id: "auh_czech",
     tag: "AUH",
+    plot: "auh_pl_nations",
     bloc: "parliament",
     start: "in",
     strength: 3,
@@ -558,6 +565,7 @@ export const AUH_FACTIONS: readonly GwFactionRow[] = [
   {
     id: "auh_karolyi",
     tag: "AUH",
+    plot: "auh_pl_magyar",
     bloc: "parliament",
     start: "out",
     strength: 1,
@@ -669,6 +677,7 @@ export const AUH_FACTIONS: readonly GwFactionRow[] = [
   {
     id: "auh_aok",
     tag: "AUH",
+    plot: "auh_pl_army",
     bloc: "army",
     start: "in",
     strength: 3,
@@ -714,6 +723,7 @@ export const AUH_FACTIONS: readonly GwFactionRow[] = [
   {
     id: "auh_court",
     tag: "AUH",
+    plot: "auh_pl_army",
     bloc: "court",
     start: "in",
     strength: 2,
@@ -1471,9 +1481,624 @@ export const AUH_HOUSE_SCENES: readonly GwScene[] = [
   news("auh_f_suffrage_join"),
 ];
 
-// ---- S2 ----
-export const AUH_PLOTS: readonly GwPlotRow[] = [];
-export const AUH_WEAK: readonly GwWeakRow[] = [];
-export const AUH_ASKS: readonly GwAskRow[] = [];
-/** Plot signs, warnings, steps and ends; dossier scenes; asks; conferences. */
-export const AUH_PLOT_SCENES: readonly GwScene[] = [];
+// ---- S2: plots, the dossier, allies (ww158-format.md, S2 addendum) ----
+//
+// Three plots, from design §8. The army's: the High Command and the court's
+// hard men set the ministers aside (no archduke in it: never the ruler's
+// family); it can end the reign. Budapest's: Károlyi's men and a national
+// council take Hungary its own way; the nations': committees in Prague,
+// Zagreb and Ljubljana make themselves the government. Both feed the unrest
+// ladder. The answers sit in the steps' options; none ends the game itself.
+
+const REGIMES = ["dual_monarchy", "karl", "ff_throne"];
+const COS = { office: "chief_of_staff" } as const;
+
+export const AUH_PLOTS: readonly GwPlotRow[] = [
+  {
+    id: "auh_pl_army",
+    tag: "AUH",
+    regimes: REGIMES,
+    from: "1915-06",
+    rest: 12,
+    fatal: true,
+    feeds: [
+      { when: temper("auh_aok", 3), key: "aok_silent", by: 2, quiet: true },
+      { when: temper("auh_court", 3), key: "court_cold", quiet: true },
+      {
+        when: lately("auh_k_amnesty", "full_amnesty", 6),
+        key: "amnesty",
+        by: 2,
+        quiet: true,
+      },
+      {
+        when: all(REICHSRAT_OPEN, temper("auh_aok", 2)),
+        key: "house_open",
+        quiet: true,
+      },
+      { when: score({ max: -20 }), key: "defeats", quiet: true },
+    ],
+    steps: [
+      { at: 6, scene: "auh_pl_army_1" },
+      { at: 12, scene: "auh_pl_army_2" },
+    ],
+    plot: {
+      by: ["auh_aok", "auh_court"],
+      signs: [
+        { at: 2, scene: "auh_pl_army_s1", via: "paper" },
+        { at: 4, scene: "auh_pl_army_s2", via: "talk" },
+        { at: 8, scene: "auh_pl_army_s3", via: "report" },
+      ],
+      warn: "auh_pl_army_w",
+      end: "removed",
+    },
+  },
+  {
+    id: "auh_pl_magyar",
+    tag: "AUH",
+    regimes: REGIMES,
+    from: "1916-01",
+    rest: 10,
+    fatal: false,
+    feeds: [
+      {
+        when: temper("auh_karolyi", 3),
+        key: "karolyi_silent",
+        by: 2,
+        quiet: true,
+      },
+      { when: temper("auh_indep", 3), key: "indep_out", quiet: true },
+      {
+        when: instAt("hungary", { max: -4 }),
+        key: "hungary_slighted",
+        quiet: true,
+      },
+      { when: all(low("bread", 0), warAge(30)), key: "hunger", quiet: true },
+      { when: score({ max: -20 }), key: "defeats", quiet: true },
+    ],
+    steps: [
+      { at: 6, scene: "auh_pl_magyar_1" },
+      { at: 12, scene: "auh_pl_magyar_2" },
+    ],
+    plot: {
+      by: ["auh_karolyi", "auh_indep"],
+      signs: [
+        { at: 2, scene: "auh_pl_magyar_s1", via: "paper" },
+        { at: 4, scene: "auh_pl_magyar_s2", via: "talk" },
+        { at: 8, scene: "auh_pl_magyar_s3", via: "report" },
+      ],
+      warn: "auh_pl_magyar_w",
+      end: "unrest",
+    },
+  },
+  {
+    id: "auh_pl_nations",
+    tag: "AUH",
+    regimes: REGIMES,
+    from: "1916-06",
+    rest: 10,
+    fatal: false,
+    feeds: [
+      { when: temper("auh_czech", 3), key: "czech_silent", by: 2, quiet: true },
+      { when: temper("auh_slavs", 3), key: "slavs_silent", quiet: true },
+      { when: temper("auh_poles", 3), key: "poles_silent", quiet: true },
+      {
+        when: instAt("nations", { max: -4 }),
+        key: "nations_bitter",
+        quiet: true,
+      },
+      { when: flag("f_auh_house_shut"), key: "house_shut", quiet: true },
+      { when: score({ max: -20 }), key: "defeats", quiet: true },
+    ],
+    steps: [
+      { at: 6, scene: "auh_pl_nations_1" },
+      { at: 12, scene: "auh_pl_nations_2" },
+    ],
+    plot: {
+      by: ["auh_czech", "auh_slavs", "auh_poles"],
+      signs: [
+        { at: 2, scene: "auh_pl_nations_s1", via: "paper" },
+        { at: 4, scene: "auh_pl_nations_s2", via: "talk" },
+        { at: 8, scene: "auh_pl_nations_s3", via: "report" },
+      ],
+      warn: "auh_pl_nations_w",
+      end: "unrest",
+    },
+  },
+];
+
+/**
+ * Our people's possible weaknesses: the seed decides each game which are
+ * true. Grounded where the record allows (Conrad's letters to Gina von
+ * Reininghaus, Kramář's Russian ties, Károlyi's French ones, Czernin's nerves);
+ * the rest is the game's guess at a man of his place, and the file may lie.
+ */
+export const AUH_WEAK: readonly GwWeakRow[] = [
+  {
+    person: "auh_tisza",
+    weak: [
+      { id: "old_scandal", odds: 30 },
+      { id: "letters", odds: 15 },
+    ],
+  },
+  {
+    person: "auh_karolyi",
+    weak: [
+      { id: "foreign_ties", odds: 50 },
+      { id: "debts", odds: 30 },
+    ],
+  },
+  {
+    person: "auh_andrassy",
+    weak: [
+      { id: "foreign_ties", odds: 30 },
+      { id: "letters", odds: 20 },
+    ],
+  },
+  {
+    person: "auh_kramar",
+    weak: [
+      { id: "foreign_ties", odds: 60 },
+      { id: "letters", odds: 30 },
+    ],
+  },
+  { person: "auh_korosec", weak: [{ id: "foreign_ties", odds: 35 }] },
+  {
+    person: "auh_adler",
+    weak: [
+      { id: "health", odds: 40 },
+      { id: "letters", odds: 15 },
+    ],
+  },
+  {
+    person: "auh_bilinski",
+    weak: [
+      { id: "industry_money", odds: 35 },
+      { id: "old_scandal", odds: 20 },
+    ],
+  },
+  {
+    person: "auh_conrad",
+    weak: [
+      { id: "letters", odds: 60 },
+      { id: "old_scandal", odds: 30 },
+    ],
+  },
+  {
+    person: "auh_sturgkh",
+    weak: [
+      { id: "health", odds: 20 },
+      { id: "old_scandal", odds: 15 },
+    ],
+  },
+  { person: "auh_krobatin", weak: [{ id: "industry_money", odds: 40 }] },
+  {
+    person: "auh_czernin",
+    weak: [
+      { id: "health", odds: 40 },
+      { id: "foreign_ties", odds: 20 },
+    ],
+  },
+  {
+    person: "auh_berchtold",
+    weak: [
+      { id: "debts", odds: 15 },
+      { id: "letters", odds: 25 },
+    ],
+  },
+  { person: "auh_montenuovo", weak: [{ id: "old_scandal", odds: 25 }] },
+  { person: "auh_bolfras", weak: [{ id: "health", odds: 35 }] },
+];
+
+const trustBgr = (delta: number): GwEffect => ({
+  kind: "trust",
+  tag: "BGR",
+  delta,
+});
+const tone = (t: "warm" | "cold"): GwEffect => ({
+  kind: "letter",
+  who: role("head"),
+  tone: t,
+});
+
+/** Allies' asks (design §10): Berlin three times, Sofia once. */
+export const AUH_ASKS: readonly GwAskRow[] = [
+  // Berlin presses for grain to Austria and Germany: the joint food bill.
+  {
+    id: "auh_ask_grain",
+    tag: "AUH",
+    from: "DEU",
+    kind: "law",
+    law: "auh_food",
+    when: all(war, since("1916-02"), low("bread", 2), not(isLaw("auh_food"))),
+    scene: "auh_ask_grain",
+    keep: isLaw("auh_food"),
+    chapters: 6,
+    kept: [trustDeu(1), gauge("shells", 1)],
+    broken: [trustDeu(-1)],
+  },
+  // Berlin wants Austria's weight in the east, not against Italy.
+  {
+    id: "auh_ask_east",
+    tag: "AUH",
+    from: "DEU",
+    kind: "front",
+    when: all(war, world({ is: "entered", tag: "ITA" }), warAge(12)),
+    scene: "auh_ask_east",
+    keep: world({ is: "main", of: ["east"] }),
+    chapters: 2,
+    kept: [trustDeu(1), gauge("shells", 1)],
+    broken: [trustDeu(-1)],
+  },
+  // Sofia asks for the push on Serbia together.
+  {
+    id: "auh_ask_serbia",
+    tag: "AUH",
+    from: "BGR",
+    kind: "offensive",
+    when: all(
+      war,
+      world({ is: "entered", tag: "BGR", side: "central" }),
+      not(world({ is: "out", tag: "SRB" })),
+    ),
+    scene: "auh_ask_serbia",
+    keep: world({ is: "main", of: ["balkan"] }),
+    chapters: 2,
+    kept: [trustBgr(1)],
+    broken: [trustBgr(-1)],
+  },
+  // Pless, after Romania came in: one supreme command under the Kaiser.
+  {
+    id: "auh_ask_pless",
+    tag: "AUH",
+    from: "DEU",
+    kind: "front",
+    conference: true,
+    when: all(war, world({ is: "entered", tag: "ROU" }), since("1916-08")),
+    scene: "auh_ask_pless",
+    keep: paid,
+    chapters: 2,
+    kept: [trustDeu(2), gauge("shells", 1)],
+    broken: [trustDeu(-1)],
+  },
+];
+
+/** A decision about a plot, brought by the minister it concerns. */
+function plotPaper(
+  id: string,
+  cast: GwScene["cast"],
+  options: GwOption[],
+): GwScene {
+  return {
+    id,
+    nation: ["AUH"],
+    kind: "proposal",
+    scheduledOnly: true,
+    cast,
+    salience: 7,
+    tags: ["home", "tension_up"],
+    variants: [v("base")],
+    fallback: options[options.length - 1].id,
+    options,
+  };
+}
+/** A sign in the paper: a gap, a rumour. */
+function signPaper(id: string): GwScene {
+  return {
+    id,
+    nation: ["AUH"],
+    kind: "wire",
+    scheduledOnly: true,
+    cast: {},
+    salience: 5,
+    tags: ["home"],
+    variants: [v("base")],
+  };
+}
+/** A sign through the police: stamped, and it may be wrong. */
+function signReport(id: string): GwScene {
+  return {
+    id,
+    nation: ["AUH"],
+    kind: "report",
+    scheduledOnly: true,
+    cast: {},
+    salience: 6,
+    tags: ["home"],
+    stamp: "unconfirmed",
+    source: "police",
+    variants: [v("base")],
+  };
+}
+/** A sign in a talk: someone says too much. */
+function signTalk(id: string, who: GwScene["cast"][string]): GwScene {
+  return {
+    id,
+    nation: ["AUH"],
+    kind: "audience",
+    scheduledOnly: true,
+    cast: { who },
+    salience: 6,
+    tags: ["home", "people"],
+    variants: [v("base")],
+    fallback: "let_pass",
+    options: [opt("ask_more", [why("sign_asked")]), opt("let_pass", [])],
+  };
+}
+const dismissCos: GwEffect = { kind: "dismiss", who: role("cos") };
+const reply = (id: string, next: string) => ({
+  id,
+  stance: "frank" as const,
+  kind: "ask" as const,
+  tell: [],
+  effects: [],
+  next,
+});
+
+export const AUH_PLOT_SCENES: readonly GwScene[] = [
+  // ---- The army ----
+  signPaper("auh_pl_army_s1"),
+  signTalk("auh_pl_army_s2", { office: "court" }),
+  signReport("auh_pl_army_s3"),
+  plotPaper("auh_pl_army_w", { cos: COS, min: held("chancellor") }, [
+    opt("rebuke_cos", [
+      coolPlot("auh_pl_army", 2),
+      trustOf(role("cos"), -1),
+      why("army_rebuked"),
+    ]),
+    opt("army_say", [
+      coolPlot("auh_pl_army", 3),
+      inst("army", 1),
+      heat("auh_czech", 1),
+      why("army_say"),
+    ]),
+    opt("wait", [why("plot_waited")]),
+  ]),
+  plotPaper("auh_pl_army_1", { cos: COS, min: held("chancellor") }, [
+    opt("grant_bohemia", [
+      coolPlot("auh_pl_army", 4),
+      cool("auh_aok", 2),
+      inst("army", 1),
+      heat("auh_czech", 2),
+      why("army_bohemia"),
+    ]),
+    opt("post_away", [
+      dismissCos,
+      coolPlot("auh_pl_army", 5),
+      inst("army", -1),
+      why("army_posted"),
+    ]),
+    opt("wait", [why("plot_waited")]),
+  ]),
+  plotPaper("auh_pl_army_2", { cos: COS, court: held("court") }, [
+    opt("relieve", [
+      beatPlot("auh_pl_army"),
+      heatPlot("auh_pl_nations", 3),
+      dismissCos,
+      inst("army", -2),
+      why("army_relieved"),
+    ]),
+    opt(
+      "make_public",
+      [
+        beatPlot("auh_pl_army"),
+        inst("army", -1),
+        heat("auh_aok", 2),
+        why("army_public"),
+      ],
+      plotConfirmed("auh_pl_army"),
+    ),
+    opt("give_way", [
+      coolPlot("auh_pl_army", 8),
+      inst("army", 2),
+      inst("nations", -2),
+      heat("auh_czech", 2),
+      heat("auh_sd", 2),
+      why("army_gave"),
+    ]),
+    opt("wait", [why("plot_waited")]),
+  ]),
+  // ---- Budapest ----
+  signPaper("auh_pl_magyar_s1"),
+  signTalk("auh_pl_magyar_s2", leaderOf("auh_const")),
+  signReport("auh_pl_magyar_s3"),
+  plotPaper("auh_pl_magyar_w", { hun: held("hun_pm") }, [
+    opt(
+      "franchise_now",
+      [
+        startLaw("auh_franchise", "seat"),
+        coolPlot("auh_pl_magyar", 2),
+        why("magyar_franchise"),
+      ],
+      not(isLaw("auh_franchise")),
+    ),
+    opt("talk_karolyi", [
+      coolPlot("auh_pl_magyar", 2),
+      cool("auh_karolyi", 1),
+      why("magyar_talked"),
+    ]),
+    opt("wait", [why("plot_waited")]),
+  ]),
+  plotPaper("auh_pl_magyar_1", { hun: held("hun_pm") }, [
+    opt("allow_meeting", [
+      coolPlot("auh_pl_magyar", 3),
+      cool("auh_karolyi", 2),
+      trustDeu(-1),
+      why("magyar_allowed"),
+    ]),
+    opt("ban_meeting", [
+      coolPlot("auh_pl_magyar", 2),
+      heat("auh_karolyi", 2),
+      why("magyar_banned"),
+    ]),
+    opt("wait", [why("plot_waited")]),
+  ]),
+  plotPaper("auh_pl_magyar_2", { hun: held("hun_pm") }, [
+    opt("arrest", [
+      beatPlot("auh_pl_magyar"),
+      heatPlot("auh_pl_nations", 3),
+      heat("auh_karolyi", 2),
+      heat("auh_indep", 1),
+      why("magyar_arrested"),
+    ]),
+    opt(
+      "make_public",
+      [beatPlot("auh_pl_magyar"), heat("auh_karolyi", 1), why("magyar_public")],
+      plotConfirmed("auh_pl_magyar"),
+    ),
+    opt("give_way", [
+      coolPlot("auh_pl_magyar", 8),
+      inst("hungary", 2),
+      trustDeu(-2),
+      heat("auh_work", 2),
+      why("magyar_gave"),
+    ]),
+    opt("wait", [why("plot_waited")]),
+  ]),
+  // ---- The nations ----
+  signPaper("auh_pl_nations_s1"),
+  signTalk("auh_pl_nations_s2", leaderOf("auh_poles")),
+  signReport("auh_pl_nations_s3"),
+  plotPaper("auh_pl_nations_w", { min: held("chancellor") }, [
+    opt("federal_word", [
+      coolPlot("auh_pl_nations", 3),
+      inst("nations", 1),
+      heat("auh_germans", 2),
+      why("nations_word"),
+    ]),
+    opt("talk_leaders", [
+      coolPlot("auh_pl_nations", 2),
+      cool("auh_czech", 1),
+      why("nations_talked"),
+    ]),
+    opt("wait", [why("plot_waited")]),
+  ]),
+  plotPaper("auh_pl_nations_1", { min: held("chancellor") }, [
+    opt("talk_committees", [
+      coolPlot("auh_pl_nations", 3),
+      cool("auh_czech", 1),
+      why("nations_committees"),
+    ]),
+    opt("ban_committees", [
+      coolPlot("auh_pl_nations", 2),
+      heat("auh_czech", 2),
+      heat("auh_slavs", 1),
+      why("nations_banned"),
+    ]),
+    opt("wait", [why("plot_waited")]),
+  ]),
+  plotPaper("auh_pl_nations_2", { min: held("chancellor") }, [
+    opt("arrest", [
+      beatPlot("auh_pl_nations"),
+      heatPlot("auh_pl_magyar", 3),
+      heat("auh_czech", 2),
+      heat("auh_slavs", 2),
+      why("nations_arrested"),
+    ]),
+    opt(
+      "make_public",
+      [beatPlot("auh_pl_nations"), inst("nations", -1), why("nations_public")],
+      plotConfirmed("auh_pl_nations"),
+    ),
+    opt("give_way", [
+      coolPlot("auh_pl_nations", 8),
+      inst("nations", 2),
+      inst("hungary", -2),
+      heat("auh_germans", 2),
+      why("nations_gave"),
+    ]),
+    opt("wait", [why("plot_waited")]),
+  ]),
+  // ---- Allies' asks ----
+  {
+    id: "auh_ask_grain",
+    nation: ["AUH"],
+    kind: "letter",
+    who: "head",
+    scheduledOnly: true,
+    cast: { head: { ruler_of: "DEU" } },
+    salience: 7,
+    tags: ["foreign"],
+    variants: [v("base")],
+    fallback: "yes",
+    options: [
+      opt("yes", [answerAsk("auh_ask_grain", true), tone("warm")]),
+      opt("no", [
+        answerAsk("auh_ask_grain", false),
+        tone("cold"),
+        cool("auh_work", 1),
+      ]),
+    ],
+  },
+  {
+    id: "auh_ask_east",
+    nation: ["AUH"],
+    kind: "letter",
+    who: "head",
+    scheduledOnly: true,
+    cast: { head: { ruler_of: "DEU" } },
+    salience: 7,
+    tags: ["foreign", "war"],
+    variants: [v("base")],
+    fallback: "yes",
+    options: [
+      opt("yes", [
+        answerAsk("auh_ask_east", true),
+        tone("warm"),
+        heat("auh_aok", 1),
+      ]),
+      opt("no", [answerAsk("auh_ask_east", false), tone("cold")]),
+    ],
+  },
+  {
+    id: "auh_ask_serbia",
+    nation: ["AUH"],
+    kind: "letter",
+    who: "head",
+    scheduledOnly: true,
+    cast: { head: { ruler_of: "BGR" } },
+    salience: 7,
+    tags: ["foreign", "war"],
+    variants: [v("base")],
+    fallback: "yes",
+    options: [
+      opt("yes", [answerAsk("auh_ask_serbia", true), tone("warm")]),
+      opt("no", [answerAsk("auh_ask_serbia", false), tone("cold")]),
+    ],
+  },
+  {
+    id: "auh_ask_pless",
+    nation: ["AUH"],
+    kind: "talk",
+    big: true,
+    once: true,
+    scheduledOnly: true,
+    salience: 9,
+    tags: ["foreign", "war"],
+    cast: { head: { ruler_of: "DEU" }, cos: COS },
+    who: "head",
+    start: "n1",
+    variants: [v("base")],
+    nodes: {
+      n1: { says: [{ id: "base" }], replies: [reply("hear", "n2")] },
+      n2: { who: "cos", says: [{ id: "base" }], replies: [reply("on", "n3")] },
+      n3: {
+        who: "head",
+        fallback: "yes",
+        says: [{ id: "base" }],
+        replies: [
+          decide("yes", null, [
+            answerAsk("auh_ask_pless", true),
+            inst("army", -1),
+            trustOf(role("cos"), -1),
+            why("pless_yes"),
+          ]),
+          decide("no", null, [
+            answerAsk("auh_ask_pless", false),
+            inst("army", 1),
+            why("pless_no"),
+          ]),
+        ],
+      },
+    },
+  },
+];
