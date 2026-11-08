@@ -107,7 +107,8 @@ const isRunning = (p: GwProjectState) =>
   (RUNNING as readonly string[]).includes(p.phase);
 
 export function runningProject(seat: GwSeatState): GwProjectState | null {
-  const last = seat.craft?.projects.at(-1) ?? null;
+  const list = seat.craft?.projects ?? [];
+  const last = list[list.length - 1] ?? null;
   return last !== null && isRunning(last) ? last : null;
 }
 
@@ -151,7 +152,7 @@ export function craftHolds(ctx: SceneCtx, c: CraftCond): boolean {
         return p !== null && c.of.includes(p.phase);
       }
       const all = (seat.craft?.projects ?? []).filter((x) => x.id === c.id);
-      return c.of.includes(all.at(-1)?.phase ?? "idle");
+      return c.of.includes(all[all.length - 1]?.phase ?? "idle");
     }
     case "footing": {
       const v = seat.craft?.footing ?? 0;
