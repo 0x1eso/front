@@ -379,5 +379,21 @@ export function houseBill(law: string): GwBillRow | null {
   return GW_HOUSE_CONTENT.bills?.find((b) => b.law === law) ?? null;
 }
 
+/**
+ * Every chamber the bill meets can be closed (Vienna's bills: the Reichsrat
+ * sits only once called back), so a day may come with no chamber to vote.
+ */
+export function houseMayNotSit(row: GwLawRow): boolean {
+  const bill = houseBill(row.id);
+  const house = GW_HOUSE_CONTENT.houses?.find((h) => h.tag === row.tag);
+  if (bill === null || house === undefined) return false;
+  const meets = house.chambers.filter((c) =>
+    bill.houses === undefined
+      ? c.optional !== true
+      : bill.houses.includes(c.id),
+  );
+  return meets.length > 0 && meets.every((c) => c.sits !== undefined);
+}
+
 export const NOT_HOUSE_BROUGHT = (law: string) =>
   not(world({ is: "law_origin", id: law, of: ["house"] }));

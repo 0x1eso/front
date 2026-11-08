@@ -11,7 +11,12 @@ import { AUH_LAWS } from "../laws/auh";
 import { DEU_LAWS } from "../laws/deu";
 import { GBR_LAWS } from "../laws/gbr";
 import { RUS_LAWS } from "../laws/rus";
-import { GW_HOUSE_LAWS, houseBill, NOT_HOUSE_BROUGHT } from "./house";
+import {
+  GW_HOUSE_LAWS,
+  houseBill,
+  houseMayNotSit,
+  NOT_HOUSE_BROUGHT,
+} from "./house";
 
 /** Every bill. A later country adds its file of rows here. */
 export const GW_LAWS: readonly GwLawRow[] = [
@@ -59,13 +64,29 @@ function draftScene(row: GwLawRow, house: boolean): GwScene {
  * bill the house runs (ww158) shows no price: the count is the count, and the
  * way round's price comes after; a bill the house brought can't be withdrawn.
  */
-function dayScene(row: GwLawRow, house: boolean): GwScene {
+function dayScene(row: GwLawRow, house: boolean, mayNotSit: boolean): GwScene {
   const law = row.id;
   const says = house ? [] : [...row.passedTell, ...lawTermTell(row)];
   const d = GW_LAW_HOME[row.tag]?.decree ?? null;
   const options: GwOption[] = [
-    { id: "put", tell: says, effects: [act({ do: "law_put", law })] },
+    {
+      id: "put",
+      tell: says,
+      effects: [act({ do: "law_put", law })],
+      // A house bill no chamber can vote on now (Vienna's under §14) waits.
+      ...(house && mayNotSit
+        ? { when: world({ is: "house_sits", id: law }) }
+        : {}),
+    },
   ];
+  // A house bill left unanswered holds, never spends authority on the way round.
+  if (house) {
+    options.push({
+      id: "hold",
+      tell: [],
+      effects: [act({ do: "law_hold", law })],
+    });
+  }
   // A house bill always shows the way round: greyed, with the pack's why, where
   // the constitution doesn't reach it.
   if (house || (row.decree && d !== null)) {
@@ -80,7 +101,9 @@ function dayScene(row: GwLawRow, house: boolean): GwScene {
     });
   }
   options.push(
-    { id: "hold", tell: [], effects: [act({ do: "law_hold", law })] },
+    ...(house
+      ? []
+      : [{ id: "hold", tell: [], effects: [act({ do: "law_hold", law })] }]),
     {
       id: "withdraw",
       tell: [],
@@ -164,10 +187,11 @@ function afterScene(row: GwLawRow): GwScene[] {
 export function lawScenes(
   row: GwLawRow,
   house = houseBill(row.id) !== null,
+  mayNotSit = house && houseMayNotSit(row),
 ): GwScene[] {
   return [
     draftScene(row, house),
-    dayScene(row, house),
+    dayScene(row, house, mayNotSit),
     talkScene(row, house),
     ...afterScene(row),
   ];

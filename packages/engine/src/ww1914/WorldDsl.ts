@@ -243,6 +243,7 @@ export function worldHolds(ctx: SceneCtx, c: GwWorldCond): boolean {
     case "law_origin":
     case "whip_said":
     case "around":
+    case "house_sits":
       return houseHolds(ctx, c);
     case "plot_signs":
     case "plot_warned":

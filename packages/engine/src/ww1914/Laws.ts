@@ -254,6 +254,7 @@ export function lawPut(ctx: SceneCtx, id: string): void {
       toStage(gw, st, "sign");
       houseSignCard(gw, seat);
     } else if (house.pass) enact(ctx, st, row, "voted");
+    else if (house.stops === "no_sitting") toStage(gw, st, "persuade");
     else if (house.stops !== "lords_delay") lose(gw, seat, n, st, house.stops);
     return;
   }

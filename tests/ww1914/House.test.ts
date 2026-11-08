@@ -55,6 +55,7 @@ import { GreatWar, GreatWarSnapshot } from "@openfront/engine/ww1914/GreatWar";
 import {
   factionOf,
   houseCounts,
+  houseSits,
   houseStep,
   houseTally,
   houseView,
@@ -744,6 +745,57 @@ describe("the factions", () => {
     expect(houseView(gw, seat)!.out).toBe(null);
   });
 
+  test("a step's scene comes once a climb: a wobble doesn't bring it back, a real fall does", async () => {
+    const { gw, seat } = await atWar();
+    const ctx = ctxOf(gw, seat);
+    const heat = (d: number) =>
+      runEffects(ctx, [doWorld({ do: "faction", id: "t_spd", delta: d })]);
+    const calls = () =>
+      seat.scheduled.filter((q) => q.scene === "t_spd_2").length;
+    heat(2);
+    expect(factionOf(seat, "t_spd")!.step).toBe(2);
+    expect(calls()).toBe(1);
+    seat.scheduled = [];
+    // Down one step and back: the same climb, no scene.
+    heat(-1);
+    heat(1);
+    expect(factionOf(seat, "t_spd")!.step).toBe(2);
+    expect(calls()).toBe(0);
+    // Cooled to calm and climbing again: a new climb, the scene comes.
+    heat(-2);
+    expect(factionOf(seat, "t_spd")!.step).toBe(0);
+    heat(2);
+    expect(calls()).toBe(1);
+  });
+
+  test("the same grievance wears out after a year; a new one starts it again", async () => {
+    const SPD2: GwFactionRow = {
+      ...SPD,
+      feeds: [...SPD.feeds!, { when: flag("t_new"), key: "new" }],
+    };
+    const { gw, seat } = await atWar(HOUSE, {
+      factions: [SPD2, USPD, CONS, CENTRE],
+    });
+    seat.flags.push("t_spd_feed");
+    const spd = factionOf(seat, "t_spd")!;
+    const months = (k: number) => {
+      for (let i = 0; i < k; i++) {
+        houseStep(gw);
+        gw.s.chapter++;
+      }
+    };
+    months(8);
+    expect(spd.step).toBe(3);
+    months(16);
+    // Still fed by the same state, but worn out: it has cooled.
+    expect(spd.fed).toBeGreaterThan(12);
+    expect(spd.step).toBeLessThan(2);
+    seat.flags.push("t_new");
+    months(4);
+    expect(spd.fed).toBeLessThanOrEqual(12);
+    expect(spd.step).toBeGreaterThanOrEqual(2);
+  });
+
   test("a split by state: the new faction sits, taking strength", async () => {
     const { gw, seat } = await atWar();
     seat.flags.push("t_split");
@@ -1047,6 +1099,82 @@ describe("the AUH writer's round", () => {
     expect(seat.house!.around).toBe(1);
     expect(factionOf(seat, "t_spd")!.heat).toBe(heat + 1);
     expect(seat.log.some((l) => l.key === "house_round_par14")).toBe(true);
+  });
+});
+
+describe("a bill no chamber can vote on (Vienna's, the Reichsrat closed)", () => {
+  const vienna = (): GwHouseRow => ({
+    ...HOUSE,
+    chambers: [AUH_HOUSE.chambers[0]],
+    around: {
+      ...AUH_HOUSE.around!,
+      skips: ["reichsrat"],
+      heats: [{ faction: "t_spd", by: 1 }],
+    },
+  });
+
+  test("put is closed and waits: no vote, no result card, no whip word judged", async () => {
+    const { gw, n, seat } = await atWar(vienna());
+    drafted(gw, seat, "deu_bread_cards", "city_cards");
+    expect(houseSits(gw, seat, "deu_bread_cards")).toBe(false);
+    houseStep(gw);
+    const st = n.laws.find((x) => x.id === "deu_bread_cards")!;
+    expect(st.whip).toBe(-1);
+    expect(gw.s.reports.some((r) => r.about === "deu_bread_cards")).toBe(false);
+    st.stage = "vote";
+    const day = lawScenes(
+      GW_LAWS.find((l) => l.id === "deu_bread_cards")!,
+      true,
+      true,
+    )[1];
+    const put = day.options!.find((o) => o.id === "put")!;
+    expect(holds(ctxOf(gw, seat), put.when!)).toBe(false);
+    // An unanswered day holds; it never spends authority on the way round.
+    expect(day.options![1].id).toBe("hold");
+    const was = n.authority;
+    lawPut(ctxOf(gw, seat), "deu_bread_cards");
+    expect(st.stage).toBe("persuade");
+    expect(st.lost).toBe(0);
+    expect(n.authority).toBe(was);
+    expect(seat.house!.last).toBe(null);
+    expect(seat.house!.right + seat.house!.wrong).toBe(0);
+    expect(seat.desk.some((c) => c.scene === houseIds.result("DEU"))).toBe(
+      false,
+    );
+    expect(seat.house!.around).toBe(0);
+  });
+
+  test("the way round (§14) passes it, at its price, with its lines and heat", async () => {
+    const { gw, n, seat } = await atWar(vienna());
+    drafted(gw, seat, "deu_bread_cards", "city_cards");
+    const st = n.laws.find((x) => x.id === "deu_bread_cards")!;
+    st.stage = "vote";
+    const heat = factionOf(seat, "t_spd")!.heat;
+    const was = n.authority;
+    expect(lawCanDecree(gw, seat, "deu_bread_cards")).toBe(true);
+    lawDecree(ctxOf(gw, seat), "deu_bread_cards");
+    expect(st.stage).toBe("force");
+    expect(st.how).toBe("decreed");
+    expect(n.authority).toBe(was - AUH_HOUSE.around!.price);
+    expect(factionOf(seat, "t_spd")!.heat).toBe(heat + 1);
+    expect(seat.log.some((l) => l.key === "house_round_par14")).toBe(true);
+    expect(seat.desk.some((c) => c.scene === houseIds.result("DEU"))).toBe(
+      false,
+    );
+  });
+
+  test("Vienna's bills carry a why line for the closed put", () => {
+    const pack = JSON.parse(
+      fs.readFileSync(
+        path.join(__dirname, "../../resources/ww1914/ko/AUH.house.json"),
+        "utf8",
+      ),
+    );
+    for (const law of ["auh_press", "auh_factories", "auh_war_aid"]) {
+      const id = `gw_lv_${law}`;
+      const why = pack.over?.[id]?.why?.put ?? pack.scenes?.[id]?.why?.put;
+      expect([law, typeof why]).toEqual([law, "string"]);
+    }
   });
 });
 

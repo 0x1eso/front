@@ -32,6 +32,8 @@ export type GwFactionStatus = (typeof GW_FACTION_STATUS)[number];
 export const GW_FACTION_STRENGTH_MAX = 4;
 /** Temper 0..4: gw.house.temper.<n> (따른다 .. 말이 없다). */
 export const GW_FACTION_STEP_MAX = 4;
+/** Months the same grievance can feed a faction before it wears out. */
+export const GW_FEED_WEARS = 12;
 
 /** Who brought a bill. `house`: a faction put it by itself; it can't be withdrawn. */
 export const GW_LAW_ORIGINS = ["seat", "faction", "ally", "house"] as const;
@@ -113,6 +115,15 @@ export const GwFactionStateSchema = z.object({
   deals: z.array(Id),
   /** Chamber -> seats, once a split or a join has moved them; null: its row's. */
   seats: z.record(z.string(), int).nullable().default(null),
+  /**
+   * The highest temper whose scene has come on this climb: it comes again only
+   * after the temper has fallen two steps under it (no scene on a wobble).
+   */
+  called: int.default(0),
+  /** Months its grievances have fed it; past a year they wear out. */
+  fed: int.default(0),
+  /** The feed keys that have fed it since it was last calm. */
+  fedKeys: z.array(Id).default([]),
 });
 export type GwFactionState = z.infer<typeof GwFactionStateSchema>;
 

@@ -12,6 +12,7 @@ import type {
 import {
   GW_FACTION_STEP_MAX,
   GW_FACTION_STRENGTH_MAX,
+  GW_FEED_WEARS,
   GW_WHIP_WORDS,
   GwBillFactionView,
   GwChamber,
@@ -217,6 +218,9 @@ function factionStart(gw: GreatWar, row: GwFactionRow): GwFactionState {
     asked: -9,
     deals: [],
     seats: null,
+    called: 0,
+    fed: 0,
+    fedKeys: [],
   };
 }
 
@@ -291,7 +295,10 @@ function settleStep(
   st.step = stepOf(row, st.heat);
   if (st.step === was) return;
   st.leader = leaderNow(gw, seat, row, st);
-  if (st.step > was && st.step >= 2) {
+  // Fallen two steps under the last scene's temper: the next climb is new.
+  if (st.step <= st.called - 2) st.called = st.step;
+  if (st.step > was && st.step >= 2 && st.step > st.called) {
+    st.called = st.step;
     const s = stepsOf(row)[st.step - 2];
     if (s !== undefined) call(seat, s.scene, gw.s.chapter + 1);
     reason(gw, seat, `house_temper_${st.step}`, whoOf(st));
@@ -340,7 +347,21 @@ function factionMonths(
   if (st.ignored > 0 && everyMonths(gw, GW_IGNORED_FADE)) st.ignored--;
   if (isLongChapter(gw)) {
     const months = monthsOf(gw);
-    const fed = (row.feeds ?? []).filter((f) => holds(ctx, f.when));
+    const holding = (row.feeds ?? []).filter((f) => holds(ctx, f.when));
+    // The same grievances wear out after a year of feeding it; a new one
+    // starts the year again, and so does a faction that has cooled to calm.
+    const keys = holding.map((f) => f.key);
+    if (keys.length === 0 && st.heat === 0) {
+      st.fed = 0;
+      st.fedKeys = [];
+    }
+    const fresh = keys.filter((k) => !st.fedKeys.includes(k));
+    if (fresh.length > 0) {
+      st.fed = 0;
+      st.fedKeys = [...st.fedKeys, ...fresh];
+    }
+    if (keys.length > 0) st.fed += months;
+    const fed = st.fed > GW_FEED_WEARS ? [] : holding;
     const cooled = (row.cools ?? []).filter((f) => holds(ctx, f.when));
     const by = fed.reduce((n, f) => n + (f.by ?? 1), 0);
     const off = cooled.reduce((n, f) => n + (f.by ?? 1), 0);
@@ -663,7 +684,13 @@ function whipWord(
 /** The whip speaks: filed as a report that may be wrong. */
 function whipReport(gw: GreatWar, seat: GwSeatState, st: GwLawState): void {
   const table = 0;
-  const truth = houseTally(houseCounts(gw, seat, st.id, table)).count;
+  const counts = houseCounts(gw, seat, st.id, table);
+  // No chamber sits to vote on it: the whip has nothing to count.
+  if (counts.length === 0) {
+    st.whip = -1;
+    return;
+  }
+  const truth = houseTally(counts).count;
   const { word, sure } = whipWord(gw, seat, st.id, truth);
   st.whip = word;
   const s = gw.s;
@@ -706,6 +733,19 @@ function judgeWhip(
 
 // ---- What the engine (Laws.ts) asks of a house bill ----
 
+/**
+ * A chamber sits to vote on the bill: false when every chamber it meets is
+ * closed and gone round (Vienna's bills under §14). Not a house bill: true.
+ */
+export function houseSits(
+  gw: GreatWar,
+  seat: GwSeatState,
+  law: string,
+): boolean {
+  if (billRow(seat, law) === null) return true;
+  return houseCounts(gw, seat, law, 0).length > 0;
+}
+
 /** The day: the count is the count. Null: not a house bill. */
 export function housePut(
   gw: GreatWar,
@@ -716,6 +756,12 @@ export function housePut(
   const bill = billRow(seat, st.id);
   if (bill === null) return null;
   const counts = houseCounts(gw, seat, st.id, table);
+  // No chamber sits to vote on it: no vote, no card, no word judged. It waits;
+  // the way round is the only door.
+  if (counts.length === 0) {
+    reason(gw, seat, "house_no_sitting");
+    return { pass: false, stops: "no_sitting", sign: false };
+  }
   const t = houseTally(counts);
   // The Lords below zero put it off once; past the delay they can't.
   if (t.count >= 0 && t.lords && bill.money !== true && st.delayTo === -1) {
@@ -1137,7 +1183,8 @@ type HouseCond = Extract<
       | "vote_band"
       | "law_origin"
       | "whip_said"
-      | "around";
+      | "around"
+      | "house_sits";
   }
 >;
 
@@ -1214,6 +1261,8 @@ export function houseHolds(ctx: SceneCtx, c: HouseCond): boolean {
     }
     case "around":
       return inRange(seat.house?.around ?? 0, c);
+    case "house_sits":
+      return houseSits(gw, seat, c.id);
   }
 }
 

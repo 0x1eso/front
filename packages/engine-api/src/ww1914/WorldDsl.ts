@@ -228,6 +228,8 @@ export type GwWorldCond =
   | { is: "whip_said"; of: GwWhipWord[] }
   /** Times the way round has been used. */
   | ({ is: "around" } & Range)
+  /** A chamber sits to vote on the bill now (false: only the way round). */
+  | { is: "house_sits"; id: string }
   // ---- Plots, the dossier, allies (ww158, S2) ----
   /** Sign scenes of a plot the seat has opened. */
   | ({ is: "plot_signs"; id: string } & Range)
@@ -508,6 +510,7 @@ export const GwWorldCondSchema = z.union([
   is("law_origin", { id: GwIdSchema, of: z.array(z.enum(GW_LAW_ORIGINS)) }),
   is("whip_said", { of: z.array(z.enum(GW_WHIP_WORDS)) }),
   is("around", range),
+  is("house_sits", { id: GwIdSchema }),
   is("plot_signs", { id: GwIdSchema, ...range }),
   is("plot_warned", { id: GwIdSchema }),
   is("file", {
