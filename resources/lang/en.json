@@ -6830,6 +6830,7 @@
       "target": "Breaking the codes of {country}"
     },
     "cw_name": {
+      "collab": "{country} State",
       "communist": "People's {country}",
       "democratic": "Free {country}",
       "fascist": "National {country}",
