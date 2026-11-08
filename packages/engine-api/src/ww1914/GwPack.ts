@@ -147,6 +147,24 @@ export const GwCraftPackSchema = z
   .strict();
 export type GwCraftPack = z.infer<typeof GwCraftPackSchema>;
 
+/** A faction's words: pack `factions.<id>` (ww158). */
+export const GwFactionPackSchema = z
+  .object({
+    /** "사민당", "중앙당". */
+    name: Text,
+    /** One plain line: who they are. */
+    note: Text.optional(),
+    /** Reason key -> the 정국 tab's line for its last move. */
+    why: ById.optional(),
+  })
+  .strict();
+export type GwFactionPack = z.infer<typeof GwFactionPackSchema>;
+
+/** A plot's or an ask's name in the notebook (ww158, S2). */
+export const GwNamePackSchema = z
+  .object({ name: Text, note: Text.optional() })
+  .strict();
+
 /** A national aim's words: pack `aims.<id>`. */
 export const GwAimPackSchema = z
   .object({
@@ -265,6 +283,14 @@ export const GwPackSchema = z
     rivals: z.record(GwIdSchema, ById).optional(),
     /** Invention or project id -> its name on the country tab (ww157). */
     craft: z.record(GwIdSchema, GwCraftPackSchema).optional(),
+    /** Faction id -> its name, note and reason lines (ww158). */
+    factions: z.record(GwIdSchema, GwFactionPackSchema).optional(),
+    /** Person id -> weakness id -> the file's line (S2). */
+    weak: z.record(GwIdSchema, ById).optional(),
+    /** Plot id -> its name (S2). */
+    plots: z.record(GwIdSchema, GwNamePackSchema).optional(),
+    /** Ask id -> its name (S2). */
+    asks: z.record(GwIdSchema, GwNamePackSchema).optional(),
   })
   .strict();
 export type GwPack = z.infer<typeof GwPackSchema>;
@@ -284,6 +310,10 @@ export function mergeGwPacks(packs: readonly GwPack[]): GwPack {
     aims: {},
     rivals: {},
     craft: {},
+    factions: {},
+    weak: {},
+    plots: {},
+    asks: {},
   };
   for (const p of packs) {
     Object.assign(out.scenes, p.scenes);
@@ -297,6 +327,12 @@ export function mergeGwPacks(packs: readonly GwPack[]): GwPack {
     Object.assign(out.aims!, p.aims);
     Object.assign(out.rivals!, p.rivals);
     Object.assign(out.craft!, p.craft);
+    Object.assign(out.factions!, p.factions);
+    for (const [who, lines] of Object.entries(p.weak ?? {})) {
+      out.weak![who] = { ...out.weak![who], ...lines };
+    }
+    Object.assign(out.plots!, p.plots);
+    Object.assign(out.asks!, p.asks);
     if (p.press !== undefined) out.press = p.press;
     if (p.table !== undefined) out.table = { ...out.table, ...p.table };
   }
@@ -374,6 +410,9 @@ export function gwPackOverlaps(packs: readonly GwPack[]): string[] {
       ...Object.keys(p.aims ?? {}).map((x) => `aim ${x}`),
       ...Object.keys(p.rivals ?? {}).map((x) => `rival ${x}`),
       ...Object.keys(p.craft ?? {}).map((x) => `craft ${x}`),
+      ...Object.keys(p.factions ?? {}).map((x) => `faction ${x}`),
+      ...Object.keys(p.plots ?? {}).map((x) => `plot ${x}`),
+      ...Object.keys(p.asks ?? {}).map((x) => `ask ${x}`),
     ];
     for (const id of ids) {
       if (seen.has(id)) out.add(id);

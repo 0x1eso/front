@@ -60,6 +60,18 @@ import {
   GwProjectStep,
   GwShortage,
 } from "./GwCraft";
+import {
+  GW_ASK_STAGES,
+  GW_FACTION_STATUS,
+  GW_LAW_ORIGINS,
+  GW_VOTE_BANDS,
+  GW_WHIP_WORDS,
+  GwAskStage,
+  GwFactionStatus,
+  GwLawOrigin,
+  GwVoteBand,
+  GwWhipWord,
+} from "./GwHouse";
 import { GW_LAW_STAGES, GwLawStage } from "./GwLaw";
 
 const GW_BUDGET_WHATS = ["treasury", "load", "prices", "lent"] as const;
@@ -190,7 +202,39 @@ export type GwWorldCond =
   /** The country's footing, 0 peace .. 2 total mobilisation. */
   | ({ is: "footing" } & Range)
   /** A shortage is on (the default), or was answered. */
-  | { is: "shortage"; id: GwShortage; solved?: boolean };
+  | { is: "shortage"; id: GwShortage; solved?: boolean }
+  // ---- The house (ww158, S1) ----
+  /** A faction stands at one of these statuses (any if absent), strength in range. */
+  | ({ is: "faction"; id: string; of?: GwFactionStatus[] } & Range)
+  /** A faction's temper, 0 따른다 .. 4 말이 없다. */
+  | ({ is: "faction_temper"; id: string } & Range)
+  /** Its leader has come asking for this bill and has no answer yet. */
+  | { is: "faction_asks"; id: string; law: string }
+  /** The price its leader names now for the moving bill (a `wants` row id). */
+  | { is: "faction_want"; id: string; want: string }
+  /** A deal was struck with it on the moving bill. */
+  | { is: "deal"; id: string }
+  /** It has a text of its own for the moving bill, not the text now. */
+  | { is: "amendable"; id: string }
+  /** It can be lobbied now: it sits in the moving bill's house. */
+  | { is: "lobby"; id: string }
+  /** The last vote went one of these ways; on this bill if named. */
+  | { is: "vote_band"; of: GwVoteBand[]; law?: string }
+  /** Who brought the bill. */
+  | { is: "law_origin"; id: string; of: GwLawOrigin[] }
+  /** The whip's last word on the moving bill. */
+  | { is: "whip_said"; of: GwWhipWord[] }
+  /** Times the way round has been used. */
+  | ({ is: "around" } & Range)
+  // ---- Plots, the dossier, allies (ww158, S2) ----
+  /** Sign scenes of a plot the seat has opened. */
+  | ({ is: "plot_signs"; id: string } & Range)
+  /** The plot's warning has been opened. */
+  | { is: "plot_warned"; id: string }
+  /** A file on the person: held (not out) by default; `used`: used at least once. */
+  | { is: "file"; who: GwWorldWho; of?: ("held" | "used" | "out")[] }
+  /** An ally's ask stands at one of these stages. */
+  | { is: "ask"; id: string; of: GwAskStage[] };
 
 export type GwWorldEffect =
   /** Germany's plan for the war to come. */
@@ -306,7 +350,33 @@ export type GwWorldEffect =
   /** The footing moves to `level`: up one step at a time, down at once. */
   | { do: "footing"; level: number }
   /** A shortage comes on, or is answered for good. */
-  | { do: "shortage"; id: GwShortage; on: boolean };
+  | { do: "shortage"; id: GwShortage; on: boolean }
+  // ---- The house (ww158, S1) ----
+  /** A faction's temper: `delta` > 0 heats it, < 0 cools it. */
+  | { do: "faction"; id: string; delta: number }
+  /** A faction's strength. */
+  | { do: "faction_grow"; id: string; delta: number }
+  /** Driven underground: only ever from a written decision. */
+  | { do: "faction_under"; id: string }
+  /** Its leader's price for the moving bill is taken: a promise, his side for it. */
+  | { do: "deal"; id: string }
+  /** The moving bill takes its text. */
+  | { do: "amend"; id: string }
+  /** The answer to the bill its leader came asking for. */
+  | { do: "bill_answer"; id: string; yes: boolean }
+  /** A bill starts in the house: from an ally's ask, a faction, the seat. */
+  | { do: "law_start"; law: string; origin: GwLawOrigin }
+  // ---- Plots, the dossier, allies (ww158, S2) ----
+  /** A plot's sign has been read. */
+  | { do: "plot_sign"; id: string }
+  /** A plot's warning has been read. */
+  | { do: "plot_warn"; id: string }
+  /** The police bring a file on the person. */
+  | { do: "file"; who: GwWorldWho }
+  /** A file is used on the person in this talk. */
+  | { do: "hold"; who: GwWorldWho }
+  /** The answer to an ally's ask. */
+  | { do: "ask"; id: string; answer: "yes" | "no" };
 
 const int = z.number().int();
 const yearMonth = z.string().regex(/^19[0-9]{2}-[01][0-9]$/);
@@ -408,6 +478,31 @@ export const GwWorldCondSchema = z.union([
     id: z.enum(GW_SHORTAGES),
     solved: z.boolean().optional(),
   }),
+  is("faction", {
+    id: GwIdSchema,
+    of: z.array(z.enum(GW_FACTION_STATUS)).optional(),
+    ...range,
+  }),
+  is("faction_temper", { id: GwIdSchema, ...range }),
+  is("faction_asks", { id: GwIdSchema, law: GwIdSchema }),
+  is("faction_want", { id: GwIdSchema, want: GwIdSchema }),
+  is("deal", { id: GwIdSchema }),
+  is("amendable", { id: GwIdSchema }),
+  is("lobby", { id: GwIdSchema }),
+  is("vote_band", {
+    of: z.array(z.enum(GW_VOTE_BANDS)),
+    law: GwIdSchema.optional(),
+  }),
+  is("law_origin", { id: GwIdSchema, of: z.array(z.enum(GW_LAW_ORIGINS)) }),
+  is("whip_said", { of: z.array(z.enum(GW_WHIP_WORDS)) }),
+  is("around", range),
+  is("plot_signs", { id: GwIdSchema, ...range }),
+  is("plot_warned", { id: GwIdSchema }),
+  is("file", {
+    who,
+    of: z.array(z.enum(["held", "used", "out"])).optional(),
+  }),
+  is("ask", { id: GwIdSchema, of: z.array(z.enum(GW_ASK_STAGES)) }),
 ]) as unknown as z.ZodType<GwWorldCond>;
 
 export const GwWorldEffectSchema = z.union([
@@ -485,6 +580,18 @@ export const GwWorldEffectSchema = z.union([
   act("project_lead", { who }),
   act("footing", { level: int.min(0).max(2) }),
   act("shortage", { id: z.enum(GW_SHORTAGES), on: z.boolean() }),
+  act("faction", { id: GwIdSchema, delta: int }),
+  act("faction_grow", { id: GwIdSchema, delta: int }),
+  act("faction_under", { id: GwIdSchema }),
+  act("deal", { id: GwIdSchema }),
+  act("amend", { id: GwIdSchema }),
+  act("bill_answer", { id: GwIdSchema, yes: z.boolean() }),
+  act("law_start", { law: GwIdSchema, origin: z.enum(GW_LAW_ORIGINS) }),
+  act("plot_sign", { id: GwIdSchema }),
+  act("plot_warn", { id: GwIdSchema }),
+  act("file", { who }),
+  act("hold", { who }),
+  act("ask", { id: GwIdSchema, answer: z.enum(["yes", "no"]) }),
 ]) as unknown as z.ZodType<GwWorldEffect>;
 
 // ---- Authoring helpers ----

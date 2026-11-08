@@ -10,6 +10,7 @@ import { AUH_LAWS } from "../laws/auh";
 import { DEU_LAWS } from "../laws/deu";
 import { GBR_LAWS } from "../laws/gbr";
 import { RUS_LAWS } from "../laws/rus";
+import { GW_HOUSE_LAWS, houseBill, NOT_HOUSE_BROUGHT } from "./house";
 
 /** Every bill. A later country adds its file of rows here. */
 export const GW_LAWS: readonly GwLawRow[] = [
@@ -17,6 +18,7 @@ export const GW_LAWS: readonly GwLawRow[] = [
   ...GBR_LAWS,
   ...AUH_LAWS,
   ...RUS_LAWS,
+  ...GW_HOUSE_LAWS,
 ];
 
 /** Never drawn: the engine calls these (engine/ww1914/Laws). */
@@ -50,25 +52,40 @@ function draftScene(row: GwLawRow): GwScene {
   };
 }
 
-/** The day: the same four doors for every bill, in the country's own words. */
+/**
+ * The day: the same four doors for every bill, in the country's own words. A
+ * bill the house runs (ww158) shows no price: the count is the count, and the
+ * way round's price comes after; a bill the house brought can't be withdrawn.
+ */
 function dayScene(row: GwLawRow): GwScene {
   const law = row.id;
-  const says = [...row.passedTell, ...lawTermTell(row)];
+  const house = houseBill(law) !== null;
+  const says = house ? [] : [...row.passedTell, ...lawTermTell(row)];
   const d = GW_LAW_HOME[row.tag]?.decree ?? null;
   const options: GwOption[] = [
     { id: "put", tell: says, effects: [act({ do: "law_put", law })] },
   ];
-  if (row.decree && d !== null) {
+  // A house bill always shows the way round: greyed, with the pack's why, where
+  // the constitution doesn't reach it.
+  if (house || (row.decree && d !== null)) {
     options.push({
       id: "decree",
       when: world({ is: "law_decree", id: law }),
-      tell: [`authority:-${d.price}`, `${d.inst}:${d.delta}`, ...says],
+      tell:
+        house || d === null
+          ? []
+          : [`authority:-${d.price}`, `${d.inst}:${d.delta}`, ...says],
       effects: [act({ do: "law_decree", law })],
     });
   }
   options.push(
     { id: "hold", tell: [], effects: [act({ do: "law_hold", law })] },
-    { id: "withdraw", tell: [], effects: [act({ do: "law_withdraw", law })] },
+    {
+      id: "withdraw",
+      tell: [],
+      effects: [act({ do: "law_withdraw", law })],
+      ...(house ? { when: NOT_HOUSE_BROUGHT(law) } : {}),
+    },
   );
   return {
     id: `gw_lv_${law}`,

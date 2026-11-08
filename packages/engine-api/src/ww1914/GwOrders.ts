@@ -62,6 +62,8 @@ export const GwOrderSchema = z.discriminatedUnion("kind", [
     kind: z.literal("law"),
     law: Id,
     act: z.enum(["draft", "repeal"]),
+    /** Who drafts it, from the cabinet (ww158); absent: the row's own. */
+    sponsor: Id.optional(),
   }),
   /** The censor one step tighter, or looser. */
   z.object({ kind: z.literal("press_censor"), up: z.boolean() }),

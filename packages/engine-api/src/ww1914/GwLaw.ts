@@ -2,6 +2,7 @@
 // country keeps and what a seat reads. The rows are engine-lib/ww1914/LawRows,
 // the running of them engine/ww1914/Laws. Lists are APPEND ONLY.
 import { z } from "zod";
+import { GW_LAW_ORIGINS } from "./GwHouse";
 
 /**
  * Where a bill stands: drawn up, being argued, on the day of the vote, the law
@@ -50,6 +51,19 @@ export const GwLawStateSchema = z.object({
   lost: int,
   /** The aftermath scene has come. */
   after: z.boolean(),
+  // ---- The house (ww158); a save from before has the defaults. ----
+  /** Who brought it (GwHouse GW_LAW_ORIGINS). */
+  origin: z.enum(GW_LAW_ORIGINS).default("seat"),
+  /** The faction whose bill it is; null for the seat's own. */
+  by: z.string().nullable().default(null),
+  /** The minister who drafts and works it; null: the row's cast. */
+  sponsor: z.string().nullable().default(null),
+  /** Factions with a deal on this bill. */
+  deals: z.array(z.string()).default([]),
+  /** The whip's last word (GW_WHIP_WORDS index); -1 none yet. */
+  whip: int.default(-1),
+  /** The Lords put it off until this chapter; -1 not. */
+  delayTo: int.default(-1),
 });
 export type GwLawState = z.infer<typeof GwLawStateSchema>;
 

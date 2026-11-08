@@ -28,6 +28,7 @@ import { craftView } from "./Craft";
 import { eraOf } from "./Eras";
 import { ownFronts, proposalsFor } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
+import { houseView } from "./House";
 import { lawViews } from "./Laws";
 import {
   candidatesFor,
@@ -248,5 +249,6 @@ export function worldView(gw: GreatWar, seat: GwSeatState): GwWorldView {
     laws: lawViews(gw, seat),
     press: pressView(gw, seat),
     craft: craftView(gw, seat),
+    house: houseView(gw, seat),
   };
 }

@@ -46,6 +46,12 @@ export function factTruth(
       return n.gauges.shells;
     case "morale":
       return n.gauges.morale;
+    // Filed by their own systems (House, S2), never sent through here.
+    case "count":
+    case "plot":
+    case "file":
+    case "ally":
+      return 0;
   }
 }
 
@@ -62,6 +68,10 @@ function wrongClaim(
     mob: [0, 2],
     shells: [0, 3],
     morale: [0, 5],
+    count: [0, 4],
+    plot: [0, 4],
+    file: [0, 1],
+    ally: [0, 2],
   };
   const [lo, hi] = bounds[fact];
   const moved = clampTo(truth + (up ? 1 : -1), lo, hi);

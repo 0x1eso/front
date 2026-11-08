@@ -11,6 +11,7 @@ import type {
 } from "@openfront/engine-api/ww1914/WorldDsl";
 import { tilted } from "@openfront/engine-lib/ww1914/BudgetRules";
 import { civilFromDays } from "@openfront/engine-lib/ww1936/Calendar";
+import { askEffect, askHolds } from "./Asks";
 import { holdVote, voteCount } from "./Authority";
 import {
   budgetFact,
@@ -21,10 +22,12 @@ import {
 } from "./Budget";
 import { craftEffect, craftHolds } from "./Craft";
 import { closeChain } from "./Crises";
+import { fileEffect, fileHolds } from "./Dossier";
 import { closeSeat, SEPARATE_PEACE } from "./Endings";
 import { eraOf, hasTech } from "./Eras";
 import { signChief, warScore } from "./Fronts";
 import { govBeaten, govHeat, govHeatBy, govSoon, pollOf } from "./Government";
+import { houseEffect, houseHolds } from "./House";
 import { inspect, sendReport } from "./Intel";
 import {
   lawCanDecree,
@@ -39,6 +42,7 @@ import {
 } from "./Laws";
 import { armistice, openTalks, sue } from "./Peace";
 import { keepPerson, openLetter, personLeaves, recordResult } from "./People";
+import { plotEffect, plotHolds } from "./Plots";
 import { changeRegime, regimeRow } from "./Regimes";
 import { SceneCtx, whoIn } from "./SceneRun";
 import { setUboats } from "./Sea";
@@ -227,6 +231,25 @@ export function worldHolds(ctx: SceneCtx, c: GwWorldCond): boolean {
     case "footing":
     case "shortage":
       return craftHolds(ctx, c);
+    case "faction":
+    case "faction_temper":
+    case "faction_asks":
+    case "faction_want":
+    case "deal":
+    case "amendable":
+    case "lobby":
+    case "vote_band":
+    case "law_origin":
+    case "whip_said":
+    case "around":
+      return houseHolds(ctx, c);
+    case "plot_signs":
+    case "plot_warned":
+      return plotHolds(ctx, c);
+    case "file":
+      return fileHolds(ctx, c);
+    case "ask":
+      return askHolds(ctx, c);
   }
 }
 
@@ -477,6 +500,26 @@ export function worldEffect(ctx: SceneCtx, e: GwWorldEffect): void {
     case "footing":
     case "shortage":
       craftEffect(ctx, e);
+      return;
+    case "faction":
+    case "faction_grow":
+    case "faction_under":
+    case "deal":
+    case "amend":
+    case "bill_answer":
+    case "law_start":
+      houseEffect(ctx, e);
+      return;
+    case "plot_sign":
+    case "plot_warn":
+      plotEffect(ctx, e);
+      return;
+    case "file":
+    case "hold":
+      fileEffect(ctx, e);
+      return;
+    case "ask":
+      askEffect(ctx, e);
       return;
   }
 }

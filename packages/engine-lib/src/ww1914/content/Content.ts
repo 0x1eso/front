@@ -7,6 +7,7 @@ import type {
   GwProjectRow,
   GwShortageRow,
 } from "../CraftRows";
+import type { GwHouseContent } from "../HouseRows";
 import { withRuler } from "../RulerRows";
 import { AUH_ACT_SCENES, AUH_ACTS, AUH_AIMS } from "./acts/auh";
 import { COMMON_ACT_SCENES, COMMON_ACTS } from "./acts/common";
@@ -36,6 +37,7 @@ import { AUH_ECHOES, AUH_PROLOGUE_SCENES } from "./scenes/auh_prologue";
 import { AUH_REALM_SCENES } from "./scenes/auh_realm";
 import { AUH_WAR_SCENES } from "./scenes/auh_war";
 import { BUDGET_SCENES } from "./scenes/budget";
+import { COMMON_SCENES } from "./scenes/common";
 import {
   CRAFT_SCENES,
   GW_FOOTING,
@@ -43,7 +45,6 @@ import {
   GW_PROJECTS,
   GW_SHORTAGE_ROWS,
 } from "./scenes/craft";
-import { COMMON_SCENES } from "./scenes/common";
 import { DEU_SCENES } from "./scenes/deu";
 import { DEU_STORY_SCENES } from "./scenes/deu_act";
 import { DEU_BACK_SCENES, withPromiseTerms } from "./scenes/deu_back";
@@ -79,7 +80,12 @@ import { GW_FRAME_SCENES } from "./scenes/gw_frame";
 import { GW_NEUTRAL_SCENES } from "./scenes/gw_neutral";
 import { withCommonBodies } from "./scenes/gw_replay";
 import { GW_WORLD2_SCENES } from "./scenes/gw_world2";
-import { LAW_SCENES } from "./scenes/laws";
+import {
+  GW_HOUSE_CONTENT,
+  gwHouseScenes,
+  HOUSE_WRITTEN_SCENES,
+} from "./scenes/house";
+import { GW_LAWS, LAW_SCENES } from "./scenes/laws";
 import { PRESS_SCENES } from "./scenes/press";
 import { withEchoes } from "./scenes/prologue_echoes";
 import { RULER_SCENES } from "./scenes/ruler";
@@ -94,7 +100,7 @@ import { TABLE_SCENES } from "./scenes/table";
 import { WARTIME_SCENES } from "./scenes/wartime";
 import { WORLD_SCENES } from "./scenes/world";
 
-export interface GwContent {
+export interface GwContent extends GwHouseContent {
   readonly scenes: readonly GwScene[];
   readonly people: readonly GwPersonDef[];
   /** The schedule's entries (원수의 일정); fixtures may have none. */
@@ -171,6 +177,8 @@ export const GW_CONTENT: GwContent = {
         ...BUDGET_SCENES,
         ...LAW_SCENES,
         ...CRAFT_SCENES,
+        ...gwHouseScenes(GW_HOUSE_CONTENT, GW_LAWS),
+        ...HOUSE_WRITTEN_SCENES,
         ...RULER_SCENES,
         ...GOV_SCENES,
         ...DEU_PRIVATE_SCENES,
@@ -219,6 +227,7 @@ export const GW_CONTENT: GwContent = {
   projects: GW_PROJECTS,
   footing: GW_FOOTING,
   shortages: GW_SHORTAGE_ROWS,
+  ...GW_HOUSE_CONTENT,
 };
 
 let current = GW_CONTENT;

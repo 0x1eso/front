@@ -43,8 +43,24 @@ import { gwView } from "./View";
  */
 export const GreatWarSnapshot = snapshotType({
   name: "GreatWar",
-  version: 1,
+  version: 2,
   schema: GreatWarStateSchema,
+  migrations: {
+    // ww158: a bill's house fields. Saves from before have bills with none.
+    1: (d: { nations?: { laws?: Record<string, unknown>[] }[] }) => {
+      for (const n of d.nations ?? []) {
+        for (const l of n.laws ?? []) {
+          l.origin ??= "seat";
+          l.by ??= null;
+          l.sponsor ??= null;
+          l.deals ??= [];
+          l.whip ??= -1;
+          l.delayTo ??= -1;
+        }
+      }
+      return d;
+    },
+  },
 });
 
 /** Every value of the state, whatever its shape; key order doesn't count. */

@@ -43,6 +43,7 @@ export const GW_PACK_SHARES: Readonly<
     "prologue",
     "table",
     "craft",
+    "house",
   ],
   GBR: [
     "crisis",
@@ -60,6 +61,7 @@ export const GW_PACK_SHARES: Readonly<
     "prologue",
     "table",
     "craft",
+    "house",
   ],
   AUH: [
     "crisis",
@@ -77,6 +79,7 @@ export const GW_PACK_SHARES: Readonly<
     "prologue",
     "table",
     "craft",
+    "house",
   ],
   RUS: [
     "crisis",
@@ -94,6 +97,7 @@ export const GW_PACK_SHARES: Readonly<
     "prologue",
     "table",
     "craft",
+    "house",
   ],
 };
 

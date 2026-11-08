@@ -397,6 +397,12 @@ describe("a save", () => {
       text: "one_office",
       lost: 0,
       after: false,
+      origin: "seat",
+      by: null,
+      sponsor: null,
+      deals: [],
+      whip: -1,
+      delayTo: -1,
     });
     expect(gw.hash()).not.toBe(before);
     const { GreatWarSnapshot } =
@@ -421,6 +427,12 @@ describe("a save", () => {
       text: "one_office",
       lost: 0,
       after: false,
+      origin: "seat",
+      by: null,
+      sponsor: null,
+      deals: [],
+      whip: -1,
+      delayTo: -1,
     });
     expect(
       applyGwOrder(gw, seat, { kind: "law", law: "deu_censor", act: "repeal" }),

@@ -24,6 +24,18 @@ import type { GwLawBody, GwLawRow } from "@openfront/engine-lib/ww1914/LawRows";
 import { authorityRow, holdVote, voteCount } from "./Authority";
 import { makeCard, placeCard } from "./Desk";
 import type { GreatWar } from "./GreatWar";
+import {
+  billRow,
+  houseBring,
+  houseCanRound,
+  houseCounts,
+  houseDraft,
+  houseOpened,
+  housePut,
+  houseRound,
+  houseTally,
+  persuadeChapters,
+} from "./House";
 import { summonable } from "./Orders";
 import { moveCensor } from "./Press";
 import { castOf, holds, runEffects, SceneCtx, sceneOf } from "./SceneRun";
@@ -62,19 +74,28 @@ function bodyOf(n: GwNationState, row: GwLawRow): GwLawBody | null {
   return { kind: law.kind, inst: row.body, need: 0, decree: law.decree };
 }
 
+/** What the cabinet's camps make of it: a door the whole table stands in. */
+function tableOf(gw: GreatWar, seat: GwSeatState, row: GwLawRow): number {
+  if (row.issue === undefined) return 0;
+  return voteCount(gw, seat, row.issue) >= 0 ? 1 : -1;
+}
+
 /** The count, and the body it fails at first. */
 function tally(
   gw: GreatWar,
   seat: GwSeatState,
   n: GwNationState,
   row: GwLawRow,
-): { count: number; stops: GwInstitution | null } {
+): { count: number; stops: string | null } {
+  // A bill the house runs (ww158): faction by faction, chamber by chamber.
+  if (billRow(seat, row.id) !== null) {
+    const t = houseTally(houseCounts(gw, seat, row.id, tableOf(gw, seat, row)));
+    return { count: t.count, stops: t.stops };
+  }
   const body = bodyOf(n, row);
   if (body === null) return { count: NOBODY, stops: null };
   const won = row.lean + (lawStage(n, row.id)?.support ?? 0);
-  // What the cabinet's camps make of it: a door the whole table stands in.
-  const table =
-    row.issue === undefined ? 0 : voteCount(gw, seat, row.issue) >= 0 ? 1 : -1;
+  const table = tableOf(gw, seat, row);
   const first = (n.inst[body.inst] ?? 0) + won + table - body.need;
   const second =
     body.second === undefined
@@ -99,6 +120,8 @@ export function lawCanDecree(
   seat: GwSeatState,
   id: string,
 ): boolean {
+  const house = houseCanRound(gw, seat, id);
+  if (house !== null) return house;
   const n = gw.nation(seat.tag);
   const row = rowOf(id);
   if (n === null || row === null || !row.decree) return false;
@@ -138,6 +161,12 @@ function touchRow(n: GwNationState, id: string): GwLawState {
     text: null,
     lost: 0,
     after: false,
+    origin: "seat",
+    by: null,
+    sponsor: null,
+    deals: [],
+    whip: -1,
+    delayTo: -1,
   };
   n.laws.push(st);
   return st;
@@ -188,6 +217,7 @@ export function lawText(
   st.text = text;
   st.support += support;
   toStage(gw, st, "persuade");
+  houseOpened(seat, id);
 }
 
 export function lawSupport(
@@ -209,6 +239,13 @@ export function lawPut(ctx: SceneCtx, id: string): void {
   const row = rowOf(id);
   const st = n === null ? null : lawStage(n, id);
   if (n === null || row === null || st?.stage !== "vote") return;
+  const house = housePut(gw, seat, st, tableOf(gw, seat, row));
+  if (house !== null) {
+    if (row.issue !== undefined) holdVote(gw, seat, row.issue);
+    if (house.pass) enact(ctx, st, row, "voted");
+    else if (house.stops !== "lords_delay") lose(gw, seat, n, st, house.stops);
+    return;
+  }
   const { count, stops } = tally(gw, seat, n, row);
   if (row.issue !== undefined) holdVote(gw, seat, row.issue);
   if (count >= 0) {
@@ -227,11 +264,31 @@ export function lawDecree(ctx: SceneCtx, id: string): void {
   const row = rowOf(id);
   const st = n === null ? null : lawStage(n, id);
   if (n === null || row === null || st?.stage !== "vote") return;
+  const house = houseRound(gw, seat, st, tableOf(gw, seat, row));
+  if (house !== null) {
+    if (house.pass) enact(ctx, st, row, "decreed");
+    else lose(gw, seat, n, st, null);
+    return;
+  }
   const d = bodyOf(n, row)?.decree ?? null;
   if (d === null || !lawCanDecree(gw, seat, id)) return;
   n.authority = clampTo(n.authority - d.price, 0, 100);
   shiftInst(n, d.inst, d.delta);
   enact(ctx, st, row, "decreed");
+}
+
+/** Thrown out: back to the house, at its sponsor's cost. */
+function lose(
+  gw: GreatWar,
+  seat: GwSeatState,
+  n: GwNationState,
+  st: GwLawState,
+  stops: string | null,
+): void {
+  st.lost++;
+  toStage(gw, st, "persuade");
+  n.authority = clampTo(n.authority - LOST_PRICE, 0, 100);
+  reason(gw, seat, `house_no_${stops ?? "round"}`);
 }
 
 export function lawHold(gw: GreatWar, seat: GwSeatState, id: string): void {
@@ -244,9 +301,14 @@ export function lawWithdraw(gw: GreatWar, seat: GwSeatState, id: string): void {
   const n = gw.nation(seat.tag);
   const st = n === null ? null : lawStage(n, id);
   if (st === null || !MOVING.includes(st.stage)) return;
+  // The house brought it itself: the seat can only oppose it.
+  if (st.origin === "house") return;
   toStage(gw, st, "idle");
   st.support = 0;
   st.text = null;
+  st.deals = [];
+  st.whip = -1;
+  st.delayTo = -1;
   reason(gw, seat, "law_withdrawn");
 }
 
@@ -263,11 +325,24 @@ function takeUp(
   seat: GwSeatState,
   n: GwNationState,
   row: GwLawRow,
+  sponsor: string | null,
 ): GwOrderBlock | null {
   if (row.tag !== seat.tag || !openNow(gw, seat, row)) return "no_law";
   const had = lawStage(n, row.id);
   if (had !== null && had.stage !== "idle") return "no_law";
   if (moving(n) !== null || shelved(gw, had)) return "law_busy";
+  if (billRow(seat, row.id) !== null) {
+    const st = touchRow(n, row.id);
+    const was = { ...st };
+    resetHouse(st);
+    st.support = 0;
+    st.text = null;
+    st.how = "none";
+    toStage(gw, st, "draft");
+    if (houseDraft(gw, seat, st, sponsor)) return null;
+    Object.assign(st, was);
+    return "no_law";
+  }
   const scene = sceneOf(`gw_law_${row.id}`);
   const card = scene === null ? null : makeCard(gw, seat, scene, "scheduled");
   if (card === null) return "no_law";
@@ -307,11 +382,33 @@ export function lawOrder(
   seat: GwSeatState,
   id: string,
   act: "draft" | "repeal",
+  sponsor: string | null = null,
 ): GwOrderBlock | null {
   const n = gw.nation(seat.tag);
   const row = rowOf(id);
   if (n === null || row === null || row.tag !== seat.tag) return "no_law";
-  return act === "draft" ? takeUp(gw, seat, n, row) : repeal(gw, seat, n, row);
+  return act === "draft"
+    ? takeUp(gw, seat, n, row, sponsor)
+    : repeal(gw, seat, n, row);
+}
+
+function resetHouse(st: GwLawState): void {
+  st.origin = "seat";
+  st.by = null;
+  st.sponsor = null;
+  st.deals = [];
+  st.whip = -1;
+  st.delayTo = -1;
+}
+
+/** A bill brought by a faction, an ally or the house (S2 and House.ts). */
+export function lawBring(
+  gw: GreatWar,
+  seat: GwSeatState,
+  id: string,
+  origin: GwLawState["origin"],
+): boolean {
+  return houseBring(gw, seat, id, origin, null);
 }
 
 /** A decision of the desk already made it law: it stands, and is listed. */
@@ -383,8 +480,13 @@ export function lawStep(gw: GreatWar): void {
     for (const st of n.laws) {
       const row = rowOf(st.id);
       if (row === null) continue;
-      if (st.stage === "persuade" && c - st.since >= 1) toStage(gw, st, "vote");
-      if (st.stage === "vote") callDay(gw, seat, st.id);
+      const argue = persuadeChapters(seat, st.id);
+      if (st.stage === "persuade" && c - st.since >= argue) {
+        toStage(gw, st, "vote");
+      }
+      // The Lords have put it off: the day waits for the delay to run out.
+      const waits = st.delayTo !== -1 && c < st.delayTo;
+      if (st.stage === "vote" && !waits) callDay(gw, seat, st.id);
       if (st.stage === "force") {
         work(gw, n, st, row);
         aftermath(gw, seat, st, row);
@@ -413,6 +515,14 @@ function outlook(count: number): GwLawOutlook {
   if (count >= 2) return "easy";
   if (count >= 0) return "tight";
   return count === -1 ? "short" : "blocked";
+}
+
+/** A house bill's outlook is the whip's word, right or wrong. */
+function whipOutlook(word: number): GwLawOutlook | null {
+  if (word < 0) return null;
+  return (
+    (["easy", "tight", "tight", "short", "blocked"] as const)[word] ?? null
+  );
 }
 
 function talkOf(
@@ -447,7 +557,9 @@ function view(
     text: st?.text ?? null,
     outlook:
       st !== null && MOVING.includes(st.stage)
-        ? outlook(tally(gw, seat, n, row).count)
+        ? billRow(seat, row.id) !== null
+          ? whipOutlook(st.whip)
+          : outlook(tally(gw, seat, n, row).count)
         : null,
     body: body?.inst ?? null,
     second: body?.second?.inst ?? null,

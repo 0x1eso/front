@@ -47,6 +47,7 @@ import { claimsHeld, claimsMet } from "./Claims";
 import { makeCard, placeCard } from "./Desk";
 import { closeSeat } from "./Endings";
 import type { GreatWar } from "./GreatWar";
+import { factionLeader } from "./House";
 import { dismissPerson, onAppointed } from "./People";
 import { moveCensor, moveOpinion, moveRumour } from "./Press";
 import { prologueEffect, prologueHolds } from "./Prologue";
@@ -162,7 +163,10 @@ function linked(
   );
 }
 
-type BaseCastRule = Exclude<GwCastRule, { any_of: unknown } | { past: string }>;
+type BaseCastRule = Exclude<
+  GwCastRule,
+  { any_of: unknown } | { past: string } | { faction_leader: string }
+>;
 
 /** Fixed roles: who they are doesn't depend on the rest of the cast. */
 function isFixed(rule: GwCastRule): boolean {
@@ -175,7 +179,8 @@ function isFixed(rule: GwCastRule): boolean {
     "picked" in rule ||
     "rival_man" in rule ||
     "ruler_of" in rule ||
-    "past" in rule
+    "past" in rule ||
+    "faction_leader" in rule
   );
 }
 
@@ -267,7 +272,10 @@ export function castOf(
     for (const r of "any_of" in rule ? rule.any_of : [rule]) {
       // Someone as they were: nobody the rest of the game has to know of.
       if ("past" in r) id = r.past;
-      else id = fill(gw, seat, scene, role, r, out, called, act)?.id ?? null;
+      // A faction's leader may be a pack-only outsider: no state to fill from.
+      else if ("faction_leader" in r) {
+        id = factionLeader(gw, seat, r.faction_leader);
+      } else id = fill(gw, seat, scene, role, r, out, called, act)?.id ?? null;
       if (id !== null) break;
     }
     if (id === null) return null;

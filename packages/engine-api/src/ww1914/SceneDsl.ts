@@ -540,6 +540,8 @@ const GwBaseCastRuleSchema = z.union([
    * only in the pack's `people`.
    */
   z.object({ past: GwIdSchema }).strict(),
+  /** The leader of that faction now (GwHouse, ww158); nobody while it has none. */
+  z.object({ faction_leader: GwIdSchema }).strict(),
 ]);
 
 /**

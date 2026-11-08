@@ -4,8 +4,9 @@
 // field needs no plumbing. Never store undefined: use null. Integers only.
 import { z } from "zod";
 import { GwBudgetStateSchema } from "./GwBudget";
-import { GwCraftStateSchema } from "./GwCraft";
 import { GW_TAGS } from "./GwCountries";
+import { GwCraftStateSchema } from "./GwCraft";
+import { GwHouseStateSchema } from "./GwHouse";
 import { GwLawStateSchema } from "./GwLaw";
 import { GwPlaceSchema } from "./GwPlaces";
 import { gwPressStart, GwPressStateSchema } from "./GwPress";
@@ -506,6 +507,12 @@ export const GW_SOURCES = [
   "embassy_rome",
   /** The seat's own eyes: a visit. Never wrong. */
   "own_eyes",
+  /** The house's counter (ww158). */
+  "whip",
+  /** The political police: plot signs, files. */
+  "police",
+  /** The envoy's word before an allied conference. */
+  "envoy",
 ] as const;
 export type GwSource = (typeof GW_SOURCES)[number];
 export const GW_STAMPS = ["confirmed", "unconfirmed", "estimate"] as const;
@@ -518,6 +525,14 @@ export const GW_FACT_KINDS = [
   "mob",
   "shells",
   "morale",
+  /** The whip's count of a bill: GW_WHIP_WORDS index (ww158). */
+  "count",
+  /** A plot's heat, as the police see it (S2). */
+  "plot",
+  /** A weakness in a file: 1 real, 0 not (S2). */
+  "file",
+  /** What an ally will do at a conference (S2). */
+  "ally",
 ] as const;
 export type GwFactKind = (typeof GW_FACT_KINDS)[number];
 
@@ -537,6 +552,8 @@ export const GwReportSchema = z.object({
   chapter: z.number().int(),
   /** Day an unconfirmed report is checked; null once it has been. */
   checkDay: z.number().int().nullable(),
+  /** What it is about, beyond the country: a bill, a plot, a file's uid, an ask. */
+  about: GwIdSchema.nullable().optional(),
 });
 export type GwReport = z.infer<typeof GwReportSchema>;
 
@@ -983,6 +1000,8 @@ export const GwSeatStateSchema = z.object({
   prologue: GwPrologueStateSchema.optional(),
   /** Inventions, the year's project, the footing (GwCraft.ts); absent until any. */
   craft: GwCraftStateSchema.optional(),
+  /** The house, its factions, files, asks, plots (GwHouse.ts); absent until any. */
+  house: GwHouseStateSchema.optional(),
 });
 export type GwSeatState = z.infer<typeof GwSeatStateSchema>;
 

@@ -26,6 +26,7 @@ import { fieldOrder, raiseFooting } from "./Craft";
 import { inStage, makeCard, placeCard, repeatable, sceneWear } from "./Desk";
 import { proposalsFor } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
+import { spendHouseCall } from "./House";
 import { lawOrder } from "./Laws";
 import { dismissPerson, dismissPrice } from "./People";
 import { postGeneral } from "./Post";
@@ -109,14 +110,17 @@ export function applyGwOrder(
     case "summon": {
       const scene = sceneOf(o.topic);
       const own = scene !== null && isPrivate(scene);
+      const extra =
+        (seat.house?.calls ?? 0) > 0 && o.topic.startsWith("gw_lb_");
       if (own && seat.privates <= 0) return "no_private";
-      if (!own && seat.audiences <= 0) return "no_audience";
+      if (!own && !extra && seat.audiences <= 0) return "no_audience";
       if (scene?.kind !== "talk" || scene.summon !== true) return "no_topic";
       if (!summonable(gw, seat, o.person, o.topic)) return "no_topic";
       const card = makeCard(gw, seat, scene, "summon");
       if (card === null) return "no_topic";
       if (own) seat.privates--;
-      else seat.audiences--;
+      // A lobby talk spends the house's extra calls first (owner's call 2).
+      else if (!spendHouseCall(seat, o.topic)) seat.audiences--;
       placeCard(gw, seat, card);
       return null;
     }
@@ -160,7 +164,7 @@ export function applyGwOrder(
     case "budget":
       return budgetOrder(gw, seat, { shares: o.shares, mix: o.mix }, o.force);
     case "law":
-      return lawOrder(gw, seat, o.law, o.act);
+      return lawOrder(gw, seat, o.law, o.act, o.sponsor ?? null);
     case "press_censor":
       return pressCensor(gw, seat, o.up);
     case "press_invite":

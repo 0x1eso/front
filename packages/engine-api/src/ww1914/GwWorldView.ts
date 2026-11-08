@@ -22,8 +22,9 @@ import type {
   GwThread,
 } from "./GreatWarTypes";
 import type { GwBudgetView } from "./GwBudget";
-import type { GwCraftView } from "./GwCraft";
 import type { GwTag } from "./GwCountries";
+import type { GwCraftView } from "./GwCraft";
+import type { GwHouseView } from "./GwHouse";
 import type { GwLawView } from "./GwLaw";
 import type { GwPlace } from "./GwPlaces";
 import type { GwPressView } from "./GwPress";
@@ -182,4 +183,6 @@ export interface GwWorldView {
   press: GwPressView | null;
   /** Inventions, the year's project, the footing (ww157). */
   craft?: GwCraftView;
+  /** The house and its factions (ww158); absent for a country with no rows. */
+  house?: GwHouseView;
 }
