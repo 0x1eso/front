@@ -3,6 +3,7 @@
 // through its chapters, the footing's big scene and terms, a shortage answered.
 import { GreatWarStateSchema } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import type { GwPack } from "@openfront/engine-api/ww1914/GwPack";
+import { gwContentProblems } from "@openfront/engine-api/ww1914/SceneCheck";
 import {
   decide,
   GwScene,
@@ -27,6 +28,10 @@ import type {
   GwInventionRow,
   GwProjectRow,
   GwShortageRow,
+} from "@openfront/engine-lib/ww1914/CraftRows";
+import {
+  craftCalledScenes,
+  GW_PROJECT_SCENES,
 } from "@openfront/engine-lib/ww1914/CraftRows";
 import { craftEdge, craftStep } from "@openfront/engine/ww1914/Craft";
 import type { GreatWar } from "@openfront/engine/ww1914/GreatWar";
@@ -188,19 +193,26 @@ const big = (id: string, level: number): GwScene => ({
   },
 });
 
+/** The fixture rows' own scenes: the papers made from them and the written ones. */
+function fixtureScenes(
+  inventions: readonly GwInventionRow[],
+  projects: readonly GwProjectRow[],
+): GwScene[] {
+  return [
+    ...craftScenes(inventions, projects),
+    ...GW_PROJECT_SCENES.map((x) => wire(`t_pj_${x}`)),
+    wire("t_sh"),
+    big("t_ft_war", 1),
+    big("t_ft_total", 2),
+  ];
+}
+
 function useFixture(rows: Partial<GwContent> = {}): void {
   const inventions = rows.inventions ?? [INV];
   const projects = rows.projects ?? [];
   useGwContent({
     ...GW_CONTENT,
-    scenes: [
-      ...GW_CONTENT.scenes,
-      ...craftScenes(inventions, projects),
-      ...["prep", "opp", "exec", "done", "fail"].map((x) => wire(`t_pj_${x}`)),
-      wire("t_sh"),
-      big("t_ft_war", 1),
-      big("t_ft_total", 2),
-    ],
+    scenes: [...GW_CONTENT.scenes, ...fixtureScenes(inventions, projects)],
     inventions,
     projects,
     footing: rows.footing ?? [FT],
@@ -208,6 +220,35 @@ function useFixture(rows: Partial<GwContent> = {}): void {
   });
 }
 afterEach(() => useGwContent(null));
+
+describe("the content check", () => {
+  test("the scenes the rows call count as scheduled", () => {
+    const rows = {
+      inventions: [INV],
+      projects: [PJ],
+      footing: [FT],
+      shortages: [SH],
+    };
+    const scenes = fixtureScenes(rows.inventions, rows.projects);
+    const unscheduled = (outside: string[]) =>
+      gwContentProblems(scenes, GW_CONTENT.people, outside).filter((x) =>
+        x.includes("nothing schedules it"),
+      );
+    // Without the rows the papers, the pick, footing and shortage scenes are
+    // flagged (the project's chapters cast `called`, which frees them anyway).
+    expect(unscheduled([]).map((x) => x.split(":")[0])).toEqual(
+      expect.arrayContaining([
+        "t_inv",
+        "t_inv_used",
+        "deu_agenda",
+        "t_ft_war",
+        "t_sh",
+      ]),
+    );
+    expect(unscheduled(craftCalledScenes(rows))).toEqual([]);
+    expect(craftCalledScenes(rows)).toHaveLength(scenes.length);
+  });
+});
 
 const ctxOf = (gw: GreatWar) => ({ gw, seat: gw.s.seats[0], cast: {} });
 

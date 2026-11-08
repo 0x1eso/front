@@ -150,3 +150,35 @@ export interface GwShortageRow {
   readonly scene: string;
   readonly drag: readonly GwCraftTerm[];
 }
+
+/** The chapters of a project, in the order they come. */
+export const GW_PROJECT_SCENES = [
+  "prep",
+  "opp",
+  "exec",
+  "done",
+  "fail",
+] as const;
+
+/**
+ * Every scene the statecraft engine lays on the desk itself, from the rows: a
+ * scheduledOnly scene here has its scheduler (SceneCheck's `outside`).
+ */
+export function craftCalledScenes(rows: {
+  readonly inventions?: readonly GwInventionRow[];
+  readonly projects?: readonly GwProjectRow[];
+  readonly footing?: readonly GwFootingRow[];
+  readonly shortages?: readonly GwShortageRow[];
+}): string[] {
+  const projects = rows.projects ?? [];
+  const tags = [...new Set(projects.map((r) => r.tag))];
+  return [
+    ...(rows.inventions ?? []).flatMap((r) =>
+      ["", "_ok", "_fail", "_used"].map((x) => `${r.id}${x}`),
+    ),
+    ...tags.map((t) => `${t.toLowerCase()}_agenda`),
+    ...projects.flatMap((r) => GW_PROJECT_SCENES.map((x) => `${r.id}_${x}`)),
+    ...(rows.footing ?? []).flatMap((r) => r.steps.map((s) => s.scene)),
+    ...(rows.shortages ?? []).map((r) => r.scene),
+  ];
+}
