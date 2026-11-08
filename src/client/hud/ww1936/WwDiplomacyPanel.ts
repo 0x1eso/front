@@ -17,7 +17,13 @@ import {
   drawerInsets,
 } from "../domestic/DomesticPanel";
 import { DepthMiscModel } from "./DepthMiscModel";
-import type { WarCard } from "./EndgameModel";
+import { DEAL_UI_KEYS } from "./DiploKeys";
+import {
+  type SeparatePeaceButton,
+  separatePeaceButtons,
+  ultimatumsInLines,
+} from "./DiploModel";
+import type { WarCard, WarMemberView } from "./EndgameModel";
 import { countryBadges, endgameKey } from "./EndgameModel";
 import { countryText } from "./EndgameNames";
 import { linePeacePreview, linePeaceUiOf } from "./LinePeaceModel";
@@ -51,6 +57,7 @@ import {
   WW_BAND_PX,
 } from "./WorldWarModel";
 import { type AidPreset, OpenWwAidEvent } from "./WwAidTab";
+import { autoMaskOf, renderAutoSwitch } from "./WwAutoUi";
 import {
   OpenWwDiplomacyEvent,
   WW_DIPLOMACY_TABS,
@@ -335,13 +342,33 @@ export class WwDiplomacyPanel extends LitElement implements Controller {
           <h3 class="m-0 max-w-[30%] shrink-0 truncate text-sm font-bold">
             ${translateText("ww1936.panel.title")}
           </h3>
-          ${tabs} ${close}
+          ${tabs} ${this.renderAutoDiplomacy()} ${close}
         </div>
         <div data-ww-scroll class="min-h-0 flex-1 overflow-y-auto px-3 pb-3">
           ${this.renderTab(i)}
         </div>
       </aside>
     `;
+  }
+
+  /**
+   * Diplomacy (ww161 Design B §6): the "diplomacy" auto switch (default
+   * off), in the head like the air and intel drawers' switches: when on,
+   * my country's AI answers every offer at once and no card shows.
+   */
+  private renderAutoDiplomacy() {
+    const me = this.game?.myPlayer() ?? null;
+    if (me === null || politicsInput(this.game) === null) return nothing;
+    return html`<span
+      class="shrink-0"
+      title=${translateText("ww1936.deal.auto_hint")}
+      >${renderAutoSwitch(
+        "diplomacy",
+        autoMaskOf(this.game, me.smallID()),
+        (o) => this.send(o),
+        true,
+      )}</span
+    >`;
   }
 
   private renderTab(i: PoliticsModelInput | null): TemplateResult {
@@ -633,11 +660,36 @@ export class WwDiplomacyPanel extends LitElement implements Controller {
     const b = w === undefined ? null : whitePeaceButton(this.game, me, w);
     if (b === null || w === undefined) return nothing;
     const ui = negPeaceUiOf(this.game);
+    // Diplomacy D1: my draft may go to an enemy member instead (a separate
+    // peace, opened from its row or the country panel), with its own reasons.
+    const sep: SeparatePeaceButton | null =
+      ui.war === b.war && ui.target !== b.target
+        ? (separatePeaceButtons(this.game, me, w).find(
+            (x) => x.target === ui.target,
+          ) ?? null)
+        : null;
     // The other side's leader changed while I composed: the draft goes.
-    if (ui.war === b.war && ui.target !== b.target) ui.close();
+    if (
+      ui.war === b.war &&
+      ui.target !== b.target &&
+      (sep === null || sep.block !== null || sep.pending)
+    ) {
+      ui.close();
+    }
     const composer =
-      b.pending || b.block !== null ? null : negPeaceComposer(this.game, me, w);
-    if (composer === null && ui.war === b.war && (b.pending || b.block)) {
+      sep !== null
+        ? ui.war === b.war
+          ? negPeaceComposer(this.game, me, w)
+          : null
+        : b.pending || b.block !== null
+          ? null
+          : negPeaceComposer(this.game, me, w);
+    if (
+      composer === null &&
+      sep === null &&
+      ui.war === b.war &&
+      (b.pending || b.block)
+    ) {
       // The offer went (or can't go now): the draft goes.
       ui.close();
     }
@@ -646,7 +698,7 @@ export class WwDiplomacyPanel extends LitElement implements Controller {
       b.blockId === "cooldown" ? peaceWhyForWar(this.game, me, b.war) : null;
     // War weariness of the other side's leader: a small bar (ww88).
     const weary = this.game.wwEndgame?.()?.judgeFor(me, b.war)?.weary ?? null;
-    const key = `wpeace:${b.war}:${b.target}`;
+    const key = `wpeace:${b.war}:${ui.war === b.war ? ui.target : b.target}`;
     const armed = this.armed(key);
     const redraw = () => this.requestUpdate();
     // Peace on the current line: its preview, unless the composer took the row.
@@ -782,8 +834,11 @@ export class WwDiplomacyPanel extends LitElement implements Controller {
     const m = diplomacyModel(this.game);
     // P5 (spec §20.5): the war records first, the past conferences last.
     const me = this.game.myPlayer()?.smallID() ?? 0;
-    const cards = warCardsTemplate(this.game, me, (c) =>
-      this.renderWhitePeace(c, me),
+    const cards = warCardsTemplate(
+      this.game,
+      me,
+      (c) => this.renderWhitePeace(c, me),
+      (c, m) => this.renderSeparatePeace(c, m, me),
     );
     const past = pastConferencesTemplate(this.game);
     const myWars = html`<div class=${HEADING}>
@@ -870,8 +925,72 @@ export class WwDiplomacyPanel extends LitElement implements Controller {
           >
             ${t.against.map((a) => html`<li>${a}</li>`)}
           </ul>`}
-      ${past}
+      ${this.renderUltimatumsIn(me)} ${past}
     `;
+  }
+
+  /**
+   * Diplomacy D1 (ww161 Design B §1): under each enemy member's row while I
+   * lead my side, [단독 강화] — it opens the peace composer toward that
+   * member (white, terms or none) — greyed with its reason; for an exile
+   * also [내 속국으로 귀환] (two taps).
+   */
+  private renderSeparatePeace(c: WarCard, m: WarMemberView, me: number) {
+    if (c.ended || c.mySide < 0) return nothing;
+    const w = this.game.wwEndgame?.()?.wars.find((x) => x.id === c.id);
+    if (w === undefined) return nothing;
+    const b = separatePeaceButtons(this.game, me, w).find(
+      (x) => x.target === m.id,
+    );
+    if (b === undefined) return nothing;
+    const ui = negPeaceUiOf(this.game);
+    const off = b.block !== null || b.pending;
+    const homeKey = `home:${b.war}:${b.target}`;
+    return html`<button
+        type="button"
+        data-ww-act="separate_peace"
+        data-ww-target=${b.target}
+        class=${BUTTON}
+        ?disabled=${off}
+        @click=${() => {
+          linePeaceUiOf(this.game).close();
+          ui.open(b.war, b.target);
+          this.requestUpdate();
+        }}
+      >
+        ${translateText(DEAL_UI_KEYS.rowSeparate)}
+      </button>
+      ${b.exile && !off
+        ? this.twoTapButton(homeKey, translateText(DEAL_UI_KEYS.home), {
+            kind: "peace_offer",
+            war: b.war,
+            target: b.target,
+            home: true,
+          })
+        : nothing}
+      ${b.block === null
+        ? nothing
+        : html`<span data-ww-act-block class="text-xs text-red-300"
+            >${b.block}</span
+          >`}`;
+  }
+
+  /** Diplomacy D5: "최후통첩을 보낸 나라" next to "who justifies against me". */
+  private renderUltimatumsIn(me: number) {
+    const lines = ultimatumsInLines(this.game, me);
+    return html`<div class=${HEADING}>
+        ${translateText(DEAL_UI_KEYS.ultimatumsIn)}
+      </div>
+      ${lines.length === 0
+        ? html`<p class="m-0 text-xs text-white/60">
+            ${translateText("ww1936.deal.ultimatums_none")}
+          </p>`
+        : html`<ul
+            data-ww-ultimatums-in
+            class="m-0 list-none p-0 text-xs font-semibold text-red-300"
+          >
+            ${lines.map((l) => html`<li>${l}</li>`)}
+          </ul>`}`;
   }
 
   /** P5 (spec §20.5–§20.6): "Exile" and "Subject" beside a country's name. */

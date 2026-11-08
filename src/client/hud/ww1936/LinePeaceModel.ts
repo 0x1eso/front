@@ -23,6 +23,7 @@ import {
   type PeaceMapSource,
 } from "../../render/gl/passes/PeaceMapPass";
 import { translateText } from "../../Utils";
+import { dealMapRegions, dealMapTap, dealUiOf } from "./DealUi";
 import { countryText } from "./EndgameNames";
 import {
   type NegPeaceGame,
@@ -184,7 +185,7 @@ export function linePeacePreview(
   const ui = linePeaceUiOf(game);
   if (ui.war !== w.id || me <= 0) return null;
   const target = ui.target;
-  const row = game.wwEndgame?.()?.lineFor(me, w.id) ?? null;
+  const row = game.wwEndgame?.()?.lineFor(me, w.id, target) ?? null;
   const ready = row !== null && row.to === target;
   const split: WwLinePeaceSplit = ready
     ? row
@@ -249,7 +250,7 @@ function mapLine(
     if (o === null || o.line === undefined) return null;
     return { split: flipSplit(o.line), me: o.to, them: o.from };
   }
-  const row = eg.lineFor(me, ui.war);
+  const row = eg.lineFor(me, ui.war, ui.target);
   if (row === null || row.to !== ui.target) return null;
   return { split: row, me, them: ui.target };
 }
@@ -288,6 +289,8 @@ export function linePeaceMapRegions(game: NegPeaceGame): PeaceMapRegion[] {
  * nothing else happens. False when the map is off.
  */
 export function linePeaceMapTap(game: WhitePeaceGame, region: number): boolean {
+  // Diplomacy (ww162 L6): an open deal, ultimatum or collaboration composer takes the tap.
+  if (dealMapTap(game as NegPeaceGame, region)) return true;
   const ui = linePeaceUiOf(game);
   if (!ui.map) return false;
   ui.region = Math.max(0, region);
@@ -336,6 +339,21 @@ export function linePeaceMapSource(game: NegPeaceGame): PeaceMapSource {
   let key = "";
   return {
     key: () => {
+      // Diplomacy (ww162 L6): the open composer's regions come first.
+      const deal = dealUiOf(game);
+      if (deal.map) {
+        const k = [
+          deal.version,
+          game.wwLand?.()?.version ?? 0,
+          game.wwPolitics?.()?.version ?? 0,
+          game.myPlayer()?.smallID() ?? 0,
+        ].join(":");
+        if (k !== seen) {
+          seen = k;
+          key = `deal:${k}`;
+        }
+        return key;
+      }
       const ui = linePeaceUiOf(game);
       if (!ui.map) return other.key();
       const eg = game.wwEndgame?.() ?? null;
@@ -353,6 +371,10 @@ export function linePeaceMapSource(game: NegPeaceGame): PeaceMapSource {
       return key;
     },
     regions: () =>
-      linePeaceUiOf(game).map ? linePeaceMapRegions(game) : other.regions(),
+      dealUiOf(game).map
+        ? dealMapRegions(game)
+        : linePeaceUiOf(game).map
+          ? linePeaceMapRegions(game)
+          : other.regions(),
   };
 }

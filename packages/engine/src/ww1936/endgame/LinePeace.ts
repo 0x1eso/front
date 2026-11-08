@@ -10,7 +10,6 @@
 // offers by id.
 import type { WwOrderBlock } from "@openfront/engine-api/ww1936/EconomyTypes";
 import {
-  WW_WHITE_PEACE_CARD_TICKS,
   WW_WHITE_PEACE_PP,
   WW_WHITE_PEACE_STALEMATE_DAYS,
   WwLinePeaceRow,
@@ -34,8 +33,8 @@ import {
   NegPeaceJudge,
   negPeaceMissing,
 } from "@openfront/engine-lib/ww1936/NegPeaceRules";
-import { wwRealTicks } from "@openfront/engine-lib/ww1936/Pace";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
+import { targetLeaves } from "@openfront/engine-lib/ww1936/SeparatePeaceRules";
 import { evictDivisions, transferRegionPeaceful } from "../land/PoliticsBridge";
 import { payPp } from "../politics/PayPp";
 import { negPeaceFacts, peaceJudgeOf, peaceReasonOf } from "./NegPeace";
@@ -52,6 +51,8 @@ import {
   heldPm,
   muchStronger,
   pairsOf,
+  peaceDeadline,
+  peaceJudgeTargets,
   peaceOfferBlock,
   proposerGroup,
   proposerHoldsBeaten,
@@ -90,23 +91,35 @@ export function linePeaceFacts(
  * the other]. The whole war: both sides' members still in it (fighting, or
  * capitulated without an exile — those the white peace revives); a
  * separate peace: the proposer and its puppets there, and the enemies they
- * fight in that war (the pairs the separate peace ends).
+ * fight in that war (the pairs the separate peace ends). D1, a side
+ * leader's separate peace with member `to`: the other way round — `to` and
+ * its puppets, and the members of the proposer's side they fight.
  */
 export function lineGroups(
   eg: WwEndgame,
   w: WwWar,
   from: number,
   whole: boolean,
+  to?: number,
 ): [number[], number[]] {
   const s = eg.sideIndex(w, from);
   if (s === -1) return [[], []];
+  if (to !== undefined && targetLeaves(w, from, to, whole)) {
+    const [theirs, mine] = pairGroups(eg, w, to);
+    return [mine, theirs];
+  }
   if (whole) {
     const inIt = (m: Member) =>
       fighting(m) || (m.state === "capitulated" && !eg.isExile(m.id));
     const ids = (x: 0 | 1) => w.sides[x].members.filter(inIt).map((m) => m.id);
     return [ids(s), ids(s === 0 ? 1 : 0)];
   }
-  const mine = [from, ...followers(eg, w, from)];
+  return pairGroups(eg, w, from);
+}
+
+/** `id` and its puppets in `w`, and the enemies they fight there (ascending). */
+function pairGroups(eg: WwEndgame, w: WwWar, id: number): [number[], number[]] {
+  const mine = [id, ...followers(eg, w, id)];
   const own = new Set(mine);
   const theirs = new Set<number>();
   for (const [p, q] of pairsOf(eg, w)) {
@@ -116,15 +129,16 @@ export function lineGroups(
   return [mine, [...theirs].sort((x, y) => x - y)];
 }
 
-/** What a line offer of `from` in `w` would settle now: the regions changing hands and the two groups. */
+/** What a line offer of `from` (to `to`, D1) in `w` would settle now: the regions changing hands and the two groups. */
 export function lineMovesOf(
   eg: WwEndgame,
   w: WwWar,
   from: number,
   whole: boolean,
   f: LinePeaceFacts = linePeaceFacts(eg),
+  to?: number,
 ): { moves: LineMove[]; mine: number[]; theirs: number[] } {
-  const [mine, theirs] = lineGroups(eg, w, from, whole);
+  const [mine, theirs] = lineGroups(eg, w, from, whole, to);
   if (mine.length === 0 || theirs.length === 0) {
     return { moves: [], mine, theirs };
   }
@@ -158,20 +172,20 @@ export function offerLinePeace(
   const w = eg.war(warId)!;
   const s = eg.sideIndex(w, from);
   if (s === -1) return "not_at_war";
-  const human = eg.isHumanControlled(target);
+  const whole = w.sides[s].leader === from;
+  const id = eg.nextOfferId++;
   eg.peaceOffers.push({
-    id: eg.nextOfferId++,
+    id,
     war: warId,
     from,
     to: target,
-    whole: w.sides[s].leader === from,
+    whole,
     sentTick: tick,
-    // Its real 30 s at the game's pace, as the white peace's card.
-    deadlineTick: human
-      ? tick +
-        wwRealTicks(eg.mg.config().gameConfig(), WW_WHITE_PEACE_CARD_TICKS)
-      : tick,
+    // The white peace's card, in the one card queue.
+    deadlineTick: peaceDeadline(eg, target, id, tick),
     line: true,
+    // D1: a side leader's separate peace with a member, as sent.
+    ...(targetLeaves(w, from, target, whole) ? { sep: true as const } : {}),
   });
   eg.dirtyPeace = true;
   return null;
@@ -192,7 +206,7 @@ export function applyLinePeace(
   if (o.line !== true) return;
   const w = eg.war(o.war);
   if (w === null) return;
-  const { moves } = lineMovesOf(eg, w, o.from, o.whole);
+  const { moves } = lineMovesOf(eg, w, o.from, o.whole, undefined, o.to);
   if (moves.length === 0) return;
   const ww = eg.ww;
   const pol = ww.politics;
@@ -234,7 +248,7 @@ export function lineJudgeOf(
   day: number,
   f: LinePeaceFacts = linePeaceFacts(eg),
 ): { j: NegPeaceJudge; value: number; moves: LineMove[]; mine: number[] } {
-  const { moves, mine, theirs } = lineMovesOf(eg, w, from, whole, f);
+  const { moves, mine, theirs } = lineMovesOf(eg, w, from, whole, f, to);
   let j = peaceJudgeOf(eg, w, from, to, whole, day, f);
   // A proposer past its way to the surrender line is refused outright, as
   // a white peace is (ww88: the line is judged at full value, so this
@@ -394,7 +408,7 @@ export function linePeaceOfferView(
   const w = eg.war(o.war);
   const f = linePeaceFacts(eg);
   if (w === null) return { gain: [], lose: [], gainVp: 0, loseVp: 0 };
-  const { moves, mine } = lineMovesOf(eg, w, o.from, o.whole, f);
+  const { moves, mine } = lineMovesOf(eg, w, o.from, o.whole, f, o.to);
   const own = new Set(mine);
   return linePeaceSplit(f, moves, (x) => own.has(x));
 }
@@ -417,29 +431,30 @@ export function linePeaceData(
   for (const w of eg.wars) {
     if (w.ended !== null || w.kind !== "normal" || day < 0) continue;
     for (const s of [0, 1] as const) {
-      const target = w.sides[s === 0 ? 1 : 0].leader;
-      if (target <= 0) continue;
       for (const m of w.sides[s].members) {
         if (!fighting(m) || !eg.isHumanControlled(m.id)) continue;
         f ??= linePeaceFacts(eg);
         const whole = w.sides[s].leader === m.id;
-        const t = lineJudgeOf(eg, w, m.id, target, whole, day, f);
-        const own = new Set(t.mine);
-        // ww106: a winning AI democracy's side says no at every roll.
-        const refused =
-          !eg.isHumanControlled(target) &&
-          lineRefused(eg, w, s === 0 ? 1 : 0, t.moves, day);
-        rows.push({
-          war: w.id,
-          from: m.id,
-          to: target,
-          ...linePeaceSplit(f, t.moves, (x) => own.has(x)),
-          chance: refused ? 0 : negPeaceChance(t.j, t.value),
-          missing: negPeaceMissing(t.j, t.value),
-          ...peaceReasonOf(eg, w, m.id, target, whole, day, t.j.pct),
-          ...(refused ? { reason: "winning" as const } : {}),
-          capPm: surrenderPm(eg, m.id),
-        });
+        // D1: a side leader's separate peace with each enemy member too.
+        for (const target of peaceJudgeTargets(eg, w, s, whole)) {
+          const t = lineJudgeOf(eg, w, m.id, target, whole, day, f);
+          const own = new Set(t.mine);
+          // ww106: a winning AI democracy's side says no at every roll.
+          const refused =
+            !eg.isHumanControlled(target) &&
+            lineRefused(eg, w, s === 0 ? 1 : 0, t.moves, day);
+          rows.push({
+            war: w.id,
+            from: m.id,
+            to: target,
+            ...linePeaceSplit(f, t.moves, (x) => own.has(x)),
+            chance: refused ? 0 : negPeaceChance(t.j, t.value),
+            missing: negPeaceMissing(t.j, t.value),
+            ...peaceReasonOf(eg, w, m.id, target, whole, day, t.j.pct),
+            ...(refused ? { reason: "winning" as const } : {}),
+            capPm: surrenderPm(eg, m.id),
+          });
+        }
       }
     }
   }

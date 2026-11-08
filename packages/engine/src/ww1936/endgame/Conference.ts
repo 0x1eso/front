@@ -8,6 +8,10 @@ import {
   COUNTRIES,
   NAMED_DORMANT_TAGS,
 } from "@openfront/engine-api/ww1936/Countries";
+import {
+  DIPLO_NOTICES,
+  noticeId,
+} from "@openfront/engine-api/ww1936/DiploTypes";
 import type { WwOrderBlock } from "@openfront/engine-api/ww1936/EconomyTypes";
 import {
   CS_GONE,
@@ -478,6 +482,78 @@ function assignAtOpening(eg: WwEndgame, c: Conference): void {
   for (const [id, pts] of out.comp) {
     const p = c.parts.find((x) => x.id === id);
     if (p !== undefined) p.pts += pts;
+  }
+  assignPromises(eg, c);
+}
+
+/**
+ * Diplomacy D4 (ww161 Design B §4, lane L3): the promises made in the
+ * conference's wars, before round 1. One whose promiser and receiver both
+ * take part on the winning side hands the receiver the promised regions
+ * still at stake (lowest promise id first; a region goes once), as the
+ * promiser's take_for of round 0: the receiver pays nothing, the promiser
+ * the regions' price as a demand would cost it (plan decision 13), down to
+ * 0 points — a promise is kept whatever it costs. The rest lapse. Either
+ * way the receiver is told, and the promises are done.
+ */
+function assignPromises(eg: WwEndgame, c: Conference): void {
+  const mine = eg.promises.filter((p) => c.warIds.includes(p.war));
+  if (mine.length === 0) return;
+  eg.promises = eg.promises.filter((p) => !c.warIds.includes(p.war));
+  eg.dirtyDiplo = true;
+  const legal = eg.ww.politics.legalOwner;
+  const stake = new Set(c.stake);
+  const taken = takenMap(eg, c);
+  const facts = peaceFacts(eg);
+  for (const p of mine) {
+    const w = eg.war(p.war);
+    const winner = w?.ended?.winner ?? -1;
+    const giver = c.parts.find((x) => x.id === p.from);
+    const won = (id: number) =>
+      w !== null &&
+      eg.isActor(id) &&
+      c.parts.some((x) => x.id === id) &&
+      eg.sideIndex(w, id) === winner;
+    const regions =
+      giver !== undefined && won(p.from) && won(p.to)
+        ? p.regions.filter(
+            (r) => stake.has(r) && !taken.has(r) && !eg.isZone(r),
+          )
+        : [];
+    if (giver === undefined || regions.length === 0) {
+      if (eg.isActor(p.to)) {
+        eg.message(
+          p.to,
+          noticeId(DIPLO_NOTICES.promiseLapsed),
+          countryParams(eg, { country: p.from, target: p.target }),
+        );
+      }
+      continue;
+    }
+    for (const r of regions) {
+      const cost = Math.min(
+        giver.pts,
+        regionCost(eg, c, r, p.from, p.to, facts),
+      );
+      giver.pts -= cost;
+      taken.set(r, p.to);
+      c.settled.push({
+        kind: KIND.take_for,
+        by: p.from,
+        regions: [r],
+        target: legal[r] ?? 0,
+        beneficiary: p.to,
+        k: 0,
+        pct: 0,
+        round: 0,
+        cost,
+      });
+    }
+    eg.message(
+      p.to,
+      noticeId(DIPLO_NOTICES.promiseKept),
+      countryParams(eg, { country: p.from, target: p.target }),
+    );
   }
 }
 

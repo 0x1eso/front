@@ -30,6 +30,7 @@ import {
   negPeaceValue,
   type NegPeaceHint,
 } from "@openfront/engine-lib/ww1936/NegPeaceRules";
+import { targetLeaves } from "@openfront/engine-lib/ww1936/SeparatePeaceRules";
 import {
   PEACE_FREE,
   PEACE_MINE,
@@ -249,35 +250,40 @@ function blockText(block: string): string {
 
 // ---- The composer ----
 
-/** The proposer's group and the target's side in war `w` (as the engine's proposerGroup). */
+/**
+ * The proposer's group and the target's in war `w` (as the engine's
+ * proposerGroup and targetGroup): a side leader's separate peace with an
+ * enemy member (D1) takes only that member and its puppets.
+ */
 function sidesOf(
   game: NegPeaceGame,
   w: WwWarSummary,
   me: number,
+  target: number,
 ): { mine: Set<number>; theirs: Set<number>; whole: boolean } | null {
   const s = w.sides.findIndex((x) => x.members.some((m) => m.id === me));
   if (s < 0) return null;
   const eg = game.wwEndgame?.() ?? null;
   const whole = w.sides[s].leader === me;
-  const side = w.sides[s].members.map((m) => m.id);
-  const mine = whole
-    ? side
-    : [
-        me,
-        ...side.filter((x) => {
-          const sub = eg?.subjectOf(x) ?? null;
-          return (
-            sub !== null &&
-            sub.overlord === me &&
-            (sub.level === "puppet" || sub.level === "integrated")
-          );
-        }),
-      ];
-  return {
-    mine: new Set(mine),
-    theirs: new Set(w.sides[1 - s].members.map((m) => m.id)),
-    whole,
-  };
+  // A country and the puppets of it fighting on its side.
+  const withPuppets = (id: number, side: number) => [
+    id,
+    ...w.sides[side].members
+      .map((m) => m.id)
+      .filter((x) => {
+        const sub = eg?.subjectOf(x) ?? null;
+        return (
+          sub !== null &&
+          sub.overlord === id &&
+          (sub.level === "puppet" || sub.level === "integrated")
+        );
+      }),
+  ];
+  const mine = whole ? w.sides[s].members.map((m) => m.id) : withPuppets(me, s);
+  const theirs = targetLeaves(w, me, target, whole)
+    ? withPuppets(target, 1 - s)
+    : w.sides[1 - s].members.map((m) => m.id);
+  return { mine: new Set(mine), theirs: new Set(theirs), whole };
 }
 
 export interface NegPeaceRegionRow {
@@ -330,7 +336,7 @@ export function negPeaceComposer(
   if (ui.war !== w.id || me <= 0) return null;
   const sc = game.worldWarScenario();
   const f = negPeaceFactsOf(game);
-  const sides = sidesOf(game, w, me);
+  const sides = sidesOf(game, w, me, ui.target);
   if (sc === null || f === null || sides === null) return null;
   const eg = game.wwEndgame?.() ?? null;
   const target = ui.target;
@@ -381,7 +387,7 @@ export function negPeaceComposer(
   let hintLevel: NegPeaceComposerView["hintLevel"] = null;
   let why: string | null = null;
   const human = isHuman(game, target);
-  const j = eg?.judgeFor(me, w.id) ?? null;
+  const j = eg?.judgeFor(me, w.id, target) ?? null;
   if (human) hint = translateText("ww1936.npeace.chance_human");
   else if (j === null || j.to !== target) hint = "";
   else {

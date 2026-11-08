@@ -76,7 +76,11 @@ export function renderAutoSwitch(
   </button>`;
 }
 
-/** The economy drawer's "자동 운영" row: every switch (WW_AUTO_DOMAINS) and a one-line hint. */
+/**
+ * The economy drawer's "자동 운영" row: every switch (WW_AUTO_DOMAINS) and a
+ * one-line hint. The diplomacy switch is not an economy one: lane L6 puts
+ * it in the diplomacy screens (ww161 Design B §6).
+ */
 export function renderAutoRow(
   mask: number,
   send: (o: WwOrder) => void,
@@ -89,7 +93,9 @@ export function renderAutoRow(
       <span class="mr-1 text-xs font-bold text-white/80"
         >🤖 ${translateText("ww1936.auto.title")}</span
       >
-      ${WW_AUTO_DOMAINS.map((d) => renderAutoSwitch(d, mask, send))}
+      ${WW_AUTO_DOMAINS.filter((d) => d !== "diplomacy").map((d) =>
+        renderAutoSwitch(d, mask, send),
+      )}
     </div>
     <p class="m-0 mt-1 text-xs leading-snug text-white/60">
       ${translateText("ww1936.auto.hint")}

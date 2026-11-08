@@ -1,6 +1,13 @@
 // World War 1936 P5 (spec §3–§15, §21): the end of wars and what comes after.
 // APPEND ONLY: every list below is a wire, snapshot or content enum.
 import type { CountryTag } from "./Countries";
+import type {
+  WwCollabView,
+  WwDealJudgeRow,
+  WwDealView,
+  WwPromiseView,
+  WwUltimatumView,
+} from "./DiploTypes";
 import type { EquipmentType } from "./EconomyTypes";
 import type { Condition, Selector } from "./PoliticsDsl";
 import type { Ideology, WarGoalType } from "./PoliticsTypes";
@@ -517,6 +524,8 @@ export interface WwPeaceOfferView {
   line?: WwLinePeaceSplit;
   /** ww88: the proposer asks for terms: accepting opens a peace conference. */
   ask?: boolean;
+  /** Diplomacy D1: "come home as my subject" to an exile. */
+  home?: boolean;
 }
 /**
  * Peace on the current line (owner request 2026-10-31): the regions that
@@ -601,5 +610,17 @@ export interface WwEndgameData {
   peaceJudge?: WwPeaceJudgeRow[];
   /** Peace on the current line: each human country's possible offer, settled now. */
   linePeace?: WwLinePeaceRow[];
+  /**
+   * Diplomacy (ww161 Design B, DiploTypes), sent whole when any changed:
+   * pending deals and ultimatums, kept promises, collaboration governments
+   * and the timers [from, to, untilDay, kind] (DIPLO_COOLDOWN_KINDS).
+   */
+  deals?: WwDealView[];
+  ultimatums?: WwUltimatumView[];
+  promises?: WwPromiseView[];
+  collabs?: WwCollabView[];
+  diploCooldowns?: [number, number, number, number][];
+  /** The composer's hint rows for each human country (once a day, sent on change). */
+  dealJudge?: WwDealJudgeRow[];
   news: { id: string; params: Record<string, string | number> }[];
 }

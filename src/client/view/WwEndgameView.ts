@@ -3,6 +3,15 @@
 // controls what, wars, the open conference, occupation, cores, zones,
 // subjects, exiles, aid, takeover cards, news.
 import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
+import {
+  DIPLO_COOLDOWN_KINDS,
+  type DiploCooldownKind,
+  type WwCollabView,
+  type WwDealJudgeRow,
+  type WwDealView,
+  type WwPromiseView,
+  type WwUltimatumView,
+} from "@openfront/engine-api/ww1936/DiploTypes";
 import type {
   CountryState,
   OccupationLaw,
@@ -67,6 +76,17 @@ export class WwEndgameView {
   peaceJudge: WwPeaceJudgeRow[] = [];
   /** Peace on the current line: my possible offers, settled now (the preview). */
   linePeace: WwLinePeaceRow[] = [];
+  /**
+   * Diplomacy (ww161 Design B): pending deals and ultimatums, kept
+   * promises, collaboration governments, the timers [from, to, untilDay,
+   * kind] and the composer's judge rows. The engine sends each list whole.
+   */
+  deals: WwDealView[] = [];
+  ultimatums: WwUltimatumView[] = [];
+  promises: WwPromiseView[] = [];
+  collabs: WwCollabView[] = [];
+  diploCooldowns: [number, number, number, number][] = [];
+  dealJudge: WwDealJudgeRow[] = [];
   news: { id: string; params: Record<string, string | number> }[] = [];
 
   /** Merges one update: every present field; occupation, aid and cores by key; news appended. */
@@ -96,6 +116,12 @@ export class WwEndgameView {
     if (d.truces !== undefined) this.truces = d.truces;
     if (d.peaceJudge !== undefined) this.peaceJudge = d.peaceJudge;
     if (d.linePeace !== undefined) this.linePeace = d.linePeace;
+    if (d.deals !== undefined) this.deals = d.deals;
+    if (d.ultimatums !== undefined) this.ultimatums = d.ultimatums;
+    if (d.promises !== undefined) this.promises = d.promises;
+    if (d.collabs !== undefined) this.collabs = d.collabs;
+    if (d.diploCooldowns !== undefined) this.diploCooldowns = d.diploCooldowns;
+    if (d.dealJudge !== undefined) this.dealJudge = d.dealJudge;
     if (d.news.length > 0) {
       this.news = [...this.news, ...d.news].slice(-NEWS_KEEP);
     }
@@ -163,16 +189,28 @@ export class WwEndgameView {
   }
 
   /** White peace offers made to `smallID`, oldest first. */
-  /** Negotiated peace: the judge's facts for `from`'s offer in war `war` (null: none sent). */
-  judgeFor(from: number, war: number): WwPeaceJudgeRow | null {
+  /**
+   * Negotiated peace: the judge's facts for `from`'s offer in war `war` to
+   * `to` (absent: the enemy leader, the first row; D1 adds a row for each
+   * enemy member a side leader may offer a separate peace). Null: none sent.
+   */
+  judgeFor(from: number, war: number, to?: number): WwPeaceJudgeRow | null {
     return (
-      this.peaceJudge.find((j) => j.from === from && j.war === war) ?? null
+      this.peaceJudge.find(
+        (j) =>
+          j.from === from && j.war === war && (to === undefined || j.to === to),
+      ) ?? null
     );
   }
 
-  /** Peace on the current line: what `from`'s offer in war `war` would settle now (null: none sent). */
-  lineFor(from: number, war: number): WwLinePeaceRow | null {
-    return this.linePeace.find((r) => r.from === from && r.war === war) ?? null;
+  /** Peace on the current line: what `from`'s offer in war `war` to `to` would settle now (as judgeFor; null: none sent). */
+  lineFor(from: number, war: number, to?: number): WwLinePeaceRow | null {
+    return (
+      this.linePeace.find(
+        (r) =>
+          r.from === from && r.war === war && (to === undefined || r.to === to),
+      ) ?? null
+    );
   }
 
   offersTo(smallID: number): WwPeaceOfferView[] {
@@ -198,5 +236,48 @@ export class WwEndgameView {
     const lo = Math.min(a, b);
     const hi = Math.max(a, b);
     return this.truces.find((t) => t[0] === lo && t[1] === hi)?.[2] ?? 0;
+  }
+
+  /** Diplomacy: deals made to `smallID`, oldest first. */
+  dealsTo(smallID: number): WwDealView[] {
+    return this.deals.filter((o) => o.to === smallID);
+  }
+
+  /** Diplomacy: the pending deal between `a` and `b`, either way (null: none). */
+  dealBetween(a: number, b: number): WwDealView | null {
+    return (
+      this.deals.find(
+        (o) => (o.from === a && o.to === b) || (o.from === b && o.to === a),
+      ) ?? null
+    );
+  }
+
+  /** Diplomacy: ultimatums sent to `smallID`, oldest first. */
+  ultimatumsTo(smallID: number): WwUltimatumView[] {
+    return this.ultimatums.filter((o) => o.to === smallID);
+  }
+
+  /** Diplomacy: the day the `kind` timer of `from` toward `to` ends (0: none). */
+  diploCooldownUntil(
+    from: number,
+    to: number,
+    kind: DiploCooldownKind,
+  ): number {
+    const k = DIPLO_COOLDOWN_KINDS.indexOf(kind);
+    return (
+      this.diploCooldowns.find(
+        (c) => c[0] === from && c[1] === to && c[3] === k,
+      )?.[2] ?? 0
+    );
+  }
+
+  /** Diplomacy: the composer's judge row for `from`'s offer to `to` (null: none). */
+  dealJudgeFor(from: number, to: number): WwDealJudgeRow | null {
+    return this.dealJudge.find((j) => j.from === from && j.to === to) ?? null;
+  }
+
+  /** Diplomacy: the collaboration government `smallID` is (null: not one). */
+  collabOf(smallID: number): WwCollabView | null {
+    return this.collabs.find((c) => c.smallID === smallID) ?? null;
   }
 }

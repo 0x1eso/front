@@ -48,9 +48,10 @@ import {
   frontCounts,
   heldPm,
   muchStronger,
+  peaceJudgeTargets,
   proposerGroup,
-  sideIds,
   surrenderPm,
+  targetGroup,
   targetHoldsBeaten,
 } from "./WhitePeace";
 import type { PeaceOffer, WwEndgame } from "./WwEndgame";
@@ -194,9 +195,8 @@ export function peaceJudgeOf(
   f: NegPeaceFacts = negPeaceFacts(eg),
 ): NegPeaceJudge {
   const pct = acceptPct(eg, w, from, to, whole, day);
-  const s = eg.sideIndex(w, from);
   const gp = proposerGroup(eg, w, from, whole);
-  const gt = s < 0 ? [] : sideIds(w, s === 0 ? 1 : 0);
+  const gt = targetGroup(eg, w, from, to, whole);
   let pBase = 0;
   for (const x of gp) pBase += f.legalBase(x);
   let tBase = 0;
@@ -228,8 +228,7 @@ export function peaceReasonOf(
   const stronger = sTo !== -1 && muchStronger(eg, w, sTo as 0 | 1);
   const weary = warWearinessPct(day - w.startDay, stronger);
   const gp = proposerGroup(eg, w, from, whole);
-  const s = eg.sideIndex(w, from);
-  const gt = s < 0 ? [] : sideIds(w, s === 0 ? 1 : 0);
+  const gt = targetGroup(eg, w, from, to, whole);
   if (
     surrenderPm(eg, from) >= AI_PEACE_REFUSE_CAP_PM ||
     heldPm(eg, gt, gp) >= AI_PEACE_REFUSE_HELD_PM
@@ -254,9 +253,8 @@ export function offerValue(
 ): number {
   const t = o.terms;
   if (t === undefined || !hasPeaceTerms(t)) return 0;
-  const s = eg.sideIndex(w, o.from);
   const gp = new Set(proposerGroup(eg, w, o.from, o.whole));
-  const gt = new Set(s < 0 ? [] : sideIds(w, s === 0 ? 1 : 0));
+  const gt = new Set(targetGroup(eg, w, o.from, o.to, o.whole));
   return negPeaceValue(
     f,
     t,
@@ -292,7 +290,7 @@ export function aiPeaceTerms(
   const whole = w.sides[s].leader === id;
   const f = negPeaceFacts(eg);
   const gp = proposerGroup(eg, w, id, whole);
-  const gt = sideIds(w, s === 0 ? 1 : 0);
+  const gt = targetGroup(eg, w, id, target, whole);
   const inP = (x: number) => gp.includes(x);
   const inT = (x: number) => gt.includes(x);
   const j = peaceJudgeOf(eg, w, id, target, whole, day, f);
@@ -331,7 +329,7 @@ export function aiPeaceTerms(
     return sum;
   };
   if (want > 0) {
-    const mine = acceptPct(eg, w, target, id, true, day);
+    const mine = acceptPct(eg, w, target, id, true, day, true);
     const most = negPeacePctValue(j, Math.max(0, mine - AI_NEG_GIVE_FROM_PCT));
     if (most <= 0) return null;
     const held = regions.filter(
@@ -400,30 +398,36 @@ export function peaceJudgeData(
   for (const w of eg.wars) {
     if (w.ended !== null || w.kind !== "normal" || day < 0) continue;
     for (const s of [0, 1] as const) {
-      const target = w.sides[s === 0 ? 1 : 0].leader;
-      if (target <= 0) continue;
       for (const m of w.sides[s].members) {
         if (!fighting(m) || !eg.isHumanControlled(m.id)) continue;
         f ??= negPeaceFacts(eg);
         const whole = w.sides[s].leader === m.id;
-        const j = peaceJudgeOf(eg, w, m.id, target, whole, day, f);
-        // ww103: an AI side holding a beaten country deals on the line only.
-        // ww106: a winning AI democracy's side fights on.
-        const refuses =
-          !eg.isHumanControlled(target) &&
-          (targetHoldsBeaten(eg, w, m.id, whole) ||
-            democracyFightsOn(eg, w, s === 0 ? 1 : 0, day));
-        const reason = peaceReasonOf(eg, w, m.id, target, whole, day, j.pct);
-        rows.push({
-          war: w.id,
-          from: m.id,
-          to: target,
-          ...j,
-          ...reason,
-          ...(refuses
-            ? { pct: 0, winNeed: LINE_REFUSED_NEED, reason: "winning" as const }
-            : {}),
-        });
+        // D1: a side leader's separate peace with each enemy member too.
+        for (const target of peaceJudgeTargets(eg, w, s, whole)) {
+          const sep = target !== w.sides[s === 0 ? 1 : 0].leader;
+          const j = peaceJudgeOf(eg, w, m.id, target, whole, day, f);
+          // ww103: an AI side holding a beaten country deals on the line only.
+          // ww106: a winning AI democracy's side fights on.
+          const refuses =
+            !eg.isHumanControlled(target) &&
+            (targetHoldsBeaten(eg, w, m.id, whole, sep ? target : undefined) ||
+              democracyFightsOn(eg, w, s === 0 ? 1 : 0, day));
+          const reason = peaceReasonOf(eg, w, m.id, target, whole, day, j.pct);
+          rows.push({
+            war: w.id,
+            from: m.id,
+            to: target,
+            ...j,
+            ...reason,
+            ...(refuses
+              ? {
+                  pct: 0,
+                  winNeed: LINE_REFUSED_NEED,
+                  reason: "winning" as const,
+                }
+              : {}),
+          });
+        }
       }
     }
   }

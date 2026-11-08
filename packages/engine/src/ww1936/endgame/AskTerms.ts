@@ -10,15 +10,18 @@ import {
   WW_ASK_TERMS_MIN_PM,
   WW_ASK_TERMS_MIN_POOL_PCT,
   WW_PEACE_POOL_PCT,
-  WW_WHITE_PEACE_CARD_TICKS,
   WW_WHITE_PEACE_PP,
   WwWar,
 } from "@openfront/engine-api/ww1936/EndgameTypes";
-import { wwRealTicks } from "@openfront/engine-lib/ww1936/Pace";
 import { payPp } from "../politics/PayPp";
 import { endWarBetween } from "../politics/Territory";
 import { isMajor, openConference } from "./Conference";
-import { fighting, peaceOfferBlock, surrenderPm } from "./WhitePeace";
+import {
+  fighting,
+  peaceDeadline,
+  peaceOfferBlock,
+  surrenderPm,
+} from "./WhitePeace";
 import type { PeaceOffer, WwEndgame } from "./WwEndgame";
 
 /** The pool's share, percent: the minimum at the first chance, all of it at the line. */
@@ -64,18 +67,15 @@ export function askForTerms(
   pol.markCountry(from);
   const w = eg.war(warId)!;
   const to = w.sides[1 - eg.sideIndex(w, from)].leader;
-  const human = eg.isHumanControlled(to);
+  const id = eg.nextOfferId++;
   eg.peaceOffers.push({
-    id: eg.nextOfferId++,
+    id,
     war: warId,
     from,
     to,
     whole: true,
     sentTick: tick,
-    deadlineTick: human
-      ? tick +
-        wwRealTicks(eg.mg.config().gameConfig(), WW_WHITE_PEACE_CARD_TICKS)
-      : tick,
+    deadlineTick: peaceDeadline(eg, to, id, tick),
     ask: true,
   });
   eg.dirtyPeace = true;

@@ -811,6 +811,27 @@ export const BLOCK_KEYS: Readonly<Record<WwOrderBlock, string>> = {
   queue_order: "ww1936.econ.block.queue_order",
   no_deposit: "ww1936.econ.block.no_deposit",
   in_group: "ww1936.econ.block.in_group",
+  // Diplomacy (ww161 Design B).
+  peace_puppet: "ww1936.econ.block.peace_puppet",
+  home_not_exile: "ww1936.econ.block.home_not_exile",
+  deal_empty: "ww1936.econ.block.deal_empty",
+  deal_pending: "ww1936.econ.block.deal_pending",
+  deal_cooldown: "ww1936.econ.block.deal_cooldown",
+  deal_bad_item: "ww1936.econ.block.deal_bad_item",
+  deal_no_offer: "ww1936.econ.block.deal_no_offer",
+  deal_lapsed: "ww1936.econ.block.deal_lapsed",
+  promise_bad_target: "ww1936.econ.block.promise_bad_target",
+  ultimatum_gov: "ww1936.econ.block.ultimatum_gov",
+  ultimatum_relation: "ww1936.econ.block.ultimatum_relation",
+  ultimatum_cooldown: "ww1936.econ.block.ultimatum_cooldown",
+  ultimatum_bad_regions: "ww1936.econ.block.ultimatum_bad_regions",
+  ultimatum_too_much: "ww1936.econ.block.ultimatum_too_much",
+  collab_not_occupier: "ww1936.econ.block.collab_not_occupier",
+  collab_democracy: "ww1936.econ.block.collab_democracy",
+  collab_too_small: "ww1936.econ.block.collab_too_small",
+  collab_bad_region: "ww1936.econ.block.collab_bad_region",
+  collab_no_slot: "ww1936.econ.block.collab_no_slot",
+  collab_scripted: "ww1936.econ.block.collab_scripted",
 };
 
 // ---- Icons (pre-flight R7.7: emoji, no new image files) ----

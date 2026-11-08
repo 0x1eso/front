@@ -47,7 +47,26 @@ import { aiOccupationDay } from "./AiOccupation";
 import { aiSubjectsDay } from "./AiSubjects";
 import { aiAskTermsDay, askForTerms } from "./AskTerms";
 import { capitulate } from "./Capitulate";
+import { aiCollabDay, createCollab } from "./Collab";
 import { conferenceView, stepConferences, submitDemands } from "./Conference";
+import {
+  aiDealDay,
+  dealJudgeData,
+  offerDeal,
+  replyDeal,
+  stepDeals,
+} from "./Deals";
+import {
+  DIPLO_STATE_FIELDS,
+  type DiploCooldown,
+  diploData,
+  expireDiploTimers,
+  hashDiplo,
+  type StoredCollab,
+  type StoredDeal,
+  type StoredPromise,
+  type StoredUltimatum,
+} from "./DiploState";
 import { wakePending } from "./Executions";
 import {
   exileEconomy,
@@ -77,6 +96,8 @@ import {
   stepOccupation,
   supplyFactorOf,
 } from "./Occupation";
+import { aiPromiseDay } from "./Promises";
+import { aiSeparatePeaceDay, offerHome } from "./SeparatePeace";
 import {
   onOverlordWar,
   startSubjects,
@@ -86,6 +107,12 @@ import {
   tradeCivFactorPct,
   upgradeChoice,
 } from "./Subjects";
+import {
+  aiUltimatumDay,
+  replyUltimatum,
+  sendUltimatum,
+  stepUltimatums,
+} from "./Ultimatum";
 import {
   checkWarEnds,
   dailyWarScore,
@@ -288,6 +315,10 @@ const PeaceOfferSchema = z.object({
   line: z.literal(true).optional(),
   /** ww88: the proposer asks for terms (accepting opens a conference). */
   ask: z.literal(true).optional(),
+  /** Diplomacy D1: "come home as my subject" to an exile; absent for the other kinds. */
+  home: z.literal(true).optional(),
+  /** Diplomacy D1 (integration): a side leader's separate peace with an enemy member, as sent (absent: not one). */
+  sep: z.literal(true).optional(),
 });
 export type PeaceOffer = z.infer<typeof PeaceOfferSchema>;
 export const WwEndgameStateSchema = z.object({
@@ -382,6 +413,8 @@ export const WwEndgameStateSchema = z.object({
   peaceCooldowns: z.array(z.tuple([zInt(), zInt(), zInt()])).optional(),
   truces: z.array(z.tuple([zInt(), zInt(), zInt()])).optional(),
   fronts: z.array(z.tuple([zInt(), zInt(), zInt(), zInt()])).optional(),
+  /** Diplomacy (ww161 Design B, DiploState.ts): written only when not empty. */
+  ...DIPLO_STATE_FIELDS,
 });
 export type WwEndgameState = z.infer<typeof WwEndgameStateSchema>;
 
@@ -480,6 +513,12 @@ export class WwEndgame {
   truces: [number, number, number][] = [];
   /** [war, regions side 0 holds of side 1, the other way, the day the front last moved]. */
   fronts: [number, number, number, number][] = [];
+  /** Diplomacy (DiploState.ts): pending deals and ultimatums, kept promises, collaborators, timers. */
+  deals: StoredDeal[] = [];
+  ultimatums: StoredUltimatum[] = [];
+  promises: StoredPromise[] = [];
+  collabs: StoredCollab[] = [];
+  diploCooldowns: DiploCooldown[] = [];
 
   // ---- Derived (DERIVED_FIELDS) ----
   /** smallID → clientID of its human controller (plan decision 7). */
@@ -507,6 +546,8 @@ export class WwEndgame {
   dirtyControllers = false;
   dirtyTakeover = false;
   dirtyPeace = false;
+  /** Diplomacy: any of its lists changed since the screens' last data. */
+  dirtyDiplo = false;
   firstData = true;
   /** Negotiated peace (screens only): the day the judge rows were made, and the rows last sent (JSON). */
   judgeDay = -1;
@@ -514,6 +555,9 @@ export class WwEndgame {
   /** Peace on the current line (screens only): the day its rows were made, and the rows last sent (JSON). */
   lineDay = -1;
   lineSent = "";
+  /** Diplomacy (screens only, Deals.dealJudgeData): the day its rows were made, and the rows last sent (JSON). */
+  dealJudgeDay = -1;
+  dealJudgeSent = "";
 
   constructor(
     readonly mg: Game,
@@ -602,6 +646,7 @@ export class WwEndgame {
     checkWarEnds(this, day, tick); // W: spec §4.4, opens conferences
     stepFronts(this, day); // white peace: the stalemate count
     expirePeaceTimers(this, day); // white peace: truces, cooldowns
+    expireDiploTimers(this, day); // diplomacy: its timers
     deliverLendLease(this, day); // A: spec §13.3
     this.dropOldWars(day);
     this.expireTimed(day);
@@ -627,6 +672,12 @@ export class WwEndgame {
       aiPeaceDay(this, id, day, tick); // white peace
       aiLinePeaceDay(this, id, day, tick); // peace on the current line
       aiAskTermsDay(this, id, day, tick); // ww88: a beaten AI asks for terms
+      // Diplomacy (ww161 Design B): D1, D3, D4, D5, D2.
+      aiSeparatePeaceDay(this, id, day, tick);
+      aiDealDay(this, id, day, tick);
+      aiPromiseDay(this, id, day, tick);
+      aiUltimatumDay(this, id, day, tick);
+      aiCollabDay(this, id, day, tick);
     }
     this.flushDayNotes(id);
   }
@@ -636,6 +687,8 @@ export class WwEndgame {
     stepConferences(this, tick); // W: deadlines, AI-only conferences (plan decision 33)
     resolveTakeovers(this, tick); // X
     stepPeaceOffers(this, tick); // white peace: AI answers, card deadlines
+    stepDeals(this, tick); // diplomacy D3: AI answers, card deadlines
+    stepUltimatums(this, tick); // diplomacy D5: AI answers, card deadlines
     wakePending(this, tick); // foundation: addCountryExecutions for wakeQueue
   }
 
@@ -666,6 +719,12 @@ export class WwEndgame {
       case "army_garrison":
         return garrisonOrder(this, smallID, order.army, order.scope);
       case "peace_offer":
+        // Diplomacy D1: "come home as my subject" (SeparatePeace.ts).
+        if (order.home === true) {
+          return order.terms !== undefined
+            ? "peace_bad_terms"
+            : offerHome(this, smallID, order.war, order.target, tick);
+        }
         return offerPeace(
           this,
           smallID,
@@ -680,6 +739,17 @@ export class WwEndgame {
         return offerLinePeace(this, smallID, order.war, order.target, tick);
       case "peace_surrender":
         return askForTerms(this, smallID, order.war, tick);
+      // Diplomacy (ww161 Design B): deal_reply answers a deal or an ultimatum.
+      case "deal_offer":
+        return offerDeal(this, smallID, order, tick);
+      case "deal_reply":
+        return this.ultimatums.some((u) => u.id === order.offer)
+          ? replyUltimatum(this, smallID, order.offer, order.accept, tick)
+          : replyDeal(this, smallID, order.offer, order.accept, tick);
+      case "collab_create":
+        return createCollab(this, smallID, order.target, order.regions, tick);
+      case "ultimatum":
+        return sendUltimatum(this, smallID, order.target, order.regions, tick);
       default:
         return "bad_index";
     }
@@ -1577,6 +1647,11 @@ export class WwEndgame {
     // Peace on the current line: the humans' possible offers, settled now.
     const line = linePeaceData(this, first);
     if (line !== null) d.linePeace = line;
+    // Diplomacy: its lists when changed, and the deal composer's hint rows.
+    const diplo = diploData(this, first);
+    if (diplo !== null) Object.assign(d, diplo);
+    const dealJudge = dealJudgeData(this, first);
+    if (dealJudge !== null) d.dealJudge = dealJudge;
     const empty = Object.keys(d).length === 1 && d.news.length === 0;
     this.endgameNews = [];
     this.firstData = false;
@@ -1593,6 +1668,7 @@ export class WwEndgame {
     this.dirtyControllers = false;
     this.dirtyTakeover = false;
     this.dirtyPeace = false;
+    this.dirtyDiplo = false;
     return empty ? null : d;
   }
 
@@ -1688,6 +1764,14 @@ export class WwEndgame {
       peaceCooldowns: this.peaceCooldowns,
       truces: this.truces,
       fronts: this.fronts,
+      // Diplomacy: only when not empty (older games' snapshots stay as they were).
+      ...(this.deals.length > 0 ? { deals: this.deals } : {}),
+      ...(this.ultimatums.length > 0 ? { ultimatums: this.ultimatums } : {}),
+      ...(this.promises.length > 0 ? { promises: this.promises } : {}),
+      ...(this.collabs.length > 0 ? { collabs: this.collabs } : {}),
+      ...(this.diploCooldowns.length > 0
+        ? { diploCooldowns: this.diploCooldowns }
+        : {}),
     });
   }
 
@@ -1759,6 +1843,11 @@ export class WwEndgame {
     this.peaceCooldowns = c.peaceCooldowns ?? [];
     this.truces = c.truces ?? [];
     this.fronts = c.fronts ?? [];
+    this.deals = c.deals ?? [];
+    this.ultimatums = c.ultimatums ?? [];
+    this.promises = c.promises ?? [];
+    this.collabs = c.collabs ?? [];
+    this.diploCooldowns = (c.diploCooldowns ?? []) as DiploCooldown[];
     this.rebuildDerived();
     // A restored game's screens have seen nothing yet.
     this.firstData = true;
@@ -1985,7 +2074,18 @@ export class WwEndgame {
       // Negotiated peace: the terms, field by field (none: a 0; peace on
       // the current line: a 2 — it carries no terms).
       const t = o.terms;
-      mix(t !== undefined ? 1 : o.line === true ? 2 : o.ask === true ? 3 : 0);
+      // Diplomacy D1: "come home" a 4.
+      mix(
+        t !== undefined
+          ? 1
+          : o.line === true
+            ? 2
+            : o.ask === true
+              ? 3
+              : o.home === true
+                ? 4
+                : 0,
+      );
       if (t !== undefined) {
         ids(t.give);
         ids(t.take);
@@ -1993,6 +2093,8 @@ export class WwEndgame {
         mix(t.demand);
         ids(t.free);
       }
+      // Diplomacy D1: a separate peace as sent (nothing otherwise).
+      if (o.sep === true) mix(5);
     }
     for (const list of [this.peaceCooldowns, this.truces]) {
       mix(list.length);
@@ -2009,6 +2111,8 @@ export class WwEndgame {
       mix(b);
       mix(since);
     }
+    // Diplomacy (DiploState.ts): only what is there.
+    hashDiplo(this, mix, text);
     return h;
   }
 }

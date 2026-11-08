@@ -81,12 +81,16 @@ describe("the lists are appended, never reordered", () => {
     // w50 appended the four air group orders last.
     // The peace overhaul appended peace_surrender after them.
     // ww107 appended template_auto after it.
+    // Later lanes append after template_auto (the battle planner's nine, then the diplomacy's four).
+    kinds.splice(kinds.indexOf("template_auto") + 1);
     expect(kinds.pop()).toBe("template_auto");
     expect(kinds.pop()).toBe("peace_surrender");
     expect(kinds.splice(-4)).toEqual([...GROUP_ORDER_KINDS]);
     // in_group, then w57 too_small, ww61 designer_off, the peace rules'
     // peace_not_beaten and peace_not_leader, ww89 too_many_support.
-    expect(WW_ORDER_BLOCKS.slice(-6)).toEqual([
+    // The diplomacy (ww161) appends its reasons after too_many_support.
+    const upTo = WW_ORDER_BLOCKS.indexOf("too_many_support") + 1;
+    expect(WW_ORDER_BLOCKS.slice(upTo - 6, upTo)).toEqual([
       "in_group",
       "too_small",
       "designer_off",

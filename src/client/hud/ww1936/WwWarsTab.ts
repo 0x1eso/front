@@ -1,5 +1,6 @@
 import { html, nothing, TemplateResult } from "lit";
 import { translateText } from "../../Utils";
+import { promiseLines } from "./DiploModel";
 import {
   type EndgameGame,
   pastConferences,
@@ -30,34 +31,56 @@ function flag(url: string | null) {
       />`;
 }
 
-function member(m: WarMemberView): TemplateResult {
+/** What a member's row adds at its end (diplomacy D1: my separate peace buttons). */
+export type WarMemberExtra = (
+  c: WarCard,
+  m: WarMemberView,
+) => TemplateResult | typeof nothing;
+
+function member(
+  c: WarCard,
+  m: WarMemberView,
+  extra?: WarMemberExtra,
+): TemplateResult {
+  const more = extra === undefined ? nothing : extra(c, m);
   return html`<li
-    data-ww-war-member=${m.id}
-    data-state=${m.state}
-    class="flex min-w-0 items-center gap-1 ${m.state === "active"
-      ? ""
-      : "text-white/50"} ${m.me ? "font-semibold text-amber-200" : ""}"
-  >
-    ${flag(m.flag)}
-    <span class="min-w-0 truncate"
-      >${translateText("ww1936.peace.shares", {
-        country: m.name,
-        pct: Math.floor(m.sharePm / 10),
-      })}</span
+      data-ww-war-member=${m.id}
+      data-state=${m.state}
+      class="flex min-w-0 items-center gap-1 ${m.state === "active"
+        ? ""
+        : "text-white/50"} ${m.me ? "font-semibold text-amber-200" : ""}"
     >
-    ${m.state === "active"
+      ${flag(m.flag)}
+      <span class="min-w-0 truncate"
+        >${translateText("ww1936.peace.shares", {
+          country: m.name,
+          pct: Math.floor(m.sharePm / 10),
+        })}</span
+      >
+      ${m.state === "active"
+        ? nothing
+        : html`<span
+            class="shrink-0 rounded border border-white/15 px-1 text-white/60"
+            >${m.stateName}</span
+          >`}
+    </li>
+    ${more === nothing
       ? nothing
-      : html`<span
-          class="shrink-0 rounded border border-white/15 px-1 text-white/60"
-          >${m.stateName}</span
-        >`}
-  </li>`;
+      : html`<li data-ww-war-member-extra=${m.id} class="flex flex-wrap gap-1">
+          ${more}
+        </li>`}`;
 }
 
 /** What a war card adds under its members (white peace: my offer button). */
 export type WarCardExtra = (c: WarCard) => TemplateResult | typeof nothing;
 
-function card(c: WarCard, extra?: WarCardExtra): TemplateResult {
+function card(
+  game: EndgameGame,
+  c: WarCard,
+  extra?: WarCardExtra,
+  memberExtra?: WarMemberExtra,
+): TemplateResult {
+  const promises = promiseLines(game, c.id);
   const pct = c.mySharePm === null ? null : Math.floor(c.mySharePm / 10);
   return html`<li data-ww-war=${c.id} data-status=${c.status} class=${CARD}>
     <div class="flex min-w-0 items-center gap-1.5">
@@ -90,10 +113,18 @@ function card(c: WarCard, extra?: WarCardExtra): TemplateResult {
             data-ww-war-side=${n}
             class="m-0 flex min-w-0 list-none flex-col gap-0.5 p-0"
           >
-            ${s.members.map(member)}
+            ${s.members.map((m) => member(c, m, memberExtra))}
           </ul>`,
       )}
     </div>
+    ${promises.length === 0
+      ? nothing
+      : html`<ul
+          data-ww-war-promises
+          class="m-0 mt-1 list-none p-0 text-amber-200"
+        >
+          ${promises.map((l) => html`<li>${l}</li>`)}
+        </ul>`}
     ${pct === null
       ? nothing
       : html`<div data-ww-war-share=${pct} class="mt-1">
@@ -115,12 +146,15 @@ function card(c: WarCard, extra?: WarCardExtra): TemplateResult {
  * ones; each with its name ("German–Polish War (1939)"), its kind and
  * state, both sides' members with their state and share of the side's
  * war score, and my contribution as a bar. `extra`: what each card adds
- * at its end (white peace: my offer button in my ongoing wars).
+ * at its end (white peace: my offer button in my ongoing wars);
+ * `memberExtra`: what a member's row adds (my separate peace buttons).
+ * Diplomacy D4: the promises kept in the war, "약속: G → N".
  */
 export function warCardsTemplate(
   game: EndgameGame,
   me: number,
   extra?: WarCardExtra,
+  memberExtra?: WarMemberExtra,
 ): TemplateResult {
   const cards = warCards(game, me);
   return html`<div class=${HEADING}>${translateText("ww1936.war.tab")}</div>
@@ -132,7 +166,7 @@ export function warCardsTemplate(
           data-ww-war-cards
           class="m-0 flex list-none flex-col gap-1 p-0"
         >
-          ${cards.map((c) => card(c, extra))}
+          ${cards.map((c) => card(game, c, extra, memberExtra))}
         </ul>`}`;
 }
 

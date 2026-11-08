@@ -105,7 +105,7 @@ const filled = (g: Game, id: number) =>
     .slots.filter((s) => s !== null).length;
 
 describe("World War 1936 automation: the switches", () => {
-  it("auto_set is a ww_order: seven domains, an on/off, nothing else", () => {
+  it("auto_set is a ww_order: eight domains, an on/off, nothing else", () => {
     expect(WW_AUTO_DOMAINS).toEqual([
       "production",
       "research",
@@ -114,6 +114,7 @@ describe("World War 1936 automation: the switches", () => {
       "navy",
       "thought",
       "intel",
+      "diplomacy",
     ]);
     expect(
       WwOrderSchema.safeParse({ kind: "auto_set", domain: "air", on: true })
@@ -260,7 +261,13 @@ describe("World War 1936 automation: the switches", () => {
 
   it("a manual order in a domain that is on switches it off, with a notice, and applies", async () => {
     const { runner, updates, g, ww, deu } = await human();
-    for (const d of WW_AUTO_DOMAINS) setAuto(runner, d, true);
+    // Seven ticks as before the diplomacy domain, which goes on with intel
+    // (the human's tech must land before the AI's next day).
+    for (const d of WW_AUTO_DOMAINS.slice(0, 6)) setAuto(runner, d, true);
+    step(runner, 1, [
+      order(HUMAN, { kind: "auto_set", domain: "intel", on: true }),
+      order(HUMAN, { kind: "auto_set", domain: "diplomacy", on: true }),
+    ]);
     expect(ww.autoMask(deu)).toBe(ALL);
     clearSlots(g, deu);
     // The human picks a tech themselves before the AI's next day.
@@ -306,7 +313,8 @@ describe("World War 1936 automation: the switches", () => {
         wwAutoBit("air") |
         wwAutoBit("navy") |
         wwAutoBit("thought") |
-        wwAutoBit("intel"),
+        wwAutoBit("intel") |
+        wwAutoBit("diplomacy"),
     );
   }, 120_000);
 
