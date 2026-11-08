@@ -187,8 +187,8 @@ function hubsOf(
   capitals: readonly number[] = members.map((m) => capitalRegion(land, m)),
 ): SupplyHub[] {
   const sc = land.scenario;
-  const rail = land.ww.air.wingsLive ? land.econ.railEff : land.econ.rail;
-  const hubLv = land.ww.air.wingsLive ? land.econ.hubEff : land.econ.hub;
+  const rail = land.econ.railEff;
+  const hubLv = land.econ.hubEff;
   // The rail net from the capitals (spec §11.1).
   const isCapital = new Uint8Array(ours.length);
   const railNet = new Uint8Array(ours.length);
@@ -241,7 +241,7 @@ function runHub(
   cap: number,
 ): HubRun {
   const sc = land.scenario;
-  const rail = land.ww.air.wingsLive ? land.econ.railEff : land.econ.rail;
+  const rail = land.econ.railEff;
   // P4 (pre-flight D): bombed infrastructure counts as the lower level.
   const infra = land.econ.infraEff;
   const range = WW_SUPPLY_RANGE * 100;
@@ -307,9 +307,9 @@ export function dailySupply(land: WwLand, side: number): void {
   const { ours, regions } = cache.regionsView;
   // What the hubs, the reach and the runs read: the side's regions, their
   // rail, infrastructure and built hubs, the members' capitals.
-  const rail = land.ww.air.wingsLive ? land.econ.railEff : land.econ.rail;
+  const rail = land.econ.railEff;
   const infra = land.econ.infraEff;
-  const hub = land.ww.air.wingsLive ? land.econ.hubEff : land.econ.hub;
+  const hub = land.econ.hubEff;
   const mark = ++st.stamp;
   let anyChange = false;
   let hubChange = false;

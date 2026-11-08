@@ -15,7 +15,6 @@ import {
   seaAirMoments,
   tick,
 } from "./lockstep";
-import "./oldAirModel";
 import {
   seaAirHand,
   seaAirIntents,
@@ -52,9 +51,10 @@ async function hashes(until: number): Promise<[number, number][]> {
 
 describe("the air war restores exactly (spec §19.5)", () => {
   test("restoring mid-repair and mid-shortage continues exactly", async () => {
+    // In the order they happen (wings take off a few ticks after the board).
     const names = [
-      "an air campaign",
       "a bombed building under repair",
+      "an air campaign",
       "a fuel shortage",
     ];
     const rep = await runLockstep({
@@ -104,7 +104,6 @@ describe("the air war restores exactly (spec §19.5)", () => {
       ["a zone's enemy superiority", () => z.enemySup.set(999, 1)],
       ["a zone's naval search", () => z.navalSearch.set(999, 1)],
       ["a zone's day", () => (z.lastDay += 1)],
-      ["a country's auto zones", () => air.countries()[0].autoZones.push(1)],
       ["the next deployment id", () => (air.nextWingId += 1)],
     ];
     for (const [what, change] of changes) {

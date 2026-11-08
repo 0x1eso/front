@@ -107,27 +107,23 @@ export const WW_NAVY_TABS: readonly WwNavyTab[] = [
   "admirals",
 ];
 
-/** P4 spec §18.7: the air drawer's four tabs. */
+/**
+ * The air drawer's tabs. "zones" and "record" were the old daily model's:
+ * a link that still names them opens groups and reports.
+ */
 export type WwAirTab =
   | "zones"
   | "planes"
   | "bases"
   | "record"
-  // ww8: the wing model's two tabs (wings replaces zones, reports record).
+  // ww8: wings replaced zones, reports record.
   | "wings"
   | "reports"
   // w51: air groups and their templates.
   | "groups"
   | "templates";
+/** ww8 (design §8.7): the air drawer's tabs. */
 export const WW_AIR_TABS: readonly WwAirTab[] = [
-  "zones",
-  "planes",
-  "bases",
-  "record",
-];
-
-/** ww8 (design §8.7): the air drawer's tabs in the wing model. */
-export const WW_AIR_TABS_LIVE: readonly WwAirTab[] = [
   "groups",
   "templates",
   "wings",

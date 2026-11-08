@@ -103,7 +103,6 @@ const SCREEN = [
   "air.tab_bases",
   "air.tab_record",
   "air.zone_sup",
-  "air.slider_count",
   "air.result_line",
 ].map((k) => `ww1936.${k}`);
 

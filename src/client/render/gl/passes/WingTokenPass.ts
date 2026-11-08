@@ -115,7 +115,6 @@ export class WingTokenPass {
     const tick = Math.floor(tickF);
     const key = [
       air.version,
-      air.live ? 1 : 0,
       navy?.version ?? -1,
       fog?.stamp() ?? -1,
       Math.round(zoom * 20),

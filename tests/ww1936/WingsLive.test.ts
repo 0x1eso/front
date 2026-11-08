@@ -20,7 +20,6 @@ import {
   WW_BOMB_CLASSES,
   WW_FIELD_STRIP_DAYS,
   WW_FIELD_STRIP_EFF_PM,
-  WW_WINGS_LIVE,
   type WwBombClass,
 } from "@openfront/engine-api/ww1936/AirTypes";
 import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
@@ -371,7 +370,6 @@ function raider(g: Game): Wing {
 }
 
 test("a real game on wings: every mission, base moves, 400 days, in lockstep", async () => {
-  expect(WW_WINGS_LIVE).toBe(true);
   const seen = {
     stationed: new Map<number, number>(),
     supMin: 1000,
@@ -1153,5 +1151,5 @@ test("a real game on wings: every mission, base moves, 400 days, in lockstep", a
   expect(supply[1]).toBeLessThan(supply[0]);
   // The screens get the wing rows.
   air.markWing(air.wingArray()[0].id);
-  expect(air.takeData()?.live).toBe(true);
+  expect(air.takeData()?.briefs?.length).toBeGreaterThan(0);
 }, 900_000);

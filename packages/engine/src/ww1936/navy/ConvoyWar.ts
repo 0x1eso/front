@@ -4,7 +4,7 @@
 // country against the escorts of its side gives the loss rate ‰ of its
 // convoys through the region; the escorts' depth charges hurt the raiding
 // submarines they have spotted.
-import { AIR_MISSIONS, AIR_TYPES } from "@openfront/engine-api/ww1936/AirTypes";
+import { AIR_MISSIONS } from "@openfront/engine-api/ww1936/AirTypes";
 import { WW_DAY_SPLIT } from "@openfront/engine-api/ww1936/EconomyTypes";
 import {
   FLEET_MISSIONS,
@@ -20,7 +20,6 @@ import {
 import { wingStats } from "../air/Sorties";
 import { wingPlanes } from "../air/WwAir";
 import { exploiting } from "../depth/Crypto";
-import { designPlaneP4 } from "../depth/Designs";
 import { minesConvoyLossPm } from "../depth/Mines";
 import { loseConvoys } from "../economy/Buildings";
 import { admiralPct, fleetAdmiralTraits } from "./AdmiralTraits";
@@ -378,35 +377,12 @@ export function airOf(
   for (const id of air.wingsIn(sr)) {
     const d = air.wings.get(id);
     if (d === undefined || d.mission !== NAVAL_STRIKE) continue;
-    if (air.wingsLive) {
-      // ww8: the wing's own mix (yesterday's sorties below say how many flew).
-      const n = wingPlanes(d);
-      if (n > 0) {
-        add(naval, d.owner, n * wingStats(air, d).naval);
-        add(planes, d.owner, n);
-      }
-      continue;
+    // ww8: the wing's own mix (yesterday's sorties below say how many flew).
+    const n = wingPlanes(d);
+    if (n > 0) {
+      add(naval, d.owner, n * wingStats(air, d).naval);
+      add(planes, d.owner, n);
     }
-    const ce = navy.econ.country(d.owner);
-    const type = AIR_TYPES[d.type];
-    if (ce === null || type === undefined) continue;
-    d.counts.forEach((n, g) => {
-      if (n <= 0) return;
-      add(
-        naval,
-        d.owner,
-        n * navy.ww.air.planeStatsOf(d.owner, type, g + 1).naval,
-      );
-      add(planes, d.owner, n);
-    });
-    // P6 (lane E): its design planes, at their design's naval attack.
-    d.dcounts.forEach((n, s) => {
-      const st =
-        n > 0 ? designPlaneP4(navy.ww.depth, d.owner, s + 1, type) : null;
-      if (st === null) return;
-      add(naval, d.owner, n * st.naval);
-      add(planes, d.owner, n);
-    });
   }
   for (const [m, v] of naval) {
     const n = planes.get(m) ?? 0;

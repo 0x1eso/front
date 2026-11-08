@@ -8,6 +8,7 @@
 // 600 ticks beside the game: the hash every tick, the snapshot every 25.
 import { GameMapSize, GameMapType } from "@openfront/engine-api/game/GameTypes";
 import type { StampedIntent } from "@openfront/engine-api/Schemas";
+import { AIR_TYPES } from "@openfront/engine-api/ww1936/AirTypes";
 import { equipKey } from "@openfront/engine-api/ww1936/EconomyTypes";
 import { MOVE_RETREAT } from "@openfront/engine-api/ww1936/LandTypes";
 import {
@@ -25,7 +26,6 @@ import {
 import { loadMapFiles } from "@openfront/shared/GameMapLoader";
 import { TestDataMapLoader } from "../util/ScriptedGame";
 import { type Moment, runLockstep } from "./lockstep";
-import "./oldAirModel";
 import {
   byTag,
   dropPact,
@@ -79,10 +79,10 @@ function germany(g: Game): StampedIntent[] {
   }
   if (t === WW_PREP_TICKS + 5) {
     // P4 (lane A2): a paradrop needs our superiority over the target's
-    // zone: fighters over Krakow's and Warsaw's.
-    const srs = [...new Set([7, 6].map((r) => ww.scenario.regionSr(r)))].filter(
-      (sr) => sr > 0,
-    );
+    // zone: Germany's fighter wings over Krakow and Warsaw.
+    const fighters = ww.air
+      .wingsOf(deu)
+      .filter((w) => AIR_TYPES[w.type] === "fighter");
     return [
       order(HUMAN, {
         kind: "train",
@@ -91,14 +91,17 @@ function germany(g: Game): StampedIntent[] {
         army: 0,
         region: 0,
       }),
-      ...srs.map((sr) =>
-        order(HUMAN, {
-          kind: "air_deploy",
-          sr,
-          type: "fighter",
-          mission: "air_superiority",
-          count: 100,
-        }),
+      ...[7, 6].flatMap((target, i) =>
+        fighters[i] === undefined
+          ? []
+          : [
+              order(HUMAN, {
+                kind: "wing_mission",
+                wings: [fighters[i].id],
+                mission: "air_superiority",
+                target,
+              }),
+            ],
       ),
     ];
   }

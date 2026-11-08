@@ -23,7 +23,6 @@ import {
   WingOrder,
   WW_AIR_BASE_CAPACITY,
   WW_FIELD_STRIP_PLANES,
-  WW_WINGS_LIVE,
   WwAirData,
 } from "@openfront/engine-api/ww1936/AirTypes";
 import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
@@ -59,15 +58,13 @@ import type { WwLand } from "../land/WwLand";
 import { onPlanesLost } from "../navy/EndgameHooks";
 import type { WwNavy } from "../navy/WwNavy";
 import type { WorldWar } from "../WorldWar";
-import { aiAir, aiWings, issueArmyAirPriority, issueWingAuto } from "./AiAir";
-import { dailyAirZone } from "./AirCombat";
-import { airMissionEffects, airSupplyAt } from "./AirEffects";
+import { aiWings, issueArmyAirPriority, issueWingAuto } from "./AiAir";
+import { airSupplyAt } from "./AirEffects";
 import {
   airMoveFactorFor,
   airPenaltyFor,
   airSupplyFactorFor,
 } from "./AirSuperiority";
-import { dailyAirCountry, issueAirOrder } from "./Deploy";
 import { designSlotsFor } from "./DesignPlanes";
 import {
   groupViews,
@@ -77,7 +74,7 @@ import {
   issueTemplateDrop,
   type AirGroup,
 } from "./Groups";
-import { paradropBlockFor, stepParadrops } from "./Paradrop";
+import { paradropBlockFor } from "./Paradrop";
 import { RaidNotes } from "./RaidNotes";
 import {
   closeAirZone,
@@ -195,7 +192,7 @@ export interface ZoneAirState {
   airSupply: [number, number, number][];
   /** The day this zone last ran its daily step (written before dailyAirZone). */
   lastDay: number;
-  // ww8 (wing model; empty in an old-model game).
+  // ww8 (wing model).
   /** side → superiority score, moved by the pulses (design §3.8). */
   score: Map<number, number>;
   /** [battle region, side, CAS centi-hits a tick] of the wings on station, by (region, side). */
@@ -263,8 +260,6 @@ export class CountryAir {
   bombTaken = new Array<number>(30).fill(0);
   /** 30-day ring tallies by day % 30: shot down, lost, bombs given, ships sunk, convoys sunk. */
   tally = Array.from({ length: 5 }, () => new Array<number>(30).fill(0));
-  /** Zones (strategic ids) the AI runs for a human (air_auto). */
-  autoZones: number[] = [];
   // ww8 (wing model).
   /** The raid reports, oldest first, at most WW_AIR_REPORT_ROWS (design §5.2). */
   reports: AirRaidReport[] = [];
@@ -401,7 +396,6 @@ const GroupSchema = z.object({
 const CountryAirSchema = z.object({
   bombTaken: zInts(),
   tally: z.array(zInts()),
-  autoZones: zInts(),
   // ww8.
   reports: z.array(RaidReportSchema),
   priorityArmies: zInts(),
@@ -419,8 +413,7 @@ export const WwAirStateSchema = z.object({
   planesLostTotal: zInt(),
   bombPointsTotal: zInt(),
   lastCommonDay: zInt(),
-  // ww8.
-  wingsLive: z.boolean(),
+  // ww8. (Old snapshots also carry wingsLive, the old model's switch: parse drops it.)
   strips: pairs(),
   // w50: present only when set.
   groups: z.array(GroupSchema).optional(),
@@ -432,11 +425,11 @@ const mapOf = <V>(e: readonly (readonly [number, V])[]): Map<number, V> =>
   new Map(e.map(([k, v]) => [k, v]));
 
 /**
- * The air model a new game starts on: WW_WINGS_LIVE in every real game. Only
- * the old model's tests write it (tests/ww1936/oldAirModel.ts), and it goes
- * with the old model.
+ * What a new game's air war starts with. Only tests write it: startWings
+ * false starts a game with no wings formed (formStartWings skipped), so a
+ * test can place its own.
  */
-export const newGameAirModel = { wingsLive: WW_WINGS_LIVE };
+export const newGameAirModel = { startWings: true };
 
 /**
  * World War 1936 P4 air war (spec §19.1). Lives in WorldWar (plan decision
@@ -452,11 +445,6 @@ export class WwAir {
   /** The air-raid notice (message-only memory, not state). */
   readonly raidNotes = new RaidNotes();
   private lastCommonDay = -1;
-  /**
-   * ww8: which air model runs this game (AirTypes.WW_WINGS_LIVE). State: a
-   * test turns one game on before it runs, and a restored copy must follow.
-   */
-  wingsLive: boolean = newGameAirModel.wingsLive;
   /** ww8: field strips, region → the tick it opens, ascending (setStrip keeps the order). */
   strips = new Map<number, number>();
   /** w50: the air groups by id, ascending (their wings carry Wing.group). */
@@ -510,41 +498,20 @@ export class WwAir {
   /** Spec §12.4: nothing deployed at the start (the AI deploys on its first day). */
   start(): void {
     for (const c of this.countries()) this.airDirtyCountries.add(c.smallID);
-    if (this.wingsLive) formStartWings(this); // lane A
+    if (newGameAirModel.startWings) formStartWings(this); // lane A
   }
 
   // ---- Clock (spec §2.2-7) ----
 
   tick(ticks: number): void {
-    const prep = this.ww.inPrep(ticks);
-    if (!prep) {
-      const day = this.ww.day(ticks);
-      if (day !== this.lastCommonDay) this.lastCommonDay = day;
-      const k = ticks - dayStartTick(day, this.ww.prepEndTick());
-      if (this.wingsLive) {
-        this.tickWings(ticks, day, k);
-        return;
-      }
-      if (k >= 0 && k < WW_DAY_SPLIT) {
-        // ① air zones: sorties, combat, AA, superiority, then the effects
-        for (const s of this.ww.scenario.strategicList()) {
-          if (s.idx % WW_DAY_SPLIT !== k) continue;
-          this.zoneState[s.idx].lastDay = day;
-          // A1/A2 mark the zone (setAirSup, markZone) when it changed.
-          dailyAirZone(this, s.id, day); // A1
-          airMissionEffects(this, s.id, day); // A2
-          // P6 hooks (D, W2, S; plan decisions 3, 12): the depth's zone day
-          // (mines' air side, night, aces, recon, then the atomic drops).
-          this.ww.depth.airZoneDay(s.id, day, ticks);
-        }
-        if (k === WW_DAY_SPLIT - 1) this.raidNotes.flush(this, day);
-        // ② countries: re-basing, refills, decks, AI
-        for (let id = 1; id < this.countryList.length; id++) {
-          if (id % WW_DAY_SPLIT === k) this.dailyCountry(id, day);
-        }
-      }
-      stepParadrops(this, ticks); // ③ A2
-    }
+    if (this.ww.inPrep(ticks)) return;
+    const day = this.ww.day(ticks);
+    if (day !== this.lastCommonDay) this.lastCommonDay = day;
+    this.tickWings(
+      ticks,
+      day,
+      ticks - dayStartTick(day, this.ww.prepEndTick()),
+    );
   }
 
   /**
@@ -575,34 +542,9 @@ export class WwAir {
     }
   }
 
-  private dailyCountry(id: number, day: number): void {
-    const c = this.countryList[id];
-    const p = this.mg.playerBySmallID(id);
-    // P5 plan decision 6: the countries that play (an exile does).
-    if (
-      c === null ||
-      c === undefined ||
-      !p.isPlayer() ||
-      !this.ww.isActor(id)
-    ) {
-      return;
-    }
-    dailyAirCountry(this, id, day); // A1
-    // P5 plan decision 7: the AI runs a country no human controls now.
-    // A human's auto zones, or (automation) its whole air force.
-    if (
-      !this.ww.isHumanControlled(id) ||
-      c.autoZones.length > 0 ||
-      this.ww.autoOn(id, "air")
-    ) {
-      aiAir(this, id, day);
-    }
-    this.airDirtyCountries.add(id);
-  }
-
   // ---- Orders (spec §19.3) ----
 
-  /** air_deploy / air_recall / air_auto (A1); null when it took effect. */
+  /** The air orders; null when it took effect. */
   issue(smallID: number, order: WwOrder, tick: number): WwOrderBlock | null {
     const c = this.country(smallID);
     const p = this.mg.playerBySmallID(smallID);
@@ -611,14 +553,12 @@ export class WwAir {
       return "dead";
     }
     switch (order.kind) {
+      // The old daily model's orders: kept in the order list (its
+      // positions are pinned and old replays decode), always refused.
       case "air_deploy":
       case "air_recall":
-      case "air_auto": {
-        if (this.wingsLive) return "bad_index";
-        const block = issueAirOrder(this, smallID, order, tick);
-        if (block === null) this.airDirtyCountries.add(smallID);
-        return block;
-      }
+      case "air_auto":
+        return "bad_index";
       case "wing_mission":
       case "wing_base":
       case "wing_auto":
@@ -633,7 +573,6 @@ export class WwAir {
       case "air_template_drop":
       case "air_group_order":
       case "air_group_disband": {
-        if (!this.wingsLive) return "bad_index";
         const block =
           order.kind === "air_template"
             ? issueTemplate(this, smallID, order)
@@ -651,7 +590,7 @@ export class WwAir {
   }
 
   /**
-   * ww8: the wing orders (design §3.3). Refused in the old model. An order
+   * ww8: the wing orders (design §3.3). An order
    * takes the sender's own wings only: one foreign or unknown id refuses it
    * whole, before the lanes' judges run.
    */
@@ -660,7 +599,6 @@ export class WwAir {
     order: WingOrder,
     tick: number,
   ): WwOrderBlock | null {
-    if (!this.wingsLive) return "bad_index";
     switch (order.kind) {
       case "wing_mission": {
         const wings = this.ownWings(smallID, order.wings);
@@ -726,12 +664,6 @@ export class WwAir {
     }
     this.zoneState[i].sup = m;
     this.airDirtyZones.add(i);
-  }
-
-  /** A side's CAS pool over a zone today, centi-hits. */
-  casPool(sr: number, side: number): number {
-    const i = this.ww.scenario.srIdxOf(sr);
-    return i < 0 ? 0 : (this.zoneState[i].cas.get(side) ?? 0);
   }
 
   /** Spec §14.6 for a battle region and a division side: the worst enemy superiority's penalty (A1). */
@@ -970,7 +902,7 @@ export class WwAir {
   removeWing(id: number, back: boolean): void {
     const d = this.wings.get(id);
     if (d === undefined) return;
-    if (this.wingsLive) aceOnWingGone(this.ww.depth, d); // lane D
+    aceOnWingGone(this.ww.depth, d); // lane D
     const ce = this.econ.country(d.owner);
     if (ce !== null) {
       const type = AIR_TYPES[d.type];
@@ -1021,7 +953,7 @@ export class WwAir {
       for (const c of tookD) n += c;
     }
     if (n === 0) return 0;
-    if (this.wingsLive) d.dayLost += n;
+    d.dayLost += n;
     took.forEach((c, i) => (d.counts[i] -= c));
     const type = AIR_TYPES[d.type];
     const ce = this.econ.country(d.owner);
@@ -1147,7 +1079,7 @@ export class WwAir {
     for (const id of this.wingsByBase.get(region) ?? NO_IDS) {
       this.markWing(id);
     }
-    if (this.wingsLive) onBaseControlChanged(this, region, from, to, tick); // lane A
+    onBaseControlChanged(this, region, from, to, tick); // lane A
   }
 
   /** Decision 32: a capitulated country's deployments are gone with their planes. */
@@ -1157,7 +1089,6 @@ export class WwAir {
     this.dropCountryGroups(loser);
     const c = this.country(loser);
     if (c !== null) {
-      c.autoZones = [];
       c.priorityArmies = [];
     }
   }
@@ -1173,7 +1104,6 @@ export class WwAir {
     this.dropCountryGroups(from);
     const c = this.country(from);
     if (c !== null) {
-      c.autoZones = [];
       c.priorityArmies = [];
     }
   }
@@ -1258,7 +1188,7 @@ export class WwAir {
     for (const id of [...this.airDirtyCountries].sort((a, b) => a - b)) {
       if (humans.has(id)) data.details.push(this.countryDetail(id));
     }
-    if (this.wingsLive) this.fillWingData(data, humans);
+    this.fillWingData(data, humans);
     if (this.flightsOut.length > 0) this.flightsOut = [];
     if (this.fightsOut.length > 0) this.fightsOut = [];
     this.airDirtyZones.clear();
@@ -1281,7 +1211,6 @@ export class WwAir {
 
   /** ww8: the wing model's part of the update. Fields with nothing in them stay absent. */
   private fillWingData(data: WwAirData, humans: ReadonlySet<number>): void {
-    data.live = true;
     const briefs: WingBrief[] = [];
     const wings: WingDetail[] = [];
     for (const id of [...this.airDirtyWings].sort((a, b) => a - b)) {
@@ -1381,12 +1310,6 @@ export class WwAir {
   private countryDetail(id: number): CountryAirDetail {
     const c = this.country(id)!;
     const ce = this.econ.country(id)!;
-    const bases = new Map<number, number>();
-    for (const d of this.wingsOf(id)) {
-      if (d.base <= 0) continue;
-      const n = wingPlanes(d);
-      bases.set(d.base, (bases.get(d.base) ?? 0) + n);
-    }
     // P6 (lane E): each type's design slots (the designs flying as it).
     const depth = this.ww.depth;
     const dslots = AIR_TYPES.map((type) => designSlotsFor(depth, id, type));
@@ -1421,14 +1344,6 @@ export class WwAir {
     };
     return {
       smallID: id,
-      bases: [...bases]
-        .sort((a, b) => a[0] - b[0])
-        .map(([region, used]) => ({
-          region,
-          used,
-          cap: this.baseCapacity(region),
-          damagePm: this.baseDamagePm(region),
-        })),
       stock: AIR_TYPES.map((type) => sum(ce.stock, type)),
       deployed,
       decks,
@@ -1441,10 +1356,8 @@ export class WwAir {
         ring(c.tally[4]),
       ],
       bombedRegions: this.bombedRegionsOf(id),
-      // Lane U: the zones the AI runs for this human (the zone card's auto).
-      autoZones: [...c.autoZones].sort((a, b) => a - b),
-      ...(this.wingsLive ? this.wingCountryDetail(id, c) : {}),
-      ...(this.wingsLive && c.templates.length > 0
+      ...this.wingCountryDetail(id, c),
+      ...(c.templates.length > 0
         ? {
             templates: c.templates.map((t) => ({
               ...t,
@@ -1452,7 +1365,7 @@ export class WwAir {
             })),
           }
         : {}),
-      ...(this.wingsLive && this.groups.size > 0 ? this.groupDetail(id) : {}),
+      ...(this.groups.size > 0 ? this.groupDetail(id) : {}),
     };
   }
 
@@ -1543,7 +1456,6 @@ export class WwAir {
       countries: this.countries().map((c) => ({
         bombTaken: [...c.bombTaken],
         tally: c.tally.map((t) => [...t]),
-        autoZones: [...c.autoZones],
         reports: c.reports.map((r) => ({
           ...r,
           stopped: r.stopped.map((x): [number, number] => [x[0], x[1]]),
@@ -1565,7 +1477,6 @@ export class WwAir {
       planesLostTotal: this.planesLostTotal,
       bombPointsTotal: this.bombPointsTotal,
       lastCommonDay: this.lastCommonDay,
-      wingsLive: this.wingsLive,
       strips: arr(this.strips),
       ...(this.groups.size > 0
         ? {
@@ -1647,7 +1558,6 @@ export class WwAir {
       if (x === undefined) return;
       c.bombTaken = [...x.bombTaken];
       c.tally = x.tally.map((t) => [...t]);
-      c.autoZones = [...x.autoZones];
       c.reports = x.reports.map((r) => ({
         ...r,
         stopped: r.stopped.map((y): [number, number] => [y[0], y[1]]),
@@ -1670,7 +1580,6 @@ export class WwAir {
     this.planesLostTotal = s.planesLostTotal;
     this.bombPointsTotal = s.bombPointsTotal;
     this.lastCommonDay = s.lastCommonDay;
-    this.wingsLive = s.wingsLive;
     this.strips = mapOf(s.strips);
     this.rebuildDerived();
     // A restored game's screens have seen nothing yet.
@@ -1847,7 +1756,7 @@ export class WwAir {
       }
     }
     for (const c of this.countries()) {
-      fold(c.autoZones);
+      mix(0); // the old model's auto zones' place (always empty then)
       for (const r of c.reports) {
         for (const k of REPORT_FIELDS) mix(r[k]);
         for (const [b, m] of r.stopped) {
@@ -1863,7 +1772,7 @@ export class WwAir {
     }
     mix(this.nextWingId);
     mix(this.lastCommonDay);
-    if (this.wingsLive) mix(1);
+    mix(1); // the wing model's mark, from when the old model could run
     if (this.strips.size > 0) pairs(this.strips);
     // w50: only when set.
     for (const g of this.groups.values()) {

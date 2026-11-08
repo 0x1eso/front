@@ -377,7 +377,6 @@ export function seaGame(o: SeaOptions = {}) {
       o.flights !== undefined ||
       o.fights !== undefined
         ? {
-            live: true as const,
             briefs: o.wings ?? [],
             wings: o.wingDetails ?? [],
             flights: o.flights ?? [],

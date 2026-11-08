@@ -16,9 +16,6 @@ const MAGNETRON = SPECIAL_PROJECTS.indexOf("sp_cavity_magnetron");
 export const FUZE_AA_PCT = 150;
 /** Spec §9.3: the magnetron's radar station detection, ‰ a level. */
 export const MAGNETRON_RADAR_PM = 100;
-/** DS_RADAR planes' naval patrol, % (with the magnetron). */
-export const RADAR_PATROL_PCT = 130;
-export const RADAR_PATROL_MAGNETRON_PCT = 150;
 
 /** `owner`'s anti-air damage on planes, % of P4's (150 with the fuze). */
 export function fuzeAaPct(d: WwDepth, owner: number): number {

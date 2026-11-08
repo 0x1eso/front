@@ -4,44 +4,36 @@
 // computed on the zone's day and read on the observer's turn), the night
 // flag of every record of a night group, then the aces (Aces.ts).
 import type { DepthOrder } from "@openfront/engine-api/Schemas";
-import { AIR_MISSIONS, AIR_TYPES } from "@openfront/engine-api/ww1936/AirTypes";
-import { DS_RADAR, DS_RECON } from "@openfront/engine-api/ww1936/DepthTypes";
-import {
-  EQUIPMENT_GENS,
-  type WwOrderBlock,
-} from "@openfront/engine-api/ww1936/EconomyTypes";
+import { AIR_MISSIONS } from "@openfront/engine-api/ww1936/AirTypes";
+import { DS_RADAR } from "@openfront/engine-api/ww1936/DepthTypes";
+import { type WwOrderBlock } from "@openfront/engine-api/ww1936/EconomyTypes";
 import {
   nightBombBp,
   nightLossBp,
-  RECON_CAMERA_X,
   RECON_PLAN_CUT_BP,
   RECON_SORTIES,
 } from "@openfront/engine-lib/ww1936/SeaAirRules";
-import { zoneFlights } from "../air/AirCombat";
 import { isCarrierWing } from "../air/Deploy";
 import type { Wing } from "../air/WwAir";
-import { dailyAces } from "./Aces";
 import { sideKeyOf } from "./Mines";
 import type { WwDepth } from "./WwDepth";
 
 const M_BOMB = AIR_MISSIONS.indexOf("strategic_bombing");
-const M_RECON = AIR_MISSIONS.indexOf("recon");
 const NEUTRAL_NIGHT = { lossBp: 10_000, bombBp: 10_000 } as const;
 
 const sum = (a: readonly number[]) => a.reduce((x, y) => x + y, 0);
 
-/** The air zone's day (after P4's mission effects): recon, night groups, aces. */
+/** The air zone's day (at its close): recon. */
 export function airZoneDay(
   d: WwDepth,
   sr: number,
   day: number,
   tick: number,
 ): void {
+  void day;
   void tick;
   if (d.ww.scenario.sr(sr) === undefined) return;
   reconDay(d, sr);
-  syncNightGroups(d, sr);
-  dailyAces(d, sr, day);
 }
 
 /** The DS_* flags of a country's plane design slot (1-based). */
@@ -61,30 +53,11 @@ function reconDay(d: WwDepth, sr: number): void {
   const air = ww.air;
   const s = ww.scenario.sr(sr)!;
   const bySide = new Map<number, number>();
-  if (air.wingsLive) {
-    // ww8: the recon wings' stations added up in the zone's day (WingStrikes.accrueStation).
-    const t = air.zoneState[ww.scenario.srIdxOf(sr)]?.today.recon;
-    if (t !== undefined && s.kind === "land") {
-      for (const [side, m] of t) bySide.set(side, m);
-      t.clear();
-    }
-  } else if (s.kind === "land") {
-    for (const f of zoneFlights(air, sr)) {
-      if (f.mission !== M_RECON || f.total <= 0) continue;
-      let milli = f.total;
-      // The design slots' sorties (index gens + slot − 1), already in the
-      // total once: a camera design's count again (RECON_CAMERA_X).
-      const gens = EQUIPMENT_GENS[AIR_TYPES[f.type]];
-      for (let i = gens; i < f.milli.length; i++) {
-        if (f.milli[i] <= 0) continue;
-        if ((planeFlags(d, f.owner, i - gens + 1) & DS_RECON) !== 0) {
-          milli += f.milli[i] * (RECON_CAMERA_X - 1);
-        }
-      }
-      const pct = ww.economy.country(f.owner)?.stats.reconPct ?? 0;
-      milli = Math.floor((milli * Math.max(0, 100 + pct)) / 100);
-      bySide.set(f.side, (bySide.get(f.side) ?? 0) + milli);
-    }
+  // ww8: the recon wings' stations added up in the zone's day (WingStrikes.accrueStation).
+  const t = air.zoneState[ww.scenario.srIdxOf(sr)]?.today.recon;
+  if (t !== undefined && s.kind === "land") {
+    for (const [side, m] of t) bySide.set(side, m);
+    t.clear();
   }
   const rows: [number, number, number][] = [];
   for (const [side, m] of [...bySide].sort((a, b) => a[0] - b[0])) {
@@ -106,53 +79,10 @@ function reconDay(d: WwDepth, sr: number): void {
   d.reindexSparse();
 }
 
-/** The records of a deployment's group (owner, zone, type, mission, volunteer host), land-based. */
-function groupRecords(d: WwDepth, dep: Wing): Wing[] {
-  const air = d.ww.air;
-  const out: Wing[] = [];
-  for (const id of air.wingsIn(dep.sr)) {
-    const x = air.wings.get(id);
-    if (
-      x !== undefined &&
-      x.owner === dep.owner &&
-      x.type === dep.type &&
-      x.mission === dep.mission &&
-      x.volunteerFor === dep.volunteerFor &&
-      !isCarrierWing(x)
-    ) {
-      out.push(x);
-    }
-  }
-  return out;
-}
-
-/**
- * A group's records share the night flag: a record P4 adds to a night
- * group (a new base) takes it (P4's addWing gives a new record the
- * day default).
- */
-function syncNightGroups(d: WwDepth, sr: number): void {
-  const air = d.ww.air;
-  // ww8: a wing flies by night on its own flag, with no group to sync.
-  if (air.wingsLive) return;
-  for (const id of air.wingsIn(sr)) {
-    const dep = air.wings.get(id);
-    if (dep === undefined || !dep.night || dep.mission !== M_BOMB) continue;
-    for (const x of groupRecords(d, dep)) {
-      if (!x.night) {
-        x.night = true;
-        air.markWing(x.id);
-      }
-    }
-  }
-}
-
 /** A strategic bombing record that flies at night (its own flag or its group's). */
 export function fliesAtNight(d: WwDepth, dep: Wing): boolean {
   if (dep.mission !== M_BOMB || isCarrierWing(dep)) return false;
-  if (dep.night) return true;
-  if (d.ww.air.wingsLive) return false;
-  return groupRecords(d, dep).some((x) => x.night);
+  return dep.night;
 }
 
 /** The zone's land regions are all no-strike regions (nothing a raid may hit). */
@@ -181,12 +111,10 @@ export function issueSeaAir(
   // Sensitivity (decisions.md, pre-flight §0-11): no night raid where every
   // region the zone could bomb is a no-strike region (Korea, Taiwan).
   if (o.on && nightNoStrike(d, dep.sr)) return "no_strike_region";
-  // ww8: the wing alone (air_night's id is a wing); the old model: its group.
-  for (const x of air.wingsLive ? [dep] : groupRecords(d, dep)) {
-    if (x.night !== o.on) {
-      x.night = o.on;
-      air.markWing(x.id);
-    }
+  // ww8: the wing alone (air_night's id is a wing).
+  if (dep.night !== o.on) {
+    dep.night = o.on;
+    air.markWing(dep.id);
   }
   air.markCountry(id);
   return null;

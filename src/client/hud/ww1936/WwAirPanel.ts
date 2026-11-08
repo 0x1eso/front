@@ -14,15 +14,7 @@ import { GoToPositionEvent } from "../../TransformHandler";
 import { SendWwOrderIntentEvent } from "../../Transport";
 import { translateText } from "../../Utils";
 import { groupById, TemplateDraft } from "./AirGroupModel";
-import {
-  AIR_MISSION_ICONS,
-  airMissionName,
-  airRecord,
-  airTypeName,
-  myAirBases,
-  planeStockRows,
-  zoneRows,
-} from "./AirModel";
+import { airRecord, airTypeName, planeStockRows } from "./AirModel";
 import { designButton } from "./DesignButton";
 import { libraryStore } from "./DesignLibrary";
 import { blockText, EQUIPMENT_ICONS, genName } from "./EconomyModel";
@@ -33,7 +25,6 @@ import {
   navyCtx,
   NavyGame,
 } from "./NavyModel";
-import { WwAirLayerEvent, WwAirZoneSelectedEvent } from "./SeaAirSelection";
 import {
   autoCounts,
   baseName,
@@ -62,7 +53,6 @@ import {
   OpenWwAirEvent,
   OpenWwIndustryEvent,
   WW_AIR_TABS,
-  WW_AIR_TABS_LIVE,
   WwAirTab,
   WwDrawerBase,
 } from "./WwDrawer";
@@ -118,17 +108,8 @@ export class WwAirPanel extends WwDrawerBase {
     return this.tab;
   }
 
-  private live(): boolean {
-    return this.game?.wwAir?.()?.live === true;
-  }
-
   /** The tab to show: the old ones map onto the wing model's. */
-  private activeTab(): WwAirTab {
-    if (!this.live()) {
-      return this.tab === "groups" || this.tab === "templates"
-        ? "zones"
-        : this.tab;
-    }
+  private activeTab(): Exclude<WwAirTab, "zones" | "record"> {
     if (this.tab === "zones") return "groups";
     if (this.tab === "record") return "reports";
     return this.tab;
@@ -176,7 +157,7 @@ export class WwAirPanel extends WwDrawerBase {
       dead
         ? nothing
         : this.renderTabs(
-            this.live() ? WW_AIR_TABS_LIVE : WW_AIR_TABS,
+            WW_AIR_TABS,
             this.activeTab(),
             (t) => translateText(TAB_KEYS[t]),
             (t) => (this.tab = t),
@@ -226,78 +207,11 @@ export class WwAirPanel extends WwDrawerBase {
         return this.renderWings(ctx);
       case "reports":
         return this.renderReports(ctx);
-      case "zones":
-        return this.renderZones(ctx);
       case "planes":
         return this.renderPlanes(ctx);
       case "bases":
-        return this.renderBases(ctx);
-      case "record":
-        return this.renderRecord(ctx);
+        return this.renderLiveBases(ctx);
     }
-  }
-
-  private renderZones(ctx: NavyCtx): TemplateResult {
-    const rows = zoneRows(ctx);
-    if (rows.length === 0) {
-      return html`<p class="m-0 mt-2 text-xs text-white/60">
-        ${translateText("ww1936.air.hint_pick_zone")}
-      </p>`;
-    }
-    return html`<ul
-      data-ww-zone-list
-      class="m-0 mt-2 flex list-none flex-col gap-1 p-0"
-    >
-      ${rows.map(
-        (r) =>
-          html`<li>
-            <button
-              type="button"
-              data-ww-zone-row=${r.sr}
-              class="flex w-full flex-col gap-0.5 rounded-md border border-white/10 bg-white/5 p-1.5 text-left text-xs hover:bg-white/10"
-              @click=${() => {
-                this.eventBus.emit(new WwAirLayerEvent(true));
-                this.eventBus.emit(new WwAirZoneSelectedEvent(r.sr));
-                const c = ctx.scenario.sr(r.sr)?.center ?? 0;
-                const w = ctx.scenario.width;
-                this.eventBus.emit(
-                  new GoToPositionEvent(c % w, Math.floor(c / w)),
-                );
-              }}
-            >
-              <span class="flex w-full items-baseline gap-1.5">
-                <span class="min-w-0 flex-1 truncate font-semibold"
-                  >${r.name}</span
-                >
-                <span
-                  class="shrink-0 tabular-nums ${r.supPm < 500
-                    ? "text-red-300"
-                    : "text-emerald-300"}"
-                  >${translateText("ww1936.air.zone_sup", {
-                    pct: Math.floor(r.supPm / 10),
-                  })}</span
-                >
-              </span>
-              <span class="flex flex-wrap gap-x-2 text-white/80">
-                ${r.missions.map(
-                  ([m, n]) =>
-                    html`<span
-                      >${AIR_MISSION_ICONS[m]} ${airMissionName(m)} ${n}</span
-                    >`,
-                )}
-                ${r.lost > 0
-                  ? html`<span class="text-red-300"
-                      >${translateText("ww1936.air.result_line", {
-                        kills: "—",
-                        lost: r.lost,
-                      })}</span
-                    >`
-                  : nothing}
-              </span>
-            </button>
-          </li>`,
-      )}
-    </ul>`;
   }
 
   private renderPlanes(ctx: NavyCtx): TemplateResult {
@@ -398,59 +312,6 @@ export class WwAirPanel extends WwDrawerBase {
           </div>`,
       )}
     `;
-  }
-
-  private renderBases(ctx: NavyCtx): TemplateResult {
-    if (this.live()) return this.renderLiveBases(ctx);
-    const bases = myAirBases(ctx);
-    if (bases.length === 0) {
-      return html`<p class="m-0 mt-2 text-xs text-white/60">
-        ${translateText("ww1936.air.bases_none")}
-      </p>`;
-    }
-    return html`<ul
-      data-ww-air-bases
-      class="m-0 mt-2 flex list-none flex-col gap-1 p-0 text-xs"
-    >
-      ${bases.map(
-        (b) =>
-          html`<li
-            data-ww-air-base=${b.region}
-            class="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-md border border-white/10 bg-white/5 p-1.5"
-          >
-            <span class="min-w-0 flex-1 truncate font-semibold"
-              >${translateText("ww1936.air.base_row", {
-                region: b.name,
-                lvl: b.level,
-              })}</span
-            >
-            <span class="tabular-nums"
-              >${translateText("ww1936.air.base_use", {
-                used: b.used,
-                cap: b.cap,
-              })}</span
-            >
-            ${b.damagePm > 0
-              ? html`<span class="text-red-300"
-                  >${translateText("ww1936.air.base_damage", {
-                    pct: Math.round(b.damagePm / 10),
-                  })}</span
-                >`
-              : nothing}
-            <button
-              type="button"
-              data-ww-build-air-base=${b.region}
-              class=${BUTTON}
-              @click=${() =>
-                this.eventBus.emit(
-                  new OpenWwIndustryEvent("construction", b.region, "air_base"),
-                )}
-            >
-              ${translateText("ww1936.air.btn_build_more")}
-            </button>
-          </li>`,
-      )}
-    </ul>`;
   }
 
   private renderRecord(ctx: NavyCtx): TemplateResult {

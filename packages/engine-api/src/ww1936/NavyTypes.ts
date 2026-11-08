@@ -62,7 +62,7 @@ export const ADMIRAL_TRAITS = [
   "fleet_protector",
   "spotter",
   "amphibious_expert",
-  // P6 (P6 spec §4.2), appended: assigned with command power.
+  // P6 (P6 spec §4.2), appended: assignable traits.
   "night_fighter",
   "convoy_master",
   "fleet_tactician",

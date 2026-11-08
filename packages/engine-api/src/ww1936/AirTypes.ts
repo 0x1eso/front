@@ -163,9 +163,7 @@ export interface CountryAirDetail {
   tally30: number[];
   /** The country's regions with bomb damage outstanding: [region, damage milli], ascending. */
   bombedRegions: [number, number][];
-  /** P4 lane U: the zones the AI runs for this human (air_auto), ascending. */
-  autoZones?: number[];
-  // ww8 (live wing model only).
+  // ww8.
   /** Field strips of this country: [region, ready tick], ascending. */
   strips?: [number, number][];
   /** The raid reports both as attacker and as victim, oldest first (design §5.2). */
@@ -181,10 +179,7 @@ export interface WwAirData {
   deployments: AirDeploySummary[];
   removedDeployments: number[];
   details: CountryAirDetail[];
-  // ww8 (live wing model only; absent in an old-model game). A removed wing
-  // is in removedDeployments.
-  /** This game runs the wing model (AirTypes.WW_WINGS_LIVE): the screens switch on it. */
-  live?: boolean;
+  // ww8: the wings. A removed wing is in removedDeployments.
   /** Every country's changed wings, short (the client's fog filters them). */
   briefs?: WingBrief[];
   /** The human countries' changed wings in full (only their owners read them). */
@@ -238,15 +233,6 @@ export type AirOrder = Extract<
 >;
 
 // ---- ww8 air overhaul: wings (design ww8-air-design.md §3). Append only. ----
-
-/**
- * The switch between the two air models. true: the wing model runs and the
- * old orders are refused. false: the old daily deployment model runs, and the
- * wing orders are refused. Every real game starts with this value
- * (WwAir.wingsLive). The old model stays in the tree, off, until a later
- * cleanup; its tests run on it through tests/ww1936/oldAirModel.ts.
- */
-export const WW_WINGS_LIVE = true;
 
 /** Wing.phase. Stored by position: append only. */
 export const WING_PHASES = [

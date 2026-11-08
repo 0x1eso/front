@@ -309,7 +309,6 @@ export function layoutWings(
   out: WingSlot[],
 ): number {
   out.length = 0;
-  if (!air.live) return 0;
   const lod = tokenLod(input.zoom);
   const step = TOKEN_STEP_PX[lod] / Math.max(input.zoom, 1e-6);
   const briefs = [...air.wingBriefs.values()].sort((a, b) => a.id - b.id);

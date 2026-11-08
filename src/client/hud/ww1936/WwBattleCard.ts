@@ -252,8 +252,6 @@ export class WwBattleCard extends LitElement implements Controller {
    * for my armies attacking there.
    */
   private renderAir(d: BattleCardData): TemplateResult | typeof nothing {
-    const air = this.game.wwAir?.();
-    if (air?.live !== true) return nothing;
     const ctx = navyCtx(this.game as unknown as NavyGame);
     if (ctx === null) return nothing;
     const b = d.summary;

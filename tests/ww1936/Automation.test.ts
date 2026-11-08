@@ -31,7 +31,6 @@ import {
 } from "@openfront/engine/ww1936/economy/AiEconomy";
 import { removeLine } from "@openfront/engine/ww1936/economy/Production";
 import { cancelResearch } from "@openfront/engine/ww1936/economy/ResearchRun";
-import "./oldAirModel";
 import {
   byTag,
   gameHash,
@@ -257,30 +256,6 @@ describe("World War 1936 automation: the switches", () => {
     finishDay(runner, d0 + 44);
     // Nothing new queued once it is off.
     for (const id of entries()) expect(trained).toContain(id);
-  }, 120_000);
-
-  it("air: the AI places the human's wings in every zone while on, not when off", async () => {
-    const { runner, g, ww, deu } = await human();
-    warAfterPrep(runner, HUMAN, "POL");
-    const d0 = today(g);
-    finishDay(runner, d0 + 6);
-    expect(ww.air.wingsOf(deu)).toEqual([]);
-    setAuto(runner, "air", true);
-    finishDay(runner, d0 + 12);
-    const placed = ww.air.wingsOf(deu);
-    expect(placed.length).toBeGreaterThan(0);
-    // The AI's own paradrops (raising paratroopers) stay out of it.
-    expect(land(g).country(deu)!.training).toEqual([]);
-    // Off: what is out stays, nothing new goes out or comes back.
-    setAuto(runner, "air", false);
-    const ids = placed.map((d) => d.id).sort((a, b) => a - b);
-    for (const d of placed) {
-      step(runner, 1, [order(HUMAN, { kind: "air_recall", sr: d.sr })]);
-    }
-    expect(ww.air.wingsOf(deu)).toEqual([]);
-    finishDay(runner, d0 + 30);
-    expect(ww.air.wingsOf(deu)).toEqual([]);
-    expect(ids.length).toBeGreaterThan(0);
   }, 120_000);
 
   it("a manual order in a domain that is on switches it off, with a notice, and applies", async () => {

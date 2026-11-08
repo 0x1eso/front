@@ -489,7 +489,6 @@ describe("the AI's fronts move (ww103)", () => {
       (r) => r.name === "Chukchi Autonomous Okrug",
     )!.id;
     // Bombed: the lines are on the map, and no train runs.
-    expect(ww.air.wingsLive).toBe(true);
     l.econ.railEff.fill(0);
     const armies = [0, 1].map(() => placeArmy(g, "SUN", start, 24));
     const d0 = ww.day(g.ticks());

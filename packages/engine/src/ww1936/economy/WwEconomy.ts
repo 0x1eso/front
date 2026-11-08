@@ -616,8 +616,7 @@ export class WwEconomy {
   readonly infraEff: Uint8Array;
   /**
    * ww8 (derived, DERIVED_FIELDS): the railway and the supply hub less the
-   * whole buildings bombed out. Supply and movement read them only in the
-   * wing model (air.wingsLive): the old model never damages either.
+   * whole buildings bombed out. Supply and movement read them.
    */
   readonly railEff: Uint8Array;
   readonly hubEff: Uint8Array;

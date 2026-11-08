@@ -15,10 +15,7 @@ vi.mock("../../../src/client/Utils", async (importOriginal) => ({
       : `[${key}]`,
 }));
 
-import {
-  WwAirZoneSelectedEvent,
-  WwFleetSelectedEvent,
-} from "../../../src/client/hud/ww1936/SeaAirSelection";
+import { WwFleetSelectedEvent } from "../../../src/client/hud/ww1936/SeaAirSelection";
 import "../../../src/client/hud/ww1936/WwAirPanel";
 import type { WwAirPanel } from "../../../src/client/hud/ww1936/WwAirPanel";
 import {
@@ -237,30 +234,6 @@ describe("<ww-air-panel> (spec §18.7)", () => {
         tally30: [44, 19, 1200, 300, 2, 9],
       }),
     });
-
-  it("zones: a row opens its zone with the air layer", async () => {
-    const m = await mount<WwAirPanel>("ww-air-panel", {
-      air: air().air.detail!,
-      deployments: [
-        {
-          id: 1,
-          owner: SID("GBR"),
-          sr: SR.central,
-          type: "fighter",
-          mission: "air_superiority",
-          counts: [120, 0, 0],
-          target: 0,
-          base: REGION.london,
-        },
-      ],
-    });
-    const zones: number[] = [];
-    m.bus.on(WwAirZoneSelectedEvent, (e) => zones.push(e.sr));
-    m.bus.emit(new OpenWwAirEvent("zones"));
-    await m.settle();
-    await m.click(`[data-ww-zone-row='${SR.central}']`);
-    expect(zones).toEqual([SR.central]);
-  });
 
   it("planes, bases (build more), record", async () => {
     const m = await mount<WwAirPanel>("ww-air-panel", {

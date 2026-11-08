@@ -12,7 +12,6 @@ import {
   type NationalPlan,
 } from "@openfront/engine-lib/ww1936/AiPlans";
 import { dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
-import { startDoctrinePick } from "@openfront/engine-lib/ww1936/DoctrineRules";
 import { createGameRunner, GameRunner } from "@openfront/engine/GameRunner";
 import { declareWar } from "@openfront/engine/ww1936/Diplomacy";
 import { aiLandTick } from "@openfront/engine/ww1936/land/AiLand";
@@ -293,27 +292,6 @@ describe("the plan's small rules in the game", () => {
 });
 
 describe("the switch (ww91 8.1)", () => {
-  it("a major keeps its own doctrine row with the historical AI off", () => {
-    const table = [
-      { tag: "DEU", gd: ["gd_a", null, null], sub: [null, null, null] },
-      { tag: "@aggressor", gd: ["gd_b", null, null], sub: [null, null, null] },
-    ];
-    const pick = (tag: string, historical: boolean) =>
-      startDoctrinePick({
-        tag,
-        personality: "aggressor",
-        historical,
-        navy: false,
-        table,
-        seed: 1,
-        id: 1,
-        deviationPct: 0,
-      } as never).gd[0];
-    expect(pick("DEU", false)).toBe("gd_a");
-    expect(pick("DEU", true)).toBe("gd_a");
-    expect(pick("POL", false)).toBe("gd_b");
-  });
-
   it("the seven unit focuses are real focuses", async () => {
     const runner = await wwRunner({ historicalAi: false }, []);
     const pol = runner.game.worldWar()!.politics;

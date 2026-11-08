@@ -36,6 +36,7 @@ import { TestDataMapLoader } from "../util/ScriptedGame";
 import { fleetAtSea } from "./convoyUtil";
 import { REGION, SEA, SR, TAG_ID, ZONE } from "./seaFixture";
 import { byTag, HUMAN, placeArmy, wwGameStart, type WwHuman } from "./util";
+import { giveWing } from "./wingUtil";
 
 export const GBR_ITA: WwHuman[] = [
   { clientID: HUMAN, country: "GBR" },
@@ -92,18 +93,32 @@ function planes(g: Game, id: number, type: AirType, n: number): void {
   }
 }
 
+/**
+ * A wing of `count` planes from the stock at `base`, sent on `mission` over
+ * zone `sr` by the owner's own wing order (a sea zone's target is its sea
+ * zone, a land zone's the first region of it `pick` accepts).
+ */
 function deploy(
   g: Game,
   id: number,
+  base: number,
   sr: number,
   type: AirType,
   mission: AirMission,
   count: number,
+  pick: (region: number) => boolean = () => true,
 ): void {
-  const block = g
-    .worldWar()!
-    .air.issue(id, { kind: "air_deploy", sr, type, mission, count }, g.ticks());
-  if (block !== null) throw new Error(`air_deploy ${type}: ${block}`);
+  const ww = g.worldWar()!;
+  const s = ww.scenario.sr(sr)!;
+  const target =
+    s.kind === "sea" ? ZONE.middle : (s.members.find(pick) ?? s.members[0]);
+  const w = giveWing(ww.air, { owner: id, type, planes: count, base });
+  const block = ww.air.issue(
+    id,
+    { kind: "wing_mission", wings: [w.id], mission, target },
+    g.ticks(),
+  );
+  if (block !== null) throw new Error(`wing_mission ${type}: ${block}`);
 }
 
 /**
@@ -230,11 +245,21 @@ function setBoard(g: Game, air: boolean): void {
   planes(g, GBR, "fighter", 400);
   planes(g, ITA, "fighter", 400);
   planes(g, ITA, "bomber", 300);
-  deploy(g, GBR, SR.central, "fighter", "air_superiority", 200);
-  deploy(g, GBR, SR.westLand, "fighter", "interception", 150);
-  deploy(g, ITA, SR.central, "fighter", "air_superiority", 250);
-  deploy(g, ITA, SR.westLand, "fighter", "air_superiority", 100);
-  deploy(g, ITA, SR.westLand, "bomber", "strategic_bombing", 250);
+  const british = (r: number) => ww.land.controller[r] === GBR;
+  deploy(g, GBR, REGION.london, SR.central, "fighter", "air_superiority", 200);
+  deploy(g, GBR, REGION.london, SR.westLand, "fighter", "interception", 150);
+  deploy(g, ITA, REGION.rome, SR.central, "fighter", "air_superiority", 250);
+  deploy(g, ITA, REGION.rome, SR.westLand, "fighter", "air_superiority", 100);
+  deploy(
+    g,
+    ITA,
+    REGION.rome,
+    SR.westLand,
+    "bomber",
+    "strategic_bombing",
+    250,
+    british,
+  );
   const econ = ww.economy;
   econ.addBuilding(REGION.london, "civ", 6);
   damageBuilding(econ, REGION.london, "civ", 2500);

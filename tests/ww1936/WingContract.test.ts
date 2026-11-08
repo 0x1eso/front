@@ -16,7 +16,6 @@ import {
   WING_PHASES,
   WP_STATION,
   WW_BOMB_CLASSES,
-  WW_WINGS_LIVE,
 } from "@openfront/engine-api/ww1936/AirTypes";
 import { WW_ORDER_BLOCKS } from "@openfront/engine-api/ww1936/EconomyTypes";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
@@ -38,7 +37,7 @@ import {
 import { snapshotGame } from "@openfront/engine/snapshot/GameSnapshot";
 import { WwAirView } from "../../src/client/view/WwAirView";
 import { diffGraphs, diffSnapshots } from "../util/Snapshot";
-import "./oldAirModel";
+import "./noStartWings";
 import { REGION, SEA, SR, TAG_ID, ZONE } from "./seaFixture";
 import {
   gameHash,
@@ -49,7 +48,7 @@ import {
   wwRestore,
   wwRunner,
 } from "./util";
-import { giveWing, liveWings } from "./wingUtil";
+import { giveWing } from "./wingUtil";
 
 withTestPolitics();
 
@@ -277,37 +276,9 @@ describe("the order judge (design §3.3)", () => {
 });
 
 describe("the game", () => {
-  test("the switch on for real games; off (oldAirModel): air auto off (owner decision 5), wing orders refused", async () => {
-    const runner = await wwRunner({}, HUMANS, SEA.map);
-    const ww = runner.game.worldWar()!;
-    expect(WW_WINGS_LIVE).toBe(true);
-    expect(ww.air.wingsLive).toBe(false);
-    expect(ww.autoOn(DEU, "air")).toBe(false);
-    expect(ww.autoMask(DEU)).toBe(0);
-    const w = giveWing(ww.air, {
-      owner: DEU,
-      type: "fighter",
-      planes: 10,
-      base: REGION.berlin,
-    });
-    expect(w.mission).toBe(-1);
-    expect(w.goalCount).toBe(0);
-    const tick = runner.game.ticks();
-    const orders: WwOrder[] = [
-      { kind: "wing_auto", wings: [w.id], on: true },
-      { kind: "wing_disband", wing: w.id },
-      { kind: "air_field", region: REGION.berlin },
-      { kind: "army_air_priority", army: 1, on: true },
-    ];
-    for (const order of orders) {
-      expect(ww.air.issue(DEU, order, tick)).toBe("bad_index");
-    }
-  });
-
   test("the wing model refuses the old orders and another country's wings", async () => {
     const runner = await wwRunner({}, HUMANS, SEA.map);
     const air = runner.game.worldWar()!.air;
-    liveWings(air);
     const tick = runner.game.ticks();
     expect(
       air.issue(
@@ -419,7 +390,6 @@ describe("the game", () => {
       ["next wing number", () => (c.nextWingNo[1] += 1)],
       ["reform day", () => (c.reformDay[1] = 9)],
       ["a strip", () => air.setStrip(REGION.berlin, 50)],
-      ["the model", () => liveWings(air)],
     ];
     for (const [what, change] of changes) {
       const h = air.hash();
@@ -431,7 +401,6 @@ describe("the game", () => {
   test("the new state restores exactly, and the wing model runs on", async () => {
     const runner = await wwRunner({}, HUMANS, SEA.map);
     const air = runner.game.worldWar()!.air;
-    liveWings(air);
     const w = giveWing(air, {
       owner: DEU,
       type: "fighter",
@@ -502,7 +471,7 @@ describe("the game", () => {
     expect(diffGraphs(runner.game, copy.game)).toEqual([]);
   }, 120_000);
 
-  test("the screens read the wing model's rows; an old-model game sends none", async () => {
+  test("the screens read the wing model's rows", async () => {
     const runner = await wwRunner({}, HUMANS, SEA.map);
     const ww = runner.game.worldWar()!;
     const air = ww.air;
@@ -512,16 +481,7 @@ describe("the game", () => {
       planes: 10,
       base: REGION.berlin,
     });
-    air.noteFlight([mine.id, 1, 50, 3, 10, 5, REGION.paris, 10]);
-    air.noteFight(SR.westLand, ww.land.sideOf(DEU), 3);
-    const old = air.takeData()!;
-    expect(old.deployments.map((d) => d.id)).toEqual([mine.id]);
-    expect(old.live).toBeUndefined();
-    expect(old.flights).toBeUndefined();
-    expect(old.briefs).toBeUndefined();
-    expect(old.wings).toBeUndefined();
-
-    liveWings(air);
+    air.takeData();
     const theirs = giveWing(air, {
       owner: TAG_ID.FRA,
       type: "bomber",
@@ -534,7 +494,6 @@ describe("the game", () => {
     air.markCountry(DEU);
     air.setStrip(REGION.berlin, 90);
     const data = air.takeData()!;
-    expect(data.live).toBe(true);
     expect(data.briefs!.map((b) => b.id)).toEqual([mine.id, theirs.id]);
     expect(data.briefs![1].planes).toBe(10);
     expect(data.wings!.map((b) => b.id)).toEqual([mine.id]);
@@ -547,7 +506,6 @@ describe("the game", () => {
 
     const view = new WwAirView(ww.scenario, () => DEU);
     view.apply(data);
-    expect(view.live).toBe(true);
     expect([...view.wingBriefs.keys()]).toEqual([mine.id, theirs.id]);
     expect([...view.wings.keys()]).toEqual([mine.id]);
     expect(view.flights.get(mine.id)![2]).toBe(50);

@@ -24,7 +24,7 @@ import {
 } from "@openfront/engine/ww1936/air/Wings";
 import type { WwAir } from "@openfront/engine/ww1936/air/WwAir";
 import { damageBuilding } from "@openfront/engine/ww1936/economy/Buildings";
-import "./oldAirModel";
+import "./noStartWings";
 import { REGION, SEA, TAG_ID } from "./seaFixture";
 import {
   clearLand,
@@ -34,7 +34,7 @@ import {
   withTestPolitics,
   wwRunner,
 } from "./util";
-import { giveWing, liveWings } from "./wingUtil";
+import { giveWing } from "./wingUtil";
 
 withTestPolitics();
 
@@ -46,7 +46,6 @@ async function setup() {
   const runner = await wwRunner({}, HUMANS, SEA.map);
   const ww = runner.game.worldWar()!;
   const air = ww.air;
-  liveWings(air);
   const ce = ww.economy.country(DEU)!;
   for (const t of AIR_TYPES) {
     for (let g = 1; g <= 3; g++) {
