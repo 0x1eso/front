@@ -2758,6 +2758,7 @@
         "scene": "In force, already decided",
         "voted": "In force, voted"
       },
+      "none_yet": "No bill can be brought yet.",
       "outlook": {
         "blocked": "blocked",
         "easy": "passes with room",

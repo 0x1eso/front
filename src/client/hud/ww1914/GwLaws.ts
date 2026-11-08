@@ -168,10 +168,15 @@ export function lawsSection(c: GwCtx): TemplateResult | typeof nothing {
   const rows = [...c.seat.world.laws].sort(
     (a, b) => ORDER.indexOf(a.stage) - ORDER.indexOf(b.stage),
   );
-  if (rows.length === 0) return nothing;
+  // A country with bills, none open yet, still shows the box (w159).
+  if (rows.length === 0 && c.seat.world.lawsAhead !== true) return nothing;
   return html`<section class=${BOX} data-gw-laws>
     <h3 class=${HEAD}>${translateText("gw.law.title")}</h3>
-    ${rows.map((v) => line(c, v))}
+    ${rows.length === 0
+      ? html`<p class=${MUTED} data-gw-laws-none>
+          ${translateText("gw.law.none_yet")}
+        </p>`
+      : rows.map((v) => line(c, v))}
   </section>`;
 }
 

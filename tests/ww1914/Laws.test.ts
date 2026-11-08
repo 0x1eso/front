@@ -428,6 +428,33 @@ describe("a bill's way", () => {
   });
 });
 
+describe("the box before a bill opens (w159)", () => {
+  test("no war, no bill open, but the seat is told bills will come", async () => {
+    const { runner } = await gwRunner({ greatWar1914Calendar: "full" });
+    const gw = runner.game.greatWar()!;
+    // Past October 1914 with no war: every German bill waits on the war.
+    gw.s.dayShift = 150;
+    gw.s.day += 150;
+    expect(gw.s.warChapter).toBe(null);
+    const w = seat(runner).world;
+    expect(w.laws).toEqual([]);
+    expect(w.lawsAhead).toBe(true);
+  });
+
+  test("at war, the house's bills and the plain ones show, with no such word", async () => {
+    const { runner, gw, seat: st } = await atWar();
+    // The house's own bill opens on this word (content/house/deu).
+    st.flags.push("f_interparty_heard");
+    const w = seat(runner).world;
+    const ids = w.laws.map((x) => x.id);
+    expect(ids).toContain("deu_censor");
+    expect(ids).toContain("deu_parl_gov");
+    expect(w.laws.find((x) => x.id === "deu_parl_gov")!.house).toBe(true);
+    expect(w.lawsAhead).toBeUndefined();
+    expect(gw.s.warChapter).toBe(0);
+  });
+});
+
 describe("a save", () => {
   beforeEach(withoutHouse);
   afterEach(() => useGwContent(null));

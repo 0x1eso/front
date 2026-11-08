@@ -33,7 +33,7 @@ const PACK = {
   },
 } as unknown as GwPack;
 
-function ctx(rows: GwLawView[], audiences = 1) {
+function ctx(rows: GwLawView[], audiences = 1, ahead = false) {
   const sent: GwOrder[] = [];
   const root = document.createElement("div");
   const c = {
@@ -41,7 +41,7 @@ function ctx(rows: GwLawView[], audiences = 1) {
     seat: {
       tag: "DEU",
       audiences,
-      world: { laws: rows },
+      world: { laws: rows, ...(ahead ? { lawsAhead: true } : {}) },
     } as unknown as GwSeatView,
     pack: PACK,
     ui: { armedRepeal: null, summoned: 0, notes: [] } as unknown as GwUi,
@@ -60,6 +60,15 @@ const q = (root: HTMLElement, sel: string) =>
 describe("the country tab's lines", () => {
   test("no bill, no box", () => {
     expect(q(ctx([]).root, "[data-gw-laws]")).toBeNull();
+  });
+
+  test("bills to come but none open: the box, with one plain line", () => {
+    const { root } = ctx([], 1, true);
+    expect(q(root, "[data-gw-laws]")).not.toBeNull();
+    expect(q(root, "[data-gw-laws-none]")!.textContent!.trim()).toBe(
+      "gw.law.none_yet",
+    );
+    expect(root.querySelectorAll("[data-gw-law]").length).toBe(0);
   });
 
   test("an open bill reads by its name and is taken up with one tap", () => {

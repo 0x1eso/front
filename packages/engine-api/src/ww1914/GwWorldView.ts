@@ -181,6 +181,8 @@ export interface GwWorldView {
   budget: GwBudgetView;
   /** Bills open, moving and in force. */
   laws: readonly GwLawView[];
+  /** The country has bills, none open yet: the box shows, saying so (w159). */
+  lawsAhead?: true;
   /** Null for a country with no bloc row yet. */
   press: GwPressView | null;
   /** Inventions, the year's project, the footing (ww157). */

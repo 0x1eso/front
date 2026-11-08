@@ -625,3 +625,10 @@ export function lawViews(gw: GreatWar, seat: GwSeatState): GwLawView[] {
     return view(gw, seat, n, row) ?? [];
   });
 }
+
+/** The country has bills, so its box shows even before one opens (w159). */
+export function lawsAhead(gw: GreatWar, seat: GwSeatState): boolean {
+  if (gw.nation(seat.tag) === null) return false;
+  if (gwContent().scenes.length === 0) return false;
+  return GW_LAWS.some((row) => row.tag === seat.tag);
+}

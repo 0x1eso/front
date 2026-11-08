@@ -30,7 +30,7 @@ import { eraOf } from "./Eras";
 import { ownFronts, proposalsFor } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
 import { houseView } from "./House";
-import { lawViews } from "./Laws";
+import { lawsAhead, lawViews } from "./Laws";
 import {
   candidatesFor,
   dismissPrice,
@@ -204,6 +204,7 @@ export function worldView(gw: GreatWar, seat: GwSeatState): GwWorldView {
     }),
   );
   const usa = gw.nation("USA");
+  const laws = lawViews(gw, seat);
   return {
     war: {
       era: eraOf(gw).id,
@@ -248,7 +249,10 @@ export function worldView(gw: GreatWar, seat: GwSeatState): GwWorldView {
     news: s.news.slice(-NEWS_SHOWN),
     memoir: seat.memoir,
     budget: budgetView(gw, seat),
-    laws: lawViews(gw, seat),
+    laws,
+    ...(laws.length === 0 && lawsAhead(gw, seat)
+      ? { lawsAhead: true as const }
+      : {}),
     press: pressView(gw, seat),
     craft: craftView(gw, seat),
     house: houseView(gw, seat),
