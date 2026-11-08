@@ -1622,6 +1622,7 @@
     "ww1936_ultimatum_given": "{country} 측이 최후통첩을 받아들였습니다: {regions}",
     "ww1936_ultimatum_refused": "{country} 측이 최후통첩을 거절했습니다 — {days} 일 동안 전쟁 명분이 있습니다",
     "ww1936_ultimatum_guarantor": "{country} 측이 우리가 보장하는 {target} 측에 최후통첩을 보냈습니다",
+    "ww1936_ultimatum_lapsed": "상황이 바뀌어 {target} 측에 보낸 최후통첩이 무효가 되었습니다",
     "ww1936_promise_lapsed": "{country} 측이 약속한 {target} 땅 약속이 무효가 되었습니다",
     "ww1936_promise_kept": "{country} 측이 약속을 지켰습니다: {target} 땅을 받았습니다"
   },
@@ -10720,6 +10721,8 @@
       "news_white_peace": "{a} 측과 {b} 측이 백지 평화에 합의했습니다",
       "news_neg_peace": "{a} 측과 {b} 측이 조건부 평화 조약을 맺었습니다",
       "news_line_peace": "{a} 측과 {b} 측이 현 점령선에서 평화에 합의했습니다",
+      "news_ultimatum": "{a} 측이 {b} 측에 땅을 내놓으라는 최후통첩을 보냈습니다",
+      "news_ultimatum_given": "{b} 측이 {a} 측의 최후통첩에 굴복해 땅을 내주었습니다",
       "sun_news_old_guard": "모스크바 소식: 국방 인민위원과 정부 수반, 당의 수석 이념가가 모두 자리에서 물러났다."
     },
     "nuke": {

@@ -19,6 +19,7 @@ import type {
   DesignDef,
   DesignKind,
 } from "@openfront/engine-api/ww1936/DepthTypes";
+import { DIPLO_NOTICES } from "@openfront/engine-api/ww1936/DiploTypes";
 import { ADMIRAL_TRAITS } from "@openfront/engine-api/ww1936/NavyTypes";
 import { EventBus } from "@openfront/shared/EventBus";
 import { html, LitElement } from "lit";
@@ -381,6 +382,19 @@ export class EventsDisplay extends LitElement implements Controller {
       const scenario = this.game?.worldWarScenario?.() ?? null;
       if (typeof params.region === "number" && scenario !== null) {
         params = { ...params, region: regionName(scenario, params.region) };
+      }
+      // Diplomacy D5: the land an ultimatum won, "12,13" → its names.
+      if (
+        event.message === DIPLO_NOTICES.ultimatumGiven &&
+        typeof params.regions === "string" &&
+        scenario !== null
+      ) {
+        const names = params.regions
+          .split(",")
+          .map(Number)
+          .filter((r) => r > 0)
+          .map((r) => regionName(scenario, r));
+        params = { ...params, regions: names.join(", ") };
       }
       if (typeof params.general === "number") {
         // P6 (lane D's trait notices): an admiral is named from the navy's
