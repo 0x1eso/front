@@ -198,7 +198,7 @@ function lobbyTalk(f: GwFactionRow, bills: readonly GwBillRow[]): GwScene {
         reply("ask", "warm", "ask", "price"),
         reply("hold", "cold", "push", "held", {
           when: world({ is: "file", who }),
-          effects: [doWorld({ do: "hold", who })],
+          effects: [doWorld({ do: "use_file", who })],
         }),
         reply("leave", "warm", "leave", null),
       ],

@@ -125,6 +125,83 @@ export function sendReport(
   return report;
 }
 
+/** A report that waits to be put right until its system says so (a file). */
+export const GW_CHECK_LATER = 2_000_000_000;
+
+/** A report's stamp, rolled before it is written: whether it will be wrong. */
+export interface GwReportRoll {
+  uid: number;
+  stamp: GwStamp;
+  wrong: boolean;
+}
+
+/** Rolls the next report's stamp by the source's band (the one rule kept). */
+export function rollReport(gw: GreatWar, source: GwSource): GwReportRoll {
+  const s = gw.s;
+  const uid = s.nextReport++;
+  const band = s.sources.find((x) => x.id === source)?.band ?? 2;
+  const r = wwRoll(s.seed, P_STAMP, uid) % 100;
+  const confirmed = CONFIRMED_BY_BAND[band - 1];
+  const stamp: GwStamp =
+    r < confirmed
+      ? "confirmed"
+      : r < confirmed + ESTIMATE_BY_BAND[band - 1]
+        ? "estimate"
+        : "unconfirmed";
+  const wrong =
+    stamp === "unconfirmed" &&
+    wwRoll(s.seed, P_WRONG, uid) % 100 < WRONG_BY_BAND[band - 1];
+  return { uid, stamp, wrong };
+}
+
+/**
+ * A report on something a system keeps (S2: plots, files, allies): the same
+ * stamp rule as `sendReport`, the truth given. `later`: an unconfirmed one is
+ * put right only when its system calls `checkNow` (a file, when it is used).
+ */
+export function sendHouseReport(
+  gw: GreatWar,
+  seat: GwSeatState,
+  fact: GwFactKind,
+  truth: number,
+  source: GwSource,
+  about: string,
+  later = false,
+  roll: GwReportRoll = rollReport(gw, source),
+): GwReport {
+  const s = gw.s;
+  const { uid, stamp, wrong } = roll;
+  const report: GwReport = {
+    uid,
+    fact,
+    tag: seat.tag,
+    theatre: null,
+    source,
+    stamp,
+    claim: wrong ? wrongClaim(gw, fact, truth, uid) : truth,
+    truth,
+    smallID: seat.smallID,
+    chapter: s.chapter,
+    checkDay:
+      stamp !== "unconfirmed"
+        ? null
+        : later
+          ? GW_CHECK_LATER
+          : s.day + CHECK_MIN + (wwRoll(s.seed, P_CHECK, uid) % CHECK_SPAN),
+    about,
+  };
+  s.reports.push(report);
+  return report;
+}
+
+/** Puts a report right today: the seat learns what was so. */
+export function checkNow(gw: GreatWar, uid: number): void {
+  const r = gw.s.reports.find((x) => x.uid === uid);
+  if (r === undefined || r.checkDay === null) return;
+  r.checkDay = gw.s.day;
+  checkReports(gw);
+}
+
 /** Seen with the seat's own eyes: the truth, and any report of it is checked now. */
 export function inspect(
   gw: GreatWar,

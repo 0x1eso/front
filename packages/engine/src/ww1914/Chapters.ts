@@ -11,6 +11,8 @@ import { govStep } from "./Government";
 import type { GreatWar } from "./GreatWar";
 import { homeStep } from "./Home";
 import { houseStep } from "./House";
+import { dossierStep } from "./Dossier";
+import { alliesStep } from "./Asks";
 import { intelStep } from "./Intel";
 import { frontLandStep } from "./Land";
 import { lawStep } from "./Laws";
@@ -40,6 +42,8 @@ export const GW_CHAPTER_STEPS: readonly ((gw: GreatWar) => void)[] = [
   budgetStep,
   lawStep,
   houseStep,
+  dossierStep,
+  alliesStep,
   homeStep,
   craftStep,
   peopleStep,

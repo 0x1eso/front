@@ -148,6 +148,8 @@ export const GwPlotStateSchema = z.object({
   signs: z.array(Id),
   /** The chapter the warning was opened; -1 not yet. */
   warned: int,
+  /** The chapter this round of it began: signs and warning count from here. */
+  since: int,
 });
 export type GwPlotState = z.infer<typeof GwPlotStateSchema>;
 
@@ -246,4 +248,34 @@ export interface GwHouseView {
   out: { id: string; bloc: string } | null;
   /** The way round, if the constitution has one. */
   around: GwAround | null;
+}
+
+// ---- S2: what the notebook reads ----
+
+/** A file in the notebook's 서류철: what the police say, never the truth. */
+export interface GwFileView {
+  uid: number;
+  who: string;
+  weak: GwWeakness;
+  stamp: "confirmed" | "unconfirmed" | "estimate";
+  chapter: number;
+  used: number;
+  /** Burnt or found out: no longer held. */
+  out: boolean;
+  /** Why it is out, once it is: he refused it (false), or it came out. */
+  end: "burnt" | "found" | null;
+}
+
+/** An ally's ask in the notebook. */
+export interface GwAskView {
+  id: string;
+  from: string;
+  kind: GwAskKind;
+  stage: GwAskStage;
+  chapter: number;
+}
+
+export interface GwDossierView {
+  files: readonly GwFileView[];
+  asks: readonly GwAskView[];
 }

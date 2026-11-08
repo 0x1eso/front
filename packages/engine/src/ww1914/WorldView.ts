@@ -28,6 +28,7 @@ import { craftView } from "./Craft";
 import { eraOf } from "./Eras";
 import { ownFronts, proposalsFor } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
+import { dossierView } from "./Dossier";
 import { houseView } from "./House";
 import { lawViews } from "./Laws";
 import {
@@ -133,6 +134,7 @@ function reportView(gw: GreatWar, seat: GwSeatState): GwReportView[] {
         chapter: r.chapter,
         checked,
         corrected: checked && r.claim !== r.truth ? r.truth : null,
+        about: r.about ?? null,
       };
     });
 }
@@ -250,5 +252,6 @@ export function worldView(gw: GreatWar, seat: GwSeatState): GwWorldView {
     press: pressView(gw, seat),
     craft: craftView(gw, seat),
     house: houseView(gw, seat),
+    dossier: dossierView(gw, seat),
   };
 }

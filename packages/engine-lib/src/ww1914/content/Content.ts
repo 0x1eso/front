@@ -38,6 +38,7 @@ import { AUH_REALM_SCENES } from "./scenes/auh_realm";
 import { AUH_WAR_SCENES } from "./scenes/auh_war";
 import { BUDGET_SCENES } from "./scenes/budget";
 import { COMMON_SCENES } from "./scenes/common";
+import { gwDossierActs, gwDossierScenes } from "./scenes/dossier";
 import {
   CRAFT_SCENES,
   GW_FOOTING,
@@ -179,6 +180,7 @@ export const GW_CONTENT: GwContent = {
         ...CRAFT_SCENES,
         ...gwHouseScenes(GW_HOUSE_CONTENT, GW_LAWS),
         ...HOUSE_WRITTEN_SCENES,
+        ...gwDossierScenes(GW_HOUSE_CONTENT),
         ...RULER_SCENES,
         ...GOV_SCENES,
         ...DEU_PRIVATE_SCENES,
@@ -221,7 +223,14 @@ export const GW_CONTENT: GwContent = {
     ...AUH_PRIVATE_PEOPLE,
     ...GW_PEOPLE_HEADS,
   ],
-  acts: [...COMMON_ACTS, ...DEU_ACTS, ...GBR_ACTS, ...AUH_ACTS, ...RUS_ACTS],
+  acts: [
+    ...COMMON_ACTS,
+    ...DEU_ACTS,
+    ...GBR_ACTS,
+    ...AUH_ACTS,
+    ...RUS_ACTS,
+    ...gwDossierActs(GW_HOUSE_CONTENT),
+  ],
   aims: [...DEU_AIMS, ...GBR_AIMS, ...AUH_AIMS, ...RUS_AIMS],
   inventions: GW_INVENTIONS,
   projects: GW_PROJECTS,
