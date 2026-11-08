@@ -12,6 +12,7 @@ import {
   MOVE_RETREAT,
   MOVE_SEA,
   MOVE_WALK,
+  ROLE_ATTACK,
   WW_ROUND_HOUR_MILLI,
   WW_ZONE_MAX,
 } from "@openfront/engine-api/ww1936/LandTypes";
@@ -22,22 +23,27 @@ import {
   borderLinks,
   borderRegionsOf,
   facesFront,
+  frontLineBetween,
   frontOf,
+  nearestOf,
   splitByWeight,
   zoneFrom,
   zoneSize,
 } from "@openfront/engine-lib/ww1936/FrontRules";
 import { moveNeed } from "@openfront/engine-lib/ww1936/MoveRules";
 import { RegionHeap } from "@openfront/engine-lib/ww1936/RegionHeap";
-import { startNextHop } from "./Movement";
+import { retreatDivision } from "./Battles";
+import { startNextHop, stopDivision } from "./Movement";
 import { leaveAttack, stopOrFinishEdge } from "./Orders";
 import {
   armyRows,
-  axisOf,
   FAR,
   finishPlan,
+  isBroad,
   oddsOf,
+  planAxis,
   planDay,
+  planTargets,
   readinessDay,
   targetDistances,
 } from "./Plans";
@@ -51,6 +57,17 @@ const ROTATE_TIRED_PCT = 40;
 const ROTATE_FRESH_PCT = 70;
 /** ww7: ...and gets there within 3 days (ticks: 7.5 a day). */
 const ROTATE_TICKS = 22;
+/**
+ * ww162 §1.3 (Design A §1.2): an army falls back by itself when, for this
+ * many days in a row, the enemy across its line outnumbers it by more than
+ * FALLBACK_OUTNUMBER_PCT % in combined strength while its average org is
+ * under FALLBACK_ORG_PCT %, or FALLBACK_BREACH_REGIONS zone regions have
+ * lost a band to the enemy, or a zone region is encircled.
+ */
+const FALLBACK_DAYS = 2;
+const FALLBACK_OUTNUMBER_PCT = 150;
+const FALLBACK_ORG_PCT = 35;
+const FALLBACK_BREACH_REGIONS = 2;
 
 /** One front or plan army's day: its zone, the border it faces, what it targets. */
 interface ArmyDay {
@@ -65,6 +82,8 @@ interface ArmyDay {
   allIn: boolean;
   /** targetDistances for an Attack with targets, else null. */
   dist: Int32Array | null;
+  /** ww162: a broad offensive line: the spare spreads over the whole front, not to the axis. */
+  broad: boolean;
   /** The zone proper; `front` is it plus the gap fills, the order cover reads. */
   zone: number[];
   front: number[];
@@ -99,6 +118,8 @@ export function dailyFronts(land: WwLand, smallID: number, day: number): void {
       finishMove(land, a);
       continue;
     }
+    // ww162 §1.3: the fallback line's own check, before the day's zone.
+    fallbackDay(land, a);
     if (a.order.kind !== "front" && a.order.kind !== "plan") continue;
     const d = openDay(land, a, graphs);
     if (d !== null) days.push(d);
@@ -232,25 +253,129 @@ export function nearestBorder(
   sources: readonly number[],
   pass: (region: number) => boolean,
 ): number {
+  // ww162: the rule lives in lib FrontRules (the front line's ends use it too).
+  return nearestOf(land, border, sources, pass);
+}
+
+/**
+ * ww162 §1.3: the fallback line's day. A front or plan army with a fallback
+ * line (and not manual-only) counts the days its rule holds (fallbackDue);
+ * on the FALLBACK_DAYS-th it falls back. Any other day, or any other
+ * army, the count goes back to 0.
+ */
+function fallbackDay(land: WwLand, a: Army): void {
+  const o = a.order;
+  const watch =
+    (o.kind === "front" || o.kind === "plan") &&
+    o.fallback !== undefined &&
+    o.fallback.length > 0 &&
+    o.fbManual !== true;
+  if (!watch || !fallbackDue(land, a)) {
+    if (a.fbDays !== 0) {
+      a.fbDays = 0;
+      land.markArmy(a.id);
+    }
+    return;
+  }
+  a.fbDays++;
+  land.markArmy(a.id);
+  if (a.fbDays >= FALLBACK_DAYS) fallBack(land, a);
+}
+
+/**
+ * ww162 §1.3 (Design A §1.2): whether the army's line is about to give: (a)
+ * the enemy divisions standing across it outnumber the army's in combined
+ * strength by more than 1.5 and the army's average org is under 35 %; (b)
+ * two of its zone regions have lost a band to the enemy (a breach); (c) a
+ * zone region is encircled.
+ */
+export function fallbackDue(land: WwLand, a: Army): boolean {
+  const zone = a.front;
+  if (zone.length === 0) return false;
+  const me = land.ownerForSides(a);
+  let breach = 0;
+  for (const f of zone) {
+    if (land.encircled[f] !== 0) return true;
+    const taker = land.bandTaker[f];
+    if (land.bandProg[f] >= 1 && taker !== 0 && !land.sameSide(me, taker)) {
+      if (++breach >= FALLBACK_BREACH_REGIONS) return true;
+    }
+  }
+  const t = land.divisions;
+  let ours = 0;
+  let org = 0;
+  let orgMax = 0;
+  for (const r of armyRows(land, a)) {
+    ours += land.strengthOf(r);
+    org += t.org[r];
+    orgMax += land.orgMaxOf(r);
+  }
+  if (org * 100 >= orgMax * FALLBACK_ORG_PCT) return false;
   const sc = land.scenario;
-  const seen = new Set<number>(sources);
-  let layer = [...seen];
-  while (layer.length > 0) {
-    let best = 0;
-    for (const r of layer)
-      if (border.has(r) && (best === 0 || r < best)) best = r;
-    if (best !== 0) return best;
-    const next: number[] = [];
-    for (const u of layer) {
-      for (const e of sc.edgesOf(u)) {
-        if (seen.has(e.to) || !pass(e.to)) continue;
-        seen.add(e.to);
-        next.push(e.to);
+  const across = new Set<number>();
+  for (const f of zone) {
+    for (const e of sc.edgesOf(f)) {
+      if (facesFront(land, me, a.order.enemy, land.controller[e.to])) {
+        across.add(e.to);
       }
     }
-    layer = next;
   }
-  return 0;
+  let theirs = 0;
+  for (const x of across) {
+    for (const r of land.rowsIn(x)) {
+      const m = t.mode[r];
+      if (m === MOVE_ADVANCE || m === MOVE_RETREAT) continue;
+      if (land.isEnemy(me, land.fightOwner(r))) theirs += land.strengthOf(r);
+    }
+  }
+  return theirs * 100 > ours * FALLBACK_OUTNUMBER_PCT;
+}
+
+/**
+ * ww162 §1.3: the army falls back to its fallback line: a front order with
+ * the line as its zone (its ends, goal and fallback cleared; a new front,
+ * so the readiness starts over). The attackers leave their attacks, the
+ * walks into enemy land stop, and a defender in a battle off the line
+ * breaks off (MOVE_RETREAT, without a rout's loss); the layout walks
+ * everyone back. Its player is told.
+ */
+export function fallBack(land: WwLand, a: Army): void {
+  const o = a.order;
+  const line = [...new Set(o.fallback ?? [])];
+  const onLine = new Set(line);
+  const me = land.ownerForSides(a);
+  const t = land.divisions;
+  for (const r of armyRows(land, a)) {
+    if (t.battle[r] !== 0 && t.role[r] !== ROLE_ATTACK) {
+      if (t.mode[r] === MOVE_NONE && !onLine.has(t.region[r])) {
+        retreatDivision(land, r, false);
+      }
+      continue;
+    }
+    leaveAttack(land, r);
+    if (
+      t.mode[r] === MOVE_WALK &&
+      !land.sameSide(me, land.controller[t.next[r]])
+    ) {
+      stopDivision(land, r);
+    }
+  }
+  a.order = {
+    ...idleOrder(),
+    kind: "front",
+    anchor: line[0] ?? o.anchor,
+    enemy: o.enemy,
+    zone: line,
+  };
+  a.front = [];
+  a.path = [];
+  a.planBp = 0;
+  a.fbDays = 0;
+  a.odds = undefined;
+  land.message(a.owner, "events_display.ww1936_fell_back", {
+    army: a.nameNo,
+  });
+  land.markArmy(a.id);
 }
 
 function sameList(a: readonly number[], b: readonly number[]): boolean {
@@ -353,14 +478,31 @@ function openDay(
   const g = graphOf(land, graphs, me, o.enemy);
   const rows = armyRows(land, a);
   const attack = o.kind === "plan";
-  const dist = attack && o.targets.length > 0 ? targetDistances(land, a) : null;
+  const dist =
+    attack && planTargets(o).length > 0 ? targetDistances(land, a) : null;
   let zone: number[] = [];
   // ww7 lane D: a Defend zone may also name our own interior regions (the
   // AI's shortened front holds a fallback line behind the border).
-  const explicit = [...new Set(o.zone)].filter(
-    (r) => g.set.has(r) || (!attack && land.sameSide(me, land.controller[r])),
-  );
-  if (explicit.length > 0) {
+  const explicit =
+    o.ends !== undefined
+      ? []
+      : [...new Set(o.zone)].filter(
+          (r) =>
+            g.set.has(r) || (!attack && land.sameSide(me, land.controller[r])),
+        );
+  if (o.ends !== undefined) {
+    // ww162 §1.1: the front line. Its ends snap to the border (they follow
+    // it as regions change hands); the zone is the border chain between.
+    const line = frontLineBetween(land, me, o.enemy, o.ends[0], o.ends[1], g);
+    if (line !== null) {
+      if (line.ends[0] !== o.ends[0] || line.ends[1] !== o.ends[1]) {
+        o.ends = line.ends;
+        land.markArmy(a.id);
+      }
+      o.anchor = line.ends[0];
+      zone = line.chain;
+    }
+  } else if (explicit.length > 0) {
     zone = explicit.slice(0, WW_ZONE_MAX);
   } else {
     let anchor = o.anchor;
@@ -397,10 +539,11 @@ function openDay(
     direct: attack && o.direct === true,
     allIn: attack && o.direct === true && (a.dflags & DIRECT_ALL_IN) !== 0,
     dist,
+    broad: attack && isBroad(o),
     zone,
     front: [...zone],
     fills: new Set(),
-    axis: attack ? axisOf(zone, dist) : new Set(),
+    axis: attack ? planAxis(zone, o, dist) : new Set(),
   };
 }
 
@@ -640,8 +783,9 @@ function layout(land: WwLand, d: ArmyDay, tick: number): void {
         regions.map((_, i) => (covered[i] ? FRONT_BASE_WEIGHT + threat[i] : 0)),
       );
     } else {
-      // The axis first, the overflow to the next nearest regions.
-      const dist = (f: number) => (d.dist === null ? 0 : d.dist[f]);
+      // The axis first, the overflow to the next nearest regions. ww162: a
+      // broad offensive line spreads over the whole front (one step).
+      const dist = (f: number) => (d.dist === null || d.broad ? 0 : d.dist[f]);
       const steps = [
         ...new Set(regions.filter((_, i) => covered[i]).map(dist)),
       ].sort((x, y) => x - y);

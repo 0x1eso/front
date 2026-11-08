@@ -15,6 +15,7 @@ import {
   traitBit,
   WW_PLAN_DAY_BP,
   WW_PLAN_FIGHT_BP,
+  type ArmyOrder,
   type BattleCtx,
   type BattlePrediction,
   type BattleRange,
@@ -32,7 +33,14 @@ import {
   predictBattle,
   predictBattleRange,
 } from "@openfront/engine-lib/ww1936/CombatRules";
-import { landOrderBlockOf } from "@openfront/engine-lib/ww1936/LandOrderChecks";
+import {
+  borderRegionsOf,
+  nearestOf,
+} from "@openfront/engine-lib/ww1936/FrontRules";
+import {
+  goalRegionBlock,
+  landOrderBlockOf,
+} from "@openfront/engine-lib/ww1936/LandOrderChecks";
 import { effectiveLevel } from "../economy/Buildings";
 import { fearCutOf, joinBattle, modsOf } from "./Battles";
 import { generalOf } from "./GeneralsRun";
@@ -80,6 +88,49 @@ export function armyRows(land: WwLand, army: Army): number[] {
 /** Edges no region is from the plan's targets. */
 export const FAR = 1 << 30;
 
+/** ww162 §1.2: the order carries an offensive line (army_goal). */
+export function hasGoal(o: ArmyOrder): boolean {
+  return o.goal !== undefined && o.goal.length > 0;
+}
+
+/** ww162 §1.2: a broad offensive line (not a spearhead): the whole front pushes. */
+export function isBroad(o: ArmyOrder): boolean {
+  return hasGoal(o) && o.spear !== true;
+}
+
+/**
+ * The regions a plan's distances run from: a direct attack's first target
+ * (ww42); ww162 an offensive line's goal regions (broad) or its first
+ * waypoint (spearhead; the taken ones dropped out on the day); else the
+ * plan's targets.
+ */
+export function planTargets(o: ArmyOrder): readonly number[] {
+  if (o.direct === true) return o.targets.slice(0, 1);
+  if (hasGoal(o)) return o.spear === true ? o.goal!.slice(0, 1) : o.goal!;
+  return o.targets;
+}
+
+/**
+ * The zone regions a plan attacks from (axisOf): ww162 every zone region
+ * for a broad offensive line, else the regions nearest its targets.
+ */
+export function planAxis(
+  zone: readonly number[],
+  o: ArmyOrder,
+  dist: Int32Array | null,
+): Set<number> {
+  if (isBroad(o)) return axisOf(zone, null);
+  return axisOf(zone, planTargets(o).length > 0 ? dist : null);
+}
+
+/** What attackTarget reads of an order: ww162 an offensive line's regions count as its targets. */
+function attackScope(o: ArmyOrder): {
+  enemy: number;
+  targets: readonly number[];
+} {
+  return hasGoal(o) ? { enemy: o.enemy, targets: o.goal! } : o;
+}
+
 /**
  * Spec §8.2-1: edges from the plan's targets to every region the army's
  * country may enter (ours, our side's, an enemy's), by BFS; FAR where
@@ -89,9 +140,7 @@ export function targetDistances(
   land: WwLand,
   army: Army,
   /** ww7 lane D: hypothetical targets (the AI's gate), default the order's. */
-  targets: readonly number[] = army.order.direct === true
-    ? army.order.targets.slice(0, 1)
-    : army.order.targets,
+  targets: readonly number[] = planTargets(army.order),
 ): Int32Array {
   const sc = land.scenario;
   const dist = new Int32Array(sc.maxRegionId() + 1).fill(
@@ -143,6 +192,7 @@ export function axisOf(
  */
 export function finishPlan(land: WwLand, army: Army): boolean {
   const o = army.order;
+  if (hasGoal(o)) return finishGoal(land, army);
   if (o.kind === "plan" && o.direct === true) return finishDirect(land, army);
   if (o.kind !== "plan" || o.targets.length === 0) return false;
   // P5 lane A: a volunteer army judges by its host's side.
@@ -156,9 +206,98 @@ export function finishPlan(land: WwLand, army: Army): boolean {
     kind: "front",
     anchor: land.armyRegion(army),
     enemy: o.enemy,
+    ...fallbackOf(o),
   };
   army.odds = undefined;
   land.markArmy(army.id);
+  return true;
+}
+
+/** ww162 §1.3: an order's fallback line, for the front that follows it (the lines stay on front and plan orders). */
+export function fallbackOf(
+  o: ArmyOrder,
+): Pick<ArmyOrder, "fallback" | "fbManual"> {
+  return {
+    ...(o.fallback === undefined || o.fallback.length === 0
+      ? {}
+      : { fallback: [...o.fallback] }),
+    ...(o.fbManual === true ? { fbManual: true } : {}),
+  };
+}
+
+/**
+ * ww162 §1.2: an offensive line's day check. Goal regions our side holds
+ * drop out; one that turned unreachable (peace, out of reach: the order
+ * check's verdict) drops out with the direct attack's stop notice. With
+ * none left the army holds: a front order, not executing; when some were
+ * taken its ends move to the border regions nearest the line's first and
+ * last regions (so the new front sits on the line it reached) and its
+ * player is told. True when the line ended.
+ */
+function finishGoal(land: WwLand, army: Army): boolean {
+  const o = army.order;
+  const goal = o.goal!;
+  const me = land.ownerForSides(army);
+  const w = orderCheckWorld(land, me);
+  const left: number[] = [];
+  let taken = false;
+  let stop: string | null = null;
+  for (const r of goal) {
+    if (land.sameSide(me, land.controller[r])) {
+      taken = true;
+      continue;
+    }
+    const block = goalRegionBlock(w, r);
+    if (block !== null) {
+      stop ??= block;
+      continue;
+    }
+    left.push(r);
+  }
+  if (stop !== null) {
+    land.message(
+      army.owner,
+      STOP_KEYS[stop as keyof typeof STOP_KEYS] ??
+        "events_display.ww1936_direct_stop_gone",
+      { army: army.nameNo },
+    );
+  }
+  if (left.length === goal.length) return false;
+  land.markArmy(army.id);
+  if (left.length > 0) {
+    o.goal = left;
+    return false;
+  }
+  for (const r of armyRows(land, army)) leaveAttack(land, r);
+  army.odds = undefined;
+  if (!taken) {
+    // Nothing of it taken: the army keeps the front it had.
+    const next: ArmyOrder = {
+      ...o,
+      kind: "front",
+      targets: [],
+      executing: false,
+    };
+    delete next.goal;
+    delete next.spear;
+    army.order = next;
+    return true;
+  }
+  const border = new Set(borderRegionsOf(land, me, o.enemy));
+  const ours = (r: number) => land.sameSide(me, land.controller[r]);
+  const e0 = nearestOf(land, border, [goal[0]], ours);
+  const e1 = nearestOf(land, border, [goal[goal.length - 1]], ours);
+  army.order = {
+    ...idleOrder(),
+    kind: "front",
+    anchor: e0 !== 0 ? e0 : land.armyRegion(army),
+    enemy: o.enemy,
+    ...(e0 !== 0 && e1 !== 0 ? { ends: [e0, e1] as [number, number] } : {}),
+    ...fallbackOf(o),
+  };
+  land.message(army.owner, "events_display.ww1936_goal_reached", {
+    army: army.nameNo,
+  });
   return true;
 }
 
@@ -189,6 +328,7 @@ function endDirect(
     kind: "front",
     anchor: land.armyRegion(army),
     enemy: o.enemy,
+    ...fallbackOf(o),
   };
   army.odds = undefined;
   land.message(army.owner, key, { army: army.nameNo });
@@ -317,7 +457,7 @@ export function attackTarget(
   dist: Int32Array,
   emptyOnly: boolean,
   /** ww7 lane D: hypothetical enemy and targets (the AI's gate). */
-  o: { enemy: number; targets: readonly number[] } = army.order,
+  o: { enemy: number; targets: readonly number[] } = attackScope(army.order),
 ): number {
   let best = -1;
   let bestD = 0;
@@ -376,7 +516,7 @@ export function planDay(
   const t = land.divisions;
   const dist = targetDist ?? targetDistances(land, army);
   const rows = armyRows(land, army);
-  const ax = axis ?? axisOf(army.front, o.targets.length > 0 ? dist : null);
+  const ax = axis ?? planAxis(army.front, o, dist);
   // Enemy region -> the divisions of the axis regions that go for it.
   const strikes = new Map<number, number[]>();
   for (const f of army.front) {
@@ -498,7 +638,7 @@ export function oddsOf(
   const me = land.ownerForSides(army);
   const t = land.divisions;
   const dist = targetDist ?? targetDistances(land, army);
-  const ax = axisOf(army.front, o.targets.length > 0 ? dist : null);
+  const ax = planAxis(army.front, o, dist);
   const rows = armyRows(land, army);
   // Per zone region: where it would attack and with whom.
   const legs: { f: number; to: number; side: number[] }[] = [];
@@ -699,8 +839,9 @@ export function directView(land: WwLand, a: Army): DirectView {
   const rows = armyRows(land, a);
   const axis = new Set<number>();
   if (a.order.kind === "plan" && a.front.length > 0) {
-    const dist = a.order.targets.length > 0 ? targetDistances(land, a) : null;
-    for (const f of axisOf(a.front, dist)) axis.add(f);
+    const dist =
+      planTargets(a.order).length > 0 ? targetDistances(land, a) : null;
+    for (const f of planAxis(a.front, a.order, dist)) axis.add(f);
   }
   const zone = new Set(a.front);
   const atk = new Map<number, number>();
@@ -737,7 +878,7 @@ export function directView(land: WwLand, a: Army): DirectView {
   }
   // The odds of the first axis region's attack (the average ratio).
   let ratioPm = -1;
-  if (a.order.kind === "plan" && a.order.targets.length > 0) {
+  if (a.order.kind === "plan" && planTargets(a.order).length > 0) {
     const me = land.ownerForSides(a);
     const dist = targetDistances(land, a);
     for (const f of [...axis].sort((x, y) => x - y)) {

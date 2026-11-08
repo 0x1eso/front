@@ -9,7 +9,12 @@ import {
   WW_PARA_COOLDOWN_DAYS,
   WW_PARA_RANGE_KM,
 } from "@openfront/engine-api/ww1936/LandTypes";
-import { borderRegionsOf, facesFront, type FrontWorld } from "./FrontRules";
+import {
+  borderRegionsOf,
+  facesFront,
+  frontLineBetween,
+  type FrontWorld,
+} from "./FrontRules";
 
 export interface OrderCheckArmy {
   owner: number;
@@ -36,6 +41,11 @@ export interface OrderCheckArmy {
    * army's host (P5 spec §12.2). Optional: absent, its owner.
    */
   sides?: number;
+  /**
+   * ww162: the army's fallback line (army_fall_back needs one). Optional:
+   * absent, army_fall_back is not judged on it (the engine fills it).
+   */
+  fallback?: readonly number[];
 }
 
 export interface OrderCheckWorld extends FrontWorld {
@@ -112,6 +122,18 @@ function armyOrderBlockAs(
       return order.on && a.front === false ? "not_adjacent" : null;
     case "army_zone":
       return zoneBlock(w, a, order.regions);
+    // ww162 (battle planner, design ww162 §1.1-§1.3).
+    case "army_front_line":
+      return frontLineBlock(w, order.ends, order.enemy);
+    case "army_goal":
+      return order.regions.length === 0 ? null : targetsBlock(w, order.regions);
+    case "army_fallback":
+      return order.regions.length === 0 ? null : zoneBlock(w, a, order.regions);
+    case "army_fall_back":
+      if (a.front === false) return "not_adjacent";
+      return a.fallback !== undefined && a.fallback.length === 0
+        ? "no_path"
+        : null;
     case "army_split":
       return splitBlock(w, a, order.count, order.template);
     case "army_merge":
@@ -145,6 +167,38 @@ function zoneBlock(
     }
   }
   return null;
+}
+
+/**
+ * ww162 §1.1: a front line's ends are land regions of our side, and some
+ * border against `enemy` is reached from them (frontLineBetween snaps each
+ * end to it).
+ */
+function frontLineBlock(
+  w: OrderCheckWorld,
+  ends: readonly [number, number],
+  enemy: number,
+): WwOrderBlock | null {
+  for (const r of ends) {
+    if (!isLand(w, r) || !w.sameSide(w.me, w.controller[r])) {
+      return "bad_region";
+    }
+  }
+  return frontLineBetween(w, w.me, enemy, ends[0], ends[1]) === null
+    ? "not_adjacent"
+    : null;
+}
+
+/**
+ * ww162 §1.2: why one region of an offensive line can no longer be aimed at
+ * (targetsBlock's verdict: not land, not at war, out of reach); null when
+ * it still can. The engine's day drops the regions that fail it.
+ */
+export function goalRegionBlock(
+  w: OrderCheckWorld,
+  region: number,
+): WwOrderBlock | null {
+  return targetsBlock(w, [region]);
 }
 
 function isLand(w: FrontWorld, region: number): boolean {

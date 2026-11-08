@@ -1277,6 +1277,11 @@ export class WwLand {
       case "army_auto_level":
       case "army_direct":
       case "paradrop":
+      case "army_front_line":
+      case "army_goal":
+      case "army_fallback":
+      case "army_fall_back":
+        // ww162 (lane L1): the battle planner's three lines go there too.
         block = issueArmyOrder(this, cl, order, by);
         break;
       default:

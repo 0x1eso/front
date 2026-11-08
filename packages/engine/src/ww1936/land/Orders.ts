@@ -21,7 +21,9 @@ import {
   ROLE_NONE,
   type Stance,
   TPL_PARA_ANY,
+  WW_GOAL_MAX,
   WW_PARA_PREP_DAYS,
+  WW_ZONE_MAX,
 } from "@openfront/engine-api/ww1936/LandTypes";
 import { borderRegionsOf } from "@openfront/engine-lib/ww1936/FrontRules";
 import {
@@ -33,7 +35,7 @@ import { resolveParadrop } from "../air/Paradrop";
 import { cancelInvasion } from "../navy/Invasions";
 import { navalPort } from "../navy/Ports";
 import { joinBattle } from "./Battles";
-import { applyFront, nearestBorder } from "./Fronts";
+import { applyFront, fallBack, nearestBorder } from "./Fronts";
 import {
   enemyDivisionsIn,
   findPath,
@@ -42,7 +44,7 @@ import {
   stopDivision,
 } from "./Movement";
 import { capture } from "./Occupation";
-import { armyRows } from "./Plans";
+import { armyRows, fallbackOf } from "./Plans";
 import { disbandDivision } from "./Sustain";
 import type { Army, CountryLand, WwLand } from "./WwLand";
 
@@ -85,7 +87,8 @@ export function issueArmyOrder(
     order.kind !== "army_auto_level" &&
     order.kind !== "army_zone" &&
     order.kind !== "army_general" &&
-    order.kind !== "army_execute"
+    order.kind !== "army_execute" &&
+    order.kind !== "army_fallback"
   ) {
     cancelInvasion(land.ww.navy, a.id);
   }
@@ -152,6 +155,20 @@ export function issueArmyOrder(
     case "army_zone":
       setZone(a, order.regions);
       break;
+    // ww162 (battle planner, design ww162 §1.1-§1.3): the three lines.
+    case "army_front_line":
+      setFrontLine(a, order.ends, order.enemy);
+      break;
+    case "army_goal":
+      setGoal(land, a, order.regions, order.spear, order.stance);
+      break;
+    case "army_fallback":
+      setFallback(a, order.regions, order.manual);
+      break;
+    case "army_fall_back":
+      fallBack(land, a);
+      a.pending = true;
+      break;
     case "paradrop": {
       // P4 (spec §14.10, pre-flight A12): paradropPrepPct shortens it.
       const pct =
@@ -187,7 +204,113 @@ function setAutoLevel(a: Army, level: number): void {
  */
 function setZone(a: Army, regions: readonly number[]): void {
   a.order = { ...a.order, zone: [...new Set(regions)] };
+  // ww162 §5: an old order clears the line fields.
+  clearLines(a.order);
   if (a.order.kind === "front" || a.order.kind === "plan") a.pending = true;
+}
+
+/** ww162 §5: the battle planner's front and offensive lines go (the fallback line stays). */
+function clearLines(o: ArmyOrder): void {
+  delete o.ends;
+  delete o.goal;
+  delete o.spear;
+}
+
+/**
+ * ww162 §1.1: the front line between two ends against `enemy`. It clears
+ * the zone, the goal and the targets (the fallback line stays). The
+ * readiness stays when it is the same front (setFront's rule: the same
+ * enemy and an end on the army's front), else it starts at 0.
+ */
+function setFrontLine(a: Army, ends: [number, number], enemy: number): void {
+  const o = a.order;
+  const same =
+    (o.kind === "front" || o.kind === "plan") &&
+    o.enemy === enemy &&
+    (a.front.includes(ends[0]) || a.front.includes(ends[1]));
+  a.order = {
+    ...idleOrder(),
+    kind: "front",
+    anchor: ends[0],
+    enemy,
+    ends: [ends[0], ends[1]],
+    ...fallbackOf(o),
+  };
+  a.path = [];
+  if (!same) a.planBp = 0;
+  a.pending = true;
+}
+
+/**
+ * ww162 §1.2: the offensive line. Empty: the line goes and the army keeps
+ * its front (not attacking). Else the regions (drawn order, repeats
+ * dropped, at most WW_GOAL_MAX) become a plan's goal with the stance; an
+ * executing plan keeps executing (army_execute starts and halts it), and the
+ * readiness stays. An army with no front, or whose front faces another
+ * country than every goal region's, gets one toward them (setPlan's rule).
+ */
+function setGoal(
+  land: WwLand,
+  a: Army,
+  regions: readonly number[],
+  spear: boolean,
+  stance: Stance,
+): void {
+  const goal = [...new Set(regions)].slice(0, WW_GOAL_MAX);
+  const o = a.order;
+  if (goal.length === 0) {
+    if (o.kind !== "front" && o.kind !== "plan") return;
+    const next: ArmyOrder = {
+      ...o,
+      kind: "front",
+      targets: [],
+      executing: false,
+    };
+    delete next.goal;
+    delete next.spear;
+    delete next.direct;
+    a.order = next;
+    a.pending = true;
+    return;
+  }
+  const executing = o.kind === "plan" && o.executing;
+  aimFront(land, a, goal);
+  const next: ArmyOrder = {
+    ...a.order,
+    kind: "plan",
+    targets: [],
+    stance,
+    executing,
+    goal,
+  };
+  if (spear) next.spear = true;
+  else delete next.spear;
+  delete next.direct;
+  a.order = next;
+  a.pending = true;
+}
+
+/**
+ * ww162 §1.3: the fallback line (our side's regions, repeats dropped, at
+ * most WW_ZONE_MAX; empty clears it), and whether the army falls back only
+ * on army_fall_back. The count of the rule's days starts over.
+ */
+function setFallback(
+  a: Army,
+  regions: readonly number[],
+  manual: boolean,
+): void {
+  const line = [...new Set(regions)].slice(0, WW_ZONE_MAX);
+  const o = a.order;
+  if (line.length === 0) {
+    delete o.fallback;
+    delete o.fbManual;
+  } else {
+    o.fallback = line;
+    if (manual) o.fbManual = true;
+    else delete o.fbManual;
+  }
+  a.fbDays = 0;
 }
 
 /**
@@ -265,7 +388,8 @@ function setFront(land: WwLand, a: Army, anchor: number, enemy: number): void {
     (o.kind === "front" || o.kind === "plan") &&
     o.enemy === enemy &&
     a.front.includes(anchor);
-  a.order = { ...idleOrder(), kind: "front", anchor, enemy };
+  // ww162: the fallback line stays on a front order.
+  a.order = { ...idleOrder(), kind: "front", anchor, enemy, ...fallbackOf(o) };
   a.path = [];
   if (!same) a.planBp = 0;
   a.pending = true;
@@ -285,6 +409,30 @@ function setPlan(
   stance: Stance,
   executing: boolean,
 ): void {
+  aimFront(land, a, targets);
+  const next: ArmyOrder = {
+    ...a.order,
+    kind: "plan",
+    targets: [...targets],
+    stance,
+    executing,
+  };
+  // ww42: any other plan order ends a direct attack.
+  delete next.direct;
+  // ww162 §5: an old order clears the line fields.
+  clearLines(next);
+  a.order = next;
+  a.pending = true;
+}
+
+/**
+ * Spec §8.2: an army with no front gets one toward `targets` (anchor = the
+ * border region nearest them; with no targets the one nearest the army),
+ * against the targets' country when they share one, else every enemy. So
+ * does an army whose front faces another country than every target's.
+ * ww162: the fallback line stays.
+ */
+function aimFront(land: WwLand, a: Army, targets: readonly number[]): void {
   const o = a.order;
   const elsewhere =
     o.enemy !== 0 &&
@@ -298,21 +446,16 @@ function setPlan(
       enemy = 0;
       anchor = autoAnchor(land, a, 0, targets);
     }
-    a.order = { ...idleOrder(), kind: "front", anchor, enemy };
+    a.order = {
+      ...idleOrder(),
+      kind: "front",
+      anchor,
+      enemy,
+      ...fallbackOf(o),
+    };
     a.path = [];
     a.planBp = 0;
   }
-  const next: ArmyOrder = {
-    ...a.order,
-    kind: "plan",
-    targets: [...targets],
-    stance,
-    executing,
-  };
-  // ww42: any other plan order ends a direct attack.
-  delete next.direct;
-  a.order = next;
-  a.pending = true;
 }
 
 function autoAnchor(
@@ -573,5 +716,7 @@ export function orderCheckArmy(land: WwLand, a: Army): OrderCheckArmy {
     paraLastDay: a.paraLastDay,
     templates,
     front: a.order.kind === "front" || a.order.kind === "plan",
+    // ww162: army_fall_back needs a line to fall back to.
+    fallback: a.order.fallback ?? [],
   };
 }
