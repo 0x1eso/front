@@ -1431,13 +1431,14 @@ const BIG_SCENES: GwScene[] = [
       war,
       any(
         { kind: "seen", scene: "rus_w_lutsk" },
-        // Any push: one sector breaks on a long front while the rest is held.
+        // Our own push in the east broke the Austrian line, in the 1916 campaign.
         all(
-          date("1916-03"),
+          date("1916-03", "1916-10"),
+          { kind: "at_war", tag: "AUH" },
           world({
             is: "battle",
             theatre: "east",
-            of: ["break", "advance", "stalemate", "repelled"],
+            of: ["break", "advance"],
             by: "seat",
           }),
         ),

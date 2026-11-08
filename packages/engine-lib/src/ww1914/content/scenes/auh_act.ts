@@ -63,11 +63,11 @@ export const eastPushed = world({
   theatre: "east",
   of: ["advance", "break"],
 });
-/** The Russians came on in the east: trench lines barely show what one army lost. */
-const eastStruck = world({
+/** The Russians came on in the east and the line gave: an army is going. */
+const eastBroken = world({
   is: "battle",
   theatre: "east",
-  of: ["repelled", "stalemate", "advance", "break"],
+  of: ["advance", "break"],
   by: "foe",
 });
 export const karl = flag("w_auh_karl");
@@ -1203,7 +1203,7 @@ const BIG_SCENES: GwScene[] = [
       court: holder("court"),
     },
     "fred",
-    all(atWar("RUS"), eastStruck, between("1916-05", "1916-07")),
+    all(atWar("RUS"), eastBroken, between("1916-05", "1916-07")),
     {
       n1: node("fred", [
         say("what_news", "warm", "n2"),

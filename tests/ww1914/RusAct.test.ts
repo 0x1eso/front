@@ -55,17 +55,37 @@ describe("the breakthrough night", () => {
     luck: 0,
   });
 
-  test("any push of 1916 can bring it; the foe's can't", async () => {
-    const { gw, st } = await russia("rus_lutsk");
-    const ctx = { gw, seat: st, cast: {} };
-    gw.s.day = daysFromCivil(1916, 6, 15);
+  const at = async (id: string, y: number, m: number, foes: string[]) => {
+    const { gw, st } = await russia(id);
+    gw.s.day = daysFromCivil(y, m, 15);
     const n = gw.nation("RUS")!;
     n.side = "entente";
-    n.atWar = ["AUH"];
-    gw.s.battles.push(push("repelled", "entente"));
+    n.atWar = foes as never;
+    return { gw, ctx: { gw, seat: st, cast: {} } };
+  };
+
+  test("our push that breaks the Austrian line in 1916 brings it", async () => {
+    const { gw, ctx } = await at("rus_lutsk", 1916, 6, ["AUH"]);
+    gw.s.battles.push(push("break", "entente"));
     expect(holds(ctx, scene.when!)).toBe(true);
-    gw.s.battles.push(push("advance", "central"));
+    gw.s.battles.push(push("advance", "entente"));
+    expect(holds(ctx, scene.when!)).toBe(true);
+  });
+
+  test("an attack that broke nothing, the foe's, or one out of time does not", async () => {
+    const { gw, ctx } = await at("rus_lutsk_no", 1916, 6, ["AUH"]);
+    for (const r of ["repelled", "stalemate"] as const) {
+      gw.s.battles.push(push(r, "entente"));
+      expect(holds(ctx, scene.when!), r).toBe(false);
+    }
+    gw.s.battles.push(push("break", "central"));
     expect(holds(ctx, scene.when!)).toBe(false);
+    const late = await at("rus_lutsk_late", 1917, 6, ["AUH"]);
+    late.gw.s.battles.push(push("break", "entente"));
+    expect(holds(late.ctx, scene.when!)).toBe(false);
+    const noAustria = await at("rus_lutsk_deu", 1916, 6, ["DEU"]);
+    noAustria.gw.s.battles.push(push("break", "entente"));
+    expect(holds(noAustria.ctx, scene.when!)).toBe(false);
   });
 });
 

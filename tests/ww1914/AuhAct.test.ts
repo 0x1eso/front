@@ -156,12 +156,22 @@ describe("Austria's own moves and story", () => {
     return { gw, seat, ctx: { gw, seat, cast: {} } };
   }
 
-  test("the birthday comes when the Russians came on, however the line held", async () => {
+  test("the birthday comes when a Russian attack broke the line in summer 1916", async () => {
     const when = story("auh_big_birthday").when!;
-    const held = await inTheWar([1916, 6], { result: "repelled" });
-    expect(holds(held.ctx, when)).toBe(true);
+    const broke = await inTheWar([1916, 6], { result: "break" });
+    expect(holds(broke.ctx, when)).toBe(true);
+    const pushed = await inTheWar([1916, 6], { result: "advance" });
+    expect(holds(pushed.ctx, when)).toBe(true);
+  });
+
+  test("an attack that broke nothing, our own, or one out of time does not bring it", async () => {
+    const when = story("auh_big_birthday").when!;
+    for (const result of ["repelled", "stalemate"] as const) {
+      const held = await inTheWar([1916, 6], { result });
+      expect(holds(held.ctx, when), result).toBe(false);
+    }
     const ours = await inTheWar([1916, 6], {
-      result: "advance",
+      result: "break",
       by: "central",
     });
     expect(holds(ours.ctx, when)).toBe(false);
