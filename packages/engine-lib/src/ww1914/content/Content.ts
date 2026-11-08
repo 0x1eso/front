@@ -38,7 +38,6 @@ import { AUH_REALM_SCENES } from "./scenes/auh_realm";
 import { AUH_WAR_SCENES } from "./scenes/auh_war";
 import { BUDGET_SCENES } from "./scenes/budget";
 import { COMMON_SCENES } from "./scenes/common";
-import { gwDossierActs, gwDossierScenes } from "./scenes/dossier";
 import {
   CRAFT_SCENES,
   GW_FOOTING,
@@ -64,6 +63,7 @@ import { DEU_ECHOES, DEU_PROLOGUE_SCENES } from "./scenes/deu_prologue";
 import { withDeuReplay } from "./scenes/deu_replay";
 import { DEU_SEA_SCENES } from "./scenes/deu_sea";
 import { DEU_WAR_SCENES } from "./scenes/deu_war";
+import { gwDossierActs, gwDossierScenes } from "./scenes/dossier";
 import { GBR_CRISIS_SCENES } from "./scenes/gbr_crisis";
 import { GBR_HOME_SCENES } from "./scenes/gbr_home";
 import { withMore } from "./scenes/gbr_more";

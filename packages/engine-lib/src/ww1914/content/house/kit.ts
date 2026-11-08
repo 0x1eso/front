@@ -81,13 +81,14 @@ export const plotWarn = (id: string): GwEffect =>
 export const gatherFile = (who: GwWho): GwEffect =>
   doWorld({ do: "file", who });
 /** The `hold` reply's effect: the file on him is used in this talk. */
-export const hold = (who: GwWho): GwEffect =>
-  doWorld({ do: "use_file", who });
+export const hold = (who: GwWho): GwEffect => doWorld({ do: "use_file", who });
 export const answerAsk = (id: string, yes: boolean): GwEffect =>
   doWorld({ do: "ask", id, answer: yes ? "yes" : "no" });
 /** A plot's heat (the threats' `gov` cond works on plot rows). */
 export const plotHot = (id: string, min: number, max?: number): GwCond =>
-  world(max === undefined ? { is: "gov", id, min } : { is: "gov", id, min, max });
+  world(
+    max === undefined ? { is: "gov", id, min } : { is: "gov", id, min, max },
+  );
 /** The police have reported it astir with a confirmed stamp: it can be made public. */
 export const plotConfirmed = (id: string): GwCond =>
   world({ is: "plot_report", id });

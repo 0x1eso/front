@@ -15,8 +15,8 @@ import {
   GW_CONTENT,
   GwContent,
 } from "@openfront/engine-lib/ww1914/content/Content";
-import { answerAsk } from "@openfront/engine-lib/ww1914/content/house/kit";
 import { DEU_HOUSE } from "@openfront/engine-lib/ww1914/content/house/houses";
+import { answerAsk } from "@openfront/engine-lib/ww1914/content/house/kit";
 import { gwDossierScenes } from "@openfront/engine-lib/ww1914/content/scenes/dossier";
 import { GW_LAWS } from "@openfront/engine-lib/ww1914/content/scenes/laws";
 import {
@@ -269,7 +269,9 @@ describe("the S2 rows", () => {
   test("the dossier's papers pass the content check, called by the rows", () => {
     const rows = {
       houses: [DEU_HOUSE],
-      weak: [{ person: "deu_tirpitz", weak: [{ id: "debts" as const, odds: 50 }] }],
+      weak: [
+        { person: "deu_tirpitz", weak: [{ id: "debts" as const, odds: 50 }] },
+      ],
     };
     const scenes = gwDossierScenes(rows);
     expect(scenes.map((s) => s.id)).toEqual([

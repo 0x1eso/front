@@ -225,7 +225,8 @@ function plotMonth(ctx: SceneCtx, row: GwPlotRow): void {
   // The last step was laid: read and not answered, the plot has its way.
   if (e.step >= row.steps.length) {
     const at = seat.seen[last.scene];
-    const read = opened(seat, p, last.scene) && at !== undefined && at > p.warned;
+    const read =
+      opened(seat, p, last.scene) && at !== undefined && at > p.warned;
     if (read && e.heat >= last.at) plotEnds(gw, seat, row);
     return;
   }

@@ -8,6 +8,10 @@ import {
   GwUnknown,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
+import type {
+  GwAskView,
+  GwFileView,
+} from "@openfront/engine-api/ww1914/GwHouse";
 import { gwBrief, type GwPack } from "@openfront/engine-api/ww1914/GwPack";
 import type {
   GwCardView,
@@ -15,10 +19,6 @@ import type {
   GwPromiseView,
   GwSeatView,
 } from "@openfront/engine-api/ww1914/GwView";
-import type {
-  GwAskView,
-  GwFileView,
-} from "@openfront/engine-api/ww1914/GwHouse";
 import type { GwReportView } from "@openfront/engine-api/ww1914/GwWorldView";
 import { applyJosa } from "../../Josa";
 import { translateText } from "../../Utils";
@@ -292,8 +292,7 @@ export function promiseText(pack: GwPack | null, p: GwPromiseView): string {
 /** A file's line in the 서류철: the pack's words for it, else the kind's. */
 export function fileLine(pack: GwPack | null, f: GwFileView): string {
   return (
-    pack?.weak?.[f.who]?.[f.weak] ??
-    translateText(`gw.dossier.weak.${f.weak}`)
+    pack?.weak?.[f.who]?.[f.weak] ?? translateText(`gw.dossier.weak.${f.weak}`)
   );
 }
 

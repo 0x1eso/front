@@ -10,7 +10,10 @@
 // ally's cold wire. No: trust down at once. Only while a head can write: no ask
 // comes from a country another seat holds or whose ruler is gone.
 import type { GwSeatState } from "@openfront/engine-api/ww1914/GreatWarTypes";
-import { GW_TRUST_MAX, GW_TRUST_MIN } from "@openfront/engine-api/ww1914/GreatWarTypes";
+import {
+  GW_TRUST_MAX,
+  GW_TRUST_MIN,
+} from "@openfront/engine-api/ww1914/GreatWarTypes";
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import type {
   GwWorldCond,

@@ -4,7 +4,10 @@
 // `dossierIds`); the engine is engine/ww1914/Dossier.
 import type { GwAct } from "@openfront/engine-api/ww1914/GwActs";
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
-import type { GwCastRule, GwScene } from "@openfront/engine-api/ww1914/SceneDsl";
+import type {
+  GwCastRule,
+  GwScene,
+} from "@openfront/engine-api/ww1914/SceneDsl";
 import {
   reason,
   remember,
@@ -95,9 +98,14 @@ function papers(tag: GwTag, house: GwHouseRow | undefined): GwScene[] {
         },
       ],
     },
-    paper(dossierIds.scandal(tag), tag, { target: { called: true } }, {
-      salience: 7,
-    }),
+    paper(
+      dossierIds.scandal(tag),
+      tag,
+      { target: { called: true } },
+      {
+        salience: 7,
+      },
+    ),
   ];
 }
 

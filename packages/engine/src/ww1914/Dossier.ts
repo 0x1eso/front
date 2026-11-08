@@ -12,7 +12,10 @@ import type {
   GwPersonState,
   GwSeatState,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
-import type { GwDossierView, GwFile } from "@openfront/engine-api/ww1914/GwHouse";
+import type {
+  GwDossierView,
+  GwFile,
+} from "@openfront/engine-api/ww1914/GwHouse";
 import type { GwWho } from "@openfront/engine-api/ww1914/SceneDsl";
 import type {
   GwWorldCond,
@@ -164,7 +167,9 @@ export function gatherFile(
 const fileKey = (f: GwFile) => `file_${f.uid}`;
 
 function settleReport(gw: GreatWar, f: GwFile): void {
-  const r = gw.s.reports.find((x) => x.fact === "file" && x.about === fileKey(f));
+  const r = gw.s.reports.find(
+    (x) => x.fact === "file" && x.about === fileKey(f),
+  );
   if (r !== undefined) checkNow(gw, r.uid);
 }
 

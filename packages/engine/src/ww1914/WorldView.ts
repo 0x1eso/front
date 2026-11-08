@@ -25,10 +25,10 @@ import {
 import { tasksShown } from "./Aims";
 import { budgetView } from "./Budget";
 import { craftView } from "./Craft";
+import { dossierView } from "./Dossier";
 import { eraOf } from "./Eras";
 import { ownFronts, proposalsFor } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
-import { dossierView } from "./Dossier";
 import { houseView } from "./House";
 import { lawViews } from "./Laws";
 import {
