@@ -43,7 +43,7 @@ import {
   setOffice,
   takeOption,
 } from "./SceneRun";
-import { answerSlow, askSlow, noteActed } from "./Seats";
+import { answerSlow, askSlow, closeByHost, noteActed } from "./Seats";
 import { sendBack } from "./SendBack";
 import { inOpening, newcomers } from "./Story";
 import { tableClaim, tableNext, tablePass, tableWord } from "./Table";
@@ -211,6 +211,8 @@ export function applyGwOrder(
       return answerTreaty(gw, seat, o.treaty, o.sign);
     case "treaty_break":
       return breakOrder(gw, seat, o.treaty);
+    case "close_chapter":
+      return closeByHost(gw, seat, o.chapter);
   }
 }
 

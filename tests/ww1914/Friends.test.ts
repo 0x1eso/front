@@ -271,6 +271,85 @@ describe("the chapter clock with friends", () => {
   });
 });
 
+describe("no time limit (ww163)", () => {
+  const none = () => friends({ greatWar1914Pace: "none" });
+
+  it("never closes a chapter by time", async () => {
+    const { runner } = await none();
+    const gw = gwOf(runner);
+    expect(gw.s.deadlineTick).toBeNull();
+    const before = gw.s.chapter;
+    // Longer than any chapter's timer at the long pace.
+    step(runner, 3000);
+    expect(gw.s.chapter).toBe(before);
+    expect(gw.s.deadlineTick).toBeNull();
+  });
+
+  it("closes when every seat is ready, skipping a dropped one", async () => {
+    const { runner } = await none();
+    const before = gwOf(runner).s.chapter;
+    closeChapter(runner);
+    expect(gwOf(runner).s.chapter).toBe(before + 1);
+    expect(gwOf(runner).s.deadlineTick).toBeNull();
+    step(runner, 1, [
+      stamped(C, { type: "mark_disconnected", isDisconnected: true } as never),
+    ]);
+    step(runner, 1);
+    closeChapter(runner, [A, B]);
+    expect(gwOf(runner).s.chapter).toBe(before + 2);
+  });
+
+  it("lets the host close the chapter for everyone, by proxy", async () => {
+    const { runner } = await none();
+    const gw = gwOf(runner);
+    const before = gw.s.chapter;
+    send(runner, A, { kind: "close_chapter", chapter: before });
+    expect(gw.s.chapter).toBe(before + 1);
+    expect(gw.s.deadlineTick).toBeNull();
+    // What sat open on the idle seats got the proxy's stamp.
+    expect(
+      ["RUS", "GBR"].some((t) =>
+        seatOf(runner, t).log.some((l) => l.key === "proxy_signed"),
+      ),
+    ).toBe(true);
+    // Twice empty: the regent takes the idle seats, as with a timer.
+    send(runner, A, { kind: "close_chapter", chapter: before + 1 });
+    expect(seatOf(runner, "GBR").regent).toBe(true);
+    expect(seatOf(runner, "RUS").regent).toBe(true);
+    expect(seatOf(runner, "DEU").regent).toBe(false);
+  });
+
+  it("lets only the host close it, and only the chapter it meant", async () => {
+    const { runner } = await none();
+    const gw = gwOf(runner);
+    const before = gw.s.chapter;
+    const hostOf = (c: string) =>
+      gwView(gw).roster.find(
+        (r) => r.smallID === runner.game.playerByClientID(c)!.smallID(),
+      )!.host;
+    expect(hostOf(A)).toBe(true);
+    expect(hostOf(B)).toBe(false);
+    const seatB = gw.s.seats.find(
+      (x) => x.smallID === runner.game.playerByClientID(B)!.smallID(),
+    )!;
+    expect(
+      applyGwOrder(gw, seatB, { kind: "close_chapter", chapter: before }),
+    ).toBe("not_host");
+    send(runner, B, { kind: "close_chapter", chapter: before });
+    step(runner, 5);
+    expect(gw.s.chapter).toBe(before);
+    send(runner, A, { kind: "close_chapter", chapter: before - 1 });
+    step(runner, 5);
+    expect(gw.s.chapter).toBe(before);
+  });
+
+  it("carries the close on the wire", () => {
+    expect(
+      GwOrderSchema.safeParse({ kind: "close_chapter", chapter: 3 }).success,
+    ).toBe(true);
+  });
+});
+
 describe("proxy and regency", () => {
   const timeOut = (r: GameRunner) => {
     const left = gwOf(r).s.deadlineTick! - r.game.ticks();

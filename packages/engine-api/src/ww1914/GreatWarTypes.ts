@@ -1296,10 +1296,13 @@ export type GwTreaty = z.infer<typeof GwTreatySchema>;
 /**
  * The host's pace with friends (owner's ww160 call 2): the row's chapter
  * timer, shorter or longer by these hundredths. Absent means `normal`.
+ * `none` (ww163) has no timer: a chapter closes when every seat is ready,
+ * or when the host closes it (`close_chapter`).
  */
-export const GW_PACES = ["short", "normal", "long"] as const;
+export const GW_PACES = ["short", "normal", "long", "none"] as const;
 export type GwPace = (typeof GW_PACES)[number];
-export const GW_PACE_PCT: Readonly<Record<GwPace, number>> = {
+export type GwTimedPace = Exclude<GwPace, "none">;
+export const GW_PACE_PCT: Readonly<Record<GwTimedPace, number>> = {
   short: 75,
   normal: 100,
   long: 150,

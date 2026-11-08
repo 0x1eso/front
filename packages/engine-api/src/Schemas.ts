@@ -568,7 +568,7 @@ export const GameConfigSchema = z.object({
     })
     .optional(),
   // Great War 1914 with friends: the host's pace, the row's chapter timer
-  // ×0.75, ×1 or ×1.5 (GW_PACE_PCT). Absent means normal.
+  // ×0.75, ×1 or ×1.5 (GW_PACE_PCT), or none at all. Absent means normal.
   greatWar1914Pace: z.enum(GW_PACES).optional(),
 });
 

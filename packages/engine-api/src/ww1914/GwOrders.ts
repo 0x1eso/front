@@ -176,6 +176,14 @@ export const GwOrderSchema = z.discriminatedUnion("kind", [
     sign: z.boolean(),
   }),
   z.object({ kind: z.literal("treaty_break"), treaty: Card }),
+  /**
+   * The host closes this chapter for everyone, as the timer would: what is
+   * undecided gets the proxy's stamp. Last, so older orders keep their tags.
+   */
+  z.object({
+    kind: z.literal("close_chapter"),
+    chapter: zb.uint({ max: 1000 }),
+  }),
 ]);
 export type GwOrder = z.infer<typeof GwOrderSchema>;
 
