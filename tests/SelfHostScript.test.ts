@@ -149,7 +149,7 @@ port="\${*: -1}"
 port="\${port##*:}"
 [[ -f "$FAKE_STATE/listening-$port" ]] || exit 0
 pid="$(cat "$FAKE_STATE/listener-pid" 2> /dev/null || cat "$FAKE_STATE/server-pid")"
-echo "LISTEN 0 511 *:$port *:* users:((\"node\",pid=$pid,fd=20))"
+printf 'LISTEN 0 511 *:%s *:* users:(("node",pid=%s,fd=20))\\n' "$port" "$pid"
 `;
 
 const FAKE_CLOUDFLARED = `#!/usr/bin/env bash
