@@ -1,6 +1,6 @@
 // World War 1936 P4 (lane U review): the data the screens read instead of
 // guessing — a fleet's home, repair days and deck mix; my landing
-// divisions and my admirals' skills; my auto air zones; a bombed region's
+// divisions and my admirals' skills; a bombed region's
 // repair progress.
 import { BUILDING_IDS } from "@openfront/engine-api/ww1936/EconomyTypes";
 import { FLEET_STATES } from "@openfront/engine-api/ww1936/NavyTypes";
@@ -11,8 +11,7 @@ import {
   repairDayMilli,
 } from "@openfront/engine/ww1936/navy/Repair";
 import { describe, expect, it } from "vitest";
-import "./oldAirModel";
-import { REGION, SEA, SR, TAG_ID } from "./seaFixture";
+import { REGION, SEA, TAG_ID } from "./seaFixture";
 import { HUMAN, step, warAfterPrep, withTestPolitics, wwRunner } from "./util";
 
 withTestPolitics();
@@ -82,8 +81,8 @@ describe("the screens' view data (lane U)", () => {
     expect(navy.fleetSummary(f, new Set()).designs).toBeUndefined();
   }, 60_000);
 
-  it("my admirals' skills now and my auto air zones", async () => {
-    const { runner, g, ww } = await game();
+  it("my admirals' skills now", async () => {
+    const { runner, ww } = await game();
     expect(newTitledAdmiral(ww.navy, TAG_ID.GBR)).not.toBeNull();
     // The game's own tick sends (and clears) the updates: ask again.
     step(runner);
@@ -103,15 +102,6 @@ describe("the screens' view data (lane U)", () => {
       a.level,
     ]);
     expect(detail.landing).toEqual([]);
-    ww.air.issue(
-      TAG_ID.GBR,
-      { kind: "air_auto", sr: SR.central, on: true },
-      g.ticks(),
-    );
-    const air = ww.air.takeData()!;
-    expect(
-      air.details.find((d) => d.smallID === TAG_ID.GBR)?.autoZones,
-    ).toEqual([SR.central]);
   }, 60_000);
 
   it("a bombed region's repair progress", async () => {

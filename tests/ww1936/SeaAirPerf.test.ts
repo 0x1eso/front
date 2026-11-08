@@ -1,7 +1,7 @@
 // World War 1936 P4 Task 15 (spec §20.2): the navy and the air war at war
 // scale on world1936 — every major at war, the 1936 navies and 300 more
 // fleets (about 2,000 ships), twenty naval battles opened at once, some
-// 300 air deployments — then 1,000 ticks of WwNavy.tick, WwAir.tick and
+// 300 air wings — then 1,000 ticks of WwNavy.tick, WwAir.tick and
 // their updates, timed on the thread's CPU clock. Spec §20.1's budget is
 // 0.6 ms a tick on a desktop; CI's bound is three times that and a few
 // times more for this machine's load (the --perf run of
@@ -21,8 +21,8 @@ import { loadMapFiles } from "@openfront/shared/GameMapLoader";
 import path from "path";
 import { fileURLToPath } from "url";
 import { NodeGameMapLoader } from "../perf/fullgame/NodeGameMapLoader";
-import "./oldAirModel";
 import { step, stepTo, wwGameStart } from "./util";
+import { giveWing } from "./wingUtil";
 
 /** Spec §20.1's P4 mean (0.6 ms) × 3 (§20.2), × 2 for a loaded CI machine. */
 const MEAN_MS = 3.6;
@@ -94,32 +94,51 @@ test("2,000 ships, 20 battles and 300 deployments stay within budget", async () 
     if (navy.battles.has(z)) battles++;
   }
   expect(navy.battles.size).toBe(20);
-  // Some 300 deployments: each major's fighters over the land zones its
-  // bases reach (one record a base).
+  // Some 300 wings: each major's fighters, 60 a wing, sent over the land
+  // zones its air bases reach (a wing refused goes back to the stock).
+  const bases = ww.economy.buildingArray("air_base");
   for (const t of majors) {
-    const ce = ww.economy.country(id(t))!;
+    const me = id(t);
+    const ce = ww.economy.country(me)!;
     for (let gen = 1; gen <= EQUIPMENT_GENS.fighter; gen++) {
       ce.stock[equipKey("fighter", gen)] = gen === 1 ? 20_000 : 0;
     }
+    const mine = sc.landRegions
+      .filter((r) => (bases[r.id] ?? 0) > 0 && ww.land.controller[r.id] === me)
+      .map((r) => r.id);
     let made = 0;
     for (const s of sc.strategicList()) {
       if (made >= 45) break;
-      const block = air.issue(
-        id(t),
-        {
-          kind: "air_deploy",
-          sr: s.id,
+      if (s.kind !== "land" || s.members.length === 0) continue;
+      // Two wings a zone in reach, from the first bases that reach it.
+      let here = 0;
+      for (const base of mine) {
+        if (here >= 2 || made >= 45) break;
+        const w = giveWing(air, {
+          owner: me,
           type: "fighter",
-          mission: s.kind === "land" ? "air_superiority" : "naval_patrol",
-          count: 60,
-        },
-        g.ticks(),
-      );
-      if (block === null) made++;
+          planes: 60,
+          base,
+        });
+        const block = air.issue(
+          me,
+          {
+            kind: "wing_mission",
+            wings: [w.id],
+            mission: "air_superiority",
+            target: s.members[0],
+          },
+          g.ticks(),
+        );
+        if (block === null) {
+          made++;
+          here++;
+          continue;
+        }
+        air.removeWing(w.id, true);
+      }
     }
   }
-  // w50: starting air bases are level 1 at most, so the old model's
-  // capacity holds fewer records than it did.
   expect(air.wings.size).toBeGreaterThan(200);
 
   type ThreadCpu = (prev?: NodeJS.CpuUsage) => NodeJS.CpuUsage;

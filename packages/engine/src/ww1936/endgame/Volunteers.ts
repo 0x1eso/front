@@ -35,7 +35,6 @@ import {
   MOVE_SEA,
 } from "@openfront/engine-api/ww1936/LandTypes";
 import { IDEO_DEM } from "@openfront/engine-api/ww1936/PoliticsTypes";
-import { airDeployBlock } from "@openfront/engine-lib/ww1936/AirRules";
 import {
   llBlock,
   volunteerBlock,
@@ -43,9 +42,9 @@ import {
   type VolunteerIn,
 } from "@openfront/engine-lib/ww1936/EndgameRules";
 import { borderRegionsOf } from "@openfront/engine-lib/ww1936/FrontRules";
-import { allNoStrikeZone, basesInRange, isCarrierWing } from "../air/Deploy";
+import { isCarrierWing } from "../air/Deploy";
 import { formVolunteerWings } from "../air/Wings";
-import { wingPlanes, type WwAir } from "../air/WwAir";
+import { wingPlanes } from "../air/WwAir";
 import { leaveBattle } from "../land/Battles";
 import { nearestBorder } from "../land/Fronts";
 import { stopDivision } from "../land/Movement";
@@ -493,20 +492,12 @@ export function airVolunteerCap(eg: WwEndgame, from: number): number {
   );
 }
 
-/** The planes the sender's volunteer groups hold or wait for (their targets). */
+/** The planes the sender's volunteer wings hold. */
 export function airVolunteersOut(eg: WwEndgame, from: number): number {
-  const seen = new Set<string>();
   let n = 0;
   for (const d of eg.ww.air.wingsOf(from)) {
     if (d.volunteerFor <= 0 || isCarrierWing(d)) continue;
-    if (eg.ww.air.wingsLive) {
-      n += wingPlanes(d);
-      continue;
-    }
-    const key = `${d.sr}:${d.type}:${d.mission}:${d.volunteerFor}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
-    n += d.goalCount;
+    n += wingPlanes(d);
   }
   return n;
 }
@@ -566,68 +557,12 @@ export function sendAirVolunteers(
   const mission = missionFor(plane, s.kind);
   if (mission < 0) return "bad_air_mission";
   const air = ww.air;
-  if (air.wingsLive) {
-    const b = formVolunteerWings(air, from, to, zone, plane, count);
-    if (b === null) {
-      air.markCountry(from);
-      markAid(eg, from, to);
-    }
-    return b;
+  const b = formVolunteerWings(air, from, to, zone, plane, count);
+  if (b === null) {
+    air.markCountry(from);
+    markAid(eg, from, to);
   }
-  const type = AIR_TYPES.indexOf(plane);
-  const group = air
-    .wingsOf(from)
-    .filter(
-      (d) =>
-        d.sr === zone &&
-        d.type === type &&
-        d.mission === mission &&
-        d.volunteerFor === to &&
-        !isCarrierWing(d),
-    );
-  let range = 0;
-  for (let g = 1; g <= EQUIPMENT_GENS[plane]; g++) {
-    range = Math.max(range, air.planeStatsOf(from, plane, g).rangeKm);
-  }
-  const used = air.wingsOf(from).filter((d) => !isCarrierWing(d)).length;
-  const b = airDeployBlock({
-    sr: zone,
-    srKind: s.kind,
-    type: plane,
-    mission: AIR_MISSIONS[mission],
-    count,
-    have: planesInStock(eg, from, plane),
-    deploymentsUsed: group.length > 0 ? 0 : used,
-    anyBaseInRange:
-      basesInRange(air, ww.land.sideOf(to), zone, range).length > 0,
-    allNoStrike: allNoStrikeZone(air, zone),
-  });
-  if (b !== null) return b;
-  if (group.length > 0) {
-    const target = group[0].goalCount + count;
-    for (const d of group) {
-      d.goalCount = target;
-      air.markWing(d.id);
-    }
-  } else {
-    // P6's per-deployment design counts, night flag and ace start neutral.
-    const d: Parameters<WwAir["addWing"]>[0] = {
-      owner: from,
-      sr: zone,
-      type,
-      mission,
-      counts: new Array<number>(EQUIPMENT_GENS[plane]).fill(0),
-      goalCount: count,
-      base: 0,
-      lossRest: 0,
-      auto: false,
-      volunteerFor: to,
-    };
-    air.addWing(d);
-  }
-  air.markCountry(from);
-  markAid(eg, from, to);
-  return null;
+  return b;
 }
 
 // ---- Ships (spec §13.5, §16.4) ----

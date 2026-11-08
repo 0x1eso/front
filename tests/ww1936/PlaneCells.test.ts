@@ -43,7 +43,7 @@ import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSou
 import type { WorldWar } from "@openfront/engine/ww1936/WorldWar";
 import { DEEP } from "./deepFixture";
 import { depthFixture } from "./depthFixture";
-import "./oldAirModel";
+import "./noStartWings";
 import { clearStartSetup, gameHash, stepTo, wwRestore, wwRunner } from "./util";
 import { giveWing } from "./wingUtil";
 

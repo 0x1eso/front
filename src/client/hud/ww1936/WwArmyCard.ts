@@ -709,7 +709,7 @@ export class WwArmyCard extends LitElement implements Controller {
 
   /** ww8 (design §8.6): [✈ priority] and how many wings give this army close support. */
   private renderAirPriority(c: Ctx): TemplateResult | typeof nothing {
-    if (this.game.wwAir?.()?.live !== true || c.navy === null) return nothing;
+    if (c.navy === null) return nothing;
     const army = c.card.row.id;
     const on = armyPriority(c.navy, army);
     return html`<button

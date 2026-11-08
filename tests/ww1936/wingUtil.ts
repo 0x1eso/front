@@ -1,6 +1,6 @@
-// The air overhaul's (ww8) test helpers: a wing where a test wants it, and
-// the switch to the wing model. Tests build wings through giveWing, not
-// WwAir.addWing, so a change of what a new wing starts with is made here once.
+// The air overhaul's (ww8) test helper: a wing where a test wants it. Tests
+// build wings through giveWing, not WwAir.addWing, so a change of what a new
+// wing starts with is made here once.
 import {
   AIR_MISSIONS,
   AIR_TYPES,
@@ -75,9 +75,4 @@ export function giveWing(air: WwAir, o: GiveWing): Wing {
     w.flyMilli = n * 1000;
   }
   return w;
-}
-
-/** Runs this game on the wing model from now on (AirTypes.WW_WINGS_LIVE). */
-export function liveWings(air: WwAir): void {
-  air.wingsLive = true;
 }

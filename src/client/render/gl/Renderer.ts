@@ -2318,7 +2318,7 @@ export class GPURenderer {
   /** ww8: sets the range ellipse around the focus base (null clears it). */
   private syncWingRange(air: WwAirView | null): void {
     const r = this.wingFocus.range;
-    if (r === null || air === null || !air.live) {
+    if (r === null || air === null) {
       this.rangeCirclePass.setEllipse(null);
       return;
     }

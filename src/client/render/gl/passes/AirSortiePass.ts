@@ -437,7 +437,7 @@ export class AirSortiePass {
         if (!first) changed.add(sr);
       }
     }
-    if (air.live && !first) this.noteFights(air, nowMs);
+    if (!first) this.noteFights(air, nowMs);
     const detail = air.detail;
     if (detail !== this.seenDetail) {
       this.seenDetail = detail;
@@ -502,21 +502,6 @@ export class AirSortiePass {
             base.y,
           );
         }
-      }
-    }
-    // The viewer's losses: wrecks over the zone (the wing model drops
-    // them as the fights happen instead: noteFights).
-    for (const sr of air.live ? [] : changed) {
-      const zone = air.zones.get(sr)!;
-      const res = resultOf(zone, me);
-      if (res === null || res.lost <= 0) continue;
-      const s = sc.sr(sr);
-      if (s === undefined) continue;
-      const n = Math.min(3, Math.ceil(res.lost / 20));
-      for (let i = 0; i < n; i++) {
-        const x = (s.center % W) + this.jitter() * TURN_JITTER;
-        const y = Math.floor(s.center / W) + this.jitter() * TURN_JITTER;
-        this.spawnWreck(x, y, this.jitter() * Math.PI, 0, me, 16, nowMs);
       }
     }
   }
@@ -870,7 +855,7 @@ export class AirSortiePass {
       f[o + 7] = contrailLength(flown, scale) * 0.5;
       n++;
     }
-    if (air.live) n = this.fillWings(air, f, n);
+    n = this.fillWings(air, f, n);
     const planes = n;
     for (const w of this.wrecks) {
       if (!w.active) continue;

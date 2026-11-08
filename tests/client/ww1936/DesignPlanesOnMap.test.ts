@@ -139,7 +139,6 @@ describe("design planes on the map", () => {
         deployments: [],
         removedDeployments: [],
         details: [],
-        live: true,
         briefs: [
           {
             id: 1,

@@ -355,7 +355,7 @@ const XP_ATK_PCT = [-15, 0, 10, 20] as const;
 const XP_AGI_PCT = [-10, 0, 5, 10] as const;
 const XP_LOAD_PCT = [-10, 0, 10, 20] as const;
 const XP_LOSS_PM = [1100, 1000, 950, 900] as const;
-/** An ace's bonus on top of the tier (SeaAirRules.ACE_STATS, same numbers). */
+/** An ace's bonus on top of the tier: air attack +10%, agility +5% (spec §15.2). */
 const ACE_ATK_PCT = 10;
 const ACE_AGI_PCT = 5;
 /** Experience gained (milli), start values: lane H tunes them. */

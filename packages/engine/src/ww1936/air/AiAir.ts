@@ -27,7 +27,6 @@ import {
   WW_FIELD_STRIP_MAX,
   WW_FIELD_STRIP_PLANES,
   WW_GROUP_STEP,
-  WW_MAX_DEPLOY_COUNT,
   WW_MAX_GROUP_PLANES,
   WW_MAX_KEEP_GROUPS,
   WW_PARADROP_AIRSUP_PM,
@@ -61,12 +60,7 @@ import {
   wingMaxPlanes,
   wingUnderStrength,
 } from "@openfront/engine-lib/ww1936/WingRules";
-import {
-  AI_RECON_PCT,
-  aiNightWings,
-  homeSeaRegions,
-  isDepthDeployment,
-} from "../depth/AiSeaAir";
+import { AI_RECON_PCT, aiNightWings, homeSeaRegions } from "../depth/AiSeaAir";
 import { effectiveBuildings, effectiveLevel } from "../economy/Buildings";
 import { capitalRegion } from "../land/LandStartRun";
 import { enemyDivisionsIn } from "../land/Movement";
@@ -114,26 +108,12 @@ export const AI_FIGHTER_LOSS_PM = 50;
 export const AI_FIGHTER_HOLD_SUP_PM = 400;
 /** Spec §17.3-1 ④: strategic bombing only where we hold this much of the sky. */
 export const AI_STRAT_SUP_PM = 300;
-
-/** The land-based types the AI deploys (the carriers' wings fly from decks). */
-const FIGHTERS: readonly AirType[] = ["fighter", "heavy_fighter"];
 const BOMBERS: readonly AirType[] = [
   "bomber",
   "cas",
   "naval_bomber",
   "strat_bomber",
 ];
-/** Missions each type takes, in preference order (spec §14.1). */
-const TYPE_MISSIONS: Readonly<Partial<Record<AirType, readonly AirMission[]>>> =
-  {
-    fighter: ["air_superiority", "interception"],
-    heavy_fighter: ["air_superiority", "interception"],
-    cas: ["cas"],
-    bomber: ["cas", "strategic_bombing"],
-    naval_bomber: ["naval_strike", "naval_patrol"],
-    strat_bomber: ["strategic_bombing"],
-    transport_plane: ["air_supply"],
-  };
 
 /** One air zone (strategic region), as the plan reads it. */
 export interface AiAirZoneView {
@@ -195,62 +175,6 @@ export interface AiAirInput {
 /** An order the AI gives through air.issue (the same as a player's). */
 export type AiAirOrder = AirOrder;
 
-interface Demand {
-  sr: number;
-  mission: AirMission;
-  weight: number;
-}
-
-/** Spec §17.3-1: the day's demands of one type, zone order. */
-function demandsOf(
-  type: AirType,
-  i: AiAirInput,
-  ti: number,
-  noBombers: ReadonlySet<number>,
-  noFighters: ReadonlySet<number> = new Set(),
-): Demand[] {
-  const out: Demand[] = [];
-  const missions = TYPE_MISSIONS[type] ?? [];
-  const bomber = BOMBERS.includes(type);
-  const casWanted = i.zones.some((z) => z.front && z.attacking);
-  for (const z of i.zones) {
-    if (!z.reach[ti]) continue;
-    if (bomber && noBombers.has(z.sr)) continue;
-    const beat = z.beat ? AI_BEAT_FACTOR : 1;
-    for (const m of missions) {
-      let w = 0;
-      if (m === "air_superiority" && z.kind === "land") {
-        if (z.front && !noFighters.has(z.sr)) {
-          w = 1 + z.enemyDivisions + Math.floor(z.enemyPlanes / 10);
-        }
-        w *= beat;
-        if (w === 0 && z.beat) w = AI_BEAT_FACTOR;
-      } else if (m === "interception" && z.bombed && !noFighters.has(z.sr)) {
-        w = 2 + Math.floor(z.enemyPlanes / 10);
-      } else if (m === "cas" && z.front && z.attacking) {
-        w = 1 + z.enemyDivisions;
-      } else if (
-        m === "strategic_bombing" &&
-        z.kind === "land" &&
-        z.industry > 0 &&
-        z.supPm >= (i.stratSupPm ?? AI_STRAT_SUP_PM) &&
-        // A tactical bomber bombs industry only when no attack needs it.
-        (type !== "bomber" || !casWanted)
-      ) {
-        w = z.industry * beat;
-      } else if (m === "naval_strike" && z.kind === "sea" && z.enemyFleet) {
-        w = 3;
-      } else if (m === "naval_patrol" && z.kind === "sea" && z.convoyLoss) {
-        w = 2;
-      } else if (m === "air_supply" && z.encircled) {
-        w = 1;
-      }
-      if (w > 0) out.push({ sr: z.sr, mission: m, weight: w });
-    }
-  }
-  return out;
-}
-
 /** `n` over the weights: floors, then one more each to the biggest remainders (ties: list order). */
 function share(n: number, weights: readonly number[]): number[] {
   const total = weights.reduce((a, b) => a + b, 0);
@@ -266,94 +190,6 @@ function share(n: number, weights: readonly number[]): number[] {
     left--;
   }
   return out;
-}
-
-const keyOf = (sr: number, type: AirType, mission: AirMission) =>
-  sr * 1000 + AIR_TYPES.indexOf(type) * 20 + AIR_MISSIONS.indexOf(mission);
-
-/** Pure: the deployments of the day as target counts (spec §17.3). */
-export function aiAirPlan(input: AiAirInput): AiAirOrder[] {
-  const targets = new Map<number, AiAirTarget>();
-  const set = (sr: number, type: AirType, mission: AirMission, n: number) => {
-    if (n <= 0) return;
-    const k = keyOf(sr, type, mission);
-    const t = targets.get(k);
-    if (t === undefined) targets.set(k, { sr, type, mission, count: n });
-    else t.count += n;
-  };
-  // Spec §17.3-3: heavy losses under an enemy sky — no bombers there.
-  const noBombers = new Set(
-    input.zones
-      .filter((z) => z.lossPm > AI_AIR_LOSS_PM && z.supPm < AI_AIR_LOSS_SUP_PM)
-      .map((z) => z.sr),
-  );
-  // Task 15: the fighters' own rule (AI_FIGHTER_HOLD_SUP_PM).
-  const noFighters = new Set(
-    input.zones
-      .filter(
-        (z) =>
-          z.lossPm > AI_FIGHTER_LOSS_PM &&
-          z.supPm < AI_FIGHTER_HOLD_SUP_PM &&
-          !z.attacking &&
-          !z.beat &&
-          z.sr !== input.capitalSr,
-      )
-      .map((z) => z.sr),
-  );
-  AIR_TYPES.forEach((type, ti) => {
-    if (TYPE_MISSIONS[type] === undefined) return;
-    const total = input.planes[ti] ?? 0;
-    if (total <= 0) return;
-    const fighter = FIGHTERS.includes(type);
-    const usePct =
-      fighter && input.fighterHomePct !== undefined
-        ? 100 - input.fighterHomePct
-        : AI_AIR_USE_PCT;
-    const usable = Math.floor((total * usePct) / 100);
-    let reserve = fighter ? total - usable : 0;
-    if (input.atWar) {
-      const demands = demandsOf(
-        type,
-        input,
-        ti,
-        noBombers,
-        fighter ? noFighters : undefined,
-      );
-      const given = share(
-        usable,
-        demands.map((d) => d.weight),
-      );
-      demands.forEach((d, k) => set(d.sr, type, d.mission, given[k]));
-      // Fighters with nothing to do guard the capital too.
-      if (fighter && demands.length === 0) reserve += usable;
-    }
-    if (reserve > 0 && input.capitalSr !== 0) {
-      const z = input.zones.find((x) => x.sr === input.capitalSr);
-      if (z === undefined || z.reach[ti]) {
-        set(input.capitalSr, type, "interception", reserve);
-      }
-    }
-  });
-  // The orders: every group whose target changes, zone, type, mission order.
-  const only = input.only === undefined ? null : new Set(input.only);
-  const keys = new Set<number>(targets.keys());
-  const now = new Map<number, number>();
-  for (const c of input.current) {
-    const k = keyOf(c.sr, c.type, c.mission);
-    now.set(k, (now.get(k) ?? 0) + c.count);
-    keys.add(k);
-  }
-  const orders: AiAirOrder[] = [];
-  for (const k of [...keys].sort((a, b) => a - b)) {
-    const sr = Math.floor(k / 1000);
-    if (only !== null && !only.has(sr)) continue;
-    const type = AIR_TYPES[Math.floor((k % 1000) / 20)];
-    const mission = AIR_MISSIONS[k % 20];
-    const want = Math.min(WW_MAX_DEPLOY_COUNT, targets.get(k)?.count ?? 0);
-    if (want === (now.get(k) ?? 0)) continue;
-    orders.push({ kind: "air_deploy", sr, type, mission, count: want });
-  }
-  return orders;
 }
 
 // ---- The engine side ----
@@ -553,196 +389,6 @@ function attackingSrs(air: WwAir): ReadonlyMap<number, ReadonlySet<number>> {
   return m;
 }
 
-/** What the plan reads of `smallID`'s air war today. */
-export function aiAirInput(
-  air: WwAir,
-  smallID: number,
-  day: number,
-  atWar: boolean,
-  human: boolean,
-): AiAirInput {
-  const ww = air.ww;
-  const sc = ww.scenario;
-  const land = air.land;
-  const navy = air.navy;
-  const econ = air.econ;
-  const side = land.sideOf(smallID);
-  const ce = econ.country(smallID)!;
-  const ca = air.country(smallID)!;
-  const only = human ? [...ca.autoZones] : undefined;
-  const commanded = (sr: number) => only === undefined || only.includes(sr);
-  // Planes: the stock and the deployments the AI commands.
-  const planes = AIR_TYPES.map((type) => {
-    let n = 0;
-    for (let g = 1; g <= EQUIPMENT_GENS[type]; g++) {
-      n += ce.stock[equipKey(type, g)] ?? 0;
-    }
-    return n;
-  });
-  const current: AiAirTarget[] = [];
-  const deployedIn = new Map<number, number>();
-  for (const d of air.wingsOf(smallID)) {
-    // P6 (spec §19.7): the recon groups are the depth AI's (AiSeaAir): no
-    // recall, and their planes are not P4's to place.
-    if (d.base < 0 || !commanded(d.sr) || isDepthDeployment(d)) continue;
-    // P6 (lane E): a record's design planes fly with its static ones.
-    const n = wingPlanes(d);
-    planes[d.type] += n;
-    deployedIn.set(d.sr, (deployedIn.get(d.sr) ?? 0) + n);
-    // Every record of a group carries the group's target: count it once.
-    const type = AIR_TYPES[d.type];
-    const mission = AIR_MISSIONS[d.mission];
-    if (
-      !current.some(
-        (c) => c.sr === d.sr && c.type === type && c.mission === mission,
-      )
-    ) {
-      current.push({ sr: d.sr, type, mission, count: d.goalCount });
-    }
-  }
-  // Lane A1's rule (Deploy.bestRange): generation 1's range, or the best
-  // of the generations it has in the stock or out.
-  const has = new Set<number>();
-  for (const d of air.wingsOf(smallID)) {
-    d.counts.forEach((c, g) => {
-      if (c > 0) has.add(d.type * 8 + g + 1);
-    });
-  }
-  const range = AIR_TYPES.map((type, ti) => {
-    let km = air.planeStatsOf(smallID, type, 1).rangeKm;
-    for (let g = 1; g <= EQUIPMENT_GENS[type]; g++) {
-      if ((ce.stock[equipKey(type, g)] ?? 0) > 0 || has.has(ti * 8 + g)) {
-        km = Math.max(km, air.planeStatsOf(smallID, type, g).rangeKm);
-      }
-    }
-    return km;
-  });
-  // Air campaigns, and the sky over a paradrop's target (70% needed).
-  const beatRegions = new Set([
-    ...activeBeatTargets(navy, smallID, day, "air_campaign"),
-    ...activeBeatTargets(navy, smallID, day, "paradrop"),
-  ]);
-  const beatSrs = new Set([...beatRegions].map((r) => sc.regionSr(r)));
-  const bombsTaken = ca.bombTaken.reduce((a, b) => a + b, 0) > 0;
-  const shared = airSharedView(air, smallID);
-  // Ours: regions held, encircled, attacked from.
-  const mineSr = new Set<number>();
-  const encircledSr = new Set<number>();
-  for (const r of econ.regionsOf(smallID)) {
-    if (land.controller[r] !== smallID) continue;
-    const sr = sc.regionSr(r);
-    mineSr.add(sr);
-    if (land.encircled[r] === 1) encircledSr.add(sr);
-  }
-  const attackingSr = attackingSrs(air).get(smallID) ?? NO_SRS;
-  const zones: AiAirZoneView[] = [];
-  // One reach row per distance (most zones are out of reach: -1).
-  const reachByKm = new Map<number, readonly boolean[]>();
-  const reachOf = (minKm: number) => {
-    let r = reachByKm.get(minKm);
-    if (r === undefined) {
-      r = range.map((km) => minKm >= 0 && minKm <= km);
-      reachByKm.set(minKm, r);
-    }
-    return r;
-  };
-  for (const s of sc.strategicList()) {
-    const z = air.zoneState[s.idx];
-    const v = shared[s.idx];
-    let convoyLoss = false;
-    if (s.kind === "sea") {
-      const st = navy.srState[s.idx];
-      convoyLoss =
-        (st?.lossYesterday.get(smallID) ?? 0) > 0 ||
-        (st?.lossRate.get(side) ?? 0) > 0;
-    }
-    const enemyPlanes = v.enemyPlanes;
-    const front = s.kind === "land" && v.front;
-    const enemyDivisions = v.enemyDivisions;
-    const attacking = s.kind === "land" && attackingSr.has(s.id);
-    const industry = atWar ? v.industry : 0;
-    const encircled = encircledSr.has(s.id);
-    const mine = mineSr.has(s.id);
-    const enemyFleet = v.enemyFleet;
-    const enemyBombers = v.enemyBombers;
-    const minKm = v.minKm;
-    // Losses: yesterday's × 5 for the five days (the zone keeps one day).
-    const lost = (z.result.get(smallID)?.[1] ?? 0) * 5;
-    const deployed = deployedIn.get(s.id) ?? 0;
-    zones.push({
-      sr: s.id,
-      kind: s.kind,
-      front: atWar && front,
-      enemyDivisions,
-      enemyPlanes,
-      attacking,
-      bombed: mine && bombsTaken && enemyBombers > 0,
-      enemyFleet,
-      convoyLoss,
-      industry,
-      supPm: air.airSup(side, s.id),
-      encircled,
-      lossPm: deployed === 0 ? 0 : Math.floor((lost * 1000) / deployed),
-      reach: reachOf(minKm),
-      beat: beatSrs.has(s.id),
-    });
-  }
-  const cap = capitalRegion(land, smallID);
-  const home = human ? undefined : AI_FIGHTER_HOME_PCT[ce.tag];
-  return {
-    smallID,
-    day,
-    atWar,
-    planes,
-    zones,
-    capitalSr: cap === 0 ? 0 : sc.regionSr(cap),
-    current,
-    ...(only === undefined ? {} : { only }),
-    ...(home === undefined ? {} : { fighterHomePct: home }),
-    stratSupPm: planOf(ce.tag, ww.politics.seed, smallID, human).stratSupPm,
-  };
-}
-
-/** Whether `smallID` has a plane of any type in its stock or deployed. */
-function hasPlanes(air: WwAir, smallID: number): boolean {
-  const ce = air.econ.country(smallID);
-  if (ce === null) return false;
-  for (const type of AIR_TYPES) {
-    for (let g = 1; g <= EQUIPMENT_GENS[type]; g++) {
-      if ((ce.stock[equipKey(type, g)] ?? 0) > 0) return true;
-    }
-  }
-  return air.wingsOf(smallID).some((d) => d.counts.some((c) => c > 0));
-}
-
-/**
- * The country's AI day for its air force (an AI country's all, a human's
- * auto zones; automation: a human's all, as an AI country's, without the
- * paradrops, which raise and train paratroopers).
- */
-export function aiAir(air: WwAir, smallID: number, day: number): void {
-  const p = air.mg.playerBySmallID(smallID);
-  const ca = air.country(smallID);
-  if (!p.isPlayer() || ca === null || air.econ.country(smallID) === null) {
-    return;
-  }
-  // P5 plan decision 7: a human controls it now.
-  const human = air.ww.isHumanControlled(smallID);
-  // Automation (owner brief 2026-10-30): every zone, as the AI plans its own.
-  const zonesOnly = human && !air.ww.autoOn(smallID, "air");
-  if (zonesOnly && ca.autoZones.length === 0) return;
-  const atWar = aiAtWar(air.navy, smallID);
-  if (!aiAirDue(smallID, day, atWar)) return;
-  const tick = air.mg.ticks();
-  // Task 15's perf pass: no planes in the stock or out, nothing to plan
-  // (most small countries; their input was built for nothing).
-  if (hasPlanes(air, smallID)) {
-    const input = aiAirInput(air, smallID, day, atWar, zonesOnly);
-    for (const o of aiAirPlan(input)) air.issue(smallID, o, tick);
-  }
-  if (!human) aiParadrops(air, smallID, day, atWar);
-}
-
 // ---- Paradrops (lane AI review; spec §14.10, §17.6: Crete) ----
 
 /** 내 판단: the paratrooper force an AI raises for a paradrop beat. */
@@ -885,7 +531,6 @@ export function aiParadrops(
     // ww8: where the sky lets it drop (a beat's sky the fighters are sent to win).
     if (
       !beat &&
-      air.wingsLive &&
       air.airSup(side, sc.regionSr(reg.id)) < WW_PARADROP_AIRSUP_PM
     ) {
       continue;
@@ -906,10 +551,7 @@ export function aiParadrops(
         if (issue({ kind: "paradrop", army: a.id, region: t.r })) return;
         continue;
       }
-      if (
-        (!t.beat && !air.wingsLive) ||
-        (block !== "no_air_base" && block !== "out_of_range")
-      ) {
+      if (block !== "no_air_base" && block !== "out_of_range") {
         continue;
       }
       // A target out of reach: to our air base nearest it, in range.

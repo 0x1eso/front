@@ -23,8 +23,9 @@
  *   run (`<out>/<seed>-<on|off>.json`); `--navy` prints the navy report.
  * --perf: the same game with each P4 part timed (spec §20.1's table: sea
  *   regions' day, countries' day without and with the AI, fleet orders,
- *   fleet movement, battles, voyages, air zones' day, air countries' day,
- *   air AI, paradrops, updates): mean, p99 and max per tick.
+ *   fleet movement, battles, voyages, the wings' phases and pulses, air
+ *   zones' close, air countries' day, air AI, updates): mean, p99 and max
+ *   per tick.
  * --summary: every JSON in `<out>`: the seed table (one row per run) and
  *   the shares across runs.
  * --naval-duel / --air-duel: spec §23.3's duels as real battles of the
@@ -359,10 +360,10 @@ const P4_PARTS = [
   "fleetMove",
   "battles",
   "voyages",
+  "airWings",
   "airZones",
   "airCountries",
   "airAi",
-  "paradrops",
   "update",
 ] as const;
 type P4Part = (typeof P4_PARTS)[number];
@@ -382,11 +383,9 @@ async function timedParts(
   const inv = await import("@openfront/engine/ww1936/navy/Invasions");
   const aiN = await import("@openfront/engine/ww1936/navy/AiNavy");
   const aiI = await import("@openfront/engine/ww1936/navy/AiInvasion");
-  const ac = await import("@openfront/engine/ww1936/air/AirCombat");
-  const ae = await import("@openfront/engine/ww1936/air/AirEffects");
-  const dep = await import("@openfront/engine/ww1936/air/Deploy");
+  const sorties = await import("@openfront/engine/ww1936/air/Sorties");
+  const wingsMod = await import("@openfront/engine/ww1936/air/Wings");
   const aiA = await import("@openfront/engine/ww1936/air/AiAir");
-  const para = await import("@openfront/engine/ww1936/air/Paradrop");
   const { PlayerType } = await import("@openfront/engine-api/game/GameTypes");
   const { WW_DAY_SPLIT } =
     await import("@openfront/engine-api/ww1936/EconomyTypes");
@@ -479,36 +478,30 @@ async function timedParts(
     const day = ww.day(ticks);
     if (day !== a.lastCommonDay) a.lastCommonDay = day;
     const k = ticks - dayStartTick(day, ww.prepEndTick());
-    if (k >= 0 && k < WW_DAY_SPLIT) {
-      time("airZones", () => {
-        for (const s of ww.scenario.strategicList()) {
-          if (s.idx % WW_DAY_SPLIT !== k) continue;
-          a.zoneState[s.idx].lastDay = day;
-          ac.dailyAirZone(air, s.id, day);
-          ae.airMissionEffects(air, s.id, day);
-        }
-      });
-      for (let id = 1; id < a.countryList.length; id++) {
-        if (
-          id % WW_DAY_SPLIT !== k ||
-          a.countryList[id] === null ||
-          a.countryList[id] === undefined
-        )
-          continue;
-        if (!alive(id)) continue;
-        time("airCountries", () => dep.dailyAirCountry(air, id, day));
-        const p = navy.mg.playerBySmallID(id);
-        const c = air.country(id);
-        if (
-          (p as Player).type() !== PlayerType.Human ||
-          (c?.autoZones.length ?? 0) > 0
-        ) {
-          time("airAi", () => aiA.aiAir(air, id, day));
-        }
-        a.airDirtyCountries.add(id);
+    time("airWings", () => {
+      sorties.stepWings(air, ticks);
+      sorties.pulseZones(air, ticks);
+    });
+    if (k < 0 || k >= WW_DAY_SPLIT) return;
+    time("airZones", () => {
+      for (const s of ww.scenario.strategicList()) {
+        if (s.idx % WW_DAY_SPLIT !== k) continue;
+        a.zoneState[s.idx].lastDay = day;
+        sorties.closeAirZone(air, s.id, day, ticks);
+        ww.depth.airZoneDay(s.id, day, ticks);
       }
+      if (k === WW_DAY_SPLIT - 1) air.raidNotes.flush(air, day);
+    });
+    for (let id = 1; id < a.countryList.length; id++) {
+      if (id % WW_DAY_SPLIT !== k) continue;
+      const p = navy.mg.playerBySmallID(id);
+      if (!p.isPlayer() || !ww.isActor(id)) continue;
+      time("airCountries", () => wingsMod.dailyWingCountry(air, id, day));
+      if (!ww.isHumanControlled(id) || ww.autoOn(id, "air")) {
+        time("airAi", () => aiA.aiWings(air, id, day));
+      }
+      a.airDirtyCountries.add(id);
     }
-    time("paradrops", () => para.stepParadrops(air, ticks));
   };
   const navyTake = navy.takeData.bind(navy);
   navy.takeData = () => {
@@ -1688,19 +1681,19 @@ async function navalDuels(): Promise<void> {
 }
 
 /**
- * Spec §23.3 --air-duel on the sea test map: fighters of Britain and Italy
- * over the central sea for one day (the zone's own clear day), as the
- * engine flies them — losses each side, superiority. And --convoy's
- * numbers from the pure rules: thirty 1936 submarines on 300 British
- * convoys in the central North Atlantic (the real map's area), without
- * and with forty destroyers.
+ * Spec §23.3 --air-duel on the sea test map: a fighter wing of Britain and
+ * one of Italy on station over the central sea for one day of pulses, as
+ * the engine flies them — losses each side, the zone's score. And
+ * --convoy's numbers from the pure rules: thirty 1936 submarines on 300
+ * British convoys in the central North Atlantic (the real map's area),
+ * without and with forty destroyers.
  */
 async function airDuels(): Promise<void> {
-  const { dailyAirZone } =
-    await import("@openfront/engine/ww1936/air/AirCombat");
-  const { EQUIPMENT_GENS: GENS, equipKey: key } =
-    await import("@openfront/engine-api/ww1936/EconomyTypes");
-  const { SR, TAG_ID } = await import("../../tests/ww1936/seaFixture");
+  const { pulseZones } = await import("@openfront/engine/ww1936/air/Sorties");
+  const { wingPlanes } = await import("@openfront/engine/ww1936/air/WwAir");
+  const { REGION, SR, TAG_ID, ZONE } =
+    await import("../../tests/ww1936/seaFixture");
+  const { giveWing } = await import("../../tests/ww1936/wingUtil");
   const rows: string[][] = [];
   const cases: [string, string, number[], number[]][] = [
     [
@@ -1716,54 +1709,49 @@ async function airDuels(): Promise<void> {
       [500, 0, 0],
     ],
   ];
-  for (const [name, expect, gbrStock, itaStock] of cases) {
+  for (const [name, expect, gbrCounts, itaCounts] of cases) {
     const runner = await seaBoard();
     const ww = runner.game.worldWar()!;
     const air = ww.air;
-    for (const [id, stock] of [
-      [TAG_ID.GBR, gbrStock],
-      [TAG_ID.ITA, itaStock],
-    ] as const) {
-      const ce = ww.economy.country(id)!;
-      for (let gen = 1; gen <= GENS.fighter; gen++) {
-        ce.stock[key("fighter", gen)] = stock[gen - 1] ?? 0;
-      }
-      const block = air.issue(
-        id,
-        {
-          kind: "air_deploy",
-          sr: SR.central,
-          type: "fighter",
-          mission: "air_superiority",
-          count: 500,
-        },
-        runner.game.ticks(),
-      );
-      if (block !== null) throw new Error(`air_deploy: ${block}`);
-    }
     const day = ww.day(runner.game.ticks()) + 1;
-    // Yesterday's superiority comes first (an even day), then the duel.
-    dailyAirZone(air, SR.central, day - 1);
+    const tick = dayStartTick(day, ww.prepEndTick());
+    const end = dayStartTick(day + 1, ww.prepEndTick());
+    const wings = (
+      [
+        [TAG_ID.GBR, gbrCounts, REGION.london],
+        [TAG_ID.ITA, itaCounts, REGION.rome],
+      ] as const
+    ).map(([owner, counts, base]) =>
+      giveWing(air, {
+        owner,
+        type: "fighter",
+        counts: [...counts],
+        base,
+        sr: SR.central,
+        target: ZONE.middle,
+        mission: "air_superiority",
+        flying: true,
+        until: tick + 100_000,
+      }),
+    );
+    const planes = (i: number) => wingPlanes(wings[i]);
+    const g0 = planes(0);
+    const i0 = planes(1);
     const before = air.planesLostTotal;
-    const lostBy = (id: number) =>
-      air
-        .wingsOf(id)
-        .reduce((n, d) => n + d.counts.reduce((a, b) => a + b, 0), 0);
-    const g0 = lostBy(TAG_ID.GBR);
-    const i0 = lostBy(TAG_ID.ITA);
-    dailyAirZone(air, SR.central, day);
-    const g1 = lostBy(TAG_ID.GBR);
-    const i1 = lostBy(TAG_ID.ITA);
+    // One day of pulses, the wings kept on station.
+    for (let t = tick; t < end; t++) pulseZones(air, t);
+    const idx = ww.scenario.srIdxOf(SR.central);
+    const side = ww.land.sideOf(TAG_ID.GBR);
     rows.push([
       name,
       expect,
-      `${g0 - g1} / ${i0 - i1} (${air.planesLostTotal - before})`,
-      `${air.airSup(ww.land.sideOf(TAG_ID.GBR), SR.central)}‰`,
+      `${g0 - planes(0)} / ${i0 - planes(1)} (${air.planesLostTotal - before})`,
+      `${air.zoneState[idx].score.get(side) ?? 0}`,
     ]);
   }
   console.log(
     formatTable(
-      ["case (Britain v Italy)", "spec §23.3", "lost a day", "Britain's sky"],
+      ["case (Britain v Italy)", "spec §23.3", "lost a day", "Britain's score"],
       rows,
     ),
   );

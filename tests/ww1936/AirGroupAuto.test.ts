@@ -11,10 +11,9 @@ import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { aiWings } from "@openfront/engine/ww1936/air/AiAir";
 import { groupWings } from "@openfront/engine/ww1936/air/Groups";
 import { dailyWingCountry } from "@openfront/engine/ww1936/air/Wings";
-import "./oldAirModel";
+import "./noStartWings";
 import { SEA, SR, TAG_ID } from "./seaFixture";
 import { stepTo, withTestPolitics, wwRunner } from "./util";
-import { liveWings } from "./wingUtil";
 
 withTestPolitics();
 
@@ -28,7 +27,6 @@ async function setup() {
   const runner = await wwRunner({}, HUMANS, SEA.map);
   const ww = runner.game.worldWar()!;
   const air = ww.air;
-  liveWings(air);
   for (const id of [DEU, FRA]) {
     const ce = ww.economy.country(id)!;
     for (const t of AIR_TYPES) {

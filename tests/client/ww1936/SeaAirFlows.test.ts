@@ -4,7 +4,6 @@
 import { WwOrder, WwOrderSchema } from "@openfront/engine-api/Schemas";
 import { EventBus } from "@openfront/shared/EventBus";
 import { afterAll, afterEach, describe, expect, it, vi } from "vitest";
-import "../../ww1936/oldAirModel";
 
 vi.mock("../../../src/client/Utils", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../../src/client/Utils")>()),
@@ -20,13 +19,8 @@ import {
   landSelectionOf,
   WwSelectArmyEvent,
 } from "../../../src/client/hud/ww1936/LandSelection";
-import {
-  WwAirLayerEvent,
-  WwAirZoneSelectedEvent,
-  WwFleetSelectedEvent,
-} from "../../../src/client/hud/ww1936/SeaAirSelection";
+import { WwFleetSelectedEvent } from "../../../src/client/hud/ww1936/SeaAirSelection";
 import "../../../src/client/hud/ww1936/WwAirZoneCard";
-import type { WwAirZoneCard } from "../../../src/client/hud/ww1936/WwAirZoneCard";
 import "../../../src/client/hud/ww1936/WwArmyCard";
 import type { WwArmyCard } from "../../../src/client/hud/ww1936/WwArmyCard";
 import "../../../src/client/hud/ww1936/WwFleetCard";
@@ -36,15 +30,7 @@ import { WwSeaAirController } from "../../../src/client/hud/ww1936/WwSeaAirContr
 import { SendWwOrderIntentEvent } from "../../../src/client/Transport";
 import { REGION, SR, ZONE } from "../../ww1936/seaFixture";
 import { army, division, landDetail, mine } from "./LandFixture";
-import {
-  airDetail,
-  fleet,
-  navyDetail,
-  seaGame,
-  SeaOptions,
-  ship,
-  SID,
-} from "./SeaAirFixture";
+import { fleet, navyDetail, seaGame, SeaOptions, ship } from "./SeaAirFixture";
 
 /** Every order any test here sent: all must parse (Review: UI ↔ schema). */
 const everySent: WwOrder[] = [];
@@ -409,46 +395,6 @@ describe("the sea and air tap flows (spec §18.3)", () => {
     expect(q("[data-ww-invasion='moving']")!.textContent).toContain(
       "[ww1936.navy.invasion_moving] port=London",
     );
-  });
-
-  it("the zone card's deploy and recall", async () => {
-    const g = seaGame({
-      air: airDetail("GBR", {
-        stock: [340, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        bases: [{ region: REGION.london, used: 0, cap: 400, damagePm: 0 }],
-      }),
-      deployments: [
-        {
-          id: 1,
-          owner: SID("GBR"),
-          sr: SR.central,
-          type: "fighter",
-          mission: "air_superiority",
-          counts: [120, 0, 0],
-          target: 0,
-          base: REGION.london,
-        },
-      ],
-    });
-    const bus = new EventBus();
-    bus.on(SendWwOrderIntentEvent, (e) => everySent.push(e.order));
-    const c = new WwSeaAirController(g.game as never, bus);
-    c.init();
-    const el = document.createElement("ww-air-zone-card") as WwAirZoneCard;
-    el.game = g.game as never;
-    el.eventBus = bus;
-    document.body.appendChild(el);
-    el.init();
-    bus.emit(new WwAirLayerEvent(true));
-    bus.emit(new WwAirZoneSelectedEvent(SR.central));
-    el.tick();
-    await el.updateComplete;
-    el.querySelector<HTMLElement>("[data-ww-air-step='fighter:up']")!.click();
-    el.querySelector<HTMLElement>("[data-ww-air-recall='fighter']")!.click();
-    expect(everySent.slice(-2).map((o) => o.kind)).toEqual([
-      "air_deploy",
-      "air_recall",
-    ]);
   });
 
   afterAll(() => {

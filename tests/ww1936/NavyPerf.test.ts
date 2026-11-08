@@ -10,14 +10,13 @@ import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
 import { createGameRunner } from "@openfront/engine/GameRunner";
-import { aiAir } from "@openfront/engine/ww1936/air/AiAir";
+import { aiWings } from "@openfront/engine/ww1936/air/AiAir";
 import { aiInvasions } from "@openfront/engine/ww1936/navy/AiInvasion";
 import { aiMainBase, aiNavy } from "@openfront/engine/ww1936/navy/AiNavy";
 import { loadMapFiles } from "@openfront/shared/GameMapLoader";
 import path from "path";
 import { fileURLToPath } from "url";
 import { NodeGameMapLoader } from "../perf/fullgame/NodeGameMapLoader";
-import "./oldAirModel";
 import { stepTo, wwGameStart } from "./util";
 
 /**
@@ -102,7 +101,7 @@ test("the navy, invasion and air AI at war scale stay within budget", async () =
         if (c % 7 !== k) continue;
         aiNavy(ww.navy, c, day);
         aiInvasions(ww.navy, c, day);
-        aiAir(ww.air, c, day);
+        aiWings(ww.air, c, day);
       }
       times.push(performance.now() - t0);
       const used = threadCpu?.(c0);

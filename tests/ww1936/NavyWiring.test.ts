@@ -29,7 +29,6 @@ import {
   stepScripted,
 } from "../util/ScriptedGame";
 import { diffGraphs, diffSnapshots } from "../util/Snapshot";
-import "./oldAirModel";
 import {
   NAVAL_BASE,
   REGION,
@@ -301,8 +300,8 @@ describe("navy wiring", () => {
     expect(
       order({ kind: "fleet_mission", fleet: fra, mission: "patrol", sr: 1001 }),
     ).toBeNull();
-    expect(order({ kind: "air_recall", sr: 5 })).toBe("bad_zone");
-    expect(order({ kind: "air_recall", sr: 1001 })).toBeNull();
+    // The old daily model's orders: decoded, always refused.
+    expect(order({ kind: "air_recall", sr: 1001 })).toBe("bad_index");
   });
 
   it("isPort follows the naval base level", async () => {

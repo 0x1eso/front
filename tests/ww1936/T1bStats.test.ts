@@ -3,28 +3,15 @@
 // the pure ship and plane numbers, naval battles, decks, the convoy war,
 // sorties, naval patrol, the land war's air penalty and the superiority.
 import {
-  AIR_MISSIONS,
-  AIR_TYPES,
-  type AirMission,
-  type AirType,
-} from "@openfront/engine-api/ww1936/AirTypes";
-import { EQUIPMENT_GENS } from "@openfront/engine-api/ww1936/EconomyTypes";
-import {
   CONVOY_USES,
   FLEET_STATES,
   type ShipClass,
 } from "@openfront/engine-api/ww1936/NavyTypes";
 import type { WwStats } from "@openfront/engine-api/ww1936/PoliticsTypes";
-import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
-import { airSupPm } from "@openfront/engine-lib/ww1936/AirRules";
 import { planeStats } from "@openfront/engine-lib/ww1936/PlaneStats";
 import { GEN_DECK, shipStats } from "@openfront/engine-lib/ww1936/ShipStats";
 import { emptyStats } from "@openfront/engine-lib/ww1936/Stats";
-import {
-  dailyAirZone,
-  zoneFlights,
-} from "@openfront/engine/ww1936/air/AirCombat";
-import type { Wing } from "@openfront/engine/ww1936/air/WwAir";
+import { effWith } from "@openfront/engine/ww1936/air/AirCombat";
 import { deckSize } from "@openfront/engine/ww1936/navy/Carriers";
 import {
   convoyLossPmOf,
@@ -38,12 +25,9 @@ import type { Fleet, WwNavy } from "@openfront/engine/ww1936/navy/WwNavy";
 import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSource";
 import type { WorldWar } from "@openfront/engine/ww1936/WorldWar";
 import { seaGame, war } from "./convoyUtil";
-import { DEEP } from "./deepFixture";
 import { depthFixture } from "./depthFixture";
-import "./oldAirModel";
 import { REGION, SR, TAG_ID, ZONE } from "./seaFixture";
-import { grantDoctrineStats, stepTo, wwRunner } from "./util";
-import { giveWing } from "./wingUtil";
+import { grantDoctrineStats } from "./util";
 
 const GBR = TAG_ID.GBR;
 const ITA = TAG_ID.ITA;
@@ -235,116 +219,10 @@ describe("T1b: the new stat keys at sea", () => {
 });
 
 describe("T1b: the new stat keys in the air", () => {
-  beforeEach(() => usePoliticsContent(depthFixture()));
-  afterEach(() => usePoliticsContent(null));
-  const WEST = DEEP.sr.westLand;
-
-  async function atWar() {
-    const runner = await wwRunner(
-      {},
-      [
-        { clientID: "HUMANGBR", country: "GBR" },
-        { clientID: "HUMANITA", country: "ITA" },
-      ],
-      DEEP.map,
-    );
-    stepTo(runner, WW_PREP_TICKS + 1);
-    const ww = runner.game.worldWar()!;
-    ww.setWar(GBR, ITA, runner.game.ticks());
-    for (const id of [GBR, ITA]) ww.economy.country(id)!.fuelMilli = 1e12;
-    // Only the test's planes fly here.
-    for (const sr of [WEST, DEEP.sr.approaches]) {
-      for (const id of [...ww.air.wingsIn(sr)]) {
-        ww.air.removeWing(id, true);
-      }
-    }
-    return { runner, ww, day: ww.day(runner.game.ticks()) };
-  }
-
-  function deploy(
-    ww: WorldWar,
-    owner: number,
-    type: AirType,
-    mission: AirMission,
-    planes: number,
-    sr: number = WEST,
-  ): Wing {
-    const counts = new Array<number>(EQUIPMENT_GENS[type]).fill(0);
-    counts[0] = planes;
-    return giveWing(ww.air, {
-      owner,
-      sr,
-      type: AIR_TYPES.indexOf(type),
-      mission: AIR_MISSIONS.indexOf(mission),
-      counts,
-      goalCount: planes,
-      base: 0,
-      lossRest: 0,
-      auto: false,
-      volunteerFor: 0,
-    });
-  }
-
-  it("sortieEffPct raises the sorties, never past one a day", async () => {
-    const { ww } = await atWar();
-    // CAS without yesterday's superiority flies at a low rate.
-    const cas = deploy(ww, GBR, "cas", "cas", 100);
-    const plain = zoneFlights(ww.air, WEST).find((f) => f.id === cas.id)!;
-    const pm = Math.floor(plain.milli[0] / 100);
-    expect(pm).toBeLessThan(1000);
-    grantDoctrineStats(ww, GBR, { sortieEffPct: 5 });
-    const more = zoneFlights(ww.air, WEST).find((f) => f.id === cas.id)!;
-    expect(more.milli[0]).toBe(
-      100 * Math.min(1000, Math.floor((pm * 105) / 100)),
-    );
-  });
-
-  it("navalPatrolPct, enemyAirPenaltyPp and interceptShareBp on the zone's day", async () => {
-    const { ww, day } = await atWar();
-    const air = ww.air;
-    // Naval patrol over the Western Approaches: the search × 3 (naval bombers) × 110%.
-    const nb = deploy(
-      ww,
-      GBR,
-      "naval_bomber",
-      "naval_patrol",
-      30,
-      DEEP.sr.approaches,
-    );
-    grantDoctrineStats(ww, GBR, {
-      navalPatrolPct: 10,
-      enemyAirPenaltyPp: 5,
-      interceptShareBp: 2_500,
-    });
-    dailyAirZone(air, DEEP.sr.approaches, day);
-    const f = zoneFlights(air, DEEP.sr.approaches).find((x) => x.id === nb.id)!;
-    const za = air.zoneState[ww.scenario.srIdxOf(DEEP.sr.approaches)];
-    expect(za.navalSearch.get(GBR)).toBe(Math.floor((f.total * 3 * 110) / 100));
-    // Britain's interceptors against Italy's superiority fighters.
-    deploy(ww, GBR, "fighter", "interception", 100);
-    deploy(ww, ITA, "fighter", "air_superiority", 60);
-    dailyAirZone(air, WEST, day);
-    const flights = zoneFlights(air, WEST);
-    const score = (owner: number, bp: number) => {
-      let s = 0;
-      for (const x of flights) {
-        if (x.owner !== owner) continue;
-        x.stats.forEach((st, g) => {
-          const w = Math.floor((x.milli[g] * st.supWeightMilli) / 1000);
-          s += Math.floor((w * bp) / 10_000);
-        });
-      }
-      return s;
-    };
-    const z = air.zoneState[ww.scenario.srIdxOf(WEST)];
-    const gs = score(GBR, 7_500);
-    const is = score(ITA, 10_000);
-    expect(z.sup.get(ww.land.sideOf(GBR))).toBe(airSupPm(gs, is));
-    // Italy's side reads Britain's air penalty bonus: P4's supPenaltyPp + 5.
-    const st = ww.economy.country(GBR)!.stats;
-    expect(st.enemyAirPenaltyPp).toBe(5);
-    expect(z.enemyPp.get(ww.land.sideOf(ITA)) ?? 0).toBe(
-      st.supPenaltyPp + st.enemyAirPenaltyPp,
-    );
+  it("sortieEffPct raises a sortie rate, never past one a day (effWith)", () => {
+    expect(effWith(0, 640)).toBe(640);
+    expect(effWith(5, 640)).toBe(672);
+    expect(effWith(-20, 640)).toBe(512);
+    expect(effWith(50, 900)).toBe(1000);
   });
 });

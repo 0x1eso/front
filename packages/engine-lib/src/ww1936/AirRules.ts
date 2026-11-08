@@ -3,12 +3,8 @@
 // battle penalty, close air support, strategic bombing, anti-air and the
 // deployment judge the zone card and the engine share.
 import {
-  AIR_MISSION_TYPES,
   AirMission,
-  AirType,
   AirZoneData,
-  LAND_ZONE_MISSIONS,
-  SEA_ZONE_MISSIONS,
   WW_AA_CUT_MAX_PCT,
   WW_AIR_LOSS_K,
   WW_AIR_MOVE_PER_PM,
@@ -17,7 +13,6 @@ import {
   WW_AIR_PENALTY_MAX_BP,
   WW_BOMB_POINTS_PER_BUILDING,
   WW_CAS_HIT_SCALE_PM,
-  WW_MAX_DEPLOYMENTS,
   WW_PARADROP_AIRSUP_PM,
   WW_PARADROP_PLANES_PER_WEIGHT,
 } from "@openfront/engine-api/ww1936/AirTypes";
@@ -26,13 +21,6 @@ import { WW_ROUND_HOUR_MILLI } from "@openfront/engine-api/ww1936/LandTypes";
 
 const clamp = (v: number, lo: number, hi: number) =>
   Math.max(lo, Math.min(hi, v));
-
-/** Spec §13.3: 1000 up to half the range, falling to 750 at the range; 0 beyond. */
-export function rangeEffPm(km: number, rangeKm: number): number {
-  if (km > rangeKm) return 0;
-  if (km * 2 <= rangeKm) return 1000;
-  return 1000 - Math.floor((250 * (2 * km - rangeKm)) / rangeKm);
-}
 
 /** Spec §14.2. airSupPm: our superiority yesterday, null for superiority and interception. */
 export function sortieEffPm(
@@ -203,54 +191,12 @@ export function aaLossPm(
   );
 }
 
-export interface DeployAsk {
-  sr: number;
-  srKind: "land" | "sea";
-  type: AirType;
-  mission: AirMission;
-  count: number;
-  have: number;
-  deploymentsUsed: number;
-  anyBaseInRange: boolean;
-  /**
-   * Final review B, M2: every member of the land zone is a no-strike
-   * region (the Korean Peninsula, Taiwan), so a strike mission there hits
-   * nothing and is refused. Absent: not such a zone.
-   */
-  allNoStrike?: boolean;
-}
-
 /** The missions that strike a land zone's regions (refused over a no-strike zone). */
 export const STRIKE_AIR_MISSIONS: readonly AirMission[] = [
   "cas",
   "strategic_bombing",
   "port_strike",
 ];
-
-/** The judge the zone card and the engine share (spec §13.2, §14.1). */
-export function airDeployBlock(a: DeployAsk): WwOrderBlock | null {
-  const allowed = a.srKind === "sea" ? SEA_ZONE_MISSIONS : LAND_ZONE_MISSIONS;
-  if (
-    a.mission === "paradrop" ||
-    !allowed.includes(a.mission) ||
-    !AIR_MISSION_TYPES[a.mission].includes(a.type)
-  ) {
-    return "bad_air_mission";
-  }
-  if (
-    a.count > 0 &&
-    a.allNoStrike === true &&
-    STRIKE_AIR_MISSIONS.includes(a.mission)
-  ) {
-    return "no_strike_region";
-  }
-  if (a.count > 0 && a.deploymentsUsed >= WW_MAX_DEPLOYMENTS) {
-    return "too_many_deployments";
-  }
-  if (a.count > 0 && !a.anyBaseInRange) return "no_air_base";
-  if (a.count > a.have) return "no_planes";
-  return null;
-}
 
 // ---- The paradrop judge the army card shares (lane A2 fills it) ----
 

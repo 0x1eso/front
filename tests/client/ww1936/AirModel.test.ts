@@ -1,7 +1,5 @@
-// World War 1936 P4 (plan Task 12 Step 6): the air screens' model — a
-// row's slider runs from 0 to its deployment + the idle stock, the bases
-// in range and their use, airDeployBlock's refusals, the ✈ dial.
-import { airDeployBlock } from "@openfront/engine-lib/ww1936/AirRules";
+// World War 1936 P4 (plan Task 12 Step 6): the air screens' model — the
+// bases in range and their use, the zone card, the ✈ dial.
 import { planeStats } from "@openfront/engine-lib/ww1936/PlaneStats";
 import { emptyStats } from "@openfront/engine-lib/ww1936/Stats";
 import { describe, expect, it, vi } from "vitest";
@@ -11,24 +9,15 @@ vi.mock("../../../src/client/Utils", async (importOriginal) => ({
   translateText: (key: string) => `[${key}]`,
 }));
 
-import { IntentSchema } from "@openfront/engine-api/Schemas";
-import { WW_MAX_DEPLOY_COUNT } from "@openfront/engine-api/ww1936/AirTypes";
 import {
   airDial,
   basesInRange,
-  deployBlock,
-  deployOrder,
-  myAirBases,
-  sliderRange,
   zoneCard,
-  zoneMissions,
 } from "../../../src/client/hud/ww1936/AirModel";
 import { navyCtx, NavyGame } from "../../../src/client/hud/ww1936/NavyModel";
 import { sideKeyOf } from "../../../src/client/view/WwNavyView";
 import { AIR_KM, REGION, SR } from "../../ww1936/seaFixture";
 import { airDetail, seaGame, SID } from "./SeaAirFixture";
-
-const FIGHTER = 0;
 
 function game(o: Parameters<typeof seaGame>[0] = {}) {
   const g = seaGame({
@@ -55,42 +44,6 @@ function game(o: Parameters<typeof seaGame>[0] = {}) {
 }
 
 describe("AirModel (spec §13, §18.6, §18.7)", () => {
-  it("a slider runs from 0 to that mission's planes here plus the idle stock", () => {
-    const { ctx } = game();
-    expect(sliderRange(ctx, SR.central, "fighter", "air_superiority")).toEqual({
-      min: 0,
-      max: 460,
-      value: 120,
-      free: 340,
-    });
-    // Another mission of the same type starts from 0 here.
-    expect(sliderRange(ctx, SR.central, "fighter", "interception")).toEqual({
-      min: 0,
-      max: 340,
-      value: 0,
-      free: 340,
-    });
-    void FIGHTER;
-  });
-
-  it("final review D (D2): the slider and the order stop at the schema's cap", () => {
-    const { ctx } = game({
-      air: airDetail("GBR", {
-        stock: [6_000, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        deployed: [120, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-        bases: [{ region: REGION.london, used: 120, cap: 400, damagePm: 0 }],
-      }),
-    });
-    const r = sliderRange(ctx, SR.central, "fighter", "air_superiority");
-    expect(r.max).toBe(WW_MAX_DEPLOY_COUNT);
-    expect(r.free).toBe(6_000);
-    const order = deployOrder(SR.central, "fighter", "air_superiority", 6_120);
-    expect(order).toMatchObject({ count: WW_MAX_DEPLOY_COUNT });
-    expect(IntentSchema.safeParse({ type: "ww_order", order }).success).toBe(
-      true,
-    );
-  });
-
   it("the bases in a type's range and their use (base center → zone center)", () => {
     const { ctx } = game();
     const range = planeStats("fighter", 1, emptyStats(), new Set()).rangeKm;
@@ -99,39 +52,9 @@ describe("AirModel (spec §13, §18.6, §18.7)", () => {
     expect(bases.map((b) => [b.region, b.km, b.used, b.cap])).toEqual([
       [REGION.london, AIR_KM.londonToCentral, 120, 400],
     ]);
-    expect(myAirBases(ctx).map((b) => b.region)).toEqual([REGION.london]);
   });
 
-  it("deployBlock is airDeployBlock on the screens' data", () => {
-    const { ctx } = game();
-    expect(
-      deployBlock(ctx, SR.central, "fighter", "air_superiority", 400),
-    ).toBe(
-      airDeployBlock({
-        sr: SR.central,
-        srKind: "sea",
-        type: "fighter",
-        mission: "air_superiority",
-        count: 400,
-        have: 460,
-        deploymentsUsed: 1,
-        anyBaseInRange: true,
-      }),
-    );
-    expect(
-      deployBlock(ctx, SR.central, "fighter", "air_superiority", 999),
-    ).toBe("no_planes");
-    // Close support flies over land only.
-    expect(deployBlock(ctx, SR.central, "fighter", "cas", 10)).toBe(
-      "bad_air_mission",
-    );
-    expect(zoneMissions("sea", "fighter")).toEqual([
-      "air_superiority",
-      "interception",
-    ]);
-  });
-
-  it("the zone card: our control against the enemy's, the rows I have", () => {
+  it("the zone card: our control against the enemy's, the bases in reach", () => {
     const side = (t: "GBR" | "ITA") => sideKeyOf(SID(t), -1);
     const { ctx } = game({
       wars: [["GBR", "ITA"]],
@@ -172,10 +95,7 @@ describe("AirModel (spec §13, §18.6, §18.7)", () => {
       ["fighter", 40],
       ["bomber", 12],
     ]);
-    expect(c.rows.map((r) => [r.type, r.mission, r.free])).toEqual([
-      ["fighter", "air_superiority", 340],
-    ]);
-    expect(c.rows[0].gens).toEqual([100, 20, 0]);
+    expect(c.bases.count).toBe(1);
     expect(c.result?.shotDown).toBe(7);
   });
 

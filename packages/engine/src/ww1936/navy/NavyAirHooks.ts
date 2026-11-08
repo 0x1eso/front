@@ -81,10 +81,10 @@ export class NavyAirHooks implements LandSeaAirHooks {
     return casHitsFor(this.air, battleRegion, side); // A2
   }
   casNowCenti(battleRegion: number, side: number): number {
-    return this.air.wingsLive ? casHitsFor(this.air, battleRegion, side) : 0;
+    return casHitsFor(this.air, battleRegion, side);
   }
   casWingsNow(battleRegion: number, side: number): number {
-    return this.air.wingsLive ? casWingsAt(this.air, battleRegion, side) : 0;
+    return casWingsAt(this.air, battleRegion, side);
   }
   airMoveFactorPm(region: number, side: number): number {
     return this.air.airMoveFactorPm(region, side); // A1

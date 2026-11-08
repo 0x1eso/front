@@ -32,7 +32,7 @@ import { effectiveLevel } from "../economy/Buildings";
 import { damageDivisions, divisionWeightCenti } from "../land/SeaLift";
 import type { Army } from "../land/WwLand";
 import { onPlanesLost } from "../navy/EndgameHooks";
-import { airDuelMilli, type DuelPlanes, zoneFlights } from "./AirCombat";
+import { airDuelMilli, type DuelPlanes } from "./AirCombat";
 import { radarPmAt } from "./AirSuperiority";
 import { wingStats } from "./Sorties";
 import { type Wing, wingPlanes, wingSide, type WwAir } from "./WwAir";
@@ -40,15 +40,6 @@ import { type Wing, wingPlanes, wingSide, type WwAir } from "./WwAir";
 const M_SUP = AIR_MISSIONS.indexOf("air_superiority");
 const M_INT = AIR_MISSIONS.indexOf("interception");
 const TRANSPORT = "transport_plane" as const;
-
-/**
- * Every tick (spec §2.2-7 ③). P2 keeps the paradrop's state (readyDay,
- * paraLastDay) and its drop tick calls resolveParadrop: nothing ages here.
- */
-export function stepParadrops(air: WwAir, tick: number): void {
-  void air;
-  void tick;
-}
 
 /** The transports in `smallID`'s stock (not deployed), every generation. */
 export function transportStock(air: WwAir, smallID: number): number {
@@ -63,9 +54,7 @@ export function transportStock(air: WwAir, smallID: number): number {
     n += ce.stock[equipKey("plane_design", slot)];
   }
   // ww8: the transports of the country's wings waiting on the ground count too.
-  if (air.wingsLive) {
-    for (const w of idleTransportWings(air, smallID)) n += wingPlanes(w);
-  }
+  for (const w of idleTransportWings(air, smallID)) n += wingPlanes(w);
   return n;
 }
 
@@ -259,15 +248,7 @@ export function paradropLosses(
   const flown = new Map<number, number>();
   let interceptors = false;
   let side = 0;
-  const fighters: ZoneFighter[] = air.wingsLive
-    ? wingFightersOver(air, sr)
-    : zoneFlights(air, sr).map((f) => ({
-        id: f.id,
-        mission: f.mission,
-        side: f.side,
-        milli: f.milli,
-        stats: f.stats,
-      }));
+  const fighters: ZoneFighter[] = wingFightersOver(air, sr);
   for (const f of fighters) {
     if (f.mission !== M_SUP && f.mission !== M_INT) continue;
     const d = air.wings.get(f.id);
@@ -362,20 +343,18 @@ export function resolveParadrop(air: WwAir, army: number, tick: number): void {
       gone += take;
     }
     // ww8: what the stock lacks comes off the idle transport wings.
-    if (air.wingsLive) {
-      for (const w of idleTransportWings(air, a.owner)) {
-        if (left <= 0) break;
-        const take: number[] = [];
-        let want = left;
-        for (const c of w.counts) {
-          const t = Math.min(want, c);
-          take.push(t);
-          want -= t;
-        }
-        const got = air.shootDown(w.id, take, loss.by);
-        left -= got;
-        air.planesLostTotal += got;
+    for (const w of idleTransportWings(air, a.owner)) {
+      if (left <= 0) break;
+      const take: number[] = [];
+      let want = left;
+      for (const c of w.counts) {
+        const t = Math.min(want, c);
+        take.push(t);
+        want -= t;
       }
+      const got = air.shootDown(w.id, take, loss.by);
+      left -= got;
+      air.planesLostTotal += got;
     }
     if (gone > 0) {
       onPlanesLost(air, a.owner, loss.by, TRANSPORT, gone);

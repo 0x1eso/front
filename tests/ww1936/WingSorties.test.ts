@@ -28,6 +28,7 @@ import {
   legTicks,
   pulseMilli,
   rearmTicks,
+  wingStaggerTicks,
 } from "@openfront/engine-lib/ww1936/WingRules";
 import { airDuelMilli } from "@openfront/engine/ww1936/air/AirCombat";
 import { casHitsFor } from "@openfront/engine/ww1936/air/AirEffects";
@@ -44,7 +45,7 @@ import { damageBuilding } from "@openfront/engine/ww1936/economy/Buildings";
 import { joinBattle, stepBattles } from "@openfront/engine/ww1936/land/Battles";
 import { fillDecks } from "@openfront/engine/ww1936/navy/Carriers";
 import { airOf } from "@openfront/engine/ww1936/navy/ConvoyWar";
-import "./oldAirModel";
+import "./noStartWings";
 import { REGION, SEA, SR, TAG_ID, ZONE } from "./seaFixture";
 import {
   clearLand,
@@ -60,7 +61,7 @@ import {
   wwRestore,
   wwRunner,
 } from "./util";
-import { giveWing, liveWings } from "./wingUtil";
+import { giveWing } from "./wingUtil";
 
 withTestPolitics();
 
@@ -82,7 +83,6 @@ async function war() {
   warAfterPrep(runner, HUMAN, "POL");
   clearLand(g);
   const air = ww.air;
-  liveWings(air);
   ww.economy.addBuilding(REGION.warsaw, "air_base", 4);
   ww.economy.addBuilding(REGION.berlin, "air_base", 4);
   const rows: WingFlightRow[] = [];
@@ -204,8 +204,12 @@ describe("the sortie cycle (design §3.5)", () => {
       },
       tick,
     );
+    // Each wing's first cycle waits its own stagger (by wing id).
     const lag = (w: Wing) => w.until - tick;
-    expect(Math.abs(lag(a) - lag(b))).toBe(3);
+    for (const w of [a, b]) {
+      expect(lag(w)).toBe(wingStaggerTicks(w.id, "fighter", "air_superiority"));
+    }
+    expect(lag(a)).not.toBe(lag(b));
     const off = untilPhase(air, a, WP_REARM, tick);
     const plain = a.until - off;
     expect(plain).toBe(5);
@@ -1024,7 +1028,6 @@ describe("carrier wings (design §9)", () => {
     warAfterPrep(runner, HUMAN, "ITA");
     const ww = runner.game.worldWar()!;
     const { navy, air } = ww;
-    liveWings(air);
     const GBR = TAG_ID.GBR;
     const ce = ww.economy.country(GBR)!;
     ce.stock[equipKey("cv_fighter", 1)] += 60;
@@ -1099,7 +1102,6 @@ describe("the convoy war's air (design §4.2)", () => {
     warAfterPrep(runner, HUMAN, "ITA");
     const ww = runner.game.worldWar()!;
     const { air, navy } = ww;
-    liveWings(air);
     const sr = SR.central;
     const idx = ww.scenario.srIdxOf(sr);
     const w = giveWing(air, {

@@ -40,9 +40,7 @@ export class WwAirView {
   readonly deployments = new Map<number, AirDeploySummary>();
   detail: CountryAirDetail | null = null;
   version = 0;
-  // ww8: the wing model's copy (empty in an old-model game).
-  /** This game runs the wing model: the screens switch on it. */
-  live = false;
+  // ww8: the wings.
   /** Every country's wings, short, unfiltered: go through the fog before any screen reads them. */
   readonly wingBriefs = new Map<number, WingBrief>();
   /** My wings in full. */
@@ -73,7 +71,6 @@ export class WwAirView {
     for (const x of d.deployments) this.deployments.set(x.id, x);
     for (const id of d.removedDeployments) this.deployments.delete(id);
     const me = this.mySmallID();
-    if (d.live === true) this.live = true;
     for (const x of d.briefs ?? []) this.wingBriefs.set(x.id, x);
     for (const x of d.wings ?? []) if (x.owner === me) this.wings.set(x.id, x);
     for (const x of d.flights ?? []) this.flights.set(x[0], x);

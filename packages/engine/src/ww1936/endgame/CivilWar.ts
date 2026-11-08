@@ -36,7 +36,6 @@ import type { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
 import { seaPath } from "@openfront/engine-lib/ww1936/SeaGraph";
 import { SHIP_BASE } from "@openfront/engine-lib/ww1936/ShipStats";
 import { handOverWing } from "../air/Wings";
-import { wingPlanes } from "../air/WwAir";
 import { receiveKey } from "../depth/DesignCopy";
 import {
   evictDivisions,
@@ -610,10 +609,6 @@ function splitPlanes(
     .filter((d) => d.base > 0 && d.volunteerFor === 0 && rebel.has(d.base))
     .sort((a, b) => a.id - b.id);
   if (moving.length === 0) return;
-  // A group's target (owner, zone, type, mission) is its planes now.
-  const groupSum = new Map<string, number>();
-  const keyOf = (d: (typeof moving)[number]) =>
-    `${d.sr}:${d.type}:${d.mission}`;
   for (const d of moving) {
     const type = AIR_TYPES[d.type];
     d.counts.forEach((n, i) => {
@@ -640,19 +635,8 @@ function splitPlanes(
       re.planesDeployed[k2] += n;
     });
     d.dcounts = dcounts;
-    if (air.wingsLive) {
-      // ww8: the wing keeps its experience and lands under the rebels.
-      handOverWing(air, d, R);
-      continue;
-    }
-    air.setWingOwner(d, R);
-    d.auto = false;
-    const sum = wingPlanes(d);
-    groupSum.set(keyOf(d), (groupSum.get(keyOf(d)) ?? 0) + sum);
-    air.markWing(d.id);
-  }
-  if (!air.wingsLive) {
-    for (const d of moving) d.goalCount = groupSum.get(keyOf(d)) ?? 0;
+    // ww8: the wing keeps its experience and lands under the rebels.
+    handOverWing(air, d, R);
   }
   air.markCountry(X);
   air.markCountry(R);

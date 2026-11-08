@@ -1,31 +1,19 @@
 // World War 1936 P4 (spec §13, §14, §18.1, §18.6, §18.7): what the air
 // zone card, the air drawer and the ✈ dial compute from the views, as
-// plain data. Every judgement is engine-lib's: airDeployBlock (the zone
-// card greys with its reason), planeStats (range), weatherAt.
-import type { WwOrder } from "@openfront/engine-api/Schemas";
+// plain data. Every judgement is engine-lib's: planeStats (range),
+// weatherAt.
 import {
-  AIR_MISSION_TYPES,
-  AIR_MISSIONS,
   AIR_TYPES,
   AirMission,
   AirType,
   AirZoneResult,
-  LAND_ZONE_MISSIONS,
-  SEA_ZONE_MISSIONS,
   WW_AIR_BASE_CAPACITY,
-  WW_MAX_DEPLOY_COUNT,
 } from "@openfront/engine-api/ww1936/AirTypes";
 import {
   equipKey,
   EQUIPMENT_GENS,
-  WwOrderBlock,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
 import type { Weather } from "@openfront/engine-api/ww1936/LandTypes";
-import {
-  airDeployBlock,
-  type DeployAsk,
-} from "@openfront/engine-lib/ww1936/AirRules";
-import { isNoStrike } from "@openfront/engine-lib/ww1936/NoStrike";
 import { planeStats } from "@openfront/engine-lib/ww1936/PlaneStats";
 import type { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
 import { weatherAt } from "@openfront/engine-lib/ww1936/Weather";
@@ -86,20 +74,6 @@ export function zoneWeather(
   );
 }
 
-/** Spec §14.1: what a zone of this kind allows a type to fly (paradrop is an army order). */
-export function zoneMissions(
-  kind: "land" | "sea",
-  type: AirType,
-): AirMission[] {
-  const allowed = kind === "sea" ? SEA_ZONE_MISSIONS : LAND_ZONE_MISSIONS;
-  return AIR_MISSIONS.filter(
-    (m) =>
-      m !== "paradrop" &&
-      allowed.includes(m) &&
-      AIR_MISSION_TYPES[m].includes(type),
-  );
-}
-
 /** My planes of a type flying a mission over a zone (every base), per generation. */
 export function deployedGens(
   air: WwAirView,
@@ -138,28 +112,6 @@ export function deployedHere(
 export function idlePlanes(ctx: AirCtx, type: AirType): number {
   const d = ctx.air.detail;
   return d?.smallID === ctx.me ? (d.stock[AIR_TYPES.indexOf(type)] ?? 0) : 0;
-}
-
-/**
- * Spec §18.6: a row's slider runs 0 .. deployed here on that mission + the
- * idle reserve — at most the order's cap (final review D, D2: the schema
- * takes counts up to WW_MAX_DEPLOY_COUNT, and a count past it would get
- * the sender kicked).
- */
-export function sliderRange(
-  ctx: AirCtx,
-  sr: number,
-  type: AirType,
-  mission: AirMission,
-): { min: number; max: number; value: number; free: number } {
-  const value = deployedHere(ctx.air, ctx.me, sr, type, mission);
-  const free = idlePlanes(ctx, type);
-  return {
-    min: 0,
-    max: Math.min(WW_MAX_DEPLOY_COUNT, value + free),
-    value,
-    free,
-  };
 }
 
 /** The best generation I have of a type (reserve or anywhere deployed); 1 with none. */
@@ -231,76 +183,6 @@ export function basesInRange(
     .sort((a, b) => a.km - b.km || a.region - b.region);
 }
 
-/**
- * Final review B, M2: a land zone whose every member is a no-strike region
- * (the Korean Peninsula, Taiwan) — a strike mission there hits nothing, so
- * the zone card greys it out (the engine's allNoStrikeZone, on isNoStrike).
- */
-export function allNoStrikeZone(sc: ScenarioIndex, sr: number): boolean {
-  const s = sc.sr(sr);
-  if (s === undefined || s.kind !== "land" || s.members.length === 0) {
-    return false;
-  }
-  return s.members.every((region) => isNoStrike(sc, region));
-}
-
-/** airDeployBlock (spec §13.2, §14.1) on the screens' data. */
-export function deployBlock(
-  ctx: AirCtx,
-  sr: number,
-  type: AirType,
-  mission: AirMission,
-  count: number,
-): WwOrderBlock | null {
-  const kind = ctx.scenario.sr(sr)?.kind;
-  if (kind === undefined) return "bad_zone";
-  const r = sliderRange(ctx, sr, type, mission);
-  const deploymentsUsed = [...ctx.air.deployments.values()].filter(
-    (d) => d.owner === ctx.me,
-  ).length;
-  // Final review B, M2 (fix lane E adds `allNoStrike?` to DeployAsk; the
-  // intersection keeps this side typechecking until both lanes merge).
-  const ask: DeployAsk & { allNoStrike?: boolean } = {
-    sr,
-    srKind: kind,
-    type,
-    mission,
-    count,
-    have: r.max,
-    deploymentsUsed,
-    anyBaseInRange: r.value > 0 || basesInRange(ctx, sr, type).length > 0,
-    allNoStrike: allNoStrikeZone(ctx.scenario, sr),
-  };
-  return airDeployBlock(ask);
-}
-
-/** Releasing a slider (spec §18.3-4): one order with the value let go. */
-export function deployOrder(
-  sr: number,
-  type: AirType,
-  mission: AirMission,
-  count: number,
-): WwOrder {
-  return {
-    kind: "air_deploy",
-    sr,
-    type,
-    mission,
-    count: Math.max(0, Math.min(WW_MAX_DEPLOY_COUNT, Math.round(count))),
-  };
-}
-
-export interface PlaneRowData {
-  type: AirType;
-  /** Planes here per generation, every mission. */
-  gens: number[];
-  /** The missions the zone allows the type, with my planes on each. */
-  missions: { mission: AirMission; count: number }[];
-  /** The mission its slider sets: the busiest one here, else the first. */
-  mission: AirMission;
-  free: number;
-}
-
 export interface ZoneCardData {
   sr: number;
   name: string;
@@ -313,17 +195,10 @@ export interface ZoneCardData {
   bases: { used: number; cap: number; count: number };
   aa: number;
   radar: number;
-  rows: PlaneRowData[];
   result: AirZoneResult | null;
-  /** The AI runs this zone for me (air_auto, CountryAirDetail.autoZones). */
-  auto: boolean;
 }
 
-export function zoneCard(
-  ctx: AirCtx,
-  sr: number,
-  picked: ReadonlyMap<AirType, AirMission> = new Map(),
-): ZoneCardData | null {
+export function zoneCard(ctx: AirCtx, sr: number): ZoneCardData | null {
   const s = ctx.scenario.sr(sr);
   if (s === undefined) return null;
   const zone = ctx.air.zones.get(sr);
@@ -357,26 +232,6 @@ export function zoneCard(
       radar = Math.max(radar, ctx.economy.effectiveBuildings("radar", r));
     }
   }
-  const rows = types.map((type): PlaneRowData => {
-    const missions = zoneMissions(s.kind, type).map((mission) => ({
-      mission,
-      count: deployedHere(ctx.air, ctx.me, sr, type, mission),
-    }));
-    const busiest = [...missions].sort((a, b) => b.count - a.count)[0];
-    const chosen = picked.get(type);
-    return {
-      type,
-      gens: deployedGens(ctx.air, ctx.me, sr, type, null),
-      missions,
-      mission:
-        chosen !== undefined && missions.some((m) => m.mission === chosen)
-          ? chosen
-          : busiest !== undefined && busiest.count > 0
-            ? busiest.mission
-            : (missions[0]?.mission ?? "air_superiority"),
-      free: idlePlanes(ctx, type),
-    };
-  });
   const bases = [...baseSet.values()];
   return {
     sr,
@@ -395,11 +250,7 @@ export function zoneCard(
     },
     aa,
     radar,
-    rows,
     result: zone?.result.find(([side]) => side === mySide)?.[1] ?? null,
-    auto:
-      ctx.air.detail?.smallID === ctx.me &&
-      (ctx.air.detail.autoZones ?? []).includes(sr),
   };
 }
 
@@ -432,44 +283,6 @@ export function airDial(ctx: AirCtx): AirDialModel {
 
 // ---- The air drawer (spec §18.7) ----
 
-export interface ZoneRow {
-  sr: number;
-  name: string;
-  missions: [AirMission, number][];
-  supPm: number;
-  lost: number;
-}
-
-/** Tab 1: the zones my planes fly over. */
-export function zoneRows(ctx: AirCtx): ZoneRow[] {
-  const by = new Map<number, Map<AirMission, number>>();
-  for (const d of ctx.air.deployments.values()) {
-    if (d.owner !== ctx.me) continue;
-    const m = by.get(d.sr) ?? new Map<AirMission, number>();
-    m.set(
-      d.mission,
-      (m.get(d.mission) ?? 0) +
-        d.counts.reduce((a, b) => a + b, 0) +
-        (d.dcounts ?? []).reduce((a, b) => a + b, 0),
-    );
-    by.set(d.sr, m);
-  }
-  const mySide = ctx.p4.sideOf(ctx.me);
-  return [...by.entries()]
-    .sort(([a], [b]) => a - b)
-    .map(([sr, m]) => ({
-      sr,
-      name: srName(ctx.scenario, sr),
-      missions: AIR_MISSIONS.filter((x) => (m.get(x) ?? 0) > 0).map(
-        (x): [AirMission, number] => [x, m.get(x) ?? 0],
-      ),
-      supPm: ctx.air.mySuperiority(sr),
-      lost:
-        ctx.air.zones.get(sr)?.result.find(([s]) => s === mySide)?.[1].lost ??
-        0,
-    }));
-}
-
 export interface PlaneStockRow {
   type: AirType;
   stock: number;
@@ -493,13 +306,6 @@ export function planeStockRows(ctx: AirCtx): PlaneStockRow[] {
       (_, g) => stock[equipKey(type, g + 1)] ?? 0,
     ),
   })).filter((r) => r.stock + r.deployed + r.decks > 0);
-}
-
-/** Tab 3: my air bases, by region. */
-export function myAirBases(ctx: AirCtx): AirBaseView[] {
-  return sideAirBases(ctx)
-    .filter((b) => (ctx.economy.controller[b.region] ?? 0) === ctx.me)
-    .sort((a, b) => a.region - b.region);
 }
 
 export interface AirRecord {

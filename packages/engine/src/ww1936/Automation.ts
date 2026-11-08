@@ -103,7 +103,7 @@ export function autoSet(
   if (!ww.isHumanControlled(smallID)) return "not_controlled";
   ww.setAuto(smallID, domain, on);
   // ww8 (design §7): [auto] takes every wing, off leaves each on its orders.
-  if (domain === "air" && ww.air.wingsLive) {
+  if (domain === "air") {
     for (const w of ww.air.wingsOf(smallID)) {
       if (w.base >= 0 && w.auto !== on) {
         w.auto = on;
@@ -169,9 +169,9 @@ export function handOverDomain(
 ): void {
   const domain = AUTO_ORDER_DOMAIN[order.kind];
   if (domain === undefined || !ww.autoOn(smallID, domain)) return;
-  // ww8: air_deploy and air_recall are refused in the wing model; a direct wing
-  // order pins that wing alone (pinOrderedWings), the switch stays on.
-  if (domain === "air" && ww.air.wingsLive) return;
+  // ww8: a direct wing order pins that wing alone (pinOrderedWings), the
+  // switch stays on.
+  if (domain === "air") return;
   ww.setAuto(smallID, domain, false);
   notify(mg, ww, smallID, AUTO_OFF_NOTICE[domain]);
 }

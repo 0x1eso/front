@@ -14,6 +14,7 @@ import {
 import { addPopularity } from "@openfront/engine-lib/ww1936/PoliticsRules";
 import type { GameRunner } from "@openfront/engine/GameRunner";
 import { snapshotGame } from "@openfront/engine/snapshot/GameSnapshot";
+import { handOverWing } from "@openfront/engine/ww1936/air/Wings";
 import { saveDesign } from "@openfront/engine/ww1936/depth/Designs";
 import { drawPlanes } from "@openfront/engine/ww1936/economy/Buildings";
 import {
@@ -28,7 +29,7 @@ import { diffGraphs, diffSnapshots } from "../util/Snapshot";
 import { TEST_TANK } from "./depthFixture";
 import { END, endId } from "./endFixture";
 import { endgameFixture } from "./endgameFixture";
-import "./oldAirModel";
+import "./noStartWings";
 import { END_MAP, gameHash, step, stepTo, wwRestore, wwRunner } from "./util";
 import { giveWing } from "./wingUtil";
 
@@ -183,10 +184,12 @@ describe("World War 1936 P5: civil wars (spec §15)", () => {
     }
     expect(re.manpower).toBe(Math.floor((men0 * share) / 10000));
     expect(ce.manpower).toBe(men0 - re.manpower);
-    // The planes based in Kiev are the rebels'.
-    expect(d.owner).toBe(cw);
-    expect(re.planesDeployed[k]).toBe(12);
-    expect(ce.planesDeployed[k]).toBe(deployed0 - 12);
+    // The wing based in Kiev: the land moves before the planes split, so
+    // the wing model's base change (onBaseControlChanged) flies it off to
+    // a Soviet base, or into the stock, before the split sees it.
+    expect(d.owner).toBe(sun);
+    expect(re.planesDeployed[k]).toBe(0);
+    expect(ce.planesDeployed[k]).toBeLessThanOrEqual(deployed0);
     // The war: rebels attack, a civil war.
     expect(ww.isAtWar(cw, sun)).toBe(true);
     const w = eg.war(eg.warOfPair(cw, sun))!;
@@ -259,21 +262,22 @@ describe("World War 1936 P5: civil wars (spec §15)", () => {
     const s = await started();
     const { ww } = s;
     const [sun, cw] = [endId("SUN"), endId("CW1")];
+    sovietSplit(s);
     const ce = ww.economy.country(sun)!;
     ce.stock[equipKey("fighter", 1)] += 40;
     const d = giveWing(ww.air, {
       owner: sun,
-      sr: ww.scenario.regionSr(KIEV),
+      sr: ww.scenario.regionSr(MOSCOW),
       type: AIR_TYPES.indexOf("fighter"),
       mission: 0,
       counts: drawPlanes(ce, "fighter", 12),
       goalCount: 12,
-      base: KIEV,
+      base: MOSCOW,
       lossRest: 0,
       auto: true,
       volunteerFor: 0,
     });
-    sovietSplit(s);
+    handOverWing(ww.air, d, cw);
     expect(d.owner).toBe(cw);
     expect(ww.air.wingsOf(cw)).toEqual([d]);
     expect(ww.air.wingsOf(sun)).not.toContain(d);

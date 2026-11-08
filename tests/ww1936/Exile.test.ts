@@ -1,7 +1,7 @@
 // World War 1936 P5 lane X (plan Task 5 Steps 3–4, spec §5.2, §10):
 // governments in exile — the host, the forces that escape, legitimacy,
 // liberated land, the return home and the collapse.
-import { AIR_MISSIONS, AIR_TYPES } from "@openfront/engine-api/ww1936/AirTypes";
+import { AIR_TYPES } from "@openfront/engine-api/ww1936/AirTypes";
 import {
   EQUIP_KEYS,
   equipKey,
@@ -34,7 +34,6 @@ import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSou
 import { joinFaction } from "@openfront/engine/ww1936/politics/Factions";
 import { END, endId } from "./endFixture";
 import { endgameFixture } from "./endgameFixture";
-import "./oldAirModel";
 import {
   clearLand,
   END_MAP,
@@ -43,6 +42,7 @@ import {
   takeRegion,
   wwRunner,
 } from "./util";
+import { giveWing } from "./wingUtil";
 
 afterEach(() => usePoliticsContent(null));
 
@@ -174,7 +174,7 @@ describe("World War 1936 P5: governments in exile", () => {
     );
   });
 
-  it("exile planes fly from the host's air base; without one they wait in the stock", async () => {
+  it("an exile keeps half its planes and forms wings of them", async () => {
     const FIGHTER = equipKey("fighter", 1);
     for (const hostBase of [true, false]) {
       const { g, ww } = await started();
@@ -183,7 +183,7 @@ describe("World War 1936 P5: governments in exile", () => {
       const tick = g.ticks();
       ww.setWar(deu, pl, tick, { kind: "declare" });
       ww.setWar(deu, gbr, tick, { kind: "into", warId: eg.warOfPair(deu, pl) });
-      // Poland: 100 fighters, 40 of them over Warsaw; London's air base.
+      // Poland: 1,000 fighters, 400 of them in a wing at Warsaw; London's air base.
       const ce = ww.economy.country(pl)!;
       for (const d of ww.air.wingsOf(pl)) {
         ww.air.removeWing(d.id, false);
@@ -191,7 +191,7 @@ describe("World War 1936 P5: governments in exile", () => {
       EQUIP_KEYS.forEach(([type], k) => {
         if (AIR.has(type)) ce.stock[k] = 0;
       });
-      ce.stock[FIGHTER] = 100;
+      ce.stock[FIGHTER] = 1000;
       const bases = ww.economy.buildingArray("air_base");
       for (const d of ww.air.wingsOf(gbr)) {
         ww.air.removeWing(d.id, true);
@@ -201,36 +201,27 @@ describe("World War 1936 P5: governments in exile", () => {
       }
       if (hostBase) bases[10] = 1;
       bases[6] = 1;
-      expect(
-        ww.air.issue(
-          pl,
-          {
-            kind: "air_deploy",
-            sr: ww.scenario.regionSr(6),
-            type: "fighter",
-            mission: "interception",
-            count: 40,
-          },
-          tick,
-        ),
-      ).toBeNull();
-      expect(ce.stock[FIGHTER]).toBe(60);
+      giveWing(ww.air, {
+        owner: pl,
+        type: "fighter",
+        planes: 400,
+        base: 6,
+        sr: ww.scenario.regionSr(6),
+        target: 6,
+        mission: "interception",
+      });
+      expect(ce.stock[FIGHTER]).toBe(600);
       ww.addCapitulation(pl, deu, tick);
       expect(formExile(eg, pl, deu, tick)).toBe(true);
       capitulationForces(eg, pl, deu, gbr, tick);
       const deps = ww.air.wingsOf(pl);
-      if (!hostBase) {
-        expect(deps).toEqual([]);
-        expect(ce.stock[FIGHTER]).toBe(50);
-        continue;
-      }
-      // Half of them, at London, on their old mission.
-      expect(ce.stock[FIGHTER]).toBe(0);
-      expect(deps).toHaveLength(1);
-      expect(deps[0].base).toBe(10);
-      expect(deps[0].sr).toBe(ww.scenario.regionSr(10));
-      expect(deps[0].mission).toBe(AIR_MISSIONS.indexOf("interception"));
-      expect(deps[0].counts.reduce((a, b) => a + b, 0)).toBe(50);
+      // Half of them stay (the stock's other half is gone); formWings makes
+      // wings of what its reserve leaves, at a base the exile may use (its
+      // own Warsaw is still one, with or without London's).
+      let flying = 0;
+      for (const d of deps) flying += d.counts.reduce((a, b) => a + b, 0);
+      expect(deps.length).toBeGreaterThan(0);
+      expect(flying + ce.stock[FIGHTER]).toBe(500);
     }
   });
 

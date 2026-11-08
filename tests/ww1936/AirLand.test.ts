@@ -21,7 +21,6 @@ import {
   modInputOf,
 } from "@openfront/engine/ww1936/land/Battles";
 import { WwAirView } from "../../src/client/view/WwAirView";
-import "./oldAirModel";
 import { REGION, SEA, SR, TAG_ID } from "./seaFixture";
 import {
   clearLand,
@@ -35,6 +34,7 @@ import {
   WwHuman,
   wwRunnerCapture,
 } from "./util";
+import { giveWing } from "./wingUtil";
 
 withTestPolitics();
 
@@ -77,19 +77,18 @@ async function germanSky(support = false) {
     grantDoctrineStats(ww, deu, GRAND_DOCTRINE_STATS.gd_battlefield_support[0]);
     expect(ww.economy.country(deu)!.stats.supPenaltyPp).toBe(5);
   }
-  expect(
-    ww.air.issue(
-      deu,
-      {
-        kind: "air_deploy",
-        sr: SR.eastLand,
-        type: "fighter",
-        mission: "air_superiority",
-        count: 200,
-      },
-      g.ticks(),
-    ),
-  ).toBeNull();
+  // A fighter wing of 200 on station over the East (Berlin's base).
+  giveWing(ww.air, {
+    owner: deu,
+    type: "fighter",
+    planes: 200,
+    base: REGION.berlin,
+    sr: SR.eastLand,
+    target: WARSAW,
+    mission: "air_superiority",
+    flying: true,
+    until: g.ticks() + 100_000,
+  });
   stepTo(
     runner,
     dayStartTick(day, ww.prepEndTick()) +
