@@ -37,6 +37,8 @@ const CARD_WIDTH = "w-[min(46vw,380px)]";
 const TOP_GAP = 8;
 /** Below this width the composer is a bottom sheet (design §7: 390 px phones). */
 const SHEET_MAX_WIDTH = 640;
+/** The height a waiting card keeps above the sheet, in CSS px: the sheet yields to it. */
+const CARD_OVER_SHEET_PX = 160;
 /**
  * An answer goes on the next tick and the card goes; a card still there
  * this long after (2 s, in 100 ms ticks: wwWindowTicks) was refused, and
@@ -110,6 +112,7 @@ export class WwWhitePeaceCard extends LitElement implements Controller {
     if (typeof ResizeObserver !== "undefined") {
       this.resizeObserver = new ResizeObserver(() => this.place());
       this.resizeObserver.observe(layer);
+      this.resizeObserver.observe(deal);
       if (this.parentElement !== null) {
         this.resizeObserver.observe(this.parentElement);
       }
@@ -249,16 +252,30 @@ export class WwWhitePeaceCard extends LitElement implements Controller {
     const slot = this.querySelector<HTMLElement>("[data-ww-wpeace-slot]");
     const card = layer.querySelector<HTMLElement>("[data-ww-wpeace]");
     if (slot === null || card === null) return;
-    const room = (r: DOMRect) =>
-      Math.max(96, Math.floor(r.bottom - WW_BAND_PX - TOP_GAP));
-    card.style.maxHeight = `${room(slot.getBoundingClientRect())}px`;
+    const room = (bottom: number) =>
+      Math.max(96, Math.floor(bottom - WW_BAND_PX - TOP_GAP));
+    card.style.maxHeight = `${room(slot.getBoundingClientRect().bottom)}px`;
     const height = `${Math.round(card.getBoundingClientRect().height)}px`;
     if (slot.style.height !== height) slot.style.height = height;
     const r = slot.getBoundingClientRect();
-    card.style.maxHeight = `${room(r)}px`;
+    // On a phone the composer sheet would cover the card's slot: a card that
+    // waits for my answer stands above the sheet instead (the sheet yields
+    // CARD_OVER_SHEET_PX for it: placeDeal).
+    const sheet = this.sheetTop();
+    const bottom =
+      sheet === null ? r.bottom : Math.min(r.bottom, sheet - TOP_GAP);
+    card.style.maxHeight = `${room(bottom)}px`;
     layer.style.left = `${Math.round(r.left)}px`;
-    layer.style.bottom = `${Math.round(window.innerHeight - r.bottom)}px`;
+    layer.style.bottom = `${Math.round(window.innerHeight - bottom)}px`;
   };
+
+  /** The composer sheet's top edge while it is open on a phone (null: no sheet). */
+  private sheetTop(): number | null {
+    const deal = this.dealLayer;
+    if (deal === null || deal.dataset.wwDealPlace !== "sheet") return null;
+    if (deal.style.display === "none") return null;
+    return deal.getBoundingClientRect().top;
+  }
 
   /**
    * The composer's place (design §7): on a phone a bottom sheet, full width,
@@ -271,6 +288,7 @@ export class WwWhitePeaceCard extends LitElement implements Controller {
     if (layer === null) return;
     if (this.dealTemplate === null) {
       layer.style.display = "none";
+      delete layer.dataset.wwDealPlace;
       return;
     }
     layer.style.display = "flex";
@@ -282,7 +300,13 @@ export class WwWhitePeaceCard extends LitElement implements Controller {
       layer.style.width = "";
       layer.style.bottom =
         "calc(var(--ww-dock-h, 0px) + env(safe-area-inset-bottom))";
-      layer.style.maxHeight = "55vh";
+      // A card waiting for my answer keeps its room above the sheet.
+      layer.style.maxHeight =
+        this.cardTemplate === null
+          ? "55vh"
+          : `min(55vh, calc(100vh - var(--ww-dock-h, 0px) - env(safe-area-inset-bottom) - ${
+              WW_BAND_PX + 2 * TOP_GAP + CARD_OVER_SHEET_PX
+            }px))`;
       layer.dataset.wwDealPlace = "sheet";
     } else {
       const i = drawerInsets();

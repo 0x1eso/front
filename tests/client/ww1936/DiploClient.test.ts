@@ -439,6 +439,53 @@ describe("the one answer card", () => {
     expect(ui.take).toEqual([{ kind: "nap" }]);
     ui.close();
   });
+
+  it("on a phone a pending card stands above the composer sheet, which yields room for it", async () => {
+    const eg = new WwEndgameView();
+    eg.apply({ news: [], deals: [deal()] });
+    const g = game("POL", eg);
+    const el = document.createElement(
+      "ww-white-peace-card",
+    ) as WwWhitePeaceCard;
+    el.game = g as never;
+    el.eventBus = new EventBus();
+    vi.spyOn(window, "innerWidth", "get").mockReturnValue(390);
+    vi.spyOn(window, "innerHeight", "get").mockReturnValue(844);
+    // jsdom lays nothing out: the slot sits low in the HUD column (where
+    // the sheet goes), the sheet's top is at 380 px.
+    const rect = (top: number, bottom: number) =>
+      ({ top, bottom, left: 8, right: 187, height: bottom - top }) as DOMRect;
+    vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(
+      function (this: HTMLElement) {
+        if (this.hasAttribute("data-ww-deal-layer")) return rect(380, 780);
+        if (this.hasAttribute("data-ww-wpeace-slot")) return rect(560, 780);
+        return rect(0, 220);
+      },
+    );
+    document.body.appendChild(el);
+    el.init();
+    el.tick();
+    await el.updateComplete;
+    const layer = el.cardLayer()!;
+    const card = layer.querySelector<HTMLElement>("[data-ww-deal-card]")!;
+    // No composer: the card sits on its slot.
+    expect(layer.style.bottom).toBe(`${844 - 780}px`);
+    openDiploAct(g, { kind: "compose", mode: "deal", to: ID("DEU") });
+    el.tick();
+    await el.updateComplete;
+    const sheet = document.querySelector<HTMLElement>("[data-ww-deal-layer]")!;
+    expect(sheet.dataset.wwDealPlace).toBe("sheet");
+    // The card's bottom edge is above the sheet's top, and fits under the band.
+    expect(layer.style.bottom).toBe(`${844 - (380 - 8)}px`);
+    expect(parseInt(card.style.maxHeight, 10)).toBeLessThanOrEqual(380 - 8);
+    expect(sheet.style.maxHeight).toContain("min(55vh");
+    // The card answered (gone): the sheet takes its full 55% again.
+    eg.apply({ news: [], deals: [] });
+    el.tick();
+    await el.updateComplete;
+    expect(sheet.style.maxHeight).toBe("55vh");
+    dealUiOf(g).close();
+  });
 });
 
 describe("the integration seams: one valuation, the engine's gates", () => {
