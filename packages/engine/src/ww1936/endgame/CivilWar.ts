@@ -114,6 +114,7 @@ export function startCivilWar(
   const before = divisionsBefore(eg, X);
   const held = holdPortFleets(eg, X, rebelSet);
   const portShips = held.ships;
+  const heldWings = holdBaseWings(eg, X, rebelSet);
   const slot = activateCountry(
     eg,
     slotTag,
@@ -130,6 +131,9 @@ export function startCivilWar(
     },
     tick,
   );
+  // The wings land back on their bases: the rebels' now, so splitPlanes
+  // hands them over (or X's again, when the woken slot failed).
+  unholdBaseWings(eg, heldWings);
   if (slot === 0) {
     // The woken slot failed: the fleets go back into their docks.
     for (const h of held.docks) {
@@ -365,6 +369,40 @@ function holdPortFleets(
     out.push(...f.ships);
   }
   return { ships: out.sort((a, b) => a - b), docks };
+}
+
+/**
+ * Spec §15.3 planes: X's wings based in a rebel region (not volunteers)
+ * leave the base index before the land moves, as the port fleets leave the
+ * dock: else the wing model's base change (onBaseControlChanged) sees X's
+ * wings on the rebels' land and ferries them off, or into the stock, and no
+ * plane defects. unholdBaseWings puts them back right after. Wing id → base.
+ */
+function holdBaseWings(
+  eg: WwEndgame,
+  X: number,
+  rebel: ReadonlySet<number>,
+): { id: number; base: number }[] {
+  const air = eg.ww.air;
+  const out: { id: number; base: number }[] = [];
+  for (const w of air.wingsOf(X)) {
+    if (w.base <= 0 || w.volunteerFor !== 0 || !rebel.has(w.base)) continue;
+    out.push({ id: w.id, base: w.base });
+    air.setWingBase(w, 0);
+  }
+  return out;
+}
+
+/** Puts the wings holdBaseWings took off their bases back on them. */
+function unholdBaseWings(
+  eg: WwEndgame,
+  held: readonly { id: number; base: number }[],
+): void {
+  const air = eg.ww.air;
+  for (const h of held) {
+    const w = air.wings.get(h.id);
+    if (w !== undefined) air.setWingBase(w, h.base);
+  }
 }
 
 /** Spec §15.3: divisions, generals, ships, planes, stock, manpower, fuel. */
