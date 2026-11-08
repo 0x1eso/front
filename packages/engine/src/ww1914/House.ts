@@ -121,6 +121,11 @@ export function seatsNow(seat: GwSeatState, row: GwFactionRow): Seats {
   );
 }
 
+/** Whether a faction's row gives it seats at all (else it never sits). */
+function sitsIn(id: string): boolean {
+  return Object.values(factionRow(id)?.seats ?? {}).some((n) => (n ?? 0) > 0);
+}
+
 /** `take` seats from each chamber of `from`, at most what it has. */
 function moveSeats(from: Seats, take: number): { left: Seats; moved: Seats } {
   const left: Seats = {};
@@ -373,10 +378,14 @@ function splitsAndJoins(gw: GreatWar, seat: GwSeatState): void {
         into.since = gw.s.chapter;
         into.strength = clampTo(sp.takes, 1, GW_FACTION_STRENGTH_MAX);
         growBy(st, -sp.takes, "split");
-        // The seats go with them: the house gains no voice by a split.
-        const { left, moved } = moveSeats(seatsNow(seat, row), sp.takes);
-        st.seats = left;
-        into.seats = moved;
+        // The seats go with them: the house gains no voice by a split. A
+        // faction whose row has no seats sits out (Sinn Féin, Spartacus): it
+        // takes none, and the parent keeps its voice.
+        if (sitsIn(sp.into)) {
+          const { left, moved } = moveSeats(seatsNow(seat, row), sp.takes);
+          st.seats = left;
+          into.seats = moved;
+        }
         into.leader = factionLeader(gw, seat, sp.into);
         if (sp.scene !== undefined) call(seat, sp.scene, gw.s.chapter + 1);
         reason(gw, seat, "house_split", into.leader ?? undefined);

@@ -8,6 +8,7 @@ import {
 } from "@openfront/engine-api/ww1914/GwPack";
 import {
   GW_CONTENT,
+  gwContent,
   useGwContent,
 } from "@openfront/engine-lib/ww1914/content/Content";
 import { GW_HOUSE_LAWS } from "@openfront/engine-lib/ww1914/content/scenes/house";
@@ -261,7 +262,7 @@ describe("a bill's way", () => {
     next(gw);
     next(gw);
     const card = st.desk.find((c) => c.scene === `gw_lv_${row.id}`)!;
-    const scene = GW_CONTENT.scenes.find((s) => s.id === card.scene)!;
+    const scene = gwContent().scenes.find((s) => s.id === card.scene)!;
     const opt = scene.options!.find((o) => o.id === "decree")!;
     expect(opt.tell).toContain("authority:-20");
     n.authority = 60;
@@ -276,7 +277,7 @@ describe("a bill's way", () => {
   test("no decree where the row has none, and no authority no decree", async () => {
     const { gw, n, seat: st } = await atWar();
     expect(rowOf("deu_aux").decree).toBe(false);
-    const scene = GW_CONTENT.scenes.find((s) => s.id === "gw_lv_deu_aux")!;
+    const scene = gwContent().scenes.find((s) => s.id === "gw_lv_deu_aux")!;
     expect(scene.options!.some((o) => o.id === "decree")).toBe(false);
     n.authority = 5;
     applyGwOrder(gw, st, { kind: "law", law: "deu_censor", act: "draft" });

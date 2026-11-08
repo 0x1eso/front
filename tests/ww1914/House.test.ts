@@ -895,6 +895,24 @@ describe("the GBR writer's round", () => {
     expect(total()).toBe(before);
   });
 
+  test("a split into a row with no seats sits out: the parent keeps its voice, no lobby talk", async () => {
+    const OUT: GwFactionRow = { ...USPD, seats: {} };
+    const { gw, seat } = await atWar(HOUSE, {
+      factions: [SPD, OUT, CONS, CENTRE],
+    });
+    seat.flags.push("t_split");
+    houseStep(gw);
+    expect(factionOf(seat, "t_uspd")!.status).toBe("in");
+    expect(seatsNow(seat, SPD).reichstag).toBe(3);
+    expect(seatsNow(seat, OUT).reichstag ?? 0).toBe(0);
+    const ids = gwHouseScenes(
+      { houses: [HOUSE], factions: [SPD, OUT], bills: [] },
+      GW_LAWS,
+    ).map((x) => x.id);
+    expect(ids).toContain(houseIds.lobby("t_spd"));
+    expect(ids).not.toContain(houseIds.lobby("t_uspd"));
+  });
+
   test("a house bill's papers show no price: draft card, sponsor's talk, day", () => {
     for (const law of GW_LAWS.filter((l) => l.tag === "DEU")) {
       const [draft, day, talk] = lawScenes(law, true);

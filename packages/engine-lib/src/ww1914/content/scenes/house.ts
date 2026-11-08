@@ -360,11 +360,12 @@ export function gwHouseScenes(
   const fs = (rows.factions ?? []).filter((f) => tags.has(f.tag));
   return [
     ...bills.map((b) => draftTalk(b, laws.find((l) => l.id === b.law)!)),
+    // A split's seats go only to a row that has seats; a join pools them.
     ...fs
       .filter(
         (f) =>
           Object.values(f.seats).some((n) => (n ?? 0) > 0) ||
-          fs.some((x) => x.splits?.into === f.id || x.joins?.into === f.id),
+          fs.some((x) => x.joins?.into === f.id),
       )
       .map((f) => lobbyTalk(f, bills)),
     ...fs.filter((f) => (f.bills ?? []).length > 0).map(visitTalk),
