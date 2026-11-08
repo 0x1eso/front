@@ -30,6 +30,7 @@ import {
   PRECACHE_BUDGET_BYTES,
   writeServiceWorker,
 } from "./src/server/PwaBuild";
+import { SLOW_TESTS } from "./tests/SlowTier";
 
 // Vite already handles these, but its good practice to define them explicitly
 const __filename = fileURLToPath(import.meta.url);
@@ -391,6 +392,12 @@ export default defineConfig(({ mode }) => {
       // Starting jsdom costs every file ~0.5s, more than many of them spend
       // running tests, so only the client tests get it. A test elsewhere that
       // needs a DOM opts in with a `// @vitest-environment jsdom` first line.
+      //
+      // Two tiers (docs/Testing.md): `client` and `node` are the default tier
+      // that `npm test` runs; `slow-client` and `slow-node` hold the files
+      // listed in tests/SlowTier.ts and run with `npm run test:slow`. A bare
+      // `vitest run`, or one naming files, runs every project, so a slow file
+      // named by path still runs.
       projects: [
         {
           extends: true,
@@ -398,6 +405,7 @@ export default defineConfig(({ mode }) => {
             name: "client",
             environment: "jsdom",
             include: ["tests/client/**/*.test.ts"],
+            exclude: [...SLOW_TESTS],
           },
         },
         {
@@ -405,7 +413,23 @@ export default defineConfig(({ mode }) => {
           test: {
             name: "node",
             environment: "node",
-            exclude: ["tests/client/**"],
+            exclude: ["tests/client/**", ...SLOW_TESTS],
+          },
+        },
+        {
+          extends: true,
+          test: {
+            name: "slow-client",
+            environment: "jsdom",
+            include: SLOW_TESTS.filter((p) => p.startsWith("tests/client/")),
+          },
+        },
+        {
+          extends: true,
+          test: {
+            name: "slow-node",
+            environment: "node",
+            include: SLOW_TESTS.filter((p) => !p.startsWith("tests/client/")),
           },
         },
       ],
