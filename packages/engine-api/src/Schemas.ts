@@ -87,6 +87,14 @@ import {
   WW_SHIP_DESIGN_SLOTS,
 } from "./ww1936/DepthTypes";
 import {
+  type DiploOrderKind,
+  WW_COLLAB_MAX_REGIONS,
+  WW_DEAL_LL_MAX_MONTHS,
+  WW_DEAL_MAX_COUNT,
+  WW_DEAL_MAX_ITEMS,
+  WW_ULT_MAX_REGIONS,
+} from "./ww1936/DiploTypes";
+import {
   BUILDING_IDS,
   EQUIPMENT_TYPES,
   LAW_KINDS,
@@ -976,6 +984,43 @@ export const PeaceDemandSchema = z.discriminatedUnion("kind", [
 ]);
 export type PeaceDemandWire = z.infer<typeof PeaceDemandSchema>;
 const WwLlItem = z.union([z.enum(EQUIPMENT_TYPES), z.literal("fuel")]);
+// Diplomacy (ww161 Design B, DiploTypes.DEAL_ITEM_KINDS order): one item of
+// a deal. In deal_offer.give the sender gives it, in take the receiver does.
+export const DealItemSchema = z.discriminatedUnion("kind", [
+  /** Legal land (in a war, between one side's members: land the giver controls). */
+  z.object({ kind: z.literal("region"), region: WwRegionId }),
+  /** A lump from stock (EQUIP_KEYS index), delivered by the lend-lease route. */
+  z.object({
+    kind: z.literal("equipment"),
+    key: zb.uint({ max: 4095 }),
+    count: zb.uint({ min: 1, max: WW_DEAL_MAX_COUNT }),
+  }),
+  z.object({
+    kind: z.literal("lend_lease"),
+    item: WwLlItem,
+    gen: zb.uint({ max: 4 }),
+    perMonth: zb.uint({ min: 1, max: WW_DEAL_MAX_COUNT }),
+    months: zb.uint({ min: 1, max: WW_DEAL_LL_MAX_MONTHS }),
+  }),
+  /** The existing licence grant (no request step); ship: a ship design slot. */
+  z.object({
+    kind: z.literal("licence"),
+    key: zb.uint({ max: 4095 }),
+    ship: WwDesignSlot.optional(),
+  }),
+  z.object({ kind: z.literal("access") }),
+  z.object({ kind: z.literal("nap") }),
+  z.object({ kind: z.literal("guarantee") }),
+  /** D4: region group `group` of enemy `target`, at the peace. */
+  z.object({
+    kind: z.literal("promise"),
+    target: WwCountry,
+    group: WwGroupId,
+  }),
+  /** D4: the giver declares on `target` and joins war `war` on the taker's side. */
+  z.object({ kind: z.literal("join_war"), war: WwId, target: WwCountry }),
+]);
+export type DealItemWire = z.infer<typeof DealItemSchema>;
 
 export const WwOrderSchema = z.discriminatedUnion("kind", [
   z.object({
@@ -1521,6 +1566,8 @@ export const WwOrderSchema = z.discriminatedUnion("kind", [
         free: z.array(WwCountry).max(WW_NEG_PEACE_MAX_FREE),
       })
       .optional(),
+    // Diplomacy D1, appended: "come home as my subject" to an exile (no terms).
+    home: z.boolean().optional(),
   }),
   z.object({
     kind: z.literal("peace_reply"),
@@ -1741,6 +1788,27 @@ export const WwOrderSchema = z.discriminatedUnion("kind", [
     template: WwTemplateId,
     on: z.boolean(),
   }),
+  // Diplomacy (ww161 Design B, DiploTypes.DIPLO_ORDER_KINDS), appended: all
+  // to WwEndgame.issue. A deal (D3, D4) and its answer; deal_reply also
+  // answers an ultimatum (accept: give the regions). A collaboration
+  // government (D2) on a capitulated country's regions; an ultimatum (D5).
+  z.object({
+    kind: z.literal("deal_offer"),
+    to: WwCountry,
+    give: z.array(DealItemSchema).max(WW_DEAL_MAX_ITEMS),
+    take: z.array(DealItemSchema).max(WW_DEAL_MAX_ITEMS),
+  }),
+  z.object({ kind: z.literal("deal_reply"), offer: WwId, accept: z.boolean() }),
+  z.object({
+    kind: z.literal("collab_create"),
+    target: WwCountry,
+    regions: z.array(WwRegionId).min(1).max(WW_COLLAB_MAX_REGIONS),
+  }),
+  z.object({
+    kind: z.literal("ultimatum"),
+    target: WwCountry,
+    regions: z.array(WwRegionId).min(1).max(WW_ULT_MAX_REGIONS),
+  }),
 ]);
 export type WwOrder = z.infer<typeof WwOrderSchema>;
 /** The land war's orders (P2): what WwLand.issue takes. */
@@ -1749,6 +1817,8 @@ export type LandOrder = Extract<WwOrder, { kind: LandOrderKind }>;
 export type PolOrder = Extract<WwOrder, { kind: PolOrderKind }>;
 /** The depth orders (P6): what WwDepth.issue takes. */
 export type DepthOrder = Extract<WwOrder, { kind: DepthOrderKind }>;
+/** The diplomacy orders (ww161 Design B): what WwEndgame's diplomacy takes. */
+export type DiploOrder = Extract<WwOrder, { kind: DiploOrderKind }>;
 
 export const WwOrderIntentSchema = z.object({
   type: z.literal("ww_order"),

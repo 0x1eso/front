@@ -83,6 +83,8 @@ describe("war overhaul C0: the contract", () => {
     // The air groups appended their four last (after ww48's start_oob after
     // ww42's army_direct); the older pins read what is before them.
     // The peace overhaul appended peace_surrender after them.
+    // Later lanes append after template_auto (the diplomacy's four first).
+    kinds.splice(kinds.indexOf("template_auto") + 1);
     expect(kinds.pop()).toBe("template_auto");
     expect(kinds.pop()).toBe("peace_surrender");
     expect(kinds.splice(-4)).toEqual([

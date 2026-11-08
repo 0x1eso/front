@@ -122,7 +122,9 @@ describe("World War 1936 P5 lists", () => {
       "congress",
       "truce_active",
     ]);
-    expect(after(WW_ORDER_BLOCKS, "railgun_limit")).toEqual([
+    // The diplomacy (ww161) appends its reasons after too_many_support.
+    const blocks = after(WW_ORDER_BLOCKS, "railgun_limit");
+    expect(blocks.slice(0, blocks.indexOf("too_many_support") + 1)).toEqual([
       "peace_too_early",
       "peace_cooldown",
       "peace_war_kind",
@@ -169,6 +171,8 @@ describe("World War 1936 P5 lists", () => {
     // pins read what is before them.
     // The peace conference appended peace_surrender after the air groups.
     // ww107 appended template_auto after it.
+    // Later lanes append after template_auto (the diplomacy's four first).
+    kinds.splice(kinds.indexOf("template_auto") + 1);
     expect(kinds.pop()).toBe("template_auto");
     expect(kinds.pop()).toBe("peace_surrender");
     expect(kinds.splice(-4)).toEqual([

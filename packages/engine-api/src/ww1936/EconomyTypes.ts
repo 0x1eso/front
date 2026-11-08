@@ -936,6 +936,37 @@ export const WW_ORDER_BLOCKS = [
   "peace_not_leader",
   // Owner, 2026-11-05: more support companies than the battalions carry.
   "too_many_support",
+  // Diplomacy (ww161 Design B, DiploTypes), appended. D1: a puppet's peace
+  // goes through its overlord; "come home" only to an exile. D3: a deal with
+  // no item; one pending deal a pair; the wait after a refusal; an item the
+  // giver can't give; a reply to no pending offer of mine; an accept whose
+  // items stopped being valid. D4: a join-war country in that war, in the
+  // enemy's faction or in a pact with it. D5: the sender's government may
+  // not (democracy; neutral under 25% tension); at war, same faction, a
+  // pact or a guarantee; the pair's wait; regions not allowed; over 15% of
+  // the victory points. D2: not the occupier (most victory points, 30
+  // days); a democracy; under 25% of the victory points; a region not
+  // allowed; no country slot free; the scripted Vichy stands.
+  "peace_puppet",
+  "home_not_exile",
+  "deal_empty",
+  "deal_pending",
+  "deal_cooldown",
+  "deal_bad_item",
+  "deal_no_offer",
+  "deal_lapsed",
+  "promise_bad_target",
+  "ultimatum_gov",
+  "ultimatum_relation",
+  "ultimatum_cooldown",
+  "ultimatum_bad_regions",
+  "ultimatum_too_much",
+  "collab_not_occupier",
+  "collab_democracy",
+  "collab_too_small",
+  "collab_bad_region",
+  "collab_no_slot",
+  "collab_scripted",
 ] as const;
 export type WwOrderBlock = (typeof WW_ORDER_BLOCKS)[number];
 

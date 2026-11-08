@@ -39,6 +39,8 @@ describe("World War 1936 P6 lists", () => {
     expect(DEPTH_ORDER_KINDS).toHaveLength(57);
     // White peace appends its two after them, then the automation's two,
     // then peace on the current line its one.
+    // Later lanes append after template_auto (the diplomacy's four first).
+    kinds.splice(kinds.indexOf("template_auto") + 1);
     expect(after(kinds, "army_garrison")).toEqual([
       ...DEPTH_ORDER_KINDS,
       "peace_offer",

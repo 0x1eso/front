@@ -81,7 +81,8 @@ export interface CapitulationGaugeData {
  * off): the AI's judgement of the nine military thought sliders; intel
  * (appended, default off): the AI's intelligence agency — founding (at
  * AI_MINOR_FOUND_PP), upgrades, operatives, operations and cryptology — never
- * a coup.
+ * a coup; diplomacy (appended, default off; ww161 Design B): every offer to
+ * the country (peace, deal, ultimatum) is answered at once by its AI, no card.
  */
 export const WW_AUTO_DOMAINS = [
   "production",
@@ -91,6 +92,7 @@ export const WW_AUTO_DOMAINS = [
   "navy",
   "thought",
   "intel",
+  "diplomacy",
 ] as const;
 export type WwAutoDomain = (typeof WW_AUTO_DOMAINS)[number];
 
