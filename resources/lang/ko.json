@@ -14336,6 +14336,22 @@
         "1": "포탄 빠듯함",
         "2": "포탄 충분함",
         "3": "포탄 넉넉함"
+      },
+      "plot": {
+        "0": "조용하다",
+        "1": "말이 돈다",
+        "2": "모임이 잦다",
+        "3": "움직일 때가 가깝다",
+        "4": "곧 일을 벌인다"
+      },
+      "file": {
+        "0": "헛소문이다",
+        "1": "사실이다"
+      },
+      "ally": {
+        "0": "세게 밀어붙일 것이다",
+        "1": "흥정하러 온다",
+        "2": "우리 말을 들어 줄 것이다"
       }
     },
     "front": {
@@ -14648,7 +14664,8 @@
       "table_signed": "강화 조약이 서명되었다.",
       "footing_total": "{a}이(가) 총동원에 들어갔다.",
       "invent_fielded": "{a}이(가) 새 무기를 전선에 내놓았다.",
-      "invent_leaked": "{a}이(가) 새 무기를 너무 일찍 써서 소문이 났다."
+      "invent_leaked": "{a}이(가) 새 무기를 너무 일찍 써서 소문이 났다.",
+      "file_scandal": "{a}에서 추문이 터졌다. 한 사람의 뒷일이 신문에 실렸다."
     },
     "odds": {
       "0": "될 일이 아닙니다.",
@@ -14873,7 +14890,19 @@
       "shortage_nitrates": "질산염이(가) 모자라기 시작했다.",
       "shortage_nitrates_solved": "질산염 부족의 답을 찾았다.",
       "shortage_rubber": "고무이(가) 모자라기 시작했다.",
-      "shortage_rubber_solved": "고무 부족의 답을 찾았다."
+      "shortage_rubber_solved": "고무 부족의 답을 찾았다.",
+      "file_held": "{who}은(는) 서류 앞에서 물러섰다. 이 일을 잊지 않을 것이다.",
+      "file_refused": "{who}은(는) 서류가 거짓이라며 물리쳤다. 경찰이 틀렸다.",
+      "file_found_out": "{who}의 서류가 바깥으로 새어 나갔다.",
+      "file_nothing": "경찰은 {who}에게서 아무것도 찾지 못했다.",
+      "file_opened": "경찰이 {who}의 서류를 꾸렸다.",
+      "file_brought": "경찰이 시키지도 않은 {who}의 서류를 가져왔다.",
+      "file_caught_owned": "{who}은(는) 뒤를 밟힌 것을 안다. 숨기지 않았다.",
+      "file_caught_denied": "{who}은(는) 뒤를 밟힌 것을 안다. 아니라고 했지만 말이 퍼졌다.",
+      "ask_taken": "{who}에게 약속했다. 동맹은 이 말을 붙들고 있을 것이다.",
+      "ask_refused": "{who}의 청을 거절했다. 동맹은 잊지 않을 것이다.",
+      "ask_kept": "{who}에게 한 말을 지켰다. 동맹의 도움이 온다.",
+      "ask_broken": "{who}에게 한 말을 어겼다."
     },
     "result": {
       "advance": "전진",
@@ -14933,7 +14962,9 @@
       "staff": "참모부 추정",
       "embassy_berlin": "베를린 대사관",
       "embassy_rome": "로마 대사관",
-      "own_eyes": "직접 본 것"
+      "own_eyes": "직접 본 것",
+      "police": "정치경찰",
+      "envoy": "특사"
     },
     "stamp": {
       "confirmed": "확인",
@@ -15209,7 +15240,10 @@
         "lean": "속내",
         "mob": "동원",
         "morale": "사기",
-        "shells": "포탄"
+        "shells": "포탄",
+        "plot": "모의",
+        "file": "서류",
+        "ally": "속내"
       },
       "fold": "접기 / 펴기",
       "folded_title": "그사이 들어온 작은 소식",
@@ -16264,6 +16298,32 @@
       "terms": {
         "total": "포탄이 가장 빨리 나오고, 빵과 질서가 줄어든다.",
         "war": "포탄이 더 빨리 나오고, 빵이 줄어든다."
+      }
+    },
+    "dossier": {
+      "title": "서류철",
+      "none": "아직 서류가 없다.",
+      "held": "쥐고 있다",
+      "used": "{n}번 썼다",
+      "end": {
+        "burnt": "태웠다",
+        "found": "새어 나갔다"
+      },
+      "asks": "동맹의 요청",
+      "stage": {
+        "asked": "답을 기다린다",
+        "yes": "약속했다",
+        "no": "거절했다",
+        "kept": "지켰다",
+        "broken": "어겼다"
+      },
+      "weak": {
+        "debts": "빚",
+        "letters": "편지",
+        "industry_money": "업계의 돈",
+        "foreign_ties": "외국과의 끈",
+        "old_scandal": "오래된 추문",
+        "health": "숨긴 병"
       }
     }
   }

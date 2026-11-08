@@ -2271,6 +2271,32 @@
         "war": "Shells come faster; bread runs down."
       }
     },
+    "dossier": {
+      "asks": "Allies' requests",
+      "end": {
+        "burnt": "burnt",
+        "found": "got out"
+      },
+      "held": "held",
+      "none": "No files yet.",
+      "stage": {
+        "asked": "waiting",
+        "broken": "broken",
+        "kept": "kept",
+        "no": "refused",
+        "yes": "promised"
+      },
+      "title": "Files",
+      "used": "used {n}×",
+      "weak": {
+        "debts": "debts",
+        "foreign_ties": "foreign ties",
+        "health": "a hidden illness",
+        "industry_money": "money from industry",
+        "letters": "letters",
+        "old_scandal": "an old scandal"
+      }
+    },
     "ending": {
       "armistice_conference": "Armistice and Conference",
       "auh_e_army_gone": "The Army Went Home",
@@ -2345,6 +2371,15 @@
       "trenches": "The trenches"
     },
     "fact": {
+      "ally": {
+        "0": "will press hard",
+        "1": "will bargain",
+        "2": "will give way"
+      },
+      "file": {
+        "0": "nothing to it",
+        "1": "true"
+      },
       "force": {
         "1": "very weak",
         "2": "weak",
@@ -2369,6 +2404,13 @@
         "3": "steady",
         "4": "good",
         "5": "high"
+      },
+      "plot": {
+        "0": "nothing stirring",
+        "1": "talk, no more",
+        "2": "meetings",
+        "3": "near to acting",
+        "4": "about to act"
       },
       "shells": {
         "0": "out of shells",
@@ -2881,6 +2923,7 @@
       "era_material": "The war enters a new period: The battle of material.",
       "era_storm": "The war enters a new period: The storm.",
       "era_trenches": "The war enters a new period: The trenches.",
+      "file_scandal": "A scandal in {a}: a man's private papers are in the press.",
       "footing_total": "{a} has gone over to total mobilisation.",
       "front_advance": "{a} advances: {theatre}.",
       "front_break": "{a} has broken through: {theatre}.",
@@ -3013,6 +3056,10 @@
       "amnesty_granted": "The courts martial were withdrawn.",
       "army_grows": "The army took more of the war into its own hands.",
       "army_melts": "The army thinned out.",
+      "ask_broken": "The word given to {who} was broken.",
+      "ask_kept": "The word given to {who} was kept: the ally's help is coming.",
+      "ask_refused": "{who}'s request was refused. The ally will remember.",
+      "ask_taken": "A promise to {who}: the ally will hold you to it.",
       "bad_luck": "The attack had bad luck.",
       "blockade_kept": "The contraband list stayed as it was.",
       "budget_alone": "The budget was signed over the body's head.",
@@ -3038,6 +3085,14 @@
       "entry_put_off": "The decision on the war was put off.",
       "feeler_burned": "The letter was burned.",
       "fell_ill": "{who} left office, his health gone.",
+      "file_brought": "The police brought a file on {who} unasked.",
+      "file_caught_denied": "{who} knows he was watched. You denied it, and the talk spread.",
+      "file_caught_owned": "{who} knows he was watched. You didn't hide it.",
+      "file_found_out": "The file on {who} got out.",
+      "file_held": "{who} gave way before the file. He won't forget it.",
+      "file_nothing": "The police found nothing on {who}.",
+      "file_opened": "The police have made up a file on {who}.",
+      "file_refused": "{who} called the file a lie, and it was: the police were wrong.",
       "footing_peace": "The country went back to its peacetime economy.",
       "footing_total": "The country went over to total mobilisation.",
       "footing_war": "The country went over to a war economy.",
@@ -3267,7 +3322,9 @@
       "embassy_petersburg": "St Petersburg embassy",
       "embassy_rome": "Rome embassy",
       "embassy_vienna": "Vienna embassy",
+      "envoy": "envoy",
       "own_eyes": "Seen in person",
+      "police": "political police",
       "press": "The press",
       "staff": "General Staff estimate"
     },
@@ -3681,10 +3738,13 @@
       "ending_default": "The game has ended",
       "era": "Period",
       "fact": {
+        "ally": "mood",
+        "file": "file",
         "force": "forces",
         "lean": "leaning",
         "mob": "mobilisation",
         "morale": "morale",
+        "plot": "plot",
         "shells": "shells"
       },
       "fold": "Fold or unfold",

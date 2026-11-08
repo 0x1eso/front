@@ -108,7 +108,7 @@ function reports(c: GwCtx): TemplateResult | typeof nothing {
               >${translateText(`gw.source.${r.source}`)}</span
             >
           </div>
-          <p class="text-white/85">${reportText(r)}</p>
+          <p class="text-white/85">${reportText(r, c.pack)}</p>
           ${r.corrected === null
             ? nothing
             : html`<p class="text-amber-200" data-gw-corrected>
