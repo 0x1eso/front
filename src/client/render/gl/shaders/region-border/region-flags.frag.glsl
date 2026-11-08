@@ -15,6 +15,13 @@ precision highp usampler2D;
 //     region in front mode);
 //   bit 4 (P4): orange hatching the other way (a region of the viewer's
 //     bombed lately, air layer).
+// ww162 (battle planner) reads a second byte per region from row FLAG2_ROW
+// on (RegionBorderPass FLAG2_*):
+//   bit 0 (fallback): a dashed line (6 px on, 4 px off) in the line's hue
+//     (bits 1-2) at 70 %, on the region's side of its outer edges (the
+//     regions with bit 5);
+//   bit 3: the region's zone belongs to another army: drawn at 40 % (the
+//     plan view), its front ribbon too; bit 4 the same for a fallback.
 // Widths are screen pixels, so the line reads the same at every zoom.
 
 uniform usampler2D uTiles;  // R16UI per tile: bit 15 edge, low 15 region id
@@ -56,6 +63,13 @@ uint flagsOf(uint id) {
   return texelFetch(uFlags, ivec2(i % FLAG_TEX_SIZE, i / FLAG_TEX_SIZE), 0).r;
 }
 
+// ww162: the region's second flag byte.
+uint flags2Of(uint id) {
+  if (id == 0u) return 0u;
+  int i = int(id);
+  return texelFetch(uFlags, ivec2(i % FLAG_TEX_SIZE, FLAG2_ROW + i / FLAG_TEX_SIZE), 0).r;
+}
+
 bool frontAt(vec2 w) {
   return (flagsOf(regionAt(w)) & 1u) != 0u;
 }
@@ -63,6 +77,27 @@ bool frontAt(vec2 w) {
 bool frontAround(vec2 w, float r) {
   return frontAt(w + vec2(r, 0.0)) || frontAt(w - vec2(r, 0.0)) ||
     frontAt(w + vec2(0.0, r)) || frontAt(w - vec2(0.0, r));
+}
+
+// ww162: a front region within r whose zone is shown full (not faint).
+bool fullFrontAt(vec2 w) {
+  uint id = regionAt(w);
+  return (flagsOf(id) & 1u) != 0u && (flags2Of(id) & 8u) == 0u;
+}
+
+bool fullFrontAround(vec2 w, float r) {
+  return fullFrontAt(w + vec2(r, 0.0)) || fullFrontAt(w - vec2(r, 0.0)) ||
+    fullFrontAt(w + vec2(0.0, r)) || fullFrontAt(w - vec2(0.0, r));
+}
+
+// ww162: a region across a fallback line's outer edge.
+bool outerAt(vec2 w) {
+  return (flags2Of(regionAt(w)) & 32u) != 0u;
+}
+
+bool outerAround(vec2 w, float r) {
+  return outerAt(w + vec2(r, 0.0)) || outerAt(w - vec2(r, 0.0)) ||
+    outerAt(w + vec2(0.0, r)) || outerAt(w - vec2(0.0, r));
 }
 
 vec4 over(vec4 dst, vec3 c, float a) {
@@ -75,7 +110,9 @@ void main() {
   vec2 w = vUV * vec2(float(MAP_W), float(MAP_H));
   uint id = regionAt(w);
   uint f = flagsOf(id);
-  if ((f & 63u) == 0u) discard; // bits 0-5 (6-7: the zone hue): only those regions draw
+  uint f2 = flags2Of(id);
+  // bits 0-5 (6-7: the zone hue), and ww162's fallback: only those regions draw
+  if ((f & 63u) == 0u && (f2 & 1u) == 0u) discard;
   vec4 col = vec4(0.0);
 
   if ((f & 1u) != 0u) {
@@ -84,7 +121,24 @@ void main() {
     float r = 2.0 * uTilesPerPx;
     bool rim = regionAt(w + vec2(r, 0.0)) != id || regionAt(w - vec2(r, 0.0)) != id ||
       regionAt(w + vec2(0.0, r)) != id || regionAt(w - vec2(0.0, r)) != id;
-    col = over(col, ZONE_HUES[int((f >> 6u) & 3u)], rim ? 0.95 : 0.42);
+    float faint = (f2 & 8u) != 0u ? 0.4 : 1.0;
+    col = over(col, ZONE_HUES[int((f >> 6u) & 3u)], (rim ? 0.95 : 0.42) * faint);
+  }
+
+  if ((f2 & 1u) != 0u) {
+    // ww162: the fallback line, the front's thick line dashed, on this
+    // region's side of its outer edges, in the line's hue at 70 %.
+    float rimW = max(1.0 * uTilesPerPx, 0.1);
+    float wide = max(5.0 * uTilesPerPx, 0.7);
+    if (outerAround(w, wide)) {
+      float s = (w.x + w.y) / uTilesPerPx;
+      if (mod(s, 10.0) < 6.0) {
+        bool edge = outerAround(w, rimW) || !outerAround(w, wide - rimW);
+        float faint = (f2 & 16u) != 0u ? 0.4 : 1.0;
+        vec3 hue = ZONE_HUES[int((f2 >> 1u) & 3u)];
+        col = over(col, edge ? vec3(0.05) : hue, 0.7 * faint);
+      }
+    }
   }
 
   if ((f & 32u) != 0u) {
@@ -125,7 +179,9 @@ void main() {
     if (frontAround(w, wide)) {
       vec3 mine = viewerColor();
       bool edge = frontAround(w, rim) || !frontAround(w, wide - rim);
-      col = over(col, edge ? vec3(0.05) : mine, 0.95);
+      // ww162: next to only faint zones (the plan view) the ribbon is faint.
+      float faint = fullFrontAround(w, wide) ? 1.0 : 0.4;
+      col = over(col, edge ? vec3(0.05) : mine, 0.95 * faint);
     }
   }
 
