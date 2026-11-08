@@ -9,7 +9,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import { GwPanel } from "../../../src/client/hud/ww1914/GwPanel";
-import { unknownText } from "../../../src/client/hud/ww1914/GwText";
+import { reportText, unknownText } from "../../../src/client/hud/ww1914/GwText";
 import { tickerLines } from "../../../src/client/hud/ww1914/GwTicker";
 import { SendGwOrderIntentEvent } from "../../../src/client/Transport";
 import { gwRunner, order, playChapter, seat, view } from "../../ww1914/util";
@@ -197,5 +197,24 @@ describe("the people tab on real data", () => {
     const lines = tickerLines(d, d.seats[0], PACK);
     expect(lines.join("\n")).not.toMatch(/gw\.|\{a\}/);
     expect(lines.length).toBeGreaterThan(1);
+  });
+
+  test("the whip's count report names the bill, in words", () => {
+    const r = {
+      uid: 1,
+      fact: "count",
+      tag: "DEU",
+      theatre: null,
+      source: "whip",
+      stamp: "unconfirmed",
+      claim: 1,
+      chapter: 3,
+      checked: false,
+      corrected: null,
+      about: "deu_censor",
+    };
+    const line = reportText(r as never, PACK);
+    expect(line).toContain(PACK.scenes.gw_law_deu_censor.title!);
+    expect(line).not.toMatch(/gw\.|deu_|\d/);
   });
 });

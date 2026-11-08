@@ -440,7 +440,9 @@ export function reportText(r: GwReportView, pack?: GwPack | null): string {
         ? pack?.plots?.[r.about]?.name
         : r.fact === "ally"
           ? pack?.asks?.[r.about]?.name
-          : undefined;
+          : r.fact === "count"
+            ? pack?.scenes[`gw_law_${r.about}`]?.title
+            : undefined;
   return translateText("gw.ui.report_line", {
     country: about ?? country(r.tag),
     fact: translateText(`gw.ui.fact.${r.fact}`),

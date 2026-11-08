@@ -3827,6 +3827,7 @@
       "era": "Period",
       "fact": {
         "ally": "mood",
+        "count": "vote outlook",
         "file": "file",
         "force": "forces",
         "lean": "leaning",
