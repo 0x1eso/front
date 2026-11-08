@@ -98,7 +98,16 @@ export const agendaId = (tag: string): string => `${tag.toLowerCase()}_agenda`;
 
 /** The seat's statecraft, made the first time anything happens. */
 function craftOf(seat: GwSeatState): GwCraftState {
-  seat.craft ??= gwCraftStart();
+  if (seat.craft === undefined) {
+    seat.craft = gwCraftStart();
+    // Keep the schema's key order (craft, then house) so a restored save
+    // encodes the same bytes as the live one.
+    const house = seat.house;
+    if (house !== undefined) {
+      delete seat.house;
+      seat.house = house;
+    }
+  }
   return seat.craft;
 }
 

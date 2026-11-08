@@ -12,13 +12,24 @@ import { GW_SIM_PROFILES, playRun } from "./sim/GwSim";
 
 const SEATS: GwTag[] = ["DEU", "GBR", "AUH", "RUS"];
 
-const headsOf = (tag: GwTag) =>
+const read = (file: string) =>
   JSON.parse(
     fs.readFileSync(
-      path.join(__dirname, `../../resources/ww1914/ko/${tag}.press.json`),
+      path.join(__dirname, `../../resources/ww1914/ko/${file}`),
       "utf8",
     ),
-  ).press.heads as Record<string, Record<string, unknown>>;
+  );
+const headsOf = (tag: GwTag) =>
+  read(`${tag}.press.json`).press.heads as Record<
+    string,
+    Record<string, unknown>
+  >;
+/** A house story (ww158): the house pack's head serves every paper. */
+const houseHeads = (tag: GwTag) =>
+  ({
+    ...read("common.house.json").heads,
+    ...read(`${tag}.house.json`).heads,
+  }) as Record<string, unknown>;
 
 describe("the papers through a whole game on the real map", () => {
   let map: MapFiles;
@@ -34,6 +45,7 @@ describe("the papers through a whole game on the real map", () => {
     "%s has an edition each chapter, in text, and blocs that move",
     async (tag) => {
       const heads = headsOf(tag);
+      const house = houseHeads(tag);
       const stories = new Set<string>();
       const seen = new Set<string>();
       let chapters = 0;
@@ -51,7 +63,10 @@ describe("the papers through a whole game on the real map", () => {
           expect(e).not.toBeNull();
           expect(e!.heads.length).toBeGreaterThanOrEqual(2);
           for (const h of e!.heads) {
-            expect(heads[e!.story]?.[h.paper]).toBeDefined();
+            const own = e!.faction ? house[`${e!.story}_${e!.faction}`] : null;
+            expect(
+              heads[e!.story]?.[h.paper] ?? own ?? house[e!.story],
+            ).toBeDefined();
           }
           stories.add(e!.story);
           chapters++;
