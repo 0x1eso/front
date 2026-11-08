@@ -9,6 +9,7 @@ import {
   all,
   any,
   chose,
+  decide,
   flag,
   not,
   reason,
@@ -38,12 +39,19 @@ import {
   war,
 } from "../laws/kit";
 import {
+  answerAsk,
+  askAt,
+  beatPlot,
   cool,
+  coolPlot,
   grow,
   heat,
+  heatPlot,
   isLaw,
   leaderOf,
   low,
+  plotConfirmed,
+  plotHot,
   temper,
   under,
   warAge,
@@ -1286,9 +1294,598 @@ export const GBR_HOUSE_SCENES: readonly GwScene[] = [
   ),
 ];
 
-// ---- S2 ----
-export const GBR_PLOTS: readonly GwPlotRow[] = [];
-export const GBR_WEAK: readonly GwWeakRow[] = [];
-export const GBR_ASKS: readonly GwAskRow[] = [];
+// ---- S2: plots, the dossier, allies ----
+
+const quiet = (when: GwCond, key: string, by = 1) => ({
+  when,
+  key,
+  by,
+  quiet: true,
+});
+const ALL_REGIMES = ["liberal", "coalition", "war_cabinet", "national"];
+const sideshow = world({
+  is: "main",
+  of: ["straits", "balkan", "palestine", "mesopotamia", "italy"],
+});
+
+export const GBR_PLOTS: readonly GwPlotRow[] = [
+  // Lloyd George, Bonar Law, Carson and Northcliffe's papers: the December
+  // crisis of 1916 as a state, not a date. It ends on the fall track.
+  {
+    id: "gbr_pl_cabal",
+    tag: "GBR",
+    regimes: ALL_REGIMES,
+    from: "1915-06",
+    unless: "f_pm_lg",
+    feeds: [
+      quiet(temper("gbr_lg", 2), "lg_hot"),
+      quiet(temper("gbr_uwc", 2), "uwc_hot"),
+      quiet(world({ is: "gov", id: "gbr_table", min: 3 }), "table_shakes"),
+      quiet(chose("gbr_h_committee", "refuse"), "committee_refused"),
+      quiet(all(warAge(18), not(isLaw("gbr_conscription"))), "no_men"),
+      quiet({ kind: "gauge", gauge: "morale", max: 1 }, "low_morale"),
+    ],
+    steps: [
+      { at: 6, scene: "gbr_pl_cabal_1" },
+      { at: 10, scene: "gbr_pl_cabal_2" },
+    ],
+    rest: 10,
+    fatal: false,
+    plot: {
+      by: ["gbr_lg", "gbr_uwc", "gbr_unionists"],
+      signs: [
+        { at: 2, scene: "gbr_pl_cabal_s1", via: "paper" },
+        { at: 4, scene: "gbr_pl_cabal_s2", via: "talk" },
+        { at: 8, scene: "gbr_pl_cabal_s3", via: "report" },
+      ],
+      warn: "gbr_pl_cabal_w",
+      end: "gbr_table",
+    },
+  },
+  // The generals and their friends in Fleet Street against the government's
+  // hold on the war. Britain's generals can't remove the seat: the fall track.
+  {
+    id: "gbr_pl_generals",
+    tag: "GBR",
+    regimes: ALL_REGIMES,
+    from: "1915-09",
+    feeds: [
+      quiet(temper("gbr_generals", 2), "generals_hot"),
+      quiet(temper("gbr_generals", 3), "generals_silent"),
+      quiet({ kind: "inst", inst: "army", max: -2 }, "army_cold"),
+      quiet(all(warAge(12), sideshow), "sideshow"),
+    ],
+    steps: [
+      { at: 6, scene: "gbr_pl_gen_1" },
+      { at: 10, scene: "gbr_pl_gen_2" },
+    ],
+    rest: 12,
+    fatal: false,
+    plot: {
+      by: ["gbr_generals", "gbr_uwc"],
+      signs: [
+        { at: 2, scene: "gbr_pl_gen_s1", via: "paper" },
+        { at: 4, scene: "gbr_pl_gen_s2", via: "talk" },
+        { at: 8, scene: "gbr_pl_gen_s3", via: "report" },
+      ],
+      warn: "gbr_pl_gen_w",
+      end: "gbr_table",
+    },
+  },
+  // The shop stewards of the Clyde and the ILP's halls: the unrest ladder.
+  {
+    id: "gbr_pl_red",
+    tag: "GBR",
+    regimes: ALL_REGIMES,
+    from: "1915-03",
+    feeds: [
+      quiet(temper("gbr_labour", 2), "labour_hot"),
+      quiet(temper("gbr_ilp", 2), "ilp_hot"),
+      quiet(low("bread", 0), "no_bread"),
+      quiet(world({ is: "unrest", min: 2 }), "streets"),
+      quiet(isText("gbr_munitions", "leaving_papers"), "leaving_papers"),
+      quiet(
+        world({
+          is: "regime",
+          tag: "RUS",
+          of: ["provisional", "rep", "soviet"],
+        }),
+        "russia",
+      ),
+    ],
+    steps: [
+      { at: 5, scene: "gbr_pl_red_1" },
+      { at: 9, scene: "gbr_pl_red_2" },
+    ],
+    rest: 10,
+    fatal: false,
+    plot: {
+      by: ["gbr_ilp", "gbr_labour"],
+      signs: [
+        { at: 2, scene: "gbr_pl_red_s1", via: "paper" },
+        { at: 3, scene: "gbr_pl_red_s2", via: "talk" },
+        { at: 7, scene: "gbr_pl_red_s3", via: "report" },
+      ],
+      warn: "gbr_pl_red_w",
+      end: "unrest",
+    },
+  },
+];
+
+/** Our people's possible weaknesses; the seed decides which are true. */
+export const GBR_WEAK: readonly GwWeakRow[] = [
+  {
+    person: "gbr_churchill",
+    weak: [
+      { id: "debts", odds: 50 },
+      { id: "letters", odds: 20 },
+    ],
+  },
+  {
+    person: "gbr_bonar_law",
+    weak: [
+      { id: "industry_money", odds: 25 },
+      { id: "health", odds: 20 },
+    ],
+  },
+  {
+    person: "gbr_carson",
+    weak: [
+      { id: "foreign_ties", odds: 30 },
+      { id: "health", odds: 35 },
+    ],
+  },
+  {
+    person: "gbr_kitchener",
+    weak: [
+      { id: "health", odds: 20 },
+      { id: "letters", odds: 15 },
+    ],
+  },
+  {
+    person: "gbr_mckenna",
+    weak: [
+      { id: "industry_money", odds: 25 },
+      { id: "debts", odds: 10 },
+    ],
+  },
+  {
+    person: "gbr_simon",
+    weak: [
+      { id: "industry_money", odds: 15 },
+      { id: "letters", odds: 15 },
+    ],
+  },
+  {
+    person: "gbr_henderson",
+    weak: [
+      { id: "foreign_ties", odds: 30 },
+      { id: "debts", odds: 10 },
+    ],
+  },
+  {
+    person: "gbr_redmond",
+    weak: [
+      { id: "foreign_ties", odds: 30 },
+      { id: "health", odds: 30 },
+    ],
+  },
+  {
+    person: "gbr_robertson",
+    weak: [
+      { id: "letters", odds: 40 },
+      { id: "old_scandal", odds: 10 },
+    ],
+  },
+  {
+    person: "gbr_haig",
+    weak: [
+      { id: "letters", odds: 35 },
+      { id: "health", odds: 10 },
+    ],
+  },
+  {
+    person: "gbr_northcliffe",
+    weak: [
+      { id: "health", odds: 30 },
+      { id: "letters", odds: 20 },
+    ],
+  },
+  {
+    person: "gbr_fisher",
+    weak: [
+      { id: "letters", odds: 45 },
+      { id: "health", odds: 25 },
+    ],
+  },
+];
+
+const westMain = world({ is: "main", of: ["west"] });
+
+export const GBR_ASKS: readonly GwAskRow[] = [
+  {
+    id: "gbr_ask_conscription",
+    tag: "GBR",
+    from: "FRA",
+    kind: "law",
+    law: "gbr_conscription",
+    when: all(warAge(16), not(isLaw("gbr_conscription"))),
+    scene: "gbr_ask_conscription",
+    keep: isLaw("gbr_conscription"),
+    chapters: 6,
+  },
+  {
+    id: "gbr_conf_chantilly",
+    tag: "GBR",
+    from: "FRA",
+    kind: "offensive",
+    conference: true,
+    when: all(warAge(15), not(westMain)),
+    scene: "gbr_conf_chantilly",
+    keep: westMain,
+    chapters: 6,
+  },
+  {
+    id: "gbr_ask_verdun",
+    tag: "GBR",
+    from: "FRA",
+    kind: "offensive",
+    when: all(
+      warAge(19),
+      not(westMain),
+      not(askAt("gbr_conf_chantilly", "yes", "kept")),
+    ),
+    scene: "gbr_ask_verdun",
+    keep: westMain,
+    chapters: 3,
+  },
+  {
+    id: "gbr_ask_salonika",
+    tag: "GBR",
+    from: "FRA",
+    kind: "front",
+    when: all(
+      war,
+      world({ is: "entered", tag: "BGR" }),
+      not(flag("f_salonika_held")),
+    ),
+    scene: "gbr_ask_salonika",
+    keep: any(
+      flag("f_salonika_held"),
+      world({ is: "force", tag: "GBR", theatre: "balkan", min: 1 }),
+    ),
+    chapters: 4,
+  },
+  {
+    id: "gbr_ask_rus_credit",
+    tag: "GBR",
+    from: "RUS",
+    kind: "loan",
+    when: all(warAge(10), world({ is: "regime", tag: "RUS", of: ["tsar"] })),
+    scene: "gbr_ask_rus_credit",
+    keep: war,
+    chapters: 2,
+    kept: [gauge("money", -1)],
+  },
+];
+
+// Plot scenes.
+const audience = (
+  id: string,
+  cast: GwScene["cast"],
+  options: GwOption[],
+  variants: GwVariant[] = [v("base")],
+): GwScene => ({
+  id,
+  nation: NATION,
+  kind: "audience",
+  scheduledOnly: true,
+  cast,
+  salience: 8,
+  tags: ["home", "tension_up"],
+  variants,
+  fallback: options[options.length - 1].id,
+  options,
+});
+const A = (
+  id: string,
+  cast: GwScene["cast"],
+  opts: [string, GwEffect[], GwCond?][],
+  vs?: GwVariant[],
+) =>
+  audience(
+    id,
+    cast,
+    opts.map(([k, e, w]) => ({ ...o(k, id, e), ...(w ? { when: w } : {}) })),
+    vs,
+  );
+const paperSign = (id: string): GwScene => ({
+  id,
+  nation: NATION,
+  kind: "wire",
+  scheduledOnly: true,
+  cast: {},
+  salience: 5,
+  tags: ["home"],
+  variants: [v("base")],
+});
+const reportSign = (id: string): GwScene => ({
+  ...paperSign(id),
+  kind: "report",
+  stamp: "unconfirmed",
+  source: "police",
+});
+const talkSign = (id: string, who: GwScene["cast"][string]): GwScene => ({
+  id,
+  nation: NATION,
+  kind: "talk",
+  scheduledOnly: true,
+  cast: { who },
+  who: "who",
+  salience: 6,
+  tags: ["people", "home"],
+  variants: [v("base")],
+  start: "open",
+  nodes: {
+    open: {
+      says: [v("base")],
+      replies: [
+        {
+          id: "ask",
+          stance: "frank",
+          kind: "ask",
+          tell: [],
+          effects: [],
+          next: "more",
+        },
+        {
+          id: "leave",
+          stance: "warm",
+          kind: "leave",
+          tell: [],
+          effects: [],
+          next: null,
+        },
+      ],
+    },
+    more: {
+      says: [v("base")],
+      replies: [
+        {
+          id: "end",
+          stance: "warm",
+          kind: "leave",
+          tell: [],
+          effects: [],
+          next: null,
+        },
+      ],
+    },
+  },
+});
+const warning = (id: string): GwScene => ({
+  ...paperSign(id),
+  salience: 8,
+  tags: ["home", "tension_up"],
+});
+const lgCast = either(person("gbr_lloyd_george"), leaderOf("gbr_lg"));
+const lawCast = either(person("gbr_bonar_law"), leaderOf("gbr_unionists"));
+const head = role("head");
+const letter = (
+  id: string,
+  from: GwScene["cast"][string],
+  ask: string,
+): GwScene => ({
+  id,
+  nation: NATION,
+  kind: "letter",
+  who: "head",
+  scheduledOnly: true,
+  cast: { head: from },
+  salience: 7,
+  tags: ["foreign"],
+  variants: [v("base")],
+  fallback: "decline",
+  options: [
+    {
+      id: "yes",
+      tell: [],
+      effects: [
+        answerAsk(ask, true),
+        { kind: "letter", who: head, tone: "warm" },
+      ],
+    },
+    {
+      id: "decline",
+      tell: [],
+      effects: [
+        answerAsk(ask, false),
+        { kind: "letter", who: head, tone: "cold" },
+      ],
+    },
+  ],
+});
+
 /** Plot signs, warnings, steps and ends; dossier scenes; asks; conferences. */
-export const GBR_PLOT_SCENES: readonly GwScene[] = [];
+export const GBR_PLOT_SCENES: readonly GwScene[] = [
+  // The cabal.
+  paperSign("gbr_pl_cabal_s1"),
+  talkSign("gbr_pl_cabal_s2", person("gbr_hankey")),
+  reportSign("gbr_pl_cabal_s3"),
+  warning("gbr_pl_cabal_w"),
+  A("gbr_pl_cabal_1", { lg: lgCast }, [
+    [
+      "war_committee",
+      [coolPlot("gbr_pl_cabal", 4), cool("gbr_lg", 2), inst("cabinet", -1)],
+    ],
+    ["war_office", [coolPlot("gbr_pl_cabal", 3), heat("gbr_lg", 1)]],
+    [
+      "go_public",
+      [beatPlot("gbr_pl_cabal"), heat("gbr_lg", 2), heat("gbr_uwc", 1)],
+      plotConfirmed("gbr_pl_cabal"),
+    ],
+    ["wait", []],
+  ]),
+  A("gbr_pl_cabal_2", { lg: lgCast, law: lawCast }, [
+    [
+      "give_way",
+      [
+        beatPlot("gbr_pl_cabal"),
+        cool("gbr_lg", 2),
+        cool("gbr_uwc", 2),
+        inst("cabinet", -2),
+      ],
+    ],
+    [
+      "fight",
+      [
+        beatPlot("gbr_pl_cabal"),
+        heat("gbr_lg", 3),
+        heat("gbr_unionists", 2),
+        inst("commons", -1),
+        heatPlot("gbr_pl_generals", 3),
+      ],
+    ],
+    ["wait", []],
+  ]),
+  // The generals and the papers.
+  paperSign("gbr_pl_gen_s1"),
+  talkSign("gbr_pl_gen_s2", either(person("gbr_wilson"), person("gbr_french"))),
+  reportSign("gbr_pl_gen_s3"),
+  warning("gbr_pl_gen_w"),
+  A("gbr_pl_gen_1", { cos: leaderOf("gbr_generals") }, [
+    [
+      "give_men",
+      [coolPlot("gbr_pl_generals", 3), cool("gbr_generals", 2), men(-3)],
+    ],
+    ["post_away", [coolPlot("gbr_pl_generals", 4), heat("gbr_generals", 1)]],
+    [
+      "go_public",
+      [
+        beatPlot("gbr_pl_generals"),
+        { kind: "opinion", bloc: "press", delta: -1 },
+        heat("gbr_generals", 1),
+      ],
+      plotConfirmed("gbr_pl_generals"),
+    ],
+    ["wait", []],
+  ]),
+  A("gbr_pl_gen_2", { cos: leaderOf("gbr_generals") }, [
+    [
+      "his_way",
+      [
+        coolPlot("gbr_pl_generals", 5),
+        cool("gbr_generals", 2),
+        inst("cabinet", -2),
+      ],
+    ],
+    [
+      "replace_him",
+      [
+        beatPlot("gbr_pl_generals"),
+        heat("gbr_generals", 2),
+        heat("gbr_uwc", 1),
+        heatPlot("gbr_pl_cabal", 3),
+      ],
+    ],
+    ["wait", []],
+  ]),
+  // The shop stewards.
+  paperSign("gbr_pl_red_s1"),
+  talkSign("gbr_pl_red_s2", person("gbr_henderson")),
+  reportSign("gbr_pl_red_s3"),
+  warning("gbr_pl_red_w"),
+  A("gbr_pl_red_1", { home: office("interior") }, [
+    [
+      "meet_stewards",
+      [coolPlot("gbr_pl_red", 3), gauge("money", -1), cool("gbr_labour", 1)],
+    ],
+    [
+      "arrest",
+      [
+        beatPlot("gbr_pl_red"),
+        heat("gbr_ilp", 2),
+        heat("gbr_labour", 1),
+        {
+          kind: "maybe",
+          when: plotHot("gbr_pl_red", 0, 0),
+          then: [heat("gbr_labour", 2), trustOf(role("home"), -1)],
+        },
+      ],
+    ],
+    ["wait", []],
+  ]),
+  A("gbr_pl_red_2", { home: office("interior") }, [
+    [
+      "concede",
+      [coolPlot("gbr_pl_red", 5), cool("gbr_labour", 2), gauge("money", -1)],
+    ],
+    [
+      "arrest",
+      [
+        beatPlot("gbr_pl_red"),
+        heat("gbr_ilp", 2),
+        heat("gbr_labour", 2),
+        gauge("order", -1),
+      ],
+    ],
+    ["wait", []],
+  ]),
+  // Allies' asks.
+  letter("gbr_ask_conscription", { ruler_of: "FRA" }, "gbr_ask_conscription"),
+  letter("gbr_ask_verdun", { ruler_of: "FRA" }, "gbr_ask_verdun"),
+  letter("gbr_ask_salonika", { ruler_of: "FRA" }, "gbr_ask_salonika"),
+  letter("gbr_ask_rus_credit", { ruler_of: "RUS" }, "gbr_ask_rus_credit"),
+  // Chantilly: the allies' generals at Joffre's headquarters, face to face.
+  {
+    id: "gbr_conf_chantilly",
+    nation: NATION,
+    kind: "talk",
+    big: true,
+    once: true,
+    scheduledOnly: true,
+    salience: 8,
+    tags: ["foreign", "war"],
+    cast: { head: { ruler_of: "FRA" }, cos: office("chief_of_staff") },
+    who: "head",
+    variants: [v("base")],
+    start: "n1",
+    nodes: {
+      n1: {
+        says: [v("base")],
+        replies: [
+          {
+            id: "ask",
+            stance: "frank",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "n2",
+          },
+        ],
+      },
+      n2: {
+        who: "cos",
+        says: [v("base")],
+        replies: [
+          {
+            id: "go_on",
+            stance: "warm",
+            kind: "ask",
+            tell: [],
+            effects: [],
+            next: "n3",
+          },
+        ],
+      },
+      n3: {
+        fallback: "own_time",
+        says: [v("base")],
+        replies: [
+          decide("together", null, [answerAsk("gbr_conf_chantilly", true)]),
+          decide("own_time", null, [answerAsk("gbr_conf_chantilly", false)]),
+        ],
+      },
+    },
+  },
+];
