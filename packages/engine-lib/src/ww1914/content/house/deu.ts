@@ -28,12 +28,19 @@ import type {
 import type { GwLawRow } from "../../LawRows";
 import { either, gauge, held, inst, office, person } from "../laws/kit";
 import {
+  answerAsk,
   aroundUsed,
+  beatPlot,
   cool,
+  coolPlot,
+  faction,
   heat,
+  heatPlot,
   isLaw,
   leaderOf,
   low,
+  plotConfirmed,
+  plotHot,
   temper,
   under,
   warAge,
@@ -116,6 +123,7 @@ export const DEU_FACTIONS: readonly GwFactionRow[] = [
       { when: bloc("court", -3), key: "court_turned" },
     ],
     cools: [{ when: score({ min: 30 }), key: "victories" }],
+    camps: ["hard"],
     steps: [
       { at: 4, scene: "deu_f_cons_2" },
       { at: 8, scene: "deu_f_cons_3" },
@@ -240,6 +248,7 @@ export const DEU_FACTIONS: readonly GwFactionRow[] = [
         key: "chancellor_came",
       },
     ],
+    camps: ["moderate"],
     steps: [
       { at: 4, scene: "deu_f_centre_2" },
       { at: 8, scene: "deu_f_centre_3" },
@@ -299,6 +308,7 @@ export const DEU_FACTIONS: readonly GwFactionRow[] = [
         key: "majority_received",
       },
     ],
+    camps: ["moderate"],
     steps: [
       { at: 4, scene: "deu_f_progress_2" },
       { at: 8, scene: "deu_f_progress_3" },
@@ -481,7 +491,9 @@ export const DEU_FACTIONS: readonly GwFactionRow[] = [
     steps: [
       { at: 4, scene: "deu_f_spartacus_2" },
       { at: 8, scene: "deu_f_spartacus_3" },
+      { at: 12, scene: "deu_f_spartacus_4" },
     ],
+    plot: "deu_pl_red",
   },
   {
     id: "deu_minor",
@@ -572,7 +584,10 @@ export const DEU_FACTIONS: readonly GwFactionRow[] = [
     steps: [
       { at: 4, scene: "deu_f_ohl_2" },
       { at: 8, scene: "deu_f_ohl_3" },
+      { at: 12, scene: "deu_f_ohl_4" },
     ],
+    plot: "deu_pl_army",
+    camps: ["military"],
     bills: ["deu_aux", "deu_strike_ban"],
   },
   {
@@ -660,7 +675,10 @@ export const DEU_FACTIONS: readonly GwFactionRow[] = [
     steps: [
       { at: 4, scene: "deu_f_fatherland_2" },
       { at: 8, scene: "deu_f_fatherland_3" },
+      { at: 12, scene: "deu_f_fatherland_4" },
     ],
+    plot: "deu_pl_right",
+    camps: ["hard"],
     bills: ["deu_war_aims"],
     amends: { deu_war_aims: "east_and_west", deu_three_class: "plural_vote" },
     wants: [
@@ -1594,9 +1612,627 @@ export const DEU_HOUSE_SCENES: readonly GwScene[] = [
   ]),
 ];
 
-// ---- S2 ----
-export const DEU_PLOTS: readonly GwPlotRow[] = [];
-export const DEU_WEAK: readonly GwWeakRow[] = [];
-export const DEU_ASKS: readonly GwAskRow[] = [];
-/** Plot signs, warnings, steps and ends; dossier scenes; asks; conferences. */
-export const DEU_PLOT_SCENES: readonly GwScene[] = [];
+// ---- S2: plots, the dossier, allies ----
+
+const quietFeed = (when: GwCond, key: string, by?: number) =>
+  by === undefined
+    ? { when, key, quiet: true }
+    : { when, key, by, quiet: true };
+
+export const DEU_PLOTS: readonly GwPlotRow[] = [
+  {
+    // The colonel and the quartermaster: the Supreme Command takes the
+    // government, and the signature it asks for at Spa is the last step.
+    id: "deu_pl_army",
+    tag: "DEU",
+    regimes: ["empire"],
+    from: "1916-08",
+    rest: 12,
+    fatal: true,
+    feeds: [
+      quietFeed(temper("deu_ohl", 3), "ohl_silent"),
+      quietFeed(isLaw("deu_peace_res"), "peace_resolution"),
+      quietFeed(isLaw("deu_parl_gov"), "reform_law"),
+      quietFeed(score({ max: -20 }), "defeats"),
+      quietFeed(lately("deu_f_ohl_3", "post_away", 6), "colonel_posted", 2),
+    ],
+    steps: [
+      { at: 6, scene: "deu_pl_army_1" },
+      { at: 12, scene: "deu_pl_army_2" },
+    ],
+    plot: {
+      by: ["deu_ohl"],
+      warn: "deu_pl_army_w",
+      end: "removed",
+      signs: [
+        { at: 2, scene: "deu_pl_army_s1", via: "paper" },
+        { at: 4, scene: "deu_pl_army_s2", via: "talk" },
+        { at: 8, scene: "deu_pl_army_s3", via: "report" },
+      ],
+    },
+  },
+  {
+    // The Pan-Germans and the Fatherland Party call for a man above the
+    // Kaiser's government: a dictatorship in the Supreme Command's name.
+    id: "deu_pl_right",
+    tag: "DEU",
+    regimes: ["empire"],
+    from: "1917-06",
+    rest: 12,
+    fatal: true,
+    feeds: [
+      quietFeed(temper("deu_fatherland", 3), "fatherland_silent"),
+      quietFeed(temper("deu_cons", 3), "cons_silent"),
+      quietFeed(peaceTaken, "peace_taken"),
+      quietFeed(moving("deu_three_class"), "franchise_moving"),
+      quietFeed(isLaw("deu_parl_gov"), "reform_law"),
+    ],
+    steps: [
+      { at: 6, scene: "deu_pl_right_1" },
+      { at: 12, scene: "deu_pl_right_2" },
+    ],
+    plot: {
+      by: ["deu_fatherland", "deu_cons"],
+      warn: "deu_pl_right_w",
+      end: "removed",
+      signs: [
+        { at: 2, scene: "deu_pl_right_s1", via: "paper" },
+        { at: 4, scene: "deu_pl_right_s2", via: "talk" },
+        { at: 8, scene: "deu_pl_right_s3", via: "report" },
+      ],
+    },
+  },
+  {
+    // The shop stewards and the sailors: it feeds the unrest ladder.
+    id: "deu_pl_red",
+    tag: "DEU",
+    regimes: ["empire"],
+    from: "1916-06",
+    rest: 8,
+    fatal: false,
+    feeds: [
+      quietFeed(temper("deu_spartacus", 3), "sparta_silent"),
+      quietFeed(temper("deu_uspd", 3), "uspd_silent"),
+      quietFeed(low("bread", 0), "bread_gone"),
+      quietFeed(faction("deu_spartacus", { of: ["under"] }), "driven_under"),
+      quietFeed(unrest(1), "unrest"),
+    ],
+    steps: [
+      { at: 6, scene: "deu_pl_red_1" },
+      { at: 12, scene: "deu_pl_red_2" },
+    ],
+    plot: {
+      by: ["deu_spartacus", "deu_uspd"],
+      warn: "deu_pl_red_w",
+      end: "unrest",
+      signs: [
+        { at: 2, scene: "deu_pl_red_s1", via: "paper" },
+        { at: 4, scene: "deu_pl_red_s2", via: "talk" },
+        { at: 8, scene: "deu_pl_red_s3", via: "report" },
+      ],
+    },
+  },
+];
+
+/** Our people's possible weaknesses; the seed decides which are true. */
+export const DEU_WEAK: readonly GwWeakRow[] = [
+  {
+    person: "deu_erzberger",
+    weak: [
+      { id: "industry_money", odds: 40 },
+      { id: "foreign_ties", odds: 20 },
+    ],
+  },
+  {
+    person: "deu_helfferich",
+    weak: [
+      { id: "industry_money", odds: 35 },
+      { id: "letters", odds: 20 },
+    ],
+  },
+  {
+    person: "deu_stresemann",
+    weak: [
+      { id: "industry_money", odds: 45 },
+      { id: "debts", odds: 20 },
+    ],
+  },
+  {
+    person: "deu_bauer",
+    weak: [
+      { id: "industry_money", odds: 40 },
+      { id: "letters", odds: 30 },
+    ],
+  },
+  {
+    person: "deu_ludendorff",
+    weak: [
+      { id: "health", odds: 35 },
+      { id: "letters", odds: 15 },
+    ],
+  },
+  {
+    person: "deu_tirpitz",
+    weak: [
+      { id: "letters", odds: 35 },
+      { id: "old_scandal", odds: 15 },
+    ],
+  },
+  {
+    person: "deu_scheidemann",
+    weak: [
+      { id: "letters", odds: 25 },
+      { id: "foreign_ties", odds: 20 },
+    ],
+  },
+  {
+    person: "deu_ebert",
+    weak: [
+      { id: "letters", odds: 20 },
+      { id: "debts", odds: 15 },
+    ],
+  },
+  {
+    person: "deu_haase",
+    weak: [
+      { id: "foreign_ties", odds: 35 },
+      { id: "letters", odds: 20 },
+    ],
+  },
+  { person: "deu_hertling", weak: [{ id: "health", odds: 50 }] },
+  {
+    person: "deu_michaelis",
+    weak: [
+      { id: "letters", odds: 25 },
+      { id: "old_scandal", odds: 10 },
+    ],
+  },
+  {
+    person: "deu_rathenau",
+    weak: [
+      { id: "industry_money", odds: 30 },
+      { id: "foreign_ties", odds: 15 },
+    ],
+  },
+  { person: "deu_valentini", weak: [{ id: "letters", odds: 30 }] },
+  {
+    person: "deu_liebknecht",
+    weak: [
+      { id: "foreign_ties", odds: 30 },
+      { id: "letters", odds: 20 },
+    ],
+  },
+];
+
+const trust = (tag: "AUH" | "OTT", delta: number): GwEffect => ({
+  kind: "trust",
+  tag,
+  delta,
+});
+const main = (t: "east" | "italy"): GwCond => world({ is: "main", of: [t] });
+
+/** What Vienna and Constantinople ask of Berlin. */
+export const DEU_ASKS: readonly GwAskRow[] = [
+  {
+    id: "deu_ask_east",
+    tag: "DEU",
+    from: "AUH",
+    kind: "offensive",
+    when: all(war, warAge(5), not(main("east"))),
+    scene: "deu_ask_east",
+    keep: main("east"),
+    chapters: 2,
+    kept: [trust("AUH", 1)],
+    broken: [trust("AUH", -1)],
+  },
+  {
+    id: "deu_ask_loan",
+    tag: "DEU",
+    from: "AUH",
+    kind: "loan",
+    when: all(war, warAge(12)),
+    scene: "deu_ask_loan",
+    keep: paid,
+    chapters: 1,
+    kept: [trust("AUH", 1)],
+    broken: [trust("AUH", -1)],
+  },
+  {
+    id: "deu_ask_italy",
+    tag: "DEU",
+    from: "AUH",
+    kind: "front",
+    when: all(war, warAge(20), world({ is: "open", theatre: "italy" })),
+    scene: "deu_ask_italy",
+    keep: main("italy"),
+    chapters: 2,
+    kept: [trust("AUH", 1)],
+    broken: [trust("AUH", -1)],
+  },
+  {
+    id: "deu_ask_gold",
+    tag: "DEU",
+    from: "OTT",
+    kind: "loan",
+    when: all(war, warAge(4)),
+    scene: "deu_ask_gold",
+    keep: paid,
+    chapters: 1,
+    kept: [trust("OTT", 1)],
+    broken: [trust("OTT", -1)],
+  },
+  {
+    // Pless: one command for the Central Powers, face to face.
+    id: "deu_conf_pless",
+    tag: "DEU",
+    from: "AUH",
+    kind: "front",
+    conference: true,
+    when: all(
+      war,
+      warAge(18),
+      any({ kind: "trust", tag: "AUH", max: 0 }, warAge(24)),
+    ),
+    scene: "deu_conf_pless",
+    keep: flag("f_pless_command"),
+    chapters: 2,
+    kept: [trust("AUH", 1)],
+    broken: [trust("AUH", -2)],
+  },
+];
+
+// ---- Plot, ask and step-four scenes ----
+
+const sign = (
+  id: string,
+  kind: "wire" | "report",
+  rest: Partial<GwScene> = {},
+): GwScene => ({
+  id,
+  nation: ["DEU"],
+  kind,
+  scheduledOnly: true,
+  cast: {},
+  salience: 6,
+  tags: ["home"],
+  variants: [{ id: "base" }],
+  ...(kind === "report" ? { stamp: "unconfirmed", source: "police" } : {}),
+  ...rest,
+});
+
+/** Someone says too much: a short talk that ends when it is heard. */
+function slip(id: string, w: GwScene["cast"][string]): GwScene {
+  return {
+    id,
+    nation: ["DEU"],
+    kind: "talk",
+    scheduledOnly: true,
+    cast: { who: w },
+    salience: 6,
+    tags: ["home", "people"],
+    who: "who",
+    variants: [{ id: "base" }],
+    start: "open",
+    nodes: {
+      open: {
+        says: [{ id: "base" }],
+        replies: [
+          reply("more", "frank", "ask", "more"),
+          reply("leave", "cold", "leave", null),
+        ],
+      },
+      more: {
+        says: [{ id: "base" }],
+        replies: [reply("end", "warm", "leave", null)],
+      },
+    },
+  };
+}
+
+/** A plot's warning or step: a decision of the seat. */
+function plotPaper(
+  id: string,
+  w: GwScene["cast"][string],
+  options: GwOption[],
+): GwScene {
+  return {
+    id,
+    nation: ["DEU"],
+    kind: "audience",
+    scheduledOnly: true,
+    cast: { who: w },
+    salience: 8,
+    tags: ["home", "tension_up"],
+    variants: [{ id: "base" }],
+    fallback: options[options.length - 1].id,
+    options,
+  };
+}
+
+const chancellor = either(office("chancellor"), office("interior"));
+const police = either(office("interior"), office("chancellor"));
+const publicly = (plot: string, effects: GwEffect[]): GwOption => ({
+  id: "make_public",
+  when: plotConfirmed(plot),
+  tell: [],
+  effects,
+});
+/** An arrest on a cold plot: its faction takes it as the wrong it is. */
+const wrongly = (plot: string, f: string): GwEffect => ({
+  kind: "maybe",
+  when: plotHot(plot, 0, 0),
+  then: [heat(f, 2)],
+});
+const silence = (id: string): GwScene => ({
+  id,
+  nation: ["DEU"],
+  kind: "wire",
+  scheduledOnly: true,
+  cast: {},
+  salience: 5,
+  tags: ["home", "tension_up"],
+  variants: [{ id: "base" }],
+});
+
+const head = role("head");
+const letterTo = (tone: "warm" | "cold"): GwEffect => ({
+  kind: "letter",
+  who: head,
+  tone,
+});
+function askLetter(
+  id: string,
+  from: "AUH" | "OTT",
+  yes: GwEffect[],
+  variants: GwVariant[] = [{ id: "base" }],
+): GwScene {
+  return {
+    id,
+    nation: ["DEU"],
+    kind: "letter",
+    who: "head",
+    scheduledOnly: true,
+    once: true,
+    cast: { head: { ruler_of: from } },
+    salience: 7,
+    tags: ["foreign"],
+    variants,
+    fallback: "yes",
+    options: [
+      opt("yes", [answerAsk(id, true), letterTo("warm"), ...yes]),
+      opt("no", [answerAsk(id, false), letterTo("cold")]),
+    ],
+  };
+}
+
+/** Plot signs, warnings, steps; step-four silences; asks and Pless. */
+export const DEU_PLOT_SCENES: readonly GwScene[] = [
+  // The army plot.
+  sign("deu_pl_army_s1", "wire"),
+  slip("deu_pl_army_s2", either(person("deu_groener"), office("war"))),
+  sign("deu_pl_army_s3", "report"),
+  plotPaper("deu_pl_army_w", chancellor, [
+    opt("post_colonel", [
+      coolPlot("deu_pl_army", 3),
+      heat("deu_ohl", 1),
+      r("pl_army_posted"),
+    ]),
+    opt("give_office", [
+      coolPlot("deu_pl_army", 2),
+      cool("deu_ohl", 2),
+      inst("countersign", -1),
+      r("pl_army_office"),
+    ]),
+    publicly("deu_pl_army", [
+      coolPlot("deu_pl_army", 4),
+      inst("army", -1),
+      inst("reichstag", 1),
+      r("pl_army_public"),
+    ]),
+    opt("wait", [r("pl_army_wait")]),
+  ]),
+  plotPaper("deu_pl_army_1", leaderOf("deu_ohl"), [
+    opt("give_way", [
+      coolPlot("deu_pl_army", 3),
+      inst("army", 1),
+      inst("countersign", -2),
+      r("pl_army_gave"),
+    ]),
+    opt("relieve_quartermaster", [
+      beatPlot("deu_pl_army"),
+      heatPlot("deu_pl_right", 3),
+      inst("army", -2),
+      wrongly("deu_pl_army", "deu_ohl"),
+      r("pl_army_relieved"),
+    ]),
+    publicly("deu_pl_army", [
+      coolPlot("deu_pl_army", 4),
+      inst("army", -1),
+      r("pl_army_public"),
+    ]),
+    opt("wait", [r("pl_army_wait")]),
+  ]),
+  plotPaper("deu_pl_army_2", leaderOf("deu_ohl"), [
+    opt("relieve_both", [
+      beatPlot("deu_pl_army"),
+      heatPlot("deu_pl_right", 3),
+      inst("army", -3),
+      gauge("morale", -1),
+      r("pl_army_beaten"),
+    ]),
+    opt("hand_war", [
+      coolPlot("deu_pl_army", 8),
+      inst("army", 2),
+      inst("countersign", -3),
+      inst("reichstag", -1),
+      r("pl_army_handed"),
+    ]),
+    opt("wait", [r("pl_army_wait")]),
+  ]),
+  // The Pan-German plot.
+  sign("deu_pl_right_s1", "wire"),
+  slip("deu_pl_right_s2", either(office("court"), office("interior"))),
+  sign("deu_pl_right_s3", "report"),
+  plotPaper("deu_pl_right_w", chancellor, [
+    opt("aims_talk", [
+      coolPlot("deu_pl_right", 2),
+      cool("deu_fatherland", 2),
+      heat("deu_spd", 1),
+      r("pl_right_aims"),
+    ]),
+    opt("press_close", [
+      coolPlot("deu_pl_right", 2),
+      censor(1),
+      heat("deu_fatherland", 1),
+      r("pl_right_press"),
+    ]),
+    publicly("deu_pl_right", [
+      coolPlot("deu_pl_right", 4),
+      cool("deu_centre", 1),
+      cool("deu_progress", 1),
+      r("pl_right_public"),
+    ]),
+    opt("wait", [r("pl_right_wait")]),
+  ]),
+  plotPaper("deu_pl_right_1", leaderOf("deu_fatherland"), [
+    opt("officers_out", [
+      coolPlot("deu_pl_right", 3),
+      inst("army", -1),
+      r("pl_right_officers"),
+    ]),
+    opt("arrest_circle", [
+      beatPlot("deu_pl_right"),
+      heatPlot("deu_pl_army", 3),
+      heat("deu_cons", 1),
+      wrongly("deu_pl_right", "deu_fatherland"),
+      r("pl_right_arrest"),
+    ]),
+    publicly("deu_pl_right", [
+      coolPlot("deu_pl_right", 4),
+      heat("deu_fatherland", 1),
+      r("pl_right_public"),
+    ]),
+    opt("wait", [r("pl_right_wait")]),
+  ]),
+  plotPaper("deu_pl_right_2", leaderOf("deu_fatherland"), [
+    opt("refuse_proclamation", [
+      beatPlot("deu_pl_right"),
+      heatPlot("deu_pl_army", 3),
+      inst("army", -1),
+      r("pl_right_beaten"),
+    ]),
+    opt("their_chancellor", [
+      coolPlot("deu_pl_right", 8),
+      inst("reichstag", -2),
+      inst("countersign", -2),
+      heat("deu_centre", 2),
+      heat("deu_spd", 2),
+      r("pl_right_handed"),
+    ]),
+    opt("wait", [r("pl_right_wait")]),
+  ]),
+  // The red plot.
+  sign("deu_pl_red_s1", "wire"),
+  slip("deu_pl_red_s2", either(person("deu_ebert"), office("interior"))),
+  sign("deu_pl_red_s3", "report"),
+  plotPaper("deu_pl_red_w", police, [
+    opt("bread_now", [coolPlot("deu_pl_red", 3), money(-1), r("pl_red_bread")]),
+    opt("stewards_talk", [
+      coolPlot("deu_pl_red", 2),
+      cool("deu_uspd", 1),
+      heat("deu_ohl", 1),
+      r("pl_red_talk"),
+    ]),
+    publicly("deu_pl_red", [
+      coolPlot("deu_pl_red", 3),
+      gauge("order", 1),
+      r("pl_red_public"),
+    ]),
+    opt("wait", [r("pl_red_wait")]),
+  ]),
+  plotPaper("deu_pl_red_1", police, [
+    opt("meet_strikers", [
+      coolPlot("deu_pl_red", 3),
+      heat("deu_ohl", 2),
+      inst("army", -1),
+      r("pl_red_met"),
+    ]),
+    opt("arrest_stewards", [
+      beatPlot("deu_pl_red"),
+      heatPlot("deu_pl_army", 3),
+      heat("deu_uspd", 2),
+      wrongly("deu_pl_red", "deu_uspd"),
+      r("pl_red_arrest"),
+    ]),
+    opt("wait", [r("pl_red_wait")]),
+  ]),
+  plotPaper("deu_pl_red_2", police, [
+    opt("peace_note", [
+      coolPlot("deu_pl_red", 8),
+      heat("deu_ohl", 2),
+      heat("deu_fatherland", 2),
+      r("pl_red_peace"),
+    ]),
+    opt("sailors_ashore", [
+      beatPlot("deu_pl_red"),
+      heatPlot("deu_pl_army", 3),
+      gauge("order", -1),
+      r("pl_red_beaten"),
+    ]),
+    opt("wait", [r("pl_red_wait")]),
+  ]),
+  // Temper four: the faction stops asking.
+  silence("deu_f_ohl_4"),
+  silence("deu_f_fatherland_4"),
+  silence("deu_f_spartacus_4"),
+  // Allies' asks.
+  askLetter("deu_ask_east", "AUH", []),
+  askLetter("deu_ask_loan", "AUH", [money(-1)]),
+  askLetter("deu_ask_italy", "AUH", []),
+  askLetter("deu_ask_gold", "OTT", [money(-1)]),
+  {
+    id: "deu_conf_pless",
+    nation: ["DEU"],
+    kind: "talk",
+    big: true,
+    scheduledOnly: true,
+    salience: 9,
+    tags: ["foreign", "war"],
+    cast: {
+      head: { ruler_of: "AUH" },
+      cos: either(office("chief_of_staff"), office("war")),
+    },
+    who: "head",
+    variants: [{ id: "base" }],
+    start: "n1",
+    nodes: {
+      n1: {
+        says: [{ id: "base" }],
+        replies: [reply("hear", "warm", "ask", "n2")],
+      },
+      n2: {
+        who: "cos",
+        says: [{ id: "base" }],
+        replies: [reply("go_on", "frank", "ask", "n3")],
+      },
+      n3: {
+        fallback: "two_commands",
+        says: [{ id: "base" }],
+        replies: [
+          {
+            ...reply("one_command", "frank", "decide", null),
+            effects: [
+              answerAsk("deu_conf_pless", true),
+              setFlag("f_pless_command"),
+              inst("army", 1),
+            ],
+          },
+          {
+            ...reply("two_commands", "frank", "decide", null),
+            effects: [answerAsk("deu_conf_pless", false)],
+          },
+        ],
+      },
+    },
+  },
+];
