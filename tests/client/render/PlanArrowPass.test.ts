@@ -166,5 +166,12 @@ describe("PlanArrowPass: the offensive line (ww162)", () => {
     const heads = build([a, b], sel).filter((p) => p.style === STYLE_HEAD);
     expect(heads).toHaveLength(1);
     expect(heads[0].alpha).toBeCloseTo(0.95 * 0.4);
+    // With no army chosen the plan view still shows them.
+    const none = chosen(1);
+    none.select(null);
+    none.planView = true;
+    expect(
+      build([a, b], none).filter((p) => p.style === STYLE_HEAD),
+    ).toHaveLength(1);
   });
 });

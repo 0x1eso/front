@@ -682,10 +682,13 @@ export function regionCenter(w: FrontWorld, r: number): [number, number] {
   return [(t % width) + 0.5, Math.floor(t / width) + 0.5];
 }
 
+/** Steps a handle takes along the way from a region's centre to its neighbour's. */
+const BOUNDARY_STEPS = 64;
+
 /**
- * A front end's handle: on the line where the end region meets the enemy,
- * halfway from its centre to the nearest region it faces (no such region:
- * its centre).
+ * A front end's handle: on the line where the end region meets the enemy —
+ * the first tile on the way from its centre to the nearest region it faces
+ * that leaves the end region (no such region: its centre).
  */
 export function endHandleAt(
   w: FrontWorld,
@@ -705,7 +708,17 @@ export function endHandleAt(
       best = [ex, ey];
     }
   }
-  return best === null ? [x, y] : [(x + best[0]) / 2, (y + best[1]) / 2];
+  if (best === null) return [x, y];
+  const sc = w.scenario;
+  for (let i = 1; i <= BOUNDARY_STEPS; i++) {
+    const px = x + ((best[0] - x) * i) / BOUNDARY_STEPS;
+    const py = y + ((best[1] - y) * i) / BOUNDARY_STEPS;
+    const tx = Math.floor(px);
+    const ty = Math.floor(py);
+    if (tx < 0 || ty < 0 || tx >= sc.width || ty >= sc.height) break;
+    if (sc.regionAt(ty * sc.width + tx) !== r) return [px, py];
+  }
+  return [(x + best[0]) / 2, (y + best[1]) / 2];
 }
 
 /** The handles of a front and an offensive line (either may be absent). */

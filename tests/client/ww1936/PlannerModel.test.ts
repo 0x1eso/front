@@ -28,6 +28,10 @@ import { army, ID, mine, scenario } from "./LandFixture";
 // Regions: 1 Paris, 2 Lyon (FRA), 3 Berlin, 4 Munich (DEU), 5 Rome (ITA),
 // 6 Warsaw, 7 Krakow (POL), 8 Moscow, 9 Kiev (SUN), 10 London (GBR).
 const DEU = ID("DEU");
+const center = (r: number): [number, number] => {
+  const t = scenario.centerTile(r);
+  return [(t % scenario.width) + 0.5, Math.floor(t / scenario.width) + 0.5];
+};
 const POL = ID("POL");
 const SUN = ID("SUN");
 
@@ -202,11 +206,13 @@ describe("orders, undo and handles", () => {
       ["wp", 0, 6],
       ["wp", 1, 9],
     ]);
-    // Berlin's handle sits halfway to Warsaw, on the line.
-    const t3 = scenario.centerTile(3);
-    const t6 = scenario.centerTile(6);
+    // Berlin's handle sits on its edge, on the way to Warsaw.
     const W = scenario.width;
-    expect(hs[0].x).toBeCloseTo(((t3 % W) + (t6 % W)) / 2 + 0.5);
+    const tileOf = (x: number, y: number) =>
+      scenario.regionAt(Math.floor(y) * W + Math.floor(x));
+    expect(tileOf(hs[0].x, hs[0].y)).not.toBe(3);
+    const back = 2 * ((center(6)[0] - center(3)[0]) / 64);
+    expect(tileOf(hs[0].x - back, hs[0].y)).toBe(3);
     expect(hitHandle(hs, hs[2].x + 1, hs[2].y, 3)).toBe(hs[2]);
     expect(hitHandle(hs, hs[2].x + 10, hs[2].y, 3)).toBeNull();
     // In the fallback mode no handle is shown; with no mode both kinds.

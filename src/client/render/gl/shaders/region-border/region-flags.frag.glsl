@@ -22,6 +22,7 @@ precision highp usampler2D;
 //     regions with bit 5);
 //   bit 3: the region's zone belongs to another army: drawn at 40 % (the
 //     plan view), its front ribbon too; bit 4 the same for a fallback.
+// Two zones of different hues that meet get a white 2 px tick on the join.
 // Widths are screen pixels, so the line reads the same at every zoom.
 
 uniform usampler2D uTiles;  // R16UI per tile: bit 15 edge, low 15 region id
@@ -123,15 +124,29 @@ void main() {
       regionAt(w + vec2(0.0, r)) != id || regionAt(w - vec2(0.0, r)) != id;
     float faint = (f2 & 8u) != 0u ? 0.4 : 1.0;
     col = over(col, ZONE_HUES[int((f >> 6u) & 3u)], (rim ? 0.95 : 0.42) * faint);
+    // ww162: where two armies' zones meet (a marshal's sectors, the plan
+    // view), a 2 px white tick on the join.
+    float t = 2.0 * uTilesPerPx;
+    uint hue = f & 192u;
+    bool join = false;
+    for (int k = 0; k < 4; k++) {
+      vec2 d = k == 0 ? vec2(t, 0.0) : k == 1 ? vec2(-t, 0.0) : k == 2 ? vec2(0.0, t) : vec2(0.0, -t);
+      uint n = flagsOf(regionAt(w + d));
+      if ((n & 1u) != 0u && (n & 192u) != hue) join = true;
+    }
+    if (join) col = over(col, vec3(1.0), 0.9 * faint);
   }
 
   if ((f2 & 1u) != 0u) {
     // ww162: the fallback line, the front's thick line dashed, on this
     // region's side of its outer edges, in the line's hue at 70 %.
-    float rimW = max(1.0 * uTilesPerPx, 0.1);
-    float wide = max(5.0 * uTilesPerPx, 0.7);
+    float rimW = max(1.2 * uTilesPerPx, 0.12);
+    float wide = max(7.0 * uTilesPerPx, 0.9);
     if (outerAround(w, wide)) {
-      float s = (w.x + w.y) / uTilesPerPx;
+      // Dashes run along the edge: across a left/right edge they step
+      // with y, across an upper/lower edge with x.
+      bool side = outerAt(w + vec2(wide, 0.0)) || outerAt(w - vec2(wide, 0.0));
+      float s = (side ? w.y : w.x) / uTilesPerPx;
       if (mod(s, 10.0) < 6.0) {
         bool edge = outerAround(w, rimW) || !outerAround(w, wide - rimW);
         float faint = (f2 & 16u) != 0u ? 0.4 : 1.0;

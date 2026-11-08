@@ -27,7 +27,7 @@
  * stops a little short of its target's center, where that region's tokens
  * stand, so the pieces are rebuilt when the view, the choice, the viewer or
  * the zoom changes (a few hundred numbers into a reused array). Nothing is
- * drawn without a chosen army of the viewer's.
+ * drawn without a chosen army of the viewer's (ww162: but the plan view's).
  */
 
 import type { ArmySummary } from "@openfront/engine-api/ww1936/LandTypes";
@@ -181,6 +181,24 @@ export class PlanArrowPass {
     world: LandFrontWorld,
   ): void {
     const army = sel.army === null ? undefined : view.armies.get(sel.army);
+    // ww162: the plan view shows my other armies' offensive lines, faint,
+    // with or without a chosen army.
+    if (sel.planView) {
+      for (const a of view.armies.values()) {
+        if (a.owner !== me || a.mine === null || a.id === army?.id) continue;
+        const g = a.mine.order.goal ?? [];
+        if (g.length === 0) continue;
+        this.goalLines(
+          world,
+          me,
+          a,
+          g,
+          a.mine.order.spear === true,
+          a.mine.order.executing,
+          PLAN_VIEW_ALPHA,
+        );
+      }
+    }
     if (army === undefined || army.owner !== me || army.mine === null) return;
     const mine = army.mine;
     const sc = view.scenario;
@@ -249,22 +267,6 @@ export class PlanArrowPass {
         : mine.order.spear === true;
     if (goal.length > 0) {
       this.goalLines(world, me, army, goal, spear, mine.order.executing, 1);
-    }
-    if (sel.planView) {
-      for (const a of view.armies.values()) {
-        if (a.owner !== me || a.mine === null || a.id === army.id) continue;
-        const g = a.mine.order.goal ?? [];
-        if (g.length === 0) continue;
-        this.goalLines(
-          world,
-          me,
-          a,
-          g,
-          a.mine.order.spear === true,
-          a.mine.order.executing,
-          PLAN_VIEW_ALPHA,
-        );
-      }
     }
     const pinned = new Set((mine.pins ?? []).map((p) => p[1]));
     for (const r of [...pinned].sort((x, y) => x - y)) {
