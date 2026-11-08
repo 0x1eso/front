@@ -307,7 +307,14 @@ export function cardPlace(): CardPlace {
   // The dock stands right above the rows: the card clears both.
   const rows = shown("[data-bottom-hud-rows]");
   const dock = shown("[data-ww-dock]");
-  const rowsTop = Math.min(rows === null ? h : rows.top, dock?.top ?? h);
+  // ww162: a panel that stepped aside leaves its "back to panel" chip
+  // right above the dock: the card clears it too.
+  const chip = shown("[data-ww-panel-chip]");
+  const rowsTop = Math.min(
+    rows === null ? h : rows.top,
+    dock?.top ?? h,
+    chip?.top ?? h,
+  );
   const bottom = h - rowsTop + GAP;
   const maxHeight = Math.max(
     CARD_MIN_PX,

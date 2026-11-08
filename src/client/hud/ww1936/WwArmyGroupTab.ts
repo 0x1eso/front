@@ -65,25 +65,34 @@ const GROUP_LINE_ICONS: Readonly<Record<GroupLineMode, string>> = {
 /** ww162 (design §2): [전선][공세선][후퇴선] for the marshal: the same draw modes, the group's orders. */
 function renderLineChips(c: GroupTabCtx, g: GroupRow): TemplateResult {
   const sel = landSelectionOf(c.game);
+  // Captioned: the card's own [전선] below is the one-shot zone (ag_front).
   return html`<div
-    data-ww-group-draw=${g.id}
-    role="group"
-    aria-label=${translateText(PLANNER_KEYS.groupLines)}
-    class="mt-1 grid grid-cols-3 gap-1"
-  >
-    ${GROUP_LINE_MODES.map((m) => {
-      const on = sel.group === g.id && sel.draw === m;
-      return html`<button
-        type="button"
-        data-ww-group-draw-mode=${m}
-        aria-pressed=${String(on)}
-        class="${BTN} min-h-11 ${on ? "border-amber-300 bg-amber-700/50" : ""}"
-        @click=${() => c.drawLine(m, g.id)}
-      >
-        ${GROUP_LINE_ICONS[m]} ${translateText(GROUP_LINE_KEYS[m])}
-      </button>`;
-    })}
-  </div>`;
+      data-ww-group-draw-label
+      class="mt-1 text-[11px] font-semibold text-sky-300"
+    >
+      ${translateText(PLANNER_KEYS.groupLines)}
+    </div>
+    <div
+      data-ww-group-draw=${g.id}
+      role="group"
+      aria-label=${translateText(PLANNER_KEYS.groupLines)}
+      class="grid grid-cols-3 gap-1"
+    >
+      ${GROUP_LINE_MODES.map((m) => {
+        const on = sel.group === g.id && sel.draw === m;
+        return html`<button
+          type="button"
+          data-ww-group-draw-mode=${m}
+          aria-pressed=${String(on)}
+          class="${BTN} min-h-11 ${on
+            ? "border-amber-300 bg-amber-700/50"
+            : ""}"
+          @click=${() => c.drawLine(m, g.id)}
+        >
+          ${GROUP_LINE_ICONS[m]} ${translateText(GROUP_LINE_KEYS[m])}
+        </button>`;
+      })}
+    </div>`;
 }
 
 /** ww162: the stock table's rows, for the supply line's days. */

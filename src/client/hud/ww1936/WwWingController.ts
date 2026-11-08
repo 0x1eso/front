@@ -325,7 +325,18 @@ export class WwWingController implements Controller {
     ).filter((p) => land.armies.get(p.army)?.owner === ctx.me);
     const hit = hitToken(mine, x, y, radius, null);
     if (hit === null) return null;
-    const p = mine.find((q) => q.army === hit);
+    // ww162: from zoom 6 an army stands as several division counters; its
+    // place here is the counter nearest the tap (the one the tap is on).
+    let p: (typeof mine)[number] | undefined;
+    let best = Infinity;
+    for (const q of mine) {
+      if (q.army !== hit) continue;
+      const d = (q.x - x) * (q.x - x) + (q.y - y) * (q.y - y);
+      if (d < best) {
+        best = d;
+        p = q;
+      }
+    }
     return p === undefined ? null : { army: hit, x: p.x, y: p.y };
   }
 

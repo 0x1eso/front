@@ -35,7 +35,10 @@ import {
   WwSelectArmyEvent,
 } from "../../../src/client/hud/ww1936/LandSelection";
 import "../../../src/client/hud/ww1936/WwArmyCard";
-import type { WwArmyCard } from "../../../src/client/hud/ww1936/WwArmyCard";
+import {
+  cardPlace,
+  type WwArmyCard,
+} from "../../../src/client/hud/ww1936/WwArmyCard";
 import { WwLandController } from "../../../src/client/hud/ww1936/WwLandController";
 import { SendWwOrderIntentEvent } from "../../../src/client/Transport";
 import { detail } from "./EconomyFixture";
@@ -518,5 +521,26 @@ describe("ww162 L5b: the HUD's helpers", () => {
     expect(shortSplit(field, 3, 50)).toEqual({ fronts: 50, training: 0 });
     expect(shortSplit(field, 4, 20)).toEqual({ fronts: 0, training: 20 });
     expect(shortSplit(undefined, 3, 20)).toEqual({ fronts: 0, training: 20 });
+  });
+});
+
+describe("ww162 integration: the card keeps clear of the panel's back chip", () => {
+  afterEach(() => {
+    document.body.innerHTML = "";
+  });
+
+  it("a stepped-aside panel's chip above the dock lifts the card", () => {
+    const at = (attr: string, top: number) => {
+      const el = document.createElement("div");
+      el.setAttribute(attr, "");
+      el.getBoundingClientRect = () =>
+        ({ top, width: 100, height: 40 }) as DOMRect;
+      document.body.appendChild(el);
+    };
+    const h = window.innerHeight;
+    at("data-ww-dock", h - 60);
+    const below = cardPlace().bottom;
+    at("data-ww-panel-chip", h - 100);
+    expect(cardPlace().bottom).toBe(below + 40);
   });
 });
