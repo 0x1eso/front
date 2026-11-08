@@ -27,6 +27,7 @@ import type { WwOrder } from "@openfront/engine-api/Schemas";
 import { COUNTRIES, CountryTag } from "@openfront/engine-api/ww1936/Countries";
 import { MAX_INFRA, WwTechId } from "@openfront/engine-api/ww1936/EconomyTypes";
 import {
+  type ArmyOrder,
   BattalionId,
   DIRECT_MERGE,
   type LandTerrain,
@@ -79,7 +80,10 @@ import { queuedInRegion } from "@openfront/engine-lib/ww1936/EconomyChecks";
 import {
   bestRing,
   borderChain,
+  type BorderGraph,
+  borderGraphOf,
   fallbackRings,
+  frontChainBetween,
   type Ring,
   RING_MIN_SAVE_PCT,
   splitByWeight,
@@ -147,7 +151,7 @@ import {
   pickMainSector,
 } from "./AiEffort";
 import { joinBattle } from "./Battles";
-import { meanWidthOf, zoneCap } from "./Fronts";
+import { gapsOf, meanWidthOf, zoneCap } from "./Fronts";
 import { canServe } from "./GeneralsRun";
 import { capitalRegion } from "./LandStartRun";
 import { enemyDivisionsIn } from "./Movement";
@@ -157,6 +161,10 @@ import {
   attackTarget,
   axisOf,
   enemyStrength,
+  freeRows,
+  hasGoal,
+  planAxis,
+  planTargets,
   predictAttack,
   predictAttackRange,
   targetDistances,
@@ -171,6 +179,50 @@ import type {
 } from "./WwLand";
 
 // ---- Constants (spec §14; the (내 판단) ones are marked) ----
+
+/**
+ * ww162 §4 step 2: the AI's use of the battle planner's lines, piece by
+ * piece. Each piece is on only when a 3-seed run to 1941-06 on the real map
+ * (WWEND001-003, historical AI) found it no worse than step 1 (today's
+ * orders); the others stay off (the owner: no re-balance now). Only tests
+ * and the lane's sim scripts change them.
+ * - frontLine (a), off: holdFront gives army_front_line for a stretch of
+ *   the border. Germany's border held 2-11 points worse in all 3 seeds.
+ * - fallbackStage (b), on: outnumbered over 1.2 ×, the best ring as an
+ *   auto fallback, a spare division per 4 ring regions.
+ * - goal (c), off: launch gives a broad army_goal, the main effort's
+ *   army_direct a spearhead. Germany held worse in all 3 seeds and lost a
+ *   third of its land in one (aggressive and balanced broad lines alike).
+ * - gapFill (d), on: a gap gets the freshest spare division of the nearest
+ *   army (division_move), released after 10 quiet days.
+ * - groupLines (e), off: AiCommand gives a group group_front_line and a
+ *   split group_goal. It needs (a) (and (c) for the goal); with (a) on,
+ *   Poland held out to 1941-02 in one seed.
+ */
+export const AI_STEP2 = {
+  frontLine: false,
+  fallbackStage: true,
+  goal: false,
+  gapFill: true,
+  groupLines: false,
+};
+
+/** ww162 §4 (c): at most this many regions in a broad offensive line (the region and its neighbours). */
+export const AI_GOAL_BROAD_MAX = 6;
+/**
+ * ww162 §4 (c): a broad line attacks from every region of the front, so
+ * each push is judged on the average (balanced); the effort's spearhead
+ * goes in aggressive, as step 1's plans and direct attacks did.
+ */
+export const AI_GOAL_BROAD_STANCE: Stance = "balanced";
+/** ww162 §4 (b): a front outnumbered over this, %, stages its fallback line (Design A §1.6: 1.2 ×). */
+export const AI_STAGE_PCT = 120;
+/** ww162 §4 (b): one spare division goes to the fallback line for each this many of its regions. */
+export const AI_STAGE_RING_PER = 4;
+/** ww162 §4 (d): a gap pin goes once its division has stood this many quiet days. */
+export const AI_GAP_QUIET_DAYS = 10;
+/** ww162 §4 (d): at most this many gaps filled a day. */
+export const AI_GAP_FILLS = 3;
 
 /** Spec §14.1: at peace an AI acts on every tenth day. */
 export const AI_PEACE_PERIOD_DAYS = 10;
@@ -1038,6 +1090,11 @@ export function aiLandTick(land: WwLand, smallID: number, day: number): void {
   ai.run();
 }
 
+/** The region a plan goes for first: ww162 an offensive line's first region, else its first target. */
+function firstTarget(o: ArmyOrder): number {
+  return hasGoal(o) ? o.goal![0] : o.targets[0];
+}
+
 /** A front: one enemy along one land-connected stretch of our side. */
 interface Front {
   enemy: number;
@@ -1251,6 +1308,8 @@ class AiDay {
   private gapMemo: number[] | null = null;
   /** ww91 rule 1: the one enemy of each land stretch that gets the offensive today. */
   private mainEnemy = new Map<number, number>();
+  /** ww162 §4 (a): the border graphs of the day, by owner × 65536 + enemy. */
+  private lineGraphs = new Map<number, BorderGraph>();
 
   constructor(
     readonly land: WwLand,
@@ -1538,6 +1597,7 @@ class AiDay {
     if (this.human && this.trains) this.judgeRoles();
     if (enemies.length > 0) this.fronts(enemies, garrisons);
     else if (!this.human) this.peacetime(garrisons);
+    if (AI_STEP2.gapFill) this.fillGaps();
     if (!this.human) this.relieve(garrisons);
     this.attacks();
     if (!this.human) this.syncSky();
@@ -2411,6 +2471,91 @@ class AiDay {
       const x = this.effortOf.get(a.id);
       if (x !== undefined) this.aim(a, x);
     }
+    if (AI_STEP2.fallbackStage) {
+      // ww162 §4 (b): over 1.2 × and not shortening yet, the best ring is
+      // set as the armies' fallback line (auto) and staged.
+      const stage =
+        atWar &&
+        !shared &&
+        ring === null &&
+        this.facingPower(f) * 100 > ours * AI_STAGE_PCT;
+      this.stageFallback(held, stage ? this.bestRingOf(f, outnumbered) : null);
+    }
+  }
+
+  /**
+   * ww162 §4 (b), Design A §1.6: `ring` (null: none) becomes the fallback
+   * line (auto) of each of `armies` on a front or plan, and one spare
+   * division goes to it for each AI_STAGE_RING_PER ring regions (a pin, the
+   * freshest of an army with more than a division a region of its front).
+   * With no ring the AI's fallback lines go, and their pins with them.
+   */
+  private stageFallback(
+    armies: readonly Army[],
+    ring: readonly number[] | null,
+  ): void {
+    const want = ring === null ? [] : [...ring].sort((x, y) => x - y);
+    const line = want.slice(0, WW_ZONE_MAX);
+    const onRing = new Set(line);
+    const staged = new Set<number>();
+    for (const a of armies) {
+      const o = a.order;
+      if (o.kind !== "front" && o.kind !== "plan") continue;
+      const had = o.fallback ?? [];
+      // Pins on the old line that the new one leaves out go.
+      const drop = a.pins
+        .filter((p) => had.includes(p[1]) && !onRing.has(p[1]))
+        .map((p) => p[0]);
+      if (drop.length > 0) {
+        this.issue({ kind: "division_release", army: a.id, divisions: drop });
+      }
+      for (const p of a.pins) if (onRing.has(p[1])) staged.add(p[1]);
+      const same =
+        had.length === line.length && had.every((r, i) => r === line[i]);
+      if (!same || (line.length > 0 && a.order.fbManual === true)) {
+        this.issue({
+          kind: "army_fallback",
+          army: a.id,
+          regions: line,
+          manual: false,
+        });
+      }
+    }
+    const n = Math.floor(line.length / AI_STAGE_RING_PER);
+    if (n === 0) return;
+    const t = this.land.divisions;
+    for (let i = 0; i < n; i++) {
+      const to = line[Math.floor(((2 * i + 1) * line.length) / (2 * n))];
+      if (staged.has(to)) continue;
+      let best = -1;
+      let bestArmy: Army | null = null;
+      for (const a of armies) {
+        const o = a.order;
+        if (o.kind !== "front" && o.kind !== "plan") continue;
+        if (o.kind === "plan" && o.executing) continue;
+        const free = freeRows(this.land, a);
+        if (free.length <= Math.max(1, a.front.length)) continue;
+        for (const r of free) {
+          if (t.mode[r] !== MOVE_NONE || t.battle[r] !== 0) continue;
+          if (
+            best < 0 ||
+            t.org[r] > t.org[best] ||
+            (t.org[r] === t.org[best] && t.id[r] < t.id[best])
+          ) {
+            best = r;
+            bestArmy = a;
+          }
+        }
+      }
+      if (best < 0 || bestArmy === null) return;
+      const order: WwOrder = {
+        kind: "division_move",
+        army: bestArmy.id,
+        divisions: [t.id[best]],
+        region: to,
+      };
+      if (this.issue(order)) staged.add(to);
+    }
   }
 
   /**
@@ -2433,7 +2578,7 @@ class AiDay {
     const back = (a: Army) => {
       const o = a.order;
       if (o.kind === "front") return this.behind(a, onLine);
-      return this.lost(o.kind === "plan" ? o.targets[0] : 0);
+      return this.lost(o.kind === "plan" ? firstTarget(o) : 0);
     };
     const rank = (a: Army) =>
       (back(a) ? 0 : 2) + (this.shock(a) === judged ? 1 : 0);
@@ -3376,8 +3521,13 @@ class AiDay {
   /** The army's plan waits on `x`, unless it runs already (a walk finishes first). */
   private aim(a: Army, x: number): void {
     const o = a.order;
-    if (o.kind === "plan" && (o.executing || o.targets[0] === x)) return;
-    this.issue({
+    if (o.kind === "plan" && (o.executing || firstTarget(o) === x)) return;
+    // ww162 §4 (c): the effort's waiting plan is a spearhead at its sector.
+    if (AI_STEP2.goal) {
+      this.goalPlan(a, [x], true, false);
+      return;
+    }
+    this.issuePlan(a, {
       kind: "army_plan",
       army: a.id,
       targets: [x],
@@ -3576,8 +3726,6 @@ class AiDay {
     divisions: number,
     outnumbered: boolean,
   ): number[] | null {
-    const land = this.land;
-    const comp = this.comp();
     const onBorder = new Set(f.border);
     const per = outnumbered ? AI_OUTNUMBERED_PER_REGION : 1;
     const held = new Set<number>();
@@ -3596,6 +3744,13 @@ class AiDay {
       return null;
     }
     if (onRing) return heldList;
+    return this.bestRingOf(f, outnumbered);
+  }
+
+  /** The best ring behind front `f` (aiBestRing), ascending; null when none saves enough. */
+  private bestRingOf(f: Front, outnumbered: boolean): number[] | null {
+    const land = this.land;
+    const comp = this.comp();
     // ww162: the rings are lib FrontRules' (the screen's [추천] shares them).
     const set = fallbackRings(
       land,
@@ -3671,6 +3826,39 @@ class AiDay {
     const there =
       o.enemy === f.enemy &&
       (o.kind === "front" || (o.kind === "plan" && !defend));
+    // ww162 §4 (a): a stretch of the border is held as a front line, which
+    // follows the border between the AI's days. A plan keeps its zone (a
+    // front line would end it); a ring or a scattered zone stays a zone.
+    if (AI_STEP2.frontLine && (!there || o.kind === "front")) {
+      const ends = this.lineEnds(a, f.enemy, zone);
+      if (ends !== null) {
+        // (e): a group holding a front line cuts it among its armies itself.
+        if (AI_STEP2.groupLines && this.groupCuts(a, f.enemy)) return;
+        if (this.giveLine(a, f.enemy, ends, zone)) return;
+      }
+    }
+    if (AI_STEP2.goal && there && hasGoal(o)) {
+      // (c): a zone order would drop the offensive line: it is given again.
+      const now = o.zone;
+      if (now.length === zone.length && now.every((r, i) => r === zone[i])) {
+        return;
+      }
+      const goal = o.goal!.filter((r) =>
+        this.land.isEnemy(this.me, this.land.controller[r]),
+      );
+      const spear = o.spear === true;
+      const stance = o.stance;
+      if (!this.issue({ kind: "army_zone", army: a.id, regions: zone })) return;
+      const order: WwOrder = {
+        kind: "army_goal",
+        army: a.id,
+        regions: goal,
+        spear,
+        stance,
+      };
+      if (goal.length === 0 || !this.issue(order)) this.toDefend(a);
+      return;
+    }
     if (!there) {
       const anchor = this.nearestIn(f.border, zone[0]);
       const order: WwOrder = {
@@ -3686,6 +3874,210 @@ class AiDay {
       return;
     }
     this.issue({ kind: "army_zone", army: a.id, regions: zone });
+  }
+
+  /**
+   * ww162 §4 (a): the ends of `zone` (ascending) as a front line against
+   * `enemy`: its two tips (regions touching at most one other of it), when
+   * frontChainBetween joins them through exactly the zone; null otherwise.
+   */
+  private lineEnds(
+    a: Army,
+    enemy: number,
+    zone: readonly number[],
+  ): [number, number] | null {
+    if (zone.length === 0 || enemy === 0) return null;
+    const land = this.land;
+    const set = new Set(zone);
+    let tips: number[];
+    if (zone.length === 1) {
+      tips = [zone[0], zone[0]];
+    } else {
+      tips = zone.filter((r) => {
+        const near = new Set<number>();
+        for (const e of land.scenario.edgesOf(r)) {
+          if (set.has(e.to) && e.to !== r) near.add(e.to);
+        }
+        return near.size <= 1;
+      });
+      if (tips.length !== 2) return null;
+    }
+    const chain = this.lineChainOf(a, enemy, tips[0], tips[1]);
+    if (chain.length !== set.size || !chain.every((r) => set.has(r))) {
+      return null;
+    }
+    return [tips[0], tips[1]];
+  }
+
+  /** frontChainBetween for army `a` (its side's owner), the border graph shared within the day. */
+  private lineChainOf(a: Army, enemy: number, x: number, y: number): number[] {
+    const me = this.land.ownerForSides(a);
+    const key = me * 65_536 + enemy;
+    let g = this.lineGraphs.get(key);
+    if (g === undefined) {
+      g = borderGraphOf(this.land, me, enemy);
+      this.lineGraphs.set(key, g);
+    }
+    return frontChainBetween(this.land, me, enemy, x, y, g);
+  }
+
+  /** ww162 §4 (e): army `a` is on a line in a group whose front line against `enemy` cuts its sector. */
+  private groupCuts(a: Army, enemy: number): boolean {
+    const o = a.order;
+    if (a.group === 0 || o.kind !== "front" || o.enemy !== enemy) return false;
+    if (o.ends === undefined) return false;
+    const g = this.land.ww.depth.groups.find(
+      (x) => x.id === a.group && x.owner === a.owner,
+    );
+    return g !== undefined && g.ends !== undefined && g.enemy === enemy;
+  }
+
+  /** The chain an army's front line holds today; [] without one. */
+  private lineChain(a: Army): number[] {
+    const o = a.order;
+    if (o.ends === undefined) return [];
+    return this.lineChainOf(a, o.enemy, o.ends[0], o.ends[1]);
+  }
+
+  /**
+   * ww162 §4 (a): army_front_line when the army's line differs from `zone`
+   * (another enemy, no line yet, or a chain of other regions). False when
+   * the zone is better given as a zone today: a front of ours that moves off
+   * every region it held would lose its readiness to a new line (setFront's
+   * rule), where a zone keeps it; the next day the line starts on it.
+   */
+  private giveLine(
+    a: Army,
+    enemy: number,
+    ends: [number, number],
+    zone: readonly number[],
+  ): boolean {
+    const o = a.order;
+    if (o.kind === "front" && o.enemy === enemy) {
+      if (o.ends !== undefined) {
+        const now = this.lineChain(a);
+        if (now.length === zone.length && now.every((r) => zone.includes(r))) {
+          return true;
+        }
+      }
+      if (
+        a.planBp > 0 &&
+        !a.front.includes(ends[0]) &&
+        !a.front.includes(ends[1])
+      ) {
+        return false;
+      }
+    }
+    return this.issue({ kind: "army_front_line", army: a.id, ends, enemy });
+  }
+
+  /**
+   * A plan order (army_plan, army_direct) for army `a`. ww162 §4 (a): it
+   * drops a front line, so an army on one keeps the line's chain as its
+   * zone (step 1's plan held its zone too).
+   */
+  private issuePlan(a: Army, order: WwOrder): boolean {
+    const keep =
+      a.order.ends !== undefined && a.order.zone.length === 0
+        ? this.lineChain(a)
+        : [];
+    if (!this.issue(order)) return false;
+    const o = a.order;
+    if (keep.length > 0 && o.ends === undefined && o.zone.length === 0) {
+      const regions = keep.sort((x, y) => x - y).slice(0, WW_ZONE_MAX);
+      this.issue({ kind: "army_zone", army: a.id, regions });
+    }
+    return true;
+  }
+
+  /**
+   * ww162 §4 (d), Design A §1.6: a gap the armies' gap rule left open (a
+   * border region facing an enemy division where none of our side stands or
+   * is headed, after the day's layout) gets the freshest spare division of
+   * the nearest army as a pin; a gap pin goes once its division has stood
+   * AI_GAP_QUIET_DAYS quiet days there. A pin on the fallback line is (b)'s.
+   */
+  private fillGaps(): void {
+    const land = this.land;
+    const sc = land.scenario;
+    const t = land.divisions;
+    const armies = this.armies().filter(
+      (a) => land.armies.has(a.id) && !this.defendOnly(a),
+    );
+    for (const a of armies) {
+      if (a.pins.length === 0) continue;
+      const fb = a.order.fallback ?? [];
+      const done = a.pins
+        .filter(([id, r]) => {
+          if (fb.includes(r)) return false;
+          const row = t.rowOf(id);
+          return (
+            row >= 0 &&
+            t.region[row] === r &&
+            t.mode[row] === MOVE_NONE &&
+            t.battle[row] === 0 &&
+            t.stillDays[row] >= AI_GAP_QUIET_DAYS
+          );
+        })
+        .map((p) => p[0]);
+      if (done.length > 0) {
+        this.issue({ kind: "division_release", army: a.id, divisions: done });
+      }
+    }
+    if (this.atWar.length === 0) return;
+    const gaps = gapsOf(land, this.me).filter(
+      (r) =>
+        land.controller[r] === this.me &&
+        sc
+          .edgesOf(r)
+          .some(
+            (e) =>
+              this.atWar.includes(land.controller[e.to]) &&
+              enemyDivisionsIn(land, this.me, e.to) > 0,
+          ),
+    );
+    let filled = 0;
+    const comp = this.comp();
+    for (const gap of gaps.sort((x, y) => x - y)) {
+      if (filled >= AI_GAP_FILLS) return;
+      let near: Army | null = null;
+      let nearKm = Infinity;
+      for (const a of armies) {
+        const o = a.order;
+        if (o.kind !== "front" && o.kind !== "plan") continue;
+        if ((o.kind === "plan" && o.executing) || a.front.length === 0)
+          continue;
+        // Over our side's land only: an army on another stretch can't walk there.
+        if (comp[a.front[0]] !== comp[gap]) continue;
+        if (freeRows(land, a).length <= a.front.length) continue;
+        let km = Infinity;
+        for (const r of a.front) km = Math.min(km, sc.regionKm(gap, r));
+        if (km < nearKm || (km === nearKm && near !== null && a.id < near.id)) {
+          near = a;
+          nearKm = km;
+        }
+      }
+      if (near === null) return;
+      let best = -1;
+      for (const r of freeRows(land, near)) {
+        if (t.mode[r] !== MOVE_NONE || t.battle[r] !== 0) continue;
+        if (
+          best < 0 ||
+          t.org[r] > t.org[best] ||
+          (t.org[r] === t.org[best] && t.id[r] < t.id[best])
+        ) {
+          best = r;
+        }
+      }
+      if (best < 0) continue;
+      const order: WwOrder = {
+        kind: "division_move",
+        army: near.id,
+        divisions: [t.id[best]],
+        region: gap,
+      };
+      if (this.issue(order)) filled++;
+    }
   }
 
   /** The region of `list` nearest `to` (itself when on it; ties: the smaller id). */
@@ -3997,8 +4389,10 @@ class AiDay {
         };
         if (stop()) {
           // ww81 C1: a direct attack ends for good; Defend keeps the zone.
-          if (o.direct === true) this.toDefend(a);
-          else this.issue({ kind: "army_execute", army: a.id, on: false });
+          // ww162 §4 (c): so does the effort's spearhead.
+          if (o.direct === true || (hasGoal(o) && o.spear === true)) {
+            this.toDefend(a);
+          } else this.issue({ kind: "army_execute", army: a.id, on: false });
         }
         continue;
       }
@@ -4120,7 +4514,7 @@ class AiDay {
     for (const a of ready) {
       if (a.order.kind !== "plan" || !this.ripe(a, enemy, 0)) continue;
       if (fixed.some((s) => s.a === a) || this.effortOf.has(a.id)) continue;
-      const r = read.get(a.order.targets[0]);
+      const r = read.get(firstTarget(a.order));
       if (r === undefined || r.midPm * 100 < bar.midPm * AI_GATE_GIVE_UP_PCT) {
         this.toDefend(a);
       }
@@ -4163,13 +4557,18 @@ class AiDay {
   private legsOf(a: Army): AiLeg[] {
     const land = this.land;
     const sc = land.scenario;
-    const { enemy, targets } = a.order;
+    const o = a.order;
+    const enemy = o.enemy;
+    // ww162 §4 (c): an offensive line's regions are its targets.
+    const targets = hasGoal(o) ? planTargets(o) : o.targets;
     const zone = this.zoneOf(a).filter((f) =>
       sc.edgesOf(f).some((e) => land.controller[e.to] === enemy),
     );
     if (zone.length === 0) return [];
     const dist = targetDistances(land, a, targets);
-    const axis = axisOf(zone, targets.length > 0 ? dist : null);
+    const axis = hasGoal(o)
+      ? planAxis(zone, o, dist)
+      : axisOf(zone, targets.length > 0 ? dist : null);
     const legs: AiLeg[] = [];
     for (const f of axis) {
       const x = attackTarget(land, a, this.me, f, dist, false);
@@ -4360,7 +4759,12 @@ class AiDay {
       r.midPm < AI_PURSUIT_RATIO_PM
     ) {
       if (!pocket && !this.massed(s)) return;
-      this.issue({
+      // ww162 §4 (c): the main effort's direct attack is a spearhead.
+      if (AI_STEP2.goal) {
+        this.goalPlan(s.a, [x], true, true);
+        return;
+      }
+      this.issuePlan(s.a, {
         kind: "army_direct",
         army: s.a.id,
         targets: [x],
@@ -4373,11 +4777,30 @@ class AiDay {
       return;
     }
     const planned =
-      o.kind === "plan" && o.targets[0] === x && !this.effortOf.has(s.a.id);
+      o.kind === "plan" && firstTarget(o) === x && !this.effortOf.has(s.a.id);
     if (planned) {
       const now =
         r.free || pocket || r.midPm >= AI_PURSUIT_RATIO_PM || this.massed(s);
-      this.plan(s.a, o.targets, AI_STANCE, now);
+      if (hasGoal(o)) this.goalPlan(s.a, o.goal!, o.spear === true, now);
+      else this.plan(s.a, o.targets, AI_STANCE, now);
+      return;
+    }
+    if (AI_STEP2.goal) {
+      // ww162 §4 (c): a broad offensive line: the region and the enemy's
+      // regions next to it (a walk: the empty ones only), 1-2 deep.
+      const goal = [x];
+      for (const e of [...sc.edgesOf(x)].sort((p, q) => p.to - q.to)) {
+        const y = e.to;
+        if (goal.includes(y) || land.controller[y] !== o.enemy) continue;
+        if (r.free && enemyDivisionsIn(land, this.me, y) > 0) continue;
+        if (goal.length < AI_GOAL_BROAD_MAX) goal.push(y);
+      }
+      this.goalPlan(
+        s.a,
+        goal,
+        false,
+        r.free || pocket || r.midPm >= AI_PURSUIT_RATIO_PM,
+      );
       return;
     }
     const zone = this.zoneOf(s.a);
@@ -4413,6 +4836,19 @@ class AiDay {
   /** A plan that has lost its reason: Defend on the same zone; its readiness stays. */
   private toDefend(a: Army): void {
     const o = a.order;
+    if (hasGoal(o)) {
+      // ww162 §1.2: an empty offensive line: the army keeps its front.
+      const stance = o.stance;
+      const order: WwOrder = {
+        kind: "army_goal",
+        army: a.id,
+        regions: [],
+        spear: false,
+        stance,
+      };
+      this.issue(order);
+      return;
+    }
     const zone = [...o.zone];
     const list = this.zoneOf(a);
     const anchor = list.includes(o.anchor) ? o.anchor : list[0];
@@ -4441,9 +4877,47 @@ class AiDay {
       o.targets.length === targets.length &&
       o.targets.every((r, i) => r === targets[i]);
     if (!same) {
-      if (!this.issue({ kind: "army_plan", army: a.id, targets, stance })) {
+      const order: WwOrder = { kind: "army_plan", army: a.id, targets, stance };
+      if (!this.issuePlan(a, order)) {
         return;
       }
+    }
+    if (execute) this.issue({ kind: "army_execute", army: a.id, on: true });
+  }
+
+  /**
+   * ww162 §4 (c): army_goal when the line (its enemy-held regions), the kind
+   * or the stance change, then (`execute`) execute.
+   */
+  private goalPlan(
+    a: Army,
+    regions: readonly number[],
+    spear: boolean,
+    execute: boolean,
+  ): void {
+    const land = this.land;
+    const goal = regions.filter((r) =>
+      land.isEnemy(this.me, land.controller[r]),
+    );
+    if (goal.length === 0) return;
+    const stance = spear ? AI_STANCE : AI_GOAL_BROAD_STANCE;
+    const o = a.order;
+    const same =
+      o.kind === "plan" &&
+      hasGoal(o) &&
+      o.stance === stance &&
+      (o.spear === true) === spear &&
+      o.goal!.length === goal.length &&
+      o.goal!.every((r, i) => r === goal[i]);
+    if (!same) {
+      const order: WwOrder = {
+        kind: "army_goal",
+        army: a.id,
+        regions: goal,
+        spear,
+        stance,
+      };
+      if (!this.issue(order)) return;
     }
     if (execute) this.issue({ kind: "army_execute", army: a.id, on: true });
   }

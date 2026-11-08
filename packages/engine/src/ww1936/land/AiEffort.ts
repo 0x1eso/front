@@ -186,7 +186,12 @@ export function pickMainSector(
  * sector other AI code reads; the orders are all the memory an effort has.
  */
 export function effortTarget(o: ArmyOrder): number {
-  if (o.kind !== "plan" || o.targets.length === 0) return 0;
+  if (o.kind !== "plan") return 0;
+  // ww162 §4 (c): an offensive line waiting, or the effort's spearhead.
+  if (o.goal !== undefined && o.goal.length > 0) {
+    return o.spear === true || !o.executing ? o.goal[0] : 0;
+  }
+  if (o.targets.length === 0) return 0;
   return o.direct === true || !o.executing ? o.targets[0] : 0;
 }
 
