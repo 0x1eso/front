@@ -2,13 +2,27 @@
 // card per group (marshal, abilities, traits), its armies, and [Front],
 // [Execute all] (two taps), [Auto], [Disband] (two taps). Rendered by
 // WwArmyPanel, which owns the two-tap state and the order sending.
+// ww162 (Design A §3, design ww162 §1): the group's supply line, summed over
+// its armies, and the marshal's lines with the offensive line's split.
 import type { WwOrder } from "@openfront/engine-api/Schemas";
-import { WW_MAX_ARMY_DIVISIONS } from "@openfront/engine-api/ww1936/LandTypes";
+import type { WwArmyGroupData } from "@openfront/engine-api/ww1936/DepthTypes";
+import {
+  type ArmySummary,
+  WW_MAX_ARMY_DIVISIONS,
+} from "@openfront/engine-api/ww1936/LandTypes";
 import { html, nothing, TemplateResult } from "lit";
 import { translateText } from "../../Utils";
 import type { WwLandView } from "../../view/WwLandView";
+import {
+  ARMY_HUD_KEYS,
+  groupShort,
+  meanStrengthPm,
+  supplyLine,
+  supplyWords,
+} from "./ArmyHudModel";
 import { DoctrineModel, GroupRow } from "./DoctrineModel";
-import { armyName, armyStatus, groupZoneOf } from "./LandModel";
+import { stockTable, type StockTableRow } from "./EconomyModel";
+import { armyName, armyStatus, groupZoneOf, regionName } from "./LandModel";
 import { landSelectionOf } from "./LandSelection";
 import { groupColor, multiSelectOf } from "./MultiSelect";
 import type { WwGame } from "./WorldWarModel";
@@ -23,12 +37,132 @@ export interface GroupTabCtx {
   confirmTap: (key: string, act: () => void) => void;
   /** The map taps pick the front now: a short screen closes the drawer. */
   onFront: () => void;
+  /** ww162: the supply line was tapped: the industry drawer lights these need groups. */
+  lit: (groups: readonly number[]) => void;
+}
+
+/** ww162: the stock table's rows, for the supply line's days. */
+function stockRowsOf(c: GroupTabCtx): StockTableRow[] {
+  const detail = c.game.wwEconomy?.()?.detail(c.me) ?? null;
+  if (detail === null) return [];
+  return stockTable(
+    detail,
+    c.view.details.get(c.me)?.equipShort ?? null,
+    c.game.wwDepth?.()?.detail(c.me)?.designs ?? [],
+  );
+}
+
+/** ww162 (Design A §3): the group's supply line, its armies' shortages summed. */
+function renderSupply(
+  c: GroupTabCtx,
+  g: GroupRow,
+  armies: readonly ArmySummary[],
+  rows: () => StockTableRow[],
+): TemplateResult | typeof nothing {
+  const short = groupShort(armies);
+  if (short.length === 0) return nothing;
+  const line = supplyLine(short, rows());
+  if (line === null) return nothing;
+  const w = supplyWords(line, meanStrengthPm(armies));
+  return html`<button
+    type="button"
+    data-ww-group-short=${g.id}
+    class="mt-1 flex min-h-10 w-full flex-wrap items-center gap-x-1.5 rounded-md text-left text-white/80 hover:bg-white/10"
+    @click=${() => c.lit(line.short.map(([n]) => n))}
+  >
+    <span>${w.strength}</span>
+    <span aria-hidden="true">·</span>
+    <span class="text-amber-200">${w.short}</span>
+    <span aria-hidden="true">·</span>
+    <span class=${w.amber ? "font-semibold text-amber-300" : ""}
+      >${w.days}</span
+    >
+  </button>`;
+}
+
+/**
+ * ww162 (design §1.1-1.3): the marshal's lines, and for an offensive line
+ * the split: each army its own sector, or every army the whole line
+ * ([한 점 집중]); a change re-sends group_goal.
+ */
+function renderLines(
+  c: GroupTabCtx,
+  data: WwArmyGroupData | undefined,
+): TemplateResult | typeof nothing {
+  if (data === undefined) return nothing;
+  const sc = c.view.scenario;
+  const goal = data.goal ?? [];
+  const fallback = data.fallback ?? [];
+  if (data.ends === undefined && goal.length === 0 && fallback.length === 0) {
+    return nothing;
+  }
+  const split = data.split === true;
+  const setSplit = (on: boolean) => {
+    if (on === split) return;
+    c.send({
+      kind: "group_goal",
+      group: data.id,
+      regions: [...goal],
+      spear: data.spear === true,
+      split: on,
+    });
+  };
+  const chip = (on: boolean) =>
+    html`<button
+      type="button"
+      data-ww-group-split=${on ? "on" : "off"}
+      aria-pressed=${String(split === on)}
+      class="${BTN} ${split === on ? "border-amber-300 bg-amber-700/50" : ""}"
+      @click=${() => setSplit(on)}
+    >
+      ${translateText(on ? ARMY_HUD_KEYS.splitOn : ARMY_HUD_KEYS.splitOff)}
+    </button>`;
+  return html`<div data-ww-group-lines class="mt-1 flex flex-col gap-1">
+    <div class="flex flex-wrap gap-x-2 text-white/80">
+      ${data.ends !== undefined
+        ? html`<span data-ww-line="front" class="text-sky-300"
+            >${translateText(ARMY_HUD_KEYS.lineFront, {
+              a: regionName(sc, data.ends[0]),
+              b: regionName(sc, data.ends[1]),
+            })}</span
+          >`
+        : nothing}
+      ${goal.length > 0
+        ? html`<span data-ww-line="goal" class="text-amber-200"
+            >⚔
+            ${translateText(
+              data.spear === true
+                ? ARMY_HUD_KEYS.lineSpear
+                : ARMY_HUD_KEYS.lineGoal,
+              { n: goal.length },
+            )}</span
+          >`
+        : nothing}
+      ${fallback.length > 0
+        ? html`<span data-ww-line="fallback"
+            >↩
+            ${translateText(ARMY_HUD_KEYS.lineFallback, {
+              n: fallback.length,
+            })}</span
+          >`
+        : nothing}
+    </div>
+    ${goal.length > 0
+      ? html`<div role="radiogroup" class="grid grid-cols-2 gap-1">
+          ${chip(true)} ${chip(false)}
+        </div>`
+      : nothing}
+  </div>`;
 }
 
 const BTN =
   "min-h-10 rounded-md border border-white/15 bg-white/10 px-2 text-xs font-semibold hover:bg-white/20";
 
-function renderGroup(c: GroupTabCtx, g: GroupRow): TemplateResult {
+function renderGroup(
+  c: GroupTabCtx,
+  g: GroupRow,
+  rows: () => StockTableRow[],
+): TemplateResult {
   const armies = g.armies
     .map((id) => c.view.armies.get(id))
     .filter((a) => a !== undefined);
@@ -58,6 +192,14 @@ function renderGroup(c: GroupTabCtx, g: GroupRow): TemplateResult {
     <div data-ww-group-zone=${zone.length} class="mt-1 text-white/80">
       ${translateText("ww1936.ag.zone", { n: zone.length })}
     </div>
+    ${renderSupply(c, g, armies, rows)}
+    ${renderLines(
+      c,
+      c.game
+        .wwDepth?.()
+        ?.armyGroups()
+        .find((d) => d.id === g.id),
+    )}
     <div class="mt-1" data-ww-group-fm>
       <span class="font-semibold">${g.fmName}</span>
       <span class="text-white/70"
@@ -176,12 +318,15 @@ function renderGroup(c: GroupTabCtx, g: GroupRow): TemplateResult {
 export function renderGroupTab(c: GroupTabCtx): TemplateResult {
   const groups = new DoctrineModel(c.game).groups();
   const multi = multiSelectOf(landSelectionOf(c.game));
+  // The stock table is built once, and only for a group short of something.
+  let stock: StockTableRow[] | null = null;
+  const rows = () => (stock ??= stockRowsOf(c));
   return html`<div data-ww-groups class="flex flex-col gap-1.5 pt-2">
     ${groups.length === 0
       ? html`<p data-ww-empty class="m-0 text-xs text-white/60">
           ${translateText("ww1936.ag.empty")}
         </p>`
-      : groups.map((g) => renderGroup(c, g))}
+      : groups.map((g) => renderGroup(c, g, rows))}
     ${multi.attackGroup !== null
       ? html`<p data-ww-attack-hint class="m-0 text-xs text-red-300">
           ${translateText("ww1936.ag.attack_hint")}
