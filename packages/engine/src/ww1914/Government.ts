@@ -6,11 +6,13 @@ import type {
 import { world } from "@openfront/engine-api/ww1914/WorldDsl";
 import { GW_ELECTIONS, GW_GOV, GwGovRow } from "./GovTable";
 import type { GreatWar } from "./GreatWar";
+import { plotReset, plotRow, plotsStep } from "./Plots";
 import { holds, SceneCtx, sceneOf } from "./SceneRun";
 import { clampTo, isLongChapter, monthsOf, reason } from "./World";
 
+/** A threat's row: the table's, or a plot's (S2, from the house content). */
 const rowOf = (id: string): GwGovRow | null =>
-  GW_GOV.find((r) => r.id === id) ?? null;
+  GW_GOV.find((r) => r.id === id) ?? plotRow(id);
 
 const lastAt = (row: GwGovRow) => row.steps[row.steps.length - 1].at;
 
@@ -22,7 +24,7 @@ const SOON_CHAPTERS = 3;
 const chaptersOf = (gw: GreatWar, months: number) =>
   Math.ceil(months / monthsOf(gw));
 
-function entry(seat: GwSeatState, id: string): GwGov {
+export function govEntry(seat: GwSeatState, id: string): GwGov {
   let e = seat.gov.find((x) => x.id === id);
   if (e === undefined) {
     e = { id, heat: 0, step: 0, rest: -1, beaten: 0 };
@@ -44,7 +46,7 @@ export function govHeatBy(
 ): void {
   const row = rowOf(id);
   if (row === null) return;
-  const e = entry(seat, id);
+  const e = govEntry(seat, id);
   e.heat = clampTo(e.heat + delta, 0, lastAt(row));
   // Cooled below the last step, it can climb to that scene again, after a
   // breath: a crisis met isn't the same crisis next month.
@@ -58,8 +60,9 @@ export function govHeatBy(
 /** Its row's paper comes in a few chapters, once, and isn't called again. */
 export function govSoon(gw: GreatWar, seat: GwSeatState, id: string): void {
   const row = rowOf(id);
-  if (row === null || row.steps.length < 2) return;
-  const e = entry(seat, id);
+  // A plot's steps come by its heat and the fair warning, never sooner.
+  if (row === null || row.steps.length < 2 || plotRow(id) !== null) return;
+  const e = govEntry(seat, id);
   e.step = Math.max(e.step, 2);
   call(seat, row.steps[1].scene, gw.s.chapter + SOON_CHAPTERS);
 }
@@ -76,11 +79,12 @@ function call(seat: GwSeatState, scene: string, chapter: number): void {
 export function govBeaten(gw: GreatWar, seat: GwSeatState, id: string): void {
   const row = rowOf(id);
   if (row === null) return;
-  const e = entry(seat, id);
+  const e = govEntry(seat, id);
   e.heat = 0;
   e.step = 0;
   e.beaten++;
   e.rest = gw.s.chapter + chaptersOf(gw, row.rest);
+  plotReset(gw, seat, id);
   seat.memory.push({
     key: `gov_held_${id}`,
     who: null,
@@ -90,7 +94,7 @@ export function govBeaten(gw: GreatWar, seat: GwSeatState, id: string): void {
 }
 
 /** Whether this row can run for this seat now. */
-function live(ctx: SceneCtx, row: GwGovRow): boolean {
+export function govLive(ctx: SceneCtx, row: GwGovRow): boolean {
   const { gw, seat } = ctx;
   if (row.tag !== seat.tag) return false;
   if (row.unless !== undefined && seat.flags.includes(row.unless)) return false;
@@ -101,7 +105,7 @@ function live(ctx: SceneCtx, row: GwGovRow): boolean {
 function rowStep(ctx: SceneCtx, row: GwGovRow): void {
   const { gw, seat } = ctx;
   const s = gw.s;
-  const e = entry(seat, row.id);
+  const e = govEntry(seat, row.id);
   if (s.chapter < e.rest) return;
   const by = row.feeds
     .filter((f) => holds(ctx, f.when))
@@ -133,7 +137,8 @@ export function govStep(gw: GreatWar): void {
   for (const seat of gw.s.seats) {
     if (seat.memoir !== null) continue;
     const ctx: SceneCtx = { gw, seat, cast: {} };
-    for (const row of GW_GOV) if (live(ctx, row)) rowStep(ctx, row);
+    for (const row of GW_GOV) if (govLive(ctx, row)) rowStep(ctx, row);
+    plotsStep(gw, seat);
   }
 }
 
@@ -165,8 +170,9 @@ export function pollOf(ctx: SceneCtx, id: string): GwPollView | null {
 export function govView(gw: GreatWar, seat: GwSeatState): GwGovView[] {
   const ctx: SceneCtx = { gw, seat, cast: {} };
   return seat.gov.flatMap((e) => {
-    const row = rowOf(e.id);
-    if (row === null || !live(ctx, row) || e.heat === 0) return [];
+    // A plot never shows here: the seat knows it only by its signs.
+    const row = GW_GOV.find((r) => r.id === e.id) ?? null;
+    if (row === null || !govLive(ctx, row) || e.heat === 0) return [];
     return [
       {
         id: e.id,

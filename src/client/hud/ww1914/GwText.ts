@@ -8,6 +8,10 @@ import {
   GwUnknown,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
+import type {
+  GwAskView,
+  GwFileView,
+} from "@openfront/engine-api/ww1914/GwHouse";
 import { gwBrief, type GwPack } from "@openfront/engine-api/ww1914/GwPack";
 import type {
   GwCardView,
@@ -278,7 +282,11 @@ export function backText(
 
 /** A promise as the people screen lists it. */
 export function promiseText(pack: GwPack | null, p: GwPromiseView): string {
-  const own = pack?.promises?.[p.key] ?? houseDeal(pack, p.key);
+  // A yes to an ally's ask is filed by the ask's name (ww158).
+  const ask = p.key.startsWith("ask_")
+    ? pack?.asks?.[p.key.slice(4)]?.name
+    : undefined;
+  const own = pack?.promises?.[p.key] ?? ask ?? houseDeal(pack, p.key);
   return withWho(own ?? p.key, pack, p.who);
 }
 
@@ -300,6 +308,26 @@ function houseDeal(pack: GwPack | null, key: string): string | null {
       : pack.promises?.house_deal;
   if (line === undefined) return null;
   return line.replace(/\{bill\}/g, bill?.title ?? "");
+}
+
+/** A file's line in the 서류철: the pack's words for it, else the kind's. */
+export function fileLine(pack: GwPack | null, f: GwFileView): string {
+  return (
+    pack?.weak?.[f.who]?.[f.weak] ?? translateText(`gw.dossier.weak.${f.weak}`)
+  );
+}
+
+/** Where a file stands: held, used, burnt (it was false), out (a scandal). */
+export function fileState(f: GwFileView): string {
+  if (f.end !== null) return translateText(`gw.dossier.end.${f.end}`);
+  return f.used > 0
+    ? translateText("gw.dossier.used", { n: f.used })
+    : translateText("gw.dossier.held");
+}
+
+/** An ally's ask by its pack name. */
+export function askName(pack: GwPack | null, a: GwAskView): string {
+  return pack?.asks?.[a.id]?.name ?? a.id;
 }
 
 /**
@@ -350,7 +378,7 @@ export function endingTitle(id: string): string {
   return textOrNull(`gw.ending.${id}`) ?? translateText("gw.ui.ending_default");
 }
 
-const country = (tag: string) => translateText(`gw.country.${tag}`);
+export const country = (tag: string) => translateText(`gw.country.${tag}`);
 
 const theatreName = (t: GwTheatre) => translateText(`gw.theatre.${t}`);
 
@@ -403,9 +431,18 @@ export function unknownText(pack: GwPack | null, u: GwUnknown): string {
 }
 
 /** A report as the seat got it: who it's about and what it says. */
-export function reportText(r: GwReportView): string {
+export function reportText(r: GwReportView, pack?: GwPack | null): string {
+  // A plot's or an ask's report names what it is about (ww158).
+  const about =
+    r.about === null || r.about === undefined
+      ? undefined
+      : r.fact === "plot"
+        ? pack?.plots?.[r.about]?.name
+        : r.fact === "ally"
+          ? pack?.asks?.[r.about]?.name
+          : undefined;
   return translateText("gw.ui.report_line", {
-    country: country(r.tag),
+    country: about ?? country(r.tag),
     fact: translateText(`gw.ui.fact.${r.fact}`),
     claim: factText(r.fact, r.claim),
   });

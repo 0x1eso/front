@@ -246,6 +246,7 @@ export function worldHolds(ctx: SceneCtx, c: GwWorldCond): boolean {
       return houseHolds(ctx, c);
     case "plot_signs":
     case "plot_warned":
+    case "plot_report":
       return plotHolds(ctx, c);
     case "file":
       return fileHolds(ctx, c);

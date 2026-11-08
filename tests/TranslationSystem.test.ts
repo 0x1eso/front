@@ -63,6 +63,8 @@ const DYNAMIC_KEY_PATTERNS: RegExp[] = [
   // what the whip says of a faction, and the band's chip (client/ww1914/GwHouse).
   /^gw\.house\.(?:stage|origin|chamber|whip|strength|temper|trend|said|out)\.[a-z0-9_]+$/,
   /^gw\.ui\.danger\.[a-z]+$/,
+  // ww158 S2: the 서류철's words by a file's or an ask's state.
+  /^gw\.dossier\.(?:weak|end|stage)\.[a-z_]+$/,
   // Government threats: rows, feeds and swings come from the engine's GovTable.
   /^gw\.gov\.[A-Za-z0-9_.]+$/,
   // The world's words (engine/ww1914): gauges, fronts, reports, endings and

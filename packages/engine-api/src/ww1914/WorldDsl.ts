@@ -18,6 +18,7 @@ import {
   GW_SECRETS,
   GW_SIDES,
   GW_SOURCES,
+  GW_STAMPS,
   GW_TECHS,
   GW_THEATRES,
   GW_THREADS,
@@ -35,6 +36,7 @@ import {
   GwSecret,
   GwSide,
   GwSource,
+  GwStamp,
   GwTech,
   GwTheatre,
   GwThread,
@@ -234,7 +236,12 @@ export type GwWorldCond =
   /** A file on the person: held (not out) by default; `used`: used at least once. */
   | { is: "file"; who: GwWorldWho; of?: ("held" | "used" | "out")[] }
   /** An ally's ask stands at one of these stages. */
-  | { is: "ask"; id: string; of: GwAskStage[] };
+  | { is: "ask"; id: string; of: GwAskStage[] }
+  /**
+   * The police have reported this plot astir in its present round, with one of
+   * these stamps (confirmed if absent): what making it public needs.
+   */
+  | { is: "plot_report"; id: string; of?: GwStamp[] };
 
 export type GwWorldEffect =
   /** Germany's plan for the war to come. */
@@ -508,6 +515,10 @@ export const GwWorldCondSchema = z.union([
     of: z.array(z.enum(["held", "used", "out"])).optional(),
   }),
   is("ask", { id: GwIdSchema, of: z.array(z.enum(GW_ASK_STAGES)) }),
+  is("plot_report", {
+    id: GwIdSchema,
+    of: z.array(z.enum(GW_STAMPS)).optional(),
+  }),
 ]) as unknown as z.ZodType<GwWorldCond>;
 
 export const GwWorldEffectSchema = z.union([

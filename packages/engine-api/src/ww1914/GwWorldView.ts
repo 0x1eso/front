@@ -24,7 +24,7 @@ import type {
 import type { GwBudgetView } from "./GwBudget";
 import type { GwTag } from "./GwCountries";
 import type { GwCraftView } from "./GwCraft";
-import type { GwHouseView } from "./GwHouse";
+import type { GwDossierView, GwHouseView } from "./GwHouse";
 import type { GwLawView } from "./GwLaw";
 import type { GwPlace } from "./GwPlaces";
 import type { GwPressView } from "./GwPress";
@@ -91,6 +91,8 @@ export interface GwReportView {
   /** Once checked: whether it held, and what was so. */
   checked: boolean;
   corrected: number | null;
+  /** What it is about beyond the country: a plot, a file, an ask (ww158). */
+  about?: string | null;
 }
 
 export interface GwSourceView {
@@ -185,4 +187,6 @@ export interface GwWorldView {
   craft?: GwCraftView;
   /** The house and its factions (ww158); absent for a country with no rows. */
   house?: GwHouseView;
+  /** The notebook's 서류철 and allies' asks (ww158, S2); absent with none. */
+  dossier?: GwDossierView;
 }

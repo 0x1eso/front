@@ -63,6 +63,7 @@ import { DEU_ECHOES, DEU_PROLOGUE_SCENES } from "./scenes/deu_prologue";
 import { withDeuReplay } from "./scenes/deu_replay";
 import { DEU_SEA_SCENES } from "./scenes/deu_sea";
 import { DEU_WAR_SCENES } from "./scenes/deu_war";
+import { gwDossierActs, gwDossierScenes } from "./scenes/dossier";
 import { GBR_CRISIS_SCENES } from "./scenes/gbr_crisis";
 import { GBR_HOME_SCENES } from "./scenes/gbr_home";
 import { withMore } from "./scenes/gbr_more";
@@ -179,6 +180,7 @@ export const GW_CONTENT: GwContent = {
         ...CRAFT_SCENES,
         ...gwHouseScenes(GW_HOUSE_CONTENT, GW_LAWS),
         ...HOUSE_WRITTEN_SCENES,
+        ...gwDossierScenes(GW_HOUSE_CONTENT),
         ...RULER_SCENES,
         ...GOV_SCENES,
         ...DEU_PRIVATE_SCENES,
@@ -221,7 +223,14 @@ export const GW_CONTENT: GwContent = {
     ...AUH_PRIVATE_PEOPLE,
     ...GW_PEOPLE_HEADS,
   ],
-  acts: [...COMMON_ACTS, ...DEU_ACTS, ...GBR_ACTS, ...AUH_ACTS, ...RUS_ACTS],
+  acts: [
+    ...COMMON_ACTS,
+    ...DEU_ACTS,
+    ...GBR_ACTS,
+    ...AUH_ACTS,
+    ...RUS_ACTS,
+    ...gwDossierActs(GW_HOUSE_CONTENT),
+  ],
   aims: [...DEU_AIMS, ...GBR_AIMS, ...AUH_AIMS, ...RUS_AIMS],
   inventions: GW_INVENTIONS,
   projects: GW_PROJECTS,

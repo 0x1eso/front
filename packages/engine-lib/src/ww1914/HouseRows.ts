@@ -248,7 +248,78 @@ export interface GwAskRow {
   /** Paid when kept, and when broken. */
   readonly kept?: readonly GwEffect[];
   readonly broken?: readonly GwEffect[];
+  /**
+   * A conference (ww150 big scene, face to face): the envoy's word on the ally
+   * is filed first, and the scene comes a chapter after it.
+   */
+  readonly conference?: boolean;
 }
+
+// ---- S2 rules ----
+
+/** Signs a plot must have shown before its last step: the fair warning. */
+export const GW_PLOT_SIGNS = 2;
+/** Chapters between the warning and the last step, at least. */
+export const GW_PLOT_WARN_GAP = 2;
+/** Heat the cabal's end puts on Britain's fall track (`gbr_table`). */
+export const GW_PLOT_TABLE_HEAT = 6;
+/** Months between the police's word on a plot. */
+export const GW_POLICE_EVERY = 3;
+/** Months between files the police bring unasked. */
+export const GW_POLICE_FILE_EVERY = 6;
+/** Chapters a true file holds a faction's leader to the seat's word. */
+export const GW_HELD_CHAPTERS = 2;
+/** Percent a used file comes out: base, each use after the first, a cunning man. */
+export const GW_EXPOSE_PCT = 10;
+export const GW_EXPOSE_PER_USE = 10;
+export const GW_EXPOSE_CUNNING = 15;
+/** Percent the police's file act is found out by its man. */
+export const GW_FILE_CAUGHT = 20;
+
+/**
+ * Never in a file: the head of state and the ruler's family (the owner's rule).
+ * The head is also left out by the engine whoever he is.
+ */
+export const GW_NO_FILE: readonly string[] = [
+  "deu_wilhelm",
+  "deu_empress",
+  "deu_heir",
+  "gbr_george_v",
+  "gbr_margot",
+  "auh_franz_joseph",
+  "auh_ff",
+  "auh_karl",
+  "auh_zita",
+  "auh_friedrich",
+  "auh_wilhelm",
+  "auh_schratt",
+  "rus_nicholas",
+  "rus_alexandra",
+  "rus_maria",
+  "rus_olga",
+  "rus_olga_a",
+  "rus_ella",
+  "rus_michael",
+  "rus_nikolasha",
+  "rus_dmitri",
+  "rus_sandro",
+  "rus_kr",
+  "rus_sergei_m",
+];
+
+/** The dossier's papers, per country (text in `<TAG>.house.json`). */
+export const dossierIds = {
+  /** The schedule's entry: the police open a file on one man. */
+  act: (tag: GwTag) => `${tag.toLowerCase()}_a_file`,
+  /** The police's paper with the file asked for (cast police, target). */
+  report: (tag: GwTag) => `gw_df_${tag.toLowerCase()}`,
+  /** The police bring one unasked (cast police, target). */
+  unasked: (tag: GwTag) => `gw_du_${tag.toLowerCase()}`,
+  /** The man learns he was watched (cast target): a decision. */
+  caught: (tag: GwTag) => `gw_dc_${tag.toLowerCase()}`,
+  /** A file came out: the scandal (cast target). */
+  scandal: (tag: GwTag) => `gw_dx_${tag.toLowerCase()}`,
+} as const;
 
 // ---- Rules ----
 
@@ -325,5 +396,18 @@ export function houseCalledScenes(rows: GwHouseContent): string[] {
       p.plot.warn,
     ]),
     ...(rows.asks ?? []).map((a) => a.scene),
+    ...dossierTags(rows).flatMap((t) => [
+      dossierIds.unasked(t),
+      dossierIds.scandal(t),
+    ]),
   ];
+}
+
+/** Countries with people the police can open files on, and a house to run them. */
+export function dossierTags(rows: GwHouseContent): GwTag[] {
+  return (rows.houses ?? [])
+    .map((h) => h.tag)
+    .filter((t) =>
+      (rows.weak ?? []).some((w) => w.person.startsWith(`${t.toLowerCase()}_`)),
+    );
 }

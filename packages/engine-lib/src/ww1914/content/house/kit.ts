@@ -84,3 +84,18 @@ export const gatherFile = (who: GwWho): GwEffect =>
 export const hold = (who: GwWho): GwEffect => doWorld({ do: "use_file", who });
 export const answerAsk = (id: string, yes: boolean): GwEffect =>
   doWorld({ do: "ask", id, answer: yes ? "yes" : "no" });
+/** A plot's heat (the threats' `gov` cond works on plot rows). */
+export const plotHot = (id: string, min: number, max?: number): GwCond =>
+  world(
+    max === undefined ? { is: "gov", id, min } : { is: "gov", id, min, max },
+  );
+/** The police have reported it astir with a confirmed stamp: it can be made public. */
+export const plotConfirmed = (id: string): GwCond =>
+  world({ is: "plot_report", id });
+export const coolPlot = (id: string, by: number): GwEffect =>
+  doWorld({ do: "gov_heat", id, delta: -by });
+export const heatPlot = (id: string, by: number): GwEffect =>
+  doWorld({ do: "gov_heat", id, delta: by });
+/** Fought off: it rests, and a new round must warn afresh. */
+export const beatPlot = (id: string): GwEffect =>
+  doWorld({ do: "gov_beaten", id });

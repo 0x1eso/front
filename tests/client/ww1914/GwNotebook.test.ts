@@ -19,7 +19,11 @@ import {
   keyDecisions,
   promisesInOrder,
 } from "../../../src/client/hud/ww1914/GwModel";
-import { decisionLine } from "../../../src/client/hud/ww1914/GwText";
+import {
+  decisionLine,
+  fileLine,
+  promiseText,
+} from "../../../src/client/hud/ww1914/GwText";
 
 const pack: GwPack = {
   version: 1,
@@ -208,5 +212,38 @@ describe("the notebook", () => {
     expect([0, 1, 2, 3].map((step) => govWord({ ...g, step }))).toEqual([
       0, 1, 2, 3,
     ]);
+  });
+});
+
+describe("the 서류철 (ww158)", () => {
+  const p2: GwPack = {
+    ...pack,
+    weak: { deu_moltke: { debts: "몰트케의 빚 장부" } },
+    asks: { t_ask: { name: "빈의 차관 요청" } },
+  };
+  const file = {
+    uid: 1,
+    who: "deu_moltke",
+    weak: "debts" as const,
+    stamp: "unconfirmed" as const,
+    chapter: 3,
+    used: 0,
+    out: false,
+    end: null,
+  };
+
+  test("a file reads as the pack writes it", () => {
+    expect(fileLine(p2, file)).toBe("몰트케의 빚 장부");
+  });
+
+  test("a yes to an ally is listed by the ask's name", () => {
+    const p: GwPromiseView = {
+      key: "ask_t_ask",
+      who: "deu_moltke",
+      due: "1915-03-01",
+      kept: false,
+      broken: false,
+    };
+    expect(promiseText(p2, p)).toBe("빈의 차관 요청");
   });
 });
