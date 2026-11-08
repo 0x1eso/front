@@ -44,7 +44,6 @@ import {
 import { WwAirView } from "../../src/client/view/WwAirView";
 import { WwEconomyView } from "../../src/client/view/WwEconomyView";
 import { WwNavyView } from "../../src/client/view/WwNavyView";
-import "./oldAirModel";
 import { REGION, SEA, SR, TAG_ID, ZONE } from "./seaFixture";
 import {
   byTag,
@@ -58,6 +57,7 @@ import {
   withTestPolitics,
   wwRunnerCapture,
 } from "./util";
+import { giveWing } from "./wingUtil";
 
 withTestPolitics();
 
@@ -177,19 +177,17 @@ describe("the land cards' P4 lines are the engine's (LandSeaAir parity)", () => 
       // British fighters over the West (Rome's land zone) for a day.
       const gb = ww.economy.country(GBR)!;
       gb.stock[equipKey("fighter", 1)] = 300;
-      expect(
-        ww.air.issue(
-          GBR,
-          {
-            kind: "air_deploy",
-            sr: SR.westLand,
-            type: "fighter",
-            mission: "air_superiority",
-            count: 300,
-          },
-          g.ticks(),
-        ),
-      ).toBeNull();
+      giveWing(ww.air, {
+        owner: GBR,
+        type: "fighter",
+        planes: 300,
+        base: REGION.london,
+        sr: SR.westLand,
+        target: REGION.rome,
+        mission: "air_superiority",
+        flying: true,
+        until: g.ticks() + 100_000,
+      });
       const day = ww.day(g.ticks()) + 1;
       stepTo(
         runner,

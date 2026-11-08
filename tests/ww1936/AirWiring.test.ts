@@ -8,7 +8,7 @@ import {
   losePlanes,
   returnPlanes,
 } from "@openfront/engine/ww1936/economy/Buildings";
-import "./oldAirModel";
+import "./noStartWings";
 import { AIR_BASE, REGION, SEA, TAG_ID } from "./seaFixture";
 import { HUMAN, withTestPolitics, wwRunner } from "./util";
 import { giveWing } from "./wingUtil";

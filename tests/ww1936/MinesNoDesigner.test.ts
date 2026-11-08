@@ -32,7 +32,6 @@ import {
 import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSource";
 import { DEEP } from "./deepFixture";
 import { depthFixture } from "./depthFixture";
-import "./oldAirModel";
 import { stepTo, wwRunner } from "./util";
 
 beforeEach(() => usePoliticsContent(depthFixture()));

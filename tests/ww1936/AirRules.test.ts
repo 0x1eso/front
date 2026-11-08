@@ -3,16 +3,13 @@ import type { WwStats } from "@openfront/engine-api/ww1936/PoliticsTypes";
 import {
   aaLossPm,
   agilityFactorPm,
-  airDeployBlock,
   airLossesMilli,
   airMoveFactorPm,
   airPenaltyBp,
   bombDamageMilli,
   casPoolCenti,
   casRoundHits,
-  DeployAsk,
   detectionPm,
-  rangeEffPm,
   sortieEffPm,
 } from "@openfront/engine-lib/ww1936/AirRules";
 import {
@@ -79,11 +76,7 @@ describe("air rules", () => {
     expect(airLossesMilli(900_000, 300, 0)).toBe(0);
   });
 
-  it("range and sorties", () => {
-    expect(rangeEffPm(325, 650)).toBe(1000);
-    expect(rangeEffPm(650, 650)).toBe(750);
-    expect(rangeEffPm(651, 650)).toBe(0);
-    expect(rangeEffPm(487, 650)).toBe(876);
+  it("sorties, bomb damage and anti-air", () => {
     expect(sortieEffPm(1000, 1000, 0, null)).toBe(1000);
     expect(sortieEffPm(800, 750, 0, null)).toBe(600);
     expect(sortieEffPm(800, 750, 0, 0)).toBe(180);
@@ -119,37 +112,5 @@ describe("air rules", () => {
     expect(bombDamageMilli(4000, 0, -15)).toBe(850);
     expect(aaLossPm(2, 0, 0, false)).toBe(6);
     expect(aaLossPm(0, 400, 0, true)).toBe(40);
-  });
-
-  it("the deployment's refusals", () => {
-    const ok: DeployAsk = {
-      sr: 1001,
-      srKind: "sea",
-      type: "naval_bomber",
-      mission: "naval_patrol",
-      count: 50,
-      have: 100,
-      deploymentsUsed: 0,
-      anyBaseInRange: true,
-    };
-    expect(airDeployBlock(ok)).toBeNull();
-    expect(airDeployBlock({ ...ok, type: "cas", mission: "cas" })).toBe(
-      "bad_air_mission",
-    );
-    expect(
-      airDeployBlock({
-        ...ok,
-        srKind: "land",
-        type: "fighter",
-        mission: "strategic_bombing",
-      }),
-    ).toBe("bad_air_mission");
-    expect(airDeployBlock({ ...ok, deploymentsUsed: 200 })).toBe(
-      "too_many_deployments",
-    );
-    expect(airDeployBlock({ ...ok, anyBaseInRange: false })).toBe(
-      "no_air_base",
-    );
-    expect(airDeployBlock({ ...ok, count: 101 })).toBe("no_planes");
   });
 });

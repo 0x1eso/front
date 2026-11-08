@@ -98,7 +98,8 @@ describe("civil war slot colours", () => {
         ): { color?: { color: string } };
       }
     ).countryCosmetics.call(
-      { worldWarScenario: () => ({ tagOfSmallId: () => tag }) },
+      // A 1936 view: no Great War world (GameView starts it at null).
+      { _gwWorld: null, worldWarScenario: () => ({ tagOfSmallId: () => tag }) },
       1,
     );
 

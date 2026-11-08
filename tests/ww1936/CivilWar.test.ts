@@ -28,7 +28,7 @@ import { diffGraphs, diffSnapshots } from "../util/Snapshot";
 import { TEST_TANK } from "./depthFixture";
 import { END, endId } from "./endFixture";
 import { endgameFixture } from "./endgameFixture";
-import "./oldAirModel";
+import "./noStartWings";
 import { END_MAP, gameHash, step, stepTo, wwRestore, wwRunner } from "./util";
 import { giveWing } from "./wingUtil";
 
@@ -183,8 +183,14 @@ describe("World War 1936 P5: civil wars (spec §15)", () => {
     }
     expect(re.manpower).toBe(Math.floor((men0 * share) / 10000));
     expect(ce.manpower).toBe(men0 - re.manpower);
-    // The planes based in Kiev are the rebels'.
+    // The planes based in Kiev are the rebels': the split holds them on
+    // their base while the land moves, so the base change does not fly them
+    // off first. All 12 come over (none lost to an overrun).
     expect(d.owner).toBe(cw);
+    expect(d.base).toBe(KIEV);
+    expect(d.counts[0]).toBe(12);
+    expect(ww.air.wingsOf(cw)).toEqual([d]);
+    expect(ww.air.wingsAtBase(KIEV)).toEqual([d.id]);
     expect(re.planesDeployed[k]).toBe(12);
     expect(ce.planesDeployed[k]).toBe(deployed0 - 12);
     // The war: rebels attack, a civil war.
@@ -491,12 +497,26 @@ describe("World War 1936 P5: civil wars (spec §15)", () => {
     expect(eg.dirtyCountries.has(esn)).toBe(true);
   }, 60_000);
 
-  it("a failed activation puts the held fleets back in their docks", async () => {
+  it("a failed activation puts the held fleets and wings back on their bases", async () => {
     const { g, ww, eg } = await started();
     const fra = endId("FRA");
     const navy = ww.navy;
     const fleet = navy.fleets.get(navy.createFleet(fra, LYON, [["dd", 1, 1]]))!;
     expect(fleet.docked).toBe(LYON);
+    const ce = ww.economy.country(fra)!;
+    ce.stock[equipKey("fighter", 1)] += 40;
+    const wing = giveWing(ww.air, {
+      owner: fra,
+      sr: ww.scenario.regionSr(LYON),
+      type: AIR_TYPES.indexOf("fighter"),
+      mission: 0,
+      counts: drawPlanes(ce, "fighter", 12),
+      goalCount: 12,
+      base: LYON,
+      lossRest: 0,
+      auto: true,
+      volunteerFor: 0,
+    });
     // The slot is dormant but its player is refused.
     vi.spyOn(eg.mg, "playerBySmallID").mockImplementation(
       () => ({ isPlayer: () => false }) as never,
@@ -504,6 +524,8 @@ describe("World War 1936 P5: civil wars (spec §15)", () => {
     expect(startCivilWar(eg, fra, "communist", g.ticks())).toBe(false);
     vi.restoreAllMocks();
     expect(fleet.docked).toBe(LYON);
+    expect(wing.base).toBe(LYON);
+    expect(ww.air.wingsAtBase(LYON)).toContain(wing.id);
     for (const f of navy.fleetsOf(fra)) {
       expect(f.docked === 0 && f.ships.includes(fleet.ships[0])).toBe(false);
     }

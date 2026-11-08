@@ -127,6 +127,9 @@ const WW1936_ONLY_TYPES = [
   "WwOrder",
   "WwTakeoverPick",
 ];
+// Execution types only a Great War 1914 game creates (its own map and turns;
+// see tests/ww1914/GreatWarSnapshot.test.ts).
+const GW1914_ONLY_TYPES = ["GreatWar", "GwOrder"];
 // Congress types the scripted game isn't sure to keep alive at a tick
 // boundary: a ballot or a convening finishes inside its init. Emergencies
 // also need a threshold crossed. tests/congress/*.test.ts cover their
@@ -326,7 +329,8 @@ describe.each(VARIANTS)(
               !WARFARE_ONLY_TYPES.includes(name) &&
               !STRATEGIC_ONLY_TYPES.includes(name) &&
               !CONGRESS_ONLY_TYPES.includes(name) &&
-              !WW1936_ONLY_TYPES.includes(name),
+              !WW1936_ONLY_TYPES.includes(name) &&
+              !GW1914_ONLY_TYPES.includes(name),
           );
         } else if (
           overrides.strategicWeapons === true &&

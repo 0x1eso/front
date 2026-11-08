@@ -64,7 +64,6 @@ import { DERIVED_FIELDS, diffGraphs, diffSnapshots } from "../util/Snapshot";
 import { DEEP, findRoll, setInfra } from "./deepFixture";
 import { depthFixture, TEST_TANK } from "./depthFixture";
 import { valueDiffs } from "./lockstep";
-import "./oldAirModel";
 import {
   gameHash,
   HUMAN,
@@ -958,11 +957,25 @@ describe("World War 1936 P6: derived depth fields (plan Task 23 Step 2)", () => 
       ),
     ).toBeNull();
     stockUp(g, GBR);
-    deploy(g, GBR, WEST, "fighter", "recon", 20, R.london);
-    // Two days on: every value made at least once; then the tick after
-    // France's economy turn (it wrote today's uranium; its depth turn reads
-    // it tomorrow).
-    stepTo(a, turnTick(a, FRA, dayOf(a) + 2) + 1);
+    // A recon wing flying over the West by its own order (wings fly their
+    // orders: a wing on the ground with a mission alone stays there).
+    const rw = deploy(g, GBR, WEST, "fighter", "recon", 20, R.london);
+    expect(
+      ww.air.issue(
+        GBR,
+        {
+          kind: "wing_mission",
+          wings: [rw.id],
+          mission: "recon",
+          target: ww.scenario.sr(WEST)!.members[0],
+        },
+        g.ticks(),
+      ),
+    ).toBeNull();
+    // Three days on (the recon wing flies out first): every value made at
+    // least once; then the tick after France's economy turn (it wrote
+    // today's uranium; its depth turn reads it tomorrow).
+    stepTo(a, turnTick(a, FRA, dayOf(a) + 3) + 1);
     expect(d.lastPriorityGot.get(FRA)?.some((v) => v > 0)).toBe(true);
     const side = ww.land.sideOf(GBR);
     expect(d.sea.reconBySide.some(([s]) => s === side)).toBe(true);

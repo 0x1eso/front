@@ -36,7 +36,6 @@ export class WwAirLegend extends LitElement implements Controller {
   tick() {
     const on =
       (this.game?.worldWarScenario() ?? null) !== null &&
-      this.game.wwAir?.()?.live === true &&
       seaAirOf(this.game).selection.layer === "air";
     if (on !== this.shown) this.shown = on;
   }

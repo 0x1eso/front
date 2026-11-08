@@ -36,7 +36,6 @@ import type { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
 import { seaPath } from "@openfront/engine-lib/ww1936/SeaGraph";
 import { SHIP_BASE } from "@openfront/engine-lib/ww1936/ShipStats";
 import { handOverWing } from "../air/Wings";
-import { wingPlanes } from "../air/WwAir";
 import { receiveKey } from "../depth/DesignCopy";
 import {
   evictDivisions,
@@ -115,6 +114,7 @@ export function startCivilWar(
   const before = divisionsBefore(eg, X);
   const held = holdPortFleets(eg, X, rebelSet);
   const portShips = held.ships;
+  const heldWings = holdBaseWings(eg, X, rebelSet);
   const slot = activateCountry(
     eg,
     slotTag,
@@ -131,6 +131,9 @@ export function startCivilWar(
     },
     tick,
   );
+  // The wings land back on their bases: the rebels' now, so splitPlanes
+  // hands them over (or X's again, when the woken slot failed).
+  unholdBaseWings(eg, heldWings);
   if (slot === 0) {
     // The woken slot failed: the fleets go back into their docks.
     for (const h of held.docks) {
@@ -366,6 +369,40 @@ function holdPortFleets(
     out.push(...f.ships);
   }
   return { ships: out.sort((a, b) => a - b), docks };
+}
+
+/**
+ * Spec §15.3 planes: X's wings based in a rebel region (not volunteers)
+ * leave the base index before the land moves, as the port fleets leave the
+ * dock: else the wing model's base change (onBaseControlChanged) sees X's
+ * wings on the rebels' land and ferries them off, or into the stock, and no
+ * plane defects. unholdBaseWings puts them back right after. Wing id → base.
+ */
+function holdBaseWings(
+  eg: WwEndgame,
+  X: number,
+  rebel: ReadonlySet<number>,
+): { id: number; base: number }[] {
+  const air = eg.ww.air;
+  const out: { id: number; base: number }[] = [];
+  for (const w of air.wingsOf(X)) {
+    if (w.base <= 0 || w.volunteerFor !== 0 || !rebel.has(w.base)) continue;
+    out.push({ id: w.id, base: w.base });
+    air.setWingBase(w, 0);
+  }
+  return out;
+}
+
+/** Puts the wings holdBaseWings took off their bases back on them. */
+function unholdBaseWings(
+  eg: WwEndgame,
+  held: readonly { id: number; base: number }[],
+): void {
+  const air = eg.ww.air;
+  for (const h of held) {
+    const w = air.wings.get(h.id);
+    if (w !== undefined) air.setWingBase(w, h.base);
+  }
 }
 
 /** Spec §15.3: divisions, generals, ships, planes, stock, manpower, fuel. */
@@ -610,10 +647,6 @@ function splitPlanes(
     .filter((d) => d.base > 0 && d.volunteerFor === 0 && rebel.has(d.base))
     .sort((a, b) => a.id - b.id);
   if (moving.length === 0) return;
-  // A group's target (owner, zone, type, mission) is its planes now.
-  const groupSum = new Map<string, number>();
-  const keyOf = (d: (typeof moving)[number]) =>
-    `${d.sr}:${d.type}:${d.mission}`;
   for (const d of moving) {
     const type = AIR_TYPES[d.type];
     d.counts.forEach((n, i) => {
@@ -640,19 +673,8 @@ function splitPlanes(
       re.planesDeployed[k2] += n;
     });
     d.dcounts = dcounts;
-    if (air.wingsLive) {
-      // ww8: the wing keeps its experience and lands under the rebels.
-      handOverWing(air, d, R);
-      continue;
-    }
-    air.setWingOwner(d, R);
-    d.auto = false;
-    const sum = wingPlanes(d);
-    groupSum.set(keyOf(d), (groupSum.get(keyOf(d)) ?? 0) + sum);
-    air.markWing(d.id);
-  }
-  if (!air.wingsLive) {
-    for (const d of moving) d.goalCount = groupSum.get(keyOf(d)) ?? 0;
+    // ww8: the wing keeps its experience and lands under the rebels.
+    handOverWing(air, d, R);
   }
   air.markCountry(X);
   air.markCountry(R);

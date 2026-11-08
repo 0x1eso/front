@@ -1,5 +1,4 @@
-// P6 lane D (plan Task 2): command power, officer corps, general and
-// admiral traits, field marshals, medals, reinforcement order (spec §4).
+// P6 lane D (plan Task 2): officer corps, general and admiral traits, field marshals, medals, reinforcement order (spec §4).
 // The judges are engine-lib CommandRules' (the screens call them too).
 import type { DepthOrder } from "@openfront/engine-api/Schemas";
 import {

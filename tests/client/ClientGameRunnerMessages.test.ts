@@ -269,6 +269,7 @@ describe("the map a started game loads", () => {
     expect(loadCachedTerrainMap).toHaveBeenCalledWith(
       GameMapType.World1936,
       GameMapSize.Normal,
+      undefined, // no scenario folder: only the Great War names one
     );
   });
 
@@ -292,6 +293,7 @@ describe("the map a started game loads", () => {
     expect(loadCachedTerrainMap).toHaveBeenCalledWith(
       GameMapType.Onion,
       GameMapSize.Compact,
+      undefined, // no scenario folder: only the Great War names one
     );
   });
 });

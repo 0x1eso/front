@@ -7,17 +7,7 @@
 // sorties, A1 writes them). Everything the land war reads later in the day
 // is state of the zone (pre-flight A19): the CAS pool and shares, the air
 // supply, computed on the zone's day.
-import {
-  AIR_MISSIONS,
-  AIR_TYPES,
-  AirMission,
-  PlaneStats,
-  WW_AIR_SUPPLY_PER_SORTIE_MILLI,
-} from "@openfront/engine-api/ww1936/AirTypes";
-import {
-  casPoolCenti,
-  casRoundHits,
-} from "@openfront/engine-lib/ww1936/AirRules";
+import { AIR_TYPES, PlaneStats } from "@openfront/engine-api/ww1936/AirTypes";
 import {
   orgDamageMilli,
   shotDamageMilli,
@@ -28,33 +18,12 @@ import type { StrategicRegion } from "@openfront/engine-lib/ww1936/ScenarioIndex
 import { planesLossBp } from "../depth/Designs";
 import { effectiveLevel } from "../economy/Buildings";
 import { applyShipDamage } from "../navy/NavalBattles";
-import { zoneFlights } from "./AirCombat";
-import { apportion, sideMembersOf, strategicBombing } from "./Bombing";
+import { apportion, sideMembersOf } from "./Bombing";
 import { isCarrierWing, takeOffDeck } from "./Deploy";
 import { oldestFirst } from "./DesignPlanes";
 import { withFuze } from "./ProjectEffects";
-import type { Wing, WwAir, ZoneAirState } from "./WwAir";
-
-/** Spec §14.9: the hit chance of a naval strike (ships at sea) and a port strike (docked), ‰. */
-export const WW_NAVAL_STRIKE_HIT_PM = 100;
-export const WW_PORT_STRIKE_HIT_PM = 150;
-/**
- * Spec §14.4: the strike planes lost to the ships' anti-air a day, milli
- * planes a centi of AA: 0.3 planes a point at sea, 0.5 in port; and 5
- * planes a level of the port's anti-air guns.
- */
-const SHIP_AA_LOSS_SEA = 3;
-const SHIP_AA_LOSS_PORT = 5;
+import type { Wing, WwAir } from "./WwAir";
 const PORT_AA_LOSS_MILLI = 5_000;
-
-/** The missions this file's day reads, in AIR_MISSIONS order. */
-const EFFECT_MISSIONS: readonly AirMission[] = [
-  "cas",
-  "strategic_bombing",
-  "naval_strike",
-  "port_strike",
-  "air_supply",
-];
 
 /** One generation of a deployment flying today. */
 export interface Sortie {
@@ -88,141 +57,12 @@ function addTo(m: Map<number, number>, k: number, v: number): void {
   if (v !== 0) m.set(k, (m.get(k) ?? 0) + v);
 }
 
-/**
- * The zone's day of mission effects (spec §2.2-7, after A1's combat in
- * the same call): CAS, strategic bombing, naval and port strikes, air
- * supply. The day's first zone (srIdx 0) starts the day's slot of the
- * 30-day rings this lane writes.
- */
-export function airMissionEffects(air: WwAir, sr: number, day: number): void {
-  const sc = air.ww.scenario;
-  const s = sc.sr(sr);
-  if (s === undefined) return;
-  if (s.idx === 0) startRings(air, day);
-  const z = air.zoneState[s.idx];
-  const groups = new Map<AirMission, Map<number, Sortie[]>>(
-    EFFECT_MISSIONS.map((m) => [m, new Map()]),
-  );
-  // The sorties A1's zone day flew this tick (before its losses).
-  for (const f of zoneFlights(air, sr)) {
-    const bySide = groups.get(AIR_MISSIONS[f.mission]);
-    const d = air.wings.get(f.id);
-    if (bySide === undefined || d === undefined) continue;
-    f.milli.forEach((milli, g) => {
-      if (milli <= 0) return;
-      let l = bySide.get(f.side);
-      if (l === undefined) bySide.set(f.side, (l = []));
-      l.push({ d, side: f.side, gen: g + 1, milli, stats: f.stats[g] });
-    });
-  }
-  const fx = newTally();
-  const tick = air.mg.ticks();
-  const cas = closeAirSupport(air, s, groups.get("cas")!, fx);
-  strategicBombing(air, sr, day, groups.get("strategic_bombing")!, fx);
-  navalStrikes(air, s, groups.get("naval_strike")!, fx, tick);
-  portStrikes(air, s, groups.get("port_strike")!, fx, tick);
-  const supply = airSupplyDay(air, s, groups.get("air_supply")!, z.airSupply);
-  let changed = false;
-  if (!sameMap(z.cas, cas.pool)) {
-    z.cas = cas.pool;
-    changed = true;
-  }
-  if (!sameTriples(z.casShare, cas.share)) {
-    z.casShare = cas.share;
-    changed = true;
-  }
-  if (!sameTriples(z.airSupply, supply)) {
-    z.airSupply = supply;
-    changed = true;
-  }
-  if (writeResults(air, z, fx, day)) changed = true;
-  if (changed) air.markZone(s.idx);
-}
-
-/** The day's slot of the rings this lane writes: bomb points taken, bombs given, ships sunk. */
-function startRings(air: WwAir, day: number): void {
-  const slot = ((day % 30) + 30) % 30;
-  for (const c of air.countries()) {
-    if (c.bombTaken[slot] !== 0 || c.tally[2][slot] !== 0) {
-      air.markCountry(c.smallID);
-    }
-    c.bombTaken[slot] = 0;
-    c.tally[2][slot] = 0;
-    c.tally[3][slot] = 0;
-  }
-}
-
 // ---- Close air support (spec §14.7) ----
-
-/** Σ combat width of the divisions (ids) still alive. */
-function widthOfIds(air: WwAir, ids: readonly number[]): number {
-  const land = air.land;
-  let w = 0;
-  for (const id of ids) {
-    const r = land.divisions.rowOf(id);
-    if (r >= 0) w += land.widthOf(r);
-  }
-  return w;
-}
-
-/**
- * Spec §14.7: each side's pool = Σ casPoolCenti(sorties, ground attack,
- * casPct) (the doctrine techs feed casPct); its split ‰ over the zone's
- * battles its divisions fight in, by their frontage in the battle's line
- * now (pre-flight A19: P2 keeps no daily frontage; a battle not yet lined
- * up counts its divisions). No-strike regions get no CAS (P6 pre-flight).
- */
-function closeAirSupport(
-  air: WwAir,
-  s: StrategicRegion,
-  bySide: ReadonlyMap<number, readonly Sortie[]>,
-  fx: EffectTally,
-): { pool: Map<number, number>; share: [number, number, number][] } {
-  const pool = new Map<number, number>();
-  const share: [number, number, number][] = [];
-  if (s.kind !== "land" || bySide.size === 0) return { pool, share };
-  const land = air.land;
-  const sc = air.ww.scenario;
-  for (const side of [...bySide.keys()].sort((a, b) => a - b)) {
-    let p = 0;
-    for (const x of bySide.get(side)!) {
-      const pct = air.econ.country(x.d.owner)?.stats.casPct ?? 0;
-      const c = casPoolCenti(x.milli, x.stats.ground, pct);
-      p += c;
-      addTo(fx.cas, x.d.owner, c);
-    }
-    if (p > 0) pool.set(side, p);
-  }
-  for (const side of pool.keys()) {
-    const fronts: [number, number][] = [];
-    for (const r of s.members) {
-      const b = land.battles.get(r);
-      if (b === undefined || isNoStrike(sc, r)) continue;
-      let w = 0;
-      if (land.sideOf(b.attLead) === side) {
-        w += widthOfIds(air, b.attLine.length > 0 ? b.attLine : b.attackers);
-      } else if (land.sideOf(land.controller[r] ?? 0) === side) {
-        w += widthOfIds(air, b.defLine.length > 0 ? b.defLine : b.defenders);
-      }
-      if (w > 0) fronts.push([r, w]);
-    }
-    const pms = apportion(
-      1000,
-      fronts.map((f) => f[1]),
-    );
-    fronts.forEach(([r], i) => {
-      if (pms[i] > 0) share.push([r, side, pms[i]]);
-    });
-  }
-  share.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
-  return { pool, share };
-}
 
 /**
  * Spec §14.7: `side`'s close air support hits a round in the battle of
  * `battleRegion`, centi (the hooks; P2's round cuts them by the target's
- * and the region's anti-air): the round's share (casRoundHits) of the
- * zone's pool split by frontage.
+ * and the region's anti-air): the CAS wings on station over it now.
  */
 export function casHitsFor(
   air: WwAir,
@@ -233,20 +73,10 @@ export function casHitsFor(
   const i = sc.srIdxOf(sc.regionSr(battleRegion));
   if (i < 0) return 0;
   const z = air.zoneState[i];
-  if (air.wingsLive) {
-    // ww8: the wings on station now (the pulses keep the rows).
-    const rows = z.casNow;
-    for (let k = 0; k < rows.length; k++) {
-      if (rows[k][0] === battleRegion && rows[k][1] === side) return rows[k][2];
-    }
-    return 0;
-  }
-  const pool = z.cas.get(side) ?? 0;
-  if (pool <= 0) return 0;
-  for (const [r, sd, pm] of z.casShare) {
-    if (r === battleRegion && sd === side) {
-      return casRoundHits(Math.floor((pool * pm) / 1000));
-    }
+  // ww8: the wings on station now (the pulses keep the rows).
+  const rows = z.casNow;
+  for (let k = 0; k < rows.length; k++) {
+    if (rows[k][0] === battleRegion && rows[k][1] === side) return rows[k][2];
   }
   return 0;
 }
@@ -293,33 +123,6 @@ export function seaShipsFor(
     ships.push(...navy.fleets.get(id)!.ships);
   }
   return ships;
-}
-
-/**
- * Spec §14.9: strikes on enemy fleets at sea in the zone — the ones the
- * side has spotted (N1) and the ones in a naval battle there.
- */
-function navalStrikes(
-  air: WwAir,
-  s: StrategicRegion,
-  bySide: ReadonlyMap<number, readonly Sortie[]>,
-  fx: EffectTally,
-  tick: number,
-): void {
-  if (s.kind !== "sea" || bySide.size === 0) return;
-  for (const side of [...bySide.keys()].sort((a, b) => a - b)) {
-    const ships = seaShipsFor(air, s, side);
-    strike(
-      air,
-      bySide.get(side)!,
-      ships,
-      WW_NAVAL_STRIKE_HIT_PM,
-      SHIP_AA_LOSS_SEA,
-      0,
-      fx,
-      tick,
-    );
-  }
 }
 
 /** The ports of a zone: a land zone's member ports, a sea zone's ports whose harbor zone is in it. */
@@ -369,36 +172,6 @@ export function portShipsFor(
   }
   ships.sort((a, b) => a - b);
   return { ships, portOf, baseAaMilli };
-}
-
-/**
- * Spec §14.9: the ships docked at the zone's enemy naval bases — a land
- * zone's member ports, a sea zone's ports whose harbor zone is in it;
- * never a no-strike region's (P6 pre-flight).
- */
-function portStrikes(
-  air: WwAir,
-  s: StrategicRegion,
-  bySide: ReadonlyMap<number, readonly Sortie[]>,
-  fx: EffectTally,
-  tick: number,
-): void {
-  if (bySide.size === 0) return;
-  const ports = portsOf(air, s);
-  for (const side of [...bySide.keys()].sort((a, b) => a - b)) {
-    const { ships, portOf, baseAaMilli } = portShipsFor(air, side, ports);
-    strike(
-      air,
-      bySide.get(side)!,
-      ships,
-      WW_PORT_STRIKE_HIT_PM,
-      SHIP_AA_LOSS_PORT,
-      baseAaMilli,
-      fx,
-      tick,
-      portOf,
-    );
-  }
 }
 
 interface Target {
@@ -611,56 +384,6 @@ function takeLosses(
 
 // ---- Air supply (spec §14.10) ----
 
-/**
- * Spec §14.10: each side's transports on air_supply give sorties × 0.02
- * supply a day (100 = 2,000 milli) to the zone's regions of the side
- * short of supply: the encircled ones first, then the lowest supply share,
- * each what it lacks (its use less its ground supply: the region's supply
- * less yesterday's air supply there). [region, side, milli], in order.
- */
-function airSupplyDay(
-  air: WwAir,
-  s: StrategicRegion,
-  bySide: ReadonlyMap<number, readonly Sortie[]>,
-  before: readonly [number, number, number][],
-): [number, number, number][] {
-  const out: [number, number, number][] = [];
-  if (s.kind !== "land" || bySide.size === 0) return out;
-  const land = air.land;
-  for (const side of [...bySide.keys()].sort((a, b) => a - b)) {
-    let pool = 0;
-    for (const x of bySide.get(side)!) {
-      pool += Math.floor((x.milli * WW_AIR_SUPPLY_PER_SORTIE_MILLI) / 1000);
-    }
-    if (pool <= 0) continue;
-    const short: { r: number; enc: number; pm: number; need: number }[] = [];
-    for (const r of s.members) {
-      const c = land.controller[r] ?? 0;
-      if (c === 0 || land.sideOf(c) !== side) continue;
-      let had = 0;
-      for (const [br, bs, m] of before) if (br === r && bs === side) had = m;
-      const ground = Math.max(0, land.supplyMilli[r] - had);
-      const use = land.useMilli[r];
-      if (use <= ground) continue;
-      short.push({
-        r,
-        enc: land.encircled[r],
-        pm: Math.floor((ground * 1000) / use),
-        need: use - ground,
-      });
-    }
-    short.sort((a, b) => b.enc - a.enc || a.pm - b.pm || a.r - b.r);
-    for (const x of short) {
-      if (pool <= 0) break;
-      const give = Math.min(pool, x.need);
-      out.push([x.r, side, give]);
-      pool -= give;
-    }
-  }
-  out.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
-  return out;
-}
-
 /** Spec §14.10: air supply into `region` for `side`, milli a day (the hooks): the zone's day's share. */
 export function airSupplyAt(air: WwAir, region: number, side: number): number {
   const sc = air.ww.scenario;
@@ -673,80 +396,3 @@ export function airSupplyAt(air: WwAir, region: number, side: number): number {
 }
 
 // ---- The zone's results ----
-
-/**
- * The zone's result row per country: this lane's columns (CAS hits, bomb
- * points, naval damage; A1 writes shot down and lost) for today, and the
- * 30-day tallies (bombs given, ships sunk). True when the row changed.
- */
-function writeResults(
-  air: WwAir,
-  z: ZoneAirState,
-  fx: EffectTally,
-  day: number,
-): boolean {
-  const slot = ((day % 30) + 30) % 30;
-  for (const [owner, v] of fx.bomb) {
-    const c = air.country(owner);
-    if (c === null) continue;
-    c.tally[2][slot] += v;
-    air.markCountry(owner);
-  }
-  for (const [owner, v] of fx.sunk) {
-    const c = air.country(owner);
-    if (c === null) continue;
-    c.tally[3][slot] += v;
-    air.markCountry(owner);
-  }
-  const keys = new Set<number>([
-    ...z.result.keys(),
-    ...fx.cas.keys(),
-    ...fx.bomb.keys(),
-    ...fx.naval.keys(),
-  ]);
-  const next = new Map<number, number[]>();
-  for (const k of [...keys].sort((a, b) => a - b)) {
-    const v = [...(z.result.get(k) ?? [])];
-    while (v.length < 5) v.push(0);
-    v[2] = fx.cas.get(k) ?? 0;
-    v[3] = fx.bomb.get(k) ?? 0;
-    v[4] = fx.naval.get(k) ?? 0;
-    if (v.some((x) => x !== 0)) next.set(k, v);
-  }
-  let same = next.size === z.result.size;
-  if (same) {
-    for (const [k, v] of next) {
-      const o = z.result.get(k);
-      if (
-        o === undefined ||
-        o.length !== v.length ||
-        o.some((x, i) => x !== v[i])
-      ) {
-        same = false;
-        break;
-      }
-    }
-  }
-  if (same) return false;
-  z.result = next;
-  return true;
-}
-
-function sameMap(
-  a: ReadonlyMap<number, number>,
-  b: ReadonlyMap<number, number>,
-): boolean {
-  if (a.size !== b.size) return false;
-  for (const [k, v] of a) if (b.get(k) !== v) return false;
-  return true;
-}
-
-function sameTriples(
-  a: readonly (readonly [number, number, number])[],
-  b: readonly (readonly [number, number, number])[],
-): boolean {
-  if (a.length !== b.length) return false;
-  return a.every(
-    (x, i) => x[0] === b[i][0] && x[1] === b[i][1] && x[2] === b[i][2],
-  );
-}

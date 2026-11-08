@@ -5,18 +5,34 @@ import {
   AIR_TYPES,
   WW_BOMB_CLASSES,
 } from "@openfront/engine-api/ww1936/AirTypes";
+import { BUILDING_IDS } from "@openfront/engine-api/ww1936/EconomyTypes";
 import { WW_PREP_TICKS } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { dayOfDate, dayStartTick } from "@openfront/engine-lib/ww1936/Calendar";
+import { RECON_PLAN_CUT_BP } from "@openfront/engine-lib/ww1936/SeaAirRules";
 import {
   loadCenti,
   raidEffectLines,
 } from "@openfront/engine-lib/ww1936/WingRules";
 import {
+  bombFatigueBp,
+  damageRegion,
+} from "@openfront/engine/ww1936/air/Bombing";
+import {
   accrueStation,
   deliverSortie,
 } from "@openfront/engine/ww1936/air/WingStrikes";
-import { damageOf } from "@openfront/engine/ww1936/economy/Buildings";
-import "./oldAirModel";
+import {
+  airZoneDay,
+  reconCovers,
+  reconPlanCutBp,
+  reconToday,
+} from "@openfront/engine/ww1936/depth/AirExtras";
+import {
+  damageOf,
+  effectiveBuildings,
+} from "@openfront/engine/ww1936/economy/Buildings";
+import { computeStability } from "@openfront/engine/ww1936/politics/Stability";
+import "./noStartWings";
 import { REGION, SEA, SR } from "./seaFixture";
 import {
   byTag,
@@ -28,7 +44,7 @@ import {
   withTestPolitics,
   wwRunnerCapture,
 } from "./util";
-import { giveWing, liveWings } from "./wingUtil";
+import { giveWing } from "./wingUtil";
 
 withTestPolitics();
 
@@ -54,7 +70,6 @@ async function war() {
   takeRegion(g, REGION.munich, "GBR");
   takeRegion(g, REGION.rome, "GBR");
   const air = ww.air;
-  liveWings(air);
   return {
     g,
     ww,
@@ -221,5 +236,56 @@ describe("lane C: wing deliveries", () => {
       key: "ww1936.raid_effect.fuel",
       params: { n: 8 },
     });
+  });
+});
+
+// Moved from the old model's tests (Bombing, AirExtras): the rules a wing's
+// raid and recon feed, read the same way since.
+describe("what the raids and recon leave behind", () => {
+  test("damage never exceeds the buildings (damageRegion)", async () => {
+    const { ww } = await war();
+    const econ = ww.economy;
+    damageRegion(econ, REGION.berlin, 1_000_000_000);
+    damageRegion(econ, REGION.berlin, 1_000_000_000);
+    for (const b of BUILDING_IDS) {
+      const count = econ.buildingArray(b)[REGION.berlin] ?? 0;
+      expect(damageOf(econ, REGION.berlin, b), b).toBeLessThanOrEqual(
+        count * 1000,
+      );
+    }
+    expect(effectiveBuildings(econ, REGION.berlin, "civ")).toBe(0);
+  });
+
+  test("bombing fatigue lowers war support, at most 15%", async () => {
+    const { ww, air, deu } = await war();
+    const before = computeStability(ww.politics, deu).wsBp;
+    expect(bombFatigueBp(air, deu)).toBe(0);
+    // 6,000 points taken in the last 30 days: −6,000 / 400 = −15 bp.
+    air.country(deu)!.bombTaken[0] = 6000;
+    expect(bombFatigueBp(air, deu)).toBe(-15);
+    expect(computeStability(ww.politics, deu).wsBp).toBe(before - 15);
+    air.country(deu)!.bombTaken.fill(100_000);
+    expect(bombFatigueBp(air, deu)).toBe(-1500);
+  });
+
+  test("20 recon sorties over a zone cover its enemy and cut its plan bonus", async () => {
+    const { g, ww, gbr, deu } = await war();
+    const d = ww.depth;
+    const idx = ww.scenario.srIdxOf(SR.westLand);
+    const side = ww.land.sideOf(gbr);
+    // A day's recon on station, as accrueStation leaves it: 25 sorties.
+    ww.air.zoneState[idx].today.recon.set(side, 25_000);
+    airZoneDay(d, SR.westLand, ww.day(g.ticks()), g.ticks());
+    expect(reconToday(d, gbr, SR.westLand)).toBe(25);
+    expect(ww.air.zoneState[idx].today.recon.size).toBe(0);
+    expect(reconCovers(d, gbr, deu)).toBe(true);
+    expect(reconCovers(d, deu, gbr)).toBe(false);
+    expect(reconPlanCutBp(d, deu, REGION.berlin)).toBe(RECON_PLAN_CUT_BP);
+    expect(reconPlanCutBp(d, gbr, REGION.berlin)).toBe(0);
+    // Too few: no cover, no cut.
+    ww.air.zoneState[idx].today.recon.set(side, 19_000);
+    airZoneDay(d, SR.westLand, ww.day(g.ticks()) + 1, g.ticks());
+    expect(reconCovers(d, gbr, deu)).toBe(false);
+    expect(reconPlanCutBp(d, deu, REGION.berlin)).toBe(0);
   });
 });

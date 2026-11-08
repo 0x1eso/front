@@ -31,9 +31,9 @@ import {
 import { usePoliticsContent } from "@openfront/engine/ww1936/politics/ContentSource";
 import { DEEP } from "./deepFixture";
 import { depthFixture } from "./depthFixture";
-import "./oldAirModel";
+import "./noStartWings";
 import { stepTo, wwRunner } from "./util";
-import { giveWing, liveWings } from "./wingUtil";
+import { giveWing } from "./wingUtil";
 
 beforeEach(() => usePoliticsContent(depthFixture()));
 afterEach(() => usePoliticsContent(null));
@@ -88,7 +88,6 @@ describe("the events", () => {
     );
     stepTo(runner, WW_PREP_TICKS + 1);
     const air = runner.game.worldWar()!.air;
-    liveWings(air);
     const w = giveWing(air, { owner: GBR, type: FIGHTER, planes: 100 });
     noteWingFight(air, w, 10, 1);
     expect(w.xpMilli).toBe(300 + 2 + 30);
@@ -124,7 +123,6 @@ describe("aces on wings", () => {
     const air = ww.air;
     const d = ww.depth;
     const seed = ww.politics.seed;
-    liveWings(air);
     // Find a wing id whose first roll passes and one whose roll fails.
     const a = giveWing(air, {
       owner: GBR,

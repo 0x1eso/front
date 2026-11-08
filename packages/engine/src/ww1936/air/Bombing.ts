@@ -15,23 +15,19 @@ import {
   BUILDING_IDS,
   type BuildingId,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
-import { bombDamageMilli } from "@openfront/engine-lib/ww1936/AirRules";
 import { isNoStrike } from "@openfront/engine-lib/ww1936/NoStrike";
 import {
   BOMB_CLASS_WEIGHTS,
   BOMB_FUEL_OIL_INFRA,
 } from "@openfront/engine-lib/ww1936/WingRules";
-import { nightMods } from "../depth/AirExtras";
 import type { WwDepth } from "../depth/WwDepth";
 import {
   damageBuilding,
   damageOf,
   effectiveBuildings,
-  effectiveLevel,
 } from "../economy/Buildings";
 import type { WwEconomy } from "../economy/WwEconomy";
 import type { WwLand } from "../land/WwLand";
-import type { EffectTally, Sortie } from "./AirEffects";
 import type { WwAir } from "./WwAir";
 
 /**
@@ -176,15 +172,6 @@ const FACTORIES: readonly BuildingId[] = [
   "smelter",
 ];
 
-/** A region's industry weight (×2) from its working buildings. */
-export function regionBombWeight(econ: WwEconomy, region: number): number {
-  let w = 0;
-  for (const [b, k] of BOMB_WEIGHTS) {
-    w += effectiveBuildings(econ, region, b) * k;
-  }
-  return w;
-}
-
 /**
  * Spec §14.8: `milli` of building damage into `region`, building by
  * building in proportion to the weight: the whole buildings first (each
@@ -225,111 +212,4 @@ export function factoriesStopped(econ: WwEconomy, region: number): number {
 export function sideMembersOf(land: WwLand, side: number): readonly number[] {
   const m = land.sideMembers(side);
   return m.length > 0 ? m : [side];
-}
-
-/**
- * Spec §14.8: a land zone's day of strategic bombing, side by side (key
- * order). A side's points = Σ sorties × strategic attack × (100 +
- * stratBombPct) / 100 (each owner's stats; the doctrine techs feed the
- * same key); the targets are the zone's bombable regions a country at war
- * with the side controls, by industry weight; each region's damage is
- * bombDamageMilli (anti-air, the victim's bombDamageTakenPct). The
- * victim's ring gets the points after anti-air; the hits go to the
- * air-raid notice (RaidNotes). The bombers' losses
- * to anti-air are A1's (AirCombat).
- */
-export function strategicBombing(
-  air: WwAir,
-  sr: number,
-  day: number,
-  bySide: ReadonlyMap<number, readonly Sortie[]>,
-  fx: EffectTally,
-): void {
-  if (bySide.size === 0) return;
-  const regions = bombableRegions(air, sr);
-  if (regions.length === 0) return;
-  const econ = air.econ;
-  const land = air.land;
-  const slot = ((day % 30) + 30) % 30;
-  // P6 (spec §15.3): a night group's records share the flag, so a zone
-  // with no flagged record has no night raid (nightMods is not asked).
-  let night = false;
-  for (const l of bySide.values()) {
-    for (const x of l) if (x.d.night) night = true;
-  }
-  for (const side of [...bySide.keys()].sort((a, b) => a - b)) {
-    const byOwner = new Map<number, number>();
-    let centi = 0;
-    for (const x of bySide.get(side)!) {
-      const pct = econ.country(x.d.owner)?.stats.stratBombPct ?? 0;
-      const lit = Math.floor(
-        (Math.floor((x.milli * x.stats.strat) / 1000) *
-          Math.max(0, 100 + pct)) /
-          100,
-      );
-      // P6 (spec §15.3): a night raid scores ×0.6 (+ nightBombBp).
-      const c = night
-        ? Math.floor((lit * nightMods(air.ww.depth, x.d.id).bombBp) / 10_000)
-        : lit;
-      if (c <= 0) continue;
-      centi += c;
-      byOwner.set(x.d.owner, (byOwner.get(x.d.owner) ?? 0) + c);
-    }
-    const points = Math.floor(centi / 100);
-    if (points <= 0) continue;
-    const members = sideMembersOf(land, side);
-    const targets = regions.filter((r) => {
-      const c = land.controller[r] ?? 0;
-      return c !== 0 && members.some((m) => land.isEnemy(m, c));
-    });
-    if (targets.length === 0) continue;
-    const share = apportion(
-      points,
-      targets.map((r) => regionBombWeight(econ, r)),
-    );
-    let given = 0;
-    // victim → points taken after anti-air; the region hit hardest
-    const hit = new Map<number, number>();
-    let by = 0;
-    let byMost = -1;
-    for (const [o, c] of byOwner) {
-      if (c > byMost || (c === byMost && o < by)) {
-        by = o;
-        byMost = c;
-      }
-    }
-    targets.forEach((r, i) => {
-      const p = share[i];
-      if (p <= 0) return;
-      given += p;
-      const victim = land.controller[r];
-      const aa = effectiveLevel(econ, r, "anti_air");
-      const taken = econ.country(victim)?.stats.bombDamageTakenPct ?? 0;
-      const before = factoriesStopped(econ, r);
-      const done = damageRegion(econ, r, bombDamageMilli(p, aa, taken));
-      const after = Math.floor((p * (1000 - Math.min(400, 80 * aa))) / 1000);
-      hit.set(victim, (hit.get(victim) ?? 0) + after);
-      air.raidNotes.note(
-        air,
-        victim,
-        by,
-        r,
-        factoriesStopped(econ, r) - before,
-        0,
-        done,
-      );
-    });
-    if (given === 0) continue;
-    air.bombPointsTotal += given;
-    for (const [owner, c] of byOwner) {
-      fx.bomb.set(owner, (fx.bomb.get(owner) ?? 0) + Math.floor(c / 100));
-    }
-    for (const victim of [...hit.keys()].sort((a, b) => a - b)) {
-      const after = hit.get(victim)!;
-      const c = air.country(victim);
-      if (c === null || after <= 0) continue;
-      c.bombTaken[slot] += after;
-      air.markCountry(victim);
-    }
-  }
 }

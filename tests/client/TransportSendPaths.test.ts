@@ -7,7 +7,6 @@ import {
 } from "@openfront/shared/ZbinWire";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { testGameConfig } from "../util/Wire";
-import "../ww1936/oldAirModel";
 
 // Transport's send paths: intent events on the bus leave the socket as
 // decodable frames (or reach the local server in singleplayer), and the

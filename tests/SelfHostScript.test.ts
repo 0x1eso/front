@@ -108,9 +108,10 @@ describe("game-night.sh check", () => {
 
 // `start` and `stop` against a throwaway repository with stand-ins for
 // everything they launch: npm (the build), node_modules/.bin/tsx (the game
-// server), cloudflared and curl. Nothing listens on a real port: the fake
-// curl answers for the ports a test marks as listening in its state
-// directory, so a server running on this machine changes nothing here.
+// server), cloudflared, curl and ss. Nothing listens on a real port: the
+// fake curl answers and the fake ss lists a listener for the ports a test
+// marks as listening in its state directory, so a server running on this
+// machine changes nothing here.
 const FAKE_SERVER = `#!/usr/bin/env bash
 # Stands in for src/server/Server.ts; FAKE_SERVER says how it behaves.
 echo $$ > "$FAKE_STATE/server-pid"
@@ -138,6 +139,17 @@ if [[ "$url" == */api/health ]]; then
   exit 0
 fi
 [[ -f "$FAKE_STATE/listening-$port" ]] || exit 7
+`;
+
+const FAKE_SS = `#!/usr/bin/env bash
+# Lists a listener on the ports marked FAKE_STATE/listening-<port> (asked as
+# "ss -ltnpH 'sport = :PORT'"), owned by FAKE_STATE/listener-pid when a test
+# names one, else by the fake server.
+port="\${*: -1}"
+port="\${port##*:}"
+[[ -f "$FAKE_STATE/listening-$port" ]] || exit 0
+pid="$(cat "$FAKE_STATE/listener-pid" 2> /dev/null || cat "$FAKE_STATE/server-pid")"
+printf 'LISTEN 0 511 *:%s *:* users:(("node",pid=%s,fd=20))\\n' "$port" "$pid"
 `;
 
 const FAKE_CLOUDFLARED = `#!/usr/bin/env bash
@@ -194,6 +206,7 @@ function makeSandbox(): Sandbox {
   writeExecutable(path.join(repo, "node_modules/.bin/tsx"), FAKE_SERVER);
   writeExecutable(path.join(bin, "curl"), FAKE_CURL);
   writeExecutable(path.join(bin, "cloudflared"), FAKE_CLOUDFLARED);
+  writeExecutable(path.join(bin, "ss"), FAKE_SS);
   writeExecutable(path.join(bin, "npm"), FAKE_NPM);
   const envFile = path.join(root, "selfhost.env");
   fs.writeFileSync(envFile, VALID);
@@ -481,6 +494,25 @@ describe("game-night.sh start and stop", { timeout: 60_000 }, () => {
     expect(
       fs.readFileSync(path.join(box.repo, ".selfhost/server.log.1"), "utf8"),
     ).toBe("last night\n");
+  });
+
+  // Something else on the master port with no pid file: status names it,
+  // and stop leaves it alone, since this checkout's start did not launch it.
+  test("status names an untracked listener on the master port and stop leaves it", async () => {
+    const other = spawn("sleep", ["30"], { detached: true, stdio: "ignore" });
+    box.spawned.push(other.pid!);
+    fs.writeFileSync(path.join(box.state, "listener-pid"), `${other.pid}`);
+    fs.writeFileSync(path.join(box.state, "listening-3000"), "");
+    expect(box.run(["status"]).stdout).toBe(
+      `server: stopped\nport 3000: in use by pid ${other.pid}, with no pid file (game-night.sh stop stops it if it is a server started here)\ntunnel: stopped\n`,
+    );
+    const stop = box.run(["stop"]);
+    expect(stop.status).toBe(0);
+    expect(stop.stdout).toMatch(
+      /not a server game-night\.sh started here; left alone/,
+    );
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    expect(alive(other.pid!)).toBe(true);
   });
 
   // A pid file can outlive its process, and the system can hand the number

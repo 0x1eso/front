@@ -212,9 +212,9 @@ export class WwTopBand extends LitElement implements Controller {
   private politics: BandPolitics | null = null;
   /** P5 (spec §20.3): "🗺 Occupation 38 · resistance 41%"; null without administered regions. */
   private occ: { n: number; resPct: number } | null = null;
-  /** P6 (spec §20.1): command power, energy, congress, atomic bombs. */
+  /** P6 (spec §20.1): energy, congress, atomic bombs. */
   private depth: BandDepth | null = null;
-  /** The small row command power and congress move to when the band is full (the 🏛 cell opens it). */
+  /** The small row energy and congress move to when the band is full (the 🏛 cell opens it). */
   @state() private depthRow = false;
   /**
    * Final review M6: what each chip shows, as last drawn — the redraw is
@@ -549,7 +549,7 @@ export class WwTopBand extends LitElement implements Controller {
     </div>`;
   }
 
-  /** Whether the band is too full for command power and congress inline (a later shed step). */
+  /** Whether the band is too full for energy and congress inline (a later shed step). */
   private depthInRow(): boolean {
     const { maxWidth } = this.placement ?? bandPlacement();
     const step = this.step(maxWidth);
@@ -793,7 +793,7 @@ export class WwTopBand extends LitElement implements Controller {
           : `${p.ppLabel}, ${p.stabLabel}, ${p.wsLabel}`}
         class="flex h-6 shrink-0 items-center gap-2 rounded-md border border-white/15 bg-white/5 px-2 text-xs tabular-nums hover:bg-white/10"
         @click=${() => {
-          // A full band keeps command power and congress in a row this cell opens.
+          // A full band keeps energy and congress in a row this cell opens.
           if (this.depthInRow() && this.depthRowHolds()) {
             this.depthRow = !this.depthRow;
           } else this.eventBus.emit(new OpenWwPoliticsEvent("government"));

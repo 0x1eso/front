@@ -1,39 +1,31 @@
-// P6 lane W2 (plan Task 8): the AI's mines, night bombing and recon (spec
-// §15.1, §15.3, §15.4, §19.7), on an AI country's depth turn. At war,
-// every day: mine-layer design ships lay mines in the two sea regions
-// nearest the capital (Britain, Germany, the Soviet Union and Finland
-// always — history as flavour; any other country when an enemy fleet is
-// there), minesweepers clear the enemy's mines on the invasion routes and
-// in mined home waters, strategic bombers go by night (Britain from
-// September 1940; anyone under an enemy sky); every 5 days recon fighters
-// (up to 10% of the fighters) go over the zones of our battles. At peace
-// (every 10 days) the mine fleets come home and the recon groups land.
+// P6 lane W2 (plan Task 8): the AI's mines (spec §15.1, §19.7), on an AI
+// country's depth turn. At war, every day: mine-layer design ships lay
+// mines in the two sea regions nearest the capital (Britain, Germany, the
+// Soviet Union and Finland always — history as flavour; any other country
+// when an enemy fleet is there), minesweepers clear the enemy's mines on the
+// invasion routes and in mined home waters. At peace (every 10 days) the
+// mine fleets come home. Night bombing and recon are the wing planner's
+// (AiAir.aiWings, aiNightWings here).
 //
-// P4's AI plans every fleet and deployment of an AI country: it leaves
-// these alone once T1b adds isDepthFleet / isDepthDeployment to its input
-// filters (lane W2 report).
+// P4's AI plans every fleet of an AI country: it leaves the mine fleets
+// alone (isDepthFleet).
 //
 // Automation (navy switch, a human's country): the mines only (aiSeaMines),
 // on the same days; night bombing and recon are the air's, not the navy's.
 import type { WwOrder } from "@openfront/engine-api/Schemas";
-import { AIR_MISSIONS, AIR_TYPES } from "@openfront/engine-api/ww1936/AirTypes";
+import { AIR_MISSIONS } from "@openfront/engine-api/ww1936/AirTypes";
 import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
 import {
   DS_MINE_LAYER,
   DS_MINESWEEP,
 } from "@openfront/engine-api/ww1936/DepthTypes";
-import {
-  equipKey,
-  EQUIPMENT_GENS,
-} from "@openfront/engine-api/ww1936/EconomyTypes";
-import { RECON_SORTIES } from "@openfront/engine-lib/ww1936/SeaAirRules";
 import { isCarrierWing } from "../air/Deploy";
-import { wingPlanes, wingSide, type Wing } from "../air/WwAir";
+import { wingPlanes, wingSide } from "../air/WwAir";
 import { capitalRegion } from "../land/LandStartRun";
 import { aiAtWar, invasionBoundFleets, invasionRouteSrs } from "../navy/AiNavy";
 import { FST, MISSION } from "../navy/Missions";
 import type { Fleet } from "../navy/WwNavy";
-import { fliesAtNight, issueSeaAir } from "./AirExtras";
+import { issueSeaAir } from "./AirExtras";
 import { designerOn } from "./Hist";
 import { enemyMinesMilli, shipMineFlags, sidesAtWar } from "./Mines";
 import type { WwDepth } from "./WwDepth";
@@ -51,23 +43,14 @@ export const AI_NIGHT_OFF_PM = 300;
 export const AI_NIGHT_LOSS_PM = 50;
 /** Spec §19.7: recon takes up to this share of the fighters, %. */
 export const AI_RECON_PCT = 10;
-/** 내 판단: a recon group's planes (≥ 20 sorties at a usual sortie rate). */
-export const AI_RECON_PLANES = 24;
 /** 내 판단: enemy mines in home waters worth sweeping, milli (50 spec units). */
 export const AI_SWEEP_HOME_MILLI = 50_000;
 
 const M_BOMB = AIR_MISSIONS.indexOf("strategic_bombing");
-const M_RECON = AIR_MISSIONS.indexOf("recon");
-const T_FIGHTER = AIR_TYPES.indexOf("fighter");
 
 /** T1b (P4 AiNavy input): a fleet on a mine mission, the depth AI's to command. */
 export function isDepthFleet(f: Fleet): boolean {
   return f.mission === MISSION.layMines || f.mission === MISSION.sweepMines;
-}
-
-/** T1b (P4 AiAir input): a recon deployment, the depth AI's to command. */
-export function isDepthDeployment(dep: Wing): boolean {
-  return dep.mission === M_RECON;
 }
 
 export function aiSeaAirDay(d: WwDepth, id: number, day: number): void {
@@ -77,11 +60,8 @@ export function aiSeaAirDay(d: WwDepth, id: number, day: number): void {
     if (day % 10 === id % 10) aiPeace(d, id);
     return;
   }
-  aiMines(d, id);
   // ww8: night and recon are the wing planner's (aiWings), a human's [auto] too.
-  if (ww.air.wingsLive) return;
-  aiNight(d, id, day);
-  if ((day + id) % 5 === 0) aiRecon(d, id);
+  aiMines(d, id);
 }
 
 /**
@@ -264,45 +244,6 @@ function aiMines(d: WwDepth, id: number): void {
   }
 }
 
-/** Spec §15.3, §19.7: each strategic bombing group by night or by day. */
-function aiNight(d: WwDepth, id: number, day: number): void {
-  const ww = d.ww;
-  const air = ww.air;
-  // The deployments map is in id order (ids only rise).
-  const bombers: Wing[] = [];
-  for (const x of air.wings.values()) {
-    if (x.owner === id && x.mission === M_BOMB && !isCarrierWing(x)) {
-      bombers.push(x);
-    }
-  }
-  if (bombers.length === 0) return;
-  const gbr = ww.tagOf(id) === "GBR";
-  const side = ww.land.sideOf(id);
-  const seen = new Set<string>();
-  for (const dep of bombers) {
-    const key = `${dep.sr}:${dep.type}:${dep.volunteerFor}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
-    const idx = ww.scenario.srIdxOf(dep.sr);
-    const enemySup = idx < 0 ? 0 : (air.zoneState[idx].enemySup.get(side) ?? 0);
-    const night = fliesAtNight(d, dep);
-    const want =
-      (gbr && enemySup > 0) || enemySup >= AI_NIGHT_ON_PM
-        ? true
-        : enemySup < AI_NIGHT_OFF_PM
-          ? false
-          : night;
-    if (want !== night) {
-      issueSeaAir(
-        d,
-        id,
-        { kind: "air_night", deployment: dep.id, on: want },
-        d.mg.ticks(),
-      );
-    }
-  }
-}
-
 /**
  * ww8 (design §7.9): each bombing wing by night or by day, wing by wing (a
  * human's pinned wing keeps its own): by night under an enemy sky, or when the
@@ -336,84 +277,9 @@ export function aiNightWings(d: WwDepth, id: number, human: boolean): void {
   }
 }
 
-/** The country's fighters: in the stock and deployed (carrier wings aside). */
-function fightersOf(d: WwDepth, id: number): number {
-  const ce = d.ww.economy.country(id);
-  if (ce === null) return 0;
-  let n = 0;
-  for (let g = 1; g <= EQUIPMENT_GENS.fighter; g++) {
-    n += ce.stock[equipKey("fighter", g)] ?? 0;
-  }
-  for (const dep of d.ww.air.wingsOf(id)) {
-    if (dep.type !== T_FIGHTER || isCarrierWing(dep)) continue;
-    for (const c of dep.counts) n += c;
-  }
-  return n;
-}
-
-/** The recon groups' targets by zone (fighters). */
-function reconTargets(d: WwDepth, id: number): Map<number, number> {
-  const now = new Map<number, number>();
-  for (const dep of d.ww.air.wingsOf(id)) {
-    if (dep.mission === M_RECON && dep.type === T_FIGHTER) {
-      now.set(dep.sr, dep.goalCount);
-    }
-  }
-  return now;
-}
-
-function setRecon(
-  d: WwDepth,
-  id: number,
-  want: ReadonlyMap<number, number>,
-): void {
-  const now = reconTargets(d, id);
-  const zones = [...new Set([...now.keys(), ...want.keys()])].sort(
-    (a, b) => a - b,
-  );
-  for (const sr of zones) {
-    const w = want.get(sr) ?? 0;
-    if (w === (now.get(sr) ?? 0)) continue;
-    d.ww.air.issue(
-      id,
-      { kind: "air_deploy", sr, type: "fighter", mission: "recon", count: w },
-      d.mg.ticks(),
-    );
-  }
-}
-
-/**
- * Spec §19.7: recon over the land zones where our side fights (the most
- * battles first, then the zone id), a group of AI_RECON_PLANES each while
- * 10% of the fighters lasts (a group needs at least 20).
- */
-function aiRecon(d: WwDepth, id: number): void {
-  const ww = d.ww;
-  const land = ww.land;
-  const zones = new Map<number, number>();
-  for (const b of land.battles.values()) {
-    if (!land.sameSide(id, b.attLead) && !land.sameSide(id, b.defLead)) {
-      continue;
-    }
-    const sr = ww.scenario.regionSr(b.region);
-    if (sr !== 0) zones.set(sr, (zones.get(sr) ?? 0) + 1);
-  }
-  let left = Math.floor((fightersOf(d, id) * AI_RECON_PCT) / 100);
-  const want = new Map<number, number>();
-  for (const [sr] of [...zones].sort((a, b) => b[1] - a[1] || a[0] - b[0])) {
-    if (left < RECON_SORTIES) break;
-    const n = Math.min(AI_RECON_PLANES, left);
-    want.set(sr, n);
-    left -= n;
-  }
-  setRecon(d, id, want);
-}
-
-/** At peace: the mine fleets come home, the recon groups land. */
+/** At peace: the mine fleets come home. */
 function aiPeace(d: WwDepth, id: number): void {
   minesHome(d, id);
-  if (d.ww.air.wingsLive) return;
-  if (reconTargets(d, id).size > 0) setRecon(d, id, new Map());
 }
 
 /** At peace: the mine fleets come home. */

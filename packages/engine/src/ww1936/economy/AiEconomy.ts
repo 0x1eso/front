@@ -2485,8 +2485,6 @@ export const AI_P4_BUILDS_AT_WAR = 2;
 export const AI_P4_BUILDS_AT_PEACE = 1;
 /** Spec §17.5: naval bases at front and departure ports up to this level. */
 export const AI_NAVAL_BASE_MAX = 6;
-/** Spec §17.3-2: air bases at the fronts up to this level. */
-export const AI_AIR_BASE_MAX = 5;
 /** w50: in the wing model a base is level 0 or 1. */
 export const AI_WING_BASE_MAX = 1;
 /** 내 판단: the AI's anti-air, coastal forts and radar stop here (the factories come first). */
@@ -2710,36 +2708,8 @@ export function aiP4Builds(
           a - b,
       );
     first(ports, "naval_base");
-    // Air bases where the deployments find no room.
-    const air = ww.air;
-    const short = new Set<number>();
-    if (!air.wingsLive) {
-      const groups = new Map<number, { target: number; have: number }>();
-      for (const d of air.wingsOf(me)) {
-        if (d.base < 0) continue;
-        const k = d.sr * 1000 + d.type * 20 + d.mission;
-        const g = groups.get(k) ?? { target: d.goalCount, have: 0 };
-        g.have += d.counts.reduce((x, y) => x + y, 0);
-        groups.set(k, g);
-      }
-      for (const [k, g] of groups)
-        if (g.have < g.target) short.add(Math.floor(k / 1000));
-    }
-    const airBases = air.wingsLive
-      ? wingBases()
-      : regions
-          .filter(
-            (r) =>
-              short.has(sc.regionSr(r)) &&
-              level(r, "air_base") < AI_AIR_BASE_MAX,
-          )
-          .sort(
-            (a, b) =>
-              level(b, "air_base") - level(a, "air_base") ||
-              vp(b) - vp(a) ||
-              a - b,
-          );
-    first(airBases, "air_base");
+    // Air bases where the wings want them.
+    first(wingBases(), "air_base");
     // What the enemy flies and sails.
     let stratBombers = false;
     let bombers = false;
@@ -2821,7 +2791,7 @@ export function aiP4Builds(
   }
   // ww8: at peace too (every plane now wants a place on a base, flying or
   // not), behind what the economy has under way.
-  if (!atWar && ww.air.wingsLive && ce.queue.length <= 1) {
+  if (!atWar && ce.queue.length <= 1) {
     first(wingBases(), "air_base");
   }
 }
