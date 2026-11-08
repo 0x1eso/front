@@ -413,6 +413,11 @@ export interface Army {
   medal: number;
   /** The last day the medal works; -1 none. */
   medalUntil: number;
+  // ww162 (battle planner; snapshot and hash only when not at the default).
+  /** Pinned divisions, [division id, region], ascending by id: the army's plan skips them. */
+  pins: [number, number][];
+  /** Days in a row the fallback rule has held (design ww162 §1.3); 0 none. */
+  fbDays: number;
 }
 
 export interface Battle {
@@ -606,6 +611,12 @@ const OrderSchema = z.object({
   zone: zInts().optional(),
   /** ww42: a human's direct attack; written when set. */
   direct: z.boolean().optional(),
+  // ww162 (battle planner): each written when set (not empty, true).
+  ends: z.tuple([zInt(), zInt()]).optional(),
+  goal: zInts().optional(),
+  spear: z.boolean().optional(),
+  fallback: zInts().optional(),
+  fbManual: z.boolean().optional(),
 });
 
 export const WwLandStateSchema = z.object({
@@ -653,6 +664,9 @@ export const WwLandStateSchema = z.object({
       railGuns: zInt().optional(),
       medal: zInt().optional(),
       medalUntil: zInt().optional(),
+      // ww162: written when not empty / not 0.
+      pins: z.array(z.tuple([zInt(), zInt()])).optional(),
+      fbDays: zInt().optional(),
     }),
   ),
   battles: z.array(
@@ -2034,6 +2048,8 @@ export class WwLand {
       railGuns: 0,
       medal: 0,
       medalUntil: -1,
+      pins: [],
+      fbDays: 0,
     };
     this.armies.set(a.id, a);
     this.dirtyArmies.add(a.id);
@@ -2439,11 +2455,8 @@ export class WwLand {
       symbol,
       mine: human
         ? {
-            order: {
-              ...a.order,
-              targets: [...a.order.targets],
-              zone: [...a.order.zone],
-            },
+            // ww162: a copy, so no list of the engine's order is shared.
+            order: copyOrder(a.order),
             front: [...a.front],
             planBp: a.planBp,
             auto: a.auto,
@@ -2457,6 +2470,12 @@ export class WwLand {
             ...(a.autoLevel === 0 ? {} : { autoLevel: a.autoLevel }),
             ...directOut,
             ...oddsOut,
+            // ww162: sent when any.
+            ...(a.pins.length === 0
+              ? {}
+              : {
+                  pins: a.pins.map((p): [number, number] => [p[0], p[1]]),
+                }),
           }
         : null,
     };
@@ -2823,6 +2842,26 @@ export class WwLand {
       // ww42: the direct attack, only when used.
       if (o.direct === true) mix(0xd42);
       if (a.dflags !== 0) mix(0xd43 + a.dflags);
+      // ww162: the battle planner's lines and pins, only when used.
+      if (o.ends !== undefined) {
+        mix(0x162a);
+        fold(o.ends);
+      }
+      if (o.goal !== undefined && o.goal.length > 0) {
+        mix(0x162b);
+        fold(o.goal);
+      }
+      if (o.spear === true) mix(0x162c);
+      if (o.fallback !== undefined && o.fallback.length > 0) {
+        mix(0x162d);
+        fold(o.fallback);
+      }
+      if (o.fbManual === true) mix(0x162e);
+      if (a.pins.length > 0) {
+        mix(0x162f);
+        for (const p of a.pins) fold(p);
+      }
+      if (a.fbDays !== 0) mix(0x1630 + a.fbDays);
     }
     for (const b of this.battles.values()) {
       mix(b.sinceTick);
@@ -2980,6 +3019,10 @@ export class WwLand {
         railGuns: a.railGuns,
         medal: a.medal,
         medalUntil: a.medalUntil,
+        ...(a.pins.length === 0
+          ? {}
+          : { pins: a.pins.map((p): [number, number] => [p[0], p[1]]) }),
+        ...(a.fbDays === 0 ? {} : { fbDays: a.fbDays }),
       })),
       battles: [...this.battles.values()].map((b) => ({
         region: b.region,
@@ -3116,6 +3159,8 @@ export class WwLand {
         railGuns: a.railGuns ?? 0,
         medal: a.medal ?? 0,
         medalUntil: a.medalUntil ?? -1,
+        pins: (a.pins ?? []).map((p): [number, number] => [p[0], p[1]]),
+        fbDays: a.fbDays ?? 0,
       });
     }
     this.battles.clear();
@@ -3275,6 +3320,18 @@ function copyOrder(
     readyDay: o.readyDay,
     zone: [...(o.zone ?? [])],
     ...(o.direct === true ? { direct: true } : {}),
+    // ww162: each only when set, so an order without them copies as before.
+    ...(o.ends === undefined
+      ? {}
+      : { ends: [o.ends[0], o.ends[1]] as [number, number] }),
+    ...(o.goal === undefined || o.goal.length === 0
+      ? {}
+      : { goal: [...o.goal] }),
+    ...(o.spear === true ? { spear: true } : {}),
+    ...(o.fallback === undefined || o.fallback.length === 0
+      ? {}
+      : { fallback: [...o.fallback] }),
+    ...(o.fbManual === true ? { fbManual: true } : {}),
   };
 }
 

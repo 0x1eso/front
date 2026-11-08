@@ -114,6 +114,7 @@ import {
   LandOrderKind,
   STANCES,
   SUPPORT_IDS,
+  WW_GOAL_MAX,
   WW_MAX_ARMIES,
   WW_MAX_ARMY_DIVISIONS,
   WW_MAX_BATTALIONS,
@@ -1740,6 +1741,64 @@ export const WwOrderSchema = z.discriminatedUnion("kind", [
     kind: z.literal("template_auto"),
     template: WwTemplateId,
     on: z.boolean(),
+  }),
+  // ww162 (battle planner, design ww162 §1), appended. The front line's two
+  // ends (our border regions; the same region twice: one region) against
+  // `enemy` (a smallID, 0: every enemy).
+  z.object({
+    kind: z.literal("army_front_line"),
+    army: WwArmy,
+    ends: z.tuple([WwRegionId, WwRegionId]),
+    enemy: zb.uint({ max: 1000 }),
+  }),
+  // The offensive line: enemy regions in drawn order (empty clears it),
+  // `spear` a spearhead taken in order, and the stance it attacks at.
+  z.object({
+    kind: z.literal("army_goal"),
+    army: WwArmy,
+    regions: z.array(WwRegionId).max(WW_GOAL_MAX),
+    spear: z.boolean(),
+    stance: z.enum(STANCES),
+  }),
+  // The fallback line (empty clears it); `manual`: only on army_fall_back.
+  z.object({
+    kind: z.literal("army_fallback"),
+    army: WwArmy,
+    regions: z.array(WwRegionId).max(WW_ZONE_MAX),
+    manual: z.boolean(),
+  }),
+  z.object({ kind: z.literal("army_fall_back"), army: WwArmy }),
+  // Divisions of one army pinned to a region (moved, or attacking an enemy
+  // region), out of the army's plan until released (empty: every pin).
+  z.object({
+    kind: z.literal("division_move"),
+    army: WwArmy,
+    divisions: z.array(WwId).min(1).max(WW_MAX_ARMY_DIVISIONS),
+    region: WwRegionId,
+  }),
+  z.object({
+    kind: z.literal("division_release"),
+    army: WwArmy,
+    divisions: z.array(WwId).max(WW_MAX_ARMY_DIVISIONS),
+  }),
+  // A marshal's lines, cut among the group's armies.
+  z.object({
+    kind: z.literal("group_front_line"),
+    group: WwId,
+    ends: z.tuple([WwRegionId, WwRegionId]),
+    enemy: zb.uint({ max: 1000 }),
+  }),
+  z.object({
+    kind: z.literal("group_goal"),
+    group: WwId,
+    regions: z.array(WwRegionId).max(WW_GOAL_MAX),
+    spear: z.boolean(),
+    split: z.boolean(),
+  }),
+  z.object({
+    kind: z.literal("group_fallback"),
+    group: WwId,
+    regions: z.array(WwRegionId).max(WW_ZONE_MAX),
   }),
 ]);
 export type WwOrder = z.infer<typeof WwOrderSchema>;

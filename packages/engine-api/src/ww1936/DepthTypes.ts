@@ -1086,6 +1086,16 @@ export interface WwArmyGroupData {
   owner: number;
   fm: number;
   armies: number[];
+  // ww162 (battle planner): the marshal's lines, each sent when set.
+  /** The group's front line ends and enemy (group_front_line), cut among its armies daily. */
+  ends?: [number, number];
+  enemy?: number;
+  /** The group's offensive line (group_goal); `split`: cut to each army's sector, else every army takes it all. */
+  goal?: number[];
+  spear?: boolean;
+  split?: boolean;
+  /** The group's fallback line (group_fallback), cut like its front. */
+  fallback?: number[];
 }
 export interface WwDepthFx {
   kind: "nuke" | "nuke_intercepted" | "rocket" | "raid" | "dam";

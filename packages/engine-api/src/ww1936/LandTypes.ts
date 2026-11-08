@@ -179,6 +179,24 @@ export interface ArmyOrder {
    * order and the army goes at once. Absent for every other order.
    */
   direct?: boolean;
+  // ww162 (battle planner, design ww162 §1), each absent at its default.
+  /**
+   * The front line's two ends (army_front_line): our border regions against
+   * `enemy`; each day they snap to the border and the zone is the border
+   * chain between them (FrontRules.frontChainBetween). Absent: no line.
+   */
+  ends?: [number, number];
+  /**
+   * The offensive line (army_goal): enemy regions in drawn order, at most
+   * WW_GOAL_MAX; regions our side takes drop out. Absent or empty: none.
+   */
+  goal?: number[];
+  /** The goal is a spearhead: waypoints taken in order (absent: a broad line over the whole front). */
+  spear?: boolean;
+  /** The fallback line (army_fallback): our side's regions, at most WW_ZONE_MAX. Absent or empty: none. */
+  fallback?: number[];
+  /** The army falls back only on army_fall_back, never by itself (absent: by itself too). */
+  fbManual?: boolean;
 }
 export function idleOrder(): ArmyOrder {
   return {
@@ -587,6 +605,13 @@ export interface ArmyMineData {
    * it would attack, win %]; sent for human armies with a plan order.
    */
   odds?: [number, number, number][];
+  /** ww162: the army's pinned divisions, [division id, region], by id; sent when any. */
+  pins?: [number, number][];
+  /**
+   * ww162 (Design A §3): the army's two shortest need groups, [NEED_GROUPS
+   * index, units missing]; derived (not state), sent when any is short.
+   */
+  short?: [number, number][];
 }
 
 export interface BattleSummary {
@@ -819,6 +844,8 @@ export const WW_ZONE_MAX = 60;
 /** ww7: a defend zone is ⌈divisions ÷ 2⌉ regions, an attack zone ⌈divisions ÷ 3⌉. */
 export const WW_ZONE_DIVS_DEFEND = 2;
 export const WW_ZONE_DIVS_ATTACK = 3;
+/** ww162: most regions in an offensive line (army_goal, group_goal). */
+export const WW_GOAL_MAX = 24;
 
 /**
  * ww7: the tactics a battle phase picks (12 hours a phase). zbin and
@@ -882,6 +909,17 @@ export const LAND_ORDER_KINDS = [
   "start_oob",
   // ww107: a template's automatic support companies.
   "template_auto",
+  // ww162 (battle planner): the three lines, pinned divisions, and a
+  // marshal's lines (land orders: the depth list's ranges stay as they are).
+  "army_front_line",
+  "army_goal",
+  "army_fallback",
+  "army_fall_back",
+  "division_move",
+  "division_release",
+  "group_front_line",
+  "group_goal",
+  "group_fallback",
 ] as const;
 export type LandOrderKind = (typeof LAND_ORDER_KINDS)[number];
 
@@ -916,5 +954,8 @@ export const LAND_MESSAGE_KEYS = [
   // ww107: the automatic companies, and a guide template with no room left.
   "events_display.ww1936_company_added",
   "ww1936.econ.block.too_many_templates",
+  // ww162: an army fell back to its fallback line; an offensive line was reached.
+  "events_display.ww1936_fell_back",
+  "events_display.ww1936_goal_reached",
 ] as const;
 export type LandMessageKey = (typeof LAND_MESSAGE_KEYS)[number];
