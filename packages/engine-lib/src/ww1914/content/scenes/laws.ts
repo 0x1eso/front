@@ -1,5 +1,6 @@
 import type {
   GwEffect,
+  GwNode,
   GwOption,
   GwScene,
 } from "@openfront/engine-api/ww1914/SceneDsl";
@@ -27,7 +28,7 @@ const onlyCalled = flag("gw_world_called_only");
 const act = (e: Parameters<typeof doWorld>[0]): GwEffect => doWorld(e);
 
 /** The card of the drafting: each option is a text of the bill. */
-function draftScene(row: GwLawRow): GwScene {
+function draftScene(row: GwLawRow, house: boolean): GwScene {
   return {
     id: `gw_law_${row.id}`,
     nation: [row.tag],
@@ -41,7 +42,8 @@ function draftScene(row: GwLawRow): GwScene {
     options: row.draft.map((d) => {
       const o: GwOption = {
         id: d.id,
-        tell: [...d.tell],
+        // A bill the house runs (ww158) shows no price on its old card either.
+        tell: house ? [] : [...d.tell],
         effects: [
           act({ do: "law_text", law: row.id, text: d.id, support: d.support }),
           ...d.effects,
@@ -57,9 +59,8 @@ function draftScene(row: GwLawRow): GwScene {
  * bill the house runs (ww158) shows no price: the count is the count, and the
  * way round's price comes after; a bill the house brought can't be withdrawn.
  */
-function dayScene(row: GwLawRow): GwScene {
+function dayScene(row: GwLawRow, house: boolean): GwScene {
   const law = row.id;
-  const house = houseBill(law) !== null;
   const says = house ? [] : [...row.passedTell, ...lawTermTell(row)];
   const d = GW_LAW_HOME[row.tag]?.decree ?? null;
   const options: GwOption[] = [
@@ -96,7 +97,13 @@ function dayScene(row: GwLawRow): GwScene {
     tags: ["home"],
     when: onlyCalled,
     variants: [
-      { id: "short", when: world({ is: "law_count", id: law, max: -1 }) },
+      // A house bill's day reads the whip's word, right or wrong, not the count.
+      {
+        id: "short",
+        when: house
+          ? world({ is: "whip_said", of: ["short", "hopeless"] })
+          : world({ is: "law_count", id: law, max: -1 }),
+      },
       { id: "base" },
     ],
     fallback: "put",
@@ -104,7 +111,17 @@ function dayScene(row: GwLawRow): GwScene {
   };
 }
 
-function talkScene(row: GwLawRow): GwScene {
+/** The sponsor's talk on a house bill: the same nodes, no price shown. */
+function untold(row: GwLawRow): Record<string, GwNode> {
+  return Object.fromEntries(
+    Object.entries(row.talk.nodes).map(([id, n]) => [
+      id,
+      { ...n, replies: n.replies.map((r) => ({ ...r, tell: [] })) },
+    ]),
+  );
+}
+
+function talkScene(row: GwLawRow, house: boolean): GwScene {
   return {
     id: `gw_lt_${row.id}`,
     nation: [row.tag],
@@ -116,7 +133,7 @@ function talkScene(row: GwLawRow): GwScene {
     who: "who",
     variants: [{ id: "base" }],
     start: row.talk.start,
-    nodes: { ...row.talk.nodes },
+    nodes: house ? untold(row) : { ...row.talk.nodes },
     once: true,
     summon: true,
   };
@@ -140,9 +157,22 @@ function afterScene(row: GwLawRow): GwScene[] {
   ];
 }
 
-export const LAW_SCENES: readonly GwScene[] = GW_LAWS.flatMap((row) => [
-  draftScene(row),
-  dayScene(row),
-  talkScene(row),
-  ...afterScene(row),
-]);
+/**
+ * A bill's papers. `house`: the house runs it (ww158): no price shows before
+ * the pick, and the day reads the whip's word, not the count.
+ */
+export function lawScenes(
+  row: GwLawRow,
+  house = houseBill(row.id) !== null,
+): GwScene[] {
+  return [
+    draftScene(row, house),
+    dayScene(row, house),
+    talkScene(row, house),
+    ...afterScene(row),
+  ];
+}
+
+export const LAW_SCENES: readonly GwScene[] = GW_LAWS.flatMap((row) =>
+  lawScenes(row),
+);

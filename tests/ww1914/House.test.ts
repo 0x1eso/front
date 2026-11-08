@@ -5,17 +5,15 @@
 // factions' own bills, tempers and splits, the extra calls, the v2 migration.
 import type { GwSeatState } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
-import {
-  GwPack,
-  gwPackProblems,
-  mergeGwPacks,
-} from "@openfront/engine-api/ww1914/GwPack";
+import { GW_WHIP_WORDS } from "@openfront/engine-api/ww1914/GwHouse";
+import { GwPack, gwPackProblems } from "@openfront/engine-api/ww1914/GwPack";
 import { gwSceneEffects } from "@openfront/engine-api/ww1914/SceneCheck";
 import {
   flag,
   GwScene,
   gwSceneProblems,
   GwSceneSchema,
+  not,
   setFlag,
 } from "@openfront/engine-api/ww1914/SceneDsl";
 import { doWorld } from "@openfront/engine-api/ww1914/WorldDsl";
@@ -23,18 +21,24 @@ import { readVersioned } from "@openfront/engine-lib/snapshot/SnapshotType";
 import {
   GW_CONTENT,
   GwContent,
+  gwContent,
   useGwContent,
 } from "@openfront/engine-lib/ww1914/content/Content";
 import {
+  AUH_HOUSE,
   DEU_HOUSE,
   GW_HOUSE_ROWS,
+  REICHSRAT_OPEN,
 } from "@openfront/engine-lib/ww1914/content/house/houses";
 import {
   GW_HOUSE_CONTENT,
   GW_HOUSE_LAWS,
   gwHouseScenes,
 } from "@openfront/engine-lib/ww1914/content/scenes/house";
-import { GW_LAWS } from "@openfront/engine-lib/ww1914/content/scenes/laws";
+import {
+  GW_LAWS,
+  lawScenes,
+} from "@openfront/engine-lib/ww1914/content/scenes/laws";
 import type {
   GwBillRow,
   GwFactionRow,
@@ -46,6 +50,7 @@ import {
   houseCalledScenes,
   houseIds,
 } from "@openfront/engine-lib/ww1914/HouseRows";
+import { makeCard } from "@openfront/engine/ww1914/Desk";
 import { GreatWar, GreatWarSnapshot } from "@openfront/engine/ww1914/GreatWar";
 import {
   factionOf,
@@ -53,6 +58,7 @@ import {
   houseStep,
   houseTally,
   houseView,
+  seatsNow,
   whipOf,
 } from "@openfront/engine/ww1914/House";
 import {
@@ -65,7 +71,8 @@ import {
 import { applyGwOrder } from "@openfront/engine/ww1914/Orders";
 import { houseStories, pressStep } from "@openfront/engine/ww1914/Press";
 import { GW_PRESS_ROWS } from "@openfront/engine/ww1914/PressTable";
-import { runEffects } from "@openfront/engine/ww1914/SceneRun";
+import { holds, runEffects } from "@openfront/engine/ww1914/SceneRun";
+import { loadGwPack } from "@openfront/shared/ww1914/GwPackLoader";
 import fs from "node:fs";
 import path from "node:path";
 import { afterEach, describe, expect, test } from "vitest";
@@ -177,7 +184,8 @@ function houseProblems(c: GwContent, tag: GwTag, pack: GwPack): string[] {
     if (t !== undefined && t.brief === undefined && s.silent !== true) {
       out.push(`${s.id}: no brief`);
     }
-    if (GW_HOUSE_LAWS.some((l) => s.id.endsWith(`_${l.id}`))) continue;
+    // A law in force's aftermath may show its price; nothing before does.
+    if (s.id.startsWith("gw_lf_")) continue;
     for (const o of s.options ?? []) {
       if (o.tell.length > 0) out.push(`${s.id}.${o.id}: a tell`);
     }
@@ -210,12 +218,14 @@ function GW_HOUSE_CONTENT_SCENES(tag: GwTag): string[] {
 }
 
 describe("the rows", () => {
-  test.each(NATIONS)("%s's house has its scenes and text", (tag) => {
-    const pack = mergeGwPacks([
-      packOf(`${tag}.house.json`),
-      packOf(`${tag}.laws.json`),
-      packOf(`${tag}.people.json`),
-    ]);
+  // The pack as the runtime loads it: common shares (common.house.json's
+  // sovereign's paper and fallbacks) under the country's own.
+  test.each(NATIONS)("%s's house has its scenes and text", async (tag) => {
+    const pack = await loadGwPack(tag, async (p) =>
+      JSON.parse(
+        fs.readFileSync(path.join(__dirname, "../../resources", p), "utf8"),
+      ),
+    );
     expect(houseProblems(GW_CONTENT, tag, pack)).toEqual([]);
   });
 
@@ -839,6 +849,187 @@ describe("the approved rest of the design", () => {
     ]);
     gw.s.chapter++;
     expect(houseStories(gw, seat, row)).toEqual([]);
+  });
+});
+
+describe("the GBR writer's round", () => {
+  test("a split takes its seats from the parent; a join pools them; parting gives them back", async () => {
+    const BLOC: GwFactionRow = {
+      id: "t_bloc",
+      tag: "DEU",
+      bloc: "parliament",
+      leaders: [{ person: "deu_erzberger" }],
+      seats: {},
+      start: "out",
+    };
+    const CENTRE_J: GwFactionRow = {
+      ...CENTRE,
+      joins: {
+        with: ["t_cons"],
+        when: flag("t_join"),
+        into: "t_bloc",
+        parts: flag("t_part"),
+      },
+    };
+    const rows = [SPD, USPD, CONS, CENTRE_J, BLOC];
+    const { gw, seat } = await atWar(HOUSE, { factions: rows });
+    const total = () =>
+      rows
+        .filter((r) => factionOf(seat, r.id)?.status === "in")
+        .reduce((n, r) => n + (seatsNow(seat, r).reichstag ?? 0), 0);
+    const before = total();
+    seat.flags.push("t_split");
+    houseStep(gw);
+    expect(seatsNow(seat, SPD).reichstag).toBe(2);
+    expect(seatsNow(seat, USPD).reichstag).toBe(1);
+    expect(total()).toBe(before);
+    seat.flags.push("t_join");
+    houseStep(gw);
+    expect(factionOf(seat, "t_bloc")!.status).toBe("in");
+    expect(seatsNow(seat, BLOC).reichstag).toBe(5);
+    expect(total()).toBe(before);
+    seat.flags.push("t_part");
+    houseStep(gw);
+    expect(factionOf(seat, "t_bloc")!.status).toBe("out");
+    expect(factionOf(seat, "t_centre")!.status).toBe("in");
+    expect(total()).toBe(before);
+  });
+
+  test("a house bill's papers show no price: draft card, sponsor's talk, day", () => {
+    for (const law of GW_LAWS.filter((l) => l.tag === "DEU")) {
+      const [draft, day, talk] = lawScenes(law, true);
+      for (const o of [...draft.options!, ...day.options!]) {
+        expect([law.id, o.id, o.tell]).toEqual([law.id, o.id, []]);
+      }
+      for (const n of Object.values(talk.nodes!)) {
+        for (const r of n.replies) expect(r.tell).toEqual([]);
+      }
+    }
+  });
+
+  test("which day body comes follows the whip's word, not the true count", async () => {
+    const day = lawScenes(GW_LAWS.find((l) => l.id === "deu_aux")!, true)[1];
+    const { gw, n, seat } = await atWar();
+    const now = gwContent();
+    useGwContent({
+      ...now,
+      scenes: [...now.scenes.filter((x) => x.id !== day.id), day],
+    });
+    n.inst.reichstag = 5;
+    drafted(gw, seat, "deu_aux", "unions_text");
+    const st = n.laws.find((x) => x.id === "deu_aux")!;
+    st.stage = "vote";
+    expect(count(gw, seat, "deu_aux")).toBeGreaterThanOrEqual(0);
+    st.whip = 3; // "short", and wrong: the bill would carry
+    expect(makeCard(gw, seat, day, "scheduled")!.variant).toBe("short");
+    st.whip = 0; // "wide"
+    expect(makeCard(gw, seat, day, "scheduled")!.variant).toBe("base");
+    n.inst.reichstag = -5;
+    expect(count(gw, seat, "deu_aux")).toBeLessThan(0);
+    expect(makeCard(gw, seat, day, "scheduled")!.variant).toBe("base");
+  });
+});
+
+describe("the AUH writer's round", () => {
+  test("the Reichsrat sits after any of the three ways it is called back", async () => {
+    const { gw, n, seat } = await atWar();
+    const open = () => holds(ctxOf(gw, seat), REICHSRAT_OPEN);
+    expect(open()).toBe(false);
+    for (const f of ["f_auh_reichsrat_open", "f_auh_house_open"]) {
+      seat.flags.push(f);
+      expect([f, open()]).toEqual([f, true]);
+      seat.flags = seat.flags.filter((x) => x !== f);
+    }
+    n.laws.push({
+      id: "auh_reichsrat",
+      stage: "force",
+      since: 1,
+      support: 0,
+      how: "voted",
+      text: null,
+      lost: 0,
+      after: false,
+      origin: "seat",
+      by: null,
+      sponsor: null,
+      deals: [],
+      whip: -1,
+      delayTo: -1,
+      warm: [],
+    });
+    expect(open()).toBe(true);
+    expect(AUH_HOUSE.chambers[0].sits).toEqual(REICHSRAT_OPEN);
+  });
+
+  test("a closed chamber the way round carries doesn't block: the rest count alone", async () => {
+    // Vienna closed under §14, Budapest (here the Reichstag's seats) voting.
+    const house: GwHouseRow = {
+      ...HOUSE,
+      chambers: [
+        AUH_HOUSE.chambers[0],
+        { id: "reichstag", inst: "reichstag", kind: "vote" },
+      ],
+      around: {
+        ...AUH_HOUSE.around!,
+        skips: ["reichsrat"],
+        heats: [{ faction: "t_spd", by: 1 }],
+      },
+    };
+    const { gw, n, seat } = await atWar(house);
+    n.inst.reichstag = 5;
+    // Not a bill §14 can reach: the closed chamber blocks it.
+    drafted(gw, seat, "deu_aux", "unions_text");
+    expect(count(gw, seat, "deu_aux")).toBeLessThanOrEqual(-3);
+    const aux = n.laws.find((x) => x.id === "deu_aux")!;
+    lawWithdraw(gw, seat, "deu_aux");
+    aux.since = -99;
+    seat.desk = [];
+    // The bread cards: Vienna's half goes by §14, Budapest alone counts.
+    drafted(gw, seat, "deu_bread_cards", "city_cards");
+    const counts = houseCounts(gw, seat, "deu_bread_cards", 0);
+    expect(counts.map((c) => c.id)).toEqual(["reichstag"]);
+    expect(count(gw, seat, "deu_bread_cards")).toBeGreaterThanOrEqual(0);
+    houseStep(gw);
+    const st = n.laws.find((x) => x.id === "deu_bread_cards")!;
+    expect(GW_WHIP_WORDS[st.whip]).not.toBe("hopeless");
+    const r = gw.s.reports.find((x) => x.about === "deu_bread_cards")!;
+    expect(r.truth).toBe(
+      GW_WHIP_WORDS.indexOf(
+        count(gw, seat, "deu_bread_cards") >= 3 ? "wide" : "likely",
+      ),
+    );
+    const heat = factionOf(seat, "t_spd")!.heat;
+    st.stage = "vote";
+    lawPut(ctxOf(gw, seat), "deu_bread_cards");
+    expect(st.stage).toBe("force");
+    expect(seat.house!.around).toBe(1);
+    expect(factionOf(seat, "t_spd")!.heat).toBe(heat + 1);
+    expect(seat.log.some((l) => l.key === "house_round_par14")).toBe(true);
+  });
+});
+
+describe("the DEU writer's round", () => {
+  test("once the majority takes the powers back, there is no way round", async () => {
+    const { gw, n, seat } = await atWar();
+    n.inst.reichstag = -5;
+    drafted(gw, seat, "deu_bread_cards", "city_cards");
+    n.laws.find((x) => x.id === "deu_bread_cards")!.stage = "vote";
+    expect(lawCanDecree(gw, seat, "deu_bread_cards")).toBe(true);
+    seat.flags.push("f_powers_back");
+    expect(lawCanDecree(gw, seat, "deu_bread_cards")).toBe(false);
+    expect(DEU_HOUSE.around!.when).toEqual(not(flag("f_powers_back")));
+  });
+
+  test("a price paid on the spot makes no promise, so nothing falls due broken", async () => {
+    const { gw, n, seat } = await atWar();
+    drafted(gw, seat, "deu_aux", "army_text");
+    runEffects(ctxOf(gw, seat), [doWorld({ do: "deal", id: "t_spd" })]);
+    const st = n.laws.find((x) => x.id === "deu_aux")!;
+    expect(st.deals).toContain("t_spd");
+    expect(seat.promises.some((p) => p.key.startsWith("house_t_spd"))).toBe(
+      false,
+    );
+    expect(factionOf(seat, "t_spd")!.deals).toEqual([]);
   });
 });
 

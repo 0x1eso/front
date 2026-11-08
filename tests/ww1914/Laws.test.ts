@@ -6,9 +6,15 @@ import {
   gwPackProblems,
   mergeGwPacks,
 } from "@openfront/engine-api/ww1914/GwPack";
-import { GW_CONTENT } from "@openfront/engine-lib/ww1914/content/Content";
+import {
+  GW_CONTENT,
+  useGwContent,
+} from "@openfront/engine-lib/ww1914/content/Content";
 import { GW_HOUSE_LAWS } from "@openfront/engine-lib/ww1914/content/scenes/house";
-import { GW_LAWS } from "@openfront/engine-lib/ww1914/content/scenes/laws";
+import {
+  GW_LAWS,
+  lawScenes,
+} from "@openfront/engine-lib/ww1914/content/scenes/laws";
 import { GW_LAW_HOME } from "@openfront/engine-lib/ww1914/LawRows";
 import { GW_AUTHORITY } from "@openfront/engine/ww1914/AuthorityTable";
 import { advanceChapter } from "@openfront/engine/ww1914/Chapters";
@@ -22,7 +28,14 @@ import { applyGwOrder } from "@openfront/engine/ww1914/Orders";
 import { loadMapFiles } from "@openfront/shared/GameMapLoader";
 import fs from "node:fs";
 import path from "node:path";
-import { beforeAll, describe, expect, test } from "vitest";
+import {
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  test,
+} from "vitest";
 import { NodeGameMapLoader } from "../perf/fullgame/NodeGameMapLoader";
 import { GW_SIM_PROFILES, playRun } from "./sim/GwSim";
 import { gwRunner, order, playChapter, seat, view } from "./util";
@@ -152,7 +165,25 @@ describe("the rows", () => {
   });
 });
 
+/**
+ * The path without a house (ww158): no house rows, and the bills' papers as
+ * they are for a bill the house doesn't run, whatever the house files hold.
+ */
+function withoutHouse(): void {
+  const plain = new Map(
+    GW_LAWS.flatMap((r) => lawScenes(r, false)).map((s) => [s.id, s]),
+  );
+  useGwContent({
+    ...GW_CONTENT,
+    houses: [],
+    bills: [],
+    scenes: GW_CONTENT.scenes.map((s) => plain.get(s.id) ?? s),
+  });
+}
+
 describe("a bill's way", () => {
+  beforeEach(withoutHouse);
+  afterEach(() => useGwContent(null));
   test("draft, persuade, the day, in force, and the law works on its months", async () => {
     const { gw, n, seat: st } = await atWar();
     const row = rowOf("deu_bread_cards");
@@ -397,6 +428,8 @@ describe("a bill's way", () => {
 });
 
 describe("a save", () => {
+  beforeEach(withoutHouse);
+  afterEach(() => useGwContent(null));
   test("a moving bill survives the round trip and the hash sees it", async () => {
     const { runner } = await gwRunner({ greatWar1914Calendar: "full" });
     const gw = runner.game.greatWar()!;

@@ -14,6 +14,7 @@ import {
   houseChip,
   houseSection,
 } from "../../../src/client/hud/ww1914/GwHouse";
+import { promiseText } from "../../../src/client/hud/ww1914/GwText";
 
 const house = (over: Partial<GwHouseView> = {}): GwHouseView => ({
   bill: null,
@@ -176,5 +177,29 @@ describe("the house on the country tab", () => {
     });
     const joined = { ...e, story: "house_joined", faction: "deu_bloc" };
     expect(headlineText(pack, joined, h).head).toBe("deu_bloc만의 머리기사");
+  });
+
+  test("a deal's promise reads as a sentence naming the leader and the bill", () => {
+    const pack = {
+      ...PACK,
+      promises: {
+        house_deal:
+          "「{bill}」에 {who}의 무리가 찬성하는 대신, 그가 청한 것을 들어주기로 했다.",
+        house_deal_plain: "{who}의 무리가 찬성하는 대신.",
+      },
+    } as unknown as GwPack;
+    const p = {
+      key: "house_deu_spd_deu_aux",
+      who: "deu_ebert",
+      due: "1917-01-01",
+      kept: false,
+      broken: false,
+    };
+    expect(promiseText(pack, p as never)).toBe(
+      "「조국 봉사법」에 에베르트의 무리가 찬성하는 대신, 그가 청한 것을 들어주기로 했다.",
+    );
+    expect(
+      promiseText(pack, { ...p, key: "house_deu_spd_deu_nothing" } as never),
+    ).toBe("에베르트의 무리가 찬성하는 대신.");
   });
 });

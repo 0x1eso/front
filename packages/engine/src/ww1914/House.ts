@@ -112,6 +112,37 @@ export function factionOf(
   return seat.house?.factions.find((f) => f.id === id) ?? null;
 }
 
+type Seats = Partial<Record<GwChamber, number>>;
+
+/** A faction's seats now: moved by splits and joins, else its row's. */
+export function seatsNow(seat: GwSeatState, row: GwFactionRow): Seats {
+  return (
+    (factionOf(seat, row.id)?.seats as Seats | null | undefined) ?? row.seats
+  );
+}
+
+/** `take` seats from each chamber of `from`, at most what it has. */
+function moveSeats(from: Seats, take: number): { left: Seats; moved: Seats } {
+  const left: Seats = {};
+  const moved: Seats = {};
+  for (const [c, k] of Object.entries(from) as [GwChamber, number][]) {
+    const m = Math.min(take, k ?? 0);
+    left[c] = (k ?? 0) - m;
+    if (m > 0) moved[c] = m;
+  }
+  return { left, moved };
+}
+
+function poolSeats(list: readonly Seats[]): Seats {
+  const out: Seats = {};
+  for (const s of list) {
+    for (const [c, k] of Object.entries(s) as [GwChamber, number][]) {
+      out[c] = (out[c] ?? 0) + (k ?? 0);
+    }
+  }
+  return out;
+}
+
 const ctxOf = (gw: GreatWar, seat: GwSeatState): SceneCtx => ({
   gw,
   seat,
@@ -171,6 +202,7 @@ function factionStart(gw: GreatWar, row: GwFactionRow): GwFactionState {
     asking: null,
     asked: -9,
     deals: [],
+    seats: null,
   };
 }
 
@@ -341,6 +373,10 @@ function splitsAndJoins(gw: GreatWar, seat: GwSeatState): void {
         into.since = gw.s.chapter;
         into.strength = clampTo(sp.takes, 1, GW_FACTION_STRENGTH_MAX);
         growBy(st, -sp.takes, "split");
+        // The seats go with them: the house gains no voice by a split.
+        const { left, moved } = moveSeats(seatsNow(seat, row), sp.takes);
+        st.seats = left;
+        into.seats = moved;
         into.leader = factionLeader(gw, seat, sp.into);
         if (sp.scene !== undefined) call(seat, sp.scene, gw.s.chapter + 1);
         reason(gw, seat, "house_split", into.leader ?? undefined);
@@ -360,9 +396,12 @@ function splitsAndJoins(gw: GreatWar, seat: GwSeatState): void {
       .map((id) => factionOf(seat, id))
       .filter((x): x is GwFactionState => x !== null);
     if (into.status === "out" && st.status === "in" && holds(ctx, jn.when)) {
-      const sum = members
-        .filter((m) => m.status === "in")
-        .reduce((n, m) => n + m.strength, 0);
+      const sitting = members.filter((m) => m.status === "in");
+      const sum = sitting.reduce((n, m) => n + m.strength, 0);
+      // Their seats are pooled; each keeps its own to take back if they part.
+      into.seats = poolSeats(
+        sitting.map((m) => seatsNow(seat, factionRow(m.id)!)),
+      );
       for (const m of members) {
         if (m.status !== "in") continue;
         m.status = "merged";
@@ -383,6 +422,7 @@ function splitsAndJoins(gw: GreatWar, seat: GwSeatState): void {
     ) {
       into.status = "out";
       into.since = gw.s.chapter;
+      into.seats = null;
       for (const m of members) {
         if (m.status !== "merged") continue;
         m.status = "in";
@@ -451,7 +491,7 @@ function countIn(
     st.support +
     table;
   for (const f of factionRows(seat.tag)) {
-    const seats = f.seats[c.id] ?? 0;
+    const seats = seatsNow(seat, f)[c.id] ?? 0;
     if (seats === 0) continue;
     count += seats * sideOf(gw, seat, bill, st, f.id).side;
   }
@@ -493,9 +533,29 @@ export function houseCounts(
     delayTo: -1,
     warm: [],
   };
+  const gone = [...skip, ...closedRound(gw, seat, house, bill)];
   return chambersOf(house, bill)
-    .filter((c) => !skip.includes(c.id))
+    .filter((c) => !gone.includes(c.id))
     .map((c) => countIn(gw, seat, n, bill, row, live, c, table));
+}
+
+/**
+ * Chambers that don't sit and that the way round carries for this bill now
+ * (Vienna's half under §14): they don't block; the others count alone.
+ */
+export function closedRound(
+  gw: GreatWar,
+  seat: GwSeatState,
+  house: GwHouseRow,
+  bill: GwBillRow,
+): GwChamber[] {
+  const around = house.around;
+  if (around === undefined || bill.around !== true) return [];
+  const ctx = ctxOf(gw, seat);
+  if (around.when !== undefined && !holds(ctx, around.when)) return [];
+  return chambersOf(house, bill)
+    .filter((c) => !sits(ctx, c) && around.skips.includes(c.id))
+    .map((c) => c.id);
 }
 
 /** The count the bill stands at: the worst chamber that can stop it. */
@@ -646,7 +706,15 @@ export function housePut(
     return { pass: false, stops: "lords_delay", sign: false };
   }
   vote(gw, seat, bill, st, t.count);
-  const sign = t.count >= 0 && houseRow(seat.tag)?.signs === true;
+  // A closed chamber went by the way round: its factions take that ill.
+  const house = houseRow(seat.tag)!;
+  const closed = closedRound(gw, seat, house, bill);
+  if (t.count >= 0 && closed.length > 0 && house.around !== undefined) {
+    for (const h of house.around.heats) heatBy(gw, seat, h.faction, h.by);
+    if (seat.house !== undefined) seat.house.around++;
+    reason(gw, seat, `house_round_${house.around.id}`);
+  }
+  const sign = t.count >= 0 && house.signs === true;
   return { pass: t.count >= 0, stops: t.stops, sign };
 }
 
@@ -702,7 +770,7 @@ function vote(
     chambersOf(houseRow(seat.tag)!, bill).map((c) => c.id),
   );
   for (const row of factionRows(seat.tag)) {
-    const sitsHere = Object.entries(row.seats).some(
+    const sitsHere = Object.entries(seatsNow(seat, row)).some(
       ([c, k]) => (k ?? 0) > 0 && chambers.has(c as GwChamber),
     );
     if (!sitsHere) continue;
@@ -908,7 +976,7 @@ function canStart(seat: GwSeatState, row: GwFactionRow): boolean {
   const house = houseRow(seat.tag);
   if (house === null) return false;
   return house.chambers.some(
-    (c) => c.starts === true && (row.seats[c.id] ?? 0) > 0,
+    (c) => c.starts === true && (seatsNow(seat, row)[c.id] ?? 0) > 0,
   );
 }
 
@@ -976,16 +1044,14 @@ function sponsorWorks(gw: GreatWar, seat: GwSeatState): void {
   );
   const target = factionRows(seat.tag)
     .filter((f) =>
-      Object.keys(f.seats).some((c) => chambers.has(c as GwChamber)),
+      Object.entries(seatsNow(seat, f)).some(
+        ([c, k]) => (k ?? 0) > 0 && chambers.has(c as GwChamber),
+      ),
     )
     .filter((f) => !m.st.deals.includes(f.id))
     .filter((f) => sideOf(gw, seat, m.bill, m.st, f.id).side <= 0)
     .filter((f) => (factionOf(seat, f.id)?.step ?? 0) < 2)
-    .sort(
-      (a, b) =>
-        Object.values(b.seats).reduce((x, y) => (x ?? 0) + (y ?? 0), 0)! -
-        Object.values(a.seats).reduce((x, y) => (x ?? 0) + (y ?? 0), 0)!,
-    )[0];
+    .sort((a, b) => seatsSum(seat, b) - seatsSum(seat, a))[0];
   if (target === undefined) return;
   const r = wwRoll(gw.s.seed, P_SPONSOR, idHash(m.st.id), gw.s.chapter) % 100;
   if (r < (GW_SPONSOR_ODDS[band - 1] ?? 50)) {
@@ -1113,7 +1179,10 @@ export function houseHolds(ctx: SceneCtx, c: HouseCond): boolean {
       const open = m?.st.stage === "persuade" || m?.st.stage === "vote";
       if (m === null || !open || f?.status !== "in") return false;
       const chambers = chambersOf(houseRow(seat.tag)!, m.bill);
-      return chambers.some((ch) => (row?.seats[ch.id] ?? 0) > 0);
+      return (
+        row !== null &&
+        chambers.some((ch) => (seatsNow(seat, row)[ch.id] ?? 0) > 0)
+      );
     }
     case "vote_band": {
       const last = seat.house?.last ?? null;
@@ -1211,14 +1280,16 @@ function takeDeal(ctx: SceneCtx, id: string): void {
   if (w === null || m === null || f === null) return;
   const key = `house_${id}_${m.st.id}`;
   const who = f.leader ?? factionLeader(gw, seat, id);
-  if (who !== null && !seat.promises.some((p) => p.key === key)) {
+  // A price paid on the spot (no `keep`) leaves nothing owed: no promise.
+  const owed = w.keep !== undefined;
+  if (owed && who !== null && !seat.promises.some((p) => p.key === key)) {
     seat.promises.push({
       key,
       who,
       due: gw.s.chapter + (w.chapters ?? 6),
       kept: false,
       broken: false,
-      keep: w.keep === undefined ? null : JSON.stringify(w.keep as GwCond),
+      keep: JSON.stringify(w.keep as GwCond),
       back: w.back ?? null,
     });
     f.deals.push(key);
@@ -1231,8 +1302,11 @@ function takeDeal(ctx: SceneCtx, id: string): void {
 
 // ---- The view ----
 
-function seatsSum(row: GwFactionRow): number {
-  return Object.values(row.seats).reduce<number>((n, k) => n + (k ?? 0), 0);
+function seatsSum(seat: GwSeatState, row: GwFactionRow): number {
+  return Object.values(seatsNow(seat, row)).reduce<number>(
+    (n, k) => n + (k ?? 0),
+    0,
+  );
 }
 
 export function houseView(
@@ -1257,7 +1331,7 @@ export function houseView(
         why: f.why,
         leader: f.leader,
         chambers: house.chambers
-          .filter((c) => (row.seats[c.id] ?? 0) > 0)
+          .filter((c) => (seatsNow(seat, row)[c.id] ?? 0) > 0)
           .map((c) => c.id),
       },
     ];
@@ -1284,7 +1358,7 @@ function billView(
   const chambers = chambersOf(house, m.bill);
   const ids = new Set(chambers.map((c) => c.id));
   const rows = factionRows(seat.tag).filter((f) =>
-    Object.entries(f.seats).some(
+    Object.entries(seatsNow(seat, f)).some(
       ([c, k]) => (k ?? 0) > 0 && ids.has(c as GwChamber),
     ),
   );
@@ -1293,7 +1367,10 @@ function billView(
     rows
       .filter((r) => factionOf(seat, r.id)?.status === "in")
       .filter((r) => sideOf(gw, seat, m.bill, m.st, r.id).side !== 0)
-      .sort((a, b) => seatsSum(b) - seatsSum(a) || (a.id < b.id ? -1 : 1))
+      .sort(
+        (a, b) =>
+          seatsSum(seat, b) - seatsSum(seat, a) || (a.id < b.id ? -1 : 1),
+      )
       .slice(0, 2)
       .map((r) => r.id),
   );

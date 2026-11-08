@@ -278,7 +278,28 @@ export function backText(
 
 /** A promise as the people screen lists it. */
 export function promiseText(pack: GwPack | null, p: GwPromiseView): string {
-  return withWho(pack?.promises?.[p.key] ?? p.key, pack, p.who);
+  const own = pack?.promises?.[p.key] ?? houseDeal(pack, p.key);
+  return withWho(own ?? p.key, pack, p.who);
+}
+
+/**
+ * A deal struck in the house (ww158), key `house_<faction>_<law>`, with no
+ * text of its own: the common line, naming the bill by its title.
+ */
+function houseDeal(pack: GwPack | null, key: string): string | null {
+  if (pack === null || !key.startsWith("house_")) return null;
+  const law = Object.keys(pack.scenes)
+    .filter((id) => id.startsWith("gw_law_"))
+    .map((id) => id.slice("gw_law_".length))
+    .filter((l) => key.endsWith(`_${l}`))
+    .sort((a, b) => b.length - a.length)[0];
+  const bill = law === undefined ? undefined : pack.scenes[`gw_law_${law}`];
+  const line =
+    bill === undefined
+      ? pack.promises?.house_deal_plain
+      : pack.promises?.house_deal;
+  if (line === undefined) return null;
+  return line.replace(/\{bill\}/g, bill?.title ?? "");
 }
 
 /**

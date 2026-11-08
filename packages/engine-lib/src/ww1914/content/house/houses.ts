@@ -1,4 +1,5 @@
-import { flag, not } from "@openfront/engine-api/ww1914/SceneDsl";
+import { any, flag, not } from "@openfront/engine-api/ww1914/SceneDsl";
+import { world } from "@openfront/engine-api/ww1914/WorldDsl";
 import type { GwHouseRow } from "../../HouseRows";
 import { either, office, person } from "../laws/kit";
 
@@ -23,6 +24,8 @@ export const DEU_HOUSE: GwHouseRow = {
   // prices only (bills marked `around`). The majority can take them back.
   around: {
     id: "bundesrat",
+    // The majority's bill takes the powers back (`deu_take_back`).
+    when: not(flag("f_powers_back")),
     price: 20,
     inst: "reichstag",
     delta: -1,
@@ -57,6 +60,17 @@ export const GBR_HOUSE: GwHouseRow = {
   police: either(person("gbr_hall"), office("interior"), office("chancellor")),
 };
 
+/**
+ * Vienna's Reichsrat sits once it has been called back: by the realm's paper
+ * (f_auh_reichsrat_open), by Karl's opening (f_auh_house_open), or by the
+ * `auh_reichsrat` bill in force.
+ */
+export const REICHSRAT_OPEN = any(
+  flag("f_auh_reichsrat_open"),
+  flag("f_auh_house_open"),
+  world({ is: "law", id: "auh_reichsrat", of: ["force"] }),
+);
+
 export const AUH_HOUSE: GwHouseRow = {
   tag: "AUH",
   chambers: [
@@ -64,7 +78,7 @@ export const AUH_HOUSE: GwHouseRow = {
       id: "reichsrat",
       inst: "nations",
       kind: "vote",
-      sits: flag("f_auh_reichsrat_open"),
+      sits: REICHSRAT_OPEN,
     },
     {
       id: "budapest",
@@ -80,7 +94,7 @@ export const AUH_HOUSE: GwHouseRow = {
   // no way round Budapest.
   around: {
     id: "par14",
-    when: not(flag("f_auh_reichsrat_open")),
+    when: not(REICHSRAT_OPEN),
     price: 15,
     inst: "nations",
     delta: -1,

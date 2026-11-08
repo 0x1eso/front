@@ -111,6 +111,8 @@ export const GwFactionStateSchema = z.object({
   asked: int,
   /** Promise keys of its deals not yet settled. */
   deals: z.array(Id),
+  /** Chamber -> seats, once a split or a join has moved them; null: its row's. */
+  seats: z.record(z.string(), int).nullable().default(null),
 });
 export type GwFactionState = z.infer<typeof GwFactionStateSchema>;
 

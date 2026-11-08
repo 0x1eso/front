@@ -361,7 +361,11 @@ export function gwHouseScenes(
   return [
     ...bills.map((b) => draftTalk(b, laws.find((l) => l.id === b.law)!)),
     ...fs
-      .filter((f) => Object.values(f.seats).some((n) => (n ?? 0) > 0))
+      .filter(
+        (f) =>
+          Object.values(f.seats).some((n) => (n ?? 0) > 0) ||
+          fs.some((x) => x.splits?.into === f.id || x.joins?.into === f.id),
+      )
       .map((f) => lobbyTalk(f, bills)),
     ...fs.filter((f) => (f.bills ?? []).length > 0).map(visitTalk),
     ...houses.map((h) => resultCard(h.tag)),
