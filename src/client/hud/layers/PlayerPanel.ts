@@ -52,7 +52,9 @@ import { UIState } from "../../UIState";
 import { UserSettings } from "../../UserSettings";
 import { renderDuration, showToast, translateText } from "../../Utils";
 import { GameView, PlayerView } from "../../view";
+import { type DiploRow, diploRows, openDiploAct } from "../ww1936/DiploModel";
 import { fogModelOf } from "../ww1936/FogModel";
+import { negPeaceUiOf } from "../ww1936/NegPeaceModel";
 import {
   declareButton,
   justifyOptions,
@@ -68,6 +70,7 @@ import {
   TwoTap,
 } from "../ww1936/WorldWarModel";
 import { AidActions, OpenWwAidEvent } from "../ww1936/WwAidTab";
+import { OpenWwDiplomacyEvent } from "../ww1936/WwDrawer";
 import { ChatModal } from "./ChatModal";
 import { EmojiTable } from "./EmojiTable";
 import "./PlayerModerationModal";
@@ -1235,10 +1238,41 @@ export class PlayerPanel extends LitElement implements Controller {
             )}
           </div>`
         : ""}
+      ${diploRows(this.g, i.me, other.smallID()).map((r) =>
+        this.renderDiploRow(r),
+      )}
       ${this.wwAid.render(this.g, this.eventBus, other.smallID(), () =>
         this.requestUpdate(),
       )}
     </div>`;
+  }
+
+  /**
+   * Diplomacy (ww161 Design B §7): one row of the action list — a deal, an
+   * ultimatum, a promise or a collaboration government opens the composer
+   * (the panel closes so the map is free for regions); a separate peace
+   * opens the negotiated peace composer toward that member in the wars tab.
+   */
+  private renderDiploRow(r: DiploRow) {
+    return this.wwButton(
+      `diplo_${r.id}`,
+      r.label,
+      r.cost,
+      r.block,
+      false,
+      false,
+      (e: MouseEvent) => {
+        e.stopPropagation();
+        if (r.act.kind === "peace") {
+          negPeaceUiOf(this.g).open(r.act.war, r.act.target);
+          this.hide();
+          this.eventBus.emit(new OpenWwDiplomacyEvent("wars"));
+          return;
+        }
+        openDiploAct(this.g, r.act);
+        this.hide();
+      },
+    );
   }
 
   private renderActions(my: PlayerView, other: PlayerView) {
