@@ -41,6 +41,11 @@ import {
   WwTechId,
 } from "@openfront/engine-api/ww1936/EconomyTypes";
 import {
+  GROUND_EQUIPMENT,
+  NEED_GROUP_COUNT,
+  NEED_GROUPS,
+} from "@openfront/engine-api/ww1936/LandTypes";
+import {
   NavalLineOrder,
   SHIP_CLASSES,
   SHIP_GENS,
@@ -70,10 +75,22 @@ import {
 } from "@openfront/engine-lib/ww1936/EconomyChecks";
 import {
   aheadPct,
+  EFF_FLOOR_BP,
   effCapBp,
   extraction,
+  lineNeeds,
+  type LineNeedsInput,
+  PLAN_MOVE_PCT,
+  planFactoryCover,
+  planGapCounts,
+  planReservePct,
+  planSurplusCounts,
 } from "@openfront/engine-lib/ww1936/EconomyRules";
-import { EQUIPMENT, genTech } from "@openfront/engine-lib/ww1936/Equipment";
+import {
+  EQUIPMENT,
+  genTech,
+  unitCostMilli,
+} from "@openfront/engine-lib/ww1936/Equipment";
 import { fuelGain } from "@openfront/engine-lib/ww1936/FuelRules";
 import { gunStatsOfEntry } from "@openfront/engine-lib/ww1936/hist/ConvertGear";
 import { tankStatsOfEntry } from "@openfront/engine-lib/ww1936/hist/ConvertTank";
@@ -90,6 +107,10 @@ import {
   techDomain,
 } from "@openfront/engine-lib/ww1936/ResearchScore";
 import { shipGenTech } from "@openfront/engine-lib/ww1936/ShipStats";
+import {
+  equipByType,
+  groupStock,
+} from "@openfront/engine-lib/ww1936/TemplateStats";
 import { WW_TECHS } from "@openfront/engine-lib/ww1936/WwTechs";
 import type { Player } from "../../game/Game";
 import { baseThreatened, wingBaseWants } from "../air/AiAir";
@@ -103,6 +124,8 @@ import { sharedResearchPct } from "../depth/FactionRules";
 import { histCountryOf } from "../depth/Hist";
 import type { WwDepth } from "../depth/WwDepth";
 import { capitalRegion } from "../land/LandStartRun";
+import { lossesOf } from "../land/Sustain";
+import type { WwLand } from "../land/WwLand";
 import {
   aiMainBase,
   capitalsOf,
@@ -737,7 +760,16 @@ export interface AiInput {
    * it finished and a human's leaning. None: seed 0, nothing held.
    */
   research?: AiResearchInput;
+  /**
+   * ww162 L3 (Design A §2.2): what the need planner reads per need group
+   * (aiLandNeed). None: the share table alone (a country without a land
+   * war, the pure tests).
+   */
+  readonly landNeed?: AiLandNeed;
 }
+
+/** AiInput.landNeed: lineNeeds' input but the reserve, which the plan sets from the war and the leanings. */
+export type AiLandNeed = Omit<LineNeedsInput, "reservePct">;
 
 /** AiInput.research. */
 export interface AiResearchInput {
@@ -992,6 +1024,8 @@ function linePer(lines: readonly AiLine[]): Map<number, readonly number[]> {
 }
 
 function planLines(i: AiInput, retool = true): PlannedLines {
+  const ln = i.landNeed;
+  if (ln !== undefined) return planLinesByNeed(i, ln, retool);
   const researched = new Set(i.researched);
   const shares = aiLineShares(
     i.tag,
@@ -1104,6 +1138,240 @@ function planLines(i: AiInput, retool = true): PlannedLines {
   }
   // R6.7: one line a turn moves to a newer generation once it is nearly
   // at its efficiency cap (aiEconomyTick tries the next one if refused).
+  if (retool) {
+    const [first] = aiRetools(i.lines, researched, i.effCapBp, i.keyCost);
+    if (first !== undefined) orders.push(first);
+  }
+  return { orders, working };
+}
+
+// ---- ww162 L3 (Design A §2.2): the need-driven planner for the ground lines ----
+
+/** The ground types the need planner runs: the static ground lines (design lines count as their type). */
+const PLAN_TYPES: readonly EquipmentType[] = GROUND_EQUIPMENT;
+const PLAN_SET: ReadonlySet<EquipmentType> = new Set(PLAN_TYPES);
+
+/**
+ * Design A §2.2: the school and nation tilts scale a group's reserve
+ * instead of setting shares — % of the base reserve, the tilted share over
+ * the base share (a tank school: (15 + 5 + 3) / 15 of the tank reserve).
+ * 100 for a minor and for a group the share table has no row for.
+ */
+export function aiReserveWeightPct(
+  tag: CountryTag,
+  major: boolean,
+  group: number,
+): number {
+  const t = NEED_GROUPS[group];
+  const slot: AiLineSlot =
+    t === "light_tank" || t === "medium_tank" ? "tank" : (t as AiLineSlot);
+  const base = AI_LINE_SHARES[major ? "major" : "minor"][slot] ?? 0;
+  if (base <= 0 || !major) return 100;
+  const tilt =
+    (AI_SCHOOL_TILT[aiSchool(tag)]?.[slot] ?? 0) +
+    (AI_NATION_TILT[tag]?.[slot] ?? 0);
+  return Math.max(0, Math.floor((100 * (base + tilt)) / base));
+}
+
+/**
+ * Design A §2.2, replacing the share table for the ground lines (planes
+ * keep aiAirShares, ships their naval planner):
+ * - The ground as a whole keeps its share of the factories against the
+ *   planes (today's rule, the ground summed), so the air arm is not starved.
+ * - Inside the ground, an idle factory goes to the type with the largest gap
+ *   per factory-day (gap × unit cost), and each factory given takes 60 days
+ *   of its output off that gap. With no gap open beyond the dead band, the
+ *   ground types fall back to today's shares (a stockpile in today's mix).
+ * - On a full turn, at most PLAN_MOVE_PCT % of the military factories move,
+ *   one at a time, from a covered type's line (a surplus beyond the dead
+ *   band that stays covered after the move, never under one factory) to
+ *   the neediest type. No move for a gap under the dead band.
+ * - Today's rifles-to-guns move is the planner's job here, so it is off.
+ */
+function planLinesByNeed(
+  i: AiInput,
+  ln: AiLandNeed,
+  retool: boolean,
+): PlannedLines {
+  const researched = new Set(i.researched);
+  const atWar = i.warDays >= 0;
+  const shares = aiLineShares(
+    i.tag,
+    i.major,
+    researched,
+    i.infStock * 10 > i.manpower,
+    (i.supStock ?? AI_SUPPORT_RESERVE) < AI_SUPPORT_RESERVE,
+    { atWar, wtBp: i.wtBp },
+    (i.artStock ?? AI_ARTILLERY_RESERVE) < AI_ARTILLERY_RESERVE,
+  );
+  const mediums = researched.has("medium_tank_1");
+  const shareOf = (t: EquipmentType): EquipmentType =>
+    mediums && t === "light_tank" ? "medium_tank" : t;
+  // Factories per line, as planned (line id → factories).
+  const planned = new Map<number, number>();
+  const assigned = new Map<EquipmentType, number>();
+  const hasLine = new Set<EquipmentType>();
+  let groundAssigned = 0;
+  for (const l of i.lines) {
+    const t = lineType(l);
+    planned.set(l.id, l.factories);
+    const s = shareOf(t);
+    assigned.set(s, (assigned.get(s) ?? 0) + l.factories);
+    hasLine.add(t);
+    if (PLAN_SET.has(t)) groundAssigned += l.factories;
+  }
+  const starved = new Set<EquipmentType>();
+  for (const t of hasLine) {
+    const working = i.lines.filter((l) => lineType(l) === t && l.active > 0);
+    if (working.length > 0 && working.every((l) => l.fill === 0)) {
+      starved.add(t);
+    }
+  }
+  let groundPct = 0;
+  for (const t of PLAN_TYPES) groundPct += shares[t];
+
+  const needs = lineNeeds({
+    ...ln,
+    reservePct: NEED_GROUPS.map((_, g) =>
+      planReservePct(atWar, aiReserveWeightPct(i.tag, i.major, g)),
+    ),
+  });
+  // NEED_GROUPS starts with EQUIPMENT_TYPES: a type's group is its index.
+  const groupOf = (t: EquipmentType) => EQUIPMENT_TYPES.indexOf(t);
+  const gap = needs.gap.slice();
+  const planEff = Math.floor((EFF_FLOOR_BP + i.effCapBp) / 2);
+  const costOf = (t: EquipmentType): number => {
+    const gen = Math.max(1, newestGen(t, researched));
+    const key = equipKey(t, gen);
+    return Math.max(
+      1,
+      (key >= 0 ? i.keyCost?.(key) : undefined) ?? unitCostMilli(t, gen),
+    );
+  };
+  const perFactory = (t: EquipmentType) => planFactoryCover(planEff, costOf(t));
+  // The type's most efficient line (ties: the earlier), or null.
+  const lineOf = (t: EquipmentType): AiLine | null => {
+    let line: AiLine | null = null;
+    for (const l of i.lines) {
+      if (lineType(l) !== t) continue;
+      if (line === null || l.effBp > line.effBp) line = l;
+    }
+    return line;
+  };
+  const added = new Map<EquipmentType, number>();
+  let lineCount = i.lines.length;
+  const roomFor = (t: EquipmentType): boolean => {
+    const line = lineOf(t);
+    if (line !== null) return planned.get(line.id)! < WW_MAX_LINE_FACTORIES;
+    return added.has(t) || lineCount < WW_MAX_LINES;
+  };
+  // The ground type with the largest gap per factory-day, or null.
+  const neediest = (): EquipmentType | null => {
+    let best: EquipmentType | null = null;
+    let bestScore = 0;
+    for (const t of PLAN_TYPES) {
+      const g = groupOf(t);
+      if (!planGapCounts(needs.need[g], gap[g])) continue;
+      if (starved.has(t) || newestGen(t, researched) === 0) continue;
+      if (!roomFor(t)) continue;
+      const score = gap[g] * costOf(t);
+      if (best === null || score > bestScore) {
+        best = t;
+        bestScore = score;
+      }
+    }
+    return best;
+  };
+  // One factory to `t`: its best line, else a new line.
+  const give = (t: EquipmentType) => {
+    const line = lineOf(t);
+    if (line !== null) planned.set(line.id, planned.get(line.id)! + 1);
+    else {
+      if (!added.has(t)) lineCount++;
+      added.set(t, (added.get(t) ?? 0) + 1);
+    }
+    const s = shareOf(t);
+    assigned.set(s, (assigned.get(s) ?? 0) + 1);
+    if (PLAN_SET.has(t)) {
+      groundAssigned++;
+      gap[groupOf(t)] -= perFactory(t);
+    }
+  };
+
+  for (let n = 0; n < i.idleMil; n++) {
+    const ground = neediest();
+    let best: EquipmentType | null = null;
+    let bestGap = 0;
+    for (const t of EQUIPMENT_TYPES) {
+      // With a ground gap open, the ground competes as one below.
+      if (ground !== null && PLAN_SET.has(t)) continue;
+      if (shares[t] <= 0 || starved.has(t)) continue;
+      if (newestGen(t, researched) === 0) continue;
+      if (!roomFor(t)) continue;
+      const g = shares[t] * i.mil - 100 * (assigned.get(t) ?? 0);
+      if (best === null || g > bestGap) {
+        best = t;
+        bestGap = g;
+      }
+    }
+    if (ground !== null) {
+      const g = groundPct * i.mil - 100 * groundAssigned;
+      if (best === null || g > bestGap) best = ground;
+    }
+    if (best === null) break;
+    give(best);
+  }
+
+  if (retool) {
+    let budget = Math.floor((i.mil * PLAN_MOVE_PCT) / 100);
+    while (budget > 0) {
+      const to = neediest();
+      if (to === null) break;
+      let from: AiLine | null = null;
+      let fromScore = 0;
+      for (const l of i.lines) {
+        const t = lineType(l);
+        if (!PLAN_SET.has(t) || t === to) continue;
+        if (planned.get(l.id)! < 2) continue;
+        const g = groupOf(t);
+        if (!planSurplusCounts(needs.need[g], gap[g])) continue;
+        if (-gap[g] < perFactory(t)) continue;
+        const score = -gap[g] * costOf(t);
+        if (from === null || score > fromScore) {
+          from = l;
+          fromScore = score;
+        }
+      }
+      if (from === null) break;
+      const ft = lineType(from);
+      planned.set(from.id, planned.get(from.id)! - 1);
+      assigned.set(shareOf(ft), (assigned.get(shareOf(ft)) ?? 0) - 1);
+      groundAssigned--;
+      gap[groupOf(ft)] += perFactory(ft);
+      give(to);
+      budget--;
+    }
+  }
+
+  const orders: AiOrder[] = [];
+  const working = new Map<number, number>();
+  const work = (key: number, n: number) =>
+    working.set(key, (working.get(key) ?? 0) + n);
+  for (const l of i.lines) work(l.key, l.active);
+  for (const l of i.lines) {
+    const factories = Math.min(WW_MAX_LINE_FACTORIES, planned.get(l.id)!);
+    if (factories === l.factories) continue;
+    orders.push({ kind: "set_line_factories", line: l.id, factories });
+    work(l.key, factories - l.factories);
+  }
+  for (const t of EQUIPMENT_TYPES) {
+    const n = added.get(t);
+    if (n === undefined) continue;
+    const gen = newestGen(t, researched);
+    const factories = Math.min(WW_MAX_LINE_FACTORIES, n);
+    orders.push({ kind: "add_line", equipment: t, gen, factories });
+    work(equipKey(t, gen), factories);
+  }
   if (retool) {
     const [first] = aiRetools(i.lines, researched, i.effCapBp, i.keyCost);
     if (first !== undefined) orders.push(first);
@@ -2007,6 +2275,7 @@ export function aiInput(
   const politics = politicsInput(econ, ce);
   let threat: number | null = null;
   let planned: boolean | null = null;
+  let landNeed: AiLandNeed | undefined | null = null;
   return {
     tag: ce.tag,
     personality: aiPersonality(ce.tag),
@@ -2076,6 +2345,11 @@ export function aiInput(
     get regions() {
       return (regions ??= findRegions());
     },
+    // ww162 L3: built on first read (the line step).
+    get landNeed() {
+      if (landNeed === null) landNeed = aiLandNeed(econ, ce);
+      return landNeed;
+    },
     // A navy: a harbor (a minor: and dockyards to build in).
     coastal:
       (ce.major || t.dock > 0) &&
@@ -2087,6 +2361,74 @@ export function aiInput(
     keyCost: retoolCostOf(econ, me),
     research: researchInputOf(econ, ce),
   };
+}
+
+/**
+ * ww162 L3 (Design A §2.2): the need planner's view of `ce`'s land war, per
+ * need group: the fielded divisions' shortage and full need, the training
+ * queue's lack (trainees' missing gear, entries not started at their
+ * template's need), the loss ring, the stock, and today's output in
+ * milli-units a day (a design line as its share type). Undefined without
+ * a land war.
+ */
+export function aiLandNeed(
+  econ: WwEconomy,
+  ce: CountryEconomy,
+): AiLandNeed | undefined {
+  const land = econ.ww.land as WwLand | undefined;
+  if (land === undefined) return undefined;
+  const me = ce.smallID;
+  const cl = land.country(me);
+  if (cl === null) return undefined;
+  const zeros = () => new Array<number>(NEED_GROUP_COUNT).fill(0);
+  const short = zeros();
+  const training = zeros();
+  const fielded = zeros();
+  const stock = zeros();
+  const outMilli = zeros();
+  const ks = land.keyStatsOf(me);
+  const t = land.divisions;
+  for (const r of land.rowsOf(me)) {
+    const need = land.baseStatsOf(r).need;
+    const held = equipByType(t.equipOf(r), ks);
+    for (let g = 0; g < need.length; g++) {
+      fielded[g] += need[g];
+      if (need[g] > held[g]) short[g] += need[g] - held[g];
+    }
+  }
+  for (const x of cl.trainees) {
+    const ts = land.templateStatsOf(me, x.template);
+    if (ts === null) continue;
+    const held = equipByType(x.equip, ks);
+    for (let g = 0; g < ts.need.length; g++) {
+      if (ts.need[g] > held[g]) training[g] += ts.need[g] - held[g];
+    }
+  }
+  for (const e of cl.training) {
+    if (e.remaining <= 0) continue;
+    const ts = land.templateStatsOf(me, e.template);
+    if (ts === null) continue;
+    for (let g = 0; g < ts.need.length; g++) {
+      training[g] += ts.need[g] * e.remaining;
+    }
+  }
+  for (let g = 0; g < NEED_GROUP_COUNT; g++) {
+    stock[g] = groupStock(ce.stock, g, ks);
+  }
+  const depth = econ.ww.depth as WwDepth | undefined;
+  for (const l of ce.lines) {
+    if (l.lastOutput <= 0) continue;
+    const [type, gen] = EQUIP_KEYS[l.key];
+    const as = depth === undefined ? null : designShareType(depth, me, l.key);
+    const g = NEED_GROUPS.indexOf(as ?? type);
+    const cost =
+      depth === undefined
+        ? unitCostMilli(type, gen)
+        : equipCostMilli(depth, me, l.key);
+    if (g < 0 || cost <= 0) continue;
+    outMilli[g] += Math.floor((l.lastOutput * 1000) / cost);
+  }
+  return { short, training, lost: lossesOf(cl), fielded, stock, outMilli };
 }
 
 /** ww91: the plan `ce`'s AI plays (the default for a human or without politics). */

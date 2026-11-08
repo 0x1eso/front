@@ -109,7 +109,7 @@ import { dailyPositions, resetPosition } from "./Positions";
 import { autoAddPresets } from "./Presets";
 import { startOob } from "./StartOob";
 import { dailySupply } from "./Supply";
-import { dailySustain } from "./Sustain";
+import { armyShort, dailySustain } from "./Sustain";
 import {
   cancelTraining,
   convertDivisions,
@@ -573,6 +573,12 @@ export class CountryLand {
   startReform: { template: number; count: number; budget: number }[] = [];
   /** ww48: the whole start army was planned (start_oob), once; cleared when preparation ends. */
   startOob = false;
+  /**
+   * ww162 L3 (Design A §2.2): equipment lost per need group over the last
+   * PLAN_LOSS_DAYS days, a ring of days × NEED_GROUP_COUNT (Sustain.ts
+   * noteEquipLoss); empty until the first loss.
+   */
+  lossRing: number[] = [];
 
   constructor(
     readonly smallID: number,
@@ -777,6 +783,8 @@ export const WwLandStateSchema = z.object({
         .optional(),
       /** ww48: written only when set. */
       startOob: z.boolean().optional(),
+      /** ww162 L3: written when any loss is in it. */
+      lossRing: zInts().optional(),
     }),
   ),
 });
@@ -2504,6 +2512,7 @@ export class WwLand {
               : {
                   pins: a.pins.map((p): [number, number] => [p[0], p[1]]),
                 }),
+            ...shortOut(armyShort(this, a)),
           }
         : null,
     };
@@ -2988,6 +2997,11 @@ export class WwLand {
         mix(e.budget);
       }
       if (cl.startOob) mix(0x0b0b);
+      // ww162 L3: the loss ring, only when anything is in it.
+      if (anyNonZero(cl.lossRing)) {
+        mix(0x1631);
+        fold(cl.lossRing);
+      }
     }
     return h;
   }
@@ -3132,6 +3146,7 @@ export class WwLand {
           ? {}
           : { startReform: cl.startReform.map((e) => ({ ...e })) }),
         ...(cl.startOob ? { startOob: true } : {}),
+        ...(anyNonZero(cl.lossRing) ? { lossRing: [...cl.lossRing] } : {}),
       })),
     };
   }
@@ -3278,6 +3293,7 @@ export class WwLand {
       cl.peakDivisions = c.peakDivisions;
       cl.startReform = (c.startReform ?? []).map((e) => ({ ...e }));
       cl.startOob = c.startOob === true;
+      cl.lossRing = c.lossRing === undefined ? [] : [...c.lossRing];
     }
     this.rebuildDerived();
     // A restored game's screens have seen nothing yet.
@@ -3372,6 +3388,11 @@ function snapshotOrder(
 }
 
 /** Whether any entry of a typed array is not 0. */
+/** ww162 L3: ArmyMineData.short, sent when any group is short. */
+function shortOut(short: [number, number][]): { short?: [number, number][] } {
+  return short.length === 0 ? {} : { short };
+}
+
 function anyNonZero(xs: ArrayLike<number>): boolean {
   for (let i = 0; i < xs.length; i++) if (xs[i] !== 0) return true;
   return false;
