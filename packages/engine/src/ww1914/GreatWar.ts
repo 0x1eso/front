@@ -283,13 +283,17 @@ export class GreatWar {
     this.dirty = true;
   }
 
+  /** Friends at one table, timer or not; false for a solo game. */
+  withFriends(): boolean {
+    return this.mg.config().gameConfig().gameType !== GameType.Singleplayer;
+  }
+
   /** The tick the chapter opened now closes at; null with no timer. */
   deadlineFrom(tick: number): number | null {
-    const solo =
-      this.mg.config().gameConfig().gameType === GameType.Singleplayer;
-    if (solo) return null;
+    if (!this.withFriends()) return null;
     const ch = gwChapters(this.s.calendar)[this.s.chapter];
     const pace = this.mg.config().gameConfig().greatWar1914Pace ?? "normal";
+    if (pace === "none") return null;
     return tick + Math.floor((ch.timerSec * GW_PACE_PCT[pace]) / 10);
   }
 

@@ -10,7 +10,12 @@ import { gwView } from "@openfront/engine/ww1914/View";
 import { EventBus } from "@openfront/shared/EventBus";
 import { render } from "lit";
 import { afterEach, describe, expect, test, vi } from "vitest";
-import { gwSeatPicker, gwTableNote } from "../../../src/client/GwLobby";
+import {
+  gwFriendsCalendarPicker,
+  gwPacePicker,
+  gwSeatPicker,
+  gwTableNote,
+} from "../../../src/client/GwLobby";
 import { clauseText } from "../../../src/client/hud/ww1914/GwDiplo";
 import { tabsOf } from "../../../src/client/hud/ww1914/GwModel";
 import { GwPanel } from "../../../src/client/hud/ww1914/GwPanel";
@@ -177,6 +182,34 @@ describe("the diplomacy tab", () => {
     expect(second.orders).toEqual([{ kind: "treaty_break", treaty: 1 }]);
   });
 
+  test("gives the host, and only the host, the close behind a second press", async () => {
+    const r = await friends();
+    const guest = await mount(viewOf(r, B));
+    await openTab(guest.panel);
+    expect(guest.panel.querySelector("[data-gw-host-close]")).toBeNull();
+    guest.panel.remove();
+    const d = viewOf(r, A);
+    const { panel, orders } = await mount(d);
+    await openTab(panel);
+    const box = panel.querySelector<HTMLDetailsElement>(
+      "[data-gw-host-close]",
+    )!;
+    expect(box.open).toBe(false);
+    expect(box.textContent).toContain("이번 장 마치기");
+    expect(box.textContent).toContain("대리로 처리됩니다");
+    panel.querySelector<HTMLElement>("[data-gw-host-close-go]")!.click();
+    expect(orders).toEqual([{ kind: "close_chapter", chapter: d.chapter }]);
+    expect(GwOrderSchema.safeParse(orders[0]).success).toBe(true);
+    // Opened, it comes folded again in the next chapter.
+    box.open = true;
+    (d as { chapter: number }).chapter++;
+    panel.requestUpdate();
+    await panel.updateComplete;
+    expect(
+      panel.querySelector<HTMLDetailsElement>("[data-gw-host-close]")!.open,
+    ).toBe(false);
+  });
+
   test("says every clause in Korean", () => {
     for (const c of [
       { kind: "alliance", by: "DEU", theatre: null, value: 0 },
@@ -269,6 +302,46 @@ describe("the friends' lobby", () => {
     render(gwTableNote("friends", "long"), root);
     expect(root.textContent).toContain("20장");
     expect(root.textContent).toContain("길게");
+    render(gwTableNote("friends", "none"), root);
+    expect(root.textContent).toContain("20장, 시간 제한 없음.");
+    expect(root.textContent).not.toContain("약 1시간");
+  });
+
+  test("gives no time for a length when the pace has no limit", () => {
+    const root = document.createElement("div");
+    const row = () =>
+      root.querySelector("[data-gw-calendar-row=friends]")!.textContent!;
+    render(
+      gwFriendsCalendarPicker("friends", () => {}, "normal"),
+      root,
+    );
+    expect(row()).toContain("약 1시간");
+    render(
+      gwFriendsCalendarPicker("friends", () => {}, "none"),
+      root,
+    );
+    expect(row()).toContain("20장");
+    expect(row()).toContain("시간 제한 없음");
+    expect(row()).not.toContain("약 1시간");
+  });
+
+  test("offers no limit as a fourth pace, with its own note", () => {
+    const root = document.createElement("div");
+    const picked: string[] = [];
+    render(
+      gwPacePicker("friends", "none", (p) => picked.push(p)),
+      root,
+    );
+    expect(
+      [...root.querySelectorAll<HTMLElement>("[data-gw-pace-row]")].map((b) =>
+        b.textContent!.trim(),
+      ),
+    ).toEqual(["짧게", "보통", "길게", "제한 없음"]);
+    const note = root.querySelector("[data-gw-pace-note]")!.textContent!;
+    expect(note).toContain("시간 제한이 없습니다");
+    expect(note).not.toMatch(/\{|초입니다/);
+    root.querySelector<HTMLElement>("[data-gw-pace-row=normal]")!.click();
+    expect(picked).toEqual(["normal"]);
   });
 });
 

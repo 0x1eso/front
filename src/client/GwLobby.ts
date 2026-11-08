@@ -3,6 +3,7 @@ import {
   GW_PACES,
   type GwCalendarId,
   type GwPace,
+  type GwTimedPace,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import {
   GW_SEAT_TAGS,
@@ -97,19 +98,31 @@ export function gwCalendarPicker(
   </div>`;
 }
 
-/** The friends' lobby: the length alone, seats and the timer are their own. */
+/**
+ * The friends' lobby: the length alone, seats and the timer are their own.
+ * With no timer (`pace` none) a row gives no time, which would be a guess.
+ */
 export function gwFriendsCalendarPicker(
   selected: GwCalendarId,
   pick: (id: GwCalendarId) => void,
+  pace: GwPace = "normal",
 ): TemplateResult {
   return html`<div class="space-y-1.5" data-gw-calendar>
-    ${calendarRows(selected, pick)}
+    ${calendarRows(selected, pick, pace)}
   </div>`;
+}
+
+/** How long a row plays, in words; with no timer, that there is none. */
+function calendarTime(id: GwCalendarId, pace: GwPace): string {
+  return translateText(
+    pace === "none" ? "gw.ui.calendar_untimed" : `gw.ui.calendar_time.${id}`,
+  );
 }
 
 function calendarRows(
   selected: GwCalendarId,
   pick: (id: GwCalendarId) => void,
+  pace: GwPace = "normal",
 ): TemplateResult {
   return html`<div class="text-xs text-white/70">
       ${translateText("gw.ui.calendar_label")}
@@ -130,7 +143,7 @@ function calendarRows(
               >${translateText("gw.ui.calendar_chapters", {
                 n: gwChapters(id).length,
               })}
-              · ${translateText(`gw.ui.calendar_time.${id}`)}</span
+              · ${calendarTime(id, pace)}</span
             >
           </button>`,
       )}
@@ -205,7 +218,7 @@ export function gwSeatPicker(
 /** The pace's chapter clocks for a row, shortest and longest, in seconds. */
 export function gwPaceRange(
   calendar: GwCalendarId,
-  pace: GwPace,
+  pace: GwTimedPace,
 ): { min: number; max: number } {
   const secs = gwChapters(calendar).map((ch) =>
     Math.floor((ch.timerSec * GW_PACE_PCT[pace]) / 100),
@@ -213,7 +226,10 @@ export function gwPaceRange(
   return { min: Math.min(...secs), max: Math.max(...secs) };
 }
 
-/** The host's pace (owner's ww160 call 2): the row's timer ×0.75, ×1, ×1.5. */
+/**
+ * The host's pace (owner's ww160 call 2): the row's timer ×0.75, ×1, ×1.5,
+ * or no timer at all (ww163).
+ */
 export function gwPacePicker(
   calendar: GwCalendarId,
   selected: GwPace,
@@ -237,7 +253,9 @@ export function gwPacePicker(
       )}
     </div>
     <div class="text-xs text-white/60" data-gw-pace-note>
-      ${translateText("gw.lobby.pace_note", gwPaceRange(calendar, selected))}
+      ${selected === "none"
+        ? translateText("gw.lobby.pace_note_none")
+        : translateText("gw.lobby.pace_note", gwPaceRange(calendar, selected))}
     </div>
   </div>`;
 }
@@ -251,7 +269,7 @@ export function gwTableNote(
     ${translateText("gw.lobby.table_note", {
       length: translateText(`gw.ui.calendar.${calendar}`),
       n: gwChapters(calendar).length,
-      time: translateText(`gw.ui.calendar_time.${calendar}`),
+      time: calendarTime(calendar, pace),
       pace: translateText(`gw.lobby.pace.${pace}`),
     })}
   </p>`;

@@ -37,6 +37,7 @@ import {
   GameMode,
   maps,
 } from "@openfront/engine-api/game/GameTypes";
+import { GameConfigSchema } from "@openfront/engine-api/Schemas";
 import { MAJOR_TAGS } from "@openfront/engine-api/ww1936/Countries";
 import { EventBus } from "@openfront/shared/EventBus";
 import { GameInfo, LobbyInfoEvent } from "@openfront/shared/WireSchemas";
@@ -529,6 +530,16 @@ describe("hosting World War 1936", () => {
     expect(config.greatWar1914Recent).toBeUndefined();
     expect(JSON.stringify(config).length).toBeLessThan(2000);
     localStorage.removeItem("gw1914.recentRuns");
+  });
+
+  it("defaults to the normal pace and sends no limit when picked", async () => {
+    const modal = host();
+    modal.greatWar1914 = true;
+    expect(modal.greatWar1914Pace).toBe("normal");
+    modal.greatWar1914Pace = "none";
+    const config = await sent(modal);
+    expect(config.greatWar1914Pace).toBe("none");
+    expect(GameConfigSchema.partial().safeParse(config).success).toBe(true);
   });
 
   it("the toggle turns the other modes off and updates the lobby", () => {

@@ -61,11 +61,12 @@ export function noteActed(gw: GreatWar, seat: GwSeatState): void {
 
 /** A chapter closes: a seat empty twice in a row goes to its regent. */
 export function closeSeats(gw: GreatWar): void {
-  const clocked = gw.s.deadlineTick !== null;
+  // With friends, timer or none (the pace `none` closes on the host's word).
+  const friends = gw.withFriends();
   for (const seat of gw.s.seats) {
     seat.idle = seat.ordered || seat.ready ? 0 : seat.idle + 1;
     seat.ordered = false;
-    if (!clocked || seat.regent || seat.idle < GW_REGENT_AFTER) continue;
+    if (!friends || seat.regent || seat.idle < GW_REGENT_AFTER) continue;
     seat.regent = true;
     reason(gw, seat, "regent_took_over");
     news(gw, "regent_took_over", seat.tag);
@@ -112,5 +113,21 @@ export function answerSlow(
   if (s.slowAsked.length === 0 || s.deadlineTick === null) return "not_asked";
   if (grant && s.slowGranted < GW_SLOW_MAX) grantSlow(gw);
   s.slowAsked = [];
+  return null;
+}
+
+/**
+ * The host closes the chapter for everyone (ww163), as the timer does: the
+ * deadline comes now, so the clock closes it with the proxy's stamps.
+ */
+export function closeByHost(
+  gw: GreatWar,
+  seat: GwSeatState,
+  chapter: number,
+): GwOrderBlock | null {
+  if (!gw.withFriends() || !isHost(gw, seat)) return "not_host";
+  if (chapter !== gw.s.chapter) return "stale_chapter";
+  gw.s.deadlineTick = gw.mg.ticks();
+  gw.touch();
   return null;
 }

@@ -2273,6 +2273,9 @@
     },
     "diplo": {
       "clause_add": "Add a clause",
+      "close_chapter": "End this chapter",
+      "close_chapter_go": "End it now for everyone",
+      "close_chapter_hint": "{n} still reading. What is left on their desks is signed by proxy, as when the clock runs out.",
       "finale": "Everyone's memoirs",
       "finale_close": "Close",
       "finale_mandates": "Mandates met: {n} of {total}",
@@ -2948,11 +2951,13 @@
     "lobby": {
       "pace": {
         "long": "Long",
+        "none": "No limit",
         "normal": "Normal",
         "short": "Short"
       },
       "pace_label": "Pace",
       "pace_note": "Each chapter's clock runs {min} to {max} seconds. Everyone ready ends it sooner.",
+      "pace_note_none": "Chapters have no clock. One ends when everyone is ready, or when the host ends it with End this chapter.",
       "resume_failed": "The save could not be handed to the lobby.",
       "resume_none": "No saved game with friends in this browser.",
       "resume_not_friends": "That save is a solo game.",
@@ -3309,7 +3314,7 @@
       "promise_broken": "A promise went past its date. They will come to you.",
       "promise_kept": "A promise kept. They won't forget it.",
       "promise_mended": "They agreed to let the broken promise go, this once.",
-      "proxy_signed": "The paper was signed by proxy when time ran out.",
+      "proxy_signed": "The chapter closed with the paper undecided: it was signed by proxy.",
       "quota_left": "The two halves were left to settle the grain.",
       "regent_took_over": "The seat stood empty: a regent ran the government.",
       "regime_austria_republic": "The government became: Republic of Austria.",
@@ -3893,7 +3898,7 @@
         "no_topic": "That cannot be raised now.",
         "no_treaty": "No such treaty.",
         "not_asked": "Nobody asked.",
-        "not_host": "Only the host answers.",
+        "not_host": "Only the host can do that.",
         "not_proposed": "The chief of staff did not put this forward.",
         "open_cards": "Papers are still open: decide or read them first.",
         "press_closed": "That cannot be done to the press now.",
@@ -3923,6 +3928,7 @@
         "standard": "About three hours",
         "y1914": "about 90 minutes alone"
       },
+      "calendar_untimed": "no time limit",
       "casualties": "{n} thousand lost",
       "chapter_n": "Chapter {n}",
       "command_self": "The sovereign leads the army himself.",
