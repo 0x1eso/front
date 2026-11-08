@@ -114,6 +114,15 @@ import {
   WwProductionView,
 } from "./WwDrawer";
 // P4 (spec §18.8): the shipyards view is the navy drawer's <ww-shipyards>.
+import { NEED_GROUPS } from "@openfront/engine-api/ww1936/LandTypes";
+import {
+  ARMY_HUD_KEYS,
+  shortSplit,
+  sortStock,
+  STOCK_LIT_MS,
+  stockSortsShort,
+  WwStockLitEvent,
+} from "./ArmyHudModel";
 import { WwDepthOpenEvent } from "./DepthEvents";
 import { DepthIndustryModel } from "./DepthIndustryModel";
 import { DesignerGame, DesignerModel } from "./DesignerModel";
@@ -209,6 +218,11 @@ export class WwIndustryPanel extends WwDrawerBase {
   @state() private histLockedOpen = false;
   @state() private stockRest = false;
   @state() private stockOpen: ReadonlySet<string> = new Set();
+  /** ww162 (Design A §3): [부족순] (true) or the type order; null: by shortage when anything is short. */
+  @state() private stockByShort: boolean | null = null;
+  /** ww162: the stock rows the army card's supply line lit (row ids), for STOCK_LIT_MS. */
+  @state() private stockLit: ReadonlySet<string> = new Set();
+  private stockLitTimer: ReturnType<typeof setTimeout> | null = null;
   /** P4 (spec §18.8): the production tab shows munitions or shipyards. */
   @state() private prodView: WwProductionView = "munitions";
   private readonly twoTap = new TwoTap();
@@ -224,6 +238,7 @@ export class WwIndustryPanel extends WwDrawerBase {
   init() {
     super.init();
     this.eventBus.on(OpenWwIndustryEvent, (e) => this.onOpenEvent(e));
+    this.eventBus.on(WwStockLitEvent, (e) => this.lightStock(e.groups));
     this.eventBus.on(WwDepthOpenEvent, (e) => {
       if (e.kind !== "mio" && e.kind !== "market") return;
       this.tab = e.kind;
@@ -264,6 +279,33 @@ export class WwIndustryPanel extends WwDrawerBase {
     }
     if (e.tab !== null) this.tab = e.tab;
     this.setOpen(true);
+  }
+
+  /**
+   * ww162 (Design A §3): the army card's supply line was tapped — the
+   * production tab opens sorted by shortage, with those rows outlined
+   * amber for 2 s and the first scrolled into view.
+   */
+  private lightStock(groups: readonly number[]) {
+    this.tab = "production";
+    this.prodView = "munitions";
+    this.stockByShort = true;
+    this.stockLit = new Set(
+      groups.flatMap((g) =>
+        NEED_GROUPS[g] === undefined ? [] : [NEED_GROUPS[g]],
+      ),
+    );
+    this.setOpen(true);
+    if (this.stockLitTimer !== null) clearTimeout(this.stockLitTimer);
+    this.stockLitTimer = setTimeout(() => {
+      this.stockLitTimer = null;
+      this.stockLit = new Set();
+    }, STOCK_LIT_MS);
+    void this.updateComplete.then(() =>
+      this.querySelector("[data-ww-stock-lit]")?.scrollIntoView?.({
+        block: "nearest",
+      }),
+    );
   }
 
   private ctx(): Ctx | null {
@@ -1542,9 +1584,31 @@ export class WwIndustryPanel extends WwDrawerBase {
   private renderStock(c: Ctx): TemplateResult {
     const short = this.game?.wwLand?.()?.details.get(c.id)?.equipShort ?? null;
     const designs = this.game?.wwDepth?.()?.detail(c.id)?.designs ?? [];
-    const all = stockTable(c.detail, short, designs, c.hist);
+    const table = stockTable(c.detail, short, designs, c.hist);
+    const byShort = this.stockByShort ?? stockSortsShort(table);
+    const all = sortStock(table, byShort);
     const folded = all.filter(stockRowIdle);
-    const shown = this.stockRest ? all : all.filter((r) => !stockRowIdle(r));
+    const shown = this.stockRest
+      ? all
+      : all.filter((r) => !stockRowIdle(r) || this.stockLit.has(r.id));
+    const armies = this.game?.wwLand?.()?.armiesOf(c.id) ?? [];
+    const sortChip = (on: boolean) =>
+      html`<button
+        type="button"
+        data-ww-stock-sort=${on ? "short" : "type"}
+        aria-pressed=${String(byShort === on)}
+        class="min-h-10 rounded-md border px-2 text-xs font-semibold ${byShort ===
+        on
+          ? "border-amber-300 bg-amber-700/50"
+          : "border-white/15 bg-white/5 hover:bg-white/10"}"
+        @click=${() => {
+          this.stockByShort = on;
+        }}
+      >
+        ${translateText(
+          on ? ARMY_HUD_KEYS.stockSortShort : ARMY_HUD_KEYS.stockSortType,
+        )}
+      </button>`;
     const tone = {
       ok: "text-emerald-300",
       warn: "text-amber-300",
@@ -1559,6 +1623,9 @@ export class WwIndustryPanel extends WwDrawerBase {
       <p class="m-0 mb-1 text-[11px] text-white/60">
         ${translateText("ww1936.econ.stock_intro")}
       </p>
+      <div data-ww-stock-sorts role="radiogroup" class="mb-1 flex gap-1">
+        ${sortChip(true)} ${sortChip(false)}
+      </div>
       <table class="w-full table-fixed text-xs tabular-nums">
         <colgroup>
           <col class="w-[40%]" />
@@ -1583,9 +1650,18 @@ export class WwIndustryPanel extends WwDrawerBase {
             unused: translateText("ww1936.econ.stock_unused"),
             unknown: "-",
           }[r.status.kind];
+          const lit = this.stockLit.has(r.id);
+          const group = (NEED_GROUPS as readonly string[]).indexOf(r.id);
+          const split =
+            open && (r.short ?? 0) > 0 && group >= 0
+              ? shortSplit(armies, group, r.short ?? 0)
+              : null;
           return html`<tbody
             data-ww-stock-row=${r.id}
-            class="border-t border-white/10"
+            data-ww-stock-lit=${lit ? "" : nothing}
+            class="border-t border-white/10 ${lit
+              ? "outline outline-2 -outline-offset-2 outline-amber-400"
+              : ""}"
           >
             <tr
               class="cursor-pointer ${open ? "bg-white/10" : ""}"
@@ -1613,6 +1689,23 @@ export class WwIndustryPanel extends WwDrawerBase {
                 data-ww-stock-short
               >
                 ${r.short === null ? "-" : renderNumber(r.short)}
+                ${split === null
+                  ? nothing
+                  : html`<div
+                      data-ww-stock-split
+                      class="text-[11px] font-normal leading-tight text-white/70"
+                    >
+                      <div data-ww-stock-fronts>
+                        ${translateText(ARMY_HUD_KEYS.stockFronts, {
+                          n: renderNumber(split.fronts),
+                        })}
+                      </div>
+                      <div data-ww-stock-training>
+                        ${translateText(ARMY_HUD_KEYS.stockTraining, {
+                          n: renderNumber(split.training),
+                        })}
+                      </div>
+                    </div>`}
               </td>
               <td class="px-0.5 text-right" data-ww-stock-day>
                 ${r.perDay.toFixed(1)}

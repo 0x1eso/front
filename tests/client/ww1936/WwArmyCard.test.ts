@@ -123,24 +123,31 @@ describe("<ww-army-card> (spec §15.4)", () => {
     // Phone rules: no hover-only titles; every button at least 40 px.
     expect(m.el.querySelectorAll("[title]")).toHaveLength(0);
     const buttons = [...m.el.querySelectorAll("button")];
-    // The action row (4), the stance switch (3), rail, sea, split, merge
-    // and more (5), the fold toggle and ✕, and ww81's auto-merge toggle.
-    expect(buttons).toHaveLength(15);
+    // ww162: the line chips (4), the stance switch (3), move, auto, rail,
+    // sea, split, merge and more (7), the fold toggle and ✕, and ww81's
+    // auto-merge toggle.
+    expect(buttons).toHaveLength(17);
     for (const b of buttons) {
       expect(b.className).toMatch(/\b(h-10|h-11|size-10)\b/);
     }
-    // The action row: [공격] [방어] [이동] [자동], in that order.
+    // The first row: [전선] [공세선] [후퇴선] [사단], 44 px tall, in that order.
     expect(
-      [...m.el.querySelectorAll("[data-ww-action-row] button")].map(
+      [...m.el.querySelectorAll("[data-ww-draw-chips] button")].map(
         (b) => (b as HTMLElement).dataset.wwArmyBtn,
       ),
-    ).toEqual(["plan", "front", "move", "auto"]);
+    ).toEqual(["draw_front", "draw_goal", "draw_fallback", "draw_divisions"]);
+    expect(m.q(m.btn("draw_front"))!.textContent).toContain(
+      "[ww1936.planner.btn_front]",
+    );
+    expect(m.q(m.btn("draw_front"))!.className).toContain("h-11");
+    // [이동] and [자동] lead the rest; [공격] and [방어] are gone.
     expect(
-      m.q("[data-ww-action-row] [data-ww-army-btn='plan']")!.textContent,
-    ).toContain("[ww1936.land.btn_attack]");
-    expect(
-      m.q("[data-ww-action-row] [data-ww-army-btn='front']")!.textContent,
-    ).toContain("[ww1936.land.btn_defend]");
+      [...m.el.querySelectorAll("[data-ww-army-rest] button")].map(
+        (b) => (b as HTMLElement).dataset.wwArmyBtn,
+      ),
+    ).toEqual(["move", "auto", "rail", "sea", "split", "merge", "more"]);
+    expect(m.q(m.btn("plan"))).toBeNull();
+    expect(m.q(m.btn("front"))).toBeNull();
     // No text smaller than text-xs on the card.
     expect(m.el.innerHTML).not.toMatch(/text-\[1[01]px\]/);
     // ✕ lets the army go: the card is gone.
@@ -204,7 +211,7 @@ describe("<ww-army-card> (spec §15.4)", () => {
     expect(card().className).toContain("bg-gray-900/92");
     // An order mode folds it again; the toggle opens it meanwhile; the
     // end of the order brings back the player's choice (open).
-    await m.click(m.btn("front"));
+    await m.click(m.btn("move"));
     expect(card().dataset.collapsed).toBe("true");
     await m.click("[data-ww-card-fold='open']");
     expect(card().dataset.collapsed).toBe("false");
@@ -294,7 +301,10 @@ describe("<ww-army-card> (spec §15.4)", () => {
 
   it("[공격] is the direct attack: no [실행], no stance; the breakdown, the reasons and the settings", async () => {
     const m = await mount();
-    await m.click(m.btn("plan"));
+    // ww162: no [공격] button any more; the plan mode still draws its panel.
+    m.bus.emit(new WwLandModeEvent("plan"));
+    m.el.tick();
+    await m.el.updateComplete;
     expect(m.sel.mode).toBe("plan");
     expect(m.q(m.btn("execute"))).toBeNull();
     expect(m.q("[data-ww-stance]")).toBeNull();
@@ -408,47 +418,6 @@ describe("<ww-army-card> (spec §15.4)", () => {
     await m.click(m.btn("stance_aggressive"));
     expect(m.sent).toEqual([]);
     expect(m.q("[data-ww-block='not_at_war']")).not.toBeNull();
-  });
-
-  it("[방어]: army_front for the border around the army once; then the zone mode", async () => {
-    const m = await mount();
-    await m.click(m.btn("front"));
-    expect(m.sent).toEqual([
-      { kind: "army_front", army: 1, anchor: 3, enemy: 0 },
-    ]);
-    expect(m.sel.mode).toBe("front");
-    // The strip: the zone hint and [구역 자동]; done ends the mode only.
-    expect(m.q("[data-ww-hint='front']")!.textContent).toContain(
-      "[ww1936.land.hint_defend] n=0",
-    );
-    await m.click(m.btn("zone_auto"));
-    expect(m.sent[1]).toEqual({ kind: "army_zone", army: 1, regions: [] });
-    await m.click(m.btn("cancel"));
-    expect(m.sel.mode).toBe("none");
-    expect(m.sent).toHaveLength(2);
-    // Already defending: the explicit zone stays, no new army_front.
-    const front = { ...idleOrder(), kind: "front" as const, zone: [3, 4] };
-    feed(m, mine({ order: front, front: [3, 4] }));
-    m.sent.length = 0;
-    m.el.tick();
-    await m.el.updateComplete;
-    expect(m.q("[data-ww-order='front']")!.textContent).toContain(
-      "[ww1936.land.order_defend] n=2",
-    );
-    await m.click(m.btn("front"));
-    expect(m.sent).toEqual([]);
-    expect(m.sel.mode).toBe("front");
-    expect(m.q("[data-ww-hint='front']")!.textContent).toContain("n=2");
-    // The unfolded card offers [구역 자동] and [완료]; done ends the mode.
-    await m.click("[data-ww-card-fold='open']");
-    expect(
-      m.q("[data-ww-card-buttons='main'] " + m.btn("zone_auto")),
-    ).not.toBeNull();
-    await m.click(m.btn("back"));
-    expect(m.sel.mode).toBe("none");
-    // And [방어] again on the plain card presses the mode off.
-    await m.click(m.btn("front"));
-    expect(m.sel.mode).toBe("front");
   });
 
   it("the card names the army's auto level and the country's gaps", async () => {
