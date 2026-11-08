@@ -202,6 +202,12 @@ export function endgameKey(game: EndgameGame): number {
   mix(oid(v.peaceOffers));
   mix(oid(v.peaceCooldowns));
   mix(oid(v.truces));
+  // Diplomacy (ww161 Design B): deals, ultimatums, promises, collaborators, timers.
+  mix(oid(v.deals));
+  mix(oid(v.ultimatums));
+  mix(oid(v.promises));
+  mix(oid(v.collabs));
+  mix(oid(v.diploCooldowns));
   mix(v.occupation.size);
   for (const o of v.occupation.values()) mix(oid(o));
   for (const a of v.aid.values()) mix(oid(a));
