@@ -461,6 +461,28 @@ describe("the one answer card", () => {
     dealUiOf(g).close();
   });
 
+  // ww164: at 95% the army drawer under the sheet showed through faintly.
+  it("on a phone the composer sheet is opaque over the drawers", async () => {
+    const g = game("POL", new WwEndgameView());
+    const el = document.createElement(
+      "ww-white-peace-card",
+    ) as WwWhitePeaceCard;
+    el.game = g as never;
+    el.eventBus = new EventBus();
+    vi.spyOn(window, "innerWidth", "get").mockReturnValue(390);
+    document.body.appendChild(el);
+    el.init();
+    openDiploAct(g, { kind: "compose", mode: "deal", to: ID("DEU") });
+    el.tick();
+    await el.updateComplete;
+    const sheet = document.querySelector<HTMLElement>("[data-ww-deal-layer]")!;
+    expect(sheet.dataset.wwDealPlace).toBe("sheet");
+    const panel = sheet.firstElementChild as HTMLElement;
+    const bg = [...panel.classList].filter((c) => c.startsWith("bg-"));
+    expect(bg).toEqual(["bg-gray-900"]);
+    dealUiOf(g).close();
+  });
+
   it("on a phone a pending card stands above the composer sheet, which yields room for it", async () => {
     const eg = new WwEndgameView();
     eg.apply({ news: [], deals: [deal()] });

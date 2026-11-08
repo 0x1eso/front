@@ -340,10 +340,12 @@ export class WwWhitePeaceCard extends LitElement implements Controller {
     const redraw = () => this.requestUpdate();
     const key = `deal:${v.mode}:${v.to}`;
     const sheet = window.innerWidth < SHEET_MAX_WIDTH;
+    // On a phone the sheet lies over the army drawer: opaque, or the drawer
+    // shows through it (ww164).
     return html`<div
-      class="pointer-events-auto flex min-h-0 w-full flex-1 flex-col border border-emerald-300/80 bg-gray-900/95 px-2 py-1.5 shadow-xl ${sheet
-        ? "rounded-t-lg"
-        : "rounded-lg"}"
+      class="pointer-events-auto flex min-h-0 w-full flex-1 flex-col border border-emerald-300/80 px-2 py-1.5 shadow-xl ${sheet
+        ? "rounded-t-lg bg-gray-900"
+        : "rounded-lg bg-gray-900/95"}"
     >
       ${dealComposerTemplate(v, {
         armed: this.twoTap.isArmed(key, Date.now()),
