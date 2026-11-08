@@ -2273,6 +2273,9 @@
     },
     "diplo": {
       "clause_add": "Add a clause",
+      "close_chapter": "End this chapter",
+      "close_chapter_go": "End it now for everyone",
+      "close_chapter_hint": "{n} still reading. What is left on their desks is signed by proxy, as when the clock runs out.",
       "finale": "Everyone's memoirs",
       "finale_close": "Close",
       "finale_mandates": "Mandates met: {n} of {total}",
@@ -2948,11 +2951,13 @@
     "lobby": {
       "pace": {
         "long": "Long",
+        "none": "No limit",
         "normal": "Normal",
         "short": "Short"
       },
       "pace_label": "Pace",
       "pace_note": "Each chapter's clock runs {min} to {max} seconds. Everyone ready ends it sooner.",
+      "pace_note_none": "Chapters have no clock. One ends when everyone is ready, or when the host ends it with End this chapter.",
       "resume_failed": "The save could not be handed to the lobby.",
       "resume_none": "No saved game with friends in this browser.",
       "resume_not_friends": "That save is a solo game.",
@@ -3893,7 +3898,7 @@
         "no_topic": "That cannot be raised now.",
         "no_treaty": "No such treaty.",
         "not_asked": "Nobody asked.",
-        "not_host": "Only the host answers.",
+        "not_host": "Only the host can do that.",
         "not_proposed": "The chief of staff did not put this forward.",
         "open_cards": "Papers are still open: decide or read them first.",
         "press_closed": "That cannot be done to the press now.",

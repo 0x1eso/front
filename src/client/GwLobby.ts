@@ -3,6 +3,7 @@ import {
   GW_PACES,
   type GwCalendarId,
   type GwPace,
+  type GwTimedPace,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import {
   GW_SEAT_TAGS,
@@ -205,7 +206,7 @@ export function gwSeatPicker(
 /** The pace's chapter clocks for a row, shortest and longest, in seconds. */
 export function gwPaceRange(
   calendar: GwCalendarId,
-  pace: GwPace,
+  pace: GwTimedPace,
 ): { min: number; max: number } {
   const secs = gwChapters(calendar).map((ch) =>
     Math.floor((ch.timerSec * GW_PACE_PCT[pace]) / 100),
@@ -213,7 +214,10 @@ export function gwPaceRange(
   return { min: Math.min(...secs), max: Math.max(...secs) };
 }
 
-/** The host's pace (owner's ww160 call 2): the row's timer ×0.75, ×1, ×1.5. */
+/**
+ * The host's pace (owner's ww160 call 2): the row's timer ×0.75, ×1, ×1.5,
+ * or no timer at all (ww163).
+ */
 export function gwPacePicker(
   calendar: GwCalendarId,
   selected: GwPace,
@@ -237,7 +241,9 @@ export function gwPacePicker(
       )}
     </div>
     <div class="text-xs text-white/60" data-gw-pace-note>
-      ${translateText("gw.lobby.pace_note", gwPaceRange(calendar, selected))}
+      ${selected === "none"
+        ? translateText("gw.lobby.pace_note_none")
+        : translateText("gw.lobby.pace_note", gwPaceRange(calendar, selected))}
     </div>
   </div>`;
 }

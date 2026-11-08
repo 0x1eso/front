@@ -15229,7 +15229,7 @@
         "at_war": "이미 그 나라와 전쟁 중이다.",
         "no_treaty": "그런 조약이 없다.",
         "no_authority_cipher": "그 암호를 쓸 권위가 모자란다.",
-        "not_host": "방장만 답할 수 있다.",
+        "not_host": "방장만 할 수 있다.",
         "slow_spent": "이 장에는 더 늘릴 수 없다.",
         "no_seat": "그 자리에 친구가 없다.",
         "bad_clause": "조항이 맞지 않는다.",
@@ -16463,9 +16463,11 @@
       "pace": {
         "short": "짧게",
         "normal": "보통",
-        "long": "길게"
+        "long": "길게",
+        "none": "제한 없음"
       },
       "pace_note": "한 장의 시간은 {min}~{max}초입니다. 모두 준비되면 더 일찍 넘어갑니다.",
+      "pace_note_none": "한 장에 시간 제한이 없습니다. 모두 준비되면 넘어가고, 방장이 「이번 장 마치기」로 닫을 수도 있습니다.",
       "table_note": "{length}: {n}장, {time}. 진행 속도: {pace}."
     },
     "treaty": {
@@ -16507,6 +16509,9 @@
     "diplo": {
       "clause_add": "조항 더하기",
       "finale": "모두의 회고록",
+      "close_chapter": "이번 장 마치기",
+      "close_chapter_go": "지금 모두의 이번 장을 닫기",
+      "close_chapter_hint": "아직 읽는 자리가 {n}곳 있습니다. 남은 서류는 시간이 다 됐을 때처럼 대리로 처리됩니다.",
       "finale_close": "닫기",
       "finale_mandates": "이룬 과제 {n}/{total}",
       "finale_open": "모두의 회고록을 나란히 보기",
