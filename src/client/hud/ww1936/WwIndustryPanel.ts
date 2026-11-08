@@ -1591,7 +1591,7 @@ export class WwIndustryPanel extends WwDrawerBase {
     const shown = this.stockRest
       ? all
       : all.filter((r) => !stockRowIdle(r) || this.stockLit.has(r.id));
-    const armies = this.game?.wwLand?.()?.armiesOf(c.id) ?? [];
+    const fieldShort = this.game?.wwLand?.()?.details.get(c.id)?.fieldShort;
     const sortChip = (on: boolean) =>
       html`<button
         type="button"
@@ -1654,7 +1654,7 @@ export class WwIndustryPanel extends WwDrawerBase {
           const group = (NEED_GROUPS as readonly string[]).indexOf(r.id);
           const split =
             open && (r.short ?? 0) > 0 && group >= 0
-              ? shortSplit(armies, group, r.short ?? 0)
+              ? shortSplit(fieldShort, group, r.short ?? 0)
               : null;
           return html`<tbody
             data-ww-stock-row=${r.id}

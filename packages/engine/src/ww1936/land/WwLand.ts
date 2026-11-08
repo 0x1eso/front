@@ -2653,9 +2653,17 @@ export class WwLand {
     const inUse = new Map<number, number>();
     const divisions: DivisionData[] = [];
     const equipShort = new Array<number>(NEED_GROUP_COUNT).fill(0);
-    const addShort = (need: readonly number[], held: readonly number[]) => {
+    // ww162: the fielded divisions' part of it (the rest is the trainees').
+    const fieldShort = new Array<number>(NEED_GROUP_COUNT).fill(0);
+    const addShort = (
+      need: readonly number[],
+      held: readonly number[],
+      field = false,
+    ) => {
       for (let g = 0; g < need.length; g++) {
-        if (need[g] > held[g]) equipShort[g] += need[g] - held[g];
+        if (need[g] <= held[g]) continue;
+        equipShort[g] += need[g] - held[g];
+        if (field) fieldShort[g] += need[g] - held[g];
       }
     };
     for (const r of this.rowsOf(id)) {
@@ -2667,7 +2675,11 @@ export class WwLand {
         this.keyStatsOf(t.owner[r]),
       );
       const need = this.baseStatsOf(r).need;
-      addShort(need, equipByType(t.equipOf(r), this.keyStatsOf(t.owner[r])));
+      addShort(
+        need,
+        equipByType(t.equipOf(r), this.keyStatsOf(t.owner[r])),
+        true,
+      );
       let equipPm = 1000;
       fill.forEach((f, i) => {
         // Support gear is no shortage of the division: its companies say how
@@ -2777,6 +2789,7 @@ export class WwLand {
       generals,
       divisions,
       equipShort,
+      fieldShort,
       ...(gaps.length > 0 ? { gaps } : {}),
       ...(cl.startOob ? { startOob: true } : {}),
     };

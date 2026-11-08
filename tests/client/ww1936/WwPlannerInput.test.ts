@@ -12,6 +12,7 @@ vi.mock("../../../src/client/Utils", async (importOriginal) => ({
   translateText: (key: string) => `[${key}]`,
 }));
 
+import type { WwArmyGroupData } from "@openfront/engine-api/ww1936/DepthTypes";
 import {
   landSelectionOf,
   WwDrawModeEvent,
@@ -28,6 +29,12 @@ import {
   WwStrokeEvent,
 } from "../../../src/client/InputHandler";
 import { SendWwOrderIntentEvent } from "../../../src/client/Transport";
+import {
+  counterStateOf,
+  type TokenPlacement,
+} from "../../../src/client/view/LandTokenLayout";
+import type { WwLandView } from "../../../src/client/view/WwLandView";
+import { doctrineGame } from "./DoctrineFixture";
 import { detail } from "./EconomyFixture";
 import {
   army,
@@ -67,8 +74,14 @@ const center = (r: number): [number, number] => {
   return [(t % W) + 0.5, Math.floor(t / W) + 0.5];
 };
 
-function setup(o: LandOptions = {}) {
-  const g = fakeLandGame({
+function setup(
+  o: LandOptions & {
+    groups?: WwArmyGroupData[];
+    layout?: (view: WwLandView) => TokenPlacement[];
+  } = {},
+) {
+  const make = o.groups !== undefined ? doctrineGame : fakeLandGame;
+  const g = make({
     ticks: 700,
     wars: [
       ["DEU", "POL"],
@@ -93,11 +106,13 @@ function setup(o: LandOptions = {}) {
       screenToWorldCoordinatesFloat: (x, y) => ({ x: x / SCALE, y: y / SCALE }),
     },
     {
-      layout: (view) =>
-        [...view.armies.values()].map((a) => {
-          const t = scenario.centerTile(a.region);
-          return { army: a.id, x: t % W, y: Math.floor(t / W), lod: 0 };
-        }),
+      layout:
+        o.layout ??
+        ((view) =>
+          [...view.armies.values()].map((a) => {
+            const t = scenario.centerTile(a.region);
+            return { army: a.id, x: t % W, y: Math.floor(t / W), lod: 0 };
+          })),
       hit: (ps, wx, wy, r) =>
         ps.find((p) => (p.x - wx) ** 2 + (p.y - wy) ** 2 <= r * r)?.army ??
         null,
@@ -251,7 +266,10 @@ describe("the battle planner's input (design §2)", () => {
   });
 
   it("[후퇴선]: taps build the line; undo re-sends the one before; a right-click leaves", () => {
+    // A fallback line belongs to a front or plan army (LandOrderChecks).
+    const order = { ...idleOrder(), kind: "front" as const, enemy: POL };
     const m = setup({
+      armies: [army(1, "DEU", 3, { mine: mine({ front: [3, 4], order }) })],
       landRegions: [
         landRegion(1, { controller: ID("DEU") }),
         landRegion(2, { controller: ID("DEU") }),
@@ -334,5 +352,85 @@ describe("the battle planner's input (design §2)", () => {
     expect(m.sel.planView).toBe(true);
     m.bus.emit(new WwPlanViewEvent(false));
     expect(m.sel.planView).toBe(false);
+  });
+  it("a marshal's lines: the group tab's modes send group_front_line, group_goal, group_fallback", () => {
+    const group: WwArmyGroupData = {
+      id: 4,
+      owner: ID("DEU"),
+      fm: 9,
+      armies: [1, 2],
+    };
+    const m = setup({
+      groups: [group],
+      armies: [
+        army(1, "DEU", 3, { mine: mine({ front: [3] }) }),
+        army(2, "DEU", 4, { mine: mine({ front: [4] }) }),
+      ],
+      landRegions: [
+        landRegion(1, { controller: ID("DEU") }),
+        landRegion(2, { controller: ID("DEU") }),
+      ],
+    });
+    m.bus.emit(new WwDrawModeEvent("front", 4));
+    expect(m.sel).toMatchObject({ draw: "front", group: 4, army: 1 });
+    m.stroke(away(3), away(4));
+    expect(m.sent).toEqual([
+      { kind: "group_front_line", group: 4, ends: [3, 4], enemy: POL },
+    ]);
+    // A new broad line splits among the armies; a spearhead goes to them all.
+    m.bus.emit(new WwDrawModeEvent("goal", 4));
+    expect(m.sel).toMatchObject({ draw: "goal", group: 4 });
+    m.stroke(away(4), away(6));
+    expect(m.sent[1]).toEqual({
+      kind: "group_goal",
+      group: 4,
+      regions: [6],
+      spear: false,
+      split: true,
+    });
+    m.bus.emit(new WwPlannerEvent({ kind: "spear", on: true }));
+    expect(m.sent[2]).toMatchObject({ kind: "group_goal", spear: true });
+    m.bus.emit(new WwPlannerEvent({ kind: "execute", on: true }));
+    expect(m.sent[3]).toEqual({ kind: "ag_execute", group: 4 });
+    // Undo is the army's: nothing for a marshal's line.
+    m.bus.emit(new WwPlannerEvent({ kind: "undo" }));
+    expect(m.sent).toHaveLength(4);
+    m.bus.emit(new WwDrawModeEvent("fallback", 4));
+    m.tap(away(1));
+    expect(m.sent[4]).toEqual({
+      kind: "group_fallback",
+      group: 4,
+      regions: [1],
+    });
+    // The army's own chip (no group) is the army's mode; [사단] never the group's.
+    m.bus.emit(new WwDrawModeEvent("goal"));
+    expect(m.sel).toMatchObject({ draw: "goal", group: null });
+    m.bus.emit(new WwDrawModeEvent("front", 4));
+    m.bus.emit(new WwDrawModeEvent("divisions", 4));
+    expect(m.sel).toMatchObject({ draw: "divisions", group: null });
+  });
+
+  it('a tap on a division counter picks it in [사단]; a "+N" chip fans its region', () => {
+    const [bx, by] = center(3);
+    const [kx, ky] = center(4);
+    const m = setup({
+      layout: () => [
+        { army: 1, x: bx, y: by, lod: 0, division: 2 },
+        { army: 1, x: kx, y: ky, lod: 0, more: 3, region: 4 },
+      ],
+    });
+    // setup's tap on Berlin hit the division counter there.
+    expect(m.sel).toMatchObject({ army: 1, draw: "divisions", divisions: [2] });
+    expect(m.sent).toEqual([]);
+    // In [사단] another tap on a counter of the army toggles it.
+    m.tap(center(3));
+    expect(m.sel.divisions).toEqual([]);
+    m.tap(center(3));
+    expect(m.sel.divisions).toEqual([2]);
+    const view = m.game.wwLand!()!;
+    expect(counterStateOf(view).isOpen(4)).toBe(false);
+    m.tap(center(4));
+    expect(counterStateOf(view).isOpen(4)).toBe(true);
+    expect(m.sent).toEqual([]);
   });
 });

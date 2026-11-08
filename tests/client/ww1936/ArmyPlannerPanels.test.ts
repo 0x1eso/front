@@ -38,6 +38,7 @@ import { OpenWwIndustryEvent } from "../../../src/client/hud/ww1936/WwDrawer";
 import "../../../src/client/hud/ww1936/WwIndustryPanel";
 import type { WwIndustryPanel } from "../../../src/client/hud/ww1936/WwIndustryPanel";
 import { WwLandController } from "../../../src/client/hud/ww1936/WwLandController";
+import { wwMapFlowActive } from "../../../src/client/hud/ww1936/WwPanelMode";
 import { SendWwOrderIntentEvent } from "../../../src/client/Transport";
 import { doctrineGame } from "./DoctrineFixture";
 import { detail, fakeEconGame, ID, summary } from "./EconomyFixture";
@@ -127,8 +128,10 @@ describe("ww162 L5b: the army drawer", () => {
     expect(m.sel.army).toBe(1);
     expect(m.sel.draw).toBe("divisions");
     expect(m.sel.divisions).toEqual([1]);
-    // The drawer steps out of the way of the map tap.
-    expect(m.q("[data-ww-drawer='army']")).toBeNull();
+    // The drawer steps aside for the map tap (the dock minimises it while
+    // a map flow is on) and stays open underneath.
+    expect(wwMapFlowActive(m.game)).toBe(true);
+    expect(m.q("[data-ww-drawer='army']")).not.toBeNull();
   });
 });
 
@@ -169,6 +172,7 @@ describe("ww162 L5b: the group tab", () => {
     });
     const sent: WwOrder[] = [];
     const lit: number[][] = [];
+    const drawn: [string, number][] = [];
     const host = document.createElement("div");
     document.body.appendChild(host);
     const draw = () =>
@@ -183,6 +187,7 @@ describe("ww162 L5b: the group tab", () => {
           confirmTap: (_k, act) => act(),
           onFront: () => {},
           lit: (groups) => lit.push([...groups]),
+          drawLine: (mode, group) => drawn.push([mode, group]),
         })}`,
         host,
       );
@@ -215,6 +220,19 @@ describe("ww162 L5b: the group tab", () => {
         split: true,
       },
     ]);
+    // The marshal's line chips turn on the map's draw modes for the group.
+    const chips = [
+      ...host.querySelectorAll<HTMLElement>(
+        "[data-ww-group-draw='4'] [data-ww-group-draw-mode]",
+      ),
+    ];
+    expect(chips.map((b) => b.dataset.wwGroupDrawMode)).toEqual([
+      "front",
+      "goal",
+      "fallback",
+    ]);
+    chips[1].click();
+    expect(drawn).toEqual([["goal", 4]]);
   });
 });
 
@@ -239,7 +257,13 @@ describe("ww162 L5b: the stock table", () => {
         endedBattles: [],
         regions: [],
         countries: [],
-        details: [landDetail("DEU", { equipShort: short })],
+        details: [
+          landDetail("DEU", {
+            equipShort: short,
+            // The fielded divisions' part, as the engine sums it.
+            fieldShort: short.map((n, g) => (g === G("artillery") ? 300 : 0)),
+          }),
+        ],
       },
       600,
     );
@@ -295,7 +319,7 @@ describe("ww162 L5b: the stock table", () => {
     vi.advanceTimersByTime(2000);
     await m.el.updateComplete;
     expect(m.q("[data-ww-stock-lit]")).toBeNull();
-    // The split: 300 with the armies, the rest in training.
+    // The split: 300 with the fielded divisions, the rest in training.
     expect(m.q("[data-ww-stock-split]")).toBeNull();
     await m.click("[data-ww-stock-row='artillery'] button");
     expect(m.q("[data-ww-stock-fronts]")!.textContent).toContain(

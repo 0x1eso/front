@@ -54,6 +54,12 @@ export class WwLandSelection {
   spear = false;
   /** [사단] mode: the chosen army's divisions picked (ids, ascending). */
   divisions: number[] = [];
+  /**
+   * ww162 §1.1-§1.3: the army group whose marshal's lines the line modes
+   * draw (the group tab's chips); null: the chosen army's own. `army` is
+   * then one of the group's armies (the card and the preview follow it).
+   */
+  group: number | null = null;
   /** The plan view (design §3): every army of mine shows its lines, faint. Kept across choices. */
   planView = false;
   /** The line orders sent, per army and line, for [되돌리기] (the card asks canUndo). */
@@ -72,6 +78,7 @@ export class WwLandSelection {
     this.line = null;
     this.spear = false;
     this.divisions = [];
+    this.group = null;
     this.version++;
   }
 
@@ -83,16 +90,18 @@ export class WwLandSelection {
     this.draw = "none";
     this.line = null;
     this.divisions = [];
+    this.group = null;
     this.version++;
   }
 
-  /** ww162: a line mode on (or "none": off); the order modes go. */
-  setDraw(draw: DrawMode): void {
+  /** ww162: a line mode on (or "none": off) for the chosen army, or for `group`'s marshal; the order modes go. */
+  setDraw(draw: DrawMode, group: number | null = null): void {
     this.mode = "none";
     this.pending = null;
     this.zoneDraft = null;
     this.draw = draw;
     this.line = null;
+    this.group = draw === "none" || draw === "divisions" ? null : group;
     if (draw !== "divisions") this.divisions = [];
     this.version++;
   }
@@ -129,7 +138,11 @@ export class OpenWwBattleEvent implements GameEvent {
  * the chosen army and answers with WwLandChangedEvent.
  */
 export class WwDrawModeEvent implements GameEvent {
-  constructor(readonly mode: DrawMode) {}
+  /** `group`: the mode draws that army group's lines (group_front_line, group_goal, group_fallback). */
+  constructor(
+    readonly mode: DrawMode,
+    readonly group?: number,
+  ) {}
 }
 
 /**

@@ -65,7 +65,6 @@ import {
   tapKind,
   tapOrder,
   templateName,
-  zoneOrder,
   zoneShown,
 } from "./LandModel";
 import { statsFromArray } from "./LandSeaAir";
@@ -161,8 +160,6 @@ const BUTTON_ICONS: Readonly<Record<ArmyButton, string>> = {
 
 /** The buttons that set what the next map tap means (spec §15.3). */
 const BUTTON_MODES: Readonly<Partial<Record<ArmyButton, LandMode>>> = {
-  plan: "plan",
-  front: "front",
   move: "move",
   rail: "rail",
   sea: "sea",
@@ -749,7 +746,6 @@ export class WwArmyCard extends LitElement implements Controller {
             ? this.renderLine(c, true)
             : translateText(c.card.status.key, c.card.status.params)}
       </span>
-      ${c.sel.mode === "front" ? this.zoneAutoButton(c) : nothing}
       ${ordering
         ? this.button(
             "cancel",
@@ -923,11 +919,7 @@ export class WwArmyCard extends LitElement implements Controller {
           : "shrink-0"} gap-1"
       >
         ${this.panel === "main"
-          ? c.sel.mode === "plan"
-            ? this.renderPlan(c)
-            : c.sel.mode === "front"
-              ? this.renderZone(c)
-              : this.renderButtons(c)
+          ? this.renderButtons(c)
           : this.panel === "auto"
             ? this.renderAutoLevels(c)
             : this.panel === "more"
@@ -967,7 +959,10 @@ export class WwArmyCard extends LitElement implements Controller {
               return;
             }
             this.refused = null;
-            this.eventBus.emit(new WwDrawModeEvent(m));
+            // A marshal's mode stays the group's ([사단] is the army's own).
+            const group =
+              m === "divisions" ? undefined : (c.sel.group ?? undefined);
+            this.eventBus.emit(new WwDrawModeEvent(m, group));
           },
           { grey: block !== null, pressed: c.sel.draw === m, tall: true },
         );
@@ -1001,14 +996,24 @@ export class WwArmyCard extends LitElement implements Controller {
           style="background: ${zoneHueCss(r.id)}"
         ></span>
         <span class="min-w-0 shrink truncate text-sm font-bold"
-          >${armyName(r.nameNo)}</span
+          >${c.sel.group !== null
+            ? translateText("ww1936.ag.number", { n: c.sel.group })
+            : armyName(r.nameNo)}</span
         >
-        <span data-ww-army-divisions class="shrink-0 tabular-nums text-white/70"
-          >${translateText("ww1936.land.divisions_of", {
-            n: r.divisions,
-            max: WW_MAX_ARMY_DIVISIONS,
-          })}</span
-        >
+        ${c.sel.group !== null
+          ? html`<span
+              data-ww-draw-group=${c.sel.group}
+              class="shrink-0 text-sky-300"
+              >${translateText(PLANNER_KEYS.groupLines)}</span
+            >`
+          : html`<span
+              data-ww-army-divisions
+              class="shrink-0 tabular-nums text-white/70"
+              >${translateText("ww1936.land.divisions_of", {
+                n: r.divisions,
+                max: WW_MAX_ARMY_DIVISIONS,
+              })}</span
+            >`}
         <span class="min-w-0 flex-1">${this.renderPlanning(c)}</span>
         ${this.foldButton(c, false)} ${this.closeButton()}
       </div>
@@ -1056,12 +1061,16 @@ export class WwArmyCard extends LitElement implements Controller {
   }
 
   /** The second row, by mode (design §2). */
-  private renderDrawRow(c: Ctx): TemplateResult | TemplateResult[] {
+  private renderDrawRow(
+    c: Ctx,
+  ): TemplateResult | (TemplateResult | typeof nothing)[] {
     const sel = c.sel;
     const army = c.card.row.id;
     const order = c.view.armies.get(army)?.mine?.order;
     switch (sel.draw) {
       case "front":
+        // A marshal's front is redrawn, not undone or cleared.
+        if (sel.group !== null) return [];
         return [
           this.button(
             "planner_undo",
@@ -1112,22 +1121,24 @@ export class WwArmyCard extends LitElement implements Controller {
               { pressed: sel.spear },
             )}
           </div>`,
-          html`<div
-            data-ww-goal-stance
-            role="radiogroup"
-            aria-label=${translateText("ww1936.land.stance_label")}
-            class="grid grid-cols-3 gap-1"
-          >
-            ${STANCES.map((st) =>
-              this.button(
-                `goal_stance_${st}`,
-                translateText(STANCE_KEYS[st]),
-                st === "careful" ? "🛡" : st === "balanced" ? "⚖" : "🔥",
-                () => this.planner({ kind: "stance", stance: st }),
-                { pressed: sel.stance === st },
-              ),
-            )}
-          </div>`,
+          sel.group !== null
+            ? nothing
+            : html`<div
+                data-ww-goal-stance
+                role="radiogroup"
+                aria-label=${translateText("ww1936.land.stance_label")}
+                class="grid grid-cols-3 gap-1"
+              >
+                ${STANCES.map((st) =>
+                  this.button(
+                    `goal_stance_${st}`,
+                    translateText(STANCE_KEYS[st]),
+                    st === "careful" ? "🛡" : st === "balanced" ? "⚖" : "🔥",
+                    () => this.planner({ kind: "stance", stance: st }),
+                    { pressed: sel.stance === st },
+                  ),
+                )}
+              </div>`,
           c.card.executing
             ? this.button(
                 "planner_halt",
@@ -1171,16 +1182,19 @@ export class WwArmyCard extends LitElement implements Controller {
             "✦",
             () => this.planner({ kind: "suggest" }),
           ),
-          this.button(
-            "planner_fb_auto",
-            translateText(PLANNER_KEYS.fbAuto),
-            auto ? "☑" : "☐",
-            () => {
-              this.fbAuto.set(army, !auto);
-              this.planner({ kind: "fb_auto", on: !auto });
-            },
-            { on: auto, wide: true },
-          ),
+          // Falling back by itself is each army's own switch.
+          sel.group !== null
+            ? nothing
+            : this.button(
+                "planner_fb_auto",
+                translateText(PLANNER_KEYS.fbAuto),
+                auto ? "☑" : "☐",
+                () => {
+                  this.fbAuto.set(army, !auto);
+                  this.planner({ kind: "fb_auto", on: !auto });
+                },
+                { on: auto, wide: true },
+              ),
           this.button(
             "planner_fall_back",
             translateText(
@@ -2141,46 +2155,6 @@ export class WwArmyCard extends LitElement implements Controller {
     >
       ${label}
     </button>`;
-  }
-
-  /** ww7: [방어] mode on the unfolded card: back to the automatic zone, done. */
-  private renderZone(c: Ctx): TemplateResult[] {
-    return [
-      html`<div class="grid grid-cols-3 gap-1">
-        ${this.zoneAutoButton(c, true)}
-        ${this.button("back", translateText("ww1936.land.btn_done"), "✓", () =>
-          this.setMode("none"),
-        )}
-      </div>`,
-    ];
-  }
-
-  /** [구역 자동]: the explicit zone goes (army_zone with no regions) and the engine picks it. */
-  private zoneAutoButton(c: Ctx, wide = false): TemplateResult {
-    const army = c.card.row.id;
-    return this.button(
-      "zone_auto",
-      translateText("ww1936.land.btn_zone_auto"),
-      "↺",
-      () => {
-        c.sel.zoneDraft = [];
-        c.sel.version++;
-        this.send(zoneOrder(army, []));
-      },
-      { wide },
-    );
-  }
-
-  /** [공격] mode on the unfolded card (ww42: the taps attack; the panel and back). */
-  private renderPlan(c: Ctx): TemplateResult[] {
-    return [
-      this.renderDirect(c),
-      html`<div data-ww-plan-panel class="grid grid-cols-3 gap-1">
-        ${this.button("back", translateText("common.back"), "←", () =>
-          this.setMode("none"),
-        )}
-      </div>`,
-    ];
   }
 
   private renderMore(c: Ctx): TemplateResult[] {

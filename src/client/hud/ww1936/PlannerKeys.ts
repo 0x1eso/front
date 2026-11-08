@@ -18,6 +18,8 @@ export const PLANNER_KEYS = {
   fbAuto: "ww1936.planner.fb_auto",
   goalBroad: "ww1936.planner.goal_broad",
   goalSpear: "ww1936.planner.goal_spear",
+  /** ww162 §1.1-§1.3: the line modes draw an army group's lines. */
+  groupLines: "ww1936.planner.group_lines",
   hintDivisions: "ww1936.planner.hint_divisions",
   hintFallback: "ww1936.planner.hint_fallback",
   hintFront: "ww1936.planner.hint_front",

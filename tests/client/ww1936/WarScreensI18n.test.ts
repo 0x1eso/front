@@ -47,7 +47,6 @@ const KEYS = [
     "block_no_target",
     "btn_defend",
     "btn_done",
-    "btn_zone_auto",
     "gaps",
     "hint_defend",
     "odds_high",

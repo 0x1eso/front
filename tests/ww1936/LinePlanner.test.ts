@@ -425,6 +425,7 @@ describe("the army's shortage and the planner's view (Design A §3)", () => {
     const t = l.divisions;
     expect(armyShort(l, a)).toEqual([]);
     expect(l.armySummary(a).mine!.short).toBeUndefined();
+    const before = l.countryDetail(l.country(id)!);
     for (const d of a.divisions) {
       const r = t.rowOf(d);
       l.addEquip(r, groundSlotOf(RIFLES), -100);
@@ -440,6 +441,16 @@ describe("the army's shortage and the planner's view (Design A §3)", () => {
     expect(short[0]).toEqual([INF, 200]);
     expect(short[1][0]).toBe(ART);
     expect(l.armySummary(a).mine!.short).toEqual(short);
+    // ww162: the country's detail splits its shortage exactly: the fielded
+    // divisions' part grows by what the army lacks, the trainees' stays.
+    const after = l.countryDetail(l.country(id)!);
+    expect(after.fieldShort![INF] - before.fieldShort![INF]).toBe(200);
+    for (let n = 0; n < after.equipShort!.length; n++) {
+      expect(after.fieldShort![n]).toBeLessThanOrEqual(after.equipShort![n]);
+      expect(after.equipShort![n] - after.fieldShort![n]).toBe(
+        before.equipShort![n] - before.fieldShort![n],
+      );
+    }
     // The planner sees the same shortage, the full need and the losses.
     noteEquipLoss(l, id, groundSlotOf(SUPPORT), 5, SUMMER);
     const view = aiLandNeed(l.econ, ce)!;

@@ -25,6 +25,7 @@ import { stockTable, type StockTableRow } from "./EconomyModel";
 import { armyName, armyStatus, groupZoneOf, regionName } from "./LandModel";
 import { landSelectionOf } from "./LandSelection";
 import { groupColor, multiSelectOf } from "./MultiSelect";
+import { PLANNER_KEYS } from "./PlannerKeys";
 import type { WwGame } from "./WorldWarModel";
 
 export interface GroupTabCtx {
@@ -39,6 +40,50 @@ export interface GroupTabCtx {
   onFront: () => void;
   /** ww162: the supply line was tapped: the industry drawer lights these need groups. */
   lit: (groups: readonly number[]) => void;
+  /** ww162 §1.1-§1.3: a line chip: the map draws the group's line (WwDrawModeEvent with the group). */
+  drawLine: (mode: GroupLineMode, group: number) => void;
+}
+
+/** The marshal's line modes the group tab's chips turn on. */
+export type GroupLineMode = "front" | "goal" | "fallback";
+const GROUP_LINE_MODES: readonly GroupLineMode[] = [
+  "front",
+  "goal",
+  "fallback",
+];
+const GROUP_LINE_KEYS: Readonly<Record<GroupLineMode, string>> = {
+  front: PLANNER_KEYS.btnFront,
+  goal: PLANNER_KEYS.btnGoal,
+  fallback: PLANNER_KEYS.btnFallback,
+};
+const GROUP_LINE_ICONS: Readonly<Record<GroupLineMode, string>> = {
+  front: "🛡",
+  goal: "⚔",
+  fallback: "↩",
+};
+
+/** ww162 (design §2): [전선][공세선][후퇴선] for the marshal: the same draw modes, the group's orders. */
+function renderLineChips(c: GroupTabCtx, g: GroupRow): TemplateResult {
+  const sel = landSelectionOf(c.game);
+  return html`<div
+    data-ww-group-draw=${g.id}
+    role="group"
+    aria-label=${translateText(PLANNER_KEYS.groupLines)}
+    class="mt-1 grid grid-cols-3 gap-1"
+  >
+    ${GROUP_LINE_MODES.map((m) => {
+      const on = sel.group === g.id && sel.draw === m;
+      return html`<button
+        type="button"
+        data-ww-group-draw-mode=${m}
+        aria-pressed=${String(on)}
+        class="${BTN} min-h-11 ${on ? "border-amber-300 bg-amber-700/50" : ""}"
+        @click=${() => c.drawLine(m, g.id)}
+      >
+        ${GROUP_LINE_ICONS[m]} ${translateText(GROUP_LINE_KEYS[m])}
+      </button>`;
+    })}
+  </div>`;
 }
 
 /** ww162: the stock table's rows, for the supply line's days. */
@@ -200,6 +245,7 @@ function renderGroup(
         ?.armyGroups()
         .find((d) => d.id === g.id),
     )}
+    ${armies.length > 0 ? renderLineChips(c, g) : nothing}
     <div class="mt-1" data-ww-group-fm>
       <span class="font-semibold">${g.fmName}</span>
       <span class="text-white/70"

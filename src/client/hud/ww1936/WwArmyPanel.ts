@@ -358,6 +358,8 @@ export class WwArmyPanel extends WwDrawerBase {
             if (window.innerHeight <= COMPACT_MAX_HEIGHT) this.setOpen(false);
           },
           lit: (groups) => this.eventBus.emit(new WwStockLitEvent(groups)),
+          drawLine: (mode, group) =>
+            this.eventBus.emit(new WwDrawModeEvent(mode, group)),
         });
         break;
     }
@@ -539,7 +541,7 @@ export class WwArmyPanel extends WwDrawerBase {
   /**
    * ww162 (design §2): one division to command — the army is chosen, the
    * card opens in [사단] with it checked, and the map's next tap sends it.
-   * The drawer closes so the map can be tapped.
+   * The drawer steps aside while the mode is on (wwMapFlowActive).
    */
   private commandDivision(army: number, division: number) {
     const sel = landSelectionOf(this.game);
@@ -550,7 +552,6 @@ export class WwArmyPanel extends WwDrawerBase {
     this.eventBus.emit(
       new WwPlannerEvent({ kind: "pick", divisions: [division] }),
     );
-    this.setOpen(false);
   }
 
   private renderDivisions(c: Ctx, army: number): TemplateResult {

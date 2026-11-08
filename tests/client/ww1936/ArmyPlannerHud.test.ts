@@ -512,13 +512,11 @@ describe("ww162 L5b: the HUD's helpers", () => {
     ]);
   });
 
-  it("shortSplit: the armies' part (capped at the total) and the rest for training", () => {
-    const armies = [
-      army(1, "DEU", 3, { mine: mine({ short: [[3, 40]] }) }),
-      army(2, "DEU", 3, { mine: mine({ short: [[3, 25]] }) }),
-    ];
-    expect(shortSplit(armies, 3, 100)).toEqual({ fronts: 65, training: 35 });
-    expect(shortSplit(armies, 3, 50)).toEqual({ fronts: 50, training: 0 });
-    expect(shortSplit(armies, 4, 20)).toEqual({ fronts: 0, training: 20 });
+  it("shortSplit: the fielded divisions' part per group (capped at the total) and the rest for training", () => {
+    const field = [0, 0, 0, 65, 0];
+    expect(shortSplit(field, 3, 100)).toEqual({ fronts: 65, training: 35 });
+    expect(shortSplit(field, 3, 50)).toEqual({ fronts: 50, training: 0 });
+    expect(shortSplit(field, 4, 20)).toEqual({ fronts: 0, training: 20 });
+    expect(shortSplit(undefined, 3, 20)).toEqual({ fronts: 0, training: 20 });
   });
 });

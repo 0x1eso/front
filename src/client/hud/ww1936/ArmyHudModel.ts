@@ -238,22 +238,16 @@ export function sortStock(
 }
 
 /**
- * The "short" cell split (Design A §3): the fielded armies' part, summed
- * from each army's two shortest groups (ArmyMineData.short), and the rest
- * (trainees). The armies send only their two biggest gaps, so an army short
- * of three or more groups counts under training for the third: the fronts
- * part is a floor.
+ * The "short" cell split (Design A §3): the fielded divisions' part, as the
+ * engine sums it per need group (CountryLandDetail.fieldShort), and the rest
+ * (trainees). Capped at the total; no field figures: all of it is training.
  */
 export function shortSplit(
-  armies: readonly ArmySummary[],
+  fieldShort: readonly number[] | undefined,
   group: number,
   total: number,
 ): { fronts: number; training: number } {
-  let fronts = 0;
-  for (const a of armies) {
-    for (const [g, n] of a.mine?.short ?? []) if (g === group) fronts += n;
-  }
-  fronts = Math.min(Math.max(0, total), fronts);
+  const fronts = Math.min(Math.max(0, total), fieldShort?.[group] ?? 0);
   return { fronts, training: Math.max(0, total - fronts) };
 }
 

@@ -5,6 +5,7 @@
 // over a FrontWorld (the screens' sides), shared by the land controller and
 // the render passes.
 import type { LandOrder } from "@openfront/engine-api/Schemas";
+import type { WwArmyGroupData } from "@openfront/engine-api/ww1936/DepthTypes";
 import {
   type ArmyOrder,
   type ArmySummary,
@@ -14,11 +15,12 @@ import {
 } from "@openfront/engine-api/ww1936/LandTypes";
 import {
   borderChain,
+  type BorderGraph,
   borderGraphOf,
-  borderLinks,
   facesFront,
+  frontChainBetween,
   type FrontWorld,
-  zoneFrom,
+  snapFrontEnd,
 } from "@openfront/engine-lib/ww1936/FrontRules";
 import { shortestPath } from "@openfront/engine-lib/ww1936/MoveRules";
 
@@ -37,83 +39,9 @@ export const LINE_DRAFT_MS = 4000;
 export const END_HANDLE_PX = 12;
 export const WAYPOINT_HANDLE_PX = 10;
 
-// ---------------------------------------------------------------------------
-// The front chain (lane L1's FrontRules.frontChainBetween, same signature)
-// ---------------------------------------------------------------------------
-
-/**
- * Where an end of a front against `enemy` sits: `r` itself when it is a
- * border region, else the nearest one by a BFS over our side's land from
- * `r` (ties: the smaller id); 0 when none is reachable.
- */
-export function snapToBorder(
-  w: FrontWorld,
-  border: ReadonlySet<number>,
-  me: number,
-  r: number,
-): number {
-  if (border.has(r)) return r;
-  if (w.scenario.region(r) === undefined) return 0;
-  let level = [r];
-  const seen = new Set(level);
-  while (level.length > 0) {
-    const next: number[] = [];
-    for (const u of level) {
-      for (const e of w.scenario.edgesOf(u)) {
-        const v = e.to;
-        if (seen.has(v) || !w.sameSide(me, w.controller[v])) continue;
-        seen.add(v);
-        next.push(v);
-      }
-    }
-    let best = 0;
-    for (const v of next)
-      if (border.has(v) && (best === 0 || v < best)) best = v;
-    if (best !== 0) return best;
-    level = next;
-  }
-  return 0;
-}
-
-/**
- * Design §1.1: the front between ends `a` and `b` against `enemy` (0: every
- * enemy). Each end snaps to the nearest border region (snapToBorder); the
- * chain is the shortest way between them over the border graph (BFS,
- * neighbours by id), at most WW_ZONE_MAX; ends in different pieces of the
- * border give `a`'s piece (zoneFrom). [] with no border.
- *
- * STUB: lane L1 owns `FrontRules.frontChainBetween`; this is the screen's
- * stand-in with the same signature and rule until it lands, and is to be
- * replaced by the lib import so preview and engine share one function.
- */
-export function frontChainBetween(
-  w: FrontWorld,
-  me: number,
-  enemy: number,
-  a: number,
-  b: number,
-): number[] {
-  const g = borderGraphOf(w, me, enemy);
-  const sa = snapToBorder(w, g.set, me, a);
-  const sb = snapToBorder(w, g.set, me, b);
-  if (sa === 0 || sb === 0) return sa !== 0 ? [sa] : sb !== 0 ? [sb] : [];
-  if (sa === sb) return [sa];
-  const prev = new Map<number, number>([[sa, 0]]);
-  const queue = [sa];
-  for (let i = 0; i < queue.length && !prev.has(sb); i++) {
-    for (const v of borderLinks(w, g, queue[i])) {
-      if (prev.has(v)) continue;
-      prev.set(v, queue[i]);
-      queue.push(v);
-    }
-  }
-  if (!prev.has(sb)) return zoneFrom(w, g, sa, WW_ZONE_MAX);
-  const path = [sb];
-  while (path[path.length - 1] !== sa)
-    path.push(prev.get(path[path.length - 1])!);
-  path.reverse();
-  return path.slice(0, WW_ZONE_MAX);
-}
+// The front chain is lib FrontRules' frontChainBetween and its ends lib
+// snapFrontEnd (ww162 §1.1), so the preview is the engine's own line.
+export { frontChainBetween } from "@openfront/engine-lib/ww1936/FrontRules";
 
 // ---------------------------------------------------------------------------
 // Strokes: sampled regions to a line
@@ -193,9 +121,9 @@ export function enemyFacing(w: FrontWorld, me: number, r: number): number {
   return firstOther;
 }
 
-/** Our border set against `enemy`. */
-function borderSet(w: FrontWorld, me: number, enemy: number): Set<number> {
-  return new Set(borderGraphOf(w, me, enemy).list);
+/** Our border against `enemy` (the graph lib frontLineBetween walks). */
+function borderOf(w: FrontWorld, me: number, enemy: number): BorderGraph {
+  return borderGraphOf(w, me, enemy);
 }
 
 /**
@@ -211,11 +139,15 @@ export function frontFromSamples(
   if (samples.length === 0) return null;
   const enemy = enemyFacing(w, me, samples[0]);
   if (enemy === 0) return null;
-  const border = borderSet(w, me, enemy);
-  const a = snapToBorder(w, border, me, samples[0]);
-  const b = snapToBorder(w, border, me, samples[samples.length - 1]);
+  const g = borderOf(w, me, enemy);
+  const a = snapFrontEnd(w, g, me, samples[0]);
+  const b = snapFrontEnd(w, g, me, samples[samples.length - 1]);
   if (a === 0 || b === 0) return null;
-  return { ends: [a, b], enemy, chain: frontChainBetween(w, me, enemy, a, b) };
+  return {
+    ends: [a, b],
+    enemy,
+    chain: frontChainBetween(w, me, enemy, a, b, g),
+  };
 }
 
 /** The front with end `i` moved to (the border region nearest) `r`; null when it does not snap. */
@@ -226,14 +158,15 @@ export function moveFrontEnd(
   i: 0 | 1,
   r: number,
 ): FrontDraft | null {
-  const s = snapToBorder(w, borderSet(w, me, front.enemy), me, r);
+  const g = borderOf(w, me, front.enemy);
+  const s = snapFrontEnd(w, g, me, r);
   if (s === 0) return null;
   const ends: [number, number] =
     i === 0 ? [s, front.ends[1]] : [front.ends[0], s];
   return {
     ends,
     enemy: front.enemy,
-    chain: frontChainBetween(w, me, front.enemy, ends[0], ends[1]),
+    chain: frontChainBetween(w, me, front.enemy, ends[0], ends[1], g),
   };
 }
 
@@ -250,7 +183,7 @@ export function extendFront(
   r: number,
 ): FrontDraft | null {
   if (front === null) return frontFromSamples(w, me, [r]);
-  const s = snapToBorder(w, borderSet(w, me, front.enemy), me, r);
+  const s = snapFrontEnd(w, borderOf(w, me, front.enemy), me, r);
   if (s === 0) return null;
   const sc = w.scenario;
   // A one-region front grows from its second end, so the first stays put.
@@ -413,32 +346,6 @@ export function moveWaypoint(
   return out;
 }
 
-/**
- * The fallback [추천] ring: our side's regions next to `zone` that are in
- * neither the zone nor the border, ascending, at most WW_ZONE_MAX.
- *
- * STUB: lane L1 moves AiLand's ring builder (`bestRing`) into lib
- * FrontRules; this stand-in is to be replaced by it.
- */
-export function suggestRing(
-  w: FrontWorld,
-  me: number,
-  zone: readonly number[],
-): number[] {
-  const inZone = new Set(zone);
-  const border = borderSet(w, me, 0);
-  const out = new Set<number>();
-  for (const z of zone) {
-    for (const e of w.scenario.edgesOf(z)) {
-      const v = e.to;
-      if (inZone.has(v) || border.has(v)) continue;
-      if (!takes(w, me, "fallback", v)) continue;
-      out.add(v);
-    }
-  }
-  return [...out].sort((a, b) => a - b).slice(0, WW_ZONE_MAX);
-}
-
 // ---------------------------------------------------------------------------
 // The army's lines as they stand (engine order, or the screen's draft)
 // ---------------------------------------------------------------------------
@@ -581,6 +488,83 @@ export function fallbackOrder(
   manual: boolean,
 ): LandOrder {
   return { kind: "army_fallback", army, regions: [...regions], manual };
+}
+
+// ---------------------------------------------------------------------------
+// A marshal's lines (ww162 §1.1-§1.3): the same modes, the group's orders
+// ---------------------------------------------------------------------------
+
+/** The group's front line as a draft: its ends re-snapped (frontChainBetween); null without one. */
+export function groupFront(
+  w: FrontWorld,
+  me: number,
+  g: WwArmyGroupData,
+): FrontDraft | null {
+  if (g.ends === undefined || g.enemy === undefined) return null;
+  const chain = frontChainBetween(w, me, g.enemy, g.ends[0], g.ends[1]);
+  if (chain.length === 0) return null;
+  return { ends: [g.ends[0], g.ends[1]], enemy: g.enemy, chain };
+}
+
+/** The group's goal or fallback line as it stands. */
+export function groupChain(
+  g: WwArmyGroupData,
+  kind: "goal" | "fallback",
+): number[] {
+  return [...((kind === "goal" ? g.goal : g.fallback) ?? [])];
+}
+
+/**
+ * The group order a line draft stands for: group_front_line, group_goal
+ * (a line already split stays split; a new broad line splits among the
+ * armies, a new spearhead goes to them all) or group_fallback. A cleared
+ * front has no group order: null.
+ */
+export function groupLineOrder(
+  g: WwArmyGroupData,
+  d: LineDraft,
+  spear: boolean,
+): LandOrder | null {
+  switch (d.kind) {
+    case "front":
+      return d.front === null
+        ? null
+        : {
+            kind: "group_front_line",
+            group: g.id,
+            ends: [d.front.ends[0], d.front.ends[1]],
+            enemy: d.front.enemy,
+          };
+    case "goal":
+      return {
+        kind: "group_goal",
+        group: g.id,
+        regions: [...d.regions],
+        spear,
+        split: (g.goal?.length ?? 0) > 0 ? g.split === true : !spear,
+      };
+    case "fallback":
+      return { kind: "group_fallback", group: g.id, regions: [...d.regions] };
+  }
+}
+
+/** Whether the group's lines carry the draft yet. */
+export function groupCarries(g: WwArmyGroupData, d: LineDraft): boolean {
+  const same = (x: readonly number[] | undefined, y: readonly number[]) =>
+    (x ?? []).length === y.length && (x ?? []).every((v, i) => v === y[i]);
+  switch (d.kind) {
+    case "front":
+      return (
+        d.front !== null &&
+        g.ends !== undefined &&
+        g.ends[0] === d.front.ends[0] &&
+        g.ends[1] === d.front.ends[1]
+      );
+    case "goal":
+      return same(g.goal, d.regions);
+    case "fallback":
+      return same(g.fallback, d.regions);
+  }
 }
 
 /**

@@ -784,6 +784,12 @@ export interface CountryLandDetail {
    * shortage in another. Derived when the detail is built; not state.
    */
   equipShort?: number[];
+  /**
+   * ww162 (Design A §3): the fielded divisions' part of `equipShort`, per
+   * need group (the rest is the trainees'), so the stock table splits a
+   * shortage into fronts and training exactly. Derived; not state.
+   */
+  fieldShort?: number[];
   /** ww7: border regions facing a country at war with us where none of our divisions stands or is headed. */
   gaps?: number[];
   /** The start_oob plan was applied (set only while preparation lasts). */

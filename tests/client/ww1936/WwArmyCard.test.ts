@@ -301,11 +301,10 @@ describe("<ww-army-card> (spec §15.4)", () => {
 
   it("[공격] is the direct attack: no [실행], no stance; the breakdown, the reasons and the settings", async () => {
     const m = await mount();
-    // ww162: no [공격] button any more; the plan mode still draws its panel.
-    m.bus.emit(new WwLandModeEvent("plan"));
-    m.el.tick();
-    await m.el.updateComplete;
-    expect(m.sel.mode).toBe("plan");
+    // ww162: no [공격] button and no plan mode panel any more; the direct
+    // attack's panel sits on the main card.
+    expect(m.q(m.btn("plan"))).toBeNull();
+    expect(m.q("[data-ww-plan-panel]")).toBeNull();
     expect(m.q(m.btn("execute"))).toBeNull();
     expect(m.q("[data-ww-stance]")).toBeNull();
     // A running direct attack: the engine's counts as chips, biggest group first.

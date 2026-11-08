@@ -4,11 +4,15 @@
 // tap (its preview shows on the army card) and a second tap on the same
 // region gives it; a tap anywhere else cancels. Drags move the map.
 import type { LandOrder } from "@openfront/engine-api/Schemas";
+import type { WwArmyGroupData } from "@openfront/engine-api/ww1936/DepthTypes";
 import {
   type ArmySummary,
   WW_GOAL_MAX,
 } from "@openfront/engine-api/ww1936/LandTypes";
-import type { FrontWorld } from "@openfront/engine-lib/ww1936/FrontRules";
+import {
+  type FrontWorld,
+  suggestFallback,
+} from "@openfront/engine-lib/ww1936/FrontRules";
 import {
   EventBus,
   EventConstructor,
@@ -32,6 +36,8 @@ import { showToast, translateText } from "../../Utils";
 import type { GameView } from "../../view";
 import {
   battleMarkers,
+  counterStateOf,
+  hitCounter,
   hitToken,
   layoutTokens,
 } from "../../view/LandTokenLayout";
@@ -86,6 +92,10 @@ import {
   frontLineOrder,
   goalOrder,
   goalStartOk,
+  groupCarries,
+  groupChain,
+  groupFront as groupLineFront,
+  groupLineOrder,
   hitHandle,
   LINE_DRAFT_MS,
   type LineDraft,
@@ -98,7 +108,6 @@ import {
   shownChain,
   shownFront,
   shownHandles,
-  suggestRing,
   tapFallback,
   tapGoal,
 } from "./PlannerModel";
@@ -262,7 +271,9 @@ export class WwLandController implements Controller {
     // ww162 (design §2): the line modes, their strokes and their buttons.
     this.eventBus.on(ClaimDragEvent, (e) => this.claimDrag(e));
     this.eventBus.on(WwStrokeEvent, (e) => this.strokeEvent(e));
-    this.eventBus.on(WwDrawModeEvent, (e) => this.toggleDraw(e.mode));
+    this.eventBus.on(WwDrawModeEvent, (e) =>
+      this.toggleDraw(e.mode, e.group ?? null),
+    );
     this.eventBus.on(WwPlannerEvent, (e) => this.plannerAction(e.action));
     this.eventBus.on(WwPlanViewEvent, (e) => {
       const sel = this.selection;
@@ -295,8 +306,12 @@ export class WwLandController implements Controller {
     const sel = this.selection;
     const d = sel.line;
     if (d === null || d.live || view === null) return;
-    const order = view.armies.get(d.army)?.mine?.order;
-    if (!orderCarries(order, d) && this.deps.now() - d.sentAt < LINE_DRAFT_MS) {
+    const g = this.groupData();
+    const carried =
+      g !== null
+        ? groupCarries(g, d)
+        : orderCarries(view.armies.get(d.army)?.mine?.order, d);
+    if (!carried && this.deps.now() - d.sentAt < LINE_DRAFT_MS) {
       return;
     }
     sel.line = null;
@@ -568,6 +583,15 @@ export class WwLandController implements Controller {
     const radius = TAP_RADIUS_PX / zoom;
     // ww8: a wing order waiting for its target takes the tap before any token.
     if (this.deps.wing?.(w.x, w.y, radius) === true) return true;
+    // ww162 §3.1: from zoom 6 my armies stand as division counters; a tap
+    // on one picks that division ([사단]), a "+N" chip fans its region out.
+    if (
+      sel.mode === "none" &&
+      (sel.draw === "none" || sel.draw === "divisions") &&
+      this.counterTap(view, me, w, zoom)
+    ) {
+      return true;
+    }
     // ww162 (design §2): in a line mode every tap edits the line.
     if (sel.draw !== "none" && sel.army !== null) {
       this.drawTap(view, me, sel.army, this.regionAt(view, w.x, w.y));
@@ -628,6 +652,67 @@ export class WwLandController implements Controller {
     // 3. An army chosen: an order's first or second tap, or a cancel.
     this.regionTap(view, me, sel.army, this.regionAt(view, w.x, w.y));
     return true;
+  }
+
+  /**
+   * ww162 §3.1: a tap on one of my division counters picks that division and
+   * opens the card in [사단] (in [사단] already, it joins or leaves the pick);
+   * a "+N" chip opens or closes its region's fan. False for anything else
+   * (an army counter goes on to today's token tap).
+   */
+  private counterTap(
+    view: WwLandView,
+    me: number,
+    w: { x: number; y: number },
+    zoom: number,
+  ): boolean {
+    const m = this.multi;
+    if (m.active || m.frontGroup !== null || m.attackGroup !== null) {
+      return false;
+    }
+    const mine = this.deps
+      .layout(view, this.game.ticks(), zoom)
+      .filter(
+        (p) =>
+          (p.division !== undefined || p.more !== undefined) &&
+          view.armies.get(p.army)?.owner === me,
+      );
+    if (mine.length === 0) return false;
+    const hit = hitCounter(
+      mine,
+      w.x,
+      w.y,
+      TAP_RADIUS_PX / zoom,
+      this.selection.army,
+    );
+    if (hit === null || hit.kind === "army") return false;
+    if (hit.kind === "more") {
+      counterStateOf(view).toggleOpen(hit.region);
+      this.changed();
+      return true;
+    }
+    this.pickDivision(hit.army, hit.division);
+    return true;
+  }
+
+  /** Chooses `army` with `division` picked, the card in [사단]; in [사단] on that army, the division toggles. */
+  private pickDivision(army: number, division: number): void {
+    const sel = this.selection;
+    if (sel.army === army && sel.draw === "divisions") {
+      const set = new Set(sel.divisions);
+      if (!set.delete(division)) set.add(division);
+      sel.divisions = [...set].sort((a, b) => a - b);
+      sel.pending = null;
+      sel.version++;
+      this.changed();
+      return;
+    }
+    if (sel.army !== army) this.select(army);
+    this.toggleDraw("divisions");
+    if (this.selection.draw !== "divisions") return;
+    sel.divisions = [division];
+    sel.version++;
+    this.changed();
   }
 
   private markerAt(
@@ -901,28 +986,79 @@ export class WwLandController implements Controller {
     return { view, me, army };
   }
 
+  /** The army group whose lines the line modes draw (selection.group), while it is mine and alive. */
+  private groupData(): WwArmyGroupData | null {
+    const id = this.selection.group;
+    if (id === null) return null;
+    return (
+      this.game
+        .wwDepth?.()
+        ?.armyGroups()
+        .find((g) => g.id === id && g.armies.length > 0) ?? null
+    );
+  }
+
   private frontShown(
     w: FrontWorld,
     me: number,
     a: ArmySummary,
   ): FrontDraft | null {
-    return shownFront(w, me, a, this.selection);
+    const sel = this.selection;
+    const g = this.groupData();
+    if (g === null) return shownFront(w, me, a, sel);
+    const d = sel.line;
+    if (d !== null && d.kind === "front" && d.army === a.id) return d.front;
+    return groupLineFront(w, me, g);
   }
 
   private chainShown(a: ArmySummary, kind: "goal" | "fallback"): number[] {
-    return shownChain(a, this.selection, kind);
+    const sel = this.selection;
+    const g = this.groupData();
+    if (g === null) return shownChain(a, sel, kind);
+    const d = sel.line;
+    if (d !== null && d.kind === kind && d.army === a.id) return d.regions;
+    return groupChain(g, kind);
   }
 
-  /** A line mode's chip: on, or off when it is the one on (or "none"). */
-  private toggleDraw(mode: DrawMode): void {
+  /**
+   * A line mode's chip: on, or off when it is the one on (or "none").
+   * `group` (the group tab's chips): the mode draws that group's lines, and
+   * one of its armies is chosen for the card and the preview.
+   */
+  private toggleDraw(mode: DrawMode, group: number | null = null): void {
     const sel = this.selection;
+    if (group !== null && mode !== "none" && mode !== "divisions") {
+      const me = this.myId();
+      const view = this.game.wwLand?.() ?? null;
+      const g = this.game
+        .wwDepth?.()
+        ?.armyGroups()
+        .find((x) => x.id === group);
+      const lead =
+        g?.armies.find(
+          (a) =>
+            view?.armies.get(a)?.owner === me &&
+            (view?.armies.get(a)?.mine ?? null) !== null,
+        ) ?? null;
+      if (lead === null) return;
+      if (sel.army !== null && g!.armies.includes(sel.army)) {
+        // Stay on the chosen army when it is one of the group's.
+      } else if (sel.army !== lead) {
+        this.select(lead);
+      }
+    }
     const c = this.chosen();
     if (c === null) return;
-    const next: DrawMode = mode === sel.draw ? "none" : mode;
-    sel.setDraw(next);
+    const same =
+      mode === sel.draw &&
+      (mode === "divisions" || mode === "none" || group === sel.group);
+    const next: DrawMode = same ? "none" : mode;
+    sel.setDraw(next, group);
     this.claim = null;
     if (next === "goal") {
-      sel.spear = c.army.mine!.order.spear === true;
+      const g = this.groupData();
+      sel.spear =
+        g !== null ? g.spear === true : c.army.mine!.order.spear === true;
       sel.stance = c.army.mine!.order.stance;
     }
     this.unregisterDrawBack?.();
@@ -969,12 +1105,16 @@ export class WwLandController implements Controller {
     const zoom = Math.max(1e-6, this.transform.scale);
     const w = this.transform.screenToWorldCoordinatesFloat(e.x, e.y);
     const world = this.world(c.view);
-    const handle = hitHandle(
-      shownHandles(world, c.me, c.army, this.selection),
-      w.x,
-      w.y,
-      TAP_RADIUS_PX / zoom,
-    );
+    // A marshal's lines are drawn by strokes and taps (the handles are the army's).
+    const handle =
+      sel.group !== null
+        ? null
+        : hitHandle(
+            shownHandles(world, c.me, c.army, this.selection),
+            w.x,
+            w.y,
+            TAP_RADIUS_PX / zoom,
+          );
     if (handle === null && kind === null) return;
     e.claimed = true;
     this.pressStop();
@@ -1104,17 +1244,29 @@ export class WwLandController implements Controller {
     d: LineDraft,
   ): void {
     const sel = this.selection;
-    const order = this.lineOrder(w, me, army, d);
+    const group = this.groupData();
+    const order =
+      group !== null
+        ? groupLineOrder(group, d, sel.spear)
+        : this.lineOrder(w, me, army, d);
+    // The rules' check: a group's line is checked as its first army's, as
+    // the engine does (ArmyGroups.issueGroupLine).
+    const check = group !== null ? this.lineOrder(w, me, army, d) : order;
+    // An offensive line starts near the front: the group's, all its armies'.
+    const zone =
+      group === null
+        ? army.mine!.front
+        : group.armies.flatMap((a) => view.armies.get(a)?.mine?.front ?? []);
     let refusal: string | null = null;
-    if (order === null) {
+    if (order === null || check === null) {
       refusal = "";
     } else if (
-      order.kind === "army_goal" &&
-      order.regions.length > 0 &&
-      !goalStartOk(w, army.mine!.front, army.region, order.regions[0])
+      check.kind === "army_goal" &&
+      check.regions.length > 0 &&
+      !goalStartOk(w, zone, army.region, check.regions[0])
     ) {
       refusal = translateText(PLANNER_KEYS.refuseGoalFar);
-    } else {
+    } else if (check.kind !== "army_fallback" || group === null) {
       const economy = this.game.wwEconomy?.() ?? null;
       const block =
         economy === null
@@ -1124,7 +1276,7 @@ export class WwLandController implements Controller {
               economy,
               me,
               today(this.game),
-              order,
+              check,
               this.sides(),
             );
       if (block !== null) refusal = cardBlockText(block);
@@ -1140,7 +1292,10 @@ export class WwLandController implements Controller {
     d.sentAt = this.deps.now();
     sel.line = d;
     sel.version++;
-    sel.undo.push(army.id, d.kind, order!, restoreOrder(army, d.kind));
+    // Undo keeps the army's own lines (a marshal's line is redrawn instead).
+    if (group === null) {
+      sel.undo.push(army.id, d.kind, order!, restoreOrder(army, d.kind));
+    }
     this.eventBus.emit(new SendWwOrderIntentEvent(order!));
     this.changed();
   }
@@ -1299,9 +1454,18 @@ export class WwLandController implements Controller {
       regions: number[],
     ) =>
       ({ kind, army: id, front, regions, live: false, sentAt: 0 }) as LineDraft;
+    // A marshal's lines: the group's armies run them.
+    const group = this.groupData();
+    const groupArmies =
+      group === null
+        ? []
+        : group.armies.filter(
+            (x) => (view.armies.get(x)?.mine ?? null) !== null,
+          );
     switch (a.kind) {
       case "undo": {
         const kind = this.lineKind();
+        if (group !== null) return;
         const order = kind === null ? null : sel.undo.undo(id, kind);
         if (order === null) return;
         sel.line = null;
@@ -1326,10 +1490,28 @@ export class WwLandController implements Controller {
         break;
       }
       case "execute":
-        send({ kind: "army_execute", army: id, on: a.on });
+        if (group !== null && a.on) {
+          this.eventBus.emit(
+            new SendWwOrderIntentEvent({ kind: "ag_execute", group: group.id }),
+          );
+        } else if (group !== null) {
+          for (const x of groupArmies) {
+            send({ kind: "army_execute", army: x, on: false });
+          }
+        } else send({ kind: "army_execute", army: id, on: a.on });
         break;
       case "suggest": {
-        const ring = suggestRing(w, me, army.mine!.front);
+        // The AI's own ring (lib FrontRules), forts counted as built.
+        const econ = this.game.wwEconomy?.() ?? null;
+        const ring = suggestFallback(
+          w,
+          me,
+          group?.enemy ?? army.mine!.order.enemy,
+          group === null
+            ? army.mine!.front
+            : groupArmies.flatMap((x) => view.armies.get(x)!.mine!.front),
+          (r) => econ?.buildingCount("fort", r) ?? 0,
+        );
         if (ring.length === 0) return;
         this.sendLine(view, w, me, army, draft("fallback", null, ring));
         return;
@@ -1342,7 +1524,14 @@ export class WwLandController implements Controller {
         break;
       }
       case "fall_back_now":
-        send({ kind: "army_fall_back", army: id });
+        if (group === null) send({ kind: "army_fall_back", army: id });
+        else {
+          for (const x of groupArmies) {
+            if ((view.armies.get(x)!.mine!.order.fallback?.length ?? 0) > 0) {
+              send({ kind: "army_fall_back", army: x });
+            }
+          }
+        }
         break;
       case "pick":
         sel.divisions = [...new Set(a.divisions)].sort((x, y) => x - y);

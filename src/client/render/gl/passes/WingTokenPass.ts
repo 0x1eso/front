@@ -182,7 +182,9 @@ export class WingTokenPass {
       for (let i = 0; i < n; i++) {
         const s = this.slots[i];
         const isChosen =
-          (s.kind === SLOT_TOKEN && chosen.has(s.wing)) ||
+          (s.kind === SLOT_TOKEN &&
+            (chosen.has(s.wing) ||
+              (chosenGroup !== 0 && s.group === chosenGroup))) ||
           (s.kind === SLOT_AIRGROUP && s.wing === chosenGroup);
         if (isChosen === (pass === 1)) this.write(air, s, isChosen, tick);
       }

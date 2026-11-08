@@ -280,13 +280,22 @@ export class ArmyTokenPass {
             : KIND_DOT;
     for (const g of ghosts) o = this.writeGhost(f, o, g, kind);
     const sel = selection.army;
+    // ww162 §3.1: with divisions picked ([사단]), only those counters glow.
+    const picked =
+      selection.draw === "divisions" || selection.divisions.length > 0
+        ? selection.divisions
+        : null;
     // The chosen army's counters (and those multi-select holds) last, on top.
     for (let pass = 0; pass < 2; pass++) {
       for (let i = 0; i < n; i++) {
         const c = layout.counters[i];
         let chosen = false;
-        for (const id of c.members) {
-          if (id === sel || multi.has(id)) chosen = true;
+        if (picked !== null && c.type === C_DIVISION && c.army === sel) {
+          chosen = picked.includes(c.division);
+        } else {
+          for (const id of c.members) {
+            if (id === sel || multi.has(id)) chosen = true;
+          }
         }
         if (chosen !== (pass === 1)) continue;
         if (c.type === C_ARMY) {

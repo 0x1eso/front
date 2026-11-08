@@ -85,6 +85,8 @@ export interface WingSlot {
   pm?: number;
   /** ww162: a merged chip of my own (tappable: it opens its fan). */
   mine?: boolean;
+  /** ww162 §3.1: from zoom 6 my air groups split: a member wing's token carries its group (a tap picks the group). */
+  group?: number;
 }
 
 /**
@@ -344,10 +346,13 @@ export function layoutWings(
   const groups = new Map<number, Entry[]>();
   const me = air.mySmallID();
   const myGroups = air.detail?.groups ?? [];
-  const inGroup = new Set<number>();
+  // The group each of my wings flies in; from zoom 6 (`each`) the groups
+  // split into their wings' tokens, as the army counters split.
+  const inGroup = new Map<number, number>();
   const groupsAt = new Map<number, AirGroupView[]>();
   for (const g of myGroups) {
-    for (const m of g.members) inGroup.add(m.wing);
+    for (const m of g.members) inGroup.set(m.wing, g.id);
+    if (each) continue;
     const planes = g.planes.reduce((a, n) => a + n, 0);
     if (planes <= 0 || g.base === 0) continue;
     const list = groupsAt.get(g.base);
@@ -356,7 +361,7 @@ export function layoutWings(
   }
   for (const b of briefs) {
     if (b.planes <= 0) continue;
-    if (b.owner === me && inGroup.has(b.id)) continue;
+    if (b.owner === me && inGroup.has(b.id) && !each) continue;
     let planes = b.planes;
     if (fog !== undefined) {
       const v = fog.wingView(b);
@@ -423,6 +428,7 @@ export function layoutWings(
       k++;
     }
     for (const e of tokens) {
+      const group = e.b.owner === me ? inGroup.get(e.b.id) : undefined;
       out.push({
         kind: SLOT_TOKEN,
         wing: e.b.id,
@@ -434,6 +440,7 @@ export function layoutWings(
         planes: e.planes,
         wings: 1,
         type: e.b.type,
+        ...(group !== undefined ? { group } : {}),
       });
       k++;
     }
