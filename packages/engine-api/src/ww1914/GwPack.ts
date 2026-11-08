@@ -136,6 +136,17 @@ export const GwActPackSchema = z
   .strict();
 export type GwActPack = z.infer<typeof GwActPackSchema>;
 
+/** An invention's or a project's name on the country tab: pack `craft.<id>`. */
+export const GwCraftPackSchema = z
+  .object({
+    /** "염소가스", "바그다드 철도". */
+    name: Text,
+    /** One plain line under it; no result, no hidden value. */
+    note: Text.optional(),
+  })
+  .strict();
+export type GwCraftPack = z.infer<typeof GwCraftPackSchema>;
+
 /** A national aim's words: pack `aims.<id>`. */
 export const GwAimPackSchema = z
   .object({
@@ -252,6 +263,8 @@ export const GwPackSchema = z
      * (`reconciled`...), else an act (`embrace`...), else `stage1`..`stage3`.
      */
     rivals: z.record(GwIdSchema, ById).optional(),
+    /** Invention or project id -> its name on the country tab (ww157). */
+    craft: z.record(GwIdSchema, GwCraftPackSchema).optional(),
   })
   .strict();
 export type GwPack = z.infer<typeof GwPackSchema>;
@@ -270,6 +283,7 @@ export function mergeGwPacks(packs: readonly GwPack[]): GwPack {
     acts: {},
     aims: {},
     rivals: {},
+    craft: {},
   };
   for (const p of packs) {
     Object.assign(out.scenes, p.scenes);
@@ -282,6 +296,7 @@ export function mergeGwPacks(packs: readonly GwPack[]): GwPack {
     Object.assign(out.acts!, p.acts);
     Object.assign(out.aims!, p.aims);
     Object.assign(out.rivals!, p.rivals);
+    Object.assign(out.craft!, p.craft);
     if (p.press !== undefined) out.press = p.press;
     if (p.table !== undefined) out.table = { ...out.table, ...p.table };
   }
@@ -358,6 +373,7 @@ export function gwPackOverlaps(packs: readonly GwPack[]): string[] {
       ...Object.keys(p.acts ?? {}).map((x) => `act ${x}`),
       ...Object.keys(p.aims ?? {}).map((x) => `aim ${x}`),
       ...Object.keys(p.rivals ?? {}).map((x) => `rival ${x}`),
+      ...Object.keys(p.craft ?? {}).map((x) => `craft ${x}`),
     ];
     for (const id of ids) {
       if (seen.has(id)) out.add(id);

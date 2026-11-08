@@ -114,6 +114,10 @@ export const GwOrderSchema = z.discriminatedUnion("kind", [
     person: Id,
     theatre: z.enum(GW_THEATRES),
   }),
+  /** A ready invention goes into the war now (ww157). */
+  z.object({ kind: z.literal("field"), invention: Id }),
+  /** The next step of the footing: its big scene comes now. */
+  z.object({ kind: z.literal("footing") }),
 ]);
 export type GwOrder = z.infer<typeof GwOrderSchema>;
 
@@ -156,5 +160,7 @@ export const GW_ORDER_BLOCKS = [
   "no_claims",
   "table_no",
   "no_front",
+  "no_craft",
+  "no_footing",
 ] as const;
 export type GwOrderBlock = (typeof GW_ORDER_BLOCKS)[number];

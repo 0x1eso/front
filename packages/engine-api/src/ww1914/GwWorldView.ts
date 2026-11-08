@@ -22,6 +22,7 @@ import type {
   GwThread,
 } from "./GreatWarTypes";
 import type { GwBudgetView } from "./GwBudget";
+import type { GwCraftView } from "./GwCraft";
 import type { GwTag } from "./GwCountries";
 import type { GwLawView } from "./GwLaw";
 import type { GwPlace } from "./GwPlaces";
@@ -179,4 +180,6 @@ export interface GwWorldView {
   laws: readonly GwLawView[];
   /** Null for a country with no bloc row yet. */
   press: GwPressView | null;
+  /** Inventions, the year's project, the footing (ww157). */
+  craft?: GwCraftView;
 }

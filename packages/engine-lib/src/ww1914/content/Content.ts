@@ -1,6 +1,12 @@
 import type { GwPersonDef } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import type { GwAct, GwAim } from "@openfront/engine-api/ww1914/GwActs";
 import type { GwEcho, GwScene } from "@openfront/engine-api/ww1914/SceneDsl";
+import type {
+  GwFootingRow,
+  GwInventionRow,
+  GwProjectRow,
+  GwShortageRow,
+} from "../CraftRows";
 import { withRuler } from "../RulerRows";
 import { AUH_ACT_SCENES, AUH_ACTS, AUH_AIMS } from "./acts/auh";
 import { COMMON_ACT_SCENES, COMMON_ACTS } from "./acts/common";
@@ -30,6 +36,13 @@ import { AUH_ECHOES, AUH_PROLOGUE_SCENES } from "./scenes/auh_prologue";
 import { AUH_REALM_SCENES } from "./scenes/auh_realm";
 import { AUH_WAR_SCENES } from "./scenes/auh_war";
 import { BUDGET_SCENES } from "./scenes/budget";
+import {
+  CRAFT_SCENES,
+  GW_FOOTING,
+  GW_INVENTIONS,
+  GW_PROJECTS,
+  GW_SHORTAGE_ROWS,
+} from "./scenes/craft";
 import { COMMON_SCENES } from "./scenes/common";
 import { DEU_SCENES } from "./scenes/deu";
 import { DEU_STORY_SCENES } from "./scenes/deu_act";
@@ -88,6 +101,11 @@ export interface GwContent {
   readonly acts?: readonly GwAct[];
   /** The aims a country can declare (국가 목표). */
   readonly aims?: readonly GwAim[];
+  /** Statecraft rows (ww157); fixtures may have none. */
+  readonly inventions?: readonly GwInventionRow[];
+  readonly projects?: readonly GwProjectRow[];
+  readonly footing?: readonly GwFootingRow[];
+  readonly shortages?: readonly GwShortageRow[];
 }
 
 /** Where the main story remembers the prologues. */
@@ -152,6 +170,7 @@ export const GW_CONTENT: GwContent = {
         ].map(withPromiseTerms),
         ...BUDGET_SCENES,
         ...LAW_SCENES,
+        ...CRAFT_SCENES,
         ...RULER_SCENES,
         ...GOV_SCENES,
         ...DEU_PRIVATE_SCENES,
@@ -196,6 +215,10 @@ export const GW_CONTENT: GwContent = {
   ],
   acts: [...COMMON_ACTS, ...DEU_ACTS, ...GBR_ACTS, ...AUH_ACTS, ...RUS_ACTS],
   aims: [...DEU_AIMS, ...GBR_AIMS, ...AUH_AIMS, ...RUS_AIMS],
+  inventions: GW_INVENTIONS,
+  projects: GW_PROJECTS,
+  footing: GW_FOOTING,
+  shortages: GW_SHORTAGE_ROWS,
 };
 
 let current = GW_CONTENT;

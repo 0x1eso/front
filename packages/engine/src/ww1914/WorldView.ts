@@ -24,6 +24,7 @@ import {
 } from "@openfront/engine-lib/ww1936/Calendar";
 import { tasksShown } from "./Aims";
 import { budgetView } from "./Budget";
+import { craftView } from "./Craft";
 import { eraOf } from "./Eras";
 import { ownFronts, proposalsFor } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
@@ -246,5 +247,6 @@ export function worldView(gw: GreatWar, seat: GwSeatState): GwWorldView {
     budget: budgetView(gw, seat),
     laws: lawViews(gw, seat),
     press: pressView(gw, seat),
+    craft: craftView(gw, seat),
   };
 }

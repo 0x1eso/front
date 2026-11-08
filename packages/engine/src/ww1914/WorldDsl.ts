@@ -19,6 +19,7 @@ import {
   draftOf,
   submitBudget,
 } from "./Budget";
+import { craftEffect, craftHolds } from "./Craft";
 import { closeChain } from "./Crises";
 import { closeSeat, SEPARATE_PEACE } from "./Endings";
 import { eraOf, hasTech } from "./Eras";
@@ -221,6 +222,11 @@ export function worldHolds(ctx: SceneCtx, c: GwWorldCond): boolean {
       return inRange(pollOf(ctx, c.id)?.margin ?? 0, c);
     case "poll_own":
       return inRange(pollOf(ctx, c.id)?.own ?? 0, c);
+    case "invention":
+    case "project":
+    case "footing":
+    case "shortage":
+      return craftHolds(ctx, c);
   }
 }
 
@@ -464,6 +470,13 @@ export function worldEffect(ctx: SceneCtx, e: GwWorldEffect): void {
       return;
     case "gov_soon":
       govSoon(gw, seat, e.id);
+      return;
+    case "invent":
+    case "project":
+    case "project_lead":
+    case "footing":
+    case "shortage":
+      craftEffect(ctx, e);
       return;
   }
 }

@@ -4,6 +4,7 @@
 // field needs no plumbing. Never store undefined: use null. Integers only.
 import { z } from "zod";
 import { GwBudgetStateSchema } from "./GwBudget";
+import { GwCraftStateSchema } from "./GwCraft";
 import { GW_TAGS } from "./GwCountries";
 import { GwLawStateSchema } from "./GwLaw";
 import { GwPlaceSchema } from "./GwPlaces";
@@ -980,6 +981,8 @@ export const GwSeatStateSchema = z.object({
   story: GwStoryStateSchema.default(gwStoryStart),
   /** Absent unless the lobby asked for a prologue (GwPrologue.ts). */
   prologue: GwPrologueStateSchema.optional(),
+  /** Inventions, the year's project, the footing (GwCraft.ts); absent until any. */
+  craft: GwCraftStateSchema.optional(),
 });
 export type GwSeatState = z.infer<typeof GwSeatStateSchema>;
 

@@ -22,6 +22,7 @@ import { takeAct } from "./Acts";
 import { declareAim } from "./Aims";
 import { budgetOrder } from "./Budget";
 import { setClaims } from "./Claims";
+import { fieldOrder, raiseFooting } from "./Craft";
 import { inStage, makeCard, placeCard, repeatable, sceneWear } from "./Desk";
 import { proposalsFor } from "./Fronts";
 import type { GreatWar } from "./GreatWar";
@@ -187,6 +188,10 @@ export function applyGwOrder(
       return offerTerms(gw, seat, o.tag, o.give, o.ask);
     case "post":
       return postGeneral(gw, seat, o.person, o.theatre);
+    case "field":
+      return fieldOrder(gw, seat, o.invention);
+    case "footing":
+      return raiseFooting(gw, seat);
   }
 }
 

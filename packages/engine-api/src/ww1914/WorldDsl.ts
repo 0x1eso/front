@@ -48,6 +48,18 @@ import {
   GwBudgetSource,
 } from "./GwBudget";
 import { GW_TAGS, GwTag } from "./GwCountries";
+import {
+  GW_INVENT_STEPS,
+  GW_INVENTION_STAGES,
+  GW_PROJECT_PHASES,
+  GW_PROJECT_STEPS,
+  GW_SHORTAGES,
+  GwInventionStage,
+  GwInventStep,
+  GwProjectPhase,
+  GwProjectStep,
+  GwShortage,
+} from "./GwCraft";
 import { GW_LAW_STAGES, GwLawStage } from "./GwLaw";
 
 const GW_BUDGET_WHATS = ["treasury", "load", "prices", "lent"] as const;
@@ -165,7 +177,20 @@ export type GwWorldCond =
   /** An election: the seats past a majority, friends counted. */
   | ({ is: "poll"; id: string } & Range)
   /** The same, the party alone. */
-  | ({ is: "poll_own"; id: string } & Range);
+  | ({ is: "poll_own"; id: string } & Range)
+  /** An invention stands at one of these stages; `early`: it went in early. */
+  | {
+      is: "invention";
+      id: string;
+      of: GwInventionStage[];
+      early?: boolean;
+    }
+  /** A project is at one of these phases; no id: the running one, if any. */
+  | { is: "project"; id?: string; of: GwProjectPhase[] }
+  /** The country's footing, 0 peace .. 2 total mobilisation. */
+  | ({ is: "footing" } & Range)
+  /** A shortage is on (the default), or was answered. */
+  | { is: "shortage"; id: GwShortage; solved?: boolean };
 
 export type GwWorldEffect =
   /** Germany's plan for the war to come. */
@@ -271,7 +296,17 @@ export type GwWorldEffect =
   /** A threat is beaten: it lies quiet for its row's rest. */
   | { do: "gov_beaten"; id: string }
   /** A deal made on a threat: its paper comes soon, whatever the heat. */
-  | { do: "gov_soon"; id: string };
+  | { do: "gov_soon"; id: string }
+  /** The ruler's word on an invention (GwCraft GW_INVENT_STEPS). */
+  | { do: "invent"; id: string; step: GwInventStep }
+  /** The year's project; `id` names it for `start`, else the running one. */
+  | { do: "project"; id?: string; step: GwProjectStep }
+  /** Someone else is put in charge of the running project. */
+  | { do: "project_lead"; who: GwWorldWho }
+  /** The footing moves to `level`: up one step at a time, down at once. */
+  | { do: "footing"; level: number }
+  /** A shortage comes on, or is answered for good. */
+  | { do: "shortage"; id: GwShortage; on: boolean };
 
 const int = z.number().int();
 const yearMonth = z.string().regex(/^19[0-9]{2}-[01][0-9]$/);
@@ -359,6 +394,20 @@ export const GwWorldCondSchema = z.union([
   is("gov", { id: GwIdSchema, ...range }),
   is("poll", { id: GwIdSchema, ...range }),
   is("poll_own", { id: GwIdSchema, ...range }),
+  is("invention", {
+    id: GwIdSchema,
+    of: z.array(z.enum(GW_INVENTION_STAGES)),
+    early: z.boolean().optional(),
+  }),
+  is("project", {
+    id: GwIdSchema.optional(),
+    of: z.array(z.enum(GW_PROJECT_PHASES)),
+  }),
+  is("footing", range),
+  is("shortage", {
+    id: z.enum(GW_SHORTAGES),
+    solved: z.boolean().optional(),
+  }),
 ]) as unknown as z.ZodType<GwWorldCond>;
 
 export const GwWorldEffectSchema = z.union([
@@ -428,6 +477,14 @@ export const GwWorldEffectSchema = z.union([
     tag,
     theatre: theatre.optional(),
   }),
+  act("invent", { id: GwIdSchema, step: z.enum(GW_INVENT_STEPS) }),
+  act("project", {
+    id: GwIdSchema.optional(),
+    step: z.enum(GW_PROJECT_STEPS),
+  }),
+  act("project_lead", { who }),
+  act("footing", { level: int.min(0).max(2) }),
+  act("shortage", { id: z.enum(GW_SHORTAGES), on: z.boolean() }),
 ]) as unknown as z.ZodType<GwWorldEffect>;
 
 // ---- Authoring helpers ----

@@ -28,6 +28,7 @@ import {
   techShield,
   warMonths,
 } from "./Eras";
+import { craftEdge } from "./Craft";
 import type { GreatWar } from "./GreatWar";
 import { officeHolder, recordResult } from "./People";
 import {
@@ -379,7 +380,9 @@ function oddsOf(
   const bias =
     openingBias(gw, t.id, by) +
     orderBias(gw, t.id, by) +
-    edge -
+    edge +
+    craftEdge(gw, a, t.id, "attack") -
+    craftEdge(gw, d, t.id, "defence") -
     seasonOf(gw, t.id) -
     reachOf(t, by) * (REACH_BY[t.id] ?? REACH_COST) -
     (home && t.id !== "sea" ? (HOME_SOIL_BY[t.id] ?? HOME_SOIL) : 0);
