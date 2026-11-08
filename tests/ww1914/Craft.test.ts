@@ -33,7 +33,11 @@ import {
   craftCalledScenes,
   GW_PROJECT_SCENES,
 } from "@openfront/engine-lib/ww1914/CraftRows";
-import { craftEdge, craftStep } from "@openfront/engine/ww1914/Craft";
+import {
+  craftEdge,
+  craftStep,
+  projectOdds,
+} from "@openfront/engine/ww1914/Craft";
 import type { GreatWar } from "@openfront/engine/ww1914/GreatWar";
 import { runEffects } from "@openfront/engine/ww1914/SceneRun";
 import { loadGwPack } from "@openfront/shared/ww1914/GwPackLoader";
@@ -327,6 +331,35 @@ describe("inventions", () => {
     expect(craftEdge(gw, gw.nation("FRA"), "west", "attack")).toBe(0);
   });
 
+  test("a row with a research tech keeps the tech and adds no edge of its own", async () => {
+    useFixture({ inventions: [{ ...INV, tech: "gas_heavy" }] });
+    const { runner } = await gwRunner();
+    const gw = runner.game.greatWar()!;
+    const n = gw.nation("DEU")!;
+    gw.s.seats[0].craft = {
+      inventions: [
+        {
+          id: "t_inv",
+          stage: "ready",
+          since: gw.s.chapter - 5,
+          tries: 1,
+          build: 2,
+          early: false,
+        },
+      ],
+      projects: [],
+      picked: -1,
+      footing: 0,
+      footingSince: -1,
+      footingAsked: -1,
+      shortages: [],
+    };
+    order(runner, { kind: "field", invention: "t_inv" });
+    expect(gw.s.seats[0].craft.inventions[0].stage).toBe("fielded");
+    expect(n.techs).toContain("gas_heavy");
+    expect(craftEdge(gw, n, "west", "attack")).toBe(0);
+  });
+
   test("backing over the army costs the row's price in authority", async () => {
     useFixture();
     const { runner } = await gwRunner();
@@ -368,6 +401,28 @@ describe("inventions", () => {
 });
 
 describe("the year's project", () => {
+  test("the final odds stay between 10 and 90, whatever the choices", async () => {
+    useFixture({ inventions: [], projects: [PJ] });
+    const { runner } = await gwRunner();
+    const gw = runner.game.greatWar()!;
+    const seat0 = gw.s.seats[0];
+    const p = {
+      id: "t_pj",
+      phase: "exec" as const,
+      day: gw.s.day,
+      lead: null,
+      push: 45,
+      year: 1914,
+    };
+    expect(projectOdds(gw, seat0, PJ, p)).toBe(90);
+    expect(
+      projectOdds(gw, seat0, { ...PJ, odds: 35 }, { ...p, push: -45 }),
+    ).toBe(10);
+    expect(
+      projectOdds(gw, seat0, { ...PJ, odds: 50 }, { ...p, push: 15 }),
+    ).toBe(65);
+  });
+
   test("picked once a year, through its chapters to done, the lead cast", async () => {
     useFixture({ inventions: [], projects: [PJ] });
     const { runner } = await gwRunner();

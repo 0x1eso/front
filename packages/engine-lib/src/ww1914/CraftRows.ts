@@ -53,7 +53,11 @@ export interface GwInventionRow {
     readonly attack?: number;
     readonly defence?: number;
   };
-  /** Counted as research reached once fielded: the period's own edge. */
+  /**
+   * Counted as research reached once fielded: the period's own edge. A row
+   * with a tech fights through the research table only; its `edge` is not
+   * added on top (owner, ww157: no double count).
+   */
   readonly tech?: GwTech;
   /** Shortages it answers for good once fielded. */
   readonly solves?: readonly GwShortage[];
@@ -103,6 +107,9 @@ export const GW_PROJECT_SKILL = 10;
 export const GW_PROJECT_AIM = 15;
 /** What `push` and `slow` move the odds by. */
 export const GW_PROJECT_PUSH = 15;
+/** The final roll stays inside these, whatever the choices: never sure either way (owner, ww157). */
+export const GW_PROJECT_ODDS_MIN = 10;
+export const GW_PROJECT_ODDS_MAX = 90;
 
 /** A country's two steps up: to the war economy, to total mobilisation. */
 export interface GwFootingRow {
