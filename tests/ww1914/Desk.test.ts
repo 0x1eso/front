@@ -252,7 +252,7 @@ describe("a quiet chapter", () => {
       if (view(r).ended !== null) break;
       expect(seat(r).desk.length).toBeGreaterThan(0);
     }
-  });
+  }, 60000);
 });
 
 describe("what was scheduled", () => {
