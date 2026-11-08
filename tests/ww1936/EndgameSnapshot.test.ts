@@ -457,6 +457,10 @@ describe("World War 1936 P5: derived endgame fields (Task 19 Step 2)", () => {
     // Peace on the current line: its rows' day and the rows last sent.
     "lineDay",
     "lineSent",
+    // Diplomacy: its change mark and the deal judge rows' day and last sent rows (screens only).
+    "dirtyDiplo",
+    "dealJudgeDay",
+    "dealJudgeSent",
   ] as const;
 
   /** A game with some of every index: wars, an exile, subjects, a moved controller, administered regions. */
