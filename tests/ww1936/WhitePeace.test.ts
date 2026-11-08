@@ -154,9 +154,10 @@ describe("World War 1936: white peace", { timeout: 60_000 }, () => {
     const rec = eg.war(w)!;
     expect(rec.sides[0].leader).toBe(deu);
     expect(rec.sides[1].leader).toBe(gbr);
-    // Italy is no leader: a separate peace, offered to Britain.
+    // Italy is no leader: a separate peace, offered to Britain (only a
+    // side's leader may pick another member, D1).
     expect(peaceOfferBlock(eg, ita, w, fra, ww.day(g.ticks()))).toBe(
-      "bad_target",
+      "peace_not_leader",
     );
     expect(offerPeace(eg, ita, w, gbr, g.ticks())).toBeNull();
     const o = onlyOffer(eg);

@@ -49,8 +49,8 @@ import {
   heldPm,
   muchStronger,
   proposerGroup,
-  sideIds,
   surrenderPm,
+  targetGroup,
   targetHoldsBeaten,
 } from "./WhitePeace";
 import type { PeaceOffer, WwEndgame } from "./WwEndgame";
@@ -194,9 +194,8 @@ export function peaceJudgeOf(
   f: NegPeaceFacts = negPeaceFacts(eg),
 ): NegPeaceJudge {
   const pct = acceptPct(eg, w, from, to, whole, day);
-  const s = eg.sideIndex(w, from);
   const gp = proposerGroup(eg, w, from, whole);
-  const gt = s < 0 ? [] : sideIds(w, s === 0 ? 1 : 0);
+  const gt = targetGroup(eg, w, from, to, whole);
   let pBase = 0;
   for (const x of gp) pBase += f.legalBase(x);
   let tBase = 0;
@@ -228,8 +227,7 @@ export function peaceReasonOf(
   const stronger = sTo !== -1 && muchStronger(eg, w, sTo as 0 | 1);
   const weary = warWearinessPct(day - w.startDay, stronger);
   const gp = proposerGroup(eg, w, from, whole);
-  const s = eg.sideIndex(w, from);
-  const gt = s < 0 ? [] : sideIds(w, s === 0 ? 1 : 0);
+  const gt = targetGroup(eg, w, from, to, whole);
   if (
     surrenderPm(eg, from) >= AI_PEACE_REFUSE_CAP_PM ||
     heldPm(eg, gt, gp) >= AI_PEACE_REFUSE_HELD_PM
@@ -254,9 +252,8 @@ export function offerValue(
 ): number {
   const t = o.terms;
   if (t === undefined || !hasPeaceTerms(t)) return 0;
-  const s = eg.sideIndex(w, o.from);
   const gp = new Set(proposerGroup(eg, w, o.from, o.whole));
-  const gt = new Set(s < 0 ? [] : sideIds(w, s === 0 ? 1 : 0));
+  const gt = new Set(targetGroup(eg, w, o.from, o.to, o.whole));
   return negPeaceValue(
     f,
     t,
@@ -292,7 +289,7 @@ export function aiPeaceTerms(
   const whole = w.sides[s].leader === id;
   const f = negPeaceFacts(eg);
   const gp = proposerGroup(eg, w, id, whole);
-  const gt = sideIds(w, s === 0 ? 1 : 0);
+  const gt = targetGroup(eg, w, id, target, whole);
   const inP = (x: number) => gp.includes(x);
   const inT = (x: number) => gt.includes(x);
   const j = peaceJudgeOf(eg, w, id, target, whole, day, f);
@@ -331,7 +328,7 @@ export function aiPeaceTerms(
     return sum;
   };
   if (want > 0) {
-    const mine = acceptPct(eg, w, target, id, true, day);
+    const mine = acceptPct(eg, w, target, id, true, day, true);
     const most = negPeacePctValue(j, Math.max(0, mine - AI_NEG_GIVE_FROM_PCT));
     if (most <= 0) return null;
     const held = regions.filter(

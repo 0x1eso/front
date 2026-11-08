@@ -1,12 +1,19 @@
 // World War 1936: white peace (owner-approved plan, 2026-10-30). A war's
 // side leader offers the whole war a white peace; an ordinary member offers
 // a separate peace (it alone leaves that war and its faction, Finland
-// 1944). The other side's leader answers: a human by a card (30 s, refused
-// at the deadline), the AI by the war's state and a seeded roll. Peace
-// goes through P3 end_war (occupied land back to its legal owner, the
-// armies home; occupation zones stay), no conference opens (winner -1),
-// and the two sides keep a one-year truce. Integers only; wars, countries
-// and offers by id.
+// 1944). Diplomacy D1 (ww161 Design B): a side leader may also offer any
+// enemy member that is no puppet a separate peace, which takes that member
+// and its puppets out (SeparatePeaceRules, SeparatePeace.ts). The target
+// answers: a human by a card (30 s, refused at the deadline), the AI by
+// the war's state and a seeded roll. Peace goes through P3 end_war
+// (occupied land back to its legal owner, the armies home; occupation
+// zones stay), no conference opens (winner -1), and the two sides keep a
+// one-year truce. Integers only; wars, countries and offers by id.
+import {
+  WW_SEP_LEADER_BEATEN_PM,
+  WW_SEP_LOYAL_HOLD_PCT,
+  WW_SEP_LOYAL_PTS,
+} from "@openfront/engine-api/ww1936/DiploTypes";
 import type { WwOrderBlock } from "@openfront/engine-api/ww1936/EconomyTypes";
 import {
   WW_TRUCE_DAYS,
@@ -28,6 +35,11 @@ import {
 } from "@openfront/engine-lib/ww1936/NegPeaceRules";
 import { wwRealTicks } from "@openfront/engine-lib/ww1936/Pace";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
+import {
+  homeTargetBlock,
+  peaceTargetBlock,
+  targetLeaves,
+} from "@openfront/engine-lib/ww1936/SeparatePeaceRules";
 import { evictDivisions, transferRegionPeaceful } from "../land/PoliticsBridge";
 import { leaveFaction } from "../politics/Factions";
 import { payPp } from "../politics/PayPp";
@@ -45,6 +57,7 @@ import {
   peaceTermsView,
   storedTerms,
 } from "./NegPeace";
+import { targetLeft } from "./SeparatePeace";
 import { countryParams } from "./Wars";
 import type { PeaceOffer, WwEndgame } from "./WwEndgame";
 
@@ -98,7 +111,7 @@ export const fighting = (m: Member | null): boolean =>
   m !== null && (m.state === "active" || m.state === "exiled");
 
 /** A puppet (or integrated subject) follows its overlord: it never offers peace itself. */
-function isPuppet(eg: WwEndgame, id: number): boolean {
+export function isPuppet(eg: WwEndgame, id: number): boolean {
   const s = eg.subjectOf(id);
   return s !== null && (s.level === "integrated" || s.level === "puppet");
 }
@@ -132,6 +145,24 @@ export function proposerGroup(
   const s = eg.sideIndex(w, from);
   if (s === -1) return [];
   return whole ? sideIds(w, s) : [from, ...followers(eg, w, from)];
+}
+
+/**
+ * The countries an offer of `from` to `to` makes peace with: the other side,
+ * or — a side leader's separate peace with an enemy member (D1,
+ * SeparatePeaceRules.targetLeaves) — that member and its puppets.
+ */
+export function targetGroup(
+  eg: WwEndgame,
+  w: WwWar,
+  from: number,
+  to: number,
+  whole: boolean,
+): number[] {
+  const s = eg.sideIndex(w, from);
+  if (s === -1) return [];
+  if (targetLeaves(w, from, to, whole)) return [to, ...followers(eg, w, to)];
+  return sideIds(w, s === 0 ? 1 : 0);
 }
 
 /** Pairs [a, b] (a < b) at war under `w`'s record, in key order. */
@@ -219,36 +250,55 @@ export function holdsBeaten(
   return false;
 }
 
-/** ww103: the group `from` would make peace for holds a beaten enemy in `w`. */
+/**
+ * ww103: the group `from` would make peace for holds a beaten enemy in `w`
+ * (among the group it makes peace with: `to`'s, D1's targetGroup; no `to`:
+ * the other side).
+ */
 export function proposerHoldsBeaten(
   eg: WwEndgame,
   w: WwWar,
   from: number,
   whole: boolean,
+  to?: number,
 ): boolean {
   const s = eg.sideIndex(w, from);
   if (s === -1) return false;
   return holdsBeaten(
     eg,
     proposerGroup(eg, w, from, whole),
-    sideIds(w, s === 0 ? 1 : 0),
+    otherGroup(eg, w, from, whole, to),
   );
 }
 
-/** ww103: the side `from` offers peace to holds a beaten country of `from`'s group. */
+/** ww103: the side (D1: the group) `from` offers peace to holds a beaten country of `from`'s group. */
 export function targetHoldsBeaten(
   eg: WwEndgame,
   w: WwWar,
   from: number,
   whole: boolean,
+  to?: number,
 ): boolean {
   const s = eg.sideIndex(w, from);
   if (s === -1) return false;
   return holdsBeaten(
     eg,
-    sideIds(w, s === 0 ? 1 : 0),
+    otherGroup(eg, w, from, whole, to),
     proposerGroup(eg, w, from, whole),
   );
+}
+
+/** targetGroup when the target is known, else the other side. */
+function otherGroup(
+  eg: WwEndgame,
+  w: WwWar,
+  from: number,
+  whole: boolean,
+  to: number | undefined,
+): number[] {
+  if (to !== undefined) return targetGroup(eg, w, from, to, whole);
+  const s = eg.sideIndex(w, from);
+  return s === -1 ? [] : sideIds(w, s === 0 ? 1 : 0);
 }
 
 // ---- The front (stalemate) ----
@@ -371,7 +421,8 @@ export function expirePeaceTimers(eg: WwEndgame, day: number): void {
 
 /**
  * Why `from` may not offer a white peace in war `warId` to `target` on
- * `day` (null: it may). The target is the other side's leader; the war a
+ * `day` (null: it may). The target is the other side's leader, or (D1,
+ * from a side's leader) any member there that is no puppet; the war a
  * normal one at least WW_WHITE_PEACE_MIN_DAYS old; the proposer a fighting
  * member that is no puppet, with WW_WHITE_PEACE_PP political power, no
  * offer of its own pending in that war and no refusal from the target in
@@ -391,17 +442,19 @@ export function peaceOfferBlock(
   if (s === -1 || !fighting(eg.member(w, from))) return "not_at_war";
   if (!eg.isActor(from)) return "dead";
   if (isPuppet(eg, from)) return "subject_restricted";
-  const leader = w.sides[1 - s].leader;
-  if (
-    target !== leader ||
-    !eg.isActor(target) ||
-    !fighting(eg.member(w, target))
-  ) {
-    return "bad_target";
-  }
-  // It must still fight someone there (its pairs, or its side's).
+  if (!eg.isActor(target)) return "bad_target";
+  // D1: the other side's leader, or (from my side's leader) any member of
+  // that side that is no puppet (SeparatePeaceRules).
+  const tb = peaceTargetBlock(w, from, target, (x) => isPuppet(eg, x));
+  if (tb !== null) return tb;
+  // It must still fight someone there (its pairs, or its side's); a side
+  // leader's separate peace, the target must (D1).
   const whole = w.sides[s].leader === from;
-  const group = new Set(proposerGroup(eg, w, from, whole));
+  const group = new Set(
+    targetLeaves(w, from, target, whole)
+      ? [target, ...followers(eg, w, target)]
+      : proposerGroup(eg, w, from, whole),
+  );
   if (!pairsOf(eg, w).some(([a, b]) => group.has(a) || group.has(b))) {
     return "not_at_war";
   }
@@ -417,9 +470,12 @@ export function peaceOfferBlock(
 
 /**
  * peace_offer: `from` offers `target` peace in war `warId` — the whole war
- * when it leads its side, else a separate peace — a white peace, or with
- * `terms` (negotiated peace: checked by NegPeaceRules). The political
- * power goes now; a human target gets the card until its deadline.
+ * when it leads its side and `target` leads the other, its own separate
+ * peace when it doesn't lead, or (D1) the target's separate peace when it
+ * leads and `target` is another member — a white peace, or with `terms`
+ * (negotiated peace: checked by NegPeaceRules). `home`: D1's "come home as
+ * my subject", from SeparatePeace.offerHome only. The political power goes
+ * now; a human target gets the card until its deadline.
  */
 export function offerPeace(
   eg: WwEndgame,
@@ -428,6 +484,7 @@ export function offerPeace(
   target: number,
   tick: number,
   terms?: WwPeaceTerms,
+  home?: boolean,
 ): WwOrderBlock | null {
   const day = eg.ww.day(tick);
   const block = peaceOfferBlock(eg, from, warId, target, day);
@@ -456,6 +513,8 @@ export function offerPeace(
         wwRealTicks(eg.mg.config().gameConfig(), WW_WHITE_PEACE_CARD_TICKS)
       : tick,
     ...(stored === undefined ? {} : { terms: stored }),
+    // D1: "come home as my subject" (SeparatePeace.offerHome checked it).
+    ...(home === true ? { home: true as const } : {}),
   });
   eg.dirtyPeace = true;
   return null;
@@ -485,10 +544,19 @@ export function stepPeaceOffers(eg: WwEndgame, tick: number): void {
   for (const o of [...eg.peaceOffers]) {
     if (!eg.peaceOffers.includes(o)) continue;
     if (!offerStands(eg, o)) resolveOffer(eg, o, false, tick);
-    else if (!eg.isHumanControlled(o.to)) {
+    else if (aiAnswers(eg, o.to)) {
       resolveOffer(eg, o, aiAccepts(eg, o, eg.ww.day(tick)), tick);
     } else if (tick >= o.deadlineTick) resolveOffer(eg, o, false, tick);
   }
+}
+
+/**
+ * Its country's AI answers offers to `id`: an AI country, or a human's with
+ * the `diplomacy` automation on (D6: no card; a manual peace_reply turns it
+ * off, Automation.AUTO_ORDER_DOMAIN).
+ */
+export function aiAnswers(eg: WwEndgame, id: number): boolean {
+  return !eg.isHumanControlled(id) || eg.ww.autoOn(id, "diplomacy");
 }
 
 /** The offer still makes sense: the war goes on, both still answer for what they did. */
@@ -502,8 +570,20 @@ function offerStands(eg: WwEndgame, o: PeaceOffer): boolean {
     return false;
   }
   if (!eg.isActor(o.from) || !eg.isActor(o.to)) return false;
-  if (w.sides[st].leader !== o.to) return false;
-  return !o.whole || w.sides[sf].leader === o.from;
+  if (o.whole && w.sides[sf].leader !== o.from) return false;
+  // D1: "come home" still goes to an exile that is no leader nor puppet.
+  if (o.home === true) {
+    return homeTargetBlock(w, o.from, o.to, (x) => isPuppet(eg, x)) === null;
+  }
+  // D1: a side leader's separate peace with a member that is no puppet;
+  // otherwise (and always for terms asked for) the target must still lead
+  // its side. Whether the target led its side when the offer went is not
+  // kept: a whole-war offer to a leader that has since passed the lead on
+  // now takes it alone out, and the other way round.
+  if (w.sides[st].leader !== o.to) {
+    return o.whole && o.ask !== true && !isPuppet(eg, o.to);
+  }
+  return true;
 }
 
 function resolveOffer(
@@ -581,11 +661,19 @@ function makePeace(eg: WwEndgame, o: PeaceOffer, tick: number): void {
   // Negotiated peace: the terms first (a ceded region is the receiver's by
   // law, so end_war leaves it with it); the rest is status quo ante.
   const terms = hasPeaceTerms(o.terms);
+  // D1: a side leader's separate peace takes the target out instead; an
+  // exile holding nothing that takes the line ends, its land still held.
+  const leaves = o.home === true || targetLeaves(w, o.from, o.to, o.whole);
+  const collapse =
+    leaves &&
+    o.line === true &&
+    eg.isExile(o.to) &&
+    !pol.controlsAnyRegion(o.to);
   applyPeaceTerms(eg, o, tick);
   // Peace on the current line (LinePeace.ts): the occupied regions go to
   // their occupiers first; end_war gives the rest back.
-  applyLinePeace(eg, o, tick);
-  if (o.whole) {
+  if (!collapse) applyLinePeace(eg, o, tick);
+  if (o.whole && !leaves) {
     // Status quo ante: those still in it, and those that capitulated
     // without an exile (their land comes back); every cross pair keeps
     // the truce.
@@ -599,21 +687,36 @@ function makePeace(eg: WwEndgame, o: PeaceOffer, tick: number): void {
     w.ended = { day, winner: -1 };
     eg.dirtyWars = true;
   } else {
-    const ids = [o.from, ...followers(eg, w, o.from)];
-    const fid = pol.factionIdx(o.from);
+    // The one leaving: the proposer, or (D1) the target; its puppets with it.
+    const out = leaves ? o.to : o.from;
+    const ids = [out, ...followers(eg, w, out)];
+    const fid = pol.factionIdx(out);
+    const told = leaves ? loyalLeader(eg, w, o.to) : 0;
+    const legal = pol.legalOwner;
+    const hold = collapse ? (r: number) => keep(r) || legal[r] === o.to : keep;
+    // D1: the truce with the proposer's whole side, not only its pairs.
+    const sf = eg.sideIndex(w, o.from);
+    const side =
+      leaves && sf !== -1
+        ? w.sides[sf].members.filter((m) => fighting(m)).map((m) => m.id)
+        : [];
     for (const x of ids) {
-      eg.setMemberState(w.id, x, "left");
+      // A collapsing exile is marked capitulated by endExile (its land
+      // goes at the conference).
+      if (!collapse || x !== o.to) eg.setMemberState(w.id, x, "left");
       for (const [p, q] of pairsOf(eg, w)) {
         if (p !== x && q !== x) continue;
         const y = p === x ? q : p;
-        endWarBetween(pol, x, y, tick, keep);
+        endWarBetween(pol, x, y, tick, hold);
         setTruce(eg, x, y, until);
       }
+      for (const y of side) setTruce(eg, x, y, until);
     }
     // Finland 1944: out of its faction (its puppets in it with it).
     for (const x of ids) {
       if (fid >= 0 && pol.factionIdx(x) === fid) leaveFaction(pol, x, tick);
     }
+    if (leaves) targetLeft(eg, o, told, collapse, tick);
     pol.markGlobal();
   }
   pol.news(
@@ -732,10 +835,15 @@ export function democracyFightsOn(
 }
 
 /** What the AI weighs: the proposer's and the target's groups' land and lines. */
-function warState(eg: WwEndgame, w: WwWar, from: number, whole: boolean) {
-  const sf = eg.sideIndex(w, from) as 0 | 1;
+function warState(
+  eg: WwEndgame,
+  w: WwWar,
+  from: number,
+  whole: boolean,
+  to?: number,
+) {
   const gp = proposerGroup(eg, w, from, whole);
-  const gt = sideIds(w, (1 - sf) as 0 | 1);
+  const gt = otherGroup(eg, w, from, whole, to);
   return {
     /** The proposer's land the target's side holds (‰). */
     heldByTarget: heldPm(eg, gt, gp),
@@ -759,7 +867,10 @@ export function aiAcceptPct(eg: WwEndgame, o: PeaceOffer, day: number): number {
  * aiAcceptPct for an offer of `from` (its group: the whole side, or it and
  * its puppets) to `to` in `w`. Negotiated peace adds the war score: the
  * target's side ahead on it (its share of the war's score past half)
- * takes up to AI_PEACE_SCORE_PCT off; behind, nothing changes.
+ * takes up to AI_PEACE_SCORE_PCT off; behind, nothing changes. D1: a side
+ * leader's offer to a member weighs that member's group and its loyalty;
+ * `mirror` (a country judging its own wish for peace as if the other
+ * leader offered it) keeps today's whole-side reading.
  */
 export function acceptPct(
   eg: WwEndgame,
@@ -768,16 +879,37 @@ export function acceptPct(
   to: number,
   whole: boolean,
   day: number,
+  mirror = false,
 ): number {
-  const st = warState(eg, w, from, whole);
+  const leaves = !mirror && targetLeaves(w, from, to, whole);
+  const st = warState(eg, w, from, whole, leaves ? to : undefined);
   if (
     surrenderPm(eg, from) >= AI_PEACE_REFUSE_CAP_PM ||
     st.heldByTarget >= AI_PEACE_REFUSE_HELD_PM
   ) {
     return 0;
   }
+  return Math.max(
+    0,
+    Math.min(
+      AI_PEACE_MAX_PCT,
+      basePct(eg, w, from, to, day, st.heldByProposer) +
+        (leaves ? loyaltyPts(eg, w, to) : 0),
+    ),
+  );
+}
+
+/** acceptPct before D1's loyalty term (past its outright refusals). */
+function basePct(
+  eg: WwEndgame,
+  w: WwWar,
+  from: number,
+  to: number,
+  day: number,
+  heldByProposer: number,
+): number {
   let pct = Math.floor((surrenderPm(eg, to) * AI_PEACE_LOSING_PCT) / 1000);
-  pct += Math.floor((st.heldByProposer * AI_PEACE_LOST_LAND_PCT) / 1000);
+  pct += Math.floor((heldByProposer * AI_PEACE_LOST_LAND_PCT) / 1000);
   const sTo = eg.sideIndex(w, to);
   if (sTo !== -1) {
     const score = (s: 0 | 1) =>
@@ -805,6 +937,44 @@ export function acceptPct(
   return Math.min(AI_PEACE_MAX_PCT, pct);
 }
 
+/**
+ * D1: the leader a member answers to — its faction's leader, else its
+ * side's in `w` (0: none, or itself).
+ */
+export function loyalLeader(eg: WwEndgame, w: WwWar, id: number): number {
+  const pol = eg.ww.politics;
+  const f = pol.factionIdx(id);
+  const fl = f >= 0 ? (pol.faction(f)?.leader ?? 0) : 0;
+  const s = eg.sideIndex(w, id);
+  const leader = fl > 0 ? fl : s === -1 ? 0 : w.sides[s].leader;
+  return leader === id ? 0 : leader;
+}
+
+/**
+ * D1 loyalty (percent points on the AI target's accept chance, for a side
+ * leader's separate peace with it): −WW_SEP_LOYAL_PTS while the leader it
+ * answers to still fights and holds WW_SEP_LOYAL_HOLD_PCT of its own
+ * victory points, +WW_SEP_LOYAL_PTS once that leader is in exile or past
+ * WW_SEP_LEADER_BEATEN_PM of its surrender line, else 0.
+ */
+export function loyaltyPts(eg: WwEndgame, w: WwWar, to: number): number {
+  const l = loyalLeader(eg, w, to);
+  if (l <= 0) return 0;
+  if (eg.isExile(l) || surrenderPm(eg, l) >= WW_SEP_LEADER_BEATEN_PM) {
+    return WW_SEP_LOYAL_PTS;
+  }
+  const fights =
+    eg.isActor(l) &&
+    eg.warsOf(l).some((id) => {
+      const x = eg.war(id);
+      return x !== null && x.ended === null && fighting(eg.member(x, l));
+    });
+  if (fights && heldPm(eg, [l], [l]) >= WW_SEP_LOYAL_HOLD_PCT * 10) {
+    return -WW_SEP_LOYAL_PTS;
+  }
+  return 0;
+}
+
 /** The offer's seeded roll, 0..99 (the white peace's). */
 export function offerRoll(eg: WwEndgame, o: PeaceOffer): number {
   return (
@@ -826,7 +996,7 @@ export function aiAccepts(eg: WwEndgame, o: PeaceOffer, day: number): boolean {
   const w = eg.war(o.war);
   if (w === null) return false;
   // ww103: what its side has beaten stays down: it deals on the line only.
-  if (targetHoldsBeaten(eg, w, o.from, o.whole)) return false;
+  if (targetHoldsBeaten(eg, w, o.from, o.whole, o.to)) return false;
   // ww106: a democracy that is winning fights on.
   const st = eg.sideIndex(w, o.to);
   if (st !== -1 && democracyFightsOn(eg, w, st, day)) return false;
@@ -921,6 +1091,7 @@ export function peaceOfferView(eg: WwEndgame, o: PeaceOffer): WwPeaceOfferView {
     terms: peaceTermsView(eg, o),
     ...(o.line === true ? { line: linePeaceOfferView(eg, o) } : {}),
     ...(o.ask === true ? { ask: true } : {}),
+    ...(o.home === true ? { home: true } : {}),
   };
   if (w === null) return { ...base, sides: [empty, empty], held: [] };
   const sf = eg.sideIndex(w, o.from);
@@ -937,7 +1108,9 @@ export function peaceOfferView(eg: WwEndgame, o: PeaceOffer): WwPeaceOfferView {
   const pIds = new Set(
     sf < 0 ? [o.from] : proposerGroup(eg, w, o.from, o.whole),
   );
-  const tIds = new Set(sideIds(w, st));
+  const tIds = new Set(
+    sf < 0 ? sideIds(w, st) : targetGroup(eg, w, o.from, o.to, o.whole),
+  );
   const ctrl = eg.ww.land.controller;
   const legal = eg.ww.politics.legalOwner;
   const totalOf = new Map<number, number>();

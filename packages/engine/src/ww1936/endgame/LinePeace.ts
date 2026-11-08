@@ -36,6 +36,7 @@ import {
 } from "@openfront/engine-lib/ww1936/NegPeaceRules";
 import { wwRealTicks } from "@openfront/engine-lib/ww1936/Pace";
 import { idHash, wwRoll } from "@openfront/engine-lib/ww1936/Roll";
+import { targetLeaves } from "@openfront/engine-lib/ww1936/SeparatePeaceRules";
 import { evictDivisions, transferRegionPeaceful } from "../land/PoliticsBridge";
 import { payPp } from "../politics/PayPp";
 import { negPeaceFacts, peaceJudgeOf, peaceReasonOf } from "./NegPeace";
@@ -90,23 +91,35 @@ export function linePeaceFacts(
  * the other]. The whole war: both sides' members still in it (fighting, or
  * capitulated without an exile — those the white peace revives); a
  * separate peace: the proposer and its puppets there, and the enemies they
- * fight in that war (the pairs the separate peace ends).
+ * fight in that war (the pairs the separate peace ends). D1, a side
+ * leader's separate peace with member `to`: the other way round — `to` and
+ * its puppets, and the members of the proposer's side they fight.
  */
 export function lineGroups(
   eg: WwEndgame,
   w: WwWar,
   from: number,
   whole: boolean,
+  to?: number,
 ): [number[], number[]] {
   const s = eg.sideIndex(w, from);
   if (s === -1) return [[], []];
+  if (to !== undefined && targetLeaves(w, from, to, whole)) {
+    const [theirs, mine] = pairGroups(eg, w, to);
+    return [mine, theirs];
+  }
   if (whole) {
     const inIt = (m: Member) =>
       fighting(m) || (m.state === "capitulated" && !eg.isExile(m.id));
     const ids = (x: 0 | 1) => w.sides[x].members.filter(inIt).map((m) => m.id);
     return [ids(s), ids(s === 0 ? 1 : 0)];
   }
-  const mine = [from, ...followers(eg, w, from)];
+  return pairGroups(eg, w, from);
+}
+
+/** `id` and its puppets in `w`, and the enemies they fight there (ascending). */
+function pairGroups(eg: WwEndgame, w: WwWar, id: number): [number[], number[]] {
+  const mine = [id, ...followers(eg, w, id)];
   const own = new Set(mine);
   const theirs = new Set<number>();
   for (const [p, q] of pairsOf(eg, w)) {
@@ -116,15 +129,16 @@ export function lineGroups(
   return [mine, [...theirs].sort((x, y) => x - y)];
 }
 
-/** What a line offer of `from` in `w` would settle now: the regions changing hands and the two groups. */
+/** What a line offer of `from` (to `to`, D1) in `w` would settle now: the regions changing hands and the two groups. */
 export function lineMovesOf(
   eg: WwEndgame,
   w: WwWar,
   from: number,
   whole: boolean,
   f: LinePeaceFacts = linePeaceFacts(eg),
+  to?: number,
 ): { moves: LineMove[]; mine: number[]; theirs: number[] } {
-  const [mine, theirs] = lineGroups(eg, w, from, whole);
+  const [mine, theirs] = lineGroups(eg, w, from, whole, to);
   if (mine.length === 0 || theirs.length === 0) {
     return { moves: [], mine, theirs };
   }
@@ -192,7 +206,7 @@ export function applyLinePeace(
   if (o.line !== true) return;
   const w = eg.war(o.war);
   if (w === null) return;
-  const { moves } = lineMovesOf(eg, w, o.from, o.whole);
+  const { moves } = lineMovesOf(eg, w, o.from, o.whole, undefined, o.to);
   if (moves.length === 0) return;
   const ww = eg.ww;
   const pol = ww.politics;
@@ -234,7 +248,7 @@ export function lineJudgeOf(
   day: number,
   f: LinePeaceFacts = linePeaceFacts(eg),
 ): { j: NegPeaceJudge; value: number; moves: LineMove[]; mine: number[] } {
-  const { moves, mine, theirs } = lineMovesOf(eg, w, from, whole, f);
+  const { moves, mine, theirs } = lineMovesOf(eg, w, from, whole, f, to);
   let j = peaceJudgeOf(eg, w, from, to, whole, day, f);
   // A proposer past its way to the surrender line is refused outright, as
   // a white peace is (ww88: the line is judged at full value, so this
@@ -394,7 +408,7 @@ export function linePeaceOfferView(
   const w = eg.war(o.war);
   const f = linePeaceFacts(eg);
   if (w === null) return { gain: [], lose: [], gainVp: 0, loseVp: 0 };
-  const { moves, mine } = lineMovesOf(eg, w, o.from, o.whole, f);
+  const { moves, mine } = lineMovesOf(eg, w, o.from, o.whole, f, o.to);
   const own = new Set(mine);
   return linePeaceSplit(f, moves, (x) => own.has(x));
 }
