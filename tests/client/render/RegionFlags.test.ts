@@ -22,6 +22,11 @@ import { multiSelectOf } from "../../../src/client/hud/ww1936/MultiSelect";
 import { LandAtlas } from "../../../src/client/render/gl/LandAtlas";
 import { MapRenderer } from "../../../src/client/render/gl/MapRenderer";
 import {
+  FLAG2_BASE,
+  FLAG2_FAINT_FRONT,
+  FLAG2_FALLBACK,
+  FLAG2_FB_HUE_SHIFT,
+  FLAG2_FB_OUTER,
   FLAG_ENCIRCLED,
   FLAG_ENEMY,
   FLAG_FRONT,
@@ -490,5 +495,97 @@ describe("RegionBorderPass flags", () => {
       [land, sel, me, war],
     ]);
     view.dispose();
+  });
+});
+
+// ww162 (battle planner, design §3): the second flag plane — the dashed
+// fallback line, the plan view's faint zones — and the line being drawn.
+describe("regionFlagBytes: the battle planner's lines (ww162)", () => {
+  /** Regions 1..10 whose plane 2 byte has `bit`. */
+  const withBit2 = (flags: Uint8Array, bit: number) =>
+    [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].filter(
+      (r) => (flags[FLAG2_BASE + r] & bit) !== 0,
+    );
+  // Germany also holds Paris and Lyon (behind Berlin and Munich).
+  const held = [region(1, { controller: DEU }), region(2, { controller: DEU })];
+
+  test("a fallback line: its regions in its hue, the outer edges toward the front", () => {
+    const order = { ...idleOrder(), kind: "front" as const, fallback: [1, 2] };
+    const v = viewWith({
+      regions: held,
+      armies: [army({ mine: mineWith([3, 4], { order }) })],
+    });
+    const flags = regionFlagBytes(v, chosen(1), DEU, worldOf(v, [[DEU, POL]]));
+    expect(withBit2(flags, FLAG2_FALLBACK)).toEqual([1, 2]);
+    expect((flags[FLAG2_BASE + 1] >> FLAG2_FB_HUE_SHIFT) & 3).toBe(1);
+    // Paris's edges toward Berlin and Munich (nearer the border), and
+    // Lyon's toward London (foreign); never back into the line.
+    expect(withBit2(flags, FLAG2_FB_OUTER)).toEqual([3, 4, 10]);
+    // Plane 1 is untouched by it, except byte 0 that tells plane 2 changed.
+    expect(withBit(flags, FLAG_FRONT)).toEqual([3, 4]);
+    expect(flags[0]).not.toBe(0);
+  });
+
+  test("byte 0 moves whenever plane 2 changes, and is 0 with plane 2 empty", () => {
+    const out = new Uint8Array(FLAG_TEX_SIZE * FLAG_TEX_SIZE);
+    const withFb = (fb: number[]) =>
+      viewWith({
+        regions: held,
+        armies: [
+          army({
+            mine: mineWith([3], {
+              order: { ...idleOrder(), kind: "front" as const, fallback: fb },
+            }),
+          }),
+        ],
+      });
+    const flagsFor = (fb: number[]) => {
+      const v = withFb(fb);
+      regionFlagBytes(v, chosen(1), DEU, worldOf(v, [[DEU, POL]]), out);
+      return out[0];
+    };
+    const a = flagsFor([1]);
+    expect(flagsFor([1])).toBe(a);
+    const b = flagsFor([1, 2]);
+    expect(b).not.toBe(a);
+    expect(flagsFor([])).toBe(0);
+  });
+
+  test("the plan view shows my other armies' zones, faint; the chosen one full", () => {
+    const v = viewWith({
+      armies: [
+        army({ mine: mineWith([3]) }),
+        army({ id: 2, region: 4, mine: mineWith([4]) }),
+      ],
+    });
+    const w = worldOf(v, [[DEU, POL]]);
+    const sel = chosen(1);
+    expect(withBit(regionFlagBytes(v, sel, DEU, w), FLAG_FRONT)).toEqual([3]);
+    sel.planView = true;
+    const flags = regionFlagBytes(v, sel, DEU, w);
+    expect(withBit(flags, FLAG_FRONT)).toEqual([3, 4]);
+    expect(withBit2(flags, FLAG2_FAINT_FRONT)).toEqual([4]);
+  });
+
+  test("the front being drawn stands in for the army's zone, with glow on the border", () => {
+    const v = viewWith({ armies: [army({ mine: mineWith([3]) })] });
+    const w = worldOf(v, [[DEU, POL]]);
+    const sel = chosen(1);
+    sel.setDraw("front");
+    sel.line = {
+      kind: "front",
+      army: 1,
+      front: { ends: [3, 4], enemy: POL, chain: [3, 4] },
+      regions: [3, 4],
+      live: true,
+      sentAt: 0,
+    };
+    const flags = regionFlagBytes(v, sel, DEU, w);
+    expect(withBit(flags, FLAG_FRONT)).toEqual([3, 4]);
+    expect(withBit(flags, FLAG_ENEMY)).toEqual([6, 7]);
+    // Our side's border against Poland, Italy's Rome included.
+    if (FRONT_RULES_IN) {
+      expect(withBit(flags, FLAG_PICKABLE)).toEqual([3, 4, 5]);
+    }
   });
 });

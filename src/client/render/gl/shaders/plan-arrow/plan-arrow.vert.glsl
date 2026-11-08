@@ -6,7 +6,8 @@ precision highp float;
 layout(location = 0) in vec2 aPos;
 // p0 (x, y), p1 (x, y) in tile coords (cell corners; +0.5 below)
 layout(location = 1) in vec4 aA;
-// arc length at p0 (tiles), unused, style (0 band, 1 flowing band, 2 head, 3 dots), width px
+// arc length at p0 (tiles), hue (ww162: 0 the red, 1-4 a zone hue), style
+// (0 band, 1 flowing band, 2 head, 3 dots, 4 handle: a circle at p0), width px
 layout(location = 2) in vec4 aB;
 // alpha, unused, from the token (1: p0 = uStart), unused
 layout(location = 3) in vec4 aC;
@@ -31,6 +32,18 @@ void main() {
   vec2 nrm = vec2(-dir.y, dir.x);
   float style = aB.z;
   float width = aB.w * uTilesPerPx;
+  if (style > 3.5) {
+    // ww162: a handle, a square of side `width` around p0.
+    vec2 q = vec2(aPos.x * 2.0 - 1.0, aPos.y * 2.0 - 1.0);
+    vec3 hc = uCamera * vec3(p0 + q * width * 0.5 + 0.5, 1.0);
+    gl_Position = vec4(hc.xy, 0.0, 1.0);
+    vAcross = vec2(q.y, 0.0);
+    vAlong = aPos.x;
+    vArc = 0.0;
+    vB = aB;
+    vAlpha = aC.x;
+    return;
+  }
   vec2 a;
   vec2 b;
   float half_;

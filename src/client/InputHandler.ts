@@ -101,6 +101,52 @@ export class DragEvent implements GameEvent {
   ) {}
 }
 
+/**
+ * ww162 (battle planner, design §2): asked on every one-pointer press on the
+ * map, right after its MouseDownEvent. A controller that wants the press
+ * as a stroke (a draw mode, or a press on one of its line handles) sets
+ * `claimed`; its one-pointer moves then come as WwStrokeEvent instead of
+ * DragEvent. One that is in a draw mode sets `drawMode`: two fingers then
+ * pan as well as zoom, and Shift + left-drag pans (never a box select).
+ * Nobody answering: nothing changes.
+ */
+export class ClaimDragEvent implements GameEvent {
+  claimed = false;
+  drawMode = false;
+  constructor(
+    public readonly x: number,
+    public readonly y: number,
+    public readonly shift: boolean,
+  ) {}
+}
+
+/**
+ * ww162: a claimed press's stroke. "start" comes once the pointer passed
+ * the drag threshold (at the press point), then "move"s, then "end" on
+ * release, or "cancel" when a second finger joins, the pointer is
+ * cancelled or the window loses focus. A claimed press that never moved
+ * that far is an ordinary tap.
+ */
+export class WwStrokeEvent implements GameEvent {
+  constructor(
+    public readonly phase: "start" | "move" | "end" | "cancel",
+    public readonly x: number,
+    public readonly y: number,
+  ) {}
+}
+
+/**
+ * ww162: asked before a right-click opens the context menu; a controller
+ * that used the click (leaving a draw mode) sets `taken`, and no menu opens.
+ */
+export class ContextCancelEvent implements GameEvent {
+  taken = false;
+  constructor(
+    public readonly x: number,
+    public readonly y: number,
+  ) {}
+}
+
 export class AlternateViewEvent implements GameEvent {
   constructor(public readonly alternateView: boolean) {}
 }
@@ -332,6 +378,15 @@ export class InputHandler {
    * multi-finger gesture clears that while the other fingers still rest.
    */
   private touchesDown = new Set<number>();
+  /**
+   * ww162 (ClaimDragEvent): "armed" a claimed press not yet past the drag
+   * threshold, "drawing" once WwStrokeEvent "start" went out.
+   */
+  private stroke: "none" | "armed" | "drawing" = "none";
+  /** ww162: the press began in a draw mode (two fingers pan, Shift-drag pans). */
+  private strokeDrawMode = false;
+  /** ww162: the two-finger centre last seen, for the draw mode's pan. */
+  private lastPinchCenter: { x: number; y: number } | null = null;
 
   private moveInterval: NodeJS.Timeout | null = null;
   /** Aborts every window/canvas listener added in
@@ -466,6 +521,19 @@ export class InputHandler {
     this.touchesDown.clear();
     this.selectionBoxActive = false;
     this.multiSelectionActive = false;
+    this.stroke = "none";
+    this.strokeDrawMode = false;
+    this.lastPinchCenter = null;
+  }
+
+  /** ww162: a stroke under way is called off (a second finger, a cancel, blur). */
+  private cancelStroke(): void {
+    if (this.stroke === "drawing") {
+      this.eventBus.emit(
+        new WwStrokeEvent("cancel", this.lastPointerX, this.lastPointerY),
+      );
+    }
+    this.stroke = "none";
   }
 
   /** Re-read the player's keybinds and rebuild the key dispatch table. */
@@ -712,6 +780,7 @@ export class InputHandler {
         }
         const hadSelection =
           this.selectionBoxActive || this.multiSelectionActive;
+        this.cancelStroke();
         this.resetPointerState();
         if (hadSelection) {
           this.eventBus.emit(new WarshipSelectionBoxCancelEvent());
@@ -1020,8 +1089,24 @@ export class InputHandler {
 
       this.eventBus.emit(new MouseDownEvent(event.clientX, event.clientY));
 
-      // Start long-press timer for touch devices
-      if (event.pointerType === "touch" && !this.multiTouchGesture) {
+      // ww162: a draw mode or a line handle takes the press as a stroke.
+      const claim = new ClaimDragEvent(
+        event.clientX,
+        event.clientY,
+        event.shiftKey === true,
+      );
+      if (!this.passThroughPointers.has(event.pointerId)) {
+        this.eventBus.emit(claim);
+      }
+      this.stroke = claim.claimed ? "armed" : "none";
+      this.strokeDrawMode = claim.drawMode;
+
+      // Start long-press timer for touch devices (not for a stroke).
+      if (
+        event.pointerType === "touch" &&
+        !this.multiTouchGesture &&
+        this.stroke === "none"
+      ) {
         this.longPressActive = false;
         if (this.longPressTimer !== null) {
           clearTimeout(this.longPressTimer);
@@ -1040,7 +1125,12 @@ export class InputHandler {
         }, this.LONG_PRESS_MS);
       }
     } else if (this.pointers.size === 2) {
-      if (this.mapPointerCount() >= 2) this.multiTouchGesture = true;
+      if (this.mapPointerCount() >= 2) {
+        this.multiTouchGesture = true;
+        // ww162: two fingers never draw; in a draw mode they pan.
+        this.cancelStroke();
+        this.lastPinchCenter = this.getPinchCenter();
+      }
       // Second finger down — cancel any pending long-press to avoid
       // triggering selection mode mid-pinch
       if (this.longPressTimer !== null) {
@@ -1157,6 +1247,29 @@ export class InputHandler {
     const endsMultiTouch = this.multiTouchGesture || this.mapPointerCount() > 1;
     this.pointerDown = false;
     this.pointers.clear();
+
+    // ww162: a stroke ends here, and is no tap; a claimed press that never
+    // moved goes on as a tap.
+    const stroke = this.stroke;
+    this.stroke = "none";
+    this.strokeDrawMode = false;
+    this.lastPinchCenter = null;
+    if (stroke === "drawing") {
+      if (this.longPressTimer !== null) {
+        clearTimeout(this.longPressTimer);
+        this.longPressTimer = null;
+      }
+      this.longPressActive = false;
+      this.suppressNextTap = false;
+      this.eventBus.emit(
+        new WwStrokeEvent(
+          event.type === "pointercancel" ? "cancel" : "end",
+          event.clientX,
+          event.clientY,
+        ),
+      );
+      return;
+    }
 
     // Clean up long-press state
     if (this.longPressTimer !== null) {
@@ -1369,11 +1482,40 @@ export class InputHandler {
         }
       }
 
+      // ww162: a claimed press draws instead of dragging the map.
+      if (this.stroke !== "none") {
+        if (this.stroke === "armed") {
+          const moved =
+            Math.abs(event.clientX - this.lastPointerDownX) +
+            Math.abs(event.clientY - this.lastPointerDownY);
+          if (moved >= this.dragThreshold(event.pointerType)) {
+            this.stroke = "drawing";
+            this.eventBus.emit(
+              new WwStrokeEvent(
+                "start",
+                this.lastPointerDownX,
+                this.lastPointerDownY,
+              ),
+            );
+          }
+        }
+        if (this.stroke === "drawing") {
+          this.eventBus.emit(
+            new WwStrokeEvent("move", event.clientX, event.clientY),
+          );
+        }
+        this.lastPointerX = event.clientX;
+        this.lastPointerY = event.clientY;
+        return;
+      }
+
       // If shift is held OR touch long-press is active OR selection box already
-      // started, continue emitting selection box updates
+      // started, continue emitting selection box updates (ww162: in a draw
+      // mode Shift + drag pans instead).
       if (
         this.selectionBoxActive ||
-        this.activeKeys.has(this.keybinds.boxSelectWarships) ||
+        (this.activeKeys.has(this.keybinds.boxSelectWarships) &&
+          !this.strokeDrawMode) ||
         this.longPressActive
       ) {
         this.selectionBoxActive = true;
@@ -1402,6 +1544,16 @@ export class InputHandler {
         );
         this.lastPinchDistance = currentPinchDistance;
       }
+      // ww162: in a draw mode one finger draws, so two fingers also pan.
+      if (this.strokeDrawMode && this.lastPinchCenter !== null) {
+        const c = this.getPinchCenter();
+        const dx = c.x - this.lastPinchCenter.x;
+        const dy = c.y - this.lastPinchCenter.y;
+        if (dx !== 0 || dy !== 0) {
+          this.eventBus.emit(new DragEvent(dx, dy));
+        }
+        this.lastPinchCenter = c;
+      }
     }
   }
 
@@ -1420,6 +1572,10 @@ export class InputHandler {
       this.eventBus.emit(new UnitSelectionEvent(null, false));
       return;
     }
+    // ww162: a right-click leaves a draw mode instead of opening the menu.
+    const cancel = new ContextCancelEvent(event.clientX, event.clientY);
+    this.eventBus.emit(cancel);
+    if (cancel.taken) return;
     this.eventBus.emit(new ContextMenuEvent(event.clientX, event.clientY));
   }
 
