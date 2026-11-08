@@ -364,7 +364,11 @@ describe("diplomacy L0: state, snapshot and hash", () => {
     eg.dirtyDiplo = true;
     const d = eg.takeData();
     expect(d?.deals?.map((x) => x.id)).toEqual(eg.deals.map((x) => x.id));
-    expect(d?.ultimatums?.[0].regions).toEqual([3, 5]);
+    // L4: the stand-in ultimatum lapsed while stepping (its regions are
+    // not its target's), in both games alike.
+    expect(d?.ultimatums?.map((x) => x.id)).toEqual(
+      eg.ultimatums.map((x) => x.id),
+    );
     expect(d?.diploCooldowns).toEqual(eg.diploCooldowns);
     // Timers run out by day.
     expireDiploTimers(eg, far + 5);

@@ -158,6 +158,8 @@ export const DIPLO_NOTICES = {
   promiseLapsed: "events_display.ww1936_promise_lapsed",
   /** {country} {target} */
   promiseKept: "events_display.ww1936_promise_kept",
+  /** {target}: my ultimatum stopped meaning anything (war, the land moved, a party gone). L4, appended. */
+  ultimatumLapsed: "events_display.ww1936_ultimatum_lapsed",
 } as const;
 
 /** A notice's id for WwEndgame.message (the key without "events_display."). */
