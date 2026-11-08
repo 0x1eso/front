@@ -15650,7 +15650,7 @@
       "paper_claimed": "이 전선의 칠한 땅: {list}"
     },
     "unknown": {
-      "ai": "{country}의 원수는 {word}이었다.",
+      "ai": "{country}의 원수는 {word} 인물이었다.",
       "force": "{theatre}의 {country}은(는) 보기보다 강했다.",
       "lean": "{country}의 속내: {fact}.",
       "person": "{person}의 실제 역량은 세 단계 중 {value}단계였다.",
@@ -16191,7 +16191,7 @@
       "do": "여기서 할 수 있는 일",
       "fell": "{place} 함락",
       "general": "이 전선에 장군을 보낸다",
-      "general_pick": "{name}, {front}으로",
+      "general_pick": "{name}, {front}(으)로",
       "general_relieved": "{name}은(는) 자리를 내주었습니다.",
       "general_send": "보낸다",
       "general_title": "장군 파견",
@@ -16473,7 +16473,7 @@
       "clause": {
         "alliance": "동맹: 같은 전쟁을 치른다. 중립인 쪽은 {grace}장 안에 들어온다.",
         "entry": "{by}은(는) {n}장까지 {other} 편에 선다.",
-        "loan": "{by}은(는) {other}에 지금과 여섯 장마다 돈 {n}을 빌려준다.",
+        "loan": "{by}은(는) {other}에 지금과 여섯 장마다 돈 {n}을(를) 빌려준다.",
         "neutrality": "{by}은(는) {other}과(와) 싸우지 않는다.",
         "passage": "{by}은(는) {theatre}에서 {other}에 길을 연다."
       },
