@@ -71,6 +71,21 @@ const KEYFRAMES = html`<style>
       transform: none;
     }
   }
+  /* A phone's drawer fills the bottom of the screen: the map's round buttons
+    (map-controls) stand just above it, not over its tab row. */
+  @media (width < 40rem) {
+    body:has([data-gw-drawer]) map-controls > div {
+      top: auto;
+      bottom: calc(56vh + 0.5rem);
+      translate: none;
+    }
+    body:has([data-gw-drawer][data-gw-fit="low"]) map-controls > div {
+      bottom: calc(42vh + 0.5rem);
+    }
+    body:has([data-gw-drawer][data-gw-fit="fold"]) map-controls > div {
+      bottom: 2.75rem;
+    }
+  }
 </style>`;
 
 /**
@@ -102,6 +117,8 @@ export class GwPanel extends LitElement implements Controller {
   private tableView = false;
   /** Lines in the open talk when last drawn: a new one scrolls into view. */
   private talkTurns = 0;
+  /** The band's height last set on --gw-band-h, in CSS px. */
+  private bandH = 0;
   private map: GwMap | null = null;
   /** The paint over it: the war aims and the table. */
   private painted: GwMapPaint | null = null;
@@ -415,6 +432,14 @@ export class GwPanel extends LitElement implements Controller {
 
   /** A talk grows downward: its newest line must not open below the fold. */
   protected updated(): void {
+    // The band is taller on a phone, where its chips wrap below the
+    // top-right buttons: what hangs under it (ticker, lenses) follows.
+    const band = this.querySelector("[data-gw-band]");
+    const bandH = band === null ? 0 : Math.round(band.clientHeight);
+    if (bandH > 0 && bandH !== this.bandH) {
+      this.bandH = bandH;
+      document.documentElement.style.setProperty("--gw-band-h", `${bandH}px`);
+    }
     if (this.querySelector("[data-gw-tag-at]") !== null) {
       this.painted?.keepTags();
     }
@@ -509,6 +534,11 @@ export class GwPanel extends LitElement implements Controller {
           : deskPinLayer(c)}
       <aside
         data-gw-drawer
+        data-gw-fit=${ui.folded
+          ? "fold"
+          : ui.paint !== null || ui.tab === "table"
+            ? "low"
+            : "full"}
         class="${GLASS} pointer-events-auto fixed inset-x-0 bottom-0 z-[898] flex h-[56vh] flex-col text-white sm:inset-x-auto sm:left-0 sm:bottom-auto sm:top-10 sm:h-auto sm:max-h-[calc(100vh-2.5rem)] sm:w-[400px] sm:border-b-0 sm:border-l-0 ${ui.folded
           ? "!h-9"
           : ui.paint !== null || ui.tab === "table"

@@ -49,7 +49,7 @@ export function ticker(lines: readonly string[], n: number): TemplateResult {
   const text = lines[n % lines.length];
   return html`<div
     data-gw-ticker
-    class="pointer-events-none fixed left-1/2 top-12 z-[899] max-w-[min(60vw,640px)] -translate-x-1/2 truncate rounded-full px-4 py-1 text-xs text-white/90 ${GLASS}"
+    class="pointer-events-none fixed left-1/2 top-[calc(var(--gw-band-h,2.5rem)_+_0.5rem)] z-[899] max-w-[min(60vw,640px)] -translate-x-1/2 truncate rounded-full px-4 py-1 text-xs text-white/90 ${GLASS}"
   >
     ${text}
   </div>`;
