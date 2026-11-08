@@ -11,6 +11,12 @@
  * division the army keeps there (at most five), counted from the viewer's
  * division records (view.details).
  *
+ * ww162 (army design §3.1): it draws the layout's counters, which group by
+ * zoom: below zoom 1.5 a merged chip per country per region, from zoom 6
+ * one counter per division of mine (a token at 75 %, its pin notch and
+ * battle badge) with "+N" past four in a region. Same program, atlas and
+ * instance layout; mine carry their army's zone-hue rim.
+ *
  * Instances are rewritten only when the layout, the view, the choice or the
  * zoom level changed; nothing is allocated per frame and nothing is drawn
  * without armies.

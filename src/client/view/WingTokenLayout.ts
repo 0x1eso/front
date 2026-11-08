@@ -24,7 +24,13 @@ import { SEA_ZONE_BASE } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import type { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
 import { wingMaxPlanes } from "@openfront/engine-lib/ww1936/WingRules";
 import type { FogModel } from "../hud/ww1936/FogModel";
-import { fanSlot, TOKEN_STEP_PX, tokenLod } from "./LandTokenLayout";
+import {
+  DIVISION_SPLIT_AT,
+  fanSlot,
+  LOD_CHIP_BELOW,
+  TOKEN_STEP_PX,
+  tokenLod,
+} from "./LandTokenLayout";
 import type { WwAirView } from "./WwAirView";
 import type { WwNavyView } from "./WwNavyView";
 
@@ -43,6 +49,17 @@ export const SLOT_GROUP = 1;
 export const SLOT_BASE = 2;
 /** w51: one air group at its base (wing = the group id, wings = its members). */
 export const SLOT_AIRGROUP = 3;
+/**
+ * ww162 (army design §3.1): below zoom 3 one chip per owner per base, or per
+ * air zone for wings out on station, with the wing count, the planes and
+ * their strength (base = the base, or STATION_KEY + the zone). A tap on my
+ * own opens its fan.
+ */
+export const SLOT_MERGED = 4;
+/** A merged chip's key for the wings on station over air zone `sr`: STATION_KEY + sr. */
+export const STATION_KEY = 1 << 24;
+/** Screen px between fanned merged chips at one base. */
+export const MERGED_STEP_PX = 28;
 /** w51: an air token's tap reach, smaller than an army's (screen px). */
 export const AIR_TAP_RADIUS_PX = 14;
 
@@ -64,6 +81,10 @@ export interface WingSlot {
   wings: number;
   /** AIR_TYPES index of a token. */
   type: number;
+  /** ww162: a merged chip's strength, ‰ of full wings (planes / full planes). */
+  pm?: number;
+  /** ww162: a merged chip of my own (tappable: it opens its fan). */
+  mine?: boolean;
 }
 
 /**
@@ -95,6 +116,10 @@ export interface WingLayoutInput {
   group?: number;
   /** Bases whose group chip a tap opened into a fan. */
   expanded: ReadonlySet<number>;
+  /** ww162: the game tick (wings on station are chipped over their zone below zoom 3); absent: none are. */
+  tick?: number;
+  /** ww162: every wing a token (zoom 6 up, with the army counters' hysteresis); absent: zoom ≥ 6. */
+  split?: boolean;
 }
 
 /** A wing's base tile (x, y), or false when it stands nowhere (no base, or a ship not found). */
@@ -310,6 +335,9 @@ export function layoutWings(
 ): number {
   out.length = 0;
   if (!air.live) return 0;
+  if (input.zoom < LOD_CHIP_BELOW)
+    return layoutMerged(air, navy, fog, input, out);
+  const each = input.split ?? input.zoom >= DIVISION_SPLIT_AT;
   const lod = tokenLod(input.zoom);
   const step = TOKEN_STEP_PX[lod] / Math.max(input.zoom, 1e-6);
   const briefs = [...air.wingBriefs.values()].sort((a, b) => a.id - b.id);
@@ -355,8 +383,9 @@ export function layoutWings(
       else rest.push(e);
     }
     let k = 0;
+    // ww162: from zoom 6 every wing is its own token (the layer on).
     const asTokens = input.airLayer
-      ? rest.length < GROUP_MIN_WINGS || input.expanded.has(base)
+      ? each || rest.length < GROUP_MIN_WINGS || input.expanded.has(base)
       : false;
     if (rest.length > 0 && !asTokens) {
       let planes = 0;
@@ -412,6 +441,191 @@ export function layoutWings(
   return out.length;
 }
 
+interface Merge {
+  key: number;
+  owner: number;
+  x: number;
+  y: number;
+  planes: number;
+  full: number;
+  wings: number;
+  first: number;
+  type: number;
+}
+
+/**
+ * ww162 §3.1, below zoom 3: per base (or air zone, for wings on station)
+ * one chip per owner, unless a tap opened it (then today's tokens fan out
+ * there). A chosen wing and the chosen group keep their tokens.
+ */
+function layoutMerged(
+  air: WwAirView,
+  navy: WwNavyView | null,
+  fog: FogModel | undefined,
+  input: WingLayoutInput,
+  out: WingSlot[],
+): number {
+  const lod = tokenLod(input.zoom);
+  const z = Math.max(input.zoom, 1e-6);
+  const step = TOKEN_STEP_PX[lod] / z;
+  const mstep = MERGED_STEP_PX / z;
+  const me = air.mySmallID();
+  const sc = air.scenario;
+  const W = sc.width;
+  const myGroups = air.detail?.groups ?? [];
+  const inGroup = new Set<number>();
+  for (const g of myGroups) for (const m of g.members) inGroup.add(m.wing);
+  const merges = new Map<number, Merge>();
+  const order: Merge[] = [];
+  /** Tokens per key, in the order they fan (a chosen one, or an opened key's). */
+  const tokens = new Map<number, WingSlot[]>();
+  const xy: [number, number] = [0, 0];
+  const placeOf = (key: number): boolean => {
+    if (key < STATION_KEY) return wingBaseXY(air, navy, key, xy);
+    const t = targetTile(sc, 0, key - STATION_KEY);
+    if (t < 0) return false;
+    xy[0] = t % W;
+    xy[1] = Math.floor(t / W);
+    return true;
+  };
+  const token = (key: number, s: WingSlot) => {
+    const list = tokens.get(key);
+    if (list === undefined) tokens.set(key, [s]);
+    else list.push(s);
+  };
+  const merge = (
+    key: number,
+    owner: number,
+    id: number,
+    type: number,
+    planes: number,
+    full: number,
+    wings: number,
+  ) => {
+    const mk = key * 4096 + owner;
+    let m = merges.get(mk);
+    if (m === undefined) {
+      if (!placeOf(key)) return;
+      m = {
+        key,
+        owner,
+        x: xy[0],
+        y: xy[1],
+        planes: 0,
+        full: 0,
+        wings: 0,
+        first: id,
+        type,
+      };
+      merges.set(mk, m);
+      order.push(m);
+    }
+    m.planes += planes;
+    m.full += full;
+    m.wings += wings;
+  };
+  const briefs = [...air.wingBriefs.values()].sort((a, b) => a.id - b.id);
+  for (const b of briefs) {
+    if (b.planes <= 0) continue;
+    if (b.owner === me && inGroup.has(b.id)) continue;
+    let planes = b.planes;
+    if (fog !== undefined) {
+      const v = fog.wingView(b);
+      if (!v.visible) continue;
+      planes = v.planes;
+    }
+    let key = b.base;
+    if (
+      input.tick !== undefined &&
+      b.flySr > 0 &&
+      wingPhase(b, air.flights.get(b.id), input.tick) === WP_STATION &&
+      (fog === undefined || fog.wingFlightVisible(b))
+    ) {
+      key = STATION_KEY + b.flySr;
+    }
+    if (input.chosen.has(b.id) || input.expanded.has(key)) {
+      if (!placeOf(key)) continue;
+      token(key, {
+        kind: SLOT_TOKEN,
+        wing: b.id,
+        base: b.base,
+        owner: b.owner,
+        x: xy[0],
+        y: xy[1],
+        lod,
+        planes,
+        wings: 1,
+        type: b.type,
+      });
+      continue;
+    }
+    merge(
+      key,
+      b.owner,
+      b.id,
+      b.type,
+      planes,
+      wingMaxPlanes(AIR_TYPES[b.type]),
+      1,
+    );
+  }
+  for (const g of myGroups) {
+    const planes = g.planes.reduce((a, n) => a + n, 0);
+    if (planes <= 0 || g.base === 0) continue;
+    if (g.id === input.group || input.expanded.has(g.base)) {
+      if (!placeOf(g.base)) continue;
+      token(g.base, {
+        kind: SLOT_AIRGROUP,
+        wing: g.id,
+        base: g.base,
+        owner: me,
+        x: xy[0],
+        y: xy[1],
+        lod,
+        planes,
+        wings: g.members.length,
+        type: mainType(g),
+      });
+      continue;
+    }
+    let full = 0;
+    for (const m of g.members) full += m.full;
+    merge(g.base, me, g.id, mainType(g), planes, full, g.members.length);
+  }
+  // Fan: per key, the merged chips first (by owner as met), then the tokens.
+  const k = new Map<number, number>();
+  for (const m of order) {
+    const j = k.get(m.key) ?? 0;
+    k.set(m.key, j + 1);
+    out.push({
+      kind: SLOT_MERGED,
+      wing: m.first,
+      base: m.key,
+      owner: m.owner,
+      x: m.x,
+      y: m.y + fanSlot(j) * mstep,
+      lod: 1,
+      planes: m.planes,
+      wings: m.wings,
+      type: m.type,
+      pm:
+        m.full > 0 ? Math.min(1000, Math.round((m.planes * 1000) / m.full)) : 0,
+      mine: m.owner === me,
+    });
+  }
+  for (const [key, list] of tokens) {
+    let j = k.get(key) ?? 0;
+    const chips = j;
+    for (const s of list) {
+      // Past the chips (their step is wider), then a token's height each.
+      s.y += chips > 0 ? fanSlot(j) * mstep : fanSlot(j) * step;
+      j++;
+      out.push(s);
+    }
+  }
+  return out.length;
+}
+
 /** The slot a tap at tile (tx, ty) hits (the last drawn wins a tie), or null. */
 export function pickWingSlot(
   slots: readonly WingSlot[],
@@ -424,7 +638,14 @@ export function pickWingSlot(
   let bestD = r * r;
   for (const s of slots) {
     // w51: a chip never takes a tap; only a token or a group is tappable.
-    if (s.kind !== SLOT_TOKEN && s.kind !== SLOT_AIRGROUP) continue;
+    // ww162: my own merged chip does (it opens its fan).
+    if (
+      s.kind !== SLOT_TOKEN &&
+      s.kind !== SLOT_AIRGROUP &&
+      !(s.kind === SLOT_MERGED && s.mine === true)
+    ) {
+      continue;
+    }
     const d = (s.x - tx) * (s.x - tx) + (s.y - ty) * (s.y - ty);
     if (d <= bestD) {
       bestD = d;

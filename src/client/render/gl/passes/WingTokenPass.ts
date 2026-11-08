@@ -8,6 +8,11 @@
  * the layer off each base shows one small chip, and only a chosen wing
  * keeps its token. Zoomed out a token is a "plane N" chip, then a dot.
  *
+ * ww162 (army design §3.1): the wings group by zoom as the army counters
+ * do. Below zoom 3 a base (or an air zone, for wings on station) shows one
+ * chip per owner: the planes, the wing count in a badge and their strength
+ * in a bar; from 3 to 6 today's rule; from 6 every wing is a token.
+ *
  * Every wing goes through the fog (layoutWings asks FogModel.wingView): a
  * hidden wing gets no instance. Instances are rewritten only when the view,
  * the fog, the choice, the zoom step or the game tick changed.
@@ -22,9 +27,11 @@ import {
   WP_STATION,
 } from "@openfront/engine-api/ww1936/AirTypes";
 import { fogOfAir } from "../../../hud/ww1936/FogModel";
+import { nextSplit } from "../../../view/LandTokenLayout";
 import {
   layoutWings,
   SLOT_AIRGROUP,
+  SLOT_MERGED,
   SLOT_TOKEN,
   wingPhase,
   type WingSlot,
@@ -66,6 +73,19 @@ const MISSION_CELLS: readonly number[] = AIR_MISSIONS.map((m) => {
   }
 });
 
+/**
+ * ww162: a text chip's style with a strength bar (‰, -1 none) and a count
+ * badge (0 none), as fleet-token.frag.glsl unpacks it.
+ */
+export function packTextStyle(
+  style: number,
+  pm: number,
+  count: number,
+): number {
+  const bar = pm < 0 ? 0 : Math.round(Math.min(1000, pm) / 10) + 1;
+  return style + 4 * bar + 512 * Math.max(0, Math.min(99, count));
+}
+
 /** The mission icon cell of a mission index, -1 for none. */
 export function airMissionCell(mission: number): number {
   return MISSION_CELLS[mission] ?? -1;
@@ -77,6 +97,8 @@ export class WingTokenPass {
   private readonly glyphs: number[] = new Array(TEXT_MAX_GLYPHS).fill(0);
   private readonly fighting = new Set<number>();
   private key = "";
+  /** ww162: every wing a token (zoom 6 up, merging below 5). */
+  private split = false;
 
   constructor(
     gl: WebGL2RenderingContext,
@@ -113,7 +135,9 @@ export class WingTokenPass {
   ): void {
     const fog = fogOfAir(air);
     const tick = Math.floor(tickF);
+    this.split = nextSplit(zoom, this.split);
     const key = [
+      this.split ? 1 : 0,
       air.version,
       air.live ? 1 : 0,
       navy?.version ?? -1,
@@ -133,7 +157,15 @@ export class WingTokenPass {
       air,
       navy,
       fog,
-      { zoom, airLayer, chosen, expanded, group: chosenGroup },
+      {
+        zoom,
+        airLayer,
+        chosen,
+        expanded,
+        group: chosenGroup,
+        tick,
+        split: this.split,
+      },
       this.slots,
     );
     this.fighting.clear();
@@ -169,6 +201,18 @@ export class WingTokenPass {
     const y = s.y + 0.5;
     if (s.kind === SLOT_AIRGROUP) {
       this.writeGroup(air, s, chosen, tick);
+      return;
+    }
+    if (s.kind === SLOT_MERGED) {
+      const k = numberGlyphs(SHIP_CELL.plane, s.planes, this.glyphs);
+      b.putText(
+        x,
+        y,
+        s.owner,
+        this.glyphs,
+        k,
+        packTextStyle(TEXT_OWNER, s.pm ?? -1, s.wings > 1 ? s.wings : 0),
+      );
       return;
     }
     // A group chip reads like a base chip: the plane silhouette and the planes it holds

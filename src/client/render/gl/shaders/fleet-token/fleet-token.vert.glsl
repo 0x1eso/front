@@ -14,7 +14,8 @@ layout(location = 1) in vec4 aA;
 // ring: progress 0..1, radius px, style (0 preparing, 1 splash, 2 ready), phase
 layout(location = 2) in vec4 aB;
 // token/chip: mission cell (-1 none), state bits, flags (1 chosen, 2 docked), unused
-// text: glyph cell 4, style (0 dark, 1 green, 2 red, 3 owner), width px, glyphs
+// text: glyph cell 4, style (0 dark, 1 green, 2 red, 3 owner; ww162: + 4 × (bar ‰ / 10 + 1)
+// + 512 × count), width px, glyphs
 layout(location = 3) in vec4 aC;
 
 uniform mat3 uCamera;
@@ -37,6 +38,8 @@ void main() {
   } else if (kind < 2.5) {
     float hw = aC.z * 0.5 + 1.0;
     ext = vec4(-hw, -11.0, hw, 11.0);
+    // ww162: room for the strength bar under it and the count badge.
+    if (aC.y > 3.5) ext = vec4(-hw - 8.0, -18.0, hw, 16.0);
   } else if (kind < 3.5) {
     float h = aB.w * 0.5;
     ext = vec4(-h, -h, h, h);

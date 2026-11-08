@@ -9,6 +9,9 @@ precision highp float;
 //     breathes. No ensigns, no insignia: colour and silhouette only.
 //   1 chip: the ship count in the country's colour (zoomed out).
 //   2 text chip: up to five atlas glyphs on a dark, green, red or owner chip.
+//     ww162: a style past 3 also carries (bits 2-8) a strength bar under
+//     the chip, ‰ / 10 + 1, and (bits 9+) a count badge at its top left (an
+//     air base's merged chip: its wings, its planes, their strength).
 //   3 sprite: one atlas cell (a convoy ship), mirrored to its heading.
 //   4 ring: invasion preparation progress, ready pulse, convoy-loss splash.
 
@@ -161,7 +164,10 @@ void main() {
   } else if (kind < 2.5) {
     float hw = vC.z * 0.5;
     float dBox = sdBox(p, vec2(hw, 9.5), 4.0);
-    int style = int(vC.y + 0.5);
+    int packed = int(vC.y + 0.5);
+    int style = packed & 3;
+    int bar = ((packed >> 2) & 127) - 1;
+    int count = packed >> 9;
     vec3 bg = vec3(0.1);
     if (style == 1) bg = vec3(0.15, 0.52, 0.24);
     else if (style == 2) bg = vec3(0.72, 0.17, 0.13);
@@ -176,6 +182,19 @@ void main() {
       float adv = glyphAdv(cell);
       col = overCell(col, p, vec2(x + adv * 0.5, 0.0), 18.0, cell);
       x += adv;
+    }
+    if (bar >= 0) {
+      float dBar = sdBox(p - vec2(0.0, 13.0), vec2(hw - 2.0, 2.2), 1.0);
+      col = over(col, vec3(0.0), 0.8 * cover(dBar));
+      float x01 = (p.x + hw - 3.0) / max(1.0, 2.0 * hw - 6.0);
+      col = over(col, HP, cover(sdBox(p - vec2(0.0, 13.0), vec2(hw - 3.0, 1.0), 0.0)) * step(x01, float(bar) / 100.0));
+    }
+    if (count > 0) {
+      vec2 bc = vec2(-hw, -9.0);
+      float dB = length(p - bc) - (count >= 10 ? 8.0 : 6.5);
+      col = over(col, vec3(1.0), cover(dB));
+      col = over(col, vec3(0.1), cover(dB + 1.2));
+      col = number(col, p, bc, float(count), 11.0);
     }
   } else if (kind < 3.5) {
     vec2 uv = p / vB.w + 0.5;
