@@ -6,7 +6,12 @@ const api = vi.hoisted(() => ({
   deleteSavedGame: vi.fn(),
   fetchSharedSavedGame: vi.fn(),
 }));
-vi.mock("../../src/client/SavedGamesApi", () => api);
+// Only the calls to the API are faked; the save helpers (the friends' mark,
+// the map name) stay the real ones.
+vi.mock("../../src/client/SavedGamesApi", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../src/client/SavedGamesApi")>()),
+  ...api,
+}));
 
 const dialogs = vi.hoisted(() => ({
   showInGameConfirm: vi.fn(async () => true),

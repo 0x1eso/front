@@ -3,7 +3,11 @@ import { EventBus } from "@openfront/shared/EventBus";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const api = vi.hoisted(() => ({ uploadSavedGame: vi.fn() }));
-vi.mock("../../src/client/SavedGamesApi", () => api);
+// Only the upload is faked; the friends' save mark stays the real one.
+vi.mock("../../src/client/SavedGamesApi", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../../src/client/SavedGamesApi")>()),
+  ...api,
+}));
 
 // The page's bootstrap config isn't there under jsdom.
 vi.mock("../../src/client/ClientEnv", async (importOriginal) => {
@@ -19,6 +23,7 @@ vi.mock("../../src/client/AccountIdentity", () => ({
 }));
 
 import { gamePortal } from "../../src/client/GamePortal";
+import { FRIENDS_SAVE_MARK } from "../../src/client/SavedGamesApi";
 import {
   defaultSaveName,
   SettingsModal,
@@ -30,7 +35,14 @@ type TestMenu = SettingsModal & { updateComplete: Promise<unknown> };
 
 const SNAPSHOT = new Uint8Array([1, 2, 3]);
 
-function fakeGame(opts: { gameType?: GameType; replay?: boolean } = {}) {
+function fakeGame(
+  opts: {
+    gameType?: GameType;
+    replay?: boolean;
+    greatWar?: boolean;
+    host?: boolean;
+  } = {},
+) {
   const snapshot = vi.fn(async () => SNAPSHOT);
   const game = {
     config: () => ({
@@ -40,6 +52,8 @@ function fakeGame(opts: { gameType?: GameType; replay?: boolean } = {}) {
       }),
       isReplay: () => opts.replay ?? false,
     }),
+    isGreatWar: () => opts.greatWar ?? false,
+    myPlayer: () => ({ isLobbyCreator: () => opts.host ?? false }),
     ticks: () => 1234,
     worker: { snapshot },
   } as unknown as GameView;
@@ -128,6 +142,26 @@ describe("in-game menu: save game", () => {
     expect(meta.map).toBe("World");
     expect(meta.tick).toBe(1234);
     expect(meta.name).toMatch(/ \d{4}-\d\d-\d\d \d\d:\d\d$/);
+  });
+
+  // Great War 1914 with friends: the host keeps the game, marked apart.
+  it("is offered to the host of a Great War game with friends", async () => {
+    api.uploadSavedGame.mockResolvedValue({ id: "x" });
+    await open(
+      fakeGame({ gameType: GameType.Private, greatWar: true, host: true }).game,
+    );
+    saveRow()!.click();
+    await vi.waitFor(() => expect(status()).toBe("gw.lobby.saved_friends"));
+    expect(api.uploadSavedGame.mock.calls[0][1].map).toBe(
+      `${FRIENDS_SAVE_MARK}World`,
+    );
+
+    menu.closeModal();
+    await open(
+      fakeGame({ gameType: GameType.Private, greatWar: true, host: false })
+        .game,
+    );
+    expect(saveRow()).toBeNull();
   });
 
   it("says when the player has too many saves", async () => {
