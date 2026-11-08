@@ -398,7 +398,11 @@ function lossDayOf(day: number): number {
   return ((day % PLAN_LOSS_DAYS) + PLAN_LOSS_DAYS) % PLAN_LOSS_DAYS;
 }
 
-/** Empties `day`'s slot of the ring (it last held the day PLAN_LOSS_DAYS before). */
+/**
+ * Empties `day`'s slot of the ring (it last held the day PLAN_LOSS_DAYS
+ * before). A ring left all zero goes back to empty: the snapshot leaves an
+ * all-zero ring out and restores it empty, so the live game must match.
+ */
 function clearLossDay(cl: CountryLand, day: number): void {
   if (cl.lossRing.length === 0) return;
   cl.lossRing.fill(
@@ -406,6 +410,7 @@ function clearLossDay(cl: CountryLand, day: number): void {
     lossDayOf(day) * NEED_GROUP_COUNT,
     (lossDayOf(day) + 1) * NEED_GROUP_COUNT,
   );
+  if (cl.lossRing.every((n) => n === 0)) cl.lossRing = [];
 }
 
 /** Units lost per need group over the ring's days (NEED_GROUPS order). */

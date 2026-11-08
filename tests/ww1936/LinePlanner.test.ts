@@ -378,6 +378,18 @@ describe("the loss ring (Design A §2.2)", () => {
     l.restoreState(WwLandStateSchema.parse(JSON.parse(JSON.stringify(snap0))));
     expect(l.country(id)!.lossRing).toEqual([]);
   });
+
+  test("a ring cleared back to all zero is empty again, as its restore is", async () => {
+    const { l, id, cl } = await germany();
+    noteEquipLoss(l, id, groundSlotOf(GUNS), 12, SUMMER);
+    expect(cl.lossRing.length).toBeGreaterThan(0);
+    // No divisions: no attrition; the day before SUMMER comes round clears it.
+    dailySustain(l, id, SUMMER + PLAN_LOSS_DAYS - 1);
+    expect(cl.lossRing).toEqual([]);
+    const snap = JSON.parse(JSON.stringify(l.snapshot()));
+    l.restoreState(WwLandStateSchema.parse(snap));
+    expect(l.country(id)!.lossRing).toEqual(cl.lossRing);
+  });
 });
 
 describe("reinforcement to the fight first (Design A §2.3)", () => {
