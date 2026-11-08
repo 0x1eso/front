@@ -25,6 +25,7 @@ import type {
 } from "@openfront/engine-api/ww1914/GwView";
 import { assetUrl } from "@openfront/shared/AssetUrls";
 import { html, nothing, TemplateResult } from "lit";
+import { keyed } from "lit/directives/keyed.js";
 import { translateText } from "../../Utils";
 import type { GwCtx } from "./GwCtx";
 import { BTN, BTN_ON, CHIP, GLASS, HEAD, MUTED } from "./GwStyle";
@@ -121,28 +122,32 @@ function slowVote(c: GwCtx): TemplateResult | typeof nothing {
 
 /**
  * 이번 장 마치기: the host closes the chapter for everyone, as the timer
- * would. Behind a second press, so a stray tap doesn't close it.
+ * would. Behind a second press, so a stray tap doesn't close it; keyed by
+ * the chapter, so it comes folded again in the next one.
  */
-function hostClose(c: GwCtx): TemplateResult | typeof nothing {
+function hostClose(c: GwCtx): unknown {
   const { data, seat } = c;
   const me = data.roster.find((r) => r.smallID === seat.smallID);
   if (me?.host !== true || data.roster.length < 2) return nothing;
   const waiting = data.roster.filter((r) => !r.ready && !r.away && !r.regent);
-  return html`<details class=${BOX} data-gw-host-close>
-    <summary class="cursor-pointer text-sm text-white/90">
-      ${translateText("gw.diplo.close_chapter")}
-    </summary>
-    <p class=${MUTED}>
-      ${translateText("gw.diplo.close_chapter_hint", { n: waiting.length })}
-    </p>
-    <button
-      class="${BTN} w-full"
-      data-gw-host-close-go
-      @click=${() => c.send({ kind: "close_chapter", chapter: data.chapter })}
-    >
-      ${translateText("gw.diplo.close_chapter_go")}
-    </button>
-  </details>`;
+  return keyed(
+    data.chapter,
+    html`<details class=${BOX} data-gw-host-close>
+      <summary class="cursor-pointer text-sm text-white/90">
+        ${translateText("gw.diplo.close_chapter")}
+      </summary>
+      <p class=${MUTED}>
+        ${translateText("gw.diplo.close_chapter_hint", { n: waiting.length })}
+      </p>
+      <button
+        class="${BTN} w-full"
+        data-gw-host-close-go
+        @click=${() => c.send({ kind: "close_chapter", chapter: data.chapter })}
+      >
+        ${translateText("gw.diplo.close_chapter_go")}
+      </button>
+    </details>`,
+  );
 }
 
 function wire(t: GwTelegramView): TemplateResult {

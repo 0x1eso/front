@@ -199,6 +199,14 @@ describe("the diplomacy tab", () => {
     panel.querySelector<HTMLElement>("[data-gw-host-close-go]")!.click();
     expect(orders).toEqual([{ kind: "close_chapter", chapter: d.chapter }]);
     expect(GwOrderSchema.safeParse(orders[0]).success).toBe(true);
+    // Opened, it comes folded again in the next chapter.
+    box.open = true;
+    (d as { chapter: number }).chapter++;
+    panel.requestUpdate();
+    await panel.updateComplete;
+    expect(
+      panel.querySelector<HTMLDetailsElement>("[data-gw-host-close]")!.open,
+    ).toBe(false);
   });
 
   test("says every clause in Korean", () => {
