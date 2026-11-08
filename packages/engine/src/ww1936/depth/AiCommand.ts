@@ -14,13 +14,20 @@ import {
   fmEligible,
   groupArmyCap,
 } from "@openfront/engine-lib/ww1936/CommandRules";
+import { frontChainBetween } from "@openfront/engine-lib/ww1936/FrontRules";
 import { GENERALS } from "@openfront/engine-lib/ww1936/Generals";
 import { historicalAiActive } from "@openfront/engine-lib/ww1936/Pace";
+import { AI_STEP2 } from "../land/AiLand";
 import { canServe } from "../land/GeneralsRun";
 import { newTitledGeneralState } from "../land/LandStartRun";
 import type { Army, CountryLand, GeneralState } from "../land/WwLand";
 import { payPp } from "../politics/PayPp";
-import { createGroup, FM_ARMY, issueArmyGroup } from "./ArmyGroups";
+import {
+  clearGroupLines,
+  createGroup,
+  FM_ARMY,
+  issueArmyGroup,
+} from "./ArmyGroups";
 import { issueCommand, listedFm, makeMarshal, promoteMarshal } from "./Command";
 import { startPosOf } from "./Thought";
 import type { WwDepth } from "./WwDepth";
@@ -50,6 +57,126 @@ export function aiCommandDay(d: WwDepth, id: number, day: number): void {
   aiPriorities(d, id);
   aiMarshals(d, id, day);
   aiGroups(d, id);
+  if (AI_STEP2.groupLines) {
+    for (const g of d.groups.filter((x) => x.owner === id)) {
+      aiGroupLines(d, id, g.id);
+    }
+  }
+}
+
+/** ww162 §4 (e): most regions in a group's split offensive line. */
+const AI_GROUP_GOAL_MAX = 24;
+
+/**
+ * ww162 §4 (e): a group whose armies all hold front lines against one
+ * enemy that join into one stretch of the border gets that stretch as
+ * group_front_line (the group then cuts it among them daily), and the
+ * union of its armies' broad offensive lines as a split group_goal. Any
+ * other group's lines go (the land AI holds a ring or an effort there).
+ */
+export function aiGroupLines(d: WwDepth, id: number, group: number): void {
+  const land = d.ww.land;
+  const g = d.groups.find((x) => x.owner === id && x.id === group);
+  if (g === undefined) return;
+  const armies = g.armies
+    .map((aid) => land.armies.get(aid))
+    .filter((a): a is Army => a !== undefined && a.divisions.length > 0);
+  const enemy = armies[0]?.order.enemy ?? 0;
+  const lined =
+    armies.length >= 2 &&
+    enemy !== 0 &&
+    armies.every(
+      (a) =>
+        (a.order.kind === "front" || a.order.kind === "plan") &&
+        a.order.enemy === enemy &&
+        a.order.ends !== undefined,
+    );
+  const ends = lined ? groupEnds(d, id, enemy, armies) : null;
+  if (ends === null) {
+    clearGroupLines(d, id, g.id);
+    return;
+  }
+  const now =
+    g.ends !== undefined && g.enemy === enemy
+      ? frontChainBetween(land, id, enemy, g.ends[0], g.ends[1])
+      : [];
+  const want = frontChainBetween(land, id, enemy, ends[0], ends[1]);
+  if (now.length !== want.length || !now.every((r) => want.includes(r))) {
+    land.issue(
+      id,
+      { kind: "group_front_line", group: g.id, ends, enemy },
+      "ai",
+    );
+  }
+  const goal: number[] = [];
+  for (const a of armies) {
+    if (a.order.spear === true) continue;
+    for (const r of a.order.goal ?? []) {
+      if (goal.includes(r) || !land.isEnemy(id, land.controller[r])) continue;
+      if (goal.length < AI_GROUP_GOAL_MAX) goal.push(r);
+    }
+  }
+  goal.sort((x, y) => x - y);
+  if (goal.length === 0) return;
+  const had = g.goal ?? [];
+  if (
+    had.length === goal.length &&
+    had.every((r, i) => r === goal[i]) &&
+    g.split === true &&
+    g.spear !== true
+  ) {
+    return;
+  }
+  land.issue(
+    id,
+    {
+      kind: "group_goal",
+      group: g.id,
+      regions: goal,
+      spear: false,
+      split: true,
+    },
+    "ai",
+  );
+}
+
+/**
+ * ww162 §4 (e): the ends of the stretch the armies' front lines make
+ * together (its two tips, ascending), when frontChainBetween joins them
+ * through exactly those regions; null otherwise.
+ */
+function groupEnds(
+  d: WwDepth,
+  id: number,
+  enemy: number,
+  armies: readonly Army[],
+): [number, number] | null {
+  const land = d.ww.land;
+  const union = new Set<number>();
+  for (const a of armies) {
+    const e = a.order.ends!;
+    for (const r of frontChainBetween(land, id, enemy, e[0], e[1])) {
+      union.add(r);
+    }
+  }
+  const list = [...union].sort((x, y) => x - y);
+  if (list.length === 0) return null;
+  const tips =
+    list.length === 1
+      ? [list[0], list[0]]
+      : list.filter((r) => {
+          const near = new Set<number>();
+          for (const e of land.scenario.edgesOf(r)) {
+            if (union.has(e.to) && e.to !== r) near.add(e.to);
+          }
+          return near.size <= 1;
+        });
+  if (tips.length !== 2) return null;
+  const chain = frontChainBetween(land, id, enemy, tips[0], tips[1]);
+  if (chain.length !== union.size || !chain.every((r) => union.has(r))) {
+    return null;
+  }
+  return [tips[0], tips[1]];
 }
 
 /**
