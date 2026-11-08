@@ -121,6 +121,29 @@ describe("the house on the country tab", () => {
     expect(root.querySelector("[data-gw-house-record]")).not.toBeNull();
   });
 
+  test("a faction with no leader at hand shows only its word, no stray separator", () => {
+    const { root } = ctx(
+      house({
+        bill: {
+          law: "deu_aux",
+          stage: "persuade",
+          origin: "seat",
+          sponsor: null,
+          chambers: ["reichstag"],
+          whip: null,
+          factions: [
+            { id: "deu_spd", leader: null, said: -1, deal: false, call: null },
+          ],
+          delayTo: null,
+        },
+      }),
+      (c) => html`${houseSection(c)}`,
+    );
+    const line = root.querySelector("[data-gw-house-faction=deu_spd] p");
+    expect(line?.textContent?.trim()).not.toMatch(/^·/);
+    expect(line?.textContent?.trim().length).toBeGreaterThan(0);
+  });
+
   test("the 정국 tab lists a bloc's factions in words; the band shows one chip while one is out", () => {
     const v = house({
       factions: [

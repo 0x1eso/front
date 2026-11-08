@@ -75,10 +75,12 @@ function factionLine(
           : nothing}
       </div>
       <p class=${MUTED}>
-        ${f.leader === null ? "" : personName(c.pack, f.leader)}${f.said ===
-        null
-          ? ""
-          : ` · ${saidWord(f.said)}`}
+        ${[
+          f.leader === null ? null : personName(c.pack, f.leader),
+          f.said === null ? null : saidWord(f.said),
+        ]
+          .filter((x) => x !== null)
+          .join(" · ")}
       </p>
     </div>
     ${callButton(c, h, f)}
