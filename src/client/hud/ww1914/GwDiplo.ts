@@ -28,7 +28,7 @@ import { html, nothing, TemplateResult } from "lit";
 import { translateText } from "../../Utils";
 import type { GwCtx } from "./GwCtx";
 import { BTN, BTN_ON, CHIP, GLASS, HEAD, MUTED } from "./GwStyle";
-import { endingTitle, shortDate } from "./GwText";
+import { countInMan, endingTitle, shortDate } from "./GwText";
 
 const BOX = "space-y-1.5 rounded border border-white/15 bg-black/35 p-2.5";
 const FIELD =
@@ -533,9 +533,14 @@ function memoirColumn(
         total: m.memoir.mandates.length,
       })}
     </p>
-    <p class="text-sm text-white/85">
-      ${translateText("gw.ui.casualties", { n: m.memoir.casualties })}
-    </p>
+    ${m.memoir.casualties === 0
+      ? nothing
+      : html`<p class="text-sm text-white/85">
+          ${translateText("gw.ui.casualties", {
+            n: m.memoir.casualties,
+            man: countInMan(m.memoir.casualties),
+          })}
+        </p>`}
   </article>`;
 }
 

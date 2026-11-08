@@ -514,6 +514,23 @@ describe("hosting World War 1936", () => {
     return config;
   }
 
+  it("hosts the Great War on the friends row at the host's pace, with no recent list", async () => {
+    // A long game's recent list outgrows an intent: the server would kick.
+    localStorage.setItem(
+      "gw1914.recentRuns",
+      JSON.stringify([{ id: "g1", shown: Array(900).fill("x".repeat(60)) }]),
+    );
+    const modal = host();
+    modal.greatWar1914 = true;
+    modal.greatWar1914Pace = "long";
+    const config = await sent(modal);
+    expect(config.greatWar1914Calendar).toBe("friends");
+    expect(config.greatWar1914Pace).toBe("long");
+    expect(config.greatWar1914Recent).toBeUndefined();
+    expect(JSON.stringify(config).length).toBeLessThan(2000);
+    localStorage.removeItem("gw1914.recentRuns");
+  });
+
   it("the toggle turns the other modes off and updates the lobby", () => {
     const modal = host();
     const putGameConfig = vi.fn();

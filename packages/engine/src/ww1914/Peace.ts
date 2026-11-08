@@ -198,8 +198,9 @@ function answerTalks(gw: GreatWar): void {
     seat.flags = seat.flags.filter((f) => f !== "gw_talks_open");
     const side = gw.nation(seat.tag)?.side ?? null;
     if (side === null) continue;
-    const lead = enemyLead(gw, side);
-    const friend = lead === null ? [] : seatsOf(gw, lead.tag);
+    // A friend who leads the other side hears it first, whoever leads it.
+    const seated = leadersLeft(gw, other(side)).find((t) => ruledBySeat(gw, t));
+    const friend = seated === undefined ? [] : seatsOf(gw, seated);
     if (friend.length > 0) {
       for (const f of friend) {
         f.scheduled.push({ scene: "gw_peace_offer", chapter: s.chapter + 1 });

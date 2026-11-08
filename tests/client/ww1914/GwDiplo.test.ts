@@ -8,7 +8,9 @@ import type { GreatWarData } from "@openfront/engine-api/ww1914/GwView";
 import type { GameRunner } from "@openfront/engine/GameRunner";
 import { gwView } from "@openfront/engine/ww1914/View";
 import { EventBus } from "@openfront/shared/EventBus";
+import { render } from "lit";
 import { afterEach, describe, expect, test, vi } from "vitest";
+import { gwSeatPicker, gwTableNote } from "../../../src/client/GwLobby";
 import { clauseText } from "../../../src/client/hud/ww1914/GwDiplo";
 import { tabsOf } from "../../../src/client/hud/ww1914/GwModel";
 import { GwPanel } from "../../../src/client/hud/ww1914/GwPanel";
@@ -211,6 +213,7 @@ describe("the end between friends", () => {
       delivered: true,
       copies: ["GBR"],
     });
+    gw.nation("RUS")!.casualties = 120;
     gw.s.ended = "closing";
     step(r, 2);
     const { panel } = await mount(viewOf(r, A));
@@ -224,6 +227,48 @@ describe("the end between friends", () => {
       finale.querySelector("[data-gw-finale-wires]")!.textContent,
     ).toContain("속았구려");
     expect(finale.textContent).not.toMatch(/gw\.[a-z]/);
+    // Every number is filled in: "잃은 사람 12만 명", never "{man}".
+    expect(finale.textContent).not.toMatch(/[{}]/);
+    expect(finale.textContent).toMatch(/잃은 사람 \S+ 명/);
+  });
+});
+
+describe("the friends' lobby", () => {
+  test("offers the four written seats, mine under my name, a friend's shut", () => {
+    const root = document.createElement("div");
+    render(
+      gwSeatPicker(
+        [
+          { clientID: "me", tag: "DEU" },
+          { clientID: "you", tag: "RUS" },
+        ],
+        "me",
+        new Map([
+          ["me", "나무"],
+          ["you", "바다"],
+        ]),
+        () => {},
+      ),
+      root,
+    );
+    const seat = (tag: string) =>
+      root.querySelector<HTMLButtonElement>(`[data-gw-seat=${tag}]`)!;
+    expect(
+      [...root.querySelectorAll<HTMLElement>("[data-gw-seat]")].map(
+        (b) => b.dataset.gwSeat,
+      ),
+    ).toEqual(["DEU", "GBR", "AUH", "RUS"]);
+    expect(seat("DEU").textContent).toContain("나무");
+    expect(seat("RUS").textContent).toContain("바다");
+    expect(seat("RUS").disabled).toBe(true);
+    expect(seat("GBR").textContent).toContain("비어 있음");
+  });
+
+  test("tells a friend who joined the length and the pace", () => {
+    const root = document.createElement("div");
+    render(gwTableNote("friends", "long"), root);
+    expect(root.textContent).toContain("20장");
+    expect(root.textContent).toContain("길게");
   });
 });
 

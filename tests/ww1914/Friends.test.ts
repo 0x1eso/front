@@ -30,7 +30,7 @@ import type { GreatWar } from "@openfront/engine/ww1914/GreatWar";
 import { gwPlayers } from "@openfront/engine/ww1914/GwPlayers";
 import { houseStep } from "@openfront/engine/ww1914/House";
 import { applyGwOrder } from "@openfront/engine/ww1914/Orders";
-import { armistice } from "@openfront/engine/ww1914/Peace";
+import { armistice, openTalks } from "@openfront/engine/ww1914/Peace";
 import { regentStep } from "@openfront/engine/ww1914/Seats";
 import { gwView } from "@openfront/engine/ww1914/View";
 import { ruledBySeat } from "@openfront/engine/ww1914/World";
@@ -229,6 +229,29 @@ describe("the chapter clock with friends", () => {
     send(runner, host, { kind: "slow_answer", grant: true });
     expect(gw.s.deadlineTick).toBe(at + 300);
     expect(gw.s.slowAsked).toHaveLength(0);
+  });
+
+  it("counts the asking as granted while the host is away", async () => {
+    const { runner } = await friends();
+    const gw = gwOf(runner);
+    const host = gw.s.seats.find(
+      (x) => gwView(gw).roster.find((r) => r.smallID === x.smallID)!.host,
+    )!;
+    const hostID = [A, B, C].find(
+      (c) => runner.game.playerByClientID(c)!.smallID() === host.smallID,
+    )!;
+    step(runner, 1, [
+      stamped(hostID, {
+        type: "mark_disconnected",
+        isDisconnected: true,
+      } as never),
+    ]);
+    step(runner, 1);
+    expect(host.away).toBe(true);
+    const asker = [A, B, C].find((c) => c !== hostID)!;
+    const at = gw.s.deadlineTick!;
+    send(runner, asker, { kind: "slow" });
+    expect(gw.s.deadlineTick).toBe(at + 300);
   });
 
   it("refuses a friend answering the vote", async () => {
@@ -612,6 +635,20 @@ describe("two seats, each its own house", () => {
         expect(seated.has(row!.from)).toBe(false);
       }
     }
+  });
+});
+
+describe("peace between enemy friends", () => {
+  it("talks Germany opens go to the friend who leads the other side", async () => {
+    const { runner: r } = await friends();
+    const gw = gwOf(r);
+    toWar(gw);
+    openTalks(gw, seatOf(r, "DEU"));
+    advanceChapter(gw, r.game.ticks(), false);
+    const gbr = seatOf(r, "GBR");
+    const due = [...gbr.scheduled, ...gbr.desk].map((x) => x.scene);
+    expect(due).toContain("gw_peace_offer");
+    expect(gw.s.armistice).toBe(null);
   });
 });
 

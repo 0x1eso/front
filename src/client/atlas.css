@@ -595,6 +595,17 @@ body:not(.in-game) {
   border-color: var(--atlas-oxblood);
 }
 
+/* ---- Lobby roster ------------------------------------------------------ */
+
+/*
+  A player's name chip: styles.css paints it #2a2a2a for the dark menus, and
+  the ink its name is written in here vanished on it. A paper chip instead.
+*/
+.atlas .player-tag:not(.current-player) {
+  background-color: var(--atlas-paper-deep);
+  border-color: var(--atlas-line);
+}
+
 /* ---- Help -------------------------------------------------------------- */
 
 /* Keycaps: paper keys with an ink legend. */

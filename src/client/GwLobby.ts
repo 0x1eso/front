@@ -190,9 +190,11 @@ export function gwSeatPicker(
             ${translateText(`gw.country.${tag}`)}
           </span>
           <span class="block text-xs text-white/70">
-            ${holder !== undefined
-              ? (names.get(holder.clientID) ?? "?")
-              : translateText("gw.lobby.seat_free")}
+            ${on
+              ? (names.get(me) ?? "")
+              : holder !== undefined
+                ? (names.get(holder.clientID) ?? "?")
+                : translateText("gw.lobby.seat_free")}
           </span>
         </button>`;
       })}

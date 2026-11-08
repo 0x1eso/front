@@ -68,7 +68,6 @@ import {
   GwSeatPick,
   gwSeatPicker,
 } from "./GwLobby";
-import { gwRecentBodies } from "./GwRecentRuns";
 import { gwSaves, resumeInLobby } from "./GwResume";
 import { SendPickCountryEvent, SendPickSeatEvent } from "./LobbyEvents";
 import { JoinLobbyEvent } from "./Main";
@@ -2129,7 +2128,8 @@ export class HostLobbyModal extends BaseModal {
               ? {
                   greatWar1914Calendar: this.greatWar1914Calendar,
                   greatWar1914Pace: this.greatWar1914Pace,
-                  greatWar1914Recent: gwRecentBodies(),
+                  // No recent list with friends: it is one browser's, and
+                  // after a long game it outgrows an intent (the server kicks).
                 }
               : {}),
             // P6: the atomic-bomb key, and the unlimited game's, only with the
