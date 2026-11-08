@@ -21,12 +21,18 @@ export function promiseItemBlock(
   return "promise_bad_target";
 }
 
-/** The AI's value points of `item` for the country judging it (`taker` gets it). */
+/**
+ * The AI's value points of `item` (`giver` gives it, `taker` gets it) for
+ * `judge`, the country judging the deal (the giver or the taker; L2 added
+ * the parameter): positive is good for the judge, DiploRules.WW_DEAL_VETO
+ * never.
+ */
 export function promiseItemValue(
   _eg: WwEndgame,
   _giver: number,
   _taker: number,
   _item: PromiseItem,
+  _judge: number,
 ): number {
   return 0;
 }

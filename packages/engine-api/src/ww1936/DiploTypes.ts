@@ -43,6 +43,8 @@ export type DealItem = DealItemWire;
  * from, to, kind. deal_refused: `from` waits before offering `to` again;
  * ultimatum: the pair's ultimatum wait (365 days, 180 after a refusal);
  * ai_*: an AI's own pacing (`to` 0 when it is not per pair).
+ * deal_lend_lease (L2, appended): a deal's lend-lease contract ends —
+ * [giver, the contract's id, the day after its last day]; no pair.
  */
 export const DIPLO_COOLDOWN_KINDS = [
   "deal_refused",
@@ -51,6 +53,7 @@ export const DIPLO_COOLDOWN_KINDS = [
   "ai_separate",
   "ai_promise",
   "ai_ultimatum",
+  "deal_lend_lease",
 ] as const;
 export type DiploCooldownKind = (typeof DIPLO_COOLDOWN_KINDS)[number];
 
@@ -211,4 +214,20 @@ export interface WwDealJudgeRow {
   from: number;
   to: number;
   margin: number;
+  /**
+   * L2, appended: the target's value points (DiploRules; + good for it) of
+   * the items whose worth only the engine knows. access: `from` opens its
+   * land to it; accessGive: it opens its land to `from`; nap: a pact;
+   * guarantee: `from` guarantees it; guaranteeGive: it guarantees `from`;
+   * licence: it licenses `from` (one design, before the tech gap, which
+   * the client adds with licencePoints).
+   */
+  access?: number;
+  accessGive?: number;
+  nap?: number;
+  guarantee?: number;
+  guaranteeGive?: number;
+  licence?: number;
+  /** In peacetime it would cede `from` land that is not its core (its overlord, or its faction leader at opinion ≥ WW_DEAL_CEDE_OPINION). */
+  cede?: boolean;
 }
