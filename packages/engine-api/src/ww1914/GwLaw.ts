@@ -87,4 +87,6 @@ export interface GwLawView {
   talk: { person: string; topic: string } | null;
   /** In force: what ending it costs. */
   repeal: { tell: readonly string[]; open: boolean } | null;
+  /** The house runs it (ww158): a sponsor is picked, the factions argue it. */
+  house?: boolean;
 }

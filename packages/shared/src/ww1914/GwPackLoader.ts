@@ -115,6 +115,7 @@ export const GW_COMMON_SHARES: readonly string[] = [
   "dict",
   "acts",
   "table",
+  "house",
 ];
 /**
  * Casts in files of their own. Every seat loads them: a scene can cast another

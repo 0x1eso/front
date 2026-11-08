@@ -167,7 +167,7 @@ function draftTalk(bill: GwBillRow, law: GwLawRow): GwScene {
         reply("pick", "warm", "ask", "pick"),
       ],
     },
-    pick: { says: [{ id: "base" }], replies: pick, fallback: law.draft[0].id },
+    pick: { says: [{ id: "base" }], replies: pick },
   };
   return {
     id: houseIds.draft(law.id),
@@ -283,7 +283,6 @@ function visitTalk(f: GwFactionRow): GwScene {
           reply("later", "frank", "leave", null, { effects: answer(false) }),
           reply("no", "cold", "leave", null, { effects: answer(false) }),
         ],
-        fallback: "later",
       },
     },
   };

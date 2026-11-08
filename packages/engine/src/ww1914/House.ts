@@ -833,6 +833,26 @@ function canStart(seat: GwSeatState, row: GwFactionRow): boolean {
   );
 }
 
+/** Papers that closed unanswered: a draft takes its first text, an ask lies. */
+function unanswered(gw: GreatWar, seat: GwSeatState): void {
+  const there = (scene: string) =>
+    seat.desk.some((c) => c.scene === scene) ||
+    seat.scheduled.some((q) => q.scene === scene);
+  const m = movingBill(gw, seat);
+  if (m !== null && m.st.stage === "draft" && !there(houseIds.draft(m.st.id))) {
+    m.st.text = m.row.draft[0].id;
+    m.st.support += m.row.draft[0].support;
+    m.st.stage = "persuade";
+    m.st.since = gw.s.chapter;
+  }
+  for (const f of seat.house?.factions ?? []) {
+    if (f.asking === null || there(houseIds.visit(f.id))) continue;
+    if (gw.s.chapter <= f.asked + 1) continue;
+    f.asking = null;
+    f.ignored++;
+  }
+}
+
 function asksStep(gw: GreatWar, seat: GwSeatState): void {
   const n = gw.nation(seat.tag);
   if (n === null || n.laws.some((x) => MOVING.includes(x.stage))) return;
@@ -929,6 +949,7 @@ export function houseStep(gw: GreatWar): void {
       st.leader = leaderNow(gw, seat, row, st);
     }
     splitsAndJoins(gw, seat);
+    unanswered(gw, seat);
     sponsorWorks(gw, seat);
     const m = movingBill(gw, seat);
     const inHouse = m !== null && m.st.stage !== "draft";

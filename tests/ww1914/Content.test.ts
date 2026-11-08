@@ -27,6 +27,7 @@ import { GW_CONTENT } from "@openfront/engine-lib/ww1914/content/Content";
 import { TABLE_SCENES } from "@openfront/engine-lib/ww1914/content/scenes/table";
 import { craftCalledScenes } from "@openfront/engine-lib/ww1914/CraftRows";
 import { gwEndingsOf } from "@openfront/engine-lib/ww1914/EndingRows";
+import { houseCalledScenes } from "@openfront/engine-lib/ww1914/HouseRows";
 import { gwRulerScenes } from "@openfront/engine-lib/ww1914/RulerRows";
 import { gwOwnerOf, gwWorldOf } from "@openfront/engine-lib/ww1914/World1914";
 import { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
@@ -100,6 +101,7 @@ describe("content", () => {
       ...gwRulerScenes(),
       ...TABLE_SCENES.map((x) => x.id),
       ...craftCalledScenes(GW_CONTENT),
+      ...houseCalledScenes(GW_CONTENT),
     ];
     expect(gwContentProblems(scenes, people, outside)).toEqual([]);
     const lang = json("lang/en.json").gw.reason as Record<string, string>;

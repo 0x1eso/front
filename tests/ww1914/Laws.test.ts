@@ -1,8 +1,13 @@
 import { GameMapSize, GameMapType } from "@openfront/engine-api/game/GameTypes";
 import type { MapFiles } from "@openfront/engine-api/game/MapFiles";
 import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
-import { GwPack, gwPackProblems } from "@openfront/engine-api/ww1914/GwPack";
+import {
+  GwPack,
+  gwPackProblems,
+  mergeGwPacks,
+} from "@openfront/engine-api/ww1914/GwPack";
 import { GW_CONTENT } from "@openfront/engine-lib/ww1914/content/Content";
+import { GW_HOUSE_LAWS } from "@openfront/engine-lib/ww1914/content/scenes/house";
 import { GW_LAWS } from "@openfront/engine-lib/ww1914/content/scenes/laws";
 import { GW_LAW_HOME } from "@openfront/engine-lib/ww1914/LawRows";
 import { GW_AUTHORITY } from "@openfront/engine/ww1914/AuthorityTable";
@@ -64,7 +69,10 @@ function next(gw: GreatWar): void {
 describe("the rows", () => {
   test("eight to ten bills a nation, each with its three scenes", () => {
     for (const tag of NATIONS) {
-      const rows = GW_LAWS.filter((r) => r.tag === tag);
+      // The factions' own bills (ww158) are the house files', not these.
+      const rows = GW_LAWS.filter(
+        (r) => r.tag === tag && !GW_HOUSE_LAWS.includes(r),
+      );
       expect(rows.length).toBeGreaterThanOrEqual(8);
       expect(rows.length).toBeLessThanOrEqual(10);
     }
@@ -100,8 +108,14 @@ describe("the rows", () => {
   test("the packs have every line, and a line for every working law", () => {
     const common = packOf("common.laws.json");
     for (const tag of NATIONS) {
-      const pack = packOf(`${tag}.laws.json`);
-      const rows = GW_LAWS.filter((r) => r.tag === tag);
+      // The house file lays its lines over the day cards it runs (ww158).
+      const pack = mergeGwPacks([
+        packOf(`${tag}.laws.json`),
+        packOf(`${tag}.house.json`),
+      ]);
+      const rows = GW_LAWS.filter(
+        (r) => r.tag === tag && !GW_HOUSE_LAWS.includes(r),
+      );
       const ids = new Set(
         rows.flatMap((r) =>
           ["law", "lv", "lt", "lf"].map((p) => `gw_${p}_${r.id}`),

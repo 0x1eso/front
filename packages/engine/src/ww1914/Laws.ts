@@ -573,6 +573,7 @@ function view(
           : null,
     talk:
       st !== null && MOVING.includes(st.stage) ? talkOf(gw, seat, row) : null,
+    ...(billRow(seat, row.id) === null ? {} : { house: true }),
     repeal: force
       ? {
           tell: [`authority:-${row.repeal.authority}`, ...row.repeal.tell],

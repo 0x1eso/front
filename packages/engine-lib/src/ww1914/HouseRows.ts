@@ -304,6 +304,7 @@ export function houseCalledScenes(rows: GwHouseContent): string[] {
   return [
     ...(rows.houses ?? []).map((h) => houseIds.result(h.tag)),
     ...(rows.factions ?? []).flatMap((f) => [
+      ...((f.bills ?? []).length > 0 ? [houseIds.visit(f.id)] : []),
       ...(f.steps ?? []).map((s) => s.scene),
       ...(f.splits?.scene === undefined ? [] : [f.splits.scene]),
       ...(f.joins?.scene === undefined ? [] : [f.joins.scene]),
