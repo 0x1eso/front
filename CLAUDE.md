@@ -9,7 +9,9 @@ npm run inst             # Install deps (uses npm ci --ignore-scripts — do NOT
 npm run dev              # Run client + server in dev mode with hot reload
 npm run start:client     # Client only
 npm run start:server-dev # Server only
-npm test                 # Run all tests (Vitest)
+npm test                 # Run the default tier (skips the slow files listed in tests/SlowTier.ts)
+npm run test:slow        # Only the slow tier (long simulations, *Perf* benchmarks)
+npm run test:all         # Both tiers (CI); see docs/Testing.md
 npm run test:coverage    # Tests with coverage
 npm run lint             # Oxlint + ESLint
 npm run lint:fix         # Oxlint + ESLint with auto-fix
