@@ -162,12 +162,16 @@ describe("w86 peace fixes", { timeout: 120000 }, () => {
     expect(offerPeace(eg, deu, w1, pl, g.ticks())).toBeNull();
     expect(offerPeace(eg, ita, w2, pl, g.ticks())).toBeNull();
     const [first, second] = eg.peaceOffers;
-    expect(second.deadlineTick).toBe(first.deadlineTick);
+    // ww162 diplomacy: one card queue (DiploState.cardFrontId) replaced w86's
+    // extension; an offer behind the front card has no deadline yet (-1).
+    expect(second.deadlineTick).toBe(-1);
     const window = first.deadlineTick - first.sentTick;
     stepTo(runner, g.ticks() + 10);
     step(runner, 1, [
       order(HUMAN, { kind: "peace_reply", offer: first.id, accept: false }),
     ]);
+    // In front now: its clock starts on the endgame's next step.
+    step(runner);
     const left = eg.peaceOffers.find((x: any) => x.id === second.id)!;
     expect(left.deadlineTick).toBeGreaterThan(second.sentTick + window);
   });
