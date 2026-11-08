@@ -849,6 +849,8 @@ export const WW_ORDER_BLOCKS = [
   "disarmed",
   "subject_restricted",
   // P6 (P6 spec §21.4), appended ("no_civs" and "no_xp" exist since P1/P2).
+  // "no_cp": command power is gone (ww9), nothing refuses with it; its
+  // place stays (the list is append only).
   "no_cp",
   "doctrine_locked",
   "trait_unavailable",

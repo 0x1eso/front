@@ -185,6 +185,7 @@ export const WW_STAT_KEYS = [
   "excessWidthCutPct",
   "supportCompanyPct",
   "divXpGainPct",
+  // Command power is gone (ww9): nothing reads it; its place stays.
   "cpGainPct",
   "screenAttackPct",
   "torpedoPct",

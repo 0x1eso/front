@@ -113,7 +113,7 @@ export interface TraitAssignInput {
   fmTraits: readonly string[];
 }
 
-/** Spec §4.2: the admiral traits bought with command power (P4's six come from data). */
+/** Spec §4.2: the assignable admiral traits (P4's six come from data). */
 export const ASSIGNABLE_ADMIRAL_TRAITS: readonly AdmiralTrait[] = [
   "night_fighter",
   "convoy_master",
