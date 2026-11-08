@@ -203,6 +203,41 @@ describe("PlayerInfoOverlay", () => {
     expect(flatten(overlay.render())).toContain("Carol");
   });
 
+  // ww164: at zoom 6 a division counter under the card's place took two
+  // clicks: the card the hover showed sat under the pointer and took the first.
+  it("gives way when the hover shows it under the pointer itself", async () => {
+    overlay.game = makeGame(null) as never;
+    // The card's box: the top middle of the screen.
+    overlay["panelRect"] = () => new DOMRect(400, 30, 600, 230);
+    const hover = async (x: number, y: number) => {
+      overlay["lastMouseUpdate"] = 0;
+      overlay["onMouseEvent"]({ x, y } as never);
+      overlay["updated"]();
+      await Promise.resolve();
+      return flatten(overlay.render());
+    };
+
+    // Below the card: it shows.
+    expect(await hover(700, 450)).toContain("opacity-100 visible");
+    // Under it: gone, so the click reaches the map.
+    expect(await hover(434, 247)).toContain("opacity-0 invisible");
+    // The pointer moved onto the card to use it: it stays.
+    await hover(700, 450);
+    overlay["onPanelEnter"]();
+    overlay["updated"]();
+    await Promise.resolve();
+    expect(flatten(overlay.render())).toContain("opacity-100 visible");
+  });
+
+  it("stays where a tap or a right-click opened it", async () => {
+    overlay.game = makeGame(null) as never;
+    overlay["panelRect"] = () => new DOMRect(400, 30, 600, 230);
+    overlay.maybeShow(434, 247);
+    overlay["updated"]();
+    await Promise.resolve();
+    expect(flatten(overlay.render())).toContain("opacity-100 visible");
+  });
+
   describe("chat and emoji buttons", () => {
     const realWidth = window.innerWidth;
     const realMatchMedia = window.matchMedia;

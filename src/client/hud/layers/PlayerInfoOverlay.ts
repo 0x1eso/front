@@ -196,10 +196,12 @@ export class PlayerInfoOverlay extends LitElement implements Controller {
     this.eventBus.on(MouseMoveEvent, (e: MouseMoveEvent) =>
       this.onMouseEvent(e),
     );
-    this.eventBus.on(ContextMenuEvent, (e: ContextMenuEvent) =>
-      this.maybeShow(e.x, e.y),
-    );
+    this.eventBus.on(ContextMenuEvent, (e: ContextMenuEvent) => {
+      this.hoverAt = null;
+      this.maybeShow(e.x, e.y);
+    });
     this.eventBus.on(TouchEvent, (e: TouchEvent) => {
+      this.hoverAt = null;
       // World War 1936 P2: a tap the land flow took (an army's order, its
       // token) is the army card's, not this card's.
       if (landTookTap(this.game, e.x, e.y)) {
@@ -263,6 +265,9 @@ export class PlayerInfoOverlay extends LitElement implements Controller {
   private onPanelEnter = () => (this.pointerOnPanel = true);
   private onPanelLeave = () => (this.pointerOnPanel = false);
 
+  /** Where the mouse hovered when it showed the card (null: a tap or a right-click did). */
+  private hoverAt: { x: number; y: number } | null = null;
+
   private onMouseEvent(event: MouseMoveEvent) {
     if (this.pointerOnPanel) {
       return;
@@ -278,7 +283,39 @@ export class PlayerInfoOverlay extends LitElement implements Controller {
       if (this._isInfoVisible) this.hide();
       return;
     }
+    this.hoverAt = { x: event.x, y: event.y };
     this.maybeShow(event.x, event.y);
+  }
+
+  // A card the hover showed under the pointer itself would take the click
+  // meant for the map there: a division counter, a region at the top of the
+  // screen (ww164: the first click only closed the card). It gives way, in
+  // a microtask, so it is gone before the frame is painted.
+  protected updated(): void {
+    if (!this._isInfoVisible || this.hoverAt === null) return;
+    queueMicrotask(() => {
+      const at = this.hoverAt;
+      if (!this._isInfoVisible || at === null || this.pointerOnPanel) return;
+      const r = this.panelRect();
+      if (
+        r !== null &&
+        at.x >= r.left &&
+        at.x < r.right &&
+        at.y >= r.top &&
+        at.y < r.bottom
+      ) {
+        this.hide();
+      }
+    });
+  }
+
+  /** The shown card's box on screen. */
+  private panelRect(): DOMRect | null {
+    return (
+      this.querySelector<HTMLElement>(
+        "[data-info-card-panel]",
+      )?.getBoundingClientRect() ?? null
+    );
   }
 
   private overWorldWarDrawer(x: number, y: number): boolean {
@@ -1438,6 +1475,7 @@ export class PlayerInfoOverlay extends LitElement implements Controller {
         @contextmenu=${(e: MouseEvent) => e.preventDefault()}
       >
         <div
+          data-info-card-panel
           class="bg-gray-800/92 backdrop-blur-sm shadow-xs min-[1200px]:rounded-lg sm:rounded-b-lg shadow-lg text-white text-lg lg:text-base w-full ${leftHalf
             ? ""
             : this.showShortcutButtons()
