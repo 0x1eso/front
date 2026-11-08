@@ -77,7 +77,11 @@ import { splitFront } from "@openfront/engine-lib/ww1936/CommandRules";
 import { CONTENT } from "@openfront/engine-lib/ww1936/content/registry";
 import { queuedInRegion } from "@openfront/engine-lib/ww1936/EconomyChecks";
 import {
+  bestRing,
   borderChain,
+  fallbackRings,
+  type Ring,
+  RING_MIN_SAVE_PCT,
   splitByWeight,
 } from "@openfront/engine-lib/ww1936/FrontRules";
 import { WW_INITIAL_WARS } from "@openfront/engine-lib/ww1936/History";
@@ -285,7 +289,7 @@ export const AI_SHORTEN_LAYERS = 3;
 /** (내 판단) Divisions per line region under which an outnumbered front already shortens (else 1). */
 export const AI_OUTNUMBERED_PER_REGION = 2;
 /** (내 판단) A ring is worth the land only when it is this much shorter than the border, %: no retreat for a region or two. */
-export const AI_SHORTEN_MIN_SAVE_PCT = 25;
+export const AI_SHORTEN_MIN_SAVE_PCT = RING_MIN_SAVE_PCT;
 /** (내 판단) A front on a fallback line goes back to the border at this share of the divisions the border asks, %: no daily swing. */
 const AI_SHORTEN_BACK_PCT = 120;
 /** (내 판단) A planned attack waiting for its army goes back to Defend when the range falls under this share of the bar, %. */
@@ -531,45 +535,11 @@ export function aiTrainStops(i: {
   );
 }
 
-/** A candidate line: its regions, its terrain (half regions) and the victory points it gives up. */
-export interface AiRing {
-  regions: number;
-  terrain: number;
-  vpLost: number;
-}
+/** A candidate line (ww162: the ring rules live in lib FrontRules, shared with the screen's [추천]). */
+export type AiRing = Ring;
 
-/**
- * ww7 lane D item 2 (design §7): the best ring to fall back to (the index in
- * `rings`, nearest first), -1 to stay on the border. The score, smallest wins,
- * is regions − terrain + victory points given up, in half regions: a river, a
- * fort level step, a mountain or a city is worth half a region (so a long
- * ring of rivers does not beat a short one on open ground); a victory point
- * a whole one. A ring must be AI_SHORTEN_MIN_SAVE_PCT shorter than the border
- * and score better than holding it. Ties: the nearer ring.
- */
-export function aiBestRing(
-  border: { regions: number; terrain: number },
-  rings: readonly AiRing[],
-  /** ww91 rule 3: what the points given up count, % of normal. */
-  vpPct = 100,
-): number {
-  const score = (r: AiRing) =>
-    2 * r.regions - r.terrain + Math.floor((2 * r.vpLost * vpPct) / 100);
-  let best = -1;
-  let bestScore = score({ ...border, vpLost: 0 });
-  rings.forEach((r, i) => {
-    if (r.regions === 0) return;
-    if (r.regions * 100 > border.regions * (100 - AI_SHORTEN_MIN_SAVE_PCT)) {
-      return;
-    }
-    const s = score(r);
-    if (s < bestScore) {
-      best = i;
-      bestScore = s;
-    }
-  });
-  return best;
-}
+/** ww7 lane D item 2: the best ring to fall back to (FrontRules.bestRing). */
+export const aiBestRing = bestRing;
 
 export interface AiFrontArmy {
   id: number;
@@ -3592,23 +3562,6 @@ class AiDay {
     return theirs;
   }
 
-  /** A line region's terrain, half regions: fort (more from level 3), every way in over a river (land type is capped in the rules: ww65). */
-  private lineTerrain(r: number, ahead: (x: number) => boolean): number {
-    const sc = this.land.scenario;
-    let s = 0;
-    const fort = effectiveLevel(this.land.econ, r, "fort");
-    if (fort >= 1) s++;
-    if (fort >= 3) s++;
-    let any = false;
-    let river = true;
-    for (const e of sc.edgesOf(r)) {
-      if (!ahead(e.to)) continue;
-      any = true;
-      if (sc.edge(e.edge).river === 0) river = false;
-    }
-    return any && river ? s + 1 : s;
-  }
-
   /**
    * ww7 lane D item 2: the ring to hold instead of the border, ascending, or
    * null to hold the border. A fallback line already held stays (its regions
@@ -3624,7 +3577,6 @@ class AiDay {
     outnumbered: boolean,
   ): number[] | null {
     const land = this.land;
-    const sc = land.scenario;
     const comp = this.comp();
     const onBorder = new Set(f.border);
     const per = outnumbered ? AI_OUTNUMBERED_PER_REGION : 1;
@@ -3644,42 +3596,20 @@ class AiDay {
       return null;
     }
     if (onRing) return heldList;
-    const dist = this.bfs(
+    // ww162: the rings are lib FrontRules' (the screen's [추천] shares them).
+    const set = fallbackRings(
+      land,
       f.border,
       (r) => comp[r] === f.comp,
+      this.side().regions,
       AI_SHORTEN_LAYERS,
+      (x) => land.controller[x] === f.enemy,
+      (r) => effectiveLevel(land.econ, r, "fort"),
     );
-    const rings: number[][] = Array.from(
-      { length: AI_SHORTEN_LAYERS + 1 },
-      () => [],
-    );
-    const vpAt = new Array<number>(AI_SHORTEN_LAYERS + 1).fill(0);
-    for (const r of this.side().regions) {
-      const d = dist[r];
-      if (d === FAR || comp[r] !== f.comp) continue;
-      rings[d].push(r);
-      vpAt[d] += sc.region(r)?.vp ?? 0;
-    }
-    const terrainOf = (k: number) => {
-      const ahead = (x: number) =>
-        k === 0 ? land.controller[x] === f.enemy : dist[x] === k - 1;
-      let s = 0;
-      for (const r of rings[k]) s += this.lineTerrain(r, ahead);
-      return s;
-    };
-    const candidates: AiRing[] = [];
-    let vpLost = 0;
-    for (let k = 1; k <= AI_SHORTEN_LAYERS; k++) {
-      vpLost += vpAt[k - 1];
-      candidates.push({
-        regions: rings[k].length,
-        terrain: rings[k].length === 0 ? 0 : terrainOf(k),
-        vpLost,
-      });
-    }
+    const rings = set.rings;
     const best = aiBestRing(
-      { regions: f.border.length, terrain: terrainOf(0) },
-      candidates,
+      set.border,
+      set.candidates,
       outnumbered ? this.warPlan.ringVpPct : 100,
     );
     return best < 0 ? null : rings[best + 1];

@@ -12,8 +12,14 @@ import {
 import { ID_AIR } from "@openfront/engine-api/ww1936/DepthTypes";
 import { describe, expect, it } from "vitest";
 import { fogModelOf } from "../../../src/client/hud/ww1936/FogModel";
-import { ShipSpriteProgram } from "../../../src/client/render/gl/passes/FleetTokenPass";
-import { WingTokenPass } from "../../../src/client/render/gl/passes/WingTokenPass";
+import {
+  ShipSpriteProgram,
+  TEXT_OWNER,
+} from "../../../src/client/render/gl/passes/FleetTokenPass";
+import {
+  packTextStyle,
+  WingTokenPass,
+} from "../../../src/client/render/gl/passes/WingTokenPass";
 import {
   airLayerColors,
   airLayerFlags,
@@ -26,7 +32,9 @@ import {
   rangeEllipseTiles,
   SLOT_BASE,
   SLOT_GROUP,
+  SLOT_MERGED,
   SLOT_TOKEN,
+  STATION_KEY,
   wingPhase,
   type WingPose,
   type WingSlot,
@@ -110,26 +118,141 @@ describe("wing token layout", () => {
     expect(out.filter((s) => s.kind === SLOT_TOKEN).map((s) => s.wing)).toEqual(
       [2],
     );
-    // Fewer than three wings are tokens; far out they are chips, then dots.
+    // Fewer than three wings are tokens; ww162: below zoom 3 a base is one
+    // merged chip per owner.
     const two = seaGame({ wings: foreign(2) });
+    expect(lay(true, none, none, 4)).toBe(1);
     expect(
       layoutWings(
         two.air,
         two.navy,
         undefined,
-        { zoom: 2, airLayer: true, chosen: none, expanded: none },
+        { zoom: 4, airLayer: true, chosen: none, expanded: none },
         out,
       ),
     ).toBe(2);
-    expect(out[0].lod).toBe(1);
-    layoutWings(
-      two.air,
-      two.navy,
-      undefined,
-      { zoom: 1, airLayer: true, chosen: none, expanded: none },
-      out,
+    expect(out[0].lod).toBe(0);
+    for (const zoom of [2, 1]) {
+      expect(
+        layoutWings(
+          two.air,
+          two.navy,
+          undefined,
+          { zoom, airLayer: true, chosen: none, expanded: none },
+          out,
+        ),
+      ).toBe(1);
+      expect(out[0]).toMatchObject({
+        kind: SLOT_MERGED,
+        wings: 2,
+        planes: 201,
+        mine: false,
+      });
+    }
+  });
+
+  it("ww162: wings group by zoom — merged per owner below 3, today's rule to 6, one token each from 6", () => {
+    const wings = [
+      ...gbrWings(2),
+      ...foreign(3).map((w) => ({ ...w, id: w.id + 10 })),
+    ];
+    const g = seaGame({ wings });
+    const out: WingSlot[] = [];
+    const lay = (
+      zoom: number,
+      airLayer = true,
+      chosen = none,
+      expanded = none,
+      split?: boolean,
+    ) =>
+      layoutWings(
+        g.air,
+        g.navy,
+        undefined,
+        { zoom, airLayer, chosen, expanded, split },
+        out,
+      );
+    // Below 3: one chip for my two wings, one for Germany's three.
+    expect(lay(2)).toBe(2);
+    expect(out.map((s) => [s.kind, s.owner, s.wings, s.mine])).toEqual([
+      [SLOT_MERGED, GBR(), 2, true],
+      [SLOT_MERGED, DEU(), 3, false],
+    ]);
+    expect(out[0].planes).toBe(201);
+    expect(out[0].pm).toBeGreaterThan(0);
+    expect(out[0].y).not.toBe(out[1].y); // fanned apart
+    // Only my chip takes a tap (it opens the fan).
+    expect(pickWingSlot(out, out[0].x, out[0].y, 2)?.kind).toBe(SLOT_MERGED);
+    expect(pickWingSlot(out, out[1].x, out[1].y, 2)).toBeNull();
+    // Opened: every wing at the base is a token again.
+    expect(lay(2, true, none, new Set([REGION.london]))).toBe(5);
+    expect(out.every((s) => s.kind === SLOT_TOKEN)).toBe(true);
+    // A chosen wing keeps its token; the rest stays merged.
+    expect(lay(2, true, new Set([1]))).toBe(3);
+    expect(out.filter((s) => s.kind === SLOT_TOKEN).map((s) => s.wing)).toEqual(
+      [1],
     );
-    expect(out[0].lod).toBe(2);
+    // 3 to 6: today's rule (my wings tokens, three foreign ones a group chip).
+    expect(lay(4)).toBe(3);
+    expect(out.filter((s) => s.kind === SLOT_GROUP)).toHaveLength(1);
+    // From 6 (or split by the pass's hysteresis): every wing a token.
+    expect(lay(6)).toBe(5);
+    expect(lay(5.5, true, none, none, true)).toBe(5);
+    expect(lay(5.5, true, none, none, false)).toBe(3);
+    // The layer off: only mine and the chosen keep tokens, the rest a base chip.
+    expect(lay(8, false)).toBe(3);
+    expect(out.filter((s) => s.kind === SLOT_BASE)).toHaveLength(1);
+  });
+
+  it("ww162: below zoom 3 wings on station are chipped over their air zone", () => {
+    const station = wingBrief({
+      id: 1,
+      owner: GBR(),
+      side: GBR(),
+      base: REGION.london,
+      planes: 90,
+      flySr: SR.westLand,
+    });
+    const home = wingBrief({
+      id: 2,
+      owner: GBR(),
+      side: GBR(),
+      base: REGION.london,
+      planes: 80,
+    });
+    const g = seaGame({
+      wings: [station, home],
+      flights: [[1, WP_STATION, 800, 20, 0, 12, REGION.paris, 100]],
+    });
+    const out: WingSlot[] = [];
+    const input = {
+      zoom: 2,
+      airLayer: true,
+      chosen: none,
+      expanded: none,
+      tick: 700,
+    };
+    expect(layoutWings(g.air, g.navy, undefined, input, out)).toBe(2);
+    const zone = out.find((s) => s.base === STATION_KEY + SR.westLand)!;
+    expect(zone).toMatchObject({ kind: SLOT_MERGED, planes: 90, wings: 1 });
+    const c = g.air.scenario.sr(SR.westLand)!.center;
+    expect([zone.x, zone.y]).toEqual([
+      c % g.air.scenario.width,
+      Math.floor(c / g.air.scenario.width),
+    ]);
+    // After the station the wing is back in its base's chip.
+    expect(
+      layoutWings(g.air, g.navy, undefined, { ...input, tick: 900 }, out),
+    ).toBe(1);
+    expect(out[0]).toMatchObject({ base: REGION.london, wings: 2 });
+  });
+
+  it("ww162: a merged chip's style packs its strength bar and wing count", () => {
+    expect(packTextStyle(TEXT_OWNER, -1, 0)).toBe(TEXT_OWNER);
+    const v = packTextStyle(TEXT_OWNER, 655, 3);
+    expect(v & 3).toBe(TEXT_OWNER);
+    expect(((v >> 2) & 127) - 1).toBe(66);
+    expect(v >> 9).toBe(3);
   });
 
   it("my own planes are tokens whatever the lens says, never a chip (w51)", () => {

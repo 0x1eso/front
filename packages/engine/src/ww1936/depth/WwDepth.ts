@@ -263,6 +263,13 @@ export const WwDepthStateSchema = z.object({
       fm: zInt(),
       armies: zIds(),
       auto: z.boolean(),
+      // ww162 (battle planner): the marshal's lines, each written when set.
+      ends: z.tuple([zInt(), zInt()]).optional(),
+      enemy: zInt().optional(),
+      goal: zIds().optional(),
+      spear: z.boolean().optional(),
+      split: z.boolean().optional(),
+      fallback: zIds().optional(),
     }),
   ),
   market: z.object({
@@ -1341,7 +1348,16 @@ export class WwDepth implements LandDepthHooks {
       countries: this.countries.map((c) =>
         c === null ? null : structuredCloneJson(c),
       ),
-      groups: this.groups.map((g) => ({ ...g, armies: [...g.armies] })),
+      groups: this.groups.map((g) => ({
+        ...g,
+        armies: [...g.armies],
+        // ww162: the lines' lists are copied too (no list is shared).
+        ...(g.ends === undefined
+          ? {}
+          : { ends: [g.ends[0], g.ends[1]] as [number, number] }),
+        ...(g.goal === undefined ? {} : { goal: [...g.goal] }),
+        ...(g.fallback === undefined ? {} : { fallback: [...g.fallback] }),
+      })),
       market: structuredCloneJson(this.market),
       intelNet: [...this.intelNet.entries()].sort((a, b) => a[0] - b[0]),
       ops: structuredCloneJson(this.ops),
@@ -1465,6 +1481,22 @@ export class WwDepth implements LandDepthHooks {
       mix(g.auto ? 1 : 0);
       mix(g.armies.length);
       for (const a of [...g.armies].sort((x, y) => x - y)) mix(a);
+      // ww162: the marshal's lines, only when set.
+      if (g.ends !== undefined) {
+        mix(0x162a);
+        mix(g.ends[0]);
+        mix(g.ends[1]);
+        mix(g.enemy ?? 0);
+      }
+      if (g.goal !== undefined && g.goal.length > 0) {
+        mix(0x162b);
+        for (const r of g.goal) mix(r);
+        mix((g.spear === true ? 1 : 0) + (g.split === true ? 2 : 0));
+      }
+      if (g.fallback !== undefined && g.fallback.length > 0) {
+        mix(0x162d);
+        for (const r of g.fallback) mix(r);
+      }
     }
     for (const [k, v] of [...this.intelNet.entries()].sort(
       (a, b) => a[0] - b[0],
@@ -2174,6 +2206,23 @@ function globalDataOf(d: WwDepth): Partial<WwDepthData> {
     owner: g.owner,
     fm: g.fm,
     armies: [...g.armies],
+    // ww162: the marshal's lines, each sent when set.
+    ...(g.ends === undefined
+      ? {}
+      : {
+          ends: [g.ends[0], g.ends[1]] as [number, number],
+          enemy: g.enemy ?? 0,
+        }),
+    ...(g.goal === undefined || g.goal.length === 0
+      ? {}
+      : {
+          goal: [...g.goal],
+          spear: g.spear === true,
+          split: g.split === true,
+        }),
+    ...(g.fallback === undefined || g.fallback.length === 0
+      ? {}
+      : { fallback: [...g.fallback] }),
   }));
   const world: WwDepthWorld = {
     nuked: [...d.nuked.entries()].sort((a, b) => a[0] - b[0]),

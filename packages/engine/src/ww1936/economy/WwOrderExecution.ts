@@ -155,7 +155,8 @@ function applyOrder(
       block = reorderResearch(econ, ce, order.tech, order.move);
       break;
     // P2 (plan decision 2): the land war's orders, a player's (P4 plan
-    // decision 34: WwLand.issue hands army_sea to the navy).
+    // decision 34: WwLand.issue hands army_sea to the navy). ww162: the
+    // battle planner's orders (army_front_line …) too.
     case "template_save":
     case "template_delete":
     case "train":
@@ -183,6 +184,15 @@ function applyOrder(
     case "template_auto":
     case "paradrop":
     case "appoint_general":
+    case "army_front_line":
+    case "army_goal":
+    case "army_fallback":
+    case "army_fall_back":
+    case "division_move":
+    case "division_release":
+    case "group_front_line":
+    case "group_goal":
+    case "group_fallback":
       block = econ.ww.land.issue(p.smallID(), order, "player");
       break;
     // P3 (plan decision 3): politics' orders, the same for humans and the AI.

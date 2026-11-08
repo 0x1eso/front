@@ -7,6 +7,7 @@ import {
   WW_FRONT_DIVS_PER_REGION,
   WW_ZONE_DIVS_ATTACK,
   WW_ZONE_DIVS_DEFEND,
+  WW_ZONE_MAX,
 } from "@openfront/engine-api/ww1936/LandTypes";
 import type { ScenarioIndex } from "./ScenarioIndex";
 
@@ -304,4 +305,321 @@ export function splitByWeight(n: number, weights: readonly number[]): number[] {
   const order = [...out.keys()].sort((a, b) => rem[b] - rem[a] || a - b);
   for (let j = 0; left > 0; j++, left--) out[order[j]]++;
   return out;
+}
+
+/**
+ * The region of `border` nearest to `sources` (BFS through regions `pass`
+ * accepts, a source counting as distance 0; ties: the smaller id); 0 when
+ * none is reached.
+ */
+export function nearestOf(
+  w: Pick<FrontWorld, "scenario">,
+  border: ReadonlySet<number>,
+  sources: readonly number[],
+  pass: (region: number) => boolean,
+): number {
+  const sc = w.scenario;
+  const seen = new Set<number>(sources);
+  let layer = [...seen];
+  while (layer.length > 0) {
+    let best = 0;
+    for (const r of layer)
+      if (border.has(r) && (best === 0 || r < best)) best = r;
+    if (best !== 0) return best;
+    const next: number[] = [];
+    for (const u of layer) {
+      for (const e of sc.edgesOf(u)) {
+        if (seen.has(e.to) || !pass(e.to)) continue;
+        seen.add(e.to);
+        next.push(e.to);
+      }
+    }
+    layer = next;
+  }
+  return 0;
+}
+
+/**
+ * ww162 §1.1: where a front line's end stands today: itself while it is a
+ * border region, else the border region nearest it over our side's land
+ * (ties: the smaller id); 0 when none is reached.
+ */
+export function snapFrontEnd(
+  w: FrontWorld,
+  g: BorderGraph,
+  me: number,
+  end: number,
+): number {
+  if (g.set.has(end)) return end;
+  return nearestOf(w, g.set, [end], (r) => w.sameSide(me, w.controller[r]));
+}
+
+/** A front line of the day: its two ends snapped to the border, and the chain between them. */
+export interface FrontLine {
+  ends: [number, number];
+  chain: number[];
+}
+
+/**
+ * ww162 §1.1: the front line between `a` and `b` against `enemy` (0: every
+ * enemy). Each end snaps to the border (snapFrontEnd; an end with none
+ * reached takes the other's); the chain is the shortest path between the
+ * snapped ends along the border: first over border regions that touch
+ * each other, so a big enemy region two of them face never shortcuts the
+ * ones between; only when that does not join them, over the whole border
+ * graph (borderLinks). BFS, neighbours by id, so ties go to the smaller
+ * id; from `a`'s end to `b`'s, at most WW_ZONE_MAX regions (cut at `b`'s
+ * side). Ends in different border pieces: `a`'s piece by zoneFrom. Null
+ * when neither end reaches the border. The engine, the AI and the screen's
+ * preview all call this, so they agree.
+ */
+export function frontLineBetween(
+  w: FrontWorld,
+  me: number,
+  enemy: number,
+  a: number,
+  b: number,
+  g: BorderGraph = borderGraphOf(w, me, enemy),
+): FrontLine | null {
+  let sa = snapFrontEnd(w, g, me, a);
+  let sb = a === b ? sa : snapFrontEnd(w, g, me, b);
+  if (sa === 0 && sb === 0) return null;
+  if (sa === 0) sa = sb;
+  if (sb === 0) sb = sa;
+  if (sa === sb) return { ends: [sa, sb], chain: [sa] };
+  const touching = (u: number) =>
+    w.scenario
+      .edgesOf(u)
+      .map((e) => e.to)
+      .filter((v) => g.set.has(v))
+      .sort((x, y) => x - y);
+  let parent = pathTree(sa, sb, touching);
+  if (!parent.has(sb)) parent = pathTree(sa, sb, (u) => borderLinks(w, g, u));
+  if (!parent.has(sb)) {
+    return { ends: [sa, sb], chain: zoneFrom(w, g, sa, WW_ZONE_MAX) };
+  }
+  const chain: number[] = [];
+  for (let u = sb; u !== 0; u = parent.get(u)!) chain.push(u);
+  chain.reverse();
+  return { ends: [sa, sb], chain: chain.slice(0, WW_ZONE_MAX) };
+}
+
+/** BFS from `from` until `to` is reached: each region's parent (`from`'s is 0). */
+function pathTree(
+  from: number,
+  to: number,
+  next: (u: number) => readonly number[],
+): Map<number, number> {
+  const parent = new Map<number, number>([[from, 0]]);
+  const queue = [from];
+  for (let i = 0; i < queue.length && !parent.has(to); i++) {
+    for (const v of next(queue[i])) {
+      if (parent.has(v)) continue;
+      parent.set(v, queue[i]);
+      queue.push(v);
+    }
+  }
+  return parent;
+}
+
+/** ww162 §1.1: frontLineBetween's chain ([] when no end reaches the border). */
+export function frontChainBetween(
+  w: FrontWorld,
+  me: number,
+  enemy: number,
+  a: number,
+  b: number,
+  g?: BorderGraph,
+): number[] {
+  return frontLineBetween(w, me, enemy, a, b, g)?.chain ?? [];
+}
+
+// ---- Fallback rings (ww7 lane D item 2; ww162 §1.3 moved here from AiLand) ----
+
+/** A ring must be this much shorter than the border, %: no retreat for a region or two (AI_SHORTEN_MIN_SAVE_PCT). */
+export const RING_MIN_SAVE_PCT = 25;
+/** The suggested fallback lies at most this many layers behind the line (AI_SHORTEN_LAYERS). */
+export const RING_LAYERS = 3;
+/** Edges no region is from the line (the BFS's unreached). */
+const RING_FAR = 1 << 30;
+
+/** A candidate line: its regions, its terrain (half regions) and the victory points it gives up. */
+export interface Ring {
+  regions: number;
+  terrain: number;
+  vpLost: number;
+}
+
+/**
+ * ww7 lane D item 2 (design §7): the best ring to fall back to (the index in
+ * `rings`, nearest first), -1 to stay on the border. The score, smallest wins,
+ * is regions − terrain + victory points given up, in half regions: a river, a
+ * fort level step, a mountain or a city is worth half a region (so a long
+ * ring of rivers does not beat a short one on open ground); a victory point
+ * a whole one. A ring must be RING_MIN_SAVE_PCT shorter than the border
+ * and score better than holding it. Ties: the nearer ring.
+ */
+export function bestRing(
+  border: { regions: number; terrain: number },
+  rings: readonly Ring[],
+  /** ww91 rule 3: what the points given up count, % of normal. */
+  vpPct = 100,
+): number {
+  const score = (r: Ring) =>
+    2 * r.regions - r.terrain + Math.floor((2 * r.vpLost * vpPct) / 100);
+  let best = -1;
+  let bestScore = score({ ...border, vpLost: 0 });
+  rings.forEach((r, i) => {
+    if (r.regions === 0) return;
+    if (r.regions * 100 > border.regions * (100 - RING_MIN_SAVE_PCT)) {
+      return;
+    }
+    const s = score(r);
+    if (s < bestScore) {
+      best = i;
+      bestScore = s;
+    }
+  });
+  return best;
+}
+
+/**
+ * A line region's terrain, half regions: fort (more from level 3), every way
+ * in over a river (land type is capped in the rules: ww65). `ahead`: the
+ * regions in front of the line; `fort`: a region's working fort level.
+ */
+export function ringTerrain(
+  w: Pick<FrontWorld, "scenario">,
+  r: number,
+  ahead: (x: number) => boolean,
+  fort: (x: number) => number,
+): number {
+  const sc = w.scenario;
+  let s = 0;
+  const f = fort(r);
+  if (f >= 1) s++;
+  if (f >= 3) s++;
+  let any = false;
+  let river = true;
+  for (const e of sc.edgesOf(r)) {
+    if (!ahead(e.to)) continue;
+    any = true;
+    if (sc.edge(e.edge).river === 0) river = false;
+  }
+  return any && river ? s + 1 : s;
+}
+
+/** The rings behind a line, the line's own score input and each ring's candidate (fallbackRings). */
+export interface RingSet {
+  /** rings[k]: the regions k layers behind the line (rings[0] the line), in `regions` order. */
+  rings: number[][];
+  /** The line itself as bestRing's `border`. */
+  border: { regions: number; terrain: number };
+  /** rings[1..layers] as bestRing's candidates (candidates[i] is rings[i + 1]). */
+  candidates: Ring[];
+}
+
+/**
+ * ww7 lane D item 2: the rings behind `line` (BFS layers through regions
+ * `pass` accepts, at most `layers` deep), listed in `regions`' order (our
+ * side's regions, ascending), with their terrain and the victory points
+ * each gives up. `ahead0`: what stands in front of the line itself (the
+ * enemy's regions).
+ */
+export function fallbackRings(
+  w: Pick<FrontWorld, "scenario">,
+  line: readonly number[],
+  pass: (region: number) => boolean,
+  regions: readonly number[],
+  layers: number,
+  ahead0: (region: number) => boolean,
+  fort: (region: number) => number,
+): RingSet {
+  const sc = w.scenario;
+  const dist = new Int32Array(sc.maxRegionId() + 1).fill(RING_FAR);
+  const queue: number[] = [];
+  for (const s of line) {
+    if (dist[s] === 0) continue;
+    dist[s] = 0;
+    queue.push(s);
+  }
+  for (let i = 0; i < queue.length; i++) {
+    const u = queue[i];
+    if (dist[u] >= layers) continue;
+    for (const e of sc.edgesOf(u)) {
+      if (dist[e.to] !== RING_FAR || !pass(e.to)) continue;
+      dist[e.to] = dist[u] + 1;
+      queue.push(e.to);
+    }
+  }
+  const rings: number[][] = Array.from({ length: layers + 1 }, () => []);
+  const vpAt = new Array<number>(layers + 1).fill(0);
+  for (const r of regions) {
+    const d = dist[r];
+    if (d === RING_FAR || (d !== 0 && !pass(r))) continue;
+    rings[d].push(r);
+    vpAt[d] += sc.region(r)?.vp ?? 0;
+  }
+  const terrainOf = (k: number) => {
+    const ahead = (x: number) => (k === 0 ? ahead0(x) : dist[x] === k - 1);
+    let s = 0;
+    for (const r of rings[k]) s += ringTerrain(w, r, ahead, fort);
+    return s;
+  };
+  const candidates: Ring[] = [];
+  let vpLost = 0;
+  for (let k = 1; k <= layers; k++) {
+    vpLost += vpAt[k - 1];
+    candidates.push({
+      regions: rings[k].length,
+      terrain: rings[k].length === 0 ? 0 : terrainOf(k),
+      vpLost,
+    });
+  }
+  return {
+    rings,
+    border: { regions: line.length, terrain: terrainOf(0) },
+    candidates,
+  };
+}
+
+/**
+ * ww162 §1.3 [추천]: the fallback line the AI would pick behind an army's
+ * front `zone` against `enemy` (0: every enemy): the rings behind it over
+ * our side's land (not through the rest of the border), scored by bestRing;
+ * when no ring beats holding, the nearest ring that has regions. At most
+ * WW_ZONE_MAX regions, ascending; [] when nothing lies behind.
+ */
+export function suggestFallback(
+  w: FrontWorld,
+  me: number,
+  enemy: number,
+  zone: readonly number[],
+  fort: (region: number) => number = () => 0,
+): number[] {
+  const line = [...new Set(zone)].filter((r) =>
+    w.sameSide(me, w.controller[r]),
+  );
+  if (line.length === 0) return [];
+  const border = new Set(borderRegionsOf(w, me, 0));
+  const inLine = new Set(line);
+  const ours: number[] = [];
+  for (const r of w.scenario.landRegions) {
+    if (w.sameSide(me, w.controller[r.id])) ours.push(r.id);
+  }
+  const set = fallbackRings(
+    w,
+    line,
+    (r) => w.sameSide(me, w.controller[r]) && !border.has(r) && !inLine.has(r),
+    ours,
+    RING_LAYERS,
+    (x) => facesFront(w, me, enemy, w.controller[x]),
+    fort,
+  );
+  let k = bestRing(set.border, set.candidates) + 1;
+  if (k === 0) {
+    k = set.rings.findIndex((ring, i) => i > 0 && ring.length > 0);
+    if (k < 0) return [];
+  }
+  return set.rings[k].slice(0, WW_ZONE_MAX);
 }

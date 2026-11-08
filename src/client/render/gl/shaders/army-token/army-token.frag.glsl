@@ -5,6 +5,10 @@ precision highp float;
 // branch symbol, the division count, strength and organisation bars and a
 // state icon; a number chip or a dot when zoomed out. Modest: the chosen
 // army's outline breathes, nothing else moves.
+// ww162 (army design §3.1): a chip is a merged counter (symbol, count,
+// average strength and organisation bars) for one army or a region's; a
+// division counter is the token at 75 % without a number; a "+N" chip
+// stands for more divisions. Mine carry their army's zone-hue rim.
 
 uniform sampler2D uPalette; // RGBA32F, PALETTE_SIZE x 2: territory, border
 uniform sampler2D uAtlas;   // LandAtlas
@@ -33,6 +37,11 @@ const vec3 STRENGTH = vec3(0.90, 0.86, 0.66);
 const vec3 ORG = vec3(0.36, 0.78, 0.36);
 const vec3 GLOW = vec3(1.0, 0.9, 0.5);
 const vec3 RING = vec3(0.86, 0.1, 0.08);
+// An army's zone colours (region-flags.frag.glsl ZONE_HUES: cyan, magenta, yellow, lime).
+const vec3 ZONE_HUES[4] = vec3[4](
+  vec3(0.1, 0.85, 0.95), vec3(0.95, 0.25, 0.85),
+  vec3(1.0, 0.9, 0.1), vec3(0.55, 1.0, 0.2)
+);
 // Army group colours (hud/ww1936/MultiSelect GROUP_COLORS).
 const vec3 GROUP[8] = vec3[8](
   vec3(0.902, 0.098, 0.294), vec3(0.235, 0.706, 0.294),
@@ -69,6 +78,31 @@ vec4 overTexel(vec4 dst, vec4 t, float inside) {
   return over(dst, t.rgb, t.a * inside);
 }
 
+// Coverage of an axis-aligned square of side `size` centered at q = 0.
+float inCell(vec2 q, float size) {
+  return cover(sdBox(q, vec2(size * 0.5), 0.0));
+}
+
+// A count n centered at c in `size` px cells: "?" below 0, one atlas cell up
+// to MAX_NUMBER, two digit cells above it (a region's sum; 99 at most).
+vec4 countAt(vec4 col, vec2 p, vec2 c, float size, float n) {
+  vec2 q = p - c;
+  if (n < -0.5) {
+    return overTexel(col, atlas(float(CELL_QUESTION), q / size + 0.5), inCell(q, size));
+  }
+  float k = floor(n + 0.5);
+  if (k <= float(MAX_NUMBER)) {
+    return overTexel(col, atlas(float(NUMBER_CELL0) + k, q / size + 0.5), inCell(q, size));
+  }
+  k = min(k, 99.0);
+  float tens = floor(k / 10.0);
+  float ones = k - tens * 10.0;
+  float s2 = size * 0.9;
+  vec2 d = vec2(size * 0.22, 0.0);
+  col = overTexel(col, atlas(float(NUMBER_CELL0) + tens, (q + d) / s2 + 0.5), inCell(q + d, s2));
+  return overTexel(col, atlas(float(NUMBER_CELL0) + ones, (q - d) / s2 + 0.5), inCell(q - d, s2));
+}
+
 float stateIcon(int s) {
   if ((s & BATTLE) != 0) return float(ICON_BATTLE);
   if ((s & PARA) != 0) return float(ICON_PARA);
@@ -98,7 +132,13 @@ void main() {
   vec3 terr = texelFetch(uPalette, ivec2(owner, 0), 0).rgb;
   vec3 edge = mix(terr, vec3(0.0), 0.62);
   int state = int(vC.x + 0.5);
-  bool chosen = mod(vC.y, 2.0) > 0.5;
+  // Flags: 1 chosen, 2 × (zone hue + 1) my counter's rim, 16 a pinned division.
+  int flags = int(vC.y + 0.5);
+  bool chosen = (flags & 1) != 0;
+  int hueI = (flags >> 1) & 7;
+  bool pinned = (flags & 16) != 0;
+  vec3 rim = hueI > 0 ? ZONE_HUES[clamp(hueI - 1, 0, 3)] : edge;
+  float rimW = hueI > 0 ? 2.0 : 1.5;
   bool encircled = (state & ENCIRCLED) != 0;
   // P6 fog (spec §8.9): vC.w bits 1 band's top ("~"), 2 ghost (alpha 0.4), 4 gray bars;
   // above them (× 8) the army group colour 1..8 (0 none).
@@ -110,11 +150,17 @@ void main() {
   bool grayBars = (fogFlags & 4) != 0;
   vec4 col = vec4(0.0);
 
-  if (kind < 0.5) {
-    // Full token: box 36x22, symbol frame, count, bars, state badge.
-    vec2 symUV = (p - vec2(-15.0, -7.0)) / 14.0;
+  bool division = kind > 4.5;
+  if (kind < 0.5 || division) {
+    // Full token: box 36x22, symbol frame, count, bars, state badge. A
+    // division counter is the same at 75 % (DIVISION_SCALE): the symbol in
+    // the middle, no count, its battle badge at the top left (the pin's
+    // notch takes the top right).
+    if (division) p /= 0.75;
+    vec2 symC = division ? vec2(0.0) : vec2(-8.0, 0.0);
+    vec2 symUV = (p - symC + 7.0) / 14.0;
     vec2 numUV = (p - vec2(-1.0, -10.0)) / 20.0;
-    vec2 iconC = vec2(17.0, -11.0);
+    vec2 iconC = division ? vec2(-17.0, -11.0) : vec2(17.0, -11.0);
     vec2 iconUV = (p - iconC + 7.5) / 15.0;
     float count = clamp(floor(vB.y + 0.5), 0.0, float(MAX_NUMBER));
     float numCell = vB.y < -0.5 ? float(CELL_QUESTION) : float(NUMBER_CELL0) + count;
@@ -128,13 +174,19 @@ void main() {
     col = rings(col, dAll, chosen, encircled);
 
     float dBox = sdBox(p, vec2(18.0, 11.0), 3.0);
-    col = over(col, edge, cover(dBox));
-    col = over(col, terr, cover(dBox + 1.5));
-    float dFrame = sdBox(p - vec2(-8.0, 0.0), vec2(7.0, 7.0), 1.0);
+    col = over(col, rim, cover(dBox));
+    col = over(col, terr, cover(dBox + rimW));
+    float dFrame = sdBox(p - symC, vec2(7.0, 7.0), 1.0);
     col = over(col, FRAME, cover(dFrame));
     if (vB.x >= 0.0) col = overTexel(col, tSym, cover(dFrame));
-    col = overTexel(col, tNum, cover(sdBox(p - vec2(9.0, 0.0), vec2(9.0, 10.0), 0.0)));
-    if (approx) col = overTexel(col, tTilde, cover(sdBox(p - vec2(14.0, -8.0), vec2(4.5, 4.5), 0.0)));
+    if (!division) col = overTexel(col, tNum, cover(sdBox(p - vec2(9.0, 0.0), vec2(9.0, 10.0), 0.0)));
+    if (pinned) {
+      // The pin's notch: the box's top-right corner cut off in white.
+      float dCut = (20.0 - (p.x - p.y)) * 0.7071;
+      col = over(col, vec3(1.0), cover(max(dBox, dCut)));
+      col = over(col, vec3(0.1), cover(max(dBox, abs(dCut) - 0.6)));
+    }
+    if (!division && approx) col = overTexel(col, tTilde, cover(sdBox(p - vec2(14.0, -8.0), vec2(4.5, 4.5), 0.0)));
 
     // Strength and organisation bars under the box.
     float dBars = sdBox(p - vec2(0.0, 16.5), vec2(18.0, 4.0), 1.0);
@@ -188,20 +240,39 @@ void main() {
       }
     }
   } else if (kind < 1.5) {
-    // Number chip.
-    float count = clamp(floor(vB.y + 0.5), 0.0, float(MAX_NUMBER));
-    float numCell = vB.y < -0.5 ? float(CELL_QUESTION) : float(NUMBER_CELL0) + count;
-    vec4 tNum = atlas(numCell, (p + 9.0) / 18.0);
-    vec4 tTilde = atlas(float(CELL_TILDE), (p - vec2(8.0, -4.0)) / 8.0 + 0.5);
-    float dBox = sdBox(p, vec2(12.0, 7.5), 3.0);
-    col = rings(col, dBox, chosen, encircled);
-    col = over(col, edge, cover(dBox));
-    col = over(col, terr, cover(dBox + 1.25));
-    col = overTexel(col, tNum, cover(dBox));
-    if (approx) col = overTexel(col, tTilde, cover(sdBox(p - vec2(8.0, -4.0), vec2(4.0, 4.0), 0.0)));
+    // Merged counter chip (ww162 §3.1): box 30x16, the branch symbol, the
+    // division count, then the average strength and organisation bars.
+    float dAll = sdBox(p - vec2(0.0, 2.5), vec2(15.0, 10.5), 3.0);
+    col = rings(col, dAll, chosen, encircled);
+    float dBox = sdBox(p, vec2(15.0, 8.0), 3.0);
+    col = over(col, rim, cover(dBox));
+    col = over(col, terr, cover(dBox + rimW * 0.85));
+    vec2 symC = vec2(-7.0, 0.0);
+    float dFrame = sdBox(p - symC, vec2(5.0, 5.0), 1.0);
+    if (vB.x >= 0.0) {
+      col = over(col, FRAME, cover(dFrame));
+      col = overTexel(col, atlas(vB.x, (p - symC) / 10.0 + 0.5), cover(dFrame));
+    }
+    col = countAt(col, p, vB.x >= 0.0 ? vec2(5.5, 0.0) : vec2(0.0), 17.0, vB.y);
+    if (approx) {
+      vec4 tTilde = atlas(float(CELL_TILDE), (p - vec2(12.0, -5.0)) / 8.0 + 0.5);
+      col = overTexel(col, tTilde, cover(sdBox(p - vec2(12.0, -5.0), vec2(4.0, 4.0), 0.0)));
+    }
+    float dBars = sdBox(p - vec2(0.0, 12.0), vec2(15.0, 3.0), 1.0);
+    col = over(col, vec3(0.0), 0.7 * cover(dBars));
+    float x01 = (p.x + 14.0) / 28.0;
+    float inStr = cover(sdBox(p - vec2(0.0, 10.75), vec2(14.0, 0.9), 0.0));
+    float inOrg = cover(sdBox(p - vec2(0.0, 13.25), vec2(14.0, 0.9), 0.0));
+    if (grayBars) {
+      col = over(col, vec3(0.55), inStr * step(x01, 1.0));
+      col = over(col, vec3(0.55), inOrg * step(x01, 1.0));
+    } else {
+      col = over(col, STRENGTH, inStr * step(x01, clamp(vB.z / 1000.0, 0.0, 1.0)));
+      col = over(col, ORG, inOrg * step(x01, clamp(vB.w / 1000.0, 0.0, 1.0)));
+    }
     // ww44: an attacking army of mine.
     if ((state & EXECUTING) != 0) {
-      float dA = length(p - vec2(12.0, 7.5)) - 4.0;
+      float dA = length(p - vec2(15.0, -8.0)) - 4.0;
       col = over(col, vec3(1.0), cover(dA));
       col = over(col, RING, cover(dA + 1.2));
     }
@@ -212,6 +283,16 @@ void main() {
     if (encircled) col = over(col, RING, cover(abs(d - 2.0) - 0.9));
     col = over(col, edge, cover(d));
     col = over(col, terr, cover(d + 1.0));
+  } else if (kind > 3.5) {
+    // "+N" (ww162 §3.1): more of my divisions in this region; a tap fans them out.
+    float dBox = sdBox(p, vec2(14.0, 9.0), 4.5);
+    col = rings(col, dBox, chosen, false);
+    col = over(col, rim, cover(dBox));
+    col = over(col, vec3(0.1, 0.1, 0.12), 0.92 * cover(dBox + rimW));
+    vec2 q = p - vec2(-6.0, 0.0);
+    float dPlus = min(sdBox(q, vec2(3.4, 1.0), 0.0), sdBox(q, vec2(1.0, 3.4), 0.0));
+    col = over(col, vec3(1.0), cover(dPlus));
+    col = countAt(col, p, vec2(4.0, 0.0), 17.0, vB.y);
   } else {
     // Front dots: up to five, one per division of the army in that region.
     // ww44: a direct attack's rows (state 8..11 attacking, holding, waiting,

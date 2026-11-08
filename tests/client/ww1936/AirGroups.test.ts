@@ -410,6 +410,25 @@ describe("tokens", () => {
         wings: 2,
       });
     }
+    // ww162 §3.1: from zoom 6 the group splits into its wings' tokens, each
+    // carrying the group (as the army counters split into divisions).
+    layoutWings(
+      s.air,
+      s.navy,
+      undefined,
+      { zoom: 6, airLayer: true, chosen: none, expanded: none },
+      out,
+    );
+    expect(out.some((o) => o.kind === SLOT_AIRGROUP)).toBe(false);
+    expect(
+      out
+        .filter((o) => o.owner === SID("GBR"))
+        .map((o) => [o.kind, o.wing, o.group]),
+    ).toEqual([
+      [SLOT_TOKEN, 71, 7],
+      [SLOT_TOKEN, 72, 7],
+      [SLOT_TOKEN, 73, undefined],
+    ]);
   });
 
   it("a chip takes no tap; a token's reach is small", () => {
@@ -441,6 +460,16 @@ describe("taps", () => {
     f.setSlot(groupSlot());
     expect(f.ctl.handleTap(x, y)).toBe(true);
     expect(wingUiOf(f.s.game).airGroup).toBe(7);
+  });
+
+  it("ww162: from zoom 6 a tap on one of the group's wings chooses the group; again lets go", () => {
+    const f = fixture();
+    const [x, y] = tileOf(REGION.london);
+    f.setSlot({ ...groupSlot(), kind: SLOT_TOKEN, wing: 71, group: 7 });
+    expect(f.ctl.handleTap(x, y)).toBe(true);
+    expect(wingUiOf(f.s.game).airGroup).toBe(7);
+    expect(f.ctl.handleTap(x, y)).toBe(true);
+    expect(wingUiOf(f.s.game).airGroup).toBe(0);
   });
 
   it("each zone tap adds or removes it and sends the order at once", () => {

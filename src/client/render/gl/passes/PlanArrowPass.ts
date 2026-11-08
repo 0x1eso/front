@@ -15,16 +15,32 @@
  *   shortest by MoveRules.moveNeed over the side's regions, sides from
  *   LandFrontWorld); on another region a faint arrow to it.
  *
+ * - ww162 (battle planner, design §3): the offensive line — a band in the
+ *   army's zone hue at 60 % through its regions with arrows from the front
+ *   (a broad line: one per 3 zone regions, at most 6; a spearhead: one
+ *   chain through its waypoints, a head on the last), flowing while it
+ *   executes; the handles on the lines (white-rimmed circles); dotted lines
+ *   to the army's pinned divisions; and in the plan view every army of the
+ *   viewer's offensive line at 40 %.
+ *
  * Widths are screen pixels (the vertex shader scales them); an arrow's head
  * stops a little short of its target's center, where that region's tokens
  * stand, so the pieces are rebuilt when the view, the choice, the viewer or
  * the zoom changes (a few hundred numbers into a reused array). Nothing is
- * drawn without a chosen army of the viewer's.
+ * drawn without a chosen army of the viewer's (ww162: but the plan view's).
  */
 
+import type { ArmySummary } from "@openfront/engine-api/ww1936/LandTypes";
 import { moveNeed, shortestPath } from "@openfront/engine-lib/ww1936/MoveRules";
 import type { WwLandSelection } from "../../../hud/ww1936/LandSelection";
+import {
+  broadArrows,
+  nearestOf,
+  shownChain,
+  shownHandles,
+} from "../../../hud/ww1936/PlannerModel";
 import type { LandFrontWorld } from "../../../view/LandFrontWorld";
+import { ZONE_HUE_COUNT } from "../../../view/WarBadges";
 import type { WwLandView } from "../../../view/WwLandView";
 import { DynamicInstanceBuffer } from "../DynamicBuffer";
 import fragSrc from "../shaders/plan-arrow/plan-arrow.frag.glsl?raw";
@@ -36,6 +52,11 @@ export const STYLE_BAND = 0;
 export const STYLE_FLOW = 1;
 export const STYLE_HEAD = 2;
 export const STYLE_DOTS = 3;
+/** ww162: a handle, a filled circle with a white rim (width: its diameter). */
+export const STYLE_RING = 4;
+/** ww162: the offensive line's band alpha (design §3), and the plan view's for other armies. */
+const GOAL_BAND_ALPHA = 0.6;
+const PLAN_VIEW_ALPHA = 0.4;
 /** Straight pieces of one curved arrow. */
 const ARROW_PIECES = 16;
 /** Screen px: band width, dotted path width. */
@@ -160,6 +181,24 @@ export class PlanArrowPass {
     world: LandFrontWorld,
   ): void {
     const army = sel.army === null ? undefined : view.armies.get(sel.army);
+    // ww162: the plan view shows my other armies' offensive lines, faint,
+    // with or without a chosen army.
+    if (sel.planView) {
+      for (const a of view.armies.values()) {
+        if (a.owner !== me || a.mine === null || a.id === army?.id) continue;
+        const g = a.mine.order.goal ?? [];
+        if (g.length === 0) continue;
+        this.goalLines(
+          world,
+          me,
+          a,
+          g,
+          a.mine.order.spear === true,
+          a.mine.order.executing,
+          PLAN_VIEW_ALPHA,
+        );
+      }
+    }
     if (army === undefined || army.owner !== me || army.mine === null) return;
     const mine = army.mine;
     const sc = view.scenario;
@@ -188,8 +227,10 @@ export class PlanArrowPass {
     };
 
     const plan = mine.order.kind === "plan";
+    // ww162: an offensive line draws its own arrows (below).
+    const goal = shownChain(army, sel, "goal");
     // ww44: a direct attack draws its own arrows (below), not the zone's.
-    if (plan && mine.order.direct !== true) {
+    if (plan && mine.order.direct !== true && goal.length === 0) {
       const style = mine.order.executing ? STYLE_FLOW : STYLE_BAND;
       for (const t of mine.order.targets) fromZone(cx(t), cy(t), style, 0.95);
     }
@@ -217,6 +258,35 @@ export class PlanArrowPass {
     }
 
     if (mine.path.length > 0) this.dots(view, army.region, mine.path, 0.95);
+
+    // ww162: the offensive line, the plan view's other armies, the pins and the handles.
+    const live = sel.line !== null && sel.line.army === army.id;
+    const spear =
+      sel.draw === "goal" || (live && sel.line!.kind === "goal")
+        ? sel.spear
+        : mine.order.spear === true;
+    if (goal.length > 0) {
+      this.goalLines(world, me, army, goal, spear, mine.order.executing, 1);
+    }
+    const pinned = new Set((mine.pins ?? []).map((p) => p[1]));
+    for (const r of [...pinned].sort((x, y) => x - y)) {
+      if (r !== army.region) this.dots(view, army.region, [r], 0.8);
+    }
+    const hue = (army.id % ZONE_HUE_COUNT) + 1;
+    for (const h of shownHandles(world, me, army, sel)) {
+      this.piece(
+        h.x - 0.5,
+        h.y - 0.5,
+        h.x - 0.5,
+        h.y - 0.5,
+        0,
+        STYLE_RING,
+        h.px,
+        1,
+        false,
+        hue,
+      );
+    }
 
     for (const t of sel.targets) {
       if (plan && mine.order.targets.includes(t)) continue;
@@ -255,6 +325,7 @@ export class PlanArrowPass {
     }
   }
 
+  /** `hue`: 0 today's red, else 1 + a ZONE_HUES index (ww162). */
   private piece(
     x0: number,
     y0: number,
@@ -265,9 +336,81 @@ export class PlanArrowPass {
     width: number,
     alpha: number,
     fromToken: boolean,
+    hue = 0,
   ): void {
-    this.data.push(x0, y0, x1, y1, arc, 0, style, width);
+    this.data.push(x0, y0, x1, y1, arc, hue, style, width);
     this.data.push(alpha, 0, fromToken ? 1 : 0, 0);
+  }
+
+  /**
+   * ww162 (design §3): army `a`'s offensive line `goal` at `alpha` × the
+   * usual: a broad line's band through its regions in the army's hue and
+   * its arrows from the front; a spearhead's one chain of arrows from the
+   * front through its waypoints, a head on the last. Flowing while
+   * `executing`.
+   */
+  private goalLines(
+    world: LandFrontWorld,
+    me: number,
+    a: ArmySummary,
+    goal: readonly number[],
+    spear: boolean,
+    executing: boolean,
+    alpha: number,
+  ): void {
+    const sc = world.scenario;
+    const w = sc.width;
+    const cx = (r: number) => sc.centerTile(r) % w;
+    const cy = (r: number) => Math.floor(sc.centerTile(r) / w);
+    const zone = a.mine?.front ?? [];
+    const style = executing ? STYLE_FLOW : STYLE_BAND;
+    if (spear) {
+      let from = nearestOf(world, zone, a.region, goal[0]);
+      for (let i = 0; i < goal.length; i++) {
+        const last = i === goal.length - 1;
+        this.arrow(
+          cx(from),
+          cy(from),
+          cx(goal[i]),
+          cy(goal[i]),
+          style,
+          0.95 * alpha,
+          last,
+          i === 0 ? BOW : 0.08,
+        );
+        from = goal[i];
+      }
+      return;
+    }
+    const hue = (a.id % ZONE_HUE_COUNT) + 1;
+    let arc = 0;
+    for (let i = 1; i < goal.length; i++) {
+      const x0 = cx(goal[i - 1]);
+      const y0 = cy(goal[i - 1]);
+      const x1 = cx(goal[i]);
+      const y1 = cy(goal[i]);
+      this.piece(
+        x0,
+        y0,
+        x1,
+        y1,
+        arc,
+        style,
+        BAND_PX,
+        GOAL_BAND_ALPHA * alpha,
+        false,
+        hue,
+      );
+      arc += Math.sqrt((x1 - x0) * (x1 - x0) + (y1 - y0) * (y1 - y0));
+    }
+    const o = a.mine?.order;
+    const enemy =
+      o !== undefined && (o.kind === "front" || o.kind === "plan")
+        ? o.enemy
+        : 0;
+    for (const [from, to] of broadArrows(world, me, enemy, zone, goal)) {
+      this.arrow(cx(from), cy(from), cx(to), cy(to), style, 0.95 * alpha);
+    }
   }
 
   /**
@@ -281,12 +424,14 @@ export class PlanArrowPass {
     ty: number,
     style: number,
     alpha: number,
+    head = true,
+    bow = BOW,
   ): void {
     const dx = tx - sx;
     const dy = ty - sy;
     if (dx * dx + dy * dy < 1e-6) return;
-    const kx = (sx + tx) / 2 - dy * BOW;
-    const ky = (sy + ty) / 2 + dx * BOW;
+    const kx = (sx + tx) / 2 - dy * bow;
+    const ky = (sy + ty) / 2 + dx * bow;
     const c = this.curve;
     const arcs = this.arcs;
     c[0] = sx;
@@ -302,6 +447,23 @@ export class PlanArrowPass {
       arcs[i] = arcs[i - 1] + Math.sqrt(ex * ex + ey * ey);
     }
     const total = arcs[ARROW_PIECES];
+    // ww162: a spearhead's inner legs: the band all the way, no head.
+    if (!head) {
+      for (let i = 1; i <= ARROW_PIECES; i++) {
+        this.piece(
+          c[i * 2 - 2],
+          c[i * 2 - 1],
+          c[i * 2],
+          c[i * 2 + 1],
+          arcs[i - 1],
+          style,
+          BAND_PX,
+          alpha,
+          false,
+        );
+      }
+      return;
+    }
     const tpp = this.tilesPerPx;
     const headLen = HEAD_PX * tpp;
     const tipArc = total - Math.min(HEAD_SHORT_PX * tpp, total * 0.3);

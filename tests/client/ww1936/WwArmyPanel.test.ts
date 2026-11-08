@@ -113,7 +113,9 @@ describe("<ww-army-panel> (spec §15.5)", () => {
       );
       expect(m.el.querySelectorAll("[title]")).toHaveLength(0);
       for (const b of m.el.querySelectorAll("button")) {
-        expect(b.className).toMatch(/\b(h-9|h-10|size-9|min-h-9|min-h-11)\b/);
+        expect(b.className).toMatch(
+          /\b(h-9|h-10|size-9|size-11|min-h-9|min-h-11)\b/,
+        );
       }
     }
     // Another drawer opening shuts this one.

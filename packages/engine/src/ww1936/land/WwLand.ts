@@ -81,6 +81,7 @@ import {
 import { techTotals } from "@openfront/engine-lib/ww1936/WwTechs";
 import { z } from "zod";
 import type { Game, Player } from "../../game/Game";
+import { issueGroupLine } from "../depth/ArmyGroups";
 import { effectiveLevel } from "../economy/Buildings";
 import type { WwEconomy } from "../economy/WwEconomy";
 import { type LandSeaAirHooks, NEUTRAL_HOOKS } from "../navy/NavyAirHooks";
@@ -101,14 +102,14 @@ import { noteLandFuel } from "./LandFuel";
 import { startLand } from "./LandStartRun";
 import { nextStepOf, stepMovement } from "./Movement";
 import { stepSpread } from "./Occupation";
-import { applyArmyOrders, issueArmyOrder } from "./Orders";
+import { applyArmyOrders, issueArmyOrder, releasePins } from "./Orders";
 import { directView, oddsOf } from "./Plans";
 import { dmzBlocks } from "./PoliticsBridge";
 import { dailyPositions, resetPosition } from "./Positions";
 import { autoAddPresets } from "./Presets";
 import { startOob } from "./StartOob";
 import { dailySupply } from "./Supply";
-import { dailySustain } from "./Sustain";
+import { armyShort, dailySustain } from "./Sustain";
 import {
   cancelTraining,
   convertDivisions,
@@ -413,6 +414,11 @@ export interface Army {
   medal: number;
   /** The last day the medal works; -1 none. */
   medalUntil: number;
+  // ww162 (battle planner; snapshot and hash only when not at the default).
+  /** Pinned divisions, [division id, region], ascending by id: the army's plan skips them. */
+  pins: [number, number][];
+  /** Days in a row the fallback rule has held (design ww162 §1.3); 0 none. */
+  fbDays: number;
 }
 
 export interface Battle {
@@ -567,6 +573,12 @@ export class CountryLand {
   startReform: { template: number; count: number; budget: number }[] = [];
   /** ww48: the whole start army was planned (start_oob), once; cleared when preparation ends. */
   startOob = false;
+  /**
+   * ww162 L3 (Design A §2.2): equipment lost per need group over the last
+   * PLAN_LOSS_DAYS days, a ring of days × NEED_GROUP_COUNT (Sustain.ts
+   * noteEquipLoss); empty until the first loss.
+   */
+  lossRing: number[] = [];
 
   constructor(
     readonly smallID: number,
@@ -606,6 +618,12 @@ const OrderSchema = z.object({
   zone: zInts().optional(),
   /** ww42: a human's direct attack; written when set. */
   direct: z.boolean().optional(),
+  // ww162 (battle planner): each written when set (not empty, true).
+  ends: z.tuple([zInt(), zInt()]).optional(),
+  goal: zInts().optional(),
+  spear: z.boolean().optional(),
+  fallback: zInts().optional(),
+  fbManual: z.boolean().optional(),
 });
 
 export const WwLandStateSchema = z.object({
@@ -653,6 +671,9 @@ export const WwLandStateSchema = z.object({
       railGuns: zInt().optional(),
       medal: zInt().optional(),
       medalUntil: zInt().optional(),
+      // ww162: written when not empty / not 0.
+      pins: z.array(z.tuple([zInt(), zInt()])).optional(),
+      fbDays: zInt().optional(),
     }),
   ),
   battles: z.array(
@@ -762,6 +783,8 @@ export const WwLandStateSchema = z.object({
         .optional(),
       /** ww48: written only when set. */
       startOob: z.boolean().optional(),
+      /** ww162 L3: written when any loss is in it. */
+      lossRing: zInts().optional(),
     }),
   ),
 });
@@ -1247,6 +1270,11 @@ export class WwLand {
         // P4 plan decision 34 (pre-flight §0-6): the navy carries it, the
         // AI's sea moves too (convoys, routes, interception: lane C).
         block = this.ww.navy.issue(smallID, order, this.mg.ticks(), by);
+        // ww162 §1.4: the whole army sails (its pins go).
+        if (block === null) {
+          const a = this.armies.get(order.army);
+          if (a !== undefined) releasePins(this, a, []);
+        }
         break;
       case "army_move":
       case "army_rail":
@@ -1263,7 +1291,21 @@ export class WwLand {
       case "army_auto_level":
       case "army_direct":
       case "paradrop":
+      case "army_front_line":
+      case "army_goal":
+      case "army_fallback":
+      case "army_fall_back":
+      case "division_move":
+      case "division_release":
+        // ww162 (lanes L1, L2): the battle planner's three lines and the
+        // per-division pins go there too.
         block = issueArmyOrder(this, cl, order, by);
+        break;
+      case "group_front_line":
+      case "group_goal":
+      case "group_fallback":
+        // ww162 §1.1-§1.3 (lane L2): a marshal's lines, cut among his armies.
+        block = issueGroupLine(this.ww.depth, smallID, order, by);
         break;
       default:
         return "bad_index";
@@ -1487,6 +1529,10 @@ export class WwLand {
     const army = this.armies.get(t.army[row]);
     if (army !== undefined) {
       army.divisions = army.divisions.filter((d) => d !== id);
+      // ww162 §1.4: its pin goes with it.
+      if (army.pins.length > 0) {
+        army.pins = army.pins.filter((p) => p[0] !== id);
+      }
       this.dirtyArmies.add(army.id);
       if (army.divisions.length === 0) {
         this.removeArmy(army.id, { destroyed, region: t.region[row] });
@@ -2034,6 +2080,8 @@ export class WwLand {
       railGuns: 0,
       medal: 0,
       medalUntil: -1,
+      pins: [],
+      fbDays: 0,
     };
     this.armies.set(a.id, a);
     this.dirtyArmies.add(a.id);
@@ -2076,6 +2124,10 @@ export class WwLand {
     const old = this.armies.get(this.divisions.army[r]);
     if (old !== undefined && old !== army) {
       old.divisions = old.divisions.filter((d) => d !== divisionId);
+      // ww162 §1.4: a division leaving its army leaves its pin.
+      if (old.pins.length > 0) {
+        old.pins = old.pins.filter((p) => p[0] !== divisionId);
+      }
       this.dirtyArmies.add(old.id);
       if (old.divisions.length === 0) {
         this.removeArmy(old.id, {
@@ -2439,11 +2491,8 @@ export class WwLand {
       symbol,
       mine: human
         ? {
-            order: {
-              ...a.order,
-              targets: [...a.order.targets],
-              zone: [...a.order.zone],
-            },
+            // ww162: a copy, so no list of the engine's order is shared.
+            order: copyOrder(a.order),
             front: [...a.front],
             planBp: a.planBp,
             auto: a.auto,
@@ -2457,6 +2506,13 @@ export class WwLand {
             ...(a.autoLevel === 0 ? {} : { autoLevel: a.autoLevel }),
             ...directOut,
             ...oddsOut,
+            // ww162: sent when any.
+            ...(a.pins.length === 0
+              ? {}
+              : {
+                  pins: a.pins.map((p): [number, number] => [p[0], p[1]]),
+                }),
+            ...shortOut(armyShort(this, a)),
           }
         : null,
     };
@@ -2597,9 +2653,17 @@ export class WwLand {
     const inUse = new Map<number, number>();
     const divisions: DivisionData[] = [];
     const equipShort = new Array<number>(NEED_GROUP_COUNT).fill(0);
-    const addShort = (need: readonly number[], held: readonly number[]) => {
+    // ww162: the fielded divisions' part of it (the rest is the trainees').
+    const fieldShort = new Array<number>(NEED_GROUP_COUNT).fill(0);
+    const addShort = (
+      need: readonly number[],
+      held: readonly number[],
+      field = false,
+    ) => {
       for (let g = 0; g < need.length; g++) {
-        if (need[g] > held[g]) equipShort[g] += need[g] - held[g];
+        if (need[g] <= held[g]) continue;
+        equipShort[g] += need[g] - held[g];
+        if (field) fieldShort[g] += need[g] - held[g];
       }
     };
     for (const r of this.rowsOf(id)) {
@@ -2611,7 +2675,11 @@ export class WwLand {
         this.keyStatsOf(t.owner[r]),
       );
       const need = this.baseStatsOf(r).need;
-      addShort(need, equipByType(t.equipOf(r), this.keyStatsOf(t.owner[r])));
+      addShort(
+        need,
+        equipByType(t.equipOf(r), this.keyStatsOf(t.owner[r])),
+        true,
+      );
       let equipPm = 1000;
       fill.forEach((f, i) => {
         // Support gear is no shortage of the division: its companies say how
@@ -2721,6 +2789,7 @@ export class WwLand {
       generals,
       divisions,
       equipShort,
+      fieldShort,
       ...(gaps.length > 0 ? { gaps } : {}),
       ...(cl.startOob ? { startOob: true } : {}),
     };
@@ -2823,6 +2892,26 @@ export class WwLand {
       // ww42: the direct attack, only when used.
       if (o.direct === true) mix(0xd42);
       if (a.dflags !== 0) mix(0xd43 + a.dflags);
+      // ww162: the battle planner's lines and pins, only when used.
+      if (o.ends !== undefined) {
+        mix(0x162a);
+        fold(o.ends);
+      }
+      if (o.goal !== undefined && o.goal.length > 0) {
+        mix(0x162b);
+        fold(o.goal);
+      }
+      if (o.spear === true) mix(0x162c);
+      if (o.fallback !== undefined && o.fallback.length > 0) {
+        mix(0x162d);
+        fold(o.fallback);
+      }
+      if (o.fbManual === true) mix(0x162e);
+      if (a.pins.length > 0) {
+        mix(0x162f);
+        for (const p of a.pins) fold(p);
+      }
+      if (a.fbDays !== 0) mix(0x1630 + a.fbDays);
     }
     for (const b of this.battles.values()) {
       mix(b.sinceTick);
@@ -2921,6 +3010,11 @@ export class WwLand {
         mix(e.budget);
       }
       if (cl.startOob) mix(0x0b0b);
+      // ww162 L3: the loss ring, only when anything is in it.
+      if (anyNonZero(cl.lossRing)) {
+        mix(0x1631);
+        fold(cl.lossRing);
+      }
     }
     return h;
   }
@@ -2980,6 +3074,10 @@ export class WwLand {
         railGuns: a.railGuns,
         medal: a.medal,
         medalUntil: a.medalUntil,
+        ...(a.pins.length === 0
+          ? {}
+          : { pins: a.pins.map((p): [number, number] => [p[0], p[1]]) }),
+        ...(a.fbDays === 0 ? {} : { fbDays: a.fbDays }),
       })),
       battles: [...this.battles.values()].map((b) => ({
         region: b.region,
@@ -3061,6 +3159,7 @@ export class WwLand {
           ? {}
           : { startReform: cl.startReform.map((e) => ({ ...e })) }),
         ...(cl.startOob ? { startOob: true } : {}),
+        ...(anyNonZero(cl.lossRing) ? { lossRing: [...cl.lossRing] } : {}),
       })),
     };
   }
@@ -3116,6 +3215,8 @@ export class WwLand {
         railGuns: a.railGuns ?? 0,
         medal: a.medal ?? 0,
         medalUntil: a.medalUntil ?? -1,
+        pins: (a.pins ?? []).map((p): [number, number] => [p[0], p[1]]),
+        fbDays: a.fbDays ?? 0,
       });
     }
     this.battles.clear();
@@ -3205,6 +3306,7 @@ export class WwLand {
       cl.peakDivisions = c.peakDivisions;
       cl.startReform = (c.startReform ?? []).map((e) => ({ ...e }));
       cl.startOob = c.startOob === true;
+      cl.lossRing = c.lossRing === undefined ? [] : [...c.lossRing];
     }
     this.rebuildDerived();
     // A restored game's screens have seen nothing yet.
@@ -3275,6 +3377,18 @@ function copyOrder(
     readyDay: o.readyDay,
     zone: [...(o.zone ?? [])],
     ...(o.direct === true ? { direct: true } : {}),
+    // ww162: each only when set, so an order without them copies as before.
+    ...(o.ends === undefined
+      ? {}
+      : { ends: [o.ends[0], o.ends[1]] as [number, number] }),
+    ...(o.goal === undefined || o.goal.length === 0
+      ? {}
+      : { goal: [...o.goal] }),
+    ...(o.spear === true ? { spear: true } : {}),
+    ...(o.fallback === undefined || o.fallback.length === 0
+      ? {}
+      : { fallback: [...o.fallback] }),
+    ...(o.fbManual === true ? { fbManual: true } : {}),
   };
 }
 
@@ -3287,6 +3401,11 @@ function snapshotOrder(
 }
 
 /** Whether any entry of a typed array is not 0. */
+/** ww162 L3: ArmyMineData.short, sent when any group is short. */
+function shortOut(short: [number, number][]): { short?: [number, number][] } {
+  return short.length === 0 ? {} : { short };
+}
+
 function anyNonZero(xs: ArrayLike<number>): boolean {
   for (let i = 0; i < xs.length; i++) if (xs[i] !== 0) return true;
   return false;

@@ -373,6 +373,106 @@ export function allocateResources(
   return { fill, used, short, extraFill, preGot };
 }
 
+// ---- ww162 L3 (Design A §2.2): the need-driven line planner ----
+
+/** Days of today's output the cover counts. */
+export const PLAN_COVER_DAYS = 60;
+/** Days the loss ring holds (CountryLand.lossRing). */
+export const PLAN_LOSS_DAYS = 30;
+/** The ring's losses count this many times: a 60-day burn. */
+export const PLAN_BURN_MULT = 2;
+/** The reserve, % of the fielded divisions' full need: at peace, at war. */
+export const PLAN_RESERVE_PCT = 10;
+export const PLAN_RESERVE_WAR_PCT = 20;
+/** No factory moves for a gap (or a surplus) under this % of the need. */
+export const PLAN_DEAD_BAND_PCT = 5;
+/** At most this % of the military factories move between lines a turn (a turn is 10 days: under 10 % a week). */
+export const PLAN_MOVE_PCT = 10;
+
+/** What the planner reads per need group (NEED_GROUPS order), in units. */
+export interface LineNeedsInput {
+  /** Missing from the fielded divisions (max(0, need − held), summed per division). */
+  short: readonly number[];
+  /** What the training queue still lacks: trainees' missing gear and the entries not started yet. */
+  training: readonly number[];
+  /** Lost over the last PLAN_LOSS_DAYS days (battle HP loss and attrition). */
+  lost: readonly number[];
+  /** The fielded divisions' full need. */
+  fielded: readonly number[];
+  stock: readonly number[];
+  /** Milli-units a day today's lines make. */
+  outMilli: readonly number[];
+  /** The reserve per group, % of `fielded` (war and the country's leanings already in). */
+  reservePct: readonly number[];
+}
+
+export interface LineNeeds {
+  need: number[];
+  cover: number[];
+  /** need − cover: > 0 short, < 0 covered beyond the need. */
+  gap: number[];
+}
+
+/**
+ * Design A §2.2: need = the fielded shortage + the training queue's + the
+ * last 30 days' losses × 2 + the reserve; cover = the stock + 60 days of
+ * today's output; gap = need − cover. Pure integer math, per group.
+ */
+export function lineNeeds(i: LineNeedsInput): LineNeeds {
+  const n = i.short.length;
+  const need = new Array<number>(n);
+  const cover = new Array<number>(n);
+  const gap = new Array<number>(n);
+  for (let g = 0; g < n; g++) {
+    need[g] =
+      (i.short[g] ?? 0) +
+      (i.training[g] ?? 0) +
+      (i.lost[g] ?? 0) * PLAN_BURN_MULT +
+      Math.floor(
+        ((i.fielded[g] ?? 0) * Math.max(0, i.reservePct[g] ?? 0)) / 100,
+      );
+    cover[g] =
+      (i.stock[g] ?? 0) +
+      Math.floor(((i.outMilli[g] ?? 0) * PLAN_COVER_DAYS) / 1000);
+    gap[g] = need[g] - cover[g];
+  }
+  return { need, cover, gap };
+}
+
+/** A gap worth a factory: short by at least PLAN_DEAD_BAND_PCT of the need. */
+export function planGapCounts(need: number, gap: number): boolean {
+  return gap > 0 && gap * 100 >= need * PLAN_DEAD_BAND_PCT;
+}
+
+/** A surplus a line may give a factory from: covered by at least PLAN_DEAD_BAND_PCT of the need beyond it. */
+export function planSurplusCounts(need: number, gap: number): boolean {
+  return gap < 0 && -gap * 100 >= need * PLAN_DEAD_BAND_PCT;
+}
+
+/**
+ * The reserve % of a group: PLAN_RESERVE_PCT (PLAN_RESERVE_WAR_PCT at war)
+ * scaled by the country's leaning on it, `weightPct` (100: none).
+ */
+export function planReservePct(atWar: boolean, weightPct: number): number {
+  const base = atWar ? PLAN_RESERVE_WAR_PCT : PLAN_RESERVE_PCT;
+  return Math.floor((base * Math.max(0, weightPct)) / 100);
+}
+
+/**
+ * Units one more factory adds to the cover over PLAN_COVER_DAYS, at the
+ * planning efficiency (`effBp`), for a unit of `costMilli` (at least 1).
+ */
+export function planFactoryCover(effBp: number, costMilli: number): number {
+  if (costMilli <= 0) return 1;
+  return Math.max(
+    1,
+    Math.floor(
+      (PLAN_COVER_DAYS * WW_MIL_OUTPUT_MILLI * Math.max(0, effBp)) /
+        (10_000 * costMilli),
+    ),
+  );
+}
+
 // ---- Resources (spec §7.1) ----
 
 /**

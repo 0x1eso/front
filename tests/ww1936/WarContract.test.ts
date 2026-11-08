@@ -71,7 +71,9 @@ async function board() {
 
 describe("war overhaul C0: the contract", () => {
   test("the new kinds are appended at the end of the lists", () => {
-    expect(LAND_ORDER_KINDS.slice(-7, -1)).toEqual([
+    // ww162 appends after template_auto: read up to it.
+    const lastP2 = LAND_ORDER_KINDS.indexOf("template_auto");
+    expect(LAND_ORDER_KINDS.slice(lastP2 - 6, lastP2)).toEqual([
       "army_zone",
       "army_auto_level",
       "train_army",
@@ -80,6 +82,8 @@ describe("war overhaul C0: the contract", () => {
       "start_oob",
     ]);
     const kinds = WwOrderSchema.options.map((o) => o.shape.kind.value);
+    // ww162 (and later lanes) append after template_auto: drop them.
+    kinds.splice(kinds.indexOf("template_auto") + 1);
     // The air groups appended their four last (after ww48's start_oob after
     // ww42's army_direct); the older pins read what is before them.
     // The peace overhaul appended peace_surrender after them.

@@ -47,8 +47,6 @@ import {
   OpenWwBattleEvent,
   WwLandModeEvent,
 } from "../../../src/client/hud/ww1936/LandSelection";
-import "../../../src/client/hud/ww1936/WwArmyCard";
-import type { WwArmyCard } from "../../../src/client/hud/ww1936/WwArmyCard";
 import {
   LandTapBus,
   landTookTap,
@@ -182,29 +180,17 @@ describe("WwLandController (spec §15.3)", () => {
     document.body.innerHTML = "";
   });
 
-  it("select, [방어], then border taps grow and shrink the zone", async () => {
+  it("select, the [방어] mode, then border taps grow and shrink the zone", () => {
     const m = setup();
-    // The card the button press comes from.
-    const card = document.createElement("ww-army-card") as WwArmyCard;
-    card.game = m.game as never;
-    card.eventBus = m.bus;
-    document.body.appendChild(card);
-    card.init();
     // 1. The token in Berlin.
     m.tap(...center(3));
     expect(m.sel.army).toBe(1);
-    card.tick();
-    await card.updateComplete;
-    // 2. [방어] on the card: the army holds the border around it at once.
-    card
-      .querySelector<HTMLButtonElement>("[data-ww-army-btn='front']")!
-      .click();
+    // 2. The [방어] mode (ww162: its card button, which also sent
+    // army_front, gave way to the [전선] chip; the tap mode stays).
+    m.bus.emit(new WwLandModeEvent("front"));
     expect(m.sel.mode).toBe("front");
-    expect(m.sent).toEqual([
-      { kind: "army_front", army: 1, anchor: 3, enemy: 0 },
-    ]);
+    expect(m.sent).toEqual([]);
     // 3. Our border regions: Berlin joins the zone, Munich too, Berlin leaves.
-    m.sent.length = 0;
     m.tapRegion(3);
     m.tapRegion(4);
     m.tapRegion(3);

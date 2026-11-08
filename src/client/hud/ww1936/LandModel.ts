@@ -748,10 +748,15 @@ export type ArmyButton = (typeof ARMY_BUTTONS)[number];
 
 /**
  * Why a card button is greyed: an order check's refusal, "split_single"
- * (an army of one division has nothing to split off; its own text) or
- * "no_target" ([실행] needs a target first).
+ * (an army of one division has nothing to split off; its own text),
+ * "no_target" ([실행] needs a target first) or (ww162) "no_fallback"
+ * ([지금 후퇴] needs a fallback line first).
  */
-export type CardBlock = WwOrderBlock | "split_single" | "no_target";
+export type CardBlock =
+  | WwOrderBlock
+  | "split_single"
+  | "no_target"
+  | "no_fallback";
 
 /** A card button's refusal, in words. */
 export function cardBlockText(b: CardBlock): string {
@@ -759,7 +764,9 @@ export function cardBlockText(b: CardBlock): string {
     ? translateText("ww1936.land.block_split_single")
     : b === "no_target"
       ? translateText("ww1936.land.block_no_target")
-      : blockText(b);
+      : b === "no_fallback"
+        ? translateText("ww1936.army_hud.block_no_fallback")
+        : blockText(b);
 }
 
 /** ww7: the auto levels (army_auto_level): 0 off, 1 defence only, 2 as the AI. */

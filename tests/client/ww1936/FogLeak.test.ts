@@ -956,6 +956,10 @@ describe("fog leaks (spec §8.9)", () => {
       "hud/ww1936/DoctrineModel.ts",
       "hud/ww1936/MultiSelect.ts",
       "hud/ww1936/WwArmyGroupTab.ts",
+      // ww162: a group of mine's supply line (its armies' mean strength),
+      // and the divisions of my chosen army picked in [사단].
+      "hud/ww1936/ArmyHudModel.ts",
+      "hud/ww1936/LandSelection.ts",
       "hud/ww1936/WwAirZoneCard.ts",
       "hud/ww1936/WwNukeFlow.ts",
       "hud/ww1936/DepthMiscModel.ts",

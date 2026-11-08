@@ -22,6 +22,7 @@
  * before a layer is first shown.
  */
 
+import type { ArmySummary } from "@openfront/engine-api/ww1936/LandTypes";
 import { SEA_ZONE_BASE } from "@openfront/engine-api/ww1936/WorldWarTypes";
 import { borderRegionsOf } from "@openfront/engine-lib/ww1936/FrontRules";
 import type { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
@@ -66,6 +67,26 @@ export const FLAG_BOMBED = 16;
 export const FLAG_GAP = 32;
 /** Bits 6-7 (ww7): which of ZONE_HUES an army's zone is painted in (armyId % 4). */
 export const ZONE_HUE_SHIFT = 6;
+
+/**
+ * ww162 (battle planner, design §3): a second byte per region, in the same
+ * texture's rows from FLAG2_ROW on (region `id` at FLAG2_BASE + id: land
+ * ids stay below SEA_CODE_BIT, far under FLAG2_BASE). Plane 1's byte 0
+ * (region 0 has no flags) changes whenever plane 2 does, so a caller that
+ * compares only plane 1 still uploads (planeTwoStamp).
+ */
+export const FLAG2_ROW = 100;
+export const FLAG2_BASE = FLAG2_ROW * FLAG_TEX_SIZE;
+/** Plane 2 bit 0: a region of a fallback line (a dashed line on its outer edges). */
+export const FLAG2_FALLBACK = 1;
+/** Plane 2 bits 1-2: which of ZONE_HUES that fallback line is drawn in. */
+export const FLAG2_FB_HUE_SHIFT = 1;
+/** Plane 2 bit 3: the region's zone is another army's, shown faint (plan view, 40 %). */
+export const FLAG2_FAINT_FRONT = 8;
+/** Plane 2 bit 4: the region's fallback is another army's, shown faint (plan view). */
+export const FLAG2_FAINT_FB = 16;
+/** Plane 2 bit 5: a region across a fallback line's outer edge (toward the front). */
+export const FLAG2_FB_OUTER = 32;
 
 /** Tile code bit: the tile's right or lower neighbour is another land region. */
 export const TILE_EDGE_BIT = 0x8000;
@@ -169,6 +190,129 @@ function setFlag(out: Uint8Array, region: number, bit: number): void {
   }
 }
 
+/** ww162: sets plane 2 bits of `region` (bit 0 of `clear` and up: cleared first). */
+function setFlag2(
+  out: Uint8Array,
+  region: number,
+  bit: number,
+  clear = 0,
+): void {
+  if (region > 0 && FLAG2_BASE + region < out.length) {
+    const i = FLAG2_BASE + region;
+    out[i] = (out[i] & ~clear) | bit;
+  }
+}
+
+/** The plane 2 bytes each output buffer last held, and plane 1's byte 0 for them. */
+const planeTwoSeen = new WeakMap<Uint8Array, { copy: Uint8Array; n: number }>();
+
+/**
+ * ww162: plane 1's byte 0 for `out`'s plane 2: 0 while plane 2 is empty,
+ * else a counter (1-255) that moves whenever plane 2 changed since the
+ * last call on the same buffer.
+ */
+function planeTwoStamp(out: Uint8Array): void {
+  const two = out.subarray(FLAG2_BASE);
+  let any = false;
+  for (let i = 0; i < two.length; i++) {
+    if (two[i] !== 0) {
+      any = true;
+      break;
+    }
+  }
+  let seen = planeTwoSeen.get(out);
+  if (seen === undefined) {
+    seen = { copy: new Uint8Array(two.length), n: 0 };
+    planeTwoSeen.set(out, seen);
+  }
+  let same = true;
+  for (let i = 0; i < two.length; i++) {
+    if (two[i] !== seen.copy[i]) {
+      same = false;
+      break;
+    }
+  }
+  if (!same) {
+    seen.copy.set(two);
+    if (any) seen.n = (seen.n % 255) + 1;
+  }
+  out[0] = any ? seen.n : 0;
+}
+
+/**
+ * ww162: marks a fallback line: FLAG2_FALLBACK and its hue on its regions,
+ * FLAG2_FB_OUTER on the regions across its outer edges — foreign land, or
+ * our land nearer the border than the line's region it touches (`dist`:
+ * edges from our border, by region id; computed once per build).
+ */
+function markFallback(
+  out: Uint8Array,
+  view: WwLandView,
+  world: LandFrontWorld,
+  me: number,
+  regions: readonly number[],
+  armyId: number,
+  faint: boolean,
+  dist: () => Map<number, number>,
+): void {
+  const hue = (armyId % ZONE_HUE_COUNT) << FLAG2_FB_HUE_SHIFT;
+  const set = new Set(regions);
+  const sc = view.scenario;
+  const ctl = view.controller;
+  for (const r of regions) {
+    setFlag2(
+      out,
+      r,
+      FLAG2_FALLBACK | hue | (faint ? FLAG2_FAINT_FB : 0),
+      (3 << FLAG2_FB_HUE_SHIFT) | FLAG2_FAINT_FB,
+    );
+    const dr = dist().get(r) ?? Infinity;
+    for (const e of sc.edgesOf(r)) {
+      const v = e.to;
+      if (set.has(v) || sc.region(v) === undefined) continue;
+      const c = ctl[v];
+      const outer =
+        c !== 0 && !world.sameSide(me, c)
+          ? true
+          : (dist().get(v) ?? Infinity) < dr;
+      if (outer) setFlag2(out, v, FLAG2_FB_OUTER);
+    }
+  }
+}
+
+/** ww162: edges from our side's border (regions with a foreign neighbour), over our land. */
+function borderDistance(
+  view: WwLandView,
+  world: LandFrontWorld,
+  me: number,
+): Map<number, number> {
+  const sc = view.scenario;
+  const ctl = view.controller;
+  const dist = new Map<number, number>();
+  const queue: number[] = [];
+  for (const r of sc.landRegions) {
+    if (!world.sameSide(me, ctl[r.id])) continue;
+    for (const e of sc.edgesOf(r.id)) {
+      const c = ctl[e.to];
+      if (c !== 0 && !world.sameSide(me, c) && sc.region(e.to) !== undefined) {
+        dist.set(r.id, 0);
+        queue.push(r.id);
+        break;
+      }
+    }
+  }
+  for (let i = 0; i < queue.length; i++) {
+    const u = queue[i];
+    const d = dist.get(u)! + 1;
+    for (const e of sc.edgesOf(u)) {
+      if (dist.has(e.to) || !world.sameSide(me, ctl[e.to])) continue;
+      dist.set(e.to, d);
+      queue.push(e.to);
+    }
+  }
+  return dist;
+}
+
 /** P4 (lane U): sets FLAG_PICKABLE (the soft glow) on each region a tap may aim at. */
 export function addPickableFlags(
   out: Uint8Array,
@@ -220,11 +364,18 @@ export function regionFlagBytes(
     for (let i = 0; i < gaps.length; i++) setFlag(out, gaps[i], FLAG_GAP);
   }
 
-  const mark = (front: readonly number[], enemy: number, armyId = 0) => {
+  const mark = (
+    front: readonly number[],
+    enemy: number,
+    armyId = 0,
+    faint = false,
+  ) => {
     const hue = (armyId % ZONE_HUE_COUNT) << ZONE_HUE_SHIFT;
     for (let i = 0; i < front.length; i++) {
       const f = front[i];
       setFlag(out, f, FLAG_FRONT | hue);
+      // ww162: another army's zone in the plan view is faint; a full one wins.
+      setFlag2(out, f, faint ? FLAG2_FAINT_FRONT : 0, FLAG2_FAINT_FRONT);
       const edges = sc.edgesOf(f);
       for (let j = 0; j < edges.length; j++) {
         const to = edges[j].to;
@@ -232,16 +383,45 @@ export function regionFlagBytes(
       }
     }
   };
+  let distMemo: Map<number, number> | null = null;
+  const dist = () => (distMemo ??= borderDistance(view, world, me));
+  const enemyOf = (a: ArmySummary) => {
+    const o = a.mine!.order;
+    return o.kind === "front" || o.kind === "plan" ? o.enemy : 0;
+  };
   const army =
     selection.army === null ? undefined : view.armies.get(selection.army);
   const mine = army !== undefined && army.owner === me ? army.mine : null;
+  // ww162 (design §3): the plan view shows every army of mine, faint.
+  if (selection.planView) {
+    for (const a of view.armies.values()) {
+      if (a.owner !== me || a.mine === null || a.id === selection.army) {
+        continue;
+      }
+      mark(a.mine.front, enemyOf(a), a.id, true);
+      const fb = a.mine.order.fallback ?? [];
+      if (fb.length > 0) {
+        markFallback(out, view, world, me, fb, a.id, true, dist);
+      }
+    }
+  }
   if (mine !== null) {
-    const ordered = mine.order.kind === "front" || mine.order.kind === "plan";
+    // ww162: the front line being drawn (or just sent) stands in for the zone.
+    const line =
+      selection.line !== null && selection.line.army === selection.army
+        ? selection.line
+        : null;
+    const draftFront = line?.kind === "front" ? line : null;
     mark(
-      selection.zoneDraft ?? mine.front,
-      ordered ? mine.order.enemy : 0,
+      draftFront?.regions ?? selection.zoneDraft ?? mine.front,
+      draftFront?.front?.enemy ?? enemyOf(army!),
       selection.army ?? 0,
     );
+    const fb =
+      line?.kind === "fallback" ? line.regions : (mine.order.fallback ?? []);
+    if (fb.length > 0) {
+      markFallback(out, view, world, me, fb, selection.army ?? 0, false, dist);
+    }
   }
   // The chosen army group's zone is its armies' zones together.
   const multi = multiSelectOf(selection);
@@ -249,17 +429,19 @@ export function regionFlagBytes(
     for (const id of multi.armies) {
       const a = view.armies.get(id);
       if (a === undefined || a.owner !== me || a.mine === null) continue;
-      const ordered =
-        a.mine.order.kind === "front" || a.mine.order.kind === "plan";
-      mark(a.mine.front, ordered ? a.mine.order.enemy : 0, a.id);
+      mark(a.mine.front, enemyOf(a), a.id);
     }
   }
 
-  if (mine !== null && selection.mode === "front") {
+  if (
+    mine !== null &&
+    (selection.mode === "front" || selection.draw === "front")
+  ) {
     for (const r of borderRegionsOf(world, me, 0)) {
       setFlag(out, r, FLAG_PICKABLE);
     }
   }
+  planeTwoStamp(out);
   return out;
 }
 
@@ -397,7 +579,12 @@ export class RegionBorderPass {
   private ensureFlagProgram(): WebGLProgram {
     if (this.flagProgram !== null) return this.flagProgram;
     const gl = this.gl;
-    const defs = { MAP_W: this.mapW, MAP_H: this.mapH, FLAG_TEX_SIZE };
+    const defs = {
+      MAP_W: this.mapW,
+      MAP_H: this.mapH,
+      FLAG_TEX_SIZE,
+      FLAG2_ROW,
+    };
     const p = createProgram(
       gl,
       shaderSrc(vertSrc, defs),

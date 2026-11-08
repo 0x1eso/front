@@ -2,11 +2,13 @@
 // a tap hits (spec §15.2, §15.3, §15.9), and the passes that draw them, on
 // the test map ww1936mini with fake land updates.
 import {
+  ARMY_BATTLE,
   ARMY_PARA,
   ArmySummary,
   BattleSummary,
   idleOrder,
   WwLandData,
+  type DivisionData,
 } from "@openfront/engine-api/ww1936/LandTypes";
 import { ScenarioDataSchema } from "@openfront/engine-api/ww1936/ScenarioTypes";
 import { ScenarioIndex } from "@openfront/engine-lib/ww1936/ScenarioIndex";
@@ -18,7 +20,13 @@ import {
   LandTickClock,
   ParadropFlights,
 } from "../../../src/client/render/gl/LandFrame";
-import { ArmyTokenPass } from "../../../src/client/render/gl/passes/ArmyTokenPass";
+import {
+  ArmyTokenPass,
+  counterFlags,
+  KIND_CHIP,
+  KIND_DIVISION,
+  KIND_MORE,
+} from "../../../src/client/render/gl/passes/ArmyTokenPass";
 import { BattleMarkerPass } from "../../../src/client/render/gl/passes/BattleMarkerPass";
 import {
   PlanArrowPass,
@@ -34,9 +42,20 @@ import {
 import { LandFrontWorld } from "../../../src/client/view/LandFrontWorld";
 import {
   battleMarkers,
+  C_ARMY,
+  C_DIVISION,
+  C_MORE,
+  C_REGION,
+  CounterState,
+  counterStateOf,
   fanSlot,
+  hitCounter,
   hitToken,
   layoutTokens,
+  LEVEL_ARMY,
+  LEVEL_DIVISION,
+  LEVEL_REGION,
+  REGION_STEP_PX,
   TOKEN_EASE_TICKS,
   TOKEN_STEP_PX,
   TokenLayoutCache,
@@ -759,6 +778,275 @@ describe("TokenLayoutCache bounds", () => {
     const pooled = [p(1, 10, 10), p(9, 50, 50)];
     expect(hitToken(pooled, 50, 50, 2, null, 1)).toBeNull();
     expect(hitToken(pooled, 50, 50, 2, null)).toBe(9);
+  });
+});
+
+// ---- ww162 §3.1: counters that group by zoom ----
+
+function div(
+  id: number,
+  armyId: number,
+  region: number,
+  over: Partial<DivisionData> = {},
+): DivisionData {
+  return {
+    id,
+    army: armyId,
+    template: 1,
+    region,
+    strengthPm: 1000,
+    orgPm: 1000,
+    exp: 0,
+    supplyPm: 1000,
+    equipPm: 1000,
+    battle: 0,
+    role: 0,
+    ...over,
+  };
+}
+
+function detailOf(divisions: DivisionData[]) {
+  return {
+    smallID: DEU,
+    templates: [
+      {
+        id: 1,
+        name: "",
+        key: "",
+        battalions: ["infantry", "infantry", "artillery"] as never,
+        support: [],
+        inUse: 0,
+      },
+    ],
+    training: [],
+    generals: [],
+    divisions,
+  };
+}
+
+describe("counter levels by zoom (ww162 §3.1)", () => {
+  test("region below 1.5, army up to 6, divisions from 6 and back below 5", () => {
+    const s = new CounterState();
+    expect([1, 1.49].map((z) => s.level(z))).toEqual([
+      LEVEL_REGION,
+      LEVEL_REGION,
+    ]);
+    expect(s.level(5.9)).toBe(LEVEL_ARMY);
+    expect(s.level(6)).toBe(LEVEL_DIVISION);
+    // The pinch edge: between 5 and 6 it stays as it was.
+    expect(s.level(5.2)).toBe(LEVEL_DIVISION);
+    expect(s.level(4.99)).toBe(LEVEL_ARMY);
+    expect(s.level(5.5)).toBe(LEVEL_ARMY);
+  });
+
+  test("a region chip per country per region sums its armies; a tap picks my biggest, then cycles", () => {
+    const v = viewWith({
+      armies: [
+        army({ id: 1, divisions: 4, strengthPm: 1000, orgPm: 200 }),
+        army({ id: 2, divisions: 12, strengthPm: 500, orgPm: 1000 }),
+        army({ id: 3, owner: POL, divisions: 5 }),
+        army({ id: 4, region: MUNICH, divisions: 2 }),
+      ],
+    });
+    const cache = new TokenLayoutCache();
+    cache.update(v, 0, 1, DEU);
+    expect(cache.level).toBe(LEVEL_REGION);
+    const chips = cache.counters.slice(0, cache.counterCount);
+    expect(chips.map((c) => [c.type, c.owner, c.region, c.shown])).toEqual([
+      [C_REGION, DEU, BERLIN, 16],
+      [C_REGION, POL, BERLIN, 5],
+      [C_REGION, DEU, MUNICH, 2],
+    ]);
+    // Biggest first; strength and organisation are averages by divisions.
+    expect(chips[0].members).toEqual([2, 1]);
+    expect(chips[0].army).toBe(2);
+    expect(chips[0].strengthPm).toBe(Math.round((4 * 1000 + 12 * 500) / 16));
+    expect(chips[0].orgPm).toBe(Math.round((4 * 200 + 12 * 1000) / 16));
+    expect(chips[0].hue).toBe(2 % 4);
+    expect(chips[1].hue).toBe(-1); // not mine: no rim
+    // Two chips in Berlin fan apart by a chip's height.
+    expect(chips[0].y).toBe(17);
+    expect(chips[1].y).toBe(17 - REGION_STEP_PX);
+    // Taps: every army of the chip stands on it, my biggest first.
+    const mine = layoutTokens(v, 0, 1, DEU).filter(
+      (p) => v.armies.get(p.army)!.owner === DEU,
+    );
+    expect(hitToken(mine, 65, 17, 3, null)).toBe(2);
+    expect(hitToken(mine, 65, 17, 3, 2)).toBe(1);
+    expect(hitToken(mine, 65, 17, 3, 1)).toBe(2);
+  });
+
+  test("from zoom 6 my divisions stand one by one; past four a region shows three and +N", () => {
+    const divisions = [
+      ...[11, 12, 13, 14, 15, 16].map((id) => div(id, 1, BERLIN)),
+      div(17, 1, MUNICH, { battle: MUNICH, strengthPm: 400, orgPm: 300 }),
+    ];
+    const v = viewWith({
+      armies: [
+        army({ id: 1, divisions: 7, mine: mine({ pins: [[17, MUNICH]] }) }),
+        army({ id: 5, owner: POL, region: WARSAW }),
+      ],
+      details: [detailOf(divisions)],
+    });
+    const zoom = 8;
+    const cache = new TokenLayoutCache();
+    cache.update(v, 0, zoom, DEU);
+    expect(cache.level).toBe(LEVEL_DIVISION);
+    const cs = cache.counters.slice(0, cache.counterCount);
+    expect(cs.map((c) => [c.type, c.division, c.region])).toEqual([
+      [C_ARMY, 0, WARSAW], // another country stays one per army
+      [C_DIVISION, 11, BERLIN],
+      [C_DIVISION, 12, BERLIN],
+      [C_DIVISION, 13, BERLIN],
+      [C_MORE, 0, BERLIN],
+      [C_DIVISION, 17, MUNICH],
+    ]);
+    const more = cs[4];
+    expect(more.shown).toBe(3);
+    const munich = cs[5];
+    expect(munich).toMatchObject({
+      pinned: true,
+      state: ARMY_BATTLE,
+      strengthPm: 400,
+      orgPm: 300,
+      hue: 1,
+      symbol: 0, // infantry, the template's most numerous battalion
+    });
+    // Fanned as tokens are: center, up, down, up 2.
+    const step = TOKEN_STEP_PX[0] / zoom;
+    expect(cs.slice(1, 5).map((c) => c.y)).toEqual(
+      [0, 1, 2, 3].map((k) => 17 + fanSlot(k) * step),
+    );
+    // The taps: a division, the +N chip, another country's army.
+    const taps = layoutTokens(v, 0, zoom, DEU);
+    expect(hitCounter(taps, 65, 17 - step, 1, null)).toEqual({
+      kind: "division",
+      army: 1,
+      division: 12,
+    });
+    expect(hitCounter(taps, 65, 17 - 2 * step, 1, null)).toEqual({
+      kind: "more",
+      army: 1,
+      region: BERLIN,
+    });
+    expect(hitCounter(taps, 105, 25, 1, null)).toEqual({
+      kind: "army",
+      army: 5,
+    });
+    // hitToken still gives the army (today's taps choose it).
+    expect(hitToken(taps, 65, 17, 1, null)).toBe(1);
+    // A tap on +N opens the region: all six show.
+    counterStateOf(v).toggleOpen(BERLIN);
+    cache.update(v, 0, zoom, DEU);
+    expect(
+      cache.counters
+        .slice(0, cache.counterCount)
+        .filter((c) => c.type === C_DIVISION && c.region === BERLIN),
+    ).toHaveLength(6);
+    // Merging below 5 closes it again.
+    cache.update(v, 0, 4.9, DEU);
+    expect(cache.level).toBe(LEVEL_ARMY);
+    cache.update(v, 0, zoom, DEU);
+    expect(
+      cache.counters
+        .slice(0, cache.counterCount)
+        .some((c) => c.type === C_MORE),
+    ).toBe(true);
+  });
+
+  test("my divisions fan after another country's token in the same region; others never split", () => {
+    const v = viewWith({
+      armies: [
+        army({ id: 1, divisions: 1, mine: mine() }),
+        army({ id: 2, owner: POL, divisions: 9 }),
+      ],
+      details: [
+        detailOf([div(11, 1, BERLIN)]),
+        { ...detailOf([div(21, 2, BERLIN)]), smallID: POL },
+      ],
+    });
+    const zoom = 8;
+    const cache = new TokenLayoutCache();
+    cache.update(v, 0, zoom, DEU);
+    const cs = cache.counters.slice(0, cache.counterCount);
+    expect(cs.map((c) => c.type)).toEqual([C_ARMY, C_DIVISION]);
+    expect(cs[0]).toMatchObject({ army: 2, y: 17 });
+    expect(cs[1].y).toBe(17 + fanSlot(1) * (TOKEN_STEP_PX[0] / zoom));
+  });
+
+  test("a division that changes region glides there over TOKEN_EASE_TICKS", () => {
+    const at = (region: number) =>
+      data({
+        armies: [army({ id: 1, divisions: 1, mine: mine() })],
+        details: [detailOf([div(11, 1, region)])],
+      });
+    const v = new WwLandView(scenario);
+    v.apply(at(BERLIN), 10);
+    const cache = new TokenLayoutCache();
+    cache.update(v, 10, 8, DEU);
+    const d = () => cache.counters.find((c) => c.division === 11)!;
+    expect(d()).toMatchObject({ x: 65, y: 17 });
+    v.apply(at(MUNICH), 11);
+    cache.update(v, 11, 8, DEU);
+    expect(d()).toMatchObject({ x: 65, y: 17 });
+    cache.update(v, 11 + TOKEN_EASE_TICKS / 2, 8, DEU);
+    expect(d().y).toBeCloseTo((17 + 52) / 2, 9);
+    cache.update(v, 11 + TOKEN_EASE_TICKS, 8, DEU);
+    expect(d()).toMatchObject({ x: 65, y: 52 });
+  });
+
+  test("the pass draws region chips, division counters and +N with the hue rim and the pin", () => {
+    const uploads: Float32Array[] = [];
+    const gl = new Proxy(
+      {},
+      {
+        get: (_t, prop) => {
+          if (typeof prop === "string" && /^[A-Z0-9_]+$/.test(prop)) return 0;
+          if (prop === "bufferSubData") {
+            return (
+              _t: number,
+              _o: number,
+              d: Float32Array,
+              _s: number,
+              n: number,
+            ) => uploads.push(d.slice(0, n));
+          }
+          if (prop === "getProgramParameter" || prop === "getShaderParameter") {
+            return () => true;
+          }
+          return () => ({});
+        },
+      },
+    ) as WebGL2RenderingContext;
+    const pass = new ArmyTokenPass(gl, tex, tex);
+    const divisions = [1, 2, 3, 4, 5].map((i) => div(10 + i, 1, BERLIN));
+    const v = viewWith({
+      armies: [
+        army({ id: 1, divisions: 5, mine: mine({ pins: [[11, BERLIN]] }) }),
+      ],
+      details: [detailOf(divisions)],
+    });
+    const sel = new WwLandSelection();
+    const layout = new TokenLayoutCache();
+    const rows = () => {
+      const f = uploads[uploads.length - 1];
+      const out: number[][] = [];
+      for (let o = 0; o < f.length; o += 12) out.push([...f.slice(o, o + 12)]);
+      return out;
+    };
+    pass.update(v, layout, layout.update(v, 0, 8, DEU), sel, DEU);
+    expect(rows().map((r) => r[2])).toEqual([
+      KIND_DIVISION,
+      KIND_DIVISION,
+      KIND_DIVISION,
+      KIND_MORE,
+    ]);
+    expect(rows()[0][9]).toBe(counterFlags(false, 1, true));
+    expect(rows()[1][9]).toBe(counterFlags(false, 1, false));
+    expect(rows()[3][5]).toBe(2); // +2
+    // Zoomed far out: one region chip with the five divisions.
+    pass.update(v, layout, layout.update(v, 0, 1, DEU), sel, DEU);
+    expect(rows().map((r) => [r[2], r[5]])).toEqual([[KIND_CHIP, 5]]);
   });
 });
 

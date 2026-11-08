@@ -21,6 +21,7 @@ import { translateText } from "../../Utils";
 import type { WwEconomyView } from "../../view/WwEconomyView";
 import type { WwLandView } from "../../view/WwLandView";
 import { COMPACT_MAX_HEIGHT } from "../domestic/DomesticPanel";
+import { ARMY_HUD_KEYS, pinOf, WwStockLitEvent } from "./ArmyHudModel";
 import {
   armyEntries,
   ArmyEntry,
@@ -60,8 +61,12 @@ import {
   landSelectionOf,
   OpenWwArmyEvent,
   WwArmyTab,
+  WwDrawModeEvent,
+  WwPlannerEvent,
+  WwPlanViewEvent,
   WwSelectArmyEvent,
 } from "./LandSelection";
+import { PLANNER_KEYS } from "./PlannerKeys";
 import {
   dateLabel,
   today,
@@ -82,6 +87,7 @@ import { autoMaskOf, renderAutoSwitch } from "./WwAutoUi";
 import { convertOptions, renderConvertPicker } from "./WwConvertPicker";
 import { WwDrawerBase } from "./WwDrawer";
 import { WwLandChangedEvent } from "./WwLandController";
+import { wwMapFlowActive } from "./WwPanelMode";
 import "./WwTemplateDesigner";
 
 export const ARMY_TABS: readonly WwArmyTab[] = [
@@ -352,6 +358,9 @@ export class WwArmyPanel extends WwDrawerBase {
           onFront: () => {
             if (window.innerHeight <= COMPACT_MAX_HEIGHT) this.setOpen(false);
           },
+          lit: (groups) => this.eventBus.emit(new WwStockLitEvent(groups)),
+          drawLine: (mode, group) =>
+            this.eventBus.emit(new WwDrawModeEvent(mode, group)),
         });
         break;
     }
@@ -376,8 +385,25 @@ export class WwArmyPanel extends WwDrawerBase {
           on ? "ww1936.auto.all_auto" : "ww1936.auto.all_manual",
         )}
       </button>`;
-    return html`<div data-ww-army-auto class="mt-2 flex gap-1">
+    // ww162 (design §3): the plan view — every army of mine shows its lines.
+    const planView = landSelectionOf(this.game).planView;
+    return html`<div data-ww-army-auto class="mt-2 flex items-center gap-1">
         ${button(true)} ${button(false)}
+        <button
+          type="button"
+          data-ww-plan-view
+          aria-pressed=${String(planView)}
+          aria-label=${translateText(PLANNER_KEYS.planView)}
+          class="size-11 shrink-0 rounded-md border text-lg ${planView
+            ? "border-amber-300 bg-amber-700/50"
+            : "border-white/15 bg-white/5 hover:bg-white/10"}"
+          @click=${() => {
+            this.eventBus.emit(new WwPlanViewEvent());
+            this.requestUpdate();
+          }}
+        >
+          🗺
+        </button>
       </div>
       <p class="m-0 mt-1 text-xs leading-snug text-white/60">
         ${translateText("ww1936.auto.army_hint")}
@@ -513,7 +539,28 @@ export class WwArmyPanel extends WwDrawerBase {
     this.requestUpdate();
   }
 
+  /**
+   * ww162 (design §2): one division to command — the army is chosen, the
+   * card opens in [사단] with it checked, and the map's next tap sends it.
+   * The drawer steps aside while the mode is on (wwMapFlowActive).
+   */
+  private commandDivision(army: number, division: number) {
+    const sel = landSelectionOf(this.game);
+    // A map flow of this army already on (the drawer was opened over it)
+    // starts no new one, so the dock does not step the drawer aside: close it.
+    const flowOn = sel.army === army && wwMapFlowActive(this.game);
+    if (sel.army !== army) this.eventBus.emit(new WwSelectArmyEvent(army));
+    if (sel.draw !== "divisions") {
+      this.eventBus.emit(new WwDrawModeEvent("divisions"));
+    }
+    this.eventBus.emit(
+      new WwPlannerEvent({ kind: "pick", divisions: [division] }),
+    );
+    if (flowOn) this.setOpen(false);
+  }
+
   private renderDivisions(c: Ctx, army: number): TemplateResult {
+    const pins = c.view.armies.get(army)?.mine?.pins;
     return html`<ul
       data-ww-divisions
       class="m-0 mt-1 flex list-none flex-col gap-1 p-0"
@@ -545,6 +592,14 @@ export class WwArmyPanel extends WwDrawerBase {
                     >🔧 ${Math.floor(d.data.equipPm / 10)}%</span
                   >`
                 : nothing}
+              <button
+                type="button"
+                data-ww-division-command=${d.data.id}
+                class="h-10 shrink-0 rounded-md border border-white/15 bg-white/10 px-2 font-semibold hover:bg-white/20"
+                @click=${() => this.commandDivision(army, d.data.id)}
+              >
+                ▦ ${translateText(ARMY_HUD_KEYS.commandDivision)}
+              </button>
             </div>
             ${this.bars(d.data.strengthPm, d.data.orgPm)}
             ${(d.data.companies ?? []).length === 0
@@ -565,9 +620,40 @@ export class WwArmyPanel extends WwDrawerBase {
               })}
               · 📍 ${regionName(c.view.scenario, d.data.region)}
             </div>
+            ${this.renderPin(c, army, d.data.id, pinOf(pins, d.data.id))}
           </li>`,
       )}
     </ul>`;
+  }
+
+  /** ww162: a pinned division's pin and [해제] (division_release). */
+  private renderPin(
+    c: Ctx,
+    army: number,
+    division: number,
+    pin: number | null,
+  ): TemplateResult | typeof nothing {
+    if (pin === null) return nothing;
+    return html`<div
+      data-ww-division-pin=${pin}
+      class="mt-0.5 flex items-center gap-1.5 text-amber-300"
+    >
+      <span class="min-w-0 flex-1 truncate"
+        >📌
+        ${translateText(ARMY_HUD_KEYS.pinnedTo, {
+          region: regionName(c.view.scenario, pin),
+        })}</span
+      >
+      <button
+        type="button"
+        data-ww-division-release=${division}
+        class="h-10 shrink-0 rounded-md border border-white/15 bg-white/10 px-2 font-semibold text-white hover:bg-white/20"
+        @click=${() =>
+          this.send({ kind: "division_release", army, divisions: [division] })}
+      >
+        ${translateText(PLANNER_KEYS.btnRelease)}
+      </button>
+    </div>`;
   }
 
   // ---- Training ----

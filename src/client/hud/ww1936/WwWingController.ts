@@ -49,6 +49,12 @@ import {
 import { TWO_TAP_MIN_MS } from "./WorldWarModel";
 import type { SeaAirGlow } from "./WwSeaAirController";
 
+/** The air group a slot stands for: a group token, or (zoom 6 up) one of its wings' tokens; 0 none. */
+function groupOfSlot(slot: WingSlot): number {
+  if (slot.kind === SLOT_AIRGROUP) return slot.wing;
+  return slot.kind === SLOT_TOKEN ? (slot.group ?? 0) : 0;
+}
+
 /** Screen px within which an army token and an air token count as one pile. */
 const OVERLAP_PX = 14;
 
@@ -282,14 +288,15 @@ export class WwWingController implements Controller {
       const d2 =
         (army.x - slot.x) * (army.x - slot.x) +
         (army.y - slot.y) * (army.y - slot.y);
-      if (d2 > overlap * overlap || slot.kind !== SLOT_AIRGROUP) return false;
-      ui.chooser = { army: army.army, group: slot.wing };
+      const group = groupOfSlot(slot);
+      if (d2 > overlap * overlap || group === 0) return false;
+      ui.chooser = { army: army.army, group };
       this.sync(false);
       this.changed();
       return true;
     }
-    if (slot.kind === SLOT_AIRGROUP) {
-      this.eventBus.emit(new WwSelectGroupEvent(slot.wing));
+    if (groupOfSlot(slot) !== 0) {
+      this.eventBus.emit(new WwSelectGroupEvent(groupOfSlot(slot)));
       return true;
     }
     if (slot.kind === SLOT_TOKEN) {
@@ -318,7 +325,18 @@ export class WwWingController implements Controller {
     ).filter((p) => land.armies.get(p.army)?.owner === ctx.me);
     const hit = hitToken(mine, x, y, radius, null);
     if (hit === null) return null;
-    const p = mine.find((q) => q.army === hit);
+    // ww162: from zoom 6 an army stands as several division counters; its
+    // place here is the counter nearest the tap (the one the tap is on).
+    let p: (typeof mine)[number] | undefined;
+    let best = Infinity;
+    for (const q of mine) {
+      if (q.army !== hit) continue;
+      const d = (q.x - x) * (q.x - x) + (q.y - y) * (q.y - y);
+      if (d < best) {
+        best = d;
+        p = q;
+      }
+    }
     return p === undefined ? null : { army: hit, x: p.x, y: p.y };
   }
 
@@ -335,13 +353,14 @@ export class WwWingController implements Controller {
     }
     const slot = this.pick?.(x, y) ?? null;
     if (slot !== null && slot.owner === ctx.me) {
-      if (slot.kind === SLOT_AIRGROUP) {
-        if (slot.wing === g.id) {
+      const group = groupOfSlot(slot);
+      if (group !== 0) {
+        if (group === g.id) {
           ui.clear();
           this.sync(false);
           this.changed();
         } else {
-          this.eventBus.emit(new WwSelectGroupEvent(slot.wing));
+          this.eventBus.emit(new WwSelectGroupEvent(group));
         }
         return true;
       }

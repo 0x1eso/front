@@ -40,7 +40,8 @@ export function wwPanelStyle(minimized: boolean): string {
  */
 export function wwMapFlowActive(game: object): boolean {
   const land = landSelectionOf(game);
-  if (land.mode !== "none") return true;
+  // ww162: a line mode ([전선][공세선][후퇴선][사단]) draws on the map.
+  if (land.mode !== "none" || land.draw !== "none") return true;
   const multi = multiSelectOf(land);
   if (multi.active || multi.frontGroup !== null) return true;
   if (seaAirOf(game).draft.mode !== "none") return true;
