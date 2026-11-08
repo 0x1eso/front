@@ -15525,6 +15525,7 @@
       "war_title": "전쟁",
       "regime": "정체",
       "era": "시기",
+      "face_alt": "{name}의 사진",
       "blockade": "봉쇄",
       "shipping": "바다의 손실",
       "uboats": "잠수함",

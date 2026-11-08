@@ -196,6 +196,35 @@ export function envoyName(
   return row.nameBy?.[ownRole(t, who)] ?? row.name;
 }
 
+/** Whose face speaks for each country at the table (the pack's envoys). */
+const ENVOY_PERSON: Readonly<Partial<Record<GwTag, string>>> = {
+  FRA: "fra_clemenceau",
+  GBR: "gbr_lloyd_george",
+  USA: "usa_wilson",
+  ITA: "ita_sonnino",
+  RUS: "rus_sazonov",
+  JPN: "jpn_saionji",
+  DEU: "deu_kuhlmann",
+  AUH: "auh_czernin",
+  OTT: "ott_talat",
+};
+
+/**
+ * The person behind an envoy's line, for the face: the seat's own foreign
+ * minister, Brockdorff-Rantzau for a beaten Germany, null for the small
+ * countries' shared chair.
+ */
+export function envoyPerson(
+  who: GwTag,
+  t: GwTableView,
+  seat: GwSeatView,
+): string | null {
+  const own = seat.people.find((p) => p.office === "foreign");
+  if (who === seat.tag && own !== undefined) return own.id;
+  if (who === "DEU" && ownRole(t, who) === "lost") return "deu_brockdorff";
+  return ENVOY_PERSON[who] ?? null;
+}
+
 export function envoyTitle(
   pack: GwPack | null,
   who: GwTag,

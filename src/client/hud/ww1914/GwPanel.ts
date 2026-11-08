@@ -27,6 +27,7 @@ import { countryTab } from "./GwCountry";
 import type { GwCtx, GwUi } from "./GwCtx";
 import { deskTab, reader } from "./GwDesk";
 import { dictCard } from "./GwDict";
+import { loadGwFaces } from "./GwFace";
 import { frontsTab } from "./GwFronts";
 import { setMapBusy } from "./GwLensModel";
 import { GwMap } from "./GwMap";
@@ -104,6 +105,8 @@ export class GwPanel extends LitElement implements Controller {
   public mapView?: MapRenderer;
   @state() private data: GreatWarData | null = null;
   @state() private pack: GwPack | null = null;
+  /** The cast who have a photograph (faces/sources.json). */
+  @state() private faces: ReadonlySet<string> = new Set();
   private asked = false;
   private ticks = 0;
   private news = 0;
@@ -269,6 +272,7 @@ export class GwPanel extends LitElement implements Controller {
           (p) => (this.pack = p),
           (e) => console.error("Great War text pack", e),
         );
+        void loadGwFaces().then((f) => (this.faces = f));
       }
       if (data !== null && seat !== null) this.onData(data, seat);
     }
@@ -492,6 +496,7 @@ export class GwPanel extends LitElement implements Controller {
       data,
       seat,
       pack: this.pack,
+      faces: this.faces,
       ui,
       map: this.map,
       tick: this.ticks,
