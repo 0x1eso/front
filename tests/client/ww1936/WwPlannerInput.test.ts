@@ -433,4 +433,33 @@ describe("the battle planner's input (design §2)", () => {
     expect(counterStateOf(view).isOpen(4)).toBe(true);
     expect(m.sent).toEqual([]);
   });
+
+  it('ww162: an open "+N" fan closes on a tap elsewhere or on its own chip, not on its divisions', () => {
+    const [bx, by] = center(3);
+    const [kx, ky] = center(4);
+    const m = setup({
+      layout: () => [
+        { army: 1, x: bx, y: by, lod: 0, division: 2, region: 3 },
+        { army: 1, x: kx, y: ky, lod: 0, division: 1, region: 4 },
+        { army: 1, x: kx, y: ky + 5, lod: 0, more: 0, region: 4 },
+      ],
+    });
+    const state = counterStateOf(m.game.wwLand!()!);
+    // A tap on one of the open fan's divisions keeps it open.
+    state.toggleOpen(4);
+    m.tap(center(4));
+    expect(state.isOpen(4)).toBe(true);
+    expect(m.sel.divisions).toEqual([1, 2]);
+    // Its chip ("−") closes it.
+    m.tap([kx, ky + 5]);
+    expect(state.isOpen(4)).toBe(false);
+    // A tap elsewhere — a division of another region, the map — closes it too.
+    state.toggleOpen(4);
+    m.tap(center(3));
+    expect(state.isOpen(4)).toBe(false);
+    state.toggleOpen(4);
+    m.tap(away(6));
+    expect(state.isOpen(4)).toBe(false);
+    expect(m.sent).toEqual([]);
+  });
 });

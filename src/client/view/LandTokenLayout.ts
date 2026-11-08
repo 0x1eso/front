@@ -115,6 +115,19 @@ export class CounterState {
     if (!this.open.delete(region)) this.open.add(region);
     this.version++;
   }
+
+  /** Whether some region's fan is open. */
+  anyOpen(): boolean {
+    return this.open.size > 0;
+  }
+
+  /** Closes every open fan (a tap elsewhere); true when one was open. */
+  closeAll(): boolean {
+    if (this.open.size === 0) return false;
+    this.open.clear();
+    this.version++;
+    return true;
+  }
 }
 
 const COUNTER_STATES = new WeakMap<WwLandView, CounterState>();
@@ -135,7 +148,11 @@ export const C_ARMY = 0;
 export const C_REGION = 1;
 /** One of my divisions. */
 export const C_DIVISION = 2;
-/** "+N": my divisions in a region past REGION_DIVISIONS_MAX. */
+/**
+ * "+N": my divisions in a region past REGION_DIVISIONS_MAX. A fan a tap
+ * opened keeps it in the same slot with N = 0 (drawn "−", the rest of the
+ * fan past it): a second tap there closes the fan again.
+ */
 export const C_MORE = 3;
 
 /** Bars as the fog lets them show: exact, in steps ("close"), or unknown. */
@@ -460,7 +477,11 @@ export function battleMarkers(
     });
 }
 
-/** A token put somewhere else by a sample glides there over this many ticks… */
+/**
+ * A token put somewhere else by a sample glides there over this many ticks
+ * (of the ease clock: TokenLayoutCache.update's `easeAt`, which runs on
+ * while the game is paused)…
+ */
 export const TOKEN_EASE_TICKS = 2;
 /** …when it moved more than this (tiles; less is a frame's own glide)… */
 const TOKEN_EASE_MIN_TILES = 0.5;
@@ -544,11 +565,30 @@ export class TokenLayoutCache {
   private readonly divEases = new Map<number, TokenEase>();
 
   /**
+   * ww162: the regions where a standing counter is drawn (not one on the
+   * move), and a version bumped when they change: the wing tokens at an air
+   * base there take a column of their own beside the land counters.
+   */
+  readonly landRegions = new Set<number>();
+  landRegionsVersion = 0;
+  private readonly landRegionsNext = new Set<number>();
+  /** The ease clock the last frame was laid out at. */
+  private lastEaseAt = Number.NaN;
+
+  /**
    * Lays the tokens out for fractional tick `tick`; true when a placement
    * or a counter changed. `me` (the viewer whose divisions split) defaults
-   * to the fog's.
+   * to the fog's. The glides run on `easeAt` (ticks; by default the game's
+   * own): the renderer gives a wall clock in ticks, so a counter a tap moved
+   * while the game is paused (a "+N" fan, a regroup) still glides home.
    */
-  update(view: WwLandView, tick: number, zoom: number, me?: number): boolean {
+  update(
+    view: WwLandView,
+    tick: number,
+    zoom: number,
+    me?: number,
+    easeAt: number = tick,
+  ): boolean {
     const base = Math.floor(tick);
     const frac = tick - base;
     let sampled = false;
@@ -580,8 +620,9 @@ export class TokenLayoutCache {
       state !== this.stateSeen ||
       state.version !== this.stateVersion;
     const glides =
-      (this.moving || this.eases.size > 0 || this.divEases.size > 0) &&
-      tick !== this.lastTick;
+      (this.moving && tick !== this.lastTick) ||
+      ((this.eases.size > 0 || this.divEases.size > 0) &&
+        easeAt !== this.lastEaseAt);
     if (!regroup && !glides && zoom === this.lastZoom) return false;
     const keepDivs =
       regroup &&
@@ -589,8 +630,12 @@ export class TokenLayoutCache {
       level === LEVEL_DIVISION &&
       this.level === LEVEL_DIVISION &&
       zoom === this.lastZoom;
-    if (regroup) this.group(view, viewer, level, state, keepDivs);
+    if (regroup) {
+      this.group(view, viewer, level, state, keepDivs);
+      this.noteLandRegions();
+    }
     this.lastTick = tick;
+    this.lastEaseAt = easeAt;
     this.lastZoom = zoom;
     const lod = tokenLod(zoom);
     for (let i = 0; i < this.count; i++) {
@@ -613,11 +658,11 @@ export class TokenLayoutCache {
       this.rawX[i] = this.placements[i].x;
       this.rawY[i] = this.placements[i].y;
     }
-    if (sampled) this.noteJumps(tick);
-    if (this.eases.size > 0) this.ease(tick);
+    if (sampled) this.noteJumps(easeAt);
+    if (this.eases.size > 0) this.ease(easeAt);
     this.placeCounters(zoom);
-    if (keepDivs) this.noteDivJumps(tick);
-    if (this.divEases.size > 0) this.easeDivs(tick);
+    if (keepDivs) this.noteDivJumps(easeAt);
+    if (this.divEases.size > 0) this.easeDivs(easeAt);
     return true;
   }
 
@@ -647,6 +692,7 @@ export class TokenLayoutCache {
           y: c.y,
           lod: 3,
           division: c.division,
+          region: c.region,
         });
       } else {
         out.push({
@@ -885,12 +931,13 @@ export class TokenLayoutCache {
       let e = s;
       while (e < divs.length && divs[e].region === region) e++;
       const m = e - s;
+      const many = m > REGION_DIVISIONS_MAX;
       const shownN =
-        m > REGION_DIVISIONS_MAX && !state.isOpen(region)
-          ? REGION_DIVISIONS_MAX - 1
-          : m;
+        many && !state.isOpen(region) ? REGION_DIVISIONS_MAX - 1 : m;
       const slot0 =
         (standing.get(region) ?? 0) + (view.battles.has(region) ? 1 : 0);
+      // The chip keeps its slot, open or not: under the finger that opened it.
+      const chipSlot = REGION_DIVISIONS_MAX - 1;
       for (let j = 0; j < shownN; j++) {
         const d = divs[s + j];
         const c = this.take(k++);
@@ -899,7 +946,7 @@ export class TokenLayoutCache {
         c.division = d.id;
         c.owner = me;
         this.center(c, region);
-        c.slot = slot0 + j;
+        c.slot = slot0 + (many && j >= chipSlot ? j + 1 : j);
         c.members.push(d.army);
         c.symbol = symbols.get(d.template) ?? split.get(d.army)!.symbol;
         c.shown = 1;
@@ -909,13 +956,14 @@ export class TokenLayoutCache {
         c.hue = d.army % ZONE_HUES;
         c.pinned = pinned.has(d.id);
       }
-      if (shownN < m) {
+      // An open fan keeps its chip ("−", N = 0): a tap on it closes the fan.
+      if (many) {
         const c = this.take(k++);
         c.type = C_MORE;
-        c.army = divs[s + shownN].army;
+        c.army = divs[s + chipSlot].army;
         c.owner = me;
         this.center(c, region);
-        c.slot = slot0 + shownN;
+        c.slot = slot0 + chipSlot;
         c.members.push(c.army);
         c.shown = m - shownN;
         c.hue = c.army % ZONE_HUES;
@@ -923,6 +971,31 @@ export class TokenLayoutCache {
       s = e;
     }
     return k;
+  }
+
+  /** Refreshes landRegions from the counters; bumps the version on a change. */
+  private noteLandRegions(): void {
+    const next = this.landRegionsNext;
+    next.clear();
+    for (let i = 0; i < this.counterCount; i++) {
+      const c = this.counters[i];
+      if (c.index >= 0 && this.armies[c.index].move !== null) continue;
+      next.add(c.region);
+    }
+    const cur = this.landRegions;
+    let same = next.size === cur.size;
+    if (same) {
+      for (const r of next) {
+        if (!cur.has(r)) {
+          same = false;
+          break;
+        }
+      }
+    }
+    if (same) return;
+    cur.clear();
+    for (const r of next) cur.add(r);
+    this.landRegionsVersion++;
   }
 
   /** Each counter's place for this frame: its army's placement, or its region's fan slot. */

@@ -47,16 +47,13 @@ import {
   WwWingChangedEvent,
 } from "./WingUi";
 import { TWO_TAP_MIN_MS } from "./WorldWarModel";
-import type { SeaAirGlow } from "./WwSeaAirController";
+import { type SeaAirGlow, seaAirOf } from "./WwSeaAirController";
 
 /** The air group a slot stands for: a group token, or (zoom 6 up) one of its wings' tokens; 0 none. */
 function groupOfSlot(slot: WingSlot): number {
   if (slot.kind === SLOT_AIRGROUP) return slot.wing;
   return slot.kind === SLOT_TOKEN ? (slot.group ?? 0) : 0;
 }
-
-/** Screen px within which an army token and an air token count as one pile. */
-const OVERLAP_PX = 14;
 
 /** The regions or sea regions that glow for the chosen mode (the render lane draws them). */
 export function wingGlow(game: NavyGame): SeaAirGlow | null {
@@ -188,13 +185,13 @@ export class WwWingController implements Controller {
     if (
       this.ui.ids.length === 0 &&
       this.ui.mode === "none" &&
-      this.ui.airGroup === 0 &&
-      this.ui.chooser === null
+      this.ui.airGroup === 0
     ) {
       return;
     }
     this.ui.clear();
-    this.sync(false);
+    // The map's focus (the range ellipse, the chosen glow) goes with it.
+    this.changed();
   }
 
   /** Back closes the mode, then the choice. */
@@ -202,15 +199,9 @@ export class WwWingController implements Controller {
     const ui = this.ui;
     this.unregisterBack?.();
     this.unregisterBack = null;
-    if (
-      ui.ids.length > 0 ||
-      ui.mode !== "none" ||
-      ui.airGroup !== 0 ||
-      ui.chooser !== null
-    ) {
+    if (ui.ids.length > 0 || ui.mode !== "none" || ui.airGroup !== 0) {
       this.unregisterBack = registerBackClosable(() => {
-        if (ui.chooser !== null) ui.chooser = null;
-        else if (ui.mode !== "none") ui.reset();
+        if (ui.mode !== "none") ui.reset();
         else if (ui.ids.length > 0) ui.clear();
         else return false;
         this.eventBus.emit(new WwWingChangedEvent());
@@ -280,20 +271,14 @@ export class WwWingController implements Controller {
     const ctx = navyCtx(this.game);
     if (slot === null || ctx === null || slot.owner !== ctx.me) return false;
     const ui = this.ui;
-    // w51: an army's token wins the tap; only a token truly on top of an air
-    // token (their centres within a token's size) asks which one.
-    const army = this.armyAt(ctx, x, y, radius);
-    if (army !== null) {
-      const overlap = OVERLAP_PX / Math.max(1e-6, this.zoom());
-      const d2 =
-        (army.x - slot.x) * (army.x - slot.x) +
-        (army.y - slot.y) * (army.y - slot.y);
-      const group = groupOfSlot(slot);
-      if (d2 > overlap * overlap || group === 0) return false;
-      ui.chooser = { army: army.army, group };
-      this.sync(false);
-      this.changed();
-      return true;
+    // ww162: the wings fan beside the land counters (WING_COLUMN_PX), so a
+    // tap reaches either. Where both are in reach the layer decides: the
+    // air layer on gives the wing the tap, off the land counter.
+    if (
+      seaAirOf(this.game).selection.layer !== "air" &&
+      this.armyAt(ctx, x, y, radius) !== null
+    ) {
+      return false;
     }
     if (groupOfSlot(slot) !== 0) {
       this.eventBus.emit(new WwSelectGroupEvent(groupOfSlot(slot)));
@@ -309,13 +294,13 @@ export class WwWingController implements Controller {
     return true;
   }
 
-  /** My army token under the tap (reach `radius` tiles), with its place; null none. */
+  /** My army under the tap (one of its counters within `radius` tiles); null none. */
   private armyAt(
     ctx: NavyCtx,
     x: number,
     y: number,
     radius: number,
-  ): { army: number; x: number; y: number } | null {
+  ): number | null {
     if (ctx.land === null) return null;
     const land = ctx.land;
     const mine = layoutTokens(
@@ -323,21 +308,7 @@ export class WwWingController implements Controller {
       this.game.ticks(),
       Math.max(1e-6, this.zoom()),
     ).filter((p) => land.armies.get(p.army)?.owner === ctx.me);
-    const hit = hitToken(mine, x, y, radius, null);
-    if (hit === null) return null;
-    // ww162: from zoom 6 an army stands as several division counters; its
-    // place here is the counter nearest the tap (the one the tap is on).
-    let p: (typeof mine)[number] | undefined;
-    let best = Infinity;
-    for (const q of mine) {
-      if (q.army !== hit) continue;
-      const d = (q.x - x) * (q.x - x) + (q.y - y) * (q.y - y);
-      if (d < best) {
-        best = d;
-        p = q;
-      }
-    }
-    return p === undefined ? null : { army: hit, x: p.x, y: p.y };
+    return hitToken(mine, x, y, radius, null);
   }
 
   /** A tap with a group chosen: another token, my army (follow), or a zone (add or remove). */
@@ -371,7 +342,7 @@ export class WwWingController implements Controller {
     const cur = shownGroup(g, ui.draft, now);
     const army = this.armyAt(ctx, x, y, radius);
     if (army !== null) {
-      this.sendGroup(g, { zones: [], priority: 0, army: army.army }, now);
+      this.sendGroup(g, { zones: [], priority: 0, army }, now);
       return true;
     }
     if (ui.pickTarget) {

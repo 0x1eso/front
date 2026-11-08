@@ -41,8 +41,6 @@ export class WingUi {
   disbandAsk = false;
   /** w51: the chosen air group (0 none): its zone taps, its card. */
   airGroup = 0;
-  /** w51: an army and a group that overlap under one tap: the chooser asks which. */
-  chooser: { army: number; group: number } | null = null;
   /** w51: the order just sent, shown until the view catches up (taps in a row build on it). */
   draft: {
     group: number;
@@ -65,7 +63,6 @@ export class WingUi {
 
   select(ids: readonly number[], add = false): void {
     this.airGroup = 0;
-    this.chooser = null;
     const next = add ? [...this.ids, ...ids] : [...ids];
     this.ids = [...new Set(next)].sort((a, b) => a - b);
     this.reset();
@@ -74,7 +71,6 @@ export class WingUi {
   clear(): void {
     this.ids = [];
     this.airGroup = 0;
-    this.chooser = null;
     this.groupRefused = "";
     this.pickTarget = false;
     this.reset();

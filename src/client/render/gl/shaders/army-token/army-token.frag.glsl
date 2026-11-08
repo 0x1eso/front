@@ -289,10 +289,15 @@ void main() {
     col = rings(col, dBox, chosen, false);
     col = over(col, rim, cover(dBox));
     col = over(col, vec3(0.1, 0.1, 0.12), 0.92 * cover(dBox + rimW));
-    vec2 q = p - vec2(-6.0, 0.0);
-    float dPlus = min(sdBox(q, vec2(3.4, 1.0), 0.0), sdBox(q, vec2(1.0, 3.4), 0.0));
-    col = over(col, vec3(1.0), cover(dPlus));
-    col = countAt(col, p, vec2(4.0, 0.0), 17.0, vB.y);
+    if (vB.y < 0.5) {
+      // N = 0: the fan is open; its "−" closes it again.
+      col = over(col, vec3(1.0), cover(sdBox(p, vec2(5.0, 1.2), 0.0)));
+    } else {
+      vec2 q = p - vec2(-6.0, 0.0);
+      float dPlus = min(sdBox(q, vec2(3.4, 1.0), 0.0), sdBox(q, vec2(1.0, 3.4), 0.0));
+      col = over(col, vec3(1.0), cover(dPlus));
+      col = countAt(col, p, vec2(4.0, 0.0), 17.0, vB.y);
+    }
   } else {
     // Front dots: up to five, one per division of the army in that region.
     // ww44: a direct attack's rows (state 8..11 attacking, holding, waiting,

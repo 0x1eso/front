@@ -6308,7 +6308,6 @@
       "name_hint": "Template name",
       "night": "Night",
       "none": "No air groups yet. Save a template and keep one formed, and the groups appear here.",
-      "pick_army": "Army {army}",
       "priority": "Priority zone",
       "range_km": "{km} km",
       "range_spread": "Ranges {min} to {max} km.",
@@ -6341,7 +6340,6 @@
       "tpl_none": "No templates yet.",
       "type_dec": "25 fewer",
       "type_inc": "25 more",
-      "which": "Which?",
       "yesterday": "yesterday {kills} kills, {lost} lost",
       "zone_planes": "{n} planes",
       "zone_sup": "air {mine}% vs {enemy}%"
