@@ -40,7 +40,11 @@ import {
   INTERCEPTOR_NUKES,
   STOCKPILED_NUKES,
 } from "./strategic/StrategicTypes";
-import { GW_CALENDAR_IDS } from "./ww1914/GreatWarTypes";
+import {
+  GW_CALENDAR_IDS,
+  GW_TIMER_MAX_SEC,
+  GW_TIMER_MIN_SEC,
+} from "./ww1914/GreatWarTypes";
 import { GW_TAGS } from "./ww1914/GwCountries";
 import { GwOrderIntentSchema } from "./ww1914/GwOrders";
 import {
@@ -566,6 +570,11 @@ export const GameConfigSchema = z.object({
       play: z.boolean(),
       picks: z.array(zb.string({ min: 1, max: 100 })).max(200),
     })
+    .optional(),
+  // Great War 1914 with friends: the host's chapter timer, in place of the
+  // table's (design §9). Absent means the table.
+  greatWar1914TimerSec: zb
+    .uint({ min: GW_TIMER_MIN_SEC, max: GW_TIMER_MAX_SEC })
     .optional(),
 });
 
@@ -1831,8 +1840,8 @@ export const PlayerSchema = z.object({
   // World War 1936: the country this player picked in the lobby, stamped by
   // the server (spec §7.1). Missing or taken picks get a free country.
   country: z.enum(COUNTRY_TAGS).optional(),
-  // Great War 1914: the seat this player picked. Its own field: COUNTRY_TAGS
-  // can't name AUH, RUS and the rest of 1914.
+  // Great War 1914: the seat this player picked, stamped by the server. Its
+  // own field: COUNTRY_TAGS can't name AUH, RUS and the rest of 1914.
   gwCountry: z.enum(GW_TAGS).optional(),
 });
 

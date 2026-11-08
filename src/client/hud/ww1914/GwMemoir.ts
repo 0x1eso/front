@@ -4,7 +4,7 @@ import { translateText } from "../../Utils";
 import type { GwCtx } from "./GwCtx";
 import { rich } from "./GwDict";
 import { endingsOf, logByChapter, shelfTotals } from "./GwModel";
-import { CHIP, HEAD, MUTED } from "./GwStyle";
+import { BTN, CHIP, HEAD, MUTED } from "./GwStyle";
 import { countryName, placeName } from "./GwTableModel";
 import {
   countInMan,
@@ -283,8 +283,21 @@ export function memoirTab(c: GwCtx): TemplateResult {
       ? html`<p class="text-sm text-white/70">
           ${translateText("gw.ui.memoir_open")}
         </p>`
-      : html`${ending(c, m)} ${mapBox(c, m)} ${aimBox(c, m)} ${mandates(m)}
-        ${turns(m)} ${reckoning(m)} ${cast(c, m)} ${unknown(c, m)}`}
+      : html`${ending(c, m)}
+        ${c.data.finale === null
+          ? nothing
+          : html`<button
+              class="${BTN} w-full text-center"
+              data-gw-finale-open
+              @click=${() => {
+                c.ui.finale = true;
+                c.redraw();
+              }}
+            >
+              ${translateText("gw.diplo.finale_open")}
+            </button>`}
+        ${mapBox(c, m)} ${aimBox(c, m)} ${mandates(m)} ${turns(m)}
+        ${reckoning(m)} ${cast(c, m)} ${unknown(c, m)}`}
     <section class=${BOX}>
       <h3 class=${HEAD}>${translateText("gw.ui.record_title")}</h3>
       ${record.length === 0

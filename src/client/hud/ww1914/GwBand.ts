@@ -46,6 +46,14 @@ export function band(c: GwCtx): TemplateResult {
       ${left === null
         ? nothing
         : html`<span class=${CHIP} data-gw-timer>${clock(left)}</span>`}
+      ${data.roster.length > 1
+        ? html`<span class=${CHIP} data-gw-ready-count
+            >${translateText("gw.diplo.ready_count", {
+              n: data.roster.filter((r) => r.ready).length,
+              total: data.roster.length,
+            })}</span
+          >`
+        : nothing}
       ${data.stage === "crisis"
         ? html`<span class=${CHIP} data-gw-temp
             >${translateText(`gw.ui.temp.${tempBand(data.temp)}`)}</span

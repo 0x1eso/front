@@ -48,6 +48,7 @@ import {
   ClientJoinMessage,
   ClientMessage,
   ClientPickCountryMessage,
+  ClientPickSeatMessage,
   ClientPingMessage,
   ClientRejoinMessage,
   ClientReportMessage,
@@ -74,6 +75,7 @@ import { showInGameConfirm } from "./InGameModal";
 import {
   SendKickPlayerIntentEvent,
   SendPickCountryEvent,
+  SendPickSeatEvent,
   SendSpectateEvent,
   SendToggleGameStartTimer,
   SendUpdateGameConfigIntentEvent,
@@ -549,6 +551,12 @@ export class Transport {
         type: "pick_country",
         tag: e.tag,
       } satisfies ClientPickCountryMessage);
+    });
+    this.subscribe(SendPickSeatEvent, (e) => {
+      this.sendMsg({
+        type: "pick_seat",
+        tag: e.tag,
+      } satisfies ClientPickSeatMessage);
     });
     this.subscribe(SendDeclareWarIntentEvent, (e) =>
       this.sendIntent({ type: "declare_war", target: e.target.id() }),

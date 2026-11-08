@@ -5,6 +5,7 @@ import {
   UnitType,
 } from "@openfront/engine-api/game/GameTypes";
 import { GameConfig } from "@openfront/engine-api/Schemas";
+import { GW_MAX_SEATS } from "@openfront/engine-api/ww1914/GwCountries";
 import { normalizeWorldWar1936Config } from "../ww1936/ModeConfig";
 import { gwCalendarOf } from "./Calendars";
 
@@ -46,6 +47,8 @@ export function applyGreatWar1914Rules(c: GameConfig): void {
   c.infiniteTroops = false;
   c.disabledUnits = Object.values(UnitType);
   c.greatWar1914Calendar = gwCalendarOf(c);
+  // Up to eight friends; the AI has the rest (design §9).
+  c.maxPlayers = Math.min(c.maxPlayers ?? GW_MAX_SEATS, GW_MAX_SEATS);
 }
 
 /**

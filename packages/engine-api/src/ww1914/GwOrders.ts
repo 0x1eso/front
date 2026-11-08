@@ -5,17 +5,51 @@ import { z } from "zod";
 import {
   GW_ASK_CLAUSES,
   GW_BACK_DIRECTIONS,
+  GW_CIPHERS,
+  GW_CLAUSE_KINDS,
   GW_GIVE_CLAUSES,
   GW_OFFICES,
   GW_POSTURES,
   GW_RESEARCH,
   GW_SCALES,
+  GW_SIDES,
+  GW_TELEGRAM_MAX,
   GW_THEATRES,
+  GW_TREATY_CLAUSES_MAX,
 } from "./GreatWarTypes";
+import { GW_TAGS } from "./GwCountries";
 import { GW_TABLE_TRADES, GW_TABLE_WORDS } from "./GwTable";
 
 const Id = zb.string({ min: 1, max: 48, regex: /^[a-z][a-z0-9_]*$/ });
 const Card = zb.uint({ max: 100_000_000 });
+
+/**
+ * A telegram's text. SafeString has no Hangul, and a message failing its
+ * schema gets the sender kicked, so this refuses only what can't be shown:
+ * control, format and unassigned characters, line breaks apart. The composer
+ * strips those (gwCleanTelegram), the server runs the rest through Censor.
+ */
+export const GwTelegramTextSchema = zb.string({
+  min: 1,
+  max: GW_TELEGRAM_MAX,
+  regex: /^(?:\n|\P{C})+$/u,
+});
+
+/** What a composer sends: nothing the schema would refuse. */
+export function gwCleanTelegram(text: string): string {
+  return text
+    .replace(/\r\n?/g, "\n")
+    .replace(/(?!\n)\p{C}/gu, "")
+    .trim()
+    .slice(0, GW_TELEGRAM_MAX);
+}
+
+const ClauseSchema = z.object({
+  kind: z.enum(GW_CLAUSE_KINDS),
+  by: z.enum(GW_TAGS),
+  theatre: z.enum(GW_THEATRES).nullable(),
+  value: zb.uint({ max: 1000 }),
+});
 
 export const GwOrderSchema = z.discriminatedUnion("kind", [
   /** The seat is done with this chapter (or takes it back). */
@@ -120,6 +154,31 @@ export const GwOrderSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("field"), invention: Id }),
   /** The next step of the footing: its big scene comes now. */
   z.object({ kind: z.literal("footing") }),
+  /** Asks for more reading time for everyone (the host agrees). */
+  z.object({ kind: z.literal("slow") }),
+  /** The host's answer to the seats that asked. */
+  z.object({ kind: z.literal("slow_answer"), grant: z.boolean() }),
+  /** A telegram to another seat: it arrives next chapter. */
+  z.object({
+    kind: z.literal("telegram"),
+    to: z.enum(GW_TAGS),
+    cipher: zb.uint({ max: GW_CIPHERS.length - 1 }),
+    text: GwTelegramTextSchema,
+  }),
+  /** A secret treaty put together from clauses, offered to one country. */
+  z.object({
+    kind: z.literal("treaty_offer"),
+    to: z.enum(GW_TAGS),
+    clauses: z.array(ClauseSchema).min(1).max(GW_TREATY_CLAUSES_MAX),
+  }),
+  z.object({
+    kind: z.literal("treaty_answer"),
+    treaty: Card,
+    sign: z.boolean(),
+  }),
+  z.object({ kind: z.literal("treaty_break"), treaty: Card }),
+  /** A neutral seat goes to war on a side. */
+  z.object({ kind: z.literal("enter_war"), side: z.enum(GW_SIDES) }),
 ]);
 export type GwOrder = z.infer<typeof GwOrderSchema>;
 
@@ -164,5 +223,16 @@ export const GW_ORDER_BLOCKS = [
   "no_front",
   "no_craft",
   "no_footing",
+  "not_host",
+  "not_asked",
+  "slow_spent",
+  "no_seat",
+  "too_many",
+  "no_authority_cipher",
+  "bad_clause",
+  "no_treaty",
+  "treaty_bars",
+  "no_war",
+  "at_war",
 ] as const;
 export type GwOrderBlock = (typeof GW_ORDER_BLOCKS)[number];

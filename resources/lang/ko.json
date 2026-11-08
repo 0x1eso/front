@@ -14532,7 +14532,9 @@
       "shortage_copper": "구리 부족이 드러났다.",
       "shortage_fats": "유지 부족이 드러났다.",
       "shortage_nitrates": "질산염 부족이 드러났다.",
-      "shortage_rubber": "고무 부족이 드러났다."
+      "shortage_rubber": "고무 부족이 드러났다.",
+      "treaty_loan_got": "조약에 따른 차관이 들어왔다",
+      "treaty_loan_paid": "조약에 따른 차관이 나갔다"
     },
     "mandate": {
       "deu_bread_for_the_winter": "겨울 빵을 남기기",
@@ -14675,7 +14677,10 @@
       "house_split": "{a}의 의회에서 당이 갈라졌다.",
       "house_joined": "{a}의 의회에서 여러 무리가 뭉쳤다.",
       "house_brought": "{a}의 의회가 스스로 법안을 올렸다.",
-      "file_scandal": "{a}에서 추문이 터졌다. 한 사람의 뒷일이 신문에 실렸다."
+      "file_scandal": "{a}에서 추문이 터졌다. 한 사람의 뒷일이 신문에 실렸다.",
+      "regent_took_over": "{a}에서 섭정이 나라를 맡았다.",
+      "treaty_leaked": "{a}과(와) {b} 사이의 비밀 조약이 새어 나왔다.",
+      "treaty_broken": "{a}이(가) {b}과(와)의 조약을 깼다."
     },
     "odds": {
       "0": "될 일이 아닙니다.",
@@ -14912,7 +14917,14 @@
       "ask_taken": "{who}에게 약속했다. 동맹은 이 말을 붙들고 있을 것이다.",
       "ask_refused": "{who}의 청을 거절했다. 동맹은 잊지 않을 것이다.",
       "ask_kept": "{who}에게 한 말을 지켰다. 동맹의 도움이 온다.",
-      "ask_broken": "{who}에게 한 말을 어겼다."
+      "ask_broken": "{who}에게 한 말을 어겼다.",
+      "seat_taken_back": "섭정에게서 자리를 돌려받았다.",
+      "regent_took_over": "자리가 비어 섭정이 나라를 맡았다.",
+      "treaty_i_broke": "비밀 조약을 깼다.",
+      "treaty_lapsed": "조약 제안이 답 없이 기한을 넘겼다.",
+      "treaty_refused": "조약 제안이 거절되었다.",
+      "treaty_signed": "비밀 조약에 서명했다.",
+      "treaty_broken": "상대가 비밀 조약을 깼다."
     },
     "result": {
       "advance": "전진",
@@ -15176,7 +15188,8 @@
       "gov_held_rus_cabinet": "각료들의 청원을 넘겼다",
       "gov_held_rus_duma": "두마와의 싸움을 넘겼다",
       "gov_held_rus_court": "멈춘 기차를 움직였다",
-      "table_signed": "강화 조약이 서명되고 지도가 다시 그려졌다."
+      "table_signed": "강화 조약이 서명되고 지도가 다시 그려졌다.",
+      "treaty_leaked": "비밀 조약이 새어 나왔다."
     },
     "ui": {
       "alloc_now": "지금: {main}, {posture}, {scale}",
@@ -15219,7 +15232,18 @@
         "no_claims": "이 지도에는 서명할 수 없습니다.",
         "table_no": "지금 탁자에서 그 말은 할 수 없습니다.",
         "no_craft": "지금은 할 수 없다.",
-        "no_footing": "지금은 체제를 올릴 수 없다."
+        "no_footing": "지금은 체제를 올릴 수 없다.",
+        "at_war": "이미 그 나라와 전쟁 중이다.",
+        "no_treaty": "그런 조약이 없다.",
+        "no_authority_cipher": "그 암호를 쓸 권위가 모자란다.",
+        "not_host": "방장만 답할 수 있다.",
+        "slow_spent": "이 장에는 더 늘릴 수 없다.",
+        "treaty_bars": "서명한 조약이 막고 있다.",
+        "no_seat": "그 자리에 친구가 없다.",
+        "bad_clause": "조항이 맞지 않는다.",
+        "not_asked": "청한 자리가 없다.",
+        "too_many": "이 장에는 더 할 수 없다.",
+        "no_war": "들어갈 전쟁이 없다."
       },
       "brief_label": "비서의 메모",
       "calendar": {
@@ -15469,7 +15493,8 @@
         "notebook": "수첩",
         "blocs": "정국",
         "schedule": "일정",
-        "table": "강화 회의"
+        "table": "강화 회의",
+        "diplo": "외교"
       },
       "talk_done": "자리를 일어선다",
       "talk_ended": "대화가 끝났다.",
@@ -16415,6 +16440,110 @@
         "old_scandal": "오래된 추문",
         "health": "숨긴 병"
       }
+    },
+    "wire": {
+      "box": {
+        "copy": "우리 감청이 뜬 사본",
+        "in": "받음",
+        "sent": "보냄"
+      },
+      "cipher": {
+        "0": "평문",
+        "1": "외교 암호",
+        "2": "최고 암호"
+      },
+      "cost": "권위 {n}",
+      "delivered": "도착",
+      "on_the_way": "가는 중"
+    },
+    "lobby": {
+      "resume_failed": "저장한 판을 로비에 올리지 못했습니다.",
+      "resume_none": "이 브라우저에 저장한 판이 없습니다.",
+      "resume_not_friends": "그 판은 혼자 한 판입니다.",
+      "resume_note": "저장한 판을 이어 합니다: {date}, {n}장. 예전 자리를 고르세요.",
+      "resume_open": "저장한 판 이어하기",
+      "seat_free": "비어 있음",
+      "seat_unwritten": "지금은 공통 장면만 있음",
+      "seats_hint": "자리를 고르세요. 아무도 안 고른 나라는 AI가 맡습니다.",
+      "timer_label": "장 타이머",
+      "timer_sec": "{n}초",
+      "timer_table": "장마다 다르게",
+      "saved_friends": "저장했습니다. 새 방의 「저장한 판 이어하기」에서 이어 합니다."
+    },
+    "treaty": {
+      "break": "이 조약을 깬다",
+      "break_sure": "깬다: 세계가 기억한다",
+      "clause": {
+        "alliance": "동맹: 같은 전쟁을 치른다. 중립인 쪽은 {grace}장 안에 들어온다.",
+        "entry": "{by}은(는) {n}장까지 {other} 편에 선다.",
+        "loan": "{by}은(는) {other}에 지금과 여섯 장마다 돈 {n}을 빌려준다.",
+        "neutrality": "{by}은(는) {other}과(와) 싸우지 않는다.",
+        "passage": "{by}은(는) {theatre}에서 {other}에 길을 연다.",
+        "territory": "{by}은(는) {other}에 {theatre}의 {line}을(를) 약속한다."
+      },
+      "kind": {
+        "alliance": "동맹",
+        "entry": "참전 시기",
+        "loan": "차관",
+        "neutrality": "중립",
+        "passage": "통행",
+        "territory": "영토 약속"
+      },
+      "leaked": "세계가 이 조약을 안다.",
+      "loan_amount": "돈 {n}",
+      "refuse": "거절",
+      "sign": "서명",
+      "state": {
+        "broken": "깨짐",
+        "lapsed": "기한 지남",
+        "offered": "제안됨",
+        "refused": "거절됨",
+        "signed": "서명됨"
+      },
+      "why": {
+        "ally_stayed_out": "{by}은(는) 상대의 전쟁에 들어오지 않았다.",
+        "broken_openly": "{by}이(가) 조약을 찢었다.",
+        "entry_late": "{by}은(는) 약속한 때까지 참전하지 않았다.",
+        "fought_partner": "{by}이(가) 상대와 전쟁에 들어갔다.",
+        "loan_unpaid": "{by}은(는) 돈을 내지 못했다.",
+        "territory_unmet": "{by}은(는) 약속한 선을 주지 못했다."
+      }
+    },
+    "diplo": {
+      "clause_add": "조항 더하기",
+      "enter": "{side} 편으로 참전",
+      "enter_title": "참전",
+      "finale": "모두의 회고록",
+      "finale_close": "닫기",
+      "finale_mandates": "이룬 과제 {n}/{total}",
+      "finale_open": "모두의 회고록을 나란히 보기",
+      "finale_read_by": "{who}이(가) 읽음",
+      "finale_treaties": "서명된 조약",
+      "finale_wires": "남이 읽은 전보",
+      "host": "방장",
+      "no_treaties": "아직 조약이 없습니다.",
+      "ready_count": "준비 {n}/{total}",
+      "seat": {
+        "away": "자리 비움",
+        "ready": "준비",
+        "reading": "읽는 중",
+        "regent": "섭정"
+      },
+      "slow_ask": "느리게 읽기: 30초 더 청하기",
+      "slow_asked": "{n}자리에서 시간을 더 청합니다.",
+      "slow_deny": "거절",
+      "slow_grant": "승인",
+      "slow_hint": "방장이 승인합니다. 이 장에 {n}번 남았습니다.",
+      "table": "자리",
+      "treaties": "비밀 조약",
+      "treaty_hint": "둘이 서명하면 묶입니다. 새기 전까지는 비밀입니다.",
+      "treaty_new": "조약 작성",
+      "treaty_send": "제안 보내기",
+      "wire_hint": "다음 장에 닿습니다. 암호가 약하면 제3국이 읽을 수 있습니다.",
+      "wire_left": "{chars}자 남음, 이 장에 {n}통 남음",
+      "wire_placeholder": "전보 내용",
+      "wire_send": "보내기",
+      "wires": "전보"
     }
   }
 }

@@ -47,7 +47,7 @@ import {
 } from "./snapshot/GameSnapshot";
 import { StrategicExecution } from "./strategic/StrategicExecution";
 import { GreatWarExecution } from "./ww1914/GreatWarExecution";
-import { gwPlayers } from "./ww1914/GwPlayers";
+import { gwPlayers, rebindGwSeats } from "./ww1914/GwPlayers";
 import { declareWarBlock } from "./ww1936/Diplomacy";
 import { scenarioPlayers } from "./ww1936/ScenarioPlayers";
 import { WorldWarExecution } from "./ww1936/WorldWarExecution";
@@ -133,6 +133,7 @@ export async function createGameRunner(
     );
   }
 
+  game.greatWar()?.setViewer(clientID ?? null);
   const gr = new GameRunner(
     game,
     new Executor(
@@ -183,6 +184,8 @@ export async function createGameRunnerFromSnapshot(
     teamGameSpawnAreas: gameMap.teamGameSpawnAreas,
     scenario: gameMap.scenario,
   });
+  rebindGwSeats(game, gameStart.players);
+  game.greatWar()?.setViewer(clientID ?? null);
   // No init(): the snapshot already holds every execution init() adds.
   return new GameRunner(
     game,

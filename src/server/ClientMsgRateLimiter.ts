@@ -16,7 +16,7 @@ const REJOINS_PER_MINUTE = 5;
 // cap; a person taps a few a second at most. Both share one bucket.
 const LOBBY_TOGGLES_PER_SECOND = 5;
 const LOBBY_TOGGLES_PER_MINUTE = 60;
-const LOBBY_TOGGLES = new Set(["pick_country", "spectate"]);
+const LOBBY_TOGGLES = new Set(["pick_country", "pick_seat", "spectate"]);
 const TOTAL_BYTES = 5 * 1024 * 1024; // 5MB per client
 export type RateLimitResult = "ok" | "limit" | "kick";
 

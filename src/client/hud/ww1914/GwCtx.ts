@@ -1,6 +1,7 @@
 import type {
   GwAskClause,
   GwBackDirection,
+  GwClause,
   GwGiveClause,
   GwReason,
   GwResearch,
@@ -139,6 +140,22 @@ export interface GwUi {
   /** The front a general is being picked for, and the one picked. */
   postOpen: GwTheatre | null;
   postArmed: string | null;
+  /** The diplomacy tab's drafts and how much of the inbox has been seen. */
+  diplo: GwDiploDraft;
+  /** The memoirs side by side are open. */
+  finale: boolean;
+}
+
+export interface GwDiploDraft {
+  wireTo: GwTag | null;
+  cipher: number;
+  text: string;
+  treatyTo: GwTag | null;
+  clauses: GwClause[];
+  /** A treaty waiting for the second tap of its break. */
+  armedBreak: number | null;
+  /** Telegrams received that were on screen. */
+  seenWires: number;
 }
 
 export interface GwCtx {
@@ -154,4 +171,6 @@ export interface GwCtx {
   /** Moves the camera to a place; absent with no map. */
   fly?(place: GwPlace): void;
   card(uid: number): GwCardView | undefined;
+  /** The name of the friend in a seat; null with nobody known. */
+  holder?(smallID: number): string | null;
 }

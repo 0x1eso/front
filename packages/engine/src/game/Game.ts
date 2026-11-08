@@ -404,6 +404,8 @@ export interface Player extends PlayerLike {
   tileChangeVersion(): number;
 
   isDisconnected(): boolean;
+  /** A friends' game resumed in a new lobby: a new connection takes this player. */
+  rebindClient(clientID: ClientID, isLobbyCreator: boolean): void;
   markDisconnected(
     isDisconnected: boolean,
     snapshot?: DisconnectSnapshot,

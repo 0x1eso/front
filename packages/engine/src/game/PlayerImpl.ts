@@ -2223,6 +2223,21 @@ export class PlayerImpl implements Player {
     return this._isDisconnected;
   }
 
+  rebindClient(clientID: ClientID, isLobbyCreator: boolean): void {
+    const i = this.playerInfo;
+    this.playerInfo = new PlayerInfo(
+      i.name,
+      i.playerType,
+      clientID,
+      i.id,
+      isLobbyCreator,
+      i.clanTag,
+      i.friends,
+      i.teamIndex,
+      i.nationFlag,
+    );
+  }
+
   markDisconnected(
     isDisconnected: boolean,
     snapshot?: DisconnectSnapshot,

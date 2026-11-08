@@ -14,8 +14,16 @@ import type { GreatWar } from "./GreatWar";
 import { peaceStep } from "./Peace";
 import { AMERICA_BAR, americaCan } from "./Sea";
 import { GW_AI_MAIN, GW_ENTRIES, GW_ENTRY_BAR, GwEntry } from "./Tables";
+import { brokenWords, treatyBars } from "./Treaties";
 import { enter, membersOf } from "./Wars";
-import { clampTo, everyMonths, fights, seatsOf } from "./World";
+import {
+  clampTo,
+  everyMonths,
+  fights,
+  other,
+  ruledBySeat,
+  seatsOf,
+} from "./World";
 
 const P_AI_MOVE = idHash("gw_ai_move");
 const P_HISTORY = idHash("gw_ai_history");
@@ -55,7 +63,11 @@ export function neutralChoice(
   if (e.natural === "central") central += 15;
   if (e.natural === "entente") entente += 15;
   entente += n.lean * 15;
-  return central > entente ? "central" : "entente";
+  // A side whose heads of state break treaties pays for it (design §9).
+  central -= brokenWords(gw, "central") * 10;
+  entente -= brokenWords(gw, "entente") * 10;
+  const pick = central > entente ? "central" : "entente";
+  return treatyBars(gw, n.tag, pick) ? other(pick) : pick;
 }
 
 /** A side going forward where a neutral is watching draws it in. */
@@ -102,7 +114,7 @@ function askSeats(gw: GreatWar, e: GwEntry, n: GwNationState): void {
 function neutralStep(gw: GreatWar, e: GwEntry): void {
   const s = gw.s;
   const n = gw.nation(e.tag);
-  if (n === null || n.side !== null || seatsOf(gw, e.tag).length > 0) return;
+  if (n === null || n.side !== null || ruledBySeat(gw, e.tag)) return;
   const late = s.day >= dayOf(e.earliest);
   const bold = n.ai === "hardline" ? 3 : n.ai === "cautious" ? 0 : 1;
   // Nobody sits out for nothing: the war's pressure and the going price add up.
@@ -124,7 +136,7 @@ function neutralStep(gw: GreatWar, e: GwEntry): void {
 function britainStep(gw: GreatWar): void {
   const s = gw.s;
   const n = gw.nation("GBR");
-  if (n === null || n.side !== null || seatsOf(gw, "GBR").length > 0) return;
+  if (n === null || n.side !== null || ruledBySeat(gw, "GBR")) return;
   const belgium = gw.nation("BEL")?.side === "entente";
   const west = s.theatres.find((t) => t.id === "west")!;
   const add = belgium ? 40 + n.lean * 20 : 6 + n.lean * 4;
@@ -137,7 +149,7 @@ function britainStep(gw: GreatWar): void {
 
 function americaEnters(gw: GreatWar): void {
   const n = gw.nation("USA");
-  if (n === null || n.side !== null || seatsOf(gw, "USA").length > 0) return;
+  if (n === null || n.side !== null || ruledBySeat(gw, "USA")) return;
   if (!americaCan(gw) || n.readiness < AMERICA_BAR) return;
   enter(gw, "USA", "entente", "america_entered");
 }
@@ -155,7 +167,7 @@ function russiansOnGermanSoil(gw: GreatWar, n: GwNationState): boolean {
  */
 function corpsEast(gw: GreatWar): void {
   const n = gw.nation("DEU");
-  if (n === null || !fights(n) || seatsOf(gw, "DEU").length > 0) return;
+  if (n === null || !fights(n) || ruledBySeat(gw, "DEU")) return;
   if (!russiansOnGermanSoil(gw, n)) return;
   if ((n.base.west ?? 0) <= CORPS_WEST_KEEPS) return;
   if ((n.base.east ?? 0) >= CORPS_EAST_WANTS) return;
@@ -276,7 +288,7 @@ export function aiStep(gw: GreatWar): void {
   corpsEast(gw);
   for (const e of GW_ENTRIES) neutralStep(gw, e);
   s.nations.forEach((n, i) => {
-    if (!fights(n) || seatsOf(gw, n.tag).length > 0) return;
+    if (!fights(n) || ruledBySeat(gw, n.tag)) return;
     n.alloc = aiAlloc(gw, n);
     if (n.alloc !== null && history(gw, i + s.chapter * 16)) {
       const main = historyMain(gw, n);

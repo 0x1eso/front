@@ -4,7 +4,7 @@
 // field needs no plumbing. Never store undefined: use null. Integers only.
 import { z } from "zod";
 import { GwBudgetStateSchema } from "./GwBudget";
-import { GW_TAGS } from "./GwCountries";
+import { GW_TAGS, GwTag as GwTagName } from "./GwCountries";
 import { GwCraftStateSchema } from "./GwCraft";
 import { GwHouseStateSchema } from "./GwHouse";
 import { GwLawStateSchema } from "./GwLaw";
@@ -996,6 +996,16 @@ export const GwSeatStateSchema = z.object({
     .default([]),
   /** The rival, the letters, the desk's pace (GwStory.ts). */
   story: GwStoryStateSchema.default(gwStoryStart),
+  /** Friends: an order came from this seat this chapter. */
+  ordered: z.boolean().default(false),
+  /** Friends: chapters in a row closed with nothing from this seat. */
+  idle: z.number().int().default(0),
+  /** Friends: the seat's own AI is running it (design §9). */
+  regent: z.boolean().default(false),
+  /** Telegrams sent this chapter. */
+  wired: z.number().int().default(0),
+  /** The player's connection is down. */
+  away: z.boolean().default(false),
   /** Absent unless the lobby asked for a prologue (GwPrologue.ts). */
   prologue: GwPrologueStateSchema.optional(),
   /** Inventions, the year's project, the footing (GwCraft.ts); absent until any. */
@@ -1181,6 +1191,114 @@ export const GwNewsSchema = z.object({
 });
 export type GwNews = z.infer<typeof GwNewsSchema>;
 
+// ---- Friends at one table (design §9) ----
+
+/** A telegram's length; the wire and the composer both read this. */
+export const GW_TELEGRAM_MAX = 280;
+export const GW_TELEGRAMS_PER_CHAPTER = 4;
+/**
+ * Cipher grades: what a telegram costs in authority and the chance in a
+ * hundred that a third seat's listeners read it. The table is the rule.
+ */
+export const GW_CIPHERS: readonly { cost: number; pct: number }[] = [
+  { cost: 0, pct: 35 },
+  { cost: 2, pct: 12 },
+  { cost: 6, pct: 2 },
+];
+/** What a country's listeners add to the chance, for its own copies. */
+export const GW_LISTENERS: Readonly<Partial<Record<GwTagName, number>>> = {
+  GBR: 10,
+};
+
+export const GwTelegramSchema = z.object({
+  uid: z.number().int(),
+  from: z.enum(GW_TAGS),
+  to: z.enum(GW_TAGS),
+  /** Index into GW_CIPHERS. */
+  cipher: z.number().int(),
+  /** Free text, already through the server's Censor. */
+  text: z.string(),
+  /** The chapter it was sent; it arrives when that chapter closes. */
+  chapter: z.number().int(),
+  delivered: z.boolean(),
+  /** Third seats whose listeners took a copy. */
+  copies: z.array(z.enum(GW_TAGS)),
+});
+export type GwTelegram = z.infer<typeof GwTelegramSchema>;
+
+/** Clauses a secret treaty is put together from. APPEND ONLY. */
+export const GW_CLAUSE_KINDS = [
+  /** Both: fight the same war. A neutral partner has GW_ALLY_GRACE chapters. */
+  "alliance",
+  /** `by` won't fight the other. */
+  "neutrality",
+  /** `by` promises the other a line: `theatre`, `value` its index. Judged at the end. */
+  "territory",
+  /** `by` pays `value` of money at signing and every GW_LOAN_EVERY chapters. */
+  "loan",
+  /** `by` opens the way: the other is a band stronger in `theatre`. */
+  "passage",
+  /** `by` is fighting at the other's side by chapter `value`. */
+  "entry",
+] as const;
+export type GwClauseKind = (typeof GW_CLAUSE_KINDS)[number];
+export const GW_TREATY_CLAUSES_MAX = 6;
+export const GW_LOAN_EVERY = 6;
+export const GW_LOAN_MAX = 2;
+export const GW_ALLY_GRACE = 3;
+/** Chapters an offer stands. */
+export const GW_OFFER_CHAPTERS = 2;
+
+export const GwClauseSchema = z.object({
+  kind: z.enum(GW_CLAUSE_KINDS),
+  /** The country bound; for an alliance, both are. */
+  by: z.enum(GW_TAGS),
+  theatre: z.enum(GW_THEATRES).nullable(),
+  /** A line, an amount or a chapter, by kind; 0 otherwise. */
+  value: z.number().int(),
+});
+export type GwClause = z.infer<typeof GwClauseSchema>;
+
+export const GW_TREATY_STATES = [
+  "offered",
+  "signed",
+  "refused",
+  "lapsed",
+  "broken",
+] as const;
+export type GwTreatyState = (typeof GW_TREATY_STATES)[number];
+
+export const GwTreatySchema = z.object({
+  uid: z.number().int(),
+  from: z.enum(GW_TAGS),
+  to: z.enum(GW_TAGS),
+  clauses: z.array(GwClauseSchema),
+  state: z.enum(GW_TREATY_STATES),
+  /** The chapter it was offered. */
+  chapter: z.number().int(),
+  signed: z.number().int().nullable(),
+  /** The world knows of it. */
+  leaked: z.boolean(),
+  /** Who broke it, the chapter and why (gw.treaty.why.<key>). */
+  brokenBy: z.enum(GW_TAGS).nullable(),
+  brokenAt: z.number().int().nullable(),
+  why: GwIdSchema.nullable(),
+  /** The parties' sides when last looked at: who moved tells who broke it. */
+  sides: z.array(z.enum(GW_SIDES).nullable()),
+  /** Chapter a neutral ally began to be waited for; null while none is. */
+  waiting: z.number().int().nullable(),
+});
+export type GwTreaty = z.infer<typeof GwTreatySchema>;
+
+/** The host's chapter timer, seconds (design §9). */
+export const GW_TIMER_MIN_SEC = 60;
+export const GW_TIMER_MAX_SEC = 240;
+/** The slow-reading vote: +GW_SLOW_SEC for everyone, the host agreeing. */
+export const GW_SLOW_SEC = 30;
+export const GW_SLOW_MAX = 3;
+/** Empty chapters in a row before the regent takes the seat. */
+export const GW_REGENT_AFTER = 2;
+
 /** All of the mode's state. Version bumps go through GreatWarSnapshot. */
 export const GreatWarStateSchema = z.object({
   seed: z.number().int(),
@@ -1248,5 +1366,13 @@ export const GreatWarStateSchema = z.object({
   landMoves: z.array(GwLandMoveSchema).default([]),
   /** The peace table, from the armistice on; null before. */
   table: GwTableStateSchema.nullable().default(null),
+  /** Seats that asked for more reading time this chapter, by smallID. */
+  slowAsked: z.array(z.number().int()).default([]),
+  /** Times this chapter's clock was lengthened. */
+  slowGranted: z.number().int().default(0),
+  telegrams: z.array(GwTelegramSchema).default([]),
+  nextTelegram: z.number().int().default(1),
+  treaties: z.array(GwTreatySchema).default([]),
+  nextTreaty: z.number().int().default(1),
 });
 export type GreatWarState = z.infer<typeof GreatWarStateSchema>;

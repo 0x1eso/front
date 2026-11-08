@@ -193,9 +193,13 @@ export class SettingsModal extends LitElement implements Controller {
   // are kept in the browser (SavedGamesApi), for everyone.
   private canSave(): boolean {
     const game = this.game;
+    // Great War 1914 with friends: the host keeps the game (design §3).
+    const hostOfFriends =
+      game?.isGreatWar() === true && game.myPlayer()?.isLobbyCreator() === true;
     return (
       game !== null &&
-      game.config().gameConfig().gameType === GameType.Singleplayer &&
+      (game.config().gameConfig().gameType === GameType.Singleplayer ||
+        hostOfFriends) &&
       !game.config().isReplay() &&
       (isSelfHosted() ||
         responseHasLinkedIdentity(lastUserMeResponse()?.response ?? false))
@@ -232,7 +236,10 @@ export class SettingsModal extends LitElement implements Controller {
               ? "saved_games.save_desc_local"
               : "saved_games.save_desc",
           )
-        : translateText(`saved_games.save_status.${status}`);
+        : status === "saved" &&
+            this.game?.config().gameConfig().gameType !== GameType.Singleplayer
+          ? translateText("gw.lobby.saved_friends")
+          : translateText(`saved_games.save_status.${status}`);
     return html`
       <button
         class="flex gap-3 items-center w-full text-left p-3 hover:bg-slate-700 rounded-sm text-white transition-colors disabled:opacity-60"

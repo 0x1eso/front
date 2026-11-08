@@ -1,4 +1,5 @@
 import { GameConfigPatch } from "@openfront/engine-api/Schemas";
+import type { GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
 import { GameEvent } from "@openfront/shared/EventBus";
 
@@ -26,4 +27,9 @@ export class SendSpectateEvent implements GameEvent {
 // World War 1936 (spec §8.1): pick a country in the lobby (null gives it up).
 export class SendPickCountryEvent implements GameEvent {
   constructor(public readonly tag: CountryTag | null) {}
+}
+
+// Great War 1914: take a seat in the lobby (null gives it up).
+export class SendPickSeatEvent implements GameEvent {
+  constructor(public readonly tag: GwTag | null) {}
 }

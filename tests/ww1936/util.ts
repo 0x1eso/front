@@ -63,6 +63,7 @@ export const HUMAN = "HUMAN001";
 export interface WwHuman {
   clientID: string;
   country?: CountryTag;
+  /** Great War 1914: the seat picked. */
   gwCountry?: GwTag;
 }
 
@@ -110,6 +111,8 @@ export async function wwRunnerCapture(
   humans: WwHuman[] = [],
   map: string = MINI,
   gameID?: string,
+  /** Whose client this runner is: Great War 1914 shows only that seat. */
+  viewer?: string,
 ): Promise<{ runner: GameRunner; updates: GameUpdateViewData[] }> {
   const start = wwGameStart(config, humans);
   // P3: the game id seeds politics' roll (plan decision 2).
@@ -117,7 +120,7 @@ export async function wwRunnerCapture(
   const updates: GameUpdateViewData[] = [];
   const runner = await createGameRunner(
     start,
-    undefined,
+    viewer,
     await loadMapFiles(
       new TestDataMapLoader(map),
       GameMapType.World1936,

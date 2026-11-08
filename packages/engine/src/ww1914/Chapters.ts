@@ -1,4 +1,4 @@
-import { GwSeatState } from "@openfront/engine-api/ww1914/GreatWarTypes";
+import type { GwSeatState } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import { gwChapters } from "@openfront/engine-lib/ww1914/Calendars";
 import { aiStep } from "./Ai";
 import { alliesStep } from "./Asks";
@@ -22,9 +22,12 @@ import { firstEdition, pressStep } from "./Press";
 import { rulerAudiences, rulerStep } from "./Ruler";
 import { closeUndecided } from "./SceneRun";
 import { seaStep } from "./Sea";
+import { closeSeats, regentStep, waitedFor } from "./Seats";
 import { storyStep } from "./Story";
 import { openSession, tableStep } from "./Table";
+import { telegramStep } from "./Telegrams";
 import { termsStep } from "./Terms";
+import { treatyStep } from "./Treaties";
 import { trimLines } from "./World";
 import { worldFlagsStep } from "./WorldFlags";
 
@@ -57,17 +60,13 @@ export const GW_CHAPTER_STEPS: readonly ((gw: GreatWar) => void)[] = [
   storyStep,
   tableStep,
   endingStep,
+  treatyStep,
+  regentStep,
+  telegramStep,
 ];
 
-/** Seats that count for "everyone is ready": a dropped friend doesn't. */
-function waitedFor(gw: GreatWar, seat: GwSeatState): boolean {
-  if (seat.memoir !== null) return false;
-  const p = gw.mg.playerBySmallID(seat.smallID);
-  return !(p.isPlayer() && p.isDisconnected());
-}
-
 export function allReady(gw: GreatWar): boolean {
-  const seats = gw.s.seats.filter((x) => waitedFor(gw, x));
+  const seats = gw.s.seats.filter(waitedFor);
   return seats.length > 0 && seats.every((x) => x.ready);
 }
 
@@ -95,8 +94,11 @@ export function openChapter(gw: GreatWar, ticks: number): void {
   s.day = s.closingDay ?? ch.day + s.dayShift;
   stampMobilisation(gw);
   s.deadlineTick = gw.deadlineFrom(ticks);
+  s.slowAsked = [];
+  s.slowGranted = 0;
   for (const seat of s.seats) {
     seat.ready = false;
+    seat.wired = 0;
     seat.audiences = rulerAudiences(
       gw,
       seat,
@@ -118,7 +120,11 @@ export function advanceChapter(
   late: boolean,
 ): void {
   const s = gw.s;
-  for (const seat of s.seats) closeUndecided(gw, seat, late);
+  // Nobody decided for a seat that isn't there: that is the proxy's stamp too.
+  for (const seat of s.seats) {
+    closeUndecided(gw, seat, late || !waitedFor(seat));
+  }
+  closeSeats(gw);
   for (const seat of s.seats) trimLines(gw, seat);
   for (const step of GW_CHAPTER_STEPS) {
     step(gw);

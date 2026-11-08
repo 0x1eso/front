@@ -27,19 +27,21 @@ import { countryTab } from "./GwCountry";
 import type { GwCtx, GwUi } from "./GwCtx";
 import { deskTab, reader } from "./GwDesk";
 import { dictCard } from "./GwDict";
+import { diploTab, finaleView } from "./GwDiplo";
 import { frontsTab } from "./GwFronts";
 import { setMapBusy } from "./GwLensModel";
 import { GwMap } from "./GwMap";
 import { GwMapPaint } from "./GwMapPaint";
 import { memoirTab } from "./GwMemoir";
 import {
-  GW_TABS,
   GwTab,
   loadShelf,
   saveShelf,
   shelve,
   shelveMemoir,
   tabBadge,
+  tabsOf,
+  wiresIn,
 } from "./GwModel";
 import { notebookTab } from "./GwNotebook";
 import { peopleTab } from "./GwPeople";
@@ -162,6 +164,16 @@ export class GwPanel extends LitElement implements Controller {
     postOpen: null,
     postArmed: null,
     shelf: loadShelf(),
+    diplo: {
+      wireTo: null,
+      cipher: 1,
+      text: "",
+      treatyTo: null,
+      clauses: [],
+      armedBreak: null,
+      seenWires: 0,
+    },
+    finale: false,
   };
 
   createRenderRoot() {
@@ -374,7 +386,9 @@ export class GwPanel extends LitElement implements Controller {
       ui.tab = "memoir";
       ui.folded = false;
       ui.readerUid = null;
+      ui.finale = data.finale !== null;
     }
+    if (ui.tab === "diplo") ui.diplo.seenWires = wiresIn(seat);
   }
 
   /** The table takes the screen as it opens, and the camera follows what is said. */
@@ -476,6 +490,8 @@ export class GwPanel extends LitElement implements Controller {
         return notebookTab(c);
       case "blocs":
         return blocsTab(c);
+      case "diplo":
+        return diploTab(c);
       case "memoir":
         return memoirTab(c);
       default:
@@ -499,6 +515,7 @@ export class GwPanel extends LitElement implements Controller {
       redraw: () => this.requestUpdate(),
       fly: (p) => this.painted?.fly(p),
       card: (uid) => seat.desk.find((x: GwCardView) => x.uid === uid),
+      holder: (smallID) => this.holderName(smallID),
     };
     const replaying = this.replay?.active === true;
     const painting = this.mapCells() !== null;
@@ -549,9 +566,9 @@ export class GwPanel extends LitElement implements Controller {
           class="flex shrink-0 flex-wrap items-center gap-0.5 border-b border-white/10 p-1.5"
           data-gw-tabs
         >
-          ${GW_TABS.filter(
-            (t) => t !== "table" || (seat.table ?? null) !== null,
-          ).map((tab) => this.tabButton(c, tab))}
+          ${tabsOf(data)
+            .filter((t) => t !== "table" || (seat.table ?? null) !== null)
+            .map((tab) => this.tabButton(c, tab))}
           <button
             class="ml-auto px-2 text-white/60 hover:text-white"
             data-gw-fold
@@ -583,12 +600,20 @@ export class GwPanel extends LitElement implements Controller {
       ${ui.spot === null || replaying || painting
         ? nothing
         : placeSheet(c, ui.spot)}
-      ${talk === null ? nothing : talkView(c, talk.t, talk.card)} ${dictCard(c)}`;
+      ${talk === null ? nothing : talkView(c, talk.t, talk.card)} ${dictCard(c)}
+      ${ui.finale && data.finale !== null ? finaleView(c) : nothing}`;
+  }
+
+  private holderName(smallID: number): string | null {
+    const p = this.game?.playerBySmallID?.(smallID);
+    if (p === undefined || !p.isPlayer()) return null;
+    const id = p.clientID();
+    return id === null ? null : this.game.usernameOf(id);
   }
 
   private tabButton(c: GwCtx, tab: GwTab) {
     const on = this.ui.tab === tab;
-    const badge = tabBadge(c.seat, tab);
+    const badge = tabBadge(c.seat, tab, this.ui.diplo.seenWires);
     return html`<button
       class="${on
         ? "bg-white/20 text-white"
@@ -597,6 +622,7 @@ export class GwPanel extends LitElement implements Controller {
       @click=${() => {
         this.ui.tab = tab;
         this.ui.folded = false;
+        if (tab === "diplo") this.ui.diplo.seenWires = wiresIn(c.seat);
         this.requestUpdate();
       }}
     >

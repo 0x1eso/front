@@ -3,6 +3,8 @@ import type { Player as StartPlayer } from "@openfront/engine-api/Schemas";
 import { gwCountry, GwTag } from "@openfront/engine-api/ww1914/GwCountries";
 import { PseudoRandom } from "@openfront/engine-lib/PseudoRandom";
 import type { GwWorld } from "@openfront/engine-lib/ww1914/World1914";
+import type { Game } from "../game/Game";
+import { takeBack } from "./Seats";
 
 /**
  * Every country as a player, GW_TAGS order. Humans take their pick if it is
@@ -39,4 +41,28 @@ export function gwPlayers(
       def.flag,
     );
   });
+}
+
+/**
+ * A friends' game resumed from a save, in a new lobby: new connections take
+ * the saved seats by the country the server stamped on them. A seat nobody
+ * took stays with its old id, away, and its regent runs it. A solo resume
+ * names no seat and keeps its player.
+ */
+export function rebindGwSeats(
+  game: Game,
+  players: readonly StartPlayer[],
+): void {
+  const gw = game.greatWar();
+  if (gw === null || !players.some((p) => p.gwCountry !== undefined)) return;
+  for (const seat of gw.s.seats) {
+    const p = game.playerBySmallID(seat.smallID);
+    if (!p.isPlayer()) continue;
+    const taker = players.find((x) => x.gwCountry === seat.tag);
+    if (taker !== undefined) {
+      p.rebindClient(taker.clientID, taker.isLobbyCreator ?? false);
+      takeBack(gw, seat);
+    }
+    p.markDisconnected(taker === undefined);
+  }
 }

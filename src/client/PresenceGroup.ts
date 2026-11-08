@@ -44,6 +44,8 @@ export function loggableStartMessage(
 ): Record<string, unknown> {
   const loggable: Record<string, unknown> = { ...message };
   delete loggable.groupToken;
+  // Megabytes of save: not for a log line.
+  delete loggable.snapshot;
   return loggable;
 }
 

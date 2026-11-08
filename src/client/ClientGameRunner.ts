@@ -286,6 +286,10 @@ export function joinLobby(
       resolveJoin();
       // For multiplayer games, GameStartInfo is not known until game starts.
       lobbyConfig.gameStartInfo = message.gameStartInfo;
+      // Great War 1914: a friends' game resumed from a save.
+      if (message.snapshot !== undefined) {
+        lobbyConfig.snapshot = message.snapshot;
+      }
       createClientGame(
         lobbyConfig,
         clientID,

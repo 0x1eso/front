@@ -79,6 +79,16 @@ export const GW_WRITTEN_TAGS = [
   "AUH",
   "RUS",
 ] as const satisfies readonly GwTag[];
+/**
+ * The seats a friends' lobby offers: the four written countries (owner's
+ * ww160 call 1). The rest of the powers are played by their AI.
+ */
+export const GW_SEAT_TAGS: readonly GwTag[] = GW_WRITTEN_TAGS;
+export const GW_MAX_SEATS = GW_WRITTEN_TAGS.length;
+
+export function isGwSeatTag(v: string): boolean {
+  return (GW_SEAT_TAGS as readonly string[]).includes(v);
+}
 
 export interface GwCountryDef {
   /** English name: the engine's player name. Screens use `gw.country.<TAG>`. */

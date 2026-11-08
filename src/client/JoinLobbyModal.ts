@@ -3,6 +3,7 @@ import { GameMode, GameType } from "@openfront/engine-api/game/GameTypes";
 import type { CountryTag } from "@openfront/engine-api/ww1936/Countries";
 import { assetUrl } from "@openfront/shared/AssetUrls";
 import { EventBus } from "@openfront/shared/EventBus";
+import type { GwResumeInfo } from "@openfront/shared/WireSchemas";
 import {
   ClientInfo,
   GameInfo,
@@ -24,7 +25,12 @@ import {
 } from "../client/Utils";
 import { getApiBase } from "./Api";
 import { gamePortal } from "./GamePortal";
-import { SendPickCountryEvent, SendSpectateEvent } from "./LobbyEvents";
+import { gwResumeNote, GwSeatPick, gwSeatPicker } from "./GwLobby";
+import {
+  SendPickCountryEvent,
+  SendPickSeatEvent,
+  SendSpectateEvent,
+} from "./LobbyEvents";
 import { PublicLobbySocket } from "./LobbySocket";
 import { JoinLobbyEvent } from "./Main";
 import { ensureServerList, redirectToGameVersion } from "./ServerList";
@@ -61,6 +67,8 @@ export class JoinLobbyModal extends BaseModal {
   @state() private gameConfig: GameConfig | null = null;
   // World War 1936 lobbies (spec §8.1): who picked which country.
   @state() private countryPicks: { clientID: string; tag: CountryTag }[] = [];
+  @state() private gwPicks: GwSeatPick[] = [];
+  @state() private gwResume: GwResumeInfo | null = null;
   @state() private currentLobbyId: string = "";
   @state() private currentClientID: string = "";
   @state() private nationCount: number = 0;
@@ -117,6 +125,8 @@ export class JoinLobbyModal extends BaseModal {
       this.isConnecting = false;
     }
     this.countryPicks = lobby.countryPicks ?? [];
+    this.gwPicks = lobby.gwPicks ?? [];
+    this.gwResume = lobby.gwResume ?? null;
     this.updateFromLobby({
       ...lobby,
       startsAt: lobby.startsAt ?? undefined,
@@ -271,6 +281,23 @@ export class JoinLobbyModal extends BaseModal {
                           new SendPickCountryEvent(e.detail.tag),
                         )}
                     ></ww-country-picker>`
+                  : ""}
+                ${this.gameConfig?.greatWar1914 === true && !this.isSpectating
+                  ? html`<div class="mt-6 space-y-2">
+                      ${this.gwResume === null
+                        ? ""
+                        : gwResumeNote(this.gwResume)}
+                      ${gwSeatPicker(
+                        this.gwPicks,
+                        this.currentClientID,
+                        new Map(
+                          this.players.map((c) => [c.clientID, c.username]),
+                        ),
+                        (tag) =>
+                          this.eventBus?.emit(new SendPickSeatEvent(tag)),
+                        this.gwResume?.seats ?? null,
+                      )}
+                    </div>`
                   : ""}
                 ${this.players.length > 0
                   ? html`
@@ -612,6 +639,8 @@ export class JoinLobbyModal extends BaseModal {
     this.currentClientID = "";
     this.gameConfig = null;
     this.countryPicks = [];
+    this.gwPicks = [];
+    this.gwResume = null;
     this.players = [];
     this.nationCount = 0;
     this.lobbyStartAt = null;
@@ -670,6 +699,8 @@ export class JoinLobbyModal extends BaseModal {
     if (this.lobbyIdInput) this.lobbyIdInput.value = "";
     this.gameConfig = null;
     this.countryPicks = [];
+    this.gwPicks = [];
+    this.gwResume = null;
     this.players = [];
     this.currentLobbyId = "";
     this.currentClientID = "";

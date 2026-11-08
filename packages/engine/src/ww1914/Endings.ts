@@ -100,6 +100,9 @@ export function closeSeat(
   if (s.ended === null && s.seats.every((x) => x.memoir !== null)) {
     s.ended = ending;
   }
+  if (s.seats.length > 1 && s.seats.every((x) => gw.nation(x.tag)?.out)) {
+    s.ended = "home_collapse";
+  }
 }
 
 /** Chapter step: a seat whose country has left the war has no more to do. */

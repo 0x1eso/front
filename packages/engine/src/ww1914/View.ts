@@ -1,14 +1,23 @@
 import {
   GW_FRONT_START,
+  GW_SLOW_MAX,
+  GW_TELEGRAMS_PER_CHAPTER,
   GwCard,
   GwPersonState,
   GwSeatState,
+  GwTelegram,
   GwTheatre,
+  GwTreaty,
 } from "@openfront/engine-api/ww1914/GreatWarTypes";
 import type {
   GreatWarData,
   GwCardView,
+  GwDiploView,
+  GwFinaleView,
+  GwRosterView,
   GwSeatView,
+  GwTelegramView,
+  GwTreatyView,
 } from "@openfront/engine-api/ww1914/GwView";
 import type { GwScene } from "@openfront/engine-api/ww1914/SceneDsl";
 import { gwChapters } from "@openfront/engine-lib/ww1914/Calendars";
@@ -39,6 +48,7 @@ import {
   sceneOf,
   speakerRole,
 } from "./SceneRun";
+import { isHost } from "./Seats";
 import { backOpen, backWho } from "./SendBack";
 import { inOpening, newcomers } from "./Story";
 import { tableView } from "./Table";
@@ -232,11 +242,108 @@ function seatView(gw: GreatWar, seat: GwSeatState): GwSeatView {
     world: worldView(gw, seat),
     ruler: rulerView(gw, seat),
     prologue: prologueView(gw, seat),
+    diplo: diploView(gw, seat),
   };
 }
 
-/** A copy: the view crosses to the main thread while the state moves on. */
-export function gwView(gw: GreatWar): GreatWarData {
+function treatyView(
+  gw: GreatWar,
+  t: GwTreaty,
+  seat: GwSeatState | null,
+): GwTreatyView {
+  return {
+    uid: t.uid,
+    from: t.from,
+    to: t.to,
+    clauses: t.clauses,
+    state: t.state,
+    date: dateOf(gw, t.chapter),
+    signed: t.signed === null ? null : dateOf(gw, t.signed),
+    leaked: t.leaked,
+    brokenBy: t.brokenBy,
+    why: t.why,
+    mine: seat !== null && (t.from === seat.tag || t.to === seat.tag),
+    answer: seat !== null && t.state === "offered" && t.to === seat.tag,
+  };
+}
+
+/** How this seat holds a telegram; null if it doesn't. */
+function boxOf(t: GwTelegram, seat: GwSeatState): GwTelegramView["box"] | null {
+  if (t.from === seat.tag) return "sent";
+  if (!t.delivered) return null;
+  if (t.to === seat.tag) return "in";
+  return t.copies.includes(seat.tag) ? "copy" : null;
+}
+
+function diploView(gw: GreatWar, seat: GwSeatState): GwDiploView {
+  const s = gw.s;
+  return {
+    telegrams: s.telegrams.flatMap((t) => {
+      const box = boxOf(t, seat);
+      if (box === null) return [];
+      return [
+        {
+          uid: t.uid,
+          from: t.from,
+          to: t.to,
+          box,
+          cipher: t.cipher,
+          text: t.text,
+          date: dateOf(gw, t.chapter),
+          delivered: t.delivered,
+        },
+      ];
+    }),
+    treaties: s.treaties
+      .filter((t) => t.from === seat.tag || t.to === seat.tag || t.leaked)
+      .map((t) => treatyView(gw, t, seat)),
+    wiresLeft: Math.max(0, GW_TELEGRAMS_PER_CHAPTER - seat.wired),
+  };
+}
+
+function rosterView(gw: GreatWar): GwRosterView[] {
+  return gw.s.seats.map((seat) => ({
+    smallID: seat.smallID,
+    tag: seat.tag,
+    ready: seat.ready,
+    regent: seat.regent,
+    away: seat.away,
+    host: isHost(gw, seat),
+  }));
+}
+
+/** Everything comes out at the end: nobody's desk is left to protect. */
+function finaleView(gw: GreatWar): GwFinaleView | null {
+  const s = gw.s;
+  if (s.ended === null || s.seats.length < 2) return null;
+  return {
+    memoirs: s.seats.flatMap((seat) =>
+      seat.memoir === null
+        ? []
+        : [{ smallID: seat.smallID, tag: seat.tag, memoir: seat.memoir }],
+    ),
+    treaties: s.treaties
+      .filter((t) => t.signed !== null)
+      .map((t) => treatyView(gw, t, null)),
+    intercepted: s.telegrams
+      .filter((t) => t.copies.length > 0)
+      .map((t) => ({
+        from: t.from,
+        to: t.to,
+        by: t.copies,
+        text: t.text,
+        date: dateOf(gw, t.chapter),
+      })),
+  };
+}
+
+/**
+ * A copy: the view crosses to the main thread while the state moves on.
+ * `viewer`: the smallID whose seat to include; `undefined` includes all of
+ * them and is for tests and tools, never a client. A client's worker passes
+ * its own seat, or null for a spectator.
+ */
+export function gwView(gw: GreatWar, viewer?: number | null): GreatWarData {
   const s = gw.s;
   const chapters = gwChapters(s.calendar);
   const data: GreatWarData = {
@@ -251,7 +358,16 @@ export function gwView(gw: GreatWar): GreatWarData {
     landMoves: s.landMoves,
     opening: s.opening,
     temp: s.temp,
-    seats: s.seats.map((seat) => seatView(gw, seat)),
+    seats: s.seats
+      .filter((seat) => viewer === undefined || seat.smallID === viewer)
+      .map((seat) => seatView(gw, seat)),
+    roster: rosterView(gw),
+    slow: {
+      asked: s.slowAsked,
+      granted: s.slowGranted,
+      max: GW_SLOW_MAX,
+    },
+    finale: finaleView(gw),
   };
   return JSON.parse(JSON.stringify(data)) as GreatWarData;
 }

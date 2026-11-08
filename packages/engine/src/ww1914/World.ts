@@ -68,6 +68,13 @@ export function seatsOf(gw: GreatWar, tag: GwTag): GwSeatState[] {
   return gw.s.seats.filter((x) => x.tag === tag && x.memoir === null);
 }
 
+/** A person holds this country: a regent's seat is the AI's to run. */
+export function ruledBySeat(gw: GreatWar, tag: GwTag): boolean {
+  return gw.s.seats.some(
+    (x) => x.tag === tag && x.memoir === null && !x.regent,
+  );
+}
+
 export function fights(n: GwNationState | null): boolean {
   return n !== null && n.side !== null && !n.out;
 }
