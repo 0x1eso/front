@@ -274,6 +274,7 @@ export class WwWhitePeaceCard extends LitElement implements Controller {
       return;
     }
     layer.style.display = "flex";
+    layer.style.flexDirection = "column";
     if (window.innerWidth < SHEET_MAX_WIDTH) {
       layer.style.left = "0";
       layer.style.right = "0";
@@ -308,7 +309,7 @@ export class WwWhitePeaceCard extends LitElement implements Controller {
     const key = `deal:${v.mode}:${v.to}`;
     const sheet = window.innerWidth < SHEET_MAX_WIDTH;
     return html`<div
-      class="pointer-events-auto flex min-h-0 w-full flex-col border border-emerald-300/80 bg-gray-900/95 px-2 py-1.5 shadow-xl ${sheet
+      class="pointer-events-auto flex min-h-0 w-full flex-1 flex-col border border-emerald-300/80 bg-gray-900/95 px-2 py-1.5 shadow-xl ${sheet
         ? "rounded-t-lg"
         : "rounded-lg"}"
     >

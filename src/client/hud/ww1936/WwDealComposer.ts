@@ -243,6 +243,12 @@ function regionList(
   </div>`;
 }
 
+const MODE_ICON: Readonly<Record<DealComposerView["mode"], string>> = {
+  deal: "🤝",
+  ultimatum: "⚠",
+  collab: "🏛",
+};
+
 const TONE: Readonly<Record<string, string>> = {
   high: "bg-emerald-400",
   medium: "bg-amber-300",
@@ -267,10 +273,12 @@ export function dealComposerTemplate(
   return html`<div
     data-ww-deal=${v.mode}
     data-ww-deal-to=${v.to}
-    class="flex min-h-0 flex-col gap-1.5 text-xs"
+    class="flex min-h-0 flex-1 flex-col gap-1.5 text-xs"
   >
     <div class="flex items-center gap-1">
-      <b class="min-w-0 flex-1 truncate leading-tight">🤝 ${v.title}</b>
+      <b class="min-w-0 flex-1 truncate leading-tight"
+        >${MODE_ICON[v.mode]} ${v.title}</b
+      >
       <button
         type="button"
         data-ww-act="deal_close"
