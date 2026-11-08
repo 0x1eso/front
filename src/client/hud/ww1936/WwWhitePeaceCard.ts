@@ -151,6 +151,14 @@ export class WwWhitePeaceCard extends LitElement implements Controller {
     return 250;
   }
 
+  /**
+   * While the game is paused too: the diplomacy rows open the composer and
+   * its taps redraw it (they read only the views and the UI state).
+   */
+  idleTick() {
+    this.tick();
+  }
+
   tick() {
     const card = this.cardView();
     const now = this.game?.ticks() ?? 0;

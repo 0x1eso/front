@@ -440,6 +440,27 @@ describe("the one answer card", () => {
     ui.close();
   });
 
+  it("the composer opens while the game is paused (the idle tick redraws it)", async () => {
+    const eg = new WwEndgameView();
+    const g = game("POL", eg);
+    const el = document.createElement(
+      "ww-white-peace-card",
+    ) as WwWhitePeaceCard;
+    el.game = g as never;
+    el.eventBus = new EventBus();
+    document.body.appendChild(el);
+    el.init();
+    el.tick();
+    await el.updateComplete;
+    expect(document.querySelector("[data-ww-deal]")).toBeNull();
+    // Paused: no game tick arrives, only the idle tick.
+    openDiploAct(g, { kind: "compose", mode: "deal", to: ID("DEU") });
+    el.idleTick();
+    await el.updateComplete;
+    expect(document.querySelector("[data-ww-deal]")).not.toBeNull();
+    dealUiOf(g).close();
+  });
+
   it("on a phone a pending card stands above the composer sheet, which yields room for it", async () => {
     const eg = new WwEndgameView();
     eg.apply({ news: [], deals: [deal()] });
