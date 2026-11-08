@@ -16,7 +16,6 @@
  * without armies.
  */
 
-import { wrapMidX } from "./WrapMid";
 import {
   ARMY_AUTO,
   ARMY_EXECUTING,
@@ -31,7 +30,18 @@ import {
   armyGroupColorsOf,
   multiSelectOf,
 } from "../../../hud/ww1936/MultiSelect";
-import type { TokenLayoutCache } from "../../../view/LandTokenLayout";
+import {
+  BARS_GRAY,
+  C_ARMY,
+  C_DIVISION,
+  C_REGION,
+  type Counter,
+  LEVEL_ARMY,
+  LEVEL_DIVISION,
+  LEVEL_REGION,
+  stepPm,
+  type TokenLayoutCache,
+} from "../../../view/LandTokenLayout";
 import { autoLevelOf } from "../../../view/WarBadges";
 import type { WwLandView } from "../../../view/WwLandView";
 import { DynamicInstanceBuffer } from "../DynamicBuffer";
@@ -53,6 +63,7 @@ import {
 import fragSrc from "../shaders/army-token/army-token.frag.glsl?raw";
 import vertSrc from "../shaders/army-token/army-token.vert.glsl?raw";
 import { createProgram, shaderSrc } from "../utils/GlUtils";
+import { wrapMidX } from "./WrapMid";
 
 /** Floats per instance: three vec4 (see army-token.vert.glsl). */
 const FLOATS = 12;
@@ -60,6 +71,10 @@ export const KIND_TOKEN = 0;
 export const KIND_CHIP = 1;
 export const KIND_DOT = 2;
 export const KIND_FRONT_DOTS = 3;
+/** ww162 §3.1: a "+N" chip (more of my divisions in a region). */
+export const KIND_MORE = 4;
+/** ww162 §3.1: one of my divisions, a token at 75 % (DIVISION_SCALE). */
+export const KIND_DIVISION = 5;
 /** At most this many front dots in a region (spec §15.2). */
 const FRONT_DOTS_MAX = 5;
 /** Front-row state codes the shader reads (army-token.frag.glsl): pills 8..11 and 16, an order badge 24. */
@@ -92,9 +107,23 @@ const FOG_GHOST = 2;
 const FOG_GRAY = 4;
 /** The army group colour sits above the fog bits in the same float (army-token.frag.glsl). */
 const GROUP_UNIT = 8;
-/** A bar in five steps (spec §8.9, "close" band). */
-const stepPm = (pm: number): number =>
-  Math.min(1000, Math.ceil(pm / 200) * 200);
+/** Flag bits in an instance's tenth float (army-token.frag.glsl): chosen, then the zone hue + 1 (0: no rim), then a pin. */
+const FLAG_CHOSEN = 1;
+const HUE_UNIT = 2;
+const FLAG_PIN = 16;
+
+/** The flags float: chosen, my counter's zone-hue rim (hue -1: none), a pinned division. */
+export function counterFlags(
+  chosen: boolean,
+  hue: number,
+  pinned: boolean,
+): number {
+  return (
+    (chosen ? FLAG_CHOSEN : 0) +
+    HUE_UNIT * (hue < 0 ? 0 : (hue % 4) + 1) +
+    (pinned ? FLAG_PIN : 0)
+  );
+}
 
 const NO_GHOSTS: readonly FogGhost[] = [];
 
@@ -218,50 +247,62 @@ export class ArmyTokenPass {
     this.seenGroups = groups.version;
     this.seenFog = fogStamp;
 
-    const n = layout.count;
+    const n = layout.counterCount;
+    const level = layout.level;
     const ghosts: readonly FogGhost[] = fog?.ghosts() ?? NO_GHOSTS;
-    const lod = n > 0 ? layout.placements[0].lod : 0;
-    const fronts = lod <= 1 ? this.frontDots(view, me, selection.army) : 0;
-    const directRows = lod <= 1 ? this.directDots(view, me, selection.army) : 0;
+    const lod = layout.count > 0 ? layout.placements[0].lod : 0;
+    // ww162: the front dots and the direct attack's region pills stand for
+    // divisions, which the division level draws one by one.
+    const armyLevel = level === LEVEL_ARMY && lod <= 1;
+    const fronts = armyLevel ? this.frontDots(view, me, selection.army) : 0;
+    const directRows =
+      armyLevel || level === LEVEL_DIVISION
+        ? this.directDots(view, me, selection.army, !armyLevel)
+        : 0;
     this.buf.ensureCapacity(n + fronts + directRows + ghosts.length);
     const f = this.buf.float32;
     let o = 0;
     for (let i = 0; i < fronts * FLOATS; i++) f[o++] = this.frontData[i];
     for (let i = 0; i < directRows * FLOATS; i++) f[o++] = this.directData[i];
-    const kind = lod === 0 ? KIND_TOKEN : lod === 1 ? KIND_CHIP : KIND_DOT;
-    let chosen = -1;
+    const kind =
+      level === LEVEL_REGION
+        ? KIND_CHIP
+        : lod === 0
+          ? KIND_TOKEN
+          : lod === 1
+            ? KIND_CHIP
+            : KIND_DOT;
     for (const g of ghosts) o = this.writeGhost(f, o, g, kind);
-    for (let i = 0; i < n; i++) {
-      const fv = fog?.armyView(layout.armies[i].id) ?? null;
-      if (fv !== null && !fv.visible) continue;
-      if (layout.armies[i].id === selection.army) {
-        chosen = i; // drawn last, on top
-        continue;
+    const sel = selection.army;
+    // The chosen army's counters (and those multi-select holds) last, on top.
+    for (let pass = 0; pass < 2; pass++) {
+      for (let i = 0; i < n; i++) {
+        const c = layout.counters[i];
+        let chosen = false;
+        for (const id of c.members) {
+          if (id === sel || multi.has(id)) chosen = true;
+        }
+        if (chosen !== (pass === 1)) continue;
+        if (c.type === C_ARMY) {
+          const id = layout.armies[c.index].id;
+          const fv = fog?.armyView(id) ?? null;
+          if (fv !== null && !fv.visible) continue;
+          o = this.writeToken(
+            f,
+            o,
+            layout,
+            c.index,
+            kind,
+            chosen,
+            groups.colorOf(id),
+            fv,
+            me,
+            c,
+          );
+        } else {
+          o = this.writeCounter(f, o, c, chosen, groups.colorOf(c.army));
+        }
       }
-      o = this.writeToken(
-        f,
-        o,
-        layout,
-        i,
-        kind,
-        multi.has(layout.armies[i].id),
-        groups.colorOf(layout.armies[i].id),
-        fv,
-        me,
-      );
-    }
-    if (chosen >= 0) {
-      o = this.writeToken(
-        f,
-        o,
-        layout,
-        chosen,
-        kind,
-        true,
-        groups.colorOf(layout.armies[chosen].id),
-        fog?.armyView(layout.armies[chosen].id) ?? null,
-        me,
-      );
     }
     this.count = o / FLOATS;
     if (this.count > 0) {
@@ -281,11 +322,11 @@ export class ArmyTokenPass {
     group: number,
     fog: FogArmyView | null,
     me: number,
+    c: Counter,
   ): number {
     const a = layout.armies[i];
-    const p = layout.placements[i];
-    f[o] = p.x;
-    f[o + 1] = p.y;
+    f[o] = c.x;
+    f[o + 1] = c.y;
     f[o + 2] = kind;
     f[o + 3] = a.owner;
     f[o + 4] = a.symbol;
@@ -297,7 +338,7 @@ export class ArmyTokenPass {
     // Automation: the "A" mark shows on the viewer's own auto armies only.
     f[o + 8] =
       a.owner === me ? a.state : a.state & ~(ARMY_AUTO | ARMY_EXECUTING);
-    f[o + 9] = chosen ? 1 : 0;
+    f[o + 9] = counterFlags(chosen, c.hue, false);
     // ww7: the auto level (1 defence, 2 full) of the viewer's own armies,
     // shown beside the "A".
     f[o + 10] =
@@ -316,6 +357,41 @@ export class ArmyTokenPass {
       f[o + 6] = 0;
       f[o + 7] = 0;
     }
+    return o + FLOATS;
+  }
+
+  /**
+   * ww162 §3.1: a region chip (KIND_CHIP, its armies summed as the layout
+   * worked them out through the fog), one of my divisions (KIND_DIVISION)
+   * or a "+N" chip (KIND_MORE).
+   */
+  private writeCounter(
+    f: Float32Array,
+    o: number,
+    c: Counter,
+    chosen: boolean,
+    group: number,
+  ): number {
+    f[o] = c.x;
+    f[o + 1] = c.y;
+    f[o + 2] =
+      c.type === C_REGION
+        ? KIND_CHIP
+        : c.type === C_DIVISION
+          ? KIND_DIVISION
+          : KIND_MORE;
+    f[o + 3] = c.owner;
+    f[o + 4] = c.symbol;
+    f[o + 5] = c.shown;
+    f[o + 6] = c.strengthPm;
+    f[o + 7] = c.orgPm;
+    f[o + 8] = c.state;
+    f[o + 9] = counterFlags(chosen, c.hue, c.pinned);
+    f[o + 10] = 0;
+    f[o + 11] =
+      (c.approx ? FOG_APPROX : 0) |
+      (c.bars === BARS_GRAY ? FOG_GRAY : 0) |
+      (c.type === C_DIVISION ? GROUP_UNIT * group : 0);
     return o + FLOATS;
   }
 
@@ -403,6 +479,7 @@ export class ArmyTokenPass {
     view: WwLandView,
     me: number,
     chosen: number | null,
+    noRegionPills = false,
   ): number {
     const data = this.directData;
     data.length = 0;
@@ -439,6 +516,7 @@ export class ArmyTokenPass {
       row(wrapMidX(fx, tx, w), (fy + ty) / 2, CODE_ATK, n, 0);
     }
     for (const [region, kind, n] of dv.at) {
+      if (noRegionPills) break;
       put(region, kind === 3 ? CODE_WALK : CODE_ATK + 1 + kind, n);
     }
     for (const [region, list] of per) {
